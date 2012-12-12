@@ -45,7 +45,7 @@ static const char *const defaultDeviceACL[] = {
 #define DEVICE_PTY_MAJOR 136
 #define DEVICE_SND_MAJOR 116
 
-bool qemuCgroupControllerActive(struct qemud_driver *driver,
+bool qemuCgroupControllerActive(virQEMUDriverPtr driver,
                                 int controller)
 {
     if (driver->cgroup == NULL)
@@ -188,7 +188,7 @@ int qemuSetupHostUsbDeviceCgroup(usbDevice *dev ATTRIBUTE_UNUSED,
     return 0;
 }
 
-int qemuSetupCgroup(struct qemud_driver *driver,
+int qemuSetupCgroup(virQEMUDriverPtr driver,
                     virDomainObjPtr vm,
                     virBitmapPtr nodemask)
 {
@@ -302,7 +302,7 @@ int qemuSetupCgroup(struct qemud_driver *driver,
     if (vm->def->blkio.weight != 0) {
         if (qemuCgroupControllerActive(driver, VIR_CGROUP_CONTROLLER_BLKIO)) {
             rc = virCgroupSetBlkioWeight(cgroup, vm->def->blkio.weight);
-            if(rc != 0) {
+            if (rc != 0) {
                 virReportSystemError(-rc,
                                      _("Unable to set io weight for domain %s"),
                                      vm->def->name);
@@ -391,7 +391,7 @@ int qemuSetupCgroup(struct qemud_driver *driver,
     if (vm->def->cputune.shares != 0) {
         if (qemuCgroupControllerActive(driver, VIR_CGROUP_CONTROLLER_CPU)) {
             rc = virCgroupSetCpuShares(cgroup, vm->def->cputune.shares);
-            if(rc != 0) {
+            if (rc != 0) {
                 virReportSystemError(-rc,
                                      _("Unable to set io cpu shares for domain %s"),
                                      vm->def->name);
@@ -532,7 +532,7 @@ cleanup:
     return rc;
 }
 
-int qemuSetupCgroupForVcpu(struct qemud_driver *driver, virDomainObjPtr vm)
+int qemuSetupCgroupForVcpu(virQEMUDriverPtr driver, virDomainObjPtr vm)
 {
     virCgroupPtr cgroup = NULL;
     virCgroupPtr cgroup_vcpu = NULL;
@@ -637,7 +637,7 @@ cleanup:
     return -1;
 }
 
-int qemuSetupCgroupForEmulator(struct qemud_driver *driver,
+int qemuSetupCgroupForEmulator(virQEMUDriverPtr driver,
                                virDomainObjPtr vm,
                                virBitmapPtr nodemask)
 {
@@ -738,7 +738,7 @@ cleanup:
     return rc;
 }
 
-int qemuRemoveCgroup(struct qemud_driver *driver,
+int qemuRemoveCgroup(virQEMUDriverPtr driver,
                      virDomainObjPtr vm,
                      int quiet)
 {
@@ -762,7 +762,7 @@ int qemuRemoveCgroup(struct qemud_driver *driver,
     return rc;
 }
 
-int qemuAddToCgroup(struct qemud_driver *driver,
+int qemuAddToCgroup(virQEMUDriverPtr driver,
                     virDomainDefPtr def)
 {
     virCgroupPtr cgroup = NULL;

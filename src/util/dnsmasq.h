@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2007-2010 Red Hat, Inc.
+ * Copyright (C) 2007-2012 Red Hat, Inc.
  * Copyright (C) 2010 Satoru SATOH <satoru.satoh@gmail.com>
  *
  * This library is free software; you can redistribute it and/or
@@ -22,6 +22,7 @@
 #ifndef __DNSMASQ_H__
 # define __DNSMASQ_H__
 
+# include "virobject.h"
 # include "virsocketaddr.h"
 
 typedef struct
@@ -65,13 +66,24 @@ typedef struct
     dnsmasqAddnHostsfile *addnhostsfile;
 } dnsmasqContext;
 
+typedef enum {
+   DNSMASQ_CAPS_BIND_DYNAMIC = 0, /* support for --bind-dynamic */
+
+   DNSMASQ_CAPS_LAST,             /* this must always be the last item */
+} dnsmasqCapsFlags;
+
+typedef struct _dnsmasqCaps dnsmasqCaps;
+typedef dnsmasqCaps *dnsmasqCapsPtr;
+
+
 dnsmasqContext * dnsmasqContextNew(const char *network_name,
                                    const char *config_dir);
 void             dnsmasqContextFree(dnsmasqContext *ctx);
 int              dnsmasqAddDhcpHost(dnsmasqContext *ctx,
                                     const char *mac,
                                     virSocketAddr *ip,
-                                    const char *name);
+                                    const char *name,
+                                    bool ipv6);
 int              dnsmasqAddHost(dnsmasqContext *ctx,
                                 virSocketAddr *ip,
                                 const char *name);
@@ -79,4 +91,27 @@ int              dnsmasqSave(const dnsmasqContext *ctx);
 int              dnsmasqDelete(const dnsmasqContext *ctx);
 int              dnsmasqReload(pid_t pid);
 
+dnsmasqCapsPtr dnsmasqCapsNewFromBuffer(const char *buf,
+                                        const char *binaryPath);
+dnsmasqCapsPtr dnsmasqCapsNewFromFile(const char *dataPath,
+                                      const char *binaryPath);
+dnsmasqCapsPtr dnsmasqCapsNewFromBinary(const char *binaryPath);
+int dnsmasqCapsRefresh(dnsmasqCapsPtr *caps, const char *binaryPath);
+bool dnsmasqCapsGet(dnsmasqCapsPtr caps, dnsmasqCapsFlags flag);
+const char *dnsmasqCapsGetBinaryPath(dnsmasqCapsPtr caps);
+unsigned long dnsmasqCapsGetVersion(dnsmasqCapsPtr caps);
+
+# define DNSMASQ_DHCPv6_MAJOR_REQD 2
+# define DNSMASQ_DHCPv6_MINOR_REQD 64
+# define DNSMASQ_RA_MAJOR_REQD 2
+# define DNSMASQ_RA_MINOR_REQD 64
+
+# define DNSMASQ_DHCPv6_SUPPORT(CAPS)        \
+    (dnsmasqCapsGetVersion(CAPS) >=          \
+     (DNSMASQ_DHCPv6_MAJOR_REQD * 1000000) + \
+     (DNSMASQ_DHCPv6_MINOR_REQD * 1000))
+# define DNSMASQ_RA_SUPPORT(CAPS)            \
+    (dnsmasqCapsGetVersion(CAPS) >=          \
+     (DNSMASQ_RA_MAJOR_REQD * 1000000) +     \
+     (DNSMASQ_RA_MINOR_REQD * 1000))
 #endif /* __DNSMASQ_H__ */

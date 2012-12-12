@@ -28,12 +28,20 @@
 # include "conf/domain_conf.h"
 # include "conf/storage_conf.h"
 # include "conf/domain_event.h"
+# include "conf/network_conf.h"
 # include "json.h"
+
+# define parallelsParseError()                                                 \
+    virReportErrorHelper(VIR_FROM_TEST, VIR_ERR_OPERATION_FAILED, __FILE__,    \
+                     __FUNCTION__, __LINE__, _("Can't parse prlctl output"))
+
+# define PARALLELS_ROUTED_NETWORK_NAME   "Routed"
 
 struct _parallelsConn {
     virMutex lock;
     virDomainObjList domains;
     virStoragePoolObjList pools;
+    virNetworkObjList networks;
     virCapsPtr caps;
     virDomainEventStatePtr domainEventState;
 };
@@ -44,11 +52,13 @@ typedef struct _parallelsConn *parallelsConnPtr;
 struct parallelsDomObj {
     int id;
     char *uuid;
+    char *home;
 };
 
 typedef struct parallelsDomObj *parallelsDomObjPtr;
 
 int parallelsStorageRegister(void);
+int parallelsNetworkRegister(void);
 
 virJSONValuePtr parallelsParseOutput(const char *binary, ...)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_SENTINEL;
@@ -61,5 +71,7 @@ void parallelsDriverLock(parallelsConnPtr driver);
 void parallelsDriverUnlock(parallelsConnPtr driver);
 virStorageVolPtr parallelsStorageVolumeLookupByPathLocked(virConnectPtr conn,
                                                           const char *path);
+int parallelsStorageVolumeDefRemove(virStoragePoolObjPtr privpool,
+                                    virStorageVolDefPtr privvol);
 
 #endif

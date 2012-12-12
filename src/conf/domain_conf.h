@@ -279,8 +279,8 @@ struct _virDomainDeviceInfo {
      * devices. */
     int rombar;         /* enum virDomainPciRombarMode */
     char *romfile;
-    /* bootIndex is only user for disk, network interface, and
-     * hostdev devices. */
+    /* bootIndex is only used for disk, network interface, hostdev
+     * and redirdev devices */
     int bootIndex;
 };
 
@@ -461,8 +461,17 @@ enum virDomainDiskProtocol {
     VIR_DOMAIN_DISK_PROTOCOL_NBD,
     VIR_DOMAIN_DISK_PROTOCOL_RBD,
     VIR_DOMAIN_DISK_PROTOCOL_SHEEPDOG,
+    VIR_DOMAIN_DISK_PROTOCOL_GLUSTER,
 
     VIR_DOMAIN_DISK_PROTOCOL_LAST
+};
+
+enum virDomainDiskProtocolTransport {
+    VIR_DOMAIN_DISK_PROTO_TRANS_TCP,
+    VIR_DOMAIN_DISK_PROTO_TRANS_UNIX,
+    VIR_DOMAIN_DISK_PROTO_TRANS_RDMA,
+
+    VIR_DOMAIN_DISK_PROTO_TRANS_LAST
 };
 
 enum virDomainDiskTray {
@@ -486,6 +495,8 @@ typedef virDomainDiskHostDef *virDomainDiskHostDefPtr;
 struct _virDomainDiskHostDef {
     char *name;
     char *port;
+    int transport; /* enum virDomainDiskProtocolTransport */
+    char *socket;  /* path to unix socket */
 };
 
 enum  virDomainDiskIo {
@@ -591,6 +602,8 @@ struct _virDomainDiskDef {
 
     char *serial;
     char *wwn;
+    char *vendor;
+    char *product;
     int cachemode;
     int error_policy;  /* enum virDomainDiskErrorPolicy */
     int rerror_policy; /* enum virDomainDiskErrorPolicy */
@@ -796,6 +809,7 @@ struct _virDomainActualNetDef {
     virNetDevVPortProfilePtr virtPortProfile;
     virNetDevBandwidthPtr bandwidth;
     virNetDevVlan vlan;
+    unsigned int class_id; /* class ID for bandwidth 'floor' */
 };
 
 /* Stores the virtual network interface configuration */
@@ -1943,6 +1957,8 @@ virDomainLiveConfigHelperMethod(virCapsPtr caps,
                                 unsigned int *flags,
                                 virDomainDefPtr *persistentDef);
 
+virDomainDefPtr virDomainDefCopy(virCapsPtr caps, virDomainDefPtr src,
+                                 bool migratable);
 virDomainDefPtr
 virDomainObjCopyPersistentDef(virCapsPtr caps, virDomainObjPtr dom);
 
@@ -2194,6 +2210,7 @@ VIR_ENUM_DECL(virDomainDiskBus)
 VIR_ENUM_DECL(virDomainDiskCache)
 VIR_ENUM_DECL(virDomainDiskErrorPolicy)
 VIR_ENUM_DECL(virDomainDiskProtocol)
+VIR_ENUM_DECL(virDomainDiskProtocolTransport)
 VIR_ENUM_DECL(virDomainDiskIo)
 VIR_ENUM_DECL(virDomainDiskSecretType)
 VIR_ENUM_DECL(virDomainDiskTray)

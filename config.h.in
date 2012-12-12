@@ -906,6 +906,9 @@
 /* Define to 1 if you have the `funlockfile' function. */
 #undef HAVE_FUNLOCKFILE
 
+/* whether fuse is available for libvirt lxc */
+#undef HAVE_FUSE
+
 /* Define to 1 if you have the 'getcwd' function. */
 #undef HAVE_GETCWD
 
@@ -1369,6 +1372,9 @@
 
 /* whether Sanlock plugin for lock management is available */
 #undef HAVE_SANLOCK
+
+/* whether sanlock supports sanlock_inq_lockspace */
+#undef HAVE_SANLOCK_INQ_LOCKSPACE
 
 /* whether Sanlock supports sanlock_killpath */
 #undef HAVE_SANLOCK_KILLPATH

@@ -124,7 +124,7 @@
 .\" ========================================================================
 .\"
 .IX Title "VIRSH 1"
-.TH VIRSH 1 "2012-11-02" "libvirt-1.0.0" "Virtualization Support"
+.TH VIRSH 1 "2012-12-11" "libvirt-1.0.0" "Virtualization Support"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -615,7 +615,7 @@ exits.
 .Vb 3
 \& virsh dumpxml <domain> > domain.xml
 \& vi domain.xml (or make changes with your other text editor)
-\& virsh create < domain.xml
+\& virsh create domain.xml
 .Ve
 .IP "\fBdefine\fR \fI\s-1FILE\s0\fR" 4
 .IX Item "define FILE"
@@ -906,6 +906,18 @@ also \fBdomblklist\fR for listing these names).
 Output a \s-1URI\s0 which can be used to connect to the graphical display of the
 domain via \s-1VNC\s0, \s-1SPICE\s0 or \s-1RDP\s0. If \fI\-\-include\-password\fR is specified, the
 \&\s-1SPICE\s0 channel password will be included in the \s-1URI\s0.
+.IP "\fBdomfstrim\fR \fIdomain\fR [\fI\-\-minimum\fR \fBbytes\fR] [\fI\-\-mountpoint mountPoint\fR]" 4
+.IX Item "domfstrim domain [--minimum bytes] [--mountpoint mountPoint]"
+Issue a fstrim command on all mounted filesystems within a running
+domain. It discards blocks which are not in use by the filesystem.
+If \fI\-\-minimum\fR \fBbytes\fR is specified, it tells guest kernel length
+of contiguous free range. Smaller than this may be ignored (this is
+a hint and the guest may not respect it). By increasing this value,
+the fstrim operation will complete more quickly for filesystems
+with badly fragmented free space, although not all blocks will
+be discarded.  The default value is zero, meaning \*(L"discard
+every free block\*(R". Moreover, a if user wants to trim only one mount
+point, it can be specified via optional \fI\-\-mountpoint\fR parameter.
 .IP "\fBdomhostname\fR \fIdomain\fR" 4
 .IX Item "domhostname domain"
 Returns the hostname of a domain, if the hypervisor makes it available.
@@ -1035,11 +1047,14 @@ be running. Default it shows stats for all CPUs, and a total. Use
 \&\fI\-\-total\fR for only the total stats, \fIstart\fR for only the per-cpu
 stats of the CPUs from \fIstart\fR, \fIcount\fR for only \fIcount\fR CPUs'
 stats.
-.IP "\fBmigrate\fR [\fI\-\-live\fR] [\fI\-\-direct\fR] [\fI\-\-p2p\fR [\fI\-\-tunnelled\fR]] [\fI\-\-persistent\fR] [\fI\-\-undefinesource\fR] [\fI\-\-suspend\fR] [\fI\-\-copy\-storage\-all\fR] [\fI\-\-copy\-storage\-inc\fR] [\fI\-\-change\-protection\fR] [\fI\-\-unsafe\fR] [\fI\-\-verbose\fR] \fIdomain\fR \fIdesturi\fR [\fImigrateuri\fR] [\fIdname\fR] [\fI\-\-timeout\fR \fBseconds\fR] [\fI\-\-xml\fR \fBfile\fR]" 4
-.IX Item "migrate [--live] [--direct] [--p2p [--tunnelled]] [--persistent] [--undefinesource] [--suspend] [--copy-storage-all] [--copy-storage-inc] [--change-protection] [--unsafe] [--verbose] domain desturi [migrateuri] [dname] [--timeout seconds] [--xml file]"
-Migrate domain to another host.  Add \fI\-\-live\fR for live migration; \fI\-\-p2p\fR
+.IP "\fBmigrate\fR [\fI\-\-live\fR] [\fI\-\-offline\fR] [\fI\-\-direct\fR] [\fI\-\-p2p\fR [\fI\-\-tunnelled\fR]] [\fI\-\-persistent\fR] [\fI\-\-undefinesource\fR] [\fI\-\-suspend\fR] [\fI\-\-copy\-storage\-all\fR] [\fI\-\-copy\-storage\-inc\fR] [\fI\-\-change\-protection\fR] [\fI\-\-unsafe\fR] [\fI\-\-verbose\fR] \fIdomain\fR \fIdesturi\fR [\fImigrateuri\fR] [\fIdname\fR] [\fI\-\-timeout\fR \fBseconds\fR] [\fI\-\-xml\fR \fBfile\fR]" 4
+.IX Item "migrate [--live] [--offline] [--direct] [--p2p [--tunnelled]] [--persistent] [--undefinesource] [--suspend] [--copy-storage-all] [--copy-storage-inc] [--change-protection] [--unsafe] [--verbose] domain desturi [migrateuri] [dname] [--timeout seconds] [--xml file]"
+Migrate domain to another host.  Add \fI\-\-live\fR for live migration; <\-\-p2p>
 for peer\-2\-peer migration; \fI\-\-direct\fR for direct migration; or \fI\-\-tunnelled\fR
-for tunnelled migration.  \fI\-\-persistent\fR leaves the domain persistent on
+for tunnelled migration.  \fI\-\-offline\fR migrates domain definition without
+starting the domain on destination and without stopping it on source host.
+Offline migration may be used with inactive domains and it must be used with
+\&\fI\-\-persistent\fR option.  \fI\-\-persistent\fR leaves the domain persistent on
 destination host, \fI\-\-undefinesource\fR undefines the domain on the source host,
 and \fI\-\-suspend\fR leaves the domain paused on the destination host.
 \&\fI\-\-copy\-storage\-all\fR indicates migration with non-shared storage with full
@@ -1122,8 +1137,8 @@ excluding a node.
 If \fI\-\-live\fR is specified, set scheduler information of a running guest.
 If \fI\-\-config\fR is specified, affect the next boot of a persistent guest.
 If \fI\-\-current\fR is specified, affect the current guest state.
-.IP "\fBreboot\fR \fIdomain\fR [\fI\-\-mode acpi|agent\fR]" 4
-.IX Item "reboot domain [--mode acpi|agent]"
+.IP "\fBreboot\fR \fIdomain\fR [\fI\-\-mode MODE-LIST\fR]" 4
+.IX Item "reboot domain [--mode MODE-LIST]"
 Reboot a domain.  This acts just as if the domain had the \fBreboot\fR
 command run from the console.  The command returns as soon as it has
 executed the reboot action, which may be significantly before the
@@ -1134,7 +1149,11 @@ The exact behavior of a domain when it reboots is set by the
 .Sp
 By default the hypervisor will try to pick a suitable shutdown
 method. To specify an alternative method, the \fI\-\-mode\fR parameter
-can specify \f(CW\*(C`acpi\*(C'\fR or \f(CW\*(C`agent\*(C'\fR.
+can specify a comma separated list which includes \f(CW\*(C`acpi\*(C'\fR, \f(CW\*(C`agent\*(C'\fR,
+\&\f(CW\*(C`initctl\*(C'\fR and \f(CW\*(C`signal\*(C'\fR. The order in which drivers will try each
+mode is undefined, and not related to the order specified to virsh.
+For strict control over ordering, use a single mode at a time and
+repeat the command.
 .IP "\fBreset\fR \fIdomain\fR" 4
 .IX Item "reset domain"
 Reset a domain immediately without any guest shutdown. \fBreset\fR
@@ -1359,6 +1378,38 @@ bit of the first byte. No symbolic names are provided.
 \&  virsh send\-key \-\-holdtime 1000 0xf
 .Ve
 .RE
+.IP "\fBsend-process-signal\fR \fIdomain-id\fR \fIpid\fR \fIsigname\fR" 4
+.IX Item "send-process-signal domain-id pid signame"
+Send a signal \fIsigname\fR to the process identified by \fIpid\fR running in
+the virtual domain \fIdomain-id\fR. The \fIpid\fR is a process \s-1ID\s0 in the virtual
+domain namespace.
+.Sp
+The \fIsigname\fR argument may be either an integer signal constant number,
+or one of the symbolic names:
+.Sp
+.Vb 12
+\&    "nop", "hup", "int", "quit", "ill",
+\&    "trap", "abrt", "bus", "fpe", "kill",
+\&    "usr1", "segv", "usr2", "pipe", "alrm",
+\&    "term", "stkflt", "chld", "cont", "stop",
+\&    "tstp", "ttin", "ttou", "urg", "xcpu",
+\&    "xfsz", "vtalrm", "prof", "winch", "poll",
+\&    "pwr", "sys", "rt0", "rt1", "rt2", "rt3",
+\&    "rt4", "rt5", "rt6", "rt7", "rt8", "rt9",
+\&    "rt10", "rt11", "rt12", "rt13", "rt14", "rt15",
+\&    "rt16", "rt17", "rt18", "rt19", "rt20", "rt21",
+\&    "rt22", "rt23", "rt24", "rt25", "rt26", "rt27",
+\&    "rt28", "rt29", "rt30", "rt31", "rt32"
+.Ve
+.Sp
+The symbol name may optionally be prefixed with 'sig' or 'sig_' and
+may be in uppercase or lowercase.
+.Sp
+\&\fBExamples\fR
+  virsh send-process-signal myguest 1 15
+  virsh send-process-signal myguest 1 term
+  virsh send-process-signal myguest 1 sigterm
+  virsh send-process-signal myguest 1 \s-1SIG_HUP\s0
 .IP "\fBsetmem\fR \fIdomain\fR \fBsize\fR [[\fI\-\-config\fR] [\fI\-\-live\fR] | [\fI\-\-current\fR]]" 4
 .IX Item "setmem domain size [[--config] [--live] | [--current]]"
 Change the memory allocation for a guest domain.
@@ -1486,8 +1537,8 @@ persistent.
 The \fI\-\-maximum\fR flag controls the maximum number of virtual cpus that can
 be hot-plugged the next time the domain is booted.  As such, it must only be
 used with the \fI\-\-config\fR flag, and not with the \fI\-\-live\fR flag.
-.IP "\fBshutdown\fR \fIdomain\fR [\fI\-\-mode acpi|agent\fR]" 4
-.IX Item "shutdown domain [--mode acpi|agent]"
+.IP "\fBshutdown\fR \fIdomain\fR [\fI\-\-mode MODE-LIST\fR]" 4
+.IX Item "shutdown domain [--mode MODE-LIST]"
 Gracefully shuts down a domain.  This coordinates with the domain \s-1OS\s0
 to perform graceful shutdown, so there is no guarantee that it will
 succeed, and may take a variable length of time depending on what
@@ -1503,7 +1554,11 @@ snapshot metadata with \fBsnapshot-create\fR.
 .Sp
 By default the hypervisor will try to pick a suitable shutdown
 method. To specify an alternative method, the \fI\-\-mode\fR parameter
-can specify \f(CW\*(C`acpi\*(C'\fR or \f(CW\*(C`agent\*(C'\fR.
+can specify a comma separated list which includes \f(CW\*(C`acpi\*(C'\fR, \f(CW\*(C`agent\*(C'\fR,
+\&\f(CW\*(C`initctl\*(C'\fR and \f(CW\*(C`signal\*(C'\fR. The order in which drivers will try each
+mode is undefined, and not related to the order specified to virsh.
+For strict control over ordering, use a single mode at a time and
+repeat the command.
 .IP "\fBstart\fR \fIdomain-name-or-uuid\fR [\fI\-\-console\fR] [\fI\-\-paused\fR] [\fI\-\-autodestroy\fR] [\fI\-\-bypass\-cache\fR] [\fI\-\-force\-boot\fR]" 4
 .IX Item "start domain-name-or-uuid [--console] [--paused] [--autodestroy] [--bypass-cache] [--force-boot]"
 Start a (previously defined) inactive domain, either from the last
@@ -2195,13 +2250,17 @@ Undefine the configuration for an inactive \fIpool\fR.
 Returns the \s-1UUID\s0 of the named \fIpool\fR.
 .SH "VOLUME COMMANDS"
 .IX Header "VOLUME COMMANDS"
-.IP "\fBvol-create\fR \fIpool-or-uuid\fR \fI\s-1FILE\s0\fR" 4
-.IX Item "vol-create pool-or-uuid FILE"
+.IP "\fBvol-create\fR \fIpool-or-uuid\fR \fI\s-1FILE\s0\fR [\fI\-\-prealloc\-metadata\fR]" 4
+.IX Item "vol-create pool-or-uuid FILE [--prealloc-metadata]"
 Create a volume from an \s-1XML\s0 <file>.
 \&\fIpool-or-uuid\fR is the name or \s-1UUID\s0 of the storage pool to create the volume in.
 \&\fI\s-1FILE\s0\fR is the \s-1XML\s0 <file> with the volume definition. An easy way to create the
 \&\s-1XML\s0 <file> is to use the \fBvol-dumpxml\fR command to obtain the definition of a
 pre-existing volume.
+[\fI\-\-prealloc\-metadata\fR] preallocate metadata (for qcow2 images which don't
+support full allocation). This option creates a sparse image file with metadata,
+resulting in higher performance compared to images with no preallocation and
+only slightly higher initial disk space usage.
 .Sp
 \&\fBExample\fR
 .Sp
@@ -2210,16 +2269,20 @@ pre-existing volume.
 \& vi newvolume.xml (or make changes with your other text editor)
 \& virsh vol\-create differentstoragepool newvolume.xml
 .Ve
-.IP "\fBvol-create-from\fR \fIpool-or-uuid\fR \fI\s-1FILE\s0\fR [\fI\-\-inputpool\fR \fIpool-or-uuid\fR] \fIvol-name-or-key-or-path\fR" 4
-.IX Item "vol-create-from pool-or-uuid FILE [--inputpool pool-or-uuid] vol-name-or-key-or-path"
+.IP "\fBvol-create-from\fR \fIpool-or-uuid\fR \fI\s-1FILE\s0\fR [\fI\-\-inputpool\fR \fIpool-or-uuid\fR] \fIvol-name-or-key-or-path\fR [\fI\-\-prealloc\-metadata\fR]" 4
+.IX Item "vol-create-from pool-or-uuid FILE [--inputpool pool-or-uuid] vol-name-or-key-or-path [--prealloc-metadata]"
 Create a volume, using another volume as input.
 \&\fIpool-or-uuid\fR is the name or \s-1UUID\s0 of the storage pool to create the volume in.
 \&\fI\s-1FILE\s0\fR is the \s-1XML\s0 <file> with the volume definition.
 \&\fI\-\-inputpool\fR \fIpool-or-uuid\fR is the name or uuid of the storage pool the
 source volume is in.
 \&\fIvol-name-or-key-or-path\fR is the name or key or path of the source volume.
-.IP "\fBvol-create-as\fR \fIpool-or-uuid\fR \fIname\fR \fIcapacity\fR [\fI\-\-allocation\fR \fIsize\fR] [\fI\-\-format\fR \fIstring\fR] [\fI\-\-backing\-vol\fR \fIvol-name-or-key-or-path\fR] [\fI\-\-backing\-vol\-format\fR \fIstring\fR]" 4
-.IX Item "vol-create-as pool-or-uuid name capacity [--allocation size] [--format string] [--backing-vol vol-name-or-key-or-path] [--backing-vol-format string]"
+[\fI\-\-prealloc\-metadata\fR] preallocate metadata (for qcow2 images which don't
+support full allocation). This option creates a sparse image file with metadata,
+resulting in higher performance compared to images with no preallocation and
+only slightly higher initial disk space usage.
+.IP "\fBvol-create-as\fR \fIpool-or-uuid\fR \fIname\fR \fIcapacity\fR [\fI\-\-allocation\fR \fIsize\fR] [\fI\-\-format\fR \fIstring\fR] [\fI\-\-backing\-vol\fR \fIvol-name-or-key-or-path\fR] [\fI\-\-backing\-vol\-format\fR \fIstring\fR] [\fI\-\-prealloc\-metadata\fR]" 4
+.IX Item "vol-create-as pool-or-uuid name capacity [--allocation size] [--format string] [--backing-vol vol-name-or-key-or-path] [--backing-vol-format string] [--prealloc-metadata]"
 Create a volume from a set of arguments.
 \&\fIpool-or-uuid\fR is the name or \s-1UUID\s0 of the storage pool to create the volume
 in.
@@ -2235,14 +2298,22 @@ volume to be used if taking a snapshot of an existing volume.
 \&\fI\-\-backing\-vol\-format\fR \fIstring\fR is the format of the snapshot backing volume;
 raw, bochs, qcow, qcow2, qed, vmdk, host_device. These are, however, meant for
 file based storage pools.
-.IP "\fBvol-clone\fR [\fI\-\-pool\fR \fIpool-or-uuid\fR] \fIvol-name-or-key-or-path\fR \fIname\fR" 4
-.IX Item "vol-clone [--pool pool-or-uuid] vol-name-or-key-or-path name"
+[\fI\-\-prealloc\-metadata\fR] preallocate metadata (for qcow2 images which don't
+support full allocation). This option creates a sparse image file with metadata,
+resulting in higher performance compared to images with no preallocation and
+only slightly higher initial disk space usage.
+.IP "\fBvol-clone\fR [\fI\-\-pool\fR \fIpool-or-uuid\fR] \fIvol-name-or-key-or-path\fR \fIname\fR [\fI\-\-prealloc\-metadata\fR]" 4
+.IX Item "vol-clone [--pool pool-or-uuid] vol-name-or-key-or-path name [--prealloc-metadata]"
 Clone an existing volume.  Less powerful, but easier to type, version of
 \&\fBvol-create-from\fR.
 \&\fI\-\-pool\fR \fIpool-or-uuid\fR is the name or \s-1UUID\s0 of the storage pool to create
 the volume in.
 \&\fIvol-name-or-key-or-path\fR is the name or key or path of the source volume.
 \&\fIname\fR is the name of the new volume.
+[\fI\-\-prealloc\-metadata\fR] preallocate metadata (for qcow2 images which don't
+support full allocation). This option creates a sparse image file with metadata,
+resulting in higher performance compared to images with no preallocation and
+only slightly higher initial disk space usage.
 .IP "\fBvol-delete\fR [\fI\-\-pool\fR \fIpool-or-uuid\fR] \fIvol-name-or-key-or-path\fR" 4
 .IX Item "vol-delete [--pool pool-or-uuid] vol-name-or-key-or-path"
 Delete a given volume.
@@ -2396,8 +2467,8 @@ image to saving a domain's state before a potentially destructive operation.
 Snapshots are identified with a unique name.  See
 <http://libvirt.org/formatsnapshot.html> for documentation of the \s-1XML\s0 format
 used to represent properties of snapshots.
-.IP "\fBsnapshot-create\fR \fIdomain\fR [\fIxmlfile\fR] {[\fI\-\-redefine\fR [\fI\-\-current\fR]] | [\fI\-\-no\-metadata\fR] [\fI\-\-halt\fR] [\fI\-\-disk\-only\fR] [\fI\-\-reuse\-external\fR] [\fI\-\-quiesce\fR] [\fI\-\-atomic\fR]}" 4
-.IX Item "snapshot-create domain [xmlfile] {[--redefine [--current]] | [--no-metadata] [--halt] [--disk-only] [--reuse-external] [--quiesce] [--atomic]}"
+.IP "\fBsnapshot-create\fR \fIdomain\fR [\fIxmlfile\fR] {[\fI\-\-redefine\fR [\fI\-\-current\fR]] | [\fI\-\-no\-metadata\fR] [\fI\-\-halt\fR] [\fI\-\-disk\-only\fR] [\fI\-\-reuse\-external\fR] [\fI\-\-quiesce\fR] [\fI\-\-atomic\fR] [\fI\-\-live\fR]}" 4
+.IX Item "snapshot-create domain [xmlfile] {[--redefine [--current]] | [--no-metadata] [--halt] [--disk-only] [--reuse-external] [--quiesce] [--atomic] [--live]}"
 Create a snapshot for domain \fIdomain\fR with the properties specified in
 \&\fIxmlfile\fR.  Normally, the only properties settable for a domain snapshot
 are the <name> and <description> elements, as well as <disks> if
@@ -2449,12 +2520,16 @@ this.  If this flag is not specified, then some hypervisors may fail
 after partially performing the action, and \fBdumpxml\fR must be used to
 see whether any partial changes occurred.
 .Sp
+If \fI\-\-live\fR is specified, libvirt takes the snapshot while the guest is
+running. This increases the size of the memory image of the external
+checkpoint. This is currently supported only for external checkpoints.
+.Sp
 Existence of snapshot metadata will prevent attempts to \fBundefine\fR
 a persistent domain.  However, for transient domains, snapshot
 metadata is silently lost when the domain quits running (whether
 by command such as \fBdestroy\fR or by internal guest action).
-.IP "\fBsnapshot-create-as\fR \fIdomain\fR {[\fI\-\-print\-xml\fR] | [\fI\-\-no\-metadata\fR] [\fI\-\-halt\fR] [\fI\-\-reuse\-external\fR]} [\fIname\fR] [\fIdescription\fR] [\fI\-\-disk\-only\fR [\fI\-\-quiesce\fR] [\fI\-\-atomic\fR] [[\fI\-\-diskspec\fR] \fBdiskspec\fR]...]" 4
-.IX Item "snapshot-create-as domain {[--print-xml] | [--no-metadata] [--halt] [--reuse-external]} [name] [description] [--disk-only [--quiesce] [--atomic] [[--diskspec] diskspec]...]"
+.IP "\fBsnapshot-create-as\fR \fIdomain\fR {[\fI\-\-print\-xml\fR] | [\fI\-\-no\-metadata\fR] [\fI\-\-halt\fR] [\fI\-\-reuse\-external\fR]} [\fIname\fR] [\fIdescription\fR] [\fI\-\-disk\-only\fR [\fI\-\-quiesce\fR]] [\fI\-\-atomic\fR] [[\fI\-\-live\fR] [\fI\-\-memspec\fR \fBmemspec\fR]] [\fI\-\-diskspec\fR] \fBdiskspec\fR]..." 4
+.IX Item "snapshot-create-as domain {[--print-xml] | [--no-metadata] [--halt] [--reuse-external]} [name] [description] [--disk-only [--quiesce]] [--atomic] [[--live] [--memspec memspec]] [--diskspec] diskspec]..."
 Create a snapshot for domain \fIdomain\fR with the given <name> and
 <description>; if either value is omitted, libvirt will choose a
 value.  If \fI\-\-print\-xml\fR is specified, then \s-1XML\s0 appropriate for
@@ -2463,9 +2538,16 @@ Otherwise, if \fI\-\-halt\fR is specified, the domain will be left in an
 inactive state after the snapshot is created, and if \fI\-\-disk\-only\fR
 is specified, the snapshot will not include vm state.
 .Sp
-The \fI\-\-disk\-only\fR flag is used to request a disk-only snapshot.  When
-this flag is in use, the command can also take additional \fIdiskspec\fR
-arguments to add <disk> elements to the xml.  Each <diskspec> is in the
+The \fI\-\-memspec\fR option can be used to control whether a checkpoint
+is internal or external.  The \fI\-\-memspec\fR flag is mandatory, followed
+by a \fBmemspec\fR of the form \fB[file=]name[,snapshot=type]\fR, where
+type can be \fBnone\fR, \fBinternal\fR, or \fBexternal\fR.  To include a literal
+comma in \fBfile=name\fR, escape it with a second comma.
+.Sp
+The \fI\-\-diskspec\fR option can be used to control how \fI\-\-disk\-only\fR and
+external checkpoints create external files.  This option can occur
+multiple times, according to the number of <disk> elements in the domain
+xml.  Each <diskspec> is in the
 form \fBdisk[,snapshot=type][,driver=type][,file=name]\fR.  To include a
 literal comma in \fBdisk\fR or in \fBfile=name\fR, escape it with a second
 comma.  A literal \fI\-\-diskspec\fR must precede each \fBdiskspec\fR unless
@@ -2497,6 +2579,10 @@ either succeeds, or fails with no changes; not all hypervisors support
 this.  If this flag is not specified, then some hypervisors may fail
 after partially performing the action, and \fBdumpxml\fR must be used to
 see whether any partial changes occurred.
+.Sp
+If \fI\-\-live\fR is specified, libvirt takes the snapshot while the guest is
+running. This increases the size of the memory image of the external
+checkpoint. This is currently supported only for external checkpoints.
 .IP "\fBsnapshot-current\fR \fIdomain\fR {[\fI\-\-name\fR] | [\fI\-\-security\-info\fR] | [\fIsnapshotname\fR]}" 4
 .IX Item "snapshot-current domain {[--name] | [--security-info] | [snapshotname]}"
 Without \fIsnapshotname\fR, this will output the snapshot \s-1XML\s0 for the domain's
@@ -2539,8 +2625,8 @@ accessible only from the original name.
 .IX Item "snapshot-info domain {snapshot | --current}"
 Output basic information about a named <snapshot>, or the current snapshot
 with \fI\-\-current\fR.
-.IP "\fBsnapshot-list\fR \fIdomain\fR [{\fI\-\-parent\fR | \fI\-\-roots\fR | \fI\-\-tree\fR}] [{[\fI\-\-from\fR] \fBsnapshot\fR | \fI\-\-current\fR} [\fI\-\-descendants\fR]] [\fI\-\-metadata\fR] [\fI\-\-no\-metadata\fR] [\fI\-\-leaves\fR] [\fI\-\-no\-leaves\fR]" 4
-.IX Item "snapshot-list domain [{--parent | --roots | --tree}] [{[--from] snapshot | --current} [--descendants]] [--metadata] [--no-metadata] [--leaves] [--no-leaves]"
+.IP "\fBsnapshot-list\fR \fIdomain\fR [{\fI\-\-parent\fR | \fI\-\-roots\fR | \fI\-\-tree\fR}] [{[\fI\-\-from\fR] \fBsnapshot\fR | \fI\-\-current\fR} [\fI\-\-descendants\fR]] [\fI\-\-metadata\fR] [\fI\-\-no\-metadata\fR] [\fI\-\-leaves\fR] [\fI\-\-no\-leaves\fR] [\fI\-\-inactive\fR] [\fI\-\-active\fR] [\fI\-\-disk\-only\fR] [\fI\-\-internal\fR] [\fI\-\-external\fR]" 4
+.IX Item "snapshot-list domain [{--parent | --roots | --tree}] [{[--from] snapshot | --current} [--descendants]] [--metadata] [--no-metadata] [--leaves] [--no-leaves] [--inactive] [--active] [--disk-only] [--internal] [--external]"
 List all of the available snapshots for the given domain, defaulting
 to show columns for the snapshot name, creation time, and domain state.
 .Sp
@@ -2566,7 +2652,7 @@ specified, the list will be filtered to just snapshots with
 children.  (Note that omitting both options does no filtering,
 while providing both options will either produce the same list
 or error out depending on whether the server recognizes the flags).
-These options are not compatible with \fI\-\-tree\fR.
+Filtering options are not compatible with \fI\-\-tree\fR.
 .Sp
 If \fI\-\-metadata\fR is specified, the list will be filtered to just
 snapshots that involve libvirt metadata, and thus would prevent
@@ -2574,6 +2660,20 @@ snapshots that involve libvirt metadata, and thus would prevent
 a transient domain.  Likewise, if \fI\-\-no\-metadata\fR is specified,
 the list will be filtered to just snapshots that exist without
 the need for libvirt metadata.
+.Sp
+If \fI\-\-inactive\fR is specified, the list will be filtered to snapshots
+that were taken when the domain was shut off.  If \fI\-\-active\fR is
+specified, the list will be filtered to snapshots that were taken
+when the domain was running, and where the snapshot includes the
+memory state to revert to that running state.  If \fI\-\-disk\-only\fR is
+specified, the list will be filtered to snapshots that were taken
+when the domain was running, but where the snapshot includes only
+disk state.
+.Sp
+If \fI\-\-internal\fR is specified, the list will be filtered to snapshots
+that use internal storage of existing disk images.  If \fI\-\-external\fR
+is specified, the list will be filtered to snapshots that use external
+files for disk images or memory state.
 .IP "\fBsnapshot-dumpxml\fR \fIdomain\fR \fIsnapshot\fR [\fI\-\-security\-info\fR]" 4
 .IX Item "snapshot-dumpxml domain snapshot [--security-info]"
 Output the snapshot \s-1XML\s0 for the domain's snapshot named \fIsnapshot\fR.

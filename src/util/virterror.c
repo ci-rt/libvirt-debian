@@ -117,6 +117,7 @@ VIR_ENUM_IMPL(virErrorDomain, VIR_ERR_DOMAIN_LAST,
 
               "SSH transport layer", /* 50 */
               "Lock Space",
+              "Init control",
     )
 
 
@@ -679,7 +680,7 @@ virRaiseErrorFull(const char *filename ATTRIBUTE_UNUSED,
     virLogMessage(virErrorLogPriorityFilter ? VIR_LOG_FROM_FILE : VIR_LOG_FROM_ERROR,
                   priority,
                   filename, linenr, funcname,
-                  "%s", str);
+                  NULL, "%s", str);
 
     errno = save_errno;
 }
@@ -1319,7 +1320,7 @@ void virReportSystemErrorFull(int domcode,
         size_t len = strlen(errnoDetail);
         if (0 <= n && n + 2 + len < sizeof(msgDetailBuf)) {
           char *p = msgDetailBuf + n;
-          stpcpy (stpcpy (p, ": "), errnoDetail);
+          stpcpy(stpcpy(p, ": "), errnoDetail);
           msgDetail = msgDetailBuf;
         }
     }

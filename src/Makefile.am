@@ -94,6 +94,7 @@ UTIL_SOURCES =							\
 		util/virdbus.c util/virdbus.h			\
 		util/virhash.c util/virhash.h			\
 		util/virhashcode.c util/virhashcode.h           \
+		util/virinitctl.c util/virinitctl.h		\
 		util/virkeycode.c util/virkeycode.h		\
 		util/virkeyfile.c util/virkeyfile.h		\
 		util/virkeymaps.h				\
@@ -111,6 +112,7 @@ UTIL_SOURCES =							\
 		util/virnetlink.c util/virnetlink.h		\
 		util/virrandom.h util/virrandom.c		\
 		util/virsocketaddr.h util/virsocketaddr.c \
+		util/virstring.h util/virstring.c \
 		util/virtime.h util/virtime.c \
 		util/viruri.h util/viruri.c
 
@@ -413,6 +415,7 @@ LXC_DRIVER_SOURCES =						\
 		lxc/lxc_domain.c lxc/lxc_domain.h		\
 		lxc/lxc_monitor.c lxc/lxc_monitor.h		\
 		lxc/lxc_process.c lxc/lxc_process.h		\
+		lxc/lxc_fuse.c lxc/lxc_fuse.h			\
 		lxc/lxc_driver.c lxc/lxc_driver.h
 
 LXC_CONTROLLER_SOURCES =					\
@@ -421,6 +424,7 @@ LXC_CONTROLLER_SOURCES =					\
 		lxc/lxc_conf.c lxc/lxc_conf.h			\
 		lxc/lxc_container.c lxc/lxc_container.h		\
 		lxc/lxc_cgroup.c lxc/lxc_cgroup.h		\
+		lxc/lxc_fuse.c lxc/lxc_fuse.h			\
 		lxc/lxc_controller.c
 
 SECURITY_DRIVER_APPARMOR_HELPER_SOURCES =			\
@@ -493,6 +497,8 @@ ESX_DRIVER_SOURCES =							\
 		esx/esx_interface_driver.c esx/esx_interface_driver.h	\
 		esx/esx_network_driver.c esx/esx_network_driver.h	\
 		esx/esx_storage_driver.c esx/esx_storage_driver.h	\
+		esx/esx_storage_backend_vmfs.c esx/esx_storage_backend_vmfs.h	\
+		esx/esx_storage_backend_iscsi.c esx/esx_storage_backend_iscsi.h	\
 		esx/esx_device_monitor.c esx/esx_device_monitor.h	\
 		esx/esx_secret_driver.c esx/esx_secret_driver.h		\
 		esx/esx_nwfilter_driver.c esx/esx_nwfilter_driver.h	\
@@ -551,7 +557,8 @@ PARALLELS_DRIVER_SOURCES =					\
 		parallels/parallels_driver.c			\
 		parallels/parallels_utils.c			\
 		parallels/parallels_utils.h			\
-		parallels/parallels_storage.c
+		parallels/parallels_storage.c		\
+		parallels/parallels_network.c
 
 NETWORK_DRIVER_SOURCES =					\
 		network/bridge_driver.h network/bridge_driver.c
@@ -911,8 +918,9 @@ endif
 
 libvirt_driver_lxc_impl_la_CFLAGS = \
 		$(LIBNL_CFLAGS) \
+		$(FUSE_CFLAGS) \
 		-I$(top_srcdir)/src/conf $(AM_CFLAGS)
-libvirt_driver_lxc_impl_la_LIBADD = $(CAPNG_LIBS) $(LIBNL_LIBS)
+libvirt_driver_lxc_impl_la_LIBADD = $(CAPNG_LIBS) $(LIBNL_LIBS) $(FUSE_LIBS)
 if HAVE_LIBBLKID
 libvirt_driver_lxc_impl_la_CFLAGS += $(BLKID_CFLAGS)
 libvirt_driver_lxc_impl_la_LIBADD += $(BLKID_LIBS)
@@ -1596,12 +1604,14 @@ libvirt_net_rpc_server_la_SOURCES = \
 	rpc/virnetserver.h rpc/virnetserver.c
 libvirt_net_rpc_server_la_CFLAGS = \
 			$(AVAHI_CFLAGS) \
+			$(DBUS_CFLAGS) \
 			$(XDR_CFLAGS) \
 			$(AM_CFLAGS) \
 			$(POLKIT_CFLAGS)
 libvirt_net_rpc_server_la_LDFLAGS = \
 			$(AM_LDFLAGS) \
 			$(AVAHI_LIBS) \
+			$(DBUS_LIBS) \
 			$(POLKIT_LIBS) \
 			$(CYGWIN_EXTRA_LDFLAGS) \
 			$(MINGW_EXTRA_LDFLAGS)
@@ -1678,6 +1688,7 @@ libvirt_lxc_SOURCES =						\
 libvirt_lxc_LDFLAGS = $(WARN_CFLAGS) $(AM_LDFLAGS)
 libvirt_lxc_LDADD =			\
 		$(NUMACTL_LIBS) \
+		$(FUSE_LIBS) \
 		libvirt-net-rpc-server.la \
 		libvirt-net-rpc.la \
 		libvirt_security_manager.la \
@@ -1696,7 +1707,8 @@ endif
 libvirt_lxc_CFLAGS =				\
 		-I$(top_srcdir)/src/conf	\
 		$(AM_CFLAGS)                    \
-		$(LIBNL_CFLAGS)
+		$(LIBNL_CFLAGS)			\
+		$(FUSE_CFLAGS)
 if HAVE_LIBBLKID
 libvirt_lxc_CFLAGS += $(BLKID_CFLAGS)
 libvirt_lxc_LDADD += $(BLKID_LIBS)
@@ -1760,6 +1772,9 @@ if WITH_UML
 	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/lib/libvirt/uml"
 	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/run/libvirt/uml"
 endif
+if WITH_XEN
+	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/lib/libvirt/xen"
+endif
 if WITH_NETWORK
 	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/lib/libvirt/network"
 	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/lib/libvirt/dnsmasq"
@@ -1805,6 +1820,9 @@ endif
 if WITH_UML
 	rmdir "$(DESTDIR)$(localstatedir)/lib/libvirt/uml" ||:
 	rmdir "$(DESTDIR)$(localstatedir)/run/libvirt/uml" ||:
+endif
+if WITH_XEN
+	rmdir "$(DESTDIR)$(localstatedir)/lib/libvirt/xen" ||:
 endif
 if WITH_NETWORK
 	rm -f $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/autostart/default.xml

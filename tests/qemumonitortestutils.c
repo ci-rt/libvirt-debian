@@ -65,6 +65,8 @@ struct _qemuMonitorTest {
 
     qemuMonitorPtr mon;
 
+    char *tmpdir;
+
     size_t nitems;
     qemuMonitorTestItemPtr *items;
 
@@ -331,9 +333,17 @@ static void qemuMonitorTestItemFree(qemuMonitorTestItemPtr item)
 }
 
 
+static void
+qemuMonitorTestFreeTimer(int timer ATTRIBUTE_UNUSED, void *opaque ATTRIBUTE_UNUSED)
+{
+    /* nothing to be done here */
+}
+
+
 void qemuMonitorTestFree(qemuMonitorTestPtr test)
 {
     size_t i;
+    int timer = -1;
 
     if (!test)
         return;
@@ -341,6 +351,8 @@ void qemuMonitorTestFree(qemuMonitorTestPtr test)
     virMutexLock(&test->lock);
     if (test->running) {
         test->quit = true;
+        /* HACK: Add a dummy timeout to break event loop */
+        timer = virEventAddTimeout(0, qemuMonitorTestFreeTimer, NULL, NULL);
     }
     virMutexUnlock(&test->lock);
 
@@ -361,9 +373,17 @@ void qemuMonitorTestFree(qemuMonitorTestPtr test)
     if (test->running)
         virThreadJoin(&test->thread);
 
+    if (timer != -1)
+        virEventRemoveTimeout(timer);
+
     for (i = 0 ; i < test->nitems ; i++)
         qemuMonitorTestItemFree(test->items[i]);
     VIR_FREE(test->items);
+
+    if (test->tmpdir && rmdir(test->tmpdir) < 0)
+        VIR_WARN("Failed to remove tempdir: %s", strerror(errno));
+
+    VIR_FREE(test->tmpdir);
 
     virMutexDestroy(&test->lock);
     VIR_FREE(test);
@@ -425,31 +445,11 @@ qemuMonitorTestPtr qemuMonitorTestNew(bool json, virCapsPtr caps)
 {
     qemuMonitorTestPtr test = NULL;
     virDomainChrSourceDef src;
+    char *path = NULL;
+    char *tmpdir_template = NULL;
 
-    char *tmpdir = NULL, *path = NULL;
-    char template[] = "/tmp/libvirt_XXXXXX";
-
-    tmpdir = mkdtemp(template);
-    if (tmpdir == NULL) {
-        virReportSystemError(errno, "%s",
-                             "Failed to create temporary directory");
-        goto error;
-    }
-
-    if (virAsprintf(&path, "%s/qemumonitorjsontest.sock", tmpdir) < 0) {
-        virReportOOMError();
-        goto error;
-    }
-
-    memset(&src, 0, sizeof(src));
-    src.type = VIR_DOMAIN_CHR_TYPE_UNIX;
-    src.data.nix.path = (char *)path;
-    src.data.nix.listen = false;
-
-    if (VIR_ALLOC(test) < 0) {
-        virReportOOMError();
-        return NULL;
-    }
+    if (VIR_ALLOC(test) < 0)
+        goto no_memory;
 
     if (virMutexInit(&test->lock) < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
@@ -457,6 +457,20 @@ qemuMonitorTestPtr qemuMonitorTestNew(bool json, virCapsPtr caps)
         VIR_FREE(test);
         return NULL;
     }
+
+    if (!(tmpdir_template = strdup("/tmp/libvirt_XXXXXX")))
+        goto no_memory;
+
+    if (!(test->tmpdir = mkdtemp(tmpdir_template))) {
+        virReportSystemError(errno, "%s",
+                             "Failed to create temporary directory");
+        goto error;
+    }
+
+    tmpdir_template = NULL;
+
+    if (virAsprintf(&path, "%s/qemumonitorjsontest.sock", test->tmpdir) < 0)
+        goto no_memory;
 
     test->json = json;
     if (!(test->vm = virDomainObjNew(caps)))
@@ -469,6 +483,10 @@ qemuMonitorTestPtr qemuMonitorTestNew(bool json, virCapsPtr caps)
                                   &test->server) < 0)
         goto error;
 
+    memset(&src, 0, sizeof(src));
+    src.type = VIR_DOMAIN_CHR_TYPE_UNIX;
+    src.data.nix.path = (char *)path;
+    src.data.nix.listen = false;
 
     if (virNetSocketListen(test->server, 1) < 0)
         goto error;
@@ -509,13 +527,14 @@ qemuMonitorTestPtr qemuMonitorTestNew(bool json, virCapsPtr caps)
     virMutexUnlock(&test->lock);
 
 cleanup:
-    if (tmpdir)
-        if (rmdir(tmpdir) < 0)
-            VIR_WARN("Failed to remove tempdir: %s", strerror(errno));
     VIR_FREE(path);
     return test;
 
+no_memory:
+    virReportOOMError();
+
 error:
+    VIR_FREE(tmpdir_template);
     qemuMonitorTestFree(test);
     goto cleanup;
 }

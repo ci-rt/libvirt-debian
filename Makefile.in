@@ -480,6 +480,8 @@ EXEEXT = @EXEEXT@
 FGREP = @FGREP@
 FLOAT_H = @FLOAT_H@
 FNMATCH_H = @FNMATCH_H@
+FUSE_CFLAGS = @FUSE_CFLAGS@
+FUSE_LIBS = @FUSE_LIBS@
 GETADDRINFO_LIB = @GETADDRINFO_LIB@
 GETHOSTNAME_LIB = @GETHOSTNAME_LIB@
 GETTEXT_CPPFLAGS = @GETTEXT_CPPFLAGS@
@@ -2381,20 +2383,20 @@ uninstall-am: uninstall-pkgconfigDATA
 
 
 NEWS: $(top_srcdir)/docs/news.xsl $(top_srcdir)/docs/news.html.in
-	-@(if [ -x $(XSLTPROC) ] ; then				\
+	$(AM_V_GEN)if [ -x $(XSLTPROC) ] ; then			\
 	  $(XSLTPROC) --nonet $(top_srcdir)/docs/news.xsl	\
 	     $(top_srcdir)/docs/news.html.in			\
 	   | perl -0777 -pe 's/\n\n+$$/\n/'			\
 	   | perl -pe 's/[ \t]+$$//'				\
-	   > $@-t && mv $@-t $@ ; fi );
+	   > $@-t && mv $@-t $@ ; fi
 
 $(top_srcdir)/HACKING: $(top_srcdir)/docs/hacking1.xsl $(top_srcdir)/docs/hacking2.xsl \
                        $(top_srcdir)/docs/wrapstring.xsl $(top_srcdir)/docs/hacking.html.in
-	-@(if [ -x $(XSLTPROC) ] ; then \
+	$(AM_V_GEN)if [ -x $(XSLTPROC) ] ; then \
 	   $(XSLTPROC) --nonet $(top_srcdir)/docs/hacking1.xsl $(top_srcdir)/docs/hacking.html.in | \
 	   $(XSLTPROC) --nonet $(top_srcdir)/docs/hacking2.xsl - \
 	   | perl -0777 -pe 's/\n\n+$$/\n/' \
-	   > $@-t && mv $@-t $@ ; fi );
+	   > $@-t && mv $@-t $@ ; fi;
 
 rpm: clean
 	@(unset CDPATH ; $(MAKE) dist && rpmbuild -ta $(distdir).tar.gz)
@@ -2426,7 +2428,7 @@ distuninstallcheck:
 dist-hook: gen-ChangeLog gen-AUTHORS
 .PHONY: gen-ChangeLog
 gen-ChangeLog:
-	if test -d .git; then					\
+	$(AM_V_GEN)if test -d .git; then			\
 	  $(top_srcdir)/build-aux/gitlog-to-changelog		\
 	    --since=$(gen_start_date) > $(distdir)/cl-t;	\
 	  rm -f $(distdir)/ChangeLog;				\
@@ -2435,7 +2437,7 @@ gen-ChangeLog:
 
 .PHONY: gen-AUTHORS
 gen-AUTHORS:
-	if test -d .git; then \
+	$(AM_V_GEN)if test -d .git; then \
 	    out="`git log --pretty=format:'%aN <%aE>' | sort -u`" && \
 	    cat $(srcdir)/AUTHORS.in | perl -p -e "s/#authorslist#/$$out/" > \
 	      $(distdir)/AUTHORS-tmp && \

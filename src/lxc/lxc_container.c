@@ -240,7 +240,7 @@ static int lxcContainerSetStdio(int control, int ttyfd, int handshakefd)
 
     /* Just in case someone forget to set FD_CLOEXEC, explicitly
      * close all FDs before executing the container */
-    open_max = sysconf (_SC_OPEN_MAX);
+    open_max = sysconf(_SC_OPEN_MAX);
     for (i = 0; i < open_max; i++)
         if (i != ttyfd && i != control && i != handshakefd) {
             int tmpfd = i;
@@ -571,7 +571,7 @@ static int lxcContainerMountBasicFS(bool pivotRoot,
          */
 
         ignore_value(virAsprintf(&opts,
-                                 "mode=755,size=65536%s",(sec_mount_options ? sec_mount_options : "")));
+                                 "mode=755,size=65536%s", sec_mount_options));
         if (!opts) {
             virReportOOMError();
             goto cleanup;
@@ -595,6 +595,36 @@ cleanup:
     return rc;
 }
 
+#if HAVE_FUSE
+static int lxcContainerMountProcFuse(virDomainDefPtr def,
+                                     const char *srcprefix)
+{
+    int ret;
+    char *meminfo_path = NULL;
+
+    if ((ret = virAsprintf(&meminfo_path,
+                           "%s/%s/%s/meminfo",
+                           srcprefix, LXC_STATE_DIR,
+                           def->name)) < 0)
+        return ret;
+
+    if ((ret = mount(meminfo_path, "/proc/meminfo",
+                     NULL, MS_BIND, NULL)) < 0) {
+        virReportSystemError(errno,
+                             _("Failed to mount %s on /proc/meminfo"),
+                             meminfo_path);
+    }
+
+    VIR_FREE(meminfo_path);
+    return ret;
+}
+#else
+static int lxcContainerMountProcFuse(virDomainDefPtr def ATTRIBUTE_UNUSED,
+                                     const char *srcprefix ATTRIBUTE_UNUSED)
+{
+    return 0;
+}
+#endif
 
 static int lxcContainerMountFSDevPTS(virDomainFSDefPtr root)
 {
@@ -1083,7 +1113,7 @@ static int lxcContainerMountFSTmpfs(virDomainFSDefPtr fs,
     char *data = NULL;
 
     if (virAsprintf(&data,
-                    "size=%lldk%s", fs->usage, (sec_mount_options ? sec_mount_options : "")) < 0) {
+                    "size=%lldk%s", fs->usage, sec_mount_options) < 0) {
         virReportOOMError();
         goto cleanup;
     }
@@ -1456,7 +1486,7 @@ static int lxcContainerMountCGroups(struct lxcContainerCGroup *mounts,
     }
 
     if (virAsprintf(&opts,
-                    "mode=755,size=65536%s",(sec_mount_options ? sec_mount_options : "")) < 0 ) {
+                    "mode=755,size=65536%s", sec_mount_options) < 0) {
         virReportOOMError();
         return -1;
     }
@@ -1511,17 +1541,21 @@ static int lxcContainerSetupPivotRoot(virDomainDefPtr vmDef,
                                       virDomainFSDefPtr root,
                                       char **ttyPaths,
                                       size_t nttyPaths,
-                                      char *sec_mount_options)
+                                      virSecurityManagerPtr securityDriver)
 {
     struct lxcContainerCGroup *mounts = NULL;
     size_t nmounts = 0;
     int ret = -1;
-    char *cgroupRoot;
+    char *cgroupRoot = NULL;
+    char *sec_mount_options;
+
+    if (!(sec_mount_options = virSecurityManagerGetMountOptions(securityDriver, vmDef)))
+        return -1;
 
     /* Before pivoting we need to identify any
      * cgroups controllers that are mounted */
     if (lxcContainerIdentifyCGroups(&mounts, &nmounts, &cgroupRoot) < 0)
-        return -1;
+        goto cleanup;
 
     /* Gives us a private root, leaving all parent OS mounts on /.oldroot */
     if (lxcContainerPivotRoot(root) < 0)
@@ -1548,6 +1582,10 @@ static int lxcContainerSetupPivotRoot(virDomainDefPtr vmDef,
 
     /* Mounts the core /proc, /sys, etc filesystems */
     if (lxcContainerMountBasicFS(true, sec_mount_options) < 0)
+        goto cleanup;
+
+    /* Mounts /proc/meminfo etc sysinfo */
+    if (lxcContainerMountProcFuse(vmDef, "/.oldroot") < 0)
         goto cleanup;
 
     /* Now we can re-mount the cgroups controllers in the
@@ -1577,6 +1615,7 @@ static int lxcContainerSetupPivotRoot(virDomainDefPtr vmDef,
 cleanup:
     lxcContainerCGroupFree(mounts, nmounts);
     VIR_FREE(cgroupRoot);
+    VIR_FREE(sec_mount_options);
     return ret;
 }
 
@@ -1585,14 +1624,19 @@ cleanup:
    but with extra stuff mapped in */
 static int lxcContainerSetupExtraMounts(virDomainDefPtr vmDef,
                                         virDomainFSDefPtr root,
-                                        char *sec_mount_options)
+                                        virSecurityManagerPtr securityDriver)
 {
     int ret = -1;
     struct lxcContainerCGroup *mounts = NULL;
     size_t nmounts = 0;
-    char *cgroupRoot;
+    char *cgroupRoot = NULL;
+    char *sec_mount_options;
 
     VIR_DEBUG("def=%p", vmDef);
+
+    if (!(sec_mount_options = virSecurityManagerGetMountOptions(securityDriver, vmDef)))
+        return -1;
+
     /*
      * This makes sure that any new filesystems in the
      * host OS propagate to the container, but any
@@ -1601,25 +1645,25 @@ static int lxcContainerSetupExtraMounts(virDomainDefPtr vmDef,
     if (mount("", "/", NULL, MS_SLAVE|MS_REC, NULL) < 0) {
         virReportSystemError(errno, "%s",
                              _("Failed to make / slave"));
-        return -1;
+        goto cleanup;
     }
 
     if (root && root->readonly) {
         if (mount("", "/", NULL, MS_BIND|MS_REC|MS_RDONLY|MS_REMOUNT, NULL) < 0) {
             virReportSystemError(errno, "%s",
                                  _("Failed to make root readonly"));
-            return -1;
+            goto cleanup;
         }
     }
 
     VIR_DEBUG("Mounting config FS");
     if (lxcContainerMountAllFS(vmDef, "", false, sec_mount_options) < 0)
-        return -1;
+        goto cleanup;
 
     /* Before replacing /sys we need to identify any
      * cgroups controllers that are mounted */
     if (lxcContainerIdentifyCGroups(&mounts, &nmounts, &cgroupRoot) < 0)
-        return -1;
+        goto cleanup;
 
 #if HAVE_SELINUX
     /* Some versions of Linux kernel don't let you overmount
@@ -1640,6 +1684,10 @@ static int lxcContainerSetupExtraMounts(virDomainDefPtr vmDef,
     if (lxcContainerMountBasicFS(false, sec_mount_options) < 0)
         goto cleanup;
 
+    /* Mounts /proc/meminfo etc sysinfo */
+    if (lxcContainerMountProcFuse(vmDef, "/.oldroot") < 0)
+        goto cleanup;
+
     /* Now we can re-mount the cgroups controllers in the
      * same configuration as before */
     if (lxcContainerMountCGroups(mounts, nmounts,
@@ -1653,6 +1701,7 @@ static int lxcContainerSetupExtraMounts(virDomainDefPtr vmDef,
 cleanup:
     lxcContainerCGroupFree(mounts, nmounts);
     VIR_FREE(cgroupRoot);
+    VIR_FREE(sec_mount_options);
     return ret;
 }
 
@@ -1684,19 +1733,15 @@ static int lxcContainerSetupMounts(virDomainDefPtr vmDef,
                                    size_t nttyPaths,
                                    virSecurityManagerPtr securityDriver)
 {
-    int rc = -1;
-    char *sec_mount_options = NULL;
     if (lxcContainerResolveSymlinks(vmDef) < 0)
         return -1;
 
-    sec_mount_options = virSecurityManagerGetMountOptions(securityDriver, vmDef);
     if (root && root->src)
-        rc =  lxcContainerSetupPivotRoot(vmDef, root, ttyPaths, nttyPaths, sec_mount_options);
+        return  lxcContainerSetupPivotRoot(vmDef, root, ttyPaths, nttyPaths,
+                                           securityDriver);
     else
-        rc = lxcContainerSetupExtraMounts(vmDef, root, sec_mount_options);
-
-    VIR_FREE(sec_mount_options);
-    return rc;
+        return lxcContainerSetupExtraMounts(vmDef, root,
+                                            securityDriver);
 }
 
 
@@ -1721,7 +1766,7 @@ static int lxcContainerDropCapabilities(bool keepReboot ATTRIBUTE_UNUSED)
                              CAP_AUDIT_CONTROL, /* No messing with auditing status */
                              CAP_MAC_ADMIN, /* No messing with LSM config */
                              keepReboot ? -1 : CAP_SYS_BOOT, /* No use of reboot */
-                             -1 /* sentinal */)) < 0) {
+                             -1)) < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("Failed to remove capabilities: %d"), ret);
         return -1;
@@ -1758,7 +1803,7 @@ static int lxcContainerDropCapabilities(bool keepReboot ATTRIBUTE_UNUSED)
  *
  * Returns 0 on success or -1 in case of error
  */
-static int lxcContainerChild( void *data )
+static int lxcContainerChild(void *data)
 {
     lxc_child_argv_t *argv = data;
     virDomainDefPtr vmDef = argv->config;

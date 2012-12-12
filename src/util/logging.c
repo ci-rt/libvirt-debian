@@ -58,11 +58,6 @@
 
 #define VIR_FROM_THIS VIR_FROM_NONE
 
-#ifdef __UCLIBC__
-/* uclibc does not implement mkostemp GNU extention */
-#define mkostemp(x,y) mkstemp(x)
-#endif
-
 VIR_ENUM_DECL(virLogSource)
 VIR_ENUM_IMPL(virLogSource, VIR_LOG_FROM_LAST,
               "file",
@@ -128,6 +123,7 @@ static void virLogOutputToFd(virLogSource src,
                              int linenr,
                              const char *funcname,
                              const char *timestamp,
+                             virLogMetadataPtr metadata,
                              unsigned int flags,
                              const char *rawstr,
                              const char *str,
@@ -361,13 +357,13 @@ virLogDumpAllFD(const char *msg, int len)
             int fd = (intptr_t) virLogOutputs[i].data;
 
             if (fd >= 0) {
-                ignore_value (safewrite(fd, msg, len));
+                ignore_value(safewrite(fd, msg, len));
                 found = 1;
             }
         }
     }
     if (!found)
-        ignore_value (safewrite(STDERR_FILENO, msg, len));
+        ignore_value(safewrite(STDERR_FILENO, msg, len));
 }
 
 
@@ -389,36 +385,36 @@ virLogEmergencyDumpAll(int signum)
     switch (signum) {
 #ifdef SIGFPE
         case SIGFPE:
-            virLogDumpAllFD( "Caught signal Floating-point exception", -1);
+            virLogDumpAllFD("Caught signal Floating-point exception", -1);
             break;
 #endif
 #ifdef SIGSEGV
         case SIGSEGV:
-            virLogDumpAllFD( "Caught Segmentation violation", -1);
+            virLogDumpAllFD("Caught Segmentation violation", -1);
             break;
 #endif
 #ifdef SIGILL
         case SIGILL:
-            virLogDumpAllFD( "Caught illegal instruction", -1);
+            virLogDumpAllFD("Caught illegal instruction", -1);
             break;
 #endif
 #ifdef SIGABRT
         case SIGABRT:
-            virLogDumpAllFD( "Caught abort signal", -1);
+            virLogDumpAllFD("Caught abort signal", -1);
             break;
 #endif
 #ifdef SIGBUS
         case SIGBUS:
-            virLogDumpAllFD( "Caught bus error", -1);
+            virLogDumpAllFD("Caught bus error", -1);
             break;
 #endif
 #ifdef SIGUSR2
         case SIGUSR2:
-            virLogDumpAllFD( "Caught User-defined signal 2", -1);
+            virLogDumpAllFD("Caught User-defined signal 2", -1);
             break;
 #endif
         default:
-            virLogDumpAllFD( "Caught unexpected signal", -1);
+            virLogDumpAllFD("Caught unexpected signal", -1);
             break;
     }
     if ((virLogBuffer == NULL) || (virLogSize <= 0)) {
@@ -734,6 +730,7 @@ virLogVersionString(const char **rawmsg,
  * @filename: file where the message was emitted
  * @linenr: line where the message was emitted
  * @funcname: the function emitting the (debug) message
+ * @metadata: NULL or metadata array, terminated by an item with NULL key
  * @fmt: the string format
  * @...: the arguments
  *
@@ -746,13 +743,14 @@ virLogMessage(virLogSource source,
               const char *filename,
               int linenr,
               const char *funcname,
+              virLogMetadataPtr metadata,
               const char *fmt, ...)
 {
     va_list ap;
     va_start(ap, fmt);
     virLogVMessage(source, priority,
                    filename, linenr, funcname,
-                   fmt, ap);
+                   metadata, fmt, ap);
     va_end(ap);
 }
 
@@ -764,6 +762,7 @@ virLogMessage(virLogSource source,
  * @filename: file where the message was emitted
  * @linenr: line where the message was emitted
  * @funcname: the function emitting the (debug) message
+ * @metadata: NULL or metadata array, terminated by an item with NULL key
  * @fmt: the string format
  * @vargs: format args
  *
@@ -776,6 +775,7 @@ virLogVMessage(virLogSource source,
                const char *filename,
                int linenr,
                const char *funcname,
+               virLogMetadataPtr metadata,
                const char *fmt,
                va_list vargs)
 {
@@ -846,14 +846,14 @@ virLogVMessage(virLogSource source,
                 if (virLogVersionString(&rawver, &ver) >= 0)
                     virLogOutputs[i].f(VIR_LOG_FROM_FILE, VIR_LOG_INFO,
                                        __FILE__, __LINE__, __func__,
-                                       timestamp, 0, rawver, ver,
+                                       timestamp, NULL, 0, rawver, ver,
                                        virLogOutputs[i].data);
                 VIR_FREE(ver);
                 virLogOutputs[i].logVersion = false;
             }
             virLogOutputs[i].f(source, priority,
                                filename, linenr, funcname,
-                               timestamp, filterflags,
+                               timestamp, metadata, filterflags,
                                str, msg, virLogOutputs[i].data);
         }
     }
@@ -864,14 +864,14 @@ virLogVMessage(virLogSource source,
             if (virLogVersionString(&rawver, &ver) >= 0)
                 virLogOutputToFd(VIR_LOG_FROM_FILE, VIR_LOG_INFO,
                                  __FILE__, __LINE__, __func__,
-                                 timestamp, 0, rawver, ver,
+                                 timestamp, NULL, 0, rawver, ver,
                                  (void *) STDERR_FILENO);
             VIR_FREE(ver);
             logVersionStderr = false;
         }
         virLogOutputToFd(source, priority,
                          filename, linenr, funcname,
-                         timestamp, filterflags,
+                         timestamp, metadata, filterflags,
                          str, msg, (void *) STDERR_FILENO);
     }
     virLogUnlock();
@@ -910,6 +910,7 @@ virLogOutputToFd(virLogSource source ATTRIBUTE_UNUSED,
                  int linenr ATTRIBUTE_UNUSED,
                  const char *funcname ATTRIBUTE_UNUSED,
                  const char *timestamp,
+                 virLogMetadataPtr metadata ATTRIBUTE_UNUSED,
                  unsigned int flags,
                  const char *rawstr ATTRIBUTE_UNUSED,
                  const char *str,
@@ -996,6 +997,7 @@ virLogOutputToSyslog(virLogSource source ATTRIBUTE_UNUSED,
                      int linenr ATTRIBUTE_UNUSED,
                      const char *funcname ATTRIBUTE_UNUSED,
                      const char *timestamp ATTRIBUTE_UNUSED,
+                     virLogMetadataPtr metadata ATTRIBUTE_UNUSED,
                      unsigned int flags,
                      const char *rawstr ATTRIBUTE_UNUSED,
                      const char *str,
@@ -1041,19 +1043,78 @@ virLogAddOutputToSyslog(virLogPriority priority,
 
 
 # if USE_JOURNALD
-#  define IOVEC_SET_STRING(iov, str)         \
-    do {                                     \
-        struct iovec *_i = &(iov);           \
-        _i->iov_base = (char*)str;           \
-        _i->iov_len = strlen(str);           \
+#  define IOVEC_SET(iov, data, size)            \
+    do {                                        \
+        struct iovec *_i = &(iov);              \
+        _i->iov_base = (void*)(data);           \
+        _i->iov_len = (size);                   \
     } while (0)
 
-#  define IOVEC_SET_INT(iov, buf, val)                                  \
-    do {                                                                \
-        struct iovec *_i = &(iov);                                      \
-        _i->iov_base = virFormatIntDecimal(buf, sizeof(buf), val);      \
-        _i->iov_len = strlen(buf);                                      \
-    } while (0)
+#  define IOVEC_SET_STRING(iov, str) IOVEC_SET(iov, str, strlen(str))
+
+/* Used for conversion of numbers to strings, and for length of binary data */
+#  define JOURNAL_BUF_SIZE (MAX(INT_BUFSIZE_BOUND(int), sizeof(uint64_t)))
+
+struct journalState
+{
+    struct iovec *iov, *iov_end;
+    char (*bufs)[JOURNAL_BUF_SIZE], (*bufs_end)[JOURNAL_BUF_SIZE];
+};
+
+static void
+journalAddString(struct journalState *state, const char *field,
+                 const char *value)
+{
+    static const char newline = '\n', equals = '=';
+
+    if (strchr(value, '\n') != NULL) {
+        uint64_t nstr;
+
+        /* If 'str' contains a newline, then we must
+         * encode the string length, since we can't
+         * rely on the newline for the field separator
+         */
+        if (state->iov_end - state->iov < 5 || state->bufs == state->bufs_end)
+            return; /* Silently drop */
+        nstr = htole64(strlen(value));
+        memcpy(state->bufs[0], &nstr, sizeof(nstr));
+
+        IOVEC_SET_STRING(state->iov[0], field);
+        IOVEC_SET(state->iov[1], &newline, sizeof(newline));
+        IOVEC_SET(state->iov[2], state->bufs[0], sizeof(nstr));
+        state->bufs++;
+        state->iov += 3;
+    } else {
+        if (state->iov_end - state->iov < 4)
+            return; /* Silently drop */
+        IOVEC_SET_STRING(state->iov[0], field);
+        IOVEC_SET(state->iov[1], (void *)&equals, sizeof(equals));
+        state->iov += 2;
+    }
+    IOVEC_SET_STRING(state->iov[0], value);
+    IOVEC_SET(state->iov[1], (void *)&newline, sizeof(newline));
+    state->iov += 2;
+}
+
+static void
+journalAddInt(struct journalState *state, const char *field, int value)
+{
+    static const char newline = '\n', equals = '=';
+
+    char *num;
+
+    if (state->iov_end - state->iov < 4 || state->bufs == state->bufs_end)
+        return; /* Silently drop */
+
+    num = virFormatIntDecimal(state->bufs[0], sizeof(state->bufs[0]), value);
+
+    IOVEC_SET_STRING(state->iov[0], field);
+    IOVEC_SET(state->iov[1], (void *)&equals, sizeof(equals));
+    IOVEC_SET_STRING(state->iov[2], num);
+    IOVEC_SET(state->iov[3], (void *)&newline, sizeof(newline));
+    state->bufs++;
+    state->iov += 4;
+}
 
 static int journalfd = -1;
 
@@ -1064,6 +1125,7 @@ virLogOutputToJournald(virLogSource source,
                        int linenr,
                        const char *funcname,
                        const char *timestamp ATTRIBUTE_UNUSED,
+                       virLogMetadataPtr metadata ATTRIBUTE_UNUSED,
                        unsigned int flags,
                        const char *rawstr,
                        const char *str ATTRIBUTE_UNUSED,
@@ -1071,7 +1133,6 @@ virLogOutputToJournald(virLogSource source,
 {
     virCheckFlags(VIR_LOG_STACK_TRACE,);
     int buffd = -1;
-    size_t niov = 0;
     struct msghdr mh;
     struct sockaddr_un sa;
     union {
@@ -1083,52 +1144,24 @@ virLogOutputToJournald(virLogSource source,
      * be a tmpfs, and one that is available from early boot on
      * and where unprivileged users can create files. */
     char path[] = "/dev/shm/journal.XXXXXX";
-    char priostr[INT_BUFSIZE_BOUND(priority)];
-    char linestr[INT_BUFSIZE_BOUND(linenr)];
 
-    /* First message takes up to 4 iovecs, and each
-     * other field needs 3, assuming they don't have
-     * newlines in them
-     */
-#  define IOV_SIZE (4 + (5 * 3))
-    struct iovec iov[IOV_SIZE];
+#  define NUM_FIELDS 6
+    struct iovec iov[NUM_FIELDS * 5];
+    char iov_bufs[NUM_FIELDS][JOURNAL_BUF_SIZE];
+    struct journalState state;
 
-    if (strchr(rawstr, '\n')) {
-        uint64_t nstr;
-        /* If 'str' contains a newline, then we must
-         * encode the string length, since we can't
-         * rely on the newline for the field separator
-         */
-        IOVEC_SET_STRING(iov[niov++], "MESSAGE\n");
-        nstr = htole64(strlen(rawstr));
-        iov[niov].iov_base = (char*)&nstr;
-        iov[niov].iov_len = sizeof(nstr);
-        niov++;
-    } else {
-        IOVEC_SET_STRING(iov[niov++], "MESSAGE=");
-    }
-    IOVEC_SET_STRING(iov[niov++], rawstr);
-    IOVEC_SET_STRING(iov[niov++], "\n");
+    state.iov = iov;
+    state.iov_end = iov + ARRAY_CARDINALITY(iov);
+    state.bufs = iov_bufs;
+    state.bufs_end = iov_bufs + ARRAY_CARDINALITY(iov_bufs);
 
-    IOVEC_SET_STRING(iov[niov++], "PRIORITY=");
-    IOVEC_SET_INT(iov[niov++], priostr, priority);
-    IOVEC_SET_STRING(iov[niov++], "\n");
-
-    IOVEC_SET_STRING(iov[niov++], "LIBVIRT_SOURCE=");
-    IOVEC_SET_STRING(iov[niov++], virLogSourceTypeToString(source));
-    IOVEC_SET_STRING(iov[niov++], "\n");
-
-    IOVEC_SET_STRING(iov[niov++], "CODE_FILE=");
-    IOVEC_SET_STRING(iov[niov++], filename);
-    IOVEC_SET_STRING(iov[niov++], "\n");
-
-    IOVEC_SET_STRING(iov[niov++], "CODE_LINE=");
-    IOVEC_SET_INT(iov[niov++], linestr, linenr);
-    IOVEC_SET_STRING(iov[niov++], "\n");
-
-    IOVEC_SET_STRING(iov[niov++], "CODE_FUNC=");
-    IOVEC_SET_STRING(iov[niov++], funcname);
-    IOVEC_SET_STRING(iov[niov++], "\n");
+    journalAddString(&state ,"MESSAGE", rawstr);
+    journalAddInt(&state, "PRIORITY", priority);
+    journalAddString(&state, "LIBVIRT_SOURCE",
+                     virLogSourceTypeToString(source));
+    journalAddString(&state, "CODE_FILE", filename);
+    journalAddInt(&state, "CODE_LINE", linenr);
+    journalAddString(&state, "CODE_FUNC", funcname);
 
     memset(&sa, 0, sizeof(sa));
     sa.sun_family = AF_UNIX;
@@ -1139,7 +1172,7 @@ virLogOutputToJournald(virLogSource source,
     mh.msg_name = &sa;
     mh.msg_namelen = offsetof(struct sockaddr_un, sun_path) + strlen(sa.sun_path);
     mh.msg_iov = iov;
-    mh.msg_iovlen = niov;
+    mh.msg_iovlen = state.iov - iov;
 
     if (sendmsg(journalfd, &mh, MSG_NOSIGNAL) >= 0)
         return;
@@ -1163,7 +1196,7 @@ virLogOutputToJournald(virLogSource source,
     if (unlink(path) < 0)
         goto cleanup;
 
-    if (writev(buffd, iov, niov) < 0)
+    if (writev(buffd, iov, state.iov - iov) < 0)
         goto cleanup;
 
     mh.msg_iov = NULL;

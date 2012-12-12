@@ -272,6 +272,7 @@
      <exports symbol='VIR_DOMAIN_EVENT_STOPPED_SAVED' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_STOPPED_SHUTDOWN' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_SUSPENDED' type='enum'/>
+     <exports symbol='VIR_DOMAIN_EVENT_SUSPENDED_API_ERROR' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_SUSPENDED_FROM_SNAPSHOT' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_SUSPENDED_IOERROR' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_SUSPENDED_LAST' type='enum'/>
@@ -341,6 +342,7 @@
      <exports symbol='VIR_DOMAIN_PAUSED_MIGRATION' type='enum'/>
      <exports symbol='VIR_DOMAIN_PAUSED_SAVE' type='enum'/>
      <exports symbol='VIR_DOMAIN_PAUSED_SHUTTING_DOWN' type='enum'/>
+     <exports symbol='VIR_DOMAIN_PAUSED_SNAPSHOT' type='enum'/>
      <exports symbol='VIR_DOMAIN_PAUSED_UNKNOWN' type='enum'/>
      <exports symbol='VIR_DOMAIN_PAUSED_USER' type='enum'/>
      <exports symbol='VIR_DOMAIN_PAUSED_WATCHDOG' type='enum'/>
@@ -349,9 +351,77 @@
      <exports symbol='VIR_DOMAIN_PMSUSPENDED_DISK_UNKNOWN' type='enum'/>
      <exports symbol='VIR_DOMAIN_PMSUSPENDED_LAST' type='enum'/>
      <exports symbol='VIR_DOMAIN_PMSUSPENDED_UNKNOWN' type='enum'/>
+     <exports symbol='VIR_DOMAIN_PROCESS_SIGNAL_ABRT' type='enum'/>
+     <exports symbol='VIR_DOMAIN_PROCESS_SIGNAL_ALRM' type='enum'/>
+     <exports symbol='VIR_DOMAIN_PROCESS_SIGNAL_BUS' type='enum'/>
+     <exports symbol='VIR_DOMAIN_PROCESS_SIGNAL_CHLD' type='enum'/>
+     <exports symbol='VIR_DOMAIN_PROCESS_SIGNAL_CONT' type='enum'/>
+     <exports symbol='VIR_DOMAIN_PROCESS_SIGNAL_FPE' type='enum'/>
+     <exports symbol='VIR_DOMAIN_PROCESS_SIGNAL_HUP' type='enum'/>
+     <exports symbol='VIR_DOMAIN_PROCESS_SIGNAL_ILL' type='enum'/>
+     <exports symbol='VIR_DOMAIN_PROCESS_SIGNAL_INT' type='enum'/>
+     <exports symbol='VIR_DOMAIN_PROCESS_SIGNAL_KILL' type='enum'/>
+     <exports symbol='VIR_DOMAIN_PROCESS_SIGNAL_LAST' type='enum'/>
+     <exports symbol='VIR_DOMAIN_PROCESS_SIGNAL_NOP' type='enum'/>
+     <exports symbol='VIR_DOMAIN_PROCESS_SIGNAL_PIPE' type='enum'/>
+     <exports symbol='VIR_DOMAIN_PROCESS_SIGNAL_POLL' type='enum'/>
+     <exports symbol='VIR_DOMAIN_PROCESS_SIGNAL_PROF' type='enum'/>
+     <exports symbol='VIR_DOMAIN_PROCESS_SIGNAL_PWR' type='enum'/>
+     <exports symbol='VIR_DOMAIN_PROCESS_SIGNAL_QUIT' type='enum'/>
+     <exports symbol='VIR_DOMAIN_PROCESS_SIGNAL_RT0' type='enum'/>
+     <exports symbol='VIR_DOMAIN_PROCESS_SIGNAL_RT1' type='enum'/>
+     <exports symbol='VIR_DOMAIN_PROCESS_SIGNAL_RT10' type='enum'/>
+     <exports symbol='VIR_DOMAIN_PROCESS_SIGNAL_RT11' type='enum'/>
+     <exports symbol='VIR_DOMAIN_PROCESS_SIGNAL_RT12' type='enum'/>
+     <exports symbol='VIR_DOMAIN_PROCESS_SIGNAL_RT13' type='enum'/>
+     <exports symbol='VIR_DOMAIN_PROCESS_SIGNAL_RT14' type='enum'/>
+     <exports symbol='VIR_DOMAIN_PROCESS_SIGNAL_RT15' type='enum'/>
+     <exports symbol='VIR_DOMAIN_PROCESS_SIGNAL_RT16' type='enum'/>
+     <exports symbol='VIR_DOMAIN_PROCESS_SIGNAL_RT17' type='enum'/>
+     <exports symbol='VIR_DOMAIN_PROCESS_SIGNAL_RT18' type='enum'/>
+     <exports symbol='VIR_DOMAIN_PROCESS_SIGNAL_RT19' type='enum'/>
+     <exports symbol='VIR_DOMAIN_PROCESS_SIGNAL_RT2' type='enum'/>
+     <exports symbol='VIR_DOMAIN_PROCESS_SIGNAL_RT20' type='enum'/>
+     <exports symbol='VIR_DOMAIN_PROCESS_SIGNAL_RT21' type='enum'/>
+     <exports symbol='VIR_DOMAIN_PROCESS_SIGNAL_RT22' type='enum'/>
+     <exports symbol='VIR_DOMAIN_PROCESS_SIGNAL_RT23' type='enum'/>
+     <exports symbol='VIR_DOMAIN_PROCESS_SIGNAL_RT24' type='enum'/>
+     <exports symbol='VIR_DOMAIN_PROCESS_SIGNAL_RT25' type='enum'/>
+     <exports symbol='VIR_DOMAIN_PROCESS_SIGNAL_RT26' type='enum'/>
+     <exports symbol='VIR_DOMAIN_PROCESS_SIGNAL_RT27' type='enum'/>
+     <exports symbol='VIR_DOMAIN_PROCESS_SIGNAL_RT28' type='enum'/>
+     <exports symbol='VIR_DOMAIN_PROCESS_SIGNAL_RT29' type='enum'/>
+     <exports symbol='VIR_DOMAIN_PROCESS_SIGNAL_RT3' type='enum'/>
+     <exports symbol='VIR_DOMAIN_PROCESS_SIGNAL_RT30' type='enum'/>
+     <exports symbol='VIR_DOMAIN_PROCESS_SIGNAL_RT31' type='enum'/>
+     <exports symbol='VIR_DOMAIN_PROCESS_SIGNAL_RT32' type='enum'/>
+     <exports symbol='VIR_DOMAIN_PROCESS_SIGNAL_RT4' type='enum'/>
+     <exports symbol='VIR_DOMAIN_PROCESS_SIGNAL_RT5' type='enum'/>
+     <exports symbol='VIR_DOMAIN_PROCESS_SIGNAL_RT6' type='enum'/>
+     <exports symbol='VIR_DOMAIN_PROCESS_SIGNAL_RT7' type='enum'/>
+     <exports symbol='VIR_DOMAIN_PROCESS_SIGNAL_RT8' type='enum'/>
+     <exports symbol='VIR_DOMAIN_PROCESS_SIGNAL_RT9' type='enum'/>
+     <exports symbol='VIR_DOMAIN_PROCESS_SIGNAL_SEGV' type='enum'/>
+     <exports symbol='VIR_DOMAIN_PROCESS_SIGNAL_STKFLT' type='enum'/>
+     <exports symbol='VIR_DOMAIN_PROCESS_SIGNAL_STOP' type='enum'/>
+     <exports symbol='VIR_DOMAIN_PROCESS_SIGNAL_SYS' type='enum'/>
+     <exports symbol='VIR_DOMAIN_PROCESS_SIGNAL_TERM' type='enum'/>
+     <exports symbol='VIR_DOMAIN_PROCESS_SIGNAL_TRAP' type='enum'/>
+     <exports symbol='VIR_DOMAIN_PROCESS_SIGNAL_TSTP' type='enum'/>
+     <exports symbol='VIR_DOMAIN_PROCESS_SIGNAL_TTIN' type='enum'/>
+     <exports symbol='VIR_DOMAIN_PROCESS_SIGNAL_TTOU' type='enum'/>
+     <exports symbol='VIR_DOMAIN_PROCESS_SIGNAL_URG' type='enum'/>
+     <exports symbol='VIR_DOMAIN_PROCESS_SIGNAL_USR1' type='enum'/>
+     <exports symbol='VIR_DOMAIN_PROCESS_SIGNAL_USR2' type='enum'/>
+     <exports symbol='VIR_DOMAIN_PROCESS_SIGNAL_VTALRM' type='enum'/>
+     <exports symbol='VIR_DOMAIN_PROCESS_SIGNAL_WINCH' type='enum'/>
+     <exports symbol='VIR_DOMAIN_PROCESS_SIGNAL_XCPU' type='enum'/>
+     <exports symbol='VIR_DOMAIN_PROCESS_SIGNAL_XFSZ' type='enum'/>
      <exports symbol='VIR_DOMAIN_REBOOT_ACPI_POWER_BTN' type='enum'/>
      <exports symbol='VIR_DOMAIN_REBOOT_DEFAULT' type='enum'/>
      <exports symbol='VIR_DOMAIN_REBOOT_GUEST_AGENT' type='enum'/>
+     <exports symbol='VIR_DOMAIN_REBOOT_INITCTL' type='enum'/>
+     <exports symbol='VIR_DOMAIN_REBOOT_SIGNAL' type='enum'/>
      <exports symbol='VIR_DOMAIN_RUNNING' type='enum'/>
      <exports symbol='VIR_DOMAIN_RUNNING_BOOTED' type='enum'/>
      <exports symbol='VIR_DOMAIN_RUNNING_FROM_SNAPSHOT' type='enum'/>
@@ -376,7 +446,9 @@
      <exports symbol='VIR_DOMAIN_SHUTDOWN_ACPI_POWER_BTN' type='enum'/>
      <exports symbol='VIR_DOMAIN_SHUTDOWN_DEFAULT' type='enum'/>
      <exports symbol='VIR_DOMAIN_SHUTDOWN_GUEST_AGENT' type='enum'/>
+     <exports symbol='VIR_DOMAIN_SHUTDOWN_INITCTL' type='enum'/>
      <exports symbol='VIR_DOMAIN_SHUTDOWN_LAST' type='enum'/>
+     <exports symbol='VIR_DOMAIN_SHUTDOWN_SIGNAL' type='enum'/>
      <exports symbol='VIR_DOMAIN_SHUTDOWN_UNKNOWN' type='enum'/>
      <exports symbol='VIR_DOMAIN_SHUTDOWN_USER' type='enum'/>
      <exports symbol='VIR_DOMAIN_SHUTOFF' type='enum'/>
@@ -393,6 +465,7 @@
      <exports symbol='VIR_DOMAIN_SNAPSHOT_CREATE_CURRENT' type='enum'/>
      <exports symbol='VIR_DOMAIN_SNAPSHOT_CREATE_DISK_ONLY' type='enum'/>
      <exports symbol='VIR_DOMAIN_SNAPSHOT_CREATE_HALT' type='enum'/>
+     <exports symbol='VIR_DOMAIN_SNAPSHOT_CREATE_LIVE' type='enum'/>
      <exports symbol='VIR_DOMAIN_SNAPSHOT_CREATE_NO_METADATA' type='enum'/>
      <exports symbol='VIR_DOMAIN_SNAPSHOT_CREATE_QUIESCE' type='enum'/>
      <exports symbol='VIR_DOMAIN_SNAPSHOT_CREATE_REDEFINE' type='enum'/>
@@ -400,7 +473,12 @@
      <exports symbol='VIR_DOMAIN_SNAPSHOT_DELETE_CHILDREN' type='enum'/>
      <exports symbol='VIR_DOMAIN_SNAPSHOT_DELETE_CHILDREN_ONLY' type='enum'/>
      <exports symbol='VIR_DOMAIN_SNAPSHOT_DELETE_METADATA_ONLY' type='enum'/>
+     <exports symbol='VIR_DOMAIN_SNAPSHOT_LIST_ACTIVE' type='enum'/>
      <exports symbol='VIR_DOMAIN_SNAPSHOT_LIST_DESCENDANTS' type='enum'/>
+     <exports symbol='VIR_DOMAIN_SNAPSHOT_LIST_DISK_ONLY' type='enum'/>
+     <exports symbol='VIR_DOMAIN_SNAPSHOT_LIST_EXTERNAL' type='enum'/>
+     <exports symbol='VIR_DOMAIN_SNAPSHOT_LIST_INACTIVE' type='enum'/>
+     <exports symbol='VIR_DOMAIN_SNAPSHOT_LIST_INTERNAL' type='enum'/>
      <exports symbol='VIR_DOMAIN_SNAPSHOT_LIST_LEAVES' type='enum'/>
      <exports symbol='VIR_DOMAIN_SNAPSHOT_LIST_METADATA' type='enum'/>
      <exports symbol='VIR_DOMAIN_SNAPSHOT_LIST_NO_LEAVES' type='enum'/>
@@ -450,6 +528,7 @@
      <exports symbol='VIR_MIGRATE_LIVE' type='enum'/>
      <exports symbol='VIR_MIGRATE_NON_SHARED_DISK' type='enum'/>
      <exports symbol='VIR_MIGRATE_NON_SHARED_INC' type='enum'/>
+     <exports symbol='VIR_MIGRATE_OFFLINE' type='enum'/>
      <exports symbol='VIR_MIGRATE_PAUSED' type='enum'/>
      <exports symbol='VIR_MIGRATE_PEER2PEER' type='enum'/>
      <exports symbol='VIR_MIGRATE_PERSIST_DEST' type='enum'/>
@@ -504,6 +583,7 @@
      <exports symbol='VIR_STORAGE_POOL_RUNNING' type='enum'/>
      <exports symbol='VIR_STORAGE_POOL_STATE_LAST' type='enum'/>
      <exports symbol='VIR_STORAGE_VOL_BLOCK' type='enum'/>
+     <exports symbol='VIR_STORAGE_VOL_CREATE_PREALLOC_METADATA' type='enum'/>
      <exports symbol='VIR_STORAGE_VOL_DELETE_NORMAL' type='enum'/>
      <exports symbol='VIR_STORAGE_VOL_DELETE_ZEROED' type='enum'/>
      <exports symbol='VIR_STORAGE_VOL_DIR' type='enum'/>
@@ -631,6 +711,7 @@
      <exports symbol='virDomainPMSuspendedDiskReason' type='typedef'/>
      <exports symbol='virDomainPMSuspendedReason' type='typedef'/>
      <exports symbol='virDomainPausedReason' type='typedef'/>
+     <exports symbol='virDomainProcessSignal' type='typedef'/>
      <exports symbol='virDomainPtr' type='typedef'/>
      <exports symbol='virDomainRebootFlagValues' type='typedef'/>
      <exports symbol='virDomainRunningReason' type='typedef'/>
@@ -693,6 +774,7 @@
      <exports symbol='virStoragePoolPtr' type='typedef'/>
      <exports symbol='virStoragePoolState' type='typedef'/>
      <exports symbol='virStorageVol' type='typedef'/>
+     <exports symbol='virStorageVolCreateFlags' type='typedef'/>
      <exports symbol='virStorageVolDeleteFlags' type='typedef'/>
      <exports symbol='virStorageVolInfo' type='typedef'/>
      <exports symbol='virStorageVolInfoPtr' type='typedef'/>
@@ -829,6 +911,7 @@
      <exports symbol='virDomainDestroyFlags' type='function'/>
      <exports symbol='virDomainDetachDevice' type='function'/>
      <exports symbol='virDomainDetachDeviceFlags' type='function'/>
+     <exports symbol='virDomainFSTrim' type='function'/>
      <exports symbol='virDomainFree' type='function'/>
      <exports symbol='virDomainGetAutostart' type='function'/>
      <exports symbol='virDomainGetBlkioParameters' type='function'/>
@@ -907,6 +990,7 @@
      <exports symbol='virDomainSaveImageGetXMLDesc' type='function'/>
      <exports symbol='virDomainScreenshot' type='function'/>
      <exports symbol='virDomainSendKey' type='function'/>
+     <exports symbol='virDomainSendProcessSignal' type='function'/>
      <exports symbol='virDomainSetAutostart' type='function'/>
      <exports symbol='virDomainSetBlkioParameters' type='function'/>
      <exports symbol='virDomainSetBlockIoTune' type='function'/>
@@ -1219,6 +1303,7 @@
      <exports symbol='VIR_FROM_EVENT' type='enum'/>
      <exports symbol='VIR_FROM_HOOK' type='enum'/>
      <exports symbol='VIR_FROM_HYPERV' type='enum'/>
+     <exports symbol='VIR_FROM_INITCTL' type='enum'/>
      <exports symbol='VIR_FROM_INTERFACE' type='enum'/>
      <exports symbol='VIR_FROM_LIBXL' type='enum'/>
      <exports symbol='VIR_FROM_LOCKING' type='enum'/>
@@ -1742,9 +1827,10 @@ limited set of commands may be allowed'/>
     <enum name='VIR_DOMAIN_EVENT_STOPPED_SAVED' file='libvirt' value='4' type='virDomainEventStoppedDetailType' info='Saved to a state file'/>
     <enum name='VIR_DOMAIN_EVENT_STOPPED_SHUTDOWN' file='libvirt' value='0' type='virDomainEventStoppedDetailType' info='Normal shutdown'/>
     <enum name='VIR_DOMAIN_EVENT_SUSPENDED' file='libvirt' value='3' type='virDomainEventType'/>
+    <enum name='VIR_DOMAIN_EVENT_SUSPENDED_API_ERROR' file='libvirt' value='6' type='virDomainEventSuspendedDetailType' info='suspended after failure during libvirt API call'/>
     <enum name='VIR_DOMAIN_EVENT_SUSPENDED_FROM_SNAPSHOT' file='libvirt' value='5' type='virDomainEventSuspendedDetailType' info='Restored from paused snapshot'/>
     <enum name='VIR_DOMAIN_EVENT_SUSPENDED_IOERROR' file='libvirt' value='2' type='virDomainEventSuspendedDetailType' info='Suspended due to a disk I/O error'/>
-    <enum name='VIR_DOMAIN_EVENT_SUSPENDED_LAST' file='libvirt' value='6' type='virDomainEventSuspendedDetailType'/>
+    <enum name='VIR_DOMAIN_EVENT_SUSPENDED_LAST' file='libvirt' value='7' type='virDomainEventSuspendedDetailType'/>
     <enum name='VIR_DOMAIN_EVENT_SUSPENDED_MIGRATED' file='libvirt' value='1' type='virDomainEventSuspendedDetailType' info='Suspended for offline migration'/>
     <enum name='VIR_DOMAIN_EVENT_SUSPENDED_PAUSED' file='libvirt' value='0' type='virDomainEventSuspendedDetailType' info='Normal suspend due to admin pause'/>
     <enum name='VIR_DOMAIN_EVENT_SUSPENDED_RESTORED' file='libvirt' value='4' type='virDomainEventSuspendedDetailType' info='Restored from paused state file'/>
@@ -1817,10 +1903,11 @@ limited set of commands may be allowed'/>
     <enum name='VIR_DOMAIN_PAUSED_DUMP' file='libvirt' value='4' type='virDomainPausedReason' info='paused for offline core dump'/>
     <enum name='VIR_DOMAIN_PAUSED_FROM_SNAPSHOT' file='libvirt' value='7' type='virDomainPausedReason' info='paused after restoring from snapshot'/>
     <enum name='VIR_DOMAIN_PAUSED_IOERROR' file='libvirt' value='5' type='virDomainPausedReason' info='paused due to a disk I/O error'/>
-    <enum name='VIR_DOMAIN_PAUSED_LAST' file='libvirt' value='9' type='virDomainPausedReason'/>
+    <enum name='VIR_DOMAIN_PAUSED_LAST' file='libvirt' value='10' type='virDomainPausedReason'/>
     <enum name='VIR_DOMAIN_PAUSED_MIGRATION' file='libvirt' value='2' type='virDomainPausedReason' info='paused for offline migration'/>
     <enum name='VIR_DOMAIN_PAUSED_SAVE' file='libvirt' value='3' type='virDomainPausedReason' info='paused for save'/>
     <enum name='VIR_DOMAIN_PAUSED_SHUTTING_DOWN' file='libvirt' value='8' type='virDomainPausedReason' info='paused during shutdown process'/>
+    <enum name='VIR_DOMAIN_PAUSED_SNAPSHOT' file='libvirt' value='9' type='virDomainPausedReason' info='paused while creating a snapshot'/>
     <enum name='VIR_DOMAIN_PAUSED_UNKNOWN' file='libvirt' value='0' type='virDomainPausedReason' info='the reason is unknown'/>
     <enum name='VIR_DOMAIN_PAUSED_USER' file='libvirt' value='1' type='virDomainPausedReason' info='paused on user request'/>
     <enum name='VIR_DOMAIN_PAUSED_WATCHDOG' file='libvirt' value='6' type='virDomainPausedReason' info='paused due to a watchdog event'/>
@@ -1831,9 +1918,77 @@ limited set of commands may be allowed'/>
     <enum name='VIR_DOMAIN_PMSUSPENDED_DISK_UNKNOWN' file='libvirt' value='0' type='virDomainPMSuspendedDiskReason'/>
     <enum name='VIR_DOMAIN_PMSUSPENDED_LAST' file='libvirt' value='1' type='virDomainPMSuspendedReason'/>
     <enum name='VIR_DOMAIN_PMSUSPENDED_UNKNOWN' file='libvirt' value='0' type='virDomainPMSuspendedReason'/>
+    <enum name='VIR_DOMAIN_PROCESS_SIGNAL_ABRT' file='libvirt' value='6' type='virDomainProcessSignal' info='SIGABRT'/>
+    <enum name='VIR_DOMAIN_PROCESS_SIGNAL_ALRM' file='libvirt' value='14' type='virDomainProcessSignal' info='SIGALRM'/>
+    <enum name='VIR_DOMAIN_PROCESS_SIGNAL_BUS' file='libvirt' value='7' type='virDomainProcessSignal' info='SIGBUS'/>
+    <enum name='VIR_DOMAIN_PROCESS_SIGNAL_CHLD' file='libvirt' value='17' type='virDomainProcessSignal' info='SIGCHLD'/>
+    <enum name='VIR_DOMAIN_PROCESS_SIGNAL_CONT' file='libvirt' value='18' type='virDomainProcessSignal' info='SIGCONT'/>
+    <enum name='VIR_DOMAIN_PROCESS_SIGNAL_FPE' file='libvirt' value='8' type='virDomainProcessSignal' info='SIGFPE'/>
+    <enum name='VIR_DOMAIN_PROCESS_SIGNAL_HUP' file='libvirt' value='1' type='virDomainProcessSignal' info='SIGHUP'/>
+    <enum name='VIR_DOMAIN_PROCESS_SIGNAL_ILL' file='libvirt' value='4' type='virDomainProcessSignal' info='SIGILL'/>
+    <enum name='VIR_DOMAIN_PROCESS_SIGNAL_INT' file='libvirt' value='2' type='virDomainProcessSignal' info='SIGINT'/>
+    <enum name='VIR_DOMAIN_PROCESS_SIGNAL_KILL' file='libvirt' value='9' type='virDomainProcessSignal' info='SIGKILL'/>
+    <enum name='VIR_DOMAIN_PROCESS_SIGNAL_LAST' file='libvirt' value='65' type='virDomainProcessSignal'/>
+    <enum name='VIR_DOMAIN_PROCESS_SIGNAL_NOP' file='libvirt' value='0' type='virDomainProcessSignal' info='No constant in POSIX/Linux'/>
+    <enum name='VIR_DOMAIN_PROCESS_SIGNAL_PIPE' file='libvirt' value='13' type='virDomainProcessSignal' info='SIGPIPE'/>
+    <enum name='VIR_DOMAIN_PROCESS_SIGNAL_POLL' file='libvirt' value='29' type='virDomainProcessSignal' info='SIGPOLL (also known as SIGIO on Linux)'/>
+    <enum name='VIR_DOMAIN_PROCESS_SIGNAL_PROF' file='libvirt' value='27' type='virDomainProcessSignal' info='SIGPROF'/>
+    <enum name='VIR_DOMAIN_PROCESS_SIGNAL_PWR' file='libvirt' value='30' type='virDomainProcessSignal' info='Not in POSIX (SIGPWR on Linux'/>
+    <enum name='VIR_DOMAIN_PROCESS_SIGNAL_QUIT' file='libvirt' value='3' type='virDomainProcessSignal' info='SIGQUIT'/>
+    <enum name='VIR_DOMAIN_PROCESS_SIGNAL_RT0' file='libvirt' value='32' type='virDomainProcessSignal' info='SIGRTMIN'/>
+    <enum name='VIR_DOMAIN_PROCESS_SIGNAL_RT1' file='libvirt' value='33' type='virDomainProcessSignal' info='SIGRTMIN + 1'/>
+    <enum name='VIR_DOMAIN_PROCESS_SIGNAL_RT10' file='libvirt' value='42' type='virDomainProcessSignal' info='SIGRTMIN + 10'/>
+    <enum name='VIR_DOMAIN_PROCESS_SIGNAL_RT11' file='libvirt' value='43' type='virDomainProcessSignal' info='SIGRTMIN + 11'/>
+    <enum name='VIR_DOMAIN_PROCESS_SIGNAL_RT12' file='libvirt' value='44' type='virDomainProcessSignal' info='SIGRTMIN + 12'/>
+    <enum name='VIR_DOMAIN_PROCESS_SIGNAL_RT13' file='libvirt' value='45' type='virDomainProcessSignal' info='SIGRTMIN + 13'/>
+    <enum name='VIR_DOMAIN_PROCESS_SIGNAL_RT14' file='libvirt' value='46' type='virDomainProcessSignal' info='SIGRTMIN + 14'/>
+    <enum name='VIR_DOMAIN_PROCESS_SIGNAL_RT15' file='libvirt' value='47' type='virDomainProcessSignal' info='SIGRTMIN + 15'/>
+    <enum name='VIR_DOMAIN_PROCESS_SIGNAL_RT16' file='libvirt' value='48' type='virDomainProcessSignal' info='SIGRTMIN + 16'/>
+    <enum name='VIR_DOMAIN_PROCESS_SIGNAL_RT17' file='libvirt' value='49' type='virDomainProcessSignal' info='SIGRTMIN + 17'/>
+    <enum name='VIR_DOMAIN_PROCESS_SIGNAL_RT18' file='libvirt' value='50' type='virDomainProcessSignal' info='SIGRTMIN + 18'/>
+    <enum name='VIR_DOMAIN_PROCESS_SIGNAL_RT19' file='libvirt' value='51' type='virDomainProcessSignal' info='SIGRTMIN + 19'/>
+    <enum name='VIR_DOMAIN_PROCESS_SIGNAL_RT2' file='libvirt' value='34' type='virDomainProcessSignal' info='SIGRTMIN + 2'/>
+    <enum name='VIR_DOMAIN_PROCESS_SIGNAL_RT20' file='libvirt' value='52' type='virDomainProcessSignal' info='SIGRTMIN + 20'/>
+    <enum name='VIR_DOMAIN_PROCESS_SIGNAL_RT21' file='libvirt' value='53' type='virDomainProcessSignal' info='SIGRTMIN + 21'/>
+    <enum name='VIR_DOMAIN_PROCESS_SIGNAL_RT22' file='libvirt' value='54' type='virDomainProcessSignal' info='SIGRTMIN + 22'/>
+    <enum name='VIR_DOMAIN_PROCESS_SIGNAL_RT23' file='libvirt' value='55' type='virDomainProcessSignal' info='SIGRTMIN + 23'/>
+    <enum name='VIR_DOMAIN_PROCESS_SIGNAL_RT24' file='libvirt' value='56' type='virDomainProcessSignal' info='SIGRTMIN + 24'/>
+    <enum name='VIR_DOMAIN_PROCESS_SIGNAL_RT25' file='libvirt' value='57' type='virDomainProcessSignal' info='SIGRTMIN + 25'/>
+    <enum name='VIR_DOMAIN_PROCESS_SIGNAL_RT26' file='libvirt' value='58' type='virDomainProcessSignal' info='SIGRTMIN + 26'/>
+    <enum name='VIR_DOMAIN_PROCESS_SIGNAL_RT27' file='libvirt' value='59' type='virDomainProcessSignal' info='SIGRTMIN + 27'/>
+    <enum name='VIR_DOMAIN_PROCESS_SIGNAL_RT28' file='libvirt' value='60' type='virDomainProcessSignal' info='SIGRTMIN + 28'/>
+    <enum name='VIR_DOMAIN_PROCESS_SIGNAL_RT29' file='libvirt' value='61' type='virDomainProcessSignal' info='SIGRTMIN + 29'/>
+    <enum name='VIR_DOMAIN_PROCESS_SIGNAL_RT3' file='libvirt' value='35' type='virDomainProcessSignal' info='SIGRTMIN + 3'/>
+    <enum name='VIR_DOMAIN_PROCESS_SIGNAL_RT30' file='libvirt' value='62' type='virDomainProcessSignal' info='SIGRTMIN + 30'/>
+    <enum name='VIR_DOMAIN_PROCESS_SIGNAL_RT31' file='libvirt' value='63' type='virDomainProcessSignal' info='SIGRTMIN + 31'/>
+    <enum name='VIR_DOMAIN_PROCESS_SIGNAL_RT32' file='libvirt' value='64' type='virDomainProcessSignal' info='SIGRTMIN + 32 / SIGRTMAX'/>
+    <enum name='VIR_DOMAIN_PROCESS_SIGNAL_RT4' file='libvirt' value='36' type='virDomainProcessSignal' info='SIGRTMIN + 4'/>
+    <enum name='VIR_DOMAIN_PROCESS_SIGNAL_RT5' file='libvirt' value='37' type='virDomainProcessSignal' info='SIGRTMIN + 5'/>
+    <enum name='VIR_DOMAIN_PROCESS_SIGNAL_RT6' file='libvirt' value='38' type='virDomainProcessSignal' info='SIGRTMIN + 6'/>
+    <enum name='VIR_DOMAIN_PROCESS_SIGNAL_RT7' file='libvirt' value='39' type='virDomainProcessSignal' info='SIGRTMIN + 7'/>
+    <enum name='VIR_DOMAIN_PROCESS_SIGNAL_RT8' file='libvirt' value='40' type='virDomainProcessSignal' info='SIGRTMIN + 8'/>
+    <enum name='VIR_DOMAIN_PROCESS_SIGNAL_RT9' file='libvirt' value='41' type='virDomainProcessSignal' info='SIGRTMIN + 9'/>
+    <enum name='VIR_DOMAIN_PROCESS_SIGNAL_SEGV' file='libvirt' value='11' type='virDomainProcessSignal' info='SIGSEGV'/>
+    <enum name='VIR_DOMAIN_PROCESS_SIGNAL_STKFLT' file='libvirt' value='16' type='virDomainProcessSignal' info='Not in POSIX (SIGSTKFLT on Linux'/>
+    <enum name='VIR_DOMAIN_PROCESS_SIGNAL_STOP' file='libvirt' value='19' type='virDomainProcessSignal' info='SIGSTOP'/>
+    <enum name='VIR_DOMAIN_PROCESS_SIGNAL_SYS' file='libvirt' value='31' type='virDomainProcessSignal' info='SIGSYS (also known as SIGUNUSED on Linux )'/>
+    <enum name='VIR_DOMAIN_PROCESS_SIGNAL_TERM' file='libvirt' value='15' type='virDomainProcessSignal' info='SIGTERM'/>
+    <enum name='VIR_DOMAIN_PROCESS_SIGNAL_TRAP' file='libvirt' value='5' type='virDomainProcessSignal' info='SIGTRAP'/>
+    <enum name='VIR_DOMAIN_PROCESS_SIGNAL_TSTP' file='libvirt' value='20' type='virDomainProcessSignal' info='SIGTSTP'/>
+    <enum name='VIR_DOMAIN_PROCESS_SIGNAL_TTIN' file='libvirt' value='21' type='virDomainProcessSignal' info='SIGTTIN'/>
+    <enum name='VIR_DOMAIN_PROCESS_SIGNAL_TTOU' file='libvirt' value='22' type='virDomainProcessSignal' info='SIGTTOU'/>
+    <enum name='VIR_DOMAIN_PROCESS_SIGNAL_URG' file='libvirt' value='23' type='virDomainProcessSignal' info='SIGURG'/>
+    <enum name='VIR_DOMAIN_PROCESS_SIGNAL_USR1' file='libvirt' value='10' type='virDomainProcessSignal' info='SIGUSR1'/>
+    <enum name='VIR_DOMAIN_PROCESS_SIGNAL_USR2' file='libvirt' value='12' type='virDomainProcessSignal' info='SIGUSR2'/>
+    <enum name='VIR_DOMAIN_PROCESS_SIGNAL_VTALRM' file='libvirt' value='26' type='virDomainProcessSignal' info='SIGVTALRM'/>
+    <enum name='VIR_DOMAIN_PROCESS_SIGNAL_WINCH' file='libvirt' value='28' type='virDomainProcessSignal' info='Not in POSIX (SIGWINCH on Linux)'/>
+    <enum name='VIR_DOMAIN_PROCESS_SIGNAL_XCPU' file='libvirt' value='24' type='virDomainProcessSignal' info='SIGXCPU'/>
+    <enum name='VIR_DOMAIN_PROCESS_SIGNAL_XFSZ' file='libvirt' value='25' type='virDomainProcessSignal' info='SIGXFSZ'/>
     <enum name='VIR_DOMAIN_REBOOT_ACPI_POWER_BTN' file='libvirt' value='1' type='virDomainRebootFlagValues' info='Send ACPI event'/>
     <enum name='VIR_DOMAIN_REBOOT_DEFAULT' file='libvirt' value='0' type='virDomainRebootFlagValues' info='hypervisor choice'/>
     <enum name='VIR_DOMAIN_REBOOT_GUEST_AGENT' file='libvirt' value='2' type='virDomainRebootFlagValues' info='Use guest agent'/>
+    <enum name='VIR_DOMAIN_REBOOT_INITCTL' file='libvirt' value='4' type='virDomainRebootFlagValues' info='Use initctl'/>
+    <enum name='VIR_DOMAIN_REBOOT_SIGNAL' file='libvirt' value='8' type='virDomainRebootFlagValues' info='Send a signal'/>
     <enum name='VIR_DOMAIN_RUNNING' file='libvirt' value='1' type='virDomainState' info='the domain is running'/>
     <enum name='VIR_DOMAIN_RUNNING_BOOTED' file='libvirt' value='1' type='virDomainRunningReason' info='normal startup from boot'/>
     <enum name='VIR_DOMAIN_RUNNING_FROM_SNAPSHOT' file='libvirt' value='4' type='virDomainRunningReason' info='restored from snapshot'/>
@@ -1859,7 +2014,9 @@ wakeup event'/>
     <enum name='VIR_DOMAIN_SHUTDOWN_ACPI_POWER_BTN' file='libvirt' value='1' type='virDomainShutdownFlagValues' info='Send ACPI event'/>
     <enum name='VIR_DOMAIN_SHUTDOWN_DEFAULT' file='libvirt' value='0' type='virDomainShutdownFlagValues' info='hypervisor choice'/>
     <enum name='VIR_DOMAIN_SHUTDOWN_GUEST_AGENT' file='libvirt' value='2' type='virDomainShutdownFlagValues' info='Use guest agent'/>
+    <enum name='VIR_DOMAIN_SHUTDOWN_INITCTL' file='libvirt' value='4' type='virDomainShutdownFlagValues' info='Use initctl'/>
     <enum name='VIR_DOMAIN_SHUTDOWN_LAST' file='libvirt' value='2' type='virDomainShutdownReason'/>
+    <enum name='VIR_DOMAIN_SHUTDOWN_SIGNAL' file='libvirt' value='8' type='virDomainShutdownFlagValues' info='Send a signal'/>
     <enum name='VIR_DOMAIN_SHUTDOWN_UNKNOWN' file='libvirt' value='0' type='virDomainShutdownReason' info='the reason is unknown'/>
     <enum name='VIR_DOMAIN_SHUTDOWN_USER' file='libvirt' value='1' type='virDomainShutdownReason' info='shutting down on user request'/>
     <enum name='VIR_DOMAIN_SHUTOFF' file='libvirt' value='5' type='virDomainState' info='the domain is shut off'/>
@@ -1881,6 +2038,9 @@ snapshot current'/>
 system checkpoint'/>
     <enum name='VIR_DOMAIN_SNAPSHOT_CREATE_HALT' file='libvirt' value='8' type='virDomainSnapshotCreateFlags' info='Stop running guest
 after snapshot'/>
+    <enum name='VIR_DOMAIN_SNAPSHOT_CREATE_LIVE' file='libvirt' value='256' type='virDomainSnapshotCreateFlags' info='create the snapshot
+while the guest is
+running'/>
     <enum name='VIR_DOMAIN_SNAPSHOT_CREATE_NO_METADATA' file='libvirt' value='4' type='virDomainSnapshotCreateFlags' info='Make snapshot without
 remembering it'/>
     <enum name='VIR_DOMAIN_SNAPSHOT_CREATE_QUIESCE' file='libvirt' value='64' type='virDomainSnapshotCreateFlags' info='use guest agent to
@@ -1894,9 +2054,26 @@ external files'/>
     <enum name='VIR_DOMAIN_SNAPSHOT_DELETE_CHILDREN' file='libvirt' value='1' type='virDomainSnapshotDeleteFlags' info='Also delete children'/>
     <enum name='VIR_DOMAIN_SNAPSHOT_DELETE_CHILDREN_ONLY' file='libvirt' value='4' type='virDomainSnapshotDeleteFlags' info='Delete just children'/>
     <enum name='VIR_DOMAIN_SNAPSHOT_DELETE_METADATA_ONLY' file='libvirt' value='2' type='virDomainSnapshotDeleteFlags' info='Delete just metadata'/>
+    <enum name='VIR_DOMAIN_SNAPSHOT_LIST_ACTIVE' file='libvirt' value='64' type='virDomainSnapshotListFlags' info='Filter by snapshots
+taken while guest was
+active, and with
+memory state'/>
     <enum name='VIR_DOMAIN_SNAPSHOT_LIST_DESCENDANTS' file='libvirt' value='1' type='virDomainSnapshotListFlags' info='List all descendants,
 not just children, when
 listing a snapshot For historical reasons, groups do not use contiguous bits.'/>
+    <enum name='VIR_DOMAIN_SNAPSHOT_LIST_DISK_ONLY' file='libvirt' value='128' type='virDomainSnapshotListFlags' info='Filter by snapshots
+taken while guest was
+active, but without
+memory state'/>
+    <enum name='VIR_DOMAIN_SNAPSHOT_LIST_EXTERNAL' file='libvirt' value='512' type='virDomainSnapshotListFlags' info='Filter by snapshots
+that use files external
+to disk images'/>
+    <enum name='VIR_DOMAIN_SNAPSHOT_LIST_INACTIVE' file='libvirt' value='32' type='virDomainSnapshotListFlags' info='Filter by snapshots
+taken while guest was
+shut off'/>
+    <enum name='VIR_DOMAIN_SNAPSHOT_LIST_INTERNAL' file='libvirt' value='256' type='virDomainSnapshotListFlags' info='Filter by snapshots
+stored internal to
+disk images'/>
     <enum name='VIR_DOMAIN_SNAPSHOT_LIST_LEAVES' file='libvirt' value='4' type='virDomainSnapshotListFlags' info='Filter by snapshots
 with no children'/>
     <enum name='VIR_DOMAIN_SNAPSHOT_LIST_METADATA' file='libvirt' value='2' type='virDomainSnapshotListFlags' info='Filter by snapshots
@@ -1947,7 +2124,7 @@ the given driver'/>
 construct'/>
     <enum name='VIR_ERR_CONF_SYNTAX' file='virterror' value='33' type='virErrorNumber' info='failed to parse the syntax of a
 conf file'/>
-    <enum name='VIR_ERR_DOMAIN_LAST' file='virterror' value='52' type='virErrorDomain'/>
+    <enum name='VIR_ERR_DOMAIN_LAST' file='virterror' value='53' type='virErrorDomain'/>
     <enum name='VIR_ERR_DOM_EXIST' file='virterror' value='28' type='virErrorNumber' info='the domain already exist'/>
     <enum name='VIR_ERR_DRIVER_FULL' file='virterror' value='25' type='virErrorNumber' info='too many drivers registered'/>
     <enum name='VIR_ERR_ERROR' file='virterror' value='2' type='virErrorLevel' info='An error'/>
@@ -2052,6 +2229,7 @@ formed or broken'/>
     <enum name='VIR_FROM_EVENT' file='virterror' value='40' type='virErrorDomain' info='Error from event loop impl'/>
     <enum name='VIR_FROM_HOOK' file='virterror' value='34' type='virErrorDomain' info='Error from Synchronous hooks'/>
     <enum name='VIR_FROM_HYPERV' file='virterror' value='43' type='virErrorDomain' info='Error from Hyper-V driver'/>
+    <enum name='VIR_FROM_INITCTL' file='virterror' value='52' type='virErrorDomain' info='Error from initctl device communication'/>
     <enum name='VIR_FROM_INTERFACE' file='virterror' value='26' type='virErrorDomain' info='Error when operating on an interface'/>
     <enum name='VIR_FROM_LIBXL' file='virterror' value='41' type='virErrorDomain' info='Error from libxenlight driver'/>
     <enum name='VIR_FROM_LOCKING' file='virterror' value='42' type='virErrorDomain' info='Error from lock manager'/>
@@ -2114,6 +2292,7 @@ Retained for ABI/API compat only'/>
     <enum name='VIR_MIGRATE_LIVE' file='libvirt' value='1' type='virDomainMigrateFlags' info='live migration'/>
     <enum name='VIR_MIGRATE_NON_SHARED_DISK' file='libvirt' value='64' type='virDomainMigrateFlags' info='migration with non-shared storage with full disk copy'/>
     <enum name='VIR_MIGRATE_NON_SHARED_INC' file='libvirt' value='128' type='virDomainMigrateFlags' info='migration with non-shared storage with incremental copy (same base image shared between source and destination)'/>
+    <enum name='VIR_MIGRATE_OFFLINE' file='libvirt' value='1024' type='virDomainMigrateFlags' info='offline migrate'/>
     <enum name='VIR_MIGRATE_PAUSED' file='libvirt' value='32' type='virDomainMigrateFlags' info='pause on remote side'/>
     <enum name='VIR_MIGRATE_PEER2PEER' file='libvirt' value='2' type='virDomainMigrateFlags' info='direct source -&gt; dest host control channel Note the less-common spelling that we&apos;re stuck with:
 VIR_MIGRATE_TUNNELLED should be VIR_MIGRATE_TUNNELED'/>
@@ -2172,6 +2351,7 @@ config if it&apos;s not active'/>
     <enum name='VIR_STORAGE_POOL_RUNNING' file='libvirt' value='2' type='virStoragePoolState' info='Running normally'/>
     <enum name='VIR_STORAGE_POOL_STATE_LAST' file='libvirt' value='5' type='virStoragePoolState'/>
     <enum name='VIR_STORAGE_VOL_BLOCK' file='libvirt' value='1' type='virStorageVolType' info='Block based volumes'/>
+    <enum name='VIR_STORAGE_VOL_CREATE_PREALLOC_METADATA' file='libvirt' value='1' type='virStorageVolCreateFlags'/>
     <enum name='VIR_STORAGE_VOL_DELETE_NORMAL' file='libvirt' value='0' type='virStorageVolDeleteFlags' info='Delete metadata only    (fast)'/>
     <enum name='VIR_STORAGE_VOL_DELETE_ZEROED' file='libvirt' value='1' type='virStorageVolDeleteFlags' info='Clear all data to zeros (slow)'/>
     <enum name='VIR_STORAGE_VOL_DIR' file='libvirt' value='2' type='virStorageVolType' info='Directory-passthrough based volume'/>
@@ -2428,6 +2608,7 @@ and ERROR states)'/>
     <typedef name='virDomainPMSuspendedDiskReason' file='libvirt' type='enum'/>
     <typedef name='virDomainPMSuspendedReason' file='libvirt' type='enum'/>
     <typedef name='virDomainPausedReason' file='libvirt' type='enum'/>
+    <typedef name='virDomainProcessSignal' file='libvirt' type='enum'/>
     <typedef name='virDomainPtr' file='libvirt' type='virDomain *'>
       <info><![CDATA[a virDomainPtr is pointer to a virDomain private structure, this is the type used to reference a domain in the API.]]></info>
     </typedef>
@@ -2530,9 +2711,11 @@ see note above'/>
 topologies or uniform memory access; check
 capabilities XML for the actual NUMA topology'/>
       <field name='sockets' type='unsigned int' info='number of CPU sockets per node if nodes &gt; 1,
-total number of CPU sockets otherwise'/>
-      <field name='cores' type='unsigned int' info='number of cores per socket'/>
-      <field name='threads' type='unsigned int' info='number of threads per core'/>
+1 in case of unusual NUMA topology'/>
+      <field name='cores' type='unsigned int' info='number of cores per socket, total number of
+processors in case of unusual NUMA topolog'/>
+      <field name='threads' type='unsigned int' info='number of threads per core, 1 in case of
+unusual numa topology'/>
     </struct>
     <typedef name='virNodeInfoPtr' file='libvirt' type='virNodeInfo *'>
       <info><![CDATA[a virNodeInfoPtr is a pointer to a virNodeInfo structure.]]></info>
@@ -2590,6 +2773,7 @@ total number of CPU sockets otherwise'/>
     </typedef>
     <typedef name='virStoragePoolState' file='libvirt' type='enum'/>
     <struct name='virStorageVol' file='libvirt' type='struct _virStorageVol'/>
+    <typedef name='virStorageVolCreateFlags' file='libvirt' type='enum'/>
     <typedef name='virStorageVolDeleteFlags' file='libvirt' type='enum'/>
     <struct name='virStorageVolInfo' file='libvirt' type='struct _virStorageVolInfo'>
       <field name='type' type='int' info='virStorageVolType flags'/>
@@ -3527,8 +3711,7 @@ One will need to free the result with virResetError()]]></info>
     </function>
     <function name='virDomainAbortJob' file='libvirt' module='libvirt'>
       <info><![CDATA[Requests that the current background job be aborted at the
-soonest opportunity. This will block until the job has
-either completed, or aborted.]]></info>
+soonest opportunity.]]></info>
       <return type='int' info='0 in case of success and -1 in case of failure.'/>
       <arg name='domain' type='virDomainPtr' info='a domain object'/>
     </function>
@@ -4081,6 +4264,22 @@ use virDomainBlockJobAbort() to stop the block copy first.]]></info>
       <arg name='domain' type='virDomainPtr' info='pointer to domain object'/>
       <arg name='xml' type='const char *' info='pointer to XML description of one device'/>
       <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainDeviceModifyFlags'/>
+    </function>
+    <function name='virDomainFSTrim' file='libvirt' module='libvirt'>
+      <info><![CDATA[Calls FITRIM within the guest (hence guest agent may be
+required depending on hypervisor used). Either call it on each
+mounted filesystem (@mountPoint is NULL) or just on specified
+@mountPoint. @minimum hints that free ranges smaller than this
+may be ignored (this is a hint and the guest may not respect
+it).  By increasing this value, the fstrim operation will
+complete more quickly for filesystems with badly fragmented
+free space, although not all blocks will be discarded.
+If @minimum is not zero, the command may fail.]]></info>
+      <return type='int' info='0 on success, -1 otherwise.'/>
+      <arg name='dom' type='virDomainPtr' info='a domain object'/>
+      <arg name='mountPoint' type='const char *' info='which mount point to trim'/>
+      <arg name='minimum' type='unsigned long long' info='Minimum contiguous free range to discard in bytes'/>
+      <arg name='flags' type='unsigned int' info='extra flags, not used yet, so callers should always pass 0'/>
     </function>
     <function name='virDomainFree' file='libvirt' module='libvirt'>
       <info><![CDATA[Free the domain object. The running instance is kept alive.
@@ -4656,7 +4855,17 @@ have no further children (a leaf snapshot).
 The next group of @flags is VIR_DOMAIN_SNAPSHOT_LIST_METADATA and
 VIR_DOMAIN_SNAPSHOT_LIST_NO_METADATA, for filtering snapshots based on
 whether they have metadata that would prevent the removal of the last
-reference to a domain.]]></info>
+reference to a domain.
+
+The next group of @flags is VIR_DOMAIN_SNAPSHOT_LIST_INACTIVE,
+VIR_DOMAIN_SNAPSHOT_LIST_ACTIVE, and VIR_DOMAIN_SNAPSHOT_LIST_DISK_ONLY,
+for filtering snapshots based on what domain state is tracked by the
+snapshot.
+
+The next group of @flags is VIR_DOMAIN_SNAPSHOT_LIST_INTERNAL and
+VIR_DOMAIN_SNAPSHOT_LIST_EXTERNAL, for filtering snapshots based on
+whether the snapshot is stored inside the disk images or as
+additional files.]]></info>
       <return type='int' info='the number of domain snapshots found or -1 and sets @snaps to NULL in case of error.  On success, the array stored into @snaps is guaranteed to have an extra allocated element set to NULL but not included in the return count, to make iteration easier.  The caller is responsible for calling virDomainSnapshotFree() on each array element, then calling free() on @snaps.'/>
       <arg name='domain' type='virDomainPtr' info='a domain object'/>
       <arg name='snaps' type='virDomainSnapshotPtr **' info='pointer to variable to store the array containing snapshot objects, or NULL if the list is not required (just returns number of snapshots)'/>
@@ -5208,7 +5417,9 @@ Note that the guest OS may ignore the request.
 
 If @flags is set to zero, then the hypervisor will choose the
 method of shutdown it considers best. To have greater control
-pass exactly one of the virDomainRebootFlagValues.
+pass one or more of the virDomainShutdownFlagValues. The order
+in which the hypervisor tries each shutdown method is undefined,
+and a hypervisor is not required to support all methods.
 
 To use guest agent (VIR_DOMAIN_REBOOT_GUEST_AGENT) the domain XML
 must have <channel> configured.]]></info>
@@ -5438,6 +5649,36 @@ the second head on the second card.]]></info>
       <arg name='keycodes' type='unsigned int *' info='array of keycodes'/>
       <arg name='nkeycodes' type='int' info='number of keycodes, up to VIR_DOMAIN_SEND_KEY_MAX_KEYS'/>
       <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
+    </function>
+    <function name='virDomainSendProcessSignal' file='libvirt' module='libvirt'>
+      <info><![CDATA[Send a signal to the designated process in the guest
+
+The signal numbers must be taken from the virDomainProcessSignal
+enum. These will be translated to the corresponding signal
+number for the guest OS, by the guest agent delivering the
+signal. If there is no mapping from virDomainProcessSignal to
+the native OS signals, this API will report an error.
+
+If @pid_value is an integer greater than zero, it is
+treated as a process ID. If @pid_value is an integer
+less than zero, it is treated as a process group ID.
+All the @pid_value numbers are from the container/guest
+namespace. The value zero is not valid.
+
+Not all hypervisors will support sending signals to
+arbitrary processes or process groups. If this API is
+implemented the minimum requirement is to be able to
+use @pid_value==1 (i.e. kill init). No other value is
+required to be supported.
+
+If the @signum is VIR_DOMAIN_PROCESS_SIGNAL_NOP then this
+API will simply report whether the process is running in
+the container/guest.]]></info>
+      <return type='int' info='0 in case of success, -1 in case of failure.'/>
+      <arg name='domain' type='virDomainPtr' info='pointer to domain object'/>
+      <arg name='pid_value' type='long long' info='a positive integer process ID, or negative integer process group ID'/>
+      <arg name='signum' type='unsigned int' info='a signal from the virDomainProcessSignal enum'/>
+      <arg name='flags' type='unsigned int' info='one of the virDomainProcessSignalFlag values'/>
     </function>
     <function name='virDomainSetAutostart' file='libvirt' module='libvirt'>
       <info><![CDATA[Configure the domain to be automatically started
@@ -5671,7 +5912,9 @@ be deleted when the domain quits.
 
 If @flags is set to zero, then the hypervisor will choose the
 method of shutdown it considers best. To have greater control
-pass exactly one of the virDomainShutdownFlagValues.]]></info>
+pass one or more of the virDomainShutdownFlagValues. The order
+in which the hypervisor tries each shutdown method is undefined,
+and a hypervisor is not required to support all methods.]]></info>
       <return type='int' info='0 in case of success and -1 in case of failure.'/>
       <arg name='domain' type='virDomainPtr' info='a domain object'/>
       <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainShutdownFlagValues'/>
@@ -5720,6 +5963,12 @@ will be inactive after the snapshot completes, regardless of whether
 it was active before; otherwise, a running domain will still be
 running after the snapshot.  This flag is invalid on transient domains,
 and is incompatible with VIR_DOMAIN_SNAPSHOT_CREATE_REDEFINE.
+
+If @flags includes VIR_DOMAIN_SNAPSHOT_CREATE_LIVE, then the domain
+is not paused while creating the snapshot. This increases the size
+of the memory dump file, but reduces downtime of the guest while
+taking the snapshot. Some hypervisors only support this flag during
+external checkpoints.
 
 If @flags includes VIR_DOMAIN_SNAPSHOT_CREATE_DISK_ONLY, then the
 snapshot will be limited to the disks described in @xmlDesc, and no
@@ -5867,7 +6116,17 @@ have no further children (a leaf snapshot).
 The next group of @flags is VIR_DOMAIN_SNAPSHOT_LIST_METADATA and
 VIR_DOMAIN_SNAPSHOT_LIST_NO_METADATA, for filtering snapshots based on
 whether they have metadata that would prevent the removal of the last
-reference to a domain.]]></info>
+reference to a domain.
+
+The next group of @flags is VIR_DOMAIN_SNAPSHOT_LIST_INACTIVE,
+VIR_DOMAIN_SNAPSHOT_LIST_ACTIVE, and VIR_DOMAIN_SNAPSHOT_LIST_DISK_ONLY,
+for filtering snapshots based on what domain state is tracked by the
+snapshot.
+
+The next group of @flags is VIR_DOMAIN_SNAPSHOT_LIST_INTERNAL and
+VIR_DOMAIN_SNAPSHOT_LIST_EXTERNAL, for filtering snapshots based on
+whether the snapshot is stored inside the disk images or as
+additional files.]]></info>
       <return type='int' info='the number of domain snapshots found or -1 and sets @snaps to NULL in case of error.  On success, the array stored into @snaps is guaranteed to have an extra allocated element set to NULL but not included in the return count, to make iteration easier.  The caller is responsible for calling virDomainSnapshotFree() on each array element, then calling free() on @snaps.'/>
       <arg name='snapshot' type='virDomainSnapshotPtr' info='a domain snapshot object'/>
       <arg name='snaps' type='virDomainSnapshotPtr **' info='pointer to variable to store the array containing snapshot objects, or NULL if the list is not required (just returns number of snapshots)'/>
@@ -5899,7 +6158,17 @@ have no further children (a leaf snapshot).
 The next group of @flags is VIR_DOMAIN_SNAPSHOT_LIST_METADATA and
 VIR_DOMAIN_SNAPSHOT_LIST_NO_METADATA, for filtering snapshots based on
 whether they have metadata that would prevent the removal of the last
-reference to a domain.]]></info>
+reference to a domain.
+
+The next group of @flags is VIR_DOMAIN_SNAPSHOT_LIST_INACTIVE,
+VIR_DOMAIN_SNAPSHOT_LIST_ACTIVE, and VIR_DOMAIN_SNAPSHOT_LIST_DISK_ONLY,
+for filtering snapshots based on what domain state is tracked by the
+snapshot.
+
+The next group of @flags is VIR_DOMAIN_SNAPSHOT_LIST_INTERNAL and
+VIR_DOMAIN_SNAPSHOT_LIST_EXTERNAL, for filtering snapshots based on
+whether the snapshot is stored inside the disk images or as
+additional files.]]></info>
       <return type='int' info='the number of domain snapshots found or -1 in case of error. Note that this command is inherently racy: another connection can define a new snapshot between a call to virDomainSnapshotNumChildren() and this call.  You are only guaranteed that all currently defined snapshots were listed if the return is less than @nameslen.  Likewise, you should be prepared for virDomainSnapshotLookupByName() to fail when converting a name from this call into a snapshot object, if another connection deletes the snapshot in the meantime.  For more control over the results, see virDomainSnapshotListAllChildren().  Returns the number of domain snapshots found or -1 in case of error. The caller is responsible for freeing each member of the array.'/>
       <arg name='snapshot' type='virDomainSnapshotPtr' info='a domain snapshot object'/>
       <arg name='names' type='char **' info='array to collect the list of names of snapshots'/>
@@ -5932,6 +6201,16 @@ The next group of @flags is VIR_DOMAIN_SNAPSHOT_LIST_METADATA and
 VIR_DOMAIN_SNAPSHOT_LIST_NO_METADATA, for filtering snapshots based on
 whether they have metadata that would prevent the removal of the last
 reference to a domain.
+
+The next group of @flags is VIR_DOMAIN_SNAPSHOT_LIST_INACTIVE,
+VIR_DOMAIN_SNAPSHOT_LIST_ACTIVE, and VIR_DOMAIN_SNAPSHOT_LIST_DISK_ONLY,
+for filtering snapshots based on what domain state is tracked by the
+snapshot.
+
+The next group of @flags is VIR_DOMAIN_SNAPSHOT_LIST_INTERNAL and
+VIR_DOMAIN_SNAPSHOT_LIST_EXTERNAL, for filtering snapshots based on
+whether the snapshot is stored inside the disk images or as
+additional files.
 
 Note that this command is inherently racy: another connection can
 define a new snapshot between a call to virDomainSnapshotNum() and
@@ -5977,7 +6256,17 @@ have no further children (a leaf snapshot).
 The next group of @flags is VIR_DOMAIN_SNAPSHOT_LIST_METADATA and
 VIR_DOMAIN_SNAPSHOT_LIST_NO_METADATA, for filtering snapshots based on
 whether they have metadata that would prevent the removal of the last
-reference to a domain.]]></info>
+reference to a domain.
+
+The next group of @flags is VIR_DOMAIN_SNAPSHOT_LIST_INACTIVE,
+VIR_DOMAIN_SNAPSHOT_LIST_ACTIVE, and VIR_DOMAIN_SNAPSHOT_LIST_DISK_ONLY,
+for filtering snapshots based on what domain state is tracked by the
+snapshot.
+
+The next group of @flags is VIR_DOMAIN_SNAPSHOT_LIST_INTERNAL and
+VIR_DOMAIN_SNAPSHOT_LIST_EXTERNAL, for filtering snapshots based on
+whether the snapshot is stored inside the disk images or as
+additional files.]]></info>
       <return type='int' info='the number of domain snapshots found or -1 in case of error.'/>
       <arg name='domain' type='virDomainPtr' info='a domain object'/>
       <arg name='flags' type='unsigned int' info='bitwise-OR of supported virDomainSnapshotListFlags'/>
@@ -6005,7 +6294,17 @@ have no further children (a leaf snapshot).
 The next group of @flags is VIR_DOMAIN_SNAPSHOT_LIST_METADATA and
 VIR_DOMAIN_SNAPSHOT_LIST_NO_METADATA, for filtering snapshots based on
 whether they have metadata that would prevent the removal of the last
-reference to a domain.]]></info>
+reference to a domain.
+
+The next group of @flags is VIR_DOMAIN_SNAPSHOT_LIST_INACTIVE,
+VIR_DOMAIN_SNAPSHOT_LIST_ACTIVE, and VIR_DOMAIN_SNAPSHOT_LIST_DISK_ONLY,
+for filtering snapshots based on what domain state is tracked by the
+snapshot.
+
+The next group of @flags is VIR_DOMAIN_SNAPSHOT_LIST_INTERNAL and
+VIR_DOMAIN_SNAPSHOT_LIST_EXTERNAL, for filtering snapshots based on
+whether the snapshot is stored inside the disk images or as
+additional files.]]></info>
       <return type='int' info='the number of domain snapshots found or -1 in case of error.'/>
       <arg name='snapshot' type='virDomainSnapshotPtr' info='a domain snapshot object'/>
       <arg name='flags' type='unsigned int' info='bitwise-OR of supported virDomainSnapshotListFlags'/>
@@ -6902,10 +7201,10 @@ function the returned value is in bytes. Divide by 1024 as necessary.]]></info>
       <arg name='info' type='virNodeInfoPtr' info='pointer to a virNodeInfo structure allocated by the user'/>
     </function>
     <function name='virNodeGetMemoryParameters' file='libvirt' module='libvirt'>
-      <info><![CDATA[Get all node memory parameters.  On input, @nparams gives the size
-of the @params array; on output, @nparams gives how many slots were
-filled with parameter information, which might be less but will
-not exceed the input value.
+      <info><![CDATA[Get all node memory parameters (parameters unsupported by OS will be
+omitted).  On input, @nparams gives the size of the @params array;
+on output, @nparams gives how many slots were filled with parameter
+information, which might be less but will not exceed the input value.
 
 As a special case, calling with @params as NULL and @nparams as 0 on
 input will cause @nparams on output to contain the number of parameters
@@ -6997,7 +7296,8 @@ will be restricted to devices with the specified capability]]></info>
       <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
     <function name='virNodeSetMemoryParameters' file='libvirt' module='libvirt'>
-      <info><![CDATA[Change all or a subset of the node memory tunables.
+      <info><![CDATA[Change all or a subset of the node memory tunables. The function
+fails if not all of the tunables are supported.
 
 Note that it's not recommended to use this function while the
 outside tuning program is running (such as ksmtuned under Linux),
@@ -7369,22 +7669,32 @@ new devices at the OS layer]]></info>
     <function name='virStorageVolCreateXML' file='libvirt' module='libvirt'>
       <info><![CDATA[Create a storage volume within a pool based
 on an XML description. Not all pools support
-creation of volumes]]></info>
+creation of volumes.
+
+Since 1.0.1 VIR_STORAGE_VOL_CREATE_PREALLOC_METADATA
+in flags can be used to get higher performance with
+qcow2 image files which don't support full preallocation,
+by creating a sparse image file with metadata.]]></info>
       <return type='virStorageVolPtr' info='the storage volume, or NULL on error'/>
       <arg name='pool' type='virStoragePoolPtr' info='pointer to storage pool'/>
       <arg name='xmlDesc' type='const char *' info='description of volume to create'/>
-      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of virStorageVolCreateFlags'/>
     </function>
     <function name='virStorageVolCreateXMLFrom' file='libvirt' module='libvirt'>
       <info><![CDATA[Create a storage volume in the parent pool, using the
 'clonevol' volume as input. Information for the new
 volume (name, perms)  are passed via a typical volume
-XML description.]]></info>
+XML description.
+
+Since 1.0.1 VIR_STORAGE_VOL_CREATE_PREALLOC_METADATA
+in flags can be used to get higher performance with
+qcow2 image files which don't support full preallocation,
+by creating a sparse image file with metadata.]]></info>
       <return type='virStorageVolPtr' info='the storage volume, or NULL on error'/>
       <arg name='pool' type='virStoragePoolPtr' info='pointer to parent pool for the new volume'/>
       <arg name='xmlDesc' type='const char *' info='description of volume to create'/>
       <arg name='clonevol' type='virStorageVolPtr' info='storage volume to use as input'/>
-      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of virStorageVolCreateFlags'/>
     </function>
     <function name='virStorageVolDelete' file='libvirt' module='libvirt'>
       <info><![CDATA[Delete the storage volume from the pool]]></info>

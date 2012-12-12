@@ -16,7 +16,7 @@
 # include "qemu/qemu_domain.h"
 # include "testutilsqemu.h"
 
-static struct qemud_driver driver;
+static virQEMUDriver driver;
 
 static int
 testCompareXMLToXMLFiles(const char *inxml, const char *uuid, int internal)
@@ -110,6 +110,7 @@ mymain(void)
     DO_TEST("noparent_nodescription", NULL, 1);
     DO_TEST("noparent", "9d37b878-a7cc-9f9a-b78f-49b3abad25a8", 0);
     DO_TEST("metadata", "c7a5fdbd-edaf-9455-926a-d65c16db1809", 0);
+    DO_TEST("external_vm", "c7a5fdbd-edaf-9455-926a-d65c16db1809", 0);
 
     virCapabilitiesFree(driver.caps);
 

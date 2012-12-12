@@ -1005,7 +1005,7 @@ static int udevProcessStorage(struct udev_device *device,
     const char* devnode;
 
     devnode = udev_device_get_devnode(device);
-    if(!devnode) {
+    if (!devnode) {
         VIR_DEBUG("No devnode for '%s'", udev_device_get_devpath(device));
         goto out;
     }
@@ -1604,7 +1604,9 @@ out:
     return ret;
 }
 
-static int udevDeviceMonitorStartup(int privileged ATTRIBUTE_UNUSED)
+static int udevDeviceMonitorStartup(bool privileged ATTRIBUTE_UNUSED,
+                                    virStateInhibitCallback callback ATTRIBUTE_UNUSED,
+                                    void *opaque ATTRIBUTE_UNUSED)
 {
     udevPrivate *priv = NULL;
     struct udev *udev = NULL;
@@ -1723,13 +1725,6 @@ static int udevDeviceMonitorReload(void)
 }
 
 
-static int udevDeviceMonitorActive(void)
-{
-    /* Always ready to deal with a shutdown */
-    return 0;
-}
-
-
 static virDrvOpenStatus udevNodeDrvOpen(virConnectPtr conn,
                                         virConnectAuthPtr auth ATTRIBUTE_UNUSED,
                                         unsigned int flags)
@@ -1772,7 +1767,6 @@ static virStateDriver udevStateDriver = {
     .initialize = udevDeviceMonitorStartup, /* 0.7.3 */
     .cleanup = udevDeviceMonitorShutdown, /* 0.7.3 */
     .reload = udevDeviceMonitorReload, /* 0.7.3 */
-    .active = udevDeviceMonitorActive, /* 0.7.3 */
 };
 
 int udevNodeRegister(void)

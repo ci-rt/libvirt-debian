@@ -732,6 +732,12 @@ typedef int
                            int nkeycodes,
                            unsigned int flags);
 
+typedef int
+    (*virDrvDomainSendProcessSignal)(virDomainPtr dom,
+                                     long long pid_value,
+                                     unsigned int signum,
+                                     unsigned int flags);
+
 typedef char *
     (*virDrvDomainMigrateBegin3)
                     (virDomainPtr domain,
@@ -903,6 +909,11 @@ typedef int
                            unsigned char **cpumap,
                            unsigned int *online,
                            unsigned int flags);
+typedef int
+    (*virDrvDomainFSTrim)(virDomainPtr dom,
+                          const char *mountPoint,
+                          unsigned long long minimum,
+                          unsigned int flags);
 
 /**
  * _virDriver:
@@ -1094,6 +1105,8 @@ struct _virDriver {
     virDrvNodeGetMemoryParameters       nodeGetMemoryParameters;
     virDrvNodeSetMemoryParameters       nodeSetMemoryParameters;
     virDrvNodeGetCPUMap                 nodeGetCPUMap;
+    virDrvDomainFSTrim                  domainFSTrim;
+    virDrvDomainSendProcessSignal       domainSendProcessSignal;
 };
 
 typedef int
@@ -1487,10 +1500,13 @@ struct _virStorageDriver {
 };
 
 # ifdef WITH_LIBVIRTD
-typedef int (*virDrvStateInitialize) (int privileged);
+
+typedef int (*virDrvStateInitialize) (bool privileged,
+                                      virStateInhibitCallback callback,
+                                      void *opaque);
 typedef int (*virDrvStateCleanup) (void);
 typedef int (*virDrvStateReload) (void);
-typedef int (*virDrvStateActive) (void);
+typedef int (*virDrvStateStop) (void);
 
 typedef struct _virStateDriver virStateDriver;
 typedef virStateDriver *virStateDriverPtr;
@@ -1500,7 +1516,7 @@ struct _virStateDriver {
     virDrvStateInitialize  initialize;
     virDrvStateCleanup     cleanup;
     virDrvStateReload      reload;
-    virDrvStateActive      active;
+    virDrvStateStop        stop;
 };
 # endif
 

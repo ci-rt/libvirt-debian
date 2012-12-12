@@ -153,6 +153,9 @@ enum qemuCapsFlags {
     QEMU_CAPS_BLOCK_COMMIT       = 113, /* block-commit */
     QEMU_CAPS_VNC                = 114, /* Is -vnc available? */
     QEMU_CAPS_DRIVE_MIRROR       = 115, /* drive-mirror monitor command */
+    QEMU_CAPS_USB_REDIR_BOOTINDEX = 116, /* usb-redir.bootindex */
+    QEMU_CAPS_USB_HOST_BOOTINDEX = 117, /* usb-host.bootindex */
+    QEMU_CAPS_DISK_SNAPSHOT      = 118, /* blockdev-snapshot-sync command */
 
     QEMU_CAPS_LAST,                   /* this must always be the last item */
 };
@@ -167,7 +170,9 @@ qemuCapsPtr qemuCapsNew(void);
 qemuCapsPtr qemuCapsNewCopy(qemuCapsPtr caps);
 qemuCapsPtr qemuCapsNewForBinary(const char *binary,
                                  const char *libDir,
-                                 const char *runDir);
+                                 const char *runDir,
+                                 uid_t runUid,
+                                 gid_t runGid);
 
 int qemuCapsProbeQMP(qemuCapsPtr caps,
                      qemuMonitorPtr mon);
@@ -205,7 +210,8 @@ int qemuCapsGetMachineTypesCaps(qemuCapsPtr caps,
 bool qemuCapsIsValid(qemuCapsPtr caps);
 
 
-qemuCapsCachePtr qemuCapsCacheNew(const char *libDir, const char *runDir);
+qemuCapsCachePtr qemuCapsCacheNew(const char *libDir, const char *runDir,
+                                  uid_t uid, gid_t gid);
 qemuCapsPtr qemuCapsCacheLookup(qemuCapsCachePtr cache, const char *binary);
 qemuCapsPtr qemuCapsCacheLookupCopy(qemuCapsCachePtr cache, const char *binary);
 void qemuCapsCacheFree(qemuCapsCachePtr cache);

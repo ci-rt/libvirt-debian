@@ -20,5 +20,14 @@ virNetServerProgramProc virLXCProtocolProcs[] = {
    true,
    0
 },
+{ /* Async event InitEvent => 2 */
+   NULL,
+   0,
+   (xdrproc_t)xdr_void,
+   0,
+   (xdrproc_t)xdr_void,
+   true,
+   0
+},
 };
 size_t virLXCProtocolNProcs = ARRAY_CARDINALITY(virLXCProtocolProcs);

@@ -288,7 +288,8 @@ phypGetVIOSPartitionID(virConnectPtr conn)
 }
 
 
-static int phypDefaultConsoleType(const char *ostype ATTRIBUTE_UNUSED)
+static int phypDefaultConsoleType(const char *ostype ATTRIBUTE_UNUSED,
+                                  const char *arch ATTRIBUTE_UNUSED)
 {
     return VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_SERIAL;
 }
@@ -2020,7 +2021,7 @@ phypVolumeLookupByName(virStoragePoolPtr pool, const char *volname)
     if (key == NULL)
         return NULL;
 
-    vol = virGetStorageVol(pool->conn, pool->name, volname, key);
+    vol = virGetStorageVol(pool->conn, pool->name, volname, key, NULL, NULL);
 
     VIR_FREE(key);
 
@@ -2110,7 +2111,7 @@ phypStorageVolCreateXML(virStoragePoolPtr pool,
 
     if ((vol =
          virGetStorageVol(pool->conn, pool->name, voldef->name,
-                          key)) == NULL)
+                          key, NULL, NULL)) == NULL)
         goto err;
 
     VIR_FREE(key);
@@ -2191,7 +2192,7 @@ phypVolumeLookupByPath(virConnectPtr conn, const char *volname)
     if (key == NULL)
         goto cleanup;
 
-    vol = virGetStorageVol(conn, ret, volname, key);
+    vol = virGetStorageVol(conn, ret, volname, key, NULL, NULL);
 
 cleanup:
     VIR_FREE(ret);
@@ -2249,7 +2250,7 @@ phypStoragePoolLookupByName(virConnectPtr conn, const char *name)
     if (phypGetStoragePoolUUID(conn, uuid, name) == -1)
         return NULL;
 
-    return virGetStoragePool(conn, name, uuid);
+    return virGetStoragePool(conn, name, uuid, NULL, NULL);
 }
 
 static char *
@@ -2683,7 +2684,7 @@ phypGetStoragePoolLookUpByUUID(virConnectPtr conn,
             continue;
 
         if (!memcmp(local_uuid, uuid, VIR_UUID_BUFLEN)) {
-            sp = virGetStoragePool(conn, pools[i], uuid);
+            sp = virGetStoragePool(conn, pools[i], uuid, NULL, NULL);
             VIR_FREE(local_uuid);
             VIR_FREE(pools);
 
@@ -2727,7 +2728,7 @@ phypStoragePoolCreateXML(virConnectPtr conn,
         goto err;
     }
 
-    if ((sp = virGetStoragePool(conn, def->name, def->uuid)) == NULL)
+    if ((sp = virGetStoragePool(conn, def->name, def->uuid, NULL, NULL)) == NULL)
         goto err;
 
     if (phypBuildStoragePool(conn, def) == -1)

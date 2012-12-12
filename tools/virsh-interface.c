@@ -774,7 +774,7 @@ cmdInterfaceBridge(vshControl *ctl, const vshCmd *cmd)
     /* Set stp and delay attributes in <bridge> according to the
      * commandline options.
      */
-    if (!xmlSetProp(br_node, BAD_CAST "stp", BAD_CAST (stp ? "on" : "off"))) {
+    if (!xmlSetProp(br_node, BAD_CAST "stp", BAD_CAST(stp ? "on" : "off"))) {
         vshError(ctl, "%s", _("Failed to set stp attribute in xml document"));
         goto cleanup;
     }
@@ -813,13 +813,13 @@ cmdInterfaceBridge(vshControl *ctl, const vshCmd *cmd)
      */
     if (!xmlSetProp(if_node, BAD_CAST "type", BAD_CAST if_type)) {
         vshError(ctl, _("Failed to set new slave interface type to '%s' in xml document"),
-                 if_name);
+                 if_type);
         goto cleanup;
     }
 
     if (!xmlSetProp(if_node, BAD_CAST "name", BAD_CAST if_name)) {
         vshError(ctl, _("Failed to set new slave interface name to '%s' in xml document"),
-            br_name);
+                 if_name);
         goto cleanup;
     }
 

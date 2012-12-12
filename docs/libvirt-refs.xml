@@ -224,6 +224,7 @@
     <reference name='VIR_DOMAIN_EVENT_STOPPED_SAVED' href='html/libvirt-libvirt.html#VIR_DOMAIN_EVENT_STOPPED_SAVED'/>
     <reference name='VIR_DOMAIN_EVENT_STOPPED_SHUTDOWN' href='html/libvirt-libvirt.html#VIR_DOMAIN_EVENT_STOPPED_SHUTDOWN'/>
     <reference name='VIR_DOMAIN_EVENT_SUSPENDED' href='html/libvirt-libvirt.html#VIR_DOMAIN_EVENT_SUSPENDED'/>
+    <reference name='VIR_DOMAIN_EVENT_SUSPENDED_API_ERROR' href='html/libvirt-libvirt.html#VIR_DOMAIN_EVENT_SUSPENDED_API_ERROR'/>
     <reference name='VIR_DOMAIN_EVENT_SUSPENDED_FROM_SNAPSHOT' href='html/libvirt-libvirt.html#VIR_DOMAIN_EVENT_SUSPENDED_FROM_SNAPSHOT'/>
     <reference name='VIR_DOMAIN_EVENT_SUSPENDED_IOERROR' href='html/libvirt-libvirt.html#VIR_DOMAIN_EVENT_SUSPENDED_IOERROR'/>
     <reference name='VIR_DOMAIN_EVENT_SUSPENDED_LAST' href='html/libvirt-libvirt.html#VIR_DOMAIN_EVENT_SUSPENDED_LAST'/>
@@ -301,6 +302,7 @@
     <reference name='VIR_DOMAIN_PAUSED_MIGRATION' href='html/libvirt-libvirt.html#VIR_DOMAIN_PAUSED_MIGRATION'/>
     <reference name='VIR_DOMAIN_PAUSED_SAVE' href='html/libvirt-libvirt.html#VIR_DOMAIN_PAUSED_SAVE'/>
     <reference name='VIR_DOMAIN_PAUSED_SHUTTING_DOWN' href='html/libvirt-libvirt.html#VIR_DOMAIN_PAUSED_SHUTTING_DOWN'/>
+    <reference name='VIR_DOMAIN_PAUSED_SNAPSHOT' href='html/libvirt-libvirt.html#VIR_DOMAIN_PAUSED_SNAPSHOT'/>
     <reference name='VIR_DOMAIN_PAUSED_UNKNOWN' href='html/libvirt-libvirt.html#VIR_DOMAIN_PAUSED_UNKNOWN'/>
     <reference name='VIR_DOMAIN_PAUSED_USER' href='html/libvirt-libvirt.html#VIR_DOMAIN_PAUSED_USER'/>
     <reference name='VIR_DOMAIN_PAUSED_WATCHDOG' href='html/libvirt-libvirt.html#VIR_DOMAIN_PAUSED_WATCHDOG'/>
@@ -309,9 +311,77 @@
     <reference name='VIR_DOMAIN_PMSUSPENDED_DISK_UNKNOWN' href='html/libvirt-libvirt.html#VIR_DOMAIN_PMSUSPENDED_DISK_UNKNOWN'/>
     <reference name='VIR_DOMAIN_PMSUSPENDED_LAST' href='html/libvirt-libvirt.html#VIR_DOMAIN_PMSUSPENDED_LAST'/>
     <reference name='VIR_DOMAIN_PMSUSPENDED_UNKNOWN' href='html/libvirt-libvirt.html#VIR_DOMAIN_PMSUSPENDED_UNKNOWN'/>
+    <reference name='VIR_DOMAIN_PROCESS_SIGNAL_ABRT' href='html/libvirt-libvirt.html#VIR_DOMAIN_PROCESS_SIGNAL_ABRT'/>
+    <reference name='VIR_DOMAIN_PROCESS_SIGNAL_ALRM' href='html/libvirt-libvirt.html#VIR_DOMAIN_PROCESS_SIGNAL_ALRM'/>
+    <reference name='VIR_DOMAIN_PROCESS_SIGNAL_BUS' href='html/libvirt-libvirt.html#VIR_DOMAIN_PROCESS_SIGNAL_BUS'/>
+    <reference name='VIR_DOMAIN_PROCESS_SIGNAL_CHLD' href='html/libvirt-libvirt.html#VIR_DOMAIN_PROCESS_SIGNAL_CHLD'/>
+    <reference name='VIR_DOMAIN_PROCESS_SIGNAL_CONT' href='html/libvirt-libvirt.html#VIR_DOMAIN_PROCESS_SIGNAL_CONT'/>
+    <reference name='VIR_DOMAIN_PROCESS_SIGNAL_FPE' href='html/libvirt-libvirt.html#VIR_DOMAIN_PROCESS_SIGNAL_FPE'/>
+    <reference name='VIR_DOMAIN_PROCESS_SIGNAL_HUP' href='html/libvirt-libvirt.html#VIR_DOMAIN_PROCESS_SIGNAL_HUP'/>
+    <reference name='VIR_DOMAIN_PROCESS_SIGNAL_ILL' href='html/libvirt-libvirt.html#VIR_DOMAIN_PROCESS_SIGNAL_ILL'/>
+    <reference name='VIR_DOMAIN_PROCESS_SIGNAL_INT' href='html/libvirt-libvirt.html#VIR_DOMAIN_PROCESS_SIGNAL_INT'/>
+    <reference name='VIR_DOMAIN_PROCESS_SIGNAL_KILL' href='html/libvirt-libvirt.html#VIR_DOMAIN_PROCESS_SIGNAL_KILL'/>
+    <reference name='VIR_DOMAIN_PROCESS_SIGNAL_LAST' href='html/libvirt-libvirt.html#VIR_DOMAIN_PROCESS_SIGNAL_LAST'/>
+    <reference name='VIR_DOMAIN_PROCESS_SIGNAL_NOP' href='html/libvirt-libvirt.html#VIR_DOMAIN_PROCESS_SIGNAL_NOP'/>
+    <reference name='VIR_DOMAIN_PROCESS_SIGNAL_PIPE' href='html/libvirt-libvirt.html#VIR_DOMAIN_PROCESS_SIGNAL_PIPE'/>
+    <reference name='VIR_DOMAIN_PROCESS_SIGNAL_POLL' href='html/libvirt-libvirt.html#VIR_DOMAIN_PROCESS_SIGNAL_POLL'/>
+    <reference name='VIR_DOMAIN_PROCESS_SIGNAL_PROF' href='html/libvirt-libvirt.html#VIR_DOMAIN_PROCESS_SIGNAL_PROF'/>
+    <reference name='VIR_DOMAIN_PROCESS_SIGNAL_PWR' href='html/libvirt-libvirt.html#VIR_DOMAIN_PROCESS_SIGNAL_PWR'/>
+    <reference name='VIR_DOMAIN_PROCESS_SIGNAL_QUIT' href='html/libvirt-libvirt.html#VIR_DOMAIN_PROCESS_SIGNAL_QUIT'/>
+    <reference name='VIR_DOMAIN_PROCESS_SIGNAL_RT0' href='html/libvirt-libvirt.html#VIR_DOMAIN_PROCESS_SIGNAL_RT0'/>
+    <reference name='VIR_DOMAIN_PROCESS_SIGNAL_RT1' href='html/libvirt-libvirt.html#VIR_DOMAIN_PROCESS_SIGNAL_RT1'/>
+    <reference name='VIR_DOMAIN_PROCESS_SIGNAL_RT10' href='html/libvirt-libvirt.html#VIR_DOMAIN_PROCESS_SIGNAL_RT10'/>
+    <reference name='VIR_DOMAIN_PROCESS_SIGNAL_RT11' href='html/libvirt-libvirt.html#VIR_DOMAIN_PROCESS_SIGNAL_RT11'/>
+    <reference name='VIR_DOMAIN_PROCESS_SIGNAL_RT12' href='html/libvirt-libvirt.html#VIR_DOMAIN_PROCESS_SIGNAL_RT12'/>
+    <reference name='VIR_DOMAIN_PROCESS_SIGNAL_RT13' href='html/libvirt-libvirt.html#VIR_DOMAIN_PROCESS_SIGNAL_RT13'/>
+    <reference name='VIR_DOMAIN_PROCESS_SIGNAL_RT14' href='html/libvirt-libvirt.html#VIR_DOMAIN_PROCESS_SIGNAL_RT14'/>
+    <reference name='VIR_DOMAIN_PROCESS_SIGNAL_RT15' href='html/libvirt-libvirt.html#VIR_DOMAIN_PROCESS_SIGNAL_RT15'/>
+    <reference name='VIR_DOMAIN_PROCESS_SIGNAL_RT16' href='html/libvirt-libvirt.html#VIR_DOMAIN_PROCESS_SIGNAL_RT16'/>
+    <reference name='VIR_DOMAIN_PROCESS_SIGNAL_RT17' href='html/libvirt-libvirt.html#VIR_DOMAIN_PROCESS_SIGNAL_RT17'/>
+    <reference name='VIR_DOMAIN_PROCESS_SIGNAL_RT18' href='html/libvirt-libvirt.html#VIR_DOMAIN_PROCESS_SIGNAL_RT18'/>
+    <reference name='VIR_DOMAIN_PROCESS_SIGNAL_RT19' href='html/libvirt-libvirt.html#VIR_DOMAIN_PROCESS_SIGNAL_RT19'/>
+    <reference name='VIR_DOMAIN_PROCESS_SIGNAL_RT2' href='html/libvirt-libvirt.html#VIR_DOMAIN_PROCESS_SIGNAL_RT2'/>
+    <reference name='VIR_DOMAIN_PROCESS_SIGNAL_RT20' href='html/libvirt-libvirt.html#VIR_DOMAIN_PROCESS_SIGNAL_RT20'/>
+    <reference name='VIR_DOMAIN_PROCESS_SIGNAL_RT21' href='html/libvirt-libvirt.html#VIR_DOMAIN_PROCESS_SIGNAL_RT21'/>
+    <reference name='VIR_DOMAIN_PROCESS_SIGNAL_RT22' href='html/libvirt-libvirt.html#VIR_DOMAIN_PROCESS_SIGNAL_RT22'/>
+    <reference name='VIR_DOMAIN_PROCESS_SIGNAL_RT23' href='html/libvirt-libvirt.html#VIR_DOMAIN_PROCESS_SIGNAL_RT23'/>
+    <reference name='VIR_DOMAIN_PROCESS_SIGNAL_RT24' href='html/libvirt-libvirt.html#VIR_DOMAIN_PROCESS_SIGNAL_RT24'/>
+    <reference name='VIR_DOMAIN_PROCESS_SIGNAL_RT25' href='html/libvirt-libvirt.html#VIR_DOMAIN_PROCESS_SIGNAL_RT25'/>
+    <reference name='VIR_DOMAIN_PROCESS_SIGNAL_RT26' href='html/libvirt-libvirt.html#VIR_DOMAIN_PROCESS_SIGNAL_RT26'/>
+    <reference name='VIR_DOMAIN_PROCESS_SIGNAL_RT27' href='html/libvirt-libvirt.html#VIR_DOMAIN_PROCESS_SIGNAL_RT27'/>
+    <reference name='VIR_DOMAIN_PROCESS_SIGNAL_RT28' href='html/libvirt-libvirt.html#VIR_DOMAIN_PROCESS_SIGNAL_RT28'/>
+    <reference name='VIR_DOMAIN_PROCESS_SIGNAL_RT29' href='html/libvirt-libvirt.html#VIR_DOMAIN_PROCESS_SIGNAL_RT29'/>
+    <reference name='VIR_DOMAIN_PROCESS_SIGNAL_RT3' href='html/libvirt-libvirt.html#VIR_DOMAIN_PROCESS_SIGNAL_RT3'/>
+    <reference name='VIR_DOMAIN_PROCESS_SIGNAL_RT30' href='html/libvirt-libvirt.html#VIR_DOMAIN_PROCESS_SIGNAL_RT30'/>
+    <reference name='VIR_DOMAIN_PROCESS_SIGNAL_RT31' href='html/libvirt-libvirt.html#VIR_DOMAIN_PROCESS_SIGNAL_RT31'/>
+    <reference name='VIR_DOMAIN_PROCESS_SIGNAL_RT32' href='html/libvirt-libvirt.html#VIR_DOMAIN_PROCESS_SIGNAL_RT32'/>
+    <reference name='VIR_DOMAIN_PROCESS_SIGNAL_RT4' href='html/libvirt-libvirt.html#VIR_DOMAIN_PROCESS_SIGNAL_RT4'/>
+    <reference name='VIR_DOMAIN_PROCESS_SIGNAL_RT5' href='html/libvirt-libvirt.html#VIR_DOMAIN_PROCESS_SIGNAL_RT5'/>
+    <reference name='VIR_DOMAIN_PROCESS_SIGNAL_RT6' href='html/libvirt-libvirt.html#VIR_DOMAIN_PROCESS_SIGNAL_RT6'/>
+    <reference name='VIR_DOMAIN_PROCESS_SIGNAL_RT7' href='html/libvirt-libvirt.html#VIR_DOMAIN_PROCESS_SIGNAL_RT7'/>
+    <reference name='VIR_DOMAIN_PROCESS_SIGNAL_RT8' href='html/libvirt-libvirt.html#VIR_DOMAIN_PROCESS_SIGNAL_RT8'/>
+    <reference name='VIR_DOMAIN_PROCESS_SIGNAL_RT9' href='html/libvirt-libvirt.html#VIR_DOMAIN_PROCESS_SIGNAL_RT9'/>
+    <reference name='VIR_DOMAIN_PROCESS_SIGNAL_SEGV' href='html/libvirt-libvirt.html#VIR_DOMAIN_PROCESS_SIGNAL_SEGV'/>
+    <reference name='VIR_DOMAIN_PROCESS_SIGNAL_STKFLT' href='html/libvirt-libvirt.html#VIR_DOMAIN_PROCESS_SIGNAL_STKFLT'/>
+    <reference name='VIR_DOMAIN_PROCESS_SIGNAL_STOP' href='html/libvirt-libvirt.html#VIR_DOMAIN_PROCESS_SIGNAL_STOP'/>
+    <reference name='VIR_DOMAIN_PROCESS_SIGNAL_SYS' href='html/libvirt-libvirt.html#VIR_DOMAIN_PROCESS_SIGNAL_SYS'/>
+    <reference name='VIR_DOMAIN_PROCESS_SIGNAL_TERM' href='html/libvirt-libvirt.html#VIR_DOMAIN_PROCESS_SIGNAL_TERM'/>
+    <reference name='VIR_DOMAIN_PROCESS_SIGNAL_TRAP' href='html/libvirt-libvirt.html#VIR_DOMAIN_PROCESS_SIGNAL_TRAP'/>
+    <reference name='VIR_DOMAIN_PROCESS_SIGNAL_TSTP' href='html/libvirt-libvirt.html#VIR_DOMAIN_PROCESS_SIGNAL_TSTP'/>
+    <reference name='VIR_DOMAIN_PROCESS_SIGNAL_TTIN' href='html/libvirt-libvirt.html#VIR_DOMAIN_PROCESS_SIGNAL_TTIN'/>
+    <reference name='VIR_DOMAIN_PROCESS_SIGNAL_TTOU' href='html/libvirt-libvirt.html#VIR_DOMAIN_PROCESS_SIGNAL_TTOU'/>
+    <reference name='VIR_DOMAIN_PROCESS_SIGNAL_URG' href='html/libvirt-libvirt.html#VIR_DOMAIN_PROCESS_SIGNAL_URG'/>
+    <reference name='VIR_DOMAIN_PROCESS_SIGNAL_USR1' href='html/libvirt-libvirt.html#VIR_DOMAIN_PROCESS_SIGNAL_USR1'/>
+    <reference name='VIR_DOMAIN_PROCESS_SIGNAL_USR2' href='html/libvirt-libvirt.html#VIR_DOMAIN_PROCESS_SIGNAL_USR2'/>
+    <reference name='VIR_DOMAIN_PROCESS_SIGNAL_VTALRM' href='html/libvirt-libvirt.html#VIR_DOMAIN_PROCESS_SIGNAL_VTALRM'/>
+    <reference name='VIR_DOMAIN_PROCESS_SIGNAL_WINCH' href='html/libvirt-libvirt.html#VIR_DOMAIN_PROCESS_SIGNAL_WINCH'/>
+    <reference name='VIR_DOMAIN_PROCESS_SIGNAL_XCPU' href='html/libvirt-libvirt.html#VIR_DOMAIN_PROCESS_SIGNAL_XCPU'/>
+    <reference name='VIR_DOMAIN_PROCESS_SIGNAL_XFSZ' href='html/libvirt-libvirt.html#VIR_DOMAIN_PROCESS_SIGNAL_XFSZ'/>
     <reference name='VIR_DOMAIN_REBOOT_ACPI_POWER_BTN' href='html/libvirt-libvirt.html#VIR_DOMAIN_REBOOT_ACPI_POWER_BTN'/>
     <reference name='VIR_DOMAIN_REBOOT_DEFAULT' href='html/libvirt-libvirt.html#VIR_DOMAIN_REBOOT_DEFAULT'/>
     <reference name='VIR_DOMAIN_REBOOT_GUEST_AGENT' href='html/libvirt-libvirt.html#VIR_DOMAIN_REBOOT_GUEST_AGENT'/>
+    <reference name='VIR_DOMAIN_REBOOT_INITCTL' href='html/libvirt-libvirt.html#VIR_DOMAIN_REBOOT_INITCTL'/>
+    <reference name='VIR_DOMAIN_REBOOT_SIGNAL' href='html/libvirt-libvirt.html#VIR_DOMAIN_REBOOT_SIGNAL'/>
     <reference name='VIR_DOMAIN_RUNNING' href='html/libvirt-libvirt.html#VIR_DOMAIN_RUNNING'/>
     <reference name='VIR_DOMAIN_RUNNING_BOOTED' href='html/libvirt-libvirt.html#VIR_DOMAIN_RUNNING_BOOTED'/>
     <reference name='VIR_DOMAIN_RUNNING_FROM_SNAPSHOT' href='html/libvirt-libvirt.html#VIR_DOMAIN_RUNNING_FROM_SNAPSHOT'/>
@@ -348,7 +418,9 @@
     <reference name='VIR_DOMAIN_SHUTDOWN_ACPI_POWER_BTN' href='html/libvirt-libvirt.html#VIR_DOMAIN_SHUTDOWN_ACPI_POWER_BTN'/>
     <reference name='VIR_DOMAIN_SHUTDOWN_DEFAULT' href='html/libvirt-libvirt.html#VIR_DOMAIN_SHUTDOWN_DEFAULT'/>
     <reference name='VIR_DOMAIN_SHUTDOWN_GUEST_AGENT' href='html/libvirt-libvirt.html#VIR_DOMAIN_SHUTDOWN_GUEST_AGENT'/>
+    <reference name='VIR_DOMAIN_SHUTDOWN_INITCTL' href='html/libvirt-libvirt.html#VIR_DOMAIN_SHUTDOWN_INITCTL'/>
     <reference name='VIR_DOMAIN_SHUTDOWN_LAST' href='html/libvirt-libvirt.html#VIR_DOMAIN_SHUTDOWN_LAST'/>
+    <reference name='VIR_DOMAIN_SHUTDOWN_SIGNAL' href='html/libvirt-libvirt.html#VIR_DOMAIN_SHUTDOWN_SIGNAL'/>
     <reference name='VIR_DOMAIN_SHUTDOWN_UNKNOWN' href='html/libvirt-libvirt.html#VIR_DOMAIN_SHUTDOWN_UNKNOWN'/>
     <reference name='VIR_DOMAIN_SHUTDOWN_USER' href='html/libvirt-libvirt.html#VIR_DOMAIN_SHUTDOWN_USER'/>
     <reference name='VIR_DOMAIN_SHUTOFF' href='html/libvirt-libvirt.html#VIR_DOMAIN_SHUTOFF'/>
@@ -365,6 +437,7 @@
     <reference name='VIR_DOMAIN_SNAPSHOT_CREATE_CURRENT' href='html/libvirt-libvirt.html#VIR_DOMAIN_SNAPSHOT_CREATE_CURRENT'/>
     <reference name='VIR_DOMAIN_SNAPSHOT_CREATE_DISK_ONLY' href='html/libvirt-libvirt.html#VIR_DOMAIN_SNAPSHOT_CREATE_DISK_ONLY'/>
     <reference name='VIR_DOMAIN_SNAPSHOT_CREATE_HALT' href='html/libvirt-libvirt.html#VIR_DOMAIN_SNAPSHOT_CREATE_HALT'/>
+    <reference name='VIR_DOMAIN_SNAPSHOT_CREATE_LIVE' href='html/libvirt-libvirt.html#VIR_DOMAIN_SNAPSHOT_CREATE_LIVE'/>
     <reference name='VIR_DOMAIN_SNAPSHOT_CREATE_NO_METADATA' href='html/libvirt-libvirt.html#VIR_DOMAIN_SNAPSHOT_CREATE_NO_METADATA'/>
     <reference name='VIR_DOMAIN_SNAPSHOT_CREATE_QUIESCE' href='html/libvirt-libvirt.html#VIR_DOMAIN_SNAPSHOT_CREATE_QUIESCE'/>
     <reference name='VIR_DOMAIN_SNAPSHOT_CREATE_REDEFINE' href='html/libvirt-libvirt.html#VIR_DOMAIN_SNAPSHOT_CREATE_REDEFINE'/>
@@ -372,7 +445,12 @@
     <reference name='VIR_DOMAIN_SNAPSHOT_DELETE_CHILDREN' href='html/libvirt-libvirt.html#VIR_DOMAIN_SNAPSHOT_DELETE_CHILDREN'/>
     <reference name='VIR_DOMAIN_SNAPSHOT_DELETE_CHILDREN_ONLY' href='html/libvirt-libvirt.html#VIR_DOMAIN_SNAPSHOT_DELETE_CHILDREN_ONLY'/>
     <reference name='VIR_DOMAIN_SNAPSHOT_DELETE_METADATA_ONLY' href='html/libvirt-libvirt.html#VIR_DOMAIN_SNAPSHOT_DELETE_METADATA_ONLY'/>
+    <reference name='VIR_DOMAIN_SNAPSHOT_LIST_ACTIVE' href='html/libvirt-libvirt.html#VIR_DOMAIN_SNAPSHOT_LIST_ACTIVE'/>
     <reference name='VIR_DOMAIN_SNAPSHOT_LIST_DESCENDANTS' href='html/libvirt-libvirt.html#VIR_DOMAIN_SNAPSHOT_LIST_DESCENDANTS'/>
+    <reference name='VIR_DOMAIN_SNAPSHOT_LIST_DISK_ONLY' href='html/libvirt-libvirt.html#VIR_DOMAIN_SNAPSHOT_LIST_DISK_ONLY'/>
+    <reference name='VIR_DOMAIN_SNAPSHOT_LIST_EXTERNAL' href='html/libvirt-libvirt.html#VIR_DOMAIN_SNAPSHOT_LIST_EXTERNAL'/>
+    <reference name='VIR_DOMAIN_SNAPSHOT_LIST_INACTIVE' href='html/libvirt-libvirt.html#VIR_DOMAIN_SNAPSHOT_LIST_INACTIVE'/>
+    <reference name='VIR_DOMAIN_SNAPSHOT_LIST_INTERNAL' href='html/libvirt-libvirt.html#VIR_DOMAIN_SNAPSHOT_LIST_INTERNAL'/>
     <reference name='VIR_DOMAIN_SNAPSHOT_LIST_LEAVES' href='html/libvirt-libvirt.html#VIR_DOMAIN_SNAPSHOT_LIST_LEAVES'/>
     <reference name='VIR_DOMAIN_SNAPSHOT_LIST_METADATA' href='html/libvirt-libvirt.html#VIR_DOMAIN_SNAPSHOT_LIST_METADATA'/>
     <reference name='VIR_DOMAIN_SNAPSHOT_LIST_NO_LEAVES' href='html/libvirt-libvirt.html#VIR_DOMAIN_SNAPSHOT_LIST_NO_LEAVES'/>
@@ -504,6 +582,7 @@
     <reference name='VIR_FROM_EVENT' href='html/libvirt-virterror.html#VIR_FROM_EVENT'/>
     <reference name='VIR_FROM_HOOK' href='html/libvirt-virterror.html#VIR_FROM_HOOK'/>
     <reference name='VIR_FROM_HYPERV' href='html/libvirt-virterror.html#VIR_FROM_HYPERV'/>
+    <reference name='VIR_FROM_INITCTL' href='html/libvirt-virterror.html#VIR_FROM_INITCTL'/>
     <reference name='VIR_FROM_INTERFACE' href='html/libvirt-virterror.html#VIR_FROM_INTERFACE'/>
     <reference name='VIR_FROM_LIBXL' href='html/libvirt-virterror.html#VIR_FROM_LIBXL'/>
     <reference name='VIR_FROM_LOCKING' href='html/libvirt-virterror.html#VIR_FROM_LOCKING'/>
@@ -561,6 +640,7 @@
     <reference name='VIR_MIGRATE_LIVE' href='html/libvirt-libvirt.html#VIR_MIGRATE_LIVE'/>
     <reference name='VIR_MIGRATE_NON_SHARED_DISK' href='html/libvirt-libvirt.html#VIR_MIGRATE_NON_SHARED_DISK'/>
     <reference name='VIR_MIGRATE_NON_SHARED_INC' href='html/libvirt-libvirt.html#VIR_MIGRATE_NON_SHARED_INC'/>
+    <reference name='VIR_MIGRATE_OFFLINE' href='html/libvirt-libvirt.html#VIR_MIGRATE_OFFLINE'/>
     <reference name='VIR_MIGRATE_PAUSED' href='html/libvirt-libvirt.html#VIR_MIGRATE_PAUSED'/>
     <reference name='VIR_MIGRATE_PEER2PEER' href='html/libvirt-libvirt.html#VIR_MIGRATE_PEER2PEER'/>
     <reference name='VIR_MIGRATE_PERSIST_DEST' href='html/libvirt-libvirt.html#VIR_MIGRATE_PERSIST_DEST'/>
@@ -630,6 +710,7 @@
     <reference name='VIR_STORAGE_POOL_RUNNING' href='html/libvirt-libvirt.html#VIR_STORAGE_POOL_RUNNING'/>
     <reference name='VIR_STORAGE_POOL_STATE_LAST' href='html/libvirt-libvirt.html#VIR_STORAGE_POOL_STATE_LAST'/>
     <reference name='VIR_STORAGE_VOL_BLOCK' href='html/libvirt-libvirt.html#VIR_STORAGE_VOL_BLOCK'/>
+    <reference name='VIR_STORAGE_VOL_CREATE_PREALLOC_METADATA' href='html/libvirt-libvirt.html#VIR_STORAGE_VOL_CREATE_PREALLOC_METADATA'/>
     <reference name='VIR_STORAGE_VOL_DELETE_NORMAL' href='html/libvirt-libvirt.html#VIR_STORAGE_VOL_DELETE_NORMAL'/>
     <reference name='VIR_STORAGE_VOL_DELETE_ZEROED' href='html/libvirt-libvirt.html#VIR_STORAGE_VOL_DELETE_ZEROED'/>
     <reference name='VIR_STORAGE_VOL_DIR' href='html/libvirt-libvirt.html#VIR_STORAGE_VOL_DIR'/>
@@ -874,6 +955,7 @@
     <reference name='virDomainEventType' href='html/libvirt-libvirt.html#virDomainEventType'/>
     <reference name='virDomainEventUndefinedDetailType' href='html/libvirt-libvirt.html#virDomainEventUndefinedDetailType'/>
     <reference name='virDomainEventWatchdogAction' href='html/libvirt-libvirt.html#virDomainEventWatchdogAction'/>
+    <reference name='virDomainFSTrim' href='html/libvirt-libvirt.html#virDomainFSTrim'/>
     <reference name='virDomainFree' href='html/libvirt-libvirt.html#virDomainFree'/>
     <reference name='virDomainGetAutostart' href='html/libvirt-libvirt.html#virDomainGetAutostart'/>
     <reference name='virDomainGetBlkioParameters' href='html/libvirt-libvirt.html#virDomainGetBlkioParameters'/>
@@ -960,6 +1042,7 @@
     <reference name='virDomainPinEmulator' href='html/libvirt-libvirt.html#virDomainPinEmulator'/>
     <reference name='virDomainPinVcpu' href='html/libvirt-libvirt.html#virDomainPinVcpu'/>
     <reference name='virDomainPinVcpuFlags' href='html/libvirt-libvirt.html#virDomainPinVcpuFlags'/>
+    <reference name='virDomainProcessSignal' href='html/libvirt-libvirt.html#virDomainProcessSignal'/>
     <reference name='virDomainPtr' href='html/libvirt-libvirt.html#virDomainPtr'/>
     <reference name='virDomainReboot' href='html/libvirt-libvirt.html#virDomainReboot'/>
     <reference name='virDomainRebootFlagValues' href='html/libvirt-libvirt.html#virDomainRebootFlagValues'/>
@@ -977,6 +1060,7 @@
     <reference name='virDomainSaveRestoreFlags' href='html/libvirt-libvirt.html#virDomainSaveRestoreFlags'/>
     <reference name='virDomainScreenshot' href='html/libvirt-libvirt.html#virDomainScreenshot'/>
     <reference name='virDomainSendKey' href='html/libvirt-libvirt.html#virDomainSendKey'/>
+    <reference name='virDomainSendProcessSignal' href='html/libvirt-libvirt.html#virDomainSendProcessSignal'/>
     <reference name='virDomainSetAutostart' href='html/libvirt-libvirt.html#virDomainSetAutostart'/>
     <reference name='virDomainSetBlkioParameters' href='html/libvirt-libvirt.html#virDomainSetBlkioParameters'/>
     <reference name='virDomainSetBlockIoTune' href='html/libvirt-libvirt.html#virDomainSetBlockIoTune'/>
@@ -1220,6 +1304,7 @@
     <reference name='virStoragePoolState' href='html/libvirt-libvirt.html#virStoragePoolState'/>
     <reference name='virStoragePoolUndefine' href='html/libvirt-libvirt.html#virStoragePoolUndefine'/>
     <reference name='virStorageVol' href='html/libvirt-libvirt.html#virStorageVol'/>
+    <reference name='virStorageVolCreateFlags' href='html/libvirt-libvirt.html#virStorageVolCreateFlags'/>
     <reference name='virStorageVolCreateXML' href='html/libvirt-libvirt.html#virStorageVolCreateXML'/>
     <reference name='virStorageVolCreateXMLFrom' href='html/libvirt-libvirt.html#virStorageVolCreateXMLFrom'/>
     <reference name='virStorageVolDelete' href='html/libvirt-libvirt.html#virStorageVolDelete'/>
@@ -1501,6 +1586,7 @@
       <ref name='VIR_DOMAIN_EVENT_STOPPED_SAVED'/>
       <ref name='VIR_DOMAIN_EVENT_STOPPED_SHUTDOWN'/>
       <ref name='VIR_DOMAIN_EVENT_SUSPENDED'/>
+      <ref name='VIR_DOMAIN_EVENT_SUSPENDED_API_ERROR'/>
       <ref name='VIR_DOMAIN_EVENT_SUSPENDED_FROM_SNAPSHOT'/>
       <ref name='VIR_DOMAIN_EVENT_SUSPENDED_IOERROR'/>
       <ref name='VIR_DOMAIN_EVENT_SUSPENDED_LAST'/>
@@ -1578,6 +1664,7 @@
       <ref name='VIR_DOMAIN_PAUSED_MIGRATION'/>
       <ref name='VIR_DOMAIN_PAUSED_SAVE'/>
       <ref name='VIR_DOMAIN_PAUSED_SHUTTING_DOWN'/>
+      <ref name='VIR_DOMAIN_PAUSED_SNAPSHOT'/>
       <ref name='VIR_DOMAIN_PAUSED_UNKNOWN'/>
       <ref name='VIR_DOMAIN_PAUSED_USER'/>
       <ref name='VIR_DOMAIN_PAUSED_WATCHDOG'/>
@@ -1586,9 +1673,77 @@
       <ref name='VIR_DOMAIN_PMSUSPENDED_DISK_UNKNOWN'/>
       <ref name='VIR_DOMAIN_PMSUSPENDED_LAST'/>
       <ref name='VIR_DOMAIN_PMSUSPENDED_UNKNOWN'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_ABRT'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_ALRM'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_BUS'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_CHLD'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_CONT'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_FPE'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_HUP'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_ILL'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_INT'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_KILL'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_LAST'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_NOP'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_PIPE'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_POLL'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_PROF'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_PWR'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_QUIT'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_RT0'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_RT1'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_RT10'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_RT11'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_RT12'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_RT13'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_RT14'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_RT15'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_RT16'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_RT17'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_RT18'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_RT19'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_RT2'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_RT20'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_RT21'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_RT22'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_RT23'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_RT24'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_RT25'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_RT26'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_RT27'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_RT28'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_RT29'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_RT3'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_RT30'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_RT31'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_RT32'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_RT4'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_RT5'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_RT6'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_RT7'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_RT8'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_RT9'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_SEGV'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_STKFLT'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_STOP'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_SYS'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_TERM'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_TRAP'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_TSTP'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_TTIN'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_TTOU'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_URG'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_USR1'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_USR2'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_VTALRM'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_WINCH'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_XCPU'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_XFSZ'/>
       <ref name='VIR_DOMAIN_REBOOT_ACPI_POWER_BTN'/>
       <ref name='VIR_DOMAIN_REBOOT_DEFAULT'/>
       <ref name='VIR_DOMAIN_REBOOT_GUEST_AGENT'/>
+      <ref name='VIR_DOMAIN_REBOOT_INITCTL'/>
+      <ref name='VIR_DOMAIN_REBOOT_SIGNAL'/>
       <ref name='VIR_DOMAIN_RUNNING'/>
       <ref name='VIR_DOMAIN_RUNNING_BOOTED'/>
       <ref name='VIR_DOMAIN_RUNNING_FROM_SNAPSHOT'/>
@@ -1625,7 +1780,9 @@
       <ref name='VIR_DOMAIN_SHUTDOWN_ACPI_POWER_BTN'/>
       <ref name='VIR_DOMAIN_SHUTDOWN_DEFAULT'/>
       <ref name='VIR_DOMAIN_SHUTDOWN_GUEST_AGENT'/>
+      <ref name='VIR_DOMAIN_SHUTDOWN_INITCTL'/>
       <ref name='VIR_DOMAIN_SHUTDOWN_LAST'/>
+      <ref name='VIR_DOMAIN_SHUTDOWN_SIGNAL'/>
       <ref name='VIR_DOMAIN_SHUTDOWN_UNKNOWN'/>
       <ref name='VIR_DOMAIN_SHUTDOWN_USER'/>
       <ref name='VIR_DOMAIN_SHUTOFF'/>
@@ -1642,6 +1799,7 @@
       <ref name='VIR_DOMAIN_SNAPSHOT_CREATE_CURRENT'/>
       <ref name='VIR_DOMAIN_SNAPSHOT_CREATE_DISK_ONLY'/>
       <ref name='VIR_DOMAIN_SNAPSHOT_CREATE_HALT'/>
+      <ref name='VIR_DOMAIN_SNAPSHOT_CREATE_LIVE'/>
       <ref name='VIR_DOMAIN_SNAPSHOT_CREATE_NO_METADATA'/>
       <ref name='VIR_DOMAIN_SNAPSHOT_CREATE_QUIESCE'/>
       <ref name='VIR_DOMAIN_SNAPSHOT_CREATE_REDEFINE'/>
@@ -1649,7 +1807,12 @@
       <ref name='VIR_DOMAIN_SNAPSHOT_DELETE_CHILDREN'/>
       <ref name='VIR_DOMAIN_SNAPSHOT_DELETE_CHILDREN_ONLY'/>
       <ref name='VIR_DOMAIN_SNAPSHOT_DELETE_METADATA_ONLY'/>
+      <ref name='VIR_DOMAIN_SNAPSHOT_LIST_ACTIVE'/>
       <ref name='VIR_DOMAIN_SNAPSHOT_LIST_DESCENDANTS'/>
+      <ref name='VIR_DOMAIN_SNAPSHOT_LIST_DISK_ONLY'/>
+      <ref name='VIR_DOMAIN_SNAPSHOT_LIST_EXTERNAL'/>
+      <ref name='VIR_DOMAIN_SNAPSHOT_LIST_INACTIVE'/>
+      <ref name='VIR_DOMAIN_SNAPSHOT_LIST_INTERNAL'/>
       <ref name='VIR_DOMAIN_SNAPSHOT_LIST_LEAVES'/>
       <ref name='VIR_DOMAIN_SNAPSHOT_LIST_METADATA'/>
       <ref name='VIR_DOMAIN_SNAPSHOT_LIST_NO_LEAVES'/>
@@ -1781,6 +1944,7 @@
       <ref name='VIR_FROM_EVENT'/>
       <ref name='VIR_FROM_HOOK'/>
       <ref name='VIR_FROM_HYPERV'/>
+      <ref name='VIR_FROM_INITCTL'/>
       <ref name='VIR_FROM_INTERFACE'/>
       <ref name='VIR_FROM_LIBXL'/>
       <ref name='VIR_FROM_LOCKING'/>
@@ -1838,6 +2002,7 @@
       <ref name='VIR_MIGRATE_LIVE'/>
       <ref name='VIR_MIGRATE_NON_SHARED_DISK'/>
       <ref name='VIR_MIGRATE_NON_SHARED_INC'/>
+      <ref name='VIR_MIGRATE_OFFLINE'/>
       <ref name='VIR_MIGRATE_PAUSED'/>
       <ref name='VIR_MIGRATE_PEER2PEER'/>
       <ref name='VIR_MIGRATE_PERSIST_DEST'/>
@@ -1907,6 +2072,7 @@
       <ref name='VIR_STORAGE_POOL_RUNNING'/>
       <ref name='VIR_STORAGE_POOL_STATE_LAST'/>
       <ref name='VIR_STORAGE_VOL_BLOCK'/>
+      <ref name='VIR_STORAGE_VOL_CREATE_PREALLOC_METADATA'/>
       <ref name='VIR_STORAGE_VOL_DELETE_NORMAL'/>
       <ref name='VIR_STORAGE_VOL_DELETE_ZEROED'/>
       <ref name='VIR_STORAGE_VOL_DIR'/>
@@ -2155,6 +2321,7 @@
       <ref name='virDomainEventType'/>
       <ref name='virDomainEventUndefinedDetailType'/>
       <ref name='virDomainEventWatchdogAction'/>
+      <ref name='virDomainFSTrim'/>
       <ref name='virDomainFree'/>
       <ref name='virDomainGetAutostart'/>
       <ref name='virDomainGetBlkioParameters'/>
@@ -2241,6 +2408,7 @@
       <ref name='virDomainPinEmulator'/>
       <ref name='virDomainPinVcpu'/>
       <ref name='virDomainPinVcpuFlags'/>
+      <ref name='virDomainProcessSignal'/>
       <ref name='virDomainPtr'/>
       <ref name='virDomainReboot'/>
       <ref name='virDomainRebootFlagValues'/>
@@ -2258,6 +2426,7 @@
       <ref name='virDomainSaveRestoreFlags'/>
       <ref name='virDomainScreenshot'/>
       <ref name='virDomainSendKey'/>
+      <ref name='virDomainSendProcessSignal'/>
       <ref name='virDomainSetAutostart'/>
       <ref name='virDomainSetBlkioParameters'/>
       <ref name='virDomainSetBlockIoTune'/>
@@ -2501,6 +2670,7 @@
       <ref name='virStoragePoolState'/>
       <ref name='virStoragePoolUndefine'/>
       <ref name='virStorageVol'/>
+      <ref name='virStorageVolCreateFlags'/>
       <ref name='virStorageVolCreateXML'/>
       <ref name='virStorageVolCreateXMLFrom'/>
       <ref name='virStorageVolDelete'/>
@@ -2702,6 +2872,7 @@
     </type>
     <type name='long long'>
       <ref name='virConnectDomainEventRTCChangeCallback'/>
+      <ref name='virDomainSendProcessSignal'/>
     </type>
     <type name='size_t'>
       <ref name='virDomainBlockPeek'/>
@@ -2765,6 +2936,7 @@
       <ref name='virDomainCreateXML'/>
       <ref name='virDomainDestroyFlags'/>
       <ref name='virDomainDetachDeviceFlags'/>
+      <ref name='virDomainFSTrim'/>
       <ref name='virDomainGetBlkioParameters'/>
       <ref name='virDomainGetBlockInfo'/>
       <ref name='virDomainGetBlockIoTune'/>
@@ -2810,6 +2982,7 @@
       <ref name='virDomainSaveImageGetXMLDesc'/>
       <ref name='virDomainScreenshot'/>
       <ref name='virDomainSendKey'/>
+      <ref name='virDomainSendProcessSignal'/>
       <ref name='virDomainSetBlkioParameters'/>
       <ref name='virDomainSetBlockIoTune'/>
       <ref name='virDomainSetInterfaceParameters'/>
@@ -2907,6 +3080,7 @@
       <ref name='virConnectDomainEventBalloonChangeCallback'/>
       <ref name='virDomainBlockPeek'/>
       <ref name='virDomainBlockResize'/>
+      <ref name='virDomainFSTrim'/>
       <ref name='virDomainMemoryPeek'/>
       <ref name='virDomainMigrateSetMaxDowntime'/>
       <ref name='virDomainPMSuspendForDuration'/>
@@ -3130,6 +3304,7 @@
       <ref name='virDomainDestroyFlags'/>
       <ref name='virDomainDetachDevice'/>
       <ref name='virDomainDetachDeviceFlags'/>
+      <ref name='virDomainFSTrim'/>
       <ref name='virDomainFree'/>
       <ref name='virDomainGetAutostart'/>
       <ref name='virDomainGetBlkioParameters'/>
@@ -3199,6 +3374,7 @@
       <ref name='virDomainSaveFlags'/>
       <ref name='virDomainScreenshot'/>
       <ref name='virDomainSendKey'/>
+      <ref name='virDomainSendProcessSignal'/>
       <ref name='virDomainSetAutostart'/>
       <ref name='virDomainSetBlkioParameters'/>
       <ref name='virDomainSetBlockIoTune'/>
@@ -3767,6 +3943,7 @@
       <ref name='VIR_DOMAIN_EVENT_STOPPED_SAVED'/>
       <ref name='VIR_DOMAIN_EVENT_STOPPED_SHUTDOWN'/>
       <ref name='VIR_DOMAIN_EVENT_SUSPENDED'/>
+      <ref name='VIR_DOMAIN_EVENT_SUSPENDED_API_ERROR'/>
       <ref name='VIR_DOMAIN_EVENT_SUSPENDED_FROM_SNAPSHOT'/>
       <ref name='VIR_DOMAIN_EVENT_SUSPENDED_IOERROR'/>
       <ref name='VIR_DOMAIN_EVENT_SUSPENDED_LAST'/>
@@ -3844,6 +4021,7 @@
       <ref name='VIR_DOMAIN_PAUSED_MIGRATION'/>
       <ref name='VIR_DOMAIN_PAUSED_SAVE'/>
       <ref name='VIR_DOMAIN_PAUSED_SHUTTING_DOWN'/>
+      <ref name='VIR_DOMAIN_PAUSED_SNAPSHOT'/>
       <ref name='VIR_DOMAIN_PAUSED_UNKNOWN'/>
       <ref name='VIR_DOMAIN_PAUSED_USER'/>
       <ref name='VIR_DOMAIN_PAUSED_WATCHDOG'/>
@@ -3852,9 +4030,77 @@
       <ref name='VIR_DOMAIN_PMSUSPENDED_DISK_UNKNOWN'/>
       <ref name='VIR_DOMAIN_PMSUSPENDED_LAST'/>
       <ref name='VIR_DOMAIN_PMSUSPENDED_UNKNOWN'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_ABRT'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_ALRM'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_BUS'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_CHLD'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_CONT'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_FPE'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_HUP'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_ILL'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_INT'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_KILL'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_LAST'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_NOP'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_PIPE'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_POLL'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_PROF'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_PWR'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_QUIT'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_RT0'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_RT1'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_RT10'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_RT11'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_RT12'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_RT13'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_RT14'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_RT15'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_RT16'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_RT17'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_RT18'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_RT19'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_RT2'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_RT20'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_RT21'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_RT22'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_RT23'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_RT24'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_RT25'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_RT26'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_RT27'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_RT28'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_RT29'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_RT3'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_RT30'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_RT31'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_RT32'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_RT4'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_RT5'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_RT6'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_RT7'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_RT8'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_RT9'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_SEGV'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_STKFLT'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_STOP'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_SYS'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_TERM'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_TRAP'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_TSTP'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_TTIN'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_TTOU'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_URG'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_USR1'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_USR2'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_VTALRM'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_WINCH'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_XCPU'/>
+      <ref name='VIR_DOMAIN_PROCESS_SIGNAL_XFSZ'/>
       <ref name='VIR_DOMAIN_REBOOT_ACPI_POWER_BTN'/>
       <ref name='VIR_DOMAIN_REBOOT_DEFAULT'/>
       <ref name='VIR_DOMAIN_REBOOT_GUEST_AGENT'/>
+      <ref name='VIR_DOMAIN_REBOOT_INITCTL'/>
+      <ref name='VIR_DOMAIN_REBOOT_SIGNAL'/>
       <ref name='VIR_DOMAIN_RUNNING'/>
       <ref name='VIR_DOMAIN_RUNNING_BOOTED'/>
       <ref name='VIR_DOMAIN_RUNNING_FROM_SNAPSHOT'/>
@@ -3891,7 +4137,9 @@
       <ref name='VIR_DOMAIN_SHUTDOWN_ACPI_POWER_BTN'/>
       <ref name='VIR_DOMAIN_SHUTDOWN_DEFAULT'/>
       <ref name='VIR_DOMAIN_SHUTDOWN_GUEST_AGENT'/>
+      <ref name='VIR_DOMAIN_SHUTDOWN_INITCTL'/>
       <ref name='VIR_DOMAIN_SHUTDOWN_LAST'/>
+      <ref name='VIR_DOMAIN_SHUTDOWN_SIGNAL'/>
       <ref name='VIR_DOMAIN_SHUTDOWN_UNKNOWN'/>
       <ref name='VIR_DOMAIN_SHUTDOWN_USER'/>
       <ref name='VIR_DOMAIN_SHUTOFF'/>
@@ -3908,6 +4156,7 @@
       <ref name='VIR_DOMAIN_SNAPSHOT_CREATE_CURRENT'/>
       <ref name='VIR_DOMAIN_SNAPSHOT_CREATE_DISK_ONLY'/>
       <ref name='VIR_DOMAIN_SNAPSHOT_CREATE_HALT'/>
+      <ref name='VIR_DOMAIN_SNAPSHOT_CREATE_LIVE'/>
       <ref name='VIR_DOMAIN_SNAPSHOT_CREATE_NO_METADATA'/>
       <ref name='VIR_DOMAIN_SNAPSHOT_CREATE_QUIESCE'/>
       <ref name='VIR_DOMAIN_SNAPSHOT_CREATE_REDEFINE'/>
@@ -3915,7 +4164,12 @@
       <ref name='VIR_DOMAIN_SNAPSHOT_DELETE_CHILDREN'/>
       <ref name='VIR_DOMAIN_SNAPSHOT_DELETE_CHILDREN_ONLY'/>
       <ref name='VIR_DOMAIN_SNAPSHOT_DELETE_METADATA_ONLY'/>
+      <ref name='VIR_DOMAIN_SNAPSHOT_LIST_ACTIVE'/>
       <ref name='VIR_DOMAIN_SNAPSHOT_LIST_DESCENDANTS'/>
+      <ref name='VIR_DOMAIN_SNAPSHOT_LIST_DISK_ONLY'/>
+      <ref name='VIR_DOMAIN_SNAPSHOT_LIST_EXTERNAL'/>
+      <ref name='VIR_DOMAIN_SNAPSHOT_LIST_INACTIVE'/>
+      <ref name='VIR_DOMAIN_SNAPSHOT_LIST_INTERNAL'/>
       <ref name='VIR_DOMAIN_SNAPSHOT_LIST_LEAVES'/>
       <ref name='VIR_DOMAIN_SNAPSHOT_LIST_METADATA'/>
       <ref name='VIR_DOMAIN_SNAPSHOT_LIST_NO_LEAVES'/>
@@ -3966,6 +4220,7 @@
       <ref name='VIR_MIGRATE_LIVE'/>
       <ref name='VIR_MIGRATE_NON_SHARED_DISK'/>
       <ref name='VIR_MIGRATE_NON_SHARED_INC'/>
+      <ref name='VIR_MIGRATE_OFFLINE'/>
       <ref name='VIR_MIGRATE_PAUSED'/>
       <ref name='VIR_MIGRATE_PEER2PEER'/>
       <ref name='VIR_MIGRATE_PERSIST_DEST'/>
@@ -4035,6 +4290,7 @@
       <ref name='VIR_STORAGE_POOL_RUNNING'/>
       <ref name='VIR_STORAGE_POOL_STATE_LAST'/>
       <ref name='VIR_STORAGE_VOL_BLOCK'/>
+      <ref name='VIR_STORAGE_VOL_CREATE_PREALLOC_METADATA'/>
       <ref name='VIR_STORAGE_VOL_DELETE_NORMAL'/>
       <ref name='VIR_STORAGE_VOL_DELETE_ZEROED'/>
       <ref name='VIR_STORAGE_VOL_DIR'/>
@@ -4266,6 +4522,7 @@
       <ref name='virDomainEventType'/>
       <ref name='virDomainEventUndefinedDetailType'/>
       <ref name='virDomainEventWatchdogAction'/>
+      <ref name='virDomainFSTrim'/>
       <ref name='virDomainFree'/>
       <ref name='virDomainGetAutostart'/>
       <ref name='virDomainGetBlkioParameters'/>
@@ -4352,6 +4609,7 @@
       <ref name='virDomainPinEmulator'/>
       <ref name='virDomainPinVcpu'/>
       <ref name='virDomainPinVcpuFlags'/>
+      <ref name='virDomainProcessSignal'/>
       <ref name='virDomainPtr'/>
       <ref name='virDomainReboot'/>
       <ref name='virDomainRebootFlagValues'/>
@@ -4369,6 +4627,7 @@
       <ref name='virDomainSaveRestoreFlags'/>
       <ref name='virDomainScreenshot'/>
       <ref name='virDomainSendKey'/>
+      <ref name='virDomainSendProcessSignal'/>
       <ref name='virDomainSetAutostart'/>
       <ref name='virDomainSetBlkioParameters'/>
       <ref name='virDomainSetBlockIoTune'/>
@@ -4600,6 +4859,7 @@
       <ref name='virStoragePoolState'/>
       <ref name='virStoragePoolUndefine'/>
       <ref name='virStorageVol'/>
+      <ref name='virStorageVolCreateFlags'/>
       <ref name='virStorageVolCreateXML'/>
       <ref name='virStorageVolCreateXMLFrom'/>
       <ref name='virStorageVolDelete'/>
@@ -4755,6 +5015,7 @@
       <ref name='VIR_FROM_EVENT'/>
       <ref name='VIR_FROM_HOOK'/>
       <ref name='VIR_FROM_HYPERV'/>
+      <ref name='VIR_FROM_INITCTL'/>
       <ref name='VIR_FROM_INTERFACE'/>
       <ref name='VIR_FROM_LIBXL'/>
       <ref name='VIR_FROM_LOCKING'/>
@@ -4877,6 +5138,9 @@
           <ref name='virDomainSave'/>
           <ref name='virDomainSaveFlags'/>
         </word>
+        <word name='All'>
+          <ref name='virDomainSendProcessSignal'/>
+        </word>
         <word name='Also'>
           <ref name='virDomainSave'/>
           <ref name='virDomainSnapshotListAllChildren'/>
@@ -4979,6 +5243,9 @@
         </word>
         <word name='Calling'>
           <ref name='virDomainDestroyFlags'/>
+        </word>
+        <word name='Calls'>
+          <ref name='virDomainFSTrim'/>
         </word>
         <word name='Cancel'>
           <ref name='virDomainBlockJobAbort'/>
@@ -5220,6 +5487,9 @@
           <ref name='virDomainPinVcpu'/>
           <ref name='virDomainPinVcpuFlags'/>
         </word>
+        <word name='Either'>
+          <ref name='virDomainFSTrim'/>
+        </word>
         <word name='Ensure'>
           <ref name='virStorageVolWipe'/>
         </word>
@@ -5252,6 +5522,9 @@
         </word>
       </letter>
       <letter name='F'>
+        <word name='FITRIM'>
+          <ref name='virDomainFSTrim'/>
+        </word>
         <word name='Failure'>
           <ref name='virConnectSetKeepAlive'/>
           <ref name='virEventRegisterDefaultImpl'/>
@@ -5520,6 +5793,9 @@
           <ref name='virDomainMigrateToURI'/>
           <ref name='virDomainMigrateToURI2'/>
         </word>
+        <word name='Minimum'>
+          <ref name='virDomainFSTrim'/>
+        </word>
         <word name='More'>
           <ref name='virSecretGetUsageType'/>
         </word>
@@ -5600,6 +5876,7 @@
           <ref name='virDomainMigrateToURI'/>
           <ref name='virDomainPinEmulator'/>
           <ref name='virDomainPinVcpuFlags'/>
+          <ref name='virDomainSendProcessSignal'/>
           <ref name='virDomainSetMemoryFlags'/>
           <ref name='virDomainSetVcpusFlags'/>
           <ref name='virDomainSnapshotCreateXML'/>
@@ -5964,6 +6241,7 @@
         <word name='Send'>
           <ref name='virDomainInjectNMI'/>
           <ref name='virDomainSendKey'/>
+          <ref name='virDomainSendProcessSignal'/>
           <ref name='virStreamSendAll'/>
         </word>
         <word name='Service'>
@@ -6000,6 +6278,8 @@
           <ref name='virDomainGetDiskErrors'/>
           <ref name='virDomainRevertToSnapshot'/>
           <ref name='virInitialize'/>
+          <ref name='virStorageVolCreateXML'/>
+          <ref name='virStorageVolCreateXMLFrom'/>
         </word>
         <word name='Size'>
           <ref name='virSecretSetValue'/>
@@ -6096,6 +6376,7 @@
           <ref name='virDomainSaveFlags'/>
           <ref name='virDomainSaveImageDefineXML'/>
           <ref name='virDomainScreenshot'/>
+          <ref name='virDomainSendProcessSignal'/>
           <ref name='virDomainSnapshotDelete'/>
         </word>
         <word name='Thus'>
@@ -6558,6 +6839,9 @@
           <ref name='virDomainResume'/>
           <ref name='virDomainSuspend'/>
         </word>
+        <word name='VIR_DOMAIN_PROCESS_SIGNAL_NOP'>
+          <ref name='virDomainSendProcessSignal'/>
+        </word>
         <word name='VIR_DOMAIN_REBOOT_GUEST_AGENT'>
           <ref name='virDomainReboot'/>
         </word>
@@ -6593,6 +6877,9 @@
         <word name='VIR_DOMAIN_SNAPSHOT_CREATE_HALT'>
           <ref name='virDomainSnapshotCreateXML'/>
         </word>
+        <word name='VIR_DOMAIN_SNAPSHOT_CREATE_LIVE'>
+          <ref name='virDomainSnapshotCreateXML'/>
+        </word>
         <word name='VIR_DOMAIN_SNAPSHOT_CREATE_NO_METADATA'>
           <ref name='virDomainSnapshotCreateXML'/>
         </word>
@@ -6614,9 +6901,49 @@
         <word name='VIR_DOMAIN_SNAPSHOT_DELETE_METADATA_ONLY'>
           <ref name='virDomainSnapshotDelete'/>
         </word>
+        <word name='VIR_DOMAIN_SNAPSHOT_LIST_ACTIVE'>
+          <ref name='virDomainListAllSnapshots'/>
+          <ref name='virDomainSnapshotListAllChildren'/>
+          <ref name='virDomainSnapshotListChildrenNames'/>
+          <ref name='virDomainSnapshotListNames'/>
+          <ref name='virDomainSnapshotNum'/>
+          <ref name='virDomainSnapshotNumChildren'/>
+        </word>
         <word name='VIR_DOMAIN_SNAPSHOT_LIST_DESCENDANTS'>
           <ref name='virDomainSnapshotListAllChildren'/>
           <ref name='virDomainSnapshotListChildrenNames'/>
+          <ref name='virDomainSnapshotNumChildren'/>
+        </word>
+        <word name='VIR_DOMAIN_SNAPSHOT_LIST_DISK_ONLY'>
+          <ref name='virDomainListAllSnapshots'/>
+          <ref name='virDomainSnapshotListAllChildren'/>
+          <ref name='virDomainSnapshotListChildrenNames'/>
+          <ref name='virDomainSnapshotListNames'/>
+          <ref name='virDomainSnapshotNum'/>
+          <ref name='virDomainSnapshotNumChildren'/>
+        </word>
+        <word name='VIR_DOMAIN_SNAPSHOT_LIST_EXTERNAL'>
+          <ref name='virDomainListAllSnapshots'/>
+          <ref name='virDomainSnapshotListAllChildren'/>
+          <ref name='virDomainSnapshotListChildrenNames'/>
+          <ref name='virDomainSnapshotListNames'/>
+          <ref name='virDomainSnapshotNum'/>
+          <ref name='virDomainSnapshotNumChildren'/>
+        </word>
+        <word name='VIR_DOMAIN_SNAPSHOT_LIST_INACTIVE'>
+          <ref name='virDomainListAllSnapshots'/>
+          <ref name='virDomainSnapshotListAllChildren'/>
+          <ref name='virDomainSnapshotListChildrenNames'/>
+          <ref name='virDomainSnapshotListNames'/>
+          <ref name='virDomainSnapshotNum'/>
+          <ref name='virDomainSnapshotNumChildren'/>
+        </word>
+        <word name='VIR_DOMAIN_SNAPSHOT_LIST_INTERNAL'>
+          <ref name='virDomainListAllSnapshots'/>
+          <ref name='virDomainSnapshotListAllChildren'/>
+          <ref name='virDomainSnapshotListChildrenNames'/>
+          <ref name='virDomainSnapshotListNames'/>
+          <ref name='virDomainSnapshotNum'/>
           <ref name='virDomainSnapshotNumChildren'/>
         </word>
         <word name='VIR_DOMAIN_SNAPSHOT_LIST_LEAVES'>
@@ -6869,6 +7196,10 @@
         <word name='VIR_STORAGE_POOL_BUILD_OVERWRITE'>
           <ref name='virStoragePoolBuild'/>
         </word>
+        <word name='VIR_STORAGE_VOL_CREATE_PREALLOC_METADATA'>
+          <ref name='virStorageVolCreateXML'/>
+          <ref name='virStorageVolCreateXMLFrom'/>
+        </word>
         <word name='VIR_STORAGE_VOL_RESIZE_ALLOCATE'>
           <ref name='virStorageVolResize'/>
         </word>
@@ -6996,6 +7327,7 @@
           <ref name='virConnectSetKeepAlive'/>
           <ref name='virDomainBlockPeek'/>
           <ref name='virDomainMemoryPeek'/>
+          <ref name='virDomainSendProcessSignal'/>
         </word>
         <word name='abnormally'>
           <ref name='virStreamAbort'/>
@@ -7123,8 +7455,14 @@
         </word>
         <word name='additional'>
           <ref name='virConnectRef'/>
+          <ref name='virDomainListAllSnapshots'/>
           <ref name='virDomainRef'/>
           <ref name='virDomainRevertToSnapshot'/>
+          <ref name='virDomainSnapshotListAllChildren'/>
+          <ref name='virDomainSnapshotListChildrenNames'/>
+          <ref name='virDomainSnapshotListNames'/>
+          <ref name='virDomainSnapshotNum'/>
+          <ref name='virDomainSnapshotNumChildren'/>
           <ref name='virDomainSnapshotRef'/>
           <ref name='virInterfaceRef'/>
           <ref name='virNWFilterRef'/>
@@ -7196,9 +7534,11 @@
           <ref name='virDomainMigrateToURI2'/>
         </word>
         <word name='agent'>
+          <ref name='virDomainFSTrim'/>
           <ref name='virDomainGetHostname'/>
           <ref name='virDomainPMSuspendForDuration'/>
           <ref name='virDomainReboot'/>
+          <ref name='virDomainSendProcessSignal'/>
           <ref name='virDomainSnapshotCreateXML'/>
         </word>
         <word name='algorithms'>
@@ -7331,6 +7671,7 @@
         </word>
         <word name='although'>
           <ref name='virDomainBlockCommit'/>
+          <ref name='virDomainFSTrim'/>
           <ref name='virDomainSetInterfaceParameters'/>
           <ref name='virDomainSetMetadata'/>
           <ref name='virDomainSetSchedulerParametersFlags'/>
@@ -7414,6 +7755,7 @@
         </word>
         <word name='arbitrary'>
           <ref name='virConnectDomainEventRegisterAny'/>
+          <ref name='virDomainSendProcessSignal'/>
           <ref name='virDomainSetVcpus'/>
           <ref name='virDomainSetVcpusFlags'/>
           <ref name='virStreamRecv'/>
@@ -7695,6 +8037,9 @@
           <ref name='virConnCopyLastError'/>
           <ref name='virConnGetLastError'/>
         </word>
+        <word name='badly'>
+          <ref name='virDomainFSTrim'/>
+        </word>
         <word name='balloon'>
           <ref name='virConnectDomainEventBalloonChangeCallback'/>
           <ref name='virDomainMemoryStats'/>
@@ -7864,6 +8209,7 @@
         <word name='blocks'>
           <ref name='virConnectDomainEventBalloonChangeCallback'/>
           <ref name='virDomainBlockResize'/>
+          <ref name='virDomainFSTrim'/>
           <ref name='virDomainGetMaxMemory'/>
           <ref name='virDomainSetMaxMemory'/>
           <ref name='virDomainSetMemory'/>
@@ -8253,6 +8599,9 @@
         <word name='checkpoint'>
           <ref name='virDomainSnapshotCreateXML'/>
         </word>
+        <word name='checkpoints'>
+          <ref name='virDomainSnapshotCreateXML'/>
+        </word>
         <word name='checks'>
           <ref name='virDomainRevertToSnapshot'/>
         </word>
@@ -8401,32 +8750,6 @@
           <ref name='virDomainSetMemoryFlags'/>
           <ref name='virDomainSetVcpusFlags'/>
         </word>
-        <word name='command'>
-          <ref name='virConnectListDefinedDomains'/>
-          <ref name='virConnectListDefinedInterfaces'/>
-          <ref name='virConnectListDefinedNetworks'/>
-          <ref name='virConnectListDefinedStoragePools'/>
-          <ref name='virConnectListDomains'/>
-          <ref name='virConnectListInterfaces'/>
-          <ref name='virConnectListNetworks'/>
-          <ref name='virConnectListStoragePools'/>
-          <ref name='virDomainBlockCommit'/>
-          <ref name='virDomainBlockJobAbort'/>
-          <ref name='virDomainBlockRebase'/>
-          <ref name='virDomainListAllSnapshots'/>
-          <ref name='virDomainPinVcpu'/>
-          <ref name='virDomainSetMaxMemory'/>
-          <ref name='virDomainSetMemory'/>
-          <ref name='virDomainSetVcpus'/>
-          <ref name='virDomainShutdown'/>
-          <ref name='virDomainShutdownFlags'/>
-          <ref name='virDomainSnapshotCreateXML'/>
-          <ref name='virDomainSnapshotListAllChildren'/>
-          <ref name='virDomainSnapshotListChildrenNames'/>
-          <ref name='virDomainSnapshotListNames'/>
-          <ref name='virDomainSnapshotNum'/>
-          <ref name='virDomainSnapshotNumChildren'/>
-        </word>
         <word name='commit'>
           <ref name='virDomainBlockCommit'/>
         </word>
@@ -8470,10 +8793,10 @@
         </word>
         <word name='complete'>
           <ref name='VIR_CPU_MAPLEN'/>
+          <ref name='virDomainFSTrim'/>
           <ref name='virNodeSuspendForDuration'/>
         </word>
         <word name='completed'>
-          <ref name='virDomainAbortJob'/>
           <ref name='virDomainBlockCommit'/>
           <ref name='virDomainBlockJobAbort'/>
           <ref name='virDomainBlockPeek'/>
@@ -8662,6 +8985,7 @@
         </word>
         <word name='container'>
           <ref name='_virDomainBlockInfo'/>
+          <ref name='virDomainSendProcessSignal'/>
         </word>
         <word name='containing'>
           <ref name='VIR_DOMAIN_NUMA_MODE'/>
@@ -8729,6 +9053,9 @@
         <word name='context'>
           <ref name='virConnectRegisterCloseCallback'/>
           <ref name='virFreeCallback'/>
+        </word>
+        <word name='contiguous'>
+          <ref name='virDomainFSTrim'/>
         </word>
         <word name='continue'>
           <ref name='virStreamSinkFunc'/>
@@ -8842,6 +9169,7 @@
           <ref name='virDomainPinVcpu'/>
           <ref name='virDomainPinVcpuFlags'/>
           <ref name='virDomainRef'/>
+          <ref name='virDomainSendProcessSignal'/>
           <ref name='virDomainSnapshotRef'/>
           <ref name='virInterfaceRef'/>
           <ref name='virNWFilterRef'/>
@@ -8971,6 +9299,8 @@
           <ref name='virDomainManagedSave'/>
           <ref name='virDomainSaveFlags'/>
           <ref name='virDomainSnapshotCreateXML'/>
+          <ref name='virStorageVolCreateXML'/>
+          <ref name='virStorageVolCreateXMLFrom'/>
         </word>
         <word name='creation'>
           <ref name='virDomainRevertToSnapshot'/>
@@ -9140,6 +9470,9 @@
         <word name='deletion'>
           <ref name='virDomainSnapshotHasMetadata'/>
         </word>
+        <word name='delivering'>
+          <ref name='virDomainSendProcessSignal'/>
+        </word>
         <word name='delivery'>
           <ref name='virConnectDomainEventRegister'/>
           <ref name='virConnectDomainEventRegisterAny'/>
@@ -9164,6 +9497,7 @@
         </word>
         <word name='depending'>
           <ref name='virDomainBlockRebase'/>
+          <ref name='virDomainFSTrim'/>
         </word>
         <word name='depends'>
           <ref name='virDomainBlockPull'/>
@@ -9231,6 +9565,9 @@
         </word>
         <word name='design'>
           <ref name='virGetVersion'/>
+        </word>
+        <word name='designated'>
+          <ref name='virDomainSendProcessSignal'/>
         </word>
         <word name='dest'>
           <ref name='virDomainMigrate'/>
@@ -9377,8 +9714,12 @@
           <ref name='virDomainCreateXML'/>
           <ref name='virStoragePoolCreateXML'/>
         </word>
+        <word name='discard'>
+          <ref name='virDomainFSTrim'/>
+        </word>
         <word name='discarded'>
           <ref name='virDomainCreateWithFlags'/>
+          <ref name='virDomainFSTrim'/>
           <ref name='virDomainSnapshotCreateXML'/>
           <ref name='virSecretDefineXML'/>
         </word>
@@ -9505,6 +9846,8 @@
         <word name='don'>
           <ref name='virDomainBlockPeek'/>
           <ref name='virNetworkUpdate'/>
+          <ref name='virStorageVolCreateXML'/>
+          <ref name='virStorageVolCreateXMLFrom'/>
         </word>
         <word name='done'>
           <ref name='virConnectOpen'/>
@@ -9544,6 +9887,7 @@
         </word>
         <word name='downtime'>
           <ref name='virDomainMigrateSetMaxDowntime'/>
+          <ref name='virDomainSnapshotCreateXML'/>
         </word>
         <word name='driver'>
           <ref name='virConnectGetCapabilities'/>
@@ -9588,6 +9932,7 @@
         </word>
         <word name='dump'>
           <ref name='virDomainCoreDump'/>
+          <ref name='virDomainSnapshotCreateXML'/>
         </word>
         <word name='duplicate'>
           <ref name='virGetVersion'/>
@@ -9810,6 +10155,7 @@
         </word>
         <word name='enum'>
           <ref name='virConnectCompareCPU'/>
+          <ref name='virDomainSendProcessSignal'/>
         </word>
         <word name='enumerated'>
           <ref name='virDomainScreenshot'/>
@@ -9897,8 +10243,6 @@
         </word>
         <word name='exactly'>
           <ref name='virDomainGetSchedulerParametersFlags'/>
-          <ref name='virDomainReboot'/>
-          <ref name='virDomainShutdownFlags'/>
         </word>
         <word name='example'>
           <ref name='virConnectListAllDomains'/>
@@ -10099,6 +10443,7 @@
         </word>
         <word name='fails'>
           <ref name='virDomainSnapshotCreateXML'/>
+          <ref name='virNodeSetMemoryParameters'/>
         </word>
         <word name='failures'>
           <ref name='virDomainSnapshotCreateXML'/>
@@ -10197,14 +10542,24 @@
         <word name='files'>
           <ref name='virDomainBlockCommit'/>
           <ref name='virDomainBlockRebase'/>
+          <ref name='virDomainListAllSnapshots'/>
           <ref name='virDomainSnapshotCreateXML'/>
+          <ref name='virDomainSnapshotListAllChildren'/>
+          <ref name='virDomainSnapshotListChildrenNames'/>
+          <ref name='virDomainSnapshotListNames'/>
+          <ref name='virDomainSnapshotNum'/>
+          <ref name='virDomainSnapshotNumChildren'/>
           <ref name='virInterfaceGetXMLDesc'/>
+          <ref name='virStorageVolCreateXML'/>
+          <ref name='virStorageVolCreateXMLFrom'/>
         </word>
         <word name='filesystem'>
+          <ref name='virDomainFSTrim'/>
           <ref name='virStoragePoolBuild'/>
         </word>
         <word name='filesystems'>
           <ref name='virDomainBlockPeek'/>
+          <ref name='virDomainFSTrim'/>
         </word>
         <word name='fill'>
           <ref name='virConnectAuthCallbackPtr'/>
@@ -10394,6 +10749,9 @@
         <word name='four'>
           <ref name='virDomainScreenshot'/>
         </word>
+        <word name='fragmented'>
+          <ref name='virDomainFSTrim'/>
+        </word>
         <word name='free-form'>
           <ref name='virDomainSetMetadata'/>
         </word>
@@ -10437,8 +10795,13 @@
           <ref name='virDomainResume'/>
           <ref name='virDomainSuspend'/>
         </word>
+        <word name='fstrim'>
+          <ref name='virDomainFSTrim'/>
+        </word>
         <word name='full'>
           <ref name='virDomainRevertToSnapshot'/>
+          <ref name='virStorageVolCreateXML'/>
+          <ref name='virStorageVolCreateXMLFrom'/>
           <ref name='virStreamSend'/>
         </word>
         <word name='fully'>
@@ -10515,6 +10878,8 @@
           <ref name='virNodeGetCPUStats'/>
           <ref name='virNodeGetMemoryStats'/>
           <ref name='virSetErrorFunc'/>
+          <ref name='virStorageVolCreateXML'/>
+          <ref name='virStorageVolCreateXMLFrom'/>
           <ref name='virStreamRecv'/>
         </word>
         <word name='gethostname'>
@@ -10580,6 +10945,7 @@
         </word>
         <word name='greater'>
           <ref name='virDomainReboot'/>
+          <ref name='virDomainSendProcessSignal'/>
           <ref name='virDomainShutdownFlags'/>
           <ref name='virStorageVolUpload'/>
         </word>
@@ -10591,6 +10957,7 @@
           <ref name='virConnectListAllSecrets'/>
           <ref name='virConnectListAllStoragePools'/>
           <ref name='virDomainListAllSnapshots'/>
+          <ref name='virDomainSendProcessSignal'/>
           <ref name='virDomainSnapshotListAllChildren'/>
           <ref name='virDomainSnapshotListChildrenNames'/>
           <ref name='virDomainSnapshotListNames'/>
@@ -10723,6 +11090,9 @@
         <word name='help'>
           <ref name='virDomainSnapshotHasMetadata'/>
         </word>
+        <word name='hence'>
+          <ref name='virDomainFSTrim'/>
+        </word>
         <word name='here'>
           <ref name='virConnectGetMaxVcpus'/>
           <ref name='virConnectListAllDomains'/>
@@ -10733,12 +11103,22 @@
         <word name='hierarchy'>
           <ref name='virDomainSnapshotCreateXML'/>
         </word>
+        <word name='higher'>
+          <ref name='virStorageVolCreateXML'/>
+          <ref name='virStorageVolCreateXMLFrom'/>
+        </word>
         <word name='highest'>
           <ref name='_virDomainBlockInfo'/>
         </word>
         <word name='hinges'>
           <ref name='virDomainMigrateToURI'/>
           <ref name='virDomainMigrateToURI2'/>
+        </word>
+        <word name='hint'>
+          <ref name='virDomainFSTrim'/>
+        </word>
+        <word name='hints'>
+          <ref name='virDomainFSTrim'/>
         </word>
         <word name='historical'>
           <ref name='virGetVersion'/>
@@ -10923,12 +11303,19 @@
         <word name='ignored'>
           <ref name='virConnectListDefinedStoragePools'/>
           <ref name='virConnectListStoragePools'/>
+          <ref name='virDomainFSTrim'/>
           <ref name='virDomainSnapshotDelete'/>
           <ref name='virGetVersion'/>
         </word>
         <word name='images'>
           <ref name='virDomainBlockRebase'/>
+          <ref name='virDomainListAllSnapshots'/>
           <ref name='virDomainSnapshotCreateXML'/>
+          <ref name='virDomainSnapshotListAllChildren'/>
+          <ref name='virDomainSnapshotListChildrenNames'/>
+          <ref name='virDomainSnapshotListNames'/>
+          <ref name='virDomainSnapshotNum'/>
+          <ref name='virDomainSnapshotNumChildren'/>
         </word>
         <word name='immediate'>
           <ref name='virDomainBlockCommit'/>
@@ -10951,6 +11338,9 @@
           <ref name='virEventRegisterImpl'/>
           <ref name='virFreeCallback'/>
           <ref name='virStorageVolResize'/>
+        </word>
+        <word name='implemented'>
+          <ref name='virDomainSendProcessSignal'/>
         </word>
         <word name='implies'>
           <ref name='virConnectClose'/>
@@ -11047,6 +11437,12 @@
           <ref name='virStoragePoolGetConnect'/>
           <ref name='virStorageVolGetConnect'/>
         </word>
+        <word name='increases'>
+          <ref name='virDomainSnapshotCreateXML'/>
+        </word>
+        <word name='increasing'>
+          <ref name='virDomainFSTrim'/>
+        </word>
         <word name='increment'>
           <ref name='virConnectRef'/>
           <ref name='virDomainRef'/>
@@ -11137,6 +11533,9 @@
           <ref name='virDomainSnapshotListChildrenNames'/>
           <ref name='virDomainSnapshotListNames'/>
         </word>
+        <word name='init'>
+          <ref name='virDomainSendProcessSignal'/>
+        </word>
         <word name='initial'>
           <ref name='virConnectClose'/>
           <ref name='virDomainBlockRebase'/>
@@ -11161,6 +11560,12 @@
         <word name='inside'>
           <ref name='virDomainGetVcpuPinInfo'/>
           <ref name='virDomainGetVcpus'/>
+          <ref name='virDomainListAllSnapshots'/>
+          <ref name='virDomainSnapshotListAllChildren'/>
+          <ref name='virDomainSnapshotListChildrenNames'/>
+          <ref name='virDomainSnapshotListNames'/>
+          <ref name='virDomainSnapshotNum'/>
+          <ref name='virDomainSnapshotNumChildren'/>
         </word>
         <word name='inspected'>
           <ref name='virDomainSave'/>
@@ -11236,6 +11641,7 @@
         </word>
         <word name='integer'>
           <ref name='virConnectDomainEventRegisterAny'/>
+          <ref name='virDomainSendProcessSignal'/>
           <ref name='virSecretGetUsageType'/>
         </word>
         <word name='integrate'>
@@ -11403,6 +11809,7 @@
           <ref name='virConnectListAllNodeDevices'/>
           <ref name='virConnectListAllSecrets'/>
           <ref name='virConnectListAllStoragePools'/>
+          <ref name='virDomainFSTrim'/>
           <ref name='virDomainGetVcpus'/>
           <ref name='virDomainListAllSnapshots'/>
           <ref name='virDomainPinEmulator'/>
@@ -11481,6 +11888,9 @@
           <ref name='virDomainSetMemory'/>
           <ref name='virDomainSetMemoryFlags'/>
           <ref name='virNodeGetFreeMemory'/>
+        </word>
+        <word name='kill'>
+          <ref name='virDomainSendProcessSignal'/>
         </word>
         <word name='kilobytes'>
           <ref name='_virNodeInfo'/>
@@ -12100,6 +12510,9 @@
         <word name='mapped'>
           <ref name='virDomainGetCPUStats'/>
         </word>
+        <word name='mapping'>
+          <ref name='virDomainSendProcessSignal'/>
+        </word>
         <word name='marked'>
           <ref name='virConnectListAllNetworks'/>
           <ref name='virConnectListAllStoragePools'/>
@@ -12204,27 +12617,10 @@
         <word name='messages'>
           <ref name='virConnectSetKeepAlive'/>
         </word>
-        <word name='metadata'>
-          <ref name='virDomainDestroy'/>
-          <ref name='virDomainGetMetadata'/>
-          <ref name='virDomainListAllSnapshots'/>
-          <ref name='virDomainRevertToSnapshot'/>
-          <ref name='virDomainSetMetadata'/>
-          <ref name='virDomainShutdown'/>
-          <ref name='virDomainShutdownFlags'/>
-          <ref name='virDomainSnapshotCreateXML'/>
-          <ref name='virDomainSnapshotDelete'/>
-          <ref name='virDomainSnapshotHasMetadata'/>
-          <ref name='virDomainSnapshotListAllChildren'/>
-          <ref name='virDomainSnapshotListChildrenNames'/>
-          <ref name='virDomainSnapshotListNames'/>
-          <ref name='virDomainSnapshotNum'/>
-          <ref name='virDomainSnapshotNumChildren'/>
-          <ref name='virDomainUndefine'/>
-          <ref name='virDomainUndefineFlags'/>
-        </word>
         <word name='methods'>
           <ref name='virConnectOpenReadOnly'/>
+          <ref name='virDomainReboot'/>
+          <ref name='virDomainShutdownFlags'/>
         </word>
         <word name='micro'>
           <ref name='LIBVIR_VERSION_NUMBER'/>
@@ -12287,6 +12683,7 @@
         </word>
         <word name='minimum'>
           <ref name='VIR_DOMAIN_MEMORY_MIN_GUARANTEE'/>
+          <ref name='virDomainSendProcessSignal'/>
           <ref name='virStorageVolResize'/>
         </word>
         <word name='minor'>
@@ -12367,6 +12764,12 @@
           <ref name='virNodeGetFreeMemory'/>
           <ref name='virStoragePoolListVolumes'/>
           <ref name='virStreamEventAddCallback'/>
+        </word>
+        <word name='mount'>
+          <ref name='virDomainFSTrim'/>
+        </word>
+        <word name='mounted'>
+          <ref name='virDomainFSTrim'/>
         </word>
         <word name='move'>
           <ref name='virDomainBlockCommit'/>
@@ -12470,6 +12873,7 @@
         </word>
         <word name='namespace'>
           <ref name='virDomainGetMetadata'/>
+          <ref name='virDomainSendProcessSignal'/>
           <ref name='virDomainSetMetadata'/>
         </word>
         <word name='naming'>
@@ -12497,6 +12901,7 @@
         <word name='native'>
           <ref name='virConnectDomainXMLFromNative'/>
           <ref name='virConnectDomainXMLToNative'/>
+          <ref name='virDomainSendProcessSignal'/>
         </word>
         <word name='nature'>
           <ref name='virDomainRevertToSnapshot'/>
@@ -12573,6 +12978,9 @@
           <ref name='virStorageVolRef'/>
           <ref name='virStreamFree'/>
           <ref name='virStreamRef'/>
+        </word>
+        <word name='negative'>
+          <ref name='virDomainSendProcessSignal'/>
         </word>
         <word name='neither'>
           <ref name='virDomainGetVcpusFlags'/>
@@ -12732,8 +13140,12 @@
         <word name='numa'>
           <ref name='VIR_DOMAIN_NUMA_MODE'/>
           <ref name='VIR_DOMAIN_NUMA_NODESET'/>
+          <ref name='_virNodeInfo'/>
           <ref name='virDomainGetNumaParameters'/>
           <ref name='virDomainSetNumaParameters'/>
+        </word>
+        <word name='numbers'>
+          <ref name='virDomainSendProcessSignal'/>
         </word>
         <word name='nwfdilter'>
           <ref name='virNWFilterLookupByUUID'/>
@@ -12826,6 +13238,7 @@
           <ref name='virDomainMigrate'/>
           <ref name='virDomainMigrate2'/>
           <ref name='virDomainOpenConsole'/>
+          <ref name='virNodeGetMemoryParameters'/>
         </word>
         <word name='omitting'>
           <ref name='virDomainSaveImageDefineXML'/>
@@ -12964,8 +13377,10 @@
           <ref name='virDomainMemoryPeek'/>
           <ref name='virDomainMigrate2'/>
           <ref name='virDomainOpenConsole'/>
+          <ref name='virDomainReboot'/>
           <ref name='virDomainRestoreFlags'/>
           <ref name='virDomainSaveFlags'/>
+          <ref name='virDomainShutdownFlags'/>
           <ref name='virDomainSnapshotCreateXML'/>
           <ref name='virNetworkGetBridgeName'/>
           <ref name='virStreamNew'/>
@@ -12997,6 +13412,7 @@
           <ref name='virDomainCreateWithFlags'/>
           <ref name='virDomainGetConnect'/>
           <ref name='virDomainOpenConsole'/>
+          <ref name='virDomainSendProcessSignal'/>
           <ref name='virDomainSnapshotCreateXML'/>
           <ref name='virFreeCallback'/>
           <ref name='virInterfaceGetConnect'/>
@@ -13010,7 +13426,6 @@
         <word name='otherwise'>
           <ref name='VIR_CPU_USABLE'/>
           <ref name='_virDomainJobInfo'/>
-          <ref name='_virNodeInfo'/>
           <ref name='virConnCopyLastError'/>
           <ref name='virConnectGetLibVersion'/>
           <ref name='virConnectGetType'/>
@@ -13019,6 +13434,7 @@
           <ref name='virDomainBlockJobAbort'/>
           <ref name='virDomainCoreDump'/>
           <ref name='virDomainDefineXML'/>
+          <ref name='virDomainFSTrim'/>
           <ref name='virDomainGetMetadata'/>
           <ref name='virDomainGetXMLDesc'/>
           <ref name='virDomainMigrate'/>
@@ -13205,6 +13621,7 @@
           <ref name='virDomainRevertToSnapshot'/>
           <ref name='virDomainSaveFlags'/>
           <ref name='virDomainSaveImageDefineXML'/>
+          <ref name='virDomainSnapshotCreateXML'/>
         </word>
         <word name='pcpus'>
           <ref name='virDomainGetEmulatorPinInfo'/>
@@ -13252,6 +13669,10 @@
           <ref name='virDomainRevertToSnapshot'/>
           <ref name='virNetworkUpdate'/>
           <ref name='virStreamNew'/>
+        </word>
+        <word name='performance'>
+          <ref name='virStorageVolCreateXML'/>
+          <ref name='virStorageVolCreateXMLFrom'/>
         </word>
         <word name='performed'>
           <ref name='virConnectOpenAuth'/>
@@ -13349,6 +13770,7 @@
         <word name='point'>
           <ref name='virDomainBlockCommit'/>
           <ref name='virDomainBlockRebase'/>
+          <ref name='virDomainFSTrim'/>
           <ref name='virInterfaceChangeBegin'/>
           <ref name='virInterfaceChangeCommit'/>
           <ref name='virStreamFinish'/>
@@ -13417,6 +13839,7 @@
           <ref name='virDomainGetEmulatorPinInfo'/>
           <ref name='virDomainGetVcpuPinInfo'/>
           <ref name='virDomainGetVcpus'/>
+          <ref name='virDomainSendProcessSignal'/>
           <ref name='virSecretGetUsageType'/>
         </word>
         <word name='posix'>
@@ -13450,6 +13873,10 @@
         <word name='preallocated'>
           <ref name='virStreamSinkFunc'/>
           <ref name='virStreamSourceFunc'/>
+        </word>
+        <word name='preallocation'>
+          <ref name='virStorageVolCreateXML'/>
+          <ref name='virStorageVolCreateXMLFrom'/>
         </word>
         <word name='precaution'>
           <ref name='virDomainBlockRebase'/>
@@ -13610,6 +14037,7 @@
           <ref name='virDomainMigrateToURI'/>
           <ref name='virDomainMigrateToURI2'/>
           <ref name='virDomainResume'/>
+          <ref name='virDomainSendProcessSignal'/>
           <ref name='virDomainSuspend'/>
           <ref name='virDomainUndefineFlags'/>
           <ref name='virEventRegisterDefaultImpl'/>
@@ -13620,12 +14048,14 @@
         <word name='processes'>
           <ref name='VIR_NODE_CPU_STATS_USER'/>
           <ref name='virDomainGetCPUStats'/>
+          <ref name='virDomainSendProcessSignal'/>
           <ref name='virNodeGetCPUStats'/>
         </word>
         <word name='processor'>
           <ref name='virDomainGetCPUStats'/>
         </word>
         <word name='processors'>
+          <ref name='_virNodeInfo'/>
           <ref name='virDomainGetCPUStats'/>
           <ref name='virDomainMigrate'/>
           <ref name='virDomainMigrate2'/>
@@ -13760,6 +14190,10 @@
     </chunk>
     <chunk name='chunk16'>
       <letter name='q'>
+        <word name='qcow2'>
+          <ref name='virStorageVolCreateXML'/>
+          <ref name='virStorageVolCreateXMLFrom'/>
+        </word>
         <word name='qualfied'>
           <ref name='virSecretGetUsageID'/>
         </word>
@@ -13788,6 +14222,9 @@
         </word>
         <word name='quick'>
           <ref name='virDomainSetMetadata'/>
+        </word>
+        <word name='quickly'>
+          <ref name='virDomainFSTrim'/>
         </word>
         <word name='quit'>
           <ref name='virEventRunDefaultImpl'/>
@@ -13855,7 +14292,11 @@
           <ref name='virStorageVolUpload'/>
         </word>
         <word name='range'>
+          <ref name='virDomainFSTrim'/>
           <ref name='virDomainOpenConsole'/>
+        </word>
+        <word name='ranges'>
+          <ref name='virDomainFSTrim'/>
         </word>
         <word name='rarer'>
           <ref name='virDomainSnapshotCreateXML'/>
@@ -14016,6 +14457,9 @@
         </word>
         <word name='reduce'>
           <ref name='virDomainBlockCommit'/>
+        </word>
+        <word name='reduces'>
+          <ref name='virDomainSnapshotCreateXML'/>
         </word>
         <word name='reduction'>
           <ref name='virStorageVolResize'/>
@@ -14293,6 +14737,7 @@
           <ref name='virSecretDefineXML'/>
         </word>
         <word name='report'>
+          <ref name='virDomainSendProcessSignal'/>
           <ref name='virDomainSnapshotCreateXML'/>
           <ref name='virStreamRecv'/>
           <ref name='virStreamRecvAll'/>
@@ -14347,6 +14792,7 @@
           <ref name='virStorageVolResize'/>
         </word>
         <word name='requirement'>
+          <ref name='virDomainSendProcessSignal'/>
           <ref name='virFreeCallback'/>
         </word>
         <word name='requires'>
@@ -14399,6 +14845,9 @@
           <ref name='virDomainSuspend'/>
           <ref name='virNetworkDestroy'/>
           <ref name='virStoragePoolDelete'/>
+        </word>
+        <word name='respect'>
+          <ref name='virDomainFSTrim'/>
         </word>
         <word name='respond'>
           <ref name='virConnectSetKeepAlive'/>
@@ -14801,6 +15250,7 @@
         <word name='sending'>
           <ref name='virConnectSetKeepAlive'/>
           <ref name='virDomainDestroy'/>
+          <ref name='virDomainSendProcessSignal'/>
           <ref name='virStreamAbort'/>
           <ref name='virStreamRecvAll'/>
           <ref name='virStreamSend'/>
@@ -14984,6 +15434,12 @@
           <ref name='virDomainMigrate2'/>
           <ref name='virDomainMigrateToURI2'/>
         </word>
+        <word name='signal'>
+          <ref name='virDomainSendProcessSignal'/>
+        </word>
+        <word name='signals'>
+          <ref name='virDomainSendProcessSignal'/>
+        </word>
         <word name='signature'>
           <ref name='virConnectDomainEventBalloonChangeCallback'/>
           <ref name='virConnectDomainEventBlockJobCallback'/>
@@ -15020,6 +15476,7 @@
           <ref name='virDomainSnapshotCreateXML'/>
         </word>
         <word name='simply'>
+          <ref name='virDomainSendProcessSignal'/>
           <ref name='virStreamRecvAll'/>
           <ref name='virStreamSendAll'/>
         </word>
@@ -15115,6 +15572,7 @@
           <ref name='virConnectListAllNodeDevices'/>
           <ref name='virConnectListAllSecrets'/>
           <ref name='virConnectListAllStoragePools'/>
+          <ref name='virDomainFSTrim'/>
           <ref name='virNodeGetCellsFreeMemory'/>
           <ref name='virStorageVolResize'/>
         </word>
@@ -15182,12 +15640,15 @@
         </word>
         <word name='space'>
           <ref name='_virStoragePoolInfo'/>
+          <ref name='virDomainFSTrim'/>
           <ref name='virDomainMemoryStats'/>
           <ref name='virDomainSnapshotCreateXML'/>
           <ref name='virStoragePoolGetInfo'/>
           <ref name='virStorageVolResize'/>
         </word>
         <word name='sparse'>
+          <ref name='virStorageVolCreateXML'/>
+          <ref name='virStorageVolCreateXMLFrom'/>
           <ref name='virStorageVolResize'/>
         </word>
         <word name='special'>
@@ -15432,6 +15893,10 @@
           <ref name='virDomainPinVcpuFlags'/>
           <ref name='virDomainSaveImageDefineXML'/>
           <ref name='virDomainSnapshotListAllChildren'/>
+          <ref name='virDomainSnapshotListChildrenNames'/>
+          <ref name='virDomainSnapshotListNames'/>
+          <ref name='virDomainSnapshotNum'/>
+          <ref name='virDomainSnapshotNumChildren'/>
           <ref name='virNodeGetCPUMap'/>
           <ref name='virStoragePoolListAllVolumes'/>
         </word>
@@ -15683,6 +16148,7 @@
           <ref name='virConnectDomainEventWatchdogCallback'/>
           <ref name='virDomainBlockResize'/>
           <ref name='virDomainRevertToSnapshot'/>
+          <ref name='virDomainSendProcessSignal'/>
         </word>
         <word name='takes'>
           <ref name='virDomainMigrate'/>
@@ -15692,6 +16158,7 @@
         </word>
         <word name='taking'>
           <ref name='virDomainBlockCommit'/>
+          <ref name='virDomainSnapshotCreateXML'/>
         </word>
         <word name='targeted'>
           <ref name='virConnectListAllDomains'/>
@@ -15933,6 +16400,9 @@
         <word name='top-most'>
           <ref name='virDomainBlockCommit'/>
         </word>
+        <word name='topolog'>
+          <ref name='_virNodeInfo'/>
+        </word>
         <word name='topologies'>
           <ref name='_virNodeInfo'/>
         </word>
@@ -15966,7 +16436,13 @@
         <word name='tracked'>
           <ref name='virDomainBlockCommit'/>
           <ref name='virDomainBlockRebase'/>
+          <ref name='virDomainListAllSnapshots'/>
           <ref name='virDomainSnapshotDelete'/>
+          <ref name='virDomainSnapshotListAllChildren'/>
+          <ref name='virDomainSnapshotListChildrenNames'/>
+          <ref name='virDomainSnapshotListNames'/>
+          <ref name='virDomainSnapshotNum'/>
+          <ref name='virDomainSnapshotNumChildren'/>
         </word>
         <word name='tracking'>
           <ref name='_virDomainJobInfo'/>
@@ -16018,6 +16494,9 @@
         <word name='transitions'>
           <ref name='virDomainBlockRebase'/>
         </word>
+        <word name='translated'>
+          <ref name='virDomainSendProcessSignal'/>
+        </word>
         <word name='transmit'>
           <ref name='virDomainMigrate'/>
           <ref name='virDomainMigrate2'/>
@@ -16029,8 +16508,18 @@
         <word name='tray'>
           <ref name='virConnectDomainEventTrayChangeCallback'/>
         </word>
+        <word name='treated'>
+          <ref name='virDomainSendProcessSignal'/>
+        </word>
         <word name='treats'>
           <ref name='virStorageVolResize'/>
+        </word>
+        <word name='tries'>
+          <ref name='virDomainReboot'/>
+          <ref name='virDomainShutdownFlags'/>
+        </word>
+        <word name='trim'>
+          <ref name='virDomainFSTrim'/>
         </word>
         <word name='true'>
           <ref name='VIR_CPU_USABLE'/>
@@ -16199,6 +16688,8 @@
         </word>
         <word name='undefined'>
           <ref name='virDomainDefineXML'/>
+          <ref name='virDomainReboot'/>
+          <ref name='virDomainShutdownFlags'/>
           <ref name='virInterfaceCreate'/>
           <ref name='virInterfaceDestroy'/>
           <ref name='virStoragePoolDefineXML'/>
@@ -16314,10 +16805,12 @@
           <ref name='virDomainGetID'/>
           <ref name='virNodeGetCellsFreeMemory'/>
         </word>
+        <word name='unsupported'>
+          <ref name='virNodeGetMemoryParameters'/>
+        </word>
         <word name='until'>
           <ref name='virConnectOpen'/>
           <ref name='virConnectRef'/>
-          <ref name='virDomainAbortJob'/>
           <ref name='virDomainBlockCommit'/>
           <ref name='virDomainDefineXML'/>
           <ref name='virDomainRef'/>
@@ -16506,6 +16999,7 @@
           <ref name='virDomainMigrate2'/>
           <ref name='virDomainMigrateToURI'/>
           <ref name='virDomainMigrateToURI2'/>
+          <ref name='virDomainSendProcessSignal'/>
           <ref name='virInterfaceGetXMLDesc'/>
           <ref name='virStorageVolResize'/>
         </word>
@@ -16516,6 +17010,7 @@
         <word name='values'>
           <ref name='_virConnectAuth'/>
           <ref name='virConnectGetLibVersion'/>
+          <ref name='virDomainSendProcessSignal'/>
           <ref name='virDomainSetInterfaceParameters'/>
           <ref name='virDomainSetSchedulerParametersFlags'/>
           <ref name='virGetVersion'/>
@@ -17070,6 +17565,12 @@
           <ref name='virDomainGetVcpuPinInfo'/>
           <ref name='virDomainGetVcpus'/>
         </word>
+        <word name='virDomainProcessSignal'>
+          <ref name='virDomainSendProcessSignal'/>
+        </word>
+        <word name='virDomainProcessSignalFlag'>
+          <ref name='virDomainSendProcessSignal'/>
+        </word>
         <word name='virDomainPtr'>
           <ref name='virConnectDomainEventRegister'/>
           <ref name='virConnectDomainEventRegisterAny'/>
@@ -17142,6 +17643,7 @@
           <ref name='virDomainDestroyFlags'/>
         </word>
         <word name='virDomainShutdownFlagValues'>
+          <ref name='virDomainReboot'/>
           <ref name='virDomainShutdownFlags'/>
         </word>
         <word name='virDomainSnapshotCreateFlags'>
@@ -17453,6 +17955,10 @@
         <word name='virStoragePoolState'>
           <ref name='_virStoragePoolInfo'/>
         </word>
+        <word name='virStorageVolCreateFlags'>
+          <ref name='virStorageVolCreateXML'/>
+          <ref name='virStorageVolCreateXMLFrom'/>
+        </word>
         <word name='virStorageVolFree'>
           <ref name='virStoragePoolListAllVolumes'/>
           <ref name='virStorageVolRef'/>
@@ -17677,8 +18183,14 @@
           <ref name='virNodeGetMemoryParameters'/>
         </word>
         <word name='what'>
+          <ref name='virDomainListAllSnapshots'/>
           <ref name='virDomainMemoryPeek'/>
           <ref name='virDomainSaveFlags'/>
+          <ref name='virDomainSnapshotListAllChildren'/>
+          <ref name='virDomainSnapshotListChildrenNames'/>
+          <ref name='virDomainSnapshotListNames'/>
+          <ref name='virDomainSnapshotNum'/>
+          <ref name='virDomainSnapshotNumChildren'/>
           <ref name='virNetworkUpdate'/>
           <ref name='virStorageVolGetKey'/>
         </word>
@@ -17704,6 +18216,7 @@
           <ref name='virDomainSaveImageDefineXML'/>
           <ref name='virDomainSetMemoryFlags'/>
           <ref name='virDomainSetVcpusFlags'/>
+          <ref name='virDomainSnapshotCreateXML'/>
           <ref name='virDomainSnapshotDelete'/>
           <ref name='virEventRunDefaultImpl'/>
           <ref name='virNodeSetMemoryParameters'/>
@@ -17850,11 +18363,13 @@
         <word name='zero'>
           <ref name='virConnectGetType'/>
           <ref name='virDomainDestroyFlags'/>
+          <ref name='virDomainFSTrim'/>
           <ref name='virDomainGetVcpus'/>
           <ref name='virDomainPinEmulator'/>
           <ref name='virDomainPinVcpu'/>
           <ref name='virDomainPinVcpuFlags'/>
           <ref name='virDomainReboot'/>
+          <ref name='virDomainSendProcessSignal'/>
           <ref name='virDomainShutdownFlags'/>
           <ref name='virStorageVolDownload'/>
           <ref name='virStorageVolResize'/>

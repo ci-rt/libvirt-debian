@@ -25,6 +25,15 @@ xdr_virLXCProtocolExitEventMsg (XDR *xdrs, virLXCProtocolExitEventMsg *objp)
 }
 
 bool_t
+xdr_virLXCProtocolInitEventMsg (XDR *xdrs, virLXCProtocolInitEventMsg *objp)
+{
+
+         if (!xdr_uint64_t (xdrs, &objp->initpid))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
 xdr_virLXCProtocolProcedure (XDR *xdrs, virLXCProtocolProcedure *objp)
 {
 

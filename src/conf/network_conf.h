@@ -38,6 +38,7 @@
 # include "virnetdevvlan.h"
 # include "virmacaddr.h"
 # include "device_conf.h"
+# include "bitmap.h"
 
 enum virNetworkForwardType {
     VIR_NETWORK_FORWARD_NONE   = 0,
@@ -76,43 +77,43 @@ struct _virNetworkDHCPHostDef {
     virSocketAddr ip;
 };
 
-typedef struct _virNetworkDNSTxtRecordsDef virNetworkDNSTxtRecordsDef;
-typedef virNetworkDNSTxtRecordsDef *virNetworkDNSTxtRecordsDefPtr;
-struct _virNetworkDNSTxtRecordsDef {
+typedef struct _virNetworkDNSTxtDef virNetworkDNSTxtDef;
+typedef virNetworkDNSTxtDef *virNetworkDNSTxtDefPtr;
+struct _virNetworkDNSTxtDef {
     char *name;
     char *value;
 };
 
-typedef struct _virNetworkDNSSrvRecordsDef virNetworkDNSSrvRecordsDef;
-typedef virNetworkDNSSrvRecordsDef *virNetworkDNSSrvRecordsDefPtr;
-struct _virNetworkDNSSrvRecordsDef {
+typedef struct _virNetworkDNSSrvDef virNetworkDNSSrvDef;
+typedef virNetworkDNSSrvDef *virNetworkDNSSrvDefPtr;
+struct _virNetworkDNSSrvDef {
     char *domain;
     char *service;
     char *protocol;
     char *target;
-    int port;
-    int priority;
-    int weight;
+    unsigned int port;
+    unsigned int priority;
+    unsigned int weight;
 };
 
-struct _virNetworkDNSHostsDef {
+typedef struct _virNetworkDNSHostDef virNetworkDNSHostDef;
+typedef virNetworkDNSHostDef *virNetworkDNSHostDefPtr;
+struct _virNetworkDNSHostDef {
     virSocketAddr ip;
     int nnames;
     char **names;
 };
 
-typedef struct _virNetworkDNSHostsDef *virNetworkDNSHostsDefPtr;
-
+typedef struct _virNetworkDNSDef virNetworkDNSDef;
+typedef virNetworkDNSDef *virNetworkDNSDefPtr;
 struct _virNetworkDNSDef {
-    unsigned int ntxtrecords;
-    virNetworkDNSTxtRecordsDefPtr txtrecords;
-    unsigned int nhosts;
-    virNetworkDNSHostsDefPtr hosts;
-    unsigned int nsrvrecords;
-    virNetworkDNSSrvRecordsDefPtr srvrecords;
+    size_t ntxts;
+    virNetworkDNSTxtDefPtr txts;
+    size_t nhosts;
+    virNetworkDNSHostDefPtr hosts;
+    size_t nsrvs;
+    virNetworkDNSSrvDefPtr srvs;
 };
-
-typedef struct _virNetworkDNSDef *virNetworkDNSDefPtr;
 
 typedef struct _virNetworkIpDef virNetworkIpDef;
 typedef virNetworkIpDef *virNetworkIpDefPtr;
@@ -129,10 +130,10 @@ struct _virNetworkIpDef {
     unsigned int prefix;        /* ipv6 - only prefix allowed */
     virSocketAddr netmask;      /* ipv4 - either netmask or prefix specified */
 
-    unsigned int nranges;        /* Zero or more dhcp ranges */
+    size_t nranges;             /* Zero or more dhcp ranges */
     virNetworkDHCPRangeDefPtr ranges;
 
-    unsigned int nhosts;         /* Zero or more dhcp hosts */
+    size_t nhosts;              /* Zero or more dhcp hosts */
     virNetworkDHCPHostDefPtr hosts;
 
     char *tftproot;
@@ -157,6 +158,22 @@ typedef virNetworkForwardPfDef *virNetworkForwardPfDefPtr;
 struct _virNetworkForwardPfDef {
     char *dev;      /* name of device */
     int connections; /* how many guest interfaces are connected to this device? */
+};
+
+typedef struct _virNetworkForwardDef virNetworkForwardDef;
+typedef virNetworkForwardDef *virNetworkForwardDefPtr;
+struct _virNetworkForwardDef {
+    int type;     /* One of virNetworkForwardType constants */
+    bool managed;  /* managed attribute for hostdev mode */
+
+    /* If there are multiple forward devices (i.e. a pool of
+     * interfaces), they will be listed here.
+     */
+    size_t npfs;
+    virNetworkForwardPfDefPtr pfs;
+
+    size_t nifs;
+    virNetworkForwardIfDefPtr ifs;
 };
 
 typedef struct _virPortGroupDef virPortGroupDef;
@@ -184,22 +201,17 @@ struct _virNetworkDef {
     virMacAddr mac; /* mac address of bridge device */
     bool mac_specified;
 
-    int forwardType;    /* One of virNetworkForwardType constants */
-    int managed;        /* managed attribute for hostdev mode */
-
-    /* If there are multiple forward devices (i.e. a pool of
-     * interfaces), they will be listed here.
+    /* specified if ip6tables rules added
+     * when no ipv6 gateway addresses specified.
      */
-    size_t nForwardPfs;
-    virNetworkForwardPfDefPtr forwardPfs;
+    bool ipv6nogw;
 
-    size_t nForwardIfs;
-    virNetworkForwardIfDefPtr forwardIfs;
+    virNetworkForwardDef forward;
 
     size_t nips;
     virNetworkIpDefPtr ips; /* ptr to array of IP addresses on this network */
 
-    virNetworkDNSDefPtr dns; /* ptr to dns related configuration */
+    virNetworkDNSDef dns;   /* dns related configuration */
     virNetDevVPortProfilePtr virtPortProfile;
 
     size_t nPortGroups;
@@ -221,6 +233,9 @@ struct _virNetworkObj {
 
     virNetworkDefPtr def; /* The current definition */
     virNetworkDefPtr newDef; /* New definition to activate at shutdown */
+
+    virBitmapPtr class_id; /* bitmap of class IDs for QoS */
+    unsigned long long floor_sum; /* sum of all 'floor'-s of attached NICs */
 };
 
 typedef struct _virNetworkObjList virNetworkObjList;
@@ -267,15 +282,17 @@ virNetworkDefPtr virNetworkDefParseString(const char *xmlStr);
 virNetworkDefPtr virNetworkDefParseFile(const char *filename);
 virNetworkDefPtr virNetworkDefParseNode(xmlDocPtr xml,
                                         xmlNodePtr root);
+int virNetworkObjUpdateParseFile(const char *filename,
+                                 virNetworkObjPtr net);
 
 char *virNetworkDefFormat(const virNetworkDefPtr def, unsigned int flags);
 
 static inline const char *
 virNetworkDefForwardIf(const virNetworkDefPtr def, size_t n)
 {
-    return ((def->forwardIfs && (def->nForwardIfs > n) &&
-             def->forwardIfs[n].type == VIR_NETWORK_FORWARD_HOSTDEV_DEVICE_NETDEV)
-            ? def->forwardIfs[n].device.dev : NULL);
+    return ((def->forward.ifs && (def->forward.nifs > n) &&
+             def->forward.ifs[n].type == VIR_NETWORK_FORWARD_HOSTDEV_DEVICE_NETDEV)
+            ? def->forward.ifs[n].device.dev : NULL);
 }
 
 virPortGroupDefPtr virPortGroupFindByName(virNetworkDefPtr net,
@@ -337,7 +354,7 @@ virNetworkObjUpdate(virNetworkObjPtr obj,
 
 int virNetworkObjIsDuplicate(virNetworkObjListPtr doms,
                              virNetworkDefPtr def,
-                             unsigned int check_active);
+                             bool check_active);
 
 void virNetworkObjLock(virNetworkObjPtr obj);
 void virNetworkObjUnlock(virNetworkObjPtr obj);

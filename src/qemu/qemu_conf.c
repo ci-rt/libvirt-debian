@@ -62,22 +62,23 @@ struct _qemuDriverCloseDef {
     qemuDriverCloseCallback cb;
 };
 
-void qemuDriverLock(struct qemud_driver *driver)
+void qemuDriverLock(virQEMUDriverPtr driver)
 {
     virMutexLock(&driver->lock);
 }
-void qemuDriverUnlock(struct qemud_driver *driver)
+void qemuDriverUnlock(virQEMUDriverPtr driver)
 {
     virMutexUnlock(&driver->lock);
 }
 
 
-int qemudLoadDriverConfig(struct qemud_driver *driver,
-                          const char *filename) {
-    virConfPtr conf;
+int qemuLoadDriverConfig(virQEMUDriverPtr driver,
+                         const char *filename) {
+    virConfPtr conf = NULL;
     virConfValuePtr p;
-    char *user;
-    char *group;
+    char *user = NULL;
+    char *group = NULL;
+    int ret = -1;
     int i;
 
     /* Setup critical defaults */
@@ -86,28 +87,21 @@ int qemudLoadDriverConfig(struct qemud_driver *driver,
     driver->dynamicOwnership = 1;
     driver->clearEmulatorCapabilities = 1;
 
-    if (!(driver->vncListen = strdup("127.0.0.1"))) {
-        virReportOOMError();
-        return -1;
-    }
+    if (!(driver->vncListen = strdup("127.0.0.1")))
+        goto no_memory;
 
     driver->remotePortMin = QEMU_REMOTE_PORT_MIN;
     driver->remotePortMax = QEMU_REMOTE_PORT_MAX;
 
-    if (!(driver->vncTLSx509certdir = strdup(SYSCONFDIR "/pki/libvirt-vnc"))) {
-        virReportOOMError();
-        return -1;
-    }
+    if (!(driver->vncTLSx509certdir = strdup(SYSCONFDIR "/pki/libvirt-vnc")))
+        goto no_memory;
 
-    if (!(driver->spiceListen = strdup("127.0.0.1"))) {
-        virReportOOMError();
-        return -1;
-    }
+    if (!(driver->spiceListen = strdup("127.0.0.1")))
+        goto no_memory;
+
     if (!(driver->spiceTLSx509certdir
-          = strdup(SYSCONFDIR "/pki/libvirt-spice"))) {
-        virReportOOMError();
-        return -1;
-    }
+          = strdup(SYSCONFDIR "/pki/libvirt-spice")))
+        goto no_memory;
 
 #if defined HAVE_MNTENT_H && defined HAVE_GETMNTENT_R
     /* For privileged driver, try and find hugepage mount automatically.
@@ -118,14 +112,13 @@ int qemudLoadDriverConfig(struct qemud_driver *driver,
         if (errno != ENOENT) {
             virReportSystemError(errno, "%s",
                                  _("unable to find hugetlbfs mountpoint"));
-            return -1;
+            goto cleanup;
         }
     }
 #endif
 
-    if (!(driver->lockManager =
-          virLockManagerPluginNew("nop", NULL, 0)))
-        return -1;
+    if (!(driver->lockManager = virLockManagerPluginNew("nop", NULL, 0)))
+        goto cleanup;
 
     driver->keepAliveInterval = 5;
     driver->keepAliveCount = 5;
@@ -134,71 +127,49 @@ int qemudLoadDriverConfig(struct qemud_driver *driver,
     /* Just check the file is readable before opening it, otherwise
      * libvirt emits an error.
      */
-    if (access (filename, R_OK) == -1) {
+    if (access(filename, R_OK) == -1) {
         VIR_INFO("Could not read qemu config file %s", filename);
-        return 0;
+        ret = 0;
+        goto cleanup;
     }
 
-    conf = virConfReadFile (filename, 0);
-    if (!conf) {
-        return -1;
+    if (!(conf = virConfReadFile(filename, 0)))
+        goto cleanup;
+
+#define CHECK_TYPE(name,typ)                          \
+    if (p && p->type != (typ)) {                      \
+        virReportError(VIR_ERR_INTERNAL_ERROR,        \
+                       "%s: %s: expected type " #typ, \
+                       filename, (name));             \
+        goto cleanup;                                 \
     }
 
+#define GET_VALUE_LONG(NAME, VAR)     \
+    p = virConfGetValue(conf, NAME);  \
+    CHECK_TYPE(NAME, VIR_CONF_LONG);  \
+    if (p)                            \
+        VAR = p->l;
 
-#define CHECK_TYPE(name,typ) if (p && p->type != (typ)) {               \
-        virReportError(VIR_ERR_INTERNAL_ERROR,                          \
-                       "%s: %s: expected type " #typ,                   \
-                       filename, (name));                               \
-        virConfFree(conf);                                              \
-        return -1;                                                      \
+#define GET_VALUE_STR(NAME, VAR)           \
+    p = virConfGetValue(conf, NAME);       \
+    CHECK_TYPE(NAME, VIR_CONF_STRING);     \
+    if (p && p->str) {                     \
+        VIR_FREE(VAR);                     \
+        if (!(VAR = strdup(p->str)))       \
+            goto no_memory;                \
     }
 
-    p = virConfGetValue (conf, "vnc_auto_unix_socket");
-    CHECK_TYPE ("vnc_auto_unix_socket", VIR_CONF_LONG);
-    if (p) driver->vncAutoUnixSocket = p->l;
+    GET_VALUE_LONG("vnc_auto_unix_socket", driver->vncAutoUnixSocket);
+    GET_VALUE_LONG("vnc_tls", driver->vncTLS);
+    GET_VALUE_LONG("vnc_tls_x509_verify", driver->vncTLSx509verify);
+    GET_VALUE_STR("vnc_tls_x509_cert_dir", driver->vncTLSx509certdir);
+    GET_VALUE_STR("vnc_listen", driver->vncListen);
+    GET_VALUE_STR("vnc_password", driver->vncPassword);
+    GET_VALUE_LONG("vnc_sasl", driver->vncSASL);
+    GET_VALUE_STR("vnc_sasl_dir", driver->vncSASLdir);
+    GET_VALUE_LONG("vnc_allow_host_audio", driver->vncAllowHostAudio);
 
-    p = virConfGetValue (conf, "vnc_tls");
-    CHECK_TYPE ("vnc_tls", VIR_CONF_LONG);
-    if (p) driver->vncTLS = p->l;
-
-    p = virConfGetValue (conf, "vnc_tls_x509_verify");
-    CHECK_TYPE ("vnc_tls_x509_verify", VIR_CONF_LONG);
-    if (p) driver->vncTLSx509verify = p->l;
-
-    p = virConfGetValue (conf, "vnc_tls_x509_cert_dir");
-    CHECK_TYPE ("vnc_tls_x509_cert_dir", VIR_CONF_STRING);
-    if (p && p->str) {
-        VIR_FREE(driver->vncTLSx509certdir);
-        if (!(driver->vncTLSx509certdir = strdup(p->str))) {
-            virReportOOMError();
-            virConfFree(conf);
-            return -1;
-        }
-    }
-
-    p = virConfGetValue (conf, "vnc_listen");
-    CHECK_TYPE ("vnc_listen", VIR_CONF_STRING);
-    if (p && p->str) {
-        VIR_FREE(driver->vncListen);
-        if (!(driver->vncListen = strdup(p->str))) {
-            virReportOOMError();
-            virConfFree(conf);
-            return -1;
-        }
-    }
-
-    p = virConfGetValue (conf, "vnc_password");
-    CHECK_TYPE ("vnc_password", VIR_CONF_STRING);
-    if (p && p->str) {
-        VIR_FREE(driver->vncPassword);
-        if (!(driver->vncPassword = strdup(p->str))) {
-            virReportOOMError();
-            virConfFree(conf);
-            return -1;
-        }
-    }
-
-    p = virConfGetValue (conf, "security_driver");
+    p = virConfGetValue(conf, "security_driver");
     if (p && p->type == VIR_CONF_LIST) {
         size_t len;
         virConfValuePtr pp;
@@ -206,193 +177,108 @@ int qemudLoadDriverConfig(struct qemud_driver *driver,
         /* Calc length and check items */
         for (len = 0, pp = p->list; pp; len++, pp = pp->next) {
             if (pp->type != VIR_CONF_STRING) {
-                VIR_ERROR(_("security_driver be a list of strings"));
-                virConfFree(conf);
-                return -1;
+                virReportError(VIR_ERR_CONF_SYNTAX, "%s",
+                               _("security_driver must be a list of strings"));
+                goto cleanup;
             }
         }
 
-        if (VIR_ALLOC_N(driver->securityDriverNames, len + 1) < 0) {
-            virReportOOMError();
-            virConfFree(conf);
-            return -1;
-        }
+        if (VIR_ALLOC_N(driver->securityDriverNames, len + 1) < 0)
+            goto no_memory;
 
         for (i = 0, pp = p->list; pp; i++, pp = pp->next) {
-            driver->securityDriverNames[i] = strdup(pp->str);
-            if (driver->securityDriverNames == NULL) {
-                virReportOOMError();
-                virConfFree(conf);
-                return -1;
-            }
+            if (!(driver->securityDriverNames[i] = strdup(pp->str)))
+                goto no_memory;
         }
         driver->securityDriverNames[len] = NULL;
     } else {
-        CHECK_TYPE ("security_driver", VIR_CONF_STRING);
+        CHECK_TYPE("security_driver", VIR_CONF_STRING);
         if (p && p->str) {
             if (VIR_ALLOC_N(driver->securityDriverNames, 2) < 0 ||
-                !(driver->securityDriverNames[0] = strdup(p->str))) {
-                virReportOOMError();
-                virConfFree(conf);
-                return -1;
-            }
+                !(driver->securityDriverNames[0] = strdup(p->str)))
+                goto no_memory;
+
             driver->securityDriverNames[1] = NULL;
         }
     }
 
-    p = virConfGetValue (conf, "security_default_confined");
-    CHECK_TYPE ("security_default_confined", VIR_CONF_LONG);
-    if (p) driver->securityDefaultConfined = p->l;
+    GET_VALUE_LONG("security_default_confined", driver->securityDefaultConfined);
+    GET_VALUE_LONG("security_require_confined", driver->securityRequireConfined);
 
-    p = virConfGetValue (conf, "security_require_confined");
-    CHECK_TYPE ("security_require_confined", VIR_CONF_LONG);
-    if (p) driver->securityRequireConfined = p->l;
+    GET_VALUE_LONG("spice_tls", driver->spiceTLS);
+    GET_VALUE_STR("spice_tls_x509_cert_dir", driver->spiceTLSx509certdir);
+    GET_VALUE_STR("spice_listen", driver->spiceListen);
+    GET_VALUE_STR("spice_password", driver->spicePassword);
 
 
-    p = virConfGetValue (conf, "vnc_sasl");
-    CHECK_TYPE ("vnc_sasl", VIR_CONF_LONG);
-    if (p) driver->vncSASL = p->l;
-
-    p = virConfGetValue (conf, "vnc_sasl_dir");
-    CHECK_TYPE ("vnc_sasl_dir", VIR_CONF_STRING);
-    if (p && p->str) {
-        VIR_FREE(driver->vncSASLdir);
-        if (!(driver->vncSASLdir = strdup(p->str))) {
-            virReportOOMError();
-            virConfFree(conf);
-            return -1;
-        }
+    GET_VALUE_LONG("remote_display_port_min", driver->remotePortMin);
+    if (driver->remotePortMin < QEMU_REMOTE_PORT_MIN) {
+        /* if the port is too low, we can't get the display name
+         * to tell to vnc (usually subtract 5900, e.g. localhost:1
+         * for port 5901) */
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("%s: remote_display_port_min: port must be greater "
+                         "than or equal to %d"),
+                        filename, QEMU_REMOTE_PORT_MIN);
+        goto cleanup;
     }
 
-    p = virConfGetValue (conf, "spice_tls");
-    CHECK_TYPE ("spice_tls", VIR_CONF_LONG);
-    if (p) driver->spiceTLS = p->l;
-
-    p = virConfGetValue (conf, "spice_tls_x509_cert_dir");
-    CHECK_TYPE ("spice_tls_x509_cert_dir", VIR_CONF_STRING);
-    if (p && p->str) {
-        VIR_FREE(driver->spiceTLSx509certdir);
-        if (!(driver->spiceTLSx509certdir = strdup(p->str))) {
-            virReportOOMError();
-            virConfFree(conf);
-            return -1;
-        }
+    GET_VALUE_LONG("remote_display_port_max", driver->remotePortMax);
+    if (driver->remotePortMax > QEMU_REMOTE_PORT_MAX ||
+        driver->remotePortMax < driver->remotePortMin) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                        _("%s: remote_display_port_max: port must be between "
+                          "the minimal port and %d"),
+                       filename, QEMU_REMOTE_PORT_MAX);
+        goto cleanup;
     }
-
-    p = virConfGetValue (conf, "spice_listen");
-    CHECK_TYPE ("spice_listen", VIR_CONF_STRING);
-    if (p && p->str) {
-        VIR_FREE(driver->spiceListen);
-        if (!(driver->spiceListen = strdup(p->str))) {
-            virReportOOMError();
-            virConfFree(conf);
-            return -1;
-        }
-    }
-
-    p = virConfGetValue (conf, "spice_password");
-    CHECK_TYPE ("spice_password", VIR_CONF_STRING);
-    if (p && p->str) {
-        VIR_FREE(driver->spicePassword);
-        if (!(driver->spicePassword = strdup(p->str))) {
-            virReportOOMError();
-            virConfFree(conf);
-            return -1;
-        }
-    }
-
-    p = virConfGetValue (conf, "remote_display_port_min");
-    CHECK_TYPE ("remote_display_port_min", VIR_CONF_LONG);
-    if (p) {
-        if (p->l < QEMU_REMOTE_PORT_MIN) {
-            /* if the port is too low, we can't get the display name
-             * to tell to vnc (usually subtract 5900, e.g. localhost:1
-             * for port 5901) */
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("%s: remote_display_port_min: port must be greater than or equal to %d"),
-                            filename, QEMU_REMOTE_PORT_MIN);
-            virConfFree(conf);
-            return -1;
-        }
-        driver->remotePortMin = p->l;
-    }
-
-    p = virConfGetValue (conf, "remote_display_port_max");
-    CHECK_TYPE ("remote_display_port_max", VIR_CONF_LONG);
-    if (p) {
-        if (p->l > QEMU_REMOTE_PORT_MAX ||
-            p->l < driver->remotePortMin) {
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                            _("%s: remote_display_port_max: port must be between the minimal port and %d"),
-                            filename, QEMU_REMOTE_PORT_MAX);
-            virConfFree(conf);
-            return -1;
-        }
-        /* increasing the value by 1 makes all the loops going through
-        the bitmap (i = remotePortMin; i < remotePortMax; i++), work as
-        expected. */
-        driver->remotePortMax = p->l + 1;
-    }
+    /* increasing the value by 1 makes all the loops going through
+    the bitmap (i = remotePortMin; i < remotePortMax; i++), work as
+    expected. */
+    driver->remotePortMax++;
 
     if (driver->remotePortMin > driver->remotePortMax) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
-                        _("%s: remote_display_port_min: min port must not be greater than max port"),
-                        filename);
-        virConfFree(conf);
-        return -1;
+                        _("%s: remote_display_port_min: min port must not be "
+                          "greater than max port"), filename);
+        goto cleanup;
     }
 
-    p = virConfGetValue (conf, "user");
-    CHECK_TYPE ("user", VIR_CONF_STRING);
-    if (!(user = strdup(p && p->str ? p->str : QEMU_USER))) {
-        virReportOOMError();
-        virConfFree(conf);
-        return -1;
-    }
-    if (virGetUserID(user, &driver->user) < 0) {
-        VIR_FREE(user);
-        virConfFree(conf);
-        return -1;
-    }
-    VIR_FREE(user);
+    p = virConfGetValue(conf, "user");
+    CHECK_TYPE("user", VIR_CONF_STRING);
+    if (!(user = strdup(p && p->str ? p->str : QEMU_USER)))
+        goto no_memory;
 
+    if (virGetUserID(user, &driver->user) < 0)
+        goto cleanup;
 
-    p = virConfGetValue (conf, "group");
-    CHECK_TYPE ("group", VIR_CONF_STRING);
-    if (!(group = strdup(p && p->str ? p->str : QEMU_GROUP))) {
-        virReportOOMError();
-        virConfFree(conf);
-        return -1;
-    }
-    if (virGetGroupID(group, &driver->group) < 0) {
-        VIR_FREE(group);
-        virConfFree(conf);
-        return -1;
-    }
-    VIR_FREE(group);
+    p = virConfGetValue(conf, "group");
+    CHECK_TYPE("group", VIR_CONF_STRING);
+    if (!(group = strdup(p && p->str ? p->str : QEMU_GROUP)))
+        goto no_memory;
 
+    if (virGetGroupID(group, &driver->group) < 0)
+        goto cleanup;
 
-    p = virConfGetValue (conf, "dynamic_ownership");
-    CHECK_TYPE ("dynamic_ownership", VIR_CONF_LONG);
-    if (p) driver->dynamicOwnership = p->l;
+    GET_VALUE_LONG("dynamic_ownership", driver->dynamicOwnership);
 
-
-    p = virConfGetValue (conf, "cgroup_controllers");
-    CHECK_TYPE ("cgroup_controllers", VIR_CONF_LIST);
+    p = virConfGetValue(conf, "cgroup_controllers");
+    CHECK_TYPE("cgroup_controllers", VIR_CONF_LIST);
     if (p) {
         virConfValuePtr pp;
         for (i = 0, pp = p->list; pp; ++i, pp = pp->next) {
             int ctl;
             if (pp->type != VIR_CONF_STRING) {
-                VIR_ERROR(_("cgroup_controllers must be a list of strings"));
-                virConfFree(conf);
-                return -1;
+                virReportError(VIR_ERR_CONF_SYNTAX, "%s",
+                               _("cgroup_controllers must be a "
+                                 "list of strings"));
+                goto cleanup;
             }
-            ctl = virCgroupControllerTypeFromString(pp->str);
-            if (ctl < 0) {
-                VIR_ERROR(_("Unknown cgroup controller '%s'"), pp->str);
-                virConfFree(conf);
-                return -1;
+
+            if ((ctl = virCgroupControllerTypeFromString(pp->str)) < 0) {
+                virReportError(VIR_ERR_CONF_SYNTAX,
+                               _("Unknown cgroup controller '%s'"), pp->str);
+                goto cleanup;
             }
             driver->cgroupControllers |= (1 << ctl);
         }
@@ -412,89 +298,39 @@ int qemudLoadDriverConfig(struct qemud_driver *driver,
         }
     }
 
-    p = virConfGetValue (conf, "cgroup_device_acl");
-    CHECK_TYPE ("cgroup_device_acl", VIR_CONF_LIST);
+    p = virConfGetValue(conf, "cgroup_device_acl");
+    CHECK_TYPE("cgroup_device_acl", VIR_CONF_LIST);
     if (p) {
         int len = 0;
         virConfValuePtr pp;
         for (pp = p->list; pp; pp = pp->next)
             len++;
-        if (VIR_ALLOC_N(driver->cgroupDeviceACL, 1+len) < 0) {
-            virReportOOMError();
-            virConfFree(conf);
-            return -1;
-        }
+        if (VIR_ALLOC_N(driver->cgroupDeviceACL, 1+len) < 0)
+            goto no_memory;
+
         for (i = 0, pp = p->list; pp; ++i, pp = pp->next) {
             if (pp->type != VIR_CONF_STRING) {
-                VIR_ERROR(_("cgroup_device_acl must be a list of strings"));
-                virConfFree(conf);
-                return -1;
+                virReportError(VIR_ERR_CONF_SYNTAX, "%s",
+                               _("cgroup_device_acl must be a "
+                                 "list of strings"));
+                goto cleanup;
             }
-            driver->cgroupDeviceACL[i] = strdup (pp->str);
-            if (driver->cgroupDeviceACL[i] == NULL) {
-                virReportOOMError();
-                virConfFree(conf);
-                return -1;
-            }
-
+            if (!(driver->cgroupDeviceACL[i] = strdup(pp->str)))
+                goto no_memory;
         }
         driver->cgroupDeviceACL[i] = NULL;
     }
 
-    p = virConfGetValue (conf, "save_image_format");
-    CHECK_TYPE ("save_image_format", VIR_CONF_STRING);
-    if (p && p->str) {
-        VIR_FREE(driver->saveImageFormat);
-        if (!(driver->saveImageFormat = strdup(p->str))) {
-            virReportOOMError();
-            virConfFree(conf);
-            return -1;
-        }
-    }
+    GET_VALUE_STR("save_image_format", driver->saveImageFormat);
+    GET_VALUE_STR("dump_image_format", driver->dumpImageFormat);
+    GET_VALUE_STR("auto_dump_path", driver->autoDumpPath);
+    GET_VALUE_LONG("auto_dump_bypass_cache", driver->autoDumpBypassCache);
+    GET_VALUE_LONG("auto_start_bypass_cache", driver->autoStartBypassCache);
 
-    p = virConfGetValue (conf, "dump_image_format");
-    CHECK_TYPE ("dump_image_format", VIR_CONF_STRING);
-    if (p && p->str) {
-        VIR_FREE(driver->dumpImageFormat);
-        if (!(driver->dumpImageFormat = strdup(p->str))) {
-            virReportOOMError();
-            virConfFree(conf);
-            return -1;
-        }
-    }
+    GET_VALUE_STR("hugetlbfs_mount", driver->hugetlbfs_mount);
 
-    p = virConfGetValue (conf, "auto_dump_path");
-    CHECK_TYPE ("auto_dump_path", VIR_CONF_STRING);
-    if (p && p->str) {
-        VIR_FREE(driver->autoDumpPath);
-        if (!(driver->autoDumpPath = strdup(p->str))) {
-            virReportOOMError();
-            virConfFree(conf);
-            return -1;
-        }
-    }
-
-    p = virConfGetValue (conf, "auto_dump_bypass_cache");
-    CHECK_TYPE ("auto_dump_bypass_cache", VIR_CONF_LONG);
-    if (p) driver->autoDumpBypassCache = true;
-
-    p = virConfGetValue (conf, "auto_start_bypass_cache");
-    CHECK_TYPE ("auto_start_bypass_cache", VIR_CONF_LONG);
-    if (p) driver->autoStartBypassCache = true;
-
-    p = virConfGetValue (conf, "hugetlbfs_mount");
-    CHECK_TYPE ("hugetlbfs_mount", VIR_CONF_STRING);
-    if (p && p->str) {
-        VIR_FREE(driver->hugetlbfs_mount);
-        if (!(driver->hugetlbfs_mount = strdup(p->str))) {
-            virReportOOMError();
-            virConfFree(conf);
-            return -1;
-        }
-    }
-
-    p = virConfGetValue (conf, "mac_filter");
-    CHECK_TYPE ("mac_filter", VIR_CONF_LONG);
+    p = virConfGetValue(conf, "mac_filter");
+    CHECK_TYPE("mac_filter", VIR_CONF_LONG);
     if (p && p->l) {
         driver->macFilter = p->l;
         if (!(driver->ebtables = ebtablesContextNew("qemu"))) {
@@ -502,82 +338,57 @@ int qemudLoadDriverConfig(struct qemud_driver *driver,
             virReportSystemError(errno,
                                  _("failed to enable mac filter in '%s'"),
                                  __FILE__);
-            virConfFree(conf);
-            return -1;
+            goto cleanup;
         }
 
         if ((errno = networkDisableAllFrames(driver))) {
             virReportSystemError(errno,
                          _("failed to add rule to drop all frames in '%s'"),
                                  __FILE__);
-            virConfFree(conf);
-            return -1;
+            goto cleanup;
         }
     }
 
-    p = virConfGetValue (conf, "relaxed_acs_check");
-    CHECK_TYPE ("relaxed_acs_check", VIR_CONF_LONG);
-    if (p) driver->relaxedACS = p->l;
+    GET_VALUE_LONG("relaxed_acs_check", driver->relaxedACS);
+    GET_VALUE_LONG("clear_emulator_capabilities", driver->clearEmulatorCapabilities);
+    GET_VALUE_LONG("allow_disk_format_probing", driver->allowDiskFormatProbing);
+    GET_VALUE_LONG("set_process_name", driver->setProcessName);
+    GET_VALUE_LONG("max_processes", driver->maxProcesses);
+    GET_VALUE_LONG("max_files", driver->maxFiles);
 
-    p = virConfGetValue (conf, "vnc_allow_host_audio");
-    CHECK_TYPE ("vnc_allow_host_audio", VIR_CONF_LONG);
-    if (p) driver->vncAllowHostAudio = p->l;
-
-    p = virConfGetValue (conf, "clear_emulator_capabilities");
-    CHECK_TYPE ("clear_emulator_capabilities", VIR_CONF_LONG);
-    if (p) driver->clearEmulatorCapabilities = p->l;
-
-    p = virConfGetValue (conf, "allow_disk_format_probing");
-    CHECK_TYPE ("allow_disk_format_probing", VIR_CONF_LONG);
-    if (p) driver->allowDiskFormatProbing = p->l;
-
-    p = virConfGetValue (conf, "set_process_name");
-    CHECK_TYPE ("set_process_name", VIR_CONF_LONG);
-    if (p) driver->setProcessName = p->l;
-
-    p = virConfGetValue(conf, "max_processes");
-    CHECK_TYPE("max_processes", VIR_CONF_LONG);
-    if (p) driver->maxProcesses = p->l;
-
-    p = virConfGetValue(conf, "max_files");
-    CHECK_TYPE("max_files", VIR_CONF_LONG);
-    if (p) driver->maxFiles = p->l;
-
-    p = virConfGetValue (conf, "lock_manager");
-    CHECK_TYPE ("lock_manager", VIR_CONF_STRING);
+    p = virConfGetValue(conf, "lock_manager");
+    CHECK_TYPE("lock_manager", VIR_CONF_STRING);
     if (p && p->str) {
         char *lockConf;
         virLockManagerPluginUnref(driver->lockManager);
-        if (virAsprintf(&lockConf, "%s/libvirt/qemu-%s.conf", SYSCONFDIR, p->str) < 0) {
-            virReportOOMError();
-            virConfFree(conf);
-            return -1;
-        }
+        if (virAsprintf(&lockConf, "%s/libvirt/qemu-%s.conf", SYSCONFDIR, p->str) < 0)
+            goto no_memory;
+
         if (!(driver->lockManager =
               virLockManagerPluginNew(p->str, lockConf, 0)))
             VIR_ERROR(_("Failed to load lock manager %s"), p->str);
         VIR_FREE(lockConf);
     }
 
-    p = virConfGetValue(conf, "max_queued");
-    CHECK_TYPE("max_queued", VIR_CONF_LONG);
-    if (p) driver->max_queued = p->l;
+    GET_VALUE_LONG("max_queued", driver->max_queued);
+    GET_VALUE_LONG("keepalive_interval", driver->keepAliveInterval);
+    GET_VALUE_LONG("keepalive_count", driver->keepAliveCount);
+    GET_VALUE_LONG("seccomp_sandbox", driver->seccompSandbox);
 
-    p = virConfGetValue(conf, "keepalive_interval");
-    CHECK_TYPE("keepalive_interval", VIR_CONF_LONG);
-    if (p) driver->keepAliveInterval = p->l;
+    ret = 0;
 
-    p = virConfGetValue(conf, "keepalive_count");
-    CHECK_TYPE("keepalive_count", VIR_CONF_LONG);
-    if (p) driver->keepAliveCount = p->l;
+cleanup:
+    VIR_FREE(user);
+    VIR_FREE(group);
+    virConfFree(conf);
+    return ret;
 
-    p = virConfGetValue(conf, "seccomp_sandbox");
-    CHECK_TYPE("seccomp_sandbox", VIR_CONF_LONG);
-    if (p) driver->seccompSandbox = p->l;
-
-    virConfFree (conf);
-    return 0;
+no_memory:
+    virReportOOMError();
+    goto cleanup;
 }
+#undef GET_VALUE_LONG
+#undef GET_VALUE_STRING
 
 static void
 qemuDriverCloseCallbackFree(void *payload,
@@ -587,7 +398,7 @@ qemuDriverCloseCallbackFree(void *payload,
 }
 
 int
-qemuDriverCloseCallbackInit(struct qemud_driver *driver)
+qemuDriverCloseCallbackInit(virQEMUDriverPtr driver)
 {
     driver->closeCallbacks = virHashCreate(5, qemuDriverCloseCallbackFree);
     if (!driver->closeCallbacks)
@@ -597,13 +408,13 @@ qemuDriverCloseCallbackInit(struct qemud_driver *driver)
 }
 
 void
-qemuDriverCloseCallbackShutdown(struct qemud_driver *driver)
+qemuDriverCloseCallbackShutdown(virQEMUDriverPtr driver)
 {
     virHashFree(driver->closeCallbacks);
 }
 
 int
-qemuDriverCloseCallbackSet(struct qemud_driver *driver,
+qemuDriverCloseCallbackSet(virQEMUDriverPtr driver,
                            virDomainObjPtr vm,
                            virConnectPtr conn,
                            qemuDriverCloseCallback cb)
@@ -649,7 +460,7 @@ qemuDriverCloseCallbackSet(struct qemud_driver *driver,
 }
 
 int
-qemuDriverCloseCallbackUnset(struct qemud_driver *driver,
+qemuDriverCloseCallbackUnset(virQEMUDriverPtr driver,
                              virDomainObjPtr vm,
                              qemuDriverCloseCallback cb)
 {
@@ -675,7 +486,7 @@ qemuDriverCloseCallbackUnset(struct qemud_driver *driver,
 }
 
 qemuDriverCloseCallback
-qemuDriverCloseCallbackGet(struct qemud_driver *driver,
+qemuDriverCloseCallbackGet(virQEMUDriverPtr driver,
                            virDomainObjPtr vm,
                            virConnectPtr conn)
 {
@@ -696,7 +507,7 @@ qemuDriverCloseCallbackGet(struct qemud_driver *driver,
 }
 
 struct qemuDriverCloseCallbackData {
-    struct qemud_driver *driver;
+    virQEMUDriverPtr driver;
     virConnectPtr conn;
 };
 
@@ -735,7 +546,7 @@ qemuDriverCloseCallbackRun(void *payload,
 }
 
 void
-qemuDriverCloseCallbackRunAll(struct qemud_driver *driver,
+qemuDriverCloseCallbackRunAll(virQEMUDriverPtr driver,
                               virConnectPtr conn)
 {
     struct qemuDriverCloseCallbackData data = {

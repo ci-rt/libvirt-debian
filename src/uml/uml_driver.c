@@ -372,6 +372,11 @@ reread:
             }
 
             dom->def->id = driver->nextvmid++;
+
+            if (!driver->nactive && driver->inhibitCallback)
+                driver->inhibitCallback(true, driver->inhibitOpaque);
+            driver->nactive++;
+
             virDomainObjSetState(dom, VIR_DOMAIN_RUNNING,
                                  VIR_DOMAIN_RUNNING_BOOTED);
 
@@ -419,7 +424,9 @@ cleanup:
  * Initialization function for the Uml daemon
  */
 static int
-umlStartup(int privileged)
+umlStartup(bool privileged,
+           virStateInhibitCallback callback,
+           void *opaque)
 {
     char *base = NULL;
     char *userdir = NULL;
@@ -428,6 +435,8 @@ umlStartup(int privileged)
         return -1;
 
     uml_driver->privileged = privileged;
+    uml_driver->inhibitCallback = callback;
+    uml_driver->inhibitOpaque = opaque;
 
     if (virMutexInit(&uml_driver->lock) < 0) {
         VIR_FREE(uml_driver);
@@ -455,7 +464,7 @@ umlStartup(int privileged)
                         "%s/log/libvirt/uml", LOCALSTATEDIR) == -1)
             goto out_of_memory;
 
-        if ((base = strdup (SYSCONFDIR "/libvirt")) == NULL)
+        if ((base = strdup(SYSCONFDIR "/libvirt")) == NULL)
             goto out_of_memory;
 
         if (virAsprintf(&uml_driver->monitorDir,
@@ -500,7 +509,8 @@ umlStartup(int privileged)
     if (virFileMakePath(uml_driver->monitorDir) < 0) {
         char ebuf[1024];
         VIR_ERROR(_("Failed to create monitor directory %s: %s"),
-                  uml_driver->monitorDir, virStrerror(errno, ebuf, sizeof(ebuf)));
+                  uml_driver->monitorDir,
+                  virStrerror(errno, ebuf, sizeof(ebuf)));
         goto error;
     }
 
@@ -508,6 +518,10 @@ umlStartup(int privileged)
     if (inotify_add_watch(uml_driver->inotifyFD,
                           uml_driver->monitorDir,
                           IN_CREATE | IN_MODIFY | IN_DELETE) < 0) {
+        char ebuf[1024];
+        VIR_ERROR(_("Failed to create inotify watch on %s: %s"),
+                  uml_driver->monitorDir,
+                  virStrerror(errno, ebuf, sizeof(ebuf)));
         goto error;
     }
 
@@ -585,27 +599,6 @@ umlReload(void) {
     return 0;
 }
 
-/**
- * umlActive:
- *
- * Checks if the Uml daemon is active, i.e. has an active domain or
- * an active network
- *
- * Returns 1 if active, 0 otherwise
- */
-static int
-umlActive(void) {
-    int active = 0;
-
-    if (!uml_driver)
-        return 0;
-
-    umlDriverLock(uml_driver);
-    active = virDomainObjListNumOfDomains(&uml_driver->domains, 1);
-    umlDriverUnlock(uml_driver);
-
-    return active;
-}
 
 static void
 umlShutdownOneVM(void *payload, const void *name ATTRIBUTE_UNUSED, void *opaque)
@@ -1154,6 +1147,10 @@ static void umlShutdownVMDaemon(struct uml_driver *driver,
         vm->def->id = -1;
         vm->newDef = NULL;
     }
+
+    driver->nactive--;
+    if (!driver->nactive && driver->inhibitCallback)
+        driver->inhibitCallback(false, driver->inhibitOpaque);
 }
 
 
@@ -1173,7 +1170,7 @@ static virDrvOpenStatus umlOpen(virConnectPtr conn,
             return VIR_DRV_OPEN_ERROR;
     } else {
         if (conn->uri->scheme == NULL ||
-            STRNEQ (conn->uri->scheme, "uml"))
+            STRNEQ(conn->uri->scheme, "uml"))
             return VIR_DRV_OPEN_DECLINED;
 
         /* Allow remote driver to deal with URIs with hostname server */
@@ -1183,15 +1180,15 @@ static virDrvOpenStatus umlOpen(virConnectPtr conn,
 
         /* Check path and tell them correct path if they made a mistake */
         if (uml_driver->privileged) {
-            if (STRNEQ (conn->uri->path, "/system") &&
-                STRNEQ (conn->uri->path, "/session")) {
+            if (STRNEQ(conn->uri->path, "/system") &&
+                STRNEQ(conn->uri->path, "/session")) {
                 virReportError(VIR_ERR_INTERNAL_ERROR,
                                _("unexpected UML URI path '%s', try uml:///system"),
                                conn->uri->path);
                 return VIR_DRV_OPEN_ERROR;
             }
         } else {
-            if (STRNEQ (conn->uri->path, "/session")) {
+            if (STRNEQ(conn->uri->path, "/session")) {
                 virReportError(VIR_ERR_INTERNAL_ERROR,
                                _("unexpected UML URI path '%s', try uml:///session"),
                                conn->uri->path);
@@ -2634,7 +2631,6 @@ static virStateDriver umlStateDriver = {
     .initialize = umlStartup,
     .cleanup = umlShutdown,
     .reload = umlReload,
-    .active = umlActive,
 };
 
 int umlRegister(void) {

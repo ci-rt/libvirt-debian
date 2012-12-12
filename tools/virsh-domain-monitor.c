@@ -223,6 +223,8 @@ vshDomainStateReasonToString(int state, int reason)
             return N_("from snapshot");
         case VIR_DOMAIN_PAUSED_SHUTTING_DOWN:
             return N_("shutting down");
+        case VIR_DOMAIN_PAUSED_SNAPSHOT:
+            return N_("creating snapshot");
         case VIR_DOMAIN_PAUSED_UNKNOWN:
         case VIR_DOMAIN_PAUSED_LAST:
             ;
@@ -1132,7 +1134,7 @@ cmdDominfo(vshControl *ctl, const vshCmd *cmd)
     /* Check and display whether the domain autostarts or not */
     if (!virDomainGetAutostart(dom, &autostart)) {
         vshPrint(ctl, "%-15s %s\n", _("Autostart:"),
-                 autostart ? _("enable") : _("disable") );
+                 autostart ? _("enable") : _("disable"));
     }
 
     has_managed_save = virDomainHasManagedSaveImage(dom, 0);

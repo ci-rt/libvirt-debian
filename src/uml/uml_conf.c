@@ -53,7 +53,8 @@
 #define VIR_FROM_THIS VIR_FROM_UML
 
 
-static int umlDefaultConsoleType(const char *ostype ATTRIBUTE_UNUSED)
+static int umlDefaultConsoleType(const char *ostype ATTRIBUTE_UNUSED,
+                                 const char *arch ATTRIBUTE_UNUSED)
 {
     return VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_UML;
 }
@@ -65,7 +66,7 @@ virCapsPtr umlCapsInit(void) {
     virCapsGuestPtr guest;
 
     /* Really, this never fails - look at the man-page. */
-    uname (&utsname);
+    uname(&utsname);
 
     if ((caps = virCapabilitiesNew(utsname.machine,
                                    0, 0)) == NULL)

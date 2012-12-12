@@ -15,6 +15,7 @@ Cole Robinson <crobinso@redhat.com>
 Daniel Berrange <berrange@redhat.com>
 Daniel Veillard <veillard@redhat.com>
 Dave Allan <dallan@redhat.com>
+Doug Goldstein <cardoe@gentoo.org>
 Eric Blake <eblake@redhat.com>
 Guido Günther <agx@sigxcpu.org>
 Jim Fehlig <jfehlig@suse.com>
@@ -91,6 +92,7 @@ Asad Saeed <asad.saeed.com>
 Ata E Husain Bohra <ata.husain.com>
 Atsushi SAKAI <sakaia.fujitsu.com>
 Aurelien Rougemont <beorn.fr>
+Bamvor Jian Zhang <bjzhang.com>
 Beat Jörg <Beat.Joerg.ch>
 Benjamin Cama <benoar.fr>
 Bharata B Rao <bharata.vnet.ibm.com>
@@ -222,6 +224,7 @@ Miloslav Trmač <mitr.com>
 Minoru Usui <usui.nes.nec.co.jp>
 Nan Zhang <nzhang.com>
 Naoya Horiguchi <n-horiguchi.jp.nec.com>
+Natanael Copa <ncopa.org>
 Neil Wilson <neil.co.uk>
 Nguyen Anh Quynh <aquynh.com>
 Niels de Vos <ndevos.com>
@@ -263,8 +266,10 @@ Sage Weil <sage.net>
 Sascha Peilicke <saschpe.de>
 Satoru SATOH <satoru.satoh.com>
 Scott Moser <smoser.com>
+Scott Sullivan <ssullivan.com>
 Sebastian Wiedenroth <wiedi.net>
 Serge E. Hallyn <serge.hallyn.com>
+Serge Hallyn <serge.hallyn.com>
 Shahar Klein <shaharklein.com>
 Sharadha Prabhakar <sharadha.prabhakar.com>
 Shradha Shah <sshah.com>
@@ -293,6 +298,7 @@ Tom Vijlbrief <tom.vijlbrief.nl>
 Tyler Coumbes <coumbes.com>
 Viktor Mihajlovski <mihajlov.vnet.ibm.com>
 Vladislav Bogdanov <bubble-ok.com>
+Václav Pavlín <vpavlin.com>
 Wen Congyang <wency.fujitsu.com>
 Wido den Hollander <wido.nl>
 Wieland Hoffmann <themineo.com>

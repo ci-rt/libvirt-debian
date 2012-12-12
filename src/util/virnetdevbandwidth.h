@@ -24,12 +24,14 @@
 # define __VIR_NETDEV_BANDWIDTH_H__
 
 # include "internal.h"
+# include "virmacaddr.h"
 
 typedef struct _virNetDevBandwidthRate virNetDevBandwidthRate;
 typedef virNetDevBandwidthRate *virNetDevBandwidthRatePtr;
 struct _virNetDevBandwidthRate {
     unsigned long long average;  /* kbytes/s */
     unsigned long long peak;     /* kbytes/s */
+    unsigned long long floor;    /* kbytes/s */
     unsigned long long burst;    /* kbytes */
 };
 
@@ -41,7 +43,9 @@ struct _virNetDevBandwidth {
 
 void virNetDevBandwidthFree(virNetDevBandwidthPtr def);
 
-int virNetDevBandwidthSet(const char *ifname, virNetDevBandwidthPtr bandwidth)
+int virNetDevBandwidthSet(const char *ifname,
+                          virNetDevBandwidthPtr bandwidth,
+                          bool hierarchical_class)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_RETURN_CHECK;
 int virNetDevBandwidthClear(const char *ifname)
     ATTRIBUTE_NONNULL(1);
@@ -50,4 +54,23 @@ int virNetDevBandwidthCopy(virNetDevBandwidthPtr *dest, const virNetDevBandwidth
 
 bool virNetDevBandwidthEqual(virNetDevBandwidthPtr a, virNetDevBandwidthPtr b);
 
+int virNetDevBandwidthPlug(const char *brname,
+                           virNetDevBandwidthPtr net_bandwidth,
+                           const virMacAddrPtr ifmac_ptr,
+                           virNetDevBandwidthPtr bandwidth,
+                           unsigned int id)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2)
+    ATTRIBUTE_NONNULL(3) ATTRIBUTE_NONNULL(4)
+    ATTRIBUTE_RETURN_CHECK;
+
+int virNetDevBandwidthUnplug(const char *brname,
+                             unsigned int id)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_RETURN_CHECK;
+
+int virNetDevBandwidthUpdateRate(const char *ifname,
+                                 const char *class_id,
+                                 virNetDevBandwidthPtr bandwidth,
+                                 unsigned long long new_rate)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2)
+    ATTRIBUTE_RETURN_CHECK;
 #endif /* __VIR_NETDEV_BANDWIDTH_H__ */

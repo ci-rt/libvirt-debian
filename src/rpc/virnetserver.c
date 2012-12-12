@@ -37,6 +37,7 @@
 #include "virfile.h"
 #include "event.h"
 #include "virnetservermdns.h"
+#include "virdbus.h"
 
 #ifndef SA_SIGINFO
 # define SA_SIGINFO 0
@@ -101,8 +102,9 @@ struct _virNetServer {
     virNetTLSContextPtr tls;
 
     unsigned int autoShutdownTimeout;
-    virNetServerAutoShutdownFunc autoShutdownFunc;
-    void *autoShutdownOpaque;
+    size_t autoShutdownInhibitions;
+    bool autoShutdownCallingInhibit;
+    int autoShutdownInhibitFd;
 
     virNetServerClientPrivNew clientPrivNew;
     virNetServerClientPrivPreExecRestart clientPrivPreExecRestart;
@@ -391,7 +393,8 @@ virNetServerPtr virNetServerNew(size_t min_workers,
     srv->clientPrivPreExecRestart = clientPrivPreExecRestart;
     srv->clientPrivFree = clientPrivFree;
     srv->clientPrivOpaque = clientPrivOpaque;
-    srv->privileged = geteuid() == 0 ? true : false;
+    srv->privileged = geteuid() == 0;
+    srv->autoShutdownInhibitFd = -1;
 
     if (mdnsGroupName &&
         !(srv->mdnsGroupName = strdup(mdnsGroupName))) {
@@ -707,18 +710,132 @@ bool virNetServerIsPrivileged(virNetServerPtr srv)
 
 
 void virNetServerAutoShutdown(virNetServerPtr srv,
-                              unsigned int timeout,
-                              virNetServerAutoShutdownFunc func,
-                              void *opaque)
+                              unsigned int timeout)
 {
     virNetServerLock(srv);
 
     srv->autoShutdownTimeout = timeout;
-    srv->autoShutdownFunc = func;
-    srv->autoShutdownOpaque = opaque;
 
     virNetServerUnlock(srv);
 }
+
+
+#if defined(HAVE_DBUS) && defined(DBUS_TYPE_UNIX_FD)
+static void virNetServerGotInhibitReply(DBusPendingCall *pending,
+                                        void *opaque)
+{
+    virNetServerPtr srv = opaque;
+    DBusMessage *reply;
+    int fd;
+
+    virNetServerLock(srv);
+    srv->autoShutdownCallingInhibit = false;
+
+    VIR_DEBUG("srv=%p", srv);
+
+    reply = dbus_pending_call_steal_reply(pending);
+    if (reply == NULL)
+        goto cleanup;
+
+    if (dbus_message_get_args(reply, NULL,
+                              DBUS_TYPE_UNIX_FD, &fd,
+                              DBUS_TYPE_INVALID)) {
+        if (srv->autoShutdownInhibitions) {
+            srv->autoShutdownInhibitFd = fd;
+        } else {
+            /* We stopped the last VM since we made the inhibit call */
+            VIR_FORCE_CLOSE(fd);
+        }
+    }
+    dbus_message_unref(reply);
+
+cleanup:
+    virNetServerUnlock(srv);
+}
+
+
+/* As per: http://www.freedesktop.org/wiki/Software/systemd/inhibit */
+static void virNetServerCallInhibit(virNetServerPtr srv,
+                                    const char *what,
+                                    const char *who,
+                                    const char *why,
+                                    const char *mode)
+{
+    DBusMessage *message;
+    DBusPendingCall *pendingReply;
+    DBusConnection *systemBus;
+
+    VIR_DEBUG("srv=%p what=%s who=%s why=%s mode=%s",
+              srv, NULLSTR(what), NULLSTR(who), NULLSTR(why), NULLSTR(mode));
+
+    if (!(systemBus = virDBusGetSystemBus()))
+        return;
+
+    /* Only one outstanding call at a time */
+    if (srv->autoShutdownCallingInhibit)
+        return;
+
+    message = dbus_message_new_method_call("org.freedesktop.login1",
+                                           "/org/freedesktop/login1",
+                                           "org.freedesktop.login1.Manager",
+                                           "Inhibit");
+    if (message == NULL)
+        return;
+
+    dbus_message_append_args(message,
+                             DBUS_TYPE_STRING, &what,
+                             DBUS_TYPE_STRING, &who,
+                             DBUS_TYPE_STRING, &why,
+                             DBUS_TYPE_STRING, &mode,
+                             DBUS_TYPE_INVALID);
+
+    pendingReply = NULL;
+    if (dbus_connection_send_with_reply(systemBus, message,
+                                        &pendingReply,
+                                        25*1000)) {
+        dbus_pending_call_set_notify(pendingReply,
+                                     virNetServerGotInhibitReply,
+                                     srv, NULL);
+        srv->autoShutdownCallingInhibit = true;
+    }
+    dbus_message_unref(message);
+}
+#endif
+
+void virNetServerAddShutdownInhibition(virNetServerPtr srv)
+{
+    virNetServerLock(srv);
+    srv->autoShutdownInhibitions++;
+
+    VIR_DEBUG("srv=%p inhibitions=%zu", srv, srv->autoShutdownInhibitions);
+
+#if defined(HAVE_DBUS) && defined(DBUS_TYPE_UNIX_FD)
+    if (srv->autoShutdownInhibitions == 1)
+        virNetServerCallInhibit(srv,
+                                "shutdown",
+                                _("Libvirt"),
+                                _("Virtual machines need to be saved"),
+                                "delay");
+#endif
+
+    virNetServerUnlock(srv);
+}
+
+
+void virNetServerRemoveShutdownInhibition(virNetServerPtr srv)
+{
+    virNetServerLock(srv);
+    srv->autoShutdownInhibitions--;
+
+    VIR_DEBUG("srv=%p inhibitions=%zu", srv, srv->autoShutdownInhibitions);
+
+    if (srv->autoShutdownInhibitions == 0)
+        VIR_FORCE_CLOSE(srv->autoShutdownInhibitFd);
+
+    virNetServerUnlock(srv);
+}
+
+
 
 static sig_atomic_t sigErrors = 0;
 static int sigLastErrno = 0;
@@ -932,7 +1049,7 @@ static void virNetServerAutoShutdownTimer(int timerid ATTRIBUTE_UNUSED,
 
     virNetServerLock(srv);
 
-    if (srv->autoShutdownFunc(srv, srv->autoShutdownOpaque)) {
+    if (!srv->autoShutdownInhibitions) {
         VIR_DEBUG("Automatic shutdown triggered");
         srv->quit = 1;
     }
@@ -1051,6 +1168,8 @@ void virNetServerDispose(void *obj)
 {
     virNetServerPtr srv = obj;
     int i;
+
+    VIR_FORCE_CLOSE(srv->autoShutdownInhibitFd);
 
     for (i = 0 ; i < srv->nservices ; i++)
         virNetServerServiceToggle(srv->services[i], false);

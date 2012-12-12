@@ -5,6 +5,9 @@
            else if (STREQ(type, "AutoStartWaitHeartbeatSetting")) {
                return esxVI_Type_AutoStartWaitHeartbeatSetting;
            }
+           else if (STREQ(type, "FibreChannelPortType")) {
+               return esxVI_Type_FibreChannelPortType;
+           }
            else if (STREQ(type, "ManagedEntityStatus")) {
                return esxVI_Type_ManagedEntityStatus;
            }
@@ -69,6 +72,9 @@
            else if (STREQ(type, "EventArgument")) {
                return esxVI_Type_EventArgument;
            }
+           else if (STREQ(type, "ExtendedElementDescription")) {
+               return esxVI_Type_ExtendedElementDescription;
+           }
            else if (STREQ(type, "FileBackedVirtualDiskSpec")) {
                return esxVI_Type_FileBackedVirtualDiskSpec;
            }
@@ -96,6 +102,12 @@
            else if (STREQ(type, "HostAutoStartManagerConfig")) {
                return esxVI_Type_HostAutoStartManagerConfig;
            }
+           else if (STREQ(type, "HostBlockAdapterTargetTransport")) {
+               return esxVI_Type_HostBlockAdapterTargetTransport;
+           }
+           else if (STREQ(type, "HostBlockHba")) {
+               return esxVI_Type_HostBlockHba;
+           }
            else if (STREQ(type, "HostConfigManager")) {
                return esxVI_Type_HostConfigManager;
            }
@@ -108,8 +120,62 @@
            else if (STREQ(type, "HostDatastoreBrowserSearchSpec")) {
                return esxVI_Type_HostDatastoreBrowserSearchSpec;
            }
+           else if (STREQ(type, "HostDevice")) {
+               return esxVI_Type_HostDevice;
+           }
+           else if (STREQ(type, "HostDiskDimensionsLba")) {
+               return esxVI_Type_HostDiskDimensionsLba;
+           }
+           else if (STREQ(type, "HostFibreChannelHba")) {
+               return esxVI_Type_HostFibreChannelHba;
+           }
+           else if (STREQ(type, "HostFibreChannelTargetTransport")) {
+               return esxVI_Type_HostFibreChannelTargetTransport;
+           }
            else if (STREQ(type, "HostFileSystemVolume")) {
                return esxVI_Type_HostFileSystemVolume;
+           }
+           else if (STREQ(type, "HostHostBusAdapter")) {
+               return esxVI_Type_HostHostBusAdapter;
+           }
+           else if (STREQ(type, "HostInternetScsiHba")) {
+               return esxVI_Type_HostInternetScsiHba;
+           }
+           else if (STREQ(type, "HostInternetScsiHbaAuthenticationCapabilities")) {
+               return esxVI_Type_HostInternetScsiHbaAuthenticationCapabilities;
+           }
+           else if (STREQ(type, "HostInternetScsiHbaAuthenticationProperties")) {
+               return esxVI_Type_HostInternetScsiHbaAuthenticationProperties;
+           }
+           else if (STREQ(type, "HostInternetScsiHbaDigestCapabilities")) {
+               return esxVI_Type_HostInternetScsiHbaDigestCapabilities;
+           }
+           else if (STREQ(type, "HostInternetScsiHbaDigestProperties")) {
+               return esxVI_Type_HostInternetScsiHbaDigestProperties;
+           }
+           else if (STREQ(type, "HostInternetScsiHbaDiscoveryCapabilities")) {
+               return esxVI_Type_HostInternetScsiHbaDiscoveryCapabilities;
+           }
+           else if (STREQ(type, "HostInternetScsiHbaDiscoveryProperties")) {
+               return esxVI_Type_HostInternetScsiHbaDiscoveryProperties;
+           }
+           else if (STREQ(type, "HostInternetScsiHbaIPCapabilities")) {
+               return esxVI_Type_HostInternetScsiHbaIPCapabilities;
+           }
+           else if (STREQ(type, "HostInternetScsiHbaIPProperties")) {
+               return esxVI_Type_HostInternetScsiHbaIPProperties;
+           }
+           else if (STREQ(type, "HostInternetScsiHbaParamValue")) {
+               return esxVI_Type_HostInternetScsiHbaParamValue;
+           }
+           else if (STREQ(type, "HostInternetScsiHbaSendTarget")) {
+               return esxVI_Type_HostInternetScsiHbaSendTarget;
+           }
+           else if (STREQ(type, "HostInternetScsiHbaStaticTarget")) {
+               return esxVI_Type_HostInternetScsiHbaStaticTarget;
+           }
+           else if (STREQ(type, "HostInternetScsiTargetTransport")) {
+               return esxVI_Type_HostInternetScsiTargetTransport;
            }
            else if (STREQ(type, "HostIpConfig")) {
                return esxVI_Type_HostIpConfig;
@@ -141,6 +207,12 @@
            else if (STREQ(type, "HostNicTeamingPolicy")) {
                return esxVI_Type_HostNicTeamingPolicy;
            }
+           else if (STREQ(type, "HostParallelScsiHba")) {
+               return esxVI_Type_HostParallelScsiHba;
+           }
+           else if (STREQ(type, "HostParallelScsiTargetTransport")) {
+               return esxVI_Type_HostParallelScsiTargetTransport;
+           }
            else if (STREQ(type, "HostPortGroup")) {
                return esxVI_Type_HostPortGroup;
            }
@@ -150,8 +222,23 @@
            else if (STREQ(type, "HostPortGroupSpec")) {
                return esxVI_Type_HostPortGroupSpec;
            }
+           else if (STREQ(type, "HostScsiDisk")) {
+               return esxVI_Type_HostScsiDisk;
+           }
            else if (STREQ(type, "HostScsiDiskPartition")) {
                return esxVI_Type_HostScsiDiskPartition;
+           }
+           else if (STREQ(type, "HostScsiTopologyInterface")) {
+               return esxVI_Type_HostScsiTopologyInterface;
+           }
+           else if (STREQ(type, "HostScsiTopologyLun")) {
+               return esxVI_Type_HostScsiTopologyLun;
+           }
+           else if (STREQ(type, "HostScsiTopologyTarget")) {
+               return esxVI_Type_HostScsiTopologyTarget;
+           }
+           else if (STREQ(type, "HostTargetTransport")) {
+               return esxVI_Type_HostTargetTransport;
            }
            else if (STREQ(type, "HostVirtualSwitch")) {
                return esxVI_Type_HostVirtualSwitch;
@@ -183,6 +270,9 @@
            else if (STREQ(type, "IsoImageFileQuery")) {
                return esxVI_Type_IsoImageFileQuery;
            }
+           else if (STREQ(type, "KeyAnyValue")) {
+               return esxVI_Type_KeyAnyValue;
+           }
            else if (STREQ(type, "LocalDatastoreInfo")) {
                return esxVI_Type_LocalDatastoreInfo;
            }
@@ -203,6 +293,9 @@
            }
            else if (STREQ(type, "OptionType")) {
                return esxVI_Type_OptionType;
+           }
+           else if (STREQ(type, "OptionValue")) {
+               return esxVI_Type_OptionValue;
            }
            else if (STREQ(type, "PerfCounterInfo")) {
                return esxVI_Type_PerfCounterInfo;
@@ -254,6 +347,18 @@
            }
            else if (STREQ(type, "ResourcePoolResourceUsage")) {
                return esxVI_Type_ResourcePoolResourceUsage;
+           }
+           else if (STREQ(type, "ScsiLun")) {
+               return esxVI_Type_ScsiLun;
+           }
+           else if (STREQ(type, "ScsiLunCapabilities")) {
+               return esxVI_Type_ScsiLunCapabilities;
+           }
+           else if (STREQ(type, "ScsiLunDescriptor")) {
+               return esxVI_Type_ScsiLunDescriptor;
+           }
+           else if (STREQ(type, "ScsiLunDurableName")) {
+               return esxVI_Type_ScsiLunDurableName;
            }
            else if (STREQ(type, "SelectionSpec")) {
                return esxVI_Type_SelectionSpec;

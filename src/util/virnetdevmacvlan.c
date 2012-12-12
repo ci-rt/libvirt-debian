@@ -176,8 +176,8 @@ virNetDevMacVLanCreate(const char *ifname,
 
         default:
             virReportSystemError(-err->error,
-                                 _("error creating %s type of interface"),
-                                 type);
+                                 _("error creating %s type of interface attach to %s"),
+                                 type, srcdev);
             goto cleanup;
         }
         break;
@@ -925,7 +925,7 @@ create_name:
         rc = 0;
     }
 
-    if (virNetDevBandwidthSet(cr_ifname, bandwidth) < 0) {
+    if (virNetDevBandwidthSet(cr_ifname, bandwidth, false) < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("cannot set bandwidth limits on %s"),
                        cr_ifname);
@@ -945,7 +945,7 @@ create_name:
         if (virNetDevMacVLanVPortProfileRegisterCallback(cr_ifname, macaddress,
                                                          linkdev, vmuuid,
                                                          virtPortProfile,
-                                                         vmOp) < 0 )
+                                                         vmOp) < 0)
         goto disassociate_exit;
     }
 
