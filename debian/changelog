@@ -1,3 +1,16 @@
+libvirt (1.0.1~rc1-1) experimental; urgency=low
+
+  * [dca42fb] Rely on DBus activation for hal (Closes: #694020)
+  * [cbb8fd5] Disable firewalld since this would make us hard depend on DBus
+  * [751c235] New upstream version 1.0.1~rc1
+  * [f672206] Update patches
+  * [a6fae3d] Define SANLK_INQ_WAIT if missing in headers
+  * [50956c7] libvirt-guests init script moved
+    for better systemd integration
+  * [a05c9c7] Update symbols
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 13 Dec 2012 18:54:12 +0100
+
 libvirt (1.0.0-1) experimental; urgency=low
 
   * [f5c8dae] New upstream version 1.0.0
