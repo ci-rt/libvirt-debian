@@ -1,0 +1,23 @@
+From: =?UTF-8?q?Guido=20G=C3=BCnther?= <agx@sigxcpu.org>
+Date: Thu, 13 Dec 2012 17:21:54 +0100
+Subject: Define SANLK_INQ_WAIT if missing in headers
+
+so we can build with older sanlock (like 2.2)
+---
+ src/locking/lock_driver_sanlock.c |    3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/src/locking/lock_driver_sanlock.c b/src/locking/lock_driver_sanlock.c
+index 430e11e..84f81ec 100644
+--- a/src/locking/lock_driver_sanlock.c
++++ b/src/locking/lock_driver_sanlock.c
+@@ -338,6 +338,9 @@ retry:
+     if ((rv = sanlock_add_lockspace(&ls, 0)) < 0) {
+         if (-rv == EINPROGRESS) {
+ #ifdef HAVE_SANLOCK_INQ_LOCKSPACE
++#  ifndef SANLK_INQ_WAIT
++#    define SANLK_INQ_WAIT 0x00000001
++#  endif
+             /* we have this function which blocks until lockspace change the
+              * state. It returns 0 if lockspace has been added, -ENOENT if it
+              * hasn't. XXX should we goto retry? */
