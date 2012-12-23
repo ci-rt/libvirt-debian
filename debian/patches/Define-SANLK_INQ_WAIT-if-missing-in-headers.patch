@@ -8,16 +8,16 @@ so we can build with older sanlock (like 2.2)
  1 file changed, 3 insertions(+)
 
 diff --git a/src/locking/lock_driver_sanlock.c b/src/locking/lock_driver_sanlock.c
-index 430e11e..84f81ec 100644
+index a072343..fe3a52f 100644
 --- a/src/locking/lock_driver_sanlock.c
 +++ b/src/locking/lock_driver_sanlock.c
-@@ -338,6 +338,9 @@ retry:
+@@ -334,6 +334,9 @@ retry:
      if ((rv = sanlock_add_lockspace(&ls, 0)) < 0) {
-         if (-rv == EINPROGRESS) {
+         if (-rv == EINPROGRESS && --retries) {
  #ifdef HAVE_SANLOCK_INQ_LOCKSPACE
 +#  ifndef SANLK_INQ_WAIT
 +#    define SANLK_INQ_WAIT 0x00000001
 +#  endif
              /* we have this function which blocks until lockspace change the
               * state. It returns 0 if lockspace has been added, -ENOENT if it
-              * hasn't. XXX should we goto retry? */
+              * hasn't. */
