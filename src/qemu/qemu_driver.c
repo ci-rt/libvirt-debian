@@ -187,11 +187,20 @@ struct qemuAutostartData {
     virConnectPtr conn;
 };
 
-
-/* Looks up the domain object and unlocks the driver. The returned domain
- * object is locked and the caller is responsible for unlocking it. */
+/**
+ * qemuDomObjFromDomainDriver:
+ * @domain: Domain pointer that has to be looked up
+ * @drv: Pointer to virQEMUDriverPtr to return the driver object
+ *
+ * This function looks up @domain in the domain list and returns the
+ * appropriate virDomainObjPtr. On successful lookup, both driver and domain
+ * object are returned locked.
+ *
+ * Returns the domain object if it's found and the driver. Both are locked.
+ * In case of failure NULL is returned and the driver isn't locked.
+ */
 static virDomainObjPtr
-qemuDomObjFromDomain(virDomainPtr domain)
+qemuDomObjFromDomainDriver(virDomainPtr domain, virQEMUDriverPtr *drv)
 {
     virQEMUDriverPtr driver = domain->conn->privateData;
     virDomainObjPtr vm;
@@ -199,16 +208,42 @@ qemuDomObjFromDomain(virDomainPtr domain)
 
     qemuDriverLock(driver);
     vm = virDomainFindByUUID(&driver->domains, domain->uuid);
-    qemuDriverUnlock(driver);
     if (!vm) {
         virUUIDFormat(domain->uuid, uuidstr);
         virReportError(VIR_ERR_NO_DOMAIN,
                        _("no domain with matching uuid '%s'"), uuidstr);
+        qemuDriverUnlock(driver);
+        *drv = NULL;
+        return NULL;
     }
 
+    *drv = driver;
     return vm;
 }
 
+/**
+ * qemuDomObjFromDomain:
+ * @domain: Domain pointer that has to be looked up
+ *
+ * This function looks up @domain and returns the appropriate
+ * virDomainObjPtr. The driver is unlocked after the call.
+ *
+ * Returns the domain object which is locked on success, NULL
+ * otherwise. The driver remains unlocked after the call.
+ */
+static virDomainObjPtr
+qemuDomObjFromDomain(virDomainPtr domain)
+{
+    virDomainObjPtr vm;
+    virQEMUDriverPtr driver;
+
+    if (!(vm = qemuDomObjFromDomainDriver(domain, &driver)))
+        return NULL;
+
+    qemuDriverUnlock(driver);
+
+    return vm;
+}
 
 /* Looks up the domain object from snapshot and unlocks the driver. The
  * returned domain object is locked and the caller is responsible for
@@ -614,7 +649,7 @@ qemuStartup(bool privileged,
             virStateInhibitCallback callback,
             void *opaque)
 {
-    char *base = NULL;
+    char *base;
     char *driverConf = NULL;
     int rc;
     virConnectPtr conn = NULL;
@@ -657,8 +692,9 @@ qemuStartup(bool privileged,
                         "%s/log/libvirt/qemu", LOCALSTATEDIR) == -1)
             goto out_of_memory;
 
-        if ((base = strdup(SYSCONFDIR "/libvirt")) == NULL)
+        if ((qemu_driver->configBaseDir = strdup(SYSCONFDIR "/libvirt")) == NULL)
             goto out_of_memory;
+        base = qemu_driver->configBaseDir;
 
         if (virAsprintf(&qemu_driver->stateDir,
                       "%s/run/libvirt/qemu", LOCALSTATEDIR) == -1)
@@ -708,9 +744,9 @@ qemuStartup(bool privileged,
         }
         VIR_FREE(rundir);
 
-        base = virGetUserConfigDirectory();
-        if (!base)
+        if (!(qemu_driver->configBaseDir = virGetUserConfigDirectory()))
             goto error;
+        base = qemu_driver->configBaseDir;
         if (virAsprintf(&qemu_driver->libDir, "%s/qemu/lib", base) == -1)
             goto out_of_memory;
         if (virAsprintf(&qemu_driver->saveDir, "%s/qemu/save", base) == -1)
@@ -759,8 +795,6 @@ qemuStartup(bool privileged,
         virAsprintf(&qemu_driver->configDir, "%s/qemu", base) < 0 ||
         virAsprintf(&qemu_driver->autostartDir, "%s/qemu/autostart", base) < 0)
         goto out_of_memory;
-
-    VIR_FREE(base);
 
     rc = virCgroupForDriver("qemu", &qemu_driver->cgroup, privileged, 1);
     if (rc < 0) {
@@ -934,7 +968,6 @@ error:
         qemuDriverUnlock(qemu_driver);
     if (conn)
         virConnectClose(conn);
-    VIR_FREE(base);
     VIR_FREE(driverConf);
     VIR_FREE(membase);
     VIR_FREE(mempath);
@@ -1074,6 +1107,7 @@ qemuShutdown(void) {
 
     qemuDriverCloseCallbackShutdown(qemu_driver);
 
+    VIR_FREE(qemu_driver->configBaseDir);
     VIR_FREE(qemu_driver->configDir);
     VIR_FREE(qemu_driver->autostartDir);
     VIR_FREE(qemu_driver->logDir);
@@ -3189,7 +3223,8 @@ qemuDomainSave(virDomainPtr dom, const char *path)
 }
 
 static char *
-qemuDomainManagedSavePath(virQEMUDriverPtr driver, virDomainObjPtr vm) {
+qemuDomainManagedSavePath(virQEMUDriverPtr driver, virDomainObjPtr vm)
+{
     char *ret;
 
     if (virAsprintf(&ret, "%s/%s.save", driver->saveDir, vm->def->name) < 0) {
@@ -3203,8 +3238,8 @@ qemuDomainManagedSavePath(virQEMUDriverPtr driver, virDomainObjPtr vm) {
 static int
 qemuDomainManagedSave(virDomainPtr dom, unsigned int flags)
 {
-    virQEMUDriverPtr driver = dom->conn->privateData;
-    virDomainObjPtr vm = NULL;
+    virQEMUDriverPtr driver;
+    virDomainObjPtr vm;
     char *name = NULL;
     int ret = -1;
     int compressed;
@@ -3213,15 +3248,8 @@ qemuDomainManagedSave(virDomainPtr dom, unsigned int flags)
                   VIR_DOMAIN_SAVE_RUNNING |
                   VIR_DOMAIN_SAVE_PAUSED, -1);
 
-    qemuDriverLock(driver);
-    vm = virDomainFindByUUID(&driver->domains, dom->uuid);
-    if (!vm) {
-        char uuidstr[VIR_UUID_STRING_BUFLEN];
-        virUUIDFormat(dom->uuid, uuidstr);
-        virReportError(VIR_ERR_NO_DOMAIN,
-                       _("no domain with matching uuid '%s'"), uuidstr);
-        goto cleanup;
-    }
+    if (!(vm = qemuDomObjFromDomainDriver(dom, &driver)))
+        return -1;
 
     if (!virDomainObjIsActive(vm)) {
         virReportError(VIR_ERR_OPERATION_INVALID,
@@ -3234,8 +3262,7 @@ qemuDomainManagedSave(virDomainPtr dom, unsigned int flags)
         goto cleanup;
     }
 
-    name = qemuDomainManagedSavePath(driver, vm);
-    if (name == NULL)
+    if (!(name = qemuDomainManagedSavePath(driver, vm)))
         goto cleanup;
 
     VIR_INFO("Saving state to %s", name);
@@ -3280,62 +3307,48 @@ cleanup:
 static int
 qemuDomainHasManagedSaveImage(virDomainPtr dom, unsigned int flags)
 {
-    virQEMUDriverPtr driver = dom->conn->privateData;
     virDomainObjPtr vm = NULL;
-    int ret = -1;
+    int ret;
 
     virCheckFlags(0, -1);
 
-    qemuDriverLock(driver);
-    vm = virDomainFindByUUID(&driver->domains, dom->uuid);
-    if (!vm) {
-        char uuidstr[VIR_UUID_STRING_BUFLEN];
-        virUUIDFormat(dom->uuid, uuidstr);
-        virReportError(VIR_ERR_NO_DOMAIN,
-                       _("no domain with matching uuid '%s'"), uuidstr);
-        goto cleanup;
-    }
+    if (!(vm = qemuDomObjFromDomain(dom)))
+        return -1;
 
     ret = vm->hasManagedSave;
-
-cleanup:
-    if (vm)
-        virDomainObjUnlock(vm);
-    qemuDriverUnlock(driver);
+    virDomainObjUnlock(vm);
     return ret;
 }
 
 static int
 qemuDomainManagedSaveRemove(virDomainPtr dom, unsigned int flags)
 {
-    virQEMUDriverPtr driver = dom->conn->privateData;
-    virDomainObjPtr vm = NULL;
+    virQEMUDriverPtr driver;
+    virDomainObjPtr vm;
     int ret = -1;
     char *name = NULL;
 
     virCheckFlags(0, -1);
 
-    qemuDriverLock(driver);
-    vm = virDomainFindByUUID(&driver->domains, dom->uuid);
-    if (!vm) {
-        char uuidstr[VIR_UUID_STRING_BUFLEN];
-        virUUIDFormat(dom->uuid, uuidstr);
-        virReportError(VIR_ERR_NO_DOMAIN,
-                       _("no domain with matching uuid '%s'"), uuidstr);
+    if (!(vm = qemuDomObjFromDomainDriver(dom, &driver)))
+        return -1;
+
+    if (!(name = qemuDomainManagedSavePath(driver, vm)))
+        goto cleanup;
+
+    if (unlink(name) < 0) {
+        virReportSystemError(errno,
+                             _("Failed to remove managed save file '%s'"),
+                             name);
         goto cleanup;
     }
 
-    name = qemuDomainManagedSavePath(driver, vm);
-    if (name == NULL)
-        goto cleanup;
-
-    ret = unlink(name);
     vm->hasManagedSave = false;
+    ret = 0;
 
 cleanup:
     VIR_FREE(name);
-    if (vm)
-        virDomainObjUnlock(vm);
+    virDomainObjUnlock(vm);
     qemuDriverUnlock(driver);
     return ret;
 }
@@ -8885,7 +8898,7 @@ cleanup:
 }
 #else
 static int
-qemuDomainInterfaceStats(virDomainPtr dom,
+qemuDomainInterfaceStats(virDomainPtr dom ATTRIBUTE_UNUSED,
                          const char *path ATTRIBUTE_UNUSED,
                          struct _virDomainInterfaceStats *stats ATTRIBUTE_UNUSED)
 {
