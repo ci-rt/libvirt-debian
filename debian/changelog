@@ -1,3 +1,12 @@
+libvirt (1.0.1-1) experimental; urgency=low
+
+  * [e722456] New upstream version 1.0.1
+  * [dccead7] Update patches
+  * [1384de7] Dropped patches.
+      * Define-SANLK_INQ_WAIT-if-missing-in-headers.patch - fixed upstream
+
+ -- Guido Günther <agx@sigxcpu.org>  Sun, 23 Dec 2012 12:28:01 +0100
+
 libvirt (1.0.1~rc1-1) experimental; urgency=low
 
   * [dca42fb] Rely on DBus activation for hal (Closes: #694020)
