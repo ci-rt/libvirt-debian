@@ -174,8 +174,8 @@ static struct FileTypeInfo const fileTypeInfo[] = {
     },
     [VIR_STORAGE_FILE_QED] = {
         /* http://wiki.qemu.org/Features/QED */
-        "QED\0", NULL,
-        LV_LITTLE_ENDIAN, -1, -1,
+        "QED", NULL,
+        LV_LITTLE_ENDIAN, -2, -1,
         QED_HDR_IMAGE_SIZE, 8, 1, -1, qedGetBackingStore,
     },
     [VIR_STORAGE_FILE_VMDK] = {
@@ -612,6 +612,10 @@ virStorageFileMatchesVersion(int format,
     if (fileTypeInfo[format].versionOffset == -1)
         return false;
 
+    /* -2 == non-versioned file format, so trivially match */
+    if (fileTypeInfo[format].versionOffset == -2)
+        return true;
+
     if ((fileTypeInfo[format].versionOffset + 4) > buflen)
         return false;
 
@@ -628,6 +632,9 @@ virStorageFileMatchesVersion(int format,
             (buf[fileTypeInfo[format].versionOffset+2] << 8) |
             (buf[fileTypeInfo[format].versionOffset+3]);
     }
+
+    VIR_DEBUG("Compare detected version %d vs expected version %d",
+              version, fileTypeInfo[format].versionNumber);
     if (version != fileTypeInfo[format].versionNumber)
         return false;
 
@@ -650,6 +657,8 @@ virStorageFileGetMetadataFromBuf(int format,
                                  size_t buflen,
                                  virStorageFileMetadata *meta)
 {
+    VIR_DEBUG("path=%s format=%d", path, format);
+
     /* XXX we should consider moving virStorageBackendUpdateVolInfo
      * code into this method, for non-magic files
      */
@@ -756,15 +765,25 @@ virStorageFileProbeFormatFromBuf(const char *path,
 {
     int format = VIR_STORAGE_FILE_RAW;
     int i;
+    int possibleFormat = VIR_STORAGE_FILE_RAW;
+    VIR_DEBUG("path=%s", path);
 
     /* First check file magic */
     for (i = 0 ; i < VIR_STORAGE_FILE_LAST ; i++) {
-        if (virStorageFileMatchesMagic(i, buf, buflen) &&
-            virStorageFileMatchesVersion(i, buf, buflen)) {
+        if (virStorageFileMatchesMagic(i, buf, buflen)) {
+            if (!virStorageFileMatchesVersion(i, buf, buflen)) {
+                possibleFormat = i;
+                continue;
+            }
             format = i;
             goto cleanup;
         }
     }
+
+    if (possibleFormat != VIR_STORAGE_FILE_RAW)
+        VIR_WARN("File %s matches %s magic, but version is wrong. "
+                 "Please report new version to libvir-list@redhat.com",
+                 path, virStorageFileFormatTypeToString(possibleFormat));
 
     /* No magic, so check file extension */
     for (i = 0 ; i < VIR_STORAGE_FILE_LAST ; i++) {
@@ -775,6 +794,7 @@ virStorageFileProbeFormatFromBuf(const char *path,
     }
 
 cleanup:
+    VIR_DEBUG("format=%d", format);
     return format;
 }
 
@@ -953,6 +973,9 @@ virStorageFileGetMetadataRecurse(const char *path, int format,
                                  bool allow_probe, virHashTablePtr cycle)
 {
     int fd;
+    VIR_DEBUG("path=%s format=%d uid=%d gid=%d probe=%d",
+              path, format, (int)uid, (int)gid, allow_probe);
+
     virStorageFileMetadataPtr ret = NULL;
 
     if (virHashLookup(cycle, path)) {
@@ -1017,6 +1040,9 @@ virStorageFileGetMetadata(const char *path, int format,
                           uid_t uid, gid_t gid,
                           bool allow_probe)
 {
+    VIR_DEBUG("path=%s format=%d uid=%d gid=%d probe=%d",
+              path, format, (int)uid, (int)gid, allow_probe);
+
     virHashTablePtr cycle = virHashCreate(5, NULL);
     virStorageFileMetadataPtr ret;
 
@@ -1192,62 +1218,75 @@ int virStorageFileIsClusterFS(const char *path)
 }
 
 #ifdef LVS
-const char *virStorageFileGetLVMKey(const char *path)
+int virStorageFileGetLVMKey(const char *path,
+                            char **key)
 {
     /*
      *  # lvs --noheadings --unbuffered --nosuffix --options "uuid" LVNAME
      *    06UgP5-2rhb-w3Bo-3mdR-WeoL-pytO-SAa2ky
      */
-    char *key = NULL;
+    int status;
     virCommandPtr cmd = virCommandNewArgList(
         LVS,
         "--noheadings", "--unbuffered", "--nosuffix",
         "--options", "uuid", path,
         NULL
         );
+    int ret = -1;
+
+    *key = NULL;
 
     /* Run the program and capture its output */
-    virCommandSetOutputBuffer(cmd, &key);
-    if (virCommandRun(cmd, NULL) < 0)
+    virCommandSetOutputBuffer(cmd, key);
+    if (virCommandRun(cmd, &status) < 0)
         goto cleanup;
 
-    if (key) {
+    /* Explicitly check status == 0, rather than passing NULL
+     * to virCommandRun because we don't want to raise an actual
+     * error in this scenario, just return a NULL key.
+     */
+
+    if (status == 0 && *key) {
         char *nl;
-        char *tmp = key;
+        char *tmp = *key;
 
         /* Find first non-space character */
         while (*tmp && c_isspace(*tmp)) {
             tmp++;
         }
         /* Kill leading spaces */
-        if (tmp != key)
-            memmove(key, tmp, strlen(tmp)+1);
+        if (tmp != *key)
+            memmove(*key, tmp, strlen(tmp)+1);
 
         /* Kill trailing newline */
-        if ((nl = strchr(key, '\n')))
+        if ((nl = strchr(*key, '\n')))
             *nl = '\0';
     }
 
-    if (key && STREQ(key, ""))
-        VIR_FREE(key);
+    ret = 0;
 
 cleanup:
+    if (*key && STREQ(*key, ""))
+        VIR_FREE(*key);
+
     virCommandFree(cmd);
 
-    return key;
+    return ret;
 }
 #else
-const char *virStorageFileGetLVMKey(const char *path)
+int virStorageFileGetLVMKey(const char *path,
+                            char **key ATTRIBUTE_UNUSED)
 {
     virReportSystemError(ENOSYS, _("Unable to get LVM key for %s"), path);
-    return NULL;
+    return -1;
 }
 #endif
 
 #ifdef HAVE_UDEV
-const char *virStorageFileGetSCSIKey(const char *path)
+int virStorageFileGetSCSIKey(const char *path,
+                             char **key)
 {
-    char *key = NULL;
+    int status;
     virCommandPtr cmd = virCommandNewArgList(
         "/lib/udev/scsi_id",
         "--replace-whitespace",
@@ -1255,30 +1294,41 @@ const char *virStorageFileGetSCSIKey(const char *path)
         "--device", path,
         NULL
         );
+    int ret = -1;
+
+    *key = NULL;
 
     /* Run the program and capture its output */
-    virCommandSetOutputBuffer(cmd, &key);
-    if (virCommandRun(cmd, NULL) < 0)
+    virCommandSetOutputBuffer(cmd, key);
+    if (virCommandRun(cmd, &status) < 0)
         goto cleanup;
 
-    if (key && STRNEQ(key, "")) {
-        char *nl = strchr(key, '\n');
+    /* Explicitly check status == 0, rather than passing NULL
+     * to virCommandRun because we don't want to raise an actual
+     * error in this scenario, just return a NULL key.
+     */
+    if (status == 0 && *key) {
+        char *nl = strchr(*key, '\n');
         if (nl)
             *nl = '\0';
-    } else {
-        VIR_FREE(key);
     }
 
+    ret = 0;
+
 cleanup:
+    if (*key && STREQ(*key, ""))
+        VIR_FREE(*key);
+
     virCommandFree(cmd);
 
-    return key;
+    return ret;
 }
 #else
-const char *virStorageFileGetSCSIKey(const char *path)
+int virStorageFileGetSCSIKey(const char *path,
+                             char **key ATTRIBUTE_UNUSED)
 {
     virReportSystemError(ENOSYS, _("Unable to get SCSI key for %s"), path);
-    return NULL;
+    return -1;
 }
 #endif
 

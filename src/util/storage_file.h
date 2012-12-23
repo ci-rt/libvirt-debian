@@ -101,7 +101,9 @@ int virStorageFileIsClusterFS(const char *path);
 int virStorageFileIsSharedFSType(const char *path,
                                  int fstypes);
 
-const char *virStorageFileGetLVMKey(const char *path);
-const char *virStorageFileGetSCSIKey(const char *path);
+int virStorageFileGetLVMKey(const char *path,
+                            char **key);
+int virStorageFileGetSCSIKey(const char *path,
+                             char **key);
 
 #endif /* __VIR_STORAGE_FILE_H__ */

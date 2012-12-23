@@ -85,6 +85,7 @@ AC_DEFUN([gl_EARLY],
   # Code from module count-one-bits-tests:
   # Code from module crypto/md5:
   # Code from module crypto/md5-tests:
+  # Code from module crypto/sha256:
   # Code from module dirname-lgpl:
   # Code from module dosname:
   # Code from module double-slash-root:
@@ -571,6 +572,7 @@ AC_SUBST([LTALLOCA])
   gl_SYS_SOCKET_MODULE_INDICATOR([connect])
   gl_COUNT_ONE_BITS
   gl_MD5
+  gl_SHA256
   gl_DIRNAME_LGPL
   gl_DOUBLE_SLASH_ROOT
   gl_FUNC_DUP2
@@ -1810,6 +1812,8 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/select.c
   lib/send.c
   lib/setsockopt.c
+  lib/sha256.c
+  lib/sha256.h
   lib/sig-handler.h
   lib/sigaction.c
   lib/signal.in.h
@@ -2046,6 +2050,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/servent.m4
   m4/setenv.m4
   m4/setlocale.m4
+  m4/sha256.m4
   m4/sig_atomic_t.m4
   m4/sigaction.m4
   m4/signal_h.m4

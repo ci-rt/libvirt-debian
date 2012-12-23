@@ -1,3 +1,542 @@
+2012-12-15  Eric Blake  <eblake@redhat.com>
+
+	build: minor build fixes for BSD
+	Noticed these while building on FreeBSD.
+
+	* src/qemu/qemu_monitor.c (qemuMonitorBlockInfoLookup): Rename
+	variable to avoid 'devname' collision.
+	* src/qemu/qemu_driver.c (qemuDomainInterfaceStats): Mark unused
+	variable.
+
+2012-12-15  Roman Bogorodskiy  <bogorodskiy@gmail.com>
+
+	Socket identity support for FreeBSD.
+	This adds an implementation of virNetSocketGetUNIXIdentity()
+	using LOCAL_PEERCRED socket option and xucred struct, defined
+	in <sys/ucred.h> on systems that have it.
+
+2012-12-15  Laine Stump  <laine@laine.org>
+
+	network: fix (non)update of dnsmasq config during virDomainUpdateDeviceFlags
+	A forgotten "!" in recently-modified code at the top of
+	networkRefreshDaemon() meant an improper early return, which led to 1)
+	dnsmasq config files not being updated from the newly modified config,
+	and 2) dnsmasq not being sent a SIGHUP so that it could learn about
+	the changes to the config.
+
+	virNetworkDefGetIpByIndex() returns NULL if there are no ip objects of
+	the requested type, and if there are no IP elements, then dnsmasq
+	shouldn't be running, so we can return early. Otherwise we should
+	rewrite the config files and send a SIGHUP.
+
+2012-12-15  Guido Günther  <agx@sigxcpu.org>
+
+	Require SANLK_INQ_WAIT for inq_lockspace support
+	since compilation breaks otherwise with older libsanlock.
+
+2012-12-14  Eric Blake  <eblake@redhat.com>
+
+	docs: fix some typos in examples
+	As detected in https://bugzilla.redhat.com/show_bug.cgi?id=887187
+
+	* docs/formatdomain.html.in: Fix XML typos.
+
+2012-12-14  Michal Privoznik  <mprivozn@redhat.com>
+
+	sanlock: Re-add lockspace unconditionally
+	Currently, if sanlock is already registering a lockspace other
+	libvirtd instances (from other hosts) obtain -EINPROGRESS. On
+	sufficiently new sanlock, sanlock_inq_lockspace() is called,
+	which suspend execution until lockspace state is changed. With
+	current libvirt implementation, we fail to retry adding the
+	lockspace again but continue in error path. Therefore we produce
+	meaningless error message:
+
+	virLockManagerSanlockSetupLockspace:363 : Unable to add lockspace
+	/var/lib/libvirt/sanlock/__LIBVIRT__DISKS__: Success
+	qemudLoadDriverConfig:558 : Failed to load lock manager sanlock
+
+	We should try to re-add the lockspace after its state change to
+	be sure it was added successfully. In fact, with sufficiently new
+	sanlock we can just avoid dummy usleep() which is used if there's
+	no inquire API.
+
+2012-12-14  Eric Blake  <eblake@redhat.com>
+
+	install: fix virtlockd installation
+	The virtlockd daemon scripts were lousy, when compared to their
+	counterparts in daemon/Makefile.am.  In particular, when init
+	scripts were selected, this resulted in 'make distcheck' failing
+	due to failure to clean up src/virtlockd.init.
+
+	* src/Makefile.am (install-systemd): Fix dependencies.  Use MKDIR_P.
+	(uninstall-systemd): Remove empty directory.  Use fewer processes.
+	(install-init, install-sysconfig): Use MKDIR_P.
+	(uninstall-init): Remove correct file, and also empty directory.
+	(uninstall-sysconfig): Remove empty directory.
+	(DISTCLEANFILES): Clean up trivially built sources.
+
+2012-12-14  Michał Łomnicki  <michal.lomnicki@gmail.com>
+
+	docs: Fix location of libvirt.conf and auth.conf
+	For a unprivileged user libvirt.conf and auth.conf are looked up in
+	$XDG_CONFIG_HOME but the docs incorrectly state that it's $XDG_CONFIG_DIR.
+
+2012-12-14  Laine Stump  <laine@laine.org>
+
+	qemu: don't fail update netdev on bridge detach failure
+	When a network device's bridge connection is changed by
+	virDomainUpdateDevice, libvirt first removes the netdev's tap from its
+	old bridge, then adds it to the new bridge. Sometimes, due to a
+	network being destroyed while a guest device is still attached, the
+	tap may already be "removed" from the old bridge (or the old bridge
+	may not even exist any more); the existing code was needlessly failing
+	the update when this happened, making it impossible to recover from
+	the situation without completely detaching (i.e. removing) the netdev
+	from the guest and re-attaching.
+
+	Instead of failing the entire operation when removal of the tap from
+	the old bridge fails, this patch changes qemuDomainChangeNetBridge to
+	just log a warning and continue, allowing a reasonable recover from
+	the situation.
+
+	(you'll appreciate this change if you ever accidentally destroy a
+	network while your guests are still using it).
+
+2012-12-14  Jiri Denemark  <jdenemar@redhat.com>
+
+	spec: Include lockd files in libvirt-daemon package
+
+	build: Install both qemu-lockd.conf and qemu-sanlock.conf
+	With sanlock enabled, only one of those files was installed.
+
+2012-12-14  Eric Blake  <eblake@redhat.com>
+
+	build: use fewer cat processes
+	* src/Makefile.am (libvirt.syms): Let cat loop for us.
+
+2012-12-14  Ján Tomko  <jtomko@redhat.com>
+
+	selinux: fix NULL dereference in GetSecurityMountOptions
+	In the case of an OOM error in virDomainDefGetSecurityLabelDef, secdef
+	is set to NULL, then dereferenced while printing the debug message.
+
+2012-12-14  Jiri Denemark  <jdenemar@redhat.com>
+
+	build: Distribute more files
+
+	locking: Fix VPATH build and distribute generated files
+
+2012-12-14  Laine Stump  <laine@laine.org>
+
+	network: prevent dnsmasq from listening on localhost
+	This patch resolves the problem reported in:
+
+	   https://bugzilla.redhat.com/show_bug.cgi?id=886663
+
+	The source of the problem was the fix for CVE 2011-3411:
+
+	   https://bugzilla.redhat.com/show_bug.cgi?id=833033
+
+	which was originally committed upstream in commit
+	753ff83a50263d6975f88d6605d4b5ddfcc97560. That commit improperly
+	removed the "--except-interface lo" from dnsmasq commandlines when
+	--bind-dynamic was used (based on comments in the latter bug).
+
+	It turns out that the problem reported in the CVE could be eliminated
+	without removing "--except-interface lo", and removing it actually
+	caused each instance of dnsmasq to listen on localhost on port 53,
+	which created a new problem:
+
+	If another instance of dnsmasq using "bind-interfaces" (instead of
+	"bind-dynamic") had already been started (or if another instance
+	started later used "bind-dynamic"), this wouldn't have any immediately
+	visible ill effects, but if you tried to start another dnsmasq
+	instance using "bind-interfaces" *after* starting any libvirt
+	networks, the new dnsmasq would fail to start, because there was
+	already another process listening on port 53.
+
+	(Subsequent to the CVE fix, another patch changed the network driver
+	to put dnsmasq options in a conf file rather than directly on the
+	dnsmasq commandline, but preserved the same options.)
+
+	This patch changes the network driver to *always* add
+	"except-interface=lo" to dnsmasq conf files, regardless of whether we use
+	bind-dynamic or bind-interfaces. This way no libvirt dnsmasq instances
+	are listening on localhost (and the CVE is still fixed).
+
+	The actual code change is miniscule, but must be propogated through all
+	of the test files as well.
+
+2012-12-14  Jiri Denemark  <jdenemar@redhat.com>
+
+	build: Fix VPATH build
+	$(srcdir) is already part of $$file since commit f1f9a7ac7e.
+
+2012-12-13  Ján Tomko  <jtomko@redhat.com>
+
+	virsh: use vshReconnect for non-default connections too
+	For non-default connections (specified by the environment variable or
+	the command line option) we call virConnectOpenAuth without registering
+	the vshCatchDisconnect callback.
+
+	This calls vshReconnect instead which takes care of it.
+
+2012-12-13  Ján Tomko  <jtomko@redhat.com>
+
+	virsh: don't lie about reconnection in vshReconnect
+	Since we (ab)use vshReconnect for the default URI connection, if it
+	fails it might print 'Failed to reconnect to the hypervisor' even if we
+	were never connected before.
+
+	This changes it to only mention reconnection on the first try after
+	getting disconnected.
+
+2012-12-13  Daniel P. Berrange  <berrange@redhat.com>
+
+	Add support for locking based on SCSI volume ID
+
+	Add support for locking based on LVM volume uuid
+
+	Add ability to maintain disk leases indirectly
+	The default lockd driver behavour is to acquire leases
+	directly on the disk files. This introduces an alternative
+	mode, where leases are acquire indirectly on a file that
+	is based on a SHA256 hash of the disk filename.
+
+2012-12-13  Daniel P. Berrange  <berrange@redhat.com>
+
+	Add a virtlockd client as a lock driver impl
+	This adds a 'lockd' lock driver which is just a client which
+	talks to the lockd daemon to perform all locking. This will
+	be the default lock driver for any hypervisor which needs one.
+
+	* src/Makefile.am: Add lockd.so plugin
+	* src/locking/lock_driver_lockd.c: Lockd driver impl
+
+2012-12-13  Daniel P. Berrange  <berrange@redhat.com>
+
+	Add support for re-exec() of virtlockd upon SIGUSR1
+	The virtlockd daemon maintains file locks on behalf of libvirtd
+	and any VMs it is running. These file locks must be held for as
+	long as any VM is running. If virtlockd itself ever quits, then
+	it is expected that a node would be fenced/rebooted. Thus to
+	allow for software upgrads on live systemd, virtlockd needs the
+	ability to re-exec() itself.
+
+	Upon receipt of SIGUSR1, virtlockd will save its current live
+	state out to a file /var/run/virtlockd-restart-exec.json
+	It then re-exec()'s itself with exactly the same argv as it
+	originally had, and loads the state file, reconstructing any
+	objects as appropriate.
+
+	The state file contains information about all locks held and
+	all network services and clients currently active. An example
+	state document is
+
+	 {
+	    "server": {
+	        "min_workers": 1,
+	        "max_workers": 20,
+	        "priority_workers": 0,
+	        "max_clients": 20,
+	        "keepaliveInterval": 4294967295,
+	        "keepaliveCount": 0,
+	        "keepaliveRequired": false,
+	        "services": [
+	            {
+	                "auth": 0,
+	                "readonly": false,
+	                "nrequests_client_max": 1,
+	                "socks": [
+	                    {
+	                        "fd": 6,
+	                        "errfd": -1,
+	                        "pid": 0,
+	                        "isClient": false
+	                    }
+	                ]
+	            }
+	        ],
+	        "clients": [
+	            {
+	                "auth": 0,
+	                "readonly": false,
+	                "nrequests_max": 1,
+	                "sock": {
+	                    "fd": 9,
+	                    "errfd": -1,
+	                    "pid": 0,
+	                    "isClient": true
+	                },
+	                "privateData": {
+	                    "restricted": true,
+	                    "ownerPid": 1722,
+	                    "ownerId": 6,
+	                    "ownerName": "f18x86_64",
+	                    "ownerUUID": "97586ba9-df27-9459-c806-f016c8bbd224"
+	                }
+	            },
+	            {
+	                "auth": 0,
+	                "readonly": false,
+	                "nrequests_max": 1,
+	                "sock": {
+	                    "fd": 10,
+	                    "errfd": -1,
+	                    "pid": 0,
+	                    "isClient": true
+	                },
+	                "privateData": {
+	                    "restricted": true,
+	                    "ownerPid": 1784,
+	                    "ownerId": 7,
+	                    "ownerName": "f16x86_64",
+	                    "ownerUUID": "7b8e5e42-b875-61e9-b981-91ad8fa46979"
+	                }
+	            }
+	        ]
+	    },
+	    "defaultLockspace": {
+	        "resources": [
+	            {
+	                "name": "/var/lib/libvirt/images/f16x86_64.raw",
+	                "path": "/var/lib/libvirt/images/f16x86_64.raw",
+	                "fd": 14,
+	                "lockHeld": true,
+	                "flags": 0,
+	                "owners": [
+	                    1784
+	                ]
+	            },
+	            {
+	                "name": "/var/lib/libvirt/images/shared.img",
+	                "path": "/var/lib/libvirt/images/shared.img",
+	                "fd": 12,
+	                "lockHeld": true,
+	                "flags": 1,
+	                "owners": [
+	                    1722,
+	                    1784
+	                ]
+	            },
+	            {
+	                "name": "/var/lib/libvirt/images/f18x86_64.img",
+	                "path": "/var/lib/libvirt/images/f18x86_64.img",
+	                "fd": 11,
+	                "lockHeld": true,
+	                "flags": 0,
+	                "owners": [
+	                    1722
+	                ]
+	            }
+	        ]
+	    },
+	    "lockspaces": [
+
+	    ],
+	    "magic": "30199"
+	 }
+
+2012-12-13  Daniel P. Berrange  <berrange@redhat.com>
+
+	Enable systemd socket activation with virtlockd
+	This enhancement virtlockd so that it can receive a pre-opened
+	UNIX domain socket from systemd at launch time, and adds the
+	systemd service/socket unit files
+
+	* daemon/libvirtd.service.in: Require virtlockd to be running
+	* libvirt.spec.in: Add virtlockd systemd files
+	* src/Makefile.am: Install systemd files
+	* src/locking/lock_daemon.c: Support socket activation
+	* src/locking/virtlockd.service.in, src/locking/virtlockd.socket.in:
+	  systemd unit files
+	* src/rpc/virnetserverservice.c, src/rpc/virnetserverservice.h:
+	  Add virNetServerServiceNewFD() method
+	* src/rpc/virnetsocket.c, src/rpc/virnetsocket.h: Add virNetSocketNewListenFD
+	  method
+
+2012-12-13  Daniel P. Berrange  <berrange@redhat.com>
+
+	Implement dispatch functions for lock protocol in virtlockd
+	Introduce a lock_daemon_dispatch.c file which implements the
+	server side dispatcher the RPC APIs previously defined in the
+	lock protocol.
+
+2012-12-13  Daniel P. Berrange  <berrange@redhat.com>
+
+	Define a wire protocol for talking to the virtlockd daemon
+	The virtlockd daemon will be responsible for managing locks
+	on virtual machines. Communication will be via the standard
+	RPC infrastructure. This provides the XDR protocol definition
+
+	* src/locking/lock_protocol.x: Wire protocol for virtlockd
+	* src/Makefile.am: Include lock_protocol.[ch] in virtlockd
+
+2012-12-13  Daniel P. Berrange  <berrange@redhat.com>
+
+	Introduce basic infrastructure for virtlockd daemon
+	The virtlockd daemon will maintain locks on behalf of libvirtd.
+	There are two reasons for it to be separate
+
+	 - Avoid risk of other libvirtd threads accidentally
+	   releasing fcntl() locks by opening + closing a file
+	   that is locked
+	 - Ensure locks can be preserved across libvirtd restarts.
+	   virtlockd will need to be able to re-exec itself while
+	   maintaining locks. This is simpler to achieve if its
+	   sole job is maintaining locks
+
+2012-12-13  Daniel P. Berrange  <berrange@redhat.com>
+
+	Refactor creation of lock manager plugins
+	Refactor virLockManagerPluginNew() so that the caller does
+	not need to pass in the config file path itself - just the
+	config directory and driver name.
+
+	Fix QEMU to actually pass in a config file when creating the
+	default lock manager plugin, rather than NULL.
+
+2012-12-13  Daniel P. Berrange  <berrange@redhat.com>
+
+	Fix error reporting when fetching SCSI/LVM keys
+	The current  virStorageFileGet{LVM,SCSI}Key methods return
+	the key as the return value. Unfortunately it is desirable
+	for "NULL" to be a valid return value, as well as an error
+	indicator. Thus the returned key must instead be provided
+	as an out-parameter.
+
+	When we invoke lvs or scsi_id to extract ID for block devices,
+	we don't want virCommandWait logging errors messages. Thus we
+	must explicitly check 'status != 0', rather than letting
+	virCommandWait do it.
+
+2012-12-13  Jim Fehlig  <jfehlig@suse.com>
+
+	Support network boot for HVM guests in libxl
+	The libxl driver ignored boot devices in the domain config,
+	preventing PXE booting HVM domains.  This patch accounts for
+	user-specified boot devices when building the libxl domain
+	configuration.
+
+2012-12-13  Daniel P. Berrange  <berrange@redhat.com>
+
+	Fix probing of QED file format
+	The QED file format is non-versioned, so although the magic
+	value matched, libvirt rejected it due to lack of a version
+	number to compare against. We need to distinguish this case
+	by allowing a value of '-2' to indicate a non-versioned file
+	where only the magic is required to match
+
+	Add lots of debugging to storage file probing code
+
+	Log warning if storage magic matches, but version does not
+	To help us detect when new storage file versions come into
+	existance log a warning if the storage file magic matches,
+	but the version does not
+
+	Fix memory leak in QEMU QMP capabilities initialization
+	The qemuCapsInitQMP method never frees the QEMU 'package'
+	version string.
+
+	Change virCgroupGetAppRoot stub on non-Linux to avoid unused param warning
+	Fully stub out the virCgroupGetAppRoot method as done with other
+	methods in the file, rather than just the body. This lets us
+	annotate the unused parameter to avoid a warning
+
+2012-12-13  Eric Blake  <eblake@redhat.com>
+
+	network: match xml warning message
+	I noticed that /var/lib/libvirt/dnsmasq/*.conf used the wrong word;
+	it was intended to match the wording in src/util/xml.c.
+
+	* src/network/bridge_driver.c (networkDnsmasqConfContents): Fix typo.
+	* tests/networkxml2confdata/*.conf: Update accordingly.
+
+2012-12-13  Roman Bogorodskiy  <bogorodskiy@gmail.com>
+
+	Qemu FreeBSD: fix compilation
+	* Autotools changes:
+	  - Don't assume Qemu is Linux-only
+	  - Check Linux headers only on Linux
+	  - Disable firewalld on FreeBSD
+	* Initctl:
+	  Initctl seem to present only on Linux, so stub it on other platforms
+	* Raw I/O: Linux-only as well
+	* Headers cleanup
+
+	Drop mntent.h include.
+	It's no longer used and also causes build fail on FreeBSD.
+
+2012-12-13  Viktor Mihajlovski  <mihajlov@linux.vnet.ibm.com>
+
+	Fix make check with different object directory
+	make check fails in check-symsorting if configure is not run in
+	the source directory. Prefixing symfile names with $(srcdir)
+	fixes this.
+
+2012-12-12  Peter Krempa  <pkrempa@redhat.com>
+
+	qemu: Improve error reporting from qemuDomainManagedSaveRemove
+	Report an error if unlink of the managedsave file fails.
+
+	qemu: Small code cleanups in the managedsave functions
+	Save a few lines moving assignments into conditions and fix braces
+	position.
+
+	qemu: Refactor managed save functions to use domain lookup helpers
+
+2012-12-12  Peter Krempa  <pkrempa@redhat.com>
+
+	qemu: Add a new domain lookup helper and improve the docs
+	This patch adds a new domain lookup helper qemuDomObjFromDomainDriver
+	that lookups the domain and leaves the driver locked. The driver is
+	returned as the second argument of that function. If the lookup fails
+	the driver is unlocked to help avoid cleanup codepaths.
+
+	This patch also improves docs for the helpers.
+
+2012-12-12  Peter Krempa  <pkrempa@redhat.com>
+
+	util: Fix warning message in previous patch
+	I didn't notice the extra "does" in the previous patch. Remove it.
+
+	util: rework error reporting in virGet(User|Group)IDByName
+	This patch gets rid of the undeterministic error reporting code done on
+	return values of get(pw|gr)nam_r. With this patch, if the group record
+	is not returned by the corresponding function this error is not
+	considered fatal even if errno != 0. The error is logged in such case.
+
+2012-12-12  Daniel P. Berrange  <berrange@redhat.com>
+
+	Refactor virDomainHostdevFind method
+	Move the code for matching hostdev instances out of virDomainHostdevFind
+	and into virDomainHostdevMatch method, which in turn calls out to other
+	helper methods depending on the type of hostdev.
+
+2012-12-12  Daniel P. Berrange  <berrange@redhat.com>
+
+	Slightly refactor hostdev parsing / formating
+	Rename virDomainHostdevPartsParse to virDomainHostdevDefParseSubsys
+	to reflect the fact that it only deals with hostdevs uing the
+	traditional mode=subsystem, and not mode=capabilities
+
+	Rename virDomainHostSourceFormat to virDomainHostdevDefFormatSubsys
+	for the same reason.
+
+2012-12-12  Daniel P. Berrange  <berrange@redhat.com>
+
+	Remove bogus const return values in storage file APIs
+	virStorageFileGetLVMKey and virStorageFileGetSCSIKey
+	both return heap allocated strings, so the return value
+	should not be marked const.
+
+	Add missing export of virStorageFileGetLVMKey & virStorageFileGetSCSIKey
+
+	Fix sorting of libvirt_private.syms and add syntax check rule
+	Add check-symsorting.pl to perform case-insensitive alphabetical
+	sorting of groups of symbols. Fix all violations it reports
+
 2012-12-12  Cole Robinson  <crobinso@redhat.com>
 
 	uml: Report error if inotify fails on driver startup

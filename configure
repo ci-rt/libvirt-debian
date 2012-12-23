@@ -912,6 +912,8 @@ LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE
 ENABLE_DEBUG_FALSE
 ENABLE_DEBUG_TRUE
 STATIC_BINARIES
+WITH_FREEBSD_FALSE
+WITH_FREEBSD_TRUE
 WITH_LINUX_FALSE
 WITH_LINUX_TRUE
 XML_CATALOG_FILE
@@ -3135,9 +3137,9 @@ Optional Packages:
   --with-libblkid         use libblkid to scan for filesystems and partitions
                           [default=check]
   --with-qemu-user        username to run QEMU system instance as
-                          [default=root]
+                          [default=platform dependent]
   --with-qemu-group       groupname to run QEMU system instance as
-                          [default=root]
+                          [default=platform dependent]
   --with-macvtap          enable macvtap device [default=check]
   --with-virtualport      enable virtual port support [default=check]
 
@@ -7809,6 +7811,7 @@ fi
   # Code from module count-one-bits-tests:
   # Code from module crypto/md5:
   # Code from module crypto/md5-tests:
+  # Code from module crypto/sha256:
   # Code from module dirname-lgpl:
   # Code from module dosname:
   # Code from module double-slash-root:
@@ -22111,6 +22114,10 @@ $as_echo "#define GNULIB_TEST_CONNECT 1" >>confdefs.h
 
 
   :
+
+
+
+
 
 
 
@@ -55714,7 +55721,8 @@ LIBS=$old_libs
 
 for ac_header in pwd.h paths.h regex.h sys/un.h \
   sys/poll.h syslog.h mntent.h net/ethernet.h linux/magic.h \
-  sys/un.h sys/syscall.h netinet/tcp.h ifaddrs.h libtasn1.h
+  sys/un.h sys/syscall.h netinet/tcp.h ifaddrs.h libtasn1.h \
+  sys/ucred.h
 do :
   as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
 ac_fn_c_check_header_mongrel "$LINENO" "$ac_header" "$as_ac_Header" "$ac_includes_default"
@@ -56582,10 +56590,11 @@ if test "$prefix" = "/usr" && test "$sysconfdir" = '${prefix}/etc' ; then
 fi
 
 
-with_linux=no with_osx=no
+with_linux=no with_osx=no with_freebsd=no
 case $host in
   *-*-linux*) with_linux=yes ;;
   *-*-darwin*) with_osx=yes ;;
+  *-*-freebsd*) with_freebsd=yes ;;
 esac
 
 if test $with_linux = no; then
@@ -56593,11 +56602,15 @@ if test $with_linux = no; then
     then
         with_lxc=no
     fi
-    if test "x$with_qemu" != xyes
-    then
-        with_qemu=no
-    fi
     with_dtrace=no
+fi
+
+if test $with_freebsd = yes; then
+   with_firewalld=no
+fi
+
+if test $with_osx = yes; then
+   with_qemu=no
 fi
 
  if test "$with_linux" = "yes"; then
@@ -56606,6 +56619,14 @@ fi
 else
   WITH_LINUX_TRUE='#'
   WITH_LINUX_FALSE=
+fi
+
+ if test "$with_freebsd" = "yes"; then
+  WITH_FREEBSD_TRUE=
+  WITH_FREEBSD_FALSE='#'
+else
+  WITH_FREEBSD_TRUE='#'
+  WITH_FREEBSD_FALSE=
 fi
 
 
@@ -58021,8 +58042,9 @@ _ACEOF
 fi
 
 
-if test "$with_qemu" = "yes" || test "$with_lxc" = "yes" ; then
-  for ac_header in linux/param.h linux/sockios.h linux/if_bridge.h linux/if_tun.h
+if test "$with_linux" = "yes"; then
+  if test "$with_qemu" = "yes" || test "$with_lxc" = "yes" ; then
+    for ac_header in linux/param.h linux/sockios.h linux/if_bridge.h linux/if_tun.h
 do :
   as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
 ac_fn_c_check_header_mongrel "$LINENO" "$ac_header" "$as_ac_Header" "$ac_includes_default"
@@ -58037,6 +58059,7 @@ fi
 
 done
 
+  fi
 fi
 
 
@@ -58900,8 +58923,30 @@ else
 fi
 
   fi
-  test $fail = 1 &&
+  if test $fail = 1; then
     as_fn_error $? "You must install the Sanlock development package in order to compile libvirt" "$LINENO" 5
+  else
+    ac_fn_c_check_decl "$LINENO" "SANLK_INQ_WAIT" "ac_cv_have_decl_SANLK_INQ_WAIT" "
+      #include <stdint.h>
+      #include <sanlock_admin.h>
+
+"
+if test "x$ac_cv_have_decl_SANLK_INQ_WAIT" = xyes; then :
+  ac_have_decl=1
+else
+  ac_have_decl=0
+fi
+
+cat >>confdefs.h <<_ACEOF
+#define HAVE_DECL_SANLK_INQ_WAIT $ac_have_decl
+_ACEOF
+if test $ac_have_decl = 1; then :
+  sanlock_inq_wait=1
+else
+  sanlock_inq_wait=0
+fi
+
+  fi
   CPPFLAGS="$old_cppflags"
   LIBS="$old_libs"
   if test "x$with_sanlock" = "xyes" ; then
@@ -59003,7 +59048,8 @@ else
   sanlock_inq_lockspace=no
 fi
 
-    if test "x$sanlock_inq_lockspace" = "xyes" ; then
+    if test "x$sanlock_inq_lockspace" = "xyes" && \
+       test $sanlock_inq_wait = 1; then
 
 cat >>confdefs.h <<_ACEOF
 #define HAVE_SANLOCK_INQ_LOCKSPACE 1
@@ -66615,12 +66661,20 @@ else
 fi
 
 
+if test $with_freebsd = yes; then
+  default_qemu_user=root
+  default_qemu_group=wheel
+else
+  default_qemu_user=root
+  default_qemu_group=root
+fi
+
 
 # Check whether --with-qemu-user was given.
 if test "${with_qemu_user+set}" = set; then :
   withval=$with_qemu_user; QEMU_USER=${withval}
 else
-  QEMU_USER=root
+  QEMU_USER=${default_qemu_user}
 fi
 
 
@@ -66628,7 +66682,7 @@ fi
 if test "${with_qemu_group+set}" = set; then :
   withval=$with_qemu_group; QEMU_GROUP=${withval}
 else
-  QEMU_GROUP=root
+  QEMU_GROUP=${default_qemu_group}
 fi
 
 
@@ -67389,6 +67443,10 @@ Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${WITH_LINUX_TRUE}" && test -z "${WITH_LINUX_FALSE}"; then
   as_fn_error $? "conditional \"WITH_LINUX\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${WITH_FREEBSD_TRUE}" && test -z "${WITH_FREEBSD_FALSE}"; then
+  as_fn_error $? "conditional \"WITH_FREEBSD\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${ENABLE_DEBUG_TRUE}" && test -z "${ENABLE_DEBUG_FALSE}"; then
