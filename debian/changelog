@@ -1,3 +1,11 @@
+libvirt (1.0.1-2) experimental; urgency=low
+
+  * [0019ff9] Pass WITH_AUDIT to configure (Closes: #688177)
+  * [faf7972] Add epoch to libnetcf build dependency since both the usuable
+    and unusable verion carry an epoch now (Closes: #697303)
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 03 Jan 2013 22:36:56 +0100
+
 libvirt (1.0.1-1) experimental; urgency=low
 
   * [e722456] New upstream version 1.0.1
