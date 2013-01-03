@@ -96,6 +96,7 @@ DEB_CONFIGURE_EXTRA_FLAGS :=     \
 	$(WITH_VBOX)		 \
 	$(WITH_LXC)              \
 	$(WITH_DTRACE)           \
+	$(WITH_AUDIT)            \
 	--without-firewalld
 
 DEB_COMPRESS_EXCLUDE = .o event-test hellolibvirt info1 suspend
