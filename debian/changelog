@@ -1,3 +1,10 @@
+libvirt (1.0.1-3) experimental; urgency=low
+
+  * [11f91ea] Make sure we build against sid's libaudit since libaudit0 and
+    libaudit1 aren't coinstallable (see #697459).
+
+ -- Guido Günther <agx@sigxcpu.org>  Sat, 05 Jan 2013 17:04:51 +0100
+
 libvirt (1.0.1-2) experimental; urgency=low
 
   * [0019ff9] Pass WITH_AUDIT to configure (Closes: #688177)
