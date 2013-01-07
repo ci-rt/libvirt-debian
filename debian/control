@@ -56,7 +56,7 @@ X-Python-Version: >= 2.6
 Package: libvirt-bin
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, adduser, libvirt0 (= ${binary:Version}), logrotate, gettext-base,
- libnetcf1 (>= 0.2.2-1)
+ libnetcf1 (>= 1:0.2.2)
 Enhances: qemu, qemu-kvm, xen
 Section: admin
 Recommends: netcat-openbsd,
