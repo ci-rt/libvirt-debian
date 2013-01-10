@@ -132,7 +132,7 @@ Description: development files for the libvirt library
 
 Package: python-libvirt
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, ${python:Depends}, libvirt0 (>= ${binary:Version})
+Depends: ${shlibs:Depends}, ${misc:Depends}, ${python:Depends}, libvirt0 (= ${binary:Version})
 Provides: ${python:Provides}
 Recommends: libvirt-bin
 Section: python
