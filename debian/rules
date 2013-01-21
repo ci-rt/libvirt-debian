@@ -5,10 +5,12 @@ export VIR_TEST_DEBUG=1
 ifneq (,$(findstring $(DEB_HOST_ARCH_OS), linux))
   ifneq (,$(findstring $(DEB_HOST_ARCH), i386 amd64))
     WITH_XEN = --with-xen
+    WITH_LIBXL = --with-libxl
     WITH_VBOX = --with-vbox
     MAKE_CHECK = 1
   else
     WITH_XEN            = --without-xen
+    WITH_LIBXL          = --without-libxl
     WITH_VBOX           = --without-vbox
   endif
   WITH_STORAGE_LVM    = --with-storage-lvm
@@ -59,6 +61,7 @@ else
   WITH_AUDIT          = --without-audit
   WITH_DTRACE         = --without-dtrace
   WITH_XEN            = --without-xen
+  WITH_LIBXL          = --without-libxl
   WITH_VBOX           = --without-vbox
 endif
 
@@ -89,6 +92,7 @@ DEB_CONFIGURE_EXTRA_ARGS :=      \
 	$(WITH_NETWORK)		 \
 	$(WITH_NETCF)		 \
 	$(WITH_XEN)		 \
+	$(WITH_LIBXL)		 \
 	$(WITH_VBOX)		 \
 	$(WITH_LXC)              \
 	$(WITH_DTRACE)           \

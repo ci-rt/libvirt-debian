@@ -15,7 +15,7 @@ Build-Depends:
  python-all-dev (>= 2.6.6-3~),
  libavahi-client-dev,
  libsasl2-dev,
- libxen-dev [i386 amd64],
+ libxen-dev (>= 4.3) [i386 amd64],
  lvm2 [linux-any],
  open-iscsi [linux-any],
  libparted0-dev (>= 2.2),
