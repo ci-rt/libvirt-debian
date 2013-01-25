@@ -5,7 +5,7 @@ Subject: Allow xen toolstack to find it's binaries
 Closes: #685749
 ---
  docs/schemas/capability.rng            |    4 ++--
- src/xen/xen_hypervisor.c               |    6 +++---
+ src/xen/xen_hypervisor.c               |    6 ++----
  tests/xencapsdata/xen-i686-pae-hvm.xml |    6 +++---
  tests/xencapsdata/xen-i686-pae.xml     |    2 +-
  tests/xencapsdata/xen-i686.xml         |    2 +-
@@ -16,13 +16,13 @@ Closes: #685749
  tests/xencapsdata/xen-ppc64.xml        |    2 +-
  tests/xencapsdata/xen-x86_64-hvm.xml   |   10 +++++-----
  tests/xencapsdata/xen-x86_64.xml       |    2 +-
- 12 files changed, 25 insertions(+), 25 deletions(-)
+ 12 files changed, 24 insertions(+), 26 deletions(-)
 
 diff --git a/docs/schemas/capability.rng b/docs/schemas/capability.rng
-index 8c928bc..b1930ba 100644
+index 53fb04a..cb0bab2 100644
 --- a/docs/schemas/capability.rng
 +++ b/docs/schemas/capability.rng
-@@ -241,13 +241,13 @@
+@@ -253,13 +253,13 @@
  
    <define name='emulator'>
      <element name='emulator'>
@@ -39,17 +39,17 @@ index 8c928bc..b1930ba 100644
    </define>
  
 diff --git a/src/xen/xen_hypervisor.c b/src/xen/xen_hypervisor.c
-index 60f60ed..02393f4 100644
+index 979cf3d..0966cb1 100644
 --- a/src/xen/xen_hypervisor.c
 +++ b/src/xen/xen_hypervisor.c
-@@ -2360,10 +2360,10 @@ xenHypervisorBuildCapabilities(virConnectPtr conn,
-                                              guest_archs[i].model,
-                                              guest_archs[i].bits,
-                                              (STREQ(hostmachine, "x86_64") ?
+@@ -2359,11 +2359,9 @@ xenHypervisorBuildCapabilities(virConnectPtr conn,
+         if ((guest = virCapabilitiesAddGuest(caps,
+                                              guest_archs[i].hvm ? "hvm" : "xen",
+                                              guest_archs[i].arch,
+-                                             (hostarch == VIR_ARCH_X86_64 ?
 -                                              "/usr/lib64/xen/bin/qemu-dm" :
 -                                              "/usr/lib/xen/bin/qemu-dm"),
-+                                              "qemu-dm" :
-+                                              "qemu-dm"),
++                                             "qemu-dm",
                                               (guest_archs[i].hvm ?
 -                                              "/usr/lib/xen-default/boot/hvmloader" :
 +                                              "hvmloader" :
