@@ -23,8 +23,8 @@
 
 #include <config.h>
 
-#include "virterror_internal.h"
-#include "logging.h"
+#include "virerror.h"
+#include "virlog.h"
 #include "datatypes.h"
 #include "libvirt/libvirt-qemu.h"
 

@@ -175,8 +175,12 @@
           <a name="patches" id="patches">General tips for contributing patches</a>
         </h2>
         <ol><li>Discuss any large changes on the mailing list first.  Post patches
-        early and listen to feedback.</li><li><p>Post patches in unified diff format.  A command similar to this
-        should work:</p>
+        early and listen to feedback.</li><li><p>Post patches in unified diff format, with git rename
+        detection enabled.  You need a one-time setup of:</p>
+<pre>
+  git config diff.renames true
+</pre>
+        <p>After that, a command similar to this should work:</p>
 <pre>
   diff -urp libvirt.orig/ libvirt.modified/ &gt; libvirt-myfeature.patch
 </pre>
@@ -186,7 +190,9 @@
 <pre>
   git diff &gt; libvirt-myfeature.patch
 </pre>
-        <p>However, the usual workflow of libvirt developer is:</p>
+        <p>Also, for code motion patches, you may find that <code>git
+        diff --patience</code> provides an easier-to-read patch.
+        However, the usual workflow of libvirt developer is:</p>
 <pre>
   git checkout master
   git pull
@@ -223,6 +229,19 @@
         <code>--subject-prefix=PATCHv2</code> appended to <code>git
             send-email</code> (substitute <code>v2</code> with the correct
         version if needed though).</p>
+      </li><li><p>In your commit message, make the summary line reasonably
+          short (60 characters is typical), followed by a blank line,
+          followed by any longer description of why your patch makes
+          sense.  If the patch fixes a regression, and you know what
+          commit introduced the problem, mentioning that is useful.
+          If the patch resolves a bugzilla report, mentioning the URL
+          of the bug number is useful; but also summarize the issue
+          rather than making all readers follow the link.  You can use
+          'git shortlog -30' to get an idea of typical summary lines.
+          Libvirt does not currently attach any meaning to
+          Signed-off-by: lines, so it is up to you if you want to
+          include or omit them in the commit message.
+        </p>
       </li><li><p>Split large changes into a series of smaller patches,
         self-contained if possible, with an explanation of each patch
         and an explanation of how the sequence of patches fits
@@ -271,7 +290,10 @@
 <pre>
   ./qemuxml2xmltest
 </pre>
-
+        <p>There is also a <code>./run</code> script at the top level,
+          to make it easier to run programs that have not yet been
+          installed, as well as to wrap invocations of various tests
+          under gdb or valgrind.</p>
       </li><li>Update tests and/or documentation, particularly if you are adding
         a new feature or changing the output of a program.</li></ol>
         <p>
@@ -869,7 +891,7 @@
   #include &lt;string.h&gt;
   #include &lt;limits.h&gt;
 
-  #if HAVE_NUMACTL                Some system includes aren't supported
+  #if WITH_NUMACTL                Some system includes aren't supported
   # include &lt;numa.h&gt;              everywhere so need these #if guards.
   #endif
 

@@ -68,8 +68,7 @@ host_triplet = @host@
 @WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_NWFILTER_TRUE@am__append_14 = ../src/libvirt_driver_nwfilter.la
 @WITH_LIBVIRTD_TRUE@am__append_15 = libvirtd.policy $(LOGROTATE_CONFS)
 @LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@@WITH_LIBVIRTD_TRUE@am__append_16 = libvirtd.init
-@WITH_LIBVIRTD_TRUE@am__append_17 = libvirtd.service.in
-@LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@@WITH_LIBVIRTD_TRUE@am__append_18 = libvirtd.service
+@LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@@WITH_LIBVIRTD_TRUE@am__append_17 = libvirtd.service
 subdir = daemon
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -77,6 +76,7 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/alloca.m4 \
 	$(top_srcdir)/gnulib/m4/arpa_inet_h.m4 \
 	$(top_srcdir)/gnulib/m4/asm-underscore.m4 \
+	$(top_srcdir)/gnulib/m4/autobuild.m4 \
 	$(top_srcdir)/gnulib/m4/base64.m4 \
 	$(top_srcdir)/gnulib/m4/btowc.m4 \
 	$(top_srcdir)/gnulib/m4/byteswap.m4 \
@@ -140,7 +140,6 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/include_next.m4 \
 	$(top_srcdir)/gnulib/m4/inet_ntop.m4 \
 	$(top_srcdir)/gnulib/m4/inet_pton.m4 \
-	$(top_srcdir)/gnulib/m4/inline.m4 \
 	$(top_srcdir)/gnulib/m4/intmax_t.m4 \
 	$(top_srcdir)/gnulib/m4/inttypes.m4 \
 	$(top_srcdir)/gnulib/m4/ioctl.m4 \
@@ -306,8 +305,21 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/ltversion.m4 $(top_srcdir)/m4/lt~obsolete.m4 \
 	$(top_srcdir)/m4/nls.m4 $(top_srcdir)/m4/po.m4 \
 	$(top_srcdir)/m4/progtest.m4 $(top_srcdir)/m4/size_max.m4 \
-	$(top_srcdir)/m4/stdint_h.m4 \
+	$(top_srcdir)/m4/stdint_h.m4 $(top_srcdir)/m4/virt-apparmor.m4 \
+	$(top_srcdir)/m4/virt-attr.m4 $(top_srcdir)/m4/virt-audit.m4 \
+	$(top_srcdir)/m4/virt-avahi.m4 $(top_srcdir)/m4/virt-blkid.m4 \
+	$(top_srcdir)/m4/virt-capng.m4 \
 	$(top_srcdir)/m4/virt-compile-warnings.m4 \
+	$(top_srcdir)/m4/virt-curl.m4 $(top_srcdir)/m4/virt-dbus.m4 \
+	$(top_srcdir)/m4/virt-fuse.m4 $(top_srcdir)/m4/virt-hal.m4 \
+	$(top_srcdir)/m4/virt-lib.m4 $(top_srcdir)/m4/virt-netcf.m4 \
+	$(top_srcdir)/m4/virt-numactl.m4 \
+	$(top_srcdir)/m4/virt-openwsman.m4 \
+	$(top_srcdir)/m4/virt-pciaccess.m4 \
+	$(top_srcdir)/m4/virt-result.m4 \
+	$(top_srcdir)/m4/virt-sanlock.m4 $(top_srcdir)/m4/virt-sasl.m4 \
+	$(top_srcdir)/m4/virt-selinux.m4 $(top_srcdir)/m4/virt-ssh2.m4 \
+	$(top_srcdir)/m4/virt-udev.m4 $(top_srcdir)/m4/virt-yajl.m4 \
 	$(top_srcdir)/m4/wchar_t.m4 $(top_srcdir)/m4/wint_t.m4 \
 	$(top_srcdir)/m4/xsize.m4 $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
@@ -322,12 +334,14 @@ am__installdirs = "$(DESTDIR)$(sbindir)" "$(DESTDIR)$(man8dir)" \
 PROGRAMS = $(sbin_PROGRAMS)
 am__libvirtd_SOURCES_DIST = libvirtd.c libvirtd.h libvirtd-config.c \
 	libvirtd-config.h remote.c remote.h stream.c stream.h \
-	../src/remote/remote_protocol.c ../src/remote/qemu_protocol.c \
-	$(srcdir)/remote_dispatch.h $(srcdir)/qemu_dispatch.h
+	../src/remote/remote_protocol.c ../src/remote/lxc_protocol.c \
+	../src/remote/qemu_protocol.c $(srcdir)/remote_dispatch.h \
+	$(srcdir)/lxc_dispatch.h $(srcdir)/qemu_dispatch.h
 am__objects_1 =
 am__objects_2 = libvirtd-libvirtd.$(OBJEXT) \
 	libvirtd-libvirtd-config.$(OBJEXT) libvirtd-remote.$(OBJEXT) \
 	libvirtd-stream.$(OBJEXT) libvirtd-remote_protocol.$(OBJEXT) \
+	libvirtd-lxc_protocol.$(OBJEXT) \
 	libvirtd-qemu_protocol.$(OBJEXT) $(am__objects_1)
 @WITH_LIBVIRTD_TRUE@am_libvirtd_OBJECTS = $(am__objects_2)
 libvirtd_OBJECTS = $(am_libvirtd_OBJECTS)
@@ -338,6 +352,7 @@ am__DEPENDENCIES_1 =
 @WITH_LIBVIRTD_TRUE@	$(am__DEPENDENCIES_1) \
 @WITH_LIBVIRTD_TRUE@	$(am__DEPENDENCIES_1) \
 @WITH_LIBVIRTD_TRUE@	$(am__DEPENDENCIES_1) $(am__append_2) \
+@WITH_LIBVIRTD_TRUE@	../src/libvirt-lxc.la \
 @WITH_LIBVIRTD_TRUE@	../src/libvirt-qemu.la $(am__append_3) \
 @WITH_LIBVIRTD_TRUE@	$(am__append_4) $(am__append_5) \
 @WITH_LIBVIRTD_TRUE@	$(am__append_6) $(am__append_7) \
@@ -433,6 +448,8 @@ AR = @AR@
 ARFLAGS = @ARFLAGS@
 AS = @AS@
 ASM_SYMBOL_PREFIX = @ASM_SYMBOL_PREFIX@
+ATTR_CFLAGS = @ATTR_CFLAGS@
+ATTR_LIBS = @ATTR_LIBS@
 AUDIT_CFLAGS = @AUDIT_CFLAGS@
 AUDIT_LIBS = @AUDIT_LIBS@
 AUGPARSE = @AUGPARSE@
@@ -462,6 +479,8 @@ COVERAGE_CFLAGS = @COVERAGE_CFLAGS@
 COVERAGE_LDFLAGS = @COVERAGE_LDFLAGS@
 CPP = @CPP@
 CPPFLAGS = @CPPFLAGS@
+CURL_CFLAGS = @CURL_CFLAGS@
+CURL_LIBS = @CURL_LIBS@
 CYGPATH_W = @CYGPATH_W@
 CYGWIN_EXTRA_LDFLAGS = @CYGWIN_EXTRA_LDFLAGS@
 CYGWIN_EXTRA_LIBADD = @CYGWIN_EXTRA_LIBADD@
@@ -1280,8 +1299,6 @@ ISCSIADM = @ISCSIADM@
 LD = @LD@
 LDEXP_LIBM = @LDEXP_LIBM@
 LDFLAGS = @LDFLAGS@
-LIBCURL_CFLAGS = @LIBCURL_CFLAGS@
-LIBCURL_LIBS = @LIBCURL_LIBS@
 LIBICONV = @LIBICONV@
 LIBINTL = @LIBINTL@
 LIBMULTITHREAD = @LIBMULTITHREAD@
@@ -1299,11 +1316,10 @@ LIBPTH_PREFIX = @LIBPTH_PREFIX@
 LIBRBD_LIBS = @LIBRBD_LIBS@
 LIBS = @LIBS@
 LIBSOCKET = @LIBSOCKET@
-LIBSSH2_CFLAGS = @LIBSSH2_CFLAGS@
-LIBSSH2_LIBS = @LIBSSH2_LIBS@
 LIBTESTS_LIBDEPS = @LIBTESTS_LIBDEPS@
 LIBTHREAD = @LIBTHREAD@
 LIBTOOL = @LIBTOOL@
+LIBVIRT_LXC_SYMBOL_FILE = @LIBVIRT_LXC_SYMBOL_FILE@
 LIBVIRT_MAJOR_VERSION = @LIBVIRT_MAJOR_VERSION@
 LIBVIRT_MICRO_VERSION = @LIBVIRT_MICRO_VERSION@
 LIBVIRT_MINOR_VERSION = @LIBVIRT_MINOR_VERSION@
@@ -1720,6 +1736,8 @@ SHELL = @SHELL@
 SHOWMOUNT = @SHOWMOUNT@
 SIG_ATOMIC_T_SUFFIX = @SIG_ATOMIC_T_SUFFIX@
 SIZE_T_SUFFIX = @SIZE_T_SUFFIX@
+SSH2_CFLAGS = @SSH2_CFLAGS@
+SSH2_LIBS = @SSH2_LIBS@
 STATIC_BINARIES = @STATIC_BINARIES@
 STDALIGN_H = @STDALIGN_H@
 STDARG_H = @STDARG_H@
@@ -1849,7 +1867,9 @@ CLEANFILES = $(am__append_1) $(BUILT_SOURCES) $(man8_MANS) *.cov \
 	*.gcov .libs/*.gcda .libs/*.gcno *.gcno *.gcda
 DAEMON_GENERATED = \
 		$(srcdir)/remote_dispatch.h		\
-		$(srcdir)/qemu_dispatch.h
+		$(srcdir)/lxc_dispatch.h		\
+		$(srcdir)/qemu_dispatch.h		\
+		$(NULL)
 
 DAEMON_SOURCES = \
 		libvirtd.c libvirtd.h			\
@@ -1857,19 +1877,37 @@ DAEMON_SOURCES = \
 		remote.c remote.h			\
 		stream.c stream.h			\
 		../src/remote/remote_protocol.c		\
+		../src/remote/lxc_protocol.c		\
 		../src/remote/qemu_protocol.c		\
 		$(DAEMON_GENERATED)
 
 DISTCLEANFILES = 
-EXTRA_DIST = remote_dispatch.h qemu_dispatch.h libvirtd.conf \
-	libvirtd.init.in libvirtd.upstart libvirtd.policy.in \
-	libvirtd.sasl libvirtd.sysconf libvirtd.sysctl libvirtd.aug \
-	libvirtd.logrotate.in libvirtd.qemu.logrotate.in \
-	libvirtd.lxc.logrotate.in libvirtd.uml.logrotate.in \
-	test_libvirtd.aug.in THREADS.txt libvirtd.pod.in libvirtd.8.in \
-	$(DAEMON_SOURCES) $(am__append_17)
-BUILT_SOURCES = $(am__append_15) $(am__append_16) $(am__append_18)
+EXTRA_DIST = \
+	remote_dispatch.h				\
+	lxc_dispatch.h					\
+	qemu_dispatch.h					\
+	libvirtd.conf					\
+	libvirtd.init.in				\
+	libvirtd.upstart				\
+	libvirtd.policy.in				\
+	libvirtd.sasl					\
+	libvirtd.service.in				\
+	libvirtd.sysconf				\
+	libvirtd.sysctl					\
+	libvirtd.aug                                    \
+	libvirtd.logrotate.in                           \
+	libvirtd.qemu.logrotate.in                      \
+	libvirtd.lxc.logrotate.in                       \
+	libvirtd.uml.logrotate.in                       \
+	test_libvirtd.aug.in                             \
+	THREADS.txt					\
+	libvirtd.pod.in					\
+	libvirtd.8.in					\
+	$(DAEMON_SOURCES)
+
+BUILT_SOURCES = $(am__append_15) $(am__append_16) $(am__append_17)
 REMOTE_PROTOCOL = $(top_srcdir)/src/remote/remote_protocol.x
+LXC_PROTOCOL = $(top_srcdir)/src/remote/lxc_protocol.x
 QEMU_PROTOCOL = $(top_srcdir)/src/remote/qemu_protocol.x
 @WITH_LIBVIRTD_TRUE@man8_MANS = libvirtd.8
 @WITH_LIBVIRTD_TRUE@confdir = $(sysconfdir)/libvirt/
@@ -1898,6 +1936,7 @@ QEMU_PROTOCOL = $(top_srcdir)/src/remote/qemu_protocol.x
 @WITH_LIBVIRTD_TRUE@libvirtd_LDADD = $(LIBXML_LIBS) $(GNUTLS_LIBS) \
 @WITH_LIBVIRTD_TRUE@	$(SASL_LIBS) $(DBUS_LIBS) $(POLKIT_LIBS) \
 @WITH_LIBVIRTD_TRUE@	$(LIBNL_LIBS) $(am__append_2) \
+@WITH_LIBVIRTD_TRUE@	../src/libvirt-lxc.la \
 @WITH_LIBVIRTD_TRUE@	../src/libvirt-qemu.la $(am__append_3) \
 @WITH_LIBVIRTD_TRUE@	$(am__append_4) $(am__append_5) \
 @WITH_LIBVIRTD_TRUE@	$(am__append_6) $(am__append_7) \
@@ -1906,10 +1945,10 @@ QEMU_PROTOCOL = $(top_srcdir)/src/remote/qemu_protocol.x
 @WITH_LIBVIRTD_TRUE@	$(am__append_12) $(am__append_13) \
 @WITH_LIBVIRTD_TRUE@	$(am__append_14) ../src/libvirt.la \
 @WITH_LIBVIRTD_TRUE@	../gnulib/lib/libgnu.la $(LIBSOCKET)
-@HAVE_POLKIT0_FALSE@@HAVE_POLKIT_TRUE@@WITH_LIBVIRTD_TRUE@policydir = $(datadir)/polkit-1/actions
-@HAVE_POLKIT0_TRUE@@HAVE_POLKIT_TRUE@@WITH_LIBVIRTD_TRUE@policydir = $(datadir)/PolicyKit/policy
-@HAVE_POLKIT0_FALSE@@HAVE_POLKIT_TRUE@@WITH_LIBVIRTD_TRUE@policyauth = auth_admin_keep
-@HAVE_POLKIT0_TRUE@@HAVE_POLKIT_TRUE@@WITH_LIBVIRTD_TRUE@policyauth = auth_admin_keep_session
+@WITH_LIBVIRTD_TRUE@@WITH_POLKIT0_FALSE@@WITH_POLKIT_TRUE@policydir = $(datadir)/polkit-1/actions
+@WITH_LIBVIRTD_TRUE@@WITH_POLKIT0_TRUE@@WITH_POLKIT_TRUE@policydir = $(datadir)/PolicyKit/policy
+@WITH_LIBVIRTD_TRUE@@WITH_POLKIT0_FALSE@@WITH_POLKIT_TRUE@policyauth = auth_admin_keep
+@WITH_LIBVIRTD_TRUE@@WITH_POLKIT0_TRUE@@WITH_POLKIT_TRUE@policyauth = auth_admin_keep_session
 @WITH_LIBVIRTD_TRUE@LOGROTATE_CONFS = libvirtd.qemu.logrotate libvirtd.lxc.logrotate \
 @WITH_LIBVIRTD_TRUE@		  libvirtd.uml.logrotate libvirtd.logrotate
 
@@ -2012,6 +2051,7 @@ distclean-compile:
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirtd-libvirtd-config.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirtd-libvirtd.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirtd-lxc_protocol.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirtd-qemu_protocol.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirtd-remote.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirtd-remote_protocol.Po@am__quote@
@@ -2107,6 +2147,20 @@ libvirtd-remote_protocol.obj: ../src/remote/remote_protocol.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='../src/remote/remote_protocol.c' object='libvirtd-remote_protocol.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -c -o libvirtd-remote_protocol.obj `if test -f '../src/remote/remote_protocol.c'; then $(CYGPATH_W) '../src/remote/remote_protocol.c'; else $(CYGPATH_W) '$(srcdir)/../src/remote/remote_protocol.c'; fi`
+
+libvirtd-lxc_protocol.o: ../src/remote/lxc_protocol.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -MT libvirtd-lxc_protocol.o -MD -MP -MF $(DEPDIR)/libvirtd-lxc_protocol.Tpo -c -o libvirtd-lxc_protocol.o `test -f '../src/remote/lxc_protocol.c' || echo '$(srcdir)/'`../src/remote/lxc_protocol.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libvirtd-lxc_protocol.Tpo $(DEPDIR)/libvirtd-lxc_protocol.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='../src/remote/lxc_protocol.c' object='libvirtd-lxc_protocol.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -c -o libvirtd-lxc_protocol.o `test -f '../src/remote/lxc_protocol.c' || echo '$(srcdir)/'`../src/remote/lxc_protocol.c
+
+libvirtd-lxc_protocol.obj: ../src/remote/lxc_protocol.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -MT libvirtd-lxc_protocol.obj -MD -MP -MF $(DEPDIR)/libvirtd-lxc_protocol.Tpo -c -o libvirtd-lxc_protocol.obj `if test -f '../src/remote/lxc_protocol.c'; then $(CYGPATH_W) '../src/remote/lxc_protocol.c'; else $(CYGPATH_W) '$(srcdir)/../src/remote/lxc_protocol.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libvirtd-lxc_protocol.Tpo $(DEPDIR)/libvirtd-lxc_protocol.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='../src/remote/lxc_protocol.c' object='libvirtd-lxc_protocol.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -c -o libvirtd-lxc_protocol.obj `if test -f '../src/remote/lxc_protocol.c'; then $(CYGPATH_W) '../src/remote/lxc_protocol.c'; else $(CYGPATH_W) '$(srcdir)/../src/remote/lxc_protocol.c'; fi`
 
 libvirtd-qemu_protocol.o: ../src/remote/qemu_protocol.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -MT libvirtd-qemu_protocol.o -MD -MP -MF $(DEPDIR)/libvirtd-qemu_protocol.Tpo -c -o libvirtd-qemu_protocol.o `test -f '../src/remote/qemu_protocol.c' || echo '$(srcdir)/'`../src/remote/qemu_protocol.c
@@ -2474,6 +2528,11 @@ $(srcdir)/remote_dispatch.h: $(srcdir)/../src/rpc/gendispatch.pl \
 	$(AM_V_GEN)$(PERL) -w $(srcdir)/../src/rpc/gendispatch.pl -b remote REMOTE \
 	  $(REMOTE_PROTOCOL) > $@
 
+$(srcdir)/lxc_dispatch.h: $(srcdir)/../src/rpc/gendispatch.pl \
+		$(LXC_PROTOCOL)
+	$(AM_V_GEN)$(PERL) -w $(srcdir)/../src/rpc/gendispatch.pl -b lxc LXC \
+	  $(LXC_PROTOCOL) > $@
+
 $(srcdir)/qemu_dispatch.h: $(srcdir)/../src/rpc/gendispatch.pl \
 		$(QEMU_PROTOCOL)
 	$(AM_V_GEN)$(PERL) -w $(srcdir)/../src/rpc/gendispatch.pl -b qemu QEMU \
@@ -2481,14 +2540,14 @@ $(srcdir)/qemu_dispatch.h: $(srcdir)/../src/rpc/gendispatch.pl \
 
 @WITH_LIBVIRTD_TRUE@libvirtd.8: $(srcdir)/libvirtd.8.in
 @WITH_LIBVIRTD_TRUE@	$(AM_V_GEN)sed \
-@WITH_LIBVIRTD_TRUE@	    -e 's!SYSCONFDIR!$(sysconfdir)!g' \
-@WITH_LIBVIRTD_TRUE@	    -e 's!LOCALSTATEDIR!$(localstatedir)!g' \
+@WITH_LIBVIRTD_TRUE@	    -e 's|[@]sysconfdir[@]|$(sysconfdir)|g' \
+@WITH_LIBVIRTD_TRUE@	    -e 's|[@]localstatedir[@]|$(localstatedir)|g' \
 @WITH_LIBVIRTD_TRUE@	    < $< > $@-t && \
 @WITH_LIBVIRTD_TRUE@	mv $@-t $@
 
 @WITH_LIBVIRTD_TRUE@libvirtd.policy: libvirtd.policy.in $(top_builddir)/config.status
 @WITH_LIBVIRTD_TRUE@	$(AM_V_GEN) sed \
-@WITH_LIBVIRTD_TRUE@	    -e 's![@]authaction[@]!$(policyauth)!g' \
+@WITH_LIBVIRTD_TRUE@	    -e 's|[@]authaction[@]|$(policyauth)|g' \
 @WITH_LIBVIRTD_TRUE@	    < $< > $@-t && \
 @WITH_LIBVIRTD_TRUE@	mv $@-t $@
 
@@ -2506,39 +2565,39 @@ $(srcdir)/qemu_dispatch.h: $(srcdir)/../src/rpc/gendispatch.pl \
 @WITH_LIBVIRTD_TRUE@	rmdir $(DESTDIR)$(localstatedir)/run/libvirt || :
 @WITH_LIBVIRTD_TRUE@	rmdir $(DESTDIR)$(localstatedir)/lib/libvirt || :
 
-@HAVE_POLKIT_TRUE@@WITH_LIBVIRTD_TRUE@install-data-polkit::
-@HAVE_POLKIT_TRUE@@WITH_LIBVIRTD_TRUE@	$(MKDIR_P) $(DESTDIR)$(policydir)
-@HAVE_POLKIT_TRUE@@WITH_LIBVIRTD_TRUE@	$(INSTALL_DATA) libvirtd.policy $(DESTDIR)$(policydir)/org.libvirt.unix.policy
-@HAVE_POLKIT_TRUE@@WITH_LIBVIRTD_TRUE@uninstall-data-polkit::
-@HAVE_POLKIT_TRUE@@WITH_LIBVIRTD_TRUE@	rm -f $(DESTDIR)$(policydir)/org.libvirt.unix.policy
-@HAVE_POLKIT_TRUE@@WITH_LIBVIRTD_TRUE@	rmdir $(DESTDIR)$(policydir) || :
-@HAVE_POLKIT_FALSE@@WITH_LIBVIRTD_TRUE@install-data-polkit::
-@HAVE_POLKIT_FALSE@@WITH_LIBVIRTD_TRUE@uninstall-data-polkit::
+@WITH_LIBVIRTD_TRUE@@WITH_POLKIT_TRUE@install-data-polkit::
+@WITH_LIBVIRTD_TRUE@@WITH_POLKIT_TRUE@	$(MKDIR_P) $(DESTDIR)$(policydir)
+@WITH_LIBVIRTD_TRUE@@WITH_POLKIT_TRUE@	$(INSTALL_DATA) libvirtd.policy $(DESTDIR)$(policydir)/org.libvirt.unix.policy
+@WITH_LIBVIRTD_TRUE@@WITH_POLKIT_TRUE@uninstall-data-polkit::
+@WITH_LIBVIRTD_TRUE@@WITH_POLKIT_TRUE@	rm -f $(DESTDIR)$(policydir)/org.libvirt.unix.policy
+@WITH_LIBVIRTD_TRUE@@WITH_POLKIT_TRUE@	rmdir $(DESTDIR)$(policydir) || :
+@WITH_LIBVIRTD_TRUE@@WITH_POLKIT_FALSE@install-data-polkit::
+@WITH_LIBVIRTD_TRUE@@WITH_POLKIT_FALSE@uninstall-data-polkit::
 
 @WITH_LIBVIRTD_TRUE@remote.c: $(DAEMON_GENERATED)
 @WITH_LIBVIRTD_TRUE@remote.h: $(DAEMON_GENERATED)
 
 @WITH_LIBVIRTD_TRUE@libvirtd.logrotate: libvirtd.logrotate.in
 @WITH_LIBVIRTD_TRUE@	$(AM_V_GEN)sed						\
-@WITH_LIBVIRTD_TRUE@	    -e 's![@]localstatedir[@]!$(localstatedir)!g'	\
+@WITH_LIBVIRTD_TRUE@	    -e 's|[@]localstatedir[@]|$(localstatedir)|g'	\
 @WITH_LIBVIRTD_TRUE@	    < $< > $@-t && \
 @WITH_LIBVIRTD_TRUE@	mv $@-t $@
 
 @WITH_LIBVIRTD_TRUE@libvirtd.qemu.logrotate: libvirtd.qemu.logrotate.in
 @WITH_LIBVIRTD_TRUE@	$(AM_V_GEN)sed						\
-@WITH_LIBVIRTD_TRUE@	    -e 's![@]localstatedir[@]!$(localstatedir)!g'	\
+@WITH_LIBVIRTD_TRUE@	    -e 's|[@]localstatedir[@]|$(localstatedir)|g'	\
 @WITH_LIBVIRTD_TRUE@	    < $< > $@-t && \
 @WITH_LIBVIRTD_TRUE@	mv $@-t $@
 
 @WITH_LIBVIRTD_TRUE@libvirtd.lxc.logrotate: libvirtd.lxc.logrotate.in
 @WITH_LIBVIRTD_TRUE@	$(AM_V_GEN)sed						\
-@WITH_LIBVIRTD_TRUE@	    -e 's![@]localstatedir[@]!$(localstatedir)!g'	\
+@WITH_LIBVIRTD_TRUE@	    -e 's|[@]localstatedir[@]|$(localstatedir)|g'	\
 @WITH_LIBVIRTD_TRUE@	    < $< > $@-t &&					\
 @WITH_LIBVIRTD_TRUE@	    mv $@-t $@
 
 @WITH_LIBVIRTD_TRUE@libvirtd.uml.logrotate: libvirtd.uml.logrotate.in
 @WITH_LIBVIRTD_TRUE@	$(AM_V_GEN)sed						\
-@WITH_LIBVIRTD_TRUE@	    -e 's![@]localstatedir[@]!$(localstatedir)!g'	\
+@WITH_LIBVIRTD_TRUE@	    -e 's|[@]localstatedir[@]|$(localstatedir)|g'	\
 @WITH_LIBVIRTD_TRUE@	    < $< > $@-t &&					\
 @WITH_LIBVIRTD_TRUE@	    mv $@-t $@
 
@@ -2570,14 +2629,16 @@ $(srcdir)/qemu_dispatch.h: $(srcdir)/../src/rpc/gendispatch.pl \
 @WITH_LIBVIRTD_TRUE@	rm -f $(DESTDIR)$(sysconfdir)/sysconfig/libvirtd
 @WITH_LIBVIRTD_TRUE@	rmdir $(DESTDIR)$(sysconfdir)/sysconfig || :
 
+# Use $(prefix)/lib rather than $(libdir), since man sysctl.d insists on
+# /usr/lib/sysctl.d/ even when libdir is /usr/lib64
 @WITH_LIBVIRTD_TRUE@@WITH_SYSCTL_TRUE@install-sysctl:
-@WITH_LIBVIRTD_TRUE@@WITH_SYSCTL_TRUE@	$(MKDIR_P) $(DESTDIR)$(sysconfdir)/sysctl.d
+@WITH_LIBVIRTD_TRUE@@WITH_SYSCTL_TRUE@	$(MKDIR_P) $(DESTDIR)$(prefix)/lib/sysctl.d
 @WITH_LIBVIRTD_TRUE@@WITH_SYSCTL_TRUE@	$(INSTALL_DATA) $(srcdir)/libvirtd.sysctl \
-@WITH_LIBVIRTD_TRUE@@WITH_SYSCTL_TRUE@	  $(DESTDIR)$(sysconfdir)/sysctl.d/libvirtd
+@WITH_LIBVIRTD_TRUE@@WITH_SYSCTL_TRUE@	  $(DESTDIR)$(prefix)/lib/sysctl.d/libvirtd.conf
 
 @WITH_LIBVIRTD_TRUE@@WITH_SYSCTL_TRUE@uninstall-sysctl:
-@WITH_LIBVIRTD_TRUE@@WITH_SYSCTL_TRUE@	rm -f $(DESTDIR)$(sysconfdir)/sysctl.d/libvirtd
-@WITH_LIBVIRTD_TRUE@@WITH_SYSCTL_TRUE@	rmdir $(DESTDIR)$(sysconfdir)/sysctl.d || :
+@WITH_LIBVIRTD_TRUE@@WITH_SYSCTL_TRUE@	rm -f $(DESTDIR)$(prefix)/lib/sysctl.d/libvirtd.conf
+@WITH_LIBVIRTD_TRUE@@WITH_SYSCTL_TRUE@	rmdir $(DESTDIR)$(prefix)/lib/sysctl.d || :
 @WITH_LIBVIRTD_TRUE@@WITH_SYSCTL_FALSE@install-sysctl:
 @WITH_LIBVIRTD_TRUE@@WITH_SYSCTL_FALSE@uninstall-sysctl:
 
@@ -2615,21 +2676,20 @@ $(srcdir)/qemu_dispatch.h: $(srcdir)/../src/rpc/gendispatch.pl \
 @LIBVIRT_INIT_SCRIPT_SYSTEMD_FALSE@@WITH_LIBVIRTD_TRUE@uninstall-init-systemd:
 
 @WITH_LIBVIRTD_TRUE@libvirtd.init: libvirtd.init.in $(top_builddir)/config.status
-@WITH_LIBVIRTD_TRUE@	$(AM_V_GEN)sed					\
-@WITH_LIBVIRTD_TRUE@	    -e s!\@localstatedir\@!$(localstatedir)!g	\
-@WITH_LIBVIRTD_TRUE@	    -e s!\@sbindir\@!$(sbindir)!g		\
-@WITH_LIBVIRTD_TRUE@	    -e s!\@sysconfdir\@!$(sysconfdir)!g		\
-@WITH_LIBVIRTD_TRUE@	    < $< > $@-t &&				\
-@WITH_LIBVIRTD_TRUE@	    chmod a+x $@-t &&				\
+@WITH_LIBVIRTD_TRUE@	$(AM_V_GEN)sed						\
+@WITH_LIBVIRTD_TRUE@	    -e 's|[@]localstatedir[@]|$(localstatedir)|g'	\
+@WITH_LIBVIRTD_TRUE@	    -e 's|[@]sbindir[@]|$(sbindir)|g'			\
+@WITH_LIBVIRTD_TRUE@	    -e 's|[@]sysconfdir[@]|$(sysconfdir)|g'		\
+@WITH_LIBVIRTD_TRUE@	    < $< > $@-t &&					\
+@WITH_LIBVIRTD_TRUE@	    chmod a+x $@-t &&					\
 @WITH_LIBVIRTD_TRUE@	    mv $@-t $@
 
 @WITH_LIBVIRTD_TRUE@libvirtd.service: libvirtd.service.in $(top_builddir)/config.status
-@WITH_LIBVIRTD_TRUE@	$(AM_V_GEN)sed					\
-@WITH_LIBVIRTD_TRUE@	    -e s!\@localstatedir\@!$(localstatedir)!g	\
-@WITH_LIBVIRTD_TRUE@	    -e s!\@sbindir\@!$(sbindir)!g		\
-@WITH_LIBVIRTD_TRUE@	    -e s!\@sysconfdir\@!$(sysconfdir)!g		\
-@WITH_LIBVIRTD_TRUE@	    < $< > $@-t &&				\
-@WITH_LIBVIRTD_TRUE@	    chmod a+x $@-t &&				\
+@WITH_LIBVIRTD_TRUE@	$(AM_V_GEN)sed						\
+@WITH_LIBVIRTD_TRUE@	    -e 's|[@]localstatedir[@]|$(localstatedir)|g'	\
+@WITH_LIBVIRTD_TRUE@	    -e 's|[@]sbindir[@]|$(sbindir)|g'			\
+@WITH_LIBVIRTD_TRUE@	    -e 's|[@]sysconfdir[@]|$(sysconfdir)|g'		\
+@WITH_LIBVIRTD_TRUE@	    < $< > $@-t &&					\
 @WITH_LIBVIRTD_TRUE@	    mv $@-t $@
 
 @WITH_LIBVIRTD_TRUE@check-local: check-augeas
@@ -2651,15 +2711,15 @@ $(srcdir)/libvirtd.8.in: libvirtd.pod.in
 
 # This is needed for clients too, so can't wrap in
 # the WITH_LIBVIRTD conditional
-@HAVE_SASL_TRUE@install-data-sasl:
-@HAVE_SASL_TRUE@	$(MKDIR_P) $(DESTDIR)$(sysconfdir)/sasl2/
-@HAVE_SASL_TRUE@	$(INSTALL_DATA) $(srcdir)/libvirtd.sasl $(DESTDIR)$(sysconfdir)/sasl2/libvirt.conf
+@WITH_SASL_TRUE@install-data-sasl:
+@WITH_SASL_TRUE@	$(MKDIR_P) $(DESTDIR)$(sysconfdir)/sasl2/
+@WITH_SASL_TRUE@	$(INSTALL_DATA) $(srcdir)/libvirtd.sasl $(DESTDIR)$(sysconfdir)/sasl2/libvirt.conf
 
-@HAVE_SASL_TRUE@uninstall-data-sasl:
-@HAVE_SASL_TRUE@	rm -f $(DESTDIR)$(sysconfdir)/sasl2/libvirt.conf
-@HAVE_SASL_TRUE@	rmdir $(DESTDIR)$(sysconfdir)/sasl2/ || :
-@HAVE_SASL_FALSE@install-data-sasl:
-@HAVE_SASL_FALSE@uninstall-data-sasl:
+@WITH_SASL_TRUE@uninstall-data-sasl:
+@WITH_SASL_TRUE@	rm -f $(DESTDIR)$(sysconfdir)/sasl2/libvirt.conf
+@WITH_SASL_TRUE@	rmdir $(DESTDIR)$(sysconfdir)/sasl2/ || :
+@WITH_SASL_FALSE@install-data-sasl:
+@WITH_SASL_FALSE@uninstall-data-sasl:
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

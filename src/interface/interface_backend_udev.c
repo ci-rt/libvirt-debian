@@ -23,11 +23,11 @@
 #include <dirent.h>
 #include <libudev.h>
 
-#include "virterror_internal.h"
+#include "virerror.h"
 #include "datatypes.h"
 #include "interface_driver.h"
 #include "interface_conf.h"
-#include "memory.h"
+#include "viralloc.h"
 
 #define VIR_FROM_THIS VIR_FROM_INTERFACE
 
@@ -290,7 +290,7 @@ udevIfaceListAllInterfaces(virConnectPtr conn,
     struct udev_enumerate *enumerate = NULL;
     struct udev_list_entry *devices;
     struct udev_list_entry *dev_entry;
-    virInterfacePtr *ifaces_list;
+    virInterfacePtr *ifaces_list = NULL;
     virInterfacePtr iface_obj;
     int tmp_count;
     int count = 0;
@@ -352,7 +352,7 @@ udevIfaceListAllInterfaces(virConnectPtr conn,
         const char *path;
         const char *name;
         const char *macaddr;
-        int add_to_list;
+        int add_to_list = 0;
 
         path = udev_list_entry_get_name(dev_entry);
         dev = udev_device_new_from_syspath(udev, path);
@@ -577,7 +577,7 @@ udevIfaceGetIfaceDef(struct udev *udev, char *name)
 
     /* MAC address */
     ifacedef->mac = strdup(udev_device_get_sysattr_value(dev, "address"));
-    if (!ifacedef) {
+    if (!ifacedef->mac) {
         virReportOOMError();
         goto cleanup;
     }
@@ -654,9 +654,8 @@ udevIfaceGetIfaceDef(struct udev *udev, char *name)
         ifacedef->data.bridge.stp = stp;
 
         /* Members of the bridge */
-        virAsprintf(&member_path, "%s/%s",
-                    udev_device_get_syspath(dev), "brif");
-        if (!member_path) {
+        if (virAsprintf(&member_path, "%s/%s",
+                        udev_device_get_syspath(dev), "brif") < 0) {
             virReportOOMError();
             goto cleanup;
         }

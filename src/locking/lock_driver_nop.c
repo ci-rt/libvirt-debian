@@ -22,9 +22,9 @@
 #include <config.h>
 
 #include "lock_driver_nop.h"
-#include "memory.h"
-#include "logging.h"
-#include "uuid.h"
+#include "viralloc.h"
+#include "virlog.h"
+#include "viruuid.h"
 
 
 static int virLockManagerNopInit(unsigned int version ATTRIBUTE_UNUSED,

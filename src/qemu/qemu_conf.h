@@ -26,22 +26,22 @@
 
 # include <config.h>
 
-# include "ebtables.h"
+# include "virebtables.h"
 # include "internal.h"
 # include "capabilities.h"
 # include "network_conf.h"
 # include "domain_conf.h"
 # include "domain_event.h"
-# include "threads.h"
+# include "virthread.h"
 # include "security/security_manager.h"
-# include "cgroup.h"
-# include "pci.h"
-# include "hostusb.h"
+# include "vircgroup.h"
+# include "virpci.h"
+# include "virusb.h"
 # include "cpu_conf.h"
 # include "driver.h"
-# include "bitmap.h"
-# include "command.h"
-# include "threadpool.h"
+# include "virportallocator.h"
+# include "vircommand.h"
+# include "virthreadpool.h"
 # include "locking/lock_manager.h"
 # include "qemu_capabilities.h"
 
@@ -148,7 +148,9 @@ struct _virQEMUDriver {
     /* The devices which is are not in use by the host or any guest. */
     pciDeviceList *inactivePciHostdevs;
 
-    virBitmapPtr reservedRemotePorts;
+    virHashTablePtr sharedDisks;
+
+    virPortAllocatorPtr remotePorts;
 
     virSysinfoDefPtr hostsysinfo;
 
@@ -211,5 +213,15 @@ qemuDriverCloseCallback qemuDriverCloseCallbackGet(virQEMUDriverPtr driver,
                                                    virConnectPtr conn);
 void qemuDriverCloseCallbackRunAll(virQEMUDriverPtr driver,
                                    virConnectPtr conn);
+
+int qemuAddSharedDisk(virHashTablePtr sharedDisks,
+                      const char *disk_path)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
+
+int qemuRemoveSharedDisk(virHashTablePtr sharedDisks,
+                         const char *disk_path)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
+char * qemuGetSharedDiskKey(const char *disk_path)
+    ATTRIBUTE_NONNULL(1);
 
 #endif /* __QEMUD_CONF_H */

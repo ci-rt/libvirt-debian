@@ -24,6 +24,9 @@
 /* Define to the number of bits in type 'wint_t'. */
 #undef BITSIZEOF_WINT_T
 
+/* Define to 1 if gcc -Wlogical-op reports false positives on strchr */
+#undef BROKEN_GCC_WLOGICALOP
+
 /* Define to 1 if chown fails to change ctime when at least one argument was
    not -1. */
 #undef CHOWN_CHANGE_TIME_BUG
@@ -563,17 +566,8 @@
    */
 #undef HAVE_ALLOCA_H
 
-/* whether AppArmor is available for security */
-#undef HAVE_APPARMOR
-
 /* Define to 1 if you have the <arpa/inet.h> header file. */
 #undef HAVE_ARPA_INET_H
-
-/* whether libaudit is available */
-#undef HAVE_AUDIT
-
-/* whether Avahi is used to broadcast server presence */
-#undef HAVE_AVAHI
 
 /* Define to 1 if you have the <bp-sym.h> header file. */
 #undef HAVE_BP_SYM_H
@@ -589,9 +583,6 @@
 
 /* Define to 1 if you have the 'canonicalize_file_name' function. */
 #undef HAVE_CANONICALIZE_FILE_NAME
-
-/* whether capng is available for privilege reduction */
-#undef HAVE_CAPNG
 
 /* Define to 1 if you have the 'catgets' function. */
 #undef HAVE_CATGETS
@@ -636,9 +627,6 @@
 
 /* whether CPUID instruction is supported */
 #undef HAVE_CPUID
-
-/* enable communication with DBus */
-#undef HAVE_DBUS
 
 /* Define to 1 if you have the `dbus_watch_get_unix_fd' function. */
 #undef HAVE_DBUS_WATCH_GET_UNIX_FD
@@ -910,9 +898,6 @@
 /* Define to 1 if you have the `funlockfile' function. */
 #undef HAVE_FUNLOCKFILE
 
-/* whether fuse is available for libvirt lxc */
-#undef HAVE_FUSE
-
 /* Define to 1 if you have the 'getcwd' function. */
 #undef HAVE_GETCWD
 
@@ -979,9 +964,6 @@
 /* Define to 1 if you have the <grp.h> header file. */
 #undef HAVE_GRP_H
 
-/* use HAL for host device enumeration */
-#undef HAVE_HAL
-
 /* Define if you have the iconv() function and it works. */
 #undef HAVE_ICONV
 
@@ -996,11 +978,6 @@
 
 /* Define to 1 if you have the 'initgroups' function. */
 #undef HAVE_INITGROUPS
-
-/* Define to 1 if the compiler supports one of the keywords 'inline',
-   '__inline__', '__inline' and effectively inlines functions marked as such.
-   */
-#undef HAVE_INLINE
 
 /* Define if you have the 'intmax_t' type in <stdint.h> or <inttypes.h>. */
 #undef HAVE_INTMAX_T
@@ -1054,17 +1031,14 @@
 /* Define to 1 if you have the `apparmor' library (-lapparmor). */
 #undef HAVE_LIBAPPARMOR
 
+/* Define to 1 if you have the `attr' library (-lattr). */
+#undef HAVE_LIBATTR
+
 /* Define to 1 if you have the `audit' library (-laudit). */
 #undef HAVE_LIBAUDIT
 
-/* libblkid is present */
-#undef HAVE_LIBBLKID
-
 /* Define to 1 if you have the `cap-ng' library (-lcap-ng). */
 #undef HAVE_LIBCAP_NG
-
-/* whether libcurl is available */
-#undef HAVE_LIBCURL
 
 /* Define to 1 if you have the `devmapper' library (-ldevmapper). */
 #undef HAVE_LIBDEVMAPPER
@@ -1074,9 +1048,6 @@
 
 /* Define to 1 if you have the `gnutls' library (-lgnutls). */
 #undef HAVE_LIBGNUTLS
-
-/* Define to 1 if you have the `libhal_get_all_devices' function. */
-#undef HAVE_LIBHAL_GET_ALL_DEVICES
 
 /* Define to 1 if you have the `intl' library (-lintl). */
 #undef HAVE_LIBINTL
@@ -1105,11 +1076,14 @@
 /* Define to 1 if you have the `portablexdr' library (-lportablexdr). */
 #undef HAVE_LIBPORTABLEXDR
 
+/* Define to 1 if you have the `sanlock_client' library (-lsanlock_client). */
+#undef HAVE_LIBSANLOCK_CLIENT
+
+/* Define to 1 if you have the `sasl2' library (-lsasl2). */
+#undef HAVE_LIBSASL2
+
 /* Define to 1 if you have the `selinux' library (-lselinux). */
 #undef HAVE_LIBSELINUX
-
-/* whether libssh2 transport is enabled */
-#undef HAVE_LIBSSH2
 
 /* Define to 1 if you have the <libtasn1.h> header file. */
 #undef HAVE_LIBTASN1_H
@@ -1119,6 +1093,9 @@
 
 /* Define to 1 if you have the `uuid' library (-luuid). */
 #undef HAVE_LIBUUID
+
+/* Define to 1 if you have the `yajl' library (-lyajl). */
+#undef HAVE_LIBYAJL
 
 /* Define to 1 if you have the <linux/if_bridge.h> header file. */
 #undef HAVE_LINUX_IF_BRIDGE_H
@@ -1225,9 +1202,6 @@
 /* Define to 1 if you have the 'nl_langinfo' function. */
 #undef HAVE_NL_LANGINFO
 
-/* whether numactl-devel is available */
-#undef HAVE_NUMACTL
-
 /* whether numad is available */
 #undef HAVE_NUMAD
 
@@ -1245,15 +1219,6 @@
 
 /* Define to 1 if you have the 'pipe2' function. */
 #undef HAVE_PIPE2
-
-/* use PolicyKit for UNIX socket access checks */
-#undef HAVE_POLKIT
-
-/* use PolicyKit for UNIX socket access checks */
-#undef HAVE_POLKIT0
-
-/* use PolicyKit for UNIX socket access checks */
-#undef HAVE_POLKIT1
 
 /* Define to 1 if you have the `polkit_context_is_caller_authorized' function.
    */
@@ -1374,17 +1339,11 @@
 /* Define to 1 if 'long double' and 'double' have the same representation. */
 #undef HAVE_SAME_LONG_DOUBLE_AS_DOUBLE
 
-/* whether Sanlock plugin for lock management is available */
-#undef HAVE_SANLOCK
-
 /* whether sanlock supports sanlock_inq_lockspace */
 #undef HAVE_SANLOCK_INQ_LOCKSPACE
 
 /* whether Sanlock supports sanlock_killpath */
 #undef HAVE_SANLOCK_KILLPATH
-
-/* whether Cyrus SASL is available for authentication */
-#undef HAVE_SASL
 
 /* Define to 1 if the system has the type `sa_family_t'. */
 #undef HAVE_SA_FAMILY_T
@@ -1403,9 +1362,6 @@
 
 /* Define to 1 if you have the <search.h> header file. */
 #undef HAVE_SEARCH_H
-
-/* whether basic SELinux functionality is available */
-#undef HAVE_SELINUX
 
 /* Define to 1 if you have the <selinux/label.h> header file. */
 #undef HAVE_SELINUX_LABEL_H
@@ -1427,6 +1383,9 @@
 
 /* Define to 1 if you have the `setlocale' function. */
 #undef HAVE_SETLOCALE
+
+/* Define to 1 if you have the 'setns' function. */
+#undef HAVE_SETNS
 
 /* Define to 1 if you have the `setrlimit' function. */
 #undef HAVE_SETRLIMIT
@@ -1698,9 +1657,6 @@
 /* Define to 1 if you have the `ttyname_r' function. */
 #undef HAVE_TTYNAME_R
 
-/* use UDEV for host device enumeration */
-#undef HAVE_UDEV
-
 /* Define to 1 if you have the `uname' function. */
 #undef HAVE_UNAME
 
@@ -1818,12 +1774,6 @@
 
 /* Have query_raw field in libxml2 xmlURI structure */
 #undef HAVE_XMLURI_QUERY_RAW
-
-/* whether YAJL is available for JSON parsing/formatting */
-#undef HAVE_YAJL
-
-/* whether YAJL has API version 2 */
-#undef HAVE_YAJL2
 
 /* Define to 1 if the system has the type `_Bool'. */
 #undef HAVE__BOOL
@@ -2181,8 +2131,8 @@
 /* Use Win32 atomic ops */
 #undef VIR_ATOMIC_OPS_WIN32
 
-/* path to directory containing UUCP pty lock files */
-#undef VIR_PTY_LOCK_FILE_PATH
+/* path to directory containing UUCP device lock files */
+#undef VIR_CHRDEV_LOCK_FILE_PATH
 
 /* Define to the absolute path of a shell that does not truncate on <>
    redirection, if /bin/sh does not fit the bill */
@@ -2202,8 +2152,32 @@
    'wint_t'. */
 #undef WINT_T_SUFFIX
 
+/* whether libapparmor is available */
+#undef WITH_APPARMOR
+
+/* whether libattr is available */
+#undef WITH_ATTR
+
+/* whether libaudit is available */
+#undef WITH_AUDIT
+
+/* whether avahi-client >= 0.6.0 is available */
+#undef WITH_AVAHI
+
+/* whether blkid >= 2.17 is available */
+#undef WITH_BLKID
+
 /* whether bridge code is needed */
 #undef WITH_BRIDGE
+
+/* whether libcap-ng is available */
+#undef WITH_CAPNG
+
+/* whether libcurl >= 7.18.0 is available */
+#undef WITH_CURL
+
+/* whether dbus-1 >= 1.0.0 is available */
+#undef WITH_DBUS
 
 /* whether to build drivers as modules */
 #undef WITH_DRIVER_MODULES
@@ -2213,6 +2187,15 @@
 
 /* whether ESX driver is enabled */
 #undef WITH_ESX
+
+/* whether fuse >= 2.8.6 is available */
+#undef WITH_FUSE
+
+/* whether GNUTLS is available for encryption */
+#undef WITH_GNUTLS
+
+/* whether hal >= 0.5.0 is available */
+#undef WITH_HAL
 
 /* whether Hyper-V driver is enabled */
 #undef WITH_HYPERV
@@ -2232,8 +2215,7 @@
 /* whether macvtap support is enabled */
 #undef WITH_MACVTAP
 
-/* whether libnetcf is available to configure physical host network interfaces
-   */
+/* whether netcf >= 0.1.4 is available */
 #undef WITH_NETCF
 
 /* whether network driver is enabled */
@@ -2242,17 +2224,35 @@
 /* with node device driver */
 #undef WITH_NODE_DEVICES
 
+/* whether libnuma is available */
+#undef WITH_NUMACTL
+
 /* whether local network filter management driver is available */
 #undef WITH_NWFILTER
 
 /* whether OpenVZ driver is enabled */
 #undef WITH_OPENVZ
 
+/* whether openwsman >= 2.2.3 is available */
+#undef WITH_OPENWSMAN
+
 /* whether Parallels driver is enabled */
 #undef WITH_PARALLELS
 
+/* whether pciaccess >= 0.10.0 is available */
+#undef WITH_PCIACCESS
+
 /* whether IBM HMC / IVM driver is enabled */
 #undef WITH_PHYP
+
+/* use PolicyKit for UNIX socket access checks */
+#undef WITH_POLKIT
+
+/* use PolicyKit for UNIX socket access checks */
+#undef WITH_POLKIT0
+
+/* use PolicyKit for UNIX socket access checks */
+#undef WITH_POLKIT1
 
 /* whether QEMU driver is enabled */
 #undef WITH_QEMU
@@ -2263,6 +2263,15 @@
 /* whether building for the RHEL-5 API */
 #undef WITH_RHEL5_API
 
+/* whether libsanlock_client is available */
+#undef WITH_SANLOCK
+
+/* whether libsasl2 is available */
+#undef WITH_SASL
+
+/* whether libsasl2 is available */
+#undef WITH_SASL1
+
 /* whether AppArmor security driver is available */
 #undef WITH_SECDRIVER_APPARMOR
 
@@ -2271,6 +2280,12 @@
 
 /* whether local secrets management driver is available */
 #undef WITH_SECRETS
+
+/* whether libselinux is available */
+#undef WITH_SELINUX
+
+/* whether libssh2 >= 1.3 is available */
+#undef WITH_SSH2
 
 /* Define to 1 if at least one storage backend is in use */
 #undef WITH_STORAGE
@@ -2305,6 +2320,9 @@
 /* whether Test driver is enabled */
 #undef WITH_TEST
 
+/* whether libudev >= 145 is available */
+#undef WITH_UDEV
+
 /* whether UML driver is enabled */
 #undef WITH_UML
 
@@ -2328,6 +2346,12 @@
 
 /* whether Xen inotify sub-driver is enabled */
 #undef WITH_XEN_INOTIFY
+
+/* whether libyajl is available */
+#undef WITH_YAJL
+
+/* whether libyajl is available */
+#undef WITH_YAJL2
 
 /* Define WORDS_BIGENDIAN to 1 if your processor stores words with the most
    significant byte first (like Motorola and SPARC, unlike Intel). */
@@ -2446,13 +2470,19 @@
      when FOO is an inline function in the header; see
      <http://gcc.gnu.org/bugzilla/show_bug.cgi?id=54113>.
    _GL_INLINE_HEADER_END contains useful stuff to put
-     in the same include file, after uses of _GL_INLINE.  */
-#if (__GNUC__ \
-     ? defined __GNUC_STDC_INLINE__ && __GNUC_STDC_INLINE__ \
-     : 199901L <= __STDC_VERSION__)
+     in the same include file, after uses of _GL_INLINE.
+
+   Suppress the use of extern inline on Apple's platforms,
+   as Libc-825.25 (2012-09-19) is incompatible with it; see
+   <http://lists.gnu.org/archive/html/bug-gnulib/2012-12/msg00023.html>.
+   Perhaps Apple will fix this some day.  */
+#if ((__GNUC__ \
+      ? defined __GNUC_STDC_INLINE__ && __GNUC_STDC_INLINE__ \
+      : 199901L <= __STDC_VERSION__) \
+     && !defined __APPLE__)
 # define _GL_INLINE inline
 # define _GL_EXTERN_INLINE extern inline
-#elif 2 < __GNUC__ + (7 <= __GNUC_MINOR__)
+#elif 2 < __GNUC__ + (7 <= __GNUC_MINOR__) && !defined __APPLE__
 # if __GNUC_GNU_INLINE__
    /* __gnu_inline__ suppresses a GCC 4.2 diagnostic.  */
 #  define _GL_INLINE extern inline __attribute__ ((__gnu_inline__))
@@ -2461,8 +2491,8 @@
 # endif
 # define _GL_EXTERN_INLINE extern
 #else
-# define _GL_INLINE static inline
-# define _GL_EXTERN_INLINE static inline
+# define _GL_INLINE static _GL_UNUSED
+# define _GL_EXTERN_INLINE static _GL_UNUSED
 #endif
 
 #if 4 < __GNUC__ + (6 <= __GNUC_MINOR__)

@@ -33,16 +33,16 @@
 #include <fcntl.h>
 #include <string.h>
 
-#include "virterror_internal.h"
+#include "virerror.h"
 #include "datatypes.h"
 #include "storage_conf.h"
-#include "storage_file.h"
+#include "virstoragefile.h"
 
-#include "xml.h"
-#include "uuid.h"
-#include "buf.h"
-#include "util.h"
-#include "memory.h"
+#include "virxml.h"
+#include "viruuid.h"
+#include "virbuffer.h"
+#include "virutil.h"
+#include "viralloc.h"
 #include "virfile.h"
 
 #define VIR_FROM_THIS VIR_FROM_STORAGE

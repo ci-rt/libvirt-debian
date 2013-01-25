@@ -24,11 +24,11 @@
 
 #include "testutils.h"
 #include "daemon/libvirtd-config.h"
-#include "util.h"
+#include "virutil.h"
 #include "c-ctype.h"
-#include "virterror_internal.h"
-#include "logging.h"
-#include "conf.h"
+#include "virerror.h"
+#include "virlog.h"
+#include "virconf.h"
 
 #define VIR_FROM_THIS VIR_FROM_NONE
 
@@ -120,7 +120,7 @@ testCorrupt(const void *opaque)
         goto cleanup;
     }
 
-#if !HAVE_SASL
+#if !WITH_SASL
     if (strstr(err->message, "unsupported auth sasl")) {
         VIR_DEBUG("sasl unsupported, skipping this config");
         goto cleanup;

@@ -1,7 +1,7 @@
 /*
  * lock_driver_sanlock.c: A lock driver for Sanlock
  *
- * Copyright (C) 2010-2012 Red Hat, Inc.
+ * Copyright (C) 2010-2013 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -37,13 +37,13 @@
 
 #include "dirname.h"
 #include "lock_driver.h"
-#include "logging.h"
-#include "virterror_internal.h"
-#include "memory.h"
-#include "util.h"
+#include "virlog.h"
+#include "virerror.h"
+#include "viralloc.h"
+#include "virutil.h"
 #include "virfile.h"
 #include "md5.h"
-#include "conf.h"
+#include "virconf.h"
 
 #include "configmake.h"
 
@@ -236,7 +236,7 @@ static int virLockManagerSanlockSetupLockspace(void)
             goto error;
         }
 
-        if (driver->group != -1)
+        if (driver->group != (gid_t) -1)
             perms |= 0060;
 
         if ((fd = open(path, O_WRONLY|O_CREAT|O_EXCL, perms)) < 0) {
@@ -249,7 +249,7 @@ static int virLockManagerSanlockSetupLockspace(void)
             VIR_DEBUG("Someone else just created lockspace %s", path);
         } else {
             /* chown() the path to make sure sanlock can access it */
-            if ((driver->user != -1 || driver->group != -1) &&
+            if ((driver->user != (uid_t) -1 || driver->group != (gid_t) -1) &&
                 (fchown(fd, driver->user, driver->group) < 0)) {
                 virReportSystemError(errno,
                                      _("cannot chown '%s' to (%u, %u)"),
@@ -303,8 +303,8 @@ static int virLockManagerSanlockSetupLockspace(void)
         }
     } else if (S_ISREG(st.st_mode)) {
         /* okay, the lease file exists. Check the permissions */
-        if (((driver->user != -1 && driver->user != st.st_uid) ||
-             (driver->group != -1 && driver->group != st.st_gid)) &&
+        if (((driver->user != (uid_t) -1 && driver->user != st.st_uid) ||
+             (driver->group != (gid_t) -1 && driver->group != st.st_gid)) &&
             (chown(path, driver->user, driver->group) < 0)) {
             virReportSystemError(errno,
                                  _("cannot chown '%s' to (%u, %u)"),
@@ -314,7 +314,7 @@ static int virLockManagerSanlockSetupLockspace(void)
             goto error;
         }
 
-        if ((driver->group != -1 && (st.st_mode & 0060) != 0060) &&
+        if ((driver->group != (gid_t) -1 && (st.st_mode & 0060) != 0060) &&
             chmod(path, 0660) < 0) {
             virReportSystemError(errno,
                                  _("cannot chmod '%s' to 0660"),
@@ -365,6 +365,8 @@ retry:
         VIR_DEBUG("Lockspace %s has been registered", path);
     }
 
+    VIR_FREE(path);
+    VIR_FREE(dir);
     return 0;
 
 error_unlink:
@@ -397,7 +399,8 @@ static int virLockManagerSanlockInit(unsigned int version,
     driver->requireLeaseForDisks = true;
     driver->hostID = 0;
     driver->autoDiskLease = false;
-    driver->user = driver->group = -1;
+    driver->user = (uid_t) -1;
+    driver->group = (gid_t) -1;
     if (!(driver->autoDiskLeasePath = strdup(LOCALSTATEDIR "/lib/libvirt/sanlock"))) {
         VIR_FREE(driver);
         virReportOOMError();
@@ -679,6 +682,17 @@ static int virLockManagerSanlockCreateLease(struct sanlk_resource *res)
             }
             VIR_DEBUG("Someone else just created lockspace %s", res->disks[0].path);
         } else {
+            /* chown() the path to make sure sanlock can access it */
+            if ((driver->user != (uid_t) -1 || driver->group != (gid_t) -1) &&
+                (fchown(fd, driver->user, driver->group) < 0)) {
+                virReportSystemError(errno,
+                                     _("cannot chown '%s' to (%u, %u)"),
+                                     res->disks[0].path,
+                                     (unsigned int) driver->user,
+                                     (unsigned int) driver->group);
+                goto error_unlink;
+            }
+
             if ((rv = sanlock_align(&res->disks[0])) < 0) {
                 if (rv <= -200)
                     virReportError(VIR_ERR_INTERNAL_ERROR,

@@ -29,8 +29,8 @@
 # include <libxml/xpath.h>
 
 # include "internal.h"
-# include "util.h"
-# include "threads.h"
+# include "virutil.h"
+# include "virthread.h"
 
 /* There is currently 3 types of interfaces */
 

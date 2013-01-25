@@ -1,5 +1,5 @@
 # DO NOT EDIT! GENERATED AUTOMATICALLY!
-# Copyright (C) 2002-2012 Free Software Foundation, Inc.
+# Copyright (C) 2002-2013 Free Software Foundation, Inc.
 #
 # This file is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -49,6 +49,8 @@ AC_DEFUN([gl_EARLY],
   # Code from module areadlink-tests:
   # Code from module arpa_inet:
   # Code from module arpa_inet-tests:
+  # Code from module autobuild:
+  AB_INIT
   # Code from module base64:
   # Code from module base64-tests:
   # Code from module binary-io:
@@ -194,7 +196,6 @@ AC_DEFUN([gl_EARLY],
   # Code from module inet_ntop-tests:
   # Code from module inet_pton:
   # Code from module inet_pton-tests:
-  # Code from module inline:
   # Code from module intprops:
   # Code from module intprops-tests:
   # Code from module inttypes:
@@ -528,7 +529,6 @@ AC_SUBST([LTALLOCA])
     AC_LIBOBJ([bind])
   fi
   gl_SYS_SOCKET_MODULE_INDICATOR([bind])
-  AC_REQUIRE([AC_C_INLINE])
   gl_FUNC_BTOWC
   if test $HAVE_BTOWC = 0 || test $REPLACE_BTOWC = 1; then
     AC_LIBOBJ([btowc])
@@ -1321,7 +1321,6 @@ changequote([, ])dnl
   gl_STDLIB_MODULE_INDICATOR([grantpt])
   AC_C_BIGENDIAN
   AC_C_BIGENDIAN
-  gl_INLINE
   gl_INTTYPES_H
   gl_INTTYPES_INCOMPLETE
   gl_FUNC_ISNAND_NO_LIBM
@@ -1659,6 +1658,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/binary-io.c
   lib/binary-io.h
   lib/bind.c
+  lib/bitrotate.c
   lib/bitrotate.h
   lib/btowc.c
   lib/byteswap.in.h
@@ -1679,6 +1679,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/close.c
   lib/config.charset
   lib/connect.c
+  lib/count-one-bits.c
   lib/count-one-bits.h
   lib/dirname-lgpl.c
   lib/dirname.h
@@ -1790,6 +1791,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/printf-args.h
   lib/printf-parse.c
   lib/printf-parse.h
+  lib/pthread.c
   lib/pthread.in.h
   lib/pthread_sigmask.c
   lib/pty.in.h
@@ -1814,6 +1816,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/setsockopt.c
   lib/sha256.c
   lib/sha256.h
+  lib/sig-handler.c
   lib/sig-handler.h
   lib/sigaction.c
   lib/signal.in.h
@@ -1835,6 +1838,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/stdio-impl.h
   lib/stdio-read.c
   lib/stdio-write.c
+  lib/stdio.c
   lib/stdio.in.h
   lib/stdlib.in.h
   lib/stpcpy.c
@@ -1861,6 +1865,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/strtok_r.c
   lib/sys_ioctl.in.h
   lib/sys_select.in.h
+  lib/sys_socket.c
   lib/sys_socket.in.h
   lib/sys_stat.in.h
   lib/sys_time.in.h
@@ -1876,6 +1881,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/timegm.c
   lib/ttyname_r.c
   lib/uname.c
+  lib/unistd.c
   lib/unistd.in.h
   lib/usleep.c
   lib/vasnprintf.c
@@ -1887,6 +1893,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/waitpid.c
   lib/wchar.in.h
   lib/wcrtomb.c
+  lib/wctype-h.c
   lib/wctype.in.h
   lib/xsize.c
   lib/xsize.h
@@ -1894,6 +1901,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/alloca.m4
   m4/arpa_inet_h.m4
   m4/asm-underscore.m4
+  m4/autobuild.m4
   m4/base64.m4
   m4/btowc.m4
   m4/byteswap.m4
@@ -1960,7 +1968,6 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/include_next.m4
   m4/inet_ntop.m4
   m4/inet_pton.m4
-  m4/inline.m4
   m4/intlmacosx.m4
   m4/intmax_t.m4
   m4/inttypes-pri.m4
@@ -2433,6 +2440,7 @@ AC_DEFUN([gl_FILE_LIST], [
   tests=lib/isnanl.c
   tests=lib/localename.c
   tests=lib/localename.h
+  tests=lib/math.c
   tests=lib/math.in.h
   tests=lib/mgetgroups.c
   tests=lib/mgetgroups.h

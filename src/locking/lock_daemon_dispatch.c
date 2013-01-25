@@ -24,13 +24,13 @@
 
 #include "rpc/virnetserver.h"
 #include "rpc/virnetserverclient.h"
-#include "util.h"
-#include "logging.h"
+#include "virutil.h"
+#include "virlog.h"
 
 #include "lock_daemon.h"
 #include "lock_protocol.h"
 #include "lock_daemon_dispatch_stubs.h"
-#include "virterror_internal.h"
+#include "virerror.h"
 
 #define VIR_FROM_THIS VIR_FROM_RPC
 
@@ -227,7 +227,7 @@ virLockSpaceProtocolDispatchNew(virNetServerPtr server ATTRIBUTE_UNUSED,
         goto cleanup;
     }
 
-    if ((lockspace = virLockDaemonFindLockSpace(lockDaemon, args->path))) {
+    if (virLockDaemonFindLockSpace(lockDaemon, args->path) != NULL) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("Lockspace for path %s already exists"),
                        args->path);
@@ -406,7 +406,7 @@ virLockSpaceProtocolDispatchCreateLockSpace(virNetServerPtr server ATTRIBUTE_UNU
         goto cleanup;
     }
 
-    if ((lockspace = virLockDaemonFindLockSpace(lockDaemon, args->path))) {
+    if (virLockDaemonFindLockSpace(lockDaemon, args->path) != NULL) {
         virReportError(VIR_ERR_OPERATION_INVALID,
                        _("Lockspace for path %s already exists"),
                        args->path);

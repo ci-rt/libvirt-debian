@@ -22,14 +22,14 @@
 #include <config.h>
 
 #include "virdbus.h"
-#include "memory.h"
-#include "virterror_internal.h"
-#include "logging.h"
-#include "threads.h"
+#include "viralloc.h"
+#include "virerror.h"
+#include "virlog.h"
+#include "virthread.h"
 
 #define VIR_FROM_THIS VIR_FROM_DBUS
 
-#ifdef HAVE_DBUS
+#ifdef WITH_DBUS
 
 static DBusConnection *systembus = NULL;
 static DBusConnection *sessionbus = NULL;
@@ -223,7 +223,7 @@ static void virDBusToggleWatch(DBusWatch *watch,
     (void)virEventUpdateHandle(info->watch, flags);
 }
 
-#else /* ! HAVE_DBUS */
+#else /* ! WITH_DBUS */
 DBusConnection *virDBusGetSystemBus(void)
 {
     virReportError(VIR_ERR_INTERNAL_ERROR,
@@ -237,5 +237,4 @@ DBusConnection *virDBusGetSessionBus(void)
                    "%s", _("DBus support not compiled into this binary"));
     return NULL;
 }
-
-#endif /* ! HAVE_DBUS */
+#endif /* ! WITH_DBUS */

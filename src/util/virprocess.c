@@ -22,15 +22,19 @@
 
 #include <config.h>
 
+#include <dirent.h>
+#include <fcntl.h>
 #include <signal.h>
 #include <errno.h>
 #include <sys/wait.h>
+#include <sched.h>
 
 #include "virprocess.h"
-#include "virterror_internal.h"
-#include "memory.h"
-#include "logging.h"
-#include "util.h"
+#include "virerror.h"
+#include "viralloc.h"
+#include "virfile.h"
+#include "virlog.h"
+#include "virutil.h"
 
 #define VIR_FROM_THIS VIR_FROM_NONE
 
@@ -300,3 +304,304 @@ virProcessKillPainfully(pid_t pid, bool force)
 cleanup:
     return ret;
 }
+
+
+#if HAVE_SCHED_GETAFFINITY
+
+int virProcessSetAffinity(pid_t pid, virBitmapPtr map)
+{
+    int i;
+    bool set = false;
+# ifdef CPU_ALLOC
+    /* New method dynamically allocates cpu mask, allowing unlimted cpus */
+    int numcpus = 1024;
+    size_t masklen;
+    cpu_set_t *mask;
+
+    /* Not only may the statically allocated cpu_set_t be too small,
+     * but there is no way to ask the kernel what size is large enough.
+     * So you have no option but to pick a size, try, catch EINVAL,
+     * enlarge, and re-try.
+     *
+     * http://lkml.org/lkml/2009/7/28/620
+     */
+realloc:
+    masklen = CPU_ALLOC_SIZE(numcpus);
+    mask = CPU_ALLOC(numcpus);
+
+    if (!mask) {
+        virReportOOMError();
+        return -1;
+    }
+
+    CPU_ZERO_S(masklen, mask);
+    for (i = 0 ; i < virBitmapSize(map); i++) {
+        if (virBitmapGetBit(map, i, &set) < 0)
+            return -1;
+        if (set)
+            CPU_SET_S(i, masklen, mask);
+    }
+
+    if (sched_setaffinity(pid, masklen, mask) < 0) {
+        CPU_FREE(mask);
+        if (errno == EINVAL &&
+            numcpus < (1024 << 8)) { /* 262144 cpus ought to be enough for anyone */
+            numcpus = numcpus << 2;
+            goto realloc;
+        }
+        virReportSystemError(errno,
+                             _("cannot set CPU affinity on process %d"), pid);
+        return -1;
+    }
+    CPU_FREE(mask);
+# else
+    /* Legacy method uses a fixed size cpu mask, only allows up to 1024 cpus */
+    cpu_set_t mask;
+
+    CPU_ZERO(&mask);
+    for (i = 0 ; i < virBitmapSize(map); i++) {
+        if (virBitmapGetBit(map, i, &set) < 0)
+            return -1;
+        if (set)
+            CPU_SET(i, &mask);
+    }
+
+    if (sched_setaffinity(pid, sizeof(mask), &mask) < 0) {
+        virReportSystemError(errno,
+                             _("cannot set CPU affinity on process %d"), pid);
+        return -1;
+    }
+# endif
+
+    return 0;
+}
+
+int virProcessGetAffinity(pid_t pid,
+                          virBitmapPtr *map,
+                          int maxcpu)
+{
+    int i;
+# ifdef CPU_ALLOC
+    /* New method dynamically allocates cpu mask, allowing unlimted cpus */
+    int numcpus = 1024;
+    size_t masklen;
+    cpu_set_t *mask;
+
+    /* Not only may the statically allocated cpu_set_t be too small,
+     * but there is no way to ask the kernel what size is large enough.
+     * So you have no option but to pick a size, try, catch EINVAL,
+     * enlarge, and re-try.
+     *
+     * http://lkml.org/lkml/2009/7/28/620
+     */
+realloc:
+    masklen = CPU_ALLOC_SIZE(numcpus);
+    mask = CPU_ALLOC(numcpus);
+
+    if (!mask) {
+        virReportOOMError();
+        return -1;
+    }
+
+    CPU_ZERO_S(masklen, mask);
+    if (sched_getaffinity(pid, masklen, mask) < 0) {
+        CPU_FREE(mask);
+        if (errno == EINVAL &&
+            numcpus < (1024 << 8)) { /* 262144 cpus ought to be enough for anyone */
+            numcpus = numcpus << 2;
+            goto realloc;
+        }
+        virReportSystemError(errno,
+                             _("cannot get CPU affinity of process %d"), pid);
+        return -1;
+    }
+
+    *map = virBitmapNew(maxcpu);
+    if (!*map) {
+        virReportOOMError();
+        return -1;
+    }
+
+    for (i = 0 ; i < maxcpu ; i++)
+        if (CPU_ISSET_S(i, masklen, mask))
+            ignore_value(virBitmapSetBit(*map, i));
+    CPU_FREE(mask);
+# else
+    /* Legacy method uses a fixed size cpu mask, only allows up to 1024 cpus */
+    cpu_set_t mask;
+
+    CPU_ZERO(&mask);
+    if (sched_getaffinity(pid, sizeof(mask), &mask) < 0) {
+        virReportSystemError(errno,
+                             _("cannot get CPU affinity of process %d"), pid);
+        return -1;
+    }
+
+    for (i = 0 ; i < maxcpu ; i++)
+        if (CPU_ISSET(i, &mask))
+            ignore_value(virBitmapSetBit(*map, i));
+# endif
+
+    return 0;
+}
+
+#elif defined(__FreeBSD__)
+
+int virProcessSetAffinity(pid_t pid ATTRIBUTE_UNUSED,
+                          virBitmapPtr map)
+{
+    if (!virBitmapIsAllSet(map)) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("setting process affinity isn't supported "
+                         "on FreeBSD yet"));
+        return -1;
+    }
+
+    return 0;
+}
+
+int virProcessGetAffinity(pid_t pid ATTRIBUTE_UNUSED,
+                          virBitmapPtr *map,
+                          int maxcpu)
+{
+    if (!(*map = virBitmapNew(maxcpu))) {
+        virReportOOMError();
+        return -1;
+    }
+    virBitmapSetAll(*map);
+
+    return 0;
+}
+
+#else /* HAVE_SCHED_GETAFFINITY */
+
+int virProcessSetAffinity(pid_t pid ATTRIBUTE_UNUSED,
+                          virBitmapPtr map ATTRIBUTE_UNUSED)
+{
+    virReportSystemError(ENOSYS, "%s",
+                         _("Process CPU affinity is not supported on this platform"));
+    return -1;
+}
+
+int virProcessGetAffinity(pid_t pid ATTRIBUTE_UNUSED,
+                          virBitmapPtr *map ATTRIBUTE_UNUSED,
+                          int maxcpu ATTRIBUTE_UNUSED)
+{
+    virReportSystemError(ENOSYS, "%s",
+                         _("Process CPU affinity is not supported on this platform"));
+    return -1;
+}
+#endif /* HAVE_SCHED_GETAFFINITY */
+
+
+#if HAVE_SETNS
+int virProcessGetNamespaces(pid_t pid,
+                            size_t *nfdlist,
+                            int **fdlist)
+{
+    int ret = -1;
+    DIR *dh = NULL;
+    struct dirent *de;
+    char *nsdir = NULL;
+    char *nsfile = NULL;
+    size_t i;
+
+    *nfdlist = 0;
+    *fdlist = NULL;
+
+    if (virAsprintf(&nsdir, "/proc/%llu/ns",
+                    (unsigned long long)pid) < 0) {
+        virReportOOMError();
+        goto cleanup;
+    }
+
+    if (!(dh = opendir(nsdir))) {
+        virReportSystemError(errno,
+                             _("Cannot read directory %s"),
+                             nsdir);
+        goto cleanup;
+    }
+
+    while ((de = readdir(dh))) {
+        int fd;
+        if (de->d_name[0] == '.')
+            continue;
+
+        if (VIR_EXPAND_N(*fdlist, *nfdlist, 1) < 0) {
+            virReportOOMError();
+            goto cleanup;
+        }
+
+        if (virAsprintf(&nsfile, "%s/%s", nsdir, de->d_name) < 0) {
+            virReportOOMError();
+            goto cleanup;
+        }
+
+        if ((fd = open(nsfile, O_RDWR)) < 0) {
+            virReportSystemError(errno,
+                                 _("Unable to open %s"),
+                                 nsfile);
+            goto cleanup;
+        }
+
+        (*fdlist)[(*nfdlist)-1] = fd;
+
+        VIR_FREE(nsfile);
+    }
+
+    ret = 0;
+
+cleanup:
+    if (dh)
+        closedir(dh);
+    VIR_FREE(nsdir);
+    VIR_FREE(nsfile);
+    if (ret < 0) {
+        for (i = 0 ; i < *nfdlist ; i++) {
+            VIR_FORCE_CLOSE((*fdlist)[i]);
+        }
+        VIR_FREE(*fdlist);
+    }
+    return ret;
+}
+
+
+int virProcessSetNamespaces(size_t nfdlist,
+                            int *fdlist)
+{
+    size_t i;
+
+    if (nfdlist == 0) {
+        virReportInvalidArg(nfdlist, "%s",
+                             _("Expected at least one file descriptor"));
+        return -1;
+    }
+    for (i = 0 ; i < nfdlist ; i++) {
+        if (setns(fdlist[i], 0) < 0) {
+            virReportSystemError(errno, "%s",
+                                 _("Unable to join domain namespace"));
+            return -1;
+        }
+    }
+    return 0;
+}
+#else /* ! HAVE_SETNS */
+int virProcessGetNamespaces(pid_t pid,
+                            size_t *nfdlist ATTRIBUTE_UNUSED,
+                            int **fdlist ATTRIBUTE_UNUSED)
+{
+    virReportSystemError(ENOSYS,
+                         _("Cannot get namespaces for %llu"),
+                         (unsigned long long)pid);
+    return -1;
+}
+
+
+int virProcessSetNamespaces(size_t nfdlist ATTRIBUTE_UNUSED,
+                            int *fdlist ATTRIBUTE_UNUSED)
+{
+    virReportSystemError(ENOSYS, "%s",
+                         _("Cannot set namespaces"));
+    return -1;
+}
+#endif /* ! HAVE_SETNS */

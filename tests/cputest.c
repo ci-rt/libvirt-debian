@@ -31,9 +31,9 @@
 #include <fcntl.h>
 
 #include "internal.h"
-#include "xml.h"
-#include "memory.h"
-#include "buf.h"
+#include "virxml.h"
+#include "viralloc.h"
+#include "virbuffer.h"
 #include "testutils.h"
 #include "cpu_conf.h"
 #include "cpu/cpu.h"
@@ -274,9 +274,10 @@ cpuTestGuestData(const void *arg)
         cmpResult == VIR_CPU_COMPARE_INCOMPATIBLE)
         goto cleanup;
 
-    if (VIR_ALLOC(guest) < 0 || !(guest->arch = strdup(host->arch)))
+    if (VIR_ALLOC(guest) < 0)
         goto cleanup;
 
+    guest->arch = host->arch;
     guest->type = VIR_CPU_TYPE_GUEST;
     guest->match = VIR_CPU_MATCH_EXACT;
     guest->fallback = cpu->fallback;

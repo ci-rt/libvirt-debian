@@ -2095,7 +2095,7 @@ destroy and re-start the network.
 I<command> is one of "add-first", "add-last", "add" (a synonym for
 add-last), "delete", or "modify".
 
-I<section> is one of ""bridge", "domain", "ip", "ip-dhcp-host",
+I<section> is one of "bridge", "domain", "ip", "ip-dhcp-host",
 "ip-dhcp-range", "forward", "forward-interface", "forward-pf",
 "portgroup", "dns-host", "dns-txt", or "dns-srv", each section being
 named by a concatenation of the xml element hierarchy leading to the
@@ -3055,6 +3055,14 @@ I<--timeout> requires timeout seconds I<seconds> and it must be positive.
 When I<--aysnc> is given, the command waits for timeout whether success or
 failed. And when I<--block> is given, the command waits forever with blocking
 timeout.
+
+=item B<lxc-enter-namespace> I<domain> -- /path/to/binary [arg1, [arg2, ...]]
+
+Enter the namespace of I<domain> and execute the command C</path/to/binary>
+passing the requested args. The binary path is relative to the container
+root filesystem, not the host root filesystem. The binary will inherit the
+environment variables / console visible to virsh. This command only works
+when connected to the LXC hypervisor driver.
 
 =back
 

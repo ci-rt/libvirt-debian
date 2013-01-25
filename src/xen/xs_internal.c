@@ -41,12 +41,12 @@
 # include <xs.h>
 #endif
 
-#include "virterror_internal.h"
+#include "virerror.h"
 #include "datatypes.h"
 #include "driver.h"
-#include "memory.h"
-#include "logging.h"
-#include "uuid.h"
+#include "viralloc.h"
+#include "virlog.h"
+#include "viruuid.h"
 #include "xen_driver.h"
 #include "xs_internal.h"
 #include "xen_hypervisor.h"

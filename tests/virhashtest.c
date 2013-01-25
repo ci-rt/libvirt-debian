@@ -9,9 +9,9 @@
 #include "virhash.h"
 #include "virhashdata.h"
 #include "testutils.h"
-#include "memory.h"
-#include "util.h"
-#include "logging.h"
+#include "viralloc.h"
+#include "virutil.h"
+#include "virlog.h"
 
 
 #define testError(...)                                          \

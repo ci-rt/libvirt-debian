@@ -24,10 +24,10 @@
 #include <signal.h>
 
 #include "testutils.h"
-#include "util.h"
-#include "virterror_internal.h"
-#include "memory.h"
-#include "logging.h"
+#include "virutil.h"
+#include "virerror.h"
+#include "viralloc.h"
+#include "virlog.h"
 
 #include "viruri.h"
 

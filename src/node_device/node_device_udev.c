@@ -27,17 +27,17 @@
 #include <c-ctype.h>
 
 #include "node_device_udev.h"
-#include "virterror_internal.h"
+#include "virerror.h"
 #include "node_device_conf.h"
 #include "node_device_driver.h"
 #include "driver.h"
 #include "datatypes.h"
-#include "logging.h"
-#include "memory.h"
-#include "uuid.h"
-#include "util.h"
-#include "buf.h"
-#include "pci.h"
+#include "virlog.h"
+#include "viralloc.h"
+#include "viruuid.h"
+#include "virutil.h"
+#include "virbuffer.h"
+#include "virpci.h"
 
 #define VIR_FROM_THIS VIR_FROM_NODEDEV
 

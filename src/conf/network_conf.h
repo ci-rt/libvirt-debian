@@ -31,14 +31,14 @@
 # include <libxml/xpath.h>
 
 # include "internal.h"
-# include "threads.h"
+# include "virthread.h"
 # include "virsocketaddr.h"
 # include "virnetdevbandwidth.h"
 # include "virnetdevvportprofile.h"
 # include "virnetdevvlan.h"
 # include "virmacaddr.h"
 # include "device_conf.h"
-# include "bitmap.h"
+# include "virbitmap.h"
 
 enum virNetworkForwardType {
     VIR_NETWORK_FORWARD_NONE   = 0,

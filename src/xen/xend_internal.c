@@ -29,20 +29,20 @@
 #include <netdb.h>
 #include <errno.h>
 
-#include "virterror_internal.h"
-#include "logging.h"
+#include "virerror.h"
+#include "virlog.h"
 #include "datatypes.h"
 #include "xend_internal.h"
 #include "driver.h"
-#include "util.h"
-#include "sexpr.h"
+#include "virutil.h"
+#include "virsexpr.h"
 #include "xen_sxpr.h"
-#include "buf.h"
-#include "uuid.h"
+#include "virbuffer.h"
+#include "viruuid.h"
 #include "xen_driver.h"
 #include "xen_hypervisor.h"
 #include "xs_internal.h" /* To extract VNC port & Serial console TTY */
-#include "memory.h"
+#include "viralloc.h"
 #include "count-one-bits.h"
 #include "virfile.h"
 #include "viruri.h"
@@ -89,11 +89,10 @@ do_connect(virConnectPtr xend)
     }
 
     /*
-     * try to desactivate slow-start
+     * try to deactivate slow-start
      */
-    setsockopt(s, IPPROTO_TCP, TCP_NODELAY, (void *)&no_slow_start,
-               sizeof(no_slow_start));
-
+    ignore_value(setsockopt(s, IPPROTO_TCP, TCP_NODELAY, (void *)&no_slow_start,
+                            sizeof(no_slow_start)));
 
     if (connect(s, (struct sockaddr *)&priv->addr, priv->addrlen) == -1) {
         VIR_FORCE_CLOSE(s); /* preserves errno */
@@ -1113,9 +1112,8 @@ sexpr_to_xend_topology(const struct sexpr *root,
 {
     const char *nodeToCpu;
     const char *cur;
-    virBitmapPtr cpuset = NULL;
-    int *cpuNums = NULL;
-    int cell, cpu, nb_cpus;
+    virCapsHostNUMACellCPUPtr cpuInfo = NULL;
+    int cell, cpu, nb_cpus = 0;
     int n = 0;
     int numCpus;
 
@@ -1126,11 +1124,9 @@ sexpr_to_xend_topology(const struct sexpr *root,
     numCpus = sexpr_int(root, "node/nr_cpus");
 
 
-    if (VIR_ALLOC_N(cpuNums, numCpus) < 0)
-        goto memory_error;
-
     cur = nodeToCpu;
     while (*cur != 0) {
+        virBitmapPtr cpuset = NULL;
         /*
          * Find the next NUMA cell described in the xend output
          */
@@ -1156,37 +1152,35 @@ sexpr_to_xend_topology(const struct sexpr *root,
                 goto error;
         }
 
+        if (VIR_ALLOC_N(cpuInfo, numCpus) < 0)
+            goto memory_error;
+
         for (n = 0, cpu = 0; cpu < numCpus; cpu++) {
             bool used;
 
             ignore_value(virBitmapGetBit(cpuset, cpu, &used));
             if (used)
-                cpuNums[n++] = cpu;
+                cpuInfo[n++].id = cpu;
         }
+        virBitmapFree(cpuset);
 
-        if (virCapabilitiesAddHostNUMACell(caps,
-                                           cell,
-                                           nb_cpus,
-                                           cpuNums) < 0)
+        if (virCapabilitiesAddHostNUMACell(caps, cell, nb_cpus, cpuInfo) < 0)
             goto memory_error;
+        cpuInfo = NULL;
     }
-    VIR_FREE(cpuNums);
-    virBitmapFree(cpuset);
+
     return 0;
 
   parse_error:
     virReportError(VIR_ERR_XEN_CALL, "%s", _("topology syntax error"));
   error:
-    VIR_FREE(cpuNums);
-    virBitmapFree(cpuset);
-
+    virCapabilitiesClearHostNUMACellCPUTopology(cpuInfo, nb_cpus);
+    VIR_FREE(cpuInfo);
     return -1;
 
   memory_error:
-    VIR_FREE(cpuNums);
-    virBitmapFree(cpuset);
     virReportOOMError();
-    return -1;
+    goto error;
 }
 
 
@@ -2075,6 +2069,7 @@ xenDaemonListDomains(virConnectPtr conn, int *ids, int maxids)
 
     ret = 0;
 
+    /* coverity[copy_paste_error] */
     for (_for_i = root, node = root->u.s.car; _for_i->kind == SEXPR_CONS;
          _for_i = _for_i->u.s.cdr, node = _for_i->u.s.car) {
         if (node->kind != SEXPR_VALUE)
@@ -2112,6 +2107,7 @@ xenDaemonNumOfDomains(virConnectPtr conn)
 
     ret = 0;
 
+    /* coverity[copy_paste_error] */
     for (_for_i = root, node = root->u.s.car; _for_i->kind == SEXPR_CONS;
          _for_i = _for_i->u.s.cdr, node = _for_i->u.s.car) {
         if (node->kind != SEXPR_VALUE)
@@ -3438,6 +3434,7 @@ xenDaemonNumOfDefinedDomains(virConnectPtr conn)
 
     ret = 0;
 
+    /* coverity[copy_paste_error] */
     for (_for_i = root, node = root->u.s.car; _for_i->kind == SEXPR_CONS;
          _for_i = _for_i->u.s.cdr, node = _for_i->u.s.car) {
         if (node->kind != SEXPR_VALUE)
@@ -3471,6 +3468,7 @@ xenDaemonListDefinedDomains(virConnectPtr conn, char **const names, int maxnames
 
     ret = 0;
 
+    /* coverity[copy_paste_error] */
     for (_for_i = root, node = root->u.s.car; _for_i->kind == SEXPR_CONS;
          _for_i = _for_i->u.s.cdr, node = _for_i->u.s.car) {
         if (node->kind != SEXPR_VALUE)

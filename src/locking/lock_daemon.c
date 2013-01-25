@@ -33,18 +33,18 @@
 
 #include "lock_daemon.h"
 #include "lock_daemon_config.h"
-#include "util.h"
+#include "virutil.h"
 #include "virfile.h"
 #include "virpidfile.h"
 #include "virprocess.h"
-#include "virterror_internal.h"
-#include "logging.h"
-#include "memory.h"
-#include "conf.h"
+#include "virerror.h"
+#include "virlog.h"
+#include "viralloc.h"
+#include "virconf.h"
 #include "rpc/virnetserver.h"
 #include "virrandom.h"
 #include "virhash.h"
-#include "uuid.h"
+#include "viruuid.h"
 
 #include "locking/lock_daemon_dispatch.h"
 #include "locking/lock_protocol.h"
@@ -654,7 +654,11 @@ virLockDaemonSetupNetworkingSystemD(virNetServerPtr srv)
 
     /* Systemd passes FDs, starting immediately after stderr,
      * so the first FD we'll get is '3'. */
-    if (!(svc = virNetServerServiceNewFD(3, 0, false, 1, NULL)))
+    if (!(svc = virNetServerServiceNewFD(3, 0,
+#if WITH_GNUTLS
+                                         NULL,
+#endif
+                                         false, 1)))
         return -1;
 
     if (virNetServerAddService(srv, svc, NULL) < 0) {
@@ -672,7 +676,11 @@ virLockDaemonSetupNetworkingNative(virNetServerPtr srv, const char *sock_path)
 
     VIR_DEBUG("Setting up networking natively");
 
-    if (!(svc = virNetServerServiceNewUNIX(sock_path, 0700, 0, 0, false, 1, NULL)))
+    if (!(svc = virNetServerServiceNewUNIX(sock_path, 0700, 0, 0,
+#if WITH_GNUTLS
+                                           NULL,
+#endif
+                                           false, 1)))
         return -1;
 
     if (virNetServerAddService(srv, svc, NULL) < 0) {
@@ -1303,18 +1311,15 @@ int main(int argc, char **argv) {
 
     /* Ensure the rundir exists (on tmpfs on some systems) */
     if (privileged) {
-        run_dir = strdup(LOCALSTATEDIR "/run/libvirt");
+        if (!(run_dir = strdup(LOCALSTATEDIR "/run/libvirt"))) {
+            virReportOOMError();
+            goto cleanup;
+        }
     } else {
-        run_dir = virGetUserRuntimeDirectory();
-
-        if (!run_dir) {
+        if (!(run_dir = virGetUserRuntimeDirectory())) {
             VIR_ERROR(_("Can't determine user directory"));
             goto cleanup;
         }
-    }
-    if (!run_dir) {
-        virReportOOMError();
-        goto cleanup;
     }
 
     if (privileged)

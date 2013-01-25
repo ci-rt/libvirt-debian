@@ -24,13 +24,13 @@
 #include <fcntl.h>
 
 #include "security_dac.h"
-#include "virterror_internal.h"
-#include "util.h"
-#include "memory.h"
-#include "logging.h"
-#include "pci.h"
-#include "hostusb.h"
-#include "storage_file.h"
+#include "virerror.h"
+#include "virutil.h"
+#include "viralloc.h"
+#include "virlog.h"
+#include "virpci.h"
+#include "virusb.h"
+#include "virstoragefile.h"
 
 #define VIR_FROM_THIS VIR_FROM_SECURITY
 #define SECURITY_DAC_NAME "dac"
@@ -474,7 +474,8 @@ virSecurityDACSetSecurityUSBLabel(usbDevice *dev ATTRIBUTE_UNUSED,
 static int
 virSecurityDACSetSecurityHostdevLabel(virSecurityManagerPtr mgr,
                                       virDomainDefPtr def,
-                                      virDomainHostdevDefPtr dev)
+                                      virDomainHostdevDefPtr dev,
+                                      const char *vroot)
 {
     void *params[] = {mgr, def};
     virSecurityDACDataPtr priv = virSecurityManagerGetPrivateData(mgr);
@@ -494,7 +495,8 @@ virSecurityDACSetSecurityHostdevLabel(virSecurityManagerPtr mgr,
             return 0;
 
         usb = usbGetDevice(dev->source.subsys.u.usb.bus,
-                           dev->source.subsys.u.usb.device);
+                           dev->source.subsys.u.usb.device,
+                           vroot);
         if (!usb)
             goto done;
 
@@ -550,8 +552,9 @@ virSecurityDACRestoreSecurityUSBLabel(usbDevice *dev ATTRIBUTE_UNUSED,
 
 static int
 virSecurityDACRestoreSecurityHostdevLabel(virSecurityManagerPtr mgr,
-                                           virDomainDefPtr def ATTRIBUTE_UNUSED,
-                                           virDomainHostdevDefPtr dev)
+                                          virDomainDefPtr def ATTRIBUTE_UNUSED,
+                                          virDomainHostdevDefPtr dev,
+                                          const char *vroot)
 
 {
     virSecurityDACDataPtr priv = virSecurityManagerGetPrivateData(mgr);
@@ -571,7 +574,8 @@ virSecurityDACRestoreSecurityHostdevLabel(virSecurityManagerPtr mgr,
             return 0;
 
         usb = usbGetDevice(dev->source.subsys.u.usb.bus,
-                           dev->source.subsys.u.usb.device);
+                           dev->source.subsys.u.usb.device,
+                           vroot);
         if (!usb)
             goto done;
 
@@ -728,7 +732,8 @@ virSecurityDACRestoreSecurityAllLabel(virSecurityManagerPtr mgr,
     for (i = 0 ; i < def->nhostdevs ; i++) {
         if (virSecurityDACRestoreSecurityHostdevLabel(mgr,
                                                       def,
-                                                      def->hostdevs[i]) < 0)
+                                                      def->hostdevs[i],
+                                                      NULL) < 0)
             rc = -1;
     }
     for (i = 0 ; i < def->ndisks ; i++) {
@@ -793,7 +798,8 @@ virSecurityDACSetSecurityAllLabel(virSecurityManagerPtr mgr,
     for (i = 0 ; i < def->nhostdevs ; i++) {
         if (virSecurityDACSetSecurityHostdevLabel(mgr,
                                                   def,
-                                                  def->hostdevs[i]) < 0)
+                                                  def->hostdevs[i],
+                                                  NULL) < 0)
             return -1;
     }
 
@@ -989,7 +995,8 @@ virSecurityDACGetProcessLabel(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
         return -1;
 
     if (secdef->label)
-        strcpy(seclabel->label, secdef->label);
+        ignore_value(virStrcpy(seclabel->label, secdef->label,
+                               VIR_SECURITY_LABEL_BUFLEN));
 
     return 0;
 }

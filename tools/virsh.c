@@ -54,22 +54,22 @@
 #endif
 
 #include "internal.h"
-#include "virterror_internal.h"
+#include "virerror.h"
 #include "base64.h"
-#include "buf.h"
+#include "virbuffer.h"
 #include "console.h"
-#include "util.h"
-#include "memory.h"
-#include "xml.h"
+#include "virutil.h"
+#include "viralloc.h"
+#include "virxml.h"
 #include "libvirt/libvirt-qemu.h"
+#include "libvirt/libvirt-lxc.h"
 #include "virfile.h"
-#include "event_poll.h"
 #include "configmake.h"
-#include "threads.h"
-#include "command.h"
+#include "virthread.h"
+#include "vircommand.h"
 #include "virkeycode.h"
 #include "virnetdevbandwidth.h"
-#include "util/bitmap.h"
+#include "virbitmap.h"
 #include "conf/domain_conf.h"
 #include "virtypedparam.h"
 
@@ -448,8 +448,12 @@ static const vshCmdInfo info_help[] = {
 };
 
 static const vshCmdOptDef opts_help[] = {
-    {"command", VSH_OT_DATA, 0, N_("Prints global help, command specific help, or help for a group of related commands")},
-    {NULL, 0, 0, NULL}
+    {.name = "command",
+     .type = VSH_OT_DATA,
+     .flags = 0,
+     .help = N_("Prints global help, command specific help, or help for a group of related commands")
+    },
+    {.name = NULL}
 };
 
 static bool
@@ -536,6 +540,8 @@ vshTreePrintInternal(vshControl *ctl,
 
     /* Finally print all children */
     virBufferAddLit(indent, "  ");
+    if (virBufferError(indent))
+        goto cleanup;
     for (i = 0 ; i < num_devices ; i++) {
         const char *parent = (lookup)(i, true, opaque);
 
@@ -545,15 +551,18 @@ vshTreePrintInternal(vshControl *ctl,
                                  false, indent) < 0)
             goto cleanup;
     }
-    virBufferTrim(indent, "  ", -1);
+    if (virBufferTrim(indent, "  ", -1) < 0)
+        goto cleanup;
 
     /* If there was no child device, and we're the last in
      * a list of devices, then print another blank line */
     if (nextlastdev == -1 && devid == lastdev)
         vshPrint(ctl, "%s\n", virBufferCurrentContent(indent));
 
-    if (!root)
-        virBufferTrim(indent, NULL, 2);
+    if (!root) {
+        if (virBufferTrim(indent, NULL, 2) < 0)
+            goto cleanup;
+    }
     ret = 0;
 cleanup:
     return ret;
@@ -699,8 +708,12 @@ static const vshCmdInfo info_cd[] = {
 };
 
 static const vshCmdOptDef opts_cd[] = {
-    {"dir", VSH_OT_DATA, 0, N_("directory to switch to (default: home or else root)")},
-    {NULL, 0, 0, NULL}
+    {.name = "dir",
+     .type = VSH_OT_DATA,
+     .flags = 0,
+     .help = N_("directory to switch to (default: home or else root)")
+    },
+    {.name = NULL}
 };
 
 static bool
@@ -771,11 +784,27 @@ static const vshCmdInfo info_echo[] = {
 };
 
 static const vshCmdOptDef opts_echo[] = {
-    {"shell", VSH_OT_BOOL, 0, N_("escape for shell use")},
-    {"xml", VSH_OT_BOOL, 0, N_("escape for XML use")},
-    {"str", VSH_OT_ALIAS, 0, "string"},
-    {"string", VSH_OT_ARGV, 0, N_("arguments to echo")},
-    {NULL, 0, 0, NULL}
+    {.name = "shell",
+     .type = VSH_OT_BOOL,
+     .flags = 0,
+     .help = N_("escape for shell use")
+    },
+    {.name = "xml",
+     .type = VSH_OT_BOOL,
+     .flags = 0,
+     .help = N_("escape for XML use")
+    },
+    {.name = "str",
+     .type = VSH_OT_ALIAS,
+     .flags = 0,
+     .help = "string"
+    },
+    {.name = "string",
+     .type = VSH_OT_ARGV,
+     .flags = 0,
+     .help = N_("arguments to echo")
+    },
+    {.name = NULL}
 };
 
 /* Exists mainly for debugging virsh, but also handy for adding back
@@ -924,8 +953,12 @@ vshCmddefOptParse(const vshCmdDef *cmd, uint32_t *opts_need_arg,
     return 0;
 }
 
-static vshCmdOptDef helpopt = {"help", VSH_OT_BOOL, 0,
-                               N_("print help for this function")};
+static vshCmdOptDef helpopt = {
+    .name = "help",
+    .type = VSH_OT_BOOL,
+    .flags = 0,
+    .help = N_("print help for this function")
+};
 static const vshCmdOptDef *
 vshCmddefGetOption(vshControl *ctl, const vshCmdDef *cmd, const char *name,
                    uint32_t *opts_seen, int *opt_index)
@@ -2023,26 +2056,6 @@ vshGetTypedParamValue(vshControl *ctl, virTypedParameterPtr item)
     return str;
 }
 
-virTypedParameterPtr
-vshFindTypedParamByName(const char *name, virTypedParameterPtr list, int count)
-{
-    int i = count;
-    virTypedParameterPtr found = list;
-
-    if (!list || !name)
-        return NULL;
-
-    while (i-- > 0) {
-        if (STREQ(name, found->field))
-            return found;
-
-        found++; /* go to next struct in array */
-    }
-
-    /* not found */
-    return NULL;
-}
-
 void
 vshDebug(vshControl *ctl, int level, const char *format, ...)
 {
@@ -2255,7 +2268,7 @@ vshOutputLogFile(vshControl *ctl, int log_level, const char *msg_format,
                  va_list ap)
 {
     virBuffer buf = VIR_BUFFER_INITIALIZER;
-    char *str;
+    char *str = NULL;
     size_t len;
     const char *lvl = "";
     time_t stTime;
@@ -2728,7 +2741,7 @@ vshShowVersion(vshControl *ctl ATTRIBUTE_UNUSED)
     vshPrint(ctl, " Interface");
 # if defined(WITH_NETCF)
     vshPrint(ctl, " netcf");
-# elif defined(HAVE_UDEV)
+# elif defined(WITH_UDEV)
     vshPrint(ctl, " udev");
 # endif
 #endif

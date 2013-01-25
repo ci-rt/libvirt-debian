@@ -68,6 +68,7 @@ EXTRA_DIST =		\
 	qemuxml2argvdata \
 	qemuxml2xmloutdata \
 	qemuxmlnsdata \
+	securityselinuxlabeldata \
 	schematestutils.sh \
 	sexpr2xmldata \
 	storagepoolschematest \
@@ -76,6 +77,7 @@ EXTRA_DIST =		\
 	storagevolschematest \
 	storagevolxml2xmlin \
 	storagevolxml2xmlout \
+	sysinfodata \
 	test-lib.sh	\
 	vmx2xmldata \
 	xencapsdata \
@@ -90,16 +92,25 @@ test_programs = virshtest sockettest \
 	commandtest seclabeltest \
 	virhashtest virnetmessagetest virnetsockettest \
 	viratomictest \
-	utiltest virnettlscontexttest shunloadtest \
+	utiltest shunloadtest \
 	virtimetest viruritest virkeyfiletest \
 	virauthconfigtest \
 	virbitmaptest \
 	virlockspacetest \
 	virstringtest \
+        virportallocatortest \
+	sysinfotest \
 	$(NULL)
+
+if WITH_GNUTLS
+test_programs += virnettlscontexttest
+endif
 
 if WITH_SECDRIVER_SELINUX
 test_programs += securityselinuxtest
+if WITH_ATTR
+test_programs += securityselinuxlabeltest
+endif
 endif
 
 if WITH_DRIVER_MODULES
@@ -140,7 +151,7 @@ if WITH_CIL
 test_programs += object-locking
 endif
 
-if HAVE_YAJL
+if WITH_YAJL
 test_programs += jsontest
 endif
 
@@ -225,7 +236,9 @@ endif
 
 EXTRA_DIST += $(test_scripts)
 
-test_libraries = libshunload.la
+test_libraries = libshunload.la \
+		libvirportallocatormock.la \
+		$(NULL)
 if WITH_QEMU
 test_libraries += libqemumonitortestutils.la
 endif
@@ -524,6 +537,7 @@ virnetsockettest_SOURCES = \
 virnetsockettest_CFLAGS = -Dabs_builddir="\"$(abs_builddir)\"" $(AM_CFLAGS)
 virnetsockettest_LDADD = $(LDADDS)
 
+if WITH_GNUTLS
 virnettlscontexttest_SOURCES = \
 	virnettlscontexttest.c testutils.h testutils.c
 virnettlscontexttest_CFLAGS = -Dabs_builddir="\"$(abs_builddir)\"" $(AM_CFLAGS)
@@ -533,6 +547,10 @@ virnettlscontexttest_SOURCES += pkix_asn1_tab.c
 virnettlscontexttest_LDADD += -ltasn1
 else
 EXTRA_DIST += pkix_asn1_tab.c
+endif
+else
+EXTRA_DIST += \
+	virnettlscontexttest.c testutils.h testutils.c pkix_asn1_tab.c
 endif
 
 virtimetest_SOURCES = \
@@ -549,6 +567,18 @@ virlockspacetest_SOURCES = \
 	virlockspacetest.c testutils.h testutils.c
 virlockspacetest_CFLAGS = -Dabs_builddir="\"$(abs_builddir)\"" $(AM_CFLAGS)
 virlockspacetest_LDADD = $(LDADDS)
+
+virportallocatortest_SOURCES = \
+	virportallocatortest.c testutils.h testutils.c
+virportallocatortest_CFLAGS = -Dabs_builddir="\"$(abs_builddir)\"" $(AM_CFLAGS)
+virportallocatortest_LDADD = $(LDADDS)
+
+libvirportallocatormock_la_SOURCES = \
+	virportallocatortest.c
+libvirportallocatormock_la_CFLAGS = $(AM_CFLAGS) -DMOCK_HELPER=1
+libvirportallocatormock_la_LDFLAGS = -module -avoid-version \
+        -rpath /evil/libtool/hack/to/force/shared/lib/creation
+
 
 viruritest_SOURCES = \
 	viruritest.c testutils.h testutils.c
@@ -586,10 +616,20 @@ securityselinuxtest_SOURCES = \
 	securityselinuxtest.c testutils.h testutils.c
 securityselinuxtest_CFLAGS = -Dabs_builddir="\"$(abs_builddir)\"" $(AM_CFLAGS)
 securityselinuxtest_LDADD = $(LDADDS)
-securityselinuxtest_DEPENDENCIES = libsecurityselinuxhelper.la
-else
-EXTRA_DIST += securityselinuxtest.c securityselinuxhelper.c
+securityselinuxtest_DEPENDENCIES = libsecurityselinuxhelper.la ../src/libvirt.la
+
+if WITH_QEMU
+if WITH_ATTR
+securityselinuxlabeltest_SOURCES = \
+	securityselinuxlabeltest.c testutils.h testutils.c \
+        testutilsqemu.h testutilsqemu.c
+securityselinuxlabeltest_CFLAGS = -Dabs_builddir="\"$(abs_builddir)\"" $(AM_CFLAGS)
+securityselinuxlabeltest_LDADD = $(qemu_LDADDS)
+securityselinuxlabeltest_DEPENDENCIES = libsecurityselinuxhelper.la ../src/libvirt.la
 endif
+endif
+endif
+EXTRA_DIST += securityselinuxtest.c securityselinuxlabeltest.c securityselinuxhelper.c
 
 virbuftest_SOURCES = \
 	virbuftest.c testutils.h testutils.c
@@ -636,6 +676,10 @@ shunloadtest_SOURCES = \
 	shunloadtest.c
 shunloadtest_LDADD = $(LIB_PTHREAD)
 shunloadtest_DEPENDENCIES = libshunload.la
+
+sysinfotest_SOURCES = \
+	sysinfotest.c testutils.h testutils.c
+sysinfotest_LDADD = $(LDADDS)
 
 if WITH_CIL
 CILOPTFLAGS =

@@ -24,14 +24,14 @@
 #ifndef __QEMU_DOMAIN_H__
 # define __QEMU_DOMAIN_H__
 
-# include "threads.h"
+# include "virthread.h"
 # include "domain_conf.h"
 # include "snapshot_conf.h"
 # include "qemu_monitor.h"
 # include "qemu_agent.h"
 # include "qemu_conf.h"
 # include "qemu_capabilities.h"
-# include "virconsole.h"
+# include "virchrdev.h"
 
 # define QEMU_EXPECTED_VIRT_TYPES      \
     ((1 << VIR_DOMAIN_VIRT_QEMU) |     \
@@ -155,7 +155,7 @@ struct _qemuDomainObjPrivate {
     unsigned long migMaxBandwidth;
     char *origname;
 
-    virConsolesPtr cons;
+    virChrdevsPtr devs;
 
     qemuDomainCleanupCallback *cleanupCallbacks;
     size_t ncleanupCallbacks;

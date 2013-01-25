@@ -29,7 +29,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#if HAVE_AVAHI
+#if WITH_AVAHI
 # include <avahi-client/client.h>
 # include <avahi-client/publish.h>
 
@@ -41,11 +41,10 @@
 #endif
 
 #include "virnetservermdns.h"
-#include "event.h"
-#include "event_poll.h"
-#include "memory.h"
-#include "virterror_internal.h"
-#include "logging.h"
+#include "vireventpoll.h"
+#include "viralloc.h"
+#include "virerror.h"
+#include "virlog.h"
 
 #define VIR_FROM_THIS VIR_FROM_RPC
 
@@ -57,7 +56,7 @@ struct _virNetServerMDNSEntry {
 
 struct _virNetServerMDNSGroup {
     virNetServerMDNSPtr mdns;
-#if HAVE_AVAHI
+#if WITH_AVAHI
     AvahiEntryGroup *handle;
 #endif
     char *name;
@@ -66,14 +65,14 @@ struct _virNetServerMDNSGroup {
 };
 
 struct _virNetServerMDNS {
-#if HAVE_AVAHI
+#if WITH_AVAHI
     AvahiClient *client;
     AvahiPoll *poller;
 #endif
     virNetServerMDNSGroupPtr group;
 };
 
-#if HAVE_AVAHI
+#if WITH_AVAHI
 /* Avahi API requires this struct name in the app :-( */
 struct AvahiWatch {
     int watch;
@@ -620,7 +619,7 @@ void virNetServerMDNSEntryFree(virNetServerMDNSEntryPtr entry)
     VIR_FREE(entry);
 }
 
-#else /* ! HAVE_AVAHI */
+#else /* ! WITH_AVAHI */
 
 static const char *unsupported = N_("avahi not available at build time");
 
@@ -693,4 +692,4 @@ virNetServerMDNSEntryFree(virNetServerMDNSEntryPtr entry ATTRIBUTE_UNUSED)
     VIR_DEBUG("%s", _(unsupported));
 }
 
-#endif /* ! HAVE_AVAHI */
+#endif /* ! WITH_AVAHI */

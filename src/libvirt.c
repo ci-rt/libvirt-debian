@@ -41,25 +41,27 @@
 # include <winsock2.h>
 #endif
 
-#ifdef HAVE_LIBCURL
+#ifdef WITH_CURL
 # include <curl/curl.h>
 #endif
 
-#include "virterror_internal.h"
-#include "logging.h"
+#include "virerror.h"
+#include "virlog.h"
 #include "datatypes.h"
 #include "driver.h"
 
-#include "uuid.h"
-#include "memory.h"
+#include "viruuid.h"
+#include "viralloc.h"
 #include "configmake.h"
 #include "intprops.h"
-#include "conf.h"
-#include "rpc/virnettlscontext.h"
-#include "command.h"
+#include "virconf.h"
+#if WITH_GNUTLS
+# include "rpc/virnettlscontext.h"
+#endif
+#include "vircommand.h"
 #include "virrandom.h"
 #include "viruri.h"
-#include "threads.h"
+#include "virthread.h"
 
 #ifdef WITH_TEST
 # include "test/test_driver.h"
@@ -268,6 +270,8 @@ winsock_init(void)
 }
 #endif
 
+
+#ifdef WITH_GNUTLS
 static int virTLSMutexInit(void **priv)
 {
     virMutexPtr lock = NULL;
@@ -308,11 +312,11 @@ static int virTLSMutexUnlock(void **priv)
 
 static struct gcry_thread_cbs virTLSThreadImpl = {
     /* GCRY_THREAD_OPTION_VERSION was added in gcrypt 1.4.2 */
-#ifdef GCRY_THREAD_OPTION_VERSION
+# ifdef GCRY_THREAD_OPTION_VERSION
     (GCRY_THREAD_OPTION_PTHREAD | (GCRY_THREAD_OPTION_VERSION << 8)),
-#else
+# else
     GCRY_THREAD_OPTION_PTHREAD,
-#endif
+# endif
     NULL,
     virTLSMutexInit,
     virTLSMutexDestroy,
@@ -320,6 +324,7 @@ static struct gcry_thread_cbs virTLSThreadImpl = {
     virTLSMutexUnlock,
     NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
 };
+#endif
 
 /* Helper macros to implement VIR_DOMAIN_DEBUG using just C99.  This
  * assumes you pass fewer than 15 arguments to VIR_DOMAIN_DEBUG, but
@@ -403,14 +408,18 @@ virGlobalInit(void)
         virErrorInitialize() < 0)
         goto error;
 
+#ifdef WITH_GNUTLS
     gcry_control(GCRYCTL_SET_THREAD_CBS, &virTLSThreadImpl);
     gcry_check_version(NULL);
+#endif
 
     virLogSetFromEnv();
 
+#ifdef WITH_GNUTLS
     virNetTLSInit();
+#endif
 
-#if HAVE_LIBCURL
+#if WITH_CURL
     curl_global_init(CURL_GLOBAL_DEFAULT);
 #endif
 
@@ -5121,10 +5130,15 @@ virDomainMigrateDirect(virDomainPtr domain,
  *   VIR_MIGRATE_UNDEFINE_SOURCE If the migration is successful, undefine the
  *                               domain on the source host.
  *   VIR_MIGRATE_PAUSED    Leave the domain suspended on the remote side.
+ *   VIR_MIGRATE_NON_SHARED_DISK Migration with non-shared storage with full
+ *                               disk copy
+ *   VIR_MIGRATE_NON_SHARED_INC  Migration with non-shared storage with
+ *                               incremental disk copy
  *   VIR_MIGRATE_CHANGE_PROTECTION Protect against domain configuration
  *                                 changes during the migration process (set
  *                                 automatically when supported).
  *   VIR_MIGRATE_UNSAFE    Force migration even if it is considered unsafe.
+ *   VIR_MIGRATE_OFFLINE Migrate offline
  *
  * VIR_MIGRATE_TUNNELLED requires that VIR_MIGRATE_PEER2PEER be set.
  * Applications using the VIR_MIGRATE_PEER2PEER flag will probably
@@ -5330,10 +5344,15 @@ error:
  *   VIR_MIGRATE_UNDEFINE_SOURCE If the migration is successful, undefine the
  *                               domain on the source host.
  *   VIR_MIGRATE_PAUSED    Leave the domain suspended on the remote side.
+ *   VIR_MIGRATE_NON_SHARED_DISK Migration with non-shared storage with full
+ *                               disk copy
+ *   VIR_MIGRATE_NON_SHARED_INC  Migration with non-shared storage with
+ *                               incremental disk copy
  *   VIR_MIGRATE_CHANGE_PROTECTION Protect against domain configuration
  *                                 changes during the migration process (set
  *                                 automatically when supported).
  *   VIR_MIGRATE_UNSAFE    Force migration even if it is considered unsafe.
+ *   VIR_MIGRATE_OFFLINE Migrate offline
  *
  * VIR_MIGRATE_TUNNELLED requires that VIR_MIGRATE_PEER2PEER be set.
  * Applications using the VIR_MIGRATE_PEER2PEER flag will probably
@@ -5556,10 +5575,16 @@ error:
  *                            on the destination host.
  *   VIR_MIGRATE_UNDEFINE_SOURCE If the migration is successful, undefine the
  *                               domain on the source host.
+ *   VIR_MIGRATE_PAUSED    Leave the domain suspended on the remote side.
+ *   VIR_MIGRATE_NON_SHARED_DISK Migration with non-shared storage with full
+ *                               disk copy
+ *   VIR_MIGRATE_NON_SHARED_INC  Migration with non-shared storage with
+ *                               incremental disk copy
  *   VIR_MIGRATE_CHANGE_PROTECTION Protect against domain configuration
  *                                 changes during the migration process (set
  *                                 automatically when supported).
  *   VIR_MIGRATE_UNSAFE    Force migration even if it is considered unsafe.
+ *   VIR_MIGRATE_OFFLINE Migrate offline
  *
  * The operation of this API hinges on the VIR_MIGRATE_PEER2PEER flag.
  * If the VIR_MIGRATE_PEER2PEER flag is NOT set, the duri parameter
@@ -5689,10 +5714,16 @@ error:
  *                            on the destination host.
  *   VIR_MIGRATE_UNDEFINE_SOURCE If the migration is successful, undefine the
  *                               domain on the source host.
+ *   VIR_MIGRATE_PAUSED    Leave the domain suspended on the remote side.
+ *   VIR_MIGRATE_NON_SHARED_DISK Migration with non-shared storage with full
+ *                               disk copy
+ *   VIR_MIGRATE_NON_SHARED_INC  Migration with non-shared storage with
+ *                               incremental disk copy
  *   VIR_MIGRATE_CHANGE_PROTECTION Protect against domain configuration
  *                                 changes during the migration process (set
  *                                 automatically when supported).
  *   VIR_MIGRATE_UNSAFE    Force migration even if it is considered unsafe.
+ *   VIR_MIGRATE_OFFLINE Migrate offline
  *
  * The operation of this API hinges on the VIR_MIGRATE_PEER2PEER flag.
  *
@@ -17150,7 +17181,7 @@ error:
  * encrypted, or running over a channel which is not exposed
  * to eavesdropping (eg a UNIX domain socket, or pipe)
  *
- * Returns 1 if secure, 0 if secure, -1 on error
+ * Returns 1 if secure, 0 if not secure, -1 on error
  */
 int virConnectIsSecure(virConnectPtr conn)
 {
@@ -19105,6 +19136,67 @@ int virDomainOpenConsole(virDomainPtr dom,
     if (conn->driver->domainOpenConsole) {
         int ret;
         ret = conn->driver->domainOpenConsole(dom, dev_name, st, flags);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    virDispatchError(conn);
+    return -1;
+}
+
+/**
+ * virDomainOpenChannel:
+ * @dom: a domain object
+ * @name: the channel name, or NULL
+ * @st: a stream to associate with the channel
+ * @flags: bitwise-OR of virDomainChannelFlags
+ *
+ * This opens the host interface associated with a channel device on a
+ * guest, if the host interface is supported.  If @name is given, it
+ * can match either the device alias (e.g. "channel0"), or the virtio
+ * target name (e.g. "org.qemu.guest_agent.0").  If @name is omitted,
+ * then the first channel is opened. The channel is associated with
+ * the passed in @st stream, which should have been opened in
+ * non-blocking mode for bi-directional I/O.
+ *
+ * By default, when @flags is 0, the open will fail if libvirt detects
+ * that the channel is already in use by another client; passing
+ * VIR_DOMAIN_CHANNEL_FORCE will cause libvirt to forcefully remove the
+ * other client prior to opening this channel.
+ *
+ * Returns 0 if the channel was opened, -1 on error
+ */
+int virDomainOpenChannel(virDomainPtr dom,
+                         const char *name,
+                         virStreamPtr st,
+                         unsigned int flags)
+{
+    virConnectPtr conn;
+
+    VIR_DOMAIN_DEBUG(dom, "name=%s, st=%p, flags=%x",
+                     NULLSTR(name), st, flags);
+
+    virResetLastError();
+
+    if (!VIR_IS_DOMAIN(dom)) {
+        virLibDomainError(VIR_ERR_INVALID_DOMAIN, __FUNCTION__);
+        virDispatchError(NULL);
+        return -1;
+    }
+
+    conn = dom->conn;
+    if (conn->flags & VIR_CONNECT_RO) {
+        virLibDomainError(VIR_ERR_OPERATION_DENIED, __FUNCTION__);
+        goto error;
+    }
+
+    if (conn->driver->domainOpenChannel) {
+        int ret;
+        ret = conn->driver->domainOpenChannel(dom, name, st, flags);
         if (ret < 0)
             goto error;
         return ret;

@@ -21,13 +21,13 @@
  */
 
 #include <config.h>
-#include "virterror_internal.h"
+#include "virerror.h"
 #include "datatypes.h"
-#include "memory.h"
-#include "xml.h"
-#include "uuid.h"
-#include "util.h"
-#include "buf.h"
+#include "viralloc.h"
+#include "virxml.h"
+#include "viruuid.h"
+#include "virutil.h"
+#include "virbuffer.h"
 #include "device_conf.h"
 
 #define VIR_FROM_THIS VIR_FROM_DEVICE

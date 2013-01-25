@@ -1,7 +1,7 @@
 /*
  * qemu_cgroup.c: QEMU cgroup management
  *
- * Copyright (C) 2006-2012 Red Hat, Inc.
+ * Copyright (C) 2006-2013 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -26,11 +26,11 @@
 #include "qemu_cgroup.h"
 #include "qemu_domain.h"
 #include "qemu_process.h"
-#include "cgroup.h"
-#include "logging.h"
-#include "memory.h"
-#include "virterror_internal.h"
-#include "util.h"
+#include "vircgroup.h"
+#include "virlog.h"
+#include "viralloc.h"
+#include "virerror.h"
+#include "virutil.h"
 #include "domain_audit.h"
 
 #define VIR_FROM_THIS VIR_FROM_QEMU
@@ -290,7 +290,8 @@ int qemuSetupCgroup(virQEMUDriverPtr driver,
                 continue;
 
             if ((usb = usbGetDevice(hostdev->source.subsys.u.usb.bus,
-                                    hostdev->source.subsys.u.usb.device)) == NULL)
+                                    hostdev->source.subsys.u.usb.device,
+                                    NULL)) == NULL)
                 goto cleanup;
 
             if (usbDeviceFileIterate(usb, qemuSetupHostUsbDeviceCgroup,
@@ -342,15 +343,18 @@ int qemuSetupCgroup(virQEMUDriverPtr driver,
         unsigned long long hard_limit = vm->def->mem.hard_limit;
 
         if (!hard_limit) {
-            /* If there is no hard_limit set, set a reasonable
-             * one to avoid system trashing caused by exploited qemu.
-             * As 'reasonable limit' has been chosen:
-             *     (1 + k) * (domain memory + total video memory) + F
-             * where k = 0.02 and F = 200MB. */
+            /* If there is no hard_limit set, set a reasonable one to avoid
+             * system thrashing caused by exploited qemu.  A 'reasonable
+             * limit' has been chosen:
+             *     (1 + k) * (domain memory + total video memory) + (32MB for
+             *     cache per each disk) + F
+             * where k = 0.5 and F = 200MB.  The cache for disks is important as
+             * kernel cache on the host side counts into the RSS limit. */
             hard_limit = vm->def->mem.max_balloon;
             for (i = 0; i < vm->def->nvideos; i++)
                 hard_limit += vm->def->videos[i]->vram;
-            hard_limit = hard_limit * 1.02 + 204800;
+            hard_limit = hard_limit * 1.5 + 204800;
+            hard_limit += vm->def->ndisks * 32768;
         }
 
         rc = virCgroupSetMemoryHardLimit(cgroup, hard_limit);

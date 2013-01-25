@@ -31,7 +31,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <errno.h>
-#include <sys/utsname.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <paths.h>
@@ -42,13 +41,13 @@
 #include <sys/statvfs.h>
 
 #include "datatypes.h"
-#include "virterror_internal.h"
-#include "memory.h"
-#include "util.h"
-#include "logging.h"
-#include "command.h"
+#include "virerror.h"
+#include "viralloc.h"
+#include "virutil.h"
+#include "virlog.h"
+#include "vircommand.h"
 #include "configmake.h"
-#include "storage_file.h"
+#include "virstoragefile.h"
 #include "nodeinfo.h"
 #include "c-ctype.h"
 
@@ -59,7 +58,6 @@
 
 #define PRLCTL                      "prlctl"
 #define PRLSRVCTL                   "prlsrvctl"
-#define PARALLELS_DEFAULT_ARCH      "x86_64"
 
 #define parallelsDomNotFoundError(domain)                                \
     do {                                                                 \
@@ -100,7 +98,7 @@ parallelsDriverUnlock(parallelsConnPtr driver)
 
 static int
 parallelsDefaultConsoleType(const char *ostype ATTRIBUTE_UNUSED,
-                            const char *arch ATTRIBUTE_UNUSED)
+                            virArch arch ATTRIBUTE_UNUSED)
 {
     return VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_SERIAL;
 }
@@ -123,10 +121,9 @@ parallelsBuildCapabilities(void)
 {
     virCapsPtr caps;
     virCapsGuestPtr guest;
-    struct utsname utsname;
-    uname(&utsname);
 
-    if ((caps = virCapabilitiesNew(utsname.machine, 0, 0)) == NULL)
+    if ((caps = virCapabilitiesNew(virArchFromHost(),
+                                   0, 0)) == NULL)
         goto no_memory;
 
     if (nodeCapsInitNUMA(caps) < 0)
@@ -135,8 +132,9 @@ parallelsBuildCapabilities(void)
     virCapabilitiesSetMacPrefix(caps, (unsigned char[]) {
                                 0x42, 0x1C, 0x00});
 
-    if ((guest = virCapabilitiesAddGuest(caps, "hvm", PARALLELS_DEFAULT_ARCH,
-                                         64, "parallels",
+    if ((guest = virCapabilitiesAddGuest(caps, "hvm",
+                                         VIR_ARCH_X86_64,
+                                         "parallels",
                                          NULL, 0, NULL)) == NULL)
         goto no_memory;
 
@@ -144,8 +142,9 @@ parallelsBuildCapabilities(void)
                                       "parallels", NULL, NULL, 0, NULL) == NULL)
         goto no_memory;
 
-    if ((guest = virCapabilitiesAddGuest(caps, "exe", PARALLELS_DEFAULT_ARCH,
-                                         64, "parallels",
+    if ((guest = virCapabilitiesAddGuest(caps, "exe",
+                                         VIR_ARCH_X86_64,
+                                         "parallels",
                                          NULL, 0, NULL)) == NULL)
         goto no_memory;
 
@@ -272,17 +271,17 @@ parallelsAddVideoInfo(virDomainDefPtr def, virJSONValuePtr value)
 
     if (!(tmp = virJSONValueObjectGetString(value, "size"))) {
         parallelsParseError();
-        goto cleanup;
+        goto error;
     }
 
     if (virStrToLong_ul(tmp, &endptr, 10, &mem) < 0) {
         parallelsParseError();
-        goto cleanup;
+        goto error;
     }
 
     if (!STREQ(endptr, "Mb")) {
         parallelsParseError();
-        goto cleanup;
+        goto error;
     }
 
     if (VIR_ALLOC(video) < 0)
@@ -305,8 +304,9 @@ parallelsAddVideoInfo(virDomainDefPtr def, virJSONValuePtr value)
 
 no_memory:
     virReportOOMError();
-cleanup:
+    VIR_FREE(accel);
     virDomainVideoDefFree(video);
+error:
     return -1;
 }
 
@@ -514,10 +514,9 @@ parallelsGetNetInfo(virDomainNetDefPtr net,
     }
 
     net->linkstate = VIR_DOMAIN_NET_INTERFACE_LINK_STATE_UP;
-    if (virJSONValueObjectHasKey(value, "state")) {
-        tmp = virJSONValueObjectGetString(value, "state");
-        if STREQ(tmp, "disconnected")
-            net->linkstate = VIR_DOMAIN_NET_INTERFACE_LINK_STATE_DOWN;
+    if ((tmp = virJSONValueObjectGetString(value, "state")) &&
+        STREQ(tmp, "disconnected")) {
+        net->linkstate = VIR_DOMAIN_NET_INTERFACE_LINK_STATE_DOWN;
     }
 
     return 0;
@@ -792,8 +791,7 @@ parallelsLoadDomain(parallelsConnPtr privconn, virJSONValuePtr jobj)
             goto no_memory;
     }
 
-    if (!(def->os.arch = strdup(PARALLELS_DEFAULT_ARCH)))
-        goto no_memory;
+    def->os.arch = VIR_ARCH_X86_64;
 
     if (VIR_ALLOC(pdom) < 0)
         goto no_memory;
@@ -815,9 +813,6 @@ parallelsLoadDomain(parallelsConnPtr privconn, virJSONValuePtr jobj)
 
     if (!(pdom->home = strdup(tmp)))
         goto no_memory;
-
-    if (!(tmp = virJSONValueObjectGetString(jobj, "OS")))
-        goto cleanup;
 
     if (!(state = virJSONValueObjectGetString(jobj, "State"))) {
         parallelsParseError();
@@ -856,7 +851,7 @@ parallelsLoadDomain(parallelsConnPtr privconn, virJSONValuePtr jobj)
     else
         dom->autostart = 0;
 
-    virDomainObjUnlock(dom);
+    virObjectUnlock(dom);
 
     return dom;
 
@@ -1139,7 +1134,7 @@ parallelsLookupDomainByID(virConnectPtr conn, int id)
 
   cleanup:
     if (dom)
-        virDomainObjUnlock(dom);
+        virObjectUnlock(dom);
     return ret;
 }
 
@@ -1168,7 +1163,7 @@ parallelsLookupDomainByUUID(virConnectPtr conn, const unsigned char *uuid)
 
   cleanup:
     if (dom)
-        virDomainObjUnlock(dom);
+        virObjectUnlock(dom);
     return ret;
 }
 
@@ -1195,7 +1190,7 @@ parallelsLookupDomainByName(virConnectPtr conn, const char *name)
 
   cleanup:
     if (dom)
-        virDomainObjUnlock(dom);
+        virObjectUnlock(dom);
     return ret;
 }
 
@@ -1224,7 +1219,7 @@ parallelsGetDomainInfo(virDomainPtr domain, virDomainInfoPtr info)
 
   cleanup:
     if (privdom)
-        virDomainObjUnlock(privdom);
+        virObjectUnlock(privdom);
     return ret;
 }
 
@@ -1248,7 +1243,7 @@ parallelsGetOSType(virDomainPtr domain)
 
   cleanup:
     if (privdom)
-        virDomainObjUnlock(privdom);
+        virObjectUnlock(privdom);
     parallelsDriverUnlock(privconn);
     return ret;
 }
@@ -1271,7 +1266,7 @@ parallelsDomainIsPersistent(virDomainPtr domain)
 
   cleanup:
     if (privdom)
-        virDomainObjUnlock(privdom);
+        virObjectUnlock(privdom);
     parallelsDriverUnlock(privconn);
     return ret;
 }
@@ -1299,7 +1294,7 @@ parallelsDomainGetState(virDomainPtr domain,
 
   cleanup:
     if (privdom)
-        virDomainObjUnlock(privdom);
+        virObjectUnlock(privdom);
     return ret;
 }
 
@@ -1329,7 +1324,7 @@ parallelsDomainGetXMLDesc(virDomainPtr domain, unsigned int flags)
 
   cleanup:
     if (privdom)
-        virDomainObjUnlock(privdom);
+        virObjectUnlock(privdom);
     return ret;
 }
 
@@ -1354,7 +1349,7 @@ parallelsDomainGetAutostart(virDomainPtr domain, int *autostart)
 
   cleanup:
     if (privdom)
-        virDomainObjUnlock(privdom);
+        virObjectUnlock(privdom);
     return ret;
 }
 
@@ -1397,7 +1392,7 @@ parallelsDomainChangeState(virDomainPtr domain,
 
   cleanup:
     if (privdom)
-        virDomainObjUnlock(privdom);
+        virObjectUnlock(privdom);
 
     return ret;
 }
@@ -1651,7 +1646,7 @@ static int parallelsAddHddByVolume(parallelsDomObjPtr pdom,
         virCommandAddArgFormat(cmd, "--position=%d",
                                disk->info.addr.drive.target);
 
-    if (virCommandRun(cmd, NULL))
+    if (virCommandRun(cmd, NULL) < 0)
         goto cleanup;
 
     if (parallelsStorageVolumeDefRemove(pool, voldef))
@@ -1799,9 +1794,10 @@ static int parallelsApplyIfaceParams(parallelsDomObjPtr pdom,
 {
     bool create = false;
     bool is_changed = false;
-    virCommandPtr cmd;
+    virCommandPtr cmd = NULL;
     char strmac[VIR_MAC_STRING_BUFLEN];
     int i;
+    int ret = -1;
 
     if (!oldnet) {
         create = true;
@@ -1814,58 +1810,58 @@ static int parallelsApplyIfaceParams(parallelsDomObjPtr pdom,
     if (!create && oldnet->type != newnet->type) {
         virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
                        _("Changing network type is not supported"));
-        return -1;
+        goto cleanup;
     }
 
     if (!STREQ_NULLABLE(oldnet->model, newnet->model)) {
         virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
                        _("Changing network device model is not supported"));
-        return -1;
+        goto cleanup;
     }
 
     if (!STREQ_NULLABLE(oldnet->data.network.portgroup,
                         newnet->data.network.portgroup)) {
         virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
                        _("Changing network portgroup is not supported"));
-        return -1;
+        goto cleanup;
     }
 
     if (!virNetDevVPortProfileEqual(oldnet->virtPortProfile,
                                     newnet->virtPortProfile)) {
         virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
                        _("Changing virtual port profile is not supported"));
-        return -1;
+        goto cleanup;
     }
 
     if (newnet->tune.sndbuf_specified) {
         virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
                        _("Setting send buffer size is not supported"));
-        return -1;
+        goto cleanup;
     }
 
     if (!STREQ_NULLABLE(oldnet->script, newnet->script)) {
         virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
                        _("Setting startup script is not supported"));
-        return -1;
+        goto cleanup;
     }
 
     if (!STREQ_NULLABLE(oldnet->filter, newnet->filter)) {
         virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
                        _("Changing filter params is not supported"));
-        return -1;
+        goto cleanup;
     }
 
     if (newnet->bandwidth != NULL) {
         virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
                        _("Setting bandwidth params is not supported"));
-        return -1;
+        goto cleanup;
     }
 
     for (i = 0; i < sizeof(newnet->vlan); i++) {
         if (((char *)&newnet->vlan)[i] != 0) {
             virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
                            _("Setting vlan params is not supported"));
-            return -1;
+            goto cleanup;
         }
     }
 
@@ -1909,13 +1905,20 @@ static int parallelsApplyIfaceParams(parallelsDomObjPtr pdom,
 
     if (!create && !is_changed) {
         /* nothing changed - no need to run prlctl */
-        return 0;
+        ret = 0;
+        goto cleanup;
     }
 
-    if (virCommandRun(cmd, NULL))
-        return -1;
+    if (virCommandRun(cmd, NULL) < 0)
+        goto cleanup;
 
-    return 0;
+    ret = 0;
+
+cleanup:
+    if (create)
+        VIR_FREE(oldnet);
+    virCommandFree(cmd);
+    return ret;
 }
 
 static int
@@ -2103,7 +2106,7 @@ parallelsApplyChanges(virConnectPtr conn, virDomainObjPtr dom, virDomainDefPtr n
      * other paramenters are null and boot devices config is default */
 
     if (!STREQ_NULLABLE(old->os.type, new->os.type) ||
-        !STREQ_NULLABLE(old->os.arch, new->os.arch) ||
+        old->os.arch != new->os.arch ||
         new->os.machine != NULL || new->os.bootmenu != 0 ||
         new->os.kernel != NULL || new->os.initrd != NULL ||
         new->os.cmdline != NULL || new->os.root != NULL ||
@@ -2362,10 +2365,10 @@ parallelsDomainDefineXML(virConnectPtr conn, const char *xml)
     }
 
     if (parallelsApplyChanges(conn, olddom, def) < 0) {
-        virDomainObjUnlock(olddom);
+        virObjectUnlock(olddom);
         goto cleanup;
     }
-    virDomainObjUnlock(olddom);
+    virObjectUnlock(olddom);
 
     if (!(dom = virDomainAssignDef(privconn->caps,
                                    &privconn->domains, def, false))) {
@@ -2383,7 +2386,7 @@ parallelsDomainDefineXML(virConnectPtr conn, const char *xml)
   cleanup:
     virDomainDefFree(def);
     if (dom)
-        virDomainObjUnlock(dom);
+        virObjectUnlock(dom);
     parallelsDriverUnlock(privconn);
     return ret;
 }

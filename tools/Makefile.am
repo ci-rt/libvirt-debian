@@ -1,4 +1,4 @@
-## Copyright (C) 2005-2012 Red Hat, Inc.
+## Copyright (C) 2005-2013 Red Hat, Inc.
 ## See COPYING.LIB for the License of this software
 
 INCLUDES = \
@@ -43,7 +43,7 @@ bin_SCRIPTS = virt-xml-validate virt-pki-validate
 bin_PROGRAMS = virsh virt-host-validate
 libexec_SCRIPTS = libvirt-guests.sh
 
-if HAVE_SANLOCK
+if WITH_SANLOCK
 sbin_SCRIPTS = virt-sanlock-cleanup
 DISTCLEANFILES += virt-sanlock-cleanup
 endif
@@ -53,12 +53,12 @@ dist_man1_MANS = \
 		virt-pki-validate.1 \
 		virt-xml-validate.1 \
 		virsh.1
-if HAVE_SANLOCK
+if WITH_SANLOCK
 dist_man8_MANS = virt-sanlock-cleanup.8
 endif
 
 virt-xml-validate: virt-xml-validate.in Makefile
-	$(AM_V_GEN)sed -e 's,[@]SCHEMADIR@,$(pkgdatadir)/schemas,' < $< > $@ \
+	$(AM_V_GEN)sed -e 's|[@]schemadir@|$(pkgdatadir)/schemas|' < $< > $@ \
 	    || (rm $@ && exit 1) && chmod +x $@
 
 virt-xml-validate.1: virt-xml-validate.in
@@ -67,7 +67,7 @@ virt-xml-validate.1: virt-xml-validate.in
 		rm $(srcdir)/$@; exit 1; fi
 
 virt-pki-validate: virt-pki-validate.in Makefile
-	$(AM_V_GEN)sed -e 's,[@]SYSCONFDIR@,$(sysconfdir),' < $< > $@ \
+	$(AM_V_GEN)sed -e 's|[@]sysconfdir@|$(sysconfdir)|' < $< > $@ \
 	    || (rm $@ && exit 1) && chmod +x $@
 
 virt-pki-validate.1: virt-pki-validate.in
@@ -81,8 +81,8 @@ virt-host-validate.1: virt-host-validate.c
 		rm $(srcdir)/$@; exit 1; fi
 
 virt-sanlock-cleanup: virt-sanlock-cleanup.in Makefile
-	$(AM_V_GEN)sed -e 's,[@]SYSCONFDIR@,$(sysconfdir),' \
-	    -e 's,[@]LOCALSTATEDIR@,$(localstatedir),' < $< > $@ \
+	$(AM_V_GEN)sed -e 's|[@]sysconfdir@|$(sysconfdir)|' \
+	    -e 's|[@]localstatedir@|$(localstatedir)|' < $< > $@ \
 	    || (rm $@ && exit 1) && chmod +x $@
 
 virt-sanlock-cleanup.8: virt-sanlock-cleanup.in
@@ -133,6 +133,7 @@ virsh_LDADD =							\
 		$(STATIC_BINARIES)				\
 		$(WARN_CFLAGS)					\
 		../src/libvirt.la				\
+		../src/libvirt-lxc.la				\
 		../src/libvirt-qemu.la				\
 		../gnulib/lib/libgnu.la				\
 		$(LIBXML_LIBS)					\
@@ -210,21 +211,21 @@ uninstall-init:
 endif # LIBVIRT_INIT_SCRIPT_RED_HAT
 
 libvirt-guests.sh: libvirt-guests.sh.in $(top_builddir)/config.status
-	$(AM_V_GEN)sed					\
-	    -e 's!\@PACKAGE\@!$(PACKAGE)!g'		\
-	    -e 's!\@bindir\@!$(bindir)!g'		\
-	    -e 's!\@localedir\@!$(localedir)!g'		\
-	    -e 's!\@localstatedir\@!$(localstatedir)!g'	\
-	    -e 's!\@sbindir\@!$(sbindir)!g'		\
-	    -e 's!\@sysconfdir\@!$(sysconfdir)!g'	\
-	    < $< > $@-t &&				\
-	    chmod a+x $@-t &&				\
+	$(AM_V_GEN)sed						\
+	    -e 's|[@]PACKAGE[@]|$(PACKAGE)|g'			\
+	    -e 's|[@]bindir[@]|$(bindir)|g'			\
+	    -e 's|[@]localedir[@]|$(localedir)|g'		\
+	    -e 's|[@]localstatedir[@]|$(localstatedir)|g'	\
+	    -e 's|[@]sbindir[@]|$(sbindir)|g'			\
+	    -e 's|[@]sysconfdir[@]|$(sysconfdir)|g'		\
+	    < $< > $@-t &&					\
+	    chmod a+x $@-t &&					\
 	    mv $@-t $@
 BUILT_SOURCES += libvirt-guests.sh
 
 libvirt-guests.init: libvirt-guests.init.in libvirt-guests.sh
 	$(AM_V_GEN)sed \
-		-e 's!\@libexecdir\@!$(libexecdir)!g' \
+		-e 's|[@]libexecdir[@]|$(libexecdir)|g' \
 	< $< > $@-t && \
 	chmod a+x $@-t && \
 	mv $@-t $@
@@ -251,16 +252,15 @@ uninstall-systemd:
 endif # LIBVIRT_INIT_SCRIPT_SYSTEMD
 
 libvirt-guests.service: libvirt-guests.service.in $(top_builddir)/config.status
-	$(AM_V_GEN)sed					\
-	    -e 's!\@PACKAGE\@!$(PACKAGE)!g'		\
-	    -e 's!\@bindir\@!$(bindir)!g'		\
-	    -e 's!\@localedir\@!$(localedir)!g'		\
-	    -e 's!\@localstatedir\@!$(localstatedir)!g'	\
-	    -e 's!\@sbindir\@!$(sbindir)!g'		\
-	    -e 's!\@sysconfdir\@!$(sysconfdir)!g'	\
-	    -e 's!\@libexecdir\@!$(libexecdir)!g'	\
-	    < $< > $@-t &&				\
-	    chmod a+x $@-t &&				\
+	$(AM_V_GEN)sed						\
+	    -e 's|[@]PACKAGE[@]|$(PACKAGE)|g'			\
+	    -e 's|[@]bindir[@]|$(bindir)|g'			\
+	    -e 's|[@]localedir[@]|$(localedir)|g'		\
+	    -e 's|[@]localstatedir[@]|$(localstatedir)|g'	\
+	    -e 's|[@]sbindir[@]|$(sbindir)|g'			\
+	    -e 's|[@]sysconfdir[@]|$(sysconfdir)|g'		\
+	    -e 's|[@]libexecdir[@]|$(libexecdir)|g'		\
+	    < $< > $@-t &&					\
 	    mv $@-t $@
 
 

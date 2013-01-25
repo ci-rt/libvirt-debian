@@ -30,13 +30,13 @@
 
 #include "node_device_conf.h"
 #include "node_device_hal.h"
-#include "virterror_internal.h"
+#include "virerror.h"
 #include "driver.h"
 #include "datatypes.h"
-#include "memory.h"
-#include "uuid.h"
-#include "pci.h"
-#include "logging.h"
+#include "viralloc.h"
+#include "viruuid.h"
+#include "virpci.h"
+#include "virlog.h"
 #include "node_device_driver.h"
 #include "virdbus.h"
 

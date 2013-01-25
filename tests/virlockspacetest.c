@@ -25,10 +25,10 @@
 #include <sys/stat.h>
 
 #include "testutils.h"
-#include "util.h"
-#include "virterror_internal.h"
-#include "memory.h"
-#include "logging.h"
+#include "virutil.h"
+#include "virerror.h"
+#include "viralloc.h"
+#include "virlog.h"
 
 #include "virlockspace.h"
 
@@ -293,7 +293,8 @@ static int testLockSpaceResourceLockPath(const void *args ATTRIBUTE_UNUSED)
 
     lockspace = virLockSpaceNew(NULL);
 
-    mkdir(LOCKSPACE_DIR, 0700);
+    if (mkdir(LOCKSPACE_DIR, 0700) < 0)
+        goto cleanup;
 
     if (virLockSpaceCreateResource(lockspace, LOCKSPACE_DIR "/foo") < 0)
         goto cleanup;

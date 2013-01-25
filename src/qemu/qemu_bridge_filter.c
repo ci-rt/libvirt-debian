@@ -22,12 +22,12 @@
 
 #include <config.h>
 
-#include "ebtables.h"
+#include "virebtables.h"
 #include "qemu_conf.h"
 #include "qemu_driver.h"
-#include "util.h"
-#include "virterror_internal.h"
-#include "logging.h"
+#include "virutil.h"
+#include "virerror.h"
+#include "virlog.h"
 
 #include "qemu_bridge_filter.h"
 

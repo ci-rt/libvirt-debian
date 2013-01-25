@@ -24,10 +24,10 @@
 
 #include <stdarg.h>
 
-#include "command.h"
-#include "virterror_internal.h"
-#include "memory.h"
-#include "json.h"
+#include "vircommand.h"
+#include "virerror.h"
+#include "viralloc.h"
+#include "virjson.h"
 
 #include "parallels_utils.h"
 
@@ -42,7 +42,7 @@ parallelsDoCmdRun(char **outbuf, const char *binary, va_list list)
     if (outbuf)
         virCommandSetOutputBuffer(cmd, outbuf);
 
-    if (virCommandRun(cmd, NULL))
+    if (virCommandRun(cmd, NULL) < 0)
         goto cleanup;
 
     ret = 0;

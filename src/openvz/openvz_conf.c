@@ -40,19 +40,18 @@
 #include <limits.h>
 #include <errno.h>
 #include <string.h>
-#include <sys/utsname.h>
 #include <sys/wait.h>
 
-#include "virterror_internal.h"
+#include "virerror.h"
 #include "openvz_conf.h"
 #include "openvz_util.h"
-#include "uuid.h"
-#include "buf.h"
-#include "memory.h"
-#include "util.h"
+#include "viruuid.h"
+#include "virbuffer.h"
+#include "viralloc.h"
+#include "virutil.h"
 #include "nodeinfo.h"
 #include "virfile.h"
-#include "command.h"
+#include "vircommand.h"
 
 #define VIR_FROM_THIS VIR_FROM_OPENVZ
 
@@ -170,20 +169,17 @@ error:
 
 
 static int openvzDefaultConsoleType(const char *ostype ATTRIBUTE_UNUSED,
-                                    const char *arch ATTRIBUTE_UNUSED)
+                                    virArch arch ATTRIBUTE_UNUSED)
 {
     return VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_OPENVZ;
 }
 
 virCapsPtr openvzCapsInit(void)
 {
-    struct utsname utsname;
     virCapsPtr caps;
     virCapsGuestPtr guest;
 
-    uname(&utsname);
-
-    if ((caps = virCapabilitiesNew(utsname.machine,
+    if ((caps = virCapabilitiesNew(virArchFromHost(),
                                    0, 0)) == NULL)
         goto no_memory;
 
@@ -194,8 +190,7 @@ virCapsPtr openvzCapsInit(void)
 
     if ((guest = virCapabilitiesAddGuest(caps,
                                          "exe",
-                                         utsname.machine,
-                                         sizeof(void*) == 4 ? 32 : 64,
+                                         caps->host.arch,
                                          NULL,
                                          NULL,
                                          0,
@@ -490,7 +485,7 @@ error:
 static int
 openvzReadMemConf(virDomainDefPtr def, int veid)
 {
-    int ret;
+    int ret = -1;
     char *temp = NULL;
     unsigned long long barrier, limit;
     const char *param;
@@ -674,7 +669,7 @@ int openvzLoadDomains(struct openvz_driver *driver) {
             goto cleanup;
         }
 
-        virDomainObjUnlock(dom);
+        virObjectUnlock(dom);
         dom = NULL;
     }
 

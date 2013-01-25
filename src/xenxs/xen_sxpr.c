@@ -27,16 +27,16 @@
 #include <config.h>
 
 #include "internal.h"
-#include "virterror_internal.h"
-#include "conf.h"
-#include "memory.h"
+#include "virerror.h"
+#include "virconf.h"
+#include "viralloc.h"
 #include "verify.h"
-#include "uuid.h"
-#include "logging.h"
+#include "viruuid.h"
+#include "virlog.h"
 #include "count-one-bits.h"
 #include "xenxs_private.h"
 #include "xen_sxpr.h"
-#include "storage_file.h"
+#include "virstoragefile.h"
 
 /* Get a domain id from a S-expression string */
 int xenGetDomIdFromSxprString(const char *sexpr, int xendConfigVersion)

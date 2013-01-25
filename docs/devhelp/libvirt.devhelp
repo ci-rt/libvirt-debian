@@ -190,6 +190,7 @@
     <function name="VIR_DOMAIN_BLOCK_REBASE_REUSE_EXT" link="libvirt-libvirt.html#VIR_DOMAIN_BLOCK_REBASE_REUSE_EXT"/>
     <function name="VIR_DOMAIN_BLOCK_REBASE_SHALLOW" link="libvirt-libvirt.html#VIR_DOMAIN_BLOCK_REBASE_SHALLOW"/>
     <function name="VIR_DOMAIN_BLOCK_RESIZE_BYTES" link="libvirt-libvirt.html#VIR_DOMAIN_BLOCK_RESIZE_BYTES"/>
+    <function name="VIR_DOMAIN_CHANNEL_FORCE" link="libvirt-libvirt.html#VIR_DOMAIN_CHANNEL_FORCE"/>
     <function name="VIR_DOMAIN_CONSOLE_FORCE" link="libvirt-libvirt.html#VIR_DOMAIN_CONSOLE_FORCE"/>
     <function name="VIR_DOMAIN_CONSOLE_SAFE" link="libvirt-libvirt.html#VIR_DOMAIN_CONSOLE_SAFE"/>
     <function name="VIR_DOMAIN_CONTROL_ERROR" link="libvirt-libvirt.html#VIR_DOMAIN_CONTROL_ERROR"/>
@@ -796,6 +797,7 @@
     <function name="virDomainBlockResizeFlags" link="libvirt-libvirt.html#virDomainBlockResizeFlags"/>
     <function name="virDomainBlockStatsPtr" link="libvirt-libvirt.html#virDomainBlockStatsPtr"/>
     <function name="virDomainBlockedReason" link="libvirt-libvirt.html#virDomainBlockedReason"/>
+    <function name="virDomainChannelFlags" link="libvirt-libvirt.html#virDomainChannelFlags"/>
     <function name="virDomainConsoleFlags" link="libvirt-libvirt.html#virDomainConsoleFlags"/>
     <function name="virDomainControlInfoPtr" link="libvirt-libvirt.html#virDomainControlInfoPtr"/>
     <function name="virDomainControlState" link="libvirt-libvirt.html#virDomainControlState"/>
@@ -1118,6 +1120,7 @@
     <function name="virDomainMigrateSetMaxSpeed ()" link="libvirt-libvirt.html#virDomainMigrateSetMaxSpeed"/>
     <function name="virDomainMigrateToURI ()" link="libvirt-libvirt.html#virDomainMigrateToURI"/>
     <function name="virDomainMigrateToURI2 ()" link="libvirt-libvirt.html#virDomainMigrateToURI2"/>
+    <function name="virDomainOpenChannel ()" link="libvirt-libvirt.html#virDomainOpenChannel"/>
     <function name="virDomainOpenConsole ()" link="libvirt-libvirt.html#virDomainOpenConsole"/>
     <function name="virDomainOpenGraphics ()" link="libvirt-libvirt.html#virDomainOpenGraphics"/>
     <function name="virDomainPMSuspendForDuration ()" link="libvirt-libvirt.html#virDomainPMSuspendForDuration"/>
@@ -1340,5 +1343,23 @@
     <function name="virStreamRef ()" link="libvirt-libvirt.html#virStreamRef"/>
     <function name="virStreamSend ()" link="libvirt-libvirt.html#virStreamSend"/>
     <function name="virStreamSendAll ()" link="libvirt-libvirt.html#virStreamSendAll"/>
+    <function name="virTypedParamsAddBoolean ()" link="libvirt-libvirt.html#virTypedParamsAddBoolean"/>
+    <function name="virTypedParamsAddDouble ()" link="libvirt-libvirt.html#virTypedParamsAddDouble"/>
+    <function name="virTypedParamsAddFromString ()" link="libvirt-libvirt.html#virTypedParamsAddFromString"/>
+    <function name="virTypedParamsAddInt ()" link="libvirt-libvirt.html#virTypedParamsAddInt"/>
+    <function name="virTypedParamsAddLLong ()" link="libvirt-libvirt.html#virTypedParamsAddLLong"/>
+    <function name="virTypedParamsAddString ()" link="libvirt-libvirt.html#virTypedParamsAddString"/>
+    <function name="virTypedParamsAddUInt ()" link="libvirt-libvirt.html#virTypedParamsAddUInt"/>
+    <function name="virTypedParamsAddULLong ()" link="libvirt-libvirt.html#virTypedParamsAddULLong"/>
+    <function name="virTypedParamsClear ()" link="libvirt-libvirt.html#virTypedParamsClear"/>
+    <function name="virTypedParamsFree ()" link="libvirt-libvirt.html#virTypedParamsFree"/>
+    <function name="virTypedParamsGet ()" link="libvirt-libvirt.html#virTypedParamsGet"/>
+    <function name="virTypedParamsGetBoolean ()" link="libvirt-libvirt.html#virTypedParamsGetBoolean"/>
+    <function name="virTypedParamsGetDouble ()" link="libvirt-libvirt.html#virTypedParamsGetDouble"/>
+    <function name="virTypedParamsGetInt ()" link="libvirt-libvirt.html#virTypedParamsGetInt"/>
+    <function name="virTypedParamsGetLLong ()" link="libvirt-libvirt.html#virTypedParamsGetLLong"/>
+    <function name="virTypedParamsGetString ()" link="libvirt-libvirt.html#virTypedParamsGetString"/>
+    <function name="virTypedParamsGetUInt ()" link="libvirt-libvirt.html#virTypedParamsGetUInt"/>
+    <function name="virTypedParamsGetULLong ()" link="libvirt-libvirt.html#virTypedParamsGetULLong"/>
   </functions>
 </book>

@@ -31,14 +31,14 @@
 
 #include "lxc_fuse.h"
 #include "lxc_cgroup.h"
-#include "virterror_internal.h"
-#include "logging.h"
+#include "virerror.h"
+#include "virlog.h"
 #include "virfile.h"
-#include "buf.h"
+#include "virbuffer.h"
 
 #define VIR_FROM_THIS VIR_FROM_LXC
 
-#if HAVE_FUSE
+#if WITH_FUSE
 
 static const char *fuse_meminfo_path = "/meminfo";
 

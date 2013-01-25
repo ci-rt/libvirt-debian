@@ -39,8 +39,8 @@
 #include <fcntl.h>
 #include <xen/dom0_ops.h>
 
-#include "virterror_internal.h"
-#include "logging.h"
+#include "virerror.h"
+#include "virlog.h"
 #include "datatypes.h"
 #include "xen_driver.h"
 
@@ -53,16 +53,16 @@
 #if WITH_XEN_INOTIFY
 # include "xen_inotify.h"
 #endif
-#include "xml.h"
-#include "util.h"
-#include "memory.h"
+#include "virxml.h"
+#include "virutil.h"
+#include "viralloc.h"
 #include "node_device_conf.h"
-#include "pci.h"
-#include "uuid.h"
+#include "virpci.h"
+#include "viruuid.h"
 #include "fdstream.h"
 #include "virfile.h"
 #include "viruri.h"
-#include "command.h"
+#include "vircommand.h"
 #include "virnodesuspend.h"
 #include "nodeinfo.h"
 #include "configmake.h"
@@ -1253,17 +1253,17 @@ static int
 xenUnifiedDomainSetVcpus(virDomainPtr dom, unsigned int nvcpus)
 {
     unsigned int flags = VIR_DOMAIN_VCPU_LIVE;
-    xenUnifiedPrivatePtr priv;
 
     /* Per the documented API, it is hypervisor-dependent whether this
      * affects just _LIVE or _LIVE|_CONFIG; in xen's case, that
      * depends on xendConfigVersion.  */
     if (dom) {
-        priv = dom->conn->privateData;
+        GET_PRIVATE(dom->conn);
         if (priv->xendConfigVersion >= XEND_CONFIG_VERSION_3_0_4)
             flags |= VIR_DOMAIN_VCPU_CONFIG;
+        return xenUnifiedDomainSetVcpusFlags(dom, nvcpus, flags);
     }
-    return xenUnifiedDomainSetVcpusFlags(dom, nvcpus, flags);
+    return -1;
 }
 
 static int
@@ -2113,7 +2113,7 @@ xenUnifiedNodeDeviceDettach(virNodeDevicePtr dev)
     if (!pci)
         return -1;
 
-    if (pciDettachDevice(pci, NULL, NULL) < 0)
+    if (pciDettachDevice(pci, NULL, NULL, "pciback") < 0)
         goto out;
 
     ret = 0;
@@ -2203,7 +2203,7 @@ xenUnifiedNodeDeviceReAttach(virNodeDevicePtr dev)
         goto out;
     }
 
-    if (pciReAttachDevice(pci, NULL, NULL) < 0)
+    if (pciReAttachDevice(pci, NULL, NULL, "pciback") < 0)
         goto out;
 
     ret = 0;

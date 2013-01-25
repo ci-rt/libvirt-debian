@@ -1,0 +1,293 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<apirefs name='libvirt-lxc'>
+  <references>
+    <reference name='virDomainLxcEnterNamespace' href='html/libvirt-lxc-libvirt-lxc.html#virDomainLxcEnterNamespace'/>
+    <reference name='virDomainLxcOpenNamespace' href='html/libvirt-lxc-libvirt-lxc.html#virDomainLxcOpenNamespace'/>
+  </references>
+  <alpha>
+    <letter name='v'>
+      <ref name='virDomainLxcEnterNamespace'/>
+      <ref name='virDomainLxcOpenNamespace'/>
+    </letter>
+  </alpha>
+  <constructors>
+  </constructors>
+  <functions>
+    <type name='int *'>
+      <ref name='virDomainLxcEnterNamespace'/>
+    </type>
+    <type name='int **'>
+      <ref name='virDomainLxcEnterNamespace'/>
+      <ref name='virDomainLxcOpenNamespace'/>
+    </type>
+    <type name='unsigned int'>
+      <ref name='virDomainLxcEnterNamespace'/>
+      <ref name='virDomainLxcOpenNamespace'/>
+    </type>
+    <type name='unsigned int *'>
+      <ref name='virDomainLxcEnterNamespace'/>
+    </type>
+    <type name='virDomainPtr'>
+      <ref name='virDomainLxcEnterNamespace'/>
+      <ref name='virDomainLxcOpenNamespace'/>
+    </type>
+  </functions>
+  <files>
+    <file name='libvirt-lxc'>
+      <ref name='virDomainLxcEnterNamespace'/>
+      <ref name='virDomainLxcOpenNamespace'/>
+    </file>
+  </files>
+  <index>
+    <chunk name='chunk0'>
+      <letter name='A'>
+        <word name='API'>
+          <ref name='virDomainLxcEnterNamespace'/>
+          <ref name='virDomainLxcOpenNamespace'/>
+        </word>
+        <word name='Attaches'>
+          <ref name='virDomainLxcEnterNamespace'/>
+        </word>
+      </letter>
+      <letter name='F'>
+        <word name='FDs'>
+          <ref name='virDomainLxcEnterNamespace'/>
+          <ref name='virDomainLxcOpenNamespace'/>
+        </word>
+      </letter>
+      <letter name='L'>
+        <word name='LXC'>
+          <ref name='virDomainLxcEnterNamespace'/>
+          <ref name='virDomainLxcOpenNamespace'/>
+        </word>
+      </letter>
+      <letter name='O'>
+        <word name='Open'>
+          <ref name='virDomainLxcOpenNamespace'/>
+        </word>
+      </letter>
+      <letter name='T'>
+        <word name='This'>
+          <ref name='virDomainLxcEnterNamespace'/>
+          <ref name='virDomainLxcOpenNamespace'/>
+        </word>
+      </letter>
+      <letter name='a'>
+        <word name='allocated'>
+          <ref name='virDomainLxcOpenNamespace'/>
+        </word>
+        <word name='allows'>
+          <ref name='virDomainLxcEnterNamespace'/>
+        </word>
+        <word name='are'>
+          <ref name='virDomainLxcOpenNamespace'/>
+        </word>
+        <word name='array'>
+          <ref name='virDomainLxcOpenNamespace'/>
+        </word>
+        <word name='associated'>
+          <ref name='virDomainLxcEnterNamespace'/>
+          <ref name='virDomainLxcOpenNamespace'/>
+        </word>
+      </letter>
+      <letter name='b'>
+        <word name='back'>
+          <ref name='virDomainLxcEnterNamespace'/>
+        </word>
+      </letter>
+      <letter name='c'>
+        <word name='call'>
+          <ref name='virDomainLxcOpenNamespace'/>
+        </word>
+        <word name='caller'>
+          <ref name='virDomainLxcEnterNamespace'/>
+          <ref name='virDomainLxcOpenNamespace'/>
+        </word>
+        <word name='close'>
+          <ref name='virDomainLxcOpenNamespace'/>
+        </word>
+        <word name='connections'>
+          <ref name='virDomainLxcEnterNamespace'/>
+          <ref name='virDomainLxcOpenNamespace'/>
+        </word>
+        <word name='container'>
+          <ref name='virDomainLxcOpenNamespace'/>
+        </word>
+        <word name='current'>
+          <ref name='virDomainLxcEnterNamespace'/>
+        </word>
+        <word name='currently'>
+          <ref name='virDomainLxcEnterNamespace'/>
+          <ref name='virDomainLxcOpenNamespace'/>
+        </word>
+      </letter>
+      <letter name='d'>
+        <word name='descriptors'>
+          <ref name='virDomainLxcEnterNamespace'/>
+          <ref name='virDomainLxcOpenNamespace'/>
+        </word>
+        <word name='domain'>
+          <ref name='virDomainLxcEnterNamespace'/>
+          <ref name='virDomainLxcOpenNamespace'/>
+        </word>
+        <word name='driver'>
+          <ref name='virDomainLxcEnterNamespace'/>
+          <ref name='virDomainLxcOpenNamespace'/>
+        </word>
+      </letter>
+      <letter name='e'>
+        <word name='error'>
+          <ref name='virDomainLxcEnterNamespace'/>
+          <ref name='virDomainLxcOpenNamespace'/>
+        </word>
+      </letter>
+      <letter name='f'>
+        <word name='file'>
+          <ref name='virDomainLxcEnterNamespace'/>
+          <ref name='virDomainLxcOpenNamespace'/>
+        </word>
+        <word name='filled'>
+          <ref name='virDomainLxcEnterNamespace'/>
+          <ref name='virDomainLxcOpenNamespace'/>
+        </word>
+        <word name='for'>
+          <ref name='virDomainLxcOpenNamespace'/>
+        </word>
+      </letter>
+      <letter name='h'>
+        <word name='hold'>
+          <ref name='virDomainLxcEnterNamespace'/>
+        </word>
+        <word name='hypervisor'>
+          <ref name='virDomainLxcEnterNamespace'/>
+          <ref name='virDomainLxcOpenNamespace'/>
+        </word>
+      </letter>
+      <letter name='i'>
+        <word name='intended'>
+          <ref name='virDomainLxcOpenNamespace'/>
+        </word>
+        <word name='its'>
+          <ref name='virDomainLxcEnterNamespace'/>
+        </word>
+      </letter>
+      <letter name='l'>
+        <word name='later'>
+          <ref name='virDomainLxcEnterNamespace'/>
+        </word>
+        <word name='list'>
+          <ref name='virDomainLxcEnterNamespace'/>
+        </word>
+      </letter>
+      <letter name='n'>
+        <word name='namespace'>
+          <ref name='virDomainLxcEnterNamespace'/>
+        </word>
+        <word name='namespaces'>
+          <ref name='virDomainLxcEnterNamespace'/>
+          <ref name='virDomainLxcOpenNamespace'/>
+        </word>
+        <word name='non-NULL'>
+          <ref name='virDomainLxcEnterNamespace'/>
+        </word>
+        <word name='number'>
+          <ref name='virDomainLxcEnterNamespace'/>
+          <ref name='virDomainLxcOpenNamespace'/>
+        </word>
+      </letter>
+      <letter name='o'>
+        <word name='object'>
+          <ref name='virDomainLxcEnterNamespace'/>
+          <ref name='virDomainLxcOpenNamespace'/>
+        </word>
+        <word name='old'>
+          <ref name='virDomainLxcEnterNamespace'/>
+        </word>
+        <word name='only'>
+          <ref name='virDomainLxcEnterNamespace'/>
+          <ref name='virDomainLxcOpenNamespace'/>
+        </word>
+        <word name='opened'>
+          <ref name='virDomainLxcOpenNamespace'/>
+        </word>
+      </letter>
+      <letter name='p'>
+        <word name='pass'>
+          <ref name='virDomainLxcEnterNamespace'/>
+          <ref name='virDomainLxcOpenNamespace'/>
+        </word>
+        <word name='pointer'>
+          <ref name='virDomainLxcEnterNamespace'/>
+          <ref name='virDomainLxcOpenNamespace'/>
+        </word>
+        <word name='populated'>
+          <ref name='virDomainLxcEnterNamespace'/>
+        </word>
+        <word name='process'>
+          <ref name='virDomainLxcEnterNamespace'/>
+        </word>
+      </letter>
+      <letter name='r'>
+        <word name='representing'>
+          <ref name='virDomainLxcEnterNamespace'/>
+        </word>
+        <word name='responsibility'>
+          <ref name='virDomainLxcOpenNamespace'/>
+        </word>
+        <word name='returned'>
+          <ref name='virDomainLxcOpenNamespace'/>
+        </word>
+      </letter>
+      <letter name='s'>
+        <word name='setns'>
+          <ref name='virDomainLxcOpenNamespace'/>
+        </word>
+        <word name='size'>
+          <ref name='virDomainLxcOpenNamespace'/>
+        </word>
+        <word name='specific'>
+          <ref name='virDomainLxcEnterNamespace'/>
+          <ref name='virDomainLxcOpenNamespace'/>
+        </word>
+        <word name='success'>
+          <ref name='virDomainLxcEnterNamespace'/>
+        </word>
+        <word name='suitable'>
+          <ref name='virDomainLxcOpenNamespace'/>
+        </word>
+        <word name='switch'>
+          <ref name='virDomainLxcEnterNamespace'/>
+        </word>
+        <word name='system'>
+          <ref name='virDomainLxcOpenNamespace'/>
+        </word>
+      </letter>
+      <letter name='u'>
+        <word name='unused'>
+          <ref name='virDomainLxcEnterNamespace'/>
+          <ref name='virDomainLxcOpenNamespace'/>
+        </word>
+        <word name='used'>
+          <ref name='virDomainLxcOpenNamespace'/>
+        </word>
+      </letter>
+      <letter name='w'>
+        <word name='will'>
+          <ref name='virDomainLxcEnterNamespace'/>
+          <ref name='virDomainLxcOpenNamespace'/>
+        </word>
+        <word name='with'>
+          <ref name='virDomainLxcEnterNamespace'/>
+          <ref name='virDomainLxcOpenNamespace'/>
+        </word>
+        <word name='work'>
+          <ref name='virDomainLxcEnterNamespace'/>
+          <ref name='virDomainLxcOpenNamespace'/>
+        </word>
+      </letter>
+    </chunk>
+    <chunks>
+      <chunk name='chunk0' start='A' end='w'/>
+    </chunks>
+  </index>
+</apirefs>

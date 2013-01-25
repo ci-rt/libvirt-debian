@@ -23,11 +23,11 @@
 
 #include "lock_manager.h"
 #include "lock_driver_nop.h"
-#include "virterror_internal.h"
-#include "logging.h"
-#include "util.h"
-#include "memory.h"
-#include "uuid.h"
+#include "virerror.h"
+#include "virlog.h"
+#include "virutil.h"
+#include "viralloc.h"
+#include "viruuid.h"
 
 #if HAVE_DLFCN_H
 # include <dlfcn.h>

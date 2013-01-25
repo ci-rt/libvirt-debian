@@ -26,12 +26,12 @@
 #include <stdio.h>
 
 #include "c-ctype.h"
-#include "logging.h"
-#include "memory.h"
-#include "util.h"
+#include "virlog.h"
+#include "viralloc.h"
+#include "virutil.h"
 #include "virhash.h"
 #include "virkeyfile.h"
-#include "virterror_internal.h"
+#include "virerror.h"
 
 #define VIR_FROM_THIS VIR_FROM_CONF
 

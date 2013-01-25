@@ -22,9 +22,9 @@
 #include <config.h>
 
 #include "virstring.h"
-#include "memory.h"
-#include "buf.h"
-#include "virterror_internal.h"
+#include "viralloc.h"
+#include "virbuffer.h"
+#include "virerror.h"
 
 #define VIR_FROM_THIS VIR_FROM_NONE
 

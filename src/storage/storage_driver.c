@@ -36,15 +36,15 @@
 #include <errno.h>
 #include <string.h>
 
-#include "virterror_internal.h"
+#include "virerror.h"
 #include "datatypes.h"
 #include "driver.h"
-#include "util.h"
+#include "virutil.h"
 #include "storage_driver.h"
 #include "storage_conf.h"
-#include "memory.h"
+#include "viralloc.h"
 #include "storage_backend.h"
-#include "logging.h"
+#include "virlog.h"
 #include "virfile.h"
 #include "fdstream.h"
 #include "configmake.h"
@@ -1197,6 +1197,7 @@ storagePoolListAllVolumes(virStoragePoolPtr pool,
             if (tmp_vols[i])
                 virStorageVolFree(tmp_vols[i]);
         }
+        VIR_FREE(tmp_vols);
     }
 
     if (obj)

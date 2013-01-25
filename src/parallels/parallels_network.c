@@ -23,8 +23,8 @@
 #include <config.h>
 
 #include "datatypes.h"
-#include "memory.h"
-#include "virterror_internal.h"
+#include "viralloc.h"
+#include "virerror.h"
 #include "md5.h"
 
 #include "parallels_utils.h"

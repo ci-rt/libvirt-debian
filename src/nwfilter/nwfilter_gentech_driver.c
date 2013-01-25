@@ -26,10 +26,10 @@
 
 #include "internal.h"
 
-#include "memory.h"
-#include "logging.h"
+#include "viralloc.h"
+#include "virlog.h"
 #include "domain_conf.h"
-#include "virterror_internal.h"
+#include "virerror.h"
 #include "nwfilter_gentech_driver.h"
 #include "nwfilter_ebiptables_driver.h"
 #include "nwfilter_dhcpsnoop.h"
@@ -1161,7 +1161,7 @@ virNWFilterDomainFWUpdateCB(void *payload,
     int i, err;
     bool skipIface;
 
-    virDomainObjLock(obj);
+    virObjectLock(obj);
 
     if (virDomainObjIsActive(obj)) {
         for (i = 0; i < vm->nnets; i++) {
@@ -1209,5 +1209,5 @@ virNWFilterDomainFWUpdateCB(void *payload,
         }
     }
 
-    virDomainObjUnlock(obj);
+    virObjectUnlock(obj);
 }

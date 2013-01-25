@@ -135,6 +135,7 @@
     <reference name='VIR_DOMAIN_BLOCK_STATS_WRITE_BYTES' href='html/libvirt-libvirt.html#VIR_DOMAIN_BLOCK_STATS_WRITE_BYTES'/>
     <reference name='VIR_DOMAIN_BLOCK_STATS_WRITE_REQ' href='html/libvirt-libvirt.html#VIR_DOMAIN_BLOCK_STATS_WRITE_REQ'/>
     <reference name='VIR_DOMAIN_BLOCK_STATS_WRITE_TOTAL_TIMES' href='html/libvirt-libvirt.html#VIR_DOMAIN_BLOCK_STATS_WRITE_TOTAL_TIMES'/>
+    <reference name='VIR_DOMAIN_CHANNEL_FORCE' href='html/libvirt-libvirt.html#VIR_DOMAIN_CHANNEL_FORCE'/>
     <reference name='VIR_DOMAIN_CONSOLE_FORCE' href='html/libvirt-libvirt.html#VIR_DOMAIN_CONSOLE_FORCE'/>
     <reference name='VIR_DOMAIN_CONSOLE_SAFE' href='html/libvirt-libvirt.html#VIR_DOMAIN_CONSOLE_SAFE'/>
     <reference name='VIR_DOMAIN_CONTROL_ERROR' href='html/libvirt-libvirt.html#VIR_DOMAIN_CONTROL_ERROR'/>
@@ -912,6 +913,7 @@
     <reference name='virDomainBlockStatsPtr' href='html/libvirt-libvirt.html#virDomainBlockStatsPtr'/>
     <reference name='virDomainBlockStatsStruct' href='html/libvirt-libvirt.html#virDomainBlockStatsStruct'/>
     <reference name='virDomainBlockedReason' href='html/libvirt-libvirt.html#virDomainBlockedReason'/>
+    <reference name='virDomainChannelFlags' href='html/libvirt-libvirt.html#virDomainChannelFlags'/>
     <reference name='virDomainConsoleFlags' href='html/libvirt-libvirt.html#virDomainConsoleFlags'/>
     <reference name='virDomainControlInfo' href='html/libvirt-libvirt.html#virDomainControlInfo'/>
     <reference name='virDomainControlInfoPtr' href='html/libvirt-libvirt.html#virDomainControlInfoPtr'/>
@@ -1031,6 +1033,7 @@
     <reference name='virDomainModificationImpact' href='html/libvirt-libvirt.html#virDomainModificationImpact'/>
     <reference name='virDomainNostateReason' href='html/libvirt-libvirt.html#virDomainNostateReason'/>
     <reference name='virDomainNumatuneMemMode' href='html/libvirt-libvirt.html#virDomainNumatuneMemMode'/>
+    <reference name='virDomainOpenChannel' href='html/libvirt-libvirt.html#virDomainOpenChannel'/>
     <reference name='virDomainOpenConsole' href='html/libvirt-libvirt.html#virDomainOpenConsole'/>
     <reference name='virDomainOpenGraphics' href='html/libvirt-libvirt.html#virDomainOpenGraphics'/>
     <reference name='virDomainOpenGraphicsFlags' href='html/libvirt-libvirt.html#virDomainOpenGraphicsFlags'/>
@@ -1355,6 +1358,24 @@
     <reference name='virTypedParameterFlags' href='html/libvirt-libvirt.html#virTypedParameterFlags'/>
     <reference name='virTypedParameterPtr' href='html/libvirt-libvirt.html#virTypedParameterPtr'/>
     <reference name='virTypedParameterType' href='html/libvirt-libvirt.html#virTypedParameterType'/>
+    <reference name='virTypedParamsAddBoolean' href='html/libvirt-libvirt.html#virTypedParamsAddBoolean'/>
+    <reference name='virTypedParamsAddDouble' href='html/libvirt-libvirt.html#virTypedParamsAddDouble'/>
+    <reference name='virTypedParamsAddFromString' href='html/libvirt-libvirt.html#virTypedParamsAddFromString'/>
+    <reference name='virTypedParamsAddInt' href='html/libvirt-libvirt.html#virTypedParamsAddInt'/>
+    <reference name='virTypedParamsAddLLong' href='html/libvirt-libvirt.html#virTypedParamsAddLLong'/>
+    <reference name='virTypedParamsAddString' href='html/libvirt-libvirt.html#virTypedParamsAddString'/>
+    <reference name='virTypedParamsAddUInt' href='html/libvirt-libvirt.html#virTypedParamsAddUInt'/>
+    <reference name='virTypedParamsAddULLong' href='html/libvirt-libvirt.html#virTypedParamsAddULLong'/>
+    <reference name='virTypedParamsClear' href='html/libvirt-libvirt.html#virTypedParamsClear'/>
+    <reference name='virTypedParamsFree' href='html/libvirt-libvirt.html#virTypedParamsFree'/>
+    <reference name='virTypedParamsGet' href='html/libvirt-libvirt.html#virTypedParamsGet'/>
+    <reference name='virTypedParamsGetBoolean' href='html/libvirt-libvirt.html#virTypedParamsGetBoolean'/>
+    <reference name='virTypedParamsGetDouble' href='html/libvirt-libvirt.html#virTypedParamsGetDouble'/>
+    <reference name='virTypedParamsGetInt' href='html/libvirt-libvirt.html#virTypedParamsGetInt'/>
+    <reference name='virTypedParamsGetLLong' href='html/libvirt-libvirt.html#virTypedParamsGetLLong'/>
+    <reference name='virTypedParamsGetString' href='html/libvirt-libvirt.html#virTypedParamsGetString'/>
+    <reference name='virTypedParamsGetUInt' href='html/libvirt-libvirt.html#virTypedParamsGetUInt'/>
+    <reference name='virTypedParamsGetULLong' href='html/libvirt-libvirt.html#virTypedParamsGetULLong'/>
     <reference name='virVcpuInfo' href='html/libvirt-libvirt.html#virVcpuInfo'/>
     <reference name='virVcpuInfoPtr' href='html/libvirt-libvirt.html#virVcpuInfoPtr'/>
     <reference name='virVcpuState' href='html/libvirt-libvirt.html#virVcpuState'/>
@@ -1497,6 +1518,7 @@
       <ref name='VIR_DOMAIN_BLOCK_STATS_WRITE_BYTES'/>
       <ref name='VIR_DOMAIN_BLOCK_STATS_WRITE_REQ'/>
       <ref name='VIR_DOMAIN_BLOCK_STATS_WRITE_TOTAL_TIMES'/>
+      <ref name='VIR_DOMAIN_CHANNEL_FORCE'/>
       <ref name='VIR_DOMAIN_CONSOLE_FORCE'/>
       <ref name='VIR_DOMAIN_CONSOLE_SAFE'/>
       <ref name='VIR_DOMAIN_CONTROL_ERROR'/>
@@ -2278,6 +2300,7 @@
       <ref name='virDomainBlockStatsPtr'/>
       <ref name='virDomainBlockStatsStruct'/>
       <ref name='virDomainBlockedReason'/>
+      <ref name='virDomainChannelFlags'/>
       <ref name='virDomainConsoleFlags'/>
       <ref name='virDomainControlInfo'/>
       <ref name='virDomainControlInfoPtr'/>
@@ -2397,6 +2420,7 @@
       <ref name='virDomainModificationImpact'/>
       <ref name='virDomainNostateReason'/>
       <ref name='virDomainNumatuneMemMode'/>
+      <ref name='virDomainOpenChannel'/>
       <ref name='virDomainOpenConsole'/>
       <ref name='virDomainOpenGraphics'/>
       <ref name='virDomainOpenGraphicsFlags'/>
@@ -2721,6 +2745,24 @@
       <ref name='virTypedParameterFlags'/>
       <ref name='virTypedParameterPtr'/>
       <ref name='virTypedParameterType'/>
+      <ref name='virTypedParamsAddBoolean'/>
+      <ref name='virTypedParamsAddDouble'/>
+      <ref name='virTypedParamsAddFromString'/>
+      <ref name='virTypedParamsAddInt'/>
+      <ref name='virTypedParamsAddLLong'/>
+      <ref name='virTypedParamsAddString'/>
+      <ref name='virTypedParamsAddUInt'/>
+      <ref name='virTypedParamsAddULLong'/>
+      <ref name='virTypedParamsClear'/>
+      <ref name='virTypedParamsFree'/>
+      <ref name='virTypedParamsGet'/>
+      <ref name='virTypedParamsGetBoolean'/>
+      <ref name='virTypedParamsGetDouble'/>
+      <ref name='virTypedParamsGetInt'/>
+      <ref name='virTypedParamsGetLLong'/>
+      <ref name='virTypedParamsGetString'/>
+      <ref name='virTypedParamsGetUInt'/>
+      <ref name='virTypedParamsGetULLong'/>
       <ref name='virVcpuInfo'/>
       <ref name='virVcpuInfoPtr'/>
       <ref name='virVcpuState'/>
@@ -2820,6 +2862,9 @@
     <type name='virStreamPtr'>
       <ref name='virStreamNew'/>
     </type>
+    <type name='virTypedParameterPtr'>
+      <ref name='virTypedParamsGet'/>
+    </type>
   </constructors>
   <functions>
     <type name='char **'>
@@ -2842,6 +2887,7 @@
     </type>
     <type name='const char **'>
       <ref name='virConnectBaselineCPU'/>
+      <ref name='virTypedParamsGetString'/>
     </type>
     <type name='const unsigned char *'>
       <ref name='virDomainLookupByUUID'/>
@@ -2850,6 +2896,12 @@
       <ref name='virSecretLookupByUUID'/>
       <ref name='virSecretSetValue'/>
       <ref name='virStoragePoolLookupByUUID'/>
+    </type>
+    <type name='double'>
+      <ref name='virTypedParamsAddDouble'/>
+    </type>
+    <type name='double *'>
+      <ref name='virTypedParamsGetDouble'/>
     </type>
     <type name='int *'>
       <ref name='virConnectListDomains'/>
@@ -2869,10 +2921,24 @@
       <ref name='virNodeGetMemoryParameters'/>
       <ref name='virNodeGetMemoryStats'/>
       <ref name='virStoragePoolGetAutostart'/>
+      <ref name='virTypedParamsAddBoolean'/>
+      <ref name='virTypedParamsAddDouble'/>
+      <ref name='virTypedParamsAddFromString'/>
+      <ref name='virTypedParamsAddInt'/>
+      <ref name='virTypedParamsAddLLong'/>
+      <ref name='virTypedParamsAddString'/>
+      <ref name='virTypedParamsAddUInt'/>
+      <ref name='virTypedParamsAddULLong'/>
+      <ref name='virTypedParamsGetBoolean'/>
+      <ref name='virTypedParamsGetInt'/>
     </type>
     <type name='long long'>
       <ref name='virConnectDomainEventRTCChangeCallback'/>
       <ref name='virDomainSendProcessSignal'/>
+      <ref name='virTypedParamsAddLLong'/>
+    </type>
+    <type name='long long *'>
+      <ref name='virTypedParamsGetLLong'/>
     </type>
     <type name='size_t'>
       <ref name='virDomainBlockPeek'/>
@@ -2966,6 +3032,7 @@
       <ref name='virDomainMigrateGetMaxSpeed'/>
       <ref name='virDomainMigrateSetMaxDowntime'/>
       <ref name='virDomainMigrateSetMaxSpeed'/>
+      <ref name='virDomainOpenChannel'/>
       <ref name='virDomainOpenConsole'/>
       <ref name='virDomainOpenGraphics'/>
       <ref name='virDomainPMSuspendForDuration'/>
@@ -3051,10 +3118,12 @@
       <ref name='virStorageVolWipe'/>
       <ref name='virStorageVolWipePattern'/>
       <ref name='virStreamNew'/>
+      <ref name='virTypedParamsAddUInt'/>
     </type>
     <type name='unsigned int *'>
       <ref name='virDomainSendKey'/>
       <ref name='virNodeGetCPUMap'/>
+      <ref name='virTypedParamsGetUInt'/>
     </type>
     <type name='unsigned long'>
       <ref name='virDomainBlockCommit'/>
@@ -3088,9 +3157,11 @@
       <ref name='virStorageVolDownload'/>
       <ref name='virStorageVolResize'/>
       <ref name='virStorageVolUpload'/>
+      <ref name='virTypedParamsAddULLong'/>
     </type>
     <type name='unsigned long long *'>
       <ref name='virNodeGetCellsFreeMemory'/>
+      <ref name='virTypedParamsGetULLong'/>
     </type>
     <type name='virConnectAuthPtr'>
       <ref name='virConnectOpenAuth'/>
@@ -3359,6 +3430,7 @@
       <ref name='virDomainMigrateSetMaxSpeed'/>
       <ref name='virDomainMigrateToURI'/>
       <ref name='virDomainMigrateToURI2'/>
+      <ref name='virDomainOpenChannel'/>
       <ref name='virDomainOpenConsole'/>
       <ref name='virDomainOpenGraphics'/>
       <ref name='virDomainPMSuspendForDuration'/>
@@ -3630,6 +3702,7 @@
       <ref name='virStreamEventAddCallback'/>
     </type>
     <type name='virStreamPtr'>
+      <ref name='virDomainOpenChannel'/>
       <ref name='virDomainOpenConsole'/>
       <ref name='virDomainScreenshot'/>
       <ref name='virStorageVolDownload'/>
@@ -3674,6 +3747,26 @@
       <ref name='virDomainSetSchedulerParametersFlags'/>
       <ref name='virNodeGetMemoryParameters'/>
       <ref name='virNodeSetMemoryParameters'/>
+      <ref name='virTypedParamsClear'/>
+      <ref name='virTypedParamsFree'/>
+      <ref name='virTypedParamsGet'/>
+      <ref name='virTypedParamsGetBoolean'/>
+      <ref name='virTypedParamsGetDouble'/>
+      <ref name='virTypedParamsGetInt'/>
+      <ref name='virTypedParamsGetLLong'/>
+      <ref name='virTypedParamsGetString'/>
+      <ref name='virTypedParamsGetUInt'/>
+      <ref name='virTypedParamsGetULLong'/>
+    </type>
+    <type name='virTypedParameterPtr *'>
+      <ref name='virTypedParamsAddBoolean'/>
+      <ref name='virTypedParamsAddDouble'/>
+      <ref name='virTypedParamsAddFromString'/>
+      <ref name='virTypedParamsAddInt'/>
+      <ref name='virTypedParamsAddLLong'/>
+      <ref name='virTypedParamsAddString'/>
+      <ref name='virTypedParamsAddUInt'/>
+      <ref name='virTypedParamsAddULLong'/>
     </type>
     <type name='virVcpuInfoPtr'>
       <ref name='virDomainGetVcpus'/>
@@ -3854,6 +3947,7 @@
       <ref name='VIR_DOMAIN_BLOCK_STATS_WRITE_BYTES'/>
       <ref name='VIR_DOMAIN_BLOCK_STATS_WRITE_REQ'/>
       <ref name='VIR_DOMAIN_BLOCK_STATS_WRITE_TOTAL_TIMES'/>
+      <ref name='VIR_DOMAIN_CHANNEL_FORCE'/>
       <ref name='VIR_DOMAIN_CONSOLE_FORCE'/>
       <ref name='VIR_DOMAIN_CONSOLE_SAFE'/>
       <ref name='VIR_DOMAIN_CONTROL_ERROR'/>
@@ -4479,6 +4573,7 @@
       <ref name='virDomainBlockStatsPtr'/>
       <ref name='virDomainBlockStatsStruct'/>
       <ref name='virDomainBlockedReason'/>
+      <ref name='virDomainChannelFlags'/>
       <ref name='virDomainConsoleFlags'/>
       <ref name='virDomainControlInfo'/>
       <ref name='virDomainControlInfoPtr'/>
@@ -4598,6 +4693,7 @@
       <ref name='virDomainModificationImpact'/>
       <ref name='virDomainNostateReason'/>
       <ref name='virDomainNumatuneMemMode'/>
+      <ref name='virDomainOpenChannel'/>
       <ref name='virDomainOpenConsole'/>
       <ref name='virDomainOpenGraphics'/>
       <ref name='virDomainOpenGraphicsFlags'/>
@@ -4910,6 +5006,24 @@
       <ref name='virTypedParameterFlags'/>
       <ref name='virTypedParameterPtr'/>
       <ref name='virTypedParameterType'/>
+      <ref name='virTypedParamsAddBoolean'/>
+      <ref name='virTypedParamsAddDouble'/>
+      <ref name='virTypedParamsAddFromString'/>
+      <ref name='virTypedParamsAddInt'/>
+      <ref name='virTypedParamsAddLLong'/>
+      <ref name='virTypedParamsAddString'/>
+      <ref name='virTypedParamsAddUInt'/>
+      <ref name='virTypedParamsAddULLong'/>
+      <ref name='virTypedParamsClear'/>
+      <ref name='virTypedParamsFree'/>
+      <ref name='virTypedParamsGet'/>
+      <ref name='virTypedParamsGetBoolean'/>
+      <ref name='virTypedParamsGetDouble'/>
+      <ref name='virTypedParamsGetInt'/>
+      <ref name='virTypedParamsGetLLong'/>
+      <ref name='virTypedParamsGetString'/>
+      <ref name='virTypedParamsGetUInt'/>
+      <ref name='virTypedParamsGetULLong'/>
       <ref name='virVcpuInfo'/>
       <ref name='virVcpuInfoPtr'/>
       <ref name='virVcpuState'/>
@@ -5131,6 +5245,14 @@
         <word name='Adds'>
           <ref name='virConnectDomainEventRegister'/>
           <ref name='virConnectDomainEventRegisterAny'/>
+          <ref name='virTypedParamsAddBoolean'/>
+          <ref name='virTypedParamsAddDouble'/>
+          <ref name='virTypedParamsAddFromString'/>
+          <ref name='virTypedParamsAddInt'/>
+          <ref name='virTypedParamsAddLLong'/>
+          <ref name='virTypedParamsAddString'/>
+          <ref name='virTypedParamsAddUInt'/>
+          <ref name='virTypedParamsAddULLong'/>
         </word>
         <word name='After'>
           <ref name='virDomainDestroy'/>
@@ -5310,10 +5432,6 @@
         <word name='Contains'>
           <ref name='virNodeGetCPUMap'/>
         </word>
-        <word name='Copy'>
-          <ref name='virConnCopyLastError'/>
-          <ref name='virCopyLastError'/>
-        </word>
         <word name='Create'>
           <ref name='virDomainAttachDevice'/>
           <ref name='virNetworkCreate'/>
@@ -5349,9 +5467,6 @@
         </word>
         <word name='Decrement'>
           <ref name='virStreamFree'/>
-        </word>
-        <word name='Default'>
-          <ref name='virDefaultErrorFunc'/>
         </word>
         <word name='Define'>
           <ref name='virDomainDefineXML'/>
@@ -5474,9 +5589,6 @@
     </chunk>
     <chunk name='chunk1'>
       <letter name='E'>
-        <word name='ENOMEM'>
-          <ref name='virSaveLastError'/>
-        </word>
         <word name='ERROR'>
           <ref name='_virDomainControlInfo'/>
         </word>
@@ -5561,6 +5673,16 @@
         <word name='Finally'>
           <ref name='virConnectOpen'/>
         </word>
+        <word name='Finds'>
+          <ref name='virTypedParamsGet'/>
+          <ref name='virTypedParamsGetBoolean'/>
+          <ref name='virTypedParamsGetDouble'/>
+          <ref name='virTypedParamsGetInt'/>
+          <ref name='virTypedParamsGetLLong'/>
+          <ref name='virTypedParamsGetString'/>
+          <ref name='virTypedParamsGetUInt'/>
+          <ref name='virTypedParamsGetULLong'/>
+        </word>
         <word name='Flag'>
           <ref name='virConnectListAllSecrets'/>
         </word>
@@ -5588,6 +5710,10 @@
           <ref name='virNWFilterFree'/>
           <ref name='virNetworkFree'/>
           <ref name='virStoragePoolFree'/>
+        </word>
+        <word name='Frees'>
+          <ref name='virTypedParamsClear'/>
+          <ref name='virTypedParamsFree'/>
         </word>
         <word name='From'>
           <ref name='virDomainGetCPUStats'/>
@@ -5720,6 +5846,8 @@
         <word name='Leave'>
           <ref name='virDomainMigrate'/>
           <ref name='virDomainMigrate2'/>
+          <ref name='virDomainMigrateToURI'/>
+          <ref name='virDomainMigrateToURI2'/>
         </word>
         <word name='Length'>
           <ref name='_virConnectCredential'/>
@@ -5793,6 +5921,12 @@
           <ref name='virDomainMigrateToURI'/>
           <ref name='virDomainMigrateToURI2'/>
         </word>
+        <word name='Migration'>
+          <ref name='virDomainMigrate'/>
+          <ref name='virDomainMigrate2'/>
+          <ref name='virDomainMigrateToURI'/>
+          <ref name='virDomainMigrateToURI2'/>
+        </word>
         <word name='Minimum'>
           <ref name='virDomainFSTrim'/>
         </word>
@@ -5814,6 +5948,8 @@
           <ref name='virDomainGetVcpus'/>
         </word>
       </letter>
+    </chunk>
+    <chunk name='chunk2'>
       <letter name='N'>
         <word name='NFS'>
           <ref name='VIR_SECURITY_LABEL_BUFLEN'/>
@@ -5891,8 +6027,6 @@
           <ref name='virDomainSetBlockIoTune'/>
         </word>
       </letter>
-    </chunk>
-    <chunk name='chunk2'>
       <letter name='O'>
         <word name='OUT'>
           <ref name='cpumap'/>
@@ -5928,8 +6062,6 @@
         </word>
         <word name='One'>
           <ref name='_virConnectCredential'/>
-          <ref name='virConnCopyLastError'/>
-          <ref name='virCopyLastError'/>
           <ref name='virDomainGetVcpuPinInfo'/>
           <ref name='virDomainGetVcpus'/>
         </word>
@@ -6013,10 +6145,8 @@
           <ref name='virDomainMigrateToURI2'/>
         </word>
         <word name='Provide'>
-          <ref name='virConnGetLastError'/>
           <ref name='virDomainGetXMLDesc'/>
           <ref name='virDomainSnapshotGetXMLDesc'/>
-          <ref name='virGetLastError'/>
           <ref name='virInterfaceGetXMLDesc'/>
           <ref name='virNWFilterGetXMLDesc'/>
           <ref name='virNetworkGetXMLDesc'/>
@@ -6154,14 +6284,8 @@
           <ref name='virDomainAbortJob'/>
         </word>
         <word name='Reset'>
-          <ref name='virConnResetLastError'/>
           <ref name='virDomainReset'/>
           <ref name='virNodeDeviceReset'/>
-          <ref name='virResetError'/>
-          <ref name='virResetLastError'/>
-        </word>
-        <word name='Resets'>
-          <ref name='virFreeError'/>
         </word>
         <word name='Resize'>
           <ref name='virDomainBlockResize'/>
@@ -6199,6 +6323,8 @@
           <ref name='virEventRunDefaultImpl'/>
         </word>
       </letter>
+    </chunk>
+    <chunk name='chunk3'>
       <letter name='S'>
         <word name='SIGKILL'>
           <ref name='virDomainDestroy'/>
@@ -6210,9 +6336,6 @@
         <word name='SUCCESS'>
           <ref name='virNodeGetCPUStats'/>
           <ref name='virNodeGetMemoryStats'/>
-        </word>
-        <word name='Save'>
-          <ref name='virSaveLastError'/>
         </word>
         <word name='Schedule'>
           <ref name='virNodeSuspendForDuration'/>
@@ -6248,9 +6371,7 @@
           <ref name='_virDomainEventGraphicsAddress'/>
         </word>
         <word name='Set'>
-          <ref name='virConnSetErrorFunc'/>
           <ref name='virDomainBlockJobSetSpeed'/>
-          <ref name='virSetErrorFunc'/>
         </word>
         <word name='Sets'>
           <ref name='virDomainMigrateSetMaxDowntime'/>
@@ -6273,8 +6394,6 @@
           <ref name='virStorageVolWipePattern'/>
         </word>
         <word name='Since'>
-          <ref name='virConnCopyLastError'/>
-          <ref name='virConnGetLastError'/>
           <ref name='virDomainGetDiskErrors'/>
           <ref name='virDomainRevertToSnapshot'/>
           <ref name='virInitialize'/>
@@ -6346,8 +6465,6 @@
           <ref name='virDomainSuspend'/>
         </word>
       </letter>
-    </chunk>
-    <chunk name='chunk3'>
       <letter name='T'>
         <word name='TCP'>
           <ref name='_virDomainEventGraphicsAddress'/>
@@ -6742,6 +6859,9 @@
         <word name='VIR_DOMAIN_BLOCK_RESIZE_BYTES'>
           <ref name='virDomainBlockResize'/>
         </word>
+        <word name='VIR_DOMAIN_CHANNEL_FORCE'>
+          <ref name='virDomainOpenChannel'/>
+        </word>
         <word name='VIR_DOMAIN_CONSOLE_FORCE'>
           <ref name='virDomainOpenConsole'/>
         </word>
@@ -7046,6 +7166,23 @@
         <word name='VIR_ERR_BLOCK_COPY_ACTIVE'>
           <ref name='virDomainBlockJobAbort'/>
         </word>
+        <word name='VIR_ERR_INVALID_ARG'>
+          <ref name='virTypedParamsAddBoolean'/>
+          <ref name='virTypedParamsAddDouble'/>
+          <ref name='virTypedParamsAddFromString'/>
+          <ref name='virTypedParamsAddInt'/>
+          <ref name='virTypedParamsAddLLong'/>
+          <ref name='virTypedParamsAddString'/>
+          <ref name='virTypedParamsAddUInt'/>
+          <ref name='virTypedParamsAddULLong'/>
+          <ref name='virTypedParamsGetBoolean'/>
+          <ref name='virTypedParamsGetDouble'/>
+          <ref name='virTypedParamsGetInt'/>
+          <ref name='virTypedParamsGetLLong'/>
+          <ref name='virTypedParamsGetString'/>
+          <ref name='virTypedParamsGetUInt'/>
+          <ref name='virTypedParamsGetULLong'/>
+        </word>
         <word name='VIR_ERR_INVALID_OPERATION'>
           <ref name='virInterfaceChangeBegin'/>
           <ref name='virInterfaceChangeCommit'/>
@@ -7105,9 +7242,29 @@
           <ref name='virDomainMigrateToURI'/>
           <ref name='virDomainMigrateToURI2'/>
         </word>
+        <word name='VIR_MIGRATE_NON_SHARED_DISK'>
+          <ref name='virDomainMigrate'/>
+          <ref name='virDomainMigrate2'/>
+          <ref name='virDomainMigrateToURI'/>
+          <ref name='virDomainMigrateToURI2'/>
+        </word>
+        <word name='VIR_MIGRATE_NON_SHARED_INC'>
+          <ref name='virDomainMigrate'/>
+          <ref name='virDomainMigrate2'/>
+          <ref name='virDomainMigrateToURI'/>
+          <ref name='virDomainMigrateToURI2'/>
+        </word>
+        <word name='VIR_MIGRATE_OFFLINE'>
+          <ref name='virDomainMigrate'/>
+          <ref name='virDomainMigrate2'/>
+          <ref name='virDomainMigrateToURI'/>
+          <ref name='virDomainMigrateToURI2'/>
+        </word>
         <word name='VIR_MIGRATE_PAUSED'>
           <ref name='virDomainMigrate'/>
           <ref name='virDomainMigrate2'/>
+          <ref name='virDomainMigrateToURI'/>
+          <ref name='virDomainMigrateToURI2'/>
         </word>
         <word name='VIR_MIGRATE_PEER2PEER'>
           <ref name='virDomainMigrate'/>
@@ -7386,6 +7543,16 @@
         <word name='accessing'>
           <ref name='virDomainMigrate2'/>
         </word>
+        <word name='accommodate'>
+          <ref name='virTypedParamsAddBoolean'/>
+          <ref name='virTypedParamsAddDouble'/>
+          <ref name='virTypedParamsAddFromString'/>
+          <ref name='virTypedParamsAddInt'/>
+          <ref name='virTypedParamsAddLLong'/>
+          <ref name='virTypedParamsAddString'/>
+          <ref name='virTypedParamsAddUInt'/>
+          <ref name='virTypedParamsAddULLong'/>
+        </word>
         <word name='accompanied'>
           <ref name='virDomainGetDiskErrors'/>
           <ref name='virDomainGetState'/>
@@ -7525,8 +7692,6 @@
           <ref name='virNodeGetMemoryStats'/>
         </word>
         <word name='against'>
-          <ref name='virConnCopyLastError'/>
-          <ref name='virConnGetLastError'/>
           <ref name='virDomainBlockCommit'/>
           <ref name='virDomainMigrate'/>
           <ref name='virDomainMigrate2'/>
@@ -7549,6 +7714,7 @@
           <ref name='virConnectDomainEventIOErrorCallback'/>
           <ref name='virConnectDomainEventIOErrorReasonCallback'/>
           <ref name='virConnectDomainEventTrayChangeCallback'/>
+          <ref name='virDomainOpenChannel'/>
           <ref name='virDomainOpenConsole'/>
         </word>
         <word name='alignment'>
@@ -7584,6 +7750,26 @@
           <ref name='virNodeGetMemoryStats'/>
           <ref name='virStoragePoolListAllVolumes'/>
         </word>
+        <word name='allocates'>
+          <ref name='virTypedParamsAddBoolean'/>
+          <ref name='virTypedParamsAddDouble'/>
+          <ref name='virTypedParamsAddFromString'/>
+          <ref name='virTypedParamsAddInt'/>
+          <ref name='virTypedParamsAddLLong'/>
+          <ref name='virTypedParamsAddString'/>
+          <ref name='virTypedParamsAddUInt'/>
+          <ref name='virTypedParamsAddULLong'/>
+        </word>
+        <word name='allocating'>
+          <ref name='virTypedParamsAddBoolean'/>
+          <ref name='virTypedParamsAddDouble'/>
+          <ref name='virTypedParamsAddFromString'/>
+          <ref name='virTypedParamsAddInt'/>
+          <ref name='virTypedParamsAddLLong'/>
+          <ref name='virTypedParamsAddString'/>
+          <ref name='virTypedParamsAddUInt'/>
+          <ref name='virTypedParamsAddULLong'/>
+        </word>
         <word name='allocation'>
           <ref name='VIR_DOMAIN_SCHEDULER_LIMIT'/>
           <ref name='VIR_DOMAIN_SCHEDULER_RESERVATION'/>
@@ -7593,7 +7779,6 @@
           <ref name='virDomainAttachDeviceFlags'/>
           <ref name='virDomainDetachDeviceFlags'/>
           <ref name='virDomainUpdateDeviceFlags'/>
-          <ref name='virSaveLastError'/>
           <ref name='virStorageVolGetInfo'/>
           <ref name='virStorageVolResize'/>
         </word>
@@ -7630,6 +7815,7 @@
           <ref name='virDomainDefineXML'/>
           <ref name='virDomainDestroy'/>
           <ref name='virDomainDestroyFlags'/>
+          <ref name='virDomainOpenChannel'/>
           <ref name='virDomainOpenConsole'/>
           <ref name='virDomainSnapshotCreateXML'/>
           <ref name='virInterfaceChangeBegin'/>
@@ -7638,6 +7824,14 @@
           <ref name='virStreamEventUpdateCallback'/>
           <ref name='virStreamRecvAll'/>
           <ref name='virStreamSendAll'/>
+          <ref name='virTypedParamsAddBoolean'/>
+          <ref name='virTypedParamsAddDouble'/>
+          <ref name='virTypedParamsAddFromString'/>
+          <ref name='virTypedParamsAddInt'/>
+          <ref name='virTypedParamsAddLLong'/>
+          <ref name='virTypedParamsAddString'/>
+          <ref name='virTypedParamsAddUInt'/>
+          <ref name='virTypedParamsAddULLong'/>
         </word>
         <word name='also:'>
           <ref name='virConnectGetType'/>
@@ -7696,6 +7890,7 @@
           <ref name='virDomainOpenGraphics'/>
         </word>
         <word name='another'>
+          <ref name='virDomainOpenChannel'/>
           <ref name='virDomainOpenConsole'/>
           <ref name='virDomainSnapshotListChildrenNames'/>
           <ref name='virDomainSnapshotListNames'/>
@@ -7809,6 +8004,7 @@
           <ref name='virNodeDeviceReset'/>
         </word>
         <word name='associate'>
+          <ref name='virDomainOpenChannel'/>
           <ref name='virDomainOpenConsole'/>
         </word>
         <word name='associated'>
@@ -7818,6 +8014,7 @@
           <ref name='virDomainDestroyFlags'/>
           <ref name='virDomainGetConnect'/>
           <ref name='virDomainMigrate2'/>
+          <ref name='virDomainOpenChannel'/>
           <ref name='virDomainOpenConsole'/>
           <ref name='virDomainRestoreFlags'/>
           <ref name='virDomainSaveFlags'/>
@@ -7998,7 +8195,6 @@
     <chunk name='chunk5'>
       <letter name='b'>
         <word name='back'>
-          <ref name='virConnSetErrorFunc'/>
           <ref name='virDomainDestroy'/>
           <ref name='virDomainDestroyFlags'/>
           <ref name='virDomainGetCPUStats'/>
@@ -8008,10 +8204,6 @@
           <ref name='virInterfaceDestroy'/>
           <ref name='virNetworkDestroy'/>
           <ref name='virStoragePoolGetXMLDesc'/>
-        </word>
-        <word name='backed'>
-          <ref name='virConnCopyLastError'/>
-          <ref name='virConnGetLastError'/>
         </word>
         <word name='backend'>
           <ref name='virConnectFindStoragePoolSources'/>
@@ -8034,8 +8226,6 @@
           <ref name='VIR_DOMAIN_BLKIO_FIELD_LENGTH'/>
           <ref name='VIR_DOMAIN_MEMORY_FIELD_LENGTH'/>
           <ref name='VIR_DOMAIN_SCHED_FIELD_LENGTH'/>
-          <ref name='virConnCopyLastError'/>
-          <ref name='virConnGetLastError'/>
         </word>
         <word name='badly'>
           <ref name='virDomainFSTrim'/>
@@ -8073,6 +8263,7 @@
           <ref name='virDomainHasManagedSaveImage'/>
           <ref name='virDomainIsUpdated'/>
           <ref name='virDomainMemoryPeek'/>
+          <ref name='virDomainOpenChannel'/>
           <ref name='virDomainOpenConsole'/>
           <ref name='virDomainSnapshotCreateXML'/>
           <ref name='virInterfaceCreate'/>
@@ -8125,7 +8316,6 @@
           <ref name='virErrorFunc'/>
           <ref name='virEventRegisterDefaultImpl'/>
           <ref name='virEventRemoveHandleFunc'/>
-          <ref name='virResetError'/>
           <ref name='virSecretGetUUID'/>
           <ref name='virStreamAbort'/>
           <ref name='virStreamFree'/>
@@ -8145,6 +8335,7 @@
           <ref name='virDomainShutdownFlags'/>
         </word>
         <word name='bi-directional'>
+          <ref name='virDomainOpenChannel'/>
           <ref name='virDomainOpenConsole'/>
         </word>
         <word name='binding'>
@@ -8222,6 +8413,8 @@
           <ref name='virConnectListAllDomains'/>
           <ref name='virDomainGetAutostart'/>
           <ref name='virNetworkGetAutostart'/>
+          <ref name='virTypedParamsAddBoolean'/>
+          <ref name='virTypedParamsGetBoolean'/>
         </word>
         <word name='boot'>
           <ref name='virDomainGetXMLDesc'/>
@@ -8447,15 +8640,6 @@
         <word name='catch-all'>
           <ref name='virConnectListAllDomains'/>
         </word>
-        <word name='caught'>
-          <ref name='virConnCopyLastError'/>
-          <ref name='virConnGetLastError'/>
-          <ref name='virConnResetLastError'/>
-          <ref name='virCopyLastError'/>
-          <ref name='virGetLastError'/>
-          <ref name='virResetLastError'/>
-          <ref name='virSetErrorFunc'/>
-        </word>
         <word name='cause'>
           <ref name='virConnectDomainEventDiskChangeCallback'/>
           <ref name='virConnectDomainEventIOErrorReasonCallback'/>
@@ -8467,6 +8651,7 @@
           <ref name='virDomainGetNumaParameters'/>
           <ref name='virDomainMigrate2'/>
           <ref name='virDomainMigrateToURI2'/>
+          <ref name='virDomainOpenChannel'/>
           <ref name='virDomainOpenConsole'/>
           <ref name='virDomainUndefineFlags'/>
           <ref name='virNodeGetMemoryParameters'/>
@@ -8573,7 +8758,11 @@
           <ref name='virDomainMigrate2'/>
           <ref name='virDomainMigrateToURI'/>
           <ref name='virDomainMigrateToURI2'/>
+          <ref name='virDomainOpenChannel'/>
           <ref name='virDomainReboot'/>
+        </word>
+        <word name='channel0'>
+          <ref name='virDomainOpenChannel'/>
         </word>
         <word name='char'>
           <ref name='virConnectListDefinedStoragePools'/>
@@ -8583,6 +8772,8 @@
           <ref name='virStreamRecvAll'/>
           <ref name='virStreamSend'/>
           <ref name='virStreamSendAll'/>
+          <ref name='virTypedParamsAddString'/>
+          <ref name='virTypedParamsGetString'/>
         </word>
         <word name='charged'>
           <ref name='VIR_DOMAIN_CPU_STATS_SYSTEMTIME'/>
@@ -8591,6 +8782,13 @@
         <word name='check'>
           <ref name='_virNodeInfo'/>
           <ref name='virDomainSnapshotCreateXML'/>
+          <ref name='virTypedParamsGetBoolean'/>
+          <ref name='virTypedParamsGetDouble'/>
+          <ref name='virTypedParamsGetInt'/>
+          <ref name='virTypedParamsGetLLong'/>
+          <ref name='virTypedParamsGetString'/>
+          <ref name='virTypedParamsGetUInt'/>
+          <ref name='virTypedParamsGetULLong'/>
         </word>
         <word name='checked'>
           <ref name='virDomainBlockPull'/>
@@ -8647,7 +8845,6 @@
         <word name='clean'>
           <ref name='virEventAddHandleFunc'/>
           <ref name='virFreeCallback'/>
-          <ref name='virResetError'/>
         </word>
         <word name='cleaner'>
           <ref name='virDomainDestroyFlags'/>
@@ -8669,6 +8866,7 @@
           <ref name='virConnectSetKeepAlive'/>
           <ref name='virDomainCreateWithFlags'/>
           <ref name='virDomainCreateXML'/>
+          <ref name='virDomainOpenChannel'/>
           <ref name='virDomainOpenConsole'/>
           <ref name='virEventRegisterDefaultImpl'/>
         </word>
@@ -8702,8 +8900,6 @@
         </word>
         <word name='code'>
           <ref name='_virError'/>
-          <ref name='virConnCopyLastError'/>
-          <ref name='virCopyLastError'/>
           <ref name='virDomainGetMemoryParameters'/>
           <ref name='virDomainGetSchedulerParametersFlags'/>
           <ref name='virDomainPinEmulator'/>
@@ -8780,8 +8976,6 @@
           <ref name='VIR_DOMAIN_BLKIO_FIELD_LENGTH'/>
           <ref name='VIR_DOMAIN_MEMORY_FIELD_LENGTH'/>
           <ref name='VIR_DOMAIN_SCHED_FIELD_LENGTH'/>
-          <ref name='virConnCopyLastError'/>
-          <ref name='virConnGetLastError'/>
           <ref name='virDomainAttachDevice'/>
           <ref name='virDomainAttachDeviceFlags'/>
           <ref name='virDomainCreateLinux'/>
@@ -8825,12 +9019,8 @@
           <ref name='virConnectBaselineCPU'/>
         </word>
         <word name='concurrently'>
-          <ref name='virConnResetLastError'/>
-          <ref name='virCopyLastError'/>
           <ref name='virDomainGetEmulatorPinInfo'/>
           <ref name='virDomainGetVcpuPinInfo'/>
-          <ref name='virGetLastError'/>
-          <ref name='virResetLastError'/>
         </word>
         <word name='condition'>
           <ref name='virConnectRegisterCloseCallback'/>
@@ -9028,8 +9218,6 @@
           <ref name='virStorageVolResize'/>
         </word>
         <word name='content'>
-          <ref name='virConnCopyLastError'/>
-          <ref name='virCopyLastError'/>
           <ref name='virDomainSnapshotCreateXML'/>
           <ref name='virStorageVolDownload'/>
           <ref name='virStorageVolUpload'/>
@@ -9133,22 +9321,9 @@
         </word>
         <word name='copied'>
           <ref name='virDomainBlockRebase'/>
-          <ref name='virSaveLastError'/>
         </word>
         <word name='copies'>
           <ref name='VIR_COPY_CPUMAP'/>
-        </word>
-        <word name='copy'>
-          <ref name='virConnCopyLastError'/>
-          <ref name='virCopyLastError'/>
-          <ref name='virDomainBlockCommit'/>
-          <ref name='virDomainBlockJobAbort'/>
-          <ref name='virDomainBlockPull'/>
-          <ref name='virDomainBlockRebase'/>
-          <ref name='virDomainDefineXML'/>
-          <ref name='virDomainDetachDeviceFlags'/>
-          <ref name='virDomainSaveFlags'/>
-          <ref name='virDomainSnapshotCreateXML'/>
         </word>
         <word name='cord'>
           <ref name='virDomainShutdown'/>
@@ -9186,7 +9361,6 @@
         </word>
         <word name='could'>
           <ref name='virNodeSetMemoryParameters'/>
-          <ref name='virSetErrorFunc'/>
           <ref name='virStoragePoolCreate'/>
           <ref name='virStoragePoolDelete'/>
           <ref name='virStoragePoolDestroy'/>
@@ -9274,6 +9448,7 @@
           <ref name='virNetworkDefineXML'/>
           <ref name='virStorageVolCreateXML'/>
           <ref name='virStorageVolCreateXMLFrom'/>
+          <ref name='virTypedParamsGetString'/>
         </word>
         <word name='created'>
           <ref name='virDomainBlockRebase'/>
@@ -9293,6 +9468,8 @@
         <word name='creates'>
           <ref name='virInterfaceChangeBegin'/>
           <ref name='virSecretDefineXML'/>
+          <ref name='virTypedParamsAddFromString'/>
+          <ref name='virTypedParamsAddString'/>
         </word>
         <word name='creating'>
           <ref name='virDomainCoreDump'/>
@@ -9613,6 +9790,7 @@
           <ref name='virDomainGetDiskErrors'/>
         </word>
         <word name='detects'>
+          <ref name='virDomainOpenChannel'/>
           <ref name='virDomainOpenConsole'/>
         </word>
         <word name='determine'>
@@ -9733,8 +9911,6 @@
           <ref name='virConnectFindStoragePoolSources'/>
         </word>
         <word name='discovered'>
-          <ref name='virConnCopyLastError'/>
-          <ref name='virConnGetLastError'/>
           <ref name='virConnectFindStoragePoolSources'/>
         </word>
         <word name='discovery'>
@@ -9800,31 +9976,6 @@
           <ref name='virConnectOpenAuth'/>
           <ref name='virConnectOpenReadOnly'/>
         </word>
-        <word name='does'>
-          <ref name='virDomainBlockRebase'/>
-          <ref name='virDomainBlockResize'/>
-          <ref name='virDomainBlockStats'/>
-          <ref name='virDomainDefineXML'/>
-          <ref name='virDomainDestroy'/>
-          <ref name='virDomainDestroyFlags'/>
-          <ref name='virDomainGetVcpusFlags'/>
-          <ref name='virDomainInterfaceStats'/>
-          <ref name='virDomainRevertToSnapshot'/>
-          <ref name='virDomainSetVcpus'/>
-          <ref name='virDomainSetVcpusFlags'/>
-          <ref name='virDomainSnapshotCreateXML'/>
-          <ref name='virDomainSnapshotDelete'/>
-          <ref name='virEventRegisterDefaultImpl'/>
-          <ref name='virEventRegisterImpl'/>
-          <ref name='virInterfaceDestroy'/>
-          <ref name='virInterfaceUndefine'/>
-          <ref name='virNWFilterUndefine'/>
-          <ref name='virNetworkDefineXML'/>
-          <ref name='virNetworkDestroy'/>
-          <ref name='virNetworkUndefine'/>
-          <ref name='virSecretUndefine'/>
-          <ref name='virStoragePoolDestroy'/>
-        </word>
         <word name='doesn'>
           <ref name='virConnectSetKeepAlive'/>
           <ref name='virDomainDestroyFlags'/>
@@ -9865,6 +10016,10 @@
         <word name='done:'>
           <ref name='virStreamRecv'/>
           <ref name='virStreamSend'/>
+        </word>
+        <word name='double'>
+          <ref name='virTypedParamsAddDouble'/>
+          <ref name='virTypedParamsGetDouble'/>
         </word>
         <word name='down'>
           <ref name='virConnectListAllInterfaces'/>
@@ -9936,10 +10091,6 @@
         </word>
         <word name='duplicate'>
           <ref name='virGetVersion'/>
-        </word>
-        <word name='duplicated'>
-          <ref name='virConnCopyLastError'/>
-          <ref name='virConnGetLastError'/>
         </word>
         <word name='duplicates'>
           <ref name='virGetVersion'/>
@@ -10081,6 +10232,7 @@
           <ref name='virInterfaceGetXMLDesc'/>
           <ref name='virNWFilterGetXMLDesc'/>
           <ref name='virNetworkGetXMLDesc'/>
+          <ref name='virTypedParamsAddFromString'/>
         </word>
         <word name='encountered'>
           <ref name='virDomainGetDiskErrors'/>
@@ -10124,6 +10276,14 @@
         </word>
         <word name='enough'>
           <ref name='virDomainGetDiskErrors'/>
+          <ref name='virTypedParamsAddBoolean'/>
+          <ref name='virTypedParamsAddDouble'/>
+          <ref name='virTypedParamsAddFromString'/>
+          <ref name='virTypedParamsAddInt'/>
+          <ref name='virTypedParamsAddLLong'/>
+          <ref name='virTypedParamsAddString'/>
+          <ref name='virTypedParamsAddUInt'/>
+          <ref name='virTypedParamsAddULLong'/>
         </word>
         <word name='ensure'>
           <ref name='virDomainCoreDump'/>
@@ -10182,12 +10342,7 @@
           <ref name='virDomainGetNumaParameters'/>
           <ref name='virNodeGetMemoryParameters'/>
         </word>
-        <word name='errno'>
-          <ref name='virSaveLastError'/>
-        </word>
         <word name='errors'>
-          <ref name='virConnCopyLastError'/>
-          <ref name='virConnGetLastError'/>
           <ref name='virDomainGetDiskErrors'/>
           <ref name='virDomainScreenshot'/>
           <ref name='virDomainSnapshotCreateXML'/>
@@ -10327,6 +10482,14 @@
           <ref name='virSecretFree'/>
           <ref name='virStoragePoolIsPersistent'/>
           <ref name='virStorageVolFree'/>
+          <ref name='virTypedParamsGet'/>
+          <ref name='virTypedParamsGetBoolean'/>
+          <ref name='virTypedParamsGetDouble'/>
+          <ref name='virTypedParamsGetInt'/>
+          <ref name='virTypedParamsGetLLong'/>
+          <ref name='virTypedParamsGetString'/>
+          <ref name='virTypedParamsGetUInt'/>
+          <ref name='virTypedParamsGetULLong'/>
         </word>
         <word name='existing'>
           <ref name='virDomainAttachDevice'/>
@@ -10350,6 +10513,14 @@
           <ref name='virDomainMigrate2'/>
           <ref name='virDomainSnapshotHasMetadata'/>
           <ref name='virGetVersion'/>
+          <ref name='virTypedParamsAddBoolean'/>
+          <ref name='virTypedParamsAddDouble'/>
+          <ref name='virTypedParamsAddFromString'/>
+          <ref name='virTypedParamsAddInt'/>
+          <ref name='virTypedParamsAddLLong'/>
+          <ref name='virTypedParamsAddString'/>
+          <ref name='virTypedParamsAddUInt'/>
+          <ref name='virTypedParamsAddULLong'/>
         </word>
         <word name='expand'>
           <ref name='virDomainSnapshotListAllChildren'/>
@@ -10364,6 +10535,13 @@
         </word>
         <word name='expected'>
           <ref name='_virNodeInfo'/>
+          <ref name='virTypedParamsGetBoolean'/>
+          <ref name='virTypedParamsGetDouble'/>
+          <ref name='virTypedParamsGetInt'/>
+          <ref name='virTypedParamsGetLLong'/>
+          <ref name='virTypedParamsGetString'/>
+          <ref name='virTypedParamsGetUInt'/>
+          <ref name='virTypedParamsGetULLong'/>
         </word>
         <word name='expects'>
           <ref name='virDomainGetBlkioParameters'/>
@@ -10437,13 +10615,27 @@
           <ref name='virDomainMemoryPeek'/>
         </word>
         <word name='failed'>
-          <ref name='virSaveLastError'/>
           <ref name='virStoragePoolCreateXML'/>
           <ref name='virStoragePoolDefineXML'/>
         </word>
         <word name='fails'>
           <ref name='virDomainSnapshotCreateXML'/>
           <ref name='virNodeSetMemoryParameters'/>
+          <ref name='virTypedParamsAddBoolean'/>
+          <ref name='virTypedParamsAddDouble'/>
+          <ref name='virTypedParamsAddFromString'/>
+          <ref name='virTypedParamsAddInt'/>
+          <ref name='virTypedParamsAddLLong'/>
+          <ref name='virTypedParamsAddString'/>
+          <ref name='virTypedParamsAddUInt'/>
+          <ref name='virTypedParamsAddULLong'/>
+          <ref name='virTypedParamsGetBoolean'/>
+          <ref name='virTypedParamsGetDouble'/>
+          <ref name='virTypedParamsGetInt'/>
+          <ref name='virTypedParamsGetLLong'/>
+          <ref name='virTypedParamsGetString'/>
+          <ref name='virTypedParamsGetUInt'/>
+          <ref name='virTypedParamsGetULLong'/>
         </word>
         <word name='failures'>
           <ref name='virDomainSnapshotCreateXML'/>
@@ -10624,6 +10816,22 @@
         <word name='find'>
           <ref name='virDomainLookupByID'/>
           <ref name='virNetworkUpdate'/>
+          <ref name='virTypedParamsAddBoolean'/>
+          <ref name='virTypedParamsAddDouble'/>
+          <ref name='virTypedParamsAddFromString'/>
+          <ref name='virTypedParamsAddInt'/>
+          <ref name='virTypedParamsAddLLong'/>
+          <ref name='virTypedParamsAddString'/>
+          <ref name='virTypedParamsAddUInt'/>
+          <ref name='virTypedParamsAddULLong'/>
+          <ref name='virTypedParamsGet'/>
+          <ref name='virTypedParamsGetBoolean'/>
+          <ref name='virTypedParamsGetDouble'/>
+          <ref name='virTypedParamsGetInt'/>
+          <ref name='virTypedParamsGetLLong'/>
+          <ref name='virTypedParamsGetString'/>
+          <ref name='virTypedParamsGetUInt'/>
+          <ref name='virTypedParamsGetULLong'/>
         </word>
         <word name='finished'>
           <ref name='virConnectRef'/>
@@ -10662,6 +10870,7 @@
           <ref name='virDomainDetachDeviceFlags'/>
           <ref name='virDomainGetVcpuPinInfo'/>
           <ref name='virDomainListAllSnapshots'/>
+          <ref name='virDomainOpenChannel'/>
           <ref name='virDomainOpenConsole'/>
           <ref name='virDomainSaveFlags'/>
           <ref name='virDomainSnapshotCreateXML'/>
@@ -10713,6 +10922,7 @@
         <word name='forcefully'>
           <ref name='virDomainDestroy'/>
           <ref name='virDomainDestroyFlags'/>
+          <ref name='virDomainOpenChannel'/>
           <ref name='virDomainOpenConsole'/>
         </word>
         <word name='forces'>
@@ -10770,6 +10980,9 @@
           <ref name='virInterfaceFree'/>
           <ref name='virNWFilterFree'/>
           <ref name='virNetworkFree'/>
+          <ref name='virTypedParamsAddFromString'/>
+          <ref name='virTypedParamsAddString'/>
+          <ref name='virTypedParamsClear'/>
         </word>
         <word name='freeing'>
           <ref name='virDomainGetCPUStats'/>
@@ -10778,7 +10991,6 @@
           <ref name='virNodeDeviceFree'/>
         </word>
         <word name='frees'>
-          <ref name='virFreeError'/>
           <ref name='virInterfaceChangeBegin'/>
           <ref name='virInterfaceChangeCommit'/>
         </word>
@@ -10799,6 +11011,10 @@
           <ref name='virDomainFSTrim'/>
         </word>
         <word name='full'>
+          <ref name='virDomainMigrate'/>
+          <ref name='virDomainMigrate2'/>
+          <ref name='virDomainMigrateToURI'/>
+          <ref name='virDomainMigrateToURI2'/>
           <ref name='virDomainRevertToSnapshot'/>
           <ref name='virStorageVolCreateXML'/>
           <ref name='virStorageVolCreateXMLFrom'/>
@@ -10862,7 +11078,6 @@
           <ref name='virEventRegisterImpl'/>
         </word>
         <word name='get'>
-          <ref name='virConnSetErrorFunc'/>
           <ref name='virConnectOpen'/>
           <ref name='virConnectOpenAuth'/>
           <ref name='virConnectOpenReadOnly'/>
@@ -10877,7 +11092,6 @@
           <ref name='virGetVersion'/>
           <ref name='virNodeGetCPUStats'/>
           <ref name='virNodeGetMemoryStats'/>
-          <ref name='virSetErrorFunc'/>
           <ref name='virStorageVolCreateXML'/>
           <ref name='virStorageVolCreateXMLFrom'/>
           <ref name='virStreamRecv'/>
@@ -10904,12 +11118,6 @@
           <ref name='virDomainGetSchedulerParameters'/>
           <ref name='virDomainGetSchedulerParametersFlags'/>
           <ref name='virNodeGetMemoryParameters'/>
-        </word>
-        <word name='global'>
-          <ref name='virConnCopyLastError'/>
-          <ref name='virConnGetLastError'/>
-          <ref name='virConnSetErrorFunc'/>
-          <ref name='virSetErrorFunc'/>
         </word>
         <word name='globally'>
           <ref name='virStoragePoolGetUUID'/>
@@ -11005,6 +11213,9 @@
           <ref name='virDomainMigrate2'/>
           <ref name='virDomainSnapshotCreateXML'/>
         </word>
+        <word name='guest_agent'>
+          <ref name='virDomainOpenChannel'/>
+        </word>
         <word name='guests'>
           <ref name='virConnectListAllDomains'/>
           <ref name='virDomainShutdown'/>
@@ -11034,21 +11245,17 @@
           <ref name='virStreamEventCallback'/>
         </word>
         <word name='handler'>
-          <ref name='virConnSetErrorFunc'/>
           <ref name='virConnectDomainEventGenericCallback'/>
-          <ref name='virSetErrorFunc'/>
         </word>
         <word name='handles'>
           <ref name='virEventAddTimeoutFunc'/>
           <ref name='virEventRegisterImpl'/>
         </word>
         <word name='handling'>
-          <ref name='virConnSetErrorFunc'/>
           <ref name='virConnectDomainEventDeregister'/>
           <ref name='virConnectDomainEventRegister'/>
           <ref name='virConnectDomainEventRegisterAny'/>
           <ref name='virDomainOpenConsole'/>
-          <ref name='virSetErrorFunc'/>
         </word>
         <word name='haphazard'>
           <ref name='virDomainMemoryPeek'/>
@@ -11455,6 +11662,22 @@
           <ref name='virStoragePoolRef'/>
           <ref name='virStorageVolRef'/>
         </word>
+        <word name='incremental'>
+          <ref name='virDomainMigrate'/>
+          <ref name='virDomainMigrate2'/>
+          <ref name='virDomainMigrateToURI'/>
+          <ref name='virDomainMigrateToURI2'/>
+        </word>
+        <word name='incremented'>
+          <ref name='virTypedParamsAddBoolean'/>
+          <ref name='virTypedParamsAddDouble'/>
+          <ref name='virTypedParamsAddFromString'/>
+          <ref name='virTypedParamsAddInt'/>
+          <ref name='virTypedParamsAddLLong'/>
+          <ref name='virTypedParamsAddString'/>
+          <ref name='virTypedParamsAddUInt'/>
+          <ref name='virTypedParamsAddULLong'/>
+        </word>
         <word name='indefinite'>
           <ref name='virDomainPMSuspendForDuration'/>
         </word>
@@ -11635,6 +11858,13 @@
           <ref name='virStreamRecvAll'/>
           <ref name='virStreamSend'/>
           <ref name='virStreamSendAll'/>
+          <ref name='virTypedParamsAddInt'/>
+          <ref name='virTypedParamsAddLLong'/>
+          <ref name='virTypedParamsAddUInt'/>
+          <ref name='virTypedParamsGetInt'/>
+          <ref name='virTypedParamsGetLLong'/>
+          <ref name='virTypedParamsGetUInt'/>
+          <ref name='virTypedParamsGetULLong'/>
         </word>
         <word name='intact'>
           <ref name='virDomainSnapshotDelete'/>
@@ -11698,8 +11928,6 @@
           <ref name='virConnectSetKeepAlive'/>
         </word>
         <word name='invalid'>
-          <ref name='virConnCopyLastError'/>
-          <ref name='virConnGetLastError'/>
           <ref name='virDomainSnapshotCreateXML'/>
         </word>
         <word name='invalidate'>
@@ -11853,14 +12081,10 @@
           <ref name='virDomainMigrateToURI2'/>
         </word>
         <word name='kept'>
-          <ref name='virConnResetLastError'/>
           <ref name='virConnectListAllSecrets'/>
-          <ref name='virCopyLastError'/>
           <ref name='virDomainFree'/>
-          <ref name='virGetLastError'/>
           <ref name='virNWFilterFree'/>
           <ref name='virNetworkFree'/>
-          <ref name='virResetLastError'/>
         </word>
         <word name='kernel'>
           <ref name='VIR_NODE_CPU_STATS_KERNEL'/>
@@ -11936,18 +12160,22 @@
           <ref name='virDomainGetDiskErrors'/>
           <ref name='virDomainGetSchedulerParameters'/>
           <ref name='virDomainMemoryPeek'/>
+          <ref name='virTypedParamsAddBoolean'/>
+          <ref name='virTypedParamsAddDouble'/>
+          <ref name='virTypedParamsAddFromString'/>
+          <ref name='virTypedParamsAddInt'/>
+          <ref name='virTypedParamsAddLLong'/>
+          <ref name='virTypedParamsAddString'/>
+          <ref name='virTypedParamsAddUInt'/>
+          <ref name='virTypedParamsAddULLong'/>
         </word>
         <word name='larger'>
           <ref name='virDomainGetCPUStats'/>
           <ref name='virStorageVolResize'/>
         </word>
         <word name='last'>
-          <ref name='virConnCopyLastError'/>
-          <ref name='virConnGetLastError'/>
-          <ref name='virConnResetLastError'/>
           <ref name='virConnectClose'/>
           <ref name='virConnectListAllStoragePools'/>
-          <ref name='virCopyLastError'/>
           <ref name='virDomainListAllSnapshots'/>
           <ref name='virDomainRevertToSnapshot'/>
           <ref name='virDomainSnapshotListAllChildren'/>
@@ -11955,10 +12183,7 @@
           <ref name='virDomainSnapshotListNames'/>
           <ref name='virDomainSnapshotNum'/>
           <ref name='virDomainSnapshotNumChildren'/>
-          <ref name='virGetLastError'/>
           <ref name='virNodeDeviceFree'/>
-          <ref name='virResetLastError'/>
-          <ref name='virSaveLastError'/>
         </word>
         <word name='later'>
           <ref name='VIR_COPY_CPUMAP'/>
@@ -12049,12 +12274,8 @@
         <word name='level'>
           <ref name='virConnectDomainEventBalloonChangeCallback'/>
           <ref name='virConnectGetVersion'/>
-          <ref name='virCopyLastError'/>
           <ref name='virDomainPMSuspendForDuration'/>
           <ref name='virDomainSuspend'/>
-          <ref name='virGetLastError'/>
-          <ref name='virResetLastError'/>
-          <ref name='virSetErrorFunc'/>
         </word>
         <word name='libevent'>
           <ref name='virEventRegisterImpl'/>
@@ -12065,16 +12286,11 @@
         <word name='library'>
           <ref name='LIBVIR_VERSION_NUMBER'/>
           <ref name='_virError'/>
-          <ref name='virConnSetErrorFunc'/>
           <ref name='virConnectGetLibVersion'/>
           <ref name='virConnectOpenReadOnly'/>
-          <ref name='virCopyLastError'/>
           <ref name='virErrorFunc'/>
-          <ref name='virGetLastError'/>
           <ref name='virGetVersion'/>
           <ref name='virInitialize'/>
-          <ref name='virResetLastError'/>
-          <ref name='virSetErrorFunc'/>
         </word>
         <word name='libvir-list'>
           <ref name='virConnectGetType'/>
@@ -12237,18 +12453,12 @@
           <ref name='virDomainCreateWithFlags'/>
         </word>
         <word name='local'>
-          <ref name='virConnCopyLastError'/>
-          <ref name='virConnGetLastError'/>
-          <ref name='virConnResetLastError'/>
           <ref name='virConnectDomainEventGraphicsCallback'/>
           <ref name='virConnectFindStoragePoolSources'/>
           <ref name='virConnectIsAlive'/>
-          <ref name='virCopyLastError'/>
           <ref name='virDomainBlockPeek'/>
           <ref name='virDomainOpenGraphics'/>
           <ref name='virDomainSetMetadata'/>
-          <ref name='virGetLastError'/>
-          <ref name='virResetLastError'/>
         </word>
         <word name='locally'>
           <ref name='virStoragePoolGetName'/>
@@ -12273,6 +12483,10 @@
           <ref name='_virDomainControlInfo'/>
           <ref name='virDomainBlockJobAbort'/>
           <ref name='virNodeGetCellsFreeMemory'/>
+          <ref name='virTypedParamsAddLLong'/>
+          <ref name='virTypedParamsAddULLong'/>
+          <ref name='virTypedParamsGetLLong'/>
+          <ref name='virTypedParamsGetULLong'/>
         </word>
         <word name='long-running'>
           <ref name='virDomainBlockCommit'/>
@@ -12527,6 +12741,7 @@
           <ref name='virDomainGetVcpuPinInfo'/>
           <ref name='virDomainGetXMLDesc'/>
           <ref name='virDomainMigrate2'/>
+          <ref name='virDomainOpenChannel'/>
           <ref name='virDomainSaveImageDefineXML'/>
         </word>
         <word name='matches'>
@@ -12707,6 +12922,7 @@
         <word name='mode'>
           <ref name='VIR_DOMAIN_NUMA_MODE'/>
           <ref name='virDomainMigrateToURI'/>
+          <ref name='virDomainOpenChannel'/>
           <ref name='virDomainOpenConsole'/>
         </word>
         <word name='model'>
@@ -12796,13 +13012,7 @@
           <ref name='virStorageVolDownload'/>
           <ref name='virStorageVolUpload'/>
         </word>
-        <word name='multi-threaded'>
-          <ref name='virConnCopyLastError'/>
-          <ref name='virConnGetLastError'/>
-        </word>
         <word name='multiple'>
-          <ref name='virConnCopyLastError'/>
-          <ref name='virConnGetLastError'/>
           <ref name='virConnectRef'/>
           <ref name='virDomainBlockStats'/>
           <ref name='virDomainBlockStatsFlags'/>
@@ -12936,10 +13146,8 @@
           <ref name='virStorageVolUpload'/>
         </word>
         <word name='need'>
-          <ref name='virConnCopyLastError'/>
           <ref name='virConnectClose'/>
           <ref name='virConnectSetKeepAlive'/>
-          <ref name='virCopyLastError'/>
           <ref name='virDomainBlockPeek'/>
           <ref name='virDomainGetName'/>
           <ref name='virDomainLookupByID'/>
@@ -12978,6 +13186,8 @@
           <ref name='virStorageVolRef'/>
           <ref name='virStreamFree'/>
           <ref name='virStreamRef'/>
+          <ref name='virTypedParamsAddFromString'/>
+          <ref name='virTypedParamsAddString'/>
         </word>
         <word name='negative'>
           <ref name='virDomainSendProcessSignal'/>
@@ -13040,6 +13250,7 @@
           <ref name='virNodeNumOfDevices'/>
         </word>
         <word name='non-blocking'>
+          <ref name='virDomainOpenChannel'/>
           <ref name='virDomainOpenConsole'/>
           <ref name='virStreamEventAddCallback'/>
           <ref name='virStreamNew'/>
@@ -13064,15 +13275,17 @@
         <word name='non-recoverable'>
           <ref name='virStoragePoolDelete'/>
         </word>
+        <word name='non-shared'>
+          <ref name='virDomainMigrate'/>
+          <ref name='virDomainMigrate2'/>
+          <ref name='virDomainMigrateToURI'/>
+          <ref name='virDomainMigrateToURI2'/>
+        </word>
         <word name='non-zero'>
           <ref name='VIR_CPU_USABLE'/>
           <ref name='VIR_CPU_USED'/>
           <ref name='virDomainPMSuspendForDuration'/>
           <ref name='virStorageVolUpload'/>
-        </word>
-        <word name='none'>
-          <ref name='virConnGetLastError'/>
-          <ref name='virGetLastError'/>
         </word>
         <word name='nor'>
           <ref name='virConnectListAllSecrets'/>
@@ -13177,8 +13390,11 @@
         <word name='obtained'>
           <ref name='virConnectDomainEventDeregisterAny'/>
         </word>
+        <word name='occupied'>
+          <ref name='virTypedParamsClear'/>
+          <ref name='virTypedParamsFree'/>
+        </word>
         <word name='occurred'>
-          <ref name='virConnGetLastError'/>
           <ref name='virConnectDomainEventBalloonChangeCallback'/>
           <ref name='virConnectDomainEventBlockJobCallback'/>
           <ref name='virConnectDomainEventCallback'/>
@@ -13194,7 +13410,6 @@
           <ref name='virConnectDomainEventWatchdogCallback'/>
           <ref name='virDomainSnapshotCreateXML'/>
           <ref name='virEventHandleCallback'/>
-          <ref name='virGetLastError'/>
           <ref name='virStreamEventCallback'/>
         </word>
         <word name='occurring'>
@@ -13224,6 +13439,10 @@
           <ref name='virConnectListAllDomains'/>
           <ref name='virConnectListAllStoragePools'/>
           <ref name='virDomainBlockCommit'/>
+          <ref name='virDomainMigrate'/>
+          <ref name='virDomainMigrate2'/>
+          <ref name='virDomainMigrateToURI'/>
+          <ref name='virDomainMigrateToURI2'/>
         </word>
         <word name='offset'>
           <ref name='virConnectDomainEventRTCChangeCallback'/>
@@ -13237,6 +13456,7 @@
         <word name='omitted'>
           <ref name='virDomainMigrate'/>
           <ref name='virDomainMigrate2'/>
+          <ref name='virDomainOpenChannel'/>
           <ref name='virDomainOpenConsole'/>
           <ref name='virNodeGetMemoryParameters'/>
         </word>
@@ -13295,6 +13515,7 @@
           <ref name='virDomainBlockPeek'/>
           <ref name='virDomainMigrate'/>
           <ref name='virDomainMigrate2'/>
+          <ref name='virDomainOpenChannel'/>
           <ref name='virDomainOpenConsole'/>
           <ref name='virDomainOpenGraphics'/>
           <ref name='virDomainRef'/>
@@ -13316,6 +13537,7 @@
           <ref name='virStreamSendAll'/>
         </word>
         <word name='opened'>
+          <ref name='virDomainOpenChannel'/>
           <ref name='virDomainOpenConsole'/>
           <ref name='virDomainOpenGraphics'/>
           <ref name='virInterfaceChangeBegin'/>
@@ -13325,10 +13547,12 @@
         <word name='opening'>
           <ref name='virConnectOpenAuth'/>
           <ref name='virConnectOpenReadOnly'/>
+          <ref name='virDomainOpenChannel'/>
           <ref name='virDomainOpenConsole'/>
         </word>
         <word name='opens'>
           <ref name='virConnectOpen'/>
+          <ref name='virDomainOpenChannel'/>
           <ref name='virDomainOpenConsole'/>
         </word>
         <word name='operating'>
@@ -13395,6 +13619,7 @@
           <ref name='virConnectOpen'/>
           <ref name='virConnectOpenAuth'/>
           <ref name='virConnectOpenReadOnly'/>
+          <ref name='virDomainOpenChannel'/>
         </word>
         <word name='original'>
           <ref name='virDomainMigrate2'/>
@@ -13411,6 +13636,7 @@
           <ref name='virDomainBlockCommit'/>
           <ref name='virDomainCreateWithFlags'/>
           <ref name='virDomainGetConnect'/>
+          <ref name='virDomainOpenChannel'/>
           <ref name='virDomainOpenConsole'/>
           <ref name='virDomainSendProcessSignal'/>
           <ref name='virDomainSnapshotCreateXML'/>
@@ -13426,11 +13652,9 @@
         <word name='otherwise'>
           <ref name='VIR_CPU_USABLE'/>
           <ref name='_virDomainJobInfo'/>
-          <ref name='virConnCopyLastError'/>
           <ref name='virConnectGetLibVersion'/>
           <ref name='virConnectGetType'/>
           <ref name='virConnectGetVersion'/>
-          <ref name='virCopyLastError'/>
           <ref name='virDomainBlockJobAbort'/>
           <ref name='virDomainCoreDump'/>
           <ref name='virDomainDefineXML'/>
@@ -13509,7 +13733,8 @@
           <ref name='virDomainRevertToSnapshot'/>
         </word>
         <word name='own'>
-          <ref name='virResetLastError'/>
+          <ref name='virTypedParamsAddFromString'/>
+          <ref name='virTypedParamsAddString'/>
         </word>
         <word name='owns'>
           <ref name='virDomainSnapshotGetConnect'/>
@@ -13554,6 +13779,9 @@
         <word name='parsed'>
           <ref name='VIR_DOMAIN_BLKIO_DEVICE_WEIGHT'/>
         </word>
+        <word name='parses'>
+          <ref name='virTypedParamsAddFromString'/>
+        </word>
         <word name='part'>
           <ref name='_virError'/>
           <ref name='virDomainGetCPUStats'/>
@@ -13585,6 +13813,7 @@
           <ref name='virConnectDomainEventRegister'/>
           <ref name='virConnectDomainEventRegisterAny'/>
           <ref name='virConnectGetURI'/>
+          <ref name='virDomainOpenChannel'/>
           <ref name='virDomainOpenConsole'/>
           <ref name='virDomainSnapshotCreateXML'/>
           <ref name='virStorageVolCreateXMLFrom'/>
@@ -13596,8 +13825,16 @@
           <ref name='virConnectDomainEventPMWakeupCallback'/>
         </word>
         <word name='passing'>
+          <ref name='virDomainOpenChannel'/>
           <ref name='virDomainOpenConsole'/>
           <ref name='virDomainSetMetadata'/>
+          <ref name='virTypedParamsGetBoolean'/>
+          <ref name='virTypedParamsGetDouble'/>
+          <ref name='virTypedParamsGetInt'/>
+          <ref name='virTypedParamsGetLLong'/>
+          <ref name='virTypedParamsGetString'/>
+          <ref name='virTypedParamsGetUInt'/>
+          <ref name='virTypedParamsGetULLong'/>
         </word>
         <word name='password'>
           <ref name='virDomainUpdateDeviceFlags'/>
@@ -13649,10 +13886,6 @@
           <ref name='_virNodeInfo'/>
           <ref name='virDomainGetCPUStats'/>
           <ref name='virDomainScreenshot'/>
-        </word>
-        <word name='per-connection'>
-          <ref name='virConnCopyLastError'/>
-          <ref name='virConnGetLastError'/>
         </word>
         <word name='per-cpu'>
           <ref name='virDomainGetCPUStats'/>
@@ -13775,14 +14008,22 @@
           <ref name='virInterfaceChangeCommit'/>
           <ref name='virStreamFinish'/>
         </word>
-        <word name='pointed'>
-          <ref name='virResetError'/>
-        </word>
         <word name='pointers'>
           <ref name='virConnectListDefinedDomains'/>
           <ref name='virConnectListDefinedNetworks'/>
           <ref name='virConnectListSecrets'/>
           <ref name='virDomainMemoryPeek'/>
+        </word>
+        <word name='points'>
+          <ref name='virTypedParamsAddBoolean'/>
+          <ref name='virTypedParamsAddDouble'/>
+          <ref name='virTypedParamsAddFromString'/>
+          <ref name='virTypedParamsAddInt'/>
+          <ref name='virTypedParamsAddLLong'/>
+          <ref name='virTypedParamsAddString'/>
+          <ref name='virTypedParamsAddUInt'/>
+          <ref name='virTypedParamsAddULLong'/>
+          <ref name='virTypedParamsGetString'/>
         </word>
         <word name='poll'>
           <ref name='virDomainBlockJobAbort'/>
@@ -13908,6 +14149,15 @@
           <ref name='virDomainSnapshotListChildrenNames'/>
           <ref name='virDomainSnapshotListNames'/>
         </word>
+        <word name='presence'>
+          <ref name='virTypedParamsGetBoolean'/>
+          <ref name='virTypedParamsGetDouble'/>
+          <ref name='virTypedParamsGetInt'/>
+          <ref name='virTypedParamsGetLLong'/>
+          <ref name='virTypedParamsGetString'/>
+          <ref name='virTypedParamsGetUInt'/>
+          <ref name='virTypedParamsGetULLong'/>
+        </word>
         <word name='present'>
           <ref name='virDomainGetMetadata'/>
           <ref name='virDomainHasManagedSaveImage'/>
@@ -13971,11 +14221,9 @@
         <word name='printable'>
           <ref name='virSecretLookupByUUIDString'/>
         </word>
-        <word name='printing'>
-          <ref name='virSetErrorFunc'/>
-        </word>
         <word name='prior'>
           <ref name='virDomainBlockCommit'/>
+          <ref name='virDomainOpenChannel'/>
           <ref name='virDomainOpenConsole'/>
           <ref name='virDomainRevertToSnapshot'/>
           <ref name='virDomainSnapshotCreateXML'/>
@@ -14088,10 +14336,6 @@
         <word name='proportional'>
           <ref name='VIR_DOMAIN_SCHEDULER_CPU_SHARES'/>
         </word>
-        <word name='protected'>
-          <ref name='virConnCopyLastError'/>
-          <ref name='virConnGetLastError'/>
-        </word>
         <word name='provably'>
           <ref name='virDomainRevertToSnapshot'/>
         </word>
@@ -14101,7 +14345,6 @@
           <ref name='virStreamSinkFunc'/>
         </word>
         <word name='provided'>
-          <ref name='virConnSetErrorFunc'/>
           <ref name='virConnectListAllNodeDevices'/>
           <ref name='virConnectListAllStoragePools'/>
           <ref name='virConnectListDefinedDomains'/>
@@ -14121,7 +14364,6 @@
           <ref name='virErrorFunc'/>
           <ref name='virEventAddHandleFunc'/>
           <ref name='virFreeCallback'/>
-          <ref name='virSetErrorFunc'/>
           <ref name='virStreamSinkFunc'/>
           <ref name='virStreamSourceFunc'/>
         </word>
@@ -14193,6 +14435,9 @@
         <word name='qcow2'>
           <ref name='virStorageVolCreateXML'/>
           <ref name='virStorageVolCreateXMLFrom'/>
+        </word>
+        <word name='qemu'>
+          <ref name='virDomainOpenChannel'/>
         </word>
         <word name='qualfied'>
           <ref name='virSecretGetUsageID'/>
@@ -14288,7 +14533,6 @@
           <ref name='virSecretLookupByUUID'/>
           <ref name='virSecretLookupByUUIDString'/>
           <ref name='virSecretLookupByUsage'/>
-          <ref name='virSetErrorFunc'/>
           <ref name='virStorageVolUpload'/>
         </word>
         <word name='range'>
@@ -14410,11 +14654,9 @@
           <ref name='virInterfaceUndefine'/>
         </word>
         <word name='receive'>
-          <ref name='virConnCopyLastError'/>
           <ref name='virConnectDomainEventRegister'/>
           <ref name='virConnectDomainEventRegisterAny'/>
           <ref name='virConnectUnregisterCloseCallback'/>
-          <ref name='virCopyLastError'/>
           <ref name='virStreamSinkFunc'/>
         </word>
         <word name='received'>
@@ -14644,8 +14886,6 @@
           <ref name='virStorageVolResize'/>
         </word>
         <word name='remains'>
-          <ref name='virConnCopyLastError'/>
-          <ref name='virConnGetLastError'/>
           <ref name='virConnectClose'/>
           <ref name='virDomainBlockCommit'/>
           <ref name='virDomainBlockRebase'/>
@@ -14668,6 +14908,8 @@
           <ref name='virDomainMemoryPeek'/>
           <ref name='virDomainMigrate'/>
           <ref name='virDomainMigrate2'/>
+          <ref name='virDomainMigrateToURI'/>
+          <ref name='virDomainMigrateToURI2'/>
           <ref name='virGetVersion'/>
           <ref name='virStoragePoolRefresh'/>
         </word>
@@ -14684,6 +14926,7 @@
           <ref name='virInterfaceUndefine'/>
         </word>
         <word name='remove'>
+          <ref name='virDomainOpenChannel'/>
           <ref name='virDomainOpenConsole'/>
           <ref name='virDomainSetMetadata'/>
           <ref name='virDomainSnapshotCreateXML'/>
@@ -14745,13 +14988,8 @@
           <ref name='virStreamSendAll'/>
         </word>
         <word name='reported'>
-          <ref name='virConnCopyLastError'/>
-          <ref name='virConnGetLastError'/>
           <ref name='virStreamRecv'/>
           <ref name='virStreamSend'/>
-        </word>
-        <word name='reporting'>
-          <ref name='virDefaultErrorFunc'/>
         </word>
         <word name='represent'>
           <ref name='virDomainBlockPeek'/>
@@ -14780,6 +15018,7 @@
           <ref name='virStreamRecvAll'/>
           <ref name='virStreamSend'/>
           <ref name='virStreamSendAll'/>
+          <ref name='virTypedParamsAddFromString'/>
         </word>
         <word name='requests'>
           <ref name='VIR_DOMAIN_BLOCK_STATS_FLUSH_REQ'/>
@@ -14821,11 +15060,9 @@
           <ref name='virDomainSetMemoryFlags'/>
         </word>
         <word name='reset'>
-          <ref name='virConnSetErrorFunc'/>
           <ref name='virDomainCoreDump'/>
           <ref name='virDomainReset'/>
           <ref name='virNodeDeviceReset'/>
-          <ref name='virSetErrorFunc'/>
         </word>
         <word name='resets'>
           <ref name='VIR_UNUSE_CPU'/>
@@ -14833,7 +15070,6 @@
         <word name='resetting'>
           <ref name='virNodeDeviceDettach'/>
           <ref name='virNodeDeviceReAttach'/>
-          <ref name='virResetLastError'/>
         </word>
         <word name='resize'>
           <ref name='virStorageVolResize'/>
@@ -14855,9 +15091,6 @@
         <word name='response'>
           <ref name='_virConnectCredential'/>
           <ref name='virConnectSetKeepAlive'/>
-        </word>
-        <word name='responsibility'>
-          <ref name='virSaveLastError'/>
         </word>
         <word name='responsible'>
           <ref name='virConnectListAllDomains'/>
@@ -14924,12 +15157,10 @@
         </word>
         <word name='result'>
           <ref name='_virConnectCredential'/>
-          <ref name='virConnCopyLastError'/>
           <ref name='virConnectAuthCallbackPtr'/>
           <ref name='virConnectCompareCPU'/>
           <ref name='virConnectGetHostname'/>
           <ref name='virConnectSetKeepAlive'/>
-          <ref name='virCopyLastError'/>
           <ref name='virDomainManagedSave'/>
           <ref name='virEventRegisterDefaultImpl'/>
         </word>
@@ -15050,9 +15281,6 @@
         <word name='rounded'>
           <ref name='virStorageVolResize'/>
         </word>
-        <word name='routine'>
-          <ref name='virDefaultErrorFunc'/>
-        </word>
         <word name='row'>
           <ref name='virConnectSetKeepAlive'/>
         </word>
@@ -15085,11 +15313,7 @@
           <ref name='virInitialize'/>
         </word>
         <word name='safely'>
-          <ref name='virConnResetLastError'/>
-          <ref name='virCopyLastError'/>
           <ref name='virDomainBlockCommit'/>
-          <ref name='virGetLastError'/>
-          <ref name='virResetLastError'/>
         </word>
         <word name='sample'>
           <ref name='virDomainGetMemoryParameters'/>
@@ -15267,12 +15491,8 @@
           <ref name='virStreamSourceFunc'/>
         </word>
         <word name='separate'>
-          <ref name='virConnResetLastError'/>
           <ref name='virConnectListAllDomains'/>
-          <ref name='virCopyLastError'/>
           <ref name='virDomainGetDiskErrors'/>
-          <ref name='virGetLastError'/>
-          <ref name='virResetLastError'/>
         </word>
         <word name='separated'>
           <ref name='VIR_DOMAIN_BLKIO_DEVICE_WEIGHT'/>
@@ -15327,6 +15547,13 @@
           <ref name='virStoragePoolListAllVolumes'/>
           <ref name='virStorageVolDownload'/>
           <ref name='virStorageVolUpload'/>
+          <ref name='virTypedParamsAddBoolean'/>
+          <ref name='virTypedParamsAddDouble'/>
+          <ref name='virTypedParamsAddInt'/>
+          <ref name='virTypedParamsAddLLong'/>
+          <ref name='virTypedParamsAddString'/>
+          <ref name='virTypedParamsAddUInt'/>
+          <ref name='virTypedParamsAddULLong'/>
         </word>
         <word name='setting'>
           <ref name='virConnectListAllDomains'/>
@@ -15432,6 +15659,7 @@
         <word name='side'>
           <ref name='virDomainMigrate'/>
           <ref name='virDomainMigrate2'/>
+          <ref name='virDomainMigrateToURI'/>
           <ref name='virDomainMigrateToURI2'/>
         </word>
         <word name='signal'>
@@ -15645,6 +15873,14 @@
           <ref name='virDomainSnapshotCreateXML'/>
           <ref name='virStoragePoolGetInfo'/>
           <ref name='virStorageVolResize'/>
+          <ref name='virTypedParamsAddBoolean'/>
+          <ref name='virTypedParamsAddDouble'/>
+          <ref name='virTypedParamsAddFromString'/>
+          <ref name='virTypedParamsAddInt'/>
+          <ref name='virTypedParamsAddLLong'/>
+          <ref name='virTypedParamsAddString'/>
+          <ref name='virTypedParamsAddUInt'/>
+          <ref name='virTypedParamsAddULLong'/>
         </word>
         <word name='sparse'>
           <ref name='virStorageVolCreateXML'/>
@@ -15836,10 +16072,6 @@
         <word name='stay'>
           <ref name='virDomainSuspend'/>
         </word>
-        <word name='stderr'>
-          <ref name='virDefaultErrorFunc'/>
-          <ref name='virSetErrorFunc'/>
-        </word>
         <word name='still'>
           <ref name='virConnectClose'/>
           <ref name='virConnectIsAlive'/>
@@ -15899,6 +16131,14 @@
           <ref name='virDomainSnapshotNumChildren'/>
           <ref name='virNodeGetCPUMap'/>
           <ref name='virStoragePoolListAllVolumes'/>
+          <ref name='virTypedParamsAddBoolean'/>
+          <ref name='virTypedParamsAddDouble'/>
+          <ref name='virTypedParamsAddFromString'/>
+          <ref name='virTypedParamsAddInt'/>
+          <ref name='virTypedParamsAddLLong'/>
+          <ref name='virTypedParamsAddString'/>
+          <ref name='virTypedParamsAddUInt'/>
+          <ref name='virTypedParamsAddULLong'/>
         </word>
         <word name='stores'>
           <ref name='virConnectListDefinedDomains'/>
@@ -16097,6 +16337,8 @@
           <ref name='virDomainCoreDump'/>
           <ref name='virDomainMigrate'/>
           <ref name='virDomainMigrate2'/>
+          <ref name='virDomainMigrateToURI'/>
+          <ref name='virDomainMigrateToURI2'/>
           <ref name='virDomainResume'/>
           <ref name='virNodeSuspendForDuration'/>
         </word>
@@ -16231,7 +16473,6 @@
           <ref name='virDomainSnapshotListChildrenNames'/>
           <ref name='virDomainSnapshotListNames'/>
           <ref name='virNodeListDevices'/>
-          <ref name='virResetLastError'/>
         </word>
         <word name='them'>
           <ref name='virConnectSetKeepAlive'/>
@@ -16298,7 +16539,6 @@
           <ref name='virDomainRevertToSnapshot'/>
           <ref name='virDomainSnapshotCreateXML'/>
           <ref name='virDomainSnapshotListAllChildren'/>
-          <ref name='virSetErrorFunc'/>
           <ref name='virStoragePoolListAllVolumes'/>
         </word>
         <word name='though'>
@@ -16306,21 +16546,30 @@
           <ref name='virStorageVolResize'/>
         </word>
         <word name='thread'>
-          <ref name='virConnCopyLastError'/>
-          <ref name='virConnGetLastError'/>
-          <ref name='virConnResetLastError'/>
           <ref name='virConnectRef'/>
-          <ref name='virCopyLastError'/>
           <ref name='virDomainRef'/>
           <ref name='virDomainSnapshotRef'/>
           <ref name='virEventRunDefaultImpl'/>
-          <ref name='virGetLastError'/>
           <ref name='virInitialize'/>
           <ref name='virInterfaceRef'/>
           <ref name='virNWFilterRef'/>
           <ref name='virNetworkRef'/>
           <ref name='virNodeDeviceRef'/>
-          <ref name='virResetLastError'/>
+          <ref name='virSecretRef'/>
+          <ref name='virStoragePoolRef'/>
+          <ref name='virStorageVolRef'/>
+        </word>
+        <word name='threads'>
+          <ref name='_virNodeInfo'/>
+          <ref name='virConnectRef'/>
+          <ref name='virDomainGetEmulatorPinInfo'/>
+          <ref name='virDomainPinEmulator'/>
+          <ref name='virDomainRef'/>
+          <ref name='virDomainSnapshotRef'/>
+          <ref name='virInterfaceRef'/>
+          <ref name='virNWFilterRef'/>
+          <ref name='virNetworkRef'/>
+          <ref name='virNodeDeviceRef'/>
           <ref name='virSecretRef'/>
           <ref name='virStoragePoolRef'/>
           <ref name='virStorageVolRef'/>
@@ -16389,6 +16638,7 @@
         </word>
         <word name='too'>
           <ref name='virDomainGetCPUStats'/>
+          <ref name='virTypedParamsClear'/>
         </word>
         <word name='top'>
           <ref name='virDomainBlockCommit'/>
@@ -16577,6 +16827,24 @@
         <word name='typed'>
           <ref name='VIR_DOMAIN_NUMA_MODE'/>
           <ref name='VIR_DOMAIN_NUMA_NODESET'/>
+          <ref name='virTypedParamsAddBoolean'/>
+          <ref name='virTypedParamsAddDouble'/>
+          <ref name='virTypedParamsAddFromString'/>
+          <ref name='virTypedParamsAddInt'/>
+          <ref name='virTypedParamsAddLLong'/>
+          <ref name='virTypedParamsAddString'/>
+          <ref name='virTypedParamsAddUInt'/>
+          <ref name='virTypedParamsAddULLong'/>
+          <ref name='virTypedParamsClear'/>
+          <ref name='virTypedParamsFree'/>
+          <ref name='virTypedParamsGet'/>
+          <ref name='virTypedParamsGetBoolean'/>
+          <ref name='virTypedParamsGetDouble'/>
+          <ref name='virTypedParamsGetInt'/>
+          <ref name='virTypedParamsGetLLong'/>
+          <ref name='virTypedParamsGetString'/>
+          <ref name='virTypedParamsGetUInt'/>
+          <ref name='virTypedParamsGetULLong'/>
         </word>
         <word name='types'>
           <ref name='virConnectDomainEventRegisterAny'/>
@@ -16676,7 +16944,6 @@
         </word>
         <word name='unchanged'>
           <ref name='virDomainSaveImageDefineXML'/>
-          <ref name='virSaveLastError'/>
         </word>
         <word name='undefine'>
           <ref name='virDomainMigrate'/>
@@ -16804,6 +17071,10 @@
           <ref name='virConnectListAllDomains'/>
           <ref name='virDomainGetID'/>
           <ref name='virNodeGetCellsFreeMemory'/>
+          <ref name='virTypedParamsAddUInt'/>
+          <ref name='virTypedParamsAddULLong'/>
+          <ref name='virTypedParamsGetUInt'/>
+          <ref name='virTypedParamsGetULLong'/>
         </word>
         <word name='unsupported'>
           <ref name='virNodeGetMemoryParameters'/>
@@ -16852,6 +17123,14 @@
         <word name='updates'>
           <ref name='virDomainSaveImageDefineXML'/>
           <ref name='virEventUpdateTimeoutFunc'/>
+          <ref name='virTypedParamsAddBoolean'/>
+          <ref name='virTypedParamsAddDouble'/>
+          <ref name='virTypedParamsAddFromString'/>
+          <ref name='virTypedParamsAddInt'/>
+          <ref name='virTypedParamsAddLLong'/>
+          <ref name='virTypedParamsAddString'/>
+          <ref name='virTypedParamsAddUInt'/>
+          <ref name='virTypedParamsAddULLong'/>
         </word>
         <word name='updating'>
           <ref name='virEventAddHandleFunc'/>
@@ -16954,6 +17233,34 @@
           <ref name='virSecretRef'/>
           <ref name='virStoragePoolRef'/>
           <ref name='virStorageVolRef'/>
+        </word>
+        <word name='user'>
+          <ref name='VIR_DOMAIN_CPU_STATS_USERTIME'/>
+          <ref name='VIR_NODE_CPU_STATS_USER'/>
+          <ref name='_virConnectCredential'/>
+          <ref name='virConnectAuthCallbackPtr'/>
+          <ref name='virConnectDomainEventCallback'/>
+          <ref name='virConnectDomainEventGraphicsCallback'/>
+          <ref name='virConnectRegisterCloseCallback'/>
+          <ref name='virDomainBlockCommit'/>
+          <ref name='virDomainBlockRebase'/>
+          <ref name='virDomainCoreDump'/>
+          <ref name='virDomainGetBlockInfo'/>
+          <ref name='virDomainGetCPUStats'/>
+          <ref name='virDomainGetControlInfo'/>
+          <ref name='virDomainGetInfo'/>
+          <ref name='virDomainGetJobInfo'/>
+          <ref name='virErrorFunc'/>
+          <ref name='virEventAddHandleFunc'/>
+          <ref name='virEventAddTimeoutFunc'/>
+          <ref name='virEventHandleCallback'/>
+          <ref name='virEventRemoveHandleFunc'/>
+          <ref name='virEventRemoveTimeoutFunc'/>
+          <ref name='virEventTimeoutCallback'/>
+          <ref name='virFreeCallback'/>
+          <ref name='virNodeGetCPUStats'/>
+          <ref name='virNodeGetInfo'/>
+          <ref name='virStreamEventCallback'/>
         </word>
         <word name='user-defined'>
           <ref name='virEventAddTimeoutFunc'/>
@@ -17333,6 +17640,9 @@
         </word>
         <word name='virDomainBlockStatsFlags'>
           <ref name='VIR_DOMAIN_BLOCK_STATS_FIELD_LENGTH'/>
+        </word>
+        <word name='virDomainChannelFlags'>
+          <ref name='virDomainOpenChannel'/>
         </word>
         <word name='virDomainConsoleFlags'>
           <ref name='virDomainOpenConsole'/>
@@ -17730,9 +18040,6 @@
           <ref name='virDomainSaveImageGetXMLDesc'/>
           <ref name='virDomainSnapshotGetXMLDesc'/>
         </word>
-        <word name='virError'>
-          <ref name='virResetError'/>
-        </word>
         <word name='virErrorNumber'>
           <ref name='_virError'/>
         </word>
@@ -17758,13 +18065,6 @@
         </word>
         <word name='virFreeCallback'>
           <ref name='virConnectUnregisterCloseCallback'/>
-        </word>
-        <word name='virFreeError'>
-          <ref name='virSaveLastError'/>
-        </word>
-        <word name='virGetLastError'>
-          <ref name='virConnCopyLastError'/>
-          <ref name='virConnGetLastError'/>
         </word>
         <word name='virInitialize'>
           <ref name='virInitialize'/>
@@ -17885,10 +18185,6 @@
         </word>
         <word name='virNodeSuspendTarget'>
           <ref name='virDomainPMSuspendForDuration'/>
-        </word>
-        <word name='virResetError'>
-          <ref name='virConnCopyLastError'/>
-          <ref name='virCopyLastError'/>
         </word>
         <word name='virSchedParameter'>
           <ref name='VIR_DOMAIN_SCHED_FIELD_LENGTH'/>
@@ -18056,11 +18352,23 @@
         <word name='virTypedParameterType'>
           <ref name='_virTypedParameter'/>
         </word>
+        <word name='virTypedParamsClear'>
+          <ref name='virTypedParamsAddFromString'/>
+          <ref name='virTypedParamsAddString'/>
+        </word>
+        <word name='virTypedParamsFree'>
+          <ref name='virTypedParamsAddFromString'/>
+          <ref name='virTypedParamsAddString'/>
+          <ref name='virTypedParamsClear'/>
+        </word>
         <word name='virVcpuInfo'>
           <ref name='virDomainGetVcpus'/>
         </word>
         <word name='virVcpuState'>
           <ref name='_virVcpuInfo'/>
+        </word>
+        <word name='virtio'>
+          <ref name='virDomainOpenChannel'/>
         </word>
         <word name='virtualization'>
           <ref name='virDomainBlockResize'/>
@@ -18120,6 +18428,7 @@
           <ref name='virEventRunDefaultImpl'/>
           <ref name='virNodeGetCPUStats'/>
           <ref name='virNodeGetMemoryStats'/>
+          <ref name='virTypedParamsClear'/>
         </word>
         <word name='watch'>
           <ref name='virEventAddHandleFunc'/>
@@ -18261,6 +18570,14 @@
           <ref name='virDomainUndefineFlags'/>
           <ref name='virStorageVolResize'/>
           <ref name='virStreamEventUpdateCallback'/>
+          <ref name='virTypedParamsAddBoolean'/>
+          <ref name='virTypedParamsAddDouble'/>
+          <ref name='virTypedParamsAddFromString'/>
+          <ref name='virTypedParamsAddInt'/>
+          <ref name='virTypedParamsAddLLong'/>
+          <ref name='virTypedParamsAddString'/>
+          <ref name='virTypedParamsAddUInt'/>
+          <ref name='virTypedParamsAddULLong'/>
         </word>
         <word name='won'>
           <ref name='virDomainBlockPeek'/>
@@ -18382,9 +18699,9 @@
     </chunk>
     <chunks>
       <chunk name='chunk0' start='A' end='D'/>
-      <chunk name='chunk1' start='E' end='N'/>
-      <chunk name='chunk2' start='O' end='S'/>
-      <chunk name='chunk3' start='T' end='V'/>
+      <chunk name='chunk1' start='E' end='M'/>
+      <chunk name='chunk2' start='N' end='R'/>
+      <chunk name='chunk3' start='S' end='V'/>
       <chunk name='chunk4' start='W' end='a'/>
       <chunk name='chunk5' start='b' end='b'/>
       <chunk name='chunk6' start='c' end='c'/>

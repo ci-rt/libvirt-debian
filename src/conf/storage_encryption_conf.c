@@ -27,14 +27,14 @@
 
 #include "internal.h"
 
-#include "buf.h"
-#include "memory.h"
+#include "virbuffer.h"
+#include "viralloc.h"
 #include "storage_conf.h"
 #include "storage_encryption_conf.h"
-#include "util.h"
-#include "xml.h"
-#include "virterror_internal.h"
-#include "uuid.h"
+#include "virutil.h"
+#include "virxml.h"
+#include "virerror.h"
+#include "viruuid.h"
 #include "virfile.h"
 
 #define VIR_FROM_THIS VIR_FROM_STORAGE

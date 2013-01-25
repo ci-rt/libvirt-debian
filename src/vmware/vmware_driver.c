@@ -24,13 +24,13 @@
 #include <fcntl.h>
 
 #include "internal.h"
-#include "virterror_internal.h"
+#include "virerror.h"
 #include "datatypes.h"
 #include "virfile.h"
-#include "memory.h"
-#include "util.h"
-#include "uuid.h"
-#include "command.h"
+#include "viralloc.h"
+#include "virutil.h"
+#include "viruuid.h"
+#include "vircommand.h"
 #include "vmx.h"
 #include "vmware_conf.h"
 #include "vmware_driver.h"
@@ -365,7 +365,7 @@ vmwareDomainDefineXML(virConnectPtr conn, const char *xml)
     VIR_FREE(fileName);
     VIR_FREE(vmxPath);
     if (vm)
-        virDomainObjUnlock(vm);
+        virObjectUnlock(vm);
     vmwareDriverUnlock(driver);
     return dom;
 }
@@ -410,7 +410,7 @@ vmwareDomainShutdownFlags(virDomainPtr dom,
     ret = 0;
   cleanup:
     if (vm)
-        virDomainObjUnlock(vm);
+        virObjectUnlock(vm);
     vmwareDriverUnlock(driver);
     return ret;
 }
@@ -466,7 +466,7 @@ vmwareDomainSuspend(virDomainPtr dom)
 
   cleanup:
     if (vm)
-        virDomainObjUnlock(vm);
+        virObjectUnlock(vm);
     return ret;
 }
 
@@ -515,7 +515,7 @@ vmwareDomainResume(virDomainPtr dom)
 
   cleanup:
     if (vm)
-        virDomainObjUnlock(vm);
+        virObjectUnlock(vm);
     return ret;
 }
 
@@ -563,7 +563,7 @@ vmwareDomainReboot(virDomainPtr dom, unsigned int flags)
 
   cleanup:
     if (vm)
-        virDomainObjUnlock(vm);
+        virObjectUnlock(vm);
     return ret;
 }
 
@@ -635,7 +635,7 @@ cleanup:
     VIR_FREE(vmx);
     VIR_FREE(vmxPath);
     if (vm)
-        virDomainObjUnlock(vm);
+        virObjectUnlock(vm);
     vmwareDriverUnlock(driver);
     return dom;
 }
@@ -673,7 +673,7 @@ vmwareDomainCreateWithFlags(virDomainPtr dom,
 
 cleanup:
     if (vm)
-        virDomainObjUnlock(vm);
+        virObjectUnlock(vm);
     vmwareDriverUnlock(driver);
     return ret;
 }
@@ -726,7 +726,7 @@ vmwareDomainUndefineFlags(virDomainPtr dom,
 
   cleanup:
     if (vm)
-        virDomainObjUnlock(vm);
+        virObjectUnlock(vm);
     vmwareDriverUnlock(driver);
     return ret;
 }
@@ -759,7 +759,7 @@ vmwareDomainLookupByID(virConnectPtr conn, int id)
 
   cleanup:
     if (vm)
-        virDomainObjUnlock(vm);
+        virObjectUnlock(vm);
     return dom;
 }
 
@@ -784,7 +784,7 @@ vmwareGetOSType(virDomainPtr dom)
 
   cleanup:
     if (vm)
-        virDomainObjUnlock(vm);
+        virObjectUnlock(vm);
     return ret;
 }
 
@@ -811,7 +811,7 @@ vmwareDomainLookupByUUID(virConnectPtr conn, const unsigned char *uuid)
 
   cleanup:
     if (vm)
-        virDomainObjUnlock(vm);
+        virObjectUnlock(vm);
     return dom;
 }
 
@@ -837,7 +837,7 @@ vmwareDomainLookupByName(virConnectPtr conn, const char *name)
 
   cleanup:
     if (vm)
-        virDomainObjUnlock(vm);
+        virObjectUnlock(vm);
     return dom;
 }
 
@@ -859,7 +859,7 @@ vmwareDomainIsActive(virDomainPtr dom)
 
   cleanup:
     if (obj)
-        virDomainObjUnlock(obj);
+        virObjectUnlock(obj);
     return ret;
 }
 
@@ -882,7 +882,7 @@ vmwareDomainIsPersistent(virDomainPtr dom)
 
   cleanup:
     if (obj)
-        virDomainObjUnlock(obj);
+        virObjectUnlock(obj);
     return ret;
 }
 
@@ -910,7 +910,7 @@ vmwareDomainGetXMLDesc(virDomainPtr dom, unsigned int flags)
 
   cleanup:
     if (vm)
-        virDomainObjUnlock(vm);
+        virObjectUnlock(vm);
     return ret;
 }
 
@@ -948,9 +948,9 @@ static void vmwareDomainObjListUpdateDomain(void *payload, const void *name ATTR
 {
     struct vmware_driver *driver = data;
     virDomainObjPtr vm = payload;
-    virDomainObjLock(vm);
-    vmwareUpdateVMStatus(driver, vm);
-    virDomainObjUnlock(vm);
+    virObjectLock(vm);
+    ignore_value(vmwareUpdateVMStatus(driver, vm));
+    virObjectUnlock(vm);
 }
 
 static void
@@ -1045,7 +1045,7 @@ vmwareDomainGetInfo(virDomainPtr dom, virDomainInfoPtr info)
 
   cleanup:
     if (vm)
-        virDomainObjUnlock(vm);
+        virObjectUnlock(vm);
     return ret;
 }
 
@@ -1079,7 +1079,7 @@ vmwareDomainGetState(virDomainPtr dom,
 
   cleanup:
     if (vm)
-        virDomainObjUnlock(vm);
+        virObjectUnlock(vm);
     return ret;
 }
 

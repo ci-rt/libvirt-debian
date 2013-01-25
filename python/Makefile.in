@@ -59,6 +59,7 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/alloca.m4 \
 	$(top_srcdir)/gnulib/m4/arpa_inet_h.m4 \
 	$(top_srcdir)/gnulib/m4/asm-underscore.m4 \
+	$(top_srcdir)/gnulib/m4/autobuild.m4 \
 	$(top_srcdir)/gnulib/m4/base64.m4 \
 	$(top_srcdir)/gnulib/m4/btowc.m4 \
 	$(top_srcdir)/gnulib/m4/byteswap.m4 \
@@ -122,7 +123,6 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/include_next.m4 \
 	$(top_srcdir)/gnulib/m4/inet_ntop.m4 \
 	$(top_srcdir)/gnulib/m4/inet_pton.m4 \
-	$(top_srcdir)/gnulib/m4/inline.m4 \
 	$(top_srcdir)/gnulib/m4/intmax_t.m4 \
 	$(top_srcdir)/gnulib/m4/inttypes.m4 \
 	$(top_srcdir)/gnulib/m4/ioctl.m4 \
@@ -288,8 +288,21 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/ltversion.m4 $(top_srcdir)/m4/lt~obsolete.m4 \
 	$(top_srcdir)/m4/nls.m4 $(top_srcdir)/m4/po.m4 \
 	$(top_srcdir)/m4/progtest.m4 $(top_srcdir)/m4/size_max.m4 \
-	$(top_srcdir)/m4/stdint_h.m4 \
+	$(top_srcdir)/m4/stdint_h.m4 $(top_srcdir)/m4/virt-apparmor.m4 \
+	$(top_srcdir)/m4/virt-attr.m4 $(top_srcdir)/m4/virt-audit.m4 \
+	$(top_srcdir)/m4/virt-avahi.m4 $(top_srcdir)/m4/virt-blkid.m4 \
+	$(top_srcdir)/m4/virt-capng.m4 \
 	$(top_srcdir)/m4/virt-compile-warnings.m4 \
+	$(top_srcdir)/m4/virt-curl.m4 $(top_srcdir)/m4/virt-dbus.m4 \
+	$(top_srcdir)/m4/virt-fuse.m4 $(top_srcdir)/m4/virt-hal.m4 \
+	$(top_srcdir)/m4/virt-lib.m4 $(top_srcdir)/m4/virt-netcf.m4 \
+	$(top_srcdir)/m4/virt-numactl.m4 \
+	$(top_srcdir)/m4/virt-openwsman.m4 \
+	$(top_srcdir)/m4/virt-pciaccess.m4 \
+	$(top_srcdir)/m4/virt-result.m4 \
+	$(top_srcdir)/m4/virt-sanlock.m4 $(top_srcdir)/m4/virt-sasl.m4 \
+	$(top_srcdir)/m4/virt-selinux.m4 $(top_srcdir)/m4/virt-ssh2.m4 \
+	$(top_srcdir)/m4/virt-udev.m4 $(top_srcdir)/m4/virt-yajl.m4 \
 	$(top_srcdir)/m4/wchar_t.m4 $(top_srcdir)/m4/wint_t.m4 \
 	$(top_srcdir)/m4/xsize.m4 $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
@@ -345,6 +358,22 @@ libvirtmod_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(libvirtmod_la_CFLAGS) \
 	$(CFLAGS) $(libvirtmod_la_LDFLAGS) $(LDFLAGS) -o $@
 @WITH_PYTHON_TRUE@am_libvirtmod_la_rpath = -rpath $(pyexecdir)
+@WITH_PYTHON_TRUE@libvirtmod_lxc_la_DEPENDENCIES = $(mylxclibs) \
+@WITH_PYTHON_TRUE@	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1)
+am__libvirtmod_lxc_la_SOURCES_DIST = libvirt-lxc-override.c \
+	typewrappers.c
+@WITH_PYTHON_TRUE@am_libvirtmod_lxc_la_OBJECTS =  \
+@WITH_PYTHON_TRUE@	libvirtmod_lxc_la-libvirt-lxc-override.lo \
+@WITH_PYTHON_TRUE@	libvirtmod_lxc_la-typewrappers.lo
+@WITH_PYTHON_TRUE@nodist_libvirtmod_lxc_la_OBJECTS =  \
+@WITH_PYTHON_TRUE@	libvirtmod_lxc_la-libvirt-lxc.lo
+libvirtmod_lxc_la_OBJECTS = $(am_libvirtmod_lxc_la_OBJECTS) \
+	$(nodist_libvirtmod_lxc_la_OBJECTS)
+libvirtmod_lxc_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
+	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
+	$(libvirtmod_lxc_la_CFLAGS) $(CFLAGS) \
+	$(libvirtmod_lxc_la_LDFLAGS) $(LDFLAGS) -o $@
+@WITH_PYTHON_TRUE@am_libvirtmod_lxc_la_rpath = -rpath $(pyexecdir)
 @WITH_PYTHON_TRUE@libvirtmod_qemu_la_DEPENDENCIES = $(myqemulibs) \
 @WITH_PYTHON_TRUE@	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1)
 am__libvirtmod_qemu_la_SOURCES_DIST = libvirt-qemu-override.c \
@@ -388,9 +417,12 @@ AM_V_GEN = $(am__v_GEN_@AM_V@)
 am__v_GEN_ = $(am__v_GEN_@AM_DEFAULT_V@)
 am__v_GEN_0 = @echo "  GEN   " $@;
 SOURCES = $(libvirtmod_la_SOURCES) $(nodist_libvirtmod_la_SOURCES) \
+	$(libvirtmod_lxc_la_SOURCES) \
+	$(nodist_libvirtmod_lxc_la_SOURCES) \
 	$(libvirtmod_qemu_la_SOURCES) \
 	$(nodist_libvirtmod_qemu_la_SOURCES)
 DIST_SOURCES = $(am__libvirtmod_la_SOURCES_DIST) \
+	$(am__libvirtmod_lxc_la_SOURCES_DIST) \
 	$(am__libvirtmod_qemu_la_SOURCES_DIST)
 RECURSIVE_TARGETS = all-recursive check-recursive dvi-recursive \
 	html-recursive info-recursive install-data-recursive \
@@ -451,6 +483,8 @@ AR = @AR@
 ARFLAGS = @ARFLAGS@
 AS = @AS@
 ASM_SYMBOL_PREFIX = @ASM_SYMBOL_PREFIX@
+ATTR_CFLAGS = @ATTR_CFLAGS@
+ATTR_LIBS = @ATTR_LIBS@
 AUDIT_CFLAGS = @AUDIT_CFLAGS@
 AUDIT_LIBS = @AUDIT_LIBS@
 AUGPARSE = @AUGPARSE@
@@ -480,6 +514,8 @@ COVERAGE_CFLAGS = @COVERAGE_CFLAGS@
 COVERAGE_LDFLAGS = @COVERAGE_LDFLAGS@
 CPP = @CPP@
 CPPFLAGS = @CPPFLAGS@
+CURL_CFLAGS = @CURL_CFLAGS@
+CURL_LIBS = @CURL_LIBS@
 CYGPATH_W = @CYGPATH_W@
 CYGWIN_EXTRA_LDFLAGS = @CYGWIN_EXTRA_LDFLAGS@
 CYGWIN_EXTRA_LIBADD = @CYGWIN_EXTRA_LIBADD@
@@ -1298,8 +1334,6 @@ ISCSIADM = @ISCSIADM@
 LD = @LD@
 LDEXP_LIBM = @LDEXP_LIBM@
 LDFLAGS = @LDFLAGS@
-LIBCURL_CFLAGS = @LIBCURL_CFLAGS@
-LIBCURL_LIBS = @LIBCURL_LIBS@
 LIBICONV = @LIBICONV@
 LIBINTL = @LIBINTL@
 LIBMULTITHREAD = @LIBMULTITHREAD@
@@ -1317,11 +1351,10 @@ LIBPTH_PREFIX = @LIBPTH_PREFIX@
 LIBRBD_LIBS = @LIBRBD_LIBS@
 LIBS = @LIBS@
 LIBSOCKET = @LIBSOCKET@
-LIBSSH2_CFLAGS = @LIBSSH2_CFLAGS@
-LIBSSH2_LIBS = @LIBSSH2_LIBS@
 LIBTESTS_LIBDEPS = @LIBTESTS_LIBDEPS@
 LIBTHREAD = @LIBTHREAD@
 LIBTOOL = @LIBTOOL@
+LIBVIRT_LXC_SYMBOL_FILE = @LIBVIRT_LXC_SYMBOL_FILE@
 LIBVIRT_MAJOR_VERSION = @LIBVIRT_MAJOR_VERSION@
 LIBVIRT_MICRO_VERSION = @LIBVIRT_MICRO_VERSION@
 LIBVIRT_MINOR_VERSION = @LIBVIRT_MINOR_VERSION@
@@ -1738,6 +1771,8 @@ SHELL = @SHELL@
 SHOWMOUNT = @SHOWMOUNT@
 SIG_ATOMIC_T_SUFFIX = @SIG_ATOMIC_T_SUFFIX@
 SIZE_T_SUFFIX = @SIZE_T_SUFFIX@
+SSH2_CFLAGS = @SSH2_CFLAGS@
+SSH2_LIBS = @SSH2_LIBS@
 STATIC_BINARIES = @STATIC_BINARIES@
 STDALIGN_H = @STDALIGN_H@
 STDARG_H = @STDARG_H@
@@ -1881,6 +1916,8 @@ EXTRA_DIST = \
 	libvirt-override.c	\
 	libvirt-override.py	\
 	libvirt-override-api.xml \
+	libvirt-lxc-override.c	\
+	libvirt-lxc-override-api.xml \
 	libvirt-qemu-override.c	\
 	libvirt-qemu-override-api.xml \
 	$(CLASSES_EXTRA) \
@@ -1894,7 +1931,11 @@ EXTRA_DIST = \
 @WITH_PYTHON_TRUE@	$(top_builddir)/src/libvirt-qemu.la \
 @WITH_PYTHON_TRUE@	$(top_builddir)/gnulib/lib/libgnu.la
 
-@WITH_PYTHON_TRUE@pyexec_LTLIBRARIES = libvirtmod.la libvirtmod_qemu.la
+@WITH_PYTHON_TRUE@mylxclibs = \
+@WITH_PYTHON_TRUE@	$(top_builddir)/src/libvirt-lxc.la \
+@WITH_PYTHON_TRUE@	$(top_builddir)/gnulib/lib/libgnu.la
+
+@WITH_PYTHON_TRUE@pyexec_LTLIBRARIES = libvirtmod.la libvirtmod_qemu.la libvirtmod_lxc.la
 @WITH_PYTHON_TRUE@libvirtmod_la_SOURCES = libvirt-override.c typewrappers.c
 @WITH_PYTHON_TRUE@nodist_libvirtmod_la_SOURCES = libvirt.c libvirt.h
 # Python <= 2.4 header files contain a redundant decl, hence we
@@ -1917,6 +1958,17 @@ EXTRA_DIST = \
 @WITH_PYTHON_TRUE@libvirtmod_qemu_la_LIBADD = $(myqemulibs) \
 @WITH_PYTHON_TRUE@	$(CYGWIN_EXTRA_LIBADD) $(CYGWIN_EXTRA_PYTHON_LIBADD)
 
+@WITH_PYTHON_TRUE@libvirtmod_lxc_la_SOURCES = libvirt-lxc-override.c typewrappers.c
+@WITH_PYTHON_TRUE@nodist_libvirtmod_lxc_la_SOURCES = libvirt-lxc.c libvirt-lxc.h
+# Python <= 2.4 header files contain a redundant decl, hence we
+# need extra flags here
+@WITH_PYTHON_TRUE@libvirtmod_lxc_la_CFLAGS = $(WARN_PYTHON_CFLAGS)
+@WITH_PYTHON_TRUE@libvirtmod_lxc_la_LDFLAGS = -module -avoid-version -shared -L$(top_builddir)/src/.libs \
+@WITH_PYTHON_TRUE@	$(CYGWIN_EXTRA_LDFLAGS)
+
+@WITH_PYTHON_TRUE@libvirtmod_lxc_la_LIBADD = $(mylxclibs) \
+@WITH_PYTHON_TRUE@	$(CYGWIN_EXTRA_LIBADD) $(CYGWIN_EXTRA_PYTHON_LIBADD)
+
 @WITH_PYTHON_TRUE@GENERATE = generator.py
 @WITH_PYTHON_TRUE@API_DESC = $(top_srcdir)/docs/libvirt-api.xml $(srcdir)/libvirt-override-api.xml
 @WITH_PYTHON_TRUE@GENERATED = libvirt-export.c \
@@ -1930,7 +1982,13 @@ EXTRA_DIST = \
 @WITH_PYTHON_TRUE@	   libvirt-qemu.h \
 @WITH_PYTHON_TRUE@	   libvirt_qemu.py
 
-@WITH_PYTHON_TRUE@CLEANFILES = $(GENERATED) $(QEMU_GENERATED) $(GENERATE).stamp
+@WITH_PYTHON_TRUE@LXC_API_DESC = $(top_srcdir)/docs/libvirt-lxc-api.xml $(srcdir)/libvirt-lxc-override-api.xml
+@WITH_PYTHON_TRUE@LXC_GENERATED = libvirt-lxc-export.c \
+@WITH_PYTHON_TRUE@	   libvirt-lxc.c \
+@WITH_PYTHON_TRUE@	   libvirt-lxc.h \
+@WITH_PYTHON_TRUE@	   libvirt_lxc.py
+
+@WITH_PYTHON_TRUE@CLEANFILES = $(GENERATED) $(QEMU_GENERATED) $(LXC_GENERATED) $(GENERATE).stamp
 all: all-recursive
 
 .SUFFIXES:
@@ -1999,6 +2057,8 @@ clean-pyexecLTLIBRARIES:
 	done
 libvirtmod.la: $(libvirtmod_la_OBJECTS) $(libvirtmod_la_DEPENDENCIES) $(EXTRA_libvirtmod_la_DEPENDENCIES) 
 	$(AM_V_CCLD)$(libvirtmod_la_LINK) $(am_libvirtmod_la_rpath) $(libvirtmod_la_OBJECTS) $(libvirtmod_la_LIBADD) $(LIBS)
+libvirtmod_lxc.la: $(libvirtmod_lxc_la_OBJECTS) $(libvirtmod_lxc_la_DEPENDENCIES) $(EXTRA_libvirtmod_lxc_la_DEPENDENCIES) 
+	$(AM_V_CCLD)$(libvirtmod_lxc_la_LINK) $(am_libvirtmod_lxc_la_rpath) $(libvirtmod_lxc_la_OBJECTS) $(libvirtmod_lxc_la_LIBADD) $(LIBS)
 libvirtmod_qemu.la: $(libvirtmod_qemu_la_OBJECTS) $(libvirtmod_qemu_la_DEPENDENCIES) $(EXTRA_libvirtmod_qemu_la_DEPENDENCIES) 
 	$(AM_V_CCLD)$(libvirtmod_qemu_la_LINK) $(am_libvirtmod_qemu_la_rpath) $(libvirtmod_qemu_la_OBJECTS) $(libvirtmod_qemu_la_LIBADD) $(LIBS)
 
@@ -2011,6 +2071,9 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirtmod_la-libvirt-override.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirtmod_la-libvirt.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirtmod_la-typewrappers.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirtmod_lxc_la-libvirt-lxc-override.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirtmod_lxc_la-libvirt-lxc.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirtmod_lxc_la-typewrappers.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirtmod_qemu_la-libvirt-qemu-override.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirtmod_qemu_la-libvirt-qemu.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirtmod_qemu_la-typewrappers.Plo@am__quote@
@@ -2056,6 +2119,27 @@ libvirtmod_la-libvirt.lo: libvirt.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='libvirt.c' object='libvirtmod_la-libvirt.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtmod_la_CFLAGS) $(CFLAGS) -c -o libvirtmod_la-libvirt.lo `test -f 'libvirt.c' || echo '$(srcdir)/'`libvirt.c
+
+libvirtmod_lxc_la-libvirt-lxc-override.lo: libvirt-lxc-override.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtmod_lxc_la_CFLAGS) $(CFLAGS) -MT libvirtmod_lxc_la-libvirt-lxc-override.lo -MD -MP -MF $(DEPDIR)/libvirtmod_lxc_la-libvirt-lxc-override.Tpo -c -o libvirtmod_lxc_la-libvirt-lxc-override.lo `test -f 'libvirt-lxc-override.c' || echo '$(srcdir)/'`libvirt-lxc-override.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libvirtmod_lxc_la-libvirt-lxc-override.Tpo $(DEPDIR)/libvirtmod_lxc_la-libvirt-lxc-override.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='libvirt-lxc-override.c' object='libvirtmod_lxc_la-libvirt-lxc-override.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtmod_lxc_la_CFLAGS) $(CFLAGS) -c -o libvirtmod_lxc_la-libvirt-lxc-override.lo `test -f 'libvirt-lxc-override.c' || echo '$(srcdir)/'`libvirt-lxc-override.c
+
+libvirtmod_lxc_la-typewrappers.lo: typewrappers.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtmod_lxc_la_CFLAGS) $(CFLAGS) -MT libvirtmod_lxc_la-typewrappers.lo -MD -MP -MF $(DEPDIR)/libvirtmod_lxc_la-typewrappers.Tpo -c -o libvirtmod_lxc_la-typewrappers.lo `test -f 'typewrappers.c' || echo '$(srcdir)/'`typewrappers.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libvirtmod_lxc_la-typewrappers.Tpo $(DEPDIR)/libvirtmod_lxc_la-typewrappers.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='typewrappers.c' object='libvirtmod_lxc_la-typewrappers.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtmod_lxc_la_CFLAGS) $(CFLAGS) -c -o libvirtmod_lxc_la-typewrappers.lo `test -f 'typewrappers.c' || echo '$(srcdir)/'`typewrappers.c
+
+libvirtmod_lxc_la-libvirt-lxc.lo: libvirt-lxc.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtmod_lxc_la_CFLAGS) $(CFLAGS) -MT libvirtmod_lxc_la-libvirt-lxc.lo -MD -MP -MF $(DEPDIR)/libvirtmod_lxc_la-libvirt-lxc.Tpo -c -o libvirtmod_lxc_la-libvirt-lxc.lo `test -f 'libvirt-lxc.c' || echo '$(srcdir)/'`libvirt-lxc.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libvirtmod_lxc_la-libvirt-lxc.Tpo $(DEPDIR)/libvirtmod_lxc_la-libvirt-lxc.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='libvirt-lxc.c' object='libvirtmod_lxc_la-libvirt-lxc.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtmod_lxc_la_CFLAGS) $(CFLAGS) -c -o libvirtmod_lxc_la-libvirt-lxc.lo `test -f 'libvirt-lxc.c' || echo '$(srcdir)/'`libvirt-lxc.c
 
 libvirtmod_qemu_la-libvirt-qemu-override.lo: libvirt-qemu-override.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtmod_qemu_la_CFLAGS) $(CFLAGS) -MT libvirtmod_qemu_la-libvirt-qemu-override.lo -MD -MP -MF $(DEPDIR)/libvirtmod_qemu_la-libvirt-qemu-override.Tpo -c -o libvirtmod_qemu_la-libvirt-qemu-override.lo `test -f 'libvirt-qemu-override.c' || echo '$(srcdir)/'`libvirt-qemu-override.c
@@ -2408,20 +2492,22 @@ uninstall-am: uninstall-local uninstall-pyexecLTLIBRARIES
 	uninstall-pyexecLTLIBRARIES
 
 
-@WITH_PYTHON_TRUE@all-local: libvirt.py libvirt_qemu.py
+@WITH_PYTHON_TRUE@all-local: libvirt.py libvirt_qemu.py libvirt_lxc.py
 
-@WITH_PYTHON_TRUE@$(GENERATE).stamp: $(srcdir)/$(GENERATE) $(API_DESC) $(QEMU_API_DESC)
+@WITH_PYTHON_TRUE@$(GENERATE).stamp: $(srcdir)/$(GENERATE) $(API_DESC) $(QEMU_API_DESC) $(LXC_API_DESC)
 @WITH_PYTHON_TRUE@	$(AM_V_GEN)$(PYTHON) $(srcdir)/$(GENERATE) $(PYTHON) && \
 @WITH_PYTHON_TRUE@	touch $@
 
-@WITH_PYTHON_TRUE@$(GENERATED) $(QEMU_GENERATED): $(GENERATE).stamp
+@WITH_PYTHON_TRUE@$(GENERATED) $(QEMU_GENERATED) $(LXC_GENERATED): $(GENERATE).stamp
 
 @WITH_PYTHON_TRUE@$(libvirtmod_la_OBJECTS): $(GENERATED)
 @WITH_PYTHON_TRUE@$(libvirtmod_qemu_la_OBJECTS): $(QEMU_GENERATED)
+@WITH_PYTHON_TRUE@$(libvirtmod_lxc_la_OBJECTS): $(LXC_GENERATED)
 
 @WITH_PYTHON_TRUE@install-data-local:
 @WITH_PYTHON_TRUE@	$(mkinstalldirs) $(DESTDIR)$(pyexecdir)
 @WITH_PYTHON_TRUE@	$(INSTALL) -m 0644 libvirt.py $(DESTDIR)$(pyexecdir)
+@WITH_PYTHON_TRUE@	$(INSTALL) -m 0644 libvirt_lxc.py $(DESTDIR)$(pyexecdir)
 @WITH_PYTHON_TRUE@	$(INSTALL) -m 0644 libvirt_qemu.py $(DESTDIR)$(pyexecdir)
 @WITH_PYTHON_TRUE@	$(mkinstalldirs) $(DESTDIR)$(DOCS_DIR)
 @WITH_PYTHON_TRUE@	@(for doc in $(DOCS) ; \
@@ -2429,6 +2515,7 @@ uninstall-am: uninstall-local uninstall-pyexecLTLIBRARIES
 
 @WITH_PYTHON_TRUE@uninstall-local:
 @WITH_PYTHON_TRUE@	rm -f $(DESTDIR)$(pyexecdir)/libvirt.py
+@WITH_PYTHON_TRUE@	rm -f $(DESTDIR)$(pyexecdir)/libvirt_lxc.py
 @WITH_PYTHON_TRUE@	rm -f $(DESTDIR)$(pyexecdir)/libvirt_qemu.py
 
 @WITH_PYTHON_FALSE@all:

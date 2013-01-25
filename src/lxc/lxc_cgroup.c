@@ -24,10 +24,10 @@
 #include "lxc_cgroup.h"
 #include "lxc_container.h"
 #include "virfile.h"
-#include "virterror_internal.h"
-#include "logging.h"
-#include "memory.h"
-#include "cgroup.h"
+#include "virerror.h"
+#include "virlog.h"
+#include "viralloc.h"
+#include "vircgroup.h"
 
 #define VIR_FROM_THIS VIR_FROM_LXC
 
@@ -291,6 +291,49 @@ struct _virLXCCgroupDevicePolicy {
 };
 
 
+int
+virLXCSetupHostUsbDeviceCgroup(usbDevice *dev ATTRIBUTE_UNUSED,
+                               const char *path,
+                               void *opaque)
+{
+    virCgroupPtr cgroup = opaque;
+    int rc;
+
+    VIR_DEBUG("Process path '%s' for USB device", path);
+    rc = virCgroupAllowDevicePath(cgroup, path,
+                                  VIR_CGROUP_DEVICE_RW);
+    if (rc < 0) {
+        virReportSystemError(-rc,
+                             _("Unable to allow device %s"),
+                             path);
+        return -1;
+    }
+
+    return 0;
+}
+
+
+int
+virLXCTeardownHostUsbDeviceCgroup(usbDevice *dev ATTRIBUTE_UNUSED,
+                                  const char *path,
+                                  void *opaque)
+{
+    virCgroupPtr cgroup = opaque;
+    int rc;
+
+    VIR_DEBUG("Process path '%s' for USB device", path);
+    rc = virCgroupDenyDevicePath(cgroup, path,
+                                 VIR_CGROUP_DEVICE_RW);
+    if (rc < 0) {
+        virReportSystemError(-rc,
+                             _("Unable to deny device %s"),
+                             path);
+        return -1;
+    }
+
+    return 0;
+}
+
 
 static int virLXCCgroupSetupDeviceACL(virDomainDefPtr def,
                                       virCgroupPtr cgroup)
@@ -332,6 +375,24 @@ static int virLXCCgroupSetupDeviceACL(virDomainDefPtr def,
         }
     }
 
+    for (i = 0 ; i < def->ndisks ; i++) {
+        if (def->disks[i]->type != VIR_DOMAIN_DISK_TYPE_BLOCK)
+            continue;
+
+        rc = virCgroupAllowDevicePath(cgroup,
+                                      def->disks[i]->src,
+                                      (def->disks[i]->readonly ?
+                                       VIR_CGROUP_DEVICE_READ :
+                                       VIR_CGROUP_DEVICE_RW) |
+                                      VIR_CGROUP_DEVICE_MKNOD);
+        if (rc != 0) {
+            virReportSystemError(-rc,
+                                 _("Unable to allow device %s for domain %s"),
+                                 def->disks[i]->src, def->name);
+            goto cleanup;
+        }
+    }
+
     for (i = 0 ; i < def->nfss ; i++) {
         if (def->fss[i]->type != VIR_DOMAIN_FS_TYPE_BLOCK)
             continue;
@@ -346,6 +407,50 @@ static int virLXCCgroupSetupDeviceACL(virDomainDefPtr def,
                                  _("Unable to allow device %s for domain %s"),
                                  def->fss[i]->src, def->name);
             goto cleanup;
+        }
+    }
+
+    for (i = 0; i < def->nhostdevs; i++) {
+        virDomainHostdevDefPtr hostdev = def->hostdevs[i];
+        usbDevice *usb;
+
+        switch (hostdev->mode) {
+        case VIR_DOMAIN_HOSTDEV_MODE_SUBSYS:
+            if (hostdev->source.subsys.type != VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_USB)
+                continue;
+            if (hostdev->missing)
+                continue;
+
+            if ((usb = usbGetDevice(hostdev->source.subsys.u.usb.bus,
+                                    hostdev->source.subsys.u.usb.device,
+                                    NULL)) == NULL)
+                goto cleanup;
+
+            if (usbDeviceFileIterate(usb, virLXCSetupHostUsbDeviceCgroup,
+                                     cgroup) < 0)
+                goto cleanup;
+            break;
+        case VIR_DOMAIN_HOSTDEV_MODE_CAPABILITIES:
+            switch (hostdev->source.caps.type) {
+            case VIR_DOMAIN_HOSTDEV_CAPS_TYPE_STORAGE:
+                if (virCgroupAllowDevicePath(cgroup,
+                                             hostdev->source.caps.u.storage.block,
+                                             VIR_CGROUP_DEVICE_RW |
+                                             VIR_CGROUP_DEVICE_MKNOD) < 0)
+                    goto cleanup;
+                break;
+            case VIR_DOMAIN_HOSTDEV_CAPS_TYPE_MISC:
+                if (virCgroupAllowDevicePath(cgroup,
+                                             hostdev->source.caps.u.misc.chardev,
+                                             VIR_CGROUP_DEVICE_RW |
+                                             VIR_CGROUP_DEVICE_MKNOD) < 0)
+                    goto cleanup;
+                break;
+            default:
+                break;
+            }
+        default:
+            break;
         }
     }
 

@@ -29,21 +29,20 @@
 #include <libxl.h>
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <sys/utsname.h>
 
 #include "internal.h"
-#include "logging.h"
-#include "virterror_internal.h"
+#include "virlog.h"
+#include "virerror.h"
 #include "datatypes.h"
 #include "virfile.h"
 #include "virstring.h"
-#include "memory.h"
-#include "uuid.h"
+#include "viralloc.h"
+#include "viruuid.h"
 #include "capabilities.h"
 #include "libxl_driver.h"
 #include "libxl_conf.h"
 #include "libxl_utils.h"
-#include "storage_file.h"
+#include "virstoragefile.h"
 
 
 #define VIR_FROM_THIS VIR_FROM_LIBXL
@@ -53,7 +52,7 @@
 
 
 struct guest_arch {
-    const char *model;
+    virArch arch;
     int bits;
     int hvm;
     int pae;
@@ -65,62 +64,8 @@ static const char *xen_cap_re = "(xen|hvm)-[[:digit:]]+\\.[[:digit:]]+-(x86_32|x
 static regex_t xen_cap_rec;
 
 
-static int
-libxlNextFreeVncPort(libxlDriverPrivatePtr driver, int startPort)
-{
-    int i;
-
-    for (i = startPort ; i < LIBXL_VNC_PORT_MAX; i++) {
-        int fd;
-        int reuse = 1;
-        struct sockaddr_in addr;
-        bool used = false;
-
-        if (virBitmapGetBit(driver->reservedVNCPorts,
-                            i - LIBXL_VNC_PORT_MIN, &used) < 0)
-            VIR_DEBUG("virBitmapGetBit failed on bit %d", i - LIBXL_VNC_PORT_MIN);
-
-        if (used)
-            continue;
-
-        addr.sin_family = AF_INET;
-        addr.sin_port = htons(i);
-        addr.sin_addr.s_addr = htonl(INADDR_ANY);
-        fd = socket(PF_INET, SOCK_STREAM, 0);
-        if (fd < 0)
-            return -1;
-
-        if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (void*)&reuse, sizeof(reuse)) < 0) {
-            VIR_FORCE_CLOSE(fd);
-            break;
-        }
-
-        if (bind(fd, (struct sockaddr*)&addr, sizeof(addr)) == 0) {
-            /* Not in use, lets grab it */
-            VIR_FORCE_CLOSE(fd);
-            /* Add port to bitmap of reserved ports */
-            if (virBitmapSetBit(driver->reservedVNCPorts,
-                                i - LIBXL_VNC_PORT_MIN) < 0) {
-                VIR_DEBUG("virBitmapSetBit failed on bit %d",
-                          i - LIBXL_VNC_PORT_MIN);
-            }
-            return i;
-        }
-        VIR_FORCE_CLOSE(fd);
-
-        if (errno == EADDRINUSE) {
-            /* In use, try next */
-            continue;
-        }
-        /* Some other bad failure, get out.. */
-        break;
-    }
-    return -1;
-}
-
-
 static int libxlDefaultConsoleType(const char *ostype,
-                                   const char *arch ATTRIBUTE_UNUSED)
+                                   virArch arch ATTRIBUTE_UNUSED)
 {
     if (STREQ(ostype, "hvm"))
         return VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_SERIAL;
@@ -129,7 +74,7 @@ static int libxlDefaultConsoleType(const char *ostype,
 }
 
 static virCapsPtr
-libxlBuildCapabilities(const char *hostmachine,
+libxlBuildCapabilities(virArch hostarch,
                        int host_pae,
                        struct guest_arch *guest_archs,
                        int nr_guest_archs)
@@ -137,7 +82,7 @@ libxlBuildCapabilities(const char *hostmachine,
     virCapsPtr caps;
     int i;
 
-    if ((caps = virCapabilitiesNew(hostmachine, 1, 1)) == NULL)
+    if ((caps = virCapabilitiesNew(hostarch, 1, 1)) == NULL)
         goto no_memory;
 
     virCapabilitiesSetMacPrefix(caps, (unsigned char[]){ 0x00, 0x16, 0x3e });
@@ -156,9 +101,8 @@ libxlBuildCapabilities(const char *hostmachine,
 
         if ((guest = virCapabilitiesAddGuest(caps,
                                              guest_archs[i].hvm ? "hvm" : "xen",
-                                             guest_archs[i].model,
-                                             guest_archs[i].bits,
-                                             (STREQ(hostmachine, "x86_64") ?
+                                             guest_archs[i].arch,
+                                             ((hostarch == VIR_ARCH_X86_64) ?
                                               "/usr/lib64/xen/bin/qemu-dm" :
                                               "/usr/lib/xen/bin/qemu-dm"),
                                              (guest_archs[i].hvm ?
@@ -230,7 +174,7 @@ libxlBuildCapabilities(const char *hostmachine,
 }
 
 static virCapsPtr
-libxlMakeCapabilitiesInternal(const char *hostmachine,
+libxlMakeCapabilitiesInternal(virArch hostarch,
                               libxl_physinfo *phy_info,
                               char *capabilities)
 {
@@ -285,12 +229,11 @@ libxlMakeCapabilitiesInternal(const char *hostmachine,
         if (regexec(&xen_cap_rec, token, sizeof(subs) / sizeof(subs[0]),
                     subs, 0) == 0) {
             int hvm = STRPREFIX(&token[subs[1].rm_so], "hvm");
-            const char *model;
-            int bits, pae = 0, nonpae = 0, ia64_be = 0;
+            virArch arch;
+            int pae = 0, nonpae = 0, ia64_be = 0;
 
             if (STRPREFIX(&token[subs[2].rm_so], "x86_32")) {
-                model = "i686";
-                bits = 32;
+                arch = VIR_ARCH_I686;
                 if (subs[3].rm_so != -1 &&
                     STRPREFIX(&token[subs[3].rm_so], "p"))
                     pae = 1;
@@ -298,26 +241,24 @@ libxlMakeCapabilitiesInternal(const char *hostmachine,
                     nonpae = 1;
             }
             else if (STRPREFIX(&token[subs[2].rm_so], "x86_64")) {
-                model = "x86_64";
-                bits = 64;
+                arch = VIR_ARCH_X86_64;
             }
             else if (STRPREFIX(&token[subs[2].rm_so], "ia64")) {
-                model = "ia64";
-                bits = 64;
+                arch = VIR_ARCH_ITANIUM;
                 if (subs[3].rm_so != -1 &&
                     STRPREFIX(&token[subs[3].rm_so], "be"))
                     ia64_be = 1;
             }
             else if (STRPREFIX(&token[subs[2].rm_so], "powerpc64")) {
-                model = "ppc64";
-                bits = 64;
+                arch = VIR_ARCH_PPC64;
             } else {
+                /* XXX arm ? */
                 continue;
             }
 
             /* Search for existing matching (model,hvm) tuple */
             for (i = 0 ; i < nr_guest_archs ; i++) {
-                if (STREQ(guest_archs[i].model, model) &&
+                if ((guest_archs[i].arch == arch) &&
                     guest_archs[i].hvm == hvm) {
                     break;
                 }
@@ -330,8 +271,7 @@ libxlMakeCapabilitiesInternal(const char *hostmachine,
             if (i == nr_guest_archs)
                 nr_guest_archs++;
 
-            guest_archs[i].model = model;
-            guest_archs[i].bits = bits;
+            guest_archs[i].arch = arch;
             guest_archs[i].hvm = hvm;
 
             /* Careful not to overwrite a previous positive
@@ -347,7 +287,7 @@ libxlMakeCapabilitiesInternal(const char *hostmachine,
         }
     }
 
-    if ((caps = libxlBuildCapabilities(hostmachine,
+    if ((caps = libxlBuildCapabilities(hostarch,
                                        host_pae,
                                        guest_archs,
                                        nr_guest_archs)) == NULL)
@@ -718,7 +658,7 @@ libxlMakeVfb(libxlDriverPrivatePtr driver,
              virDomainGraphicsDefPtr l_vfb,
              libxl_device_vfb *x_vfb)
 {
-    int port;
+    unsigned short port;
     const char *listenAddr;
 
     switch (l_vfb->type) {
@@ -741,8 +681,10 @@ libxlMakeVfb(libxlDriverPrivatePtr driver,
             /* driver handles selection of free port */
             libxl_defbool_set(&x_vfb->vnc.findunused, 0);
             if (l_vfb->data.vnc.autoport) {
-                port = libxlNextFreeVncPort(driver, LIBXL_VNC_PORT_MIN);
-                if (port < 0) {
+
+                if (virPortAllocatorAcquire(driver->reservedVNCPorts, &port) < 0)
+                    return -1;
+                if (port == 0) {
                     virReportError(VIR_ERR_INTERNAL_ERROR,
                                    "%s", _("Unable to find an unused VNC port"));
                     return -1;
@@ -825,7 +767,6 @@ libxlMakeCapabilities(libxl_ctx *ctx)
 {
     libxl_physinfo phy_info;
     const libxl_version_info *ver_info;
-    struct utsname utsname;
 
     regcomp(&xen_cap_rec, xen_cap_re, REG_EXTENDED);
 
@@ -841,9 +782,7 @@ libxlMakeCapabilities(libxl_ctx *ctx)
         return NULL;
     }
 
-    uname(&utsname);
-
-    return libxlMakeCapabilitiesInternal(utsname.machine,
+    return libxlMakeCapabilitiesInternal(virArchFromHost(),
                                          &phy_info,
                                          ver_info->capabilities);
 }

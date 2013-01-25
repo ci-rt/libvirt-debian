@@ -29,7 +29,6 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <sys/un.h>
-#include <sys/utsname.h>
 #include <sys/personality.h>
 #include <unistd.h>
 #include <paths.h>
@@ -43,32 +42,30 @@
 #include <sys/stat.h>
 #include <time.h>
 
-#if HAVE_CAPNG
+#if WITH_CAPNG
 # include <cap-ng.h>
 #endif
 
-#if HAVE_NUMACTL
+#if WITH_NUMACTL
 # define NUMA_VERSION1_COMPATIBILITY 1
 # include <numa.h>
 #endif
 
-#include "virterror_internal.h"
-#include "logging.h"
-#include "util.h"
+#include "virerror.h"
+#include "virlog.h"
+#include "virutil.h"
 
 #include "lxc_conf.h"
 #include "lxc_container.h"
 #include "lxc_cgroup.h"
-#include "lxc_protocol.h"
+#include "lxc_monitor_protocol.h"
 #include "lxc_fuse.h"
 #include "virnetdev.h"
 #include "virnetdevveth.h"
-#include "memory.h"
-#include "util.h"
+#include "viralloc.h"
 #include "virfile.h"
 #include "virpidfile.h"
-#include "command.h"
-#include "processinfo.h"
+#include "vircommand.h"
 #include "nodeinfo.h"
 #include "virrandom.h"
 #include "virprocess.h"
@@ -411,7 +408,7 @@ cleanup:
     return ret;
 }
 
-#if HAVE_NUMACTL
+#if WITH_NUMACTL
 static int virLXCControllerSetupNUMAPolicy(virLXCControllerPtr ctrl)
 {
     nodemask_t mask;
@@ -542,7 +539,7 @@ static int virLXCControllerSetupCpuAffinity(virLXCControllerPtr ctrl)
      * so use '0' to indicate our own process ID. No threads are
      * running at this point
      */
-    if (virProcessInfoSetAffinity(0 /* Self */, cpumapToSet) < 0) {
+    if (virProcessSetAffinity(0 /* Self */, cpumapToSet) < 0) {
         virBitmapFree(cpumap);
         return -1;
     }
@@ -634,9 +631,11 @@ static int virLXCControllerSetupServer(virLXCControllerPtr ctrl)
                                            0700,
                                            0,
                                            0,
+#if WITH_GNUTLS
+                                           NULL,
+#endif
                                            false,
-                                           5,
-                                           NULL)))
+                                           5)))
         goto error;
 
     if (virNetServerAddService(ctrl->server, svc, NULL) < 0)
@@ -665,7 +664,7 @@ error:
 
 static int lxcControllerClearCapabilities(void)
 {
-#if HAVE_CAPNG
+#if WITH_CAPNG
     int ret;
 
     capng_clear(CAPNG_SELECT_BOTH);
@@ -1077,17 +1076,15 @@ static int virLXCControllerDeleteInterfaces(virLXCControllerPtr ctrl)
 
 static int lxcSetPersonality(virDomainDefPtr def)
 {
-    struct utsname utsname;
-    const char *altArch;
+    virArch altArch;
 
-    uname(&utsname);
-
-    altArch = lxcContainerGetAlt32bitArch(utsname.machine);
+    altArch = lxcContainerGetAlt32bitArch(virArchFromHost());
     if (altArch &&
-        STREQ(def->os.arch, altArch)) {
+        (def->os.arch == altArch)) {
         if (personality(PER_LINUX32) < 0) {
             virReportSystemError(errno, _("Unable to request personality for %s on %s"),
-                                 altArch, utsname.machine);
+                                 virArchToString(altArch),
+                                 virArchToString(virArchFromHost()));
             return -1;
         }
     }
@@ -1148,6 +1145,29 @@ cleanup:
 
 
 static int
+virLXCControllerSetupPrivateNS(void)
+{
+    int ret = -1;
+
+    if (unshare(CLONE_NEWNS) < 0) {
+        virReportSystemError(errno, "%s",
+                             _("Cannot unshare mount namespace"));
+        goto cleanup;
+    }
+
+    if (mount("", "/", NULL, MS_SLAVE|MS_REC, NULL) < 0) {
+        virReportSystemError(errno, "%s",
+                             _("Failed to switch root mount into slave mode"));
+        goto cleanup;
+    }
+
+    ret = 0;
+cleanup:
+    return ret;
+}
+
+
+static int
 virLXCControllerSetupDevPTS(virLXCControllerPtr ctrl)
 {
     virDomainFSDefPtr root = virDomainGetRootFilesystem(ctrl->def);
@@ -1195,18 +1215,6 @@ virLXCControllerSetupDevPTS(virLXCControllerPtr ctrl)
         virReportSystemError(errno,
                              _("root source %s does not exist"),
                              root->src);
-        goto cleanup;
-    }
-
-    if (unshare(CLONE_NEWNS) < 0) {
-        virReportSystemError(errno, "%s",
-                             _("Cannot unshare mount namespace"));
-        goto cleanup;
-    }
-
-    if (mount("", "/", NULL, MS_SLAVE|MS_REC, NULL) < 0) {
-        virReportSystemError(errno, "%s",
-                             _("Failed to switch root mount into slave mode"));
         goto cleanup;
     }
 
@@ -1412,6 +1420,9 @@ virLXCControllerRun(virLXCControllerPtr ctrl)
                              _("socketpair failed"));
         goto cleanup;
     }
+
+    if (virLXCControllerSetupPrivateNS() < 0)
+        goto cleanup;
 
     if (virLXCControllerSetupLoopDevices(ctrl) < 0)
         goto cleanup;

@@ -25,10 +25,10 @@
 #include "virauthconfig.h"
 
 #include "virkeyfile.h"
-#include "memory.h"
-#include "util.h"
-#include "logging.h"
-#include "virterror_internal.h"
+#include "viralloc.h"
+#include "virutil.h"
+#include "virlog.h"
+#include "virerror.h"
 
 
 struct _virAuthConfig {

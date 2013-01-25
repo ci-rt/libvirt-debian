@@ -29,9 +29,9 @@
 # include "network_conf.h"
 # include "domain_conf.h"
 # include "domain_event.h"
-# include "virterror_internal.h"
-# include "threads.h"
-# include "command.h"
+# include "virerror.h"
+# include "virthread.h"
+# include "vircommand.h"
 # include "virhash.h"
 
 # define umlDebug(fmt, ...) do {} while(0)

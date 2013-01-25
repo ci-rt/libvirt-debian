@@ -26,13 +26,13 @@
 #include <libxml/parser.h>
 #include <libxml/xpathInternals.h>
 
-#include "buf.h"
-#include "memory.h"
-#include "logging.h"
-#include "util.h"
-#include "uuid.h"
+#include "virbuffer.h"
+#include "viralloc.h"
+#include "virlog.h"
+#include "virutil.h"
+#include "viruuid.h"
 #include "vmx.h"
-#include "xml.h"
+#include "virxml.h"
 #include "esx_vi.h"
 #include "esx_vi_methods.h"
 #include "esx_util.h"
@@ -2168,11 +2168,10 @@ esxVI_LookupObjectContentByType(esxVI_Context *ctx,
     /*
      * Remove values given by the caller from the data structures to prevent
      * them from being freed by the call to esxVI_PropertyFilterSpec_Free().
+     * objectSpec cannot be NULL here.
      */
-    if (objectSpec != NULL) {
-        objectSpec->obj = NULL;
-        objectSpec->selectSet = NULL;
-    }
+    objectSpec->obj = NULL;
+    objectSpec->selectSet = NULL;
 
     if (propertySpec != NULL) {
         propertySpec->type = NULL;

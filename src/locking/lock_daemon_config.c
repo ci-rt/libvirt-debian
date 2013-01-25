@@ -24,10 +24,10 @@
 #include <config.h>
 
 #include "lock_daemon_config.h"
-#include "conf.h"
-#include "memory.h"
-#include "virterror_internal.h"
-#include "logging.h"
+#include "virconf.h"
+#include "viralloc.h"
+#include "virerror.h"
+#include "virlog.h"
 #include "rpc/virnetserver.h"
 #include "configmake.h"
 

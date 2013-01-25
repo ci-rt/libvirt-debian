@@ -25,10 +25,10 @@
 #include <config.h>
 
 #include "internal.h"
-#include "util.h"
-#include "memory.h"
-#include "logging.h"
-#include "uuid.h"
+#include "virutil.h"
+#include "viralloc.h"
+#include "virlog.h"
+#include "viruuid.h"
 #include "esx_private.h"
 #include "esx_nwfilter_driver.h"
 #include "esx_vi.h"

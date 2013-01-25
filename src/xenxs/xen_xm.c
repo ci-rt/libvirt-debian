@@ -26,18 +26,18 @@
 #include <config.h>
 
 #include "internal.h"
-#include "virterror_internal.h"
-#include "conf.h"
-#include "memory.h"
+#include "virerror.h"
+#include "virconf.h"
+#include "viralloc.h"
 #include "verify.h"
-#include "uuid.h"
-#include "sexpr.h"
+#include "viruuid.h"
+#include "virsexpr.h"
 #include "count-one-bits.h"
 #include "xenxs_private.h"
 #include "xen_xm.h"
 #include "xen_sxpr.h"
 #include "domain_conf.h"
-#include "storage_file.h"
+#include "virstoragefile.h"
 
 /* Convenience method to grab a long int from the config file object */
 static int xenXMConfigGetBool(virConfPtr conf,
@@ -263,7 +263,7 @@ xenParseXM(virConfPtr conf, int xendConfigVersion,
     virDomainGraphicsDefPtr graphics = NULL;
     virDomainHostdevDefPtr hostdev = NULL;
     int i;
-    const char *defaultArch, *defaultMachine;
+    const char *defaultMachine;
     int vmlocaltime = 0;
     unsigned long count;
     char *script = NULL;
@@ -290,15 +290,16 @@ xenParseXM(virConfPtr conf, int xendConfigVersion,
     if (!(def->os.type = strdup(hvm ? "hvm" : "xen")))
         goto no_memory;
 
-    defaultArch = virCapabilitiesDefaultGuestArch(caps, def->os.type, virDomainVirtTypeToString(def->virtType));
-    if (defaultArch == NULL) {
+    def->os.arch =
+        virCapabilitiesDefaultGuestArch(caps,
+                                        def->os.type,
+                                        virDomainVirtTypeToString(def->virtType));
+    if (!def->os.arch) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("no supported architecture for os type '%s'"),
                        def->os.type);
         goto cleanup;
     }
-    if (!(def->os.arch = strdup(defaultArch)))
-        goto no_memory;
 
     defaultMachine = virCapabilitiesDefaultGuestMachine(caps,
                                                         def->os.type,

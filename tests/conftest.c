@@ -5,8 +5,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
-#include "conf.h"
-#include "memory.h"
+#include "virconf.h"
+#include "viralloc.h"
 
 int main(int argc, char **argv)
 {

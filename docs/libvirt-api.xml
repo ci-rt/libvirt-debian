@@ -3,7 +3,7 @@
   <files>
     <file name='libvirt'>
      <summary>core interfaces for the libvirt library</summary>
-     <description>Provides the interfaces of the libvirt library to handle virtualized domains  Copyright (C) 2005-2006, 2010-2012 Red Hat, Inc.  This library is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation; either version 2.1 of the License, or (at your option) any later version.  This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more details.  You should have received a copy of the GNU Lesser General Public License along with this library.  If not, see</description>
+     <description>Provides the interfaces of the libvirt library to handle virtualized domains  Copyright (C) 2005-2006, 2010-2012 Red Hat, Inc.  This library is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation; either version 2.1 of the License, or (at your option) any later version.  This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more details.  You should have received a copy of the GNU Lesser General Public License along with this library.  If not, see &lt;http://www.gnu.org/licenses/&gt;. </description>
      <author>Daniel Veillard &lt;veillard@redhat.com&gt; </author>
      <exports symbol='LIBVIR_VERSION_NUMBER' type='macro'/>
      <exports symbol='VIR_COPY_CPUMAP' type='macro'/>
@@ -188,6 +188,7 @@
      <exports symbol='VIR_DOMAIN_BLOCK_REBASE_REUSE_EXT' type='enum'/>
      <exports symbol='VIR_DOMAIN_BLOCK_REBASE_SHALLOW' type='enum'/>
      <exports symbol='VIR_DOMAIN_BLOCK_RESIZE_BYTES' type='enum'/>
+     <exports symbol='VIR_DOMAIN_CHANNEL_FORCE' type='enum'/>
      <exports symbol='VIR_DOMAIN_CONSOLE_FORCE' type='enum'/>
      <exports symbol='VIR_DOMAIN_CONSOLE_SAFE' type='enum'/>
      <exports symbol='VIR_DOMAIN_CONTROL_ERROR' type='enum'/>
@@ -657,6 +658,7 @@
      <exports symbol='virDomainBlockStatsPtr' type='typedef'/>
      <exports symbol='virDomainBlockStatsStruct' type='typedef'/>
      <exports symbol='virDomainBlockedReason' type='typedef'/>
+     <exports symbol='virDomainChannelFlags' type='typedef'/>
      <exports symbol='virDomainConsoleFlags' type='typedef'/>
      <exports symbol='virDomainControlInfo' type='typedef'/>
      <exports symbol='virDomainControlInfoPtr' type='typedef'/>
@@ -970,6 +972,7 @@
      <exports symbol='virDomainMigrateSetMaxSpeed' type='function'/>
      <exports symbol='virDomainMigrateToURI' type='function'/>
      <exports symbol='virDomainMigrateToURI2' type='function'/>
+     <exports symbol='virDomainOpenChannel' type='function'/>
      <exports symbol='virDomainOpenConsole' type='function'/>
      <exports symbol='virDomainOpenGraphics' type='function'/>
      <exports symbol='virDomainPMSuspendForDuration' type='function'/>
@@ -1198,10 +1201,28 @@
      <exports symbol='virStreamSendAll' type='function'/>
      <exports symbol='virStreamSinkFunc' type='function'/>
      <exports symbol='virStreamSourceFunc' type='function'/>
+     <exports symbol='virTypedParamsAddBoolean' type='function'/>
+     <exports symbol='virTypedParamsAddDouble' type='function'/>
+     <exports symbol='virTypedParamsAddFromString' type='function'/>
+     <exports symbol='virTypedParamsAddInt' type='function'/>
+     <exports symbol='virTypedParamsAddLLong' type='function'/>
+     <exports symbol='virTypedParamsAddString' type='function'/>
+     <exports symbol='virTypedParamsAddUInt' type='function'/>
+     <exports symbol='virTypedParamsAddULLong' type='function'/>
+     <exports symbol='virTypedParamsClear' type='function'/>
+     <exports symbol='virTypedParamsFree' type='function'/>
+     <exports symbol='virTypedParamsGet' type='function'/>
+     <exports symbol='virTypedParamsGetBoolean' type='function'/>
+     <exports symbol='virTypedParamsGetDouble' type='function'/>
+     <exports symbol='virTypedParamsGetInt' type='function'/>
+     <exports symbol='virTypedParamsGetLLong' type='function'/>
+     <exports symbol='virTypedParamsGetString' type='function'/>
+     <exports symbol='virTypedParamsGetUInt' type='function'/>
+     <exports symbol='virTypedParamsGetULLong' type='function'/>
     </file>
     <file name='virterror'>
      <summary>error handling interfaces for the libvirt library</summary>
-     <description>Provides the interfaces of the libvirt library to handle errors raised while using the library.  Copyright (C) 2006, 2010-2012 Red Hat, Inc.  This library is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation; either version 2.1 of the License, or (at your option) any later version.  This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more details.  You should have received a copy of the GNU Lesser General Public License along with this library.  If not, see</description>
+     <description>Provides the interfaces of the libvirt library to handle errors raised while using the library.  Copyright (C) 2006, 2010-2012 Red Hat, Inc.  This library is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation; either version 2.1 of the License, or (at your option) any later version.  This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more details.  You should have received a copy of the GNU Lesser General Public License along with this library.  If not, see &lt;http://www.gnu.org/licenses/&gt;. </description>
      <author>Daniel Veillard &lt;veillard@redhat.com&gt; </author>
      <exports symbol='VIR_ERR_AGENT_UNRESPONSIVE' type='enum'/>
      <exports symbol='VIR_ERR_ARGUMENT_UNSUPPORTED' type='enum'/>
@@ -1692,9 +1713,9 @@ node'/>
     <enum name='VIR_CRED_AUTHNAME' file='libvirt' value='2' type='virConnectCredentialType' info='Identify to authorize as'/>
     <enum name='VIR_CRED_CNONCE' file='libvirt' value='4' type='virConnectCredentialType' info='client supplies a nonce'/>
     <enum name='VIR_CRED_ECHOPROMPT' file='libvirt' value='6' type='virConnectCredentialType' info='Challenge response'/>
-    <enum name='VIR_CRED_EXTERNAL' file='libvirt' value='9' type='virConnectCredentialType' info='Externally managed credential More may be added - expect the unexpected'/>
+    <enum name='VIR_CRED_EXTERNAL' file='libvirt' value='9' type='virConnectCredentialType' info='Externally managed credential'/>
     <enum name='VIR_CRED_LANGUAGE' file='libvirt' value='3' type='virConnectCredentialType' info='RFC 1766 languages, comma separated'/>
-    <enum name='VIR_CRED_LAST' file='libvirt' value='10' type='virConnectCredentialType'/>
+    <enum name='VIR_CRED_LAST' file='libvirt' value='10' type='virConnectCredentialType' info='More may be added - expect the unexpected'/>
     <enum name='VIR_CRED_NOECHOPROMPT' file='libvirt' value='7' type='virConnectCredentialType' info='Challenge response'/>
     <enum name='VIR_CRED_PASSPHRASE' file='libvirt' value='5' type='virConnectCredentialType' info='Passphrase secret'/>
     <enum name='VIR_CRED_REALM' file='libvirt' value='8' type='virConnectCredentialType' info='Authentication realm'/>
@@ -1735,6 +1756,9 @@ file for a copy'/>
     <enum name='VIR_DOMAIN_BLOCK_REBASE_SHALLOW' file='libvirt' value='1' type='virDomainBlockRebaseFlags' info='Limit copy to top of source
 backing chain'/>
     <enum name='VIR_DOMAIN_BLOCK_RESIZE_BYTES' file='libvirt' value='1' type='virDomainBlockResizeFlags' info='size in bytes instead of KiB'/>
+    <enum name='VIR_DOMAIN_CHANNEL_FORCE' file='libvirt' value='1' type='virDomainChannelFlags' info='abort a (possibly) active channel
+connection to force a new
+connection'/>
     <enum name='VIR_DOMAIN_CONSOLE_FORCE' file='libvirt' value='1' type='virDomainConsoleFlags' info='abort a (possibly) active console
 connection to force a new
 connection'/>
@@ -1782,12 +1806,12 @@ limited set of commands may be allowed'/>
     <enum name='VIR_DOMAIN_EVENT_ID_GRAPHICS' file='libvirt' value='5' type='virDomainEventID' info='virConnectDomainEventGraphicsCallback'/>
     <enum name='VIR_DOMAIN_EVENT_ID_IO_ERROR' file='libvirt' value='4' type='virDomainEventID' info='virConnectDomainEventIOErrorCallback'/>
     <enum name='VIR_DOMAIN_EVENT_ID_IO_ERROR_REASON' file='libvirt' value='6' type='virDomainEventID' info='virConnectDomainEventIOErrorReasonCallback'/>
-    <enum name='VIR_DOMAIN_EVENT_ID_LAST' file='libvirt' value='15' type='virDomainEventID'/>
-    <enum name='VIR_DOMAIN_EVENT_ID_LIFECYCLE' file='libvirt' value='0' type='virDomainEventID' info='virConnectDomainEventCallback'/>
-    <enum name='VIR_DOMAIN_EVENT_ID_PMSUSPEND' file='libvirt' value='12' type='virDomainEventID' info='virConnectDomainEventPMSuspendCallback'/>
-    <enum name='VIR_DOMAIN_EVENT_ID_PMSUSPEND_DISK' file='libvirt' value='14' type='virDomainEventID' info='NB: this enum value will increase over time as new events are
+    <enum name='VIR_DOMAIN_EVENT_ID_LAST' file='libvirt' value='15' type='virDomainEventID' info='NB: this enum value will increase over time as new events are
  added to the libvirt API. It reflects the last event ID supported
  by this version of the libvirt API.'/>
+    <enum name='VIR_DOMAIN_EVENT_ID_LIFECYCLE' file='libvirt' value='0' type='virDomainEventID' info='virConnectDomainEventCallback'/>
+    <enum name='VIR_DOMAIN_EVENT_ID_PMSUSPEND' file='libvirt' value='12' type='virDomainEventID' info='virConnectDomainEventPMSuspendCallback'/>
+    <enum name='VIR_DOMAIN_EVENT_ID_PMSUSPEND_DISK' file='libvirt' value='14' type='virDomainEventID' info='virConnectDomainEventPMSuspendDiskCallback'/>
     <enum name='VIR_DOMAIN_EVENT_ID_PMWAKEUP' file='libvirt' value='11' type='virDomainEventID' info='virConnectDomainEventPMWakeupCallback'/>
     <enum name='VIR_DOMAIN_EVENT_ID_REBOOT' file='libvirt' value='1' type='virDomainEventID' info='virConnectDomainEventGenericCallback'/>
     <enum name='VIR_DOMAIN_EVENT_ID_RTC_CHANGE' file='libvirt' value='2' type='virDomainEventID' info='virConnectDomainEventRTCChangeCallback'/>
@@ -1855,7 +1879,9 @@ limited set of commands may be allowed'/>
     <enum name='VIR_DOMAIN_JOB_LAST' file='libvirt' value='6' type='virDomainJobType'/>
     <enum name='VIR_DOMAIN_JOB_NONE' file='libvirt' value='0' type='virDomainJobType' info='No job is active'/>
     <enum name='VIR_DOMAIN_JOB_UNBOUNDED' file='libvirt' value='2' type='virDomainJobType' info='Job without a finite completion time'/>
-    <enum name='VIR_DOMAIN_LAST' file='libvirt' value='8' type='virDomainState'/>
+    <enum name='VIR_DOMAIN_LAST' file='libvirt' value='8' type='virDomainState' info='NB: this enum value will increase over time as new events are
+ added to the libvirt API. It reflects the last state supported
+ by this version of the libvirt API.'/>
     <enum name='VIR_DOMAIN_MEMORY_PARAM_BOOLEAN' file='libvirt' value='VIR_TYPED_PARAM_BOOLEAN' type='virMemoryParameterType'/>
     <enum name='VIR_DOMAIN_MEMORY_PARAM_DOUBLE' file='libvirt' value='VIR_TYPED_PARAM_DOUBLE' type='virMemoryParameterType'/>
     <enum name='VIR_DOMAIN_MEMORY_PARAM_INT' file='libvirt' value='VIR_TYPED_PARAM_INT' type='virMemoryParameterType'/>
@@ -1894,8 +1920,8 @@ limited set of commands may be allowed'/>
     <enum name='VIR_DOMAIN_NOSTATE' file='libvirt' value='0' type='virDomainState' info='no state'/>
     <enum name='VIR_DOMAIN_NOSTATE_LAST' file='libvirt' value='1' type='virDomainNostateReason'/>
     <enum name='VIR_DOMAIN_NOSTATE_UNKNOWN' file='libvirt' value='0' type='virDomainNostateReason'/>
-    <enum name='VIR_DOMAIN_NUMATUNE_MEM_INTERLEAVE' file='libvirt' value='2' type='virDomainNumatuneMemMode' info='This constant is subject to change'/>
-    <enum name='VIR_DOMAIN_NUMATUNE_MEM_LAST' file='libvirt' value='3' type='virDomainNumatuneMemMode'/>
+    <enum name='VIR_DOMAIN_NUMATUNE_MEM_INTERLEAVE' file='libvirt' value='2' type='virDomainNumatuneMemMode'/>
+    <enum name='VIR_DOMAIN_NUMATUNE_MEM_LAST' file='libvirt' value='3' type='virDomainNumatuneMemMode' info='This constant is subject to change'/>
     <enum name='VIR_DOMAIN_NUMATUNE_MEM_PREFERRED' file='libvirt' value='1' type='virDomainNumatuneMemMode'/>
     <enum name='VIR_DOMAIN_NUMATUNE_MEM_STRICT' file='libvirt' value='0' type='virDomainNumatuneMemMode'/>
     <enum name='VIR_DOMAIN_OPEN_GRAPHICS_SKIPAUTH' file='libvirt' value='1' type='virDomainOpenGraphicsFlags'/>
@@ -1911,9 +1937,8 @@ limited set of commands may be allowed'/>
     <enum name='VIR_DOMAIN_PAUSED_UNKNOWN' file='libvirt' value='0' type='virDomainPausedReason' info='the reason is unknown'/>
     <enum name='VIR_DOMAIN_PAUSED_USER' file='libvirt' value='1' type='virDomainPausedReason' info='paused on user request'/>
     <enum name='VIR_DOMAIN_PAUSED_WATCHDOG' file='libvirt' value='6' type='virDomainPausedReason' info='paused due to a watchdog event'/>
-    <enum name='VIR_DOMAIN_PMSUSPENDED' file='libvirt' value='7' type='virDomainState' info='NB: this enum value will increase over time as new events are
- added to the libvirt API. It reflects the last state supported
- by this version of the libvirt API.'/>
+    <enum name='VIR_DOMAIN_PMSUSPENDED' file='libvirt' value='7' type='virDomainState' info='the domain is suspended by guest
+power management'/>
     <enum name='VIR_DOMAIN_PMSUSPENDED_DISK_LAST' file='libvirt' value='1' type='virDomainPMSuspendedDiskReason'/>
     <enum name='VIR_DOMAIN_PMSUSPENDED_DISK_UNKNOWN' file='libvirt' value='0' type='virDomainPMSuspendedDiskReason'/>
     <enum name='VIR_DOMAIN_PMSUSPENDED_LAST' file='libvirt' value='1' type='virDomainPMSuspendedReason'/>
@@ -1933,7 +1958,7 @@ limited set of commands may be allowed'/>
     <enum name='VIR_DOMAIN_PROCESS_SIGNAL_PIPE' file='libvirt' value='13' type='virDomainProcessSignal' info='SIGPIPE'/>
     <enum name='VIR_DOMAIN_PROCESS_SIGNAL_POLL' file='libvirt' value='29' type='virDomainProcessSignal' info='SIGPOLL (also known as SIGIO on Linux)'/>
     <enum name='VIR_DOMAIN_PROCESS_SIGNAL_PROF' file='libvirt' value='27' type='virDomainProcessSignal' info='SIGPROF'/>
-    <enum name='VIR_DOMAIN_PROCESS_SIGNAL_PWR' file='libvirt' value='30' type='virDomainProcessSignal' info='Not in POSIX (SIGPWR on Linux'/>
+    <enum name='VIR_DOMAIN_PROCESS_SIGNAL_PWR' file='libvirt' value='30' type='virDomainProcessSignal' info='Not in POSIX (SIGPWR on Linux)'/>
     <enum name='VIR_DOMAIN_PROCESS_SIGNAL_QUIT' file='libvirt' value='3' type='virDomainProcessSignal' info='SIGQUIT'/>
     <enum name='VIR_DOMAIN_PROCESS_SIGNAL_RT0' file='libvirt' value='32' type='virDomainProcessSignal' info='SIGRTMIN'/>
     <enum name='VIR_DOMAIN_PROCESS_SIGNAL_RT1' file='libvirt' value='33' type='virDomainProcessSignal' info='SIGRTMIN + 1'/>
@@ -1971,7 +1996,7 @@ limited set of commands may be allowed'/>
     <enum name='VIR_DOMAIN_PROCESS_SIGNAL_SEGV' file='libvirt' value='11' type='virDomainProcessSignal' info='SIGSEGV'/>
     <enum name='VIR_DOMAIN_PROCESS_SIGNAL_STKFLT' file='libvirt' value='16' type='virDomainProcessSignal' info='Not in POSIX (SIGSTKFLT on Linux'/>
     <enum name='VIR_DOMAIN_PROCESS_SIGNAL_STOP' file='libvirt' value='19' type='virDomainProcessSignal' info='SIGSTOP'/>
-    <enum name='VIR_DOMAIN_PROCESS_SIGNAL_SYS' file='libvirt' value='31' type='virDomainProcessSignal' info='SIGSYS (also known as SIGUNUSED on Linux )'/>
+    <enum name='VIR_DOMAIN_PROCESS_SIGNAL_SYS' file='libvirt' value='31' type='virDomainProcessSignal' info='SIGSYS (also known as SIGUNUSED on Linux)'/>
     <enum name='VIR_DOMAIN_PROCESS_SIGNAL_TERM' file='libvirt' value='15' type='virDomainProcessSignal' info='SIGTERM'/>
     <enum name='VIR_DOMAIN_PROCESS_SIGNAL_TRAP' file='libvirt' value='5' type='virDomainProcessSignal' info='SIGTRAP'/>
     <enum name='VIR_DOMAIN_PROCESS_SIGNAL_TSTP' file='libvirt' value='20' type='virDomainProcessSignal' info='SIGTSTP'/>
@@ -2274,12 +2299,12 @@ Retained for ABI/API compat only'/>
     <enum name='VIR_KEYCODE_SET_ATSET1' file='libvirt' value='2' type='virKeycodeSet'/>
     <enum name='VIR_KEYCODE_SET_ATSET2' file='libvirt' value='3' type='virKeycodeSet'/>
     <enum name='VIR_KEYCODE_SET_ATSET3' file='libvirt' value='4' type='virKeycodeSet'/>
-    <enum name='VIR_KEYCODE_SET_LAST' file='libvirt' value='10' type='virKeycodeSet'/>
-    <enum name='VIR_KEYCODE_SET_LINUX' file='libvirt' value='0' type='virKeycodeSet'/>
-    <enum name='VIR_KEYCODE_SET_OSX' file='libvirt' value='5' type='virKeycodeSet'/>
-    <enum name='VIR_KEYCODE_SET_RFB' file='libvirt' value='9' type='virKeycodeSet' info='NB: this enum value will increase over time as new events are
+    <enum name='VIR_KEYCODE_SET_LAST' file='libvirt' value='10' type='virKeycodeSet' info='NB: this enum value will increase over time as new events are
  added to the libvirt API. It reflects the last keycode set supported
  by this version of the libvirt API.'/>
+    <enum name='VIR_KEYCODE_SET_LINUX' file='libvirt' value='0' type='virKeycodeSet'/>
+    <enum name='VIR_KEYCODE_SET_OSX' file='libvirt' value='5' type='virKeycodeSet'/>
+    <enum name='VIR_KEYCODE_SET_RFB' file='libvirt' value='9' type='virKeycodeSet'/>
     <enum name='VIR_KEYCODE_SET_USB' file='libvirt' value='7' type='virKeycodeSet'/>
     <enum name='VIR_KEYCODE_SET_WIN32' file='libvirt' value='8' type='virKeycodeSet'/>
     <enum name='VIR_KEYCODE_SET_XT' file='libvirt' value='1' type='virKeycodeSet'/>
@@ -2328,13 +2353,13 @@ config if it&apos;s not active'/>
     <enum name='VIR_NODE_CPU_STATS_ALL_CPUS' file='libvirt' value='-1' type='virNodeGetCPUStatsAllCPUs'/>
     <enum name='VIR_NODE_MEMORY_STATS_ALL_CELLS' file='libvirt' value='-1' type='virNodeGetMemoryStatsAllCells'/>
     <enum name='VIR_NODE_SUSPEND_TARGET_DISK' file='libvirt' value='1' type='virNodeSuspendTarget'/>
-    <enum name='VIR_NODE_SUSPEND_TARGET_HYBRID' file='libvirt' value='2' type='virNodeSuspendTarget' info='This constant is subject to change'/>
-    <enum name='VIR_NODE_SUSPEND_TARGET_LAST' file='libvirt' value='3' type='virNodeSuspendTarget'/>
+    <enum name='VIR_NODE_SUSPEND_TARGET_HYBRID' file='libvirt' value='2' type='virNodeSuspendTarget'/>
+    <enum name='VIR_NODE_SUSPEND_TARGET_LAST' file='libvirt' value='3' type='virNodeSuspendTarget' info='This constant is subject to change'/>
     <enum name='VIR_NODE_SUSPEND_TARGET_MEM' file='libvirt' value='0' type='virNodeSuspendTarget'/>
-    <enum name='VIR_SECRET_USAGE_TYPE_CEPH' file='libvirt' value='2' type='virSecretUsageType' info='NB: this enum value will increase over time as new events are
+    <enum name='VIR_SECRET_USAGE_TYPE_CEPH' file='libvirt' value='2' type='virSecretUsageType'/>
+    <enum name='VIR_SECRET_USAGE_TYPE_LAST' file='libvirt' value='3' type='virSecretUsageType' info='NB: this enum value will increase over time as new events are
  added to the libvirt API. It reflects the last secret owner ID
  supported by this version of the libvirt API.'/>
-    <enum name='VIR_SECRET_USAGE_TYPE_LAST' file='libvirt' value='3' type='virSecretUsageType'/>
     <enum name='VIR_SECRET_USAGE_TYPE_NONE' file='libvirt' value='0' type='virSecretUsageType'/>
     <enum name='VIR_SECRET_USAGE_TYPE_VOLUME' file='libvirt' value='1' type='virSecretUsageType'/>
     <enum name='VIR_STORAGE_POOL_BUILDING' file='libvirt' value='1' type='virStoragePoolState' info='Initializing pool, not available'/>
@@ -2367,14 +2392,14 @@ Information Technologies'/>
     <enum name='VIR_STORAGE_VOL_WIPE_ALG_DOD' file='libvirt' value='2' type='virStorageVolWipeAlgorithm' info='4-pass DoD 5220.22-M section
 8-306 procedure'/>
     <enum name='VIR_STORAGE_VOL_WIPE_ALG_GUTMANN' file='libvirt' value='4' type='virStorageVolWipeAlgorithm' info='The canonical 35-pass sequence'/>
-    <enum name='VIR_STORAGE_VOL_WIPE_ALG_LAST' file='libvirt' value='9' type='virStorageVolWipeAlgorithm'/>
+    <enum name='VIR_STORAGE_VOL_WIPE_ALG_LAST' file='libvirt' value='9' type='virStorageVolWipeAlgorithm' info='NB: this enum value will increase over time as new algorithms are
+ added to the libvirt API. It reflects the last algorithm supported
+ by this version of the libvirt API.'/>
     <enum name='VIR_STORAGE_VOL_WIPE_ALG_NNSA' file='libvirt' value='1' type='virStorageVolWipeAlgorithm' info='4-pass  NNSA Policy Letter
 NAP-14.1-C (XVI-8)'/>
     <enum name='VIR_STORAGE_VOL_WIPE_ALG_PFITZNER33' file='libvirt' value='7' type='virStorageVolWipeAlgorithm' info='33-pass random'/>
     <enum name='VIR_STORAGE_VOL_WIPE_ALG_PFITZNER7' file='libvirt' value='6' type='virStorageVolWipeAlgorithm' info='7-pass random'/>
-    <enum name='VIR_STORAGE_VOL_WIPE_ALG_RANDOM' file='libvirt' value='8' type='virStorageVolWipeAlgorithm' info='NB: this enum value will increase over time as new algorithms are
- added to the libvirt API. It reflects the last algorithm supported
- by this version of the libvirt API.'/>
+    <enum name='VIR_STORAGE_VOL_WIPE_ALG_RANDOM' file='libvirt' value='8' type='virStorageVolWipeAlgorithm' info='1-pass random'/>
     <enum name='VIR_STORAGE_VOL_WIPE_ALG_SCHNEIER' file='libvirt' value='5' type='virStorageVolWipeAlgorithm' info='7-pass method described by
 Bruce Schneier in &quot;Applied
 Cryptography&quot; (1996)'/>
@@ -2489,6 +2514,7 @@ Cryptography&quot; (1996)'/>
       <field name='errs' type='long long' info='In Xen this returns the mysterious &apos;oo_req&apos;.'/>
     </struct>
     <typedef name='virDomainBlockedReason' file='libvirt' type='enum'/>
+    <typedef name='virDomainChannelFlags' file='libvirt' type='enum'/>
     <typedef name='virDomainConsoleFlags' file='libvirt' type='enum'/>
     <struct name='virDomainControlInfo' file='libvirt' type='struct _virDomainControlInfo'>
       <field name='state' type='unsigned int' info='control state, one of virDomainControlState'/>
@@ -2698,7 +2724,7 @@ see note above'/>
     </typedef>
     <struct name='virNodeDevice' file='libvirt' type='struct _virNodeDevice'/>
     <typedef name='virNodeDevicePtr' file='libvirt' type='virNodeDevice *'>
-      <info><![CDATA[A virNodeDevicePtr is a pointer to a virNodeDevice structure.  Get one via virNodeDeviceLookupByKey, virNodeDeviceLookupByName, or virNodeDeviceCreate.  Be sure to Call virNodeDeviceFree when done using a virNodeDevicePtr obtained from any of the above functions to avoid leaking memory.]]></info>
+      <info><![CDATA[A virNodeDevicePtr is a pointer to a virNodeDevice structure.  Get one via virNodeDeviceLookupByName, or virNodeDeviceCreate.  Be sure to call virNodeDeviceFree when done using a virNodeDevicePtr obtained from any of the above functions to avoid leaking memory.]]></info>
     </typedef>
     <typedef name='virNodeGetCPUStatsAllCPUs' file='libvirt' type='enum'/>
     <typedef name='virNodeGetMemoryStatsAllCells' file='libvirt' type='enum'/>
@@ -2824,62 +2850,27 @@ unusual numa topology'/>
     <typedef name='virVcpuState' file='libvirt' type='enum'/>
     <variable name='virConnectAuthPtrDefault' file='libvirt' type='virConnectAuthPtr'/>
     <function name='virConnCopyLastError' file='virterror' module='virterror'>
-      <info><![CDATA[Copy the content of the last error caught on that connection
-
-This method is not protected against access from multiple
-threads. In a multi-threaded application, always use the
-global virGetLastError() API which is backed by thread
-local storage.
-
-If the connection object was discovered to be invalid by
-an API call, then the error will be reported against the
-global error object.
-
-Since 0.6.0, all errors reported in the per-connection object
-are also duplicated in the global error object. As such an
-application can always use virGetLastError(). This method
-remains for backwards compatibility.
-
-One will need to free the result with virResetError()]]></info>
-      <return type='int' info='0 if no error was found and the error code otherwise and -1 in case of parameter error.'/>
-      <arg name='conn' type='virConnectPtr' info='pointer to the hypervisor connection'/>
-      <arg name='to' type='virErrorPtr' info='target to receive the copy'/>
+      <info><![CDATA[]]></info>
+      <return type='int' info=''/>
+      <arg name='conn' type='virConnectPtr' info=''/>
+      <arg name='to' type='virErrorPtr' info=''/>
     </function>
     <function name='virConnGetLastError' file='virterror' module='virterror'>
-      <info><![CDATA[Provide a pointer to the last error caught on that connection
-
-This method is not protected against access from multiple
-threads. In a multi-threaded application, always use the
-global virGetLastError() API which is backed by thread
-local storage.
-
-If the connection object was discovered to be invalid by
-an API call, then the error will be reported against the
-global error object.
-
-Since 0.6.0, all errors reported in the per-connection object
-are also duplicated in the global error object. As such an
-application can always use virGetLastError(). This method
-remains for backwards compatibility.]]></info>
-      <return type='virErrorPtr' info='a pointer to the last error or NULL if none occurred.'/>
-      <arg name='conn' type='virConnectPtr' info='pointer to the hypervisor connection'/>
+      <info><![CDATA[]]></info>
+      <return type='virErrorPtr' info=''/>
+      <arg name='conn' type='virConnectPtr' info=''/>
     </function>
     <function name='virConnResetLastError' file='virterror' module='virterror'>
-      <info><![CDATA[The error object is kept in thread local storage, so separate
-threads can safely access this concurrently.
-
-Reset the last error caught on that connection]]></info>
+      <info><![CDATA[]]></info>
       <return type='void'/>
-      <arg name='conn' type='virConnectPtr' info='pointer to the hypervisor connection'/>
+      <arg name='conn' type='virConnectPtr' info=''/>
     </function>
     <function name='virConnSetErrorFunc' file='virterror' module='virterror'>
-      <info><![CDATA[Set a connection error handling function, if @handler is NULL
-it will reset to default which is to pass error back to the global
-library handler.]]></info>
+      <info><![CDATA[]]></info>
       <return type='void'/>
-      <arg name='conn' type='virConnectPtr' info='pointer to the hypervisor connection'/>
-      <arg name='userData' type='void *' info='pointer to the user data provided in the handler callback'/>
-      <arg name='handler' type='virErrorFunc' info='the function to get called in case of error or NULL'/>
+      <arg name='conn' type='virConnectPtr' info=''/>
+      <arg name='userData' type='void *' info=''/>
+      <arg name='handler' type='virErrorFunc' info=''/>
     </function>
     <functype name='virConnectAuthCallbackPtr' file='libvirt' module='libvirt'>
       <info><![CDATA[When authentication requires one or more interactions, this callback
@@ -3267,7 +3258,7 @@ over a channel (TCP or UNIX socket) which is not closed.]]></info>
 A connection will be classed as secure if it is either
 encrypted, or running over a channel which is not exposed
 to eavesdropping (eg a UNIX domain socket, or pipe)]]></info>
-      <return type='int' info='1 if secure, 0 if secure, -1 on error'/>
+      <return type='int' info='1 if secure, 0 if not secure, -1 on error'/>
       <arg name='conn' type='virConnectPtr' info='pointer to the connection object'/>
     </function>
     <function name='virConnectListAllDomains' file='libvirt' module='libvirt'>
@@ -3695,19 +3686,14 @@ registration, it will be invoked]]></info>
       <arg name='cb' type='virConnectCloseFunc' info='pointer to the current registered callback'/>
     </function>
     <function name='virCopyLastError' file='virterror' module='virterror'>
-      <info><![CDATA[Copy the content of the last error caught at the library level
-
-The error object is kept in thread local storage, so separate
-threads can safely access this concurrently.
-
-One will need to free the result with virResetError()]]></info>
-      <return type='int' info='0 if no error was found and the error code otherwise and -1 in case of parameter error.'/>
-      <arg name='to' type='virErrorPtr' info='target to receive the copy'/>
+      <info><![CDATA[]]></info>
+      <return type='int' info=''/>
+      <arg name='to' type='virErrorPtr' info=''/>
     </function>
     <function name='virDefaultErrorFunc' file='virterror' module='virterror'>
-      <info><![CDATA[Default routine reporting an error to stderr.]]></info>
+      <info><![CDATA[]]></info>
       <return type='void'/>
-      <arg name='err' type='virErrorPtr' info='pointer to the error.'/>
+      <arg name='err' type='virErrorPtr' info=''/>
     </function>
     <function name='virDomainAbortJob' file='libvirt' module='libvirt'>
       <info><![CDATA[Requests that the current background job be aborted at the
@@ -5000,10 +4986,15 @@ Flags may be one of more of the following:
   VIR_MIGRATE_UNDEFINE_SOURCE If the migration is successful, undefine the
                               domain on the source host.
   VIR_MIGRATE_PAUSED    Leave the domain suspended on the remote side.
+  VIR_MIGRATE_NON_SHARED_DISK Migration with non-shared storage with full
+                              disk copy
+  VIR_MIGRATE_NON_SHARED_INC  Migration with non-shared storage with
+                              incremental disk copy
   VIR_MIGRATE_CHANGE_PROTECTION Protect against domain configuration
                                 changes during the migration process (set
                                 automatically when supported).
   VIR_MIGRATE_UNSAFE    Force migration even if it is considered unsafe.
+  VIR_MIGRATE_OFFLINE Migrate offline
 
 VIR_MIGRATE_TUNNELLED requires that VIR_MIGRATE_PEER2PEER be set.
 Applications using the VIR_MIGRATE_PEER2PEER flag will probably
@@ -5064,10 +5055,15 @@ Flags may be one of more of the following:
   VIR_MIGRATE_UNDEFINE_SOURCE If the migration is successful, undefine the
                               domain on the source host.
   VIR_MIGRATE_PAUSED    Leave the domain suspended on the remote side.
+  VIR_MIGRATE_NON_SHARED_DISK Migration with non-shared storage with full
+                              disk copy
+  VIR_MIGRATE_NON_SHARED_INC  Migration with non-shared storage with
+                              incremental disk copy
   VIR_MIGRATE_CHANGE_PROTECTION Protect against domain configuration
                                 changes during the migration process (set
                                 automatically when supported).
   VIR_MIGRATE_UNSAFE    Force migration even if it is considered unsafe.
+  VIR_MIGRATE_OFFLINE Migrate offline
 
 VIR_MIGRATE_TUNNELLED requires that VIR_MIGRATE_PEER2PEER be set.
 Applications using the VIR_MIGRATE_PEER2PEER flag will probably
@@ -5166,10 +5162,16 @@ Flags may be one of more of the following:
                            on the destination host.
   VIR_MIGRATE_UNDEFINE_SOURCE If the migration is successful, undefine the
                               domain on the source host.
+  VIR_MIGRATE_PAUSED    Leave the domain suspended on the remote side.
+  VIR_MIGRATE_NON_SHARED_DISK Migration with non-shared storage with full
+                              disk copy
+  VIR_MIGRATE_NON_SHARED_INC  Migration with non-shared storage with
+                              incremental disk copy
   VIR_MIGRATE_CHANGE_PROTECTION Protect against domain configuration
                                 changes during the migration process (set
                                 automatically when supported).
   VIR_MIGRATE_UNSAFE    Force migration even if it is considered unsafe.
+  VIR_MIGRATE_OFFLINE Migrate offline
 
 The operation of this API hinges on the VIR_MIGRATE_PEER2PEER flag.
 If the VIR_MIGRATE_PEER2PEER flag is NOT set, the duri parameter
@@ -5224,10 +5226,16 @@ Flags may be one of more of the following:
                            on the destination host.
   VIR_MIGRATE_UNDEFINE_SOURCE If the migration is successful, undefine the
                               domain on the source host.
+  VIR_MIGRATE_PAUSED    Leave the domain suspended on the remote side.
+  VIR_MIGRATE_NON_SHARED_DISK Migration with non-shared storage with full
+                              disk copy
+  VIR_MIGRATE_NON_SHARED_INC  Migration with non-shared storage with
+                              incremental disk copy
   VIR_MIGRATE_CHANGE_PROTECTION Protect against domain configuration
                                 changes during the migration process (set
                                 automatically when supported).
   VIR_MIGRATE_UNSAFE    Force migration even if it is considered unsafe.
+  VIR_MIGRATE_OFFLINE Migrate offline
 
 The operation of this API hinges on the VIR_MIGRATE_PEER2PEER flag.
 
@@ -5281,6 +5289,25 @@ different types of hypervisor.]]></info>
       <arg name='flags' type='unsigned long' info='bitwise-OR of virDomainMigrateFlags'/>
       <arg name='dname' type='const char *' info='(optional) rename domain to this at destination'/>
       <arg name='bandwidth' type='unsigned long' info='(optional) specify migration bandwidth limit in Mbps'/>
+    </function>
+    <function name='virDomainOpenChannel' file='libvirt' module='libvirt'>
+      <info><![CDATA[This opens the host interface associated with a channel device on a
+guest, if the host interface is supported.  If @name is given, it
+can match either the device alias (e.g. "channel0"), or the virtio
+target name (e.g. "org.qemu.guest_agent.0").  If @name is omitted,
+then the first channel is opened. The channel is associated with
+the passed in @st stream, which should have been opened in
+non-blocking mode for bi-directional I/O.
+
+By default, when @flags is 0, the open will fail if libvirt detects
+that the channel is already in use by another client; passing
+VIR_DOMAIN_CHANNEL_FORCE will cause libvirt to forcefully remove the
+other client prior to opening this channel.]]></info>
+      <return type='int' info='0 if the channel was opened, -1 on error'/>
+      <arg name='dom' type='virDomainPtr' info='a domain object'/>
+      <arg name='name' type='const char *' info='the channel name, or NULL'/>
+      <arg name='st' type='virStreamPtr' info='a stream to associate with the channel'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainChannelFlags'/>
     </function>
     <function name='virDomainOpenConsole' file='libvirt' module='libvirt'>
       <info><![CDATA[This opens the backend associated with a console, serial or
@@ -6394,7 +6421,7 @@ reconfiguring the NIC device backend connectivity, etc.]]></info>
       <arg name='userData' type='void *' info='user provided data for the error callback'/>
       <arg name='error' type='virErrorPtr' info='the error being raised.'/>
     </functype>
-    <function name='virEventAddHandle' file='libvirt' module='event'>
+    <function name='virEventAddHandle' file='libvirt' module='virevent'>
       <info><![CDATA[]]></info>
       <return type='int' info=''/>
       <arg name='fd' type='int' info=''/>
@@ -6420,7 +6447,7 @@ they will likely deadlock in libvirt.]]></info>
       <arg name='opaque' type='void *' info='user data to pass to the callback'/>
       <arg name='ff' type='virFreeCallback' info='the callback invoked to free opaque data blob'/>
     </functype>
-    <function name='virEventAddTimeout' file='libvirt' module='event'>
+    <function name='virEventAddTimeout' file='libvirt' module='virevent'>
       <info><![CDATA[]]></info>
       <return type='int' info=''/>
       <arg name='timeout' type='int' info=''/>
@@ -6450,7 +6477,7 @@ be invoked once for each event which is pending.]]></info>
       <arg name='events' type='int' info='bitset of events from virEventHandleType constants'/>
       <arg name='opaque' type='void *' info='user data registered with handle'/>
     </functype>
-    <function name='virEventRegisterDefaultImpl' file='libvirt' module='event'>
+    <function name='virEventRegisterDefaultImpl' file='libvirt' module='virevent'>
       <info><![CDATA[Registers a default event implementation based on the
 poll() system call. This is a generic implementation
 that can be used by any client application which does
@@ -6462,7 +6489,7 @@ a loop to process events.  Failure to do so may result in connections being
 closed unexpectedly as a result of keepalive timeout.]]></info>
       <return type='int' info='0 on success, -1 on failure.'/>
     </function>
-    <function name='virEventRegisterImpl' file='libvirt' module='event'>
+    <function name='virEventRegisterImpl' file='libvirt' module='virevent'>
       <info><![CDATA[Registers an event implementation, to allow integration
 with an external event loop. Applications would use this
 to integrate with the libglib2 event loop, or libevent
@@ -6480,7 +6507,7 @@ the generic libvirt implementation.]]></info>
       <arg name='updateTimeout' type='virEventUpdateTimeoutFunc' info='the callback to update a timeout'/>
       <arg name='removeTimeout' type='virEventRemoveTimeoutFunc' info='the callback to remove a timeout'/>
     </function>
-    <function name='virEventRemoveHandle' file='libvirt' module='event'>
+    <function name='virEventRemoveHandle' file='libvirt' module='virevent'>
       <info><![CDATA[]]></info>
       <return type='int' info=''/>
       <arg name='watch' type='int' info=''/>
@@ -6495,7 +6522,7 @@ function call, when it is safe to release the user data.]]></info>
       <return type='int' info=''/>
       <arg name='watch' type='int' info='file descriptor watch to stop listening on'/>
     </functype>
-    <function name='virEventRemoveTimeout' file='libvirt' module='event'>
+    <function name='virEventRemoveTimeout' file='libvirt' module='virevent'>
       <info><![CDATA[]]></info>
       <return type='int' info=''/>
       <arg name='timer' type='int' info=''/>
@@ -6509,7 +6536,7 @@ function call, when it is safe to release the user data.]]></info>
       <return type='int' info='0 on success, -1 on failure'/>
       <arg name='timer' type='int' info='the timer to remove'/>
     </functype>
-    <function name='virEventRunDefaultImpl' file='libvirt' module='event'>
+    <function name='virEventRunDefaultImpl' file='libvirt' module='virevent'>
       <info><![CDATA[Run one iteration of the event loop. Applications
 will generally want to have a thread which invokes
 this method in an infinite loop
@@ -6528,7 +6555,7 @@ this method in an infinite loop
       <arg name='timer' type='int' info='timer id emitting the event'/>
       <arg name='opaque' type='void *' info='user data registered with handle'/>
     </functype>
-    <function name='virEventUpdateHandle' file='libvirt' module='event'>
+    <function name='virEventUpdateHandle' file='libvirt' module='virevent'>
       <info><![CDATA[]]></info>
       <return type='void'/>
       <arg name='watch' type='int' info=''/>
@@ -6541,7 +6568,7 @@ events to listen on change]]></info>
       <arg name='watch' type='int' info='file descriptor watch to modify'/>
       <arg name='event' type='int' info='new events to listen on'/>
     </functype>
-    <function name='virEventUpdateTimeout' file='libvirt' module='event'>
+    <function name='virEventUpdateTimeout' file='libvirt' module='virevent'>
       <info><![CDATA[]]></info>
       <return type='void'/>
       <arg name='timer' type='int' info=''/>
@@ -6569,16 +6596,13 @@ or crashes.]]></info>
       <arg name='opaque' type='void *' info='opaque user data provided at registration'/>
     </functype>
     <function name='virFreeError' file='virterror' module='virterror'>
-      <info><![CDATA[Resets and frees the given error.]]></info>
+      <info><![CDATA[]]></info>
       <return type='void'/>
-      <arg name='err' type='virErrorPtr' info='error to free'/>
+      <arg name='err' type='virErrorPtr' info=''/>
     </function>
     <function name='virGetLastError' file='virterror' module='virterror'>
-      <info><![CDATA[Provide a pointer to the last error caught at the library level
-
-The error object is kept in thread local storage, so separate
-threads can safely access this concurrently.]]></info>
-      <return type='virErrorPtr' info='a pointer to the last error or NULL if none occurred.'/>
+      <info><![CDATA[]]></info>
+      <return type='virErrorPtr' info=''/>
     </function>
     <function name='virGetVersion' file='libvirt' module='libvirt'>
       <info><![CDATA[Provides version information. @libVer is the version of the
@@ -7323,22 +7347,17 @@ resume the node after the duration is complete.]]></info>
       <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
     <function name='virResetError' file='virterror' module='virterror'>
-      <info><![CDATA[Reset the error being pointed to]]></info>
+      <info><![CDATA[]]></info>
       <return type='void'/>
-      <arg name='err' type='virErrorPtr' info='pointer to the virError to clean up'/>
+      <arg name='err' type='virErrorPtr' info=''/>
     </function>
     <function name='virResetLastError' file='virterror' module='virterror'>
-      <info><![CDATA[Reset the last error caught at the library level.
-
-The error object is kept in thread local storage, so separate
-threads can safely access this concurrently, only resetting
-their own error object.]]></info>
+      <info><![CDATA[]]></info>
       <return type='void'/>
     </function>
     <function name='virSaveLastError' file='virterror' module='virterror'>
-      <info><![CDATA[Save the last error into a new error object.  On success, errno is
-unchanged; on failure, errno is ENOMEM.]]></info>
-      <return type='virErrorPtr' info='a pointer to the copied error or NULL if allocation failed. It is the caller&apos;s responsibility to free the error with virFreeError().'/>
+      <info><![CDATA[]]></info>
+      <return type='virErrorPtr' info=''/>
     </function>
     <function name='virSecretDefineXML' file='libvirt' module='libvirt'>
       <info><![CDATA[If XML specifies a UUID, locates the specified secret and replaces all
@@ -7464,12 +7483,10 @@ virSecretPtr object.]]></info>
       <arg name='secret' type='virSecretPtr' info='A virSecret secret'/>
     </function>
     <function name='virSetErrorFunc' file='virterror' module='virterror'>
-      <info><![CDATA[Set a library global error handling function, if @handler is NULL,
-it will reset to default printing on stderr. The error raised there
-are those for which no handler at the connection level could caught.]]></info>
+      <info><![CDATA[]]></info>
       <return type='void'/>
-      <arg name='userData' type='void *' info='pointer to the user data provided in the handler callback'/>
-      <arg name='handler' type='virErrorFunc' info='the function to get called in case of error or NULL'/>
+      <arg name='userData' type='void *' info=''/>
+      <arg name='handler' type='virErrorFunc' info=''/>
     </function>
     <function name='virStoragePoolBuild' file='libvirt' module='libvirt'>
       <info><![CDATA[Currently only filesystem pool accepts flags VIR_STORAGE_POOL_BUILD_OVERWRITE
@@ -8160,5 +8177,223 @@ of -1 at any time will abort the send operation]]></info>
       <arg name='nbytes' type='size_t' info='size of the data array'/>
       <arg name='opaque' type='void *' info='optional application provided data'/>
     </functype>
+    <function name='virTypedParamsAddBoolean' file='libvirt' module='virtypedparam'>
+      <info><![CDATA[Adds new parameter called @name with boolean type and sets its value to
+@value. If @params array points to NULL or to a space that is not large
+enough to accommodate the new parameter (@maxparams < @nparams + 1), the
+function allocates more space for it and updates @maxparams. On success,
+@nparams is incremented by one. The function fails with VIR_ERR_INVALID_ARG
+error if the parameter already exists in @params.]]></info>
+      <return type='int' info='0 on success, -1 on error.'/>
+      <arg name='params' type='virTypedParameterPtr *' info='pointer to the array of typed parameters'/>
+      <arg name='nparams' type='int *' info='number of parameters in the @params array'/>
+      <arg name='maxparams' type='int *' info='maximum number of parameters that can be stored in @params array without allocating more memory'/>
+      <arg name='name' type='const char *' info='name of the parameter to find'/>
+      <arg name='value' type='int' info='the value to store into the new parameter'/>
+    </function>
+    <function name='virTypedParamsAddDouble' file='libvirt' module='virtypedparam'>
+      <info><![CDATA[Adds new parameter called @name with double type and sets its value to
+@value. If @params array points to NULL or to a space that is not large
+enough to accommodate the new parameter (@maxparams < @nparams + 1), the
+function allocates more space for it and updates @maxparams. On success,
+@nparams is incremented by one. The function fails with VIR_ERR_INVALID_ARG
+error if the parameter already exists in @params.]]></info>
+      <return type='int' info='0 on success, -1 on error.'/>
+      <arg name='params' type='virTypedParameterPtr *' info='pointer to the array of typed parameters'/>
+      <arg name='nparams' type='int *' info='number of parameters in the @params array'/>
+      <arg name='maxparams' type='int *' info='maximum number of parameters that can be stored in @params array without allocating more memory'/>
+      <arg name='name' type='const char *' info='name of the parameter to find'/>
+      <arg name='value' type='double' info='the value to store into the new parameter'/>
+    </function>
+    <function name='virTypedParamsAddFromString' file='libvirt' module='virtypedparam'>
+      <info><![CDATA[Adds new parameter called @name with the requested @type and parses its
+value from the @value string. If the requested type is string, the function
+creates its own copy of the @value string, which needs to be freed using
+virTypedParamsFree or virTypedParamsClear. If @params array points to NULL
+or to a space that is not large enough to accommodate the new parameter
+(@maxparams < @nparams + 1), the function allocates more space for it and
+updates @maxparams. On success, @nparams is incremented by one. The
+function fails with VIR_ERR_INVALID_ARG error if the parameter already
+exists in @params.]]></info>
+      <return type='int' info='0 on success, -1 on error.'/>
+      <arg name='params' type='virTypedParameterPtr *' info='pointer to the array of typed parameters'/>
+      <arg name='nparams' type='int *' info='number of parameters in the @params array'/>
+      <arg name='maxparams' type='int *' info='maximum number of parameters that can be stored in @params array without allocating more memory'/>
+      <arg name='name' type='const char *' info='name of the parameter to find'/>
+      <arg name='type' type='int' info='type of the parameter'/>
+      <arg name='value' type='const char *' info='the value to store into the new parameter encoded as a string'/>
+    </function>
+    <function name='virTypedParamsAddInt' file='libvirt' module='virtypedparam'>
+      <info><![CDATA[Adds new parameter called @name with int type and sets its value to @value.
+If @params array points to NULL or to a space that is not large enough to
+accommodate the new parameter (@maxparams < @nparams + 1), the function
+allocates more space for it and updates @maxparams. On success, @nparams
+is incremented by one. The function fails with VIR_ERR_INVALID_ARG error
+if the parameter already exists in @params.]]></info>
+      <return type='int' info='0 on success, -1 on error.'/>
+      <arg name='params' type='virTypedParameterPtr *' info='pointer to the array of typed parameters'/>
+      <arg name='nparams' type='int *' info='number of parameters in the @params array'/>
+      <arg name='maxparams' type='int *' info='maximum number of parameters that can be stored in @params array without allocating more memory'/>
+      <arg name='name' type='const char *' info='name of the parameter to find'/>
+      <arg name='value' type='int' info='the value to store into the new parameter'/>
+    </function>
+    <function name='virTypedParamsAddLLong' file='libvirt' module='virtypedparam'>
+      <info><![CDATA[Adds new parameter called @name with long long int type and sets its value
+to @value. If @params array points to NULL or to a space that is not large
+enough to accommodate the new parameter (@maxparams < @nparams + 1), the
+function allocates more space for it and updates @maxparams. On success,
+@nparams is incremented by one. The function fails with VIR_ERR_INVALID_ARG
+error if the parameter already exists in @params.]]></info>
+      <return type='int' info='0 on success, -1 on error.'/>
+      <arg name='params' type='virTypedParameterPtr *' info='pointer to the array of typed parameters'/>
+      <arg name='nparams' type='int *' info='number of parameters in the @params array'/>
+      <arg name='maxparams' type='int *' info='maximum number of parameters that can be stored in @params array without allocating more memory'/>
+      <arg name='name' type='const char *' info='name of the parameter to find'/>
+      <arg name='value' type='long long' info='the value to store into the new parameter'/>
+    </function>
+    <function name='virTypedParamsAddString' file='libvirt' module='virtypedparam'>
+      <info><![CDATA[Adds new parameter called @name with char * type and sets its value to
+@value. The function creates its own copy of @value string, which needs to
+be freed using virTypedParamsFree or virTypedParamsClear. If @params array
+points to NULL or to a space that is not large enough to accommodate the
+new parameter (@maxparams < @nparams + 1), the function allocates more
+space for it and updates @maxparams. On success, @nparams is incremented
+by one. The function fails with VIR_ERR_INVALID_ARG error if the parameter
+already exists in @params.]]></info>
+      <return type='int' info='0 on success, -1 on error.'/>
+      <arg name='params' type='virTypedParameterPtr *' info='pointer to the array of typed parameters'/>
+      <arg name='nparams' type='int *' info='number of parameters in the @params array'/>
+      <arg name='maxparams' type='int *' info='maximum number of parameters that can be stored in @params array without allocating more memory'/>
+      <arg name='name' type='const char *' info='name of the parameter to find'/>
+      <arg name='value' type='const char *' info='the value to store into the new parameter'/>
+    </function>
+    <function name='virTypedParamsAddUInt' file='libvirt' module='virtypedparam'>
+      <info><![CDATA[Adds new parameter called @name with unsigned int type and sets its value
+to @value. If @params array points to NULL or to a space that is not large
+enough to accommodate the new parameter (@maxparams < @nparams + 1), the
+function allocates more space for it and updates @maxparams. On success,
+@nparams is incremented by one. The function fails with VIR_ERR_INVALID_ARG
+error if the parameter already exists in @params.]]></info>
+      <return type='int' info='0 on success, -1 on error.'/>
+      <arg name='params' type='virTypedParameterPtr *' info='pointer to the array of typed parameters'/>
+      <arg name='nparams' type='int *' info='number of parameters in the @params array'/>
+      <arg name='maxparams' type='int *' info='maximum number of parameters that can be stored in @params array without allocating more memory'/>
+      <arg name='name' type='const char *' info='name of the parameter to find'/>
+      <arg name='value' type='unsigned int' info='the value to store into the new parameter'/>
+    </function>
+    <function name='virTypedParamsAddULLong' file='libvirt' module='virtypedparam'>
+      <info><![CDATA[Adds new parameter called @name with unsigned long long type and sets its
+value to @value. If @params array points to NULL or to a space that is not
+large enough to accommodate the new parameter (@maxparams < @nparams + 1),
+the function allocates more space for it and updates @maxparams. On success,
+@nparams is incremented by one. The function fails with VIR_ERR_INVALID_ARG
+error if the parameter already exists in @params.]]></info>
+      <return type='int' info='0 on success, -1 on error.'/>
+      <arg name='params' type='virTypedParameterPtr *' info='pointer to the array of typed parameters'/>
+      <arg name='nparams' type='int *' info='number of parameters in the @params array'/>
+      <arg name='maxparams' type='int *' info='maximum number of parameters that can be stored in @params array without allocating more memory'/>
+      <arg name='name' type='const char *' info='name of the parameter to find'/>
+      <arg name='value' type='unsigned long long' info='the value to store into the new parameter'/>
+    </function>
+    <function name='virTypedParamsClear' file='libvirt' module='virtypedparam'>
+      <info><![CDATA[Frees all memory used by string parameters. The memory occupied by @params
+is not freed; use virTypedParamsFree if you want it to be freed too.]]></info>
+      <return type='void'/>
+      <arg name='params' type='virTypedParameterPtr' info='the array of typed parameters'/>
+      <arg name='nparams' type='int' info='number of parameters in the @params array'/>
+    </function>
+    <function name='virTypedParamsFree' file='libvirt' module='virtypedparam'>
+      <info><![CDATA[Frees all memory used by string parameters and the memory occupied by
+@params.]]></info>
+      <return type='void'/>
+      <arg name='params' type='virTypedParameterPtr' info='the array of typed parameters'/>
+      <arg name='nparams' type='int' info='number of parameters in the @params array'/>
+    </function>
+    <function name='virTypedParamsGet' file='libvirt' module='virtypedparam'>
+      <info><![CDATA[Finds typed parameter called @name.]]></info>
+      <return type='virTypedParameterPtr' info='pointer to the parameter or NULL if it does not exist in @params.'/>
+      <arg name='params' type='virTypedParameterPtr' info='array of typed parameters'/>
+      <arg name='nparams' type='int' info='number of parameters in the @params array'/>
+      <arg name='name' type='const char *' info='name of the parameter to find'/>
+    </function>
+    <function name='virTypedParamsGetBoolean' file='libvirt' module='virtypedparam'>
+      <info><![CDATA[Finds typed parameter called @name and store its boolean value in @value.
+The function fails with VIR_ERR_INVALID_ARG error if the parameter does not
+have the expected type. By passing NULL as @value, the function may be used
+to check presence and type of the parameter.]]></info>
+      <return type='int' info='1 on success, 0 when the parameter does not exist in @params, or -1 on error.'/>
+      <arg name='params' type='virTypedParameterPtr' info='array of typed parameters'/>
+      <arg name='nparams' type='int' info='number of parameters in the @params array'/>
+      <arg name='name' type='const char *' info='name of the parameter to find'/>
+      <arg name='value' type='int *' info='where to store the parameter&apos;s value'/>
+    </function>
+    <function name='virTypedParamsGetDouble' file='libvirt' module='virtypedparam'>
+      <info><![CDATA[Finds typed parameter called @name and store its double value in @value.
+The function fails with VIR_ERR_INVALID_ARG error if the parameter does not
+have the expected type. By passing NULL as @value, the function may be used
+to check presence and type of the parameter.]]></info>
+      <return type='int' info='1 on success, 0 when the parameter does not exist in @params, or -1 on error.'/>
+      <arg name='params' type='virTypedParameterPtr' info='array of typed parameters'/>
+      <arg name='nparams' type='int' info='number of parameters in the @params array'/>
+      <arg name='name' type='const char *' info='name of the parameter to find'/>
+      <arg name='value' type='double *' info='where to store the parameter&apos;s value'/>
+    </function>
+    <function name='virTypedParamsGetInt' file='libvirt' module='virtypedparam'>
+      <info><![CDATA[Finds typed parameter called @name and store its int value in @value. The
+function fails with VIR_ERR_INVALID_ARG error if the parameter does not
+have the expected type. By passing NULL as @value, the function may be
+used to check presence and type of the parameter.]]></info>
+      <return type='int' info='1 on success, 0 when the parameter does not exist in @params, or -1 on error.'/>
+      <arg name='params' type='virTypedParameterPtr' info='array of typed parameters'/>
+      <arg name='nparams' type='int' info='number of parameters in the @params array'/>
+      <arg name='name' type='const char *' info='name of the parameter to find'/>
+      <arg name='value' type='int *' info='where to store the parameter&apos;s value'/>
+    </function>
+    <function name='virTypedParamsGetLLong' file='libvirt' module='virtypedparam'>
+      <info><![CDATA[Finds typed parameter called @name and store its long long int value in
+@value. The function fails with VIR_ERR_INVALID_ARG error if the parameter
+does not have the expected type. By passing NULL as @value, the function
+may be used to check presence and type of the parameter.]]></info>
+      <return type='int' info='1 on success, 0 when the parameter does not exist in @params, or -1 on error.'/>
+      <arg name='params' type='virTypedParameterPtr' info='array of typed parameters'/>
+      <arg name='nparams' type='int' info='number of parameters in the @params array'/>
+      <arg name='name' type='const char *' info='name of the parameter to find'/>
+      <arg name='value' type='long long *' info='where to store the parameter&apos;s value'/>
+    </function>
+    <function name='virTypedParamsGetString' file='libvirt' module='virtypedparam'>
+      <info><![CDATA[Finds typed parameter called @name and store its char * value in @value.
+The function does not create a copy of the string and the caller must not
+free the string @value points to. The function fails with
+VIR_ERR_INVALID_ARG error if the parameter does not have the expected type.
+By passing NULL as @value, the function may be used to check presence and
+type of the parameter.]]></info>
+      <return type='int' info='1 on success, 0 when the parameter does not exist in @params, or -1 on error.'/>
+      <arg name='params' type='virTypedParameterPtr' info='array of typed parameters'/>
+      <arg name='nparams' type='int' info='number of parameters in the @params array'/>
+      <arg name='name' type='const char *' info='name of the parameter to find'/>
+      <arg name='value' type='const char **' info='where to store the parameter&apos;s value'/>
+    </function>
+    <function name='virTypedParamsGetUInt' file='libvirt' module='virtypedparam'>
+      <info><![CDATA[Finds typed parameter called @name and store its unsigned int value in
+@value. The function fails with VIR_ERR_INVALID_ARG error if the parameter
+does not have the expected type. By passing NULL as @value, the function
+may be used to check presence and type of the parameter.]]></info>
+      <return type='int' info='1 on success, 0 when the parameter does not exist in @params, or -1 on error.'/>
+      <arg name='params' type='virTypedParameterPtr' info='array of typed parameters'/>
+      <arg name='nparams' type='int' info='number of parameters in the @params array'/>
+      <arg name='name' type='const char *' info='name of the parameter to find'/>
+      <arg name='value' type='unsigned int *' info='where to store the parameter&apos;s value'/>
+    </function>
+    <function name='virTypedParamsGetULLong' file='libvirt' module='virtypedparam'>
+      <info><![CDATA[Finds typed parameter called @name and store its unsigned long long int
+value in @value. The function fails with VIR_ERR_INVALID_ARG error if the
+parameter does not have the expected type. By passing NULL as @value, the
+function may be used to check presence and type of the parameter.]]></info>
+      <return type='int' info='1 on success, 0 when the parameter does not exist in @params, or -1 on error.'/>
+      <arg name='params' type='virTypedParameterPtr' info='array of typed parameters'/>
+      <arg name='nparams' type='int' info='number of parameters in the @params array'/>
+      <arg name='name' type='const char *' info='name of the parameter to find'/>
+      <arg name='value' type='unsigned long long *' info='where to store the parameter&apos;s value'/>
+    </function>
   </symbols>
 </api>

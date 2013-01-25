@@ -1,6 +1,6 @@
 /* Like <fcntl.h>, but with non-working flags defined to 0.
 
-   Copyright (C) 2006-2012 Free Software Foundation, Inc.
+   Copyright (C) 2006-2013 Free Software Foundation, Inc.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU Lesser General Public License as published by
@@ -281,7 +281,7 @@ _GL_WARN_ON_USE (openat, "openat is not portable - "
 # define O_TTY_INIT 0
 #endif
 
-#if O_ACCMODE != (O_RDONLY | O_WRONLY | O_RDWR | O_EXEC | O_SEARCH)
+#if ~O_ACCMODE & (O_RDONLY | O_WRONLY | O_RDWR | O_EXEC | O_SEARCH)
 # undef O_ACCMODE
 # define O_ACCMODE (O_RDONLY | O_WRONLY | O_RDWR | O_EXEC | O_SEARCH)
 #endif

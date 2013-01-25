@@ -27,12 +27,12 @@
 #include "virnetdev.h"
 #include "virnetdevbridge.h"
 #include "virnetdevopenvswitch.h"
-#include "virterror_internal.h"
+#include "virerror.h"
 #include "virfile.h"
-#include "virterror_internal.h"
-#include "memory.h"
-#include "logging.h"
-#include "util.h"
+#include "virerror.h"
+#include "viralloc.h"
+#include "virlog.h"
+#include "virutil.h"
 
 #include <sys/ioctl.h>
 #include <net/if.h>

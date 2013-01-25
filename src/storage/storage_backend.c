@@ -41,20 +41,20 @@
 # include <linux/fs.h>
 #endif
 
-#if HAVE_SELINUX
+#if WITH_SELINUX
 # include <selinux/selinux.h>
 #endif
 
 #include "datatypes.h"
-#include "virterror_internal.h"
-#include "util.h"
-#include "memory.h"
+#include "virerror.h"
+#include "virutil.h"
+#include "viralloc.h"
 #include "internal.h"
 #include "secret_conf.h"
-#include "uuid.h"
-#include "storage_file.h"
+#include "viruuid.h"
+#include "virstoragefile.h"
 #include "storage_backend.h"
-#include "logging.h"
+#include "virlog.h"
 #include "virfile.h"
 #include "stat-time.h"
 
@@ -141,7 +141,7 @@ virStorageBackendCopyToFD(virStorageVolDefPtr vol,
     size_t rbytes = READ_BLOCK_SIZE_DEFAULT;
     size_t wbytes = 0;
     int interval;
-    char *zerobuf;
+    char *zerobuf = NULL;
     char *buf = NULL;
     struct stat st;
 
@@ -1177,7 +1177,7 @@ virStorageBackendUpdateVolTargetInfoFD(virStorageVolTargetPtr target,
                                        unsigned long long *capacity)
 {
     struct stat sb;
-#if HAVE_SELINUX
+#if WITH_SELINUX
     security_context_t filecon = NULL;
 #endif
 
@@ -1241,7 +1241,7 @@ virStorageBackendUpdateVolTargetInfoFD(virStorageVolTargetPtr target,
 
     VIR_FREE(target->perms.label);
 
-#if HAVE_SELINUX
+#if WITH_SELINUX
     /* XXX: make this a security driver call */
     if (fgetfilecon_raw(fd, &filecon) == -1) {
         if (errno != ENODATA && errno != ENOTSUP) {
