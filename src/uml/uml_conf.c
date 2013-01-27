@@ -33,19 +33,18 @@
 #include <fcntl.h>
 #include <sys/wait.h>
 #include <arpa/inet.h>
-#include <sys/utsname.h>
 
 #include "uml_conf.h"
-#include "uuid.h"
-#include "buf.h"
-#include "conf.h"
-#include "util.h"
-#include "memory.h"
+#include "viruuid.h"
+#include "virbuffer.h"
+#include "virconf.h"
+#include "virutil.h"
+#include "viralloc.h"
 #include "nodeinfo.h"
-#include "logging.h"
+#include "virlog.h"
 #include "domain_nwfilter.h"
 #include "virfile.h"
-#include "command.h"
+#include "vircommand.h"
 #include "virnetdevtap.h"
 #include "virnodesuspend.h"
 
@@ -54,21 +53,17 @@
 
 
 static int umlDefaultConsoleType(const char *ostype ATTRIBUTE_UNUSED,
-                                 const char *arch ATTRIBUTE_UNUSED)
+                                 virArch arch ATTRIBUTE_UNUSED)
 {
     return VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_UML;
 }
 
 
 virCapsPtr umlCapsInit(void) {
-    struct utsname utsname;
     virCapsPtr caps;
     virCapsGuestPtr guest;
 
-    /* Really, this never fails - look at the man-page. */
-    uname(&utsname);
-
-    if ((caps = virCapabilitiesNew(utsname.machine,
+    if ((caps = virCapabilitiesNew(virArchFromHost(),
                                    0, 0)) == NULL)
         goto error;
 
@@ -92,8 +87,7 @@ virCapsPtr umlCapsInit(void) {
 
     if ((guest = virCapabilitiesAddGuest(caps,
                                          "uml",
-                                         utsname.machine,
-                                         STREQ(utsname.machine, "x86_64") ? 64 : 32,
+                                         caps->host.arch,
                                          NULL,
                                          NULL,
                                          0,
@@ -412,10 +406,7 @@ virCommandPtr umlBuildCommandLine(virConnectPtr conn,
                                   virDomainObjPtr vm)
 {
     int i, j;
-    struct utsname ut;
     virCommandPtr cmd;
-
-    uname(&ut);
 
     cmd = virCommandNew(vm->def->os.kernel);
 

@@ -1395,7 +1395,18 @@
         rawio='yes', rawio capability will be enabled for all disks in
         the domain (because, in the case of QEMU, this capability can
         only be set on a per-process basis). This attribute is only
-        valid when device is "lun".
+        valid when device is "lun". NB, <code>rawio</code> intends to
+        confine the capability per-device, however, current QEMU
+        implementation gives the domain process broader capability
+        than that (per-process basis, affects all the domain disks).
+        To confine the capability as much as possible for QEMU driver
+        as this stage, <code>sgio</code> is recommended, it's more
+        secure than <code>rawio</code>.
+        The optional <code>sgio</code> (<span class="since">since 1.0.2</span>)
+        attribute indicates whether the kernel will filter unprivileged
+        SG_IO commands for the disk, valid settings are "filtered" or
+        "unfiltered". Defaults to "filtered". Similar to <code>rawio</code>,
+        <code>sgio</code> is only valid for device 'lun'.
         The optional <code>snapshot</code> attribute indicates the default
         behavior of the disk during disk snapshots: "internal"
         requires a file format such as qcow2 that can store both the
@@ -1631,7 +1642,7 @@
       <dt><code>readonly</code></dt>
       <dd>If present, this indicates the device cannot be modified by
         the guest.  For now, this is the default for disks with
-        attribute <code>type='cdrom'</code>.
+        attribute <code>device='cdrom'</code>.
       </dd>
       <dt><code>shareable</code></dt>
       <dd>If present, this indicates the device is expected to be shared
@@ -2123,13 +2134,15 @@
       </dd>
     </dl>
 
-    <h4><a name="elementsUSB">USB and PCI devices</a></h4>
+    <h4><a name="elementsHostDev">Host device assignment</a></h4>
+
+    <h5><a href="elementsHostDevSubsys">USB / PCI devices</a></h5>
 
     <p>
       USB and PCI devices attached to the host can be passed through
-      to the guest using
-      the <code>hostdev</code> element. <span class="since">since after
-      0.4.4 for USB and 0.6.0 for PCI (KVM only)</span>:
+      to the guest using the <code>hostdev</code> element.
+      <span class="since">since after 0.4.4 for USB and 0.6.0 for PCI
+        (KVM only)</span>:
     </p>
 
 <pre>
@@ -2245,6 +2258,51 @@
       with <code>virsh
       nodedev-list</code>. <a href="#elementsAddress">See above</a> for
       more details on the address element.
+    </dl>
+
+
+    <h5><a href="elementsHostDevCaps">Block / character devices</a></h5>
+
+    <p>
+      Block / character devices from the host can be passed through
+      to the guest using the <code>hostdev</code> element. This is
+      only possible with container based virtualization.
+      <span class="since">since after 1.0.1 for LXC</span>:
+    </p>
+
+    <pre>
+...
+&lt;hostdev mode='capabilities' type='storage'&gt;
+  &lt;source&gt;
+    &lt;block&gt;/dev/sdf1&lt;/block&gt;
+  &lt;/source&gt;
+&lt;/hostdev&gt;
+...
+    </pre>
+
+    <pre>
+...
+&lt;hostdev mode='capabilities' type='misc'&gt;
+  &lt;source&gt;
+    &lt;char&gt;/dev/input/event3&lt;/char&gt;
+  &lt;/source&gt;
+&lt;/hostdev&gt;
+...
+    </pre>
+
+    <dl>
+      <dt><code>hostdev</code></dt>
+      <dd>The <code>hostdev</code> element is the main container for describing
+        host devices. For block/character device passthrough <code>mode</code> is
+        always "capabilities" and <code>type</code> is "block" for a block
+        device and "char" for a character device.
+      </dd>
+      <dt><code>source</code></dt>
+      <dd>The source element describes the device as seen from the host.
+        For block devices, the path to the block device in the host
+        OS is provided in the nested "block" element, while for character
+        devices the "char" element is used
+      </dd>
     </dl>
 
     <h4><a name="elementsRedir">Redirected devices</a></h4>
@@ -2499,12 +2557,15 @@
       virtualport types (and also to leave out certain attributes); at
       domain startup time, a complete <code>&lt;virtualport&gt;</code>
       element will be constructed by merging together the type and
-      attributes found in the which will be filled in from the network
-      or portgroup <code>&lt;virtualport&gt;</code>)
+      attributes defined in the network and the portgroup referenced
+      by the interface. The newly-constructed virtualport is a combination
+      of them. The attributes from lower virtualport can't make change
+      on the ones defined in higher virtualport.
+      Interface takes the highest priority, portgroup is lowest priority.
       (<span class="since">Since 0.10.0</span>). For example, in order
       to work properly with both an 802.1Qbh switch and an Open vSwitch
       switch, you may choose to specify no type, but both
-      an <code>instanceid</code> (in case the switch is 802.1Qbh) and
+      an <code>profileid</code> (in case the switch is 802.1Qbh) and
       an <code>interfaceid</code> (in case the switch is Open vSwitch)
       (you may also omit the other attributes, such as managerid,
       typeid, or profileid, to be filled in from the
@@ -3500,7 +3561,15 @@ qemu-kvm -net nic,model=? /dev/null
         will add a default <code>video</code> according to the guest type.
         For a guest of type "kvm", the default <code>video</code> for it is:
         <code>type</code> with value "cirrus", <code>vram</code> with value
-        "9216", and <code>heads</code> with value "1".
+        "9216", and <code>heads</code> with value "1". By default, the first
+        video device in domain xml is the primary one, but the optional
+        attribute <code>primary</code> (<span class="since">since 1.0.2</span>)
+        with value 'yes' can be used to mark the primary in cases of mutiple
+        video device. The non-primary must be type of "qxl". The optional
+        attribute <code>ram</code> (<span class="since">since
+        1.0.2</span>) is allowed for "qxl" type only and specifies
+        the size of the primary bar, while <code>vram</code> specifies the
+        secondary bar size.  If "ram" is not supplied a default value is used.
       </dd>
 
       <dt><code>model</code></dt>
@@ -3626,7 +3695,14 @@ qemu-kvm -net nic,model=? /dev/null
     <p>
       <code>target</code> can have a <code>port</code> attribute, which
       specifies the port number. Ports are numbered starting from 0. There are
-      usually 0, 1 or 2 serial ports.
+      usually 0, 1 or 2 serial ports. There is also an optional
+      <code>type</code> attribute <span class="since">since 1.0.2</span>
+      which has two choices for its value, one is <code>isa-serial</code>,
+      the other is <code>usb-serial</code>. If <code>type</code> is missing,
+      <code>isa-serial</code> will be used by default. For <code>usb-serial</code>
+      an optional sub-element <code>&lt;address&gt;</code> with
+      <code>type='usb'</code> can tie the device to a particular controller,
+      <a href="#elementsAddress">documented above</a>.
     </p>
 
     <h6><a name="elementCharConsole">Console</a></h6>
@@ -3639,7 +3715,7 @@ qemu-kvm -net nic,model=? /dev/null
     </p>
 
     <ul>
-      <li>If no <code>targetType</code> attribue is set, then the default
+      <li>If no <code>targetType</code> attribute is set, then the default
         device type is according to the hypervisor's rules. The default
         type will be added when re-querying the XML fed into libvirt.
         For fully virtualized guests, the default device type will usually
@@ -3652,6 +3728,12 @@ qemu-kvm -net nic,model=? /dev/null
         it will be treated normally.</li>
       <li>Only the first <code>console</code> element may use a <code>targetType</code>
         of <code>serial</code>. Secondary consoles must all be paravirtualized.
+      </li>
+      <li>On s390, the <code>console</code> element may use a
+        <code>targetType</code> of <code>sclp</code> or <code>sclplm</code>
+        (line mode). SCLP is the native console type for s390. There's no
+        controller associated to SCLP consoles.
+        <span class="since">Since 1.0.2</span>
       </li>
     </ul>
 
@@ -3674,6 +3756,17 @@ qemu-kvm -net nic,model=? /dev/null
     &lt;console type='pty'&gt;
       &lt;source path='/dev/pts/5'/&gt;
       &lt;target type='virtio' port='0'/&gt;
+    &lt;/console&gt;
+  &lt;/devices&gt;
+  ...</pre>
+
+<pre>
+  ...
+  &lt;devices&gt;
+    &lt;!-- KVM s390 sclp console --&gt;
+    &lt;console type='pty'&gt;
+      &lt;source path='/dev/pts/1'/&gt;
+      &lt;target type='sclp' port='0'/&gt;
     &lt;/console&gt;
   &lt;/devices&gt;
   ...</pre>

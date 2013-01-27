@@ -21,7 +21,7 @@
 
 #include "security_nop.h"
 
-#include "virterror_internal.h"
+#include "virerror.h"
 
 #define VIR_FROM_THIS VIR_FROM_SECURITY
 
@@ -84,14 +84,16 @@ static int virSecurityDomainSetImageLabelNop(virSecurityManagerPtr mgr ATTRIBUTE
 
 static int virSecurityDomainRestoreHostdevLabelNop(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
                                                    virDomainDefPtr vm ATTRIBUTE_UNUSED,
-                                                   virDomainHostdevDefPtr dev ATTRIBUTE_UNUSED)
+                                                   virDomainHostdevDefPtr dev ATTRIBUTE_UNUSED,
+                                                   const char *vroot ATTRIBUTE_UNUSED)
 {
     return 0;
 }
 
 static int virSecurityDomainSetHostdevLabelNop(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
                                                virDomainDefPtr vm ATTRIBUTE_UNUSED,
-                                               virDomainHostdevDefPtr dev ATTRIBUTE_UNUSED)
+                                               virDomainHostdevDefPtr dev ATTRIBUTE_UNUSED,
+                                               const char *vroot ATTRIBUTE_UNUSED)
 {
     return 0;
 }

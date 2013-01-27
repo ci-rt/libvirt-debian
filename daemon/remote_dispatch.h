@@ -4013,6 +4013,79 @@ cleanup:
 
 
 
+static int remoteDispatchDomainOpenChannel(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_domain_open_channel_args *args);
+static int remoteDispatchDomainOpenChannelHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret ATTRIBUTE_UNUSED)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainOpenChannel(server, client, msg, rerr, args);
+}
+static int remoteDispatchDomainOpenChannel(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_domain_open_channel_args *args)
+{
+    int rv = -1;
+    virDomainPtr dom = NULL;
+    char *name;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+    virStreamPtr st = NULL;
+    daemonClientStreamPtr stream = NULL;
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (!(dom = get_nonnull_domain(priv->conn, args->dom)))
+        goto cleanup;
+
+    name = args->name ? *args->name : NULL;
+
+    if (!(st = virStreamNew(priv->conn, VIR_STREAM_NONBLOCK)))
+        goto cleanup;
+
+    if (!(stream = daemonCreateClientStream(client, st, remoteProgram, &msg->header)))
+        goto cleanup;
+
+    if (virDomainOpenChannel(dom, name, st, args->flags) < 0)
+        goto cleanup;
+
+    if (daemonAddClientStream(client, stream, true) < 0)
+        goto cleanup;
+
+    rv = 0;
+
+cleanup:
+    if (rv < 0) {
+        virNetMessageSaveError(rerr);
+        if (stream) {
+            virStreamAbort(st);
+            daemonFreeClientStream(client, stream);
+        } else {
+            virStreamFree(st);
+        }
+    }
+    if (dom)
+        virDomainFree(dom);
+    return rv;
+}
+
+
+
 static int remoteDispatchDomainOpenConsole(
     virNetServerPtr server,
     virNetServerClientPtr client,
@@ -5147,8 +5220,7 @@ cleanup:
         virNetMessageSaveError(rerr);
     if (dom)
         virDomainFree(dom);
-    virTypedParameterArrayClear(params, nparams);
-    VIR_FREE(params);
+    virTypedParamsFree(params, nparams);
     return rv;
 }
 
@@ -5209,8 +5281,7 @@ cleanup:
         virNetMessageSaveError(rerr);
     if (dom)
         virDomainFree(dom);
-    virTypedParameterArrayClear(params, nparams);
-    VIR_FREE(params);
+    virTypedParamsFree(params, nparams);
     return rv;
 }
 
@@ -5271,8 +5342,7 @@ cleanup:
         virNetMessageSaveError(rerr);
     if (dom)
         virDomainFree(dom);
-    virTypedParameterArrayClear(params, nparams);
-    VIR_FREE(params);
+    virTypedParamsFree(params, nparams);
     return rv;
 }
 
@@ -5498,8 +5568,7 @@ cleanup:
         virNetMessageSaveError(rerr);
     if (dom)
         virDomainFree(dom);
-    virTypedParameterArrayClear(params, nparams);
-    VIR_FREE(params);
+    virTypedParamsFree(params, nparams);
     return rv;
 }
 
@@ -5619,8 +5688,7 @@ cleanup:
         virNetMessageSaveError(rerr);
     if (dom)
         virDomainFree(dom);
-    virTypedParameterArrayClear(params, nparams);
-    VIR_FREE(params);
+    virTypedParamsFree(params, nparams);
     return rv;
 }
 
@@ -5681,8 +5749,7 @@ cleanup:
         virNetMessageSaveError(rerr);
     if (dom)
         virDomainFree(dom);
-    virTypedParameterArrayClear(params, nparams);
-    VIR_FREE(params);
+    virTypedParamsFree(params, nparams);
     return rv;
 }
 
@@ -5743,8 +5810,7 @@ cleanup:
         virNetMessageSaveError(rerr);
     if (dom)
         virDomainFree(dom);
-    virTypedParameterArrayClear(params, nparams);
-    VIR_FREE(params);
+    virTypedParamsFree(params, nparams);
     return rv;
 }
 
@@ -10442,8 +10508,7 @@ static int remoteDispatchNodeSetMemoryParameters(
 cleanup:
     if (rv < 0)
         virNetMessageSaveError(rerr);
-    virTypedParameterArrayClear(params, nparams);
-    VIR_FREE(params);
+    virTypedParamsFree(params, nparams);
     return rv;
 }
 
@@ -16143,6 +16208,15 @@ virNetServerProgramProc remoteProcs[] = {
    remoteDispatchDomainSendProcessSignalHelper,
    sizeof(remote_domain_send_process_signal_args),
    (xdrproc_t)xdr_remote_domain_send_process_signal_args,
+   0,
+   (xdrproc_t)xdr_void,
+   true,
+   0
+},
+{ /* Method DomainOpenChannel => 296 */
+   remoteDispatchDomainOpenChannelHelper,
+   sizeof(remote_domain_open_channel_args),
+   (xdrproc_t)xdr_remote_domain_open_channel_args,
    0,
    (xdrproc_t)xdr_void,
    true,

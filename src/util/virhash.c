@@ -24,10 +24,10 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "virterror_internal.h"
+#include "virerror.h"
 #include "virhash.h"
-#include "memory.h"
-#include "logging.h"
+#include "viralloc.h"
+#include "virlog.h"
 #include "virhashcode.h"
 #include "virrandom.h"
 

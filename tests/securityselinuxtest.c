@@ -30,10 +30,10 @@
 
 #include "internal.h"
 #include "testutils.h"
-#include "memory.h"
-#include "util.h"
-#include "logging.h"
-#include "virterror_internal.h"
+#include "viralloc.h"
+#include "virutil.h"
+#include "virlog.h"
+#include "virerror.h"
 #include "security/security_manager.h"
 
 
@@ -77,6 +77,7 @@ testBuildDomainDef(bool dynamic,
     if (VIR_ALLOC(secdef) < 0)
         goto no_memory;
 
+    def->virtType = VIR_DOMAIN_VIRT_KVM;
     def->seclabels[0] = secdef;
     def->seclabels[0]->type = dynamic ? VIR_DOMAIN_SECLABEL_DYNAMIC : VIR_DOMAIN_SECLABEL_STATIC;
 

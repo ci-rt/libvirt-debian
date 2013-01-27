@@ -29,8 +29,8 @@
 
 #include "virnetdevmacvlan.h"
 #include "virmacaddr.h"
-#include "util.h"
-#include "virterror_internal.h"
+#include "virutil.h"
+#include "virerror.h"
 
 #define VIR_FROM_THIS VIR_FROM_NET
 
@@ -56,9 +56,9 @@ VIR_ENUM_IMPL(virNetDevMacVLanMode, VIR_NETDEV_MACVLAN_MODE_LAST,
 #  define MACVLAN_MODE_PASSTHRU 8
 # endif
 
-# include "memory.h"
-# include "logging.h"
-# include "uuid.h"
+# include "viralloc.h"
+# include "virlog.h"
+# include "viruuid.h"
 # include "virfile.h"
 # include "virnetlink.h"
 # include "virnetdev.h"

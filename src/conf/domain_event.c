@@ -24,10 +24,10 @@
 #include <config.h>
 
 #include "domain_event.h"
-#include "logging.h"
+#include "virlog.h"
 #include "datatypes.h"
-#include "memory.h"
-#include "virterror_internal.h"
+#include "viralloc.h"
+#include "virerror.h"
 
 #define VIR_FROM_THIS VIR_FROM_NONE
 

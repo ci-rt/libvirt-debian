@@ -24,11 +24,11 @@
 #include <unistd.h>
 
 #include "virnetmessage.h"
-#include "memory.h"
-#include "virterror_internal.h"
-#include "logging.h"
+#include "viralloc.h"
+#include "virerror.h"
+#include "virlog.h"
 #include "virfile.h"
-#include "util.h"
+#include "virutil.h"
 
 #define VIR_FROM_THIS VIR_FROM_RPC
 
@@ -174,6 +174,12 @@ int virNetMessageDecodeHeader(virNetMessagePtr msg)
 {
     XDR xdr;
     int ret = -1;
+
+    if (msg->bufferLength < VIR_NET_MESSAGE_LEN_MAX) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Unable to decode header until len is received"));
+        return -1;
+    }
 
     msg->bufferOffset = VIR_NET_MESSAGE_LEN_MAX;
 

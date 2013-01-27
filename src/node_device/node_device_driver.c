@@ -30,14 +30,14 @@
 #include <time.h>
 #include <sys/stat.h>
 
-#include "virterror_internal.h"
+#include "virerror.h"
 #include "datatypes.h"
-#include "memory.h"
-#include "logging.h"
+#include "viralloc.h"
+#include "virlog.h"
 #include "node_device_conf.h"
 #include "node_device_hal.h"
 #include "node_device_driver.h"
-#include "util.h"
+#include "virutil.h"
 
 #define VIR_FROM_THIS VIR_FROM_NODEDEV
 
@@ -58,7 +58,7 @@ static int update_caps(virNodeDeviceObjPtr dev)
 }
 
 
-#if defined (__linux__) && defined (HAVE_HAL)
+#if defined (__linux__) && defined (WITH_HAL)
 /* Under libudev changes to the driver name should be picked up as
  * "change" events, so we don't call update driver name unless we're
  * using the HAL backend. */
@@ -681,16 +681,16 @@ out:
 }
 
 int nodedevRegister(void) {
-#if defined(HAVE_HAL) && defined(HAVE_UDEV)
+#if defined(WITH_HAL) && defined(WITH_UDEV)
     /* Register only one of these two - they conflict */
     if (udevNodeRegister() == -1)
         return halNodeRegister();
     return 0;
 #else
-# ifdef HAVE_HAL
+# ifdef WITH_HAL
     return halNodeRegister();
 # endif
-# ifdef HAVE_UDEV
+# ifdef WITH_UDEV
     return udevNodeRegister();
 # endif
 #endif

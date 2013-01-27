@@ -24,10 +24,11 @@
 #ifndef __VIR_CPU_CONF_H__
 # define __VIR_CPU_CONF_H__
 
-# include "util.h"
-# include "buf.h"
-# include "xml.h"
-# include "bitmap.h"
+# include "virutil.h"
+# include "virbuffer.h"
+# include "virxml.h"
+# include "virbitmap.h"
+# include "virarch.h"
 
 # define VIR_CPU_VENDOR_ID_LENGTH 12
 
@@ -104,7 +105,7 @@ struct _virCPUDef {
     int type;           /* enum virCPUType */
     int mode;           /* enum virCPUMode */
     int match;          /* enum virCPUMatch */
-    char *arch;
+    virArch arch;
     char *model;
     char *vendor_id;    /* vendor id returned by CPUID in the guest */
     int fallback;       /* enum virCPUFallback */

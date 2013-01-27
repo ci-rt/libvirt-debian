@@ -27,13 +27,13 @@
 # define FUSE_USE_VERSION 26
 
 # include <config.h>
-# if HAVE_FUSE
+# if WITH_FUSE
 #  include <fuse.h>
 # endif
 
 # include "lxc_conf.h"
-# include "util.h"
-# include "memory.h"
+# include "virutil.h"
+# include "viralloc.h"
 
 struct virLXCMeminfo {
     unsigned long long memtotal;

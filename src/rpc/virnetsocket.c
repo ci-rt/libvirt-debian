@@ -1,7 +1,7 @@
 /*
  * virnetsocket.c: generic network socket handling
  *
- * Copyright (C) 2006-2012 Red Hat, Inc.
+ * Copyright (C) 2006-2013 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -41,18 +41,17 @@
 
 #include "c-ctype.h"
 #include "virnetsocket.h"
-#include "util.h"
-#include "memory.h"
-#include "virterror_internal.h"
-#include "logging.h"
+#include "virutil.h"
+#include "viralloc.h"
+#include "virerror.h"
+#include "virlog.h"
 #include "virfile.h"
-#include "event.h"
-#include "threads.h"
+#include "virthread.h"
 #include "virprocess.h"
 
 #include "passfd.h"
 
-#if HAVE_LIBSSH2
+#if WITH_SSH2
 # include "virnetsshsession.h"
 #endif
 
@@ -60,9 +59,7 @@
 
 
 struct _virNetSocket {
-    virObject object;
-
-    virMutex lock;
+    virObjectLockable parent;
 
     int fd;
     int watch;
@@ -80,8 +77,10 @@ struct _virNetSocket {
     char *localAddrStr;
     char *remoteAddrStr;
 
+#if WITH_GNUTLS
     virNetTLSSessionPtr tlsSession;
-#if HAVE_SASL
+#endif
+#if WITH_SASL
     virNetSASLSessionPtr saslSession;
 
     const char *saslDecoded;
@@ -92,7 +91,7 @@ struct _virNetSocket {
     size_t saslEncodedLength;
     size_t saslEncodedOffset;
 #endif
-#if HAVE_LIBSSH2
+#if WITH_SSH2
     virNetSSHSessionPtr sshSession;
 #endif
 };
@@ -103,7 +102,8 @@ static void virNetSocketDispose(void *obj);
 
 static int virNetSocketOnceInit(void)
 {
-    if (!(virNetSocketClass = virClassNew("virNetSocket",
+    if (!(virNetSocketClass = virClassNew(virClassForObjectLockable(),
+                                          "virNetSocket",
                                           sizeof(virNetSocket),
                                           virNetSocketDispose)))
         return -1;
@@ -161,15 +161,8 @@ static virNetSocketPtr virNetSocketNew(virSocketAddrPtr localAddr,
         return NULL;
     }
 
-    if (!(sock = virObjectNew(virNetSocketClass)))
+    if (!(sock = virObjectLockableNew(virNetSocketClass)))
         return NULL;
-
-    if (virMutexInit(&sock->lock) < 0) {
-        virReportSystemError(errno, "%s",
-                             _("Unable to initialize mutex"));
-        VIR_FREE(sock);
-        return NULL;
-    }
 
     if (localAddr)
         sock->localAddr = *localAddr;
@@ -471,7 +464,9 @@ int virNetSocketNewConnectTCP(const char *nodename,
             goto error;
         }
 
-        setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+        if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
+            VIR_WARN("Unable to enable port reuse");
+        }
 
         if (connect(fd, runp->ai_addr, runp->ai_addrlen) >= 0)
             break;
@@ -737,7 +732,7 @@ int virNetSocketNewConnectSSH(const char *nodename,
     return virNetSocketNewConnectCommand(cmd, retsock);
 }
 
-#if HAVE_LIBSSH2
+#if WITH_SSH2
 int
 virNetSocketNewConnectLibSSH2(const char *host,
                               const char *port,
@@ -869,7 +864,7 @@ virNetSocketNewConnectLibSSH2(const char *host ATTRIBUTE_UNUSED,
                          _("libssh2 transport support was not enabled"));
     return -1;
 }
-#endif /* HAVE_LIBSSH2 */
+#endif /* WITH_SSH2 */
 
 int virNetSocketNewConnectExternal(const char **cmdargv,
                                    virNetSocketPtr *retsock)
@@ -940,20 +935,22 @@ virJSONValuePtr virNetSocketPreExecRestart(virNetSocketPtr sock)
 {
     virJSONValuePtr object = NULL;
 
-    virMutexLock(&sock->lock);
+    virObjectLock(sock);
 
-#if HAVE_SASL
+#if WITH_SASL
     if (sock->saslSession) {
         virReportError(VIR_ERR_OPERATION_INVALID, "%s",
                        _("Unable to save socket state when SASL session is active"));
         goto error;
     }
 #endif
+#if WITH_GNUTLS
     if (sock->tlsSession) {
         virReportError(VIR_ERR_OPERATION_INVALID, "%s",
                        _("Unable to save socket state when TLS session is active"));
         goto error;
     }
+#endif
 
     if (!(object = virJSONValueNewObject()))
         goto error;
@@ -984,11 +981,11 @@ virJSONValuePtr virNetSocketPreExecRestart(virNetSocketPtr sock)
         goto error;
     }
 
-    virMutexUnlock(&sock->lock);
+    virObjectUnlock(sock);
     return object;
 
 error:
-    virMutexUnlock(&sock->lock);
+    virObjectUnlock(sock);
     virJSONValueFree(object);
     return NULL;
 }
@@ -1012,15 +1009,17 @@ void virNetSocketDispose(void *obj)
         unlink(sock->localAddr.data.un.sun_path);
 #endif
 
+#if WITH_GNUTLS
     /* Make sure it can't send any more I/O during shutdown */
     if (sock->tlsSession)
         virNetTLSSessionSetIOCallbacks(sock->tlsSession, NULL, NULL, NULL);
     virObjectUnref(sock->tlsSession);
-#if HAVE_SASL
+#endif
+#if WITH_SASL
     virObjectUnref(sock->saslSession);
 #endif
 
-#if HAVE_LIBSSH2
+#if WITH_SSH2
     virObjectUnref(sock->sshSession);
 #endif
 
@@ -1031,17 +1030,15 @@ void virNetSocketDispose(void *obj)
 
     VIR_FREE(sock->localAddrStr);
     VIR_FREE(sock->remoteAddrStr);
-
-    virMutexDestroy(&sock->lock);
 }
 
 
 int virNetSocketGetFD(virNetSocketPtr sock)
 {
     int fd;
-    virMutexLock(&sock->lock);
+    virObjectLock(sock);
     fd = sock->fd;
-    virMutexUnlock(&sock->lock);
+    virObjectUnlock(sock);
     return fd;
 }
 
@@ -1066,10 +1063,10 @@ int virNetSocketDupFD(virNetSocketPtr sock, bool cloexec)
 bool virNetSocketIsLocal(virNetSocketPtr sock)
 {
     bool isLocal = false;
-    virMutexLock(&sock->lock);
+    virObjectLock(sock);
     if (sock->localAddr.data.sa.sa_family == AF_UNIX)
         isLocal = true;
-    virMutexUnlock(&sock->lock);
+    virObjectUnlock(sock);
     return isLocal;
 }
 
@@ -1077,10 +1074,10 @@ bool virNetSocketIsLocal(virNetSocketPtr sock)
 bool virNetSocketHasPassFD(virNetSocketPtr sock)
 {
     bool hasPassFD = false;
-    virMutexLock(&sock->lock);
+    virObjectLock(sock);
     if (sock->localAddr.data.sa.sa_family == AF_UNIX)
         hasPassFD = true;
-    virMutexUnlock(&sock->lock);
+    virObjectUnlock(sock);
     return hasPassFD;
 }
 
@@ -1088,9 +1085,9 @@ bool virNetSocketHasPassFD(virNetSocketPtr sock)
 int virNetSocketGetPort(virNetSocketPtr sock)
 {
     int port;
-    virMutexLock(&sock->lock);
+    virObjectLock(sock);
     port = virSocketAddrGetPort(&sock->localAddr);
-    virMutexUnlock(&sock->lock);
+    virObjectUnlock(sock);
     return port;
 }
 
@@ -1103,12 +1100,12 @@ int virNetSocketGetUNIXIdentity(virNetSocketPtr sock,
 {
     struct ucred cr;
     socklen_t cr_len = sizeof(cr);
-    virMutexLock(&sock->lock);
+    virObjectLock(sock);
 
     if (getsockopt(sock->fd, SOL_SOCKET, SO_PEERCRED, &cr, &cr_len) < 0) {
         virReportSystemError(errno, "%s",
                              _("Failed to get client socket identity"));
-        virMutexUnlock(&sock->lock);
+        virObjectUnlock(sock);
         return -1;
     }
 
@@ -1116,7 +1113,7 @@ int virNetSocketGetUNIXIdentity(virNetSocketPtr sock,
     *uid = cr.uid;
     *gid = cr.gid;
 
-    virMutexUnlock(&sock->lock);
+    virObjectUnlock(sock);
     return 0;
 }
 #elif defined(LOCAL_PEERCRED)
@@ -1127,12 +1124,12 @@ int virNetSocketGetUNIXIdentity(virNetSocketPtr sock,
 {
     struct xucred cr;
     socklen_t cr_len = sizeof(cr);
-    virMutexLock(&sock->lock);
+    virObjectLock(sock);
 
     if (getsockopt(sock->fd, SOL_SOCKET, LOCAL_PEERCRED, &cr, &cr_len) < 0) {
         virReportSystemError(errno, "%s",
                              _("Failed to get client socket identity"));
-        virMutexUnlock(&sock->lock);
+        virObjectUnlock(sock);
         return -1;
     }
 
@@ -1140,7 +1137,7 @@ int virNetSocketGetUNIXIdentity(virNetSocketPtr sock,
     *uid = cr.cr_uid;
     *gid = cr.cr_gid;
 
-    virMutexUnlock(&sock->lock);
+    virObjectUnlock(sock);
     return 0;
 }
 #else
@@ -1161,9 +1158,9 @@ int virNetSocketSetBlocking(virNetSocketPtr sock,
                             bool blocking)
 {
     int ret;
-    virMutexLock(&sock->lock);
+    virObjectLock(sock);
     ret = virSetBlocking(sock->fd, blocking);
-    virMutexUnlock(&sock->lock);
+    virObjectUnlock(sock);
     return ret;
 }
 
@@ -1179,6 +1176,7 @@ const char *virNetSocketRemoteAddrString(virNetSocketPtr sock)
 }
 
 
+#if WITH_GNUTLS
 static ssize_t virNetSocketTLSSessionWrite(const char *buf,
                                            size_t len,
                                            void *opaque)
@@ -1200,25 +1198,25 @@ static ssize_t virNetSocketTLSSessionRead(char *buf,
 void virNetSocketSetTLSSession(virNetSocketPtr sock,
                                virNetTLSSessionPtr sess)
 {
-    virMutexLock(&sock->lock);
+    virObjectLock(sock);
     virObjectUnref(sock->tlsSession);
     sock->tlsSession = virObjectRef(sess);
     virNetTLSSessionSetIOCallbacks(sess,
                                    virNetSocketTLSSessionWrite,
                                    virNetSocketTLSSessionRead,
                                    sock);
-    virMutexUnlock(&sock->lock);
+    virObjectUnlock(sock);
 }
+#endif
 
-
-#if HAVE_SASL
+#if WITH_SASL
 void virNetSocketSetSASLSession(virNetSocketPtr sock,
                                 virNetSASLSessionPtr sess)
 {
-    virMutexLock(&sock->lock);
+    virObjectLock(sock);
     virObjectUnref(sock->saslSession);
     sock->saslSession = virObjectRef(sess);
-    virMutexUnlock(&sock->lock);
+    virObjectUnlock(sock);
 }
 #endif
 
@@ -1226,22 +1224,22 @@ void virNetSocketSetSASLSession(virNetSocketPtr sock,
 bool virNetSocketHasCachedData(virNetSocketPtr sock ATTRIBUTE_UNUSED)
 {
     bool hasCached = false;
-    virMutexLock(&sock->lock);
+    virObjectLock(sock);
 
-#if HAVE_LIBSSH2
+#if WITH_SSH2
     if (virNetSSHSessionHasCachedData(sock->sshSession))
         hasCached = true;
 #endif
 
-#if HAVE_SASL
+#if WITH_SASL
     if (sock->saslDecoded)
         hasCached = true;
 #endif
-    virMutexUnlock(&sock->lock);
+    virObjectUnlock(sock);
     return hasCached;
 }
 
-#if HAVE_LIBSSH2
+#if WITH_SSH2
 static ssize_t virNetSocketLibSSH2Read(virNetSocketPtr sock,
                                        char *buf,
                                        size_t len)
@@ -1260,12 +1258,12 @@ static ssize_t virNetSocketLibSSH2Write(virNetSocketPtr sock,
 bool virNetSocketHasPendingData(virNetSocketPtr sock ATTRIBUTE_UNUSED)
 {
     bool hasPending = false;
-    virMutexLock(&sock->lock);
-#if HAVE_SASL
+    virObjectLock(sock);
+#if WITH_SASL
     if (sock->saslEncoded)
         hasPending = true;
 #endif
-    virMutexUnlock(&sock->lock);
+    virObjectUnlock(sock);
     return hasPending;
 }
 
@@ -1275,19 +1273,23 @@ static ssize_t virNetSocketReadWire(virNetSocketPtr sock, char *buf, size_t len)
     char *errout = NULL;
     ssize_t ret;
 
-#if HAVE_LIBSSH2
+#if WITH_SSH2
     if (sock->sshSession)
         return virNetSocketLibSSH2Read(sock, buf, len);
 #endif
 
 reread:
+#if WITH_GNUTLS
     if (sock->tlsSession &&
         virNetTLSSessionGetHandshakeStatus(sock->tlsSession) ==
         VIR_NET_TLS_HANDSHAKE_COMPLETE) {
         ret = virNetTLSSessionRead(sock->tlsSession, buf, len);
     } else {
+#endif
         ret = read(sock->fd, buf, len);
+#if WITH_GNUTLS
     }
+#endif
 
     if ((ret < 0) && (errno == EINTR))
         goto reread;
@@ -1330,19 +1332,23 @@ static ssize_t virNetSocketWriteWire(virNetSocketPtr sock, const char *buf, size
 {
     ssize_t ret;
 
-#if HAVE_LIBSSH2
+#if WITH_SSH2
     if (sock->sshSession)
         return virNetSocketLibSSH2Write(sock, buf, len);
 #endif
 
 rewrite:
+#if WITH_GNUTLS
     if (sock->tlsSession &&
         virNetTLSSessionGetHandshakeStatus(sock->tlsSession) ==
         VIR_NET_TLS_HANDSHAKE_COMPLETE) {
         ret = virNetTLSSessionWrite(sock->tlsSession, buf, len);
     } else {
+#endif
         ret = write(sock->fd, buf, len);
+#if WITH_GNUTLS
     }
+#endif
 
     if (ret < 0) {
         if (errno == EINTR)
@@ -1364,7 +1370,7 @@ rewrite:
 }
 
 
-#if HAVE_SASL
+#if WITH_SASL
 static ssize_t virNetSocketReadSASL(virNetSocketPtr sock, char *buf, size_t len)
 {
     ssize_t got;
@@ -1466,14 +1472,14 @@ static ssize_t virNetSocketWriteSASL(virNetSocketPtr sock, const char *buf, size
 ssize_t virNetSocketRead(virNetSocketPtr sock, char *buf, size_t len)
 {
     ssize_t ret;
-    virMutexLock(&sock->lock);
-#if HAVE_SASL
+    virObjectLock(sock);
+#if WITH_SASL
     if (sock->saslSession)
         ret = virNetSocketReadSASL(sock, buf, len);
     else
 #endif
         ret = virNetSocketReadWire(sock, buf, len);
-    virMutexUnlock(&sock->lock);
+    virObjectUnlock(sock);
     return ret;
 }
 
@@ -1481,14 +1487,14 @@ ssize_t virNetSocketWrite(virNetSocketPtr sock, const char *buf, size_t len)
 {
     ssize_t ret;
 
-    virMutexLock(&sock->lock);
-#if HAVE_SASL
+    virObjectLock(sock);
+#if WITH_SASL
     if (sock->saslSession)
         ret = virNetSocketWriteSASL(sock, buf, len);
     else
 #endif
         ret = virNetSocketWriteWire(sock, buf, len);
-    virMutexUnlock(&sock->lock);
+    virObjectUnlock(sock);
     return ret;
 }
 
@@ -1504,7 +1510,7 @@ int virNetSocketSendFD(virNetSocketPtr sock, int fd)
                        _("Sending file descriptors is not supported on this socket"));
         return -1;
     }
-    virMutexLock(&sock->lock);
+    virObjectLock(sock);
     PROBE(RPC_SOCKET_SEND_FD,
           "sock=%p fd=%d", sock, fd);
     if (sendfd(sock->fd, fd) < 0) {
@@ -1519,7 +1525,7 @@ int virNetSocketSendFD(virNetSocketPtr sock, int fd)
     ret = 1;
 
 cleanup:
-    virMutexUnlock(&sock->lock);
+    virObjectUnlock(sock);
     return ret;
 }
 
@@ -1538,7 +1544,7 @@ int virNetSocketRecvFD(virNetSocketPtr sock, int *fd)
                        _("Receiving file descriptors is not supported on this socket"));
         return -1;
     }
-    virMutexLock(&sock->lock);
+    virObjectLock(sock);
 
     if ((*fd = recvfd(sock->fd, O_CLOEXEC)) < 0) {
         if (errno == EAGAIN)
@@ -1553,20 +1559,20 @@ int virNetSocketRecvFD(virNetSocketPtr sock, int *fd)
     ret = 1;
 
 cleanup:
-    virMutexUnlock(&sock->lock);
+    virObjectUnlock(sock);
     return ret;
 }
 
 
 int virNetSocketListen(virNetSocketPtr sock, int backlog)
 {
-    virMutexLock(&sock->lock);
+    virObjectLock(sock);
     if (listen(sock->fd, backlog > 0 ? backlog : 30) < 0) {
         virReportSystemError(errno, "%s", _("Unable to listen on socket"));
-        virMutexUnlock(&sock->lock);
+        virObjectUnlock(sock);
         return -1;
     }
-    virMutexUnlock(&sock->lock);
+    virObjectUnlock(sock);
     return 0;
 }
 
@@ -1577,7 +1583,7 @@ int virNetSocketAccept(virNetSocketPtr sock, virNetSocketPtr *clientsock)
     virSocketAddr remoteAddr;
     int ret = -1;
 
-    virMutexLock(&sock->lock);
+    virObjectLock(sock);
 
     *clientsock = NULL;
 
@@ -1614,7 +1620,7 @@ int virNetSocketAccept(virNetSocketPtr sock, virNetSocketPtr *clientsock)
 
 cleanup:
     VIR_FORCE_CLOSE(fd);
-    virMutexUnlock(&sock->lock);
+    virObjectUnlock(sock);
     return ret;
 }
 
@@ -1628,10 +1634,10 @@ static void virNetSocketEventHandle(int watch ATTRIBUTE_UNUSED,
     virNetSocketIOFunc func;
     void *eopaque;
 
-    virMutexLock(&sock->lock);
+    virObjectLock(sock);
     func = sock->func;
     eopaque = sock->opaque;
-    virMutexUnlock(&sock->lock);
+    virObjectUnlock(sock);
 
     if (func)
         func(sock, events, eopaque);
@@ -1644,13 +1650,13 @@ static void virNetSocketEventFree(void *opaque)
     virFreeCallback ff;
     void *eopaque;
 
-    virMutexLock(&sock->lock);
+    virObjectLock(sock);
     ff = sock->ff;
     eopaque = sock->opaque;
     sock->func = NULL;
     sock->ff = NULL;
     sock->opaque = NULL;
-    virMutexUnlock(&sock->lock);
+    virObjectUnlock(sock);
 
     if (ff)
         ff(eopaque);
@@ -1667,7 +1673,7 @@ int virNetSocketAddIOCallback(virNetSocketPtr sock,
     int ret = -1;
 
     virObjectRef(sock);
-    virMutexLock(&sock->lock);
+    virObjectLock(sock);
     if (sock->watch > 0) {
         VIR_DEBUG("Watch already registered on socket %p", sock);
         goto cleanup;
@@ -1688,7 +1694,7 @@ int virNetSocketAddIOCallback(virNetSocketPtr sock,
     ret = 0;
 
 cleanup:
-    virMutexUnlock(&sock->lock);
+    virObjectUnlock(sock);
     if (ret != 0)
         virObjectUnref(sock);
     return ret;
@@ -1697,31 +1703,31 @@ cleanup:
 void virNetSocketUpdateIOCallback(virNetSocketPtr sock,
                                   int events)
 {
-    virMutexLock(&sock->lock);
+    virObjectLock(sock);
     if (sock->watch <= 0) {
         VIR_DEBUG("Watch not registered on socket %p", sock);
-        virMutexUnlock(&sock->lock);
+        virObjectUnlock(sock);
         return;
     }
 
     virEventUpdateHandle(sock->watch, events);
 
-    virMutexUnlock(&sock->lock);
+    virObjectUnlock(sock);
 }
 
 void virNetSocketRemoveIOCallback(virNetSocketPtr sock)
 {
-    virMutexLock(&sock->lock);
+    virObjectLock(sock);
 
     if (sock->watch <= 0) {
         VIR_DEBUG("Watch not registered on socket %p", sock);
-        virMutexUnlock(&sock->lock);
+        virObjectUnlock(sock);
         return;
     }
 
     virEventRemoveHandle(sock->watch);
 
-    virMutexUnlock(&sock->lock);
+    virObjectUnlock(sock);
 }
 
 void virNetSocketClose(virNetSocketPtr sock)
@@ -1729,7 +1735,7 @@ void virNetSocketClose(virNetSocketPtr sock)
     if (!sock)
         return;
 
-    virMutexLock(&sock->lock);
+    virObjectLock(sock);
 
     VIR_FORCE_CLOSE(sock->fd);
 
@@ -1743,5 +1749,5 @@ void virNetSocketClose(virNetSocketPtr sock)
     }
 #endif
 
-    virMutexUnlock(&sock->lock);
+    virObjectUnlock(sock);
 }

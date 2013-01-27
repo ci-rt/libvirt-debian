@@ -26,17 +26,17 @@
 #include <config.h>
 #include <stdint.h>
 
-#include "logging.h"
-#include "memory.h"
-#include "util.h"
+#include "virlog.h"
+#include "viralloc.h"
+#include "virutil.h"
 #include "cpu.h"
 
 #include "cpu_map.h"
-#include "buf.h"
+#include "virbuffer.h"
 
 #define VIR_FROM_THIS VIR_FROM_CPU
 
-static const char *archs[] = { "ppc64" };
+static const virArch archs[] = { VIR_ARCH_PPC64 };
 
 struct cpuPowerPC {
     const char *name;
@@ -417,7 +417,8 @@ static virCPUCompareResult
 PowerPCCompare(virCPUDefPtr host,
            virCPUDefPtr cpu)
 {
-    if ((cpu->arch && STRNEQ(host->arch, cpu->arch)) ||
+    if ((cpu->arch != VIR_ARCH_NONE &&
+         (host->arch != cpu->arch)) ||
         STRNEQ(host->model, cpu->model))
         return VIR_CPU_COMPARE_INCOMPATIBLE;
 
@@ -589,9 +590,10 @@ PowerPCBaseline(virCPUDefPtr *cpus,
         goto error;
     }
 
-    if (VIR_ALLOC(cpu) < 0 ||
-        !(cpu->arch = strdup(cpus[0]->arch)))
-        goto no_memory;
+    if (VIR_ALLOC(cpu) < 0)
+         goto no_memory;
+
+    cpu->arch = cpus[0]->arch;
     cpu->type = VIR_CPU_TYPE_GUEST;
     cpu->match = VIR_CPU_MATCH_EXACT;
 
@@ -603,14 +605,13 @@ PowerPCBaseline(virCPUDefPtr *cpus,
         goto error;
     }
 
-    base_model->data->ppc.pvr = model->data->ppc.pvr;
+    if (outputModel)
+        base_model->data->ppc.pvr = model->data->ppc.pvr;
     if (PowerPCDecode(cpu, base_model->data, models, nmodels, NULL) < 0)
         goto error;
 
     if (!outputModel)
         VIR_FREE(cpu->model);
-
-    VIR_FREE(cpu->arch);
 
 cleanup:
     ppcModelFree(base_model);

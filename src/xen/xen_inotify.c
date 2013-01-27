@@ -27,17 +27,17 @@
 #include <dirent.h>
 #include <sys/inotify.h>
 
-#include "virterror_internal.h"
+#include "virerror.h"
 #include "datatypes.h"
 #include "driver.h"
-#include "memory.h"
+#include "viralloc.h"
 #include "xen_driver.h"
-#include "conf.h"
+#include "virconf.h"
 #include "domain_conf.h"
 #include "xen_inotify.h"
 #include "xend_internal.h"
-#include "logging.h"
-#include "uuid.h"
+#include "virlog.h"
+#include "viruuid.h"
 #include "virfile.h"
 
 #include "xm_internal.h" /* for xenXMDomainConfigParse */

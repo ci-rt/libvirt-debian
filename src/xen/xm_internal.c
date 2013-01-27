@@ -35,7 +35,7 @@
 #include <stdint.h>
 #include <xen/dom0_ops.h>
 
-#include "virterror_internal.h"
+#include "virerror.h"
 #include "datatypes.h"
 #include "xm_internal.h"
 #include "xen_driver.h"
@@ -43,11 +43,11 @@
 #include "xen_sxpr.h"
 #include "xen_xm.h"
 #include "virhash.h"
-#include "buf.h"
-#include "uuid.h"
-#include "util.h"
-#include "memory.h"
-#include "logging.h"
+#include "virbuffer.h"
+#include "viruuid.h"
+#include "virutil.h"
+#include "viralloc.h"
+#include "virlog.h"
 #include "count-one-bits.h"
 
 #define VIR_FROM_THIS VIR_FROM_XENXM

@@ -54,10 +54,10 @@
 #include <netinet/udp.h>
 #include <net/if.h>
 
-#include "memory.h"
-#include "logging.h"
+#include "viralloc.h"
+#include "virlog.h"
 #include "datatypes.h"
-#include "virterror_internal.h"
+#include "virerror.h"
 #include "conf/domain_conf.h"
 #include "nwfilter_gentech_driver.h"
 #include "nwfilter_dhcpsnoop.h"
@@ -65,7 +65,7 @@
 #include "virnetdev.h"
 #include "virfile.h"
 #include "viratomic.h"
-#include "threadpool.h"
+#include "virthreadpool.h"
 #include "configmake.h"
 #include "virtime.h"
 

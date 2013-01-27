@@ -23,9 +23,9 @@
 #include <config.h>
 
 #include "virnetdevbandwidth.h"
-#include "command.h"
-#include "memory.h"
-#include "virterror_internal.h"
+#include "vircommand.h"
+#include "viralloc.h"
+#include "virerror.h"
 
 #define VIR_FROM_THIS VIR_FROM_NONE
 

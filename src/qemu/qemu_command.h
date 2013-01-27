@@ -25,7 +25,7 @@
 # define __QEMU_COMMAND_H__
 
 # include "domain_conf.h"
-# include "command.h"
+# include "vircommand.h"
 # include "capabilities.h"
 # include "qemu_conf.h"
 # include "qemu_domain.h"
@@ -65,7 +65,7 @@ virCommandPtr qemuBuildCommandLine(virConnectPtr conn,
 char *
 qemuBuildChrDeviceStr (virDomainChrDefPtr serial,
                        qemuCapsPtr caps,
-                       char *os_arch,
+                       virArch arch,
                        char *machine);
 
 /* With vlan == -1, use netdev syntax, else old hostnet */
@@ -211,7 +211,9 @@ int qemuDomainPCIAddressReleaseFunction(qemuDomainPCIAddressSetPtr addrs,
 int qemuDomainPCIAddressReleaseSlot(qemuDomainPCIAddressSetPtr addrs, int slot);
 
 void qemuDomainPCIAddressSetFree(qemuDomainPCIAddressSetPtr addrs);
-int  qemuAssignDevicePCISlots(virDomainDefPtr def, qemuDomainPCIAddressSetPtr addrs);
+int  qemuAssignDevicePCISlots(virDomainDefPtr def,
+                              qemuCapsPtr caps,
+                              qemuDomainPCIAddressSetPtr addrs);
 
 int qemuAssignDeviceAliases(virDomainDefPtr def, qemuCapsPtr caps);
 int qemuDomainNetVLAN(virDomainNetDefPtr def);

@@ -23,11 +23,11 @@
 #include <unistd.h>
 
 #include "datatypes.h"
-#include "virterror_internal.h"
-#include "logging.h"
-#include "memory.h"
-#include "uuid.h"
-#include "util.h"
+#include "virerror.h"
+#include "virlog.h"
+#include "viralloc.h"
+#include "viruuid.h"
+#include "virutil.h"
 
 #define VIR_FROM_THIS VIR_FROM_NONE
 
@@ -64,7 +64,8 @@ static int
 virDataTypesOnceInit(void)
 {
 #define DECLARE_CLASS(basename)                                  \
-    if (!(basename ## Class = virClassNew(#basename,             \
+    if (!(basename ## Class = virClassNew(virClassForObject(),   \
+                                          #basename,             \
                                           sizeof(basename),      \
                                           basename ## Dispose))) \
         return -1;

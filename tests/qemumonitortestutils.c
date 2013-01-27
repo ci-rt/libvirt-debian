@@ -26,13 +26,13 @@
 
 #include "qemumonitortestutils.h"
 
-#include "threads.h"
+#include "virthread.h"
 #include "qemu/qemu_monitor.h"
 #include "rpc/virnetsocket.h"
-#include "memory.h"
-#include "util.h"
-#include "logging.h"
-#include "virterror_internal.h"
+#include "viralloc.h"
+#include "virutil.h"
+#include "virlog.h"
+#include "virerror.h"
 
 #define VIR_FROM_THIS VIR_FROM_NONE
 
@@ -364,7 +364,7 @@ void qemuMonitorTestFree(qemuMonitorTestPtr test)
 
     virObjectUnref(test->server);
     if (test->mon) {
-        qemuMonitorUnlock(test->mon);
+        virObjectUnlock(test->mon);
         qemuMonitorClose(test->mon);
     }
 
@@ -496,7 +496,7 @@ qemuMonitorTestPtr qemuMonitorTestNew(bool json, virCapsPtr caps)
                                       json ? 1 : 0,
                                       &qemuCallbacks)))
         goto error;
-    qemuMonitorLock(test->mon);
+    virObjectLock(test->mon);
 
     if (virNetSocketAccept(test->server, &test->client) < 0)
         goto error;
@@ -536,6 +536,7 @@ no_memory:
 error:
     VIR_FREE(tmpdir_template);
     qemuMonitorTestFree(test);
+    test = NULL;
     goto cleanup;
 }
 

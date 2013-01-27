@@ -25,9 +25,9 @@
 # define __VIR_STORAGE_CONF_H__
 
 # include "internal.h"
-# include "util.h"
+# include "virutil.h"
 # include "storage_encryption_conf.h"
-# include "threads.h"
+# include "virthread.h"
 
 # include <libxml/tree.h>
 

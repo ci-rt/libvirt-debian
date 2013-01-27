@@ -24,10 +24,10 @@
 
 #include "internal.h"
 #include "datatypes.h"
-#include "util.h"
-#include "memory.h"
-#include "logging.h"
-#include "uuid.h"
+#include "virutil.h"
+#include "viralloc.h"
+#include "virlog.h"
+#include "viruuid.h"
 #include "hyperv_private.h"
 #include "hyperv_util.h"
 

@@ -17,9 +17,9 @@
 
 # RHEL ships ESX but not PowerHypervisor, HyperV, or libxenserver (xenapi)
 %if 0%{?rhel}
-%define with_phyp 0
-%define with_xenapi 0
-%define with_hyperv 0
+    %define with_phyp 0
+    %define with_xenapi 0
+    %define with_hyperv 0
 %endif
 
 Name:           mingw-libvirt
@@ -111,23 +111,23 @@ MinGW Windows libvirt virtualization library, static version.
 
 %build
 %if ! %{with_phyp}
-%define _without_phyp --without-phyp
+    %define _without_phyp --without-phyp
 %endif
 
 %if ! %{with_esx}
-%define _without_esx --without-esx
+    %define _without_esx --without-esx
 %endif
 
 %if ! %{with_hyperv}
-%define _without_hyperv --without-hyperv
+    %define _without_hyperv --without-hyperv
 %endif
 
 %if ! %{with_xenapi}
-%define _without_xenapi --without-xenapi
+    %define _without_xenapi --without-xenapi
 %endif
 
 %if ! %{with_parallels}
-%define _without_parallels --without-parallels
+    %define _without_parallels --without-parallels
 %endif
 
 %if 0%{?enable_autotools}
@@ -177,6 +177,8 @@ rm -rf $RPM_BUILD_ROOT%{mingw64_datadir}/gtk-doc/*
 
 rm -rf $RPM_BUILD_ROOT%{mingw32_libexecdir}/libvirt_iohelper.exe
 rm -rf $RPM_BUILD_ROOT%{mingw64_libexecdir}/libvirt_iohelper.exe
+rm -rf $RPM_BUILD_ROOT%{mingw32_libexecdir}/libvirt-guests.sh
+rm -rf $RPM_BUILD_ROOT%{mingw64_libexecdir}/libvirt-guests.sh
 
 
 # Mingw32
@@ -189,10 +191,12 @@ rm -rf $RPM_BUILD_ROOT%{mingw64_libexecdir}/libvirt_iohelper.exe
 %{mingw32_bindir}/virt-xml-validate
 %{mingw32_bindir}/virt-pki-validate
 %{mingw32_bindir}/virt-host-validate.exe
+%{mingw32_bindir}/libvirt-lxc-0.dll
 %{mingw32_bindir}/libvirt-qemu-0.dll
 
 %{mingw32_libdir}/libvirt.dll.a
 %{mingw32_libdir}/pkgconfig/libvirt.pc
+%{mingw32_libdir}/libvirt-lxc.dll.a
 %{mingw32_libdir}/libvirt-qemu.dll.a
 
 %dir %{mingw32_datadir}/libvirt/
@@ -213,6 +217,7 @@ rm -rf $RPM_BUILD_ROOT%{mingw64_libexecdir}/libvirt_iohelper.exe
 %{mingw32_datadir}/libvirt/schemas/storagevol.rng
 %dir %{mingw32_datadir}/libvirt/api/
 %{mingw32_datadir}/libvirt/api/libvirt-api.xml
+%{mingw32_datadir}/libvirt/api/libvirt-lxc-api.xml
 %{mingw32_datadir}/libvirt/api/libvirt-qemu-api.xml
 
 %{mingw32_datadir}/libvirt/cpu_map.xml
@@ -222,6 +227,7 @@ rm -rf $RPM_BUILD_ROOT%{mingw64_libexecdir}/libvirt_iohelper.exe
 %dir %{mingw32_includedir}/libvirt
 %{mingw32_includedir}/libvirt/libvirt.h
 %{mingw32_includedir}/libvirt/virterror.h
+%{mingw32_includedir}/libvirt/libvirt-lxc.h
 %{mingw32_includedir}/libvirt/libvirt-qemu.h
 
 %{mingw32_mandir}/man1/virsh.1*
@@ -231,6 +237,7 @@ rm -rf $RPM_BUILD_ROOT%{mingw64_libexecdir}/libvirt_iohelper.exe
 
 %files -n mingw32-libvirt-static
 %{mingw32_libdir}/libvirt.a
+%{mingw32_libdir}/libvirt-lxc.a
 %{mingw32_libdir}/libvirt-qemu.a
 
 # Mingw64
@@ -243,10 +250,12 @@ rm -rf $RPM_BUILD_ROOT%{mingw64_libexecdir}/libvirt_iohelper.exe
 %{mingw64_bindir}/virt-xml-validate
 %{mingw64_bindir}/virt-pki-validate
 %{mingw64_bindir}/virt-host-validate.exe
+%{mingw64_bindir}/libvirt-lxc-0.dll
 %{mingw64_bindir}/libvirt-qemu-0.dll
 
 %{mingw64_libdir}/libvirt.dll.a
 %{mingw64_libdir}/pkgconfig/libvirt.pc
+%{mingw64_libdir}/libvirt-lxc.dll.a
 %{mingw64_libdir}/libvirt-qemu.dll.a
 
 %dir %{mingw64_datadir}/libvirt/
@@ -267,6 +276,7 @@ rm -rf $RPM_BUILD_ROOT%{mingw64_libexecdir}/libvirt_iohelper.exe
 %{mingw64_datadir}/libvirt/schemas/storagevol.rng
 %dir %{mingw64_datadir}/libvirt/api/
 %{mingw64_datadir}/libvirt/api/libvirt-api.xml
+%{mingw64_datadir}/libvirt/api/libvirt-lxc-api.xml
 %{mingw64_datadir}/libvirt/api/libvirt-qemu-api.xml
 
 %{mingw64_datadir}/libvirt/cpu_map.xml
@@ -276,6 +286,7 @@ rm -rf $RPM_BUILD_ROOT%{mingw64_libexecdir}/libvirt_iohelper.exe
 %dir %{mingw64_includedir}/libvirt
 %{mingw64_includedir}/libvirt/libvirt.h
 %{mingw64_includedir}/libvirt/virterror.h
+%{mingw64_includedir}/libvirt/libvirt-lxc.h
 %{mingw64_includedir}/libvirt/libvirt-qemu.h
 
 %{mingw64_mandir}/man1/virsh.1*
@@ -285,6 +296,7 @@ rm -rf $RPM_BUILD_ROOT%{mingw64_libexecdir}/libvirt_iohelper.exe
 
 %files -n mingw64-libvirt-static
 %{mingw64_libdir}/libvirt.a
+%{mingw64_libdir}/libvirt-lxc.a
 %{mingw64_libdir}/libvirt-qemu.a
 
 

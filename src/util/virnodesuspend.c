@@ -22,13 +22,13 @@
 #include <config.h>
 #include "virnodesuspend.h"
 
-#include "command.h"
-#include "threads.h"
+#include "vircommand.h"
+#include "virthread.h"
 #include "datatypes.h"
 
-#include "memory.h"
-#include "logging.h"
-#include "virterror_internal.h"
+#include "viralloc.h"
+#include "virlog.h"
+#include "virerror.h"
 
 #define VIR_FROM_THIS VIR_FROM_NONE
 

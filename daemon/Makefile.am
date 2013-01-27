@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-## Copyright (C) 2005-2012 Red Hat, Inc.
+## Copyright (C) 2005-2013 Red Hat, Inc.
 ## See COPYING.LIB for the License of this software
 
 INCLUDES = \
@@ -17,7 +17,9 @@ CLEANFILES =
 
 DAEMON_GENERATED =					\
 		$(srcdir)/remote_dispatch.h		\
-		$(srcdir)/qemu_dispatch.h
+		$(srcdir)/lxc_dispatch.h		\
+		$(srcdir)/qemu_dispatch.h		\
+		$(NULL)
 
 DAEMON_SOURCES =					\
 		libvirtd.c libvirtd.h			\
@@ -25,18 +27,21 @@ DAEMON_SOURCES =					\
 		remote.c remote.h			\
 		stream.c stream.h			\
 		../src/remote/remote_protocol.c		\
+		../src/remote/lxc_protocol.c		\
 		../src/remote/qemu_protocol.c		\
 		$(DAEMON_GENERATED)
 
 DISTCLEANFILES =
 EXTRA_DIST =						\
 	remote_dispatch.h				\
+	lxc_dispatch.h					\
 	qemu_dispatch.h					\
 	libvirtd.conf					\
 	libvirtd.init.in				\
 	libvirtd.upstart				\
 	libvirtd.policy.in				\
 	libvirtd.sasl					\
+	libvirtd.service.in				\
 	libvirtd.sysconf				\
 	libvirtd.sysctl					\
 	libvirtd.aug                                    \
@@ -53,12 +58,18 @@ EXTRA_DIST =						\
 BUILT_SOURCES =
 
 REMOTE_PROTOCOL = $(top_srcdir)/src/remote/remote_protocol.x
+LXC_PROTOCOL = $(top_srcdir)/src/remote/lxc_protocol.x
 QEMU_PROTOCOL = $(top_srcdir)/src/remote/qemu_protocol.x
 
 $(srcdir)/remote_dispatch.h: $(srcdir)/../src/rpc/gendispatch.pl \
 		$(REMOTE_PROTOCOL)
 	$(AM_V_GEN)$(PERL) -w $(srcdir)/../src/rpc/gendispatch.pl -b remote REMOTE \
 	  $(REMOTE_PROTOCOL) > $@
+
+$(srcdir)/lxc_dispatch.h: $(srcdir)/../src/rpc/gendispatch.pl \
+		$(LXC_PROTOCOL)
+	$(AM_V_GEN)$(PERL) -w $(srcdir)/../src/rpc/gendispatch.pl -b lxc LXC \
+	  $(LXC_PROTOCOL) > $@
 
 $(srcdir)/qemu_dispatch.h: $(srcdir)/../src/rpc/gendispatch.pl \
 		$(QEMU_PROTOCOL)
@@ -84,8 +95,8 @@ CLEANFILES += test_libvirtd.aug
 
 libvirtd.8: $(srcdir)/libvirtd.8.in
 	$(AM_V_GEN)sed \
-	    -e 's!SYSCONFDIR!$(sysconfdir)!g' \
-	    -e 's!LOCALSTATEDIR!$(localstatedir)!g' \
+	    -e 's|[@]sysconfdir[@]|$(sysconfdir)|g' \
+	    -e 's|[@]localstatedir[@]|$(localstatedir)|g' \
 	    < $< > $@-t && \
 	mv $@-t $@
 
@@ -116,6 +127,7 @@ libvirtd_LDADD += ../src/libvirt_probes.lo
 endif
 
 libvirtd_LDADD += \
+	../src/libvirt-lxc.la \
 	../src/libvirt-qemu.la
 
 if ! WITH_DRIVER_MODULES
@@ -169,8 +181,8 @@ endif
 
 libvirtd_LDADD += ../src/libvirt.la
 
-if HAVE_POLKIT
-if HAVE_POLKIT0
+if WITH_POLKIT
+if WITH_POLKIT0
 policydir = $(datadir)/PolicyKit/policy
 policyauth = auth_admin_keep_session
 else
@@ -181,7 +193,7 @@ endif
 
 libvirtd.policy: libvirtd.policy.in $(top_builddir)/config.status
 	$(AM_V_GEN) sed \
-	    -e 's![@]authaction[@]!$(policyauth)!g' \
+	    -e 's|[@]authaction[@]|$(policyauth)|g' \
 	    < $< > $@-t && \
 	mv $@-t $@
 BUILT_SOURCES += libvirtd.policy
@@ -200,7 +212,7 @@ uninstall-local:: uninstall-init-redhat uninstall-init-systemd uninstall-init-up
 	rmdir $(DESTDIR)$(localstatedir)/run/libvirt || :
 	rmdir $(DESTDIR)$(localstatedir)/lib/libvirt || :
 
-if HAVE_POLKIT
+if WITH_POLKIT
 install-data-polkit::
 	$(MKDIR_P) $(DESTDIR)$(policydir)
 	$(INSTALL_DATA) libvirtd.policy $(DESTDIR)$(policydir)/org.libvirt.unix.policy
@@ -222,25 +234,25 @@ BUILT_SOURCES += $(LOGROTATE_CONFS)
 
 libvirtd.logrotate: libvirtd.logrotate.in
 	$(AM_V_GEN)sed						\
-	    -e 's![@]localstatedir[@]!$(localstatedir)!g'	\
+	    -e 's|[@]localstatedir[@]|$(localstatedir)|g'	\
 	    < $< > $@-t && \
 	mv $@-t $@
 
 libvirtd.qemu.logrotate: libvirtd.qemu.logrotate.in
 	$(AM_V_GEN)sed						\
-	    -e 's![@]localstatedir[@]!$(localstatedir)!g'	\
+	    -e 's|[@]localstatedir[@]|$(localstatedir)|g'	\
 	    < $< > $@-t && \
 	mv $@-t $@
 
 libvirtd.lxc.logrotate: libvirtd.lxc.logrotate.in
 	$(AM_V_GEN)sed						\
-	    -e 's![@]localstatedir[@]!$(localstatedir)!g'	\
+	    -e 's|[@]localstatedir[@]|$(localstatedir)|g'	\
 	    < $< > $@-t &&					\
 	    mv $@-t $@
 
 libvirtd.uml.logrotate: libvirtd.uml.logrotate.in
 	$(AM_V_GEN)sed						\
-	    -e 's![@]localstatedir[@]!$(localstatedir)!g'	\
+	    -e 's|[@]localstatedir[@]|$(localstatedir)|g'	\
 	    < $< > $@-t &&					\
 	    mv $@-t $@
 
@@ -273,14 +285,16 @@ uninstall-sysconfig:
 	rmdir $(DESTDIR)$(sysconfdir)/sysconfig || :
 
 if WITH_SYSCTL
+# Use $(prefix)/lib rather than $(libdir), since man sysctl.d insists on
+# /usr/lib/sysctl.d/ even when libdir is /usr/lib64
 install-sysctl:
-	$(MKDIR_P) $(DESTDIR)$(sysconfdir)/sysctl.d
+	$(MKDIR_P) $(DESTDIR)$(prefix)/lib/sysctl.d
 	$(INSTALL_DATA) $(srcdir)/libvirtd.sysctl \
-	  $(DESTDIR)$(sysconfdir)/sysctl.d/libvirtd
+	  $(DESTDIR)$(prefix)/lib/sysctl.d/libvirtd.conf
 
 uninstall-sysctl:
-	rm -f $(DESTDIR)$(sysconfdir)/sysctl.d/libvirtd
-	rmdir $(DESTDIR)$(sysconfdir)/sysctl.d || :
+	rm -f $(DESTDIR)$(prefix)/lib/sysctl.d/libvirtd.conf
+	rmdir $(DESTDIR)$(prefix)/lib/sysctl.d || :
 else
 install-sysctl:
 uninstall-sysctl:
@@ -320,7 +334,6 @@ uninstall-init-upstart:
 endif # LIBVIRT_INIT_SCRIPT_UPSTART
 
 
-EXTRA_DIST += libvirtd.service.in
 if LIBVIRT_INIT_SCRIPT_SYSTEMD
 
 SYSTEMD_UNIT_DIR = /lib/systemd/system
@@ -340,21 +353,20 @@ uninstall-init-systemd:
 endif # LIBVIRT_INIT_SCRIPT_SYSTEMD
 
 libvirtd.init: libvirtd.init.in $(top_builddir)/config.status
-	$(AM_V_GEN)sed					\
-	    -e s!\@localstatedir\@!$(localstatedir)!g	\
-	    -e s!\@sbindir\@!$(sbindir)!g		\
-	    -e s!\@sysconfdir\@!$(sysconfdir)!g		\
-	    < $< > $@-t &&				\
-	    chmod a+x $@-t &&				\
+	$(AM_V_GEN)sed						\
+	    -e 's|[@]localstatedir[@]|$(localstatedir)|g'	\
+	    -e 's|[@]sbindir[@]|$(sbindir)|g'			\
+	    -e 's|[@]sysconfdir[@]|$(sysconfdir)|g'		\
+	    < $< > $@-t &&					\
+	    chmod a+x $@-t &&					\
 	    mv $@-t $@
 
 libvirtd.service: libvirtd.service.in $(top_builddir)/config.status
-	$(AM_V_GEN)sed					\
-	    -e s!\@localstatedir\@!$(localstatedir)!g	\
-	    -e s!\@sbindir\@!$(sbindir)!g		\
-	    -e s!\@sysconfdir\@!$(sysconfdir)!g		\
-	    < $< > $@-t &&				\
-	    chmod a+x $@-t &&				\
+	$(AM_V_GEN)sed						\
+	    -e 's|[@]localstatedir[@]|$(localstatedir)|g'	\
+	    -e 's|[@]sbindir[@]|$(sbindir)|g'			\
+	    -e 's|[@]sysconfdir[@]|$(sysconfdir)|g'		\
+	    < $< > $@-t &&					\
 	    mv $@-t $@
 
 
@@ -389,7 +401,7 @@ $(srcdir)/libvirtd.8.in: libvirtd.pod.in
 
 # This is needed for clients too, so can't wrap in
 # the WITH_LIBVIRTD conditional
-if HAVE_SASL
+if WITH_SASL
 install-data-sasl:
 	$(MKDIR_P) $(DESTDIR)$(sysconfdir)/sasl2/
 	$(INSTALL_DATA) $(srcdir)/libvirtd.sasl $(DESTDIR)$(sysconfdir)/sasl2/libvirt.conf

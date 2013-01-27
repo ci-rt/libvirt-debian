@@ -4998,6 +4998,19 @@ xdr_remote_domain_open_console_args (XDR *xdrs, remote_domain_open_console_args 
 }
 
 bool_t
+xdr_remote_domain_open_channel_args (XDR *xdrs, remote_domain_open_channel_args *objp)
+{
+
+         if (!xdr_remote_nonnull_domain (xdrs, &objp->dom))
+                 return FALSE;
+         if (!xdr_remote_string (xdrs, &objp->name))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->flags))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
 xdr_remote_storage_vol_upload_args (XDR *xdrs, remote_storage_vol_upload_args *objp)
 {
 

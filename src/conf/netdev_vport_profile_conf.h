@@ -25,8 +25,8 @@
 
 # include "internal.h"
 # include "virnetdevvportprofile.h"
-# include "buf.h"
-# include "xml.h"
+# include "virbuffer.h"
+# include "virxml.h"
 
 typedef enum {
     /* generate random defaults for interfaceID/interfaceID

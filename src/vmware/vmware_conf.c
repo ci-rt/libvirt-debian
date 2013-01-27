@@ -22,16 +22,15 @@
 #include <config.h>
 
 #include <string.h>
-#include <sys/utsname.h>
 
-#include "command.h"
+#include "vircommand.h"
 #include "cpu/cpu.h"
 #include "dirname.h"
-#include "memory.h"
+#include "viralloc.h"
 #include "nodeinfo.h"
 #include "virfile.h"
-#include "uuid.h"
-#include "virterror_internal.h"
+#include "viruuid.h"
+#include "virerror.h"
 #include "vmx.h"
 
 #include "vmware_conf.h"
@@ -51,7 +50,7 @@ vmwareFreeDriver(struct vmware_driver *driver)
 
 
 static int vmwareDefaultConsoleType(const char *ostype ATTRIBUTE_UNUSED,
-                                    const char *arch ATTRIBUTE_UNUSED)
+                                    virArch arch ATTRIBUTE_UNUSED)
 {
     return VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_SERIAL;
 }
@@ -60,15 +59,13 @@ static int vmwareDefaultConsoleType(const char *ostype ATTRIBUTE_UNUSED,
 virCapsPtr
 vmwareCapsInit(void)
 {
-    struct utsname utsname;
     virCapsPtr caps = NULL;
     virCapsGuestPtr guest = NULL;
     virCPUDefPtr cpu = NULL;
     union cpuData *data = NULL;
 
-    uname(&utsname);
-
-    if ((caps = virCapabilitiesNew(utsname.machine, 0, 0)) == NULL)
+    if ((caps = virCapabilitiesNew(virArchFromHost(),
+                                   0, 0)) == NULL)
         goto error;
 
     if (nodeCapsInitNUMA(caps) < 0)
@@ -79,8 +76,7 @@ vmwareCapsInit(void)
     /* i686 guests are always supported */
     if ((guest = virCapabilitiesAddGuest(caps,
                                          "hvm",
-                                         "i686",
-                                         32,
+                                         VIR_ARCH_I686,
                                          NULL, NULL, 0, NULL)) == NULL)
         goto error;
 
@@ -89,12 +85,15 @@ vmwareCapsInit(void)
                                       NULL, NULL, 0, NULL) == NULL)
         goto error;
 
-    if (VIR_ALLOC(cpu) < 0
-        || !(cpu->arch = strdup(utsname.machine))) {
+    if (VIR_ALLOC(cpu) < 0) {
         virReportOOMError();
         goto error;
     }
 
+    if (!(cpu->arch = caps->host.arch)) {
+        virReportOOMError();
+        goto error;
+    }
     cpu->type = VIR_CPU_TYPE_HOST;
 
     if (!(data = cpuNodeData(cpu->arch))
@@ -107,15 +106,14 @@ vmwareCapsInit(void)
      * Or
      *  - Host CPU is x86_64 with virtualization extensions
      */
-    if (STREQ(utsname.machine, "x86_64") ||
-        (cpuHasFeature(utsname.machine, data, "lm") &&
-         (cpuHasFeature(utsname.machine, data, "vmx") ||
-          cpuHasFeature(utsname.machine, data, "svm")))) {
+    if (caps->host.arch == VIR_ARCH_X86_64 ||
+        (cpuHasFeature(caps->host.arch, data, "lm") &&
+         (cpuHasFeature(caps->host.arch, data, "vmx") ||
+          cpuHasFeature(caps->host.arch, data, "svm")))) {
 
         if ((guest = virCapabilitiesAddGuest(caps,
                                              "hvm",
-                                             "x86_64",
-                                             64,
+                                             VIR_ARCH_X86_64,
                                              NULL, NULL, 0, NULL)) == NULL)
             goto error;
 
@@ -129,7 +127,8 @@ vmwareCapsInit(void)
 
 cleanup:
     virCPUDefFree(cpu);
-    cpuDataFree(utsname.machine, data);
+    if (caps)
+        cpuDataFree(caps->host.arch, data);
 
     return caps;
 
@@ -199,7 +198,7 @@ vmwareLoadDomains(struct vmware_driver *driver)
                              VIR_DOMAIN_RUNNING_UNKNOWN);
         vm->persistent = 1;
 
-        virDomainObjUnlock(vm);
+        virObjectUnlock(vm);
 
         vmdef = NULL;
         vm = NULL;

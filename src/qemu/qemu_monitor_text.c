@@ -34,12 +34,12 @@
 #include "qemu_command.h"
 #include "c-ctype.h"
 #include "c-strcasestr.h"
-#include "memory.h"
-#include "logging.h"
+#include "viralloc.h"
+#include "virlog.h"
 #include "driver.h"
 #include "datatypes.h"
-#include "virterror_internal.h"
-#include "buf.h"
+#include "virerror.h"
+#include "virbuffer.h"
 
 #ifdef WITH_DTRACE_PROBES
 # include "libvirt_qemu_probes.h"

@@ -31,10 +31,10 @@
 #include <libgen.h>
 
 #include "datatypes.h"
-#include "memory.h"
+#include "viralloc.h"
 #include "configmake.h"
-#include "storage_file.h"
-#include "virterror_internal.h"
+#include "virstoragefile.h"
+#include "virerror.h"
 
 #include "parallels_utils.h"
 
@@ -146,7 +146,7 @@ static char *parallelsMakePoolName(virConnectPtr conn, const char *path)
         if (i == 0)
             name = strdup(path);
         else
-            virAsprintf(&name, "%s-%u", path, i);
+            ignore_value(virAsprintf(&name, "%s-%u", path, i));
 
         if (!name) {
             virReportOOMError();
@@ -258,7 +258,7 @@ static int parallelsDiskDescParseNode(xmlDocPtr xml,
                                       virStorageVolDefPtr def)
 {
     xmlXPathContextPtr ctxt = NULL;
-    int ret;
+    int ret = -1;
 
     if (STRNEQ((const char *)root->name, "Parallels_disk_image")) {
         virReportError(VIR_ERR_XML_ERROR,
@@ -275,11 +275,16 @@ static int parallelsDiskDescParseNode(xmlDocPtr xml,
     ctxt->node = root;
 
     if (virXPathULongLong("string(./Disk_Parameters/Disk_size)",
-                          ctxt, &def->capacity))
-        ret = -1;
+                          ctxt, &def->capacity) < 0) {
+        virReportError(VIR_ERR_XML_ERROR,
+                       "%s", _("failed to get disk size from "
+                               "the disk descriptor xml"));
+        goto cleanup;
+    }
 
     def->capacity <<= 9;
     def->allocation = def->capacity;
+    ret = 0;
 cleanup:
     xmlXPathFreeContext(ctxt);
     return ret;
@@ -310,13 +315,13 @@ static int parallelsAddDiskVolume(virStoragePoolObjPtr pool,
     if (VIR_ALLOC(def))
         goto no_memory;
 
-    virAsprintf(&def->name, "%s-%s", dom->def->name, diskName);
-    if (!def->name)
+    if (virAsprintf(&def->name, "%s-%s", dom->def->name, diskName) < 0)
         goto no_memory;
 
     def->type = VIR_STORAGE_VOL_FILE;
 
-    parallelsDiskDescParse(diskDescPath, def);
+    if (parallelsDiskDescParse(diskDescPath, def) < 0)
+        goto error;
 
     if (!(def->target.path = realpath(diskPath, NULL)))
         goto no_memory;
@@ -331,8 +336,9 @@ static int parallelsAddDiskVolume(virStoragePoolObjPtr pool,
 
     return 0;
 no_memory:
-    virStorageVolDefFree(def);
     virReportOOMError();
+error:
+    virStorageVolDefFree(def);
     return -1;
 }
 

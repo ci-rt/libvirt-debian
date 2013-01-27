@@ -24,12 +24,12 @@
 # define PARALLELS_UTILS_H
 
 # include "driver.h"
-# include "util/threads.h"
 # include "conf/domain_conf.h"
 # include "conf/storage_conf.h"
 # include "conf/domain_event.h"
 # include "conf/network_conf.h"
-# include "json.h"
+# include "virthread.h"
+# include "virjson.h"
 
 # define parallelsParseError()                                                 \
     virReportErrorHelper(VIR_FROM_TEST, VIR_ERR_OPERATION_FAILED, __FILE__,    \

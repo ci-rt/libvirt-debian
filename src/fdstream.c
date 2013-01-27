@@ -33,11 +33,11 @@
 #include <netinet/in.h>
 
 #include "fdstream.h"
-#include "virterror_internal.h"
+#include "virerror.h"
 #include "datatypes.h"
-#include "logging.h"
-#include "memory.h"
-#include "util.h"
+#include "virlog.h"
+#include "viralloc.h"
+#include "virutil.h"
 #include "virfile.h"
 #include "configmake.h"
 

@@ -28,12 +28,12 @@
 #include "virnetclient.h"
 #include "virnetprotocol.h"
 
-#include "memory.h"
-#include "virterror_internal.h"
-#include "logging.h"
-#include "util.h"
+#include "viralloc.h"
+#include "virerror.h"
+#include "virlog.h"
+#include "virutil.h"
 #include "virfile.h"
-#include "threads.h"
+#include "virthread.h"
 
 #define VIR_FROM_THIS VIR_FROM_RPC
 
@@ -52,7 +52,8 @@ static void virNetClientProgramDispose(void *obj);
 
 static int virNetClientProgramOnceInit(void)
 {
-    if (!(virNetClientProgramClass = virClassNew("virNetClientProgram",
+    if (!(virNetClientProgramClass = virClassNew(virClassForObject(),
+                                                 "virNetClientProgram",
                                                  sizeof(virNetClientProgram),
                                                  virNetClientProgramDispose)))
         return -1;
@@ -362,18 +363,18 @@ int virNetClientProgramCall(virNetClientProgramPtr prog,
                 goto error;
             }
             for (i = 0 ; i < *ninfds ; i++)
-                *infds[i] = -1;
+                (*infds)[i] = -1;
             for (i = 0 ; i < *ninfds ; i++) {
-                if ((*infds[i] = dup(msg->fds[i])) < 0) {
+                if (((*infds)[i] = dup(msg->fds[i])) < 0) {
                     virReportSystemError(errno,
                                          _("Cannot duplicate FD %d"),
                                          msg->fds[i]);
                     goto error;
                 }
-                if (virSetInherit(*infds[i], false) < 0) {
+                if (virSetInherit((*infds)[i], false) < 0) {
                     virReportSystemError(errno,
                                          _("Cannot set close-on-exec %d"),
-                                         *infds[i]);
+                                         (*infds)[i]);
                     goto error;
                 }
             }
@@ -401,7 +402,7 @@ error:
     virNetMessageFree(msg);
     if (infds && ninfds) {
         for (i = 0 ; i < *ninfds ; i++)
-            VIR_FORCE_CLOSE(*infds[i]);
+            VIR_FORCE_CLOSE((*infds)[i]);
     }
     return -1;
 }

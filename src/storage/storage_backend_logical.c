@@ -31,12 +31,12 @@
 #include <unistd.h>
 #include <fcntl.h>
 
-#include "virterror_internal.h"
+#include "virerror.h"
 #include "storage_backend_logical.h"
 #include "storage_conf.h"
-#include "command.h"
-#include "memory.h"
-#include "logging.h"
+#include "vircommand.h"
+#include "viralloc.h"
+#include "virlog.h"
 #include "virfile.h"
 
 #define VIR_FROM_THIS VIR_FROM_STORAGE
@@ -208,13 +208,16 @@ virStorageBackendLogicalMakeVol(virStoragePoolObjPtr pool,
     if (err != 0) {
         char error[100];
         regerror(err, reg, error, sizeof(error));
+        regfree(reg);
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("Failed to compile regex %s"),
                        error);
         goto cleanup;
     }
 
-    if (regexec(reg, groups[3], nvars, vars, 0) != 0) {
+    err = regexec(reg, groups[3], nvars, vars, 0);
+    regfree(reg);
+    if (err != 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                        _("malformed volume extent devices value"));
         goto cleanup;
@@ -733,7 +736,7 @@ virStorageBackendLogicalCreateVol(virConnectPtr conn,
     }
     virCommandAddArgFormat(cmd, "%lluK", VIR_DIV_UP(vol->capacity, 1024));
     if (vol->backingStore.path)
-        virCommandAddArgPair(cmd, "-s", vol->backingStore.path);
+        virCommandAddArgList(cmd, "-s", vol->backingStore.path, NULL);
     else
         virCommandAddArg(cmd, pool->def->source.name);
 

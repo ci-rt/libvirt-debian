@@ -33,22 +33,21 @@
 #include <fcntl.h>
 #include <sys/wait.h>
 #include <arpa/inet.h>
-#include <sys/utsname.h>
 
-#include "virterror_internal.h"
+#include "virerror.h"
 #include "qemu_conf.h"
 #include "qemu_command.h"
 #include "qemu_capabilities.h"
 #include "qemu_bridge_filter.h"
-#include "uuid.h"
-#include "buf.h"
-#include "conf.h"
-#include "util.h"
-#include "memory.h"
+#include "viruuid.h"
+#include "virbuffer.h"
+#include "virconf.h"
+#include "virutil.h"
+#include "viralloc.h"
 #include "datatypes.h"
-#include "xml.h"
+#include "virxml.h"
 #include "nodeinfo.h"
-#include "logging.h"
+#include "virlog.h"
 #include "cpu/cpu.h"
 #include "domain_nwfilter.h"
 #include "virfile.h"
@@ -234,10 +233,6 @@ int qemuLoadDriverConfig(virQEMUDriverPtr driver,
                        filename, QEMU_REMOTE_PORT_MAX);
         goto cleanup;
     }
-    /* increasing the value by 1 makes all the loops going through
-    the bitmap (i = remotePortMin; i < remotePortMax; i++), work as
-    expected. */
-    driver->remotePortMax++;
 
     if (driver->remotePortMin > driver->remotePortMax) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
@@ -537,7 +532,7 @@ qemuDriverCloseCallbackRun(void *payload,
 
     dom = closeDef->cb(data->driver, dom, data->conn);
     if (dom)
-        virDomainObjUnlock(dom);
+        virObjectUnlock(dom);
 
     virHashRemoveEntry(data->driver->closeCallbacks, uuidstr);
 }
@@ -552,4 +547,90 @@ qemuDriverCloseCallbackRunAll(virQEMUDriverPtr driver,
     VIR_DEBUG("conn=%p", conn);
 
     virHashForEach(driver->closeCallbacks, qemuDriverCloseCallbackRun, &data);
+}
+
+/* Construct the hash key for sharedDisks as "major:minor" */
+char *
+qemuGetSharedDiskKey(const char *disk_path)
+{
+    int maj, min;
+    char *key = NULL;
+    int rc;
+
+    if ((rc = virGetDeviceID(disk_path, &maj, &min)) < 0) {
+        virReportSystemError(-rc,
+                             _("Unable to get minor number of device '%s'"),
+                             disk_path);
+        return NULL;
+    }
+
+    if (virAsprintf(&key, "%d:%d", maj, min) < 0) {
+        virReportOOMError();
+        return NULL;
+    }
+
+    return key;
+}
+
+/* Increase ref count if the entry already exists, otherwise
+ * add a new entry.
+ */
+int
+qemuAddSharedDisk(virHashTablePtr sharedDisks,
+                  const char *disk_path)
+{
+    size_t *ref = NULL;
+    char *key = NULL;
+
+    if (!(key = qemuGetSharedDiskKey(disk_path)))
+        return -1;
+
+    if ((ref = virHashLookup(sharedDisks, key))) {
+        if (virHashUpdateEntry(sharedDisks, key, ++ref) < 0) {
+             VIR_FREE(key);
+             return -1;
+        }
+    } else {
+        if (virHashAddEntry(sharedDisks, key, (void *)0x1)) {
+            VIR_FREE(key);
+            return -1;
+        }
+    }
+
+    VIR_FREE(key);
+    return 0;
+}
+
+/* Decrease the ref count if the entry already exists, otherwise
+ * remove the entry.
+ */
+int
+qemuRemoveSharedDisk(virHashTablePtr sharedDisks,
+                     const char *disk_path)
+{
+    size_t *ref = NULL;
+    char *key = NULL;
+
+    if (!(key = qemuGetSharedDiskKey(disk_path)))
+        return -1;
+
+    if (!(ref = virHashLookup(sharedDisks, key))) {
+        VIR_FREE(key);
+        return -1;
+    }
+
+    if (ref != (void *)0x1) {
+        if (virHashUpdateEntry(sharedDisks, key, --ref) < 0) {
+             VIR_FREE(key);
+             return -1;
+        }
+    } else {
+        if (virHashRemoveEntry(sharedDisks, key) < 0) {
+            VIR_FREE(key);
+            return -1;
+        }
+    }
+
+    VIR_FREE(key);
+    return 0;
 }

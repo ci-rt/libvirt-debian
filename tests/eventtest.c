@@ -28,11 +28,10 @@
 
 #include "testutils.h"
 #include "internal.h"
-#include "threads.h"
-#include "logging.h"
-#include "util.h"
-#include "event.h"
-#include "event_poll.h"
+#include "virthread.h"
+#include "virlog.h"
+#include "virutil.h"
+#include "vireventpoll.h"
 
 #define NUM_FDS 31
 #define NUM_TIME 31

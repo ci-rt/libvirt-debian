@@ -38,9 +38,9 @@
 
 #include "internal.h"
 
-#include "uuid.h"
-#include "memory.h"
-#include "virterror_internal.h"
+#include "viruuid.h"
+#include "viralloc.h"
+#include "virerror.h"
 #include "datatypes.h"
 #include "nwfilter_params.h"
 #include "nwfilter_conf.h"

@@ -27,12 +27,12 @@
 #include <gnutls/x509.h>
 
 #include "testutils.h"
-#include "util.h"
-#include "virterror_internal.h"
-#include "memory.h"
-#include "logging.h"
+#include "virutil.h"
+#include "virerror.h"
+#include "viralloc.h"
+#include "virlog.h"
 #include "virfile.h"
-#include "command.h"
+#include "vircommand.h"
 #include "virsocketaddr.h"
 #include "gnutls_1_0_compat.h"
 
@@ -297,7 +297,6 @@ testTLSGenerateCert(struct testTLSCertReq *req)
             abort();
         }
         asn1_delete_structure(&ext);
-        VIR_FREE(der.data);
     }
 
     /*
@@ -324,7 +323,6 @@ testTLSGenerateCert(struct testTLSCertReq *req)
             abort();
         }
         asn1_delete_structure(&ext);
-        VIR_FREE(der.data);
     }
 
     /*
@@ -355,7 +353,6 @@ testTLSGenerateCert(struct testTLSCertReq *req)
             abort();
         }
         asn1_delete_structure(&ext);
-        VIR_FREE(der.data);
     }
 
     /*
@@ -662,7 +659,7 @@ static int testTLSSessionInit(const void *opaque)
             if (rv < 0)
                 goto cleanup;
             if (rv == VIR_NET_TLS_HANDSHAKE_COMPLETE)
-                serverShake = true;
+                clientShake = true;
         }
     } while (!clientShake && !serverShake);
 

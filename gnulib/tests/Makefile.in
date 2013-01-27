@@ -15,7 +15,7 @@
 
 @SET_MAKE@
 
-# Copyright (C) 2002-2012 Free Software Foundation, Inc.
+# Copyright (C) 2002-2013 Free Software Foundation, Inc.
 #
 # This file is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -271,6 +271,7 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/alloca.m4 \
 	$(top_srcdir)/gnulib/m4/arpa_inet_h.m4 \
 	$(top_srcdir)/gnulib/m4/asm-underscore.m4 \
+	$(top_srcdir)/gnulib/m4/autobuild.m4 \
 	$(top_srcdir)/gnulib/m4/base64.m4 \
 	$(top_srcdir)/gnulib/m4/btowc.m4 \
 	$(top_srcdir)/gnulib/m4/byteswap.m4 \
@@ -334,7 +335,6 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/include_next.m4 \
 	$(top_srcdir)/gnulib/m4/inet_ntop.m4 \
 	$(top_srcdir)/gnulib/m4/inet_pton.m4 \
-	$(top_srcdir)/gnulib/m4/inline.m4 \
 	$(top_srcdir)/gnulib/m4/intmax_t.m4 \
 	$(top_srcdir)/gnulib/m4/inttypes.m4 \
 	$(top_srcdir)/gnulib/m4/ioctl.m4 \
@@ -500,8 +500,21 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/ltversion.m4 $(top_srcdir)/m4/lt~obsolete.m4 \
 	$(top_srcdir)/m4/nls.m4 $(top_srcdir)/m4/po.m4 \
 	$(top_srcdir)/m4/progtest.m4 $(top_srcdir)/m4/size_max.m4 \
-	$(top_srcdir)/m4/stdint_h.m4 \
+	$(top_srcdir)/m4/stdint_h.m4 $(top_srcdir)/m4/virt-apparmor.m4 \
+	$(top_srcdir)/m4/virt-attr.m4 $(top_srcdir)/m4/virt-audit.m4 \
+	$(top_srcdir)/m4/virt-avahi.m4 $(top_srcdir)/m4/virt-blkid.m4 \
+	$(top_srcdir)/m4/virt-capng.m4 \
 	$(top_srcdir)/m4/virt-compile-warnings.m4 \
+	$(top_srcdir)/m4/virt-curl.m4 $(top_srcdir)/m4/virt-dbus.m4 \
+	$(top_srcdir)/m4/virt-fuse.m4 $(top_srcdir)/m4/virt-hal.m4 \
+	$(top_srcdir)/m4/virt-lib.m4 $(top_srcdir)/m4/virt-netcf.m4 \
+	$(top_srcdir)/m4/virt-numactl.m4 \
+	$(top_srcdir)/m4/virt-openwsman.m4 \
+	$(top_srcdir)/m4/virt-pciaccess.m4 \
+	$(top_srcdir)/m4/virt-result.m4 \
+	$(top_srcdir)/m4/virt-sanlock.m4 $(top_srcdir)/m4/virt-sasl.m4 \
+	$(top_srcdir)/m4/virt-selinux.m4 $(top_srcdir)/m4/virt-ssh2.m4 \
+	$(top_srcdir)/m4/virt-udev.m4 $(top_srcdir)/m4/virt-yajl.m4 \
 	$(top_srcdir)/m4/wchar_t.m4 $(top_srcdir)/m4/wint_t.m4 \
 	$(top_srcdir)/m4/xsize.m4 $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
@@ -521,9 +534,10 @@ libtests_a_AR = $(AR) $(ARFLAGS)
 am__DEPENDENCIES_1 =
 am__dirstamp = $(am__leading_dot)dirstamp
 am_libtests_a_OBJECTS = exitfail.$(OBJEXT) fatal-signal.$(OBJEXT) \
-	getugroups.$(OBJEXT) localename.$(OBJEXT) mgetgroups.$(OBJEXT) \
-	progname.$(OBJEXT) glthread/thread.$(OBJEXT) \
-	wait-process.$(OBJEXT) xmalloc.$(OBJEXT) xalloc-die.$(OBJEXT)
+	getugroups.$(OBJEXT) localename.$(OBJEXT) math.$(OBJEXT) \
+	mgetgroups.$(OBJEXT) progname.$(OBJEXT) \
+	glthread/thread.$(OBJEXT) wait-process.$(OBJEXT) \
+	xmalloc.$(OBJEXT) xalloc-die.$(OBJEXT)
 libtests_a_OBJECTS = $(am_libtests_a_OBJECTS)
 @POSIX_SPAWN_PORTED_TRUE@am__EXEEXT_1 = test-posix_spawn1$(EXEEXT) \
 @POSIX_SPAWN_PORTED_TRUE@	test-posix_spawn2$(EXEEXT)
@@ -1638,6 +1652,8 @@ AR = @AR@
 ARFLAGS = @ARFLAGS@
 AS = @AS@
 ASM_SYMBOL_PREFIX = @ASM_SYMBOL_PREFIX@
+ATTR_CFLAGS = @ATTR_CFLAGS@
+ATTR_LIBS = @ATTR_LIBS@
 AUDIT_CFLAGS = @AUDIT_CFLAGS@
 AUDIT_LIBS = @AUDIT_LIBS@
 AUGPARSE = @AUGPARSE@
@@ -1667,6 +1683,8 @@ COVERAGE_CFLAGS = @COVERAGE_CFLAGS@
 COVERAGE_LDFLAGS = @COVERAGE_LDFLAGS@
 CPP = @CPP@
 CPPFLAGS = @CPPFLAGS@
+CURL_CFLAGS = @CURL_CFLAGS@
+CURL_LIBS = @CURL_LIBS@
 CYGPATH_W = @CYGPATH_W@
 CYGWIN_EXTRA_LDFLAGS = @CYGWIN_EXTRA_LDFLAGS@
 CYGWIN_EXTRA_LIBADD = @CYGWIN_EXTRA_LIBADD@
@@ -2485,8 +2503,6 @@ ISCSIADM = @ISCSIADM@
 LD = @LD@
 LDEXP_LIBM = @LDEXP_LIBM@
 LDFLAGS = @LDFLAGS@
-LIBCURL_CFLAGS = @LIBCURL_CFLAGS@
-LIBCURL_LIBS = @LIBCURL_LIBS@
 LIBICONV = @LIBICONV@
 LIBINTL = @LIBINTL@
 LIBMULTITHREAD = @LIBMULTITHREAD@
@@ -2504,11 +2520,10 @@ LIBPTH_PREFIX = @LIBPTH_PREFIX@
 LIBRBD_LIBS = @LIBRBD_LIBS@
 LIBS = @LIBS@
 LIBSOCKET = @LIBSOCKET@
-LIBSSH2_CFLAGS = @LIBSSH2_CFLAGS@
-LIBSSH2_LIBS = @LIBSSH2_LIBS@
 LIBTESTS_LIBDEPS = @LIBTESTS_LIBDEPS@
 LIBTHREAD = @LIBTHREAD@
 LIBTOOL = @LIBTOOL@
+LIBVIRT_LXC_SYMBOL_FILE = @LIBVIRT_LXC_SYMBOL_FILE@
 LIBVIRT_MAJOR_VERSION = @LIBVIRT_MAJOR_VERSION@
 LIBVIRT_MICRO_VERSION = @LIBVIRT_MICRO_VERSION@
 LIBVIRT_MINOR_VERSION = @LIBVIRT_MINOR_VERSION@
@@ -2925,6 +2940,8 @@ SHELL = @SHELL@
 SHOWMOUNT = @SHOWMOUNT@
 SIG_ATOMIC_T_SUFFIX = @SIG_ATOMIC_T_SUFFIX@
 SIZE_T_SUFFIX = @SIZE_T_SUFFIX@
+SSH2_CFLAGS = @SSH2_CFLAGS@
+SSH2_LIBS = @SSH2_LIBS@
 STATIC_BINARIES = @STATIC_BINARIES@
 STDALIGN_H = @STDALIGN_H@
 STDARG_H = @STDARG_H@
@@ -3241,8 +3258,8 @@ AM_CPPFLAGS = \
 
 LDADD = libtests.a ../../gnulib/lib/libgnu.la libtests.a $(LIBTESTS_LIBDEPS)
 libtests_a_SOURCES = exitfail.c fatal-signal.h fatal-signal.c \
-	getugroups.c localename.c mgetgroups.c progname.h progname.c \
-	glthread/thread.h glthread/thread.c wait-process.h \
+	getugroups.c localename.c math.c mgetgroups.c progname.h \
+	progname.c glthread/thread.h glthread/thread.c wait-process.h \
 	wait-process.c xmalloc.c xalloc-die.c
 libtests_a_LIBADD = $(gltests_LIBOBJS)
 libtests_a_DEPENDENCIES = $(gltests_LIBOBJS)
@@ -3974,6 +3991,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/isnanf.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/isnanl.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/localename.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/math.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mgetgroups.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/progname.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ptsname.Po@am__quote@

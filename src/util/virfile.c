@@ -37,11 +37,11 @@
 # include <sys/ioctl.h>
 #endif
 
-#include "command.h"
+#include "vircommand.h"
 #include "configmake.h"
-#include "memory.h"
-#include "virterror_internal.h"
-#include "logging.h"
+#include "viralloc.h"
+#include "virerror.h"
+#include "virlog.h"
 
 #define VIR_FROM_THIS VIR_FROM_NONE
 
@@ -602,7 +602,7 @@ static int virFileLoopDeviceOpen(char **dev_name)
     int fd = -1;
     DIR *dh = NULL;
     struct dirent *de;
-    char *looppath;
+    char *looppath = NULL;
     struct loop_info64 lo;
 
     VIR_DEBUG("Looking for loop devices in /dev");

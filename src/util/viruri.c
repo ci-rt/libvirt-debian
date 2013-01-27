@@ -22,10 +22,10 @@
 
 #include "viruri.h"
 
-#include "memory.h"
-#include "util.h"
-#include "virterror_internal.h"
-#include "buf.h"
+#include "viralloc.h"
+#include "virutil.h"
+#include "virerror.h"
+#include "virbuffer.h"
 
 #define VIR_FROM_THIS VIR_FROM_URI
 

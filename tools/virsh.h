@@ -34,8 +34,8 @@
 # include <inttypes.h>
 
 # include "internal.h"
-# include "virterror_internal.h"
-# include "threads.h"
+# include "virerror.h"
+# include "virthread.h"
 # include "virnetdevbandwidth.h"
 
 # define VSH_MAX_XML_FILE (10*1024*1024)

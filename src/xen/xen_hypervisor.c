@@ -36,7 +36,6 @@
 #include <stdint.h>
 #include <regex.h>
 #include <errno.h>
-#include <sys/utsname.h>
 
 #ifdef __sun
 # include <sys/systeminfo.h>
@@ -63,21 +62,21 @@
 /* required for shutdown flags */
 #include <xen/sched.h>
 
-#include "virterror_internal.h"
-#include "logging.h"
+#include "virerror.h"
+#include "virlog.h"
 #include "datatypes.h"
 #include "driver.h"
-#include "util.h"
+#include "virutil.h"
 #include "xen_driver.h"
 #include "xen_hypervisor.h"
 #include "xs_internal.h"
-#include "stats_linux.h"
+#include "virstatslinux.h"
 #include "block_stats.h"
 #include "xend_internal.h"
-#include "buf.h"
+#include "virbuffer.h"
 #include "capabilities.h"
-#include "memory.h"
-#include "threads.h"
+#include "viralloc.h"
+#include "virthread.h"
 #include "virfile.h"
 #include "virnodesuspend.h"
 #include "virtypedparam.h"
@@ -1796,8 +1795,11 @@ virXen_setvcpumap(int handle, int id, unsigned int vcpu,
             return -1;
 
         memset(pm, 0, sizeof(cpumap_t));
-        for (j = 0; j < maplen; j++)
+        for (j = 0; j < maplen; j++) {
+            /* coverity[ptr_arith] */
+            /* coverity[sign_extension] */
             *(pm + (j / 8)) |= cpumap[j] << (8 * (j & 7));
+        }
 
         if (hv_versions.hypervisor == 1) {
             xen_op_v1 op;
@@ -2292,8 +2294,7 @@ xenHypervisorGetVersion(virConnectPtr conn, unsigned long *hvVer)
 }
 
 struct guest_arch {
-    const char *model;
-    int bits;
+    virArch arch;
     int hvm;
     int pae;
     int nonpae;
@@ -2302,7 +2303,7 @@ struct guest_arch {
 
 
 static int xenDefaultConsoleType(const char *ostype,
-                                 const char *arch ATTRIBUTE_UNUSED)
+                                 virArch arch ATTRIBUTE_UNUSED)
 {
     if (STREQ(ostype, "hvm"))
         return VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_SERIAL;
@@ -2312,7 +2313,7 @@ static int xenDefaultConsoleType(const char *ostype,
 
 static virCapsPtr
 xenHypervisorBuildCapabilities(virConnectPtr conn,
-                               const char *hostmachine,
+                               virArch hostarch,
                                int host_pae,
                                const char *hvm_type,
                                struct guest_arch *guest_archs,
@@ -2322,7 +2323,7 @@ xenHypervisorBuildCapabilities(virConnectPtr conn,
     int hv_major = hv_versions.hv >> 16;
     int hv_minor = hv_versions.hv & 0xFFFF;
 
-    if ((caps = virCapabilitiesNew(hostmachine, 1, 1)) == NULL)
+    if ((caps = virCapabilitiesNew(hostarch, 1, 1)) == NULL)
         goto no_memory;
 
     virCapabilitiesSetMacPrefix(caps, (unsigned char[]){ 0x00, 0x16, 0x3e });
@@ -2357,9 +2358,8 @@ xenHypervisorBuildCapabilities(virConnectPtr conn,
 
         if ((guest = virCapabilitiesAddGuest(caps,
                                              guest_archs[i].hvm ? "hvm" : "xen",
-                                             guest_archs[i].model,
-                                             guest_archs[i].bits,
-                                             (STREQ(hostmachine, "x86_64") ?
+                                             guest_archs[i].arch,
+                                             (hostarch == VIR_ARCH_X86_64 ?
                                               "/usr/lib64/xen/bin/qemu-dm" :
                                               "/usr/lib/xen/bin/qemu-dm"),
                                              (guest_archs[i].hvm ?
@@ -2505,18 +2505,13 @@ xenHypervisorMakeCapabilitiesSunOS(virConnectPtr conn)
     struct guest_arch guest_arches[32];
     int i = 0;
     virCapsPtr caps = NULL;
-    struct utsname utsname;
     int pae, longmode;
     const char *hvm;
 
     if (!get_cpu_flags(conn, &hvm, &pae, &longmode))
         return NULL;
 
-    /* Really, this never fails - look at the man-page. */
-    uname(&utsname);
-
-    guest_arches[i].model = "i686";
-    guest_arches[i].bits = 32;
+    guest_arches[i].arch = VIR_ARCH_I686;
     guest_arches[i].hvm = 0;
     guest_arches[i].pae = pae;
     guest_arches[i].nonpae = !pae;
@@ -2524,8 +2519,7 @@ xenHypervisorMakeCapabilitiesSunOS(virConnectPtr conn)
     i++;
 
     if (longmode) {
-        guest_arches[i].model = "x86_64";
-        guest_arches[i].bits = 64;
+        guest_arches[i].arch = VIR_ARCH_X86_64;
         guest_arches[i].hvm = 0;
         guest_arches[i].pae = 0;
         guest_arches[i].nonpae = 0;
@@ -2534,8 +2528,7 @@ xenHypervisorMakeCapabilitiesSunOS(virConnectPtr conn)
     }
 
     if (hvm[0] != '\0') {
-        guest_arches[i].model = "i686";
-        guest_arches[i].bits = 32;
+        guest_arches[i].arch = VIR_ARCH_I686;
         guest_arches[i].hvm = 1;
         guest_arches[i].pae = pae;
         guest_arches[i].nonpae = 1;
@@ -2543,8 +2536,7 @@ xenHypervisorMakeCapabilitiesSunOS(virConnectPtr conn)
         i++;
 
         if (longmode) {
-            guest_arches[i].model = "x86_64";
-            guest_arches[i].bits = 64;
+            guest_arches[i].arch = VIR_ARCH_X86_64;
             guest_arches[i].hvm = 1;
             guest_arches[i].pae = 0;
             guest_arches[i].nonpae = 0;
@@ -2554,7 +2546,7 @@ xenHypervisorMakeCapabilitiesSunOS(virConnectPtr conn)
     }
 
     if ((caps = xenHypervisorBuildCapabilities(conn,
-                                               utsname.machine,
+                                               virArchFromHost(),
                                                pae, hvm,
                                                guest_arches, i)) == NULL)
         virReportOOMError();
@@ -2574,7 +2566,7 @@ xenHypervisorMakeCapabilitiesSunOS(virConnectPtr conn)
  */
 virCapsPtr
 xenHypervisorMakeCapabilitiesInternal(virConnectPtr conn,
-                                      const char *hostmachine,
+                                      virArch hostarch,
                                       FILE *cpuinfo, FILE *capabilities)
 {
     char line[1024], *str, *token;
@@ -2645,12 +2637,11 @@ xenHypervisorMakeCapabilitiesInternal(virConnectPtr conn,
             if (regexec(&xen_cap_rec, token, sizeof(subs) / sizeof(subs[0]),
                         subs, 0) == 0) {
                 int hvm = STRPREFIX(&token[subs[1].rm_so], "hvm");
-                const char *model;
-                int bits, pae = 0, nonpae = 0, ia64_be = 0;
+                int pae = 0, nonpae = 0, ia64_be = 0;
+                virArch arch;
 
                 if (STRPREFIX(&token[subs[2].rm_so], "x86_32")) {
-                    model = "i686";
-                    bits = 32;
+                    arch = VIR_ARCH_I686;
                     if (subs[3].rm_so != -1 &&
                         STRPREFIX(&token[subs[3].rm_so], "p"))
                         pae = 1;
@@ -2658,27 +2649,24 @@ xenHypervisorMakeCapabilitiesInternal(virConnectPtr conn,
                         nonpae = 1;
                 }
                 else if (STRPREFIX(&token[subs[2].rm_so], "x86_64")) {
-                    model = "x86_64";
-                    bits = 64;
+                    arch = VIR_ARCH_X86_64;
                 }
                 else if (STRPREFIX(&token[subs[2].rm_so], "ia64")) {
-                    model = "ia64";
-                    bits = 64;
+                    arch = VIR_ARCH_ITANIUM;
                     if (subs[3].rm_so != -1 &&
                         STRPREFIX(&token[subs[3].rm_so], "be"))
                         ia64_be = 1;
                 }
                 else if (STRPREFIX(&token[subs[2].rm_so], "powerpc64")) {
-                    model = "ppc64";
-                    bits = 64;
+                    arch = VIR_ARCH_PPC64;
                 } else {
-                    /* XXX surely no other Xen archs exist  */
+                    /* XXX surely no other Xen archs exist. Arrrrrrrrrm  */
                     continue;
                 }
 
                 /* Search for existing matching (model,hvm) tuple */
                 for (i = 0 ; i < nr_guest_archs ; i++) {
-                    if (STREQ(guest_archs[i].model, model) &&
+                    if (guest_archs[i].arch == arch &&
                         guest_archs[i].hvm == hvm) {
                         break;
                     }
@@ -2691,8 +2679,7 @@ xenHypervisorMakeCapabilitiesInternal(virConnectPtr conn,
                 if (i == nr_guest_archs)
                     nr_guest_archs++;
 
-                guest_archs[i].model = model;
-                guest_archs[i].bits = bits;
+                guest_archs[i].arch = arch;
                 guest_archs[i].hvm = hvm;
 
                 /* Careful not to overwrite a previous positive
@@ -2710,7 +2697,7 @@ xenHypervisorMakeCapabilitiesInternal(virConnectPtr conn,
     }
 
     if ((caps = xenHypervisorBuildCapabilities(conn,
-                                               hostmachine,
+                                               hostarch,
                                                host_pae,
                                                hvm_type,
                                                guest_archs,
@@ -2738,10 +2725,6 @@ xenHypervisorMakeCapabilities(virConnectPtr conn)
 #else
     virCapsPtr caps = NULL;
     FILE *cpuinfo, *capabilities;
-    struct utsname utsname;
-
-    /* Really, this never fails - look at the man-page. */
-    uname(&utsname);
 
     cpuinfo = fopen("/proc/cpuinfo", "r");
     if (cpuinfo == NULL) {
@@ -2765,7 +2748,7 @@ xenHypervisorMakeCapabilities(virConnectPtr conn)
     }
 
     caps = xenHypervisorMakeCapabilitiesInternal(conn,
-                                                 utsname.machine,
+                                                 virArchFromHost(),
                                                  cpuinfo,
                                                  capabilities);
     if (caps == NULL)

@@ -25,13 +25,13 @@
 #include <config.h>
 
 #include "internal.h"
-#include "virterror_internal.h"
+#include "virerror.h"
 #include "datatypes.h"
-#include "logging.h"
-#include "memory.h"
-#include "util.h"
-#include "uuid.h"
-#include "buf.h"
+#include "virlog.h"
+#include "viralloc.h"
+#include "virutil.h"
+#include "viruuid.h"
+#include "virbuffer.h"
 #include "hyperv_private.h"
 #include "hyperv_wmi.h"
 

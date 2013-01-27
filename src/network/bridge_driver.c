@@ -2,7 +2,7 @@
 /*
  * bridge_driver.c: core driver methods for managing network
  *
- * Copyright (C) 2006-2012 Red Hat, Inc.
+ * Copyright (C) 2006-2013 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -44,24 +44,24 @@
 #include <sys/ioctl.h>
 #include <net/if.h>
 
-#include "virterror_internal.h"
+#include "virerror.h"
 #include "datatypes.h"
 #include "bridge_driver.h"
 #include "network_conf.h"
 #include "device_conf.h"
 #include "driver.h"
-#include "buf.h"
+#include "virbuffer.h"
 #include "virpidfile.h"
-#include "util.h"
-#include "command.h"
-#include "memory.h"
-#include "uuid.h"
-#include "iptables.h"
-#include "logging.h"
-#include "dnsmasq.h"
+#include "virutil.h"
+#include "vircommand.h"
+#include "viralloc.h"
+#include "viruuid.h"
+#include "viriptables.h"
+#include "virlog.h"
+#include "virdnsmasq.h"
 #include "configmake.h"
 #include "virnetdev.h"
-#include "pci.h"
+#include "virpci.h"
 #include "virnetdevbridge.h"
 #include "virnetdevtap.h"
 #include "virnetdevvportprofile.h"
@@ -629,10 +629,10 @@ networkBuildDnsmasqHostsList(dnsmasqContext *dctx,
 
 int
 networkDnsmasqConfContents(virNetworkObjPtr network,
-                        const char *pidfile,
-                        char **configstr,
-                        dnsmasqContext *dctx,
-                        dnsmasqCapsPtr caps ATTRIBUTE_UNUSED)
+                           const char *pidfile,
+                           char **configstr,
+                           dnsmasqContext *dctx,
+                           dnsmasqCapsPtr caps ATTRIBUTE_UNUSED)
 {
     virBuffer configbuf = VIR_BUFFER_INITIALIZER;
     int r, ret = -1;
@@ -664,29 +664,29 @@ networkDnsmasqConfContents(virNetworkObjPtr network,
 
     /* create dnsmasq config file appropriate for this network */
     virBufferAsprintf(&configbuf,
-                              "##WARNING:  THIS IS AN AUTO-GENERATED FILE. "
-                              "CHANGES TO IT ARE LIKELY TO BE\n"
-                              "##OVERWRITTEN AND LOST.  Changes to this "
-                              "configuration should be made using:\n"
-                              "##    virsh net-edit %s\n"
-                              "## or other application using the libvirt API.\n"
-                              "##\n## dnsmasq conf file created by libvirt\n"
-                              "strict-order\n"
-                              "domain-needed\n",
-                              network->def->name);
+                      "##WARNING:  THIS IS AN AUTO-GENERATED FILE. "
+                      "CHANGES TO IT ARE LIKELY TO BE\n"
+                      "##OVERWRITTEN AND LOST.  Changes to this "
+                      "configuration should be made using:\n"
+                      "##    virsh net-edit %s\n"
+                      "## or other application using the libvirt API.\n"
+                      "##\n## dnsmasq conf file created by libvirt\n"
+                      "strict-order\n"
+                      "domain-needed\n",
+                      network->def->name);
 
-     if (network->def->domain) {
+    if (network->def->domain) {
         virBufferAsprintf(&configbuf,
-                 "domain=%s\n"
-                 "expand-hosts\n",
-                 network->def->domain);
-     }
-     /* need to specify local even if no domain specified */
+                          "domain=%s\n"
+                          "expand-hosts\n",
+                          network->def->domain);
+    }
+    /* need to specify local even if no domain specified */
     virBufferAsprintf(&configbuf,
-                "local=/%s/\n",
-                network->def->domain ? network->def->domain : "");
+                      "local=/%s/\n",
+                      network->def->domain ? network->def->domain : "");
 
-     if (pidfile)
+    if (pidfile)
         virBufferAsprintf(&configbuf, "pid-file=%s\n", pidfile);
 
     /* dnsmasq will *always* listen on localhost unless told otherwise */
@@ -701,9 +701,9 @@ networkDnsmasqConfContents(virNetworkObjPtr network,
          * this network). This was added in response to CVE 2012-3411.
          */
         virBufferAsprintf(&configbuf,
-                             "bind-dynamic\n"
-                             "interface=%s\n",
-                             network->def->bridge);
+                          "bind-dynamic\n"
+                          "interface=%s\n",
+                          network->def->bridge);
     } else {
         virBufferAddLit(&configbuf, "bind-interfaces\n");
         /*
@@ -721,22 +721,28 @@ networkDnsmasqConfContents(virNetworkObjPtr network,
 
             if (!ipaddr)
                 goto cleanup;
+
             /* also part of CVE 2012-3411 - if the host's version of
              * dnsmasq doesn't have bind-dynamic, only allow listening on
              * private/local IP addresses (see RFC1918/RFC3484/RFC4193)
              */
-            if (!virSocketAddrIsPrivate(&tmpipdef->address)) {
+            if (!dnsmasqCapsGet(caps, DNSMASQ_CAPS_BINDTODEVICE) &&
+                !virSocketAddrIsPrivate(&tmpipdef->address)) {
                 unsigned long version = dnsmasqCapsGetVersion(caps);
 
                 virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                                _("Publicly routable address %s is prohibited. "
-                                 "The version of dnsmasq on this host (%d.%d) doesn't "
-                                 "support the bind-dynamic option, which is required "
-                                 "for safe operation on a publicly routable subnet "
-                                 "(see CVE-2012-3411). You must either upgrade dnsmasq, "
-                                 "or use a private/local subnet range for this network "
-                                 "(as described in RFC1918/RFC3484/RFC4193)."), ipaddr,
-                               (int)version / 1000000, (int)(version % 1000000) / 1000);
+                                 "The version of dnsmasq on this host (%d.%d) "
+                                 "doesn't support the bind-dynamic option or "
+                                 "use SO_BINDTODEVICE on listening sockets, "
+                                 "one of which is required for safe operation "
+                                 "on a publicly routable subnet "
+                                 "(see CVE-2012-3411). You must either "
+                                 "upgrade dnsmasq, or use a private/local "
+                                 "subnet range for this network "
+                                 "(as described in RFC1918/RFC3484/RFC4193)."),
+                               ipaddr, (int)version / 1000000,
+                               (int)(version % 1000000) / 1000);
                 goto cleanup;
             }
             virBufferAsprintf(&configbuf, "listen-address=%s\n", ipaddr);
@@ -753,7 +759,7 @@ networkDnsmasqConfContents(virNetworkObjPtr network,
      */
     if (network->def->forward.type == VIR_NETWORK_FORWARD_NONE) {
         virBufferAddLit(&configbuf, "dhcp-option=3\n"
-                                      "no-resolv\n");
+                        "no-resolv\n");
     }
 
     for (ii = 0; ii < dns->ntxts; ii++) {
@@ -786,11 +792,11 @@ networkDnsmasqConfContents(virNetworkObjPtr network,
             if (virAsprintf(&record, "%s.%s.%s,%s,%s,%s,%s",
                             dns->srvs[ii].service,
                             dns->srvs[ii].protocol,
-                            dns->srvs[ii].domain   ? dns->srvs[ii].domain : "",
-                            dns->srvs[ii].target   ? dns->srvs[ii].target : "",
-                            recordPort                  ? recordPort                : "",
-                            recordPriority              ? recordPriority            : "",
-                            recordWeight                ? recordWeight              : "") < 0) {
+                            dns->srvs[ii].domain ? dns->srvs[ii].domain : "",
+                            dns->srvs[ii].target ? dns->srvs[ii].target : "",
+                            recordPort           ? recordPort           : "",
+                            recordPriority       ? recordPriority       : "",
+                            recordWeight         ? recordWeight         : "") < 0) {
                 virReportOOMError();
                 goto cleanup;
             }
@@ -811,8 +817,8 @@ networkDnsmasqConfContents(virNetworkObjPtr network,
             if (ipdef->nranges || ipdef->nhosts) {
                 if (ipv4def) {
                     virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                        _("For IPv4, multiple DHCP definitions cannot "
-                          "be specified."));
+                                   _("For IPv4, multiple DHCP definitions "
+                                     "cannot be specified."));
                     goto cleanup;
                 } else {
                     ipv4def = ipdef;
@@ -824,17 +830,21 @@ networkDnsmasqConfContents(virNetworkObjPtr network,
                 if (!DNSMASQ_DHCPv6_SUPPORT(caps)) {
                     unsigned long version = dnsmasqCapsGetVersion(caps);
                     virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                            _("The version of dnsmasq on this host (%d.%d) doesn't "
-                              "adequately support IPv6 dhcp range or dhcp host "
-                              "specification.  Version %d.%d or later is required."),
-                            (int)version / 1000000, (int)(version % 1000000) / 1000,
-                            DNSMASQ_DHCPv6_MAJOR_REQD, DNSMASQ_DHCPv6_MINOR_REQD);
+                                   _("The version of dnsmasq on this host "
+                                     "(%d.%d) doesn't adequately support "
+                                     "IPv6 dhcp range or dhcp host "
+                                     "specification. Version %d.%d or later "
+                                     "is required."),
+                                   (int)version / 1000000,
+                                   (int)(version % 1000000) / 1000,
+                                   DNSMASQ_DHCPv6_MAJOR_REQD,
+                                   DNSMASQ_DHCPv6_MINOR_REQD);
                     goto cleanup;
                 }
                 if (ipv6def) {
                     virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                        _("For IPv6, multiple DHCP definitions cannot "
-                          "be specified."));
+                                   _("For IPv6, multiple DHCP definitions "
+                                     "cannot be specified."));
                     goto cleanup;
                 } else {
                     ipv6def = ipdef;
@@ -848,10 +858,10 @@ networkDnsmasqConfContents(virNetworkObjPtr network,
     if (ipv6def && ipv6SLAAC) {
         VIR_WARN("For IPv6, when DHCP is specified for one address, then "
                  "state-full Router Advertising will occur.  The additional "
-                  "IPv6 addresses specified require manually configured guest "
-                  "network to work properly since both state-full (DHCP) "
-                  "and state-less (SLAAC) addressing are not supported "
-                  "on the same network interface.");
+                 "IPv6 addresses specified require manually configured guest "
+                 "network to work properly since both state-full (DHCP) "
+                 "and state-less (SLAAC) addressing are not supported "
+                 "on the same network interface.");
     }
 
     ipdef = ipv4def ? ipv4def : ipv6def;
@@ -867,7 +877,7 @@ networkDnsmasqConfContents(virNetworkObjPtr network,
                 goto cleanup;
             }
             virBufferAsprintf(&configbuf, "dhcp-range=%s,%s\n",
-                                        saddr, eaddr);
+                              saddr, eaddr);
             VIR_FREE(saddr);
             VIR_FREE(eaddr);
             nbleases += virSocketAddrGetRange(&ipdef->ranges[r].start,
@@ -875,9 +885,10 @@ networkDnsmasqConfContents(virNetworkObjPtr network,
         }
 
         /*
-         * For static-only DHCP, i.e. with no range but at least one host element,
-         * we have to add a special --dhcp-range option to enable the service in
-         * dnsmasq. (this is for dhcp-hosts= support)
+         * For static-only DHCP, i.e. with no range but at least one
+         * host element, we have to add a special --dhcp-range option
+         * to enable the service in dnsmasq. (this is for dhcp-hosts=
+         * support)
          */
         if (!ipdef->nranges && ipdef->nhosts) {
             char *bridgeaddr = virSocketAddrFormat(&ipdef->address);
@@ -909,7 +920,7 @@ networkDnsmasqConfContents(virNetworkObjPtr network,
                         goto cleanup;
                     }
                     virBufferAsprintf(&configbuf, "dhcp-boot=%s%s%s\n",
-                                       ipdef->bootfile, ",,", bootserver);
+                                      ipdef->bootfile, ",,", bootserver);
                     VIR_FREE(bootserver);
                 } else {
                     virBufferAsprintf(&configbuf, "dhcp-boot=%s\n", ipdef->bootfile);
@@ -932,21 +943,21 @@ networkDnsmasqConfContents(virNetworkObjPtr network,
 
     /* this is done once per interface */
     if (networkBuildDnsmasqHostsList(dctx, dns) < 0)
-       goto cleanup;
+        goto cleanup;
 
     /* Even if there are currently no static hosts, if we're
      * listening for DHCP, we should write a 0-length hosts
      * file to allow for runtime additions.
      */
     if (ipv4def || ipv6def)
-            virBufferAsprintf(&configbuf, "dhcp-hostsfile=%s\n",
-                                 dctx->hostsfile->path);
+        virBufferAsprintf(&configbuf, "dhcp-hostsfile=%s\n",
+                          dctx->hostsfile->path);
 
-    /* Likewise, always create this file and put it on the commandline, to allow for
-     * for runtime additions.
+    /* Likewise, always create this file and put it on the
+     * commandline, to allow for runtime additions.
      */
     virBufferAsprintf(&configbuf, "addn-hosts=%s\n",
-                       dctx->addnhostsfile->path);
+                      dctx->addnhostsfile->path);
 
     /* Are we doing RA instead of radvd? */
     if (DNSMASQ_RA_SUPPORT(caps)) {
@@ -954,8 +965,8 @@ networkDnsmasqConfContents(virNetworkObjPtr network,
             virBufferAddLit(&configbuf, "enable-ra\n");
         else {
             for (ii = 0;
-                (ipdef = virNetworkDefGetIpByIndex(network->def, AF_INET6, ii));
-                ii++) {
+                 (ipdef = virNetworkDefGetIpByIndex(network->def, AF_INET6, ii));
+                 ii++) {
                 if (!(ipdef->nranges || ipdef->nhosts)) {
                     char *bridgeaddr = virSocketAddrFormat(&ipdef->address);
                     if (!bridgeaddr)
@@ -1145,9 +1156,6 @@ networkRefreshDhcpDaemon(struct network_driver *driver,
         if (!ipv4def && (ipdef->nranges || ipdef->nhosts))
             ipv4def = ipdef;
     }
-    /* If no IPv4 addresses had dhcp info, pick the first (if there were any). */
-    if (!ipdef)
-        ipdef = virNetworkDefGetIpByIndex(network->def, AF_INET, 0);
 
     ipv6def = NULL;
     for (ii = 0;
@@ -2077,6 +2085,7 @@ networkAddIptablesRules(struct network_driver *driver,
 {
     int ii;
     virNetworkIpDefPtr ipdef;
+    virErrorPtr orig_error;
 
     /* Add "once per network" rules */
     if (networkAddGeneralIptablesRules(driver, network) < 0)
@@ -2093,6 +2102,9 @@ networkAddIptablesRules(struct network_driver *driver,
     return 0;
 
 err:
+    /* store the previous error message before attempting removal of rules */
+    orig_error = virSaveLastError();
+
     /* The final failed call to networkAddIpSpecificIptablesRules will
      * have removed any rules it created, but we need to remove those
      * added for previous IP addresses.
@@ -2102,6 +2114,9 @@ err:
         networkRemoveIpSpecificIptablesRules(driver, network, ipdef);
     }
     networkRemoveGeneralIptablesRules(driver, network);
+
+    /* return the original error */
+    virSetError(orig_error);
     return -1;
 }
 
@@ -2515,6 +2530,7 @@ networkStartNetworkVirtual(struct network_driver *driver,
         virSetError(save_err);
         virFreeError(save_err);
     }
+    /* coverity[leaked_handle] - 'tapfd' is not leaked */
     return -1;
 }
 
@@ -3113,6 +3129,9 @@ static virNetworkPtr networkDefine(virConnectPtr conn, const char *xml) {
             goto cleanup;
     }
 
+    /* define makes the network persistent - always */
+    network->persistent = 1;
+
     /* def was asigned */
     freeDef = false;
 
@@ -3694,10 +3713,6 @@ networkAllocateActualDevice(virDomainNetDefPtr iface)
     int ii;
     int ret = -1;
 
-    /* it's handy to have this initialized if we skip directly to validate */
-    if (iface->vlan.nTags > 0)
-        vlan = &iface->vlan;
-
     if (iface->type != VIR_DOMAIN_NET_TYPE_NETWORK)
         goto validate;
 
@@ -3741,6 +3756,24 @@ networkAllocateActualDevice(virDomainNetDefPtr iface)
         if (virNetDevBandwidthCopy(&iface->data.network.actual->bandwidth,
                                    bandwidth) < 0)
             goto error;
+    }
+
+    /* copy appropriate vlan info to actualNet */
+    if (iface->vlan.nTags > 0)
+        vlan = &iface->vlan;
+    else if (portgroup && portgroup->vlan.nTags > 0)
+        vlan = &portgroup->vlan;
+    else if (netdef->vlan.nTags > 0)
+        vlan = &netdef->vlan;
+
+    if (vlan) {
+        if (!iface->data.network.actual
+            && (VIR_ALLOC(iface->data.network.actual) < 0)) {
+            virReportOOMError();
+            goto error;
+        }
+        if (virNetDevVlanCopy(&iface->data.network.actual->vlan, vlan) < 0)
+           goto error;
     }
 
     if ((netdef->forward.type == VIR_NETWORK_FORWARD_NONE) ||
@@ -3979,24 +4012,13 @@ networkAllocateActualDevice(virDomainNetDefPtr iface)
     if (virNetDevVPortProfileCheckComplete(virtport, true) < 0)
         goto error;
 
-    /* copy appropriate vlan info to actualNet */
-    if (iface->vlan.nTags > 0)
-        vlan = &iface->vlan;
-    else if (portgroup && portgroup->vlan.nTags > 0)
-        vlan = &portgroup->vlan;
-    else if (netdef && netdef->vlan.nTags > 0)
-        vlan = &netdef->vlan;
-
-    if (virNetDevVlanCopy(&iface->data.network.actual->vlan, vlan) < 0)
-        goto error;
-
 validate:
     /* make sure that everything now specified for the device is
      * actually supported on this type of network. NB: network,
      * netdev, and iface->data.network.actual may all be NULL.
      */
 
-    if (vlan) {
+    if (virDomainNetGetActualVlan(iface)) {
         /* vlan configuration via libvirt is only supported for
          * PCI Passthrough SR-IOV devices and openvswitch bridges.
          * otherwise log an error and fail
@@ -4494,7 +4516,7 @@ networkCheckBandwidth(virNetworkObjPtr net,
 {
     int ret = -1;
     virNetDevBandwidthPtr netBand = net->def->bandwidth;
-    virNetDevBandwidthPtr ifaceBand = iface->bandwidth;
+    virNetDevBandwidthPtr ifaceBand = virDomainNetGetActualBandwidth(iface);
     unsigned long long tmp_floor_sum = net->floor_sum;
     unsigned long long tmp_new_rate = 0;
     char ifmac[VIR_MAC_STRING_BUFLEN];
@@ -4573,6 +4595,7 @@ networkPlugBandwidth(virNetworkObjPtr net,
     unsigned long long new_rate = 0;
     ssize_t class_id = 0;
     char ifmac[VIR_MAC_STRING_BUFLEN];
+    virNetDevBandwidthPtr ifaceBand = virDomainNetGetActualBandwidth(iface);
 
     if ((plug_ret = networkCheckBandwidth(net, iface, &new_rate)) < 0) {
         /* helper reported error */
@@ -4601,11 +4624,8 @@ networkPlugBandwidth(virNetworkObjPtr net,
         goto cleanup;
     }
 
-    plug_ret = virNetDevBandwidthPlug(net->def->bridge,
-                                      net->def->bandwidth,
-                                      &iface->mac,
-                                      iface->bandwidth,
-                                      class_id);
+    plug_ret = virNetDevBandwidthPlug(net->def->bridge, net->def->bandwidth,
+                                      &iface->mac, ifaceBand, class_id);
     if (plug_ret < 0) {
         ignore_value(virNetDevBandwidthUnplug(net->def->bridge, class_id));
         goto cleanup;
@@ -4614,11 +4634,11 @@ networkPlugBandwidth(virNetworkObjPtr net,
     /* QoS was set, generate new class ID */
     iface->data.network.actual->class_id = class_id;
     /* update sum of 'floor'-s of attached NICs */
-    net->floor_sum += iface->bandwidth->in->floor;
+    net->floor_sum += ifaceBand->in->floor;
     /* update status file */
     if (virNetworkSaveStatus(NETWORK_STATE_DIR, net) < 0) {
         ignore_value(virBitmapClearBit(net->class_id, class_id));
-        net->floor_sum -= iface->bandwidth->in->floor;
+        net->floor_sum -= ifaceBand->in->floor;
         iface->data.network.actual->class_id = 0;
         ignore_value(virNetDevBandwidthUnplug(net->def->bridge, class_id));
         goto cleanup;
@@ -4642,6 +4662,7 @@ networkUnplugBandwidth(virNetworkObjPtr net,
 {
     int ret = 0;
     unsigned long long new_rate;
+    virNetDevBandwidthPtr ifaceBand = virDomainNetGetActualBandwidth(iface);
 
     if (iface->data.network.actual &&
         iface->data.network.actual->class_id) {
@@ -4656,13 +4677,13 @@ networkUnplugBandwidth(virNetworkObjPtr net,
         if (ret < 0)
             goto cleanup;
         /* update sum of 'floor'-s of attached NICs */
-        net->floor_sum -= iface->bandwidth->in->floor;
+        net->floor_sum -= ifaceBand->in->floor;
         /* return class ID */
         ignore_value(virBitmapClearBit(net->class_id,
                                        iface->data.network.actual->class_id));
         /* update status file */
         if (virNetworkSaveStatus(NETWORK_STATE_DIR, net) < 0) {
-            net->floor_sum += iface->bandwidth->in->floor;
+            net->floor_sum += ifaceBand->in->floor;
             ignore_value(virBitmapSetBit(net->class_id,
                                          iface->data.network.actual->class_id));
             goto cleanup;

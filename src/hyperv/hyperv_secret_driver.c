@@ -24,12 +24,12 @@
 #include <config.h>
 
 #include "internal.h"
-#include "virterror_internal.h"
+#include "virerror.h"
 #include "datatypes.h"
-#include "util.h"
-#include "memory.h"
-#include "logging.h"
-#include "uuid.h"
+#include "virutil.h"
+#include "viralloc.h"
+#include "virlog.h"
+#include "viruuid.h"
 #include "hyperv_secret_driver.h"
 
 #define VIR_FROM_THIS VIR_FROM_HYPERV

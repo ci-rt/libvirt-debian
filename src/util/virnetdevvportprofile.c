@@ -23,8 +23,8 @@
 #include <config.h>
 
 #include "virnetdevvportprofile.h"
-#include "virterror_internal.h"
-#include "memory.h"
+#include "virerror.h"
+#include "viralloc.h"
 
 #define VIR_FROM_THIS VIR_FROM_NET
 
@@ -53,7 +53,7 @@ VIR_ENUM_IMPL(virNetDevVPortProfileOp, VIR_NETDEV_VPORT_PROFILE_OP_LAST,
 
 # include "virnetlink.h"
 # include "virfile.h"
-# include "logging.h"
+# include "virlog.h"
 # include "virnetdev.h"
 
 # define MICROSEC_PER_SEC       (1000 * 1000)

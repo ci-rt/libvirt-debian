@@ -34,7 +34,7 @@
       <span class="refentrytitle">libvirt</span>
     </h2>
     <p>libvirt - core interfaces for the libvirt library</p>
-    <p>Provides the interfaces of the libvirt library to handle virtualized domains  Copyright (C) 2005-2006, 2010-2012 Red Hat, Inc.  This library is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation; either version 2.1 of the License, or (at your option) any later version.  This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more details.  You should have received a copy of the GNU Lesser General Public License along with this library.  If not, see</p>
+    <p>Provides the interfaces of the libvirt library to handle virtualized domains  Copyright (C) 2005-2006, 2010-2012 Red Hat, Inc.  This library is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation; either version 2.1 of the License, or (at your option) any later version.  This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more details.  You should have received a copy of the GNU Lesser General Public License along with this library.  If not, see &lt;http://www.gnu.org/licenses/&gt;. </p>
     <p>Author(s): Daniel Veillard &lt;veillard@redhat.com&gt; </p>
     <div class="refsynopsisdiv">
       <h2>Synopsis</h2>
@@ -152,6 +152,7 @@ typedef enum <a href="#virDomainBlockResizeFlags">virDomainBlockResizeFlags</a>;
 typedef <a href="libvirt-libvirt.html#virDomainBlockStatsStruct">virDomainBlockStatsStruct</a> * <a href="#virDomainBlockStatsPtr">virDomainBlockStatsPtr</a>;
 typedef struct _virDomainBlockStats <a href="#virDomainBlockStatsStruct">virDomainBlockStatsStruct</a>;
 typedef enum <a href="#virDomainBlockedReason">virDomainBlockedReason</a>;
+typedef enum <a href="#virDomainChannelFlags">virDomainChannelFlags</a>;
 typedef enum <a href="#virDomainConsoleFlags">virDomainConsoleFlags</a>;
 typedef struct _virDomainControlInfo <a href="#virDomainControlInfo">virDomainControlInfo</a>;
 typedef <a href="libvirt-libvirt.html#virDomainControlInfo">virDomainControlInfo</a> * <a href="#virDomainControlInfoPtr">virDomainControlInfoPtr</a>;
@@ -441,6 +442,7 @@ int	<a href="#virDomainMigrateSetMaxDowntime">virDomainMigrateSetMaxDowntime</a>
 int	<a href="#virDomainMigrateSetMaxSpeed">virDomainMigrateSetMaxSpeed</a>	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 unsigned long bandwidth, <br/>					 unsigned int flags);
 int	<a href="#virDomainMigrateToURI">virDomainMigrateToURI</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 const char * duri, <br/>					 unsigned long flags, <br/>					 const char * dname, <br/>					 unsigned long bandwidth);
 int	<a href="#virDomainMigrateToURI2">virDomainMigrateToURI2</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 const char * dconnuri, <br/>					 const char * miguri, <br/>					 const char * dxml, <br/>					 unsigned long flags, <br/>					 const char * dname, <br/>					 unsigned long bandwidth);
+int	<a href="#virDomainOpenChannel">virDomainOpenChannel</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 const char * name, <br/>					 <a href="libvirt-libvirt.html#virStreamPtr">virStreamPtr</a> st, <br/>					 unsigned int flags);
 int	<a href="#virDomainOpenConsole">virDomainOpenConsole</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 const char * dev_name, <br/>					 <a href="libvirt-libvirt.html#virStreamPtr">virStreamPtr</a> st, <br/>					 unsigned int flags);
 int	<a href="#virDomainOpenGraphics">virDomainOpenGraphics</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 unsigned int idx, <br/>					 int fd, <br/>					 unsigned int flags);
 int	<a href="#virDomainPMSuspendForDuration">virDomainPMSuspendForDuration</a>	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 unsigned int target, <br/>					 unsigned long long duration, <br/>					 unsigned int flags);
@@ -669,6 +671,24 @@ int	<a href="#virStreamSend">virStreamSend</a>			(<a href="libvirt-libvirt.html#
 int	<a href="#virStreamSendAll">virStreamSendAll</a>		(<a href="libvirt-libvirt.html#virStreamPtr">virStreamPtr</a> stream, <br/>					 <a href="libvirt-libvirt.html#virStreamSourceFunc">virStreamSourceFunc</a> handler, <br/>					 void * opaque);
 typedef int <a href="#virStreamSinkFunc">virStreamSinkFunc</a>		(<a href="libvirt-libvirt.html#virStreamPtr">virStreamPtr</a> st, <br/>					 const char * data, <br/>					 size_t nbytes, <br/>					 void * opaque);
 typedef int <a href="#virStreamSourceFunc">virStreamSourceFunc</a>		(<a href="libvirt-libvirt.html#virStreamPtr">virStreamPtr</a> st, <br/>					 char * data, <br/>					 size_t nbytes, <br/>					 void * opaque);
+int	<a href="#virTypedParamsAddBoolean">virTypedParamsAddBoolean</a>	(<a href="libvirt-libvirt.html#virTypedParameterPtr">virTypedParameterPtr</a> * params, <br/>					 int * nparams, <br/>					 int * maxparams, <br/>					 const char * name, <br/>					 int value);
+int	<a href="#virTypedParamsAddDouble">virTypedParamsAddDouble</a>		(<a href="libvirt-libvirt.html#virTypedParameterPtr">virTypedParameterPtr</a> * params, <br/>					 int * nparams, <br/>					 int * maxparams, <br/>					 const char * name, <br/>					 double value);
+int	<a href="#virTypedParamsAddFromString">virTypedParamsAddFromString</a>	(<a href="libvirt-libvirt.html#virTypedParameterPtr">virTypedParameterPtr</a> * params, <br/>					 int * nparams, <br/>					 int * maxparams, <br/>					 const char * name, <br/>					 int type, <br/>					 const char * value);
+int	<a href="#virTypedParamsAddInt">virTypedParamsAddInt</a>		(<a href="libvirt-libvirt.html#virTypedParameterPtr">virTypedParameterPtr</a> * params, <br/>					 int * nparams, <br/>					 int * maxparams, <br/>					 const char * name, <br/>					 int value);
+int	<a href="#virTypedParamsAddLLong">virTypedParamsAddLLong</a>		(<a href="libvirt-libvirt.html#virTypedParameterPtr">virTypedParameterPtr</a> * params, <br/>					 int * nparams, <br/>					 int * maxparams, <br/>					 const char * name, <br/>					 long long value);
+int	<a href="#virTypedParamsAddString">virTypedParamsAddString</a>		(<a href="libvirt-libvirt.html#virTypedParameterPtr">virTypedParameterPtr</a> * params, <br/>					 int * nparams, <br/>					 int * maxparams, <br/>					 const char * name, <br/>					 const char * value);
+int	<a href="#virTypedParamsAddUInt">virTypedParamsAddUInt</a>		(<a href="libvirt-libvirt.html#virTypedParameterPtr">virTypedParameterPtr</a> * params, <br/>					 int * nparams, <br/>					 int * maxparams, <br/>					 const char * name, <br/>					 unsigned int value);
+int	<a href="#virTypedParamsAddULLong">virTypedParamsAddULLong</a>		(<a href="libvirt-libvirt.html#virTypedParameterPtr">virTypedParameterPtr</a> * params, <br/>					 int * nparams, <br/>					 int * maxparams, <br/>					 const char * name, <br/>					 unsigned long long value);
+void	<a href="#virTypedParamsClear">virTypedParamsClear</a>		(<a href="libvirt-libvirt.html#virTypedParameterPtr">virTypedParameterPtr</a> params, <br/>					 int nparams);
+void	<a href="#virTypedParamsFree">virTypedParamsFree</a>		(<a href="libvirt-libvirt.html#virTypedParameterPtr">virTypedParameterPtr</a> params, <br/>					 int nparams);
+<a href="libvirt-libvirt.html#virTypedParameterPtr">virTypedParameterPtr</a>	<a href="#virTypedParamsGet">virTypedParamsGet</a>	(<a href="libvirt-libvirt.html#virTypedParameterPtr">virTypedParameterPtr</a> params, <br/>						 int nparams, <br/>						 const char * name);
+int	<a href="#virTypedParamsGetBoolean">virTypedParamsGetBoolean</a>	(<a href="libvirt-libvirt.html#virTypedParameterPtr">virTypedParameterPtr</a> params, <br/>					 int nparams, <br/>					 const char * name, <br/>					 int * value);
+int	<a href="#virTypedParamsGetDouble">virTypedParamsGetDouble</a>		(<a href="libvirt-libvirt.html#virTypedParameterPtr">virTypedParameterPtr</a> params, <br/>					 int nparams, <br/>					 const char * name, <br/>					 double * value);
+int	<a href="#virTypedParamsGetInt">virTypedParamsGetInt</a>		(<a href="libvirt-libvirt.html#virTypedParameterPtr">virTypedParameterPtr</a> params, <br/>					 int nparams, <br/>					 const char * name, <br/>					 int * value);
+int	<a href="#virTypedParamsGetLLong">virTypedParamsGetLLong</a>		(<a href="libvirt-libvirt.html#virTypedParameterPtr">virTypedParameterPtr</a> params, <br/>					 int nparams, <br/>					 const char * name, <br/>					 long long * value);
+int	<a href="#virTypedParamsGetString">virTypedParamsGetString</a>		(<a href="libvirt-libvirt.html#virTypedParameterPtr">virTypedParameterPtr</a> params, <br/>					 int nparams, <br/>					 const char * name, <br/>					 const char ** value);
+int	<a href="#virTypedParamsGetUInt">virTypedParamsGetUInt</a>		(<a href="libvirt-libvirt.html#virTypedParameterPtr">virTypedParameterPtr</a> params, <br/>					 int nparams, <br/>					 const char * name, <br/>					 unsigned int * value);
+int	<a href="#virTypedParamsGetULLong">virTypedParamsGetULLong</a>		(<a href="libvirt-libvirt.html#virTypedParameterPtr">virTypedParameterPtr</a> params, <br/>					 int nparams, <br/>					 const char * name, <br/>					 unsigned long long * value);
 </pre>
     </div>
     <div class="refsect1" lang="en">
@@ -1079,8 +1099,8 @@ The content of this structure is not made public by the API.
     <a name="VIR_CRED_ECHOPROMPT">VIR_CRED_ECHOPROMPT</a> = 6 /* Challenge response */
     <a name="VIR_CRED_NOECHOPROMPT">VIR_CRED_NOECHOPROMPT</a> = 7 /* Challenge response */
     <a name="VIR_CRED_REALM">VIR_CRED_REALM</a> = 8 /* Authentication realm */
-    <a name="VIR_CRED_EXTERNAL">VIR_CRED_EXTERNAL</a> = 9 /* Externally managed credential More may be added - expect the unexpected */
-    <a name="VIR_CRED_LAST">VIR_CRED_LAST</a> = 10
+    <a name="VIR_CRED_EXTERNAL">VIR_CRED_EXTERNAL</a> = 9 /* Externally managed credential */
+    <a name="VIR_CRED_LAST">VIR_CRED_LAST</a> = 10 /* More may be added - expect the unexpected */
 };
 </pre><p/>
 </div>
@@ -1289,6 +1309,12 @@ The content of this structure is not made public by the API.
 </pre><p/>
 </div>
         <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainChannelFlags">Enum </a>virDomainChannelFlags</h3><pre class="programlisting">enum <a href="#virDomainChannelFlags">virDomainChannelFlags</a> {
+    <a name="VIR_DOMAIN_CHANNEL_FORCE">VIR_DOMAIN_CHANNEL_FORCE</a> = 1 /* abort a (possibly) active channel connection to force a new connection */
+};
+</pre><p/>
+</div>
+        <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainConsoleFlags">Enum </a>virDomainConsoleFlags</h3><pre class="programlisting">enum <a href="#virDomainConsoleFlags">virDomainConsoleFlags</a> {
     <a name="VIR_DOMAIN_CONSOLE_FORCE">VIR_DOMAIN_CONSOLE_FORCE</a> = 1 /* abort a (possibly) active console connection to force a new connection */
     <a name="VIR_DOMAIN_CONSOLE_SAFE">VIR_DOMAIN_CONSOLE_SAFE</a> = 2 /* check if the console driver supports safe console operations */
@@ -1456,8 +1482,8 @@ The content of this structure is not made public by the API.
     <a name="VIR_DOMAIN_EVENT_ID_PMWAKEUP">VIR_DOMAIN_EVENT_ID_PMWAKEUP</a> = 11 /* virConnectDomainEventPMWakeupCallback */
     <a name="VIR_DOMAIN_EVENT_ID_PMSUSPEND">VIR_DOMAIN_EVENT_ID_PMSUSPEND</a> = 12 /* virConnectDomainEventPMSuspendCallback */
     <a name="VIR_DOMAIN_EVENT_ID_BALLOON_CHANGE">VIR_DOMAIN_EVENT_ID_BALLOON_CHANGE</a> = 13 /* virConnectDomainEventBalloonChangeCallback */
-    <a name="VIR_DOMAIN_EVENT_ID_PMSUSPEND_DISK">VIR_DOMAIN_EVENT_ID_PMSUSPEND_DISK</a> = 14 /* NB: this enum value will increase over time as new events are  added to the libvirt API. It reflects the last event ID supported  by this version of the libvirt API. */
-    <a name="VIR_DOMAIN_EVENT_ID_LAST">VIR_DOMAIN_EVENT_ID_LAST</a> = 15
+    <a name="VIR_DOMAIN_EVENT_ID_PMSUSPEND_DISK">VIR_DOMAIN_EVENT_ID_PMSUSPEND_DISK</a> = 14 /* virConnectDomainEventPMSuspendDiskCallback */
+    <a name="VIR_DOMAIN_EVENT_ID_LAST">VIR_DOMAIN_EVENT_ID_LAST</a> = 15 /* NB: this enum value will increase over time as new events are  added to the libvirt API. It reflects the last event ID supported  by this version of the libvirt API. */
 };
 </pre><p/>
 </div>
@@ -1722,8 +1748,8 @@ The content of this structure is not made public by the API.
         <div class="refsect2" lang="en"><h3><a name="virDomainNumatuneMemMode">Enum </a>virDomainNumatuneMemMode</h3><pre class="programlisting">enum <a href="#virDomainNumatuneMemMode">virDomainNumatuneMemMode</a> {
     <a name="VIR_DOMAIN_NUMATUNE_MEM_STRICT">VIR_DOMAIN_NUMATUNE_MEM_STRICT</a> = 0
     <a name="VIR_DOMAIN_NUMATUNE_MEM_PREFERRED">VIR_DOMAIN_NUMATUNE_MEM_PREFERRED</a> = 1
-    <a name="VIR_DOMAIN_NUMATUNE_MEM_INTERLEAVE">VIR_DOMAIN_NUMATUNE_MEM_INTERLEAVE</a> = 2 /* This constant is subject to change */
-    <a name="VIR_DOMAIN_NUMATUNE_MEM_LAST">VIR_DOMAIN_NUMATUNE_MEM_LAST</a> = 3
+    <a name="VIR_DOMAIN_NUMATUNE_MEM_INTERLEAVE">VIR_DOMAIN_NUMATUNE_MEM_INTERLEAVE</a> = 2
+    <a name="VIR_DOMAIN_NUMATUNE_MEM_LAST">VIR_DOMAIN_NUMATUNE_MEM_LAST</a> = 3 /* This constant is subject to change */
 };
 </pre><p/>
 </div>
@@ -1795,8 +1821,8 @@ The content of this structure is not made public by the API.
     <a name="VIR_DOMAIN_PROCESS_SIGNAL_PROF">VIR_DOMAIN_PROCESS_SIGNAL_PROF</a> = 27 /* SIGPROF */
     <a name="VIR_DOMAIN_PROCESS_SIGNAL_WINCH">VIR_DOMAIN_PROCESS_SIGNAL_WINCH</a> = 28 /* Not in POSIX (SIGWINCH on Linux) */
     <a name="VIR_DOMAIN_PROCESS_SIGNAL_POLL">VIR_DOMAIN_PROCESS_SIGNAL_POLL</a> = 29 /* SIGPOLL (also known as SIGIO on Linux) */
-    <a name="VIR_DOMAIN_PROCESS_SIGNAL_PWR">VIR_DOMAIN_PROCESS_SIGNAL_PWR</a> = 30 /* Not in POSIX (SIGPWR on Linux */
-    <a name="VIR_DOMAIN_PROCESS_SIGNAL_SYS">VIR_DOMAIN_PROCESS_SIGNAL_SYS</a> = 31 /* SIGSYS (also known as SIGUNUSED on Linux ) */
+    <a name="VIR_DOMAIN_PROCESS_SIGNAL_PWR">VIR_DOMAIN_PROCESS_SIGNAL_PWR</a> = 30 /* Not in POSIX (SIGPWR on Linux) */
+    <a name="VIR_DOMAIN_PROCESS_SIGNAL_SYS">VIR_DOMAIN_PROCESS_SIGNAL_SYS</a> = 31 /* SIGSYS (also known as SIGUNUSED on Linux) */
     <a name="VIR_DOMAIN_PROCESS_SIGNAL_RT0">VIR_DOMAIN_PROCESS_SIGNAL_RT0</a> = 32 /* SIGRTMIN */
     <a name="VIR_DOMAIN_PROCESS_SIGNAL_RT1">VIR_DOMAIN_PROCESS_SIGNAL_RT1</a> = 33 /* SIGRTMIN + 1 */
     <a name="VIR_DOMAIN_PROCESS_SIGNAL_RT2">VIR_DOMAIN_PROCESS_SIGNAL_RT2</a> = 34 /* SIGRTMIN + 2 */
@@ -1968,8 +1994,8 @@ The content of this structure is not made public by the API.
     <a name="VIR_DOMAIN_SHUTDOWN">VIR_DOMAIN_SHUTDOWN</a> = 4 /* the domain is being shut down */
     <a name="VIR_DOMAIN_SHUTOFF">VIR_DOMAIN_SHUTOFF</a> = 5 /* the domain is shut off */
     <a name="VIR_DOMAIN_CRASHED">VIR_DOMAIN_CRASHED</a> = 6 /* the domain is crashed */
-    <a name="VIR_DOMAIN_PMSUSPENDED">VIR_DOMAIN_PMSUSPENDED</a> = 7 /* NB: this enum value will increase over time as new events are  added to the libvirt API. It reflects the last state supported  by this version of the libvirt API. */
-    <a name="VIR_DOMAIN_LAST">VIR_DOMAIN_LAST</a> = 8
+    <a name="VIR_DOMAIN_PMSUSPENDED">VIR_DOMAIN_PMSUSPENDED</a> = 7 /* the domain is suspended by guest power management */
+    <a name="VIR_DOMAIN_LAST">VIR_DOMAIN_LAST</a> = 8 /* NB: this enum value will increase over time as new events are  added to the libvirt API. It reflects the last state supported  by this version of the libvirt API. */
 };
 </pre><p/>
 </div>
@@ -2034,8 +2060,8 @@ The content of this structure is not made public by the API.
     <a name="VIR_KEYCODE_SET_XT_KBD">VIR_KEYCODE_SET_XT_KBD</a> = 6
     <a name="VIR_KEYCODE_SET_USB">VIR_KEYCODE_SET_USB</a> = 7
     <a name="VIR_KEYCODE_SET_WIN32">VIR_KEYCODE_SET_WIN32</a> = 8
-    <a name="VIR_KEYCODE_SET_RFB">VIR_KEYCODE_SET_RFB</a> = 9 /* NB: this enum value will increase over time as new events are  added to the libvirt API. It reflects the last keycode set supported  by this version of the libvirt API. */
-    <a name="VIR_KEYCODE_SET_LAST">VIR_KEYCODE_SET_LAST</a> = 10
+    <a name="VIR_KEYCODE_SET_RFB">VIR_KEYCODE_SET_RFB</a> = 9
+    <a name="VIR_KEYCODE_SET_LAST">VIR_KEYCODE_SET_LAST</a> = 10 /* NB: this enum value will increase over time as new events are  added to the libvirt API. It reflects the last keycode set supported  by this version of the libvirt API. */
 };
 </pre><p/>
 </div>
@@ -2145,7 +2171,7 @@ The content of this structure is not made public by the API.
 </div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virNodeDevicePtr">Typedef </a>virNodeDevicePtr</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virNodeDevice">virNodeDevice</a> * virNodeDevicePtr;
-</pre><p>A <a href="libvirt-libvirt.html#virNodeDevicePtr">virNodeDevicePtr</a> is a pointer to a <a href="libvirt-libvirt.html#virNodeDevice">virNodeDevice</a> structure. Get one via virNodeDeviceLookupByKey, virNodeDeviceLookupByName, or virNodeDeviceCreate. Be sure to Call <a href="libvirt-libvirt.html#virNodeDeviceFree">virNodeDeviceFree</a> when done using a <a href="libvirt-libvirt.html#virNodeDevicePtr">virNodeDevicePtr</a> obtained from any of the above functions to avoid leaking memory.</p>
+</pre><p>A <a href="libvirt-libvirt.html#virNodeDevicePtr">virNodeDevicePtr</a> is a pointer to a <a href="libvirt-libvirt.html#virNodeDevice">virNodeDevice</a> structure. Get one via virNodeDeviceLookupByName, or virNodeDeviceCreate. Be sure to call <a href="libvirt-libvirt.html#virNodeDeviceFree">virNodeDeviceFree</a> when done using a <a href="libvirt-libvirt.html#virNodeDevicePtr">virNodeDevicePtr</a> obtained from any of the above functions to avoid leaking memory.</p>
 </div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virNodeGetCPUStatsAllCPUs">Enum </a>virNodeGetCPUStatsAllCPUs</h3><pre class="programlisting">enum <a href="#virNodeGetCPUStatsAllCPUs">virNodeGetCPUStatsAllCPUs</a> {
@@ -2191,8 +2217,8 @@ The content of this structure is not made public by the API.
         <div class="refsect2" lang="en"><h3><a name="virNodeSuspendTarget">Enum </a>virNodeSuspendTarget</h3><pre class="programlisting">enum <a href="#virNodeSuspendTarget">virNodeSuspendTarget</a> {
     <a name="VIR_NODE_SUSPEND_TARGET_MEM">VIR_NODE_SUSPEND_TARGET_MEM</a> = 0
     <a name="VIR_NODE_SUSPEND_TARGET_DISK">VIR_NODE_SUSPEND_TARGET_DISK</a> = 1
-    <a name="VIR_NODE_SUSPEND_TARGET_HYBRID">VIR_NODE_SUSPEND_TARGET_HYBRID</a> = 2 /* This constant is subject to change */
-    <a name="VIR_NODE_SUSPEND_TARGET_LAST">VIR_NODE_SUSPEND_TARGET_LAST</a> = 3
+    <a name="VIR_NODE_SUSPEND_TARGET_HYBRID">VIR_NODE_SUSPEND_TARGET_HYBRID</a> = 2
+    <a name="VIR_NODE_SUSPEND_TARGET_LAST">VIR_NODE_SUSPEND_TARGET_LAST</a> = 3 /* This constant is subject to change */
 };
 </pre><p/>
 </div>
@@ -2233,8 +2259,8 @@ The content of this structure is not made public by the API.
         <div class="refsect2" lang="en"><h3><a name="virSecretUsageType">Enum </a>virSecretUsageType</h3><pre class="programlisting">enum <a href="#virSecretUsageType">virSecretUsageType</a> {
     <a name="VIR_SECRET_USAGE_TYPE_NONE">VIR_SECRET_USAGE_TYPE_NONE</a> = 0
     <a name="VIR_SECRET_USAGE_TYPE_VOLUME">VIR_SECRET_USAGE_TYPE_VOLUME</a> = 1
-    <a name="VIR_SECRET_USAGE_TYPE_CEPH">VIR_SECRET_USAGE_TYPE_CEPH</a> = 2 /* NB: this enum value will increase over time as new events are  added to the libvirt API. It reflects the last secret owner ID  supported by this version of the libvirt API. */
-    <a name="VIR_SECRET_USAGE_TYPE_LAST">VIR_SECRET_USAGE_TYPE_LAST</a> = 3
+    <a name="VIR_SECRET_USAGE_TYPE_CEPH">VIR_SECRET_USAGE_TYPE_CEPH</a> = 2
+    <a name="VIR_SECRET_USAGE_TYPE_LAST">VIR_SECRET_USAGE_TYPE_LAST</a> = 3 /* NB: this enum value will increase over time as new events are  added to the libvirt API. It reflects the last secret owner ID  supported by this version of the libvirt API. */
 };
 </pre><p/>
 </div>
@@ -2372,8 +2398,8 @@ The content of this structure is not made public by the API.
     <a name="VIR_STORAGE_VOL_WIPE_ALG_SCHNEIER">VIR_STORAGE_VOL_WIPE_ALG_SCHNEIER</a> = 5 /* 7-pass method described by Bruce Schneier in "Applied Cryptography" (1996) */
     <a name="VIR_STORAGE_VOL_WIPE_ALG_PFITZNER7">VIR_STORAGE_VOL_WIPE_ALG_PFITZNER7</a> = 6 /* 7-pass random */
     <a name="VIR_STORAGE_VOL_WIPE_ALG_PFITZNER33">VIR_STORAGE_VOL_WIPE_ALG_PFITZNER33</a> = 7 /* 33-pass random */
-    <a name="VIR_STORAGE_VOL_WIPE_ALG_RANDOM">VIR_STORAGE_VOL_WIPE_ALG_RANDOM</a> = 8 /* NB: this enum value will increase over time as new algorithms are  added to the libvirt API. It reflects the last algorithm supported  by this version of the libvirt API. */
-    <a name="VIR_STORAGE_VOL_WIPE_ALG_LAST">VIR_STORAGE_VOL_WIPE_ALG_LAST</a> = 9
+    <a name="VIR_STORAGE_VOL_WIPE_ALG_RANDOM">VIR_STORAGE_VOL_WIPE_ALG_RANDOM</a> = 8 /* 1-pass random */
+    <a name="VIR_STORAGE_VOL_WIPE_ALG_LAST">VIR_STORAGE_VOL_WIPE_ALG_LAST</a> = 9 /* NB: this enum value will increase over time as new algorithms are  added to the libvirt API. It reflects the last algorithm supported  by this version of the libvirt API. */
 };
 </pre><p/>
 </div>
@@ -2832,7 +2858,7 @@ over a channel (TCP or UNIX socket) which is not closed.</p>
 A connection will be classed as secure if it is either
 encrypted, or running over a channel which is not exposed
 to eavesdropping (eg a UNIX domain socket, or pipe)</p>
-<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the connection object</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>1 if secure, 0 if secure, -1 on error</td></tr></tbody></table></div></div>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the connection object</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>1 if secure, 0 if not secure, -1 on error</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virConnectListAllDomains"/>virConnectListAllDomains ()</h3><pre class="programlisting">int	virConnectListAllDomains	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> ** domains, <br/>					 unsigned int flags)<br/>
 </pre><p>Collect a possibly-filtered list of all domains, and return an allocated
@@ -4262,10 +4288,15 @@ Flags may be one of more of the following:
  <a href="libvirt-libvirt.html#VIR_MIGRATE_UNDEFINE_SOURCE">VIR_MIGRATE_UNDEFINE_SOURCE</a> If the migration is successful, undefine the
  domain on the source host.
  <a href="libvirt-libvirt.html#VIR_MIGRATE_PAUSED">VIR_MIGRATE_PAUSED</a> Leave the domain suspended on the remote side.
+ <a href="libvirt-libvirt.html#VIR_MIGRATE_NON_SHARED_DISK">VIR_MIGRATE_NON_SHARED_DISK</a> Migration with non-shared storage with full
+ disk copy
+ <a href="libvirt-libvirt.html#VIR_MIGRATE_NON_SHARED_INC">VIR_MIGRATE_NON_SHARED_INC</a> Migration with non-shared storage with
+ incremental disk copy
  <a href="libvirt-libvirt.html#VIR_MIGRATE_CHANGE_PROTECTION">VIR_MIGRATE_CHANGE_PROTECTION</a> Protect against domain configuration
  changes during the migration process (set
  automatically when supported).
  <a href="libvirt-libvirt.html#VIR_MIGRATE_UNSAFE">VIR_MIGRATE_UNSAFE</a> Force migration even if it is considered unsafe.
+ <a href="libvirt-libvirt.html#VIR_MIGRATE_OFFLINE">VIR_MIGRATE_OFFLINE</a> Migrate offline
 
 VIR_MIGRATE_TUNNELLED requires that <a href="libvirt-libvirt.html#VIR_MIGRATE_PEER2PEER">VIR_MIGRATE_PEER2PEER</a> be set.
 Applications using the <a href="libvirt-libvirt.html#VIR_MIGRATE_PEER2PEER">VIR_MIGRATE_PEER2PEER</a> flag will probably
@@ -4320,10 +4351,15 @@ Flags may be one of more of the following:
  <a href="libvirt-libvirt.html#VIR_MIGRATE_UNDEFINE_SOURCE">VIR_MIGRATE_UNDEFINE_SOURCE</a> If the migration is successful, undefine the
  domain on the source host.
  <a href="libvirt-libvirt.html#VIR_MIGRATE_PAUSED">VIR_MIGRATE_PAUSED</a> Leave the domain suspended on the remote side.
+ <a href="libvirt-libvirt.html#VIR_MIGRATE_NON_SHARED_DISK">VIR_MIGRATE_NON_SHARED_DISK</a> Migration with non-shared storage with full
+ disk copy
+ <a href="libvirt-libvirt.html#VIR_MIGRATE_NON_SHARED_INC">VIR_MIGRATE_NON_SHARED_INC</a> Migration with non-shared storage with
+ incremental disk copy
  <a href="libvirt-libvirt.html#VIR_MIGRATE_CHANGE_PROTECTION">VIR_MIGRATE_CHANGE_PROTECTION</a> Protect against domain configuration
  changes during the migration process (set
  automatically when supported).
  <a href="libvirt-libvirt.html#VIR_MIGRATE_UNSAFE">VIR_MIGRATE_UNSAFE</a> Force migration even if it is considered unsafe.
+ <a href="libvirt-libvirt.html#VIR_MIGRATE_OFFLINE">VIR_MIGRATE_OFFLINE</a> Migrate offline
 
 VIR_MIGRATE_TUNNELLED requires that <a href="libvirt-libvirt.html#VIR_MIGRATE_PEER2PEER">VIR_MIGRATE_PEER2PEER</a> be set.
 Applications using the <a href="libvirt-libvirt.html#VIR_MIGRATE_PEER2PEER">VIR_MIGRATE_PEER2PEER</a> flag will probably
@@ -4406,10 +4442,16 @@ Flags may be one of more of the following:
  on the destination host.
  <a href="libvirt-libvirt.html#VIR_MIGRATE_UNDEFINE_SOURCE">VIR_MIGRATE_UNDEFINE_SOURCE</a> If the migration is successful, undefine the
  domain on the source host.
+ <a href="libvirt-libvirt.html#VIR_MIGRATE_PAUSED">VIR_MIGRATE_PAUSED</a> Leave the domain suspended on the remote side.
+ <a href="libvirt-libvirt.html#VIR_MIGRATE_NON_SHARED_DISK">VIR_MIGRATE_NON_SHARED_DISK</a> Migration with non-shared storage with full
+ disk copy
+ <a href="libvirt-libvirt.html#VIR_MIGRATE_NON_SHARED_INC">VIR_MIGRATE_NON_SHARED_INC</a> Migration with non-shared storage with
+ incremental disk copy
  <a href="libvirt-libvirt.html#VIR_MIGRATE_CHANGE_PROTECTION">VIR_MIGRATE_CHANGE_PROTECTION</a> Protect against domain configuration
  changes during the migration process (set
  automatically when supported).
  <a href="libvirt-libvirt.html#VIR_MIGRATE_UNSAFE">VIR_MIGRATE_UNSAFE</a> Force migration even if it is considered unsafe.
+ <a href="libvirt-libvirt.html#VIR_MIGRATE_OFFLINE">VIR_MIGRATE_OFFLINE</a> Migrate offline
 
 The operation of this API hinges on the <a href="libvirt-libvirt.html#VIR_MIGRATE_PEER2PEER">VIR_MIGRATE_PEER2PEER</a> flag.
 If the <a href="libvirt-libvirt.html#VIR_MIGRATE_PEER2PEER">VIR_MIGRATE_PEER2PEER</a> flag is NOT set, the duri parameter
@@ -4459,10 +4501,16 @@ Flags may be one of more of the following:
  on the destination host.
  <a href="libvirt-libvirt.html#VIR_MIGRATE_UNDEFINE_SOURCE">VIR_MIGRATE_UNDEFINE_SOURCE</a> If the migration is successful, undefine the
  domain on the source host.
+ <a href="libvirt-libvirt.html#VIR_MIGRATE_PAUSED">VIR_MIGRATE_PAUSED</a> Leave the domain suspended on the remote side.
+ <a href="libvirt-libvirt.html#VIR_MIGRATE_NON_SHARED_DISK">VIR_MIGRATE_NON_SHARED_DISK</a> Migration with non-shared storage with full
+ disk copy
+ <a href="libvirt-libvirt.html#VIR_MIGRATE_NON_SHARED_INC">VIR_MIGRATE_NON_SHARED_INC</a> Migration with non-shared storage with
+ incremental disk copy
  <a href="libvirt-libvirt.html#VIR_MIGRATE_CHANGE_PROTECTION">VIR_MIGRATE_CHANGE_PROTECTION</a> Protect against domain configuration
  changes during the migration process (set
  automatically when supported).
  <a href="libvirt-libvirt.html#VIR_MIGRATE_UNSAFE">VIR_MIGRATE_UNSAFE</a> Force migration even if it is considered unsafe.
+ <a href="libvirt-libvirt.html#VIR_MIGRATE_OFFLINE">VIR_MIGRATE_OFFLINE</a> Migrate offline
 
 The operation of this API hinges on the <a href="libvirt-libvirt.html#VIR_MIGRATE_PEER2PEER">VIR_MIGRATE_PEER2PEER</a> flag.
 
@@ -4509,6 +4557,21 @@ technology - for example it may not be possible to migrate between
 different processors even with the same architecture, or between
 different types of hypervisor.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>a domain object</td></tr><tr><td><span class="term"><i><tt>dconnuri</tt></i>:</span></td><td>(optional) URI for target libvirtd if @flags includes <a href="libvirt-libvirt.html#VIR_MIGRATE_PEER2PEER">VIR_MIGRATE_PEER2PEER</a></td></tr><tr><td><span class="term"><i><tt>miguri</tt></i>:</span></td><td>(optional) URI for invoking the migration, not if @flags includs <a href="libvirt-libvirt.html#VIR_MIGRATE_TUNNELLED">VIR_MIGRATE_TUNNELLED</a></td></tr><tr><td><span class="term"><i><tt>dxml</tt></i>:</span></td><td>(optional) XML config for launching guest on target</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt.html#virDomainMigrateFlags">virDomainMigrateFlags</a></td></tr><tr><td><span class="term"><i><tt>dname</tt></i>:</span></td><td>(optional) rename domain to this at destination</td></tr><tr><td><span class="term"><i><tt>bandwidth</tt></i>:</span></td><td>(optional) specify migration bandwidth limit in Mbps</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 if the migration succeeded, -1 upon error.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainOpenChannel"/>virDomainOpenChannel ()</h3><pre class="programlisting">int	virDomainOpenChannel		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 const char * name, <br/>					 <a href="libvirt-libvirt.html#virStreamPtr">virStreamPtr</a> st, <br/>					 unsigned int flags)<br/>
+</pre><p>This opens the host interface associated with a channel device on a
+guest, if the host interface is supported. If @name is given, it
+can match either the device alias (e.g. "channel0"), or the virtio
+target name (e.g. "org.qemu.guest_agent.0"). If @name is omitted,
+then the first channel is opened. The channel is associated with
+the passed in @st stream, which should have been opened in
+non-blocking mode for bi-directional I/O.
+
+By default, when @flags is 0, the open will fail if libvirt detects
+that the channel is already in use by another client; passing
+VIR_DOMAIN_CHANNEL_FORCE will cause libvirt to forcefully remove the
+other client prior to opening this channel.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>a domain object</td></tr><tr><td><span class="term"><i><tt>name</tt></i>:</span></td><td>the channel name, or NULL</td></tr><tr><td><span class="term"><i><tt>st</tt></i>:</span></td><td>a stream to associate with the channel</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt.html#virDomainChannelFlags">virDomainChannelFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 if the channel was opened, -1 on error</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainOpenConsole"/>virDomainOpenConsole ()</h3><pre class="programlisting">int	virDomainOpenConsole		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 const char * dev_name, <br/>					 <a href="libvirt-libvirt.html#virStreamPtr">virStreamPtr</a> st, <br/>					 unsigned int flags)<br/>
 </pre><p>This opens the backend associated with a console, serial or
@@ -6728,6 +6791,148 @@ API looks like
  virStreamFree(st);
  close(fd);</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>stream</tt></i>:</span></td><td>pointer to the stream object</td></tr><tr><td><span class="term"><i><tt>handler</tt></i>:</span></td><td>source callback for reading data from application</td></tr><tr><td><span class="term"><i><tt>opaque</tt></i>:</span></td><td>application defined data</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 if all the data was successfully sent. The caller should invoke virStreamFinish(st) to flush the stream upon success and then <a href="libvirt-libvirt.html#virStreamFree">virStreamFree</a> Returns -1 upon any error, with virStreamAbort() already having been called, so the caller need only call virStreamFree()</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virTypedParamsAddBoolean"/>virTypedParamsAddBoolean ()</h3><pre class="programlisting">int	virTypedParamsAddBoolean	(<a href="libvirt-libvirt.html#virTypedParameterPtr">virTypedParameterPtr</a> * params, <br/>					 int * nparams, <br/>					 int * maxparams, <br/>					 const char * name, <br/>					 int value)<br/>
+</pre><p>Adds new parameter called @name with boolean type and sets its value to
+@value. If @params array points to NULL or to a space that is not large
+enough to accommodate the new parameter (@maxparams &lt; @nparams + 1), the
+function allocates more space for it and updates @maxparams. On success,
+@nparams is incremented by one. The function fails with VIR_ERR_INVALID_ARG
+error if the parameter already exists in @params.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>params</tt></i>:</span></td><td>pointer to the array of typed parameters</td></tr><tr><td><span class="term"><i><tt>nparams</tt></i>:</span></td><td>number of parameters in the @params array</td></tr><tr><td><span class="term"><i><tt>maxparams</tt></i>:</span></td><td>maximum number of parameters that can be stored in @params array without allocating more memory</td></tr><tr><td><span class="term"><i><tt>name</tt></i>:</span></td><td>name of the parameter to find</td></tr><tr><td><span class="term"><i><tt>value</tt></i>:</span></td><td>the value to store into the new parameter</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 on success, -1 on error.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virTypedParamsAddDouble"/>virTypedParamsAddDouble ()</h3><pre class="programlisting">int	virTypedParamsAddDouble		(<a href="libvirt-libvirt.html#virTypedParameterPtr">virTypedParameterPtr</a> * params, <br/>					 int * nparams, <br/>					 int * maxparams, <br/>					 const char * name, <br/>					 double value)<br/>
+</pre><p>Adds new parameter called @name with double type and sets its value to
+@value. If @params array points to NULL or to a space that is not large
+enough to accommodate the new parameter (@maxparams &lt; @nparams + 1), the
+function allocates more space for it and updates @maxparams. On success,
+@nparams is incremented by one. The function fails with VIR_ERR_INVALID_ARG
+error if the parameter already exists in @params.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>params</tt></i>:</span></td><td>pointer to the array of typed parameters</td></tr><tr><td><span class="term"><i><tt>nparams</tt></i>:</span></td><td>number of parameters in the @params array</td></tr><tr><td><span class="term"><i><tt>maxparams</tt></i>:</span></td><td>maximum number of parameters that can be stored in @params array without allocating more memory</td></tr><tr><td><span class="term"><i><tt>name</tt></i>:</span></td><td>name of the parameter to find</td></tr><tr><td><span class="term"><i><tt>value</tt></i>:</span></td><td>the value to store into the new parameter</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 on success, -1 on error.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virTypedParamsAddFromString"/>virTypedParamsAddFromString ()</h3><pre class="programlisting">int	virTypedParamsAddFromString	(<a href="libvirt-libvirt.html#virTypedParameterPtr">virTypedParameterPtr</a> * params, <br/>					 int * nparams, <br/>					 int * maxparams, <br/>					 const char * name, <br/>					 int type, <br/>					 const char * value)<br/>
+</pre><p>Adds new parameter called @name with the requested @type and parses its
+value from the @value string. If the requested type is string, the function
+creates its own copy of the @value string, which needs to be freed using
+virTypedParamsFree or virTypedParamsClear. If @params array points to NULL
+or to a space that is not large enough to accommodate the new parameter
+(@maxparams &lt; @nparams + 1), the function allocates more space for it and
+updates @maxparams. On success, @nparams is incremented by one. The
+function fails with <a href="libvirt-virterror.html#VIR_ERR_INVALID_ARG">VIR_ERR_INVALID_ARG</a> error if the parameter already
+exists in @params.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>params</tt></i>:</span></td><td>pointer to the array of typed parameters</td></tr><tr><td><span class="term"><i><tt>nparams</tt></i>:</span></td><td>number of parameters in the @params array</td></tr><tr><td><span class="term"><i><tt>maxparams</tt></i>:</span></td><td>maximum number of parameters that can be stored in @params array without allocating more memory</td></tr><tr><td><span class="term"><i><tt>name</tt></i>:</span></td><td>name of the parameter to find</td></tr><tr><td><span class="term"><i><tt>type</tt></i>:</span></td><td>type of the parameter</td></tr><tr><td><span class="term"><i><tt>value</tt></i>:</span></td><td>the value to store into the new parameter encoded as a string</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 on success, -1 on error.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virTypedParamsAddInt"/>virTypedParamsAddInt ()</h3><pre class="programlisting">int	virTypedParamsAddInt		(<a href="libvirt-libvirt.html#virTypedParameterPtr">virTypedParameterPtr</a> * params, <br/>					 int * nparams, <br/>					 int * maxparams, <br/>					 const char * name, <br/>					 int value)<br/>
+</pre><p>Adds new parameter called @name with int type and sets its value to @value.
+If @params array points to NULL or to a space that is not large enough to
+accommodate the new parameter (@maxparams &lt; @nparams + 1), the function
+allocates more space for it and updates @maxparams. On success, @nparams
+is incremented by one. The function fails with <a href="libvirt-virterror.html#VIR_ERR_INVALID_ARG">VIR_ERR_INVALID_ARG</a> error
+if the parameter already exists in @params.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>params</tt></i>:</span></td><td>pointer to the array of typed parameters</td></tr><tr><td><span class="term"><i><tt>nparams</tt></i>:</span></td><td>number of parameters in the @params array</td></tr><tr><td><span class="term"><i><tt>maxparams</tt></i>:</span></td><td>maximum number of parameters that can be stored in @params array without allocating more memory</td></tr><tr><td><span class="term"><i><tt>name</tt></i>:</span></td><td>name of the parameter to find</td></tr><tr><td><span class="term"><i><tt>value</tt></i>:</span></td><td>the value to store into the new parameter</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 on success, -1 on error.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virTypedParamsAddLLong"/>virTypedParamsAddLLong ()</h3><pre class="programlisting">int	virTypedParamsAddLLong		(<a href="libvirt-libvirt.html#virTypedParameterPtr">virTypedParameterPtr</a> * params, <br/>					 int * nparams, <br/>					 int * maxparams, <br/>					 const char * name, <br/>					 long long value)<br/>
+</pre><p>Adds new parameter called @name with long long int type and sets its value
+to @value. If @params array points to NULL or to a space that is not large
+enough to accommodate the new parameter (@maxparams &lt; @nparams + 1), the
+function allocates more space for it and updates @maxparams. On success,
+@nparams is incremented by one. The function fails with VIR_ERR_INVALID_ARG
+error if the parameter already exists in @params.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>params</tt></i>:</span></td><td>pointer to the array of typed parameters</td></tr><tr><td><span class="term"><i><tt>nparams</tt></i>:</span></td><td>number of parameters in the @params array</td></tr><tr><td><span class="term"><i><tt>maxparams</tt></i>:</span></td><td>maximum number of parameters that can be stored in @params array without allocating more memory</td></tr><tr><td><span class="term"><i><tt>name</tt></i>:</span></td><td>name of the parameter to find</td></tr><tr><td><span class="term"><i><tt>value</tt></i>:</span></td><td>the value to store into the new parameter</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 on success, -1 on error.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virTypedParamsAddString"/>virTypedParamsAddString ()</h3><pre class="programlisting">int	virTypedParamsAddString		(<a href="libvirt-libvirt.html#virTypedParameterPtr">virTypedParameterPtr</a> * params, <br/>					 int * nparams, <br/>					 int * maxparams, <br/>					 const char * name, <br/>					 const char * value)<br/>
+</pre><p>Adds new parameter called @name with char * type and sets its value to
+@value. The function creates its own copy of @value string, which needs to
+be freed using <a href="libvirt-libvirt.html#virTypedParamsFree">virTypedParamsFree</a> or virTypedParamsClear. If @params array
+points to NULL or to a space that is not large enough to accommodate the
+new parameter (@maxparams &lt; @nparams + 1), the function allocates more
+space for it and updates @maxparams. On success, @nparams is incremented
+by one. The function fails with <a href="libvirt-virterror.html#VIR_ERR_INVALID_ARG">VIR_ERR_INVALID_ARG</a> error if the parameter
+already exists in @params.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>params</tt></i>:</span></td><td>pointer to the array of typed parameters</td></tr><tr><td><span class="term"><i><tt>nparams</tt></i>:</span></td><td>number of parameters in the @params array</td></tr><tr><td><span class="term"><i><tt>maxparams</tt></i>:</span></td><td>maximum number of parameters that can be stored in @params array without allocating more memory</td></tr><tr><td><span class="term"><i><tt>name</tt></i>:</span></td><td>name of the parameter to find</td></tr><tr><td><span class="term"><i><tt>value</tt></i>:</span></td><td>the value to store into the new parameter</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 on success, -1 on error.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virTypedParamsAddUInt"/>virTypedParamsAddUInt ()</h3><pre class="programlisting">int	virTypedParamsAddUInt		(<a href="libvirt-libvirt.html#virTypedParameterPtr">virTypedParameterPtr</a> * params, <br/>					 int * nparams, <br/>					 int * maxparams, <br/>					 const char * name, <br/>					 unsigned int value)<br/>
+</pre><p>Adds new parameter called @name with unsigned int type and sets its value
+to @value. If @params array points to NULL or to a space that is not large
+enough to accommodate the new parameter (@maxparams &lt; @nparams + 1), the
+function allocates more space for it and updates @maxparams. On success,
+@nparams is incremented by one. The function fails with VIR_ERR_INVALID_ARG
+error if the parameter already exists in @params.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>params</tt></i>:</span></td><td>pointer to the array of typed parameters</td></tr><tr><td><span class="term"><i><tt>nparams</tt></i>:</span></td><td>number of parameters in the @params array</td></tr><tr><td><span class="term"><i><tt>maxparams</tt></i>:</span></td><td>maximum number of parameters that can be stored in @params array without allocating more memory</td></tr><tr><td><span class="term"><i><tt>name</tt></i>:</span></td><td>name of the parameter to find</td></tr><tr><td><span class="term"><i><tt>value</tt></i>:</span></td><td>the value to store into the new parameter</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 on success, -1 on error.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virTypedParamsAddULLong"/>virTypedParamsAddULLong ()</h3><pre class="programlisting">int	virTypedParamsAddULLong		(<a href="libvirt-libvirt.html#virTypedParameterPtr">virTypedParameterPtr</a> * params, <br/>					 int * nparams, <br/>					 int * maxparams, <br/>					 const char * name, <br/>					 unsigned long long value)<br/>
+</pre><p>Adds new parameter called @name with unsigned long long type and sets its
+value to @value. If @params array points to NULL or to a space that is not
+large enough to accommodate the new parameter (@maxparams &lt; @nparams + 1),
+the function allocates more space for it and updates @maxparams. On success,
+@nparams is incremented by one. The function fails with VIR_ERR_INVALID_ARG
+error if the parameter already exists in @params.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>params</tt></i>:</span></td><td>pointer to the array of typed parameters</td></tr><tr><td><span class="term"><i><tt>nparams</tt></i>:</span></td><td>number of parameters in the @params array</td></tr><tr><td><span class="term"><i><tt>maxparams</tt></i>:</span></td><td>maximum number of parameters that can be stored in @params array without allocating more memory</td></tr><tr><td><span class="term"><i><tt>name</tt></i>:</span></td><td>name of the parameter to find</td></tr><tr><td><span class="term"><i><tt>value</tt></i>:</span></td><td>the value to store into the new parameter</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 on success, -1 on error.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virTypedParamsClear"/>virTypedParamsClear ()</h3><pre class="programlisting">void	virTypedParamsClear		(<a href="libvirt-libvirt.html#virTypedParameterPtr">virTypedParameterPtr</a> params, <br/>					 int nparams)<br/>
+</pre><p>Frees all memory used by string parameters. The memory occupied by @params
+is not freed; use <a href="libvirt-libvirt.html#virTypedParamsFree">virTypedParamsFree</a> if you want it to be freed too.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>params</tt></i>:</span></td><td>the array of typed parameters</td></tr><tr><td><span class="term"><i><tt>nparams</tt></i>:</span></td><td>number of parameters in the @params array</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virTypedParamsFree"/>virTypedParamsFree ()</h3><pre class="programlisting">void	virTypedParamsFree		(<a href="libvirt-libvirt.html#virTypedParameterPtr">virTypedParameterPtr</a> params, <br/>					 int nparams)<br/>
+</pre><p>Frees all memory used by string parameters and the memory occupied by
+@params.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>params</tt></i>:</span></td><td>the array of typed parameters</td></tr><tr><td><span class="term"><i><tt>nparams</tt></i>:</span></td><td>number of parameters in the @params array</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virTypedParamsGet"/>virTypedParamsGet ()</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virTypedParameterPtr">virTypedParameterPtr</a>	virTypedParamsGet	(<a href="libvirt-libvirt.html#virTypedParameterPtr">virTypedParameterPtr</a> params, <br/>						 int nparams, <br/>						 const char * name)<br/>
+</pre><p>Finds typed parameter called @name.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>params</tt></i>:</span></td><td>array of typed parameters</td></tr><tr><td><span class="term"><i><tt>nparams</tt></i>:</span></td><td>number of parameters in the @params array</td></tr><tr><td><span class="term"><i><tt>name</tt></i>:</span></td><td>name of the parameter to find</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>pointer to the parameter or NULL if it does not exist in @params.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virTypedParamsGetBoolean"/>virTypedParamsGetBoolean ()</h3><pre class="programlisting">int	virTypedParamsGetBoolean	(<a href="libvirt-libvirt.html#virTypedParameterPtr">virTypedParameterPtr</a> params, <br/>					 int nparams, <br/>					 const char * name, <br/>					 int * value)<br/>
+</pre><p>Finds typed parameter called @name and store its boolean value in @value.
+The function fails with <a href="libvirt-virterror.html#VIR_ERR_INVALID_ARG">VIR_ERR_INVALID_ARG</a> error if the parameter does not
+have the expected type. By passing NULL as @value, the function may be used
+to check presence and type of the parameter.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>params</tt></i>:</span></td><td>array of typed parameters</td></tr><tr><td><span class="term"><i><tt>nparams</tt></i>:</span></td><td>number of parameters in the @params array</td></tr><tr><td><span class="term"><i><tt>name</tt></i>:</span></td><td>name of the parameter to find</td></tr><tr><td><span class="term"><i><tt>value</tt></i>:</span></td><td>where to store the parameter's value</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>1 on success, 0 when the parameter does not exist in @params, or -1 on error.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virTypedParamsGetDouble"/>virTypedParamsGetDouble ()</h3><pre class="programlisting">int	virTypedParamsGetDouble		(<a href="libvirt-libvirt.html#virTypedParameterPtr">virTypedParameterPtr</a> params, <br/>					 int nparams, <br/>					 const char * name, <br/>					 double * value)<br/>
+</pre><p>Finds typed parameter called @name and store its double value in @value.
+The function fails with <a href="libvirt-virterror.html#VIR_ERR_INVALID_ARG">VIR_ERR_INVALID_ARG</a> error if the parameter does not
+have the expected type. By passing NULL as @value, the function may be used
+to check presence and type of the parameter.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>params</tt></i>:</span></td><td>array of typed parameters</td></tr><tr><td><span class="term"><i><tt>nparams</tt></i>:</span></td><td>number of parameters in the @params array</td></tr><tr><td><span class="term"><i><tt>name</tt></i>:</span></td><td>name of the parameter to find</td></tr><tr><td><span class="term"><i><tt>value</tt></i>:</span></td><td>where to store the parameter's value</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>1 on success, 0 when the parameter does not exist in @params, or -1 on error.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virTypedParamsGetInt"/>virTypedParamsGetInt ()</h3><pre class="programlisting">int	virTypedParamsGetInt		(<a href="libvirt-libvirt.html#virTypedParameterPtr">virTypedParameterPtr</a> params, <br/>					 int nparams, <br/>					 const char * name, <br/>					 int * value)<br/>
+</pre><p>Finds typed parameter called @name and store its int value in @value. The
+function fails with <a href="libvirt-virterror.html#VIR_ERR_INVALID_ARG">VIR_ERR_INVALID_ARG</a> error if the parameter does not
+have the expected type. By passing NULL as @value, the function may be
+used to check presence and type of the parameter.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>params</tt></i>:</span></td><td>array of typed parameters</td></tr><tr><td><span class="term"><i><tt>nparams</tt></i>:</span></td><td>number of parameters in the @params array</td></tr><tr><td><span class="term"><i><tt>name</tt></i>:</span></td><td>name of the parameter to find</td></tr><tr><td><span class="term"><i><tt>value</tt></i>:</span></td><td>where to store the parameter's value</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>1 on success, 0 when the parameter does not exist in @params, or -1 on error.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virTypedParamsGetLLong"/>virTypedParamsGetLLong ()</h3><pre class="programlisting">int	virTypedParamsGetLLong		(<a href="libvirt-libvirt.html#virTypedParameterPtr">virTypedParameterPtr</a> params, <br/>					 int nparams, <br/>					 const char * name, <br/>					 long long * value)<br/>
+</pre><p>Finds typed parameter called @name and store its long long int value in
+@value. The function fails with <a href="libvirt-virterror.html#VIR_ERR_INVALID_ARG">VIR_ERR_INVALID_ARG</a> error if the parameter
+does not have the expected type. By passing NULL as @value, the function
+may be used to check presence and type of the parameter.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>params</tt></i>:</span></td><td>array of typed parameters</td></tr><tr><td><span class="term"><i><tt>nparams</tt></i>:</span></td><td>number of parameters in the @params array</td></tr><tr><td><span class="term"><i><tt>name</tt></i>:</span></td><td>name of the parameter to find</td></tr><tr><td><span class="term"><i><tt>value</tt></i>:</span></td><td>where to store the parameter's value</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>1 on success, 0 when the parameter does not exist in @params, or -1 on error.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virTypedParamsGetString"/>virTypedParamsGetString ()</h3><pre class="programlisting">int	virTypedParamsGetString		(<a href="libvirt-libvirt.html#virTypedParameterPtr">virTypedParameterPtr</a> params, <br/>					 int nparams, <br/>					 const char * name, <br/>					 const char ** value)<br/>
+</pre><p>Finds typed parameter called @name and store its char * value in @value.
+The function does not create a copy of the string and the caller must not
+free the string @value points to. The function fails with
+VIR_ERR_INVALID_ARG error if the parameter does not have the expected type.
+By passing NULL as @value, the function may be used to check presence and
+type of the parameter.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>params</tt></i>:</span></td><td>array of typed parameters</td></tr><tr><td><span class="term"><i><tt>nparams</tt></i>:</span></td><td>number of parameters in the @params array</td></tr><tr><td><span class="term"><i><tt>name</tt></i>:</span></td><td>name of the parameter to find</td></tr><tr><td><span class="term"><i><tt>value</tt></i>:</span></td><td>where to store the parameter's value</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>1 on success, 0 when the parameter does not exist in @params, or -1 on error.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virTypedParamsGetUInt"/>virTypedParamsGetUInt ()</h3><pre class="programlisting">int	virTypedParamsGetUInt		(<a href="libvirt-libvirt.html#virTypedParameterPtr">virTypedParameterPtr</a> params, <br/>					 int nparams, <br/>					 const char * name, <br/>					 unsigned int * value)<br/>
+</pre><p>Finds typed parameter called @name and store its unsigned int value in
+@value. The function fails with <a href="libvirt-virterror.html#VIR_ERR_INVALID_ARG">VIR_ERR_INVALID_ARG</a> error if the parameter
+does not have the expected type. By passing NULL as @value, the function
+may be used to check presence and type of the parameter.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>params</tt></i>:</span></td><td>array of typed parameters</td></tr><tr><td><span class="term"><i><tt>nparams</tt></i>:</span></td><td>number of parameters in the @params array</td></tr><tr><td><span class="term"><i><tt>name</tt></i>:</span></td><td>name of the parameter to find</td></tr><tr><td><span class="term"><i><tt>value</tt></i>:</span></td><td>where to store the parameter's value</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>1 on success, 0 when the parameter does not exist in @params, or -1 on error.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virTypedParamsGetULLong"/>virTypedParamsGetULLong ()</h3><pre class="programlisting">int	virTypedParamsGetULLong		(<a href="libvirt-libvirt.html#virTypedParameterPtr">virTypedParameterPtr</a> params, <br/>					 int nparams, <br/>					 const char * name, <br/>					 unsigned long long * value)<br/>
+</pre><p>Finds typed parameter called @name and store its unsigned long long int
+value in @value. The function fails with <a href="libvirt-virterror.html#VIR_ERR_INVALID_ARG">VIR_ERR_INVALID_ARG</a> error if the
+parameter does not have the expected type. By passing NULL as @value, the
+function may be used to check presence and type of the parameter.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>params</tt></i>:</span></td><td>array of typed parameters</td></tr><tr><td><span class="term"><i><tt>nparams</tt></i>:</span></td><td>number of parameters in the @params array</td></tr><tr><td><span class="term"><i><tt>name</tt></i>:</span></td><td>name of the parameter to find</td></tr><tr><td><span class="term"><i><tt>value</tt></i>:</span></td><td>where to store the parameter's value</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>1 on success, 0 when the parameter does not exist in @params, or -1 on error.</td></tr></tbody></table></div></div>
         <hr/>
       </div>
     </div>

@@ -7,7 +7,7 @@
 
 # include "testutils.h"
 # include "qemu/qemu_capabilities.h"
-# include "memory.h"
+# include "viralloc.h"
 
 struct testInfo {
     const char *name;
@@ -56,7 +56,7 @@ static int testHelpStrParsing(const void *data)
                              &version, &is_kvm, &kvm_version, false) == -1)
         goto cleanup;
 
-# ifndef HAVE_YAJL
+# ifndef WITH_YAJL
     if (qemuCapsGet(info->flags, QEMU_CAPS_MONITOR_JSON))
         qemuCapsSet(flags, QEMU_CAPS_MONITOR_JSON);
 # endif
@@ -391,7 +391,13 @@ mymain(void)
             QEMU_CAPS_NO_ACPI,
             QEMU_CAPS_VIRTIO_BLK_SG_IO,
             QEMU_CAPS_CPU_HOST,
-            QEMU_CAPS_VNC);
+            QEMU_CAPS_VNC,
+            QEMU_CAPS_DEVICE_QXL,
+            QEMU_CAPS_DEVICE_VGA,
+            QEMU_CAPS_DEVICE_CIRRUS_VGA,
+            QEMU_CAPS_DEVICE_VMWARE_SVGA,
+            QEMU_CAPS_DEVICE_USB_SERIAL,
+            QEMU_CAPS_DEVICE_USB_NET);
     DO_TEST("qemu-kvm-0.12.3", 12003, 1, 0,
             QEMU_CAPS_VNC_COLON,
             QEMU_CAPS_NO_REBOOT,
@@ -477,7 +483,6 @@ mymain(void)
             QEMU_CAPS_NESTING,
             QEMU_CAPS_NAME_PROCESS,
             QEMU_CAPS_SMBIOS_TYPE,
-            QEMU_CAPS_VGA_QXL,
             QEMU_CAPS_SPICE,
             QEMU_CAPS_VGA_NONE,
             QEMU_CAPS_MIGRATE_QEMU_FD,
@@ -495,7 +500,13 @@ mymain(void)
             QEMU_CAPS_VIRTIO_BLK_SG_IO,
             QEMU_CAPS_CPU_HOST,
             QEMU_CAPS_SCSI_LSI,
-            QEMU_CAPS_VNC);
+            QEMU_CAPS_VNC,
+            QEMU_CAPS_DEVICE_QXL,
+            QEMU_CAPS_DEVICE_VGA,
+            QEMU_CAPS_DEVICE_CIRRUS_VGA,
+            QEMU_CAPS_DEVICE_VMWARE_SVGA,
+            QEMU_CAPS_DEVICE_USB_SERIAL,
+            QEMU_CAPS_DEVICE_USB_NET);
     DO_TEST("qemu-kvm-0.12.1.2-rhel61", 12001, 1, 0,
             QEMU_CAPS_VNC_COLON,
             QEMU_CAPS_NO_REBOOT,
@@ -554,7 +565,13 @@ mymain(void)
             QEMU_CAPS_VIRTIO_BLK_SG_IO,
             QEMU_CAPS_CPU_HOST,
             QEMU_CAPS_BLOCKIO,
-            QEMU_CAPS_VNC);
+            QEMU_CAPS_VNC,
+            QEMU_CAPS_DEVICE_QXL,
+            QEMU_CAPS_DEVICE_VGA,
+            QEMU_CAPS_DEVICE_CIRRUS_VGA,
+            QEMU_CAPS_DEVICE_VMWARE_SVGA,
+            QEMU_CAPS_DEVICE_USB_SERIAL,
+            QEMU_CAPS_DEVICE_USB_NET);
     DO_TEST("qemu-kvm-0.12.1.2-rhel62-beta", 12001, 1, 0,
             QEMU_CAPS_VNC_COLON,
             QEMU_CAPS_NO_REBOOT,
@@ -623,7 +640,10 @@ mymain(void)
             QEMU_CAPS_CPU_HOST,
             QEMU_CAPS_SCSI_CD,
             QEMU_CAPS_BLOCKIO,
-            QEMU_CAPS_VNC);
+            QEMU_CAPS_VNC,
+            QEMU_CAPS_DEVICE_QXL,
+            QEMU_CAPS_DEVICE_VGA,
+            QEMU_CAPS_DEVICE_CIRRUS_VGA);
     DO_TEST("qemu-1.0", 1000000, 0, 0,
             QEMU_CAPS_VNC_COLON,
             QEMU_CAPS_NO_REBOOT,
@@ -697,7 +717,13 @@ mymain(void)
             QEMU_CAPS_IDE_CD,
             QEMU_CAPS_SCSI_LSI,
             QEMU_CAPS_BLOCKIO,
-            QEMU_CAPS_VNC);
+            QEMU_CAPS_VNC,
+            QEMU_CAPS_DEVICE_QXL,
+            QEMU_CAPS_DEVICE_VGA,
+            QEMU_CAPS_DEVICE_CIRRUS_VGA,
+            QEMU_CAPS_DEVICE_VMWARE_SVGA,
+            QEMU_CAPS_DEVICE_USB_SERIAL,
+            QEMU_CAPS_DEVICE_USB_NET);
     DO_TEST("qemu-1.1.0", 1001000, 0, 0,
             QEMU_CAPS_VNC_COLON,
             QEMU_CAPS_NO_REBOOT,
@@ -779,7 +805,13 @@ mymain(void)
             QEMU_CAPS_SCSI_LSI,
             QEMU_CAPS_VIRTIO_SCSI_PCI,
             QEMU_CAPS_BLOCKIO,
-            QEMU_CAPS_VNC);
+            QEMU_CAPS_VNC,
+            QEMU_CAPS_DEVICE_QXL,
+            QEMU_CAPS_DEVICE_VGA,
+            QEMU_CAPS_DEVICE_CIRRUS_VGA,
+            QEMU_CAPS_DEVICE_VMWARE_SVGA,
+            QEMU_CAPS_DEVICE_USB_SERIAL,
+            QEMU_CAPS_DEVICE_USB_NET);
     DO_TEST("qemu-1.2.0", 1002000, 0, 0,
             QEMU_CAPS_VNC_COLON,
             QEMU_CAPS_NO_REBOOT,
@@ -871,7 +903,14 @@ mymain(void)
             QEMU_CAPS_DUMP_GUEST_CORE,
             QEMU_CAPS_VNC,
             QEMU_CAPS_USB_REDIR_BOOTINDEX,
-            QEMU_CAPS_USB_HOST_BOOTINDEX);
+            QEMU_CAPS_USB_HOST_BOOTINDEX,
+            QEMU_CAPS_DEVICE_QXL,
+            QEMU_CAPS_DEVICE_VGA,
+            QEMU_CAPS_DEVICE_CIRRUS_VGA,
+            QEMU_CAPS_DEVICE_VMWARE_SVGA,
+            QEMU_CAPS_DEVICE_VIDEO_PRIMARY,
+            QEMU_CAPS_DEVICE_USB_SERIAL,
+            QEMU_CAPS_DEVICE_USB_NET);
     DO_TEST("qemu-kvm-1.2.0", 1002000, 1, 0,
             QEMU_CAPS_VNC_COLON,
             QEMU_CAPS_NO_REBOOT,
@@ -968,7 +1007,14 @@ mymain(void)
             QEMU_CAPS_DUMP_GUEST_CORE,
             QEMU_CAPS_VNC,
             QEMU_CAPS_USB_REDIR_BOOTINDEX,
-            QEMU_CAPS_USB_HOST_BOOTINDEX);
+            QEMU_CAPS_USB_HOST_BOOTINDEX,
+            QEMU_CAPS_DEVICE_QXL,
+            QEMU_CAPS_DEVICE_VGA,
+            QEMU_CAPS_DEVICE_CIRRUS_VGA,
+            QEMU_CAPS_DEVICE_VMWARE_SVGA,
+            QEMU_CAPS_DEVICE_VIDEO_PRIMARY,
+            QEMU_CAPS_DEVICE_USB_SERIAL,
+            QEMU_CAPS_DEVICE_USB_NET);
 
     return ret == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }

@@ -26,7 +26,7 @@
 
 # include "virobject.h"
 # include "capabilities.h"
-# include "command.h"
+# include "vircommand.h"
 # include "virobject.h"
 # include "qemu_monitor.h"
 
@@ -156,6 +156,15 @@ enum qemuCapsFlags {
     QEMU_CAPS_USB_REDIR_BOOTINDEX = 116, /* usb-redir.bootindex */
     QEMU_CAPS_USB_HOST_BOOTINDEX = 117, /* usb-host.bootindex */
     QEMU_CAPS_DISK_SNAPSHOT      = 118, /* blockdev-snapshot-sync command */
+    QEMU_CAPS_DEVICE_QXL         = 119, /* -device qxl */
+    QEMU_CAPS_DEVICE_VGA         = 120, /* -device VGA */
+    QEMU_CAPS_DEVICE_CIRRUS_VGA  = 121, /* -device cirrus-vga */
+    QEMU_CAPS_DEVICE_VMWARE_SVGA = 122, /* -device vmware-svga */
+    QEMU_CAPS_DEVICE_VIDEO_PRIMARY = 123, /* safe to use -device XXX
+                                           for primary video device */
+    QEMU_CAPS_SCLP_S390          = 124, /* -device sclp* */
+    QEMU_CAPS_DEVICE_USB_SERIAL  = 125, /* -device usb-serial */
+    QEMU_CAPS_DEVICE_USB_NET     = 126, /* -device usb-net */
 
     QEMU_CAPS_LAST,                   /* this must always be the last item */
 };
@@ -191,7 +200,7 @@ bool qemuCapsGet(qemuCapsPtr caps,
 char *qemuCapsFlagsString(qemuCapsPtr caps);
 
 const char *qemuCapsGetBinary(qemuCapsPtr caps);
-const char *qemuCapsGetArch(qemuCapsPtr caps);
+virArch qemuCapsGetArch(qemuCapsPtr caps);
 unsigned int qemuCapsGetVersion(qemuCapsPtr caps);
 unsigned int qemuCapsGetKVMVersion(qemuCapsPtr caps);
 int qemuCapsAddCPUDefinition(qemuCapsPtr caps,
@@ -235,4 +244,5 @@ int qemuCapsParseDeviceStr(qemuCapsPtr caps, const char *str);
 
 VIR_ENUM_DECL(qemuCaps);
 
+bool qemuCapsUsedQMP(qemuCapsPtr caps);
 #endif /* __QEMU_CAPABILITIES_H__*/

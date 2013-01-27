@@ -32,13 +32,12 @@
 #include <libxml/xmlsave.h>
 
 #include "internal.h"
-#include "buf.h"
-#include "memory.h"
-#include "util.h"
+#include "virbuffer.h"
+#include "viralloc.h"
+#include "virutil.h"
 #include "virsh-domain.h"
-#include "xml.h"
+#include "virxml.h"
 #include "virtypedparam.h"
-#include "json.h"
 
 /*
  * "capabilities" command
@@ -75,10 +74,17 @@ static const vshCmdInfo info_connect[] = {
 };
 
 static const vshCmdOptDef opts_connect[] = {
-    {"name",     VSH_OT_DATA, VSH_OFLAG_EMPTY_OK,
-     N_("hypervisor connection URI")},
-    {"readonly", VSH_OT_BOOL, 0, N_("read-only connection")},
-    {NULL, 0, 0, NULL}
+    {.name = "name",
+     .type = VSH_OT_DATA,
+     .flags = VSH_OFLAG_EMPTY_OK,
+     .help = N_("hypervisor connection URI")
+    },
+    {.name = "readonly",
+     .type = VSH_OT_BOOL,
+     .flags = 0,
+     .help = N_("read-only connection")
+    },
+    {.name = NULL}
 };
 
 static bool
@@ -126,9 +132,17 @@ static const vshCmdInfo info_freecell[] = {
 };
 
 static const vshCmdOptDef opts_freecell[] = {
-    {"cellno", VSH_OT_INT, 0, N_("NUMA cell number")},
-    {"all", VSH_OT_BOOL, 0, N_("show free memory for all NUMA cells")},
-    {NULL, 0, 0, NULL}
+    {.name = "cellno",
+     .type = VSH_OT_INT,
+     .flags = 0,
+     .help = N_("NUMA cell number")
+    },
+    {.name = "all",
+     .type = VSH_OT_BOOL,
+     .flags = 0,
+     .help = N_("show free memory for all NUMA cells")
+    },
+    {.name = NULL}
 };
 
 static bool
@@ -319,9 +333,17 @@ static const vshCmdInfo info_nodecpustats[] = {
 };
 
 static const vshCmdOptDef opts_node_cpustats[] = {
-    {"cpu", VSH_OT_INT, 0, N_("prints specified cpu statistics only.")},
-    {"percent", VSH_OT_BOOL, 0, N_("prints by percentage during 1 second.")},
-    {NULL, 0, 0, NULL}
+    {.name = "cpu",
+     .type = VSH_OT_INT,
+     .flags = 0,
+     .help = N_("prints specified cpu statistics only.")
+    },
+    {.name = "percent",
+     .type = VSH_OT_BOOL,
+     .flags = 0,
+     .help = N_("prints by percentage during 1 second.")
+    },
+    {.name = NULL}
 };
 
 static bool
@@ -444,8 +466,12 @@ static const vshCmdInfo info_nodememstats[] = {
 };
 
 static const vshCmdOptDef opts_node_memstats[] = {
-    {"cell", VSH_OT_INT, 0, N_("prints specified cell statistics only.")},
-    {NULL, 0, 0, NULL}
+    {.name = "cell",
+     .type = VSH_OT_INT,
+     .flags = 0,
+     .help = N_("prints specified cell statistics only.")
+    },
+    {.name = NULL}
 };
 
 static bool
@@ -503,10 +529,18 @@ static const vshCmdInfo info_nodesuspend[] = {
 };
 
 static const vshCmdOptDef opts_node_suspend[] = {
-    {"target", VSH_OT_DATA, VSH_OFLAG_REQ, N_("mem(Suspend-to-RAM), "
-                                               "disk(Suspend-to-Disk), hybrid(Hybrid-Suspend)")},
-    {"duration", VSH_OT_INT, VSH_OFLAG_REQ, N_("Suspend duration in seconds, at least 60")},
-    {NULL, 0, 0, NULL}
+    {.name = "target",
+     .type = VSH_OT_DATA,
+     .flags = VSH_OFLAG_REQ,
+     .help = N_("mem(Suspend-to-RAM), "
+                "disk(Suspend-to-Disk), hybrid(Hybrid-Suspend)")
+    },
+    {.name = "duration",
+     .type = VSH_OT_INT,
+     .flags = VSH_OFLAG_REQ,
+     .help = N_("Suspend duration in seconds, at least 60")
+    },
+    {.name = NULL}
 };
 
 static bool
@@ -549,218 +583,6 @@ cmdNodeSuspend(vshControl *ctl, const vshCmd *cmd)
     return true;
 }
 
-/*
- * "qemu-monitor-command" command
- */
-static const vshCmdInfo info_qemu_monitor_command[] = {
-    {"help", N_("QEMU Monitor Command")},
-    {"desc", N_("QEMU Monitor Command")},
-    {NULL, NULL}
-};
-
-static const vshCmdOptDef opts_qemu_monitor_command[] = {
-    {"domain", VSH_OT_DATA, VSH_OFLAG_REQ, N_("domain name, id or uuid")},
-    {"hmp", VSH_OT_BOOL, 0, N_("command is in human monitor protocol")},
-    {"pretty", VSH_OT_BOOL, 0,
-     N_("pretty-print any qemu monitor protocol output")},
-    {"cmd", VSH_OT_ARGV, VSH_OFLAG_REQ, N_("command")},
-    {NULL, 0, 0, NULL}
-};
-
-static bool
-cmdQemuMonitorCommand(vshControl *ctl, const vshCmd *cmd)
-{
-    virDomainPtr dom = NULL;
-    bool ret = false;
-    char *monitor_cmd = NULL;
-    char *result = NULL;
-    unsigned int flags = 0;
-    const vshCmdOpt *opt = NULL;
-    virBuffer buf = VIR_BUFFER_INITIALIZER;
-    bool pad = false;
-    virJSONValuePtr pretty = NULL;
-
-    dom = vshCommandOptDomain(ctl, cmd, NULL);
-    if (dom == NULL)
-        goto cleanup;
-
-    while ((opt = vshCommandOptArgv(cmd, opt))) {
-        if (pad)
-            virBufferAddChar(&buf, ' ');
-        pad = true;
-        virBufferAdd(&buf, opt->data, -1);
-    }
-    if (virBufferError(&buf)) {
-        vshPrint(ctl, "%s", _("Failed to collect command"));
-        goto cleanup;
-    }
-    monitor_cmd = virBufferContentAndReset(&buf);
-
-    if (vshCommandOptBool(cmd, "hmp")) {
-        if (vshCommandOptBool(cmd, "pretty")) {
-            vshError(ctl, _("--hmp and --pretty are not compatible"));
-            goto cleanup;
-        }
-        flags |= VIR_DOMAIN_QEMU_MONITOR_COMMAND_HMP;
-    }
-
-    if (virDomainQemuMonitorCommand(dom, monitor_cmd, &result, flags) < 0)
-        goto cleanup;
-
-    if (vshCommandOptBool(cmd, "pretty")) {
-        char *tmp;
-        pretty = virJSONValueFromString(result);
-        if (pretty && (tmp = virJSONValueToString(pretty, true))) {
-            VIR_FREE(result);
-            result = tmp;
-        } else {
-            vshResetLibvirtError();
-        }
-    }
-    vshPrint(ctl, "%s\n", result);
-
-    ret = true;
-
-cleanup:
-    VIR_FREE(result);
-    VIR_FREE(monitor_cmd);
-    virJSONValueFree(pretty);
-    if (dom)
-        virDomainFree(dom);
-
-    return ret;
-}
-
-/*
- * "qemu-attach" command
- */
-static const vshCmdInfo info_qemu_attach[] = {
-    {"help", N_("QEMU Attach")},
-    {"desc", N_("QEMU Attach")},
-    {NULL, NULL}
-};
-
-static const vshCmdOptDef opts_qemu_attach[] = {
-    {"pid", VSH_OT_DATA, VSH_OFLAG_REQ, N_("pid")},
-    {NULL, 0, 0, NULL}
-};
-
-static bool
-cmdQemuAttach(vshControl *ctl, const vshCmd *cmd)
-{
-    virDomainPtr dom = NULL;
-    bool ret = false;
-    unsigned int flags = 0;
-    unsigned int pid_value; /* API uses unsigned int, not pid_t */
-
-    if (vshCommandOptUInt(cmd, "pid", &pid_value) <= 0) {
-        vshError(ctl, "%s", _("missing pid value"));
-        goto cleanup;
-    }
-
-    if (!(dom = virDomainQemuAttach(ctl->conn, pid_value, flags)))
-        goto cleanup;
-
-    if (dom != NULL) {
-        vshPrint(ctl, _("Domain %s attached to pid %u\n"),
-                 virDomainGetName(dom), pid_value);
-        virDomainFree(dom);
-        ret = true;
-    } else {
-        vshError(ctl, _("Failed to attach to pid %u"), pid_value);
-    }
-
-cleanup:
-    return ret;
-}
-
-/*
- * "qemu-agent-command" command
- */
-static const vshCmdInfo info_qemu_agent_command[] = {
-    {"help", N_("QEMU Guest Agent Command")},
-    {"desc", N_("Run an arbitrary qemu guest agent command; use at your own risk")},
-    {NULL, NULL}
-};
-
-static const vshCmdOptDef opts_qemu_agent_command[] = {
-    {"domain", VSH_OT_DATA, VSH_OFLAG_REQ, N_("domain name, id or uuid")},
-    {"timeout", VSH_OT_INT, VSH_OFLAG_REQ_OPT, N_("timeout seconds. must be positive.")},
-    {"async", VSH_OT_BOOL, 0, N_("execute command without waiting for timeout")},
-    {"block", VSH_OT_BOOL, 0, N_("execute command without timeout")},
-    {"cmd", VSH_OT_ARGV, VSH_OFLAG_REQ, N_("command")},
-    {NULL, 0, 0, NULL}
-};
-
-static bool
-cmdQemuAgentCommand(vshControl *ctl, const vshCmd *cmd)
-{
-    virDomainPtr dom = NULL;
-    bool ret = false;
-    char *guest_agent_cmd = NULL;
-    char *result = NULL;
-    int timeout = VIR_DOMAIN_QEMU_AGENT_COMMAND_DEFAULT;
-    int judge = 0;
-    unsigned int flags = 0;
-    const vshCmdOpt *opt = NULL;
-    virBuffer buf = VIR_BUFFER_INITIALIZER;
-    bool pad = false;
-
-    dom = vshCommandOptDomain(ctl, cmd, NULL);
-    if (dom == NULL)
-        goto cleanup;
-
-    while ((opt = vshCommandOptArgv(cmd, opt))) {
-        if (pad)
-            virBufferAddChar(&buf, ' ');
-        pad = true;
-        virBufferAdd(&buf, opt->data, -1);
-    }
-    if (virBufferError(&buf)) {
-        vshPrint(ctl, "%s", _("Failed to collect command"));
-        goto cleanup;
-    }
-    guest_agent_cmd = virBufferContentAndReset(&buf);
-
-    judge = vshCommandOptInt(cmd, "timeout", &timeout);
-    if (judge < 0) {
-        vshError(ctl, "%s", _("timeout number has to be a number"));
-        goto cleanup;
-    } else if (judge > 0) {
-        judge = 1;
-    }
-    if (judge && timeout < 1) {
-        vshError(ctl, "%s", _("timeout must be positive"));
-        goto cleanup;
-    }
-
-    if (vshCommandOptBool(cmd, "async")) {
-        timeout = VIR_DOMAIN_QEMU_AGENT_COMMAND_NOWAIT;
-        judge++;
-    }
-    if (vshCommandOptBool(cmd, "block")) {
-        timeout = VIR_DOMAIN_QEMU_AGENT_COMMAND_BLOCK;
-        judge++;
-    }
-
-    if (judge > 1) {
-        vshError(ctl, "%s", _("timeout, async and block options are exclusive"));
-        goto cleanup;
-    }
-    result = virDomainQemuAgentCommand(dom, guest_agent_cmd, timeout, flags);
-
-    if (result) printf("%s\n", result);
-
-    ret = true;
-
-cleanup:
-    VIR_FREE(result);
-    VIR_FREE(guest_agent_cmd);
-    if (dom)
-        virDomainFree(dom);
-
-    return ret;
-}
 /*
  * "sysinfo" command
  */
@@ -850,8 +672,12 @@ static const vshCmdInfo info_version[] = {
 };
 
 static const vshCmdOptDef opts_version[] = {
-    {"daemon", VSH_OT_BOOL, VSH_OFLAG_NONE, N_("report daemon version too")},
-    {NULL, 0, 0, NULL}
+    {.name = "daemon",
+     .type = VSH_OT_BOOL,
+     .flags = VSH_OFLAG_NONE,
+     .help = N_("report daemon version too")
+    },
+    {.name = NULL}
 };
 
 static bool
@@ -945,15 +771,24 @@ static const vshCmdInfo info_node_memory_tune[] = {
 };
 
 static const vshCmdOptDef opts_node_memory_tune[] = {
-    {"shm-pages-to-scan", VSH_OT_INT, VSH_OFLAG_NONE,
-      N_("number of pages to scan before the shared memory service "
-         "goes to sleep")},
-    {"shm-sleep-millisecs", VSH_OT_INT, VSH_OFLAG_NONE,
-      N_("number of millisecs the shared memory service should "
-         "sleep before next scan")},
-    {"shm-merge-across-nodes", VSH_OT_INT, VSH_OFLAG_NONE,
-      N_("Specifies if pages from different numa nodes can be merged")},
-    {NULL, 0, 0, NULL}
+    {.name = "shm-pages-to-scan",
+     .type = VSH_OT_INT,
+     .flags = VSH_OFLAG_NONE,
+     .help =  N_("number of pages to scan before the shared memory service "
+                 "goes to sleep")
+    },
+    {.name = "shm-sleep-millisecs",
+     .type = VSH_OT_INT,
+     .flags = VSH_OFLAG_NONE,
+     .help =  N_("number of millisecs the shared memory service should "
+                 "sleep before next scan")
+    },
+    {.name = "shm-merge-across-nodes",
+     .type = VSH_OT_INT,
+     .flags = VSH_OFLAG_NONE,
+     .help =  N_("Specifies if pages from different numa nodes can be merged")
+    },
+    {.name = NULL}
 };
 
 static bool
@@ -961,42 +796,41 @@ cmdNodeMemoryTune(vshControl *ctl, const vshCmd *cmd)
 {
     virTypedParameterPtr params = NULL;
     int nparams = 0;
+    int maxparams = 0;
     unsigned int flags = 0;
-    unsigned int shm_pages_to_scan = 0;
-    unsigned int shm_sleep_millisecs = 0;
-    unsigned int shm_merge_across_nodes = 0;
-    bool has_shm_pages_to_scan = false;
-    bool has_shm_sleep_millisecs = false;
-    bool has_shm_merge_across_nodes = false;
+    unsigned int value;
     bool ret = false;
     int rc = -1;
     int i = 0;
 
-    if ((rc = vshCommandOptUInt(cmd, "shm-pages-to-scan",
-                                &shm_pages_to_scan)) < 0) {
+    if ((rc = vshCommandOptUInt(cmd, "shm-pages-to-scan", &value)) < 0) {
         vshError(ctl, "%s", _("invalid shm-pages-to-scan number"));
-        return false;
+        goto cleanup;
     } else if (rc > 0) {
-        nparams++;
-        has_shm_pages_to_scan = true;
+        if (virTypedParamsAddUInt(&params, &nparams, &maxparams,
+                                  VIR_NODE_MEMORY_SHARED_PAGES_TO_SCAN,
+                                  value) < 0)
+            goto save_error;
     }
 
-    if ((rc = vshCommandOptUInt(cmd, "shm-sleep-millisecs",
-                                &shm_sleep_millisecs)) < 0) {
+    if ((rc = vshCommandOptUInt(cmd, "shm-sleep-millisecs", &value)) < 0) {
         vshError(ctl, "%s", _("invalid shm-sleep-millisecs number"));
-        return false;
+        goto cleanup;
     } else if (rc > 0) {
-        nparams++;
-        has_shm_sleep_millisecs = true;
+        if (virTypedParamsAddUInt(&params, &nparams, &maxparams,
+                                  VIR_NODE_MEMORY_SHARED_SLEEP_MILLISECS,
+                                  value) < 0)
+            goto save_error;
     }
 
-    if ((rc = vshCommandOptUInt(cmd, "shm-merge-across-nodes",
-                                &shm_merge_across_nodes)) < 0) {
+    if ((rc = vshCommandOptUInt(cmd, "shm-merge-across-nodes", &value)) < 0) {
         vshError(ctl, "%s", _("invalid shm-merge-across-nodes number"));
-        return false;
+        goto cleanup;
     } else if (rc > 0) {
-        nparams++;
-        has_shm_merge_across_nodes = true;
+        if (virTypedParamsAddUInt(&params, &nparams, &maxparams,
+                                  VIR_NODE_MEMORY_SHARED_MERGE_ACROSS_NODES,
+                                  value) < 0)
+            goto save_error;
     }
 
     if (nparams == 0) {
@@ -1028,46 +862,19 @@ cmdNodeMemoryTune(vshControl *ctl, const vshCmd *cmd)
             vshPrint(ctl, "\t%-15s %s\n", params[i].field, str);
             VIR_FREE(str);
         }
-
-        ret = true;
     } else {
-        /* Set the memory parameters */
-        params = vshCalloc(ctl, nparams, sizeof(*params));
-
-        if (i < nparams && has_shm_pages_to_scan) {
-            if (virTypedParameterAssign(&params[i++],
-                                        VIR_NODE_MEMORY_SHARED_PAGES_TO_SCAN,
-                                        VIR_TYPED_PARAM_UINT,
-                                        shm_pages_to_scan) < 0)
-                goto error;
-        }
-
-        if (i < nparams && has_shm_sleep_millisecs) {
-            if (virTypedParameterAssign(&params[i++],
-                                        VIR_NODE_MEMORY_SHARED_SLEEP_MILLISECS,
-                                        VIR_TYPED_PARAM_UINT,
-                                        shm_sleep_millisecs) < 0)
-                goto error;
-        }
-
-        if (i < nparams && has_shm_merge_across_nodes) {
-            if (virTypedParameterAssign(&params[i++],
-                                        VIR_NODE_MEMORY_SHARED_MERGE_ACROSS_NODES,
-                                        VIR_TYPED_PARAM_UINT,
-                                        shm_merge_across_nodes) < 0)
-                goto error;
-        }
-
         if (virNodeSetMemoryParameters(ctl->conn, params, nparams, flags) != 0)
             goto error;
-        else
-            ret = true;
     }
 
+    ret = true;
+
 cleanup:
-    VIR_FREE(params);
+    virTypedParamsFree(params, nparams);
     return ret;
 
+save_error:
+    vshSaveLibvirtError();
 error:
     vshError(ctl, "%s", _("Unable to change memory parameters"));
     goto cleanup;
@@ -1086,11 +893,6 @@ const vshCmdDef hostAndHypervisorCmds[] = {
     {"nodeinfo", cmdNodeinfo, NULL, info_nodeinfo, 0},
     {"nodememstats", cmdNodeMemStats, opts_node_memstats, info_nodememstats, 0},
     {"nodesuspend", cmdNodeSuspend, opts_node_suspend, info_nodesuspend, 0},
-    {"qemu-attach", cmdQemuAttach, opts_qemu_attach, info_qemu_attach, 0},
-    {"qemu-monitor-command", cmdQemuMonitorCommand, opts_qemu_monitor_command,
-     info_qemu_monitor_command, 0},
-    {"qemu-agent-command", cmdQemuAgentCommand, opts_qemu_agent_command,
-     info_qemu_agent_command, 0},
     {"sysinfo", cmdSysinfo, NULL, info_sysinfo, 0},
     {"uri", cmdURI, NULL, info_uri, 0},
     {"version", cmdVersion, opts_version, info_version, 0},

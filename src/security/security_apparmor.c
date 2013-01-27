@@ -38,17 +38,17 @@
 #include "internal.h"
 
 #include "security_apparmor.h"
-#include "util.h"
-#include "memory.h"
-#include "virterror_internal.h"
+#include "virutil.h"
+#include "viralloc.h"
+#include "virerror.h"
 #include "datatypes.h"
-#include "uuid.h"
-#include "pci.h"
-#include "hostusb.h"
+#include "viruuid.h"
+#include "virpci.h"
+#include "virusb.h"
 #include "virfile.h"
 #include "configmake.h"
-#include "command.h"
-#include "logging.h"
+#include "vircommand.h"
+#include "virlog.h"
 
 #define VIR_FROM_THIS VIR_FROM_SECURITY
 #define SECURITY_APPARMOR_VOID_DOI      "0"
@@ -177,13 +177,13 @@ load_profile(virSecurityManagerPtr mgr,
     int rc = -1;
     bool create = true;
     char *xml = NULL;
-    virCommandPtr cmd;
+    virCommandPtr cmd = NULL;
     const char *probe = virSecurityManagerGetAllowDiskFormatProbing(mgr)
         ? "1" : "0";
 
     xml = virDomainDefFormat(def, VIR_DOMAIN_XML_SECURE);
     if (!xml)
-        goto clean;
+        goto cleanup;
 
     if (profile_status_file(profile) >= 0)
         create = false;
@@ -202,8 +202,9 @@ load_profile(virSecurityManagerPtr mgr,
     virCommandSetInputBuffer(cmd, xml);
     rc = virCommandRun(cmd, NULL);
 
-  clean:
+cleanup:
     VIR_FREE(xml);
+    virCommandFree(cmd);
 
     return rc;
 }
@@ -742,8 +743,8 @@ AppArmorReserveSecurityLabel(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
 static int
 AppArmorSetSecurityHostdevLabel(virSecurityManagerPtr mgr,
                                 virDomainDefPtr def,
-                                virDomainHostdevDefPtr dev)
-
+                                virDomainHostdevDefPtr dev,
+                                const char *vroot)
 {
     struct SDPDOP *ptr;
     int ret = -1;
@@ -770,7 +771,8 @@ AppArmorSetSecurityHostdevLabel(virSecurityManagerPtr mgr,
     switch (dev->source.subsys.type) {
     case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_USB: {
         usbDevice *usb = usbGetDevice(dev->source.subsys.u.usb.bus,
-                                      dev->source.subsys.u.usb.device);
+                                      dev->source.subsys.u.usb.device,
+                                      vroot);
 
         if (!usb)
             goto done;
@@ -808,7 +810,8 @@ done:
 static int
 AppArmorRestoreSecurityHostdevLabel(virSecurityManagerPtr mgr,
                                     virDomainDefPtr def,
-                                    virDomainHostdevDefPtr dev ATTRIBUTE_UNUSED)
+                                    virDomainHostdevDefPtr dev ATTRIBUTE_UNUSED,
+                                    const char *vroot ATTRIBUTE_UNUSED)
 
 {
     const virSecurityLabelDefPtr secdef =

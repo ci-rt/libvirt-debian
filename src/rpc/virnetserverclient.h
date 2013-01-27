@@ -27,7 +27,7 @@
 # include "virnetsocket.h"
 # include "virnetmessage.h"
 # include "virobject.h"
-# include "json.h"
+# include "virjson.h"
 
 typedef struct _virNetServerClient virNetServerClient;
 typedef virNetServerClient *virNetServerClientPtr;
@@ -52,7 +52,9 @@ virNetServerClientPtr virNetServerClientNew(virNetSocketPtr sock,
                                             int auth,
                                             bool readonly,
                                             size_t nrequests_max,
+# ifdef WITH_GNUTLS
                                             virNetTLSContextPtr tls,
+# endif
                                             virNetServerClientPrivNew privNew,
                                             virNetServerClientPrivPreExecRestart privPreExecRestart,
                                             virFreeCallback privFree,
@@ -76,10 +78,12 @@ void virNetServerClientRemoveFilter(virNetServerClientPtr client,
 int virNetServerClientGetAuth(virNetServerClientPtr client);
 bool virNetServerClientGetReadonly(virNetServerClientPtr client);
 
+# ifdef WITH_GNUTLS
 bool virNetServerClientHasTLSSession(virNetServerClientPtr client);
 int virNetServerClientGetTLSKeySize(virNetServerClientPtr client);
+# endif
 
-# ifdef HAVE_SASL
+# ifdef WITH_SASL
 void virNetServerClientSetSASLSession(virNetServerClientPtr client,
                                       virNetSASLSessionPtr sasl);
 # endif

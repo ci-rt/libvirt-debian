@@ -1,5 +1,5 @@
 # Customize Makefile.maint.                           -*- makefile -*-
-# Copyright (C) 2008-2012 Red Hat, Inc.
+# Copyright (C) 2008-2013 Red Hat, Inc.
 # Copyright (C) 2003-2008 Free Software Foundation, Inc.
 
 # This program is free software: you can redistribute it and/or modify
@@ -98,6 +98,7 @@ useless_free_options =				\
   --name=qemuMigrationCookieFree                \
   --name=qemuMigrationCookieGraphicsFree        \
   --name=sexpr_free				\
+  --name=usbFreeDevice                          \
   --name=virBandwidthDefFree			\
   --name=virBitmapFree                          \
   --name=virCPUDefFree				\
@@ -302,6 +303,7 @@ sc_flags_usage:
 	@test "$$(cat $(srcdir)/include/libvirt/libvirt.h.in		\
 	    $(srcdir)/include/libvirt/virterror.h			\
 	    $(srcdir)/include/libvirt/libvirt-qemu.h			\
+	    $(srcdir)/include/libvirt/libvirt-lxc.h			\
 	  | grep -c '\(long\|unsigned\) flags')" != 4 &&		\
 	  { echo '$(ME): new API should use "unsigned int flags"' 1>&2;	\
 	    exit 1; } || :
@@ -321,7 +323,7 @@ sc_prohibit_internal_functions:
 # Avoid raw malloc and free, except in documentation comments.
 sc_prohibit_raw_allocation:
 	@prohibit='^.[^*].*\<((m|c|re)alloc|free) *\([^)]'		\
-	halt='use VIR_ macros from memory.h instead of malloc/free'	\
+	halt='use VIR_ macros from viralloc.h instead of malloc/free'	\
 	  $(_sc_search_regexp)
 
 # Avoid functions that can lead to double-close bugs.
@@ -621,6 +623,23 @@ sc_preprocessor_indentation:
 	  echo '$(ME): skipping test $@: cppi not installed' 1>&2;	\
 	fi
 
+# Enforce similar spec file indentation style, by running cppi on a
+# (comment-only) C file that mirrors the same layout as the spec file.
+sc_spec_indentation:
+	@if cppi --version >/dev/null 2>&1; then			\
+	  for f in $$($(VC_LIST_EXCEPT) | grep '\.spec\.in$$'); do	\
+	    sed -e 's|#|// #|; s|%ifn*\(arch\)* |#if a // |'		\
+		-e 's/%\(else\|endif\|define\)/#\1/'			\
+		-e 's/^\( *\)\1\1\1#/#\1/'				\
+		-e 's|^\( *[^#/ ]\)|// \1|; s|^\( */[^/]\)|// \1|' $$f	\
+	    | cppi -a -c 2>&1 | sed "s|standard input|$$f|";		\
+	  done | { if grep . >&2; then false; else :; fi; }		\
+	    || { echo '$(ME): incorrect preprocessor indentation' 1>&2;	\
+		exit 1; };						\
+	else								\
+	  echo '$(ME): skipping test $@: cppi not installed' 1>&2;	\
+	fi
+
 sc_copyright_format:
 	@require='Copyright .*Red 'Hat', Inc\.'				\
 	containing='Copyright .*Red 'Hat				\
@@ -745,7 +764,7 @@ $(srcdir)/src/remote/remote_client_bodies.h: $(srcdir)/src/remote/remote_protoco
 # List all syntax-check exemptions:
 exclude_file_name_regexp--sc_avoid_strcase = ^tools/virsh\.h$$
 
-_src1=libvirt|fdstream|qemu/qemu_monitor|util/(command|util)|xen/xend_internal|rpc/virnetsocket|lxc/lxc_controller|locking/lock_daemon
+_src1=libvirt|fdstream|qemu/qemu_monitor|util/(vircommand|virutil)|xen/xend_internal|rpc/virnetsocket|lxc/lxc_controller|locking/lock_daemon
 exclude_file_name_regexp--sc_avoid_write = \
   ^(src/($(_src1))|daemon/libvirtd|tools/console|tests/(shunload|virnettlscontext)test)\.c$$
 
@@ -762,15 +781,15 @@ exclude_file_name_regexp--sc_libvirt_unmarked_diagnostics = \
 exclude_file_name_regexp--sc_po_check = ^(docs/|src/rpc/gendispatch\.pl$$)
 
 exclude_file_name_regexp--sc_prohibit_VIR_ERR_NO_MEMORY = \
-  ^(include/libvirt/virterror\.h|daemon/dispatch\.c|src/util/virterror\.c)$$
+  ^(include/libvirt/virterror\.h|daemon/dispatch\.c|src/util/virerror\.c)$$
 
-exclude_file_name_regexp--sc_prohibit_access_xok = ^src/util/util\.c$$
+exclude_file_name_regexp--sc_prohibit_access_xok = ^src/util/virutil\.c$$
 
 exclude_file_name_regexp--sc_prohibit_always_true_header_tests = \
-  ^python/(libvirt-(qemu-)?override|typewrappers)\.c$$
+  ^python/(libvirt-(lxc-|qemu-)?override|typewrappers)\.c$$
 
 exclude_file_name_regexp--sc_prohibit_asprintf = \
-  ^(bootstrap.conf$$|src/util/util\.c$$|examples/domain-events/events-c/event-test\.c$$)
+  ^(bootstrap.conf$$|src/util/virutil\.c$$|examples/domain-events/events-c/event-test\.c$$)
 
 exclude_file_name_regexp--sc_prohibit_close = \
   (\.p[yl]$$|^docs/|^(src/util/virfile\.c|src/libvirt\.c)$$)
@@ -778,14 +797,14 @@ exclude_file_name_regexp--sc_prohibit_close = \
 exclude_file_name_regexp--sc_prohibit_empty_lines_at_EOF = \
   (^tests/(qemuhelp|nodeinfo)data/|\.(gif|ico|png|diff)$$)
 
-_src2=src/(util/command|libvirt|lxc/lxc_controller|locking/lock_daemon)
+_src2=src/(util/vircommand|libvirt|lxc/lxc_controller|locking/lock_daemon)
 exclude_file_name_regexp--sc_prohibit_fork_wrappers = \
   (^($(_src2)|tests/testutils|daemon/libvirtd)\.c$$)
 
-exclude_file_name_regexp--sc_prohibit_gethostname = ^src/util/util\.c$$
+exclude_file_name_regexp--sc_prohibit_gethostname = ^src/util/virutil\.c$$
 
 exclude_file_name_regexp--sc_prohibit_internal_functions = \
-  ^src/(util/(memory|util|virfile)\.[hc]|esx/esx_vi\.c)$$
+  ^src/(util/(viralloc|virutil|virfile)\.[hc]|esx/esx_vi\.c)$$
 
 exclude_file_name_regexp--sc_prohibit_newline_at_end_of_diagnostic = \
   ^src/rpc/gendispatch\.pl$$
@@ -794,22 +813,22 @@ exclude_file_name_regexp--sc_prohibit_nonreentrant = \
   ^((po|tests)/|docs/.*py|run.in$$)
 
 exclude_file_name_regexp--sc_prohibit_raw_allocation = \
-  ^(src/util/memory\.[ch]|examples/.*)$$
+  ^(src/util/viralloc\.[ch]|examples/.*|tests/securityselinuxhelper.c)$$
 
 exclude_file_name_regexp--sc_prohibit_readlink = \
-  ^src/(util/util|lxc/lxc_container)\.c$$
+  ^src/(util/virutil|lxc/lxc_container)\.c$$
 
-exclude_file_name_regexp--sc_prohibit_setuid = ^src/util/util\.c$$
+exclude_file_name_regexp--sc_prohibit_setuid = ^src/util/virutil\.c$$
 
 exclude_file_name_regexp--sc_prohibit_sprintf = \
   ^(docs/hacking\.html\.in)|(examples/systemtap/.*stp)|(src/dtrace2systemtap\.pl)|(src/rpc/gensystemtap\.pl)$$
 
-exclude_file_name_regexp--sc_prohibit_strncpy = ^src/util/util\.c$$
+exclude_file_name_regexp--sc_prohibit_strncpy = ^src/util/virutil\.c$$
 
 exclude_file_name_regexp--sc_prohibit_strtol = \
-  ^src/(util/sexpr|(vbox|xen|xenxs)/.*)\.c$$
+  ^src/(util/virsexpr|(vbox|xen|xenxs)/.*)\.c$$
 
-exclude_file_name_regexp--sc_prohibit_xmlGetProp = ^src/util/xml\.c$$
+exclude_file_name_regexp--sc_prohibit_xmlGetProp = ^src/util/virxml\.c$$
 
 exclude_file_name_regexp--sc_prohibit_xmlURI = ^src/util/viruri\.c$$
 
@@ -821,7 +840,7 @@ exclude_file_name_regexp--sc_require_config_h = ^(examples/|tools/virsh-$(_virsh
 exclude_file_name_regexp--sc_require_config_h_first = ^(examples/|tools/virsh-$(_virsh_includes)\.c$$)
 
 exclude_file_name_regexp--sc_trailing_blank = \
-  (/qemuhelpdata/|\.(fig|gif|ico|png)$$)
+  (/qemuhelpdata/|/sysinfodata/.*\.data|\.(fig|gif|ico|png)$$)
 
 exclude_file_name_regexp--sc_unmarked_diagnostics = \
   ^(docs/apibuild.py|tests/virt-aa-helper-test)$$
@@ -830,3 +849,5 @@ exclude_file_name_regexp--sc_size_of_brackets = cfg.mk
 
 exclude_file_name_regexp--sc_correct_id_types = \
   (^src/locking/lock_protocol.x$$)
+
+exclude_file_name_regexp--sc_m4_quote_check = m4/virt-lib.m4

@@ -37,19 +37,19 @@
 #include <libxml/tree.h>
 #include <libxml/xpath.h>
 
-#if HAVE_LIBBLKID
+#if WITH_BLKID
 # include <blkid/blkid.h>
 #endif
 
-#include "virterror_internal.h"
+#include "virerror.h"
 #include "storage_backend_fs.h"
 #include "storage_conf.h"
-#include "storage_file.h"
-#include "command.h"
-#include "memory.h"
-#include "xml.h"
+#include "virstoragefile.h"
+#include "vircommand.h"
+#include "viralloc.h"
+#include "virxml.h"
 #include "virfile.h"
-#include "logging.h"
+#include "virlog.h"
 
 #define VIR_FROM_THIS VIR_FROM_STORAGE
 
@@ -540,7 +540,7 @@ virStorageBackendFileSystemStart(virConnectPtr conn ATTRIBUTE_UNUSED,
 }
 #endif /* WITH_STORAGE_FS */
 
-#if HAVE_LIBBLKID
+#if WITH_BLKID
 static virStoragePoolProbeResult
 virStorageBackendFileSystemProbe(const char *device,
                                  const char *format) {
@@ -611,7 +611,7 @@ error:
     return ret;
 }
 
-#else /* #if HAVE_LIBBLKID */
+#else /* #if WITH_BLKID */
 
 static virStoragePoolProbeResult
 virStorageBackendFileSystemProbe(const char *device ATTRIBUTE_UNUSED,
@@ -624,7 +624,7 @@ virStorageBackendFileSystemProbe(const char *device ATTRIBUTE_UNUSED,
     return FILESYSTEM_PROBE_ERROR;
 }
 
-#endif /* #if HAVE_LIBBLKID */
+#endif /* #if WITH_BLKID */
 
 /* some platforms don't support mkfs */
 #ifdef MKFS
@@ -648,6 +648,8 @@ virStorageBackendExecuteMKFS(const char *device,
                              format, device);
         ret = -1;
     }
+
+    virCommandFree(cmd);
     return ret;
 }
 #else /* #ifdef MKFS */

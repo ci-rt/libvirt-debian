@@ -1,7 +1,7 @@
 /*
  * network_conf.c: network XML handling
  *
- * Copyright (C) 2006-2012 Red Hat, Inc.
+ * Copyright (C) 2006-2013 Red Hat, Inc.
  * Copyright (C) 2006-2008 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -31,17 +31,17 @@
 #include <string.h>
 #include <dirent.h>
 
-#include "virterror_internal.h"
+#include "virerror.h"
 #include "datatypes.h"
 #include "network_conf.h"
 #include "netdev_vport_profile_conf.h"
 #include "netdev_bandwidth_conf.h"
 #include "netdev_vlan_conf.h"
-#include "memory.h"
-#include "xml.h"
-#include "uuid.h"
-#include "util.h"
-#include "buf.h"
+#include "viralloc.h"
+#include "virxml.h"
+#include "viruuid.h"
+#include "virutil.h"
+#include "virbuffer.h"
 #include "c-ctype.h"
 #include "virfile.h"
 
@@ -235,6 +235,7 @@ void virNetworkObjFree(virNetworkObjPtr net)
 
     virNetworkDefFree(net->def);
     virNetworkDefFree(net->newDef);
+    virBitmapFree(net->class_id);
 
     virMutexDestroy(&net->lock);
 
@@ -1855,7 +1856,7 @@ virNetworkObjUpdateParseFile(const char *filename,
         ctxt->node = node;
         class_id = virXPathString("string(./class_id[1]/@bitmap)", ctxt);
         if (class_id &&
-            virBitmapParse(class_id, ',',
+            virBitmapParse(class_id, 0,
                            &net->class_id, CLASS_ID_BITMAP_SIZE) < 0) {
             virReportError(VIR_ERR_INTERNAL_ERROR,
                            _("Malformed 'class_id' attribute: %s"),
@@ -3133,12 +3134,12 @@ virNetworkDefUpdateDNSHost(virNetworkDefPtr def,
                            /* virNetworkUpdateFlags */
                            unsigned int fflags ATTRIBUTE_UNUSED)
 {
-    int ii, jj, kk, foundIdx, ret = -1;
+    int ii, jj, kk, foundIdx = -1, ret = -1;
     virNetworkDNSDefPtr dns = &def->dns;
     virNetworkDNSHostDef host;
     bool isAdd = (command == VIR_NETWORK_UPDATE_COMMAND_ADD_FIRST ||
                   command == VIR_NETWORK_UPDATE_COMMAND_ADD_LAST);
-    bool foundCt = 0;
+    int foundCt = 0;
 
     memset(&host, 0, sizeof(host));
 
@@ -3229,12 +3230,12 @@ virNetworkDefUpdateDNSSrv(virNetworkDefPtr def,
                           /* virNetworkUpdateFlags */
                           unsigned int fflags ATTRIBUTE_UNUSED)
 {
-    int ii, foundIdx, ret = -1;
+    int ii, foundIdx = -1, ret = -1;
     virNetworkDNSDefPtr dns = &def->dns;
     virNetworkDNSSrvDef srv;
     bool isAdd = (command == VIR_NETWORK_UPDATE_COMMAND_ADD_FIRST ||
                   command == VIR_NETWORK_UPDATE_COMMAND_ADD_LAST);
-    bool foundCt = 0;
+    int foundCt = 0;
 
     memset(&srv, 0, sizeof(srv));
 

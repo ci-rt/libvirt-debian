@@ -28,10 +28,10 @@
 #include <netdb.h>
 
 #include "testutils.h"
-#include "util.h"
-#include "virterror_internal.h"
-#include "memory.h"
-#include "logging.h"
+#include "virutil.h"
+#include "virerror.h"
+#include "viralloc.h"
+#include "virlog.h"
 #include "virfile.h"
 
 #include "rpc/virnetsocket.h"
@@ -207,7 +207,7 @@ static int testSocketUNIXAccept(const void *data ATTRIBUTE_UNUSED)
     virNetSocketPtr csock = NULL; /* Client socket */
     int ret = -1;
 
-    char *path;
+    char *path = NULL;
     char *tmpdir;
     char template[] = "/tmp/libvirt_XXXXXX";
 
@@ -257,7 +257,7 @@ static int testSocketUNIXAddrs(const void *data ATTRIBUTE_UNUSED)
     virNetSocketPtr csock = NULL; /* Client socket */
     int ret = -1;
 
-    char *path;
+    char *path = NULL;
     char *tmpdir;
     char template[] = "/tmp/libvirt_XXXXXX";
 

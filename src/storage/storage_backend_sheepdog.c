@@ -26,13 +26,13 @@
 
 #include <config.h>
 
-#include "virterror_internal.h"
+#include "virerror.h"
 #include "storage_backend_sheepdog.h"
 #include "storage_conf.h"
-#include "util/command.h"
-#include "util.h"
-#include "memory.h"
-#include "logging.h"
+#include "vircommand.h"
+#include "virutil.h"
+#include "viralloc.h"
+#include "virlog.h"
 
 #define VIR_FROM_THIS VIR_FROM_STORAGE
 

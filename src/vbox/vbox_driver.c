@@ -34,11 +34,11 @@
 #include "internal.h"
 
 #include "datatypes.h"
-#include "logging.h"
+#include "virlog.h"
 #include "vbox_driver.h"
 #include "vbox_glue.h"
-#include "virterror_internal.h"
-#include "util.h"
+#include "virerror.h"
+#include "virutil.h"
 
 #define VIR_FROM_THIS VIR_FROM_VBOX
 

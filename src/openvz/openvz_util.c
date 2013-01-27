@@ -25,10 +25,10 @@
 
 #include "internal.h"
 
-#include "virterror_internal.h"
-#include "command.h"
+#include "virerror.h"
+#include "vircommand.h"
 #include "datatypes.h"
-#include "memory.h"
+#include "viralloc.h"
 
 #include "openvz_conf.h"
 #include "openvz_util.h"

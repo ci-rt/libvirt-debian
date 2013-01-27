@@ -40,18 +40,18 @@
 #include <locale.h>
 
 #include "internal.h"
-#include "buf.h"
-#include "util.h"
-#include "memory.h"
-#include "command.h"
+#include "virbuffer.h"
+#include "virutil.h"
+#include "viralloc.h"
+#include "vircommand.h"
 
 #include "security_driver.h"
 #include "security_apparmor.h"
 #include "domain_conf.h"
-#include "xml.h"
-#include "uuid.h"
-#include "hostusb.h"
-#include "pci.h"
+#include "virxml.h"
+#include "viruuid.h"
+#include "virusb.h"
+#include "virpci.h"
 #include "virfile.h"
 #include "configmake.h"
 #include "virrandom.h"
@@ -72,8 +72,7 @@ typedef struct {
     virDomainDefPtr def;        /* VM definition */
     virCapsPtr caps;            /* VM capabilities */
     char *hvm;                  /* type of hypervisor (eg hvm, xen) */
-    char *arch;                 /* machine architecture */
-    int bits;                   /* bits in the guest */
+    virArch arch;               /* machine architecture */
     char *newfile;              /* newly added file */
     bool append;                /* append to .files instead of rewrite */
 } vahControl;
@@ -88,7 +87,6 @@ vahDeinit(vahControl * ctl)
     virCapabilitiesFree(ctl->caps);
     VIR_FREE(ctl->files);
     VIR_FREE(ctl->hvm);
-    VIR_FREE(ctl->arch);
     VIR_FREE(ctl->newfile);
 
     return 0;
@@ -640,7 +638,6 @@ verify_xpath_context(xmlXPathContextPtr ctxt)
  * Parse the xml we received to fill in the following:
  * ctl->hvm
  * ctl->arch
- * ctl->bits
  *
  * These are suitable for setting up a virCapsPtr
  */
@@ -650,6 +647,7 @@ caps_mockup(vahControl * ctl, const char *xmlStr)
     int rc = -1;
     xmlDocPtr xml = NULL;
     xmlXPathContextPtr ctxt = NULL;
+    char *arch;
 
     if (!(xml = virXMLParseStringCtxt(xmlStr, _("(domain_definition)"),
                                       &ctxt))) {
@@ -670,24 +668,13 @@ caps_mockup(vahControl * ctl, const char *xmlStr)
         vah_error(ctl, 0, _("os.type is not 'hvm'"));
         goto cleanup;
     }
-    ctl->arch = virXPathString("string(./os/type[1]/@arch)", ctxt);
-    if (!ctl->arch) {
-        /* The XML we are given should have an arch, but in case it doesn't,
-         * just use the host's arch.
-         */
-        struct utsname utsname;
-
-        /* Really, this never fails - look at the man-page. */
-        uname(&utsname);
-        if ((ctl->arch = strdup(utsname.machine)) == NULL) {
-            vah_error(ctl, 0, _("could not allocate memory"));
-            goto cleanup;
-        }
+    arch = virXPathString("string(./os/type[1]/@arch)", ctxt);
+    if (!arch) {
+        ctl->arch = virArchFromHost();
+    } else {
+        ctl->arch = virArchFromString(arch);
+        VIR_FREE(arch);
     }
-    if (STREQ(ctl->arch, "x86_64"))
-        ctl->bits = 64;
-    else
-        ctl->bits = 32;
 
     rc = 0;
 
@@ -699,7 +686,7 @@ caps_mockup(vahControl * ctl, const char *xmlStr)
 }
 
 static int aaDefaultConsoleType(const char *ostype ATTRIBUTE_UNUSED,
-                                const char *arch ATTRIBUTE_UNUSED)
+                                virArch arch ATTRIBUTE_UNUSED)
 {
     return VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_SERIAL;
 }
@@ -727,7 +714,6 @@ get_definition(vahControl * ctl, const char *xmlStr)
     if ((guest = virCapabilitiesAddGuest(ctl->caps,
                                          ctl->hvm,
                                          ctl->arch,
-                                         ctl->bits,
                                          NULL,
                                          NULL,
                                          0,
@@ -1022,7 +1008,8 @@ get_files(vahControl * ctl)
             switch (dev->source.subsys.type) {
             case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_USB: {
                 usbDevice *usb = usbGetDevice(dev->source.subsys.u.usb.bus,
-                                              dev->source.subsys.u.usb.device);
+                                              dev->source.subsys.u.usb.device,
+                                              NULL);
 
                 if (usb == NULL)
                     continue;

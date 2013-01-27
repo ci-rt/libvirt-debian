@@ -22,9 +22,9 @@
 
 #include <config.h>
 
-#include "virterror_internal.h"
+#include "virerror.h"
 
-#if HAVE_POLKIT0
+#if WITH_POLKIT0
 # include <polkit/polkit.h>
 # include <polkit-dbus/polkit-dbus.h>
 #endif
@@ -33,13 +33,14 @@
 #include "libvirtd.h"
 #include "libvirt_internal.h"
 #include "datatypes.h"
-#include "memory.h"
-#include "logging.h"
-#include "util.h"
+#include "viralloc.h"
+#include "virlog.h"
+#include "virutil.h"
 #include "stream.h"
-#include "uuid.h"
+#include "viruuid.h"
 #include "libvirt/libvirt-qemu.h"
-#include "command.h"
+#include "libvirt/libvirt-lxc.h"
+#include "vircommand.h"
 #include "intprops.h"
 #include "virnetserverservice.h"
 #include "virnetserver.h"
@@ -49,6 +50,7 @@
 #include "virprocess.h"
 #include "remote_protocol.h"
 #include "qemu_protocol.h"
+#include "lxc_protocol.h"
 
 
 #define VIR_FROM_THIS VIR_FROM_RPC
@@ -104,6 +106,7 @@ remoteSerializeDomainDiskErrors(virDomainDiskErrorPtr errors,
 
 #include "remote_dispatch.h"
 #include "qemu_dispatch.h"
+#include "lxc_dispatch.h"
 
 
 /* Prototypes */
@@ -984,8 +987,8 @@ remoteDeserializeTypedParameters(remote_typed_param *args_params_val,
 
 cleanup:
     if (rv < 0) {
-        virTypedParameterArrayClear(params, i);
-        VIR_FREE(params);
+        virTypedParamsFree(params, i);
+        params = NULL;
     }
     return params;
 }
@@ -1034,8 +1037,7 @@ remoteDispatchDomainGetSchedulerParameters(virNetServerPtr server ATTRIBUTE_UNUS
 cleanup:
     if (rv < 0)
         virNetMessageSaveError(rerr);
-    virTypedParameterArrayClear(params, nparams);
-    VIR_FREE(params);
+    virTypedParamsFree(params, nparams);
     if (dom)
         virDomainFree(dom);
     return rv;
@@ -1144,8 +1146,7 @@ remoteDispatchDomainGetSchedulerParametersFlags(virNetServerPtr server ATTRIBUTE
 cleanup:
     if (rv < 0)
         virNetMessageSaveError(rerr);
-    virTypedParameterArrayClear(params, nparams);
-    VIR_FREE(params);
+    virTypedParamsFree(params, nparams);
     if (dom)
         virDomainFree(dom);
     return rv;
@@ -1333,8 +1334,7 @@ success:
 cleanup:
     if (rv < 0)
         virNetMessageSaveError(rerr);
-    virTypedParameterArrayClear(params, nparams);
-    VIR_FREE(params);
+    virTypedParamsFree(params, nparams);
     if (dom)
         virDomainFree(dom);
     return rv;
@@ -1963,8 +1963,7 @@ success:
 cleanup:
     if (rv < 0)
         virNetMessageSaveError(rerr);
-    virTypedParameterArrayClear(params, nparams);
-    VIR_FREE(params);
+    virTypedParamsFree(params, nparams);
     if (dom)
         virDomainFree(dom);
     return rv;
@@ -2028,8 +2027,7 @@ success:
 cleanup:
     if (rv < 0)
         virNetMessageSaveError(rerr);
-    virTypedParameterArrayClear(params, nparams);
-    VIR_FREE(params);
+    virTypedParamsFree(params, nparams);
     if (dom)
         virDomainFree(dom);
     return rv;
@@ -2093,8 +2091,7 @@ success:
 cleanup:
     if (rv < 0)
         virNetMessageSaveError(rerr);
-    virTypedParameterArrayClear(params, nparams);
-    VIR_FREE(params);
+    virTypedParamsFree(params, nparams);
     if (dom)
         virDomainFree(dom);
     return rv;
@@ -2355,8 +2352,7 @@ success:
 cleanup:
     if (rv < 0)
         virNetMessageSaveError(rerr);
-    virTypedParameterArrayClear(params, nparams);
-    VIR_FREE(params);
+    virTypedParamsFree(params, nparams);
     if (dom)
         virDomainFree(dom);
     return rv;
@@ -2432,7 +2428,7 @@ cleanup:
 }
 
 
-#ifdef HAVE_SASL
+#ifdef WITH_SASL
 /*
  * Initializes the SASL session in prepare for authentication
  * and gives the client a list of allowed mechanisms to choose
@@ -2464,6 +2460,7 @@ remoteDispatchAuthSaslInit(virNetServerPtr server ATTRIBUTE_UNUSED,
     if (!sasl)
         goto authfail;
 
+# if WITH_GNUTLS
     /* Inform SASL that we've got an external SSF layer from TLS */
     if (virNetServerClientHasTLSSession(client)) {
         int ssf;
@@ -2477,6 +2474,7 @@ remoteDispatchAuthSaslInit(virNetServerPtr server ATTRIBUTE_UNUSED,
         if (virNetSASLSessionExtKeySize(sasl, ssf) < 0)
             goto authfail;
     }
+# endif
 
     if (virNetServerClientIsSecure(client))
         /* If we've got TLS or UNIX domain sock, we don't care about SSF */
@@ -2800,7 +2798,7 @@ remoteDispatchAuthSaslStep(virNetServerPtr server ATTRIBUTE_UNUSED,
 
 
 
-#if HAVE_POLKIT1
+#if WITH_POLKIT1
 static int
 remoteDispatchAuthPolkit(virNetServerPtr server ATTRIBUTE_UNUSED,
                          virNetServerClientPtr client,
@@ -2887,9 +2885,10 @@ error:
     if (authdismissed) {
         virReportError(VIR_ERR_AUTH_CANCELLED, "%s",
                        _("authentication cancelled by user"));
+    } else if (pkout && *pkout) {
+        virReportError(VIR_ERR_AUTH_FAILED, _("polkit: %s"), pkout);
     } else {
-        virReportError(VIR_ERR_AUTH_FAILED, "%s",
-                       pkout && *pkout ? pkout : _("authentication failed"));
+        virReportError(VIR_ERR_AUTH_FAILED, "%s", _("authentication failed"));
     }
 
     VIR_FREE(pkout);
@@ -2909,7 +2908,7 @@ authdeny:
           client, REMOTE_AUTH_POLKIT, ident);
     goto error;
 }
-#elif HAVE_POLKIT0
+#elif WITH_POLKIT0
 static int
 remoteDispatchAuthPolkit(virNetServerPtr server ATTRIBUTE_UNUSED,
                          virNetServerClientPtr client,
@@ -3053,7 +3052,7 @@ authdeny:
     goto error;
 }
 
-#else /* !HAVE_POLKIT0 & !HAVE_POLKIT1*/
+#else /* !WITH_POLKIT0 & !HAVE_POLKIT1*/
 
 static int
 remoteDispatchAuthPolkit(virNetServerPtr server ATTRIBUTE_UNUSED,
@@ -3068,7 +3067,7 @@ remoteDispatchAuthPolkit(virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetMessageSaveError(rerr);
     return -1;
 }
-#endif /* HAVE_POLKIT1 */
+#endif /* WITH_POLKIT1 */
 
 
 /***************************************************************
@@ -3856,8 +3855,7 @@ success:
 cleanup:
     if (rv < 0)
         virNetMessageSaveError(rerr);
-    virTypedParameterArrayClear(params, nparams);
-    VIR_FREE(params);
+    virTypedParamsFree(params, nparams);
     if (dom)
         virDomainFree(dom);
     return rv;
@@ -3931,8 +3929,7 @@ success:
 cleanup:
     if (rv < 0)
          virNetMessageSaveError(rerr);
-    virTypedParameterArrayClear(params, args->ncpus * args->nparams);
-    VIR_FREE(params);
+    virTypedParamsFree(params, args->ncpus * args->nparams);
     if (dom)
         virDomainFree(dom);
     return rv;
@@ -4564,8 +4561,7 @@ success:
 cleanup:
     if (rv < 0)
         virNetMessageSaveError(rerr);
-    virTypedParameterArrayClear(params, nparams);
-    VIR_FREE(params);
+    virTypedParamsFree(params, nparams);
     return rv;
 }
 
@@ -4613,6 +4609,56 @@ cleanup:
     if (rv < 0)
         virNetMessageSaveError(rerr);
     VIR_FREE(cpumap);
+    return rv;
+}
+
+static int
+lxcDispatchDomainOpenNamespace(virNetServerPtr server ATTRIBUTE_UNUSED,
+                               virNetServerClientPtr client ATTRIBUTE_UNUSED,
+                               virNetMessagePtr msg ATTRIBUTE_UNUSED,
+                               virNetMessageErrorPtr rerr,
+                               lxc_domain_open_namespace_args *args)
+{
+    int rv = -1;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+    int *fdlist = NULL;
+    int ret;
+    virDomainPtr dom = NULL;
+    size_t i;
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (!(dom = get_nonnull_domain(priv->conn, args->dom)))
+        goto cleanup;
+
+    ret = virDomainLxcOpenNamespace(dom,
+                                    &fdlist,
+                                    args->flags);
+    if (ret < 0)
+        goto cleanup;
+
+    /* We shouldn't have received any from the client,
+     * but in case they're playing games with us, prevent
+     * a resource leak
+     */
+    for (i = 0 ; i < msg->nfds ; i++)
+        VIR_FORCE_CLOSE(msg->fds[i]);
+    VIR_FREE(msg->fds);
+    msg->nfds = 0;
+
+    msg->fds = fdlist;
+    msg->nfds = ret;
+
+    rv = 1;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    virDomainFree(dom);
     return rv;
 }
 

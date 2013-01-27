@@ -27,11 +27,11 @@
 #include <libxml/parser.h>
 #include <libxml/xpathInternals.h>
 
-#include "buf.h"
+#include "virbuffer.h"
 #include "datatypes.h"
-#include "memory.h"
-#include "logging.h"
-#include "util.h"
+#include "viralloc.h"
+#include "virlog.h"
+#include "virutil.h"
 #include "esx_vi.h"
 #include "esx_vi_types.h"
 

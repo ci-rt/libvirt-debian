@@ -25,11 +25,11 @@
 #include <stdlib.h>
 
 #include "virauth.h"
-#include "util.h"
-#include "memory.h"
-#include "logging.h"
+#include "virutil.h"
+#include "viralloc.h"
+#include "virlog.h"
 #include "datatypes.h"
-#include "virterror_internal.h"
+#include "virerror.h"
 #include "configmake.h"
 #include "virauthconfig.h"
 

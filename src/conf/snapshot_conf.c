@@ -29,24 +29,24 @@
 #include <unistd.h>
 
 #include "internal.h"
-#include "bitmap.h"
-#include "buf.h"
+#include "virbitmap.h"
+#include "virbuffer.h"
 #include "count-one-bits.h"
 #include "datatypes.h"
 #include "domain_conf.h"
-#include "logging.h"
-#include "memory.h"
+#include "virlog.h"
+#include "viralloc.h"
 #include "netdev_bandwidth_conf.h"
 #include "netdev_vport_profile_conf.h"
 #include "nwfilter_conf.h"
 #include "secret_conf.h"
 #include "snapshot_conf.h"
-#include "storage_file.h"
-#include "util.h"
-#include "uuid.h"
+#include "virstoragefile.h"
+#include "virutil.h"
+#include "viruuid.h"
 #include "virfile.h"
-#include "virterror_internal.h"
-#include "xml.h"
+#include "virerror.h"
+#include "virxml.h"
 
 #define VIR_FROM_THIS VIR_FROM_DOMAIN_SNAPSHOT
 
@@ -1058,17 +1058,23 @@ cleanup:
 
 
 bool
-virDomainSnapshotIsExternal(virDomainSnapshotObjPtr snap)
+virDomainSnapshotDefIsExternal(virDomainSnapshotDefPtr def)
 {
     int i;
 
-    if (snap->def->memory == VIR_DOMAIN_SNAPSHOT_LOCATION_EXTERNAL)
+    if (def->memory == VIR_DOMAIN_SNAPSHOT_LOCATION_EXTERNAL)
         return true;
 
-    for (i = 0; i < snap->def->ndisks; i++) {
-        if (snap->def->disks[i].snapshot == VIR_DOMAIN_SNAPSHOT_LOCATION_EXTERNAL)
+    for (i = 0; i < def->ndisks; i++) {
+        if (def->disks[i].snapshot == VIR_DOMAIN_SNAPSHOT_LOCATION_EXTERNAL)
             return true;
     }
 
     return false;
+}
+
+bool
+virDomainSnapshotIsExternal(virDomainSnapshotObjPtr snap)
+{
+    return virDomainSnapshotDefIsExternal(snap->def);
 }

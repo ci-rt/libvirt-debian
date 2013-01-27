@@ -25,12 +25,12 @@
 
 #include <netcf.h>
 
-#include "virterror_internal.h"
+#include "virerror.h"
 #include "datatypes.h"
 #include "interface_driver.h"
 #include "interface_conf.h"
-#include "memory.h"
-#include "logging.h"
+#include "viralloc.h"
+#include "virlog.h"
 
 #define VIR_FROM_THIS VIR_FROM_INTERFACE
 
@@ -399,6 +399,7 @@ cleanup:
             if (tmp_iface_objs[i])
                 virInterfaceFree(tmp_iface_objs[i]);
         }
+        VIR_FREE(tmp_iface_objs);
     }
 
     interfaceDriverUnlock(driver);

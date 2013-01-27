@@ -12,7 +12,7 @@
 
 # include "internal.h"
 # include "testutils.h"
-# include "util/memory.h"
+# include "viralloc.h"
 # include "qemu/qemu_capabilities.h"
 # include "qemu/qemu_command.h"
 # include "qemu/qemu_domain.h"
@@ -91,7 +91,6 @@ static int testCompareXMLToArgvFiles(const char *xml,
     virDomainChrSourceDef monitor_chr;
     virConnectPtr conn;
     char *log = NULL;
-    char *emulator = NULL;
     virCommandPtr cmd = NULL;
 
     if (!(conn = virGetConnect()))
@@ -141,8 +140,8 @@ static int testCompareXMLToArgvFiles(const char *xml,
     VIR_FREE(log);
     virResetLastError();
 
-    if (STREQLEN(vmdef->os.arch, "x86_64", 6) ||
-        STREQLEN(vmdef->os.arch, "i686", 4)) {
+    if (vmdef->os.arch == VIR_ARCH_X86_64 ||
+        vmdef->os.arch == VIR_ARCH_I686) {
         qemuCapsSet(extraFlags, QEMU_CAPS_PCI_MULTIBUS);
     }
 
@@ -173,15 +172,6 @@ static int testCompareXMLToArgvFiles(const char *xml,
     if (!(actualargv = virCommandToString(cmd)))
         goto out;
 
-    if (emulator) {
-        /* Skip the abs_srcdir portion of replacement emulator.  */
-        char *start_skip = strstr(actualargv, abs_srcdir);
-        char *end_skip = strstr(actualargv, emulator);
-        if (!start_skip || !end_skip)
-            goto out;
-        memmove(start_skip, end_skip, strlen(end_skip) + 1);
-    }
-
     len = virtTestLoadFile(cmdline, &expectargv);
     if (len < 0)
         goto out;
@@ -203,7 +193,6 @@ static int testCompareXMLToArgvFiles(const char *xml,
 
 out:
     VIR_FREE(log);
-    VIR_FREE(emulator);
     VIR_FREE(expectargv);
     VIR_FREE(actualargv);
     virCommandFree(cmd);
@@ -574,7 +563,8 @@ mymain(void)
             QEMU_CAPS_VGA, QEMU_CAPS_VGA_NONE);
     DO_TEST("graphics-spice",
             QEMU_CAPS_VGA, QEMU_CAPS_VGA_QXL,
-            QEMU_CAPS_DEVICE, QEMU_CAPS_SPICE);
+            QEMU_CAPS_DEVICE, QEMU_CAPS_SPICE,
+            QEMU_CAPS_DEVICE_QXL);
     DO_TEST("graphics-spice-agentmouse",
             QEMU_CAPS_VGA, QEMU_CAPS_VGA_QXL,
             QEMU_CAPS_DEVICE, QEMU_CAPS_SPICE,
@@ -582,7 +572,8 @@ mymain(void)
             QEMU_CAPS_NODEFCONFIG);
     DO_TEST("graphics-spice-compression",
             QEMU_CAPS_VGA, QEMU_CAPS_VGA_QXL,
-            QEMU_CAPS_DEVICE, QEMU_CAPS_SPICE);
+            QEMU_CAPS_DEVICE, QEMU_CAPS_SPICE,
+            QEMU_CAPS_DEVICE_QXL);
     DO_TEST("graphics-spice-timeout",
             QEMU_CAPS_DRIVE,
             QEMU_CAPS_VGA, QEMU_CAPS_VGA_QXL,
@@ -591,7 +582,8 @@ mymain(void)
     DO_TEST("graphics-spice-qxl-vga",
             QEMU_CAPS_VGA, QEMU_CAPS_VGA_QXL,
             QEMU_CAPS_DEVICE, QEMU_CAPS_SPICE,
-            QEMU_CAPS_DEVICE_QXL_VGA);
+            QEMU_CAPS_DEVICE_QXL_VGA,
+            QEMU_CAPS_DEVICE_QXL);
     DO_TEST("graphics-spice-usb-redir",
             QEMU_CAPS_VGA, QEMU_CAPS_SPICE,
             QEMU_CAPS_CHARDEV, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG,
@@ -677,6 +669,9 @@ mymain(void)
     DO_TEST("console-virtio-s390",
             QEMU_CAPS_DEVICE, QEMU_CAPS_CHARDEV, QEMU_CAPS_NODEFCONFIG,
             QEMU_CAPS_DRIVE,  QEMU_CAPS_VIRTIO_S390);
+    DO_TEST("console-sclp",
+            QEMU_CAPS_DEVICE, QEMU_CAPS_CHARDEV, QEMU_CAPS_NODEFCONFIG,
+            QEMU_CAPS_DRIVE, QEMU_CAPS_VIRTIO_S390, QEMU_CAPS_SCLP_S390);
     DO_TEST("channel-spicevmc",
             QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG,
             QEMU_CAPS_SPICE, QEMU_CAPS_CHARDEV_SPICEVMC);
@@ -865,6 +860,11 @@ mymain(void)
     DO_TEST("disk-blockio",
             QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG,
             QEMU_CAPS_IDE_CD, QEMU_CAPS_BLOCKIO);
+
+    DO_TEST("video-device-pciaddr-default",
+            QEMU_CAPS_KVM, QEMU_CAPS_VNC,
+            QEMU_CAPS_DEVICE, QEMU_CAPS_DEVICE_VIDEO_PRIMARY,
+            QEMU_CAPS_DEVICE_QXL, QEMU_CAPS_DEVICE_QXL_VGA);
 
     VIR_FREE(driver.stateDir);
     virCapabilitiesFree(driver.caps);

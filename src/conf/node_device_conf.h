@@ -26,8 +26,8 @@
 # define __VIR_NODE_DEVICE_CONF_H__
 
 # include "internal.h"
-# include "util.h"
-# include "threads.h"
+# include "virutil.h"
+# include "virthread.h"
 
 # include <libxml/tree.h>
 

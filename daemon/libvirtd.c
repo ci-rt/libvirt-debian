@@ -33,7 +33,7 @@
 #include <locale.h>
 
 #include "libvirt_internal.h"
-#include "virterror_internal.h"
+#include "virerror.h"
 #include "virfile.h"
 #include "virpidfile.h"
 #include "virprocess.h"
@@ -43,18 +43,16 @@
 #include "libvirtd.h"
 #include "libvirtd-config.h"
 
-#include "util.h"
-#include "uuid.h"
+#include "virutil.h"
+#include "viruuid.h"
 #include "remote_driver.h"
-#include "memory.h"
-#include "conf.h"
+#include "viralloc.h"
+#include "virconf.h"
 #include "virnetlink.h"
 #include "virnetserver.h"
-#include "threads.h"
 #include "remote.h"
 #include "remote_driver.h"
-#include "hooks.h"
-#include "uuid.h"
+#include "virhook.h"
 #include "viraudit.h"
 #include "locking/lock_manager.h"
 
@@ -100,11 +98,12 @@
 
 #include "virdbus.h"
 
-#if HAVE_SASL
+#if WITH_SASL
 virNetSASLContextPtr saslCtxt = NULL;
 #endif
 virNetServerProgramPtr remoteProgram = NULL;
 virNetServerProgramPtr qemuProgram = NULL;
+virNetServerProgramPtr lxcProgram = NULL;
 
 enum {
     VIR_DAEMON_ERR_NONE = 0,
@@ -451,7 +450,9 @@ static int daemonSetupNetworking(virNetServerPtr srv,
     virNetServerServicePtr svc = NULL;
     virNetServerServicePtr svcRO = NULL;
     virNetServerServicePtr svcTCP = NULL;
+#if WITH_GNUTLS
     virNetServerServicePtr svcTLS = NULL;
+#endif
     gid_t unix_sock_gid = 0;
     int unix_sock_ro_mask = 0;
     int unix_sock_rw_mask = 0;
@@ -476,9 +477,11 @@ static int daemonSetupNetworking(virNetServerPtr srv,
                                            unix_sock_rw_mask,
                                            unix_sock_gid,
                                            config->auth_unix_rw,
+#if WITH_GNUTLS
+                                           NULL,
+#endif
                                            false,
-                                           config->max_client_requests,
-                                           NULL)))
+                                           config->max_client_requests)))
         goto error;
     if (sock_path_ro) {
         VIR_DEBUG("Registering unix socket %s", sock_path_ro);
@@ -486,9 +489,11 @@ static int daemonSetupNetworking(virNetServerPtr srv,
                                                  unix_sock_ro_mask,
                                                  unix_sock_gid,
                                                  config->auth_unix_ro,
+#if WITH_GNUTLS
+                                                 NULL,
+#endif
                                                  true,
-                                                 config->max_client_requests,
-                                                 NULL)))
+                                                 config->max_client_requests)))
             goto error;
     }
 
@@ -509,9 +514,11 @@ static int daemonSetupNetworking(virNetServerPtr srv,
             if (!(svcTCP = virNetServerServiceNewTCP(config->listen_addr,
                                                      config->tcp_port,
                                                      config->auth_tcp,
+#if WITH_GNUTLS
+                                                     NULL,
+#endif
                                                      false,
-                                                     config->max_client_requests,
-                                                     NULL)))
+                                                     config->max_client_requests)))
                 goto error;
 
             if (virNetServerAddService(srv, svcTCP,
@@ -519,6 +526,7 @@ static int daemonSetupNetworking(virNetServerPtr srv,
                 goto error;
         }
 
+#if WITH_GNUTLS
         if (config->listen_tls) {
             virNetTLSContextPtr ctxt = NULL;
 
@@ -548,9 +556,9 @@ static int daemonSetupNetworking(virNetServerPtr srv,
                   virNetServerServiceNewTCP(config->listen_addr,
                                             config->tls_port,
                                             config->auth_tls,
+                                            ctxt,
                                             false,
-                                            config->max_client_requests,
-                                            ctxt))) {
+                                            config->max_client_requests))) {
                 virObjectUnref(ctxt);
                 goto error;
             }
@@ -561,13 +569,23 @@ static int daemonSetupNetworking(virNetServerPtr srv,
 
             virObjectUnref(ctxt);
         }
+#else
+        (void)privileged;
+        if (config->listen_tls) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("This libvirtd build does not support TLS"));
+            goto error;
+        }
+#endif
     }
 
-#if HAVE_SASL
+#if WITH_SASL
     if (config->auth_unix_rw == REMOTE_AUTH_SASL ||
         config->auth_unix_ro == REMOTE_AUTH_SASL ||
-        config->auth_tcp == REMOTE_AUTH_SASL ||
-        config->auth_tls == REMOTE_AUTH_SASL) {
+# if WITH_GNUTLS
+        config->auth_tls == REMOTE_AUTH_SASL ||
+# endif
+        config->auth_tcp == REMOTE_AUTH_SASL) {
         saslCtxt = virNetSASLContextNewServer(
             (const char *const*)config->sasl_allowed_username_list);
         if (!saslCtxt)
@@ -578,7 +596,9 @@ static int daemonSetupNetworking(virNetServerPtr srv,
     return 0;
 
 error:
+#if WITH_GNUTLS
     virObjectUnref(svcTLS);
+#endif
     virObjectUnref(svcTCP);
     virObjectUnref(svc);
     virObjectUnref(svcRO);
@@ -1351,6 +1371,18 @@ int main(int argc, char **argv) {
         goto cleanup;
     }
 
+    if (!(lxcProgram = virNetServerProgramNew(LXC_PROGRAM,
+                                              LXC_PROTOCOL_VERSION,
+                                              lxcProcs,
+                                              lxcNProcs))) {
+        ret = VIR_DAEMON_ERR_INIT;
+        goto cleanup;
+    }
+    if (virNetServerAddProgram(srv, lxcProgram) < 0) {
+        ret = VIR_DAEMON_ERR_INIT;
+        goto cleanup;
+    }
+
     if (!(qemuProgram = virNetServerProgramNew(QEMU_PROGRAM,
                                                QEMU_PROTOCOL_VERSION,
                                                qemuProcs,
@@ -1456,6 +1488,7 @@ int main(int argc, char **argv) {
 cleanup:
     virNetlinkEventServiceStopAll();
     virObjectUnref(remoteProgram);
+    virObjectUnref(lxcProgram);
     virObjectUnref(qemuProgram);
     virNetServerClose(srv);
     virObjectUnref(srv);
@@ -1480,6 +1513,8 @@ cleanup:
     VIR_FREE(run_dir);
 
     daemonConfigFree(config);
+
+    virStateCleanup();
 
     return ret;
 }

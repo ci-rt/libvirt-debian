@@ -33,11 +33,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "util.h"
-#include "threads.h"
+#include "virutil.h"
+#include "virthread.h"
 #include "virfile.h"
-#include "memory.h"
-#include "virterror_internal.h"
+#include "viralloc.h"
+#include "virerror.h"
 #include "configmake.h"
 #include "virrandom.h"
 

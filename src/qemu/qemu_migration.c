@@ -23,8 +23,10 @@
 #include <config.h>
 
 #include <sys/time.h>
-#include <gnutls/gnutls.h>
-#include <gnutls/x509.h>
+#ifdef WITH_GNUTLS
+# include <gnutls/gnutls.h>
+# include <gnutls/x509.h>
+#endif
 #include <fcntl.h>
 #include <poll.h>
 
@@ -36,20 +38,20 @@
 #include "qemu_cgroup.h"
 
 #include "domain_audit.h"
-#include "logging.h"
-#include "virterror_internal.h"
-#include "memory.h"
-#include "util.h"
+#include "virlog.h"
+#include "virerror.h"
+#include "viralloc.h"
+#include "virutil.h"
 #include "virfile.h"
 #include "datatypes.h"
 #include "fdstream.h"
-#include "uuid.h"
+#include "viruuid.h"
 #include "virtime.h"
 #include "locking/domain_lock.h"
 #include "rpc/virnetsocket.h"
-#include "storage_file.h"
+#include "virstoragefile.h"
 #include "viruri.h"
-#include "hooks.h"
+#include "virhook.h"
 
 
 #define VIR_FROM_THIS VIR_FROM_QEMU
@@ -196,6 +198,7 @@ static void qemuMigrationCookieFree(qemuMigrationCookiePtr mig)
 }
 
 
+#ifdef WITH_GNUTLS
 static char *
 qemuDomainExtractTLSSubject(const char *certdir)
 {
@@ -254,7 +257,7 @@ error:
     VIR_FREE(pemdata);
     return NULL;
 }
-
+#endif
 
 static qemuMigrationCookieGraphicsPtr
 qemuMigrationCookieGraphicsAlloc(virQEMUDriverPtr driver,
@@ -273,9 +276,11 @@ qemuMigrationCookieGraphicsAlloc(virQEMUDriverPtr driver,
         if (!listenAddr)
             listenAddr = driver->vncListen;
 
+#ifdef WITH_GNUTLS
         if (driver->vncTLS &&
             !(mig->tlsSubject = qemuDomainExtractTLSSubject(driver->vncTLSx509certdir)))
             goto error;
+#endif
     } else {
         mig->port = def->data.spice.port;
         if (driver->spiceTLS)
@@ -286,9 +291,11 @@ qemuMigrationCookieGraphicsAlloc(virQEMUDriverPtr driver,
         if (!listenAddr)
             listenAddr = driver->spiceListen;
 
+#ifdef WITH_GNUTLS
         if (driver->spiceTLS &&
             !(mig->tlsSubject = qemuDomainExtractTLSSubject(driver->spiceTLSx509certdir)))
             goto error;
+#endif
     }
     if (!(mig->listen = strdup(listenAddr)))
         goto no_memory;
@@ -297,7 +304,9 @@ qemuMigrationCookieGraphicsAlloc(virQEMUDriverPtr driver,
 
 no_memory:
     virReportOOMError();
+#ifdef WITH_GNUTLS
 error:
+#endif
     qemuMigrationCookieGraphicsFree(mig);
     return NULL;
 }
@@ -1258,13 +1267,13 @@ qemuMigrationWaitForCompletion(virQEMUDriverPtr driver, virDomainObjPtr vm,
             goto cleanup;
         }
 
-        virDomainObjUnlock(vm);
+        virObjectUnlock(vm);
         qemuDriverUnlock(driver);
 
         nanosleep(&ts, NULL);
 
         qemuDriverLock(driver);
-        virDomainObjLock(vm);
+        virObjectLock(vm);
     }
 
 cleanup:
@@ -1742,7 +1751,7 @@ cleanup:
     VIR_FORCE_CLOSE(dataFD[1]);
     if (vm) {
         if (ret >= 0 || vm->persistent)
-            virDomainObjUnlock(vm);
+            virObjectUnlock(vm);
         else
             qemuDomainRemoveInactive(driver, vm);
     }
@@ -1778,9 +1787,10 @@ qemuMigrationPrepareTunnel(virQEMUDriverPtr driver,
     int ret;
 
     VIR_DEBUG("driver=%p, dconn=%p, cookiein=%s, cookieinlen=%d, "
-              "cookieout=%p, cookieoutlen=%p, st=%p, dname=%s, dom_xml=%s",
+              "cookieout=%p, cookieoutlen=%p, st=%p, dname=%s, dom_xml=%s "
+              "flags=%lx",
               driver, dconn, NULLSTR(cookiein), cookieinlen,
-              cookieout, cookieoutlen, st, NULLSTR(dname), dom_xml);
+              cookieout, cookieoutlen, st, NULLSTR(dname), dom_xml, flags);
 
     /* QEMU will be started with -incoming stdio (which qemu_command might
      * convert to exec:cat or fd:n)
@@ -1814,10 +1824,10 @@ qemuMigrationPrepareDirect(virQEMUDriverPtr driver,
 
     VIR_DEBUG("driver=%p, dconn=%p, cookiein=%s, cookieinlen=%d, "
               "cookieout=%p, cookieoutlen=%p, uri_in=%s, uri_out=%p, "
-              "dname=%s, dom_xml=%s",
+              "dname=%s, dom_xml=%s flags=%lx",
               driver, dconn, NULLSTR(cookiein), cookieinlen,
               cookieout, cookieoutlen, NULLSTR(uri_in), uri_out,
-              NULLSTR(dname), dom_xml);
+              NULLSTR(dname), dom_xml, flags);
 
     /* The URI passed in may be NULL or a string "tcp://somehostname:port".
      *
@@ -3087,7 +3097,7 @@ endjob:
 
 cleanup:
     if (vm)
-        virDomainObjUnlock(vm);
+        virObjectUnlock(vm);
     if (event)
         qemuDomainEventQueue(driver, event);
     return ret;
@@ -3171,7 +3181,7 @@ endjob:
 
 cleanup:
     if (vm)
-        virDomainObjUnlock(vm);
+        virObjectUnlock(vm);
     if (event)
         qemuDomainEventQueue(driver, event);
     return ret;
@@ -3484,7 +3494,7 @@ endjob:
 cleanup:
     if (vm) {
         VIR_FREE(priv->origname);
-        virDomainObjUnlock(vm);
+        virObjectUnlock(vm);
     }
     if (event)
         qemuDomainEventQueue(driver, event);

@@ -29,11 +29,11 @@
 
 #include "virpidfile.h"
 #include "virfile.h"
-#include "memory.h"
-#include "util.h"
+#include "viralloc.h"
+#include "virutil.h"
 #include "intprops.h"
-#include "logging.h"
-#include "virterror_internal.h"
+#include "virlog.h"
+#include "virerror.h"
 #include "c-ctype.h"
 #include "areadlink.h"
 

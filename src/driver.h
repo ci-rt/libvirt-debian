@@ -717,6 +717,12 @@ typedef int
                                virStreamPtr st,
                                unsigned int flags);
 typedef int
+    (*virDrvDomainOpenChannel)(virDomainPtr dom,
+                               const char *name,
+                               virStreamPtr st,
+                               unsigned int flags);
+
+typedef int
     (*virDrvDomainOpenGraphics)(virDomainPtr dom,
                                 unsigned int idx,
                                 int fd,
@@ -915,6 +921,11 @@ typedef int
                           unsigned long long minimum,
                           unsigned int flags);
 
+typedef int
+    (*virDrvDomainLxcOpenNamespace)(virDomainPtr dom,
+                                    int **fdlist,
+                                    unsigned int flags);
+
 /**
  * _virDriver:
  *
@@ -1078,6 +1089,7 @@ struct _virDriver {
     virDrvDomainQemuAttach              qemuDomainAttach;
     virDrvDomainQemuAgentCommand        qemuDomainArbitraryAgentCommand;
     virDrvDomainOpenConsole             domainOpenConsole;
+    virDrvDomainOpenChannel             domainOpenChannel;
     virDrvDomainOpenGraphics            domainOpenGraphics;
     virDrvDomainInjectNMI               domainInjectNMI;
     virDrvDomainMigrateBegin3           domainMigrateBegin3;
@@ -1107,6 +1119,7 @@ struct _virDriver {
     virDrvNodeGetCPUMap                 nodeGetCPUMap;
     virDrvDomainFSTrim                  domainFSTrim;
     virDrvDomainSendProcessSignal       domainSendProcessSignal;
+    virDrvDomainLxcOpenNamespace        domainLxcOpenNamespace;
 };
 
 typedef int

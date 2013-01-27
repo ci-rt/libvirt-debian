@@ -26,9 +26,9 @@
 #include "security_driver.h"
 #include "security_stack.h"
 #include "security_dac.h"
-#include "virterror_internal.h"
-#include "memory.h"
-#include "logging.h"
+#include "virerror.h"
+#include "viralloc.h"
+#include "virlog.h"
 
 #define VIR_FROM_THIS VIR_FROM_SECURITY
 
@@ -275,10 +275,11 @@ int virSecurityManagerSetImageLabel(virSecurityManagerPtr mgr,
 
 int virSecurityManagerRestoreHostdevLabel(virSecurityManagerPtr mgr,
                                           virDomainDefPtr vm,
-                                          virDomainHostdevDefPtr dev)
+                                          virDomainHostdevDefPtr dev,
+                                          const char *vroot)
 {
     if (mgr->drv->domainRestoreSecurityHostdevLabel)
-        return mgr->drv->domainRestoreSecurityHostdevLabel(mgr, vm, dev);
+        return mgr->drv->domainRestoreSecurityHostdevLabel(mgr, vm, dev, vroot);
 
     virReportError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
     return -1;
@@ -286,10 +287,11 @@ int virSecurityManagerRestoreHostdevLabel(virSecurityManagerPtr mgr,
 
 int virSecurityManagerSetHostdevLabel(virSecurityManagerPtr mgr,
                                       virDomainDefPtr vm,
-                                      virDomainHostdevDefPtr dev)
+                                      virDomainHostdevDefPtr dev,
+                                      const char *vroot)
 {
     if (mgr->drv->domainSetSecurityHostdevLabel)
-        return mgr->drv->domainSetSecurityHostdevLabel(mgr, vm, dev);
+        return mgr->drv->domainSetSecurityHostdevLabel(mgr, vm, dev, vroot);
 
     virReportError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
     return -1;

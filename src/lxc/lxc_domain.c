@@ -23,9 +23,9 @@
 
 #include "lxc_domain.h"
 
-#include "memory.h"
-#include "logging.h"
-#include "virterror_internal.h"
+#include "viralloc.h"
+#include "virlog.h"
+#include "virerror.h"
 
 #define VIR_FROM_THIS VIR_FROM_LXC
 

@@ -25,8 +25,8 @@
 
 # include "internal.h"
 # include "virnetdevbandwidth.h"
-# include "buf.h"
-# include "xml.h"
+# include "virbuffer.h"
+# include "virxml.h"
 
 virNetDevBandwidthPtr virNetDevBandwidthParse(xmlNodePtr node,
                                               int net_type)
