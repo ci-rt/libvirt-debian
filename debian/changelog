@@ -1,3 +1,16 @@
+libvirt (1.0.2~rc1-1) experimental; urgency=low
+
+  * [5ce607c] Make python-libvirt depend on the exact same libvirt0 version
+    (Closes: #697852)
+  * [9335bdd] New upstream version 1.0.2~rc1
+  * [8af24a9] Dropped patch
+       Define-SANLK_INQ_WAIT-if-missing-in-headers.patch - fixed upstream
+  * [be521af] Update symbols
+  * [47dbf6b] New patch Don-t-fail-the-build-without-libcurl-and-esx.patch
+  * [9e52c7b] Install libvirt-lxc.so
+
+ -- Guido Günther <agx@sigxcpu.org>  Mon, 28 Jan 2013 08:55:36 +0100
+
 libvirt (1.0.1-4) experimental; urgency=low
 
   * [753d41c] Add epoch to libnetcf1 dependency (Closes: #697457)
