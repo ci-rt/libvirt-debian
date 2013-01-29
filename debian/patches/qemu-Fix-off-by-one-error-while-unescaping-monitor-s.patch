@@ -1,0 +1,55 @@
+From: Peter Krempa <pkrempa@redhat.com>
+Date: Thu, 14 Jun 2012 10:29:36 +0200
+Subject: qemu: Fix off-by-one error while unescaping monitor strings
+
+While unescaping the commands the commands passed through to the monitor
+function qemuMonitorUnescapeArg() initialized lenght of the input string
+to strlen()+1 which is fine for alloc but not for iteration of the
+string.
+
+This patch fixes the off-by-one error and drops the pointless check for
+a single trailing slash that is automaticaly handled by the default
+branch of switch.
+
+Closes: #699281
+Thanks: Philipp Hahn for debugging this
+---
+ src/qemu/qemu_monitor.c |   11 +++--------
+ 1 file changed, 3 insertions(+), 8 deletions(-)
+
+diff --git a/src/qemu/qemu_monitor.c b/src/qemu/qemu_monitor.c
+index 0d4319d..68ecdb9 100644
+--- a/src/qemu/qemu_monitor.c
++++ b/src/qemu/qemu_monitor.c
+@@ -157,20 +157,15 @@ char *qemuMonitorUnescapeArg(const char *in)
+ {
+     int i, j;
+     char *out;
+-    int len = strlen(in) + 1;
++    int len = strlen(in);
+     char next;
+ 
+-    if (VIR_ALLOC_N(out, len) < 0)
++    if (VIR_ALLOC_N(out, len + 1) < 0)
+         return NULL;
+ 
+     for (i = j = 0; i < len; ++i) {
+         next = in[i];
+         if (in[i] == '\\') {
+-            if (len < i + 1) {
+-                /* trailing backslash shouldn't be possible */
+-                VIR_FREE(out);
+-                return NULL;
+-            }
+             ++i;
+             switch(in[i]) {
+             case 'r':
+@@ -184,7 +179,7 @@ char *qemuMonitorUnescapeArg(const char *in)
+                 next = in[i];
+                 break;
+             default:
+-                /* invalid input */
++                /* invalid input (including trailing '\' at end of in) */
+                 VIR_FREE(out);
+                 return NULL;
+             }
