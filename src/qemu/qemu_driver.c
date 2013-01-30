@@ -1,7 +1,7 @@
 /*
  * qemu_driver.c: core driver methods for managing qemu guests
  *
- * Copyright (C) 2006-2012 Red Hat, Inc.
+ * Copyright (C) 2006-2013 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -825,13 +825,6 @@ qemuStartup(bool privileged,
     if (qemuSecurityInit(qemu_driver) < 0)
         goto error;
 
-    qemu_driver->capsCache = qemuCapsCacheNew(qemu_driver->libDir,
-                                              qemu_driver->stateDir,
-                                              qemu_driver->user,
-                                              qemu_driver->group);
-    if (!qemu_driver->capsCache)
-        goto error;
-
     if ((qemu_driver->activePciHostdevs = pciDeviceListNew()) == NULL)
         goto error;
 
@@ -870,6 +863,12 @@ qemuStartup(bool privileged,
             goto error;
         }
     }
+
+    qemu_driver->capsCache = qemuCapsCacheNew(qemu_driver->libDir,
+                                              qemu_driver->user,
+                                              qemu_driver->group);
+    if (!qemu_driver->capsCache)
+        goto error;
 
     if ((qemu_driver->caps = qemuCreateCapabilities(qemu_driver)) == NULL)
         goto error;
@@ -1134,6 +1133,10 @@ qemuShutdown(void) {
     VIR_FREE(qemu_driver->saveImageFormat);
     VIR_FREE(qemu_driver->dumpImageFormat);
 
+    for (i = 0 ; (qemu_driver->securityDriverNames != NULL &&
+                  qemu_driver->securityDriverNames[i] != NULL) ; i++)
+        VIR_FREE(qemu_driver->securityDriverNames[i]);
+    VIR_FREE(qemu_driver->securityDriverNames);
     virSecurityManagerFree(qemu_driver->securityManager);
 
     ebtablesContextFree(qemu_driver->ebtables);
@@ -2407,19 +2410,12 @@ static int qemuDomainSendKey(virDomainPtr domain,
         }
     }
 
-    qemuDriverLock(driver);
-    vm = virDomainFindByUUID(&driver->domains, domain->uuid);
-    if (!vm) {
-        char uuidstr[VIR_UUID_STRING_BUFLEN];
-        virUUIDFormat(domain->uuid, uuidstr);
-        virReportError(VIR_ERR_NO_DOMAIN,
-                       _("no domain with matching uuid '%s'"), uuidstr);
+    if (!(vm = qemuDomObjFromDomain(domain)))
         goto cleanup;
-    }
 
     priv = vm->privateData;
 
-    if (qemuDomainObjBeginJobWithDriver(driver, vm, QEMU_JOB_MODIFY) < 0)
+    if (qemuDomainObjBeginJob(driver, vm, QEMU_JOB_MODIFY) < 0)
         goto cleanup;
 
     if (!virDomainObjIsActive(vm)) {
@@ -2428,9 +2424,9 @@ static int qemuDomainSendKey(virDomainPtr domain,
         goto endjob;
     }
 
-    qemuDomainObjEnterMonitorWithDriver(driver, vm);
+    qemuDomainObjEnterMonitor(driver, vm);
     ret = qemuMonitorSendKey(priv->mon, holdtime, keycodes, nkeycodes);
-    qemuDomainObjExitMonitorWithDriver(driver, vm);
+    qemuDomainObjExitMonitor(driver, vm);
 
 endjob:
     if (qemuDomainObjEndJob(driver, vm) == 0)
@@ -2439,7 +2435,6 @@ endjob:
 cleanup:
     if (vm)
         virObjectUnlock(vm);
-    qemuDriverUnlock(driver);
     return ret;
 }
 
@@ -4927,8 +4922,10 @@ qemuDomainSaveImageStartVM(virConnectPtr conn,
             VIR_FORCE_CLOSE(*fd);
         }
 
-        if (virCommandWait(cmd, NULL) < 0)
+        if (virCommandWait(cmd, NULL) < 0) {
+            qemuProcessStop(driver, vm, VIR_DOMAIN_SHUTOFF_FAILED, 0);
             ret = -1;
+        }
     }
     VIR_FORCE_CLOSE(intermediatefd);
 
@@ -11124,6 +11121,7 @@ qemuDomainSnapshotCreateActiveExternal(virConnectPtr conn,
     bool atomic = !!(flags & VIR_DOMAIN_SNAPSHOT_CREATE_ATOMIC);
     bool transaction = qemuCapsGet(priv->caps, QEMU_CAPS_TRANSACTION);
     int thaw = 0; /* 1 if freeze succeeded, -1 if freeze failed */
+    bool pmsuspended = false;
 
     if (qemuDomainObjBeginAsyncJobWithDriver(driver, vm,
                                              QEMU_ASYNC_JOB_SNAPSHOT) < 0)
@@ -11143,8 +11141,11 @@ qemuDomainSnapshotCreateActiveExternal(virConnectPtr conn,
         }
     }
 
-    /* we need to resume the guest only if it was previously running */
-    if (virDomainObjGetState(vm, NULL) == VIR_DOMAIN_RUNNING) {
+    /* We need to track what state the guest is in, since taking the
+     * snapshot may alter that state and we must restore it later.  */
+    if (virDomainObjGetState(vm, NULL) == VIR_DOMAIN_PMSUSPENDED) {
+        pmsuspended = true;
+    } else if (virDomainObjGetState(vm, NULL) == VIR_DOMAIN_RUNNING) {
         resume = true;
 
         /* For external checkpoints (those with memory), the guest
@@ -11224,6 +11225,18 @@ qemuDomainSnapshotCreateActiveExternal(virConnectPtr conn,
         resume = false;
         thaw = 0;
         vm = NULL;
+        if (event)
+            qemuDomainEventQueue(driver, event);
+    } else if (memory && pmsuspended) {
+        /* qemu 1.3 is unable to save a domain in pm-suspended (S3)
+         * state; so we must emit an event stating that it was
+         * converted to paused.  */
+        virDomainEventPtr event;
+
+        virDomainObjSetState(vm, VIR_DOMAIN_PAUSED,
+                             VIR_DOMAIN_PAUSED_FROM_SNAPSHOT);
+        event = virDomainEventNewFromObj(vm, VIR_DOMAIN_EVENT_SUSPENDED,
+                                         VIR_DOMAIN_EVENT_SUSPENDED_FROM_SNAPSHOT);
         if (event)
             qemuDomainEventQueue(driver, event);
     }

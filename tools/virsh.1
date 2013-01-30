@@ -124,7 +124,7 @@
 .\" ========================================================================
 .\"
 .IX Title "VIRSH 1"
-.TH VIRSH 1 "2013-01-17" "libvirt-1.0.2" "Virtualization Support"
+.TH VIRSH 1 "2013-01-28" "libvirt-1.0.2" "Virtualization Support"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -1721,8 +1721,8 @@ For cdrom and floppy devices, this command only replaces the media
 within an existing device; consider using \fBupdate-device\fR for this
 usage.  For passthrough host devices, see also \fBnodedev-detach\fR,
 needed if the device does not use managed mode.
-.IP "\fBattach-disk\fR \fIdomain\fR \fIsource\fR \fItarget\fR [\fI\-\-driver driver\fR] [\fI\-\-subdriver subdriver\fR] [\fI\-\-cache cache\fR] [\fI\-\-type type\fR] [\fI\-\-mode mode\fR] [\fI\-\-config\fR] [\fI\-\-sourcetype soucetype\fR] [\fI\-\-serial serial\fR] [\fI\-\-shareable\fR] [\fI\-\-rawio\fR] [\fI\-\-address address\fR] [\fI\-\-multifunction\fR]" 4
-.IX Item "attach-disk domain source target [--driver driver] [--subdriver subdriver] [--cache cache] [--type type] [--mode mode] [--config] [--sourcetype soucetype] [--serial serial] [--shareable] [--rawio] [--address address] [--multifunction]"
+.IP "\fBattach-disk\fR \fIdomain\fR \fIsource\fR \fItarget\fR [\fI\-\-driver driver\fR] [\fI\-\-subdriver subdriver\fR] [\fI\-\-cache cache\fR] [\fI\-\-type type\fR] [\fI\-\-mode mode\fR] [\fI\-\-config\fR] [\fI\-\-sourcetype soucetype\fR] [\fI\-\-serial serial\fR] [\fI\-\-shareable\fR] [\fI\-\-rawio\fR] [\fI\-\-address address\fR] [\fI\-\-multifunction\fR] [\fI\-\-print\-xml\fR]" 4
+.IX Item "attach-disk domain source target [--driver driver] [--subdriver subdriver] [--cache cache] [--type type] [--mode mode] [--config] [--sourcetype soucetype] [--serial serial] [--shareable] [--rawio] [--address address] [--multifunction] [--print-xml]"
 Attach a new disk device to the domain.
 \&\fIsource\fR is path for the files and devices. \fItarget\fR controls the bus or
 device under which the disk is exposed to the guest \s-1OS\s0. It indicates the
@@ -1750,6 +1750,9 @@ is shareable between domains.
 scsi:controller.bus.unit or ide:controller.bus.unit.
 \&\fImultifunction\fR indicates specified pci address is a multifunction pci device
 address.
+.Sp
+If \fI\-\-print\-xml\fR is specified, then the \s-1XML\s0 of the disk that would be attached
+is printed instead.
 .IP "\fBattach-interface\fR \fIdomain\fR \fItype\fR \fIsource\fR [\fI\-\-target target\fR] [\fI\-\-mac mac\fR] [\fI\-\-script script\fR] [\fI\-\-model model\fR] [\fI\-\-config\fR] [\fI\-\-inbound average,peak,burst\fR] [\fI\-\-outbound average,peak,burst\fR]" 4
 .IX Item "attach-interface domain type source [--target target] [--mac mac] [--script script] [--model model] [--config] [--inbound average,peak,burst] [--outbound average,peak,burst]"
 Attach a new network interface to the domain.

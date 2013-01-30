@@ -527,6 +527,8 @@ skip_function = (
     "virNWFilterGetConnect",
     "virStoragePoolGetConnect",
     "virStorageVolGetConnect",
+    "virDomainSnapshotGetConnect",
+    "virDomainSnapshotGetDomain",
 
     # only useful in C code, python code uses dict for typed parameters
     "virTypedParamsAddBoolean",
@@ -953,7 +955,6 @@ classes_destructors = {
 
 class_skip_connect_impl = {
     "virConnect" : True,
-    "virDomainSnapshot": True,
 }
 
 class_domain_impl = {
@@ -1413,7 +1414,7 @@ def buildWrappers(module):
                 classes.write("        %s.__init__(self, _obj=_obj)\n\n" % (
                               classes_ancestor[classname]))
             else:
-                classes.write("class %s:\n" % (classname))
+                classes.write("class %s(object):\n" % (classname))
                 if classname in [ "virDomain", "virNetwork", "virInterface", "virStoragePool",
                                   "virStorageVol", "virNodeDevice", "virSecret","virStream",
                                   "virNWFilter" ]:
@@ -1436,6 +1437,7 @@ def buildWrappers(module):
                                   "            self._conn = conn._conn\n")
                 elif classname in [ "virDomainSnapshot" ]:
                     classes.write("        self._dom = dom\n")
+                    classes.write("        self._conn = dom.connect()\n")
                 classes.write("        if _obj != None:self._o = _obj;return\n")
                 classes.write("        self._o = None\n\n");
             destruct=None

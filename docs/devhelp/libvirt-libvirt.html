@@ -5209,11 +5209,21 @@ The data structure is freed and should not be used thereafter.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>snapshot</tt></i>:</span></td><td>a domain snapshot object</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success and -1 in case of failure.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainSnapshotGetConnect"/>virDomainSnapshotGetConnect ()</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a>	virDomainSnapshotGetConnect	(<a href="libvirt-libvirt.html#virDomainSnapshotPtr">virDomainSnapshotPtr</a> snapshot)<br/>
-</pre><p>Get the connection that owns the domain that a snapshot was created for</p>
+</pre><p>Provides the connection pointer associated with a snapshot. The
+reference counter on the connection is not increased by this
+call.
+
+WARNING: When writing libvirt bindings in other languages, do not use this
+function. Instead, store the connection and the snapshot object together.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>snapshot</tt></i>:</span></td><td>a snapshot object</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the connection or NULL.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainSnapshotGetDomain"/>virDomainSnapshotGetDomain ()</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a>	virDomainSnapshotGetDomain	(<a href="libvirt-libvirt.html#virDomainSnapshotPtr">virDomainSnapshotPtr</a> snapshot)<br/>
-</pre><p>Get the domain that a snapshot was created for</p>
+</pre><p>Provides the domain pointer associated with a snapshot. The
+reference counter on the domain is not increased by this
+call.
+
+WARNING: When writing libvirt bindings in other languages, do not use this
+function. Instead, store the domain and the snapshot object together.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>snapshot</tt></i>:</span></td><td>a snapshot object</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the domain or NULL.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainSnapshotGetName"/>virDomainSnapshotGetName ()</h3><pre class="programlisting">const char *	virDomainSnapshotGetName	(<a href="libvirt-libvirt.html#virDomainSnapshotPtr">virDomainSnapshotPtr</a> snapshot)<br/>
