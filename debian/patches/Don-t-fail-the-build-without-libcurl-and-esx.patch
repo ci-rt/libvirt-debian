@@ -1,0 +1,35 @@
+From: =?UTF-8?q?Guido=20G=C3=BCnther?= <agx@sigxcpu.org>
+Date: Fri, 25 Jan 2013 21:58:48 +0100
+Subject: Don't fail the build without libcurl and esx
+
+---
+ configure    |    2 +-
+ configure.ac |    2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/configure b/configure
+index 2aeece1..cc1f7c9 100755
+--- a/configure
++++ b/configure
+@@ -64746,7 +64746,7 @@ fi
+ 
+ 
+ if test "$with_curl" != "yes" ; then
+-  if test "$with_esx" = "check"; then
++  if test "$with_esx" != "yes"; then
+     with_esx=no
+   else
+     as_fn_error $? "Curl is required for the ESX driver" "$LINENO" 5
+diff --git a/configure.ac b/configure.ac
+index 89db83e..e3a749a 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -1810,7 +1810,7 @@ dnl check for (ESX)
+ dnl
+ 
+ if test "$with_curl" != "yes" ; then
+-  if test "$with_esx" = "check"; then
++  if test "$with_esx" != "yes"; then
+     with_esx=no
+   else
+     AC_MSG_ERROR([Curl is required for the ESX driver])

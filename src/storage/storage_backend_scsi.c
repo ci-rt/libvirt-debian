@@ -28,12 +28,12 @@
 #include <dirent.h>
 #include <fcntl.h>
 
-#include "virterror_internal.h"
+#include "virerror.h"
 #include "storage_backend_scsi.h"
-#include "memory.h"
-#include "logging.h"
+#include "viralloc.h"
+#include "virlog.h"
 #include "virfile.h"
-#include "command.h"
+#include "vircommand.h"
 
 #define VIR_FROM_THIS VIR_FROM_STORAGE
 
@@ -166,7 +166,7 @@ static char *
 virStorageBackendSCSISerial(const char *dev)
 {
     char *serial = NULL;
-#ifdef HAVE_UDEV
+#ifdef WITH_UDEV
     virCommandPtr cmd = virCommandNewArgList(
         "/lib/udev/scsi_id",
         "--replace-whitespace",
@@ -191,7 +191,7 @@ virStorageBackendSCSISerial(const char *dev)
             virReportOOMError();
     }
 
-#ifdef HAVE_UDEV
+#ifdef WITH_UDEV
 cleanup:
     virCommandFree(cmd);
 #endif

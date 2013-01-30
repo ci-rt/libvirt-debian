@@ -10,10 +10,10 @@ to not interfere with existing network configurations
  2 files changed, 6 deletions(-)
 
 diff --git a/src/Makefile.am b/src/Makefile.am
-index 187663f..94f807e 100644
+index 070a089..0fa184b 100644
 --- a/src/Makefile.am
 +++ b/src/Makefile.am
-@@ -1768,9 +1768,6 @@ if WITH_NETWORK
+@@ -2037,9 +2037,6 @@ if WITH_NETWORK
  	    cp $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/default.xml.t \
  	      $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/default.xml && \
  	    rm $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/default.xml.t; }
@@ -22,12 +22,12 @@ index 187663f..94f807e 100644
 -	    $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/autostart/default.xml
  endif
  
- uninstall-local::
+ uninstall-local:: uninstall-init uninstall-systemd
 diff --git a/src/Makefile.in b/src/Makefile.in
-index 230e879..cd3e29f 100644
+index 93a1069..9cc91e8 100644
 --- a/src/Makefile.in
 +++ b/src/Makefile.in
-@@ -6907,9 +6907,6 @@ install-data-local:
+@@ -7444,9 +7444,6 @@ install-data-local: install-init install-systemd
  @WITH_NETWORK_TRUE@	    cp $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/default.xml.t \
  @WITH_NETWORK_TRUE@	      $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/default.xml && \
  @WITH_NETWORK_TRUE@	    rm $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/default.xml.t; }
@@ -35,5 +35,5 @@ index 230e879..cd3e29f 100644
 -@WITH_NETWORK_TRUE@	   ln -s ../default.xml \
 -@WITH_NETWORK_TRUE@	    $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/autostart/default.xml
  
- uninstall-local::
- 	rmdir "$(DESTDIR)$(localstatedir)/cache/libvirt" ||:
+ uninstall-local:: uninstall-init uninstall-systemd
+ @WITH_LIBVIRTD_TRUE@	rmdir "$(DESTDIR)$(localstatedir)/lib/libvirt/lockd/files" ||:

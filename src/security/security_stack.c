@@ -22,8 +22,8 @@
 
 #include "security_stack.h"
 
-#include "virterror_internal.h"
-#include "memory.h"
+#include "virerror.h"
+#include "viralloc.h"
 
 #define VIR_FROM_THIS VIR_FROM_SECURITY
 
@@ -121,7 +121,7 @@ virSecurityStackVerify(virSecurityManagerPtr mgr,
     virSecurityStackItemPtr item = priv->itemsHead;
     int rc = 0;
 
-    for(; item; item = item->next) {
+    for (; item; item = item->next) {
         if (virSecurityManagerVerify(item->securityManager, def) < 0) {
             rc = -1;
             break;
@@ -236,7 +236,8 @@ virSecurityStackRestoreSecurityImageLabel(virSecurityManagerPtr mgr,
 static int
 virSecurityStackSetSecurityHostdevLabel(virSecurityManagerPtr mgr,
                                         virDomainDefPtr vm,
-                                        virDomainHostdevDefPtr dev)
+                                        virDomainHostdevDefPtr dev,
+                                        const char *vroot)
 
 {
     virSecurityStackDataPtr priv = virSecurityManagerGetPrivateData(mgr);
@@ -244,7 +245,10 @@ virSecurityStackSetSecurityHostdevLabel(virSecurityManagerPtr mgr,
     int rc = 0;
 
     for (; item; item = item->next) {
-        if (virSecurityManagerSetHostdevLabel(item->securityManager, vm, dev) < 0)
+        if (virSecurityManagerSetHostdevLabel(item->securityManager,
+                                              vm,
+                                              dev,
+                                              vroot) < 0)
             rc = -1;
     }
 
@@ -255,14 +259,18 @@ virSecurityStackSetSecurityHostdevLabel(virSecurityManagerPtr mgr,
 static int
 virSecurityStackRestoreSecurityHostdevLabel(virSecurityManagerPtr mgr,
                                             virDomainDefPtr vm,
-                                            virDomainHostdevDefPtr dev)
+                                            virDomainHostdevDefPtr dev,
+                                            const char *vroot)
 {
     virSecurityStackDataPtr priv = virSecurityManagerGetPrivateData(mgr);
     virSecurityStackItemPtr item = priv->itemsHead;
     int rc = 0;
 
     for (; item; item = item->next) {
-        if (virSecurityManagerRestoreHostdevLabel(item->securityManager, vm, dev) < 0)
+        if (virSecurityManagerRestoreHostdevLabel(item->securityManager,
+                                                  vm,
+                                                  dev,
+                                                  vroot) < 0)
             rc = -1;
     }
 
@@ -462,6 +470,23 @@ virSecurityStackSetTapFDLabel(virSecurityManagerPtr mgr,
     return rc;
 }
 
+static int
+virSecurityStackSetHugepages(virSecurityManagerPtr mgr,
+                              virDomainDefPtr vm,
+                              const char *path)
+{
+    virSecurityStackDataPtr priv = virSecurityManagerGetPrivateData(mgr);
+    virSecurityStackItemPtr item = priv->itemsHead;
+    int rc = 0;
+
+    for (; item; item = item->next) {
+        if (virSecurityManagerSetHugepages(item->securityManager, vm, path) < 0)
+            rc = -1;
+    }
+
+    return rc;
+}
+
 static char *virSecurityStackGetMountOptions(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
                                              virDomainDefPtr vm ATTRIBUTE_UNUSED) {
     return NULL;
@@ -529,4 +554,6 @@ virSecurityDriver virSecurityDriverStack = {
     .domainSetSecurityTapFDLabel        = virSecurityStackSetTapFDLabel,
 
     .domainGetSecurityMountOptions      = virSecurityStackGetMountOptions,
+
+    .domainSetSecurityHugepages         = virSecurityStackSetHugepages,
 };

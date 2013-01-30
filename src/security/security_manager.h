@@ -71,10 +71,12 @@ int virSecurityManagerSetImageLabel(virSecurityManagerPtr mgr,
                                     virDomainDiskDefPtr disk);
 int virSecurityManagerRestoreHostdevLabel(virSecurityManagerPtr mgr,
                                           virDomainDefPtr def,
-                                          virDomainHostdevDefPtr dev);
+                                          virDomainHostdevDefPtr dev,
+                                          const char *vroot);
 int virSecurityManagerSetHostdevLabel(virSecurityManagerPtr mgr,
                                       virDomainDefPtr def,
-                                      virDomainHostdevDefPtr dev);
+                                      virDomainHostdevDefPtr dev,
+                                      const char *vroot);
 int virSecurityManagerSetSavedStateLabel(virSecurityManagerPtr mgr,
                                          virDomainDefPtr def,
                                          const char *savefile);
@@ -112,5 +114,8 @@ char *virSecurityManagerGetMountOptions(virSecurityManagerPtr mgr,
                                               virDomainDefPtr vm);
 virSecurityManagerPtr*
 virSecurityManagerGetNested(virSecurityManagerPtr mgr);
+int virSecurityManagerSetHugepages(virSecurityManagerPtr mgr,
+                                  virDomainDefPtr sec,
+                                  const char *hugepages_path);
 
 #endif /* VIR_SECURITY_MANAGER_H__ */

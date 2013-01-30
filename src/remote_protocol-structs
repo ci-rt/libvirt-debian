@@ -672,6 +672,12 @@ struct remote_domain_send_key_args {
         } keycodes;
         u_int                      flags;
 };
+struct remote_domain_send_process_signal_args {
+        remote_nonnull_domain      dom;
+        int64_t                    pid_value;
+        u_int                      signum;
+        u_int                      flags;
+};
 struct remote_domain_set_vcpus_args {
         remote_nonnull_domain      dom;
         u_int                      nvcpus;
@@ -1867,6 +1873,11 @@ struct remote_domain_open_console_args {
         remote_string              dev_name;
         u_int                      flags;
 };
+struct remote_domain_open_channel_args {
+        remote_nonnull_domain      dom;
+        remote_string              name;
+        u_int                      flags;
+};
 struct remote_storage_vol_upload_args {
         remote_nonnull_storage_vol vol;
         uint64_t                   offset;
@@ -2138,6 +2149,12 @@ struct remote_node_get_cpu_map_ret {
         } cpumap;
         u_int                      online;
         int                        ret;
+};
+struct remote_domain_fstrim_args {
+        remote_nonnull_domain      dom;
+        remote_string              mountPoint;
+        uint64_t                   minimum;
+        u_int                      flags;
 };
 enum remote_procedure {
         REMOTE_PROC_OPEN = 1,
@@ -2433,4 +2450,7 @@ enum remote_procedure {
         REMOTE_PROC_NETWORK_UPDATE = 291,
         REMOTE_PROC_DOMAIN_EVENT_PMSUSPEND_DISK = 292,
         REMOTE_PROC_NODE_GET_CPU_MAP = 293,
+        REMOTE_PROC_DOMAIN_FSTRIM = 294,
+        REMOTE_PROC_DOMAIN_SEND_PROCESS_SIGNAL = 295,
+        REMOTE_PROC_DOMAIN_OPEN_CHANNEL = 296,
 };

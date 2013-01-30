@@ -46,6 +46,9 @@ enum {
 
 # define LXC_DEV_MAJ_PTY     136
 
+# define LXC_DEV_MAJ_FUSE    10
+# define LXC_DEV_MIN_FUSE    229
+
 int lxcContainerSendContinue(int control);
 int lxcContainerWaitForContinue(int control);
 
@@ -60,6 +63,6 @@ int lxcContainerStart(virDomainDefPtr def,
 
 int lxcContainerAvailable(int features);
 
-const char *lxcContainerGetAlt32bitArch(const char *arch);
+virArch lxcContainerGetAlt32bitArch(virArch arch);
 
 #endif /* LXC_CONTAINER_H */

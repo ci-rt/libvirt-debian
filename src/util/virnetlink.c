@@ -36,11 +36,11 @@
 #include <sys/socket.h>
 
 #include "virnetlink.h"
-#include "logging.h"
-#include "memory.h"
-#include "threads.h"
+#include "virlog.h"
+#include "viralloc.h"
+#include "virthread.h"
 #include "virmacaddr.h"
-#include "virterror_internal.h"
+#include "virerror.h"
 
 #ifndef SOL_NETLINK
 # define SOL_NETLINK 270

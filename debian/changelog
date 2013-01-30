@@ -1,10 +1,58 @@
-libvirt (1.0.0-2) unstable; urgency=low
+libvirt (1.0.2~rc1-1) experimental; urgency=low
 
-  * Upload to unstable
+  * [5ce607c] Make python-libvirt depend on the exact same libvirt0 version
+    (Closes: #697852)
+  * [9335bdd] New upstream version 1.0.2~rc1
+  * [8af24a9] Dropped patch
+       Define-SANLK_INQ_WAIT-if-missing-in-headers.patch - fixed upstream
+  * [be521af] Update symbols
+  * [47dbf6b] New patch Don-t-fail-the-build-without-libcurl-and-esx.patch
+  * [9e52c7b] Install libvirt-lxc.so
+
+ -- Guido Günther <agx@sigxcpu.org>  Mon, 28 Jan 2013 08:55:36 +0100
+
+libvirt (1.0.1-4) experimental; urgency=low
+
+  * [753d41c] Add epoch to libnetcf1 dependency (Closes: #697457)
+
+ -- Guido Günther <agx@sigxcpu.org>  Mon, 07 Jan 2013 15:59:51 +0100
+
+libvirt (1.0.1-3) experimental; urgency=low
+
+  * [11f91ea] Make sure we build against sid's libaudit since libaudit0 and
+    libaudit1 aren't coinstallable (see #697459).
+
+ -- Guido Günther <agx@sigxcpu.org>  Sat, 05 Jan 2013 17:04:51 +0100
+
+libvirt (1.0.1-2) experimental; urgency=low
+
+  * [0019ff9] Pass WITH_AUDIT to configure (Closes: #688177)
+  * [faf7972] Add epoch to libnetcf build dependency since both the usuable
+    and unusable verion carry an epoch now (Closes: #697303)
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 03 Jan 2013 22:36:56 +0100
+
+libvirt (1.0.1-1) experimental; urgency=low
+
+  * [e722456] New upstream version 1.0.1
+  * [dccead7] Update patches
+  * [1384de7] Dropped patches.
+      * Define-SANLK_INQ_WAIT-if-missing-in-headers.patch - fixed upstream
+
+ -- Guido Günther <agx@sigxcpu.org>  Sun, 23 Dec 2012 12:28:01 +0100
+
+libvirt (1.0.1~rc1-1) experimental; urgency=low
+
   * [dca42fb] Rely on DBus activation for hal (Closes: #694020)
   * [cbb8fd5] Disable firewalld since this would make us hard depend on DBus
+  * [751c235] New upstream version 1.0.1~rc1
+  * [f672206] Update patches
+  * [a6fae3d] Define SANLK_INQ_WAIT if missing in headers
+  * [50956c7] libvirt-guests init script moved
+    for better systemd integration
+  * [a05c9c7] Update symbols
 
- -- Guido Günther <agx@sigxcpu.org>  Mon, 26 Nov 2012 22:10:17 +0100
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 13 Dec 2012 18:54:12 +0100
 
 libvirt (1.0.0-1) experimental; urgency=low
 
@@ -107,6 +155,14 @@ libvirt (0.10.1-1) experimental; urgency=low
   * [8d4f9dc] Enable sheepdog support
 
  -- Guido Günther <agx@sigxcpu.org>  Thu, 06 Sep 2012 13:06:02 +0200
+
+libvirt (1.0.0-2) unstable; urgency=low
+
+  * Upload to unstable
+  * [dca42fb] Rely on DBus activation for hal (Closes: #694020)
+  * [cbb8fd5] Disable firewalld since this would make us hard depend on DBus
+
+ -- Guido Günther <agx@sigxcpu.org>  Mon, 26 Nov 2012 22:10:17 +0100
 
 libvirt (0.10.0-1) experimental; urgency=low
 

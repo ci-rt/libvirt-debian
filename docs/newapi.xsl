@@ -83,17 +83,51 @@
     </xsl:for-each>
   </xsl:template>
 
+  <xsl:template name="formattext">
+    <xsl:param name="text" />
+
+    <xsl:if test="$text">
+      <xsl:variable name="head" select="substring-before($text, '&#xA;&#xA;')"/>
+      <xsl:variable name="rest" select="substring-after($text, '&#xA;&#xA;')"/>
+
+      <xsl:choose>
+        <xsl:when test="$head">
+          <p>
+            <xsl:call-template name="dumptext">
+              <xsl:with-param name="text" select="$head"/>
+            </xsl:call-template>
+          </p>
+        </xsl:when>
+        <xsl:when test="not($rest)">
+          <p>
+            <xsl:call-template name="dumptext">
+              <xsl:with-param name="text" select="$text"/>
+            </xsl:call-template>
+          </p>
+        </xsl:when>
+      </xsl:choose>
+
+      <xsl:if test="$rest">
+        <xsl:call-template name="formattext">
+          <xsl:with-param name="text" select="$rest"/>
+        </xsl:call-template>
+      </xsl:if>
+    </xsl:if>
+  </xsl:template>
+
   <xsl:template match="macro" mode="toc">
-    <xsl:text>#define </xsl:text>
+    <span class="directive">#define</span><xsl:text> </xsl:text>
     <a href="#{@name}"><xsl:value-of select="@name"/></a>
     <xsl:text>
 </xsl:text>
   </xsl:template>
 
   <xsl:template match="variable" mode="toc">
-    <xsl:call-template name="dumptext">
-      <xsl:with-param name="text" select="string(@type)"/>
-    </xsl:call-template>
+    <span class="type">
+      <xsl:call-template name="dumptext">
+        <xsl:with-param name="text" select="string(@type)"/>
+      </xsl:call-template>
+    </span>
     <xsl:text> </xsl:text>
     <a name="{@name}"></a>
     <xsl:value-of select="@name"/>
@@ -102,18 +136,21 @@
   </xsl:template>
 
   <xsl:template match="typedef" mode="toc">
-    <xsl:text>typedef </xsl:text><xsl:variable name="name" select="string(@name)"/>
+    <span class="keyword">typedef</span>
+    <xsl:text> </xsl:text><xsl:variable name="name" select="string(@name)"/>
     <xsl:choose>
       <xsl:when test="@type = 'enum'">
-        <xsl:text>enum </xsl:text>
+        <span class="keyword">enum</span><xsl:text> </xsl:text>
 	<a href="#{$name}"><xsl:value-of select="$name"/></a>
 	<xsl:text>
 </xsl:text>
       </xsl:when>
       <xsl:otherwise>
-	<xsl:call-template name="dumptext">
-	  <xsl:with-param name="text" select="@type"/>
-	</xsl:call-template>
+	<span class="type">
+          <xsl:call-template name="dumptext">
+            <xsl:with-param name="text" select="@type"/>
+          </xsl:call-template>
+        </span>
 	<xsl:text> </xsl:text>
 	<a name="{$name}"><xsl:value-of select="$name"/></a>
 	<xsl:text>
@@ -127,7 +164,7 @@
     <h3><a name="{$name}"><code><xsl:value-of select="$name"/></code></a></h3>
     <div class="api">
       <pre>
-        <xsl:text>enum </xsl:text>
+        <span class="keyword">enum</span><xsl:text> </xsl:text>
         <xsl:value-of select="$name"/>
         <xsl:text> {
 </xsl:text>
@@ -141,10 +178,11 @@
             <td><xsl:value-of select="@value"/></td>
             <xsl:if test="@info != ''">
               <td>
-                <xsl:text> : </xsl:text>
-                <xsl:call-template name="dumptext">
-                  <xsl:with-param name="text" select="@info"/>
-                </xsl:call-template>
+                <div class="comment">
+                  <xsl:call-template name="dumptext">
+                    <xsl:with-param name="text" select="@info"/>
+                  </xsl:call-template>
+                </div>
               </td>
             </xsl:if>
           </tr>
@@ -158,8 +196,8 @@
   </xsl:template>
 
   <xsl:template match="struct" mode="toc">
-    <xsl:text>typedef </xsl:text>
-    <xsl:value-of select="@type"/>
+    <span class="keyword">typedef</span><xsl:text> </xsl:text>
+    <span class="type"><xsl:value-of select="@type"/></span>
     <xsl:text> </xsl:text>
     <a href="#{@name}"><xsl:value-of select="@name"/></a>
     <xsl:text>
@@ -170,32 +208,35 @@
     <h3><a name="{@name}"><code><xsl:value-of select="@name"/></code></a></h3>
     <div class="api">
       <pre>
-        <xsl:text>struct </xsl:text>
+        <span class="keyword">struct </span>
         <xsl:value-of select="@name"/>
-        <xsl:text>{
+        <xsl:text> {
 </xsl:text>
       </pre>
       <table>
         <xsl:for-each select="field">
           <xsl:choose>
             <xsl:when test='@type = "union"'>
-              <tr><td>union {</td></tr>
+              <tr><td><span class="keyword">union</span> {</td></tr>
               <tr>
               <td><table>
               <xsl:for-each select="union/field">
                 <tr>
                   <td>
-                    <xsl:call-template name="dumptext">
-                      <xsl:with-param name="text" select="@type"/>
-                    </xsl:call-template>
+                    <span class="type">
+                      <xsl:call-template name="dumptext">
+                        <xsl:with-param name="text" select="@type"/>
+                      </xsl:call-template>
+                    </span>
                   </td>
                   <td><xsl:value-of select="@name"/></td>
                   <xsl:if test="@info != ''">
                     <td>
-                      <xsl:text> : </xsl:text>
-                      <xsl:call-template name="dumptext">
-                        <xsl:with-param name="text" select="@info"/>
-                      </xsl:call-template>
+                      <div class="comment">
+                        <xsl:call-template name="dumptext">
+                          <xsl:with-param name="text" select="@info"/>
+                        </xsl:call-template>
+                      </div>
                     </td>
                   </xsl:if>
                 </tr>
@@ -206,10 +247,11 @@
               <td><xsl:value-of select="@name"/></td>
                 <xsl:if test="@info != ''">
                   <td>
-                    <xsl:text> : </xsl:text>
-                    <xsl:call-template name="dumptext">
-                      <xsl:with-param name="text" select="@info"/>
-                    </xsl:call-template>
+                    <div class="comment">
+                      <xsl:call-template name="dumptext">
+                        <xsl:with-param name="text" select="@info"/>
+                      </xsl:call-template>
+                    </div>
                   </td>
                 </xsl:if>
               <td></td></tr>
@@ -217,17 +259,20 @@
             <xsl:otherwise>
               <tr>
                 <td>
-                  <xsl:call-template name="dumptext">
-                    <xsl:with-param name="text" select="@type"/>
-                  </xsl:call-template>
+                  <span class="type">
+                    <xsl:call-template name="dumptext">
+                      <xsl:with-param name="text" select="@type"/>
+                    </xsl:call-template>
+                  </span>
                 </td>
                 <td><xsl:value-of select="@name"/></td>
                 <xsl:if test="@info != ''">
                   <td>
-                    <xsl:text> : </xsl:text>
-                    <xsl:call-template name="dumptext">
-                      <xsl:with-param name="text" select="@info"/>
-                    </xsl:call-template>
+                    <div class="comment">
+                      <xsl:call-template name="dumptext">
+                        <xsl:with-param name="text" select="@info"/>
+                      </xsl:call-template>
+                    </div>
                   </td>
                 </xsl:if>
               </tr>
@@ -237,7 +282,7 @@
         <xsl:if test="not(field)">
           <tr>
             <td colspan="3">
-              <xsl:text>The content of this structure is not made public by the API</xsl:text>
+              <span class="undisclosed">The content of this structure is not made public by the API</span>
             </td>
           </tr>
         </xsl:if>
@@ -253,12 +298,12 @@
   <xsl:template match="macro">
     <xsl:variable name="name" select="string(@name)"/>
     <h3><a name="{$name}"><code><xsl:value-of select="$name"/></code></a></h3>
-    <pre><xsl:text>#define </xsl:text><xsl:value-of select="$name"/></pre>
-    <p>
-    <xsl:call-template name="dumptext">
+    <pre class="api"><span class="directive">#define</span><xsl:text> </xsl:text><xsl:value-of select="$name"/></pre>
+    <div>
+    <xsl:call-template name="formattext">
       <xsl:with-param name="text" select="info"/>
     </xsl:call-template>
-    </p><xsl:text>
+    </div><xsl:text>
 </xsl:text>
   </xsl:template>
 
@@ -267,9 +312,11 @@
     <xsl:variable name="nlen" select="string-length($name)"/>
     <xsl:variable name="tlen" select="string-length(return/@type)"/>
     <xsl:variable name="blen" select="(($nlen + 8) - (($nlen + 8) mod 8)) + (($tlen + 8) - (($tlen + 8) mod 8))"/>
-    <xsl:call-template name="dumptext">
-      <xsl:with-param name="text" select="return/@type"/>
-    </xsl:call-template>
+    <span class="type">
+      <xsl:call-template name="dumptext">
+        <xsl:with-param name="text" select="return/@type"/>
+      </xsl:call-template>
+    </span>
     <xsl:text>&#9;</xsl:text>
     <a href="#{@name}"><xsl:value-of select="@name"/></a>
     <xsl:if test="$blen - 40 &lt; -8">
@@ -280,12 +327,14 @@
     </xsl:if>
     <xsl:text>&#9;(</xsl:text>
     <xsl:if test="not(arg)">
-      <xsl:text>void</xsl:text>
+      <span class="type">void</span>
     </xsl:if>
     <xsl:for-each select="arg">
-      <xsl:call-template name="dumptext">
-        <xsl:with-param name="text" select="@type"/>
-      </xsl:call-template>
+      <span class="type">
+        <xsl:call-template name="dumptext">
+          <xsl:with-param name="text" select="@type"/>
+        </xsl:call-template>
+      </span>
       <xsl:text> </xsl:text>
       <xsl:value-of select="@name"/>
       <xsl:if test="position() != last()">
@@ -308,13 +357,15 @@
     <xsl:variable name="nlen" select="string-length($name)"/>
     <xsl:variable name="tlen" select="string-length(return/@type)"/>
     <xsl:variable name="blen" select="(($nlen + 8) - (($nlen + 8) mod 8)) + (($tlen + 8) - (($tlen + 8) mod 8))"/>
-    <xsl:text>typedef </xsl:text>
+    <span class="keyword">typedef</span><xsl:text> </xsl:text>
     <a href="#{$name}"><xsl:value-of select="$name"/></a>
     <xsl:text>
 </xsl:text>
-    <xsl:call-template name="dumptext">
-      <xsl:with-param name="text" select="return/@type"/>
-    </xsl:call-template>
+    <span class="type">
+      <xsl:call-template name="dumptext">
+        <xsl:with-param name="text" select="return/@type"/>
+      </xsl:call-template>
+    </span>
     <xsl:text>&#9;</xsl:text>
     <a href="#{$name}"><xsl:value-of select="$name"/></a>
     <xsl:if test="$blen - 40 &lt; -8">
@@ -325,12 +376,14 @@
     </xsl:if>
     <xsl:text>&#9;(</xsl:text>
     <xsl:if test="not(arg)">
-      <xsl:text>void</xsl:text>
+      <span class="type">void</span>
     </xsl:if>
     <xsl:for-each select="arg">
-      <xsl:call-template name="dumptext">
-        <xsl:with-param name="text" select="@type"/>
-      </xsl:call-template>
+      <span class="type">
+        <xsl:call-template name="dumptext">
+          <xsl:with-param name="text" select="@type"/>
+        </xsl:call-template>
+      </span>
       <xsl:text> </xsl:text>
       <xsl:value-of select="@name"/>
       <xsl:if test="position() != last()">
@@ -356,11 +409,13 @@
     <xsl:variable name="tlen" select="string-length(return/@type)"/>
     <xsl:variable name="blen" select="(($nlen + 8) - (($nlen + 8) mod 8)) + (($tlen + 8) - (($tlen + 8) mod 8))"/>
     <h3><a name="{$name}"><code><xsl:value-of select="$name"/></code></a></h3>
-    <pre class="programlisting">
-    <xsl:text>typedef </xsl:text>
-    <xsl:call-template name="dumptext">
-      <xsl:with-param name="text" select="return/@type"/>
-    </xsl:call-template>
+    <pre class="api">
+    <span class="keyword">typedef</span><xsl:text> </xsl:text>
+    <span class="type">
+      <xsl:call-template name="dumptext">
+        <xsl:with-param name="text" select="return/@type"/>
+      </xsl:call-template>
+    </span>
     <xsl:text>&#9;(*</xsl:text>
     <xsl:value-of select="@name"/>
     <xsl:if test="$blen - 40 &lt; -8">
@@ -371,16 +426,19 @@
     </xsl:if>
     <xsl:text>)&#9;(</xsl:text>
     <xsl:if test="not(arg)">
-      <xsl:text>void</xsl:text>
+      <span class="type">void</span>
     </xsl:if>
     <xsl:for-each select="arg">
-      <xsl:call-template name="dumptext">
-        <xsl:with-param name="text" select="@type"/>
-      </xsl:call-template>
+      <span class="type">
+        <xsl:call-template name="dumptext">
+          <xsl:with-param name="text" select="@type"/>
+        </xsl:call-template>
+      </span>
       <xsl:text> </xsl:text>
       <xsl:value-of select="@name"/>
       <xsl:if test="position() != last()">
-        <xsl:text>, </xsl:text><br/>
+        <xsl:text>,
+</xsl:text>
 	<xsl:if test="$blen - 40 &gt; 8">
 	  <xsl:text>&#9;</xsl:text>
 	</xsl:if>
@@ -393,34 +451,30 @@
     <xsl:text>)
 </xsl:text>
     </pre>
-    <p>
-    <xsl:call-template name="dumptext">
+    <div>
+    <xsl:call-template name="formattext">
       <xsl:with-param name="text" select="info"/>
     </xsl:call-template>
-    </p>
+    </div>
     <xsl:if test="arg | return">
-      <div class="variablelist"><table border="0"><col align="left"/><tbody>
+      <dl class="variablelist">
       <xsl:for-each select="arg">
-        <tr>
-          <td><span class="term"><i><tt><xsl:value-of select="@name"/></tt></i>:</span></td>
-	  <td>
-	    <xsl:call-template name="dumptext">
+        <dt><xsl:value-of select="@name"/></dt>
+        <dd>
+          <xsl:call-template name="dumptext">
 	      <xsl:with-param name="text" select="@info"/>
 	    </xsl:call-template>
-	  </td>
-        </tr>
+        </dd>
       </xsl:for-each>
       <xsl:if test="return/@info">
-        <tr>
-          <td><span class="term"><i><tt>Returns</tt></i>:</span></td>
-	  <td>
-	    <xsl:call-template name="dumptext">
-	      <xsl:with-param name="text" select="return/@info"/>
-	    </xsl:call-template>
-	  </td>
-        </tr>
+        <dt>Returns</dt>
+        <dd>
+          <xsl:call-template name="dumptext">
+            <xsl:with-param name="text" select="return/@info"/>
+          </xsl:call-template>
+        </dd>
       </xsl:if>
-      </tbody></table></div>
+      </dl>
     </xsl:if>
     <br/>
     <xsl:text>
@@ -433,10 +487,12 @@
     <xsl:variable name="tlen" select="string-length(return/@type)"/>
     <xsl:variable name="blen" select="(($nlen + 8) - (($nlen + 8) mod 8)) + (($tlen + 8) - (($tlen + 8) mod 8))"/>
     <h3><a name="{$name}"><code><xsl:value-of select="$name"/></code></a></h3>
-    <pre class="programlisting">
-    <xsl:call-template name="dumptext">
-      <xsl:with-param name="text" select="return/@type"/>
-    </xsl:call-template>
+    <pre class="api">
+    <span class="type">
+      <xsl:call-template name="dumptext">
+        <xsl:with-param name="text" select="return/@type"/>
+      </xsl:call-template>
+    </span>
     <xsl:text>&#9;</xsl:text>
     <xsl:value-of select="@name"/>
     <xsl:if test="$blen - 40 &lt; -8">
@@ -447,16 +503,19 @@
     </xsl:if>
     <xsl:text>&#9;(</xsl:text>
     <xsl:if test="not(arg)">
-      <xsl:text>void</xsl:text>
+      <span class="type">void</span>
     </xsl:if>
     <xsl:for-each select="arg">
-      <xsl:call-template name="dumptext">
-        <xsl:with-param name="text" select="@type"/>
-      </xsl:call-template>
+      <span class="type">
+        <xsl:call-template name="dumptext">
+          <xsl:with-param name="text" select="@type"/>
+        </xsl:call-template>
+      </span>
       <xsl:text> </xsl:text>
       <xsl:value-of select="@name"/>
       <xsl:if test="position() != last()">
-        <xsl:text>, </xsl:text><br/>
+        <xsl:text>,
+</xsl:text>
 	<xsl:if test="$blen - 40 &gt; 8">
 	  <xsl:text>&#9;</xsl:text>
 	</xsl:if>
@@ -466,39 +525,33 @@
 	<xsl:text>&#9;&#9;&#9;&#9;&#9; </xsl:text>
       </xsl:if>
     </xsl:for-each>
-    <xsl:text>)</xsl:text><br/>
-    <xsl:text>
-</xsl:text>
+    <xsl:text>)</xsl:text>
     </pre>
-    <p>
-    <xsl:call-template name="dumptext">
+    <div>
+    <xsl:call-template name="formattext">
       <xsl:with-param name="text" select="info"/>
     </xsl:call-template>
-    </p><xsl:text>
+    </div><xsl:text>
 </xsl:text>
     <xsl:if test="arg | return/@info">
-      <div class="variablelist"><table border="0"><col align="left"/><tbody>
-      <xsl:for-each select="arg">
-        <tr>
-          <td><span class="term"><i><tt><xsl:value-of select="@name"/></tt></i>:</span></td>
-	  <td>
-	    <xsl:call-template name="dumptext">
-	      <xsl:with-param name="text" select="@info"/>
-	    </xsl:call-template>
-	  </td>
-        </tr>
-      </xsl:for-each>
-      <xsl:if test="return/@info">
-        <tr>
-          <td><span class="term"><i><tt>Returns</tt></i>:</span></td>
-	  <td>
+      <dl class="variablelist">
+        <xsl:for-each select="arg">
+          <dt><xsl:value-of select="@name"/></dt>
+          <dd>
+            <xsl:call-template name="dumptext">
+              <xsl:with-param name="text" select="@info"/>
+            </xsl:call-template>
+          </dd>
+        </xsl:for-each>
+        <xsl:if test="return/@info">
+          <dt>Returns</dt>
+          <dd>
 	    <xsl:call-template name="dumptext">
 	      <xsl:with-param name="text" select="return/@info"/>
 	    </xsl:call-template>
-	  </td>
-        </tr>
-      </xsl:if>
-      </tbody></table></div>
+          </dd>
+        </xsl:if>
+      </dl>
     </xsl:if>
   </xsl:template>
 
@@ -547,20 +600,20 @@
         <h2>Table of Contents</h2>
         <xsl:if test="count(exports[@type='macro']) > 0">
           <h3><a href="#macros">Macros</a></h3>
-          <pre>
+          <pre class="api">
             <xsl:apply-templates select="exports[@type='macro']" mode="toc">
               <xsl:sort select='@symbol'/>
             </xsl:apply-templates>
           </pre>
         </xsl:if>
         <h3><a href="#types">Types</a></h3>
-        <pre>
+        <pre class="api">
           <xsl:apply-templates select="exports[@type='typedef']" mode="toc">
             <xsl:sort select='@symbol'/>
           </xsl:apply-templates>
         </pre>
         <h3><a href="#functions">Functions</a></h3>
-        <pre>
+        <pre class="api">
           <xsl:apply-templates select="exports[@type='function']" mode="toc">
             <xsl:sort select='@symbol'/>
           </xsl:apply-templates>

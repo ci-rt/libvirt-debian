@@ -42,7 +42,6 @@
 #include <sys/stat.h>
 #include <inttypes.h>
 #include <strings.h>
-#include <termios.h>
 
 #include <libxml/parser.h>
 #include <libxml/tree.h>
@@ -55,22 +54,22 @@
 #endif
 
 #include "internal.h"
-#include "virterror_internal.h"
+#include "virerror.h"
 #include "base64.h"
-#include "buf.h"
+#include "virbuffer.h"
 #include "console.h"
-#include "util.h"
-#include "memory.h"
-#include "xml.h"
+#include "virutil.h"
+#include "viralloc.h"
+#include "virxml.h"
 #include "libvirt/libvirt-qemu.h"
+#include "libvirt/libvirt-lxc.h"
 #include "virfile.h"
-#include "event_poll.h"
 #include "configmake.h"
-#include "threads.h"
-#include "command.h"
+#include "virthread.h"
+#include "vircommand.h"
 #include "virkeycode.h"
 #include "virnetdevbandwidth.h"
-#include "util/bitmap.h"
+#include "virbitmap.h"
 #include "conf/domain_conf.h"
 #include "virtypedparam.h"
 
@@ -168,7 +167,9 @@ vshPrettyCapacity(unsigned long long val, const char **unit)
 
 /*
  * Convert the strings separated by ',' into array. The caller
- * must free the returned array after use.
+ * must free the first array element and the returned array after
+ * use (all other array elements belong to the memory allocated
+ * for the first array element).
  *
  * Returns the length of the filled array on success, or -1
  * on error.
@@ -179,35 +180,46 @@ vshStringToArray(const char *str,
 {
     char *str_copied = vshStrdup(NULL, str);
     char *str_tok = NULL;
+    char *tmp;
     unsigned int nstr_tokens = 0;
     char **arr = NULL;
+    size_t len = strlen(str_copied);
 
-    /* tokenize the string from user and save it's parts into an array */
-    if (str_copied) {
-        nstr_tokens = 1;
+    /* tokenize the string from user and save its parts into an array */
+    nstr_tokens = 1;
 
-        /* count the delimiters */
-        str_tok = str_copied;
-        while (*str_tok) {
-            if (*str_tok == ',')
-                nstr_tokens++;
+    /* count the delimiters, recognizing ,, as an escape for a
+     * literal comma */
+    str_tok = str_copied;
+    while ((str_tok = strchr(str_tok, ','))) {
+        if (str_tok[1] == ',')
             str_tok++;
-        }
-
-        if (VIR_ALLOC_N(arr, nstr_tokens) < 0) {
-            virReportOOMError();
-            VIR_FREE(str_copied);
-            return -1;
-        }
-
-        /* tokenize the input string */
-        nstr_tokens = 0;
-        str_tok = str_copied;
-        do {
-            arr[nstr_tokens] = strsep(&str_tok, ",");
+        else
             nstr_tokens++;
-        } while (str_tok);
+        str_tok++;
     }
+
+    if (VIR_ALLOC_N(arr, nstr_tokens) < 0) {
+        virReportOOMError();
+        VIR_FREE(str_copied);
+        return -1;
+    }
+
+    /* tokenize the input string, while treating ,, as a literal comma */
+    nstr_tokens = 0;
+    tmp = str_tok = str_copied;
+    while ((tmp = strchr(tmp, ','))) {
+        if (tmp[1] == ',') {
+            memmove(&tmp[1], &tmp[2], len - (tmp - str_copied) - 2 + 1);
+            len--;
+            tmp++;
+            continue;
+        }
+        *tmp++ = '\0';
+        arr[nstr_tokens++] = str_tok;
+        str_tok = tmp;
+    }
+    arr[nstr_tokens++] = str_tok;
 
     *array = arr;
     return nstr_tokens;
@@ -225,6 +237,15 @@ virshErrorHandler(void *unused ATTRIBUTE_UNUSED, virErrorPtr error)
     last_error = virSaveLastError();
     if (getenv("VIRSH_DEBUG") != NULL)
         virDefaultErrorFunc(error);
+}
+
+/* Store a libvirt error that is from a helper API that doesn't raise errors
+ * so it doesn't get overwritten */
+void
+vshSaveLibvirtError(void)
+{
+    virFreeError(last_error);
+    last_error = virSaveLastError();
 }
 
 /*
@@ -310,7 +331,10 @@ vshReconnect(vshControl *ctl)
                                    virConnectAuthPtrDefault,
                                    ctl->readonly ? VIR_CONNECT_RO : 0);
     if (!ctl->conn) {
-        vshError(ctl, "%s", _("Failed to reconnect to the hypervisor"));
+        if (disconnected)
+            vshError(ctl, "%s", _("Failed to reconnect to the hypervisor"));
+        else
+            vshError(ctl, "%s", _("failed to connect to the hypervisor"));
     } else {
         if (virConnectRegisterCloseCallback(ctl->conn, vshCatchDisconnect,
                                             NULL, NULL) < 0)
@@ -424,8 +448,12 @@ static const vshCmdInfo info_help[] = {
 };
 
 static const vshCmdOptDef opts_help[] = {
-    {"command", VSH_OT_DATA, 0, N_("Prints global help, command specific help, or help for a group of related commands")},
-    {NULL, 0, 0, NULL}
+    {.name = "command",
+     .type = VSH_OT_DATA,
+     .flags = 0,
+     .help = N_("Prints global help, command specific help, or help for a group of related commands")
+    },
+    {.name = NULL}
 };
 
 static bool
@@ -512,6 +540,8 @@ vshTreePrintInternal(vshControl *ctl,
 
     /* Finally print all children */
     virBufferAddLit(indent, "  ");
+    if (virBufferError(indent))
+        goto cleanup;
     for (i = 0 ; i < num_devices ; i++) {
         const char *parent = (lookup)(i, true, opaque);
 
@@ -521,15 +551,18 @@ vshTreePrintInternal(vshControl *ctl,
                                  false, indent) < 0)
             goto cleanup;
     }
-    virBufferTrim(indent, "  ", -1);
+    if (virBufferTrim(indent, "  ", -1) < 0)
+        goto cleanup;
 
     /* If there was no child device, and we're the last in
      * a list of devices, then print another blank line */
     if (nextlastdev == -1 && devid == lastdev)
         vshPrint(ctl, "%s\n", virBufferCurrentContent(indent));
 
-    if (!root)
-        virBufferTrim(indent, NULL, 2);
+    if (!root) {
+        if (virBufferTrim(indent, NULL, 2) < 0)
+            goto cleanup;
+    }
     ret = 0;
 cleanup:
     return ret;
@@ -559,7 +592,7 @@ vshEditWriteToTempFile(vshControl *ctl, const char *doc)
     int fd;
     char ebuf[1024];
 
-    tmpdir = getenv ("TMPDIR");
+    tmpdir = getenv("TMPDIR");
     if (!tmpdir) tmpdir = "/tmp";
     if (virAsprintf(&ret, "%s/virshXXXXXX.xml", tmpdir) < 0) {
         vshError(ctl, "%s", _("out of memory"));
@@ -675,8 +708,12 @@ static const vshCmdInfo info_cd[] = {
 };
 
 static const vshCmdOptDef opts_cd[] = {
-    {"dir", VSH_OT_DATA, 0, N_("directory to switch to (default: home or else root)")},
-    {NULL, 0, 0, NULL}
+    {.name = "dir",
+     .type = VSH_OT_DATA,
+     .flags = 0,
+     .help = N_("directory to switch to (default: home or else root)")
+    },
+    {.name = NULL}
 };
 
 static bool
@@ -747,11 +784,27 @@ static const vshCmdInfo info_echo[] = {
 };
 
 static const vshCmdOptDef opts_echo[] = {
-    {"shell", VSH_OT_BOOL, 0, N_("escape for shell use")},
-    {"xml", VSH_OT_BOOL, 0, N_("escape for XML use")},
-    {"str", VSH_OT_ALIAS, 0, "string"},
-    {"string", VSH_OT_ARGV, 0, N_("arguments to echo")},
-    {NULL, 0, 0, NULL}
+    {.name = "shell",
+     .type = VSH_OT_BOOL,
+     .flags = 0,
+     .help = N_("escape for shell use")
+    },
+    {.name = "xml",
+     .type = VSH_OT_BOOL,
+     .flags = 0,
+     .help = N_("escape for XML use")
+    },
+    {.name = "str",
+     .type = VSH_OT_ALIAS,
+     .flags = 0,
+     .help = "string"
+    },
+    {.name = "string",
+     .type = VSH_OT_ARGV,
+     .flags = 0,
+     .help = N_("arguments to echo")
+    },
+    {.name = NULL}
 };
 
 /* Exists mainly for debugging virsh, but also handy for adding back
@@ -900,8 +953,12 @@ vshCmddefOptParse(const vshCmdDef *cmd, uint32_t *opts_need_arg,
     return 0;
 }
 
-static vshCmdOptDef helpopt = {"help", VSH_OT_BOOL, 0,
-                               N_("print help for this function")};
+static vshCmdOptDef helpopt = {
+    .name = "help",
+    .type = VSH_OT_BOOL,
+    .flags = 0,
+    .help = N_("print help for this function")
+};
 static const vshCmdOptDef *
 vshCmddefGetOption(vshControl *ctl, const vshCmdDef *cmd, const char *name,
                    uint32_t *opts_seen, int *opt_index)
@@ -1549,19 +1606,19 @@ vshCommandRun(vshControl *ctl, const vshCmd *cmd)
             !(cmd->def->flags & VSH_CMD_FLAG_NOCONNECT))
             vshReconnect(ctl);
 
+        if (enable_timing)
+            GETTIMEOFDAY(&before);
+
         if ((cmd->def->flags & VSH_CMD_FLAG_NOCONNECT) ||
             vshConnectionUsability(ctl, ctl->conn)) {
-            if (enable_timing)
-                GETTIMEOFDAY(&before);
-
             ret = cmd->def->handler(ctl, cmd);
-
-            if (enable_timing)
-                GETTIMEOFDAY(&after);
         } else {
             /* connection is not usable, return error */
             ret = false;
         }
+
+        if (enable_timing)
+            GETTIMEOFDAY(&after);
 
         /* try to automatically catch disconnections */
         if (!ret &&
@@ -1959,7 +2016,7 @@ vshGetTypedParamValue(vshControl *ctl, virTypedParameterPtr item)
     int ret = 0;
     char *str = NULL;
 
-    switch(item->type) {
+    switch (item->type) {
     case VIR_TYPED_PARAM_INT:
         ret = virAsprintf(&str, "%d", item->value.i);
         break;
@@ -1997,26 +2054,6 @@ vshGetTypedParamValue(vshControl *ctl, virTypedParameterPtr item)
         exit(EXIT_FAILURE);
     }
     return str;
-}
-
-virTypedParameterPtr
-vshFindTypedParamByName(const char *name, virTypedParameterPtr list, int count)
-{
-    int i = count;
-    virTypedParameterPtr found = list;
-
-    if (!list || !name)
-        return NULL;
-
-    while (i-- > 0) {
-        if (STREQ(name, found->field))
-            return found;
-
-        found++; /* go to next struct in array */
-    }
-
-    /* not found */
-    return NULL;
 }
 
 void
@@ -2165,10 +2202,7 @@ vshInit(vshControl *ctl)
     ctl->eventLoopStarted = true;
 
     if (ctl->name) {
-        ctl->conn = virConnectOpenAuth(ctl->name,
-                                       virConnectAuthPtrDefault,
-                                       ctl->readonly ? VIR_CONNECT_RO : 0);
-
+        vshReconnect(ctl);
         /* Connecting to a named connection must succeed, but we delay
          * connecting to the default connection until we need it
          * (since the first command might be 'connect' which allows a
@@ -2177,7 +2211,6 @@ vshInit(vshControl *ctl)
          */
         if (!ctl->conn) {
             vshReportError(ctl);
-            vshError(ctl, "%s", _("failed to connect to the hypervisor"));
             return false;
         }
     }
@@ -2235,7 +2268,7 @@ vshOutputLogFile(vshControl *ctl, int log_level, const char *msg_format,
                  va_list ap)
 {
     virBuffer buf = VIR_BUFFER_INITIALIZER;
-    char *str;
+    char *str = NULL;
     size_t len;
     const char *lvl = "";
     time_t stTime;
@@ -2708,7 +2741,7 @@ vshShowVersion(vshControl *ctl ATTRIBUTE_UNUSED)
     vshPrint(ctl, " Interface");
 # if defined(WITH_NETCF)
     vshPrint(ctl, " netcf");
-# elif defined(HAVE_UDEV)
+# elif defined(WITH_UDEV)
     vshPrint(ctl, " udev");
 # endif
 #endif

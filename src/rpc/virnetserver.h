@@ -26,12 +26,14 @@
 
 # include <signal.h>
 
-# include "virnettlscontext.h"
+# ifdef WITH_GNUTLS
+#  include "virnettlscontext.h"
+# endif
 # include "virnetserverprogram.h"
 # include "virnetserverclient.h"
 # include "virnetserverservice.h"
 # include "virobject.h"
-# include "json.h"
+# include "virjson.h"
 
 virNetServerPtr virNetServerNew(size_t min_workers,
                                 size_t max_workers,
@@ -60,9 +62,10 @@ typedef int (*virNetServerAutoShutdownFunc)(virNetServerPtr srv, void *opaque);
 bool virNetServerIsPrivileged(virNetServerPtr srv);
 
 void virNetServerAutoShutdown(virNetServerPtr srv,
-                              unsigned int timeout,
-                              virNetServerAutoShutdownFunc func,
-                              void *opaque);
+                              unsigned int timeout);
+
+void virNetServerAddShutdownInhibition(virNetServerPtr srv);
+void virNetServerRemoveShutdownInhibition(virNetServerPtr srv);
 
 typedef void (*virNetServerSignalFunc)(virNetServerPtr srv, siginfo_t *info, void *opaque);
 
@@ -78,8 +81,10 @@ int virNetServerAddService(virNetServerPtr srv,
 int virNetServerAddProgram(virNetServerPtr srv,
                            virNetServerProgramPtr prog);
 
+# if WITH_GNUTLS
 int virNetServerSetTLSContext(virNetServerPtr srv,
                               virNetTLSContextPtr tls);
+# endif
 
 void virNetServerUpdateServices(virNetServerPtr srv,
                                 bool enabled);

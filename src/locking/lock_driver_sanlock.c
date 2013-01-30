@@ -1,7 +1,7 @@
 /*
  * lock_driver_sanlock.c: A lock driver for Sanlock
  *
- * Copyright (C) 2010-2012 Red Hat, Inc.
+ * Copyright (C) 2010-2013 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -37,13 +37,13 @@
 
 #include "dirname.h"
 #include "lock_driver.h"
-#include "logging.h"
-#include "virterror_internal.h"
-#include "memory.h"
-#include "util.h"
+#include "virlog.h"
+#include "virerror.h"
+#include "viralloc.h"
+#include "virutil.h"
 #include "virfile.h"
 #include "md5.h"
-#include "conf.h"
+#include "virconf.h"
 
 #include "configmake.h"
 
@@ -164,8 +164,8 @@ static int virLockManagerSanlockLoadConfig(const char *configFile)
         VIR_FREE(tmp);
     }
 
-    p = virConfGetValue (conf, "group");
-    CHECK_TYPE ("group", VIR_CONF_STRING);
+    p = virConfGetValue(conf, "group");
+    CHECK_TYPE("group", VIR_CONF_STRING);
     if (p) {
         if (!(tmp = strdup(p->str))) {
             virReportOOMError();
@@ -184,6 +184,11 @@ static int virLockManagerSanlockLoadConfig(const char *configFile)
     return 0;
 }
 
+/* How much ms sleep before retrying to add a lockspace? */
+#define LOCKSPACE_SLEEP 100
+/* How many times try adding a lockspace? */
+#define LOCKSPACE_RETRIES 10
+
 static int virLockManagerSanlockSetupLockspace(void)
 {
     int fd = -1;
@@ -192,6 +197,7 @@ static int virLockManagerSanlockSetupLockspace(void)
     struct sanlk_lockspace ls;
     char *path = NULL;
     char *dir = NULL;
+    int retries = LOCKSPACE_RETRIES;
 
     if (virAsprintf(&path, "%s/%s",
                     driver->autoDiskLeasePath,
@@ -230,7 +236,7 @@ static int virLockManagerSanlockSetupLockspace(void)
             goto error;
         }
 
-        if (driver->group != -1)
+        if (driver->group != (gid_t) -1)
             perms |= 0060;
 
         if ((fd = open(path, O_WRONLY|O_CREAT|O_EXCL, perms)) < 0) {
@@ -243,7 +249,7 @@ static int virLockManagerSanlockSetupLockspace(void)
             VIR_DEBUG("Someone else just created lockspace %s", path);
         } else {
             /* chown() the path to make sure sanlock can access it */
-            if ((driver->user != -1 || driver->group != -1) &&
+            if ((driver->user != (uid_t) -1 || driver->group != (gid_t) -1) &&
                 (fchown(fd, driver->user, driver->group) < 0)) {
                 virReportSystemError(errno,
                                      _("cannot chown '%s' to (%u, %u)"),
@@ -297,8 +303,8 @@ static int virLockManagerSanlockSetupLockspace(void)
         }
     } else if (S_ISREG(st.st_mode)) {
         /* okay, the lease file exists. Check the permissions */
-        if (((driver->user != -1 && driver->user != st.st_uid) ||
-             (driver->group != -1 && driver->group != st.st_gid)) &&
+        if (((driver->user != (uid_t) -1 && driver->user != st.st_uid) ||
+             (driver->group != (gid_t) -1 && driver->group != st.st_gid)) &&
             (chown(path, driver->user, driver->group) < 0)) {
             virReportSystemError(errno,
                                  _("cannot chown '%s' to (%u, %u)"),
@@ -308,7 +314,7 @@ static int virLockManagerSanlockSetupLockspace(void)
             goto error;
         }
 
-        if ((driver->group != -1 && (st.st_mode & 0060) != 0060) &&
+        if ((driver->group != (gid_t) -1 && (st.st_mode & 0060) != 0060) &&
             chmod(path, 0660) < 0) {
             virReportSystemError(errno,
                                  _("cannot chmod '%s' to 0660"),
@@ -318,11 +324,30 @@ static int virLockManagerSanlockSetupLockspace(void)
     }
 
     ls.host_id = driver->hostID;
-    /* Stage 2: Try to register the lockspace with the daemon.
-     * If the lockspace is already registered, we should get EEXIST back
-     * in which case we can just carry on with life
+    /* Stage 2: Try to register the lockspace with the daemon.  If the lockspace
+     * is already registered, we should get EEXIST back in which case we can
+     * just carry on with life. If EINPROGRESS is returned, we have two options:
+     * either call a sanlock API that blocks us until lockspace changes state,
+     * or we can fallback to polling.
      */
+retry:
     if ((rv = sanlock_add_lockspace(&ls, 0)) < 0) {
+        if (-rv == EINPROGRESS && --retries) {
+#ifdef HAVE_SANLOCK_INQ_LOCKSPACE
+            /* we have this function which blocks until lockspace change the
+             * state. It returns 0 if lockspace has been added, -ENOENT if it
+             * hasn't. */
+            VIR_DEBUG("Inquiring lockspace");
+            if (sanlock_inq_lockspace(&ls, SANLK_INQ_WAIT) < 0)
+                VIR_DEBUG("Unable to inquire lockspace");
+#else
+            /* fall back to polling */
+            VIR_DEBUG("Sleeping for %dms", LOCKSPACE_SLEEP);
+            usleep(LOCKSPACE_SLEEP * 1000);
+#endif
+            VIR_DEBUG("Retrying to add lockspace (left %d)", retries);
+            goto retry;
+        }
         if (-rv != EEXIST) {
             if (rv <= -200)
                 virReportError(VIR_ERR_INTERNAL_ERROR,
@@ -340,6 +365,8 @@ static int virLockManagerSanlockSetupLockspace(void)
         VIR_DEBUG("Lockspace %s has been registered", path);
     }
 
+    VIR_FREE(path);
+    VIR_FREE(dir);
     return 0;
 
 error_unlink:
@@ -372,7 +399,8 @@ static int virLockManagerSanlockInit(unsigned int version,
     driver->requireLeaseForDisks = true;
     driver->hostID = 0;
     driver->autoDiskLease = false;
-    driver->user = driver->group = -1;
+    driver->user = (uid_t) -1;
+    driver->group = (gid_t) -1;
     if (!(driver->autoDiskLeasePath = strdup(LOCALSTATEDIR "/lib/libvirt/sanlock"))) {
         VIR_FREE(driver);
         virReportOOMError();
@@ -654,6 +682,17 @@ static int virLockManagerSanlockCreateLease(struct sanlk_resource *res)
             }
             VIR_DEBUG("Someone else just created lockspace %s", res->disks[0].path);
         } else {
+            /* chown() the path to make sure sanlock can access it */
+            if ((driver->user != (uid_t) -1 || driver->group != (gid_t) -1) &&
+                (fchown(fd, driver->user, driver->group) < 0)) {
+                virReportSystemError(errno,
+                                     _("cannot chown '%s' to (%u, %u)"),
+                                     res->disks[0].path,
+                                     (unsigned int) driver->user,
+                                     (unsigned int) driver->group);
+                goto error_unlink;
+            }
+
             if ((rv = sanlock_align(&res->disks[0])) < 0) {
                 if (rv <= -200)
                     virReportError(VIR_ERR_INTERNAL_ERROR,

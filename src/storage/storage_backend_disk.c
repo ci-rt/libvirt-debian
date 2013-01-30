@@ -26,12 +26,12 @@
 #include <unistd.h>
 #include <stdio.h>
 
-#include "virterror_internal.h"
-#include "logging.h"
+#include "virerror.h"
+#include "virlog.h"
 #include "storage_backend_disk.h"
-#include "util.h"
-#include "memory.h"
-#include "command.h"
+#include "virutil.h"
+#include "viralloc.h"
+#include "vircommand.h"
 #include "configmake.h"
 
 #define VIR_FROM_THIS VIR_FROM_STORAGE
@@ -365,7 +365,7 @@ virStorageBackendDiskFindLabel(const char* device)
     /* if parted succeeds we have a valid partition table */
     ret = virCommandRun(cmd, NULL);
     if (ret < 0) {
-        if (strstr (output, "unrecognised disk label"))
+        if (strstr(output, "unrecognised disk label"))
             ret = 1;
     }
 
@@ -410,7 +410,7 @@ virStorageBackendDiskBuildPool(virConnectPtr conn ATTRIBUTE_UNUSED,
     else {
         int check;
 
-        check = virStorageBackendDiskFindLabel (
+        check = virStorageBackendDiskFindLabel(
                     pool->def->source.devices[0].path);
         if (check > 0) {
             ok_to_mklabel = true;

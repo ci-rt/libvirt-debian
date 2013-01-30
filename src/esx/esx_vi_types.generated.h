@@ -19,6 +19,22 @@ int esxVI_AutoStartWaitHeartbeatSetting_Deserialize(xmlNodePtr node, esxVI_AutoS
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Enum: FibreChannelPortType
+ */
+
+enum _esxVI_FibreChannelPortType {
+    esxVI_FibreChannelPortType_Undefined = 0,
+    esxVI_FibreChannelPortType_Fabric,
+    esxVI_FibreChannelPortType_Loop,
+    esxVI_FibreChannelPortType_PointToPoint,
+    esxVI_FibreChannelPortType_Unknown,
+};
+
+int esxVI_FibreChannelPortType_Deserialize(xmlNodePtr node, esxVI_FibreChannelPortType *item);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * VI Enum: ManagedEntityStatus
  */
 
@@ -184,6 +200,9 @@ struct _esxVI_AboutInfo {
     char *productLineId;                                   /* required */
     char *apiType;                                         /* required */
     char *apiVersion;                                      /* required */
+    char *instanceUuid;                                    /* optional */
+    char *licenseProductName;                              /* optional */
+    char *licenseProductVersion;                           /* optional */
 };
 
 int esxVI_AboutInfo_Alloc(esxVI_AboutInfo **item);
@@ -311,6 +330,7 @@ struct _esxVI_DatastoreInfo {
     char *url;                                             /* required */
     esxVI_Long *freeSpace;                                 /* required */
     esxVI_Long *maxFileSize;                               /* required */
+    esxVI_DateTime *timestamp;                             /* optional */
 };
 
 int esxVI_DatastoreInfo_Alloc(esxVI_DatastoreInfo **item);
@@ -338,6 +358,7 @@ struct _esxVI_Description {
 int esxVI_Description_Alloc(esxVI_Description **item);
 void esxVI_Description_Free(esxVI_Description **item);
 int esxVI_Description_Validate(esxVI_Description *item);
+esxVI_Description *esxVI_Description_DynamicCast(void *item);
 int esxVI_Description_AppendToList(esxVI_Description **list, esxVI_Description *item);
 int esxVI_Description_Deserialize(xmlNodePtr node, esxVI_Description **item);
 int esxVI_Description_DeserializeList(xmlNodePtr node, esxVI_Description **list);
@@ -395,6 +416,7 @@ int esxVI_DynamicProperty_DeserializeList(xmlNodePtr node, esxVI_DynamicProperty
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * VI Object: ElementDescription
  *            extends Description
+ *            extended by ExtendedElementDescription
  */
 
 struct _esxVI_ElementDescription {
@@ -412,6 +434,7 @@ struct _esxVI_ElementDescription {
 int esxVI_ElementDescription_Alloc(esxVI_ElementDescription **item);
 void esxVI_ElementDescription_Free(esxVI_ElementDescription **item);
 int esxVI_ElementDescription_Validate(esxVI_ElementDescription *item);
+esxVI_ElementDescription *esxVI_ElementDescription_DynamicCast(void *item);
 int esxVI_ElementDescription_AppendToList(esxVI_ElementDescription **list, esxVI_ElementDescription *item);
 int esxVI_ElementDescription_Deserialize(xmlNodePtr node, esxVI_ElementDescription **item);
 int esxVI_ElementDescription_DeserializeList(xmlNodePtr node, esxVI_ElementDescription **list);
@@ -462,6 +485,37 @@ int esxVI_EventArgument_Deserialize(xmlNodePtr node, esxVI_EventArgument **item)
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Object: ExtendedElementDescription
+ *            extends ElementDescription
+ */
+
+struct _esxVI_ExtendedElementDescription {
+    esxVI_ExtendedElementDescription *_next;               /* optional */
+    esxVI_Type _type;                                      /* required */
+
+    /* Description */
+    char *label;                                           /* required */
+    char *summary;                                         /* required */
+
+    /* ElementDescription */
+    char *key;                                             /* required */
+
+    /* ExtendedElementDescription */
+    char *messageCatalogKeyPrefix;                         /* required */
+    esxVI_KeyAnyValue *messageArg;                         /* optional, list */
+};
+
+int esxVI_ExtendedElementDescription_Alloc(esxVI_ExtendedElementDescription **item);
+void esxVI_ExtendedElementDescription_Free(esxVI_ExtendedElementDescription **item);
+int esxVI_ExtendedElementDescription_Validate(esxVI_ExtendedElementDescription *item);
+esxVI_ExtendedElementDescription *esxVI_ExtendedElementDescription_DynamicCast(void *item);
+int esxVI_ExtendedElementDescription_AppendToList(esxVI_ExtendedElementDescription **list, esxVI_ExtendedElementDescription *item);
+int esxVI_ExtendedElementDescription_Deserialize(xmlNodePtr node, esxVI_ExtendedElementDescription **item);
+int esxVI_ExtendedElementDescription_DeserializeList(xmlNodePtr node, esxVI_ExtendedElementDescription **list);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * VI Object: FileBackedVirtualDiskSpec
  *            extends VirtualDiskSpec
  */
@@ -505,6 +559,7 @@ struct _esxVI_FileInfo {
     char *path;                                            /* required */
     esxVI_Long *fileSize;                                  /* optional */
     esxVI_DateTime *modification;                          /* optional */
+    char *owner;                                           /* optional */
 };
 
 int esxVI_FileInfo_Alloc(esxVI_FileInfo **item);
@@ -557,6 +612,7 @@ struct _esxVI_FileQueryFlags {
     esxVI_Boolean fileType;                                /* required */
     esxVI_Boolean fileSize;                                /* required */
     esxVI_Boolean modification;                            /* required */
+    esxVI_Boolean fileOwner;                               /* optional */
 };
 
 int esxVI_FileQueryFlags_Alloc(esxVI_FileQueryFlags **item);
@@ -579,6 +635,7 @@ struct _esxVI_FloppyImageFileInfo {
     char *path;                                            /* required */
     esxVI_Long *fileSize;                                  /* optional */
     esxVI_DateTime *modification;                          /* optional */
+    char *owner;                                           /* optional */
 
     /* FloppyImageFileInfo */
     /* no properties */
@@ -633,6 +690,7 @@ struct _esxVI_FolderFileInfo {
     char *path;                                            /* required */
     esxVI_Long *fileSize;                                  /* optional */
     esxVI_DateTime *modification;                          /* optional */
+    char *owner;                                           /* optional */
 
     /* FolderFileInfo */
     /* no properties */
@@ -694,6 +752,66 @@ int esxVI_HostAutoStartManagerConfig_Serialize(esxVI_HostAutoStartManagerConfig 
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Object: HostBlockAdapterTargetTransport
+ *            extends HostTargetTransport
+ */
+
+struct _esxVI_HostBlockAdapterTargetTransport {
+    esxVI_HostBlockAdapterTargetTransport *_unused;        /* optional */
+    esxVI_Type _type;                                      /* required */
+
+    /* HostTargetTransport */
+    /* no properties */
+
+    /* HostBlockAdapterTargetTransport */
+    /* no properties */
+};
+
+int esxVI_HostBlockAdapterTargetTransport_Alloc(esxVI_HostBlockAdapterTargetTransport **item);
+void esxVI_HostBlockAdapterTargetTransport_Free(esxVI_HostBlockAdapterTargetTransport **item);
+int esxVI_HostBlockAdapterTargetTransport_Validate(esxVI_HostBlockAdapterTargetTransport *item);
+esxVI_HostBlockAdapterTargetTransport *esxVI_HostBlockAdapterTargetTransport_DynamicCast(void *item);
+int esxVI_HostBlockAdapterTargetTransport_Deserialize(xmlNodePtr node, esxVI_HostBlockAdapterTargetTransport **item);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Object: HostBlockHba
+ *            extends HostHostBusAdapter
+ */
+
+struct _esxVI_HostBlockHba {
+    esxVI_HostBlockHba *_next;                             /* optional */
+    esxVI_Type _type;                                      /* required */
+
+    /* HostHostBusAdapter */
+    char *key;                                             /* optional */
+    char *device;                                          /* required */
+    esxVI_Int *bus;                                        /* required */
+    char *status;                                          /* required */
+    char *model;                                           /* required */
+    char *driver;                                          /* optional */
+    char *pci;                                             /* optional */
+
+    /* HostBlockHba */
+    /* no properties */
+};
+
+int esxVI_HostBlockHba_Alloc(esxVI_HostBlockHba **item);
+void esxVI_HostBlockHba_Free(esxVI_HostBlockHba **item);
+int esxVI_HostBlockHba_Validate(esxVI_HostBlockHba *item);
+esxVI_HostBlockHba *esxVI_HostBlockHba_DynamicCast(void *item);
+int esxVI_HostBlockHba_AppendToList(esxVI_HostBlockHba **list, esxVI_HostBlockHba *item);
+int esxVI_HostBlockHba_DeepCopy(esxVI_HostBlockHba **dst, esxVI_HostBlockHba *src);
+int esxVI_HostBlockHba_DeepCopyList(esxVI_HostBlockHba **dstList, esxVI_HostBlockHba *srcList);
+int esxVI_HostBlockHba_CastFromAnyType(esxVI_AnyType *anyType, esxVI_HostBlockHba **item);
+int esxVI_HostBlockHba_CastListFromAnyType(esxVI_AnyType *anyType, esxVI_HostBlockHba **list);
+int esxVI_HostBlockHba_Deserialize(xmlNodePtr node, esxVI_HostBlockHba **item);
+int esxVI_HostBlockHba_DeserializeList(xmlNodePtr node, esxVI_HostBlockHba **list);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * VI Object: HostConfigManager
  */
 
@@ -707,6 +825,7 @@ struct _esxVI_HostConfigManager {
     esxVI_ManagedObjectReference *storageSystem;           /* optional */
     esxVI_ManagedObjectReference *networkSystem;           /* optional */
     esxVI_ManagedObjectReference *vmotionSystem;           /* optional */
+    esxVI_ManagedObjectReference *virtualNicManager;       /* optional */
     esxVI_ManagedObjectReference *serviceSystem;           /* optional */
     esxVI_ManagedObjectReference *firewallSystem;          /* optional */
     esxVI_ManagedObjectReference *advancedOption;          /* optional */
@@ -718,6 +837,9 @@ struct _esxVI_HostConfigManager {
     esxVI_ManagedObjectReference *bootDeviceSystem;        /* optional */
     esxVI_ManagedObjectReference *firmwareSystem;          /* optional */
     esxVI_ManagedObjectReference *healthStatusSystem;      /* optional */
+    esxVI_ManagedObjectReference *pciPassthruSystem;       /* optional */
+    esxVI_ManagedObjectReference *licenseManager;          /* optional */
+    esxVI_ManagedObjectReference *kernelModuleSystem;      /* optional */
 };
 
 int esxVI_HostConfigManager_Alloc(esxVI_HostConfigManager **item);
@@ -802,6 +924,117 @@ int esxVI_HostDatastoreBrowserSearchSpec_Serialize(esxVI_HostDatastoreBrowserSea
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Object: HostDevice
+ *            extended by ScsiLun
+ */
+
+struct _esxVI_HostDevice {
+    esxVI_HostDevice *_next;                               /* optional */
+    esxVI_Type _type;                                      /* required */
+
+    char *deviceName;                                      /* required */
+    char *deviceType;                                      /* required */
+};
+
+int esxVI_HostDevice_Alloc(esxVI_HostDevice **item);
+void esxVI_HostDevice_Free(esxVI_HostDevice **item);
+int esxVI_HostDevice_Validate(esxVI_HostDevice *item);
+esxVI_HostDevice *esxVI_HostDevice_DynamicCast(void *item);
+int esxVI_HostDevice_AppendToList(esxVI_HostDevice **list, esxVI_HostDevice *item);
+int esxVI_HostDevice_DeepCopy(esxVI_HostDevice **dst, esxVI_HostDevice *src);
+int esxVI_HostDevice_DeepCopyList(esxVI_HostDevice **dstList, esxVI_HostDevice *srcList);
+int esxVI_HostDevice_CastFromAnyType(esxVI_AnyType *anyType, esxVI_HostDevice **item);
+int esxVI_HostDevice_CastListFromAnyType(esxVI_AnyType *anyType, esxVI_HostDevice **list);
+int esxVI_HostDevice_Deserialize(xmlNodePtr node, esxVI_HostDevice **item);
+int esxVI_HostDevice_DeserializeList(xmlNodePtr node, esxVI_HostDevice **list);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Object: HostDiskDimensionsLba
+ */
+
+struct _esxVI_HostDiskDimensionsLba {
+    esxVI_HostDiskDimensionsLba *_unused;                  /* optional */
+    esxVI_Type _type;                                      /* required */
+
+    esxVI_Int *blockSize;                                  /* required */
+    esxVI_Long *block;                                     /* required */
+};
+
+int esxVI_HostDiskDimensionsLba_Alloc(esxVI_HostDiskDimensionsLba **item);
+void esxVI_HostDiskDimensionsLba_Free(esxVI_HostDiskDimensionsLba **item);
+int esxVI_HostDiskDimensionsLba_Validate(esxVI_HostDiskDimensionsLba *item);
+int esxVI_HostDiskDimensionsLba_DeepCopy(esxVI_HostDiskDimensionsLba **dst, esxVI_HostDiskDimensionsLba *src);
+int esxVI_HostDiskDimensionsLba_Deserialize(xmlNodePtr node, esxVI_HostDiskDimensionsLba **item);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Object: HostFibreChannelHba
+ *            extends HostHostBusAdapter
+ */
+
+struct _esxVI_HostFibreChannelHba {
+    esxVI_HostFibreChannelHba *_next;                      /* optional */
+    esxVI_Type _type;                                      /* required */
+
+    /* HostHostBusAdapter */
+    char *key;                                             /* optional */
+    char *device;                                          /* required */
+    esxVI_Int *bus;                                        /* required */
+    char *status;                                          /* required */
+    char *model;                                           /* required */
+    char *driver;                                          /* optional */
+    char *pci;                                             /* optional */
+
+    /* HostFibreChannelHba */
+    esxVI_Long *portWorldWideName;                         /* required */
+    esxVI_Long *nodeWorldWideName;                         /* required */
+    esxVI_FibreChannelPortType portType;                   /* required */
+    esxVI_Long *speed;                                     /* required */
+};
+
+int esxVI_HostFibreChannelHba_Alloc(esxVI_HostFibreChannelHba **item);
+void esxVI_HostFibreChannelHba_Free(esxVI_HostFibreChannelHba **item);
+int esxVI_HostFibreChannelHba_Validate(esxVI_HostFibreChannelHba *item);
+esxVI_HostFibreChannelHba *esxVI_HostFibreChannelHba_DynamicCast(void *item);
+int esxVI_HostFibreChannelHba_AppendToList(esxVI_HostFibreChannelHba **list, esxVI_HostFibreChannelHba *item);
+int esxVI_HostFibreChannelHba_DeepCopy(esxVI_HostFibreChannelHba **dst, esxVI_HostFibreChannelHba *src);
+int esxVI_HostFibreChannelHba_DeepCopyList(esxVI_HostFibreChannelHba **dstList, esxVI_HostFibreChannelHba *srcList);
+int esxVI_HostFibreChannelHba_CastFromAnyType(esxVI_AnyType *anyType, esxVI_HostFibreChannelHba **item);
+int esxVI_HostFibreChannelHba_CastListFromAnyType(esxVI_AnyType *anyType, esxVI_HostFibreChannelHba **list);
+int esxVI_HostFibreChannelHba_Deserialize(xmlNodePtr node, esxVI_HostFibreChannelHba **item);
+int esxVI_HostFibreChannelHba_DeserializeList(xmlNodePtr node, esxVI_HostFibreChannelHba **list);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Object: HostFibreChannelTargetTransport
+ *            extends HostTargetTransport
+ */
+
+struct _esxVI_HostFibreChannelTargetTransport {
+    esxVI_HostFibreChannelTargetTransport *_unused;        /* optional */
+    esxVI_Type _type;                                      /* required */
+
+    /* HostTargetTransport */
+    /* no properties */
+
+    /* HostFibreChannelTargetTransport */
+    esxVI_Long *portWorldWideName;                         /* required */
+    esxVI_Long *nodeWorldWideName;                         /* required */
+};
+
+int esxVI_HostFibreChannelTargetTransport_Alloc(esxVI_HostFibreChannelTargetTransport **item);
+void esxVI_HostFibreChannelTargetTransport_Free(esxVI_HostFibreChannelTargetTransport **item);
+int esxVI_HostFibreChannelTargetTransport_Validate(esxVI_HostFibreChannelTargetTransport *item);
+esxVI_HostFibreChannelTargetTransport *esxVI_HostFibreChannelTargetTransport_DynamicCast(void *item);
+int esxVI_HostFibreChannelTargetTransport_Deserialize(xmlNodePtr node, esxVI_HostFibreChannelTargetTransport **item);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * VI Object: HostFileSystemVolume
  *            extended by HostNasVolume
  *                        HostVmfsVolume
@@ -824,6 +1057,408 @@ int esxVI_HostFileSystemVolume_Deserialize(xmlNodePtr node, esxVI_HostFileSystem
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Object: HostHostBusAdapter
+ *            extended by HostBlockHba
+ *                        HostFibreChannelHba
+ *                        HostInternetScsiHba
+ *                        HostParallelScsiHba
+ */
+
+struct _esxVI_HostHostBusAdapter {
+    esxVI_HostHostBusAdapter *_next;                       /* optional */
+    esxVI_Type _type;                                      /* required */
+
+    char *key;                                             /* optional */
+    char *device;                                          /* required */
+    esxVI_Int *bus;                                        /* required */
+    char *status;                                          /* required */
+    char *model;                                           /* required */
+    char *driver;                                          /* optional */
+    char *pci;                                             /* optional */
+};
+
+int esxVI_HostHostBusAdapter_Alloc(esxVI_HostHostBusAdapter **item);
+void esxVI_HostHostBusAdapter_Free(esxVI_HostHostBusAdapter **item);
+int esxVI_HostHostBusAdapter_Validate(esxVI_HostHostBusAdapter *item);
+esxVI_HostHostBusAdapter *esxVI_HostHostBusAdapter_DynamicCast(void *item);
+int esxVI_HostHostBusAdapter_AppendToList(esxVI_HostHostBusAdapter **list, esxVI_HostHostBusAdapter *item);
+int esxVI_HostHostBusAdapter_DeepCopy(esxVI_HostHostBusAdapter **dst, esxVI_HostHostBusAdapter *src);
+int esxVI_HostHostBusAdapter_DeepCopyList(esxVI_HostHostBusAdapter **dstList, esxVI_HostHostBusAdapter *srcList);
+int esxVI_HostHostBusAdapter_CastFromAnyType(esxVI_AnyType *anyType, esxVI_HostHostBusAdapter **item);
+int esxVI_HostHostBusAdapter_CastListFromAnyType(esxVI_AnyType *anyType, esxVI_HostHostBusAdapter **list);
+int esxVI_HostHostBusAdapter_Deserialize(xmlNodePtr node, esxVI_HostHostBusAdapter **item);
+int esxVI_HostHostBusAdapter_DeserializeList(xmlNodePtr node, esxVI_HostHostBusAdapter **list);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Object: HostInternetScsiHba
+ *            extends HostHostBusAdapter
+ */
+
+struct _esxVI_HostInternetScsiHba {
+    esxVI_HostInternetScsiHba *_next;                      /* optional */
+    esxVI_Type _type;                                      /* required */
+
+    /* HostHostBusAdapter */
+    char *key;                                             /* optional */
+    char *device;                                          /* required */
+    esxVI_Int *bus;                                        /* required */
+    char *status;                                          /* required */
+    char *model;                                           /* required */
+    char *driver;                                          /* optional */
+    char *pci;                                             /* optional */
+
+    /* HostInternetScsiHba */
+    esxVI_Boolean isSoftwareBased;                         /* required */
+    esxVI_HostInternetScsiHbaDiscoveryCapabilities *discoveryCapabilities; /* required */
+    esxVI_HostInternetScsiHbaDiscoveryProperties *discoveryProperties; /* required */
+    esxVI_HostInternetScsiHbaAuthenticationCapabilities *authenticationCapabilities; /* required */
+    esxVI_HostInternetScsiHbaAuthenticationProperties *authenticationProperties; /* required */
+    esxVI_HostInternetScsiHbaDigestCapabilities *digestCapabilities; /* optional */
+    esxVI_HostInternetScsiHbaDigestProperties *digestProperties; /* optional */
+    esxVI_HostInternetScsiHbaIPCapabilities *ipCapabilities; /* required */
+    esxVI_HostInternetScsiHbaIPProperties *ipProperties;   /* required */
+    /* FIXME: supportedAdvancedOptions is currently ignored */
+    esxVI_HostInternetScsiHbaParamValue *advancedOptions;  /* optional, list */
+    char *iScsiName;                                       /* required */
+    char *iScsiAlias;                                      /* optional */
+    esxVI_HostInternetScsiHbaSendTarget *configuredSendTarget; /* optional, list */
+    esxVI_HostInternetScsiHbaStaticTarget *configuredStaticTarget; /* optional, list */
+    esxVI_Int *maxSpeedMb;                                 /* optional */
+    esxVI_Int *currentSpeedMb;                             /* optional */
+};
+
+int esxVI_HostInternetScsiHba_Alloc(esxVI_HostInternetScsiHba **item);
+void esxVI_HostInternetScsiHba_Free(esxVI_HostInternetScsiHba **item);
+int esxVI_HostInternetScsiHba_Validate(esxVI_HostInternetScsiHba *item);
+esxVI_HostInternetScsiHba *esxVI_HostInternetScsiHba_DynamicCast(void *item);
+int esxVI_HostInternetScsiHba_AppendToList(esxVI_HostInternetScsiHba **list, esxVI_HostInternetScsiHba *item);
+int esxVI_HostInternetScsiHba_DeepCopy(esxVI_HostInternetScsiHba **dst, esxVI_HostInternetScsiHba *src);
+int esxVI_HostInternetScsiHba_DeepCopyList(esxVI_HostInternetScsiHba **dstList, esxVI_HostInternetScsiHba *srcList);
+int esxVI_HostInternetScsiHba_CastFromAnyType(esxVI_AnyType *anyType, esxVI_HostInternetScsiHba **item);
+int esxVI_HostInternetScsiHba_CastListFromAnyType(esxVI_AnyType *anyType, esxVI_HostInternetScsiHba **list);
+int esxVI_HostInternetScsiHba_Deserialize(xmlNodePtr node, esxVI_HostInternetScsiHba **item);
+int esxVI_HostInternetScsiHba_DeserializeList(xmlNodePtr node, esxVI_HostInternetScsiHba **list);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Object: HostInternetScsiHbaAuthenticationCapabilities
+ */
+
+struct _esxVI_HostInternetScsiHbaAuthenticationCapabilities {
+    esxVI_HostInternetScsiHbaAuthenticationCapabilities *_unused; /* optional */
+    esxVI_Type _type;                                      /* required */
+
+    esxVI_Boolean chapAuthSettable;                        /* required */
+    esxVI_Boolean krb5AuthSettable;                        /* required */
+    esxVI_Boolean srpAuthSettable;                         /* required */
+    esxVI_Boolean spkmAuthSettable;                        /* required */
+    esxVI_Boolean mutualChapSettable;                      /* optional */
+    esxVI_Boolean targetChapSettable;                      /* optional */
+    esxVI_Boolean targetMutualChapSettable;                /* optional */
+};
+
+int esxVI_HostInternetScsiHbaAuthenticationCapabilities_Alloc(esxVI_HostInternetScsiHbaAuthenticationCapabilities **item);
+void esxVI_HostInternetScsiHbaAuthenticationCapabilities_Free(esxVI_HostInternetScsiHbaAuthenticationCapabilities **item);
+int esxVI_HostInternetScsiHbaAuthenticationCapabilities_Validate(esxVI_HostInternetScsiHbaAuthenticationCapabilities *item);
+int esxVI_HostInternetScsiHbaAuthenticationCapabilities_DeepCopy(esxVI_HostInternetScsiHbaAuthenticationCapabilities **dst, esxVI_HostInternetScsiHbaAuthenticationCapabilities *src);
+int esxVI_HostInternetScsiHbaAuthenticationCapabilities_Deserialize(xmlNodePtr node, esxVI_HostInternetScsiHbaAuthenticationCapabilities **item);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Object: HostInternetScsiHbaAuthenticationProperties
+ */
+
+struct _esxVI_HostInternetScsiHbaAuthenticationProperties {
+    esxVI_HostInternetScsiHbaAuthenticationProperties *_unused; /* optional */
+    esxVI_Type _type;                                      /* required */
+
+    esxVI_Boolean chapAuthEnabled;                         /* required */
+    char *chapName;                                        /* optional */
+    char *chapSecret;                                      /* optional */
+    char *chapAuthenticationType;                          /* optional */
+    esxVI_Boolean chapInherited;                           /* optional */
+    char *mutualChapName;                                  /* optional */
+    char *mutualChapSecret;                                /* optional */
+    char *mutualChapAuthenticationType;                    /* optional */
+    esxVI_Boolean mutualChapInherited;                     /* optional */
+};
+
+int esxVI_HostInternetScsiHbaAuthenticationProperties_Alloc(esxVI_HostInternetScsiHbaAuthenticationProperties **item);
+void esxVI_HostInternetScsiHbaAuthenticationProperties_Free(esxVI_HostInternetScsiHbaAuthenticationProperties **item);
+int esxVI_HostInternetScsiHbaAuthenticationProperties_Validate(esxVI_HostInternetScsiHbaAuthenticationProperties *item);
+int esxVI_HostInternetScsiHbaAuthenticationProperties_DeepCopy(esxVI_HostInternetScsiHbaAuthenticationProperties **dst, esxVI_HostInternetScsiHbaAuthenticationProperties *src);
+int esxVI_HostInternetScsiHbaAuthenticationProperties_Deserialize(xmlNodePtr node, esxVI_HostInternetScsiHbaAuthenticationProperties **item);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Object: HostInternetScsiHbaDigestCapabilities
+ */
+
+struct _esxVI_HostInternetScsiHbaDigestCapabilities {
+    esxVI_HostInternetScsiHbaDigestCapabilities *_unused;  /* optional */
+    esxVI_Type _type;                                      /* required */
+
+    esxVI_Boolean headerDigestSettable;                    /* optional */
+    esxVI_Boolean dataDigestSettable;                      /* optional */
+    esxVI_Boolean targetHeaderDigestSettable;              /* optional */
+    esxVI_Boolean targetDataDigestSettable;                /* optional */
+};
+
+int esxVI_HostInternetScsiHbaDigestCapabilities_Alloc(esxVI_HostInternetScsiHbaDigestCapabilities **item);
+void esxVI_HostInternetScsiHbaDigestCapabilities_Free(esxVI_HostInternetScsiHbaDigestCapabilities **item);
+int esxVI_HostInternetScsiHbaDigestCapabilities_Validate(esxVI_HostInternetScsiHbaDigestCapabilities *item);
+int esxVI_HostInternetScsiHbaDigestCapabilities_DeepCopy(esxVI_HostInternetScsiHbaDigestCapabilities **dst, esxVI_HostInternetScsiHbaDigestCapabilities *src);
+int esxVI_HostInternetScsiHbaDigestCapabilities_Deserialize(xmlNodePtr node, esxVI_HostInternetScsiHbaDigestCapabilities **item);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Object: HostInternetScsiHbaDigestProperties
+ */
+
+struct _esxVI_HostInternetScsiHbaDigestProperties {
+    esxVI_HostInternetScsiHbaDigestProperties *_unused;    /* optional */
+    esxVI_Type _type;                                      /* required */
+
+    char *headerDigestType;                                /* optional */
+    esxVI_Boolean headerDigestInherited;                   /* optional */
+    char *dataDigestType;                                  /* optional */
+    esxVI_Boolean dataDigestInherited;                     /* optional */
+};
+
+int esxVI_HostInternetScsiHbaDigestProperties_Alloc(esxVI_HostInternetScsiHbaDigestProperties **item);
+void esxVI_HostInternetScsiHbaDigestProperties_Free(esxVI_HostInternetScsiHbaDigestProperties **item);
+int esxVI_HostInternetScsiHbaDigestProperties_Validate(esxVI_HostInternetScsiHbaDigestProperties *item);
+int esxVI_HostInternetScsiHbaDigestProperties_DeepCopy(esxVI_HostInternetScsiHbaDigestProperties **dst, esxVI_HostInternetScsiHbaDigestProperties *src);
+int esxVI_HostInternetScsiHbaDigestProperties_Deserialize(xmlNodePtr node, esxVI_HostInternetScsiHbaDigestProperties **item);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Object: HostInternetScsiHbaDiscoveryCapabilities
+ */
+
+struct _esxVI_HostInternetScsiHbaDiscoveryCapabilities {
+    esxVI_HostInternetScsiHbaDiscoveryCapabilities *_unused; /* optional */
+    esxVI_Type _type;                                      /* required */
+
+    esxVI_Boolean iSnsDiscoverySettable;                   /* required */
+    esxVI_Boolean slpDiscoverySettable;                    /* required */
+    esxVI_Boolean staticTargetDiscoverySettable;           /* required */
+    esxVI_Boolean sendTargetsDiscoverySettable;            /* required */
+};
+
+int esxVI_HostInternetScsiHbaDiscoveryCapabilities_Alloc(esxVI_HostInternetScsiHbaDiscoveryCapabilities **item);
+void esxVI_HostInternetScsiHbaDiscoveryCapabilities_Free(esxVI_HostInternetScsiHbaDiscoveryCapabilities **item);
+int esxVI_HostInternetScsiHbaDiscoveryCapabilities_Validate(esxVI_HostInternetScsiHbaDiscoveryCapabilities *item);
+int esxVI_HostInternetScsiHbaDiscoveryCapabilities_DeepCopy(esxVI_HostInternetScsiHbaDiscoveryCapabilities **dst, esxVI_HostInternetScsiHbaDiscoveryCapabilities *src);
+int esxVI_HostInternetScsiHbaDiscoveryCapabilities_Deserialize(xmlNodePtr node, esxVI_HostInternetScsiHbaDiscoveryCapabilities **item);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Object: HostInternetScsiHbaDiscoveryProperties
+ */
+
+struct _esxVI_HostInternetScsiHbaDiscoveryProperties {
+    esxVI_HostInternetScsiHbaDiscoveryProperties *_unused; /* optional */
+    esxVI_Type _type;                                      /* required */
+
+    esxVI_Boolean iSnsDiscoveryEnabled;                    /* required */
+    char *iSnsDiscoveryMethod;                             /* optional */
+    char *iSnsHost;                                        /* optional */
+    esxVI_Boolean slpDiscoveryEnabled;                     /* required */
+    char *slpDiscoveryMethod;                              /* optional */
+    char *slpHost;                                         /* optional */
+    esxVI_Boolean staticTargetDiscoveryEnabled;            /* required */
+    esxVI_Boolean sendTargetsDiscoveryEnabled;             /* required */
+};
+
+int esxVI_HostInternetScsiHbaDiscoveryProperties_Alloc(esxVI_HostInternetScsiHbaDiscoveryProperties **item);
+void esxVI_HostInternetScsiHbaDiscoveryProperties_Free(esxVI_HostInternetScsiHbaDiscoveryProperties **item);
+int esxVI_HostInternetScsiHbaDiscoveryProperties_Validate(esxVI_HostInternetScsiHbaDiscoveryProperties *item);
+int esxVI_HostInternetScsiHbaDiscoveryProperties_DeepCopy(esxVI_HostInternetScsiHbaDiscoveryProperties **dst, esxVI_HostInternetScsiHbaDiscoveryProperties *src);
+int esxVI_HostInternetScsiHbaDiscoveryProperties_Deserialize(xmlNodePtr node, esxVI_HostInternetScsiHbaDiscoveryProperties **item);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Object: HostInternetScsiHbaIPCapabilities
+ */
+
+struct _esxVI_HostInternetScsiHbaIPCapabilities {
+    esxVI_HostInternetScsiHbaIPCapabilities *_unused;      /* optional */
+    esxVI_Type _type;                                      /* required */
+
+    esxVI_Boolean addressSettable;                         /* required */
+    esxVI_Boolean ipConfigurationMethodSettable;           /* required */
+    esxVI_Boolean subnetMaskSettable;                      /* required */
+    esxVI_Boolean defaultGatewaySettable;                  /* required */
+    esxVI_Boolean primaryDnsServerAddressSettable;         /* required */
+    esxVI_Boolean alternateDnsServerAddressSettable;       /* required */
+    esxVI_Boolean ipv6Supported;                           /* optional */
+    esxVI_Boolean arpRedirectSettable;                     /* optional */
+    esxVI_Boolean mtuSettable;                             /* optional */
+    esxVI_Boolean hostNameAsTargetAddress;                 /* optional */
+};
+
+int esxVI_HostInternetScsiHbaIPCapabilities_Alloc(esxVI_HostInternetScsiHbaIPCapabilities **item);
+void esxVI_HostInternetScsiHbaIPCapabilities_Free(esxVI_HostInternetScsiHbaIPCapabilities **item);
+int esxVI_HostInternetScsiHbaIPCapabilities_Validate(esxVI_HostInternetScsiHbaIPCapabilities *item);
+int esxVI_HostInternetScsiHbaIPCapabilities_DeepCopy(esxVI_HostInternetScsiHbaIPCapabilities **dst, esxVI_HostInternetScsiHbaIPCapabilities *src);
+int esxVI_HostInternetScsiHbaIPCapabilities_Deserialize(xmlNodePtr node, esxVI_HostInternetScsiHbaIPCapabilities **item);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Object: HostInternetScsiHbaIPProperties
+ */
+
+struct _esxVI_HostInternetScsiHbaIPProperties {
+    esxVI_HostInternetScsiHbaIPProperties *_unused;        /* optional */
+    esxVI_Type _type;                                      /* required */
+
+    char *mac;                                             /* optional */
+    char *address;                                         /* optional */
+    esxVI_Boolean dhcpConfigurationEnabled;                /* required */
+    char *subnetMask;                                      /* optional */
+    char *defaultGateway;                                  /* optional */
+    char *primaryDnsServerAddress;                         /* optional */
+    char *alternateDnsServerAddress;                       /* optional */
+    char *ipv6Address;                                     /* optional */
+    char *ipv6SubnetMask;                                  /* optional */
+    char *ipv6DefaultGateway;                              /* optional */
+    esxVI_Boolean arpRedirectEnabled;                      /* optional */
+    esxVI_Int *mtu;                                        /* optional */
+    esxVI_Boolean jumboFramesEnabled;                      /* optional */
+};
+
+int esxVI_HostInternetScsiHbaIPProperties_Alloc(esxVI_HostInternetScsiHbaIPProperties **item);
+void esxVI_HostInternetScsiHbaIPProperties_Free(esxVI_HostInternetScsiHbaIPProperties **item);
+int esxVI_HostInternetScsiHbaIPProperties_Validate(esxVI_HostInternetScsiHbaIPProperties *item);
+int esxVI_HostInternetScsiHbaIPProperties_DeepCopy(esxVI_HostInternetScsiHbaIPProperties **dst, esxVI_HostInternetScsiHbaIPProperties *src);
+int esxVI_HostInternetScsiHbaIPProperties_Deserialize(xmlNodePtr node, esxVI_HostInternetScsiHbaIPProperties **item);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Object: HostInternetScsiHbaParamValue
+ *            extends OptionValue
+ */
+
+struct _esxVI_HostInternetScsiHbaParamValue {
+    esxVI_HostInternetScsiHbaParamValue *_next;            /* optional */
+    esxVI_Type _type;                                      /* required */
+
+    /* OptionValue */
+    char *key;                                             /* required */
+    esxVI_AnyType *value;                                  /* optional */
+
+    /* HostInternetScsiHbaParamValue */
+    esxVI_Boolean isInherited;                             /* optional */
+};
+
+int esxVI_HostInternetScsiHbaParamValue_Alloc(esxVI_HostInternetScsiHbaParamValue **item);
+void esxVI_HostInternetScsiHbaParamValue_Free(esxVI_HostInternetScsiHbaParamValue **item);
+int esxVI_HostInternetScsiHbaParamValue_Validate(esxVI_HostInternetScsiHbaParamValue *item);
+esxVI_HostInternetScsiHbaParamValue *esxVI_HostInternetScsiHbaParamValue_DynamicCast(void *item);
+int esxVI_HostInternetScsiHbaParamValue_AppendToList(esxVI_HostInternetScsiHbaParamValue **list, esxVI_HostInternetScsiHbaParamValue *item);
+int esxVI_HostInternetScsiHbaParamValue_DeepCopy(esxVI_HostInternetScsiHbaParamValue **dst, esxVI_HostInternetScsiHbaParamValue *src);
+int esxVI_HostInternetScsiHbaParamValue_DeepCopyList(esxVI_HostInternetScsiHbaParamValue **dstList, esxVI_HostInternetScsiHbaParamValue *srcList);
+int esxVI_HostInternetScsiHbaParamValue_Deserialize(xmlNodePtr node, esxVI_HostInternetScsiHbaParamValue **item);
+int esxVI_HostInternetScsiHbaParamValue_DeserializeList(xmlNodePtr node, esxVI_HostInternetScsiHbaParamValue **list);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Object: HostInternetScsiHbaSendTarget
+ */
+
+struct _esxVI_HostInternetScsiHbaSendTarget {
+    esxVI_HostInternetScsiHbaSendTarget *_next;            /* optional */
+    esxVI_Type _type;                                      /* required */
+
+    char *address;                                         /* required */
+    esxVI_Int *port;                                       /* optional */
+    esxVI_HostInternetScsiHbaAuthenticationProperties *authenticationProperties; /* optional */
+    esxVI_HostInternetScsiHbaDigestProperties *digestProperties; /* optional */
+    /* FIXME: supportedAdvancedOptions is currently ignored */
+    esxVI_HostInternetScsiHbaParamValue *advancedOptions;  /* optional, list */
+    char *parent;                                          /* optional */
+};
+
+int esxVI_HostInternetScsiHbaSendTarget_Alloc(esxVI_HostInternetScsiHbaSendTarget **item);
+void esxVI_HostInternetScsiHbaSendTarget_Free(esxVI_HostInternetScsiHbaSendTarget **item);
+int esxVI_HostInternetScsiHbaSendTarget_Validate(esxVI_HostInternetScsiHbaSendTarget *item);
+int esxVI_HostInternetScsiHbaSendTarget_AppendToList(esxVI_HostInternetScsiHbaSendTarget **list, esxVI_HostInternetScsiHbaSendTarget *item);
+int esxVI_HostInternetScsiHbaSendTarget_DeepCopy(esxVI_HostInternetScsiHbaSendTarget **dst, esxVI_HostInternetScsiHbaSendTarget *src);
+int esxVI_HostInternetScsiHbaSendTarget_DeepCopyList(esxVI_HostInternetScsiHbaSendTarget **dstList, esxVI_HostInternetScsiHbaSendTarget *srcList);
+int esxVI_HostInternetScsiHbaSendTarget_Deserialize(xmlNodePtr node, esxVI_HostInternetScsiHbaSendTarget **item);
+int esxVI_HostInternetScsiHbaSendTarget_DeserializeList(xmlNodePtr node, esxVI_HostInternetScsiHbaSendTarget **list);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Object: HostInternetScsiHbaStaticTarget
+ */
+
+struct _esxVI_HostInternetScsiHbaStaticTarget {
+    esxVI_HostInternetScsiHbaStaticTarget *_next;          /* optional */
+    esxVI_Type _type;                                      /* required */
+
+    char *address;                                         /* required */
+    esxVI_Int *port;                                       /* optional */
+    char *iScsiName;                                       /* required */
+    esxVI_HostInternetScsiHbaAuthenticationProperties *authenticationProperties; /* optional */
+    esxVI_HostInternetScsiHbaDigestProperties *digestProperties; /* optional */
+    /* FIXME: supportedAdvancedOptions is currently ignored */
+    esxVI_HostInternetScsiHbaParamValue *advancedOptions;  /* optional, list */
+    char *parent;                                          /* optional */
+};
+
+int esxVI_HostInternetScsiHbaStaticTarget_Alloc(esxVI_HostInternetScsiHbaStaticTarget **item);
+void esxVI_HostInternetScsiHbaStaticTarget_Free(esxVI_HostInternetScsiHbaStaticTarget **item);
+int esxVI_HostInternetScsiHbaStaticTarget_Validate(esxVI_HostInternetScsiHbaStaticTarget *item);
+int esxVI_HostInternetScsiHbaStaticTarget_AppendToList(esxVI_HostInternetScsiHbaStaticTarget **list, esxVI_HostInternetScsiHbaStaticTarget *item);
+int esxVI_HostInternetScsiHbaStaticTarget_DeepCopy(esxVI_HostInternetScsiHbaStaticTarget **dst, esxVI_HostInternetScsiHbaStaticTarget *src);
+int esxVI_HostInternetScsiHbaStaticTarget_DeepCopyList(esxVI_HostInternetScsiHbaStaticTarget **dstList, esxVI_HostInternetScsiHbaStaticTarget *srcList);
+int esxVI_HostInternetScsiHbaStaticTarget_Deserialize(xmlNodePtr node, esxVI_HostInternetScsiHbaStaticTarget **item);
+int esxVI_HostInternetScsiHbaStaticTarget_DeserializeList(xmlNodePtr node, esxVI_HostInternetScsiHbaStaticTarget **list);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Object: HostInternetScsiTargetTransport
+ *            extends HostTargetTransport
+ */
+
+struct _esxVI_HostInternetScsiTargetTransport {
+    esxVI_HostInternetScsiTargetTransport *_unused;        /* optional */
+    esxVI_Type _type;                                      /* required */
+
+    /* HostTargetTransport */
+    /* no properties */
+
+    /* HostInternetScsiTargetTransport */
+    char *iScsiName;                                       /* required */
+    char *iScsiAlias;                                      /* required */
+    esxVI_String *address;                                 /* optional, list */
+};
+
+int esxVI_HostInternetScsiTargetTransport_Alloc(esxVI_HostInternetScsiTargetTransport **item);
+void esxVI_HostInternetScsiTargetTransport_Free(esxVI_HostInternetScsiTargetTransport **item);
+int esxVI_HostInternetScsiTargetTransport_Validate(esxVI_HostInternetScsiTargetTransport *item);
+esxVI_HostInternetScsiTargetTransport *esxVI_HostInternetScsiTargetTransport_DynamicCast(void *item);
+int esxVI_HostInternetScsiTargetTransport_Deserialize(xmlNodePtr node, esxVI_HostInternetScsiTargetTransport **item);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * VI Object: HostIpConfig
  */
 
@@ -834,6 +1469,7 @@ struct _esxVI_HostIpConfig {
     esxVI_Boolean dhcp;                                    /* required */
     char *ipAddress;                                       /* optional */
     char *subnetMask;                                      /* optional */
+    /* FIXME: ipV6Config is currently ignored */
 };
 
 int esxVI_HostIpConfig_Alloc(esxVI_HostIpConfig **item);
@@ -1055,6 +1691,66 @@ int esxVI_HostNicTeamingPolicy_Deserialize(xmlNodePtr node, esxVI_HostNicTeaming
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Object: HostParallelScsiHba
+ *            extends HostHostBusAdapter
+ */
+
+struct _esxVI_HostParallelScsiHba {
+    esxVI_HostParallelScsiHba *_next;                      /* optional */
+    esxVI_Type _type;                                      /* required */
+
+    /* HostHostBusAdapter */
+    char *key;                                             /* optional */
+    char *device;                                          /* required */
+    esxVI_Int *bus;                                        /* required */
+    char *status;                                          /* required */
+    char *model;                                           /* required */
+    char *driver;                                          /* optional */
+    char *pci;                                             /* optional */
+
+    /* HostParallelScsiHba */
+    /* no properties */
+};
+
+int esxVI_HostParallelScsiHba_Alloc(esxVI_HostParallelScsiHba **item);
+void esxVI_HostParallelScsiHba_Free(esxVI_HostParallelScsiHba **item);
+int esxVI_HostParallelScsiHba_Validate(esxVI_HostParallelScsiHba *item);
+esxVI_HostParallelScsiHba *esxVI_HostParallelScsiHba_DynamicCast(void *item);
+int esxVI_HostParallelScsiHba_AppendToList(esxVI_HostParallelScsiHba **list, esxVI_HostParallelScsiHba *item);
+int esxVI_HostParallelScsiHba_DeepCopy(esxVI_HostParallelScsiHba **dst, esxVI_HostParallelScsiHba *src);
+int esxVI_HostParallelScsiHba_DeepCopyList(esxVI_HostParallelScsiHba **dstList, esxVI_HostParallelScsiHba *srcList);
+int esxVI_HostParallelScsiHba_CastFromAnyType(esxVI_AnyType *anyType, esxVI_HostParallelScsiHba **item);
+int esxVI_HostParallelScsiHba_CastListFromAnyType(esxVI_AnyType *anyType, esxVI_HostParallelScsiHba **list);
+int esxVI_HostParallelScsiHba_Deserialize(xmlNodePtr node, esxVI_HostParallelScsiHba **item);
+int esxVI_HostParallelScsiHba_DeserializeList(xmlNodePtr node, esxVI_HostParallelScsiHba **list);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Object: HostParallelScsiTargetTransport
+ *            extends HostTargetTransport
+ */
+
+struct _esxVI_HostParallelScsiTargetTransport {
+    esxVI_HostParallelScsiTargetTransport *_unused;        /* optional */
+    esxVI_Type _type;                                      /* required */
+
+    /* HostTargetTransport */
+    /* no properties */
+
+    /* HostParallelScsiTargetTransport */
+    /* no properties */
+};
+
+int esxVI_HostParallelScsiTargetTransport_Alloc(esxVI_HostParallelScsiTargetTransport **item);
+void esxVI_HostParallelScsiTargetTransport_Free(esxVI_HostParallelScsiTargetTransport **item);
+int esxVI_HostParallelScsiTargetTransport_Validate(esxVI_HostParallelScsiTargetTransport *item);
+esxVI_HostParallelScsiTargetTransport *esxVI_HostParallelScsiTargetTransport_DynamicCast(void *item);
+int esxVI_HostParallelScsiTargetTransport_Deserialize(xmlNodePtr node, esxVI_HostParallelScsiTargetTransport **item);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * VI Object: HostPortGroup
  */
 
@@ -1125,6 +1821,57 @@ int esxVI_HostPortGroupSpec_Deserialize(xmlNodePtr node, esxVI_HostPortGroupSpec
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Object: HostScsiDisk
+ *            extends ScsiLun
+ */
+
+struct _esxVI_HostScsiDisk {
+    esxVI_HostScsiDisk *_next;                             /* optional */
+    esxVI_Type _type;                                      /* required */
+
+    /* HostDevice */
+    char *deviceName;                                      /* required */
+    char *deviceType;                                      /* required */
+
+    /* ScsiLun */
+    char *key;                                             /* optional */
+    char *uuid;                                            /* required */
+    esxVI_ScsiLunDescriptor *descriptor;                   /* optional, list */
+    char *canonicalName;                                   /* optional */
+    char *displayName;                                     /* optional */
+    char *lunType;                                         /* required */
+    char *vendor;                                          /* optional */
+    char *model;                                           /* optional */
+    char *revision;                                        /* optional */
+    esxVI_Int *scsiLevel;                                  /* optional */
+    char *serialNumber;                                    /* optional */
+    esxVI_ScsiLunDurableName *durableName;                 /* optional */
+    esxVI_ScsiLunDurableName *alternateName;               /* optional, list */
+    esxVI_Byte *standardInquiry;                           /* optional, list */
+    esxVI_Int *queueDepth;                                 /* optional */
+    esxVI_String *operationalState;                        /* required, list */
+    esxVI_ScsiLunCapabilities *capabilities;               /* optional */
+
+    /* HostScsiDisk */
+    esxVI_HostDiskDimensionsLba *capacity;                 /* required */
+    char *devicePath;                                      /* required */
+};
+
+int esxVI_HostScsiDisk_Alloc(esxVI_HostScsiDisk **item);
+void esxVI_HostScsiDisk_Free(esxVI_HostScsiDisk **item);
+int esxVI_HostScsiDisk_Validate(esxVI_HostScsiDisk *item);
+esxVI_HostScsiDisk *esxVI_HostScsiDisk_DynamicCast(void *item);
+int esxVI_HostScsiDisk_AppendToList(esxVI_HostScsiDisk **list, esxVI_HostScsiDisk *item);
+int esxVI_HostScsiDisk_DeepCopy(esxVI_HostScsiDisk **dst, esxVI_HostScsiDisk *src);
+int esxVI_HostScsiDisk_DeepCopyList(esxVI_HostScsiDisk **dstList, esxVI_HostScsiDisk *srcList);
+int esxVI_HostScsiDisk_CastFromAnyType(esxVI_AnyType *anyType, esxVI_HostScsiDisk **item);
+int esxVI_HostScsiDisk_CastListFromAnyType(esxVI_AnyType *anyType, esxVI_HostScsiDisk **list);
+int esxVI_HostScsiDisk_Deserialize(xmlNodePtr node, esxVI_HostScsiDisk **item);
+int esxVI_HostScsiDisk_DeserializeList(xmlNodePtr node, esxVI_HostScsiDisk **list);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * VI Object: HostScsiDiskPartition
  */
 
@@ -1142,6 +1889,104 @@ int esxVI_HostScsiDiskPartition_Validate(esxVI_HostScsiDiskPartition *item);
 int esxVI_HostScsiDiskPartition_AppendToList(esxVI_HostScsiDiskPartition **list, esxVI_HostScsiDiskPartition *item);
 int esxVI_HostScsiDiskPartition_Deserialize(xmlNodePtr node, esxVI_HostScsiDiskPartition **item);
 int esxVI_HostScsiDiskPartition_DeserializeList(xmlNodePtr node, esxVI_HostScsiDiskPartition **list);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Object: HostScsiTopologyInterface
+ */
+
+struct _esxVI_HostScsiTopologyInterface {
+    esxVI_HostScsiTopologyInterface *_next;                /* optional */
+    esxVI_Type _type;                                      /* required */
+
+    char *key;                                             /* required */
+    char *adapter;                                         /* required */
+    esxVI_HostScsiTopologyTarget *target;                  /* optional, list */
+};
+
+int esxVI_HostScsiTopologyInterface_Alloc(esxVI_HostScsiTopologyInterface **item);
+void esxVI_HostScsiTopologyInterface_Free(esxVI_HostScsiTopologyInterface **item);
+int esxVI_HostScsiTopologyInterface_Validate(esxVI_HostScsiTopologyInterface *item);
+int esxVI_HostScsiTopologyInterface_AppendToList(esxVI_HostScsiTopologyInterface **list, esxVI_HostScsiTopologyInterface *item);
+int esxVI_HostScsiTopologyInterface_CastFromAnyType(esxVI_AnyType *anyType, esxVI_HostScsiTopologyInterface **item);
+int esxVI_HostScsiTopologyInterface_CastListFromAnyType(esxVI_AnyType *anyType, esxVI_HostScsiTopologyInterface **list);
+int esxVI_HostScsiTopologyInterface_Deserialize(xmlNodePtr node, esxVI_HostScsiTopologyInterface **item);
+int esxVI_HostScsiTopologyInterface_DeserializeList(xmlNodePtr node, esxVI_HostScsiTopologyInterface **list);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Object: HostScsiTopologyLun
+ */
+
+struct _esxVI_HostScsiTopologyLun {
+    esxVI_HostScsiTopologyLun *_next;                      /* optional */
+    esxVI_Type _type;                                      /* required */
+
+    char *key;                                             /* required */
+    esxVI_Int *lun;                                        /* required */
+    char *scsiLun;                                         /* required */
+};
+
+int esxVI_HostScsiTopologyLun_Alloc(esxVI_HostScsiTopologyLun **item);
+void esxVI_HostScsiTopologyLun_Free(esxVI_HostScsiTopologyLun **item);
+int esxVI_HostScsiTopologyLun_Validate(esxVI_HostScsiTopologyLun *item);
+int esxVI_HostScsiTopologyLun_AppendToList(esxVI_HostScsiTopologyLun **list, esxVI_HostScsiTopologyLun *item);
+int esxVI_HostScsiTopologyLun_DeepCopy(esxVI_HostScsiTopologyLun **dst, esxVI_HostScsiTopologyLun *src);
+int esxVI_HostScsiTopologyLun_DeepCopyList(esxVI_HostScsiTopologyLun **dstList, esxVI_HostScsiTopologyLun *srcList);
+int esxVI_HostScsiTopologyLun_CastFromAnyType(esxVI_AnyType *anyType, esxVI_HostScsiTopologyLun **item);
+int esxVI_HostScsiTopologyLun_CastListFromAnyType(esxVI_AnyType *anyType, esxVI_HostScsiTopologyLun **list);
+int esxVI_HostScsiTopologyLun_Deserialize(xmlNodePtr node, esxVI_HostScsiTopologyLun **item);
+int esxVI_HostScsiTopologyLun_DeserializeList(xmlNodePtr node, esxVI_HostScsiTopologyLun **list);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Object: HostScsiTopologyTarget
+ */
+
+struct _esxVI_HostScsiTopologyTarget {
+    esxVI_HostScsiTopologyTarget *_next;                   /* optional */
+    esxVI_Type _type;                                      /* required */
+
+    char *key;                                             /* required */
+    esxVI_Int *target;                                     /* required */
+    esxVI_HostScsiTopologyLun *lun;                        /* optional, list */
+    esxVI_HostTargetTransport *transport;                  /* optional */
+};
+
+int esxVI_HostScsiTopologyTarget_Alloc(esxVI_HostScsiTopologyTarget **item);
+void esxVI_HostScsiTopologyTarget_Free(esxVI_HostScsiTopologyTarget **item);
+int esxVI_HostScsiTopologyTarget_Validate(esxVI_HostScsiTopologyTarget *item);
+int esxVI_HostScsiTopologyTarget_AppendToList(esxVI_HostScsiTopologyTarget **list, esxVI_HostScsiTopologyTarget *item);
+int esxVI_HostScsiTopologyTarget_CastFromAnyType(esxVI_AnyType *anyType, esxVI_HostScsiTopologyTarget **item);
+int esxVI_HostScsiTopologyTarget_CastListFromAnyType(esxVI_AnyType *anyType, esxVI_HostScsiTopologyTarget **list);
+int esxVI_HostScsiTopologyTarget_Deserialize(xmlNodePtr node, esxVI_HostScsiTopologyTarget **item);
+int esxVI_HostScsiTopologyTarget_DeserializeList(xmlNodePtr node, esxVI_HostScsiTopologyTarget **list);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Object: HostTargetTransport
+ *            extended by HostBlockAdapterTargetTransport
+ *                        HostFibreChannelTargetTransport
+ *                        HostInternetScsiTargetTransport
+ *                        HostParallelScsiTargetTransport
+ */
+
+struct _esxVI_HostTargetTransport {
+    esxVI_HostTargetTransport *_unused;                    /* optional */
+    esxVI_Type _type;                                      /* required */
+
+    /* no properties */
+};
+
+int esxVI_HostTargetTransport_Alloc(esxVI_HostTargetTransport **item);
+void esxVI_HostTargetTransport_Free(esxVI_HostTargetTransport **item);
+int esxVI_HostTargetTransport_Validate(esxVI_HostTargetTransport *item);
+esxVI_HostTargetTransport *esxVI_HostTargetTransport_DynamicCast(void *item);
+int esxVI_HostTargetTransport_Deserialize(xmlNodePtr node, esxVI_HostTargetTransport **item);
 
 
 
@@ -1237,6 +2082,7 @@ struct _esxVI_HostVirtualSwitchBondBridge {
     /* HostVirtualSwitchBondBridge */
     esxVI_String *nicDevice;                               /* required, list */
     esxVI_HostVirtualSwitchBeaconConfig *beacon;           /* optional */
+    /* FIXME: linkDiscoveryProtocolConfig is currently ignored */
 };
 
 int esxVI_HostVirtualSwitchBondBridge_Alloc(esxVI_HostVirtualSwitchBondBridge **item);
@@ -1344,6 +2190,7 @@ struct _esxVI_HostVmfsVolume {
     char *uuid;                                            /* required */
     esxVI_HostScsiDiskPartition *extent;                   /* required, list */
     esxVI_Boolean vmfsUpgradable;                          /* required */
+    /* FIXME: forceMountedInfo is currently ignored */
 };
 
 int esxVI_HostVmfsVolume_Alloc(esxVI_HostVmfsVolume **item);
@@ -1366,6 +2213,7 @@ struct _esxVI_IsoImageFileInfo {
     char *path;                                            /* required */
     esxVI_Long *fileSize;                                  /* optional */
     esxVI_DateTime *modification;                          /* optional */
+    char *owner;                                           /* optional */
 
     /* IsoImageFileInfo */
     /* no properties */
@@ -1408,6 +2256,27 @@ int esxVI_IsoImageFileQuery_SerializeList(esxVI_IsoImageFileQuery *list, const c
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Object: KeyAnyValue
+ */
+
+struct _esxVI_KeyAnyValue {
+    esxVI_KeyAnyValue *_next;                              /* optional */
+    esxVI_Type _type;                                      /* required */
+
+    char *key;                                             /* required */
+    esxVI_AnyType *value;                                  /* required */
+};
+
+int esxVI_KeyAnyValue_Alloc(esxVI_KeyAnyValue **item);
+void esxVI_KeyAnyValue_Free(esxVI_KeyAnyValue **item);
+int esxVI_KeyAnyValue_Validate(esxVI_KeyAnyValue *item);
+int esxVI_KeyAnyValue_AppendToList(esxVI_KeyAnyValue **list, esxVI_KeyAnyValue *item);
+int esxVI_KeyAnyValue_Deserialize(xmlNodePtr node, esxVI_KeyAnyValue **item);
+int esxVI_KeyAnyValue_DeserializeList(xmlNodePtr node, esxVI_KeyAnyValue **list);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * VI Object: LocalDatastoreInfo
  *            extends DatastoreInfo
  */
@@ -1421,6 +2290,7 @@ struct _esxVI_LocalDatastoreInfo {
     char *url;                                             /* required */
     esxVI_Long *freeSpace;                                 /* required */
     esxVI_Long *maxFileSize;                               /* required */
+    esxVI_DateTime *timestamp;                             /* optional */
 
     /* LocalDatastoreInfo */
     char *path;                                            /* optional */
@@ -1468,6 +2338,7 @@ struct _esxVI_NasDatastoreInfo {
     char *url;                                             /* required */
     esxVI_Long *freeSpace;                                 /* required */
     esxVI_Long *maxFileSize;                               /* required */
+    esxVI_DateTime *timestamp;                             /* optional */
 
     /* NasDatastoreInfo */
     esxVI_HostNasVolume *nas;                              /* optional */
@@ -1567,6 +2438,31 @@ int esxVI_OptionType_Alloc(esxVI_OptionType **item);
 void esxVI_OptionType_Free(esxVI_OptionType **item);
 int esxVI_OptionType_Validate(esxVI_OptionType *item);
 int esxVI_OptionType_Deserialize(xmlNodePtr node, esxVI_OptionType **item);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Object: OptionValue
+ *            extended by HostInternetScsiHbaParamValue
+ */
+
+struct _esxVI_OptionValue {
+    esxVI_OptionValue *_next;                              /* optional */
+    esxVI_Type _type;                                      /* required */
+
+    char *key;                                             /* required */
+    esxVI_AnyType *value;                                  /* optional */
+};
+
+int esxVI_OptionValue_Alloc(esxVI_OptionValue **item);
+void esxVI_OptionValue_Free(esxVI_OptionValue **item);
+int esxVI_OptionValue_Validate(esxVI_OptionValue *item);
+esxVI_OptionValue *esxVI_OptionValue_DynamicCast(void *item);
+int esxVI_OptionValue_AppendToList(esxVI_OptionValue **list, esxVI_OptionValue *item);
+int esxVI_OptionValue_DeepCopy(esxVI_OptionValue **dst, esxVI_OptionValue *src);
+int esxVI_OptionValue_DeepCopyList(esxVI_OptionValue **dstList, esxVI_OptionValue *srcList);
+int esxVI_OptionValue_Deserialize(xmlNodePtr node, esxVI_OptionValue **item);
+int esxVI_OptionValue_DeserializeList(xmlNodePtr node, esxVI_OptionValue **list);
 
 
 
@@ -1973,6 +2869,120 @@ int esxVI_ResourcePoolResourceUsage_Deserialize(xmlNodePtr node, esxVI_ResourceP
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Object: ScsiLun
+ *            extends HostDevice
+ *            extended by HostScsiDisk
+ */
+
+struct _esxVI_ScsiLun {
+    esxVI_ScsiLun *_next;                                  /* optional */
+    esxVI_Type _type;                                      /* required */
+
+    /* HostDevice */
+    char *deviceName;                                      /* required */
+    char *deviceType;                                      /* required */
+
+    /* ScsiLun */
+    char *key;                                             /* optional */
+    char *uuid;                                            /* required */
+    esxVI_ScsiLunDescriptor *descriptor;                   /* optional, list */
+    char *canonicalName;                                   /* optional */
+    char *displayName;                                     /* optional */
+    char *lunType;                                         /* required */
+    char *vendor;                                          /* optional */
+    char *model;                                           /* optional */
+    char *revision;                                        /* optional */
+    esxVI_Int *scsiLevel;                                  /* optional */
+    char *serialNumber;                                    /* optional */
+    esxVI_ScsiLunDurableName *durableName;                 /* optional */
+    esxVI_ScsiLunDurableName *alternateName;               /* optional, list */
+    esxVI_Byte *standardInquiry;                           /* optional, list */
+    esxVI_Int *queueDepth;                                 /* optional */
+    esxVI_String *operationalState;                        /* required, list */
+    esxVI_ScsiLunCapabilities *capabilities;               /* optional */
+};
+
+int esxVI_ScsiLun_Alloc(esxVI_ScsiLun **item);
+void esxVI_ScsiLun_Free(esxVI_ScsiLun **item);
+int esxVI_ScsiLun_Validate(esxVI_ScsiLun *item);
+esxVI_ScsiLun *esxVI_ScsiLun_DynamicCast(void *item);
+int esxVI_ScsiLun_AppendToList(esxVI_ScsiLun **list, esxVI_ScsiLun *item);
+int esxVI_ScsiLun_DeepCopy(esxVI_ScsiLun **dst, esxVI_ScsiLun *src);
+int esxVI_ScsiLun_DeepCopyList(esxVI_ScsiLun **dstList, esxVI_ScsiLun *srcList);
+int esxVI_ScsiLun_CastFromAnyType(esxVI_AnyType *anyType, esxVI_ScsiLun **item);
+int esxVI_ScsiLun_CastListFromAnyType(esxVI_AnyType *anyType, esxVI_ScsiLun **list);
+int esxVI_ScsiLun_Deserialize(xmlNodePtr node, esxVI_ScsiLun **item);
+int esxVI_ScsiLun_DeserializeList(xmlNodePtr node, esxVI_ScsiLun **list);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Object: ScsiLunCapabilities
+ */
+
+struct _esxVI_ScsiLunCapabilities {
+    esxVI_ScsiLunCapabilities *_unused;                    /* optional */
+    esxVI_Type _type;                                      /* required */
+
+    esxVI_Boolean updateDisplayNameSupported;              /* required */
+};
+
+int esxVI_ScsiLunCapabilities_Alloc(esxVI_ScsiLunCapabilities **item);
+void esxVI_ScsiLunCapabilities_Free(esxVI_ScsiLunCapabilities **item);
+int esxVI_ScsiLunCapabilities_Validate(esxVI_ScsiLunCapabilities *item);
+int esxVI_ScsiLunCapabilities_DeepCopy(esxVI_ScsiLunCapabilities **dst, esxVI_ScsiLunCapabilities *src);
+int esxVI_ScsiLunCapabilities_Deserialize(xmlNodePtr node, esxVI_ScsiLunCapabilities **item);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Object: ScsiLunDescriptor
+ */
+
+struct _esxVI_ScsiLunDescriptor {
+    esxVI_ScsiLunDescriptor *_next;                        /* optional */
+    esxVI_Type _type;                                      /* required */
+
+    char *quality;                                         /* required */
+    char *id;                                              /* required */
+};
+
+int esxVI_ScsiLunDescriptor_Alloc(esxVI_ScsiLunDescriptor **item);
+void esxVI_ScsiLunDescriptor_Free(esxVI_ScsiLunDescriptor **item);
+int esxVI_ScsiLunDescriptor_Validate(esxVI_ScsiLunDescriptor *item);
+int esxVI_ScsiLunDescriptor_AppendToList(esxVI_ScsiLunDescriptor **list, esxVI_ScsiLunDescriptor *item);
+int esxVI_ScsiLunDescriptor_DeepCopy(esxVI_ScsiLunDescriptor **dst, esxVI_ScsiLunDescriptor *src);
+int esxVI_ScsiLunDescriptor_DeepCopyList(esxVI_ScsiLunDescriptor **dstList, esxVI_ScsiLunDescriptor *srcList);
+int esxVI_ScsiLunDescriptor_Deserialize(xmlNodePtr node, esxVI_ScsiLunDescriptor **item);
+int esxVI_ScsiLunDescriptor_DeserializeList(xmlNodePtr node, esxVI_ScsiLunDescriptor **list);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Object: ScsiLunDurableName
+ */
+
+struct _esxVI_ScsiLunDurableName {
+    esxVI_ScsiLunDurableName *_next;                       /* optional */
+    esxVI_Type _type;                                      /* required */
+
+    char *namespace;                                       /* required */
+    esxVI_Byte *namespaceId;                               /* required */
+    esxVI_Byte *data;                                      /* optional, list */
+};
+
+int esxVI_ScsiLunDurableName_Alloc(esxVI_ScsiLunDurableName **item);
+void esxVI_ScsiLunDurableName_Free(esxVI_ScsiLunDurableName **item);
+int esxVI_ScsiLunDurableName_Validate(esxVI_ScsiLunDurableName *item);
+int esxVI_ScsiLunDurableName_AppendToList(esxVI_ScsiLunDurableName **list, esxVI_ScsiLunDurableName *item);
+int esxVI_ScsiLunDurableName_DeepCopy(esxVI_ScsiLunDurableName **dst, esxVI_ScsiLunDurableName *src);
+int esxVI_ScsiLunDurableName_DeepCopyList(esxVI_ScsiLunDurableName **dstList, esxVI_ScsiLunDurableName *srcList);
+int esxVI_ScsiLunDurableName_Deserialize(xmlNodePtr node, esxVI_ScsiLunDurableName **item);
+int esxVI_ScsiLunDurableName_DeserializeList(xmlNodePtr node, esxVI_ScsiLunDurableName **list);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * VI Object: SelectionSpec
  *            extended by TraversalSpec
  */
@@ -2025,6 +3035,16 @@ struct _esxVI_ServiceContent {
     esxVI_ManagedObjectReference *fileManager;             /* optional */
     esxVI_ManagedObjectReference *virtualDiskManager;      /* optional */
     esxVI_ManagedObjectReference *virtualizationManager;   /* optional */
+    esxVI_ManagedObjectReference *snmpSystem;              /* optional */
+    esxVI_ManagedObjectReference *vmProvisioningChecker;   /* optional */
+    esxVI_ManagedObjectReference *vmCompatibilityChecker;  /* optional */
+    esxVI_ManagedObjectReference *ovfManager;              /* optional */
+    esxVI_ManagedObjectReference *ipPoolManager;           /* optional */
+    esxVI_ManagedObjectReference *dvSwitchManager;         /* optional */
+    esxVI_ManagedObjectReference *hostProfileManager;      /* optional */
+    esxVI_ManagedObjectReference *clusterProfileManager;   /* optional */
+    esxVI_ManagedObjectReference *complianceManager;       /* optional */
+    esxVI_ManagedObjectReference *localizationManager;     /* optional */
 };
 
 int esxVI_ServiceContent_Alloc(esxVI_ServiceContent **item);
@@ -2065,6 +3085,7 @@ struct _esxVI_TaskInfo {
 
     char *key;                                             /* required */
     esxVI_ManagedObjectReference *task;                    /* required */
+    /* FIXME: description is currently ignored */
     char *name;                                            /* optional */
     char *descriptionId;                                   /* required */
     esxVI_ManagedObjectReference *entity;                  /* optional */
@@ -2081,6 +3102,9 @@ struct _esxVI_TaskInfo {
     esxVI_DateTime *startTime;                             /* optional */
     esxVI_DateTime *completeTime;                          /* optional */
     esxVI_Int *eventChainId;                               /* required */
+    char *changeTag;                                       /* optional */
+    char *parentTaskKey;                                   /* optional */
+    char *rootTaskKey;                                     /* optional */
 };
 
 int esxVI_TaskInfo_Alloc(esxVI_TaskInfo **item);
@@ -2107,6 +3131,7 @@ struct _esxVI_TemplateConfigFileInfo {
     char *path;                                            /* required */
     esxVI_Long *fileSize;                                  /* optional */
     esxVI_DateTime *modification;                          /* optional */
+    char *owner;                                           /* optional */
 
     /* VmConfigFileInfo */
     esxVI_Int *configVersion;                              /* optional */
@@ -2262,9 +3287,14 @@ struct _esxVI_VirtualMachineConfigSpec {
     char *name;                                            /* optional */
     char *version;                                         /* optional */
     char *uuid;                                            /* optional */
+    char *instanceUuid;                                    /* optional */
     esxVI_Long *npivNodeWorldWideName;                     /* optional, list */
     esxVI_Long *npivPortWorldWideName;                     /* optional, list */
     char *npivWorldWideNameType;                           /* optional */
+    /* FIXME: npivDesiredNodeWwns is currently ignored */
+    /* FIXME: npivDesiredPortWwns is currently ignored */
+    esxVI_Boolean npivTemporaryDisabled;                   /* optional */
+    esxVI_Boolean npivOnNonRdmDisks;                       /* optional */
     char *npivWorldWideNameOp;                             /* optional */
     char *locationId;                                      /* optional */
     char *guestId;                                         /* optional */
@@ -2277,6 +3307,9 @@ struct _esxVI_VirtualMachineConfigSpec {
     /* FIXME: powerOpInfo is currently ignored */
     esxVI_Int *numCPUs;                                    /* optional */
     esxVI_Long *memoryMB;                                  /* optional */
+    esxVI_Boolean memoryHotAddEnabled;                     /* optional */
+    esxVI_Boolean cpuHotAddEnabled;                        /* optional */
+    esxVI_Boolean cpuHotRemoveEnabled;                     /* optional */
     /* FIXME: deviceChange is currently ignored */
     esxVI_ResourceAllocationInfo *cpuAllocation;           /* optional */
     esxVI_ResourceAllocationInfo *memoryAllocation;        /* optional */
@@ -2287,6 +3320,11 @@ struct _esxVI_VirtualMachineConfigSpec {
     /* FIXME: extraConfig is currently ignored */
     char *swapPlacement;                                   /* optional */
     /* FIXME: bootOptions is currently ignored */
+    /* FIXME: vAppConfig is currently ignored */
+    /* FIXME: ftInfo is currently ignored */
+    esxVI_Boolean vAppConfigRemoved;                       /* optional */
+    esxVI_Boolean vAssertsEnabled;                         /* optional */
+    esxVI_Boolean changeTrackingEnabled;                   /* optional */
 };
 
 int esxVI_VirtualMachineConfigSpec_Alloc(esxVI_VirtualMachineConfigSpec **item);
@@ -2330,10 +3368,13 @@ struct _esxVI_VirtualMachineSnapshotTree {
     esxVI_ManagedObjectReference *vm;                      /* required */
     char *name;                                            /* required */
     char *description;                                     /* required */
+    esxVI_Int *id;                                         /* optional */
     esxVI_DateTime *createTime;                            /* required */
     esxVI_VirtualMachinePowerState state;                  /* required */
     esxVI_Boolean quiesced;                                /* required */
+    char *backupManifest;                                  /* optional */
     esxVI_VirtualMachineSnapshotTree *childSnapshotList;   /* optional, list */
+    esxVI_Boolean replaySupported;                         /* optional */
 };
 
 int esxVI_VirtualMachineSnapshotTree_Alloc(esxVI_VirtualMachineSnapshotTree **item);
@@ -2363,6 +3404,7 @@ struct _esxVI_VmConfigFileInfo {
     char *path;                                            /* required */
     esxVI_Long *fileSize;                                  /* optional */
     esxVI_DateTime *modification;                          /* optional */
+    char *owner;                                           /* optional */
 
     /* VmConfigFileInfo */
     esxVI_Int *configVersion;                              /* optional */
@@ -2455,6 +3497,7 @@ struct _esxVI_VmDiskFileInfo {
     char *path;                                            /* required */
     esxVI_Long *fileSize;                                  /* optional */
     esxVI_DateTime *modification;                          /* optional */
+    char *owner;                                           /* optional */
 
     /* VmDiskFileInfo */
     char *diskType;                                        /* optional */
@@ -2462,6 +3505,7 @@ struct _esxVI_VmDiskFileInfo {
     esxVI_Int *hardwareVersion;                            /* optional */
     char *controllerType;                                  /* optional */
     esxVI_String *diskExtents;                             /* optional, list */
+    esxVI_Boolean thin;                                    /* optional */
 };
 
 int esxVI_VmDiskFileInfo_Alloc(esxVI_VmDiskFileInfo **item);
@@ -2512,6 +3556,7 @@ struct _esxVI_VmDiskFileQueryFilter {
     esxVI_String *diskType;                                /* optional, list */
     esxVI_Int *matchHardwareVersion;                       /* optional, list */
     esxVI_String *controllerType;                          /* optional, list */
+    esxVI_Boolean thin;                                    /* optional */
 };
 
 int esxVI_VmDiskFileQueryFilter_Alloc(esxVI_VmDiskFileQueryFilter **item);
@@ -2534,6 +3579,7 @@ struct _esxVI_VmDiskFileQueryFlags {
     esxVI_Boolean hardwareVersion;                         /* required */
     esxVI_Boolean controllerType;                          /* optional */
     esxVI_Boolean diskExtents;                             /* optional */
+    esxVI_Boolean thin;                                    /* optional */
 };
 
 int esxVI_VmDiskFileQueryFlags_Alloc(esxVI_VmDiskFileQueryFlags **item);
@@ -2582,6 +3628,7 @@ struct _esxVI_VmLogFileInfo {
     char *path;                                            /* required */
     esxVI_Long *fileSize;                                  /* optional */
     esxVI_DateTime *modification;                          /* optional */
+    char *owner;                                           /* optional */
 
     /* VmLogFileInfo */
     /* no properties */
@@ -2636,6 +3683,7 @@ struct _esxVI_VmNvramFileInfo {
     char *path;                                            /* required */
     esxVI_Long *fileSize;                                  /* optional */
     esxVI_DateTime *modification;                          /* optional */
+    char *owner;                                           /* optional */
 
     /* VmNvramFileInfo */
     /* no properties */
@@ -2690,6 +3738,7 @@ struct _esxVI_VmSnapshotFileInfo {
     char *path;                                            /* required */
     esxVI_Long *fileSize;                                  /* optional */
     esxVI_DateTime *modification;                          /* optional */
+    char *owner;                                           /* optional */
 
     /* VmSnapshotFileInfo */
     /* no properties */
@@ -2745,6 +3794,7 @@ struct _esxVI_VmfsDatastoreInfo {
     char *url;                                             /* required */
     esxVI_Long *freeSpace;                                 /* required */
     esxVI_Long *maxFileSize;                               /* required */
+    esxVI_DateTime *timestamp;                             /* optional */
 
     /* VmfsDatastoreInfo */
     esxVI_HostVmfsVolume *vmfs;                            /* optional */

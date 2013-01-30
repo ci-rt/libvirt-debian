@@ -61,10 +61,12 @@ typedef int (*virSecurityDomainSetImageLabel) (virSecurityManagerPtr mgr,
                                                virDomainDiskDefPtr disk);
 typedef int (*virSecurityDomainRestoreHostdevLabel) (virSecurityManagerPtr mgr,
                                                      virDomainDefPtr def,
-                                                     virDomainHostdevDefPtr dev);
+                                                     virDomainHostdevDefPtr dev,
+                                                     const char *vroot);
 typedef int (*virSecurityDomainSetHostdevLabel) (virSecurityManagerPtr mgr,
                                                  virDomainDefPtr def,
-                                                 virDomainHostdevDefPtr dev);
+                                                 virDomainHostdevDefPtr dev,
+                                                 const char *vroot);
 typedef int (*virSecurityDomainSetSavedStateLabel) (virSecurityManagerPtr mgr,
                                                     virDomainDefPtr def,
                                                     const char *savefile);
@@ -100,6 +102,9 @@ typedef int (*virSecurityDomainSetTapFDLabel) (virSecurityManagerPtr mgr,
                                                int fd);
 typedef char *(*virSecurityDomainGetMountOptions) (virSecurityManagerPtr mgr,
                                                          virDomainDefPtr def);
+typedef int (*virSecurityDomainSetHugepages) (virSecurityManagerPtr mgr,
+                                                         virDomainDefPtr def,
+                                                         const char *path);
 
 struct _virSecurityDriver {
     size_t privateDataLen;
@@ -140,6 +145,7 @@ struct _virSecurityDriver {
     virSecurityDomainSetTapFDLabel domainSetSecurityTapFDLabel;
 
     virSecurityDomainGetMountOptions domainGetSecurityMountOptions;
+    virSecurityDomainSetHugepages domainSetSecurityHugepages;
 };
 
 virSecurityDriverPtr virSecurityDriverLookup(const char *name,

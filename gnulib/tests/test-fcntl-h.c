@@ -1,5 +1,5 @@
 /* Test of <fcntl.h> substitute.
-   Copyright (C) 2007, 2009-2012 Free Software Foundation, Inc.
+   Copyright (C) 2007, 2009-2013 Free Software Foundation, Inc.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -61,7 +61,7 @@ main (void)
 #if O_SEARCH && O_EXEC != O_SEARCH && O_SEARCH != O_RDONLY
     case O_SEARCH:
 #endif
-      i = O_ACCMODE == (O_RDONLY | O_WRONLY | O_RDWR | O_EXEC | O_SEARCH);
+      i = ! (~O_ACCMODE & (O_RDONLY | O_WRONLY | O_RDWR | O_EXEC | O_SEARCH));
       break;
 
       /* Everyone should have these */

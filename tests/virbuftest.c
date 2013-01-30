@@ -5,10 +5,10 @@
 #include <string.h>
 
 #include "internal.h"
-#include "util.h"
+#include "virutil.h"
 #include "testutils.h"
-#include "buf.h"
-#include "memory.h"
+#include "virbuffer.h"
+#include "viralloc.h"
 
 #define TEST_ERROR(...)                             \
     do {                                            \

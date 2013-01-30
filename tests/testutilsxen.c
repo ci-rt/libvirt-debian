@@ -6,7 +6,8 @@
 #include "testutilsxen.h"
 #include "domain_conf.h"
 
-static int testXenDefaultConsoleType(const char *ostype ATTRIBUTE_UNUSED)
+static int testXenDefaultConsoleType(const char *ostype,
+                                     virArch arch ATTRIBUTE_UNUSED)
 {
     if (STREQ(ostype, "hvm"))
         return VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_SERIAL;
@@ -27,8 +28,8 @@ virCapsPtr testXenCapsInit(void) {
         "xenpv"
     };
 
-    uname (&utsname);
-    if ((caps = virCapabilitiesNew(utsname.machine,
+    uname(&utsname);
+    if ((caps = virCapabilitiesNew(VIR_ARCH_I686,
                                    0, 0)) == NULL)
         return NULL;
 
@@ -38,7 +39,7 @@ virCapsPtr testXenCapsInit(void) {
     if ((machines = virCapabilitiesAllocMachines(x86_machines, nmachines)) == NULL)
         goto cleanup;
 
-    if ((guest = virCapabilitiesAddGuest(caps, "hvm", "i686", 32,
+    if ((guest = virCapabilitiesAddGuest(caps, "hvm", VIR_ARCH_I686,
                                          "/usr/lib/xen/bin/qemu-dm", NULL,
                                          nmachines, machines)) == NULL)
         goto cleanup;
@@ -56,7 +57,7 @@ virCapsPtr testXenCapsInit(void) {
     if ((machines = virCapabilitiesAllocMachines(xen_machines, nmachines)) == NULL)
         goto cleanup;
 
-    if ((guest = virCapabilitiesAddGuest(caps, "xen", "i686", 32,
+    if ((guest = virCapabilitiesAddGuest(caps, "xen", VIR_ARCH_I686,
                                          "/usr/lib/xen/bin/qemu-dm", NULL,
                                          nmachines, machines)) == NULL)
         goto cleanup;

@@ -28,9 +28,9 @@
 # include <libxml/xpath.h>
 
 # include "internal.h"
-# include "util.h"
-# include "threads.h"
-# include "buf.h"
+# include "virutil.h"
+# include "virthread.h"
+# include "virbuffer.h"
 
 enum virDeviceAddressPciMulti {
     VIR_DEVICE_ADDRESS_PCI_MULTI_DEFAULT = 0,

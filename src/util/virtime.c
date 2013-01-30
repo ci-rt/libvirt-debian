@@ -37,9 +37,9 @@
 #include <sys/time.h>
 
 #include "virtime.h"
-#include "util.h"
-#include "memory.h"
-#include "virterror_internal.h"
+#include "virutil.h"
+#include "viralloc.h"
+#include "virerror.h"
 
 #define VIR_FROM_THIS VIR_FROM_NONE
 
@@ -159,8 +159,8 @@ int virTimeFieldsThenRaw(unsigned long long when, struct tm *fields)
 
       /* Adjust DAYS and Y to match the guessed year.  */
       days -= ((yg - y) * 365
-               + LEAPS_THRU_END_OF (yg - 1)
-               - LEAPS_THRU_END_OF (y - 1));
+               + LEAPS_THRU_END_OF(yg - 1)
+               - LEAPS_THRU_END_OF(y - 1));
       y = yg;
     }
     fields->tm_year = y - 1900;

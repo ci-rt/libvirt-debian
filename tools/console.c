@@ -38,12 +38,12 @@
 
 # include "internal.h"
 # include "console.h"
-# include "logging.h"
-# include "util.h"
+# include "virlog.h"
+# include "virutil.h"
 # include "virfile.h"
-# include "memory.h"
-# include "threads.h"
-# include "virterror_internal.h"
+# include "viralloc.h"
+# include "virthread.h"
+# include "virerror.h"
 
 /*
  * Convert given character to control character.
@@ -83,7 +83,7 @@ static void do_signal(int sig ATTRIBUTE_UNUSED) {
 
 # ifndef HAVE_CFMAKERAW
 static void
-cfmakeraw (struct termios *attr)
+cfmakeraw(struct termios *attr)
 {
     attr->c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP
                          | INLCR | IGNCR | ICRNL | IXON);

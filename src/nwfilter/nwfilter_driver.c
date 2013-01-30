@@ -28,13 +28,13 @@
 #include <config.h>
 
 #include "virdbus.h"
-#include "logging.h"
+#include "virlog.h"
 
 #include "internal.h"
 
-#include "virterror_internal.h"
+#include "virerror.h"
 #include "datatypes.h"
-#include "memory.h"
+#include "viralloc.h"
 #include "domain_conf.h"
 #include "domain_nwfilter.h"
 #include "nwfilter_conf.h"
@@ -165,22 +165,27 @@ nwfilterDriverInstallDBusMatches(DBusConnection *sysbus ATTRIBUTE_UNUSED)
  * Initialization function for the QEmu daemon
  */
 static int
-nwfilterDriverStartup(int privileged)
+nwfilterDriverStartup(bool privileged,
+                      virStateInhibitCallback callback ATTRIBUTE_UNUSED,
+                      void *opaque ATTRIBUTE_UNUSED)
 {
     char *base = NULL;
     DBusConnection *sysbus = NULL;
 
-#if HAVE_DBUS
+#if WITH_DBUS
     sysbus = virDBusGetSystemBus();
-#endif /* HAVE_DBUS */
+#endif /* WITH_DBUS */
 
-    if (VIR_ALLOC(driverState) < 0)
-        goto alloc_err_exit;
+    if (VIR_ALLOC(driverState) < 0) {
+        virReportOOMError();
+        return -1;
+    }
 
     if (virMutexInit(&driverState->lock) < 0)
         goto err_free_driverstate;
 
     driverState->watchingFirewallD = (sysbus != NULL);
+    driverState->privileged = privileged;
 
     if (!privileged)
         return 0;
@@ -215,14 +220,8 @@ nwfilterDriverStartup(int privileged)
         goto error;
     }
 
-    if (privileged) {
-        if ((base = strdup (SYSCONFDIR "/libvirt")) == NULL)
-            goto out_of_memory;
-    } else {
-        base = virGetUserConfigDirectory();
-        if (!base)
-            goto error;
-    }
+    if ((base = strdup(SYSCONFDIR "/libvirt")) == NULL)
+        goto out_of_memory;
 
     if (virAsprintf(&driverState->configDir,
                     "%s/nwfilter", base) == -1)
@@ -247,10 +246,7 @@ error:
     nwfilterDriverUnlock(driverState);
     nwfilterDriverShutdown();
 
-alloc_err_exit:
     return -1;
-
-    nwfilterDriverUnlock(driverState);
 
 err_techdrivers_shutdown:
     virNWFilterTechDriversShutdown();
@@ -280,6 +276,9 @@ nwfilterDriverReload(void) {
         return -1;
     }
 
+    if (!driverState->privileged)
+        return 0;
+
     conn = virConnectOpen("qemu:///system");
 
     if (conn) {
@@ -305,27 +304,6 @@ nwfilterDriverReload(void) {
     return 0;
 }
 
-/**
- * virNWFilterActive:
- *
- * Checks if the nwfilter driver is active, i.e. has an active nwfilter
- *
- * Returns 1 if active, 0 otherwise
- */
-static int
-nwfilterDriverActive(void) {
-    int ret;
-
-    if (!driverState)
-        return 0;
-
-    nwfilterDriverLock(driverState);
-    ret = driverState->nwfilters.count ? 1 : 0;
-    ret |= driverState->watchingFirewallD;
-    nwfilterDriverUnlock(driverState);
-
-    return ret;
-}
 
 /**
  * virNWFilterIsWatchingFirewallD:
@@ -359,21 +337,24 @@ nwfilterDriverShutdown(void) {
     if (!driverState)
         return -1;
 
-    virNWFilterConfLayerShutdown();
-    virNWFilterTechDriversShutdown();
-    virNWFilterDHCPSnoopShutdown();
-    virNWFilterLearnShutdown();
-    virNWFilterIPAddrMapShutdown();
+    if (driverState->privileged) {
+        virNWFilterConfLayerShutdown();
+        virNWFilterTechDriversShutdown();
+        virNWFilterDHCPSnoopShutdown();
+        virNWFilterLearnShutdown();
+        virNWFilterIPAddrMapShutdown();
 
-    nwfilterDriverLock(driverState);
+        nwfilterDriverLock(driverState);
 
-    nwfilterDriverRemoveDBusMatches();
+        nwfilterDriverRemoveDBusMatches();
 
-    /* free inactive nwfilters */
-    virNWFilterObjListFree(&driverState->nwfilters);
+        /* free inactive nwfilters */
+        virNWFilterObjListFree(&driverState->nwfilters);
 
-    VIR_FREE(driverState->configDir);
-    nwfilterDriverUnlock(driverState);
+        VIR_FREE(driverState->configDir);
+        nwfilterDriverUnlock(driverState);
+    }
+
     virMutexDestroy(&driverState->lock);
     VIR_FREE(driverState);
 
@@ -696,7 +677,6 @@ static virStateDriver stateDriver = {
     .initialize = nwfilterDriverStartup,
     .cleanup = nwfilterDriverShutdown,
     .reload = nwfilterDriverReload,
-    .active = nwfilterDriverActive,
 };
 
 

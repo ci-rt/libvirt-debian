@@ -574,4 +574,33 @@ LIBVIRT_1.0.0 {
         virNodeGetCPUMap;
 } LIBVIRT_0.10.2;
 
+LIBVIRT_1.0.1 {
+    global:
+        virDomainFSTrim;
+        virDomainSendProcessSignal;
+} LIBVIRT_1.0.0;
+
+LIBVIRT_1.0.2 {
+    global:
+        virDomainOpenChannel;
+        virTypedParamsAddBoolean;
+        virTypedParamsAddDouble;
+        virTypedParamsAddFromString;
+        virTypedParamsAddInt;
+        virTypedParamsAddLLong;
+        virTypedParamsAddString;
+        virTypedParamsAddUInt;
+        virTypedParamsAddULLong;
+        virTypedParamsClear;
+        virTypedParamsFree;
+        virTypedParamsGet;
+        virTypedParamsGetBoolean;
+        virTypedParamsGetDouble;
+        virTypedParamsGetInt;
+        virTypedParamsGetLLong;
+        virTypedParamsGetString;
+        virTypedParamsGetUInt;
+        virTypedParamsGetULLong;
+} LIBVIRT_1.0.1;
+
 # .... define new API here using predicted next version number ....

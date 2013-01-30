@@ -25,9 +25,9 @@
 #include <unistd.h>
 
 #include "driver.h"
-#include "memory.h"
-#include "logging.h"
-#include "util.h"
+#include "viralloc.h"
+#include "virlog.h"
+#include "virutil.h"
 #include "configmake.h"
 
 #define DEFAULT_DRIVER_DIR LIBDIR "/libvirt/connection-driver"

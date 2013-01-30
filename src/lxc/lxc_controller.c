@@ -29,7 +29,6 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <sys/un.h>
-#include <sys/utsname.h>
 #include <sys/personality.h>
 #include <unistd.h>
 #include <paths.h>
@@ -43,31 +42,30 @@
 #include <sys/stat.h>
 #include <time.h>
 
-#if HAVE_CAPNG
+#if WITH_CAPNG
 # include <cap-ng.h>
 #endif
 
-#if HAVE_NUMACTL
+#if WITH_NUMACTL
 # define NUMA_VERSION1_COMPATIBILITY 1
 # include <numa.h>
 #endif
 
-#include "virterror_internal.h"
-#include "logging.h"
-#include "util.h"
+#include "virerror.h"
+#include "virlog.h"
+#include "virutil.h"
 
 #include "lxc_conf.h"
 #include "lxc_container.h"
 #include "lxc_cgroup.h"
-#include "lxc_protocol.h"
+#include "lxc_monitor_protocol.h"
+#include "lxc_fuse.h"
 #include "virnetdev.h"
 #include "virnetdevveth.h"
-#include "memory.h"
-#include "util.h"
+#include "viralloc.h"
 #include "virfile.h"
 #include "virpidfile.h"
-#include "command.h"
-#include "processinfo.h"
+#include "vircommand.h"
 #include "nodeinfo.h"
 #include "virrandom.h"
 #include "virprocess.h"
@@ -97,6 +95,8 @@ struct _virLXCControllerConsole {
     char fromHostBuf[1024];
     size_t fromContLen;
     char fromContBuf[1024];
+
+    virNetServerPtr server;
 };
 
 typedef struct _virLXCController virLXCController;
@@ -123,15 +123,20 @@ struct _virLXCController {
 
     /* Server socket */
     virNetServerPtr server;
+    bool firstClient;
     virNetServerClientPtr client;
     virNetServerProgramPtr prog;
     bool inShutdown;
     int timerShutdown;
+
+    virLXCFusePtr fuse;
 };
 
 #include "lxc_controller_dispatch.h"
 
 static void virLXCControllerFree(virLXCControllerPtr ctrl);
+static int virLXCControllerEventSendInit(virLXCControllerPtr ctrl,
+                                         pid_t initpid);
 
 static void virLXCControllerQuitTimer(int timer ATTRIBUTE_UNUSED, void *opaque)
 {
@@ -152,6 +157,7 @@ static virLXCControllerPtr virLXCControllerNew(const char *name)
         goto no_memory;
 
     ctrl->timerShutdown = -1;
+    ctrl->firstClient = true;
 
     if (!(ctrl->name = strdup(name)))
         goto no_memory;
@@ -236,6 +242,13 @@ static void virLXCControllerConsoleClose(virLXCControllerConsolePtr console)
 }
 
 
+static void
+virLXCControllerFreeFuse(virLXCControllerPtr ctrl)
+{
+    return lxcFreeFuse(&ctrl->fuse);
+}
+
+
 static void virLXCControllerFree(virLXCControllerPtr ctrl)
 {
     size_t i;
@@ -266,6 +279,7 @@ static void virLXCControllerFree(virLXCControllerPtr ctrl)
         virEventRemoveTimeout(ctrl->timerShutdown);
 
     virObjectUnref(ctrl->server);
+    virLXCControllerFreeFuse(ctrl);
 
     VIR_FREE(ctrl);
 }
@@ -278,6 +292,7 @@ static int virLXCControllerAddConsole(virLXCControllerPtr ctrl,
         virReportOOMError();
         return -1;
     }
+    ctrl->consoles[ctrl->nconsoles-1].server = ctrl->server;
     ctrl->consoles[ctrl->nconsoles-1].hostFd = hostFd;
     ctrl->consoles[ctrl->nconsoles-1].hostWatch = -1;
 
@@ -393,7 +408,7 @@ cleanup:
     return ret;
 }
 
-#if HAVE_NUMACTL
+#if WITH_NUMACTL
 static int virLXCControllerSetupNUMAPolicy(virLXCControllerPtr ctrl)
 {
     nodemask_t mask;
@@ -492,17 +507,15 @@ static int virLXCControllerSetupNUMAPolicy(virLXCControllerPtr ctrl)
 static int virLXCControllerSetupCpuAffinity(virLXCControllerPtr ctrl)
 {
     int hostcpus, maxcpu = CPU_SETSIZE;
-    virNodeInfo nodeinfo;
     virBitmapPtr cpumap, cpumapToSet;
 
     VIR_DEBUG("Setting CPU affinity");
 
-    if (nodeGetInfo(NULL, &nodeinfo) < 0)
-        return -1;
-
     /* setaffinity fails if you set bits for CPUs which
      * aren't present, so we have to limit ourselves */
-    hostcpus = VIR_NODEINFO_MAXCPUS(nodeinfo);
+    if ((hostcpus = nodeGetCPUCount()) < 0)
+        return -1;
+
     if (maxcpu > hostcpus)
         maxcpu = hostcpus;
 
@@ -526,7 +539,7 @@ static int virLXCControllerSetupCpuAffinity(virLXCControllerPtr ctrl)
      * so use '0' to indicate our own process ID. No threads are
      * running at this point
      */
-    if (virProcessInfoSetAffinity(0 /* Self */, cpumapToSet) < 0) {
+    if (virProcessSetAffinity(0 /* Self */, cpumapToSet) < 0) {
         virBitmapFree(cpumap);
         return -1;
     }
@@ -573,24 +586,24 @@ static void virLXCControllerClientCloseHook(virNetServerClientPtr client)
 
 static void virLXCControllerClientPrivateFree(void *data)
 {
-    VIR_FREE(data);
+    virLXCControllerPtr ctrl = data;
+    VIR_DEBUG("Got private data free %p", ctrl);
 }
 
 static void *virLXCControllerClientPrivateNew(virNetServerClientPtr client,
                                               void *opaque)
 {
     virLXCControllerPtr ctrl = opaque;
-    int *dummy;
-
-    if (VIR_ALLOC(dummy) < 0) {
-        virReportOOMError();
-        return NULL;
-    }
 
     virNetServerClientSetCloseHook(client, virLXCControllerClientCloseHook);
     VIR_DEBUG("Got new client %p", client);
     ctrl->client = client;
-    return dummy;
+
+    if (ctrl->initpid && ctrl->firstClient)
+        virLXCControllerEventSendInit(ctrl, ctrl->initpid);
+    ctrl->firstClient = false;
+
+    return ctrl;
 }
 
 
@@ -618,9 +631,11 @@ static int virLXCControllerSetupServer(virLXCControllerPtr ctrl)
                                            0700,
                                            0,
                                            0,
+#if WITH_GNUTLS
+                                           NULL,
+#endif
                                            false,
-                                           5,
-                                           NULL)))
+                                           5)))
         goto error;
 
     if (virNetServerAddService(ctrl->server, svc, NULL) < 0)
@@ -649,7 +664,7 @@ error:
 
 static int lxcControllerClearCapabilities(void)
 {
-#if HAVE_CAPNG
+#if WITH_CAPNG
     int ret;
 
     capng_clear(CAPNG_SELECT_BOTH);
@@ -665,12 +680,11 @@ static int lxcControllerClearCapabilities(void)
     return 0;
 }
 
-static bool quit = false;
 static bool wantReboot = false;
 static virMutex lock;
 
 
-static void virLXCControllerSignalChildIO(virNetServerPtr server ATTRIBUTE_UNUSED,
+static void virLXCControllerSignalChildIO(virNetServerPtr server,
                                           siginfo_t *info ATTRIBUTE_UNUSED,
                                           void *opaque)
 {
@@ -680,8 +694,8 @@ static void virLXCControllerSignalChildIO(virNetServerPtr server ATTRIBUTE_UNUSE
 
     ret = waitpid(-1, &status, WNOHANG);
     if (ret == ctrl->initpid) {
+        virNetServerQuit(server);
         virMutexLock(&lock);
-        quit = true;
         if (WIFSIGNALED(status) &&
             WTERMSIG(status) == SIGHUP)
             wantReboot = true;
@@ -733,7 +747,7 @@ static void virLXCControllerConsoleUpdateWatch(virLXCControllerConsolePtr consol
                 VIR_DEBUG(":fail");
                 virReportSystemError(errno, "%s",
                                      _("Unable to add epoll fd"));
-                quit = true;
+                virNetServerQuit(console->server);
                 goto cleanup;
             }
             console->hostEpoll = events;
@@ -744,8 +758,8 @@ static void virLXCControllerConsoleUpdateWatch(virLXCControllerConsolePtr consol
         if (epoll_ctl(console->epollFd, EPOLL_CTL_DEL, console->hostFd, NULL) < 0) {
             virReportSystemError(errno, "%s",
                                  _("Unable to remove epoll fd"));
-                VIR_DEBUG(":fail");
-            quit = true;
+            VIR_DEBUG(":fail");
+            virNetServerQuit(console->server);
             goto cleanup;
         }
         console->hostEpoll = 0;
@@ -770,7 +784,7 @@ static void virLXCControllerConsoleUpdateWatch(virLXCControllerConsolePtr consol
                 virReportSystemError(errno, "%s",
                                      _("Unable to add epoll fd"));
                 VIR_DEBUG(":fail");
-                quit = true;
+                virNetServerQuit(console->server);
                 goto cleanup;
             }
             console->contEpoll = events;
@@ -781,8 +795,8 @@ static void virLXCControllerConsoleUpdateWatch(virLXCControllerConsolePtr consol
         if (epoll_ctl(console->epollFd, EPOLL_CTL_DEL, console->contFd, NULL) < 0) {
             virReportSystemError(errno, "%s",
                                  _("Unable to remove epoll fd"));
-                VIR_DEBUG(":fail");
-            quit = true;
+            VIR_DEBUG(":fail");
+            virNetServerQuit(console->server);
             goto cleanup;
         }
         console->contEpoll = 0;
@@ -811,7 +825,7 @@ static void virLXCControllerConsoleEPoll(int watch, int fd, int events, void *op
                 continue;
             virReportSystemError(errno, "%s",
                                  _("Unable to wait on epoll"));
-            quit = true;
+            virNetServerQuit(console->server);
             goto cleanup;
         }
 
@@ -928,7 +942,7 @@ error:
     virEventRemoveHandle(console->contWatch);
     virEventRemoveHandle(console->hostWatch);
     console->contWatch = console->hostWatch = -1;
-    quit = true;
+    virNetServerQuit(console->server);
     virMutexUnlock(&lock);
 }
 
@@ -997,14 +1011,7 @@ static int virLXCControllerMain(virLXCControllerPtr ctrl)
         }
     }
 
-    virMutexLock(&lock);
-    while (!quit) {
-        virMutexUnlock(&lock);
-        if (virEventRunDefaultImpl() < 0)
-            goto cleanup;
-        virMutexLock(&lock);
-    }
-    virMutexUnlock(&lock);
+    virNetServerRun(ctrl->server);
 
     err = virGetLastError();
     if (!err || err->code == VIR_ERR_OK)
@@ -1069,17 +1076,15 @@ static int virLXCControllerDeleteInterfaces(virLXCControllerPtr ctrl)
 
 static int lxcSetPersonality(virDomainDefPtr def)
 {
-    struct utsname utsname;
-    const char *altArch;
+    virArch altArch;
 
-    uname(&utsname);
-
-    altArch = lxcContainerGetAlt32bitArch(utsname.machine);
+    altArch = lxcContainerGetAlt32bitArch(virArchFromHost());
     if (altArch &&
-        STREQ(def->os.arch, altArch)) {
+        (def->os.arch == altArch)) {
         if (personality(PER_LINUX32) < 0) {
             virReportSystemError(errno, _("Unable to request personality for %s on %s"),
-                                 altArch, utsname.machine);
+                                 virArchToString(altArch),
+                                 virArchToString(virArchFromHost()));
             return -1;
         }
     }
@@ -1140,11 +1145,34 @@ cleanup:
 
 
 static int
+virLXCControllerSetupPrivateNS(void)
+{
+    int ret = -1;
+
+    if (unshare(CLONE_NEWNS) < 0) {
+        virReportSystemError(errno, "%s",
+                             _("Cannot unshare mount namespace"));
+        goto cleanup;
+    }
+
+    if (mount("", "/", NULL, MS_SLAVE|MS_REC, NULL) < 0) {
+        virReportSystemError(errno, "%s",
+                             _("Failed to switch root mount into slave mode"));
+        goto cleanup;
+    }
+
+    ret = 0;
+cleanup:
+    return ret;
+}
+
+
+static int
 virLXCControllerSetupDevPTS(virLXCControllerPtr ctrl)
 {
     virDomainFSDefPtr root = virDomainGetRootFilesystem(ctrl->def);
     char *mount_options = NULL;
-    char *opts;
+    char *opts = NULL;
     char *devpts = NULL;
     int ret = -1;
 
@@ -1187,18 +1215,6 @@ virLXCControllerSetupDevPTS(virLXCControllerPtr ctrl)
         virReportSystemError(errno,
                              _("root source %s does not exist"),
                              root->src);
-        goto cleanup;
-    }
-
-    if (unshare(CLONE_NEWNS) < 0) {
-        virReportSystemError(errno, "%s",
-                             _("Cannot unshare mount namespace"));
-        goto cleanup;
-    }
-
-    if (mount("", "/", NULL, MS_SLAVE|MS_REC, NULL) < 0) {
-        virReportSystemError(errno, "%s",
-                             _("Failed to switch root mount into slave mode"));
         goto cleanup;
     }
 
@@ -1247,6 +1263,12 @@ cleanup:
 
 
 static int
+virLXCControllerSetupFuse(virLXCControllerPtr ctrl)
+{
+    return lxcSetupFuse(&ctrl->fuse, ctrl->def);
+}
+
+static int
 virLXCControllerSetupConsoles(virLXCControllerPtr ctrl,
                               char **containerTTYPaths)
 {
@@ -1285,8 +1307,10 @@ virLXCControllerEventSend(virLXCControllerPtr ctrl,
 {
     virNetMessagePtr msg;
 
-    if (!ctrl->client)
+    if (!ctrl->client) {
+        VIR_WARN("Dropping event %d becuase libvirtd is not connected", procnr);
         return;
+    }
 
     VIR_DEBUG("Send event %d client=%p", procnr, ctrl->client);
     if (!(msg = virNetMessageNew(false)))
@@ -1323,7 +1347,7 @@ virLXCControllerEventSendExit(virLXCControllerPtr ctrl,
 {
     virLXCProtocolExitEventMsg msg;
 
-    VIR_DEBUG("Exit status %d", exitstatus);
+    VIR_DEBUG("Exit status %d (client=%p)", exitstatus, ctrl->client);
     memset(&msg, 0, sizeof(msg));
     switch (exitstatus) {
     case 0:
@@ -1354,6 +1378,24 @@ virLXCControllerEventSendExit(virLXCControllerPtr ctrl,
 
 
 static int
+virLXCControllerEventSendInit(virLXCControllerPtr ctrl,
+                              pid_t initpid)
+{
+    virLXCProtocolInitEventMsg msg;
+
+    VIR_DEBUG("Init pid %llu", (unsigned long long)initpid);
+    memset(&msg, 0, sizeof(msg));
+    msg.initpid = initpid;
+
+    virLXCControllerEventSend(ctrl,
+                              VIR_LXC_PROTOCOL_PROC_INIT_EVENT,
+                              (xdrproc_t)xdr_virLXCProtocolInitEventMsg,
+                              (void*)&msg);
+    return 0;
+}
+
+
+static int
 virLXCControllerRun(virLXCControllerPtr ctrl)
 {
     int rc = -1;
@@ -1379,6 +1421,9 @@ virLXCControllerRun(virLXCControllerPtr ctrl)
         goto cleanup;
     }
 
+    if (virLXCControllerSetupPrivateNS() < 0)
+        goto cleanup;
+
     if (virLXCControllerSetupLoopDevices(ctrl) < 0)
         goto cleanup;
 
@@ -1386,6 +1431,9 @@ virLXCControllerRun(virLXCControllerPtr ctrl)
         goto cleanup;
 
     if (virLXCControllerSetupDevPTS(ctrl) < 0)
+        goto cleanup;
+
+    if (virLXCControllerSetupFuse(ctrl) < 0)
         goto cleanup;
 
     if (virLXCControllerSetupConsoles(ctrl, containerTTYPaths) < 0)
@@ -1595,11 +1643,15 @@ int main(int argc, char *argv[])
                                                         false, false, false)))
         goto cleanup;
 
-    VIR_DEBUG("Security model %s type %s label %s imagelabel %s",
-              NULLSTR(ctrl->def->seclabels[0]->model),
-              virDomainSeclabelTypeToString(ctrl->def->seclabels[0]->type),
-              NULLSTR(ctrl->def->seclabels[0]->label),
-              NULLSTR(ctrl->def->seclabels[0]->imagelabel));
+    if (ctrl->def->seclabels) {
+        VIR_DEBUG("Security model %s type %s label %s imagelabel %s",
+                  NULLSTR(ctrl->def->seclabels[0]->model),
+                  virDomainSeclabelTypeToString(ctrl->def->seclabels[0]->type),
+                  NULLSTR(ctrl->def->seclabels[0]->label),
+                  NULLSTR(ctrl->def->seclabels[0]->imagelabel));
+    } else {
+        VIR_DEBUG("Security model not initialized");
+    }
 
     ctrl->veths = veths;
     ctrl->nveths = nveths;
@@ -1655,7 +1707,8 @@ int main(int argc, char *argv[])
 
 cleanup:
     virPidFileDelete(LXC_STATE_DIR, name);
-    virLXCControllerDeleteInterfaces(ctrl);
+    if (ctrl)
+        virLXCControllerDeleteInterfaces(ctrl);
     for (i = 0 ; i < nttyFDs ; i++)
         VIR_FORCE_CLOSE(ttyFDs[i]);
     VIR_FREE(ttyFDs);

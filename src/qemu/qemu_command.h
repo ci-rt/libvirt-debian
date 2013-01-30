@@ -25,7 +25,7 @@
 # define __QEMU_COMMAND_H__
 
 # include "domain_conf.h"
-# include "command.h"
+# include "vircommand.h"
 # include "capabilities.h"
 # include "qemu_conf.h"
 # include "qemu_domain.h"
@@ -50,7 +50,7 @@
 
 
 virCommandPtr qemuBuildCommandLine(virConnectPtr conn,
-                                   struct qemud_driver *driver,
+                                   virQEMUDriverPtr driver,
                                    virDomainDefPtr def,
                                    virDomainChrSourceDefPtr monitor_chr,
                                    bool monitor_json,
@@ -65,12 +65,12 @@ virCommandPtr qemuBuildCommandLine(virConnectPtr conn,
 char *
 qemuBuildChrDeviceStr (virDomainChrDefPtr serial,
                        qemuCapsPtr caps,
-                       char *os_arch,
+                       virArch arch,
                        char *machine);
 
 /* With vlan == -1, use netdev syntax, else old hostnet */
 char * qemuBuildHostNetStr(virDomainNetDefPtr net,
-                           struct qemud_driver *driver,
+                           virQEMUDriverPtr driver,
                            qemuCapsPtr caps,
                            char type_sep,
                            int vlan,
@@ -146,13 +146,13 @@ char * qemuBuildRedirdevDevStr(virDomainDefPtr def,
 
 int qemuNetworkIfaceConnect(virDomainDefPtr def,
                             virConnectPtr conn,
-                            struct qemud_driver *driver,
+                            virQEMUDriverPtr driver,
                             virDomainNetDefPtr net,
                             qemuCapsPtr caps)
     ATTRIBUTE_NONNULL(2);
 
 int qemuPhysIfaceConnect(virDomainDefPtr def,
-                         struct qemud_driver *driver,
+                         virQEMUDriverPtr driver,
                          virDomainNetDefPtr net,
                          qemuCapsPtr caps,
                          enum virNetDevVPortProfileOp vmop);
@@ -211,7 +211,9 @@ int qemuDomainPCIAddressReleaseFunction(qemuDomainPCIAddressSetPtr addrs,
 int qemuDomainPCIAddressReleaseSlot(qemuDomainPCIAddressSetPtr addrs, int slot);
 
 void qemuDomainPCIAddressSetFree(qemuDomainPCIAddressSetPtr addrs);
-int  qemuAssignDevicePCISlots(virDomainDefPtr def, qemuDomainPCIAddressSetPtr addrs);
+int  qemuAssignDevicePCISlots(virDomainDefPtr def,
+                              qemuCapsPtr caps,
+                              qemuDomainPCIAddressSetPtr addrs);
 
 int qemuAssignDeviceAliases(virDomainDefPtr def, qemuCapsPtr caps);
 int qemuDomainNetVLAN(virDomainNetDefPtr def);

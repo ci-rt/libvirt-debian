@@ -28,10 +28,10 @@
 #include "domain_conf.h"
 #include "snapshot_conf.h"
 #include "virauth.h"
-#include "util.h"
-#include "memory.h"
-#include "logging.h"
-#include "uuid.h"
+#include "virutil.h"
+#include "viralloc.h"
+#include "virlog.h"
+#include "viruuid.h"
 #include "vmx.h"
 #include "virtypedparam.h"
 #include "esx_driver.h"
@@ -163,7 +163,8 @@ esxParseVMXFileName(const char *fileName, void *opaque)
             datastoreName = NULL;
 
             if (esxVI_LookupDatastoreHostMount(data->ctx, datastore->obj,
-                                               &hostMount) < 0 ||
+                                               &hostMount,
+                                               esxVI_Occurrence_RequiredItem) < 0 ||
                 esxVI_GetStringValue(datastore, "summary.name", &datastoreName,
                                      esxVI_Occurrence_RequiredItem) < 0) {
                 goto cleanup;
@@ -307,7 +308,8 @@ esxFormatVMXFileName(const char *fileName, void *opaque)
         if (esxVI_LookupDatastoreByName(data->ctx, datastoreName, NULL, &datastore,
                                         esxVI_Occurrence_RequiredItem) < 0 ||
             esxVI_LookupDatastoreHostMount(data->ctx, datastore->obj,
-                                           &hostMount) < 0) {
+                                           &hostMount,
+                                           esxVI_Occurrence_RequiredItem) < 0) {
             goto cleanup;
         }
 
@@ -566,7 +568,8 @@ esxLookupHostSystemBiosUuid(esxPrivate *priv, unsigned char *uuid)
 }
 
 
-static int esxDefaultConsoleType(const char *ostype ATTRIBUTE_UNUSED)
+static int esxDefaultConsoleType(const char *ostype ATTRIBUTE_UNUSED,
+                                 virArch arch ATTRIBUTE_UNUSED)
 {
     return VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_SERIAL;
 }
@@ -584,9 +587,9 @@ esxCapsInit(esxPrivate *priv)
     }
 
     if (supportsLongMode == esxVI_Boolean_True) {
-        caps = virCapabilitiesNew("x86_64", 1, 1);
+        caps = virCapabilitiesNew(VIR_ARCH_X86_64, 1, 1);
     } else {
-        caps = virCapabilitiesNew("i686", 1, 1);
+        caps = virCapabilitiesNew(VIR_ARCH_I686, 1, 1);
     }
 
     if (caps == NULL) {
@@ -605,7 +608,9 @@ esxCapsInit(esxPrivate *priv)
     }
 
     /* i686 */
-    guest = virCapabilitiesAddGuest(caps, "hvm", "i686", 32, NULL, NULL, 0,
+    guest = virCapabilitiesAddGuest(caps, "hvm",
+                                    VIR_ARCH_I686,
+                                    NULL, NULL, 0,
                                     NULL);
 
     if (guest == NULL) {
@@ -619,7 +624,9 @@ esxCapsInit(esxPrivate *priv)
 
     /* x86_64 */
     if (supportsLongMode == esxVI_Boolean_True) {
-        guest = virCapabilitiesAddGuest(caps, "hvm", "x86_64", 64, NULL, NULL,
+        guest = virCapabilitiesAddGuest(caps, "hvm",
+                                        VIR_ARCH_X86_64,
+                                        NULL, NULL,
                                         0, NULL);
 
         if (guest == NULL) {
@@ -3769,7 +3776,7 @@ esxDomainSetSchedulerParametersFlags(virDomainPtr domain,
             }
 
             spec->cpuAllocation->reservation->value = params[i].value.l;
-        } else if(STREQ (params[i].field, VIR_DOMAIN_SCHEDULER_LIMIT)) {
+        } else if (STREQ(params[i].field, VIR_DOMAIN_SCHEDULER_LIMIT)) {
             if (esxVI_Long_Alloc(&spec->cpuAllocation->limit) < 0) {
                 goto cleanup;
             }
@@ -3783,7 +3790,7 @@ esxDomainSetSchedulerParametersFlags(virDomainPtr domain,
             }
 
             spec->cpuAllocation->limit->value = params[i].value.l;
-        } else if(STREQ (params[i].field, VIR_DOMAIN_SCHEDULER_SHARES)) {
+        } else if (STREQ(params[i].field, VIR_DOMAIN_SCHEDULER_SHARES)) {
             if (esxVI_SharesInfo_Alloc(&sharesInfo) < 0 ||
                 esxVI_Int_Alloc(&sharesInfo->shares) < 0) {
                 goto cleanup;
@@ -4789,7 +4796,7 @@ esxDomainRevertToSnapshot(virDomainSnapshotPtr snapshot, unsigned int flags)
     }
 
     if (esxVI_RevertToSnapshot_Task(priv->primary, snapshotTree->snapshot, NULL,
-                                    &task) < 0 ||
+                                    esxVI_Boolean_Undefined, &task) < 0 ||
         esxVI_WaitForTaskCompletion(priv->primary, task, snapshot->domain->uuid,
                                     esxVI_Occurrence_RequiredItem,
                                     priv->parsedUri->autoAnswer, &taskInfoState,

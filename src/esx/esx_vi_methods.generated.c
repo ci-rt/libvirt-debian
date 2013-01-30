@@ -229,6 +229,7 @@ ESX_VI__METHOD(FindByUuid, searchIndex,
                 esxVI_ManagedObjectReference *datacenter,  /* optional */
                 const char *uuid,                          /* required */
                 esxVI_Boolean vmSearch,                    /* required */
+                esxVI_Boolean instanceUuid,                /* optional */
                 esxVI_ManagedObjectReference **output),    /* optional */
                ManagedObjectReference, /* nothing */, OptionalItem,
 {
@@ -241,6 +242,7 @@ ESX_VI__METHOD(FindByUuid, searchIndex,
     ESX_VI__METHOD__PARAMETER__SERIALIZE(ManagedObjectReference, datacenter)
     ESX_VI__METHOD__PARAMETER__SERIALIZE_VALUE(String, uuid)
     ESX_VI__METHOD__PARAMETER__SERIALIZE(Boolean, vmSearch)
+    ESX_VI__METHOD__PARAMETER__SERIALIZE(Boolean, instanceUuid)
 })
 
 
@@ -574,6 +576,23 @@ ESX_VI__METHOD(RemoveVirtualSwitch, /* explicit _this */,
 
 
 
+/* esxVI_RescanHba */
+ESX_VI__METHOD(RescanHba, /* explicit _this */,
+               (esxVI_Context *ctx,
+                esxVI_ManagedObjectReference *_this,       /* required */
+                const char *hbaDevice),                    /* required */
+               void, /* nothing */, None,
+{
+    ESX_VI__METHOD__PARAMETER__REQUIRE(_this)
+    ESX_VI__METHOD__PARAMETER__REQUIRE(hbaDevice)
+},
+{
+    ESX_VI__METHOD__PARAMETER__SERIALIZE(ManagedObjectReference, _this)
+    ESX_VI__METHOD__PARAMETER__SERIALIZE_VALUE(String, hbaDevice)
+})
+
+
+
 /* esxVI_RetrieveProperties */
 ESX_VI__METHOD(RetrieveProperties, propertyCollector,
                (esxVI_Context *ctx,
@@ -596,6 +615,7 @@ ESX_VI__METHOD(RevertToSnapshot_Task, /* explicit _this */,
                (esxVI_Context *ctx,
                 esxVI_ManagedObjectReference *_this,       /* required */
                 esxVI_ManagedObjectReference *host,        /* optional */
+                esxVI_Boolean suppressPowerOn,             /* optional */
                 esxVI_ManagedObjectReference **output),    /* required */
                ManagedObjectReference, /* nothing */, RequiredItem,
 {
@@ -604,6 +624,7 @@ ESX_VI__METHOD(RevertToSnapshot_Task, /* explicit _this */,
 {
     ESX_VI__METHOD__PARAMETER__SERIALIZE(ManagedObjectReference, _this)
     ESX_VI__METHOD__PARAMETER__SERIALIZE(ManagedObjectReference, host)
+    ESX_VI__METHOD__PARAMETER__SERIALIZE(Boolean, suppressPowerOn)
 })
 
 

@@ -96,6 +96,7 @@ DEB_CONFIGURE_EXTRA_FLAGS :=     \
 	$(WITH_VBOX)		 \
 	$(WITH_LXC)              \
 	$(WITH_DTRACE)           \
+	$(WITH_AUDIT)            \
 	--without-firewalld
 
 DEB_COMPRESS_EXCLUDE = .o event-test hellolibvirt info1 suspend
@@ -110,8 +111,10 @@ EXAMPLES_DIR = $(CURDIR)/debian/libvirt-doc/usr/share/doc/libvirt-doc/examples/
 include debian/python.mk
 
 binary-install/libvirt-bin::
-	cp $(CURDIR)/tools/libvirt-guests.init.sh $(CURDIR)/debian/libvirt-bin.libvirt-guests.init
-	cp $(CURDIR)/tools/libvirt-guests.sysconf $(CURDIR)/debian/libvirt-bin.libvirt-guests.default
+	cp debian/tmp/usr/lib/libvirt/libvirt-guests.sh \
+	    debian/libvirt-bin.libvirt-guests.init
+	cp tools/libvirt-guests.sysconf \
+	    debian/libvirt-bin.libvirt-guests.default
 	dh_installinit --name=libvirt-guests --no-restart-on-upgrade -- defaults 29 71
 	-mv debian/libvirt-bin/lib/systemd/system/libvirtd.service \
 	    debian/libvirt-bin/lib/systemd/system/libvirt-bin.service

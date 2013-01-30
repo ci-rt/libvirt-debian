@@ -26,15 +26,13 @@
 /* includes */
 #include <config.h>
 
-#include <sys/utsname.h>
-
 #include "lxc_conf.h"
 #include "nodeinfo.h"
-#include "virterror_internal.h"
-#include "conf.h"
-#include "memory.h"
-#include "logging.h"
-#include "uuid.h"
+#include "virerror.h"
+#include "virconf.h"
+#include "viralloc.h"
+#include "virlog.h"
+#include "viruuid.h"
 #include "configmake.h"
 #include "lxc_container.h"
 #include "virnodesuspend.h"
@@ -42,7 +40,8 @@
 
 #define VIR_FROM_THIS VIR_FROM_LXC
 
-static int lxcDefaultConsoleType(const char *ostype ATTRIBUTE_UNUSED)
+static int lxcDefaultConsoleType(const char *ostype ATTRIBUTE_UNUSED,
+                                 virArch arch ATTRIBUTE_UNUSED)
 {
     return VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_LXC;
 }
@@ -51,14 +50,11 @@ static int lxcDefaultConsoleType(const char *ostype ATTRIBUTE_UNUSED)
 /* Functions */
 virCapsPtr lxcCapsInit(virLXCDriverPtr driver)
 {
-    struct utsname utsname;
     virCapsPtr caps;
     virCapsGuestPtr guest;
-    const char *altArch;
+    virArch altArch;
 
-    uname(&utsname);
-
-    if ((caps = virCapabilitiesNew(utsname.machine,
+    if ((caps = virCapabilitiesNew(virArchFromHost(),
                                    0, 0)) == NULL)
         goto error;
 
@@ -87,8 +83,7 @@ virCapsPtr lxcCapsInit(virLXCDriverPtr driver)
 
     if ((guest = virCapabilitiesAddGuest(caps,
                                          "exe",
-                                         utsname.machine,
-                                         sizeof(void*) == 4 ? 32 : 64,
+                                         caps->host.arch,
                                          LIBEXECDIR "/libvirt_lxc",
                                          NULL,
                                          0,
@@ -104,11 +99,10 @@ virCapsPtr lxcCapsInit(virLXCDriverPtr driver)
         goto error;
 
     /* On 64-bit hosts, we can use personality() to request a 32bit process */
-    if ((altArch = lxcContainerGetAlt32bitArch(utsname.machine)) != NULL) {
+    if ((altArch = lxcContainerGetAlt32bitArch(caps->host.arch)) != VIR_ARCH_NONE) {
         if ((guest = virCapabilitiesAddGuest(caps,
                                              "exe",
                                              altArch,
-                                             32,
                                              LIBEXECDIR "/libvirt_lxc",
                                              NULL,
                                              0,
@@ -184,7 +178,7 @@ int lxcLoadDriverConfig(virLXCDriverPtr driver)
         goto no_memory;
 
     /* Avoid error from non-existant or unreadable file. */
-    if (access (filename, R_OK) == -1)
+    if (access(filename, R_OK) == -1)
         goto done;
     conf = virConfReadFile(filename, 0);
     if (!conf)
@@ -199,11 +193,11 @@ int lxcLoadDriverConfig(virLXCDriverPtr driver)
     }
 
     p = virConfGetValue(conf, "log_with_libvirtd");
-    CHECK_TYPE ("log_with_libvirtd", VIR_CONF_LONG);
+    CHECK_TYPE("log_with_libvirtd", VIR_CONF_LONG);
     if (p) driver->log_libvirtd = p->l;
 
-    p = virConfGetValue (conf, "security_driver");
-    CHECK_TYPE ("security_driver", VIR_CONF_STRING);
+    p = virConfGetValue(conf, "security_driver");
+    CHECK_TYPE("security_driver", VIR_CONF_STRING);
     if (p && p->str) {
         if (!(driver->securityDriverName = strdup(p->str))) {
             virReportOOMError();
@@ -212,12 +206,12 @@ int lxcLoadDriverConfig(virLXCDriverPtr driver)
         }
     }
 
-    p = virConfGetValue (conf, "security_default_confined");
-    CHECK_TYPE ("security_default_confined", VIR_CONF_LONG);
+    p = virConfGetValue(conf, "security_default_confined");
+    CHECK_TYPE("security_default_confined", VIR_CONF_LONG);
     if (p) driver->securityDefaultConfined = p->l;
 
-    p = virConfGetValue (conf, "security_require_confined");
-    CHECK_TYPE ("security_require_confined", VIR_CONF_LONG);
+    p = virConfGetValue(conf, "security_require_confined");
+    CHECK_TYPE("security_require_confined", VIR_CONF_LONG);
     if (p) driver->securityRequireConfined = p->l;
 
 

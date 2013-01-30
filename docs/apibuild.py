@@ -10,6 +10,7 @@
 import os, sys
 import string
 import glob
+import re
 
 quiet=True
 warnings=0
@@ -24,12 +25,18 @@ included_files = {
   "virterror.h": "header with error specific API definitions",
   "libvirt.c": "Main interfaces for the libvirt library",
   "virterror.c": "implements error handling and reporting code for libvirt",
-  "event.c": "event loop for monitoring file handles",
+  "virevent.c": "event loop for monitoring file handles",
+  "virtypedparam.c": "virTypedParameters APIs",
 }
 
 qemu_included_files = {
   "libvirt-qemu.h": "header with QEMU specific API definitions",
   "libvirt-qemu.c": "Implementations for the QEMU specific APIs",
+}
+
+lxc_included_files = {
+  "libvirt-lxc.h": "header with LXC specific API definitions",
+  "libvirt-lxc.c": "Implementations for the LXC specific APIs",
 }
 
 ignored_words = {
@@ -57,12 +64,15 @@ ignored_functions = {
   "virDomainMigratePrepareTunnel3": "private function for tunnelled migration",
   "virDrvSupportsFeature": "private function for remote access",
   "DllMain": "specific function for Win32",
-  "virEventAddHandle": "internal function in event.c",
-  "virEventUpdateHandle": "internal function in event.c",
-  "virEventRemoveHandle": "internal function in event.c",
-  "virEventAddTimeout": "internal function in event.c",
-  "virEventUpdateTimeout": "internal function in event.c",
-  "virEventRemoveTimeout": "internal function in event.c",
+  "virEventAddHandle": "internal function in virevent.c",
+  "virEventUpdateHandle": "internal function in virevent.c",
+  "virEventRemoveHandle": "internal function in virevent.c",
+  "virEventAddTimeout": "internal function in virevent.c",
+  "virEventUpdateTimeout": "internal function in virevent.c",
+  "virEventRemoveTimeout": "internal function in virevent.c",
+  "virTypedParameterArrayValidate": "internal function in virtypedparam.c",
+  "virTypedParameterAssign": "internal function in virtypedparam.c",
+  "virTypedParameterAssignFromStr": "internal function in virtypedparam.c",
 }
 
 ignored_macros = {
@@ -238,8 +248,6 @@ class index:
                 self.variables[name] = d
             elif type == "include":
                 self.includes[name] = d
-            elif type == "struct":
-                self.structs[name] = d
             elif type == "struct":
                 self.structs[name] = d
             elif type == "union":
@@ -656,27 +664,18 @@ class CParser:
         lines = string.split(comment, "\n")
         item = None
         for line in lines:
-            while line != "" and (line[0] == ' ' or line[0] == '\t'):
-                line = line[1:]
-            while line != "" and line[0] == '*':
-                line = line[1:]
-            while line != "" and (line[0] == ' ' or line[0] == '\t'):
-                line = line[1:]
-            try:
-                (it, line) = string.split(line, ":", 1)
-                item = it
-                while line != "" and (line[0] == ' ' or line[0] == '\t'):
-                    line = line[1:]
+            line = line.lstrip().lstrip('*').lstrip()
+
+            m = re.match('([_.a-zA-Z0-9]+):(.*)', line)
+            if m:
+                item = m.group(1)
+                line = m.group(2).lstrip()
+
+            if item:
                 if res.has_key(item):
                     res[item] = res[item] + " " + line
                 else:
                     res[item] = line
-            except:
-                if item != None:
-                    if res.has_key(item):
-                        res[item] = res[item] + " " + line
-                    else:
-                        res[item] = line
         self.index.info = res
 
     def strip_lead_star(self, line):
@@ -1955,6 +1954,8 @@ class docBuilder:
             self.includes = includes + included_files.keys()
         elif name == "libvirt-qemu":
             self.includes = includes + qemu_included_files.keys()
+        elif name == "libvirt-lxc":
+            self.includes = includes + lxc_included_files.keys()
         self.modules = {}
         self.headers = {}
         self.idx = index()
@@ -2473,7 +2474,7 @@ class docBuilder:
 
 
 def rebuild(name):
-    if name not in ["libvirt", "libvirt-qemu"]:
+    if name not in ["libvirt", "libvirt-qemu", "libvirt-lxc"]:
         self.warning("rebuild() failed, unknown module %s") % name
         return None
     builder = None
@@ -2516,6 +2517,7 @@ if __name__ == "__main__":
     else:
         rebuild("libvirt")
         rebuild("libvirt-qemu")
+        rebuild("libvirt-lxc")
     if warnings > 0:
         sys.exit(2)
     else:

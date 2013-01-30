@@ -30,13 +30,13 @@
 
 #include "node_device_conf.h"
 #include "node_device_hal.h"
-#include "virterror_internal.h"
+#include "virerror.h"
 #include "driver.h"
 #include "datatypes.h"
-#include "memory.h"
-#include "uuid.h"
-#include "pci.h"
-#include "logging.h"
+#include "viralloc.h"
+#include "viruuid.h"
+#include "virpci.h"
+#include "virlog.h"
 #include "node_device_driver.h"
 #include "virdbus.h"
 
@@ -586,9 +586,9 @@ static void device_prop_modified(LibHalContext *ctx ATTRIBUTE_UNUSED,
 }
 
 
-
-
-static int halDeviceMonitorStartup(int privileged ATTRIBUTE_UNUSED)
+static int halDeviceMonitorStartup(bool privileged ATTRIBUTE_UNUSED,
+                                   virStateInhibitCallback callback ATTRIBUTE_UNUSED,
+                                   void *opaque ATTRIBUTE_UNUSED)
 {
     LibHalContext *hal_ctx = NULL;
     char **udi = NULL;
@@ -736,13 +736,6 @@ static int halDeviceMonitorReload(void)
 }
 
 
-static int halDeviceMonitorActive(void)
-{
-    /* Always ready to deal with a shutdown */
-    return 0;
-}
-
-
 static virDrvOpenStatus halNodeDrvOpen(virConnectPtr conn,
                                        virConnectAuthPtr auth ATTRIBUTE_UNUSED,
                                        unsigned int flags)
@@ -786,7 +779,6 @@ static virStateDriver halStateDriver = {
     .initialize = halDeviceMonitorStartup, /* 0.5.0 */
     .cleanup = halDeviceMonitorShutdown, /* 0.5.0 */
     .reload = halDeviceMonitorReload, /* 0.5.0 */
-    .active = halDeviceMonitorActive, /* 0.5.0 */
 };
 
 int halNodeRegister(void)

@@ -905,6 +905,20 @@
           <ref name="wwn"/>
         </element>
       </optional>
+      <optional>
+        <element name="vendor">
+          <data type="string">
+            <param name="pattern">[x20-x7E]{0,8}</param>
+          </data>
+        </element>
+      </optional>
+      <optional>
+        <element name="product">
+          <data type="string">
+            <param name="pattern">[x20-x7E]{0,16}</param>
+          </data>
+        </element>
+      </optional>
     </interleave>
   </define>
   <define name="snapshot">
@@ -957,24 +971,42 @@
     -->
   <define name="disk">
     <element name="disk">
-      <optional>
-        <attribute name="device">
-          <choice>
-            <value>floppy</value>
-            <value>disk</value>
-            <value>cdrom</value>
-            <value>lun</value>
-          </choice>
-        </attribute>
-      </optional>
-      <optional>
-        <attribute name="rawio">
-          <choice>
-            <value>yes</value>
-            <value>no</value>
-          </choice>
-        </attribute>
-      </optional>
+      <choice>
+        <group>
+          <optional>
+            <attribute name="device">
+              <choice>
+                <value>floppy</value>
+                <value>disk</value>
+                <value>cdrom</value>
+              </choice>
+            </attribute>
+          </optional>
+        </group>
+        <group>
+          <attribute name="device">
+            <choice>
+              <value>lun</value>
+            </choice>
+          </attribute>
+          <optional>
+            <attribute name="rawio">
+              <choice>
+                <value>yes</value>
+                <value>no</value>
+              </choice>
+            </attribute>
+          </optional>
+          <optional>
+            <attribute name="sgio">
+              <choice>
+                <value>filtered</value>
+                <value>unfiltered</value>
+              </choice>
+            </attribute>
+          </optional>
+        </group>
+      </choice>
       <optional>
         <ref name="snapshot"/>
       </optional>
@@ -1048,6 +1080,7 @@
                     <value>nbd</value>
                     <value>rbd</value>
                     <value>sheepdog</value>
+                    <value>gluster</value>
                   </choice>
                 </attribute>
                 <optional>
@@ -1055,12 +1088,32 @@
                 </optional>
                 <zeroOrMore>
                   <element name="host">
-                    <attribute name="name">
-                      <ref name="dnsName"/>
-                    </attribute>
-                    <attribute name="port">
-                      <ref name="unsignedInt"/>
-                    </attribute>
+                    <choice>
+                      <group>
+                        <optional>
+                          <attribute name="transport">
+                            <choice>
+                              <value>tcp</value>
+                              <value>rdma</value>
+                            </choice>
+                          </attribute>
+                        </optional>
+                        <attribute name="name">
+                          <ref name="dnsName"/>
+                        </attribute>
+                        <attribute name="port">
+                          <ref name="unsignedInt"/>
+                        </attribute>
+                      </group>
+                      <group>
+                        <attribute name="transport">
+                          <value>unix</value>
+                        </attribute>
+                        <attribute name="socket">
+                          <ref name="absFilePath"/>
+                        </attribute>
+                      </group>
+                    </choice>
                   </element>
                 </zeroOrMore>
                 <empty/>
@@ -2198,22 +2251,34 @@
   </define>
   <!--
      A video adapter description, allowing configuration of device
-     model, number of virtual heads, and video ram size
+     model, number of virtual heads, video ram size, and for qxl
+     both ram bar sizes.
    -->
   <define name="video">
     <element name="video">
       <optional>
         <element name="model">
-          <attribute name="type">
-            <choice>
-              <value>vga</value>
-              <value>cirrus</value>
-              <value>vmvga</value>
-              <value>xen</value>
-              <value>vbox</value>
-              <value>qxl</value>
-            </choice>
-          </attribute>
+          <choice>
+            <attribute name="type">
+              <choice>
+                <value>vga</value>
+                <value>cirrus</value>
+                <value>vmvga</value>
+                <value>xen</value>
+                <value>vbox</value>
+              </choice>
+            </attribute>
+            <group>
+              <attribute name="type">
+                <value>qxl</value>
+              </attribute>
+              <optional>
+                <attribute name="ram">
+                  <ref name="unsignedInt"/>
+                </attribute>
+              </optional>
+            </group>
+          </choice>
           <optional>
             <attribute name="vram">
               <ref name="unsignedInt"/>
@@ -2222,6 +2287,14 @@
           <optional>
             <attribute name="heads">
               <ref name="unsignedInt"/>
+            </attribute>
+          </optional>
+          <optional>
+            <attribute name="primary">
+              <choice>
+                <value>yes</value>
+                <value>no</value>
+              </choice>
             </attribute>
           </optional>
           <optional>
@@ -2406,6 +2479,17 @@
         <value>virtio</value>
         <value>lxc</value>
         <value>openvz</value>
+        <value>sclp</value>
+        <value>sclplm</value>
+      </choice>
+    </attribute>
+  </define>
+
+  <define name='qemucdevSerialTgtType'>
+    <attribute name='type'>
+      <choice>
+        <value>isa-serial</value>
+        <value>usb-serial</value>
       </choice>
     </attribute>
   </define>
@@ -2413,9 +2497,14 @@
   <define  name="qemucdevTgtDef">
     <element name="target">
       <interleave>
-        <optional>
-          <ref name="qemucdevConsoleTgtType"/>
-        </optional>
+        <choice>
+          <optional>
+            <ref name="qemucdevConsoleTgtType"/>
+          </optional>
+          <optional>
+            <ref name="qemucdevSerialTgtType"/>
+          </optional>
+        </choice>
         <optional>
           <attribute name="port"/>
         </optional>
@@ -2779,6 +2868,9 @@
       <optional>
         <ref name="address"/>
       </optional>
+      <optional>
+        <ref name="deviceBoot"/>
+      </optional>
     </element>
   </define>
   <define name="redirfilter">
@@ -2788,63 +2880,123 @@
       </zeroOrMore>
     </element>
   </define>
+
   <define name="hostdev">
     <element name="hostdev">
-      <optional>
-        <attribute name="mode">
-          <choice>
-            <value>subsystem</value>
-            <value>capabilities</value>
-          </choice>
-        </attribute>
-      </optional>
-      <attribute name="type">
-        <choice>
-          <value>usb</value>
-          <value>pci</value>
-        </choice>
-      </attribute>
-      <optional>
-        <attribute name="managed">
-          <choice>
-            <value>yes</value>
-            <value>no</value>
-          </choice>
-        </attribute>
-      </optional>
-      <group>
-        <element name="source">
-          <optional>
-            <ref name="startupPolicy"/>
-          </optional>
-          <choice>
-            <group>
-              <ref name="usbproduct"/>
-              <optional>
-                <ref name="usbaddress"/>
-              </optional>
-            </group>
-            <ref name="usbaddress"/>
-            <element name="address">
-              <ref name="pciaddress"/>
-            </element>
-          </choice>
-        </element>
-      </group>
-      <optional>
-        <ref name="deviceBoot"/>
-      </optional>
+      <choice>
+        <group>
+          <ref name="hostdevsubsys"/>
+        </group>
+        <group>
+          <ref name="hostdevcaps"/>
+        </group>
+      </choice>
       <optional>
         <ref name="alias"/>
       </optional>
       <optional>
-        <ref name="address"/>
+        <ref name="deviceBoot"/>
       </optional>
       <optional>
         <ref name="rom"/>
       </optional>
+      <optional>
+        <ref name="address"/>
+      </optional>
     </element>
   </define>
+
+  <define name="hostdevsubsys">
+    <optional>
+      <attribute name="mode">
+        <value>subsystem</value>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="managed">
+        <choice>
+          <value>yes</value>
+          <value>no</value>
+        </choice>
+      </attribute>
+    </optional>
+    <choice>
+      <ref name="hostdevsubsyspci"/>
+      <ref name="hostdevsubsysusb"/>
+    </choice>
+  </define>
+
+  <define name="hostdevcaps">
+    <attribute name="mode">
+      <value>capabilities</value>
+    </attribute>
+    <choice>
+      <group>
+        <ref name="hostdevcapsstorage"/>
+      </group>
+      <group>
+        <ref name="hostdevcapsmisc"/>
+      </group>
+    </choice>
+  </define>
+
+
+  <define name="hostdevsubsyspci">
+    <attribute name="type">
+      <value>pci</value>
+    </attribute>
+    <element name="source">
+      <optional>
+        <ref name="startupPolicy"/>
+      </optional>
+      <element name="address">
+        <ref name="pciaddress"/>
+      </element>
+    </element>
+  </define>
+
+  <define name="hostdevsubsysusb">
+    <attribute name="type">
+      <value>usb</value>
+    </attribute>
+    <element name="source">
+      <optional>
+        <ref name="startupPolicy"/>
+      </optional>
+      <choice>
+        <group>
+          <ref name="usbproduct"/>
+          <optional>
+            <ref name="usbaddress"/>
+          </optional>
+        </group>
+        <ref name="usbaddress"/>
+      </choice>
+    </element>
+  </define>
+
+  <define name="hostdevcapsstorage">
+    <attribute name="type">
+      <value>storage</value>
+    </attribute>
+    <element name="source">
+      <element name="block">
+        <ref name="absFilePath"/>
+      </element>
+    </element>
+  </define>
+
+  <define name="hostdevcapsmisc">
+    <attribute name="type">
+      <value>misc</value>
+    </attribute>
+    <element name="source">
+      <element name="char">
+        <ref name="absFilePath"/>
+      </element>
+    </element>
+  </define>
+
   <define name="usbproduct">
     <element name="vendor">
       <attribute name="id">
@@ -3532,11 +3684,6 @@
   <!--
        Type library
     -->
-  <define name="cpuset">
-    <data type="string">
-      <param name="pattern">([0-9]+(-[0-9]+)?|\^[0-9]+)(,([0-9]+(-[0-9]+)?|\^[0-9]+))*</param>
-    </data>
-  </define>
   <define name="countCPU">
     <data type="unsignedShort">
       <param name="pattern">[0-9]+</param>

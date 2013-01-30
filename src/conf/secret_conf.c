@@ -23,15 +23,15 @@
 #include <config.h>
 
 #include "internal.h"
-#include "buf.h"
+#include "virbuffer.h"
 #include "datatypes.h"
-#include "logging.h"
-#include "memory.h"
+#include "virlog.h"
+#include "viralloc.h"
 #include "secret_conf.h"
-#include "virterror_internal.h"
-#include "util.h"
-#include "xml.h"
-#include "uuid.h"
+#include "virerror.h"
+#include "virutil.h"
+#include "virxml.h"
+#include "viruuid.h"
 
 #define VIR_FROM_THIS VIR_FROM_SECRET
 

@@ -1,7 +1,7 @@
 /*
  * qemu_command.c: QEMU command generation
  *
- * Copyright (C) 2006-2012 Red Hat, Inc.
+ * Copyright (C) 2006-2013 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -28,12 +28,13 @@
 #include "qemu_capabilities.h"
 #include "qemu_bridge_filter.h"
 #include "cpu/cpu.h"
-#include "memory.h"
-#include "logging.h"
-#include "virterror_internal.h"
-#include "util.h"
+#include "viralloc.h"
+#include "virlog.h"
+#include "virarch.h"
+#include "virerror.h"
+#include "virutil.h"
 #include "virfile.h"
-#include "uuid.h"
+#include "viruuid.h"
 #include "c-ctype.h"
 #include "domain_nwfilter.h"
 #include "domain_audit.h"
@@ -43,9 +44,8 @@
 #include "virnetdevtap.h"
 #include "base64.h"
 #include "device_conf.h"
-#include "storage_file.h"
+#include "virstoragefile.h"
 
-#include <sys/utsname.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 
@@ -93,6 +93,16 @@ VIR_ENUM_IMPL(qemuVideo, VIR_DOMAIN_VIDEO_TYPE_LAST,
               "", /* don't support vbox */
               "qxl");
 
+VIR_ENUM_DECL(qemuDeviceVideo)
+
+VIR_ENUM_IMPL(qemuDeviceVideo, VIR_DOMAIN_VIDEO_TYPE_LAST,
+              "VGA",
+              "cirrus-vga",
+              "vmware-svga",
+              "", /* no device for xen */
+              "", /* don't support vbox */
+              "qxl-vga");
+
 VIR_ENUM_DECL(qemuSoundCodec)
 
 VIR_ENUM_IMPL(qemuSoundCodec, VIR_DOMAIN_SOUND_CODEC_TYPE_LAST,
@@ -121,25 +131,10 @@ VIR_ENUM_IMPL(qemuDomainFSDriver, VIR_DOMAIN_FS_DRIVER_TYPE_LAST,
               "handle");
 
 
-static void
-uname_normalize (struct utsname *ut)
-{
-    uname(ut);
-
-    /* Map i386, i486, i586 to i686.  */
-    if (ut->machine[0] == 'i' &&
-        ut->machine[1] != '\0' &&
-        ut->machine[2] == '8' &&
-        ut->machine[3] == '6' &&
-        ut->machine[4] == '\0')
-        ut->machine[1] = '6';
-}
-
-
 /**
  * qemuPhysIfaceConnect:
  * @def: the definition of the VM (needed by 802.1Qbh and audit)
- * @driver: pointer to the qemud_driver
+ * @driver: pointer to the driver instance
  * @net: pointer to he VM's interface description with direct device type
  * @qemuCaps: flags for qemu
  * @vmop: VM operation type
@@ -148,7 +143,7 @@ uname_normalize (struct utsname *ut)
  */
 int
 qemuPhysIfaceConnect(virDomainDefPtr def,
-                     struct qemud_driver *driver,
+                     virQEMUDriverPtr driver,
                      virDomainNetDefPtr net,
                      qemuCapsPtr caps,
                      enum virNetDevVPortProfileOp vmop)
@@ -197,7 +192,7 @@ error:
 int
 qemuNetworkIfaceConnect(virDomainDefPtr def,
                         virConnectPtr conn,
-                        struct qemud_driver *driver,
+                        virQEMUDriverPtr driver,
                         virDomainNetDefPtr net,
                         qemuCapsPtr caps)
 {
@@ -292,7 +287,8 @@ qemuNetworkIfaceConnect(virDomainDefPtr def,
 
     if (tapfd >= 0 &&
         virNetDevBandwidthSet(net->ifname,
-                              virDomainNetGetActualBandwidth(net)) < 0) {
+                              virDomainNetGetActualBandwidth(net),
+                              false) < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("cannot set bandwidth limits on %s"),
                        net->ifname);
@@ -520,7 +516,7 @@ qemuSetScsiControllerModel(virDomainDefPtr def,
             return -1;
         }
     } else {
-        if (STREQ(def->os.arch, "ppc64") &&
+        if ((def->os.arch == VIR_ARCH_PPC64) &&
             STREQ(def->os.machine, "pseries")) {
             *model = VIR_DOMAIN_CONTROLLER_MODEL_SCSI_IBMVSCSI;
         } else if (qemuCapsGet(caps, QEMU_CAPS_SCSI_LSI)) {
@@ -788,7 +784,7 @@ qemuAssignDeviceAliases(virDomainDefPtr def, qemuCapsPtr caps)
 
     return 0;
 
-    no_memory:
+no_memory:
     virReportOOMError();
     return -1;
 }
@@ -799,7 +795,7 @@ qemuDomainPrimeS390VirtioDevices(virDomainDefPtr def,
 {
     /*
        declare address-less virtio devices to be of address type 'type'
-       only disks, networks, consoles and controllers for now
+       only disks, networks, consoles, controllers and memballoon for now
     */
     int i;
 
@@ -810,9 +806,15 @@ qemuDomainPrimeS390VirtioDevices(virDomainDefPtr def,
     }
 
     for (i = 0; i < def->nnets ; i++) {
+        if ((def->os.arch == VIR_ARCH_S390 ||
+             def->os.arch == VIR_ARCH_S390X) &&
+            def->nets[i]->model == NULL) {
+            def->nets[i]->model = strdup("virtio");
+        }
         if (STREQ(def->nets[i]->model,"virtio") &&
-            def->nets[i]->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_NONE)
+            def->nets[i]->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_NONE) {
             def->nets[i]->info.type = type;
+        }
     }
 
     for (i = 0; i < def->ncontrollers ; i++) {
@@ -823,6 +825,10 @@ qemuDomainPrimeS390VirtioDevices(virDomainDefPtr def,
             def->controllers[i]->info.type = type;
     }
 
+    if (def->memballoon &&
+        def->memballoon->model == VIR_DOMAIN_MEMBALLOON_MODEL_VIRTIO &&
+        def->memballoon->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_NONE)
+        def->memballoon->info.type = type;
 }
 
 static void
@@ -921,8 +927,7 @@ int qemuDomainAssignSpaprVIOAddresses(virDomainDefPtr def,
 
     for (i = 0 ; i < def->nserials; i++) {
         if (def->serials[i]->deviceType == VIR_DOMAIN_CHR_DEVICE_TYPE_SERIAL &&
-            def->serials[i]->source.type == VIR_DOMAIN_CHR_TYPE_PTY &&
-            STREQ(def->os.arch, "ppc64") &&
+            (def->os.arch == VIR_ARCH_PPC64) &&
             STREQ(def->os.machine, "pseries"))
             def->serials[i]->info.type = VIR_DOMAIN_DEVICE_ADDRESS_TYPE_SPAPRVIO;
         if (qemuAssignSpaprVIOAddress(def, &def->serials[i]->info,
@@ -1057,7 +1062,7 @@ qemuDomainAssignPCIAddresses(virDomainDefPtr def,
         if (!(addrs = qemuDomainPCIAddressSetCreate(def)))
             goto cleanup;
 
-        if (qemuAssignDevicePCISlots(def, addrs) < 0)
+        if (qemuAssignDevicePCISlots(def, caps, addrs) < 0)
             goto cleanup;
     }
 
@@ -1415,12 +1420,15 @@ int qemuDomainPCIAddressSetNextAddr(qemuDomainPCIAddressSetPtr addrs,
  * skip over info.type == PCI
  */
 int
-qemuAssignDevicePCISlots(virDomainDefPtr def, qemuDomainPCIAddressSetPtr addrs)
+qemuAssignDevicePCISlots(virDomainDefPtr def,
+                         qemuCapsPtr caps,
+                         qemuDomainPCIAddressSetPtr addrs)
 {
     size_t i, j;
     bool reservedIDE = false;
     bool reservedUSB = false;
     int function;
+    bool qemuDeviceVideoUsable = qemuCapsGet(caps, QEMU_CAPS_DEVICE_VIDEO_PRIMARY);
 
     /* Host bridge */
     if (qemuDomainPCIAddressReserveSlot(addrs, 0) < 0)
@@ -1487,29 +1495,42 @@ qemuAssignDevicePCISlots(virDomainDefPtr def, qemuDomainPCIAddressSetPtr addrs)
             goto error;
     }
 
-    /* First VGA is hardcoded slot=2 */
     if (def->nvideos > 0) {
-        if (def->videos[0]->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI) {
-            if (def->videos[0]->info.addr.pci.domain != 0 ||
-                def->videos[0]->info.addr.pci.bus != 0 ||
-                def->videos[0]->info.addr.pci.slot != 2 ||
-                def->videos[0]->info.addr.pci.function != 0) {
+        virDomainVideoDefPtr primaryVideo = def->videos[0];
+        if (primaryVideo->info.type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI) {
+            primaryVideo->info.type = VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI;
+            primaryVideo->info.addr.pci.domain = 0;
+            primaryVideo->info.addr.pci.bus = 0;
+            primaryVideo->info.addr.pci.slot = 2;
+            primaryVideo->info.addr.pci.function = 0;
+
+            if (qemuDomainPCIAddressCheckSlot(addrs, &primaryVideo->info) < 0) {
+                if (qemuDeviceVideoUsable) {
+                    virResetLastError();
+                    if (qemuDomainPCIAddressSetNextAddr(addrs, &primaryVideo->info) < 0)
+                        goto error;
+                } else {
+                    virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                                   _("PCI address 0:0:2.0 is in use, "
+                                     "QEMU needs it for primary video"));
+                    goto error;
+                }
+            } else if (qemuDomainPCIAddressReserveSlot(addrs, 2) < 0) {
+                goto error;
+            }
+        } else if (!qemuDeviceVideoUsable) {
+            if (primaryVideo->info.addr.pci.domain != 0 ||
+                primaryVideo->info.addr.pci.bus != 0 ||
+                primaryVideo->info.addr.pci.slot != 2 ||
+                primaryVideo->info.addr.pci.function != 0) {
                 virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                                _("Primary video card must have PCI address 0:0:2.0"));
                 goto error;
             }
             /* If TYPE==PCI, then qemuCollectPCIAddress() function
              * has already reserved the address, so we must skip */
-        } else {
-            def->videos[0]->info.type = VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI;
-            def->videos[0]->info.addr.pci.domain = 0;
-            def->videos[0]->info.addr.pci.bus = 0;
-            def->videos[0]->info.addr.pci.slot = 2;
-            def->videos[0]->info.addr.pci.function = 0;
-            if (qemuDomainPCIAddressReserveSlot(addrs, 2) < 0)
-                goto error;
         }
-    } else {
+    } else if (!qemuDeviceVideoUsable) {
         virDomainDeviceInfo dev;
         memset(&dev, 0, sizeof(dev));
         dev.addr.pci.slot = 2;
@@ -1682,8 +1703,13 @@ qemuAssignDevicePCISlots(virDomainDefPtr def, qemuDomainPCIAddressSetPtr addrs)
             goto error;
     }
 
-    /* Further non-primary video cards */
+    /* Further non-primary video cards which have to be qxl type */
     for (i = 1; i < def->nvideos ; i++) {
+        if (def->videos[i]->type != VIR_DOMAIN_VIDEO_TYPE_QXL) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("non-primary video device must be type of 'qxl'"));
+            goto error;
+        }
         if (def->videos[i]->info.type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_NONE)
             continue;
         if (qemuDomainPCIAddressSetNextAddr(addrs, &def->videos[i]->info) < 0)
@@ -1837,7 +1863,7 @@ qemuBuildIoEventFdStr(virBufferPtr buf,
 static int
 qemuSafeSerialParamValue(const char *value)
 {
-    if (strspn(value, QEMU_SERIAL_PARAM_ACCEPTED_CHARS) != strlen (value)) {
+    if (strspn(value, QEMU_SERIAL_PARAM_ACCEPTED_CHARS) != strlen(value)) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("driver serial '%s' contains unsafe characters"),
                        value);
@@ -1955,6 +1981,10 @@ static int qemuAddRBDHost(virDomainDiskDefPtr disk, char *hostport)
     disk->hosts[disk->nhosts-1].name = strdup(hostport);
     if (!disk->hosts[disk->nhosts-1].name)
         goto no_memory;
+
+    disk->hosts[disk->nhosts-1].transport = VIR_DOMAIN_DISK_PROTO_TRANS_TCP;
+    disk->hosts[disk->nhosts-1].socket = NULL;
+
     return 0;
 
 no_memory:
@@ -2034,6 +2064,144 @@ no_memory:
     VIR_FREE(options);
     virReportOOMError();
     return -1;
+}
+
+static int
+qemuParseGlusterString(virDomainDiskDefPtr def)
+{
+    int ret = -1;
+    char *transp = NULL;
+    char *sock = NULL;
+    char *volimg = NULL;
+    virURIPtr uri = NULL;
+
+    if (!(uri = virURIParse(def->src))) {
+        return -1;
+    }
+
+    if (VIR_ALLOC(def->hosts) < 0)
+        goto no_memory;
+
+    if (STREQ(uri->scheme, "gluster")) {
+        def->hosts->transport = VIR_DOMAIN_DISK_PROTO_TRANS_TCP;
+    } else if (STRPREFIX(uri->scheme, "gluster+")) {
+        transp = strchr(uri->scheme, '+') + 1;
+        def->hosts->transport = virDomainDiskProtocolTransportTypeFromString(transp);
+        if (def->hosts->transport < 0) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Invalid gluster transport type '%s'"), transp);
+            goto error;
+        }
+    } else {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Invalid transport/scheme '%s'"), uri->scheme);
+        goto error;
+    }
+    def->nhosts = 0; /* set to 1 once everything succeeds */
+
+    if (def->hosts->transport != VIR_DOMAIN_DISK_PROTO_TRANS_UNIX) {
+        def->hosts->name = strdup(uri->server);
+        if (!def->hosts->name)
+            goto no_memory;
+
+        if (virAsprintf(&def->hosts->port, "%d", uri->port) < 0)
+            goto no_memory;
+    } else {
+        def->hosts->name = NULL;
+        def->hosts->port = 0;
+        if (uri->query) {
+            if (STRPREFIX(uri->query, "socket=")) {
+                sock = strchr(uri->query, '=') + 1;
+                def->hosts->socket = strdup(sock);
+                if (!def->hosts->socket)
+                    goto no_memory;
+            } else {
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("Invalid query parameter '%s'"), uri->query);
+                goto error;
+            }
+        }
+    }
+    volimg = uri->path + 1; /* skip the prefix slash */
+    def->src = strdup(volimg);
+    if (!def->src)
+        goto no_memory;
+
+    def->nhosts = 1;
+    ret = 0;
+
+cleanup:
+    virURIFree(uri);
+
+    return ret;
+
+no_memory:
+    virReportOOMError();
+error:
+    virDomainDiskHostDefFree(def->hosts);
+    VIR_FREE(def->hosts);
+    goto cleanup;
+}
+
+static int
+qemuBuildGlusterString(virDomainDiskDefPtr disk, virBufferPtr opt)
+{
+    int ret = -1;
+    int port = 0;
+    char *tmpscheme = NULL;
+    char *volimg = NULL;
+    char *sock = NULL;
+    char *builturi = NULL;
+    const char *transp = NULL;
+    virURI uri = {
+        .port = port /* just to clear rest of bits */
+    };
+
+    if (disk->nhosts != 1) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("gluster accepts only one host"));
+        return -1;
+    }
+
+    virBufferAddLit(opt, "file=");
+    transp = virDomainDiskProtocolTransportTypeToString(disk->hosts->transport);
+
+    if (virAsprintf(&tmpscheme, "gluster+%s", transp) < 0)
+        goto no_memory;
+
+    if (virAsprintf(&volimg, "/%s", disk->src) < 0)
+        goto no_memory;
+
+    if (disk->hosts->port) {
+        port = atoi(disk->hosts->port);
+    }
+
+    if (disk->hosts->socket &&
+        virAsprintf(&sock, "socket=%s", disk->hosts->socket) < 0)
+        goto no_memory;
+
+    uri.scheme = tmpscheme; /* gluster+<transport> */
+    uri.server = disk->hosts->name;
+    uri.port = port;
+    uri.path = volimg;
+    uri.query = sock;
+
+    builturi = virURIFormat(&uri);
+    virBufferEscape(opt, ',', ",", "%s", builturi);
+
+    ret = 0;
+
+cleanup:
+    VIR_FREE(builturi);
+    VIR_FREE(tmpscheme);
+    VIR_FREE(volimg);
+    VIR_FREE(sock);
+
+    return ret;
+
+no_memory:
+    virReportOOMError();
+    goto cleanup;
 }
 
 char *
@@ -2176,6 +2344,12 @@ qemuBuildDriveStr(virConnectPtr conn ATTRIBUTE_UNUSED,
                     goto error;
                 virBufferAddChar(&opt, ',');
                 break;
+            case VIR_DOMAIN_DISK_PROTOCOL_GLUSTER:
+                if (qemuBuildGlusterString(disk, &opt) < 0)
+                    goto error;
+                virBufferAddChar(&opt, ',');
+                break;
+
             case VIR_DOMAIN_DISK_PROTOCOL_SHEEPDOG:
                 if (disk->nhosts == 0) {
                     virBufferEscape(&opt, ',', ",", "file=sheepdog:%s,",
@@ -2428,6 +2602,13 @@ qemuBuildDriveDevStr(virDomainDefPtr def,
         }
     }
 
+    if ((disk->vendor || disk->product) &&
+        disk->bus != VIR_DOMAIN_DISK_BUS_SCSI) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("Only scsi disk supports vendor and product"));
+            goto error;
+    }
+
     if (disk->device == VIR_DOMAIN_DISK_DEVICE_LUN) {
         /* make sure that both the bus and the qemu binary support
          *  type='lun' (SG_IO).
@@ -2453,6 +2634,12 @@ qemuBuildDriveDevStr(virDomainDefPtr def,
         if (disk->wwn) {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                            _("Setting wwn is not supported for lun device"));
+            goto error;
+        }
+        if (disk->vendor || disk->product) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("Setting vendor or product is not supported "
+                             "for lun device"));
             goto error;
         }
     }
@@ -2501,6 +2688,17 @@ qemuBuildDriveDevStr(virDomainDefPtr def,
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                            _("Setting wwn for scsi disk is not supported "
                              "by this QEMU"));
+            goto error;
+        }
+
+        /* Properties wwn, vendor and product were introduced in the
+         * same QEMU release (1.2.0).
+         */
+        if ((disk->vendor || disk->product) &&
+            !qemuCapsGet(caps, QEMU_CAPS_SCSI_DISK_WWN)) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("Setting vendor or product for scsi disk is not "
+                             "supported by this QEMU"));
             goto error;
         }
 
@@ -2649,6 +2847,12 @@ qemuBuildDriveDevStr(virDomainDefPtr def,
     if (disk->wwn)
         virBufferAsprintf(&opt, ",wwn=%s", disk->wwn);
 
+    if (disk->vendor)
+        virBufferAsprintf(&opt, ",vendor=%s", disk->vendor);
+
+    if (disk->product)
+        virBufferAsprintf(&opt, ",product=%s", disk->product);
+
     if (virBufferError(&opt)) {
         virReportOOMError();
         goto error;
@@ -2686,9 +2890,9 @@ char *qemuBuildFSStr(virDomainFSDefPtr fs,
         fs->fsdriver == VIR_DOMAIN_FS_DRIVER_TYPE_DEFAULT) {
         if (fs->accessmode == VIR_DOMAIN_FS_ACCESSMODE_MAPPED) {
             virBufferAddLit(&opt, ",security_model=mapped");
-        } else if(fs->accessmode == VIR_DOMAIN_FS_ACCESSMODE_PASSTHROUGH) {
+        } else if (fs->accessmode == VIR_DOMAIN_FS_ACCESSMODE_PASSTHROUGH) {
             virBufferAddLit(&opt, ",security_model=passthrough");
-        } else if(fs->accessmode == VIR_DOMAIN_FS_ACCESSMODE_SQUASH) {
+        } else if (fs->accessmode == VIR_DOMAIN_FS_ACCESSMODE_SQUASH) {
             virBufferAddLit(&opt, ",security_model=none");
         }
     } else {
@@ -2810,7 +3014,7 @@ qemuBuildUSBControllerDevStr(virDomainDefPtr domainDef,
     model = def->model;
 
     if (model == -1) {
-        if (STREQ(domainDef->os.arch, "ppc64"))
+        if (domainDef->os.arch == VIR_ARCH_PPC64)
             model = VIR_DOMAIN_CONTROLLER_MODEL_USB_PCI_OHCI;
         else
             model = VIR_DOMAIN_CONTROLLER_MODEL_USB_PIIX3_UHCI;
@@ -3049,7 +3253,7 @@ error:
 
 char *
 qemuBuildHostNetStr(virDomainNetDefPtr net,
-                    struct qemud_driver *driver,
+                    virQEMUDriverPtr driver,
                     qemuCapsPtr caps,
                     char type_sep,
                     int vlan,
@@ -3323,27 +3527,55 @@ error:
 }
 
 static char *
-qemuBuildVideoDevStr(virDomainVideoDefPtr video,
-                     qemuCapsPtr caps)
+qemuBuildDeviceVideoStr(virDomainVideoDefPtr video,
+                        qemuCapsPtr caps,
+                        bool primary)
 {
     virBuffer buf = VIR_BUFFER_INITIALIZER;
-    const char *model = qemuVideoTypeToString(video->type);
+    const char *model;
 
-    if (!model) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       "%s", _("invalid video model"));
-        goto error;
+    if (primary) {
+        model = qemuDeviceVideoTypeToString(video->type);
+        if (!model || STREQ(model, "")) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("video type %s is not supported with QEMU"),
+                           virDomainVideoTypeToString(video->type));
+            goto error;
+        }
+    } else {
+        if (video->type != VIR_DOMAIN_VIDEO_TYPE_QXL) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           "%s", _("non-primary video device must be type of 'qxl'"));
+            goto error;
+        }
+
+        if (!qemuCapsGet(caps, QEMU_CAPS_DEVICE_QXL)) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           "%s", _("only one video card is currently supported"));
+            goto error;
+        }
+
+        model = "qxl";
     }
 
     virBufferAsprintf(&buf, "%s,id=%s", model, video->info.alias);
 
     if (video->type == VIR_DOMAIN_VIDEO_TYPE_QXL) {
         if (video->vram > (UINT_MAX / 1024)) {
-            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+            virReportError(VIR_ERR_OVERFLOW,
                            _("value for 'vram' must be less than '%u'"),
                            UINT_MAX / 1024);
             goto error;
         }
+        if (video->ram > (UINT_MAX / 1024)) {
+            virReportError(VIR_ERR_OVERFLOW,
+                           _("value for 'ram' must be less than '%u'"),
+                           UINT_MAX / 1024);
+            goto error;
+        }
+
+        /* QEMU accepts bytes for ram_size. */
+        virBufferAsprintf(&buf, ",ram_size=%u", video->ram * 1024);
 
         /* QEMU accepts bytes for vram_size. */
         virBufferAsprintf(&buf, ",vram_size=%u", video->vram * 1024);
@@ -3504,6 +3736,16 @@ qemuBuildRedirdevDevStr(virDomainDefPtr def,
         }
     }
 
+    if (dev->info.bootIndex) {
+        if (!qemuCapsGet(caps, QEMU_CAPS_USB_REDIR_BOOTINDEX)) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("USB redirection booting is not "
+                             "supported by this version of QEMU"));
+            goto error;
+        }
+        virBufferAsprintf(&buf, ",bootindex=%d", dev->info.bootIndex);
+    }
+
     if (qemuBuildDeviceAddressStr(&buf, &dev->info, caps) < 0)
         goto error;
 
@@ -3540,6 +3782,8 @@ qemuBuildUSBHostdevDevStr(virDomainHostdevDefPtr dev,
                           dev->source.subsys.u.usb.device);
     }
     virBufferAsprintf(&buf, ",id=%s", dev->info->alias);
+    if (dev->info->bootIndex)
+        virBufferAsprintf(&buf, ",bootindex=%d", dev->info->bootIndex);
 
     if (qemuBuildDeviceAddressStr(&buf, dev->info, caps) < 0)
         goto error;
@@ -3631,7 +3875,7 @@ qemuBuildChrChardevStr(virDomainChrSourceDefPtr dev, const char *alias,
     virBuffer buf = VIR_BUFFER_INITIALIZER;
     bool telnet;
 
-    switch(dev->type) {
+    switch (dev->type) {
     case VIR_DOMAIN_CHR_TYPE_NULL:
         virBufferAsprintf(&buf, "null,id=char%s", alias);
         break;
@@ -3901,6 +4145,38 @@ error:
     return NULL;
 }
 
+static char *
+qemuBuildSclpDevStr(virDomainChrDefPtr dev)
+{
+    virBuffer buf = VIR_BUFFER_INITIALIZER;
+    if (dev->deviceType == VIR_DOMAIN_CHR_DEVICE_TYPE_CONSOLE) {
+        switch (dev->targetType) {
+        case VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_SCLP:
+            virBufferAddLit(&buf, "sclpconsole");
+            break;
+        case VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_SCLPLM:
+            virBufferAddLit(&buf, "sclplmconsole");
+            break;
+        }
+    } else {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("Cannot use slcp with devices other than console"));
+        goto error;
+    }
+    virBufferAsprintf(&buf, ",chardev=char%s,id=%s",
+                      dev->info.alias, dev->info.alias);
+    if (virBufferError(&buf)) {
+        virReportOOMError();
+        goto error;
+    }
+
+    return virBufferContentAndReset(&buf);
+
+error:
+    virBufferFreeAndReset(&buf);
+    return NULL;
+}
+
 static char *qemuBuildSmbiosBiosStr(virSysinfoDefPtr def)
 {
     virBuffer buf = VIR_BUFFER_INITIALIZER;
@@ -4082,11 +4358,11 @@ error:
 
 
 static int
-qemuBuildCpuArgStr(const struct qemud_driver *driver,
+qemuBuildCpuArgStr(const virQEMUDriverPtr driver,
                    const virDomainDefPtr def,
                    const char *emulator,
                    qemuCapsPtr caps,
-                   const struct utsname *ut,
+                   virArch hostarch,
                    char **opt,
                    bool *hasHwVirt,
                    bool migrating)
@@ -4106,7 +4382,7 @@ qemuBuildCpuArgStr(const struct qemud_driver *driver,
 
     *hasHwVirt = false;
 
-    if (STREQ(def->os.arch, "i686"))
+    if (def->os.arch == VIR_ARCH_I686)
         default_model = "qemu32";
     else
         default_model = "qemu64";
@@ -4177,10 +4453,10 @@ qemuBuildCpuArgStr(const struct qemud_driver *driver,
             virBufferAddLit(&buf, "host");
         } else {
             if (VIR_ALLOC(guest) < 0 ||
-                !(guest->arch = strdup(host->arch)) ||
                 (cpu->vendor_id && !(guest->vendor_id = strdup(cpu->vendor_id))))
                 goto no_memory;
 
+            guest->arch = host->arch;
             if (cpu->match == VIR_CPU_MATCH_MINIMUM)
                 preferred = host->model;
             else
@@ -4218,8 +4494,8 @@ qemuBuildCpuArgStr(const struct qemud_driver *driver,
          *  1. guest OS is i686
          *  2. emulator is qemu-system-x86_64
          */
-        if (STREQ(def->os.arch, "i686") &&
-            ((STREQ(ut->machine, "x86_64") &&
+        if (def->os.arch == VIR_ARCH_I686 &&
+            ((hostarch == VIR_ARCH_X86_64 &&
               strstr(emulator, "kvm")) ||
              strstr(emulator, "x86_64"))) {
             virBufferAdd(&buf, default_model, -1);
@@ -4410,6 +4686,340 @@ error:
     return -1;
 }
 
+static int
+qemuBuildGraphicsCommandLine(virQEMUDriverPtr driver,
+                             virCommandPtr cmd,
+                             virDomainDefPtr def,
+                             qemuCapsPtr caps,
+                             virDomainGraphicsDefPtr graphics)
+{
+    int i;
+
+    if (graphics->type == VIR_DOMAIN_GRAPHICS_TYPE_VNC) {
+        virBuffer opt = VIR_BUFFER_INITIALIZER;
+
+        if (!qemuCapsGet(caps, QEMU_CAPS_VNC)) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("vnc graphics are not supported with this QEMU"));
+            goto error;
+        }
+
+        if (graphics->data.vnc.socket ||
+            driver->vncAutoUnixSocket) {
+
+            if (!graphics->data.vnc.socket &&
+                virAsprintf(&graphics->data.vnc.socket,
+                            "%s/%s.vnc", driver->libDir, def->name) == -1) {
+                goto no_memory;
+            }
+
+            virBufferAsprintf(&opt, "unix:%s",
+                              graphics->data.vnc.socket);
+
+        } else if (qemuCapsGet(caps, QEMU_CAPS_VNC_COLON)) {
+            const char *listenNetwork;
+            const char *listenAddr = NULL;
+            char *netAddr = NULL;
+            bool escapeAddr;
+            int ret;
+
+            switch (virDomainGraphicsListenGetType(graphics, 0)) {
+            case VIR_DOMAIN_GRAPHICS_LISTEN_TYPE_ADDRESS:
+                listenAddr = virDomainGraphicsListenGetAddress(graphics, 0);
+                break;
+
+            case VIR_DOMAIN_GRAPHICS_LISTEN_TYPE_NETWORK:
+                listenNetwork = virDomainGraphicsListenGetNetwork(graphics, 0);
+                if (!listenNetwork)
+                    break;
+                ret = networkGetNetworkAddress(listenNetwork, &netAddr);
+                if (ret <= -2) {
+                    virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                                   "%s", _("network-based listen not possible, "
+                                           "network driver not present"));
+                    goto error;
+                }
+                if (ret < 0) {
+                    virReportError(VIR_ERR_XML_ERROR,
+                                   _("listen network '%s' had no usable address"),
+                                   listenNetwork);
+                    goto error;
+                }
+                listenAddr = netAddr;
+                /* store the address we found in the <graphics> element so it will
+                 * show up in status. */
+                if (virDomainGraphicsListenSetAddress(graphics, 0,
+                                                      listenAddr, -1, false) < 0)
+                   goto error;
+                break;
+            }
+
+            if (!listenAddr)
+                listenAddr = driver->vncListen;
+
+            escapeAddr = strchr(listenAddr, ':') != NULL;
+            if (escapeAddr)
+                virBufferAsprintf(&opt, "[%s]", listenAddr);
+            else
+                virBufferAdd(&opt, listenAddr, -1);
+            virBufferAsprintf(&opt, ":%d",
+                              graphics->data.vnc.port - 5900);
+
+            VIR_FREE(netAddr);
+        } else {
+            virBufferAsprintf(&opt, "%d",
+                              graphics->data.vnc.port - 5900);
+        }
+
+        if (qemuCapsGet(caps, QEMU_CAPS_VNC_COLON)) {
+            if (graphics->data.vnc.auth.passwd ||
+                driver->vncPassword)
+                virBufferAddLit(&opt, ",password");
+
+            if (driver->vncTLS) {
+                virBufferAddLit(&opt, ",tls");
+                if (driver->vncTLSx509verify) {
+                    virBufferAsprintf(&opt, ",x509verify=%s",
+                                      driver->vncTLSx509certdir);
+                } else {
+                    virBufferAsprintf(&opt, ",x509=%s",
+                                      driver->vncTLSx509certdir);
+                }
+            }
+
+            if (driver->vncSASL) {
+                virBufferAddLit(&opt, ",sasl");
+
+                if (driver->vncSASLdir)
+                    virCommandAddEnvPair(cmd, "SASL_CONF_DIR",
+                                         driver->vncSASLdir);
+
+                /* TODO: Support ACLs later */
+            }
+        }
+
+        virCommandAddArg(cmd, "-vnc");
+        virCommandAddArgBuffer(cmd, &opt);
+        if (graphics->data.vnc.keymap) {
+            virCommandAddArgList(cmd, "-k", graphics->data.vnc.keymap,
+                                 NULL);
+        }
+
+        /* Unless user requested it, set the audio backend to none, to
+         * prevent it opening the host OS audio devices, since that causes
+         * security issues and might not work when using VNC.
+         */
+        if (driver->vncAllowHostAudio) {
+            virCommandAddEnvPass(cmd, "QEMU_AUDIO_DRV");
+        } else {
+            virCommandAddEnvString(cmd, "QEMU_AUDIO_DRV=none");
+        }
+    } else if (graphics->type == VIR_DOMAIN_GRAPHICS_TYPE_SDL) {
+        if (qemuCapsGet(caps, QEMU_CAPS_0_10) &&
+            !qemuCapsGet(caps, QEMU_CAPS_SDL)) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("sdl not supported by '%s'"),
+                           def->emulator);
+            goto error;
+        }
+
+        if (graphics->data.sdl.xauth)
+            virCommandAddEnvPair(cmd, "XAUTHORITY",
+                                 graphics->data.sdl.xauth);
+        if (graphics->data.sdl.display)
+            virCommandAddEnvPair(cmd, "DISPLAY",
+                                 graphics->data.sdl.display);
+        if (graphics->data.sdl.fullscreen)
+            virCommandAddArg(cmd, "-full-screen");
+
+        /* If using SDL for video, then we should just let it
+         * use QEMU's host audio drivers, possibly SDL too
+         * User can set these two before starting libvirtd
+         */
+        virCommandAddEnvPass(cmd, "QEMU_AUDIO_DRV");
+        virCommandAddEnvPass(cmd, "SDL_AUDIODRIVER");
+
+        /* New QEMU has this flag to let us explicitly ask for
+         * SDL graphics. This is better than relying on the
+         * default, since the default changes :-( */
+        if (qemuCapsGet(caps, QEMU_CAPS_SDL))
+            virCommandAddArg(cmd, "-sdl");
+
+    } else if (graphics->type == VIR_DOMAIN_GRAPHICS_TYPE_SPICE) {
+        virBuffer opt = VIR_BUFFER_INITIALIZER;
+        const char *listenNetwork;
+        const char *listenAddr = NULL;
+        char *netAddr = NULL;
+        int ret;
+        int defaultMode = graphics->data.spice.defaultMode;
+        int port = graphics->data.spice.port;
+        int tlsPort = graphics->data.spice.tlsPort;
+
+        if (!qemuCapsGet(caps, QEMU_CAPS_SPICE)) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("spice graphics are not supported with this QEMU"));
+            goto error;
+        }
+
+        if (port > 0 || tlsPort <= 0)
+            virBufferAsprintf(&opt, "port=%u", port);
+
+        if (tlsPort > 0) {
+            if (!driver->spiceTLS) {
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                               _("spice TLS port set in XML configuration,"
+                                 " but TLS is disabled in qemu.conf"));
+                goto error;
+            }
+            if (port > 0)
+                virBufferAddChar(&opt, ',');
+            virBufferAsprintf(&opt, "tls-port=%u", tlsPort);
+        }
+
+        switch (virDomainGraphicsListenGetType(graphics, 0)) {
+        case VIR_DOMAIN_GRAPHICS_LISTEN_TYPE_ADDRESS:
+            listenAddr = virDomainGraphicsListenGetAddress(graphics, 0);
+            break;
+
+        case VIR_DOMAIN_GRAPHICS_LISTEN_TYPE_NETWORK:
+            listenNetwork = virDomainGraphicsListenGetNetwork(graphics, 0);
+            if (!listenNetwork)
+                break;
+            ret = networkGetNetworkAddress(listenNetwork, &netAddr);
+            if (ret <= -2) {
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                               "%s", _("network-based listen not possible, "
+                                       "network driver not present"));
+                goto error;
+            }
+            if (ret < 0) {
+                virReportError(VIR_ERR_XML_ERROR,
+                               _("listen network '%s' had no usable address"),
+                               listenNetwork);
+                goto error;
+            }
+            listenAddr = netAddr;
+            /* store the address we found in the <graphics> element so it will
+             * show up in status. */
+            if (virDomainGraphicsListenSetAddress(graphics, 0,
+                                                  listenAddr, -1, false) < 0)
+               goto error;
+            break;
+        }
+
+        if (!listenAddr)
+            listenAddr = driver->spiceListen;
+        if (listenAddr)
+            virBufferAsprintf(&opt, ",addr=%s", listenAddr);
+
+        VIR_FREE(netAddr);
+
+        int mm = graphics->data.spice.mousemode;
+        if (mm) {
+            switch (mm) {
+            case VIR_DOMAIN_GRAPHICS_SPICE_MOUSE_MODE_SERVER:
+                virBufferAsprintf(&opt, ",agent-mouse=off");
+                break;
+            case VIR_DOMAIN_GRAPHICS_SPICE_MOUSE_MODE_CLIENT:
+                virBufferAsprintf(&opt, ",agent-mouse=on");
+                break;
+            default:
+                break;
+            }
+        }
+
+        /* In the password case we set it via monitor command, to avoid
+         * making it visible on CLI, so there's no use of password=XXX
+         * in this bit of the code */
+        if (!graphics->data.spice.auth.passwd &&
+            !driver->spicePassword)
+            virBufferAddLit(&opt, ",disable-ticketing");
+
+        if (driver->spiceTLS)
+            virBufferAsprintf(&opt, ",x509-dir=%s",
+                              driver->spiceTLSx509certdir);
+
+        switch (defaultMode) {
+        case VIR_DOMAIN_GRAPHICS_SPICE_CHANNEL_MODE_SECURE:
+            virBufferAsprintf(&opt, ",tls-channel=default");
+            break;
+        case VIR_DOMAIN_GRAPHICS_SPICE_CHANNEL_MODE_INSECURE:
+            virBufferAsprintf(&opt, ",plaintext-channel=default");
+            break;
+        case VIR_DOMAIN_GRAPHICS_SPICE_CHANNEL_MODE_ANY:
+            /* nothing */
+            break;
+        }
+
+        for (i = 0 ; i < VIR_DOMAIN_GRAPHICS_SPICE_CHANNEL_LAST ; i++) {
+            int mode = graphics->data.spice.channels[i];
+            switch (mode) {
+            case VIR_DOMAIN_GRAPHICS_SPICE_CHANNEL_MODE_SECURE:
+                if (!driver->spiceTLS) {
+                    virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                                   _("spice secure channels set in XML configuration, but TLS is disabled in qemu.conf"));
+                    goto error;
+                }
+                virBufferAsprintf(&opt, ",tls-channel=%s",
+                                  virDomainGraphicsSpiceChannelNameTypeToString(i));
+                break;
+            case VIR_DOMAIN_GRAPHICS_SPICE_CHANNEL_MODE_INSECURE:
+                virBufferAsprintf(&opt, ",plaintext-channel=%s",
+                                  virDomainGraphicsSpiceChannelNameTypeToString(i));
+                break;
+            }
+        }
+        if (graphics->data.spice.image)
+            virBufferAsprintf(&opt, ",image-compression=%s",
+                              virDomainGraphicsSpiceImageCompressionTypeToString(graphics->data.spice.image));
+        if (graphics->data.spice.jpeg)
+            virBufferAsprintf(&opt, ",jpeg-wan-compression=%s",
+                              virDomainGraphicsSpiceJpegCompressionTypeToString(graphics->data.spice.jpeg));
+        if (graphics->data.spice.zlib)
+            virBufferAsprintf(&opt, ",zlib-glz-wan-compression=%s",
+                              virDomainGraphicsSpiceZlibCompressionTypeToString(graphics->data.spice.zlib));
+        if (graphics->data.spice.playback)
+            virBufferAsprintf(&opt, ",playback-compression=%s",
+                              virDomainGraphicsSpicePlaybackCompressionTypeToString(graphics->data.spice.playback));
+        if (graphics->data.spice.streaming)
+            virBufferAsprintf(&opt, ",streaming-video=%s",
+                              virDomainGraphicsSpiceStreamingModeTypeToString(graphics->data.spice.streaming));
+        if (graphics->data.spice.copypaste == VIR_DOMAIN_GRAPHICS_SPICE_CLIPBOARD_COPYPASTE_NO)
+            virBufferAddLit(&opt, ",disable-copy-paste");
+
+        if (qemuCapsGet(caps, QEMU_CAPS_SEAMLESS_MIGRATION)) {
+            /* If qemu supports seamless migration turn it
+             * unconditionally on. If migration destination
+             * doesn't support it, it fallbacks to previous
+             * migration algorithm silently. */
+            virBufferAddLit(&opt, ",seamless-migration=on");
+        }
+
+        virCommandAddArg(cmd, "-spice");
+        virCommandAddArgBuffer(cmd, &opt);
+        if (graphics->data.spice.keymap)
+            virCommandAddArgList(cmd, "-k",
+                                 graphics->data.spice.keymap, NULL);
+        /* SPICE includes native support for tunnelling audio, so we
+         * set the audio backend to point at SPICE's own driver
+         */
+        virCommandAddEnvString(cmd, "QEMU_AUDIO_DRV=spice");
+
+    } else {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                       _("unsupported graphics type '%s'"),
+                       virDomainGraphicsTypeToString(graphics->type));
+        goto error;
+    }
+
+    return 0;
+
+no_memory:
+    virReportOOMError();
+error:
+    return -1;
+}
+
 /*
  * Constructs a argv suitable for launching qemu with config defined
  * for a given virtual machine.
@@ -4419,7 +5029,7 @@ error:
  */
 virCommandPtr
 qemuBuildCommandLine(virConnectPtr conn,
-                     struct qemud_driver *driver,
+                     virQEMUDriverPtr driver,
                      virDomainDefPtr def,
                      virDomainChrSourceDefPtr monitor_chr,
                      bool monitor_json,
@@ -4429,8 +5039,7 @@ qemuBuildCommandLine(virConnectPtr conn,
                      virDomainSnapshotObjPtr snapshot,
                      enum virNetDevVPortProfileOp vmop)
 {
-    int i;
-    struct utsname ut;
+    int i, j;
     int disableKQEMU = 0;
     int enableKQEMU = 0;
     int disableKVM = 0;
@@ -4443,9 +5052,22 @@ qemuBuildCommandLine(virConnectPtr conn,
     bool hasHwVirt = false;
     virCommandPtr cmd = NULL;
     bool emitBootindex = false;
+    int sdl = 0;
+    int vnc = 0;
+    int spice = 0;
     int usbcontroller = 0;
     bool usblegacy = false;
-    uname_normalize(&ut);
+    int contOrder[] = {
+        /* We don't add an explicit IDE or FD controller because the
+         * provided PIIX4 device already includes one. It isn't possible to
+         * remove the PIIX4. */
+        VIR_DOMAIN_CONTROLLER_TYPE_USB,
+        VIR_DOMAIN_CONTROLLER_TYPE_SCSI,
+        VIR_DOMAIN_CONTROLLER_TYPE_SATA,
+        VIR_DOMAIN_CONTROLLER_TYPE_VIRTIO_SERIAL,
+        VIR_DOMAIN_CONTROLLER_TYPE_CCID,
+    };
+    virArch hostarch = virArchFromHost();
 
     VIR_DEBUG("conn=%p driver=%p def=%p mon=%p json=%d "
               "caps=%p migrateFrom=%s migrateFD=%d "
@@ -4532,7 +5154,7 @@ qemuBuildCommandLine(virConnectPtr conn,
         goto error;
 
     if (qemuBuildCpuArgStr(driver, def, emulator, caps,
-                           &ut, &cpu, &hasHwVirt, !!migrateFrom) < 0)
+                           hostarch, &cpu, &hasHwVirt, !!migrateFrom) < 0)
         goto error;
 
     if (cpu) {
@@ -5024,61 +5646,59 @@ qemuBuildCommandLine(virConnectPtr conn,
     }
 
     if (qemuCapsGet(caps, QEMU_CAPS_DEVICE)) {
-        for (i = 0 ; i < def->ncontrollers ; i++) {
-            virDomainControllerDefPtr cont = def->controllers[i];
+        for (j = 0; j < ARRAY_CARDINALITY(contOrder); j++) {
+            for (i = 0; i < def->ncontrollers; i++) {
+                virDomainControllerDefPtr cont = def->controllers[i];
 
-            /* We don't add an explicit IDE or FD controller because the
-             * provided PIIX4 device already includes one. It isn't possible to
-             * remove the PIIX4. */
-            if (cont->type == VIR_DOMAIN_CONTROLLER_TYPE_IDE ||
-                cont->type == VIR_DOMAIN_CONTROLLER_TYPE_FDC)
-                continue;
+                if (cont->type != contOrder[j])
+                    continue;
 
-             /* Also, skip USB controllers with type none.*/
-            if (cont->type == VIR_DOMAIN_CONTROLLER_TYPE_USB &&
-                cont->model == VIR_DOMAIN_CONTROLLER_MODEL_USB_NONE) {
-                usbcontroller = -1; /* mark we don't want a controller */
-                continue;
-            }
+                /* Also, skip USB controllers with type none.*/
+                if (cont->type == VIR_DOMAIN_CONTROLLER_TYPE_USB &&
+                    cont->model == VIR_DOMAIN_CONTROLLER_MODEL_USB_NONE) {
+                    usbcontroller = -1; /* mark we don't want a controller */
+                    continue;
+                }
 
-            /* Only recent QEMU implements a SATA (AHCI) controller */
-            if (cont->type == VIR_DOMAIN_CONTROLLER_TYPE_SATA) {
-                if (!qemuCapsGet(caps, QEMU_CAPS_ICH9_AHCI)) {
-                    virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                                   _("SATA is not supported with this "
-                                     "QEMU binary"));
-                    goto error;
+                /* Only recent QEMU implements a SATA (AHCI) controller */
+                if (cont->type == VIR_DOMAIN_CONTROLLER_TYPE_SATA) {
+                    if (!qemuCapsGet(caps, QEMU_CAPS_ICH9_AHCI)) {
+                        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                                       _("SATA is not supported with this "
+                                         "QEMU binary"));
+                        goto error;
+                    } else {
+                        char *devstr;
+
+                        virCommandAddArg(cmd, "-device");
+                        if (!(devstr = qemuBuildControllerDevStr(def, cont,
+                                                                 caps, NULL)))
+                            goto error;
+
+                        virCommandAddArg(cmd, devstr);
+                        VIR_FREE(devstr);
+                    }
+                } else if (cont->type == VIR_DOMAIN_CONTROLLER_TYPE_USB &&
+                           cont->model == -1 &&
+                           !qemuCapsGet(caps, QEMU_CAPS_PIIX3_USB_UHCI)) {
+                    if (usblegacy) {
+                        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                                       _("Multiple legacy USB controllers are "
+                                         "not supported"));
+                        goto error;
+                    }
+                    usblegacy = true;
                 } else {
-                    char *devstr;
-
                     virCommandAddArg(cmd, "-device");
-                    if (!(devstr = qemuBuildControllerDevStr(def, cont,
-                                                             caps, NULL)))
+
+                    char *devstr;
+                    if (!(devstr = qemuBuildControllerDevStr(def, cont, caps,
+                                                             &usbcontroller)))
                         goto error;
 
                     virCommandAddArg(cmd, devstr);
                     VIR_FREE(devstr);
                 }
-            } else if (cont->type == VIR_DOMAIN_CONTROLLER_TYPE_USB &&
-                       cont->model == -1 &&
-                       !qemuCapsGet(caps, QEMU_CAPS_PIIX3_USB_UHCI)) {
-                if (usblegacy) {
-                    virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                                   _("Multiple legacy USB controllers are "
-                                     "not supported"));
-                    goto error;
-                }
-                usblegacy = true;
-            } else {
-                virCommandAddArg(cmd, "-device");
-
-                char *devstr;
-                if (!(devstr = qemuBuildControllerDevStr(def, cont, caps,
-                                                         &usbcontroller)))
-                    goto error;
-
-                virCommandAddArg(cmd, devstr);
-                VIR_FREE(devstr);
             }
         }
     }
@@ -5298,6 +5918,18 @@ qemuBuildCommandLine(virConnectPtr conn,
                     {
                         virBuffer opt = VIR_BUFFER_INITIALIZER;
                         if (qemuBuildRBDString(conn, disk, &opt) < 0)
+                            goto error;
+                        if (virBufferError(&opt)) {
+                            virReportOOMError();
+                            goto error;
+                        }
+                        file = virBufferContentAndReset(&opt);
+                    }
+                    break;
+                case VIR_DOMAIN_DISK_PROTOCOL_GLUSTER:
+                    {
+                        virBuffer opt = VIR_BUFFER_INITIALIZER;
+                        if (qemuBuildGlusterString(disk, &opt) < 0)
                             goto error;
                         if (virBufferError(&opt)) {
                             virReportOOMError();
@@ -5553,7 +6185,6 @@ qemuBuildCommandLine(virConnectPtr conn,
         virDomainSmartcardDefPtr smartcard = def->smartcards[0];
         char *devstr;
         virBuffer opt = VIR_BUFFER_INITIALIZER;
-        int j;
         const char *database;
 
         if (def->nsmartcards > 1 ||
@@ -5728,7 +6359,7 @@ qemuBuildCommandLine(virConnectPtr conn,
         char *addr;
         int port;
 
-        switch(channel->targetType) {
+        switch (channel->targetType) {
         case VIR_DOMAIN_CHR_CHANNEL_TARGET_TYPE_GUESTFWD:
             if (!qemuCapsGet(caps, QEMU_CAPS_CHARDEV) ||
                 !qemuCapsGet(caps, QEMU_CAPS_DEVICE)) {
@@ -5796,7 +6427,35 @@ qemuBuildCommandLine(virConnectPtr conn,
         virDomainChrDefPtr console = def->consoles[i];
         char *devstr;
 
-        switch(console->targetType) {
+        switch (console->targetType) {
+        case VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_SCLP:
+        case VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_SCLPLM:
+            if (!qemuCapsGet(caps, QEMU_CAPS_DEVICE)) {
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                               _("sclp console requires QEMU to support -device"));
+                goto error;
+            }
+            if (!qemuCapsGet(caps, QEMU_CAPS_SCLP_S390)) {
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                               _("sclp console requires QEMU to support s390-sclp"));
+                goto error;
+            }
+
+            virCommandAddArg(cmd, "-chardev");
+            if (!(devstr = qemuBuildChrChardevStr(&console->source,
+                                                  console->info.alias,
+                                                  caps)))
+                goto error;
+            virCommandAddArg(cmd, devstr);
+            VIR_FREE(devstr);
+
+            virCommandAddArg(cmd, "-device");
+            if (!(devstr = qemuBuildSclpDevStr(console)))
+                goto error;
+            virCommandAddArg(cmd, devstr);
+            VIR_FREE(devstr);
+            break;
+
         case VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_VIRTIO:
             if (!qemuCapsGet(caps, QEMU_CAPS_DEVICE)) {
                 virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
@@ -5850,369 +6509,135 @@ qemuBuildCommandLine(virConnectPtr conn,
         }
     }
 
-    if (def->ngraphics > 1) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       "%s", _("only 1 graphics device is supported"));
+    for (i = 0 ; i < def->ngraphics ; ++i) {
+        switch (def->graphics[i]->type) {
+        case VIR_DOMAIN_GRAPHICS_TYPE_SDL:
+            ++sdl;
+            break;
+        case VIR_DOMAIN_GRAPHICS_TYPE_VNC:
+            ++vnc;
+            break;
+        case VIR_DOMAIN_GRAPHICS_TYPE_SPICE:
+            ++spice;
+            break;
+        }
+    }
+    if (!qemuCapsGet(caps, QEMU_CAPS_0_10) && sdl + vnc + spice > 1) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("only 1 graphics device is supported"));
+        goto error;
+    }
+    if (sdl > 1 || vnc > 1 || spice > 1) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("only 1 graphics device of each type "
+                         "(sdl, vnc, spice) is supported"));
         goto error;
     }
 
-    if ((def->ngraphics == 1) &&
-        def->graphics[0]->type == VIR_DOMAIN_GRAPHICS_TYPE_VNC) {
-        virBuffer opt = VIR_BUFFER_INITIALIZER;
-
-        if (!qemuCapsGet(caps, QEMU_CAPS_VNC)) {
-            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                           _("vnc graphics are not supported with this QEMU"));
+    for (i = 0 ; i < def->ngraphics ; ++i) {
+        if (qemuBuildGraphicsCommandLine(driver, cmd, def, caps,
+                                         def->graphics[i]) < 0)
             goto error;
-        }
-
-        if (def->graphics[0]->data.vnc.socket ||
-            driver->vncAutoUnixSocket) {
-
-            if (!def->graphics[0]->data.vnc.socket &&
-                virAsprintf(&def->graphics[0]->data.vnc.socket,
-                            "%s/%s.vnc", driver->libDir, def->name) == -1) {
-                goto no_memory;
-            }
-
-            virBufferAsprintf(&opt, "unix:%s",
-                              def->graphics[0]->data.vnc.socket);
-
-        } else if (qemuCapsGet(caps, QEMU_CAPS_VNC_COLON)) {
-            const char *listenNetwork;
-            const char *listenAddr = NULL;
-            char *netAddr = NULL;
-            bool escapeAddr;
-            int ret;
-
-            switch (virDomainGraphicsListenGetType(def->graphics[0], 0)) {
-            case VIR_DOMAIN_GRAPHICS_LISTEN_TYPE_ADDRESS:
-                listenAddr = virDomainGraphicsListenGetAddress(def->graphics[0], 0);
-                break;
-
-            case VIR_DOMAIN_GRAPHICS_LISTEN_TYPE_NETWORK:
-                listenNetwork = virDomainGraphicsListenGetNetwork(def->graphics[0], 0);
-                if (!listenNetwork)
-                    break;
-                ret = networkGetNetworkAddress(listenNetwork, &netAddr);
-                if (ret <= -2) {
-                    virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                                   "%s", _("network-based listen not possible, "
-                                           "network driver not present"));
-                    goto error;
-                }
-                if (ret < 0) {
-                    virReportError(VIR_ERR_XML_ERROR,
-                                   _("listen network '%s' had no usable address"),
-                                   listenNetwork);
-                    goto error;
-                }
-                listenAddr = netAddr;
-                /* store the address we found in the <graphics> element so it will
-                 * show up in status. */
-                if (virDomainGraphicsListenSetAddress(def->graphics[0], 0,
-                                                      listenAddr, -1, false) < 0)
-                   goto error;
-                break;
-            }
-
-            if (!listenAddr)
-                listenAddr = driver->vncListen;
-
-            escapeAddr = strchr(listenAddr, ':') != NULL;
-            if (escapeAddr)
-                virBufferAsprintf(&opt, "[%s]", listenAddr);
-            else
-                virBufferAdd(&opt, listenAddr, -1);
-            virBufferAsprintf(&opt, ":%d",
-                              def->graphics[0]->data.vnc.port - 5900);
-
-            VIR_FREE(netAddr);
-        } else {
-            virBufferAsprintf(&opt, "%d",
-                              def->graphics[0]->data.vnc.port - 5900);
-        }
-
-        if (qemuCapsGet(caps, QEMU_CAPS_VNC_COLON)) {
-            if (def->graphics[0]->data.vnc.auth.passwd ||
-                driver->vncPassword)
-                virBufferAddLit(&opt, ",password");
-
-            if (driver->vncTLS) {
-                virBufferAddLit(&opt, ",tls");
-                if (driver->vncTLSx509verify) {
-                    virBufferAsprintf(&opt, ",x509verify=%s",
-                                      driver->vncTLSx509certdir);
-                } else {
-                    virBufferAsprintf(&opt, ",x509=%s",
-                                      driver->vncTLSx509certdir);
-                }
-            }
-
-            if (driver->vncSASL) {
-                virBufferAddLit(&opt, ",sasl");
-
-                if (driver->vncSASLdir)
-                    virCommandAddEnvPair(cmd, "SASL_CONF_DIR",
-                                         driver->vncSASLdir);
-
-                /* TODO: Support ACLs later */
-            }
-        }
-
-        virCommandAddArg(cmd, "-vnc");
-        virCommandAddArgBuffer(cmd, &opt);
-        if (def->graphics[0]->data.vnc.keymap) {
-            virCommandAddArgList(cmd, "-k", def->graphics[0]->data.vnc.keymap,
-                                 NULL);
-        }
-
-        /* Unless user requested it, set the audio backend to none, to
-         * prevent it opening the host OS audio devices, since that causes
-         * security issues and might not work when using VNC.
-         */
-        if (driver->vncAllowHostAudio) {
-            virCommandAddEnvPass(cmd, "QEMU_AUDIO_DRV");
-        } else {
-            virCommandAddEnvString(cmd, "QEMU_AUDIO_DRV=none");
-        }
-    } else if ((def->ngraphics == 1) &&
-               def->graphics[0]->type == VIR_DOMAIN_GRAPHICS_TYPE_SDL) {
-        if (qemuCapsGet(caps, QEMU_CAPS_0_10) &&
-            !qemuCapsGet(caps, QEMU_CAPS_SDL)) {
-            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                           _("sdl not supported by '%s'"),
-                           def->emulator);
-            goto error;
-        }
-
-        if (def->graphics[0]->data.sdl.xauth)
-            virCommandAddEnvPair(cmd, "XAUTHORITY",
-                                 def->graphics[0]->data.sdl.xauth);
-        if (def->graphics[0]->data.sdl.display)
-            virCommandAddEnvPair(cmd, "DISPLAY",
-                                 def->graphics[0]->data.sdl.display);
-        if (def->graphics[0]->data.sdl.fullscreen)
-            virCommandAddArg(cmd, "-full-screen");
-
-        /* If using SDL for video, then we should just let it
-         * use QEMU's host audio drivers, possibly SDL too
-         * User can set these two before starting libvirtd
-         */
-        virCommandAddEnvPass(cmd, "QEMU_AUDIO_DRV");
-        virCommandAddEnvPass(cmd, "SDL_AUDIODRIVER");
-
-        /* New QEMU has this flag to let us explicitly ask for
-         * SDL graphics. This is better than relying on the
-         * default, since the default changes :-( */
-        if (qemuCapsGet(caps, QEMU_CAPS_SDL))
-            virCommandAddArg(cmd, "-sdl");
-
-    } else if ((def->ngraphics == 1) &&
-               def->graphics[0]->type == VIR_DOMAIN_GRAPHICS_TYPE_SPICE) {
-        virBuffer opt = VIR_BUFFER_INITIALIZER;
-        const char *listenNetwork;
-        const char *listenAddr = NULL;
-        char *netAddr = NULL;
-        int ret;
-        int defaultMode = def->graphics[0]->data.spice.defaultMode;
-
-        if (!qemuCapsGet(caps, QEMU_CAPS_SPICE)) {
-            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                           _("spice graphics are not supported with this QEMU"));
-            goto error;
-        }
-
-        virBufferAsprintf(&opt, "port=%u", def->graphics[0]->data.spice.port);
-
-        if (def->graphics[0]->data.spice.tlsPort > 0) {
-            if (!driver->spiceTLS) {
-                virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                               _("spice TLS port set in XML configuration,"
-                                 " but TLS is disabled in qemu.conf"));
-                goto error;
-            }
-            virBufferAsprintf(&opt, ",tls-port=%u",
-                              def->graphics[0]->data.spice.tlsPort);
-        }
-
-        switch (virDomainGraphicsListenGetType(def->graphics[0], 0)) {
-        case VIR_DOMAIN_GRAPHICS_LISTEN_TYPE_ADDRESS:
-            listenAddr = virDomainGraphicsListenGetAddress(def->graphics[0], 0);
-            break;
-
-        case VIR_DOMAIN_GRAPHICS_LISTEN_TYPE_NETWORK:
-            listenNetwork = virDomainGraphicsListenGetNetwork(def->graphics[0], 0);
-            if (!listenNetwork)
-                break;
-            ret = networkGetNetworkAddress(listenNetwork, &netAddr);
-            if (ret <= -2) {
-                virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                               "%s", _("network-based listen not possible, "
-                                       "network driver not present"));
-                goto error;
-            }
-            if (ret < 0) {
-                virReportError(VIR_ERR_XML_ERROR,
-                               _("listen network '%s' had no usable address"),
-                               listenNetwork);
-                goto error;
-            }
-            listenAddr = netAddr;
-            /* store the address we found in the <graphics> element so it will
-             * show up in status. */
-            if (virDomainGraphicsListenSetAddress(def->graphics[0], 0,
-                                                  listenAddr, -1, false) < 0)
-               goto error;
-            break;
-        }
-
-        if (!listenAddr)
-            listenAddr = driver->spiceListen;
-        if (listenAddr)
-            virBufferAsprintf(&opt, ",addr=%s", listenAddr);
-
-        VIR_FREE(netAddr);
-
-        int mm = def->graphics[0]->data.spice.mousemode;
-        if (mm) {
-            switch (mm) {
-            case VIR_DOMAIN_GRAPHICS_SPICE_MOUSE_MODE_SERVER:
-                virBufferAsprintf(&opt, ",agent-mouse=off");
-                break;
-            case VIR_DOMAIN_GRAPHICS_SPICE_MOUSE_MODE_CLIENT:
-                virBufferAsprintf(&opt, ",agent-mouse=on");
-                break;
-            default:
-                break;
-            }
-        }
-
-        /* In the password case we set it via monitor command, to avoid
-         * making it visible on CLI, so there's no use of password=XXX
-         * in this bit of the code */
-        if (!def->graphics[0]->data.spice.auth.passwd &&
-            !driver->spicePassword)
-            virBufferAddLit(&opt, ",disable-ticketing");
-
-        if (driver->spiceTLS)
-            virBufferAsprintf(&opt, ",x509-dir=%s",
-                              driver->spiceTLSx509certdir);
-
-        switch (defaultMode) {
-        case VIR_DOMAIN_GRAPHICS_SPICE_CHANNEL_MODE_SECURE:
-            virBufferAsprintf(&opt, ",tls-channel=default");
-            break;
-        case VIR_DOMAIN_GRAPHICS_SPICE_CHANNEL_MODE_INSECURE:
-            virBufferAsprintf(&opt, ",plaintext-channel=default");
-            break;
-        case VIR_DOMAIN_GRAPHICS_SPICE_CHANNEL_MODE_ANY:
-            /* nothing */
-            break;
-        }
-
-        for (i = 0 ; i < VIR_DOMAIN_GRAPHICS_SPICE_CHANNEL_LAST ; i++) {
-            int mode = def->graphics[0]->data.spice.channels[i];
-            switch (mode) {
-            case VIR_DOMAIN_GRAPHICS_SPICE_CHANNEL_MODE_SECURE:
-                if (!driver->spiceTLS) {
-                    virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                                   _("spice secure channels set in XML configuration, but TLS is disabled in qemu.conf"));
-                    goto error;
-                }
-                virBufferAsprintf(&opt, ",tls-channel=%s",
-                                  virDomainGraphicsSpiceChannelNameTypeToString(i));
-                break;
-            case VIR_DOMAIN_GRAPHICS_SPICE_CHANNEL_MODE_INSECURE:
-                virBufferAsprintf(&opt, ",plaintext-channel=%s",
-                                  virDomainGraphicsSpiceChannelNameTypeToString(i));
-                break;
-            }
-        }
-        if (def->graphics[0]->data.spice.image)
-            virBufferAsprintf(&opt, ",image-compression=%s",
-                              virDomainGraphicsSpiceImageCompressionTypeToString(def->graphics[0]->data.spice.image));
-        if (def->graphics[0]->data.spice.jpeg)
-            virBufferAsprintf(&opt, ",jpeg-wan-compression=%s",
-                              virDomainGraphicsSpiceJpegCompressionTypeToString(def->graphics[0]->data.spice.jpeg));
-        if (def->graphics[0]->data.spice.zlib)
-            virBufferAsprintf(&opt, ",zlib-glz-wan-compression=%s",
-                              virDomainGraphicsSpiceZlibCompressionTypeToString(def->graphics[0]->data.spice.zlib));
-        if (def->graphics[0]->data.spice.playback)
-            virBufferAsprintf(&opt, ",playback-compression=%s",
-                              virDomainGraphicsSpicePlaybackCompressionTypeToString(def->graphics[0]->data.spice.playback));
-        if (def->graphics[0]->data.spice.streaming)
-            virBufferAsprintf(&opt, ",streaming-video=%s",
-                              virDomainGraphicsSpiceStreamingModeTypeToString(def->graphics[0]->data.spice.streaming));
-        if (def->graphics[0]->data.spice.copypaste == VIR_DOMAIN_GRAPHICS_SPICE_CLIPBOARD_COPYPASTE_NO)
-            virBufferAddLit(&opt, ",disable-copy-paste");
-
-        if (qemuCapsGet(caps, QEMU_CAPS_SEAMLESS_MIGRATION)) {
-            /* If qemu supports seamless migration turn it
-             * unconditionally on. If migration destination
-             * doesn't support it, it fallbacks to previous
-             * migration algorithm silently. */
-            virBufferAddLit(&opt, ",seamless-migration=on");
-        }
-
-        virCommandAddArg(cmd, "-spice");
-        virCommandAddArgBuffer(cmd, &opt);
-        if (def->graphics[0]->data.spice.keymap)
-            virCommandAddArgList(cmd, "-k",
-                                 def->graphics[0]->data.spice.keymap, NULL);
-        /* SPICE includes native support for tunnelling audio, so we
-         * set the audio backend to point at SPICE's own driver
-         */
-        virCommandAddEnvString(cmd, "QEMU_AUDIO_DRV=spice");
-
-    } else if ((def->ngraphics == 1)) {
-        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                       _("unsupported graphics type '%s'"),
-                       virDomainGraphicsTypeToString(def->graphics[0]->type));
-        goto error;
     }
-
     if (def->nvideos > 0) {
-        if (qemuCapsGet(caps, QEMU_CAPS_VGA)) {
-            if (def->videos[0]->type == VIR_DOMAIN_VIDEO_TYPE_XEN) {
+        int primaryVideoType = def->videos[0]->type;
+        if (qemuCapsGet(caps, QEMU_CAPS_DEVICE_VIDEO_PRIMARY) &&
+             ((primaryVideoType == VIR_DOMAIN_VIDEO_TYPE_VGA &&
+                 qemuCapsGet(caps, QEMU_CAPS_DEVICE_VGA)) ||
+             (primaryVideoType == VIR_DOMAIN_VIDEO_TYPE_CIRRUS &&
+                 qemuCapsGet(caps, QEMU_CAPS_DEVICE_CIRRUS_VGA)) ||
+             (primaryVideoType == VIR_DOMAIN_VIDEO_TYPE_VMVGA &&
+                 qemuCapsGet(caps, QEMU_CAPS_DEVICE_VMWARE_SVGA)) ||
+             (primaryVideoType == VIR_DOMAIN_VIDEO_TYPE_QXL &&
+                 qemuCapsGet(caps, QEMU_CAPS_DEVICE_QXL_VGA)))
+           ) {
+            for (i = 0 ; i < def->nvideos ; i++) {
+                char *str;
+                virCommandAddArg(cmd, "-device");
+                if (!(str = qemuBuildDeviceVideoStr(def->videos[i], caps, !i)))
+                    goto error;
+
+                virCommandAddArg(cmd, str);
+                VIR_FREE(str);
+            }
+        } else if (qemuCapsGet(caps, QEMU_CAPS_VGA)) {
+            if (primaryVideoType == VIR_DOMAIN_VIDEO_TYPE_XEN) {
                 /* nothing - vga has no effect on Xen pvfb */
             } else {
-                if ((def->videos[0]->type == VIR_DOMAIN_VIDEO_TYPE_QXL) &&
+                if ((primaryVideoType == VIR_DOMAIN_VIDEO_TYPE_QXL) &&
                     !qemuCapsGet(caps, QEMU_CAPS_VGA_QXL)) {
                     virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                                    _("This QEMU does not support QXL graphics adapters"));
                     goto error;
                 }
 
-                const char *vgastr = qemuVideoTypeToString(def->videos[0]->type);
+                const char *vgastr = qemuVideoTypeToString(primaryVideoType);
                 if (!vgastr || STREQ(vgastr, "")) {
                     virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                                    _("video type %s is not supported with QEMU"),
-                                   virDomainVideoTypeToString(def->videos[0]->type));
+                                   virDomainVideoTypeToString(primaryVideoType));
                     goto error;
                 }
 
                 virCommandAddArgList(cmd, "-vga", vgastr, NULL);
 
-                if (def->videos[0]->type == VIR_DOMAIN_VIDEO_TYPE_QXL) {
-                    if (def->videos[0]->vram &&
-                        qemuCapsGet(caps, QEMU_CAPS_DEVICE)) {
-                        if (def->videos[0]->vram > (UINT_MAX / 1024)) {
+                if (def->videos[0]->type == VIR_DOMAIN_VIDEO_TYPE_QXL &&
+                    (def->videos[0]->vram || def->videos[0]->ram) &&
+                    qemuCapsGet(caps, QEMU_CAPS_DEVICE)) {
+                    const char *dev = (qemuCapsGet(caps, QEMU_CAPS_DEVICE_QXL_VGA)
+                                       ? "qxl-vga" : "qxl");
+                    int ram = def->videos[0]->ram;
+                    int vram = def->videos[0]->vram;
+
+                    if (vram > (UINT_MAX / 1024)) {
+                        virReportError(VIR_ERR_OVERFLOW,
+                               _("value for 'vram' must be less than '%u'"),
+                                       UINT_MAX / 1024);
+                        goto error;
+                    }
+                    if (ram > (UINT_MAX / 1024)) {
+                        virReportError(VIR_ERR_OVERFLOW,
+                           _("value for 'ram' must be less than '%u'"),
+                                       UINT_MAX / 1024);
+                        goto error;
+                    }
+
+                    if (ram) {
+                        virCommandAddArg(cmd, "-global");
+                        virCommandAddArgFormat(cmd, "%s.ram_size=%u",
+                                               dev, ram * 1024);
+                    }
+                    if (vram) {
+                        virCommandAddArg(cmd, "-global");
+                        virCommandAddArgFormat(cmd, "%s.vram_size=%u",
+                                               dev, vram * 1024);
+                    }
+                }
+            }
+
+            if (def->nvideos > 1) {
+                if (qemuCapsGet(caps, QEMU_CAPS_DEVICE)) {
+                    for (i = 1 ; i < def->nvideos ; i++) {
+                        char *str;
+                        if (def->videos[i]->type != VIR_DOMAIN_VIDEO_TYPE_QXL) {
                             virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                                           _("value for 'vram' must be less than '%u'"),
-                                           UINT_MAX / 1024);
+                                           _("video type %s is only valid as primary video card"),
+                                           virDomainVideoTypeToString(def->videos[0]->type));
                             goto error;
                         }
 
-                        virCommandAddArg(cmd, "-global");
+                        virCommandAddArg(cmd, "-device");
 
-                        if (qemuCapsGet(caps, QEMU_CAPS_DEVICE_QXL_VGA))
-                            virCommandAddArgFormat(cmd, "qxl-vga.vram_size=%u",
-                                                   def->videos[0]->vram * 1024);
-                        else
-                            virCommandAddArgFormat(cmd, "qxl.vram_size=%u",
-                                                   def->videos[0]->vram * 1024);
+                        if (!(str = qemuBuildDeviceVideoStr(def->videos[i], caps, false)))
+                            goto error;
+
+                        virCommandAddArg(cmd, str);
+                        VIR_FREE(str);
                     }
+                } else {
+                    virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                                   "%s", _("only one video card is currently supported"));
+                    goto error;
                 }
             }
         } else {
@@ -6237,28 +6662,8 @@ qemuBuildCommandLine(virConnectPtr conn,
                                virDomainVideoTypeToString(def->videos[0]->type));
                 goto error;
             }
-        }
 
-        if (def->nvideos > 1) {
-            if (qemuCapsGet(caps, QEMU_CAPS_DEVICE)) {
-                for (i = 1 ; i < def->nvideos ; i++) {
-                    char *str;
-                    if (def->videos[i]->type != VIR_DOMAIN_VIDEO_TYPE_QXL) {
-                        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                                       _("video type %s is only valid as primary video card"),
-                                       virDomainVideoTypeToString(def->videos[0]->type));
-                        goto error;
-                    }
-
-                    virCommandAddArg(cmd, "-device");
-
-                    if (!(str = qemuBuildVideoDevStr(def->videos[i], caps)))
-                        goto error;
-
-                    virCommandAddArg(cmd, str);
-                    VIR_FREE(str);
-                }
-            } else {
+            if (def->nvideos > 1) {
                 virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                                "%s", _("only one video card is currently supported"));
                 goto error;
@@ -6428,16 +6833,27 @@ qemuBuildCommandLine(virConnectPtr conn,
 
         if (hostdev->info->bootIndex) {
             if (hostdev->mode != VIR_DOMAIN_HOSTDEV_MODE_SUBSYS ||
-                hostdev->source.subsys.type != VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI) {
+                (hostdev->source.subsys.type != VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI &&
+                 hostdev->source.subsys.type != VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_USB)) {
                 virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                                _("booting from assigned devices is only"
-                                 " supported for PCI devices"));
+                                 " supported for PCI and USB devices"));
                 goto error;
-            } else if (!qemuCapsGet(caps, QEMU_CAPS_PCI_BOOTINDEX)) {
-                virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                               _("booting from assigned PCI devices is not"
-                                 " supported with this version of qemu"));
-                goto error;
+            } else {
+                if (hostdev->source.subsys.type == VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI &&
+                    !qemuCapsGet(caps, QEMU_CAPS_PCI_BOOTINDEX)) {
+                    virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                                   _("booting from assigned PCI devices is not"
+                                     " supported with this version of qemu"));
+                    goto error;
+                }
+                if (hostdev->source.subsys.type == VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_USB &&
+                    !qemuCapsGet(caps, QEMU_CAPS_USB_HOST_BOOTINDEX)) {
+                    virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                                   _("booting from assigned USB devices is not"
+                                     " supported with this version of qemu"));
+                    goto error;
+                }
             }
         }
 
@@ -6565,8 +6981,11 @@ qemuBuildCommandLine(virConnectPtr conn,
      * NB: Earlier we declared that VirtIO balloon will always be in
      * slot 0x3 on bus 0x0
      */
-    if ((def->memballoon) &&
-        (def->memballoon->model != VIR_DOMAIN_MEMBALLOON_MODEL_NONE)) {
+    if (qemuCapsGet(caps, QEMU_CAPS_VIRTIO_S390) && def->memballoon)
+        def->memballoon->model = VIR_DOMAIN_MEMBALLOON_MODEL_NONE;
+
+    if (def->memballoon &&
+        def->memballoon->model != VIR_DOMAIN_MEMBALLOON_MODEL_NONE) {
         if (def->memballoon->model != VIR_DOMAIN_MEMBALLOON_MODEL_VIRTIO) {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                            _("Memory balloon device type '%s' is not supported by this version of qemu"),
@@ -6630,24 +7049,43 @@ qemuBuildCommandLine(virConnectPtr conn,
  */
 char *
 qemuBuildChrDeviceStr(virDomainChrDefPtr serial,
-                       qemuCapsPtr caps,
-                       char *os_arch,
-                       char *machine)
+                      qemuCapsPtr caps,
+                      virArch arch,
+                      char *machine)
 {
     virBuffer cmd = VIR_BUFFER_INITIALIZER;
 
-    if (STREQ(os_arch, "ppc64") && STREQ(machine, "pseries")) {
+    if ((arch == VIR_ARCH_PPC64) && STREQ(machine, "pseries")) {
         if (serial->deviceType == VIR_DOMAIN_CHR_DEVICE_TYPE_SERIAL &&
-            serial->source.type == VIR_DOMAIN_CHR_TYPE_PTY &&
             serial->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_SPAPRVIO) {
             virBufferAsprintf(&cmd, "spapr-vty,chardev=char%s",
                               serial->info.alias);
             if (qemuBuildDeviceAddressStr(&cmd, &serial->info, caps) < 0)
                 goto error;
         }
-    } else
-        virBufferAsprintf(&cmd, "isa-serial,chardev=char%s,id=%s",
+    } else {
+        virBufferAsprintf(&cmd, "%s,chardev=char%s,id=%s",
+                          virDomainChrSerialTargetTypeToString(serial->targetType),
                           serial->info.alias, serial->info.alias);
+
+        if (serial->targetType == VIR_DOMAIN_CHR_SERIAL_TARGET_TYPE_USB) {
+            if (!qemuCapsGet(caps, QEMU_CAPS_DEVICE_USB_SERIAL)) {
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                               _("usb-serial is not supported in this QEMU binary"));
+                goto error;
+            }
+
+            if (serial->info.type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_NONE &&
+                serial->info.type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_USB) {
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                               _("usb-serial requires address of usb type"));
+                goto error;
+            }
+
+            if (qemuBuildDeviceAddressStr(&cmd, &serial->info, caps) < 0)
+               goto error;
+        }
+    }
 
     if (virBufferError(&cmd)) {
         virReportOOMError();
@@ -6975,6 +7413,8 @@ qemuParseCommandLineDisk(virCapsPtr caps,
                         virReportOOMError();
                         goto cleanup;
                     }
+                    def->hosts->transport = VIR_DOMAIN_DISK_PROTO_TRANS_TCP;
+                    def->hosts->socket = NULL;
 
                     VIR_FREE(def->src);
                     def->src = NULL;
@@ -6993,6 +7433,12 @@ qemuParseCommandLineDisk(virCapsPtr caps,
                         goto cleanup;
 
                     VIR_FREE(p);
+                } else if (STRPREFIX(def->src, "gluster")) {
+                    def->type = VIR_DOMAIN_DISK_TYPE_NETWORK;
+                    def->protocol = VIR_DOMAIN_DISK_PROTOCOL_GLUSTER;
+
+                    if (qemuParseGlusterString(def) < 0)
+                        goto cleanup;
                 } else if (STRPREFIX(def->src, "sheepdog:")) {
                     char *p = def->src;
                     char *port, *vdi;
@@ -7028,6 +7474,8 @@ qemuParseCommandLineDisk(virCapsPtr caps,
                             virReportOOMError();
                             goto cleanup;
                         }
+                        def->hosts->transport = VIR_DOMAIN_DISK_PROTO_TRANS_TCP;
+                        def->hosts->socket = NULL;
                         def->src = strdup(vdi);
                         if (!def->src) {
                             virReportOOMError();
@@ -7856,26 +8304,25 @@ qemuParseCommandLineCPU(virDomainDefPtr dom,
         }
     } while ((p = next));
 
-    if (STREQ(dom->os.arch, "x86_64")) {
+    if (dom->os.arch == VIR_ARCH_X86_64) {
         bool is_32bit = false;
         if (cpu) {
             union cpuData *cpuData = NULL;
             int ret;
 
-            ret = cpuEncode("x86_64", cpu, NULL, &cpuData,
+            ret = cpuEncode(VIR_ARCH_X86_64, cpu, NULL, &cpuData,
                             NULL, NULL, NULL, NULL);
             if (ret < 0)
                 goto error;
 
-            is_32bit = (cpuHasFeature("x86_64", cpuData, "lm") != 1);
-            cpuDataFree("x86_64", cpuData);
+            is_32bit = (cpuHasFeature(VIR_ARCH_X86_64, cpuData, "lm") != 1);
+            cpuDataFree(VIR_ARCH_X86_64, cpuData);
         } else if (model) {
             is_32bit = STREQ(model, "qemu32");
         }
 
         if (is_32bit) {
-            VIR_FREE(dom->os.arch);
-            dom->os.arch = strdup("i686");
+            dom->os.arch = VIR_ARCH_I686;
         }
     }
     VIR_FREE(model);
@@ -8073,16 +8520,15 @@ virDomainDefPtr qemuParseCommandLine(virCapsPtr caps,
     else
         path = strstr(def->emulator, "qemu");
     if (def->virtType == VIR_DOMAIN_VIRT_KVM)
-        def->os.arch = strdup(caps->host.cpu->arch);
+        def->os.arch = caps->host.arch;
     else if (path &&
              STRPREFIX(path, "qemu-system-"))
-        def->os.arch = strdup(path + strlen("qemu-system-"));
+        def->os.arch = virArchFromString(path + strlen("qemu-system-"));
     else
-        def->os.arch = strdup("i686");
-    if (!def->os.arch)
-        goto no_memory;
+        def->os.arch = VIR_ARCH_I686;
 
-    if (STREQ(def->os.arch, "i686")||STREQ(def->os.arch, "x86_64"))
+    if ((def->os.arch == VIR_ARCH_I686) ||
+        (def->os.arch == VIR_ARCH_X86_64))
         def->features |= (1 << VIR_DOMAIN_FEATURE_ACPI)
         /*| (1 << VIR_DOMAIN_FEATURE_APIC)*/;
 #define WANT_VALUE()                                                   \
@@ -8216,6 +8662,9 @@ virDomainDefPtr qemuParseCommandLine(virCapsPtr caps,
                 disk->type = VIR_DOMAIN_DISK_TYPE_NETWORK;
                 disk->protocol = VIR_DOMAIN_DISK_PROTOCOL_RBD;
                 val += strlen("rbd:");
+            } else if (STRPREFIX(val, "gluster")) {
+                disk->type = VIR_DOMAIN_DISK_TYPE_NETWORK;
+                disk->protocol = VIR_DOMAIN_DISK_PROTOCOL_GLUSTER;
             } else if (STRPREFIX(val, "sheepdog:")) {
                 disk->type = VIR_DOMAIN_DISK_TYPE_NETWORK;
                 disk->protocol = VIR_DOMAIN_DISK_PROTOCOL_SHEEPDOG;
@@ -8301,6 +8750,11 @@ virDomainDefPtr qemuParseCommandLine(virCapsPtr caps,
                             goto no_memory;
                     }
                     break;
+                case VIR_DOMAIN_DISK_PROTOCOL_GLUSTER:
+                    if (qemuParseGlusterString(disk) < 0)
+                        goto error;
+
+                    break;
                 }
             }
 
@@ -8308,8 +8762,12 @@ virDomainDefPtr qemuParseCommandLine(virCapsPtr caps,
                 !disk->dst)
                 goto no_memory;
 
-            if (virDomainDiskDefAssignAddress(caps, disk) < 0)
+            if (virDomainDiskDefAssignAddress(caps, disk) < 0) {
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("Cannot assign address for device name '%s'"),
+                               disk->dst);
                 goto error;
+            }
 
             if (VIR_REALLOC_N(def->disks, def->ndisks+1) < 0)
                 goto no_memory;
@@ -8408,7 +8866,7 @@ virDomainDefPtr qemuParseCommandLine(virCapsPtr caps,
                 if (!(def->os.machine = strndup(val, params - val)))
                     goto no_memory;
 
-                while(params++) {
+                while (params++) {
                     /* prepared for more "-machine" parameters */
                     char *tmp = params;
                     params = strchr(params, ',');
@@ -8581,7 +9039,7 @@ virDomainDefPtr qemuParseCommandLine(virCapsPtr caps,
             }
         } else if (STREQ(arg, "-watchdog")) {
             WANT_VALUE();
-            int model = virDomainWatchdogModelTypeFromString (val);
+            int model = virDomainWatchdogModelTypeFromString(val);
 
             if (model != -1) {
                 virDomainWatchdogDefPtr wd;
@@ -8593,7 +9051,7 @@ virDomainDefPtr qemuParseCommandLine(virCapsPtr caps,
             }
         } else if (STREQ(arg, "-watchdog-action") && def->watchdog) {
             WANT_VALUE();
-            int action = virDomainWatchdogActionTypeFromString (val);
+            int action = virDomainWatchdogActionTypeFromString(val);
 
             if (action != -1)
                 def->watchdog->action = action;
@@ -8756,6 +9214,9 @@ virDomainDefPtr qemuParseCommandLine(virCapsPtr caps,
                 VIR_FREE(hosts);
                 goto no_memory;
             }
+            first_rbd_disk->hosts[first_rbd_disk->nhosts].transport = VIR_DOMAIN_DISK_PROTO_TRANS_TCP;
+            first_rbd_disk->hosts[first_rbd_disk->nhosts].socket = NULL;
+
             first_rbd_disk->nhosts++;
             token = strtok_r(NULL, ",", &saveptr);
         }
@@ -8766,6 +9227,17 @@ virDomainDefPtr qemuParseCommandLine(virCapsPtr caps,
                            _("found no rbd hosts in CEPH_ARGS '%s'"), ceph_args);
             goto error;
         }
+    }
+
+    if (!def->os.machine) {
+        const char *defaultMachine =
+                        virCapabilitiesDefaultGuestMachine(caps,
+                                                           def->os.type,
+                                                           def->os.arch,
+                                                           virDomainVirtTypeToString(def->virtType));
+        if (defaultMachine != NULL)
+            if (!(def->os.machine = strdup(defaultMachine)))
+                goto no_memory;
     }
 
     if (!nographics && def->ngraphics == 0) {
@@ -8803,6 +9275,8 @@ virDomainDefPtr qemuParseCommandLine(virCapsPtr caps,
         else
             vid->type = video;
         vid->vram = virDomainVideoDefaultRAM(def, vid->type);
+        vid->ram = vid->type == VIR_DOMAIN_VIDEO_TYPE_QXL ?
+                       virDomainVideoDefaultRAM(def, vid->type) : 0;
         vid->heads = 1;
 
         if (VIR_REALLOC_N(def->videos, def->nvideos+1) < 0) {

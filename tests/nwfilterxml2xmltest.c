@@ -10,8 +10,8 @@
 
 #include "internal.h"
 #include "testutils.h"
-#include "xml.h"
-#include "threads.h"
+#include "virxml.h"
+#include "virthread.h"
 #include "nwfilter_params.h"
 #include "nwfilter_conf.h"
 #include "testutilsqemu.h"

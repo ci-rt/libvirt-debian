@@ -26,22 +26,22 @@
 
 # include <config.h>
 
-# include "ebtables.h"
+# include "virebtables.h"
 # include "internal.h"
 # include "capabilities.h"
 # include "network_conf.h"
 # include "domain_conf.h"
 # include "domain_event.h"
-# include "threads.h"
+# include "virthread.h"
 # include "security/security_manager.h"
-# include "cgroup.h"
-# include "pci.h"
-# include "hostusb.h"
+# include "vircgroup.h"
+# include "virpci.h"
+# include "virusb.h"
 # include "cpu_conf.h"
 # include "driver.h"
-# include "bitmap.h"
-# include "command.h"
-# include "threadpool.h"
+# include "virportallocator.h"
+# include "vircommand.h"
+# include "virthreadpool.h"
 # include "locking/lock_manager.h"
 # include "qemu_capabilities.h"
 
@@ -50,13 +50,16 @@
 typedef struct _qemuDriverCloseDef qemuDriverCloseDef;
 typedef qemuDriverCloseDef *qemuDriverCloseDefPtr;
 
+typedef struct _virQEMUDriver virQEMUDriver;
+typedef virQEMUDriver *virQEMUDriverPtr;
+
 /* Main driver state */
-struct qemud_driver {
+struct _virQEMUDriver {
     virMutex lock;
 
     virThreadPoolPtr workerPool;
 
-    int privileged;
+    bool privileged;
     const char *uri;
 
     uid_t user;
@@ -70,10 +73,15 @@ struct qemud_driver {
     int cgroupControllers;
     char **cgroupDeviceACL;
 
+    size_t nactive;
+    virStateInhibitCallback inhibitCallback;
+    void *inhibitOpaque;
+
     virDomainObjList domains;
 
-    /* These four directories are ones libvirtd uses (so must be root:root
+    /* These five directories are ones libvirtd uses (so must be root:root
      * to avoid security risk from QEMU processes */
+    char *configBaseDir;
     char *configDir;
     char *autostartDir;
     char *logDir;
@@ -140,7 +148,9 @@ struct qemud_driver {
     /* The devices which is are not in use by the host or any guest. */
     pciDeviceList *inactivePciHostdevs;
 
-    virBitmapPtr reservedRemotePorts;
+    virHashTablePtr sharedDisks;
+
+    virPortAllocatorPtr remotePorts;
 
     virSysinfoDefPtr hostsysinfo;
 
@@ -174,10 +184,10 @@ struct _qemuDomainCmdlineDef {
 # define QEMUD_MIGRATION_NUM_PORTS 64
 
 
-void qemuDriverLock(struct qemud_driver *driver);
-void qemuDriverUnlock(struct qemud_driver *driver);
-int qemudLoadDriverConfig(struct qemud_driver *driver,
-                          const char *filename);
+void qemuDriverLock(virQEMUDriverPtr driver);
+void qemuDriverUnlock(virQEMUDriverPtr driver);
+int qemuLoadDriverConfig(virQEMUDriverPtr driver,
+                         const char *filename);
 
 struct qemuDomainDiskInfo {
     bool removable;
@@ -186,22 +196,32 @@ struct qemuDomainDiskInfo {
     int io_status;
 };
 
-typedef virDomainObjPtr (*qemuDriverCloseCallback)(struct qemud_driver *driver,
+typedef virDomainObjPtr (*qemuDriverCloseCallback)(virQEMUDriverPtr driver,
                                                    virDomainObjPtr vm,
                                                    virConnectPtr conn);
-int qemuDriverCloseCallbackInit(struct qemud_driver *driver);
-void qemuDriverCloseCallbackShutdown(struct qemud_driver *driver);
-int qemuDriverCloseCallbackSet(struct qemud_driver *driver,
+int qemuDriverCloseCallbackInit(virQEMUDriverPtr driver);
+void qemuDriverCloseCallbackShutdown(virQEMUDriverPtr driver);
+int qemuDriverCloseCallbackSet(virQEMUDriverPtr driver,
                                virDomainObjPtr vm,
                                virConnectPtr conn,
                                qemuDriverCloseCallback cb);
-int qemuDriverCloseCallbackUnset(struct qemud_driver *driver,
+int qemuDriverCloseCallbackUnset(virQEMUDriverPtr driver,
                                  virDomainObjPtr vm,
                                  qemuDriverCloseCallback cb);
-qemuDriverCloseCallback qemuDriverCloseCallbackGet(struct qemud_driver *driver,
+qemuDriverCloseCallback qemuDriverCloseCallbackGet(virQEMUDriverPtr driver,
                                                    virDomainObjPtr vm,
                                                    virConnectPtr conn);
-void qemuDriverCloseCallbackRunAll(struct qemud_driver *driver,
+void qemuDriverCloseCallbackRunAll(virQEMUDriverPtr driver,
                                    virConnectPtr conn);
+
+int qemuAddSharedDisk(virHashTablePtr sharedDisks,
+                      const char *disk_path)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
+
+int qemuRemoveSharedDisk(virHashTablePtr sharedDisks,
+                         const char *disk_path)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
+char * qemuGetSharedDiskKey(const char *disk_path)
+    ATTRIBUTE_NONNULL(1);
 
 #endif /* __QEMUD_CONF_H */

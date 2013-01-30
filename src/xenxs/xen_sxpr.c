@@ -27,16 +27,16 @@
 #include <config.h>
 
 #include "internal.h"
-#include "virterror_internal.h"
-#include "conf.h"
-#include "memory.h"
+#include "virerror.h"
+#include "virconf.h"
+#include "viralloc.h"
 #include "verify.h"
-#include "uuid.h"
-#include "logging.h"
+#include "viruuid.h"
+#include "virlog.h"
 #include "count-one-bits.h"
 #include "xenxs_private.h"
 #include "xen_sxpr.h"
-#include "storage_file.h"
+#include "virstoragefile.h"
 
 /* Get a domain id from a S-expression string */
 int xenGetDomIdFromSxprString(const char *sexpr, int xendConfigVersion)
@@ -426,8 +426,8 @@ xenParseSxprDisks(virDomainDefPtr def,
 
                 src = offset + 1;
 
-                if (STREQ (disk->driverName, "tap") ||
-                    STREQ (disk->driverName, "tap2")) {
+                if (STREQ(disk->driverName, "tap") ||
+                    STREQ(disk->driverName, "tap2")) {
                     char *driverType = NULL;
 
                     offset = strchr(src, ':');
@@ -470,7 +470,7 @@ xenParseSxprDisks(virDomainDefPtr def,
                 disk->type = VIR_DOMAIN_DISK_TYPE_FILE;
             }
 
-            if (STREQLEN (dst, "ioemu:", 6))
+            if (STREQLEN(dst, "ioemu:", 6))
                 dst += 6;
 
             disk->device = VIR_DOMAIN_DISK_DEVICE_DISK;
@@ -478,9 +478,9 @@ xenParseSxprDisks(virDomainDefPtr def,
             if (xendConfigVersion >= XEND_CONFIG_VERSION_3_0_3) {
                 offset = strrchr(dst, ':');
                 if (offset) {
-                    if (STREQ (offset, ":cdrom")) {
+                    if (STREQ(offset, ":cdrom")) {
                         disk->device = VIR_DOMAIN_DISK_DEVICE_CDROM;
-                    } else if (STREQ (offset, ":disk")) {
+                    } else if (STREQ(offset, ":disk")) {
                         /* The default anyway */
                     } else {
                         /* Unknown, lets pretend its a disk too */

@@ -25,13 +25,15 @@
 # define __VIR_NET_SOCKET_H__
 
 # include "virsocketaddr.h"
-# include "command.h"
-# include "virnettlscontext.h"
+# include "vircommand.h"
+# ifdef WITH_GNUTLS
+#  include "virnettlscontext.h"
+# endif
 # include "virobject.h"
-# ifdef HAVE_SASL
+# ifdef WITH_SASL
 #  include "virnetsaslcontext.h"
 # endif
-# include "json.h"
+# include "virjson.h"
 
 typedef struct _virNetSocket virNetSocket;
 typedef virNetSocket *virNetSocketPtr;
@@ -122,10 +124,12 @@ ssize_t virNetSocketWrite(virNetSocketPtr sock, const char *buf, size_t len);
 int virNetSocketSendFD(virNetSocketPtr sock, int fd);
 int virNetSocketRecvFD(virNetSocketPtr sock, int *fd);
 
+# ifdef WITH_GNUTLS
 void virNetSocketSetTLSSession(virNetSocketPtr sock,
                                virNetTLSSessionPtr sess);
+# endif
 
-# ifdef HAVE_SASL
+# ifdef WITH_SASL
 void virNetSocketSetSASLSession(virNetSocketPtr sock,
                                 virNetSASLSessionPtr sess);
 # endif

@@ -29,8 +29,8 @@
 
 #include "virnetdevmacvlan.h"
 #include "virmacaddr.h"
-#include "util.h"
-#include "virterror_internal.h"
+#include "virutil.h"
+#include "virerror.h"
 
 #define VIR_FROM_THIS VIR_FROM_NET
 
@@ -56,9 +56,9 @@ VIR_ENUM_IMPL(virNetDevMacVLanMode, VIR_NETDEV_MACVLAN_MODE_LAST,
 #  define MACVLAN_MODE_PASSTHRU 8
 # endif
 
-# include "memory.h"
-# include "logging.h"
-# include "uuid.h"
+# include "viralloc.h"
+# include "virlog.h"
+# include "viruuid.h"
 # include "virfile.h"
 # include "virnetlink.h"
 # include "virnetdev.h"
@@ -176,8 +176,8 @@ virNetDevMacVLanCreate(const char *ifname,
 
         default:
             virReportSystemError(-err->error,
-                                 _("error creating %s type of interface"),
-                                 type);
+                                 _("error creating %s type of interface attach to %s"),
+                                 type, srcdev);
             goto cleanup;
         }
         break;
@@ -925,7 +925,7 @@ create_name:
         rc = 0;
     }
 
-    if (virNetDevBandwidthSet(cr_ifname, bandwidth) < 0) {
+    if (virNetDevBandwidthSet(cr_ifname, bandwidth, false) < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("cannot set bandwidth limits on %s"),
                        cr_ifname);
@@ -945,7 +945,7 @@ create_name:
         if (virNetDevMacVLanVPortProfileRegisterCallback(cr_ifname, macaddress,
                                                          linkdev, vmuuid,
                                                          virtPortProfile,
-                                                         vmOp) < 0 )
+                                                         vmOp) < 0)
         goto disassociate_exit;
     }
 

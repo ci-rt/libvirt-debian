@@ -1019,6 +1019,13 @@ struct remote_domain_send_key_args {
     unsigned int flags;
 };
 
+struct remote_domain_send_process_signal_args {
+    remote_nonnull_domain dom;
+    hyper pid_value;
+    unsigned int signum;
+    unsigned int flags;
+};
+
 struct remote_domain_set_vcpus_args {
     remote_nonnull_domain dom;
     unsigned int nvcpus;
@@ -2432,6 +2439,12 @@ struct remote_domain_open_console_args {
     unsigned int flags;
 };
 
+struct remote_domain_open_channel_args {
+    remote_nonnull_domain dom;
+    remote_string name;
+    unsigned int flags;
+};
+
 struct remote_storage_vol_upload_args {
     remote_nonnull_storage_vol vol;
     unsigned hyper offset;
@@ -2680,6 +2693,13 @@ struct remote_node_get_cpu_map_ret {
     opaque cpumap<REMOTE_CPUMAP_MAX>;
     unsigned int online;
     int ret;
+};
+
+struct remote_domain_fstrim_args {
+    remote_nonnull_domain dom;
+    remote_string mountPoint;
+    unsigned hyper minimum;
+    unsigned int flags;
 };
 
 /*----- Protocol. -----*/
@@ -3026,7 +3046,10 @@ enum remote_procedure {
 
     REMOTE_PROC_NETWORK_UPDATE = 291, /* autogen autogen priority:high */
     REMOTE_PROC_DOMAIN_EVENT_PMSUSPEND_DISK = 292, /* autogen autogen */
-    REMOTE_PROC_NODE_GET_CPU_MAP = 293 /* skipgen skipgen */
+    REMOTE_PROC_NODE_GET_CPU_MAP = 293, /* skipgen skipgen */
+    REMOTE_PROC_DOMAIN_FSTRIM = 294, /* autogen autogen */
+    REMOTE_PROC_DOMAIN_SEND_PROCESS_SIGNAL = 295, /* autogen autogen */
+    REMOTE_PROC_DOMAIN_OPEN_CHANNEL = 296 /* autogen autogen | readstream@2 */
 
     /*
      * Notice how the entries are grouped in sets of 10 ?

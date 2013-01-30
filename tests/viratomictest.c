@@ -26,7 +26,7 @@
 
 #include "viratomic.h"
 #include "virrandom.h"
-#include "threads.h"
+#include "virthread.h"
 
 static int
 testTypes(const void *data ATTRIBUTE_UNUSED)
@@ -36,7 +36,7 @@ testTypes(const void *data ATTRIBUTE_UNUSED)
     bool res;
 
 #define virAssertCmpInt(a, op, b) \
-    if (!((a) op (b))) \
+    if (!(a op b)) \
         return -1;
     virAtomicIntSet(&u, 5);
     u2 = virAtomicIntGet(&u);

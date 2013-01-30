@@ -31,12 +31,12 @@
 #include "testutils.h"
 #include "internal.h"
 #include "nodeinfo.h"
-#include "util.h"
-#include "memory.h"
-#include "command.h"
+#include "virutil.h"
+#include "viralloc.h"
+#include "vircommand.h"
 #include "virfile.h"
 #include "virpidfile.h"
-#include "virterror_internal.h"
+#include "virerror.h"
 
 #define VIR_FROM_THIS VIR_FROM_NONE
 
@@ -625,12 +625,12 @@ static int test16(const void *unused ATTRIBUTE_UNUSED)
     }
     if ((fd = open(abs_builddir "/commandhelper.log",
                    O_CREAT | O_TRUNC | O_WRONLY, 0600)) < 0) {
-        printf("Cannot open log file: %s\n", strerror (errno));
+        printf("Cannot open log file: %s\n", strerror(errno));
         goto cleanup;
     }
     virCommandWriteArgLog(cmd, fd);
     if (VIR_CLOSE(fd) < 0) {
-        printf("Cannot close log file: %s\n", strerror (errno));
+        printf("Cannot close log file: %s\n", strerror(errno));
         goto cleanup;
     }
 
@@ -656,7 +656,7 @@ static int test17(const void *unused ATTRIBUTE_UNUSED)
     virCommandPtr cmd = virCommandNew("true");
     int ret = -1;
     char *outbuf;
-    char *errbuf;
+    char *errbuf = NULL;
 
     virCommandSetOutputBuffer(cmd, &outbuf);
     if (outbuf != NULL) {

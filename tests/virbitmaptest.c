@@ -21,7 +21,7 @@
 
 #include "testutils.h"
 
-#include "bitmap.h"
+#include "virbitmap.h"
 
 static int test1(const void *data ATTRIBUTE_UNUSED)
 {
@@ -29,26 +29,33 @@ static int test1(const void *data ATTRIBUTE_UNUSED)
     int size;
     int bit;
     bool result;
+    int ret = -1;
 
     size = 1024;
     bit = 100;
-    bitmap = virBitmapNew(size);
+    if (!(bitmap = virBitmapNew(size)))
+        goto error;
+
     if (virBitmapSetBit(bitmap, bit) < 0)
-        return -1;
+        goto error;
 
     if (virBitmapGetBit(bitmap, bit, &result) < 0)
-        return -1;
+        goto error;
 
     if (!result)
-        return -1;
+        goto error;
 
     if (virBitmapGetBit(bitmap, bit + 1, &result) < 0)
-        return -1;
+        goto error;
 
     if (result)
-        return -1;
+        goto error;
 
-    return 0;
+    ret = 0;
+
+error:
+    virBitmapFree(bitmap);
+    return ret;
 }
 
 static int
@@ -102,7 +109,8 @@ static int test2(const void *data ATTRIBUTE_UNUSED)
     if (virBitmapCountBits(bitmap) != 48)
         goto error;
 
-    bitsString2 = virBitmapFormat(bitmap);
+    if (!(bitsString2 = virBitmapFormat(bitmap)))
+        goto error;
     if (strcmp(bitsString1, bitsString2))
         goto error;
 
@@ -347,6 +355,41 @@ error:
     return ret;
 }
 
+static int test7(const void *v ATTRIBUTE_UNUSED)
+{
+    virBitmapPtr bitmap;
+    size_t i;
+    size_t maxBit[] = {
+        1, 8, 31, 32, 63, 64, 95, 96, 127, 128, 159, 160
+    };
+    size_t nmaxBit = 12;
+
+    for (i = 0; i < nmaxBit; i++) {
+        bitmap = virBitmapNew(maxBit[i]);
+        if (!bitmap)
+            goto error;
+
+        if (virBitmapIsAllSet(bitmap))
+            goto error;
+
+        ignore_value(virBitmapSetBit(bitmap, 1));
+        if (virBitmapIsAllSet(bitmap))
+            goto error;
+
+        virBitmapSetAll(bitmap);
+        if (!virBitmapIsAllSet(bitmap))
+            goto error;
+
+        virBitmapFree(bitmap);
+    }
+
+    return 0;
+
+error:
+    virBitmapFree(bitmap);
+    return -1;
+}
+
 static int
 mymain(void)
 {
@@ -363,6 +406,8 @@ mymain(void)
     if (virtTestRun("test5", 1, test5, NULL) < 0)
         ret = -1;
     if (virtTestRun("test6", 1, test6, NULL) < 0)
+        ret = -1;
+    if (virtTestRun("test7", 1, test7, NULL) < 0)
         ret = -1;
 
 

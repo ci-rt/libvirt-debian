@@ -21,6 +21,10 @@
 
 #include "security_nop.h"
 
+#include "virerror.h"
+
+#define VIR_FROM_THIS VIR_FROM_SECURITY
+
 static virSecurityDriverStatus virSecurityDriverProbeNop(const char *virtDriver ATTRIBUTE_UNUSED)
 {
     return SECURITY_DRIVER_ENABLE;
@@ -80,14 +84,16 @@ static int virSecurityDomainSetImageLabelNop(virSecurityManagerPtr mgr ATTRIBUTE
 
 static int virSecurityDomainRestoreHostdevLabelNop(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
                                                    virDomainDefPtr vm ATTRIBUTE_UNUSED,
-                                                   virDomainHostdevDefPtr dev ATTRIBUTE_UNUSED)
+                                                   virDomainHostdevDefPtr dev ATTRIBUTE_UNUSED,
+                                                   const char *vroot ATTRIBUTE_UNUSED)
 {
     return 0;
 }
 
 static int virSecurityDomainSetHostdevLabelNop(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
                                                virDomainDefPtr vm ATTRIBUTE_UNUSED,
-                                               virDomainHostdevDefPtr dev ATTRIBUTE_UNUSED)
+                                               virDomainHostdevDefPtr dev ATTRIBUTE_UNUSED,
+                                               const char *vroot ATTRIBUTE_UNUSED)
 {
     return 0;
 }
@@ -165,8 +171,15 @@ static int virSecurityDomainSetFDLabelNop(virSecurityManagerPtr mgr ATTRIBUTE_UN
 }
 
 static char *virSecurityDomainGetMountOptionsNop(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
-                                                 virDomainDefPtr vm ATTRIBUTE_UNUSED) {
-    return NULL;
+                                                 virDomainDefPtr vm ATTRIBUTE_UNUSED)
+{
+    char *opts;
+
+    if (!(opts = strdup(""))) {
+        virReportOOMError();
+        return NULL;
+    }
+    return opts;
 }
 
 virSecurityDriver virSecurityDriverNop = {

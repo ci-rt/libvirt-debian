@@ -1,6 +1,7 @@
 /*
  * storage_backend_rbd.c: storage backend for RBD (RADOS Block Device) handling
  *
+ * Copyright (C) 2013 Red Hat, Inc.
  * Copyright (C) 2012 Wido den Hollander
  *
  * This library is free software; you can redistribute it and/or
@@ -22,14 +23,14 @@
 
 #include <config.h>
 
-#include "virterror_internal.h"
+#include "virerror.h"
 #include "storage_backend_rbd.h"
 #include "storage_conf.h"
-#include "util.h"
-#include "memory.h"
-#include "logging.h"
+#include "virutil.h"
+#include "viralloc.h"
+#include "virlog.h"
 #include "base64.h"
-#include "uuid.h"
+#include "viruuid.h"
 #include "rados/librados.h"
 #include "rbd/librbd.h"
 
@@ -70,13 +71,11 @@ static int virStorageBackendRBDOpenRADOSConn(virStorageBackendRBDStatePtr *ptr,
             goto cleanup;
         }
 
-        if (pool->def->source.auth.cephx.secret.uuid != NULL) {
+        if (pool->def->source.auth.cephx.secret.uuidUsable) {
             virUUIDFormat(pool->def->source.auth.cephx.secret.uuid, secretUuid);
             VIR_DEBUG("Looking up secret by UUID: %s", secretUuid);
             secret = virSecretLookupByUUIDString(conn, secretUuid);
-        }
-
-        if (pool->def->source.auth.cephx.secret.usage != NULL) {
+        } else if (pool->def->source.auth.cephx.secret.usage != NULL) {
             VIR_DEBUG("Looking up secret by usage: %s",
                       pool->def->source.auth.cephx.secret.usage);
             secret = virSecretLookupByUsage(conn, VIR_SECRET_USAGE_TYPE_CEPH,
@@ -321,26 +320,31 @@ static int virStorageBackendRBDRefreshPool(virConnectPtr conn ATTRIBUTE_UNUSED,
     }
 
     for (i = 0, name = names; name < names + max_size; i++) {
+        virStorageVolDefPtr vol;
+
         if (VIR_REALLOC_N(pool->volumes.objs, pool->volumes.count + 1) < 0) {
             virStoragePoolObjClearVols(pool);
             goto out_of_memory;
         }
 
-        virStorageVolDefPtr vol;
+        if (STREQ(name, ""))
+            break;
+
         if (VIR_ALLOC(vol) < 0)
             goto out_of_memory;
 
         vol->name = strdup(name);
-        if (vol->name == NULL)
+        if (vol->name == NULL) {
+            VIR_FREE(vol);
             goto out_of_memory;
-
-        if (STREQ(vol->name, ""))
-            break;
+        }
 
         name += strlen(name) + 1;
 
-        if (volStorageBackendRBDRefreshVolInfo(vol, pool, ptr) < 0)
+        if (volStorageBackendRBDRefreshVolInfo(vol, pool, ptr) < 0) {
+            virStorageVolDefFree(vol);
             goto cleanup;
+        }
 
         pool->volumes.objs[pool->volumes.count++] = vol;
     }

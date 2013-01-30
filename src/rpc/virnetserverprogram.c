@@ -26,11 +26,11 @@
 #include "virnetserverprogram.h"
 #include "virnetserverclient.h"
 
-#include "memory.h"
-#include "virterror_internal.h"
-#include "logging.h"
+#include "viralloc.h"
+#include "virerror.h"
+#include "virlog.h"
 #include "virfile.h"
-#include "threads.h"
+#include "virthread.h"
 
 #define VIR_FROM_THIS VIR_FROM_RPC
 
@@ -49,7 +49,8 @@ static void virNetServerProgramDispose(void *obj);
 
 static int virNetServerProgramOnceInit(void)
 {
-    if (!(virNetServerProgramClass = virClassNew("virNetServerProgram",
+    if (!(virNetServerProgramClass = virClassNew(virClassForObject(),
+                                                 "virNetServerProgram",
                                                  sizeof(virNetServerProgram),
                                                  virNetServerProgramDispose)))
         return -1;
@@ -431,17 +432,20 @@ virNetServerProgramDispatchCall(virNetServerProgramPtr prog,
     rv = (dispatcher->func)(server, client, msg, &rerr, arg, ret);
 
     /*
-     * Clear out the FDs we got from the client, we don't
-     * want to send them back !
+     * If rv == 1, this indicates the dispatch func has
+     * populated 'msg' with a list of FDs to return to
+     * the caller.
      *
-     * XXX we don't have a way to let dispatcher->func
-     * return any FDs. Fortunately we don't need this
-     * capability just yet
+     * Otherwise we must clear out the FDs we got from
+     * the client originally.
+     *
      */
-    for (i = 0 ; i < msg->nfds ; i++)
-        VIR_FORCE_CLOSE(msg->fds[i]);
-    VIR_FREE(msg->fds);
-    msg->nfds = 0;
+    if (rv != 1) {
+        for (i = 0 ; i < msg->nfds ; i++)
+            VIR_FORCE_CLOSE(msg->fds[i]);
+        VIR_FREE(msg->fds);
+        msg->nfds = 0;
+    }
 
     xdr_free(dispatcher->arg_filter, arg);
 

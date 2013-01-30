@@ -29,20 +29,20 @@
 #include <netdb.h>
 #include <errno.h>
 
-#include "virterror_internal.h"
-#include "logging.h"
+#include "virerror.h"
+#include "virlog.h"
 #include "datatypes.h"
 #include "xend_internal.h"
 #include "driver.h"
-#include "util.h"
-#include "sexpr.h"
+#include "virutil.h"
+#include "virsexpr.h"
 #include "xen_sxpr.h"
-#include "buf.h"
-#include "uuid.h"
+#include "virbuffer.h"
+#include "viruuid.h"
 #include "xen_driver.h"
 #include "xen_hypervisor.h"
 #include "xs_internal.h" /* To extract VNC port & Serial console TTY */
-#include "memory.h"
+#include "viralloc.h"
 #include "count-one-bits.h"
 #include "virfile.h"
 #include "viruri.h"
@@ -89,11 +89,10 @@ do_connect(virConnectPtr xend)
     }
 
     /*
-     * try to desactivate slow-start
+     * try to deactivate slow-start
      */
-    setsockopt(s, IPPROTO_TCP, TCP_NODELAY, (void *)&no_slow_start,
-               sizeof(no_slow_start));
-
+    ignore_value(setsockopt(s, IPPROTO_TCP, TCP_NODELAY, (void *)&no_slow_start,
+                            sizeof(no_slow_start)));
 
     if (connect(s, (struct sockaddr *)&priv->addr, priv->addrlen) == -1) {
         VIR_FORCE_CLOSE(s); /* preserves errno */
@@ -268,7 +267,7 @@ istartswith(const char *haystack, const char *needle)
  * Returns the HTTP return code and @content is set to the
  * allocated memory containing HTTP content.
  */
-static int ATTRIBUTE_NONNULL (2)
+static int ATTRIBUTE_NONNULL(2)
 xend_req(int fd, char **content)
 {
     char *buffer;
@@ -308,7 +307,7 @@ xend_req(int fd, char **content)
         /* Allocate one byte beyond the end of the largest buffer we will read.
            Combined with the fact that VIR_ALLOC_N zeros the returned buffer,
            this guarantees that "content" will always be NUL-terminated. */
-        if (VIR_ALLOC_N(*content, content_length + 1) < 0 ) {
+        if (VIR_ALLOC_N(*content, content_length + 1) < 0) {
             virReportOOMError();
             return -1;
         }
@@ -682,13 +681,13 @@ xenDaemonOpen_tcp(virConnectPtr conn, const char *host, const char *port)
     for (r = res; r; r = r->ai_next) {
         int sock;
 
-        sock = socket (r->ai_family, SOCK_STREAM, r->ai_protocol);
+        sock = socket(r->ai_family, SOCK_STREAM, r->ai_protocol);
         if (sock == -1) {
             saved_errno = errno;
             continue;
         }
 
-        if (connect (sock, r->ai_addr, r->ai_addrlen) == -1) {
+        if (connect(sock, r->ai_addr, r->ai_addrlen) == -1) {
             saved_errno = errno;
             VIR_FORCE_CLOSE(sock);
             continue;
@@ -704,7 +703,7 @@ xenDaemonOpen_tcp(virConnectPtr conn, const char *host, const char *port)
         break;
     }
 
-    freeaddrinfo (res);
+    freeaddrinfo(res);
 
     if (!priv->addrlen) {
         /* Don't raise error when unprivileged, since proxy takes over */
@@ -1113,9 +1112,8 @@ sexpr_to_xend_topology(const struct sexpr *root,
 {
     const char *nodeToCpu;
     const char *cur;
-    virBitmapPtr cpuset = NULL;
-    int *cpuNums = NULL;
-    int cell, cpu, nb_cpus;
+    virCapsHostNUMACellCPUPtr cpuInfo = NULL;
+    int cell, cpu, nb_cpus = 0;
     int n = 0;
     int numCpus;
 
@@ -1126,11 +1124,9 @@ sexpr_to_xend_topology(const struct sexpr *root,
     numCpus = sexpr_int(root, "node/nr_cpus");
 
 
-    if (VIR_ALLOC_N(cpuNums, numCpus) < 0)
-        goto memory_error;
-
     cur = nodeToCpu;
     while (*cur != 0) {
+        virBitmapPtr cpuset = NULL;
         /*
          * Find the next NUMA cell described in the xend output
          */
@@ -1156,37 +1152,35 @@ sexpr_to_xend_topology(const struct sexpr *root,
                 goto error;
         }
 
+        if (VIR_ALLOC_N(cpuInfo, numCpus) < 0)
+            goto memory_error;
+
         for (n = 0, cpu = 0; cpu < numCpus; cpu++) {
             bool used;
 
             ignore_value(virBitmapGetBit(cpuset, cpu, &used));
             if (used)
-                cpuNums[n++] = cpu;
+                cpuInfo[n++].id = cpu;
         }
+        virBitmapFree(cpuset);
 
-        if (virCapabilitiesAddHostNUMACell(caps,
-                                           cell,
-                                           nb_cpus,
-                                           cpuNums) < 0)
+        if (virCapabilitiesAddHostNUMACell(caps, cell, nb_cpus, cpuInfo) < 0)
             goto memory_error;
+        cpuInfo = NULL;
     }
-    VIR_FREE(cpuNums);
-    virBitmapFree(cpuset);
+
     return 0;
 
   parse_error:
     virReportError(VIR_ERR_XEN_CALL, "%s", _("topology syntax error"));
   error:
-    VIR_FREE(cpuNums);
-    virBitmapFree(cpuset);
-
+    virCapabilitiesClearHostNUMACellCPUTopology(cpuInfo, nb_cpus);
+    VIR_FREE(cpuInfo);
     return -1;
 
   memory_error:
-    VIR_FREE(cpuNums);
-    virBitmapFree(cpuset);
     virReportOOMError();
-    return -1;
+    goto error;
 }
 
 
@@ -1288,7 +1282,7 @@ xenDaemonOpen(virConnectPtr conn,
             xend_detect_config_version(conn) == -1)
             goto failed;
     }
-    else if (STRCASEEQ (conn->uri->scheme, "xen")) {
+    else if (STRCASEEQ(conn->uri->scheme, "xen")) {
         /*
          * try first to open the unix socket
          */
@@ -1302,7 +1296,7 @@ xenDaemonOpen(virConnectPtr conn,
         if (xenDaemonOpen_tcp(conn, "localhost", "8000") < 0 ||
             xend_detect_config_version(conn) == -1)
             goto failed;
-    } else if (STRCASEEQ (conn->uri->scheme, "http")) {
+    } else if (STRCASEEQ(conn->uri->scheme, "http")) {
         if (conn->uri->port &&
             virAsprintf(&port, "%d", conn->uri->port) == -1) {
             virReportOOMError();
@@ -2075,6 +2069,7 @@ xenDaemonListDomains(virConnectPtr conn, int *ids, int maxids)
 
     ret = 0;
 
+    /* coverity[copy_paste_error] */
     for (_for_i = root, node = root->u.s.car; _for_i->kind == SEXPR_CONS;
          _for_i = _for_i->u.s.cdr, node = _for_i->u.s.car) {
         if (node->kind != SEXPR_VALUE)
@@ -2112,6 +2107,7 @@ xenDaemonNumOfDomains(virConnectPtr conn)
 
     ret = 0;
 
+    /* coverity[copy_paste_error] */
     for (_for_i = root, node = root->u.s.car; _for_i->kind == SEXPR_CONS;
          _for_i = _for_i->u.s.cdr, node = _for_i->u.s.car) {
         if (node->kind != SEXPR_VALUE)
@@ -3130,14 +3126,14 @@ xenDaemonDomainSetAutostart(virDomainPtr domain,
 }
 
 int
-xenDaemonDomainMigratePrepare (virConnectPtr dconn,
-                               char **cookie ATTRIBUTE_UNUSED,
-                               int *cookielen ATTRIBUTE_UNUSED,
-                               const char *uri_in,
-                               char **uri_out,
-                               unsigned long flags,
-                               const char *dname ATTRIBUTE_UNUSED,
-                               unsigned long resource ATTRIBUTE_UNUSED)
+xenDaemonDomainMigratePrepare(virConnectPtr dconn,
+                              char **cookie ATTRIBUTE_UNUSED,
+                              int *cookielen ATTRIBUTE_UNUSED,
+                              const char *uri_in,
+                              char **uri_out,
+                              unsigned long flags,
+                              const char *dname ATTRIBUTE_UNUSED,
+                              unsigned long resource ATTRIBUTE_UNUSED)
 {
     virCheckFlags(XEN_MIGRATION_FLAGS, -1);
 
@@ -3155,13 +3151,13 @@ xenDaemonDomainMigratePrepare (virConnectPtr dconn,
 }
 
 int
-xenDaemonDomainMigratePerform (virDomainPtr domain,
-                               const char *cookie ATTRIBUTE_UNUSED,
-                               int cookielen ATTRIBUTE_UNUSED,
-                               const char *uri,
-                               unsigned long flags,
-                               const char *dname,
-                               unsigned long bandwidth)
+xenDaemonDomainMigratePerform(virDomainPtr domain,
+                              const char *cookie ATTRIBUTE_UNUSED,
+                              int cookielen ATTRIBUTE_UNUSED,
+                              const char *uri,
+                              unsigned long flags,
+                              const char *dname,
+                              unsigned long bandwidth)
 {
     /* Upper layers have already checked domain. */
     /* NB: Passing port=0 to xend means it ignores
@@ -3199,7 +3195,7 @@ xenDaemonDomainMigratePerform (virDomainPtr domain,
      * Check the flags.
      */
     if ((flags & VIR_MIGRATE_LIVE)) {
-        strcpy (live, "1");
+        strcpy(live, "1");
         flags &= ~VIR_MIGRATE_LIVE;
     }
 
@@ -3235,36 +3231,36 @@ xenDaemonDomainMigratePerform (virDomainPtr domain,
      * URI is non-NULL (guaranteed by caller).  We expect either
      * "hostname", "hostname:port" or "xenmigr://hostname[:port]/".
      */
-    if (strstr (uri, "//")) {   /* Full URI. */
+    if (strstr(uri, "//")) {   /* Full URI. */
         virURIPtr uriptr;
-        if (!(uriptr = virURIParse (uri)))
+        if (!(uriptr = virURIParse(uri)))
             return -1;
 
-        if (uriptr->scheme && STRCASENEQ (uriptr->scheme, "xenmigr")) {
+        if (uriptr->scheme && STRCASENEQ(uriptr->scheme, "xenmigr")) {
             virReportError(VIR_ERR_INVALID_ARG,
                            "%s", _("xenDaemonDomainMigrate: only xenmigr://"
                                    " migrations are supported by Xen"));
-            virURIFree (uriptr);
+            virURIFree(uriptr);
             return -1;
         }
         if (!uriptr->server) {
             virReportError(VIR_ERR_INVALID_ARG,
                            "%s", _("xenDaemonDomainMigrate: a hostname must be"
                                    " specified in the URI"));
-            virURIFree (uriptr);
+            virURIFree(uriptr);
             return -1;
         }
-        hostname = strdup (uriptr->server);
+        hostname = strdup(uriptr->server);
         if (!hostname) {
             virReportOOMError();
-            virURIFree (uriptr);
+            virURIFree(uriptr);
             return -1;
         }
         if (uriptr->port)
-            snprintf (port, sizeof(port), "%d", uriptr->port);
-        virURIFree (uriptr);
+            snprintf(port, sizeof(port), "%d", uriptr->port);
+        virURIFree(uriptr);
     }
-    else if ((p = strrchr (uri, ':')) != NULL) { /* "hostname:port" */
+    else if ((p = strrchr(uri, ':')) != NULL) { /* "hostname:port" */
         int port_nr, n;
 
         if (virStrToLong_i(p+1, NULL, 10, &port_nr) < 0) {
@@ -3272,11 +3268,11 @@ xenDaemonDomainMigratePerform (virDomainPtr domain,
                            "%s", _("xenDaemonDomainMigrate: invalid port number"));
             return -1;
         }
-        snprintf (port, sizeof(port), "%d", port_nr);
+        snprintf(port, sizeof(port), "%d", port_nr);
 
         /* Get the hostname. */
         n = p - uri; /* n = Length of hostname in bytes. */
-        hostname = strdup (uri);
+        hostname = strdup(uri);
         if (!hostname) {
             virReportOOMError();
             return -1;
@@ -3284,7 +3280,7 @@ xenDaemonDomainMigratePerform (virDomainPtr domain,
         hostname[n] = '\0';
     }
     else {                      /* "hostname" (or IP address) */
-        hostname = strdup (uri);
+        hostname = strdup(uri);
         if (!hostname) {
             virReportOOMError();
             return -1;
@@ -3299,20 +3295,20 @@ xenDaemonDomainMigratePerform (virDomainPtr domain,
      * to our advantage since all parameters supported and required
      * by current xend can be included without breaking older xend.
      */
-    ret = xend_op (domain->conn, domain->name,
-                   "op", "migrate",
-                   "destination", hostname,
-                   "live", live,
-                   "port", port,
-                   "node", "-1", /* xen-unstable c/s 17753 */
-                   "ssl", "0", /* xen-unstable c/s 17709 */
-                   "change_home_server", "0", /* xen-unstable c/s 20326 */
-                   "resource", "0", /* removed by xen-unstable c/s 17553 */
-                   NULL);
-    VIR_FREE (hostname);
+    ret = xend_op(domain->conn, domain->name,
+                  "op", "migrate",
+                  "destination", hostname,
+                  "live", live,
+                  "port", port,
+                  "node", "-1", /* xen-unstable c/s 17753 */
+                  "ssl", "0", /* xen-unstable c/s 17709 */
+                  "change_home_server", "0", /* xen-unstable c/s 20326 */
+                  "resource", "0", /* removed by xen-unstable c/s 17553 */
+                  NULL);
+    VIR_FREE(hostname);
 
     if (ret == 0 && undefined_source)
-        xenDaemonDomainUndefine (domain);
+        xenDaemonDomainUndefine(domain);
 
     VIR_DEBUG("migration done");
 
@@ -3438,6 +3434,7 @@ xenDaemonNumOfDefinedDomains(virConnectPtr conn)
 
     ret = 0;
 
+    /* coverity[copy_paste_error] */
     for (_for_i = root, node = root->u.s.car; _for_i->kind == SEXPR_CONS;
          _for_i = _for_i->u.s.cdr, node = _for_i->u.s.car) {
         if (node->kind != SEXPR_VALUE)
@@ -3471,6 +3468,7 @@ xenDaemonListDefinedDomains(virConnectPtr conn, char **const names, int maxnames
 
     ret = 0;
 
+    /* coverity[copy_paste_error] */
     for (_for_i = root, node = root->u.s.car; _for_i->kind == SEXPR_CONS;
          _for_i = _for_i->u.s.cdr, node = _for_i->u.s.car) {
         if (node->kind != SEXPR_VALUE)
@@ -3540,7 +3538,7 @@ xenDaemonGetSchedulerType(virDomainPtr domain, int *nparams)
                        "%s", _("node information incomplete, missing scheduler name"));
         goto error;
     }
-    if (STREQ (ret, "credit")) {
+    if (STREQ(ret, "credit")) {
         schedulertype = strdup("credit");
         if (schedulertype == NULL){
             virReportOOMError();
@@ -3548,7 +3546,7 @@ xenDaemonGetSchedulerType(virDomainPtr domain, int *nparams)
         }
         if (nparams)
             *nparams = XEN_SCHED_CRED_NPARAM;
-    } else if (STREQ (ret, "sedf")) {
+    } else if (STREQ(ret, "sedf")) {
         schedulertype = strdup("sedf");
         if (schedulertype == NULL){
             virReportOOMError();
@@ -3738,10 +3736,10 @@ xenDaemonSetSchedulerParameters(virDomainPtr domain,
             memset(&buf_weight, 0, VIR_UUID_BUFLEN);
             memset(&buf_cap, 0, VIR_UUID_BUFLEN);
             for (i = 0; i < nparams; i++) {
-                if (STREQ (params[i].field, VIR_DOMAIN_SCHEDULER_WEIGHT) &&
+                if (STREQ(params[i].field, VIR_DOMAIN_SCHEDULER_WEIGHT) &&
                     params[i].type == VIR_TYPED_PARAM_UINT) {
                     snprintf(buf_weight, sizeof(buf_weight), "%u", params[i].value.ui);
-                } else if (STREQ (params[i].field, VIR_DOMAIN_SCHEDULER_CAP) &&
+                } else if (STREQ(params[i].field, VIR_DOMAIN_SCHEDULER_CAP) &&
                     params[i].type == VIR_TYPED_PARAM_UINT) {
                     snprintf(buf_cap, sizeof(buf_cap), "%u", params[i].value.ui);
                 } else {
@@ -3797,9 +3795,9 @@ error:
  * Returns 0 if successful, -1 if error, -2 if declined.
  */
 int
-xenDaemonDomainBlockPeek (virDomainPtr domain, const char *path,
-                          unsigned long long offset, size_t size,
-                          void *buffer)
+xenDaemonDomainBlockPeek(virDomainPtr domain, const char *path,
+                         unsigned long long offset, size_t size,
+                         void *buffer)
 {
     xenUnifiedPrivatePtr priv;
     struct sexpr *root = NULL;
@@ -3817,11 +3815,11 @@ xenDaemonDomainBlockPeek (virDomainPtr domain, const char *path,
 
     /* Security check: The path must correspond to a block device. */
     if (domain->id > 0)
-        root = sexpr_get (domain->conn, "/xend/domain/%d?detail=1",
-                          domain->id);
+        root = sexpr_get(domain->conn, "/xend/domain/%d?detail=1",
+                         domain->id);
     else if (domain->id < 0)
-        root = sexpr_get (domain->conn, "/xend/domain/%s?detail=1",
-                          domain->name);
+        root = sexpr_get(domain->conn, "/xend/domain/%s?detail=1",
+                         domain->name);
     else {
         /* This call always fails for dom0. */
         virReportError(VIR_ERR_OPERATION_INVALID,
@@ -3852,7 +3850,7 @@ xenDaemonDomainBlockPeek (virDomainPtr domain, const char *path,
     path = actual;
 
     /* The path is correct, now try to open it and get its size. */
-    fd = open (path, O_RDONLY);
+    fd = open(path, O_RDONLY);
     if (fd == -1) {
         virReportSystemError(errno,
                              _("failed to open for reading: %s"),
@@ -3864,8 +3862,8 @@ xenDaemonDomainBlockPeek (virDomainPtr domain, const char *path,
     /* NB. Because we configure with AC_SYS_LARGEFILE, off_t should
      * be 64 bits on all platforms.
      */
-    if (lseek (fd, offset, SEEK_SET) == (off_t) -1 ||
-        saferead (fd, buffer, size) == (ssize_t) -1) {
+    if (lseek(fd, offset, SEEK_SET) == (off_t) -1 ||
+        saferead(fd, buffer, size) == (ssize_t) -1) {
         virReportSystemError(errno,
                              _("failed to lseek or read from file: %s"),
                              path);

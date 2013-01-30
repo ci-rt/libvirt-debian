@@ -24,9 +24,9 @@
 #include <config.h>
 
 #include "virnetdevopenvswitch.h"
-#include "command.h"
-#include "memory.h"
-#include "virterror_internal.h"
+#include "vircommand.h"
+#include "viralloc.h"
+#include "virerror.h"
 #include "virmacaddr.h"
 
 #define VIR_FROM_THIS VIR_FROM_NONE
@@ -211,6 +211,7 @@ int virNetDevOpenvswitchGetMigrateData(char **migrate, const char *ifname)
     (*migrate)[strlen(*migrate) - 1] = '\0';
     ret = 0;
 cleanup:
+    virCommandFree(cmd);
     return ret;
 }
 
@@ -242,5 +243,6 @@ int virNetDevOpenvswitchSetMigrateData(char *migrate, const char *ifname)
 
     ret = 0;
 cleanup:
+    virCommandFree(cmd);
     return ret;
 }

@@ -26,10 +26,10 @@
 
 #include "internal.h"
 
-#include "memory.h"
-#include "logging.h"
+#include "viralloc.h"
+#include "virlog.h"
 #include "domain_conf.h"
-#include "virterror_internal.h"
+#include "virerror.h"
 #include "nwfilter_gentech_driver.h"
 #include "nwfilter_ebiptables_driver.h"
 #include "nwfilter_dhcpsnoop.h"
@@ -231,7 +231,7 @@ printString(void *payload ATTRIBUTE_UNUSED, const void *name, void *data)
 {
     struct printString *ps = data;
 
-    if ((STREQ((char *)name, NWFILTER_STD_VAR_IP ) && !ps->reportIP ) ||
+    if ((STREQ((char *)name, NWFILTER_STD_VAR_IP) && !ps->reportIP) ||
         (STREQ((char *)name, NWFILTER_STD_VAR_MAC) && !ps->reportMAC))
         return;
 
@@ -1161,7 +1161,7 @@ virNWFilterDomainFWUpdateCB(void *payload,
     int i, err;
     bool skipIface;
 
-    virDomainObjLock(obj);
+    virObjectLock(obj);
 
     if (virDomainObjIsActive(obj)) {
         for (i = 0; i < vm->nnets; i++) {
@@ -1182,13 +1182,13 @@ virNWFilterDomainFWUpdateCB(void *payload,
                     break;
 
                 case STEP_TEAR_NEW:
-                    if ( !virHashLookup(cb->skipInterfaces, net->ifname)) {
+                    if (!virHashLookup(cb->skipInterfaces, net->ifname)) {
                         cb->err = virNWFilterRollbackUpdateFilter(net);
                     }
                     break;
 
                 case STEP_TEAR_OLD:
-                    if ( !virHashLookup(cb->skipInterfaces, net->ifname)) {
+                    if (!virHashLookup(cb->skipInterfaces, net->ifname)) {
                         cb->err = virNWFilterTearOldFilter(net);
                     }
                     break;
@@ -1209,5 +1209,5 @@ virNWFilterDomainFWUpdateCB(void *payload,
         }
     }
 
-    virDomainObjUnlock(obj);
+    virObjectUnlock(obj);
 }

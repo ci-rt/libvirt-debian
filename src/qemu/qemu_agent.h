@@ -47,9 +47,6 @@ qemuAgentPtr qemuAgentOpen(virDomainObjPtr vm,
                            virDomainChrSourceDefPtr config,
                            qemuAgentCallbacksPtr cb);
 
-void qemuAgentLock(qemuAgentPtr mon);
-void qemuAgentUnlock(qemuAgentPtr mon);
-
 void qemuAgentClose(qemuAgentPtr mon);
 
 typedef enum {
@@ -83,4 +80,6 @@ int qemuAgentArbitraryCommand(qemuAgentPtr mon,
                               const char *cmd,
                               char **result,
                               int timeout);
+int qemuAgentFSTrim(qemuAgentPtr mon,
+                    unsigned long long minimum);
 #endif /* __QEMU_AGENT_H__ */

@@ -26,9 +26,9 @@
 #include "security_driver.h"
 #include "security_stack.h"
 #include "security_dac.h"
-#include "virterror_internal.h"
-#include "memory.h"
-#include "logging.h"
+#include "virerror.h"
+#include "viralloc.h"
+#include "virlog.h"
 
 #define VIR_FROM_THIS VIR_FROM_SECURITY
 
@@ -275,10 +275,11 @@ int virSecurityManagerSetImageLabel(virSecurityManagerPtr mgr,
 
 int virSecurityManagerRestoreHostdevLabel(virSecurityManagerPtr mgr,
                                           virDomainDefPtr vm,
-                                          virDomainHostdevDefPtr dev)
+                                          virDomainHostdevDefPtr dev,
+                                          const char *vroot)
 {
     if (mgr->drv->domainRestoreSecurityHostdevLabel)
-        return mgr->drv->domainRestoreSecurityHostdevLabel(mgr, vm, dev);
+        return mgr->drv->domainRestoreSecurityHostdevLabel(mgr, vm, dev, vroot);
 
     virReportError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
     return -1;
@@ -286,10 +287,11 @@ int virSecurityManagerRestoreHostdevLabel(virSecurityManagerPtr mgr,
 
 int virSecurityManagerSetHostdevLabel(virSecurityManagerPtr mgr,
                                       virDomainDefPtr vm,
-                                      virDomainHostdevDefPtr dev)
+                                      virDomainHostdevDefPtr dev,
+                                      const char *vroot)
 {
     if (mgr->drv->domainSetSecurityHostdevLabel)
-        return mgr->drv->domainSetSecurityHostdevLabel(mgr, vm, dev);
+        return mgr->drv->domainSetSecurityHostdevLabel(mgr, vm, dev, vroot);
 
     virReportError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
     return -1;
@@ -486,10 +488,7 @@ char *virSecurityManagerGetMountOptions(virSecurityManagerPtr mgr,
     if (mgr->drv->domainGetSecurityMountOptions)
         return mgr->drv->domainGetSecurityMountOptions(mgr, vm);
 
-    /*
-      I don't think this is an error, these should be optional
-      virReportError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
-    */
+    virReportError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
     return NULL;
 }
 
@@ -510,4 +509,14 @@ virSecurityManagerGetNested(virSecurityManagerPtr mgr)
     list[0] = mgr;
     list[1] = NULL;
     return list;
+}
+
+int virSecurityManagerSetHugepages(virSecurityManagerPtr mgr,
+                                    virDomainDefPtr vm,
+                                    const char *path)
+{
+    if (mgr->drv->domainSetSecurityHugepages)
+        return mgr->drv->domainSetSecurityHugepages(mgr, vm, path);
+
+    return 0;
 }

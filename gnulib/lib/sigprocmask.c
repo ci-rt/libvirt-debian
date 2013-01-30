@@ -1,5 +1,5 @@
 /* POSIX compatible signal blocking.
-   Copyright (C) 2006-2012 Free Software Foundation, Inc.
+   Copyright (C) 2006-2013 Free Software Foundation, Inc.
    Written by Bruno Haible <bruno@clisp.org>, 2006.
 
    This program is free software: you can redistribute it and/or modify
@@ -63,7 +63,7 @@
 typedef void (*handler_t) (int);
 
 #if HAVE_MSVC_INVALID_PARAMETER_HANDLER
-static inline handler_t
+static handler_t
 signal_nothrow (int sig, handler_t handler)
 {
   handler_t result;

@@ -33,32 +33,57 @@
 #include <sched.h>
 #include "conf/domain_conf.h"
 
-#if HAVE_NUMACTL
+#if WITH_NUMACTL
 # define NUMA_VERSION1_COMPATIBILITY 1
 # include <numa.h>
 #endif
 
+#ifdef __FreeBSD__
+# include <sys/types.h>
+# include <sys/sysctl.h>
+#endif
+
 #include "c-ctype.h"
-#include "memory.h"
+#include "viralloc.h"
 #include "nodeinfo.h"
 #include "physmem.h"
-#include "util.h"
-#include "logging.h"
-#include "virterror_internal.h"
+#include "virutil.h"
+#include "virlog.h"
+#include "virerror.h"
 #include "count-one-bits.h"
 #include "intprops.h"
+#include "virarch.h"
 #include "virfile.h"
 #include "virtypedparam.h"
 
 
 #define VIR_FROM_THIS VIR_FROM_NONE
 
+#ifdef __FreeBSD__
+static int
+freebsdNodeGetCPUCount(void)
+{
+    int ncpu_mib[2] = { CTL_HW, HW_NCPU };
+    unsigned long ncpu;
+    size_t ncpu_len = sizeof(ncpu);
+
+    if (sysctl(ncpu_mib, 2, &ncpu, &ncpu_len, NULL, 0) == -1) {
+        virReportSystemError(errno, "%s", _("Cannot obtain CPU count"));
+        return -1;
+    }
+
+    return ncpu;
+}
+#endif
+
 #ifdef __linux__
 # define CPUINFO_PATH "/proc/cpuinfo"
 # define SYSFS_SYSTEM_PATH "/sys/devices/system"
+# define SYSFS_CPU_PATH SYSFS_SYSTEM_PATH"/cpu"
 # define PROCSTAT_PATH "/proc/stat"
 # define MEMINFO_PATH "/proc/meminfo"
 # define SYSFS_MEMORY_SHARED_PATH "/sys/kernel/mm/ksm"
+# define SYSFS_THREAD_SIBLINGS_LIST_LENGTH_MAX 1024
 
 # define LINUX_NB_CPU_STATS 4
 # define LINUX_NB_MEMORY_STATS_ALL 4
@@ -79,13 +104,14 @@ static int linuxNodeGetMemoryStats(FILE *meminfo,
                                    int *nparams);
 
 /* Return the positive decimal contents of the given
- * DIR/cpu%u/FILE, or -1 on error.  If MISSING_OK and the
- * file could not be found, return 1 instead of an error; this is
- * because some machines cannot hot-unplug cpu0, or because
- * hot-unplugging is disabled.  */
+ * DIR/cpu%u/FILE, or -1 on error.  If DEFAULT_VALUE is non-negative
+ * and the file could not be found, return that instead of an error;
+ * this is useful for machines that cannot hot-unplug cpu0, or where
+ * hot-unplugging is disabled, or where the kernel is too old
+ * to support NUMA cells, etc.  */
 static int
 virNodeGetCpuValue(const char *dir, unsigned int cpu, const char *file,
-                   bool missing_ok)
+                   int default_value)
 {
     char *path;
     FILE *pathfp;
@@ -100,8 +126,8 @@ virNodeGetCpuValue(const char *dir, unsigned int cpu, const char *file,
 
     pathfp = fopen(path, "r");
     if (pathfp == NULL) {
-        if (missing_ok && errno == ENOENT)
-            value = 1;
+        if (default_value >= 0 && errno == ENOENT)
+            value = default_value;
         else
             virReportSystemError(errno, _("cannot open %s"), path);
         goto cleanup;
@@ -174,7 +200,7 @@ static int
 virNodeParseSocket(const char *dir, unsigned int cpu)
 {
     int ret = virNodeGetCpuValue(dir, cpu, "topology/physical_package_id",
-                                 false);
+                                 0);
 # if defined(__powerpc__) || \
     defined(__powerpc64__) || \
     defined(__s390__) || \
@@ -204,7 +230,12 @@ CPU_COUNT(cpu_set_t *set)
 static int
 ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2)
 ATTRIBUTE_NONNULL(3) ATTRIBUTE_NONNULL(4)
-virNodeParseNode(const char *node, int *sockets, int *cores, int *threads)
+ATTRIBUTE_NONNULL(5)
+virNodeParseNode(const char *node,
+                 int *sockets,
+                 int *cores,
+                 int *threads,
+                 int *offline)
 {
     int ret = -1;
     int processors = 0;
@@ -236,14 +267,15 @@ virNodeParseNode(const char *node, int *sockets, int *cores, int *threads)
         if (sscanf(cpudirent->d_name, "cpu%u", &cpu) != 1)
             continue;
 
-        if ((online = virNodeGetCpuValue(node, cpu, "online", true)) < 0)
+        if ((online = virNodeGetCpuValue(node, cpu, "online", 1)) < 0)
             goto cleanup;
 
         if (!online)
             continue;
 
         /* Parse socket */
-        sock = virNodeParseSocket(node, cpu);
+        if ((sock = virNodeParseSocket(node, cpu)) < 0)
+            goto cleanup;
         CPU_SET(sock, &sock_map);
 
         if (sock > sock_max)
@@ -275,16 +307,19 @@ virNodeParseNode(const char *node, int *sockets, int *cores, int *threads)
         if (sscanf(cpudirent->d_name, "cpu%u", &cpu) != 1)
             continue;
 
-        if ((online = virNodeGetCpuValue(node, cpu, "online", true)) < 0)
+        if ((online = virNodeGetCpuValue(node, cpu, "online", 1)) < 0)
             goto cleanup;
 
-        if (!online)
+        if (!online) {
+            (*offline)++;
             continue;
+        }
 
         processors++;
 
         /* Parse socket */
-        sock = virNodeParseSocket(node, cpu);
+        if ((sock = virNodeParseSocket(node, cpu)) < 0)
+            goto cleanup;
         if (!CPU_ISSET(sock, &sock_map)) {
             virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                            _("CPU socket topology has changed"));
@@ -297,7 +332,7 @@ virNodeParseNode(const char *node, int *sockets, int *cores, int *threads)
         /* logical cpu is equivalent to a core on s390 */
         core = cpu;
 # else
-        core = virNodeGetCpuValue(node, cpu, "topology/core_id", false);
+        core = virNodeGetCpuValue(node, cpu, "topology/core_id", 0);
 # endif
 
         CPU_SET(core, &core_maps[sock]);
@@ -348,7 +383,7 @@ int linuxNodeInfoCPUPopulate(FILE *cpuinfo,
     char line[1024];
     DIR *nodedir = NULL;
     struct dirent *nodedirent = NULL;
-    int cpus, cores, socks, threads;
+    int cpus, cores, socks, threads, offline = 0;
     unsigned int node;
     int ret = -1;
     char *sysfs_nodedir = NULL;
@@ -469,8 +504,8 @@ int linuxNodeInfoCPUPopulate(FILE *cpuinfo,
             goto cleanup;
         }
 
-        if ((cpus = virNodeParseNode(sysfs_cpudir, &socks,
-                                     &cores, &threads)) < 0)
+        if ((cpus = virNodeParseNode(sysfs_cpudir, &socks, &cores,
+                                     &threads, &offline)) < 0)
             goto cleanup;
 
         VIR_FREE(sysfs_cpudir);
@@ -505,7 +540,8 @@ fallback:
         goto cleanup;
     }
 
-    if ((cpus = virNodeParseNode(sysfs_cpudir, &socks, &cores, &threads)) < 0)
+    if ((cpus = virNodeParseNode(sysfs_cpudir, &socks, &cores,
+                                 &threads, &offline)) < 0)
         goto cleanup;
 
     nodeinfo->nodes = 1;
@@ -529,6 +565,23 @@ done:
     if (nodeinfo->threads == 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("no threads found"));
         goto cleanup;
+    }
+
+    /* Now check if the topology makes sense. There are machines that don't
+     * expose their real number of nodes or for example the AMD Bulldozer
+     * architecture that exposes their Clustered integer core modules as both
+     * threads and cores. This approach throws off our detection. Unfortunately
+     * the nodeinfo structure isn't designed to carry the full topology so
+     * we're going to lie about the detected topology to notify the user
+     * to check the host capabilities for the actual topology. */
+    if ((nodeinfo->nodes *
+         nodeinfo->sockets *
+         nodeinfo->cores *
+         nodeinfo->threads) != (nodeinfo->cpus + offline)) {
+        nodeinfo->nodes = 1;
+        nodeinfo->sockets = 1;
+        nodeinfo->cores = nodeinfo->cpus + offline;
+        nodeinfo->threads = 1;
     }
 
     ret = 0;
@@ -764,10 +817,8 @@ linuxParseCPUmax(const char *path)
     char *tmp;
     int ret = -1;
 
-    if (virFileReadAll(path, 5 * VIR_DOMAIN_CPUMASK_LEN, &str) < 0) {
-        virReportOOMError();
+    if (virFileReadAll(path, 5 * VIR_DOMAIN_CPUMASK_LEN, &str) < 0)
         goto cleanup;
-    }
 
     tmp = str;
     do {
@@ -815,13 +866,11 @@ error:
 }
 #endif
 
-int nodeGetInfo(virConnectPtr conn ATTRIBUTE_UNUSED, virNodeInfoPtr nodeinfo) {
-    struct utsname info;
+int nodeGetInfo(virConnectPtr conn ATTRIBUTE_UNUSED, virNodeInfoPtr nodeinfo)
+{
+    virArch hostarch = virArchFromHost();
 
-    memset(nodeinfo, 0, sizeof(*nodeinfo));
-    uname(&info);
-
-    if (virStrcpyStatic(nodeinfo->model, info.machine) == NULL)
+    if (virStrcpyStatic(nodeinfo->model, virArchToString(hostarch)) == NULL)
         return -1;
 
 #ifdef __linux__
@@ -839,11 +888,47 @@ int nodeGetInfo(virConnectPtr conn ATTRIBUTE_UNUSED, virNodeInfoPtr nodeinfo) {
         goto cleanup;
 
     /* Convert to KB. */
-    nodeinfo->memory = physmem_total () / 1024;
+    nodeinfo->memory = physmem_total() / 1024;
 
 cleanup:
     VIR_FORCE_FCLOSE(cpuinfo);
     return ret;
+    }
+#elif defined(__FreeBSD__)
+    {
+    nodeinfo->nodes = 1;
+    nodeinfo->sockets = 1;
+    nodeinfo->threads = 1;
+
+    nodeinfo->cpus = freebsdNodeGetCPUCount();
+    if (nodeinfo->cpus == -1)
+        return -1;
+
+    nodeinfo->cores = nodeinfo->cpus;
+
+    unsigned long cpu_freq;
+    size_t cpu_freq_len = sizeof(cpu_freq);
+
+    if (sysctlbyname("dev.cpu.0.freq", &cpu_freq, &cpu_freq_len, NULL, 0) < 0) {
+        virReportSystemError(errno, "%s", _("cannot obtain CPU freq"));
+        return -1;
+    }
+
+    nodeinfo->mhz = cpu_freq;
+
+    /* get memory information */
+    int mib[2] = { CTL_HW, HW_PHYSMEM };
+    unsigned long physmem;
+    size_t len = sizeof(physmem);
+
+    if (sysctl(mib, 2, &physmem, &len, NULL, 0) == -1) {
+        virReportSystemError(errno, "%s", _("cannot obtain memory size"));
+        return -1;
+    }
+
+    nodeinfo->memory = (unsigned long)(physmem / 1024);
+
+    return 0;
     }
 #else
     /* XXX Solaris will need an impl later if they port QEMU driver */
@@ -903,17 +988,17 @@ int nodeGetMemoryStats(virConnectPtr conn ATTRIBUTE_UNUSED,
                 return -1;
             }
         } else {
-# if HAVE_NUMACTL
+# if WITH_NUMACTL
             if (numa_available() < 0) {
 # endif
                 virReportError(VIR_ERR_INTERNAL_ERROR,
                                "%s", _("NUMA not supported on this host"));
                 return -1;
-# if HAVE_NUMACTL
+# if WITH_NUMACTL
             }
 # endif
 
-# if HAVE_NUMACTL
+# if WITH_NUMACTL
             if (cellNum > numa_max_node()) {
                 virReportInvalidArg(cellNum,
                                     _("cellNum in %s must be less than or equal to %d"),
@@ -952,12 +1037,38 @@ int nodeGetMemoryStats(virConnectPtr conn ATTRIBUTE_UNUSED,
 int
 nodeGetCPUCount(void)
 {
-#ifdef __linux__
-    /* XXX should we also work on older kernels, like RHEL5, that lack
-     * cpu/present and cpu/online files?  Those kernels also lack cpu
-     * hotplugging, so it would be a matter of finding the largest
-     * cpu/cpuNN directory, and returning NN + 1 */
-    return linuxParseCPUmax(SYSFS_SYSTEM_PATH "/cpu/present");
+#if defined(__linux__)
+    /* To support older kernels that lack cpu/present, such as 2.6.18
+     * in RHEL5, we fall back to count cpu/cpuNN entries; this assumes
+     * that such kernels also lack hotplug, and therefore cpu/cpuNN
+     * will be consecutive.
+     */
+    char *cpupath = NULL;
+    int i = 0;
+
+    if (virFileExists(SYSFS_SYSTEM_PATH "/cpu/present")) {
+        i = linuxParseCPUmax(SYSFS_SYSTEM_PATH "/cpu/present");
+    } else if (virFileExists(SYSFS_SYSTEM_PATH "/cpu/cpu0")) {
+        do {
+            i++;
+            VIR_FREE(cpupath);
+            if (virAsprintf(&cpupath, "%s/cpu/cpu%d",
+                            SYSFS_SYSTEM_PATH, i) < 0) {
+                virReportOOMError();
+                return -1;
+            }
+        } while (virFileExists(cpupath));
+    } else {
+        /* no cpu/cpu0: we give up */
+        virReportError(VIR_ERR_NO_SUPPORT, "%s",
+                       _("host cpu counting not supported on this node"));
+        return -1;
+    }
+
+    VIR_FREE(cpupath);
+    return i;
+#elif defined(__FreeBSD__)
+    return freebsdNodeGetCPUCount();
 #else
     virReportError(VIR_ERR_NO_SUPPORT, "%s",
                    _("host cpu counting not implemented on this platform"));
@@ -972,15 +1083,30 @@ nodeGetCPUBitmap(int *max_id ATTRIBUTE_UNUSED)
     virBitmapPtr cpumap;
     int present;
 
-    present = linuxParseCPUmax(SYSFS_SYSTEM_PATH "/cpu/present");
-    /* XXX should we also work on older kernels, like RHEL5, that lack
-     * cpu/present and cpu/online files?  Those kernels also lack cpu
-     * hotplugging, so it would be a matter of finding the largest
-     * cpu/cpuNN directory, and creating a map that size with all bits
-     * set.  */
+    present = nodeGetCPUCount();
     if (present < 0)
         return NULL;
-    cpumap = linuxParseCPUmap(present, SYSFS_SYSTEM_PATH "/cpu/online");
+
+    if (virFileExists(SYSFS_SYSTEM_PATH "/cpu/online")) {
+        cpumap = linuxParseCPUmap(present, SYSFS_SYSTEM_PATH "/cpu/online");
+    } else {
+        int i;
+
+        cpumap = virBitmapNew(present);
+        if (!cpumap) {
+            virReportOOMError();
+            return NULL;
+        }
+        for (i = 0; i < present; i++) {
+            int online = virNodeGetCpuValue(SYSFS_SYSTEM_PATH, i, "online", 1);
+            if (online < 0) {
+                virBitmapFree(cpumap);
+                return NULL;
+            }
+            if (online)
+                ignore_value(virBitmapSetBit(cpumap, i));
+        }
+    }
     if (max_id && cpumap)
         *max_id = present;
     return cpumap;
@@ -993,14 +1119,16 @@ nodeGetCPUBitmap(int *max_id ATTRIBUTE_UNUSED)
 
 #ifdef __linux__
 static int
-nodeSetMemoryParameterValue(const char *field,
-                            virTypedParameterPtr param)
+nodeSetMemoryParameterValue(virTypedParameterPtr param)
 {
     char *path = NULL;
     char *strval = NULL;
     int ret = -1;
     int rc = -1;
 
+    char *field = strchr(param->field, '_');
+    sa_assert(field);
+    field++;
     if (virAsprintf(&path, "%s/%s",
                     SYSFS_MEMORY_SHARED_PATH, field) < 0) {
         virReportOOMError();
@@ -1015,7 +1143,7 @@ nodeSetMemoryParameterValue(const char *field,
     }
 
     if ((rc = virFileWriteStr(path, strval, 0)) < 0) {
-        virReportSystemError(-rc, _("failed to set %s"), field);
+        virReportSystemError(-rc, _("failed to set %s"), param->field);
         goto cleanup;
     }
 
@@ -1024,6 +1152,39 @@ cleanup:
     VIR_FREE(path);
     VIR_FREE(strval);
     return ret;
+}
+
+static bool
+nodeMemoryParametersIsAllSupported(virTypedParameterPtr params,
+                                   int nparams)
+{
+    char *path = NULL;
+    int i;
+
+    for (i = 0; i < nparams; i++) {
+        virTypedParameterPtr param = &params[i];
+
+        char *field = strchr(param->field, '_');
+        sa_assert(field);
+        field++;
+        if (virAsprintf(&path, "%s/%s",
+                        SYSFS_MEMORY_SHARED_PATH, field) < 0) {
+            virReportOOMError();
+            return false;
+        }
+
+        if (!virFileExists(path)) {
+            virReportError(VIR_ERR_OPERATION_INVALID,
+                           _("Parameter '%s' is not supported by "
+                             "this kernel"), param->field);
+            VIR_FREE(path);
+            return false;
+        }
+
+        VIR_FREE(path);
+    }
+
+    return true;
 }
 #endif
 
@@ -1036,8 +1197,8 @@ nodeSetMemoryParameters(virConnectPtr conn ATTRIBUTE_UNUSED,
     virCheckFlags(0, -1);
 
 #ifdef __linux__
-    int ret = 0;
     int i;
+    int rc;
 
     if (virTypedParameterArrayValidate(params, nparams,
                                        VIR_NODE_MEMORY_SHARED_PAGES_TO_SCAN,
@@ -1049,34 +1210,18 @@ nodeSetMemoryParameters(virConnectPtr conn ATTRIBUTE_UNUSED,
                                        NULL) < 0)
         return -1;
 
+    if (!nodeMemoryParametersIsAllSupported(params, nparams))
+        return -1;
+
     for (i = 0; i < nparams; i++) {
-        virTypedParameterPtr param = &params[i];
+        rc = nodeSetMemoryParameterValue(&params[i]);
 
-        if (STREQ(param->field,
-                  VIR_NODE_MEMORY_SHARED_PAGES_TO_SCAN)) {
-            ret = nodeSetMemoryParameterValue("pages_to_scan", param);
-
-            /* Out of memory */
-            if (ret == -2)
-                return -1;
-        } else if (STREQ(param->field,
-                         VIR_NODE_MEMORY_SHARED_SLEEP_MILLISECS)) {
-            ret = nodeSetMemoryParameterValue("sleep_millisecs", param);
-
-            /* Out of memory */
-            if (ret == -2)
-                return -1;
-        } else if (STREQ(param->field,
-                         VIR_NODE_MEMORY_SHARED_MERGE_ACROSS_NODES)) {
-            ret = nodeSetMemoryParameterValue("merge_across_nodes", param);
-
-            /* Out of memory */
-            if (ret == -2)
-                return -1;
-        }
+        /* Out of memory */
+        if (rc == -2)
+            return -1;
     }
 
-    return ret;
+    return 0;
 #else
     virReportError(VIR_ERR_NO_SUPPORT, "%s",
                    _("node set memory parameters not implemented"
@@ -1099,6 +1244,11 @@ nodeGetMemoryParameterValue(const char *field,
     if (virAsprintf(&path, "%s/%s",
                     SYSFS_MEMORY_SHARED_PATH, field) < 0) {
         virReportOOMError();
+        goto cleanup;
+    }
+
+    if (!virFileExists(path)) {
+        ret = -2;
         goto cleanup;
     }
 
@@ -1152,6 +1302,7 @@ nodeGetMemoryParameters(virConnectPtr conn ATTRIBUTE_UNUSED,
     unsigned long long pages_volatile;
     unsigned long long full_scans = 0;
     int i;
+    int ret;
 
     if ((*nparams) == 0) {
         *nparams = NODE_MEMORY_PARAMETERS_NUM;
@@ -1161,10 +1312,12 @@ nodeGetMemoryParameters(virConnectPtr conn ATTRIBUTE_UNUSED,
     for (i = 0; i < *nparams && i < NODE_MEMORY_PARAMETERS_NUM; i++) {
         virTypedParameterPtr param = &params[i];
 
-        switch(i) {
+        switch (i) {
         case 0:
-            if (nodeGetMemoryParameterValue("pages_to_scan",
-                                            &pages_to_scan) < 0)
+            ret = nodeGetMemoryParameterValue("pages_to_scan", &pages_to_scan);
+            if (ret == -2)
+                continue;
+            else if (ret == -1)
                 return -1;
 
             if (virTypedParameterAssign(param, VIR_NODE_MEMORY_SHARED_PAGES_TO_SCAN,
@@ -1174,8 +1327,10 @@ nodeGetMemoryParameters(virConnectPtr conn ATTRIBUTE_UNUSED,
             break;
 
         case 1:
-            if (nodeGetMemoryParameterValue("sleep_millisecs",
-                                            &sleep_millisecs) < 0)
+            ret = nodeGetMemoryParameterValue("sleep_millisecs", &sleep_millisecs);
+            if (ret == -2)
+                continue;
+            else if (ret == -1)
                 return -1;
 
             if (virTypedParameterAssign(param, VIR_NODE_MEMORY_SHARED_SLEEP_MILLISECS,
@@ -1185,8 +1340,10 @@ nodeGetMemoryParameters(virConnectPtr conn ATTRIBUTE_UNUSED,
             break;
 
         case 2:
-            if (nodeGetMemoryParameterValue("pages_shared",
-                                            &pages_shared) < 0)
+            ret = nodeGetMemoryParameterValue("pages_shared", &pages_shared);
+            if (ret == -2)
+                continue;
+            else if (ret == -1)
                 return -1;
 
             if (virTypedParameterAssign(param, VIR_NODE_MEMORY_SHARED_PAGES_SHARED,
@@ -1196,8 +1353,10 @@ nodeGetMemoryParameters(virConnectPtr conn ATTRIBUTE_UNUSED,
             break;
 
         case 3:
-            if (nodeGetMemoryParameterValue("pages_sharing",
-                                            &pages_sharing) < 0)
+            ret = nodeGetMemoryParameterValue("pages_sharing", &pages_sharing);
+            if (ret == -2)
+                continue;
+            else if (ret == -1)
                 return -1;
 
             if (virTypedParameterAssign(param, VIR_NODE_MEMORY_SHARED_PAGES_SHARING,
@@ -1207,8 +1366,10 @@ nodeGetMemoryParameters(virConnectPtr conn ATTRIBUTE_UNUSED,
             break;
 
         case 4:
-            if (nodeGetMemoryParameterValue("pages_unshared",
-                                            &pages_unshared) < 0)
+            ret = nodeGetMemoryParameterValue("pages_unshared", &pages_unshared);
+            if (ret == -2)
+                continue;
+            else if (ret == -1)
                 return -1;
 
             if (virTypedParameterAssign(param, VIR_NODE_MEMORY_SHARED_PAGES_UNSHARED,
@@ -1218,8 +1379,10 @@ nodeGetMemoryParameters(virConnectPtr conn ATTRIBUTE_UNUSED,
             break;
 
         case 5:
-            if (nodeGetMemoryParameterValue("pages_volatile",
-                                            &pages_volatile) < 0)
+            ret = nodeGetMemoryParameterValue("pages_volatile", &pages_volatile);
+            if (ret == -2)
+                continue;
+            else if (ret == -1)
                 return -1;
 
             if (virTypedParameterAssign(param, VIR_NODE_MEMORY_SHARED_PAGES_VOLATILE,
@@ -1229,8 +1392,10 @@ nodeGetMemoryParameters(virConnectPtr conn ATTRIBUTE_UNUSED,
             break;
 
         case 6:
-            if (nodeGetMemoryParameterValue("full_scans",
-                                            &full_scans) < 0)
+            ret = nodeGetMemoryParameterValue("full_scans", &full_scans);
+            if (ret == -2)
+                continue;
+            else if (ret == -1)
                 return -1;
 
             if (virTypedParameterAssign(param, VIR_NODE_MEMORY_SHARED_FULL_SCANS,
@@ -1240,8 +1405,10 @@ nodeGetMemoryParameters(virConnectPtr conn ATTRIBUTE_UNUSED,
             break;
 
         case 7:
-            if (nodeGetMemoryParameterValue("merge_across_nodes",
-                                            &merge_across_nodes) < 0)
+            ret = nodeGetMemoryParameterValue("merge_across_nodes", &merge_across_nodes);
+            if (ret == -2)
+                continue;
+            else if (ret == -1)
                 return -1;
 
             if (virTypedParameterAssign(param, VIR_NODE_MEMORY_SHARED_MERGE_ACROSS_NODES,
@@ -1250,6 +1417,7 @@ nodeGetMemoryParameters(virConnectPtr conn ATTRIBUTE_UNUSED,
 
             break;
 
+        /* coverity[dead_error_begin] */
         default:
             break;
         }
@@ -1296,7 +1464,7 @@ cleanup:
     return ret;
 }
 
-#if HAVE_NUMACTL
+#if WITH_NUMACTL
 # if LIBNUMA_API_VERSION <= 1
 #  define NUMA_MAX_N_CPUS 4096
 # else
@@ -1307,15 +1475,70 @@ cleanup:
 # define MASK_CPU_ISSET(mask, cpu) \
   (((mask)[((cpu) / n_bits(*(mask)))] >> ((cpu) % n_bits(*(mask)))) & 1)
 
+static virBitmapPtr
+virNodeGetSiblingsList(const char *dir, int cpu_id)
+{
+    char *path = NULL;
+    char *buf = NULL;
+    virBitmapPtr ret = NULL;
+
+    if (virAsprintf(&path, "%s/cpu%u/topology/thread_siblings_list",
+                    dir, cpu_id) < 0) {
+        virReportOOMError();
+        goto cleanup;
+    }
+
+    if (virFileReadAll(path, SYSFS_THREAD_SIBLINGS_LIST_LENGTH_MAX, &buf) < 0)
+        goto cleanup;
+
+    if (virBitmapParse(buf, 0, &ret, NUMA_MAX_N_CPUS) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Failed to parse thread siblings"));
+        goto cleanup;
+    }
+
+cleanup:
+    VIR_FREE(buf);
+    VIR_FREE(path);
+    return ret;
+}
+
+/* returns 1 on success, 0 if the detection failed and -1 on hard error */
+static int
+virNodeCapsFillCPUInfo(int cpu_id, virCapsHostNUMACellCPUPtr cpu)
+{
+    int tmp;
+    cpu->id = cpu_id;
+
+    if ((tmp = virNodeGetCpuValue(SYSFS_CPU_PATH, cpu_id,
+                                  "topology/physical_package_id", -1)) < 0)
+        return 0;
+
+    cpu->socket_id = tmp;
+
+    if ((tmp = virNodeGetCpuValue(SYSFS_CPU_PATH, cpu_id,
+                                  "topology/core_id", -1)) < 0)
+        return 0;
+
+    cpu->core_id = tmp;
+
+    if (!(cpu->siblings = virNodeGetSiblingsList(SYSFS_CPU_PATH, cpu_id)))
+        return -1;
+
+    return 0;
+}
+
 int
 nodeCapsInitNUMA(virCapsPtr caps)
 {
     int n;
     unsigned long *mask = NULL;
     unsigned long *allonesmask = NULL;
-    int *cpus = NULL;
+    virCapsHostNUMACellCPUPtr cpus = NULL;
     int ret = -1;
     int max_n_cpus = NUMA_MAX_N_CPUS;
+    int ncpus = 0;
+    bool topology_failed = false;
 
     if (numa_available() < 0)
         return 0;
@@ -1329,7 +1552,6 @@ nodeCapsInitNUMA(virCapsPtr caps)
 
     for (n = 0 ; n <= numa_max_node() ; n++) {
         int i;
-        int ncpus;
         /* The first time this returns -1, ENOENT if node doesn't exist... */
         if (numa_node_to_cpus(n, mask, mask_n_bytes) < 0) {
             VIR_WARN("NUMA topology for cell %d of %d not available, ignoring",
@@ -1350,23 +1572,28 @@ nodeCapsInitNUMA(virCapsPtr caps)
         if (VIR_ALLOC_N(cpus, ncpus) < 0)
             goto cleanup;
 
-        for (ncpus = 0, i = 0 ; i < max_n_cpus ; i++)
-            if (MASK_CPU_ISSET(mask, i))
-                cpus[ncpus++] = i;
+        for (ncpus = 0, i = 0 ; i < max_n_cpus ; i++) {
+            if (MASK_CPU_ISSET(mask, i)) {
+                if (virNodeCapsFillCPUInfo(i, cpus + ncpus++) < 0) {
+                    topology_failed = true;
+                    virResetLastError();
+                }
+            }
+        }
 
-        if (virCapabilitiesAddHostNUMACell(caps,
-                                           n,
-                                           ncpus,
-                                           cpus) < 0)
+        if (virCapabilitiesAddHostNUMACell(caps, n, ncpus, cpus) < 0)
             goto cleanup;
-
-        VIR_FREE(cpus);
     }
 
     ret = 0;
 
 cleanup:
-    VIR_FREE(cpus);
+    if (topology_failed || ret < 0)
+        virCapabilitiesClearHostNUMACellCPUTopology(cpus, ncpus);
+
+    if (ret < 0)
+        VIR_FREE(cpus);
+
     VIR_FREE(mask);
     VIR_FREE(allonesmask);
     return ret;

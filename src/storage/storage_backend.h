@@ -26,7 +26,7 @@
 
 # include "internal.h"
 # include "storage_conf.h"
-# include "command.h"
+# include "vircommand.h"
 
 typedef char * (*virStorageBackendFindPoolSources)(virConnectPtr conn, const char *srcSpec, unsigned int flags);
 typedef int (*virStorageBackendCheckPool)(virConnectPtr conn, virStoragePoolObjPtr pool, bool *active);
@@ -37,7 +37,8 @@ typedef int (*virStorageBackendStopPool)(virConnectPtr conn, virStoragePoolObjPt
 typedef int (*virStorageBackendDeletePool)(virConnectPtr conn, virStoragePoolObjPtr pool, unsigned int flags);
 
 typedef int (*virStorageBackendBuildVol)(virConnectPtr conn,
-                                         virStoragePoolObjPtr pool, virStorageVolDefPtr vol);
+                                         virStoragePoolObjPtr pool, virStorageVolDefPtr vol,
+                                         unsigned int flags);
 typedef int (*virStorageBackendCreateVol)(virConnectPtr conn, virStoragePoolObjPtr pool, virStorageVolDefPtr vol);
 typedef int (*virStorageBackendRefreshVol)(virConnectPtr conn, virStoragePoolObjPtr pool, virStorageVolDefPtr vol);
 typedef int (*virStorageBackendDeleteVol)(virConnectPtr conn, virStoragePoolObjPtr pool, virStorageVolDefPtr vol, unsigned int flags);

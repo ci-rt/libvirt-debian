@@ -33,9 +33,9 @@ Build-Depends: cdbs (>= 0.4.90~),
  libpcap0.8-dev,
  libnuma-dev [amd64 i386 ia64 mips mipsel powerpc],
  radvd [linux-any],
- libnetcf-dev (>= 0.2.2) [linux-any],
+ libnetcf-dev (>= 1:0.2.2) [linux-any],
  libsanlock-dev [linux-any],
- libaudit-dev [linux-any],
+ libaudit-dev (<= 1:2.2.2) [linux-any],
  systemtap-sdt-dev [amd64 armel armhf i386 ia64 powerpc s390],
 # for --with-storage-sheepdog
  sheepdog [linux-any],
@@ -56,7 +56,7 @@ X-Python-Version: >= 2.6
 Package: libvirt-bin
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, adduser, libvirt0 (= ${binary:Version}), logrotate, gettext-base,
- libnetcf1 (>= 0.2.2-1)
+ libnetcf1 (>= 1:0.2.2)
 Enhances: qemu, qemu-kvm, xen
 Section: admin
 Recommends: netcat-openbsd,
@@ -132,7 +132,7 @@ Description: development files for the libvirt library
 
 Package: python-libvirt
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, ${python:Depends}, libvirt0 (>= ${binary:Version})
+Depends: ${shlibs:Depends}, ${misc:Depends}, ${python:Depends}, libvirt0 (= ${binary:Version})
 Provides: ${python:Provides}
 Recommends: libvirt-bin
 Section: python

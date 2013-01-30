@@ -23,13 +23,13 @@
 
 #include <config.h>
 
-#include "memory.h"
+#include "viralloc.h"
 #include "cpu.h"
 
 
 #define VIR_FROM_THIS VIR_FROM_CPU
 
-static const char *archs[] = { "s390", "s390x" };
+static const virArch archs[] = { VIR_ARCH_S390, VIR_ARCH_S390X };
 
 static union cpuData *
 s390NodeData(void)

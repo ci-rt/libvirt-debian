@@ -26,17 +26,17 @@
 #include <unistd.h>
 #include <errno.h>
 
-#include "virterror_internal.h"
+#include "virerror.h"
 #include "datatypes.h"
-#include "memory.h"
+#include "viralloc.h"
 
 #include "node_device_conf.h"
-#include "memory.h"
-#include "xml.h"
-#include "util.h"
-#include "buf.h"
-#include "uuid.h"
-#include "pci.h"
+#include "viralloc.h"
+#include "virxml.h"
+#include "virutil.h"
+#include "virbuffer.h"
+#include "viruuid.h"
+#include "virpci.h"
 #include "virrandom.h"
 
 #define VIR_FROM_THIS VIR_FROM_NODEDEV

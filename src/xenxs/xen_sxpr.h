@@ -28,9 +28,9 @@
 # define __VIR_XEN_SXPR_H__
 
 # include "internal.h"
-# include "conf.h"
+# include "virconf.h"
 # include "domain_conf.h"
-# include "sexpr.h"
+# include "virsexpr.h"
 
 typedef enum {
     XEND_CONFIG_VERSION_3_0_2 = 1,

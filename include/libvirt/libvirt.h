@@ -116,23 +116,23 @@ typedef virDomain *virDomainPtr;
  * A domain may be in different states at a given point in time
  */
 typedef enum {
-     VIR_DOMAIN_NOSTATE = 0,     /* no state */
-     VIR_DOMAIN_RUNNING = 1,     /* the domain is running */
-     VIR_DOMAIN_BLOCKED = 2,     /* the domain is blocked on resource */
-     VIR_DOMAIN_PAUSED  = 3,     /* the domain is paused by user */
-     VIR_DOMAIN_SHUTDOWN= 4,     /* the domain is being shut down */
-     VIR_DOMAIN_SHUTOFF = 5,     /* the domain is shut off */
-     VIR_DOMAIN_CRASHED = 6,     /* the domain is crashed */
-     VIR_DOMAIN_PMSUSPENDED = 7, /* the domain is suspended by guest
-                                    power management */
+    VIR_DOMAIN_NOSTATE = 0,     /* no state */
+    VIR_DOMAIN_RUNNING = 1,     /* the domain is running */
+    VIR_DOMAIN_BLOCKED = 2,     /* the domain is blocked on resource */
+    VIR_DOMAIN_PAUSED  = 3,     /* the domain is paused by user */
+    VIR_DOMAIN_SHUTDOWN= 4,     /* the domain is being shut down */
+    VIR_DOMAIN_SHUTOFF = 5,     /* the domain is shut off */
+    VIR_DOMAIN_CRASHED = 6,     /* the domain is crashed */
+    VIR_DOMAIN_PMSUSPENDED = 7, /* the domain is suspended by guest
+                                   power management */
 
 #ifdef VIR_ENUM_SENTINELS
+    VIR_DOMAIN_LAST
     /*
      * NB: this enum value will increase over time as new events are
      * added to the libvirt API. It reflects the last state supported
      * by this version of the libvirt API.
      */
-     VIR_DOMAIN_LAST
 #endif
 } virDomainState;
 
@@ -179,6 +179,7 @@ typedef enum {
     VIR_DOMAIN_PAUSED_WATCHDOG = 6,     /* paused due to a watchdog event */
     VIR_DOMAIN_PAUSED_FROM_SNAPSHOT = 7, /* paused after restoring from snapshot */
     VIR_DOMAIN_PAUSED_SHUTTING_DOWN = 8, /* paused during shutdown process */
+    VIR_DOMAIN_PAUSED_SNAPSHOT = 9,      /* paused while creating a snapshot */
 
 #ifdef VIR_ENUM_SENTINELS
     VIR_DOMAIN_PAUSED_LAST
@@ -350,8 +351,7 @@ typedef enum {
     VIR_NODE_SUSPEND_TARGET_HYBRID  = 2,
 
 #ifdef VIR_ENUM_SENTINELS
-    /* This constant is subject to change */
-    VIR_NODE_SUSPEND_TARGET_LAST
+    VIR_NODE_SUSPEND_TARGET_LAST /* This constant is subject to change */
 #endif
 } virNodeSuspendTarget;
 
@@ -518,6 +518,101 @@ struct _virTypedParameter {
 typedef virTypedParameter *virTypedParameterPtr;
 
 
+virTypedParameterPtr
+virTypedParamsGet       (virTypedParameterPtr params,
+                         int nparams,
+                         const char *name);
+int
+virTypedParamsGetInt    (virTypedParameterPtr params,
+                         int nparams,
+                         const char *name,
+                         int *value);
+int
+virTypedParamsGetUInt   (virTypedParameterPtr params,
+                         int nparams,
+                         const char *name,
+                         unsigned int *value);
+int
+virTypedParamsGetLLong  (virTypedParameterPtr params,
+                         int nparams,
+                         const char *name,
+                         long long *value);
+int
+virTypedParamsGetULLong (virTypedParameterPtr params,
+                         int nparams,
+                         const char *name,
+                         unsigned long long *value);
+int
+virTypedParamsGetDouble (virTypedParameterPtr params,
+                         int nparams,
+                         const char *name,
+                         double *value);
+int
+virTypedParamsGetBoolean(virTypedParameterPtr params,
+                         int nparams,
+                         const char *name,
+                         int *value);
+int
+virTypedParamsGetString (virTypedParameterPtr params,
+                         int nparams,
+                         const char *name,
+                         const char **value);
+int
+virTypedParamsAddInt    (virTypedParameterPtr *params,
+                         int *nparams,
+                         int *maxparams,
+                         const char *name,
+                         int value);
+int
+virTypedParamsAddUInt   (virTypedParameterPtr *params,
+                         int *nparams,
+                         int *maxparams,
+                         const char *name,
+                         unsigned int value);
+int
+virTypedParamsAddLLong  (virTypedParameterPtr *params,
+                         int *nparams,
+                         int *maxparams,
+                         const char *name,
+                         long long value);
+int
+virTypedParamsAddULLong (virTypedParameterPtr *params,
+                         int *nparams,
+                         int *maxparams,
+                         const char *name,
+                         unsigned long long value);
+int
+virTypedParamsAddDouble (virTypedParameterPtr *params,
+                         int *nparams,
+                         int *maxparams,
+                         const char *name,
+                         double value);
+int
+virTypedParamsAddBoolean(virTypedParameterPtr *params,
+                         int *nparams,
+                         int *maxparams,
+                         const char *name,
+                         int value);
+int
+virTypedParamsAddString (virTypedParameterPtr *params,
+                         int *nparams,
+                         int *maxparams,
+                         const char *name,
+                         const char *value);
+int
+virTypedParamsAddFromString(virTypedParameterPtr *params,
+                         int *nparams,
+                         int *maxparams,
+                         const char *name,
+                         int type,
+                         const char *value);
+void
+virTypedParamsClear     (virTypedParameterPtr params,
+                         int nparams);
+void
+virTypedParamsFree      (virTypedParameterPtr params,
+                         int nparams);
+
 /* data types related to virNodePtr */
 
 /**
@@ -530,17 +625,19 @@ typedef virTypedParameter *virTypedParameterPtr;
 typedef struct _virNodeInfo virNodeInfo;
 
 struct _virNodeInfo {
-    char model[32];     /* string indicating the CPU model */
-    unsigned long memory;/* memory size in kilobytes */
-    unsigned int cpus;  /* the number of active CPUs */
-    unsigned int mhz;   /* expected CPU frequency */
-    unsigned int nodes; /* the number of NUMA cell, 1 for unusual NUMA
-                           topologies or uniform memory access; check
-                           capabilities XML for the actual NUMA topology */
-    unsigned int sockets;/* number of CPU sockets per node if nodes > 1,
-                            total number of CPU sockets otherwise */
-    unsigned int cores; /* number of cores per socket */
-    unsigned int threads;/* number of threads per core */
+    char model[32];       /* string indicating the CPU model */
+    unsigned long memory; /* memory size in kilobytes */
+    unsigned int cpus;    /* the number of active CPUs */
+    unsigned int mhz;     /* expected CPU frequency */
+    unsigned int nodes;   /* the number of NUMA cell, 1 for unusual NUMA
+                             topologies or uniform memory access; check
+                             capabilities XML for the actual NUMA topology */
+    unsigned int sockets; /* number of CPU sockets per node if nodes > 1,
+                             1 in case of unusual NUMA topology */
+    unsigned int cores;   /* number of cores per socket, total number of
+                             processors in case of unusual NUMA topology*/
+    unsigned int threads; /* number of threads per core, 1 in case of
+                             unusual numa topology */
 };
 
 /**
@@ -1089,6 +1186,7 @@ typedef enum {
                                                * whole migration process; this will be used automatically
                                                * when supported */
     VIR_MIGRATE_UNSAFE            = (1 << 9), /* force migration even if it is considered unsafe */
+    VIR_MIGRATE_OFFLINE           = (1 << 10), /* offline migrate */
 } virDomainMigrateFlags;
 
 /* Domain migration. */
@@ -1182,8 +1280,7 @@ typedef enum {
     VIR_CRED_EXTERNAL = 9,     /* Externally managed credential */
 
 #ifdef VIR_ENUM_SENTINELS
-    /* More may be added - expect the unexpected */
-    VIR_CRED_LAST
+    VIR_CRED_LAST              /* More may be added - expect the unexpected */
 #endif
 } virConnectCredentialType;
 
@@ -1258,7 +1355,7 @@ VIR_EXPORT_VAR virConnectAuthPtr virConnectAuthPtrDefault;
  * version * 1,000,000 + minor * 1000 + micro
  */
 
-#define LIBVIR_VERSION_NUMBER 1000000
+#define LIBVIR_VERSION_NUMBER 1000002
 
 int                     virGetVersion           (unsigned long *libVer,
                                                  const char *type,
@@ -1376,12 +1473,14 @@ virDomainPtr            virDomainLookupByID     (virConnectPtr conn,
 virDomainPtr            virDomainLookupByUUID   (virConnectPtr conn,
                                                  const unsigned char *uuid);
 virDomainPtr            virDomainLookupByUUIDString     (virConnectPtr conn,
-                                                        const char *uuid);
+                                                         const char *uuid);
 
 typedef enum {
     VIR_DOMAIN_SHUTDOWN_DEFAULT        = 0,        /* hypervisor choice */
     VIR_DOMAIN_SHUTDOWN_ACPI_POWER_BTN = (1 << 0), /* Send ACPI event */
     VIR_DOMAIN_SHUTDOWN_GUEST_AGENT    = (1 << 1), /* Use guest agent */
+    VIR_DOMAIN_SHUTDOWN_INITCTL        = (1 << 2), /* Use initctl */
+    VIR_DOMAIN_SHUTDOWN_SIGNAL         = (1 << 3), /* Send a signal */
 } virDomainShutdownFlagValues;
 
 int                     virDomainShutdown       (virDomainPtr domain);
@@ -1392,6 +1491,8 @@ typedef enum {
     VIR_DOMAIN_REBOOT_DEFAULT        = 0,        /* hypervisor choice */
     VIR_DOMAIN_REBOOT_ACPI_POWER_BTN = (1 << 0), /* Send ACPI event */
     VIR_DOMAIN_REBOOT_GUEST_AGENT    = (1 << 1), /* Use guest agent */
+    VIR_DOMAIN_REBOOT_INITCTL        = (1 << 2), /* Use initctl */
+    VIR_DOMAIN_REBOOT_SIGNAL         = (1 << 3), /* Send a signal */
 } virDomainRebootFlagValues;
 
 int                     virDomainReboot         (virDomainPtr domain,
@@ -1471,9 +1572,9 @@ int             virDomainSaveImageDefineXML     (virConnectPtr conn,
 int                    virDomainManagedSave     (virDomainPtr dom,
                                                  unsigned int flags);
 int                    virDomainHasManagedSaveImage(virDomainPtr dom,
-                                                 unsigned int flags);
+                                                    unsigned int flags);
 int                    virDomainManagedSaveRemove(virDomainPtr dom,
-                                                 unsigned int flags);
+                                                  unsigned int flags);
 
 /*
  * Domain core dump
@@ -1542,7 +1643,7 @@ int                     virDomainGetControlInfo (virDomainPtr domain,
  * Return scheduler type in effect 'sedf', 'credit', 'linux'
  */
 char *                  virDomainGetSchedulerType(virDomainPtr domain,
-                                                 int *nparams);
+                                                  int *nparams);
 
 
 /* Manage blkio parameters.  */
@@ -1654,8 +1755,7 @@ typedef enum {
     VIR_DOMAIN_NUMATUNE_MEM_INTERLEAVE  = 2,
 
 #ifdef VIR_ENUM_SENTINELS
-    /* This constant is subject to change */
-    VIR_DOMAIN_NUMATUNE_MEM_LAST
+    VIR_DOMAIN_NUMATUNE_MEM_LAST /* This constant is subject to change */
 #endif
 } virDomainNumatuneMemMode;
 
@@ -1690,7 +1790,7 @@ unsigned int            virDomainGetID          (virDomainPtr domain);
 int                     virDomainGetUUID        (virDomainPtr domain,
                                                  unsigned char *uuid);
 int                     virDomainGetUUIDString  (virDomainPtr domain,
-                                                char *buf);
+                                                 char *buf);
 char *                  virDomainGetOSType      (virDomainPtr domain);
 unsigned long           virDomainGetMaxMemory   (virDomainPtr domain);
 int                     virDomainSetMaxMemory   (virDomainPtr domain,
@@ -1820,13 +1920,13 @@ int                     virDomainInterfaceStats (virDomainPtr dom,
 #define VIR_DOMAIN_BANDWIDTH_OUT_BURST "outbound.burst"
 
 int                     virDomainSetInterfaceParameters (virDomainPtr dom,
-                                                        const char *device,
-                                                        virTypedParameterPtr params,
-                                                        int nparams, unsigned int flags);
+                                                         const char *device,
+                                                         virTypedParameterPtr params,
+                                                         int nparams, unsigned int flags);
 int                     virDomainGetInterfaceParameters (virDomainPtr dom,
-                                                        const char *device,
-                                                        virTypedParameterPtr params,
-                                                        int *nparams, unsigned int flags);
+                                                         const char *device,
+                                                         virTypedParameterPtr params,
+                                                         int *nparams, unsigned int flags);
 
 /* Management of domain block devices */
 
@@ -1964,7 +2064,7 @@ int                     virConnectListAllDomains (virConnectPtr conn,
                                                   unsigned int flags);
 int                     virDomainCreate         (virDomainPtr domain);
 int                     virDomainCreateWithFlags (virDomainPtr domain,
-                                                 unsigned int flags);
+                                                  unsigned int flags);
 
 int                     virDomainGetAutostart   (virDomainPtr domain,
                                                  int *autostart);
@@ -2507,7 +2607,7 @@ typedef enum {
                                                    config if it's not active */
     VIR_NETWORK_UPDATE_AFFECT_LIVE    = 1 << 0, /* affect live state of network only */
     VIR_NETWORK_UPDATE_AFFECT_CONFIG  = 1 << 1, /* affect persistent config only */
-    } virNetworkUpdateFlags;
+} virNetworkUpdateFlags;
 
 /*
  * Update an existing network definition
@@ -2717,16 +2817,16 @@ typedef enum {
 typedef enum {
     VIR_STORAGE_VOL_WIPE_ALG_ZERO = 0, /* 1-pass, all zeroes */
     VIR_STORAGE_VOL_WIPE_ALG_NNSA = 1, /* 4-pass  NNSA Policy Letter
-                                        NAP-14.1-C (XVI-8) */
+                                          NAP-14.1-C (XVI-8) */
     VIR_STORAGE_VOL_WIPE_ALG_DOD = 2, /* 4-pass DoD 5220.22-M section
-                                       8-306 procedure */
+                                         8-306 procedure */
     VIR_STORAGE_VOL_WIPE_ALG_BSI = 3, /* 9-pass method recommended by the
-                                       German Center of Security in
-                                       Information Technologies */
+                                         German Center of Security in
+                                         Information Technologies */
     VIR_STORAGE_VOL_WIPE_ALG_GUTMANN = 4, /* The canonical 35-pass sequence */
     VIR_STORAGE_VOL_WIPE_ALG_SCHNEIER = 5, /* 7-pass method described by
-                                             Bruce Schneier in "Applied
-                                             Cryptography" (1996) */
+                                              Bruce Schneier in "Applied
+                                              Cryptography" (1996) */
     VIR_STORAGE_VOL_WIPE_ALG_PFITZNER7 = 6, /* 7-pass random */
 
     VIR_STORAGE_VOL_WIPE_ALG_PFITZNER33 = 7, /* 33-pass random */
@@ -2734,12 +2834,12 @@ typedef enum {
     VIR_STORAGE_VOL_WIPE_ALG_RANDOM = 8, /* 1-pass random */
 
 #ifdef VIR_ENUM_SENTINELS
+    VIR_STORAGE_VOL_WIPE_ALG_LAST
     /*
      * NB: this enum value will increase over time as new algorithms are
      * added to the libvirt API. It reflects the last algorithm supported
      * by this version of the libvirt API.
      */
-    VIR_STORAGE_VOL_WIPE_ALG_LAST
 #endif
 } virStorageVolWipeAlgorithm;
 
@@ -2899,6 +2999,10 @@ virStorageVolPtr        virStorageVolLookupByPath       (virConnectPtr conn,
 const char*             virStorageVolGetName            (virStorageVolPtr vol);
 const char*             virStorageVolGetKey             (virStorageVolPtr vol);
 
+typedef enum {
+    VIR_STORAGE_VOL_CREATE_PREALLOC_METADATA = 1 << 0,
+} virStorageVolCreateFlags;
+
 virStorageVolPtr        virStorageVolCreateXML          (virStoragePoolPtr pool,
                                                          const char *xmldesc,
                                                          unsigned int flags);
@@ -2962,12 +3066,12 @@ typedef enum {
     VIR_KEYCODE_SET_RFB            = 9,
 
 #ifdef VIR_ENUM_SENTINELS
+    VIR_KEYCODE_SET_LAST
     /*
      * NB: this enum value will increase over time as new events are
      * added to the libvirt API. It reflects the last keycode set supported
      * by this version of the libvirt API.
      */
-    VIR_KEYCODE_SET_LAST
 #endif
 } virKeycodeSet;
 
@@ -2984,6 +3088,99 @@ int virDomainSendKey(virDomainPtr domain,
                      unsigned int *keycodes,
                      int nkeycodes,
                      unsigned int flags);
+
+/*
+ * These just happen to match Linux signal numbers. The numbers
+ * will be mapped to whatever the SIGNUM is in the guest OS in
+ * question by the agent delivering the signal. The names are
+ * based on the POSIX / XSI signal standard though.
+ *
+ * Do not rely on all values matching Linux though. It is possible
+ * this enum might be extended with new signals which have no
+ * mapping in Linux.
+ */
+typedef enum {
+    VIR_DOMAIN_PROCESS_SIGNAL_NOP        =  0, /* No constant in POSIX/Linux */
+    VIR_DOMAIN_PROCESS_SIGNAL_HUP        =  1, /* SIGHUP */
+    VIR_DOMAIN_PROCESS_SIGNAL_INT        =  2, /* SIGINT */
+    VIR_DOMAIN_PROCESS_SIGNAL_QUIT       =  3, /* SIGQUIT */
+    VIR_DOMAIN_PROCESS_SIGNAL_ILL        =  4, /* SIGILL */
+    VIR_DOMAIN_PROCESS_SIGNAL_TRAP       =  5, /* SIGTRAP */
+    VIR_DOMAIN_PROCESS_SIGNAL_ABRT       =  6, /* SIGABRT */
+    VIR_DOMAIN_PROCESS_SIGNAL_BUS        =  7, /* SIGBUS */
+    VIR_DOMAIN_PROCESS_SIGNAL_FPE        =  8, /* SIGFPE */
+    VIR_DOMAIN_PROCESS_SIGNAL_KILL       =  9, /* SIGKILL */
+
+    VIR_DOMAIN_PROCESS_SIGNAL_USR1       = 10, /* SIGUSR1 */
+    VIR_DOMAIN_PROCESS_SIGNAL_SEGV       = 11, /* SIGSEGV */
+    VIR_DOMAIN_PROCESS_SIGNAL_USR2       = 12, /* SIGUSR2 */
+    VIR_DOMAIN_PROCESS_SIGNAL_PIPE       = 13, /* SIGPIPE */
+    VIR_DOMAIN_PROCESS_SIGNAL_ALRM       = 14, /* SIGALRM */
+    VIR_DOMAIN_PROCESS_SIGNAL_TERM       = 15, /* SIGTERM */
+    VIR_DOMAIN_PROCESS_SIGNAL_STKFLT     = 16, /* Not in POSIX (SIGSTKFLT on Linux )*/
+    VIR_DOMAIN_PROCESS_SIGNAL_CHLD       = 17, /* SIGCHLD */
+    VIR_DOMAIN_PROCESS_SIGNAL_CONT       = 18, /* SIGCONT */
+    VIR_DOMAIN_PROCESS_SIGNAL_STOP       = 19, /* SIGSTOP */
+
+    VIR_DOMAIN_PROCESS_SIGNAL_TSTP       = 20, /* SIGTSTP */
+    VIR_DOMAIN_PROCESS_SIGNAL_TTIN       = 21, /* SIGTTIN */
+    VIR_DOMAIN_PROCESS_SIGNAL_TTOU       = 22, /* SIGTTOU */
+    VIR_DOMAIN_PROCESS_SIGNAL_URG        = 23, /* SIGURG */
+    VIR_DOMAIN_PROCESS_SIGNAL_XCPU       = 24, /* SIGXCPU */
+    VIR_DOMAIN_PROCESS_SIGNAL_XFSZ       = 25, /* SIGXFSZ */
+    VIR_DOMAIN_PROCESS_SIGNAL_VTALRM     = 26, /* SIGVTALRM */
+    VIR_DOMAIN_PROCESS_SIGNAL_PROF       = 27, /* SIGPROF */
+    VIR_DOMAIN_PROCESS_SIGNAL_WINCH      = 28, /* Not in POSIX (SIGWINCH on Linux) */
+    VIR_DOMAIN_PROCESS_SIGNAL_POLL       = 29, /* SIGPOLL (also known as SIGIO on Linux) */
+
+    VIR_DOMAIN_PROCESS_SIGNAL_PWR        = 30, /* Not in POSIX (SIGPWR on Linux) */
+    VIR_DOMAIN_PROCESS_SIGNAL_SYS        = 31, /* SIGSYS (also known as SIGUNUSED on Linux) */
+    VIR_DOMAIN_PROCESS_SIGNAL_RT0        = 32, /* SIGRTMIN */
+    VIR_DOMAIN_PROCESS_SIGNAL_RT1        = 33, /* SIGRTMIN + 1 */
+    VIR_DOMAIN_PROCESS_SIGNAL_RT2        = 34, /* SIGRTMIN + 2 */
+    VIR_DOMAIN_PROCESS_SIGNAL_RT3        = 35, /* SIGRTMIN + 3 */
+    VIR_DOMAIN_PROCESS_SIGNAL_RT4        = 36, /* SIGRTMIN + 4 */
+    VIR_DOMAIN_PROCESS_SIGNAL_RT5        = 37, /* SIGRTMIN + 5 */
+    VIR_DOMAIN_PROCESS_SIGNAL_RT6        = 38, /* SIGRTMIN + 6 */
+    VIR_DOMAIN_PROCESS_SIGNAL_RT7        = 39, /* SIGRTMIN + 7 */
+
+    VIR_DOMAIN_PROCESS_SIGNAL_RT8        = 40, /* SIGRTMIN + 8 */
+    VIR_DOMAIN_PROCESS_SIGNAL_RT9        = 41, /* SIGRTMIN + 9 */
+    VIR_DOMAIN_PROCESS_SIGNAL_RT10       = 42, /* SIGRTMIN + 10 */
+    VIR_DOMAIN_PROCESS_SIGNAL_RT11       = 43, /* SIGRTMIN + 11 */
+    VIR_DOMAIN_PROCESS_SIGNAL_RT12       = 44, /* SIGRTMIN + 12 */
+    VIR_DOMAIN_PROCESS_SIGNAL_RT13       = 45, /* SIGRTMIN + 13 */
+    VIR_DOMAIN_PROCESS_SIGNAL_RT14       = 46, /* SIGRTMIN + 14 */
+    VIR_DOMAIN_PROCESS_SIGNAL_RT15       = 47, /* SIGRTMIN + 15 */
+    VIR_DOMAIN_PROCESS_SIGNAL_RT16       = 48, /* SIGRTMIN + 16 */
+    VIR_DOMAIN_PROCESS_SIGNAL_RT17       = 49, /* SIGRTMIN + 17 */
+
+    VIR_DOMAIN_PROCESS_SIGNAL_RT18       = 50, /* SIGRTMIN + 18 */
+    VIR_DOMAIN_PROCESS_SIGNAL_RT19       = 51, /* SIGRTMIN + 19 */
+    VIR_DOMAIN_PROCESS_SIGNAL_RT20       = 52, /* SIGRTMIN + 20 */
+    VIR_DOMAIN_PROCESS_SIGNAL_RT21       = 53, /* SIGRTMIN + 21 */
+    VIR_DOMAIN_PROCESS_SIGNAL_RT22       = 54, /* SIGRTMIN + 22 */
+    VIR_DOMAIN_PROCESS_SIGNAL_RT23       = 55, /* SIGRTMIN + 23 */
+    VIR_DOMAIN_PROCESS_SIGNAL_RT24       = 56, /* SIGRTMIN + 24 */
+    VIR_DOMAIN_PROCESS_SIGNAL_RT25       = 57, /* SIGRTMIN + 25 */
+    VIR_DOMAIN_PROCESS_SIGNAL_RT26       = 58, /* SIGRTMIN + 26 */
+    VIR_DOMAIN_PROCESS_SIGNAL_RT27       = 59, /* SIGRTMIN + 27 */
+
+    VIR_DOMAIN_PROCESS_SIGNAL_RT28       = 60, /* SIGRTMIN + 28 */
+    VIR_DOMAIN_PROCESS_SIGNAL_RT29       = 61, /* SIGRTMIN + 29 */
+    VIR_DOMAIN_PROCESS_SIGNAL_RT30       = 62, /* SIGRTMIN + 30 */
+    VIR_DOMAIN_PROCESS_SIGNAL_RT31       = 63, /* SIGRTMIN + 31 */
+    VIR_DOMAIN_PROCESS_SIGNAL_RT32       = 64, /* SIGRTMIN + 32 / SIGRTMAX */
+
+#ifdef VIR_ENUM_SENTINELS
+    VIR_DOMAIN_PROCESS_SIGNAL_LAST
+#endif
+} virDomainProcessSignal;
+
+int virDomainSendProcessSignal(virDomainPtr domain,
+                               long long pid_value,
+                               unsigned int signum,
+                               unsigned int flags);
 
 /*
  * Deprecated calls
@@ -3008,10 +3205,9 @@ typedef struct _virNodeDevice virNodeDevice;
  * virNodeDevicePtr:
  *
  * A virNodeDevicePtr is a pointer to a virNodeDevice structure.  Get
- * one via virNodeDeviceLookupByKey, virNodeDeviceLookupByName, or
- * virNodeDeviceCreate.  Be sure to Call virNodeDeviceFree when done
- * using a virNodeDevicePtr obtained from any of the above functions to
- * avoid leaking memory.
+ * one via virNodeDeviceLookupByName, or virNodeDeviceCreate.  Be sure
+ * to call virNodeDeviceFree when done using a virNodeDevicePtr obtained
+ * from any of the above functions to avoid leaking memory.
  */
 
 typedef virNodeDevice *virNodeDevicePtr;
@@ -3158,6 +3354,7 @@ typedef enum {
     VIR_DOMAIN_EVENT_SUSPENDED_WATCHDOG = 3,  /* Suspended due to a watchdog firing */
     VIR_DOMAIN_EVENT_SUSPENDED_RESTORED = 4,  /* Restored from paused state file */
     VIR_DOMAIN_EVENT_SUSPENDED_FROM_SNAPSHOT = 5, /* Restored from paused snapshot */
+    VIR_DOMAIN_EVENT_SUSPENDED_API_ERROR = 6, /* suspended after failure during libvirt API call */
 
 #ifdef VIR_ENUM_SENTINELS
     VIR_DOMAIN_EVENT_SUSPENDED_LAST
@@ -3428,12 +3625,12 @@ typedef enum {
     VIR_SECRET_USAGE_TYPE_CEPH = 2,
 
 #ifdef VIR_ENUM_SENTINELS
+    VIR_SECRET_USAGE_TYPE_LAST
     /*
      * NB: this enum value will increase over time as new events are
      * added to the libvirt API. It reflects the last secret owner ID
      * supported by this version of the libvirt API.
      */
-    VIR_SECRET_USAGE_TYPE_LAST
 #endif
 } virSecretUsageType;
 
@@ -3451,12 +3648,12 @@ int                     virConnectListSecrets   (virConnectPtr conn,
  */
 typedef enum {
     VIR_CONNECT_LIST_SECRETS_EPHEMERAL    = 1 << 0, /* kept in memory, never
-                                                      stored persistently */
+                                                       stored persistently */
     VIR_CONNECT_LIST_SECRETS_NO_EPHEMERAL = 1 << 1,
 
     VIR_CONNECT_LIST_SECRETS_PRIVATE      = 1 << 2, /* not revealed to any caller
-                                                      of libvirt, nor to any other
-                                                      node */
+                                                       of libvirt, nor to any other
+                                                       node */
     VIR_CONNECT_LIST_SECRETS_NO_PRIVATE   = 1 << 3,
 } virConnectListAllSecretsFlags;
 
@@ -3770,6 +3967,9 @@ typedef enum {
                                                           the domain */
     VIR_DOMAIN_SNAPSHOT_CREATE_ATOMIC      = (1 << 7), /* atomically avoid
                                                           partial changes */
+    VIR_DOMAIN_SNAPSHOT_CREATE_LIVE        = (1 << 8), /* create the snapshot
+                                                          while the guest is
+                                                          running */
 } virDomainSnapshotCreateFlags;
 
 /* Take a snapshot of the current VM state */
@@ -3811,6 +4011,25 @@ typedef enum {
                                                         which have metadata */
     VIR_DOMAIN_SNAPSHOT_LIST_NO_METADATA = (1 << 4), /* Filter by snapshots
                                                         with no metadata */
+
+    VIR_DOMAIN_SNAPSHOT_LIST_INACTIVE    = (1 << 5), /* Filter by snapshots
+                                                        taken while guest was
+                                                        shut off */
+    VIR_DOMAIN_SNAPSHOT_LIST_ACTIVE      = (1 << 6), /* Filter by snapshots
+                                                        taken while guest was
+                                                        active, and with
+                                                        memory state */
+    VIR_DOMAIN_SNAPSHOT_LIST_DISK_ONLY   = (1 << 7), /* Filter by snapshots
+                                                        taken while guest was
+                                                        active, but without
+                                                        memory state */
+
+    VIR_DOMAIN_SNAPSHOT_LIST_INTERNAL    = (1 << 8), /* Filter by snapshots
+                                                        stored internal to
+                                                        disk images */
+    VIR_DOMAIN_SNAPSHOT_LIST_EXTERNAL    = (1 << 9), /* Filter by snapshots
+                                                        that use files external
+                                                        to disk images */
 } virDomainSnapshotListFlags;
 
 /* Return the number of snapshots for this domain */
@@ -4178,12 +4397,12 @@ typedef enum {
  * VIR_DOMAIN_EVENT_ID_DISK_CHANGE with virConnectDomainEventRegisterAny()
  */
 typedef void (*virConnectDomainEventDiskChangeCallback)(virConnectPtr conn,
-                                                       virDomainPtr dom,
-                                                       const char *oldSrcPath,
-                                                       const char *newSrcPath,
-                                                       const char *devAlias,
-                                                       int reason,
-                                                       void *opaque);
+                                                        virDomainPtr dom,
+                                                        const char *oldSrcPath,
+                                                        const char *newSrcPath,
+                                                        const char *devAlias,
+                                                        int reason,
+                                                        void *opaque);
 
 /**
  * virConnectDomainEventTrayChangeReason:
@@ -4316,12 +4535,12 @@ typedef enum {
     VIR_DOMAIN_EVENT_ID_PMSUSPEND_DISK = 14, /* virConnectDomainEventPMSuspendDiskCallback */
 
 #ifdef VIR_ENUM_SENTINELS
+    VIR_DOMAIN_EVENT_ID_LAST
     /*
      * NB: this enum value will increase over time as new events are
      * added to the libvirt API. It reflects the last event ID supported
      * by this version of the libvirt API.
      */
-    VIR_DOMAIN_EVENT_ID_LAST
 #endif
 } virDomainEventID;
 
@@ -4420,6 +4639,22 @@ int virDomainOpenConsole(virDomainPtr dom,
                          virStreamPtr st,
                          unsigned int flags);
 
+/**
+ * virDomainChannelFlags
+ *
+ * Since 1.0.2
+ */
+typedef enum {
+    VIR_DOMAIN_CHANNEL_FORCE = (1 << 0), /* abort a (possibly) active channel
+                                            connection to force a new
+                                            connection */
+} virDomainChannelFlags;
+
+int virDomainOpenChannel(virDomainPtr dom,
+                         const char *name,
+                         virStreamPtr st,
+                         unsigned int flags);
+
 typedef enum {
     VIR_DOMAIN_OPEN_GRAPHICS_SKIPAUTH = (1 << 0),
 } virDomainOpenGraphicsFlags;
@@ -4431,6 +4666,10 @@ int virDomainOpenGraphics(virDomainPtr dom,
 
 int virDomainInjectNMI(virDomainPtr domain, unsigned int flags);
 
+int virDomainFSTrim(virDomainPtr dom,
+                    const char *mountPoint,
+                    unsigned long long minimum,
+                    unsigned int flags);
 
 /**
  * virSchedParameterType:

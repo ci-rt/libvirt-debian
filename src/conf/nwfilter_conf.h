@@ -28,10 +28,10 @@
 
 # include "internal.h"
 
-# include "util.h"
+# include "virutil.h"
 # include "virhash.h"
-# include "xml.h"
-# include "buf.h"
+# include "virxml.h"
+# include "virbuffer.h"
 # include "virsocketaddr.h"
 # include "virmacaddr.h"
 
@@ -556,6 +556,7 @@ typedef struct _virNWFilterDriverState virNWFilterDriverState;
 typedef virNWFilterDriverState *virNWFilterDriverStatePtr;
 struct _virNWFilterDriverState {
     virMutex lock;
+    bool privileged;
 
     virNWFilterObjList nwfilters;
 

@@ -38,9 +38,9 @@
 
 #include "internal.h"
 
-#include "uuid.h"
-#include "memory.h"
-#include "virterror_internal.h"
+#include "viruuid.h"
+#include "viralloc.h"
+#include "virerror.h"
 #include "datatypes.h"
 #include "nwfilter_params.h"
 #include "nwfilter_conf.h"
@@ -135,7 +135,7 @@ static const struct int_map chain_priorities[] = {
     INTMAP_ENTRY(NWFILTER_VLAN_FILTER_PRI, "vlan"),
     INTMAP_ENTRY(NWFILTER_IPV4_FILTER_PRI, "ipv4"),
     INTMAP_ENTRY(NWFILTER_IPV6_FILTER_PRI, "ipv6"),
-    INTMAP_ENTRY(NWFILTER_ARP_FILTER_PRI , "arp" ),
+    INTMAP_ENTRY(NWFILTER_ARP_FILTER_PRI , "arp"),
     INTMAP_ENTRY(NWFILTER_RARP_FILTER_PRI, "rarp"),
     INTMAP_ENTRY_LAST,
 };
@@ -259,8 +259,8 @@ intMapGetByString(const struct int_map *intmap, const char *str, int casecmp,
     bool found = false;
 
     while (intmap[i].val && !found) {
-        if ( (casecmp && STRCASEEQ(intmap[i].val, str)) ||
-                         STREQ    (intmap[i].val, str)    ) {
+        if ((casecmp && STRCASEEQ(intmap[i].val, str)) ||
+            STREQ(intmap[i].val, str)) {
             *result = intmap[i].attr;
             found = true;
         }
@@ -938,7 +938,7 @@ tcpFlagsValidator(enum attrDatatype datatype ATTRIBUTE_UNUSED, union data *val,
     *sep = '\0';
 
     if (parseStringItems(tcpFlags, s_mask , &mask , ',') == 0 &&
-        parseStringItems(tcpFlags, s_flags, &flags, ',') == 0 ) {
+        parseStringItems(tcpFlags, s_flags, &flags, ',') == 0) {
         item->u.tcpFlags.mask  = mask  & 0x3f;
         item->u.tcpFlags.flags = flags & 0x3f;
         rc = true;

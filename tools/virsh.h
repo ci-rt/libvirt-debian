@@ -34,8 +34,8 @@
 # include <inttypes.h>
 
 # include "internal.h"
-# include "virterror_internal.h"
-# include "threads.h"
+# include "virerror.h"
+# include "virthread.h"
 # include "virnetdevbandwidth.h"
 
 # define VSH_MAX_XML_FILE (10*1024*1024)
@@ -346,6 +346,7 @@ struct _vshCtrlData {
 extern virErrorPtr last_error;
 void vshReportError(vshControl *ctl);
 void vshResetLibvirtError(void);
+void vshSaveLibvirtError(void);
 
 /* allocation wrappers */
 void *_vshMalloc(vshControl *ctl, size_t sz, const char *filename, int line);

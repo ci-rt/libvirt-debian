@@ -22,7 +22,7 @@
 #ifndef __VIR_DBUS_H__
 # define __VIR_DBUS_H__
 
-# ifdef HAVE_DBUS
+# ifdef WITH_DBUS
 #  include <dbus/dbus.h>
 # else
 #  define DBusConnection void
@@ -30,5 +30,6 @@
 # include "internal.h"
 
 DBusConnection *virDBusGetSystemBus(void);
+DBusConnection *virDBusGetSessionBus(void);
 
 #endif /* __VIR_DBUS_H__ */
