@@ -1,3 +1,12 @@
+libvirt (1.0.2-1) experimental; urgency=low
+
+  * [7adf6b4] New upstream version 1.0.2
+  * [1156772] Drop Don-t-fail-the-build-without-libcurl-and-esx.patch
+    applied upstream
+  * [5d66d5a] Rediff patches
+
+ -- Guido Günther <agx@sigxcpu.org>  Wed, 30 Jan 2013 21:06:02 +0100
+
 libvirt (1.0.2~rc1-1) experimental; urgency=low
 
   * [5ce607c] Make python-libvirt depend on the exact same libvirt0 version
