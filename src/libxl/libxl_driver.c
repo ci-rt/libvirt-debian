@@ -59,18 +59,45 @@
 /* Number of Xen scheduler parameters */
 #define XEN_SCHED_CREDIT_NPARAM   2
 
-struct libxlOSEventHookFDInfo {
-    libxlDomainObjPrivatePtr priv;
-    void *xl_priv;
-    int watch;
-};
+/* Append an event registration to the list of registrations */
+#define LIBXL_EV_REG_APPEND(head, add)                 \
+    do {                                               \
+        libxlEventHookInfoPtr temp;                    \
+        if (head) {                                    \
+            temp = head;                               \
+            while (temp->next)                         \
+                temp = temp->next;                     \
+            temp->next = add;                          \
+        } else {                                       \
+            head = add;                                \
+        }                                              \
+    } while (0)
 
-struct libxlOSEventHookTimerInfo {
+/* Remove an event registration from the list of registrations */
+#define LIBXL_EV_REG_REMOVE(head, del)                 \
+    do {                                               \
+        libxlEventHookInfoPtr temp;                    \
+        if (head == del) {                             \
+            head = head->next;                         \
+        } else {                                       \
+            temp = head;                               \
+            while (temp->next && temp->next != del)    \
+                temp = temp->next;                     \
+            if (temp->next) {                          \
+                temp->next = del->next;                \
+            }                                          \
+        }                                              \
+    } while (0)
+
+/* Object used to store info related to libxl event registrations */
+struct _libxlEventHookInfo {
+    libxlEventHookInfoPtr next;
     libxlDomainObjPrivatePtr priv;
     void *xl_priv;
     int id;
 };
 
+static virClassPtr libxlDomainObjPrivateClass;
 static libxlDriverPrivatePtr libxl_driver = NULL;
 
 /* Function declarations */
@@ -84,6 +111,20 @@ libxlVmStart(libxlDriverPrivatePtr driver, virDomainObjPtr vm,
              bool start_paused, int restore_fd);
 
 /* Function definitions */
+static int
+libxlDomainObjPrivateOnceInit(void)
+{
+    if (!(libxlDomainObjPrivateClass = virClassNew(virClassForObjectLockable(),
+                                                   "libxlDomainObjPrivate",
+                                                   sizeof(libxlDomainObjPrivate),
+                                                   NULL)))
+        return -1;
+
+    return 0;
+}
+
+VIR_ONCE_GLOBAL_INIT(libxlDomainObjPrivate)
+
 static void
 libxlDriverLock(libxlDriverPrivatePtr driver)
 {
@@ -97,14 +138,25 @@ libxlDriverUnlock(libxlDriverPrivatePtr driver)
 }
 
 static void
+libxlEventHookInfoFree(void *obj)
+{
+    libxlEventHookInfoPtr info = obj;
+
+    /* Drop reference on libxlDomainObjPrivate */
+    virObjectUnref(info->priv);
+    VIR_FREE(info);
+}
+
+static void
 libxlFDEventCallback(int watch ATTRIBUTE_UNUSED,
                      int fd,
                      int vir_events,
                      void *fd_info)
 {
-    struct libxlOSEventHookFDInfo *info = fd_info;
+    libxlEventHookInfoPtr info = fd_info;
     int events = 0;
 
+    virObjectLock(info->priv);
     if (vir_events & VIR_EVENT_HANDLE_READABLE)
         events |= POLLIN;
     if (vir_events & VIR_EVENT_HANDLE_WRITABLE)
@@ -114,13 +166,8 @@ libxlFDEventCallback(int watch ATTRIBUTE_UNUSED,
     if (vir_events & VIR_EVENT_HANDLE_HANGUP)
         events |= POLLHUP;
 
+    virObjectUnlock(info->priv);
     libxl_osevent_occurred_fd(info->priv->ctx, info->xl_priv, fd, 0, events);
-}
-
-static void
-libxlFreeFDInfo(void *obj)
-{
-    VIR_FREE(obj);
 }
 
 static int
@@ -128,27 +175,34 @@ libxlFDRegisterEventHook(void *priv, int fd, void **hndp,
                          short events, void *xl_priv)
 {
     int vir_events = VIR_EVENT_HANDLE_ERROR;
-    struct libxlOSEventHookFDInfo *fdinfo;
+    libxlEventHookInfoPtr info;
 
-    if (VIR_ALLOC(fdinfo) < 0) {
+    if (VIR_ALLOC(info) < 0) {
         virReportOOMError();
         return -1;
     }
-
-    fdinfo->priv = priv;
-    fdinfo->xl_priv = xl_priv;
-    *hndp = fdinfo;
 
     if (events & POLLIN)
         vir_events |= VIR_EVENT_HANDLE_READABLE;
     if (events & POLLOUT)
         vir_events |= VIR_EVENT_HANDLE_WRITABLE;
-    fdinfo->watch = virEventAddHandle(fd, vir_events, libxlFDEventCallback,
-                                      fdinfo, libxlFreeFDInfo);
-    if (fdinfo->watch < 0) {
-        VIR_FREE(fdinfo);
-        return fdinfo->watch;
+    info->id = virEventAddHandle(fd, vir_events, libxlFDEventCallback,
+                                 info, libxlEventHookInfoFree);
+    if (info->id < 0) {
+        VIR_FREE(info);
+        return -1;
     }
+
+    info->priv = priv;
+    /*
+     * Take a reference on the domain object.  Reference is dropped in
+     * libxlEventHookInfoFree, ensuring the domain object outlives the fd
+     * event objects.
+     */
+    virObjectRef(info->priv);
+
+    info->xl_priv = xl_priv;
+    *hndp = info;
 
     return 0;
 }
@@ -159,15 +213,18 @@ libxlFDModifyEventHook(void *priv ATTRIBUTE_UNUSED,
                        void **hndp,
                        short events)
 {
-    struct libxlOSEventHookFDInfo *fdinfo = *hndp;
+    libxlEventHookInfoPtr info = *hndp;
     int vir_events = VIR_EVENT_HANDLE_ERROR;
 
+    virObjectLock(info->priv);
     if (events & POLLIN)
         vir_events |= VIR_EVENT_HANDLE_READABLE;
     if (events & POLLOUT)
         vir_events |= VIR_EVENT_HANDLE_WRITABLE;
 
-    virEventUpdateHandle(fdinfo->watch, vir_events);
+    virEventUpdateHandle(info->id, vir_events);
+    virObjectUnlock(info->priv);
+
     return 0;
 }
 
@@ -176,23 +233,38 @@ libxlFDDeregisterEventHook(void *priv ATTRIBUTE_UNUSED,
                            int fd ATTRIBUTE_UNUSED,
                            void *hnd)
 {
-    struct libxlOSEventHookFDInfo *fdinfo = hnd;
+    libxlEventHookInfoPtr info = hnd;
+    libxlDomainObjPrivatePtr p = info->priv;
 
-    virEventRemoveHandle(fdinfo->watch);
+    virObjectLock(p);
+    virEventRemoveHandle(info->id);
+    virObjectUnlock(p);
 }
 
 static void
 libxlTimerCallback(int timer ATTRIBUTE_UNUSED, void *timer_info)
 {
-    struct libxlOSEventHookTimerInfo *info = timer_info;
+    libxlEventHookInfoPtr info = timer_info;
+    libxlDomainObjPrivatePtr p = info->priv;
 
-    libxl_osevent_occurred_timeout(info->priv->ctx, info->xl_priv);
-}
-
-static void
-libxlTimerInfoFree(void* obj)
-{
-    VIR_FREE(obj);
+    virObjectLock(p);
+    /*
+     * libxl expects the event to be deregistered when calling
+     * libxl_osevent_occurred_timeout, but we dont want the event info
+     * destroyed.  Disable the timeout and only remove it after returning
+     * from libxl.
+     */
+    virEventUpdateTimeout(info->id, -1);
+    virObjectUnlock(p);
+    libxl_osevent_occurred_timeout(p->ctx, info->xl_priv);
+    virObjectLock(p);
+    /*
+     * Timeout could have been freed while the lock was dropped.
+     * Only remove it from the list if it still exists.
+     */
+    if (virEventRemoveTimeout(info->id) == 0)
+        LIBXL_EV_REG_REMOVE(p->timerRegistrations, info);
+    virObjectUnlock(p);
 }
 
 static int
@@ -201,45 +273,73 @@ libxlTimeoutRegisterEventHook(void *priv,
                               struct timeval abs_t,
                               void *xl_priv)
 {
+    libxlEventHookInfoPtr info;
     struct timeval now;
-    struct libxlOSEventHookTimerInfo *timer_info;
-    int timeout, timer_id;
+    struct timeval res;
+    static struct timeval zero;
+    int timeout;
 
-    if (VIR_ALLOC(timer_info) < 0) {
+    if (VIR_ALLOC(info) < 0) {
         virReportOOMError();
         return -1;
     }
 
     gettimeofday(&now, NULL);
-    timeout = (abs_t.tv_usec - now.tv_usec) / 1000;
-    timeout += (abs_t.tv_sec - now.tv_sec) * 1000;
-    timer_id = virEventAddTimeout(timeout, libxlTimerCallback,
-                                  timer_info, libxlTimerInfoFree);
-    if (timer_id < 0) {
-        VIR_FREE(timer_info);
-        return timer_id;
+    timersub(&abs_t, &now, &res);
+    /* Ensure timeout is not overflowed */
+    if (timercmp(&res, &zero, <)) {
+        timeout = 0;
+    } else if (res.tv_sec > INT_MAX / 1000) {
+        timeout = INT_MAX;
+    } else {
+        timeout = res.tv_sec * 1000 + (res.tv_usec + 999) / 1000;
+    }
+    info->id = virEventAddTimeout(timeout, libxlTimerCallback,
+                                  info, libxlEventHookInfoFree);
+    if (info->id < 0) {
+        VIR_FREE(info);
+        return -1;
     }
 
-    timer_info->priv = priv;
-    timer_info->xl_priv = xl_priv;
-    timer_info->id = timer_id;
-    *hndp = timer_info;
+    info->priv = priv;
+    /*
+     * Also take a reference on the domain object.  Reference is dropped in
+     * libxlEventHookInfoFree, ensuring the domain object outlives the timeout
+     * event objects.
+     */
+    virObjectRef(info->priv);
+
+    virObjectLock(info->priv);
+    LIBXL_EV_REG_APPEND(info->priv->timerRegistrations, info);
+    virObjectUnlock(info->priv);
+    info->xl_priv = xl_priv;
+    *hndp = info;
+
     return 0;
 }
 
+/*
+ * Note:  There are two changes wrt timeouts starting with xen-unstable
+ * changeset 26469:
+ *
+ * 1. Timeout modify callbacks will only be invoked with an abs_t of {0,0},
+ * i.e. make the timeout fire immediately.  Prior to this commit, timeout
+ * modify callbacks were never invoked.
+ *
+ * 2. Timeout deregister hooks will no longer be called.
+ */
 static int
 libxlTimeoutModifyEventHook(void *priv ATTRIBUTE_UNUSED,
                             void **hndp,
-                            struct timeval abs_t)
+                            struct timeval abs_t ATTRIBUTE_UNUSED)
 {
-    struct timeval now;
-    int timeout;
-    struct libxlOSEventHookTimerInfo *timer_info = *hndp;
+    libxlEventHookInfoPtr info = *hndp;
 
-    gettimeofday(&now, NULL);
-    timeout = (abs_t.tv_usec - now.tv_usec) / 1000;
-    timeout += (abs_t.tv_sec - now.tv_sec) * 1000;
-    virEventUpdateTimeout(timer_info->id, timeout);
+    virObjectLock(info->priv);
+    /* Make the timeout fire */
+    virEventUpdateTimeout(info->id, 0);
+    virObjectUnlock(info->priv);
+
     return 0;
 }
 
@@ -247,9 +347,40 @@ static void
 libxlTimeoutDeregisterEventHook(void *priv ATTRIBUTE_UNUSED,
                                 void *hnd)
 {
-    struct libxlOSEventHookTimerInfo *timer_info = hnd;
+    libxlEventHookInfoPtr info = hnd;
+    libxlDomainObjPrivatePtr p = info->priv;
 
-    virEventRemoveTimeout(timer_info->id);
+    virObjectLock(p);
+    /*
+     * Only remove the timeout from the list if removal from the
+     * event loop is successful.
+     */
+    if (virEventRemoveTimeout(info->id) == 0)
+        LIBXL_EV_REG_REMOVE(p->timerRegistrations, info);
+    virObjectUnlock(p);
+}
+
+static void
+libxlRegisteredTimeoutsCleanup(libxlDomainObjPrivatePtr priv)
+{
+    libxlEventHookInfoPtr info;
+
+    virObjectLock(priv);
+    info = priv->timerRegistrations;
+    while (info) {
+        /*
+         * libxl expects the event to be deregistered when calling
+         * libxl_osevent_occurred_timeout, but we dont want the event info
+         * destroyed.  Disable the timeout and only remove it after returning
+         * from libxl.
+         */
+        virEventUpdateTimeout(info->id, -1);
+        libxl_osevent_occurred_timeout(priv->ctx, info->xl_priv);
+        virEventRemoveTimeout(info->id);
+        info = info->next;
+    }
+    priv->timerRegistrations = NULL;
+    virObjectUnlock(priv);
 }
 
 static const libxl_osevent_hooks libxl_event_callbacks = {
@@ -266,12 +397,15 @@ libxlDomainObjPrivateAlloc(void)
 {
     libxlDomainObjPrivatePtr priv;
 
-    if (VIR_ALLOC(priv) < 0)
+    if (libxlDomainObjPrivateInitialize() < 0)
+        return NULL;
+
+    if (!(priv = virObjectLockableNew(libxlDomainObjPrivateClass)))
         return NULL;
 
     if (libxl_ctx_alloc(&priv->ctx, LIBXL_VERSION, 0, libxl_driver->logger)) {
         VIR_ERROR(_("Failed libxl context initialization"));
-        VIR_FREE(priv);
+        virObjectUnref(priv);
         return NULL;
     }
 
@@ -289,7 +423,7 @@ libxlDomainObjPrivateFree(void *data)
         libxl_evdisable_domain_death(priv->ctx, priv->deathW);
 
     libxl_ctx_free(priv->ctx);
-    VIR_FREE(priv);
+    virObjectUnref(priv);
 }
 
 /* driver must be locked before calling */
@@ -502,6 +636,8 @@ libxlVmCleanup(libxlDriverPrivatePtr driver,
         vm->def->id = -1;
         vm->newDef = NULL;
     }
+
+    libxlRegisteredTimeoutsCleanup(priv);
 }
 
 /*
@@ -530,26 +666,34 @@ libxlVmReap(libxlDriverPrivatePtr driver,
  * Handle previously registered event notification from libxenlight
  */
 static void
-libxlEventHandler(void *data, const libxl_event *event)
+libxlEventHandler(void *data ATTRIBUTE_UNUSED, const libxl_event *event)
 {
     libxlDriverPrivatePtr driver = libxl_driver;
-    virDomainObjPtr vm = data;
+    virDomainObjPtr vm = NULL;
     virDomainEventPtr dom_event = NULL;
-
-    libxlDriverLock(driver);
-    virObjectLock(vm);
-    libxlDriverUnlock(driver);
+    libxl_shutdown_reason xl_reason = event->u.domain_shutdown.shutdown_reason;
 
     if (event->type == LIBXL_EVENT_TYPE_DOMAIN_SHUTDOWN) {
         virDomainShutoffReason reason;
 
-        if (event->domid != vm->def->id)
+        /*
+         * Similar to the xl implementation, ignore SUSPEND.  Any actions needed
+         * after calling libxl_domain_suspend() are handled by it's callers.
+         */
+        if (xl_reason == LIBXL_SHUTDOWN_REASON_SUSPEND)
             goto cleanup;
 
-        switch (event->u.domain_shutdown.shutdown_reason) {
+        libxlDriverLock(driver);
+        vm = virDomainFindByID(&driver->domains, event->domid);
+        libxlDriverUnlock(driver);
+
+        if (!vm)
+            goto cleanup;
+
+        switch (xl_reason) {
             case LIBXL_SHUTDOWN_REASON_POWEROFF:
             case LIBXL_SHUTDOWN_REASON_CRASH:
-                if (event->u.domain_shutdown.shutdown_reason == LIBXL_SHUTDOWN_REASON_CRASH) {
+                if (xl_reason == LIBXL_SHUTDOWN_REASON_CRASH) {
                     dom_event = virDomainEventNewFromObj(vm,
                                               VIR_DOMAIN_EVENT_STOPPED,
                                               VIR_DOMAIN_EVENT_STOPPED_CRASHED);
@@ -568,7 +712,7 @@ libxlEventHandler(void *data, const libxl_event *event)
                 libxlVmStart(driver, vm, 0, -1);
                 break;
             default:
-                VIR_INFO("Unhandled shutdown_reason %d", event->u.domain_shutdown.shutdown_reason);
+                VIR_INFO("Unhandled shutdown_reason %d", xl_reason);
                 break;
         }
     }
@@ -1992,12 +2136,6 @@ libxlDoDomainSave(libxlDriverPrivatePtr driver, virDomainObjPtr vm,
     }
 
     vm->hasManagedSave = true;
-
-    if (!vm->persistent) {
-        virDomainRemoveInactive(&driver->domains, vm);
-        vm = NULL;
-    }
-
     ret = 0;
 
 cleanup:
@@ -2040,7 +2178,15 @@ libxlDomainSaveFlags(virDomainPtr dom, const char *to, const char *dxml,
         goto cleanup;
     }
 
-    ret = libxlDoDomainSave(driver, vm, to);
+    if (libxlDoDomainSave(driver, vm, to) < 0)
+        goto cleanup;
+
+    if (!vm->persistent) {
+        virDomainRemoveInactive(&driver->domains, vm);
+        vm = NULL;
+    }
+
+    ret = 0;
 
 cleanup:
     if (vm)
@@ -2239,7 +2385,15 @@ libxlDomainManagedSave(virDomainPtr dom, unsigned int flags)
 
     VIR_INFO("Saving state to %s", name);
 
-    ret = libxlDoDomainSave(driver, vm, name);
+    if (libxlDoDomainSave(driver, vm, name) < 0)
+        goto cleanup;
+
+    if (!vm->persistent) {
+        virDomainRemoveInactive(&driver->domains, vm);
+        vm = NULL;
+    }
+
+    ret = 0;
 
 cleanup:
     if (vm)

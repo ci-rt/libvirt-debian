@@ -2849,28 +2849,63 @@ unusual numa topology'/>
     <typedef name='virVcpuInfoPtr' file='libvirt' type='virVcpuInfo *'/>
     <typedef name='virVcpuState' file='libvirt' type='enum'/>
     <variable name='virConnectAuthPtrDefault' file='libvirt' type='virConnectAuthPtr'/>
-    <function name='virConnCopyLastError' file='virterror' module='virterror'>
-      <info><![CDATA[]]></info>
-      <return type='int' info=''/>
-      <arg name='conn' type='virConnectPtr' info=''/>
-      <arg name='to' type='virErrorPtr' info=''/>
+    <function name='virConnCopyLastError' file='virterror' module='virerror'>
+      <info><![CDATA[Copy the content of the last error caught on that connection
+
+This method is not protected against access from multiple
+threads. In a multi-threaded application, always use the
+global virGetLastError() API which is backed by thread
+local storage.
+
+If the connection object was discovered to be invalid by
+an API call, then the error will be reported against the
+global error object.
+
+Since 0.6.0, all errors reported in the per-connection object
+are also duplicated in the global error object. As such an
+application can always use virGetLastError(). This method
+remains for backwards compatibility.
+
+One will need to free the result with virResetError()]]></info>
+      <return type='int' info='0 if no error was found and the error code otherwise and -1 in case of parameter error.'/>
+      <arg name='conn' type='virConnectPtr' info='pointer to the hypervisor connection'/>
+      <arg name='to' type='virErrorPtr' info='target to receive the copy'/>
     </function>
-    <function name='virConnGetLastError' file='virterror' module='virterror'>
-      <info><![CDATA[]]></info>
-      <return type='virErrorPtr' info=''/>
-      <arg name='conn' type='virConnectPtr' info=''/>
+    <function name='virConnGetLastError' file='virterror' module='virerror'>
+      <info><![CDATA[Provide a pointer to the last error caught on that connection
+
+This method is not protected against access from multiple
+threads. In a multi-threaded application, always use the
+global virGetLastError() API which is backed by thread
+local storage.
+
+If the connection object was discovered to be invalid by
+an API call, then the error will be reported against the
+global error object.
+
+Since 0.6.0, all errors reported in the per-connection object
+are also duplicated in the global error object. As such an
+application can always use virGetLastError(). This method
+remains for backwards compatibility.]]></info>
+      <return type='virErrorPtr' info='a pointer to the last error or NULL if none occurred.'/>
+      <arg name='conn' type='virConnectPtr' info='pointer to the hypervisor connection'/>
     </function>
-    <function name='virConnResetLastError' file='virterror' module='virterror'>
-      <info><![CDATA[]]></info>
+    <function name='virConnResetLastError' file='virterror' module='virerror'>
+      <info><![CDATA[The error object is kept in thread local storage, so separate
+threads can safely access this concurrently.
+
+Reset the last error caught on that connection]]></info>
       <return type='void'/>
-      <arg name='conn' type='virConnectPtr' info=''/>
+      <arg name='conn' type='virConnectPtr' info='pointer to the hypervisor connection'/>
     </function>
-    <function name='virConnSetErrorFunc' file='virterror' module='virterror'>
-      <info><![CDATA[]]></info>
+    <function name='virConnSetErrorFunc' file='virterror' module='virerror'>
+      <info><![CDATA[Set a connection error handling function, if @handler is NULL
+it will reset to default which is to pass error back to the global
+library handler.]]></info>
       <return type='void'/>
-      <arg name='conn' type='virConnectPtr' info=''/>
-      <arg name='userData' type='void *' info=''/>
-      <arg name='handler' type='virErrorFunc' info=''/>
+      <arg name='conn' type='virConnectPtr' info='pointer to the hypervisor connection'/>
+      <arg name='userData' type='void *' info='pointer to the user data provided in the handler callback'/>
+      <arg name='handler' type='virErrorFunc' info='the function to get called in case of error or NULL'/>
     </function>
     <functype name='virConnectAuthCallbackPtr' file='libvirt' module='libvirt'>
       <info><![CDATA[When authentication requires one or more interactions, this callback
@@ -3685,15 +3720,20 @@ registration, it will be invoked]]></info>
       <arg name='conn' type='virConnectPtr' info='pointer to connection object'/>
       <arg name='cb' type='virConnectCloseFunc' info='pointer to the current registered callback'/>
     </function>
-    <function name='virCopyLastError' file='virterror' module='virterror'>
-      <info><![CDATA[]]></info>
-      <return type='int' info=''/>
-      <arg name='to' type='virErrorPtr' info=''/>
+    <function name='virCopyLastError' file='virterror' module='virerror'>
+      <info><![CDATA[Copy the content of the last error caught at the library level
+
+The error object is kept in thread local storage, so separate
+threads can safely access this concurrently.
+
+One will need to free the result with virResetError()]]></info>
+      <return type='int' info='0 if no error was found and the error code otherwise and -1 in case of parameter error.'/>
+      <arg name='to' type='virErrorPtr' info='target to receive the copy'/>
     </function>
-    <function name='virDefaultErrorFunc' file='virterror' module='virterror'>
-      <info><![CDATA[]]></info>
+    <function name='virDefaultErrorFunc' file='virterror' module='virerror'>
+      <info><![CDATA[Default routine reporting an error to stderr.]]></info>
       <return type='void'/>
-      <arg name='err' type='virErrorPtr' info=''/>
+      <arg name='err' type='virErrorPtr' info='pointer to the error.'/>
     </function>
     <function name='virDomainAbortJob' file='libvirt' module='libvirt'>
       <info><![CDATA[Requests that the current background job be aborted at the
@@ -6073,12 +6113,22 @@ The data structure is freed and should not be used thereafter.]]></info>
       <arg name='snapshot' type='virDomainSnapshotPtr' info='a domain snapshot object'/>
     </function>
     <function name='virDomainSnapshotGetConnect' file='libvirt' module='libvirt'>
-      <info><![CDATA[Get the connection that owns the domain that a snapshot was created for]]></info>
+      <info><![CDATA[Provides the connection pointer associated with a snapshot.  The
+reference counter on the connection is not increased by this
+call.
+
+WARNING: When writing libvirt bindings in other languages, do not use this
+function.  Instead, store the connection and the snapshot object together.]]></info>
       <return type='virConnectPtr' info='the connection or NULL.'/>
       <arg name='snapshot' type='virDomainSnapshotPtr' info='a snapshot object'/>
     </function>
     <function name='virDomainSnapshotGetDomain' file='libvirt' module='libvirt'>
-      <info><![CDATA[Get the domain that a snapshot was created for]]></info>
+      <info><![CDATA[Provides the domain pointer associated with a snapshot.  The
+reference counter on the domain is not increased by this
+call.
+
+WARNING: When writing libvirt bindings in other languages, do not use this
+function.  Instead, store the domain and the snapshot object together.]]></info>
       <return type='virDomainPtr' info='the domain or NULL.'/>
       <arg name='snapshot' type='virDomainSnapshotPtr' info='a snapshot object'/>
     </function>
@@ -6595,14 +6645,17 @@ or crashes.]]></info>
       <return type='void'/>
       <arg name='opaque' type='void *' info='opaque user data provided at registration'/>
     </functype>
-    <function name='virFreeError' file='virterror' module='virterror'>
-      <info><![CDATA[]]></info>
+    <function name='virFreeError' file='virterror' module='virerror'>
+      <info><![CDATA[Resets and frees the given error.]]></info>
       <return type='void'/>
-      <arg name='err' type='virErrorPtr' info=''/>
+      <arg name='err' type='virErrorPtr' info='error to free'/>
     </function>
-    <function name='virGetLastError' file='virterror' module='virterror'>
-      <info><![CDATA[]]></info>
-      <return type='virErrorPtr' info=''/>
+    <function name='virGetLastError' file='virterror' module='virerror'>
+      <info><![CDATA[Provide a pointer to the last error caught at the library level
+
+The error object is kept in thread local storage, so separate
+threads can safely access this concurrently.]]></info>
+      <return type='virErrorPtr' info='a pointer to the last error or NULL if none occurred.'/>
     </function>
     <function name='virGetVersion' file='libvirt' module='libvirt'>
       <info><![CDATA[Provides version information. @libVer is the version of the
@@ -7346,18 +7399,23 @@ resume the node after the duration is complete.]]></info>
       <arg name='duration' type='unsigned long long' info='the time duration in seconds for which the host has to be suspended'/>
       <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
-    <function name='virResetError' file='virterror' module='virterror'>
-      <info><![CDATA[]]></info>
+    <function name='virResetError' file='virterror' module='virerror'>
+      <info><![CDATA[Reset the error being pointed to]]></info>
       <return type='void'/>
-      <arg name='err' type='virErrorPtr' info=''/>
+      <arg name='err' type='virErrorPtr' info='pointer to the virError to clean up'/>
     </function>
-    <function name='virResetLastError' file='virterror' module='virterror'>
-      <info><![CDATA[]]></info>
+    <function name='virResetLastError' file='virterror' module='virerror'>
+      <info><![CDATA[Reset the last error caught at the library level.
+
+The error object is kept in thread local storage, so separate
+threads can safely access this concurrently, only resetting
+their own error object.]]></info>
       <return type='void'/>
     </function>
-    <function name='virSaveLastError' file='virterror' module='virterror'>
-      <info><![CDATA[]]></info>
-      <return type='virErrorPtr' info=''/>
+    <function name='virSaveLastError' file='virterror' module='virerror'>
+      <info><![CDATA[Save the last error into a new error object.  On success, errno is
+unchanged; on failure, errno is ENOMEM.]]></info>
+      <return type='virErrorPtr' info='a pointer to the copied error or NULL if allocation failed. It is the caller&apos;s responsibility to free the error with virFreeError().'/>
     </function>
     <function name='virSecretDefineXML' file='libvirt' module='libvirt'>
       <info><![CDATA[If XML specifies a UUID, locates the specified secret and replaces all
@@ -7482,11 +7540,13 @@ virSecretPtr object.]]></info>
       <return type='int' info='0 on success, -1 on failure.'/>
       <arg name='secret' type='virSecretPtr' info='A virSecret secret'/>
     </function>
-    <function name='virSetErrorFunc' file='virterror' module='virterror'>
-      <info><![CDATA[]]></info>
+    <function name='virSetErrorFunc' file='virterror' module='virerror'>
+      <info><![CDATA[Set a library global error handling function, if @handler is NULL,
+it will reset to default printing on stderr. The error raised there
+are those for which no handler at the connection level could caught.]]></info>
       <return type='void'/>
-      <arg name='userData' type='void *' info=''/>
-      <arg name='handler' type='virErrorFunc' info=''/>
+      <arg name='userData' type='void *' info='pointer to the user data provided in the handler callback'/>
+      <arg name='handler' type='virErrorFunc' info='the function to get called in case of error or NULL'/>
     </function>
     <function name='virStoragePoolBuild' file='libvirt' module='libvirt'>
       <info><![CDATA[Currently only filesystem pool accepts flags VIR_STORAGE_POOL_BUILD_OVERWRITE

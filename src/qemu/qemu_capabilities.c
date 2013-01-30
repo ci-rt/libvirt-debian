@@ -2117,11 +2117,16 @@ qemuCapsProbeQMPKVMState(qemuCapsPtr caps,
         return -1;
 
     /* The QEMU_CAPS_KVM flag was initially set according to the QEMU
-     * reporting the recognition of 'query-kvm' QMP command, but the
-     * flag means whether the KVM is enabled by default and should be
-     * disabled in case we want SW emulated machine, so let's fix that
-     * if it's true. */
-    if (!enabled) {
+     * reporting the recognition of 'query-kvm' QMP command. That merely
+     * indicates existance of the command though, not whether KVM support
+     * is actually available, nor whether it is enabled by default.
+     *
+     * If it is not present we need to clear the flag, and if it is
+     * not enabled by default we need to change the flag.
+     */
+    if (!present) {
+        qemuCapsClear(caps, QEMU_CAPS_KVM);
+    } else if (!enabled) {
         qemuCapsClear(caps, QEMU_CAPS_KVM);
         qemuCapsSet(caps, QEMU_CAPS_ENABLE_KVM);
     }
@@ -2291,7 +2296,6 @@ qemuCapsInitQMPBasic(qemuCapsPtr caps)
 static int
 qemuCapsInitQMP(qemuCapsPtr caps,
                 const char *libDir,
-                const char *runDir,
                 uid_t runUid,
                 gid_t runGid)
 {
@@ -2324,8 +2328,11 @@ qemuCapsInitQMP(qemuCapsPtr caps,
 
     /* ".pidfile" suffix is used rather than ".pid" to avoid a possible clash
      * with a qemu domain called "capabilities"
+     * Normally we'd use runDir for pid files, but because we're using
+     * -daemonize we need QEMU to be allowed to create them, rather
+     * than libvirtd. So we're using libDir which QEMU can write to
      */
-    if (virAsprintf(&pidfile, "%s/%s", runDir, "capabilities.pidfile") < 0) {
+    if (virAsprintf(&pidfile, "%s/%s", libDir, "capabilities.pidfile") < 0) {
         virReportOOMError();
         goto cleanup;
     }
@@ -2337,6 +2344,13 @@ qemuCapsInitQMP(qemuCapsPtr caps,
 
     VIR_DEBUG("Try to get caps via QMP caps=%p", caps);
 
+    /*
+     * We explicitly need to use -daemonize here, rather than
+     * virCommandDaemonize, because we need to synchronize
+     * with QEMU creating its monitor socket API. Using
+     * daemonize guarantees control won't return to libvirt
+     * until the socket is present.
+     */
     cmd = virCommandNewArgList(caps->binary,
                                "-S",
                                "-no-user-config",
@@ -2344,14 +2358,14 @@ qemuCapsInitQMP(qemuCapsPtr caps,
                                "-nographic",
                                "-M", "none",
                                "-qmp", monarg,
+                               "-pidfile", pidfile,
+                               "-daemonize",
                                NULL);
     virCommandAddEnvPassCommon(cmd);
     virCommandClearCaps(cmd);
     hookData.runUid = runUid;
     hookData.runGid = runGid;
     virCommandSetPreExecHook(cmd, qemuCapsHook, &hookData);
-    virCommandSetPidFile(cmd, pidfile);
-    virCommandDaemonize(cmd);
 
     if (virCommandRun(cmd, &status) < 0)
         goto cleanup;
@@ -2472,7 +2486,6 @@ cleanup:
 
 qemuCapsPtr qemuCapsNewForBinary(const char *binary,
                                  const char *libDir,
-                                 const char *runDir,
                                  uid_t runUid,
                                  gid_t runGid)
 {
@@ -2502,7 +2515,7 @@ qemuCapsPtr qemuCapsNewForBinary(const char *binary,
         goto error;
     }
 
-    if ((rv = qemuCapsInitQMP(caps, libDir, runDir, runUid, runGid)) < 0)
+    if ((rv = qemuCapsInitQMP(caps, libDir, runUid, runGid)) < 0)
         goto error;
 
     if (!caps->usedQMP &&
@@ -2542,8 +2555,9 @@ qemuCapsHashDataFree(void *payload, const void *key ATTRIBUTE_UNUSED)
 
 
 qemuCapsCachePtr
-qemuCapsCacheNew(const char *libDir, const char *runDir,
-                 uid_t runUid, gid_t runGid)
+qemuCapsCacheNew(const char *libDir,
+                 uid_t runUid,
+                 gid_t runGid)
 {
     qemuCapsCachePtr cache;
 
@@ -2561,8 +2575,7 @@ qemuCapsCacheNew(const char *libDir, const char *runDir,
 
     if (!(cache->binaries = virHashCreate(10, qemuCapsHashDataFree)))
         goto error;
-    if (!(cache->libDir = strdup(libDir)) ||
-        !(cache->runDir = strdup(runDir))) {
+    if (!(cache->libDir = strdup(libDir))) {
         virReportOOMError();
         goto error;
     }
@@ -2594,7 +2607,7 @@ qemuCapsCacheLookup(qemuCapsCachePtr cache, const char *binary)
     if (!ret) {
         VIR_DEBUG("Creating capabilities for %s",
                   binary);
-        ret = qemuCapsNewForBinary(binary, cache->libDir, cache->runDir,
+        ret = qemuCapsNewForBinary(binary, cache->libDir,
                                    cache->runUid, cache->runGid);
         if (ret) {
             VIR_DEBUG("Caching capabilities %p for %s",
@@ -2634,7 +2647,6 @@ qemuCapsCacheFree(qemuCapsCachePtr cache)
         return;
 
     VIR_FREE(cache->libDir);
-    VIR_FREE(cache->runDir);
     virHashFree(cache->binaries);
     virMutexDestroy(&cache->lock);
     VIR_FREE(cache);

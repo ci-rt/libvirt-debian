@@ -1,3 +1,477 @@
+2013-01-30  Martin Kletzander  <mkletzan@redhat.com>
+
+	Ignore '.trs' files
+	When doing checks with automake, there are '<testname>.trs' files left
+	behind, that might or might not be usable, however these show up in
+	'git status' even though we definitely don't want them to be tracked
+	in the repository'.  Automake adds the '--trs-files' option by default
+	since commit 0c81b43f711fb861f04227ced8dba889596d9c43 [1], which
+	consequently (from 1.13 in my case) started leaving these files behind
+	along with '<testname>.log' files as well (which we already ignore).
+
+	[1] http://git.savannah.gnu.org/gitweb/?p=automake.git;a=commitdiff;h=0c81b43
+
+2013-01-30  Martin Kletzander  <mkletzan@redhat.com>
+
+	docs: aesthetical cleanups
+	Adding dots inside "exempli gratia" where missing.  While on that, I
+	took the liberty of changing it where found with simple grep.
+
+2013-01-30  Martin Kletzander  <mkletzan@redhat.com>
+
+	conf: Don't format cputune element when not needed
+	Commit 60b176c3d0f0d5037acfa5e27c7753f657833a0b introduced a bug that
+	when editing an XML with cputune similar to this:
+
+	...
+	  <vcpu placement='static' current='1'>2</vcpu>
+	  <cputune>
+	    <vcpupin vcpu="1" cpuset="0"/>
+	  </cputune>
+	...
+
+	results in formatted XML that looks like this:
+
+	...
+	  <vcpu placement='static' current='1'>2</vcpu>
+	  <cputune>
+	  </cputune>
+	...
+
+	That is caused by a condition depending on def->cputune.vcpupin being
+	set rather than checking def->cputune.nvcpupin.  Notice that nvcpupin
+	can be 0 and vcpupin can still be allocated since it's a pointer to an
+	array, so no harm done there.
+
+	I also changed it on other places in the code where it depended on the
+	wrong variable.
+
+2013-01-30  Claudio Bley  <cbley@av-test.de>
+
+	docs: fix missed documentation for virterror functions
+	Commit f24404a3244b50c1d6d3a735445b02450ac40981 renamed virterror.c to
+	virerror.c but forgot to change the reference in this file.
+
+2013-01-30  Doug Goldstein  <cardoe@cardoe.com>
+
+	virlog: remove old code comment
+	Setting the log output prefix to 0 is not supported and in fact results
+	in the following message:
+	warning : virLogParseOutputs:1021 : Ignoring invalid log output setting.
+
+2013-01-29  Jiri Denemark  <jdenemar@redhat.com>
+
+	build: Regenerate man pages on version bump
+	Whenever libvirt version changes in configure.ac, we need to regenerate
+	man pages so that they contain correct version info.
+
+2013-01-29  Ján Tomko  <jtomko@redhat.com>
+
+	conf: Fix cpumask leak in virDomainDefFree
+	def->cpumask is a bitmap and needs to be freed by virBitmapFree.
+
+2013-01-29  Michal Privoznik  <mprivozn@redhat.com>
+
+	qemu: Destroy domain on decompression binary error
+	https://bugzilla.redhat.com/show_bug.cgi?id=894723
+
+	Currently, if qemuProcessStart() succeeds, but it's decompression
+	binary that returns nonzero status, we don't kill the qemu process,
+	but remove it from internal domain list, leaving the qemu process
+	hanging around totally uncontrolled.
+
+2013-01-28  Peter Krempa  <pkrempa@redhat.com>
+
+	rpc: Fix crash on error paths of message dispatching
+	This patch resolves CVE-2013-0170:
+	https://bugzilla.redhat.com/show_bug.cgi?id=893450
+
+	When reading and dispatching of a message failed the message was freed
+	but wasn't removed from the message queue.
+
+	After that when the connection was about to be closed the pointer for
+	the message was still present in the queue and it was passed to
+	virNetMessageFree which tried to call the callback function from an
+	uninitialized pointer.
+
+	This patch removes the message from the queue before it's freed.
+
+	* rpc/virnetserverclient.c: virNetServerClientDispatchRead:
+	    - avoid use after free of RPC messages
+
+2013-01-28  Osier Yang  <jyang@redhat.com>
+
+	rng: Change the datatype for volume name for common use
+	The "volName" will be used by later patch.
+
+	eng: Remove the duplicate definition
+	The RE for data type "name" storagepool.rng uses is same with
+	"genericName" in basictypes.rng.
+
+2013-01-27  Michal Privoznik  <mprivozn@redhat.com>
+
+	qemu_hotplug: Rework media changing process
+	https://bugzilla.redhat.com/show_bug.cgi?id=892289
+
+	It seems like with new udev within guest OS, the tray is locked,
+	so we need to:
+	- 'eject'
+	- wait for tray to open
+	- 'change'
+
+	Moreover, even when doing bare 'eject', we should check for
+	'tray_open' as guest may have locked the tray. However, the
+	waiting phase shouldn't be unbounded, so I've chosen 10 retries
+	maximum, each per 500ms. This should give enough time for guest
+	to eject a media and open the tray.
+
+2013-01-26  Eric Blake  <eblake@redhat.com>
+
+	maint: one missed syms file
+	Commit f0aa493 missed a file.
+
+	* src/libvirt_driver_modules.syms: Add editor hint.
+
+2013-01-26  John Ferlan  <jferlan@redhat.com>
+
+	vbox: Adjust the UTF FREE macros
+	Adjust the macros to free memory allocated during various calls to
+	perform the check if parameter is NULL prior to really freeing and to
+	set the pointer to NULL after done freeing.
+
+2013-01-25  John Ferlan  <jferlan@redhat.com>
+
+	vbox: Address false positive for NULL dereference
+	Resolve a false positive from 'vboxIIDFromUUID_v2_x()'. The code sets
+	'iid->value = &iid->backing' unconditionally prior to calling 'nsIDFromChar()'.
+	The 'vboxIIDUnalloc_v2_x()' checks iid->value to not be &iid->backing. The
+	iid->backing is a static buffer within the initialized structure.
+
+2013-01-25  Guido Günther  <agx@sigxcpu.org>
+
+	Make sure we only abort without libcurl if $with_esx = yes
+
+2013-01-25  Peter Krempa  <pkrempa@redhat.com>
+
+	virsh: Add --print-xml flag for attach-disk command
+	The flag causes the XML of the disk that would be attached to be printed
+	instead.
+
+2013-01-25  Jim Fehlig  <jfehlig@suse.com>
+
+	libxl: Domain event handler improvements
+	Since libxl provides the domain ID in the event handler callback,
+	find the domain object based on the ID.  This approach prevents
+	processing the callback on a domain that has already been reaped.
+
+	Also, similar to the xl implementation, ignore the SUSPEND shutdown
+	reason.  By calling libxl_domain_suspend(), we know a shutdown
+	event with SUSPEND reason will be generated, but it can be safely
+	ignored since any subsequent cleanup will be done by the callers.
+
+2013-01-25  Jim Fehlig  <jfehlig@suse.com>
+
+	libxl: Fix removing non-persistent domain after save
+	libxlDoDomainSave() was removing non-persistent domains, but
+	required callers to have the virDomainObj locked.  Callers could
+	potentially unlock an already freed virDomainObj.  Move this
+	logic to the callers of libxlDoDomainSave().
+
+	libxl: Explicitly remove timeouts
+	I've noticed that libxl can invoke timeout reregister/modify hooks
+	after returning from libxl_ctx_free.  Explicitly remove the
+	timeouts before freeing the libxl ctx to avoid executing hooks on
+	stale objects.
+
+2013-01-25  Jim Fehlig  <jfehlig@suse.com>
+
+	libxl: Fix race between destruction of objects
+	It is possible to destroy and cleanup a VM, resulting in freeing the
+	libxlDomainObjPrivate object and associated libxl ctx, before all fds and
+	timeouts have been deregistered and destroyed.
+
+	Fix this race by incrementing the reference count on libxlDomainObjPrivate
+	for each fd and timeout registration.  Only when all fds and timeouts are
+	deregistered and destroyed will the libxlDomainObjPrivate be destroyed.
+
+2013-01-25  Jim Fehlig  <jfehlig@suse.com>
+
+	libxl: Fix races in libxl event code
+	The libxl driver is racy in it's interactions with libxl and libvirt's
+	event loop.  The event loop can invoke callbacks after libxl has
+	deregistered the event, and possibly access freed data associated with
+	the event.
+
+	This patch fixes the race by converting libxlDomainObjPrivate to a
+	virObjectLockable, and locking it while executing libxl upcalls and
+	libvirt event loop callbacks.
+
+	Note that using the virDomainObj lock is not satisfactory since it may
+	be desirable to hold the virDomainObj lock even when libxl events such
+	as reading and writing to xenstore need processed.
+
+2013-01-25  Jim Fehlig  <jfehlig@suse.com>
+
+	libxl: Fix handling of timeouts
+	xen-unstable changeset 26469 makes changes wrt modifying and deregistering
+	timeouts.
+
+	First, timeout modify callbacks will only be invoked with an
+	abs_t of {0,0}, i.e. make the timeout fire immediately.  Prior to this
+	commit, timeout modify callbacks were never invoked.
+
+	Second, timeout deregister hooks will no longer be called.
+
+	This patch makes changes in the libvirt libxl driver that should be
+	compatible before and after changeset 26469.
+
+	While at it, fix a potential overflow in the timeout register callback.
+
+2013-01-25  Eric Blake  <eblake@redhat.com>
+
+	conf: avoid NULL deref for pmsuspended domain state
+	While working with a pmsuspend vs. snapshot issue, I noticed that
+	the state file in /var/run/libvirt/qemu/dom.xml contained a rather
+	suspicious "(null)" string, which does not round-trip well through
+	a libvirtd restart.  Had I been on a platform other than glibc
+	where printf("%s",NULL) crashes instead of printing (null), we might
+	have noticed the problem much sooner.
+
+	And in fixing that problem, I also noticed that we had several
+	missing states, because we were #defining several *_LAST names
+	to a value _different_ than what they were already given as enums
+	in libvirt.h.  Yuck.  I got rid of default: labels in the case
+	statements, because they get in the way of gcc's -Wswitch helping
+	us ensure we cover all enum values.
+
+	* src/conf/domain_conf.c (virDomainStateReasonToString)
+	(virDomainStateReasonFromString): Fill in missing domain states;
+	rewrite case statement to let compiler enforce checking.
+	(VIR_DOMAIN_NOSTATE_LAST, VIR_DOMAIN_RUNNING_LAST)
+	(VIR_DOMAIN_BLOCKED_LAST, VIR_DOMAIN_PAUSED_LAST)
+	(VIR_DOMAIN_SHUTDOWN_LAST, VIR_DOMAIN_SHUTOFF_LAST)
+	(VIR_DOMAIN_CRASHED_LAST): Drop dead defines.
+	(VIR_DOMAIN_PMSUSPENDED_LAST): Drop dead define.
+	(virDomainPMSuspendedReason): Add missing enum function.
+	(virDomainRunningReason, virDomainPausedReason): Add missing enum
+	value.
+	* src/conf/domain_conf.h (virDomainPMSuspendedReason): Declare
+	missing functions.
+	* src/libvirt_private.syms (domain_conf.h): Export them.
+
+2013-01-25  Eric Blake  <eblake@redhat.com>
+
+	maint: make it easier to sort syms files
+	I got bit by 'make check' complaining that the sort order I got
+	by emacs' sort-lines function differed from expectations.
+
+	* src/libvirt_private.syms: Add emacs trailer.
+	* src/libvirt_atomic.syms: Likewise.
+	* src/libvirt_daemon.syms: Likewise.
+	* src/libvirt_esx.syms: Likewise.
+	* src/libvirt_libssh2.syms: Likewise.
+	* src/libvirt_linux.syms: Likewise.
+	* src/libvirt_openvz.syms: Likewise.
+	* src/libvirt_sasl.syms: Likewise.
+	* src/libvirt_vmx.syms: Likewise.
+	* src/libvirt_xenxs.syms: Likewise.
+
+2013-01-25  Michal Privoznik  <mprivozn@redhat.com>
+
+	qemu_monitor: Fix tray-open attribute in query-block
+	With our code, we fail to query for tray-open attribute currently.
+	That's because in HMP it is 'tray-open' and in QMP it's 'tray_open'.
+	It always has been. However, we got it exactly the opposite.
+
+2013-01-25  Daniel P. Berrange  <berrange@redhat.com>
+
+	Fix bogus reporting of KVM support for non-native emulators
+	A logic bug meant we reported KVM was possible for every
+	architecture, merely based on whether the query-kvm command
+	exists. We should instead have been doing it based on whether
+	the query-kvm command returns 'present: 1'
+
+	Move QEMU capabilities initialization later in QEMU startup
+	Currently QEMU capabilities are initialized before the QEMU driver
+	sets ownership on its various directories. The upshot is that if
+	you change the user/group in the qemu.conf file, libvirtd will fail
+	to probe QEMU the first time it is run after the config change.
+	Moving QEMU capabilities initialization to after the chown() calls
+	fixes this
+
+2013-01-25  Daniel P. Berrange  <berrange@redhat.com>
+
+	Fix performance & reliabilty of QMP probing
+	This previous commit
+
+	  commit 1a50ba2cb07d8bb2aa724062889deb9efd7ad9e9
+	  Author: Viktor Mihajlovski <mihajlov@linux.vnet.ibm.com>
+	  Date:   Mon Nov 26 15:17:13 2012 +0100
+
+	    qemu: Fix QMP Capabability Probing Failure
+
+	which attempted to make sure the QEMU process used for probing
+	ran as the right user id, caused serious performance regression
+	and unreliability in probing. The -daemonize switch in QEMU
+	guarantees that the monitor socket is present before the parent
+	process exits. This means libvirtd is guaranteed to be able to
+	connect immediately. By switching from -daemonize to the
+	virCommandDaemonize API libvirtd was no longer synchronized with
+	QEMU's startup process. The result was that the QEMU monitor
+	failed to open and went into its 200ms sleep loop. This happened
+	for all 25 binaries resulting in 5 seconds worth of sleeping
+	at libvirtd startup. In addition sometimes when libvirt connected,
+	QEMU would be partially initialized and crash causing total
+	failure to probe that binary.
+
+	This commit reverts the previous change, ensuring we do use the
+	-daemonize flag to QEMU. Startup delay is cut from 7 seconds
+	to 2 seconds on my machine, which is on a par with what it was
+	prior to the capabilities rewrite.
+
+	To deal with the fact that QEMU needs to be able to create the
+	pidfile, we switch pidfile location fron runDir to libDir, which
+	QEMU is guaranteed to be able to write to.
+
+2013-01-25  Michal Privoznik  <mprivozn@redhat.com>
+
+	qemuDomainSendKey: Relax the qemu driver locking
+	Currently, there is no reason to hold qemu driver locked
+	throughout whole API execution. Moreover, we can use the
+	new qemuDomObjFromDomain() internal API to lookup domain then.
+
+2013-01-25  Satoru Moriya  <satoru.moriya@hds.com>
+
+	node_memory: Add '\n' to help message
+	Linefeed is missed in the help of node-memory-tune.
+	This patch just adds '\n' to get a correct help message.
+
+2013-01-25  Josh Durgin  <josh.durgin@inktank.com>
+
+	qemu: escape ipv6 for rbd network disk hosts
+	Hosts for rbd are ceph monitor daemons. These have fixed IP addresses,
+	so they are often referenced by IP rather than hostname for
+	convenience, or to avoid relying on DNS. Using IPv4 addresses as the
+	host name works already, but IPv6 addresses require rbd-specific
+	escaping because the colon is used as an option separator in the
+	string passed to qemu.
+
+	Escape these colons, and enclose the IPv6 address in square brackets
+	so it is distinguished from the port, which is currently mandatory.
+
+	Acked-by: Osier Yang <jyang@redhat.com>
+
+2013-01-25  Eric Blake  <eblake@redhat.com>
+
+	snapshot: fix state after external snapshot of S3 domain
+	https://bugzilla.redhat.com/show_bug.cgi?id=876829 complains that
+	if a guest is put into S3 state (such as via virsh dompmsuspend)
+	and then an external snapshot is taken, qemu forcefully transitions
+	the domain to paused, but libvirt doesn't reflect that change
+	internally.  Thus, a user has to use 'virsh suspend' to get libvirt
+	back in sync with qemu state, and if the user doesn't know this
+	trick, then the guest appears hung.
+
+	* src/qemu/qemu_driver.c (qemuDomainSnapshotCreateActiveExternal):
+	Track fact that qemu wakes up a suspended domain on migration.
+
+2013-01-24  John Ferlan  <jferlan@redhat.com>
+
+	locking: use virStrcpyStatic instead of memcpy
+
+2013-01-24  Jiri Denemark  <jdenemar@redhat.com>
+
+	python: Fix bindings for virDomainSnapshotGet{Domain,Connect}
+	https://bugzilla.redhat.com/show_bug.cgi?id=895882
+
+	virDomainSnapshot.getDomain() and virDomainSnapshot.getConnect()
+	wrappers around virDomainSnapshotGet{Domain,Connect} were not supposed
+	to be ever implemented. The class should contain proper domain() and
+	connect() accessors that fetch python objects stored internally within
+	the class. While domain() was already provided, connect() was missing.
+
+	This patch adds connect() method to virDomainSnapshot class and
+	reimplements getDomain() and getConnect() methods as aliases to domain()
+	and connect() for backward compatibility.
+
+2013-01-24  Daniel P. Berrange  <berrange@redhat.com>
+
+	Fix crash free'ing securityDriverNames in QEMU driver
+	The previous fix to avoid leaking securityDriverNames forgot to
+	handle the case of securityDriverNames being NULL, leading to
+	a crash
+
+2013-01-24  Daniel P. Berrange  <berrange@redhat.com>
+
+	Make python objects inherit from 'object' base class
+	As of python >= 2.2, it is recommended that all objects inherit
+	from the 'object' base class. We already require python >= 2.3
+	for libvirt for thread macro support, so we should follow this
+	best practice.
+
+	See also
+
+	  http://stackoverflow.com/questions/4015417/python-class-inherits-object
+
+2013-01-24  Daniel P. Berrange  <berrange@redhat.com>
+
+	Fix leak of securityDriverNames
+	When shutting down, the QEMU driver forgot to free the
+	securityDriverNames string list
+
+2013-01-24  Daniel P. Berrange  <berrange@redhat.com>
+
+	Avoid use of free'd memory in auto destroy callback
+	The autodestroy callback code has the following function
+	called from a hash iterator
+
+	  qemuDriverCloseCallbackRun(void *payload,
+	                             const void *name,
+	                             void *opaque)
+	  {
+	    ...
+	    char *uuidstr = name
+	    ...
+
+	    dom = closeDef->cb(data->driver, dom, data->conn);
+	    if (dom)
+	        virObjectUnlock(dom);
+
+	    virHashRemoveEntry(data->driver->closeCallbacks, uuidstr);
+	  }
+
+	The closeDef->cb function may well cause the current callback
+	to be removed, if it shuts down 'dom'. As such the use of
+	'uuidstr' in virHashRemoveEntry is accessing free'd memory.
+	We must make a copy of the uuid str before invoking the
+	callback to be safe.
+
+2013-01-24  Daniel P. Berrange  <berrange@redhat.com>
+
+	Ensure nodeinfo struct is initialized to zero
+	When linuxNodeInfoCPUPopulate() method triggered use of an
+	uninitialize value, since it did not initialize the 'sockets'
+	field in the virNodeInfoPtr struct:
+
+	==30020== Conditional jump or move depends on uninitialised value(s)
+	==30020==    at 0x5125DBD: linuxNodeInfoCPUPopulate (nodeinfo.c:513)
+	==30020==    by 0x51261A0: nodeGetInfo (nodeinfo.c:884)
+	==30020==    by 0x149B9B10: qemuCapsInit (qemu_capabilities.c:846)
+	==30020==    by 0x14A11B25: qemuCreateCapabilities (qemu_driver.c:424)
+	==30020==    by 0x14A12426: qemuStartup (qemu_driver.c:874)
+	==30020==    by 0x512A7AF: virStateInitialize (libvirt.c:822)
+	==30020==    by 0x40DE04: daemonRunStateInit (libvirtd.c:877)
+	==30020==    by 0x50ADCE5: virThreadHelper (virthreadpthread.c:161)
+	==30020==    by 0x328CA07D14: start_thread (pthread_create.c:308)
+	==30020==    by 0x328C6F246C: clone (clone.S:114)
+	(happened twice)
+
+	        if (socks > nodeinfo->sockets)    <--- here
+	            nodeinfo->sockets = socks;
+
+	Rather than doing this for each field, just make the caller memset
+	the entire struct to zero.
+
 2013-01-24  Jiri Denemark  <jdenemar@redhat.com>
 
 	selinux: Properly indent preprocessor directives

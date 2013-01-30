@@ -2705,7 +2705,7 @@ $(srcdir)/qemu_dispatch.h: $(srcdir)/../src/rpc/gendispatch.pl \
 @WITH_LIBVIRTD_FALSE@install-data-local: install-data-sasl
 @WITH_LIBVIRTD_FALSE@uninstall-local:: uninstall-data-sasl
 
-$(srcdir)/libvirtd.8.in: libvirtd.pod.in
+$(srcdir)/libvirtd.8.in: libvirtd.pod.in $(top_srcdir)/configure.ac
 	$(AM_V_GEN)$(POD2MAN) --name LIBVIRTD $< $@ \
 	    && if grep 'POD ERROR' $@ ; then rm $@; exit 1; fi
 
