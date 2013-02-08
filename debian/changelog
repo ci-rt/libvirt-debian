@@ -1,3 +1,9 @@
+libvirt (1.0.2-2) experimental; urgency=low
+
+  * [7e3ee2f] Cherry-pick upstream fixes for Python bindings (Closes: #700077)
+
+ -- Guido Günther <agx@sigxcpu.org>  Fri, 08 Feb 2013 14:04:08 +0100
+
 libvirt (1.0.2-1) experimental; urgency=low
 
   * [7adf6b4] New upstream version 1.0.2
