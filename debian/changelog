@@ -1,3 +1,11 @@
+libvirt (0.9.12-7) unstable; urgency=low
+
+  * [d45d576] qemu: Add support for -no-user-config
+    so newer cpu models can be used.
+    Thanks to Philipp Kern for his report and testing (Closes: #699813)
+
+ -- Guido Günther <agx@sigxcpu.org>  Sun, 17 Feb 2013 10:09:07 +0100
+
 libvirt (0.9.12-6) unstable; urgency=low
 
   * [78a3a68] Revert "rpc: Discard non-blocking calls only when necessary"
