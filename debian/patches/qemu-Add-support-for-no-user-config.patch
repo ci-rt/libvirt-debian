@@ -1,0 +1,642 @@
+From: Jiri Denemark <jdenemar@redhat.com>
+Date: Thu, 26 Apr 2012 12:11:49 +0200
+Subject: qemu: Add support for -no-user-config
+
+Thanks to this new option we are now able to use modern CPU models (such
+as Westmere) defined in external configuration file.
+
+The qemu-1.1{,-device} data files for qemuhelptest are filled in with
+qemu-1.1-rc2 output for now. I will update those files with real
+qemu-1.1 output once it is released.
+---
+ cfg.mk                             |    3 +-
+ src/qemu/qemu_capabilities.c       |    7 +-
+ src/qemu/qemu_capabilities.h       |    1 +
+ src/qemu/qemu_command.c            |   11 +-
+ src/qemu/qemu_driver.c             |    2 +-
+ tests/qemuhelpdata/qemu-1.1        |  268 ++++++++++++++++++++++++++++++++++++
+ tests/qemuhelpdata/qemu-1.1-device |  160 +++++++++++++++++++++
+ tests/qemuhelptest.c               |   75 ++++++++++
+ 8 files changed, 519 insertions(+), 8 deletions(-)
+ create mode 100644 tests/qemuhelpdata/qemu-1.1
+ create mode 100644 tests/qemuhelpdata/qemu-1.1-device
+
+diff --git a/cfg.mk b/cfg.mk
+index 9dab3c3..67141a9 100644
+--- a/cfg.mk
++++ b/cfg.mk
+@@ -823,7 +823,8 @@ exclude_file_name_regexp--sc_require_config_h = ^examples/
+ 
+ exclude_file_name_regexp--sc_require_config_h_first = ^examples/
+ 
+-exclude_file_name_regexp--sc_trailing_blank = \.(fig|gif|ico|png)$$
++exclude_file_name_regexp--sc_trailing_blank = \
++  (/qemuhelpdata/|\.(fig|gif|ico|png)$$)
+ 
+ exclude_file_name_regexp--sc_unmarked_diagnostics = \
+   ^(docs/apibuild.py|tests/virt-aa-helper-test)$$
+diff --git a/src/qemu/qemu_capabilities.c b/src/qemu/qemu_capabilities.c
+index 6e5165b..a3c87d1 100644
+--- a/src/qemu/qemu_capabilities.c
++++ b/src/qemu/qemu_capabilities.c
+@@ -161,6 +161,7 @@ VIR_ENUM_IMPL(qemuCaps, QEMU_CAPS_LAST,
+               "block-job-async",
+               "scsi-cd",
+               "ide-cd",
++              "no-user-config",
+     );
+ 
+ struct qemu_feature_flags {
+@@ -1082,6 +1083,8 @@ qemuCapsComputeCmdFlags(const char *help,
+     }
+     if (strstr(help, "-nodefconfig"))
+         qemuCapsSet(flags, QEMU_CAPS_NODEFCONFIG);
++    if (strstr(help, "-no-user-config"))
++        qemuCapsSet(flags, QEMU_CAPS_NO_USER_CONFIG);
+     /* The trailing ' ' is important to avoid a bogus match */
+     if (strstr(help, "-rtc "))
+         qemuCapsSet(flags, QEMU_CAPS_RTC);
+@@ -1634,7 +1637,9 @@ qemuCapsProbeCommand(const char *qemu,
+     virCommandPtr cmd = virCommandNew(qemu);
+ 
+     if (qemuCaps) {
+-        if (qemuCapsGet(qemuCaps, QEMU_CAPS_NODEFCONFIG))
++        if (qemuCapsGet(qemuCaps, QEMU_CAPS_NO_USER_CONFIG))
++            virCommandAddArg(cmd, "-no-user-config");
++        else if (qemuCapsGet(qemuCaps, QEMU_CAPS_NODEFCONFIG))
+             virCommandAddArg(cmd, "-nodefconfig");
+     }
+ 
+diff --git a/src/qemu/qemu_capabilities.h b/src/qemu/qemu_capabilities.h
+index 7a6c5a0..0e0899e 100644
+--- a/src/qemu/qemu_capabilities.h
++++ b/src/qemu/qemu_capabilities.h
+@@ -129,6 +129,7 @@ enum qemuCapsFlags {
+     QEMU_CAPS_BLOCKJOB_ASYNC     = 91, /* qemu 1.1 block-job-cancel */
+     QEMU_CAPS_SCSI_CD            = 92, /* -device scsi-cd */
+     QEMU_CAPS_IDE_CD             = 93, /* -device ide-cd */
++    QEMU_CAPS_NO_USER_CONFIG     = 94, /* -no-user-config */
+ 
+     QEMU_CAPS_LAST,                   /* this must always be the last item */
+ };
+diff --git a/src/qemu/qemu_command.c b/src/qemu/qemu_command.c
+index 117542f..8d14d41 100644
+--- a/src/qemu/qemu_command.c
++++ b/src/qemu/qemu_command.c
+@@ -4237,11 +4237,12 @@ qemuBuildCommandLine(virConnectPtr conn,
+         virCommandAddArg(cmd, "-nographic");
+ 
+     if (qemuCapsGet(qemuCaps, QEMU_CAPS_DEVICE)) {
+-        if (qemuCapsGet(qemuCaps, QEMU_CAPS_NODEFCONFIG))
+-            virCommandAddArg(cmd,
+-                             "-nodefconfig"); /* Disable global config files */
+-        virCommandAddArg(cmd,
+-                         "-nodefaults");  /* Disable default guest devices */
++        /* Disable global config files and default devices */
++        if (qemuCapsGet(qemuCaps, QEMU_CAPS_NO_USER_CONFIG))
++            virCommandAddArg(cmd, "-no-user-config");
++        else if (qemuCapsGet(qemuCaps, QEMU_CAPS_NODEFCONFIG))
++            virCommandAddArg(cmd, "-nodefconfig");
++        virCommandAddArg(cmd, "-nodefaults");
+     }
+ 
+     /* Serial graphics adapter */
+diff --git a/src/qemu/qemu_driver.c b/src/qemu/qemu_driver.c
+index 385b861..0053ed1 100644
+--- a/src/qemu/qemu_driver.c
++++ b/src/qemu/qemu_driver.c
+@@ -4898,7 +4898,7 @@ qemudCanonicalizeMachineDirect(virDomainDefPtr def, char **canonical)
+     int i, nmachines = 0;
+ 
+     /* XXX we should be checking emulator capabilities and pass them instead
+-     * of NULL so that -nodefconfig is properly added when
++     * of NULL so that -nodefconfig or -no-user-config is properly added when
+      * probing machine types. Luckily, qemu does not support specifying new
+      * machine types in its configuration files yet, which means passing this
+      * additional parameter makes no difference now.
+diff --git a/tests/qemuhelpdata/qemu-1.1 b/tests/qemuhelpdata/qemu-1.1
+new file mode 100644
+index 0000000..79bc8ba
+--- /dev/null
++++ b/tests/qemuhelpdata/qemu-1.1
+@@ -0,0 +1,268 @@
++QEMU emulator version 1.0.92, Copyright (c) 2003-2008 Fabrice Bellard
++usage: qemu-system-x86_64 [options] [disk_image]
++
++'disk_image' is a raw hard disk image for IDE hard disk 0
++
++Standard options:
++-h or -help     display this help and exit
++-version        display version information and exit
++-machine [type=]name[,prop[=value][,...]]
++                selects emulated machine (-machine ? for list)
++                property accel=accel1[:accel2[:...]] selects accelerator
++                supported accelerators are kvm, xen, tcg (default: tcg)
++                kernel_irqchip=on|off controls accelerated irqchip support
++                kvm_shadow_mem=size of KVM shadow MMU
++-cpu cpu        select CPU (-cpu ? for list)
++-smp n[,maxcpus=cpus][,cores=cores][,threads=threads][,sockets=sockets]
++                set the number of CPUs to 'n' [default=1]
++                maxcpus= maximum number of total cpus, including
++                offline CPUs for hotplug, etc
++                cores= number of CPU cores on one socket
++                threads= number of threads on one CPU core
++                sockets= number of discrete sockets in the system
++-numa node[,mem=size][,cpus=cpu[-cpu]][,nodeid=node]
++-fda/-fdb file  use 'file' as floppy disk 0/1 image
++-hda/-hdb file  use 'file' as IDE hard disk 0/1 image
++-hdc/-hdd file  use 'file' as IDE hard disk 2/3 image
++-cdrom file     use 'file' as IDE cdrom image (cdrom is ide1 master)
++-drive [file=file][,if=type][,bus=n][,unit=m][,media=d][,index=i]
++       [,cyls=c,heads=h,secs=s[,trans=t]][,snapshot=on|off]
++       [,cache=writethrough|writeback|none|directsync|unsafe][,format=f]
++       [,serial=s][,addr=A][,id=name][,aio=threads|native]
++       [,readonly=on|off][,copy-on-read=on|off]
++       [[,bps=b]|[[,bps_rd=r][,bps_wr=w]]][[,iops=i]|[[,iops_rd=r][,iops_wr=w]]
++                use 'file' as a drive image
++-set group.id.arg=value
++                set <arg> parameter for item <id> of type <group>
++                i.e. -set drive.$id.file=/path/to/image
++-global driver.prop=value
++                set a global default for a driver property
++-mtdblock file  use 'file' as on-board Flash memory image
++-sd file        use 'file' as SecureDigital card image
++-pflash file    use 'file' as a parallel flash image
++-boot [order=drives][,once=drives][,menu=on|off]
++      [,splash=sp_name][,splash-time=sp_time]
++                'drives': floppy (a), hard disk (c), CD-ROM (d), network (n)
++                'sp_name': the file's name that would be passed to bios as logo picture, if menu=on
++                'sp_time': the period that splash picture last if menu=on, unit is ms
++-snapshot       write to temporary files instead of disk image files
++-m megs         set virtual RAM size to megs MB [default=128]
++-mem-path FILE  provide backing storage for guest RAM
++-mem-prealloc   preallocate guest memory (use with -mem-path)
++-k language     use keyboard layout (for example 'fr' for French)
++-audio-help     print list of audio drivers and their options
++-soundhw c1,... enable audio support
++                and only specified sound cards (comma separated list)
++                use -soundhw ? to get the list of supported cards
++                use -soundhw all to enable all of them
++-balloon none   disable balloon device
++-balloon virtio[,addr=str]
++                enable virtio balloon device (default)
++-usb            enable the USB driver (will be the default soon)
++-usbdevice name add the host or guest USB device 'name'
++-device driver[,prop[=value][,...]]
++                add device (based on driver)
++                prop=value,... sets driver properties
++                use -device ? to print all possible drivers
++                use -device driver,? to print all possible properties
++
++File system options:
++-fsdev fsdriver,id=id[,path=path,][security_model={mapped-xattr|mapped-file|passthrough|none}]
++ [,writeout=immediate][,readonly][,socket=socket|sock_fd=sock_fd]
++
++Virtual File system pass-through options:
++-virtfs local,path=path,mount_tag=tag,security_model=[mapped-xattr|mapped-file|passthrough|none]
++        [,writeout=immediate][,readonly][,socket=socket|sock_fd=sock_fd]
++-virtfs_synth Create synthetic file system image
++
++-name string1[,process=string2]
++                set the name of the guest
++                string1 sets the window title and string2 the process name (on Linux)
++-uuid %08x-%04x-%04x-%04x-%012x
++                specify machine UUID
++
++Display options:
++-display sdl[,frame=on|off][,alt_grab=on|off][,ctrl_grab=on|off]
++            [,window_close=on|off]|curses|none|
++            vnc=<display>[,<optargs>]
++                select display type
++-nographic      disable graphical output and redirect serial I/Os to console
++-curses         use a curses/ncurses interface instead of SDL
++-no-frame       open SDL window without a frame and window decorations
++-alt-grab       use Ctrl-Alt-Shift to grab mouse (instead of Ctrl-Alt)
++-ctrl-grab      use Right-Ctrl to grab mouse (instead of Ctrl-Alt)
++-no-quit        disable SDL window close capability
++-sdl            enable SDL
++-spice <args>   enable spice
++-portrait       rotate graphical output 90 deg left (only PXA LCD)
++-rotate <deg>   rotate graphical output some deg left (only PXA LCD)
++-vga [std|cirrus|vmware|qxl|xenfb|none]
++                select video card type
++-full-screen    start in full screen
++-vnc display    start a VNC server on display
++
++i386 target only:
++-win2k-hack     use it when installing Windows 2000 to avoid a disk full bug
++-no-fd-bootchk  disable boot signature checking for floppy disks
++-no-acpi        disable ACPI
++-no-hpet        disable HPET
++-acpitable [sig=str][,rev=n][,oem_id=str][,oem_table_id=str][,oem_rev=n][,asl_compiler_id=str][,asl_compiler_rev=n][,{data|file}=file1[:file2]...]
++                ACPI table description
++-smbios file=binary
++                load SMBIOS entry from binary file
++-smbios type=0[,vendor=str][,version=str][,date=str][,release=%d.%d]
++                specify SMBIOS type 0 fields
++-smbios type=1[,manufacturer=str][,product=str][,version=str][,serial=str]
++              [,uuid=uuid][,sku=str][,family=str]
++                specify SMBIOS type 1 fields
++
++Network options:
++-net nic[,vlan=n][,macaddr=mac][,model=type][,name=str][,addr=str][,vectors=v]
++                create a new Network Interface Card and connect it to VLAN 'n'
++-net user[,vlan=n][,name=str][,net=addr[/mask]][,host=addr][,restrict=on|off]
++         [,hostname=host][,dhcpstart=addr][,dns=addr][,tftp=dir][,bootfile=f]
++         [,hostfwd=rule][,guestfwd=rule][,smb=dir[,smbserver=addr]]
++                connect the user mode network stack to VLAN 'n', configure its
++                DHCP server and enabled optional services
++-net tap[,vlan=n][,name=str][,fd=h][,ifname=name][,script=file][,downscript=dfile][,helper=helper][,sndbuf=nbytes][,vnet_hdr=on|off][,vhost=on|off][,vhostfd=h][,vhostforce=on|off]
++                connect the host TAP network interface to VLAN 'n' 
++                use network scripts 'file' (default=/etc/qemu-ifup)
++                to configure it and 'dfile' (default=/etc/qemu-ifdown)
++                to deconfigure it
++                use '[down]script=no' to disable script execution
++                use network helper 'helper' (default=/usr/libexec/qemu-bridge-helper) to
++                configure it
++                use 'fd=h' to connect to an already opened TAP interface
++                use 'sndbuf=nbytes' to limit the size of the send buffer (the
++                default is disabled 'sndbuf=0' to enable flow control set 'sndbuf=1048576')
++                use vnet_hdr=off to avoid enabling the IFF_VNET_HDR tap flag
++                use vnet_hdr=on to make the lack of IFF_VNET_HDR support an error condition
++                use vhost=on to enable experimental in kernel accelerator
++                    (only has effect for virtio guests which use MSIX)
++                use vhostforce=on to force vhost on for non-MSIX virtio guests
++                use 'vhostfd=h' to connect to an already opened vhost net device
++-net bridge[,vlan=n][,name=str][,br=bridge][,helper=helper]
++                connects a host TAP network interface to a host bridge device 'br'
++                (default=br0) using the program 'helper'
++                (default=/usr/libexec/qemu-bridge-helper)
++-net socket[,vlan=n][,name=str][,fd=h][,listen=[host]:port][,connect=host:port]
++                connect the vlan 'n' to another VLAN using a socket connection
++-net socket[,vlan=n][,name=str][,fd=h][,mcast=maddr:port[,localaddr=addr]]
++                connect the vlan 'n' to multicast maddr and port
++                use 'localaddr=addr' to specify the host address to send packets from
++-net socket[,vlan=n][,name=str][,fd=h][,udp=host:port][,localaddr=host:port]
++                connect the vlan 'n' to another VLAN using an UDP tunnel
++-net dump[,vlan=n][,file=f][,len=n]
++                dump traffic on vlan 'n' to file 'f' (max n bytes per packet)
++-net none       use it alone to have zero network devices. If no -net option
++                is provided, the default is '-net nic -net user'
++-netdev [user|tap|bridge|socket],id=str[,option][,option][,...]
++
++Character device options:
++-chardev null,id=id[,mux=on|off]
++-chardev socket,id=id[,host=host],port=host[,to=to][,ipv4][,ipv6][,nodelay]
++         [,server][,nowait][,telnet][,mux=on|off] (tcp)
++-chardev socket,id=id,path=path[,server][,nowait][,telnet],[mux=on|off] (unix)
++-chardev udp,id=id[,host=host],port=port[,localaddr=localaddr]
++         [,localport=localport][,ipv4][,ipv6][,mux=on|off]
++-chardev msmouse,id=id[,mux=on|off]
++-chardev vc,id=id[[,width=width][,height=height]][[,cols=cols][,rows=rows]]
++         [,mux=on|off]
++-chardev file,id=id,path=path[,mux=on|off]
++-chardev pipe,id=id,path=path[,mux=on|off]
++-chardev pty,id=id[,mux=on|off]
++-chardev stdio,id=id[,mux=on|off][,signal=on|off]
++-chardev tty,id=id,path=path[,mux=on|off]
++-chardev parport,id=id,path=path[,mux=on|off]
++-chardev spicevmc,id=id,name=name[,debug=debug]
++
++-iscsi [user=user][,password=password]
++       [,header-digest=CRC32C|CR32C-NONE|NONE-CRC32C|NONE
++       [,initiator-name=iqn]
++                iSCSI session parameters
++Bluetooth(R) options:
++-bt hci,null    dumb bluetooth HCI - doesn't respond to commands
++-bt hci,host[:id]
++                use host's HCI with the given name
++-bt hci[,vlan=n]
++                emulate a standard HCI in virtual scatternet 'n'
++-bt vhci[,vlan=n]
++                add host computer to virtual scatternet 'n' using VHCI
++-bt device:dev[,vlan=n]
++                emulate a bluetooth device 'dev' in scatternet 'n'
++
++Linux/Multiboot boot specific:
++-kernel bzImage use 'bzImage' as kernel image
++-append cmdline use 'cmdline' as kernel command line
++-initrd file    use 'file' as initial ram disk
++-dtb    file    use 'file' as device tree image
++
++Debug/Expert options:
++-serial dev     redirect the serial port to char device 'dev'
++-parallel dev   redirect the parallel port to char device 'dev'
++-monitor dev    redirect the monitor to char device 'dev'
++-qmp dev        like -monitor but opens in 'control' mode
++-mon chardev=[name][,mode=readline|control][,default]
++-debugcon dev   redirect the debug console to char device 'dev'
++-pidfile file   write PID to 'file'
++-singlestep     always run in singlestep mode
++-S              freeze CPU at startup (use 'c' to start execution)
++-gdb dev        wait for gdb connection on 'dev'
++-s              shorthand for -gdb tcp::1234
++-d item1,...    output log to /tmp/qemu.log (use -d ? for a list of log items)
++-D logfile      output log to logfile (instead of the default /tmp/qemu.log)
++-hdachs c,h,s[,t]
++                force hard disk 0 physical geometry and the optional BIOS
++                translation (t=none or lba) (usually QEMU can guess them)
++-L path         set the directory for the BIOS, VGA BIOS and keymaps
++-bios file      set the filename for the BIOS
++-enable-kvm     enable KVM full virtualization support
++-xen-domid id   specify xen guest domain id
++-xen-create     create domain using xen hypercalls, bypassing xend
++                warning: should not be used when xend is in use
++-xen-attach     attach to existing xen domain
++                xend will use this when starting QEMU
++-no-reboot      exit instead of rebooting
++-no-shutdown    stop before shutdown
++-loadvm [tag|id]
++                start right away with a saved state (loadvm in monitor)
++-daemonize      daemonize QEMU after initializing
++-option-rom rom load a file, rom, into the option ROM space
++-clock          force the use of the given methods for timer alarm.
++                To see what timers are available use -clock ?
++-rtc [base=utc|localtime|date][,clock=host|rt|vm][,driftfix=none|slew]
++                set the RTC base and clock, enable drift fix for clock ticks (x86 only)
++-icount [N|auto]
++                enable virtual instruction counter with 2^N clock ticks per
++                instruction
++-watchdog i6300esb|ib700
++                enable virtual hardware watchdog [default=none]
++-watchdog-action reset|shutdown|poweroff|pause|debug|none
++                action when watchdog fires [default=reset]
++-echr chr       set terminal escape character instead of ctrl-a
++-virtioconsole c
++                set virtio console
++-show-cursor    show cursor
++-tb-size n      set TB size
++-incoming p     prepare for incoming migration, listen on port p
++-nodefaults     don't create default devices
++-chroot dir     chroot to dir just before starting the VM
++-runas user     change to user id user just before starting the VM
++-readconfig <file>
++-writeconfig <file>
++                read/write config file
++-nodefconfig
++                do not load default config files at startup
++-no-user-config
++                do not load user-provided config files at startup
++-trace [events=<file>][,file=<file>]
++                specify tracing options
++-qtest CHR      specify tracing options
++-qtest-log LOG  specify tracing options
++
++During emulation, the following keys are useful:
++ctrl-alt-f      toggle full screen
++ctrl-alt-n      switch to virtual console 'n'
++ctrl-alt        toggle mouse and keyboard grab
++
++When using -nographic, press 'ctrl-a h' to get some help.
+diff --git a/tests/qemuhelpdata/qemu-1.1-device b/tests/qemuhelpdata/qemu-1.1-device
+new file mode 100644
+index 0000000..64aacba
+--- /dev/null
++++ b/tests/qemuhelpdata/qemu-1.1-device
+@@ -0,0 +1,160 @@
++name "usb-storage", bus USB
++name "VGA", bus PCI
++name "scsi-hd", bus SCSI, desc "virtual SCSI disk"
++name "i82559a", bus PCI, desc "Intel i82559A Ethernet"
++name "i82559b", bus PCI, desc "Intel i82559B Ethernet"
++name "i82559c", bus PCI, desc "Intel i82559C Ethernet"
++name "sysbus-ohci", bus System, desc "OHCI USB Controller"
++name "virtio-blk-pci", bus PCI, alias "virtio-blk"
++name "qxl-vga", bus PCI, desc "Spice QXL GPU (primary, vga compatible)"
++name "x3130-upstream", bus PCI, desc "TI X3130 Upstream Port of PCI Express Switch"
++name "ide-drive", bus IDE, desc "virtual IDE disk or CD-ROM (legacy)"
++name "virtio-9p-pci", bus PCI
++name "cirrus-vga", bus PCI, desc "Cirrus CLGD 54xx VGA"
++name "ide-hd", bus IDE, desc "virtual IDE disk"
++name "ES1370", bus PCI, desc "ENSONIQ AudioPCI ES1370"
++name "ioh3420", bus PCI, desc "Intel IOH device id 3420 PCIE Root Port"
++name "sga", bus ISA, desc "Serial Graphics Adapter"
++name "scsi-block", bus SCSI, desc "SCSI block device passthrough"
++name "usb-serial", bus USB
++name "pc-sysfw", bus System, desc "PC System Firmware"
++name "usb-mouse", bus USB
++name "usb-net", bus USB
++name "usb-hub", bus USB
++name "ccid-card-emulated", bus ccid-bus, desc "emulated smartcard"
++name "ne2k_isa", bus ISA
++name "scsi-generic", bus SCSI, desc "pass through generic scsi device (/dev/sg*)"
++name "pcnet", bus PCI
++name "lsi53c895a", bus PCI, alias "lsi"
++name "scsi-disk", bus SCSI, desc "virtual SCSI disk or CD-ROM (legacy)"
++name "nec-usb-xhci", bus PCI
++name "xio3130-downstream", bus PCI, desc "TI X3130 Downstream Port of PCI Express Switch"
++name "pci-ohci", bus PCI, desc "Apple USB Controller"
++name "virtserialport", bus virtio-serial-bus
++name "hda-micro", bus HDA, desc "HDA Audio Codec, duplex (speaker, microphone)"
++name "usb-braille", bus USB
++name "scsi-cd", bus SCSI, desc "virtual SCSI CD-ROM"
++name "usb-wacom-tablet", bus USB, desc "QEMU PenPartner Tablet"
++name "isa-serial", bus ISA
++name "i82550", bus PCI, desc "Intel i82550 Ethernet"
++name "i82551", bus PCI, desc "Intel i82551 Ethernet"
++name "isa-debugcon", bus ISA
++name "ide-cd", bus IDE, desc "virtual IDE CD-ROM"
++name "SUNW,fdtwo", bus System
++name "ich9-usb-uhci1", bus PCI
++name "ich9-usb-uhci2", bus PCI
++name "ich9-usb-uhci3", bus PCI
++name "isa-parallel", bus ISA
++name "virtconsole", bus virtio-serial-bus
++name "ne2k_pci", bus PCI
++name "virtio-serial-pci", bus PCI, alias "virtio-serial"
++name "hda-duplex", bus HDA, desc "HDA Audio Codec, duplex (line-out, line-in)"
++name "intel-hda", bus PCI, desc "Intel HD Audio Controller"
++name "i82559er", bus PCI, desc "Intel i82559ER Ethernet"
++name "hda-output", bus HDA, desc "HDA Audio Codec, output-only (line-out)"
++name "i82562", bus PCI, desc "Intel i82562 Ethernet"
++name "sysbus-ahci", bus System
++name "usb-ccid", bus USB, desc "CCID Rev 1.1 smartcard reader"
++name "ivshmem", bus PCI
++name "AC97", bus PCI, desc "Intel 82801AA AC97 Audio"
++name "e1000", bus PCI, desc "Intel Gigabit Ethernet"
++name "sysbus-fdc", bus System
++name "usb-bt-dongle", bus USB
++name "usb-tablet", bus USB
++name "isa-vga", bus ISA
++name "usb-kbd", bus USB
++name "isa-applesmc", bus ISA
++name "ib700", bus ISA
++name "rtl8139", bus PCI
++name "qxl", bus PCI, desc "Spice QXL GPU (secondary)"
++name "i82557a", bus PCI, desc "Intel i82557A Ethernet"
++name "i82557b", bus PCI, desc "Intel i82557B Ethernet"
++name "i82557c", bus PCI, desc "Intel i82557C Ethernet"
++name "usb-audio", bus USB
++name "piix3-usb-uhci", bus PCI
++name "piix4-usb-uhci", bus PCI
++name "ccid-card-passthru", bus ccid-bus, desc "passthrough smartcard"
++name "i82801", bus PCI, desc "Intel i82801 Ethernet"
++name "smbus-eeprom", bus I2C
++name "vmware-svga", bus PCI
++name "isa-cirrus-vga", bus ISA
++name "sb16", bus ISA, desc "Creative Sound Blaster 16"
++name "pci-bridge", bus PCI, desc "Standard PCI Bridge"
++name "usb-ehci", bus PCI
++name "vt82c686b-usb-uhci", bus PCI
++name "i82558a", bus PCI, desc "Intel i82558A Ethernet"
++name "virtio-net-pci", bus PCI, alias "virtio-net"
++name "virtio-balloon-pci", bus PCI, alias "virtio-balloon"
++name "ich9-usb-ehci1", bus PCI
++name "isa-ide", bus ISA
++name "usb-host", bus USB
++name "ich9-ahci", bus PCI, alias "ahci"
++name "i6300esb", bus PCI
++name "i82558b", bus PCI, desc "Intel i82558B Ethernet"
++name "virtio-scsi-pci", bus PCI
++virtio-blk-pci.class=hex32
++virtio-blk-pci.drive=drive
++virtio-blk-pci.logical_block_size=blocksize
++virtio-blk-pci.physical_block_size=blocksize
++virtio-blk-pci.min_io_size=uint16
++virtio-blk-pci.opt_io_size=uint32
++virtio-blk-pci.bootindex=int32
++virtio-blk-pci.discard_granularity=uint32
++virtio-blk-pci.serial=string
++virtio-blk-pci.ioeventfd=on/off
++virtio-blk-pci.vectors=uint32
++virtio-blk-pci.indirect_desc=on/off
++virtio-blk-pci.event_idx=on/off
++virtio-blk-pci.scsi=on/off
++virtio-blk-pci.addr=pci-devfn
++virtio-blk-pci.romfile=string
++virtio-blk-pci.rombar=uint32
++virtio-blk-pci.multifunction=on/off
++virtio-blk-pci.command_serr_enable=on/off
++virtio-net-pci.ioeventfd=on/off
++virtio-net-pci.vectors=uint32
++virtio-net-pci.indirect_desc=on/off
++virtio-net-pci.event_idx=on/off
++virtio-net-pci.csum=on/off
++virtio-net-pci.guest_csum=on/off
++virtio-net-pci.gso=on/off
++virtio-net-pci.guest_tso4=on/off
++virtio-net-pci.guest_tso6=on/off
++virtio-net-pci.guest_ecn=on/off
++virtio-net-pci.guest_ufo=on/off
++virtio-net-pci.host_tso4=on/off
++virtio-net-pci.host_tso6=on/off
++virtio-net-pci.host_ecn=on/off
++virtio-net-pci.host_ufo=on/off
++virtio-net-pci.mrg_rxbuf=on/off
++virtio-net-pci.status=on/off
++virtio-net-pci.ctrl_vq=on/off
++virtio-net-pci.ctrl_rx=on/off
++virtio-net-pci.ctrl_vlan=on/off
++virtio-net-pci.ctrl_rx_extra=on/off
++virtio-net-pci.mac=macaddr
++virtio-net-pci.vlan=vlan
++virtio-net-pci.netdev=netdev
++virtio-net-pci.bootindex=int32
++virtio-net-pci.x-txtimer=uint32
++virtio-net-pci.x-txburst=int32
++virtio-net-pci.tx=string
++virtio-net-pci.addr=pci-devfn
++virtio-net-pci.romfile=string
++virtio-net-pci.rombar=uint32
++virtio-net-pci.multifunction=on/off
++virtio-net-pci.command_serr_enable=on/off
++scsi-disk.drive=drive
++scsi-disk.logical_block_size=blocksize
++scsi-disk.physical_block_size=blocksize
++scsi-disk.min_io_size=uint16
++scsi-disk.opt_io_size=uint32
++scsi-disk.bootindex=int32
++scsi-disk.discard_granularity=uint32
++scsi-disk.ver=string
++scsi-disk.serial=string
++scsi-disk.removable=on/off
++scsi-disk.dpofua=on/off
++scsi-disk.channel=uint32
++scsi-disk.scsi-id=uint32
++scsi-disk.lun=uint32
+diff --git a/tests/qemuhelptest.c b/tests/qemuhelptest.c
+index d23b35a..57d1859 100644
+--- a/tests/qemuhelptest.c
++++ b/tests/qemuhelptest.c
+@@ -678,6 +678,81 @@ mymain(void)
+             QEMU_CAPS_SCSI_BLOCK,
+             QEMU_CAPS_SCSI_CD,
+             QEMU_CAPS_IDE_CD);
++    DO_TEST("qemu-1.1", 1000092, 0, 0,
++            QEMU_CAPS_VNC_COLON,
++            QEMU_CAPS_NO_REBOOT,
++            QEMU_CAPS_DRIVE,
++            QEMU_CAPS_NAME,
++            QEMU_CAPS_UUID,
++            QEMU_CAPS_MIGRATE_QEMU_TCP,
++            QEMU_CAPS_MIGRATE_QEMU_EXEC,
++            QEMU_CAPS_DRIVE_CACHE_V2,
++            QEMU_CAPS_DRIVE_CACHE_UNSAFE,
++            QEMU_CAPS_DRIVE_FORMAT,
++            QEMU_CAPS_DRIVE_SERIAL,
++            QEMU_CAPS_XEN_DOMID,
++            QEMU_CAPS_DRIVE_READONLY,
++            QEMU_CAPS_VGA,
++            QEMU_CAPS_0_10,
++            QEMU_CAPS_MEM_PATH,
++            QEMU_CAPS_SDL,
++            QEMU_CAPS_MIGRATE_QEMU_UNIX,
++            QEMU_CAPS_CHARDEV,
++            QEMU_CAPS_ENABLE_KVM,
++            QEMU_CAPS_MONITOR_JSON,
++            QEMU_CAPS_BALLOON,
++            QEMU_CAPS_DEVICE,
++            QEMU_CAPS_SMP_TOPOLOGY,
++            QEMU_CAPS_NETDEV,
++            QEMU_CAPS_RTC,
++            QEMU_CAPS_VHOST_NET,
++            QEMU_CAPS_NO_HPET,
++            QEMU_CAPS_NODEFCONFIG,
++            QEMU_CAPS_BOOT_MENU,
++            QEMU_CAPS_FSDEV,
++            QEMU_CAPS_NAME_PROCESS,
++            QEMU_CAPS_SMBIOS_TYPE,
++            QEMU_CAPS_VGA_QXL,
++            QEMU_CAPS_SPICE,
++            QEMU_CAPS_VGA_NONE,
++            QEMU_CAPS_MIGRATE_QEMU_FD,
++            QEMU_CAPS_BOOTINDEX,
++            QEMU_CAPS_HDA_DUPLEX,
++            QEMU_CAPS_DRIVE_AIO,
++            QEMU_CAPS_CCID_EMULATED,
++            QEMU_CAPS_CCID_PASSTHRU,
++            QEMU_CAPS_CHARDEV_SPICEVMC,
++            QEMU_CAPS_VIRTIO_TX_ALG,
++            QEMU_CAPS_DEVICE_QXL_VGA,
++            QEMU_CAPS_PCI_MULTIFUNCTION,
++            QEMU_CAPS_VIRTIO_IOEVENTFD,
++            QEMU_CAPS_SGA,
++            QEMU_CAPS_VIRTIO_BLK_EVENT_IDX,
++            QEMU_CAPS_VIRTIO_NET_EVENT_IDX,
++            QEMU_CAPS_DRIVE_CACHE_DIRECTSYNC,
++            QEMU_CAPS_PIIX3_USB_UHCI,
++            QEMU_CAPS_PIIX4_USB_UHCI,
++            QEMU_CAPS_USB_EHCI,
++            QEMU_CAPS_ICH9_USB_EHCI1,
++            QEMU_CAPS_VT82C686B_USB_UHCI,
++            QEMU_CAPS_PCI_OHCI,
++            QEMU_CAPS_USB_HUB,
++            QEMU_CAPS_NO_SHUTDOWN,
++            QEMU_CAPS_PCI_ROMBAR,
++            QEMU_CAPS_ICH9_AHCI,
++            QEMU_CAPS_NO_ACPI,
++            QEMU_CAPS_FSDEV_READONLY,
++            QEMU_CAPS_VIRTIO_BLK_SCSI,
++            QEMU_CAPS_VIRTIO_BLK_SG_IO,
++            QEMU_CAPS_DRIVE_COPY_ON_READ,
++            QEMU_CAPS_CPU_HOST,
++            QEMU_CAPS_FSDEV_WRITEOUT,
++            QEMU_CAPS_DRIVE_IOTUNE,
++            QEMU_CAPS_SCSI_DISK_CHANNEL,
++            QEMU_CAPS_SCSI_BLOCK,
++            QEMU_CAPS_SCSI_CD,
++            QEMU_CAPS_IDE_CD,
++            QEMU_CAPS_NO_USER_CONFIG);
+ 
+     return ret == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
+ }

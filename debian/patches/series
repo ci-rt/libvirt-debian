@@ -17,3 +17,4 @@ security/security-Fix-libvirtd-crash-possibility.patch
 Revert-rpc-Discard-non-blocking-calls-only-when-nece.patch
 qemu-Fix-off-by-one-error-while-unescaping-monitor-s.patch
 rpc-Fix-crash-on-error-paths-of-message-dispatching.patch
+qemu-Add-support-for-no-user-config.patch
