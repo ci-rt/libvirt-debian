@@ -1,3 +1,9 @@
+libvirt (0.8.3-5+squeeze3) stable-security; urgency=low
+
+  * [0bbbca1] Add missing return on error path (Closes: #699224)
+
+ -- Guido Günther <agx@sigxcpu.org>  Fri, 22 Feb 2013 20:32:53 +0100
+
 libvirt (0.8.3-5+squeeze2) stable-security; urgency=low
 
   * [ac67c93] CVE-2011-1486: Make error reporting in libvirtd thread safe
