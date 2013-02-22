@@ -1,0 +1,20 @@
+From: =?UTF-8?q?Guido=20G=C3=BCnther?= <agx@sigxcpu.org>
+Date: Fri, 22 Feb 2013 20:06:25 +0100
+Subject: Add missing return on error path
+
+---
+ daemon/libvirtd.c |    1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/daemon/libvirtd.c b/daemon/libvirtd.c
+index 711360b..9b88aac 100644
+--- a/daemon/libvirtd.c
++++ b/daemon/libvirtd.c
+@@ -1820,6 +1820,7 @@ readmore:
+         if (remoteDecodeClientMessageHeader(msg) < 0) {
+             VIR_FREE(msg);
+             qemudDispatchClientFailure(client);
++            return;
+         }
+ 
+         /* Check if any filters match this message */
