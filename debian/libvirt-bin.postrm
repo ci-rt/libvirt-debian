@@ -25,6 +25,14 @@ case "$1" in
     		delgroup libvirt || true
 	fi
 
+    	if getent user libvirt-qemu >/dev/null; then
+    		deluser libvirt || true
+	fi
+
+    	if getent group libvirt-qemu >/dev/null; then
+    		delgroup libvirt || true
+	fi
+
 	rm -rf /var/log/libvirt
     ;;
     remove|upgrade|failed-upgrade|abort-install|abort-upgrade|disappear)
