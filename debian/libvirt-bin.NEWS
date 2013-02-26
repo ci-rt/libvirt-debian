@@ -1,3 +1,12 @@
+libvirt (0.8.3-5+squeeze4) experimental; urgency=low
+
+  For qemu:///system KVM/QEMU processes now run as group libvirt-qemu. This
+  makes sure image files and volumes aren't accessible by users in the more
+  general and previously used kvm group. To change this behaviour adjust the
+  group option in /etc/libvirt/qemu.conf.
+
+ -- Guido Günther <agx@sigxcpu.org>  Tue, 26 Feb 2013 06:30:48 +0100
+
 libvirt (0.8.3-2) unstable; urgency=low
 
   Disk format probing is disabled now by default for security reasons
