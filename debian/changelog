@@ -1,3 +1,11 @@
+libvirt (1.0.2-3) experimental; urgency=low
+
+  * [6270001] CVE-2013-1766: Use libvirt-qemu as group to run qemu/kvm
+    instances.  This makes sure we don't chown files to groups possibly used
+    by other programs. (Closes: #701649)
+
+ -- Guido Günther <agx@sigxcpu.org>  Tue, 26 Feb 2013 09:32:59 +0100
+
 libvirt (1.0.2-2) experimental; urgency=low
 
   * [7e3ee2f] Cherry-pick upstream fixes for Python bindings (Closes: #700077)
