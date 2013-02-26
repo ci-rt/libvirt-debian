@@ -71,7 +71,7 @@ DEB_CONFIGURE_EXTRA_FLAGS :=     \
 	--disable-rpath          \
 	$(WITH_QEMU)		 \
 	--with-qemu-user=libvirt-qemu  \
-	--with-qemu-group=kvm    \
+	--with-qemu-group=libvirt-qemu \
         $(WITH_OPENVZ)		 \
 	--with-avahi             \
 	--with-sasl              \

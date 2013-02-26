@@ -27,6 +27,9 @@ add_users_groups()
     if ! getent group kvm >/dev/null; then
         addgroup --quiet --system kvm
     fi
+    if ! getent group libvirt-qemu >/dev/null; then
+        addgroup --quiet --system libvirt-qemu
+    fi
     if ! getent passwd libvirt-qemu >/dev/null; then
         adduser --quiet \
             --system \
@@ -39,6 +42,7 @@ add_users_groups()
             -gecos "Libvirt Qemu" \
             libvirt-qemu
     fi
+    adduser libvirt-qemu libvirt-qemu
 }
 
 
