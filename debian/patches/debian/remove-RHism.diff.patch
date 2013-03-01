@@ -7,7 +7,7 @@ Subject: remove-RHism.diff
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/tools/virsh.pod b/tools/virsh.pod
-index fd0f762..93e422f 100644
+index a5d8fe6..1daa427 100644
 --- a/tools/virsh.pod
 +++ b/tools/virsh.pod
 @@ -107,7 +107,7 @@ alphabetic character, @, [, ], \, ^, _.
