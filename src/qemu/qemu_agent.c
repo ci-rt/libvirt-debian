@@ -1,7 +1,7 @@
 /*
  * qemu_agent.h: interaction with QEMU guest agent
  *
- * Copyright (C) 2006-2012 Red Hat, Inc.
+ * Copyright (C) 2006-2013 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -33,7 +33,6 @@
 #include <sys/time.h>
 
 #include "qemu_agent.h"
-#include "qemu_command.h"
 #include "viralloc.h"
 #include "virlog.h"
 #include "virerror.h"
@@ -159,7 +158,7 @@ static void qemuAgentDispose(void *obj)
     VIR_DEBUG("mon=%p", mon);
     if (mon->cb && mon->cb->destroy)
         (mon->cb->destroy)(mon, mon->vm);
-    ignore_value(virCondDestroy(&mon->notify));
+    virCondDestroy(&mon->notify);
     VIR_FREE(mon->buffer);
 }
 
@@ -986,10 +985,8 @@ qemuAgentCommand(qemuAgentPtr mon,
 
     memset(&msg, 0, sizeof(msg));
 
-    if (!(cmdstr = virJSONValueToString(cmd, false))) {
-        virReportOOMError();
+    if (!(cmdstr = virJSONValueToString(cmd, false)))
         goto cleanup;
-    }
     if (virAsprintf(&msg.txBuffer, "%s" LINE_ENDING, cmdstr) < 0) {
         virReportOOMError();
         goto cleanup;
@@ -1105,7 +1102,7 @@ qemuAgentCheckError(virJSONValuePtr cmd,
 
         /* Log the full JSON formatted command & error */
         VIR_DEBUG("unable to execute QEMU agent command %s: %s",
-                  cmdstr, replystr);
+                  NULLSTR(cmdstr), NULLSTR(replystr));
 
         /* Only send the user the command name + friendly error */
         if (!error)
@@ -1126,7 +1123,7 @@ qemuAgentCheckError(virJSONValuePtr cmd,
         char *replystr = virJSONValueToString(reply, false);
 
         VIR_DEBUG("Neither 'return' nor 'error' is set in the JSON reply %s: %s",
-                  cmdstr, replystr);
+                  NULLSTR(cmdstr), NULLSTR(replystr));
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("unable to execute QEMU agent command '%s'"),
                        qemuAgentCommandName(cmd));
@@ -1421,7 +1418,8 @@ qemuAgentArbitraryCommand(qemuAgentPtr mon,
 
     if (ret == 0) {
         ret = qemuAgentCheckError(cmd, reply);
-        *result = virJSONValueToString(reply, false);
+        if (!(*result = virJSONValueToString(reply, false)))
+            ret = -1;
     }
 
     virJSONValueFree(cmd);

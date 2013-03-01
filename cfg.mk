@@ -702,6 +702,20 @@ sc_require_enum_last_marker:
 	  { echo '$(ME): enum impl needs to use _LAST marker' 1>&2;	\
 	    exit 1; } || :
 
+# In Python files we don't want to end lines with a semicolon like in C
+sc_prohibit_semicolon_at_eol_in_python:
+	@prohibit='^[^#].*\;$$'			                        \
+	in_vc_files='\.py$$'						\
+	halt="Don't use semicolon at eol in python files"		\
+	  $(_sc_search_regexp)
+
+# mymain() in test files should use return, not exit, for nicer output
+sc_prohibit_exit_in_tests:
+	@prohibit='\<exit *\('						\
+	in_vc_files='^tests/'						\
+	halt='use return, not exit(), in tests'				\
+	  $(_sc_search_regexp)
+
 # We don't use this feature of maint.mk.
 prev_version_file = /dev/null
 
@@ -813,10 +827,10 @@ exclude_file_name_regexp--sc_prohibit_newline_at_end_of_diagnostic = \
   ^src/rpc/gendispatch\.pl$$
 
 exclude_file_name_regexp--sc_prohibit_nonreentrant = \
-  ^((po|tests)/|docs/.*py|run.in$$)
+  ^((po|tests)/|docs/.*(py|html\.in)|run.in$$)
 
 exclude_file_name_regexp--sc_prohibit_raw_allocation = \
-  ^(src/util/viralloc\.[ch]|examples/.*|tests/securityselinuxhelper.c)$$
+  ^(docs/hacking\.html\.in)|(src/util/viralloc\.[ch]|examples/.*|tests/securityselinuxhelper.c)$$
 
 exclude_file_name_regexp--sc_prohibit_readlink = \
   ^src/(util/virutil|lxc/lxc_container)\.c$$

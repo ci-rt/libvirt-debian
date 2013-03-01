@@ -481,10 +481,10 @@ static int udevProcessPCI(struct udev_device *device,
         goto out;
     }
 
-    if (!pciGetPhysicalFunction(syspath, &data->pci_dev.physical_function))
+    if (!virPCIGetPhysicalFunction(syspath, &data->pci_dev.physical_function))
         data->pci_dev.flags |= VIR_NODE_DEV_CAP_FLAG_PCI_PHYSICAL_FUNCTION;
 
-    if (!pciGetVirtualFunctions(syspath, &data->pci_dev.virtual_functions,
+    if (!virPCIGetVirtualFunctions(syspath, &data->pci_dev.virtual_functions,
         &data->pci_dev.num_virtual_functions) ||
         data->pci_dev.num_virtual_functions > 0)
         data->pci_dev.flags |= VIR_NODE_DEV_CAP_FLAG_PCI_VIRTUAL_FUNCTION;
@@ -1754,6 +1754,7 @@ static virDeviceMonitor udevDeviceMonitor = {
     .listDevices = nodeListDevices, /* 0.7.3 */
     .listAllNodeDevices = nodeListAllNodeDevices, /* 0.10.2 */
     .deviceLookupByName = nodeDeviceLookupByName, /* 0.7.3 */
+    .deviceLookupSCSIHostByWWN = nodeDeviceLookupSCSIHostByWWN, /* 1.0.2 */
     .deviceGetXMLDesc = nodeDeviceGetXMLDesc, /* 0.7.3 */
     .deviceGetParent = nodeDeviceGetParent, /* 0.7.3 */
     .deviceNumOfCaps = nodeDeviceNumOfCaps, /* 0.7.3 */

@@ -43,9 +43,13 @@
  * "capabilities" command
  */
 static const vshCmdInfo info_capabilities[] = {
-    {"help", N_("capabilities")},
-    {"desc", N_("Returns capabilities of hypervisor/driver.")},
-    {NULL, NULL}
+    {.name = "help",
+     .data = N_("capabilities")
+    },
+    {.name = "desc",
+     .data = N_("Returns capabilities of hypervisor/driver.")
+    },
+    {.name = NULL}
 };
 
 static bool
@@ -67,10 +71,14 @@ cmdCapabilities(vshControl *ctl, const vshCmd *cmd ATTRIBUTE_UNUSED)
  * "connect" command
  */
 static const vshCmdInfo info_connect[] = {
-    {"help", N_("(re)connect to hypervisor")},
-    {"desc",
-     N_("Connect to local hypervisor. This is built-in command after shell start up.")},
-    {NULL, NULL}
+    {.name = "help",
+     .data = N_("(re)connect to hypervisor")
+    },
+    {.name = "desc",
+     .data = N_("Connect to local hypervisor. This is built-in "
+                "command after shell start up.")
+    },
+    {.name = NULL}
 };
 
 static const vshCmdOptDef opts_connect[] = {
@@ -103,10 +111,9 @@ cmdConnect(vshControl *ctl, const vshCmd *cmd)
     }
 
     VIR_FREE(ctl->name);
-    if (vshCommandOptString(cmd, "name", &name) < 0) {
-        vshError(ctl, "%s", _("Please specify valid connection URI"));
+    if (vshCommandOptStringReq(ctl, cmd, "name", &name) < 0)
         return false;
-    }
+
     ctl->name = vshStrdup(ctl, name);
 
     ctl->useGetInfo = false;
@@ -126,9 +133,13 @@ cmdConnect(vshControl *ctl, const vshCmd *cmd)
  * "freecell" command
  */
 static const vshCmdInfo info_freecell[] = {
-    {"help", N_("NUMA free memory")},
-    {"desc", N_("display available free memory for the NUMA cell.")},
-    {NULL, NULL}
+    {.name = "help",
+     .data = N_("NUMA free memory")
+    },
+    {.name = "desc",
+     .data = N_("display available free memory for the NUMA cell.")
+    },
+    {.name = NULL}
 };
 
 static const vshCmdOptDef opts_freecell[] = {
@@ -258,9 +269,13 @@ cleanup:
  * "nodeinfo" command
  */
 static const vshCmdInfo info_nodeinfo[] = {
-    {"help", N_("node information")},
-    {"desc", N_("Returns basic information about the node.")},
-    {NULL, NULL}
+    {.name = "help",
+     .data = N_("node information")
+    },
+    {.name = "desc",
+     .data = N_("Returns basic information about the node.")
+    },
+    {.name = NULL}
 };
 
 static bool
@@ -288,10 +303,14 @@ cmdNodeinfo(vshControl *ctl, const vshCmd *cmd ATTRIBUTE_UNUSED)
  * "nodecpumap" command
  */
 static const vshCmdInfo info_node_cpumap[] = {
-    {"help", N_("node cpu map")},
-    {"desc", N_("Displays the node's total number of CPUs, the number of"
-                " online CPUs and the list of online CPUs.")},
-    {NULL, NULL}
+    {.name = "help",
+     .data = N_("node cpu map")
+    },
+    {.name = "desc",
+     .data = N_("Displays the node's total number of CPUs, the number of"
+                " online CPUs and the list of online CPUs.")
+    },
+    {.name = NULL}
 };
 
 static bool
@@ -327,9 +346,13 @@ cmdNodeCpuMap(vshControl *ctl, const vshCmd *cmd ATTRIBUTE_UNUSED)
  * "nodecpustats" command
  */
 static const vshCmdInfo info_nodecpustats[] = {
-    {"help", N_("Prints cpu stats of the node.")},
-    {"desc", N_("Returns cpu stats of the node, in nanoseconds.")},
-    {NULL, NULL}
+    {.name = "help",
+     .data = N_("Prints cpu stats of the node.")
+    },
+    {.name = "desc",
+     .data = N_("Returns cpu stats of the node, in nanoseconds.")
+    },
+    {.name = NULL}
 };
 
 static const vshCmdOptDef opts_node_cpustats[] = {
@@ -460,9 +483,13 @@ cmdNodeCpuStats(vshControl *ctl, const vshCmd *cmd)
  * "nodememstats" command
  */
 static const vshCmdInfo info_nodememstats[] = {
-    {"help", N_("Prints memory stats of the node.")},
-    {"desc", N_("Returns memory stats of the node, in kilobytes.")},
-    {NULL, NULL}
+    {.name = "help",
+     .data = N_("Prints memory stats of the node.")
+    },
+    {.name = "desc",
+     .data = N_("Returns memory stats of the node, in kilobytes.")
+    },
+    {.name = NULL}
 };
 
 static const vshCmdOptDef opts_node_memstats[] = {
@@ -522,10 +549,14 @@ cmdNodeMemStats(vshControl *ctl, const vshCmd *cmd)
  * "nodesuspend" command
  */
 static const vshCmdInfo info_nodesuspend[] = {
-    {"help", N_("suspend the host node for a given time duration")},
-    {"desc", N_("Suspend the host node for a given time duration "
-                               "and attempt to resume thereafter.")},
-    {NULL, NULL}
+    {.name = "help",
+     .data = N_("suspend the host node for a given time duration")
+    },
+    {.name = "desc",
+     .data = N_("Suspend the host node for a given time duration "
+                               "and attempt to resume thereafter.")
+    },
+    {.name = NULL}
 };
 
 static const vshCmdOptDef opts_node_suspend[] = {
@@ -550,10 +581,8 @@ cmdNodeSuspend(vshControl *ctl, const vshCmd *cmd)
     unsigned int suspendTarget;
     long long duration;
 
-    if (vshCommandOptString(cmd, "target", &target) < 0) {
-        vshError(ctl, _("Invalid target argument"));
+    if (vshCommandOptStringReq(ctl, cmd, "target", &target) < 0)
         return false;
-    }
 
     if (vshCommandOptLongLong(cmd, "duration", &duration) < 0) {
         vshError(ctl, _("Invalid duration argument"));
@@ -587,10 +616,13 @@ cmdNodeSuspend(vshControl *ctl, const vshCmd *cmd)
  * "sysinfo" command
  */
 static const vshCmdInfo info_sysinfo[] = {
-    {"help", N_("print the hypervisor sysinfo")},
-    {"desc",
-     N_("output an XML string for the hypervisor sysinfo, if available")},
-    {NULL, NULL}
+    {.name = "help",
+     .data = N_("print the hypervisor sysinfo")
+    },
+    {.name = "desc",
+     .data = N_("output an XML string for the hypervisor sysinfo, if available")
+    },
+    {.name = NULL}
 };
 
 static bool
@@ -614,9 +646,13 @@ cmdSysinfo(vshControl *ctl, const vshCmd *cmd ATTRIBUTE_UNUSED)
  * "hostname" command
  */
 static const vshCmdInfo info_hostname[] = {
-    {"help", N_("print the hypervisor hostname")},
-    {"desc", ""},
-    {NULL, NULL}
+    {.name = "help",
+     .data = N_("print the hypervisor hostname")
+    },
+    {.name = "desc",
+     .data = ""
+    },
+    {.name = NULL}
 };
 
 static bool
@@ -640,9 +676,13 @@ cmdHostname(vshControl *ctl, const vshCmd *cmd ATTRIBUTE_UNUSED)
  * "uri" command
  */
 static const vshCmdInfo info_uri[] = {
-    {"help", N_("print the hypervisor canonical URI")},
-    {"desc", ""},
-    {NULL, NULL}
+    {.name = "help",
+     .data = N_("print the hypervisor canonical URI")
+    },
+    {.name = "desc",
+     .data = ""
+    },
+    {.name = NULL}
 };
 
 static bool
@@ -666,9 +706,13 @@ cmdURI(vshControl *ctl, const vshCmd *cmd ATTRIBUTE_UNUSED)
  * "version" command
  */
 static const vshCmdInfo info_version[] = {
-    {"help", N_("show version")},
-    {"desc", N_("Display the system version information.")},
-    {NULL, NULL}
+    {.name = "help",
+     .data = N_("show version")
+    },
+    {.name = "desc",
+     .data = N_("Display the system version information.")
+    },
+    {.name = NULL}
 };
 
 static const vshCmdOptDef opts_version[] = {
@@ -881,20 +925,83 @@ error:
 }
 
 const vshCmdDef hostAndHypervisorCmds[] = {
-    {"capabilities", cmdCapabilities, NULL, info_capabilities, 0},
-    {"connect", cmdConnect, opts_connect, info_connect,
-     VSH_CMD_FLAG_NOCONNECT},
-    {"freecell", cmdFreecell, opts_freecell, info_freecell, 0},
-    {"hostname", cmdHostname, NULL, info_hostname, 0},
-    {"node-memory-tune", cmdNodeMemoryTune,
-     opts_node_memory_tune, info_node_memory_tune, 0},
-    {"nodecpumap", cmdNodeCpuMap, NULL, info_node_cpumap, 0},
-    {"nodecpustats", cmdNodeCpuStats, opts_node_cpustats, info_nodecpustats, 0},
-    {"nodeinfo", cmdNodeinfo, NULL, info_nodeinfo, 0},
-    {"nodememstats", cmdNodeMemStats, opts_node_memstats, info_nodememstats, 0},
-    {"nodesuspend", cmdNodeSuspend, opts_node_suspend, info_nodesuspend, 0},
-    {"sysinfo", cmdSysinfo, NULL, info_sysinfo, 0},
-    {"uri", cmdURI, NULL, info_uri, 0},
-    {"version", cmdVersion, opts_version, info_version, 0},
-    {NULL, NULL, NULL, NULL, 0}
+    {.name = "capabilities",
+     .handler = cmdCapabilities,
+     .opts = NULL,
+     .info = info_capabilities,
+     .flags = 0
+    },
+    {.name = "connect",
+     .handler = cmdConnect,
+     .opts = opts_connect,
+     .info = info_connect,
+     .flags = VSH_CMD_FLAG_NOCONNECT
+    },
+    {.name = "freecell",
+     .handler = cmdFreecell,
+     .opts = opts_freecell,
+     .info = info_freecell,
+     .flags = 0
+    },
+    {.name = "hostname",
+     .handler = cmdHostname,
+     .opts = NULL,
+     .info = info_hostname,
+     .flags = 0
+    },
+    {.name = "node-memory-tune",
+     .handler = cmdNodeMemoryTune,
+     .opts = opts_node_memory_tune,
+     .info = info_node_memory_tune,
+     .flags = 0
+    },
+    {.name = "nodecpumap",
+     .handler = cmdNodeCpuMap,
+     .opts = NULL,
+     .info = info_node_cpumap,
+     .flags = 0
+    },
+    {.name = "nodecpustats",
+     .handler = cmdNodeCpuStats,
+     .opts = opts_node_cpustats,
+     .info = info_nodecpustats,
+     .flags = 0
+    },
+    {.name = "nodeinfo",
+     .handler = cmdNodeinfo,
+     .opts = NULL,
+     .info = info_nodeinfo,
+     .flags = 0
+    },
+    {.name = "nodememstats",
+     .handler = cmdNodeMemStats,
+     .opts = opts_node_memstats,
+     .info = info_nodememstats,
+     .flags = 0
+    },
+    {.name = "nodesuspend",
+     .handler = cmdNodeSuspend,
+     .opts = opts_node_suspend,
+     .info = info_nodesuspend,
+     .flags = 0
+    },
+    {.name = "sysinfo",
+     .handler = cmdSysinfo,
+     .opts = NULL,
+     .info = info_sysinfo,
+     .flags = 0
+    },
+    {.name = "uri",
+     .handler = cmdURI,
+     .opts = NULL,
+     .info = info_uri,
+     .flags = 0
+    },
+    {.name = "version",
+     .handler = cmdVersion,
+     .opts = opts_version,
+     .info = info_version,
+     .flags = 0
+    },
+    {.name = NULL}
 };

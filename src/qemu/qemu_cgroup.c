@@ -48,15 +48,21 @@ static const char *const defaultDeviceACL[] = {
 bool qemuCgroupControllerActive(virQEMUDriverPtr driver,
                                 int controller)
 {
+    virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
+    bool ret = false;
+
     if (driver->cgroup == NULL)
-        return false;
+        goto cleanup;
     if (controller < 0 || controller >= VIR_CGROUP_CONTROLLER_LAST)
-        return false;
+        goto cleanup;
     if (!virCgroupMounted(driver->cgroup, controller))
-        return false;
-    if (driver->cgroupControllers & (1 << controller))
-        return true;
-    return false;
+        goto cleanup;
+    if (cfg->cgroupControllers & (1 << controller))
+        ret = true;
+
+cleanup:
+    virObjectUnref(cfg);
+    return ret;
 }
 
 static int
@@ -167,7 +173,7 @@ qemuSetupChardevCgroup(virDomainDefPtr def,
 }
 
 
-int qemuSetupHostUsbDeviceCgroup(usbDevice *dev ATTRIBUTE_UNUSED,
+int qemuSetupHostUsbDeviceCgroup(virUSBDevicePtr dev ATTRIBUTE_UNUSED,
                                  const char *path,
                                  void *opaque)
 {
@@ -195,13 +201,14 @@ int qemuSetupCgroup(virQEMUDriverPtr driver,
     virCgroupPtr cgroup = NULL;
     int rc;
     unsigned int i;
+    virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
     const char *const *deviceACL =
-        driver->cgroupDeviceACL ?
-        (const char *const *)driver->cgroupDeviceACL :
+        cfg->cgroupDeviceACL ?
+        (const char *const *)cfg->cgroupDeviceACL :
         defaultDeviceACL;
 
     if (driver->cgroup == NULL)
-        return 0; /* Not supported, so claim success */
+        goto done; /* Not supported, so claim success */
 
     rc = virCgroupForDomain(driver->cgroup, vm->def->name, &cgroup, 1);
     if (rc != 0) {
@@ -227,9 +234,7 @@ int qemuSetupCgroup(virQEMUDriverPtr driver,
         }
 
         for (i = 0; i < vm->def->ndisks ; i++) {
-            if (qemuDomainDetermineDiskChain(driver, vm->def->disks[i],
-                                             false) < 0 ||
-                qemuSetupDiskCgroup(vm, cgroup, vm->def->disks[i]) < 0)
+            if (qemuSetupDiskCgroup(vm, cgroup, vm->def->disks[i]) < 0)
                 goto cleanup;
         }
 
@@ -246,7 +251,7 @@ int qemuSetupCgroup(virQEMUDriverPtr driver,
         if (vm->def->nsounds &&
             (!vm->def->ngraphics ||
              ((vm->def->graphics[0]->type == VIR_DOMAIN_GRAPHICS_TYPE_VNC &&
-               driver->vncAllowHostAudio) ||
+               cfg->vncAllowHostAudio) ||
               (vm->def->graphics[0]->type == VIR_DOMAIN_GRAPHICS_TYPE_SDL)))) {
             rc = virCgroupAllowDeviceMajor(cgroup, 'c', DEVICE_SND_MAJOR,
                                            VIR_CGROUP_DEVICE_RW);
@@ -280,7 +285,7 @@ int qemuSetupCgroup(virQEMUDriverPtr driver,
 
         for (i = 0; i < vm->def->nhostdevs; i++) {
             virDomainHostdevDefPtr hostdev = vm->def->hostdevs[i];
-            usbDevice *usb;
+            virUSBDevicePtr usb;
 
             if (hostdev->mode != VIR_DOMAIN_HOSTDEV_MODE_SUBSYS)
                 continue;
@@ -289,14 +294,17 @@ int qemuSetupCgroup(virQEMUDriverPtr driver,
             if (hostdev->missing)
                 continue;
 
-            if ((usb = usbGetDevice(hostdev->source.subsys.u.usb.bus,
-                                    hostdev->source.subsys.u.usb.device,
-                                    NULL)) == NULL)
+            if ((usb = virUSBDeviceNew(hostdev->source.subsys.u.usb.bus,
+                                       hostdev->source.subsys.u.usb.device,
+                                       NULL)) == NULL)
                 goto cleanup;
 
-            if (usbDeviceFileIterate(usb, qemuSetupHostUsbDeviceCgroup,
-                                     &data) < 0)
+            if (virUSBDeviceFileIterate(usb, qemuSetupHostUsbDeviceCgroup,
+                                        &data) < 0) {
+                virUSBDeviceFree(usb);
                 goto cleanup;
+            }
+            virUSBDeviceFree(usb);
         }
     }
 
@@ -434,10 +442,12 @@ int qemuSetupCgroup(virQEMUDriverPtr driver,
         }
     }
 done:
+    virObjectUnref(cfg);
     virCgroupFree(&cgroup);
     return 0;
 
 cleanup:
+    virObjectUnref(cfg);
     if (cgroup) {
         virCgroupRemove(cgroup);
         virCgroupFree(&cgroup);

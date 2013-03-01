@@ -1187,6 +1187,7 @@ typedef enum {
                                                * when supported */
     VIR_MIGRATE_UNSAFE            = (1 << 9), /* force migration even if it is considered unsafe */
     VIR_MIGRATE_OFFLINE           = (1 << 10), /* offline migrate */
+    VIR_MIGRATE_COMPRESSED        = (1 << 11), /* compress data during migration */
 } virDomainMigrateFlags;
 
 /* Domain migration. */
@@ -1213,6 +1214,13 @@ int virDomainMigrateToURI2(virDomainPtr domain,
 int virDomainMigrateSetMaxDowntime (virDomainPtr domain,
                                     unsigned long long downtime,
                                     unsigned int flags);
+
+int virDomainMigrateGetCompressionCache(virDomainPtr domain,
+                                        unsigned long long *cacheSize,
+                                        unsigned int flags);
+int virDomainMigrateSetCompressionCache(virDomainPtr domain,
+                                        unsigned long long cacheSize,
+                                        unsigned int flags);
 
 int virDomainMigrateSetMaxSpeed(virDomainPtr domain,
                                 unsigned long bandwidth,
@@ -1355,7 +1363,7 @@ VIR_EXPORT_VAR virConnectAuthPtr virConnectAuthPtrDefault;
  * version * 1,000,000 + minor * 1000 + micro
  */
 
-#define LIBVIR_VERSION_NUMBER 1000002
+#define LIBVIR_VERSION_NUMBER 1000003
 
 int                     virGetVersion           (unsigned long *libVer,
                                                  const char *type,
@@ -1398,6 +1406,15 @@ typedef enum {
 # endif
 } virConnectCloseReason;
 
+/**
+ * virConnectCloseFunc:
+ * @conn: virConnect connection
+ * @reason: reason why the connection was closed (one of virConnectCloseReason)
+ * @opaque: opaque user data
+ *
+ * A callback function to be registered, and called when the connection
+ * is closed.
+ */
 typedef void (*virConnectCloseFunc)(virConnectPtr conn,
                                     int reason,
                                     void *opaque);
@@ -3248,6 +3265,11 @@ int                     virConnectListAllNodeDevices (virConnectPtr conn,
 virNodeDevicePtr        virNodeDeviceLookupByName (virConnectPtr conn,
                                                    const char *name);
 
+virNodeDevicePtr        virNodeDeviceLookupSCSIHostByWWN (virConnectPtr conn,
+                                                          const char *wwnn,
+                                                          const char *wwpn,
+                                                          unsigned int flags);
+
 const char *            virNodeDeviceGetName     (virNodeDevicePtr dev);
 
 const char *            virNodeDeviceGetParent   (virNodeDevicePtr dev);
@@ -3432,6 +3454,8 @@ typedef enum {
  * @opaque: opaque user data
  *
  * A callback function to be registered, and called when a domain event occurs
+ *
+ * Returns 0 (the return value is currently ignored)
  */
 typedef int (*virConnectDomainEventCallback)(virConnectPtr conn,
                                              virDomainPtr dom,
@@ -3524,6 +3548,8 @@ typedef void (*virEventUpdateHandleFunc)(int watch, int event);
  * If a virEventHandleFreeFunc was supplied when the handle was
  * registered, it will be invoked some time during, or after this
  * function call, when it is safe to release the user data.
+ *
+ * Returns -1 if the file handle was not registered, 0 upon success
  */
 typedef int (*virEventRemoveHandleFunc)(int watch);
 
@@ -3926,7 +3952,212 @@ struct _virDomainJobInfo {
 
 int virDomainGetJobInfo(virDomainPtr dom,
                         virDomainJobInfoPtr info);
+int virDomainGetJobStats(virDomainPtr domain,
+                         int *type,
+                         virTypedParameterPtr *params,
+                         int *nparams,
+                         unsigned int flags);
 int virDomainAbortJob(virDomainPtr dom);
+
+/**
+ * VIR_DOMAIN_JOB_TIME_ELAPSED:
+ *
+ * virDomainGetJobStats field: time (ms) since the beginning of the
+ * job, as VIR_TYPED_PARAM_ULLONG.
+ *
+ * This field corresponds to timeElapsed field in virDomainJobInfo.
+ */
+#define VIR_DOMAIN_JOB_TIME_ELAPSED             "time_elapsed"
+
+/**
+ * VIR_DOMAIN_JOB_TIME_REMAINING:
+ *
+ * virDomainGetJobStats field: remaining time (ms) for VIR_DOMAIN_JOB_BOUNDED
+ * jobs, as VIR_TYPED_PARAM_ULLONG.
+ *
+ * This field corresponds to timeRemaining field in virDomainJobInfo.
+ */
+#define VIR_DOMAIN_JOB_TIME_REMAINING           "time_remaining"
+
+/**
+ * VIR_DOMAIN_JOB_DOWNTIME:
+ *
+ * virDomainGetJobStats field: downtime (ms) that is expected to happen
+ * during migration, as VIR_TYPED_PARAM_ULLONG.
+ */
+#define VIR_DOMAIN_JOB_DOWNTIME                 "downtime"
+
+/**
+ * VIR_DOMAIN_JOB_DATA_TOTAL:
+ *
+ * virDomainGetJobStats field: total number of bytes supposed to be
+ * transferred, as VIR_TYPED_PARAM_ULLONG. For VIR_DOMAIN_JOB_UNBOUNDED
+ * jobs, this may be less than the sum of VIR_DOMAIN_JOB_DATA_PROCESSED and
+ * VIR_DOMAIN_JOB_DATA_REMAINING in the event that the hypervisor has to
+ * repeat some data, e.g., due to dirtied pages during migration. For
+ * VIR_DOMAIN_JOB_BOUNDED jobs, VIR_DOMAIN_JOB_DATA_TOTAL shall always equal
+ * VIR_DOMAIN_JOB_DATA_PROCESSED + VIR_DOMAIN_JOB_DATA_REMAINING.
+ *
+ * This field corresponds to dataTotal field in virDomainJobInfo.
+ */
+#define VIR_DOMAIN_JOB_DATA_TOTAL               "data_total"
+
+/**
+ * VIR_DOMAIN_JOB_DATA_PROCESSED:
+ *
+ * virDomainGetJobStats field: number of bytes transferred from the
+ * beginning of the job, as VIR_TYPED_PARAM_ULLONG.
+ *
+ * This field corresponds to dataProcessed field in virDomainJobInfo.
+ */
+#define VIR_DOMAIN_JOB_DATA_PROCESSED           "data_processed"
+
+/**
+ * VIR_DOMAIN_JOB_DATA_REMAINING:
+ *
+ * virDomainGetJobStats field: number of bytes that still need to be
+ * transferred, as VIR_TYPED_PARAM_ULLONG.
+ *
+ * This field corresponds to dataRemaining field in virDomainJobInfo.
+ */
+#define VIR_DOMAIN_JOB_DATA_REMAINING           "data_remaining"
+
+/**
+ * VIR_DOMAIN_JOB_MEMORY_TOTAL:
+ *
+ * virDomainGetJobStats field: as VIR_DOMAIN_JOB_DATA_TOTAL but only
+ * tracking guest memory progress, as VIR_TYPED_PARAM_ULLONG.
+ *
+ * This field corresponds to memTotal field in virDomainJobInfo.
+ */
+#define VIR_DOMAIN_JOB_MEMORY_TOTAL             "memory_total"
+
+/**
+ * VIR_DOMAIN_JOB_MEMORY_PROCESSED:
+ *
+ * virDomainGetJobStats field: as VIR_DOMAIN_JOB_DATA_PROCESSED but only
+ * tracking guest memory progress, as VIR_TYPED_PARAM_ULLONG.
+ *
+ * This field corresponds to memProcessed field in virDomainJobInfo.
+ */
+#define VIR_DOMAIN_JOB_MEMORY_PROCESSED         "memory_processed"
+
+/**
+ * VIR_DOMAIN_JOB_MEMORY_REMAINING:
+ *
+ * virDomainGetJobStats field: as VIR_DOMAIN_JOB_DATA_REMAINING but only
+ * tracking guest memory progress, as VIR_TYPED_PARAM_ULLONG.
+ *
+ * This field corresponds to memRemaining field in virDomainJobInfo.
+ */
+#define VIR_DOMAIN_JOB_MEMORY_REMAINING         "memory_remaining"
+
+/**
+ * VIR_DOMAIN_JOB_MEMORY_CONSTANT:
+ *
+ * virDomainGetJobStats field: number of pages filled with a constant
+ * byte (all bytes in a single page are identical) transferred since the
+ * beginning of the migration job, as VIR_TYPED_PARAM_ULLONG.
+ *
+ * The most common example of such pages are zero pages, i.e., pages filled
+ * with zero bytes.
+ */
+#define VIR_DOMAIN_JOB_MEMORY_CONSTANT          "memory_constant"
+
+/**
+ * VIR_DOMAIN_JOB_MEMORY_NORMAL:
+ *
+ * virDomainGetJobStats field: number of pages that were transferred without
+ * any kind of compression (i.e., pages which were not filled with a constant
+ * byte and which could not be compressed) transferred since the beginning
+ * of the migration job, as VIR_TYPED_PARAM_ULLONG.
+ */
+#define VIR_DOMAIN_JOB_MEMORY_NORMAL            "memory_normal"
+
+/**
+ * VIR_DOMAIN_JOB_MEMORY_NORMAL_BYTES:
+ *
+ * virDomainGetJobStats field: number of bytes transferred as normal pages,
+ * as VIR_TYPED_PARAM_ULLONG.
+ *
+ * See VIR_DOMAIN_JOB_MEMORY_NORMAL for more details.
+ */
+#define VIR_DOMAIN_JOB_MEMORY_NORMAL_BYTES      "memory_normal_bytes"
+
+/**
+ * VIR_DOMAIN_JOB_DISK_TOTAL:
+ *
+ * virDomainGetJobStats field: as VIR_DOMAIN_JOB_DATA_TOTAL but only
+ * tracking guest disk progress, as VIR_TYPED_PARAM_ULLONG.
+ *
+ * This field corresponds to fileTotal field in virDomainJobInfo.
+ */
+#define VIR_DOMAIN_JOB_DISK_TOTAL               "disk_total"
+
+/**
+ * VIR_DOMAIN_JOB_DISK_PROCESSED:
+ *
+ * virDomainGetJobStats field: as VIR_DOMAIN_JOB_DATA_PROCESSED but only
+ * tracking guest disk progress, as VIR_TYPED_PARAM_ULLONG.
+ *
+ * This field corresponds to fileProcessed field in virDomainJobInfo.
+ */
+#define VIR_DOMAIN_JOB_DISK_PROCESSED           "disk_processed"
+
+/**
+ * VIR_DOMAIN_JOB_DISK_REMAINING:
+ *
+ * virDomainGetJobStats field: as VIR_DOMAIN_JOB_DATA_REMAINING but only
+ * tracking guest disk progress, as VIR_TYPED_PARAM_ULLONG.
+ *
+ * This field corresponds to fileRemaining field in virDomainJobInfo.
+ */
+#define VIR_DOMAIN_JOB_DISK_REMAINING           "disk_remaining"
+
+/**
+ * VIR_DOMAIN_JOB_COMPRESSION_CACHE:
+ *
+ * virDomainGetJobStats field: size of the cache (in bytes) used for
+ * compressing repeatedly transferred memory pages during live migration,
+ * as VIR_TYPED_PARAM_ULLONG.
+ */
+#define VIR_DOMAIN_JOB_COMPRESSION_CACHE        "compression_cache"
+
+/**
+ * VIR_DOMAIN_JOB_COMPRESSION_BYTES:
+ *
+ * virDomainGetJobStats field: number of compressed bytes transferred
+ * since the beginning of migration, as VIR_TYPED_PARAM_ULLONG.
+ */
+#define VIR_DOMAIN_JOB_COMPRESSION_BYTES        "compression_bytes"
+
+/**
+ * VIR_DOMAIN_JOB_COMPRESSION_PAGES:
+ *
+ * virDomainGetJobStats field: number of compressed pages transferred
+ * since the beginning of migration, as VIR_TYPED_PARAM_ULLONG.
+ */
+#define VIR_DOMAIN_JOB_COMPRESSION_PAGES        "compression_pages"
+
+/**
+ * VIR_DOMAIN_JOB_COMPRESSION_CACHE_MISSES:
+ *
+ * virDomainGetJobStats field: number of repeatedly changing pages that
+ * were not found in compression cache and thus could not be compressed,
+ * as VIR_TYPED_PARAM_ULLONG.
+ */
+#define VIR_DOMAIN_JOB_COMPRESSION_CACHE_MISSES "compression_cache_misses"
+
+/**
+ * VIR_DOMAIN_JOB_COMPRESSION_OVERFLOW:
+ *
+ * virDomainGetJobStats field: number of repeatedly changing pages that
+ * were found in compression cache but were sent uncompressed because
+ * the result of compression was larger than the original page as a whole,
+ * as VIR_TYPED_PARAM_ULLONG.
+ */
+#define VIR_DOMAIN_JOB_COMPRESSION_OVERFLOW     "compression_overflow"
+
 
 /**
  * virDomainSnapshot:
@@ -4350,9 +4581,10 @@ typedef enum {
  * virConnectDomainEventBlockJobCallback:
  * @conn: connection object
  * @dom: domain on which the event occurred
- * @path: fully-qualified filename of the affected disk
+ * @disk: fully-qualified filename of the affected disk
  * @type: type of block job (virDomainBlockJobType)
  * @status: final status of the operation (virConnectDomainEventBlockJobStatus)
+ * @opaque: application specified data
  *
  * The callback signature to use when registering for an event of type
  * VIR_DOMAIN_EVENT_ID_BLOCK_JOB with virConnectDomainEventRegisterAny()

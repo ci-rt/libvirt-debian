@@ -124,7 +124,7 @@
 .\" ========================================================================
 .\"
 .IX Title "VIRSH 1"
-.TH VIRSH 1 "2013-01-28" "libvirt-1.0.2" "Virtualization Support"
+.TH VIRSH 1 "2013-02-25" "libvirt-1.0.3" "Virtualization Support"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -1047,8 +1047,8 @@ be running. Default it shows stats for all CPUs, and a total. Use
 \&\fI\-\-total\fR for only the total stats, \fIstart\fR for only the per-cpu
 stats of the CPUs from \fIstart\fR, \fIcount\fR for only \fIcount\fR CPUs'
 stats.
-.IP "\fBmigrate\fR [\fI\-\-live\fR] [\fI\-\-offline\fR] [\fI\-\-direct\fR] [\fI\-\-p2p\fR [\fI\-\-tunnelled\fR]] [\fI\-\-persistent\fR] [\fI\-\-undefinesource\fR] [\fI\-\-suspend\fR] [\fI\-\-copy\-storage\-all\fR] [\fI\-\-copy\-storage\-inc\fR] [\fI\-\-change\-protection\fR] [\fI\-\-unsafe\fR] [\fI\-\-verbose\fR] \fIdomain\fR \fIdesturi\fR [\fImigrateuri\fR] [\fIdname\fR] [\fI\-\-timeout\fR \fBseconds\fR] [\fI\-\-xml\fR \fBfile\fR]" 4
-.IX Item "migrate [--live] [--offline] [--direct] [--p2p [--tunnelled]] [--persistent] [--undefinesource] [--suspend] [--copy-storage-all] [--copy-storage-inc] [--change-protection] [--unsafe] [--verbose] domain desturi [migrateuri] [dname] [--timeout seconds] [--xml file]"
+.IP "\fBmigrate\fR [\fI\-\-live\fR] [\fI\-\-offline\fR] [\fI\-\-direct\fR] [\fI\-\-p2p\fR [\fI\-\-tunnelled\fR]] [\fI\-\-persistent\fR] [\fI\-\-undefinesource\fR] [\fI\-\-suspend\fR] [\fI\-\-copy\-storage\-all\fR] [\fI\-\-copy\-storage\-inc\fR] [\fI\-\-change\-protection\fR] [\fI\-\-unsafe\fR] [\fI\-\-verbose\fR] [\fI\-\-compressed\fR] \fIdomain\fR \fIdesturi\fR [\fImigrateuri\fR] [\fIdname\fR] [\fI\-\-timeout\fR \fBseconds\fR] [\fI\-\-xml\fR \fBfile\fR]" 4
+.IX Item "migrate [--live] [--offline] [--direct] [--p2p [--tunnelled]] [--persistent] [--undefinesource] [--suspend] [--copy-storage-all] [--copy-storage-inc] [--change-protection] [--unsafe] [--verbose] [--compressed] domain desturi [migrateuri] [dname] [--timeout seconds] [--xml file]"
 Migrate domain to another host.  Add \fI\-\-live\fR for live migration; <\-\-p2p>
 for peer\-2\-peer migration; \fI\-\-direct\fR for direct migration; or \fI\-\-tunnelled\fR
 for tunnelled migration.  \fI\-\-offline\fR migrates domain definition without
@@ -1067,7 +1067,9 @@ host. \fI\-\-change\-protection\fR enforces that no incompatible configuration
 changes will be made to the domain while the migration is underway; this flag
 is implicitly enabled when supported by the hypervisor, but can be explicitly
 used to reject the migration if the hypervisor lacks change protection
-support.  \fI\-\-verbose\fR displays the progress of migration.
+support.  \fI\-\-verbose\fR displays the progress of migration.  \fI\-\-compressed\fR
+activates compression of memory pages that have to be transferred repeatedly
+during live migration.
 .Sp
 \&\fBNote\fR: Individual hypervisors usually do not support all possible types of
 migration. For example, \s-1QEMU\s0 does not support direct migration.
@@ -1113,6 +1115,17 @@ seen from the source machine.
 Set maximum tolerable downtime for a domain which is being live-migrated to
 another host.  The \fIdowntime\fR is a number of milliseconds the guest is allowed
 to be down at the end of live migration.
+.IP "\fBmigrate-compcache\fR \fIdomain\fR [\fI\-\-size\fR \fBbytes\fR]" 4
+.IX Item "migrate-compcache domain [--size bytes]"
+Sets and/or gets size of the cache (in bytes) used for compressing repeatedly
+transferred memory pages during live migration. When called without \fIsize\fR,
+the command just prints current size of the compression cache. When \fIsize\fR
+is specified, the hypervisor is asked to change compression cache to \fIsize\fR
+bytes and then the current size is printed (the result may differ from the
+requested size due to rounding done by the hypervisor). The \fIsize\fR option
+is supposed to be used while the domain is being live-migrated as a reaction
+to migration progress and increasing number of compression cache misses
+obtained from domjobinfo.
 .IP "\fBmigrate-setspeed\fR \fIdomain\fR \fIbandwidth\fR" 4
 .IX Item "migrate-setspeed domain bandwidth"
 Set the maximum migration bandwidth (in Mbps) for a domain which is being
@@ -1871,11 +1884,12 @@ machines. Normally, libvirt is able to automatically determine which
 host nodes are available for use, but this allows registration of
 host hardware that libvirt did not automatically detect.  \fIfile\fR
 contains xml for a top-level <device> description of a node device.
-.IP "\fBnodedev-destroy\fR \fInodedev\fR" 4
-.IX Item "nodedev-destroy nodedev"
-Destroy (stop) a device on the host.  Note that this makes libvirt
-quit managing a host device, and may even make that device unusable
-by the rest of the physical host until a reboot.
+.IP "\fBnodedev-destroy\fR \fIdevice\fR" 4
+.IX Item "nodedev-destroy device"
+Destroy (stop) a device on the host. \fIdevice\fR can be either device
+name or wwn pair in \*(L"wwnn,wwpn\*(R" format (only works for \s-1HBA\s0). Note
+that this makes libvirt quit managing a host device, and may even make
+that device unusable by the rest of the physical host until a reboot.
 .IP "\fBnodedev-detach\fR \fInodedev\fR" 4
 .IX Item "nodedev-detach nodedev"
 Detach \fInodedev\fR from the host, so that it can safely be used by
@@ -1883,12 +1897,14 @@ guests via <hostdev> passthrough.  This is reversed with
 \&\fBnodedev-reattach\fR, and is done automatically for managed devices.
 For compatibility purposes, this command can also be spelled
 \&\fBnodedev-dettach\fR.
-.IP "\fBnodedev-dumpxml\fR \fInodedev\fR" 4
-.IX Item "nodedev-dumpxml nodedev"
+.IP "\fBnodedev-dumpxml\fR \fIdevice\fR" 4
+.IX Item "nodedev-dumpxml device"
 Dump a <device> \s-1XML\s0 representation for the given node device, including
 such information as the device name, which bus owns the device, the
 vendor and product id, and any capabilities of the device usable by
-libvirt (such as whether device reset is supported).
+libvirt (such as whether device reset is supported). \fIdevice\fR can
+be either device name or wwn pair in \*(L"wwnn,wwpn\*(R" format (only works
+for \s-1HBA\s0).
 .IP "\fBnodedev-list\fR \fIcap\fR \fI\-\-tree\fR" 4
 .IX Item "nodedev-list cap --tree"
 List all of the devices available on the node that are known by libvirt.
@@ -2545,7 +2561,8 @@ The \fI\-\-memspec\fR option can be used to control whether a checkpoint
 is internal or external.  The \fI\-\-memspec\fR flag is mandatory, followed
 by a \fBmemspec\fR of the form \fB[file=]name[,snapshot=type]\fR, where
 type can be \fBnone\fR, \fBinternal\fR, or \fBexternal\fR.  To include a literal
-comma in \fBfile=name\fR, escape it with a second comma.
+comma in \fBfile=name\fR, escape it with a second comma. \fI\-\-memspec\fR cannot
+be used together with \fI\-\-disk\-only\fR.
 .Sp
 The \fI\-\-diskspec\fR option can be used to control how \fI\-\-disk\-only\fR and
 external checkpoints create external files.  This option can occur

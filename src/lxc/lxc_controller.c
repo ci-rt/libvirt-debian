@@ -182,7 +182,7 @@ static virLXCControllerPtr virLXCControllerNew(const char *name)
 
 cleanup:
     VIR_FREE(configFile);
-    virCapabilitiesFree(caps);
+    virObjectUnref(caps);
     return ctrl;
 
 no_memory:
@@ -258,7 +258,7 @@ static void virLXCControllerFree(virLXCControllerPtr ctrl)
 
     virLXCControllerStopInit(ctrl);
 
-    virSecurityManagerFree(ctrl->securityManager);
+    virObjectUnref(ctrl->securityManager);
 
     for (i = 0 ; i < ctrl->nveths ; i++)
         VIR_FREE(ctrl->veths[i]);

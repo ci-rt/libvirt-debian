@@ -1043,7 +1043,7 @@ stats.
 =item B<migrate> [I<--live>] [I<--offline>] [I<--direct>] [I<--p2p> [I<--tunnelled>]]
 [I<--persistent>] [I<--undefinesource>] [I<--suspend>] [I<--copy-storage-all>]
 [I<--copy-storage-inc>] [I<--change-protection>] [I<--unsafe>] [I<--verbose>]
-I<domain> I<desturi> [I<migrateuri>] [I<dname>]
+[I<--compressed>] I<domain> I<desturi> [I<migrateuri>] [I<dname>]
 [I<--timeout> B<seconds>] [I<--xml> B<file>]
 
 Migrate domain to another host.  Add I<--live> for live migration; <--p2p>
@@ -1064,7 +1064,9 @@ host. I<--change-protection> enforces that no incompatible configuration
 changes will be made to the domain while the migration is underway; this flag
 is implicitly enabled when supported by the hypervisor, but can be explicitly
 used to reject the migration if the hypervisor lacks change protection
-support.  I<--verbose> displays the progress of migration.
+support.  I<--verbose> displays the progress of migration.  I<--compressed>
+activates compression of memory pages that have to be transferred repeatedly
+during live migration.
 
 B<Note>: Individual hypervisors usually do not support all possible types of
 migration. For example, QEMU does not support direct migration.
@@ -1111,6 +1113,18 @@ seen from the source machine.
 Set maximum tolerable downtime for a domain which is being live-migrated to
 another host.  The I<downtime> is a number of milliseconds the guest is allowed
 to be down at the end of live migration.
+
+=item B<migrate-compcache> I<domain> [I<--size> B<bytes>]
+
+Sets and/or gets size of the cache (in bytes) used for compressing repeatedly
+transferred memory pages during live migration. When called without I<size>,
+the command just prints current size of the compression cache. When I<size>
+is specified, the hypervisor is asked to change compression cache to I<size>
+bytes and then the current size is printed (the result may differ from the
+requested size due to rounding done by the hypervisor). The I<size> option
+is supposed to be used while the domain is being live-migrated as a reaction
+to migration progress and increasing number of compression cache misses
+obtained from domjobinfo.
 
 =item B<migrate-setspeed> I<domain> I<bandwidth>
 
@@ -1953,11 +1967,12 @@ host nodes are available for use, but this allows registration of
 host hardware that libvirt did not automatically detect.  I<file>
 contains xml for a top-level <device> description of a node device.
 
-=item B<nodedev-destroy> I<nodedev>
+=item B<nodedev-destroy> I<device>
 
-Destroy (stop) a device on the host.  Note that this makes libvirt
-quit managing a host device, and may even make that device unusable
-by the rest of the physical host until a reboot.
+Destroy (stop) a device on the host. I<device> can be either device
+name or wwn pair in "wwnn,wwpn" format (only works for HBA). Note
+that this makes libvirt quit managing a host device, and may even make
+that device unusable by the rest of the physical host until a reboot.
 
 =item B<nodedev-detach> I<nodedev>
 
@@ -1967,12 +1982,14 @@ B<nodedev-reattach>, and is done automatically for managed devices.
 For compatibility purposes, this command can also be spelled
 B<nodedev-dettach>.
 
-=item B<nodedev-dumpxml> I<nodedev>
+=item B<nodedev-dumpxml> I<device>
 
 Dump a <device> XML representation for the given node device, including
 such information as the device name, which bus owns the device, the
 vendor and product id, and any capabilities of the device usable by
-libvirt (such as whether device reset is supported).
+libvirt (such as whether device reset is supported). I<device> can
+be either device name or wwn pair in "wwnn,wwpn" format (only works
+for HBA).
 
 =item B<nodedev-list> I<cap> I<--tree>
 
@@ -2749,7 +2766,8 @@ The I<--memspec> option can be used to control whether a checkpoint
 is internal or external.  The I<--memspec> flag is mandatory, followed
 by a B<memspec> of the form B<[file=]name[,snapshot=type]>, where
 type can be B<none>, B<internal>, or B<external>.  To include a literal
-comma in B<file=name>, escape it with a second comma.
+comma in B<file=name>, escape it with a second comma. I<--memspec> cannot
+be used together with I<--disk-only>.
 
 The I<--diskspec> option can be used to control how I<--disk-only> and
 external checkpoints create external files.  This option can occur

@@ -242,6 +242,9 @@ mymain(void)
 
     DO_TEST("disk-scsi-disk-vpd");
 
+    DO_TEST("virtio-rng-random");
+    DO_TEST("virtio-rng-egd");
+
     /* These tests generate different XML */
     DO_TEST_DIFFERENT("balloon-device-auto");
     DO_TEST_DIFFERENT("channel-virtio-auto");
@@ -258,7 +261,7 @@ mymain(void)
 
     DO_TEST_DIFFERENT("metadata");
 
-    virCapabilitiesFree(driver.caps);
+    virObjectUnref(driver.caps);
 
     return ret==0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }

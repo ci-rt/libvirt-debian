@@ -122,11 +122,6 @@ cleanup:
 
 }
 
-struct parallelsPoolsAddData {
-    virConnectPtr conn;
-    bool failed;
-};
-
 /*
  * Generate unique pool name by path
  */
@@ -134,9 +129,11 @@ static char *parallelsMakePoolName(virConnectPtr conn, const char *path)
 {
     parallelsConnPtr privconn = conn->privateData;
     char *name;
+    unsigned int i;
 
-    for (unsigned int i = 0; i < UINT_MAX; i++) {
+    for (i = 0; i < UINT_MAX; i++) {
         bool found = false;
+        int j;
 
         if (!(name = strdup(path))) {
             virReportOOMError();
@@ -153,11 +150,11 @@ static char *parallelsMakePoolName(virConnectPtr conn, const char *path)
             return 0;
         }
 
-        for (int j = 0; j < strlen(name); j++)
+        for (j = 0; j < strlen(name); j++)
             if (name[j] == '/')
                 name[j] = '-';
 
-        for (int j = 0; j < privconn->pools.count; j++) {
+        for (j = 0; j < privconn->pools.count; j++) {
             if (STREQ(name, privconn->pools.objs[j]->def->name)) {
                 found = true;
                 break;
@@ -231,6 +228,7 @@ parallelsPoolAddByDomain(virConnectPtr conn, virDomainObjPtr dom)
     virStoragePoolObjListPtr pools = &privconn->pools;
     char *poolPath;
     virStoragePoolObjPtr pool = NULL;
+    int j;
 
     if (!(poolPath = strdup(pdom->home))) {
         virReportOOMError();
@@ -239,7 +237,7 @@ parallelsPoolAddByDomain(virConnectPtr conn, virDomainObjPtr dom)
 
     poolPath = dirname(poolPath);
 
-    for (int j = 0; j < pools->count; j++) {
+    for (j = 0; j < pools->count; j++) {
         if (STREQ(poolPath, pools->objs[j]->def->target.path)) {
             pool = pools->objs[j];
             break;
@@ -404,26 +402,20 @@ cleanup:
 
 }
 
-static void
-parallelsPoolsAdd(void *payload,
-                  const void *name ATTRIBUTE_UNUSED,
+static int
+parallelsPoolsAdd(virDomainObjPtr dom,
                   void *opaque)
 {
-    struct parallelsPoolsAddData *data = (struct parallelsPoolsAddData *)opaque;
-    virDomainObjPtr dom = payload;
+    virConnectPtr conn = opaque;
     virStoragePoolObjPtr pool;
 
-    if (!(pool = parallelsPoolAddByDomain(data->conn, dom))) {
-        data->failed = true;
-        return;
-    }
+    if (!(pool = parallelsPoolAddByDomain(conn, dom)))
+        return -1;
 
-    if (parallelsFindVmVolumes(pool, dom)) {
-        data->failed = true;
-        return;
-    }
+    if (parallelsFindVmVolumes(pool, dom))
+        return -1;
 
-    return;
+    return 0;
 }
 
 static int parallelsLoadPools(virConnectPtr conn)
@@ -432,7 +424,6 @@ static int parallelsLoadPools(virConnectPtr conn)
     virStorageDriverStatePtr storageState = conn->storagePrivateData;
     char *base = NULL;
     size_t i;
-    struct parallelsPoolsAddData data;
 
     if ((base = strdup(SYSCONFDIR "/libvirt")) == NULL)
         goto out_of_memory;
@@ -456,11 +447,7 @@ static int parallelsLoadPools(virConnectPtr conn)
         goto error;
     }
 
-    data.conn = conn;
-    data.failed = false;
-    virHashForEach(privconn->domains.objs, parallelsPoolsAdd, &data);
-
-    if (data.failed)
+    if (virDomainObjListForEach(privconn->domains, parallelsPoolsAdd, conn) < 0)
         goto error;
 
     for (i = 0; i < privconn->pools.count; i++) {
@@ -725,7 +712,7 @@ parallelsStoragePoolGetAlloc(virStoragePoolDefPtr def)
     def->capacity = ((unsigned long long)sb.f_frsize *
                      (unsigned long long)sb.f_blocks);
     def->available = ((unsigned long long)sb.f_bfree *
-                            (unsigned long long)sb.f_bsize);
+                      (unsigned long long)sb.f_frsize);
     def->allocation = def->capacity - def->available;
 
     return 0;

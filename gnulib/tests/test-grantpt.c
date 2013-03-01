@@ -22,6 +22,7 @@
 SIGNATURE_CHECK (grantpt, int, (int));
 
 #include <errno.h>
+#include <unistd.h>
 
 #include "macros.h"
 
@@ -48,6 +49,7 @@ main (void)
   {
     int ret;
 
+    close (99);
     errno = 0;
     ret = grantpt (99);
     if (ret != 0)

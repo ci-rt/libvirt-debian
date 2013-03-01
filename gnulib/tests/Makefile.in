@@ -134,11 +134,12 @@ TESTS = test-accept$(EXEEXT) test-alloca-opt$(EXEEXT) \
 	test-raise$(EXEEXT) test-random_r$(EXEEXT) \
 	test-rawmemchr$(EXEEXT) test-read$(EXEEXT) \
 	test-readlink$(EXEEXT) test-realloc-gnu$(EXEEXT) \
-	test-recv$(EXEEXT) test-sched$(EXEEXT) test-select$(EXEEXT) \
-	test-select-in.sh test-select-out.sh test-send$(EXEEXT) \
-	test-setenv$(EXEEXT) test-setlocale1.sh test-setlocale2.sh \
-	test-setsockopt$(EXEEXT) test-sigaction$(EXEEXT) \
-	test-signal-h$(EXEEXT) test-signbit$(EXEEXT) test-sigpipe.sh \
+	test-recv$(EXEEXT) test-regex$(EXEEXT) test-sched$(EXEEXT) \
+	test-select$(EXEEXT) test-select-in.sh test-select-out.sh \
+	test-send$(EXEEXT) test-setenv$(EXEEXT) test-setlocale1.sh \
+	test-setlocale2.sh test-setsockopt$(EXEEXT) \
+	test-sigaction$(EXEEXT) test-signal-h$(EXEEXT) \
+	test-signbit$(EXEEXT) test-sigpipe.sh \
 	test-sigprocmask$(EXEEXT) test-sleep$(EXEEXT) \
 	test-snprintf$(EXEEXT) test-sockets$(EXEEXT) \
 	test-spawn$(EXEEXT) test-stat$(EXEEXT) test-stat-time$(EXEEXT) \
@@ -227,29 +228,29 @@ check_PROGRAMS = test-accept$(EXEEXT) test-alloca-opt$(EXEEXT) \
 	test-raise$(EXEEXT) test-random_r$(EXEEXT) \
 	test-rawmemchr$(EXEEXT) test-read$(EXEEXT) \
 	test-readlink$(EXEEXT) test-realloc-gnu$(EXEEXT) \
-	test-recv$(EXEEXT) test-sched$(EXEEXT) test-select$(EXEEXT) \
-	test-select-fd$(EXEEXT) test-select-stdin$(EXEEXT) \
-	test-send$(EXEEXT) test-setenv$(EXEEXT) \
-	test-setlocale1$(EXEEXT) test-setlocale2$(EXEEXT) \
-	test-setsockopt$(EXEEXT) test-sigaction$(EXEEXT) \
-	test-signal-h$(EXEEXT) test-signbit$(EXEEXT) \
-	test-sigpipe$(EXEEXT) test-sigprocmask$(EXEEXT) \
-	test-sleep$(EXEEXT) test-snprintf$(EXEEXT) \
-	test-sockets$(EXEEXT) test-spawn$(EXEEXT) test-stat$(EXEEXT) \
-	test-stat-time$(EXEEXT) test-stdalign$(EXEEXT) \
-	test-stdbool$(EXEEXT) test-stddef$(EXEEXT) \
-	test-stdint$(EXEEXT) test-stdio$(EXEEXT) test-stdlib$(EXEEXT) \
-	test-strchrnul$(EXEEXT) test-strerror$(EXEEXT) \
-	test-strerror_r$(EXEEXT) test-string$(EXEEXT) \
-	test-strings$(EXEEXT) test-strnlen$(EXEEXT) \
-	test-symlink$(EXEEXT) test-sys_ioctl$(EXEEXT) \
-	test-sys_select$(EXEEXT) test-sys_socket$(EXEEXT) \
-	test-sys_stat$(EXEEXT) test-sys_time$(EXEEXT) \
-	test-sys_types$(EXEEXT) test-sys_uio$(EXEEXT) \
-	test-sys_utsname$(EXEEXT) test-sys_wait$(EXEEXT) \
-	test-termios$(EXEEXT) test-thread_self$(EXEEXT) \
-	test-thread_create$(EXEEXT) test-time$(EXEEXT) \
-	test-ttyname_r$(EXEEXT) test-uname$(EXEEXT) \
+	test-recv$(EXEEXT) test-regex$(EXEEXT) test-sched$(EXEEXT) \
+	test-select$(EXEEXT) test-select-fd$(EXEEXT) \
+	test-select-stdin$(EXEEXT) test-send$(EXEEXT) \
+	test-setenv$(EXEEXT) test-setlocale1$(EXEEXT) \
+	test-setlocale2$(EXEEXT) test-setsockopt$(EXEEXT) \
+	test-sigaction$(EXEEXT) test-signal-h$(EXEEXT) \
+	test-signbit$(EXEEXT) test-sigpipe$(EXEEXT) \
+	test-sigprocmask$(EXEEXT) test-sleep$(EXEEXT) \
+	test-snprintf$(EXEEXT) test-sockets$(EXEEXT) \
+	test-spawn$(EXEEXT) test-stat$(EXEEXT) test-stat-time$(EXEEXT) \
+	test-stdalign$(EXEEXT) test-stdbool$(EXEEXT) \
+	test-stddef$(EXEEXT) test-stdint$(EXEEXT) test-stdio$(EXEEXT) \
+	test-stdlib$(EXEEXT) test-strchrnul$(EXEEXT) \
+	test-strerror$(EXEEXT) test-strerror_r$(EXEEXT) \
+	test-string$(EXEEXT) test-strings$(EXEEXT) \
+	test-strnlen$(EXEEXT) test-symlink$(EXEEXT) \
+	test-sys_ioctl$(EXEEXT) test-sys_select$(EXEEXT) \
+	test-sys_socket$(EXEEXT) test-sys_stat$(EXEEXT) \
+	test-sys_time$(EXEEXT) test-sys_types$(EXEEXT) \
+	test-sys_uio$(EXEEXT) test-sys_utsname$(EXEEXT) \
+	test-sys_wait$(EXEEXT) test-termios$(EXEEXT) \
+	test-thread_self$(EXEEXT) test-thread_create$(EXEEXT) \
+	test-time$(EXEEXT) test-ttyname_r$(EXEEXT) test-uname$(EXEEXT) \
 	test-unistd$(EXEEXT) test-unlockpt$(EXEEXT) \
 	test-unsetenv$(EXEEXT) test-usleep$(EXEEXT) \
 	test-vasnprintf$(EXEEXT) test-vasprintf$(EXEEXT) \
@@ -988,9 +989,7 @@ test_memchr_DEPENDENCIES = libtests.a ../../gnulib/lib/libgnu.la \
 	libtests.a $(am__DEPENDENCIES_1)
 test_net_if_SOURCES = test-net_if.c
 test_net_if_OBJECTS = test-net_if.$(OBJEXT)
-test_net_if_LDADD = $(LDADD)
-test_net_if_DEPENDENCIES = libtests.a ../../gnulib/lib/libgnu.la \
-	libtests.a $(am__DEPENDENCIES_1)
+test_net_if_DEPENDENCIES = $(am__DEPENDENCIES_2)
 test_netdb_SOURCES = test-netdb.c
 test_netdb_OBJECTS = test-netdb.$(OBJEXT)
 test_netdb_LDADD = $(LDADD)
@@ -1159,6 +1158,11 @@ test_realloc_gnu_DEPENDENCIES = libtests.a ../../gnulib/lib/libgnu.la \
 test_recv_SOURCES = test-recv.c
 test_recv_OBJECTS = test-recv.$(OBJEXT)
 test_recv_DEPENDENCIES = $(am__DEPENDENCIES_2)
+test_regex_SOURCES = test-regex.c
+test_regex_OBJECTS = test-regex.$(OBJEXT)
+test_regex_LDADD = $(LDADD)
+test_regex_DEPENDENCIES = libtests.a ../../gnulib/lib/libgnu.la \
+	libtests.a $(am__DEPENDENCIES_1)
 test_sched_SOURCES = test-sched.c
 test_sched_OBJECTS = test-sched.$(OBJEXT)
 test_sched_LDADD = $(LDADD)
@@ -1511,7 +1515,7 @@ SOURCES = $(libtests_a_SOURCES) $(EXTRA_libtests_a_SOURCES) \
 	test-pthread_sigmask1.c test-pthread_sigmask2.c test-ptsname.c \
 	test-ptsname_r.c test-raise.c test-random_r.c test-rawmemchr.c \
 	test-read.c test-readlink.c test-realloc-gnu.c test-recv.c \
-	test-sched.c test-select.c test-select-fd.c \
+	test-regex.c test-sched.c test-select.c test-select-fd.c \
 	test-select-stdin.c test-send.c test-setenv.c \
 	test-setlocale1.c test-setlocale2.c test-setsockopt.c \
 	test-sigaction.c test-signal-h.c test-signbit.c test-sigpipe.c \
@@ -1571,7 +1575,7 @@ DIST_SOURCES = $(libtests_a_SOURCES) $(EXTRA_libtests_a_SOURCES) \
 	test-pthread_sigmask1.c test-pthread_sigmask2.c test-ptsname.c \
 	test-ptsname_r.c test-raise.c test-random_r.c test-rawmemchr.c \
 	test-read.c test-readlink.c test-realloc-gnu.c test-recv.c \
-	test-sched.c test-select.c test-select-fd.c \
+	test-regex.c test-sched.c test-select.c test-select-fd.c \
 	test-select-stdin.c test-send.c test-setenv.c \
 	test-setlocale1.c test-setlocale2.c test-setsockopt.c \
 	test-sigaction.c test-signal-h.c test-signbit.c test-sigpipe.c \
@@ -2584,6 +2588,7 @@ NETCF_CFLAGS = @NETCF_CFLAGS@
 NETCF_LIBS = @NETCF_LIBS@
 NETINET_IN_H = @NETINET_IN_H@
 NET_IF_H = @NET_IF_H@
+NET_IF_LIB = @NET_IF_LIB@
 NEXT_ARPA_INET_H = @NEXT_ARPA_INET_H@
 NEXT_AS_FIRST_DIRECTIVE_ARPA_INET_H = @NEXT_AS_FIRST_DIRECTIVE_ARPA_INET_H@
 NEXT_AS_FIRST_DIRECTIVE_ERRNO_H = @NEXT_AS_FIRST_DIRECTIVE_ERRNO_H@
@@ -3179,11 +3184,11 @@ EXTRA_DIST = test-accept.c signature.h macros.h test-alloca-opt.c \
 	test-read.c signature.h macros.h test-readlink.h \
 	test-readlink.c signature.h macros.h realloc.c \
 	test-realloc-gnu.c test-recv.c signature.h macros.h \
-	same-inode.h test-sched.c macros.h signature.h test-select.c \
-	test-select.h test-select-fd.c test-select-in.sh \
-	test-select-out.sh test-select-stdin.c test-send.c signature.h \
-	macros.h setenv.c test-setenv.c signature.h macros.h \
-	setlocale.c test-setlocale1.sh test-setlocale1.c \
+	test-regex.c macros.h same-inode.h test-sched.c macros.h \
+	signature.h test-select.c test-select.h test-select-fd.c \
+	test-select-in.sh test-select-out.sh test-select-stdin.c \
+	test-send.c signature.h macros.h test-setenv.c signature.h \
+	macros.h setlocale.c test-setlocale1.sh test-setlocale1.c \
 	test-setlocale2.sh test-setlocale2.c signature.h macros.h \
 	test-setsockopt.c signature.h macros.h test-sigaction.c \
 	signature.h macros.h test-signal-h.c float+.h signbitd.c \
@@ -3270,9 +3275,9 @@ EXTRA_libtests_a_SOURCES = dup.c error.c fdopen.c ftruncate.c \
 	spawn_faction_addopen.c spawn_faction_destroy.c \
 	spawn_faction_init.c spawnattr_destroy.c spawnattr_init.c \
 	spawnattr_setflags.c spawnattr_setsigmask.c spawnp.c ptsname.c \
-	ptsname_r.c putenv.c read.c realloc.c setenv.c setlocale.c \
-	signbitd.c signbitf.c signbitl.c symlink.c unlockpt.c \
-	unsetenv.c wctob.c wctomb.c write.c
+	ptsname_r.c putenv.c read.c realloc.c setlocale.c signbitd.c \
+	signbitf.c signbitl.c symlink.c unlockpt.c unsetenv.c wctob.c \
+	wctomb.c write.c
 AM_LIBTOOLFLAGS = --preserve-dup-deps
 test_accept_LDADD = $(LDADD) @LIBSOCKET@
 test_bind_LDADD = $(LDADD) @LIBSOCKET@ $(INET_PTON_LIB)
@@ -3290,6 +3295,7 @@ test_ldexp_SOURCES = test-ldexp.c randomd.c
 test_ldexp_LDADD = $(LDADD) @LDEXP_LIBM@
 test_listen_LDADD = $(LDADD) @LIBSOCKET@
 test_localename_LDADD = $(LDADD) @INTL_MACOSX_LIBS@ $(LIBTHREAD)
+test_net_if_LDADD = $(LDADD) @NET_IF_LIB@
 test_nonblocking_pipe_main_LDADD = $(LDADD) @LIBINTL@
 test_nonblocking_socket_main_LDADD = $(LDADD) $(LIBSOCKET) @LIBINTL@
 test_nonblocking_socket_child_LDADD = $(LDADD) $(LIBSOCKET)
@@ -3781,6 +3787,9 @@ test-realloc-gnu$(EXEEXT): $(test_realloc_gnu_OBJECTS) $(test_realloc_gnu_DEPEND
 test-recv$(EXEEXT): $(test_recv_OBJECTS) $(test_recv_DEPENDENCIES) $(EXTRA_test_recv_DEPENDENCIES) 
 	@rm -f test-recv$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(test_recv_OBJECTS) $(test_recv_LDADD) $(LIBS)
+test-regex$(EXEEXT): $(test_regex_OBJECTS) $(test_regex_DEPENDENCIES) $(EXTRA_test_regex_DEPENDENCIES) 
+	@rm -f test-regex$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(test_regex_OBJECTS) $(test_regex_LDADD) $(LIBS)
 test-sched$(EXEEXT): $(test_sched_OBJECTS) $(test_sched_DEPENDENCIES) $(EXTRA_test_sched_DEPENDENCIES) 
 	@rm -f test-sched$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(test_sched_OBJECTS) $(test_sched_LDADD) $(LIBS)
@@ -4000,7 +4009,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/randomd.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/read.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/realloc.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/setenv.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/setlocale.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/signbitd.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/signbitf.Po@am__quote@
@@ -4146,6 +4154,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-readlink.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-realloc-gnu.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-recv.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-regex.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-sched.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-select-fd.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-select-stdin.Po@am__quote@

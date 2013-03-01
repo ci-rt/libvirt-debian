@@ -128,7 +128,7 @@ vmwareOpen(virConnectPtr conn,
     driver->type = STRNEQ(conn->uri->scheme, "vmwareplayer") ?
       TYPE_WORKSTATION : TYPE_PLAYER;
 
-    if (virDomainObjListInit(&driver->domains) < 0)
+    if (!(driver->domains = virDomainObjListNew()))
         goto cleanup;
 
     if (!(driver->caps = vmwareCapsInit()))
@@ -320,9 +320,6 @@ vmwareDomainDefineXML(virConnectPtr conn, const char *xml)
                                          VIR_DOMAIN_XML_INACTIVE)) == NULL)
         goto cleanup;
 
-    if (virDomainObjIsDuplicate(&driver->domains, vmdef, 1) < 0)
-        goto cleanup;
-
     /* generate vmx file */
     vmx = virVMXFormatConfig(&ctx, driver->caps, vmdef, 7);
     if (vmx == NULL)
@@ -339,8 +336,11 @@ vmwareDomainDefineXML(virConnectPtr conn, const char *xml)
     }
 
     /* assign def */
-    if (!(vm = virDomainAssignDef(driver->caps,
-                                  &driver->domains, vmdef, false)))
+    if (!(vm = virDomainObjListAdd(driver->domains,
+                                   driver->caps,
+                                   vmdef,
+                                   VIR_DOMAIN_OBJ_LIST_ADD_CHECK_LIVE,
+                                   NULL)))
         goto cleanup;
 
     pDomain = vm->privateData;
@@ -382,7 +382,7 @@ vmwareDomainShutdownFlags(virDomainPtr dom,
 
     vmwareDriverLock(driver);
 
-    vm = virDomainFindByUUID(&driver->domains, dom->uuid);
+    vm = virDomainObjListFindByUUID(driver->domains, dom->uuid);
 
     if (!vm) {
         virReportError(VIR_ERR_NO_DOMAIN, "%s",
@@ -403,7 +403,7 @@ vmwareDomainShutdownFlags(virDomainPtr dom,
         goto cleanup;
 
     if (!vm->persistent) {
-        virDomainRemoveInactive(&driver->domains, vm);
+        virDomainObjListRemove(driver->domains, vm);
         vm = NULL;
     }
 
@@ -441,7 +441,7 @@ vmwareDomainSuspend(virDomainPtr dom)
     }
 
     vmwareDriverLock(driver);
-    vm = virDomainFindByUUID(&driver->domains, dom->uuid);
+    vm = virDomainObjListFindByUUID(driver->domains, dom->uuid);
     vmwareDriverUnlock(driver);
 
     if (!vm) {
@@ -490,7 +490,7 @@ vmwareDomainResume(virDomainPtr dom)
     }
 
     vmwareDriverLock(driver);
-    vm = virDomainFindByUUID(&driver->domains, dom->uuid);
+    vm = virDomainObjListFindByUUID(driver->domains, dom->uuid);
     vmwareDriverUnlock(driver);
 
     if (!vm) {
@@ -534,7 +534,7 @@ vmwareDomainReboot(virDomainPtr dom, unsigned int flags)
     virCheckFlags(0, -1);
 
     vmwareDriverLock(driver);
-    vm = virDomainFindByUUID(&driver->domains, dom->uuid);
+    vm = virDomainObjListFindByUUID(driver->domains, dom->uuid);
     vmwareDriverUnlock(driver);
 
     if (!vm) {
@@ -591,9 +591,6 @@ vmwareDomainCreateXML(virConnectPtr conn, const char *xml,
                                          VIR_DOMAIN_XML_INACTIVE)) == NULL)
         goto cleanup;
 
-    if (virDomainObjIsDuplicate(&driver->domains, vmdef, 1) < 0)
-        goto cleanup;
-
     /* generate vmx file */
     vmx = virVMXFormatConfig(&ctx, driver->caps, vmdef, 7);
     if (vmx == NULL)
@@ -610,8 +607,11 @@ vmwareDomainCreateXML(virConnectPtr conn, const char *xml,
     }
 
     /* assign def */
-    if (!(vm = virDomainAssignDef(driver->caps,
-                                  &driver->domains, vmdef, false)))
+    if (!(vm = virDomainObjListAdd(driver->domains,
+                                   driver->caps,
+                                   vmdef,
+                                   VIR_DOMAIN_OBJ_LIST_ADD_CHECK_LIVE,
+                                   NULL)))
         goto cleanup;
 
     pDomain = vm->privateData;
@@ -621,7 +621,7 @@ vmwareDomainCreateXML(virConnectPtr conn, const char *xml,
     vmdef = NULL;
 
     if (vmwareStartVM(driver, vm) < 0) {
-        virDomainRemoveInactive(&driver->domains, vm);
+        virDomainObjListRemove(driver->domains, vm);
         vm = NULL;
         goto cleanup;
     }
@@ -651,7 +651,7 @@ vmwareDomainCreateWithFlags(virDomainPtr dom,
     virCheckFlags(0, -1);
 
     vmwareDriverLock(driver);
-    vm = virDomainFindByUUID(&driver->domains, dom->uuid);
+    vm = virDomainObjListFindByUUID(driver->domains, dom->uuid);
     if (!vm) {
         char uuidstr[VIR_UUID_STRING_BUFLEN];
         virUUIDFormat(dom->uuid, uuidstr);
@@ -695,7 +695,7 @@ vmwareDomainUndefineFlags(virDomainPtr dom,
     virCheckFlags(0, -1);
 
     vmwareDriverLock(driver);
-    vm = virDomainFindByUUID(&driver->domains, dom->uuid);
+    vm = virDomainObjListFindByUUID(driver->domains, dom->uuid);
 
     if (!vm) {
         char uuidstr[VIR_UUID_STRING_BUFLEN];
@@ -718,7 +718,7 @@ vmwareDomainUndefineFlags(virDomainPtr dom,
     if (virDomainObjIsActive(vm)) {
         vm->persistent = 0;
     } else {
-        virDomainRemoveInactive(&driver->domains, vm);
+        virDomainObjListRemove(driver->domains, vm);
         vm = NULL;
     }
 
@@ -745,7 +745,7 @@ vmwareDomainLookupByID(virConnectPtr conn, int id)
     virDomainPtr dom = NULL;
 
     vmwareDriverLock(driver);
-    vm = virDomainFindByID(&driver->domains, id);
+    vm = virDomainObjListFindByID(driver->domains, id);
     vmwareDriverUnlock(driver);
 
     if (!vm) {
@@ -771,7 +771,7 @@ vmwareGetOSType(virDomainPtr dom)
     char *ret = NULL;
 
     vmwareDriverLock(driver);
-    vm = virDomainFindByUUID(&driver->domains, dom->uuid);
+    vm = virDomainObjListFindByUUID(driver->domains, dom->uuid);
     vmwareDriverUnlock(driver);
 
     if (!vm) {
@@ -797,7 +797,7 @@ vmwareDomainLookupByUUID(virConnectPtr conn, const unsigned char *uuid)
     virDomainPtr dom = NULL;
 
     vmwareDriverLock(driver);
-    vm = virDomainFindByUUID(&driver->domains, uuid);
+    vm = virDomainObjListFindByUUID(driver->domains, uuid);
     vmwareDriverUnlock(driver);
 
     if (!vm) {
@@ -823,7 +823,7 @@ vmwareDomainLookupByName(virConnectPtr conn, const char *name)
     virDomainPtr dom = NULL;
 
     vmwareDriverLock(driver);
-    vm = virDomainFindByName(&driver->domains, name);
+    vm = virDomainObjListFindByName(driver->domains, name);
     vmwareDriverUnlock(driver);
 
     if (!vm) {
@@ -849,7 +849,7 @@ vmwareDomainIsActive(virDomainPtr dom)
     int ret = -1;
 
     vmwareDriverLock(driver);
-    obj = virDomainFindByUUID(&driver->domains, dom->uuid);
+    obj = virDomainObjListFindByUUID(driver->domains, dom->uuid);
     vmwareDriverUnlock(driver);
     if (!obj) {
         virReportError(VIR_ERR_NO_DOMAIN, NULL);
@@ -872,7 +872,7 @@ vmwareDomainIsPersistent(virDomainPtr dom)
     int ret = -1;
 
     vmwareDriverLock(driver);
-    obj = virDomainFindByUUID(&driver->domains, dom->uuid);
+    obj = virDomainObjListFindByUUID(driver->domains, dom->uuid);
     vmwareDriverUnlock(driver);
     if (!obj) {
         virReportError(VIR_ERR_NO_DOMAIN, NULL);
@@ -897,7 +897,7 @@ vmwareDomainGetXMLDesc(virDomainPtr dom, unsigned int flags)
     /* Flags checked by virDomainDefFormat */
 
     vmwareDriverLock(driver);
-    vm = virDomainFindByUUID(&driver->domains, dom->uuid);
+    vm = virDomainObjListFindByUUID(driver->domains, dom->uuid);
     vmwareDriverUnlock(driver);
 
     if (!vm) {
@@ -944,19 +944,19 @@ vmwareDomainXMLFromNative(virConnectPtr conn, const char *nativeFormat,
     return xml;
 }
 
-static void vmwareDomainObjListUpdateDomain(void *payload, const void *name ATTRIBUTE_UNUSED, void *data)
+static int vmwareDomainObjListUpdateDomain(virDomainObjPtr dom, void *data)
 {
     struct vmware_driver *driver = data;
-    virDomainObjPtr vm = payload;
-    virObjectLock(vm);
-    ignore_value(vmwareUpdateVMStatus(driver, vm));
-    virObjectUnlock(vm);
+    virObjectLock(dom);
+    ignore_value(vmwareUpdateVMStatus(driver, dom));
+    virObjectUnlock(dom);
+    return 0;
 }
 
 static void
 vmwareDomainObjListUpdateAll(virDomainObjListPtr doms, struct vmware_driver *driver)
 {
-    virHashForEach(doms->objs, vmwareDomainObjListUpdateDomain, driver);
+    virDomainObjListForEach(doms, vmwareDomainObjListUpdateDomain, driver);
 }
 
 static int
@@ -966,8 +966,8 @@ vmwareNumDefinedDomains(virConnectPtr conn)
     int n;
 
     vmwareDriverLock(driver);
-    vmwareDomainObjListUpdateAll(&driver->domains, driver);
-    n = virDomainObjListNumOfDomains(&driver->domains, 0);
+    vmwareDomainObjListUpdateAll(driver->domains, driver);
+    n = virDomainObjListNumOfDomains(driver->domains, 0);
     vmwareDriverUnlock(driver);
 
     return n;
@@ -980,8 +980,8 @@ vmwareNumDomains(virConnectPtr conn)
     int n;
 
     vmwareDriverLock(driver);
-    vmwareDomainObjListUpdateAll(&driver->domains, driver);
-    n = virDomainObjListNumOfDomains(&driver->domains, 1);
+    vmwareDomainObjListUpdateAll(driver->domains, driver);
+    n = virDomainObjListNumOfDomains(driver->domains, 1);
     vmwareDriverUnlock(driver);
 
     return n;
@@ -995,8 +995,8 @@ vmwareListDomains(virConnectPtr conn, int *ids, int nids)
     int n;
 
     vmwareDriverLock(driver);
-    vmwareDomainObjListUpdateAll(&driver->domains, driver);
-    n = virDomainObjListGetActiveIDs(&driver->domains, ids, nids);
+    vmwareDomainObjListUpdateAll(driver->domains, driver);
+    n = virDomainObjListGetActiveIDs(driver->domains, ids, nids);
     vmwareDriverUnlock(driver);
 
     return n;
@@ -1010,8 +1010,8 @@ vmwareListDefinedDomains(virConnectPtr conn,
     int n;
 
     vmwareDriverLock(driver);
-    vmwareDomainObjListUpdateAll(&driver->domains, driver);
-    n = virDomainObjListGetInactiveNames(&driver->domains, names, nnames);
+    vmwareDomainObjListUpdateAll(driver->domains, driver);
+    n = virDomainObjListGetInactiveNames(driver->domains, names, nnames);
     vmwareDriverUnlock(driver);
     return n;
 }
@@ -1024,7 +1024,7 @@ vmwareDomainGetInfo(virDomainPtr dom, virDomainInfoPtr info)
     int ret = -1;
 
     vmwareDriverLock(driver);
-    vm = virDomainFindByUUID(&driver->domains, dom->uuid);
+    vm = virDomainObjListFindByUUID(driver->domains, dom->uuid);
     vmwareDriverUnlock(driver);
 
     if (!vm) {
@@ -1062,7 +1062,7 @@ vmwareDomainGetState(virDomainPtr dom,
     virCheckFlags(0, -1);
 
     vmwareDriverLock(driver);
-    vm = virDomainFindByUUID(&driver->domains, dom->uuid);
+    vm = virDomainObjListFindByUUID(driver->domains, dom->uuid);
     vmwareDriverUnlock(driver);
 
     if (!vm) {
@@ -1100,8 +1100,8 @@ vmwareListAllDomains(virConnectPtr conn,
     virCheckFlags(VIR_CONNECT_LIST_DOMAINS_FILTERS_ALL, -1);
 
     vmwareDriverLock(driver);
-    vmwareDomainObjListUpdateAll(&driver->domains, driver);
-    ret = virDomainList(conn, driver->domains.objs, domains, flags);
+    vmwareDomainObjListUpdateAll(driver->domains, driver);
+    ret = virDomainObjListExport(driver->domains, conn, domains, flags);
     vmwareDriverUnlock(driver);
     return ret;
 }

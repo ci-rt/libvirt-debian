@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2012 Red Hat, Inc.
+ * Copyright (C) 2011-2013 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -61,7 +61,7 @@ testSELinuxMungePath(char **path)
     char *tmp;
 
     if (virAsprintf(&tmp, "%s/securityselinuxlabeldata%s",
-                    abs_srcdir, *path) < 0) {
+                    abs_builddir, *path) < 0) {
         virReportOOMError();
         return -1;
     }
@@ -317,15 +317,15 @@ mymain(void)
     if (!(mgr = virSecurityManagerNew("selinux", "QEMU", false, true, false))) {
         virErrorPtr err = virGetLastError();
         if (err->code == VIR_ERR_CONFIG_UNSUPPORTED)
-            exit(EXIT_AM_SKIP);
+            return EXIT_AM_SKIP;
 
         fprintf(stderr, "Unable to initialize security driver: %s\n",
                 err->message);
-        exit(EXIT_FAILURE);
+        return EXIT_FAILURE;
     }
 
     if ((caps = testQemuCapsInit()) == NULL)
-        exit(EXIT_FAILURE);
+        return EXIT_FAILURE;
 
 #define DO_TEST_LABELING(name) \
     if (virtTestRun("Labelling " # name, 1, testSELinuxLabeling, name) < 0) \

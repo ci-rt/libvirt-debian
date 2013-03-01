@@ -1269,6 +1269,7 @@ EXTRA_DIST += mgetgroups.h
 
 TESTS += test-net_if
 check_PROGRAMS += test-net_if
+test_net_if_LDADD = $(LDADD) @NET_IF_LIB@
 EXTRA_DIST += test-net_if.c signature.h
 
 ## end   gnulib module net_if-tests
@@ -1691,6 +1692,14 @@ EXTRA_DIST += test-recv.c signature.h macros.h
 
 ## end   gnulib module recv-tests
 
+## begin gnulib module regex-tests
+
+TESTS += test-regex
+check_PROGRAMS += test-regex
+EXTRA_DIST += test-regex.c macros.h
+
+## end   gnulib module regex-tests
+
 ## begin gnulib module same-inode
 
 
@@ -1726,15 +1735,6 @@ test_send_LDADD = $(LDADD) @LIBSOCKET@
 EXTRA_DIST += test-send.c signature.h macros.h
 
 ## end   gnulib module send-tests
-
-## begin gnulib module setenv
-
-
-EXTRA_DIST += setenv.c
-
-EXTRA_libtests_a_SOURCES += setenv.c
-
-## end   gnulib module setenv
 
 ## begin gnulib module setenv-tests
 

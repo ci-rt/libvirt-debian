@@ -1,7 +1,7 @@
 /*
  * virutil.h: common, generic utility functions
  *
- * Copyright (C) 2010-2012 Red Hat, Inc.
+ * Copyright (C) 2010-2013 Red Hat, Inc.
  * Copyright (C) 2006, 2007 Binary Karma
  * Copyright (C) 2006 Shuveb Hussain
  *
@@ -54,6 +54,7 @@ int virPipeReadUntilEOF(int outfd, int errfd,
                         char **outbuf, char **errbuf);
 
 int virSetUIDGID(uid_t uid, gid_t gid);
+int virSetUIDGIDWithCaps(uid_t uid, gid_t gid, unsigned long long capBits);
 
 int virFileReadLimFD(int fd, int maxlen, char **buf) ATTRIBUTE_RETURN_CHECK;
 
@@ -200,9 +201,11 @@ int virParseNumber(const char **str);
 int virParseVersionString(const char *str, unsigned long *version,
                           bool allowMissing);
 int virAsprintf(char **strp, const char *fmt, ...)
-    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_FMT_PRINTF(2, 3);
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_FMT_PRINTF(2, 3)
+    ATTRIBUTE_RETURN_CHECK;
 int virVasprintf(char **strp, const char *fmt, va_list list)
-    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_FMT_PRINTF(2, 0);
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_FMT_PRINTF(2, 0)
+    ATTRIBUTE_RETURN_CHECK;
 char *virStrncpy(char *dest, const char *src, size_t n, size_t destbytes)
     ATTRIBUTE_RETURN_CHECK;
 char *virStrcpy(char *dest, const char *src, size_t destbytes)

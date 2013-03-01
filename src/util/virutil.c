@@ -60,6 +60,7 @@
 #endif
 #if WITH_CAPNG
 # include <cap-ng.h>
+# include <sys/prctl.h>
 #endif
 #if defined HAVE_MNTENT_H && defined HAVE_GETMNTENT_R
 # include <mntent.h>
@@ -1205,7 +1206,7 @@ parenterror:
                              _("stat of '%s' failed"), path);
         goto childerror;
     }
-    if ((st.st_gid != gid) && (chown(path, -1, gid) < 0)) {
+    if ((st.st_gid != gid) && (chown(path, (uid_t) -1, gid) < 0)) {
         ret = -errno;
         virReportSystemError(errno,
                              _("cannot chown '%s' to group %u"),
@@ -2687,16 +2688,16 @@ virSetUIDGID(uid_t uid, gid_t gid)
     int err;
     char *buf = NULL;
 
-    if (gid > 0) {
+    if (gid != (gid_t)-1) {
         if (setregid(gid, gid) < 0) {
             virReportSystemError(err = errno,
-                                 _("cannot change to '%d' group"),
+                                 _("cannot change to '%u' group"),
                                  (unsigned int) gid);
             goto error;
         }
     }
 
-    if (uid > 0) {
+    if (uid != (uid_t)-1) {
 # ifdef HAVE_INITGROUPS
         struct passwd pwd, *pwd_result;
         size_t bufsize;
@@ -2721,7 +2722,7 @@ virSetUIDGID(uid_t uid, gid_t gid)
         }
 
         if (rc) {
-            virReportSystemError(err = rc, _("cannot getpwuid_r(%d)"),
+            virReportSystemError(err = rc, _("cannot getpwuid_r(%u)"),
                                  (unsigned int) uid);
             goto error;
         }
@@ -2729,7 +2730,7 @@ virSetUIDGID(uid_t uid, gid_t gid)
         if (!pwd_result) {
             virReportError(VIR_ERR_INTERNAL_ERROR,
                            _("getpwuid_r failed to retrieve data "
-                             "for uid '%d'"),
+                             "for uid '%u'"),
                            (unsigned int) uid);
             err = EINVAL;
             goto error;
@@ -2744,7 +2745,7 @@ virSetUIDGID(uid_t uid, gid_t gid)
 # endif
         if (setreuid(uid, uid) < 0) {
             virReportSystemError(err = errno,
-                                 _("cannot change to uid to '%d'"),
+                                 _("cannot change to uid to '%u'"),
                                  (unsigned int) uid);
             goto error;
         }
@@ -2990,6 +2991,116 @@ virGetGroupName(gid_t gid ATTRIBUTE_UNUSED)
 }
 #endif /* HAVE_GETPWUID_R */
 
+#if WITH_CAPNG
+/* Set the real and effective uid and gid to the given values, while
+ * maintaining the capabilities indicated by bits in @capBits. Return
+ * 0 on success, -1 on failure (the original system error remains in
+ * errno).
+ */
+int
+virSetUIDGIDWithCaps(uid_t uid, gid_t gid, unsigned long long capBits)
+{
+    int ii, capng_ret, ret = -1;
+    bool need_setgid = false, need_setuid = false;
+    bool need_prctl = false, need_setpcap = false;
+
+    /* First drop all caps except those in capBits + the extra ones we
+     * need to change uid/gid and change the capabilities bounding
+     * set.
+     */
+
+    capng_clear(CAPNG_SELECT_BOTH);
+
+    for (ii = 0; ii <= CAP_LAST_CAP; ii++) {
+        if (capBits & (1ULL << ii)) {
+            capng_update(CAPNG_ADD,
+                         CAPNG_EFFECTIVE|CAPNG_INHERITABLE|
+                         CAPNG_PERMITTED|CAPNG_BOUNDING_SET,
+                         ii);
+        }
+    }
+
+    if (gid != (gid_t)-1 &&
+        !capng_have_capability(CAPNG_EFFECTIVE, CAP_SETGID)) {
+        need_setgid = true;
+        capng_update(CAPNG_ADD, CAPNG_EFFECTIVE|CAPNG_PERMITTED, CAP_SETGID);
+    }
+    if (uid != (uid_t)-1 &&
+        !capng_have_capability(CAPNG_EFFECTIVE, CAP_SETUID)) {
+        need_setuid = true;
+        capng_update(CAPNG_ADD, CAPNG_EFFECTIVE|CAPNG_PERMITTED, CAP_SETUID);
+    }
+# ifdef PR_CAPBSET_DROP
+    /* If newer kernel, we need also need setpcap to change the bounding set */
+    if ((capBits || need_setgid || need_setuid) &&
+        !capng_have_capability(CAPNG_EFFECTIVE, CAP_SETPCAP)) {
+        need_setpcap = true;
+    }
+    if (need_setpcap)
+        capng_update(CAPNG_ADD, CAPNG_EFFECTIVE|CAPNG_PERMITTED, CAP_SETPCAP);
+# endif
+
+    need_prctl = capBits || need_setgid || need_setuid || need_setpcap;
+
+    /* Tell system we want to keep caps across uid change */
+    if (need_prctl && prctl(PR_SET_KEEPCAPS, 1, 0, 0, 0)) {
+        virReportSystemError(errno, "%s",
+                             _("prctl failed to set KEEPCAPS"));
+        goto cleanup;
+    }
+
+    /* Change to the temp capabilities */
+    if ((capng_ret = capng_apply(CAPNG_SELECT_BOTH)) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("cannot apply process capabilities %d"), capng_ret);
+        goto cleanup;
+    }
+
+    if (virSetUIDGID(uid, gid) < 0)
+        goto cleanup;
+
+    /* Tell it we are done keeping capabilities */
+    if (need_prctl && prctl(PR_SET_KEEPCAPS, 0, 0, 0, 0)) {
+        virReportSystemError(errno, "%s",
+                             _("prctl failed to reset KEEPCAPS"));
+        goto cleanup;
+    }
+
+    /* Drop the caps that allow setuid/gid (unless they were requested) */
+    if (need_setgid)
+        capng_update(CAPNG_DROP, CAPNG_EFFECTIVE|CAPNG_PERMITTED, CAP_SETGID);
+    if (need_setuid)
+        capng_update(CAPNG_DROP, CAPNG_EFFECTIVE|CAPNG_PERMITTED, CAP_SETUID);
+    /* Throw away CAP_SETPCAP so no more changes */
+    if (need_setpcap)
+        capng_update(CAPNG_DROP, CAPNG_EFFECTIVE|CAPNG_PERMITTED, CAP_SETPCAP);
+
+    if (need_prctl && ((capng_ret = capng_apply(CAPNG_SELECT_BOTH)) < 0)) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("cannot apply process capabilities %d"), capng_ret);
+        ret = -1;
+        goto cleanup;
+    }
+
+    ret = 0;
+cleanup:
+    return ret;
+}
+
+#else
+/*
+ * On platforms without libcapng, the capabilities setting is treated
+ * as a NOP.
+ */
+
+int
+virSetUIDGIDWithCaps(uid_t uid, gid_t gid,
+                     unsigned long long capBits ATTRIBUTE_UNUSED)
+{
+    return virSetUIDGID(uid, gid);
+}
+#endif
+
 
 #if defined HAVE_MNTENT_H && defined HAVE_GETMNTENT_R
 /* search /proc/mounts for mount point of *type; return pointer to
@@ -3159,9 +3270,9 @@ virGetDeviceID(const char *path, int *maj, int *min)
 }
 #else
 int
-virGetDeviceID(const char *path ATRRIBUTE_UNUSED,
-               int *maj ATRRIBUTE_UNUSED,
-               int *min ATRRIBUTE_UNUSED)
+virGetDeviceID(const char *path ATTRIBUTE_UNUSED,
+               int *maj ATTRIBUTE_UNUSED,
+               int *min ATTRIBUTE_UNUSED)
 {
 
     return -ENOSYS;

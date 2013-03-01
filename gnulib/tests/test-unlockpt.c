@@ -22,6 +22,7 @@
 SIGNATURE_CHECK (unlockpt, int, (int));
 
 #include <errno.h>
+#include <unistd.h>
 
 #include "macros.h"
 
@@ -38,6 +39,7 @@ main (void)
            );
   }
   {
+    close (99);
     errno = 0;
     ASSERT (unlockpt (99) == -1);
     ASSERT (errno == EBADF

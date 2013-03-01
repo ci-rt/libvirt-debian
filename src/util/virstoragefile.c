@@ -1,7 +1,7 @@
 /*
  * virstoragefile.c: file utility functions for FS storage backend
  *
- * Copyright (C) 2007-2012 Red Hat, Inc.
+ * Copyright (C) 2007-2013 Red Hat, Inc.
  * Copyright (C) 2007-2008 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -42,6 +42,7 @@
 #include "c-ctype.h"
 #include "vircommand.h"
 #include "virhash.h"
+#include "virendian.h"
 
 #define VIR_FROM_THIS VIR_FROM_STORAGE
 
@@ -51,7 +52,7 @@ VIR_ENUM_IMPL(virStorageFileFormat,
               "raw", "dir", "bochs",
               "cloop", "cow", "dmg", "iso",
               "qcow", "qcow2", "qed", "vmdk", "vpc",
-              "fat", "vhd")
+              "fat", "vhd", "vdi")
 
 enum lv_endian {
     LV_LITTLE_ENDIAN = 1, /* 1234 */
@@ -66,6 +67,7 @@ enum {
 
 /* Either 'magic' or 'extension' *must* be provided */
 struct FileTypeInfo {
+    int magicOffset;    /* Byte offset of the magic */
     const char *magic;  /* Optional string of file magic
                          * to check at head of file */
     const char *extension; /* Optional file extension to check */
@@ -121,77 +123,88 @@ qedGetBackingStore(char **, int *, const unsigned char *, size_t);
 #define QED_F_BACKING_FILE 0x01
 #define QED_F_BACKING_FORMAT_NO_PROBE 0x04
 
-/* VMDK needs at least this to find backing store,
+/* VMDK needs at least 20*512 B to find backing store,
+ * ISO has 5 Byte magic on offset 32769,
  * other formats need less */
-#define STORAGE_MAX_HEAD (20*512)
+#define STORAGE_MAX_HEAD 32769+5
 
 
 static struct FileTypeInfo const fileTypeInfo[] = {
-    [VIR_STORAGE_FILE_NONE] = { NULL, NULL, LV_LITTLE_ENDIAN,
+    [VIR_STORAGE_FILE_NONE] = { 0, NULL, NULL, LV_LITTLE_ENDIAN,
                                 -1, 0, 0, 0, 0, 0, NULL },
-    [VIR_STORAGE_FILE_RAW] = { NULL, NULL, LV_LITTLE_ENDIAN,
+    [VIR_STORAGE_FILE_RAW] = { 0, NULL, NULL, LV_LITTLE_ENDIAN,
                                -1, 0, 0, 0, 0, 0, NULL },
-    [VIR_STORAGE_FILE_DIR] = { NULL, NULL, LV_LITTLE_ENDIAN,
+    [VIR_STORAGE_FILE_DIR] = { 0, NULL, NULL, LV_LITTLE_ENDIAN,
                                -1, 0, 0, 0, 0, 0, NULL },
     [VIR_STORAGE_FILE_BOCHS] = {
-        /*"Bochs Virtual HD Image", */ /* Untested */ NULL,
-        NULL,
+        /*"Bochs Virtual HD Image", */ /* Untested */
+        0, NULL, NULL,
         LV_LITTLE_ENDIAN, 64, 0x20000,
         32+16+16+4+4+4+4+4, 8, 1, -1, NULL
     },
     [VIR_STORAGE_FILE_CLOOP] = {
-        /*"#!/bin/sh\n#V2.0 Format\nmodprobe cloop file=$0 && mount -r -t iso9660 /dev/cloop $1\n", */ /* Untested */ NULL,
-        NULL,
+        /* #!/bin/sh
+           #V2.0 Format
+           modprobe cloop file=$0 && mount -r -t iso9660 /dev/cloop $1
+        */ /* Untested */
+        0, NULL, NULL,
         LV_LITTLE_ENDIAN, -1, 0,
         -1, 0, 0, -1, NULL
     },
     [VIR_STORAGE_FILE_COW] = {
-        "OOOM", NULL,
+        0, "OOOM", NULL,
         LV_BIG_ENDIAN, 4, 2,
         4+4+1024+4, 8, 1, -1, cowGetBackingStore
     },
     [VIR_STORAGE_FILE_DMG] = {
-        NULL, /* XXX QEMU says there's no magic for dmg, but we should check... */
-        ".dmg",
+        /* XXX QEMU says there's no magic for dmg,
+         * /usr/share/misc/magic lists double magic (both offsets
+         * would have to match) but then disables that check. */
+        0, NULL, ".dmg",
         0, -1, 0,
         -1, 0, 0, -1, NULL
     },
     [VIR_STORAGE_FILE_ISO] = {
-        NULL, /* XXX there's probably some magic for iso we can validate too... */
-        ".iso",
-        0, -1, 0,
+        32769, "CD001", ".iso",
+        LV_LITTLE_ENDIAN, -2, 0,
         -1, 0, 0, -1, NULL
     },
     [VIR_STORAGE_FILE_QCOW] = {
-        "QFI", NULL,
+        0, "QFI", NULL,
         LV_BIG_ENDIAN, 4, 1,
         QCOWX_HDR_IMAGE_SIZE, 8, 1, QCOW1_HDR_CRYPT, qcow1GetBackingStore,
     },
     [VIR_STORAGE_FILE_QCOW2] = {
-        "QFI", NULL,
+        0, "QFI", NULL,
         LV_BIG_ENDIAN, 4, 2,
         QCOWX_HDR_IMAGE_SIZE, 8, 1, QCOW2_HDR_CRYPT, qcow2GetBackingStore,
     },
     [VIR_STORAGE_FILE_QED] = {
         /* http://wiki.qemu.org/Features/QED */
-        "QED", NULL,
+        0, "QED", NULL,
         LV_LITTLE_ENDIAN, -2, -1,
         QED_HDR_IMAGE_SIZE, 8, 1, -1, qedGetBackingStore,
     },
     [VIR_STORAGE_FILE_VMDK] = {
-        "KDMV", NULL,
+        0, "KDMV", NULL,
         LV_LITTLE_ENDIAN, 4, 1,
         4+4+4, 8, 512, -1, vmdk4GetBackingStore
     },
     [VIR_STORAGE_FILE_VPC] = {
-        "conectix", NULL,
+        0, "conectix", NULL,
         LV_BIG_ENDIAN, 12, 0x10000,
         8 + 4 + 4 + 8 + 4 + 4 + 2 + 2 + 4, 8, 1, -1, NULL
     },
+    /* TODO: add getBackingStore function */
+    [VIR_STORAGE_FILE_VDI] = {
+        64, "\x7f\x10\xda\xbe", ".vdi",
+        LV_LITTLE_ENDIAN, 68, 0x00010001,
+        68 + 5 * 4 + 256 + 7 * 4, 8, 1, -1, NULL},
+
     /* Not direct file formats, but used for various drivers */
-    [VIR_STORAGE_FILE_FAT] = { NULL, NULL, LV_LITTLE_ENDIAN,
+    [VIR_STORAGE_FILE_FAT] = { 0, NULL, NULL, LV_LITTLE_ENDIAN,
                                -1, 0, 0, 0, 0, 0, NULL },
-    [VIR_STORAGE_FILE_VHD] = { NULL, NULL, LV_LITTLE_ENDIAN,
+    [VIR_STORAGE_FILE_VHD] = { 0, NULL, NULL, LV_LITTLE_ENDIAN,
                                -1, 0, 0, 0, 0, 0, NULL },
 };
 verify(ARRAY_CARDINALITY(fileTypeInfo) == VIR_STORAGE_FILE_LAST);
@@ -243,16 +256,8 @@ qcow2GetBackingStoreFormat(int *format,
      */
     while (offset < (buf_size-8) &&
            offset < (extension_end-8)) {
-        unsigned int magic =
-            (buf[offset] << 24) +
-            (buf[offset+1] << 16) +
-            (buf[offset+2] << 8) +
-            (buf[offset+3]);
-        unsigned int len =
-            (buf[offset+4] << 24) +
-            (buf[offset+5] << 16) +
-            (buf[offset+6] << 8) +
-            (buf[offset+7]);
+        unsigned int magic = virReadBufInt32BE(buf + offset);
+        unsigned int len = virReadBufInt32BE(buf + offset + 4);
 
         offset += 8;
 
@@ -300,20 +305,10 @@ qcowXGetBackingStore(char **res,
 
     if (buf_size < QCOWX_HDR_BACKING_FILE_OFFSET+8+4)
         return BACKING_STORE_INVALID;
-    offset = (((unsigned long long)buf[QCOWX_HDR_BACKING_FILE_OFFSET] << 56)
-              | ((unsigned long long)buf[QCOWX_HDR_BACKING_FILE_OFFSET+1] << 48)
-              | ((unsigned long long)buf[QCOWX_HDR_BACKING_FILE_OFFSET+2] << 40)
-              | ((unsigned long long)buf[QCOWX_HDR_BACKING_FILE_OFFSET+3] << 32)
-              | ((unsigned long long)buf[QCOWX_HDR_BACKING_FILE_OFFSET+4] << 24)
-              | ((unsigned long long)buf[QCOWX_HDR_BACKING_FILE_OFFSET+5] << 16)
-              | ((unsigned long long)buf[QCOWX_HDR_BACKING_FILE_OFFSET+6] << 8)
-              | buf[QCOWX_HDR_BACKING_FILE_OFFSET+7]); /* QCowHeader.backing_file_offset */
+    offset = virReadBufInt64BE(buf + QCOWX_HDR_BACKING_FILE_OFFSET);
     if (offset > buf_size)
         return BACKING_STORE_INVALID;
-    size = ((buf[QCOWX_HDR_BACKING_FILE_SIZE] << 24)
-            | (buf[QCOWX_HDR_BACKING_FILE_SIZE+1] << 16)
-            | (buf[QCOWX_HDR_BACKING_FILE_SIZE+2] << 8)
-            | buf[QCOWX_HDR_BACKING_FILE_SIZE+3]); /* QCowHeader.backing_file_size */
+    size = virReadBufInt32BE(buf + QCOWX_HDR_BACKING_FILE_SIZE);
     if (size == 0) {
         if (format)
             *format = VIR_STORAGE_FILE_NONE;
@@ -456,28 +451,6 @@ cleanup:
     return ret;
 }
 
-static unsigned long
-qedGetHeaderUL(const unsigned char *loc)
-{
-    return (((unsigned long)loc[3] << 24) |
-            ((unsigned long)loc[2] << 16) |
-            ((unsigned long)loc[1] << 8) |
-            ((unsigned long)loc[0] << 0));
-}
-
-static unsigned long long
-qedGetHeaderULL(const unsigned char *loc)
-{
-    return (((unsigned long long)loc[7] << 56) |
-            ((unsigned long long)loc[6] << 48) |
-            ((unsigned long long)loc[5] << 40) |
-            ((unsigned long long)loc[4] << 32) |
-            ((unsigned long long)loc[3] << 24) |
-            ((unsigned long long)loc[2] << 16) |
-            ((unsigned long long)loc[1] << 8) |
-            ((unsigned long long)loc[0] << 0));
-}
-
 static int
 qedGetBackingStore(char **res,
                    int *format,
@@ -491,7 +464,7 @@ qedGetBackingStore(char **res,
     /* Check if this image has a backing file */
     if (buf_size < QED_HDR_FEATURES_OFFSET+8)
         return BACKING_STORE_INVALID;
-    flags = qedGetHeaderULL(buf + QED_HDR_FEATURES_OFFSET);
+    flags = virReadBufInt64LE(buf + QED_HDR_FEATURES_OFFSET);
     if (!(flags & QED_F_BACKING_FILE)) {
         *format = VIR_STORAGE_FILE_NONE;
         return BACKING_STORE_OK;
@@ -500,10 +473,10 @@ qedGetBackingStore(char **res,
     /* Parse the backing file */
     if (buf_size < QED_HDR_BACKING_FILE_OFFSET+8)
         return BACKING_STORE_INVALID;
-    offset = qedGetHeaderUL(buf + QED_HDR_BACKING_FILE_OFFSET);
+    offset = virReadBufInt32LE(buf + QED_HDR_BACKING_FILE_OFFSET);
     if (offset > buf_size)
         return BACKING_STORE_INVALID;
-    size = qedGetHeaderUL(buf + QED_HDR_BACKING_FILE_SIZE);
+    size = virReadBufInt32LE(buf + QED_HDR_BACKING_FILE_SIZE);
     if (size == 0)
         return BACKING_STORE_OK;
     if (offset + size > buf_size || offset + size < offset)
@@ -524,44 +497,56 @@ qedGetBackingStore(char **res,
 }
 
 /**
- * Return an absolute path corresponding to PATH, which is absolute or relative
- * to the directory containing BASE_FILE, or NULL on error
+ * Given a starting point START (either an original file name, or the
+ * directory containing the original name, depending on START_IS_DIR)
+ * and a possibly relative backing file NAME, compute the relative
+ * DIRECTORY (optional) and CANONICAL (mandatory) location of the
+ * backing file.  Return 0 on success, negative on error.
  */
-static char *
-absolutePathFromBaseFile(const char *base_file, const char *path)
+static int ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(3) ATTRIBUTE_NONNULL(5)
+virFindBackingFile(const char *start, bool start_is_dir, const char *path,
+                   char **directory, char **canonical)
 {
-    char *res = NULL;
-    char *tmp = NULL;
-    size_t d_len = dir_len(base_file);
+    char *combined = NULL;
+    int ret = -1;
 
-    /* If path is already absolute, or if dirname(base_file) is ".",
-       just return a copy of path.  */
-    if (*path == '/' || d_len == 0) {
-        if (!(res = canonicalize_file_name(path)))
-            virReportSystemError(errno,
-                                 _("Can't canonicalize path '%s'"), path);
+    if (*path == '/') {
+        /* Safe to cast away const */
+        combined = (char *)path;
+    } else {
+        size_t d_len = start_is_dir ? strlen(start) : dir_len(start);
 
-        goto cleanup;
+        if (d_len > INT_MAX) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("name too long: '%s'"), start);
+            goto cleanup;
+        } else if (d_len == 0) {
+            start = ".";
+            d_len = 1;
+        }
+        if (virAsprintf(&combined, "%.*s/%s", (int)d_len, start, path) < 0) {
+            virReportOOMError();
+            goto cleanup;
+        }
     }
 
-    /* Ensure that the following cast-to-int is valid.  */
-    if (d_len > INT_MAX) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("Directory name too long: '%s'"), base_file);
-        goto cleanup;
-    }
-
-    if (virAsprintf(&tmp, "%.*s/%s", (int) d_len, base_file, path) < 0) {
+    if (directory && !(*directory = mdir_name(combined))) {
         virReportOOMError();
         goto cleanup;
     }
 
-    if (!(res = canonicalize_file_name(tmp)))
-        virReportSystemError(errno, _("Can't canonicalize path '%s'"), path);
+    if (!(*canonical = canonicalize_file_name(combined))) {
+        virReportSystemError(errno,
+                             _("Can't canonicalize path '%s'"), path);
+        goto cleanup;
+    }
+
+    ret = 0;
 
 cleanup:
-    VIR_FREE(tmp);
-    return res;
+    if (combined != path)
+        VIR_FREE(combined);
+    return ret;
 }
 
 
@@ -571,16 +556,18 @@ virStorageFileMatchesMagic(int format,
                            size_t buflen)
 {
     int mlen;
+    int magicOffset = fileTypeInfo[format].magicOffset;
+    const char *magic = fileTypeInfo[format].magic;
 
-    if (fileTypeInfo[format].magic == NULL)
+    if (magic == NULL)
         return false;
 
     /* Validate magic data */
-    mlen = strlen(fileTypeInfo[format].magic);
-    if (mlen > buflen)
+    mlen = strlen(magic);
+    if (magicOffset + mlen > buflen)
         return false;
 
-    if (memcmp(buf, fileTypeInfo[format].magic, mlen) != 0)
+    if (memcmp(buf + magicOffset, magic, mlen) != 0)
         return false;
 
     return true;
@@ -619,19 +606,10 @@ virStorageFileMatchesVersion(int format,
     if ((fileTypeInfo[format].versionOffset + 4) > buflen)
         return false;
 
-    if (fileTypeInfo[format].endian == LV_LITTLE_ENDIAN) {
-        version =
-            (buf[fileTypeInfo[format].versionOffset+3] << 24) |
-            (buf[fileTypeInfo[format].versionOffset+2] << 16) |
-            (buf[fileTypeInfo[format].versionOffset+1] << 8) |
-            (buf[fileTypeInfo[format].versionOffset]);
-    } else {
-        version =
-            (buf[fileTypeInfo[format].versionOffset] << 24) |
-            (buf[fileTypeInfo[format].versionOffset+1] << 16) |
-            (buf[fileTypeInfo[format].versionOffset+2] << 8) |
-            (buf[fileTypeInfo[format].versionOffset+3]);
-    }
+    if (fileTypeInfo[format].endian == LV_LITTLE_ENDIAN)
+        version = virReadBufInt32LE(buf + fileTypeInfo[format].versionOffset);
+    else
+        version = virReadBufInt32BE(buf + fileTypeInfo[format].versionOffset);
 
     VIR_DEBUG("Compare detected version %d vs expected version %d",
               version, fileTypeInfo[format].versionNumber);
@@ -649,114 +627,6 @@ virBackingStoreIsFile(const char *backing)
         return false;
     return true;
 }
-
-static int
-virStorageFileGetMetadataFromBuf(int format,
-                                 const char *path,
-                                 unsigned char *buf,
-                                 size_t buflen,
-                                 virStorageFileMetadata *meta)
-{
-    VIR_DEBUG("path=%s format=%d", path, format);
-
-    /* XXX we should consider moving virStorageBackendUpdateVolInfo
-     * code into this method, for non-magic files
-     */
-    if (format <= VIR_STORAGE_FILE_NONE ||
-        format >= VIR_STORAGE_FILE_LAST ||
-        !fileTypeInfo[format].magic) {
-        return 0;
-    }
-
-    /* Optionally extract capacity from file */
-    if (fileTypeInfo[format].sizeOffset != -1) {
-        if ((fileTypeInfo[format].sizeOffset + 8) > buflen)
-            return 1;
-
-        if (fileTypeInfo[format].endian == LV_LITTLE_ENDIAN) {
-            meta->capacity =
-                ((unsigned long long)buf[fileTypeInfo[format].sizeOffset+7] << 56) |
-                ((unsigned long long)buf[fileTypeInfo[format].sizeOffset+6] << 48) |
-                ((unsigned long long)buf[fileTypeInfo[format].sizeOffset+5] << 40) |
-                ((unsigned long long)buf[fileTypeInfo[format].sizeOffset+4] << 32) |
-                ((unsigned long long)buf[fileTypeInfo[format].sizeOffset+3] << 24) |
-                ((unsigned long long)buf[fileTypeInfo[format].sizeOffset+2] << 16) |
-                ((unsigned long long)buf[fileTypeInfo[format].sizeOffset+1] << 8) |
-                ((unsigned long long)buf[fileTypeInfo[format].sizeOffset]);
-        } else {
-            meta->capacity =
-                ((unsigned long long)buf[fileTypeInfo[format].sizeOffset] << 56) |
-                ((unsigned long long)buf[fileTypeInfo[format].sizeOffset+1] << 48) |
-                ((unsigned long long)buf[fileTypeInfo[format].sizeOffset+2] << 40) |
-                ((unsigned long long)buf[fileTypeInfo[format].sizeOffset+3] << 32) |
-                ((unsigned long long)buf[fileTypeInfo[format].sizeOffset+4] << 24) |
-                ((unsigned long long)buf[fileTypeInfo[format].sizeOffset+5] << 16) |
-                ((unsigned long long)buf[fileTypeInfo[format].sizeOffset+6] << 8) |
-                ((unsigned long long)buf[fileTypeInfo[format].sizeOffset+7]);
-        }
-        /* Avoid unlikely, but theoretically possible overflow */
-        if (meta->capacity > (ULLONG_MAX / fileTypeInfo[format].sizeMultiplier))
-            return 1;
-        meta->capacity *= fileTypeInfo[format].sizeMultiplier;
-    }
-
-    if (fileTypeInfo[format].qcowCryptOffset != -1) {
-        int crypt_format;
-
-        crypt_format =
-            (buf[fileTypeInfo[format].qcowCryptOffset] << 24) |
-            (buf[fileTypeInfo[format].qcowCryptOffset+1] << 16) |
-            (buf[fileTypeInfo[format].qcowCryptOffset+2] << 8) |
-            (buf[fileTypeInfo[format].qcowCryptOffset+3]);
-        meta->encrypted = crypt_format != 0;
-    }
-
-    if (fileTypeInfo[format].getBackingStore != NULL) {
-        char *backing;
-        int backingFormat;
-        int ret = fileTypeInfo[format].getBackingStore(&backing,
-                                                       &backingFormat,
-                                                       buf, buflen);
-        if (ret == BACKING_STORE_INVALID)
-            return 1;
-
-        if (ret == BACKING_STORE_ERROR)
-            return -1;
-
-        meta->backingStoreIsFile = false;
-        if (backing != NULL) {
-            meta->backingStore = strdup(backing);
-            if (meta->backingStore == NULL) {
-                virReportOOMError();
-                VIR_FREE(backing);
-                return -1;
-            }
-            if (virBackingStoreIsFile(backing)) {
-                meta->backingStoreIsFile = true;
-                meta->backingStoreRaw = meta->backingStore;
-                meta->backingStore = absolutePathFromBaseFile(path, backing);
-                if (meta->backingStore == NULL) {
-                    /* the backing file is (currently) unavailable, treat this
-                     * file as standalone:
-                     * backingStoreRaw is kept to mark broken image chains */
-                    meta->backingStoreIsFile = false;
-                    backingFormat = VIR_STORAGE_FILE_NONE;
-                    VIR_WARN("Backing file '%s' of image '%s' is missing.",
-                             meta->backingStoreRaw, path);
-
-                }
-            }
-            VIR_FREE(backing);
-            meta->backingStoreFormat = backingFormat;
-        } else {
-            meta->backingStore = NULL;
-            meta->backingStoreFormat = VIR_STORAGE_FILE_NONE;
-        }
-    }
-
-    return 0;
-}
-
 
 static int
 virStorageFileProbeFormatFromBuf(const char *path,
@@ -796,6 +666,153 @@ virStorageFileProbeFormatFromBuf(const char *path,
 cleanup:
     VIR_DEBUG("format=%d", format);
     return format;
+}
+
+
+/* Given a file descriptor FD open on PATH, and optionally opened from
+ * a given DIRECTORY, return metadata about that file, assuming it has
+ * the given FORMAT. */
+static virStorageFileMetadataPtr
+virStorageFileGetMetadataInternal(const char *path,
+                                  int fd,
+                                  const char *directory,
+                                  int format)
+{
+    virStorageFileMetadata *meta = NULL;
+    unsigned char *buf = NULL;
+    ssize_t len = STORAGE_MAX_HEAD;
+    virStorageFileMetadata *ret = NULL;
+    struct stat sb;
+
+    VIR_DEBUG("path=%s, fd=%d, format=%d", path, fd, format);
+
+    if (VIR_ALLOC(meta) < 0) {
+        virReportOOMError();
+        return NULL;
+    }
+
+    if (fstat(fd, &sb) < 0) {
+        virReportSystemError(errno,
+                             _("cannot stat file '%s'"),
+                             path);
+        goto cleanup;
+    }
+
+    /* No header to probe for directories, but also no backing file */
+    if (S_ISDIR(sb.st_mode))
+        return meta;
+
+    if (lseek(fd, 0, SEEK_SET) == (off_t)-1) {
+        virReportSystemError(errno, _("cannot seek to start of '%s'"), path);
+        goto cleanup;
+    }
+
+    if (VIR_ALLOC_N(buf, len) < 0) {
+        virReportOOMError();
+        goto cleanup;
+    }
+
+    if ((len = read(fd, buf, len)) < 0) {
+        virReportSystemError(errno, _("cannot read header '%s'"), path);
+        goto cleanup;
+    }
+
+    if (format == VIR_STORAGE_FILE_AUTO)
+        format = virStorageFileProbeFormatFromBuf(path, buf, len);
+
+    if (format <= VIR_STORAGE_FILE_NONE ||
+        format >= VIR_STORAGE_FILE_LAST) {
+        virReportSystemError(EINVAL, _("unknown storage file format %d"),
+                             format);
+        goto cleanup;
+    }
+
+    /* XXX we should consider moving virStorageBackendUpdateVolInfo
+     * code into this method, for non-magic files
+     */
+    if (!fileTypeInfo[format].magic)
+        goto done;
+
+    /* Optionally extract capacity from file */
+    if (fileTypeInfo[format].sizeOffset != -1) {
+        if ((fileTypeInfo[format].sizeOffset + 8) > len)
+            goto done;
+
+        if (fileTypeInfo[format].endian == LV_LITTLE_ENDIAN)
+            meta->capacity = virReadBufInt64LE(buf +
+                                               fileTypeInfo[format].sizeOffset);
+        else
+            meta->capacity = virReadBufInt64BE(buf +
+                                               fileTypeInfo[format].sizeOffset);
+        /* Avoid unlikely, but theoretically possible overflow */
+        if (meta->capacity > (ULLONG_MAX /
+                              fileTypeInfo[format].sizeMultiplier))
+            goto done;
+        meta->capacity *= fileTypeInfo[format].sizeMultiplier;
+    }
+
+    if (fileTypeInfo[format].qcowCryptOffset != -1) {
+        int crypt_format;
+
+        crypt_format = virReadBufInt32BE(buf +
+                                         fileTypeInfo[format].qcowCryptOffset);
+        meta->encrypted = crypt_format != 0;
+    }
+
+    if (fileTypeInfo[format].getBackingStore != NULL) {
+        char *backing;
+        int backingFormat;
+        int store = fileTypeInfo[format].getBackingStore(&backing,
+                                                         &backingFormat,
+                                                         buf, len);
+        if (store == BACKING_STORE_INVALID)
+            goto done;
+
+        if (store == BACKING_STORE_ERROR)
+            goto cleanup;
+
+        meta->backingStoreIsFile = false;
+        if (backing != NULL) {
+            meta->backingStore = strdup(backing);
+            if (meta->backingStore == NULL) {
+                virReportOOMError();
+                VIR_FREE(backing);
+                goto cleanup;
+            }
+            if (virBackingStoreIsFile(backing)) {
+                meta->backingStoreIsFile = true;
+                meta->backingStoreRaw = meta->backingStore;
+                meta->backingStore = NULL;
+                if (virFindBackingFile(directory ? directory : path,
+                                       !!directory, backing,
+                                       &meta->directory,
+                                       &meta->backingStore) < 0) {
+                    /* the backing file is (currently) unavailable, treat this
+                     * file as standalone:
+                     * backingStoreRaw is kept to mark broken image chains */
+                    meta->backingStoreIsFile = false;
+                    backingFormat = VIR_STORAGE_FILE_NONE;
+                    VIR_WARN("Backing file '%s' of image '%s' is missing.",
+                             meta->backingStoreRaw, path);
+
+                }
+            }
+            VIR_FREE(backing);
+            meta->backingStoreFormat = backingFormat;
+        } else {
+            meta->backingStore = NULL;
+            meta->backingStoreFormat = VIR_STORAGE_FILE_NONE;
+        }
+    }
+
+done:
+    ret = meta;
+    meta = NULL;
+
+cleanup:
+    virStorageFileFreeMetadata(meta);
+    VIR_FREE(buf);
+    return ret;
 }
 
 
@@ -908,68 +925,13 @@ virStorageFileGetMetadataFromFD(const char *path,
                                 int fd,
                                 int format)
 {
-    virStorageFileMetadata *meta = NULL;
-    unsigned char *head = NULL;
-    ssize_t len = STORAGE_MAX_HEAD;
-    virStorageFileMetadata *ret = NULL;
-    struct stat sb;
-
-    if (VIR_ALLOC(meta) < 0) {
-        virReportOOMError();
-        return NULL;
-    }
-
-    if (fstat(fd, &sb) < 0) {
-        virReportSystemError(errno,
-                             _("cannot stat file '%s'"),
-                             path);
-        goto cleanup;
-    }
-
-    /* No header to probe for directories, but also no backing file */
-    if (S_ISDIR(sb.st_mode))
-        return meta;
-
-    if (lseek(fd, 0, SEEK_SET) == (off_t)-1) {
-        virReportSystemError(errno, _("cannot seek to start of '%s'"), path);
-        goto cleanup;
-    }
-
-    if (VIR_ALLOC_N(head, len) < 0) {
-        virReportOOMError();
-        goto cleanup;
-    }
-
-    if ((len = read(fd, head, len)) < 0) {
-        virReportSystemError(errno, _("cannot read header '%s'"), path);
-        goto cleanup;
-    }
-
-    if (format == VIR_STORAGE_FILE_AUTO)
-        format = virStorageFileProbeFormatFromBuf(path, head, len);
-
-    if (format <= VIR_STORAGE_FILE_NONE ||
-        format >= VIR_STORAGE_FILE_LAST) {
-        virReportSystemError(EINVAL, _("unknown storage file format %d"),
-                             format);
-        goto cleanup;
-    }
-
-    if (virStorageFileGetMetadataFromBuf(format, path, head, len, meta) < 0)
-        goto cleanup;
-    ret = meta;
-    meta = NULL;
-
-cleanup:
-    virStorageFileFreeMetadata(meta);
-    VIR_FREE(head);
-    return ret;
+    return virStorageFileGetMetadataInternal(path, fd, NULL, format);
 }
 
 /* Recursive workhorse for virStorageFileGetMetadata.  */
 static virStorageFileMetadataPtr
-virStorageFileGetMetadataRecurse(const char *path, int format,
-                                 uid_t uid, gid_t gid,
+virStorageFileGetMetadataRecurse(const char *path, const char *directory,
+                                 int format, uid_t uid, gid_t gid,
                                  bool allow_probe, virHashTablePtr cycle)
 {
     int fd;
@@ -992,7 +954,7 @@ virStorageFileGetMetadataRecurse(const char *path, int format,
         return NULL;
     }
 
-    ret = virStorageFileGetMetadataFromFD(path, fd, format);
+    ret = virStorageFileGetMetadataInternal(path, fd, directory, format);
 
     if (VIR_CLOSE(fd) < 0)
         VIR_WARN("could not close file %s", path);
@@ -1004,6 +966,7 @@ virStorageFileGetMetadataRecurse(const char *path, int format,
             ret->backingStoreFormat = VIR_STORAGE_FILE_AUTO;
         format = ret->backingStoreFormat;
         ret->backingMeta = virStorageFileGetMetadataRecurse(ret->backingStore,
+                                                            ret->directory,
                                                             format,
                                                             uid, gid,
                                                             allow_probe,
@@ -1051,7 +1014,7 @@ virStorageFileGetMetadata(const char *path, int format,
 
     if (format <= VIR_STORAGE_FILE_NONE)
         format = allow_probe ? VIR_STORAGE_FILE_AUTO : VIR_STORAGE_FILE_RAW;
-    ret = virStorageFileGetMetadataRecurse(path, format, uid, gid,
+    ret = virStorageFileGetMetadataRecurse(path, NULL, format, uid, gid,
                                            allow_probe, cycle);
     virHashFree(cycle);
     return ret;
@@ -1071,6 +1034,7 @@ virStorageFileFreeMetadata(virStorageFileMetadata *meta)
     virStorageFileFreeMetadata(meta->backingMeta);
     VIR_FREE(meta->backingStore);
     VIR_FREE(meta->backingStoreRaw);
+    VIR_FREE(meta->directory);
     VIR_FREE(meta);
 }
 
@@ -1373,7 +1337,10 @@ virStorageFileChainLookup(virStorageFileMetadataPtr chain, const char *start,
                    STREQ(name, owner->backingStore)) {
             break;
         } else if (owner->backingStoreIsFile) {
-            char *absName = absolutePathFromBaseFile(*parent, name);
+            char *absName = NULL;
+            if (virFindBackingFile(owner->directory, true, name,
+                                   NULL, &absName) < 0)
+                goto error;
             if (absName && STREQ(absName, owner->backingStore)) {
                 VIR_FREE(absName);
                 break;

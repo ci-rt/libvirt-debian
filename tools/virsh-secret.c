@@ -48,7 +48,7 @@ vshCommandOptSecret(vshControl *ctl, const vshCmd *cmd, const char **name)
     if (!vshCmdHasOption(ctl, cmd, optname))
         return NULL;
 
-    if (vshCommandOptString(cmd, optname, &n) <= 0)
+    if (vshCommandOptStringReq(ctl, cmd, optname, &n) < 0)
         return NULL;
 
     vshDebug(ctl, VSH_ERR_DEBUG,
@@ -69,9 +69,13 @@ vshCommandOptSecret(vshControl *ctl, const vshCmd *cmd, const char **name)
  * "secret-define" command
  */
 static const vshCmdInfo info_secret_define[] = {
-    {"help", N_("define or modify a secret from an XML file")},
-    {"desc", N_("Define or modify a secret.")},
-    {NULL, NULL}
+    {.name = "help",
+     .data = N_("define or modify a secret from an XML file")
+    },
+    {.name = "desc",
+     .data = N_("Define or modify a secret.")
+    },
+    {.name = NULL}
 };
 
 static const vshCmdOptDef opts_secret_define[] = {
@@ -90,37 +94,44 @@ cmdSecretDefine(vshControl *ctl, const vshCmd *cmd)
     char *buffer;
     virSecretPtr res;
     char uuid[VIR_UUID_STRING_BUFLEN];
+    bool ret = false;
 
-    if (vshCommandOptString(cmd, "file", &from) <= 0)
+    if (vshCommandOptStringReq(ctl, cmd, "file", &from) < 0)
         return false;
 
     if (virFileReadAll(from, VSH_MAX_XML_FILE, &buffer) < 0)
         return false;
 
-    res = virSecretDefineXML(ctl->conn, buffer, 0);
-    VIR_FREE(buffer);
-
-    if (res == NULL) {
+    if (!(res = virSecretDefineXML(ctl->conn, buffer, 0))) {
         vshError(ctl, _("Failed to set attributes from %s"), from);
-        return false;
+        goto cleanup;
     }
+
     if (virSecretGetUUIDString(res, &(uuid[0])) < 0) {
         vshError(ctl, "%s", _("Failed to get UUID of created secret"));
-        virSecretFree(res);
-        return false;
+        goto cleanup;
     }
+
     vshPrint(ctl, _("Secret %s created\n"), uuid);
+    ret = true;
+
+cleanup:
+    VIR_FREE(buffer);
     virSecretFree(res);
-    return true;
+    return ret;
 }
 
 /*
  * "secret-dumpxml" command
  */
 static const vshCmdInfo info_secret_dumpxml[] = {
-    {"help", N_("secret attributes in XML")},
-    {"desc", N_("Output attributes of a secret as an XML dump to stdout.")},
-    {NULL, NULL}
+    {.name = "help",
+     .data = N_("secret attributes in XML")
+    },
+    {.name = "desc",
+     .data = N_("Output attributes of a secret as an XML dump to stdout.")
+    },
+    {.name = NULL}
 };
 
 static const vshCmdOptDef opts_secret_dumpxml[] = {
@@ -159,9 +170,13 @@ cleanup:
  * "secret-set-value" command
  */
 static const vshCmdInfo info_secret_set_value[] = {
-    {"help", N_("set a secret value")},
-    {"desc", N_("Set a secret value.")},
-    {NULL, NULL}
+    {.name = "help",
+     .data = N_("set a secret value")
+    },
+    {.name = "desc",
+     .data = N_("Set a secret value.")
+    },
+    {.name = NULL}
 };
 
 static const vshCmdOptDef opts_secret_set_value[] = {
@@ -188,11 +203,10 @@ cmdSecretSetValue(vshControl *ctl, const vshCmd *cmd)
     int res;
     bool ret = false;
 
-    secret = vshCommandOptSecret(ctl, cmd, NULL);
-    if (secret == NULL)
+    if (!(secret = vshCommandOptSecret(ctl, cmd, NULL)))
         return false;
 
-    if (vshCommandOptString(cmd, "base64", &base64) <= 0)
+    if (vshCommandOptStringReq(ctl, cmd, "base64", &base64) < 0)
         goto cleanup;
 
     if (!base64_decode_alloc(base64, strlen(base64), &value, &value_size)) {
@@ -201,7 +215,7 @@ cmdSecretSetValue(vshControl *ctl, const vshCmd *cmd)
     }
     if (value == NULL) {
         vshError(ctl, "%s", _("Failed to allocate memory"));
-        return false;
+        goto cleanup;
     }
 
     res = virSecretSetValue(secret, (unsigned char *)value, value_size, 0);
@@ -224,9 +238,13 @@ cleanup:
  * "secret-get-value" command
  */
 static const vshCmdInfo info_secret_get_value[] = {
-    {"help", N_("Output a secret value")},
-    {"desc", N_("Output a secret value to stdout.")},
-    {NULL, NULL}
+    {.name = "help",
+     .data = N_("Output a secret value")
+    },
+    {.name = "desc",
+     .data = N_("Output a secret value to stdout.")
+    },
+    {.name = NULL}
 };
 
 static const vshCmdOptDef opts_secret_get_value[] = {
@@ -277,9 +295,13 @@ cleanup:
  * "secret-undefine" command
  */
 static const vshCmdInfo info_secret_undefine[] = {
-    {"help", N_("undefine a secret")},
-    {"desc", N_("Undefine a secret.")},
-    {NULL, NULL}
+    {.name = "help",
+     .data = N_("undefine a secret")
+    },
+    {.name = "desc",
+     .data = N_("Undefine a secret.")
+    },
+    {.name = NULL}
 };
 
 static const vshCmdOptDef opts_secret_undefine[] = {
@@ -453,9 +475,13 @@ cleanup:
  * "secret-list" command
  */
 static const vshCmdInfo info_secret_list[] = {
-    {"help", N_("list secrets")},
-    {"desc", N_("Returns a list of secrets")},
-    {NULL, NULL}
+    {.name = "help",
+     .data = N_("list secrets")
+    },
+    {.name = "desc",
+     .data = N_("Returns a list of secrets")
+    },
+    {.name = NULL}
 };
 
 static const vshCmdOptDef opts_secret_list[] = {
@@ -542,16 +568,41 @@ cleanup:
 }
 
 const vshCmdDef secretCmds[] = {
-    {"secret-define", cmdSecretDefine, opts_secret_define,
-     info_secret_define, 0},
-    {"secret-dumpxml", cmdSecretDumpXML, opts_secret_dumpxml,
-     info_secret_dumpxml, 0},
-    {"secret-get-value", cmdSecretGetValue, opts_secret_get_value,
-     info_secret_get_value, 0},
-    {"secret-list", cmdSecretList, opts_secret_list, info_secret_list, 0},
-    {"secret-set-value", cmdSecretSetValue, opts_secret_set_value,
-     info_secret_set_value, 0},
-    {"secret-undefine", cmdSecretUndefine, opts_secret_undefine,
-     info_secret_undefine, 0},
-    {NULL, NULL, NULL, NULL, 0}
+    {.name = "secret-define",
+     .handler = cmdSecretDefine,
+     .opts = opts_secret_define,
+     .info = info_secret_define,
+     .flags = 0
+    },
+    {.name = "secret-dumpxml",
+     .handler = cmdSecretDumpXML,
+     .opts = opts_secret_dumpxml,
+     .info = info_secret_dumpxml,
+     .flags = 0
+    },
+    {.name = "secret-get-value",
+     .handler = cmdSecretGetValue,
+     .opts = opts_secret_get_value,
+     .info = info_secret_get_value,
+     .flags = 0
+    },
+    {.name = "secret-list",
+     .handler = cmdSecretList,
+     .opts = opts_secret_list,
+     .info = info_secret_list,
+     .flags = 0
+    },
+    {.name = "secret-set-value",
+     .handler = cmdSecretSetValue,
+     .opts = opts_secret_set_value,
+     .info = info_secret_set_value,
+     .flags = 0
+    },
+    {.name = "secret-undefine",
+     .handler = cmdSecretUndefine,
+     .opts = opts_secret_undefine,
+     .info = info_secret_undefine,
+     .flags = 0
+    },
+    {.name = NULL}
 };

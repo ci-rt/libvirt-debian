@@ -290,9 +290,13 @@ vshDomainStateReasonToString(int state, int reason)
  * "dommemstat" command
  */
 static const vshCmdInfo info_dommemstat[] = {
-    {"help", N_("get memory statistics for a domain")},
-    {"desc", N_("Get memory statistics for a running domain.")},
-    {NULL,NULL}
+    {.name = "help",
+     .data = N_("get memory statistics for a domain")
+    },
+    {.name = "desc",
+     .data = N_("Get memory statistics for a running domain.")
+    },
+    {.name = NULL}
 };
 
 static const vshCmdOptDef opts_dommemstat[] = {
@@ -349,9 +353,13 @@ cmdDomMemStat(vshControl *ctl, const vshCmd *cmd)
  * "domblkinfo" command
  */
 static const vshCmdInfo info_domblkinfo[] = {
-    {"help", N_("domain block device size information")},
-    {"desc", N_("Get block device size info for a domain.")},
-    {NULL, NULL}
+    {.name = "help",
+     .data = N_("domain block device size information")
+    },
+    {.name = "desc",
+     .data = N_("Get block device size info for a domain.")
+    },
+    {.name = NULL}
 };
 
 static const vshCmdOptDef opts_domblkinfo[] = {
@@ -373,26 +381,25 @@ cmdDomblkinfo(vshControl *ctl, const vshCmd *cmd)
 {
     virDomainBlockInfo info;
     virDomainPtr dom;
-    bool ret = true;
+    bool ret = false;
     const char *device = NULL;
 
     if (!(dom = vshCommandOptDomain(ctl, cmd, NULL)))
         return false;
 
-    if (vshCommandOptString(cmd, "device", &device) <= 0) {
-        virDomainFree(dom);
-        return false;
-    }
+    if (vshCommandOptStringReq(ctl, cmd, "device", &device) < 0)
+        goto cleanup;
 
-    if (virDomainGetBlockInfo(dom, device, &info, 0) < 0) {
-        virDomainFree(dom);
-        return false;
-    }
+    if (virDomainGetBlockInfo(dom, device, &info, 0) < 0)
+        goto cleanup;
 
     vshPrint(ctl, "%-15s %llu\n", _("Capacity:"), info.capacity);
     vshPrint(ctl, "%-15s %llu\n", _("Allocation:"), info.allocation);
     vshPrint(ctl, "%-15s %llu\n", _("Physical:"), info.physical);
 
+    ret = true;
+
+cleanup:
     virDomainFree(dom);
     return ret;
 }
@@ -401,9 +408,13 @@ cmdDomblkinfo(vshControl *ctl, const vshCmd *cmd)
  * "domblklist" command
  */
 static const vshCmdInfo info_domblklist[] = {
-    {"help", N_("list all domain blocks")},
-    {"desc", N_("Get the summary of block devices for a domain.")},
-    {NULL, NULL}
+    {.name = "help",
+     .data = N_("list all domain blocks")
+    },
+    {.name = "desc",
+     .data = N_("Get the summary of block devices for a domain.")
+    },
+    {.name = NULL}
 };
 
 static const vshCmdOptDef opts_domblklist[] = {
@@ -619,9 +630,13 @@ cleanup:
  * "domif-getlink" command
  */
 static const vshCmdInfo info_domif_getlink[] = {
-    {"help", N_("get link state of a virtual interface")},
-    {"desc", N_("Get link state of a domain's virtual interface.")},
-    {NULL,NULL}
+    {.name = "help",
+     .data = N_("get link state of a virtual interface")
+    },
+    {.name = "desc",
+     .data = N_("Get link state of a domain's virtual interface.")
+    },
+    {.name = NULL}
 };
 
 static const vshCmdOptDef opts_domif_getlink[] = {
@@ -670,16 +685,13 @@ cmdDomIfGetLink(vshControl *ctl, const vshCmd *cmd)
     if (!(dom = vshCommandOptDomain(ctl, cmd, NULL)))
         return false;
 
-    if (vshCommandOptString(cmd, "interface", &iface) <= 0) {
-        virDomainFree(dom);
-        return false;
-    }
+    if (vshCommandOptStringReq(ctl, cmd, "interface", &iface) < 0)
+        goto cleanup;
 
     if (vshCommandOptBool(cmd, "config"))
         flags = VIR_DOMAIN_XML_INACTIVE;
 
-    desc = virDomainGetXMLDesc(dom, flags);
-    if (desc == NULL) {
+    if (!(desc = virDomainGetXMLDesc(dom, flags))) {
         vshError(ctl, _("Failed to get domain description xml"));
         goto cleanup;
     }
@@ -752,8 +764,7 @@ cleanup:
     xmlXPathFreeObject(obj);
     xmlXPathFreeContext(ctxt);
     xmlFreeDoc(xml);
-    if (dom)
-        virDomainFree(dom);
+    virDomainFree(dom);
 
     return ret;
 }
@@ -762,9 +773,13 @@ cleanup:
  * "domcontrol" command
  */
 static const vshCmdInfo info_domcontrol[] = {
-    {"help", N_("domain control interface state")},
-    {"desc", N_("Returns state of a control interface to the domain.")},
-    {NULL, NULL}
+    {.name = "help",
+     .data = N_("domain control interface state")
+    },
+    {.name = "desc",
+     .data = N_("Returns state of a control interface to the domain.")
+    },
+    {.name = NULL}
 };
 
 static const vshCmdOptDef opts_domcontrol[] = {
@@ -810,10 +825,14 @@ cleanup:
  * "domblkstat" command
  */
 static const vshCmdInfo info_domblkstat[] = {
-    {"help", N_("get device block stats for a domain")},
-    {"desc", N_("Get device block stats for a running domain. See man page or "
-                "use --human for explanation of fields")},
-    {NULL,NULL}
+    {.name = "help",
+     .data = N_("get device block stats for a domain")
+    },
+    {.name = "desc",
+     .data = N_("Get device block stats for a running domain. See man page or "
+                "use --human for explanation of fields")
+    },
+    {.name = NULL}
 };
 
 static const vshCmdOptDef opts_domblkstat[] = {
@@ -891,7 +910,7 @@ cmdDomblkstat(vshControl *ctl, const vshCmd *cmd)
     if (!(dom = vshCommandOptDomain(ctl, cmd, &name)))
         return false;
 
-    if (vshCommandOptString(cmd, "device", &device) <= 0)
+    if (vshCommandOptStringReq(ctl, cmd, "device", &device) < 0)
         goto cleanup;
 
     rc = virDomainBlockStatsFlags(dom, device, NULL, &nparams, 0);
@@ -991,9 +1010,13 @@ cleanup:
  * "domifstat" command
  */
 static const vshCmdInfo info_domifstat[] = {
-    {"help", N_("get network interface stats for a domain")},
-    {"desc", N_("Get network interface stats for a running domain.")},
-    {NULL,NULL}
+    {.name = "help",
+     .data = N_("get network interface stats for a domain")
+    },
+    {.name = "desc",
+     .data = N_("Get network interface stats for a running domain.")
+    },
+    {.name = NULL}
 };
 
 static const vshCmdOptDef opts_domifstat[] = {
@@ -1016,19 +1039,17 @@ cmdDomIfstat(vshControl *ctl, const vshCmd *cmd)
     virDomainPtr dom;
     const char *name = NULL, *device = NULL;
     struct _virDomainInterfaceStats stats;
+    bool ret = false;
 
     if (!(dom = vshCommandOptDomain(ctl, cmd, &name)))
         return false;
 
-    if (vshCommandOptString(cmd, "interface", &device) <= 0) {
-        virDomainFree(dom);
-        return false;
-    }
+    if (vshCommandOptStringReq(ctl, cmd, "interface", &device) < 0)
+        goto cleanup;
 
     if (virDomainInterfaceStats(dom, device, &stats, sizeof(stats)) == -1) {
         vshError(ctl, _("Failed to get interface stats %s %s"), name, device);
-        virDomainFree(dom);
-        return false;
+        goto cleanup;
     }
 
     if (stats.rx_bytes >= 0)
@@ -1055,17 +1076,24 @@ cmdDomIfstat(vshControl *ctl, const vshCmd *cmd)
     if (stats.tx_drop >= 0)
         vshPrint(ctl, "%s tx_drop %lld\n", device, stats.tx_drop);
 
+    ret = true;
+
+cleanup:
     virDomainFree(dom);
-    return true;
+    return ret;
 }
 
 /*
  * "domblkerror" command
  */
 static const vshCmdInfo info_domblkerror[] = {
-    {"help", N_("Show errors on block devices")},
-    {"desc", N_("Show block device errors")},
-    {NULL, NULL}
+    {.name = "help",
+     .data = N_("Show errors on block devices")
+    },
+    {.name = "desc",
+     .data = N_("Show block device errors")
+    },
+    {.name = NULL}
 };
 
 static const vshCmdOptDef opts_domblkerror[] = {
@@ -1124,9 +1152,13 @@ cleanup:
  * "dominfo" command
  */
 static const vshCmdInfo info_dominfo[] = {
-    {"help", N_("domain information")},
-    {"desc", N_("Returns basic information about the domain.")},
-    {NULL, NULL}
+    {.name = "help",
+     .data = N_("domain information")
+    },
+    {.name = "desc",
+     .data = N_("Returns basic information about the domain.")
+    },
+    {.name = NULL}
 };
 
 static const vshCmdOptDef opts_dominfo[] = {
@@ -1262,9 +1294,13 @@ cmdDominfo(vshControl *ctl, const vshCmd *cmd)
  * "domstate" command
  */
 static const vshCmdInfo info_domstate[] = {
-    {"help", N_("domain state")},
-    {"desc", N_("Returns state about a domain.")},
-    {NULL, NULL}
+    {.name = "help",
+     .data = N_("domain state")
+    },
+    {.name = "desc",
+     .data = N_("Returns state about a domain.")
+    },
+    {.name = NULL}
 };
 
 static const vshCmdOptDef opts_domstate[] = {
@@ -1315,9 +1351,13 @@ cleanup:
  * "list" command
  */
 static const vshCmdInfo info_list[] = {
-    {"help", N_("list domains")},
-    {"desc", N_("Returns list of domains.")},
-    {NULL, NULL}
+    {.name = "help",
+     .data = N_("list domains")
+    },
+    {.name = "desc",
+     .data = N_("Returns list of domains.")
+    },
+    {.name = NULL}
 };
 
 /* compare domains, pack NULLed ones at the end*/
@@ -1816,17 +1856,77 @@ cleanup:
 #undef FILTER
 
 const vshCmdDef domMonitoringCmds[] = {
-    {"domblkerror", cmdDomBlkError, opts_domblkerror, info_domblkerror, 0},
-    {"domblkinfo", cmdDomblkinfo, opts_domblkinfo, info_domblkinfo, 0},
-    {"domblklist", cmdDomblklist, opts_domblklist, info_domblklist, 0},
-    {"domblkstat", cmdDomblkstat, opts_domblkstat, info_domblkstat, 0},
-    {"domcontrol", cmdDomControl, opts_domcontrol, info_domcontrol, 0},
-    {"domif-getlink", cmdDomIfGetLink, opts_domif_getlink, info_domif_getlink, 0},
-    {"domiflist", cmdDomiflist, opts_domiflist, info_domiflist, 0},
-    {"domifstat", cmdDomIfstat, opts_domifstat, info_domifstat, 0},
-    {"dominfo", cmdDominfo, opts_dominfo, info_dominfo, 0},
-    {"dommemstat", cmdDomMemStat, opts_dommemstat, info_dommemstat, 0},
-    {"domstate", cmdDomstate, opts_domstate, info_domstate, 0},
-    {"list", cmdList, opts_list, info_list, 0},
-    {NULL, NULL, NULL, NULL, 0}
+    {.name = "domblkerror",
+     .handler = cmdDomBlkError,
+     .opts = opts_domblkerror,
+     .info = info_domblkerror,
+     .flags = 0
+    },
+    {.name = "domblkinfo",
+     .handler = cmdDomblkinfo,
+     .opts = opts_domblkinfo,
+     .info = info_domblkinfo,
+     .flags = 0
+    },
+    {.name = "domblklist",
+     .handler = cmdDomblklist,
+     .opts = opts_domblklist,
+     .info = info_domblklist,
+     .flags = 0
+    },
+    {.name = "domblkstat",
+     .handler = cmdDomblkstat,
+     .opts = opts_domblkstat,
+     .info = info_domblkstat,
+     .flags = 0
+    },
+    {.name = "domcontrol",
+     .handler = cmdDomControl,
+     .opts = opts_domcontrol,
+     .info = info_domcontrol,
+     .flags = 0
+    },
+    {.name = "domif-getlink",
+     .handler = cmdDomIfGetLink,
+     .opts = opts_domif_getlink,
+     .info = info_domif_getlink,
+     .flags = 0
+    },
+    {.name = "domiflist",
+     .handler = cmdDomiflist,
+     .opts = opts_domiflist,
+     .info = info_domiflist,
+     .flags = 0
+    },
+    {.name = "domifstat",
+     .handler = cmdDomIfstat,
+     .opts = opts_domifstat,
+     .info = info_domifstat,
+     .flags = 0
+    },
+    {.name = "dominfo",
+     .handler = cmdDominfo,
+     .opts = opts_dominfo,
+     .info = info_dominfo,
+     .flags = 0
+    },
+    {.name = "dommemstat",
+     .handler = cmdDomMemStat,
+     .opts = opts_dommemstat,
+     .info = info_dommemstat,
+     .flags = 0
+    },
+    {.name = "domstate",
+     .handler = cmdDomstate,
+     .opts = opts_domstate,
+     .info = info_domstate,
+     .flags = 0
+    },
+    {.name = "list",
+     .handler = cmdList,
+     .opts = opts_list,
+     .info = info_list,
+     .flags = 0
+    },
+    {.name = NULL}
 };

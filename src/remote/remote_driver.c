@@ -1543,67 +1543,78 @@ static int
 remoteDeserializeTypedParameters(remote_typed_param *ret_params_val,
                                  u_int ret_params_len,
                                  int limit,
-                                 virTypedParameterPtr params,
+                                 virTypedParameterPtr *params,
                                  int *nparams)
 {
     int i = 0;
     int rv = -1;
+    bool userAllocated = *params != NULL;
 
-    /* Check the length of the returned list carefully. */
-    if (ret_params_len > limit || ret_params_len > *nparams) {
-        virReportError(VIR_ERR_RPC, "%s",
-                       _("returned number of parameters exceeds limit"));
-        goto cleanup;
+    if (userAllocated) {
+        /* Check the length of the returned list carefully. */
+        if (ret_params_len > limit || ret_params_len > *nparams) {
+            virReportError(VIR_ERR_RPC, "%s",
+                           _("returned number of parameters exceeds limit"));
+            goto cleanup;
+        }
+    } else {
+        if (VIR_ALLOC_N(*params, ret_params_len) < 0) {
+            virReportOOMError();
+            goto cleanup;
+        }
     }
-
     *nparams = ret_params_len;
 
     /* Deserialise the result. */
     for (i = 0; i < ret_params_len; ++i) {
-        if (virStrcpyStatic(params[i].field,
-                            ret_params_val[i].field) == NULL) {
+        virTypedParameterPtr param = *params + i;
+        remote_typed_param *ret_param = ret_params_val + i;
+
+        if (virStrcpyStatic(param->field,
+                            ret_param->field) == NULL) {
             virReportError(VIR_ERR_INTERNAL_ERROR,
                            _("Parameter %s too big for destination"),
-                           ret_params_val[i].field);
+                           ret_param->field);
             goto cleanup;
         }
-        params[i].type = ret_params_val[i].value.type;
-        switch (params[i].type) {
+
+        param->type = ret_param->value.type;
+        switch (param->type) {
         case VIR_TYPED_PARAM_INT:
-            params[i].value.i =
-                ret_params_val[i].value.remote_typed_param_value_u.i;
+            param->value.i =
+                ret_param->value.remote_typed_param_value_u.i;
             break;
         case VIR_TYPED_PARAM_UINT:
-            params[i].value.ui =
-                ret_params_val[i].value.remote_typed_param_value_u.ui;
+            param->value.ui =
+                ret_param->value.remote_typed_param_value_u.ui;
             break;
         case VIR_TYPED_PARAM_LLONG:
-            params[i].value.l =
-                ret_params_val[i].value.remote_typed_param_value_u.l;
+            param->value.l =
+                ret_param->value.remote_typed_param_value_u.l;
             break;
         case VIR_TYPED_PARAM_ULLONG:
-            params[i].value.ul =
-                ret_params_val[i].value.remote_typed_param_value_u.ul;
+            param->value.ul =
+                ret_param->value.remote_typed_param_value_u.ul;
             break;
         case VIR_TYPED_PARAM_DOUBLE:
-            params[i].value.d =
-                ret_params_val[i].value.remote_typed_param_value_u.d;
+            param->value.d =
+                ret_param->value.remote_typed_param_value_u.d;
             break;
         case VIR_TYPED_PARAM_BOOLEAN:
-            params[i].value.b =
-                ret_params_val[i].value.remote_typed_param_value_u.b;
+            param->value.b =
+                ret_param->value.remote_typed_param_value_u.b;
             break;
         case VIR_TYPED_PARAM_STRING:
-            params[i].value.s =
-                strdup(ret_params_val[i].value.remote_typed_param_value_u.s);
-            if (params[i].value.s == NULL) {
+            param->value.s =
+                strdup(ret_param->value.remote_typed_param_value_u.s);
+            if (!param->value.s) {
                 virReportOOMError();
                 goto cleanup;
             }
             break;
         default:
             virReportError(VIR_ERR_RPC, _("unknown parameter type: %d"),
-                           params[i].type);
+                           param->type);
             goto cleanup;
         }
     }
@@ -1611,8 +1622,14 @@ remoteDeserializeTypedParameters(remote_typed_param *ret_params_val,
     rv = 0;
 
 cleanup:
-    if (rv < 0)
-        virTypedParamsClear(params, i);
+    if (rv < 0) {
+        if (userAllocated) {
+            virTypedParamsClear(*params, i);
+        } else {
+            virTypedParamsFree(*params, i);
+            *params = NULL;
+        }
+    }
     return rv;
 }
 
@@ -1698,7 +1715,7 @@ remoteDomainBlockStatsFlags(virDomainPtr domain,
     if (remoteDeserializeTypedParameters(ret.params.params_val,
                                          ret.params.params_len,
                                          REMOTE_DOMAIN_MEMORY_PARAMETERS_MAX,
-                                         params,
+                                         &params,
                                          nparams) < 0)
         goto cleanup;
 
@@ -1746,7 +1763,7 @@ remoteDomainGetMemoryParameters(virDomainPtr domain,
     if (remoteDeserializeTypedParameters(ret.params.params_val,
                                          ret.params.params_len,
                                          REMOTE_DOMAIN_MEMORY_PARAMETERS_MAX,
-                                         params,
+                                         &params,
                                          nparams) < 0)
         goto cleanup;
 
@@ -1794,7 +1811,7 @@ remoteDomainGetNumaParameters(virDomainPtr domain,
     if (remoteDeserializeTypedParameters(ret.params.params_val,
                                          ret.params.params_len,
                                          REMOTE_DOMAIN_NUMA_PARAMETERS_MAX,
-                                         params,
+                                         &params,
                                          nparams) < 0)
         goto cleanup;
 
@@ -1842,7 +1859,7 @@ remoteDomainGetBlkioParameters(virDomainPtr domain,
     if (remoteDeserializeTypedParameters(ret.params.params_val,
                                          ret.params.params_len,
                                          REMOTE_DOMAIN_BLKIO_PARAMETERS_MAX,
-                                         params,
+                                         &params,
                                          nparams) < 0)
         goto cleanup;
 
@@ -2658,7 +2675,7 @@ static int remoteDomainGetBlockIoTune(virDomainPtr domain,
     if (remoteDeserializeTypedParameters(ret.params.params_val,
                                          ret.params.params_len,
                                          REMOTE_DOMAIN_MEMORY_PARAMETERS_MAX,
-                                         params,
+                                         &params,
                                          nparams) < 0)
         goto cleanup;
 
@@ -2742,12 +2759,12 @@ static int remoteDomainGetCPUStats(virDomainPtr domain,
     ncpus = ret.params.params_len / ret.nparams;
     for (cpu = 0; cpu < ncpus; cpu++) {
         int tmp = nparams;
+        virTypedParameterPtr cpu_params = &params[cpu * nparams];
         remote_typed_param *stride = &ret.params.params_val[cpu * ret.nparams];
 
         if (remoteDeserializeTypedParameters(stride, ret.nparams,
                                              REMOTE_NODE_CPU_STATS_MAX,
-                                             &params[cpu * nparams],
-                                             &tmp) < 0)
+                                             &cpu_params, &tmp) < 0)
             goto cleanup;
     }
 
@@ -5648,7 +5665,7 @@ remoteDomainGetInterfaceParameters(virDomainPtr domain,
     if (remoteDeserializeTypedParameters(ret.params.params_val,
                                          ret.params.params_len,
                                          REMOTE_DOMAIN_INTERFACE_PARAMETERS_MAX,
-                                         params,
+                                         &params,
                                          nparams) < 0)
         goto cleanup;
 
@@ -5822,7 +5839,7 @@ remoteNodeGetMemoryParameters(virConnectPtr conn,
     if (remoteDeserializeTypedParameters(ret.params.params_val,
                                          ret.params.params_len,
                                          REMOTE_NODE_MEMORY_PARAMETERS_MAX,
-                                         params,
+                                         &params,
                                          nparams) < 0)
         goto cleanup;
 
@@ -5912,6 +5929,46 @@ remoteDomainLxcOpenNamespace(virDomainPtr domain,
 
     rv = nfds;
 
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static int
+remoteDomainGetJobStats(virDomainPtr domain,
+                        int *type,
+                        virTypedParameterPtr *params,
+                        int *nparams,
+                        unsigned int flags)
+{
+    int rv = -1;
+    remote_domain_get_job_stats_args args;
+    remote_domain_get_job_stats_ret ret;
+    struct private_data *priv = domain->conn->privateData;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_domain(&args.dom, domain);
+    args.flags = flags;
+
+    memset(&ret, 0, sizeof(ret));
+    if (call(domain->conn, priv, 0, REMOTE_PROC_DOMAIN_GET_JOB_STATS,
+             (xdrproc_t) xdr_remote_domain_get_job_stats_args, (char *) &args,
+             (xdrproc_t) xdr_remote_domain_get_job_stats_ret, (char *) &ret) == -1)
+        goto done;
+
+    *type = ret.type;
+
+    if (remoteDeserializeTypedParameters(ret.params.params_val,
+                                         ret.params.params_len,
+                                         0, params, nparams) < 0)
+        goto cleanup;
+
+    rv = 0;
+
+cleanup:
+    xdr_free((xdrproc_t) xdr_remote_domain_get_job_stats_ret,
+             (char *) &ret);
 done:
     remoteDriverUnlock(priv);
     return rv;
@@ -6176,8 +6233,11 @@ static virDriver remote_driver = {
     .cpuCompare = remoteCPUCompare, /* 0.7.5 */
     .cpuBaseline = remoteCPUBaseline, /* 0.7.7 */
     .domainGetJobInfo = remoteDomainGetJobInfo, /* 0.7.7 */
+    .domainGetJobStats = remoteDomainGetJobStats, /* 1.0.3 */
     .domainAbortJob = remoteDomainAbortJob, /* 0.7.7 */
     .domainMigrateSetMaxDowntime = remoteDomainMigrateSetMaxDowntime, /* 0.8.0 */
+    .domainMigrateGetCompressionCache = remoteDomainMigrateGetCompressionCache, /* 1.0.3 */
+    .domainMigrateSetCompressionCache = remoteDomainMigrateSetCompressionCache, /* 1.0.3 */
     .domainMigrateSetMaxSpeed = remoteDomainMigrateSetMaxSpeed, /* 0.9.0 */
     .domainMigrateGetMaxSpeed = remoteDomainMigrateGetMaxSpeed, /* 0.9.5 */
     .domainEventRegisterAny = remoteDomainEventRegisterAny, /* 0.8.0 */
@@ -6359,6 +6419,7 @@ static virDeviceMonitor dev_monitor = {
     .listDevices = remoteNodeListDevices, /* 0.5.0 */
     .listAllNodeDevices  = remoteConnectListAllNodeDevices, /* 0.10.2 */
     .deviceLookupByName = remoteNodeDeviceLookupByName, /* 0.5.0 */
+    .deviceLookupSCSIHostByWWN = remoteNodeDeviceLookupSCSIHostByWWN, /* 1.0.2 */
     .deviceGetXMLDesc = remoteNodeDeviceGetXMLDesc, /* 0.5.0 */
     .deviceGetParent = remoteNodeDeviceGetParent, /* 0.5.0 */
     .deviceNumOfCaps = remoteNodeDeviceNumOfCaps, /* 0.5.0 */

@@ -2093,6 +2093,28 @@ cleanup:
 
 
 
+static int remoteDispatchDomainGetJobStats(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_domain_get_job_stats_args *args,
+    remote_domain_get_job_stats_ret *ret);
+static int remoteDispatchDomainGetJobStatsHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainGetJobStats(server, client, msg, rerr, args, ret);
+}
+/* remoteDispatchDomainGetJobStats body has to be implemented manually */
+
+
+
 static int remoteDispatchDomainGetMaxMemory(
     virNetServerPtr server,
     virNetServerClientPtr client,
@@ -3548,6 +3570,62 @@ static int remoteDispatchDomainMigrateFinish3Helper(
 
 
 
+static int remoteDispatchDomainMigrateGetCompressionCache(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_domain_migrate_get_compression_cache_args *args,
+    remote_domain_migrate_get_compression_cache_ret *ret);
+static int remoteDispatchDomainMigrateGetCompressionCacheHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainMigrateGetCompressionCache(server, client, msg, rerr, args, ret);
+}
+static int remoteDispatchDomainMigrateGetCompressionCache(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_domain_migrate_get_compression_cache_args *args,
+    remote_domain_migrate_get_compression_cache_ret *ret)
+{
+    int rv = -1;
+    virDomainPtr dom = NULL;
+    unsigned long long cacheSize;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (!(dom = get_nonnull_domain(priv->conn, args->dom)))
+        goto cleanup;
+
+    if (virDomainMigrateGetCompressionCache(dom, &cacheSize, args->flags) < 0)
+        goto cleanup;
+
+    ret->cacheSize = cacheSize;
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    if (dom)
+        virDomainFree(dom);
+    return rv;
+}
+
+
+
 static int remoteDispatchDomainMigrateGetMaxSpeed(
     virNetServerPtr server,
     virNetServerClientPtr client,
@@ -3901,6 +3979,58 @@ cleanup:
             virStreamFree(st);
         }
     }
+    return rv;
+}
+
+
+
+static int remoteDispatchDomainMigrateSetCompressionCache(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_domain_migrate_set_compression_cache_args *args);
+static int remoteDispatchDomainMigrateSetCompressionCacheHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret ATTRIBUTE_UNUSED)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainMigrateSetCompressionCache(server, client, msg, rerr, args);
+}
+static int remoteDispatchDomainMigrateSetCompressionCache(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_domain_migrate_set_compression_cache_args *args)
+{
+    int rv = -1;
+    virDomainPtr dom = NULL;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (!(dom = get_nonnull_domain(priv->conn, args->dom)))
+        goto cleanup;
+
+    if (virDomainMigrateSetCompressionCache(dom, args->cacheSize, args->flags) < 0)
+        goto cleanup;
+
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    if (dom)
+        virDomainFree(dom);
     return rv;
 }
 
@@ -9888,6 +10018,58 @@ static int remoteDispatchNodeDeviceLookupByName(
     }
 
     if ((dev = virNodeDeviceLookupByName(priv->conn, args->name)) == NULL)
+        goto cleanup;
+
+    make_nonnull_node_device(&ret->dev, dev);
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    if (dev)
+        virNodeDeviceFree(dev);
+    return rv;
+}
+
+
+
+static int remoteDispatchNodeDeviceLookupSCSIHostByWWN(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_node_device_lookup_scsi_host_by_wwn_args *args,
+    remote_node_device_lookup_scsi_host_by_wwn_ret *ret);
+static int remoteDispatchNodeDeviceLookupSCSIHostByWWNHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchNodeDeviceLookupSCSIHostByWWN(server, client, msg, rerr, args, ret);
+}
+static int remoteDispatchNodeDeviceLookupSCSIHostByWWN(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_node_device_lookup_scsi_host_by_wwn_args *args,
+    remote_node_device_lookup_scsi_host_by_wwn_ret *ret)
+{
+    int rv = -1;
+    virNodeDevicePtr dev = NULL;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if ((dev = virNodeDeviceLookupSCSIHostByWWN(priv->conn, args->wwnn, args->wwpn, args->flags)) == NULL)
         goto cleanup;
 
     make_nonnull_node_device(&ret->dev, dev);
@@ -16217,6 +16399,42 @@ virNetServerProgramProc remoteProcs[] = {
    remoteDispatchDomainOpenChannelHelper,
    sizeof(remote_domain_open_channel_args),
    (xdrproc_t)xdr_remote_domain_open_channel_args,
+   0,
+   (xdrproc_t)xdr_void,
+   true,
+   0
+},
+{ /* Method NodeDeviceLookupSCSIHostByWWN => 297 */
+   remoteDispatchNodeDeviceLookupSCSIHostByWWNHelper,
+   sizeof(remote_node_device_lookup_scsi_host_by_wwn_args),
+   (xdrproc_t)xdr_remote_node_device_lookup_scsi_host_by_wwn_args,
+   sizeof(remote_node_device_lookup_scsi_host_by_wwn_ret),
+   (xdrproc_t)xdr_remote_node_device_lookup_scsi_host_by_wwn_ret,
+   true,
+   1
+},
+{ /* Method DomainGetJobStats => 298 */
+   remoteDispatchDomainGetJobStatsHelper,
+   sizeof(remote_domain_get_job_stats_args),
+   (xdrproc_t)xdr_remote_domain_get_job_stats_args,
+   sizeof(remote_domain_get_job_stats_ret),
+   (xdrproc_t)xdr_remote_domain_get_job_stats_ret,
+   true,
+   0
+},
+{ /* Method DomainMigrateGetCompressionCache => 299 */
+   remoteDispatchDomainMigrateGetCompressionCacheHelper,
+   sizeof(remote_domain_migrate_get_compression_cache_args),
+   (xdrproc_t)xdr_remote_domain_migrate_get_compression_cache_args,
+   sizeof(remote_domain_migrate_get_compression_cache_ret),
+   (xdrproc_t)xdr_remote_domain_migrate_get_compression_cache_ret,
+   true,
+   0
+},
+{ /* Method DomainMigrateSetCompressionCache => 300 */
+   remoteDispatchDomainMigrateSetCompressionCacheHelper,
+   sizeof(remote_domain_migrate_set_compression_cache_args),
+   (xdrproc_t)xdr_remote_domain_migrate_set_compression_cache_args,
    0,
    (xdrproc_t)xdr_void,
    true,

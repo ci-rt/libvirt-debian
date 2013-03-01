@@ -58,7 +58,7 @@ struct _virLXCDriver {
     virStateInhibitCallback inhibitCallback;
     void *inhibitOpaque;
 
-    virDomainObjList domains;
+    virDomainObjListPtr domains;
     char *configDir;
     char *autostartDir;
     char *stateDir;
@@ -66,7 +66,7 @@ struct _virLXCDriver {
     int log_libvirtd;
     int have_netns;
 
-    usbDeviceList *activeUsbHostdevs;
+    virUSBDeviceListPtr activeUsbHostdevs;
 
     virDomainEventStatePtr domainEventState;
 

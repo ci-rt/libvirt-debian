@@ -1,7 +1,7 @@
 /*
  * qemu_monitor_json.h: interaction with QEMU monitor console
  *
- * Copyright (C) 2006-2009, 2011-2012 Red Hat, Inc.
+ * Copyright (C) 2006-2009, 2011-2013 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -120,11 +120,18 @@ int qemuMonitorJSONSetMigrationSpeed(qemuMonitorPtr mon,
 int qemuMonitorJSONSetMigrationDowntime(qemuMonitorPtr mon,
                                         unsigned long long downtime);
 
+int qemuMonitorJSONGetMigrationCacheSize(qemuMonitorPtr mon,
+                                         unsigned long long *cacheSize);
+int qemuMonitorJSONSetMigrationCacheSize(qemuMonitorPtr mon,
+                                         unsigned long long cacheSize);
+
 int qemuMonitorJSONGetMigrationStatus(qemuMonitorPtr mon,
-                                      int *status,
-                                      unsigned long long *transferred,
-                                      unsigned long long *remaining,
-                                      unsigned long long *total);
+                                      qemuMonitorMigrationStatusPtr status);
+
+int qemuMonitorJSONGetMigrationCapability(qemuMonitorPtr mon,
+                                          qemuMonitorMigrationCaps capability);
+int qemuMonitorJSONSetMigrationCapability(qemuMonitorPtr mon,
+                                          qemuMonitorMigrationCaps capability);
 
 int qemuMonitorJSONMigrate(qemuMonitorPtr mon,
                            unsigned int flags,
@@ -175,9 +182,12 @@ int qemuMonitorJSONRemovePCIDevice(qemuMonitorPtr mon,
 int qemuMonitorJSONSendFileHandle(qemuMonitorPtr mon,
                                   const char *fdname,
                                   int fd);
+int qemuMonitorJSONAddFd(qemuMonitorPtr mon, int fdset, int fd,
+                         const char *name);
 
 int qemuMonitorJSONCloseFileHandle(qemuMonitorPtr mon,
                                    const char *fdname);
+int qemuMonitorJSONRemoveFd(qemuMonitorPtr mon, int fdset, int fd);
 
 int qemuMonitorJSONAddNetdev(qemuMonitorPtr mon,
                              const char *netdevstr);
@@ -324,4 +334,11 @@ int qemuMonitorJSONGetObjectProps(qemuMonitorPtr mon,
     ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3);
 char *qemuMonitorJSONGetTargetArch(qemuMonitorPtr mon);
 
+int qemuMonitorJSONNBDServerStart(qemuMonitorPtr mon,
+                                  const char *host,
+                                  unsigned int port);
+int qemuMonitorJSONNBDServerAdd(qemuMonitorPtr mon,
+                                const char *deviceID,
+                                bool writable);
+int qemuMonitorJSONNBDServerStop(qemuMonitorPtr mon);
 #endif /* QEMU_MONITOR_JSON_H */

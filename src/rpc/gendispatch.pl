@@ -45,6 +45,8 @@ sub fixup_name {
     $name =~ s/Nmi$/NMI/;
     $name =~ s/Pm/PM/;
     $name =~ s/Fstrim$/FSTrim/;
+    $name =~ s/Scsi/SCSI/;
+    $name =~ s/Wwn$/WWN/;
 
     return $name;
 }
@@ -402,7 +404,8 @@ elsif ($opt_b) {
             # node device is special, as it's identified by name
             if ($argtype =~ m/^remote_node_device_/ and
                 !($argtype =~ m/^remote_node_device_lookup_by_name_/) and
-                !($argtype =~ m/^remote_node_device_create_xml_/)) {
+                !($argtype =~ m/^remote_node_device_create_xml_/) and
+                !($argtype =~ m/^remote_node_device_lookup_scsi_host_by_wwn_/)) {
                 $has_node_device = 1;
                 push(@vars_list, "virNodeDevicePtr dev = NULL");
                 push(@getters_list,
@@ -1340,7 +1343,7 @@ elsif ($opt_k) {
                     push(@ret_list2, "if (remoteDeserializeTypedParameters(ret.$1.$1_val,\n" .
                                      "                                         ret.$1.$1_len,\n" .
                                      "                                         $2,\n" .
-                                     "                                         $1,\n" .
+                                     "                                         &$1,\n" .
                                      "                                         n$1) < 0)\n" .
                                      "        goto cleanup;\n");
                     $single_ret_cleanup = 1;

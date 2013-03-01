@@ -58,6 +58,15 @@
  * verify that it doesn't overflow an unsigned int when shifting */
 verify(VIR_DOMAIN_VIRT_LAST <= 32);
 
+
+struct _virDomainObjList {
+    virObjectLockable parent;
+
+    /* uuid string -> virDomainObj  mapping
+     * for O(1), lockless lookup-by-uuid */
+    virHashTable *objs;
+};
+
 /* Private flags used internally by virDomainSaveStatus and
  * virDomainLoadStatus. */
 typedef enum {
@@ -166,7 +175,8 @@ VIR_ENUM_IMPL(virDomainDevice, VIR_DOMAIN_DEVICE_LAST,
               "redirdev",
               "smartcard",
               "chr",
-              "memballoon")
+              "memballoon",
+              "rng")
 
 VIR_ENUM_IMPL(virDomainDeviceAddress, VIR_DOMAIN_DEVICE_ADDRESS_TYPE_LAST,
               "none",
@@ -690,11 +700,22 @@ VIR_ENUM_IMPL(virDomainNumatuneMemPlacementMode,
               "static",
               "auto");
 
+VIR_ENUM_IMPL(virDomainRNGModel,
+              VIR_DOMAIN_RNG_MODEL_LAST,
+              "virtio");
+
+VIR_ENUM_IMPL(virDomainRNGBackend,
+              VIR_DOMAIN_RNG_BACKEND_LAST,
+              "random",
+              "egd");
+
 #define VIR_DOMAIN_XML_WRITE_FLAGS  VIR_DOMAIN_XML_SECURE
 #define VIR_DOMAIN_XML_READ_FLAGS   VIR_DOMAIN_XML_INACTIVE
 
 static virClassPtr virDomainObjClass;
+static virClassPtr virDomainObjListClass;
 static void virDomainObjDispose(void *obj);
+static void virDomainObjListDispose(void *obj);
 
 static int virDomainObjOnceInit(void)
 {
@@ -702,6 +723,12 @@ static int virDomainObjOnceInit(void)
                                           "virDomainObj",
                                           sizeof(virDomainObj),
                                           virDomainObjDispose)))
+        return -1;
+
+    if (!(virDomainObjListClass = virClassNew(virClassForObjectLockable(),
+                                              "virDomainObjList",
+                                              sizeof(virDomainObjList),
+                                              virDomainObjListDispose)))
         return -1;
 
     return 0;
@@ -776,17 +803,29 @@ virDomainObjListDataFree(void *payload, const void *name ATTRIBUTE_UNUSED)
     virObjectUnref(obj);
 }
 
-int virDomainObjListInit(virDomainObjListPtr doms)
+virDomainObjListPtr virDomainObjListNew(void)
 {
-    doms->objs = virHashCreate(50, virDomainObjListDataFree);
-    if (!doms->objs)
-        return -1;
-    return 0;
+    virDomainObjListPtr doms;
+
+    if (virDomainObjInitialize() < 0)
+        return NULL;
+
+    if (!(doms = virObjectLockableNew(virDomainObjListClass)))
+        return NULL;
+
+    if (!(doms->objs = virHashCreate(50, virDomainObjListDataFree))) {
+        virObjectUnref(doms);
+        return NULL;
+    }
+
+    return doms;
 }
 
 
-void virDomainObjListDeinit(virDomainObjListPtr doms)
+static void virDomainObjListDispose(void *obj)
 {
+    virDomainObjListPtr doms = obj;
+
     virHashFree(doms->objs);
 }
 
@@ -807,28 +846,32 @@ static int virDomainObjListSearchID(const void *payload,
     return want;
 }
 
-virDomainObjPtr virDomainFindByID(const virDomainObjListPtr doms,
-                                  int id)
+virDomainObjPtr virDomainObjListFindByID(const virDomainObjListPtr doms,
+                                         int id)
 {
     virDomainObjPtr obj;
+    virObjectLock(doms);
     obj = virHashSearch(doms->objs, virDomainObjListSearchID, &id);
     if (obj)
         virObjectLock(obj);
+    virObjectUnlock(doms);
     return obj;
 }
 
 
-virDomainObjPtr virDomainFindByUUID(const virDomainObjListPtr doms,
-                                    const unsigned char *uuid)
+virDomainObjPtr virDomainObjListFindByUUID(const virDomainObjListPtr doms,
+                                           const unsigned char *uuid)
 {
     char uuidstr[VIR_UUID_STRING_BUFLEN];
     virDomainObjPtr obj;
 
+    virObjectLock(doms);
     virUUIDFormat(uuid, uuidstr);
 
     obj = virHashLookup(doms->objs, uuidstr);
     if (obj)
         virObjectLock(obj);
+    virObjectUnlock(doms);
     return obj;
 }
 
@@ -846,13 +889,15 @@ static int virDomainObjListSearchName(const void *payload,
     return want;
 }
 
-virDomainObjPtr virDomainFindByName(const virDomainObjListPtr doms,
-                                    const char *name)
+virDomainObjPtr virDomainObjListFindByName(const virDomainObjListPtr doms,
+                                           const char *name)
 {
     virDomainObjPtr obj;
+    virObjectLock(doms);
     obj = virHashSearch(doms->objs, virDomainObjListSearchName, name);
     if (obj)
         virObjectLock(obj);
+    virObjectUnlock(doms);
     return obj;
 }
 
@@ -1524,7 +1569,7 @@ void virDomainDeviceDefFree(virDomainDeviceDefPtr def)
     if (!def)
         return;
 
-    switch (def->type) {
+    switch ((virDomainDeviceType) def->type) {
     case VIR_DOMAIN_DEVICE_DISK:
         virDomainDiskDefFree(def->data.disk);
         break;
@@ -1560,6 +1605,16 @@ void virDomainDeviceDefFree(virDomainDeviceDefPtr def)
         break;
     case VIR_DOMAIN_DEVICE_REDIRDEV:
         virDomainRedirdevDefFree(def->data.redirdev);
+        break;
+    case VIR_DOMAIN_DEVICE_RNG:
+        virDomainRNGDefFree(def->data.rng);
+        break;
+    case VIR_DOMAIN_DEVICE_NONE:
+    case VIR_DOMAIN_DEVICE_FS:
+    case VIR_DOMAIN_DEVICE_SMARTCARD:
+    case VIR_DOMAIN_DEVICE_CHR:
+    case VIR_DOMAIN_DEVICE_MEMBALLOON:
+    case VIR_DOMAIN_DEVICE_LAST:
         break;
     }
 
@@ -1719,6 +1774,8 @@ void virDomainDefFree(virDomainDefPtr def)
         virDomainRedirdevDefFree(def->redirdevs[i]);
     VIR_FREE(def->redirdevs);
 
+    virDomainRNGDefFree(def->rng);
+
     VIR_FREE(def->os.type);
     VIR_FREE(def->os.machine);
     VIR_FREE(def->os.init);
@@ -1824,48 +1881,134 @@ error:
 
 void virDomainObjAssignDef(virDomainObjPtr domain,
                            const virDomainDefPtr def,
-                           bool live)
+                           bool live,
+                           virDomainDefPtr *oldDef)
 {
-    if (!virDomainObjIsActive(domain)) {
+    if (oldDef)
+        *oldDef = NULL;
+    if (virDomainObjIsActive(domain)) {
+        if (oldDef)
+            *oldDef = domain->newDef;
+        else
+            virDomainDefFree(domain->newDef);
+        domain->newDef = def;
+    } else {
         if (live) {
-            /* save current configuration to be restored on domain shutdown */
-            if (!domain->newDef)
-                domain->newDef = domain->def;
+            if (domain->def) {
+                /* save current configuration to be restored on domain shutdown */
+                if (!domain->newDef)
+                    domain->newDef = domain->def;
+                else
+                    virDomainDefFree(domain->def);
+            }
             domain->def = def;
         } else {
-            virDomainDefFree(domain->def);
+            if (oldDef)
+                *oldDef = domain->def;
+            else
+                virDomainDefFree(domain->def);
             domain->def = def;
         }
-    } else {
-        virDomainDefFree(domain->newDef);
-        domain->newDef = def;
     }
 }
 
-virDomainObjPtr virDomainAssignDef(virCapsPtr caps,
-                                   virDomainObjListPtr doms,
-                                   const virDomainDefPtr def,
-                                   bool live)
+
+
+/*
+ *
+ * If flags & VIR_DOMAIN_OBJ_LIST_ADD_CHECK_LIVE then
+ * this will refuse updating an existing def if the
+ * current def is Live
+ *
+ * If flags & VIR_DOMAIN_OBJ_LIST_ADD_LIVE then
+ * the @def being added is assumed to represent a
+ * live config, not a future inactive config
+ *
+ */
+static virDomainObjPtr
+virDomainObjListAddLocked(virDomainObjListPtr doms,
+                          virCapsPtr caps,
+                          const virDomainDefPtr def,
+                          unsigned int flags,
+                          virDomainDefPtr *oldDef)
 {
-    virDomainObjPtr domain;
+    virDomainObjPtr vm;
     char uuidstr[VIR_UUID_STRING_BUFLEN];
 
-    if ((domain = virDomainFindByUUID(doms, def->uuid))) {
-        virDomainObjAssignDef(domain, def, live);
-        return domain;
-    }
-
-    if (!(domain = virDomainObjNew(caps)))
-        return NULL;
-    domain->def = def;
+    if (oldDef)
+        *oldDef = false;
 
     virUUIDFormat(def->uuid, uuidstr);
-    if (virHashAddEntry(doms->objs, uuidstr, domain) < 0) {
-        VIR_FREE(domain);
-        return NULL;
-    }
 
-    return domain;
+    /* See if a VM with matching UUID already exists */
+    if ((vm = virHashLookup(doms->objs, uuidstr))) {
+        virObjectLock(vm);
+        /* UUID matches, but if names don't match, refuse it */
+        if (STRNEQ(vm->def->name, def->name)) {
+            virUUIDFormat(vm->def->uuid, uuidstr);
+            virReportError(VIR_ERR_OPERATION_FAILED,
+                           _("domain '%s' is already defined with uuid %s"),
+                           vm->def->name, uuidstr);
+            goto error;
+        }
+
+        if (flags & VIR_DOMAIN_OBJ_LIST_ADD_CHECK_LIVE) {
+            /* UUID & name match, but if VM is already active, refuse it */
+            if (virDomainObjIsActive(vm)) {
+                virReportError(VIR_ERR_OPERATION_INVALID,
+                               _("domain is already active as '%s'"),
+                               vm->def->name);
+                goto error;
+            }
+        }
+
+        virDomainObjAssignDef(vm,
+                              def,
+                              !!(flags & VIR_DOMAIN_OBJ_LIST_ADD_LIVE),
+                              oldDef);
+    } else {
+        /* UUID does not match, but if a name matches, refuse it */
+        if ((vm = virHashSearch(doms->objs, virDomainObjListSearchName, def->name))) {
+            virObjectLock(vm);
+            virUUIDFormat(vm->def->uuid, uuidstr);
+            virReportError(VIR_ERR_OPERATION_FAILED,
+                           _("domain '%s' already exists with uuid %s"),
+                           def->name, uuidstr);
+            goto error;
+        }
+
+        if (!(vm = virDomainObjNew(caps)))
+            goto cleanup;
+        vm->def = def;
+
+        virUUIDFormat(def->uuid, uuidstr);
+        if (virHashAddEntry(doms->objs, uuidstr, vm) < 0) {
+            virObjectUnref(vm);
+            return NULL;
+        }
+    }
+cleanup:
+    return vm;
+
+error:
+    virObjectUnlock(vm);
+    vm = NULL;
+    goto cleanup;
+}
+
+
+virDomainObjPtr virDomainObjListAdd(virDomainObjListPtr doms,
+                                    virCapsPtr caps,
+                                    const virDomainDefPtr def,
+                                    unsigned int flags,
+                                    virDomainDefPtr *oldDef)
+{
+    virDomainObjPtr ret;
+
+    virObjectLock(doms);
+    ret = virDomainObjListAddLocked(doms, caps, def, flags, oldDef);
+    virObjectUnlock(doms);
+    return ret;
 }
 
 /*
@@ -1982,15 +2125,17 @@ cleanup:
  * and must also have locked 'dom', to ensure no one else
  * is either waiting for 'dom' or still using it
  */
-void virDomainRemoveInactive(virDomainObjListPtr doms,
-                             virDomainObjPtr dom)
+void virDomainObjListRemove(virDomainObjListPtr doms,
+                            virDomainObjPtr dom)
 {
     char uuidstr[VIR_UUID_STRING_BUFLEN];
-    virUUIDFormat(dom->def->uuid, uuidstr);
 
+    virUUIDFormat(dom->def->uuid, uuidstr);
     virObjectUnlock(dom);
 
+    virObjectLock(doms);
     virHashRemoveEntry(doms->objs, uuidstr);
+    virObjectUnlock(doms);
 }
 
 
@@ -2185,12 +2330,48 @@ int virDomainDeviceInfoIterate(virDomainDefPtr def,
         if (cb(def, &device, &def->memballoon->info, opaque) < 0)
             return -1;
     }
+    if (def->rng) {
+        device.type = VIR_DOMAIN_DEVICE_RNG;
+        device.data.rng = def->rng;
+        if (cb(def, &device, &def->rng->info, opaque) < 0)
+            return -1;
+    }
     device.type = VIR_DOMAIN_DEVICE_HUB;
     for (i = 0; i < def->nhubs ; i++) {
         device.data.hub = def->hubs[i];
         if (cb(def, &device, &def->hubs[i]->info, opaque) < 0)
             return -1;
     }
+
+    /* This switch statement is here to trigger compiler warning when adding
+     * a new device type. When you are adding a new field to the swtich you
+     * also have to add a iteration statement above. Otherwise the switch
+     * statement has no real function here and should be optimized out by the
+     * compiler. */
+    i = VIR_DOMAIN_DEVICE_LAST;
+    switch ((virDomainDeviceType) i) {
+    case VIR_DOMAIN_DEVICE_DISK:
+    case VIR_DOMAIN_DEVICE_LEASE:
+    case VIR_DOMAIN_DEVICE_FS:
+    case VIR_DOMAIN_DEVICE_NET:
+    case VIR_DOMAIN_DEVICE_INPUT:
+    case VIR_DOMAIN_DEVICE_SOUND:
+    case VIR_DOMAIN_DEVICE_VIDEO:
+    case VIR_DOMAIN_DEVICE_HOSTDEV:
+    case VIR_DOMAIN_DEVICE_WATCHDOG:
+    case VIR_DOMAIN_DEVICE_CONTROLLER:
+    case VIR_DOMAIN_DEVICE_GRAPHICS:
+    case VIR_DOMAIN_DEVICE_HUB:
+    case VIR_DOMAIN_DEVICE_REDIRDEV:
+    case VIR_DOMAIN_DEVICE_NONE:
+    case VIR_DOMAIN_DEVICE_SMARTCARD:
+    case VIR_DOMAIN_DEVICE_CHR:
+    case VIR_DOMAIN_DEVICE_MEMBALLOON:
+    case VIR_DOMAIN_DEVICE_LAST:
+    case VIR_DOMAIN_DEVICE_RNG:
+        break;
+    }
+
     return 0;
 }
 
@@ -3124,6 +3305,26 @@ virDomainDiskFindControllerModel(virDomainDefPtr def,
     }
 
     return model;
+}
+
+virDomainDiskDefPtr
+virDomainDiskFindByBusAndDst(virDomainDefPtr def,
+                             int bus,
+                             char *dst)
+{
+    int i;
+
+    if (!dst)
+        return NULL;
+
+    for (i = 0 ; i < def->ndisks ; i++) {
+        if (def->disks[i]->bus == bus &&
+            STREQ(def->disks[i]->dst, dst)) {
+            return def->disks[i];
+        }
+    }
+
+    return NULL;
 }
 
 int
@@ -7168,6 +7369,110 @@ error:
 }
 
 
+static virDomainRNGDefPtr
+virDomainRNGDefParseXML(const xmlNodePtr node,
+                        xmlXPathContextPtr ctxt,
+                        unsigned int flags)
+{
+    const char *model = NULL;
+    const char *backend = NULL;
+    const char *type = NULL;
+    virDomainRNGDefPtr def;
+    xmlNodePtr save = ctxt->node;
+    xmlNodePtr *backends = NULL;
+    int nbackends;
+
+    if (VIR_ALLOC(def) < 0) {
+        virReportOOMError();
+        return NULL;
+    }
+
+    if (!(model = virXMLPropString(node, "model"))) {
+        virReportError(VIR_ERR_XML_ERROR, "%s", _("missing RNG device model"));
+        goto error;
+    }
+
+    if ((def->model = virDomainRNGModelTypeFromString(model)) < 0) {
+        virReportError(VIR_ERR_XML_ERROR, _("unknown RNG model '%s'"), model);
+        goto error;
+    }
+
+    ctxt->node = node;
+
+    if ((nbackends = virXPathNodeSet("./backend", ctxt, &backends)) < 0)
+        goto error;
+
+    if (nbackends != 1) {
+        virReportError(VIR_ERR_XML_ERROR, "%s",
+                       _("only one RNG backend is supported"));
+        goto error;
+    }
+
+    if (!(backend = virXMLPropString(backends[0], "model"))) {
+        virReportError(VIR_ERR_XML_ERROR, "%s",
+                       _("missing RNG device backend model"));
+        goto error;
+    }
+
+    if ((def->backend = virDomainRNGBackendTypeFromString(backend)) < 0) {
+        virReportError(VIR_ERR_XML_ERROR,
+                       _("unknown RNG backend model '%s'"), backend);
+        goto error;
+    }
+
+    switch ((enum virDomainRNGBackend) def->backend) {
+    case VIR_DOMAIN_RNG_BACKEND_RANDOM:
+        def->source.file = virXPathString("string(./backend)", ctxt);
+        break;
+
+    case VIR_DOMAIN_RNG_BACKEND_EGD:
+        if (!(type = virXMLPropString(backends[0], "type"))) {
+            virReportError(VIR_ERR_XML_ERROR, "%s",
+                           _("missing EGD backend type"));
+            goto error;
+        }
+
+        if (VIR_ALLOC(def->source.chardev) < 0) {
+            virReportOOMError();
+            goto error;
+        }
+
+        def->source.chardev->type = virDomainChrTypeFromString(type);
+        if (def->source.chardev->type < 0) {
+            virReportError(VIR_ERR_XML_ERROR,
+                           _("unknown backend type '%s' for egd"),
+                           type);
+            goto error;
+        }
+
+        if (virDomainChrSourceDefParseXML(def->source.chardev,
+                                          backends[0]->children, flags,
+                                          NULL, ctxt, NULL, 0) < 0)
+            goto error;
+        break;
+
+    case VIR_DOMAIN_RNG_BACKEND_LAST:
+        break;
+    }
+
+    if (virDomainDeviceInfoParseXML(node, NULL, &def->info, flags) < 0)
+        goto error;
+
+cleanup:
+    VIR_FREE(model);
+    VIR_FREE(backend);
+    VIR_FREE(type);
+    VIR_FREE(backends);
+    ctxt->node = save;
+    return def;
+
+error:
+    virDomainRNGDefFree(def);
+    def = NULL;
+    goto cleanup;
+}
+
+
 static virDomainMemballoonDefPtr
 virDomainMemballoonDefParseXML(const xmlNodePtr node,
                                unsigned int flags)
@@ -7407,9 +7712,11 @@ virDomainVideoDefParseXML(const xmlNodePtr node,
                 vram = virXMLPropString(cur, "vram");
                 heads = virXMLPropString(cur, "heads");
 
-                if ((primary = virXMLPropString(cur, "primary")) != NULL)
+                if ((primary = virXMLPropString(cur, "primary")) != NULL) {
                     if (STREQ(primary, "yes"))
                         def->primary = 1;
+                    VIR_FREE(primary);
+                }
 
                 def->accel = virDomainVideoAccelDefParseXML(cur);
             }
@@ -7479,6 +7786,7 @@ virDomainVideoDefParseXML(const xmlNodePtr node,
 error:
     virDomainVideoDefFree(def);
     VIR_FREE(type);
+    VIR_FREE(ram);
     VIR_FREE(vram);
     VIR_FREE(heads);
     return NULL;
@@ -7837,12 +8145,13 @@ error:
     return NULL;
 }
 
-static int virDomainEventActionParseXML(xmlXPathContextPtr ctxt,
-                                        const char *name,
-                                        const char *xpath,
-                                        int *val,
-                                        int defaultVal,
-                                        virEventActionFromStringFunc convFunc)
+static int
+virDomainEventActionParseXML(xmlXPathContextPtr ctxt,
+                             const char *name,
+                             const char *xpath,
+                             int *val,
+                             int defaultVal,
+                             virEventActionFromStringFunc convFunc)
 {
     char *tmp = virXPathString(xpath, ctxt);
     if (tmp == NULL) {
@@ -7882,10 +8191,11 @@ virDomainPMStateParseXML(xmlXPathContextPtr ctxt,
     return ret;
 }
 
-virDomainDeviceDefPtr virDomainDeviceDefParse(virCapsPtr caps,
-                                              virDomainDefPtr def,
-                                              const char *xmlStr,
-                                              unsigned int flags)
+virDomainDeviceDefPtr
+virDomainDeviceDefParse(virCapsPtr caps,
+                        virDomainDefPtr def,
+                        const char *xmlStr,
+                        unsigned int flags)
 {
     xmlDocPtr xml;
     xmlNodePtr node;
@@ -7959,6 +8269,10 @@ virDomainDeviceDefPtr virDomainDeviceDefParse(virCapsPtr caps,
     } else if (xmlStrEqual(node->name, BAD_CAST "redirdev")) {
         dev->type = VIR_DOMAIN_DEVICE_REDIRDEV;
         if (!(dev->data.redirdev = virDomainRedirdevDefParseXML(node, NULL, flags)))
+            goto error;
+    } else if (xmlStrEqual(node->name, BAD_CAST "rng")) {
+        dev->type = VIR_DOMAIN_DEVICE_RNG;
+        if (!(dev->data.rng = virDomainRNGDefParseXML(node, ctxt, flags)))
             goto error;
     } else {
         virReportError(VIR_ERR_XML_ERROR,
@@ -8873,12 +9187,13 @@ cleanup:
 }
 
 
-static virDomainDefPtr virDomainDefParseXML(virCapsPtr caps,
-                                            xmlDocPtr xml,
-                                            xmlNodePtr root,
-                                            xmlXPathContextPtr ctxt,
-                                            unsigned int expectedVirtTypes,
-                                            unsigned int flags)
+static virDomainDefPtr
+virDomainDefParseXML(virCapsPtr caps,
+                     xmlDocPtr xml,
+                     xmlNodePtr root,
+                     xmlXPathContextPtr ctxt,
+                     unsigned int expectedVirtTypes,
+                     unsigned int flags)
 {
     xmlNodePtr *nodes = NULL, node = NULL;
     char *tmp = NULL;
@@ -9009,16 +9324,13 @@ static virDomainDefPtr virDomainDefParseXML(virCapsPtr caps,
         goto error;
 
     /* and info about it */
-    tmp = virXPathString("string(./memory[1]/@dumpCore)", ctxt);
-    if (tmp) {
-        def->mem.dump_core = virDomainMemDumpTypeFromString(tmp);
-
-        if (def->mem.dump_core <= 0) {
-            virReportError(VIR_ERR_XML_ERROR, _("Bad value '%s'"), tmp);
-            goto error;
-        }
-        VIR_FREE(tmp);
+    if ((tmp = virXPathString("string(./memory[1]/@dumpCore)", ctxt)) &&
+        (def->mem.dump_core = virDomainMemDumpTypeFromString(tmp)) <= 0) {
+        virReportError(VIR_ERR_XML_ERROR,
+                       _("Invalid memory core dump attribute value '%s'"), tmp);
+        goto error;
     }
+    VIR_FREE(tmp);
 
     if (def->mem.cur_balloon > def->mem.max_balloon) {
         /* Older libvirt could get into this situation due to
@@ -9463,6 +9775,7 @@ static virDomainDefPtr virDomainDefParseXML(virCapsPtr caps,
                         goto error;
                     }
 
+                    VIR_FREE(tmp);
                     def->hyperv_features[feature] = value;
                     break;
 
@@ -9791,6 +10104,7 @@ static virDomainDefPtr virDomainDefParseXML(virCapsPtr caps,
         if (controller->type == VIR_DOMAIN_CONTROLLER_TYPE_USB) {
             if (controller->model == VIR_DOMAIN_CONTROLLER_MODEL_USB_NONE) {
                 if (usb_other || usb_none) {
+                    virDomainControllerDefFree(controller);
                     virReportError(VIR_ERR_XML_DETAIL, "%s",
                                    _("Can't add another USB controller: "
                                      "USB is disabled for this domain"));
@@ -9799,6 +10113,7 @@ static virDomainDefPtr virDomainDefParseXML(virCapsPtr caps,
                 usb_none = true;
             } else {
                 if (usb_none) {
+                    virDomainControllerDefFree(controller);
                     virReportError(VIR_ERR_XML_DETAIL, "%s",
                                    _("Can't add another USB controller: "
                                      "USB is disabled for this domain"));
@@ -10096,6 +10411,7 @@ static virDomainDefPtr virDomainDefParseXML(virCapsPtr caps,
 
         /* Check if USB bus is required */
         if (input->bus == VIR_DOMAIN_INPUT_BUS_USB && usb_none) {
+            virDomainInputDefFree(input);
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                            _("Can't add USB input device. "
                              "USB bus is disabled"));
@@ -10193,6 +10509,7 @@ static virDomainDefPtr virDomainDefParseXML(virCapsPtr caps,
 
         if (video->primary) {
             if (primaryVideo) {
+                virDomainVideoDefFree(video);
                 virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                                _("Only one primary video device is supported"));
                 goto error;
@@ -10204,8 +10521,10 @@ static virDomainDefPtr virDomainDefParseXML(virCapsPtr caps,
         if (VIR_INSERT_ELEMENT_INPLACE(def->videos,
                                        ii,
                                        def->nvideos,
-                                       video) < 0)
+                                       video) < 0) {
+            virDomainVideoDefFree(video);
             goto error;
+        }
     }
     VIR_FREE(nodes);
 
@@ -10309,6 +10628,22 @@ static virDomainDefPtr virDomainDefParseXML(virCapsPtr caps,
         }
     }
 
+    /* Parse the RNG device */
+    if ((n = virXPathNodeSet("./devices/rng", ctxt, &nodes)) < 0)
+        goto error;
+
+    if (n > 1) {
+        virReportError(VIR_ERR_XML_ERROR, "%s",
+                       _("only a single RNG device is supported"));
+        goto error;
+    }
+
+    if (n > 0) {
+        if (!(def->rng = virDomainRNGDefParseXML(nodes[0], ctxt, flags)))
+            goto error;
+        VIR_FREE(nodes);
+    }
+
     /* analysis of the hub devices */
     if ((n = virXPathNodeSet("./devices/hub", ctxt, &nodes)) < 0) {
         goto error;
@@ -10321,6 +10656,7 @@ static virDomainDefPtr virDomainDefParseXML(virCapsPtr caps,
             goto error;
 
         if (hub->type == VIR_DOMAIN_HUB_TYPE_USB && usb_none) {
+            virDomainHubDefFree(hub);
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                            _("Can't add USB hub: "
                              "USB is disabled for this domain"));
@@ -10478,11 +10814,12 @@ no_memory:
 }
 
 
-static virDomainObjPtr virDomainObjParseXML(virCapsPtr caps,
-                                            xmlDocPtr xml,
-                                            xmlXPathContextPtr ctxt,
-                                            unsigned int expectedVirtTypes,
-                                            unsigned int flags)
+static virDomainObjPtr
+virDomainObjParseXML(virCapsPtr caps,
+                     xmlDocPtr xml,
+                     xmlXPathContextPtr ctxt,
+                     unsigned int expectedVirtTypes,
+                     unsigned int flags)
 {
     char *tmp = NULL;
     long val;
@@ -10596,28 +10933,31 @@ virDomainDefParse(const char *xmlStr,
     return def;
 }
 
-virDomainDefPtr virDomainDefParseString(virCapsPtr caps,
-                                        const char *xmlStr,
-                                        unsigned int expectedVirtTypes,
-                                        unsigned int flags)
+virDomainDefPtr
+virDomainDefParseString(virCapsPtr caps,
+                        const char *xmlStr,
+                        unsigned int expectedVirtTypes,
+                        unsigned int flags)
 {
     return virDomainDefParse(xmlStr, NULL, caps, expectedVirtTypes, flags);
 }
 
-virDomainDefPtr virDomainDefParseFile(virCapsPtr caps,
-                                      const char *filename,
-                                      unsigned int expectedVirtTypes,
-                                      unsigned int flags)
+virDomainDefPtr
+virDomainDefParseFile(virCapsPtr caps,
+                      const char *filename,
+                      unsigned int expectedVirtTypes,
+                      unsigned int flags)
 {
     return virDomainDefParse(NULL, filename, caps, expectedVirtTypes, flags);
 }
 
 
-virDomainDefPtr virDomainDefParseNode(virCapsPtr caps,
-                                      xmlDocPtr xml,
-                                      xmlNodePtr root,
-                                      unsigned int expectedVirtTypes,
-                                      unsigned int flags)
+virDomainDefPtr
+virDomainDefParseNode(virCapsPtr caps,
+                      xmlDocPtr xml,
+                      xmlNodePtr root,
+                      unsigned int expectedVirtTypes,
+                      unsigned int flags)
 {
     xmlXPathContextPtr ctxt = NULL;
     virDomainDefPtr def = NULL;
@@ -10700,24 +11040,23 @@ virDomainObjParseFile(virCapsPtr caps,
 }
 
 
-static bool virDomainTimerDefCheckABIStability(virDomainTimerDefPtr src,
-                                              virDomainTimerDefPtr dst)
+static bool
+virDomainTimerDefCheckABIStability(virDomainTimerDefPtr src,
+                                   virDomainTimerDefPtr dst)
 {
-    bool identical = false;
-
     if (src->name != dst->name) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                        _("Target timer %s does not match source %s"),
                        virDomainTimerNameTypeToString(dst->name),
                        virDomainTimerNameTypeToString(src->name));
-        goto cleanup;
+        return false;
     }
 
     if (src->present != dst->present) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                        _("Target timer presence %d does not match source %d"),
                        dst->present, src->present);
-        goto cleanup;
+        return false;
     }
 
     if (src->name == VIR_DOMAIN_TIMER_NAME_TSC) {
@@ -10725,7 +11064,7 @@ static bool virDomainTimerDefCheckABIStability(virDomainTimerDefPtr src,
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                            _("Target TSC frequency %lu does not match source %lu"),
                            dst->frequency, src->frequency);
-            goto cleanup;
+            return false;
         }
 
         if (src->mode != dst->mode) {
@@ -10733,28 +11072,24 @@ static bool virDomainTimerDefCheckABIStability(virDomainTimerDefPtr src,
                            _("Target TSC mode %s does not match source %s"),
                            virDomainTimerModeTypeToString(dst->mode),
                            virDomainTimerModeTypeToString(src->mode));
-            goto cleanup;
+            return false;
         }
     }
 
-    identical = true;
-
-cleanup:
-    return identical;
+    return true;
 }
 
 
-static bool virDomainDeviceInfoCheckABIStability(virDomainDeviceInfoPtr src,
-                                                 virDomainDeviceInfoPtr dst)
+static bool
+virDomainDeviceInfoCheckABIStability(virDomainDeviceInfoPtr src,
+                                     virDomainDeviceInfoPtr dst)
 {
-    bool identical = false;
-
     if (src->type != dst->type) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                        _("Target device address type %s does not match source %s"),
                        virDomainDeviceAddressTypeToString(dst->type),
                        virDomainDeviceAddressTypeToString(src->type));
-        goto cleanup;
+        return false;
     }
 
     switch (src->type) {
@@ -10770,7 +11105,7 @@ static bool virDomainDeviceInfoCheckABIStability(virDomainDeviceInfoPtr src,
                            dst->addr.pci.slot, dst->addr.pci.function,
                            src->addr.pci.domain, src->addr.pci.bus,
                            src->addr.pci.slot, src->addr.pci.function);
-            goto cleanup;
+            return false;
         }
         break;
 
@@ -10779,12 +11114,13 @@ static bool virDomainDeviceInfoCheckABIStability(virDomainDeviceInfoPtr src,
             src->addr.drive.bus != dst->addr.drive.bus ||
             src->addr.drive.unit != dst->addr.drive.unit) {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                           _("Target device drive address %d:%d:%d does not match source %d:%d:%d"),
+                           _("Target device drive address %d:%d:%d "
+                             "does not match source %d:%d:%d"),
                            dst->addr.drive.controller, dst->addr.drive.bus,
                            dst->addr.drive.unit,
                            src->addr.drive.controller, src->addr.drive.bus,
                            src->addr.drive.unit);
-            goto cleanup;
+            return false;
         }
         break;
 
@@ -10793,12 +11129,13 @@ static bool virDomainDeviceInfoCheckABIStability(virDomainDeviceInfoPtr src,
             src->addr.vioserial.bus != dst->addr.vioserial.bus ||
             src->addr.vioserial.port != dst->addr.vioserial.port) {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                           _("Target device virtio serial address %d:%d:%d does not match source %d:%d:%d"),
+                           _("Target device virtio serial address %d:%d:%d "
+                             "does not match source %d:%d:%d"),
                            dst->addr.vioserial.controller, dst->addr.vioserial.bus,
                            dst->addr.vioserial.port,
                            src->addr.vioserial.controller, src->addr.vioserial.bus,
                            src->addr.vioserial.port);
-            goto cleanup;
+            return false;
         }
         break;
 
@@ -10806,34 +11143,31 @@ static bool virDomainDeviceInfoCheckABIStability(virDomainDeviceInfoPtr src,
         if (src->addr.ccid.controller != dst->addr.ccid.controller ||
             src->addr.ccid.slot != dst->addr.ccid.slot) {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                           _("Target device ccid address %d:%d does not match source %d:%d"),
+                           _("Target device ccid address %d:%d "
+                             "does not match source %d:%d"),
                            dst->addr.ccid.controller,
                            dst->addr.ccid.slot,
                            src->addr.ccid.controller,
                            src->addr.ccid.slot);
-            goto cleanup;
+            return false;
         }
         break;
     }
 
-    identical = true;
-
-cleanup:
-    return identical;
+    return true;
 }
 
 
-static bool virDomainDiskDefCheckABIStability(virDomainDiskDefPtr src,
-                                              virDomainDiskDefPtr dst)
+static bool
+virDomainDiskDefCheckABIStability(virDomainDiskDefPtr src,
+                                  virDomainDiskDefPtr dst)
 {
-    bool identical = false;
-
     if (src->device != dst->device) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                        _("Target disk device %s does not match source %s"),
                        virDomainDiskDeviceTypeToString(dst->device),
                        virDomainDiskDeviceTypeToString(src->device));
-        goto cleanup;
+        return false;
     }
 
     if (src->bus != dst->bus) {
@@ -10841,64 +11175,60 @@ static bool virDomainDiskDefCheckABIStability(virDomainDiskDefPtr src,
                        _("Target disk bus %s does not match source %s"),
                        virDomainDiskBusTypeToString(dst->bus),
                        virDomainDiskBusTypeToString(src->bus));
-        goto cleanup;
+        return false;
     }
 
     if (STRNEQ(src->dst, dst->dst)) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                        _("Target disk %s does not match source %s"),
                        dst->dst, src->dst);
-        goto cleanup;
+        return false;
     }
 
     if (STRNEQ_NULLABLE(src->serial, dst->serial)) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                        _("Target disk serial %s does not match source %s"),
                        NULLSTR(dst->serial), NULLSTR(src->serial));
-        goto cleanup;
+        return false;
     }
 
     if (src->readonly != dst->readonly || src->shared != dst->shared) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("Target disk access mode does not match source"));
-        goto cleanup;
+        return false;
     }
 
     if (!virDomainDeviceInfoCheckABIStability(&src->info, &dst->info))
-        goto cleanup;
+        return false;
 
-    identical = true;
-
-cleanup:
-    return identical;
+    return true;
 }
 
 
-static bool virDomainControllerDefCheckABIStability(virDomainControllerDefPtr src,
-                                                    virDomainControllerDefPtr dst)
+static bool
+virDomainControllerDefCheckABIStability(virDomainControllerDefPtr src,
+                                        virDomainControllerDefPtr dst)
 {
-    bool identical = false;
-
     if (src->type != dst->type) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                        _("Target controller type %s does not match source %s"),
                        virDomainControllerTypeToString(dst->type),
                        virDomainControllerTypeToString(src->type));
-        goto cleanup;
+        return false;
     }
 
     if (src->idx != dst->idx) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                        _("Target controller index %d does not match source %d"),
                        dst->idx, src->idx);
-        goto cleanup;
+        return false;
     }
 
     if (src->model != dst->model) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                        _("Target controller model %d does not match source %d"),
                        dst->model, src->model);
-        goto cleanup;
+        return false;
     }
 
     if (src->type == VIR_DOMAIN_CONTROLLER_TYPE_VIRTIO_SERIAL) {
@@ -10906,60 +11236,52 @@ static bool virDomainControllerDefCheckABIStability(virDomainControllerDefPtr sr
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                            _("Target controller ports %d does not match source %d"),
                            dst->opts.vioserial.ports, src->opts.vioserial.ports);
-            goto cleanup;
+            return false;
         }
 
         if (src->opts.vioserial.vectors != dst->opts.vioserial.vectors) {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                            _("Target controller vectors %d does not match source %d"),
                            dst->opts.vioserial.vectors, src->opts.vioserial.vectors);
-            goto cleanup;
+            return false;
         }
     }
 
     if (!virDomainDeviceInfoCheckABIStability(&src->info, &dst->info))
-        goto cleanup;
+        return false;
 
-    identical = true;
-
-cleanup:
-    return identical;
+    return true;
 }
 
 
-static bool virDomainFsDefCheckABIStability(virDomainFSDefPtr src,
-                                            virDomainFSDefPtr dst)
+static bool
+virDomainFsDefCheckABIStability(virDomainFSDefPtr src,
+                                virDomainFSDefPtr dst)
 {
-    bool identical = false;
-
     if (STRNEQ(src->dst, dst->dst)) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                        _("Target filesystem guest target %s does not match source %s"),
                        dst->dst, src->dst);
-        goto cleanup;
+        return false;
     }
 
     if (src->readonly != dst->readonly) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("Target filesystem access mode does not match source"));
-        goto cleanup;
+        return false;
     }
 
     if (!virDomainDeviceInfoCheckABIStability(&src->info, &dst->info))
-        goto cleanup;
+        return false;
 
-    identical = true;
-
-cleanup:
-    return identical;
+    return true;
 }
 
 
-static bool virDomainNetDefCheckABIStability(virDomainNetDefPtr src,
-                                             virDomainNetDefPtr dst)
+static bool
+virDomainNetDefCheckABIStability(virDomainNetDefPtr src,
+                                 virDomainNetDefPtr dst)
 {
-    bool identical = false;
-
     if (virMacAddrCmp(&src->mac, &dst->mac) != 0) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                        _("Target network card mac %02x:%02x:%02x:%02x:%02x:%02x"
@@ -10968,37 +11290,33 @@ static bool virDomainNetDefCheckABIStability(virDomainNetDefPtr src,
                        dst->mac.addr[3], dst->mac.addr[4], dst->mac.addr[5],
                        src->mac.addr[0], src->mac.addr[1], src->mac.addr[2],
                        src->mac.addr[3], src->mac.addr[4], src->mac.addr[5]);
-        goto cleanup;
+        return false;
     }
 
     if (STRNEQ_NULLABLE(src->model, dst->model)) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                        _("Target network card model %s does not match source %s"),
                        NULLSTR(dst->model), NULLSTR(src->model));
-        goto cleanup;
+        return false;
     }
 
     if (!virDomainDeviceInfoCheckABIStability(&src->info, &dst->info))
-        goto cleanup;
+        return false;
 
-    identical = true;
-
-cleanup:
-    return identical;
+    return true;
 }
 
 
-static bool virDomainInputDefCheckABIStability(virDomainInputDefPtr src,
-                                               virDomainInputDefPtr dst)
+static bool
+virDomainInputDefCheckABIStability(virDomainInputDefPtr src,
+                                   virDomainInputDefPtr dst)
 {
-    bool identical = false;
-
     if (src->type != dst->type) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                        _("Target input device type %s does not match source %s"),
                        virDomainInputTypeToString(dst->type),
                        virDomainInputTypeToString(src->type));
-        goto cleanup;
+        return false;
     }
 
     if (src->bus != dst->bus) {
@@ -11006,74 +11324,66 @@ static bool virDomainInputDefCheckABIStability(virDomainInputDefPtr src,
                        _("Target input device bus %s does not match source %s"),
                        virDomainInputBusTypeToString(dst->bus),
                        virDomainInputBusTypeToString(src->bus));
-        goto cleanup;
+        return false;
     }
 
     if (!virDomainDeviceInfoCheckABIStability(&src->info, &dst->info))
-        goto cleanup;
+        return false;
 
-    identical = true;
-
-cleanup:
-    return identical;
+    return true;
 }
 
 
-static bool virDomainSoundDefCheckABIStability(virDomainSoundDefPtr src,
-                                               virDomainSoundDefPtr dst)
+static bool
+virDomainSoundDefCheckABIStability(virDomainSoundDefPtr src,
+                                   virDomainSoundDefPtr dst)
 {
-    bool identical = false;
-
     if (src->model != dst->model) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                        _("Target sound card model %s does not match source %s"),
                        virDomainSoundModelTypeToString(dst->model),
                        virDomainSoundModelTypeToString(src->model));
-        goto cleanup;
+        return false;
     }
 
     if (!virDomainDeviceInfoCheckABIStability(&src->info, &dst->info))
-        goto cleanup;
+        return false;
 
-    identical = true;
-
-cleanup:
-    return identical;
+    return true;
 }
 
 
-static bool virDomainVideoDefCheckABIStability(virDomainVideoDefPtr src,
-                                               virDomainVideoDefPtr dst)
+static bool
+virDomainVideoDefCheckABIStability(virDomainVideoDefPtr src,
+                                   virDomainVideoDefPtr dst)
 {
-    bool identical = false;
-
     if (src->type != dst->type) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                        _("Target video card model %s does not match source %s"),
                        virDomainVideoTypeToString(dst->type),
                        virDomainVideoTypeToString(src->type));
-        goto cleanup;
+        return false;
     }
 
     if (src->vram != dst->vram) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                        _("Target video card vram %u does not match source %u"),
                        dst->vram, src->vram);
-        goto cleanup;
+        return false;
     }
 
     if (src->heads != dst->heads) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                        _("Target video card heads %u does not match source %u"),
                        dst->heads, src->heads);
-        goto cleanup;
+        return false;
     }
 
     if ((src->accel && !dst->accel) ||
         (!src->accel && dst->accel)) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("Target video card acceleration does not match source"));
-        goto cleanup;
+        return false;
     }
 
     if (src->accel) {
@@ -11081,130 +11391,109 @@ static bool virDomainVideoDefCheckABIStability(virDomainVideoDefPtr src,
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                            _("Target video card 2d accel %u does not match source %u"),
                            dst->accel->support2d, src->accel->support2d);
-            goto cleanup;
+            return false;
         }
 
         if (src->accel->support3d != dst->accel->support3d) {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                            _("Target video card 3d accel %u does not match source %u"),
                            dst->accel->support3d, src->accel->support3d);
-            goto cleanup;
+            return false;
         }
     }
 
     if (!virDomainDeviceInfoCheckABIStability(&src->info, &dst->info))
-        goto cleanup;
+        return false;
 
-    identical = true;
-
-cleanup:
-    return identical;
+    return true;
 }
 
 
-static bool virDomainHostdevDefCheckABIStability(virDomainHostdevDefPtr src,
-                                                 virDomainHostdevDefPtr dst)
+static bool
+virDomainHostdevDefCheckABIStability(virDomainHostdevDefPtr src,
+                                     virDomainHostdevDefPtr dst)
 {
-    bool identical = false;
-
     if (src->mode != dst->mode) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                        _("Target host device mode %s does not match source %s"),
                        virDomainHostdevModeTypeToString(dst->mode),
                        virDomainHostdevModeTypeToString(src->mode));
-        goto cleanup;
+        return false;
     }
 
-    if (src->mode == VIR_DOMAIN_HOSTDEV_MODE_SUBSYS) {
-        if (src->source.subsys.type != dst->source.subsys.type) {
-            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                           _("Target host device subsystem %s does not match source %s"),
-                           virDomainHostdevSubsysTypeToString(dst->source.subsys.type),
-                           virDomainHostdevSubsysTypeToString(src->source.subsys.type));
-            goto cleanup;
-        }
+    if (src->mode == VIR_DOMAIN_HOSTDEV_MODE_SUBSYS &&
+        src->source.subsys.type != dst->source.subsys.type) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                       _("Target host device subsystem %s does not match source %s"),
+                       virDomainHostdevSubsysTypeToString(dst->source.subsys.type),
+                       virDomainHostdevSubsysTypeToString(src->source.subsys.type));
+        return false;
     }
 
     if (!virDomainDeviceInfoCheckABIStability(src->info, dst->info))
-        goto cleanup;
+        return false;
 
-    identical = true;
-
-cleanup:
-    return identical;
+    return true;
 }
 
 
-static bool virDomainSmartcardDefCheckABIStability(virDomainSmartcardDefPtr src,
-                                                   virDomainSmartcardDefPtr dst)
+static bool
+virDomainSmartcardDefCheckABIStability(virDomainSmartcardDefPtr src,
+                                       virDomainSmartcardDefPtr dst)
 {
-    bool identical = false;
-
     if (!virDomainDeviceInfoCheckABIStability(&src->info, &dst->info))
-        goto cleanup;
+        return false;
 
-    identical = true;
-
-cleanup:
-    return identical;
+    return true;
 }
 
 
-static bool virDomainSerialDefCheckABIStability(virDomainChrDefPtr src,
-                                                virDomainChrDefPtr dst)
+static bool
+virDomainSerialDefCheckABIStability(virDomainChrDefPtr src,
+                                    virDomainChrDefPtr dst)
 {
-    bool identical = false;
-
     if (src->target.port != dst->target.port) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                        _("Target serial port %d does not match source %d"),
                        dst->target.port, src->target.port);
-        goto cleanup;
+        return false;
     }
 
     if (!virDomainDeviceInfoCheckABIStability(&src->info, &dst->info))
-        goto cleanup;
+        return false;
 
-    identical = true;
-
-cleanup:
-    return identical;
+    return true;
 }
 
 
-static bool virDomainParallelDefCheckABIStability(virDomainChrDefPtr src,
-                                                  virDomainChrDefPtr dst)
+static bool
+virDomainParallelDefCheckABIStability(virDomainChrDefPtr src,
+                                      virDomainChrDefPtr dst)
 {
-    bool identical = false;
-
     if (src->target.port != dst->target.port) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                        _("Target serial port %d does not match source %d"),
                        dst->target.port, src->target.port);
-        goto cleanup;
+        return false;
     }
 
     if (!virDomainDeviceInfoCheckABIStability(&src->info, &dst->info))
-        goto cleanup;
+        return false;
 
-    identical = true;
-
-cleanup:
-    return identical;
+    return true;
 }
 
 
-static bool virDomainChannelDefCheckABIStability(virDomainChrDefPtr src,
-                                                 virDomainChrDefPtr dst)
+static bool
+virDomainChannelDefCheckABIStability(virDomainChrDefPtr src,
+                                     virDomainChrDefPtr dst)
 {
-    bool identical = false;
-
     if (src->targetType != dst->targetType) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                        _("Target channel type %s does not match source %s"),
                        virDomainChrChannelTargetTypeToString(dst->targetType),
                        virDomainChrChannelTargetTypeToString(src->targetType));
-        goto cleanup;
+        return false;
     }
 
     switch (src->targetType) {
@@ -11213,7 +11502,7 @@ static bool virDomainChannelDefCheckABIStability(virDomainChrDefPtr src,
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                            _("Target channel name %s does not match source %s"),
                            NULLSTR(dst->target.name), NULLSTR(src->target.name));
-            goto cleanup;
+            return false;
         }
         if (src->source.type != dst->source.type &&
             (src->source.type == VIR_DOMAIN_CHR_TYPE_SPICEVMC ||
@@ -11222,7 +11511,7 @@ static bool virDomainChannelDefCheckABIStability(virDomainChrDefPtr src,
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                            _("Changing device type to/from spicevmc would"
                              " change default target channel name"));
-            goto cleanup;
+            return false;
         }
         break;
     case VIR_DOMAIN_CHR_CHANNEL_TARGET_TYPE_GUESTFWD:
@@ -11235,110 +11524,121 @@ static bool virDomainChannelDefCheckABIStability(virDomainChrDefPtr src,
                            NULLSTR(daddr), NULLSTR(saddr));
             VIR_FREE(saddr);
             VIR_FREE(daddr);
-            goto cleanup;
+            return false;
         }
         break;
     }
 
     if (!virDomainDeviceInfoCheckABIStability(&src->info, &dst->info))
-        goto cleanup;
+        return false;
 
-    identical = true;
-
-cleanup:
-    return identical;
+    return true;
 }
 
 
-static bool virDomainConsoleDefCheckABIStability(virDomainChrDefPtr src,
-                                                 virDomainChrDefPtr dst)
+static bool
+virDomainConsoleDefCheckABIStability(virDomainChrDefPtr src,
+                                     virDomainChrDefPtr dst)
 {
-    bool identical = false;
-
     if (src->targetType != dst->targetType) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                        _("Target console type %s does not match source %s"),
                        virDomainChrConsoleTargetTypeToString(dst->targetType),
                        virDomainChrConsoleTargetTypeToString(src->targetType));
-        goto cleanup;
+        return false;
     }
 
     if (!virDomainDeviceInfoCheckABIStability(&src->info, &dst->info))
-        goto cleanup;
+        return false;
 
-    identical = true;
-
-cleanup:
-    return identical;
+    return true;
 }
 
 
-static bool virDomainWatchdogDefCheckABIStability(virDomainWatchdogDefPtr src,
-                                                  virDomainWatchdogDefPtr dst)
+static bool
+virDomainWatchdogDefCheckABIStability(virDomainWatchdogDefPtr src,
+                                      virDomainWatchdogDefPtr dst)
 {
-    bool identical = false;
-
     if (src->model != dst->model) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                        _("Target watchdog model %s does not match source %s"),
                        virDomainWatchdogModelTypeToString(dst->model),
                        virDomainWatchdogModelTypeToString(src->model));
-        goto cleanup;
+        return false;
     }
 
     if (!virDomainDeviceInfoCheckABIStability(&src->info, &dst->info))
-        goto cleanup;
+        return false;
 
-    identical = true;
-
-cleanup:
-    return identical;
+    return true;
 }
 
 
-static bool virDomainMemballoonDefCheckABIStability(virDomainMemballoonDefPtr src,
-                                                    virDomainMemballoonDefPtr dst)
+static bool
+virDomainMemballoonDefCheckABIStability(virDomainMemballoonDefPtr src,
+                                        virDomainMemballoonDefPtr dst)
 {
-    bool identical = false;
-
     if (src->model != dst->model) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                        _("Target balloon model %s does not match source %s"),
                        virDomainMemballoonModelTypeToString(dst->model),
                        virDomainMemballoonModelTypeToString(src->model));
-        goto cleanup;
+        return false;
     }
 
     if (!virDomainDeviceInfoCheckABIStability(&src->info, &dst->info))
-        goto cleanup;
+        return false;
 
-    identical = true;
-
-cleanup:
-    return identical;
+    return true;
 }
 
 
-static bool virDomainHubDefCheckABIStability(virDomainHubDefPtr src,
-                                                   virDomainHubDefPtr dst)
+static bool
+virDomainRNGDefCheckABIStability(virDomainRNGDefPtr src,
+                                 virDomainRNGDefPtr dst)
 {
-    bool identical = false;
+    if (!src && !dst)
+        return true;
 
+    if (!src || !dst) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                       _("Target domain RNG device count '%d' "
+                         "does not match source count '%d'"),
+                       src ? 1 : 0, dst ? 1 : 0);
+        return false;
+    }
+
+    if (src->model != dst->model) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                       _("Target RNG model '%s' does not match source '%s'"),
+                       virDomainRNGModelTypeToString(dst->model),
+                       virDomainRNGModelTypeToString(src->model));
+        return false;
+    }
+
+    if (!virDomainDeviceInfoCheckABIStability(&src->info, &dst->info))
+        return false;
+
+    return true;
+}
+
+
+static bool
+virDomainHubDefCheckABIStability(virDomainHubDefPtr src,
+                                 virDomainHubDefPtr dst)
+{
     if (src->type != dst->type) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                        _("Target hub device type %s does not match source %s"),
                        virDomainHubTypeToString(dst->type),
                        virDomainHubTypeToString(src->type));
-        goto cleanup;
+        return false;
     }
 
     if (!virDomainDeviceInfoCheckABIStability(&src->info, &dst->info))
-        goto cleanup;
+        return false;
 
-    identical = true;
-
-cleanup:
-    return identical;
+    return true;
 }
 
 static bool
@@ -11346,14 +11646,13 @@ virDomainRedirFilterDefCheckABIStability(virDomainRedirFilterDefPtr src,
                                          virDomainRedirFilterDefPtr dst)
 {
     int i;
-    bool identical = false;
 
     if (src->nusbdevs != dst->nusbdevs) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                        _("Target USB redirection filter rule "
                          "count %zu does not match source %zu"),
                          dst->nusbdevs, src->nusbdevs);
-        goto cleanup;
+        return false;
     }
 
     for (i = 0; i < src->nusbdevs; i++) {
@@ -11362,25 +11661,25 @@ virDomainRedirFilterDefCheckABIStability(virDomainRedirFilterDefPtr src,
         if (srcUsbDev->usbClass != dstUsbDev->usbClass) {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                            "%s", _("Target USB Class code does not match source"));
-            goto cleanup;
+            return false;
         }
 
         if (srcUsbDev->vendor != dstUsbDev->vendor) {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                            "%s", _("Target USB vendor ID does not match source"));
-            goto cleanup;
+            return false;
         }
 
         if (srcUsbDev->product != dstUsbDev->product) {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                            "%s", _("Target USB product ID does not match source"));
-            goto cleanup;
+            return false;
         }
 
         if (srcUsbDev->version != dstUsbDev->version) {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                            "%s", _("Target USB version does not match source"));
-            goto cleanup;
+            return false;
         }
 
         if (srcUsbDev->allow != dstUsbDev->allow) {
@@ -11388,23 +11687,21 @@ virDomainRedirFilterDefCheckABIStability(virDomainRedirFilterDefPtr src,
                            _("Target USB allow '%s' does not match source '%s'"),
                              dstUsbDev->allow ? "yes" : "no",
                              srcUsbDev->allow ? "yes" : "no");
-            goto cleanup;
+            return false;
         }
     }
-    identical = true;
 
-cleanup:
-    return identical;
+    return true;
 }
 
 /* This compares two configurations and looks for any differences
  * which will affect the guest ABI. This is primarily to allow
  * validation of custom XML config passed in during migration
  */
-bool virDomainDefCheckABIStability(virDomainDefPtr src,
-                                   virDomainDefPtr dst)
+bool
+virDomainDefCheckABIStability(virDomainDefPtr src,
+                              virDomainDefPtr dst)
 {
-    bool identical = false;
     int i;
 
     if (src->virtType != dst->virtType) {
@@ -11412,7 +11709,7 @@ bool virDomainDefCheckABIStability(virDomainDefPtr src,
                        _("Target domain virt type %s does not match source %s"),
                        virDomainVirtTypeToString(dst->virtType),
                        virDomainVirtTypeToString(src->virtType));
-        goto cleanup;
+        return false;
     }
 
     if (memcmp(src->uuid, dst->uuid, VIR_UUID_BUFLEN) != 0) {
@@ -11423,60 +11720,60 @@ bool virDomainDefCheckABIStability(virDomainDefPtr src,
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                        _("Target domain uuid %s does not match source %s"),
                        uuiddst, uuidsrc);
-        goto cleanup;
+        return false;
     }
 
     if (src->mem.max_balloon != dst->mem.max_balloon) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                        _("Target domain max memory %lld does not match source %lld"),
                        dst->mem.max_balloon, src->mem.max_balloon);
-        goto cleanup;
+        return false;
     }
     if (src->mem.cur_balloon != dst->mem.cur_balloon) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                        _("Target domain current memory %lld does not match source %lld"),
                        dst->mem.cur_balloon, src->mem.cur_balloon);
-        goto cleanup;
+        return false;
     }
     if (src->mem.hugepage_backed != dst->mem.hugepage_backed) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                        _("Target domain huge page backing %d does not match source %d"),
                        dst->mem.hugepage_backed,
                        src->mem.hugepage_backed);
-        goto cleanup;
+        return false;
     }
 
     if (src->vcpus != dst->vcpus) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                        _("Target domain vpu count %d does not match source %d"),
                        dst->vcpus, src->vcpus);
-        goto cleanup;
+        return false;
     }
     if (src->maxvcpus != dst->maxvcpus) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                        _("Target domain vpu max %d does not match source %d"),
                        dst->maxvcpus, src->maxvcpus);
-        goto cleanup;
+        return false;
     }
 
     if (STRNEQ(src->os.type, dst->os.type)) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                        _("Target domain OS type %s does not match source %s"),
                        dst->os.type, src->os.type);
-        goto cleanup;
+        return false;
     }
     if (src->os.arch != dst->os.arch){
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                        _("Target domain architecture %s does not match source %s"),
                        virArchToString(dst->os.arch),
                        virArchToString(src->os.arch));
-        goto cleanup;
+        return false;
     }
     if (STRNEQ(src->os.machine, dst->os.machine)) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                        _("Target domain OS type %s does not match source %s"),
                        dst->os.machine, src->os.machine);
-        goto cleanup;
+        return false;
     }
 
     if (src->os.smbios_mode != dst->os.smbios_mode) {
@@ -11484,233 +11781,260 @@ bool virDomainDefCheckABIStability(virDomainDefPtr src,
                        _("Target domain SMBIOS mode %s does not match source %s"),
                        virDomainSmbiosModeTypeToString(dst->os.smbios_mode),
                        virDomainSmbiosModeTypeToString(src->os.smbios_mode));
-        goto cleanup;
+        return false;
     }
 
     if (src->features != dst->features) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                        _("Target domain features %d does not match source %d"),
                        dst->features, src->features);
-        goto cleanup;
+        return false;
     }
 
     if (src->clock.ntimers != dst->clock.ntimers) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("Target domain timers do not match source"));
-        goto cleanup;
+        return false;
     }
 
     for (i = 0 ; i < src->clock.ntimers ; i++) {
-        if (!virDomainTimerDefCheckABIStability(src->clock.timers[i], dst->clock.timers[i]))
-            goto cleanup;
+        if (!virDomainTimerDefCheckABIStability(src->clock.timers[i],
+                                                dst->clock.timers[i]))
+            return false;
     }
 
     if (!virCPUDefIsEqual(src->cpu, dst->cpu))
-        goto cleanup;
+        return false;
 
     if (!virSysinfoIsEqual(src->sysinfo, dst->sysinfo))
-        goto cleanup;
+        return false;
 
     if (src->ndisks != dst->ndisks) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                        _("Target domain disk count %zu does not match source %zu"),
                        dst->ndisks, src->ndisks);
-        goto cleanup;
+        return false;
     }
 
     for (i = 0 ; i < src->ndisks ; i++)
         if (!virDomainDiskDefCheckABIStability(src->disks[i], dst->disks[i]))
-            goto cleanup;
+            return false;
 
     if (src->ncontrollers != dst->ncontrollers) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                       _("Target domain disk controller count %zu does not match source %zu"),
+                       _("Target domain disk controller count %zu "
+                         "does not match source %zu"),
                        dst->ncontrollers, src->ncontrollers);
-        goto cleanup;
+        return false;
     }
 
     for (i = 0 ; i < src->ncontrollers ; i++)
-        if (!virDomainControllerDefCheckABIStability(src->controllers[i], dst->controllers[i]))
-            goto cleanup;
+        if (!virDomainControllerDefCheckABIStability(src->controllers[i],
+                                                     dst->controllers[i]))
+            return false;
 
     if (src->nfss != dst->nfss) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                       _("Target domain filesystem count %zu does not match source %zu"),
+                       _("Target domain filesystem count %zu "
+                         "does not match source %zu"),
                        dst->nfss, src->nfss);
-        goto cleanup;
+        return false;
     }
 
     for (i = 0 ; i < src->nfss ; i++)
         if (!virDomainFsDefCheckABIStability(src->fss[i], dst->fss[i]))
-            goto cleanup;
+            return false;
 
     if (src->nnets != dst->nnets) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                       _("Target domain net card count %zu does not match source %zu"),
+                       _("Target domain net card count %zu "
+                         "does not match source %zu"),
                        dst->nnets, src->nnets);
-        goto cleanup;
+        return false;
     }
 
     for (i = 0 ; i < src->nnets ; i++)
         if (!virDomainNetDefCheckABIStability(src->nets[i], dst->nets[i]))
-            goto cleanup;
+            return false;
 
     if (src->ninputs != dst->ninputs) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                       _("Target domain input device count %zu does not match source %zu"),
+                       _("Target domain input device count %zu "
+                         "does not match source %zu"),
                        dst->ninputs, src->ninputs);
-        goto cleanup;
+        return false;
     }
 
     for (i = 0 ; i < src->ninputs ; i++)
         if (!virDomainInputDefCheckABIStability(src->inputs[i], dst->inputs[i]))
-            goto cleanup;
+            return false;
 
     if (src->nsounds != dst->nsounds) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                       _("Target domain sound card count %zu does not match source %zu"),
+                       _("Target domain sound card count %zu "
+                         "does not match source %zu"),
                        dst->nsounds, src->nsounds);
-        goto cleanup;
+        return false;
     }
 
     for (i = 0 ; i < src->nsounds ; i++)
         if (!virDomainSoundDefCheckABIStability(src->sounds[i], dst->sounds[i]))
-            goto cleanup;
+            return false;
 
     if (src->nvideos != dst->nvideos) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                       _("Target domain video card count %zu does not match source %zu"),
+                       _("Target domain video card count %zu "
+                         "does not match source %zu"),
                        dst->nvideos, src->nvideos);
-        goto cleanup;
+        return false;
     }
 
     for (i = 0 ; i < src->nvideos ; i++)
         if (!virDomainVideoDefCheckABIStability(src->videos[i], dst->videos[i]))
-            goto cleanup;
+            return false;
 
     if (src->nhostdevs != dst->nhostdevs) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                       _("Target domain host device count %zu does not match source %zu"),
+                       _("Target domain host device count %zu "
+                         "does not match source %zu"),
                        dst->nhostdevs, src->nhostdevs);
-        goto cleanup;
+        return false;
     }
 
     for (i = 0 ; i < src->nhostdevs ; i++)
-        if (!virDomainHostdevDefCheckABIStability(src->hostdevs[i], dst->hostdevs[i]))
-            goto cleanup;
+        if (!virDomainHostdevDefCheckABIStability(src->hostdevs[i],
+                                                  dst->hostdevs[i]))
+            return false;
 
     if (src->nsmartcards != dst->nsmartcards) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                       _("Target domain smartcard count %zu does not match source %zu"),
+                       _("Target domain smartcard count %zu "
+                         "does not match source %zu"),
                        dst->nsmartcards, src->nsmartcards);
-        goto cleanup;
+        return false;
     }
 
     for (i = 0 ; i < src->nsmartcards ; i++)
-        if (!virDomainSmartcardDefCheckABIStability(src->smartcards[i], dst->smartcards[i]))
-            goto cleanup;
+        if (!virDomainSmartcardDefCheckABIStability(src->smartcards[i],
+                                                    dst->smartcards[i]))
+            return false;
 
     if (src->nserials != dst->nserials) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                       _("Target domain serial port count %zu does not match source %zu"),
+                       _("Target domain serial port count %zu "
+                         "does not match source %zu"),
                        dst->nserials, src->nserials);
-        goto cleanup;
+        return false;
     }
 
     for (i = 0 ; i < src->nserials ; i++)
-        if (!virDomainSerialDefCheckABIStability(src->serials[i], dst->serials[i]))
-            goto cleanup;
+        if (!virDomainSerialDefCheckABIStability(src->serials[i],
+                                                 dst->serials[i]))
+            return false;
 
     if (src->nparallels != dst->nparallels) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                       _("Target domain parallel port count %zu does not match source %zu"),
+                       _("Target domain parallel port count %zu "
+                         "does not match source %zu"),
                        dst->nparallels, src->nparallels);
-        goto cleanup;
+        return false;
     }
 
     for (i = 0 ; i < src->nparallels ; i++)
-        if (!virDomainParallelDefCheckABIStability(src->parallels[i], dst->parallels[i]))
-            goto cleanup;
+        if (!virDomainParallelDefCheckABIStability(src->parallels[i],
+                                                   dst->parallels[i]))
+            return false;
 
     if (src->nchannels != dst->nchannels) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                       _("Target domain channel count %zu does not match source %zu"),
+                       _("Target domain channel count %zu "
+                         "does not match source %zu"),
                        dst->nchannels, src->nchannels);
-        goto cleanup;
+        return false;
     }
 
     for (i = 0 ; i < src->nchannels ; i++)
-        if (!virDomainChannelDefCheckABIStability(src->channels[i], dst->channels[i]))
-            goto cleanup;
+        if (!virDomainChannelDefCheckABIStability(src->channels[i],
+                                                  dst->channels[i]))
+            return false;
 
     if (src->nconsoles != dst->nconsoles) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                       _("Target domain console count %zu does not match source %zu"),
+                       _("Target domain console count %zu "
+                         "does not match source %zu"),
                        dst->nconsoles, src->nconsoles);
-        goto cleanup;
+        return false;
     }
 
     for (i = 0 ; i < src->nconsoles ; i++)
-        if (!virDomainConsoleDefCheckABIStability(src->consoles[i], dst->consoles[i]))
-            goto cleanup;
+        if (!virDomainConsoleDefCheckABIStability(src->consoles[i],
+                                                  dst->consoles[i]))
+            return false;
 
     if (src->nhubs != dst->nhubs) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                       _("Target domain hub device count %zu does not match source %zu"),
+                       _("Target domain hub device count %zu "
+                         "does not match source %zu"),
                        dst->nhubs, src->nhubs);
-        goto cleanup;
+        return false;
     }
 
     for (i = 0 ; i < src->nhubs ; i++)
         if (!virDomainHubDefCheckABIStability(src->hubs[i], dst->hubs[i]))
-            goto cleanup;
+            return false;
 
     if ((!src->redirfilter && dst->redirfilter) ||
         (src->redirfilter && !dst->redirfilter)) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                       _("Target domain USB redirection filter count %d does not match source %d"),
+                       _("Target domain USB redirection filter count %d "
+                         "does not match source %d"),
                        dst->redirfilter ? 1 : 0, src->redirfilter ? 1 : 0);
-        goto cleanup;
+        return false;
     }
 
     if (src->redirfilter &&
-        !virDomainRedirFilterDefCheckABIStability(src->redirfilter, dst->redirfilter))
-        goto cleanup;
+        !virDomainRedirFilterDefCheckABIStability(src->redirfilter,
+                                                  dst->redirfilter))
+        return false;
 
     if ((!src->watchdog && dst->watchdog) ||
         (src->watchdog && !dst->watchdog)) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                       _("Target domain watchdog count %d does not match source %d"),
+                       _("Target domain watchdog count %d "
+                         "does not match source %d"),
                        dst->watchdog ? 1 : 0, src->watchdog ? 1 : 0);
-        goto cleanup;
+        return false;
     }
 
     if (src->watchdog &&
         !virDomainWatchdogDefCheckABIStability(src->watchdog, dst->watchdog))
-        goto cleanup;
+        return false;
 
     if ((!src->memballoon && dst->memballoon) ||
         (src->memballoon && !dst->memballoon)) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                       _("Target domain memory balloon count %d does not match source %d"),
+                       _("Target domain memory balloon count %d "
+                         "does not match source %d"),
                        dst->memballoon ? 1 : 0, src->memballoon ? 1 : 0);
-        goto cleanup;
+        return false;
     }
 
     if (src->memballoon &&
-        !virDomainMemballoonDefCheckABIStability(src->memballoon, dst->memballoon))
-        goto cleanup;
+        !virDomainMemballoonDefCheckABIStability(src->memballoon,
+                                                 dst->memballoon))
+        return false;
 
-    identical = true;
+    if (!virDomainRNGDefCheckABIStability(src->rng, dst->rng))
+        return false;
 
-cleanup:
-    return identical;
+    return true;
 }
 
 
-static int virDomainDefAddDiskControllersForType(virDomainDefPtr def,
-                                                 int controllerType,
-                                                 int diskBus)
+static int
+virDomainDefAddDiskControllersForType(virDomainDefPtr def,
+                                      int controllerType,
+                                      int diskBus)
 {
     int i;
     int maxController = -1;
@@ -11735,7 +12059,8 @@ static int virDomainDefAddDiskControllersForType(virDomainDefPtr def,
 }
 
 
-static int virDomainDefMaybeAddVirtioSerialController(virDomainDefPtr def)
+static int
+virDomainDefMaybeAddVirtioSerialController(virDomainDefPtr def)
 {
     /* Look for any virtio serial or virtio console devs */
     int i;
@@ -11818,7 +12143,8 @@ virDomainDefMaybeAddSmartcardController(virDomainDefPtr def)
  * in the XML. This is for compat with existing apps which will
  * not know/care about <controller> info in the XML
  */
-int virDomainDefAddImplicitControllers(virDomainDefPtr def)
+int
+virDomainDefAddImplicitControllers(virDomainDefPtr def)
 {
     if (virDomainDefAddDiskControllersForType(def,
                                               VIR_DOMAIN_CONTROLLER_TYPE_SCSI,
@@ -11887,11 +12213,12 @@ virDomainVcpuPinFindByVcpu(virDomainVcpuPinDefPtr *def,
     return NULL;
 }
 
-int virDomainVcpuPinAdd(virDomainVcpuPinDefPtr **vcpupin_list,
-                        int *nvcpupin,
-                        unsigned char *cpumap,
-                        int maplen,
-                        int vcpu)
+int
+virDomainVcpuPinAdd(virDomainVcpuPinDefPtr **vcpupin_list,
+                    int *nvcpupin,
+                    unsigned char *cpumap,
+                    int maplen,
+                    int vcpu)
 {
     virDomainVcpuPinDefPtr vcpupin = NULL;
 
@@ -12127,8 +12454,9 @@ virDomainLeaseDefFormat(virBufferPtr buf,
     return 0;
 }
 
-static void virDomainDiskGeometryDefFormat(virBufferPtr buf,
-                                           virDomainDiskDefPtr def)
+static void
+virDomainDiskGeometryDefFormat(virBufferPtr buf,
+                               virDomainDiskDefPtr def)
 {
     const char *trans =
         virDomainDiskGeometryTransTypeToString(def->geometry.trans);
@@ -12148,8 +12476,9 @@ static void virDomainDiskGeometryDefFormat(virBufferPtr buf,
         virBufferAddLit(buf, "/>\n");
     }
 }
-static void virDomainDiskBlockIoDefFormat(virBufferPtr buf,
-                                          virDomainDiskDefPtr def)
+static void
+virDomainDiskBlockIoDefFormat(virBufferPtr buf,
+                              virDomainDiskDefPtr def)
 {
     if (def->blockio.logical_block_size > 0 ||
         def->blockio.physical_block_size > 0) {
@@ -13370,6 +13699,63 @@ virDomainWatchdogDefFormat(virBufferPtr buf,
 }
 
 
+static int
+virDomainRNGDefFormat(virBufferPtr buf,
+                      virDomainRNGDefPtr def,
+                      unsigned int flags)
+{
+    const char *model = virDomainRNGModelTypeToString(def->model);
+    const char *backend = virDomainRNGBackendTypeToString(def->backend);
+
+    virBufferAsprintf(buf, "    <rng model='%s'>\n", model);
+    virBufferAsprintf(buf, "      <backend model='%s'", backend);
+
+    switch ((enum virDomainRNGBackend) def->backend) {
+    case VIR_DOMAIN_RNG_BACKEND_RANDOM:
+        if (def->source.file)
+            virBufferEscapeString(buf, ">%s</backend>\n", def->source.file);
+        else
+            virBufferAddLit(buf, "/>\n");
+
+        break;
+
+    case VIR_DOMAIN_RNG_BACKEND_EGD:
+        virBufferAdjustIndent(buf, 2);
+        if (virDomainChrSourceDefFormat(buf, def->source.chardev,
+                                        false, flags) < 0)
+            return -1;
+        virBufferAdjustIndent(buf, -2);
+        virBufferAddLit(buf, "      </backend>\n");
+
+    case VIR_DOMAIN_RNG_BACKEND_LAST:
+        break;
+    }
+
+    virBufferAddLit(buf, "    </rng>\n");
+
+    return 0;
+}
+
+void
+virDomainRNGDefFree(virDomainRNGDefPtr def)
+{
+    if (!def)
+        return;
+
+    switch ((enum virDomainRNGBackend) def->backend) {
+    case VIR_DOMAIN_RNG_BACKEND_RANDOM:
+        VIR_FREE(def->source.file);
+        break;
+    case VIR_DOMAIN_RNG_BACKEND_EGD:
+        virDomainChrSourceDefFree(def->source.chardev);
+        break;
+    case VIR_DOMAIN_RNG_BACKEND_LAST:
+        break;
+    }
+
+    VIR_FREE(def);
+}
+
 static void
 virDomainVideoAccelDefFormat(virBufferPtr buf,
                              virDomainVideoAccelDefPtr def)
@@ -14006,7 +14392,7 @@ virDomainDefFormatInternal(virDomainDefPtr def,
     if (!(type = virDomainVirtTypeToString(def->virtType))) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("unexpected domain type %d"), def->virtType);
-        goto cleanup;
+        goto error;
     }
 
     if (def->id == -1)
@@ -14046,7 +14432,7 @@ virDomainDefFormatInternal(virDomainDefPtr def,
                         virBufferGetIndent(buf, false) / 2 + 1, 1) < 0) {
             xmlBufferFree(xmlbuf);
             xmlIndentTreeOutput = oldIndentTreeOutput;
-            goto cleanup;
+            goto error;
         }
         virBufferAsprintf(buf, "  %s\n", (char *) xmlBufferContent(xmlbuf));
         xmlBufferFree(xmlbuf);
@@ -14134,7 +14520,7 @@ virDomainDefFormatInternal(virDomainDefPtr def,
     if (def->cpumask && !virBitmapIsAllSet(def->cpumask)) {
         char *cpumask = NULL;
         if ((cpumask = virBitmapFormat(def->cpumask)) == NULL)
-            goto cleanup;
+            goto error;
         virBufferAsprintf(buf, " cpuset='%s'", cpumask);
         VIR_FREE(cpumask);
     }
@@ -14170,9 +14556,8 @@ virDomainDefFormatInternal(virDomainDefPtr def,
                           def->cputune.emulator_quota);
 
     for (i = 0; i < def->cputune.nvcpupin; i++) {
-        /* Ignore the vcpupin which inherit from "cpuset"
-         * of "<vcpu>."
-         */
+        char *cpumask;
+        /* Ignore the vcpupin which inherit from "cpuset of "<vcpu>." */
         if (def->cpumask &&
             virBitmapEqual(def->cpumask,
                            def->cputune.vcpupin[i]->cpumask))
@@ -14181,13 +14566,10 @@ virDomainDefFormatInternal(virDomainDefPtr def,
         virBufferAsprintf(buf, "    <vcpupin vcpu='%u' ",
                           def->cputune.vcpupin[i]->vcpuid);
 
-        char *cpumask = NULL;
-        cpumask = virBitmapFormat(def->cputune.vcpupin[i]->cpumask);
-
-        if (cpumask == NULL) {
+        if (!(cpumask = virBitmapFormat(def->cputune.vcpupin[i]->cpumask))) {
             virReportError(VIR_ERR_INTERNAL_ERROR,
                            "%s", _("failed to format cpuset for vcpupin"));
-            goto cleanup;
+            goto error;
         }
 
         virBufferAsprintf(buf, "cpuset='%s'/>\n", cpumask);
@@ -14195,14 +14577,13 @@ virDomainDefFormatInternal(virDomainDefPtr def,
     }
 
     if (def->cputune.emulatorpin) {
+        char *cpumask;
         virBufferAsprintf(buf, "    <emulatorpin ");
 
-        char *cpumask = NULL;
-        cpumask = virBitmapFormat(def->cputune.emulatorpin->cpumask);
-        if (cpumask == NULL) {
+        if (!(cpumask = virBitmapFormat(def->cputune.emulatorpin->cpumask))) {
             virReportError(VIR_ERR_INTERNAL_ERROR,
                            "%s", _("failed to format cpuset for emulator"));
-                goto cleanup;
+                goto error;
         }
 
         virBufferAsprintf(buf, "cpuset='%s'/>\n", cpumask);
@@ -14232,7 +14613,7 @@ virDomainDefFormatInternal(virDomainDefPtr def,
                 virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                                _("failed to format nodeset for "
                                  "NUMA memory tuning"));
-                goto cleanup;
+                goto error;
             }
             virBufferAsprintf(buf, "nodeset='%s'/>\n", nodemask);
             VIR_FREE(nodemask);
@@ -14296,7 +14677,7 @@ virDomainDefFormatInternal(virDomainDefPtr def,
                 virReportError(VIR_ERR_INTERNAL_ERROR,
                                _("unexpected boot device type %d"),
                                def->os.bootDevs[n]);
-                goto cleanup;
+                goto error;
             }
             virBufferAsprintf(buf, "    <boot dev='%s'/>\n", boottype);
         }
@@ -14329,7 +14710,7 @@ virDomainDefFormatInternal(virDomainDefPtr def,
         if (mode == NULL) {
             virReportError(VIR_ERR_INTERNAL_ERROR,
                            _("unexpected smbios mode %d"), def->os.smbios_mode);
-            goto cleanup;
+            goto error;
         }
         virBufferAsprintf(buf, "    <smbios mode='%s'/>\n", mode);
     }
@@ -14344,7 +14725,7 @@ virDomainDefFormatInternal(virDomainDefPtr def,
                 if (!name) {
                     virReportError(VIR_ERR_INTERNAL_ERROR,
                                    _("unexpected feature %d"), i);
-                    goto cleanup;
+                    goto error;
                 }
                 virBufferAsprintf(buf, "    <%s", name);
                 if (i == VIR_DOMAIN_FEATURE_APIC && def->apic_eoi) {
@@ -14379,7 +14760,7 @@ virDomainDefFormatInternal(virDomainDefPtr def,
 
     virBufferAdjustIndent(buf, 2);
     if (virCPUDefFormatBufFull(buf, def->cpu, flags) < 0)
-        goto cleanup;
+        goto error;
     virBufferAdjustIndent(buf, -2);
 
     virBufferAsprintf(buf, "  <clock offset='%s'",
@@ -14405,7 +14786,7 @@ virDomainDefFormatInternal(virDomainDefPtr def,
         virBufferAddLit(buf, ">\n");
         for (n = 0; n < def->clock.ntimers; n++) {
             if (virDomainTimerDefFormat(buf, def->clock.timers[n]) < 0)
-                goto cleanup;
+                goto error;
         }
         virBufferAddLit(buf, "  </clock>\n");
     }
@@ -14413,20 +14794,20 @@ virDomainDefFormatInternal(virDomainDefPtr def,
     if (virDomainEventActionDefFormat(buf, def->onPoweroff,
                                       "on_poweroff",
                                       virDomainLifecycleTypeToString) < 0)
-        goto cleanup;
+        goto error;
     if (virDomainEventActionDefFormat(buf, def->onReboot,
                                       "on_reboot",
                                       virDomainLifecycleTypeToString) < 0)
-        goto cleanup;
+        goto error;
     if (virDomainEventActionDefFormat(buf, def->onCrash,
                                       "on_crash",
                                       virDomainLifecycleCrashTypeToString) < 0)
-        goto cleanup;
+        goto error;
     if (def->onLockFailure != VIR_DOMAIN_LOCK_FAILURE_DEFAULT &&
         virDomainEventActionDefFormat(buf, def->onLockFailure,
                                       "on_lockfailure",
                                       virDomainLockFailureTypeToString) < 0)
-        goto cleanup;
+        goto error;
 
     if (def->pm.s3 || def->pm.s4) {
         virBufferAddLit(buf, "  <pm>\n");
@@ -14448,36 +14829,36 @@ virDomainDefFormatInternal(virDomainDefPtr def,
 
     for (n = 0 ; n < def->ndisks ; n++)
         if (virDomainDiskDefFormat(buf, def->disks[n], flags) < 0)
-            goto cleanup;
+            goto error;
 
     for (n = 0 ; n < def->ncontrollers ; n++)
         if (virDomainControllerDefFormat(buf, def->controllers[n], flags) < 0)
-            goto cleanup;
+            goto error;
 
     for (n = 0 ; n < def->nleases ; n++)
         if (virDomainLeaseDefFormat(buf, def->leases[n]) < 0)
-            goto cleanup;
+            goto error;
 
     for (n = 0 ; n < def->nfss ; n++)
         if (virDomainFSDefFormat(buf, def->fss[n], flags) < 0)
-            goto cleanup;
+            goto error;
 
 
     for (n = 0 ; n < def->nnets ; n++)
         if (virDomainNetDefFormat(buf, def->nets[n], flags) < 0)
-            goto cleanup;
+            goto error;
 
     for (n = 0 ; n < def->nsmartcards ; n++)
         if (virDomainSmartcardDefFormat(buf, def->smartcards[n], flags) < 0)
-            goto cleanup;
+            goto error;
 
     for (n = 0 ; n < def->nserials ; n++)
         if (virDomainChrDefFormat(buf, def->serials[n], flags) < 0)
-            goto cleanup;
+            goto error;
 
     for (n = 0 ; n < def->nparallels ; n++)
         if (virDomainChrDefFormat(buf, def->parallels[n], flags) < 0)
-            goto cleanup;
+            goto error;
 
     for (n = 0 ; n < def->nconsoles ; n++) {
         virDomainChrDef console;
@@ -14494,7 +14875,7 @@ virDomainDefFormatInternal(virDomainDefPtr def,
             memcpy(&console, def->consoles[n], sizeof(console));
         }
         if (virDomainChrDefFormat(buf, &console, flags) < 0)
-            goto cleanup;
+            goto error;
     }
     if (STREQ(def->os.type, "hvm") &&
         def->nconsoles == 0 &&
@@ -14503,17 +14884,17 @@ virDomainDefFormatInternal(virDomainDefPtr def,
         memcpy(&console, def->serials[n], sizeof(console));
         console.deviceType = VIR_DOMAIN_CHR_DEVICE_TYPE_CONSOLE;
         if (virDomainChrDefFormat(buf, &console, flags) < 0)
-            goto cleanup;
+            goto error;
     }
 
     for (n = 0 ; n < def->nchannels ; n++)
         if (virDomainChrDefFormat(buf, def->channels[n], flags) < 0)
-            goto cleanup;
+            goto error;
 
     for (n = 0 ; n < def->ninputs ; n++)
         if (def->inputs[n]->bus == VIR_DOMAIN_INPUT_BUS_USB &&
             virDomainInputDefFormat(buf, def->inputs[n], flags) < 0)
-            goto cleanup;
+            goto error;
 
     if (def->ngraphics > 0) {
         /* If graphics is enabled, add the implicit mouse */
@@ -14525,20 +14906,20 @@ virDomainDefFormatInternal(virDomainDefPtr def,
         };
 
         if (virDomainInputDefFormat(buf, &autoInput, flags) < 0)
-            goto cleanup;
+            goto error;
 
         for (n = 0 ; n < def->ngraphics ; n++)
             if (virDomainGraphicsDefFormat(buf, def->graphics[n], flags) < 0)
-                goto cleanup;
+                goto error;
     }
 
     for (n = 0 ; n < def->nsounds ; n++)
         if (virDomainSoundDefFormat(buf, def->sounds[n], flags) < 0)
-            goto cleanup;
+            goto error;
 
     for (n = 0 ; n < def->nvideos ; n++)
         if (virDomainVideoDefFormat(buf, def->videos[n], flags) < 0)
-            goto cleanup;
+            goto error;
 
     for (n = 0 ; n < def->nhostdevs ; n++) {
         /* If parent.type != NONE, this is just a pointer to the
@@ -14547,26 +14928,29 @@ virDomainDefFormatInternal(virDomainDefPtr def,
          */
         if (def->hostdevs[n]->parent.type == VIR_DOMAIN_DEVICE_NONE &&
             virDomainHostdevDefFormat(buf, def->hostdevs[n], flags) < 0) {
-            goto cleanup;
+            goto error;
         }
     }
 
     for (n = 0 ; n < def->nredirdevs ; n++)
         if (virDomainRedirdevDefFormat(buf, def->redirdevs[n], flags) < 0)
-            goto cleanup;
+            goto error;
 
     if (def->redirfilter)
         virDomainRedirFilterDefFormat(buf, def->redirfilter);
 
     for (n = 0 ; n < def->nhubs ; n++)
         if (virDomainHubDefFormat(buf, def->hubs[n], flags) < 0)
-            goto cleanup;
+            goto error;
 
     if (def->watchdog)
         virDomainWatchdogDefFormat(buf, def->watchdog, flags);
 
     if (def->memballoon)
         virDomainMemballoonDefFormat(buf, def->memballoon, flags);
+
+    if (def->rng)
+        virDomainRNGDefFormat(buf, def->rng, flags);
 
     virBufferAddLit(buf, "  </devices>\n");
 
@@ -14577,7 +14961,7 @@ virDomainDefFormatInternal(virDomainDefPtr def,
 
     if (def->namespaceData && def->ns.format) {
         if ((def->ns.format)(buf, def->namespaceData) < 0)
-            goto cleanup;
+            goto error;
     }
 
     virBufferAddLit(buf, "</domain>\n");
@@ -14589,7 +14973,7 @@ virDomainDefFormatInternal(virDomainDefPtr def,
 
  no_memory:
     virReportOOMError();
- cleanup:
+ error:
     virBufferFreeAndReset(buf);
     return -1;
 }
@@ -14607,9 +14991,10 @@ virDomainDefFormat(virDomainDefPtr def, unsigned int flags)
 }
 
 
-static char *virDomainObjFormat(virCapsPtr caps,
-                                virDomainObjPtr obj,
-                                unsigned int flags)
+static char *
+virDomainObjFormat(virCapsPtr caps,
+                   virDomainObjPtr obj,
+                   unsigned int flags)
 {
     virBuffer buf = VIR_BUFFER_INITIALIZER;
     int state;
@@ -14703,9 +15088,10 @@ virDomainDefCompatibleDevice(virDomainDefPtr def,
     return 0;
 }
 
-int virDomainSaveXML(const char *configDir,
-                     virDomainDefPtr def,
-                     const char *xml)
+int
+virDomainSaveXML(const char *configDir,
+                 virDomainDefPtr def,
+                 const char *xml)
 {
     char uuidstr[VIR_UUID_STRING_BUFLEN];
     char *configFile = NULL;
@@ -14731,8 +15117,9 @@ int virDomainSaveXML(const char *configDir,
     return ret;
 }
 
-int virDomainSaveConfig(const char *configDir,
-                        virDomainDefPtr def)
+int
+virDomainSaveConfig(const char *configDir,
+                    virDomainDefPtr def)
 {
     int ret = -1;
     char *xml;
@@ -14750,9 +15137,10 @@ cleanup:
     return ret;
 }
 
-int virDomainSaveStatus(virCapsPtr caps,
-                        const char *statusDir,
-                        virDomainObjPtr obj)
+int
+virDomainSaveStatus(virCapsPtr caps,
+                    const char *statusDir,
+                    virDomainObjPtr obj)
 {
     unsigned int flags = (VIR_DOMAIN_XML_SECURE |
                           VIR_DOMAIN_XML_INTERNAL_STATUS |
@@ -14775,20 +15163,21 @@ cleanup:
 }
 
 
-static virDomainObjPtr virDomainLoadConfig(virCapsPtr caps,
-                                           virDomainObjListPtr doms,
-                                           const char *configDir,
-                                           const char *autostartDir,
-                                           const char *name,
-                                           unsigned int expectedVirtTypes,
-                                           virDomainLoadConfigNotify notify,
-                                           void *opaque)
+static virDomainObjPtr
+virDomainObjListLoadConfig(virDomainObjListPtr doms,
+                           virCapsPtr caps,
+                           const char *configDir,
+                           const char *autostartDir,
+                           const char *name,
+                           unsigned int expectedVirtTypes,
+                           virDomainLoadConfigNotify notify,
+                           void *opaque)
 {
     char *configFile = NULL, *autostartLink = NULL;
     virDomainDefPtr def = NULL;
     virDomainObjPtr dom;
     int autostart;
-    int newVM = 1;
+    virDomainDefPtr oldDef = NULL;
 
     if ((configFile = virDomainConfigFile(configDir, name)) == NULL)
         goto error;
@@ -14802,32 +15191,15 @@ static virDomainObjPtr virDomainLoadConfig(virCapsPtr caps,
     if ((autostart = virFileLinkPointsTo(autostartLink, configFile)) < 0)
         goto error;
 
-    /* if the domain is already in our hashtable, we only need to
-     * update the autostart flag
-     */
-    if ((dom = virDomainFindByUUID(doms, def->uuid))) {
-        dom->autostart = autostart;
-
-        if (virDomainObjIsActive(dom) &&
-            !dom->newDef) {
-            virDomainObjAssignDef(dom, def, false);
-        } else {
-            virDomainDefFree(def);
-        }
-
-        VIR_FREE(configFile);
-        VIR_FREE(autostartLink);
-        return dom;
-    }
-
-    if (!(dom = virDomainAssignDef(caps, doms, def, false)))
+    if (!(dom = virDomainObjListAddLocked(doms, caps, def, 0, &oldDef)))
         goto error;
 
     dom->autostart = autostart;
 
     if (notify)
-        (*notify)(dom, newVM, opaque);
+        (*notify)(dom, oldDef == NULL, opaque);
 
+    virDomainDefFree(oldDef);
     VIR_FREE(configFile);
     VIR_FREE(autostartLink);
     return dom;
@@ -14839,13 +15211,14 @@ error:
     return NULL;
 }
 
-static virDomainObjPtr virDomainLoadStatus(virCapsPtr caps,
-                                           virDomainObjListPtr doms,
-                                           const char *statusDir,
-                                           const char *name,
-                                           unsigned int expectedVirtTypes,
-                                           virDomainLoadConfigNotify notify,
-                                           void *opaque)
+static virDomainObjPtr
+virDomainObjListLoadStatus(virDomainObjListPtr doms,
+                           virCapsPtr caps,
+                           const char *statusDir,
+                           const char *name,
+                           unsigned int expectedVirtTypes,
+                           virDomainLoadConfigNotify notify,
+                           void *opaque)
 {
     char *statusFile = NULL;
     virDomainObjPtr obj = NULL;
@@ -14884,14 +15257,15 @@ error:
     return NULL;
 }
 
-int virDomainLoadAllConfigs(virCapsPtr caps,
-                            virDomainObjListPtr doms,
-                            const char *configDir,
-                            const char *autostartDir,
-                            int liveStatus,
-                            unsigned int expectedVirtTypes,
-                            virDomainLoadConfigNotify notify,
-                            void *opaque)
+int
+virDomainObjListLoadAllConfigs(virDomainObjListPtr doms,
+                               virCapsPtr caps,
+                               const char *configDir,
+                               const char *autostartDir,
+                               int liveStatus,
+                               unsigned int expectedVirtTypes,
+                               virDomainLoadConfigNotify notify,
+                               void *opaque)
 {
     DIR *dir;
     struct dirent *entry;
@@ -14907,6 +15281,8 @@ int virDomainLoadAllConfigs(virCapsPtr caps,
         return -1;
     }
 
+    virObjectLock(doms);
+
     while ((entry = readdir(dir))) {
         virDomainObjPtr dom;
 
@@ -14920,22 +15296,22 @@ int virDomainLoadAllConfigs(virCapsPtr caps,
            kill the whole process */
         VIR_INFO("Loading config file '%s.xml'", entry->d_name);
         if (liveStatus)
-            dom = virDomainLoadStatus(caps,
-                                      doms,
-                                      configDir,
-                                      entry->d_name,
-                                      expectedVirtTypes,
-                                      notify,
-                                      opaque);
+            dom = virDomainObjListLoadStatus(doms,
+                                             caps,
+                                             configDir,
+                                             entry->d_name,
+                                             expectedVirtTypes,
+                                             notify,
+                                             opaque);
         else
-            dom = virDomainLoadConfig(caps,
-                                      doms,
-                                      configDir,
-                                      autostartDir,
-                                      entry->d_name,
-                                      expectedVirtTypes,
-                                      notify,
-                                      opaque);
+            dom = virDomainObjListLoadConfig(doms,
+                                             caps,
+                                             configDir,
+                                             autostartDir,
+                                             entry->d_name,
+                                             expectedVirtTypes,
+                                             notify,
+                                             opaque);
         if (dom) {
             virObjectUnlock(dom);
             if (!liveStatus)
@@ -14944,13 +15320,14 @@ int virDomainLoadAllConfigs(virCapsPtr caps,
     }
 
     closedir(dir);
-
+    virObjectUnlock(doms);
     return 0;
 }
 
-int virDomainDeleteConfig(const char *configDir,
-                          const char *autostartDir,
-                          virDomainObjPtr dom)
+int
+virDomainDeleteConfig(const char *configDir,
+                      const char *autostartDir,
+                      virDomainObjPtr dom)
 {
     char *configFile = NULL, *autostartLink = NULL;
     int ret = -1;
@@ -14979,8 +15356,9 @@ cleanup:
     return ret;
 }
 
-char *virDomainConfigFile(const char *dir,
-                          const char *name)
+char
+*virDomainConfigFile(const char *dir,
+                     const char *name)
 {
     char *ret = NULL;
 
@@ -15000,9 +15378,10 @@ char *virDomainConfigFile(const char *dir,
  * @param devIdx parsed device number
  * @return 0 on success, -1 on failure
  */
-int virDiskNameToBusDeviceIndex(const virDomainDiskDefPtr disk,
-                                int *busIdx,
-                                int *devIdx) {
+int
+virDiskNameToBusDeviceIndex(const virDomainDiskDefPtr disk,
+                            int *busIdx,
+                            int *devIdx) {
 
     int idx = virDiskNameToIndex(disk->dst);
     if (idx < 0)
@@ -15030,7 +15409,8 @@ int virDiskNameToBusDeviceIndex(const virDomainDiskDefPtr disk,
     return 0;
 }
 
-virDomainFSDefPtr virDomainGetRootFilesystem(virDomainDefPtr def)
+virDomainFSDefPtr
+virDomainGetRootFilesystem(virDomainDefPtr def)
 {
     int i;
 
@@ -15045,71 +15425,11 @@ virDomainFSDefPtr virDomainGetRootFilesystem(virDomainDefPtr def)
     return NULL;
 }
 
-/*
- * virDomainObjIsDuplicate:
- * @doms : virDomainObjListPtr to search
- * @def  : virDomainDefPtr definition of domain to lookup
- * @check_active: If true, ensure that domain is not active
- *
- * Returns: -1 on error
- *          0 if domain is new
- *          1 if domain is a duplicate
- */
-int
-virDomainObjIsDuplicate(virDomainObjListPtr doms,
-                        virDomainDefPtr def,
-                        unsigned int check_active)
-{
-    int ret = -1;
-    int dupVM = 0;
-    virDomainObjPtr vm = NULL;
 
-    /* See if a VM with matching UUID already exists */
-    vm = virDomainFindByUUID(doms, def->uuid);
-    if (vm) {
-        /* UUID matches, but if names don't match, refuse it */
-        if (STRNEQ(vm->def->name, def->name)) {
-            char uuidstr[VIR_UUID_STRING_BUFLEN];
-            virUUIDFormat(vm->def->uuid, uuidstr);
-            virReportError(VIR_ERR_OPERATION_FAILED,
-                           _("domain '%s' is already defined with uuid %s"),
-                           vm->def->name, uuidstr);
-            goto cleanup;
-        }
-
-        if (check_active) {
-            /* UUID & name match, but if VM is already active, refuse it */
-            if (virDomainObjIsActive(vm)) {
-                virReportError(VIR_ERR_OPERATION_INVALID,
-                               _("domain is already active as '%s'"),
-                               vm->def->name);
-                goto cleanup;
-            }
-        }
-
-        dupVM = 1;
-    } else {
-        /* UUID does not match, but if a name matches, refuse it */
-        vm = virDomainFindByName(doms, def->name);
-        if (vm) {
-            char uuidstr[VIR_UUID_STRING_BUFLEN];
-            virUUIDFormat(vm->def->uuid, uuidstr);
-            virReportError(VIR_ERR_OPERATION_FAILED,
-                           _("domain '%s' already exists with uuid %s"),
-                           def->name, uuidstr);
-            goto cleanup;
-        }
-    }
-
-    ret = dupVM;
-cleanup:
-    if (vm)
-        virObjectUnlock(vm);
-    return ret;
-}
-
-
-static void virDomainObjListCountActive(void *payload, const void *name ATTRIBUTE_UNUSED, void *data)
+static void
+virDomainObjListCountActive(void *payload,
+                            const void *name ATTRIBUTE_UNUSED,
+                            void *data)
 {
     virDomainObjPtr obj = payload;
     int *count = data;
@@ -15119,7 +15439,10 @@ static void virDomainObjListCountActive(void *payload, const void *name ATTRIBUT
     virObjectUnlock(obj);
 }
 
-static void virDomainObjListCountInactive(void *payload, const void *name ATTRIBUTE_UNUSED, void *data)
+static void
+virDomainObjListCountInactive(void *payload,
+                              const void *name ATTRIBUTE_UNUSED,
+                              void *data)
 {
     virDomainObjPtr obj = payload;
     int *count = data;
@@ -15129,13 +15452,17 @@ static void virDomainObjListCountInactive(void *payload, const void *name ATTRIB
     virObjectUnlock(obj);
 }
 
-int virDomainObjListNumOfDomains(virDomainObjListPtr doms, int active)
+int
+virDomainObjListNumOfDomains(virDomainObjListPtr doms,
+                             int active)
 {
     int count = 0;
+    virObjectLock(doms);
     if (active)
         virHashForEach(doms->objs, virDomainObjListCountActive, &count);
     else
         virHashForEach(doms->objs, virDomainObjListCountInactive, &count);
+    virObjectUnlock(doms);
     return count;
 }
 
@@ -15145,7 +15472,10 @@ struct virDomainIDData {
     int *ids;
 };
 
-static void virDomainObjListCopyActiveIDs(void *payload, const void *name ATTRIBUTE_UNUSED, void *opaque)
+static void
+virDomainObjListCopyActiveIDs(void *payload,
+                              const void *name ATTRIBUTE_UNUSED,
+                              void *opaque)
 {
     virDomainObjPtr obj = payload;
     struct virDomainIDData *data = opaque;
@@ -15155,12 +15485,15 @@ static void virDomainObjListCopyActiveIDs(void *payload, const void *name ATTRIB
     virObjectUnlock(obj);
 }
 
-int virDomainObjListGetActiveIDs(virDomainObjListPtr doms,
-                                 int *ids,
-                                 int maxids)
+int
+virDomainObjListGetActiveIDs(virDomainObjListPtr doms,
+                             int *ids,
+                             int maxids)
 {
     struct virDomainIDData data = { 0, maxids, ids };
+    virObjectLock(doms);
     virHashForEach(doms->objs, virDomainObjListCopyActiveIDs, &data);
+    virObjectUnlock(doms);
     return data.numids;
 }
 
@@ -15171,7 +15504,10 @@ struct virDomainNameData {
     char **const names;
 };
 
-static void virDomainObjListCopyInactiveNames(void *payload, const void *name ATTRIBUTE_UNUSED, void *opaque)
+static void
+virDomainObjListCopyInactiveNames(void *payload,
+                                  const void *name ATTRIBUTE_UNUSED,
+                                  void *opaque)
 {
     virDomainObjPtr obj = payload;
     struct virDomainNameData *data = opaque;
@@ -15190,13 +15526,16 @@ static void virDomainObjListCopyInactiveNames(void *payload, const void *name AT
 }
 
 
-int virDomainObjListGetInactiveNames(virDomainObjListPtr doms,
-                                     char **const names,
-                                     int maxnames)
+int
+virDomainObjListGetInactiveNames(virDomainObjListPtr doms,
+                                 char **const names,
+                                 int maxnames)
 {
     struct virDomainNameData data = { 0, 0, maxnames, names };
     int i;
+    virObjectLock(doms);
     virHashForEach(doms->objs, virDomainObjListCopyInactiveNames, &data);
+    virObjectUnlock(doms);
     if (data.oom) {
         virReportOOMError();
         goto cleanup;
@@ -15210,10 +15549,44 @@ cleanup:
     return -1;
 }
 
-int virDomainChrDefForeach(virDomainDefPtr def,
-                           bool abortOnError,
-                           virDomainChrDefIterator iter,
-                           void *opaque)
+
+struct virDomainListIterData {
+    virDomainObjListIterator callback;
+    void *opaque;
+    int ret;
+};
+
+static void
+virDomainObjListHelper(void *payload,
+                       const void *name ATTRIBUTE_UNUSED,
+                       void *opaque)
+{
+    struct virDomainListIterData *data = opaque;
+
+    if (data->callback(payload, data->opaque) < 0)
+        data->ret = -1;
+}
+
+int
+virDomainObjListForEach(virDomainObjListPtr doms,
+                        virDomainObjListIterator callback,
+                        void *opaque)
+{
+    struct virDomainListIterData data = {
+        callback, opaque, 0,
+    };
+    virObjectLock(doms);
+    virHashForEach(doms->objs, virDomainObjListHelper, &data);
+    virObjectUnlock(doms);
+    return data.ret;
+}
+
+
+int
+virDomainChrDefForeach(virDomainDefPtr def,
+                       bool abortOnError,
+                       virDomainChrDefIterator iter,
+                       void *opaque)
 {
     int i;
     int rc = 0;
@@ -15262,10 +15635,11 @@ done:
 }
 
 
-int virDomainSmartcardDefForeach(virDomainDefPtr def,
-                                 bool abortOnError,
-                                 virDomainSmartcardDefIterator iter,
-                                 void *opaque)
+int
+virDomainSmartcardDefForeach(virDomainDefPtr def,
+                             bool abortOnError,
+                             virDomainSmartcardDefIterator iter,
+                             void *opaque)
 {
     int i;
     int rc = 0;
@@ -15290,10 +15664,11 @@ done:
  * ignoreOpenFailure determines whether to warn about a chain that
  * mentions a backing file without also having metadata on that
  * file.  */
-int virDomainDiskDefForeachPath(virDomainDiskDefPtr disk,
-                                bool ignoreOpenFailure,
-                                virDomainDiskDefPathIterator iter,
-                                void *opaque)
+int
+virDomainDiskDefForeachPath(virDomainDiskDefPtr disk,
+                            bool ignoreOpenFailure,
+                            virDomainDiskDefPathIterator iter,
+                            void *opaque)
 {
     int ret = -1;
     size_t depth = 0;
@@ -15807,7 +16182,7 @@ virDomainDeviceDefCopy(virCapsPtr caps,
     char *xmlStr = NULL;
     int rc = -1;
 
-    switch (src->type) {
+    switch ((virDomainDeviceType) src->type) {
     case VIR_DOMAIN_DEVICE_DISK:
         rc = virDomainDiskDefFormat(&buf, src->data.disk, flags);
         break;
@@ -15847,7 +16222,14 @@ virDomainDeviceDefCopy(virCapsPtr caps,
     case VIR_DOMAIN_DEVICE_REDIRDEV:
         rc = virDomainRedirdevDefFormat(&buf, src->data.redirdev, flags);
         break;
-    default:
+    case VIR_DOMAIN_DEVICE_RNG:
+        rc = virDomainRNGDefFormat(&buf, src->data.rng, flags);
+        break;
+    case VIR_DOMAIN_DEVICE_NONE:
+    case VIR_DOMAIN_DEVICE_SMARTCARD:
+    case VIR_DOMAIN_DEVICE_CHR:
+    case VIR_DOMAIN_DEVICE_MEMBALLOON:
+    case VIR_DOMAIN_DEVICE_LAST:
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("Copying definition of '%d' type "
                          "is not implemented yet."),
@@ -15966,24 +16348,25 @@ cleanup:
 #undef MATCH
 
 int
-virDomainList(virConnectPtr conn,
-              virHashTablePtr domobjs,
-              virDomainPtr **domains,
-              unsigned int flags)
+virDomainObjListExport(virDomainObjListPtr doms,
+                       virConnectPtr conn,
+                       virDomainPtr **domains,
+                       unsigned int flags)
 {
     int ret = -1;
     int i;
 
     struct virDomainListData data = { conn, NULL, flags, 0, false };
 
+    virObjectLock(doms);
     if (domains) {
-        if (VIR_ALLOC_N(data.domains, virHashSize(domobjs) + 1) < 0) {
+        if (VIR_ALLOC_N(data.domains, virHashSize(doms->objs) + 1) < 0) {
             virReportOOMError();
             goto cleanup;
         }
     }
 
-    virHashForEach(domobjs, virDomainListPopulate, &data);
+    virHashForEach(doms->objs, virDomainListPopulate, &data);
 
     if (data.error)
         goto cleanup;
@@ -15999,12 +16382,13 @@ virDomainList(virConnectPtr conn,
 
 cleanup:
     if (data.domains) {
-        int count = virHashSize(domobjs);
+        int count = virHashSize(doms->objs);
         for (i = 0; i < count; i++)
             virObjectUnref(data.domains[i]);
     }
 
     VIR_FREE(data.domains);
+    virObjectUnlock(doms);
     return ret;
 }
 
