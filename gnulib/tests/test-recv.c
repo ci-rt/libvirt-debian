@@ -22,6 +22,7 @@
 SIGNATURE_CHECK (recv, ssize_t, (int, void *, size_t, int));
 
 #include <errno.h>
+#include <unistd.h>
 
 #include "sockets.h"
 #include "macros.h"
@@ -40,6 +41,7 @@ main (void)
   }
   {
     char byte;
+    close (99);
     errno = 0;
     ASSERT (recv (99, &byte, 1, 0) == -1);
     ASSERT (errno == EBADF);

@@ -1,7 +1,7 @@
 /*
  * qemu_monitor.h: interaction with QEMU monitor console
  *
- * Copyright (C) 2006-2012 Red Hat, Inc.
+ * Copyright (C) 2006-2013 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -326,6 +326,11 @@ int qemuMonitorSetMigrationSpeed(qemuMonitorPtr mon,
 int qemuMonitorSetMigrationDowntime(qemuMonitorPtr mon,
                                     unsigned long long downtime);
 
+int qemuMonitorGetMigrationCacheSize(qemuMonitorPtr mon,
+                                     unsigned long long *cacheSize);
+int qemuMonitorSetMigrationCacheSize(qemuMonitorPtr mon,
+                                     unsigned long long cacheSize);
+
 enum {
     QEMU_MONITOR_MIGRATION_STATUS_INACTIVE,
     QEMU_MONITOR_MIGRATION_STATUS_ACTIVE,
@@ -338,13 +343,52 @@ enum {
 
 VIR_ENUM_DECL(qemuMonitorMigrationStatus)
 
+typedef struct _qemuMonitorMigrationStatus qemuMonitorMigrationStatus;
+typedef qemuMonitorMigrationStatus *qemuMonitorMigrationStatusPtr;
+struct _qemuMonitorMigrationStatus {
+    int status;
+    unsigned long long total_time;
+    /* total or expected depending on status */
+    bool downtime_set;
+    unsigned long long downtime;
+
+    unsigned long long ram_transferred;
+    unsigned long long ram_remaining;
+    unsigned long long ram_total;
+    bool ram_duplicate_set;
+    unsigned long long ram_duplicate;
+    unsigned long long ram_normal;
+    unsigned long long ram_normal_bytes;
+
+    unsigned long long disk_transferred;
+    unsigned long long disk_remaining;
+    unsigned long long disk_total;
+
+    bool xbzrle_set;
+    unsigned long long xbzrle_cache_size;
+    unsigned long long xbzrle_bytes;
+    unsigned long long xbzrle_pages;
+    unsigned long long xbzrle_cache_miss;
+    unsigned long long xbzrle_overflow;
+};
+
 int qemuMonitorGetMigrationStatus(qemuMonitorPtr mon,
-                                  int *status,
-                                  unsigned long long *transferred,
-                                  unsigned long long *remaining,
-                                  unsigned long long *total);
+                                  qemuMonitorMigrationStatusPtr status);
 int qemuMonitorGetSpiceMigrationStatus(qemuMonitorPtr mon,
                                        bool *spice_migrated);
+
+typedef enum {
+    QEMU_MONITOR_MIGRATION_CAPS_XBZRLE,
+
+    QEMU_MONITOR_MIGRATION_CAPS_LAST
+} qemuMonitorMigrationCaps;
+
+VIR_ENUM_DECL(qemuMonitorMigrationCaps);
+
+int qemuMonitorGetMigrationCapability(qemuMonitorPtr mon,
+                                      qemuMonitorMigrationCaps capability);
+int qemuMonitorSetMigrationCapability(qemuMonitorPtr mon,
+                                      qemuMonitorMigrationCaps capability);
 
 typedef enum {
   QEMU_MONITOR_MIGRATE_BACKGROUND	= 1 << 0,
@@ -439,13 +483,14 @@ int qemuMonitorRemovePCIDevice(qemuMonitorPtr mon,
 int qemuMonitorSendFileHandle(qemuMonitorPtr mon,
                               const char *fdname,
                               int fd);
+int qemuMonitorAddFd(qemuMonitorPtr mon, int fdset, int fd, const char *name);
 
-/* The function preserves previous error and only sets it's own error if no
- * error was set before.
+/* These two functions preserve previous error and only set their own
+ * error if no error was set before.
  */
 int qemuMonitorCloseFileHandle(qemuMonitorPtr mon,
                                const char *fdname);
-
+int qemuMonitorRemoveFd(qemuMonitorPtr mon, int fdset, int fd);
 
 /* XXX do we really want to hardcode 'netstr' as the
  * sendable item here
@@ -631,6 +676,13 @@ int qemuMonitorGetObjectProps(qemuMonitorPtr mon,
                               char ***props);
 char *qemuMonitorGetTargetArch(qemuMonitorPtr mon);
 
+int qemuMonitorNBDServerStart(qemuMonitorPtr mon,
+                              const char *host,
+                              unsigned int port);
+int qemuMonitorNBDServerAdd(qemuMonitorPtr mon,
+                            const char *deviceID,
+                            bool writable);
+int qemuMonitorNBDServerStop(qemuMonitorPtr);
 /**
  * When running two dd process and using <> redirection, we need a
  * shell that will not truncate files.  These two strings serve that

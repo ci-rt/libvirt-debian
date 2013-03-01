@@ -590,6 +590,12 @@ typedef char *
 typedef int
     (*virDrvDomainGetJobInfo)(virDomainPtr domain,
                               virDomainJobInfoPtr info);
+typedef int
+    (*virDrvDomainGetJobStats)(virDomainPtr domain,
+                               int *type,
+                               virTypedParameterPtr *params,
+                               int *nparams,
+                               unsigned int flags);
 
 typedef int
     (*virDrvDomainAbortJob)(virDomainPtr domain);
@@ -598,6 +604,15 @@ typedef int
     (*virDrvDomainMigrateSetMaxDowntime)(virDomainPtr domain,
                                          unsigned long long downtime,
                                          unsigned int flags);
+typedef int
+    (*virDrvDomainMigrateGetCompressionCache)(virDomainPtr domain,
+                                              unsigned long long *cacheSize,
+                                              unsigned int flags);
+typedef int
+    (*virDrvDomainMigrateSetCompressionCache)(virDomainPtr domain,
+                                              unsigned long long cacheSize,
+                                              unsigned int flags);
+
 typedef int
     (*virDrvDomainMigrateSetMaxSpeed)(virDomainPtr domain,
                                       unsigned long bandwidth,
@@ -1060,8 +1075,11 @@ struct _virDriver {
     virDrvCompareCPU                    cpuCompare;
     virDrvBaselineCPU                   cpuBaseline;
     virDrvDomainGetJobInfo              domainGetJobInfo;
+    virDrvDomainGetJobStats             domainGetJobStats;
     virDrvDomainAbortJob                domainAbortJob;
     virDrvDomainMigrateSetMaxDowntime   domainMigrateSetMaxDowntime;
+    virDrvDomainMigrateGetCompressionCache domainMigrateGetCompressionCache;
+    virDrvDomainMigrateSetCompressionCache domainMigrateSetCompressionCache;
     virDrvDomainMigrateGetMaxSpeed      domainMigrateGetMaxSpeed;
     virDrvDomainMigrateSetMaxSpeed      domainMigrateSetMaxSpeed;
     virDrvDomainEventRegisterAny        domainEventRegisterAny;
@@ -1553,6 +1571,11 @@ typedef int (*virDevMonListAllNodeDevices)(virConnectPtr conn,
 typedef virNodeDevicePtr (*virDevMonDeviceLookupByName)(virConnectPtr conn,
                                                         const char *name);
 
+typedef virNodeDevicePtr (*virDevMonDeviceLookupSCSIHostByWWN)(virConnectPtr conn,
+                                                               const char *wwnn,
+                                                               const char *wwpn,
+                                                               unsigned int flags);
+
 typedef char * (*virDevMonDeviceGetXMLDesc)(virNodeDevicePtr dev,
                                             unsigned int flags);
 
@@ -1584,6 +1607,7 @@ struct _virDeviceMonitor {
     virDevMonListDevices        listDevices;
     virDevMonListAllNodeDevices listAllNodeDevices;
     virDevMonDeviceLookupByName deviceLookupByName;
+    virDevMonDeviceLookupSCSIHostByWWN  deviceLookupSCSIHostByWWN;
     virDevMonDeviceGetXMLDesc   deviceGetXMLDesc;
     virDevMonDeviceGetParent    deviceGetParent;
     virDevMonDeviceNumOfCaps    deviceNumOfCaps;

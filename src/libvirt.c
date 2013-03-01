@@ -2,7 +2,7 @@
  * libvirt.c: Main interfaces for the libvirt library to handle virtualization
  *           domains from a process running in domain 0
  *
- * Copyright (C) 2005-2006, 2008-2012 Red Hat, Inc.
+ * Copyright (C) 2005-2006, 2008-2013 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -31,7 +31,6 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #include <time.h>
-#include <gcrypt.h>
 
 #include <libxml/parser.h>
 #include <libxml/xpath.h>
@@ -56,6 +55,7 @@
 #include "intprops.h"
 #include "virconf.h"
 #if WITH_GNUTLS
+# include <gcrypt.h>
 # include "rpc/virnettlscontext.h"
 #endif
 #include "vircommand.h"
@@ -1216,7 +1216,7 @@ do_open(const char *name,
     if (!ret->driver) {
         /* If we reach here, then all drivers declined the connection. */
         virLibConnError(VIR_ERR_NO_CONNECT,
-                        _("No connection for URI %s"),
+                        "%s",
                         NULLSTR(name));
         goto failed;
     }
@@ -5161,6 +5161,10 @@ virDomainMigrateDirect(virDomainPtr domain,
  * XML includes details of the support URI schemes. If omitted
  * the dconn will be asked for a default URI.
  *
+ * If you want to copy non-shared storage within migration you
+ * can use either VIR_MIGRATE_NON_SHARED_DISK or
+ * VIR_MIGRATE_NON_SHARED_INC as they are mutually exclusive.
+ *
  * In either case it is typically only necessary to specify a
  * URI if the destination host has multiple interfaces and a
  * specific interface is required to transmit migration data.
@@ -5218,6 +5222,15 @@ virDomainMigrate(virDomainPtr domain,
     if (dconn->flags & VIR_CONNECT_RO) {
         /* NB, deliberately report error against source object, not dest */
         virLibDomainError(VIR_ERR_OPERATION_DENIED, __FUNCTION__);
+        goto error;
+    }
+
+    if (flags & VIR_MIGRATE_NON_SHARED_DISK &&
+        flags & VIR_MIGRATE_NON_SHARED_INC) {
+        virReportInvalidArg(flags,
+                            _("flags 'shared disk' and 'shared incremental' "
+                              "in %s are mutually exclusive"),
+                            __FUNCTION__);
         goto error;
     }
 
@@ -5375,6 +5388,10 @@ error:
  * XML includes details of the support URI schemes. If omitted
  * the dconn will be asked for a default URI.
  *
+ * If you want to copy non-shared storage within migration you
+ * can use either VIR_MIGRATE_NON_SHARED_DISK or
+ * VIR_MIGRATE_NON_SHARED_INC as they are mutually exclusive.
+ *
  * In either case it is typically only necessary to specify a
  * URI if the destination host has multiple interfaces and a
  * specific interface is required to transmit migration data.
@@ -5445,6 +5462,15 @@ virDomainMigrate2(virDomainPtr domain,
     if (dconn->flags & VIR_CONNECT_RO) {
         /* NB, deliberately report error against source object, not dest */
         virLibDomainError(VIR_ERR_OPERATION_DENIED, __FUNCTION__);
+        goto error;
+    }
+
+    if (flags & VIR_MIGRATE_NON_SHARED_DISK &&
+        flags & VIR_MIGRATE_NON_SHARED_INC) {
+        virReportInvalidArg(flags,
+                            _("flags 'shared disk' and 'shared incremental' "
+                              "in %s are mutually exclusive"),
+                            __FUNCTION__);
         goto error;
     }
 
@@ -5601,6 +5627,10 @@ error:
  *
  * VIR_MIGRATE_TUNNELLED requires that VIR_MIGRATE_PEER2PEER be set.
  *
+ * If you want to copy non-shared storage within migration you
+ * can use either VIR_MIGRATE_NON_SHARED_DISK or
+ * VIR_MIGRATE_NON_SHARED_INC as they are mutually exclusive.
+ *
  * If a hypervisor supports renaming domains during migration,
  * the dname parameter specifies the new name for the domain.
  * Setting dname to NULL keeps the domain name the same.  If domain
@@ -5647,6 +5677,15 @@ virDomainMigrateToURI(virDomainPtr domain,
     }
 
     virCheckNonNullArgGoto(duri, error);
+
+    if (flags & VIR_MIGRATE_NON_SHARED_DISK &&
+        flags & VIR_MIGRATE_NON_SHARED_INC) {
+        virReportInvalidArg(flags,
+                            _("flags 'shared disk' and 'shared incremental' "
+                              "in %s are mutually exclusive"),
+                            __FUNCTION__);
+        goto error;
+    }
 
     if (flags & VIR_MIGRATE_OFFLINE &&
         !VIR_DRV_SUPPORTS_FEATURE(domain->conn->driver, domain->conn,
@@ -5741,6 +5780,10 @@ error:
  *
  * VIR_MIGRATE_TUNNELLED requires that VIR_MIGRATE_PEER2PEER be set.
  *
+ * If you want to copy non-shared storage within migration you
+ * can use either VIR_MIGRATE_NON_SHARED_DISK or
+ * VIR_MIGRATE_NON_SHARED_INC as they are mutually exclusive.
+ *
  * If a hypervisor supports changing the configuration of the guest
  * during migration, the @dxml parameter specifies the new config
  * for the guest. The configuration must include an identical set
@@ -5796,6 +5839,15 @@ virDomainMigrateToURI2(virDomainPtr domain,
     }
     if (domain->conn->flags & VIR_CONNECT_RO) {
         virLibDomainError(VIR_ERR_OPERATION_DENIED, __FUNCTION__);
+        goto error;
+    }
+
+    if (flags & VIR_MIGRATE_NON_SHARED_DISK &&
+        flags & VIR_MIGRATE_NON_SHARED_INC) {
+        virReportInvalidArg(flags,
+                            _("flags 'shared disk' and 'shared incremental' "
+                              "in %s are mutually exclusive"),
+                            __FUNCTION__);
         goto error;
     }
 
@@ -14334,6 +14386,52 @@ error:
     return NULL;
 }
 
+/**
+ * virNodeDeviceLookupSCSIHostByWWN:
+ * @conn: pointer to the hypervisor connection
+ * @wwnn: WWNN of the SCSI Host.
+ * @wwpn: WWPN of the SCSI Host.
+ * @flags: extra flags; not used yet, so callers should always pass 0
+ *
+ * Lookup SCSI Host which is capable with 'fc_host' by its WWNN and WWPN.
+ *
+ * Returns a virNodeDevicePtr if found, NULL otherwise.
+ */
+virNodeDevicePtr
+virNodeDeviceLookupSCSIHostByWWN(virConnectPtr conn,
+                                 const char *wwnn,
+                                 const char *wwpn,
+                                 unsigned int flags)
+{
+    VIR_DEBUG("conn=%p, wwnn=%p, wwpn=%p, flags=%x", conn, wwnn, wwpn, flags);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECT(conn)) {
+        virLibConnError(VIR_ERR_INVALID_CONN, __FUNCTION__);
+        virDispatchError(NULL);
+        return NULL;
+    }
+
+    virCheckNonNullArgGoto(wwnn, error);
+    virCheckNonNullArgGoto(wwpn, error);
+
+    if (conn->deviceMonitor &&
+        conn->deviceMonitor->deviceLookupSCSIHostByWWN) {
+        virNodeDevicePtr ret;
+        ret = conn->deviceMonitor->deviceLookupSCSIHostByWWN(conn, wwnn,
+                                                             wwpn, flags);
+        if (!ret)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    virDispatchError(conn);
+    return NULL;
+}
 
 /**
  * virNodeDeviceGetXMLDesc:
@@ -17353,6 +17451,66 @@ error:
 
 
 /**
+ * virDomainGetJobStats:
+ * @domain: a domain object
+ * @type: where to store the job type (one of virDomainJobType)
+ * @params: where to store job statistics
+ * @nparams: number of items in @params
+ * @flags: extra flags; not used yet, so callers should always pass 0
+ *
+ * Extract information about progress of a background job on a domain.
+ * Will return an error if the domain is not active. The function returns
+ * a superset of progress information provided by virDomainGetJobInfo.
+ * Possible fields returned in @params are defined by VIR_DOMAIN_JOB_*
+ * macros and new fields will likely be introduced in the future so callers
+ * may receive fields that they do not understand in case they talk to a
+ * newer server.
+ *
+ * Returns 0 in case of success and -1 in case of failure.
+ */
+int
+virDomainGetJobStats(virDomainPtr domain,
+                     int *type,
+                     virTypedParameterPtr *params,
+                     int *nparams,
+                     unsigned int flags)
+{
+    virConnectPtr conn;
+
+    VIR_DOMAIN_DEBUG(domain, "type=%p, params=%p, nparams=%p, flags=%x",
+                     type, params, nparams, flags);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECTED_DOMAIN(domain)) {
+        virLibDomainError(VIR_ERR_INVALID_DOMAIN, __FUNCTION__);
+        virDispatchError(NULL);
+        return -1;
+    }
+    virCheckNonNullArgGoto(type, error);
+    virCheckNonNullArgGoto(params, error);
+    virCheckNonNullArgGoto(nparams, error);
+
+    conn = domain->conn;
+
+    if (conn->driver->domainGetJobStats) {
+        int ret;
+        ret = conn->driver->domainGetJobStats(domain, type, params,
+                                              nparams, flags);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    virDispatchError(domain->conn);
+    return -1;
+}
+
+
+/**
  * virDomainAbortJob:
  * @domain: a domain object
  *
@@ -17435,6 +17593,101 @@ virDomainMigrateSetMaxDowntime(virDomainPtr domain,
 
     if (conn->driver->domainMigrateSetMaxDowntime) {
         if (conn->driver->domainMigrateSetMaxDowntime(domain, downtime, flags) < 0)
+            goto error;
+        return 0;
+    }
+
+    virLibConnError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
+error:
+    virDispatchError(conn);
+    return -1;
+}
+
+/**
+ * virDomainMigrateGetCompressionCache:
+ * @domain: a domain object
+ * @cacheSize: return value of current size of the cache (in bytes)
+ * @flags: extra flags; not used yet, so callers should always pass 0
+ *
+ * Gets current size of the cache (in bytes) used for compressing repeatedly
+ * transferred memory pages during live migration.
+ *
+ * Returns 0 in case of success, -1 otherwise.
+ */
+int
+virDomainMigrateGetCompressionCache(virDomainPtr domain,
+                                    unsigned long long *cacheSize,
+                                    unsigned int flags)
+{
+    virConnectPtr conn;
+
+    VIR_DOMAIN_DEBUG(domain, "cacheSize=%p, flags=%x", cacheSize, flags);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECTED_DOMAIN(domain)) {
+        virLibDomainError(VIR_ERR_INVALID_DOMAIN, __FUNCTION__);
+        virDispatchError(NULL);
+        return -1;
+    }
+
+    conn = domain->conn;
+
+    virCheckNonNullArgGoto(cacheSize, error);
+
+    if (conn->driver->domainMigrateGetCompressionCache) {
+        if (conn->driver->domainMigrateGetCompressionCache(domain, cacheSize,
+                                                           flags) < 0)
+            goto error;
+        return 0;
+    }
+
+    virLibConnError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
+error:
+    virDispatchError(conn);
+    return -1;
+}
+
+/**
+ * virDomainMigrateSetCompressionCache:
+ * @domain: a domain object
+ * @cacheSize: size of the cache (in bytes) used for compression
+ * @flags: extra flags; not used yet, so callers should always pass 0
+ *
+ * Sets size of the cache (in bytes) used for compressing repeatedly
+ * transferred memory pages during live migration. It's supposed to be called
+ * while the domain is being live-migrated as a reaction to migration progress
+ * and increasing number of compression cache misses obtained from
+ * virDomainGetJobStats.
+ *
+ * Returns 0 in case of success, -1 otherwise.
+ */
+int
+virDomainMigrateSetCompressionCache(virDomainPtr domain,
+                                    unsigned long long cacheSize,
+                                    unsigned int flags)
+{
+    virConnectPtr conn;
+
+    VIR_DOMAIN_DEBUG(domain, "cacheSize=%llu, flags=%x", cacheSize, flags);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECTED_DOMAIN(domain)) {
+        virLibDomainError(VIR_ERR_INVALID_DOMAIN, __FUNCTION__);
+        virDispatchError(NULL);
+        return -1;
+    }
+
+    conn = domain->conn;
+    if (conn->flags & VIR_CONNECT_RO) {
+        virLibDomainError(VIR_ERR_OPERATION_DENIED, __FUNCTION__);
+        goto error;
+    }
+
+    if (conn->driver->domainMigrateSetCompressionCache) {
+        if (conn->driver->domainMigrateSetCompressionCache(domain, cacheSize,
+                                                           flags) < 0)
             goto error;
         return 0;
     }

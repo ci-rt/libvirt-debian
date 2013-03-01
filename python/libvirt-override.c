@@ -4183,6 +4183,47 @@ libvirt_virDomainGetJobInfo(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
 }
 
 static PyObject *
+libvirt_virDomainGetJobStats(PyObject *self ATTRIBUTE_UNUSED, PyObject *args)
+{
+    PyObject *pyobj_domain;
+    virDomainPtr domain;
+    unsigned int flags;
+    virTypedParameterPtr params = NULL;
+    int nparams = 0;
+    int type;
+    PyObject *dict = NULL;
+    int rc;
+
+    if (!PyArg_ParseTuple(args, (char *) "Oi:virDomainGetJobStats",
+                          &pyobj_domain, &flags))
+        goto cleanup;
+    domain = (virDomainPtr) PyvirDomain_Get(pyobj_domain);
+
+    LIBVIRT_BEGIN_ALLOW_THREADS;
+    rc = virDomainGetJobStats(domain, &type, &params, &nparams, flags);
+    LIBVIRT_END_ALLOW_THREADS;
+    if (rc < 0)
+        goto cleanup;
+
+    if (!(dict = getPyVirTypedParameter(params, nparams)))
+        goto cleanup;
+
+    if (PyDict_SetItem(dict, libvirt_constcharPtrWrap("type"),
+                       libvirt_intWrap(type)) < 0) {
+        Py_DECREF(dict);
+        dict = NULL;
+        goto cleanup;
+    }
+
+cleanup:
+    virTypedParamsFree(params, nparams);
+    if (dict)
+        return dict;
+    else
+        return VIR_PY_NONE;
+}
+
+static PyObject *
 libvirt_virDomainGetBlockJobInfo(PyObject *self ATTRIBUTE_UNUSED,
                                  PyObject *args)
 {
@@ -6281,6 +6322,33 @@ libvirt_virDomainSendKey(PyObject *self ATTRIBUTE_UNUSED,
 }
 
 static PyObject *
+libvirt_virDomainMigrateGetCompressionCache(PyObject *self ATTRIBUTE_UNUSED,
+                                            PyObject *args)
+{
+    PyObject *pyobj_domain;
+    virDomainPtr domain;
+    unsigned int flags;
+    unsigned long long cacheSize;
+    int rc;
+
+    if (!PyArg_ParseTuple(args,
+                          (char *) "Oi:virDomainMigrateGetCompressionCache",
+                          &pyobj_domain, &flags))
+        return VIR_PY_NONE;
+
+    domain = (virDomainPtr) PyvirDomain_Get(pyobj_domain);
+
+    LIBVIRT_BEGIN_ALLOW_THREADS;
+    rc = virDomainMigrateGetCompressionCache(domain, &cacheSize, flags);
+    LIBVIRT_END_ALLOW_THREADS;
+
+    if (rc < 0)
+        return VIR_PY_NONE;
+
+    return libvirt_ulonglongWrap(cacheSize);
+}
+
+static PyObject *
 libvirt_virDomainMigrateGetMaxSpeed(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
     PyObject *py_retval;
     int c_retval;
@@ -6673,6 +6741,7 @@ static PyMethodDef libvirtMethods[] = {
     {(char *) "virConnectListAllInterfaces", libvirt_virConnectListAllInterfaces, METH_VARARGS, NULL},
     {(char *) "virConnectBaselineCPU", libvirt_virConnectBaselineCPU, METH_VARARGS, NULL},
     {(char *) "virDomainGetJobInfo", libvirt_virDomainGetJobInfo, METH_VARARGS, NULL},
+    {(char *) "virDomainGetJobStats", libvirt_virDomainGetJobStats, METH_VARARGS, NULL},
     {(char *) "virDomainSnapshotListNames", libvirt_virDomainSnapshotListNames, METH_VARARGS, NULL},
     {(char *) "virDomainListAllSnapshots", libvirt_virDomainListAllSnapshots, METH_VARARGS, NULL},
     {(char *) "virDomainSnapshotListChildrenNames", libvirt_virDomainSnapshotListChildrenNames, METH_VARARGS, NULL},
@@ -6682,6 +6751,7 @@ static PyMethodDef libvirtMethods[] = {
     {(char *) "virDomainSetBlockIoTune", libvirt_virDomainSetBlockIoTune, METH_VARARGS, NULL},
     {(char *) "virDomainGetBlockIoTune", libvirt_virDomainGetBlockIoTune, METH_VARARGS, NULL},
     {(char *) "virDomainSendKey", libvirt_virDomainSendKey, METH_VARARGS, NULL},
+    {(char *) "virDomainMigrateGetCompressionCache", libvirt_virDomainMigrateGetCompressionCache, METH_VARARGS, NULL},
     {(char *) "virDomainMigrateGetMaxSpeed", libvirt_virDomainMigrateGetMaxSpeed, METH_VARARGS, NULL},
     {(char *) "virDomainBlockPeek", libvirt_virDomainBlockPeek, METH_VARARGS, NULL},
     {(char *) "virDomainMemoryPeek", libvirt_virDomainMemoryPeek, METH_VARARGS, NULL},

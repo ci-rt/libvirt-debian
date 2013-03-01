@@ -341,7 +341,7 @@
 Summary: Library providing a simple virtualization API
 Name: libvirt
 Version: @VERSION@
-Release: 1%{?dist}%{?extra_release}
+Release: 0rc2%{?dist}%{?extra_release}
 License: LGPLv2+
 Group: Development/Libraries
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
@@ -350,7 +350,7 @@ URL: http://libvirt.org/
 %if %(echo %{version} | grep -o \\. | wc -l) == 3
     %define mainturl stable_updates/
 %endif
-Source: http://libvirt.org/sources/%{?mainturl}libvirt-%{version}.tar.gz
+Source: http://libvirt.org/sources/%{?mainturl}libvirt-%{version}-rc2.tar.gz
 
 %if %{with_libvirtd}
 Requires: libvirt-daemon = %{version}-%{release}
@@ -1336,7 +1336,11 @@ gzip -9 ChangeLog
 %install
 rm -fr %{buildroot}
 
-%makeinstall SYSTEMD_UNIT_DIR=%{buildroot}%{_unitdir}
+# Avoid using makeinstall macro as it changes prefixes rather than setting
+# DESTDIR. Newer make_install macro would be better but it's not available
+# on RHEL 5, thus we need to expand it here.
+make install DESTDIR=%{?buildroot} SYSTEMD_UNIT_DIR=%{_unitdir}
+
 for i in domain-events/events-c dominfo domsuspend hellolibvirt openauth python xml/nwfilter systemtap
 do
   (cd examples/$i ; make clean ; rm -rf .deps .libs Makefile Makefile.in)
@@ -2305,7 +2309,7 @@ fi
 * Fri Apr  3 2009 Daniel Veillard <veillard@redhat.com> - 0.6.2-1
 - release of 0.6.2
 
-* Fri Mar  4 2009 Daniel Veillard <veillard@redhat.com> - 0.6.1-1
+* Wed Mar  4 2009 Daniel Veillard <veillard@redhat.com> - 0.6.1-1
 - release of 0.6.1
 
 * Sat Jan 31 2009 Daniel Veillard <veillard@redhat.com> - 0.6.0-1
@@ -2444,7 +2448,7 @@ fi
 - it's pkgconfig not pgkconfig !
 
 * Mon Nov  6 2006 Daniel Veillard <veillard@redhat.com> 0.1.8-2
-- fixing spec file, added %dist, -devel requires pkgconfig and xen-devel
+- fixing spec file, added %%dist, -devel requires pkgconfig and xen-devel
 - Resolves: rhbz#202320
 
 * Mon Oct 16 2006 Daniel Veillard <veillard@redhat.com> 0.1.8-1

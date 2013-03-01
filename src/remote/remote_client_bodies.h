@@ -904,7 +904,7 @@ remoteDomainGetSchedulerParameters(virDomainPtr dom, virTypedParameterPtr params
     if (remoteDeserializeTypedParameters(ret.params.params_val,
                                          ret.params.params_len,
                                          REMOTE_DOMAIN_SCHEDULER_PARAMETERS_MAX,
-                                         params,
+                                         &params,
                                          nparams) < 0)
         goto cleanup;
 
@@ -943,7 +943,7 @@ remoteDomainGetSchedulerParametersFlags(virDomainPtr dom, virTypedParameterPtr p
     if (remoteDeserializeTypedParameters(ret.params.params_val,
                                          ret.params.params_len,
                                          REMOTE_DOMAIN_SCHEDULER_PARAMETERS_MAX,
-                                         params,
+                                         &params,
                                          nparams) < 0)
         goto cleanup;
 
@@ -1426,6 +1426,35 @@ done:
 }
 
 static int
+remoteDomainMigrateGetCompressionCache(virDomainPtr dom, unsigned long long *cacheSize, unsigned int flags)
+{
+    int rv = -1;
+    struct private_data *priv = dom->conn->privateData;
+    remote_domain_migrate_get_compression_cache_args args;
+    remote_domain_migrate_get_compression_cache_ret ret;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_domain(&args.dom, dom);
+    args.flags = flags;
+
+    memset(&ret, 0, sizeof(ret));
+
+    if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_MIGRATE_GET_COMPRESSION_CACHE,
+             (xdrproc_t)xdr_remote_domain_migrate_get_compression_cache_args, (char *)&args,
+             (xdrproc_t)xdr_remote_domain_migrate_get_compression_cache_ret, (char *)&ret) == -1) {
+        goto done;
+    }
+
+    if (cacheSize) *cacheSize = ret.cacheSize;
+    rv = 0;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static int
 remoteDomainMigrateGetMaxSpeed(virDomainPtr dom, unsigned long *bandwidth, unsigned int flags)
 {
     int rv = -1;
@@ -1523,6 +1552,32 @@ remoteDomainMigratePrepareTunnel(virConnectPtr conn, virStreamPtr st, unsigned l
         virObjectUnref(netst);
         st->driver = NULL;
         st->privateData = NULL;
+        goto done;
+    }
+
+    rv = 0;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static int
+remoteDomainMigrateSetCompressionCache(virDomainPtr dom, unsigned long long cacheSize, unsigned int flags)
+{
+    int rv = -1;
+    struct private_data *priv = dom->conn->privateData;
+    remote_domain_migrate_set_compression_cache_args args;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_domain(&args.dom, dom);
+    args.cacheSize = cacheSize;
+    args.flags = flags;
+
+    if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_MIGRATE_SET_COMPRESSION_CACHE,
+             (xdrproc_t)xdr_remote_domain_migrate_set_compression_cache_args, (char *)&args,
+             (xdrproc_t)xdr_void, (char *)NULL) == -1) {
         goto done;
     }
 
@@ -4721,6 +4776,36 @@ remoteNodeDeviceLookupByName(virConnectPtr conn, const char *name)
 
     rv = get_nonnull_node_device(conn, ret.dev);
     xdr_free((xdrproc_t)xdr_remote_node_device_lookup_by_name_ret, (char *)&ret);
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static virNodeDevicePtr
+remoteNodeDeviceLookupSCSIHostByWWN(virConnectPtr conn, const char *wwnn, const char *wwpn, unsigned int flags)
+{
+    virNodeDevicePtr rv = NULL;
+    struct private_data *priv = conn->devMonPrivateData;
+    remote_node_device_lookup_scsi_host_by_wwn_args args;
+    remote_node_device_lookup_scsi_host_by_wwn_ret ret;
+
+    remoteDriverLock(priv);
+
+    args.wwnn = (char *)wwnn;
+    args.wwpn = (char *)wwpn;
+    args.flags = flags;
+
+    memset(&ret, 0, sizeof(ret));
+
+    if (call(conn, priv, 0, REMOTE_PROC_NODE_DEVICE_LOOKUP_SCSI_HOST_BY_WWN,
+             (xdrproc_t)xdr_remote_node_device_lookup_scsi_host_by_wwn_args, (char *)&args,
+             (xdrproc_t)xdr_remote_node_device_lookup_scsi_host_by_wwn_ret, (char *)&ret) == -1) {
+        goto done;
+    }
+
+    rv = get_nonnull_node_device(conn, ret.dev);
+    xdr_free((xdrproc_t)xdr_remote_node_device_lookup_scsi_host_by_wwn_ret, (char *)&ret);
 
 done:
     remoteDriverUnlock(priv);

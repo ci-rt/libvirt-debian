@@ -32,6 +32,14 @@ nodist_conf_DATA =
 
 THREAD_LIBS = $(LIB_PTHREAD) $(LTLIBMULTITHREAD)
 
+SECDRIVER_LIBS =
+if WITH_SECDRIVER_SELINUX
+SECDRIVER_LIBS += $(SELINUX_LIBS)
+endif
+if WITH_SECDRIVER_APPARMOR
+SECDRIVER_LIBS += $(APPARMOR_LIBS)
+endif
+
 if WITH_NETWORK
 UUID=$(shell uuidgen 2>/dev/null)
 endif
@@ -67,6 +75,7 @@ UTIL_SOURCES =							\
 		util/virdbus.c util/virdbus.h			\
 		util/virdnsmasq.c util/virdnsmasq.h		\
 		util/virebtables.c util/virebtables.h		\
+		util/virendian.h				\
 		util/virerror.c util/virerror.h			\
 		util/virevent.c util/virevent.h			\
 		util/vireventpoll.c util/vireventpoll.h		\
@@ -379,7 +388,8 @@ else
 check-symfile:
 endif
 check-symsorting:
-	$(AM_V_GEN)$(PERL) $(srcdir)/check-symsorting.pl $(USED_SYM_FILES)
+	$(AM_V_GEN)$(PERL) $(srcdir)/check-symsorting.pl \
+		$(srcdir) $(SYM_FILES)
 EXTRA_DIST += check-symfile.pl check-symsorting.pl
 
 PROTOCOL_STRUCTS = \
@@ -756,7 +766,8 @@ libvirt_util_la_CFLAGS = $(CAPNG_CFLAGS) $(YAJL_CFLAGS) $(LIBNL_CFLAGS) \
 		$(DBUS_CFLAGS) $(LDEXP_LIBM)
 libvirt_util_la_LIBADD = $(CAPNG_LIBS) $(YAJL_LIBS) $(LIBNL_LIBS) \
 		$(THREAD_LIBS) $(AUDIT_LIBS) $(DEVMAPPER_LIBS) \
-		$(LIB_CLOCK_GETTIME) $(DBUS_LIBS) $(MSCOM_LIBS) $(LIBXML_LIBS)
+		$(LIB_CLOCK_GETTIME) $(DBUS_LIBS) $(MSCOM_LIBS) $(LIBXML_LIBS) \
+		$(SECDRIVER_LIBS)
 
 
 noinst_LTLIBRARIES += libvirt_conf.la
@@ -792,10 +803,13 @@ noinst_LTLIBRARIES += libvirt_driver.la
 libvirt_la_BUILT_LIBADD += libvirt_driver.la
 libvirt_driver_la_SOURCES = $(DRIVER_SOURCES)
 
-libvirt_driver_la_CFLAGS = $(NUMACTL_CFLAGS) $(GNUTLS_CFLAGS) \
+libvirt_driver_la_CFLAGS = \
+		$(NUMACTL_CFLAGS) $(GNUTLS_CFLAGS) $(CURL_CFLAGS) \
 		-I$(top_srcdir)/src/conf $(AM_CFLAGS)
-libvirt_driver_la_LIBADD = $(NUMACTL_LIBS) $(GNUTLS_LIBS) $(DLOPEN_LIBS)
+libvirt_driver_la_LIBADD = \
+		$(NUMACTL_LIBS) $(GNUTLS_LIBS) $(CURL_LIBS) $(DLOPEN_LIBS)
 
+SYM_FILES = $(USED_SYM_FILES)
 USED_SYM_FILES = $(srcdir)/libvirt_private.syms
 
 if WITH_TEST
@@ -984,12 +998,7 @@ if WITH_BLKID
 libvirt_driver_lxc_impl_la_CFLAGS += $(BLKID_CFLAGS)
 libvirt_driver_lxc_impl_la_LIBADD += $(BLKID_LIBS)
 endif
-if WITH_SECDRIVER_SELINUX
-libvirt_driver_lxc_impl_la_LIBADD += $(SELINUX_LIBS)
-endif
-if WITH_SECDRIVER_APPARMOR
-libvirt_driver_lxc_impl_la_LIBADD += $(APPARMOR_LIBS)
-endif
+libvirt_driver_lxc_impl_la_LIBADD += $(SECDRIVER_LIBS)
 libvirt_driver_lxc_impl_la_SOURCES = $(LXC_DRIVER_SOURCES)
 
 conf_DATA += lxc/lxc.conf
@@ -1156,12 +1165,7 @@ libvirt_driver_storage_impl_la_CFLAGS = \
 		-I$(top_srcdir)/src/conf $(AM_CFLAGS)
 libvirt_driver_storage_impl_la_LDFLAGS = $(AM_LDFLAGS)
 libvirt_driver_storage_impl_la_LIBADD =
-if WITH_SECDRIVER_SELINUX
-libvirt_driver_storage_impl_la_LIBADD += $(SELINUX_LIBS)
-endif
-if WITH_SECDRIVER_APPARMOR
-libvirt_driver_storage_impl_la_LIBADD += $(APPARMOR_LIBS)
-endif
+libvirt_driver_storage_impl_la_LIBADD += $(SECDRIVER_LIBS)
 if WITH_BLKID
 libvirt_driver_storage_impl_la_CFLAGS += $(BLKID_CFLAGS)
 libvirt_driver_storage_impl_la_LIBADD += $(BLKID_LIBS)
@@ -1274,16 +1278,14 @@ libvirt_la_BUILT_LIBADD += libvirt_security_manager.la
 libvirt_security_manager_la_CFLAGS = \
 		-I$(top_srcdir)/src/conf $(AM_CFLAGS)
 libvirt_security_manager_la_LDFLAGS = $(AM_LDFLAGS)
-libvirt_security_manager_la_LIBADD =
+libvirt_security_manager_la_LIBADD = $(SECDRIVER_LIBS)
 if WITH_SECDRIVER_SELINUX
 libvirt_security_manager_la_SOURCES += $(SECURITY_DRIVER_SELINUX_SOURCES)
 libvirt_security_manager_la_CFLAGS += $(SELINUX_CFLAGS)
-libvirt_security_manager_la_LIBADD += $(SELINUX_LIBS)
 endif
 if WITH_SECDRIVER_APPARMOR
 libvirt_security_manager_la_SOURCES += $(SECURITY_DRIVER_APPARMOR_SOURCES)
 libvirt_security_manager_la_CFLAGS += $(APPARMOR_CFLAGS)
-libvirt_security_manager_la_LIBADD += $(APPARMOR_LIBS)
 endif
 
 # Add all conditional sources just in case...
@@ -1409,42 +1411,62 @@ check-augeas-lockd: test_libvirt_lockd.aug
 
 if WITH_DRIVER_MODULES
 USED_SYM_FILES += $(srcdir)/libvirt_driver_modules.syms
+else
+SYM_FILES += $(srcdir)/libvirt_driver_modules.syms
 endif
 
 if WITH_LINUX
 USED_SYM_FILES += $(srcdir)/libvirt_linux.syms
+else
+SYM_FILES += $(srcdir)/libvirt_linux.syms
 endif
 
 if WITH_ESX
 USED_SYM_FILES += $(srcdir)/libvirt_esx.syms
+else
+SYM_FILES += $(srcdir)/libvirt_esx.syms
 endif
 
 if WITH_LIBVIRTD
 USED_SYM_FILES += $(srcdir)/libvirt_daemon.syms
+else
+SYM_FILES += $(srcdir)/libvirt_daemon.syms
 endif
 
 if WITH_OPENVZ
 USED_SYM_FILES += $(srcdir)/libvirt_openvz.syms
+else
+SYM_FILES += $(srcdir)/libvirt_openvz.syms
 endif
 
 if WITH_VMX
 USED_SYM_FILES += $(srcdir)/libvirt_vmx.syms
+else
+SYM_FILES += $(srcdir)/libvirt_vmx.syms
 endif
 
 if WITH_XENXS
 USED_SYM_FILES += $(srcdir)/libvirt_xenxs.syms
+else
+SYM_FILES += $(srcdir)/libvirt_xenxs.syms
 endif
 
 if WITH_SASL
 USED_SYM_FILES += $(srcdir)/libvirt_sasl.syms
+else
+SYM_FILES += $(srcdir)/libvirt_sasl.syms
 endif
 
 if WITH_SSH2
 USED_SYM_FILES += $(srcdir)/libvirt_libssh2.syms
+else
+SYM_FILES += $(srcdir)/libvirt_libssh2.syms
 endif
 
 if WITH_ATOMIC_OPS_PTHREAD
 USED_SYM_FILES += $(srcdir)/libvirt_atomic.syms
+else
+SYM_FILES += $(srcdir)/libvirt_atomic.syms
 endif
 
 EXTRA_DIST += \
@@ -1462,7 +1484,8 @@ EXTRA_DIST += \
   libvirt_xenxs.syms	\
   libvirt_libssh2.syms
 
-GENERATED_SYM_FILES = libvirt.syms libvirt.def libvirt_qemu.def
+GENERATED_SYM_FILES = \
+	libvirt.syms libvirt.def libvirt_qemu.def libvirt_lxc.def
 
 BUILT_SOURCES += $(GENERATED_SYM_FILES)
 
@@ -1941,12 +1964,7 @@ libvirt_lxc_LDADD =			\
 if WITH_DTRACE_PROBES
 libvirt_lxc_LDADD += libvirt_probes.lo
 endif
-if WITH_SECDRIVER_SELINUX
-libvirt_lxc_LDADD += $(SELINUX_LIBS)
-endif
-if WITH_SECDRIVER_APPARMOR
-libvirt_lxc_LDADD += $(APPARMOR_LIBS)
-endif
+libvirt_lxc_LDADD += $(SECDRIVER_LIBS)
 libvirt_lxc_CFLAGS =				\
 		-I$(top_srcdir)/src/conf	\
 		$(AM_CFLAGS)                    \

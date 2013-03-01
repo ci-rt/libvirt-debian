@@ -295,7 +295,7 @@
         <p>
       One of the following options:
     </p>
-        <ul><li><code>raw</code>: a plain file</li><li><code>bochs</code>: Bochs disk image format</li><li><code>cloop</code>: compressed loopback disk image format</li><li><code>cow</code>: User Mode Linux disk image format</li><li><code>dmg</code>: Mac disk image format</li><li><code>iso</code>: CDROM disk image format</li><li><code>qcow</code>: QEMU v1 disk image format</li><li><code>qcow2</code>: QEMU v2 disk image format</li><li><code>vmdk</code>: VMWare disk image format</li><li><code>vpc</code>: VirtualPC disk image format</li></ul>
+        <ul><li><code>raw</code>: a plain file</li><li><code>bochs</code>: Bochs disk image format</li><li><code>cloop</code>: compressed loopback disk image format</li><li><code>cow</code>: User Mode Linux disk image format</li><li><code>dmg</code>: Mac disk image format</li><li><code>iso</code>: CDROM disk image format</li><li><code>qcow</code>: QEMU v1 disk image format</li><li><code>qcow2</code>: QEMU v2 disk image format</li><li><code>qed</code>: QEMU Enhanced Disk image format</li><li><code>vmdk</code>: VMWare disk image format</li><li><code>vpc</code>: VirtualPC disk image format</li></ul>
         <p>
       When listing existing volumes all these formats are supported
       natively. When creating new volumes, only a subset may be
@@ -355,6 +355,8 @@
         <code>hfs+</code>
       </li><li>
         <code>xfs</code>
+      </li><li>
+        <code>ocfs2</code>
       </li></ul>
         <h3>Valid volume format types</h3>
         <p>
@@ -389,6 +391,10 @@
     </p>
         <ul><li><code>auto</code> - automatically determine format</li><li>
         <code>nfs</code>
+      </li><li>
+        <code>glusterfs</code>
+      </li><li>
+        <code>cifs</code>
       </li></ul>
         <h3>Valid volume format types</h3>
         <p>
@@ -421,8 +427,11 @@
       &lt;/pool&gt;</pre>
         <h3>Valid pool format types</h3>
         <p>
-      The logical volume pool does not use the pool format type element.
+      The logical volume pool supports the following formats:
     </p>
+        <ul><li><code>auto</code> - automatically determine format</li><li>
+        <code>lvm2</code>
+      </li></ul>
         <h3>Valid volume format types</h3>
         <p>
       The logical volume pool does not use the volume format type element.
@@ -467,6 +476,8 @@
         <code>pc98</code>
       </li><li>
         <code>sun</code>
+      </li><li>
+        <code>lvm2</code>
       </li></ul>
         <p>
       The <code>dos</code> or <code>gpt</code> formats are recommended for

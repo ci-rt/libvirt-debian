@@ -24,6 +24,7 @@ SIGNATURE_CHECK (bind, int, (int, const struct sockaddr *, socklen_t));
 #include <errno.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <unistd.h>
 
 #include "sockets.h"
 #include "macros.h"
@@ -46,6 +47,7 @@ main (void)
       ASSERT (errno == EBADF);
     }
     {
+      close (99);
       errno = 0;
       ASSERT (bind (99, (const struct sockaddr *) &addr, sizeof (addr)) == -1);
       ASSERT (errno == EBADF);

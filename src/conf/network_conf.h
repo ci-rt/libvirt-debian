@@ -62,19 +62,20 @@ enum virNetworkForwardHostdevDeviceType {
     VIR_NETWORK_FORWARD_HOSTDEV_DEVICE_LAST,
 };
 
-typedef struct _virNetworkDHCPRangeDef virNetworkDHCPRangeDef;
-typedef virNetworkDHCPRangeDef *virNetworkDHCPRangeDefPtr;
-struct _virNetworkDHCPRangeDef {
-    virSocketAddr start;
-    virSocketAddr end;
-};
-
 typedef struct _virNetworkDHCPHostDef virNetworkDHCPHostDef;
 typedef virNetworkDHCPHostDef *virNetworkDHCPHostDefPtr;
 struct _virNetworkDHCPHostDef {
     char *mac;
+    char *id;
     char *name;
     virSocketAddr ip;
+};
+
+typedef struct _virNetworkDHCPOptionDef virNetworkDHCPOptionDef;
+typedef virNetworkDHCPOptionDef *virNetworkDHCPOptionDefPtr;
+struct _virNetworkDHCPOptionDef {
+    unsigned int number;
+    char *value;
 };
 
 typedef struct _virNetworkDNSTxtDef virNetworkDNSTxtDef;
@@ -131,14 +132,18 @@ struct _virNetworkIpDef {
     virSocketAddr netmask;      /* ipv4 - either netmask or prefix specified */
 
     size_t nranges;             /* Zero or more dhcp ranges */
-    virNetworkDHCPRangeDefPtr ranges;
+    virSocketAddrRangePtr ranges;
 
     size_t nhosts;              /* Zero or more dhcp hosts */
     virNetworkDHCPHostDefPtr hosts;
 
+    size_t noptions;            /* Zero or more additional dhcp options */
+    virNetworkDHCPOptionDefPtr options;
+
     char *tftproot;
     char *bootfile;
     virSocketAddr bootserver;
+
    };
 
 typedef struct _virNetworkForwardIfDef virNetworkForwardIfDef;
@@ -174,6 +179,10 @@ struct _virNetworkForwardDef {
 
     size_t nifs;
     virNetworkForwardIfDefPtr ifs;
+
+    /* ranges for NAT */
+    virSocketAddrRange addr;
+    virPortRange port;
 };
 
 typedef struct _virPortGroupDef virPortGroupDef;

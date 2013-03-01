@@ -1,7 +1,7 @@
 /*
  * qemu_monitor_json.c: interaction with QEMU monitor console
  *
- * Copyright (C) 2006-2012 Red Hat, Inc.
+ * Copyright (C) 2006-2013 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -249,10 +249,8 @@ qemuMonitorJSONCommandWithFd(qemuMonitorPtr mon,
         }
     }
 
-    if (!(cmdstr = virJSONValueToString(cmd, false))) {
-        virReportOOMError();
+    if (!(cmdstr = virJSONValueToString(cmd, false)))
         goto cleanup;
-    }
     if (virAsprintf(&msg.txBuffer, "%s\r\n", cmdstr) < 0) {
         virReportOOMError();
         goto cleanup;
@@ -339,7 +337,7 @@ qemuMonitorJSONCheckError(virJSONValuePtr cmd,
 
         /* Log the full JSON formatted command & error */
         VIR_DEBUG("unable to execute QEMU command %s: %s",
-                  cmdstr, replystr);
+                  NULLSTR(cmdstr), NULLSTR(replystr));
 
         /* Only send the user the command name + friendly error */
         if (!error)
@@ -360,7 +358,7 @@ qemuMonitorJSONCheckError(virJSONValuePtr cmd,
         char *replystr = virJSONValueToString(reply, false);
 
         VIR_DEBUG("Neither 'return' nor 'error' is set in the JSON reply %s: %s",
-                  cmdstr, replystr);
+                  NULLSTR(cmdstr), NULLSTR(replystr));
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("unable to execute QEMU command '%s'"),
                        qemuMonitorJSONCommandName(cmd));
@@ -2256,16 +2254,76 @@ int qemuMonitorJSONSetMigrationDowntime(qemuMonitorPtr mon,
 }
 
 
+int
+qemuMonitorJSONGetMigrationCacheSize(qemuMonitorPtr mon,
+                                     unsigned long long *cacheSize)
+{
+    int ret;
+    virJSONValuePtr cmd;
+    virJSONValuePtr reply = NULL;
+
+    *cacheSize = 0;
+
+    cmd = qemuMonitorJSONMakeCommand("query-migrate-cache-size", NULL);
+    if (!cmd)
+        return -1;
+
+    ret = qemuMonitorJSONCommand(mon, cmd, &reply);
+
+    if (ret == 0)
+        ret = qemuMonitorJSONCheckError(cmd, reply);
+
+    if (ret < 0)
+        goto cleanup;
+
+    ret = virJSONValueObjectGetNumberUlong(reply, "return", cacheSize);
+    if (ret < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("query-migrate-cache-size reply was missing "
+                         "'return' data"));
+        goto cleanup;
+    }
+
+    ret = 0;
+cleanup:
+    virJSONValueFree(cmd);
+    virJSONValueFree(reply);
+    return ret;
+}
+
+
+int
+qemuMonitorJSONSetMigrationCacheSize(qemuMonitorPtr mon,
+                                     unsigned long long cacheSize)
+{
+    int ret;
+    virJSONValuePtr cmd;
+    virJSONValuePtr reply = NULL;
+
+    cmd = qemuMonitorJSONMakeCommand("migrate-set-cache-size",
+                                     "U:value", cacheSize,
+                                     NULL);
+    if (!cmd)
+        return -1;
+
+    ret = qemuMonitorJSONCommand(mon, cmd, &reply);
+
+    if (ret == 0)
+        ret = qemuMonitorJSONCheckError(cmd, reply);
+
+    virJSONValueFree(cmd);
+    virJSONValueFree(reply);
+    return ret;
+}
+
+
 static int
 qemuMonitorJSONGetMigrationStatusReply(virJSONValuePtr reply,
-                                       int *status,
-                                       unsigned long long *transferred,
-                                       unsigned long long *remaining,
-                                       unsigned long long *total)
+                                       qemuMonitorMigrationStatusPtr status)
 {
     virJSONValuePtr ret;
     const char *statusstr;
-    unsigned long long t;
+    int rc;
 
     if (!(ret = virJSONValueObjectGet(reply, "return"))) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
@@ -2279,13 +2337,25 @@ qemuMonitorJSONGetMigrationStatusReply(virJSONValuePtr reply,
         return -1;
     }
 
-    if ((*status = qemuMonitorMigrationStatusTypeFromString(statusstr)) < 0) {
+    status->status = qemuMonitorMigrationStatusTypeFromString(statusstr);
+    if (status->status < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("unexpected migration status in %s"), statusstr);
         return -1;
     }
 
-    if (*status == QEMU_MONITOR_MIGRATION_STATUS_ACTIVE) {
+    virJSONValueObjectGetNumberUlong(ret, "total-time", &status->total_time);
+    if (status->status == QEMU_MONITOR_MIGRATION_STATUS_COMPLETED) {
+        rc = virJSONValueObjectGetNumberUlong(ret, "downtime",
+                                              &status->downtime);
+    } else {
+        rc = virJSONValueObjectGetNumberUlong(ret, "expected-downtime",
+                                              &status->downtime);
+    }
+    if (rc == 0)
+        status->downtime_set = true;
+
+    if (status->status == QEMU_MONITOR_MIGRATION_STATUS_ACTIVE) {
         virJSONValuePtr ram = virJSONValueObjectGet(ret, "ram");
         if (!ram) {
             virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
@@ -2294,51 +2364,112 @@ qemuMonitorJSONGetMigrationStatusReply(virJSONValuePtr reply,
         }
 
         if (virJSONValueObjectGetNumberUlong(ram, "transferred",
-                                             transferred) < 0) {
+                                             &status->ram_transferred) < 0) {
             virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                            _("migration was active, but RAM 'transferred' "
                              "data was missing"));
             return -1;
         }
-        if (virJSONValueObjectGetNumberUlong(ram, "remaining", remaining) < 0) {
+        if (virJSONValueObjectGetNumberUlong(ram, "remaining",
+                                             &status->ram_remaining) < 0) {
             virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                            _("migration was active, but RAM 'remaining' "
                              "data was missing"));
             return -1;
         }
-        if (virJSONValueObjectGetNumberUlong(ram, "total", total) < 0) {
+        if (virJSONValueObjectGetNumberUlong(ram, "total",
+                                             &status->ram_total) < 0) {
             virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                            _("migration was active, but RAM 'total' "
                              "data was missing"));
             return -1;
         }
 
+        if (virJSONValueObjectGetNumberUlong(ram, "duplicate",
+                                             &status->ram_duplicate) == 0)
+            status->ram_duplicate_set = true;
+        virJSONValueObjectGetNumberUlong(ram, "normal", &status->ram_normal);
+        virJSONValueObjectGetNumberUlong(ram, "normal-bytes",
+                                         &status->ram_normal_bytes);
+
         virJSONValuePtr disk = virJSONValueObjectGet(ret, "disk");
-        if (!disk) {
-            return 0;
+        if (disk) {
+            rc = virJSONValueObjectGetNumberUlong(disk, "transferred",
+                                                  &status->disk_transferred);
+            if (rc < 0) {
+                virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                               _("disk migration was active, but "
+                                 "'transferred' data was missing"));
+                return -1;
+            }
+
+            rc = virJSONValueObjectGetNumberUlong(disk, "remaining",
+                                                  &status->disk_remaining);
+            if (rc < 0) {
+                virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                               _("disk migration was active, but 'remaining' "
+                                 "data was missing"));
+                return -1;
+            }
+
+            rc = virJSONValueObjectGetNumberUlong(disk, "total",
+                                                  &status->disk_total);
+            if (rc < 0) {
+                virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                               _("disk migration was active, but 'total' "
+                                 "data was missing"));
+                return -1;
+            }
         }
 
-        if (virJSONValueObjectGetNumberUlong(disk, "transferred", &t) < 0) {
-            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                           _("disk migration was active, but 'transferred' "
-                             "data was missing"));
-            return -1;
+        virJSONValuePtr comp = virJSONValueObjectGet(ret, "xbzrle-cache");
+        if (comp) {
+            status->xbzrle_set = true;
+            rc = virJSONValueObjectGetNumberUlong(comp, "cache-size",
+                                                  &status->xbzrle_cache_size);
+            if (rc < 0) {
+                virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                               _("XBZRLE is active, but 'cache-size' data "
+                                 "was missing"));
+                return -1;
+            }
+
+            rc = virJSONValueObjectGetNumberUlong(comp, "bytes",
+                                                  &status->xbzrle_bytes);
+            if (rc < 0) {
+                virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                               _("XBZRLE is active, but 'bytes' data "
+                                 "was missing"));
+                return -1;
+            }
+
+            rc = virJSONValueObjectGetNumberUlong(comp, "pages",
+                                                  &status->xbzrle_pages);
+            if (rc < 0) {
+                virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                               _("XBZRLE is active, but 'pages' data "
+                                 "was missing"));
+                return -1;
+            }
+
+            rc = virJSONValueObjectGetNumberUlong(comp, "cache-miss",
+                                                  &status->xbzrle_cache_miss);
+            if (rc < 0) {
+                virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                               _("XBZRLE is active, but 'cache-miss' data "
+                                 "was missing"));
+                return -1;
+            }
+
+            rc = virJSONValueObjectGetNumberUlong(comp, "overflow",
+                                                  &status->xbzrle_overflow);
+            if (rc < 0) {
+                virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                               _("XBZRLE is active, but 'overflow' data "
+                                 "was missing"));
+                return -1;
+            }
         }
-        *transferred += t;
-        if (virJSONValueObjectGetNumberUlong(disk, "remaining", &t) < 0) {
-            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                           _("disk migration was active, but 'remaining' "
-                             "data was missing"));
-            return -1;
-        }
-        *remaining += t;
-        if (virJSONValueObjectGetNumberUlong(disk, "total", &t) < 0) {
-            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                           _("disk migration was active, but 'total' "
-                             "data was missing"));
-            return -1;
-        }
-        *total += t;
     }
 
     return 0;
@@ -2346,18 +2477,14 @@ qemuMonitorJSONGetMigrationStatusReply(virJSONValuePtr reply,
 
 
 int qemuMonitorJSONGetMigrationStatus(qemuMonitorPtr mon,
-                                      int *status,
-                                      unsigned long long *transferred,
-                                      unsigned long long *remaining,
-                                      unsigned long long *total)
+                                      qemuMonitorMigrationStatusPtr status)
 {
     int ret;
     virJSONValuePtr cmd = qemuMonitorJSONMakeCommand("query-migrate",
                                                      NULL);
     virJSONValuePtr reply = NULL;
 
-    *status = 0;
-    *transferred = *remaining = *total = 0;
+    memset(status, 0, sizeof(*status));
 
     if (!cmd)
         return -1;
@@ -2368,13 +2495,11 @@ int qemuMonitorJSONGetMigrationStatus(qemuMonitorPtr mon,
         ret = qemuMonitorJSONCheckError(cmd, reply);
 
     if (ret == 0 &&
-        qemuMonitorJSONGetMigrationStatusReply(reply,
-                                               status,
-                                               transferred,
-                                               remaining,
-                                               total) < 0)
+        qemuMonitorJSONGetMigrationStatusReply(reply, status) < 0)
         ret = -1;
 
+    if (ret < 0)
+        memset(status, 0, sizeof(*status));
     virJSONValueFree(cmd);
     virJSONValueFree(reply);
     return ret;
@@ -2631,6 +2756,85 @@ int qemuMonitorJSONCloseFileHandle(qemuMonitorPtr mon,
     virJSONValuePtr cmd = qemuMonitorJSONMakeCommand("closefd",
                                                      "s:fdname", fdname,
                                                      NULL);
+    virJSONValuePtr reply = NULL;
+    if (!cmd)
+        return -1;
+
+    ret = qemuMonitorJSONCommand(mon, cmd, &reply);
+
+    if (ret == 0)
+        ret = qemuMonitorJSONCheckError(cmd, reply);
+
+    virJSONValueFree(cmd);
+    virJSONValueFree(reply);
+    return ret;
+}
+
+
+int
+qemuMonitorJSONAddFd(qemuMonitorPtr mon, int fdset, int fd, const char *name)
+{
+    int ret;
+    virJSONValuePtr cmd = qemuMonitorJSONMakeCommand("add-fd",
+                                                     "i:fdset-id", fdset,
+                                                     name ? "s:opaque" : NULL,
+                                                     name, NULL);
+    virJSONValuePtr reply = NULL;
+    if (!cmd)
+        return -1;
+
+    ret = qemuMonitorJSONCommandWithFd(mon, cmd, fd, &reply);
+
+    if (ret == 0) {
+        /* qemu 1.2 lacks the functionality we need; but we have to
+         * probe to find that out.  Don't log errors in that case.  */
+        if (STREQ_NULLABLE(name, "/dev/null") &&
+            qemuMonitorJSONHasError(reply, "GenericError")) {
+            ret = -2;
+            goto cleanup;
+        }
+        ret = qemuMonitorJSONCheckError(cmd, reply);
+    }
+    if (ret == 0) {
+        virJSONValuePtr data = virJSONValueObjectGet(reply, "return");
+
+        if (!data || data->type != VIR_JSON_TYPE_OBJECT) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("missing return information"));
+            goto error;
+        }
+        data = virJSONValueObjectGet(data, "fd");
+        if (!data || data->type != VIR_JSON_TYPE_NUMBER ||
+            virJSONValueGetNumberInt(data, &ret) < 0) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("incomplete return information"));
+            goto error;
+        }
+    }
+
+cleanup:
+    virJSONValueFree(cmd);
+    virJSONValueFree(reply);
+    return ret;
+
+error:
+    /* Best effort cleanup - kill the entire fdset (even if it has
+     * earlier successful fd registrations), since we don't know which
+     * fd qemu got, and don't want to leave the fd leaked in qemu.  */
+    qemuMonitorJSONRemoveFd(mon, fdset, -1);
+    ret = -1;
+    goto cleanup;
+}
+
+
+int
+qemuMonitorJSONRemoveFd(qemuMonitorPtr mon, int fdset, int fd)
+{
+    int ret;
+    virJSONValuePtr cmd = qemuMonitorJSONMakeCommand("remove-fd",
+                                                     "i:fdset-id", fdset,
+                                                     fd < 0 ? NULL : "i:fd",
+                                                     fd, NULL);
     virJSONValuePtr reply = NULL;
     if (!cmd)
         return -1;
@@ -4276,6 +4480,229 @@ qemuMonitorJSONGetTargetArch(qemuMonitorPtr mon)
     }
 
 cleanup:
+    virJSONValueFree(cmd);
+    virJSONValueFree(reply);
+    return ret;
+}
+
+
+int
+qemuMonitorJSONGetMigrationCapability(qemuMonitorPtr mon,
+                                      qemuMonitorMigrationCaps capability)
+{
+    int ret;
+    virJSONValuePtr cmd;
+    virJSONValuePtr reply = NULL;
+    virJSONValuePtr caps;
+    int i;
+
+    if (!(cmd = qemuMonitorJSONMakeCommand("query-migrate-capabilities",
+                                           NULL)))
+        return -1;
+
+    ret = qemuMonitorJSONCommand(mon, cmd, &reply);
+
+    if (ret == 0) {
+        if (qemuMonitorJSONHasError(reply, "CommandNotFound"))
+            goto cleanup;
+        ret = qemuMonitorJSONCheckError(cmd, reply);
+    }
+
+    if (ret < 0)
+        goto cleanup;
+
+    ret = -1;
+
+    caps = virJSONValueObjectGet(reply, "return");
+    if (!caps || caps->type != VIR_JSON_TYPE_ARRAY) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("missing migration capabilities"));
+        goto cleanup;
+    }
+
+    for (i = 0; i < virJSONValueArraySize(caps); i++) {
+        virJSONValuePtr cap = virJSONValueArrayGet(caps, i);
+        const char *name;
+
+        if (!cap || cap->type != VIR_JSON_TYPE_OBJECT) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("missing entry in migration capabilities list"));
+            goto cleanup;
+        }
+
+        if (!(name = virJSONValueObjectGetString(cap, "capability"))) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("missing migration capability name"));
+            goto cleanup;
+        }
+
+        if (qemuMonitorMigrationCapsTypeFromString(name) == capability) {
+            ret = 1;
+            goto cleanup;
+        }
+    }
+
+    ret = 0;
+
+cleanup:
+    virJSONValueFree(cmd);
+    virJSONValueFree(reply);
+    return ret;
+}
+
+
+int
+qemuMonitorJSONSetMigrationCapability(qemuMonitorPtr mon,
+                                      qemuMonitorMigrationCaps capability)
+{
+    int ret = -1;
+
+    virJSONValuePtr cmd = NULL;
+    virJSONValuePtr reply = NULL;
+    virJSONValuePtr cap = NULL;
+    virJSONValuePtr caps;
+
+    if (!(caps = virJSONValueNewArray()))
+        goto cleanup;
+
+    if (!(cap = virJSONValueNewObject()))
+        goto no_memory;
+
+    if (virJSONValueObjectAppendString(
+                cap, "capability",
+                qemuMonitorMigrationCapsTypeToString(capability)) < 0)
+        goto no_memory;
+
+    if (virJSONValueObjectAppendBoolean(cap, "state", 1) < 0)
+        goto no_memory;
+
+    if (virJSONValueArrayAppend(caps, cap) < 0)
+        goto no_memory;
+
+    cap = NULL;
+
+    cmd = qemuMonitorJSONMakeCommand("migrate-set-capabilities",
+                                     "a:capabilities", caps,
+                                     NULL);
+    if (!cmd)
+        goto cleanup;
+
+    caps = NULL;
+
+    if ((ret = qemuMonitorJSONCommand(mon, cmd, &reply)) < 0)
+        goto cleanup;
+
+    ret = qemuMonitorJSONCheckError(cmd, reply);
+
+cleanup:
+    virJSONValueFree(caps);
+    virJSONValueFree(cap);
+    virJSONValueFree(cmd);
+    virJSONValueFree(reply);
+    return ret;
+
+no_memory:
+    virReportOOMError();
+    goto cleanup;
+}
+
+int
+qemuMonitorJSONNBDServerStart(qemuMonitorPtr mon,
+                              const char *host,
+                              unsigned int port)
+{
+    int ret = -1;
+    virJSONValuePtr cmd = NULL;
+    virJSONValuePtr reply = NULL;
+    virJSONValuePtr data = NULL;
+    virJSONValuePtr addr = NULL;
+    char *port_str = NULL;
+
+    if (!(data = virJSONValueNewObject()) ||
+        !(addr = virJSONValueNewObject()) ||
+        (virAsprintf(&port_str, "%u", port) < 0)) {
+        virReportOOMError();
+        goto cleanup;
+    }
+
+    /* port is really expected as a string here by qemu */
+    if (virJSONValueObjectAppendString(data, "host", host) < 0 ||
+        virJSONValueObjectAppendString(data, "port", port_str) < 0 ||
+        virJSONValueObjectAppendString(addr, "type", "inet") < 0 ||
+        virJSONValueObjectAppend(addr, "data", data) < 0) {
+        virReportOOMError();
+        goto cleanup;
+    }
+
+    /* From now on, @data is part of @addr */
+    data = NULL;
+
+    if (!(cmd = qemuMonitorJSONMakeCommand("nbd-server-start",
+                                           "a:addr", addr,
+                                           NULL)))
+        goto cleanup;
+
+    /* From now on, @addr is part of @cmd */
+    addr = NULL;
+
+    if (qemuMonitorJSONCommand(mon, cmd, &reply) < 0)
+        goto cleanup;
+
+    if (qemuMonitorJSONCheckError(cmd, reply) < 0)
+        goto cleanup;
+
+    ret = 0;
+
+cleanup:
+    VIR_FREE(port_str);
+    virJSONValueFree(reply);
+    virJSONValueFree(cmd);
+    virJSONValueFree(addr);
+    virJSONValueFree(data);
+    return ret;
+}
+
+int
+qemuMonitorJSONNBDServerAdd(qemuMonitorPtr mon,
+                            const char *deviceID,
+                            bool writable)
+{
+    int ret = -1;
+    virJSONValuePtr cmd;
+    virJSONValuePtr reply = NULL;
+
+    if (!(cmd = qemuMonitorJSONMakeCommand("nbd-server-add",
+                                           "s:device", deviceID,
+                                           "b:writable", writable,
+                                           NULL)))
+        return ret;
+
+    ret = qemuMonitorJSONCommand(mon, cmd, &reply);
+
+    if (ret == 0)
+        ret = qemuMonitorJSONCheckError(cmd, reply);
+
+    virJSONValueFree(cmd);
+    virJSONValueFree(reply);
+    return ret;
+}
+
+int
+qemuMonitorJSONNBDServerStop(qemuMonitorPtr mon)
+{
+    int ret = -1;
+    virJSONValuePtr cmd;
+    virJSONValuePtr reply = NULL;
+
+    if (!(cmd = qemuMonitorJSONMakeCommand("nbd-server-stop",
+                                           NULL)))
+        return ret;
+
+    ret = qemuMonitorJSONCommand(mon, cmd, &reply);
+
+    if (ret == 0)
+        ret = qemuMonitorJSONCheckError(cmd, reply);
+
     virJSONValueFree(cmd);
     virJSONValueFree(reply);
     return ret;

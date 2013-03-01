@@ -278,10 +278,18 @@
                 </zeroOrMore>
                 <zeroOrMore>
                   <element name="host">
-                    <optional>
-                      <attribute name="mac"><ref name="uniMacAddr"/></attribute>
-                    </optional>
-                    <attribute name="name"><text/></attribute>
+                    <choice>
+                      <group>
+                        <choice>
+                          <attribute name="mac"><ref name="uniMacAddr"/></attribute>
+                          <attribute name="id"><ref name="DUID"/></attribute>
+                        </choice>
+                        <optional>
+                          <attribute name="name"><text/></attribute>
+                        </optional>
+                      </group>
+                      <attribute name="name"><text/></attribute>
+                    </choice>
                     <attribute name="ip"><ref name="ipAddr"/></attribute>
                   </element>
                 </zeroOrMore>
@@ -293,6 +301,12 @@
                     </optional>
                   </element>
                 </optional>
+                <zeroOrMore>
+                  <element name="option">
+                    <attribute name="number"><ref name="uint8range"/></attribute>
+                    <attribute name="value"><text/></attribute>
+                  </element>
+                </zeroOrMore>
               </element>
             </optional>
           </element>

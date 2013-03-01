@@ -52,6 +52,7 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
+@WITH_PYTHON_TRUE@am__append_1 = sanitytest.py
 subdir = python
 DIST_COMMON = README $(srcdir)/Makefile.am $(srcdir)/Makefile.in TODO
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -1415,6 +1416,7 @@ NETCF_CFLAGS = @NETCF_CFLAGS@
 NETCF_LIBS = @NETCF_LIBS@
 NETINET_IN_H = @NETINET_IN_H@
 NET_IF_H = @NET_IF_H@
+NET_IF_LIB = @NET_IF_LIB@
 NEXT_ARPA_INET_H = @NEXT_ARPA_INET_H@
 NEXT_AS_FIRST_DIRECTIVE_ARPA_INET_H = @NEXT_AS_FIRST_DIRECTIVE_ARPA_INET_H@
 NEXT_AS_FIRST_DIRECTIVE_ERRNO_H = @NEXT_AS_FIRST_DIRECTIVE_ERRNO_H@
@@ -1909,20 +1911,12 @@ CLASSES_EXTRA = \
 	libvirt-override-virDomainSnapshot.py \
 	libvirt-override-virStream.py
 
-EXTRA_DIST = \
-	generator.py		\
-	typewrappers.c		\
-	typewrappers.h		\
-	libvirt-override.c	\
-	libvirt-override.py	\
-	libvirt-override-api.xml \
-	libvirt-lxc-override.c	\
-	libvirt-lxc-override-api.xml \
-	libvirt-qemu-override.c	\
-	libvirt-qemu-override-api.xml \
-	$(CLASSES_EXTRA) \
-	$(DOCS)
-
+EXTRA_DIST = generator.py typewrappers.c typewrappers.h \
+	libvirt-override.c libvirt-override.py \
+	libvirt-override-api.xml libvirt-lxc-override.c \
+	libvirt-lxc-override-api.xml libvirt-qemu-override.c \
+	libvirt-qemu-override-api.xml $(CLASSES_EXTRA) $(DOCS) \
+	$(am__append_1)
 @WITH_PYTHON_TRUE@mylibs = \
 @WITH_PYTHON_TRUE@	$(top_builddir)/src/libvirt.la \
 @WITH_PYTHON_TRUE@	$(top_builddir)/gnulib/lib/libgnu.la
@@ -2358,7 +2352,9 @@ distdir: $(DISTFILES)
 	      || exit 1; \
 	  fi; \
 	done
+@WITH_PYTHON_FALSE@check-local:
 check-am: all-am
+	$(MAKE) $(AM_MAKEFLAGS) check-local
 check: check-recursive
 @WITH_PYTHON_FALSE@all-local:
 all-am: Makefile $(LTLIBRARIES) all-local
@@ -2471,13 +2467,13 @@ ps-am:
 
 uninstall-am: uninstall-local uninstall-pyexecLTLIBRARIES
 
-.MAKE: $(RECURSIVE_CLEAN_TARGETS) $(RECURSIVE_TARGETS) ctags-recursive \
-	install-am install-strip tags-recursive
+.MAKE: $(RECURSIVE_CLEAN_TARGETS) $(RECURSIVE_TARGETS) check-am \
+	ctags-recursive install-am install-strip tags-recursive
 
 .PHONY: $(RECURSIVE_CLEAN_TARGETS) $(RECURSIVE_TARGETS) CTAGS GTAGS \
-	all all-am all-local check check-am clean clean-generic \
-	clean-libtool clean-pyexecLTLIBRARIES ctags ctags-recursive \
-	distclean distclean-compile distclean-generic \
+	all all-am all-local check check-am check-local clean \
+	clean-generic clean-libtool clean-pyexecLTLIBRARIES ctags \
+	ctags-recursive distclean distclean-compile distclean-generic \
 	distclean-libtool distclean-tags distdir dvi dvi-am html \
 	html-am info info-am install install-am install-data \
 	install-data-am install-data-local install-dvi install-dvi-am \
@@ -2503,6 +2499,9 @@ uninstall-am: uninstall-local uninstall-pyexecLTLIBRARIES
 @WITH_PYTHON_TRUE@$(libvirtmod_la_OBJECTS): $(GENERATED)
 @WITH_PYTHON_TRUE@$(libvirtmod_qemu_la_OBJECTS): $(QEMU_GENERATED)
 @WITH_PYTHON_TRUE@$(libvirtmod_lxc_la_OBJECTS): $(LXC_GENERATED)
+
+@WITH_PYTHON_TRUE@check-local:
+@WITH_PYTHON_TRUE@	$(AM_V_GEN)../run $(PYTHON) $(srcdir)/sanitytest.py
 
 @WITH_PYTHON_TRUE@install-data-local:
 @WITH_PYTHON_TRUE@	$(mkinstalldirs) $(DESTDIR)$(pyexecdir)

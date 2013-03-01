@@ -38,14 +38,14 @@ int qemuPrepareHostdevPCIDevices(virQEMUDriverPtr driver,
                                  int nhostdevs);
 int qemuFindHostdevUSBDevice(virDomainHostdevDefPtr hostdev,
                              bool mandatory,
-                             usbDevice **usb);
+                             virUSBDevicePtr *usb);
 int qemuPrepareHostdevUSBDevices(virQEMUDriverPtr driver,
                                  const char *name,
-                                 usbDeviceList *list);
+                                 virUSBDeviceListPtr list);
 int qemuPrepareHostDevices(virQEMUDriverPtr driver,
                            virDomainDefPtr def,
                            bool coldBoot);
-void qemuReattachPciDevice(pciDevice *dev, virQEMUDriverPtr driver);
+void qemuReattachPciDevice(virPCIDevicePtr dev, virQEMUDriverPtr driver);
 void qemuDomainReAttachHostdevDevices(virQEMUDriverPtr driver,
                                       const char *name,
                                       virDomainHostdevDefPtr *hostdevs,

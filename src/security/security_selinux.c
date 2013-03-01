@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2012 Red Hat, Inc.
+ * Copyright (C) 2008-2013 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -560,12 +560,6 @@ virSecuritySELinuxGenSecurityLabel(virSecurityManagerPtr mgr,
     virSecuritySELinuxDataPtr data;
     const char *baselabel;
 
-    if (mgr == NULL) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       "%s", _("invalid security driver"));
-        return rc;
-    }
-
     seclabel = virDomainDefGetSecurityLabelDef(def, SECURITY_SELINUX_NAME);
     if (seclabel == NULL) {
         return rc;
@@ -968,7 +962,7 @@ virSecuritySELinuxFSetFilecon(int fd, char *tcon)
 
 /* Set fcon to the appropriate label for path and mode, or return -1.  */
 static int
-getContext(virSecurityManagerPtr mgr,
+getContext(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
            const char *newpath, mode_t mode, security_context_t *fcon)
 {
 #if HAVE_SELINUX_LABEL_H
@@ -1159,7 +1153,7 @@ virSecuritySELinuxSetSecurityImageLabel(virSecurityManagerPtr mgr,
 
 
 static int
-virSecuritySELinuxSetSecurityPCILabel(pciDevice *dev ATTRIBUTE_UNUSED,
+virSecuritySELinuxSetSecurityPCILabel(virPCIDevicePtr dev ATTRIBUTE_UNUSED,
                                       const char *file, void *opaque)
 {
     virSecurityLabelDefPtr secdef;
@@ -1172,7 +1166,7 @@ virSecuritySELinuxSetSecurityPCILabel(pciDevice *dev ATTRIBUTE_UNUSED,
 }
 
 static int
-virSecuritySELinuxSetSecurityUSBLabel(usbDevice *dev ATTRIBUTE_UNUSED,
+virSecuritySELinuxSetSecurityUSBLabel(virUSBDevicePtr dev ATTRIBUTE_UNUSED,
                                       const char *file, void *opaque)
 {
     virSecurityLabelDefPtr secdef;
@@ -1196,33 +1190,34 @@ virSecuritySELinuxSetSecurityHostdevSubsysLabel(virDomainDefPtr def,
 
     switch (dev->source.subsys.type) {
     case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_USB: {
-        usbDevice *usb;
+        virUSBDevicePtr usb;
 
         if (dev->missing)
             return 0;
 
-        usb = usbGetDevice(dev->source.subsys.u.usb.bus,
-                           dev->source.subsys.u.usb.device,
-                           vroot);
+        usb = virUSBDeviceNew(dev->source.subsys.u.usb.bus,
+                              dev->source.subsys.u.usb.device,
+                              vroot);
         if (!usb)
             goto done;
 
-        ret = usbDeviceFileIterate(usb, virSecuritySELinuxSetSecurityUSBLabel, def);
-        usbFreeDevice(usb);
+        ret = virUSBDeviceFileIterate(usb, virSecuritySELinuxSetSecurityUSBLabel, def);
+        virUSBDeviceFree(usb);
         break;
     }
 
     case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI: {
-        pciDevice *pci = pciGetDevice(dev->source.subsys.u.pci.domain,
-                                      dev->source.subsys.u.pci.bus,
-                                      dev->source.subsys.u.pci.slot,
-                                      dev->source.subsys.u.pci.function);
+        virPCIDevicePtr pci =
+            virPCIDeviceNew(dev->source.subsys.u.pci.domain,
+                            dev->source.subsys.u.pci.bus,
+                            dev->source.subsys.u.pci.slot,
+                            dev->source.subsys.u.pci.function);
 
         if (!pci)
             goto done;
 
-        ret = pciDeviceFileIterate(pci, virSecuritySELinuxSetSecurityPCILabel, def);
-        pciFreeDevice(pci);
+        ret = virPCIDeviceFileIterate(pci, virSecuritySELinuxSetSecurityPCILabel, def);
+        virPCIDeviceFree(pci);
 
         break;
     }
@@ -1326,7 +1321,7 @@ virSecuritySELinuxSetSecurityHostdevLabel(virSecurityManagerPtr mgr ATTRIBUTE_UN
 
 
 static int
-virSecuritySELinuxRestoreSecurityPCILabel(pciDevice *dev ATTRIBUTE_UNUSED,
+virSecuritySELinuxRestoreSecurityPCILabel(virPCIDevicePtr dev ATTRIBUTE_UNUSED,
                                           const char *file,
                                           void *opaque)
 {
@@ -1336,7 +1331,7 @@ virSecuritySELinuxRestoreSecurityPCILabel(pciDevice *dev ATTRIBUTE_UNUSED,
 }
 
 static int
-virSecuritySELinuxRestoreSecurityUSBLabel(usbDevice *dev ATTRIBUTE_UNUSED,
+virSecuritySELinuxRestoreSecurityUSBLabel(virUSBDevicePtr dev ATTRIBUTE_UNUSED,
                                           const char *file,
                                           void *opaque)
 {
@@ -1356,34 +1351,35 @@ virSecuritySELinuxRestoreSecurityHostdevSubsysLabel(virSecurityManagerPtr mgr,
 
     switch (dev->source.subsys.type) {
     case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_USB: {
-        usbDevice *usb;
+        virUSBDevicePtr usb;
 
         if (dev->missing)
             return 0;
 
-        usb = usbGetDevice(dev->source.subsys.u.usb.bus,
-                           dev->source.subsys.u.usb.device,
-                           vroot);
+        usb = virUSBDeviceNew(dev->source.subsys.u.usb.bus,
+                              dev->source.subsys.u.usb.device,
+                              vroot);
         if (!usb)
             goto done;
 
-        ret = usbDeviceFileIterate(usb, virSecuritySELinuxRestoreSecurityUSBLabel, mgr);
-        usbFreeDevice(usb);
+        ret = virUSBDeviceFileIterate(usb, virSecuritySELinuxRestoreSecurityUSBLabel, mgr);
+        virUSBDeviceFree(usb);
 
         break;
     }
 
     case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI: {
-        pciDevice *pci = pciGetDevice(dev->source.subsys.u.pci.domain,
-                                      dev->source.subsys.u.pci.bus,
-                                      dev->source.subsys.u.pci.slot,
-                                      dev->source.subsys.u.pci.function);
+        virPCIDevicePtr pci =
+            virPCIDeviceNew(dev->source.subsys.u.pci.domain,
+                            dev->source.subsys.u.pci.bus,
+                            dev->source.subsys.u.pci.slot,
+                            dev->source.subsys.u.pci.function);
 
         if (!pci)
             goto done;
 
-        ret = pciDeviceFileIterate(pci, virSecuritySELinuxRestoreSecurityPCILabel, mgr);
-        pciFreeDevice(pci);
+        ret = virPCIDeviceFileIterate(pci, virSecuritySELinuxRestoreSecurityPCILabel, mgr);
+        virPCIDeviceFree(pci);
 
         break;
     }
@@ -1801,12 +1797,12 @@ virSecuritySELinuxSecurityVerify(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
     if (secdef == NULL)
         return -1;
 
-    if (!STREQ(virSecurityManagerGetModel(mgr), secdef->model)) {
+    if (!STREQ(SECURITY_SELINUX_NAME, secdef->model)) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("security label driver mismatch: "
                          "'%s' model configured for domain, but "
                          "hypervisor driver is '%s'."),
-                       secdef->model, virSecurityManagerGetModel(mgr));
+                       secdef->model, SECURITY_SELINUX_NAME);
         return -1;
     }
 
@@ -1821,7 +1817,7 @@ virSecuritySELinuxSecurityVerify(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
 }
 
 static int
-virSecuritySELinuxSetSecurityProcessLabel(virSecurityManagerPtr mgr,
+virSecuritySELinuxSetSecurityProcessLabel(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
                                           virDomainDefPtr def)
 {
     /* TODO: verify DOI */
@@ -1835,12 +1831,12 @@ virSecuritySELinuxSetSecurityProcessLabel(virSecurityManagerPtr mgr,
         return 0;
 
     VIR_DEBUG("label=%s", secdef->label);
-    if (!STREQ(virSecurityManagerGetModel(mgr), secdef->model)) {
+    if (!STREQ(SECURITY_SELINUX_NAME, secdef->model)) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("security label driver mismatch: "
                          "'%s' model configured for domain, but "
                          "hypervisor driver is '%s'."),
-                       secdef->model, virSecurityManagerGetModel(mgr));
+                       secdef->model, SECURITY_SELINUX_NAME);
         if (security_getenforce() == 1)
             return -1;
     }
@@ -1857,7 +1853,38 @@ virSecuritySELinuxSetSecurityProcessLabel(virSecurityManagerPtr mgr,
 }
 
 static int
-virSecuritySELinuxSetSecurityDaemonSocketLabel(virSecurityManagerPtr mgr,
+virSecuritySELinuxSetSecurityChildProcessLabel(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
+                                               virDomainDefPtr def,
+                                               virCommandPtr cmd)
+{
+    /* TODO: verify DOI */
+    virSecurityLabelDefPtr secdef;
+
+    secdef = virDomainDefGetSecurityLabelDef(def, SECURITY_SELINUX_NAME);
+    if (secdef == NULL)
+        return -1;
+
+    if (secdef->label == NULL)
+        return 0;
+
+    VIR_DEBUG("label=%s", secdef->label);
+    if (!STREQ(SECURITY_SELINUX_NAME, secdef->model)) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("security label driver mismatch: "
+                         "'%s' model configured for domain, but "
+                         "hypervisor driver is '%s'."),
+                       secdef->model, SECURITY_SELINUX_NAME);
+        if (security_getenforce() == 1)
+            return -1;
+    }
+
+    /* save in cmd to be set after fork/before child process is exec'ed */
+    virCommandSetSELinuxLabel(cmd, secdef->label);
+    return 0;
+}
+
+static int
+virSecuritySELinuxSetSecurityDaemonSocketLabel(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
                                                virDomainDefPtr def)
 {
     /* TODO: verify DOI */
@@ -1873,12 +1900,12 @@ virSecuritySELinuxSetSecurityDaemonSocketLabel(virSecurityManagerPtr mgr,
     if (secdef->label == NULL)
         return 0;
 
-    if (!STREQ(virSecurityManagerGetModel(mgr), secdef->model)) {
+    if (!STREQ(SECURITY_SELINUX_NAME, secdef->model)) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("security label driver mismatch: "
                          "'%s' model configured for domain, but "
                          "hypervisor driver is '%s'."),
-                       secdef->model, virSecurityManagerGetModel(mgr));
+                       secdef->model, SECURITY_SELINUX_NAME);
         goto done;
     }
 
@@ -1910,7 +1937,7 @@ done:
 }
 
 static int
-virSecuritySELinuxSetSecuritySocketLabel(virSecurityManagerPtr mgr,
+virSecuritySELinuxSetSecuritySocketLabel(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
                                          virDomainDefPtr vm)
 {
     virSecurityLabelDefPtr secdef;
@@ -1923,12 +1950,12 @@ virSecuritySELinuxSetSecuritySocketLabel(virSecurityManagerPtr mgr,
     if (secdef->label == NULL)
         return 0;
 
-    if (!STREQ(virSecurityManagerGetModel(mgr), secdef->model)) {
+    if (!STREQ(SECURITY_SELINUX_NAME, secdef->model)) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("security label driver mismatch: "
                          "'%s' model configured for domain, but "
                          "hypervisor driver is '%s'."),
-                       secdef->model, virSecurityManagerGetModel(mgr));
+                       secdef->model, SECURITY_SELINUX_NAME);
         goto done;
     }
 
@@ -1951,7 +1978,7 @@ done:
 }
 
 static int
-virSecuritySELinuxClearSecuritySocketLabel(virSecurityManagerPtr mgr,
+virSecuritySELinuxClearSecuritySocketLabel(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
                                            virDomainDefPtr def)
 {
     /* TODO: verify DOI */
@@ -1964,12 +1991,12 @@ virSecuritySELinuxClearSecuritySocketLabel(virSecurityManagerPtr mgr,
     if (secdef->label == NULL)
         return 0;
 
-    if (!STREQ(virSecurityManagerGetModel(mgr), secdef->model)) {
+    if (!STREQ(SECURITY_SELINUX_NAME, secdef->model)) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("security label driver mismatch: "
                          "'%s' model configured for domain, but "
                          "hypervisor driver is '%s'."),
-                       secdef->model, virSecurityManagerGetModel(mgr));
+                       secdef->model, SECURITY_SELINUX_NAME);
         if (security_getenforce() == 1)
             return -1;
     }
@@ -2259,6 +2286,7 @@ virSecurityDriver virSecurityDriverSELinux = {
 
     .domainGetSecurityProcessLabel      = virSecuritySELinuxGetSecurityProcessLabel,
     .domainSetSecurityProcessLabel      = virSecuritySELinuxSetSecurityProcessLabel,
+    .domainSetSecurityChildProcessLabel = virSecuritySELinuxSetSecurityChildProcessLabel,
 
     .domainSetSecurityAllLabel          = virSecuritySELinuxSetSecurityAllLabel,
     .domainRestoreSecurityAllLabel      = virSecuritySELinuxRestoreSecurityAllLabel,

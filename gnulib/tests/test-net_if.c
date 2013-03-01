@@ -20,11 +20,9 @@
 
 #include <net/if.h>
 
-static struct if_nameindex ni;
-
 /* We do not yet have replacements for if_* functions on systems that
    lack a native <net/if.h>.  */
-#if HAVE_NET_IF_H
+#if HAVE_NET_IF_H && HAVE_IF_NAMEINDEX
 # include "signature.h"
 SIGNATURE_CHECK (if_freenameindex, void, (struct if_nameindex *));
 SIGNATURE_CHECK (if_indextoname, char *, (unsigned int, char *));
@@ -38,7 +36,7 @@ SIGNATURE_CHECK (if_nametoindex, unsigned int, (const char *));
 int
 main (int argc, char *argv[])
 {
-#if HAVE_NET_IF_H
+#if HAVE_NET_IF_H && HAVE_IF_NAMEINDEX
   struct if_nameindex *ifnp, *p;
 
   p = ifnp = if_nameindex ();
@@ -89,5 +87,12 @@ main (int argc, char *argv[])
   if_freenameindex (ifnp);
 #endif /* HAVE_NET_IF_H */
 
-  return !IF_NAMESIZE + ni.if_index + !!ni.if_name;
+#if !HAVE_NET_IF_H || HAVE_IF_NAMEINDEX
+  {
+    static struct if_nameindex ni;
+    return !IF_NAMESIZE + ni.if_index + !!ni.if_name;
+  }
+#else
+  return 0;
+#endif
 }

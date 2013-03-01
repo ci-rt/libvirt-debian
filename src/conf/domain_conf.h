@@ -37,7 +37,6 @@
 # include "virhash.h"
 # include "virsocketaddr.h"
 # include "nwfilter_params.h"
-# include "nwfilter_conf.h"
 # include "virnetdevmacvlan.h"
 # include "virsysinfo.h"
 # include "virnetdevvportprofile.h"
@@ -115,6 +114,9 @@ typedef virDomainSnapshotObj *virDomainSnapshotObjPtr;
 typedef struct _virDomainSnapshotObjList virDomainSnapshotObjList;
 typedef virDomainSnapshotObjList *virDomainSnapshotObjListPtr;
 
+typedef struct _virDomainRNGDef virDomainRNGDef;
+typedef virDomainRNGDef *virDomainRNGDefPtr;
+
 /* Flags for the 'type' field in virDomainDeviceDef */
 typedef enum {
     VIR_DOMAIN_DEVICE_NONE = 0,
@@ -134,6 +136,7 @@ typedef enum {
     VIR_DOMAIN_DEVICE_SMARTCARD,
     VIR_DOMAIN_DEVICE_CHR,
     VIR_DOMAIN_DEVICE_MEMBALLOON,
+    VIR_DOMAIN_DEVICE_RNG,
 
     VIR_DOMAIN_DEVICE_LAST
 } virDomainDeviceType;
@@ -159,6 +162,7 @@ struct _virDomainDeviceDef {
         virDomainSmartcardDefPtr smartcard;
         virDomainChrDefPtr chr;
         virDomainMemballoonDefPtr memballoon;
+        virDomainRNGDefPtr rng;
     } data;
 };
 
@@ -1700,6 +1704,33 @@ struct _virBlkioDeviceWeight {
     unsigned int weight;
 };
 
+enum virDomainRNGModel {
+    VIR_DOMAIN_RNG_MODEL_VIRTIO,
+
+    VIR_DOMAIN_RNG_MODEL_LAST
+};
+
+enum virDomainRNGBackend {
+    VIR_DOMAIN_RNG_BACKEND_RANDOM,
+    VIR_DOMAIN_RNG_BACKEND_EGD,
+    /* VIR_DOMAIN_RNG_BACKEND_POOL, */
+
+    VIR_DOMAIN_RNG_BACKEND_LAST
+};
+
+struct _virDomainRNGDef {
+    int model;
+    int backend;
+
+    union {
+        char *file; /* file name for 'random' source */
+        virDomainChrSourceDefPtr chardev; /* a char backend for
+                                             the EGD source */
+    } source;
+
+    virDomainDeviceInfo info;
+};
+
 void virBlkioDeviceWeightArrayClear(virBlkioDeviceWeightPtr deviceWeights,
                                     int ndevices);
 
@@ -1838,6 +1869,7 @@ struct _virDomainDef {
     virCPUDefPtr cpu;
     virSysinfoDefPtr sysinfo;
     virDomainRedirFilterDefPtr redirfilter;
+    virDomainRNGDefPtr rng;
 
     void *namespaceData;
     virDomainXMLNamespace ns;
@@ -1893,11 +1925,6 @@ struct _virDomainObj {
 
 typedef struct _virDomainObjList virDomainObjList;
 typedef virDomainObjList *virDomainObjListPtr;
-struct _virDomainObjList {
-    /* uuid string -> virDomainObj  mapping
-     * for O(1), lockless lookup-by-uuid */
-    virHashTable *objs;
-};
 
 static inline bool
 virDomainObjIsActive(virDomainObjPtr dom)
@@ -1907,15 +1934,14 @@ virDomainObjIsActive(virDomainObjPtr dom)
 
 virDomainObjPtr virDomainObjNew(virCapsPtr caps);
 
-int virDomainObjListInit(virDomainObjListPtr objs);
-void virDomainObjListDeinit(virDomainObjListPtr objs);
+virDomainObjListPtr virDomainObjListNew(void);
 
-virDomainObjPtr virDomainFindByID(const virDomainObjListPtr doms,
-                                  int id);
-virDomainObjPtr virDomainFindByUUID(const virDomainObjListPtr doms,
-                                    const unsigned char *uuid);
-virDomainObjPtr virDomainFindByName(const virDomainObjListPtr doms,
-                                    const char *name);
+virDomainObjPtr virDomainObjListFindByID(const virDomainObjListPtr doms,
+                                         int id);
+virDomainObjPtr virDomainObjListFindByUUID(const virDomainObjListPtr doms,
+                                           const unsigned char *uuid);
+virDomainObjPtr virDomainObjListFindByName(const virDomainObjListPtr doms,
+                                           const char *name);
 
 bool virDomainObjTaint(virDomainObjPtr obj,
                        enum virDomainTaintFlags taint);
@@ -1928,6 +1954,9 @@ void virDomainDiskHostDefFree(virDomainDiskHostDefPtr def);
 int virDomainDiskFindControllerModel(virDomainDefPtr def,
                                      virDomainDiskDefPtr disk,
                                      int controllerType);
+virDomainDiskDefPtr virDomainDiskFindByBusAndDst(virDomainDefPtr def,
+                                                 int bus,
+                                                 char *dst);
 void virDomainControllerDefFree(virDomainControllerDefPtr def);
 void virDomainFSDefFree(virDomainFSDefPtr def);
 void virDomainActualNetDefFree(virDomainActualNetDefPtr def);
@@ -1973,15 +2002,19 @@ void virDomainDefFree(virDomainDefPtr vm);
 
 virDomainChrDefPtr virDomainChrDefNew(void);
 
-/* live == true means def describes an active domain (being migrated or
- * restored) as opposed to a new persistent configuration of the domain */
-virDomainObjPtr virDomainAssignDef(virCapsPtr caps,
-                                   virDomainObjListPtr doms,
-                                   const virDomainDefPtr def,
-                                   bool live);
+enum {
+    VIR_DOMAIN_OBJ_LIST_ADD_LIVE = (1 << 0),
+    VIR_DOMAIN_OBJ_LIST_ADD_CHECK_LIVE = (1 << 1),
+};
+virDomainObjPtr virDomainObjListAdd(virDomainObjListPtr doms,
+                                    virCapsPtr caps,
+                                    const virDomainDefPtr def,
+                                    unsigned int flags,
+                                    virDomainDefPtr *oldDef);
 void virDomainObjAssignDef(virDomainObjPtr domain,
                            const virDomainDefPtr def,
-                           bool live);
+                           bool live,
+                           virDomainDefPtr *oldDef);
 int virDomainObjSetDefTransient(virCapsPtr caps,
                                 virDomainObjPtr domain,
                                 bool live);
@@ -2000,8 +2033,8 @@ virDomainDefPtr virDomainDefCopy(virCapsPtr caps, virDomainDefPtr src,
 virDomainDefPtr
 virDomainObjCopyPersistentDef(virCapsPtr caps, virDomainObjPtr dom);
 
-void virDomainRemoveInactive(virDomainObjListPtr doms,
-                             virDomainObjPtr dom);
+void virDomainObjListRemove(virDomainObjListPtr doms,
+                            virDomainObjPtr dom);
 
 virDomainDeviceDefPtr virDomainDeviceDefParse(virCapsPtr caps,
                                               virDomainDefPtr def,
@@ -2048,6 +2081,8 @@ int virDomainEmulatorPinAdd(virDomainDefPtr def,
                               int maplen);
 
 int virDomainEmulatorPinDel(virDomainDefPtr def);
+
+void virDomainRNGDefFree(virDomainRNGDefPtr def);
 
 int virDomainDiskIndexByName(virDomainDefPtr def, const char *name,
                              bool allow_ambiguous);
@@ -2138,14 +2173,14 @@ typedef void (*virDomainLoadConfigNotify)(virDomainObjPtr dom,
                                           int newDomain,
                                           void *opaque);
 
-int virDomainLoadAllConfigs(virCapsPtr caps,
-                            virDomainObjListPtr doms,
-                            const char *configDir,
-                            const char *autostartDir,
-                            int liveStatus,
-                            unsigned int expectedVirtTypes,
-                            virDomainLoadConfigNotify notify,
-                            void *opaque);
+int virDomainObjListLoadAllConfigs(virDomainObjListPtr doms,
+                                   virCapsPtr caps,
+                                   const char *configDir,
+                                   const char *autostartDir,
+                                   int liveStatus,
+                                   unsigned int expectedVirtTypes,
+                                   virDomainLoadConfigNotify notify,
+                                   void *opaque);
 
 int virDomainDeleteConfig(const char *configDir,
                           const char *autostartDir,
@@ -2163,10 +2198,6 @@ int virDomainFSIndexByName(virDomainDefPtr def, const char *name);
 int virDomainVideoDefaultType(virDomainDefPtr def);
 int virDomainVideoDefaultRAM(virDomainDefPtr def, int type);
 
-int virDomainObjIsDuplicate(virDomainObjListPtr doms,
-                            virDomainDefPtr def,
-                            unsigned int check_active);
-
 int virDomainObjListNumOfDomains(virDomainObjListPtr doms, int active);
 
 int virDomainObjListGetActiveIDs(virDomainObjListPtr doms,
@@ -2175,6 +2206,13 @@ int virDomainObjListGetActiveIDs(virDomainObjListPtr doms,
 int virDomainObjListGetInactiveNames(virDomainObjListPtr doms,
                                      char **const names,
                                      int maxnames);
+
+typedef int (*virDomainObjListIterator)(virDomainObjPtr dom,
+                                        void *opaque);
+
+int virDomainObjListForEach(virDomainObjListPtr doms,
+                            virDomainObjListIterator callback,
+                            void *opaque);
 
 typedef int (*virDomainSmartcardDefIterator)(virDomainDefPtr def,
                                              virDomainSmartcardDefPtr dev,
@@ -2306,6 +2344,8 @@ VIR_ENUM_DECL(virDomainGraphicsSpiceMouseMode)
 VIR_ENUM_DECL(virDomainNumatuneMemMode)
 VIR_ENUM_DECL(virDomainNumatuneMemPlacementMode)
 VIR_ENUM_DECL(virDomainHyperv)
+VIR_ENUM_DECL(virDomainRNGModel)
+VIR_ENUM_DECL(virDomainRNGBackend)
 /* from libvirt.h */
 VIR_ENUM_DECL(virDomainState)
 VIR_ENUM_DECL(virDomainNostateReason)
@@ -2366,8 +2406,10 @@ VIR_ENUM_DECL(virDomainStartupPolicy)
                  VIR_CONNECT_LIST_DOMAINS_FILTERS_AUTOSTART   | \
                  VIR_CONNECT_LIST_DOMAINS_FILTERS_SNAPSHOT)
 
-int virDomainList(virConnectPtr conn, virHashTablePtr domobjs,
-                  virDomainPtr **domains, unsigned int flags);
+int virDomainObjListExport(virDomainObjListPtr doms,
+                           virConnectPtr conn,
+                           virDomainPtr **domains,
+                           unsigned int flags);
 
 virDomainVcpuPinDefPtr virDomainLookupVcpuPin(virDomainDefPtr def,
                                               int vcpuid);

@@ -43,8 +43,8 @@ vmwareFreeDriver(struct vmware_driver *driver)
         return;
 
     virMutexDestroy(&driver->lock);
-    virDomainObjListDeinit(&driver->domains);
-    virCapabilitiesFree(driver->caps);
+    virObjectUnref(driver->domains);
+    virObjectUnref(driver->caps);
     VIR_FREE(driver);
 }
 
@@ -133,7 +133,7 @@ cleanup:
     return caps;
 
 error:
-    virCapabilitiesFree(caps);
+    virObjectUnref(caps);
     goto cleanup;
 }
 
@@ -177,8 +177,9 @@ vmwareLoadDomains(struct vmware_driver *driver)
             goto cleanup;
         }
 
-        if (!(vm = virDomainAssignDef(driver->caps,
-                                      &driver->domains, vmdef, false)))
+        if (!(vm = virDomainObjListAdd(driver->domains,
+                                       driver->caps,
+                                       vmdef, 0, NULL)))
             goto cleanup;
 
         pDomain = vm->privateData;

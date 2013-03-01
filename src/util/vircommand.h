@@ -1,7 +1,7 @@
 /*
  * vircommand.h: Child command execution
  *
- * Copyright (C) 2010-2011 Red Hat, Inc.
+ * Copyright (C) 2010-2013 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -61,10 +61,20 @@ void virCommandTransferFD(virCommandPtr cmd,
 void virCommandSetPidFile(virCommandPtr cmd,
                           const char *pidfile) ATTRIBUTE_NONNULL(2);
 
+void virCommandSetGID(virCommandPtr cmd, gid_t gid);
+
+void virCommandSetUID(virCommandPtr cmd, uid_t uid);
+
 void virCommandClearCaps(virCommandPtr cmd);
 
 void virCommandAllowCap(virCommandPtr cmd,
                         int capability);
+
+void virCommandSetSELinuxLabel(virCommandPtr cmd,
+                               const char *label);
+
+void virCommandSetAppArmorProfile(virCommandPtr cmd,
+                                  const char *profile);
 
 void virCommandDaemonize(virCommandPtr cmd);
 
@@ -163,4 +173,5 @@ void virCommandAbort(virCommandPtr cmd);
 
 void virCommandFree(virCommandPtr cmd);
 
+void virCommandDoAsyncIO(virCommandPtr cmd);
 #endif /* __VIR_COMMAND_H__ */

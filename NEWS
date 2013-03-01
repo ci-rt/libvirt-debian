@@ -5,7 +5,7 @@
        http://libvirt.org/news.html
 
 
-1.0.2: Jan 30 2012:
+1.0.2: Jan 30 2013:
    -  Features:
       LXC improvements (Daniel P. Berrange),
       S390 architecture improvement (Viktor Mihajlovski),

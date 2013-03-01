@@ -40,6 +40,26 @@
      <exports symbol='VIR_DOMAIN_CPU_STATS_USERTIME' type='macro'/>
      <exports symbol='VIR_DOMAIN_CPU_STATS_VCPUTIME' type='macro'/>
      <exports symbol='VIR_DOMAIN_EVENT_CALLBACK' type='macro'/>
+     <exports symbol='VIR_DOMAIN_JOB_COMPRESSION_BYTES' type='macro'/>
+     <exports symbol='VIR_DOMAIN_JOB_COMPRESSION_CACHE' type='macro'/>
+     <exports symbol='VIR_DOMAIN_JOB_COMPRESSION_CACHE_MISSES' type='macro'/>
+     <exports symbol='VIR_DOMAIN_JOB_COMPRESSION_OVERFLOW' type='macro'/>
+     <exports symbol='VIR_DOMAIN_JOB_COMPRESSION_PAGES' type='macro'/>
+     <exports symbol='VIR_DOMAIN_JOB_DATA_PROCESSED' type='macro'/>
+     <exports symbol='VIR_DOMAIN_JOB_DATA_REMAINING' type='macro'/>
+     <exports symbol='VIR_DOMAIN_JOB_DATA_TOTAL' type='macro'/>
+     <exports symbol='VIR_DOMAIN_JOB_DISK_PROCESSED' type='macro'/>
+     <exports symbol='VIR_DOMAIN_JOB_DISK_REMAINING' type='macro'/>
+     <exports symbol='VIR_DOMAIN_JOB_DISK_TOTAL' type='macro'/>
+     <exports symbol='VIR_DOMAIN_JOB_DOWNTIME' type='macro'/>
+     <exports symbol='VIR_DOMAIN_JOB_MEMORY_CONSTANT' type='macro'/>
+     <exports symbol='VIR_DOMAIN_JOB_MEMORY_NORMAL' type='macro'/>
+     <exports symbol='VIR_DOMAIN_JOB_MEMORY_NORMAL_BYTES' type='macro'/>
+     <exports symbol='VIR_DOMAIN_JOB_MEMORY_PROCESSED' type='macro'/>
+     <exports symbol='VIR_DOMAIN_JOB_MEMORY_REMAINING' type='macro'/>
+     <exports symbol='VIR_DOMAIN_JOB_MEMORY_TOTAL' type='macro'/>
+     <exports symbol='VIR_DOMAIN_JOB_TIME_ELAPSED' type='macro'/>
+     <exports symbol='VIR_DOMAIN_JOB_TIME_REMAINING' type='macro'/>
      <exports symbol='VIR_DOMAIN_MEMORY_FIELD_LENGTH' type='macro'/>
      <exports symbol='VIR_DOMAIN_MEMORY_HARD_LIMIT' type='macro'/>
      <exports symbol='VIR_DOMAIN_MEMORY_MIN_GUARANTEE' type='macro'/>
@@ -526,6 +546,7 @@
      <exports symbol='VIR_MEMORY_PHYSICAL' type='enum'/>
      <exports symbol='VIR_MEMORY_VIRTUAL' type='enum'/>
      <exports symbol='VIR_MIGRATE_CHANGE_PROTECTION' type='enum'/>
+     <exports symbol='VIR_MIGRATE_COMPRESSED' type='enum'/>
      <exports symbol='VIR_MIGRATE_LIVE' type='enum'/>
      <exports symbol='VIR_MIGRATE_NON_SHARED_DISK' type='enum'/>
      <exports symbol='VIR_MIGRATE_NON_SHARED_INC' type='enum'/>
@@ -930,6 +951,7 @@
      <exports symbol='virDomainGetInfo' type='function'/>
      <exports symbol='virDomainGetInterfaceParameters' type='function'/>
      <exports symbol='virDomainGetJobInfo' type='function'/>
+     <exports symbol='virDomainGetJobStats' type='function'/>
      <exports symbol='virDomainGetMaxMemory' type='function'/>
      <exports symbol='virDomainGetMaxVcpus' type='function'/>
      <exports symbol='virDomainGetMemoryParameters' type='function'/>
@@ -967,7 +989,9 @@
      <exports symbol='virDomainMemoryStats' type='function'/>
      <exports symbol='virDomainMigrate' type='function'/>
      <exports symbol='virDomainMigrate2' type='function'/>
+     <exports symbol='virDomainMigrateGetCompressionCache' type='function'/>
      <exports symbol='virDomainMigrateGetMaxSpeed' type='function'/>
+     <exports symbol='virDomainMigrateSetCompressionCache' type='function'/>
      <exports symbol='virDomainMigrateSetMaxDowntime' type='function'/>
      <exports symbol='virDomainMigrateSetMaxSpeed' type='function'/>
      <exports symbol='virDomainMigrateToURI' type='function'/>
@@ -1109,6 +1133,7 @@
      <exports symbol='virNodeDeviceGetXMLDesc' type='function'/>
      <exports symbol='virNodeDeviceListCaps' type='function'/>
      <exports symbol='virNodeDeviceLookupByName' type='function'/>
+     <exports symbol='virNodeDeviceLookupSCSIHostByWWN' type='function'/>
      <exports symbol='virNodeDeviceNumOfCaps' type='function'/>
      <exports symbol='virNodeDeviceReAttach' type='function'/>
      <exports symbol='virNodeDeviceRef' type='function'/>
@@ -1506,6 +1531,66 @@
     </macro>
     <macro name='VIR_DOMAIN_EVENT_CALLBACK' file='libvirt'>
       <info><![CDATA[Used to cast the event specific callback into the generic one for use for virDomainEventRegister]]></info>
+    </macro>
+    <macro name='VIR_DOMAIN_JOB_COMPRESSION_BYTES' file='libvirt'>
+      <info><![CDATA[virDomainGetJobStats field: number of compressed bytes transferred since the beginning of migration, as VIR_TYPED_PARAM_ULLONG.]]></info>
+    </macro>
+    <macro name='VIR_DOMAIN_JOB_COMPRESSION_CACHE' file='libvirt'>
+      <info><![CDATA[virDomainGetJobStats field: size of the cache (in bytes) used for compressing repeatedly transferred memory pages during live migration, as VIR_TYPED_PARAM_ULLONG.]]></info>
+    </macro>
+    <macro name='VIR_DOMAIN_JOB_COMPRESSION_CACHE_MISSES' file='libvirt'>
+      <info><![CDATA[virDomainGetJobStats field: number of repeatedly changing pages that were not found in compression cache and thus could not be compressed, as VIR_TYPED_PARAM_ULLONG.]]></info>
+    </macro>
+    <macro name='VIR_DOMAIN_JOB_COMPRESSION_OVERFLOW' file='libvirt'>
+      <info><![CDATA[virDomainGetJobStats field: number of repeatedly changing pages that were found in compression cache but were sent uncompressed because the result of compression was larger than the original page as a whole, as VIR_TYPED_PARAM_ULLONG.]]></info>
+    </macro>
+    <macro name='VIR_DOMAIN_JOB_COMPRESSION_PAGES' file='libvirt'>
+      <info><![CDATA[virDomainGetJobStats field: number of compressed pages transferred since the beginning of migration, as VIR_TYPED_PARAM_ULLONG.]]></info>
+    </macro>
+    <macro name='VIR_DOMAIN_JOB_DATA_PROCESSED' file='libvirt'>
+      <info><![CDATA[virDomainGetJobStats field: number of bytes transferred from the beginning of the job, as VIR_TYPED_PARAM_ULLONG.  This field corresponds to dataProcessed field in virDomainJobInfo.]]></info>
+    </macro>
+    <macro name='VIR_DOMAIN_JOB_DATA_REMAINING' file='libvirt'>
+      <info><![CDATA[virDomainGetJobStats field: number of bytes that still need to be transferred, as VIR_TYPED_PARAM_ULLONG.  This field corresponds to dataRemaining field in virDomainJobInfo.]]></info>
+    </macro>
+    <macro name='VIR_DOMAIN_JOB_DATA_TOTAL' file='libvirt'>
+      <info><![CDATA[virDomainGetJobStats field: total number of bytes supposed to be transferred, as VIR_TYPED_PARAM_ULLONG. For VIR_DOMAIN_JOB_UNBOUNDED jobs, this may be less than the sum of VIR_DOMAIN_JOB_DATA_PROCESSED and VIR_DOMAIN_JOB_DATA_REMAINING in the event that the hypervisor has to repeat some data, e.g., due to dirtied pages during migration. For VIR_DOMAIN_JOB_BOUNDED jobs, VIR_DOMAIN_JOB_DATA_TOTAL shall always equal VIR_DOMAIN_JOB_DATA_PROCESSED + VIR_DOMAIN_JOB_DATA_REMAINING.  This field corresponds to dataTotal field in virDomainJobInfo.]]></info>
+    </macro>
+    <macro name='VIR_DOMAIN_JOB_DISK_PROCESSED' file='libvirt'>
+      <info><![CDATA[virDomainGetJobStats field: as VIR_DOMAIN_JOB_DATA_PROCESSED but only tracking guest disk progress, as VIR_TYPED_PARAM_ULLONG.  This field corresponds to fileProcessed field in virDomainJobInfo.]]></info>
+    </macro>
+    <macro name='VIR_DOMAIN_JOB_DISK_REMAINING' file='libvirt'>
+      <info><![CDATA[virDomainGetJobStats field: as VIR_DOMAIN_JOB_DATA_REMAINING but only tracking guest disk progress, as VIR_TYPED_PARAM_ULLONG.  This field corresponds to fileRemaining field in virDomainJobInfo.]]></info>
+    </macro>
+    <macro name='VIR_DOMAIN_JOB_DISK_TOTAL' file='libvirt'>
+      <info><![CDATA[virDomainGetJobStats field: as VIR_DOMAIN_JOB_DATA_TOTAL but only tracking guest disk progress, as VIR_TYPED_PARAM_ULLONG.  This field corresponds to fileTotal field in virDomainJobInfo.]]></info>
+    </macro>
+    <macro name='VIR_DOMAIN_JOB_DOWNTIME' file='libvirt'>
+      <info><![CDATA[virDomainGetJobStats field: downtime (ms) that is expected to happen during migration, as VIR_TYPED_PARAM_ULLONG.]]></info>
+    </macro>
+    <macro name='VIR_DOMAIN_JOB_MEMORY_CONSTANT' file='libvirt'>
+      <info><![CDATA[virDomainGetJobStats field: number of pages filled with a constant byte (all bytes in a single page are identical) transferred since the beginning of the migration job, as VIR_TYPED_PARAM_ULLONG.  The most common example of such pages are zero pages, i.e., pages filled with zero bytes.]]></info>
+    </macro>
+    <macro name='VIR_DOMAIN_JOB_MEMORY_NORMAL' file='libvirt'>
+      <info><![CDATA[virDomainGetJobStats field: number of pages that were transferred without any kind of compression (i.e., pages which were not filled with a constant byte and which could not be compressed) transferred since the beginning of the migration job, as VIR_TYPED_PARAM_ULLONG.]]></info>
+    </macro>
+    <macro name='VIR_DOMAIN_JOB_MEMORY_NORMAL_BYTES' file='libvirt'>
+      <info><![CDATA[virDomainGetJobStats field: number of bytes transferred as normal pages, as VIR_TYPED_PARAM_ULLONG.  See VIR_DOMAIN_JOB_MEMORY_NORMAL for more details.]]></info>
+    </macro>
+    <macro name='VIR_DOMAIN_JOB_MEMORY_PROCESSED' file='libvirt'>
+      <info><![CDATA[virDomainGetJobStats field: as VIR_DOMAIN_JOB_DATA_PROCESSED but only tracking guest memory progress, as VIR_TYPED_PARAM_ULLONG.  This field corresponds to memProcessed field in virDomainJobInfo.]]></info>
+    </macro>
+    <macro name='VIR_DOMAIN_JOB_MEMORY_REMAINING' file='libvirt'>
+      <info><![CDATA[virDomainGetJobStats field: as VIR_DOMAIN_JOB_DATA_REMAINING but only tracking guest memory progress, as VIR_TYPED_PARAM_ULLONG.  This field corresponds to memRemaining field in virDomainJobInfo.]]></info>
+    </macro>
+    <macro name='VIR_DOMAIN_JOB_MEMORY_TOTAL' file='libvirt'>
+      <info><![CDATA[virDomainGetJobStats field: as VIR_DOMAIN_JOB_DATA_TOTAL but only tracking guest memory progress, as VIR_TYPED_PARAM_ULLONG.  This field corresponds to memTotal field in virDomainJobInfo.]]></info>
+    </macro>
+    <macro name='VIR_DOMAIN_JOB_TIME_ELAPSED' file='libvirt'>
+      <info><![CDATA[virDomainGetJobStats field: time (ms) since the beginning of the job, as VIR_TYPED_PARAM_ULLONG.  This field corresponds to timeElapsed field in virDomainJobInfo.]]></info>
+    </macro>
+    <macro name='VIR_DOMAIN_JOB_TIME_REMAINING' file='libvirt'>
+      <info><![CDATA[virDomainGetJobStats field: remaining time (ms) for VIR_DOMAIN_JOB_BOUNDED jobs, as VIR_TYPED_PARAM_ULLONG.  This field corresponds to timeRemaining field in virDomainJobInfo.]]></info>
     </macro>
     <macro name='VIR_DOMAIN_MEMORY_FIELD_LENGTH' file='libvirt'>
       <info><![CDATA[Macro providing the field length of virMemoryParameter.  Provided for backwards compatibility; VIR_TYPED_PARAM_FIELD_LENGTH is the preferred value since 0.9.2.]]></info>
@@ -2314,6 +2399,7 @@ Retained for ABI/API compat only'/>
     <enum name='VIR_MIGRATE_CHANGE_PROTECTION' file='libvirt' value='256' type='virDomainMigrateFlags' info='protect for changing domain configuration through the
  whole migration process; this will be used automatically
  when supported'/>
+    <enum name='VIR_MIGRATE_COMPRESSED' file='libvirt' value='2048' type='virDomainMigrateFlags' info='compress data during migration'/>
     <enum name='VIR_MIGRATE_LIVE' file='libvirt' value='1' type='virDomainMigrateFlags' info='live migration'/>
     <enum name='VIR_MIGRATE_NON_SHARED_DISK' file='libvirt' value='64' type='virDomainMigrateFlags' info='migration with non-shared storage with full disk copy'/>
     <enum name='VIR_MIGRATE_NON_SHARED_INC' file='libvirt' value='128' type='virDomainMigrateFlags' info='migration with non-shared storage with incremental copy (same base image shared between source and destination)'/>
@@ -2943,11 +3029,12 @@ after the corresponding operation completes.]]></info>
       <arg name='conn' type='virConnectPtr' info='pointer to the hypervisor connection'/>
     </function>
     <functype name='virConnectCloseFunc' file='libvirt' module='libvirt'>
-      <info><![CDATA[]]></info>
+      <info><![CDATA[A callback function to be registered, and called when the connection
+is closed.]]></info>
       <return type='void'/>
-      <arg name='conn' type='virConnectPtr' info=''/>
-      <arg name='reason' type='int' info=''/>
-      <arg name='opaque' type='void *' info=''/>
+      <arg name='conn' type='virConnectPtr' info='virConnect connection'/>
+      <arg name='reason' type='int' info='reason why the connection was closed (one of virConnectCloseReason)'/>
+      <arg name='opaque' type='void *' info='opaque user data'/>
     </functype>
     <function name='virConnectCompareCPU' file='libvirt' module='libvirt'>
       <info><![CDATA[Compares the given CPU description with the host CPU]]></info>
@@ -2971,14 +3058,14 @@ VIR_DOMAIN_EVENT_ID_BLOCK_JOB with virConnectDomainEventRegisterAny()]]></info>
       <return type='void'/>
       <arg name='conn' type='virConnectPtr' info='connection object'/>
       <arg name='dom' type='virDomainPtr' info='domain on which the event occurred'/>
-      <arg name='disk' type='const char *' info=''/>
+      <arg name='disk' type='const char *' info='fully-qualified filename of the affected disk'/>
       <arg name='type' type='int' info='type of block job (virDomainBlockJobType)'/>
       <arg name='status' type='int' info='final status of the operation (virConnectDomainEventBlockJobStatus)'/>
-      <arg name='opaque' type='void *' info=''/>
+      <arg name='opaque' type='void *' info='application specified data'/>
     </functype>
     <functype name='virConnectDomainEventCallback' file='libvirt' module='libvirt'>
       <info><![CDATA[A callback function to be registered, and called when a domain event occurs]]></info>
-      <return type='int' info=''/>
+      <return type='int' info='0 (the return value is currently ignored)'/>
       <arg name='conn' type='virConnectPtr' info='virConnect connection'/>
       <arg name='dom' type='virDomainPtr' info='The domain on which the event occurred'/>
       <arg name='event' type='int' info='The specific virDomainEventType which occurred'/>
@@ -4559,6 +4646,21 @@ Will return an error if the domain is not active.]]></info>
       <arg name='domain' type='virDomainPtr' info='a domain object'/>
       <arg name='info' type='virDomainJobInfoPtr' info='pointer to a virDomainJobInfo structure allocated by the user'/>
     </function>
+    <function name='virDomainGetJobStats' file='libvirt' module='libvirt'>
+      <info><![CDATA[Extract information about progress of a background job on a domain.
+Will return an error if the domain is not active. The function returns
+a superset of progress information provided by virDomainGetJobInfo.
+Possible fields returned in @params are defined by VIR_DOMAIN_JOB_*
+macros and new fields will likely be introduced in the future so callers
+may receive fields that they do not understand in case they talk to a
+newer server.]]></info>
+      <return type='int' info='0 in case of success and -1 in case of failure.'/>
+      <arg name='domain' type='virDomainPtr' info='a domain object'/>
+      <arg name='type' type='int *' info='where to store the job type (one of virDomainJobType)'/>
+      <arg name='params' type='virTypedParameterPtr *' info='where to store job statistics'/>
+      <arg name='nparams' type='int *' info='number of items in @params'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
+    </function>
     <function name='virDomainGetMaxMemory' file='libvirt' module='libvirt'>
       <info><![CDATA[Retrieve the maximum amount of physical memory allocated to a
 domain. If domain is NULL, then this get the amount of memory reserved
@@ -5057,6 +5159,10 @@ takes a hypervisor specific format. The hypervisor capabilities
 XML includes details of the support URI schemes. If omitted
 the dconn will be asked for a default URI.
 
+If you want to copy non-shared storage within migration you
+can use either VIR_MIGRATE_NON_SHARED_DISK or
+VIR_MIGRATE_NON_SHARED_INC as they are mutually exclusive.
+
 In either case it is typically only necessary to specify a
 URI if the destination host has multiple interfaces and a
 specific interface is required to transmit migration data.
@@ -5126,6 +5232,10 @@ takes a hypervisor specific format. The hypervisor capabilities
 XML includes details of the support URI schemes. If omitted
 the dconn will be asked for a default URI.
 
+If you want to copy non-shared storage within migration you
+can use either VIR_MIGRATE_NON_SHARED_DISK or
+VIR_MIGRATE_NON_SHARED_INC as they are mutually exclusive.
+
 In either case it is typically only necessary to specify a
 URI if the destination host has multiple interfaces and a
 specific interface is required to transmit migration data.
@@ -5164,12 +5274,31 @@ original domain name.]]></info>
       <arg name='uri' type='const char *' info='(optional) dest hostname/URI as seen from the source host'/>
       <arg name='bandwidth' type='unsigned long' info='(optional) specify migration bandwidth limit in Mbps'/>
     </function>
+    <function name='virDomainMigrateGetCompressionCache' file='libvirt' module='libvirt'>
+      <info><![CDATA[Gets current size of the cache (in bytes) used for compressing repeatedly
+transferred memory pages during live migration.]]></info>
+      <return type='int' info='0 in case of success, -1 otherwise.'/>
+      <arg name='domain' type='virDomainPtr' info='a domain object'/>
+      <arg name='cacheSize' type='unsigned long long *' info='return value of current size of the cache (in bytes)'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
+    </function>
     <function name='virDomainMigrateGetMaxSpeed' file='libvirt' module='libvirt'>
       <info><![CDATA[Get the current maximum bandwidth (in Mbps) that will be used if the
 domain is migrated.  Not all hypervisors will support a bandwidth limit.]]></info>
       <return type='int' info='0 in case of success, -1 otherwise.'/>
       <arg name='domain' type='virDomainPtr' info='a domain object'/>
       <arg name='bandwidth' type='unsigned long *' info='return value of current migration bandwidth limit in Mbps'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
+    </function>
+    <function name='virDomainMigrateSetCompressionCache' file='libvirt' module='libvirt'>
+      <info><![CDATA[Sets size of the cache (in bytes) used for compressing repeatedly
+transferred memory pages during live migration. It's supposed to be called
+while the domain is being live-migrated as a reaction to migration progress
+and increasing number of compression cache misses obtained from
+virDomainGetJobStats.]]></info>
+      <return type='int' info='0 in case of success, -1 otherwise.'/>
+      <arg name='domain' type='virDomainPtr' info='a domain object'/>
+      <arg name='cacheSize' type='unsigned long long' info='size of the cache (in bytes) used for compression'/>
       <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
     <function name='virDomainMigrateSetMaxDowntime' file='libvirt' module='libvirt'>
@@ -5227,6 +5356,10 @@ must be a valid libvirt connection URI, by which the source
 libvirt driver can connect to the destination libvirt.
 
 VIR_MIGRATE_TUNNELLED requires that VIR_MIGRATE_PEER2PEER be set.
+
+If you want to copy non-shared storage within migration you
+can use either VIR_MIGRATE_NON_SHARED_DISK or
+VIR_MIGRATE_NON_SHARED_INC as they are mutually exclusive.
 
 If a hypervisor supports renaming domains during migration,
 the dname parameter specifies the new name for the domain.
@@ -5292,6 +5425,10 @@ element of the hypervisor capabilities XML includes details of the
 supported URI schemes.
 
 VIR_MIGRATE_TUNNELLED requires that VIR_MIGRATE_PEER2PEER be set.
+
+If you want to copy non-shared storage within migration you
+can use either VIR_MIGRATE_NON_SHARED_DISK or
+VIR_MIGRATE_NON_SHARED_INC as they are mutually exclusive.
 
 If a hypervisor supports changing the configuration of the guest
 during migration, the @dxml parameter specifies the new config
@@ -6472,13 +6609,13 @@ reconfiguring the NIC device backend connectivity, etc.]]></info>
       <arg name='error' type='virErrorPtr' info='the error being raised.'/>
     </functype>
     <function name='virEventAddHandle' file='libvirt' module='virevent'>
-      <info><![CDATA[]]></info>
-      <return type='int' info=''/>
-      <arg name='fd' type='int' info=''/>
-      <arg name='events' type='int' info=''/>
-      <arg name='cb' type='virEventHandleCallback' info=''/>
-      <arg name='opaque' type='void *' info=''/>
-      <arg name='ff' type='virFreeCallback' info=''/>
+      <info><![CDATA[Register a callback for monitoring file handle events.]]></info>
+      <return type='int' info='-1 if the file handle cannot be registered, 0 upon success'/>
+      <arg name='fd' type='int' info='file handle to monitor for events'/>
+      <arg name='events' type='int' info='bitset of events to watch from virEventHandleType constants'/>
+      <arg name='cb' type='virEventHandleCallback' info='callback to invoke when an event occurs'/>
+      <arg name='opaque' type='void *' info='user data to pass to callback'/>
+      <arg name='ff' type='virFreeCallback' info='callback to free opaque when handle is removed'/>
     </function>
     <functype name='virEventAddHandleFunc' file='libvirt' module='libvirt'>
       <info><![CDATA[Part of the EventImpl, this callback adds a file handle callback to
@@ -6498,12 +6635,15 @@ they will likely deadlock in libvirt.]]></info>
       <arg name='ff' type='virFreeCallback' info='the callback invoked to free opaque data blob'/>
     </functype>
     <function name='virEventAddTimeout' file='libvirt' module='virevent'>
-      <info><![CDATA[]]></info>
-      <return type='int' info=''/>
-      <arg name='timeout' type='int' info=''/>
-      <arg name='cb' type='virEventTimeoutCallback' info=''/>
-      <arg name='opaque' type='void *' info=''/>
-      <arg name='ff' type='virFreeCallback' info=''/>
+      <info><![CDATA[Register a callback for a timer event.
+
+Setting timeout to -1 will disable the timer. Setting the timeout
+to zero will cause it to fire on every event loop iteration.]]></info>
+      <return type='int' info='-1 if the timer cannot be registered, a positive integer timer id upon success.'/>
+      <arg name='timeout' type='int' info='time between events in milliseconds'/>
+      <arg name='cb' type='virEventTimeoutCallback' info='callback to invoke when an event occurs'/>
+      <arg name='opaque' type='void *' info='user data to pass to callback'/>
+      <arg name='ff' type='virFreeCallback' info='callback to free opaque when timeout is removed'/>
     </function>
     <functype name='virEventAddTimeoutFunc' file='libvirt' module='libvirt'>
       <info><![CDATA[Part of the EventImpl, this user-defined callback handles adding an
@@ -6558,9 +6698,9 @@ the generic libvirt implementation.]]></info>
       <arg name='removeTimeout' type='virEventRemoveTimeoutFunc' info='the callback to remove a timeout'/>
     </function>
     <function name='virEventRemoveHandle' file='libvirt' module='virevent'>
-      <info><![CDATA[]]></info>
-      <return type='int' info=''/>
-      <arg name='watch' type='int' info=''/>
+      <info><![CDATA[Unregister a callback from a file handle.]]></info>
+      <return type='int' info='-1 if the file handle was not registered, 0 upon success.'/>
+      <arg name='watch' type='int' info='watch whose file handle to remove'/>
     </function>
     <functype name='virEventRemoveHandleFunc' file='libvirt' module='libvirt'>
       <info><![CDATA[Part of the EventImpl, this user-provided callback is notified when
@@ -6569,13 +6709,13 @@ an fd is no longer being listened on.
 If a virEventHandleFreeFunc was supplied when the handle was
 registered, it will be invoked some time during, or after this
 function call, when it is safe to release the user data.]]></info>
-      <return type='int' info=''/>
+      <return type='int' info='-1 if the file handle was not registered, 0 upon success'/>
       <arg name='watch' type='int' info='file descriptor watch to stop listening on'/>
     </functype>
     <function name='virEventRemoveTimeout' file='libvirt' module='virevent'>
-      <info><![CDATA[]]></info>
-      <return type='int' info=''/>
-      <arg name='timer' type='int' info=''/>
+      <info><![CDATA[Unregister a callback for a timer.]]></info>
+      <return type='int' info='-1 if the timer was not registered, 0 upon success.'/>
+      <arg name='timer' type='int' info='the timer id to remove'/>
     </function>
     <functype name='virEventRemoveTimeoutFunc' file='libvirt' module='libvirt'>
       <info><![CDATA[Part of the EventImpl, this user-defined callback removes a timer
@@ -6606,10 +6746,12 @@ this method in an infinite loop
       <arg name='opaque' type='void *' info='user data registered with handle'/>
     </functype>
     <function name='virEventUpdateHandle' file='libvirt' module='virevent'>
-      <info><![CDATA[]]></info>
+      <info><![CDATA[Change event set for a monitored file handle.
+
+Will not fail if fd exists]]></info>
       <return type='void'/>
-      <arg name='watch' type='int' info=''/>
-      <arg name='events' type='int' info=''/>
+      <arg name='watch' type='int' info='watch whose file handle to update'/>
+      <arg name='events' type='int' info='bitset of events to watch from virEventHandleType constants'/>
     </function>
     <functype name='virEventUpdateHandleFunc' file='libvirt' module='libvirt'>
       <info><![CDATA[Part of the EventImpl, this user-provided callback is notified when
@@ -6619,10 +6761,15 @@ events to listen on change]]></info>
       <arg name='event' type='int' info='new events to listen on'/>
     </functype>
     <function name='virEventUpdateTimeout' file='libvirt' module='virevent'>
-      <info><![CDATA[]]></info>
+      <info><![CDATA[Change frequency for a timer.
+
+Setting frequency to -1 will disable the timer. Setting the frequency
+to zero will cause it to fire on every event loop iteration.
+
+Will not fail if timer exists]]></info>
       <return type='void'/>
-      <arg name='timer' type='int' info=''/>
-      <arg name='timeout' type='int' info=''/>
+      <arg name='timer' type='int' info='timer id to change'/>
+      <arg name='timeout' type='int' info='time between events in milliseconds'/>
     </function>
     <functype name='virEventUpdateTimeoutFunc' file='libvirt' module='libvirt'>
       <info><![CDATA[Part of the EventImpl, this user-defined callback updates an
@@ -7148,6 +7295,14 @@ the device.]]></info>
       <return type='virNodeDevicePtr' info='a virNodeDevicePtr if found, NULL otherwise.'/>
       <arg name='conn' type='virConnectPtr' info='pointer to the hypervisor connection'/>
       <arg name='name' type='const char *' info='unique device name'/>
+    </function>
+    <function name='virNodeDeviceLookupSCSIHostByWWN' file='libvirt' module='libvirt'>
+      <info><![CDATA[Lookup SCSI Host which is capable with 'fc_host' by its WWNN and WWPN.]]></info>
+      <return type='virNodeDevicePtr' info='a virNodeDevicePtr if found, NULL otherwise.'/>
+      <arg name='conn' type='virConnectPtr' info='pointer to the hypervisor connection'/>
+      <arg name='wwnn' type='const char *' info='WWNN of the SCSI Host.'/>
+      <arg name='wwpn' type='const char *' info='WWPN of the SCSI Host.'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
     <function name='virNodeDeviceNumOfCaps' file='libvirt' module='libvirt'>
       <info><![CDATA[Accessor for the number of capabilities supported by the device.]]></info>

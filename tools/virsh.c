@@ -1,7 +1,7 @@
 /*
  * virsh.c: a shell to exercise the libvirt API
  *
- * Copyright (C) 2005, 2007-2012 Red Hat, Inc.
+ * Copyright (C) 2005, 2007-2013 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -148,7 +148,7 @@ double
 vshPrettyCapacity(unsigned long long val, const char **unit)
 {
     if (val < 1024) {
-        *unit = "";
+        *unit = "B";
         return (double)val;
     } else if (val < (1024.0l * 1024.0l)) {
         *unit = "KiB";
@@ -440,11 +440,14 @@ int vshStreamSink(virStreamPtr st ATTRIBUTE_UNUSED,
  * "help" command
  */
 static const vshCmdInfo info_help[] = {
-    {"help", N_("print help")},
-    {"desc", N_("Prints global help, command specific help, or help for a\n"
-                "    group of related commands")},
-
-    {NULL, NULL}
+    {.name = "help",
+     .data = N_("print help")
+    },
+    {.name = "desc",
+     .data = N_("Prints global help, command specific help, or help for a\n"
+                "    group of related commands")
+    },
+    {.name = NULL}
 };
 
 static const vshCmdOptDef opts_help[] = {
@@ -702,9 +705,13 @@ vshEditReadBackFile(vshControl *ctl, const char *filename)
  * "cd" command
  */
 static const vshCmdInfo info_cd[] = {
-    {"help", N_("change the current directory")},
-    {"desc", N_("Change the current directory.")},
-    {NULL, NULL}
+    {.name = "help",
+     .data = N_("change the current directory")
+    },
+    {.name = "desc",
+     .data = N_("Change the current directory.")
+    },
+    {.name = NULL}
 };
 
 static const vshCmdOptDef opts_cd[] = {
@@ -749,9 +756,13 @@ cmdCd(vshControl *ctl, const vshCmd *cmd)
  * "pwd" command
  */
 static const vshCmdInfo info_pwd[] = {
-    {"help", N_("print the current directory")},
-    {"desc", N_("Print the current directory.")},
-    {NULL, NULL}
+    {.name = "help",
+     .data = N_("print the current directory")
+    },
+    {.name = "desc",
+     .data = N_("Print the current directory.")
+    },
+    {.name = NULL}
 };
 
 static bool
@@ -778,9 +789,13 @@ cmdPwd(vshControl *ctl, const vshCmd *cmd ATTRIBUTE_UNUSED)
  * "echo" command
  */
 static const vshCmdInfo info_echo[] = {
-    {"help", N_("echo arguments")},
-    {"desc", N_("Echo back arguments, possibly with quoting.")},
-    {NULL, NULL}
+    {.name = "help",
+     .data = N_("echo arguments")
+    },
+    {.name = "desc",
+     .data = N_("Echo back arguments, possibly with quoting.")
+    },
+    {.name = NULL}
 };
 
 static const vshCmdOptDef opts_echo[] = {
@@ -868,9 +883,13 @@ cmdEcho(vshControl *ctl, const vshCmd *cmd)
  * "quit" command
  */
 static const vshCmdInfo info_quit[] = {
-    {"help", N_("quit this interactive terminal")},
-    {"desc", ""},
-    {NULL, NULL}
+    {.name = "help",
+     .data = N_("quit this interactive terminal")
+    },
+    {.name = "desc",
+     .data = ""
+    },
+    {.name = NULL}
 };
 
 static bool
@@ -1414,6 +1433,58 @@ vshCommandOptString(const vshCmd *cmd, const char *name, const char **value)
     }
     *value = arg->data;
     return 1;
+}
+
+/**
+ * vshCommandOptStringReq:
+ * @ctl virsh control structure
+ * @cmd command structure
+ * @name option name
+ * @value result (updated to NULL or the option argument)
+ *
+ * Gets a option argument as string.
+ *
+ * Returns 0 on success or when the option is not present and not
+ * required, *value is set to the option argument. On error -1 is
+ * returned and error message printed.
+ */
+int
+vshCommandOptStringReq(vshControl *ctl,
+                       const vshCmd *cmd,
+                       const char *name,
+                       const char **value)
+{
+    vshCmdOpt *arg;
+    int ret;
+    const char *error = NULL;
+
+    /* clear out the value */
+    *value = NULL;
+
+    ret = vshCommandOpt(cmd, name, &arg);
+    /* option is not required and not present */
+    if (ret == 0)
+        return 0;
+    /* this should not be propagated here, just to be sure */
+    if (ret == -1)
+        error = N_("Mandatory option not present");
+
+    if (ret == -2)
+        error = N_("Programming error: Invalid option name");
+
+    if (!arg->data)
+        error = N_("Programming error: Requested option is a boolean");
+
+    if (arg->data && !*arg->data && !(arg->def->flags & VSH_OFLAG_EMPTY_OK))
+        error = N_("Option argument is empty");
+
+    if (error) {
+        vshError(ctl, _("Failed to get option '%s': %s"), name, _(error));
+        return -1;
+    }
+
+    *value = arg->data;
+    return 0;
 }
 
 /**
@@ -2848,7 +2919,7 @@ vshParseArgv(vshControl *ctl, int argc, char **argv)
     /* Standard (non-command) options. The leading + ensures that no
      * argument reordering takes place, so that command options are
      * not confused with top-level virsh options. */
-    while ((arg = getopt_long(argc, argv, "+d:hqtc:vVrl:e:", opt, NULL)) != -1) {
+    while ((arg = getopt_long(argc, argv, "+:d:hqtc:vVrl:e:", opt, NULL)) != -1) {
         switch (arg) {
         case 'd':
             if (virStrToLong_i(optarg, NULL, 10, &debug) < 0) {
@@ -2902,8 +2973,14 @@ vshParseArgv(vshControl *ctl, int argc, char **argv)
                 exit(EXIT_FAILURE);
             }
             break;
+        case ':':
+            vshError(ctl, _("option '-%c' requires an argument"), optopt);
+            exit(EXIT_FAILURE);
+        case '?':
+            vshError(ctl, _("unsupported option '-%c'. See --help."), optopt);
+            exit(EXIT_FAILURE);
         default:
-            vshError(ctl, _("unsupported option '-%c'. See --help."), arg);
+            vshError(ctl, _("unknown option"));
             exit(EXIT_FAILURE);
         }
     }
@@ -2922,13 +2999,43 @@ vshParseArgv(vshControl *ctl, int argc, char **argv)
 }
 
 static const vshCmdDef virshCmds[] = {
-    {"cd", cmdCd, opts_cd, info_cd, VSH_CMD_FLAG_NOCONNECT},
-    {"echo", cmdEcho, opts_echo, info_echo, VSH_CMD_FLAG_NOCONNECT},
-    {"exit", cmdQuit, NULL, info_quit, VSH_CMD_FLAG_NOCONNECT},
-    {"help", cmdHelp, opts_help, info_help, VSH_CMD_FLAG_NOCONNECT},
-    {"pwd", cmdPwd, NULL, info_pwd, VSH_CMD_FLAG_NOCONNECT},
-    {"quit", cmdQuit, NULL, info_quit, VSH_CMD_FLAG_NOCONNECT},
-    {NULL, NULL, NULL, NULL, 0}
+    {.name = "cd",
+     .handler = cmdCd,
+     .opts = opts_cd,
+     .info = info_cd,
+     .flags = VSH_CMD_FLAG_NOCONNECT
+    },
+    {.name = "echo",
+     .handler = cmdEcho,
+     .opts = opts_echo,
+     .info = info_echo,
+     .flags = VSH_CMD_FLAG_NOCONNECT
+    },
+    {.name = "exit",
+     .handler = cmdQuit,
+     .opts = NULL,
+     .info = info_quit,
+     .flags = VSH_CMD_FLAG_NOCONNECT
+    },
+    {.name = "help",
+     .handler = cmdHelp,
+     .opts = opts_help,
+     .info = info_help,
+     .flags = VSH_CMD_FLAG_NOCONNECT
+    },
+    {.name = "pwd",
+     .handler = cmdPwd,
+     .opts = NULL,
+     .info = info_pwd,
+     .flags = VSH_CMD_FLAG_NOCONNECT
+    },
+    {.name = "quit",
+     .handler = cmdQuit,
+     .opts = NULL,
+     .info = info_quit,
+     .flags = VSH_CMD_FLAG_NOCONNECT
+    },
+    {.name = NULL}
 };
 
 static const vshCmdGrp cmdGroups[] = {

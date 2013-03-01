@@ -599,7 +599,8 @@ networkBuildDnsmasqDhcpHostsList(dnsmasqContext *dctx,
     for (i = 0; i < ipdef->nhosts; i++) {
         virNetworkDHCPHostDefPtr host = &(ipdef->hosts[i]);
         if (VIR_SOCKET_ADDR_VALID(&host->ip))
-            if (dnsmasqAddDhcpHost(dctx, host->mac, &host->ip, host->name, ipv6) < 0)
+            if (dnsmasqAddDhcpHost(dctx, host->mac, &host->ip,
+                                   host->name, host->id, ipv6) < 0)
                 return -1;
     }
 
@@ -926,6 +927,23 @@ networkDnsmasqConfContents(virNetworkObjPtr network,
                     virBufferAsprintf(&configbuf, "dhcp-boot=%s\n", ipdef->bootfile);
                 }
             }
+
+            for (r = 0 ; r < ipdef->noptions ; r++) {
+                virBufferAsprintf(&configbuf, "dhcp-option=%u",
+                                  ipdef->options[r].number);
+                /* value is optional, and only needs quoting if it contains spaces */
+                if (ipdef->options[r].value) {
+                    const char *quote = "";
+
+                    if (strchr(ipdef->options[r].value, ' ') ||
+                        strchr(ipdef->options[r].value, '\\')) {
+                        quote = "\"";
+                    }
+                    virBufferAsprintf(&configbuf, ",%s%s%s",
+                                      quote, ipdef->options[r].value, quote);
+                }
+                virBufferAddLit(&configbuf, "\n");
+            }
         }
         ipdef = (ipdef == ipv6def) ? NULL : ipv6def;
     }
@@ -994,8 +1012,9 @@ cleanup:
 }
 
 /* build the dnsmasq command line */
-static int
-networkBuildDhcpDaemonCommandLine(virNetworkObjPtr network, virCommandPtr *cmdout,
+static int ATTRIBUTE_NONNULL(2)
+networkBuildDhcpDaemonCommandLine(virNetworkObjPtr network,
+                                  virCommandPtr *cmdout,
                                   char *pidfile, dnsmasqContext *dctx,
                                   dnsmasqCapsPtr caps)
 {
@@ -1027,13 +1046,9 @@ networkBuildDhcpDaemonCommandLine(virNetworkObjPtr network, virCommandPtr *cmdou
 
     cmd = virCommandNew(dnsmasqCapsGetBinaryPath(caps));
     virCommandAddArgFormat(cmd, "--conf-file=%s", configfile);
-
-    if (cmdout)
-        *cmdout = cmd;
+    *cmdout = cmd;
     ret = 0;
 cleanup:
-    if (ret < 0)
-        virCommandFree(cmd);
     return ret;
 }
 
@@ -1590,6 +1605,8 @@ networkAddMasqueradingIptablesRules(struct network_driver *driver,
                                      &ipdef->address,
                                      prefix,
                                      forwardIf,
+                                     &network->def->forward.addr,
+                                     &network->def->forward.port,
                                      NULL) < 0) {
         virReportError(VIR_ERR_SYSTEM_ERROR,
                        forwardIf ?
@@ -1604,6 +1621,8 @@ networkAddMasqueradingIptablesRules(struct network_driver *driver,
                                      &ipdef->address,
                                      prefix,
                                      forwardIf,
+                                     &network->def->forward.addr,
+                                     &network->def->forward.port,
                                      "udp") < 0) {
         virReportError(VIR_ERR_SYSTEM_ERROR,
                        forwardIf ?
@@ -1618,6 +1637,8 @@ networkAddMasqueradingIptablesRules(struct network_driver *driver,
                                      &ipdef->address,
                                      prefix,
                                      forwardIf,
+                                     &network->def->forward.addr,
+                                     &network->def->forward.port,
                                      "tcp") < 0) {
         virReportError(VIR_ERR_SYSTEM_ERROR,
                        forwardIf ?
@@ -1634,12 +1655,16 @@ networkAddMasqueradingIptablesRules(struct network_driver *driver,
                                     &ipdef->address,
                                     prefix,
                                     forwardIf,
+                                    &network->def->forward.addr,
+                                    &network->def->forward.port,
                                     "udp");
  masqerr4:
     iptablesRemoveForwardMasquerade(driver->iptables,
                                     &ipdef->address,
                                     prefix,
                                     forwardIf,
+                                    &network->def->forward.addr,
+                                    &network->def->forward.port,
                                     NULL);
  masqerr3:
     iptablesRemoveForwardAllowRelatedIn(driver->iptables,
@@ -1670,16 +1695,22 @@ networkRemoveMasqueradingIptablesRules(struct network_driver *driver,
                                         &ipdef->address,
                                         prefix,
                                         forwardIf,
+                                        &network->def->forward.addr,
+                                        &network->def->forward.port,
                                         "tcp");
         iptablesRemoveForwardMasquerade(driver->iptables,
                                         &ipdef->address,
                                         prefix,
                                         forwardIf,
+                                        &network->def->forward.addr,
+                                        &network->def->forward.port,
                                         "udp");
         iptablesRemoveForwardMasquerade(driver->iptables,
                                         &ipdef->address,
                                         prefix,
                                         forwardIf,
+                                        &network->def->forward.addr,
+                                        &network->def->forward.port,
                                         NULL);
 
         iptablesRemoveForwardAllowRelatedIn(driver->iptables,
@@ -3622,7 +3653,7 @@ static int
 networkCreateInterfacePool(virNetworkDefPtr netdef) {
     unsigned int num_virt_fns = 0;
     char **vfname = NULL;
-    struct pci_config_address **virt_fns;
+    virPCIDeviceAddressPtr *virt_fns;
     int ret = -1, ii = 0;
 
     if ((virNetDevGetVirtualFunctions(netdef->forward.pfs->dev,

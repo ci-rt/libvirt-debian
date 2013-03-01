@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-## Copyright (C) 2005-2012 Red Hat, Inc.
+## Copyright (C) 2005-2013 Red Hat, Inc.
 ## See COPYING.LIB for the License of this software
 
 SHELL = $(PREFERABLY_POSIX_SHELL)
@@ -15,6 +15,7 @@ INCLUDES = \
 	$(GETTEXT_CPPFLAGS)
 
 AM_CFLAGS = \
+	-Dabs_builddir="\"`pwd`\"" \
 	$(LIBXML_CFLAGS) \
 	$(GNUTLS_CFLAGS) \
 	$(SASL_CFLAGS) \
@@ -74,6 +75,7 @@ EXTRA_DIST =		\
 	storagepoolschematest \
 	storagepoolxml2xmlin \
 	storagepoolxml2xmlout \
+	storagevolxml2argvdata \
 	storagevolschematest \
 	storagevolxml2xmlin \
 	storagevolxml2xmlout \
@@ -95,11 +97,12 @@ test_programs = virshtest sockettest \
 	utiltest shunloadtest \
 	virtimetest viruritest virkeyfiletest \
 	virauthconfigtest \
-	virbitmaptest \
+	virbitmaptest virendiantest \
 	virlockspacetest \
 	virstringtest \
         virportallocatortest \
 	sysinfotest \
+	virstoragetest \
 	$(NULL)
 
 if WITH_GNUTLS
@@ -108,8 +111,10 @@ endif
 
 if WITH_SECDRIVER_SELINUX
 test_programs += securityselinuxtest
+if WITH_QEMU
 if WITH_ATTR
 test_programs += securityselinuxlabeltest
+endif
 endif
 endif
 
@@ -166,6 +171,8 @@ test_programs += storagebackendsheepdogtest
 endif
 
 test_programs += nwfilterxml2xmltest
+
+test_programs += storagevolxml2argvtest
 
 test_programs += storagevolxml2xmltest storagepoolxml2xmltest
 
@@ -330,9 +337,6 @@ QEMUMONITORTESTUTILS_SOURCES = \
 if WITH_QEMU
 
 libqemumonitortestutils_la_SOURCES = $(QEMUMONITORTESTUTILS_SOURCES)
-libqemumonitortestutils_la_CFLAGS = \
-	-Dabs_builddir="\"`pwd`\"" $(AM_CFLAGS)
-
 
 qemu_LDADDS = ../src/libvirt_driver_qemu_impl.la
 if WITH_NETWORK
@@ -375,7 +379,6 @@ qemumonitorjsontest_SOURCES = \
 	testutilsqemu.c testutilsqemu.h \
 	$(NULL)
 qemumonitorjsontest_LDADD = $(qemu_LDADDS) libqemumonitortestutils.la
-qemumonitorjsontest_CFLAGS = -Dabs_builddir="\"$(abs_builddir)\""  $(AM_CFLAGS)
 
 domainsnapshotxml2xmltest_SOURCES = \
 	domainsnapshotxml2xmltest.c testutilsqemu.c testutilsqemu.h \
@@ -467,6 +470,12 @@ nwfilterxml2xmltest_SOURCES = \
 	testutils.c testutils.h
 nwfilterxml2xmltest_LDADD = $(LDADDS)
 
+storagevolxml2argvtest_SOURCES = \
+    storagevolxml2argvtest.c \
+    testutils.c testutils.h
+storagevolxml2argvtest_LDADD = \
+	../src/libvirt_driver_storage_impl.la $(LDADDS)
+
 storagevolxml2xmltest_SOURCES = \
 	storagevolxml2xmltest.c \
 	testutils.c testutils.h
@@ -507,12 +516,10 @@ nodeinfotest_LDADD = $(LDADDS)
 
 commandtest_SOURCES = \
 	commandtest.c testutils.h testutils.c
-commandtest_CFLAGS = -Dabs_builddir="\"`pwd`\"" $(AM_CFLAGS)
 commandtest_LDADD = $(LDADDS)
 
 commandhelper_SOURCES = \
 	commandhelper.c
-commandhelper_CFLAGS = -Dabs_builddir="\"`pwd`\"" $(AM_CFLAGS)
 commandhelper_LDADD = $(LDADDS)
 commandhelper_LDFLAGS = -static
 
@@ -520,7 +527,6 @@ if WITH_LIBVIRTD
 libvirtdconftest_SOURCES = \
 	libvirtdconftest.c testutils.h testutils.c \
 	../daemon/libvirtd-config.c
-libvirtdconftest_CFLAGS = $(AM_CFLAGS)
 libvirtdconftest_LDADD = $(LDADDS)
 else
 EXTRA_DIST += libvirtdconftest.c
@@ -528,19 +534,16 @@ endif
 
 virnetmessagetest_SOURCES = \
 	virnetmessagetest.c testutils.h testutils.c
-virnetmessagetest_CFLAGS = -Dabs_builddir="\"$(abs_builddir)\"" \
-		$(XDR_CFLAGS) $(AM_CFLAGS)
+virnetmessagetest_CFLAGS = $(XDR_CFLAGS) $(AM_CFLAGS)
 virnetmessagetest_LDADD = $(LDADDS)
 
 virnetsockettest_SOURCES = \
 	virnetsockettest.c testutils.h testutils.c
-virnetsockettest_CFLAGS = -Dabs_builddir="\"$(abs_builddir)\"" $(AM_CFLAGS)
 virnetsockettest_LDADD = $(LDADDS)
 
 if WITH_GNUTLS
 virnettlscontexttest_SOURCES = \
 	virnettlscontexttest.c testutils.h testutils.c
-virnettlscontexttest_CFLAGS = -Dabs_builddir="\"$(abs_builddir)\"" $(AM_CFLAGS)
 virnettlscontexttest_LDADD = $(LDADDS)
 if HAVE_LIBTASN1
 virnettlscontexttest_SOURCES += pkix_asn1_tab.c
@@ -555,22 +558,22 @@ endif
 
 virtimetest_SOURCES = \
 	virtimetest.c testutils.h testutils.c
-virtimetest_CFLAGS = -Dabs_builddir="\"$(abs_builddir)\"" $(AM_CFLAGS)
 virtimetest_LDADD = $(LDADDS)
 
 virstringtest_SOURCES = \
 	virstringtest.c testutils.h testutils.c
-virstringtest_CFLAGS = -Dabs_builddir="\"$(abs_builddir)\"" $(AM_CFLAGS)
 virstringtest_LDADD = $(LDADDS)
+
+virstoragetest_SOURCES = \
+	virstoragetest.c testutils.h testutils.c
+virstoragetest_LDADD = $(LDADDS)
 
 virlockspacetest_SOURCES = \
 	virlockspacetest.c testutils.h testutils.c
-virlockspacetest_CFLAGS = -Dabs_builddir="\"$(abs_builddir)\"" $(AM_CFLAGS)
 virlockspacetest_LDADD = $(LDADDS)
 
 virportallocatortest_SOURCES = \
 	virportallocatortest.c testutils.h testutils.c
-virportallocatortest_CFLAGS = -Dabs_builddir="\"$(abs_builddir)\"" $(AM_CFLAGS)
 virportallocatortest_LDADD = $(LDADDS)
 
 libvirportallocatormock_la_SOURCES = \
@@ -582,17 +585,14 @@ libvirportallocatormock_la_LDFLAGS = -module -avoid-version \
 
 viruritest_SOURCES = \
 	viruritest.c testutils.h testutils.c
-viruritest_CFLAGS = -Dabs_builddir="\"$(abs_builddir)\"" $(AM_CFLAGS)
 viruritest_LDADD = $(LDADDS)
 
 virkeyfiletest_SOURCES = \
 	virkeyfiletest.c testutils.h testutils.c
-virkeyfiletest_CFLAGS = -Dabs_builddir="\"$(abs_builddir)\"" $(AM_CFLAGS)
 virkeyfiletest_LDADD = $(LDADDS)
 
 virauthconfigtest_SOURCES = \
 	virauthconfigtest.c testutils.h testutils.c
-virauthconfigtest_CFLAGS = -Dabs_builddir="\"$(abs_builddir)\"" $(AM_CFLAGS)
 virauthconfigtest_LDADD = $(LDADDS)
 
 seclabeltest_SOURCES = \
@@ -608,13 +608,11 @@ endif
 
 libsecurityselinuxhelper_la_SOURCES = \
 	securityselinuxhelper.c
-libsecurityselinuxhelper_la_CFLAGS = $(AM_CFLAGS)
 libsecurityselinuxhelper_la_LDFLAGS = -module -avoid-version \
         -rpath /evil/libtool/hack/to/force/shared/lib/creation
 
 securityselinuxtest_SOURCES = \
 	securityselinuxtest.c testutils.h testutils.c
-securityselinuxtest_CFLAGS = -Dabs_builddir="\"$(abs_builddir)\"" $(AM_CFLAGS)
 securityselinuxtest_LDADD = $(LDADDS)
 securityselinuxtest_DEPENDENCIES = libsecurityselinuxhelper.la ../src/libvirt.la
 
@@ -623,7 +621,6 @@ if WITH_ATTR
 securityselinuxlabeltest_SOURCES = \
 	securityselinuxlabeltest.c testutils.h testutils.c \
         testutilsqemu.h testutilsqemu.c
-securityselinuxlabeltest_CFLAGS = -Dabs_builddir="\"$(abs_builddir)\"" $(AM_CFLAGS)
 securityselinuxlabeltest_LDADD = $(qemu_LDADDS)
 securityselinuxlabeltest_DEPENDENCIES = libsecurityselinuxhelper.la ../src/libvirt.la
 endif
@@ -647,6 +644,10 @@ virbitmaptest_SOURCES = \
 	virbitmaptest.c testutils.h testutils.c
 virbitmaptest_LDADD = $(LDADDS)
 
+virendiantest_SOURCES = \
+	virendiantest.c testutils.h testutils.c
+virendiantest_LDADD = $(LDADDS)
+
 jsontest_SOURCES = \
 	jsontest.c testutils.h testutils.c
 jsontest_LDADD = $(LDADDS)
@@ -658,7 +659,6 @@ utiltest_LDADD = $(LDADDS)
 if WITH_DRIVER_MODULES
 virdrivermoduletest_SOURCES = \
 	virdrivermoduletest.c testutils.h testutils.c
-virdrivermoduletest_CFLAGS = -Dabs_builddir="\"$(abs_builddir)\"" $(AM_CFLAGS)
 virdrivermoduletest_LDADD = $(LDADDS)
 endif
 

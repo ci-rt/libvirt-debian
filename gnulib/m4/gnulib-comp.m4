@@ -335,6 +335,7 @@ AC_DEFUN([gl_EARLY],
   # Code from module recv:
   # Code from module recv-tests:
   # Code from module regex:
+  # Code from module regex-tests:
   # Code from module same-inode:
   # Code from module sched:
   # Code from module sched-tests:
@@ -992,6 +993,11 @@ AC_SUBST([LTALLOCA])
   fi
   gl_SYS_SOCKET_MODULE_INDICATOR([send])
   gl_SERVENT
+  gl_FUNC_SETENV
+  if test $HAVE_SETENV = 0 || test $REPLACE_SETENV = 1; then
+    AC_LIBOBJ([setenv])
+  fi
+  gl_STDLIB_MODULE_INDICATOR([setenv])
   AC_REQUIRE([gl_HEADER_SYS_SOCKET])
   if test "$ac_cv_header_winsock2_h" = yes; then
     AC_LIBOBJ([setsockopt])
@@ -1360,6 +1366,15 @@ changequote([, ])dnl
   AC_CHECK_HEADERS_ONCE([sys/mman.h])
   AC_CHECK_FUNCS_ONCE([mprotect])
   gl_MGETGROUPS
+  NET_IF_LIB=
+  gl_saved_libs="$LIBS"
+  AC_SEARCH_LIBS([if_nameindex], [socket],
+    [AC_DEFINE([HAVE_IF_NAMEINDEX], [1], [Define if you have if_nameindex.])
+     if test "$ac_cv_search_if_nameindex" != "none required"; then
+       NET_IF_LIB="$ac_cv_search_if_nameindex"
+     fi])
+  LIBS="$gl_saved_libs"
+  AC_SUBST([NET_IF_LIB])
   gt_LOCALE_FR
   gt_LOCALE_FR_UTF8
   AC_CHECK_DECLS_ONCE([alarm])
@@ -1462,11 +1477,6 @@ changequote([, ])dnl
   fi
   gl_MODULE_INDICATOR([realloc-gnu])
   AC_CHECK_HEADERS_ONCE([sys/wait.h])
-  gl_FUNC_SETENV
-  if test $HAVE_SETENV = 0 || test $REPLACE_SETENV = 1; then
-    AC_LIBOBJ([setenv])
-  fi
-  gl_STDLIB_MODULE_INDICATOR([setenv])
   gl_FUNC_SETLOCALE
   if test $REPLACE_SETLOCALE = 1; then
     AC_LIBOBJ([setlocale])
@@ -1489,8 +1499,8 @@ changequote([, ])dnl
   AC_REQUIRE([gl_LONG_DOUBLE_EXPONENT_LOCATION])
   AC_CHECK_DECLS_ONCE([alarm])
   gl_SPAWN_H
-  gt_TYPE_WCHAR_T
-  gt_TYPE_WINT_T
+  AC_REQUIRE([gt_TYPE_WCHAR_T])
+  AC_REQUIRE([gt_TYPE_WINT_T])
   dnl Check for prerequisites for memory fence checks.
   gl_FUNC_MMAP_ANON
   AC_CHECK_HEADERS_ONCE([sys/mman.h])
@@ -1813,6 +1823,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/sched.in.h
   lib/select.c
   lib/send.c
+  lib/setenv.c
   lib/setsockopt.c
   lib/sha256.c
   lib/sha256.h
@@ -1838,7 +1849,6 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/stdio-impl.h
   lib/stdio-read.c
   lib/stdio-write.c
-  lib/stdio.c
   lib/stdio.in.h
   lib/stdlib.in.h
   lib/stpcpy.c
@@ -2329,6 +2339,7 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-readlink.h
   tests/test-realloc-gnu.c
   tests/test-recv.c
+  tests/test-regex.c
   tests/test-sched.c
   tests/test-select-fd.c
   tests/test-select-in.sh
@@ -2453,7 +2464,6 @@ AC_DEFUN([gl_FILE_LIST], [
   tests=lib/read.c
   tests=lib/realloc.c
   tests=lib/same-inode.h
-  tests=lib/setenv.c
   tests=lib/setlocale.c
   tests=lib/signbitd.c
   tests=lib/signbitf.c

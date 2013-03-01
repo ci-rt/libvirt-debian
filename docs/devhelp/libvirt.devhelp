@@ -42,6 +42,26 @@
     <function name="VIR_DOMAIN_CPU_STATS_USERTIME" link="libvirt-libvirt.html#VIR_DOMAIN_CPU_STATS_USERTIME"/>
     <function name="VIR_DOMAIN_CPU_STATS_VCPUTIME" link="libvirt-libvirt.html#VIR_DOMAIN_CPU_STATS_VCPUTIME"/>
     <function name="VIR_DOMAIN_EVENT_CALLBACK" link="libvirt-libvirt.html#VIR_DOMAIN_EVENT_CALLBACK"/>
+    <function name="VIR_DOMAIN_JOB_COMPRESSION_BYTES" link="libvirt-libvirt.html#VIR_DOMAIN_JOB_COMPRESSION_BYTES"/>
+    <function name="VIR_DOMAIN_JOB_COMPRESSION_CACHE" link="libvirt-libvirt.html#VIR_DOMAIN_JOB_COMPRESSION_CACHE"/>
+    <function name="VIR_DOMAIN_JOB_COMPRESSION_CACHE_MISSES" link="libvirt-libvirt.html#VIR_DOMAIN_JOB_COMPRESSION_CACHE_MISSES"/>
+    <function name="VIR_DOMAIN_JOB_COMPRESSION_OVERFLOW" link="libvirt-libvirt.html#VIR_DOMAIN_JOB_COMPRESSION_OVERFLOW"/>
+    <function name="VIR_DOMAIN_JOB_COMPRESSION_PAGES" link="libvirt-libvirt.html#VIR_DOMAIN_JOB_COMPRESSION_PAGES"/>
+    <function name="VIR_DOMAIN_JOB_DATA_PROCESSED" link="libvirt-libvirt.html#VIR_DOMAIN_JOB_DATA_PROCESSED"/>
+    <function name="VIR_DOMAIN_JOB_DATA_REMAINING" link="libvirt-libvirt.html#VIR_DOMAIN_JOB_DATA_REMAINING"/>
+    <function name="VIR_DOMAIN_JOB_DATA_TOTAL" link="libvirt-libvirt.html#VIR_DOMAIN_JOB_DATA_TOTAL"/>
+    <function name="VIR_DOMAIN_JOB_DISK_PROCESSED" link="libvirt-libvirt.html#VIR_DOMAIN_JOB_DISK_PROCESSED"/>
+    <function name="VIR_DOMAIN_JOB_DISK_REMAINING" link="libvirt-libvirt.html#VIR_DOMAIN_JOB_DISK_REMAINING"/>
+    <function name="VIR_DOMAIN_JOB_DISK_TOTAL" link="libvirt-libvirt.html#VIR_DOMAIN_JOB_DISK_TOTAL"/>
+    <function name="VIR_DOMAIN_JOB_DOWNTIME" link="libvirt-libvirt.html#VIR_DOMAIN_JOB_DOWNTIME"/>
+    <function name="VIR_DOMAIN_JOB_MEMORY_CONSTANT" link="libvirt-libvirt.html#VIR_DOMAIN_JOB_MEMORY_CONSTANT"/>
+    <function name="VIR_DOMAIN_JOB_MEMORY_NORMAL" link="libvirt-libvirt.html#VIR_DOMAIN_JOB_MEMORY_NORMAL"/>
+    <function name="VIR_DOMAIN_JOB_MEMORY_NORMAL_BYTES" link="libvirt-libvirt.html#VIR_DOMAIN_JOB_MEMORY_NORMAL_BYTES"/>
+    <function name="VIR_DOMAIN_JOB_MEMORY_PROCESSED" link="libvirt-libvirt.html#VIR_DOMAIN_JOB_MEMORY_PROCESSED"/>
+    <function name="VIR_DOMAIN_JOB_MEMORY_REMAINING" link="libvirt-libvirt.html#VIR_DOMAIN_JOB_MEMORY_REMAINING"/>
+    <function name="VIR_DOMAIN_JOB_MEMORY_TOTAL" link="libvirt-libvirt.html#VIR_DOMAIN_JOB_MEMORY_TOTAL"/>
+    <function name="VIR_DOMAIN_JOB_TIME_ELAPSED" link="libvirt-libvirt.html#VIR_DOMAIN_JOB_TIME_ELAPSED"/>
+    <function name="VIR_DOMAIN_JOB_TIME_REMAINING" link="libvirt-libvirt.html#VIR_DOMAIN_JOB_TIME_REMAINING"/>
     <function name="VIR_DOMAIN_MEMORY_FIELD_LENGTH" link="libvirt-libvirt.html#VIR_DOMAIN_MEMORY_FIELD_LENGTH"/>
     <function name="VIR_DOMAIN_MEMORY_HARD_LIMIT" link="libvirt-libvirt.html#VIR_DOMAIN_MEMORY_HARD_LIMIT"/>
     <function name="VIR_DOMAIN_MEMORY_MIN_GUARANTEE" link="libvirt-libvirt.html#VIR_DOMAIN_MEMORY_MIN_GUARANTEE"/>
@@ -667,6 +687,7 @@
     <function name="VIR_MEMORY_PHYSICAL" link="libvirt-libvirt.html#VIR_MEMORY_PHYSICAL"/>
     <function name="VIR_MEMORY_VIRTUAL" link="libvirt-libvirt.html#VIR_MEMORY_VIRTUAL"/>
     <function name="VIR_MIGRATE_CHANGE_PROTECTION" link="libvirt-libvirt.html#VIR_MIGRATE_CHANGE_PROTECTION"/>
+    <function name="VIR_MIGRATE_COMPRESSED" link="libvirt-libvirt.html#VIR_MIGRATE_COMPRESSED"/>
     <function name="VIR_MIGRATE_LIVE" link="libvirt-libvirt.html#VIR_MIGRATE_LIVE"/>
     <function name="VIR_MIGRATE_NON_SHARED_DISK" link="libvirt-libvirt.html#VIR_MIGRATE_NON_SHARED_DISK"/>
     <function name="VIR_MIGRATE_NON_SHARED_INC" link="libvirt-libvirt.html#VIR_MIGRATE_NON_SHARED_INC"/>
@@ -1078,6 +1099,7 @@
     <function name="virDomainGetInfo ()" link="libvirt-libvirt.html#virDomainGetInfo"/>
     <function name="virDomainGetInterfaceParameters ()" link="libvirt-libvirt.html#virDomainGetInterfaceParameters"/>
     <function name="virDomainGetJobInfo ()" link="libvirt-libvirt.html#virDomainGetJobInfo"/>
+    <function name="virDomainGetJobStats ()" link="libvirt-libvirt.html#virDomainGetJobStats"/>
     <function name="virDomainGetMaxMemory ()" link="libvirt-libvirt.html#virDomainGetMaxMemory"/>
     <function name="virDomainGetMaxVcpus ()" link="libvirt-libvirt.html#virDomainGetMaxVcpus"/>
     <function name="virDomainGetMemoryParameters ()" link="libvirt-libvirt.html#virDomainGetMemoryParameters"/>
@@ -1115,7 +1137,9 @@
     <function name="virDomainMemoryStats ()" link="libvirt-libvirt.html#virDomainMemoryStats"/>
     <function name="virDomainMigrate ()" link="libvirt-libvirt.html#virDomainMigrate"/>
     <function name="virDomainMigrate2 ()" link="libvirt-libvirt.html#virDomainMigrate2"/>
+    <function name="virDomainMigrateGetCompressionCache ()" link="libvirt-libvirt.html#virDomainMigrateGetCompressionCache"/>
     <function name="virDomainMigrateGetMaxSpeed ()" link="libvirt-libvirt.html#virDomainMigrateGetMaxSpeed"/>
+    <function name="virDomainMigrateSetCompressionCache ()" link="libvirt-libvirt.html#virDomainMigrateSetCompressionCache"/>
     <function name="virDomainMigrateSetMaxDowntime ()" link="libvirt-libvirt.html#virDomainMigrateSetMaxDowntime"/>
     <function name="virDomainMigrateSetMaxSpeed ()" link="libvirt-libvirt.html#virDomainMigrateSetMaxSpeed"/>
     <function name="virDomainMigrateToURI ()" link="libvirt-libvirt.html#virDomainMigrateToURI"/>
@@ -1250,6 +1274,7 @@
     <function name="virNodeDeviceGetXMLDesc ()" link="libvirt-libvirt.html#virNodeDeviceGetXMLDesc"/>
     <function name="virNodeDeviceListCaps ()" link="libvirt-libvirt.html#virNodeDeviceListCaps"/>
     <function name="virNodeDeviceLookupByName ()" link="libvirt-libvirt.html#virNodeDeviceLookupByName"/>
+    <function name="virNodeDeviceLookupSCSIHostByWWN ()" link="libvirt-libvirt.html#virNodeDeviceLookupSCSIHostByWWN"/>
     <function name="virNodeDeviceNumOfCaps ()" link="libvirt-libvirt.html#virNodeDeviceNumOfCaps"/>
     <function name="virNodeDeviceReAttach ()" link="libvirt-libvirt.html#virNodeDeviceReAttach"/>
     <function name="virNodeDeviceRef ()" link="libvirt-libvirt.html#virNodeDeviceRef"/>

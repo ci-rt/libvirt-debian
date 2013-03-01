@@ -2099,6 +2099,18 @@ struct remote_node_device_lookup_by_name_ret {
 };
 typedef struct remote_node_device_lookup_by_name_ret remote_node_device_lookup_by_name_ret;
 
+struct remote_node_device_lookup_scsi_host_by_wwn_args {
+        remote_nonnull_string wwnn;
+        remote_nonnull_string wwpn;
+        u_int flags;
+};
+typedef struct remote_node_device_lookup_scsi_host_by_wwn_args remote_node_device_lookup_scsi_host_by_wwn_args;
+
+struct remote_node_device_lookup_scsi_host_by_wwn_ret {
+        remote_nonnull_node_device dev;
+};
+typedef struct remote_node_device_lookup_scsi_host_by_wwn_ret remote_node_device_lookup_scsi_host_by_wwn_ret;
+
 struct remote_node_device_get_xml_desc_args {
         remote_nonnull_string name;
         u_int flags;
@@ -2445,6 +2457,21 @@ struct remote_domain_get_job_info_ret {
 };
 typedef struct remote_domain_get_job_info_ret remote_domain_get_job_info_ret;
 
+struct remote_domain_get_job_stats_args {
+        remote_nonnull_domain dom;
+        u_int flags;
+};
+typedef struct remote_domain_get_job_stats_args remote_domain_get_job_stats_args;
+
+struct remote_domain_get_job_stats_ret {
+        int type;
+        struct {
+                u_int params_len;
+                remote_typed_param *params_val;
+        } params;
+};
+typedef struct remote_domain_get_job_stats_ret remote_domain_get_job_stats_ret;
+
 struct remote_domain_abort_job_args {
         remote_nonnull_domain dom;
 };
@@ -2456,6 +2483,24 @@ struct remote_domain_migrate_set_max_downtime_args {
         u_int flags;
 };
 typedef struct remote_domain_migrate_set_max_downtime_args remote_domain_migrate_set_max_downtime_args;
+
+struct remote_domain_migrate_get_compression_cache_args {
+        remote_nonnull_domain dom;
+        u_int flags;
+};
+typedef struct remote_domain_migrate_get_compression_cache_args remote_domain_migrate_get_compression_cache_args;
+
+struct remote_domain_migrate_get_compression_cache_ret {
+        uint64_t cacheSize;
+};
+typedef struct remote_domain_migrate_get_compression_cache_ret remote_domain_migrate_get_compression_cache_ret;
+
+struct remote_domain_migrate_set_compression_cache_args {
+        remote_nonnull_domain dom;
+        uint64_t cacheSize;
+        u_int flags;
+};
+typedef struct remote_domain_migrate_set_compression_cache_args remote_domain_migrate_set_compression_cache_args;
 
 struct remote_domain_migrate_set_max_speed_args {
         remote_nonnull_domain dom;
@@ -3481,6 +3526,10 @@ enum remote_procedure {
         REMOTE_PROC_DOMAIN_FSTRIM = 294,
         REMOTE_PROC_DOMAIN_SEND_PROCESS_SIGNAL = 295,
         REMOTE_PROC_DOMAIN_OPEN_CHANNEL = 296,
+        REMOTE_PROC_NODE_DEVICE_LOOKUP_SCSI_HOST_BY_WWN = 297,
+        REMOTE_PROC_DOMAIN_GET_JOB_STATS = 298,
+        REMOTE_PROC_DOMAIN_MIGRATE_GET_COMPRESSION_CACHE = 299,
+        REMOTE_PROC_DOMAIN_MIGRATE_SET_COMPRESSION_CACHE = 300,
 };
 typedef enum remote_procedure remote_procedure;
 
@@ -3803,6 +3852,8 @@ extern  bool_t xdr_remote_node_list_devices_args (XDR *, remote_node_list_device
 extern  bool_t xdr_remote_node_list_devices_ret (XDR *, remote_node_list_devices_ret*);
 extern  bool_t xdr_remote_node_device_lookup_by_name_args (XDR *, remote_node_device_lookup_by_name_args*);
 extern  bool_t xdr_remote_node_device_lookup_by_name_ret (XDR *, remote_node_device_lookup_by_name_ret*);
+extern  bool_t xdr_remote_node_device_lookup_scsi_host_by_wwn_args (XDR *, remote_node_device_lookup_scsi_host_by_wwn_args*);
+extern  bool_t xdr_remote_node_device_lookup_scsi_host_by_wwn_ret (XDR *, remote_node_device_lookup_scsi_host_by_wwn_ret*);
 extern  bool_t xdr_remote_node_device_get_xml_desc_args (XDR *, remote_node_device_get_xml_desc_args*);
 extern  bool_t xdr_remote_node_device_get_xml_desc_ret (XDR *, remote_node_device_get_xml_desc_ret*);
 extern  bool_t xdr_remote_node_device_get_parent_args (XDR *, remote_node_device_get_parent_args*);
@@ -3863,8 +3914,13 @@ extern  bool_t xdr_remote_cpu_baseline_args (XDR *, remote_cpu_baseline_args*);
 extern  bool_t xdr_remote_cpu_baseline_ret (XDR *, remote_cpu_baseline_ret*);
 extern  bool_t xdr_remote_domain_get_job_info_args (XDR *, remote_domain_get_job_info_args*);
 extern  bool_t xdr_remote_domain_get_job_info_ret (XDR *, remote_domain_get_job_info_ret*);
+extern  bool_t xdr_remote_domain_get_job_stats_args (XDR *, remote_domain_get_job_stats_args*);
+extern  bool_t xdr_remote_domain_get_job_stats_ret (XDR *, remote_domain_get_job_stats_ret*);
 extern  bool_t xdr_remote_domain_abort_job_args (XDR *, remote_domain_abort_job_args*);
 extern  bool_t xdr_remote_domain_migrate_set_max_downtime_args (XDR *, remote_domain_migrate_set_max_downtime_args*);
+extern  bool_t xdr_remote_domain_migrate_get_compression_cache_args (XDR *, remote_domain_migrate_get_compression_cache_args*);
+extern  bool_t xdr_remote_domain_migrate_get_compression_cache_ret (XDR *, remote_domain_migrate_get_compression_cache_ret*);
+extern  bool_t xdr_remote_domain_migrate_set_compression_cache_args (XDR *, remote_domain_migrate_set_compression_cache_args*);
 extern  bool_t xdr_remote_domain_migrate_set_max_speed_args (XDR *, remote_domain_migrate_set_max_speed_args*);
 extern  bool_t xdr_remote_domain_migrate_get_max_speed_args (XDR *, remote_domain_migrate_get_max_speed_args*);
 extern  bool_t xdr_remote_domain_migrate_get_max_speed_ret (XDR *, remote_domain_migrate_get_max_speed_ret*);
@@ -4285,6 +4341,8 @@ extern bool_t xdr_remote_node_list_devices_args ();
 extern bool_t xdr_remote_node_list_devices_ret ();
 extern bool_t xdr_remote_node_device_lookup_by_name_args ();
 extern bool_t xdr_remote_node_device_lookup_by_name_ret ();
+extern bool_t xdr_remote_node_device_lookup_scsi_host_by_wwn_args ();
+extern bool_t xdr_remote_node_device_lookup_scsi_host_by_wwn_ret ();
 extern bool_t xdr_remote_node_device_get_xml_desc_args ();
 extern bool_t xdr_remote_node_device_get_xml_desc_ret ();
 extern bool_t xdr_remote_node_device_get_parent_args ();
@@ -4345,8 +4403,13 @@ extern bool_t xdr_remote_cpu_baseline_args ();
 extern bool_t xdr_remote_cpu_baseline_ret ();
 extern bool_t xdr_remote_domain_get_job_info_args ();
 extern bool_t xdr_remote_domain_get_job_info_ret ();
+extern bool_t xdr_remote_domain_get_job_stats_args ();
+extern bool_t xdr_remote_domain_get_job_stats_ret ();
 extern bool_t xdr_remote_domain_abort_job_args ();
 extern bool_t xdr_remote_domain_migrate_set_max_downtime_args ();
+extern bool_t xdr_remote_domain_migrate_get_compression_cache_args ();
+extern bool_t xdr_remote_domain_migrate_get_compression_cache_ret ();
+extern bool_t xdr_remote_domain_migrate_set_compression_cache_args ();
 extern bool_t xdr_remote_domain_migrate_set_max_speed_args ();
 extern bool_t xdr_remote_domain_migrate_get_max_speed_args ();
 extern bool_t xdr_remote_domain_migrate_get_max_speed_ret ();

@@ -84,6 +84,12 @@
       <return type='int *' info='the list of information or None in case of error'/>
       <arg name='domain' type='virDomainPtr' info='a domain object'/>
     </function>
+    <function name='virDomainGetJobStats' file='python'>
+      <info>Extract information about an active job being processed for a domain.</info>
+      <return type='virDomainJobStats' info='dictionary mapping field names to values or None in case of error'/>
+      <arg name='domain' type='virDomainPtr' info='a domain object'/>
+      <arg name='flags' type='unsigned int' info='flags, currently unused, pass 0.'/>
+    </function>
     <function name='virNodeGetInfo' file='python'>
       <info>Extract hardware information about the Node.</info>
       <return type='int *' info='the list of information or None in case of error'/>
@@ -484,6 +490,13 @@
       <arg name='path' type='const char *' info='Fully-qualified filename of disk'/>
       <arg name='flags' type='unsigned int' info='fine-tuning flags, currently unused, pass 0.'/>
       <return type='virDomainBlockJobInfo' info='A dictionary containing job information.' />
+    </function>
+    <function name='virDomainMigrateGetCompressionCache' file='python'>
+      <info>Get current size of the cache (in bytes) used for compressing
+            repeatedly transferred memory pages during live migration.</info>
+      <arg name='domain' type='virDomainPtr' info='a domain object'/>
+      <arg name='flags' type='unsigned int' info='flags, currently unused, pass 0.'/>
+      <return type='unsigned long long' info='current cache size, or None in case of error'/>
     </function>
     <function name='virDomainMigrateGetMaxSpeed' file='python'>
       <info>Get currently configured maximum migration speed for a domain</info>

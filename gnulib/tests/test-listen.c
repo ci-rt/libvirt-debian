@@ -22,6 +22,7 @@
 SIGNATURE_CHECK (listen, int, (int, int));
 
 #include <errno.h>
+#include <unistd.h>
 
 #include "sockets.h"
 #include "macros.h"
@@ -38,6 +39,7 @@ main (void)
     ASSERT (errno == EBADF);
   }
   {
+    close (99);
     errno = 0;
     ASSERT (listen (99 ,1) == -1);
     ASSERT (errno == EBADF);

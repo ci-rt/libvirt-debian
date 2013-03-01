@@ -169,7 +169,7 @@ libxlBuildCapabilities(virArch hostarch,
     return caps;
 
  no_memory:
-    virCapabilitiesFree(caps);
+    virObjectUnref(caps);
     return NULL;
 }
 
@@ -297,7 +297,7 @@ libxlMakeCapabilitiesInternal(virArch hostarch,
 
  no_memory:
     virReportOOMError();
-    virCapabilitiesFree(caps);
+    virObjectUnref(caps);
     return NULL;
 }
 
@@ -525,9 +525,13 @@ libxlMakeDisk(virDomainDiskDefPtr l_disk, libxl_device_disk *x_disk)
             return -1;
         }
     } else {
-        /* No driverName - default to raw/tap?? */
+        /*
+         * If driverName is not specified, default to raw as per
+         * xl-disk-configuration.txt in the xen documentation and let
+         * libxl pick a suitable backend.
+         */
         x_disk->format = LIBXL_DISK_FORMAT_RAW;
-        x_disk->backend = LIBXL_DISK_BACKEND_TAP;
+        x_disk->backend = LIBXL_DISK_BACKEND_UNKNOWN;
     }
 
     /* XXX is this right? */
