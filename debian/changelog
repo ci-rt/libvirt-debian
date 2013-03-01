@@ -1,3 +1,18 @@
+libvirt (1.0.3~rc2-1) experimental; urgency=low
+
+  * [9afb984] Enable systemd services
+  * [623674a] New upstream version 1.0.3~rc2
+  * [e0bccfc] Update symbols
+  * [7414d07] Refresh patches.
+    Drop
+        Fix-missing-error-constants-in-libvirt-python-module.patch
+        complete-virterror-virerror-name-change.patch
+    fixed upstream.
+  * [bae2f7b] Hook log the exit status of the hook not 256
+    (Closes: #701570)
+
+ -- Guido Günther <agx@sigxcpu.org>  Fri, 01 Mar 2013 16:54:48 +0100
+
 libvirt (1.0.2-3) experimental; urgency=low
 
   * [6270001] CVE-2013-1766: Use libvirt-qemu as group to run qemu/kvm
