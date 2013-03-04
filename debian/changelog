@@ -1,3 +1,12 @@
+libvirt (0.9.12-8) unstable; urgency=low
+
+  * [181eab1] CVE-2013-1766: Use libvirt-qemu as group to run qemu/kvm
+    instances.  This makes sure we don't chown files to groups possibly used
+    by other programs. (Closes: #701649)
+  * [0ef17cc] Enable systemd services
+
+ -- Guido Günther <agx@sigxcpu.org>  Mon, 04 Mar 2013 16:58:19 +0100
+
 libvirt (0.9.12-7) unstable; urgency=low
 
   * [d45d576] qemu: Add support for -no-user-config
