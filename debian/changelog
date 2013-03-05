@@ -1,3 +1,11 @@
+libvirt (0.9.12-9) unstable; urgency=low
+
+  * [424ffbc] Revert "Enable systemd services" We enabled systemd support in
+    0.9.13 Thanks to Antti-Juhani Kaijanaho
+    (Closes: #702324)
+
+ -- Guido Günther <agx@sigxcpu.org>  Tue, 05 Mar 2013 12:35:06 +0100
+
 libvirt (0.9.12-8) unstable; urgency=low
 
   * [181eab1] CVE-2013-1766: Use libvirt-qemu as group to run qemu/kvm
