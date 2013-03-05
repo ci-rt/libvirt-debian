@@ -97,12 +97,6 @@ case "$1" in
 	    sleep 1
 	fi
 
-	# enable libvirt-{bin,guests} for systemd
-	if [ -x /bin/systemctl ] && [ -d /sys/fs/cgroup/systemd ]; then
-            systemctl enable libvirt-bin.service
-            systemctl enable libvirt-guests.service
-	fi
-
 	if dpkg --compare-versions "$2" lt "0.6.1-2"; then
 	    if [ -e /etc/rc2.d/S20libvirt-bin ] && \
 	       [ -e /etc/rc3.d/S20libvirt-bin ] && \
