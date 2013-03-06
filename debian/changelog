@@ -1,3 +1,10 @@
+libvirt (0.9.12-11) unstable; urgency=low
+
+  * [422c506] Use "getent passwd" instead of the non existing "getent user"
+    Thanks to again to Adam D. Barratt
+
+ -- Guido Günther <agx@sigxcpu.org>  Wed, 06 Mar 2013 12:27:09 +0100
+
 libvirt (0.9.12-10) unstable; urgency=low
 
   * [56bcb4c] Properly remove libvirt-qemu group and user.
