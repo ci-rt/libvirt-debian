@@ -25,7 +25,7 @@ case "$1" in
     		delgroup libvirt || true
 	fi
 
-    	if getent user libvirt-qemu >/dev/null; then
+    	if getent passwd libvirt-qemu >/dev/null; then
     		deluser libvirt-qemu || true
 	fi
 
