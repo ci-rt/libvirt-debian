@@ -1,4 +1,4 @@
-libvirt (1.0.2-3) experimental; urgency=low
+libvirt (0.9.12-8) unstable; urgency=low
 
   For qemu:///system KVM/QEMU processes now run as group libvirt-qemu. This
   makes sure image files and volumes aren't accessible by users in the more
