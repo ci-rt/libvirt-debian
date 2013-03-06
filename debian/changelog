@@ -1,3 +1,11 @@
+libvirt (0.9.12-10) unstable; urgency=low
+
+  * [56bcb4c] Properly remove libvirt-qemu group and user.
+    Thanks to Adam D. Barratt for noticing
+  * [8abfe79] Make sure libvirt-bin.NEWS gets displayed in wheezy as well
+
+ -- Guido Günther <agx@sigxcpu.org>  Wed, 06 Mar 2013 08:23:55 +0100
+
 libvirt (0.9.12-9) unstable; urgency=low
 
   * [424ffbc] Revert "Enable systemd services" We enabled systemd support in
