@@ -26,11 +26,11 @@ case "$1" in
 	fi
 
     	if getent user libvirt-qemu >/dev/null; then
-    		deluser libvirt || true
+    		deluser libvirt-qemu || true
 	fi
 
     	if getent group libvirt-qemu >/dev/null; then
-    		delgroup libvirt || true
+    		delgroup libvirt-qemu || true
 	fi
 
 	rm -rf /var/log/libvirt
