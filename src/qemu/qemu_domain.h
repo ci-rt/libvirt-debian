@@ -138,7 +138,6 @@ struct _qemuDomainObjPrivate {
 
     bool gotShutdown;
     bool beingDestroyed;
-    bool autoDestroyed;
     char *pidfile;
 
     int nvcpupids;
@@ -191,6 +190,10 @@ int qemuDomainObjBeginJob(virQEMUDriverPtr driver,
 int qemuDomainObjBeginAsyncJob(virQEMUDriverPtr driver,
                                virDomainObjPtr obj,
                                enum qemuDomainAsyncJob asyncJob)
+    ATTRIBUTE_RETURN_CHECK;
+int qemuDomainObjBeginNestedJob(virQEMUDriverPtr driver,
+                                virDomainObjPtr obj,
+                                enum qemuDomainAsyncJob asyncJob)
     ATTRIBUTE_RETURN_CHECK;
 
 bool qemuDomainObjEndJob(virQEMUDriverPtr driver,

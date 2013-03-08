@@ -1382,7 +1382,7 @@ cleanup:
 static int qemuGetVersion(virConnectPtr conn, unsigned long *version) {
     virQEMUDriverPtr driver = conn->privateData;
     int ret = -1;
-    unsigned int qemuVersion;
+    unsigned int qemuVersion = 0;
     virCapsPtr caps = NULL;
 
     if (!(caps = virQEMUDriverGetCapabilities(driver, false)))
@@ -1460,7 +1460,7 @@ static virDomainPtr qemuDomainCreate(virConnectPtr conn, const char *xml,
     if (flags & VIR_DOMAIN_START_PAUSED)
         start_flags |= VIR_QEMU_PROCESS_START_PAUSED;
     if (flags & VIR_DOMAIN_START_AUTODESTROY)
-        start_flags |= VIR_QEMU_PROCESS_START_AUTODESROY;
+        start_flags |= VIR_QEMU_PROCESS_START_AUTODESTROY;
 
     if (!(caps = virQEMUDriverGetCapabilities(driver, false)))
         goto cleanup;
@@ -1702,40 +1702,40 @@ static int qemuDomainShutdownFlags(virDomainPtr dom, unsigned int flags) {
     virDomainObjPtr vm;
     int ret = -1;
     qemuDomainObjPrivatePtr priv;
-    bool useAgent = false;
+    bool useAgent = false, agentRequested, acpiRequested;
 
     virCheckFlags(VIR_DOMAIN_SHUTDOWN_ACPI_POWER_BTN |
                   VIR_DOMAIN_SHUTDOWN_GUEST_AGENT, -1);
-
-    /* At most one of these two flags should be set.  */
-    if ((flags & VIR_DOMAIN_SHUTDOWN_ACPI_POWER_BTN) &&
-        (flags & VIR_DOMAIN_SHUTDOWN_GUEST_AGENT)) {
-        virReportInvalidArg(flags, "%s",
-                            _("flags for acpi power button and guest agent are mutually exclusive"));
-        return -1;
-    }
 
     if (!(vm = qemuDomObjFromDomain(dom)))
         goto cleanup;
 
     priv = vm->privateData;
+    agentRequested = flags & VIR_DOMAIN_SHUTDOWN_GUEST_AGENT;
+    acpiRequested  = flags & VIR_DOMAIN_SHUTDOWN_ACPI_POWER_BTN;
 
-    if ((flags & VIR_DOMAIN_SHUTDOWN_GUEST_AGENT) ||
-        (!(flags & VIR_DOMAIN_SHUTDOWN_ACPI_POWER_BTN) &&
-         priv->agent))
+    /* Prefer agent unless we were requested to not to. */
+    if (agentRequested || (!flags && priv->agent))
         useAgent = true;
 
-    if (useAgent) {
-        if (priv->agentError) {
+    if (priv->agentError) {
+        if (agentRequested && !acpiRequested) {
             virReportError(VIR_ERR_AGENT_UNRESPONSIVE, "%s",
                            _("QEMU guest agent is not "
                              "available due to an error"));
             goto cleanup;
+        } else {
+            useAgent = false;
         }
-        if (!priv->agent) {
+    }
+
+    if (!priv->agent) {
+        if (agentRequested && !acpiRequested) {
             virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
                            _("QEMU guest agent is not configured"));
             goto cleanup;
+        } else {
+            useAgent = false;
         }
     }
 
@@ -1752,7 +1752,13 @@ static int qemuDomainShutdownFlags(virDomainPtr dom, unsigned int flags) {
         qemuDomainObjEnterAgent(vm);
         ret = qemuAgentShutdown(priv->agent, QEMU_AGENT_SHUTDOWN_POWERDOWN);
         qemuDomainObjExitAgent(vm);
-    } else {
+    }
+
+    /* If we are not enforced to use just an agent, try ACPI
+     * shutdown as well in case agent did not succeed.
+     */
+    if (!useAgent ||
+        (ret < 0 && (acpiRequested || !flags))) {
         qemuDomainSetFakeReboot(driver, vm, false);
 
         qemuDomainObjEnterMonitor(driver, vm);
@@ -5403,7 +5409,7 @@ qemuDomainObjStart(virConnectPtr conn,
     unsigned int start_flags = VIR_QEMU_PROCESS_START_COLD;
 
     start_flags |= start_paused ? VIR_QEMU_PROCESS_START_PAUSED : 0;
-    start_flags |= autodestroy ? VIR_QEMU_PROCESS_START_AUTODESROY : 0;
+    start_flags |= autodestroy ? VIR_QEMU_PROCESS_START_AUTODESTROY : 0;
 
     /*
      * If there is a managed saved state restore it instead of starting
@@ -5422,6 +5428,7 @@ qemuDomainObjStart(virConnectPtr conn,
                                      managed_save);
                 goto cleanup;
             }
+            vm->hasManagedSave = false;
         } else {
             ret = qemuDomainObjRestore(conn, driver, vm, managed_save,
                                        start_paused, bypass_cache);
@@ -7273,7 +7280,7 @@ qemuDomainSetMemoryParameters(virDomainPtr dom,
     }
 
 #define VIR_GET_LIMIT_PARAMETER(PARAM, VALUE)                                \
-    if ((rc = virTypedParamsGetULLong(params, nparams, PARAM, &VALUE) < 0))  \
+    if ((rc = virTypedParamsGetULLong(params, nparams, PARAM, &VALUE)) < 0)  \
         goto cleanup;                                                        \
                                                                              \
     if (rc == 1)                                                             \

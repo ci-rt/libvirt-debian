@@ -3881,7 +3881,8 @@ qemu-kvm -net nic,model=? /dev/null
           to be used for the domain. The source model is configured using the
           <code>model</code> attribute. Supported source models are:
         </p>
-        <ul><li>'random' — /dev/random (default) or similar device as source</li><li>'egd' — a EGD protocol backend</li></ul>
+        <ul><li>'random' — /dev/random (default) or /dev/hwrng
+            device as source (for now, no other sources are permitted)</li><li>'egd' — a EGD protocol backend</li></ul>
       </dd><dt><code>backend model='random'</code></dt><dd>
         <p>
           This backend type expects a non-blocking character device as input.

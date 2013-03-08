@@ -1,4 +1,382 @@
+2013-03-05  Eric Blake  <eblake@redhat.com>
+
+	rng: restrict passthrough names to known-good files
+	There is some controversy[1] on the qemu list on whether qemu should
+	have ever allowed arbitrary file name passthrough, or whether it
+	should be restricted to JUST /dev/random and /dev/hwrng.  It is
+	always easier to add support for additional filenames than it is
+	to remove support for something once released, so this patch
+	restricts libvirt 1.0.3 (where the virtio-random backend was first
+	supported) to just the two uncontroversial names, letting us defer
+	to a later date any decision on whether supporting arbitrary files
+	makes sense. Additionally, since qemu 1.4 does NOT support
+	/dev/fdset/nnn fd passthrough for the backend, limiting to just
+	two known names means that we don't get tempted to try fd
+	passthrough where it won't work.
+
+	[1]https://lists.gnu.org/archive/html/qemu-devel/2013-03/threads.html#00023
+
+	* src/conf/domain_conf.c (virDomainRNGDefParseXML): Only allow
+	/dev/random and /dev/hwrng.
+	* docs/schemas/domaincommon.rng: Flag invalid files.
+	* docs/formatdomain.html.in (elementsRng): Document this.
+	* tests/qemuxml2argvdata/qemuxml2argv-virtio-rng-random.args:
+	Update test to match.
+	* tests/qemuxml2argvdata/qemuxml2argv-virtio-rng-random.xml:
+	Likewise.
+
+2013-03-05  John Ferlan  <jferlan@redhat.com>
+
+	internals: Update to include RPC and Lock links and add new data
+	Added a picture and explanation describing the virConnectOpen processing
+	at a "higher" level, but with some source code references.
+
+	Add references for phyp and parallels
+
+	api: Add text and references for daemon
+
+	api: Add text and references for drivers section
+
+	api: Complete list of function and naming conventions
+
+	api: Reword and clean lists for object description
+
+	api: Reword objects exposed section
+
+2013-03-05  John Ferlan  <jferlan@redhat.com>
+
+	hellolibvirt: Adjust code to use new APIs
+	Change the order of some conditions and use the AllDomains API to get
+	a list of all the active and defined domains, then use the Active and
+	Name API's in order to print.
+
+	This changes here adjust the output from:
+
+	Attempting to connect to hypervisor
+	Connected to hypervisor at "qemu:///system"
+	Hypervisor: "QEMU" version: 0.32.656
+	There are 0 active and 2 inactive domains
+	Inactive domains:
+	  foo
+	  bar
+	Disconnected from hypervisor
+
+	to
+
+	Attempting to connect to hypervisor
+	Connected to hypervisor at "qemu:///system"
+	Hypervisor: "QEMU" version: 0.32.656
+	There are 0 active and 2 inactive domains
+	       foo (non-active)
+	       bar (non-active)
+	Disconnected from hypervisor
+
+2013-03-05  John Ferlan  <jferlan@redhat.com>
+
+	libvirt: Update headers for doc
+	Update the function prototypes to include a message about the client needing
+	to free() returned name fields.  Fix the all domains example flags values.
+
+2013-03-05  Daniel P. Berrange  <berrange@redhat.com>
+
+	Fix TLS tests with gnutls 3
+	When given a CA cert with basic constraints to set non-critical,
+	and key usage of 'key signing', this should be rejected. Version
+	of GNUTLS < 3 do not rejecte it though, so we never noticed the
+	test case was broken
+
+2013-03-05  Satoru Moriya  <satoru.moriya@hds.com>
+
+	qemu: fix wrong evaluation in qemuDomainSetMemoryParameters
+	19c6ad9a (qemu: Refactor qemuDomainSetMemoryParameters) introduced
+	a new macro, VIR_GET_LIMIT_PARAMETER(PARAM, VALUE). But if statement
+	in the macro is not correct and so set_XXXX flags are set to false
+	in the wrong. As a result, libvirt ignores all memtune parameters.
+	This patch fixes the conditional expression to work correctly.
+
+2013-03-04  Guannan Ren  <gren@redhat.com>
+
+	util: use string libvirt to prefix error message instead of libvir
+	BZ:https://bugzilla.redhat.com/show_bug.cgi?id=912021
+	Without error handler set, virDefaultErrorFunc will be called, the
+	error message is prefixed with "libvir:". It become a little better
+	by using prefix "libvirt:" when working with upper application.
+
+	For example:
+	1, stop libvirtd daemon
+	2, run virt-top.
+	libvir: XML-RPC error : Failed to connect \
+	        socket to '/var/run/libvirt/libvirt-sock-ro': \
+	        No such file or directory
+	libvirt: VIR_ERR_SYSTEM_ERROR: VIR_FROM_RPC: \
+	        Failed to connect socket to '/var/run/libvirt/libvirt-sock-ro': \
+	        No such file or directory
+
+2013-03-04  Fritz Elfert  <fritz@fritz-elfert.de>
+
+	libvirt does not logout of iscsi targets, causing system hang on shutdown
+	There's a quite old bug entry here:
+
+	https://bugzilla.redhat.com/show_bug.cgi?id=700010
+
+	I just stumbled over that very issue on F18. Doing a little bit
+	debugging of the shutdown sequence, it turns out that - at least on my
+	F18 installation - libvirtd is shutdown *after* iscsid, which makes it
+	impossible for libvirt to perform the logout of the iscsi session properly.
+
+	This patch simply adds another startup dependancy on iscsid.service
+	which in turn delays iscsid shutdown until after libvirtd has stopped.
+	Having that applied, the system shuts down properly again.
+
+2013-03-04  Peter Krempa  <pkrempa@redhat.com>
+
+	qemu: Remove managed save flag from VM when starting with --force-boot
+	At the start of the guest after the image is unlinked the state wasn't
+	touched up to match the state on disk.
+
+2013-03-04  Christophe Fergeau  <cfergeau@redhat.com>
+
+	qemu: Use -1 as unpriviledged uid/gid
+	Commit f506a4c1 changed virSetUIDGID() to be a noop
+	when uid/gid are -1, while it used to be a noop when
+	they are <= 0.
+
+	The changes in this commit broke creating new VMs in GNOME Boxes
+	as qemuDomainCheckDiskPresence gets called during domain creation/startup,
+	which in turn calls virFileAccessibleAs which fails after calling
+	virSetUIDGID(0, 0) (Boxes uses session libvirtd). virSetUIDGID is called with
+	(0, 0) as these are the default user/group values in virQEMUDriverConfig
+	for session libvirtd.
+
+	This commit changes virQEMUDriverConfigNew to use -1 as the unpriviledged
+	uid/gid. I've also looked at the various places where cfg->user is used,
+	and they all seem to handle -1 correctly.
+
+2013-03-02  Guido Günther  <agx@sigxcpu.org>
+
+	hook: log the exit status of the hook not 256
+	Adjust the docs accordingly. See http://bugs.debian.org/701570.
+
+2013-03-01  Michal Privoznik  <mprivozn@redhat.com>
+
+	virnetdevmacvlan.c: Introduce mutex for macvlan creation
+	Currently, after we removed the qemu driver lock, it may happen
+	that two or more threads will start up a machine with macvlan and
+	race over virNetDevMacVLanCreateWithVPortProfile(). However,
+	there's a racy section in which we are generating a sequence of
+	possible device names and detecting if they exits. If we found
+	one which doesn't we try to create a device with that name.
+	However, the other thread is doing just the same. Assume it will
+	succeed and we must therefore fail. If this happens more than 5
+	times (which in massive parallel startup surely will) we return
+	-1 without any error reported. This patch is a simple hack to
+	both of these problems. It introduces a mutex, so only one thread
+	will enter the section, and if it runs out of possibilities,
+	error is reported. Moreover, the number of retries is raised to 20.
+
+2013-03-01  Daniel P. Berrange  <berrange@redhat.com>
+
+	Revert hack for autodestroy in qemuProcessStop
+	This reverts the hack done in
+
+	commit 568a6cda277f04ab9baaeb97490e548b7b608aa6
+	Author: Jiri Denemark <jdenemar@redhat.com>
+	Date:   Fri Feb 15 15:11:47 2013 +0100
+
+	    qemu: Avoid deadlock in autodestroy
+
+	since we now have a fix which avoids the deadlock scenario
+	entirely
+
+2013-03-01  Daniel P. Berrange  <berrange@redhat.com>
+
+	Fix deadlock in QEMU close callback APIs
+	There is a lock ordering problem in the QEMU close callback
+	APIs.
+
+	When starting a guest we have a lock on the VM. We then
+	set a autodestroy callback, which acquires a lock on the
+	close callbacks.
+
+	When running auto-destroy, we obtain a lock on the close
+	callbacks, then run each callbacks - which obtains a lock
+	on the VM.
+
+	This causes deadlock if anyone tries to start a VM, while
+	autodestroy is taking place.
+
+	The fix is to do autodestroy in 2 phases. First obtain
+	all the callbacks and remove them from the list under
+	the close callback lock. Then invoke each callback
+	from outside the close callback lock.
+
+2013-03-01  Daniel P. Berrange  <berrange@redhat.com>
+
+	Fix crash in QEMU auto-destroy with transient guests
+	When the auto-destroy callback runs it is supposed to return
+	NULL if the virDomainObjPtr is no longer valid. It was not
+	doing this for transient guests, so we tried to virObjectUnlock
+	a mutex which had been freed. This often led to a crash.
+
+2013-03-01  Guannan Ren  <gren@redhat.com>
+
+	python: fix fd leak in generator.py
+
+	python: fix typoes and repeated global vars references
+
+2013-03-01  Jiri Denemark  <jdenemar@redhat.com>
+
+	qemu: Make sure qemuProcessStart is run within a job
+	qemuProcessStart expects to be run with a job already set and every
+	caller except for qemuMigrationPrepareAny use it correctly. This bug can
+	be observed in libvirtd logs during incoming migration as
+
+	    warning : qemuDomainObjEnterMonitorInternal:979 : This thread seems
+	    to be the async job owner; entering monitor without asking for a
+	    nested job is dangerous
+
+2013-03-01  Jim Fehlig  <jfehlig@suse.com>
+
+	Fix starting qemu instances when apparmor driver is enabled
+	With the apparmor security driver enabled, qemu instances fail
+	to start
+
+	# grep ^security_driver /etc/libvirt/qemu.conf
+	security_driver = "apparmor"
+	# virsh start test-kvm
+	error: Failed to start domain test-kvm
+	error: internal error security label already defined for VM
+
+	The model field of virSecurityLabelDef object is always populated
+	by virDomainDefGetSecurityLabelDef(), so remove the check for a
+	NULL model when verifying if a label is already defined for the
+	instance.
+
+	Checking for a NULL model and populating it later in
+	AppArmorGenSecurityLabel() has been left in the code to be
+	consistent with virSecuritySELinuxGenSecurityLabel().
+
+2013-03-01  Serge Hallyn  <serge.hallyn@ubuntu.com>
+
+	Fix a message typo
+	As pointed out in
+	https://bugs.launchpad.net/ubuntu/+source/libvirt/+bug/1034661
+	The sentence
+
+	"The function of PCI device addresses must less than 8"
+
+	does not quite make sense.  Update that to read
+
+	"The function of PCI device addresses must be less than 8"
+
+2013-02-28  Michal Privoznik  <mprivozn@redhat.com>
+
+	qemu: Don't fail to shutdown domains with unresponsive agent
+	Currently, qemuDomainShutdownFlags() chooses the agent method of
+	shutdown whenever the agent is configured. However, this
+	assumption is not enough as the guest agent may be unresponsive
+	at the moment. So unless guest agent method has been explicitly
+	requested, we should fall back to the ACPI method.
+
+2013-02-28  Viktor Mihajlovski  <mihajlov@linux.vnet.ibm.com>
+
+	qemu: virConnectGetVersion returns bogus value
+	The unitialized local variable qemuVersion can cause an random value
+	to be returned for the hypervisor version, observable with virsh version.
+	Introduced by commit b46f7f4a0b96c2d2d01d64d960bd7bc90dc16b0c
+
+2013-02-28  Paolo Bonzini  <pbonzini@redhat.com>
+
+	qemu: fix use-after-free when parsing NBD disk
+	disk->src is still used for disks->hosts->name, do not free it.
+
+2013-02-28  Eric Blake  <eblake@redhat.com>
+
+	maint: fix typo in network docs
+	* docs/formatnetwork.html.in: Spell variation correctly.
+
+2013-02-28  Daniel P. Berrange  <berrange@redhat.com>
+
+	Don't try to add non-existant devices to ACL
+	The QEMU driver has a list of devices nodes that are whitelisted
+	for all guests. The kernel has recently started returning an
+	error if you try to whitelist a device which does not exist.
+	This causes a warning in libvirt logs and an audit error for
+	any missing devices. eg
+
+	2013-02-27 16:08:26.515+0000: 29625: warning : virDomainAuditCgroup:451 : success=no virt=kvm resrc=cgroup reason=allow vm="vm031714" uuid=9d8f1de0-44f4-a0b1-7d50-e41ee6cd897b cgroup="/sys/fs/cgroup/devices/libvirt/qemu/vm031714/" class=path path=/dev/kqemu rdev=? acl=rw
+
+2013-02-28  Daniel P. Berrange  <berrange@redhat.com>
+
+	Fix typo in internal VIR_QEMU_PROCESS_START_AUTODESROY constant
+	s/VIR_QEMU_PROCESS_START_AUTODESROY/VIR_QEMU_PROCESS_START_AUTODESTROY/
+
+2013-02-28  Daniel P. Berrange  <berrange@redhat.com>
+
+	Avoid spamming logs with cgroups warnings
+	The code for putting the emulator threads in a separate cgroup
+	would spam the logs with warnings
+
+	2013-02-27 16:08:26.731+0000: 29624: warning : virCgroupMoveTask:887 : no vm cgroup in controller 3
+	2013-02-27 16:08:26.731+0000: 29624: warning : virCgroupMoveTask:887 : no vm cgroup in controller 4
+	2013-02-27 16:08:26.732+0000: 29624: warning : virCgroupMoveTask:887 : no vm cgroup in controller 6
+
+	This is because it has only created child cgroups for 3 of the
+	controllers, but was trying to move the processes from all the
+	controllers. The fix is to only try to move threads in the
+	controllers we actually created. Also remove the warning and
+	make it return a hard error to avoid such lazy callers in the
+	future.
+
+2013-02-28  Daniel P. Berrange  <berrange@redhat.com>
+
+	Fix autodestroy of QEMU guests
+	The virQEMUCloseCallbacksRunOne method was passing a uuid string
+	to virDomainObjListFindByUUID, when it actually expected to get
+	a raw uuid buffer. This was not caught by the compiler because
+	the method was using a 'void *uuid' instead of first casting
+	it to the expected type.
+
+	This regression was accidentally caused by refactoring in
+
+	  commit 568a6cda277f04ab9baaeb97490e548b7b608aa6
+	  Author: Jiri Denemark <jdenemar@redhat.com>
+	  Date:   Fri Feb 15 15:11:47 2013 +0100
+
+	    qemu: Avoid deadlock in autodestroy
+
+2013-02-28  Eric Blake  <eblake@redhat.com>
+
+	qemu: -numa doesn't (yet) support disjoint range
+	https://bugzilla.redhat.com/show_bug.cgi?id=896092 mentions that
+	qemu 1.4 and earlier only accept a simple start-stop range for
+	the cpu=... argument of -numa.  Libvirt would attempt to use
+	-numa cpu=1,3 for a disjoint range, which did not work as intended.
+
+	Upstream qemu will be adding a new syntax for disjoint cpu ranges
+	in 1.5; but the design for that syntax is still under discussion
+	at the time of this patch.  So for libvirt 1.0.3, it is safest to
+	just reject attempts to build an invalid qemu command line; in the
+	future, we can add a capability bit and translate to the final
+	accepted design for selecting a disjoint cpu range in numa.
+
+	* src/qemu/qemu_command.c (qemuBuildNumaArgStr): Reject disjoint
+	ranges.
+
+2013-02-27  Laine Stump  <laine@laine.org>
+
+	Revert "Add support for <option> tag in network config"
+	This reverts commit 383ebc46947b0119123880c1ff9ae345fdb8d5f6.
+
+	We decided the xml for this feature needed more thought to make sure
+	we are doing it the best way, in particular wrt option values that
+	have multiple items.
+
 2013-02-27  Peter Krempa  <pkrempa@redhat.com>
+
+	util: Add docs for virXMLProp string
+	To avoid confusion about usage of this function explicitly document that
+	this function returns copy of the attribute string.
 
 	tests: Test XML entities in source path for RNG device
 	Users may want to specify XML entities in paths to devices. Ensure they
