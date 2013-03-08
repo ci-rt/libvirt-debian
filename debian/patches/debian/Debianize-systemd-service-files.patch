@@ -8,11 +8,11 @@ Subject: Debianize systemd service files
  2 files changed, 3 insertions(+), 3 deletions(-)
 
 diff --git a/daemon/libvirtd.service.in b/daemon/libvirtd.service.in
-index 98dd5a0..44cc560 100644
+index aa5913b..bc4b728 100644
 --- a/daemon/libvirtd.service.in
 +++ b/daemon/libvirtd.service.in
-@@ -10,8 +10,8 @@ After=network.target
- After=dbus.service
+@@ -11,8 +11,8 @@ After=dbus.service
+ After=iscsid.service
  
  [Service]
 -EnvironmentFile=-/etc/sysconfig/libvirtd
