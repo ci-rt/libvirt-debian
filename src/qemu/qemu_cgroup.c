@@ -265,6 +265,12 @@ int qemuSetupCgroup(virQEMUDriverPtr driver,
         }
 
         for (i = 0; deviceACL[i] != NULL ; i++) {
+            if (access(deviceACL[i], F_OK) < 0) {
+                VIR_DEBUG("Ignoring non-existant device %s",
+                          deviceACL[i]);
+                continue;
+            }
+
             rc = virCgroupAllowDevicePath(cgroup, deviceACL[i],
                                           VIR_CGROUP_DEVICE_RW);
             virDomainAuditCgroupPath(vm, cgroup, "allow", deviceACL[i], "rw", rc);
@@ -692,6 +698,11 @@ int qemuSetupCgroupForEmulator(virQEMUDriverPtr driver,
     }
 
     for (i = 0; i < VIR_CGROUP_CONTROLLER_LAST; i++) {
+        if (i != VIR_CGROUP_CONTROLLER_CPU &&
+            i != VIR_CGROUP_CONTROLLER_CPUACCT &&
+            i != VIR_CGROUP_CONTROLLER_CPUSET)
+            continue;
+
         if (!qemuCgroupControllerActive(driver, i))
             continue;
         rc = virCgroupMoveTask(cgroup, cgroup_emulator, i);

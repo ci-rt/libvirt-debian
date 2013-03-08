@@ -2118,17 +2118,20 @@ qemuMigrationPrepareAny(virQEMUDriverPtr driver,
         goto endjob;
     }
 
+    if (qemuDomainObjBeginNestedJob(driver, vm,
+                                    QEMU_ASYNC_JOB_MIGRATION_IN) < 0)
+        goto endjob;
+
     /* Start the QEMU daemon, with the same command-line arguments plus
      * -incoming $migrateFrom
      */
     if (qemuProcessStart(dconn, driver, vm, migrateFrom, dataFD[0], NULL, NULL,
                          VIR_NETDEV_VPORT_PROFILE_OP_MIGRATE_IN_START,
                          VIR_QEMU_PROCESS_START_PAUSED |
-                         VIR_QEMU_PROCESS_START_AUTODESROY) < 0) {
+                         VIR_QEMU_PROCESS_START_AUTODESTROY) < 0) {
         virDomainAuditStart(vm, "migrated", false);
-        /* Note that we don't set an error here because qemuProcessStart
-         * should have already done that.
-         */
+        if (qemuDomainObjEndJob(driver, vm) < 0)
+            vm = NULL;
         goto endjob;
     }
 
@@ -2235,7 +2238,7 @@ stop:
     qemuProcessStop(driver, vm, VIR_DOMAIN_SHUTOFF_FAILED, 0);
 
 endjob:
-    if (!qemuMigrationJobFinish(driver, vm)) {
+    if (vm && !qemuMigrationJobFinish(driver, vm)) {
         vm = NULL;
     }
     goto cleanup;

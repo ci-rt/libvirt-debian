@@ -3005,7 +3005,7 @@ VIR_CONNECT_LIST_DOMAINS_NO_AUTOSTART, for filtering based on autostart;
 VIR_CONNECT_LIST_DOMAINS_HAS_SNAPSHOT and
 VIR_CONNECT_LIST_DOMAINS_NO_SNAPSHOT, for filtering based on whether
 a domain has snapshots.</p>
-<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>Pointer to the hypervisor connection.</td></tr><tr><td><span class="term"><i><tt>domains</tt></i>:</span></td><td>Pointer to a variable to store the array containing domain objects or NULL if the list is not required (just returns number of guests).</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt.html#virConnectListAllDomainsFlags">virConnectListAllDomainsFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of domains found or -1 and sets domains to NULL in case of error. On success, the array stored into @doms is guaranteed to have an extra allocated element set to NULL but not included in the return count, to make iteration easier. The caller is responsible for calling virDomainFree() on each array element, then calling free() on @doms. Example of usage: <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> *domains; <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom; int i; int ret; unsigned int flags = VIR_CONNECT_LIST_RUNNING | VIR_CONNECT_LIST_PERSISTENT; ret = virConnectListAllDomains(conn, &amp;domains, flags); if (ret &lt; 0) error(); for (i = 0; i &lt; ret; i++) { do_something_with_domain(domains[i]); //here or in a separate loop if needed virDomainFree(domains[i]); } free(domains);</td></tr></tbody></table></div></div>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>Pointer to the hypervisor connection.</td></tr><tr><td><span class="term"><i><tt>domains</tt></i>:</span></td><td>Pointer to a variable to store the array containing domain objects or NULL if the list is not required (just returns number of guests).</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt.html#virConnectListAllDomainsFlags">virConnectListAllDomainsFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of domains found or -1 and sets domains to NULL in case of error. On success, the array stored into @domains is guaranteed to have an extra allocated element set to NULL but not included in the return count, to make iteration easier. The caller is responsible for calling virDomainFree() on each array element, then calling free() on @domains. Example of usage: <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> *domains; int i; int ret; unsigned int flags = <a href="libvirt-libvirt.html#VIR_CONNECT_LIST_DOMAINS_RUNNING">VIR_CONNECT_LIST_DOMAINS_RUNNING</a> | VIR_CONNECT_LIST_DOMAINS_PERSISTENT; ret = virConnectListAllDomains(conn, &amp;domains, flags); if (ret &lt; 0) error(); for (i = 0; i &lt; ret; i++) { do_something_with_domain(domains[i]); //here or in a separate loop if needed virDomainFree(domains[i]); } free(domains);</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virConnectListAllInterfaces"/>virConnectListAllInterfaces ()</h3><pre class="programlisting">int	virConnectListAllInterfaces	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 <a href="libvirt-libvirt.html#virInterfacePtr">virInterfacePtr</a> ** ifaces, <br/>					 unsigned int flags)<br/>
 </pre><p>Collect the list of interfaces, and allocate an array to store those
@@ -3172,7 +3172,7 @@ control over the results, see virConnectListAllDomains().</p>
 and store their names in @names
 
 For more control over the results, see virConnectListAllInterfaces().</p>
-<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>names</tt></i>:</span></td><td>array to collect the list of names of interfaces</td></tr><tr><td><span class="term"><i><tt>maxnames</tt></i>:</span></td><td>size of @names</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of interfaces found or -1 in case of error. Note that this command is inherently racy; a interface can be started between a call to virConnectNumOfInterfaces() and this call; you are only guaranteed that all currently active interfaces were listed if the return is less than @maxnames.</td></tr></tbody></table></div></div>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>names</tt></i>:</span></td><td>array to collect the list of names of interfaces</td></tr><tr><td><span class="term"><i><tt>maxnames</tt></i>:</span></td><td>size of @names</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of interfaces found or -1 in case of error. Note that this command is inherently racy; a interface can be started between a call to virConnectNumOfInterfaces() and this call; you are only guaranteed that all currently active interfaces were listed if the return is less than @maxnames. The client must call free() on each returned name.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virConnectListNWFilters"/>virConnectListNWFilters ()</h3><pre class="programlisting">int	virConnectListNWFilters		(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 char ** const names, <br/>					 int maxnames)<br/>
 </pre><p>Collect the list of network filters, and store their names in @names</p>
@@ -3182,7 +3182,7 @@ For more control over the results, see virConnectListAllInterfaces().</p>
 </pre><p>Collect the list of active networks, and store their names in @names
 
 For more control over the results, see virConnectListAllNetworks().</p>
-<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>names</tt></i>:</span></td><td>array to collect the list of names of active networks</td></tr><tr><td><span class="term"><i><tt>maxnames</tt></i>:</span></td><td>size of @names</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of networks found or -1 in case of error. Note that this command is inherently racy; a network can be started between a call to virConnectNumOfNetworks() and this call; you are only guaranteed that all currently active networks were listed if the return is less than @maxnames.</td></tr></tbody></table></div></div>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>names</tt></i>:</span></td><td>array to collect the list of names of active networks</td></tr><tr><td><span class="term"><i><tt>maxnames</tt></i>:</span></td><td>size of @names</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of networks found or -1 in case of error. Note that this command is inherently racy; a network can be started between a call to virConnectNumOfNetworks() and this call; you are only guaranteed that all currently active networks were listed if the return is less than @maxnames. The client must call free() on each returned name.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virConnectListSecrets"/>virConnectListSecrets ()</h3><pre class="programlisting">int	virConnectListSecrets		(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 char ** uuids, <br/>					 int maxuuids)<br/>
 </pre><p>List UUIDs of defined secrets, store pointers to names in uuids.</p>
@@ -3194,7 +3194,7 @@ If there are more than maxnames, the remaining names will be silently
 ignored.
 
 For more control over the results, see virConnectListAllStoragePools().</p>
-<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to hypervisor connection</td></tr><tr><td><span class="term"><i><tt>names</tt></i>:</span></td><td>array of char * to fill with pool names (allocated by caller)</td></tr><tr><td><span class="term"><i><tt>maxnames</tt></i>:</span></td><td>size of the names array</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of pools found or -1 in case of error. Note that this command is inherently racy; a pool can be started between a call to virConnectNumOfStoragePools() and this call; you are only guaranteed that all currently active pools were listed if the return is less than @maxnames.</td></tr></tbody></table></div></div>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to hypervisor connection</td></tr><tr><td><span class="term"><i><tt>names</tt></i>:</span></td><td>array of char * to fill with pool names (allocated by caller)</td></tr><tr><td><span class="term"><i><tt>maxnames</tt></i>:</span></td><td>size of the names array</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of pools found or -1 in case of error. Note that this command is inherently racy; a pool can be started between a call to virConnectNumOfStoragePools() and this call; you are only guaranteed that all currently active pools were listed if the return is less than @maxnames. The client must call free() on each returned name.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virConnectNumOfDefinedDomains"/>virConnectNumOfDefinedDomains ()</h3><pre class="programlisting">int	virConnectNumOfDefinedDomains	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn)<br/>
 </pre><p>Provides the number of defined but inactive domains.</p>
@@ -4435,6 +4435,10 @@ takes a hypervisor specific format. The hypervisor capabilities
 XML includes details of the support URI schemes. If omitted
 the dconn will be asked for a default URI.
 
+If you want to copy non-shared storage within migration you
+can use either <a href="libvirt-libvirt.html#VIR_MIGRATE_NON_SHARED_DISK">VIR_MIGRATE_NON_SHARED_DISK</a> or
+VIR_MIGRATE_NON_SHARED_INC as they are mutually exclusive.
+
 In either case it is typically only necessary to specify a
 URI if the destination host has multiple interfaces and a
 specific interface is required to transmit migration data.
@@ -4497,6 +4501,10 @@ If the <a href="libvirt-libvirt.html#VIR_MIGRATE_PEER2PEER">VIR_MIGRATE_PEER2PEE
 takes a hypervisor specific format. The hypervisor capabilities
 XML includes details of the support URI schemes. If omitted
 the dconn will be asked for a default URI.
+
+If you want to copy non-shared storage within migration you
+can use either <a href="libvirt-libvirt.html#VIR_MIGRATE_NON_SHARED_DISK">VIR_MIGRATE_NON_SHARED_DISK</a> or
+VIR_MIGRATE_NON_SHARED_INC as they are mutually exclusive.
 
 In either case it is typically only necessary to specify a
 URI if the destination host has multiple interfaces and a
@@ -4597,6 +4605,10 @@ libvirt driver can connect to the destination libvirt.
 
 VIR_MIGRATE_TUNNELLED requires that <a href="libvirt-libvirt.html#VIR_MIGRATE_PEER2PEER">VIR_MIGRATE_PEER2PEER</a> be set.
 
+If you want to copy non-shared storage within migration you
+can use either <a href="libvirt-libvirt.html#VIR_MIGRATE_NON_SHARED_DISK">VIR_MIGRATE_NON_SHARED_DISK</a> or
+VIR_MIGRATE_NON_SHARED_INC as they are mutually exclusive.
+
 If a hypervisor supports renaming domains during migration,
 the dname parameter specifies the new name for the domain.
 Setting dname to NULL keeps the domain name the same. If domain
@@ -4656,6 +4668,10 @@ element of the hypervisor capabilities XML includes details of the
 supported URI schemes.
 
 VIR_MIGRATE_TUNNELLED requires that <a href="libvirt-libvirt.html#VIR_MIGRATE_PEER2PEER">VIR_MIGRATE_PEER2PEER</a> be set.
+
+If you want to copy non-shared storage within migration you
+can use either <a href="libvirt-libvirt.html#VIR_MIGRATE_NON_SHARED_DISK">VIR_MIGRATE_NON_SHARED_DISK</a> or
+VIR_MIGRATE_NON_SHARED_INC as they are mutually exclusive.
 
 If a hypervisor supports changing the configuration of the guest
 during migration, the @dxml parameter specifies the new config
@@ -5457,7 +5473,7 @@ The next group of @flags is <a href="libvirt-libvirt.html#VIR_DOMAIN_SNAPSHOT_LI
 VIR_DOMAIN_SNAPSHOT_LIST_EXTERNAL, for filtering snapshots based on
 whether the snapshot is stored inside the disk images or as
 additional files.</p>
-<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>snapshot</tt></i>:</span></td><td>a domain snapshot object</td></tr><tr><td><span class="term"><i><tt>names</tt></i>:</span></td><td>array to collect the list of names of snapshots</td></tr><tr><td><span class="term"><i><tt>nameslen</tt></i>:</span></td><td>size of @names</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of supported <a href="libvirt-libvirt.html#virDomainSnapshotListFlags">virDomainSnapshotListFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of domain snapshots found or -1 in case of error. Note that this command is inherently racy: another connection can define a new snapshot between a call to virDomainSnapshotNumChildren() and this call. You are only guaranteed that all currently defined snapshots were listed if the return is less than @nameslen. Likewise, you should be prepared for virDomainSnapshotLookupByName() to fail when converting a name from this call into a snapshot object, if another connection deletes the snapshot in the meantime. For more control over the results, see virDomainSnapshotListAllChildren(). Returns the number of domain snapshots found or -1 in case of error. The caller is responsible for freeing each member of the array.</td></tr></tbody></table></div></div>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>snapshot</tt></i>:</span></td><td>a domain snapshot object</td></tr><tr><td><span class="term"><i><tt>names</tt></i>:</span></td><td>array to collect the list of names of snapshots</td></tr><tr><td><span class="term"><i><tt>nameslen</tt></i>:</span></td><td>size of @names</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of supported <a href="libvirt-libvirt.html#virDomainSnapshotListFlags">virDomainSnapshotListFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of domain snapshots found or -1 in case of error. Note that this command is inherently racy: another connection can define a new snapshot between a call to virDomainSnapshotNumChildren() and this call. You are only guaranteed that all currently defined snapshots were listed if the return is less than @nameslen. Likewise, you should be prepared for virDomainSnapshotLookupByName() to fail when converting a name from this call into a snapshot object, if another connection deletes the snapshot in the meantime. For more control over the results, see virDomainSnapshotListAllChildren(). Returns the number of domain snapshots found or -1 in case of error. The caller is responsible to call free() for each member of the array.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainSnapshotListNames"/>virDomainSnapshotListNames ()</h3><pre class="programlisting">int	virDomainSnapshotListNames	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 char ** names, <br/>					 int nameslen, <br/>					 unsigned int flags)<br/>
 </pre><p>Collect the list of domain snapshots for the given domain, and store
@@ -5504,7 +5520,7 @@ you should be prepared for virDomainSnapshotLookupByName() to fail when
 converting a name from this call into a snapshot object, if another
 connection deletes the snapshot in the meantime. For more control over
 the results, see virDomainListAllSnapshots().</p>
-<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>a domain object</td></tr><tr><td><span class="term"><i><tt>names</tt></i>:</span></td><td>array to collect the list of names of snapshots</td></tr><tr><td><span class="term"><i><tt>nameslen</tt></i>:</span></td><td>size of @names</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of supported <a href="libvirt-libvirt.html#virDomainSnapshotListFlags">virDomainSnapshotListFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of domain snapshots found or -1 in case of error. The caller is responsible for freeing each member of the array.</td></tr></tbody></table></div></div>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>a domain object</td></tr><tr><td><span class="term"><i><tt>names</tt></i>:</span></td><td>array to collect the list of names of snapshots</td></tr><tr><td><span class="term"><i><tt>nameslen</tt></i>:</span></td><td>size of @names</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of supported <a href="libvirt-libvirt.html#virDomainSnapshotListFlags">virDomainSnapshotListFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of domain snapshots found or -1 in case of error. The caller is responsible to call free() for each member of the array.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainSnapshotLookupByName"/>virDomainSnapshotLookupByName ()</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virDomainSnapshotPtr">virDomainSnapshotPtr</a>	virDomainSnapshotLookupByName	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>							 const char * name, <br/>							 unsigned int flags)<br/>
 </pre><p>Try to lookup a domain snapshot based on its name.</p>

@@ -6851,12 +6851,6 @@
         <word name='VIR_CONNECT_LIST_NODE_DEVICES_CAP_USB_INTERFACE'>
           <ref name='virConnectListAllNodeDevices'/>
         </word>
-        <word name='VIR_CONNECT_LIST_PERSISTENT'>
-          <ref name='virConnectListAllDomains'/>
-        </word>
-        <word name='VIR_CONNECT_LIST_RUNNING'>
-          <ref name='virConnectListAllDomains'/>
-        </word>
         <word name='VIR_CONNECT_LIST_SECRETS_EPHEMERAL'>
           <ref name='virConnectListAllSecrets'/>
         </word>
@@ -9123,6 +9117,9 @@
           <ref name='virConnectListDefinedInterfaces'/>
           <ref name='virConnectListDefinedNetworks'/>
           <ref name='virConnectListDefinedStoragePools'/>
+          <ref name='virConnectListInterfaces'/>
+          <ref name='virConnectListNetworks'/>
+          <ref name='virConnectListStoragePools'/>
           <ref name='virConnectOpen'/>
           <ref name='virConnectSetKeepAlive'/>
           <ref name='virDomainCreateWithFlags'/>
@@ -10307,7 +10304,6 @@
         </word>
         <word name='dom'>
           <ref name='virConnectDomainEventRegisterAny'/>
-          <ref name='virConnectListAllDomains'/>
           <ref name='virDomainGetCPUStats'/>
           <ref name='virDomainGetDiskErrors'/>
           <ref name='virDomainGetMemoryParameters'/>
@@ -11365,8 +11361,6 @@
         </word>
         <word name='freeing'>
           <ref name='virDomainGetCPUStats'/>
-          <ref name='virDomainSnapshotListChildrenNames'/>
-          <ref name='virDomainSnapshotListNames'/>
           <ref name='virNodeDeviceFree'/>
         </word>
         <word name='frees'>
