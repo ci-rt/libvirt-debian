@@ -1,3 +1,19 @@
+libvirt (1.0.3-1) experimental; urgency=low
+
+  * [38c4d9a] New upstream version 1.0.3
+  * [4fa2cf2] Update patches.
+    Dropped (fixed upstream)
+        - Hook-log-the-exit-status-of-the-hook-not-256.patch
+  * [ab5c109] Add sanitytest.py missing from the upstream tarball
+  * [524cdb1] Properly remove libvirt-qemu group and user.
+    Thanks to Adam D.  Barratt for noticing
+  * [5dbabe0] Use "getent passwd" instead of the non existing "getent user"
+    Thanks again to Adam D. Barratt
+  * [f59b09c] Only add libvirt-qemu user to libvirt-qemu group once when the
+    group gets created
+
+ -- Guido Günther <agx@sigxcpu.org>  Fri, 08 Mar 2013 19:07:33 +0100
+
 libvirt (1.0.3~rc2-1) experimental; urgency=low
 
   * [9afb984] Enable systemd services
