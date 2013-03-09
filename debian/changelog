@@ -1,3 +1,11 @@
+libvirt (0.8.3-5+squeeze4) stable-security; urgency=low
+
+  * [9d7846f] CVE-2013-1766: Use libvirt-qemu as group to run qemu/kvm
+    instances.  This makes sure we don't chown files to groups possibly used
+    by other programs. (Closes: #701649)
+
+ -- Guido Günther <agx@sigxcpu.org>  Sat, 09 Mar 2013 17:03:01 +0100
+
 libvirt (0.8.3-5+squeeze3) stable-security; urgency=low
 
   * [0bbbca1] Add missing return on error path (Closes: #699224)
