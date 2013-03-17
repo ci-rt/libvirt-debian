@@ -1,0 +1,35 @@
+From: =?UTF-8?q?Guido=20G=C3=BCnther?= <agx@sigxcpu.org>
+Date: Sun, 17 Mar 2013 14:19:08 +0100
+Subject: Rerun autoconf
+
+---
+ config.h.in |    3 +++
+ configure   |    1 +
+ 2 files changed, 4 insertions(+)
+
+diff --git a/config.h.in b/config.h.in
+index 187fdbc..d839f22 100644
+--- a/config.h.in
++++ b/config.h.in
+@@ -452,6 +452,9 @@
+ /* Define to 1 if you have the `inet_pton' function. */
+ #undef HAVE_INET_PTON
+ 
++/* Define to 1 if you have the `initgroups' function. */
++#undef HAVE_INITGROUPS
++
+ /* Define if you have the 'intmax_t' type in <stdint.h> or <inttypes.h>. */
+ #undef HAVE_INTMAX_T
+ 
+diff --git a/configure b/configure
+index 37adb0a..f24ad5d 100755
+--- a/configure
++++ b/configure
+@@ -3009,6 +3009,7 @@ gl_func_list="$gl_func_list regexec"
+ gl_func_list="$gl_func_list sched_getaffinity"
+ gl_func_list="$gl_func_list getuid"
+ gl_func_list="$gl_func_list getgid"
++gl_func_list="$gl_func_list initgroups"
+ gl_func_list="$gl_func_list posix_fallocate"
+ gl_func_list="$gl_func_list mmap"
+ gl_func_list="$gl_func_list strerror_r"

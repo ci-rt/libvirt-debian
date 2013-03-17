@@ -14,3 +14,7 @@ security/0013-Add-missing-checks-for-read-only-connections.patch
 security/0014-Make-error-reporting-in-libvirtd-thread-safe.patch
 security/0015-Fix-integer-overflow-in-VirDomainGetVcpus.patch
 0016-Add-missing-return-on-error-path.patch
+security/0017-New-virSetUIDGID-utility-function.patch
+security/0018-Run-initgroups-in-qemudOpenAsUID.patch
+security/0019-Replace-setuid-setgid-initgroups-with-virSetUIDGID.patch
+0020-Rerun-autoconf.patch

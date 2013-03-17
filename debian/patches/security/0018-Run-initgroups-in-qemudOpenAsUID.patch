@@ -1,0 +1,74 @@
+From: Dan Kenigsberg <danken@redhat.com>
+Date: Tue, 19 Oct 2010 15:22:57 +0200
+Subject: Run initgroups() in qemudOpenAsUID()
+
+qemudOpenAsUID is intended to open a file with the credentials of a
+specified uid. Current implementation fails if the file is accessible to
+one of uid's groups but not owned by uid.
+
+This patch replaces the supplementary group list that the child process
+inherited from libvirtd with the default group list of uid.
+
+---
+ src/qemu/qemu_driver.c |   27 ++++++++++++++++++++++-----
+ 1 file changed, 22 insertions(+), 5 deletions(-)
+
+diff --git a/src/qemu/qemu_driver.c b/src/qemu/qemu_driver.c
+index 6097648..5629885 100644
+--- a/src/qemu/qemu_driver.c
++++ b/src/qemu/qemu_driver.c
+@@ -41,6 +41,7 @@
+ #include <signal.h>
+ #include <paths.h>
+ #include <pwd.h>
++#include <grp.h>
+ #include <stdio.h>
+ #include <sys/wait.h>
+ #include <sys/ioctl.h>
+@@ -6308,6 +6309,7 @@ parent_cleanup:
+     char *buf = NULL;
+     size_t bufsize = 1024 * 1024;
+     int bytesread;
++    struct passwd pwd, *pwd_result;
+ 
+     /* child doesn't need the read side of the pipe */
+     close(pipefd[0]);
+@@ -6320,6 +6322,26 @@ parent_cleanup:
+         goto child_cleanup;
+     }
+ 
++    if (VIR_ALLOC_N(buf, bufsize) < 0) {
++        exit_code = ENOMEM;
++        virReportOOMError();
++        goto child_cleanup;
++    }
++
++    exit_code = getpwuid_r(uid, &pwd, buf, bufsize, &pwd_result);
++    if (pwd_result == NULL) {
++        virReportSystemError(errno,
++                             _("cannot getpwuid_r(%d) to read '%s'"),
++                             uid, path);
++        goto child_cleanup;
++    }
++    if (initgroups(pwd.pw_name, pwd.pw_gid) != 0) {
++        exit_code = errno;
++        virReportSystemError(errno,
++                             _("cannot initgroups(\"%s\", %d) to read '%s'"),
++                             pwd.pw_name, pwd.pw_gid, path);
++        goto child_cleanup;
++    }
+     if (setuid(uid) != 0) {
+         exit_code = errno;
+         virReportSystemError(errno,
+@@ -6334,11 +6356,6 @@ parent_cleanup:
+                              path, uid);
+         goto child_cleanup;
+     }
+-    if (VIR_ALLOC_N(buf, bufsize) < 0) {
+-        exit_code = ENOMEM;
+-        virReportOOMError();
+-        goto child_cleanup;
+-    }
+ 
+     /* read from fd and write to pipefd[1] until EOF */
+     do {
