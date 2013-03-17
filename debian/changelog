@@ -1,3 +1,10 @@
+libvirt (0.8.3-5+squeeze5) stable-security; urgency=low
+
+  * [465cafd] Invoke initgroups when starting kvm
+    so we don't fail to open /dev/kvm. (Closes: #703208)
+
+ -- Guido Günther <agx@sigxcpu.org>  Sun, 17 Mar 2013 14:39:03 +0100
+
 libvirt (0.8.3-5+squeeze4) stable-security; urgency=low
 
   * [9d7846f] CVE-2013-1766: Use libvirt-qemu as group to run qemu/kvm
