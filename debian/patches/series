@@ -11,4 +11,3 @@ Reduce-udevadm-settle-timeout-to-10-seconds.patch
 debian/Debianize-systemd-service-files.patch
 Allow-xen-toolstack-to-find-it-s-binaries.patch
 Add-sanitytest.py.patch
-lxc-Init-activeUsbHostdevs.patch
