@@ -1,3 +1,11 @@
+libvirt (1.0.4-1) experimental; urgency=low
+
+  * [ddd8c30] lxc: Init activeUsbHostdevs (Closes: #700267)
+  * [95adca0] New upstream version 1.0.4
+  * [237a6ca] Update symbols file
+
+ -- Guido Günther <agx@sigxcpu.org>  Mon, 01 Apr 2013 14:25:22 +0200
+
 libvirt (1.0.3-1) experimental; urgency=low
 
   * [38c4d9a] New upstream version 1.0.3
