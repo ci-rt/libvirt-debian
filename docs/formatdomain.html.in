@@ -232,6 +232,7 @@
     &lt;kernel&gt;/root/f8-i386-vmlinuz&lt;/kernel&gt;
     &lt;initrd&gt;/root/f8-i386-initrd&lt;/initrd&gt;
     &lt;cmdline&gt;console=ttyS0 ks=http://example.com/f8-i386/os/&lt;/cmdline&gt;
+    &lt;dtb&gt;/root/ppc.dtb&lt;/dtb&gt;
   &lt;/os&gt;
   ...</pre>
 
@@ -253,6 +254,10 @@
         the kernel (or installer) at boottime. This is often used to
         specify an alternate primary console (eg serial port), or the
         installation media source / kickstart file</dd>
+      <dt><code>dtb</code></dt>
+      <dd>The contents of this element specify the fully-qualified path
+        to the (optional) device tree binary (dtb) image in the host OS.
+        <span class="since">Since 1.0.4</span></dd>
     </dl>
 
     <h4><a name="eleemntsOSContainer">Container boot</a></h4>
@@ -1438,15 +1443,19 @@
         to the directory to use as the disk. If the disk <code>type</code>
         is "network", then the <code>protocol</code> attribute specifies
         the protocol to access to the requested image; possible values
-        are "nbd", "rbd", "sheepdog" or "gluster".  If the
+        are "nbd", "iscsi", "rbd", "sheepdog" or "gluster".  If the
         <code>protocol</code> attribute is "rbd", "sheepdog" or "gluster", an
         additional attribute <code>name</code> is mandatory to specify which
-        volume/image will be used.  When the disk <code>type</code> is
-        "network", the <code>source</code> may have zero or
-        more <code>host</code> sub-elements used to specify the hosts
-        to connect.
+        volume/image will be used; for "nbd" it is optional.  For "iscsi",
+        the <code>name</code> attribute may include a logical unit number,
+        separated from the target's name by a slash (for example,
+        <code>iqn.1992-01.com.example/1</code>); the default LUN is zero.
+        When the disk <code>type</code> is "network", the <code>source</code>
+        may have zero or more <code>host</code> sub-elements used to
+        specify the hosts to connect.
         <span class="since">Since 0.0.3; <code>type='dir'</code> since
-        0.7.5; <code>type='network'</code> since 0.8.7</span><br/>
+        0.7.5; <code>type='network'</code> since
+        0.8.7; <code>protocol='iscsi'</code> since 1.0.4</span><br/>
         For a "file" disk type which represents a cdrom or floppy
         (the <code>device</code> attribute), it is possible to define
         policy what to do with the disk if the source file is not accessible.
@@ -1691,31 +1700,44 @@
             <th> Protocol </th>
             <th> Meaning </th>
             <th> Number of hosts </th>
+            <th> Default port </th>
           </tr>
           <tr>
             <td> nbd </td>
             <td> a server running nbd-server </td>
             <td> only one </td>
+            <td> 10809 </td>
+          </tr>
+          <tr>
+            <td> iscsi </td>
+            <td> an iSCSI server </td>
+            <td> only one </td>
+            <td> 3260 </td>
           </tr>
           <tr>
             <td> rbd </td>
             <td> monitor servers of RBD </td>
             <td> one or more </td>
+            <td> 6789 </td>
           </tr>
           <tr>
             <td> sheepdog </td>
             <td> one of the sheepdog servers (default is localhost:7000) </td>
             <td> zero or one </td>
+            <td> 7000 </td>
           </tr>
           <tr>
             <td> gluster </td>
             <td> a server running glusterd daemon </td>
             <td> only one </td>
+            <td> 24007 </td>
           </tr>
         </table>
-        In case of gluster, valid values for transport attribute are tcp, rdma
-        or unix. If nothing is specified, tcp is assumed. If transport is unix,
-        socket attribute specifies path to unix socket.
+        gluster supports "tcp", "rdma", "unix" as valid values for the
+        transport attribute.  nbd supports "tcp" and "unix".  Others only
+        support "tcp".  If nothing is specified, "tcp" is assumed. If the
+        transport is "unix", the socket attribute specifies the path to an
+        AF_UNIX socket.
       </dd>
       <dt><code>address</code></dt>
       <dd>If present, the <code>address</code> element ties the disk
@@ -1746,12 +1768,12 @@
         holds the actual password or other credentials (the domain XML
         intentionally does not expose the password, only the reference
         to the object that does manage the password).  For now, the
-        only known secret <code>type</code> is "ceph", for Ceph RBD
-        network sources, and requires either an
-        attribute <code>uuid</code> with the UUID of the Ceph secret
-        object, or an attribute <code>usage</code> with the name
-        associated with the Ceph secret
-        object.  <span class="since">libvirt 0.9.7</span>
+        known secret <code>type</code>s are "ceph", for Ceph RBD
+        network sources, and "iscsi", for CHAP authentication of iSCSI
+        targets.  Both require either a <code>uuid</code> attribute
+        with the UUID of the secret object, or a <code>usage</code>
+        attribute matching the key that was specified in the
+        secret object.  <span class="since">libvirt 0.9.7</span>
       </dd>
       <dt><code>geometry</code></dt>
       <dd>The optional <code>geometry</code> element provides the
@@ -2018,6 +2040,20 @@
         of the starting register).  <span class="since">Since
         0.9.9.</span>
       </dd>
+      <dt><code>type='ccw'</code></dt>
+      <dd>s390 guests with a <code>machine</code> value of
+        s390-ccw-virtio use the native CCW bus for I/O devices.
+        CCW bus addresses have the following additional attributes:
+        <code>cssid</code> (a hex value between 0 and 0xfe, inclusive),
+        <code>ssid</code> (a value between 0 and 3, inclusive) and
+        <code>devno</code> (a hex value between 0 and 0xffff, inclusive).
+        Partially specified bus addresses are not allowed.
+        If omitted, libvirt will assign a free bus address with
+        cssid=0xfe and ssid=0. Virtio devices for s390 must have their
+        cssid set to 0xfe in order to be recognized by the guest
+        operating system.
+        <span class="since">Since 1.0.4</span>
+      </dd>
     </dl>
 
     <h4><a name="elementsControllers">Controllers</a></h4>
@@ -2055,9 +2091,9 @@
       control how many devices can be connected through the
       controller.  A "scsi" controller has an optional
       attribute <code>model</code>, which is one of "auto", "buslogic",
-      "ibmvscsi", "lsilogic", "lsias1068", "virtio-scsi" or "vmpvscsi".
-      A "usb" controller has an optional attribute <code>model</code>,
-      which is one of "piix3-uhci", "piix4-uhci", "ehci",
+      "ibmvscsi", "lsilogic", "lsisas1068", "lsisas1078", "virtio-scsi" or
+      "vmpvscsi".  A "usb" controller has an optional attribute
+      <code>model</code>, which is one of "piix3-uhci", "piix4-uhci", "ehci",
       "ich9-ehci1", "ich9-uhci1", "ich9-uhci2", "ich9-uhci3",
       "vt82c686b-uhci", "pci-ohci" or "nec-xhci". Additionally,
       <span class="since">since 0.10.0</span>, if the USB bus needs to be
@@ -3470,10 +3506,10 @@ qemu-kvm -net nic,model=? /dev/null
             the TCP port to use. The <code>replaceUser</code>
             attribute is a boolean deciding whether multiple
             simultaneous connections to the VM are permitted.
-            The <code>multiUser</code> whether the existing connection
-            must be dropped and a new connection must be established
-            by the VRDP server, when a new client connects in single
-            connection mode.
+            The <code>multiUser</code> attribute is a boolean deciding
+            whether the existing connection must be dropped and a new
+            connection must be established by the VRDP server, when a
+            new client connects in single connection mode.
           </dd>
           <dt><code>"desktop"</code></dt>
           <dd>
@@ -4280,6 +4316,7 @@ qemu-kvm -net nic,model=? /dev/null
   ...
   &lt;devices&gt;
     &lt;rng model='virtio'&gt;
+      &lt;rate period="2000" bytes="1234"/&gt;
       &lt;backend model='random'&gt;/dev/random&lt;/backend&gt;
       &lt;!-- OR --&gt;
       &lt;backend model='egd' type='udp'&gt;
@@ -4301,6 +4338,18 @@ qemu-kvm -net nic,model=? /dev/null
         <ul>
           <li>'virtio' &mdash; supported by qemu and virtio-rng kernel module</li>
         </ul>
+      </dd>
+      <dt><code>rate</code></dt>
+      <dd>
+        <p>
+          The optional <code>rate</code> element allows limiting the rate at
+          which entropy can be consumed from the source.  The mandatory
+          attribute <code>bytes</code> specifies how many bytes are permitted
+          to be consumed per period.  An optional <code>period</code> attribute
+          specifies the duration of a period in milliseconds; if omitted, the
+          period is taken as 1000 milliseconds (1 second).
+          <span class='since'>Since 1.0.4</span>
+        </p>
       </dd>
       <dt><code>backend</code></dt>
       <dd>

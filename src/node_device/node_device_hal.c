@@ -152,12 +152,16 @@ static int gather_pci_cap(LibHalContext *ctx, const char *udi,
                                        &d->pci_dev.physical_function))
             d->pci_dev.flags |= VIR_NODE_DEV_CAP_FLAG_PCI_PHYSICAL_FUNCTION;
 
-        if (!virPCIGetVirtualFunctions(sysfs_path,
-                                       &d->pci_dev.virtual_functions,
-            &d->pci_dev.num_virtual_functions) ||
-            d->pci_dev.num_virtual_functions > 0)
-            d->pci_dev.flags |= VIR_NODE_DEV_CAP_FLAG_PCI_VIRTUAL_FUNCTION;
+        int ret = virPCIGetVirtualFunctions(sysfs_path,
+                                            &d->pci_dev.virtual_functions,
+                                            &d->pci_dev.num_virtual_functions);
+        if (ret < 0) {
+            VIR_FREE(sysfs_path);
+            return -1;
+        }
 
+        if (d->pci_dev.num_virtual_functions > 0)
+            d->pci_dev.flags |= VIR_NODE_DEV_CAP_FLAG_PCI_VIRTUAL_FUNCTION;
         VIR_FREE(sysfs_path);
     }
 
@@ -236,13 +240,11 @@ static int gather_scsi_host_cap(LibHalContext *ctx, const char *udi,
 
     (void)get_int_prop(ctx, udi, "scsi_host.host", (int *)&d->scsi_host.host);
 
-    retval = check_fc_host(d);
+    retval = detect_scsi_host_caps(d);
 
     if (retval == -1) {
         goto out;
     }
-
-    retval = check_vport_capable(d);
 
 out:
     return retval;

@@ -1809,7 +1809,7 @@ virScaleInteger(unsigned long long *value, const char *suffix,
         }
     }
 
-    if (*value && *value >= (limit / scale)) {
+    if (*value && *value > (limit / scale)) {
         virReportError(VIR_ERR_OVERFLOW, _("value too large: %llu%s"),
                        *value, suffix);
         return -1;
@@ -2998,18 +2998,21 @@ virGetGroupName(gid_t gid ATTRIBUTE_UNUSED)
  * errno).
  */
 int
-virSetUIDGIDWithCaps(uid_t uid, gid_t gid, unsigned long long capBits)
+virSetUIDGIDWithCaps(uid_t uid, gid_t gid, unsigned long long capBits,
+                     bool clearExistingCaps)
 {
     int ii, capng_ret, ret = -1;
     bool need_setgid = false, need_setuid = false;
     bool need_prctl = false, need_setpcap = false;
 
-    /* First drop all caps except those in capBits + the extra ones we
-     * need to change uid/gid and change the capabilities bounding
-     * set.
+    /* First drop all caps (unless the requested uid is "unchanged" or
+     * root and clearExistingCaps wasn't requested), then add back
+     * those in capBits + the extra ones we need to change uid/gid and
+     * change the capabilities bounding set.
      */
 
-    capng_clear(CAPNG_SELECT_BOTH);
+    if (clearExistingCaps || (uid != (uid_t)-1 && uid != 0))
+       capng_clear(CAPNG_SELECT_BOTH);
 
     for (ii = 0; ii <= CAP_LAST_CAP; ii++) {
         if (capBits & (1ULL << ii)) {
@@ -3095,7 +3098,8 @@ cleanup:
 
 int
 virSetUIDGIDWithCaps(uid_t uid, gid_t gid,
-                     unsigned long long capBits ATTRIBUTE_UNUSED)
+                     unsigned long long capBits ATTRIBUTE_UNUSED,
+                     bool clearExistingCaps ATTRIBUTE_UNUSED)
 {
     return virSetUIDGID(uid, gid);
 }
@@ -3379,3 +3383,228 @@ cleanup:
     VIR_FREE(buf);
     return ret;
 }
+
+#ifdef __linux__
+# define SYSFS_FC_HOST_PATH "/sys/class/fc_host/"
+# define SYSFS_SCSI_HOST_PATH "/sys/class/scsi_host/"
+
+/* virReadFCHost:
+ * @sysfs_prefix: "fc_host" sysfs path, defaults to SYSFS_FC_HOST_PATH
+ * @host: Host number, E.g. 5 of "fc_host/host5"
+ * @entry: Name of the sysfs entry to read
+ * @result: Return the entry value as string
+ *
+ * Read the value of sysfs "fc_host" entry.
+ *
+ * Returns 0 on success, and @result is filled with the entry value.
+ * as string, Otherwise returns -1. Caller must free @result after
+ * use.
+ */
+int
+virReadFCHost(const char *sysfs_prefix,
+              int host,
+              const char *entry,
+              char **result)
+{
+    char *sysfs_path = NULL;
+    char *p = NULL;
+    int ret = -1;
+    char *buf = NULL;
+
+    if (virAsprintf(&sysfs_path, "%s/host%d/%s",
+                    sysfs_prefix ? sysfs_prefix : SYSFS_FC_HOST_PATH,
+                    host, entry) < 0) {
+        virReportOOMError();
+        goto cleanup;
+    }
+
+    if (virFileReadAll(sysfs_path, 1024, &buf) < 0)
+        goto cleanup;
+
+    if ((p = strchr(buf, '\n')))
+        *p = '\0';
+
+    if ((p = strstr(buf, "0x")))
+        p += strlen("0x");
+    else
+        p = buf;
+
+    if (!(*result = strndup(p, sizeof(buf)))) {
+        virReportOOMError();
+        goto cleanup;
+    }
+
+    ret = 0;
+cleanup:
+    VIR_FREE(sysfs_path);
+    VIR_FREE(buf);
+    return ret;
+}
+
+int
+virIsCapableFCHost(const char *sysfs_prefix,
+                   int host)
+{
+    char *sysfs_path = NULL;
+    int ret = -1;
+
+    if (virAsprintf(&sysfs_path, "%shost%d",
+                    sysfs_prefix ? sysfs_prefix : SYSFS_FC_HOST_PATH,
+                    host) < 0) {
+        virReportOOMError();
+        return -1;
+    }
+
+    if (access(sysfs_path, F_OK) == 0)
+        ret = 0;
+
+    VIR_FREE(sysfs_path);
+    return ret;
+}
+
+int
+virIsCapableVport(const char *sysfs_prefix,
+                  int host)
+{
+    char *scsi_host_path = NULL;
+    char *fc_host_path = NULL;
+    int ret = -1;
+
+    if (virAsprintf(&fc_host_path,
+                    "%shost%d%s",
+                    sysfs_prefix ? sysfs_prefix : SYSFS_FC_HOST_PATH,
+                    host,
+                    "vport_create") < 0) {
+        virReportOOMError();
+        return -1;
+    }
+
+    if (virAsprintf(&scsi_host_path,
+                    "%shost%d%s",
+                    sysfs_prefix ? sysfs_prefix : SYSFS_SCSI_HOST_PATH,
+                    host,
+                    "vport_create") < 0) {
+        virReportOOMError();
+        goto cleanup;
+    }
+
+    if ((access(fc_host_path, F_OK) == 0) ||
+        (access(scsi_host_path, F_OK) == 0))
+        ret = 0;
+
+cleanup:
+    VIR_FREE(fc_host_path);
+    VIR_FREE(scsi_host_path);
+    return ret;
+}
+
+int
+virManageVport(const int parent_host,
+               const char *wwpn,
+               const char *wwnn,
+               int operation)
+{
+    int ret = -1;
+    char *operation_path = NULL, *vport_name = NULL;
+    const char *operation_file = NULL;
+
+    switch (operation) {
+    case VPORT_CREATE:
+        operation_file = "vport_create";
+        break;
+    case VPORT_DELETE:
+        operation_file = "vport_delete";
+        break;
+    default:
+        virReportError(VIR_ERR_OPERATION_INVALID,
+                       _("Invalid vport operation (%d)"), operation);
+        goto cleanup;
+    }
+
+    if (virAsprintf(&operation_path,
+                    "%shost%d/%s",
+                    SYSFS_FC_HOST_PATH,
+                    parent_host,
+                    operation_file) < 0) {
+        virReportOOMError();
+        goto cleanup;
+    }
+
+    if (!virFileExists(operation_path)) {
+        VIR_FREE(operation_path);
+        if (virAsprintf(&operation_path,
+                        "%shost%d/%s",
+                        SYSFS_SCSI_HOST_PATH,
+                        parent_host,
+                        operation_file) < 0) {
+            virReportOOMError();
+            goto cleanup;
+        }
+
+        if (!virFileExists(operation_path)) {
+            virReportError(VIR_ERR_OPERATION_INVALID,
+                           _("vport operation '%s' is not supported for host%d"),
+                           operation_file, parent_host);
+            goto cleanup;
+        }
+    }
+
+    if (virAsprintf(&vport_name,
+                    "%s:%s",
+                    wwnn,
+                    wwpn) < 0) {
+        virReportOOMError();
+        goto cleanup;
+    }
+
+    if (virFileWriteStr(operation_path, vport_name, 0) == 0)
+        ret = 0;
+    else
+        virReportSystemError(errno,
+                             _("Write of '%s' to '%s' during "
+                               "vport create/delete failed"),
+                             vport_name, operation_path);
+
+cleanup:
+    VIR_FREE(vport_name);
+    VIR_FREE(operation_path);
+    return ret;
+}
+#else
+int
+virReadFCHost(const char *sysfs_prefix ATTRIBUTE_UNUSED,
+              int host ATTRIBUTE_UNUSED,
+              const char *entry ATTRIBUTE_UNUSED,
+              char **result ATTRIBUTE_UNUSED)
+{
+    virReportSystemError(ENOSYS, "%s", _("Not supported on this platform"));
+    return -1;
+}
+
+int
+virIsCapableFCHost(const char *sysfs_prefix ATTRIBUTE_UNUSED,
+                   int host ATTRIBUTE_UNUSED)
+{
+    virReportSystemError(ENOSYS, "%s", _("Not supported on this platform"));
+    return -1;
+}
+
+int
+virIsCapableVport(const char *sysfs_prefix ATTRIBUTE_UNUSED,
+                  int host ATTRIBUTE_UNUSED)
+{
+    virReportSystemError(ENOSYS, "%s", _("Not supported on this platform"));
+    return -1;
+}
+
+int
+virManageVport(const int parent_host ATTRIBUTE_UNUSED,
+               const char *wwpn ATTRIBUTE_UNUSED,
+               const char *wwnn ATTRIBUTE_UNUSED,
+               int operation ATTRIBUTE_UNUSED)
+{
+    virReportSystemError(ENOSYS, "%s", _("Not supported on this platform"));
+    return -1;
+}
+
+#endif /* __linux__ */

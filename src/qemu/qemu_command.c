@@ -500,12 +500,12 @@ qemuSetScsiControllerModel(virDomainDefPtr def,
             if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_SCSI_LSI)) {
                 virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                                _("This QEMU doesn't support "
-                                 "lsi scsi controller"));
+                                 "the LSI 53C895A SCSI controller"));
                 return -1;
             }
             break;
         case VIR_DOMAIN_CONTROLLER_MODEL_SCSI_VIRTIO_SCSI:
-            if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_VIRTIO_SCSI_PCI)) {
+            if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_VIRTIO_SCSI)) {
                 virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                                _("This QEMU doesn't support "
                                  "virtio scsi controller"));
@@ -514,6 +514,14 @@ qemuSetScsiControllerModel(virDomainDefPtr def,
             break;
         case VIR_DOMAIN_CONTROLLER_MODEL_SCSI_IBMVSCSI:
             /*TODO: need checking work here if necessary */
+            break;
+        case VIR_DOMAIN_CONTROLLER_MODEL_SCSI_LSISAS1078:
+            if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_SCSI_MEGASAS)) {
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                               _("This QEMU doesn't support "
+                                 "the LSI SAS1078 controller"));
+                return -1;
+            }
             break;
         default:
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
@@ -799,13 +807,108 @@ no_memory:
     return -1;
 }
 
+/* S390 ccw bus support */
+
+struct _qemuDomainCCWAddressSet {
+    virHashTablePtr defined;
+    virDomainDeviceCCWAddress next;
+};
+
+static char*
+qemuCCWAddressAsString(virDomainDeviceCCWAddressPtr addr)
+{
+    char *addrstr = NULL;
+
+    if (virAsprintf(&addrstr, "%x.%x.%04x",
+                    addr->cssid,
+                    addr->ssid,
+                    addr->devno) < 0) {
+        virReportOOMError();
+        return NULL;
+    }
+
+    return addrstr;
+}
+
+static int
+qemuCCWAdressIncrement(virDomainDeviceCCWAddressPtr addr)
+{
+    virDomainDeviceCCWAddress ccwaddr = *addr;
+
+    /* We are not touching subchannel sets and channel subsystems */
+    if (++ccwaddr.devno > VIR_DOMAIN_DEVICE_CCW_MAX_DEVNO)
+        return -1;
+
+    *addr = ccwaddr;
+    return 0;
+}
+
+static void
+qemuDomainCCWAddressSetFreeEntry(void *payload,
+                                 const void *name ATTRIBUTE_UNUSED)
+{
+    VIR_FREE(payload);
+}
+
+int qemuDomainCCWAddressAssign(virDomainDeviceInfoPtr dev,
+                               qemuDomainCCWAddressSetPtr addrs,
+                               bool autoassign)
+{
+    int ret = -1;
+    char *addr = NULL;
+
+    if (dev->type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_CCW)
+        return 0;
+
+    if (!autoassign && dev->addr.ccw.assigned) {
+        if (!(addr = qemuCCWAddressAsString(&dev->addr.ccw)))
+            goto cleanup;
+
+        if (virHashLookup(addrs->defined, addr)) {
+            virReportError(VIR_ERR_XML_ERROR,
+                           _("The CCW devno '%s' is in use already "),
+                           addr);
+            goto cleanup;
+        }
+    } else if (autoassign && !dev->addr.ccw.assigned) {
+        if (!(addr = qemuCCWAddressAsString(&addrs->next)) < 0)
+            goto cleanup;
+
+        while (virHashLookup(addrs->defined, addr)) {
+            if (qemuCCWAdressIncrement(&addrs->next) < 0) {
+                virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                               _("There are no more free CCW devnos."));
+                goto cleanup;
+            }
+            VIR_FREE(addr);
+            addr = qemuCCWAddressAsString(&addrs->next);
+        }
+        dev->addr.ccw = addrs->next;
+        dev->addr.ccw.assigned = true;
+    } else {
+        return 0;
+    }
+
+    if (virHashAddEntry(addrs->defined,addr,addr) < 0)
+        goto cleanup;
+    else
+        addr = NULL; /* memory will be freed by hash table */
+
+    ret = 0;
+
+cleanup:
+    VIR_FREE(addr);
+    return ret;
+}
+
 static void
 qemuDomainPrimeS390VirtioDevices(virDomainDefPtr def,
                                  enum virDomainDeviceAddressType type)
 {
     /*
        declare address-less virtio devices to be of address type 'type'
-       only disks, networks, consoles, controllers and memballoon for now
+       disks, networks, consoles, controllers, memballoon and rng in this
+       order
     */
     int i;
 
@@ -828,8 +931,10 @@ qemuDomainPrimeS390VirtioDevices(virDomainDefPtr def,
     }
 
     for (i = 0; i < def->ncontrollers ; i++) {
-        if (def->controllers[i]->type ==
-            VIR_DOMAIN_CONTROLLER_TYPE_VIRTIO_SERIAL &&
+        if ((def->controllers[i]->type ==
+             VIR_DOMAIN_CONTROLLER_TYPE_VIRTIO_SERIAL ||
+             def->controllers[i]->type ==
+             VIR_DOMAIN_CONTROLLER_TYPE_SCSI) &&
             def->controllers[i]->info.type ==
             VIR_DOMAIN_DEVICE_ADDRESS_TYPE_NONE)
             def->controllers[i]->info.type = type;
@@ -839,15 +944,142 @@ qemuDomainPrimeS390VirtioDevices(virDomainDefPtr def,
         def->memballoon->model == VIR_DOMAIN_MEMBALLOON_MODEL_VIRTIO &&
         def->memballoon->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_NONE)
         def->memballoon->info.type = type;
+
+    if (def->rng &&
+        def->rng->model == VIR_DOMAIN_RNG_MODEL_VIRTIO &&
+        def->rng->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_NONE)
+        def->rng->info.type = type;
 }
 
-static void
-qemuDomainAssignS390Addresses(virDomainDefPtr def, virQEMUCapsPtr qemuCaps)
+static int
+qemuDomainCCWAddressAllocate(virDomainDefPtr def ATTRIBUTE_UNUSED,
+                             virDomainDeviceDefPtr dev ATTRIBUTE_UNUSED,
+                             virDomainDeviceInfoPtr info,
+                             void *data)
 {
-    /* deal with legacy virtio-s390 */
-    if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_VIRTIO_S390))
+    return qemuDomainCCWAddressAssign(info, data, true);
+}
+
+static int
+qemuDomainCCWAddressValidate(virDomainDefPtr def ATTRIBUTE_UNUSED,
+                             virDomainDeviceDefPtr dev ATTRIBUTE_UNUSED,
+                             virDomainDeviceInfoPtr info,
+                             void *data)
+{
+    return qemuDomainCCWAddressAssign(info, data, false);
+}
+
+int qemuDomainCCWAddressReleaseAddr(qemuDomainCCWAddressSetPtr addrs,
+                                    virDomainDeviceInfoPtr dev)
+{
+    char *addr;
+    int ret;
+
+    addr = qemuCCWAddressAsString(&(dev->addr.ccw));
+    if (!addr)
+        return -1;
+
+    if ((ret = virHashRemoveEntry(addrs->defined, addr)) == 0 &&
+        dev->addr.ccw.cssid == addrs->next.cssid &&
+        dev->addr.ccw.ssid == addrs->next.ssid &&
+        dev->addr.ccw.devno < addrs->next.devno) {
+        addrs->next.devno = dev->addr.ccw.devno;
+        addrs->next.assigned = false;
+    }
+
+    VIR_FREE(addr);
+
+    return ret;
+}
+
+void qemuDomainCCWAddressSetFree(qemuDomainCCWAddressSetPtr addrs)
+{
+    if (!addrs)
+        return;
+
+    virHashFree(addrs->defined);
+    VIR_FREE(addrs);
+}
+
+static qemuDomainCCWAddressSetPtr
+qemuDomainCCWAddressSetCreate(void)
+{
+     qemuDomainCCWAddressSetPtr addrs = NULL;
+
+    if (VIR_ALLOC(addrs) < 0)
+        goto no_memory;
+
+    if (!(addrs->defined = virHashCreate(10, qemuDomainCCWAddressSetFreeEntry)))
+        goto cleanup;
+
+    /* must use cssid = 0xfe (254) for virtio-ccw devices */
+    addrs->next.cssid = 254;
+    addrs->next.ssid = 0;
+    addrs->next.devno = 0;
+    addrs->next.assigned = 0;
+    return addrs;
+
+no_memory:
+    virReportOOMError();
+cleanup:
+    qemuDomainCCWAddressSetFree(addrs);
+    return addrs;
+}
+
+/*
+ * Three steps populating CCW devnos
+ * 1. Allocate empty address set
+ * 2. Gather addresses with explicit devno
+ * 3. Assign defaults to the rest
+ */
+static int
+qemuDomainAssignS390Addresses(virDomainDefPtr def,
+                              virQEMUCapsPtr qemuCaps,
+                              virDomainObjPtr obj)
+{
+    int ret = -1;
+    qemuDomainCCWAddressSetPtr addrs = NULL;
+    qemuDomainObjPrivatePtr priv = NULL;
+
+    if (STREQLEN(def->os.machine, "s390-ccw", 8) &&
+        virQEMUCapsGet(qemuCaps, QEMU_CAPS_VIRTIO_CCW)) {
+        qemuDomainPrimeS390VirtioDevices(
+            def, VIR_DOMAIN_DEVICE_ADDRESS_TYPE_CCW);
+
+        if (!(addrs = qemuDomainCCWAddressSetCreate()))
+            goto cleanup;
+
+        if (virDomainDeviceInfoIterate(def, qemuDomainCCWAddressValidate,
+                                       addrs) < 0)
+            goto cleanup;
+
+        if (virDomainDeviceInfoIterate(def, qemuDomainCCWAddressAllocate,
+                                       addrs) < 0)
+            goto cleanup;
+    } else if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_VIRTIO_S390)) {
+        /* deal with legacy virtio-s390 */
         qemuDomainPrimeS390VirtioDevices(
             def, VIR_DOMAIN_DEVICE_ADDRESS_TYPE_VIRTIO_S390);
+    }
+
+    if (obj && obj->privateData) {
+        priv = obj->privateData;
+        if (addrs) {
+            /* if this is the live domain object, we persist the CCW addresses*/
+            qemuDomainCCWAddressSetFree(priv->ccwaddrs);
+            priv->persistentAddrs = 1;
+            priv->ccwaddrs = addrs;
+            addrs = NULL;
+        } else {
+            priv->persistentAddrs = 0;
+        }
+    }
+    ret = 0;
+
+cleanup:
+    qemuDomainCCWAddressSetFree(addrs);
+
+    return ret;
 }
 
 static int
@@ -1106,7 +1338,9 @@ int qemuDomainAssignAddresses(virDomainDefPtr def,
     if (rc)
         return rc;
 
-    qemuDomainAssignS390Addresses(def, qemuCaps);
+    rc = qemuDomainAssignS390Addresses(def, qemuCaps, obj);
+    if (rc)
+        return rc;
 
     return qemuDomainAssignPCIAddresses(def, qemuCaps, obj);
 }
@@ -1631,7 +1865,9 @@ qemuAssignDevicePCISlots(virDomainDefPtr def,
         /* don't touch s390 devices */
         if (def->disks[i]->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI ||
             def->disks[i]->info.type ==
-            VIR_DOMAIN_DEVICE_ADDRESS_TYPE_VIRTIO_S390)
+            VIR_DOMAIN_DEVICE_ADDRESS_TYPE_VIRTIO_S390 ||
+            def->disks[i]->info.type ==
+            VIR_DOMAIN_DEVICE_ADDRESS_TYPE_CCW)
             continue;
 
         if (def->disks[i]->info.type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_NONE) {
@@ -1785,6 +2021,12 @@ qemuBuildDeviceAddressStr(virBufferPtr buf,
     } else if (info->type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_SPAPRVIO) {
         if (info->addr.spaprvio.has_reg)
             virBufferAsprintf(buf, ",reg=0x%llx", info->addr.spaprvio.reg);
+    } else if (info->type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_CCW) {
+        if (info->addr.ccw.assigned)
+            virBufferAsprintf(buf, ",devno=%x.%x.%04x",
+                              info->addr.ccw.cssid,
+                              info->addr.ccw.ssid,
+                              info->addr.ccw.devno);
     }
 
     return 0;
@@ -1900,8 +2142,8 @@ qemuBuildRBDString(virConnectPtr conn,
             VIR_FREE(base64);
         } else {
             virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("rbd username '%s' specified but secret not found"),
-                           disk->auth.username);
+                           _("%s username '%s' specified but secret not found"),
+                           "rbd", disk->auth.username);
             goto error;
         }
     } else {
@@ -2062,35 +2304,37 @@ no_memory:
 }
 
 static int
-qemuParseGlusterString(virDomainDiskDefPtr def)
+qemuParseDriveURIString(virDomainDiskDefPtr def, virURIPtr uri,
+                        const char *scheme)
 {
     int ret = -1;
     char *transp = NULL;
     char *sock = NULL;
     char *volimg = NULL;
-    virURIPtr uri = NULL;
-
-    if (!(uri = virURIParse(def->src))) {
-        return -1;
-    }
+    char *secret = NULL;
 
     if (VIR_ALLOC(def->hosts) < 0)
         goto no_memory;
 
-    if (STREQ(uri->scheme, "gluster")) {
-        def->hosts->transport = VIR_DOMAIN_DISK_PROTO_TRANS_TCP;
-    } else if (STRPREFIX(uri->scheme, "gluster+")) {
-        transp = strchr(uri->scheme, '+') + 1;
-        def->hosts->transport = virDomainDiskProtocolTransportTypeFromString(transp);
-        if (def->hosts->transport < 0) {
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("Invalid gluster transport type '%s'"), transp);
-            goto error;
-        }
-    } else {
+    transp = strchr(uri->scheme, '+');
+    if (transp)
+        *transp++ = 0;
+
+    if (!STREQ(uri->scheme, scheme)) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("Invalid transport/scheme '%s'"), uri->scheme);
         goto error;
+    }
+
+    if (!transp) {
+        def->hosts->transport = VIR_DOMAIN_DISK_PROTO_TRANS_TCP;
+    } else {
+        def->hosts->transport = virDomainDiskProtocolTransportTypeFromString(transp);
+        if (def->hosts->transport < 0) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Invalid %s transport type '%s'"), scheme, transp);
+            goto error;
+        }
     }
     def->nhosts = 0; /* set to 1 once everything succeeds */
 
@@ -2117,11 +2361,26 @@ qemuParseGlusterString(virDomainDiskDefPtr def)
             }
         }
     }
-    volimg = uri->path + 1; /* skip the prefix slash */
-    VIR_FREE(def->src);
-    def->src = strdup(volimg);
-    if (!def->src)
-        goto no_memory;
+    if (uri->path) {
+        volimg = uri->path + 1; /* skip the prefix slash */
+        VIR_FREE(def->src);
+        def->src = strdup(volimg);
+        if (!def->src)
+            goto no_memory;
+    } else {
+        VIR_FREE(def->src);
+        def->src = NULL;
+    }
+
+    if (uri->user) {
+        secret = strchr(uri->user, ':');
+        if (secret)
+            *secret = '\0';
+
+        def->auth.username = strdup(uri->user);
+        if (!def->auth.username)
+            goto no_memory;
+    }
 
     def->nhosts = 1;
     ret = 0;
@@ -2140,13 +2399,126 @@ error:
 }
 
 static int
-qemuBuildGlusterString(virDomainDiskDefPtr disk, virBufferPtr opt)
+qemuParseGlusterString(virDomainDiskDefPtr def)
+{
+    virURIPtr uri = NULL;
+
+    if (!(uri = virURIParse(def->src)))
+        return -1;
+
+    return qemuParseDriveURIString(def, uri, "gluster");
+}
+
+static int
+qemuParseISCSIString(virDomainDiskDefPtr def)
+{
+    virURIPtr uri = NULL;
+    char *slash;
+    unsigned lun;
+
+    if (!(uri = virURIParse(def->src)))
+        return -1;
+
+    if (uri->path &&
+        (slash = strchr(uri->path + 1, '/')) != NULL) {
+
+        if (slash[1] == '\0')
+            *slash = '\0';
+        else if (virStrToLong_ui(slash + 1, NULL, 10, &lun) == -1) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("invalid name '%s' for iSCSI disk"), def->src);
+            return -1;
+        }
+    }
+
+    return qemuParseDriveURIString(def, uri, "iscsi");
+}
+
+static int
+qemuParseNBDString(virDomainDiskDefPtr disk)
+{
+    virDomainDiskHostDefPtr h = NULL;
+    char *host, *port;
+    char *src;
+
+    virURIPtr uri = NULL;
+
+    if (strstr(disk->src, "://")) {
+        uri = virURIParse(disk->src);
+        if (uri)
+            return qemuParseDriveURIString(disk, uri, "nbd");
+    }
+
+    if (VIR_ALLOC(h) < 0)
+        goto no_memory;
+
+    host = disk->src + strlen("nbd:");
+    if (STRPREFIX(host, "unix:/")) {
+        src = strchr(host + strlen("unix:"), ':');
+        if (src)
+            *src++ = '\0';
+
+        h->transport = VIR_DOMAIN_DISK_PROTO_TRANS_UNIX;
+        h->socket = strdup(host + strlen("unix:"));
+    } else {
+        port = strchr(host, ':');
+        if (!port) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("cannot parse nbd filename '%s'"), disk->src);
+            goto error;
+        }
+
+        *port++ = '\0';
+        h->name = strdup(host);
+        if (!h->name)
+            goto no_memory;
+
+        src = strchr(port, ':');
+        if (src)
+            *src++ = '\0';
+
+        h->port = strdup(port);
+        if (!h->port)
+            goto no_memory;
+    }
+
+    if (src && STRPREFIX(src, "exportname=")) {
+        src = strdup(strchr(src, '=') + 1);
+        if (!src)
+            goto no_memory;
+    } else {
+        src = NULL;
+    }
+
+    VIR_FREE(disk->src);
+    disk->src = src;
+    disk->nhosts = 1;
+    disk->hosts = h;
+    return 0;
+
+no_memory:
+    virReportOOMError();
+error:
+    virDomainDiskHostDefFree(h);
+    VIR_FREE(h);
+    return -1;
+}
+
+static int
+qemuBuildDriveURIString(virConnectPtr conn,
+                        virDomainDiskDefPtr disk, virBufferPtr opt,
+                        const char *scheme, virSecretUsageType secretType)
 {
     int ret = -1;
     int port = 0;
+    virSecretPtr sec = NULL;
+    char *secret = NULL;
+    size_t secret_size;
+
     char *tmpscheme = NULL;
     char *volimg = NULL;
     char *sock = NULL;
+    char *user = NULL;
     char *builturi = NULL;
     const char *transp = NULL;
     virURI uri = {
@@ -2154,18 +2526,24 @@ qemuBuildGlusterString(virDomainDiskDefPtr disk, virBufferPtr opt)
     };
 
     if (disk->nhosts != 1) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       _("gluster accepts only one host"));
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("%s accepts only one host"), scheme);
         return -1;
     }
 
     virBufferAddLit(opt, "file=");
     transp = virDomainDiskProtocolTransportTypeToString(disk->hosts->transport);
 
-    if (virAsprintf(&tmpscheme, "gluster+%s", transp) < 0)
-        goto no_memory;
+    if (disk->hosts->transport == VIR_DOMAIN_DISK_PROTO_TRANS_TCP) {
+        tmpscheme = strdup(scheme);
+        if (tmpscheme == NULL)
+            goto no_memory;
+    } else {
+        if (virAsprintf(&tmpscheme, "%s+%s", scheme, transp) < 0)
+            goto no_memory;
+    }
 
-    if (virAsprintf(&volimg, "/%s", disk->src) < 0)
+    if (disk->src && virAsprintf(&volimg, "/%s", disk->src) < 0)
         goto no_memory;
 
     if (disk->hosts->port) {
@@ -2176,8 +2554,42 @@ qemuBuildGlusterString(virDomainDiskDefPtr disk, virBufferPtr opt)
         virAsprintf(&sock, "socket=%s", disk->hosts->socket) < 0)
         goto no_memory;
 
+    if (disk->auth.username && secretType != VIR_SECRET_USAGE_TYPE_NONE) {
+        /* look up secret */
+        switch (disk->auth.secretType) {
+        case VIR_DOMAIN_DISK_SECRET_TYPE_UUID:
+            sec = virSecretLookupByUUID(conn,
+                                        disk->auth.secret.uuid);
+            break;
+        case VIR_DOMAIN_DISK_SECRET_TYPE_USAGE:
+            sec = virSecretLookupByUsage(conn, secretType,
+                                         disk->auth.secret.usage);
+            break;
+        }
+
+        if (sec) {
+            secret = (char *)conn->secretDriver->getValue(sec, &secret_size, 0,
+                                                          VIR_SECRET_GET_VALUE_INTERNAL_CALL);
+            if (secret == NULL) {
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("could not get the value of the secret for username %s"),
+                               disk->auth.username);
+                ret = -1;
+                goto cleanup;
+            }
+            if (virAsprintf(&user, "%s:%s", disk->auth.username, secret) < 0)
+                goto no_memory;
+        } else {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("%s username '%s' specified but secret not found"),
+                           scheme, disk->auth.username);
+            ret = -1;
+            goto cleanup;
+        }
+    }
     uri.scheme = tmpscheme; /* gluster+<transport> */
     uri.server = disk->hosts->name;
+    uri.user = user;
     uri.port = port;
     uri.path = volimg;
     uri.query = sock;
@@ -2198,6 +2610,72 @@ cleanup:
 no_memory:
     virReportOOMError();
     goto cleanup;
+}
+
+static int
+qemuBuildGlusterString(virConnectPtr conn, virDomainDiskDefPtr disk, virBufferPtr opt)
+{
+    return qemuBuildDriveURIString(conn, disk, opt, "gluster",
+                                   VIR_SECRET_USAGE_TYPE_NONE);
+}
+
+#define QEMU_DEFAULT_NBD_PORT "10809"
+
+static int
+qemuBuildISCSIString(virConnectPtr conn, virDomainDiskDefPtr disk, virBufferPtr opt)
+{
+    return qemuBuildDriveURIString(conn, disk, opt, "iscsi",
+                                   VIR_SECRET_USAGE_TYPE_ISCSI);
+}
+
+static int
+qemuBuildNBDString(virConnectPtr conn, virDomainDiskDefPtr disk, virBufferPtr opt)
+{
+    const char *transp;
+
+    if (disk->nhosts != 1) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("nbd accepts only one host"));
+        return -1;
+    }
+
+    if ((disk->hosts->name && strchr(disk->hosts->name, ':'))
+        || (disk->hosts->transport == VIR_DOMAIN_DISK_PROTO_TRANS_TCP
+            && !disk->hosts->name)
+        || (disk->hosts->transport == VIR_DOMAIN_DISK_PROTO_TRANS_UNIX
+            && disk->hosts->socket && disk->hosts->socket[0] != '/'))
+        return qemuBuildDriveURIString(conn, disk, opt, "nbd",
+                                       VIR_SECRET_USAGE_TYPE_NONE);
+
+    virBufferAddLit(opt, "file=nbd:");
+
+    switch (disk->hosts->transport) {
+    case VIR_DOMAIN_DISK_PROTO_TRANS_TCP:
+        if (disk->hosts->name)
+            virBufferEscape(opt, ',', ",", "%s", disk->hosts->name);
+        virBufferEscape(opt, ',', ",", ":%s",
+                        disk->hosts->port ? disk->hosts->port :
+                        QEMU_DEFAULT_NBD_PORT);
+        break;
+    case VIR_DOMAIN_DISK_PROTO_TRANS_UNIX:
+        if (!disk->hosts->socket) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("socket attribute required for unix transport"));
+            return -1;
+        }
+        virBufferEscape(opt, ',', ",", "unix:%s", disk->hosts->socket);
+        break;
+    default:
+        transp = virDomainDiskProtocolTransportTypeToString(disk->hosts->transport);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("nbd does not support transport '%s'"), transp);
+        break;
+    }
+
+    if (disk->src)
+        virBufferEscape(opt, ',', ",", ":exportname=%s", disk->src);
+
+    return 0;
 }
 
 char *
@@ -2283,13 +2761,6 @@ qemuBuildDriveStr(virConnectPtr conn ATTRIBUTE_UNUSED,
         break;
 
     case VIR_DOMAIN_DISK_BUS_VIRTIO:
-        if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_VIRTIO_S390) &&
-            (disk->info.type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_VIRTIO_S390)) {
-            /* Paranoia - leave in here for now */
-            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                           _("unexpected address type for s390-virtio disk"));
-            goto error;
-        }
         idx = -1;
         break;
 
@@ -2326,13 +2797,9 @@ qemuBuildDriveStr(virConnectPtr conn ATTRIBUTE_UNUSED,
         } else if (disk->type == VIR_DOMAIN_DISK_TYPE_NETWORK) {
             switch (disk->protocol) {
             case VIR_DOMAIN_DISK_PROTOCOL_NBD:
-                if (disk->nhosts != 1) {
-                    virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                                   _("NBD accepts only one host"));
+                if (qemuBuildNBDString(conn, disk, &opt) < 0)
                     goto error;
-                }
-                virBufferAsprintf(&opt, "file=nbd:%s:%s,",
-                                  disk->hosts->name, disk->hosts->port);
+                virBufferAddChar(&opt, ',');
                 break;
             case VIR_DOMAIN_DISK_PROTOCOL_RBD:
                 virBufferAddLit(&opt, "file=");
@@ -2341,7 +2808,12 @@ qemuBuildDriveStr(virConnectPtr conn ATTRIBUTE_UNUSED,
                 virBufferAddChar(&opt, ',');
                 break;
             case VIR_DOMAIN_DISK_PROTOCOL_GLUSTER:
-                if (qemuBuildGlusterString(disk, &opt) < 0)
+                if (qemuBuildGlusterString(conn, disk, &opt) < 0)
+                    goto error;
+                virBufferAddChar(&opt, ',');
+                break;
+            case VIR_DOMAIN_DISK_PROTOCOL_ISCSI:
+                if (qemuBuildISCSIString(conn, disk, &opt) < 0)
                     goto error;
                 virBufferAddChar(&opt, ',');
                 break;
@@ -2353,7 +2825,8 @@ qemuBuildDriveStr(virConnectPtr conn ATTRIBUTE_UNUSED,
                 } else {
                     /* only one host is supported now */
                     virBufferAsprintf(&opt, "file=sheepdog:%s:%s:",
-                                      disk->hosts->name, disk->hosts->port);
+                                      disk->hosts->name,
+                                      disk->hosts->port ? disk->hosts->port : "7000");
                     virBufferEscape(&opt, ',', ",", "%s,", disk->src);
                 }
                 break;
@@ -2616,7 +3089,14 @@ qemuBuildDriveDevStr(virDomainDefPtr def,
                            bus);
             goto error;
         }
-        if (disk->type != VIR_DOMAIN_DISK_TYPE_BLOCK) {
+        if (disk->type == VIR_DOMAIN_DISK_TYPE_NETWORK) {
+            if (disk->protocol != VIR_DOMAIN_DISK_PROTOCOL_ISCSI) {
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                               _("disk device='lun' is not supported for protocol='%s'"),
+                               virDomainDiskProtocolTypeToString(disk->protocol));
+                goto error;
+            }
+        } else if (disk->type != VIR_DOMAIN_DISK_TYPE_BLOCK) {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                            _("disk device='lun' is not supported for type='%s'"),
                            virDomainDiskTypeToString(disk->type));
@@ -2793,8 +3273,10 @@ qemuBuildDriveDevStr(virDomainDefPtr def,
                           disk->info.addr.drive.unit);
         break;
     case VIR_DOMAIN_DISK_BUS_VIRTIO:
-        if (disk->info.type ==
-            VIR_DOMAIN_DEVICE_ADDRESS_TYPE_VIRTIO_S390) {
+        if (disk->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_CCW) {
+            virBufferAddLit(&opt, "virtio-blk-ccw");
+        } else if (disk->info.type ==
+                   VIR_DOMAIN_DEVICE_ADDRESS_TYPE_VIRTIO_S390) {
             virBufferAddLit(&opt, "virtio-blk-s390");
         } else {
             virBufferAddLit(&opt, "virtio-blk-pci");
@@ -3056,13 +3538,22 @@ qemuBuildControllerDevStr(virDomainDefPtr domainDef,
 
         switch (model) {
         case VIR_DOMAIN_CONTROLLER_MODEL_SCSI_VIRTIO_SCSI:
-            virBufferAddLit(&buf, "virtio-scsi-pci");
+            if (def->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_CCW)
+                virBufferAddLit(&buf, "virtio-scsi-ccw");
+            else if (def->info.type ==
+                     VIR_DOMAIN_DEVICE_ADDRESS_TYPE_VIRTIO_S390)
+                virBufferAddLit(&buf, "virtio-scsi-s390");
+            else
+                virBufferAddLit(&buf, "virtio-scsi-pci");
             break;
         case VIR_DOMAIN_CONTROLLER_MODEL_SCSI_LSILOGIC:
             virBufferAddLit(&buf, "lsi");
             break;
         case VIR_DOMAIN_CONTROLLER_MODEL_SCSI_IBMVSCSI:
             virBufferAddLit(&buf, "spapr-vscsi");
+            break;
+        case VIR_DOMAIN_CONTROLLER_MODEL_SCSI_LSISAS1078:
+            virBufferAddLit(&buf, "megasas");
             break;
         default:
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
@@ -3075,6 +3566,9 @@ qemuBuildControllerDevStr(virDomainDefPtr domainDef,
     case VIR_DOMAIN_CONTROLLER_TYPE_VIRTIO_SERIAL:
         if (def->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI) {
             virBufferAddLit(&buf, "virtio-serial-pci");
+        } else if (def->info.type ==
+                   VIR_DOMAIN_DEVICE_ADDRESS_TYPE_CCW) {
+            virBufferAddLit(&buf, "virtio-serial-ccw");
         } else if (def->info.type ==
                    VIR_DOMAIN_DEVICE_ADDRESS_TYPE_VIRTIO_S390) {
             virBufferAddLit(&buf, "virtio-serial-s390");
@@ -3173,8 +3667,10 @@ qemuBuildNicDevStr(virDomainNetDefPtr net,
     if (!net->model) {
         nic = "rtl8139";
     } else if (STREQ(net->model, "virtio")) {
-        if (net->info.type ==
-            VIR_DOMAIN_DEVICE_ADDRESS_TYPE_VIRTIO_S390) {
+        if (net->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_CCW) {
+            nic = "virtio-net-ccw";
+        } else if (net->info.type ==
+                   VIR_DOMAIN_DEVICE_ADDRESS_TYPE_VIRTIO_S390) {
             nic = "virtio-net-s390";
         } else  {
             nic = "virtio-net-pci";
@@ -3401,7 +3897,17 @@ qemuBuildMemballoonDevStr(virDomainMemballoonDefPtr dev,
 {
     virBuffer buf = VIR_BUFFER_INITIALIZER;
 
-    virBufferAddLit(&buf, "virtio-balloon-pci");
+    switch (dev->info.type) {
+        case VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI:
+            virBufferAddLit(&buf, "virtio-balloon-pci");
+            break;
+        case VIR_DOMAIN_DEVICE_ADDRESS_TYPE_CCW:
+            virBufferAddLit(&buf, "virtio-balloon-ccw");
+            break;
+        default:
+            goto error;
+    }
+
     virBufferAsprintf(&buf, ",id=%s", dev->info.alias);
     if (qemuBuildDeviceAddressStr(&buf, &dev->info, qemuCaps) < 0)
         goto error;
@@ -4093,6 +4599,7 @@ qemuBuildVirtioSerialPortDevStr(virDomainChrDefPtr dev,
     }
 
     if (dev->info.type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_NONE &&
+        dev->info.type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_CCW &&
         dev->info.type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_VIRTIO_S390) {
         /* Check it's a virtio-serial address */
         if (dev->info.type !=
@@ -4253,7 +4760,20 @@ qemuBuildRNGDeviceArgs(virCommandPtr cmd,
         goto cleanup;
     }
 
-    virBufferAsprintf(&buf, "virtio-rng-pci,rng=%s", dev->info.alias);
+    if (dev->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_CCW)
+        virBufferAsprintf(&buf, "virtio-rng-ccw,rng=%s", dev->info.alias);
+    else if (dev->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_VIRTIO_S390)
+        virBufferAsprintf(&buf, "virtio-rng-s390,rng=%s", dev->info.alias);
+    else
+        virBufferAsprintf(&buf, "virtio-rng-pci,rng=%s", dev->info.alias);
+
+    if (dev->rate > 0) {
+        virBufferAsprintf(&buf, ",max-bytes=%u", dev->rate);
+        if (dev->period)
+            virBufferAsprintf(&buf, ",period=%u", dev->period);
+        else
+            virBufferAddLit(&buf, ",period=1000");
+    }
 
     if (qemuBuildDeviceAddressStr(&buf, &dev->info, qemuCaps) < 0)
         goto cleanup;
@@ -5747,6 +6267,15 @@ qemuBuildCommandLine(virConnectPtr conn,
             virCommandAddArgList(cmd, "-initrd", def->os.initrd, NULL);
         if (def->os.cmdline)
             virCommandAddArgList(cmd, "-append", def->os.cmdline, NULL);
+        if (def->os.dtb) {
+            if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_DTB)) {
+                virCommandAddArgList(cmd, "-dtb", def->os.dtb, NULL);
+            } else {
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                               _("dtb is not supported with this QEMU binary"));
+                goto error;
+            }
+        }
     } else {
         virCommandAddArgList(cmd, "-bootloader", def->os.bootloader, NULL);
     }
@@ -6020,57 +6549,8 @@ qemuBuildCommandLine(virConnectPtr conn,
                     goto no_memory;
                 }
             } else if (disk->type == VIR_DOMAIN_DISK_TYPE_NETWORK) {
-                switch (disk->protocol) {
-                case VIR_DOMAIN_DISK_PROTOCOL_NBD:
-                    if (disk->nhosts != 1) {
-                        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                                       _("NBD accepts only one host"));
-                        goto error;
-                    }
-                    if (virAsprintf(&file, "nbd:%s:%s,", disk->hosts->name,
-                                    disk->hosts->port) < 0) {
-                        goto no_memory;
-                    }
-                    break;
-                case VIR_DOMAIN_DISK_PROTOCOL_RBD:
-                    {
-                        virBuffer opt = VIR_BUFFER_INITIALIZER;
-                        if (qemuBuildRBDString(conn, disk, &opt) < 0)
-                            goto error;
-                        if (virBufferError(&opt)) {
-                            virReportOOMError();
-                            goto error;
-                        }
-                        file = virBufferContentAndReset(&opt);
-                    }
-                    break;
-                case VIR_DOMAIN_DISK_PROTOCOL_GLUSTER:
-                    {
-                        virBuffer opt = VIR_BUFFER_INITIALIZER;
-                        if (qemuBuildGlusterString(disk, &opt) < 0)
-                            goto error;
-                        if (virBufferError(&opt)) {
-                            virReportOOMError();
-                            goto error;
-                        }
-                        file = virBufferContentAndReset(&opt);
-                    }
-                    break;
-                case VIR_DOMAIN_DISK_PROTOCOL_SHEEPDOG:
-                    if (disk->nhosts == 0) {
-                        if (virAsprintf(&file, "sheepdog:%s,", disk->src) < 0) {
-                            goto no_memory;
-                        }
-                    } else {
-                        /* only one host is supported now */
-                        if (virAsprintf(&file, "sheepdog:%s:%s:%s,",
-                                        disk->hosts->name, disk->hosts->port,
-                                        disk->src) < 0) {
-                            goto no_memory;
-                        }
-                    }
-                    break;
-                }
+                virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                               _("network disks are only supported with -drive"));
             } else {
                 if (!(file = strdup(disk->src))) {
                     goto no_memory;
@@ -7100,7 +7580,8 @@ qemuBuildCommandLine(virConnectPtr conn,
      * NB: Earlier we declared that VirtIO balloon will always be in
      * slot 0x3 on bus 0x0
      */
-    if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_VIRTIO_S390) && def->memballoon)
+    if (STREQLEN(def->os.machine, "s390-virtio", 10) &&
+        virQEMUCapsGet(qemuCaps, QEMU_CAPS_VIRTIO_S390) && def->memballoon)
         def->memballoon->model = VIR_DOMAIN_MEMBALLOON_MODEL_NONE;
 
     if (def->memballoon &&
@@ -7514,40 +7995,13 @@ qemuParseCommandLineDisk(virCapsPtr qemuCaps,
                 values[i] = NULL;
                 if (STRPREFIX(def->src, "/dev/"))
                     def->type = VIR_DOMAIN_DISK_TYPE_BLOCK;
-                else if (STRPREFIX(def->src, "nbd:")) {
-                    char *host, *port;
-
+                else if (STRPREFIX(def->src, "nbd:") ||
+                         STRPREFIX(def->src, "nbd+")) {
                     def->type = VIR_DOMAIN_DISK_TYPE_NETWORK;
                     def->protocol = VIR_DOMAIN_DISK_PROTOCOL_NBD;
-                    host = def->src + strlen("nbd:");
-                    port = strchr(host, ':');
-                    if (!port) {
-                        virReportError(VIR_ERR_INTERNAL_ERROR,
-                                       _("cannot parse nbd filename '%s'"),
-                                       def->src);
-                        goto error;
-                    }
-                    *port++ = '\0';
-                    if (VIR_ALLOC(def->hosts) < 0) {
-                        virReportOOMError();
-                        goto error;
-                    }
-                    def->nhosts = 1;
-                    def->hosts->name = strdup(host);
-                    if (!def->hosts->name) {
-                        virReportOOMError();
-                        goto error;
-                    }
-                    def->hosts->port = strdup(port);
-                    if (!def->hosts->port) {
-                        virReportOOMError();
-                        goto error;
-                    }
-                    def->hosts->transport = VIR_DOMAIN_DISK_PROTO_TRANS_TCP;
-                    def->hosts->socket = NULL;
 
-                    VIR_FREE(def->src);
-                    def->src = NULL;
+                    if (qemuParseNBDString(def) < 0)
+                        goto error;
                 } else if (STRPREFIX(def->src, "rbd:")) {
                     char *p = def->src;
 
@@ -7563,11 +8017,18 @@ qemuParseCommandLineDisk(virCapsPtr qemuCaps,
                         goto cleanup;
 
                     VIR_FREE(p);
-                } else if (STRPREFIX(def->src, "gluster")) {
+                } else if (STRPREFIX(def->src, "gluster:") ||
+                           STRPREFIX(def->src, "gluster+")) {
                     def->type = VIR_DOMAIN_DISK_TYPE_NETWORK;
                     def->protocol = VIR_DOMAIN_DISK_PROTOCOL_GLUSTER;
 
                     if (qemuParseGlusterString(def) < 0)
+                        goto error;
+                } else if (STRPREFIX(def->src, "iscsi:")) {
+                    def->type = VIR_DOMAIN_DISK_TYPE_NETWORK;
+                    def->protocol = VIR_DOMAIN_DISK_PROTOCOL_ISCSI;
+
+                    if (qemuParseISCSIString(def) < 0)
                         goto error;
                 } else if (STRPREFIX(def->src, "sheepdog:")) {
                     char *p = def->src;
@@ -8562,6 +9023,7 @@ qemuParseCommandLineBootDevs(virDomainDefPtr def, const char *str) {
  * as is practical. This is not an exact science....
  */
 virDomainDefPtr qemuParseCommandLine(virCapsPtr qemuCaps,
+                                     virDomainXMLConfPtr xmlconf,
                                      const char **progenv,
                                      const char **progargv,
                                      char **pidfile,
@@ -8777,7 +9239,6 @@ virDomainDefPtr qemuParseCommandLine(virCapsPtr qemuCaps,
             else if (STRPREFIX(val, "nbd:")) {
                 disk->type = VIR_DOMAIN_DISK_TYPE_NETWORK;
                 disk->protocol = VIR_DOMAIN_DISK_PROTOCOL_NBD;
-                val += strlen("nbd:");
             } else if (STRPREFIX(val, "rbd:")) {
                 disk->type = VIR_DOMAIN_DISK_TYPE_NETWORK;
                 disk->protocol = VIR_DOMAIN_DISK_PROTOCOL_RBD;
@@ -8817,26 +9278,12 @@ virDomainDefPtr qemuParseCommandLine(virCapsPtr qemuCaps,
                 goto no_memory;
 
             if (disk->type == VIR_DOMAIN_DISK_TYPE_NETWORK) {
-                char *host, *port;
+                char *port;
 
                 switch (disk->protocol) {
                 case VIR_DOMAIN_DISK_PROTOCOL_NBD:
-                    host = disk->src;
-                    port = strchr(host, ':');
-                    if (!port) {
-                        virReportError(VIR_ERR_INTERNAL_ERROR,
-                                       _("cannot parse nbd filename '%s'"), disk->src);
+                    if (qemuParseNBDString(disk) < 0)
                         goto error;
-                    }
-                    *port++ = '\0';
-                    if (VIR_ALLOC(disk->hosts) < 0)
-                        goto no_memory;
-                    disk->nhosts = 1;
-                    disk->hosts->name = disk->src;
-                    disk->src = NULL;
-                    disk->hosts->port = strdup(port);
-                    if (!disk->hosts->port)
-                        goto no_memory;
                     break;
                 case VIR_DOMAIN_DISK_PROTOCOL_RBD:
                     /* old-style CEPH_ARGS env variable is parsed later */
@@ -8871,6 +9318,11 @@ virDomainDefPtr qemuParseCommandLine(virCapsPtr qemuCaps,
                     break;
                 case VIR_DOMAIN_DISK_PROTOCOL_GLUSTER:
                     if (qemuParseGlusterString(disk) < 0)
+                        goto error;
+
+                    break;
+                case VIR_DOMAIN_DISK_PROTOCOL_ISCSI:
+                    if (qemuParseISCSIString(disk) < 0)
                         goto error;
 
                     break;
@@ -8921,6 +9373,10 @@ virDomainDefPtr qemuParseCommandLine(virCapsPtr qemuCaps,
         } else if (STREQ(arg, "-append")) {
             WANT_VALUE();
             if (!(def->os.cmdline = strdup(val)))
+                goto no_memory;
+        } else if (STREQ(arg, "-dtb")) {
+            WANT_VALUE();
+            if (!(def->os.dtb = strdup(val)))
                 goto no_memory;
         } else if (STREQ(arg, "-boot")) {
             const char *token = NULL;
@@ -9423,7 +9879,7 @@ virDomainDefPtr qemuParseCommandLine(virCapsPtr qemuCaps,
         goto error;
 
     if (cmd->num_args || cmd->num_env) {
-        def->ns = qemuCaps->ns;
+        def->ns = *virDomainXMLConfGetNamespace(xmlconf);
         def->namespaceData = cmd;
     }
     else
@@ -9449,6 +9905,7 @@ error:
 
 
 virDomainDefPtr qemuParseCommandLineString(virCapsPtr qemuCaps,
+                                           virDomainXMLConfPtr xmlconf,
                                            const char *args,
                                            char **pidfile,
                                            virDomainChrSourceDefPtr *monConfig,
@@ -9462,7 +9919,7 @@ virDomainDefPtr qemuParseCommandLineString(virCapsPtr qemuCaps,
     if (qemuStringToArgvEnv(args, &progenv, &progargv) < 0)
         goto cleanup;
 
-    def = qemuParseCommandLine(qemuCaps, progenv, progargv,
+    def = qemuParseCommandLine(qemuCaps, xmlconf, progenv, progargv,
                                pidfile, monConfig, monJSON);
 
 cleanup:
@@ -9538,6 +9995,7 @@ cleanup:
 }
 
 virDomainDefPtr qemuParseCommandLinePid(virCapsPtr qemuCaps,
+                                        virDomainXMLConfPtr xmlconf,
                                         pid_t pid,
                                         char **pidfile,
                                         virDomainChrSourceDefPtr *monConfig,
@@ -9557,7 +10015,7 @@ virDomainDefPtr qemuParseCommandLinePid(virCapsPtr qemuCaps,
         qemuParseProcFileStrings(pid, "environ", &progenv) < 0)
         goto cleanup;
 
-    if (!(def = qemuParseCommandLine(qemuCaps, progenv, progargv,
+    if (!(def = qemuParseCommandLine(qemuCaps, xmlconf, progenv, progargv,
                                      pidfile, monConfig, monJSON)))
         goto cleanup;
 

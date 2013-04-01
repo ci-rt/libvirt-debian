@@ -40,6 +40,10 @@
 #endif
 
 #include "c-ctype.h"
+#ifdef WITH_SELINUX
+# include <selinux/selinux.h>
+#endif
+
 #include "virnetsocket.h"
 #include "virutil.h"
 #include "viralloc.h"
@@ -996,7 +1000,9 @@ void virNetSocketDispose(void *obj)
 {
     virNetSocketPtr sock = obj;
 
-    VIR_DEBUG("sock=%p fd=%d", sock, sock->fd);
+    PROBE(RPC_SOCKET_DISPOSE,
+          "sock=%p", sock);
+
     if (sock->watch > 0) {
         virEventRemoveHandle(sock->watch);
         sock->watch = -1;
@@ -1151,6 +1157,46 @@ int virNetSocketGetUNIXIdentity(virNetSocketPtr sock ATTRIBUTE_UNUSED,
     virReportSystemError(ENOSYS, "%s",
                          _("Client socket identity not available"));
     return -1;
+}
+#endif
+
+#ifdef WITH_SELINUX
+int virNetSocketGetSecurityContext(virNetSocketPtr sock,
+                                   char **context)
+{
+    security_context_t seccon = NULL;
+    int ret = -1;
+
+    *context = NULL;
+
+    virObjectLock(sock);
+    if (getpeercon(sock->fd, &seccon) < 0) {
+        if (errno == ENOSYS || errno == ENOPROTOOPT) {
+            ret = 0;
+            goto cleanup;
+        }
+        virReportSystemError(errno, "%s",
+                             _("Unable to query peer security context"));
+        goto cleanup;
+    }
+
+    if (!(*context = strdup(seccon))) {
+        virReportOOMError();
+        goto cleanup;
+    }
+
+    ret = 0;
+cleanup:
+    freecon(seccon);
+    virObjectUnlock(sock);
+    return ret;
+}
+#else
+int virNetSocketGetSecurityContext(virNetSocketPtr sock ATTRIBUTE_UNUSED,
+                                   char **context)
+{
+    *context = NULL;
+    return 0;
 }
 #endif
 

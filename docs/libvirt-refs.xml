@@ -29,6 +29,7 @@
     <reference name='VIR_CONNECT_LIST_NETWORKS_NO_AUTOSTART' href='html/libvirt-libvirt.html#VIR_CONNECT_LIST_NETWORKS_NO_AUTOSTART'/>
     <reference name='VIR_CONNECT_LIST_NETWORKS_PERSISTENT' href='html/libvirt-libvirt.html#VIR_CONNECT_LIST_NETWORKS_PERSISTENT'/>
     <reference name='VIR_CONNECT_LIST_NETWORKS_TRANSIENT' href='html/libvirt-libvirt.html#VIR_CONNECT_LIST_NETWORKS_TRANSIENT'/>
+    <reference name='VIR_CONNECT_LIST_NODE_DEVICES_CAP_FC_HOST' href='html/libvirt-libvirt.html#VIR_CONNECT_LIST_NODE_DEVICES_CAP_FC_HOST'/>
     <reference name='VIR_CONNECT_LIST_NODE_DEVICES_CAP_NET' href='html/libvirt-libvirt.html#VIR_CONNECT_LIST_NODE_DEVICES_CAP_NET'/>
     <reference name='VIR_CONNECT_LIST_NODE_DEVICES_CAP_PCI_DEV' href='html/libvirt-libvirt.html#VIR_CONNECT_LIST_NODE_DEVICES_CAP_PCI_DEV'/>
     <reference name='VIR_CONNECT_LIST_NODE_DEVICES_CAP_SCSI' href='html/libvirt-libvirt.html#VIR_CONNECT_LIST_NODE_DEVICES_CAP_SCSI'/>
@@ -38,6 +39,7 @@
     <reference name='VIR_CONNECT_LIST_NODE_DEVICES_CAP_SYSTEM' href='html/libvirt-libvirt.html#VIR_CONNECT_LIST_NODE_DEVICES_CAP_SYSTEM'/>
     <reference name='VIR_CONNECT_LIST_NODE_DEVICES_CAP_USB_DEV' href='html/libvirt-libvirt.html#VIR_CONNECT_LIST_NODE_DEVICES_CAP_USB_DEV'/>
     <reference name='VIR_CONNECT_LIST_NODE_DEVICES_CAP_USB_INTERFACE' href='html/libvirt-libvirt.html#VIR_CONNECT_LIST_NODE_DEVICES_CAP_USB_INTERFACE'/>
+    <reference name='VIR_CONNECT_LIST_NODE_DEVICES_CAP_VPORTS' href='html/libvirt-libvirt.html#VIR_CONNECT_LIST_NODE_DEVICES_CAP_VPORTS'/>
     <reference name='VIR_CONNECT_LIST_SECRETS_EPHEMERAL' href='html/libvirt-libvirt.html#VIR_CONNECT_LIST_SECRETS_EPHEMERAL'/>
     <reference name='VIR_CONNECT_LIST_SECRETS_NO_EPHEMERAL' href='html/libvirt-libvirt.html#VIR_CONNECT_LIST_SECRETS_NO_EPHEMERAL'/>
     <reference name='VIR_CONNECT_LIST_SECRETS_NO_PRIVATE' href='html/libvirt-libvirt.html#VIR_CONNECT_LIST_SECRETS_NO_PRIVATE'/>
@@ -603,6 +605,7 @@
     <reference name='VIR_FROM_EVENT' href='html/libvirt-virterror.html#VIR_FROM_EVENT'/>
     <reference name='VIR_FROM_HOOK' href='html/libvirt-virterror.html#VIR_FROM_HOOK'/>
     <reference name='VIR_FROM_HYPERV' href='html/libvirt-virterror.html#VIR_FROM_HYPERV'/>
+    <reference name='VIR_FROM_IDENTITY' href='html/libvirt-virterror.html#VIR_FROM_IDENTITY'/>
     <reference name='VIR_FROM_INITCTL' href='html/libvirt-virterror.html#VIR_FROM_INITCTL'/>
     <reference name='VIR_FROM_INTERFACE' href='html/libvirt-virterror.html#VIR_FROM_INTERFACE'/>
     <reference name='VIR_FROM_LIBXL' href='html/libvirt-virterror.html#VIR_FROM_LIBXL'/>
@@ -712,6 +715,7 @@
     <reference name='VIR_NODE_SUSPEND_TARGET_LAST' href='html/libvirt-libvirt.html#VIR_NODE_SUSPEND_TARGET_LAST'/>
     <reference name='VIR_NODE_SUSPEND_TARGET_MEM' href='html/libvirt-libvirt.html#VIR_NODE_SUSPEND_TARGET_MEM'/>
     <reference name='VIR_SECRET_USAGE_TYPE_CEPH' href='html/libvirt-libvirt.html#VIR_SECRET_USAGE_TYPE_CEPH'/>
+    <reference name='VIR_SECRET_USAGE_TYPE_ISCSI' href='html/libvirt-libvirt.html#VIR_SECRET_USAGE_TYPE_ISCSI'/>
     <reference name='VIR_SECRET_USAGE_TYPE_LAST' href='html/libvirt-libvirt.html#VIR_SECRET_USAGE_TYPE_LAST'/>
     <reference name='VIR_SECRET_USAGE_TYPE_NONE' href='html/libvirt-libvirt.html#VIR_SECRET_USAGE_TYPE_NONE'/>
     <reference name='VIR_SECRET_USAGE_TYPE_VOLUME' href='html/libvirt-libvirt.html#VIR_SECRET_USAGE_TYPE_VOLUME'/>
@@ -1437,6 +1441,7 @@
       <ref name='VIR_CONNECT_LIST_NETWORKS_NO_AUTOSTART'/>
       <ref name='VIR_CONNECT_LIST_NETWORKS_PERSISTENT'/>
       <ref name='VIR_CONNECT_LIST_NETWORKS_TRANSIENT'/>
+      <ref name='VIR_CONNECT_LIST_NODE_DEVICES_CAP_FC_HOST'/>
       <ref name='VIR_CONNECT_LIST_NODE_DEVICES_CAP_NET'/>
       <ref name='VIR_CONNECT_LIST_NODE_DEVICES_CAP_PCI_DEV'/>
       <ref name='VIR_CONNECT_LIST_NODE_DEVICES_CAP_SCSI'/>
@@ -1446,6 +1451,7 @@
       <ref name='VIR_CONNECT_LIST_NODE_DEVICES_CAP_SYSTEM'/>
       <ref name='VIR_CONNECT_LIST_NODE_DEVICES_CAP_USB_DEV'/>
       <ref name='VIR_CONNECT_LIST_NODE_DEVICES_CAP_USB_INTERFACE'/>
+      <ref name='VIR_CONNECT_LIST_NODE_DEVICES_CAP_VPORTS'/>
       <ref name='VIR_CONNECT_LIST_SECRETS_EPHEMERAL'/>
       <ref name='VIR_CONNECT_LIST_SECRETS_NO_EPHEMERAL'/>
       <ref name='VIR_CONNECT_LIST_SECRETS_NO_PRIVATE'/>
@@ -2011,6 +2017,7 @@
       <ref name='VIR_FROM_EVENT'/>
       <ref name='VIR_FROM_HOOK'/>
       <ref name='VIR_FROM_HYPERV'/>
+      <ref name='VIR_FROM_IDENTITY'/>
       <ref name='VIR_FROM_INITCTL'/>
       <ref name='VIR_FROM_INTERFACE'/>
       <ref name='VIR_FROM_LIBXL'/>
@@ -2120,6 +2127,7 @@
       <ref name='VIR_NODE_SUSPEND_TARGET_LAST'/>
       <ref name='VIR_NODE_SUSPEND_TARGET_MEM'/>
       <ref name='VIR_SECRET_USAGE_TYPE_CEPH'/>
+      <ref name='VIR_SECRET_USAGE_TYPE_ISCSI'/>
       <ref name='VIR_SECRET_USAGE_TYPE_LAST'/>
       <ref name='VIR_SECRET_USAGE_TYPE_NONE'/>
       <ref name='VIR_SECRET_USAGE_TYPE_VOLUME'/>
@@ -3904,6 +3912,7 @@
       <ref name='VIR_CONNECT_LIST_NETWORKS_NO_AUTOSTART'/>
       <ref name='VIR_CONNECT_LIST_NETWORKS_PERSISTENT'/>
       <ref name='VIR_CONNECT_LIST_NETWORKS_TRANSIENT'/>
+      <ref name='VIR_CONNECT_LIST_NODE_DEVICES_CAP_FC_HOST'/>
       <ref name='VIR_CONNECT_LIST_NODE_DEVICES_CAP_NET'/>
       <ref name='VIR_CONNECT_LIST_NODE_DEVICES_CAP_PCI_DEV'/>
       <ref name='VIR_CONNECT_LIST_NODE_DEVICES_CAP_SCSI'/>
@@ -3913,6 +3922,7 @@
       <ref name='VIR_CONNECT_LIST_NODE_DEVICES_CAP_SYSTEM'/>
       <ref name='VIR_CONNECT_LIST_NODE_DEVICES_CAP_USB_DEV'/>
       <ref name='VIR_CONNECT_LIST_NODE_DEVICES_CAP_USB_INTERFACE'/>
+      <ref name='VIR_CONNECT_LIST_NODE_DEVICES_CAP_VPORTS'/>
       <ref name='VIR_CONNECT_LIST_SECRETS_EPHEMERAL'/>
       <ref name='VIR_CONNECT_LIST_SECRETS_NO_EPHEMERAL'/>
       <ref name='VIR_CONNECT_LIST_SECRETS_NO_PRIVATE'/>
@@ -4448,6 +4458,7 @@
       <ref name='VIR_NODE_SUSPEND_TARGET_LAST'/>
       <ref name='VIR_NODE_SUSPEND_TARGET_MEM'/>
       <ref name='VIR_SECRET_USAGE_TYPE_CEPH'/>
+      <ref name='VIR_SECRET_USAGE_TYPE_ISCSI'/>
       <ref name='VIR_SECRET_USAGE_TYPE_LAST'/>
       <ref name='VIR_SECRET_USAGE_TYPE_NONE'/>
       <ref name='VIR_SECRET_USAGE_TYPE_VOLUME'/>
@@ -5217,6 +5228,7 @@
       <ref name='VIR_FROM_EVENT'/>
       <ref name='VIR_FROM_HOOK'/>
       <ref name='VIR_FROM_HYPERV'/>
+      <ref name='VIR_FROM_IDENTITY'/>
       <ref name='VIR_FROM_INITCTL'/>
       <ref name='VIR_FROM_INTERFACE'/>
       <ref name='VIR_FROM_LIBXL'/>
@@ -6824,6 +6836,9 @@
         <word name='VIR_CONNECT_LIST_NETWORKS_TRANSIENT'>
           <ref name='virConnectListAllNetworks'/>
         </word>
+        <word name='VIR_CONNECT_LIST_NODE_DEVICES_CAP_FC_HOST'>
+          <ref name='virConnectListAllNodeDevices'/>
+        </word>
         <word name='VIR_CONNECT_LIST_NODE_DEVICES_CAP_NET'>
           <ref name='virConnectListAllNodeDevices'/>
         </word>
@@ -6849,6 +6864,9 @@
           <ref name='virConnectListAllNodeDevices'/>
         </word>
         <word name='VIR_CONNECT_LIST_NODE_DEVICES_CAP_USB_INTERFACE'>
+          <ref name='virConnectListAllNodeDevices'/>
+        </word>
+        <word name='VIR_CONNECT_LIST_NODE_DEVICES_CAP_VPORTS'>
           <ref name='virConnectListAllNodeDevices'/>
         </word>
         <word name='VIR_CONNECT_LIST_SECRETS_EPHEMERAL'>
@@ -14079,25 +14097,6 @@
         <word name='opposite'>
           <ref name='virDomainBlockCommit'/>
           <ref name='virDomainBlockPull'/>
-        </word>
-        <word name='optional'>
-          <ref name='virConnectDomainEventRegister'/>
-          <ref name='virConnectDomainEventRegisterAny'/>
-          <ref name='virConnectFindStoragePoolSources'/>
-          <ref name='virDomainBlockCommit'/>
-          <ref name='virDomainBlockPull'/>
-          <ref name='virDomainBlockRebase'/>
-          <ref name='virDomainMigrate'/>
-          <ref name='virDomainMigrate2'/>
-          <ref name='virDomainMigrateToURI'/>
-          <ref name='virDomainMigrateToURI2'/>
-          <ref name='virDomainRestoreFlags'/>
-          <ref name='virDomainSaveFlags'/>
-          <ref name='virNodeGetCPUMap'/>
-          <ref name='virNodeListDevices'/>
-          <ref name='virNodeNumOfDevices'/>
-          <ref name='virStreamSinkFunc'/>
-          <ref name='virStreamSourceFunc'/>
         </word>
         <word name='options'>
           <ref name='virDomainSetMetadata'/>

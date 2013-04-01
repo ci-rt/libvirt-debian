@@ -167,17 +167,20 @@ int qemuOpenVhostNet(virDomainDefPtr def,
  * *must* decide how to fill in a name in this case
  */
 virDomainDefPtr qemuParseCommandLine(virCapsPtr qemuCaps,
+                                     virDomainXMLConfPtr xmlconf,
                                      const char **progenv,
                                      const char **progargv,
                                      char **pidfile,
                                      virDomainChrSourceDefPtr *monConfig,
                                      bool *monJSON);
 virDomainDefPtr qemuParseCommandLineString(virCapsPtr qemuCaps,
+                                           virDomainXMLConfPtr xmlconf,
                                            const char *args,
                                            char **pidfile,
                                            virDomainChrSourceDefPtr *monConfig,
                                            bool *monJSON);
 virDomainDefPtr qemuParseCommandLinePid(virCapsPtr qemuCaps,
+                                        virDomainXMLConfPtr xmlconf,
                                         pid_t pid,
                                         char **pidfile,
                                         virDomainChrSourceDefPtr *monConfig,
@@ -211,6 +214,12 @@ void qemuDomainPCIAddressSetFree(qemuDomainPCIAddressSetPtr addrs);
 int  qemuAssignDevicePCISlots(virDomainDefPtr def,
                               virQEMUCapsPtr qemuCaps,
                               qemuDomainPCIAddressSetPtr addrs);
+
+int qemuDomainCCWAddressReleaseAddr(qemuDomainCCWAddressSetPtr addrs,
+                                    virDomainDeviceInfoPtr dev);
+int qemuDomainCCWAddressAssign(virDomainDeviceInfoPtr dev, qemuDomainCCWAddressSetPtr addrs,
+                               bool autoassign);
+void qemuDomainCCWAddressSetFree(qemuDomainCCWAddressSetPtr addrs);
 
 int qemuAssignDeviceAliases(virDomainDefPtr def, virQEMUCapsPtr qemuCaps);
 int qemuDomainNetVLAN(virDomainNetDefPtr def);

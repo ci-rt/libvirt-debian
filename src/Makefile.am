@@ -83,6 +83,7 @@ UTIL_SOURCES =							\
 		util/virhash.c util/virhash.h			\
 		util/virhashcode.c util/virhashcode.h		\
 		util/virhook.c util/virhook.h			\
+		util/viridentity.c util/viridentity.h		\
 		util/virinitctl.c util/virinitctl.h		\
 		util/viriptables.c util/viriptables.h		\
 		util/virjson.c util/virjson.h			\
@@ -103,6 +104,7 @@ UTIL_SOURCES =							\
 		util/virnetdevvportprofile.h util/virnetdevvportprofile.c \
 		util/virnetlink.c util/virnetlink.h		\
 		util/virnodesuspend.c util/virnodesuspend.h	\
+		util/virnuma.c util/virnuma.h			\
 		util/virobject.c util/virobject.h		\
 		util/virpci.c util/virpci.h			\
 		util/virpidfile.c util/virpidfile.h		\
@@ -295,17 +297,17 @@ QEMU_PROTOCOL = $(srcdir)/remote/qemu_protocol.x
 REMOTE_DRIVER_PROTOCOL = $(REMOTE_PROTOCOL) $(QEMU_PROTOCOL) $(LXC_PROTOCOL)
 
 $(srcdir)/remote/remote_client_bodies.h: $(srcdir)/rpc/gendispatch.pl \
-		$(REMOTE_PROTOCOL)
+		$(REMOTE_PROTOCOL) Makefile.am
 	$(AM_V_GEN)$(PERL) -w $(srcdir)/rpc/gendispatch.pl \
 	  -k remote REMOTE $(REMOTE_PROTOCOL) > $@
 
 $(srcdir)/remote/lxc_client_bodies.h: $(srcdir)/rpc/gendispatch.pl \
-		$(LXC_PROTOCOL)
+		$(LXC_PROTOCOL) Makefile.am
 	$(AM_V_GEN)$(PERL) -w $(srcdir)/rpc/gendispatch.pl \
 	  -k lxc LXC $(LXC_PROTOCOL) > $@
 
 $(srcdir)/remote/qemu_client_bodies.h: $(srcdir)/rpc/gendispatch.pl \
-		$(QEMU_PROTOCOL)
+		$(QEMU_PROTOCOL) Makefile.am
 	$(AM_V_GEN)$(PERL) -w $(srcdir)/rpc/gendispatch.pl \
 	  -k qemu QEMU $(QEMU_PROTOCOL) > $@
 
@@ -458,14 +460,14 @@ LXC_GENERATED = \
 LXC_MONITOR_PROTOCOL = $(srcdir)/lxc/lxc_monitor_protocol.x
 
 $(srcdir)/lxc/lxc_monitor_dispatch.h: $(srcdir)/rpc/gendispatch.pl \
-		$(LXC_MONITOR_PROTOCOL)
+		$(LXC_MONITOR_PROTOCOL) Makefile.am
 	$(AM_V_GEN)$(PERL) -w $(srcdir)/rpc/gendispatch.pl \
-	  -k virLXCProtocol VIR_LXC_MONITOR_PROTOCOL $(LXC_MONITOR_PROTOCOL) > $@
+	  -k virLXCMonitor VIR_LXC_MONITOR $(LXC_MONITOR_PROTOCOL) > $@
 
 $(srcdir)/lxc/lxc_controller_dispatch.h: $(srcdir)/rpc/gendispatch.pl \
-		$(REMOTE_PROTOCOL)
+		$(REMOTE_PROTOCOL) Makefile.am
 	$(AM_V_GEN)$(PERL) -w $(srcdir)/rpc/gendispatch.pl \
-	  -b virLXCProtocol VIR_LXC_MONITOR_PROTOCOL $(LXC_MONITOR_PROTOCOL) > $@
+	  -b virLXCMonitor VIR_LXC_MONITOR $(LXC_MONITOR_PROTOCOL) > $@
 
 EXTRA_DIST += \
 	$(LXC_MONITOR_PROTOCOL) \
@@ -473,6 +475,8 @@ EXTRA_DIST += \
 	$(NULL)
 
 BUILT_SOURCES += $(LXC_GENERATED)
+
+CLEANFILES += $(LXC_GENERATED)
 
 LXC_DRIVER_SOURCES =						\
 		$(LXC_MONITOR_PROTOCOL_GENERATED)		\
@@ -493,6 +497,7 @@ LXC_CONTROLLER_SOURCES =					\
 		lxc/lxc_conf.c lxc/lxc_conf.h			\
 		lxc/lxc_container.c lxc/lxc_container.h		\
 		lxc/lxc_cgroup.c lxc/lxc_cgroup.h		\
+		lxc/lxc_domain.c lxc/lxc_domain.h		\
 		lxc/lxc_fuse.c lxc/lxc_fuse.h			\
 		lxc/lxc_controller.c
 
@@ -763,11 +768,11 @@ libvirt_util_la_SOURCES =					\
 		$(UTIL_SOURCES)
 libvirt_util_la_CFLAGS = $(CAPNG_CFLAGS) $(YAJL_CFLAGS) $(LIBNL_CFLAGS) \
 		$(AM_CFLAGS) $(AUDIT_CFLAGS) $(DEVMAPPER_CFLAGS) \
-		$(DBUS_CFLAGS) $(LDEXP_LIBM)
+		$(DBUS_CFLAGS) $(LDEXP_LIBM) $(NUMACTL_CFLAGS)
 libvirt_util_la_LIBADD = $(CAPNG_LIBS) $(YAJL_LIBS) $(LIBNL_LIBS) \
 		$(THREAD_LIBS) $(AUDIT_LIBS) $(DEVMAPPER_LIBS) \
 		$(LIB_CLOCK_GETTIME) $(DBUS_LIBS) $(MSCOM_LIBS) $(LIBXML_LIBS) \
-		$(SECDRIVER_LIBS)
+		$(SECDRIVER_LIBS) $(NUMACTL_LIBS)
 
 
 noinst_LTLIBRARIES += libvirt_conf.la
@@ -804,10 +809,10 @@ libvirt_la_BUILT_LIBADD += libvirt_driver.la
 libvirt_driver_la_SOURCES = $(DRIVER_SOURCES)
 
 libvirt_driver_la_CFLAGS = \
-		$(NUMACTL_CFLAGS) $(GNUTLS_CFLAGS) $(CURL_CFLAGS) \
+		$(GNUTLS_CFLAGS) $(CURL_CFLAGS) \
 		-I$(top_srcdir)/src/conf $(AM_CFLAGS)
 libvirt_driver_la_LIBADD = \
-		$(NUMACTL_LIBS) $(GNUTLS_LIBS) $(CURL_LIBS) $(DLOPEN_LIBS)
+		$(GNUTLS_LIBS) $(CURL_LIBS) $(DLOPEN_LIBS)
 
 SYM_FILES = $(USED_SYM_FILES)
 USED_SYM_FILES = $(srcdir)/libvirt_private.syms
@@ -953,13 +958,11 @@ noinst_LTLIBRARIES += libvirt_driver_qemu.la
 #libvirt_la_BUILT_LIBADD += libvirt_driver_qemu.la
 endif
 
-libvirt_driver_qemu_impl_la_CFLAGS = $(NUMACTL_CFLAGS) \
-                                $(GNUTLS_CFLAGS) \
+libvirt_driver_qemu_impl_la_CFLAGS = $(GNUTLS_CFLAGS) \
                                 $(LIBNL_CFLAGS) \
 		-I$(top_srcdir)/src/conf $(AM_CFLAGS)
 libvirt_driver_qemu_impl_la_LDFLAGS = $(AM_LDFLAGS)
-libvirt_driver_qemu_impl_la_LIBADD = $(NUMACTL_LIBS) \
-				$(CAPNG_LIBS) \
+libvirt_driver_qemu_impl_la_LIBADD = $(CAPNG_LIBS) \
                                 $(GNUTLS_LIBS) \
 				$(LIBNL_LIBS)
 libvirt_driver_qemu_impl_la_SOURCES = $(QEMU_DRIVER_SOURCES)
@@ -1024,10 +1027,10 @@ noinst_LTLIBRARIES += libvirt_driver_uml.la
 #libvirt_la_BUILT_LIBADD += libvirt_driver_uml.la
 endif
 
-libvirt_driver_uml_impl_la_CFLAGS = $(NUMACTL_CFLAGS) \
+libvirt_driver_uml_impl_la_CFLAGS = \
 		-I$(top_srcdir)/src/conf $(AM_CFLAGS)
 libvirt_driver_uml_impl_la_LDFLAGS = $(AM_LDFLAGS)
-libvirt_driver_uml_impl_la_LIBADD = $(NUMACTL_LIBS)
+# libvirt_driver_uml_impl_la_LIBADD =
 libvirt_driver_uml_impl_la_SOURCES = $(UML_DRIVER_SOURCES)
 endif
 
@@ -1234,6 +1237,7 @@ libvirt_driver_nodedev_la_CFLAGS = \
 libvirt_driver_nodedev_la_LDFLAGS = $(AM_LDFLAGS)
 libvirt_driver_nodedev_la_LIBADD =
 
+if WITH_LIBVIRTD
 if WITH_HAL
 libvirt_driver_nodedev_la_SOURCES += $(NODE_DEVICE_DRIVER_HAL_SOURCES)
 libvirt_driver_nodedev_la_CFLAGS += $(HAL_CFLAGS)
@@ -1243,6 +1247,7 @@ if WITH_UDEV
 libvirt_driver_nodedev_la_SOURCES += $(NODE_DEVICE_DRIVER_UDEV_SOURCES)
 libvirt_driver_nodedev_la_CFLAGS += $(UDEV_CFLAGS) $(PCIACCESS_CFLAGS)
 libvirt_driver_nodedev_la_LIBADD += $(UDEV_LIBS) $(PCIACCESS_LIBS)
+endif
 endif
 
 if WITH_DRIVER_MODULES
@@ -1457,6 +1462,12 @@ else
 SYM_FILES += $(srcdir)/libvirt_sasl.syms
 endif
 
+if WITH_GNUTLS
+USED_SYM_FILES += $(srcdir)/libvirt_gnutls.syms
+else
+SYM_FILES += $(srcdir)/libvirt_gnutls.syms
+endif
+
 if WITH_SSH2
 USED_SYM_FILES += $(srcdir)/libvirt_libssh2.syms
 else
@@ -1480,6 +1491,7 @@ EXTRA_DIST += \
   libvirt_openvz.syms		\
   libvirt_qemu.syms		\
   libvirt_sasl.syms		\
+  libvirt_gnutls.syms		\
   libvirt_vmx.syms		\
   libvirt_xenxs.syms	\
   libvirt_libssh2.syms
@@ -1583,7 +1595,9 @@ RPC_PROBE_FILES = $(srcdir)/rpc/virnetprotocol.x \
 		  $(srcdir)/rpc/virkeepaliveprotocol.x \
 		  $(srcdir)/remote/remote_protocol.x \
 		  $(srcdir)/remote/lxc_protocol.x \
-		  $(srcdir)/remote/qemu_protocol.x
+		  $(srcdir)/remote/qemu_protocol.x \
+		  $(srcdir)/lxc/lxc_monitor_protocol.x \
+		  $(srcdir)/locking/lock_protocol.x
 
 libvirt_functions.stp: $(RPC_PROBE_FILES) $(srcdir)/rpc/gensystemtap.pl
 	$(AM_V_GEN)$(PERL) -w $(srcdir)/rpc/gensystemtap.pl $(RPC_PROBE_FILES) > $@
@@ -1953,7 +1967,6 @@ libvirt_lxc_SOURCES =						\
 		$(DATATYPES_SOURCES)
 libvirt_lxc_LDFLAGS = $(WARN_CFLAGS) $(AM_LDFLAGS)
 libvirt_lxc_LDADD =			\
-		$(NUMACTL_LIBS) \
 		$(FUSE_LIBS) \
 		libvirt-net-rpc-server.la \
 		libvirt-net-rpc.la \

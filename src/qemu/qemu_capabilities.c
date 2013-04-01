@@ -210,6 +210,9 @@ VIR_ENUM_IMPL(virQEMUCaps, QEMU_CAPS_LAST,
 
               "rng-random", /* 130 */
               "rng-egd",
+              "virtio-ccw",
+              "dtb",
+              "megasas",
     );
 
 struct _virQEMUCaps {
@@ -1085,6 +1088,9 @@ virQEMUCapsComputeCmdFlags(const char *help,
     if (strstr(help, "dump-guest-core=on|off"))
         virQEMUCapsSet(qemuCaps, QEMU_CAPS_DUMP_GUEST_CORE);
 
+    if (strstr(help, "-dtb"))
+        virQEMUCapsSet(qemuCaps, QEMU_CAPS_DTB);
+
     /*
      * Handling of -incoming arg with varying features
      *  -incoming tcp    (kvm >= 79, qemu >= 0.10.0)
@@ -1318,9 +1324,13 @@ struct virQEMUCapsStringFlags virQEMUCapsObjectTypes[] = {
     { "usb-hub", QEMU_CAPS_USB_HUB },
     { "ich9-ahci", QEMU_CAPS_ICH9_AHCI },
     { "virtio-blk-s390", QEMU_CAPS_VIRTIO_S390 },
+    { "virtio-blk-ccw", QEMU_CAPS_VIRTIO_CCW },
     { "sclpconsole", QEMU_CAPS_SCLP_S390 },
     { "lsi53c895a", QEMU_CAPS_SCSI_LSI },
-    { "virtio-scsi-pci", QEMU_CAPS_VIRTIO_SCSI_PCI },
+    { "virtio-scsi-pci", QEMU_CAPS_VIRTIO_SCSI },
+    { "virtio-scsi-s390", QEMU_CAPS_VIRTIO_SCSI },
+    { "virtio-scsi-ccw", QEMU_CAPS_VIRTIO_SCSI },
+    { "megasas", QEMU_CAPS_SCSI_MEGASAS },
     { "spicevmc", QEMU_CAPS_DEVICE_SPICEVMC },
     { "qxl-vga", QEMU_CAPS_DEVICE_QXL_VGA },
     { "qxl", QEMU_CAPS_DEVICE_QXL },
@@ -1334,10 +1344,11 @@ struct virQEMUCapsStringFlags virQEMUCapsObjectTypes[] = {
     { "usb-serial", QEMU_CAPS_DEVICE_USB_SERIAL},
     { "usb-net", QEMU_CAPS_DEVICE_USB_NET},
     { "virtio-rng-pci", QEMU_CAPS_DEVICE_VIRTIO_RNG },
+    { "virtio-rng-s390", QEMU_CAPS_DEVICE_VIRTIO_RNG },
+    { "virtio-rng-ccw", QEMU_CAPS_DEVICE_VIRTIO_RNG },
     { "rng-random", QEMU_CAPS_OBJECT_RNG_RANDOM },
     { "rng-egd", QEMU_CAPS_OBJECT_RNG_EGD },
 };
-
 
 static struct virQEMUCapsStringFlags virQEMUCapsObjectPropsVirtioBlk[] = {
     { "multifunction", QEMU_CAPS_PCI_MULTIFUNCTION },
@@ -1392,6 +1403,10 @@ static struct virQEMUCapsObjectTypeProps virQEMUCapsObjectProps[] = {
     { "virtio-blk-pci", virQEMUCapsObjectPropsVirtioBlk,
       ARRAY_CARDINALITY(virQEMUCapsObjectPropsVirtioBlk) },
     { "virtio-net-pci", virQEMUCapsObjectPropsVirtioNet,
+      ARRAY_CARDINALITY(virQEMUCapsObjectPropsVirtioNet) },
+    { "virtio-blk-ccw", virQEMUCapsObjectPropsVirtioBlk,
+      ARRAY_CARDINALITY(virQEMUCapsObjectPropsVirtioBlk) },
+    { "virtio-net-ccw", virQEMUCapsObjectPropsVirtioNet,
       ARRAY_CARDINALITY(virQEMUCapsObjectPropsVirtioNet) },
     { "virtio-blk-s390", virQEMUCapsObjectPropsVirtioBlk,
       ARRAY_CARDINALITY(virQEMUCapsObjectPropsVirtioBlk) },
@@ -2294,6 +2309,7 @@ virQEMUCapsInitQMPBasic(virQEMUCapsPtr qemuCaps)
     virQEMUCapsSet(qemuCaps, QEMU_CAPS_NETDEV_BRIDGE);
     virQEMUCapsSet(qemuCaps, QEMU_CAPS_SECCOMP_SANDBOX);
     virQEMUCapsSet(qemuCaps, QEMU_CAPS_NO_KVM_PIT);
+    virQEMUCapsSet(qemuCaps, QEMU_CAPS_DTB);
 }
 
 

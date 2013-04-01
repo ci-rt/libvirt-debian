@@ -1,7 +1,7 @@
 /*
  * qemu_monitor_text.c: interaction with QEMU monitor console
  *
- * Copyright (C) 2006-2012 Red Hat, Inc.
+ * Copyright (C) 2006-2013 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -470,7 +470,7 @@ int qemuMonitorTextSetLink(qemuMonitorPtr mon, const char *name, enum virDomainN
 
     /* check if set_link command is supported */
     if (strstr(info, "\nunknown ")) {
-        virReportError(VIR_ERR_NO_SUPPORT,
+        virReportError(VIR_ERR_OPERATION_UNSUPPORTED,
                        "%s",
                        _("\'set_link\' not supported by this qemu"));
         goto error;
@@ -510,7 +510,6 @@ int qemuMonitorTextGetCPUInfo(qemuMonitorPtr mon,
 {
     char *qemucpus = NULL;
     char *line;
-    int lastVcpu = -1;
     pid_t *cpupids = NULL;
     size_t ncpupids = 0;
 
@@ -528,20 +527,9 @@ int qemuMonitorTextGetCPUInfo(qemuMonitorPtr mon,
      */
     line = qemucpus;
     do {
-        char *offset = strchr(line, '#');
+        char *offset = NULL;
         char *end = NULL;
-        int vcpu = 0, tid = 0;
-
-        /* See if we're all done */
-        if (offset == NULL)
-            break;
-
-        /* Extract VCPU number */
-        if (virStrToLong_i(offset + 1, &end, 10, &vcpu) < 0)
-            goto error;
-
-        if (end == NULL || *end != ':')
-            goto error;
+        int tid = 0;
 
         /* Extract host Thread ID */
         if ((offset = strstr(line, "thread_id=")) == NULL)
@@ -552,15 +540,11 @@ int qemuMonitorTextGetCPUInfo(qemuMonitorPtr mon,
         if (end == NULL || !c_isspace(*end))
             goto error;
 
-        if (vcpu != (lastVcpu + 1))
-            goto error;
-
         if (VIR_REALLOC_N(cpupids, ncpupids+1) < 0)
             goto error;
 
-        VIR_DEBUG("vcpu=%d pid=%d", vcpu, tid);
+        VIR_DEBUG("tid=%d", tid);
         cpupids[ncpupids++] = tid;
-        lastVcpu = vcpu;
 
         /* Skip to next data line */
         line = strchr(offset, '\r');

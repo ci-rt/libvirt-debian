@@ -7,7 +7,7 @@
 #include "lxc_monitor_protocol.h"
 
 bool_t
-xdr_virLXCProtocolExitStatus (XDR *xdrs, virLXCProtocolExitStatus *objp)
+xdr_virLXCMonitorExitStatus (XDR *xdrs, virLXCMonitorExitStatus *objp)
 {
 
          if (!xdr_enum (xdrs, (enum_t *) objp))
@@ -16,16 +16,16 @@ xdr_virLXCProtocolExitStatus (XDR *xdrs, virLXCProtocolExitStatus *objp)
 }
 
 bool_t
-xdr_virLXCProtocolExitEventMsg (XDR *xdrs, virLXCProtocolExitEventMsg *objp)
+xdr_virLXCMonitorExitEventMsg (XDR *xdrs, virLXCMonitorExitEventMsg *objp)
 {
 
-         if (!xdr_virLXCProtocolExitStatus (xdrs, &objp->status))
+         if (!xdr_virLXCMonitorExitStatus (xdrs, &objp->status))
                  return FALSE;
         return TRUE;
 }
 
 bool_t
-xdr_virLXCProtocolInitEventMsg (XDR *xdrs, virLXCProtocolInitEventMsg *objp)
+xdr_virLXCMonitorInitEventMsg (XDR *xdrs, virLXCMonitorInitEventMsg *objp)
 {
 
          if (!xdr_uint64_t (xdrs, &objp->initpid))
@@ -34,7 +34,7 @@ xdr_virLXCProtocolInitEventMsg (XDR *xdrs, virLXCProtocolInitEventMsg *objp)
 }
 
 bool_t
-xdr_virLXCProtocolProcedure (XDR *xdrs, virLXCProtocolProcedure *objp)
+xdr_virLXCMonitorProcedure (XDR *xdrs, virLXCMonitorProcedure *objp)
 {
 
          if (!xdr_enum (xdrs, (enum_t *) objp))

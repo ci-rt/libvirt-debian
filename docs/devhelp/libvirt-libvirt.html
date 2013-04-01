@@ -1280,6 +1280,8 @@ The content of this structure is not made public by the API.
     <a name="VIR_CONNECT_LIST_NODE_DEVICES_CAP_SCSI_TARGET">VIR_CONNECT_LIST_NODE_DEVICES_CAP_SCSI_TARGET</a> = 64 /* SCSI Target */
     <a name="VIR_CONNECT_LIST_NODE_DEVICES_CAP_SCSI">VIR_CONNECT_LIST_NODE_DEVICES_CAP_SCSI</a> = 128 /* SCSI device */
     <a name="VIR_CONNECT_LIST_NODE_DEVICES_CAP_STORAGE">VIR_CONNECT_LIST_NODE_DEVICES_CAP_STORAGE</a> = 256 /* Storage device */
+    <a name="VIR_CONNECT_LIST_NODE_DEVICES_CAP_FC_HOST">VIR_CONNECT_LIST_NODE_DEVICES_CAP_FC_HOST</a> = 512 /* FC Host Bus Adapter */
+    <a name="VIR_CONNECT_LIST_NODE_DEVICES_CAP_VPORTS">VIR_CONNECT_LIST_NODE_DEVICES_CAP_VPORTS</a> = 1024 /* Capable of vport */
 };
 </pre><p/>
 </div>
@@ -2365,7 +2367,8 @@ The content of this structure is not made public by the API.
     <a name="VIR_SECRET_USAGE_TYPE_NONE">VIR_SECRET_USAGE_TYPE_NONE</a> = 0
     <a name="VIR_SECRET_USAGE_TYPE_VOLUME">VIR_SECRET_USAGE_TYPE_VOLUME</a> = 1
     <a name="VIR_SECRET_USAGE_TYPE_CEPH">VIR_SECRET_USAGE_TYPE_CEPH</a> = 2
-    <a name="VIR_SECRET_USAGE_TYPE_LAST">VIR_SECRET_USAGE_TYPE_LAST</a> = 3 /* NB: this enum value will increase over time as new events are  added to the libvirt API. It reflects the last secret owner ID  supported by this version of the libvirt API. */
+    <a name="VIR_SECRET_USAGE_TYPE_ISCSI">VIR_SECRET_USAGE_TYPE_ISCSI</a> = 3
+    <a name="VIR_SECRET_USAGE_TYPE_LAST">VIR_SECRET_USAGE_TYPE_LAST</a> = 4 /* NB: this enum value will increase over time as new events are  added to the libvirt API. It reflects the last secret owner ID  supported by this version of the libvirt API. */
 };
 </pre><p/>
 </div>
@@ -3070,7 +3073,9 @@ capability type, flags include:
  VIR_CONNECT_LIST_NODE_DEVICES_CAP_SCSI_HOST
  VIR_CONNECT_LIST_NODE_DEVICES_CAP_SCSI_TARGET
  VIR_CONNECT_LIST_NODE_DEVICES_CAP_SCSI
- <a href="libvirt-libvirt.html#VIR_CONNECT_LIST_NODE_DEVICES_CAP_STORAGE">VIR_CONNECT_LIST_NODE_DEVICES_CAP_STORAGE</a></p>
+ VIR_CONNECT_LIST_NODE_DEVICES_CAP_STORAGE
+ VIR_CONNECT_LIST_NODE_DEVICES_CAP_FC_HOST
+ <a href="libvirt-libvirt.html#VIR_CONNECT_LIST_NODE_DEVICES_CAP_VPORTS">VIR_CONNECT_LIST_NODE_DEVICES_CAP_VPORTS</a></p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>Pointer to the hypervisor connection.</td></tr><tr><td><span class="term"><i><tt>devices</tt></i>:</span></td><td>Pointer to a variable to store the array containing the node device objects or NULL if the list is not required (just returns number of node devices).</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of virConnectListAllNodeDevices.</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of node devices found or -1 and sets @devices to NULL in case of error. On success, the array stored into @devices is guaranteed to have an extra allocated element set to NULL but not included in the return count, to make iteration easier. The caller is responsible for calling virNodeDeviceFree() on each array element, then calling free() on @devices.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virConnectListAllSecrets"/>virConnectListAllSecrets ()</h3><pre class="programlisting">int	virConnectListAllSecrets	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 <a href="libvirt-libvirt.html#virSecretPtr">virSecretPtr</a> ** secrets, <br/>					 unsigned int flags)<br/>
@@ -3239,7 +3244,7 @@ For more control over the results, see virConnectListAllStoragePools().</p>
         <div class="refsect2" lang="en"><h3><a name="virConnectOpen"/>virConnectOpen ()</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a>	virConnectOpen		(const char * name)<br/>
 </pre><p>This function should be called first to get a connection to the
 Hypervisor and xen store</p>
-<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>name</tt></i>:</span></td><td>URI of the hypervisor</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a pointer to the hypervisor connection or NULL in case of error If @name is NULL, if the LIBVIRT_DEFAULT_URI environment variable is set, then it will be used. Otherwise if the client configuration file has the "uri_default" parameter set, then it will be used. Finally probing will be done to determine a suitable default driver to activate. This involves trying each hypervisor in turn until one successfully opens. If connecting to an unprivileged hypervisor driver which requires the libvirtd daemon to be active, it will automatically be launched if not already running. This can be prevented by setting the environment variable LIBVIRT_AUTOSTART=0 URIs are documented at http://libvirt.org/uri.html</td></tr></tbody></table></div></div>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>name</tt></i>:</span></td><td>(optional) URI of the hypervisor</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a pointer to the hypervisor connection or NULL in case of error If @name is NULL, if the LIBVIRT_DEFAULT_URI environment variable is set, then it will be used. Otherwise if the client configuration file has the "uri_default" parameter set, then it will be used. Finally probing will be done to determine a suitable default driver to activate. This involves trying each hypervisor in turn until one successfully opens. If connecting to an unprivileged hypervisor driver which requires the libvirtd daemon to be active, it will automatically be launched if not already running. This can be prevented by setting the environment variable LIBVIRT_AUTOSTART=0 URIs are documented at http://libvirt.org/uri.html</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virConnectOpenAuth"/>virConnectOpenAuth ()</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a>	virConnectOpenAuth	(const char * name, <br/>					 <a href="libvirt-libvirt.html#virConnectAuthPtr">virConnectAuthPtr</a> auth, <br/>					 unsigned int flags)<br/>
 </pre><p>This function should be called first to get a connection to the
@@ -3248,7 +3253,7 @@ credentials via the callback
 
 See <a href="libvirt-libvirt.html#virConnectOpen">virConnectOpen</a> for notes about environment variables which can
 have an effect on opening drivers</p>
-<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>name</tt></i>:</span></td><td>URI of the hypervisor</td></tr><tr><td><span class="term"><i><tt>auth</tt></i>:</span></td><td>Authenticate callback parameters</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt.html#virConnectFlags">virConnectFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a pointer to the hypervisor connection or NULL in case of error URIs are documented at http://libvirt.org/uri.html</td></tr></tbody></table></div></div>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>name</tt></i>:</span></td><td>(optional) URI of the hypervisor</td></tr><tr><td><span class="term"><i><tt>auth</tt></i>:</span></td><td>Authenticate callback parameters</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt.html#virConnectFlags">virConnectFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a pointer to the hypervisor connection or NULL in case of error URIs are documented at http://libvirt.org/uri.html</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virConnectOpenReadOnly"/>virConnectOpenReadOnly ()</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a>	virConnectOpenReadOnly	(const char * name)<br/>
 </pre><p>This function should be called first to get a restricted connection to the
@@ -3257,7 +3262,7 @@ on the available methods to control the domains.
 
 See <a href="libvirt-libvirt.html#virConnectOpen">virConnectOpen</a> for notes about environment variables which can
 have an effect on opening drivers</p>
-<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>name</tt></i>:</span></td><td>URI of the hypervisor</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a pointer to the hypervisor connection or NULL in case of error URIs are documented at http://libvirt.org/uri.html</td></tr></tbody></table></div></div>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>name</tt></i>:</span></td><td>(optional) URI of the hypervisor</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a pointer to the hypervisor connection or NULL in case of error URIs are documented at http://libvirt.org/uri.html</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virConnectRef"/>virConnectRef ()</h3><pre class="programlisting">int	virConnectRef			(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn)<br/>
 </pre><p>Increment the reference count on the connection. For each

@@ -108,8 +108,8 @@ virDomainControllerTypeToString;
 virDomainCpuPlacementModeTypeFromString;
 virDomainCpuPlacementModeTypeToString;
 virDomainDefAddImplicitControllers;
-virDomainDefAddSecurityLabelDef;
 virDomainDefCheckABIStability;
+virDomainDefClearCCWAddresses;
 virDomainDefClearDeviceAliases;
 virDomainDefClearPCIAddresses;
 virDomainDefCompatibleDevice;
@@ -117,6 +117,7 @@ virDomainDefCopy;
 virDomainDefFormat;
 virDomainDefFormatInternal;
 virDomainDefFree;
+virDomainDefGenSecurityLabelDef;
 virDomainDefGetSecurityLabelDef;
 virDomainDefParseFile;
 virDomainDefParseNode;
@@ -138,6 +139,7 @@ virDomainDiskCopyOnReadTypeToString;
 virDomainDiskDefAssignAddress;
 virDomainDiskDefForeachPath;
 virDomainDiskDefFree;
+virDomainDiskDefGenSecurityLabelDef;
 virDomainDiskDefGetSecurityLabelDef;
 virDomainDiskDeviceTypeToString;
 virDomainDiskErrorPolicyTypeFromString;
@@ -155,6 +157,7 @@ virDomainDiskIoTypeToString;
 virDomainDiskPathByName;
 virDomainDiskProtocolTransportTypeFromString;
 virDomainDiskProtocolTransportTypeToString;
+virDomainDiskProtocolTypeToString;
 virDomainDiskRemove;
 virDomainDiskRemoveByName;
 virDomainDiskTypeFromString;
@@ -251,10 +254,6 @@ virDomainNetRemove;
 virDomainNetTypeToString;
 virDomainNostateReasonTypeFromString;
 virDomainNostateReasonTypeToString;
-virDomainNumatuneMemModeTypeFromString;
-virDomainNumatuneMemModeTypeToString;
-virDomainNumatuneMemPlacementModeTypeFromString;
-virDomainNumatuneMemPlacementModeTypeToString;
 virDomainObjAssignDef;
 virDomainObjCopyPersistentDef;
 virDomainObjGetPersistentDef;
@@ -342,6 +341,10 @@ virDomainWatchdogActionTypeFromString;
 virDomainWatchdogActionTypeToString;
 virDomainWatchdogModelTypeFromString;
 virDomainWatchdogModelTypeToString;
+virDomainXMLConfGetNamespace;
+virDomainXMLConfNew;
+virSecurityDeviceLabelDefFree;
+virSecurityLabelDefFree;
 
 
 # conf/domain_event.h
@@ -760,7 +763,6 @@ virNetClientAddStream;
 virNetClientClose;
 virNetClientDupFD;
 virNetClientGetFD;
-virNetClientGetTLSKeySize;
 virNetClientHasPassFD;
 virNetClientIsEncrypted;
 virNetClientIsOpen;
@@ -782,7 +784,6 @@ virNetClientSendNoReply;
 virNetClientSendWithReply;
 virNetClientSendWithReplyStream;
 virNetClientSetCloseCallback;
-virNetClientSetTLSSession;
 
 
 # rpc/virnetclientprogram.h
@@ -842,7 +843,6 @@ virNetServerPreExecRestart;
 virNetServerQuit;
 virNetServerRemoveShutdownInhibition;
 virNetServerRun;
-virNetServerSetTLSContext;
 virNetServerUpdateServices;
 
 
@@ -855,13 +855,13 @@ virNetServerClientGetFD;
 virNetServerClientGetIdentity;
 virNetServerClientGetPrivateData;
 virNetServerClientGetReadonly;
-virNetServerClientGetTLSKeySize;
+virNetServerClientGetSecurityContext;
 virNetServerClientGetUNIXIdentity;
-virNetServerClientHasTLSSession;
 virNetServerClientImmediateClose;
 virNetServerClientInit;
 virNetServerClientInitKeepAlive;
 virNetServerClientIsClosed;
+virNetServerClientIsLocal;
 virNetServerClientIsSecure;
 virNetServerClientLocalAddrString;
 virNetServerClientNeedAuth;
@@ -871,9 +871,9 @@ virNetServerClientPreExecRestart;
 virNetServerClientRemoteAddrString;
 virNetServerClientRemoveFilter;
 virNetServerClientSendMessage;
+virNetServerClientSetAuth;
 virNetServerClientSetCloseHook;
 virNetServerClientSetDispatcher;
-virNetServerClientSetIdentity;
 virNetServerClientStartKeepAlive;
 virNetServerClientWantClose;
 
@@ -909,7 +909,6 @@ virNetServerServiceClose;
 virNetServerServiceGetAuth;
 virNetServerServiceGetMaxRequests;
 virNetServerServiceGetPort;
-virNetServerServiceGetTLSContext;
 virNetServerServiceIsReadonly;
 virNetServerServiceNewFD;
 virNetServerServiceNewPostExecRestart;
@@ -927,6 +926,7 @@ virNetSocketClose;
 virNetSocketDupFD;
 virNetSocketGetFD;
 virNetSocketGetPort;
+virNetSocketGetSecurityContext;
 virNetSocketGetUNIXIdentity;
 virNetSocketHasCachedData;
 virNetSocketHasPassFD;
@@ -951,25 +951,8 @@ virNetSocketRemoteAddrString;
 virNetSocketRemoveIOCallback;
 virNetSocketSendFD;
 virNetSocketSetBlocking;
-virNetSocketSetTLSSession;
 virNetSocketUpdateIOCallback;
 virNetSocketWrite;
-
-
-# rpc/virnettlscontext.h
-virNetTLSContextCheckCertificate;
-virNetTLSContextNewClient;
-virNetTLSContextNewClientPath;
-virNetTLSContextNewServer;
-virNetTLSContextNewServerPath;
-virNetTLSInit;
-virNetTLSSessionGetHandshakeStatus;
-virNetTLSSessionGetKeySize;
-virNetTLSSessionHandshake;
-virNetTLSSessionNew;
-virNetTLSSessionRead;
-virNetTLSSessionSetIOCallbacks;
-virNetTLSSessionWrite;
 
 
 # security/security_driver.h
@@ -1013,6 +996,10 @@ virSecurityManagerVerify;
 # util/viralloc.h
 virAlloc;
 virAllocN;
+virAllocTestCount;
+virAllocTestHook;
+virAllocTestInit;
+virAllocTestOOM;
 virAllocVar;
 virDeleteElementsN;
 virExpandN;
@@ -1136,6 +1123,7 @@ virCgroupMounted;
 virCgroupMoveTask;
 virCgroupPathOfController;
 virCgroupRemove;
+virCgroupRemoveRecursively;
 virCgroupSetBlkioDeviceWeight;
 virCgroupSetBlkioWeight;
 virCgroupSetCpuCfsPeriod;
@@ -1306,6 +1294,13 @@ virHookInitialize;
 virHookPresent;
 
 
+# util/viridentity.h
+virIdentityGetAttr;
+virIdentityIsEqual;
+virIdentityNew;
+virIdentitySetAttr;
+
+
 # util/virinitctl.h
 virInitctlSetRunLevel;
 
@@ -1429,6 +1424,7 @@ virLogMessage;
 virLogParseDefaultPriority;
 virLogParseFilters;
 virLogParseOutputs;
+virLogProbablyLogMessage;
 virLogReset;
 virLogSetBufferSize;
 virLogSetDefaultPriority;
@@ -1564,6 +1560,14 @@ virNetlinkStartup;
 nodeSuspendForDuration;
 virNodeSuspendGetTargetMask;
 
+
+# util/virnuma.h
+virDomainNumatuneMemModeTypeFromString;
+virDomainNumatuneMemModeTypeToString;
+virNumaGetAutoPlacementAdvice;
+virNumaSetupMemoryPolicy;
+virNumaTuneMemPlacementModeTypeFromString;
+virNumaTuneMemPlacementModeTypeToString;
 
 # util/virobject.h
 virClassForObject;
@@ -1743,6 +1747,7 @@ virMutexInitRecursive;
 virMutexLock;
 virMutexUnlock;
 virOnce;
+virThreadCancel;
 virThreadCreate;
 virThreadID;
 virThreadInitialize;
@@ -1862,10 +1867,14 @@ virGetUserName;
 virGetUserRuntimeDirectory;
 virHexToBin;
 virIndexToDiskName;
+virIsCapableFCHost;
+virIsCapableVport;
 virIsDevMapperDevice;
+virManageVport;
 virParseNumber;
 virParseVersionString;
 virPipeReadUntilEOF;
+virReadFCHost;
 virScaleInteger;
 virSetBlocking;
 virSetCloseExec;

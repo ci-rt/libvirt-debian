@@ -340,7 +340,7 @@
 
 Summary: Library providing a simple virtualization API
 Name: libvirt
-Version: 1.0.3
+Version: 1.0.4
 Release: 1%{?dist}%{?extra_release}
 License: LGPLv2+
 Group: Development/Libraries
@@ -1994,6 +1994,13 @@ fi
 %endif
 
 %changelog
+* Mon Apr  1 2013 Daniel Veillard <veillard@redhat.com> - 1.0.4-1
+- qemu: support passthrough for iscsi disks
+- various S390 improvements
+- various LXC bugs fixes and improvements
+- Add API for thread cancellation
+- various bug fixes and improvements
+
 * Tue Mar  5 2013 Daniel Veillard <veillard@redhat.com> - 1.0.3-1
 - Introduce virDomainMigrate*CompressionCache APIs
 - Introduce virDomainGetJobStats API

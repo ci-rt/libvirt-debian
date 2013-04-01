@@ -46,8 +46,8 @@ static int testCompareXMLToArgvFiles(const char *xml,
     if (virtTestLoadFile(xml, &expectxml) < 0)
         goto fail;
 
-    if (!(vmdef = qemuParseCommandLineString(driver.caps, cmd,
-                                             NULL, NULL, NULL)))
+    if (!(vmdef = qemuParseCommandLineString(driver.caps, driver.xmlconf,
+                                             cmd, NULL, NULL, NULL)))
         goto fail;
 
     if ((log = virtTestLogContentAndReset()) == NULL)
@@ -120,6 +120,9 @@ mymain(void)
     if ((driver.caps = testQemuCapsInit()) == NULL)
         return EXIT_FAILURE;
 
+    if (!(driver.xmlconf = virQEMUDriverCreateXMLConf()))
+        return EXIT_FAILURE;
+
 # define DO_TEST_FULL(name, extraFlags, migrateFrom)                     \
     do {                                                                \
         const struct testInfo info = { name, extraFlags, migrateFrom }; \
@@ -182,6 +185,11 @@ mymain(void)
     DO_TEST("disk-drive-cache-directsync");
     DO_TEST("disk-drive-cache-unsafe");
     DO_TEST("disk-drive-network-nbd");
+    DO_TEST("disk-drive-network-nbd-export");
+    DO_TEST("disk-drive-network-nbd-ipv6");
+    DO_TEST("disk-drive-network-nbd-ipv6-export");
+    DO_TEST("disk-drive-network-nbd-unix");
+    DO_TEST("disk-drive-network-iscsi");
     DO_TEST("disk-drive-network-gluster");
     DO_TEST("disk-drive-network-rbd");
     DO_TEST("disk-drive-network-rbd-ipv6");
@@ -244,6 +252,7 @@ mymain(void)
 
     virObjectUnref(driver.config);
     virObjectUnref(driver.caps);
+    virObjectUnref(driver.xmlconf);
 
     return ret==0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }

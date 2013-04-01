@@ -129,52 +129,42 @@ static const vshCmdOptDef opts_snapshot_create[] = {
     },
     {.name = "xmlfile",
      .type = VSH_OT_DATA,
-     .flags = 0,
      .help = N_("domain snapshot XML")
     },
     {.name = "redefine",
      .type = VSH_OT_BOOL,
-     .flags = 0,
      .help = N_("redefine metadata for existing snapshot")
     },
     {.name = "current",
      .type = VSH_OT_BOOL,
-     .flags = 0,
      .help = N_("with redefine, set current snapshot")
     },
     {.name = "no-metadata",
      .type = VSH_OT_BOOL,
-     .flags = 0,
      .help = N_("take snapshot but create no metadata")
     },
     {.name = "halt",
      .type = VSH_OT_BOOL,
-     .flags = 0,
      .help = N_("halt domain after snapshot is created")
     },
     {.name = "disk-only",
      .type = VSH_OT_BOOL,
-     .flags = 0,
      .help = N_("capture disk state but not vm state")
     },
     {.name = "reuse-external",
      .type = VSH_OT_BOOL,
-     .flags = 0,
      .help = N_("reuse any existing external files")
     },
     {.name = "quiesce",
      .type = VSH_OT_BOOL,
-     .flags = 0,
      .help = N_("quiesce guest's file systems")
     },
     {.name = "atomic",
      .type = VSH_OT_BOOL,
-     .flags = 0,
      .help = N_("require atomic operation")
     },
     {.name = "live",
      .type = VSH_OT_BOOL,
-     .flags = 0,
      .help = N_("take a live snapshot")
     },
     {.name = NULL}
@@ -211,7 +201,9 @@ cmdSnapshotCreate(vshControl *ctl, const vshCmd *cmd)
     if (!(dom = vshCommandOptDomain(ctl, cmd, NULL)))
         goto cleanup;
 
-    if (vshCommandOptStringReq(ctl, cmd, "xmlfile", &from) < 0) {
+    if (vshCommandOptStringReq(ctl, cmd, "xmlfile", &from) < 0)
+        goto cleanup;
+    if (!from) {
         buffer = vshStrdup(ctl, "<domainsnapshot/>");
     } else {
         if (virFileReadAll(from, VSH_MAX_XML_FILE, &buffer) < 0) {
@@ -346,62 +338,51 @@ static const vshCmdOptDef opts_snapshot_create_as[] = {
     },
     {.name = "name",
      .type = VSH_OT_DATA,
-     .flags = 0,
      .help = N_("name of snapshot")
     },
     {.name = "description",
      .type = VSH_OT_DATA,
-     .flags = 0,
      .help = N_("description of snapshot")
     },
     {.name = "print-xml",
      .type = VSH_OT_BOOL,
-     .flags = 0,
      .help = N_("print XML document rather than create")
     },
     {.name = "no-metadata",
      .type = VSH_OT_BOOL,
-     .flags = 0,
      .help = N_("take snapshot but create no metadata")
     },
     {.name = "halt",
      .type = VSH_OT_BOOL,
-     .flags = 0,
      .help = N_("halt domain after snapshot is created")
     },
     {.name = "disk-only",
      .type = VSH_OT_BOOL,
-     .flags = 0,
      .help = N_("capture disk state but not vm state")
     },
     {.name = "reuse-external",
      .type = VSH_OT_BOOL,
-     .flags = 0,
      .help = N_("reuse any existing external files")
     },
     {.name = "quiesce",
      .type = VSH_OT_BOOL,
-     .flags = 0,
      .help = N_("quiesce guest's file systems")
     },
     {.name = "atomic",
      .type = VSH_OT_BOOL,
-     .flags = 0,
      .help = N_("require atomic operation")
     },
     {.name = "live",
      .type = VSH_OT_BOOL,
-     .flags = 0,
      .help = N_("take a live snapshot")
     },
     {.name = "memspec",
-     .type = VSH_OT_DATA,
+     .type = VSH_OT_STRING,
      .flags = VSH_OFLAG_REQ_OPT,
      .help = N_("memory attributes: [file=]name[,snapshot=type]")
     },
     {.name = "diskspec",
      .type = VSH_OT_ARGV,
-     .flags = 0,
      .help = N_("disk attributes: disk[,snapshot=type][,driver=type][,file=name]")
     },
     {.name = NULL}
@@ -549,22 +530,18 @@ static const vshCmdOptDef opts_snapshot_edit[] = {
     },
     {.name = "snapshotname",
      .type = VSH_OT_DATA,
-     .flags = 0,
      .help = N_("snapshot name")
     },
     {.name = "current",
      .type = VSH_OT_BOOL,
-     .flags = 0,
      .help = N_("also set edited snapshot as current")
     },
     {.name = "rename",
      .type = VSH_OT_BOOL,
-     .flags = 0,
      .help = N_("allow renaming an existing snapshot")
     },
     {.name = "clone",
      .type = VSH_OT_BOOL,
-     .flags = 0,
      .help = N_("allow cloning to new name")
     },
     {.name = NULL}
@@ -584,19 +561,14 @@ cmdSnapshotEdit(vshControl *ctl, const vshCmd *cmd)
     bool rename_okay = vshCommandOptBool(cmd, "rename");
     bool clone_okay = vshCommandOptBool(cmd, "clone");
 
-    if (rename_okay && clone_okay) {
-        vshError(ctl, "%s",
-                 _("--rename and --clone are mutually exclusive"));
-        return false;
-    }
+    VSH_EXCLUSIVE_OPTIONS_EXPR("rename", rename_okay, "clone", clone_okay)
 
     if (vshCommandOptBool(cmd, "current") &&
         vshCommandOptBool(cmd, "snapshotname"))
         define_flags |= VIR_DOMAIN_SNAPSHOT_CREATE_CURRENT;
 
-    dom = vshCommandOptDomain(ctl, cmd, NULL);
-    if (dom == NULL)
-        goto cleanup;
+    if (!(dom = vshCommandOptDomain(ctl, cmd, NULL)))
+        return false;
 
     if (vshLookupSnapshot(ctl, cmd, "snapshotname", false, dom,
                           &snapshot, &name) < 0)
@@ -655,8 +627,7 @@ cleanup:
         virDomainSnapshotFree(edited);
     if (snapshot)
         virDomainSnapshotFree(snapshot);
-    if (dom)
-        virDomainFree(dom);
+    virDomainFree(dom);
     return ret;
 }
 
@@ -681,17 +652,14 @@ static const vshCmdOptDef opts_snapshot_current[] = {
     },
     {.name = "name",
      .type = VSH_OT_BOOL,
-     .flags = 0,
      .help = N_("list the name, rather than the full xml")
     },
     {.name = "security-info",
      .type = VSH_OT_BOOL,
-     .flags = 0,
      .help = N_("include security sensitive information in XML dump")
     },
     {.name = "snapshotname",
      .type = VSH_OT_DATA,
-     .flags = 0,
      .help = N_("name of existing snapshot to make current")
     },
     {.name = NULL}
@@ -712,9 +680,10 @@ cmdSnapshotCurrent(vshControl *ctl, const vshCmd *cmd)
     if (vshCommandOptBool(cmd, "security-info"))
         flags |= VIR_DOMAIN_XML_SECURE;
 
-    dom = vshCommandOptDomain(ctl, cmd, &domname);
-    if (dom == NULL)
-        goto cleanup;
+    VSH_EXCLUSIVE_OPTIONS("name", "snapshotname");
+
+    if (!(dom = vshCommandOptDomain(ctl, cmd, &domname)))
+        return false;
 
     if (vshCommandOptStringReq(ctl, cmd, "snapshotname", &snapshotname) < 0)
         goto cleanup;
@@ -724,52 +693,48 @@ cmdSnapshotCurrent(vshControl *ctl, const vshCmd *cmd)
         flags = (VIR_DOMAIN_SNAPSHOT_CREATE_REDEFINE |
                  VIR_DOMAIN_SNAPSHOT_CREATE_CURRENT);
 
-        if (vshCommandOptBool(cmd, "name")) {
-            vshError(ctl, "%s",
-                     _("--name and snapshotname are mutually exclusive"));
+        if (!(snapshot = virDomainSnapshotLookupByName(dom, snapshotname, 0)))
             goto cleanup;
-        }
-        snapshot = virDomainSnapshotLookupByName(dom, snapshotname, 0);
-        if (snapshot == NULL)
-            goto cleanup;
+
         xml = virDomainSnapshotGetXMLDesc(snapshot, VIR_DOMAIN_XML_SECURE);
         if (!xml)
             goto cleanup;
+
         /* strstr is safe here, since xml came from libvirt API and not user */
         if (strstr(xml, "<state>disk-snapshot</state>"))
             flags |= VIR_DOMAIN_SNAPSHOT_CREATE_DISK_ONLY;
-        snapshot2 = virDomainSnapshotCreateXML(dom, xml, flags);
-        if (snapshot2 == NULL)
+
+        if (!(snapshot2 = virDomainSnapshotCreateXML(dom, xml, flags)))
             goto cleanup;
+
         virDomainSnapshotFree(snapshot2);
         vshPrint(ctl, _("Snapshot %s set as current"), snapshotname);
         ret = true;
         goto cleanup;
     }
 
-    current = virDomainHasCurrentSnapshot(dom, 0);
-    if (current < 0) {
+    if ((current = virDomainHasCurrentSnapshot(dom, 0)) < 0)
         goto cleanup;
-    } else if (!current) {
+
+    if (!current) {
         vshError(ctl, _("domain '%s' has no current snapshot"), domname);
         goto cleanup;
     } else {
-        const char *name = NULL;
-
         if (!(snapshot = virDomainSnapshotCurrent(dom, 0)))
             goto cleanup;
 
         if (vshCommandOptBool(cmd, "name")) {
-            name = virDomainSnapshotGetName(snapshot);
-            if (!name)
+            const char *name;
+            if (!(name = virDomainSnapshotGetName(snapshot)))
                 goto cleanup;
-        } else {
-            xml = virDomainSnapshotGetXMLDesc(snapshot, flags);
-            if (!xml)
-                goto cleanup;
-        }
 
-        vshPrint(ctl, "%s", name ? name : xml);
+            vshPrint(ctl, "%s", name);
+        } else {
+            if (!(xml = virDomainSnapshotGetXMLDesc(snapshot, flags)))
+                goto cleanup;
+
+            vshPrint(ctl, "%s", xml);
+        }
     }
 
     ret = true;
@@ -780,8 +745,7 @@ cleanup:
     VIR_FREE(xml);
     if (snapshot)
         virDomainSnapshotFree(snapshot);
-    if (dom)
-        virDomainFree(dom);
+    virDomainFree(dom);
 
     return ret;
 }
@@ -924,12 +888,10 @@ static const vshCmdOptDef opts_snapshot_info[] = {
     },
     {.name = "snapshotname",
      .type = VSH_OT_DATA,
-     .flags = 0,
      .help = N_("snapshot name")
     },
     {.name = "current",
      .type = VSH_OT_BOOL,
-     .flags = 0,
      .help = N_("info on current snapshot")
     },
     {.name = NULL}
@@ -1483,79 +1445,69 @@ static const vshCmdOptDef opts_snapshot_list[] = {
     },
     {.name = "parent",
      .type = VSH_OT_BOOL,
-     .flags = 0,
      .help = N_("add a column showing parent snapshot")
     },
     {.name = "roots",
      .type = VSH_OT_BOOL,
-     .flags = 0,
      .help = N_("list only snapshots without parents")
     },
     {.name = "leaves",
      .type = VSH_OT_BOOL,
-     .flags = 0,
      .help = N_("list only snapshots without children")
     },
     {.name = "no-leaves",
      .type = VSH_OT_BOOL,
-     .flags = 0,
      .help = N_("list only snapshots that are not leaves (with children)")
     },
     {.name = "metadata",
      .type = VSH_OT_BOOL,
-     .flags = 0,
      .help = N_("list only snapshots that have metadata that would prevent undefine")
     },
     {.name = "no-metadata",
      .type = VSH_OT_BOOL,
-     .flags = 0,
      .help = N_("list only snapshots that have no metadata managed by libvirt")
     },
     {.name = "inactive",
      .type = VSH_OT_BOOL,
-     .flags = 0,
      .help = N_("filter by snapshots taken while inactive")
     },
     {.name = "active",
      .type = VSH_OT_BOOL,
-     .flags = 0,
      .help = N_("filter by snapshots taken while active (system checkpoints)")
     },
     {.name = "disk-only",
      .type = VSH_OT_BOOL,
-     .flags = 0,
      .help = N_("filter by disk-only snapshots")
     },
     {.name = "internal",
      .type = VSH_OT_BOOL,
-     .flags = 0,
      .help = N_("filter by internal snapshots")
     },
     {.name = "external",
      .type = VSH_OT_BOOL,
-     .flags = 0,
      .help = N_("filter by external snapshots")
     },
     {.name = "tree",
      .type = VSH_OT_BOOL,
-     .flags = 0,
      .help = N_("list snapshots in a tree")
     },
     {.name = "from",
      .type = VSH_OT_DATA,
-     .flags = 0,
      .help = N_("limit list to children of given snapshot")
     },
     {.name = "current",
      .type = VSH_OT_BOOL,
-     .flags = 0,
      .help = N_("limit list to children of current snapshot")
     },
     {.name = "descendants",
      .type = VSH_OT_BOOL,
-     .flags = 0,
      .help = N_("with --from, list all descendants")
     },
+    {.name = "name",
+     .type = VSH_OT_BOOL,
+     .help = N_("list snapshot names only")
+    },
+
     {.name = NULL}
 };
 
@@ -1565,59 +1517,34 @@ cmdSnapshotList(vshControl *ctl, const vshCmd *cmd)
     virDomainPtr dom = NULL;
     bool ret = false;
     unsigned int flags = 0;
-    bool show_parent = false;
     int i;
     xmlDocPtr xml = NULL;
     xmlXPathContextPtr ctxt = NULL;
     char *doc = NULL;
     virDomainSnapshotPtr snapshot = NULL;
     char *state = NULL;
-    char *parent = NULL;
     long long creation_longlong;
     time_t creation_time_t;
     char timestr[100];
     struct tm time_info;
     bool tree = vshCommandOptBool(cmd, "tree");
-    const char *from = NULL;
+    bool name = vshCommandOptBool(cmd, "name");
+    bool from = vshCommandOptBool(cmd, "from");
+    bool parent = vshCommandOptBool(cmd, "parent");
+    bool roots = vshCommandOptBool(cmd, "roots");
+    bool current = vshCommandOptBool(cmd, "current");
+    const char *from_snap = NULL;
+    char *parent_snap = NULL;
     virDomainSnapshotPtr start = NULL;
     vshSnapshotListPtr snaplist = NULL;
 
-    dom = vshCommandOptDomain(ctl, cmd, NULL);
-    if (dom == NULL)
-        goto cleanup;
+    VSH_EXCLUSIVE_OPTIONS_VAR(tree, name);
+    VSH_EXCLUSIVE_OPTIONS_VAR(parent, roots);
+    VSH_EXCLUSIVE_OPTIONS_VAR(parent, tree);
+    VSH_EXCLUSIVE_OPTIONS_VAR(roots, tree);
+    VSH_EXCLUSIVE_OPTIONS_VAR(roots, from);
+    VSH_EXCLUSIVE_OPTIONS_VAR(roots, current);
 
-    if ((vshCommandOptBool(cmd, "from") ||
-         vshCommandOptBool(cmd, "current")) &&
-        vshLookupSnapshot(ctl, cmd, "from", true, dom, &start, &from) < 0)
-        goto cleanup;
-
-    if (vshCommandOptBool(cmd, "parent")) {
-        if (vshCommandOptBool(cmd, "roots")) {
-            vshError(ctl, "%s",
-                     _("--parent and --roots are mutually exclusive"));
-            goto cleanup;
-        }
-        if (tree) {
-            vshError(ctl, "%s",
-                     _("--parent and --tree are mutually exclusive"));
-            goto cleanup;
-        }
-        show_parent = true;
-    } else if (vshCommandOptBool(cmd, "roots")) {
-        if (tree) {
-            vshError(ctl, "%s",
-                     _("--roots and --tree are mutually exclusive"));
-            goto cleanup;
-        }
-        if (from) {
-            vshError(ctl, "%s",
-                     vshCommandOptBool(cmd, "current") ?
-                     _("--roots and --current are mutually exclusive") :
-                     _("--roots and --from are mutually exclusive"));
-            goto cleanup;
-        }
-        flags |= VIR_DOMAIN_SNAPSHOT_LIST_ROOTS;
-    }
 #define FILTER(option, flag)                                          \
     do {                                                              \
         if (vshCommandOptBool(cmd, option)) {                         \
@@ -1625,7 +1552,7 @@ cmdSnapshotList(vshControl *ctl, const vshCmd *cmd)
                 vshError(ctl,                                         \
                          _("--%s and --tree are mutually exclusive"), \
                          option);                                     \
-                goto cleanup;                                         \
+                return false;                                         \
             }                                                         \
             flags |= VIR_DOMAIN_SNAPSHOT_LIST_ ## flag;               \
         }                                                             \
@@ -1640,28 +1567,36 @@ cmdSnapshotList(vshControl *ctl, const vshCmd *cmd)
     FILTER("external", EXTERNAL);
 #undef FILTER
 
-    if (vshCommandOptBool(cmd, "metadata")) {
+    if (roots)
+        flags |= VIR_DOMAIN_SNAPSHOT_LIST_ROOTS;
+
+    if (vshCommandOptBool(cmd, "metadata"))
         flags |= VIR_DOMAIN_SNAPSHOT_LIST_METADATA;
-    }
-    if (vshCommandOptBool(cmd, "no-metadata")) {
+
+    if (vshCommandOptBool(cmd, "no-metadata"))
         flags |= VIR_DOMAIN_SNAPSHOT_LIST_NO_METADATA;
-    }
 
     if (vshCommandOptBool(cmd, "descendants")) {
-        if (!from) {
+        if (!from && !current) {
             vshError(ctl, "%s",
                      _("--descendants requires either --from or --current"));
-            goto cleanup;
+            return false;
         }
         flags |= VIR_DOMAIN_SNAPSHOT_LIST_DESCENDANTS;
     }
 
-    if ((snaplist = vshSnapshotListCollect(ctl, dom, start, flags,
-                                           tree)) == NULL)
+    if (!(dom = vshCommandOptDomain(ctl, cmd, NULL)))
+        return false;
+
+    if ((from || current) &&
+        vshLookupSnapshot(ctl, cmd, "from", true, dom, &start, &from_snap) < 0)
         goto cleanup;
 
-    if (!tree) {
-        if (show_parent)
+    if (!(snaplist = vshSnapshotListCollect(ctl, dom, start, flags, tree)))
+        goto cleanup;
+
+    if (!tree && !name) {
+        if (parent)
             vshPrintExtra(ctl, " %-20s %-25s %-15s %s",
                           _("Name"), _("Creation Time"), _("State"),
                           _("Parent"));
@@ -1669,12 +1604,8 @@ cmdSnapshotList(vshControl *ctl, const vshCmd *cmd)
             vshPrintExtra(ctl, " %-20s %-25s %s",
                           _("Name"), _("Creation Time"), _("State"));
         vshPrintExtra(ctl, "\n"
-"------------------------------------------------------------\n");
-    }
-
-    if (!snaplist->nsnaps) {
-        ret = true;
-        goto cleanup;
+                           "------------------------------"
+                           "------------------------------\n");
     }
 
     if (tree) {
@@ -1689,34 +1620,38 @@ cmdSnapshotList(vshControl *ctl, const vshCmd *cmd)
     }
 
     for (i = 0; i < snaplist->nsnaps; i++) {
-        const char *name;
+        const char *snap_name;
 
         /* free up memory from previous iterations of the loop */
-        VIR_FREE(parent);
+        VIR_FREE(parent_snap);
         VIR_FREE(state);
         xmlXPathFreeContext(ctxt);
         xmlFreeDoc(xml);
         VIR_FREE(doc);
 
         snapshot = snaplist->snaps[i].snap;
-        name = virDomainSnapshotGetName(snapshot);
-        assert(name);
+        snap_name = virDomainSnapshotGetName(snapshot);
+        assert(snap_name);
 
-        doc = virDomainSnapshotGetXMLDesc(snapshot, 0);
-        if (!doc)
+        if (name) {
+            /* just print the snapshot name */
+            vshPrint(ctl, "%s\n", snap_name);
+            continue;
+        }
+
+        if (!(doc = virDomainSnapshotGetXMLDesc(snapshot, 0)))
             continue;
 
-        xml = virXMLParseStringCtxt(doc, _("(domain_snapshot)"), &ctxt);
-        if (!xml)
+        if (!(xml = virXMLParseStringCtxt(doc, _("(domain_snapshot)"), &ctxt)))
             continue;
 
-        if (show_parent)
-            parent = virXPathString("string(/domainsnapshot/parent/name)",
-                                    ctxt);
+        if (parent)
+            parent_snap = virXPathString("string(/domainsnapshot/parent/name)",
+                                         ctxt);
 
-        state = virXPathString("string(/domainsnapshot/state)", ctxt);
-        if (state == NULL)
+        if (!(state = virXPathString("string(/domainsnapshot/state)", ctxt)))
             continue;
+
         if (virXPathLongLong("string(/domainsnapshot/creationTime)", ctxt,
                              &creation_longlong) < 0)
             continue;
@@ -1731,9 +1666,9 @@ cmdSnapshotList(vshControl *ctl, const vshCmd *cmd)
 
         if (parent)
             vshPrint(ctl, " %-20s %-25s %-15s %s\n",
-                     name, timestr, state, parent);
+                     snap_name, timestr, state, parent_snap);
         else
-            vshPrint(ctl, " %-20s %-25s %s\n", name, timestr, state);
+            vshPrint(ctl, " %-20s %-25s %s\n", snap_name, timestr, state);
     }
 
     ret = true;
@@ -1741,15 +1676,13 @@ cmdSnapshotList(vshControl *ctl, const vshCmd *cmd)
 cleanup:
     /* this frees up memory from the last iteration of the loop */
     vshSnapshotListFree(snaplist);
-    VIR_FREE(parent);
+    VIR_FREE(parent_snap);
     VIR_FREE(state);
-    if (start)
-        virDomainSnapshotFree(start);
+    virDomainSnapshotFree(start);
     xmlXPathFreeContext(ctxt);
     xmlFreeDoc(xml);
     VIR_FREE(doc);
-    if (dom)
-        virDomainFree(dom);
+    virDomainFree(dom);
 
     return ret;
 }
@@ -1780,7 +1713,6 @@ static const vshCmdOptDef opts_snapshot_dumpxml[] = {
     },
     {.name = "security-info",
      .type = VSH_OT_BOOL,
-     .flags = 0,
      .help = N_("include security sensitive information in XML dump")
     },
     {.name = NULL}
@@ -1844,12 +1776,10 @@ static const vshCmdOptDef opts_snapshot_parent[] = {
     },
     {.name = "snapshotname",
      .type = VSH_OT_DATA,
-     .flags = 0,
      .help = N_("find parent of snapshot name")
     },
     {.name = "current",
      .type = VSH_OT_BOOL,
-     .flags = 0,
      .help = N_("find parent of current snapshot")
     },
     {.name = NULL}
@@ -1914,27 +1844,22 @@ static const vshCmdOptDef opts_snapshot_revert[] = {
     },
     {.name = "snapshotname",
      .type = VSH_OT_DATA,
-     .flags = 0,
      .help = N_("snapshot name")
     },
     {.name = "current",
      .type = VSH_OT_BOOL,
-     .flags = 0,
      .help = N_("revert to current snapshot")
     },
     {.name = "running",
      .type = VSH_OT_BOOL,
-     .flags = 0,
      .help = N_("after reverting, change state to running")
     },
     {.name = "paused",
      .type = VSH_OT_BOOL,
-     .flags = 0,
      .help = N_("after reverting, change state to paused")
     },
     {.name = "force",
      .type = VSH_OT_BOOL,
-     .flags = 0,
      .help = N_("try harder on risky reverts")
     },
     {.name = NULL}
@@ -2012,27 +1937,22 @@ static const vshCmdOptDef opts_snapshot_delete[] = {
     },
     {.name = "snapshotname",
      .type = VSH_OT_DATA,
-     .flags = 0,
      .help = N_("snapshot name")
     },
     {.name = "current",
      .type = VSH_OT_BOOL,
-     .flags = 0,
      .help = N_("delete current snapshot")
     },
     {.name = "children",
      .type = VSH_OT_BOOL,
-     .flags = 0,
      .help = N_("delete snapshot and all children")
     },
     {.name = "children-only",
      .type = VSH_OT_BOOL,
-     .flags = 0,
      .help = N_("delete children but not snapshot")
     },
     {.name = "metadata",
      .type = VSH_OT_BOOL,
-     .flags = 0,
      .help = N_("delete only libvirt metadata, leaving snapshot contents behind")
     },
     {.name = NULL}

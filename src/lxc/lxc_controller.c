@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010-2012 Red Hat, Inc.
+ * Copyright (C) 2010-2013 Red Hat, Inc.
  * Copyright IBM Corp. 2008
  *
  * lxc_controller.c: linux container process controller
@@ -46,11 +46,6 @@
 # include <cap-ng.h>
 #endif
 
-#if WITH_NUMACTL
-# define NUMA_VERSION1_COMPATIBILITY 1
-# include <numa.h>
-#endif
-
 #include "virerror.h"
 #include "virlog.h"
 #include "virutil.h"
@@ -69,6 +64,7 @@
 #include "nodeinfo.h"
 #include "virrandom.h"
 #include "virprocess.h"
+#include "virnuma.h"
 #include "rpc/virnetserver.h"
 
 #define VIR_FROM_THIS VIR_FROM_LXC
@@ -151,6 +147,7 @@ static virLXCControllerPtr virLXCControllerNew(const char *name)
 {
     virLXCControllerPtr ctrl = NULL;
     virCapsPtr caps = NULL;
+    virDomainXMLConfPtr xmlconf = NULL;
     char *configFile = NULL;
 
     if (VIR_ALLOC(ctrl) < 0)
@@ -165,11 +162,14 @@ static virLXCControllerPtr virLXCControllerNew(const char *name)
     if ((caps = lxcCapsInit(NULL)) == NULL)
         goto error;
 
+    if (!(xmlconf = lxcDomainXMLConfInit()))
+        goto error;
+
     if ((configFile = virDomainConfigFile(LXC_STATE_DIR,
                                           ctrl->name)) == NULL)
         goto error;
 
-    if ((ctrl->def = virDomainDefParseFile(caps,
+    if ((ctrl->def = virDomainDefParseFile(caps, xmlconf,
                                            configFile,
                                            1 << VIR_DOMAIN_VIRT_LXC,
                                            0)) == NULL)
@@ -183,6 +183,7 @@ static virLXCControllerPtr virLXCControllerNew(const char *name)
 cleanup:
     VIR_FREE(configFile);
     virObjectUnref(caps);
+    virObjectUnref(xmlconf);
     return ctrl;
 
 no_memory:
@@ -194,22 +195,12 @@ error:
 }
 
 
-static int virLXCControllerCloseLoopDevices(virLXCControllerPtr ctrl,
-                                            bool force)
+static int virLXCControllerCloseLoopDevices(virLXCControllerPtr ctrl)
 {
     size_t i;
 
-    for (i = 0 ; i < ctrl->nloopDevs ; i++) {
-        if (force) {
-            VIR_FORCE_CLOSE(ctrl->loopDevFds[i]);
-        } else {
-            if (VIR_CLOSE(ctrl->loopDevFds[i]) < 0) {
-                virReportSystemError(errno, "%s",
-                                     _("Unable to close loop device"));
-                return -1;
-            }
-        }
-    }
+    for (i = 0 ; i < ctrl->nloopDevs ; i++)
+        VIR_FORCE_CLOSE(ctrl->loopDevFds[i]);
 
     return 0;
 }
@@ -220,7 +211,7 @@ static void virLXCControllerStopInit(virLXCControllerPtr ctrl)
     if (ctrl->initpid == 0)
         return;
 
-    virLXCControllerCloseLoopDevices(ctrl, true);
+    virLXCControllerCloseLoopDevices(ctrl);
     virProcessAbort(ctrl->initpid);
     ctrl->initpid = 0;
 }
@@ -268,8 +259,6 @@ static void virLXCControllerFree(virLXCControllerPtr ctrl)
         virLXCControllerConsoleClose(&(ctrl->consoles[i]));
     VIR_FREE(ctrl->consoles);
 
-    VIR_FORCE_CLOSE(ctrl->handshakeFd);
-
     VIR_FREE(ctrl->devptmx);
 
     virDomainDefFree(ctrl->def);
@@ -281,6 +270,8 @@ static void virLXCControllerFree(virLXCControllerPtr ctrl)
     virObjectUnref(ctrl->server);
     virLXCControllerFreeFuse(ctrl);
 
+    /* This must always be the last thing to be closed */
+    VIR_FORCE_CLOSE(ctrl->handshakeFd);
     VIR_FREE(ctrl);
 }
 
@@ -356,7 +347,7 @@ static int virLXCControllerValidateConsoles(virLXCControllerPtr ctrl)
 }
 
 
-static int virLXCControllerSetupLoopDevice(virDomainFSDefPtr fs)
+static int virLXCControllerSetupLoopDeviceFS(virDomainFSDefPtr fs)
 {
     int lofd;
     char *loname = NULL;
@@ -377,20 +368,85 @@ static int virLXCControllerSetupLoopDevice(virDomainFSDefPtr fs)
 }
 
 
+static int virLXCControllerSetupLoopDeviceDisk(virDomainDiskDefPtr disk)
+{
+    int lofd;
+    char *loname = NULL;
+
+    if ((lofd = virFileLoopDeviceAssociate(disk->src, &loname)) < 0)
+        return -1;
+
+    /*
+     * We now change it into a block device type, so that
+     * the rest of container setup 'just works'
+     */
+    disk->type = VIR_DOMAIN_DISK_TYPE_BLOCK;
+    VIR_FREE(disk->src);
+    disk->src = loname;
+    loname = NULL;
+
+    return lofd;
+}
+
+
 static int virLXCControllerSetupLoopDevices(virLXCControllerPtr ctrl)
 {
     size_t i;
     int ret = -1;
 
     for (i = 0 ; i < ctrl->def->nfss ; i++) {
+        virDomainFSDefPtr fs = ctrl->def->fss[i];
         int fd;
 
-        if (ctrl->def->fss[i]->type != VIR_DOMAIN_FS_TYPE_FILE)
+        if (fs->type != VIR_DOMAIN_FS_TYPE_FILE)
             continue;
 
-        fd = virLXCControllerSetupLoopDevice(ctrl->def->fss[i]);
+        fd = virLXCControllerSetupLoopDeviceFS(fs);
         if (fd < 0)
             goto cleanup;
+
+        VIR_DEBUG("Saving loop fd %d", fd);
+        if (VIR_EXPAND_N(ctrl->loopDevFds, ctrl->nloopDevs, 1) < 0) {
+            VIR_FORCE_CLOSE(fd);
+            virReportOOMError();
+            goto cleanup;
+        }
+        ctrl->loopDevFds[ctrl->nloopDevs - 1] = fd;
+    }
+
+    for (i = 0 ; i < ctrl->def->ndisks ; i++) {
+        virDomainDiskDefPtr disk = ctrl->def->disks[i];
+        int fd;
+
+        if (disk->type != VIR_DOMAIN_DISK_TYPE_FILE)
+            continue;
+
+        switch (disk->format) {
+            /* We treat 'none' as meaning 'raw' since we
+             * don't want to go into the auto-probing
+             * business for security reasons
+             */
+        case VIR_STORAGE_FILE_RAW:
+        case VIR_STORAGE_FILE_NONE:
+            if (disk->driverName &&
+                STRNEQ(disk->driverName, "loop")) {
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                               _("disk driver %s is not supported"),
+                               disk->driverName);
+                goto cleanup;
+            }
+
+            fd = virLXCControllerSetupLoopDeviceDisk(disk);
+            if (fd < 0)
+                goto cleanup;
+            break;
+
+        default:
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("disk format %s is not supported"),
+                           virStorageFileFormatTypeToString(disk->format));
+            goto cleanup;
+        }
 
         VIR_DEBUG("Saving loop fd %d", fd);
         if (VIR_EXPAND_N(ctrl->loopDevFds, ctrl->nloopDevs, 1) < 0) {
@@ -407,98 +463,6 @@ static int virLXCControllerSetupLoopDevices(virLXCControllerPtr ctrl)
 cleanup:
     return ret;
 }
-
-#if WITH_NUMACTL
-static int virLXCControllerSetupNUMAPolicy(virLXCControllerPtr ctrl)
-{
-    nodemask_t mask;
-    int mode = -1;
-    int node = -1;
-    int ret = -1;
-    int i = 0;
-    int maxnode = 0;
-    bool warned = false;
-
-    if (!ctrl->def->numatune.memory.nodemask)
-        return 0;
-
-    VIR_DEBUG("Setting NUMA memory policy");
-
-    if (numa_available() < 0) {
-        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                       "%s", _("Host kernel is not aware of NUMA."));
-        return -1;
-    }
-
-    maxnode = numa_max_node() + 1;
-
-    /* Convert nodemask to NUMA bitmask. */
-    nodemask_zero(&mask);
-    i = -1;
-    while ((i = virBitmapNextSetBit(ctrl->def->numatune.memory.nodemask, i)) >= 0) {
-        if (i > NUMA_NUM_NODES) {
-            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                           _("Host cannot support NUMA node %d"), i);
-            return -1;
-        }
-        if (i > maxnode && !warned) {
-            VIR_WARN("nodeset is out of range, there is only %d NUMA "
-                     "nodes on host", maxnode);
-            warned = true;
-        }
-        nodemask_set(&mask, i);
-    }
-
-    mode = ctrl->def->numatune.memory.mode;
-
-    if (mode == VIR_DOMAIN_NUMATUNE_MEM_STRICT) {
-        numa_set_bind_policy(1);
-        numa_set_membind(&mask);
-        numa_set_bind_policy(0);
-    } else if (mode == VIR_DOMAIN_NUMATUNE_MEM_PREFERRED) {
-        int nnodes = 0;
-        for (i = 0; i < NUMA_NUM_NODES; i++) {
-            if (nodemask_isset(&mask, i)) {
-                node = i;
-                nnodes++;
-            }
-        }
-
-        if (nnodes != 1) {
-            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                           "%s", _("NUMA memory tuning in 'preferred' mode "
-                                   "only supports single node"));
-            goto cleanup;
-        }
-
-        numa_set_bind_policy(0);
-        numa_set_preferred(node);
-    } else if (mode == VIR_DOMAIN_NUMATUNE_MEM_INTERLEAVE) {
-        numa_set_interleave_mask(&mask);
-    } else {
-        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                       _("Unable to set NUMA policy %s"),
-                       virDomainNumatuneMemModeTypeToString(mode));
-        goto cleanup;
-    }
-
-    ret = 0;
-
-cleanup:
-    return ret;
-}
-#else
-static int virLXCControllerSetupNUMAPolicy(virLXCControllerPtr ctrl)
-{
-    if (ctrl->def->numatune.memory.nodemask) {
-        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                       _("NUMA policy is not available on this platform"));
-        return -1;
-    }
-
-    return 0;
-}
-#endif
 
 
 /*
@@ -549,6 +513,40 @@ static int virLXCControllerSetupCpuAffinity(virLXCControllerPtr ctrl)
 }
 
 
+static int virLXCControllerGetNumadAdvice(virLXCControllerPtr ctrl,
+                                          virBitmapPtr *mask)
+{
+    virBitmapPtr nodemask = NULL;
+    char *nodeset = NULL;
+    int ret = -1;
+
+    /* Get the advisory nodeset from numad if 'placement' of
+     * either <vcpu> or <numatune> is 'auto'.
+     */
+    if ((ctrl->def->placement_mode ==
+         VIR_DOMAIN_CPU_PLACEMENT_MODE_AUTO) ||
+        (ctrl->def->numatune.memory.placement_mode ==
+         VIR_NUMA_TUNE_MEM_PLACEMENT_MODE_AUTO)) {
+        nodeset = virNumaGetAutoPlacementAdvice(ctrl->def->vcpus,
+                                                ctrl->def->mem.cur_balloon);
+        if (!nodeset)
+            goto cleanup;
+
+        VIR_DEBUG("Nodeset returned from numad: %s", nodeset);
+
+        if (virBitmapParse(nodeset, 0, &nodemask, VIR_DOMAIN_CPUMASK_LEN) < 0)
+            goto cleanup;
+    }
+
+    ret = 0;
+    *mask = nodemask;
+
+cleanup:
+    VIR_FREE(nodeset);
+    return ret;
+}
+
+
 /**
  * virLXCControllerSetupResourceLimits
  * @ctrl: the controller state
@@ -558,16 +556,26 @@ static int virLXCControllerSetupCpuAffinity(virLXCControllerPtr ctrl)
  *
  * Returns 0 on success or -1 in case of error
  */
-static int virLXCControllerSetupResourceLimits(virLXCControllerPtr ctrl)
+static int virLXCControllerSetupResourceLimits(virLXCControllerPtr ctrl,
+                                               virCgroupPtr cgroup)
 {
+    virBitmapPtr nodemask = NULL;
+    int ret = -1;
+
+    if (virLXCControllerGetNumadAdvice(ctrl, &nodemask) < 0 ||
+        virNumaSetupMemoryPolicy(ctrl->def->numatune, nodemask) < 0)
+        goto cleanup;
 
     if (virLXCControllerSetupCpuAffinity(ctrl) < 0)
-        return -1;
+        goto cleanup;
 
-    if (virLXCControllerSetupNUMAPolicy(ctrl) < 0)
-        return -1;
+    if (virLXCCgroupSetup(ctrl->def, cgroup, nodemask) < 0)
+        goto cleanup;
 
-    return virLXCCgroupSetup(ctrl->def);
+    ret = 0;
+cleanup:
+    virBitmapFree(nodemask);
+    return ret;
 }
 
 
@@ -643,10 +651,10 @@ static int virLXCControllerSetupServer(virLXCControllerPtr ctrl)
     virObjectUnref(svc);
     svc = NULL;
 
-    if (!(ctrl->prog = virNetServerProgramNew(VIR_LXC_PROTOCOL_PROGRAM,
-                                              VIR_LXC_PROTOCOL_PROGRAM_VERSION,
-                                              virLXCProtocolProcs,
-                                              virLXCProtocolNProcs)))
+    if (!(ctrl->prog = virNetServerProgramNew(VIR_LXC_MONITOR_PROGRAM,
+                                              VIR_LXC_MONITOR_PROGRAM_VERSION,
+                                              virLXCMonitorProcs,
+                                              virLXCMonitorNProcs)))
         goto error;
 
     virNetServerUpdateServices(ctrl->server, true);
@@ -1211,15 +1219,10 @@ virLXCControllerSetupDevPTS(virLXCControllerPtr ctrl)
     mount_options = virSecurityManagerGetMountOptions(ctrl->securityManager,
                                                       ctrl->def);
 
-    if (!virFileExists(root->src)) {
-        virReportSystemError(errno,
-                             _("root source %s does not exist"),
-                             root->src);
-        goto cleanup;
-    }
-
-    if (virAsprintf(&devpts, "%s/dev/pts", root->src) < 0 ||
-        virAsprintf(&ctrl->devptmx, "%s/dev/pts/ptmx", root->src) < 0) {
+    if (virAsprintf(&devpts, "%s/%s.devpts",
+                    LXC_STATE_DIR, ctrl->def->name) < 0 ||
+        virAsprintf(&ctrl->devptmx, "%s/%s.devpts/ptmx",
+                    LXC_STATE_DIR, ctrl->def->name) < 0) {
         virReportOOMError();
         goto cleanup;
     }
@@ -1345,25 +1348,25 @@ static int
 virLXCControllerEventSendExit(virLXCControllerPtr ctrl,
                               int exitstatus)
 {
-    virLXCProtocolExitEventMsg msg;
+    virLXCMonitorExitEventMsg msg;
 
     VIR_DEBUG("Exit status %d (client=%p)", exitstatus, ctrl->client);
     memset(&msg, 0, sizeof(msg));
     switch (exitstatus) {
     case 0:
-        msg.status = VIR_LXC_PROTOCOL_EXIT_STATUS_SHUTDOWN;
+        msg.status = VIR_LXC_MONITOR_EXIT_STATUS_SHUTDOWN;
         break;
     case 1:
-        msg.status = VIR_LXC_PROTOCOL_EXIT_STATUS_REBOOT;
+        msg.status = VIR_LXC_MONITOR_EXIT_STATUS_REBOOT;
         break;
     default:
-        msg.status = VIR_LXC_PROTOCOL_EXIT_STATUS_ERROR;
+        msg.status = VIR_LXC_MONITOR_EXIT_STATUS_ERROR;
         break;
     }
 
     virLXCControllerEventSend(ctrl,
-                              VIR_LXC_PROTOCOL_PROC_EXIT_EVENT,
-                              (xdrproc_t)xdr_virLXCProtocolExitEventMsg,
+                              VIR_LXC_MONITOR_PROC_EXIT_EVENT,
+                              (xdrproc_t)xdr_virLXCMonitorExitEventMsg,
                               (void*)&msg);
 
     if (ctrl->client) {
@@ -1381,15 +1384,15 @@ static int
 virLXCControllerEventSendInit(virLXCControllerPtr ctrl,
                               pid_t initpid)
 {
-    virLXCProtocolInitEventMsg msg;
+    virLXCMonitorInitEventMsg msg;
 
     VIR_DEBUG("Init pid %llu", (unsigned long long)initpid);
     memset(&msg, 0, sizeof(msg));
     msg.initpid = initpid;
 
     virLXCControllerEventSend(ctrl,
-                              VIR_LXC_PROTOCOL_PROC_INIT_EVENT,
-                              (xdrproc_t)xdr_virLXCProtocolInitEventMsg,
+                              VIR_LXC_MONITOR_PROC_INIT_EVENT,
+                              (xdrproc_t)xdr_virLXCMonitorInitEventMsg,
                               (void*)&msg);
     return 0;
 }
@@ -1403,6 +1406,7 @@ virLXCControllerRun(virLXCControllerPtr ctrl)
     int containerhandshake[2] = { -1, -1 };
     char **containerTTYPaths = NULL;
     size_t i;
+    virCgroupPtr cgroup = NULL;
 
     if (VIR_ALLOC_N(containerTTYPaths, ctrl->nconsoles) < 0) {
         virReportOOMError();
@@ -1424,10 +1428,13 @@ virLXCControllerRun(virLXCControllerPtr ctrl)
     if (virLXCControllerSetupPrivateNS() < 0)
         goto cleanup;
 
+    if (!(cgroup = virLXCCgroupCreate(ctrl->def)))
+        goto cleanup;
+
     if (virLXCControllerSetupLoopDevices(ctrl) < 0)
         goto cleanup;
 
-    if (virLXCControllerSetupResourceLimits(ctrl) < 0)
+    if (virLXCControllerSetupResourceLimits(ctrl, cgroup) < 0)
         goto cleanup;
 
     if (virLXCControllerSetupDevPTS(ctrl) < 0)
@@ -1471,10 +1478,6 @@ virLXCControllerRun(virLXCControllerPtr ctrl)
 
     /* Now the container is fully setup... */
 
-    /* ...we can close the loop devices... */
-    if (virLXCControllerCloseLoopDevices(ctrl, false) < 0)
-        goto cleanup;
-
     /* ...and reduce our privileges */
     if (lxcControllerClearCapabilities() < 0)
         goto cleanup;
@@ -1500,6 +1503,7 @@ cleanup:
         VIR_FREE(containerTTYPaths[i]);
     VIR_FREE(containerTTYPaths);
 
+    virCgroupFree(&cgroup);
     virLXCControllerStopInit(ctrl);
 
     return rc;
@@ -1706,6 +1710,15 @@ int main(int argc, char *argv[])
     rc = virLXCControllerRun(ctrl);
 
 cleanup:
+    if (rc < 0) {
+        virErrorPtr err = virGetLastError();
+        if (err && err->message)
+            fprintf(stderr, "%s\n", err->message);
+        else
+            fprintf(stderr, "%s\n",
+                    _("Unknown failure in libvirt_lxc startup"));
+    }
+
     virPidFileDelete(LXC_STATE_DIR, name);
     if (ctrl)
         virLXCControllerDeleteInterfaces(ctrl);

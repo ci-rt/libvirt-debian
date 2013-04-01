@@ -24,6 +24,7 @@
 #ifndef __VIR_NET_SERVER_CLIENT_H__
 # define __VIR_NET_SERVER_CLIENT_H__
 
+# include "viridentity.h"
 # include "virnetsocket.h"
 # include "virnetmessage.h"
 # include "virobject.h"
@@ -76,28 +77,34 @@ void virNetServerClientRemoveFilter(virNetServerClientPtr client,
                                     int filterID);
 
 int virNetServerClientGetAuth(virNetServerClientPtr client);
+void virNetServerClientSetAuth(virNetServerClientPtr client, int auth);
 bool virNetServerClientGetReadonly(virNetServerClientPtr client);
 
 # ifdef WITH_GNUTLS
 bool virNetServerClientHasTLSSession(virNetServerClientPtr client);
+virNetTLSSessionPtr virNetServerClientGetTLSSession(virNetServerClientPtr client);
 int virNetServerClientGetTLSKeySize(virNetServerClientPtr client);
 # endif
 
 # ifdef WITH_SASL
 void virNetServerClientSetSASLSession(virNetServerClientPtr client,
                                       virNetSASLSessionPtr sasl);
+virNetSASLSessionPtr virNetServerClientGetSASLSession(virNetServerClientPtr client);
 # endif
 
 int virNetServerClientGetFD(virNetServerClientPtr client);
 
 bool virNetServerClientIsSecure(virNetServerClientPtr client);
 
-int virNetServerClientSetIdentity(virNetServerClientPtr client,
-                                  const char *identity);
-const char *virNetServerClientGetIdentity(virNetServerClientPtr client);
+bool virNetServerClientIsLocal(virNetServerClientPtr client);
 
 int virNetServerClientGetUNIXIdentity(virNetServerClientPtr client,
                                       uid_t *uid, gid_t *gid, pid_t *pid);
+
+int virNetServerClientGetSecurityContext(virNetServerClientPtr client,
+                                         char **context);
+
+virIdentityPtr virNetServerClientGetIdentity(virNetServerClientPtr client);
 
 void *virNetServerClientGetPrivateData(virNetServerClientPtr client);
 

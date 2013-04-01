@@ -14,44 +14,44 @@ extern "C" {
 #endif
 
 
-enum virLXCProtocolExitStatus {
-        VIR_LXC_PROTOCOL_EXIT_STATUS_ERROR = 0,
-        VIR_LXC_PROTOCOL_EXIT_STATUS_SHUTDOWN = 1,
-        VIR_LXC_PROTOCOL_EXIT_STATUS_REBOOT = 2,
+enum virLXCMonitorExitStatus {
+        VIR_LXC_MONITOR_EXIT_STATUS_ERROR = 0,
+        VIR_LXC_MONITOR_EXIT_STATUS_SHUTDOWN = 1,
+        VIR_LXC_MONITOR_EXIT_STATUS_REBOOT = 2,
 };
-typedef enum virLXCProtocolExitStatus virLXCProtocolExitStatus;
+typedef enum virLXCMonitorExitStatus virLXCMonitorExitStatus;
 
-struct virLXCProtocolExitEventMsg {
-        enum virLXCProtocolExitStatus status;
+struct virLXCMonitorExitEventMsg {
+        enum virLXCMonitorExitStatus status;
 };
-typedef struct virLXCProtocolExitEventMsg virLXCProtocolExitEventMsg;
+typedef struct virLXCMonitorExitEventMsg virLXCMonitorExitEventMsg;
 
-struct virLXCProtocolInitEventMsg {
+struct virLXCMonitorInitEventMsg {
         uint64_t initpid;
 };
-typedef struct virLXCProtocolInitEventMsg virLXCProtocolInitEventMsg;
-#define VIR_LXC_PROTOCOL_PROGRAM 0x12341234
-#define VIR_LXC_PROTOCOL_PROGRAM_VERSION 1
+typedef struct virLXCMonitorInitEventMsg virLXCMonitorInitEventMsg;
+#define VIR_LXC_MONITOR_PROGRAM 0x12341234
+#define VIR_LXC_MONITOR_PROGRAM_VERSION 1
 
-enum virLXCProtocolProcedure {
-        VIR_LXC_PROTOCOL_PROC_EXIT_EVENT = 1,
-        VIR_LXC_PROTOCOL_PROC_INIT_EVENT = 2,
+enum virLXCMonitorProcedure {
+        VIR_LXC_MONITOR_PROC_EXIT_EVENT = 1,
+        VIR_LXC_MONITOR_PROC_INIT_EVENT = 2,
 };
-typedef enum virLXCProtocolProcedure virLXCProtocolProcedure;
+typedef enum virLXCMonitorProcedure virLXCMonitorProcedure;
 
 /* the xdr functions */
 
 #if defined(__STDC__) || defined(__cplusplus)
-extern  bool_t xdr_virLXCProtocolExitStatus (XDR *, virLXCProtocolExitStatus*);
-extern  bool_t xdr_virLXCProtocolExitEventMsg (XDR *, virLXCProtocolExitEventMsg*);
-extern  bool_t xdr_virLXCProtocolInitEventMsg (XDR *, virLXCProtocolInitEventMsg*);
-extern  bool_t xdr_virLXCProtocolProcedure (XDR *, virLXCProtocolProcedure*);
+extern  bool_t xdr_virLXCMonitorExitStatus (XDR *, virLXCMonitorExitStatus*);
+extern  bool_t xdr_virLXCMonitorExitEventMsg (XDR *, virLXCMonitorExitEventMsg*);
+extern  bool_t xdr_virLXCMonitorInitEventMsg (XDR *, virLXCMonitorInitEventMsg*);
+extern  bool_t xdr_virLXCMonitorProcedure (XDR *, virLXCMonitorProcedure*);
 
 #else /* K&R C */
-extern bool_t xdr_virLXCProtocolExitStatus ();
-extern bool_t xdr_virLXCProtocolExitEventMsg ();
-extern bool_t xdr_virLXCProtocolInitEventMsg ();
-extern bool_t xdr_virLXCProtocolProcedure ();
+extern bool_t xdr_virLXCMonitorExitStatus ();
+extern bool_t xdr_virLXCMonitorExitEventMsg ();
+extern bool_t xdr_virLXCMonitorInitEventMsg ();
+extern bool_t xdr_virLXCMonitorProcedure ();
 
 #endif /* K&R C */
 

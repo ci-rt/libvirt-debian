@@ -47,6 +47,7 @@ src/interface/interface_backend_netcf.c
 src/interface/interface_backend_udev.c
 src/internal.h
 src/libvirt.c
+src/libvirt-lxc.c
 src/libvirt-qemu.c
 src/locking/lock_daemon.c
 src/locking/lock_daemon_config.c
@@ -150,6 +151,7 @@ src/util/vireventpoll.c
 src/util/virfile.c
 src/util/virhash.c
 src/util/virhook.c
+src/util/viridentity.c
 src/util/virinitctl.c
 src/util/viriptables.c
 src/util/virjson.c
@@ -164,6 +166,7 @@ src/util/virnetdevtap.c
 src/util/virnetdevvportprofile.c
 src/util/virnetlink.c
 src/util/virnodesuspend.c
+src/util/virnuma.c
 src/util/virobject.c
 src/util/virpci.c
 src/util/virpidfile.c
@@ -204,6 +207,7 @@ src/xenxs/xen_xm.c
 tools/console.c
 tools/libvirt-guests.sh.in
 tools/virsh.c
+tools/virsh.h
 tools/virsh-domain-monitor.c
 tools/virsh-domain.c
 tools/virsh-edit.c
