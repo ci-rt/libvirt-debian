@@ -139,7 +139,7 @@ enum virQEMUCapsFlags {
     QEMU_CAPS_BALLOON_EVENT      = 99, /* Async event for balloon changes */
     QEMU_CAPS_NETDEV_BRIDGE      = 100, /* bridge helper support */
     QEMU_CAPS_SCSI_LSI           = 101, /* -device lsi */
-    QEMU_CAPS_VIRTIO_SCSI_PCI    = 102, /* -device virtio-scsi-pci */
+    QEMU_CAPS_VIRTIO_SCSI        = 102, /* -device virtio-scsi-* */
     QEMU_CAPS_BLOCKIO            = 103, /* -device ...logical_block_size & co */
     QEMU_CAPS_DISABLE_S3         = 104, /* S3 BIOS Advertisement on/off */
     QEMU_CAPS_DISABLE_S4         = 105, /* S4 BIOS Advertisement on/off */
@@ -171,6 +171,9 @@ enum virQEMUCapsFlags {
     QEMU_CAPS_OBJECT_RNG_RANDOM  = 130, /* the rng-random backend for
                                            virtio rng */
     QEMU_CAPS_OBJECT_RNG_EGD     = 131, /* EGD protocol daemon for rng */
+    QEMU_CAPS_VIRTIO_CCW         = 132, /* -device virtio-*-ccw */
+    QEMU_CAPS_DTB                = 133, /* -dtb file */
+    QEMU_CAPS_SCSI_MEGASAS       = 134, /* -device megasas */
 
     QEMU_CAPS_LAST,                   /* this must always be the last item */
 };

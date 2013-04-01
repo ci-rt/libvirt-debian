@@ -367,6 +367,7 @@
             <value>g3beige</value>
             <value>mac99</value>
             <value>prep</value>
+            <value>ppce500v2</value>
           </choice>
         </attribute>
       </optional>
@@ -401,7 +402,10 @@
       <optional>
         <attribute name="machine">
           <choice>
+            <value>s390</value>
             <value>s390-virtio</value>
+            <value>s390-ccw</value>
+            <value>s390-ccw-virtio</value>
           </choice>
         </attribute>
       </optional>
@@ -832,6 +836,11 @@
           <text/>
         </element>
       </optional>
+      <optional>
+        <element name="dtb">
+          <ref name="absFilePath"/>
+        </element>
+      </optional>
     </interleave>
   </define>
   <define name="osbootdev">
@@ -1081,6 +1090,7 @@
                     <value>rbd</value>
                     <value>sheepdog</value>
                     <value>gluster</value>
+                    <value>iscsi</value>
                   </choice>
                 </attribute>
                 <optional>
@@ -1104,9 +1114,11 @@
                             <ref name="ipAddr"/>
                           </choice>
                         </attribute>
-                        <attribute name="port">
-                          <ref name="unsignedInt"/>
-                        </attribute>
+                        <optional>
+                          <attribute name="port">
+                            <ref name="unsignedInt"/>
+                          </attribute>
+                        </optional>
                       </group>
                       <group>
                         <attribute name="transport">
@@ -1379,6 +1391,7 @@
             <value>vmpvscsi</value>
             <value>ibmvscsi</value>
             <value>virtio-scsi</value>
+            <value>lsisas1078</value>
             <value>piix3-uhci</value>
             <value>piix4-uhci</value>
             <value>ehci</value>
@@ -3037,6 +3050,19 @@
       </attribute>
     </optional>
   </define>
+  <define name="ccwaddress">
+    <optional>
+      <attribute name="cssid">
+        <ref name="ccwCssidRange"/>
+      </attribute>
+      <attribute name="ssid">
+        <ref name="ccwSsidRange"/>
+      </attribute>
+      <attribute name="devno">
+        <ref name="ccwDevnoRange"/>
+      </attribute>
+    </optional>
+  </define>
   <define name="driveaddress">
     <optional>
       <attribute name="controller">
@@ -3470,6 +3496,12 @@
           </attribute>
           <ref name="spaprvioaddress"/>
         </group>
+        <group>
+          <attribute name="type">
+            <value>ccw</value>
+          </attribute>
+          <ref name="ccwaddress"/>
+        </group>
       </choice>
     </element>
   </define>
@@ -3500,7 +3532,12 @@
           <value>virtio</value>
         </choice>
       </attribute>
-      <ref name="rng-backend"/>
+      <interleave>
+        <ref name="rng-backend"/>
+        <optional>
+          <ref name="rng-rate"/>
+        </optional>
+      </interleave>
     </element>
   </define>
 
@@ -3514,6 +3551,7 @@
           <choice>
             <value>/dev/random</value>
             <value>/dev/hwrng</value>
+            <empty/>
           </choice>
         </group>
         <group>
@@ -3524,6 +3562,20 @@
           <ref name="qemucdevSrcDef"/>
         </group>
       </choice>
+    </element>
+  </define>
+
+  <define name="rng-rate">
+    <element name="rate">
+      <attribute name="bytes">
+        <ref name="positiveInteger"/>
+      </attribute>
+      <optional>
+        <attribute name="period">
+          <ref name="positiveInteger"/>
+        </attribute>
+      </optional>
+      <empty/>
     </element>
   </define>
 
@@ -3591,6 +3643,7 @@
       <attribute name='type'>
         <choice>
           <value>ceph</value>
+          <value>iscsi</value>
         </choice>
       </attribute>
       <choice>
@@ -3880,7 +3933,7 @@
   </define>
   <define name='aliasName'>
     <data type="string">
-      <param name="pattern">[a-zA-Z0-9_-]+</param>
+      <param name="pattern">[a-zA-Z0-9_\-]+</param>
     </data>
   </define>
   <define name='alias'>
@@ -3890,5 +3943,35 @@
       </attribute>
     </element>
     <empty/>
+  </define>
+  <define name="ccwCssidRange">
+    <choice>
+      <data type="string">
+        <param name="pattern">0x[0-9a-eA-E][0-9a-fA-F]?</param>
+      </data>
+      <data type="string">
+        <param name="pattern">0x[fF][0-9a-eA-E]?</param>
+      </data>
+      <data type="int">
+        <param name="minInclusive">0</param>
+        <param name="maxInclusive">254</param>
+      </data>
+    </choice>
+  </define>
+  <define name="ccwSsidRange">
+    <data type="string">
+      <param name="pattern">(0x)?[0-3]</param>
+    </data>
+  </define>
+  <define name="ccwDevnoRange">
+    <choice>
+      <data type="string">
+        <param name="pattern">0x[0-9a-fA-F]{1,4}</param>
+      </data>
+      <data type="int">
+        <param name="minInclusive">0</param>
+        <param name="maxInclusive">65535</param>
+      </data>
+    </choice>
   </define>
 </grammar>

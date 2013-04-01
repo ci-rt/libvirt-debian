@@ -120,6 +120,8 @@ typedef qemuDomainPCIAddressSet *qemuDomainPCIAddressSetPtr;
 
 typedef void (*qemuDomainCleanupCallback)(virQEMUDriverPtr driver,
                                           virDomainObjPtr vm);
+typedef struct _qemuDomainCCWAddressSet qemuDomainCCWAddressSet;
+typedef qemuDomainCCWAddressSet *qemuDomainCCWAddressSetPtr;
 
 typedef struct _qemuDomainObjPrivate qemuDomainObjPrivate;
 typedef qemuDomainObjPrivate *qemuDomainObjPrivatePtr;
@@ -144,6 +146,7 @@ struct _qemuDomainObjPrivate {
     int *vcpupids;
 
     qemuDomainPCIAddressSetPtr pciaddrs;
+    qemuDomainCCWAddressSetPtr ccwaddrs;
     int persistentAddrs;
 
     virQEMUCapsPtr qemuCaps;
@@ -179,9 +182,6 @@ void qemuDomainEventFlush(int timer, void *opaque);
 
 void qemuDomainEventQueue(virQEMUDriverPtr driver,
                           virDomainEventPtr event);
-
-void qemuDomainSetPrivateDataHooks(virCapsPtr caps);
-void qemuDomainSetNamespaceHooks(virCapsPtr caps);
 
 int qemuDomainObjBeginJob(virQEMUDriverPtr driver,
                           virDomainObjPtr obj,
@@ -339,5 +339,8 @@ void qemuDomainCleanupRemove(virDomainObjPtr vm,
                              qemuDomainCleanupCallback cb);
 void qemuDomainCleanupRun(virQEMUDriverPtr driver,
                           virDomainObjPtr vm);
+
+extern virDomainXMLPrivateDataCallbacks virQEMUDriverPrivateDataCallbacks;
+extern virDomainXMLNamespace virQEMUDriverDomainXMLNamespace;
 
 #endif /* __QEMU_DOMAIN_H__ */

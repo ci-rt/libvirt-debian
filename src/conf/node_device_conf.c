@@ -49,16 +49,13 @@ VIR_ENUM_IMPL(virNodeDevCap, VIR_NODE_DEV_CAP_LAST,
               "scsi_host",
               "scsi_target",
               "scsi",
-              "storage")
+              "storage",
+              "fc_host",
+              "vports")
 
 VIR_ENUM_IMPL(virNodeDevNetCap, VIR_NODE_DEV_CAP_NET_LAST,
               "80203",
               "80211")
-
-VIR_ENUM_IMPL(virNodeDevHBACap, VIR_NODE_DEV_CAP_HBA_LAST,
-              "fc_host",
-              "vport_ops")
-
 
 static int
 virNodeDevCapsDefParseString(const char *xpath,
@@ -394,7 +391,12 @@ char *virNodeDeviceDefFormat(const virNodeDeviceDefPtr def)
                 virBufferAddLit(&buf, "    </capability>\n");
             }
             if (data->scsi_host.flags & VIR_NODE_DEV_CAP_FLAG_HBA_VPORT_OPS) {
-                virBufferAddLit(&buf, "    <capability type='vport_ops' />\n");
+                virBufferAddLit(&buf, "    <capability type='vport_ops'>\n");
+                virBufferAsprintf(&buf, "      <max_vports>%d</max_vports>\n",
+                                  data->scsi_host.max_vports);
+                virBufferAsprintf(&buf, "      <vports>%d</vports>\n",
+                                  data->scsi_host.vports);
+                virBufferAddLit(&buf, "    </capability>\n");
             }
 
             break;
@@ -471,8 +473,10 @@ char *virNodeDeviceDefFormat(const virNodeDeviceDefPtr def)
                 virBufferAddLit(&buf,
                                 "    <capability type='hotpluggable' />\n");
             break;
+        case VIR_NODE_DEV_CAP_FC_HOST:
+        case VIR_NODE_DEV_CAP_VPORTS:
         case VIR_NODE_DEV_CAP_LAST:
-            /* ignore special LAST value */
+        default:
             break;
         }
 
@@ -1413,7 +1417,10 @@ void virNodeDevCapsDefFree(virNodeDevCapsDefPtr caps)
         VIR_FREE(data->storage.serial);
         VIR_FREE(data->storage.media_label);
         break;
+    case VIR_NODE_DEV_CAP_FC_HOST:
+    case VIR_NODE_DEV_CAP_VPORTS:
     case VIR_NODE_DEV_CAP_LAST:
+    default:
         /* This case is here to shutup the compiler */
         break;
     }
@@ -1441,6 +1448,18 @@ virNodeDeviceCapMatch(virNodeDeviceObjPtr devobj,
     for (cap = devobj->def->caps; cap; cap = cap->next) {
         if (type == cap->type)
             return true;
+
+        if (cap->type == VIR_NODE_DEV_CAP_SCSI_HOST) {
+            if (type == VIR_CONNECT_LIST_NODE_DEVICES_CAP_FC_HOST &&
+                (cap->data.scsi_host.flags &
+                 VIR_NODE_DEV_CAP_FLAG_HBA_FC_HOST))
+                return true;
+
+            if (type == VIR_CONNECT_LIST_NODE_DEVICES_CAP_VPORTS &&
+                (cap->data.scsi_host.flags &
+                 VIR_NODE_DEV_CAP_FLAG_HBA_VPORT_OPS))
+                return true;
+        }
     }
 
     return false;
@@ -1470,7 +1489,11 @@ virNodeDeviceMatch(virNodeDeviceObjPtr devobj,
               (MATCH(VIR_CONNECT_LIST_NODE_DEVICES_CAP_SCSI) &&
                virNodeDeviceCapMatch(devobj, VIR_NODE_DEV_CAP_SCSI))          ||
               (MATCH(VIR_CONNECT_LIST_NODE_DEVICES_CAP_STORAGE) &&
-               virNodeDeviceCapMatch(devobj, VIR_NODE_DEV_CAP_STORAGE))))
+               virNodeDeviceCapMatch(devobj, VIR_NODE_DEV_CAP_STORAGE))       ||
+              (MATCH(VIR_CONNECT_LIST_NODE_DEVICES_CAP_FC_HOST) &&
+               virNodeDeviceCapMatch(devobj, VIR_NODE_DEV_CAP_FC_HOST))       ||
+              (MATCH(VIR_CONNECT_LIST_NODE_DEVICES_CAP_VPORTS) &&
+               virNodeDeviceCapMatch(devobj, VIR_NODE_DEV_CAP_VPORTS))))
             return false;
     }
 

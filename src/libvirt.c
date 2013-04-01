@@ -1334,7 +1334,7 @@ failed:
 
 /**
  * virConnectOpen:
- * @name: URI of the hypervisor
+ * @name: (optional) URI of the hypervisor
  *
  * This function should be called first to get a connection to the
  * Hypervisor and xen store
@@ -1362,7 +1362,7 @@ virConnectOpen(const char *name)
     if (virInitialize() < 0)
         goto error;
 
-    VIR_DEBUG("name=%s", name);
+    VIR_DEBUG("name=%s", NULLSTR(name));
     virResetLastError();
     ret = do_open(name, NULL, 0);
     if (!ret)
@@ -1376,7 +1376,7 @@ error:
 
 /**
  * virConnectOpenReadOnly:
- * @name: URI of the hypervisor
+ * @name: (optional) URI of the hypervisor
  *
  * This function should be called first to get a restricted connection to the
  * library functionalities. The set of APIs usable are then restricted
@@ -1397,7 +1397,7 @@ virConnectOpenReadOnly(const char *name)
     if (virInitialize() < 0)
         goto error;
 
-    VIR_DEBUG("name=%s", name);
+    VIR_DEBUG("name=%s", NULLSTR(name));
     virResetLastError();
     ret = do_open(name, NULL, VIR_CONNECT_RO);
     if (!ret)
@@ -1411,7 +1411,7 @@ error:
 
 /**
  * virConnectOpenAuth:
- * @name: URI of the hypervisor
+ * @name: (optional) URI of the hypervisor
  * @auth: Authenticate callback parameters
  * @flags: bitwise-OR of virConnectFlags
  *
@@ -14253,6 +14253,8 @@ error:
  *   VIR_CONNECT_LIST_NODE_DEVICES_CAP_SCSI_TARGET
  *   VIR_CONNECT_LIST_NODE_DEVICES_CAP_SCSI
  *   VIR_CONNECT_LIST_NODE_DEVICES_CAP_STORAGE
+ *   VIR_CONNECT_LIST_NODE_DEVICES_CAP_FC_HOST
+ *   VIR_CONNECT_LIST_NODE_DEVICES_CAP_VPORTS
  *
  * Returns the number of node devices found or -1 and sets @devices to NULL in
  * case of error.  On success, the array stored into @devices is guaranteed to

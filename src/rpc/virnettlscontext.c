@@ -71,6 +71,7 @@ struct _virNetTLSSession {
     virNetTLSSessionWriteFunc writeFunc;
     virNetTLSSessionReadFunc readFunc;
     void *opaque;
+    char *x509dname;
 };
 
 static virClassPtr virNetTLSContextClass;
@@ -1026,6 +1027,10 @@ static int virNetTLSContextValidCertificate(virNetTLSContextPtr ctxt,
                                "[session]", gnutls_strerror(ret));
                 goto authfail;
             }
+            if (!(sess->x509dname = strdup(dname))) {
+                virReportOOMError();
+                goto authfail;
+            }
             VIR_DEBUG("Peer DN is %s", dname);
 
             if (virNetTLSContextCheckCertDN(cert, "[session]", sess->hostname, dname,
@@ -1113,6 +1118,9 @@ cleanup:
 void virNetTLSContextDispose(void *obj)
 {
     virNetTLSContextPtr ctxt = obj;
+
+    PROBE(RPC_TLS_CONTEXT_DISPOSE,
+          "ctxt=%p", ctxt);
 
     gnutls_dh_params_deinit(ctxt->dhParams);
     gnutls_certificate_free_credentials(ctxt->x509cred);
@@ -1361,11 +1369,27 @@ cleanup:
     return ssf;
 }
 
+const char *virNetTLSSessionGetX509DName(virNetTLSSessionPtr sess)
+{
+    const char *ret = NULL;
+
+    virObjectLock(sess);
+
+    ret = sess->x509dname;
+
+    virObjectUnlock(sess);
+
+    return ret;
+}
 
 void virNetTLSSessionDispose(void *obj)
 {
     virNetTLSSessionPtr sess = obj;
 
+    PROBE(RPC_TLS_SESSION_DISPOSE,
+          "sess=%p", sess);
+
+    VIR_FREE(sess->x509dname);
     VIR_FREE(sess->hostname);
     gnutls_deinit(sess->session);
 }

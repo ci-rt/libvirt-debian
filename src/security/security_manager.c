@@ -424,24 +424,26 @@ int virSecurityManagerRestoreSavedStateLabel(virSecurityManagerPtr mgr,
 int virSecurityManagerGenLabel(virSecurityManagerPtr mgr,
                                virDomainDefPtr vm)
 {
-    int rc = 0;
+    int ret = -1;
     size_t i;
     virSecurityManagerPtr* sec_managers = NULL;
     virSecurityLabelDefPtr seclabel;
+    bool generated = false;
 
     if (mgr == NULL || mgr->drv == NULL)
-        return -1;
+        return ret;
 
     if ((sec_managers = virSecurityManagerGetNested(mgr)) == NULL)
-        return -1;
+        return ret;
 
     virObjectLock(mgr);
     for (i = 0; sec_managers[i]; i++) {
-        seclabel = virDomainDefGetSecurityLabelDef(vm,
-                                                   sec_managers[i]->drv->name);
-        if (seclabel == NULL) {
-            rc = -1;
-            goto cleanup;
+        generated = false;
+        seclabel = virDomainDefGetSecurityLabelDef(vm, sec_managers[i]->drv->name);
+        if (!seclabel) {
+            if (!(seclabel = virDomainDefGenSecurityLabelDef(sec_managers[i]->drv->name)))
+                goto cleanup;
+            generated = seclabel->implicit = true;
         }
 
         if (seclabel->type == VIR_DOMAIN_SECLABEL_DEFAULT) {
@@ -453,27 +455,49 @@ int virSecurityManagerGenLabel(virSecurityManagerPtr mgr,
             }
         }
 
-        if ((seclabel->type == VIR_DOMAIN_SECLABEL_NONE) &&
-            sec_managers[i]->requireConfined) {
-            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                           _("Unconfined guests are not allowed on this host"));
-            rc = -1;
-            goto cleanup;
+        if (seclabel->type == VIR_DOMAIN_SECLABEL_NONE) {
+            if (sec_managers[i]->requireConfined) {
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                               _("Unconfined guests are not allowed on this host"));
+                goto cleanup;
+            } else if (vm->nseclabels && generated) {
+                VIR_DEBUG("Skipping auto generated seclabel of type none");
+                virSecurityLabelDefFree(seclabel);
+                seclabel = NULL;
+                continue;
+            }
         }
 
         if (!sec_managers[i]->drv->domainGenSecurityLabel) {
             virReportError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
         } else {
-            rc += sec_managers[i]->drv->domainGenSecurityLabel(sec_managers[i], vm);
-            if (rc)
+            /* The seclabel must be added to @vm prior calling domainGenSecurityLabel
+             * which may require seclabel to be presented already */
+            if (generated &&
+                VIR_APPEND_ELEMENT(vm->seclabels, vm->nseclabels, seclabel) < 0) {
+                virReportOOMError();
                 goto cleanup;
+            }
+
+            if (sec_managers[i]->drv->domainGenSecurityLabel(sec_managers[i], vm) < 0) {
+                if (VIR_DELETE_ELEMENT(vm->seclabels,
+                                       vm->nseclabels -1, vm->nseclabels) < 0)
+                    vm->nseclabels--;
+                goto cleanup;
+            }
+
+            seclabel = NULL;
         }
     }
 
+    ret = 0;
+
 cleanup:
     virObjectUnlock(mgr);
+    if (generated)
+        virSecurityLabelDefFree(seclabel);
     VIR_FREE(sec_managers);
-    return rc;
+    return ret;
 }
 
 int virSecurityManagerReserveLabel(virSecurityManagerPtr mgr,

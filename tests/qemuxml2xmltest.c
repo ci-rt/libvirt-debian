@@ -32,7 +32,7 @@ testCompareXMLToXMLFiles(const char *inxml, const char *outxml, bool live)
     if (virtTestLoadFile(outxml, &outXmlData) < 0)
         goto fail;
 
-    if (!(def = virDomainDefParseString(driver.caps, inXmlData,
+    if (!(def = virDomainDefParseString(driver.caps, driver.xmlconf, inXmlData,
                                         QEMU_EXPECTED_VIRT_TYPES,
                                         live ? 0 : VIR_DOMAIN_XML_INACTIVE)))
         goto fail;
@@ -106,6 +106,9 @@ mymain(void)
     if ((driver.caps = testQemuCapsInit()) == NULL)
         return EXIT_FAILURE;
 
+    if (!(driver.xmlconf = virQEMUDriverCreateXMLConf()))
+        return EXIT_FAILURE;
+
 # define DO_TEST_FULL(name, is_different, when)                         \
     do {                                                                \
         const struct testInfo info = {name, is_different, when};        \
@@ -166,9 +169,17 @@ mymain(void)
     DO_TEST("disk-drive-cache-v1-wt");
     DO_TEST("disk-drive-cache-v1-wb");
     DO_TEST("disk-drive-cache-v1-none");
+    DO_TEST("disk-drive-network-nbd");
+    DO_TEST("disk-drive-network-nbd-export");
+    DO_TEST("disk-drive-network-nbd-ipv6");
+    DO_TEST("disk-drive-network-nbd-ipv6-export");
+    DO_TEST("disk-drive-network-nbd-unix");
+    DO_TEST("disk-drive-network-iscsi");
+    DO_TEST("disk-drive-network-iscsi-auth");
     DO_TEST("disk-scsi-device");
     DO_TEST("disk-scsi-vscsi");
     DO_TEST("disk-scsi-virtio-scsi");
+    DO_TEST("disk-scsi-megasas");
     DO_TEST_FULL("disk-mirror", false, WHEN_ACTIVE);
     DO_TEST_FULL("disk-mirror", true, WHEN_INACTIVE);
     DO_TEST("graphics-listen-network");
@@ -262,6 +273,7 @@ mymain(void)
     DO_TEST_DIFFERENT("metadata");
 
     virObjectUnref(driver.caps);
+    virObjectUnref(driver.xmlconf);
 
     return ret==0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }

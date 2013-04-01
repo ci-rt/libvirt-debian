@@ -2,11 +2,13 @@
 <apirefs name='libvirt-lxc'>
   <references>
     <reference name='virDomainLxcEnterNamespace' href='html/libvirt-lxc-libvirt-lxc.html#virDomainLxcEnterNamespace'/>
+    <reference name='virDomainLxcEnterSecurityLabel' href='html/libvirt-lxc-libvirt-lxc.html#virDomainLxcEnterSecurityLabel'/>
     <reference name='virDomainLxcOpenNamespace' href='html/libvirt-lxc-libvirt-lxc.html#virDomainLxcOpenNamespace'/>
   </references>
   <alpha>
     <letter name='v'>
       <ref name='virDomainLxcEnterNamespace'/>
+      <ref name='virDomainLxcEnterSecurityLabel'/>
       <ref name='virDomainLxcOpenNamespace'/>
     </letter>
   </alpha>
@@ -22,6 +24,7 @@
     </type>
     <type name='unsigned int'>
       <ref name='virDomainLxcEnterNamespace'/>
+      <ref name='virDomainLxcEnterSecurityLabel'/>
       <ref name='virDomainLxcOpenNamespace'/>
     </type>
     <type name='unsigned int *'>
@@ -31,10 +34,17 @@
       <ref name='virDomainLxcEnterNamespace'/>
       <ref name='virDomainLxcOpenNamespace'/>
     </type>
+    <type name='virSecurityLabelPtr'>
+      <ref name='virDomainLxcEnterSecurityLabel'/>
+    </type>
+    <type name='virSecurityModelPtr'>
+      <ref name='virDomainLxcEnterSecurityLabel'/>
+    </type>
   </functions>
   <files>
     <file name='libvirt-lxc'>
       <ref name='virDomainLxcEnterNamespace'/>
+      <ref name='virDomainLxcEnterSecurityLabel'/>
       <ref name='virDomainLxcOpenNamespace'/>
     </file>
   </files>
@@ -43,10 +53,17 @@
       <letter name='A'>
         <word name='API'>
           <ref name='virDomainLxcEnterNamespace'/>
+          <ref name='virDomainLxcEnterSecurityLabel'/>
           <ref name='virDomainLxcOpenNamespace'/>
         </word>
         <word name='Attaches'>
           <ref name='virDomainLxcEnterNamespace'/>
+          <ref name='virDomainLxcEnterSecurityLabel'/>
+        </word>
+      </letter>
+      <letter name='D'>
+        <word name='Depending'>
+          <ref name='virDomainLxcEnterSecurityLabel'/>
         </word>
       </letter>
       <letter name='F'>
@@ -58,7 +75,13 @@
       <letter name='L'>
         <word name='LXC'>
           <ref name='virDomainLxcEnterNamespace'/>
+          <ref name='virDomainLxcEnterSecurityLabel'/>
           <ref name='virDomainLxcOpenNamespace'/>
+        </word>
+      </letter>
+      <letter name='N'>
+        <word name='NULL'>
+          <ref name='virDomainLxcEnterSecurityLabel'/>
         </word>
       </letter>
       <letter name='O'>
@@ -69,15 +92,22 @@
       <letter name='T'>
         <word name='This'>
           <ref name='virDomainLxcEnterNamespace'/>
+          <ref name='virDomainLxcEnterSecurityLabel'/>
           <ref name='virDomainLxcOpenNamespace'/>
         </word>
       </letter>
       <letter name='a'>
+        <word name='about'>
+          <ref name='virDomainLxcEnterSecurityLabel'/>
+        </word>
         <word name='allocated'>
           <ref name='virDomainLxcOpenNamespace'/>
         </word>
         <word name='allows'>
           <ref name='virDomainLxcEnterNamespace'/>
+        </word>
+        <word name='apply'>
+          <ref name='virDomainLxcEnterSecurityLabel'/>
         </word>
         <word name='are'>
           <ref name='virDomainLxcOpenNamespace'/>
@@ -93,10 +123,15 @@
       <letter name='b'>
         <word name='back'>
           <ref name='virDomainLxcEnterNamespace'/>
+          <ref name='virDomainLxcEnterSecurityLabel'/>
+        </word>
+        <word name='been'>
+          <ref name='virDomainLxcEnterSecurityLabel'/>
         </word>
       </letter>
       <letter name='c'>
         <word name='call'>
+          <ref name='virDomainLxcEnterSecurityLabel'/>
           <ref name='virDomainLxcOpenNamespace'/>
         </word>
         <word name='caller'>
@@ -108,6 +143,7 @@
         </word>
         <word name='connections'>
           <ref name='virDomainLxcEnterNamespace'/>
+          <ref name='virDomainLxcEnterSecurityLabel'/>
           <ref name='virDomainLxcOpenNamespace'/>
         </word>
         <word name='container'>
@@ -115,9 +151,11 @@
         </word>
         <word name='current'>
           <ref name='virDomainLxcEnterNamespace'/>
+          <ref name='virDomainLxcEnterSecurityLabel'/>
         </word>
         <word name='currently'>
           <ref name='virDomainLxcEnterNamespace'/>
+          <ref name='virDomainLxcEnterSecurityLabel'/>
           <ref name='virDomainLxcOpenNamespace'/>
         </word>
       </letter>
@@ -132,13 +170,21 @@
         </word>
         <word name='driver'>
           <ref name='virDomainLxcEnterNamespace'/>
+          <ref name='virDomainLxcEnterSecurityLabel'/>
           <ref name='virDomainLxcOpenNamespace'/>
         </word>
       </letter>
       <letter name='e'>
+        <word name='effect'>
+          <ref name='virDomainLxcEnterSecurityLabel'/>
+        </word>
         <word name='error'>
           <ref name='virDomainLxcEnterNamespace'/>
+          <ref name='virDomainLxcEnterSecurityLabel'/>
           <ref name='virDomainLxcOpenNamespace'/>
+        </word>
+        <word name='exec'>
+          <ref name='virDomainLxcEnterSecurityLabel'/>
         </word>
       </letter>
       <letter name='f'>
@@ -148,6 +194,7 @@
         </word>
         <word name='filled'>
           <ref name='virDomainLxcEnterNamespace'/>
+          <ref name='virDomainLxcEnterSecurityLabel'/>
           <ref name='virDomainLxcOpenNamespace'/>
         </word>
         <word name='for'>
@@ -155,28 +202,55 @@
         </word>
       </letter>
       <letter name='h'>
+        <word name='has'>
+          <ref name='virDomainLxcEnterSecurityLabel'/>
+        </word>
         <word name='hold'>
           <ref name='virDomainLxcEnterNamespace'/>
         </word>
         <word name='hypervisor'>
           <ref name='virDomainLxcEnterNamespace'/>
+          <ref name='virDomainLxcEnterSecurityLabel'/>
           <ref name='virDomainLxcOpenNamespace'/>
         </word>
       </letter>
       <letter name='i'>
+        <word name='info'>
+          <ref name='virDomainLxcEnterSecurityLabel'/>
+        </word>
         <word name='intended'>
           <ref name='virDomainLxcOpenNamespace'/>
+        </word>
+        <word name='interpreted'>
+          <ref name='virDomainLxcEnterSecurityLabel'/>
         </word>
         <word name='its'>
           <ref name='virDomainLxcEnterNamespace'/>
         </word>
       </letter>
       <letter name='l'>
+        <word name='label'>
+          <ref name='virDomainLxcEnterSecurityLabel'/>
+        </word>
         <word name='later'>
           <ref name='virDomainLxcEnterNamespace'/>
         </word>
+        <word name='let'>
+          <ref name='virDomainLxcEnterSecurityLabel'/>
+        </word>
         <word name='list'>
           <ref name='virDomainLxcEnterNamespace'/>
+        </word>
+      </letter>
+      <letter name='m'>
+        <word name='may'>
+          <ref name='virDomainLxcEnterSecurityLabel'/>
+        </word>
+        <word name='model'>
+          <ref name='virDomainLxcEnterSecurityLabel'/>
+        </word>
+        <word name='moved'>
+          <ref name='virDomainLxcEnterSecurityLabel'/>
         </word>
       </letter>
       <letter name='n'>
@@ -187,8 +261,14 @@
           <ref name='virDomainLxcEnterNamespace'/>
           <ref name='virDomainLxcOpenNamespace'/>
         </word>
+        <word name='next'>
+          <ref name='virDomainLxcEnterSecurityLabel'/>
+        </word>
         <word name='non-NULL'>
           <ref name='virDomainLxcEnterNamespace'/>
+        </word>
+        <word name='not'>
+          <ref name='virDomainLxcEnterSecurityLabel'/>
         </word>
         <word name='number'>
           <ref name='virDomainLxcEnterNamespace'/>
@@ -202,9 +282,11 @@
         </word>
         <word name='old'>
           <ref name='virDomainLxcEnterNamespace'/>
+          <ref name='virDomainLxcEnterSecurityLabel'/>
         </word>
         <word name='only'>
           <ref name='virDomainLxcEnterNamespace'/>
+          <ref name='virDomainLxcEnterSecurityLabel'/>
           <ref name='virDomainLxcOpenNamespace'/>
         </word>
         <word name='opened'>
@@ -214,7 +296,11 @@
       <letter name='p'>
         <word name='pass'>
           <ref name='virDomainLxcEnterNamespace'/>
+          <ref name='virDomainLxcEnterSecurityLabel'/>
           <ref name='virDomainLxcOpenNamespace'/>
+        </word>
+        <word name='performed'>
+          <ref name='virDomainLxcEnterSecurityLabel'/>
         </word>
         <word name='pointer'>
           <ref name='virDomainLxcEnterNamespace'/>
@@ -223,11 +309,18 @@
         <word name='populated'>
           <ref name='virDomainLxcEnterNamespace'/>
         </word>
+        <word name='previous'>
+          <ref name='virDomainLxcEnterSecurityLabel'/>
+        </word>
         <word name='process'>
           <ref name='virDomainLxcEnterNamespace'/>
+          <ref name='virDomainLxcEnterSecurityLabel'/>
         </word>
       </letter>
       <letter name='r'>
+        <word name='relative'>
+          <ref name='virDomainLxcEnterSecurityLabel'/>
+        </word>
         <word name='representing'>
           <ref name='virDomainLxcEnterNamespace'/>
         </word>
@@ -239,6 +332,12 @@
         </word>
       </letter>
       <letter name='s'>
+        <word name='security'>
+          <ref name='virDomainLxcEnterSecurityLabel'/>
+        </word>
+        <word name='set'>
+          <ref name='virDomainLxcEnterSecurityLabel'/>
+        </word>
         <word name='setns'>
           <ref name='virDomainLxcOpenNamespace'/>
         </word>
@@ -247,10 +346,15 @@
         </word>
         <word name='specific'>
           <ref name='virDomainLxcEnterNamespace'/>
+          <ref name='virDomainLxcEnterSecurityLabel'/>
           <ref name='virDomainLxcOpenNamespace'/>
+        </word>
+        <word name='specified'>
+          <ref name='virDomainLxcEnterSecurityLabel'/>
         </word>
         <word name='success'>
           <ref name='virDomainLxcEnterNamespace'/>
+          <ref name='virDomainLxcEnterSecurityLabel'/>
         </word>
         <word name='suitable'>
           <ref name='virDomainLxcOpenNamespace'/>
@@ -262,9 +366,21 @@
           <ref name='virDomainLxcOpenNamespace'/>
         </word>
       </letter>
+      <letter name='t'>
+        <word name='take'>
+          <ref name='virDomainLxcEnterSecurityLabel'/>
+        </word>
+        <word name='this'>
+          <ref name='virDomainLxcEnterSecurityLabel'/>
+        </word>
+      </letter>
       <letter name='u'>
+        <word name='until'>
+          <ref name='virDomainLxcEnterSecurityLabel'/>
+        </word>
         <word name='unused'>
           <ref name='virDomainLxcEnterNamespace'/>
+          <ref name='virDomainLxcEnterSecurityLabel'/>
           <ref name='virDomainLxcOpenNamespace'/>
         </word>
         <word name='used'>
@@ -274,20 +390,28 @@
       <letter name='w'>
         <word name='will'>
           <ref name='virDomainLxcEnterNamespace'/>
+          <ref name='virDomainLxcEnterSecurityLabel'/>
           <ref name='virDomainLxcOpenNamespace'/>
         </word>
         <word name='with'>
           <ref name='virDomainLxcEnterNamespace'/>
+          <ref name='virDomainLxcEnterSecurityLabel'/>
           <ref name='virDomainLxcOpenNamespace'/>
         </word>
         <word name='work'>
           <ref name='virDomainLxcEnterNamespace'/>
+          <ref name='virDomainLxcEnterSecurityLabel'/>
           <ref name='virDomainLxcOpenNamespace'/>
+        </word>
+      </letter>
+      <letter name='y'>
+        <word name='yet'>
+          <ref name='virDomainLxcEnterSecurityLabel'/>
         </word>
       </letter>
     </chunk>
     <chunks>
-      <chunk name='chunk0' start='A' end='w'/>
+      <chunk name='chunk0' start='A' end='y'/>
     </chunks>
   </index>
 </apirefs>

@@ -68,6 +68,57 @@ cleanup:
 }
 
 
+static int virLXCCgroupSetupCpusetTune(virDomainDefPtr def,
+                                       virCgroupPtr cgroup,
+                                       virBitmapPtr nodemask)
+{
+    int rc = 0;
+    char *mask = NULL;
+
+    if (def->placement_mode != VIR_DOMAIN_CPU_PLACEMENT_MODE_AUTO &&
+        def->cpumask) {
+        mask = virBitmapFormat(def->cpumask);
+        if (!mask) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("failed to convert cpumask"));
+            return -1;
+        }
+
+        rc = virCgroupSetCpusetCpus(cgroup, mask);
+        if (rc < 0) {
+            virReportSystemError(-rc, "%s",
+                                 _("Unable to set cpuset.cpus"));
+            goto cleanup;
+        }
+    }
+
+    if ((def->numatune.memory.nodemask ||
+         (def->numatune.memory.placement_mode ==
+          VIR_NUMA_TUNE_MEM_PLACEMENT_MODE_AUTO)) &&
+          def->numatune.memory.mode == VIR_DOMAIN_NUMATUNE_MEM_STRICT) {
+        if (def->numatune.memory.placement_mode ==
+            VIR_NUMA_TUNE_MEM_PLACEMENT_MODE_AUTO)
+            mask = virBitmapFormat(nodemask);
+        else
+            mask = virBitmapFormat(def->numatune.memory.nodemask);
+
+        if (!mask) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("failed to convert memory nodemask"));
+            return -1;
+        }
+
+        rc = virCgroupSetCpusetMems(cgroup, mask);
+        if (rc < 0)
+            virReportSystemError(-rc, "%s", _("Unable to set cpuset.mems"));
+    }
+
+cleanup:
+    VIR_FREE(mask);
+    return rc;
+}
+
+
 static int virLXCCgroupSetupBlkioTune(virDomainDefPtr def,
                                       virCgroupPtr cgroup)
 {
@@ -472,7 +523,7 @@ cleanup:
 }
 
 
-int virLXCCgroupSetup(virDomainDefPtr def)
+virCgroupPtr virLXCCgroupCreate(virDomainDefPtr def)
 {
     virCgroupPtr driver = NULL;
     virCgroupPtr cgroup = NULL;
@@ -494,18 +545,6 @@ int virLXCCgroupSetup(virDomainDefPtr def)
         goto cleanup;
     }
 
-    if (virLXCCgroupSetupCpuTune(def, cgroup) < 0)
-        goto cleanup;
-
-    if (virLXCCgroupSetupBlkioTune(def, cgroup) < 0)
-        goto cleanup;
-
-    if (virLXCCgroupSetupMemTune(def, cgroup) < 0)
-        goto cleanup;
-
-    if (virLXCCgroupSetupDeviceACL(def, cgroup) < 0)
-        goto cleanup;
-
     rc = virCgroupAddTask(cgroup, getpid());
     if (rc != 0) {
         virReportSystemError(-rc,
@@ -517,8 +556,39 @@ int virLXCCgroupSetup(virDomainDefPtr def)
     ret = 0;
 
 cleanup:
-    virCgroupFree(&cgroup);
     virCgroupFree(&driver);
+    if (ret < 0) {
+        virCgroupFree(&cgroup);
+        return NULL;
+    }
 
+    return cgroup;
+}
+
+
+int virLXCCgroupSetup(virDomainDefPtr def,
+                      virCgroupPtr cgroup,
+                      virBitmapPtr nodemask)
+{
+    int ret = -1;
+
+    if (virLXCCgroupSetupCpuTune(def, cgroup) < 0)
+        goto cleanup;
+
+    if (virLXCCgroupSetupCpusetTune(def, cgroup, nodemask) < 0)
+        goto cleanup;
+
+    if (virLXCCgroupSetupBlkioTune(def, cgroup) < 0)
+        goto cleanup;
+
+    if (virLXCCgroupSetupMemTune(def, cgroup) < 0)
+        goto cleanup;
+
+    if (virLXCCgroupSetupDeviceACL(def, cgroup) < 0)
+        goto cleanup;
+
+    ret = 0;
+
+cleanup:
     return ret;
 }

@@ -46,6 +46,8 @@ enum virNodeDevCapType {
     VIR_NODE_DEV_CAP_SCSI_TARGET,	/* SCSI Target */
     VIR_NODE_DEV_CAP_SCSI,		/* SCSI device */
     VIR_NODE_DEV_CAP_STORAGE,		/* Storage device */
+    VIR_NODE_DEV_CAP_FC_HOST,		/* FC Host Bus Adapter */
+    VIR_NODE_DEV_CAP_VPORTS,		/* HBA which is capable of vports */
     VIR_NODE_DEV_CAP_LAST
 };
 
@@ -56,16 +58,8 @@ enum virNodeDevNetCapType {
     VIR_NODE_DEV_CAP_NET_LAST
 };
 
-enum virNodeDevHBACapType {
-    /* Keep in sync with VIR_ENUM_IMPL in node_device_conf.c */
-    VIR_NODE_DEV_CAP_HBA_FC_HOST,	/* fibre channel HBA */
-    VIR_NODE_DEV_CAP_HBA_VPORT_OPS,	/* capable of vport operations */
-    VIR_NODE_DEV_CAP_HBA_LAST
-};
-
 VIR_ENUM_DECL(virNodeDevCap)
 VIR_ENUM_DECL(virNodeDevNetCap)
-VIR_ENUM_DECL(virNodeDevHBACap)
 
 enum virNodeDevStorageCapFlags {
     VIR_NODE_DEV_CAP_STORAGE_REMOVABLE			= (1 << 0),
@@ -144,6 +138,8 @@ struct _virNodeDevCapsDef {
             char *wwpn;
             char *fabric_wwn;
             unsigned int flags;
+            int max_vports;
+            int vports;
         } scsi_host;
         struct {
             char *name;
@@ -271,7 +267,9 @@ void virNodeDeviceObjUnlock(virNodeDeviceObjPtr obj);
                  VIR_CONNECT_LIST_NODE_DEVICES_CAP_SCSI_HOST     | \
                  VIR_CONNECT_LIST_NODE_DEVICES_CAP_SCSI_TARGET   | \
                  VIR_CONNECT_LIST_NODE_DEVICES_CAP_SCSI          | \
-                 VIR_CONNECT_LIST_NODE_DEVICES_CAP_STORAGE)
+                 VIR_CONNECT_LIST_NODE_DEVICES_CAP_STORAGE       | \
+                 VIR_CONNECT_LIST_NODE_DEVICES_CAP_FC_HOST       | \
+                 VIR_CONNECT_LIST_NODE_DEVICES_CAP_VPORTS)
 
 int virNodeDeviceList(virConnectPtr conn,
                       virNodeDeviceObjList devobjs,

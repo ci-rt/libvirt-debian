@@ -133,6 +133,7 @@
     <function name="VIR_CONNECT_LIST_NETWORKS_NO_AUTOSTART" link="libvirt-libvirt.html#VIR_CONNECT_LIST_NETWORKS_NO_AUTOSTART"/>
     <function name="VIR_CONNECT_LIST_NETWORKS_PERSISTENT" link="libvirt-libvirt.html#VIR_CONNECT_LIST_NETWORKS_PERSISTENT"/>
     <function name="VIR_CONNECT_LIST_NETWORKS_TRANSIENT" link="libvirt-libvirt.html#VIR_CONNECT_LIST_NETWORKS_TRANSIENT"/>
+    <function name="VIR_CONNECT_LIST_NODE_DEVICES_CAP_FC_HOST" link="libvirt-libvirt.html#VIR_CONNECT_LIST_NODE_DEVICES_CAP_FC_HOST"/>
     <function name="VIR_CONNECT_LIST_NODE_DEVICES_CAP_NET" link="libvirt-libvirt.html#VIR_CONNECT_LIST_NODE_DEVICES_CAP_NET"/>
     <function name="VIR_CONNECT_LIST_NODE_DEVICES_CAP_PCI_DEV" link="libvirt-libvirt.html#VIR_CONNECT_LIST_NODE_DEVICES_CAP_PCI_DEV"/>
     <function name="VIR_CONNECT_LIST_NODE_DEVICES_CAP_SCSI" link="libvirt-libvirt.html#VIR_CONNECT_LIST_NODE_DEVICES_CAP_SCSI"/>
@@ -142,6 +143,7 @@
     <function name="VIR_CONNECT_LIST_NODE_DEVICES_CAP_SYSTEM" link="libvirt-libvirt.html#VIR_CONNECT_LIST_NODE_DEVICES_CAP_SYSTEM"/>
     <function name="VIR_CONNECT_LIST_NODE_DEVICES_CAP_USB_DEV" link="libvirt-libvirt.html#VIR_CONNECT_LIST_NODE_DEVICES_CAP_USB_DEV"/>
     <function name="VIR_CONNECT_LIST_NODE_DEVICES_CAP_USB_INTERFACE" link="libvirt-libvirt.html#VIR_CONNECT_LIST_NODE_DEVICES_CAP_USB_INTERFACE"/>
+    <function name="VIR_CONNECT_LIST_NODE_DEVICES_CAP_VPORTS" link="libvirt-libvirt.html#VIR_CONNECT_LIST_NODE_DEVICES_CAP_VPORTS"/>
     <function name="VIR_CONNECT_LIST_SECRETS_EPHEMERAL" link="libvirt-libvirt.html#VIR_CONNECT_LIST_SECRETS_EPHEMERAL"/>
     <function name="VIR_CONNECT_LIST_SECRETS_NO_EPHEMERAL" link="libvirt-libvirt.html#VIR_CONNECT_LIST_SECRETS_NO_EPHEMERAL"/>
     <function name="VIR_CONNECT_LIST_SECRETS_NO_PRIVATE" link="libvirt-libvirt.html#VIR_CONNECT_LIST_SECRETS_NO_PRIVATE"/>
@@ -633,6 +635,7 @@
     <function name="VIR_FROM_EVENT" link="libvirt-virterror.html#VIR_FROM_EVENT"/>
     <function name="VIR_FROM_HOOK" link="libvirt-virterror.html#VIR_FROM_HOOK"/>
     <function name="VIR_FROM_HYPERV" link="libvirt-virterror.html#VIR_FROM_HYPERV"/>
+    <function name="VIR_FROM_IDENTITY" link="libvirt-virterror.html#VIR_FROM_IDENTITY"/>
     <function name="VIR_FROM_INITCTL" link="libvirt-virterror.html#VIR_FROM_INITCTL"/>
     <function name="VIR_FROM_INTERFACE" link="libvirt-virterror.html#VIR_FROM_INTERFACE"/>
     <function name="VIR_FROM_LIBXL" link="libvirt-virterror.html#VIR_FROM_LIBXL"/>
@@ -729,6 +732,7 @@
     <function name="VIR_NODE_SUSPEND_TARGET_LAST" link="libvirt-libvirt.html#VIR_NODE_SUSPEND_TARGET_LAST"/>
     <function name="VIR_NODE_SUSPEND_TARGET_MEM" link="libvirt-libvirt.html#VIR_NODE_SUSPEND_TARGET_MEM"/>
     <function name="VIR_SECRET_USAGE_TYPE_CEPH" link="libvirt-libvirt.html#VIR_SECRET_USAGE_TYPE_CEPH"/>
+    <function name="VIR_SECRET_USAGE_TYPE_ISCSI" link="libvirt-libvirt.html#VIR_SECRET_USAGE_TYPE_ISCSI"/>
     <function name="VIR_SECRET_USAGE_TYPE_LAST" link="libvirt-libvirt.html#VIR_SECRET_USAGE_TYPE_LAST"/>
     <function name="VIR_SECRET_USAGE_TYPE_NONE" link="libvirt-libvirt.html#VIR_SECRET_USAGE_TYPE_NONE"/>
     <function name="VIR_SECRET_USAGE_TYPE_VOLUME" link="libvirt-libvirt.html#VIR_SECRET_USAGE_TYPE_VOLUME"/>

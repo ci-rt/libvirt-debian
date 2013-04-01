@@ -551,6 +551,13 @@ virQEMUDriverConfigPtr virQEMUDriverGetConfig(virQEMUDriverPtr driver)
     return conf;
 }
 
+virDomainXMLConfPtr
+virQEMUDriverCreateXMLConf(void)
+{
+    return virDomainXMLConfNew(&virQEMUDriverPrivateDataCallbacks,
+                               &virQEMUDriverDomainXMLNamespace);
+}
+
 
 virCapsPtr virQEMUDriverCreateCapabilities(virQEMUDriverPtr driver)
 {
@@ -572,9 +579,6 @@ virCapsPtr virQEMUDriverCreateCapabilities(virQEMUDriverPtr driver)
         caps->defaultDiskDriverName = "qemu";
         caps->defaultDiskDriverType = VIR_STORAGE_FILE_RAW;
     }
-
-    qemuDomainSetPrivateDataHooks(caps);
-    qemuDomainSetNamespaceHooks(caps);
 
     if (virGetHostUUID(caps->host.host_uuid)) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
@@ -1044,6 +1048,9 @@ qemuSharedDiskEntryFree(void *payload, const void *name ATTRIBUTE_UNUSED)
 {
     qemuSharedDiskEntryPtr entry = payload;
     size_t i;
+
+    if (!entry)
+        return;
 
     for (i = 0; i < entry->ref; i++) {
         VIR_FREE(entry->domains[i]);

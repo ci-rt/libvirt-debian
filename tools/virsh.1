@@ -124,7 +124,7 @@
 .\" ========================================================================
 .\"
 .IX Title "VIRSH 1"
-.TH VIRSH 1 "2013-02-25" "libvirt-1.0.3" "Virtualization Support"
+.TH VIRSH 1 "2013-03-25" "libvirt-1.0.4" "Virtualization Support"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -1452,7 +1452,8 @@ Both \fI\-\-live\fR and \fI\-\-config\fR flags may be given, but \fI\-\-current\
 exclusive. If no flag is specified, behavior is different depending
 on hypervisor.
 .Sp
-This command works for at least the Xen, \s-1QEMU/KVM\s0 and vSphere/ESX hypervisors.
+Some hypervisors such as \s-1QEMU/KVM\s0 don't support live changes (especially
+increasing) of the maximum memory limit.
 .Sp
 \&\fIsize\fR is a scaled integer (see \fB\s-1NOTES\s0\fR above); it defaults to kibibytes
 (blocks of 1024 bytes) unless you provide a suffix (and the older option
@@ -1911,11 +1912,11 @@ List all of the devices available on the node that are known by libvirt.
 \&\fIcap\fR is used to filter the list by capability types, the types must be
 separated by comma, e.g. \-\-cap pci,scsi, valid capability types include
 \&'system', 'pci', 'usb_device', 'usb', 'net', 'scsi_host', 'scsi_target',
-\&'scsi', 'storage'. If \fI\-\-tree\fR is used, the output is formatted in a tree
-representing parents of each node. \fIcap\fR and \fI\-\-tree\fR are mutually
-exclusive.
-=item \fBnodedev-reattach\fR \fInodedev\fR
-.Sp
+\&'scsi', 'storage', 'fc_host', 'vports'. If \fI\-\-tree\fR is used, the output
+is formatted in a tree representing parents of each node. \fIcap\fR and
+\&\fI\-\-tree\fR are mutually exclusive.
+.IP "\fBnodedev-reattach\fR \fInodedev\fR" 4
+.IX Item "nodedev-reattach nodedev"
 Declare that \fInodedev\fR is no longer in use by any guests, and that
 the host can resume normal use of the device.  This is done
 automatically for devices in managed mode, but must be done explicitly
@@ -1940,17 +1941,18 @@ Configure a virtual network to be automatically started at boot.
 The \fI\-\-disable\fR option disable autostarting.
 .IP "\fBnet-create\fR \fIfile\fR" 4
 .IX Item "net-create file"
-Create a virtual network from an \s-1XML\s0 \fIfile\fR, see the documentation at
-<http://libvirt.org/formatnetwork.html> to get a description of the
-\&\s-1XML\s0 network format used by libvirt.
+Create a transient (temporary) virtual network from an
+\&\s-1XML\s0 \fIfile\fR and instantiate (start) the network.
+See the documentation at <http://libvirt.org/formatnetwork.html>
+to get a description of the \s-1XML\s0 network format used by libvirt.
 .IP "\fBnet-define\fR \fIfile\fR" 4
 .IX Item "net-define file"
-Define a virtual network from an \s-1XML\s0 \fIfile\fR, the network is just defined but
-not instantiated.
+Define a persistent virtual network from an \s-1XML\s0 \fIfile\fR, the network is just
+defined but not instantiated (started).
 .IP "\fBnet-destroy\fR \fInetwork\fR" 4
 .IX Item "net-destroy network"
-Destroy (stop) a given virtual network specified by its name or \s-1UUID\s0. This
-takes effect immediately.
+Destroy (stop) a given transient or persistent virtual network
+specified by its name or \s-1UUID\s0. This takes effect immediately.
 .IP "\fBnet-dumpxml\fR \fInetwork\fR [\fI\-\-inactive\fR]" 4
 .IX Item "net-dumpxml network [--inactive]"
 Output the virtual network information as an \s-1XML\s0 dump to stdout.
@@ -2645,8 +2647,8 @@ accessible only from the original name.
 .IX Item "snapshot-info domain {snapshot | --current}"
 Output basic information about a named <snapshot>, or the current snapshot
 with \fI\-\-current\fR.
-.IP "\fBsnapshot-list\fR \fIdomain\fR [{\fI\-\-parent\fR | \fI\-\-roots\fR | \fI\-\-tree\fR}] [{[\fI\-\-from\fR] \fBsnapshot\fR | \fI\-\-current\fR} [\fI\-\-descendants\fR]] [\fI\-\-metadata\fR] [\fI\-\-no\-metadata\fR] [\fI\-\-leaves\fR] [\fI\-\-no\-leaves\fR] [\fI\-\-inactive\fR] [\fI\-\-active\fR] [\fI\-\-disk\-only\fR] [\fI\-\-internal\fR] [\fI\-\-external\fR]" 4
-.IX Item "snapshot-list domain [{--parent | --roots | --tree}] [{[--from] snapshot | --current} [--descendants]] [--metadata] [--no-metadata] [--leaves] [--no-leaves] [--inactive] [--active] [--disk-only] [--internal] [--external]"
+.IP "\fBsnapshot-list\fR \fIdomain\fR [\fI\-\-metadata\fR] [\fI\-\-no\-metadata\fR] [{\fI\-\-parent\fR | \fI\-\-roots\fR | [{\fI\-\-tree\fR | \fI\-\-name\fR}]}] [{[\fI\-\-from\fR] \fBsnapshot\fR | \fI\-\-current\fR} [\fI\-\-descendants\fR]] [\fI\-\-leaves\fR] [\fI\-\-no\-leaves\fR] p[\fI\-\-inactive\fR] [\fI\-\-active\fR] [\fI\-\-disk\-only\fR] [\fI\-\-internal\fR] [\fI\-\-external\fR]" 4
+.IX Item "snapshot-list domain [--metadata] [--no-metadata] [{--parent | --roots | [{--tree | --name}]}] [{[--from] snapshot | --current} [--descendants]] [--leaves] [--no-leaves] p[--inactive] [--active] [--disk-only] [--internal] [--external]"
 List all of the available snapshots for the given domain, defaulting
 to show columns for the snapshot name, creation time, and domain state.
 .Sp
@@ -2654,7 +2656,9 @@ If \fI\-\-parent\fR is specified, add a column to the output table giving
 the name of the parent of each snapshot.  If \fI\-\-roots\fR is specified,
 the list will be filtered to just snapshots that have no parents.
 If \fI\-\-tree\fR is specified, the output will be in a tree format, listing
-just snapshot names.  These three options are mutually exclusive.
+just snapshot names.  These three options are mutually exclusive. If
+\&\fI\-\-name\fR is specified only the snapshot name is printed. This option is
+mutually exclusive with \fI\-\-tree\fR.
 .Sp
 If \fI\-\-from\fR is provided, filter the list to snapshots which are
 children of the given \fBsnapshot\fR; or if \fI\-\-current\fR is provided,

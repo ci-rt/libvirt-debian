@@ -38,7 +38,6 @@
 #include <locale.h>
 #include <time.h>
 #include <limits.h>
-#include <assert.h>
 #include <sys/stat.h>
 #include <inttypes.h>
 #include <strings.h>
@@ -453,7 +452,6 @@ static const vshCmdInfo info_help[] = {
 static const vshCmdOptDef opts_help[] = {
     {.name = "command",
      .type = VSH_OT_DATA,
-     .flags = 0,
      .help = N_("Prints global help, command specific help, or help for a group of related commands")
     },
     {.name = NULL}
@@ -717,7 +715,6 @@ static const vshCmdInfo info_cd[] = {
 static const vshCmdOptDef opts_cd[] = {
     {.name = "dir",
      .type = VSH_OT_DATA,
-     .flags = 0,
      .help = N_("directory to switch to (default: home or else root)")
     },
     {.name = NULL}
@@ -801,22 +798,18 @@ static const vshCmdInfo info_echo[] = {
 static const vshCmdOptDef opts_echo[] = {
     {.name = "shell",
      .type = VSH_OT_BOOL,
-     .flags = 0,
      .help = N_("escape for shell use")
     },
     {.name = "xml",
      .type = VSH_OT_BOOL,
-     .flags = 0,
      .help = N_("escape for XML use")
     },
     {.name = "str",
      .type = VSH_OT_ALIAS,
-     .flags = 0,
      .help = "string"
     },
     {.name = "string",
      .type = VSH_OT_ARGV,
-     .flags = 0,
      .help = N_("arguments to echo")
     },
     {.name = NULL}
@@ -975,7 +968,6 @@ vshCmddefOptParse(const vshCmdDef *cmd, uint32_t *opts_need_arg,
 static vshCmdOptDef helpopt = {
     .name = "help",
     .type = VSH_OT_BOOL,
-    .flags = 0,
     .help = N_("print help for this function")
 };
 static const vshCmdOptDef *
@@ -1179,8 +1171,6 @@ vshCmddefHelp(vshControl *ctl, const char *cmdname)
                 case VSH_OT_ALIAS:
                     /* aliases are intentionally undocumented */
                     continue;
-                default:
-                    assert(0);
                 }
                 fputc(' ', stdout);
                 fprintf(stdout, fmt, opt->name);
@@ -1222,8 +1212,6 @@ vshCmddefHelp(vshControl *ctl, const char *cmdname)
                     break;
                 case VSH_OT_ALIAS:
                     continue;
-                default:
-                    assert(0);
                 }
 
                 fprintf(stdout, "    %-15s  %s\n", buf, _(opt->help));
@@ -3100,12 +3088,12 @@ main(int argc, char **argv)
         ctl->name = vshStrdup(ctl, defaultConn);
     }
 
-    if (!vshParseArgv(ctl, argc, argv)) {
+    if (!vshInit(ctl)) {
         vshDeinit(ctl);
         exit(EXIT_FAILURE);
     }
 
-    if (!vshInit(ctl)) {
+    if (!vshParseArgv(ctl, argc, argv)) {
         vshDeinit(ctl);
         exit(EXIT_FAILURE);
     }

@@ -248,7 +248,7 @@
         a single attribute <code>path</code> which is the fully qualified
         path to the block device node. <span class="since">Since 0.4.1</span></dd><dt><code>directory</code></dt><dd>Provides the source for pools backed by directories. May
         only occur once. Contains a single attribute <code>path</code>
-        which is the fully qualified path to the block device node.
+        which is the fully qualified path to the backing directory.
         <span class="since">Since 0.4.1</span></dd><dt><code>adapter</code></dt><dd>Provides the source for pools backed by SCSI adapters. May
         only occur once. Contains a single attribute <code>name</code>
         which is the SCSI adapter name (ex. "host1").
@@ -259,7 +259,7 @@
         contain a <code>port</code> attribute for the protocol specific
         port number. <span class="since">Since 0.4.1</span></dd><dt><code>name</code></dt><dd>Provides the source for pools backed by storage from a
         named element (e.g., a logical volume group name).
-        remote server. Contains a string identifier.
+        Contains a string identifier.
         <span class="since">Since 0.4.5</span></dd><dt><code>format</code></dt><dd>Provides information about the format of the pool. This
         contains a single attribute <code>type</code> whose value is
         backend specific. This is typically used to indicate filesystem
@@ -383,7 +383,11 @@
         allocated at time of creation. If set to a value smaller than the
         capacity, the pool has the <strong>option</strong> of deciding
         to sparsely allocate a volume. It does not have to honour requests
-        for sparse allocation though.<br />
+        for sparse allocation though. Different types of pools may treat
+        sparse volumes differently. For example, the <code>logical</code>
+        pool will not automatically expand volume's allocation when it
+        gets full; the user is responsible for doing that or configuring
+        dmeventd to do so automatically.<br />
         <br />
         By default this is specified in bytes, but an optional attribute
         <code>unit</code> can be specified to adjust the passed value.

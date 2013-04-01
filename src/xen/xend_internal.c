@@ -1141,7 +1141,7 @@ sexpr_to_xend_topology(const struct sexpr *root, virCapsPtr caps)
         }
         virBitmapFree(cpuset);
 
-        if (virCapabilitiesAddHostNUMACell(caps, cell, nb_cpus, cpuInfo) < 0)
+        if (virCapabilitiesAddHostNUMACell(caps, cell, nb_cpus, 0, cpuInfo) < 0)
             goto memory_error;
         cpuInfo = NULL;
     }
@@ -2409,8 +2409,8 @@ xenDaemonCreateXML(virConnectPtr conn, const char *xmlDesc, unsigned int flags)
 
     virCheckFlags(0, NULL);
 
-    if (!(def = virDomainDefParseString(priv->caps, xmlDesc,
-                                        1 << VIR_DOMAIN_VIRT_XEN,
+    if (!(def = virDomainDefParseString(priv->caps, priv->xmlconf,
+                                        xmlDesc, 1 << VIR_DOMAIN_VIRT_XEN,
                                         VIR_DOMAIN_XML_INACTIVE)))
         return NULL;
 
@@ -3127,8 +3127,8 @@ xenDaemonDomainDefineXML(virConnectPtr conn, const char *xmlDesc)
     if (priv->xendConfigVersion < XEND_CONFIG_VERSION_3_0_4)
         return NULL;
 
-    if (!(def = virDomainDefParseString(priv->caps, xmlDesc,
-                                        1 << VIR_DOMAIN_VIRT_XEN,
+    if (!(def = virDomainDefParseString(priv->caps, priv->xmlconf,
+                                        xmlDesc, 1 << VIR_DOMAIN_VIRT_XEN,
                                         VIR_DOMAIN_XML_INACTIVE))) {
         virReportError(VIR_ERR_XML_ERROR,
                        "%s", _("failed to parse domain description"));

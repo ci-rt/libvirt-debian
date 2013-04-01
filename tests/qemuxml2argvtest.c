@@ -100,7 +100,7 @@ static int testCompareXMLToArgvFiles(const char *xml,
         goto out;
     conn->secretDriver = &fakeSecretDriver;
 
-    if (!(vmdef = virDomainDefParseFile(driver.caps, xml,
+    if (!(vmdef = virDomainDefParseFile(driver.caps, driver.xmlconf, xml,
                                         QEMU_EXPECTED_VIRT_TYPES,
                                         VIR_DOMAIN_XML_INACTIVE))) {
         if (flags & FLAG_EXPECT_PARSE_ERROR)
@@ -294,6 +294,8 @@ mymain(void)
 
     if ((driver.caps = testQemuCapsInit()) == NULL)
         return EXIT_FAILURE;
+    if (!(driver.xmlconf = virQEMUDriverCreateXMLConf()))
+        return EXIT_FAILURE;
     VIR_FREE(driver.config->stateDir);
     if ((driver.config->stateDir = strdup("/nowhere")) == NULL)
         return EXIT_FAILURE;
@@ -438,6 +440,12 @@ mymain(void)
             QEMU_CAPS_DEVICE, QEMU_CAPS_VIRTIO_S390);
     DO_TEST("disk-many", NONE);
     DO_TEST("disk-virtio", QEMU_CAPS_DRIVE, QEMU_CAPS_DRIVE_BOOT);
+    DO_TEST("disk-virtio-ccw", QEMU_CAPS_DRIVE,
+            QEMU_CAPS_DEVICE, QEMU_CAPS_VIRTIO_CCW, QEMU_CAPS_VIRTIO_S390);
+    DO_TEST("disk-virtio-ccw-many", QEMU_CAPS_DRIVE,
+            QEMU_CAPS_DEVICE, QEMU_CAPS_VIRTIO_CCW, QEMU_CAPS_VIRTIO_S390);
+    DO_TEST("disk-virtio-scsi-ccw", QEMU_CAPS_DRIVE, QEMU_CAPS_VIRTIO_SCSI,
+            QEMU_CAPS_DEVICE, QEMU_CAPS_VIRTIO_CCW, QEMU_CAPS_VIRTIO_S390);
     DO_TEST("disk-order",
             QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE, QEMU_CAPS_DRIVE_BOOT,
             QEMU_CAPS_VIRTIO_BLK_SCSI, QEMU_CAPS_VIRTIO_BLK_SG_IO);
@@ -485,6 +493,22 @@ mymain(void)
             QEMU_CAPS_DRIVE_CACHE_UNSAFE, QEMU_CAPS_DRIVE_FORMAT);
     DO_TEST("disk-drive-network-nbd",
             QEMU_CAPS_DRIVE, QEMU_CAPS_DRIVE_FORMAT);
+    DO_TEST("disk-drive-network-nbd-export",
+            QEMU_CAPS_DRIVE, QEMU_CAPS_DRIVE_FORMAT);
+    DO_TEST("disk-drive-network-nbd-ipv6",
+            QEMU_CAPS_DRIVE, QEMU_CAPS_DRIVE_FORMAT);
+    DO_TEST("disk-drive-network-nbd-ipv6-export",
+            QEMU_CAPS_DRIVE, QEMU_CAPS_DRIVE_FORMAT);
+    DO_TEST("disk-drive-network-nbd-unix",
+            QEMU_CAPS_DRIVE, QEMU_CAPS_DRIVE_FORMAT);
+    DO_TEST("disk-drive-network-iscsi",
+            QEMU_CAPS_DRIVE, QEMU_CAPS_DRIVE_FORMAT);
+    DO_TEST("disk-drive-network-iscsi-auth",
+            QEMU_CAPS_DRIVE, QEMU_CAPS_DRIVE_FORMAT);
+    DO_TEST("disk-drive-network-iscsi-lun",
+            QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE, QEMU_CAPS_DRIVE_FORMAT,
+            QEMU_CAPS_NODEFCONFIG, QEMU_CAPS_VIRTIO_SCSI,
+            QEMU_CAPS_VIRTIO_BLK_SG_IO, QEMU_CAPS_SCSI_BLOCK);
     DO_TEST("disk-drive-network-gluster",
             QEMU_CAPS_DRIVE, QEMU_CAPS_DRIVE_FORMAT);
     DO_TEST("disk-drive-network-rbd",
@@ -508,24 +532,27 @@ mymain(void)
             QEMU_CAPS_SCSI_LSI);
     DO_TEST("disk-scsi-disk-split",
             QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG,
-            QEMU_CAPS_SCSI_CD, QEMU_CAPS_SCSI_LSI, QEMU_CAPS_VIRTIO_SCSI_PCI);
+            QEMU_CAPS_SCSI_CD, QEMU_CAPS_SCSI_LSI, QEMU_CAPS_VIRTIO_SCSI);
     DO_TEST("disk-scsi-disk-wwn",
             QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG,
-            QEMU_CAPS_SCSI_CD, QEMU_CAPS_SCSI_LSI, QEMU_CAPS_VIRTIO_SCSI_PCI,
+            QEMU_CAPS_SCSI_CD, QEMU_CAPS_SCSI_LSI, QEMU_CAPS_VIRTIO_SCSI,
             QEMU_CAPS_SCSI_DISK_WWN);
     DO_TEST("disk-scsi-disk-vpd",
             QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG,
-            QEMU_CAPS_SCSI_CD, QEMU_CAPS_SCSI_LSI, QEMU_CAPS_VIRTIO_SCSI_PCI,
+            QEMU_CAPS_SCSI_CD, QEMU_CAPS_SCSI_LSI, QEMU_CAPS_VIRTIO_SCSI,
             QEMU_CAPS_SCSI_DISK_WWN);
     DO_TEST_FAILURE("disk-scsi-disk-vpd-build-error",
             QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG,
-            QEMU_CAPS_SCSI_CD, QEMU_CAPS_SCSI_LSI, QEMU_CAPS_VIRTIO_SCSI_PCI,
+            QEMU_CAPS_SCSI_CD, QEMU_CAPS_SCSI_LSI, QEMU_CAPS_VIRTIO_SCSI,
             QEMU_CAPS_SCSI_DISK_WWN);
     DO_TEST("disk-scsi-vscsi",
             QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG);
     DO_TEST("disk-scsi-virtio-scsi",
             QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG,
-            QEMU_CAPS_VIRTIO_SCSI_PCI);
+            QEMU_CAPS_VIRTIO_SCSI);
+    DO_TEST("disk-scsi-megasas",
+            QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG,
+            QEMU_CAPS_SCSI_MEGASAS);
     DO_TEST("disk-sata-device",
             QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE,
             QEMU_CAPS_NODEFCONFIG, QEMU_CAPS_ICH9_AHCI);
@@ -556,7 +583,7 @@ mymain(void)
             QEMU_CAPS_DRIVE,
             QEMU_CAPS_DEVICE,
             QEMU_CAPS_SCSI_BLOCK, QEMU_CAPS_VIRTIO_BLK_SG_IO,
-            QEMU_CAPS_SCSI_LSI, QEMU_CAPS_VIRTIO_SCSI_PCI);
+            QEMU_CAPS_SCSI_LSI, QEMU_CAPS_VIRTIO_SCSI);
 
     DO_TEST("graphics-vnc", QEMU_CAPS_VNC);
     DO_TEST("graphics-vnc-socket", QEMU_CAPS_VNC);
@@ -625,6 +652,8 @@ mymain(void)
             QEMU_CAPS_DEVICE, QEMU_CAPS_NETDEV, QEMU_CAPS_NODEFCONFIG);
     DO_TEST("net-virtio-s390",
             QEMU_CAPS_DEVICE, QEMU_CAPS_VIRTIO_S390);
+    DO_TEST("net-virtio-ccw",
+            QEMU_CAPS_DEVICE, QEMU_CAPS_VIRTIO_CCW, QEMU_CAPS_VIRTIO_S390);
     DO_TEST("net-eth", NONE);
     DO_TEST("net-eth-ifname", NONE);
     DO_TEST("net-eth-names", QEMU_CAPS_NET_NAME);
@@ -684,7 +713,11 @@ mymain(void)
             QEMU_CAPS_DEVICE, QEMU_CAPS_CHARDEV, QEMU_CAPS_NODEFCONFIG);
     DO_TEST("console-virtio-s390",
             QEMU_CAPS_DEVICE, QEMU_CAPS_CHARDEV, QEMU_CAPS_NODEFCONFIG,
-            QEMU_CAPS_DRIVE,  QEMU_CAPS_VIRTIO_S390);
+            QEMU_CAPS_DRIVE, QEMU_CAPS_BOOTINDEX, QEMU_CAPS_VIRTIO_S390);
+    DO_TEST("console-virtio-ccw",
+            QEMU_CAPS_DEVICE, QEMU_CAPS_CHARDEV, QEMU_CAPS_NODEFCONFIG,
+            QEMU_CAPS_DRIVE, QEMU_CAPS_BOOTINDEX, QEMU_CAPS_VIRTIO_CCW,
+            QEMU_CAPS_VIRTIO_S390);
     DO_TEST("console-sclp",
             QEMU_CAPS_DEVICE, QEMU_CAPS_CHARDEV, QEMU_CAPS_NODEFCONFIG,
             QEMU_CAPS_DRIVE, QEMU_CAPS_VIRTIO_S390, QEMU_CAPS_SCLP_S390);
@@ -882,13 +915,23 @@ mymain(void)
             QEMU_CAPS_DEVICE, QEMU_CAPS_DEVICE_VIDEO_PRIMARY,
             QEMU_CAPS_DEVICE_QXL, QEMU_CAPS_DEVICE_QXL_VGA);
 
+    DO_TEST("virtio-rng-default", QEMU_CAPS_DEVICE, QEMU_CAPS_DEVICE_VIRTIO_RNG,
+            QEMU_CAPS_OBJECT_RNG_RANDOM);
     DO_TEST("virtio-rng-random", QEMU_CAPS_DEVICE, QEMU_CAPS_DEVICE_VIRTIO_RNG,
             QEMU_CAPS_OBJECT_RNG_RANDOM);
     DO_TEST("virtio-rng-egd", QEMU_CAPS_DEVICE, QEMU_CAPS_DEVICE_VIRTIO_RNG,
             QEMU_CAPS_OBJECT_RNG_EGD);
+    DO_TEST("virtio-rng-ccw",
+            QEMU_CAPS_DEVICE, QEMU_CAPS_CHARDEV, QEMU_CAPS_NODEFCONFIG,
+            QEMU_CAPS_DRIVE, QEMU_CAPS_BOOTINDEX, QEMU_CAPS_VIRTIO_CCW,
+            QEMU_CAPS_VIRTIO_S390, QEMU_CAPS_DEVICE_VIRTIO_RNG,
+            QEMU_CAPS_OBJECT_RNG_RANDOM);
+
+    DO_TEST("ppc-dtb", QEMU_CAPS_KVM, QEMU_CAPS_DTB);
 
     virObjectUnref(driver.config);
     virObjectUnref(driver.caps);
+    virObjectUnref(driver.xmlconf);
     VIR_FREE(map);
 
     return ret==0 ? EXIT_SUCCESS : EXIT_FAILURE;

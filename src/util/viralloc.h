@@ -64,7 +64,7 @@ int virInsertElementsN(void *ptrptr, size_t size, size_t at, size_t *countptr,
                        bool clearOriginal, bool inPlace)
     ATTRIBUTE_RETURN_CHECK ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(4);
 int virDeleteElementsN(void *ptrptr, size_t size, size_t at, size_t *countptr,
-                       size_t remove, bool inPlace)
+                       size_t toremove, bool inPlace)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(4);
 int virAllocVar(void *ptrptr,
                 size_t struct_size,
@@ -376,15 +376,8 @@ void virFree(void *ptrptr) ATTRIBUTE_NONNULL(1);
 #  define VIR_FREE(ptr) virFree((void *) &(ptr))
 # endif
 
-
-
-# if TEST_OOM
 void virAllocTestInit(void);
 int virAllocTestCount(void);
 void virAllocTestOOM(int n, int m);
 void virAllocTestHook(void (*func)(int, void*), void *data);
-# endif
-
-
-
 #endif /* __VIR_MEMORY_H_ */

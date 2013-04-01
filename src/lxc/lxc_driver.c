@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010-2012 Red Hat, Inc.
+ * Copyright (C) 2010-2013 Red Hat, Inc.
  * Copyright IBM Corp. 2008
  *
  * lxc_driver.c: linux container driver functions
@@ -413,7 +413,7 @@ static virDomainPtr lxcDomainDefine(virConnectPtr conn, const char *xml)
     virDomainDefPtr oldDef = NULL;
 
     lxcDriverLock(driver);
-    if (!(def = virDomainDefParseString(driver->caps, xml,
+    if (!(def = virDomainDefParseString(driver->caps, driver->xmlconf, xml,
                                         1 << VIR_DOMAIN_VIRT_LXC,
                                         VIR_DOMAIN_XML_INACTIVE)))
         goto cleanup;
@@ -428,7 +428,7 @@ static virDomainPtr lxcDomainDefine(virConnectPtr conn, const char *xml)
     }
 
     if (!(vm = virDomainObjListAdd(driver->domains,
-                                   driver->caps,
+                                   driver->xmlconf,
                                    def,
                                    0,
                                    &oldDef)))
@@ -1069,7 +1069,7 @@ lxcDomainCreateAndStart(virConnectPtr conn,
     virCheckFlags(VIR_DOMAIN_START_AUTODESTROY, NULL);
 
     lxcDriverLock(driver);
-    if (!(def = virDomainDefParseString(driver->caps, xml,
+    if (!(def = virDomainDefParseString(driver->caps, driver->xmlconf, xml,
                                         1 << VIR_DOMAIN_VIRT_LXC,
                                         VIR_DOMAIN_XML_INACTIVE)))
         goto cleanup;
@@ -1085,7 +1085,7 @@ lxcDomainCreateAndStart(virConnectPtr conn,
 
 
     if (!(vm = virDomainObjListAdd(driver->domains,
-                                   driver->caps,
+                                   driver->xmlconf,
                                    def,
                                    VIR_DOMAIN_OBJ_LIST_ADD_CHECK_LIVE,
                                    NULL)))
@@ -1162,8 +1162,16 @@ static int lxcDomainGetSecurityLabel(virDomainPtr dom, virSecurityLabelPtr secla
      *   LXC monitor hasn't seen SIGHUP/ERR on poll().
      */
     if (virDomainObjIsActive(vm)) {
+        virLXCDomainObjPrivatePtr priv = vm->privateData;
+
+        if (!priv->initpid) {
+            virReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                           _("Init pid is not yet available"));
+            goto cleanup;
+        }
+
         if (virSecurityManagerGetProcessLabel(driver->securityManager,
-                                              vm->def, vm->pid, seclabel) < 0) {
+                                              vm->def, priv->initpid, seclabel) < 0) {
             virReportError(VIR_ERR_INTERNAL_ERROR,
                            "%s", _("Failed to get security label"));
             goto cleanup;
@@ -1469,10 +1477,14 @@ static int lxcStartup(bool privileged,
     if (lxcSecurityInit(lxc_driver) < 0)
         goto cleanup;
 
+    if ((lxc_driver->activeUsbHostdevs = virUSBDeviceListNew()) == NULL)
+        goto cleanup;
+
     if ((lxc_driver->caps = lxcCapsInit(lxc_driver)) == NULL)
         goto cleanup;
 
-    virLXCDomainSetPrivateDataHooks(lxc_driver->caps);
+    if (!(lxc_driver->xmlconf = lxcDomainXMLConfInit()))
+        goto cleanup;
 
     if (virLXCProcessAutoDestroyInit(lxc_driver) < 0)
         goto cleanup;
@@ -1480,6 +1492,7 @@ static int lxcStartup(bool privileged,
     /* Get all the running persistent or transient configs first */
     if (virDomainObjListLoadAllConfigs(lxc_driver->domains,
                                        lxc_driver->caps,
+                                       lxc_driver->xmlconf,
                                        lxc_driver->stateDir,
                                        NULL,
                                        1, 1 << VIR_DOMAIN_VIRT_LXC,
@@ -1491,6 +1504,7 @@ static int lxcStartup(bool privileged,
     /* Then inactive persistent configs */
     if (virDomainObjListLoadAllConfigs(lxc_driver->domains,
                                        lxc_driver->caps,
+                                       lxc_driver->xmlconf,
                                        lxc_driver->configDir,
                                        lxc_driver->autostartDir,
                                        0, 1 << VIR_DOMAIN_VIRT_LXC,
@@ -1538,6 +1552,7 @@ lxcReload(void) {
     lxcDriverLock(lxc_driver);
     virDomainObjListLoadAllConfigs(lxc_driver->domains,
                                    lxc_driver->caps,
+                                   lxc_driver->xmlconf,
                                    lxc_driver->configDir,
                                    lxc_driver->autostartDir,
                                    0, 1 << VIR_DOMAIN_VIRT_LXC,
@@ -1559,8 +1574,10 @@ static int lxcShutdown(void)
 
     virLXCProcessAutoDestroyShutdown(lxc_driver);
 
+    virObjectUnref(lxc_driver->activeUsbHostdevs);
     virObjectUnref(lxc_driver->caps);
     virObjectUnref(lxc_driver->securityManager);
+    virObjectUnref(lxc_driver->xmlconf);
     VIR_FREE(lxc_driver->configDir);
     VIR_FREE(lxc_driver->autostartDir);
     VIR_FREE(lxc_driver->stateDir);
@@ -1782,13 +1799,13 @@ lxcSetSchedulerParametersFlags(virDomainPtr dom,
         goto cleanup;
     }
 
-    if (virDomainLiveConfigHelperMethod(driver->caps, vm, &flags,
-                                        &vmdef) < 0)
+    if (virDomainLiveConfigHelperMethod(driver->caps, driver->xmlconf,
+                                        vm, &flags, &vmdef) < 0)
         goto cleanup;
 
     if (flags & VIR_DOMAIN_AFFECT_CONFIG) {
         /* Make a copy for updated domain. */
-        vmdef = virDomainObjCopyPersistentDef(driver->caps, vm);
+        vmdef = virDomainObjCopyPersistentDef(driver->caps, driver->xmlconf, vm);
         if (!vmdef)
             goto cleanup;
     }
@@ -1854,7 +1871,7 @@ lxcSetSchedulerParametersFlags(virDomainPtr dom,
         }
     }
 
-    if (virDomainSaveStatus(driver->caps, driver->stateDir, vm) < 0)
+    if (virDomainSaveStatus(driver->xmlconf, driver->stateDir, vm) < 0)
         goto cleanup;
 
 
@@ -1924,8 +1941,8 @@ lxcGetSchedulerParametersFlags(virDomainPtr dom,
         goto cleanup;
     }
 
-    if (virDomainLiveConfigHelperMethod(driver->caps, vm, &flags,
-                                        &persistentDef) < 0)
+    if (virDomainLiveConfigHelperMethod(driver->caps, driver->xmlconf,
+                                        vm, &flags, &persistentDef) < 0)
         goto cleanup;
 
     if (flags & VIR_DOMAIN_AFFECT_CONFIG) {
@@ -2037,8 +2054,8 @@ lxcDomainSetBlkioParameters(virDomainPtr dom,
         goto cleanup;
     }
 
-    if (virDomainLiveConfigHelperMethod(driver->caps, vm, &flags,
-                                        &persistentDef) < 0)
+    if (virDomainLiveConfigHelperMethod(driver->caps, driver->xmlconf,
+                                        vm, &flags, &persistentDef) < 0)
         goto cleanup;
 
     if (flags & VIR_DOMAIN_AFFECT_LIVE) {
@@ -2142,8 +2159,8 @@ lxcDomainGetBlkioParameters(virDomainPtr dom,
         goto cleanup;
     }
 
-    if (virDomainLiveConfigHelperMethod(driver->caps, vm, &flags,
-                                        &persistentDef) < 0)
+    if (virDomainLiveConfigHelperMethod(driver->caps, driver->xmlconf,
+                                        vm, &flags, &persistentDef) < 0)
         goto cleanup;
 
     if (flags & VIR_DOMAIN_AFFECT_LIVE) {
@@ -2508,7 +2525,7 @@ static int lxcDomainSuspend(virDomainPtr dom)
                                          VIR_DOMAIN_EVENT_SUSPENDED_PAUSED);
     }
 
-    if (virDomainSaveStatus(driver->caps, driver->stateDir, vm) < 0)
+    if (virDomainSaveStatus(driver->xmlconf, driver->stateDir, vm) < 0)
         goto cleanup;
     ret = 0;
 
@@ -2574,7 +2591,7 @@ static int lxcDomainResume(virDomainPtr dom)
                                          VIR_DOMAIN_EVENT_RESUMED_UNPAUSED);
     }
 
-    if (virDomainSaveStatus(driver->caps, driver->stateDir, vm) < 0)
+    if (virDomainSaveStatus(driver->xmlconf, driver->stateDir, vm) < 0)
         goto cleanup;
     ret = 0;
 
@@ -2761,12 +2778,18 @@ lxcDomainShutdownFlags(virDomainPtr dom,
     virLXCDriverPtr driver = dom->conn->privateData;
     virLXCDomainObjPrivatePtr priv;
     virDomainObjPtr vm;
+    virDomainFSDefPtr root;
     char *vroot = NULL;
     int ret = -1;
-    int rc;
+    int rc = 0;
+    bool methodSignal;
+    bool methodInitctl;
 
     virCheckFlags(VIR_DOMAIN_SHUTDOWN_INITCTL |
                   VIR_DOMAIN_SHUTDOWN_SIGNAL, -1);
+
+    methodSignal = !!(flags & VIR_DOMAIN_SHUTDOWN_SIGNAL);
+    methodInitctl = !!(flags & VIR_DOMAIN_SHUTDOWN_INITCTL);
 
     lxcDriverLock(driver);
     vm = virDomainObjListFindByUUID(driver->domains, dom->uuid);
@@ -2781,6 +2804,7 @@ lxcDomainShutdownFlags(virDomainPtr dom,
     }
 
     priv = vm->privateData;
+    root = virDomainGetRootFilesystem(vm->def);
 
     if (!virDomainObjIsActive(vm)) {
         virReportError(VIR_ERR_OPERATION_INVALID,
@@ -2800,27 +2824,31 @@ lxcDomainShutdownFlags(virDomainPtr dom,
         goto cleanup;
     }
 
-    if (flags == 0 ||
-        (flags & VIR_DOMAIN_SHUTDOWN_INITCTL)) {
-        if ((rc = virInitctlSetRunLevel(VIR_INITCTL_RUNLEVEL_POWEROFF,
-                                        vroot)) < 0) {
+    if (root && root->src) {
+        if (flags == 0)
+            methodSignal = methodInitctl = true;
+    } else if (methodInitctl) {
+        virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
+                       _("Cannot shutdown container using initctl "
+                         "without separated namespace"));
+        goto cleanup;
+    } else {
+        methodSignal = true;
+    }
+
+    if (methodInitctl) {
+        rc = virInitctlSetRunLevel(VIR_INITCTL_RUNLEVEL_POWEROFF, vroot);
+        if (rc < 0)
             goto cleanup;
-        }
-        if (rc == 0 && flags != 0 &&
-            ((flags & ~VIR_DOMAIN_SHUTDOWN_INITCTL) == 0)) {
+        if (rc == 0 && !methodSignal) {
             virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
                            _("Container does not provide an initctl pipe"));
             goto cleanup;
         }
-    } else {
-        rc = 0;
     }
-
-    if (rc == 0 &&
-        (flags == 0 ||
-         (flags & VIR_DOMAIN_SHUTDOWN_SIGNAL))) {
-        if (kill(priv->initpid, SIGTERM) < 0 &&
-            errno != ESRCH) {
+    if (rc == 0 && methodSignal) {
+        ret = kill(priv->initpid, SIGTERM);
+        if (ret < 0 && errno != ESRCH) {
             virReportSystemError(errno,
                                  _("Unable to send SIGTERM to init pid %llu"),
                                  (unsigned long long)priv->initpid);
@@ -4353,7 +4381,7 @@ lxcDomainModifyDeviceFlags(virDomainPtr dom, const char *xml,
             goto cleanup;
 
         /* Make a copy for updated domain. */
-        vmdef = virDomainObjCopyPersistentDef(driver->caps, vm);
+        vmdef = virDomainObjCopyPersistentDef(driver->caps, driver->xmlconf, vm);
         if (!vmdef)
             goto cleanup;
         switch (action) {
@@ -4401,7 +4429,7 @@ lxcDomainModifyDeviceFlags(virDomainPtr dom, const char *xml,
          * changed even if we failed to attach the device. For example,
          * a new controller may be created.
          */
-        if (virDomainSaveStatus(driver->caps, driver->stateDir, vm) < 0) {
+        if (virDomainSaveStatus(driver->xmlconf, driver->stateDir, vm) < 0) {
             ret = -1;
             goto cleanup;
         }

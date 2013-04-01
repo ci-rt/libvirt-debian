@@ -131,6 +131,7 @@
      <exports symbol='VIR_CONNECT_LIST_NETWORKS_NO_AUTOSTART' type='enum'/>
      <exports symbol='VIR_CONNECT_LIST_NETWORKS_PERSISTENT' type='enum'/>
      <exports symbol='VIR_CONNECT_LIST_NETWORKS_TRANSIENT' type='enum'/>
+     <exports symbol='VIR_CONNECT_LIST_NODE_DEVICES_CAP_FC_HOST' type='enum'/>
      <exports symbol='VIR_CONNECT_LIST_NODE_DEVICES_CAP_NET' type='enum'/>
      <exports symbol='VIR_CONNECT_LIST_NODE_DEVICES_CAP_PCI_DEV' type='enum'/>
      <exports symbol='VIR_CONNECT_LIST_NODE_DEVICES_CAP_SCSI' type='enum'/>
@@ -140,6 +141,7 @@
      <exports symbol='VIR_CONNECT_LIST_NODE_DEVICES_CAP_SYSTEM' type='enum'/>
      <exports symbol='VIR_CONNECT_LIST_NODE_DEVICES_CAP_USB_DEV' type='enum'/>
      <exports symbol='VIR_CONNECT_LIST_NODE_DEVICES_CAP_USB_INTERFACE' type='enum'/>
+     <exports symbol='VIR_CONNECT_LIST_NODE_DEVICES_CAP_VPORTS' type='enum'/>
      <exports symbol='VIR_CONNECT_LIST_SECRETS_EPHEMERAL' type='enum'/>
      <exports symbol='VIR_CONNECT_LIST_SECRETS_NO_EPHEMERAL' type='enum'/>
      <exports symbol='VIR_CONNECT_LIST_SECRETS_NO_PRIVATE' type='enum'/>
@@ -588,6 +590,7 @@
      <exports symbol='VIR_NODE_SUSPEND_TARGET_LAST' type='enum'/>
      <exports symbol='VIR_NODE_SUSPEND_TARGET_MEM' type='enum'/>
      <exports symbol='VIR_SECRET_USAGE_TYPE_CEPH' type='enum'/>
+     <exports symbol='VIR_SECRET_USAGE_TYPE_ISCSI' type='enum'/>
      <exports symbol='VIR_SECRET_USAGE_TYPE_LAST' type='enum'/>
      <exports symbol='VIR_SECRET_USAGE_TYPE_NONE' type='enum'/>
      <exports symbol='VIR_SECRET_USAGE_TYPE_VOLUME' type='enum'/>
@@ -1349,6 +1352,7 @@
      <exports symbol='VIR_FROM_EVENT' type='enum'/>
      <exports symbol='VIR_FROM_HOOK' type='enum'/>
      <exports symbol='VIR_FROM_HYPERV' type='enum'/>
+     <exports symbol='VIR_FROM_IDENTITY' type='enum'/>
      <exports symbol='VIR_FROM_INITCTL' type='enum'/>
      <exports symbol='VIR_FROM_INTERFACE' type='enum'/>
      <exports symbol='VIR_FROM_LIBXL' type='enum'/>
@@ -1756,6 +1760,7 @@
     <enum name='VIR_CONNECT_LIST_NETWORKS_NO_AUTOSTART' file='libvirt' value='32' type='virConnectListAllNetworksFlags'/>
     <enum name='VIR_CONNECT_LIST_NETWORKS_PERSISTENT' file='libvirt' value='4' type='virConnectListAllNetworksFlags'/>
     <enum name='VIR_CONNECT_LIST_NETWORKS_TRANSIENT' file='libvirt' value='8' type='virConnectListAllNetworksFlags'/>
+    <enum name='VIR_CONNECT_LIST_NODE_DEVICES_CAP_FC_HOST' file='libvirt' value='512' type='virConnectListAllNodeDeviceFlags' info='FC Host Bus Adapter'/>
     <enum name='VIR_CONNECT_LIST_NODE_DEVICES_CAP_NET' file='libvirt' value='16' type='virConnectListAllNodeDeviceFlags' info='Network device'/>
     <enum name='VIR_CONNECT_LIST_NODE_DEVICES_CAP_PCI_DEV' file='libvirt' value='2' type='virConnectListAllNodeDeviceFlags' info='PCI device'/>
     <enum name='VIR_CONNECT_LIST_NODE_DEVICES_CAP_SCSI' file='libvirt' value='128' type='virConnectListAllNodeDeviceFlags' info='SCSI device'/>
@@ -1765,6 +1770,7 @@
     <enum name='VIR_CONNECT_LIST_NODE_DEVICES_CAP_SYSTEM' file='libvirt' value='1' type='virConnectListAllNodeDeviceFlags' info='System capability'/>
     <enum name='VIR_CONNECT_LIST_NODE_DEVICES_CAP_USB_DEV' file='libvirt' value='4' type='virConnectListAllNodeDeviceFlags' info='USB device'/>
     <enum name='VIR_CONNECT_LIST_NODE_DEVICES_CAP_USB_INTERFACE' file='libvirt' value='8' type='virConnectListAllNodeDeviceFlags' info='USB interface'/>
+    <enum name='VIR_CONNECT_LIST_NODE_DEVICES_CAP_VPORTS' file='libvirt' value='1024' type='virConnectListAllNodeDeviceFlags' info='Capable of vport'/>
     <enum name='VIR_CONNECT_LIST_SECRETS_EPHEMERAL' file='libvirt' value='1' type='virConnectListAllSecretsFlags' info='kept in memory, never
 stored persistently'/>
     <enum name='VIR_CONNECT_LIST_SECRETS_NO_EPHEMERAL' file='libvirt' value='2' type='virConnectListAllSecretsFlags'/>
@@ -2234,7 +2240,7 @@ the given driver'/>
 construct'/>
     <enum name='VIR_ERR_CONF_SYNTAX' file='virterror' value='33' type='virErrorNumber' info='failed to parse the syntax of a
 conf file'/>
-    <enum name='VIR_ERR_DOMAIN_LAST' file='virterror' value='53' type='virErrorDomain'/>
+    <enum name='VIR_ERR_DOMAIN_LAST' file='virterror' value='54' type='virErrorDomain'/>
     <enum name='VIR_ERR_DOM_EXIST' file='virterror' value='28' type='virErrorNumber' info='the domain already exist'/>
     <enum name='VIR_ERR_DRIVER_FULL' file='virterror' value='25' type='virErrorNumber' info='too many drivers registered'/>
     <enum name='VIR_ERR_ERROR' file='virterror' value='2' type='virErrorLevel' info='An error'/>
@@ -2339,6 +2345,7 @@ formed or broken'/>
     <enum name='VIR_FROM_EVENT' file='virterror' value='40' type='virErrorDomain' info='Error from event loop impl'/>
     <enum name='VIR_FROM_HOOK' file='virterror' value='34' type='virErrorDomain' info='Error from Synchronous hooks'/>
     <enum name='VIR_FROM_HYPERV' file='virterror' value='43' type='virErrorDomain' info='Error from Hyper-V driver'/>
+    <enum name='VIR_FROM_IDENTITY' file='virterror' value='53' type='virErrorDomain' info='Error from identity code'/>
     <enum name='VIR_FROM_INITCTL' file='virterror' value='52' type='virErrorDomain' info='Error from initctl device communication'/>
     <enum name='VIR_FROM_INTERFACE' file='virterror' value='26' type='virErrorDomain' info='Error when operating on an interface'/>
     <enum name='VIR_FROM_LIBXL' file='virterror' value='41' type='virErrorDomain' info='Error from libxenlight driver'/>
@@ -2443,7 +2450,8 @@ config if it&apos;s not active'/>
     <enum name='VIR_NODE_SUSPEND_TARGET_LAST' file='libvirt' value='3' type='virNodeSuspendTarget' info='This constant is subject to change'/>
     <enum name='VIR_NODE_SUSPEND_TARGET_MEM' file='libvirt' value='0' type='virNodeSuspendTarget'/>
     <enum name='VIR_SECRET_USAGE_TYPE_CEPH' file='libvirt' value='2' type='virSecretUsageType'/>
-    <enum name='VIR_SECRET_USAGE_TYPE_LAST' file='libvirt' value='3' type='virSecretUsageType' info='NB: this enum value will increase over time as new events are
+    <enum name='VIR_SECRET_USAGE_TYPE_ISCSI' file='libvirt' value='3' type='virSecretUsageType'/>
+    <enum name='VIR_SECRET_USAGE_TYPE_LAST' file='libvirt' value='4' type='virSecretUsageType' info='NB: this enum value will increase over time as new events are
  added to the libvirt API. It reflects the last secret owner ID
  supported by this version of the libvirt API.'/>
     <enum name='VIR_SECRET_USAGE_TYPE_NONE' file='libvirt' value='0' type='virSecretUsageType'/>
@@ -3499,7 +3507,9 @@ capability type, flags include:
   VIR_CONNECT_LIST_NODE_DEVICES_CAP_SCSI_HOST
   VIR_CONNECT_LIST_NODE_DEVICES_CAP_SCSI_TARGET
   VIR_CONNECT_LIST_NODE_DEVICES_CAP_SCSI
-  VIR_CONNECT_LIST_NODE_DEVICES_CAP_STORAGE]]></info>
+  VIR_CONNECT_LIST_NODE_DEVICES_CAP_STORAGE
+  VIR_CONNECT_LIST_NODE_DEVICES_CAP_FC_HOST
+  VIR_CONNECT_LIST_NODE_DEVICES_CAP_VPORTS]]></info>
       <return type='int' info='the number of node devices found or -1 and sets @devices to NULL in case of error.  On success, the array stored into @devices is guaranteed to have an extra allocated element set to NULL but not included in the return count, to make iteration easier.  The caller is responsible for calling virNodeDeviceFree() on each array element, then calling free() on @devices.'/>
       <arg name='conn' type='virConnectPtr' info='Pointer to the hypervisor connection.'/>
       <arg name='devices' type='virNodeDevicePtr **' info='Pointer to a variable to store the array containing the node device objects or NULL if the list is not required (just returns number of node devices).'/>
@@ -3718,7 +3728,7 @@ For more control over the results, see virConnectListAllStoragePools().]]></info
       <info><![CDATA[This function should be called first to get a connection to the
 Hypervisor and xen store]]></info>
       <return type='virConnectPtr' info='a pointer to the hypervisor connection or NULL in case of error  If @name is NULL, if the LIBVIRT_DEFAULT_URI environment variable is set, then it will be used. Otherwise if the client configuration file has the &quot;uri_default&quot; parameter set, then it will be used. Finally probing will be done to determine a suitable default driver to activate. This involves trying each hypervisor in turn until one successfully opens.  If connecting to an unprivileged hypervisor driver which requires the libvirtd daemon to be active, it will automatically be launched if not already running. This can be prevented by setting the environment variable LIBVIRT_AUTOSTART=0  URIs are documented at http://libvirt.org/uri.html'/>
-      <arg name='name' type='const char *' info='URI of the hypervisor'/>
+      <arg name='name' type='const char *' info='(optional) URI of the hypervisor'/>
     </function>
     <function name='virConnectOpenAuth' file='libvirt' module='libvirt'>
       <info><![CDATA[This function should be called first to get a connection to the
@@ -3728,7 +3738,7 @@ credentials via the callback
 See virConnectOpen for notes about environment variables which can
 have an effect on opening drivers]]></info>
       <return type='virConnectPtr' info='a pointer to the hypervisor connection or NULL in case of error  URIs are documented at http://libvirt.org/uri.html'/>
-      <arg name='name' type='const char *' info='URI of the hypervisor'/>
+      <arg name='name' type='const char *' info='(optional) URI of the hypervisor'/>
       <arg name='auth' type='virConnectAuthPtr' info='Authenticate callback parameters'/>
       <arg name='flags' type='unsigned int' info='bitwise-OR of virConnectFlags'/>
     </function>
@@ -3740,7 +3750,7 @@ on the available methods to control the domains.
 See virConnectOpen for notes about environment variables which can
 have an effect on opening drivers]]></info>
       <return type='virConnectPtr' info='a pointer to the hypervisor connection or NULL in case of error  URIs are documented at http://libvirt.org/uri.html'/>
-      <arg name='name' type='const char *' info='URI of the hypervisor'/>
+      <arg name='name' type='const char *' info='(optional) URI of the hypervisor'/>
     </function>
     <function name='virConnectRef' file='libvirt' module='libvirt'>
       <info><![CDATA[Increment the reference count on the connection. For each

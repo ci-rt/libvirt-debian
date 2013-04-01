@@ -1909,6 +1909,7 @@ CLASSES_EXTRA = \
 	libvirt-override-virConnect.py \
 	libvirt-override-virDomain.py \
 	libvirt-override-virDomainSnapshot.py \
+	libvirt-override-virStoragePool.py \
 	libvirt-override-virStream.py
 
 EXTRA_DIST = generator.py typewrappers.c typewrappers.h \
@@ -2490,7 +2491,11 @@ uninstall-am: uninstall-local uninstall-pyexecLTLIBRARIES
 
 @WITH_PYTHON_TRUE@all-local: libvirt.py libvirt_qemu.py libvirt_lxc.py
 
-@WITH_PYTHON_TRUE@$(GENERATE).stamp: $(srcdir)/$(GENERATE) $(API_DESC) $(QEMU_API_DESC) $(LXC_API_DESC)
+@WITH_PYTHON_TRUE@$(GENERATE).stamp: $(srcdir)/$(GENERATE) \
+@WITH_PYTHON_TRUE@                   $(API_DESC) \
+@WITH_PYTHON_TRUE@                   $(QEMU_API_DESC) \
+@WITH_PYTHON_TRUE@                   $(LXC_API_DESC) \
+@WITH_PYTHON_TRUE@                   $(CLASSES_EXTRA)
 @WITH_PYTHON_TRUE@	$(AM_V_GEN)$(PYTHON) $(srcdir)/$(GENERATE) $(PYTHON) && \
 @WITH_PYTHON_TRUE@	touch $@
 

@@ -64,7 +64,6 @@ struct _virNetServerClient
     virNetSocketPtr sock;
     int auth;
     bool readonly;
-    char *identity;
 #if WITH_GNUTLS
     virNetTLSContextPtr tlsCtxt;
     virNetTLSSessionPtr tls;
@@ -74,6 +73,9 @@ struct _virNetServerClient
 #endif
     int sockTimer; /* Timer to be fired upon cached data,
                     * so we jump out from poll() immediately */
+
+
+    virIdentityPtr identity;
 
     /* Count of messages in the 'tx' queue,
      * and the server worker pool queue
@@ -442,7 +444,6 @@ virNetServerClientPtr virNetServerClientNewPostExecRestart(virJSONValuePtr objec
     virJSONValuePtr child;
     virNetServerClientPtr client = NULL;
     virNetSocketPtr sock;
-    const char *identity = NULL;
     int auth;
     bool readonly;
     unsigned int nrequests_max;
@@ -461,12 +462,6 @@ virNetServerClientPtr virNetServerClientNewPostExecRestart(virJSONValuePtr objec
                                         (unsigned int *)&nrequests_max) < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                        _("Missing nrequests_client_max field in JSON state document"));
-        return NULL;
-    }
-    if (virJSONValueObjectHasKey(object, "identity") &&
-        (!(identity = virJSONValueObjectGetString(object, "identity")))) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       _("Missing identity field in JSON state document"));
         return NULL;
     }
 
@@ -492,10 +487,6 @@ virNetServerClientPtr virNetServerClientNewPostExecRestart(virJSONValuePtr objec
         return NULL;
     }
     virObjectUnref(sock);
-
-    if (identity &&
-        virNetServerClientSetIdentity(client, identity) < 0)
-        goto error;
 
     if (privNew) {
         if (!(child = virJSONValueObjectGet(object, "privateData"))) {
@@ -536,10 +527,6 @@ virJSONValuePtr virNetServerClientPreExecRestart(virNetServerClientPtr client)
     if (virJSONValueObjectAppendNumberUint(object, "nrequests_max", client->nrequests_max) < 0)
         goto error;
 
-    if (client->identity &&
-        virJSONValueObjectAppendString(object, "identity", client->identity) < 0)
-        goto error;
-
     if (!(child = virNetSocketPreExecRestart(client->sock)))
         goto error;
 
@@ -576,6 +563,13 @@ int virNetServerClientGetAuth(virNetServerClientPtr client)
     return auth;
 }
 
+void virNetServerClientSetAuth(virNetServerClientPtr client, int auth)
+{
+    virObjectLock(client);
+    client->auth = auth;
+    virObjectUnlock(client);
+}
+
 bool virNetServerClientGetReadonly(virNetServerClientPtr client)
 {
     bool readonly;
@@ -594,6 +588,16 @@ bool virNetServerClientHasTLSSession(virNetServerClientPtr client)
     has = client->tls ? true : false;
     virObjectUnlock(client);
     return has;
+}
+
+
+virNetTLSSessionPtr virNetServerClientGetTLSSession(virNetServerClientPtr client)
+{
+    virNetTLSSessionPtr tls;
+    virObjectLock(client);
+    tls = client->tls;
+    virObjectUnlock(client);
+    return tls;
 }
 
 int virNetServerClientGetTLSKeySize(virNetServerClientPtr client)
@@ -617,6 +621,18 @@ int virNetServerClientGetFD(virNetServerClientPtr client)
     return fd;
 }
 
+
+bool virNetServerClientIsLocal(virNetServerClientPtr client)
+{
+    bool local = false;
+    virObjectLock(client);
+    if (client->sock)
+        local = virNetSocketIsLocal(client->sock);
+    virObjectUnlock(client);
+    return local;
+}
+
+
 int virNetServerClientGetUNIXIdentity(virNetServerClientPtr client,
                                       uid_t *uid, gid_t *gid, pid_t *pid)
 {
@@ -627,6 +643,144 @@ int virNetServerClientGetUNIXIdentity(virNetServerClientPtr client,
     virObjectUnlock(client);
     return ret;
 }
+
+
+static virIdentityPtr
+virNetServerClientCreateIdentity(virNetServerClientPtr client)
+{
+    char *processid = NULL;
+    char *username = NULL;
+    char *groupname = NULL;
+#if WITH_SASL
+    char *saslname = NULL;
+#endif
+    char *x509dname = NULL;
+    char *seccontext = NULL;
+    virIdentityPtr ret = NULL;
+
+    if (client->sock && virNetSocketIsLocal(client->sock)) {
+        gid_t gid;
+        uid_t uid;
+        pid_t pid;
+        if (virNetSocketGetUNIXIdentity(client->sock, &uid, &gid, &pid) < 0)
+            goto cleanup;
+
+        if (!(username = virGetUserName(uid)))
+            goto cleanup;
+        if (!(groupname = virGetGroupName(gid)))
+            goto cleanup;
+        if (virAsprintf(&processid, "%lld",
+                        (long long)pid) < 0) {
+            virReportOOMError();
+            goto cleanup;
+        }
+    }
+
+#if WITH_SASL
+    if (client->sasl) {
+        const char *identity = virNetSASLSessionGetIdentity(client->sasl);
+        if (identity &&
+            !(saslname = strdup(identity))) {
+            virReportOOMError();
+            goto cleanup;
+        }
+    }
+#endif
+
+#if WITH_GNUTLS
+    if (client->tls) {
+        const char *identity = virNetTLSSessionGetX509DName(client->tls);
+        if (identity &&
+            !(x509dname = strdup(identity))) {
+            virReportOOMError();
+            goto cleanup;
+        }
+    }
+#endif
+
+    if (client->sock &&
+        virNetSocketGetSecurityContext(client->sock, &seccontext) < 0)
+        goto cleanup;
+
+    if (!(ret = virIdentityNew()))
+        goto cleanup;
+
+    if (username &&
+        virIdentitySetAttr(ret,
+                           VIR_IDENTITY_ATTR_UNIX_USER_NAME,
+                           username) < 0)
+        goto error;
+    if (groupname &&
+        virIdentitySetAttr(ret,
+                           VIR_IDENTITY_ATTR_UNIX_GROUP_NAME,
+                           groupname) < 0)
+        goto error;
+    if (processid &&
+        virIdentitySetAttr(ret,
+                           VIR_IDENTITY_ATTR_UNIX_PROCESS_ID,
+                           processid) < 0)
+        goto error;
+#if HAVE_SASL
+    if (saslname &&
+        virIdentitySetAttr(ret,
+                           VIR_IDENTITY_ATTR_SASL_USER_NAME,
+                           saslname) < 0)
+        goto error;
+#endif
+    if (x509dname &&
+        virIdentitySetAttr(ret,
+                           VIR_IDENTITY_ATTR_X509_DISTINGUISHED_NAME,
+                           x509dname) < 0)
+        goto error;
+    if (seccontext &&
+        virIdentitySetAttr(ret,
+                           VIR_IDENTITY_ATTR_SECURITY_CONTEXT,
+                           seccontext) < 0)
+        goto error;
+
+cleanup:
+    VIR_FREE(username);
+    VIR_FREE(groupname);
+    VIR_FREE(processid);
+    VIR_FREE(seccontext);
+#if HAVE_SASL
+    VIR_FREE(saslname);
+#endif
+    VIR_FREE(x509dname);
+    return ret;
+
+error:
+    virObjectUnref(ret);
+    ret = NULL;
+    goto cleanup;
+}
+
+
+virIdentityPtr virNetServerClientGetIdentity(virNetServerClientPtr client)
+{
+    virIdentityPtr ret = NULL;
+    virObjectLock(client);
+    if (!client->identity)
+        client->identity = virNetServerClientCreateIdentity(client);
+    if (client->identity)
+        ret = virObjectRef(client->identity);
+    virObjectUnlock(client);
+    return ret;
+}
+
+
+int virNetServerClientGetSecurityContext(virNetServerClientPtr client,
+                                         char **context)
+{
+    int ret = 0;
+    *context = NULL;
+    virObjectLock(client);
+    if (client->sock)
+        ret = virNetSocketGetSecurityContext(client->sock, context);
+    virObjectUnlock(client);
+    return ret;
+}
+
 
 bool virNetServerClientIsSecure(virNetServerClientPtr client)
 {
@@ -660,33 +814,17 @@ void virNetServerClientSetSASLSession(virNetServerClientPtr client,
     client->sasl = virObjectRef(sasl);
     virObjectUnlock(client);
 }
+
+
+virNetSASLSessionPtr virNetServerClientGetSASLSession(virNetServerClientPtr client)
+{
+    virNetSASLSessionPtr sasl;
+    virObjectLock(client);
+    sasl = client->sasl;
+    virObjectUnlock(client);
+    return sasl;
+}
 #endif
-
-
-int virNetServerClientSetIdentity(virNetServerClientPtr client,
-                                  const char *identity)
-{
-    int ret = -1;
-    virObjectLock(client);
-    if (!(client->identity = strdup(identity))) {
-        virReportOOMError();
-        goto error;
-    }
-    ret = 0;
-
-error:
-    virObjectUnlock(client);
-    return ret;
-}
-
-const char *virNetServerClientGetIdentity(virNetServerClientPtr client)
-{
-    const char *identity;
-    virObjectLock(client);
-    identity = client->identity;
-    virObjectUnlock(client);
-    return identity;
-}
 
 
 void *virNetServerClientGetPrivateData(virNetServerClientPtr client)
@@ -739,11 +877,15 @@ void virNetServerClientDispose(void *obj)
 {
     virNetServerClientPtr client = obj;
 
+    PROBE(RPC_SERVER_CLIENT_DISPOSE,
+          "client=%p", client);
+
+    virObjectUnref(client->identity);
+
     if (client->privateData &&
         client->privateDataFreeFunc)
         client->privateDataFreeFunc(client->privateData);
 
-    VIR_FREE(client->identity);
 #if WITH_SASL
     virObjectUnref(client->sasl);
 #endif
@@ -1319,7 +1461,7 @@ bool virNetServerClientNeedAuth(virNetServerClientPtr client)
 {
     bool need = false;
     virObjectLock(client);
-    if (client->auth && !client->identity)
+    if (client->auth)
         need = true;
     virObjectUnlock(client);
     return need;
