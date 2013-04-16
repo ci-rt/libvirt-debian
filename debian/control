@@ -40,6 +40,7 @@ Build-Depends: cdbs (>= 0.4.90~),
 # for --with-storage-sheepdog
  sheepdog [linux-any],
 # For "make check"
+ augeas-tools,
  dwarves,
  libxml2-utils,
  dnsmasq-base,
