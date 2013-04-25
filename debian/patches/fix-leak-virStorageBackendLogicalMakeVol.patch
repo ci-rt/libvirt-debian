@@ -1,0 +1,31 @@
+From: Luca Tettamanti <ltettamanti@acunu.com>
+Date: Thu, 25 Apr 2013 21:44:30 +0200
+Subject: Backport upstream 71da3b66 (fix leak in virStorageBackendLogicalMakeVol)
+
+===================================================================
+---
+ src/storage/storage_backend_logical.c |    5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/src/storage/storage_backend_logical.c b/src/storage/storage_backend_logical.c
+index 9a91dd9..7abb17b 100644
+--- a/src/storage/storage_backend_logical.c
++++ b/src/storage/storage_backend_logical.c
+@@ -204,13 +204,16 @@ virStorageBackendLogicalMakeVol(virStoragePoolObjPtr pool,
+     if (err != 0) {
+         char error[100];
+         regerror(err, reg, error, sizeof(error));
++        regfree(reg);
+         virStorageReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("Failed to compile regex %s"),
+                               error);
+         goto cleanup;
+     }
+ 
+-    if (regexec(reg, groups[3], nvars, vars, 0) != 0) {
++    err = regexec(reg, groups[3], nvars, vars, 0);
++    regfree(reg);
++    if (err != 0) {
+         virStorageReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                               _("malformed volume extent devices value"));
+         goto cleanup;
