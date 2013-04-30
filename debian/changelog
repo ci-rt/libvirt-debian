@@ -1,3 +1,16 @@
+libvirt (1.0.5~rc1-1) experimental; urgency=low
+
+  * [c2302f5] Dont' fail with aug-tools installed.
+    Thanks; Manuel VIVES (Closes: #705528)
+  * [60e9fd4] New upstream version 1.0.5~rc1
+  * [2625e81] Update patches. Dropped.
+        Add-sanitytest.py.patch
+    applied upstream.
+  * [f16f97d] Don't ship files for static linking
+  * [77362d6] Update symbols
+
+ -- Guido Günther <agx@sigxcpu.org>  Tue, 30 Apr 2013 15:35:01 +0200
+
 libvirt (1.0.4-1) experimental; urgency=low
 
   * [ddd8c30] lxc: Init activeUsbHostdevs (Closes: #700267)
