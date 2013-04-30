@@ -25,6 +25,7 @@
 # define __QEMU_DOMAIN_H__
 
 # include "virthread.h"
+# include "vircgroup.h"
 # include "domain_conf.h"
 # include "snapshot_conf.h"
 # include "qemu_monitor.h"
@@ -165,6 +166,8 @@ struct _qemuDomainObjPrivate {
     qemuDomainCleanupCallback *cleanupCallbacks;
     size_t ncleanupCallbacks;
     size_t ncleanupCallbacks_max;
+
+    virCgroupPtr cgroup;
 };
 
 struct qemuDomainWatchdogEvent
@@ -342,5 +345,6 @@ void qemuDomainCleanupRun(virQEMUDriverPtr driver,
 
 extern virDomainXMLPrivateDataCallbacks virQEMUDriverPrivateDataCallbacks;
 extern virDomainXMLNamespace virQEMUDriverDomainXMLNamespace;
+extern virDomainDefParserConfig virQEMUDriverDomainDefParserConfig;
 
 #endif /* __QEMU_DOMAIN_H__ */

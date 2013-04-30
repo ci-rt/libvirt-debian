@@ -3,7 +3,7 @@
   <files>
     <file name='libvirt'>
      <summary>core interfaces for the libvirt library</summary>
-     <description>Provides the interfaces of the libvirt library to handle virtualized domains  Copyright (C) 2005-2006, 2010-2012 Red Hat, Inc.  This library is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation; either version 2.1 of the License, or (at your option) any later version.  This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more details.  You should have received a copy of the GNU Lesser General Public License along with this library.  If not, see &lt;http://www.gnu.org/licenses/&gt;. </description>
+     <description>Provides the interfaces of the libvirt library to handle virtualized domains  Copyright (C) 2005-2006, 2010-2013 Red Hat, Inc.  This library is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation; either version 2.1 of the License, or (at your option) any later version.  This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more details.  You should have received a copy of the GNU Lesser General Public License along with this library.  If not, see &lt;http://www.gnu.org/licenses/&gt;. </description>
      <author>Daniel Veillard &lt;veillard@redhat.com&gt; </author>
      <exports symbol='LIBVIR_VERSION_NUMBER' type='macro'/>
      <exports symbol='VIR_COPY_CPUMAP' type='macro'/>
@@ -1129,6 +1129,7 @@
      <exports symbol='virNetworkUpdate' type='function'/>
      <exports symbol='virNodeDeviceCreateXML' type='function'/>
      <exports symbol='virNodeDeviceDestroy' type='function'/>
+     <exports symbol='virNodeDeviceDetachFlags' type='function'/>
      <exports symbol='virNodeDeviceDettach' type='function'/>
      <exports symbol='virNodeDeviceFree' type='function'/>
      <exports symbol='virNodeDeviceGetName' type='function'/>
@@ -1341,6 +1342,7 @@
      <exports symbol='VIR_FROM_AUDIT' type='enum'/>
      <exports symbol='VIR_FROM_AUTH' type='enum'/>
      <exports symbol='VIR_FROM_CAPABILITIES' type='enum'/>
+     <exports symbol='VIR_FROM_CGROUP' type='enum'/>
      <exports symbol='VIR_FROM_CONF' type='enum'/>
      <exports symbol='VIR_FROM_CPU' type='enum'/>
      <exports symbol='VIR_FROM_DBUS' type='enum'/>
@@ -2240,7 +2242,7 @@ the given driver'/>
 construct'/>
     <enum name='VIR_ERR_CONF_SYNTAX' file='virterror' value='33' type='virErrorNumber' info='failed to parse the syntax of a
 conf file'/>
-    <enum name='VIR_ERR_DOMAIN_LAST' file='virterror' value='54' type='virErrorDomain'/>
+    <enum name='VIR_ERR_DOMAIN_LAST' file='virterror' value='55' type='virErrorDomain'/>
     <enum name='VIR_ERR_DOM_EXIST' file='virterror' value='28' type='virErrorNumber' info='the domain already exist'/>
     <enum name='VIR_ERR_DRIVER_FULL' file='virterror' value='25' type='virErrorNumber' info='too many drivers registered'/>
     <enum name='VIR_ERR_ERROR' file='virterror' value='2' type='virErrorLevel' info='An error'/>
@@ -2334,6 +2336,7 @@ formed or broken'/>
     <enum name='VIR_FROM_AUDIT' file='virterror' value='36' type='virErrorDomain' info='Error from auditing subsystem'/>
     <enum name='VIR_FROM_AUTH' file='virterror' value='46' type='virErrorDomain' info='Error from auth handling'/>
     <enum name='VIR_FROM_CAPABILITIES' file='virterror' value='44' type='virErrorDomain' info='Error from capabilities'/>
+    <enum name='VIR_FROM_CGROUP' file='virterror' value='54' type='virErrorDomain' info='Error from cgroups'/>
     <enum name='VIR_FROM_CONF' file='virterror' value='9' type='virErrorDomain' info='Error in the configuration file handling'/>
     <enum name='VIR_FROM_CPU' file='virterror' value='31' type='virErrorDomain' info='Error from CPU driver'/>
     <enum name='VIR_FROM_DBUS' file='virterror' value='47' type='virErrorDomain' info='Error from DBus'/>
@@ -3163,7 +3166,7 @@ VIR_DOMAIN_EVENT_ID_IO_ERROR with virConnectDomainEventRegisterAny()]]></info>
       <info><![CDATA[This callback occurs when the guest is waken up.
 
 The callback signature to use when registering for an event of type
-VIR_DOMAIN_EVENT_ID_PMSuspend with virConnectDomainEventRegisterAny()]]></info>
+VIR_DOMAIN_EVENT_ID_PMSUSPEND with virConnectDomainEventRegisterAny()]]></info>
       <return type='void'/>
       <arg name='conn' type='virConnectPtr' info='connection object'/>
       <arg name='dom' type='virDomainPtr' info='domain on which the event occurred'/>
@@ -4893,7 +4896,7 @@ is currently running.
 If @flags includes VIR_DOMAIN_VCPU_MAXIMUM, then the maximum
 virtual CPU limit is queried.  Otherwise, this call queries the
 current virtual CPU limit.]]></info>
-      <return type='int' info='0 in case of success, -1 in case of failure.'/>
+      <return type='int' info='the number of vCPUs in case of success, -1 in case of failure.'/>
       <arg name='domain' type='virDomainPtr' info='pointer to domain object, or NULL for Domain0'/>
       <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainVcpuFlags'/>
     </function>
@@ -5177,7 +5180,7 @@ In either case it is typically only necessary to specify a
 URI if the destination host has multiple interfaces and a
 specific interface is required to transmit migration data.
 
-The maximum bandwidth (in Mbps) that will be used to do migration
+The maximum bandwidth (in MiB/s) that will be used to do migration
 can be specified with the bandwidth parameter.  If set to 0,
 libvirt will choose a suitable default.  Some hypervisors do
 not support this feature and will return an error if bandwidth
@@ -5196,7 +5199,7 @@ different types of hypervisor.]]></info>
       <arg name='flags' type='unsigned long' info='bitwise-OR of virDomainMigrateFlags'/>
       <arg name='dname' type='const char *' info='(optional) rename domain to this at destination'/>
       <arg name='uri' type='const char *' info='(optional) dest hostname/URI as seen from the source host'/>
-      <arg name='bandwidth' type='unsigned long' info='(optional) specify migration bandwidth limit in Mbps'/>
+      <arg name='bandwidth' type='unsigned long' info='(optional) specify migration bandwidth limit in MiB/s'/>
     </function>
     <function name='virDomainMigrate2' file='libvirt' module='libvirt'>
       <info><![CDATA[Migrate the domain object from its current host to the destination
@@ -5250,7 +5253,7 @@ In either case it is typically only necessary to specify a
 URI if the destination host has multiple interfaces and a
 specific interface is required to transmit migration data.
 
-The maximum bandwidth (in Mbps) that will be used to do migration
+The maximum bandwidth (in MiB/s) that will be used to do migration
 can be specified with the bandwidth parameter.  If set to 0,
 libvirt will choose a suitable default.  Some hypervisors do
 not support this feature and will return an error if bandwidth
@@ -5282,7 +5285,7 @@ original domain name.]]></info>
       <arg name='flags' type='unsigned long' info='bitwise-OR of virDomainMigrateFlags'/>
       <arg name='dname' type='const char *' info='(optional) rename domain to this at destination'/>
       <arg name='uri' type='const char *' info='(optional) dest hostname/URI as seen from the source host'/>
-      <arg name='bandwidth' type='unsigned long' info='(optional) specify migration bandwidth limit in Mbps'/>
+      <arg name='bandwidth' type='unsigned long' info='(optional) specify migration bandwidth limit in MiB/s'/>
     </function>
     <function name='virDomainMigrateGetCompressionCache' file='libvirt' module='libvirt'>
       <info><![CDATA[Gets current size of the cache (in bytes) used for compressing repeatedly
@@ -5293,11 +5296,11 @@ transferred memory pages during live migration.]]></info>
       <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
     <function name='virDomainMigrateGetMaxSpeed' file='libvirt' module='libvirt'>
-      <info><![CDATA[Get the current maximum bandwidth (in Mbps) that will be used if the
+      <info><![CDATA[Get the current maximum bandwidth (in MiB/s) that will be used if the
 domain is migrated.  Not all hypervisors will support a bandwidth limit.]]></info>
       <return type='int' info='0 in case of success, -1 otherwise.'/>
       <arg name='domain' type='virDomainPtr' info='a domain object'/>
-      <arg name='bandwidth' type='unsigned long *' info='return value of current migration bandwidth limit in Mbps'/>
+      <arg name='bandwidth' type='unsigned long *' info='return value of current migration bandwidth limit in MiB/s'/>
       <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
     <function name='virDomainMigrateSetCompressionCache' file='libvirt' module='libvirt'>
@@ -5321,12 +5324,12 @@ being live-migrated as a reaction to migration progress.]]></info>
       <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
     <function name='virDomainMigrateSetMaxSpeed' file='libvirt' module='libvirt'>
-      <info><![CDATA[The maximum bandwidth (in Mbps) that will be used to do migration
+      <info><![CDATA[The maximum bandwidth (in MiB/s) that will be used to do migration
 can be specified with the bandwidth parameter. Not all hypervisors
 will support a bandwidth cap]]></info>
       <return type='int' info='0 in case of success, -1 otherwise.'/>
       <arg name='domain' type='virDomainPtr' info='a domain object'/>
-      <arg name='bandwidth' type='unsigned long' info='migration bandwidth limit in Mbps'/>
+      <arg name='bandwidth' type='unsigned long' info='migration bandwidth limit in MiB/s'/>
       <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
     <function name='virDomainMigrateToURI' file='libvirt' module='libvirt'>
@@ -5377,7 +5380,7 @@ Setting dname to NULL keeps the domain name the same.  If domain
 renaming is not supported by the hypervisor, dname must be NULL or
 else an error will be returned.
 
-The maximum bandwidth (in Mbps) that will be used to do migration
+The maximum bandwidth (in MiB/s) that will be used to do migration
 can be specified with the bandwidth parameter.  If set to 0,
 libvirt will choose a suitable default.  Some hypervisors do
 not support this feature and will return an error if bandwidth
@@ -5395,7 +5398,7 @@ different types of hypervisor.]]></info>
       <arg name='duri' type='const char *' info='mandatory URI for the destination host'/>
       <arg name='flags' type='unsigned long' info='bitwise-OR of virDomainMigrateFlags'/>
       <arg name='dname' type='const char *' info='(optional) rename domain to this at destination'/>
-      <arg name='bandwidth' type='unsigned long' info='(optional) specify migration bandwidth limit in Mbps'/>
+      <arg name='bandwidth' type='unsigned long' info='(optional) specify migration bandwidth limit in MiB/s'/>
     </function>
     <function name='virDomainMigrateToURI2' file='libvirt' module='libvirt'>
       <info><![CDATA[Migrate the domain object from its current host to the destination
@@ -5455,7 +5458,7 @@ Setting dname to NULL keeps the domain name the same.  If domain
 renaming is not supported by the hypervisor, dname must be NULL or
 else an error will be returned.
 
-The maximum bandwidth (in Mbps) that will be used to do migration
+The maximum bandwidth (in MiB/s) that will be used to do migration
 can be specified with the bandwidth parameter.  If set to 0,
 libvirt will choose a suitable default.  Some hypervisors do
 not support this feature and will return an error if bandwidth
@@ -5475,7 +5478,7 @@ different types of hypervisor.]]></info>
       <arg name='dxml' type='const char *' info='(optional) XML config for launching guest on target'/>
       <arg name='flags' type='unsigned long' info='bitwise-OR of virDomainMigrateFlags'/>
       <arg name='dname' type='const char *' info='(optional) rename domain to this at destination'/>
-      <arg name='bandwidth' type='unsigned long' info='(optional) specify migration bandwidth limit in Mbps'/>
+      <arg name='bandwidth' type='unsigned long' info='(optional) specify migration bandwidth limit in MiB/s'/>
     </function>
     <function name='virDomainOpenChannel' file='libvirt' module='libvirt'>
       <info><![CDATA[This opens the host interface associated with a channel device on a
@@ -7254,6 +7257,28 @@ This function may require privileged access]]></info>
       <return type='int' info='0 in case of success and -1 in case of failure.'/>
       <arg name='dev' type='virNodeDevicePtr' info='a device object'/>
     </function>
+    <function name='virNodeDeviceDetachFlags' file='libvirt' module='libvirt'>
+      <info><![CDATA[Detach the node device from the node itself so that it may be
+assigned to a guest domain.
+
+Depending on the hypervisor, this may involve operations such as
+unbinding any device drivers from the device, binding the device to
+a dummy device driver and resetting the device. Different backend
+drivers expect the device to be bound to different dummy
+devices. For example, QEMU's "kvm" backend driver (the default)
+expects the device to be bound to "pci-stub", but its "vfio"
+backend driver expects the device to be bound to "vfio-pci".
+
+If the device is currently in use by the node, this method may
+fail.
+
+Once the device is not assigned to any guest, it may be re-attached
+to the node using the virNodeDeviceReAttach() method.]]></info>
+      <return type='int' info='0 in case of success, -1 in case of failure.'/>
+      <arg name='dev' type='virNodeDevicePtr' info='pointer to the node device'/>
+      <arg name='driverName' type='const char *' info='name of backend driver that will be used for later device assignment to a domain. NULL means &quot;use the hypervisor default driver&quot;'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
+    </function>
     <function name='virNodeDeviceDettach' file='libvirt' module='libvirt'>
       <info><![CDATA[Dettach the node device from the node itself so that it may be
 assigned to a guest domain.
@@ -7266,7 +7291,12 @@ If the device is currently in use by the node, this method may
 fail.
 
 Once the device is not assigned to any guest, it may be re-attached
-to the node using the virNodeDeviceReattach() method.]]></info>
+to the node using the virNodeDeviceReattach() method.
+
+If the caller needs control over which backend driver will be used
+during PCI device assignment (to use something other than the
+default, for example VFIO), the newer virNodeDeviceDetachFlags()
+API should be used instead.]]></info>
       <return type='int' info='0 in case of success, -1 in case of failure.'/>
       <arg name='dev' type='virNodeDevicePtr' info='pointer to the node device'/>
     </function>

@@ -36,7 +36,6 @@
 #include <dirent.h>
 #include <time.h>
 #include <sys/stat.h>
-#include <unistd.h>
 #include <limits.h>
 #include <errno.h>
 #include <string.h>
@@ -168,12 +167,6 @@ error:
 }
 
 
-static int openvzDefaultConsoleType(const char *ostype ATTRIBUTE_UNUSED,
-                                    virArch arch ATTRIBUTE_UNUSED)
-{
-    return VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_OPENVZ;
-}
-
 virCapsPtr openvzCapsInit(void)
 {
     virCapsPtr caps;
@@ -185,8 +178,6 @@ virCapsPtr openvzCapsInit(void)
 
     if (nodeCapsInitNUMA(caps) < 0)
         goto no_memory;
-
-    virCapabilitiesSetMacPrefix(caps, (unsigned char[]){ 0x52, 0x54, 0x00 });
 
     if ((guest = virCapabilitiesAddGuest(caps,
                                          "exe",
@@ -205,10 +196,8 @@ virCapsPtr openvzCapsInit(void)
                                       NULL) == NULL)
         goto no_memory;
 
-    caps->defaultInitPath = "/sbin/init";
-    caps->defaultConsoleTargetType = openvzDefaultConsoleType;
-
     return caps;
+
 no_memory:
     virObjectUnref(caps);
     return NULL;
@@ -558,7 +547,7 @@ openvzFreeDriver(struct openvz_driver *driver)
     if (!driver)
         return;
 
-    virObjectUnref(driver->xmlconf);
+    virObjectUnref(driver->xmlopt);
     virObjectUnref(driver->domains);
     virObjectUnref(driver->caps);
     VIR_FREE(driver);
@@ -649,8 +638,8 @@ int openvzLoadDomains(struct openvz_driver *driver) {
             flags |= VIR_DOMAIN_OBJ_LIST_ADD_LIVE;
 
         if (!(dom = virDomainObjListAdd(driver->domains,
-                                        driver->xmlconf,
                                         def,
+                                        driver->xmlopt,
                                         flags,
                                         NULL)))
             goto cleanup;

@@ -594,6 +594,7 @@
     <reference name='VIR_FROM_AUDIT' href='html/libvirt-virterror.html#VIR_FROM_AUDIT'/>
     <reference name='VIR_FROM_AUTH' href='html/libvirt-virterror.html#VIR_FROM_AUTH'/>
     <reference name='VIR_FROM_CAPABILITIES' href='html/libvirt-virterror.html#VIR_FROM_CAPABILITIES'/>
+    <reference name='VIR_FROM_CGROUP' href='html/libvirt-virterror.html#VIR_FROM_CGROUP'/>
     <reference name='VIR_FROM_CONF' href='html/libvirt-virterror.html#VIR_FROM_CONF'/>
     <reference name='VIR_FROM_CPU' href='html/libvirt-virterror.html#VIR_FROM_CPU'/>
     <reference name='VIR_FROM_DBUS' href='html/libvirt-virterror.html#VIR_FROM_DBUS'/>
@@ -1240,6 +1241,7 @@
     <reference name='virNodeDevice' href='html/libvirt-libvirt.html#virNodeDevice'/>
     <reference name='virNodeDeviceCreateXML' href='html/libvirt-libvirt.html#virNodeDeviceCreateXML'/>
     <reference name='virNodeDeviceDestroy' href='html/libvirt-libvirt.html#virNodeDeviceDestroy'/>
+    <reference name='virNodeDeviceDetachFlags' href='html/libvirt-libvirt.html#virNodeDeviceDetachFlags'/>
     <reference name='virNodeDeviceDettach' href='html/libvirt-libvirt.html#virNodeDeviceDettach'/>
     <reference name='virNodeDeviceFree' href='html/libvirt-libvirt.html#virNodeDeviceFree'/>
     <reference name='virNodeDeviceGetName' href='html/libvirt-libvirt.html#virNodeDeviceGetName'/>
@@ -2006,6 +2008,7 @@
       <ref name='VIR_FROM_AUDIT'/>
       <ref name='VIR_FROM_AUTH'/>
       <ref name='VIR_FROM_CAPABILITIES'/>
+      <ref name='VIR_FROM_CGROUP'/>
       <ref name='VIR_FROM_CONF'/>
       <ref name='VIR_FROM_CPU'/>
       <ref name='VIR_FROM_DBUS'/>
@@ -2656,6 +2659,7 @@
       <ref name='virNodeDevice'/>
       <ref name='virNodeDeviceCreateXML'/>
       <ref name='virNodeDeviceDestroy'/>
+      <ref name='virNodeDeviceDetachFlags'/>
       <ref name='virNodeDeviceDettach'/>
       <ref name='virNodeDeviceFree'/>
       <ref name='virNodeDeviceGetName'/>
@@ -3150,6 +3154,7 @@
       <ref name='virNetworkGetXMLDesc'/>
       <ref name='virNetworkUpdate'/>
       <ref name='virNodeDeviceCreateXML'/>
+      <ref name='virNodeDeviceDetachFlags'/>
       <ref name='virNodeDeviceGetXMLDesc'/>
       <ref name='virNodeDeviceLookupSCSIHostByWWN'/>
       <ref name='virNodeGetCPUMap'/>
@@ -3667,6 +3672,7 @@
     </type>
     <type name='virNodeDevicePtr'>
       <ref name='virNodeDeviceDestroy'/>
+      <ref name='virNodeDeviceDetachFlags'/>
       <ref name='virNodeDeviceDettach'/>
       <ref name='virNodeDeviceFree'/>
       <ref name='virNodeDeviceGetName'/>
@@ -4962,6 +4968,7 @@
       <ref name='virNodeDevice'/>
       <ref name='virNodeDeviceCreateXML'/>
       <ref name='virNodeDeviceDestroy'/>
+      <ref name='virNodeDeviceDetachFlags'/>
       <ref name='virNodeDeviceDettach'/>
       <ref name='virNodeDeviceFree'/>
       <ref name='virNodeDeviceGetName'/>
@@ -5217,6 +5224,7 @@
       <ref name='VIR_FROM_AUDIT'/>
       <ref name='VIR_FROM_AUTH'/>
       <ref name='VIR_FROM_CAPABILITIES'/>
+      <ref name='VIR_FROM_CGROUP'/>
       <ref name='VIR_FROM_CONF'/>
       <ref name='VIR_FROM_CPU'/>
       <ref name='VIR_FROM_DBUS'/>
@@ -5598,6 +5606,7 @@
         </word>
         <word name='Depending'>
           <ref name='virDomainBlockResize'/>
+          <ref name='virNodeDeviceDetachFlags'/>
           <ref name='virNodeDeviceDettach'/>
           <ref name='virNodeDeviceReAttach'/>
           <ref name='virStorageVolGetPath'/>
@@ -5615,6 +5624,7 @@
         </word>
         <word name='Detach'>
           <ref name='virDomainDetachDeviceFlags'/>
+          <ref name='virNodeDeviceDetachFlags'/>
         </word>
         <word name='Determine'>
           <ref name='virConnectIsAlive'/>
@@ -5634,6 +5644,9 @@
         </word>
         <word name='Dettach'>
           <ref name='virNodeDeviceDettach'/>
+        </word>
+        <word name='Different'>
+          <ref name='virNodeDeviceDetachFlags'/>
         </word>
         <word name='Direct'>
           <ref name='virDomainMigrate'/>
@@ -6021,14 +6034,6 @@
           <ref name='VIR_DOMAIN_SEND_KEY_MAX_KEYS'/>
           <ref name='virNodeGetCellsFreeMemory'/>
         </word>
-        <word name='Mbps'>
-          <ref name='virDomainMigrate'/>
-          <ref name='virDomainMigrate2'/>
-          <ref name='virDomainMigrateGetMaxSpeed'/>
-          <ref name='virDomainMigrateSetMaxSpeed'/>
-          <ref name='virDomainMigrateToURI'/>
-          <ref name='virDomainMigrateToURI2'/>
-        </word>
         <word name='Memory'>
           <ref name='virDomainMemoryStats'/>
           <ref name='virNodeGetMemoryStats'/>
@@ -6038,6 +6043,12 @@
           <ref name='virDomainBlockJobSetSpeed'/>
           <ref name='virDomainBlockPull'/>
           <ref name='virDomainBlockRebase'/>
+          <ref name='virDomainMigrate'/>
+          <ref name='virDomainMigrate2'/>
+          <ref name='virDomainMigrateGetMaxSpeed'/>
+          <ref name='virDomainMigrateSetMaxSpeed'/>
+          <ref name='virDomainMigrateToURI'/>
+          <ref name='virDomainMigrateToURI2'/>
         </word>
         <word name='Migrate'>
           <ref name='virDomainMigrate'/>
@@ -6181,6 +6192,7 @@
           <ref name='virDomainBlockRebase'/>
           <ref name='virEventRegisterDefaultImpl'/>
           <ref name='virInterfaceChangeBegin'/>
+          <ref name='virNodeDeviceDetachFlags'/>
           <ref name='virNodeDeviceDettach'/>
           <ref name='virStreamSend'/>
         </word>
@@ -6211,6 +6223,7 @@
       </letter>
       <letter name='P'>
         <word name='PCI'>
+          <ref name='virNodeDeviceDettach'/>
           <ref name='virNodeDeviceReset'/>
         </word>
         <word name='Part'>
@@ -6323,6 +6336,7 @@
       <letter name='Q'>
         <word name='QEMU'>
           <ref name='virDomainPMSuspendForDuration'/>
+          <ref name='virNodeDeviceDetachFlags'/>
         </word>
         <word name='Query'>
           <ref name='virDomainGetEmulatorPinInfo'/>
@@ -6773,6 +6787,9 @@
         </word>
       </letter>
       <letter name='V'>
+        <word name='VFIO'>
+          <ref name='virNodeDeviceDettach'/>
+        </word>
         <word name='VIR_CONNECT_LIST_DOMAINS_ACTIVE'>
           <ref name='virConnectListAllDomains'/>
         </word>
@@ -7050,11 +7067,11 @@
           <ref name='virConnectDomainEventIOErrorCallback'/>
           <ref name='virConnectDomainEventIOErrorReasonCallback'/>
         </word>
+        <word name='VIR_DOMAIN_EVENT_ID_PMSUSPEND'>
+          <ref name='virConnectDomainEventPMSuspendCallback'/>
+        </word>
         <word name='VIR_DOMAIN_EVENT_ID_PMSUSPEND_DISK'>
           <ref name='virConnectDomainEventPMSuspendDiskCallback'/>
-        </word>
-        <word name='VIR_DOMAIN_EVENT_ID_PMSuspend'>
-          <ref name='virConnectDomainEventPMSuspendCallback'/>
         </word>
         <word name='VIR_DOMAIN_EVENT_ID_PMWAKEUP'>
           <ref name='virConnectDomainEventPMWakeupCallback'/>
@@ -8222,11 +8239,16 @@
           <ref name='virStorageVolGetXMLDesc'/>
         </word>
         <word name='assigned'>
+          <ref name='virNodeDeviceDetachFlags'/>
           <ref name='virNodeDeviceDettach'/>
           <ref name='virStorageVolGetPath'/>
         </word>
         <word name='assigning'>
           <ref name='virNodeDeviceReset'/>
+        </word>
+        <word name='assignment'>
+          <ref name='virNodeDeviceDetachFlags'/>
+          <ref name='virNodeDeviceDettach'/>
         </word>
         <word name='associate'>
           <ref name='virDomainOpenChannel'/>
@@ -8444,6 +8466,8 @@
           <ref name='virDomainOpenConsole'/>
           <ref name='virDomainOpenGraphics'/>
           <ref name='virDomainUpdateDeviceFlags'/>
+          <ref name='virNodeDeviceDetachFlags'/>
+          <ref name='virNodeDeviceDettach'/>
         </word>
         <word name='backends'>
           <ref name='virDomainOpenGraphics'/>
@@ -8583,6 +8607,7 @@
           <ref name='virDomainOpenConsole'/>
         </word>
         <word name='binding'>
+          <ref name='virNodeDeviceDetachFlags'/>
           <ref name='virNodeDeviceDettach'/>
           <ref name='virNodeDeviceReAttach'/>
         </word>
@@ -8706,6 +8731,9 @@
         </word>
         <word name='bottom'>
           <ref name='virDomainBlockCommit'/>
+        </word>
+        <word name='bound'>
+          <ref name='virNodeDeviceDetachFlags'/>
         </word>
         <word name='boundary'>
           <ref name='virDomainBlockResize'/>
@@ -9600,6 +9628,7 @@
           <ref name='virDomainSnapshotListNames'/>
           <ref name='virDomainUndefine'/>
           <ref name='virDomainUpdateDeviceFlags'/>
+          <ref name='virNodeDeviceDettach'/>
           <ref name='virNodeListDevices'/>
         </word>
         <word name='controlled'>
@@ -9853,6 +9882,7 @@
           <ref name='virDomainSnapshotListNames'/>
           <ref name='virInterfaceIsActive'/>
           <ref name='virNetworkIsActive'/>
+          <ref name='virNodeDeviceDetachFlags'/>
           <ref name='virNodeDeviceDettach'/>
           <ref name='virNodeDeviceReAttach'/>
           <ref name='virNodeDeviceReset'/>
@@ -10193,6 +10223,7 @@
           <ref name='virDomainMigrate2'/>
           <ref name='virDomainMigrateToURI'/>
           <ref name='virDomainMigrateToURI2'/>
+          <ref name='virNodeDeviceDetachFlags'/>
           <ref name='virStorageVolWipePattern'/>
         </word>
         <word name='direct'>
@@ -10378,33 +10409,11 @@
           <ref name='virDomainMigrateSetMaxDowntime'/>
           <ref name='virDomainSnapshotCreateXML'/>
         </word>
-        <word name='driver'>
-          <ref name='virConnectGetCapabilities'/>
-          <ref name='virConnectGetURI'/>
-          <ref name='virConnectOpen'/>
-          <ref name='virDomainAttachDeviceFlags'/>
-          <ref name='virDomainBlockPeek'/>
-          <ref name='virDomainDetachDeviceFlags'/>
-          <ref name='virDomainGetCPUStats'/>
-          <ref name='virDomainMemoryPeek'/>
-          <ref name='virDomainMemoryStats'/>
-          <ref name='virDomainMigrate'/>
-          <ref name='virDomainMigrate2'/>
-          <ref name='virDomainMigrateToURI'/>
-          <ref name='virDomainMigrateToURI2'/>
-          <ref name='virDomainOpenConsole'/>
-          <ref name='virDomainUpdateDeviceFlags'/>
-          <ref name='virNodeDeviceDettach'/>
-          <ref name='virNodeDeviceReAttach'/>
-          <ref name='virNodeGetSecurityModel'/>
-          <ref name='virStreamAbort'/>
-          <ref name='virStreamNew'/>
-          <ref name='virStreamSend'/>
-        </word>
         <word name='drivers'>
           <ref name='virConnectOpenAuth'/>
           <ref name='virConnectOpenReadOnly'/>
           <ref name='virConnectRegisterCloseCallback'/>
+          <ref name='virNodeDeviceDetachFlags'/>
           <ref name='virNodeDeviceDettach'/>
         </word>
         <word name='due'>
@@ -10417,6 +10426,7 @@
           <ref name='virGetVersion'/>
         </word>
         <word name='dummy'>
+          <ref name='virNodeDeviceDetachFlags'/>
           <ref name='virNodeDeviceDettach'/>
           <ref name='virNodeDeviceReAttach'/>
         </word>
@@ -10465,6 +10475,7 @@
           <ref name='virEventRemoveTimeoutFunc'/>
           <ref name='virInterfaceDefineXML'/>
           <ref name='virInterfaceUndefine'/>
+          <ref name='virNodeDeviceDettach'/>
         </word>
         <word name='dynamic'>
           <ref name='virNodeGetCPUStats'/>
@@ -10772,6 +10783,8 @@
           <ref name='virDomainSaveImageDefineXML'/>
           <ref name='virDomainSnapshotCreateXML'/>
           <ref name='virNodeDeviceCreateXML'/>
+          <ref name='virNodeDeviceDetachFlags'/>
+          <ref name='virNodeDeviceDettach'/>
           <ref name='virNodeDeviceReset'/>
           <ref name='virNodeGetMemoryParameters'/>
           <ref name='virStreamRecv'/>
@@ -10894,6 +10907,7 @@
           <ref name='virNetworkGetXMLDesc'/>
         </word>
         <word name='expect'>
+          <ref name='virNodeDeviceDetachFlags'/>
           <ref name='virSecretGetUsageType'/>
         </word>
         <word name='expected'>
@@ -10912,6 +10926,7 @@
           <ref name='virDomainGetInterfaceParameters'/>
           <ref name='virDomainGetMemoryParameters'/>
           <ref name='virDomainGetNumaParameters'/>
+          <ref name='virNodeDeviceDetachFlags'/>
           <ref name='virNodeGetCPUStats'/>
           <ref name='virNodeGetMemoryStats'/>
         </word>
@@ -12260,6 +12275,7 @@
           <ref name='virDomainDestroyFlags'/>
           <ref name='virDomainLookupByID'/>
           <ref name='virGetVersion'/>
+          <ref name='virNodeDeviceDettach'/>
           <ref name='virStreamRecv'/>
           <ref name='virStreamSend'/>
         </word>
@@ -12398,6 +12414,7 @@
           <ref name='virDomainMigrateToURI2'/>
         </word>
         <word name='involve'>
+          <ref name='virNodeDeviceDetachFlags'/>
           <ref name='virNodeDeviceDettach'/>
           <ref name='virNodeDeviceReAttach'/>
           <ref name='virStoragePoolRefresh'/>
@@ -12450,6 +12467,7 @@
           <ref name='virDomainManagedSave'/>
           <ref name='virDomainSnapshotFree'/>
           <ref name='virInterfaceFree'/>
+          <ref name='virNodeDeviceDetachFlags'/>
           <ref name='virNodeDeviceDettach'/>
           <ref name='virStoragePoolDelete'/>
         </word>
@@ -12571,6 +12589,9 @@
         <word name='ksmtuned'>
           <ref name='virNodeSetMemoryParameters'/>
         </word>
+        <word name='kvm'>
+          <ref name='virNodeDeviceDetachFlags'/>
+        </word>
       </letter>
       <letter name='l'>
         <word name='label'>
@@ -12651,6 +12672,7 @@
           <ref name='virInterfaceGetXMLDesc'/>
           <ref name='virNWFilterGetXMLDesc'/>
           <ref name='virNetworkGetXMLDesc'/>
+          <ref name='virNodeDeviceDetachFlags'/>
           <ref name='virStoragePoolDestroy'/>
           <ref name='virStoragePoolGetXMLDesc'/>
         </word>
@@ -13255,6 +13277,7 @@
           <ref name='virDomainPinVcpu'/>
           <ref name='virDomainPinVcpuFlags'/>
           <ref name='virNetworkIsPersistent'/>
+          <ref name='virNodeDeviceDetachFlags'/>
           <ref name='virNodeGetCPUMap'/>
           <ref name='virNodeGetCPUStats'/>
           <ref name='virNodeGetMemoryStats'/>
@@ -13687,6 +13710,7 @@
           <ref name='virInterfaceRef'/>
           <ref name='virNWFilterRef'/>
           <ref name='virNetworkRef'/>
+          <ref name='virNodeDeviceDettach'/>
           <ref name='virNodeDeviceRef'/>
           <ref name='virNodeGetCPUMap'/>
           <ref name='virSecretRef'/>
@@ -13723,6 +13747,7 @@
         </word>
         <word name='newer'>
           <ref name='virDomainGetJobStats'/>
+          <ref name='virNodeDeviceDettach'/>
         </word>
         <word name='newlines'>
           <ref name='virDomainSetMetadata'/>
@@ -14088,6 +14113,7 @@
           <ref name='VIR_DOMAIN_BLOCK_IOTUNE_WRITE_IOPS_SEC'/>
           <ref name='virDomainBlockJobAbort'/>
           <ref name='virDomainGetDiskErrors'/>
+          <ref name='virNodeDeviceDetachFlags'/>
           <ref name='virNodeDeviceDettach'/>
           <ref name='virNodeDeviceReAttach'/>
         </word>
@@ -14151,6 +14177,7 @@
           <ref name='virFreeCallback'/>
           <ref name='virInterfaceGetConnect'/>
           <ref name='virNetworkGetConnect'/>
+          <ref name='virNodeDeviceDettach'/>
           <ref name='virNodeDeviceReset'/>
           <ref name='virSecretGetConnect'/>
           <ref name='virStoragePoolGetConnect'/>
@@ -14225,6 +14252,7 @@
           <ref name='virDomainOpenGraphics'/>
           <ref name='virDomainSnapshotListChildrenNames'/>
           <ref name='virDomainSnapshotListNames'/>
+          <ref name='virNodeDeviceDettach'/>
           <ref name='virNodeListDevices'/>
         </word>
         <word name='overall'>
@@ -14382,6 +14410,9 @@
           <ref name='virDomainSaveFlags'/>
           <ref name='virDomainSaveImageDefineXML'/>
           <ref name='virDomainSnapshotCreateXML'/>
+        </word>
+        <word name='pci-stub'>
+          <ref name='virNodeDeviceDetachFlags'/>
         </word>
         <word name='pcpus'>
           <ref name='virDomainGetEmulatorPinInfo'/>
@@ -15113,6 +15144,7 @@
           <ref name='virSecretLookupByUUID'/>
         </word>
         <word name='re-attached'>
+          <ref name='virNodeDeviceDetachFlags'/>
           <ref name='virNodeDeviceDettach'/>
         </word>
         <word name='re-entrant'>
@@ -15650,6 +15682,7 @@
           <ref name='VIR_UNUSE_CPU'/>
         </word>
         <word name='resetting'>
+          <ref name='virNodeDeviceDetachFlags'/>
           <ref name='virNodeDeviceDettach'/>
           <ref name='virNodeDeviceReAttach'/>
           <ref name='virResetLastError'/>
@@ -16461,6 +16494,9 @@
           <ref name='virDomainSuspend'/>
           <ref name='virEventRemoveHandleFunc'/>
           <ref name='virEventRemoveTimeoutFunc'/>
+        </word>
+        <word name='something'>
+          <ref name='virNodeDeviceDettach'/>
         </word>
         <word name='soon'>
           <ref name='virDomainBlockJobAbort'/>
@@ -17593,6 +17629,7 @@
           <ref name='virDomainSetBlockIoTune'/>
         </word>
         <word name='unbinding'>
+          <ref name='virNodeDeviceDetachFlags'/>
           <ref name='virNodeDeviceDettach'/>
           <ref name='virNodeDeviceReAttach'/>
         </word>
@@ -17900,6 +17937,9 @@
     </chunk>
     <chunk name='chunk20'>
       <letter name='v'>
+        <word name='vCPUs'>
+          <ref name='virDomainGetVcpusFlags'/>
+        </word>
         <word name='valid'>
           <ref name='virConnectDomainEventRegister'/>
           <ref name='virConnectDomainEventRegisterAny'/>
@@ -17992,6 +18032,12 @@
         </word>
         <word name='very'>
           <ref name='virDomainRevertToSnapshot'/>
+        </word>
+        <word name='vfio'>
+          <ref name='virNodeDeviceDetachFlags'/>
+        </word>
+        <word name='vfio-pci'>
+          <ref name='virNodeDeviceDetachFlags'/>
         </word>
         <word name='via'>
           <ref name='virConnectOpenAuth'/>
@@ -18815,6 +18861,9 @@
           <ref name='VIR_NODE_CPU_STATS_FIELD_LENGTH'/>
           <ref name='virNodeGetCPUStats'/>
         </word>
+        <word name='virNodeDeviceDetachFlags'>
+          <ref name='virNodeDeviceDettach'/>
+        </word>
         <word name='virNodeDeviceFree'>
           <ref name='virConnectListAllNodeDevices'/>
           <ref name='virNodeDeviceRef'/>
@@ -18822,6 +18871,9 @@
         <word name='virNodeDevicePtr'>
           <ref name='virNodeDeviceLookupByName'/>
           <ref name='virNodeDeviceLookupSCSIHostByWWN'/>
+        </word>
+        <word name='virNodeDeviceReAttach'>
+          <ref name='virNodeDeviceDetachFlags'/>
         </word>
         <word name='virNodeDeviceReattach'>
           <ref name='virNodeDeviceDettach'/>

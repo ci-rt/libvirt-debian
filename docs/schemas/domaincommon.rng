@@ -498,62 +498,6 @@
         </element>
       </optional>
 
-      <!-- The Blkio cgroup related tunables would go in the blkiotune -->
-      <optional>
-        <element name="blkiotune">
-          <interleave>
-            <!-- I/O weight the VM can use -->
-            <optional>
-              <element name="weight">
-                <ref name="weight"/>
-              </element>
-            </optional>
-            <zeroOrMore>
-              <element name="device">
-                <interleave>
-                  <element name="path">
-                    <ref name="absFilePath"/>
-                  </element>
-                  <element name="weight">
-                    <ref name="weight"/>
-                  </element>
-                </interleave>
-              </element>
-            </zeroOrMore>
-          </interleave>
-        </element>
-      </optional>
-
-      <!-- All the memory/swap related tunables would go in the memtune -->
-      <optional>
-        <element name="memtune">
-          <!-- Maximum memory the VM can use -->
-          <optional>
-            <element name="hard_limit">
-              <ref name='scaledInteger'/>
-            </element>
-          </optional>
-          <!-- Minimum memory ascertained for the VM during contention -->
-          <optional>
-            <element name="soft_limit">
-              <ref name='scaledInteger'/>
-            </element>
-          </optional>
-          <!-- Minimum amount of memory required to start the VM -->
-          <optional>
-            <element name="min_guarantee">
-              <ref name='scaledInteger'/>
-            </element>
-          </optional>
-          <!-- Maximum swap area the VM can use -->
-          <optional>
-            <element name="swap_hard_limit">
-              <ref name='scaledInteger'/>
-            </element>
-          </optional>
-        </element>
-      </optional>
-
       <optional>
         <element name="vcpu">
           <optional>
@@ -578,91 +522,176 @@
         </element>
       </optional>
 
-      <!-- All the cpu related tunables would go in the cputune -->
       <optional>
-        <element name="cputune">
-          <optional>
-            <element name="shares">
-              <ref name="cpushares"/>
-            </element>
-          </optional>
-          <optional>
-            <element name="period">
-              <ref name="cpuperiod"/>
-            </element>
-          </optional>
-          <optional>
-            <element name="quota">
-              <ref name="cpuquota"/>
-            </element>
-          </optional>
-          <optional>
-            <element name="emulator_period">
-              <ref name="cpuperiod"/>
-            </element>
-          </optional>
-          <optional>
-            <element name="emulator_quota">
-              <ref name="cpuquota"/>
-            </element>
-          </optional>
-          <zeroOrMore>
-            <element name="vcpupin">
-              <attribute name="vcpu">
-                <ref name="vcpuid"/>
-              </attribute>
-              <attribute name="cpuset">
-                <ref name="cpuset"/>
-              </attribute>
-            </element>
-          </zeroOrMore>
-          <optional>
-            <element name="emulatorpin">
-              <attribute name="cpuset">
-                <ref name="cpuset"/>
-              </attribute>
-            </element>
-          </optional>
-        </element>
+        <ref name="blkiotune"/>
       </optional>
 
-      <!-- All the NUMA related tunables would go in the numatune -->
       <optional>
-        <element name="numatune">
-          <optional>
-            <element name="memory">
-              <optional>
-                <attribute name="mode">
-                  <choice>
-                    <value>strict</value>
-                    <value>preferred</value>
-                    <value>interleave</value>
-                  </choice>
-                </attribute>
-              </optional>
-              <choice>
-                <group>
-                  <optional>
-                    <attribute name='placement'>
-                      <value>static</value>
-                    </attribute>
-                  </optional>
-                  <optional>
-                    <attribute name='nodeset'>
-                      <ref name='cpuset'/>
-                    </attribute>
-                  </optional>
-                </group>
-                <attribute name='placement'>
-                  <value>auto</value>
-                </attribute>
-              </choice>
-            </element>
-          </optional>
-        </element>
+        <ref name="memtune"/>
+      </optional>
+
+      <optional>
+        <ref name="cputune"/>
+      </optional>
+
+      <optional>
+        <ref name="numatune"/>
+      </optional>
+
+      <optional>
+        <ref name="respartition"/>
       </optional>
     </interleave>
   </define>
+
+  <!-- The Blkio cgroup related tunables would go in the blkiotune -->
+  <define name="blkiotune">
+    <element name="blkiotune">
+      <interleave>
+        <!-- I/O weight the VM can use -->
+        <optional>
+          <element name="weight">
+            <ref name="weight"/>
+          </element>
+        </optional>
+        <zeroOrMore>
+          <element name="device">
+            <interleave>
+              <element name="path">
+                <ref name="absFilePath"/>
+              </element>
+              <element name="weight">
+                <ref name="weight"/>
+              </element>
+            </interleave>
+          </element>
+        </zeroOrMore>
+      </interleave>
+    </element>
+  </define>
+
+  <!-- All the memory/swap related tunables would go in the memtune -->
+  <define name="memtune">
+    <element name="memtune">
+      <!-- Maximum memory the VM can use -->
+      <optional>
+        <element name="hard_limit">
+          <ref name='scaledInteger'/>
+        </element>
+      </optional>
+      <!-- Minimum memory ascertained for the VM during contention -->
+      <optional>
+        <element name="soft_limit">
+          <ref name='scaledInteger'/>
+        </element>
+      </optional>
+      <!-- Minimum amount of memory required to start the VM -->
+      <optional>
+        <element name="min_guarantee">
+          <ref name='scaledInteger'/>
+        </element>
+      </optional>
+      <!-- Maximum swap area the VM can use -->
+      <optional>
+        <element name="swap_hard_limit">
+          <ref name='scaledInteger'/>
+        </element>
+      </optional>
+    </element>
+  </define>
+
+  <!-- All the cpu related tunables would go in the cputune -->
+  <define name="cputune">
+    <element name="cputune">
+      <optional>
+        <element name="shares">
+          <ref name="cpushares"/>
+        </element>
+      </optional>
+      <optional>
+        <element name="period">
+          <ref name="cpuperiod"/>
+        </element>
+      </optional>
+      <optional>
+        <element name="quota">
+          <ref name="cpuquota"/>
+        </element>
+      </optional>
+      <optional>
+        <element name="emulator_period">
+          <ref name="cpuperiod"/>
+        </element>
+      </optional>
+      <optional>
+        <element name="emulator_quota">
+          <ref name="cpuquota"/>
+        </element>
+      </optional>
+      <zeroOrMore>
+        <element name="vcpupin">
+          <attribute name="vcpu">
+            <ref name="vcpuid"/>
+          </attribute>
+          <attribute name="cpuset">
+            <ref name="cpuset"/>
+          </attribute>
+        </element>
+      </zeroOrMore>
+      <optional>
+        <element name="emulatorpin">
+          <attribute name="cpuset">
+            <ref name="cpuset"/>
+          </attribute>
+        </element>
+      </optional>
+    </element>
+  </define>
+
+  <!-- All the NUMA related tunables would go in the numatune -->
+  <define name="numatune">
+    <element name="numatune">
+      <optional>
+        <element name="memory">
+          <optional>
+            <attribute name="mode">
+              <choice>
+                <value>strict</value>
+                <value>preferred</value>
+                <value>interleave</value>
+              </choice>
+            </attribute>
+          </optional>
+          <choice>
+            <group>
+              <optional>
+                <attribute name='placement'>
+                  <value>static</value>
+                </attribute>
+              </optional>
+              <optional>
+                <attribute name='nodeset'>
+                  <ref name='cpuset'/>
+                </attribute>
+              </optional>
+            </group>
+            <attribute name='placement'>
+              <value>auto</value>
+            </attribute>
+              </choice>
+        </element>
+      </optional>
+    </element>
+  </define>
+
+  <define name="respartition">
+    <element name="resource">
+      <element name="partition">
+        <ref name="absFilePath"/>
+      </element>
+    </element>
+  </define>
+
   <define name="clock">
     <optional>
       <element name="clock">
@@ -1084,54 +1113,31 @@
           <interleave>
             <optional>
               <element name="source">
-                <attribute name="protocol">
-                  <choice>
-                    <value>nbd</value>
-                    <value>rbd</value>
-                    <value>sheepdog</value>
-                    <value>gluster</value>
-                    <value>iscsi</value>
-                  </choice>
+                <ref name='diskSourceNetwork'/>
+              </element>
+            </optional>
+            <ref name="diskspec"/>
+          </interleave>
+        </group>
+        <group>
+          <attribute name="type">
+            <value>volume</value>
+          </attribute>
+          <interleave>
+            <optional>
+              <element name="source">
+                <attribute name="pool">
+                  <ref name="genericName"/>
+                </attribute>
+                <attribute name="volume">
+                  <ref name="volName"/>
                 </attribute>
                 <optional>
-                  <attribute name="name"/>
+                  <ref name="startupPolicy"/>
                 </optional>
-                <zeroOrMore>
-                  <element name="host">
-                    <choice>
-                      <group>
-                        <optional>
-                          <attribute name="transport">
-                            <choice>
-                              <value>tcp</value>
-                              <value>rdma</value>
-                            </choice>
-                          </attribute>
-                        </optional>
-                        <attribute name="name">
-                          <choice>
-                            <ref name="dnsName"/>
-                            <ref name="ipAddr"/>
-                          </choice>
-                        </attribute>
-                        <optional>
-                          <attribute name="port">
-                            <ref name="unsignedInt"/>
-                          </attribute>
-                        </optional>
-                      </group>
-                      <group>
-                        <attribute name="transport">
-                          <value>unix</value>
-                        </attribute>
-                        <attribute name="socket">
-                          <ref name="absFilePath"/>
-                        </attribute>
-                      </group>
-                    </choice>
-                  </element>
-                </zeroOrMore>
-                <empty/>
+                <optional>
+                  <ref name='devSeclabel'/>
+                </optional>
               </element>
             </optional>
             <ref name="diskspec"/>
@@ -1140,6 +1146,56 @@
         <ref name="diskspec"/>
       </choice>
     </element>
+  </define>
+  <define name="diskSourceNetwork">
+    <attribute name="protocol">
+      <choice>
+        <value>nbd</value>
+        <value>rbd</value>
+        <value>sheepdog</value>
+        <value>gluster</value>
+        <value>iscsi</value>
+      </choice>
+    </attribute>
+    <optional>
+      <attribute name="name"/>
+    </optional>
+    <zeroOrMore>
+      <element name="host">
+        <choice>
+          <group>
+            <optional>
+              <attribute name="transport">
+                <choice>
+                  <value>tcp</value>
+                  <value>rdma</value>
+                </choice>
+              </attribute>
+            </optional>
+            <attribute name="name">
+              <choice>
+                <ref name="dnsName"/>
+                <ref name="ipAddr"/>
+              </choice>
+            </attribute>
+            <optional>
+              <attribute name="port">
+                <ref name="unsignedInt"/>
+              </attribute>
+            </optional>
+          </group>
+          <group>
+            <attribute name="transport">
+              <value>unix</value>
+            </attribute>
+            <attribute name="socket">
+              <ref name="absFilePath"/>
+            </attribute>
+          </group>
+        </choice>
+      </element>
+    </zeroOrMore>
+    <empty/>
   </define>
   <define name="diskTarget">
     <data type="string">
@@ -1346,75 +1402,113 @@
   </define>
   <define name="controller">
     <element name="controller">
-      <choice>
-        <group>
-          <optional>
+      <attribute name="index">
+        <ref name="unsignedInt"/>
+      </attribute>
+      <interleave>
+        <optional>
+          <ref name="alias"/>
+        </optional>
+        <optional>
+          <ref name="address"/>
+        </optional>
+        <choice>
+          <!-- fdc/ide/sata/ccid have only the common attributes -->
+          <group>
             <attribute name="type">
               <choice>
                 <value>fdc</value>
                 <value>ide</value>
-                <value>scsi</value>
                 <value>sata</value>
                 <value>ccid</value>
-                <value>usb</value>
               </choice>
             </attribute>
-          </optional>
-        </group>
-        <!-- virtio-serial can have 2 additional attributes -->
-        <group>
-          <attribute name="type">
-            <value>virtio-serial</value>
-          </attribute>
-          <optional>
-            <attribute name="ports">
-              <ref name="unsignedInt"/>
+          </group>
+          <!-- scsi has an optional attribute "model" -->
+          <group>
+            <attribute name="type">
+              <value>scsi</value>
             </attribute>
-          </optional>
-          <optional>
-            <attribute name="vectors">
-              <ref name="unsignedInt"/>
+            <optional>
+              <attribute name="model">
+                <choice>
+                  <value>auto</value>
+                  <value>buslogic</value>
+                  <value>lsilogic</value>
+                  <value>lsisas1068</value>
+                  <value>vmpvscsi</value>
+                  <value>ibmvscsi</value>
+                  <value>virtio-scsi</value>
+                  <value>lsisas1078</value>
+                </choice>
+              </attribute>
+            </optional>
+          </group>
+          <!-- usb has an optional attribute "model", and optional subelement "master" -->
+          <group>
+            <attribute name="type">
+              <value>usb</value>
             </attribute>
-          </optional>
-        </group>
-      </choice>
-      <attribute name="index">
-        <ref name="unsignedInt"/>
-      </attribute>
-      <optional>
-        <attribute name="model">
-          <choice>
-            <value>auto</value>
-            <value>buslogic</value>
-            <value>lsilogic</value>
-            <value>lsisas1068</value>
-            <value>vmpvscsi</value>
-            <value>ibmvscsi</value>
-            <value>virtio-scsi</value>
-            <value>lsisas1078</value>
-            <value>piix3-uhci</value>
-            <value>piix4-uhci</value>
-            <value>ehci</value>
-            <value>ich9-ehci1</value>
-            <value>ich9-uhci1</value>
-            <value>ich9-uhci2</value>
-            <value>ich9-uhci3</value>
-            <value>vt82c686b-uhci</value>
-            <value>pci-ohci</value>
-            <value>nec-xhci</value>
-            <value>none</value>
-          </choice>
-        </attribute>
-      </optional>
-      <optional>
-        <ref name="usbmaster"/>
-      </optional>
-      <optional>
-        <ref name="alias"/>
-      </optional>
-      <optional>
-        <ref name="address"/>
-      </optional>
+            <optional>
+              <attribute name="model">
+                <choice>
+                  <value>piix3-uhci</value>
+                  <value>piix4-uhci</value>
+                  <value>ehci</value>
+                  <value>ich9-ehci1</value>
+                  <value>ich9-uhci1</value>
+                  <value>ich9-uhci2</value>
+                  <value>ich9-uhci3</value>
+                  <value>vt82c686b-uhci</value>
+                  <value>pci-ohci</value>
+                  <value>nec-xhci</value>
+                  <value>none</value>
+                </choice>
+              </attribute>
+            </optional>
+            <optional>
+              <ref name="usbmaster"/>
+            </optional>
+          </group>
+          <!-- pci has an optional attribute "model" -->
+          <group>
+            <attribute name="type">
+              <value>pci</value>
+            </attribute>
+            <attribute name="model">
+              <choice>
+                <value>pci-root</value>
+                <value>pci-bridge</value>
+              </choice>
+            </attribute>
+          </group>
+          <!-- virtio-serial has optional "ports" and "vectors" -->
+          <group>
+            <attribute name="type">
+              <value>virtio-serial</value>
+            </attribute>
+            <optional>
+              <attribute name="ports">
+                <ref name="unsignedInt"/>
+              </attribute>
+            </optional>
+            <optional>
+              <attribute name="vectors">
+                <ref name="unsignedInt"/>
+              </attribute>
+            </optional>
+          </group>
+        </choice>
+        <optional>
+          <element name="driver">
+            <optional>
+              <attribute name="queues">
+                <ref name="unsignedInt"/>
+              </attribute>
+            </optional>
+          </element>
+        </optional>
+      </interleave>
     </element>
   </define>
   <define name="filesystem">
@@ -1845,28 +1939,40 @@
       </optional>
       <optional>
         <element name="driver">
-          <optional>
-            <attribute name="name">
-              <choice>
-                <value>qemu</value>
-                <value>vhost</value>
-              </choice>
-            </attribute>
-          </optional>
-          <optional>
-            <attribute name="txmode">
-              <choice>
-                <value>iothread</value>
-                <value>timer</value>
-              </choice>
-            </attribute>
-          </optional>
-          <optional>
-            <ref name="ioeventfd"/>
-          </optional>
-          <optional>
-            <ref name="event_idx"/>
-          </optional>
+          <choice>
+            <group>
+              <attribute name="name">
+                <choice>
+                  <value>kvm</value>
+                  <value>vfio</value>
+                </choice>
+              </attribute>
+            </group>
+            <group>
+              <optional>
+                <attribute name="name">
+                  <choice>
+                    <value>qemu</value>
+                    <value>vhost</value>
+                  </choice>
+                </attribute>
+              </optional>
+              <optional>
+                <attribute name="txmode">
+                  <choice>
+                    <value>iothread</value>
+                    <value>timer</value>
+                  </choice>
+                </attribute>
+              </optional>
+              <optional>
+                <ref name="ioeventfd"/>
+              </optional>
+              <optional>
+                <ref name="event_idx"/>
+              </optional>
+            </group>
+          </choice>
           <empty/>
         </element>
       </optional>
@@ -2715,6 +2821,13 @@
       </optional>
     </element>
   </define>
+  <define name="nvram">
+    <element name="nvram">
+      <optional>
+        <ref name="address"/>
+      </optional>
+    </element>
+  </define>
   <define name="memballoon">
     <element name="memballoon">
       <attribute name="model">
@@ -2827,6 +2940,48 @@
       <text/>
     </element>
   </define>
+
+  <define name="tpm">
+    <element name="tpm">
+      <optional>
+        <attribute name="model">
+          <choice>
+            <value>tpm-tis</value>
+          </choice>
+        </attribute>
+      </optional>
+      <ref name="tpm-backend"/>
+      <optional>
+        <ref name="alias"/>
+      </optional>
+    </element>
+  </define>
+
+  <define name="tpm-backend">
+    <element name="backend">
+       <choice>
+         <group>
+           <attribute name="type">
+              <value>passthrough</value>
+           </attribute>
+           <ref name="tpm-passthrough-device"/>
+         </group>
+       </choice>
+    </element>
+  </define>
+
+  <define name="tpm-passthrough-device">
+    <optional>
+      <element name="device">
+        <optional>
+          <attribute name="path">
+            <ref name="filePath"/>
+          </attribute>
+        </optional>
+      </element>
+   </optional>
+  </define>
+
   <define name="input">
     <element name="input">
       <attribute name="type">
@@ -2953,6 +3108,9 @@
       <group>
         <ref name="hostdevcapsmisc"/>
       </group>
+      <group>
+        <ref name="hostdevcapsnet"/>
+      </group>
     </choice>
   </define>
 
@@ -2961,14 +3119,27 @@
     <attribute name="type">
       <value>pci</value>
     </attribute>
-    <element name="source">
+    <interleave>
       <optional>
-        <ref name="startupPolicy"/>
+        <element name="driver">
+          <attribute name="name">
+            <choice>
+              <value>kvm</value>
+              <value>vfio</value>
+            </choice>
+          </attribute>
+          <empty/>
+        </element>
       </optional>
-      <element name="address">
-        <ref name="pciaddress"/>
+      <element name="source">
+        <optional>
+          <ref name="startupPolicy"/>
+        </optional>
+        <element name="address">
+          <ref name="pciaddress"/>
+        </element>
       </element>
-    </element>
+    </interleave>
   </define>
 
   <define name="hostdevsubsysusb">
@@ -3009,6 +3180,17 @@
     <element name="source">
       <element name="char">
         <ref name="absFilePath"/>
+      </element>
+    </element>
+  </define>
+
+  <define name="hostdevcapsnet">
+    <attribute name="type">
+      <value>net</value>
+    </attribute>
+    <element name="source">
+      <element name="interface">
+        <ref name="deviceName"/>
       </element>
     </element>
   </define>
@@ -3137,6 +3319,7 @@
             <ref name="redirdev"/>
             <ref name="redirfilter"/>
             <ref name="rng"/>
+            <ref name="tpm"/>
           </choice>
         </zeroOrMore>
         <optional>
@@ -3144,6 +3327,9 @@
         </optional>
         <optional>
           <ref name="memballoon"/>
+        </optional>
+        <optional>
+          <ref name="nvram"/>
         </optional>
       </interleave>
     </element>
@@ -3806,11 +3992,6 @@
     </data>
   </define>
   <define name="rebootTimeoutDelay">
-    <data type="short">
-      <param name="minInclusive">-1</param>
-    </data>
-  </define>
-  <define name="PortNumber">
     <data type="short">
       <param name="minInclusive">-1</param>
     </data>

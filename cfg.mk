@@ -493,6 +493,12 @@ sc_prohibit_gethostby:
 	halt='use getaddrinfo, not gethostby*'				\
 	  $(_sc_search_regexp)
 
+# dirname and basename from <libgen.h> are not required to be thread-safe
+sc_prohibit_libgen:
+	@prohibit='( (base|dir)name *\(|include .libgen\.h)'		\
+	halt='use functions from gnulib "dirname.h", not <libgen.h>'	\
+	  $(_sc_search_regexp)
+
 # raw xmlGetProp requires some nasty casts
 sc_prohibit_xmlGetProp:
 	@prohibit='\<xmlGetProp *\('					\
@@ -722,6 +728,45 @@ sc_prohibit_exit_in_tests:
 	halt='use return, not exit(), in tests'				\
 	  $(_sc_search_regexp)
 
+# Don't include duplicate header in the source (either *.c or *.h)
+sc_prohibit_duplicate_header:
+	@fail=0; for i in $$($(VC_LIST_EXCEPT) | grep '\.[chx]$$'); do	\
+	  awk '/# *include.*\.h/ {					\
+	    match($$0, /[<"][^>"]*[">]/);				\
+	    arr[substr($$0, RSTART + 1, RLENGTH - 2)]++;		\
+	  }								\
+	  END {								\
+	    for (key in arr) {						\
+	      if (arr[key] > 1)	{					\
+		fail=1;							\
+		printf("%d %s are included\n", arr[key], key);		\
+	      }								\
+	    }								\
+	    if (fail == 1) {						\
+	      printf("duplicate header(s) in " FILENAME "\n");		\
+	      exit 1;							\
+	    }								\
+	  }' $$i || fail=1;						\
+	done;								\
+	if test $$fail -eq 1; then					\
+	  { echo "$(ME)": avoid duplicate headers >&2; exit 1; }	\
+	fi;
+
+# Don't include "libvirt/*.h" in "" form.
+sc_prohibit_include_public_headers_quote:
+	@prohibit='# *include *"libvirt/.*\.h"'				\
+	in_vc_files='\.[ch]$$'						\
+	halt='Do not include libvirt/*.h in internal source'		\
+	  $(_sc_search_regexp)
+
+# Don't include "libvirt/*.h" in <> form. Except for external tools,
+# e.g. Python binding, examples and tools subdirectories.
+sc_prohibit_include_public_headers_brackets:
+	@prohibit='# *include *<libvirt/.*\.h>'				\
+	in_vc_files='\.[ch]$$'						\
+	halt='Do not include libvirt/*.h in internal source'		\
+	  $(_sc_search_regexp)
+
 # We don't use this feature of maint.mk.
 prev_version_file = /dev/null
 
@@ -788,15 +833,16 @@ $(srcdir)/src/remote/remote_client_bodies.h: $(srcdir)/src/remote/remote_protoco
 exclude_file_name_regexp--sc_avoid_strcase = ^tools/virsh\.h$$
 
 _src1=libvirt|fdstream|qemu/qemu_monitor|util/(vircommand|virutil)|xen/xend_internal|rpc/virnetsocket|lxc/lxc_controller|locking/lock_daemon
+_test1=shunloadtest|virnettlscontexttest|vircgroupmock
 exclude_file_name_regexp--sc_avoid_write = \
-  ^(src/($(_src1))|daemon/libvirtd|tools/console|tests/(shunload|virnettlscontext)test)\.c$$
+  ^(src/($(_src1))|daemon/libvirtd|tools/console|tests/($(_test1)))\.c$$
 
 exclude_file_name_regexp--sc_bindtextdomain = ^(tests|examples)/
 
 exclude_file_name_regexp--sc_copyright_address = \
   ^COPYING\.LIB$$
 
-exclude_file_name_regexp--sc_flags_usage = ^(docs/|src/util/virnetdevtap\.c$$)
+exclude_file_name_regexp--sc_flags_usage = ^(docs/|src/util/virnetdevtap\.c$$|tests/vircgroupmock\.c$$)
 
 exclude_file_name_regexp--sc_libvirt_unmarked_diagnostics = \
   ^(src/rpc/gendispatch\.pl$$|tests/)
@@ -812,10 +858,10 @@ exclude_file_name_regexp--sc_prohibit_always_true_header_tests = \
   ^python/(libvirt-(lxc-|qemu-)?override|typewrappers)\.c$$
 
 exclude_file_name_regexp--sc_prohibit_asprintf = \
-  ^(bootstrap.conf$$|src/util/virutil\.c$$|examples/domain-events/events-c/event-test\.c$$)
+  ^(bootstrap.conf$$|src/util/virutil\.c$$|examples/domain-events/events-c/event-test\.c$$|tests/vircgroupmock\.c$$)
 
 exclude_file_name_regexp--sc_prohibit_close = \
-  (\.p[yl]$$|^docs/|^(src/util/virfile\.c|src/libvirt\.c)$$)
+  (\.p[yl]$$|^docs/|^(src/util/virfile\.c|src/libvirt\.c|tests/vircgroupmock\.c)$$)
 
 exclude_file_name_regexp--sc_prohibit_empty_lines_at_EOF = \
   (^tests/(qemuhelp|nodeinfo)data/|\.(gif|ico|png|diff)$$)
@@ -836,7 +882,7 @@ exclude_file_name_regexp--sc_prohibit_nonreentrant = \
   ^((po|tests)/|docs/.*(py|html\.in)|run.in$$)
 
 exclude_file_name_regexp--sc_prohibit_raw_allocation = \
-  ^(docs/hacking\.html\.in)|(src/util/viralloc\.[ch]|examples/.*|tests/securityselinuxhelper.c)$$
+  ^(docs/hacking\.html\.in)|(src/util/viralloc\.[ch]|examples/.*|tests/securityselinuxhelper\.c|tests/vircgroupmock\.c)$$
 
 exclude_file_name_regexp--sc_prohibit_readlink = \
   ^src/(util/virutil|lxc/lxc_container)\.c$$
@@ -874,3 +920,9 @@ exclude_file_name_regexp--sc_correct_id_types = \
   (^src/locking/lock_protocol.x$$)
 
 exclude_file_name_regexp--sc_m4_quote_check = m4/virt-lib.m4
+
+exclude_file_name_regexp--sc_prohibit_include_public_headers_quote = \
+  ^src/internal\.h$$
+
+exclude_file_name_regexp--sc_prohibit_include_public_headers_brackets = \
+  ^(python/|tools/|examples/|include/libvirt/(virterror|libvirt-(qemu|lxc))\.h$$)

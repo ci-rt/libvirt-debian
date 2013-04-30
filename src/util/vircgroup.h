@@ -38,32 +38,51 @@ enum {
     VIR_CGROUP_CONTROLLER_DEVICES,
     VIR_CGROUP_CONTROLLER_FREEZER,
     VIR_CGROUP_CONTROLLER_BLKIO,
+    VIR_CGROUP_CONTROLLER_NET_CLS,
+    VIR_CGROUP_CONTROLLER_PERF_EVENT,
 
     VIR_CGROUP_CONTROLLER_LAST
 };
 
 VIR_ENUM_DECL(virCgroupController);
 
-int virCgroupForDriver(const char *name,
-                       virCgroupPtr *group,
-                       bool privileged,
-                       bool create);
+int virCgroupNewPartition(const char *path,
+                          bool create,
+                          int controllers,
+                          virCgroupPtr *group)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(4);
 
-int virCgroupGetAppRoot(virCgroupPtr *group);
+int virCgroupNewDriver(const char *name,
+                       bool create,
+                       int controllers,
+                       virCgroupPtr *group)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(4);
 
-int virCgroupForDomain(virCgroupPtr driver,
-                       const char *name,
-                       virCgroupPtr *group,
-                       bool create);
+int virCgroupNewSelf(virCgroupPtr *group)
+    ATTRIBUTE_NONNULL(1);
 
-int virCgroupForVcpu(virCgroupPtr driver,
+int virCgroupNewDomainDriver(virCgroupPtr driver,
+                             const char *name,
+                             bool create,
+                             virCgroupPtr *group)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(4);
+int virCgroupNewDomainPartition(virCgroupPtr partition,
+                                const char *driver,
+                                const char *name,
+                                bool create,
+                                virCgroupPtr *group)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(5);
+
+int virCgroupNewVcpu(virCgroupPtr domain,
                      int vcpuid,
-                     virCgroupPtr *group,
-                     bool create);
+                     bool create,
+                     virCgroupPtr *group)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(4);
 
-int virCgroupForEmulator(virCgroupPtr driver,
-                         virCgroupPtr *group,
-                         bool create);
+int virCgroupNewEmulator(virCgroupPtr domain,
+                         bool create,
+                         virCgroupPtr *group)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(3);
 
 int virCgroupPathOfController(virCgroupPtr group,
                               int controller,
@@ -77,8 +96,7 @@ int virCgroupAddTaskController(virCgroupPtr group,
                                int controller);
 
 int virCgroupMoveTask(virCgroupPtr src_group,
-                      virCgroupPtr dest_group,
-                      int controller);
+                      virCgroupPtr dest_group);
 
 int virCgroupSetBlkioWeight(virCgroupPtr group, unsigned int weight);
 int virCgroupGetBlkioWeight(virCgroupPtr group, unsigned int *weight);
@@ -161,10 +179,14 @@ int virCgroupRemoveRecursively(char *grppath);
 int virCgroupRemove(virCgroupPtr group);
 
 void virCgroupFree(virCgroupPtr *group);
-bool virCgroupMounted(virCgroupPtr cgroup, int controller);
+bool virCgroupHasController(virCgroupPtr cgroup, int controller);
 
 int virCgroupKill(virCgroupPtr group, int signum);
 int virCgroupKillRecursive(virCgroupPtr group, int signum);
 int virCgroupKillPainfully(virCgroupPtr group);
+
+int virCgroupIsolateMount(virCgroupPtr group,
+                          const char *oldroot,
+                          const char *mountopts);
 
 #endif /* __VIR_CGROUP_H__ */

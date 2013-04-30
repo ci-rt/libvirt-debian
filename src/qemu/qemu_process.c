@@ -429,8 +429,8 @@ qemuProcessGetVolumeQcowPassphrase(virConnectPtr conn,
     }
 
     if (conn->secretDriver == NULL ||
-        conn->secretDriver->lookupByUUID == NULL ||
-        conn->secretDriver->getValue == NULL) {
+        conn->secretDriver->secretLookupByUUID == NULL ||
+        conn->secretDriver->secretGetValue == NULL) {
         virReportError(VIR_ERR_OPERATION_INVALID, "%s",
                        _("secret storage not supported"));
         goto cleanup;
@@ -445,12 +445,12 @@ qemuProcessGetVolumeQcowPassphrase(virConnectPtr conn,
         goto cleanup;
     }
 
-    secret = conn->secretDriver->lookupByUUID(conn,
-                                              enc->secrets[0]->uuid);
+    secret = conn->secretDriver->secretLookupByUUID(conn,
+                                                    enc->secrets[0]->uuid);
     if (secret == NULL)
         goto cleanup;
-    data = conn->secretDriver->getValue(secret, &size, 0,
-                                        VIR_SECRET_GET_VALUE_INTERNAL_CALL);
+    data = conn->secretDriver->secretGetValue(secret, &size, 0,
+                                              VIR_SECRET_GET_VALUE_INTERNAL_CALL);
     virObjectUnref(secret);
     if (data == NULL)
         goto cleanup;
@@ -663,7 +663,7 @@ qemuProcessHandleShutdown(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
                                      VIR_DOMAIN_EVENT_SHUTDOWN,
                                      VIR_DOMAIN_EVENT_SHUTDOWN_FINISHED);
 
-    if (virDomainSaveStatus(driver->xmlconf, cfg->stateDir, vm) < 0) {
+    if (virDomainSaveStatus(driver->xmlopt, cfg->stateDir, vm) < 0) {
         VIR_WARN("Unable to save status on vm %s after state change",
                  vm->def->name);
     }
@@ -713,7 +713,7 @@ qemuProcessHandleStop(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
             VIR_WARN("Unable to release lease on %s", vm->def->name);
         VIR_DEBUG("Preserving lock state '%s'", NULLSTR(priv->lockState));
 
-        if (virDomainSaveStatus(driver->xmlconf, cfg->stateDir, vm) < 0) {
+        if (virDomainSaveStatus(driver->xmlopt, cfg->stateDir, vm) < 0) {
             VIR_WARN("Unable to save status on vm %s after state change",
                      vm->def->name);
         }
@@ -766,7 +766,7 @@ qemuProcessHandleResume(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
         }
         VIR_FREE(priv->lockState);
 
-        if (virDomainSaveStatus(driver->xmlconf, cfg->stateDir, vm) < 0) {
+        if (virDomainSaveStatus(driver->xmlopt, cfg->stateDir, vm) < 0) {
             VIR_WARN("Unable to save status on vm %s after state change",
                      vm->def->name);
         }
@@ -796,7 +796,7 @@ qemuProcessHandleRTCChange(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
     if (vm->def->clock.offset == VIR_DOMAIN_CLOCK_OFFSET_VARIABLE)
         vm->def->clock.data.variable.adjustment = offset;
 
-    if (virDomainSaveStatus(driver->xmlconf, cfg->stateDir, vm) < 0)
+    if (virDomainSaveStatus(driver->xmlopt, cfg->stateDir, vm) < 0)
         VIR_WARN("unable to save domain status with RTC change");
 
     virObjectUnlock(vm);
@@ -836,7 +836,7 @@ qemuProcessHandleWatchdog(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
             VIR_WARN("Unable to release lease on %s", vm->def->name);
         VIR_DEBUG("Preserving lock state '%s'", NULLSTR(priv->lockState));
 
-        if (virDomainSaveStatus(driver->xmlconf, cfg->stateDir, vm) < 0) {
+        if (virDomainSaveStatus(driver->xmlopt, cfg->stateDir, vm) < 0) {
             VIR_WARN("Unable to save status on vm %s after watchdog event",
                      vm->def->name);
         }
@@ -918,7 +918,7 @@ qemuProcessHandleIOError(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
             VIR_WARN("Unable to release lease on %s", vm->def->name);
         VIR_DEBUG("Preserving lock state '%s'", NULLSTR(priv->lockState));
 
-        if (virDomainSaveStatus(driver->xmlconf, cfg->stateDir, vm) < 0)
+        if (virDomainSaveStatus(driver->xmlopt, cfg->stateDir, vm) < 0)
             VIR_WARN("Unable to save status on vm %s after IO error", vm->def->name);
     }
     virObjectUnlock(vm);
@@ -1096,7 +1096,7 @@ qemuProcessHandleTrayChange(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
         else if (reason == VIR_DOMAIN_EVENT_TRAY_CHANGE_CLOSE)
             disk->tray_status = VIR_DOMAIN_DISK_TRAY_CLOSED;
 
-        if (virDomainSaveStatus(driver->xmlconf, cfg->stateDir, vm) < 0) {
+        if (virDomainSaveStatus(driver->xmlopt, cfg->stateDir, vm) < 0) {
             VIR_WARN("Unable to save status on vm %s after tray moved event",
                      vm->def->name);
         }
@@ -1134,7 +1134,7 @@ qemuProcessHandlePMWakeup(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
                                                   VIR_DOMAIN_EVENT_STARTED,
                                                   VIR_DOMAIN_EVENT_STARTED_WAKEUP);
 
-        if (virDomainSaveStatus(driver->xmlconf, cfg->stateDir, vm) < 0) {
+        if (virDomainSaveStatus(driver->xmlopt, cfg->stateDir, vm) < 0) {
             VIR_WARN("Unable to save status on vm %s after wakeup event",
                      vm->def->name);
         }
@@ -1173,7 +1173,7 @@ qemuProcessHandlePMSuspend(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
                                      VIR_DOMAIN_EVENT_PMSUSPENDED,
                                      VIR_DOMAIN_EVENT_PMSUSPENDED_MEMORY);
 
-        if (virDomainSaveStatus(driver->xmlconf, cfg->stateDir, vm) < 0) {
+        if (virDomainSaveStatus(driver->xmlopt, cfg->stateDir, vm) < 0) {
             VIR_WARN("Unable to save status on vm %s after suspend event",
                      vm->def->name);
         }
@@ -1208,7 +1208,7 @@ qemuProcessHandleBalloonChange(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
               vm->def->mem.cur_balloon, actual);
     vm->def->mem.cur_balloon = actual;
 
-    if (virDomainSaveStatus(driver->xmlconf, cfg->stateDir, vm) < 0)
+    if (virDomainSaveStatus(driver->xmlopt, cfg->stateDir, vm) < 0)
         VIR_WARN("unable to save domain status with balloon change");
 
     virObjectUnlock(vm);
@@ -1243,7 +1243,7 @@ qemuProcessHandlePMSuspendDisk(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
                                      VIR_DOMAIN_EVENT_PMSUSPENDED,
                                      VIR_DOMAIN_EVENT_PMSUSPENDED_DISK);
 
-        if (virDomainSaveStatus(driver->xmlconf, cfg->stateDir, vm) < 0) {
+        if (virDomainSaveStatus(driver->xmlopt, cfg->stateDir, vm) < 0) {
             VIR_WARN("Unable to save status on vm %s after suspend event",
                      vm->def->name);
         }
@@ -1346,6 +1346,41 @@ error:
     return ret;
 }
 
+static int
+qemuProcessReadLog(int fd, char *buf, int buflen, int off)
+{
+    char *filter_next = buf;
+    ssize_t bytes;
+    char *eol;
+
+    buf[0] = '\0';
+
+    while (off < buflen - 1) {
+        bytes = saferead(fd, buf + off, buflen - off - 1);
+        if (bytes < 0)
+            return -1;
+        else if (bytes == 0)
+            break;
+
+        off += bytes;
+        buf[off] = '\0';
+
+        /* Filter out debug messages from intermediate libvirt process */
+        while ((eol = strchr(filter_next, '\n'))) {
+            *eol = '\0';
+            if (virLogProbablyLogMessage(filter_next)) {
+                memmove(filter_next, eol + 1, off - (eol - buf));
+                off -= eol + 1 - filter_next;
+            } else {
+                filter_next = eol + 1;
+                *eol = '\n';
+            }
+        }
+    }
+
+    return off;
+}
+
 typedef int qemuProcessLogHandleOutput(virDomainObjPtr vm,
                                        const char *output,
                                        int fd);
@@ -1365,43 +1400,24 @@ qemuProcessReadLogOutput(virDomainObjPtr vm,
     int retries = (timeout*10);
     int got = 0;
     int ret = -1;
-    char *filter_next = buf;
 
     buf[0] = '\0';
 
     while (retries) {
-        ssize_t func_ret, bytes;
+        ssize_t func_ret;
         int isdead = 0;
-        char *eol;
 
         func_ret = func(vm, buf, fd);
 
         if (kill(vm->pid, 0) == -1 && errno == ESRCH)
             isdead = 1;
 
-        /* Any failures should be detected before we read the log, so we
-         * always have something useful to report on failure. */
-        bytes = saferead(fd, buf+got, buflen-got-1);
-        if (bytes < 0) {
+        got = qemuProcessReadLog(fd, buf, buflen, got);
+        if (got < 0) {
             virReportSystemError(errno,
                                  _("Failure while reading %s log output"),
                                  what);
             goto cleanup;
-        }
-
-        got += bytes;
-        buf[got] = '\0';
-
-        /* Filter out debug messages from intermediate libvirt process */
-        while ((eol = strchr(filter_next, '\n'))) {
-            *eol = '\0';
-            if (virLogProbablyLogMessage(filter_next)) {
-                memmove(filter_next, eol + 1, got - (eol - buf));
-                got -= eol + 1 - filter_next;
-            } else {
-                filter_next = eol + 1;
-                *eol = '\n';
-            }
         }
 
         if (got == buflen-1) {
@@ -1649,21 +1665,6 @@ static void qemuProcessFreePtyPath(void *payload, const void *name ATTRIBUTE_UNU
     VIR_FREE(payload);
 }
 
-static void
-qemuProcessReadLogFD(int logfd, char *buf, int maxlen, int off)
-{
-    int ret;
-    char *tmpbuf = buf + off;
-
-    ret = saferead(logfd, tmpbuf, maxlen - off - 1);
-    if (ret < 0) {
-        ret = 0;
-    }
-
-    tmpbuf[ret] = '\0';
-}
-
-
 static int
 qemuProcessWaitForMonitor(virQEMUDriverPtr driver,
                           virDomainObjPtr vm,
@@ -1718,6 +1719,7 @@ cleanup:
     virHashFree(paths);
 
     if (pos != -1 && kill(vm->pid, 0) == -1 && errno == ESRCH) {
+        int len;
         /* VM is dead, any other error raised in the interim is probably
          * not as important as the qemu cmdline output */
         if (virQEMUCapsUsedQMP(qemuCaps)) {
@@ -1729,7 +1731,9 @@ cleanup:
                 goto closelog;
             }
         }
-        qemuProcessReadLogFD(logfd, buf, buf_size, strlen(buf));
+
+        len = strlen(buf);
+        qemuProcessReadLog(logfd, buf + len, buf_size - len - 1, 0);
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("process exited while connecting to monitor: %s"),
                        buf);
@@ -2529,7 +2533,7 @@ static int qemuProcessHook(void *data)
      * memory allocation is on the correct NUMA node
      */
     VIR_DEBUG("Moving process to cgroup");
-    if (qemuAddToCgroup(h->driver, h->vm->def) < 0)
+    if (qemuAddToCgroup(h->vm) < 0)
         goto cleanup;
 
     /* This must be done after cgroup placement to avoid resetting CPU
@@ -3004,10 +3008,15 @@ qemuProcessReconnect(void *opaque)
     if (qemuUpdateActiveUsbHostdevs(driver, obj->def) < 0)
         goto error;
 
+    if (qemuInitCgroup(driver, obj, false) < 0)
+        goto error;
+
     /* XXX: Need to change as long as lock is introduced for
      * qemu_driver->sharedDisks.
      */
     for (i = 0; i < obj->def->ndisks; i++) {
+        if (qemuTranslateDiskSourcePool(conn, obj->def->disks[i]) < 0)
+            goto error;
         if (qemuAddSharedDisk(driver, obj->def->disks[i],
                               obj->def->name) < 0)
             goto error;
@@ -3064,7 +3073,7 @@ qemuProcessReconnect(void *opaque)
         goto error;
 
     /* update domain state XML with possibly updated state in virDomainObj */
-    if (virDomainSaveStatus(driver->xmlconf, cfg->stateDir, obj) < 0)
+    if (virDomainSaveStatus(driver->xmlopt, cfg->stateDir, obj) < 0)
         goto error;
 
     /* Run an hook to allow admins to do some magic */
@@ -3233,9 +3242,12 @@ qemuSetUnprivSGIO(virDomainDiskDefPtr disk)
     /* "sgio" is only valid for block disk; cdrom
      * and floopy disk can have empty source.
      */
-    if (disk->type != VIR_DOMAIN_DISK_TYPE_BLOCK ||
+    if (!disk->src ||
         disk->device != VIR_DOMAIN_DISK_DEVICE_LUN ||
-        !disk->src)
+        (disk->type != VIR_DOMAIN_DISK_TYPE_BLOCK &&
+         !(disk->type == VIR_DOMAIN_DISK_TYPE_VOLUME &&
+           disk->srcpool &&
+           disk->srcpool->voltype == VIR_STORAGE_VOL_BLOCK)))
         return 0;
 
     sysfs_path = virGetUnprivSGIOSysfsPath(disk->src, NULL);
@@ -3256,6 +3268,89 @@ qemuSetUnprivSGIO(virDomainDiskDefPtr disk)
     VIR_FREE(sysfs_path);
     return ret;
 }
+
+
+static int
+qemuProcessSPICEAllocatePorts(virQEMUDriverPtr driver,
+                              virQEMUDriverConfigPtr cfg,
+                              virDomainGraphicsDefPtr graphics)
+{
+    unsigned short port = 0;
+    unsigned short tlsPort;
+    int i;
+    int defaultMode = graphics->data.spice.defaultMode;
+
+    bool needTLSPort = false;
+    bool needPort = false;
+
+    if (graphics->data.spice.autoport) {
+        /* check if tlsPort or port need allocation */
+        for (i = 0 ; i < VIR_DOMAIN_GRAPHICS_SPICE_CHANNEL_LAST ; i++) {
+            switch (graphics->data.spice.channels[i]) {
+            case VIR_DOMAIN_GRAPHICS_SPICE_CHANNEL_MODE_SECURE:
+                needTLSPort = true;
+                break;
+
+            case VIR_DOMAIN_GRAPHICS_SPICE_CHANNEL_MODE_INSECURE:
+                needPort = true;
+                break;
+
+            case VIR_DOMAIN_GRAPHICS_SPICE_CHANNEL_MODE_ANY:
+                switch (defaultMode) {
+                case VIR_DOMAIN_GRAPHICS_SPICE_CHANNEL_MODE_SECURE:
+                    needTLSPort = true;
+                    break;
+
+                case VIR_DOMAIN_GRAPHICS_SPICE_CHANNEL_MODE_INSECURE:
+                    needPort = true;
+                    break;
+
+                case VIR_DOMAIN_GRAPHICS_SPICE_CHANNEL_MODE_ANY:
+                    needTLSPort = true;
+                    needPort = true;
+                    break;
+                }
+                break;
+            }
+        }
+    }
+
+    if (needPort || graphics->data.spice.port == -1) {
+        if (virPortAllocatorAcquire(driver->remotePorts, &port) < 0)
+            goto error;
+
+        if (port == 0) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("Unable to find an unused port for SPICE"));
+            goto error;
+        }
+
+        graphics->data.spice.port = port;
+    }
+
+    if (cfg->spiceTLS &&
+        (needTLSPort || graphics->data.spice.tlsPort == -1)) {
+        if (virPortAllocatorAcquire(driver->remotePorts, &tlsPort) < 0)
+            goto error;
+
+        if (tlsPort == 0) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("Unable to find an unused port for SPICE TLS"));
+            virPortAllocatorRelease(driver->remotePorts, port);
+            goto error;
+        }
+
+        graphics->data.spice.tlsPort = tlsPort;
+    }
+
+    return 0;
+
+error:
+    if (port)
+        virPortAllocatorRelease(driver->remotePorts, port);
+    return -1;
+}
+
 
 int qemuProcessStart(virConnectPtr conn,
                      virQEMUDriverPtr driver,
@@ -3319,7 +3414,7 @@ int qemuProcessStart(virConnectPtr conn,
      * report implicit runtime defaults in the XML, like vnc listen/socket
      */
     VIR_DEBUG("Setting current domain def as transient");
-    if (virDomainObjSetDefTransient(caps, driver->xmlconf, vm, true) < 0)
+    if (virDomainObjSetDefTransient(caps, driver->xmlopt, vm, true) < 0)
         goto cleanup;
 
     vm->def->id = qemuDriverAllocateID(driver);
@@ -3379,7 +3474,7 @@ int qemuProcessStart(virConnectPtr conn,
     /* Ensure no historical cgroup for this VM is lying around bogus
      * settings */
     VIR_DEBUG("Ensuring no historical cgroup is lying around");
-    qemuRemoveCgroup(driver, vm, 1);
+    qemuRemoveCgroup(vm);
 
     for (i = 0 ; i < vm->def->ngraphics; ++i) {
         virDomainGraphicsDefPtr graphics = vm->def->graphics[i];
@@ -3391,36 +3486,8 @@ int qemuProcessStart(virConnectPtr conn,
                 goto cleanup;
             graphics->data.vnc.port = port;
         } else if (graphics->type == VIR_DOMAIN_GRAPHICS_TYPE_SPICE) {
-            unsigned short port = 0;
-            if (graphics->data.spice.autoport ||
-                graphics->data.spice.port == -1) {
-                if (virPortAllocatorAcquire(driver->remotePorts, &port) < 0)
-                    goto cleanup;
-
-                if (port == 0) {
-                    virReportError(VIR_ERR_INTERNAL_ERROR,
-                                   "%s", _("Unable to find an unused port for SPICE"));
-                    goto cleanup;
-                }
-
-                graphics->data.spice.port = port;
-            }
-            if (cfg->spiceTLS &&
-                (graphics->data.spice.autoport ||
-                 graphics->data.spice.tlsPort == -1)) {
-                unsigned short tlsPort;
-                if (virPortAllocatorAcquire(driver->remotePorts, &tlsPort) < 0)
-                    goto cleanup;
-
-                if (tlsPort == 0) {
-                    virReportError(VIR_ERR_INTERNAL_ERROR,
-                                   "%s", _("Unable to find an unused port for SPICE TLS"));
-                    virPortAllocatorRelease(driver->remotePorts, port);
-                    goto cleanup;
-                }
-
-                graphics->data.spice.tlsPort = tlsPort;
-            }
+            if (qemuProcessSPICEAllocatePorts(driver, cfg, graphics) < 0)
+                goto cleanup;
         }
 
         if (graphics->type == VIR_DOMAIN_GRAPHICS_TYPE_VNC ||
@@ -3556,6 +3623,11 @@ int qemuProcessStart(virConnectPtr conn,
             goto cleanup;
     }
 
+    for (i = 0; i < vm->def->ndisks; i++) {
+        if (qemuTranslateDiskSourcePool(conn, vm->def->disks[i]) < 0)
+            goto cleanup;
+    }
+
     VIR_DEBUG("Building emulator command line");
     if (!(cmd = qemuBuildCommandLine(conn, driver, vm->def, priv->monConfig,
                                      priv->monJSON != 0, priv->qemuCaps,
@@ -3670,7 +3742,7 @@ int qemuProcessStart(virConnectPtr conn,
     }
 
     VIR_DEBUG("Writing early domain status to disk");
-    if (virDomainSaveStatus(driver->xmlconf, cfg->stateDir, vm) < 0) {
+    if (virDomainSaveStatus(driver->xmlopt, cfg->stateDir, vm) < 0) {
         goto cleanup;
     }
 
@@ -3740,7 +3812,7 @@ int qemuProcessStart(virConnectPtr conn,
         goto cleanup;
 
     VIR_DEBUG("Setting cgroup for each VCPU (if required)");
-    if (qemuSetupCgroupForVcpu(driver, vm) < 0)
+    if (qemuSetupCgroupForVcpu(vm) < 0)
         goto cleanup;
 
     VIR_DEBUG("Setting cgroup for emulator (if required)");
@@ -3821,7 +3893,7 @@ int qemuProcessStart(virConnectPtr conn,
         goto cleanup;
 
     VIR_DEBUG("Writing domain status to disk");
-    if (virDomainSaveStatus(driver->xmlconf, cfg->stateDir, vm) < 0)
+    if (virDomainSaveStatus(driver->xmlopt, cfg->stateDir, vm) < 0)
         goto cleanup;
 
     /* finally we can call the 'started' hook script if any */
@@ -4075,7 +4147,7 @@ void qemuProcessStop(virQEMUDriverPtr driver,
     }
 
 retry:
-    if ((ret = qemuRemoveCgroup(driver, vm, 0)) < 0) {
+    if ((ret = qemuRemoveCgroup(vm)) < 0) {
         if (ret == -EBUSY && (retries++ < 5)) {
             usleep(200*1000);
             goto retry;
@@ -4083,6 +4155,7 @@ retry:
         VIR_WARN("Failed to remove cgroup for %s",
                  vm->def->name);
     }
+    virCgroupFree(&priv->cgroup);
 
     qemuProcessRemoveDomainStatus(driver, vm);
 
@@ -4179,7 +4252,7 @@ int qemuProcessAttach(virConnectPtr conn ATTRIBUTE_UNUSED,
      * report implicit runtime defaults in the XML, like vnc listen/socket
      */
     VIR_DEBUG("Setting current domain def as transient");
-    if (virDomainObjSetDefTransient(caps, driver->xmlconf, vm, true) < 0)
+    if (virDomainObjSetDefTransient(caps, driver->xmlopt, vm, true) < 0)
         goto cleanup;
 
     vm->def->id = qemuDriverAllocateID(driver);
@@ -4323,7 +4396,7 @@ int qemuProcessAttach(virConnectPtr conn ATTRIBUTE_UNUSED,
         virDomainObjSetState(vm, VIR_DOMAIN_PAUSED, reason);
 
     VIR_DEBUG("Writing domain status to disk");
-    if (virDomainSaveStatus(driver->xmlconf, cfg->stateDir, vm) < 0)
+    if (virDomainSaveStatus(driver->xmlopt, cfg->stateDir, vm) < 0)
         goto cleanup;
 
     /* Run an hook to allow admins to do some magic */

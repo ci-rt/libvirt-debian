@@ -235,6 +235,7 @@ qemuDomainObjPrivateFree(void *data)
 
     virObjectUnref(priv->qemuCaps);
 
+    virCgroupFree(&priv->cgroup);
     qemuDomainPCIAddressSetFree(priv->pciaddrs);
     qemuDomainCCWAddressSetFree(priv->ccwaddrs);
     virDomainChrSourceDefFree(priv->monConfig);
@@ -662,13 +663,152 @@ virDomainXMLNamespace virQEMUDriverDomainXMLNamespace = {
 };
 
 
+static int
+qemuDomainDefPostParse(virDomainDefPtr def,
+                       virCapsPtr caps,
+                       void *opaque ATTRIBUTE_UNUSED)
+{
+    bool addPCIRoot = false;
+
+    /* check for emulator and create a default one if needed */
+    if (!def->emulator &&
+        !(def->emulator = virDomainDefGetDefaultEmulator(def, caps)))
+        return -1;
+
+    /* Add implicit PCI root controller if the machine has one */
+    switch (def->os.arch) {
+    case VIR_ARCH_I686:
+    case VIR_ARCH_X86_64:
+        if (!def->os.machine)
+            break;
+        if (STRPREFIX(def->os.machine, "pc-q35") ||
+            STREQ(def->os.machine, "q35") ||
+            STREQ(def->os.machine, "isapc"))
+            break;
+        if (!STRPREFIX(def->os.machine, "pc-0.") &&
+            !STRPREFIX(def->os.machine, "pc-1.") &&
+            !STRPREFIX(def->os.machine, "pc-i440") &&
+            !STREQ(def->os.machine, "pc") &&
+            !STRPREFIX(def->os.machine, "rhel"))
+            break;
+        addPCIRoot = true;
+        break;
+
+    case VIR_ARCH_ALPHA:
+    case VIR_ARCH_PPC:
+    case VIR_ARCH_PPC64:
+    case VIR_ARCH_PPCEMB:
+    case VIR_ARCH_SH4:
+    case VIR_ARCH_SH4EB:
+        addPCIRoot = true;
+        break;
+    default:
+        break;
+    }
+
+    if (addPCIRoot &&
+        virDomainDefMaybeAddController(
+            def, VIR_DOMAIN_CONTROLLER_TYPE_PCI, 0,
+            VIR_DOMAIN_CONTROLLER_MODEL_PCI_ROOT) < 0)
+        return -1;
+
+    return 0;
+}
+
+
+static int
+qemuDomainDeviceDefPostParse(virDomainDeviceDefPtr dev,
+                             virDomainDefPtr def,
+                             virCapsPtr caps ATTRIBUTE_UNUSED,
+                             void *opaque)
+{
+    int ret = -1;
+    virQEMUDriverPtr driver = opaque;
+    virQEMUDriverConfigPtr cfg = NULL;
+
+    if (dev->type == VIR_DOMAIN_DEVICE_NET &&
+        dev->data.net->type != VIR_DOMAIN_NET_TYPE_HOSTDEV &&
+        !dev->data.net->model) {
+        if (def->os.arch == VIR_ARCH_S390 ||
+            def->os.arch == VIR_ARCH_S390X)
+            dev->data.net->model = strdup("virtio");
+        else
+            dev->data.net->model = strdup("rtl8139");
+
+        if (!dev->data.net->model)
+            goto no_memory;
+    }
+
+    /* set default disk types and drivers */
+    if (dev->type == VIR_DOMAIN_DEVICE_DISK) {
+        virDomainDiskDefPtr disk = dev->data.disk;
+
+        /* both of these require data from the driver config */
+        if (driver && (cfg = virQEMUDriverGetConfig(driver))) {
+            /* assign default storage format and driver according to config */
+            if (cfg->allowDiskFormatProbing) {
+                /* default disk format for drives */
+                if (disk->format == VIR_STORAGE_FILE_NONE &&
+                    (disk->type == VIR_DOMAIN_DISK_TYPE_FILE ||
+                     disk->type == VIR_DOMAIN_DISK_TYPE_BLOCK))
+                    disk->format = VIR_STORAGE_FILE_AUTO;
+
+                 /* default disk format for mirrored drive */
+                if (disk->mirror &&
+                    disk->mirrorFormat == VIR_STORAGE_FILE_NONE)
+                    disk->mirrorFormat = VIR_STORAGE_FILE_AUTO;
+            } else {
+                /* default driver if probing is forbidden */
+                if (!disk->driverName &&
+                    !(disk->driverName = strdup("qemu")))
+                        goto no_memory;
+
+                /* default disk format for drives */
+                if (disk->format == VIR_STORAGE_FILE_NONE &&
+                    (disk->type == VIR_DOMAIN_DISK_TYPE_FILE ||
+                     disk->type == VIR_DOMAIN_DISK_TYPE_BLOCK))
+                    disk->format = VIR_STORAGE_FILE_RAW;
+
+                 /* default disk format for mirrored drive */
+                if (disk->mirror &&
+                    disk->mirrorFormat == VIR_STORAGE_FILE_NONE)
+                    disk->mirrorFormat = VIR_STORAGE_FILE_RAW;
+            }
+        }
+    }
+
+    /* set the default console type for S390 arches */
+    if (dev->type == VIR_DOMAIN_DEVICE_CHR &&
+        dev->data.chr->deviceType == VIR_DOMAIN_CHR_DEVICE_TYPE_CONSOLE &&
+        dev->data.chr->targetType == VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_NONE &&
+        (def->os.arch == VIR_ARCH_S390 || def->os.arch == VIR_ARCH_S390X))
+        dev->data.chr->targetType = VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_VIRTIO;
+
+    ret = 0;
+
+cleanup:
+    virObjectUnref(cfg);
+    return ret;
+
+no_memory:
+    virReportOOMError();
+    goto cleanup;
+}
+
+
+virDomainDefParserConfig virQEMUDriverDomainDefParserConfig = {
+    .devicesPostParseCallback = qemuDomainDeviceDefPostParse,
+    .domainPostParseCallback = qemuDomainDefPostParse,
+};
+
+
 static void
 qemuDomainObjSaveJob(virQEMUDriverPtr driver, virDomainObjPtr obj)
 {
     virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
 
     if (virDomainObjIsActive(obj)) {
-        if (virDomainSaveStatus(driver->xmlconf, cfg->stateDir, obj) < 0)
+        if (virDomainSaveStatus(driver->xmlopt, cfg->stateDir, obj) < 0)
             VIR_WARN("Failed to save status on vm %s", obj->def->name);
     }
 
@@ -1154,7 +1294,8 @@ qemuDomainDefFormatBuf(virQEMUDriverPtr driver,
 
     if ((flags & VIR_DOMAIN_XML_MIGRATABLE)) {
         int i;
-        virDomainControllerDefPtr usb = NULL;
+        int toremove = 0;
+        virDomainControllerDefPtr usb = NULL, pci = NULL;
 
         /* If only the default USB controller is present, we can remove it
          * and make the XML compatible with older versions of libvirt which
@@ -1173,9 +1314,36 @@ qemuDomainDefFormatBuf(virQEMUDriverPtr driver,
         if (usb && usb->idx == 0 && usb->model == -1) {
             VIR_DEBUG("Removing default USB controller from domain '%s'"
                       " for migration compatibility", def->name);
+            toremove++;
+        } else {
+            usb = NULL;
+        }
+
+        /* Remove the default PCI controller if there is only one present
+         * and its model is pci-root */
+        for (i = 0; i < def->ncontrollers; i++) {
+            if (def->controllers[i]->type == VIR_DOMAIN_CONTROLLER_TYPE_PCI) {
+                if (pci) {
+                    pci = NULL;
+                    break;
+                }
+                pci = def->controllers[i];
+            }
+        }
+
+        if (pci && pci->idx == 0 &&
+            pci->model == VIR_DOMAIN_CONTROLLER_MODEL_PCI_ROOT) {
+            VIR_DEBUG("Removing default 'pci-root' from domain '%s'"
+                      " for migration compatibility", def->name);
+            toremove++;
+        } else {
+            pci = NULL;
+        }
+
+        if (toremove) {
             controllers = def->controllers;
             ncontrollers = def->ncontrollers;
-            if (VIR_ALLOC_N(def->controllers, ncontrollers - 1) < 0) {
+            if (VIR_ALLOC_N(def->controllers, ncontrollers - toremove) < 0) {
                 controllers = NULL;
                 virReportOOMError();
                 goto cleanup;
@@ -1183,10 +1351,12 @@ qemuDomainDefFormatBuf(virQEMUDriverPtr driver,
 
             def->ncontrollers = 0;
             for (i = 0; i < ncontrollers; i++) {
-                if (controllers[i] != usb)
+                if (controllers[i] != usb && controllers[i] != pci)
                     def->controllers[def->ncontrollers++] = controllers[i];
             }
         }
+
+
     }
 
     ret = virDomainDefFormatInternal(def, flags, buf);
@@ -1784,7 +1954,7 @@ qemuDomainSetFakeReboot(virQEMUDriverPtr driver,
 
     priv->fakeReboot = value;
 
-    if (virDomainSaveStatus(driver->xmlconf, cfg->stateDir, vm) < 0)
+    if (virDomainSaveStatus(driver->xmlopt, cfg->stateDir, vm) < 0)
         VIR_WARN("Failed to save status on vm %s", vm->def->name);
 
 cleanup:
@@ -1943,7 +2113,9 @@ qemuDomainDetermineDiskChain(virQEMUDriverPtr driver,
     virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
     int ret = 0;
 
-    if (!disk->src || disk->type == VIR_DOMAIN_DISK_TYPE_NETWORK)
+    if (!disk->src ||
+        disk->type == VIR_DOMAIN_DISK_TYPE_NETWORK ||
+        disk->type == VIR_DOMAIN_DISK_TYPE_VOLUME)
         goto cleanup;
 
     if (disk->backingChain) {

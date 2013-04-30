@@ -147,7 +147,7 @@ static virLXCControllerPtr virLXCControllerNew(const char *name)
 {
     virLXCControllerPtr ctrl = NULL;
     virCapsPtr caps = NULL;
-    virDomainXMLConfPtr xmlconf = NULL;
+    virDomainXMLOptionPtr xmlopt = NULL;
     char *configFile = NULL;
 
     if (VIR_ALLOC(ctrl) < 0)
@@ -162,15 +162,15 @@ static virLXCControllerPtr virLXCControllerNew(const char *name)
     if ((caps = lxcCapsInit(NULL)) == NULL)
         goto error;
 
-    if (!(xmlconf = lxcDomainXMLConfInit()))
+    if (!(xmlopt = lxcDomainXMLConfInit()))
         goto error;
 
     if ((configFile = virDomainConfigFile(LXC_STATE_DIR,
                                           ctrl->name)) == NULL)
         goto error;
 
-    if ((ctrl->def = virDomainDefParseFile(caps, xmlconf,
-                                           configFile,
+    if ((ctrl->def = virDomainDefParseFile(configFile,
+                                           caps, xmlopt,
                                            1 << VIR_DOMAIN_VIRT_LXC,
                                            0)) == NULL)
         goto error;
@@ -183,7 +183,7 @@ static virLXCControllerPtr virLXCControllerNew(const char *name)
 cleanup:
     VIR_FREE(configFile);
     virObjectUnref(caps);
-    virObjectUnref(xmlconf);
+    virObjectUnref(xmlopt);
     return ctrl;
 
 no_memory:
@@ -1050,9 +1050,25 @@ cleanup2:
 static int virLXCControllerMoveInterfaces(virLXCControllerPtr ctrl)
 {
     size_t i;
+    virDomainDefPtr def = ctrl->def;
 
     for (i = 0 ; i < ctrl->nveths ; i++) {
         if (virNetDevSetNamespace(ctrl->veths[i], ctrl->initpid) < 0)
+            return -1;
+    }
+
+    for (i = 0; i < def->nhostdevs; i ++) {
+        virDomainHostdevDefPtr hdev = def->hostdevs[i];
+
+        if (hdev->mode != VIR_DOMAIN_HOSTDEV_MODE_CAPABILITIES)
+            continue;
+
+        virDomainHostdevCaps hdcaps = hdev->source.caps;
+
+        if (hdcaps.type != VIR_DOMAIN_HOSTDEV_CAPS_TYPE_NET)
+           continue;
+
+        if (virNetDevSetNamespace(hdcaps.u.net.iface, ctrl->initpid) < 0)
             return -1;
     }
 
@@ -1252,8 +1268,9 @@ virLXCControllerSetupDevPTS(virLXCControllerPtr ctrl)
     }
 
     if (access(ctrl->devptmx, R_OK) < 0) {
-        VIR_WARN("Kernel does not support private devpts, using shared devpts");
-        VIR_FREE(ctrl->devptmx);
+        virReportSystemError(ENOSYS, "%s",
+                             _("Kernel does not support private devpts"));
+        goto cleanup;
     }
 
     ret = 0;
@@ -1278,24 +1295,13 @@ virLXCControllerSetupConsoles(virLXCControllerPtr ctrl,
     size_t i;
 
     for (i = 0 ; i < ctrl->nconsoles ; i++) {
-        if (ctrl->devptmx) {
-            VIR_DEBUG("Opening tty on private %s", ctrl->devptmx);
-            if (lxcCreateTty(ctrl->devptmx,
-                             &ctrl->consoles[i].contFd,
-                             &containerTTYPaths[i]) < 0) {
-                virReportSystemError(errno, "%s",
+        VIR_DEBUG("Opening tty on private %s", ctrl->devptmx);
+        if (lxcCreateTty(ctrl->devptmx,
+                         &ctrl->consoles[i].contFd,
+                         &containerTTYPaths[i]) < 0) {
+            virReportSystemError(errno, "%s",
                                      _("Failed to allocate tty"));
-                return -1;
-            }
-        } else {
-            VIR_DEBUG("Opening tty on shared /dev/ptmx");
-            if (virFileOpenTty(&ctrl->consoles[i].contFd,
-                               &containerTTYPaths[i],
-                               0) < 0) {
-                virReportSystemError(errno, "%s",
-                                     _("Failed to allocate tty"));
-                return -1;
-            }
+            return -1;
         }
     }
     return 0;
@@ -1428,7 +1434,7 @@ virLXCControllerRun(virLXCControllerPtr ctrl)
     if (virLXCControllerSetupPrivateNS() < 0)
         goto cleanup;
 
-    if (!(cgroup = virLXCCgroupCreate(ctrl->def)))
+    if (!(cgroup = virLXCCgroupJoin(ctrl->def)))
         goto cleanup;
 
     if (virLXCControllerSetupLoopDevices(ctrl) < 0)
@@ -1693,7 +1699,7 @@ int main(int argc, char *argv[])
             _exit(0);
         }
 
-        /* Don't hold onto any cwd we inherit from libvirtd either */
+        /* Don't hold on to any cwd we inherit from libvirtd either */
         if (chdir("/") < 0) {
             virReportSystemError(errno, "%s",
                                  _("Unable to change to root dir"));

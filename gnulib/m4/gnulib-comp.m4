@@ -339,6 +339,7 @@ AC_DEFUN([gl_EARLY],
   # Code from module same-inode:
   # Code from module sched:
   # Code from module sched-tests:
+  # Code from module secure_getenv:
   # Code from module select:
   # Code from module select-tests:
   # Code from module send:
@@ -982,6 +983,12 @@ AC_SUBST([LTALLOCA])
     gl_PREREQ_REGEX
   fi
   gl_SCHED_H
+  gl_FUNC_SECURE_GETENV
+  if test $HAVE_SECURE_GETENV = 0; then
+    AC_LIBOBJ([secure_getenv])
+    gl_PREREQ_SECURE_GETENV
+  fi
+  gl_STDLIB_MODULE_INDICATOR([secure_getenv])
   gl_FUNC_SELECT
   if test $REPLACE_SELECT = 1; then
     AC_LIBOBJ([select])
@@ -1459,6 +1466,7 @@ changequote([, ])dnl
   gl_FUNC_PUTENV
   if test $REPLACE_PUTENV = 1; then
     AC_LIBOBJ([putenv])
+    gl_PREREQ_PUTENV
   fi
   gl_STDLIB_MODULE_INDICATOR([putenv])
   dnl Check for prerequisites for memory fence checks.
@@ -1821,6 +1829,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/regex_internal.h
   lib/regexec.c
   lib/sched.in.h
+  lib/secure_getenv.c
   lib/select.c
   lib/send.c
   lib/setenv.c
@@ -2063,6 +2072,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/realloc.m4
   m4/regex.m4
   m4/sched_h.m4
+  m4/secure_getenv.m4
   m4/select.m4
   m4/servent.m4
   m4/setenv.m4

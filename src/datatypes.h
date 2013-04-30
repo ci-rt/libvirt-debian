@@ -93,6 +93,22 @@ extern virClassPtr virStoragePoolClass;
 # define VIR_IS_DOMAIN_SNAPSHOT(obj) \
     (VIR_IS_SNAPSHOT(obj) && VIR_IS_DOMAIN((obj)->domain))
 
+
+typedef struct _virConnectCloseCallbackData virConnectCloseCallbackData;
+typedef virConnectCloseCallbackData *virConnectCloseCallbackDataPtr;
+
+/**
+ * Internal structure holding data related to connection close callbacks.
+ */
+struct _virConnectCloseCallbackData {
+    virObjectLockable parent;
+
+    virConnectPtr conn;
+    virConnectCloseFunc callback;
+    void *opaque;
+    virFreeCallback freeCallback;
+};
+
 /**
  * _virConnect:
  *
@@ -112,7 +128,7 @@ struct _virConnect {
     virNetworkDriverPtr networkDriver;
     virInterfaceDriverPtr interfaceDriver;
     virStorageDriverPtr storageDriver;
-    virDeviceMonitorPtr  deviceMonitor;
+    virNodeDeviceDriverPtr  nodeDeviceDriver;
     virSecretDriverPtr secretDriver;
     virNWFilterDriverPtr nwfilterDriver;
 
@@ -124,7 +140,7 @@ struct _virConnect {
     void *            networkPrivateData;
     void *            interfacePrivateData;
     void *            storagePrivateData;
-    void *            devMonPrivateData;
+    void *            nodeDevicePrivateData;
     void *            secretPrivateData;
     void *            nwfilterPrivateData;
 
@@ -142,11 +158,7 @@ struct _virConnect {
     void *userData;         /* the user data */
 
     /* Per-connection close callback */
-    virConnectCloseFunc closeCallback;
-    void *closeOpaque;
-    virFreeCallback closeFreeCallback;
-    bool closeDispatch;
-    unsigned closeUnregisterCount;
+    virConnectCloseCallbackDataPtr closeCallback;
 };
 
 /**

@@ -1,7 +1,7 @@
 /*
  * qemu_capabilities.h: QEMU capabilities generation
  *
- * Copyright (C) 2006-2012 Red Hat, Inc.
+ * Copyright (C) 2006-2013 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -27,7 +27,6 @@
 # include "virobject.h"
 # include "capabilities.h"
 # include "vircommand.h"
-# include "virobject.h"
 # include "qemu_monitor.h"
 
 /* Internal flags to keep track of qemu command line capabilities */
@@ -174,6 +173,15 @@ enum virQEMUCapsFlags {
     QEMU_CAPS_VIRTIO_CCW         = 132, /* -device virtio-*-ccw */
     QEMU_CAPS_DTB                = 133, /* -dtb file */
     QEMU_CAPS_SCSI_MEGASAS       = 134, /* -device megasas */
+    QEMU_CAPS_IPV6_MIGRATION     = 135, /* -incoming [::] */
+    QEMU_CAPS_MACHINE_OPT        = 136, /* -machine xxxx*/
+    QEMU_CAPS_MACHINE_USB_OPT    = 137, /* -machine xxx,usb=on/off */
+    QEMU_CAPS_DEVICE_TPM_PASSTHROUGH = 138, /* -tpmdev passthrough */
+    QEMU_CAPS_DEVICE_TPM_TIS     = 139, /* -device tpm_tis */
+    QEMU_CAPS_DEVICE_NVRAM       = 140,  /* -global spapr-nvram.reg=xxxx */
+    QEMU_CAPS_DEVICE_PCI_BRIDGE  = 141, /* -device pci-bridge */
+    QEMU_CAPS_DEVICE_VFIO_PCI    = 142, /* -device vfio-pci */
+    QEMU_CAPS_VFIO_PCI_BOOTINDEX = 143, /* bootindex param for vfio-pci device */
 
     QEMU_CAPS_LAST,                   /* this must always be the last item */
 };

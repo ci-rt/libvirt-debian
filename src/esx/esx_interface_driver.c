@@ -70,7 +70,7 @@ esxInterfaceClose(virConnectPtr conn)
 
 
 static int
-esxNumberOfInterfaces(virConnectPtr conn)
+esxConnectNumOfInterfaces(virConnectPtr conn)
 {
     esxPrivate *priv = conn->interfacePrivateData;
     esxVI_PhysicalNic *physicalNicList = NULL;
@@ -95,7 +95,7 @@ esxNumberOfInterfaces(virConnectPtr conn)
 
 
 static int
-esxListInterfaces(virConnectPtr conn, char **const names, int maxnames)
+esxConnectListInterfaces(virConnectPtr conn, char **const names, int maxnames)
 {
     bool success = false;
     esxPrivate *priv = conn->interfacePrivateData;
@@ -144,7 +144,7 @@ esxListInterfaces(virConnectPtr conn, char **const names, int maxnames)
 
 
 static int
-esxNumberOfDefinedInterfaces(virConnectPtr conn ATTRIBUTE_UNUSED)
+esxConnectNumOfDefinedInterfaces(virConnectPtr conn ATTRIBUTE_UNUSED)
 {
     /* ESX interfaces are always active */
     return 0;
@@ -153,9 +153,9 @@ esxNumberOfDefinedInterfaces(virConnectPtr conn ATTRIBUTE_UNUSED)
 
 
 static int
-esxListDefinedInterfaces(virConnectPtr conn ATTRIBUTE_UNUSED,
-                         char **const names ATTRIBUTE_UNUSED,
-                         int maxnames ATTRIBUTE_UNUSED)
+esxConnectListDefinedInterfaces(virConnectPtr conn ATTRIBUTE_UNUSED,
+                                char **const names ATTRIBUTE_UNUSED,
+                                int maxnames ATTRIBUTE_UNUSED)
 {
     /* ESX interfaces are always active */
     return 0;
@@ -298,12 +298,12 @@ esxInterfaceIsActive(virInterfacePtr iface ATTRIBUTE_UNUSED)
 
 static virInterfaceDriver esxInterfaceDriver = {
     .name = "ESX",
-    .open = esxInterfaceOpen, /* 0.7.6 */
-    .close = esxInterfaceClose, /* 0.7.6 */
-    .numOfInterfaces = esxNumberOfInterfaces, /* 0.10.0 */
-    .listInterfaces = esxListInterfaces, /* 0.10.0 */
-    .numOfDefinedInterfaces = esxNumberOfDefinedInterfaces, /* 0.10.0 */
-    .listDefinedInterfaces = esxListDefinedInterfaces, /* 0.10.0 */
+    .interfaceOpen = esxInterfaceOpen, /* 0.7.6 */
+    .interfaceClose = esxInterfaceClose, /* 0.7.6 */
+    .connectNumOfInterfaces = esxConnectNumOfInterfaces, /* 0.10.0 */
+    .connectListInterfaces = esxConnectListInterfaces, /* 0.10.0 */
+    .connectNumOfDefinedInterfaces = esxConnectNumOfDefinedInterfaces, /* 0.10.0 */
+    .connectListDefinedInterfaces = esxConnectListDefinedInterfaces, /* 0.10.0 */
     .interfaceLookupByName = esxInterfaceLookupByName, /* 0.10.0 */
     .interfaceLookupByMACString = esxInterfaceLookupByMACString, /* 0.10.0 */
     .interfaceGetXMLDesc = esxInterfaceGetXMLDesc, /* 0.10.0 */

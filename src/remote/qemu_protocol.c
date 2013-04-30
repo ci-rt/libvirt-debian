@@ -10,7 +10,7 @@
 #include <arpa/inet.h>
 
 bool_t
-xdr_qemu_monitor_command_args (XDR *xdrs, qemu_monitor_command_args *objp)
+xdr_qemu_domain_monitor_command_args (XDR *xdrs, qemu_domain_monitor_command_args *objp)
 {
 
          if (!xdr_remote_nonnull_domain (xdrs, &objp->dom))
@@ -23,7 +23,7 @@ xdr_qemu_monitor_command_args (XDR *xdrs, qemu_monitor_command_args *objp)
 }
 
 bool_t
-xdr_qemu_monitor_command_ret (XDR *xdrs, qemu_monitor_command_ret *objp)
+xdr_qemu_domain_monitor_command_ret (XDR *xdrs, qemu_domain_monitor_command_ret *objp)
 {
 
          if (!xdr_remote_nonnull_string (xdrs, &objp->result))

@@ -97,8 +97,11 @@ test_programs = virshtest sockettest \
 	utiltest shunloadtest \
 	virtimetest viruritest virkeyfiletest \
 	virauthconfigtest \
-	virbitmaptest virendiantest \
+	virbitmaptest \
+	vircgrouptest \
+	virendiantest \
 	viridentitytest \
+	virkeycodetest \
 	virlockspacetest \
 	virstringtest \
         virportallocatortest \
@@ -173,7 +176,9 @@ endif
 
 test_programs += nwfilterxml2xmltest
 
+if WITH_STORAGE
 test_programs += storagevolxml2argvtest
+endif
 
 test_programs += storagevolxml2xmltest storagepoolxml2xmltest
 
@@ -246,6 +251,7 @@ EXTRA_DIST += $(test_scripts)
 
 test_libraries = libshunload.la \
 		libvirportallocatormock.la \
+		vircgroupmock.la \
 		$(NULL)
 if WITH_QEMU
 test_libraries += libqemumonitortestutils.la
@@ -471,11 +477,15 @@ nwfilterxml2xmltest_SOURCES = \
 	testutils.c testutils.h
 nwfilterxml2xmltest_LDADD = $(LDADDS)
 
+if WITH_STORAGE
 storagevolxml2argvtest_SOURCES = \
     storagevolxml2argvtest.c \
     testutils.c testutils.h
 storagevolxml2argvtest_LDADD = \
 	../src/libvirt_driver_storage_impl.la $(LDADDS)
+else
+EXTRA_DIST += storagevolxml2argvtest.c
+endif
 
 storagevolxml2xmltest_SOURCES = \
 	storagevolxml2xmltest.c \
@@ -573,6 +583,10 @@ viridentitytest_SOURCES = \
 	viridentitytest.c testutils.h testutils.c
 viridentitytest_LDADD = $(LDADDS)
 
+virkeycodetest_SOURCES = \
+	virkeycodetest.c testutils.h testutils.c
+virkeycodetest_LDADD = $(LDADDS)
+
 virlockspacetest_SOURCES = \
 	virlockspacetest.c testutils.h testutils.c
 virlockspacetest_LDADD = $(LDADDS)
@@ -585,6 +599,16 @@ libvirportallocatormock_la_SOURCES = \
 	virportallocatortest.c
 libvirportallocatormock_la_CFLAGS = $(AM_CFLAGS) -DMOCK_HELPER=1
 libvirportallocatormock_la_LDFLAGS = -module -avoid-version \
+        -rpath /evil/libtool/hack/to/force/shared/lib/creation
+
+vircgrouptest_SOURCES = \
+	vircgrouptest.c testutils.h testutils.c
+vircgrouptest_LDADD = $(LDADDS)
+
+vircgroupmock_la_SOURCES = \
+	vircgroupmock.c
+vircgroupmock_la_CFLAGS = $(AM_CFLAGS)
+vircgroupmock_la_LDFLAGS = -module -avoid-version \
         -rpath /evil/libtool/hack/to/force/shared/lib/creation
 
 

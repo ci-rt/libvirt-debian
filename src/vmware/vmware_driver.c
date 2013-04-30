@@ -72,19 +72,19 @@ vmwareDataFreeFunc(void *data)
     VIR_FREE(dom);
 }
 
-static virDomainXMLConfPtr
+static virDomainXMLOptionPtr
 vmwareDomainXMLConfigInit(void)
 {
     virDomainXMLPrivateDataCallbacks priv = { .alloc = vmwareDataAllocFunc,
                                               .free = vmwareDataFreeFunc };
 
-    return virDomainXMLConfNew(&priv, NULL);
+    return virDomainXMLOptionNew(NULL, &priv, NULL);
 }
 
 static virDrvOpenStatus
-vmwareOpen(virConnectPtr conn,
-           virConnectAuthPtr auth ATTRIBUTE_UNUSED,
-           unsigned int flags)
+vmwareConnectOpen(virConnectPtr conn,
+                  virConnectAuthPtr auth ATTRIBUTE_UNUSED,
+                  unsigned int flags)
 {
     struct vmware_driver *driver;
     char * vmrun = NULL;
@@ -143,7 +143,7 @@ vmwareOpen(virConnectPtr conn,
     if (!(driver->caps = vmwareCapsInit()))
         goto cleanup;
 
-    if (!(driver->xmlconf = vmwareDomainXMLConfigInit()))
+    if (!(driver->xmlopt = vmwareDomainXMLConfigInit()))
         goto cleanup;
 
     if (vmwareLoadDomains(driver) < 0)
@@ -162,7 +162,7 @@ vmwareOpen(virConnectPtr conn,
 };
 
 static int
-vmwareClose(virConnectPtr conn)
+vmwareConnectClose(virConnectPtr conn)
 {
     struct vmware_driver *driver = conn->privateData;
 
@@ -174,13 +174,13 @@ vmwareClose(virConnectPtr conn)
 }
 
 static const char *
-vmwareGetType(virConnectPtr conn ATTRIBUTE_UNUSED)
+vmwareConnectGetType(virConnectPtr conn ATTRIBUTE_UNUSED)
 {
     return "VMware";
 }
 
 static int
-vmwareGetVersion(virConnectPtr conn, unsigned long *version)
+vmwareConnectGetVersion(virConnectPtr conn, unsigned long *version)
 {
     struct vmware_driver *driver = conn->privateData;
 
@@ -324,13 +324,13 @@ vmwareDomainDefineXML(virConnectPtr conn, const char *xml)
     ctx.formatFileName = vmwareCopyVMXFileName;
 
     vmwareDriverLock(driver);
-    if ((vmdef = virDomainDefParseString(driver->caps, driver->xmlconf,
-                                         xml, 1 << VIR_DOMAIN_VIRT_VMWARE,
+    if ((vmdef = virDomainDefParseString(xml, driver->caps, driver->xmlopt,
+                                         1 << VIR_DOMAIN_VIRT_VMWARE,
                                          VIR_DOMAIN_XML_INACTIVE)) == NULL)
         goto cleanup;
 
     /* generate vmx file */
-    vmx = virVMXFormatConfig(&ctx, driver->caps, vmdef, 7);
+    vmx = virVMXFormatConfig(&ctx, driver->xmlopt, vmdef, 7);
     if (vmx == NULL)
         goto cleanup;
 
@@ -346,8 +346,8 @@ vmwareDomainDefineXML(virConnectPtr conn, const char *xml)
 
     /* assign def */
     if (!(vm = virDomainObjListAdd(driver->domains,
-                                   driver->xmlconf,
                                    vmdef,
+                                   driver->xmlopt,
                                    VIR_DOMAIN_OBJ_LIST_ADD_CHECK_LIVE,
                                    NULL)))
         goto cleanup;
@@ -428,6 +428,19 @@ static int
 vmwareDomainShutdown(virDomainPtr dom)
 {
     return vmwareDomainShutdownFlags(dom, 0);
+}
+
+static int
+vmwareDomainDestroy(virDomainPtr dom)
+{
+    return vmwareDomainShutdownFlags(dom, 0);
+}
+
+static int
+vmwareDomainDestroyFlags(virDomainPtr dom,
+                         unsigned int flags)
+{
+    return vmwareDomainShutdownFlags(dom, flags);
 }
 
 static int
@@ -595,13 +608,13 @@ vmwareDomainCreateXML(virConnectPtr conn, const char *xml,
 
     vmwareDriverLock(driver);
 
-    if ((vmdef = virDomainDefParseString(driver->caps, driver->xmlconf,
-                                         xml, 1 << VIR_DOMAIN_VIRT_VMWARE,
+    if ((vmdef = virDomainDefParseString(xml, driver->caps, driver->xmlopt,
+                                         1 << VIR_DOMAIN_VIRT_VMWARE,
                                          VIR_DOMAIN_XML_INACTIVE)) == NULL)
         goto cleanup;
 
     /* generate vmx file */
-    vmx = virVMXFormatConfig(&ctx, driver->caps, vmdef, 7);
+    vmx = virVMXFormatConfig(&ctx, driver->xmlopt, vmdef, 7);
     if (vmx == NULL)
         goto cleanup;
 
@@ -617,8 +630,8 @@ vmwareDomainCreateXML(virConnectPtr conn, const char *xml,
 
     /* assign def */
     if (!(vm = virDomainObjListAdd(driver->domains,
-                                   driver->xmlconf,
                                    vmdef,
+                                   driver->xmlopt,
                                    VIR_DOMAIN_OBJ_LIST_ADD_CHECK_LIVE,
                                    NULL)))
         goto cleanup;
@@ -773,7 +786,7 @@ vmwareDomainLookupByID(virConnectPtr conn, int id)
 }
 
 static char *
-vmwareGetOSType(virDomainPtr dom)
+vmwareDomainGetOSType(virDomainPtr dom)
 {
     struct vmware_driver *driver = dom->conn->privateData;
     virDomainObjPtr vm;
@@ -924,9 +937,9 @@ vmwareDomainGetXMLDesc(virDomainPtr dom, unsigned int flags)
 }
 
 static char *
-vmwareDomainXMLFromNative(virConnectPtr conn, const char *nativeFormat,
-                          const char *nativeConfig,
-                          unsigned int flags)
+vmwareConnectDomainXMLFromNative(virConnectPtr conn, const char *nativeFormat,
+                                 const char *nativeConfig,
+                                 unsigned int flags)
 {
     struct vmware_driver *driver = conn->privateData;
     virVMXContext ctx;
@@ -943,7 +956,7 @@ vmwareDomainXMLFromNative(virConnectPtr conn, const char *nativeFormat,
 
     ctx.parseFileName = vmwareCopyVMXFileName;
 
-    def = virVMXParseConfig(&ctx, driver->caps, nativeConfig);
+    def = virVMXParseConfig(&ctx, driver->xmlopt, nativeConfig);
 
     if (def != NULL)
         xml = virDomainDefFormat(def, VIR_DOMAIN_XML_INACTIVE);
@@ -969,7 +982,7 @@ vmwareDomainObjListUpdateAll(virDomainObjListPtr doms, struct vmware_driver *dri
 }
 
 static int
-vmwareNumDefinedDomains(virConnectPtr conn)
+vmwareConnectNumOfDefinedDomains(virConnectPtr conn)
 {
     struct vmware_driver *driver = conn->privateData;
     int n;
@@ -983,7 +996,7 @@ vmwareNumDefinedDomains(virConnectPtr conn)
 }
 
 static int
-vmwareNumDomains(virConnectPtr conn)
+vmwareConnectNumOfDomains(virConnectPtr conn)
 {
     struct vmware_driver *driver = conn->privateData;
     int n;
@@ -998,7 +1011,7 @@ vmwareNumDomains(virConnectPtr conn)
 
 
 static int
-vmwareListDomains(virConnectPtr conn, int *ids, int nids)
+vmwareConnectListDomains(virConnectPtr conn, int *ids, int nids)
 {
     struct vmware_driver *driver = conn->privateData;
     int n;
@@ -1012,8 +1025,8 @@ vmwareListDomains(virConnectPtr conn, int *ids, int nids)
 }
 
 static int
-vmwareListDefinedDomains(virConnectPtr conn,
-                         char **const names, int nnames)
+vmwareConnectListDefinedDomains(virConnectPtr conn,
+                                char **const names, int nnames)
 {
     struct vmware_driver *driver = conn->privateData;
     int n;
@@ -1093,15 +1106,15 @@ vmwareDomainGetState(virDomainPtr dom,
 }
 
 static int
-vmwareIsAlive(virConnectPtr conn ATTRIBUTE_UNUSED)
+vmwareConnectIsAlive(virConnectPtr conn ATTRIBUTE_UNUSED)
 {
     return 1;
 }
 
 static int
-vmwareListAllDomains(virConnectPtr conn,
-                     virDomainPtr **domains,
-                     unsigned int flags)
+vmwareConnectListAllDomains(virConnectPtr conn,
+                            virDomainPtr **domains,
+                            unsigned int flags)
 {
     struct vmware_driver *driver = conn->privateData;
     int ret = -1;
@@ -1120,13 +1133,13 @@ vmwareListAllDomains(virConnectPtr conn,
 static virDriver vmwareDriver = {
     .no = VIR_DRV_VMWARE,
     .name = "VMWARE",
-    .open = vmwareOpen, /* 0.8.7 */
-    .close = vmwareClose, /* 0.8.7 */
-    .type = vmwareGetType, /* 0.8.7 */
-    .version = vmwareGetVersion, /* 0.8.7 */
-    .listDomains = vmwareListDomains, /* 0.8.7 */
-    .numOfDomains = vmwareNumDomains, /* 0.8.7 */
-    .listAllDomains = vmwareListAllDomains, /* 0.9.13 */
+    .connectOpen = vmwareConnectOpen, /* 0.8.7 */
+    .connectClose = vmwareConnectClose, /* 0.8.7 */
+    .connectGetType = vmwareConnectGetType, /* 0.8.7 */
+    .connectGetVersion = vmwareConnectGetVersion, /* 0.8.7 */
+    .connectListDomains = vmwareConnectListDomains, /* 0.8.7 */
+    .connectNumOfDomains = vmwareConnectNumOfDomains, /* 0.8.7 */
+    .connectListAllDomains = vmwareConnectListAllDomains, /* 0.9.13 */
     .domainCreateXML = vmwareDomainCreateXML, /* 0.8.7 */
     .domainLookupByID = vmwareDomainLookupByID, /* 0.8.7 */
     .domainLookupByUUID = vmwareDomainLookupByUUID, /* 0.8.7 */
@@ -1136,15 +1149,15 @@ static virDriver vmwareDriver = {
     .domainShutdown = vmwareDomainShutdown, /* 0.8.7 */
     .domainShutdownFlags = vmwareDomainShutdownFlags, /* 0.9.10 */
     .domainReboot = vmwareDomainReboot, /* 0.8.7 */
-    .domainDestroy = vmwareDomainShutdown, /* 0.8.7 */
-    .domainDestroyFlags = vmwareDomainShutdownFlags, /* 0.9.4 */
-    .domainGetOSType = vmwareGetOSType, /* 0.8.7 */
+    .domainDestroy = vmwareDomainDestroy, /* 0.8.7 */
+    .domainDestroyFlags = vmwareDomainDestroyFlags, /* 0.9.4 */
+    .domainGetOSType = vmwareDomainGetOSType, /* 0.8.7 */
     .domainGetInfo = vmwareDomainGetInfo, /* 0.8.7 */
     .domainGetState = vmwareDomainGetState, /* 0.9.2 */
     .domainGetXMLDesc = vmwareDomainGetXMLDesc, /* 0.8.7 */
-    .domainXMLFromNative = vmwareDomainXMLFromNative, /* 0.9.11 */
-    .listDefinedDomains = vmwareListDefinedDomains, /* 0.8.7 */
-    .numOfDefinedDomains = vmwareNumDefinedDomains, /* 0.8.7 */
+    .connectDomainXMLFromNative = vmwareConnectDomainXMLFromNative, /* 0.9.11 */
+    .connectListDefinedDomains = vmwareConnectListDefinedDomains, /* 0.8.7 */
+    .connectNumOfDefinedDomains = vmwareConnectNumOfDefinedDomains, /* 0.8.7 */
     .domainCreate = vmwareDomainCreate, /* 0.8.7 */
     .domainCreateWithFlags = vmwareDomainCreateWithFlags, /* 0.8.7 */
     .domainDefineXML = vmwareDomainDefineXML, /* 0.8.7 */
@@ -1152,7 +1165,7 @@ static virDriver vmwareDriver = {
     .domainUndefineFlags = vmwareDomainUndefineFlags, /* 0.9.4 */
     .domainIsActive = vmwareDomainIsActive, /* 0.8.7 */
     .domainIsPersistent = vmwareDomainIsPersistent, /* 0.8.7 */
-    .isAlive = vmwareIsAlive, /* 0.9.8 */
+    .connectIsAlive = vmwareConnectIsAlive, /* 0.9.8 */
 };
 
 int

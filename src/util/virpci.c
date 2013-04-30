@@ -36,6 +36,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 
+#include "dirname.h"
 #include "virlog.h"
 #include "viralloc.h"
 #include "vircommand.h"
@@ -51,32 +52,33 @@
 #define SRIOV_ERROR -1
 
 struct _virPCIDevice {
-    unsigned      domain;
-    unsigned      bus;
-    unsigned      slot;
-    unsigned      function;
+    unsigned int  domain;
+    unsigned int  bus;
+    unsigned int  slot;
+    unsigned int  function;
 
     char          name[PCI_ADDR_LEN]; /* domain:bus:slot.function */
     char          id[PCI_ID_LEN];     /* product vendor */
     char          *path;
     const char    *used_by;           /* The domain which uses the device */
 
-    unsigned      pcie_cap_pos;
-    unsigned      pci_pm_cap_pos;
-    unsigned      has_flr : 1;
-    unsigned      has_pm_reset : 1;
-    unsigned      managed : 1;
+    unsigned int  pcie_cap_pos;
+    unsigned int  pci_pm_cap_pos;
+    bool          has_flr;
+    bool          has_pm_reset;
+    bool          managed;
+    const char   *stubDriver;
 
     /* used by reattach function */
-    unsigned      unbind_from_stub : 1;
-    unsigned      remove_slot : 1;
-    unsigned      reprobe : 1;
+    bool          unbind_from_stub;
+    bool          remove_slot;
+    bool          reprobe;
 };
 
 struct _virPCIDeviceList {
     virObjectLockable parent;
 
-    unsigned count;
+    unsigned int count;
     virPCIDevicePtr *devs;
 };
 
@@ -222,9 +224,9 @@ virPCIDeviceConfigClose(virPCIDevicePtr dev, int cfgfd)
 static int
 virPCIDeviceRead(virPCIDevicePtr dev,
                  int cfgfd,
-                 unsigned pos,
+                 unsigned int pos,
                  uint8_t *buf,
-                 unsigned buflen)
+                 unsigned int buflen)
 {
     memset(buf, 0, buflen);
 
@@ -239,7 +241,7 @@ virPCIDeviceRead(virPCIDevicePtr dev,
 }
 
 static uint8_t
-virPCIDeviceRead8(virPCIDevicePtr dev, int cfgfd, unsigned pos)
+virPCIDeviceRead8(virPCIDevicePtr dev, int cfgfd, unsigned int pos)
 {
     uint8_t buf;
     virPCIDeviceRead(dev, cfgfd, pos, &buf, sizeof(buf));
@@ -247,7 +249,7 @@ virPCIDeviceRead8(virPCIDevicePtr dev, int cfgfd, unsigned pos)
 }
 
 static uint16_t
-virPCIDeviceRead16(virPCIDevicePtr dev, int cfgfd, unsigned pos)
+virPCIDeviceRead16(virPCIDevicePtr dev, int cfgfd, unsigned int pos)
 {
     uint8_t buf[2];
     virPCIDeviceRead(dev, cfgfd, pos, &buf[0], sizeof(buf));
@@ -255,7 +257,7 @@ virPCIDeviceRead16(virPCIDevicePtr dev, int cfgfd, unsigned pos)
 }
 
 static uint32_t
-virPCIDeviceRead32(virPCIDevicePtr dev, int cfgfd, unsigned pos)
+virPCIDeviceRead32(virPCIDevicePtr dev, int cfgfd, unsigned int pos)
 {
     uint8_t buf[4];
     virPCIDeviceRead(dev, cfgfd, pos, &buf[0], sizeof(buf));
@@ -265,9 +267,9 @@ virPCIDeviceRead32(virPCIDevicePtr dev, int cfgfd, unsigned pos)
 static int
 virPCIDeviceWrite(virPCIDevicePtr dev,
                   int cfgfd,
-                  unsigned pos,
+                  unsigned int pos,
                   uint8_t *buf,
-                  unsigned buflen)
+                  unsigned int buflen)
 {
     if (lseek(cfgfd, pos, SEEK_SET) != pos ||
         safewrite(cfgfd, buf, buflen) != buflen) {
@@ -280,14 +282,14 @@ virPCIDeviceWrite(virPCIDevicePtr dev,
 }
 
 static void
-virPCIDeviceWrite16(virPCIDevicePtr dev, int cfgfd, unsigned pos, uint16_t val)
+virPCIDeviceWrite16(virPCIDevicePtr dev, int cfgfd, unsigned int pos, uint16_t val)
 {
     uint8_t buf[2] = { (val >> 0), (val >> 8) };
     virPCIDeviceWrite(dev, cfgfd, pos, &buf[0], sizeof(buf));
 }
 
 static void
-virPCIDeviceWrite32(virPCIDevicePtr dev, int cfgfd, unsigned pos, uint32_t val)
+virPCIDeviceWrite32(virPCIDevicePtr dev, int cfgfd, unsigned int pos, uint32_t val)
 {
     uint8_t buf[4] = { (val >> 0), (val >> 8), (val >> 16), (val >> 24) };
     virPCIDeviceWrite(dev, cfgfd, pos, &buf[0], sizeof(buf));
@@ -370,7 +372,9 @@ virPCIDeviceIterDevices(virPCIDeviceIterPredicate predicate,
 }
 
 static uint8_t
-virPCIDeviceFindCapabilityOffset(virPCIDevicePtr dev, int cfgfd, unsigned capability)
+virPCIDeviceFindCapabilityOffset(virPCIDevicePtr dev,
+                                 int cfgfd,
+                                 unsigned int capability)
 {
     uint16_t status;
     uint8_t pos;
@@ -407,7 +411,7 @@ virPCIDeviceFindCapabilityOffset(virPCIDevicePtr dev, int cfgfd, unsigned capabi
 static unsigned int
 virPCIDeviceFindExtendedCapabilityOffset(virPCIDevicePtr dev,
                                          int cfgfd,
-                                         unsigned capability)
+                                         unsigned int capability)
 {
     int ttl;
     unsigned int pos;
@@ -496,7 +500,7 @@ virPCIDeviceDetectFunctionLevelReset(virPCIDevicePtr dev, int cfgfd)
  * and that a D3hot->D0 transition will results in a full
  * internal reset, not just a soft reset.
  */
-static unsigned
+static unsigned int
 virPCIDeviceDetectPowerManagementReset(virPCIDevicePtr dev, int cfgfd)
 {
     if (dev->pci_pm_cap_pos) {
@@ -776,8 +780,8 @@ virPCIDeviceInit(virPCIDevicePtr dev, int cfgfd)
     flr = virPCIDeviceDetectFunctionLevelReset(dev, cfgfd);
     if (flr < 0)
         return flr;
-    dev->has_flr        = flr;
-    dev->has_pm_reset   = virPCIDeviceDetectPowerManagementReset(dev, cfgfd);
+    dev->has_flr        = !!flr;
+    dev->has_pm_reset   = !!virPCIDeviceDetectPowerManagementReset(dev, cfgfd);
 
     return 0;
 }
@@ -935,7 +939,7 @@ virPCIDeviceUnbindFromStub(virPCIDevicePtr dev, const char *driver)
             goto cleanup;
         }
     }
-    dev->unbind_from_stub = 0;
+    dev->unbind_from_stub = false;
 
 remove_slot:
     if (!dev->remove_slot)
@@ -952,7 +956,7 @@ remove_slot:
                              dev->name, driver);
         goto cleanup;
     }
-    dev->remove_slot = 0;
+    dev->remove_slot = false;
 
 reprobe:
     if (!dev->reprobe) {
@@ -982,9 +986,9 @@ reprobe:
 
 cleanup:
     /* do not do it again */
-    dev->unbind_from_stub = 0;
-    dev->remove_slot = 0;
-    dev->reprobe = 0;
+    dev->unbind_from_stub = false;
+    dev->remove_slot = false;
+    dev->reprobe = false;
 
     VIR_FREE(drvdir);
     VIR_FREE(path);
@@ -999,7 +1003,7 @@ virPCIDeviceBindToStub(virPCIDevicePtr dev, const char *driver)
     int result = -1;
     char *drvdir = NULL;
     char *path = NULL;
-    int reprobe = 0;
+    int reprobe = false;
 
     /* check whether the device is already bound to a driver */
     if (virPCIDriverDir(&drvdir, driver) < 0 ||
@@ -1013,7 +1017,7 @@ virPCIDeviceBindToStub(virPCIDevicePtr dev, const char *driver)
             result = 0;
             goto cleanup;
         }
-        reprobe = 1;
+        reprobe = true;
     }
 
     /* Add the PCI device ID to the stub's dynamic ID table;
@@ -1044,8 +1048,8 @@ virPCIDeviceBindToStub(virPCIDevicePtr dev, const char *driver)
     }
 
     if (virFileLinkPointsTo(path, drvdir)) {
-        dev->unbind_from_stub = 1;
-        dev->remove_slot = 1;
+        dev->unbind_from_stub = true;
+        dev->remove_slot = true;
         goto remove_id;
     }
 
@@ -1087,7 +1091,7 @@ virPCIDeviceBindToStub(virPCIDevicePtr dev, const char *driver)
                                  dev->name, driver);
             goto remove_id;
         }
-        dev->remove_slot = 1;
+        dev->remove_slot = true;
 
         if (virPCIDriverFile(&path, driver, "bind") < 0) {
             goto remove_id;
@@ -1099,7 +1103,7 @@ virPCIDeviceBindToStub(virPCIDevicePtr dev, const char *driver)
                                  dev->name, driver);
             goto remove_id;
         }
-        dev->unbind_from_stub = 1;
+        dev->unbind_from_stub = true;
     }
 
 remove_id:
@@ -1112,7 +1116,7 @@ remove_id:
             VIR_WARN("Could not remove PCI ID '%s' from %s, and the device "
                      "cannot be probed again.", dev->id, driver);
         }
-        dev->reprobe = 0;
+        dev->reprobe = false;
         goto cleanup;
     }
 
@@ -1126,7 +1130,7 @@ remove_id:
             VIR_WARN("Failed to remove PCI ID '%s' from %s, and the device "
                      "cannot be probed again.", dev->id, driver);
         }
-        dev->reprobe = 0;
+        dev->reprobe = false;
         goto cleanup;
     }
 
@@ -1149,6 +1153,9 @@ virPCIDeviceDetach(virPCIDevicePtr dev,
                    virPCIDeviceList *inactiveDevs,
                    const char *driver)
 {
+    if (!driver && dev->stubDriver)
+        driver = dev->stubDriver;
+
     if (virPCIProbeStubDriver(driver) < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("Failed to load PCI stub module %s"), driver);
@@ -1179,6 +1186,9 @@ virPCIDeviceReattach(virPCIDevicePtr dev,
                      virPCIDeviceListPtr inactiveDevs,
                      const char *driver)
 {
+    if (!driver && dev->stubDriver)
+        driver = dev->stubDriver;
+
     if (virPCIProbeStubDriver(driver) < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("Failed to load PCI stub module %s"), driver);
@@ -1206,8 +1216,8 @@ virPCIDeviceReattach(virPCIDevicePtr dev,
  * condition where the hypervisor is still cleaning up the device while
  * libvirt is trying to re-attach it to the host device driver.  To avoid
  * this situation, we look through /proc/iomem, and if the hypervisor is
- * still holding onto the bar (denoted by the string in the matcher variable),
- * then we can wait around a bit for that to clear up.
+ * still holding on to the bar (denoted by the string in the matcher
+ * variable), then we can wait around a bit for that to clear up.
  *
  * A typical /proc/iomem looks like this (snipped for brevity):
  * 00010000-0008efff : System RAM
@@ -1228,7 +1238,7 @@ virPCIDeviceReattach(virPCIDevicePtr dev,
  *   f0000000-f0003fff : kvm_assigned_device
  *
  * Returns 0 if we are clear to continue, and 1 if the hypervisor is still
- * holding onto the resource.
+ * holding on to the resource.
  */
 int
 virPCIDeviceWaitForCleanup(virPCIDevicePtr dev, const char *matcher)
@@ -1341,10 +1351,10 @@ virPCIDeviceReadID(virPCIDevicePtr dev, const char *id_name)
 }
 
 int
-virPCIGetAddrString(unsigned domain,
-                    unsigned bus,
-                    unsigned slot,
-                    unsigned function,
+virPCIGetAddrString(unsigned int domain,
+                    unsigned int bus,
+                    unsigned int slot,
+                    unsigned int function,
                     char **pciConfigAddr)
 {
     virPCIDevicePtr dev = NULL;
@@ -1365,10 +1375,10 @@ cleanup:
 }
 
 virPCIDevicePtr
-virPCIDeviceNew(unsigned domain,
-                unsigned bus,
-                unsigned slot,
-                unsigned function)
+virPCIDeviceNew(unsigned int domain,
+                unsigned int bus,
+                unsigned int slot,
+                unsigned int function)
 {
     virPCIDevicePtr dev;
     char *vendor = NULL;
@@ -1453,50 +1463,63 @@ virPCIDeviceGetName(virPCIDevicePtr dev)
     return dev->name;
 }
 
-void virPCIDeviceSetManaged(virPCIDevicePtr dev, unsigned managed)
+void virPCIDeviceSetManaged(virPCIDevicePtr dev, bool managed)
 {
-    dev->managed = !!managed;
+    dev->managed = managed;
 }
 
-unsigned virPCIDeviceGetManaged(virPCIDevicePtr dev)
+unsigned int
+virPCIDeviceGetManaged(virPCIDevicePtr dev)
 {
     return dev->managed;
 }
 
-unsigned
+void
+virPCIDeviceSetStubDriver(virPCIDevicePtr dev, const char *driver)
+{
+    dev->stubDriver = driver;
+}
+
+const char *
+virPCIDeviceGetStubDriver(virPCIDevicePtr dev)
+{
+    return dev->stubDriver;
+}
+
+unsigned int
 virPCIDeviceGetUnbindFromStub(virPCIDevicePtr dev)
 {
     return dev->unbind_from_stub;
 }
 
 void
-virPCIDeviceSetUnbindFromStub(virPCIDevicePtr dev, unsigned unbind)
+virPCIDeviceSetUnbindFromStub(virPCIDevicePtr dev, bool unbind)
 {
-    dev->unbind_from_stub = !!unbind;
+    dev->unbind_from_stub = unbind;
 }
 
-unsigned
+unsigned int
 virPCIDeviceGetRemoveSlot(virPCIDevicePtr dev)
 {
     return dev->remove_slot;
 }
 
 void
-virPCIDeviceSetRemoveSlot(virPCIDevicePtr dev, unsigned remove_slot)
+virPCIDeviceSetRemoveSlot(virPCIDevicePtr dev, bool remove_slot)
 {
-    dev->remove_slot = !!remove_slot;
+    dev->remove_slot = remove_slot;
 }
 
-unsigned
+unsigned int
 virPCIDeviceGetReprobe(virPCIDevicePtr dev)
 {
     return dev->reprobe;
 }
 
 void
-virPCIDeviceSetReprobe(virPCIDevicePtr dev, unsigned reprobe)
+virPCIDeviceSetReprobe(virPCIDevicePtr dev, bool reprobe)
 {
-    dev->reprobe = !!reprobe;
+    dev->reprobe = reprobe;
 }
 
 void
@@ -1513,9 +1536,9 @@ virPCIDeviceGetUsedBy(virPCIDevicePtr dev)
 
 void virPCIDeviceReattachInit(virPCIDevicePtr pci)
 {
-    pci->unbind_from_stub = 1;
-    pci->remove_slot = 1;
-    pci->reprobe = 1;
+    pci->unbind_from_stub = true;
+    pci->remove_slot = true;
+    pci->reprobe = true;
 }
 
 
@@ -1702,6 +1725,41 @@ cleanup:
     VIR_FREE(file);
     VIR_FREE(pcidir);
     return ret;
+}
+
+/* virPCIDeviceGetVFIOGroupDev - return the name of the device used to
+ * control this PCI device's group (e.g. "/dev/vfio/15")
+ */
+char *
+virPCIDeviceGetVFIOGroupDev(virPCIDevicePtr dev)
+{
+    char *devPath = NULL;
+    char *groupPath = NULL;
+    char *groupDev = NULL;
+
+    if (virPCIFile(&devPath, dev->name, "iommu_group") < 0)
+        goto cleanup;
+    if (virFileIsLink(devPath) != 1) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Invalid device %s iommu_group file %s is not a symlink"),
+                       dev->name, devPath);
+        goto cleanup;
+    }
+    if (virFileResolveLink(devPath, &groupPath) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Unable to resolve device %s iommu_group symlink %s"),
+                       dev->name, devPath);
+        goto cleanup;
+    }
+    if (virAsprintf(&groupDev, "/dev/vfio/%s",
+                    last_component(groupPath)) < 0) {
+        virReportOOMError();
+        goto cleanup;
+    }
+cleanup:
+    VIR_FREE(devPath);
+    VIR_FREE(groupPath);
+    return groupDev;
 }
 
 static int
@@ -1922,7 +1980,7 @@ virPCIGetDeviceAddressFromSysfsLink(const char *device_link,
         return ret;
     }
 
-    config_address = basename(device_path);
+    config_address = last_component(device_path);
     if (VIR_ALLOC(*bdf) != 0) {
         virReportOOMError();
         goto out;
@@ -2026,8 +2084,8 @@ virPCIGetVirtualFunctions(const char *sysfs_path,
                 continue;
             }
 
-            if (VIR_ALLOC_N(*virtual_functions,
-                            *num_virtual_functions + 1) < 0) {
+            if (VIR_REALLOC_N(*virtual_functions,
+                              *num_virtual_functions + 1) < 0) {
                 virReportOOMError();
                 VIR_FREE(config_addr);
                 goto error;

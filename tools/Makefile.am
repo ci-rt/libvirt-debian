@@ -99,6 +99,8 @@ virt_host_validate_SOURCES = \
 
 virt_host_validate_LDFLAGS = \
 		$(WARN_LDFLAGS) \
+		$(PIE_LDFLAGS) \
+		$(RELRO_LDFLAGS) \
 		$(COVERAGE_LDFLAGS) \
 		$(NULL)
 
@@ -109,6 +111,7 @@ virt_host_validate_LDADD = \
 
 virt_host_validate_CFLAGS = \
 		$(WARN_CFLAGS)					\
+		$(PIE_CFLAGS)					\
 		$(COVERAGE_CFLAGS)				\
 		$(NULL)
 
@@ -131,7 +134,9 @@ virsh_SOURCES =							\
 virsh_LDFLAGS = $(WARN_LDFLAGS) $(COVERAGE_LDFLAGS)
 virsh_LDADD =							\
 		$(STATIC_BINARIES)				\
-		$(WARN_CFLAGS)					\
+		$(WARN_LDFLAGS)					\
+		$(PIE_LDFLAGS)					\
+		$(RELRO_LDFLAGS) \
 		../src/libvirt.la				\
 		../src/libvirt-lxc.la				\
 		../src/libvirt-qemu.la				\
@@ -140,6 +145,7 @@ virsh_LDADD =							\
 		$(VIRSH_LIBS)
 virsh_CFLAGS =							\
 		$(WARN_CFLAGS)					\
+		$(PIE_CFLAGS)					\
 		$(COVERAGE_CFLAGS)				\
 		$(LIBXML_CFLAGS)				\
 		$(READLINE_CFLAGS)

@@ -93,9 +93,9 @@ extern int xenRegister (void);
  * structure with direct calls in xen_unified.c.
  */
 struct xenUnifiedDriver {
-    virDrvClose xenClose; /* Only mandatory callback; all others may be NULL */
-    virDrvGetVersion  xenVersion;
-    virDrvGetHostname xenGetHostname;
+    virDrvConnectClose xenClose; /* Only mandatory callback; all others may be NULL */
+    virDrvConnectGetVersion  xenVersion;
+    virDrvConnectGetHostname xenGetHostname;
     virDrvDomainSuspend xenDomainSuspend;
     virDrvDomainResume xenDomainResume;
     virDrvDomainShutdown xenDomainShutdown;
@@ -108,8 +108,8 @@ struct xenUnifiedDriver {
     virDrvDomainGetInfo xenDomainGetInfo;
     virDrvDomainPinVcpu xenDomainPinVcpu;
     virDrvDomainGetVcpus xenDomainGetVcpus;
-    virDrvListDefinedDomains xenListDefinedDomains;
-    virDrvNumOfDefinedDomains xenNumOfDefinedDomains;
+    virDrvConnectListDefinedDomains xenListDefinedDomains;
+    virDrvConnectNumOfDefinedDomains xenNumOfDefinedDomains;
     virDrvDomainCreate xenDomainCreate;
     virDrvDomainDefineXML xenDomainDefineXML;
     virDrvDomainUndefine xenDomainUndefine;
@@ -160,7 +160,7 @@ struct _xenUnifiedPrivate {
      * holding the lock
      */
     virCapsPtr caps;
-    virDomainXMLConfPtr xmlconf;
+    virDomainXMLOptionPtr xmlopt;
     int handle;			/* Xen hypervisor handle */
 
     int xendConfigVersion;      /* XenD config version */
@@ -226,6 +226,8 @@ typedef struct _xenUnifiedPrivate *xenUnifiedPrivatePtr;
 
 char *xenDomainUsedCpus(virDomainPtr dom);
 
+virDomainXMLOptionPtr xenDomainXMLConfInit(void);
+
 void xenUnifiedDomainInfoListFree(xenUnifiedDomainInfoListPtr info);
 int  xenUnifiedAddDomainInfo(xenUnifiedDomainInfoListPtr info,
                              int id, char *name,
@@ -236,7 +238,7 @@ int  xenUnifiedRemoveDomainInfo(xenUnifiedDomainInfoListPtr info,
 void xenUnifiedDomainEventDispatch (xenUnifiedPrivatePtr priv,
                                     virDomainEventPtr event);
 unsigned long xenUnifiedVersion(void);
-int xenUnifiedGetMaxVcpus(virConnectPtr conn, const char *type);
+int xenUnifiedConnectGetMaxVcpus(virConnectPtr conn, const char *type);
 
 void xenUnifiedLock(xenUnifiedPrivatePtr priv);
 void xenUnifiedUnlock(xenUnifiedPrivatePtr priv);

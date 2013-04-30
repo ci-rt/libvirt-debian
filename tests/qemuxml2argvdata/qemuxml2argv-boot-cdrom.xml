@@ -15,6 +15,7 @@
   <devices>
     <emulator>/usr/bin/qemu</emulator>
     <disk type='block' device='cdrom'>
+      <driver name='qemu'/>
       <source dev='/dev/cdrom'/>
       <target dev='hdc' bus='ide'/>
       <readonly/>
@@ -22,6 +23,7 @@
     </disk>
     <controller type='usb' index='0'/>
     <controller type='ide' index='0'/>
+    <controller type='pci' index='0' model='pci-root'/>
     <memballoon model='virtio'/>
   </devices>
 </domain>

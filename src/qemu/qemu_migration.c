@@ -22,6 +22,8 @@
 
 #include <config.h>
 
+#include <netdb.h>
+#include <sys/socket.h>
 #include <sys/time.h>
 #ifdef WITH_GNUTLS
 # include <gnutls/gnutls.h>
@@ -919,8 +921,8 @@ qemuMigrationCookieXMLParse(qemuMigrationCookiePtr mig,
                            n);
             goto error;
         }
-        mig->persistent = virDomainDefParseNode(caps, driver->xmlconf,
-                                                doc, nodes[0],
+        mig->persistent = virDomainDefParseNode(doc, nodes[0],
+                                                caps, driver->xmlopt,
                                                 -1, VIR_DOMAIN_XML_INACTIVE);
         if (!mig->persistent) {
             /* virDomainDefParseNode already reported
@@ -1104,12 +1106,12 @@ error:
  */
 static int
 qemuMigrationStartNBDServer(virQEMUDriverPtr driver,
-                            virDomainObjPtr vm)
+                            virDomainObjPtr vm,
+                            const char *listenAddr)
 {
     int ret = -1;
     qemuDomainObjPrivatePtr priv = vm->privateData;
     unsigned short port = 0;
-    const char *listenAddr = "0.0.0.0";
     char *diskAlias = NULL;
     size_t i;
 
@@ -1475,13 +1477,17 @@ qemuMigrationIsSafe(virDomainDefPtr def)
             !disk->shared &&
             !disk->readonly &&
             disk->cachemode != VIR_DOMAIN_DISK_CACHE_DISABLE) {
-            int cfs;
+            int rc;
 
             if (disk->type == VIR_DOMAIN_DISK_TYPE_FILE) {
-                if ((cfs = virStorageFileIsClusterFS(disk->src)) == 1)
-                    continue;
-                else if (cfs < 0)
+                if ((rc = virStorageFileIsSharedFS(disk->src)) < 0)
                     return false;
+                else if (rc == 0)
+                    continue;
+                if ((rc = virStorageFileIsClusterFS(disk->src)) < 0)
+                    return false;
+                else if (rc == 1)
+                    continue;
             } else if (disk->type == VIR_DOMAIN_DISK_TYPE_NETWORK &&
                        disk->protocol == VIR_DOMAIN_DISK_PROTOCOL_RBD) {
                 continue;
@@ -1718,6 +1724,7 @@ qemuDomainMigrateGraphicsRelocate(virQEMUDriverPtr driver,
 {
     qemuDomainObjPrivatePtr priv = vm->privateData;
     int ret;
+    char *listenAddress = cookie->graphics->listen;
 
     if (!cookie)
         return 0;
@@ -1731,12 +1738,17 @@ qemuDomainMigrateGraphicsRelocate(virQEMUDriverPtr driver,
     if (cookie->graphics->type != VIR_DOMAIN_GRAPHICS_TYPE_SPICE)
         return 0;
 
+    if (!listenAddress ||
+        STREQ(listenAddress, "0.0.0.0") ||
+        STREQ(listenAddress, "::"))
+        listenAddress = cookie->remoteHostname;
+
     ret = qemuDomainObjEnterMonitorAsync(driver, vm,
                                          QEMU_ASYNC_JOB_MIGRATION_OUT);
     if (ret == 0) {
         ret = qemuMonitorGraphicsRelocate(priv->mon,
                                           cookie->graphics->type,
-                                          cookie->remoteHostname,
+                                          listenAddress,
                                           cookie->graphics->port,
                                           cookie->graphics->tlsPort,
                                           cookie->graphics->tlsSubject);
@@ -1924,7 +1936,7 @@ char *qemuMigrationBegin(virQEMUDriverPtr driver,
     }
 
     if (xmlin) {
-        if (!(def = virDomainDefParseString(caps, driver->xmlconf, xmlin,
+        if (!(def = virDomainDefParseString(xmlin, caps, driver->xmlopt,
                                             QEMU_EXPECTED_VIRT_TYPES,
                                             VIR_DOMAIN_XML_INACTIVE)))
             goto cleanup;
@@ -1980,8 +1992,8 @@ qemuMigrationPrepareAny(virQEMUDriverPtr driver,
                         int *cookieoutlen,
                         const char *dname,
                         const char *dom_xml,
-                        const char *migrateFrom,
                         virStreamPtr st,
+                        unsigned int port,
                         unsigned long flags)
 {
     virDomainDefPtr def = NULL;
@@ -1997,6 +2009,8 @@ qemuMigrationPrepareAny(virQEMUDriverPtr driver,
     char *xmlout = NULL;
     unsigned int cookieFlags;
     virCapsPtr caps = NULL;
+    const char *listenAddr = NULL;
+    char *migrateFrom = NULL;
 
     if (virTimeMillisNow(&now) < 0)
         return -1;
@@ -2026,7 +2040,7 @@ qemuMigrationPrepareAny(virQEMUDriverPtr driver,
     if (!(caps = virQEMUDriverGetCapabilities(driver, false)))
         goto cleanup;
 
-    if (!(def = virDomainDefParseString(caps, driver->xmlconf, dom_xml,
+    if (!(def = virDomainDefParseString(dom_xml, caps, driver->xmlopt,
                                         QEMU_EXPECTED_VIRT_TYPES,
                                         VIR_DOMAIN_XML_INACTIVE)))
         goto cleanup;
@@ -2067,7 +2081,7 @@ qemuMigrationPrepareAny(virQEMUDriverPtr driver,
                 virDomainDefPtr newdef;
 
                 VIR_DEBUG("Using hook-filtered domain XML: %s", xmlout);
-                newdef = virDomainDefParseString(caps, driver->xmlconf, xmlout,
+                newdef = virDomainDefParseString(xmlout, caps, driver->xmlopt,
                                                  QEMU_EXPECTED_VIRT_TYPES,
                                                  VIR_DOMAIN_XML_INACTIVE);
                 if (!newdef)
@@ -2084,9 +2098,47 @@ qemuMigrationPrepareAny(virQEMUDriverPtr driver,
         }
     }
 
-    if (!(vm = virDomainObjListAdd(driver->domains,
-                                   driver->xmlconf,
-                                   def,
+    if (tunnel) {
+        /* QEMU will be started with -incoming stdio
+         * (which qemu_command might convert to exec:cat or fd:n)
+         */
+        if (!(migrateFrom = strdup("stdio"))) {
+            virReportOOMError();
+            goto cleanup;
+        }
+    } else {
+        virQEMUCapsPtr qemuCaps = NULL;
+        struct addrinfo *info = NULL;
+        struct addrinfo hints = { .ai_flags = AI_ADDRCONFIG,
+                                  .ai_socktype = SOCK_STREAM };
+
+        if (!(qemuCaps = virQEMUCapsCacheLookupCopy(driver->qemuCapsCache,
+                                                    def->emulator)))
+            goto cleanup;
+
+        /* Listen on :: instead of 0.0.0.0 if QEMU understands it
+         * and there is at least one IPv6 address configured
+         */
+        if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_IPV6_MIGRATION) &&
+            getaddrinfo("::", NULL, &hints, &info) == 0) {
+            freeaddrinfo(info);
+            listenAddr = "[::]";
+        } else {
+            listenAddr = "0.0.0.0";
+        }
+        virObjectUnref(qemuCaps);
+
+        /* QEMU will be started with -incoming [::]:port
+         * or -incoming 0.0.0.0:port
+         */
+        if (virAsprintf(&migrateFrom, "tcp:%s:%d", listenAddr, port) < 0) {
+            virReportOOMError();
+            goto cleanup;
+        }
+    }
+
+    if (!(vm = virDomainObjListAdd(driver->domains, def,
+                                   driver->xmlopt,
                                    VIR_DOMAIN_OBJ_LIST_ADD_LIVE |
                                    VIR_DOMAIN_OBJ_LIST_ADD_CHECK_LIVE,
                                    NULL)))
@@ -2172,7 +2224,7 @@ done:
         if (flags & VIR_MIGRATE_TUNNELLED)
             VIR_DEBUG("NBD in tunnelled migration is currently not supported");
         else {
-            if (qemuMigrationStartNBDServer(driver, vm) < 0) {
+            if (qemuMigrationStartNBDServer(driver, vm, listenAddr) < 0) {
                 /* error already reported */
                 goto endjob;
             }
@@ -2213,6 +2265,7 @@ done:
     ret = 0;
 
 cleanup:
+    VIR_FREE(migrateFrom);
     VIR_FREE(origname);
     VIR_FREE(xmlout);
     virDomainDefFree(def);
@@ -2270,12 +2323,9 @@ qemuMigrationPrepareTunnel(virQEMUDriverPtr driver,
               driver, dconn, NULLSTR(cookiein), cookieinlen,
               cookieout, cookieoutlen, st, NULLSTR(dname), dom_xml, flags);
 
-    /* QEMU will be started with -incoming stdio (which qemu_command might
-     * convert to exec:cat or fd:n)
-     */
     ret = qemuMigrationPrepareAny(driver, dconn, cookiein, cookieinlen,
                                   cookieout, cookieoutlen, dname, dom_xml,
-                                  "stdio", st, flags);
+                                  st, 0, flags);
     return ret;
 }
 
@@ -2296,9 +2346,10 @@ qemuMigrationPrepareDirect(virQEMUDriverPtr driver,
     static int port = 0;
     int this_port;
     char *hostname = NULL;
-    char migrateFrom [64];
     const char *p;
+    char *uri_str = NULL;
     int ret = -1;
+    virURIPtr uri;
 
     VIR_DEBUG("driver=%p, dconn=%p, cookiein=%s, cookieinlen=%d, "
               "cookieout=%p, cookieoutlen=%p, uri_in=%s, uri_out=%p, "
@@ -2347,16 +2398,39 @@ qemuMigrationPrepareDirect(virQEMUDriverPtr driver,
          * URI when passing it to the qemu monitor, so bad
          * characters in hostname part don't matter.
          */
-        if (!STRPREFIX(uri_in, "tcp:")) {
+        if (!(p = STRSKIP(uri_in, "tcp:"))) {
             virReportError(VIR_ERR_INVALID_ARG, "%s",
                            _("only tcp URIs are supported for KVM/QEMU"
                              " migrations"));
             goto cleanup;
         }
 
-        /* Get the port number. */
-        p = strrchr(uri_in, ':');
-        if (p == strchr(uri_in, ':')) {
+        /* Convert uri_in to well-formed URI with // after tcp: */
+        if (!(STRPREFIX(uri_in, "tcp://"))) {
+            if (virAsprintf(&uri_str, "tcp://%s", p) < 0) {
+                virReportOOMError();
+                goto cleanup;
+            }
+        }
+
+        uri = virURIParse(uri_str ? uri_str : uri_in);
+        VIR_FREE(uri_str);
+
+        if (uri == NULL) {
+            virReportError(VIR_ERR_INVALID_ARG, _("unable to parse URI: %s"),
+                           uri_in);
+            goto cleanup;
+        }
+
+        if (uri->server == NULL) {
+            virReportError(VIR_ERR_INVALID_ARG, _("missing host in migration"
+                                                  " URI: %s"), uri_in);
+            goto cleanup;
+        } else {
+            hostname = uri->server;
+        }
+
+        if (uri->port == 0) {
             /* Generate a port */
             this_port = QEMUD_MIGRATION_FIRST_PORT + port++;
             if (port == QEMUD_MIGRATION_NUM_PORTS)
@@ -2369,25 +2443,16 @@ qemuMigrationPrepareDirect(virQEMUDriverPtr driver,
             }
 
         } else {
-            p++; /* definitely has a ':' in it, see above */
-            this_port = virParseNumber(&p);
-            if (this_port == -1 || p-uri_in != strlen(uri_in)) {
-                virReportError(VIR_ERR_INVALID_ARG,
-                               "%s", _("URI ended with incorrect ':port'"));
-                goto cleanup;
-            }
+            this_port = uri->port;
         }
     }
 
     if (*uri_out)
         VIR_DEBUG("Generated uri_out=%s", *uri_out);
 
-    /* QEMU will be started with -incoming tcp:0.0.0.0:port */
-    snprintf(migrateFrom, sizeof(migrateFrom), "tcp:0.0.0.0:%d", this_port);
-
     ret = qemuMigrationPrepareAny(driver, dconn, cookiein, cookieinlen,
                                   cookieout, cookieoutlen, dname, dom_xml,
-                                  migrateFrom, NULL, flags);
+                                  NULL, this_port, flags);
 cleanup:
     VIR_FREE(hostname);
     if (ret != 0)
@@ -3891,7 +3956,7 @@ qemuMigrationFinish(virQEMUDriverPtr driver,
             if (mig->persistent)
                 vm->newDef = vmdef = mig->persistent;
             else
-                vmdef = virDomainObjGetPersistentDef(caps, driver->xmlconf, vm);
+                vmdef = virDomainObjGetPersistentDef(caps, driver->xmlopt, vm);
             if (!vmdef || virDomainSaveConfig(cfg->configDir, vmdef) < 0) {
                 /* Hmpf.  Migration was successful, but making it persistent
                  * was not.  If we report successful, then when this domain
@@ -3986,7 +4051,7 @@ qemuMigrationFinish(virQEMUDriverPtr driver,
         }
 
         if (virDomainObjIsActive(vm) &&
-            virDomainSaveStatus(driver->xmlconf, cfg->stateDir, vm) < 0) {
+            virDomainSaveStatus(driver->xmlopt, cfg->stateDir, vm) < 0) {
             VIR_WARN("Failed to save status on vm %s", vm->def->name);
             goto endjob;
         }
@@ -4094,7 +4159,7 @@ int qemuMigrationConfirm(virQEMUDriverPtr driver,
         event = virDomainEventNewFromObj(vm,
                                          VIR_DOMAIN_EVENT_RESUMED,
                                          VIR_DOMAIN_EVENT_RESUMED_MIGRATED);
-        if (virDomainSaveStatus(driver->xmlconf, cfg->stateDir, vm) < 0) {
+        if (virDomainSaveStatus(driver->xmlopt, cfg->stateDir, vm) < 0) {
             VIR_WARN("Failed to save status on vm %s", vm->def->name);
             goto cleanup;
         }
@@ -4121,7 +4186,6 @@ qemuMigrationToFile(virQEMUDriverPtr driver, virDomainObjPtr vm,
                     enum qemuDomainAsyncJob asyncJob)
 {
     qemuDomainObjPrivatePtr priv = vm->privateData;
-    virCgroupPtr cgroup = NULL;
     int ret = -1;
     int rc;
     bool restoreLabel = false;
@@ -4155,21 +4219,13 @@ qemuMigrationToFile(virQEMUDriverPtr driver, virDomainObjPtr vm,
          * given cgroup ACL permission.  We might also stumble on
          * a race present in some qemu versions where it does a wait()
          * that botches pclose.  */
-        if (qemuCgroupControllerActive(driver,
-                                       VIR_CGROUP_CONTROLLER_DEVICES)) {
-            if (virCgroupForDomain(driver->cgroup, vm->def->name,
-                                   &cgroup, 0) != 0) {
-                virReportError(VIR_ERR_INTERNAL_ERROR,
-                               _("Unable to find cgroup for %s"),
-                               vm->def->name);
-                goto cleanup;
-            }
-            rc = virCgroupAllowDevicePath(cgroup, path,
+        if (virCgroupHasController(priv->cgroup,
+                                   VIR_CGROUP_CONTROLLER_DEVICES)) {
+            rc = virCgroupAllowDevicePath(priv->cgroup, path,
                                           VIR_CGROUP_DEVICE_RW);
-            virDomainAuditCgroupPath(vm, cgroup, "allow", path, "rw", rc);
+            virDomainAuditCgroupPath(vm, priv->cgroup, "allow", path, "rw", rc);
             if (rc == 1) {
                 /* path was not a device, no further need for cgroup */
-                virCgroupFree(&cgroup);
             } else if (rc < 0) {
                 virReportSystemError(-rc,
                                      _("Unable to allow device %s for %s"),
@@ -4270,14 +4326,14 @@ cleanup:
                                                  vm->def, path) < 0)
         VIR_WARN("failed to restore save state label on %s", path);
 
-    if (cgroup != NULL) {
-        rc = virCgroupDenyDevicePath(cgroup, path,
+    if (virCgroupHasController(priv->cgroup,
+                               VIR_CGROUP_CONTROLLER_DEVICES)) {
+        rc = virCgroupDenyDevicePath(priv->cgroup, path,
                                      VIR_CGROUP_DEVICE_RWM);
-        virDomainAuditCgroupPath(vm, cgroup, "deny", path, "rwm", rc);
+        virDomainAuditCgroupPath(vm, priv->cgroup, "deny", path, "rwm", rc);
         if (rc < 0)
             VIR_WARN("Unable to deny device %s for %s %d",
                      path, vm->def->name, rc);
-        virCgroupFree(&cgroup);
     }
     return ret;
 }

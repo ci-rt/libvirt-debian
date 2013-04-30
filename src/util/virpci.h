@@ -1,7 +1,7 @@
 /*
  * virpci.h: helper APIs for managing host PCI devices
  *
- * Copyright (C) 2009, 2011-2012 Red Hat, Inc.
+ * Copyright (C) 2009, 2011-2013 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -41,10 +41,10 @@ struct _virPCIDeviceAddress {
     unsigned int function;
 };
 
-virPCIDevicePtr virPCIDeviceNew(unsigned domain,
-                                unsigned bus,
-                                unsigned slot,
-                                unsigned function);
+virPCIDevicePtr virPCIDeviceNew(unsigned int domain,
+                                unsigned int bus,
+                                unsigned int slot,
+                                unsigned int function);
 void virPCIDeviceFree(virPCIDevicePtr dev);
 const char *virPCIDeviceGetName(virPCIDevicePtr dev);
 
@@ -61,20 +61,23 @@ int virPCIDeviceReset(virPCIDevicePtr dev,
                       virPCIDeviceListPtr inactiveDevs);
 
 void virPCIDeviceSetManaged(virPCIDevice *dev,
-                            unsigned managed);
-unsigned virPCIDeviceGetManaged(virPCIDevice *dev);
+                            bool managed);
+unsigned int virPCIDeviceGetManaged(virPCIDevice *dev);
+void virPCIDeviceSetStubDriver(virPCIDevicePtr dev,
+                               const char *driver);
+const char *virPCIDeviceGetStubDriver(virPCIDevicePtr dev);
 void virPCIDeviceSetUsedBy(virPCIDevice *dev,
                            const char *used_by);
 const char *virPCIDeviceGetUsedBy(virPCIDevice *dev);
-unsigned virPCIDeviceGetUnbindFromStub(virPCIDevicePtr dev);
+unsigned int virPCIDeviceGetUnbindFromStub(virPCIDevicePtr dev);
 void  virPCIDeviceSetUnbindFromStub(virPCIDevice *dev,
-                                     unsigned unbind);
-unsigned virPCIDeviceGetRemoveSlot(virPCIDevicePtr dev);
+                                    bool unbind);
+unsigned int virPCIDeviceGetRemoveSlot(virPCIDevicePtr dev);
 void virPCIDeviceSetRemoveSlot(virPCIDevice *dev,
-                               unsigned remove_slot);
-unsigned virPCIDeviceGetReprobe(virPCIDevicePtr dev);
+                               bool remove_slot);
+unsigned int virPCIDeviceGetReprobe(virPCIDevicePtr dev);
 void virPCIDeviceSetReprobe(virPCIDevice *dev,
-                            unsigned reprobe);
+                            bool reprobe);
 void virPCIDeviceReattachInit(virPCIDevice *dev);
 
 
@@ -108,6 +111,8 @@ typedef int (*virPCIDeviceFileActor)(virPCIDevicePtr dev,
 int virPCIDeviceFileIterate(virPCIDevicePtr dev,
                             virPCIDeviceFileActor actor,
                             void *opaque);
+char *
+virPCIDeviceGetVFIOGroupDev(virPCIDevicePtr dev);
 
 int virPCIDeviceIsAssignable(virPCIDevicePtr dev,
                              int strict_acs_check);
@@ -135,10 +140,10 @@ int virPCIGetSysfsFile(char *virPCIDeviceName,
                              char **pci_sysfs_device_link)
     ATTRIBUTE_RETURN_CHECK;
 
-int virPCIGetAddrString(unsigned domain,
-                        unsigned bus,
-                        unsigned slot,
-                        unsigned function,
+int virPCIGetAddrString(unsigned int domain,
+                        unsigned int bus,
+                        unsigned int slot,
+                        unsigned int function,
                         char **pciConfigAddr)
     ATTRIBUTE_NONNULL(5) ATTRIBUTE_RETURN_CHECK;
 

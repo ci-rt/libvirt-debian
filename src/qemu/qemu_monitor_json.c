@@ -41,6 +41,7 @@
 #include "datatypes.h"
 #include "virerror.h"
 #include "virjson.h"
+#include "virstring.h"
 
 #ifdef WITH_DTRACE_PROBES
 # include "libvirt_qemu_probes.h"
@@ -3372,11 +3373,70 @@ int qemuMonitorJSONSendKey(qemuMonitorPtr mon,
                            unsigned int *keycodes,
                            unsigned int nkeycodes)
 {
-    /*
-     * FIXME: qmp sendkey has not been implemented yet,
-     * and qmp API of it cannot be anticipated, so we use hmp temporary.
-     */
-    return qemuMonitorTextSendKey(mon, holdtime, keycodes, nkeycodes);
+    int ret = -1;
+    virJSONValuePtr cmd = NULL;
+    virJSONValuePtr reply = NULL;
+    virJSONValuePtr keys = NULL;
+    virJSONValuePtr key = NULL;
+    unsigned int i;
+
+    /* create the key data array */
+    if (!(keys = virJSONValueNewArray()))
+        goto no_memory;
+
+    for (i = 0; i < nkeycodes; i++) {
+        if (keycodes[i] > 0xffff) {
+            virReportError(VIR_ERR_OPERATION_FAILED,
+                           _("keycode %d is invalid: 0x%X"), i, keycodes[i]);
+            goto cleanup;
+        }
+
+        /* create single key object */
+        if (!(key = virJSONValueNewObject()))
+            goto no_memory;
+
+        /* Union KeyValue has two types, use the generic one */
+        if (virJSONValueObjectAppendString(key, "type", "number") < 0)
+            goto no_memory;
+
+        /* with the keycode */
+        if (virJSONValueObjectAppendNumberInt(key, "data", keycodes[i]) < 0)
+            goto no_memory;
+
+        if (virJSONValueArrayAppend(keys, key) < 0)
+            goto no_memory;
+
+        key = NULL;
+
+    }
+
+    cmd = qemuMonitorJSONMakeCommand("send-key",
+                                     "a:keys", keys,
+                                      holdtime ? "U:hold-time" : NULL, holdtime,
+                                      NULL);
+    if (!cmd)
+        goto cleanup;
+
+    if ((ret = qemuMonitorJSONCommand(mon, cmd, &reply)) < 0)
+        goto cleanup;
+
+    if (qemuMonitorJSONHasError(reply, "CommandNotFound")) {
+        VIR_DEBUG("send-key command not found, trying HMP");
+        ret = qemuMonitorTextSendKey(mon, holdtime, keycodes, nkeycodes);
+    } else {
+        ret = qemuMonitorJSONCheckError(cmd, reply);
+    }
+
+cleanup:
+    virJSONValueFree(cmd);
+    virJSONValueFree(reply);
+    virJSONValueFree(keys);
+    virJSONValueFree(key);
+    return ret;
+
+no_memory:
+    virReportOOMError();
+    goto cleanup;
 }
 
 int qemuMonitorJSONScreendump(qemuMonitorPtr mon,
@@ -4692,4 +4752,97 @@ qemuMonitorJSONNBDServerStop(qemuMonitorPtr mon)
     virJSONValueFree(cmd);
     virJSONValueFree(reply);
     return ret;
+}
+
+
+static int
+qemuMonitorJSONGetStringArray(qemuMonitorPtr mon, const char *qmpCmd,
+                              char ***array)
+{
+    int ret;
+    virJSONValuePtr cmd;
+    virJSONValuePtr reply = NULL;
+    virJSONValuePtr data;
+    char **list = NULL;
+    int n = 0;
+    size_t i;
+
+    *array = NULL;
+
+    if (!(cmd = qemuMonitorJSONMakeCommand(qmpCmd, NULL)))
+        return -1;
+
+    ret = qemuMonitorJSONCommand(mon, cmd, &reply);
+
+    if (ret == 0) {
+        if (qemuMonitorJSONHasError(reply, "CommandNotFound"))
+            goto cleanup;
+
+        ret = qemuMonitorJSONCheckError(cmd, reply);
+    }
+
+    if (ret < 0)
+        goto cleanup;
+
+    ret = -1;
+
+    if (!(data = virJSONValueObjectGet(reply, "return"))) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("%s reply was missing return data"),
+                       qmpCmd);
+        goto cleanup;
+    }
+
+    if ((n = virJSONValueArraySize(data)) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("%s reply data was not an array"),
+                       qmpCmd);
+        goto cleanup;
+    }
+
+    /* null-terminated list */
+    if (VIR_ALLOC_N(list, n + 1) < 0) {
+        virReportOOMError();
+        goto cleanup;
+    }
+
+    for (i = 0 ; i < n ; i++) {
+        virJSONValuePtr child = virJSONValueArrayGet(data, i);
+        const char *tmp;
+
+        if (!(tmp = virJSONValueGetString(child))) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("%s array element does not contain data"),
+                           qmpCmd);
+            goto cleanup;
+        }
+
+        if (!(list[i] = strdup(tmp))) {
+            virReportOOMError();
+            goto cleanup;
+        }
+    }
+
+    ret = n;
+    *array = list;
+
+cleanup:
+    if (ret < 0)
+        virStringFreeList(list);
+    virJSONValueFree(cmd);
+    virJSONValueFree(reply);
+    return ret;
+}
+
+int qemuMonitorJSONGetTPMModels(qemuMonitorPtr mon,
+                                char ***tpmmodels)
+{
+    return qemuMonitorJSONGetStringArray(mon, "query-tpm-models", tpmmodels);
+}
+
+
+int qemuMonitorJSONGetTPMTypes(qemuMonitorPtr mon,
+                               char ***tpmtypes)
+{
+    return qemuMonitorJSONGetStringArray(mon, "query-tpm-types", tpmtypes);
 }

@@ -4,7 +4,7 @@
  *           entry points where an automatically generated stub is
  *           unpractical
  *
- * Copyright (C) 2005, 2007-2012 Red Hat, Inc.
+ * Copyright (C) 2005, 2007-2013 Red Hat, Inc.
  *
  * Daniel Veillard <veillard@redhat.com>
  */
@@ -20,8 +20,8 @@
 #define VIR_ENUM_SENTINELS
 
 #include <Python.h>
-#include "libvirt/libvirt.h"
-#include "libvirt/virterror.h"
+#include <libvirt/libvirt.h>
+#include <libvirt/virterror.h>
 #include "typewrappers.h"
 #include "libvirt.h"
 #include "viralloc.h"
@@ -5084,7 +5084,7 @@ libvirt_virEventRegisterImpl(ATTRIBUTE_UNUSED PyObject * self,
     updateTimeoutName = py_str(updateTimeoutObj);
     removeTimeoutName = py_str(removeTimeoutObj);
 
-    /* Inc refs since we're holding onto these objects until
+    /* Inc refs since we're holding on to these objects until
      * the next call (if any) to this function.
      */
     Py_INCREF(addHandleObj);

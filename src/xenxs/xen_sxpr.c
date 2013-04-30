@@ -1,7 +1,7 @@
 /*
  * xen_sxpr.c: Xen SEXPR parsing functions
  *
- * Copyright (C) 2010-2012 Red Hat, Inc.
+ * Copyright (C) 2010-2013 Red Hat, Inc.
  * Copyright (C) 2011 Univention GmbH
  * Copyright (C) 2005 Anthony Liguori <aliguori@us.ibm.com>
  *
@@ -506,10 +506,10 @@ xenParseSxprDisks(virDomainDefPtr def,
 
             if (mode &&
                 strchr(mode, 'r'))
-                disk->readonly = 1;
+                disk->readonly = true;
             if (mode &&
                 strchr(mode, '!'))
-                disk->shared = 1;
+                disk->shared = true;
 
             if (VIR_REALLOC_N(def->disks, def->ndisks+1) < 0)
                 goto no_memory;
@@ -825,7 +825,7 @@ xenParseSxprGraphicsOld(virDomainDefPtr def,
             port = 5900 + def->id;
 
         if ((unused && STREQ(unused, "1")) || port == -1)
-            graphics->data.vnc.autoport = 1;
+            graphics->data.vnc.autoport = true;
         graphics->data.vnc.port = port;
 
         if (listenAddr &&
@@ -949,7 +949,7 @@ xenParseSxprGraphicsNew(virDomainDefPtr def,
                 }
 
                 if ((unused && STREQ(unused, "1")) || port == -1)
-                    graphics->data.vnc.autoport = 1;
+                    graphics->data.vnc.autoport = true;
 
                 if (port >= 0 && port < 5900)
                     port += 5900;
@@ -1087,12 +1087,12 @@ xenParseSxprPCI(virDomainDefPtr def,
            goto error;
 
         dev->mode = VIR_DOMAIN_HOSTDEV_MODE_SUBSYS;
-        dev->managed = 0;
+        dev->managed = false;
         dev->source.subsys.type = VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI;
-        dev->source.subsys.u.pci.domain = domainID;
-        dev->source.subsys.u.pci.bus = busID;
-        dev->source.subsys.u.pci.slot = slotID;
-        dev->source.subsys.u.pci.function = funcID;
+        dev->source.subsys.u.pci.addr.domain = domainID;
+        dev->source.subsys.u.pci.addr.bus = busID;
+        dev->source.subsys.u.pci.addr.slot = slotID;
+        dev->source.subsys.u.pci.addr.function = funcID;
 
         if (VIR_REALLOC_N(def->hostdevs, def->nhostdevs+1) < 0) {
             virDomainHostdevDefFree(dev);
@@ -1371,7 +1371,7 @@ xenParseSxpr(const struct sexpr *root,
                 goto no_memory;
             }
             disk->bus = VIR_DOMAIN_DISK_BUS_IDE;
-            disk->readonly = 1;
+            disk->readonly = true;
 
             if (VIR_REALLOC_N(def->disks, def->ndisks+1) < 0) {
                 virDomainDiskDefFree(disk);
@@ -1914,6 +1914,7 @@ xenFormatSxprNet(virConnectPtr conn,
                  int isAttach)
 {
     const char *script = DEFAULT_VIF_SCRIPT;
+    char macaddr[VIR_MAC_STRING_BUFLEN];
 
     if (def->type != VIR_DOMAIN_NET_TYPE_BRIDGE &&
         def->type != VIR_DOMAIN_NET_TYPE_NETWORK &&
@@ -1936,10 +1937,7 @@ xenFormatSxprNet(virConnectPtr conn,
 
     virBufferAddLit(buf, "(vif ");
 
-    virBufferAsprintf(buf,
-                      "(mac '%02x:%02x:%02x:%02x:%02x:%02x')",
-                      def->mac.addr[0], def->mac.addr[1], def->mac.addr[2],
-                      def->mac.addr[3], def->mac.addr[4], def->mac.addr[5]);
+    virBufferAsprintf(buf, "(mac '%s')", virMacAddrFormat(&def->mac, macaddr));
 
     switch (def->type) {
     case VIR_DOMAIN_NET_TYPE_BRIDGE:
@@ -2046,10 +2044,10 @@ xenFormatSxprPCI(virDomainHostdevDefPtr def,
                  virBufferPtr buf)
 {
     virBufferAsprintf(buf, "(dev (domain 0x%04x)(bus 0x%02x)(slot 0x%02x)(func 0x%x))",
-                      def->source.subsys.u.pci.domain,
-                      def->source.subsys.u.pci.bus,
-                      def->source.subsys.u.pci.slot,
-                      def->source.subsys.u.pci.function);
+                      def->source.subsys.u.pci.addr.domain,
+                      def->source.subsys.u.pci.addr.bus,
+                      def->source.subsys.u.pci.addr.slot,
+                      def->source.subsys.u.pci.addr.function);
 }
 
 

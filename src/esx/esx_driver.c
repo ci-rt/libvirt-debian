@@ -71,7 +71,7 @@ esxFreePrivate(esxPrivate **priv)
     esxVI_Context_Free(&(*priv)->vCenter);
     esxUtil_FreeParsedUri(&(*priv)->parsedUri);
     virObjectUnref((*priv)->caps);
-    virObjectUnref((*priv)->xmlconf);
+    virObjectUnref((*priv)->xmlopt);
     VIR_FREE(*priv);
 }
 
@@ -569,13 +569,6 @@ esxLookupHostSystemBiosUuid(esxPrivate *priv, unsigned char *uuid)
 }
 
 
-static int esxDefaultConsoleType(const char *ostype ATTRIBUTE_UNUSED,
-                                 virArch arch ATTRIBUTE_UNUSED)
-{
-    return VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_SERIAL;
-}
-
-
 static virCapsPtr
 esxCapsInit(esxPrivate *priv)
 {
@@ -598,11 +591,8 @@ esxCapsInit(esxPrivate *priv)
         return NULL;
     }
 
-    virCapabilitiesSetMacPrefix(caps, (unsigned char[]){ 0x00, 0x0c, 0x29 });
     virCapabilitiesAddHostMigrateTransport(caps, "vpxmigr");
 
-    caps->hasWideScsiBus = true;
-    caps->defaultConsoleTargetType = esxDefaultConsoleType;
 
     if (esxLookupHostSystemBiosUuid(priv, caps->host.host_uuid) < 0) {
         goto failure;
@@ -935,8 +925,8 @@ esxConnectToVCenter(esxPrivate *priv,
  * socks5. The optional <port> part allows to override the default port 1080.
  */
 static virDrvOpenStatus
-esxOpen(virConnectPtr conn, virConnectAuthPtr auth,
-        unsigned int flags)
+esxConnectOpen(virConnectPtr conn, virConnectAuthPtr auth,
+               unsigned int flags)
 {
     virDrvOpenStatus result = VIR_DRV_OPEN_ERROR;
     char *plus;
@@ -1100,7 +1090,7 @@ esxOpen(virConnectPtr conn, virConnectAuthPtr auth,
         goto cleanup;
     }
 
-    if (!(priv->xmlconf = virDomainXMLConfNew(NULL, NULL)))
+    if (!(priv->xmlopt = virVMXDomainXMLConfInit()))
         goto cleanup;
 
     conn->privateData = priv;
@@ -1117,7 +1107,7 @@ esxOpen(virConnectPtr conn, virConnectAuthPtr auth,
 
 
 static int
-esxClose(virConnectPtr conn)
+esxConnectClose(virConnectPtr conn)
 {
     esxPrivate *priv = conn->privateData;
     int result = 0;
@@ -1183,7 +1173,7 @@ esxSupportsVMotion(esxPrivate *priv)
 
 
 static int
-esxSupportsFeature(virConnectPtr conn, int feature)
+esxConnectSupportsFeature(virConnectPtr conn, int feature)
 {
     esxPrivate *priv = conn->privateData;
     esxVI_Boolean supportsVMotion = esxVI_Boolean_Undefined;
@@ -1208,7 +1198,7 @@ esxSupportsFeature(virConnectPtr conn, int feature)
 
 
 static const char *
-esxGetType(virConnectPtr conn ATTRIBUTE_UNUSED)
+esxConnectGetType(virConnectPtr conn ATTRIBUTE_UNUSED)
 {
     return "ESX";
 }
@@ -1216,7 +1206,7 @@ esxGetType(virConnectPtr conn ATTRIBUTE_UNUSED)
 
 
 static int
-esxGetVersion(virConnectPtr conn, unsigned long *version)
+esxConnectGetVersion(virConnectPtr conn, unsigned long *version)
 {
     esxPrivate *priv = conn->privateData;
 
@@ -1235,7 +1225,7 @@ esxGetVersion(virConnectPtr conn, unsigned long *version)
 
 
 static char *
-esxGetHostname(virConnectPtr conn)
+esxConnectGetHostname(virConnectPtr conn)
 {
     esxPrivate *priv = conn->privateData;
     esxVI_String *propertyNameList = NULL;
@@ -1460,7 +1450,7 @@ esxNodeGetInfo(virConnectPtr conn, virNodeInfoPtr nodeinfo)
 
 
 static char *
-esxGetCapabilities(virConnectPtr conn)
+esxConnectGetCapabilities(virConnectPtr conn)
 {
     esxPrivate *priv = conn->privateData;
     char *xml = virCapabilitiesFormatXML(priv->caps);
@@ -1476,7 +1466,7 @@ esxGetCapabilities(virConnectPtr conn)
 
 
 static int
-esxListDomains(virConnectPtr conn, int *ids, int maxids)
+esxConnectListDomains(virConnectPtr conn, int *ids, int maxids)
 {
     bool success = false;
     esxPrivate *priv = conn->privateData;
@@ -1540,7 +1530,7 @@ esxListDomains(virConnectPtr conn, int *ids, int maxids)
 
 
 static int
-esxNumberOfDomains(virConnectPtr conn)
+esxConnectNumOfDomains(virConnectPtr conn)
 {
     esxPrivate *priv = conn->privateData;
 
@@ -2786,7 +2776,7 @@ esxDomainGetXMLDesc(virDomainPtr domain, unsigned int flags)
     ctx.formatFileName = NULL;
     ctx.autodetectSCSIControllerModel = NULL;
 
-    def = virVMXParseConfig(&ctx, priv->caps, vmx);
+    def = virVMXParseConfig(&ctx, priv->xmlopt, vmx);
 
     if (def != NULL) {
         if (powerState != esxVI_VirtualMachinePowerState_PoweredOff) {
@@ -2817,9 +2807,9 @@ esxDomainGetXMLDesc(virDomainPtr domain, unsigned int flags)
 
 
 static char *
-esxDomainXMLFromNative(virConnectPtr conn, const char *nativeFormat,
-                       const char *nativeConfig,
-                       unsigned int flags)
+esxConnectDomainXMLFromNative(virConnectPtr conn, const char *nativeFormat,
+                              const char *nativeConfig,
+                              unsigned int flags)
 {
     esxPrivate *priv = conn->privateData;
     virVMXContext ctx;
@@ -2845,7 +2835,7 @@ esxDomainXMLFromNative(virConnectPtr conn, const char *nativeFormat,
     ctx.formatFileName = NULL;
     ctx.autodetectSCSIControllerModel = NULL;
 
-    def = virVMXParseConfig(&ctx, priv->caps, nativeConfig);
+    def = virVMXParseConfig(&ctx, priv->xmlopt, nativeConfig);
 
     if (def != NULL) {
         xml = virDomainDefFormat(def, VIR_DOMAIN_XML_INACTIVE);
@@ -2859,9 +2849,9 @@ esxDomainXMLFromNative(virConnectPtr conn, const char *nativeFormat,
 
 
 static char *
-esxDomainXMLToNative(virConnectPtr conn, const char *nativeFormat,
-                     const char *domainXml,
-                     unsigned int flags)
+esxConnectDomainXMLToNative(virConnectPtr conn, const char *nativeFormat,
+                            const char *domainXml,
+                            unsigned int flags)
 {
     esxPrivate *priv = conn->privateData;
     int virtualHW_version;
@@ -2887,8 +2877,8 @@ esxDomainXMLToNative(virConnectPtr conn, const char *nativeFormat,
         return NULL;
     }
 
-    def = virDomainDefParseString(priv->caps, priv->xmlconf,
-                                  domainXml, 1 << VIR_DOMAIN_VIRT_VMWARE, 0);
+    def = virDomainDefParseString(domainXml, priv->caps, priv->xmlopt,
+                                  1 << VIR_DOMAIN_VIRT_VMWARE, 0);
 
     if (def == NULL) {
         return NULL;
@@ -2902,7 +2892,7 @@ esxDomainXMLToNative(virConnectPtr conn, const char *nativeFormat,
     ctx.formatFileName = esxFormatVMXFileName;
     ctx.autodetectSCSIControllerModel = esxAutodetectSCSIControllerModel;
 
-    vmx = virVMXFormatConfig(&ctx, priv->caps, def, virtualHW_version);
+    vmx = virVMXFormatConfig(&ctx, priv->xmlopt, def, virtualHW_version);
 
     virDomainDefFree(def);
 
@@ -2912,7 +2902,7 @@ esxDomainXMLToNative(virConnectPtr conn, const char *nativeFormat,
 
 
 static int
-esxListDefinedDomains(virConnectPtr conn, char **const names, int maxnames)
+esxConnectListDefinedDomains(virConnectPtr conn, char **const names, int maxnames)
 {
     bool success = false;
     esxPrivate *priv = conn->privateData;
@@ -2984,7 +2974,7 @@ esxListDefinedDomains(virConnectPtr conn, char **const names, int maxnames)
 
 
 static int
-esxNumberOfDefinedDomains(virConnectPtr conn)
+esxConnectNumOfDefinedDomains(virConnectPtr conn)
 {
     esxPrivate *priv = conn->privateData;
 
@@ -3103,8 +3093,8 @@ esxDomainDefineXML(virConnectPtr conn, const char *xml)
     }
 
     /* Parse domain XML */
-    def = virDomainDefParseString(priv->caps, priv->xmlconf,
-                                  xml, 1 << VIR_DOMAIN_VIRT_VMWARE,
+    def = virDomainDefParseString(xml, priv->caps, priv->xmlopt,
+                                  1 << VIR_DOMAIN_VIRT_VMWARE,
                                   VIR_DOMAIN_XML_INACTIVE);
 
     if (def == NULL) {
@@ -3149,7 +3139,7 @@ esxDomainDefineXML(virConnectPtr conn, const char *xml)
     ctx.formatFileName = esxFormatVMXFileName;
     ctx.autodetectSCSIControllerModel = esxAutodetectSCSIControllerModel;
 
-    vmx = virVMXFormatConfig(&ctx, priv->caps, def, virtualHW_version);
+    vmx = virVMXFormatConfig(&ctx, priv->xmlopt, def, virtualHW_version);
 
     if (vmx == NULL) {
         goto cleanup;
@@ -4119,7 +4109,7 @@ esxNodeGetFreeMemory(virConnectPtr conn)
 
 
 static int
-esxIsEncrypted(virConnectPtr conn)
+esxConnectIsEncrypted(virConnectPtr conn)
 {
     esxPrivate *priv = conn->privateData;
 
@@ -4133,7 +4123,7 @@ esxIsEncrypted(virConnectPtr conn)
 
 
 static int
-esxIsSecure(virConnectPtr conn)
+esxConnectIsSecure(virConnectPtr conn)
 {
     esxPrivate *priv = conn->privateData;
 
@@ -4147,7 +4137,7 @@ esxIsSecure(virConnectPtr conn)
 
 
 static int
-esxIsAlive(virConnectPtr conn)
+esxConnectIsAlive(virConnectPtr conn)
 {
     esxPrivate *priv = conn->privateData;
 
@@ -4276,7 +4266,7 @@ esxDomainSnapshotCreateXML(virDomainPtr domain, const char *xmlDesc,
     }
 
     def = virDomainSnapshotDefParseString(xmlDesc, priv->caps,
-                                          priv->xmlconf, 0, 0);
+                                          priv->xmlopt, 0, 0);
 
     if (def == NULL) {
         return NULL;
@@ -5014,9 +5004,9 @@ esxDomainGetMemoryParameters(virDomainPtr domain, virTypedParameterPtr params,
 
 #define MATCH(FLAG) (flags & (FLAG))
 static int
-esxListAllDomains(virConnectPtr conn,
-                  virDomainPtr **domains,
-                  unsigned int flags)
+esxConnectListAllDomains(virConnectPtr conn,
+                         virDomainPtr **domains,
+                         unsigned int flags)
 {
     int ret = -1;
     esxPrivate *priv = conn->privateData;
@@ -5246,17 +5236,17 @@ no_memory:
 static virDriver esxDriver = {
     .no = VIR_DRV_ESX,
     .name = "ESX",
-    .open = esxOpen, /* 0.7.0 */
-    .close = esxClose, /* 0.7.0 */
-    .supports_feature = esxSupportsFeature, /* 0.7.0 */
-    .type = esxGetType, /* 0.7.0 */
-    .version = esxGetVersion, /* 0.7.0 */
-    .getHostname = esxGetHostname, /* 0.7.0 */
+    .connectOpen = esxConnectOpen, /* 0.7.0 */
+    .connectClose = esxConnectClose, /* 0.7.0 */
+    .connectSupportsFeature = esxConnectSupportsFeature, /* 0.7.0 */
+    .connectGetType = esxConnectGetType, /* 0.7.0 */
+    .connectGetVersion = esxConnectGetVersion, /* 0.7.0 */
+    .connectGetHostname = esxConnectGetHostname, /* 0.7.0 */
     .nodeGetInfo = esxNodeGetInfo, /* 0.7.0 */
-    .getCapabilities = esxGetCapabilities, /* 0.7.1 */
-    .listDomains = esxListDomains, /* 0.7.0 */
-    .numOfDomains = esxNumberOfDomains, /* 0.7.0 */
-    .listAllDomains = esxListAllDomains, /* 0.10.2 */
+    .connectGetCapabilities = esxConnectGetCapabilities, /* 0.7.1 */
+    .connectListDomains = esxConnectListDomains, /* 0.7.0 */
+    .connectNumOfDomains = esxConnectNumOfDomains, /* 0.7.0 */
+    .connectListAllDomains = esxConnectListAllDomains, /* 0.10.2 */
     .domainLookupByID = esxDomainLookupByID, /* 0.7.0 */
     .domainLookupByUUID = esxDomainLookupByUUID, /* 0.7.0 */
     .domainLookupByName = esxDomainLookupByName, /* 0.7.0 */
@@ -5280,10 +5270,10 @@ static virDriver esxDriver = {
     .domainGetVcpusFlags = esxDomainGetVcpusFlags, /* 0.8.5 */
     .domainGetMaxVcpus = esxDomainGetMaxVcpus, /* 0.7.0 */
     .domainGetXMLDesc = esxDomainGetXMLDesc, /* 0.7.0 */
-    .domainXMLFromNative = esxDomainXMLFromNative, /* 0.7.0 */
-    .domainXMLToNative = esxDomainXMLToNative, /* 0.7.2 */
-    .listDefinedDomains = esxListDefinedDomains, /* 0.7.0 */
-    .numOfDefinedDomains = esxNumberOfDefinedDomains, /* 0.7.0 */
+    .connectDomainXMLFromNative = esxConnectDomainXMLFromNative, /* 0.7.0 */
+    .connectDomainXMLToNative = esxConnectDomainXMLToNative, /* 0.7.2 */
+    .connectListDefinedDomains = esxConnectListDefinedDomains, /* 0.7.0 */
+    .connectNumOfDefinedDomains = esxConnectNumOfDefinedDomains, /* 0.7.0 */
     .domainCreate = esxDomainCreate, /* 0.7.0 */
     .domainCreateWithFlags = esxDomainCreateWithFlags, /* 0.8.2 */
     .domainDefineXML = esxDomainDefineXML, /* 0.7.2 */
@@ -5300,8 +5290,8 @@ static virDriver esxDriver = {
     .domainMigratePerform = esxDomainMigratePerform, /* 0.7.0 */
     .domainMigrateFinish = esxDomainMigrateFinish, /* 0.7.0 */
     .nodeGetFreeMemory = esxNodeGetFreeMemory, /* 0.7.2 */
-    .isEncrypted = esxIsEncrypted, /* 0.7.3 */
-    .isSecure = esxIsSecure, /* 0.7.3 */
+    .connectIsEncrypted = esxConnectIsEncrypted, /* 0.7.3 */
+    .connectIsSecure = esxConnectIsSecure, /* 0.7.3 */
     .domainIsActive = esxDomainIsActive, /* 0.7.3 */
     .domainIsPersistent = esxDomainIsPersistent, /* 0.7.3 */
     .domainIsUpdated = esxDomainIsUpdated, /* 0.8.6 */
@@ -5319,7 +5309,7 @@ static virDriver esxDriver = {
     .domainSnapshotIsCurrent = esxDomainSnapshotIsCurrent, /* 0.9.13 */
     .domainSnapshotHasMetadata = esxDomainSnapshotHasMetadata, /* 0.9.13 */
     .domainSnapshotDelete = esxDomainSnapshotDelete, /* 0.8.0 */
-    .isAlive = esxIsAlive, /* 0.9.8 */
+    .connectIsAlive = esxConnectIsAlive, /* 0.9.8 */
 };
 
 

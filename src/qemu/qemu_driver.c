@@ -38,7 +38,6 @@
 #include <fcntl.h>
 #include <signal.h>
 #include <paths.h>
-#include <stdio.h>
 #include <sys/wait.h>
 #include <sys/ioctl.h>
 #include <sys/un.h>
@@ -136,7 +135,7 @@
 
 static void processWatchdogEvent(void *data, void *opaque);
 
-static int qemuShutdown(void);
+static int qemuStateCleanup(void);
 
 static int qemuDomainObjStart(virConnectPtr conn,
                               virQEMUDriverPtr driver,
@@ -199,7 +198,8 @@ qemuDomObjFromDomain(virDomainPtr domain)
     if (!vm) {
         virUUIDFormat(domain->uuid, uuidstr);
         virReportError(VIR_ERR_NO_DOMAIN,
-                       _("no domain with matching uuid '%s'"), uuidstr);
+                       _("no domain with matching uuid '%s' (%s)"),
+                       uuidstr, domain->name);
         return NULL;
     }
 
@@ -441,7 +441,7 @@ qemuDomainSnapshotLoad(virDomainObjPtr vm,
         }
 
         def = virDomainSnapshotDefParseString(xmlStr, caps,
-                                              qemu_driver->xmlconf,
+                                              qemu_driver->xmlopt,
                                               QEMU_EXPECTED_VIRT_TYPES,
                                               flags);
         if (def == NULL) {
@@ -541,17 +541,16 @@ qemuDomainFindMaxID(virDomainObjPtr vm,
 
 
 /**
- * qemuStartup:
+ * qemuStateInitialize:
  *
  * Initialization function for the QEmu daemon
  */
 static int
-qemuStartup(bool privileged,
-            virStateInhibitCallback callback,
-            void *opaque)
+qemuStateInitialize(bool privileged,
+                    virStateInhibitCallback callback,
+                    void *opaque)
 {
     char *driverConf = NULL;
-    int rc;
     virConnectPtr conn = NULL;
     char ebuf[1024];
     char *membase = NULL;
@@ -626,12 +625,6 @@ qemuStartup(bool privileged,
         VIR_ERROR(_("Failed to create dump dir '%s': %s"),
                   cfg->autoDumpPath, virStrerror(errno, ebuf, sizeof(ebuf)));
         goto error;
-    }
-
-    rc = virCgroupForDriver("qemu", &qemu_driver->cgroup, privileged, 1);
-    if (rc < 0) {
-        VIR_INFO("Unable to create cgroup for driver: %s",
-                 virStrerror(-rc, ebuf, sizeof(ebuf)));
     }
 
     qemu_driver->qemuImgBinary = virFindFileInPath("kvm-img");
@@ -723,7 +716,7 @@ qemuStartup(bool privileged,
     if ((qemu_driver->caps = virQEMUDriverCreateCapabilities(qemu_driver)) == NULL)
         goto error;
 
-    if (!(qemu_driver->xmlconf = virQEMUDriverCreateXMLConf()))
+    if (!(qemu_driver->xmlopt = virQEMUDriverCreateXMLConf(qemu_driver)))
         goto error;
 
     /* If hugetlbfs is present, then we need to create a sub-directory within
@@ -766,11 +759,11 @@ qemuStartup(bool privileged,
 
     /* Get all the running persistent or transient configs first */
     if (virDomainObjListLoadAllConfigs(qemu_driver->domains,
-                                       qemu_driver->caps,
-                                       qemu_driver->xmlconf,
                                        cfg->stateDir,
-                                       NULL,
-                                       1, QEMU_EXPECTED_VIRT_TYPES,
+                                       NULL, 1,
+                                       qemu_driver->caps,
+                                       qemu_driver->xmlopt,
+                                       QEMU_EXPECTED_VIRT_TYPES,
                                        NULL, NULL) < 0)
         goto error;
 
@@ -791,11 +784,11 @@ qemuStartup(bool privileged,
 
     /* Then inactive persistent configs */
     if (virDomainObjListLoadAllConfigs(qemu_driver->domains,
-                                       qemu_driver->caps,
-                                       qemu_driver->xmlconf,
                                        cfg->configDir,
-                                       cfg->autostartDir,
-                                       0, QEMU_EXPECTED_VIRT_TYPES,
+                                       cfg->autostartDir, 0,
+                                       qemu_driver->caps,
+                                       qemu_driver->xmlopt,
+                                       QEMU_EXPECTED_VIRT_TYPES,
                                        NULL, NULL) < 0)
         goto error;
 
@@ -828,7 +821,7 @@ error:
     VIR_FREE(driverConf);
     VIR_FREE(membase);
     VIR_FREE(mempath);
-    qemuShutdown();
+    qemuStateCleanup();
     return -1;
 }
 
@@ -847,13 +840,13 @@ static void qemuNotifyLoadDomain(virDomainObjPtr vm, int newVM, void *opaque)
 }
 
 /**
- * qemuReload:
+ * qemuStateReload:
  *
  * Function to restart the QEmu daemon, it will recheck the configuration
  * files and update its state and the networking
  */
 static int
-qemuReload(void) {
+qemuStateReload(void) {
     virQEMUDriverConfigPtr cfg = NULL;
     virCapsPtr caps = NULL;
 
@@ -865,11 +858,10 @@ qemuReload(void) {
 
     cfg = virQEMUDriverGetConfig(qemu_driver);
     virDomainObjListLoadAllConfigs(qemu_driver->domains,
-                                   caps,
-                                   qemu_driver->xmlconf,
                                    cfg->configDir,
-                                   cfg->autostartDir,
-                                   0, QEMU_EXPECTED_VIRT_TYPES,
+                                   cfg->autostartDir, 0,
+                                   caps, qemu_driver->xmlopt,
+                                   QEMU_EXPECTED_VIRT_TYPES,
                                    qemuNotifyLoadDomain, qemu_driver);
 cleanup:
     virObjectUnref(cfg);
@@ -879,13 +871,13 @@ cleanup:
 
 
 /*
- * qemuStop:
+ * qemuStateStop:
  *
  * Save any VMs in preparation for shutdown
  *
  */
 static int
-qemuStop(void) {
+qemuStateStop(void) {
     int ret = -1;
     virConnectPtr conn;
     int numDomains = 0;
@@ -940,12 +932,12 @@ qemuStop(void) {
 }
 
 /**
- * qemuShutdown:
+ * qemuStateCleanup:
  *
  * Shutdown the QEmu daemon, it will stop all active domains and networks
  */
 static int
-qemuShutdown(void) {
+qemuStateCleanup(void) {
     if (!qemu_driver)
         return -1;
 
@@ -961,7 +953,7 @@ qemuShutdown(void) {
     virObjectUnref(qemu_driver->domains);
     virObjectUnref(qemu_driver->remotePorts);
 
-    virObjectUnref(qemu_driver->xmlconf);
+    virObjectUnref(qemu_driver->xmlopt);
 
     virSysinfoDefFree(qemu_driver->hostsysinfo);
 
@@ -976,8 +968,6 @@ qemuShutdown(void) {
     /* Free domain callback list */
     virDomainEventStateFree(qemu_driver->domainEventState);
 
-    virCgroupFree(&qemu_driver->cgroup);
-
     virLockManagerPluginUnref(qemu_driver->lockManager);
 
     virMutexDestroy(&qemu_driver->lock);
@@ -988,9 +978,9 @@ qemuShutdown(void) {
 }
 
 
-static virDrvOpenStatus qemuOpen(virConnectPtr conn,
-                                 virConnectAuthPtr auth ATTRIBUTE_UNUSED,
-                                 unsigned int flags)
+static virDrvOpenStatus qemuConnectOpen(virConnectPtr conn,
+                                        virConnectAuthPtr auth ATTRIBUTE_UNUSED,
+                                        unsigned int flags)
 {
     virQEMUDriverConfigPtr cfg = NULL;
     virDrvOpenStatus ret = VIR_DRV_OPEN_ERROR;
@@ -1026,6 +1016,7 @@ static virDrvOpenStatus qemuOpen(virConnectPtr conn,
             goto cleanup;
         }
 
+        cfg = virQEMUDriverGetConfig(qemu_driver);
         if (conn->uri->path == NULL) {
             virReportError(VIR_ERR_INTERNAL_ERROR,
                            _("no QEMU URI path given, try %s"),
@@ -1033,7 +1024,6 @@ static virDrvOpenStatus qemuOpen(virConnectPtr conn,
             goto cleanup;
         }
 
-        cfg = virQEMUDriverGetConfig(qemu_driver);
         if (cfg->privileged) {
             if (STRNEQ(conn->uri->path, "/system") &&
                 STRNEQ(conn->uri->path, "/session")) {
@@ -1059,7 +1049,7 @@ cleanup:
     return ret;
 }
 
-static int qemuClose(virConnectPtr conn)
+static int qemuConnectClose(virConnectPtr conn)
 {
     virQEMUDriverPtr driver = conn->privateData;
 
@@ -1073,7 +1063,7 @@ static int qemuClose(virConnectPtr conn)
 
 /* Which features are supported by this driver? */
 static int
-qemuSupportsFeature(virConnectPtr conn ATTRIBUTE_UNUSED, int feature)
+qemuConnectSupportsFeature(virConnectPtr conn ATTRIBUTE_UNUSED, int feature)
 {
     switch (feature) {
     case VIR_DRV_FEATURE_MIGRATION_V2:
@@ -1090,24 +1080,24 @@ qemuSupportsFeature(virConnectPtr conn ATTRIBUTE_UNUSED, int feature)
     }
 }
 
-static const char *qemuGetType(virConnectPtr conn ATTRIBUTE_UNUSED) {
+static const char *qemuConnectGetType(virConnectPtr conn ATTRIBUTE_UNUSED) {
     return "QEMU";
 }
 
 
-static int qemuIsSecure(virConnectPtr conn ATTRIBUTE_UNUSED)
+static int qemuConnectIsSecure(virConnectPtr conn ATTRIBUTE_UNUSED)
 {
     /* Trivially secure, since always inside the daemon */
     return 1;
 }
 
-static int qemuIsEncrypted(virConnectPtr conn ATTRIBUTE_UNUSED)
+static int qemuConnectIsEncrypted(virConnectPtr conn ATTRIBUTE_UNUSED)
 {
     /* Not encrypted, but remote driver takes care of that */
     return 0;
 }
 
-static int qemuIsAlive(virConnectPtr conn ATTRIBUTE_UNUSED)
+static int qemuConnectIsAlive(virConnectPtr conn ATTRIBUTE_UNUSED)
 {
     return 1;
 }
@@ -1145,7 +1135,7 @@ cleanup:
 
 
 static char *
-qemuGetSysinfo(virConnectPtr conn, unsigned int flags)
+qemuConnectGetSysinfo(virConnectPtr conn, unsigned int flags)
 {
     virQEMUDriverPtr driver = conn->privateData;
     virBuffer buf = VIR_BUFFER_INITIALIZER;
@@ -1167,7 +1157,7 @@ qemuGetSysinfo(virConnectPtr conn, unsigned int flags)
     return virBufferContentAndReset(&buf);
 }
 
-static int qemuGetMaxVCPUs(virConnectPtr conn ATTRIBUTE_UNUSED, const char *type) {
+static int qemuConnectGetMaxVcpus(virConnectPtr conn ATTRIBUTE_UNUSED, const char *type) {
     if (!type)
         return 16;
 
@@ -1186,7 +1176,7 @@ static int qemuGetMaxVCPUs(virConnectPtr conn ATTRIBUTE_UNUSED, const char *type
 }
 
 
-static char *qemuGetCapabilities(virConnectPtr conn) {
+static char *qemuConnectGetCapabilities(virConnectPtr conn) {
     virQEMUDriverPtr driver = conn->privateData;
     virCapsPtr caps = NULL;
     char *xml = NULL;
@@ -1400,7 +1390,7 @@ cleanup:
     return ret;
 }
 
-static int qemuGetVersion(virConnectPtr conn, unsigned long *version) {
+static int qemuConnectGetVersion(virConnectPtr conn, unsigned long *version) {
     virQEMUDriverPtr driver = conn->privateData;
     int ret = -1;
     unsigned int qemuVersion = 0;
@@ -1422,7 +1412,7 @@ cleanup:
     return ret;
 }
 
-static int qemuListDomains(virConnectPtr conn, int *ids, int nids) {
+static int qemuConnectListDomains(virConnectPtr conn, int *ids, int nids) {
     virQEMUDriverPtr driver = conn->privateData;
     int n;
 
@@ -1431,7 +1421,7 @@ static int qemuListDomains(virConnectPtr conn, int *ids, int nids) {
     return n;
 }
 
-static int qemuNumDomains(virConnectPtr conn) {
+static int qemuConnectNumOfDomains(virConnectPtr conn) {
     virQEMUDriverPtr driver = conn->privateData;
     int n;
 
@@ -1463,8 +1453,9 @@ qemuCanonicalizeMachine(virDomainDefPtr def, virQEMUCapsPtr qemuCaps)
 }
 
 
-static virDomainPtr qemuDomainCreate(virConnectPtr conn, const char *xml,
-                                     unsigned int flags) {
+static virDomainPtr qemuDomainCreateXML(virConnectPtr conn,
+                                        const char *xml,
+                                        unsigned int flags) {
     virQEMUDriverPtr driver = conn->privateData;
     virDomainDefPtr def = NULL;
     virDomainObjPtr vm = NULL;
@@ -1486,7 +1477,7 @@ static virDomainPtr qemuDomainCreate(virConnectPtr conn, const char *xml,
     if (!(caps = virQEMUDriverGetCapabilities(driver, false)))
         goto cleanup;
 
-    if (!(def = virDomainDefParseString(caps, driver->xmlconf, xml,
+    if (!(def = virDomainDefParseString(xml, caps, driver->xmlopt,
                                         QEMU_EXPECTED_VIRT_TYPES,
                                         VIR_DOMAIN_XML_INACTIVE)))
         goto cleanup;
@@ -1503,9 +1494,8 @@ static virDomainPtr qemuDomainCreate(virConnectPtr conn, const char *xml,
     if (qemuDomainAssignAddresses(def, qemuCaps, NULL) < 0)
         goto cleanup;
 
-    if (!(vm = virDomainObjListAdd(driver->domains,
-                                   driver->xmlconf,
-                                   def,
+    if (!(vm = virDomainObjListAdd(driver->domains, def,
+                                   driver->xmlopt,
                                    VIR_DOMAIN_OBJ_LIST_ADD_CHECK_LIVE,
                                    NULL)))
         goto cleanup;
@@ -1573,15 +1563,9 @@ static int qemuDomainSuspend(virDomainPtr dom) {
     int state;
     virQEMUDriverConfigPtr cfg = NULL;
 
-    vm = virDomainObjListFindByUUID(driver->domains, dom->uuid);
+    if (!(vm = qemuDomObjFromDomain(dom)))
+        return -1;
 
-    if (!vm) {
-        char uuidstr[VIR_UUID_STRING_BUFLEN];
-        virUUIDFormat(dom->uuid, uuidstr);
-        virReportError(VIR_ERR_NO_DOMAIN,
-                       _("no domain with matching uuid '%s'"), uuidstr);
-        goto cleanup;
-    }
     if (!virDomainObjIsActive(vm)) {
         virReportError(VIR_ERR_OPERATION_INVALID,
                        "%s", _("domain is not running"));
@@ -1627,7 +1611,7 @@ static int qemuDomainSuspend(virDomainPtr dom) {
                                              eventDetail);
         }
     }
-    if (virDomainSaveStatus(driver->xmlconf, cfg->stateDir, vm) < 0)
+    if (virDomainSaveStatus(driver->xmlopt, cfg->stateDir, vm) < 0)
         goto endjob;
     ret = 0;
 
@@ -1655,15 +1639,8 @@ static int qemuDomainResume(virDomainPtr dom) {
     virQEMUDriverConfigPtr cfg = NULL;
     virCapsPtr caps = NULL;
 
-    vm = virDomainObjListFindByUUID(driver->domains, dom->uuid);
-
-    if (!vm) {
-        char uuidstr[VIR_UUID_STRING_BUFLEN];
-        virUUIDFormat(dom->uuid, uuidstr);
-        virReportError(VIR_ERR_NO_DOMAIN,
-                       _("no domain with matching uuid '%s'"), uuidstr);
-        goto cleanup;
-    }
+    if (!(vm = qemuDomObjFromDomain(dom)))
+        return -1;
 
     cfg = virQEMUDriverGetConfig(driver);
 
@@ -1696,7 +1673,7 @@ static int qemuDomainResume(virDomainPtr dom) {
     }
     if (!(caps = virQEMUDriverGetCapabilities(driver, false)))
         goto endjob;
-    if (virDomainSaveStatus(driver->xmlconf, cfg->stateDir, vm) < 0)
+    if (virDomainSaveStatus(driver->xmlopt, cfg->stateDir, vm) < 0)
         goto endjob;
     ret = 0;
 
@@ -1957,14 +1934,8 @@ qemuDomainDestroyFlags(virDomainPtr dom,
 
     virCheckFlags(VIR_DOMAIN_DESTROY_GRACEFUL, -1);
 
-    vm  = virDomainObjListFindByUUID(driver->domains, dom->uuid);
-    if (!vm) {
-        char uuidstr[VIR_UUID_STRING_BUFLEN];
-        virUUIDFormat(dom->uuid, uuidstr);
-        virReportError(VIR_ERR_NO_DOMAIN,
-                       _("no domain with matching uuid '%s'"), uuidstr);
-        goto cleanup;
-    }
+    if (!(vm = qemuDomObjFromDomain(dom)))
+        return -1;
 
     priv = vm->privateData;
 
@@ -2094,7 +2065,7 @@ static int qemuDomainSetMemoryFlags(virDomainPtr dom, unsigned long newmem,
 
     if (!(caps = virQEMUDriverGetCapabilities(driver, false)))
         goto endjob;
-    if (virDomainLiveConfigHelperMethod(caps, driver->xmlconf, vm, &flags,
+    if (virDomainLiveConfigHelperMethod(caps, driver->xmlopt, vm, &flags,
                                         &persistentDef) < 0)
         goto endjob;
 
@@ -2186,14 +2157,8 @@ static int qemuDomainInjectNMI(virDomainPtr domain, unsigned int flags)
 
     virCheckFlags(0, -1);
 
-    vm = virDomainObjListFindByUUID(driver->domains, domain->uuid);
-    if (!vm) {
-        char uuidstr[VIR_UUID_STRING_BUFLEN];
-        virUUIDFormat(domain->uuid, uuidstr);
-        virReportError(VIR_ERR_NO_DOMAIN,
-                       _("no domain with matching uuid '%s'"), uuidstr);
-        goto cleanup;
-    }
+    if (!(vm = qemuDomObjFromDomain(domain)))
+        return -1;
 
     if (!virDomainObjIsActive(vm)) {
         virReportError(VIR_ERR_OPERATION_INVALID,
@@ -2855,7 +2820,7 @@ qemuDomainSaveInternal(virQEMUDriverPtr driver, virDomainPtr dom,
     if (xmlin) {
         virDomainDefPtr def = NULL;
 
-        if (!(def = virDomainDefParseString(caps, driver->xmlconf, xmlin,
+        if (!(def = virDomainDefParseString(xmlin, caps, driver->xmlopt,
                                             QEMU_EXPECTED_VIRT_TYPES,
                                             VIR_DOMAIN_XML_INACTIVE))) {
             goto endjob;
@@ -2969,14 +2934,8 @@ qemuDomainSaveFlags(virDomainPtr dom, const char *path, const char *dxml,
         }
     }
 
-    vm = virDomainObjListFindByUUID(driver->domains, dom->uuid);
-    if (!vm) {
-        char uuidstr[VIR_UUID_STRING_BUFLEN];
-        virUUIDFormat(dom->uuid, uuidstr);
-        virReportError(VIR_ERR_NO_DOMAIN,
-                       _("no domain with matching uuid '%s'"), uuidstr);
+    if (!(vm = qemuDomObjFromDomain(dom)))
         goto cleanup;
-    }
 
     if (!virDomainObjIsActive(vm)) {
         virReportError(VIR_ERR_OPERATION_INVALID,
@@ -3275,15 +3234,8 @@ static int qemuDomainCoreDump(virDomainPtr dom,
                   VIR_DUMP_BYPASS_CACHE | VIR_DUMP_RESET |
                   VIR_DUMP_MEMORY_ONLY, -1);
 
-    vm = virDomainObjListFindByUUID(driver->domains, dom->uuid);
-
-    if (!vm) {
-        char uuidstr[VIR_UUID_STRING_BUFLEN];
-        virUUIDFormat(dom->uuid, uuidstr);
-        virReportError(VIR_ERR_NO_DOMAIN,
-                       _("no domain with matching uuid '%s'"), uuidstr);
-        goto cleanup;
-    }
+    if (!(vm = qemuDomObjFromDomain(dom)))
+        return -1;
 
     if (qemuDomainObjBeginAsyncJob(driver, vm,
                                    QEMU_ASYNC_JOB_DUMP) < 0)
@@ -3541,9 +3493,7 @@ static int qemuDomainHotplugVcpus(virQEMUDriverPtr driver,
     int vcpus = oldvcpus;
     pid_t *cpupids = NULL;
     int ncpupids;
-    virCgroupPtr cgroup = NULL;
     virCgroupPtr cgroup_vcpu = NULL;
-    bool cgroup_available = false;
 
     qemuDomainObjEnterMonitor(driver, vm);
 
@@ -3606,15 +3556,12 @@ static int qemuDomainHotplugVcpus(virQEMUDriverPtr driver,
         goto cleanup;
     }
 
-    cgroup_available = (virCgroupForDomain(driver->cgroup, vm->def->name,
-                                           &cgroup, 0) == 0);
-
     if (nvcpus > oldvcpus) {
         for (i = oldvcpus; i < nvcpus; i++) {
-            if (cgroup_available) {
+            if (priv->cgroup) {
                 int rv = -1;
                 /* Create cgroup for the onlined vcpu */
-                rv = virCgroupForVcpu(cgroup, i, &cgroup_vcpu, 1);
+                rv = virCgroupNewVcpu(priv->cgroup, i, true, &cgroup_vcpu);
                 if (rv < 0) {
                     virReportSystemError(-rv,
                                          _("Unable to create vcpu cgroup for %s(vcpu:"
@@ -3657,7 +3604,7 @@ static int qemuDomainHotplugVcpus(virQEMUDriverPtr driver,
                 vcpupin->vcpuid = i;
                 vm->def->cputune.vcpupin[vm->def->cputune.nvcpupin++] = vcpupin;
 
-                if (cgroup_available) {
+                if (cgroup_vcpu) {
                     if (qemuSetupCgroupVcpuPin(cgroup_vcpu,
                                                vm->def->cputune.vcpupin,
                                                vm->def->cputune.nvcpupin, i) < 0) {
@@ -3685,10 +3632,10 @@ static int qemuDomainHotplugVcpus(virQEMUDriverPtr driver,
         for (i = oldvcpus - 1; i >= nvcpus; i--) {
             virDomainVcpuPinDefPtr vcpupin = NULL;
 
-            if (cgroup_available) {
+            if (priv->cgroup) {
                 int rv = -1;
 
-                rv = virCgroupForVcpu(cgroup, i, &cgroup_vcpu, 0);
+                rv = virCgroupNewVcpu(priv->cgroup, i, false, &cgroup_vcpu);
                 if (rv < 0) {
                     virReportSystemError(-rv,
                                          _("Unable to access vcpu cgroup for %s(vcpu:"
@@ -3719,8 +3666,6 @@ cleanup:
     vm->def->vcpus = vcpus;
     VIR_FREE(cpupids);
     virDomainAuditVcpu(vm, oldvcpus, nvcpus, "update", rc == 1);
-    if (cgroup)
-        virCgroupFree(&cgroup);
     if (cgroup_vcpu)
         virCgroupFree(&cgroup_vcpu);
     return ret;
@@ -3739,8 +3684,6 @@ qemuDomainSetVcpusFlags(virDomainPtr dom, unsigned int nvcpus,
     virQEMUDriverPtr driver = dom->conn->privateData;
     virDomainObjPtr vm = NULL;
     virDomainDefPtr persistentDef;
-    const char * type;
-    int max;
     int ret = -1;
     bool maximum;
     virQEMUDriverConfigPtr cfg = NULL;
@@ -3769,7 +3712,7 @@ qemuDomainSetVcpusFlags(virDomainPtr dom, unsigned int nvcpus,
     maximum = (flags & VIR_DOMAIN_VCPU_MAXIMUM) != 0;
     flags &= ~VIR_DOMAIN_VCPU_MAXIMUM;
 
-    if (virDomainLiveConfigHelperMethod(caps, driver->xmlconf, vm, &flags,
+    if (virDomainLiveConfigHelperMethod(caps, driver->xmlopt, vm, &flags,
                                         &persistentDef) < 0)
         goto endjob;
 
@@ -3780,27 +3723,11 @@ qemuDomainSetVcpusFlags(virDomainPtr dom, unsigned int nvcpus,
         goto endjob;
     }
 
-    if (!(type = virDomainVirtTypeToString(vm->def->virtType))) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("unknown virt type in domain definition '%d'"),
-                       vm->def->virtType);
-        goto endjob;
-    }
-
-    if ((max = qemuGetMaxVCPUs(NULL, type)) < 0) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       _("could not determine max vcpus for the domain"));
-        goto endjob;
-    }
-
-    if (!maximum && vm->def->maxvcpus < max) {
-        max = vm->def->maxvcpus;
-    }
-
-    if (nvcpus > max) {
+    if (!maximum && nvcpus > vm->def->maxvcpus) {
         virReportError(VIR_ERR_INVALID_ARG,
                        _("requested vcpus is greater than max allowable"
-                         " vcpus for the domain: %d > %d"), nvcpus, max);
+                         " vcpus for the domain: %d > %d"),
+                       nvcpus, vm->def->maxvcpus);
         goto endjob;
     }
 
@@ -3853,7 +3780,6 @@ qemuDomainPinVcpuFlags(virDomainPtr dom,
     virQEMUDriverPtr driver = dom->conn->privateData;
     virDomainObjPtr vm;
     virDomainDefPtr persistentDef = NULL;
-    virCgroupPtr cgroup_dom = NULL;
     virCgroupPtr cgroup_vcpu = NULL;
     int ret = -1;
     qemuDomainObjPrivatePtr priv;
@@ -3875,7 +3801,7 @@ qemuDomainPinVcpuFlags(virDomainPtr dom,
     if (!(caps = virQEMUDriverGetCapabilities(driver, false)))
         goto cleanup;
 
-    if (virDomainLiveConfigHelperMethod(caps, driver->xmlconf, vm, &flags,
+    if (virDomainLiveConfigHelperMethod(caps, driver->xmlopt, vm, &flags,
                                         &persistentDef) < 0)
         goto cleanup;
 
@@ -3891,6 +3817,12 @@ qemuDomainPinVcpuFlags(virDomainPtr dom,
     pcpumap = virBitmapNewData(cpumap, maplen);
     if (!pcpumap)
         goto cleanup;
+
+    if (virBitmapIsAllClear(pcpumap)) {
+        virReportError(VIR_ERR_INVALID_ARG, "%s",
+                       _("Empty cpu list for pinning"));
+        goto cleanup;
+    }
 
     /* pinning to all physical cpus means resetting,
      * so check if we can reset setting.
@@ -3929,9 +3861,8 @@ qemuDomainPinVcpuFlags(virDomainPtr dom,
         }
 
         /* Configure the corresponding cpuset cgroup before set affinity. */
-        if (qemuCgroupControllerActive(driver, VIR_CGROUP_CONTROLLER_CPUSET)) {
-            if (virCgroupForDomain(driver->cgroup, vm->def->name, &cgroup_dom, 0) == 0 &&
-                virCgroupForVcpu(cgroup_dom, vcpu, &cgroup_vcpu, 0) == 0 &&
+        if (virCgroupHasController(priv->cgroup, VIR_CGROUP_CONTROLLER_CPUSET)) {
+            if (virCgroupNewVcpu(priv->cgroup, vcpu, false, &cgroup_vcpu) == 0 &&
                 qemuSetupCgroupVcpuPin(cgroup_vcpu, newVcpuPin, newVcpuPinNum, vcpu) < 0) {
                 virReportError(VIR_ERR_OPERATION_INVALID,
                                _("failed to set cpuset.cpus in cgroup"
@@ -3966,7 +3897,7 @@ qemuDomainPinVcpuFlags(virDomainPtr dom,
         if (newVcpuPin)
             virDomainVcpuPinDefArrayFree(newVcpuPin, newVcpuPinNum);
 
-        if (virDomainSaveStatus(driver->xmlconf, cfg->stateDir, vm) < 0)
+        if (virDomainSaveStatus(driver->xmlopt, cfg->stateDir, vm) < 0)
             goto cleanup;
     }
 
@@ -4008,8 +3939,6 @@ qemuDomainPinVcpuFlags(virDomainPtr dom,
 cleanup:
     if (cgroup_vcpu)
         virCgroupFree(&cgroup_vcpu);
-    if (cgroup_dom)
-        virCgroupFree(&cgroup_dom);
     if (vm)
         virObjectUnlock(vm);
     virBitmapFree(pcpumap);
@@ -4055,7 +3984,7 @@ qemuDomainGetVcpuPinInfo(virDomainPtr dom,
     if (!(caps = virQEMUDriverGetCapabilities(driver, false)))
         goto cleanup;
 
-    if (virDomainLiveConfigHelperMethod(caps, driver->xmlconf, vm, &flags,
+    if (virDomainLiveConfigHelperMethod(caps, driver->xmlopt, vm, &flags,
                                         &targetDef) < 0)
         goto cleanup;
 
@@ -4120,7 +4049,6 @@ qemuDomainPinEmulator(virDomainPtr dom,
 {
     virQEMUDriverPtr driver = dom->conn->privateData;
     virDomainObjPtr vm;
-    virCgroupPtr cgroup_dom = NULL;
     virCgroupPtr cgroup_emulator = NULL;
     pid_t pid;
     virDomainDefPtr persistentDef = NULL;
@@ -4151,7 +4079,7 @@ qemuDomainPinEmulator(virDomainPtr dom,
         goto cleanup;
     }
 
-    if (virDomainLiveConfigHelperMethod(caps, driver->xmlconf, vm, &flags,
+    if (virDomainLiveConfigHelperMethod(caps, driver->xmlopt, vm, &flags,
                                         &persistentDef) < 0)
         goto cleanup;
 
@@ -4160,6 +4088,12 @@ qemuDomainPinEmulator(virDomainPtr dom,
     pcpumap = virBitmapNewData(cpumap, maplen);
     if (!pcpumap)
         goto cleanup;
+
+    if (virBitmapIsAllClear(pcpumap)) {
+        virReportError(VIR_ERR_INVALID_ARG, "%s",
+                       _("Empty cpu list for pinning"));
+        goto cleanup;
+    }
 
     /* pinning to all physical cpus means resetting,
      * so check if we can reset setting.
@@ -4184,22 +4118,19 @@ qemuDomainPinEmulator(virDomainPtr dom,
                 goto cleanup;
             }
 
-            if (qemuCgroupControllerActive(driver,
-                                           VIR_CGROUP_CONTROLLER_CPUSET)) {
+            if (virCgroupHasController(priv->cgroup,
+                                       VIR_CGROUP_CONTROLLER_CPUSET)) {
                 /*
                  * Configure the corresponding cpuset cgroup.
                  * If no cgroup for domain or hypervisor exists, do nothing.
                  */
-                if (virCgroupForDomain(driver->cgroup, vm->def->name,
-                                       &cgroup_dom, 0) == 0) {
-                    if (virCgroupForEmulator(cgroup_dom, &cgroup_emulator, 0) == 0) {
-                        if (qemuSetupCgroupEmulatorPin(cgroup_emulator,
-                                                       newVcpuPin[0]->cpumask) < 0) {
-                            virReportError(VIR_ERR_OPERATION_INVALID, "%s",
-                                           _("failed to set cpuset.cpus in cgroup"
-                                             " for emulator threads"));
-                            goto cleanup;
-                        }
+                if (virCgroupNewEmulator(priv->cgroup, false, &cgroup_emulator) == 0) {
+                    if (qemuSetupCgroupEmulatorPin(cgroup_emulator,
+                                                   newVcpuPin[0]->cpumask) < 0) {
+                        virReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                                       _("failed to set cpuset.cpus in cgroup"
+                                         " for emulator threads"));
+                        goto cleanup;
                     }
                 }
             } else {
@@ -4232,7 +4163,7 @@ qemuDomainPinEmulator(virDomainPtr dom,
             goto cleanup;
         }
 
-        if (virDomainSaveStatus(driver->xmlconf, cfg->stateDir, vm) < 0)
+        if (virDomainSaveStatus(driver->xmlopt, cfg->stateDir, vm) < 0)
             goto cleanup;
     }
 
@@ -4263,8 +4194,6 @@ qemuDomainPinEmulator(virDomainPtr dom,
 cleanup:
     if (cgroup_emulator)
         virCgroupFree(&cgroup_emulator);
-    if (cgroup_dom)
-        virCgroupFree(&cgroup_dom);
     virBitmapFree(pcpumap);
     virObjectUnref(caps);
     if (vm)
@@ -4297,7 +4226,7 @@ qemuDomainGetEmulatorPinInfo(virDomainPtr dom,
     if (!(caps = virQEMUDriverGetCapabilities(driver, false)))
         goto cleanup;
 
-    if (virDomainLiveConfigHelperMethod(caps, driver->xmlconf,
+    if (virDomainLiveConfigHelperMethod(caps, driver->xmlopt,
                                         vm, &flags, &targetDef) < 0)
         goto cleanup;
 
@@ -4454,7 +4383,7 @@ qemuDomainGetVcpusFlags(virDomainPtr dom, unsigned int flags)
     if (!(caps = virQEMUDriverGetCapabilities(driver, false)))
         goto cleanup;
 
-    if (virDomainLiveConfigHelperMethod(caps, driver->xmlconf,
+    if (virDomainLiveConfigHelperMethod(caps, driver->xmlopt,
                                         vm, &flags, &def) < 0)
         goto cleanup;
 
@@ -4484,17 +4413,10 @@ static int qemuDomainGetSecurityLabel(virDomainPtr dom, virSecurityLabelPtr secl
     virDomainObjPtr vm;
     int ret = -1;
 
-    vm = virDomainObjListFindByUUID(driver->domains, dom->uuid);
-
     memset(seclabel, 0, sizeof(*seclabel));
 
-    if (!vm) {
-        char uuidstr[VIR_UUID_STRING_BUFLEN];
-        virUUIDFormat(dom->uuid, uuidstr);
-        virReportError(VIR_ERR_NO_DOMAIN,
-                       _("no domain with matching uuid '%s'"), uuidstr);
-        goto cleanup;
-    }
+    if (!(vm = qemuDomObjFromDomain(dom)))
+        return -1;
 
     if (!virDomainVirtTypeToString(vm->def->virtType)) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
@@ -4541,16 +4463,8 @@ static int qemuDomainGetSecurityLabelList(virDomainPtr dom,
     virDomainObjPtr vm;
     int i, ret = -1;
 
-    /* Protect domain data with qemu lock */
-    vm = virDomainObjListFindByUUID(driver->domains, dom->uuid);
-
-    if (!vm) {
-        char uuidstr[VIR_UUID_STRING_BUFLEN];
-        virUUIDFormat(dom->uuid, uuidstr);
-        virReportError(VIR_ERR_NO_DOMAIN,
-                       _("no domain with matching uuid '%s'"), uuidstr);
-        goto cleanup;
-    }
+    if (!(vm = qemuDomObjFromDomain(dom)))
+        return -1;
 
     if (!virDomainVirtTypeToString(vm->def->virtType)) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
@@ -4767,14 +4681,14 @@ qemuDomainSaveImageOpen(virQEMUDriverPtr driver,
         header.was_running = state;
 
     /* Create a domain from this XML */
-    if (!(def = virDomainDefParseString(caps, driver->xmlconf, xml,
+    if (!(def = virDomainDefParseString(xml, caps, driver->xmlopt,
                                         QEMU_EXPECTED_VIRT_TYPES,
                                         VIR_DOMAIN_XML_INACTIVE)))
         goto error;
     if (xmlin) {
         virDomainDefPtr def2 = NULL;
 
-        if (!(def2 = virDomainDefParseString(caps, driver->xmlconf, xmlin,
+        if (!(def2 = virDomainDefParseString(xmlin, caps, driver->xmlopt,
                                              QEMU_EXPECTED_VIRT_TYPES,
                                              VIR_DOMAIN_XML_INACTIVE)))
             goto error;
@@ -4890,7 +4804,7 @@ qemuDomainSaveImageStartVM(virConnectPtr conn,
                                "%s", _("failed to resume domain"));
             goto cleanup;
         }
-        if (virDomainSaveStatus(driver->xmlconf, cfg->stateDir, vm) < 0) {
+        if (virDomainSaveStatus(driver->xmlopt, cfg->stateDir, vm) < 0) {
             VIR_WARN("Failed to save status on vm %s", vm->def->name);
             goto cleanup;
         }
@@ -4947,9 +4861,8 @@ qemuDomainRestoreFlags(virConnectPtr conn,
     if (fd < 0)
         goto cleanup;
 
-    if (!(vm = virDomainObjListAdd(driver->domains,
-                                   driver->xmlconf,
-                                   def,
+    if (!(vm = virDomainObjListAdd(driver->domains, def,
+                                   driver->xmlopt,
                                    VIR_DOMAIN_OBJ_LIST_ADD_LIVE |
                                    VIR_DOMAIN_OBJ_LIST_ADD_CHECK_LIVE,
                                    NULL)))
@@ -5150,15 +5063,8 @@ static char *qemuDomainGetXMLDesc(virDomainPtr dom,
 
     /* Flags checked by virDomainDefFormat */
 
-    vm = virDomainObjListFindByUUID(driver->domains, dom->uuid);
-
-    if (!vm) {
-        char uuidstr[VIR_UUID_STRING_BUFLEN];
-        virUUIDFormat(dom->uuid, uuidstr);
-        virReportError(VIR_ERR_NO_DOMAIN,
-                       _("no domain with matching uuid '%s'"), uuidstr);
+    if (!(vm = qemuDomObjFromDomain(dom)))
         goto cleanup;
-    }
 
     priv = vm->privateData;
 
@@ -5208,10 +5114,10 @@ cleanup:
 }
 
 
-static char *qemuDomainXMLFromNative(virConnectPtr conn,
-                                     const char *format,
-                                     const char *config,
-                                     unsigned int flags)
+static char *qemuConnectDomainXMLFromNative(virConnectPtr conn,
+                                            const char *format,
+                                            const char *config,
+                                            unsigned int flags)
 {
     virQEMUDriverPtr driver = conn->privateData;
     virDomainDefPtr def = NULL;
@@ -5229,7 +5135,7 @@ static char *qemuDomainXMLFromNative(virConnectPtr conn,
     if (!(caps = virQEMUDriverGetCapabilities(driver, false)))
         goto cleanup;
 
-    def = qemuParseCommandLineString(caps, driver->xmlconf, config,
+    def = qemuParseCommandLineString(caps, driver->xmlopt, config,
                                      NULL, NULL, NULL);
     if (!def)
         goto cleanup;
@@ -5248,10 +5154,10 @@ cleanup:
     return xml;
 }
 
-static char *qemuDomainXMLToNative(virConnectPtr conn,
-                                   const char *format,
-                                   const char *xmlData,
-                                   unsigned int flags)
+static char *qemuConnectDomainXMLToNative(virConnectPtr conn,
+                                          const char *format,
+                                          const char *xmlData,
+                                          unsigned int flags)
 {
     virQEMUDriverPtr driver = conn->privateData;
     virDomainDefPtr def = NULL;
@@ -5277,7 +5183,7 @@ static char *qemuDomainXMLToNative(virConnectPtr conn,
     if (!(caps = virQEMUDriverGetCapabilities(driver, false)))
         goto cleanup;
 
-    def = virDomainDefParseString(caps, driver->xmlconf, xmlData,
+    def = virDomainDefParseString(xmlData, caps, driver->xmlopt,
                                   QEMU_EXPECTED_VIRT_TYPES, 0);
     if (!def)
         goto cleanup;
@@ -5383,8 +5289,8 @@ cleanup:
 }
 
 
-static int qemuListDefinedDomains(virConnectPtr conn,
-                                  char **const names, int nnames) {
+static int qemuConnectListDefinedDomains(virConnectPtr conn,
+                                         char **const names, int nnames) {
     virQEMUDriverPtr driver = conn->privateData;
     int n;
 
@@ -5392,7 +5298,7 @@ static int qemuListDefinedDomains(virConnectPtr conn,
     return n;
 }
 
-static int qemuNumDefinedDomains(virConnectPtr conn) {
+static int qemuConnectNumOfDefinedDomains(virConnectPtr conn) {
     virQEMUDriverPtr driver = conn->privateData;
     int n;
 
@@ -5481,7 +5387,7 @@ cleanup:
 }
 
 static int
-qemuDomainStartWithFlags(virDomainPtr dom, unsigned int flags)
+qemuDomainCreateWithFlags(virDomainPtr dom, unsigned int flags)
 {
     virQEMUDriverPtr driver = dom->conn->privateData;
     virDomainObjPtr vm;
@@ -5492,15 +5398,8 @@ qemuDomainStartWithFlags(virDomainPtr dom, unsigned int flags)
                   VIR_DOMAIN_START_BYPASS_CACHE |
                   VIR_DOMAIN_START_FORCE_BOOT, -1);
 
-    vm = virDomainObjListFindByUUID(driver->domains, dom->uuid);
-
-    if (!vm) {
-        char uuidstr[VIR_UUID_STRING_BUFLEN];
-        virUUIDFormat(dom->uuid, uuidstr);
-        virReportError(VIR_ERR_NO_DOMAIN,
-                       _("no domain with matching uuid '%s'"), uuidstr);
-        goto cleanup;
-    }
+    if (!(vm = qemuDomObjFromDomain(dom)))
+        return -1;
 
     if (qemuDomainObjBeginJob(driver, vm, QEMU_JOB_MODIFY) < 0)
         goto cleanup;
@@ -5527,12 +5426,12 @@ cleanup:
 }
 
 static int
-qemuDomainStart(virDomainPtr dom)
+qemuDomainCreate(virDomainPtr dom)
 {
-    return qemuDomainStartWithFlags(dom, 0);
+    return qemuDomainCreateWithFlags(dom, 0);
 }
 
-static virDomainPtr qemuDomainDefine(virConnectPtr conn, const char *xml) {
+static virDomainPtr qemuDomainDefineXML(virConnectPtr conn, const char *xml) {
     virQEMUDriverPtr driver = conn->privateData;
     virDomainDefPtr def = NULL;
     virDomainDefPtr oldDef = NULL;
@@ -5548,7 +5447,7 @@ static virDomainPtr qemuDomainDefine(virConnectPtr conn, const char *xml) {
     if (!(caps = virQEMUDriverGetCapabilities(driver, false)))
         goto cleanup;
 
-    if (!(def = virDomainDefParseString(caps, driver->xmlconf, xml,
+    if (!(def = virDomainDefParseString(xml, caps, driver->xmlopt,
                                         QEMU_EXPECTED_VIRT_TYPES,
                                         VIR_DOMAIN_XML_INACTIVE)))
         goto cleanup;
@@ -5565,11 +5464,9 @@ static virDomainPtr qemuDomainDefine(virConnectPtr conn, const char *xml) {
     if (qemuDomainAssignAddresses(def, qemuCaps, NULL) < 0)
         goto cleanup;
 
-    if (!(vm = virDomainObjListAdd(driver->domains,
-                                   driver->xmlconf,
-                                   def,
-                                   0,
-                                   &oldDef)))
+    if (!(vm = virDomainObjListAdd(driver->domains, def,
+                                   driver->xmlopt,
+                                   0, &oldDef)))
         goto cleanup;
 
     def = NULL;
@@ -5639,16 +5536,10 @@ qemuDomainUndefineFlags(virDomainPtr dom,
     virCheckFlags(VIR_DOMAIN_UNDEFINE_MANAGED_SAVE |
                   VIR_DOMAIN_UNDEFINE_SNAPSHOTS_METADATA, -1);
 
-    cfg = virQEMUDriverGetConfig(driver);
-    vm = virDomainObjListFindByUUID(driver->domains, dom->uuid);
+    if (!(vm = qemuDomObjFromDomain(dom)))
+        return -1;
 
-    if (!vm) {
-        char uuidstr[VIR_UUID_STRING_BUFLEN];
-        virUUIDFormat(dom->uuid, uuidstr);
-        virReportError(VIR_ERR_NO_DOMAIN,
-                       _("no domain with matching uuid '%s'"), uuidstr);
-        goto cleanup;
-    }
+    cfg = virQEMUDriverGetConfig(driver);
 
     if (!vm->persistent) {
         virReportError(VIR_ERR_OPERATION_INVALID,
@@ -5748,6 +5639,9 @@ qemuDomainAttachDeviceDiskLive(virConnectPtr conn,
         goto end;
     }
 
+    if (qemuTranslateDiskSourcePool(conn, disk) < 0)
+        goto end;
+
     if (qemuAddSharedDisk(driver, disk, vm->def->name) < 0)
         goto end;
 
@@ -5757,16 +5651,8 @@ qemuDomainAttachDeviceDiskLive(virConnectPtr conn,
     if (qemuDomainDetermineDiskChain(driver, disk, false) < 0)
         goto end;
 
-    if (qemuCgroupControllerActive(driver, VIR_CGROUP_CONTROLLER_DEVICES)) {
-        if (virCgroupForDomain(driver->cgroup, vm->def->name, &cgroup, 0)) {
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("Unable to find cgroup for %s"),
-                           vm->def->name);
-            goto end;
-        }
-        if (qemuSetupDiskCgroup(vm, cgroup, disk) < 0)
-            goto end;
-    }
+    if (qemuSetupDiskCgroup(vm, disk) < 0)
+        goto end;
 
     switch (disk->device)  {
     case VIR_DOMAIN_DISK_DEVICE_CDROM:
@@ -5786,7 +5672,8 @@ qemuDomainAttachDeviceDiskLive(virConnectPtr conn,
         tmp = dev->data.disk;
         dev->data.disk = orig_disk;
 
-        if (!(dev_copy = virDomainDeviceDefCopy(caps, vm->def, dev))) {
+        if (!(dev_copy = virDomainDeviceDefCopy(dev, vm->def,
+                                                caps, driver->xmlopt))) {
             dev->data.disk = tmp;
             goto end;
         }
@@ -5832,7 +5719,7 @@ qemuDomainAttachDeviceDiskLive(virConnectPtr conn,
     }
 
     if (ret != 0 && cgroup) {
-        if (qemuTeardownDiskCgroup(vm, cgroup, disk) < 0)
+        if (qemuTeardownDiskCgroup(vm, disk) < 0)
             VIR_WARN("Failed to teardown cgroup for disk path %s",
                      NULLSTR(disk->src));
     }
@@ -5840,8 +5727,6 @@ qemuDomainAttachDeviceDiskLive(virConnectPtr conn,
 end:
     if (ret != 0)
         ignore_value(qemuRemoveSharedDisk(driver, disk, vm->def->name));
-    if (cgroup)
-        virCgroupFree(&cgroup);
     virObjectUnref(caps);
     virDomainDeviceDefFree(dev_copy);
     return ret;
@@ -6016,7 +5901,8 @@ qemuDomainDetachDeviceLive(virDomainObjPtr vm,
 }
 
 static int
-qemuDomainChangeDiskMediaLive(virDomainObjPtr vm,
+qemuDomainChangeDiskMediaLive(virConnectPtr conn,
+                              virDomainObjPtr vm,
                               virDomainDeviceDefPtr dev,
                               virQEMUDriverPtr driver,
                               bool force)
@@ -6024,25 +5910,18 @@ qemuDomainChangeDiskMediaLive(virDomainObjPtr vm,
     virDomainDiskDefPtr disk = dev->data.disk;
     virDomainDiskDefPtr orig_disk = NULL;
     virDomainDiskDefPtr tmp = NULL;
-    virCgroupPtr cgroup = NULL;
     virDomainDeviceDefPtr dev_copy = NULL;
     virCapsPtr caps = NULL;
     int ret = -1;
 
+    if (qemuTranslateDiskSourcePool(conn, disk) < 0)
+        goto end;
+
     if (qemuDomainDetermineDiskChain(driver, disk, false) < 0)
         goto end;
 
-    if (qemuCgroupControllerActive(driver, VIR_CGROUP_CONTROLLER_DEVICES)) {
-        if (virCgroupForDomain(driver->cgroup,
-                               vm->def->name, &cgroup, 0) != 0) {
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("Unable to find cgroup for %s"),
-                           vm->def->name);
-            goto end;
-        }
-        if (qemuSetupDiskCgroup(vm, cgroup, disk) < 0)
-            goto end;
-    }
+    if (qemuSetupDiskCgroup(vm, disk) < 0)
+        goto end;
 
     switch (disk->device) {
     case VIR_DOMAIN_DISK_DEVICE_CDROM:
@@ -6062,7 +5941,8 @@ qemuDomainChangeDiskMediaLive(virDomainObjPtr vm,
         tmp = dev->data.disk;
         dev->data.disk = orig_disk;
 
-        if (!(dev_copy = virDomainDeviceDefCopy(caps, vm->def, dev))) {
+        if (!(dev_copy = virDomainDeviceDefCopy(dev, vm->def,
+                                                caps, driver->xmlopt))) {
             dev->data.disk = tmp;
             goto end;
         }
@@ -6073,14 +5953,17 @@ qemuDomainChangeDiskMediaLive(virDomainObjPtr vm,
             goto end;
 
         ret = qemuDomainChangeEjectableMedia(driver, vm, disk, orig_disk, force);
+        /* 'disk' must not be accessed now - it has been freed.
+         * 'orig_disk' now points to the new disk, while 'dev_copy'
+         * now points to the old disk */
+
+        /* Need to remove the shared disk entry for the original
+         * disk src if the operation is either ejecting or updating.
+         */
         if (ret == 0) {
             dev->data.disk = NULL;
-            /* Need to remove the shared disk entry for the original
-             * disk src if the operation is either ejecting or updating.
-             */
-            if (orig_disk->src && STRNEQ_NULLABLE(orig_disk->src, disk->src))
-                ignore_value(qemuRemoveSharedDisk(driver, dev_copy->data.disk,
-                                                  vm->def->name));
+            ignore_value(qemuRemoveSharedDisk(driver, dev_copy->data.disk,
+                                              vm->def->name));
         }
         break;
     default:
@@ -6090,21 +5973,20 @@ qemuDomainChangeDiskMediaLive(virDomainObjPtr vm,
         break;
     }
 
-    if (ret != 0 && cgroup) {
-        if (qemuTeardownDiskCgroup(vm, cgroup, disk) < 0)
-             VIR_WARN("Failed to teardown cgroup for disk path %s",
-                      NULLSTR(disk->src));
-    }
+    if (ret != 0 &&
+        qemuTeardownDiskCgroup(vm, disk) < 0)
+        VIR_WARN("Failed to teardown cgroup for disk path %s",
+                 NULLSTR(disk->src));
+
 end:
-    if (cgroup)
-        virCgroupFree(&cgroup);
     virObjectUnref(caps);
     virDomainDeviceDefFree(dev_copy);
     return ret;
 }
 
 static int
-qemuDomainUpdateDeviceLive(virDomainObjPtr vm,
+qemuDomainUpdateDeviceLive(virConnectPtr conn,
+                           virDomainObjPtr vm,
                            virDomainDeviceDefPtr dev,
                            virDomainPtr dom,
                            bool force)
@@ -6114,7 +5996,7 @@ qemuDomainUpdateDeviceLive(virDomainObjPtr vm,
 
     switch (dev->type) {
     case VIR_DOMAIN_DEVICE_DISK:
-        ret = qemuDomainChangeDiskMediaLive(vm, dev, driver, force);
+        ret = qemuDomainChangeDiskMediaLive(conn, vm, dev, driver, force);
         break;
     case VIR_DOMAIN_DEVICE_GRAPHICS:
         ret = qemuDomainChangeGraphics(driver, vm, dev->data.graphics);
@@ -6431,14 +6313,9 @@ qemuDomainModifyDeviceFlags(virDomainPtr dom, const char *xml,
     if (!(caps = virQEMUDriverGetCapabilities(driver, false)))
         goto cleanup;
 
-    vm = virDomainObjListFindByUUID(driver->domains, dom->uuid);
-    if (!vm) {
-        char uuidstr[VIR_UUID_STRING_BUFLEN];
-        virUUIDFormat(dom->uuid, uuidstr);
-        virReportError(VIR_ERR_NO_DOMAIN,
-                       _("no domain with matching uuid '%s'"), uuidstr);
+    if (!(vm = qemuDomObjFromDomain(dom)))
         goto cleanup;
-    }
+
     priv = vm->privateData;
 
     if (qemuDomainObjBeginJob(driver, vm, QEMU_JOB_MODIFY) < 0)
@@ -6465,7 +6342,8 @@ qemuDomainModifyDeviceFlags(virDomainPtr dom, const char *xml,
          goto endjob;
     }
 
-    dev = dev_copy = virDomainDeviceDefParse(caps, vm->def, xml,
+    dev = dev_copy = virDomainDeviceDefParse(xml, vm->def,
+                                             caps, driver->xmlopt,
                                              VIR_DOMAIN_XML_INACTIVE);
     if (dev == NULL)
         goto endjob;
@@ -6476,7 +6354,7 @@ qemuDomainModifyDeviceFlags(virDomainPtr dom, const char *xml,
          * create a deep copy of device as adding
          * to CONFIG takes one instance.
          */
-        dev_copy = virDomainDeviceDefCopy(caps, vm->def, dev);
+        dev_copy = virDomainDeviceDefCopy(dev, vm->def, caps, driver->xmlopt);
         if (!dev_copy)
             goto endjob;
     }
@@ -6491,7 +6369,7 @@ qemuDomainModifyDeviceFlags(virDomainPtr dom, const char *xml,
             goto endjob;
 
         /* Make a copy for updated domain. */
-        vmdef = virDomainObjCopyPersistentDef(caps, driver->xmlconf, vm);
+        vmdef = virDomainObjCopyPersistentDef(vm, caps, driver->xmlopt);
         if (!vmdef)
             goto endjob;
         switch (action) {
@@ -6526,7 +6404,7 @@ qemuDomainModifyDeviceFlags(virDomainPtr dom, const char *xml,
             ret = qemuDomainDetachDeviceLive(vm, dev_copy, dom);
             break;
         case QEMU_DEVICE_UPDATE:
-            ret = qemuDomainUpdateDeviceLive(vm, dev_copy, dom, force);
+            ret = qemuDomainUpdateDeviceLive(dom->conn, vm, dev_copy, dom, force);
             break;
         default:
             virReportError(VIR_ERR_INTERNAL_ERROR,
@@ -6542,7 +6420,7 @@ qemuDomainModifyDeviceFlags(virDomainPtr dom, const char *xml,
          * changed even if we failed to attach the device. For example,
          * a new controller may be created.
          */
-        if (virDomainSaveStatus(driver->xmlconf, cfg->stateDir, vm) < 0) {
+        if (virDomainSaveStatus(driver->xmlopt, cfg->stateDir, vm) < 0) {
             ret = -1;
             goto endjob;
         }
@@ -6631,15 +6509,10 @@ static int qemuDomainSetAutostart(virDomainPtr dom,
     int ret = -1;
     virQEMUDriverConfigPtr cfg = NULL;
 
-    vm = virDomainObjListFindByUUID(driver->domains, dom->uuid);
+    if (!(vm = qemuDomObjFromDomain(dom)))
+        return -1;
+
     cfg = virQEMUDriverGetConfig(driver);
-    if (!vm) {
-        char uuidstr[VIR_UUID_STRING_BUFLEN];
-        virUUIDFormat(dom->uuid, uuidstr);
-        virReportError(VIR_ERR_NO_DOMAIN,
-                       _("no domain with matching uuid '%s'"), uuidstr);
-        goto cleanup;
-    }
 
     if (!vm->persistent) {
         virReportError(VIR_ERR_OPERATION_INVALID,
@@ -6725,21 +6598,31 @@ cleanup:
 }
 
 
-static char *qemuGetSchedulerType(virDomainPtr dom,
-                                  int *nparams)
+static char *qemuDomainGetSchedulerType(virDomainPtr dom,
+                                        int *nparams)
 {
     virQEMUDriverPtr driver = dom->conn->privateData;
     char *ret = NULL;
     int rc;
+    virDomainObjPtr vm = NULL;
+    qemuDomainObjPrivatePtr priv;
 
-    if (!qemuCgroupControllerActive(driver, VIR_CGROUP_CONTROLLER_CPU)) {
+    vm = virDomainObjListFindByUUID(driver->domains, dom->uuid);
+    if (vm == NULL) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("No such domain %s"), dom->uuid);
+        goto cleanup;
+    }
+    priv = vm->privateData;
+
+    if (!virCgroupHasController(priv->cgroup, VIR_CGROUP_CONTROLLER_CPU)) {
         virReportError(VIR_ERR_OPERATION_INVALID,
                        "%s", _("cgroup CPU controller is not mounted"));
         goto cleanup;
     }
 
     if (nparams) {
-        rc = qemuGetCpuBWStatus(driver->cgroup);
+        rc = qemuGetCpuBWStatus(priv->cgroup);
         if (rc < 0)
             goto cleanup;
         else if (rc == 0)
@@ -6753,6 +6636,8 @@ static char *qemuGetSchedulerType(virDomainPtr dom,
         virReportOOMError();
 
 cleanup:
+    if (vm)
+        virObjectUnlock(vm);
     return ret;
 }
 
@@ -6892,12 +6777,12 @@ qemuDomainSetBlkioParameters(virDomainPtr dom,
 {
     virQEMUDriverPtr driver = dom->conn->privateData;
     int i;
-    virCgroupPtr group = NULL;
     virDomainObjPtr vm = NULL;
     virDomainDefPtr persistentDef = NULL;
     int ret = -1;
     virQEMUDriverConfigPtr cfg = NULL;
     virCapsPtr caps = NULL;
+    qemuDomainObjPrivatePtr priv;
 
     virCheckFlags(VIR_DOMAIN_AFFECT_LIVE |
                   VIR_DOMAIN_AFFECT_CONFIG, -1);
@@ -6909,31 +6794,22 @@ qemuDomainSetBlkioParameters(virDomainPtr dom,
                                        NULL) < 0)
         return -1;
 
-    vm = virDomainObjListFindByUUID(driver->domains, dom->uuid);
-    if (vm == NULL) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("No such domain %s"), dom->uuid);
-        goto cleanup;
-    }
+    if (!(vm = qemuDomObjFromDomain(dom)))
+        return -1;
+
+    priv = vm->privateData;
     cfg = virQEMUDriverGetConfig(driver);
     if (!(caps = virQEMUDriverGetCapabilities(driver, false)))
         goto cleanup;
 
-    if (virDomainLiveConfigHelperMethod(caps, driver->xmlconf, vm, &flags,
+    if (virDomainLiveConfigHelperMethod(caps, driver->xmlopt, vm, &flags,
                                         &persistentDef) < 0)
         goto cleanup;
 
     if (flags & VIR_DOMAIN_AFFECT_LIVE) {
-        if (!qemuCgroupControllerActive(driver, VIR_CGROUP_CONTROLLER_BLKIO)) {
+        if (!virCgroupHasController(priv->cgroup, VIR_CGROUP_CONTROLLER_BLKIO)) {
             virReportError(VIR_ERR_OPERATION_INVALID, "%s",
                            _("blkio cgroup isn't mounted"));
-            goto cleanup;
-        }
-
-        if (virCgroupForDomain(driver->cgroup, vm->def->name, &group, 0) != 0) {
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("cannot find cgroup for domain %s"),
-                           vm->def->name);
             goto cleanup;
         }
     }
@@ -6952,7 +6828,7 @@ qemuDomainSetBlkioParameters(virDomainPtr dom,
                     continue;
                 }
 
-                rc = virCgroupSetBlkioWeight(group, params[i].value.ui);
+                rc = virCgroupSetBlkioWeight(priv->cgroup, params[i].value.ui);
                 if (rc != 0) {
                     virReportSystemError(-rc, "%s",
                                          _("unable to set blkio weight tunable"));
@@ -6970,7 +6846,7 @@ qemuDomainSetBlkioParameters(virDomainPtr dom,
                     continue;
                 }
                 for (j = 0; j < ndevices; j++) {
-                    rc = virCgroupSetBlkioDeviceWeight(group,
+                    rc = virCgroupSetBlkioDeviceWeight(priv->cgroup,
                                                        devices[j].path,
                                                        devices[j].weight);
                     if (rc < 0) {
@@ -7033,7 +6909,6 @@ qemuDomainSetBlkioParameters(virDomainPtr dom,
     }
 
 cleanup:
-    virCgroupFree(&group);
     if (vm)
         virObjectUnlock(vm);
     virObjectUnref(caps);
@@ -7049,13 +6924,13 @@ qemuDomainGetBlkioParameters(virDomainPtr dom,
 {
     virQEMUDriverPtr driver = dom->conn->privateData;
     int i, j;
-    virCgroupPtr group = NULL;
     virDomainObjPtr vm = NULL;
     virDomainDefPtr persistentDef = NULL;
     unsigned int val;
     int ret = -1;
     int rc;
     virCapsPtr caps = NULL;
+    qemuDomainObjPrivatePtr priv;
 
     virCheckFlags(VIR_DOMAIN_AFFECT_LIVE |
                   VIR_DOMAIN_AFFECT_CONFIG |
@@ -7066,13 +6941,10 @@ qemuDomainGetBlkioParameters(virDomainPtr dom,
      * that can't parse it.  */
     flags &= ~VIR_TYPED_PARAM_STRING_OKAY;
 
-    vm = virDomainObjListFindByUUID(driver->domains, dom->uuid);
+    if (!(vm = qemuDomObjFromDomain(dom)))
+        return -1;
 
-    if (vm == NULL) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("No such domain %s"), dom->uuid);
-        goto cleanup;
-    }
+    priv = vm->privateData;
 
     if (!(caps = virQEMUDriverGetCapabilities(driver, false)))
         goto cleanup;
@@ -7084,20 +6956,14 @@ qemuDomainGetBlkioParameters(virDomainPtr dom,
         goto cleanup;
     }
 
-    if (virDomainLiveConfigHelperMethod(caps, driver->xmlconf, vm, &flags,
+    if (virDomainLiveConfigHelperMethod(caps, driver->xmlopt, vm, &flags,
                                         &persistentDef) < 0)
         goto cleanup;
 
     if (flags & VIR_DOMAIN_AFFECT_LIVE) {
-        if (!qemuCgroupControllerActive(driver, VIR_CGROUP_CONTROLLER_BLKIO)) {
+        if (!virCgroupHasController(priv->cgroup, VIR_CGROUP_CONTROLLER_BLKIO)) {
             virReportError(VIR_ERR_OPERATION_INVALID, "%s",
                            _("blkio cgroup isn't mounted"));
-            goto cleanup;
-        }
-
-        if (virCgroupForDomain(driver->cgroup, vm->def->name, &group, 0) != 0) {
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("cannot find cgroup for domain %s"), vm->def->name);
             goto cleanup;
         }
     }
@@ -7109,7 +6975,7 @@ qemuDomainGetBlkioParameters(virDomainPtr dom,
 
             switch (i) {
             case 0: /* fill blkio weight here */
-                rc = virCgroupGetBlkioWeight(group, &val);
+                rc = virCgroupGetBlkioWeight(priv->cgroup, &val);
                 if (rc != 0) {
                     virReportSystemError(-rc, "%s",
                                          _("unable to get blkio weight"));
@@ -7222,8 +7088,6 @@ qemuDomainGetBlkioParameters(virDomainPtr dom,
     ret = 0;
 
 cleanup:
-    if (group)
-        virCgroupFree(&group);
     if (vm)
         virObjectUnlock(vm);
     virObjectUnref(caps);
@@ -7238,18 +7102,18 @@ qemuDomainSetMemoryParameters(virDomainPtr dom,
 {
     virQEMUDriverPtr driver = dom->conn->privateData;
     virDomainDefPtr persistentDef = NULL;
-    virCgroupPtr group = NULL;
     virDomainObjPtr vm = NULL;
     unsigned long long swap_hard_limit;
-    unsigned long long memory_hard_limit;
-    unsigned long long memory_soft_limit;
+    unsigned long long hard_limit = 0;
+    unsigned long long soft_limit = 0;
     bool set_swap_hard_limit = false;
-    bool set_memory_hard_limit = false;
-    bool set_memory_soft_limit = false;
+    bool set_hard_limit = false;
+    bool set_soft_limit = false;
     virQEMUDriverConfigPtr cfg = NULL;
     int ret = -1;
     int rc;
     virCapsPtr caps = NULL;
+    qemuDomainObjPrivatePtr priv;
 
     virCheckFlags(VIR_DOMAIN_AFFECT_LIVE |
                   VIR_DOMAIN_AFFECT_CONFIG, -1);
@@ -7268,25 +7132,20 @@ qemuDomainSetMemoryParameters(virDomainPtr dom,
     if (!(vm = qemuDomObjFromDomain(dom)))
         return -1;
 
+    priv = vm->privateData;
     cfg = virQEMUDriverGetConfig(driver);
 
     if (!(caps = virQEMUDriverGetCapabilities(driver, false)))
         goto cleanup;
 
-    if (virDomainLiveConfigHelperMethod(caps, driver->xmlconf, vm, &flags,
+    if (virDomainLiveConfigHelperMethod(caps, driver->xmlopt, vm, &flags,
                                         &persistentDef) < 0)
         goto cleanup;
 
     if (flags & VIR_DOMAIN_AFFECT_LIVE) {
-        if (!qemuCgroupControllerActive(driver, VIR_CGROUP_CONTROLLER_MEMORY)) {
+        if (!virCgroupHasController(priv->cgroup, VIR_CGROUP_CONTROLLER_MEMORY)) {
             virReportError(VIR_ERR_OPERATION_INVALID,
                            "%s", _("cgroup memory controller is not mounted"));
-            goto cleanup;
-        }
-
-        if (virCgroupForDomain(driver->cgroup, vm->def->name, &group, 0) != 0) {
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("cannot find cgroup for domain %s"), vm->def->name);
             goto cleanup;
         }
     }
@@ -7299,62 +7158,63 @@ qemuDomainSetMemoryParameters(virDomainPtr dom,
         set_ ## VALUE = true;
 
     VIR_GET_LIMIT_PARAMETER(VIR_DOMAIN_MEMORY_SWAP_HARD_LIMIT, swap_hard_limit)
-    VIR_GET_LIMIT_PARAMETER(VIR_DOMAIN_MEMORY_HARD_LIMIT, memory_hard_limit)
-    VIR_GET_LIMIT_PARAMETER(VIR_DOMAIN_MEMORY_SOFT_LIMIT, memory_soft_limit)
+    VIR_GET_LIMIT_PARAMETER(VIR_DOMAIN_MEMORY_HARD_LIMIT, hard_limit)
+    VIR_GET_LIMIT_PARAMETER(VIR_DOMAIN_MEMORY_SOFT_LIMIT, soft_limit)
 
 #undef VIR_GET_LIMIT_PARAMETER
 
+    /* Swap hard limit must be greater than hard limit.
+     * Note that limit of 0 denotes unlimited */
+    if (set_swap_hard_limit || set_hard_limit) {
+        unsigned long long mem_limit = vm->def->mem.hard_limit;
+        unsigned long long swap_limit = vm->def->mem.swap_hard_limit;
 
-    /* It will fail if hard limit greater than swap hard limit anyway */
-    if (set_swap_hard_limit && set_memory_hard_limit &&
-        memory_hard_limit > swap_hard_limit) {
-        virReportError(VIR_ERR_INVALID_ARG, "%s",
-                       _("memory hard_limit tunable value must be lower than "
-                         "swap_hard_limit"));
-        goto cleanup;
-    }
+        if (set_swap_hard_limit)
+            swap_limit = swap_hard_limit;
 
-    if (set_swap_hard_limit) {
-        if (flags & VIR_DOMAIN_AFFECT_LIVE) {
-            if ((rc = virCgroupSetMemSwapHardLimit(group, swap_hard_limit)) < 0) {
-                virReportSystemError(-rc, "%s",
-                                     _("unable to set memory swap_hard_limit tunable"));
-                goto cleanup;
-            }
-            vm->def->mem.swap_hard_limit = swap_hard_limit;
+        if (set_hard_limit)
+            mem_limit = hard_limit;
+
+        if (virCompareLimitUlong(mem_limit, swap_limit) > 0) {
+            virReportError(VIR_ERR_INVALID_ARG, "%s",
+                           _("memory hard_limit tunable value must be lower "
+                             "than swap_hard_limit"));
+            goto cleanup;
         }
-
-        if (flags & VIR_DOMAIN_AFFECT_CONFIG)
-            persistentDef->mem.swap_hard_limit = swap_hard_limit;
     }
 
-    if (set_memory_hard_limit) {
-        if (flags & VIR_DOMAIN_AFFECT_LIVE) {
-            if ((rc = virCgroupSetMemoryHardLimit(group, memory_hard_limit)) < 0) {
-                virReportSystemError(-rc, "%s",
-                                     _("unable to set memory hard_limit tunable"));
-                goto cleanup;
-            }
-            vm->def->mem.hard_limit = memory_hard_limit;
-        }
-
-        if (flags & VIR_DOMAIN_AFFECT_CONFIG)
-            persistentDef->mem.hard_limit = memory_hard_limit;
+#define QEMU_SET_MEM_PARAMETER(FUNC, VALUE)                                     \
+    if (set_ ## VALUE) {                                                        \
+        if (flags & VIR_DOMAIN_AFFECT_LIVE) {                                   \
+            if ((rc = FUNC(priv->cgroup, VALUE)) < 0) {                         \
+                virReportSystemError(-rc, _("unable to set memory %s tunable"), \
+                                     #VALUE);                                   \
+                                                                                \
+                goto cleanup;                                                   \
+            }                                                                   \
+            vm->def->mem.VALUE = VALUE;                                         \
+        }                                                                       \
+                                                                                \
+        if (flags & VIR_DOMAIN_AFFECT_CONFIG)                                   \
+            persistentDef->mem.VALUE = VALUE;                                   \
     }
 
-    if (set_memory_soft_limit) {
-        if (flags & VIR_DOMAIN_AFFECT_LIVE) {
-            if ((rc = virCgroupSetMemorySoftLimit(group, memory_soft_limit)) < 0) {
-                virReportSystemError(-rc, "%s",
-                                     _("unable to set memory soft_limit tunable"));
-                goto cleanup;
-            }
-            vm->def->mem.soft_limit = memory_soft_limit;
-        }
+    /* Soft limit doesn't clash with the others */
+    QEMU_SET_MEM_PARAMETER(virCgroupSetMemorySoftLimit, soft_limit);
 
-        if (flags & VIR_DOMAIN_AFFECT_CONFIG)
-            persistentDef->mem.soft_limit = memory_soft_limit;
+    /* set hard limit before swap hard limit if decreasing it */
+    if (virCompareLimitUlong(vm->def->mem.hard_limit, hard_limit) > 0) {
+        QEMU_SET_MEM_PARAMETER(virCgroupSetMemoryHardLimit, hard_limit);
+        /* inhibit changing the limit a second time */
+        set_hard_limit = false;
     }
+
+    QEMU_SET_MEM_PARAMETER(virCgroupSetMemSwapHardLimit, swap_hard_limit);
+
+    /* otherwise increase it after swap hard limit */
+    QEMU_SET_MEM_PARAMETER(virCgroupSetMemoryHardLimit, hard_limit);
+
+#undef QEMU_SET_MEM_PARAMETER
 
     if (flags & VIR_DOMAIN_AFFECT_CONFIG &&
         virDomainSaveConfig(cfg->configDir, persistentDef) < 0)
@@ -7363,7 +7223,6 @@ qemuDomainSetMemoryParameters(virDomainPtr dom,
     ret = 0;
 
 cleanup:
-    virCgroupFree(&group);
     virObjectUnlock(vm);
     virObjectUnref(caps);
     virObjectUnref(cfg);
@@ -7378,12 +7237,12 @@ qemuDomainGetMemoryParameters(virDomainPtr dom,
 {
     virQEMUDriverPtr driver = dom->conn->privateData;
     int i;
-    virCgroupPtr group = NULL;
     virDomainObjPtr vm = NULL;
     virDomainDefPtr persistentDef = NULL;
     int ret = -1;
     int rc;
     virCapsPtr caps = NULL;
+    qemuDomainObjPrivatePtr priv;
 
     virCheckFlags(VIR_DOMAIN_AFFECT_LIVE |
                   VIR_DOMAIN_AFFECT_CONFIG |
@@ -7392,31 +7251,21 @@ qemuDomainGetMemoryParameters(virDomainPtr dom,
     /* We don't return strings, and thus trivially support this flag.  */
     flags &= ~VIR_TYPED_PARAM_STRING_OKAY;
 
-    vm = virDomainObjListFindByUUID(driver->domains, dom->uuid);
+    if (!(vm = qemuDomObjFromDomain(dom)))
+        return -1;
 
-    if (vm == NULL) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("No such domain %s"), dom->uuid);
-        goto cleanup;
-    }
-
+    priv = vm->privateData;
     if (!(caps = virQEMUDriverGetCapabilities(driver, false)))
         goto cleanup;
 
-    if (virDomainLiveConfigHelperMethod(caps, driver->xmlconf, vm, &flags,
+    if (virDomainLiveConfigHelperMethod(caps, driver->xmlopt, vm, &flags,
                                         &persistentDef) < 0)
         goto cleanup;
 
     if (flags & VIR_DOMAIN_AFFECT_LIVE) {
-        if (!qemuCgroupControllerActive(driver, VIR_CGROUP_CONTROLLER_MEMORY)) {
+        if (!virCgroupHasController(priv->cgroup, VIR_CGROUP_CONTROLLER_MEMORY)) {
             virReportError(VIR_ERR_OPERATION_INVALID,
                            "%s", _("cgroup memory controller is not mounted"));
-            goto cleanup;
-        }
-
-        if (virCgroupForDomain(driver->cgroup, vm->def->name, &group, 0) != 0) {
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("cannot find cgroup for domain %s"), vm->def->name);
             goto cleanup;
         }
     }
@@ -7469,12 +7318,9 @@ qemuDomainGetMemoryParameters(virDomainPtr dom,
         virTypedParameterPtr param = &params[i];
         unsigned long long val = 0;
 
-        /* Coverity does not realize that if we get here, group is set.  */
-        sa_assert(group);
-
         switch (i) {
         case 0: /* fill memory hard limit here */
-            rc = virCgroupGetMemoryHardLimit(group, &val);
+            rc = virCgroupGetMemoryHardLimit(priv->cgroup, &val);
             if (rc != 0) {
                 virReportSystemError(-rc, "%s",
                                      _("unable to get memory hard limit"));
@@ -7487,7 +7333,7 @@ qemuDomainGetMemoryParameters(virDomainPtr dom,
             break;
 
         case 1: /* fill memory soft limit here */
-            rc = virCgroupGetMemorySoftLimit(group, &val);
+            rc = virCgroupGetMemorySoftLimit(priv->cgroup, &val);
             if (rc != 0) {
                 virReportSystemError(-rc, "%s",
                                      _("unable to get memory soft limit"));
@@ -7500,7 +7346,7 @@ qemuDomainGetMemoryParameters(virDomainPtr dom,
             break;
 
         case 2: /* fill swap hard limit here */
-            rc = virCgroupGetMemSwapHardLimit(group, &val);
+            rc = virCgroupGetMemSwapHardLimit(priv->cgroup, &val);
             if (rc != 0) {
                 virReportSystemError(-rc, "%s",
                                      _("unable to get swap hard limit"));
@@ -7524,8 +7370,6 @@ out:
     ret = 0;
 
 cleanup:
-    if (group)
-        virCgroupFree(&group);
     if (vm)
         virObjectUnlock(vm);
     virObjectUnref(caps);
@@ -7541,11 +7385,11 @@ qemuDomainSetNumaParameters(virDomainPtr dom,
     virQEMUDriverPtr driver = dom->conn->privateData;
     int i;
     virDomainDefPtr persistentDef = NULL;
-    virCgroupPtr group = NULL;
     virDomainObjPtr vm = NULL;
     int ret = -1;
     virQEMUDriverConfigPtr cfg = NULL;
     virCapsPtr caps = NULL;
+    qemuDomainObjPrivatePtr priv;
 
     virCheckFlags(VIR_DOMAIN_AFFECT_LIVE |
                   VIR_DOMAIN_AFFECT_CONFIG, -1);
@@ -7557,33 +7401,23 @@ qemuDomainSetNumaParameters(virDomainPtr dom,
                                        NULL) < 0)
         return -1;
 
-    vm = virDomainObjListFindByUUID(driver->domains, dom->uuid);
+    if (!(vm = qemuDomObjFromDomain(dom)))
+        return -1;
 
-    if (vm == NULL) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("No such domain %s"), dom->uuid);
-        goto cleanup;
-    }
+    priv = vm->privateData;
     cfg = virQEMUDriverGetConfig(driver);
 
     if (!(caps = virQEMUDriverGetCapabilities(driver, false)))
         goto cleanup;
 
-    if (virDomainLiveConfigHelperMethod(caps, driver->xmlconf, vm, &flags,
+    if (virDomainLiveConfigHelperMethod(caps, driver->xmlopt, vm, &flags,
                                         &persistentDef) < 0)
         goto cleanup;
 
     if (flags & VIR_DOMAIN_AFFECT_LIVE) {
-        if (!qemuCgroupControllerActive(driver, VIR_CGROUP_CONTROLLER_CPUSET)) {
+        if (!virCgroupHasController(priv->cgroup, VIR_CGROUP_CONTROLLER_CPUSET)) {
             virReportError(VIR_ERR_OPERATION_INVALID,
                            "%s", _("cgroup cpuset controller is not mounted"));
-            goto cleanup;
-        }
-
-        if (virCgroupForDomain(driver->cgroup, vm->def->name, &group, 0) != 0) {
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("cannot find cgroup for domain %s"),
-                           vm->def->name);
             goto cleanup;
         }
     }
@@ -7638,7 +7472,7 @@ qemuDomainSetNumaParameters(virDomainPtr dom,
                     continue;
                 }
 
-                if ((rc = virCgroupSetCpusetMems(group, nodeset_str) != 0)) {
+                if ((rc = virCgroupSetCpusetMems(priv->cgroup, nodeset_str)) != 0) {
                     virReportSystemError(-rc, "%s",
                                          _("unable to set numa tunable"));
                     virBitmapFree(nodeset);
@@ -7678,7 +7512,6 @@ qemuDomainSetNumaParameters(virDomainPtr dom,
     }
 
 cleanup:
-    virCgroupFree(&group);
     if (vm)
         virObjectUnlock(vm);
     virObjectUnref(caps);
@@ -7694,13 +7527,13 @@ qemuDomainGetNumaParameters(virDomainPtr dom,
 {
     virQEMUDriverPtr driver = dom->conn->privateData;
     int i;
-    virCgroupPtr group = NULL;
     virDomainObjPtr vm = NULL;
     virDomainDefPtr persistentDef = NULL;
     char *nodeset = NULL;
     int ret = -1;
     int rc;
     virCapsPtr caps = NULL;
+    qemuDomainObjPrivatePtr priv;
 
     virCheckFlags(VIR_DOMAIN_AFFECT_LIVE |
                   VIR_DOMAIN_AFFECT_CONFIG |
@@ -7711,18 +7544,15 @@ qemuDomainGetNumaParameters(virDomainPtr dom,
      * that can't parse it.  */
     flags &= ~VIR_TYPED_PARAM_STRING_OKAY;
 
-    vm = virDomainObjListFindByUUID(driver->domains, dom->uuid);
+    if (!(vm = qemuDomObjFromDomain(dom)))
+        return -1;
 
-    if (vm == NULL) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("No such domain %s"), dom->uuid);
-        goto cleanup;
-    }
+    priv = vm->privateData;
 
     if (!(caps = virQEMUDriverGetCapabilities(driver, false)))
         goto cleanup;
 
-    if (virDomainLiveConfigHelperMethod(caps, driver->xmlconf, vm, &flags,
+    if (virDomainLiveConfigHelperMethod(caps, driver->xmlopt, vm, &flags,
                                         &persistentDef) < 0)
         goto cleanup;
 
@@ -7733,16 +7563,9 @@ qemuDomainGetNumaParameters(virDomainPtr dom,
     }
 
     if (flags & VIR_DOMAIN_AFFECT_LIVE) {
-        if (!qemuCgroupControllerActive(driver, VIR_CGROUP_CONTROLLER_MEMORY)) {
+        if (!virCgroupHasController(priv->cgroup, VIR_CGROUP_CONTROLLER_MEMORY)) {
             virReportError(VIR_ERR_OPERATION_INVALID,
                            "%s", _("cgroup memory controller is not mounted"));
-            goto cleanup;
-        }
-
-        if (virCgroupForDomain(driver->cgroup, vm->def->name, &group, 0) != 0) {
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("cannot find cgroup for domain %s"),
-                           vm->def->name);
             goto cleanup;
         }
     }
@@ -7767,7 +7590,7 @@ qemuDomainGetNumaParameters(virDomainPtr dom,
                 if (!nodeset)
                     nodeset = strdup("");
             } else {
-                rc = virCgroupGetCpusetMems(group, &nodeset);
+                rc = virCgroupGetCpusetMems(priv->cgroup, &nodeset);
                 if (rc != 0) {
                     virReportSystemError(-rc, "%s",
                                          _("unable to get numa nodeset"));
@@ -7794,7 +7617,6 @@ qemuDomainGetNumaParameters(virDomainPtr dom,
 
 cleanup:
     VIR_FREE(nodeset);
-    virCgroupFree(&group);
     if (vm)
         virObjectUnlock(vm);
     virObjectUnref(caps);
@@ -7819,7 +7641,7 @@ qemuSetVcpusBWLive(virDomainObjPtr vm, virCgroupPtr cgroup,
      */
     if (priv->nvcpupids != 0 && priv->vcpupids[0] != vm->pid) {
         for (i = 0; i < priv->nvcpupids; i++) {
-            rc = virCgroupForVcpu(cgroup, i, &cgroup_vcpu, 0);
+            rc = virCgroupNewVcpu(cgroup, i, false, &cgroup_vcpu);
             if (rc < 0) {
                 virReportSystemError(-rc,
                                      _("Unable to find vcpu cgroup for %s(vcpu:"
@@ -7857,7 +7679,7 @@ qemuSetEmulatorBandwidthLive(virDomainObjPtr vm, virCgroupPtr cgroup,
         return 0;
     }
 
-    rc = virCgroupForEmulator(cgroup, &cgroup_emulator, 0);
+    rc = virCgroupNewEmulator(cgroup, false, &cgroup_emulator);
     if (rc < 0) {
         virReportSystemError(-rc,
                              _("Unable to find emulator cgroup for %s"),
@@ -7886,10 +7708,10 @@ cleanup:
     }
 
 static int
-qemuSetSchedulerParametersFlags(virDomainPtr dom,
-                                virTypedParameterPtr params,
-                                int nparams,
-                                unsigned int flags)
+qemuDomainSetSchedulerParametersFlags(virDomainPtr dom,
+                                      virTypedParameterPtr params,
+                                      int nparams,
+                                      unsigned int flags)
 {
     virQEMUDriverPtr driver = dom->conn->privateData;
     int i;
@@ -7902,6 +7724,7 @@ qemuSetSchedulerParametersFlags(virDomainPtr dom,
     int rc;
     virQEMUDriverConfigPtr cfg = NULL;
     virCapsPtr caps = NULL;
+    qemuDomainObjPrivatePtr priv;
 
     virCheckFlags(VIR_DOMAIN_AFFECT_LIVE |
                   VIR_DOMAIN_AFFECT_CONFIG, -1);
@@ -7919,40 +7742,30 @@ qemuSetSchedulerParametersFlags(virDomainPtr dom,
                                        NULL) < 0)
         return -1;
 
-    vm = virDomainObjListFindByUUID(driver->domains, dom->uuid);
+    if (!(vm = qemuDomObjFromDomain(dom)))
+        return -1;
 
-    if (vm == NULL) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("No such domain %s"), dom->uuid);
-        goto cleanup;
-    }
-
+    priv = vm->privateData;
     cfg = virQEMUDriverGetConfig(driver);
 
     if (!(caps = virQEMUDriverGetCapabilities(driver, false)))
         goto cleanup;
 
-    if (virDomainLiveConfigHelperMethod(caps, driver->xmlconf, vm, &flags,
+    if (virDomainLiveConfigHelperMethod(caps, driver->xmlopt, vm, &flags,
                                         &vmdef) < 0)
         goto cleanup;
 
     if (flags & VIR_DOMAIN_AFFECT_CONFIG) {
         /* Make a copy for updated domain. */
-        vmdef = virDomainObjCopyPersistentDef(caps, driver->xmlconf, vm);
+        vmdef = virDomainObjCopyPersistentDef(vm, caps, driver->xmlopt);
         if (!vmdef)
             goto cleanup;
     }
 
     if (flags & VIR_DOMAIN_AFFECT_LIVE) {
-        if (!qemuCgroupControllerActive(driver, VIR_CGROUP_CONTROLLER_CPU)) {
+        if (!virCgroupHasController(priv->cgroup, VIR_CGROUP_CONTROLLER_CPU)) {
             virReportError(VIR_ERR_OPERATION_INVALID,
                            "%s", _("cgroup CPU controller is not mounted"));
-            goto cleanup;
-        }
-        if (virCgroupForDomain(driver->cgroup, vm->def->name, &group, 0) != 0) {
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("cannot find cgroup for domain %s"),
-                           vm->def->name);
             goto cleanup;
         }
     }
@@ -7964,7 +7777,7 @@ qemuSetSchedulerParametersFlags(virDomainPtr dom,
 
         if (STREQ(param->field, VIR_DOMAIN_SCHEDULER_CPU_SHARES)) {
             if (flags & VIR_DOMAIN_AFFECT_LIVE) {
-                if ((rc = virCgroupSetCpuShares(group, value_ul))) {
+                if ((rc = virCgroupSetCpuShares(priv->cgroup, value_ul))) {
                     virReportSystemError(-rc, "%s",
                                          _("unable to set cpu shares tunable"));
                     goto cleanup;
@@ -8033,7 +7846,7 @@ qemuSetSchedulerParametersFlags(virDomainPtr dom,
         }
     }
 
-    if (virDomainSaveStatus(driver->xmlconf, cfg->stateDir, vm) < 0)
+    if (virDomainSaveStatus(driver->xmlopt, cfg->stateDir, vm) < 0)
         goto cleanup;
 
 
@@ -8050,7 +7863,6 @@ qemuSetSchedulerParametersFlags(virDomainPtr dom,
 
 cleanup:
     virDomainDefFree(vmdef);
-    virCgroupFree(&group);
     if (vm)
         virObjectUnlock(vm);
     virObjectUnref(caps);
@@ -8060,14 +7872,14 @@ cleanup:
 #undef SCHED_RANGE_CHECK
 
 static int
-qemuSetSchedulerParameters(virDomainPtr dom,
-                           virTypedParameterPtr params,
-                           int nparams)
+qemuDomainSetSchedulerParameters(virDomainPtr dom,
+                                 virTypedParameterPtr params,
+                                 int nparams)
 {
-    return qemuSetSchedulerParametersFlags(dom,
-                                           params,
-                                           nparams,
-                                           VIR_DOMAIN_AFFECT_CURRENT);
+    return qemuDomainSetSchedulerParametersFlags(dom,
+                                                 params,
+                                                 nparams,
+                                                 VIR_DOMAIN_AFFECT_CURRENT);
 }
 
 static int
@@ -8094,7 +7906,7 @@ qemuGetVcpuBWLive(virCgroupPtr cgroup, unsigned long long *period,
 }
 
 static int
-qemuGetVcpusBWLive(virDomainObjPtr vm, virCgroupPtr cgroup,
+qemuGetVcpusBWLive(virDomainObjPtr vm,
                    unsigned long long *period, long long *quota)
 {
     virCgroupPtr cgroup_vcpu = NULL;
@@ -8105,7 +7917,7 @@ qemuGetVcpusBWLive(virDomainObjPtr vm, virCgroupPtr cgroup,
     priv = vm->privateData;
     if (priv->nvcpupids == 0 || priv->vcpupids[0] == vm->pid) {
         /* We do not create sub dir for each vcpu */
-        rc = qemuGetVcpuBWLive(cgroup, period, quota);
+        rc = qemuGetVcpuBWLive(priv->cgroup, period, quota);
         if (rc < 0)
             goto cleanup;
 
@@ -8115,7 +7927,7 @@ qemuGetVcpusBWLive(virDomainObjPtr vm, virCgroupPtr cgroup,
     }
 
     /* get period and quota for vcpu0 */
-    rc = virCgroupForVcpu(cgroup, 0, &cgroup_vcpu, 0);
+    rc = virCgroupNewVcpu(priv->cgroup, 0, false, &cgroup_vcpu);
     if (!cgroup_vcpu) {
         virReportSystemError(-rc,
                              _("Unable to find vcpu cgroup for %s(vcpu: 0)"),
@@ -8153,7 +7965,7 @@ qemuGetEmulatorBandwidthLive(virDomainObjPtr vm, virCgroupPtr cgroup,
     }
 
     /* get period and quota for emulator */
-    rc = virCgroupForEmulator(cgroup, &cgroup_emulator, 0);
+    rc = virCgroupNewEmulator(cgroup, false, &cgroup_emulator);
     if (!cgroup_emulator) {
         virReportSystemError(-rc,
                              _("Unable to find emulator cgroup for %s"),
@@ -8173,13 +7985,12 @@ cleanup:
 }
 
 static int
-qemuGetSchedulerParametersFlags(virDomainPtr dom,
-                                virTypedParameterPtr params,
-                                int *nparams,
-                                unsigned int flags)
+qemuDomainGetSchedulerParametersFlags(virDomainPtr dom,
+                                      virTypedParameterPtr params,
+                                      int *nparams,
+                                      unsigned int flags)
 {
     virQEMUDriverPtr driver = dom->conn->privateData;
-    virCgroupPtr group = NULL;
     virDomainObjPtr vm = NULL;
     unsigned long long shares;
     unsigned long long period;
@@ -8192,6 +8003,7 @@ qemuGetSchedulerParametersFlags(virDomainPtr dom,
     int saved_nparams = 0;
     virDomainDefPtr persistentDef;
     virCapsPtr caps = NULL;
+    qemuDomainObjPrivatePtr priv;
 
     virCheckFlags(VIR_DOMAIN_AFFECT_LIVE |
                   VIR_DOMAIN_AFFECT_CONFIG |
@@ -8200,25 +8012,22 @@ qemuGetSchedulerParametersFlags(virDomainPtr dom,
     /* We don't return strings, and thus trivially support this flag.  */
     flags &= ~VIR_TYPED_PARAM_STRING_OKAY;
 
+    if (!(vm = qemuDomObjFromDomain(dom)))
+        goto cleanup;
+
+    priv = vm->privateData;
+
     if (*nparams > 1) {
-        rc = qemuGetCpuBWStatus(driver->cgroup);
+        rc = qemuGetCpuBWStatus(priv->cgroup);
         if (rc < 0)
             goto cleanup;
         cpu_bw_status = !!rc;
     }
 
-    vm = virDomainObjListFindByUUID(driver->domains, dom->uuid);
-
-    if (vm == NULL) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("No such domain %s"), dom->uuid);
-        goto cleanup;
-    }
-
     if (!(caps = virQEMUDriverGetCapabilities(driver, false)))
         goto cleanup;
 
-    if (virDomainLiveConfigHelperMethod(caps, driver->xmlconf, vm, &flags,
+    if (virDomainLiveConfigHelperMethod(caps, driver->xmlopt, vm, &flags,
                                         &persistentDef) < 0)
         goto cleanup;
 
@@ -8233,19 +8042,13 @@ qemuGetSchedulerParametersFlags(virDomainPtr dom,
         goto out;
     }
 
-    if (!qemuCgroupControllerActive(driver, VIR_CGROUP_CONTROLLER_CPU)) {
+    if (!virCgroupHasController(priv->cgroup, VIR_CGROUP_CONTROLLER_CPU)) {
         virReportError(VIR_ERR_OPERATION_INVALID,
                        "%s", _("cgroup CPU controller is not mounted"));
         goto cleanup;
     }
 
-    if (virCgroupForDomain(driver->cgroup, vm->def->name, &group, 0) != 0) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("cannot find cgroup for domain %s"), vm->def->name);
-        goto cleanup;
-    }
-
-    rc = virCgroupGetCpuShares(group, &shares);
+    rc = virCgroupGetCpuShares(priv->cgroup, &shares);
     if (rc != 0) {
         virReportSystemError(-rc, "%s",
                              _("unable to get cpu shares tunable"));
@@ -8253,13 +8056,13 @@ qemuGetSchedulerParametersFlags(virDomainPtr dom,
     }
 
     if (*nparams > 1 && cpu_bw_status) {
-        rc = qemuGetVcpusBWLive(vm, group, &period, &quota);
+        rc = qemuGetVcpusBWLive(vm, &period, &quota);
         if (rc != 0)
             goto cleanup;
     }
 
     if (*nparams > 3 && cpu_bw_status) {
-        rc = qemuGetEmulatorBandwidthLive(vm, group, &emulator_period,
+        rc = qemuGetEmulatorBandwidthLive(vm, priv->cgroup, &emulator_period,
                                           &emulator_quota);
         if (rc != 0)
             goto cleanup;
@@ -8312,7 +8115,6 @@ out:
     ret = 0;
 
 cleanup:
-    virCgroupFree(&group);
     if (vm)
         virObjectUnlock(vm);
     virObjectUnref(caps);
@@ -8320,12 +8122,12 @@ cleanup:
 }
 
 static int
-qemuGetSchedulerParameters(virDomainPtr dom,
-                           virTypedParameterPtr params,
-                           int *nparams)
+qemuDomainGetSchedulerParameters(virDomainPtr dom,
+                                 virTypedParameterPtr params,
+                                 int *nparams)
 {
-    return qemuGetSchedulerParametersFlags(dom, params, nparams,
-                                           VIR_DOMAIN_AFFECT_CURRENT);
+    return qemuDomainGetSchedulerParametersFlags(dom, params, nparams,
+                                                 VIR_DOMAIN_AFFECT_CURRENT);
 }
 
 /**
@@ -8708,7 +8510,6 @@ qemuDomainSetInterfaceParameters(virDomainPtr dom,
 {
     virQEMUDriverPtr driver = dom->conn->privateData;
     int i;
-    virCgroupPtr group = NULL;
     virDomainObjPtr vm = NULL;
     virDomainDefPtr persistentDef = NULL;
     int ret = -1;
@@ -8735,20 +8536,15 @@ qemuDomainSetInterfaceParameters(virDomainPtr dom,
                                        NULL) < 0)
         return -1;
 
-    vm = virDomainObjListFindByUUID(driver->domains, dom->uuid);
-
-    if (vm == NULL) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("No such domain %s"), dom->uuid);
-        goto cleanup;
-    }
+    if (!(vm = qemuDomObjFromDomain(dom)))
+        return -1;
 
     cfg = virQEMUDriverGetConfig(driver);
 
     if (!(caps = virQEMUDriverGetCapabilities(driver, false)))
         goto cleanup;
 
-    if (virDomainLiveConfigHelperMethod(caps, driver->xmlconf, vm, &flags,
+    if (virDomainLiveConfigHelperMethod(caps, driver->xmlopt, vm, &flags,
                                         &persistentDef) < 0)
         goto cleanup;
 
@@ -8872,7 +8668,6 @@ qemuDomainSetInterfaceParameters(virDomainPtr dom,
 cleanup:
     virNetDevBandwidthFree(bandwidth);
     virNetDevBandwidthFree(newBandwidth);
-    virCgroupFree(&group);
     if (vm)
         virObjectUnlock(vm);
     virObjectUnref(caps);
@@ -8889,7 +8684,6 @@ qemuDomainGetInterfaceParameters(virDomainPtr dom,
 {
     virQEMUDriverPtr driver = dom->conn->privateData;
     int i;
-    virCgroupPtr group = NULL;
     virDomainObjPtr vm = NULL;
     virDomainDefPtr def = NULL;
     virDomainDefPtr persistentDef = NULL;
@@ -8903,18 +8697,13 @@ qemuDomainGetInterfaceParameters(virDomainPtr dom,
 
     flags &= ~VIR_TYPED_PARAM_STRING_OKAY;
 
-    vm = virDomainObjListFindByUUID(driver->domains, dom->uuid);
-
-    if (vm == NULL) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("No such domain %s"), dom->uuid);
-        goto cleanup;
-    }
+    if (!(vm = qemuDomObjFromDomain(dom)))
+        return -1;
 
     if (!(caps = virQEMUDriverGetCapabilities(driver, false)))
         goto cleanup;
 
-    if (virDomainLiveConfigHelperMethod(caps, driver->xmlconf, vm, &flags,
+    if (virDomainLiveConfigHelperMethod(caps, driver->xmlopt, vm, &flags,
                                         &persistentDef) < 0)
         goto cleanup;
 
@@ -8996,8 +8785,6 @@ qemuDomainGetInterfaceParameters(virDomainPtr dom,
     ret = 0;
 
 cleanup:
-    if (group)
-        virCgroupFree(&group);
     if (vm)
         virObjectUnlock(vm);
     virObjectUnref(caps);
@@ -9353,10 +9140,10 @@ cleanup:
 
 
 static int
-qemuDomainEventRegister(virConnectPtr conn,
-                        virConnectDomainEventCallback callback,
-                        void *opaque,
-                        virFreeCallback freecb)
+qemuConnectDomainEventRegister(virConnectPtr conn,
+                               virConnectDomainEventCallback callback,
+                               void *opaque,
+                               virFreeCallback freecb)
 {
     virQEMUDriverPtr driver = conn->privateData;
     int ret;
@@ -9370,8 +9157,8 @@ qemuDomainEventRegister(virConnectPtr conn,
 
 
 static int
-qemuDomainEventDeregister(virConnectPtr conn,
-                          virConnectDomainEventCallback callback)
+qemuConnectDomainEventDeregister(virConnectPtr conn,
+                                 virConnectDomainEventCallback callback)
 {
     virQEMUDriverPtr driver = conn->privateData;
     int ret;
@@ -9385,12 +9172,12 @@ qemuDomainEventDeregister(virConnectPtr conn,
 
 
 static int
-qemuDomainEventRegisterAny(virConnectPtr conn,
-                           virDomainPtr dom,
-                           int eventID,
-                           virConnectDomainEventGenericCallback callback,
-                           void *opaque,
-                           virFreeCallback freecb)
+qemuConnectDomainEventRegisterAny(virConnectPtr conn,
+                                  virDomainPtr dom,
+                                  int eventID,
+                                  virConnectDomainEventGenericCallback callback,
+                                  void *opaque,
+                                  virFreeCallback freecb)
 {
     virQEMUDriverPtr driver = conn->privateData;
     int ret;
@@ -9406,8 +9193,8 @@ qemuDomainEventRegisterAny(virConnectPtr conn,
 
 
 static int
-qemuDomainEventDeregisterAny(virConnectPtr conn,
-                             int callbackID)
+qemuConnectDomainEventDeregisterAny(virConnectPtr conn,
+                                    int callbackID)
 {
     virQEMUDriverPtr driver = conn->privateData;
     int ret;
@@ -9555,14 +9342,8 @@ qemuDomainMigratePerform(virDomainPtr dom,
         goto cleanup;
     }
 
-    vm = virDomainObjListFindByUUID(driver->domains, dom->uuid);
-    if (!vm) {
-        char uuidstr[VIR_UUID_STRING_BUFLEN];
-        virUUIDFormat(dom->uuid, uuidstr);
-        virReportError(VIR_ERR_NO_DOMAIN,
-                       _("no domain with matching uuid '%s'"), uuidstr);
+    if (!(vm = qemuDomObjFromDomain(dom)))
         goto cleanup;
-    }
 
     if (flags & VIR_MIGRATE_PEER2PEER) {
         dconnuri = uri;
@@ -9641,14 +9422,8 @@ qemuDomainMigrateBegin3(virDomainPtr domain,
 
     virCheckFlags(QEMU_MIGRATION_FLAGS, NULL);
 
-    vm = virDomainObjListFindByUUID(driver->domains, domain->uuid);
-    if (!vm) {
-        char uuidstr[VIR_UUID_STRING_BUFLEN];
-        virUUIDFormat(domain->uuid, uuidstr);
-        virReportError(VIR_ERR_NO_DOMAIN,
-                       _("no domain with matching uuid '%s'"), uuidstr);
-        goto cleanup;
-    }
+    if (!(vm = qemuDomObjFromDomain(domain)))
+        return NULL;
 
     if ((flags & VIR_MIGRATE_CHANGE_PROTECTION)) {
         if (qemuMigrationJobStart(driver, vm, QEMU_ASYNC_JOB_MIGRATION_OUT) < 0)
@@ -9818,26 +9593,16 @@ qemuDomainMigratePerform3(virDomainPtr dom,
 {
     virQEMUDriverPtr driver = dom->conn->privateData;
     virDomainObjPtr vm;
-    int ret = -1;
 
     virCheckFlags(QEMU_MIGRATION_FLAGS, -1);
 
-    vm = virDomainObjListFindByUUID(driver->domains, dom->uuid);
-    if (!vm) {
-        char uuidstr[VIR_UUID_STRING_BUFLEN];
-        virUUIDFormat(dom->uuid, uuidstr);
-        virReportError(VIR_ERR_NO_DOMAIN,
-                       _("no domain with matching uuid '%s'"), uuidstr);
-        goto cleanup;
-    }
+    if (!(vm = qemuDomObjFromDomain(dom)))
+        return -1;
 
-    ret = qemuMigrationPerform(driver, dom->conn, vm, xmlin,
-                               dconnuri, uri, cookiein, cookieinlen,
-                               cookieout, cookieoutlen,
-                               flags, dname, resource, true);
-
-cleanup:
-    return ret;
+    return qemuMigrationPerform(driver, dom->conn, vm, xmlin,
+                                dconnuri, uri, cookiein, cookieinlen,
+                                cookieout, cookieoutlen,
+                                flags, dname, resource, true);
 }
 
 
@@ -9890,14 +9655,8 @@ qemuDomainMigrateConfirm3(virDomainPtr domain,
 
     virCheckFlags(QEMU_MIGRATION_FLAGS, -1);
 
-    vm = virDomainObjListFindByUUID(driver->domains, domain->uuid);
-    if (!vm) {
-        char uuidstr[VIR_UUID_STRING_BUFLEN];
-        virUUIDFormat(domain->uuid, uuidstr);
-        virReportError(VIR_ERR_NO_DOMAIN,
-                       _("no domain with matching uuid '%s'"), uuidstr);
-        goto cleanup;
-    }
+    if (!(vm = qemuDomObjFromDomain(domain)))
+        return -1;
 
     cfg = virQEMUDriverGetConfig(driver);
 
@@ -9982,13 +9741,17 @@ out:
 }
 
 static int
-qemuNodeDeviceDettach(virNodeDevicePtr dev)
+qemuNodeDeviceDetachFlags(virNodeDevicePtr dev,
+                          const char *driverName,
+                          unsigned int flags)
 {
     virQEMUDriverPtr driver = dev->conn->privateData;
     virPCIDevicePtr pci;
     unsigned domain, bus, slot, function;
     int ret = -1;
     bool in_inactive_list = false;
+
+    virCheckFlags(0, -1);
 
     if (qemuNodeDeviceGetPciInfo(dev, &domain, &bus, &slot, &function) < 0)
         return -1;
@@ -9997,12 +9760,22 @@ qemuNodeDeviceDettach(virNodeDevicePtr dev)
     if (!pci)
         return -1;
 
+    if (!driverName || STREQ(driverName, "kvm")) {
+        virPCIDeviceSetStubDriver(pci, "pci-stub");
+    } else if (STREQ(driverName, "vfio")) {
+        virPCIDeviceSetStubDriver(pci, "vfio-pci");
+    } else {
+        virReportError(VIR_ERR_INVALID_ARG,
+                       _("unknown driver name '%s'"), driverName);
+        goto out;
+    }
+
     virObjectLock(driver->activePciHostdevs);
     virObjectLock(driver->inactivePciHostdevs);
     in_inactive_list = virPCIDeviceListFind(driver->inactivePciHostdevs, pci);
 
     if (virPCIDeviceDetach(pci, driver->activePciHostdevs,
-                           driver->inactivePciHostdevs, "pci-stub") < 0)
+                           driver->inactivePciHostdevs, NULL) < 0)
         goto out;
 
     ret = 0;
@@ -10012,6 +9785,12 @@ out:
     if (in_inactive_list)
         virPCIDeviceFree(pci);
     return ret;
+}
+
+static int
+qemuNodeDeviceDettach(virNodeDevicePtr dev)
+{
+    return qemuNodeDeviceDetachFlags(dev, NULL, 0);
 }
 
 static int
@@ -10092,9 +9871,9 @@ out:
 }
 
 static int
-qemuCPUCompare(virConnectPtr conn,
-               const char *xmlDesc,
-               unsigned int flags)
+qemuConnectCompareCPU(virConnectPtr conn,
+                      const char *xmlDesc,
+                      unsigned int flags)
 {
     virQEMUDriverPtr driver = conn->privateData;
     int ret = VIR_CPU_COMPARE_ERROR;
@@ -10120,10 +9899,10 @@ cleanup:
 
 
 static char *
-qemuCPUBaseline(virConnectPtr conn ATTRIBUTE_UNUSED,
-                const char **xmlCPUs,
-                unsigned int ncpus,
-                unsigned int flags)
+qemuConnectBaselineCPU(virConnectPtr conn ATTRIBUTE_UNUSED,
+                       const char **xmlCPUs,
+                       unsigned int ncpus,
+                       unsigned int flags)
 {
     char *cpu;
 
@@ -10603,7 +10382,6 @@ typedef enum {
 static int
 qemuDomainPrepareDiskChainElement(virQEMUDriverPtr driver,
                                   virDomainObjPtr vm,
-                                  virCgroupPtr cgroup,
                                   virDomainDiskDefPtr disk,
                                   const char *file,
                                   qemuDomainDiskChainMode mode)
@@ -10627,13 +10405,13 @@ qemuDomainPrepareDiskChainElement(virQEMUDriverPtr driver,
         if (virSecurityManagerRestoreImageLabel(driver->securityManager,
                                                 vm->def, disk) < 0)
             VIR_WARN("Unable to restore security label on %s", disk->src);
-        if (cgroup && qemuTeardownDiskCgroup(vm, cgroup, disk) < 0)
+        if (qemuTeardownDiskCgroup(vm, disk) < 0)
             VIR_WARN("Failed to teardown cgroup for disk path %s", disk->src);
         if (virDomainLockDiskDetach(driver->lockManager, vm, disk) < 0)
             VIR_WARN("Unable to release lock on %s", disk->src);
     } else if (virDomainLockDiskAttach(driver->lockManager, cfg->uri,
                                        vm, disk) < 0 ||
-               (cgroup && qemuSetupDiskCgroup(vm, cgroup, disk) < 0) ||
+               qemuSetupDiskCgroup(vm, disk) < 0 ||
                virSecurityManagerSetImageLabel(driver->securityManager,
                                                vm->def, disk) < 0) {
         goto cleanup;
@@ -11069,7 +10847,6 @@ cleanup:
 static int
 qemuDomainSnapshotCreateSingleDiskActive(virQEMUDriverPtr driver,
                                          virDomainObjPtr vm,
-                                         virCgroupPtr cgroup,
                                          virDomainSnapshotDiskDefPtr snap,
                                          virDomainDiskDefPtr disk,
                                          virDomainDiskDefPtr persistDisk,
@@ -11119,9 +10896,9 @@ qemuDomainSnapshotCreateSingleDiskActive(virQEMUDriverPtr driver,
     virStorageFileFreeMetadata(disk->backingChain);
     disk->backingChain = NULL;
 
-    if (qemuDomainPrepareDiskChainElement(driver, vm, cgroup, disk, source,
+    if (qemuDomainPrepareDiskChainElement(driver, vm, disk, source,
                                           VIR_DISK_CHAIN_READ_WRITE) < 0) {
-        qemuDomainPrepareDiskChainElement(driver, vm, cgroup, disk, source,
+        qemuDomainPrepareDiskChainElement(driver, vm, disk, source,
                                           VIR_DISK_CHAIN_NO_ACCESS);
         goto cleanup;
     }
@@ -11163,7 +10940,6 @@ cleanup:
 static void
 qemuDomainSnapshotUndoSingleDiskActive(virQEMUDriverPtr driver,
                                        virDomainObjPtr vm,
-                                       virCgroupPtr cgroup,
                                        virDomainDiskDefPtr origdisk,
                                        virDomainDiskDefPtr disk,
                                        virDomainDiskDefPtr persistDisk,
@@ -11180,7 +10956,7 @@ qemuDomainSnapshotUndoSingleDiskActive(virQEMUDriverPtr driver,
         goto cleanup;
     }
 
-    qemuDomainPrepareDiskChainElement(driver, vm, cgroup, disk, origdisk->src,
+    qemuDomainPrepareDiskChainElement(driver, vm, disk, origdisk->src,
                                       VIR_DISK_CHAIN_NO_ACCESS);
     if (need_unlink && stat(disk->src, &st) == 0 &&
         S_ISREG(st.st_mode) && unlink(disk->src) < 0)
@@ -11217,7 +10993,6 @@ qemuDomainSnapshotCreateDiskActive(virQEMUDriverPtr driver,
     int i;
     bool persist = false;
     bool reuse = (flags & VIR_DOMAIN_SNAPSHOT_CREATE_REUSE_EXT) != 0;
-    virCgroupPtr cgroup = NULL;
     virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
 
     if (!virDomainObjIsActive(vm)) {
@@ -11225,15 +11000,6 @@ qemuDomainSnapshotCreateDiskActive(virQEMUDriverPtr driver,
                        "%s", _("domain is not running"));
         goto cleanup;
     }
-
-    if (qemuCgroupControllerActive(driver, VIR_CGROUP_CONTROLLER_DEVICES) &&
-        virCgroupForDomain(driver->cgroup, vm->def->name, &cgroup, 0)) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("Unable to find cgroup for %s"),
-                       vm->def->name);
-        goto cleanup;
-    }
-    /* 'cgroup' is still NULL if cgroups are disabled.  */
 
     if (virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_TRANSACTION)) {
         if (!(actions = virJSONValueNewArray())) {
@@ -11270,7 +11036,7 @@ qemuDomainSnapshotCreateDiskActive(virQEMUDriverPtr driver,
             }
         }
 
-        ret = qemuDomainSnapshotCreateSingleDiskActive(driver, vm, cgroup,
+        ret = qemuDomainSnapshotCreateSingleDiskActive(driver, vm,
                                                        &snap->def->disks[i],
                                                        vm->def->disks[i],
                                                        persistDisk, actions,
@@ -11299,7 +11065,7 @@ qemuDomainSnapshotCreateDiskActive(virQEMUDriverPtr driver,
                         persistDisk = vm->newDef->disks[indx];
                 }
 
-                qemuDomainSnapshotUndoSingleDiskActive(driver, vm, cgroup,
+                qemuDomainSnapshotUndoSingleDiskActive(driver, vm,
                                                        snap->def->dom->disks[i],
                                                        vm->def->disks[i],
                                                        persistDisk,
@@ -11310,10 +11076,9 @@ qemuDomainSnapshotCreateDiskActive(virQEMUDriverPtr driver,
     qemuDomainObjExitMonitor(driver, vm);
 
 cleanup:
-    virCgroupFree(&cgroup);
 
     if (ret == 0 || !virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_TRANSACTION)) {
-        if (virDomainSaveStatus(driver->xmlconf, cfg->stateDir, vm) < 0 ||
+        if (virDomainSaveStatus(driver->xmlopt, cfg->stateDir, vm) < 0 ||
             (persist && virDomainSaveConfig(cfg->configDir, vm->newDef) < 0))
             ret = -1;
     }
@@ -11549,12 +11314,9 @@ qemuDomainSnapshotCreateXML(virDomainPtr domain,
         parse_flags |= VIR_DOMAIN_SNAPSHOT_PARSE_REDEFINE;
 
     virUUIDFormat(domain->uuid, uuidstr);
-    vm = virDomainObjListFindByUUID(driver->domains, domain->uuid);
-    if (!vm) {
-        virReportError(VIR_ERR_NO_DOMAIN,
-                       _("no domain with matching uuid '%s'"), uuidstr);
+
+    if (!(vm = qemuDomObjFromDomain(domain)))
         goto cleanup;
-    }
 
     cfg = virQEMUDriverGetConfig(driver);
 
@@ -11581,7 +11343,7 @@ qemuDomainSnapshotCreateXML(virDomainPtr domain,
         !virDomainObjIsActive(vm))
         parse_flags |= VIR_DOMAIN_SNAPSHOT_PARSE_OFFLINE;
 
-    if (!(def = virDomainSnapshotDefParseString(xmlDesc, caps, driver->xmlconf,
+    if (!(def = virDomainSnapshotDefParseString(xmlDesc, caps, driver->xmlopt,
                                                 QEMU_EXPECTED_VIRT_TYPES,
                                                 parse_flags)))
         goto cleanup;
@@ -11757,7 +11519,7 @@ qemuDomainSnapshotCreateXML(virDomainPtr domain,
         /* Easiest way to clone inactive portion of vm->def is via
          * conversion in and back out of xml.  */
         if (!(xml = qemuDomainDefFormatLive(driver, vm->def, true, true)) ||
-            !(def->dom = virDomainDefParseString(caps, driver->xmlconf, xml,
+            !(def->dom = virDomainDefParseString(xml, caps, driver->xmlopt,
                                                  QEMU_EXPECTED_VIRT_TYPES,
                                                  VIR_DOMAIN_XML_INACTIVE)))
             goto cleanup;
@@ -12226,7 +11988,6 @@ static int qemuDomainRevertToSnapshot(virDomainSnapshotPtr snapshot,
     virDomainObjPtr vm = NULL;
     int ret = -1;
     virDomainSnapshotObjPtr snap = NULL;
-    char uuidstr[VIR_UUID_STRING_BUFLEN];
     virDomainEventPtr event = NULL;
     virDomainEventPtr event2 = NULL;
     int detail;
@@ -12254,13 +12015,8 @@ static int qemuDomainRevertToSnapshot(virDomainSnapshotPtr snapshot,
      * and use of FORCE can cause multiple transitions.
      */
 
-    virUUIDFormat(snapshot->domain->uuid, uuidstr);
-    vm = virDomainObjListFindByUUID(driver->domains, snapshot->domain->uuid);
-    if (!vm) {
-        virReportError(VIR_ERR_NO_DOMAIN,
-                       _("no domain with matching uuid '%s'"), uuidstr);
-        goto cleanup;
-    }
+    if (!(vm = qemuDomObjFromSnapshot(snapshot)))
+        return -1;
 
     cfg = virQEMUDriverGetConfig(driver);
 
@@ -12328,7 +12084,7 @@ static int qemuDomainRevertToSnapshot(virDomainSnapshotPtr snapshot,
      * than inactive xml?  */
     snap->def->current = true;
     if (snap->def->dom) {
-        config = virDomainDefCopy(caps, driver->xmlconf, snap->def->dom, true);
+        config = virDomainDefCopy(snap->def->dom, caps, driver->xmlopt, true);
         if (!config)
             goto cleanup;
     }
@@ -12612,7 +12368,6 @@ static int qemuDomainSnapshotDelete(virDomainSnapshotPtr snapshot,
     virDomainObjPtr vm = NULL;
     int ret = -1;
     virDomainSnapshotObjPtr snap = NULL;
-    char uuidstr[VIR_UUID_STRING_BUFLEN];
     virQEMUSnapRemove rem;
     virQEMUSnapReparent rep;
     bool metadata_only = !!(flags & VIR_DOMAIN_SNAPSHOT_DELETE_METADATA_ONLY);
@@ -12623,13 +12378,8 @@ static int qemuDomainSnapshotDelete(virDomainSnapshotPtr snapshot,
                   VIR_DOMAIN_SNAPSHOT_DELETE_METADATA_ONLY |
                   VIR_DOMAIN_SNAPSHOT_DELETE_CHILDREN_ONLY, -1);
 
-    virUUIDFormat(snapshot->domain->uuid, uuidstr);
-    vm = virDomainObjListFindByUUID(driver->domains, snapshot->domain->uuid);
-    if (!vm) {
-        virReportError(VIR_ERR_NO_DOMAIN,
-                       _("no domain with matching uuid '%s'"), uuidstr);
-        goto cleanup;
-    }
+    if (!(vm = qemuDomObjFromSnapshot(snapshot)))
+        return -1;
 
     cfg = virQEMUDriverGetConfig(driver);
     if (!(snap = qemuSnapObjFromSnapshot(vm, snapshot)))
@@ -12717,8 +12467,8 @@ cleanup:
     return ret;
 }
 
-static int qemuDomainMonitorCommand(virDomainPtr domain, const char *cmd,
-                                    char **result, unsigned int flags)
+static int qemuDomainQemuMonitorCommand(virDomainPtr domain, const char *cmd,
+                                        char **result, unsigned int flags)
 {
     virQEMUDriverPtr driver = domain->conn->privateData;
     virDomainObjPtr vm = NULL;
@@ -12768,9 +12518,9 @@ cleanup:
 }
 
 
-static virDomainPtr qemuDomainAttach(virConnectPtr conn,
-                                     unsigned int pid_value,
-                                     unsigned int flags)
+static virDomainPtr qemuDomainQemuAttach(virConnectPtr conn,
+                                         unsigned int pid_value,
+                                         unsigned int flags)
 {
     virQEMUDriverPtr driver = conn->privateData;
     virDomainObjPtr vm = NULL;
@@ -12788,7 +12538,7 @@ static virDomainPtr qemuDomainAttach(virConnectPtr conn,
     if (!(caps = virQEMUDriverGetCapabilities(driver, false)))
         goto cleanup;
 
-    if (!(def = qemuParseCommandLinePid(caps, driver->xmlconf, pid,
+    if (!(def = qemuParseCommandLinePid(caps, driver->xmlopt, pid,
                                         &pidfile, &monConfig, &monJSON)))
         goto cleanup;
 
@@ -12821,9 +12571,8 @@ static virDomainPtr qemuDomainAttach(virConnectPtr conn,
     if (qemuDomainAssignAddresses(def, qemuCaps, NULL) < 0)
         goto cleanup;
 
-    if (!(vm = virDomainObjListAdd(driver->domains,
-                                   driver->xmlconf,
-                                   def,
+    if (!(vm = virDomainObjListAdd(driver->domains, def,
+                                   driver->xmlopt,
                                    VIR_DOMAIN_OBJ_LIST_ADD_LIVE |
                                    VIR_DOMAIN_OBJ_LIST_ADD_CHECK_LIVE,
                                    NULL)))
@@ -13029,10 +12778,6 @@ qemuDiskPathToAlias(virDomainObjPtr vm, const char *path, int *idx)
     if (idx)
         *idx = i;
 
-    if (disk->type != VIR_DOMAIN_DISK_TYPE_BLOCK &&
-        disk->type != VIR_DOMAIN_DISK_TYPE_FILE)
-        goto cleanup;
-
     if (disk->src) {
         if (virAsprintf(&ret, "drive-%s", disk->info.alias) < 0) {
             virReportOOMError();
@@ -13061,7 +12806,6 @@ qemuDomainBlockPivot(virConnectPtr conn,
     virDomainBlockJobInfo info;
     const char *format = virStorageFileFormatTypeToString(disk->mirrorFormat);
     bool resume = false;
-    virCgroupPtr cgroup = NULL;
     char *oldsrc = NULL;
     int oldformat;
     virStorageFileMetadataPtr oldchain = NULL;
@@ -13121,14 +12865,6 @@ qemuDomainBlockPivot(virConnectPtr conn,
      * label the entire chain.  This action is safe even if the
      * backing chain has already been labeled; but only necessary when
      * we know for sure that there is a backing chain.  */
-    if (disk->mirrorFormat && disk->mirrorFormat != VIR_STORAGE_FILE_RAW &&
-        qemuCgroupControllerActive(driver, VIR_CGROUP_CONTROLLER_DEVICES) &&
-        virCgroupForDomain(driver->cgroup, vm->def->name, &cgroup, 0) < 0) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("Unable to find cgroup for %s"),
-                       vm->def->name);
-        goto cleanup;
-    }
     oldsrc = disk->src;
     oldformat = disk->format;
     oldchain = disk->backingChain;
@@ -13144,7 +12880,7 @@ qemuDomainBlockPivot(virConnectPtr conn,
     if (disk->mirrorFormat && disk->mirrorFormat != VIR_STORAGE_FILE_RAW &&
         (virDomainLockDiskAttach(driver->lockManager, cfg->uri,
                                  vm, disk) < 0 ||
-         (cgroup && qemuSetupDiskCgroup(vm, cgroup, disk) < 0) ||
+         qemuSetupDiskCgroup(vm, disk) < 0 ||
          virSecurityManagerSetImageLabel(driver->securityManager, vm->def,
                                          disk) < 0)) {
         disk->src = oldsrc;
@@ -13188,8 +12924,6 @@ qemuDomainBlockPivot(virConnectPtr conn,
     disk->mirroring = false;
 
 cleanup:
-    if (cgroup)
-        virCgroupFree(&cgroup);
     if (resume && virDomainObjIsActive(vm) &&
         qemuProcessStartCPUs(driver, vm, conn,
                              VIR_DOMAIN_RUNNING_UNPAUSED,
@@ -13217,7 +12951,6 @@ qemuDomainBlockJobImpl(virDomainPtr dom, const char *path, const char *base,
     virQEMUDriverPtr driver = dom->conn->privateData;
     virDomainObjPtr vm = NULL;
     qemuDomainObjPrivatePtr priv;
-    char uuidstr[VIR_UUID_STRING_BUFLEN];
     char *device = NULL;
     int ret = -1;
     bool async = false;
@@ -13225,13 +12958,9 @@ qemuDomainBlockJobImpl(virDomainPtr dom, const char *path, const char *base,
     int idx;
     virDomainDiskDefPtr disk;
 
-    virUUIDFormat(dom->uuid, uuidstr);
-    vm = virDomainObjListFindByUUID(driver->domains, dom->uuid);
-    if (!vm) {
-        virReportError(VIR_ERR_NO_DOMAIN,
-                       _("no domain with matching uuid '%s'"), uuidstr);
-        goto cleanup;
-    }
+    if (!(vm = qemuDomObjFromDomain(dom)))
+        return -1;
+
     if (!virDomainObjIsActive(vm)) {
         virReportError(VIR_ERR_OPERATION_INVALID, "%s",
                        _("domain is not running"));
@@ -13417,7 +13146,6 @@ qemuDomainBlockCopy(virDomainPtr dom, const char *path,
     struct stat st;
     bool need_unlink = false;
     char *mirror = NULL;
-    virCgroupPtr cgroup = NULL;
     virQEMUDriverConfigPtr cfg = NULL;
 
     /* Preliminaries: find the disk we are editing, sanity checks */
@@ -13431,13 +13159,6 @@ qemuDomainBlockCopy(virDomainPtr dom, const char *path,
     if (!virDomainObjIsActive(vm)) {
         virReportError(VIR_ERR_OPERATION_INVALID, "%s",
                        _("domain is not running"));
-        goto cleanup;
-    }
-    if (qemuCgroupControllerActive(driver, VIR_CGROUP_CONTROLLER_DEVICES) &&
-        virCgroupForDomain(driver->cgroup, vm->def->name, &cgroup, 0) < 0) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("Unable to find cgroup for %s"),
-                       vm->def->name);
         goto cleanup;
     }
 
@@ -13541,9 +13262,9 @@ qemuDomainBlockCopy(virDomainPtr dom, const char *path,
         goto endjob;
     }
 
-    if (qemuDomainPrepareDiskChainElement(driver, vm, cgroup, disk, dest,
+    if (qemuDomainPrepareDiskChainElement(driver, vm, disk, dest,
                                           VIR_DISK_CHAIN_READ_WRITE) < 0) {
-        qemuDomainPrepareDiskChainElement(driver, vm, cgroup, disk, dest,
+        qemuDomainPrepareDiskChainElement(driver, vm, disk, dest,
                                           VIR_DISK_CHAIN_NO_ACCESS);
         goto endjob;
     }
@@ -13555,7 +13276,7 @@ qemuDomainBlockCopy(virDomainPtr dom, const char *path,
     virDomainAuditDisk(vm, NULL, dest, "mirror", ret >= 0);
     qemuDomainObjExitMonitor(driver, vm);
     if (ret < 0) {
-        qemuDomainPrepareDiskChainElement(driver, vm, cgroup, disk, dest,
+        qemuDomainPrepareDiskChainElement(driver, vm, disk, dest,
                                           VIR_DISK_CHAIN_NO_ACCESS);
         goto endjob;
     }
@@ -13577,8 +13298,6 @@ endjob:
     }
 
 cleanup:
-    if (cgroup)
-        virCgroupFree(&cgroup);
     VIR_FREE(device);
     if (vm)
         virObjectUnlock(vm);
@@ -13634,7 +13353,6 @@ qemuDomainBlockCommit(virDomainPtr dom, const char *path, const char *base,
     virStorageFileMetadataPtr top_meta = NULL;
     const char *top_parent = NULL;
     const char *base_canon = NULL;
-    virCgroupPtr cgroup = NULL;
     bool clean_access = false;
 
     virCheckFlags(VIR_DOMAIN_BLOCK_COMMIT_SHALLOW, -1);
@@ -13718,18 +13436,11 @@ qemuDomainBlockCommit(virDomainPtr dom, const char *path, const char *base,
      * revoke access to files removed from the chain, when the commit
      * operation succeeds, but doing that requires tracking the
      * operation in XML across libvirtd restarts.  */
-    if (qemuCgroupControllerActive(driver, VIR_CGROUP_CONTROLLER_DEVICES) &&
-        virCgroupForDomain(driver->cgroup, vm->def->name, &cgroup, 0) < 0) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("Unable to find cgroup for %s"),
-                       vm->def->name);
-        goto endjob;
-    }
     clean_access = true;
-    if (qemuDomainPrepareDiskChainElement(driver, vm, cgroup, disk, base_canon,
+    if (qemuDomainPrepareDiskChainElement(driver, vm, disk, base_canon,
                                           VIR_DISK_CHAIN_READ_WRITE) < 0 ||
         (top_parent && top_parent != disk->src &&
-         qemuDomainPrepareDiskChainElement(driver, vm, cgroup, disk,
+         qemuDomainPrepareDiskChainElement(driver, vm, disk,
                                            top_parent,
                                            VIR_DISK_CHAIN_READ_WRITE) < 0))
         goto endjob;
@@ -13743,15 +13454,13 @@ qemuDomainBlockCommit(virDomainPtr dom, const char *path, const char *base,
 endjob:
     if (ret < 0 && clean_access) {
         /* Revert access to read-only, if possible.  */
-        qemuDomainPrepareDiskChainElement(driver, vm, cgroup, disk, base_canon,
+        qemuDomainPrepareDiskChainElement(driver, vm, disk, base_canon,
                                           VIR_DISK_CHAIN_READ_ONLY);
         if (top_parent && top_parent != disk->src)
-            qemuDomainPrepareDiskChainElement(driver, vm, cgroup, disk,
+            qemuDomainPrepareDiskChainElement(driver, vm, disk,
                                               top_parent,
                                               VIR_DISK_CHAIN_READ_ONLY);
     }
-    if (cgroup)
-        virCgroupFree(&cgroup);
     if (qemuDomainObjEndJob(driver, vm) == 0) {
         vm = NULL;
         goto cleanup;
@@ -13772,20 +13481,14 @@ qemuDomainOpenGraphics(virDomainPtr dom,
 {
     virQEMUDriverPtr driver = dom->conn->privateData;
     virDomainObjPtr vm = NULL;
-    char uuidstr[VIR_UUID_STRING_BUFLEN];
     int ret = -1;
     qemuDomainObjPrivatePtr priv;
     const char *protocol;
 
     virCheckFlags(VIR_DOMAIN_OPEN_GRAPHICS_SKIPAUTH, -1);
 
-    virUUIDFormat(dom->uuid, uuidstr);
-    vm = virDomainObjListFindByUUID(driver->domains, dom->uuid);
-    if (!vm) {
-        virReportError(VIR_ERR_NO_DOMAIN,
-                       _("no domain with matching uuid '%s'"), uuidstr);
-        goto cleanup;
-    }
+    if (!(vm = qemuDomObjFromDomain(dom)))
+        return -1;
 
     if (!virDomainObjIsActive(vm)) {
         virReportError(VIR_ERR_OPERATION_INVALID,
@@ -13844,7 +13547,6 @@ qemuDomainSetBlockIoTune(virDomainPtr dom,
     virDomainDefPtr persistentDef = NULL;
     virDomainBlockIoTuneInfo info;
     virDomainBlockIoTuneInfo *oldinfo;
-    char uuidstr[VIR_UUID_STRING_BUFLEN];
     const char *device = NULL;
     int ret = -1;
     int i;
@@ -13874,13 +13576,9 @@ qemuDomainSetBlockIoTune(virDomainPtr dom,
 
     memset(&info, 0, sizeof(info));
 
-    virUUIDFormat(dom->uuid, uuidstr);
-    vm = virDomainObjListFindByUUID(driver->domains, dom->uuid);
-    if (!vm) {
-        virReportError(VIR_ERR_NO_DOMAIN,
-                       _("no domain with matching uuid '%s'"), uuidstr);
-        goto cleanup;
-    }
+    if (!(vm = qemuDomObjFromDomain(dom)))
+        return -1;
+
     priv = vm->privateData;
     cfg = virQEMUDriverGetConfig(driver);
 
@@ -13902,7 +13600,7 @@ qemuDomainSetBlockIoTune(virDomainPtr dom,
     if (qemuDomainObjBeginJob(driver, vm, QEMU_JOB_MODIFY) < 0)
         goto cleanup;
 
-    if (virDomainLiveConfigHelperMethod(caps, driver->xmlconf, vm, &flags,
+    if (virDomainLiveConfigHelperMethod(caps, driver->xmlopt, vm, &flags,
                                         &persistentDef) < 0)
         goto endjob;
 
@@ -14022,7 +13720,6 @@ qemuDomainGetBlockIoTune(virDomainPtr dom,
     qemuDomainObjPrivatePtr priv;
     virDomainDefPtr persistentDef = NULL;
     virDomainBlockIoTuneInfo reply;
-    char uuidstr[VIR_UUID_STRING_BUFLEN];
     const char *device = NULL;
     int ret = -1;
     int i;
@@ -14035,13 +13732,8 @@ qemuDomainGetBlockIoTune(virDomainPtr dom,
     /* We don't return strings, and thus trivially support this flag.  */
     flags &= ~VIR_TYPED_PARAM_STRING_OKAY;
 
-    virUUIDFormat(dom->uuid, uuidstr);
-    vm = virDomainObjListFindByUUID(driver->domains, dom->uuid);
-    if (!vm) {
-        virReportError(VIR_ERR_NO_DOMAIN,
-                       _("no domain with matching uuid '%s'"), uuidstr);
-        goto cleanup;
-    }
+    if (!(vm = qemuDomObjFromDomain(dom)))
+        return -1;
 
     if (!(caps = virQEMUDriverGetCapabilities(driver, false)))
         goto cleanup;
@@ -14062,7 +13754,7 @@ qemuDomainGetBlockIoTune(virDomainPtr dom,
     if (qemuDomainObjBeginJob(driver, vm, QEMU_JOB_MODIFY) < 0)
         goto cleanup;
 
-    if (virDomainLiveConfigHelperMethod(caps, driver->xmlconf, vm, &flags,
+    if (virDomainLiveConfigHelperMethod(caps, driver->xmlopt, vm, &flags,
                                         &persistentDef) < 0)
         goto endjob;
 
@@ -14251,7 +13943,7 @@ qemuDomainSetMetadata(virDomainPtr dom,
     if (!(caps = virQEMUDriverGetCapabilities(driver, false)))
         goto cleanup;
 
-    if (virDomainLiveConfigHelperMethod(caps, driver->xmlconf, vm, &flags,
+    if (virDomainLiveConfigHelperMethod(caps, driver->xmlopt, vm, &flags,
                                         &persistentDef) < 0)
         goto cleanup;
 
@@ -14348,7 +14040,7 @@ qemuDomainGetMetadata(virDomainPtr dom,
     if (!(caps = virQEMUDriverGetCapabilities(driver, false)))
         goto cleanup;
 
-    if (virDomainLiveConfigHelperMethod(caps, driver->xmlconf, vm, &flags, &def) < 0)
+    if (virDomainLiveConfigHelperMethod(caps, driver->xmlopt, vm, &flags, &def) < 0)
         goto cleanup;
 
     /* use correct domain definition according to flags */
@@ -14395,17 +14087,18 @@ cleanup:
 
 /* qemuDomainGetCPUStats() with start_cpu == -1 */
 static int
-qemuDomainGetTotalcpuStats(virCgroupPtr group,
+qemuDomainGetTotalcpuStats(virDomainObjPtr vm,
                            virTypedParameterPtr params,
                            int nparams)
 {
     unsigned long long cpu_time;
     int ret;
+    qemuDomainObjPrivatePtr priv = vm->privateData;
 
     if (nparams == 0) /* return supported number of params */
         return QEMU_NB_TOTAL_CPU_STAT_PARAM;
     /* entry 0 is cputime */
-    ret = virCgroupGetCpuacctUsage(group, &cpu_time);
+    ret = virCgroupGetCpuacctUsage(priv->cgroup, &cpu_time);
     if (ret < 0) {
         virReportSystemError(-ret, "%s", _("unable to get cpu account"));
         return -1;
@@ -14419,7 +14112,7 @@ qemuDomainGetTotalcpuStats(virCgroupPtr group,
         unsigned long long user;
         unsigned long long sys;
 
-        ret = virCgroupGetCpuacctStat(group, &user, &sys);
+        ret = virCgroupGetCpuacctStat(priv->cgroup, &user, &sys);
         if (ret < 0) {
             virReportSystemError(-ret, "%s", _("unable to get cpu account"));
             return -1;
@@ -14457,22 +14150,22 @@ qemuDomainGetTotalcpuStats(virCgroupPtr group,
  *   s3 = t03 + t13
  */
 static int
-getSumVcpuPercpuStats(virCgroupPtr group,
-                      unsigned int nvcpu,
+getSumVcpuPercpuStats(virDomainObjPtr vm,
                       unsigned long long *sum_cpu_time,
                       unsigned int num)
 {
     int ret = -1;
     int i;
     char *buf = NULL;
+    qemuDomainObjPrivatePtr priv = vm->privateData;
     virCgroupPtr group_vcpu = NULL;
 
-    for (i = 0; i < nvcpu; i++) {
+    for (i = 0; i < priv->nvcpupids; i++) {
         char *pos;
         unsigned long long tmp;
         int j;
 
-        if (virCgroupForVcpu(group, i, &group_vcpu, 0) < 0) {
+        if (virCgroupNewVcpu(priv->cgroup, i, false, &group_vcpu) < 0) {
             virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                            _("error accessing cgroup cpuacct for vcpu"));
             goto cleanup;
@@ -14504,7 +14197,6 @@ cleanup:
 
 static int
 qemuDomainGetPercpuStats(virDomainObjPtr vm,
-                         virCgroupPtr group,
                          virTypedParameterPtr params,
                          unsigned int nparams,
                          int start_cpu,
@@ -14544,7 +14236,7 @@ qemuDomainGetPercpuStats(virDomainObjPtr vm,
     }
 
     /* we get percpu cputime accounting info. */
-    if (virCgroupGetCpuacctPercpuUsage(group, &buf))
+    if (virCgroupGetCpuacctPercpuUsage(priv->cgroup, &buf))
         goto cleanup;
     pos = buf;
     memset(params, 0, nparams * ncpus);
@@ -14584,7 +14276,7 @@ qemuDomainGetPercpuStats(virDomainObjPtr vm,
         virReportOOMError();
         goto cleanup;
     }
-    if (getSumVcpuPercpuStats(group, priv->nvcpupids, sum_cpu_time, n) < 0)
+    if (getSumVcpuPercpuStats(vm, sum_cpu_time, n) < 0)
         goto cleanup;
 
     sum_cpu_pos = sum_cpu_time;
@@ -14610,26 +14302,23 @@ cleanup:
 
 static int
 qemuDomainGetCPUStats(virDomainPtr domain,
-                virTypedParameterPtr params,
-                unsigned int nparams,
-                int start_cpu,
-                unsigned int ncpus,
-                unsigned int flags)
+                      virTypedParameterPtr params,
+                      unsigned int nparams,
+                      int start_cpu,
+                      unsigned int ncpus,
+                      unsigned int flags)
 {
-    virQEMUDriverPtr driver = domain->conn->privateData;
-    virCgroupPtr group = NULL;
     virDomainObjPtr vm = NULL;
     int ret = -1;
     bool isActive;
+    qemuDomainObjPrivatePtr priv;
 
     virCheckFlags(VIR_TYPED_PARAM_STRING_OKAY, -1);
 
-    vm = virDomainObjListFindByUUID(driver->domains, domain->uuid);
-    if (vm == NULL) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("No such domain %s"), domain->uuid);
-        goto cleanup;
-    }
+    if (!(vm = qemuDomObjFromDomain(domain)))
+        return -1;
+
+    priv = vm->privateData;
 
     isActive = virDomainObjIsActive(vm);
     if (!isActive) {
@@ -14638,25 +14327,18 @@ qemuDomainGetCPUStats(virDomainPtr domain,
         goto cleanup;
     }
 
-    if (!qemuCgroupControllerActive(driver, VIR_CGROUP_CONTROLLER_CPUACCT)) {
+    if (!virCgroupHasController(priv->cgroup, VIR_CGROUP_CONTROLLER_CPUACCT)) {
         virReportError(VIR_ERR_OPERATION_INVALID,
                        "%s", _("cgroup CPUACCT controller is not mounted"));
         goto cleanup;
     }
 
-    if (virCgroupForDomain(driver->cgroup, vm->def->name, &group, 0) != 0) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("cannot find cgroup for domain %s"), vm->def->name);
-        goto cleanup;
-    }
-
     if (start_cpu == -1)
-        ret = qemuDomainGetTotalcpuStats(group, params, nparams);
+        ret = qemuDomainGetTotalcpuStats(vm, params, nparams);
     else
-        ret = qemuDomainGetPercpuStats(vm, group, params, nparams,
+        ret = qemuDomainGetPercpuStats(vm, params, nparams,
                                        start_cpu, ncpus);
 cleanup:
-    virCgroupFree(&group);
     if (vm)
         virObjectUnlock(vm);
     return ret;
@@ -14810,9 +14492,9 @@ cleanup:
 }
 
 static int
-qemuListAllDomains(virConnectPtr conn,
-                   virDomainPtr **domains,
-                   unsigned int flags)
+qemuConnectListAllDomains(virConnectPtr conn,
+                          virDomainPtr **domains,
+                          unsigned int flags)
 {
     virQEMUDriverPtr driver = conn->privateData;
     int ret = -1;
@@ -14825,10 +14507,10 @@ qemuListAllDomains(virConnectPtr conn,
 }
 
 static char *
-qemuDomainAgentCommand(virDomainPtr domain,
-                       const char *cmd,
-                       int timeout,
-                       unsigned int flags)
+qemuDomainQemuAgentCommand(virDomainPtr domain,
+                           const char *cmd,
+                           int timeout,
+                           unsigned int flags)
 {
     virQEMUDriverPtr driver = domain->conn->privateData;
     virDomainObjPtr vm;
@@ -14961,20 +14643,20 @@ cleanup:
 static virDriver qemuDriver = {
     .no = VIR_DRV_QEMU,
     .name = QEMU_DRIVER_NAME,
-    .open = qemuOpen, /* 0.2.0 */
-    .close = qemuClose, /* 0.2.0 */
-    .supports_feature = qemuSupportsFeature, /* 0.5.0 */
-    .type = qemuGetType, /* 0.2.0 */
-    .version = qemuGetVersion, /* 0.2.0 */
-    .getHostname = virGetHostname, /* 0.3.3 */
-    .getSysinfo = qemuGetSysinfo, /* 0.8.8 */
-    .getMaxVcpus = qemuGetMaxVCPUs, /* 0.2.1 */
+    .connectOpen = qemuConnectOpen, /* 0.2.0 */
+    .connectClose = qemuConnectClose, /* 0.2.0 */
+    .connectSupportsFeature = qemuConnectSupportsFeature, /* 0.5.0 */
+    .connectGetType = qemuConnectGetType, /* 0.2.0 */
+    .connectGetVersion = qemuConnectGetVersion, /* 0.2.0 */
+    .connectGetHostname = virGetHostname, /* 0.3.3 */
+    .connectGetSysinfo = qemuConnectGetSysinfo, /* 0.8.8 */
+    .connectGetMaxVcpus = qemuConnectGetMaxVcpus, /* 0.2.1 */
     .nodeGetInfo = nodeGetInfo, /* 0.2.0 */
-    .getCapabilities = qemuGetCapabilities, /* 0.2.1 */
-    .listDomains = qemuListDomains, /* 0.2.0 */
-    .numOfDomains = qemuNumDomains, /* 0.2.0 */
-    .listAllDomains = qemuListAllDomains, /* 0.9.13 */
-    .domainCreateXML = qemuDomainCreate, /* 0.2.0 */
+    .connectGetCapabilities = qemuConnectGetCapabilities, /* 0.2.1 */
+    .connectListDomains = qemuConnectListDomains, /* 0.2.0 */
+    .connectNumOfDomains = qemuConnectNumOfDomains, /* 0.2.0 */
+    .connectListAllDomains = qemuConnectListAllDomains, /* 0.9.13 */
+    .domainCreateXML = qemuDomainCreateXML, /* 0.2.0 */
     .domainLookupByID = qemuDomainLookupByID, /* 0.2.0 */
     .domainLookupByUUID = qemuDomainLookupByUUID, /* 0.2.0 */
     .domainLookupByName = qemuDomainLookupByName, /* 0.2.0 */
@@ -15020,13 +14702,13 @@ static virDriver qemuDriver = {
     .domainGetSecurityLabelList = qemuDomainGetSecurityLabelList, /* 0.10.0 */
     .nodeGetSecurityModel = qemuNodeGetSecurityModel, /* 0.6.1 */
     .domainGetXMLDesc = qemuDomainGetXMLDesc, /* 0.2.0 */
-    .domainXMLFromNative = qemuDomainXMLFromNative, /* 0.6.4 */
-    .domainXMLToNative = qemuDomainXMLToNative, /* 0.6.4 */
-    .listDefinedDomains = qemuListDefinedDomains, /* 0.2.0 */
-    .numOfDefinedDomains = qemuNumDefinedDomains, /* 0.2.0 */
-    .domainCreate = qemuDomainStart, /* 0.2.0 */
-    .domainCreateWithFlags = qemuDomainStartWithFlags, /* 0.8.2 */
-    .domainDefineXML = qemuDomainDefine, /* 0.2.0 */
+    .connectDomainXMLFromNative = qemuConnectDomainXMLFromNative, /* 0.6.4 */
+    .connectDomainXMLToNative = qemuConnectDomainXMLToNative, /* 0.6.4 */
+    .connectListDefinedDomains = qemuConnectListDefinedDomains, /* 0.2.0 */
+    .connectNumOfDefinedDomains = qemuConnectNumOfDefinedDomains, /* 0.2.0 */
+    .domainCreate = qemuDomainCreate, /* 0.2.0 */
+    .domainCreateWithFlags = qemuDomainCreateWithFlags, /* 0.8.2 */
+    .domainDefineXML = qemuDomainDefineXML, /* 0.2.0 */
     .domainUndefine = qemuDomainUndefine, /* 0.2.0 */
     .domainUndefineFlags = qemuDomainUndefineFlags, /* 0.9.4 */
     .domainAttachDevice = qemuDomainAttachDevice, /* 0.4.1 */
@@ -15036,11 +14718,11 @@ static virDriver qemuDriver = {
     .domainUpdateDeviceFlags = qemuDomainUpdateDeviceFlags, /* 0.8.0 */
     .domainGetAutostart = qemuDomainGetAutostart, /* 0.2.1 */
     .domainSetAutostart = qemuDomainSetAutostart, /* 0.2.1 */
-    .domainGetSchedulerType = qemuGetSchedulerType, /* 0.7.0 */
-    .domainGetSchedulerParameters = qemuGetSchedulerParameters, /* 0.7.0 */
-    .domainGetSchedulerParametersFlags = qemuGetSchedulerParametersFlags, /* 0.9.2 */
-    .domainSetSchedulerParameters = qemuSetSchedulerParameters, /* 0.7.0 */
-    .domainSetSchedulerParametersFlags = qemuSetSchedulerParametersFlags, /* 0.9.2 */
+    .domainGetSchedulerType = qemuDomainGetSchedulerType, /* 0.7.0 */
+    .domainGetSchedulerParameters = qemuDomainGetSchedulerParameters, /* 0.7.0 */
+    .domainGetSchedulerParametersFlags = qemuDomainGetSchedulerParametersFlags, /* 0.9.2 */
+    .domainSetSchedulerParameters = qemuDomainSetSchedulerParameters, /* 0.7.0 */
+    .domainSetSchedulerParametersFlags = qemuDomainSetSchedulerParametersFlags, /* 0.9.2 */
     .domainMigratePerform = qemuDomainMigratePerform, /* 0.5.0 */
     .domainBlockResize = qemuDomainBlockResize, /* 0.9.8 */
     .domainBlockStats = qemuDomainBlockStats, /* 0.4.1 */
@@ -15054,21 +14736,22 @@ static virDriver qemuDriver = {
     .nodeGetMemoryStats = nodeGetMemoryStats, /* 0.9.3 */
     .nodeGetCellsFreeMemory = nodeGetCellsFreeMemory, /* 0.4.4 */
     .nodeGetFreeMemory = nodeGetFreeMemory, /* 0.4.4 */
-    .domainEventRegister = qemuDomainEventRegister, /* 0.5.0 */
-    .domainEventDeregister = qemuDomainEventDeregister, /* 0.5.0 */
+    .connectDomainEventRegister = qemuConnectDomainEventRegister, /* 0.5.0 */
+    .connectDomainEventDeregister = qemuConnectDomainEventDeregister, /* 0.5.0 */
     .domainMigratePrepare2 = qemuDomainMigratePrepare2, /* 0.5.0 */
     .domainMigrateFinish2 = qemuDomainMigrateFinish2, /* 0.5.0 */
     .nodeDeviceDettach = qemuNodeDeviceDettach, /* 0.6.1 */
+    .nodeDeviceDetachFlags = qemuNodeDeviceDetachFlags, /* 1.0.5 */
     .nodeDeviceReAttach = qemuNodeDeviceReAttach, /* 0.6.1 */
     .nodeDeviceReset = qemuNodeDeviceReset, /* 0.6.1 */
     .domainMigratePrepareTunnel = qemuDomainMigratePrepareTunnel, /* 0.7.2 */
-    .isEncrypted = qemuIsEncrypted, /* 0.7.3 */
-    .isSecure = qemuIsSecure, /* 0.7.3 */
+    .connectIsEncrypted = qemuConnectIsEncrypted, /* 0.7.3 */
+    .connectIsSecure = qemuConnectIsSecure, /* 0.7.3 */
     .domainIsActive = qemuDomainIsActive, /* 0.7.3 */
     .domainIsPersistent = qemuDomainIsPersistent, /* 0.7.3 */
     .domainIsUpdated = qemuDomainIsUpdated, /* 0.8.6 */
-    .cpuCompare = qemuCPUCompare, /* 0.7.5 */
-    .cpuBaseline = qemuCPUBaseline, /* 0.7.7 */
+    .connectCompareCPU = qemuConnectCompareCPU, /* 0.7.5 */
+    .connectBaselineCPU = qemuConnectBaselineCPU, /* 0.7.7 */
     .domainGetJobInfo = qemuDomainGetJobInfo, /* 0.7.7 */
     .domainGetJobStats = qemuDomainGetJobStats, /* 1.0.3 */
     .domainAbortJob = qemuDomainAbortJob, /* 0.7.7 */
@@ -15077,8 +14760,8 @@ static virDriver qemuDriver = {
     .domainMigrateSetCompressionCache = qemuDomainMigrateSetCompressionCache, /* 1.0.3 */
     .domainMigrateSetMaxSpeed = qemuDomainMigrateSetMaxSpeed, /* 0.9.0 */
     .domainMigrateGetMaxSpeed = qemuDomainMigrateGetMaxSpeed, /* 0.9.5 */
-    .domainEventRegisterAny = qemuDomainEventRegisterAny, /* 0.8.0 */
-    .domainEventDeregisterAny = qemuDomainEventDeregisterAny, /* 0.8.0 */
+    .connectDomainEventRegisterAny = qemuConnectDomainEventRegisterAny, /* 0.8.0 */
+    .connectDomainEventDeregisterAny = qemuConnectDomainEventDeregisterAny, /* 0.8.0 */
     .domainManagedSave = qemuDomainManagedSave, /* 0.8.0 */
     .domainHasManagedSaveImage = qemuDomainHasManagedSaveImage, /* 0.8.0 */
     .domainManagedSaveRemove = qemuDomainManagedSaveRemove, /* 0.8.0 */
@@ -15098,9 +14781,9 @@ static virDriver qemuDriver = {
     .domainSnapshotHasMetadata = qemuDomainSnapshotHasMetadata, /* 0.9.13 */
     .domainRevertToSnapshot = qemuDomainRevertToSnapshot, /* 0.8.0 */
     .domainSnapshotDelete = qemuDomainSnapshotDelete, /* 0.8.0 */
-    .qemuDomainMonitorCommand = qemuDomainMonitorCommand, /* 0.8.3 */
-    .qemuDomainAttach = qemuDomainAttach, /* 0.9.4 */
-    .qemuDomainArbitraryAgentCommand = qemuDomainAgentCommand, /* 0.10.0 */
+    .domainQemuMonitorCommand = qemuDomainQemuMonitorCommand, /* 0.8.3 */
+    .domainQemuAttach = qemuDomainQemuAttach, /* 0.9.4 */
+    .domainQemuAgentCommand = qemuDomainQemuAgentCommand, /* 0.10.0 */
     .domainOpenConsole = qemuDomainOpenConsole, /* 0.8.6 */
     .domainOpenGraphics = qemuDomainOpenGraphics, /* 0.9.7 */
     .domainInjectNMI = qemuDomainInjectNMI, /* 0.9.2 */
@@ -15117,7 +14800,7 @@ static virDriver qemuDriver = {
     .domainBlockPull = qemuDomainBlockPull, /* 0.9.4 */
     .domainBlockRebase = qemuDomainBlockRebase, /* 0.9.10 */
     .domainBlockCommit = qemuDomainBlockCommit, /* 1.0.0 */
-    .isAlive = qemuIsAlive, /* 0.9.8 */
+    .connectIsAlive = qemuConnectIsAlive, /* 0.9.8 */
     .nodeSuspendForDuration = nodeSuspendForDuration, /* 0.9.8 */
     .domainSetBlockIoTune = qemuDomainSetBlockIoTune, /* 0.9.8 */
     .domainGetBlockIoTune = qemuDomainGetBlockIoTune, /* 0.9.8 */
@@ -15141,10 +14824,10 @@ static virDriver qemuDriver = {
 
 static virStateDriver qemuStateDriver = {
     .name = "QEMU",
-    .initialize = qemuStartup,
-    .cleanup = qemuShutdown,
-    .reload = qemuReload,
-    .stop = qemuStop,
+    .stateInitialize = qemuStateInitialize,
+    .stateCleanup = qemuStateCleanup,
+    .stateReload = qemuStateReload,
+    .stateStop = qemuStateStop,
 };
 
 int qemuRegister(void) {

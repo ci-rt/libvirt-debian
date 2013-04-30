@@ -43,7 +43,7 @@ struct _parallelsConn {
     virStoragePoolObjList pools;
     virNetworkObjList networks;
     virCapsPtr caps;
-    virDomainXMLConfPtr xmlconf;
+    virDomainXMLOptionPtr xmlopt;
     virDomainEventStatePtr domainEventState;
 };
 
@@ -70,9 +70,9 @@ int parallelsCmdRun(const char *binary, ...)
 char * parallelsAddFileExt(const char *path, const char *ext);
 void parallelsDriverLock(parallelsConnPtr driver);
 void parallelsDriverUnlock(parallelsConnPtr driver);
-virStorageVolPtr parallelsStorageVolumeLookupByPathLocked(virConnectPtr conn,
-                                                          const char *path);
-int parallelsStorageVolumeDefRemove(virStoragePoolObjPtr privpool,
-                                    virStorageVolDefPtr privvol);
+virStorageVolPtr parallelsStorageVolLookupByPathLocked(virConnectPtr conn,
+                                                       const char *path);
+int parallelsStorageVolDefRemove(virStoragePoolObjPtr privpool,
+                                 virStorageVolDefPtr privvol);
 
 #endif

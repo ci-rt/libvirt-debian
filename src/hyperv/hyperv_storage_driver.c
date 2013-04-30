@@ -66,8 +66,8 @@ hypervStorageClose(virConnectPtr conn)
 
 static virStorageDriver hypervStorageDriver = {
     .name = "Hyper-V",
-    .open = hypervStorageOpen, /* 0.9.5*/
-    .close = hypervStorageClose, /* 0.9.5 */
+    .storageOpen = hypervStorageOpen, /* 0.9.5*/
+    .storageClose = hypervStorageClose, /* 0.9.5 */
 };
 
 

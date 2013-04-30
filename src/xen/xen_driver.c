@@ -1,7 +1,7 @@
 /*
  * xen_driver.c: Unified Xen driver.
  *
- * Copyright (C) 2007-2012 Red Hat, Inc.
+ * Copyright (C) 2007-2013 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -203,9 +203,9 @@ done:
 #ifdef WITH_LIBVIRTD
 
 static int
-xenInitialize(bool privileged ATTRIBUTE_UNUSED,
-              virStateInhibitCallback callback ATTRIBUTE_UNUSED,
-              void *opaque ATTRIBUTE_UNUSED)
+xenUnifiedStateInitialize(bool privileged ATTRIBUTE_UNUSED,
+                          virStateInhibitCallback callback ATTRIBUTE_UNUSED,
+                          void *opaque ATTRIBUTE_UNUSED)
 {
     inside_daemon = true;
     return 0;
@@ -213,7 +213,7 @@ xenInitialize(bool privileged ATTRIBUTE_UNUSED,
 
 static virStateDriver state_driver = {
     .name = "Xen",
-    .initialize = xenInitialize,
+    .stateInitialize = xenUnifiedStateInitialize,
 };
 
 #endif
@@ -265,9 +265,38 @@ xenUnifiedXendProbe(void)
 #endif
 
 
+static int
+xenDomainDeviceDefPostParse(virDomainDeviceDefPtr dev,
+                            virDomainDefPtr def,
+                            virCapsPtr caps ATTRIBUTE_UNUSED,
+                            void *opaque ATTRIBUTE_UNUSED)
+{
+    if (dev->type == VIR_DOMAIN_DEVICE_CHR &&
+        dev->data.chr->deviceType == VIR_DOMAIN_CHR_DEVICE_TYPE_CONSOLE &&
+        dev->data.chr->targetType == VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_NONE &&
+        STRNEQ(def->os.type, "hvm"))
+        dev->data.chr->targetType = VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_XEN;
+
+    return 0;
+}
+
+
+virDomainDefParserConfig xenDomainDefParserConfig = {
+    .macPrefix = { 0x00, 0x16, 0x3e },
+    .devicesPostParseCallback = xenDomainDeviceDefPostParse,
+};
+
+
+virDomainXMLOptionPtr
+xenDomainXMLConfInit(void)
+{
+    return virDomainXMLOptionNew(&xenDomainDefParserConfig,
+                                 NULL, NULL);
+}
+
 
 static virDrvOpenStatus
-xenUnifiedOpen(virConnectPtr conn, virConnectAuthPtr auth, unsigned int flags)
+xenUnifiedConnectOpen(virConnectPtr conn, virConnectAuthPtr auth, unsigned int flags)
 {
     int i, ret = VIR_DRV_OPEN_DECLINED;
     xenUnifiedPrivatePtr priv;
@@ -401,7 +430,7 @@ xenUnifiedOpen(virConnectPtr conn, virConnectAuthPtr auth, unsigned int flags)
         goto fail;
     }
 
-    if (!(priv->xmlconf = virDomainXMLConfNew(NULL, NULL)))
+    if (!(priv->xmlopt = xenDomainXMLConfInit()))
         goto fail;
 
 #if WITH_XEN_INOTIFY
@@ -445,13 +474,13 @@ clean:
     xenUnifiedPrivatePtr priv = (xenUnifiedPrivatePtr) (conn)->privateData
 
 static int
-xenUnifiedClose(virConnectPtr conn)
+xenUnifiedConnectClose(virConnectPtr conn)
 {
     GET_PRIVATE(conn);
     int i;
 
     virObjectUnref(priv->caps);
-    virObjectUnref(priv->xmlconf);
+    virObjectUnref(priv->xmlopt);
     virDomainEventStateFree(priv->domainEvents);
 
     for (i = 0; i < XEN_UNIFIED_NR_DRIVERS; ++i)
@@ -477,7 +506,7 @@ unsigned long xenUnifiedVersion(void)
 
 
 static const char *
-xenUnifiedType(virConnectPtr conn)
+xenUnifiedConnectGetType(virConnectPtr conn)
 {
     GET_PRIVATE(conn);
     int i;
@@ -491,7 +520,7 @@ xenUnifiedType(virConnectPtr conn)
 
 /* Which features are supported by this driver? */
 static int
-xenUnifiedSupportsFeature(virConnectPtr conn ATTRIBUTE_UNUSED, int feature)
+xenUnifiedConnectSupportsFeature(virConnectPtr conn ATTRIBUTE_UNUSED, int feature)
 {
     switch (feature) {
     case VIR_DRV_FEATURE_MIGRATION_V1:
@@ -503,7 +532,7 @@ xenUnifiedSupportsFeature(virConnectPtr conn ATTRIBUTE_UNUSED, int feature)
 }
 
 static int
-xenUnifiedGetVersion(virConnectPtr conn, unsigned long *hvVer)
+xenUnifiedConnectGetVersion(virConnectPtr conn, unsigned long *hvVer)
 {
     GET_PRIVATE(conn);
     int i;
@@ -518,13 +547,13 @@ xenUnifiedGetVersion(virConnectPtr conn, unsigned long *hvVer)
 }
 
 static int
-xenUnifiedIsEncrypted(virConnectPtr conn ATTRIBUTE_UNUSED)
+xenUnifiedConnectIsEncrypted(virConnectPtr conn ATTRIBUTE_UNUSED)
 {
     return 0;
 }
 
 static int
-xenUnifiedIsSecure(virConnectPtr conn)
+xenUnifiedConnectIsSecure(virConnectPtr conn)
 {
     GET_PRIVATE(conn);
     int ret = 1;
@@ -538,14 +567,14 @@ xenUnifiedIsSecure(virConnectPtr conn)
 }
 
 static int
-xenUnifiedIsAlive(virConnectPtr conn ATTRIBUTE_UNUSED)
+xenUnifiedConnectIsAlive(virConnectPtr conn ATTRIBUTE_UNUSED)
 {
     /* XenD reconnects for each request */
     return 1;
 }
 
 int
-xenUnifiedGetMaxVcpus(virConnectPtr conn, const char *type)
+xenUnifiedConnectGetMaxVcpus(virConnectPtr conn, const char *type)
 {
     GET_PRIVATE(conn);
 
@@ -573,7 +602,7 @@ xenUnifiedNodeGetInfo(virConnectPtr conn, virNodeInfoPtr info)
 }
 
 static char *
-xenUnifiedGetCapabilities(virConnectPtr conn)
+xenUnifiedConnectGetCapabilities(virConnectPtr conn)
 {
     xenUnifiedPrivatePtr priv = conn->privateData;
     char *xml;
@@ -587,7 +616,7 @@ xenUnifiedGetCapabilities(virConnectPtr conn)
 }
 
 static int
-xenUnifiedListDomains(virConnectPtr conn, int *ids, int maxids)
+xenUnifiedConnectListDomains(virConnectPtr conn, int *ids, int maxids)
 {
     GET_PRIVATE(conn);
     int ret;
@@ -614,7 +643,7 @@ xenUnifiedListDomains(virConnectPtr conn, int *ids, int maxids)
 }
 
 static int
-xenUnifiedNumOfDomains(virConnectPtr conn)
+xenUnifiedConnectNumOfDomains(virConnectPtr conn)
 {
     GET_PRIVATE(conn);
     int ret;
@@ -1363,10 +1392,10 @@ xenUnifiedDomainGetXMLDesc(virDomainPtr dom, unsigned int flags)
 
 
 static char *
-xenUnifiedDomainXMLFromNative(virConnectPtr conn,
-                              const char *format,
-                              const char *config,
-                              unsigned int flags)
+xenUnifiedConnectDomainXMLFromNative(virConnectPtr conn,
+                                     const char *format,
+                                     const char *config,
+                                     unsigned int flags)
 {
     virDomainDefPtr def = NULL;
     char *ret = NULL;
@@ -1415,10 +1444,10 @@ cleanup:
 
 #define MAX_CONFIG_SIZE (1024 * 65)
 static char *
-xenUnifiedDomainXMLToNative(virConnectPtr conn,
-                            const char *format,
-                            const char *xmlData,
-                            unsigned int flags)
+xenUnifiedConnectDomainXMLToNative(virConnectPtr conn,
+                                   const char *format,
+                                   const char *xmlData,
+                                   unsigned int flags)
 {
     virDomainDefPtr def = NULL;
     char *ret = NULL;
@@ -1434,8 +1463,8 @@ xenUnifiedDomainXMLToNative(virConnectPtr conn,
         goto cleanup;
     }
 
-    if (!(def = virDomainDefParseString(priv->caps, priv->xmlconf,
-                                        xmlData, 1 << VIR_DOMAIN_VIRT_XEN, 0)))
+    if (!(def = virDomainDefParseString(xmlData, priv->caps, priv->xmlopt,
+                                        1 << VIR_DOMAIN_VIRT_XEN, 0)))
         goto cleanup;
 
     if (STREQ(format, XEN_CONFIG_FORMAT_XM)) {
@@ -1561,8 +1590,8 @@ failure:
 }
 
 static int
-xenUnifiedListDefinedDomains(virConnectPtr conn, char **const names,
-                             int maxnames)
+xenUnifiedConnectListDefinedDomains(virConnectPtr conn, char **const names,
+                                    int maxnames)
 {
     GET_PRIVATE(conn);
     int i;
@@ -1578,7 +1607,7 @@ xenUnifiedListDefinedDomains(virConnectPtr conn, char **const names,
 }
 
 static int
-xenUnifiedNumOfDefinedDomains(virConnectPtr conn)
+xenUnifiedConnectNumOfDefinedDomains(virConnectPtr conn)
 {
     GET_PRIVATE(conn);
     int i;
@@ -1959,10 +1988,10 @@ xenUnifiedNodeGetFreeMemory(virConnectPtr conn)
 
 
 static int
-xenUnifiedDomainEventRegister(virConnectPtr conn,
-                              virConnectDomainEventCallback callback,
-                              void *opaque,
-                              virFreeCallback freefunc)
+xenUnifiedConnectDomainEventRegister(virConnectPtr conn,
+                                     virConnectDomainEventCallback callback,
+                                     void *opaque,
+                                     virFreeCallback freefunc)
 {
     GET_PRIVATE(conn);
 
@@ -1984,8 +2013,8 @@ xenUnifiedDomainEventRegister(virConnectPtr conn,
 
 
 static int
-xenUnifiedDomainEventDeregister(virConnectPtr conn,
-                                virConnectDomainEventCallback callback)
+xenUnifiedConnectDomainEventDeregister(virConnectPtr conn,
+                                       virConnectDomainEventCallback callback)
 {
     int ret;
     GET_PRIVATE(conn);
@@ -2007,12 +2036,12 @@ xenUnifiedDomainEventDeregister(virConnectPtr conn,
 
 
 static int
-xenUnifiedDomainEventRegisterAny(virConnectPtr conn,
-                                 virDomainPtr dom,
-                                 int eventID,
-                                 virConnectDomainEventGenericCallback callback,
-                                 void *opaque,
-                                 virFreeCallback freefunc)
+xenUnifiedConnectDomainEventRegisterAny(virConnectPtr conn,
+                                        virDomainPtr dom,
+                                        int eventID,
+                                        virConnectDomainEventGenericCallback callback,
+                                        void *opaque,
+                                        virFreeCallback freefunc)
 {
     GET_PRIVATE(conn);
 
@@ -2035,8 +2064,8 @@ xenUnifiedDomainEventRegisterAny(virConnectPtr conn,
 }
 
 static int
-xenUnifiedDomainEventDeregisterAny(virConnectPtr conn,
-                                   int callbackID)
+xenUnifiedConnectDomainEventDeregisterAny(virConnectPtr conn,
+                                          int callbackID)
 {
     int ret;
     GET_PRIVATE(conn);
@@ -2104,11 +2133,15 @@ out:
 }
 
 static int
-xenUnifiedNodeDeviceDettach(virNodeDevicePtr dev)
+xenUnifiedNodeDeviceDetachFlags(virNodeDevicePtr dev,
+                                const char *driverName,
+                                unsigned int flags)
 {
     virPCIDevicePtr pci;
     unsigned domain, bus, slot, function;
     int ret = -1;
+
+    virCheckFlags(0, -1);
 
     if (xenUnifiedNodeDeviceGetPciInfo(dev, &domain, &bus, &slot, &function) < 0)
         return -1;
@@ -2117,13 +2150,27 @@ xenUnifiedNodeDeviceDettach(virNodeDevicePtr dev)
     if (!pci)
         return -1;
 
-    if (virPCIDeviceDetach(pci, NULL, NULL, "pciback") < 0)
+    if (!driverName) {
+        virPCIDeviceSetStubDriver(pci, "pciback");
+    } else {
+        virReportError(VIR_ERR_INVALID_ARG,
+                       _("unknown driver name '%s'"), driverName);
+        goto out;
+    }
+
+    if (virPCIDeviceDetach(pci, NULL, NULL, NULL) < 0)
         goto out;
 
     ret = 0;
 out:
     virPCIDeviceFree(pci);
     return ret;
+}
+
+static int
+xenUnifiedNodeDeviceDettach(virNodeDevicePtr dev)
+{
+    return xenUnifiedNodeDeviceDetachFlags(dev, NULL, 0);
 }
 
 static int
@@ -2139,7 +2186,7 @@ xenUnifiedNodeDeviceAssignedDomainId(virNodeDevicePtr dev)
     xenUnifiedPrivatePtr priv = conn->privateData;
 
     /* Get active domains */
-    numdomains = xenUnifiedNumOfDomains(conn);
+    numdomains = xenUnifiedConnectNumOfDomains(conn);
     if (numdomains < 0) {
         return ret;
     }
@@ -2148,7 +2195,7 @@ xenUnifiedNodeDeviceAssignedDomainId(virNodeDevicePtr dev)
             virReportOOMError();
             goto out;
         }
-        if ((numdomains = xenUnifiedListDomains(conn, &ids[0], numdomains)) < 0) {
+        if ((numdomains = xenUnifiedConnectListDomains(conn, &ids[0], numdomains)) < 0) {
             goto out;
         }
     }
@@ -2301,17 +2348,17 @@ cleanup:
 static virDriver xenUnifiedDriver = {
     .no = VIR_DRV_XEN_UNIFIED,
     .name = "Xen",
-    .open = xenUnifiedOpen, /* 0.0.3 */
-    .close = xenUnifiedClose, /* 0.0.3 */
-    .supports_feature = xenUnifiedSupportsFeature, /* 0.3.2 */
-    .type = xenUnifiedType, /* 0.0.3 */
-    .version = xenUnifiedGetVersion, /* 0.0.3 */
-    .getHostname = virGetHostname, /* 0.7.3 */
-    .getMaxVcpus = xenUnifiedGetMaxVcpus, /* 0.2.1 */
+    .connectOpen = xenUnifiedConnectOpen, /* 0.0.3 */
+    .connectClose = xenUnifiedConnectClose, /* 0.0.3 */
+    .connectSupportsFeature = xenUnifiedConnectSupportsFeature, /* 0.3.2 */
+    .connectGetType = xenUnifiedConnectGetType, /* 0.0.3 */
+    .connectGetVersion = xenUnifiedConnectGetVersion, /* 0.0.3 */
+    .connectGetHostname = virGetHostname, /* 0.7.3 */
+    .connectGetMaxVcpus = xenUnifiedConnectGetMaxVcpus, /* 0.2.1 */
     .nodeGetInfo = xenUnifiedNodeGetInfo, /* 0.1.0 */
-    .getCapabilities = xenUnifiedGetCapabilities, /* 0.2.1 */
-    .listDomains = xenUnifiedListDomains, /* 0.0.3 */
-    .numOfDomains = xenUnifiedNumOfDomains, /* 0.0.3 */
+    .connectGetCapabilities = xenUnifiedConnectGetCapabilities, /* 0.2.1 */
+    .connectListDomains = xenUnifiedConnectListDomains, /* 0.0.3 */
+    .connectNumOfDomains = xenUnifiedConnectNumOfDomains, /* 0.0.3 */
     .domainCreateXML = xenUnifiedDomainCreateXML, /* 0.0.3 */
     .domainLookupByID = xenUnifiedDomainLookupByID, /* 0.0.3 */
     .domainLookupByUUID = xenUnifiedDomainLookupByUUID, /* 0.0.5 */
@@ -2344,10 +2391,10 @@ static virDriver xenUnifiedDriver = {
     .domainGetVcpus = xenUnifiedDomainGetVcpus, /* 0.1.4 */
     .domainGetMaxVcpus = xenUnifiedDomainGetMaxVcpus, /* 0.2.1 */
     .domainGetXMLDesc = xenUnifiedDomainGetXMLDesc, /* 0.0.3 */
-    .domainXMLFromNative = xenUnifiedDomainXMLFromNative, /* 0.6.4 */
-    .domainXMLToNative = xenUnifiedDomainXMLToNative, /* 0.6.4 */
-    .listDefinedDomains = xenUnifiedListDefinedDomains, /* 0.1.1 */
-    .numOfDefinedDomains = xenUnifiedNumOfDefinedDomains, /* 0.1.5 */
+    .connectDomainXMLFromNative = xenUnifiedConnectDomainXMLFromNative, /* 0.6.4 */
+    .connectDomainXMLToNative = xenUnifiedConnectDomainXMLToNative, /* 0.6.4 */
+    .connectListDefinedDomains = xenUnifiedConnectListDefinedDomains, /* 0.1.1 */
+    .connectNumOfDefinedDomains = xenUnifiedConnectNumOfDefinedDomains, /* 0.1.5 */
     .domainCreate = xenUnifiedDomainCreate, /* 0.1.1 */
     .domainCreateWithFlags = xenUnifiedDomainCreateWithFlags, /* 0.8.2 */
     .domainDefineXML = xenUnifiedDomainDefineXML, /* 0.1.1 */
@@ -2373,20 +2420,21 @@ static virDriver xenUnifiedDriver = {
     .domainBlockPeek = xenUnifiedDomainBlockPeek, /* 0.4.4 */
     .nodeGetCellsFreeMemory = xenUnifiedNodeGetCellsFreeMemory, /* 0.3.3 */
     .nodeGetFreeMemory = xenUnifiedNodeGetFreeMemory, /* 0.3.3 */
-    .domainEventRegister = xenUnifiedDomainEventRegister, /* 0.5.0 */
-    .domainEventDeregister = xenUnifiedDomainEventDeregister, /* 0.5.0 */
+    .connectDomainEventRegister = xenUnifiedConnectDomainEventRegister, /* 0.5.0 */
+    .connectDomainEventDeregister = xenUnifiedConnectDomainEventDeregister, /* 0.5.0 */
     .nodeDeviceDettach = xenUnifiedNodeDeviceDettach, /* 0.6.1 */
+    .nodeDeviceDetachFlags = xenUnifiedNodeDeviceDetachFlags, /* 1.0.5 */
     .nodeDeviceReAttach = xenUnifiedNodeDeviceReAttach, /* 0.6.1 */
     .nodeDeviceReset = xenUnifiedNodeDeviceReset, /* 0.6.1 */
-    .isEncrypted = xenUnifiedIsEncrypted, /* 0.7.3 */
-    .isSecure = xenUnifiedIsSecure, /* 0.7.3 */
+    .connectIsEncrypted = xenUnifiedConnectIsEncrypted, /* 0.7.3 */
+    .connectIsSecure = xenUnifiedConnectIsSecure, /* 0.7.3 */
     .domainIsActive = xenUnifiedDomainIsActive, /* 0.7.3 */
     .domainIsPersistent = xenUnifiedDomainIsPersistent, /* 0.7.3 */
     .domainIsUpdated = xenUnifiedDomainIsUpdated, /* 0.8.6 */
-    .domainEventRegisterAny = xenUnifiedDomainEventRegisterAny, /* 0.8.0 */
-    .domainEventDeregisterAny = xenUnifiedDomainEventDeregisterAny, /* 0.8.0 */
+    .connectDomainEventRegisterAny = xenUnifiedConnectDomainEventRegisterAny, /* 0.8.0 */
+    .connectDomainEventDeregisterAny = xenUnifiedConnectDomainEventDeregisterAny, /* 0.8.0 */
     .domainOpenConsole = xenUnifiedDomainOpenConsole, /* 0.8.6 */
-    .isAlive = xenUnifiedIsAlive, /* 0.9.8 */
+    .connectIsAlive = xenUnifiedConnectIsAlive, /* 0.9.8 */
     .nodeSuspendForDuration = nodeSuspendForDuration, /* 0.9.8 */
     .nodeGetMemoryParameters = nodeGetMemoryParameters, /* 0.10.2 */
     .nodeSetMemoryParameters = nodeSetMemoryParameters, /* 0.10.2 */

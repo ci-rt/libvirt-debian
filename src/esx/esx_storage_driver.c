@@ -83,7 +83,7 @@ esxStorageClose(virConnectPtr conn)
 
 
 static int
-esxNumberOfStoragePools(virConnectPtr conn)
+esxConnectNumOfStoragePools(virConnectPtr conn)
 {
     int count = 0;
     esxPrivate *priv = conn->storagePrivateData;
@@ -95,7 +95,7 @@ esxNumberOfStoragePools(virConnectPtr conn)
     }
 
     for (i = 0; i < LAST_BACKEND; ++i) {
-        tmp = backends[i]->numOfPools(conn);
+        tmp = backends[i]->connectNumOfStoragePools(conn);
 
         if (tmp < 0) {
             return -1;
@@ -110,7 +110,7 @@ esxNumberOfStoragePools(virConnectPtr conn)
 
 
 static int
-esxListStoragePools(virConnectPtr conn, char **const names, int maxnames)
+esxConnectListStoragePools(virConnectPtr conn, char **const names, int maxnames)
 {
     bool success = false;
     esxPrivate *priv = conn->storagePrivateData;
@@ -127,7 +127,7 @@ esxListStoragePools(virConnectPtr conn, char **const names, int maxnames)
     }
 
     for (i = 0; i < LAST_BACKEND; ++i) {
-        tmp = backends[i]->listPools(conn, &names[count], maxnames - count);
+        tmp = backends[i]->connectListStoragePools(conn, &names[count], maxnames - count);
 
         if (tmp < 0) {
             goto cleanup;
@@ -153,7 +153,7 @@ esxListStoragePools(virConnectPtr conn, char **const names, int maxnames)
 
 
 static int
-esxNumberOfDefinedStoragePools(virConnectPtr conn ATTRIBUTE_UNUSED)
+esxConnectNumOfDefinedStoragePools(virConnectPtr conn ATTRIBUTE_UNUSED)
 {
     /* ESX storage pools are always active */
     return 0;
@@ -162,9 +162,9 @@ esxNumberOfDefinedStoragePools(virConnectPtr conn ATTRIBUTE_UNUSED)
 
 
 static int
-esxListDefinedStoragePools(virConnectPtr conn ATTRIBUTE_UNUSED,
-                           char **const names ATTRIBUTE_UNUSED,
-                           int maxnames ATTRIBUTE_UNUSED)
+esxConnectListDefinedStoragePools(virConnectPtr conn ATTRIBUTE_UNUSED,
+                                  char **const names ATTRIBUTE_UNUSED,
+                                  int maxnames ATTRIBUTE_UNUSED)
 {
     /* ESX storage pools are always active */
     return 0;
@@ -186,7 +186,7 @@ esxStoragePoolLookupByName(virConnectPtr conn, const char *name)
     }
 
     for (i = 0; i < LAST_BACKEND; ++i) {
-        pool = backends[i]->poolLookupByName(conn, name);
+        pool = backends[i]->storagePoolLookupByName(conn, name);
 
         if (pool != NULL) {
             return pool;
@@ -215,7 +215,7 @@ esxStoragePoolLookupByUUID(virConnectPtr conn, const unsigned char *uuid)
 
     /* invoke backend drive method to search all known pools */
     for (i = 0; i < LAST_BACKEND; ++i) {
-        pool = backends[i]->poolLookupByUUID(conn, uuid);
+        pool = backends[i]->storagePoolLookupByUUID(conn, uuid);
 
         if (pool != NULL) {
             return pool;
@@ -252,7 +252,7 @@ esxStoragePoolRefresh(virStoragePoolPtr pool, unsigned int flags)
         return -1;
     }
 
-    return backend->poolRefresh(pool, flags);
+    return backend->storagePoolRefresh(pool, flags);
 }
 
 
@@ -271,7 +271,7 @@ esxStoragePoolGetInfo(virStoragePoolPtr pool, virStoragePoolInfoPtr info)
         return -1;
     }
 
-    return backend->poolGetInfo(pool, info);
+    return backend->storagePoolGetInfo(pool, info);
 }
 
 
@@ -288,7 +288,7 @@ esxStoragePoolGetXMLDesc(virStoragePoolPtr pool, unsigned int flags)
         return NULL;
     }
 
-    return backend->poolGetXMLDesc(pool, flags);
+    return backend->storagePoolGetXMLDesc(pool, flags);
 }
 
 
@@ -324,7 +324,7 @@ esxStoragePoolSetAutostart(virStoragePoolPtr pool ATTRIBUTE_UNUSED,
 
 
 static int
-esxStoragePoolNumberOfStorageVolumes(virStoragePoolPtr pool)
+esxStoragePoolNumOfVolumes(virStoragePoolPtr pool)
 {
     esxPrivate *priv = pool->conn->storagePrivateData;
     virStorageDriverPtr backend = pool->privateData;
@@ -335,14 +335,14 @@ esxStoragePoolNumberOfStorageVolumes(virStoragePoolPtr pool)
         return -1;
     }
 
-    return backend->poolNumOfVolumes(pool);
+    return backend->storagePoolNumOfVolumes(pool);
 }
 
 
 
 static int
-esxStoragePoolListStorageVolumes(virStoragePoolPtr pool, char **const names,
-                                 int maxnames)
+esxStoragePoolListVolumes(virStoragePoolPtr pool, char **const names,
+                          int maxnames)
 {
     esxPrivate *priv = pool->conn->storagePrivateData;
     virStorageDriverPtr backend = pool->privateData;
@@ -353,13 +353,13 @@ esxStoragePoolListStorageVolumes(virStoragePoolPtr pool, char **const names,
         return -1;
     }
 
-    return backend->poolListVolumes(pool, names, maxnames);
+    return backend->storagePoolListVolumes(pool, names, maxnames);
 }
 
 
 
 static virStorageVolPtr
-esxStorageVolumeLookupByName(virStoragePoolPtr pool, const char *name)
+esxStorageVolLookupByName(virStoragePoolPtr pool, const char *name)
 {
     esxPrivate *priv = pool->conn->storagePrivateData;
     virStorageDriverPtr backend = pool->privateData;
@@ -370,13 +370,13 @@ esxStorageVolumeLookupByName(virStoragePoolPtr pool, const char *name)
         return NULL;
     }
 
-    return backend->volLookupByName(pool, name);
+    return backend->storageVolLookupByName(pool, name);
 }
 
 
 
 static virStorageVolPtr
-esxStorageVolumeLookupByPath(virConnectPtr conn, const char *path)
+esxStorageVolLookupByPath(virConnectPtr conn, const char *path)
 {
     esxPrivate *priv = conn->storagePrivateData;
 
@@ -393,9 +393,9 @@ esxStorageVolumeLookupByPath(virConnectPtr conn, const char *path)
      * iSCSI LUNs device path follows normal linux path convention
      */
     if (STRPREFIX(path, "[")) {
-        return backends[VMFS]->volLookupByPath(conn, path);
+        return backends[VMFS]->storageVolLookupByPath(conn, path);
     } else if (STRPREFIX(path, "/")) {
-        return backends[ISCSI]->volLookupByPath(conn, path);
+        return backends[ISCSI]->storageVolLookupByPath(conn, path);
     } else {
         virReportError(VIR_ERR_INVALID_ARG,
                        _("Unexpected volume path format: %s"), path);
@@ -407,7 +407,7 @@ esxStorageVolumeLookupByPath(virConnectPtr conn, const char *path)
 
 
 static virStorageVolPtr
-esxStorageVolumeLookupByKey(virConnectPtr conn, const char *key)
+esxStorageVolLookupByKey(virConnectPtr conn, const char *key)
 {
     virStorageVolPtr volume;
     esxPrivate *priv = conn->storagePrivateData;
@@ -418,7 +418,7 @@ esxStorageVolumeLookupByKey(virConnectPtr conn, const char *key)
     }
 
     for (i = 0; i < LAST_BACKEND; ++i) {
-        volume = backends[i]->volLookupByKey(conn, key);
+        volume = backends[i]->storageVolLookupByKey(conn, key);
 
         if (volume != NULL) {
             return volume;
@@ -435,8 +435,8 @@ esxStorageVolumeLookupByKey(virConnectPtr conn, const char *key)
 
 
 static virStorageVolPtr
-esxStorageVolumeCreateXML(virStoragePoolPtr pool, const char *xmldesc,
-                          unsigned int flags)
+esxStorageVolCreateXML(virStoragePoolPtr pool, const char *xmldesc,
+                       unsigned int flags)
 {
     esxPrivate *priv = pool->conn->storagePrivateData;
     virStorageDriverPtr backend = pool->privateData;
@@ -447,14 +447,14 @@ esxStorageVolumeCreateXML(virStoragePoolPtr pool, const char *xmldesc,
         return NULL;
     }
 
-    return backend->volCreateXML(pool, xmldesc, flags);
+    return backend->storageVolCreateXML(pool, xmldesc, flags);
 }
 
 
 
 static virStorageVolPtr
-esxStorageVolumeCreateXMLFrom(virStoragePoolPtr pool, const char *xmldesc,
-                              virStorageVolPtr sourceVolume, unsigned int flags)
+esxStorageVolCreateXMLFrom(virStoragePoolPtr pool, const char *xmldesc,
+                           virStorageVolPtr sourceVolume, unsigned int flags)
 {
     esxPrivate *priv = pool->conn->storagePrivateData;
     virStorageDriverPtr backend = pool->privateData;
@@ -465,13 +465,13 @@ esxStorageVolumeCreateXMLFrom(virStoragePoolPtr pool, const char *xmldesc,
         return NULL;
     }
 
-    return backend->volCreateXMLFrom(pool, xmldesc, sourceVolume, flags);
+    return backend->storageVolCreateXMLFrom(pool, xmldesc, sourceVolume, flags);
 }
 
 
 
 static int
-esxStorageVolumeDelete(virStorageVolPtr volume, unsigned int flags)
+esxStorageVolDelete(virStorageVolPtr volume, unsigned int flags)
 {
     esxPrivate *priv = volume->conn->storagePrivateData;
     virStorageDriverPtr backend = volume->privateData;
@@ -482,13 +482,13 @@ esxStorageVolumeDelete(virStorageVolPtr volume, unsigned int flags)
         return -1;
     }
 
-    return backend->volDelete(volume, flags);
+    return backend->storageVolDelete(volume, flags);
 }
 
 
 
 static int
-esxStorageVolumeWipe(virStorageVolPtr volume, unsigned int flags)
+esxStorageVolWipe(virStorageVolPtr volume, unsigned int flags)
 {
     esxPrivate *priv = volume->conn->storagePrivateData;
     virStorageDriverPtr backend = volume->privateData;
@@ -499,13 +499,13 @@ esxStorageVolumeWipe(virStorageVolPtr volume, unsigned int flags)
         return -1;
     }
 
-    return backend->volWipe(volume, flags);
+    return backend->storageVolWipe(volume, flags);
 }
 
 
 
 static int
-esxStorageVolumeGetInfo(virStorageVolPtr volume, virStorageVolInfoPtr info)
+esxStorageVolGetInfo(virStorageVolPtr volume, virStorageVolInfoPtr info)
 {
     esxPrivate *priv = volume->conn->storagePrivateData;
     virStorageDriverPtr backend = volume->privateData;
@@ -516,13 +516,13 @@ esxStorageVolumeGetInfo(virStorageVolPtr volume, virStorageVolInfoPtr info)
         return -1;
     }
 
-    return backend->volGetInfo(volume, info);
+    return backend->storageVolGetInfo(volume, info);
 }
 
 
 
 static char *
-esxStorageVolumeGetXMLDesc(virStorageVolPtr volume, unsigned int flags)
+esxStorageVolGetXMLDesc(virStorageVolPtr volume, unsigned int flags)
 {
     esxPrivate *priv = volume->conn->storagePrivateData;
     virStorageDriverPtr backend = volume->privateData;
@@ -533,13 +533,13 @@ esxStorageVolumeGetXMLDesc(virStorageVolPtr volume, unsigned int flags)
         return NULL;
     }
 
-    return backend->volGetXMLDesc(volume, flags);
+    return backend->storageVolGetXMLDesc(volume, flags);
 }
 
 
 
 static char *
-esxStorageVolumeGetPath(virStorageVolPtr volume)
+esxStorageVolGetPath(virStorageVolPtr volume)
 {
     esxPrivate *priv = volume->conn->storagePrivateData;
     virStorageDriverPtr backend = volume->privateData;
@@ -550,7 +550,7 @@ esxStorageVolumeGetPath(virStorageVolPtr volume)
         return NULL;
     }
 
-    return backend->volGetPath(volume);
+    return backend->storageVolGetPath(volume);
 }
 
 
@@ -575,34 +575,34 @@ esxStoragePoolIsPersistent(virStoragePoolPtr pool ATTRIBUTE_UNUSED)
 
 static virStorageDriver esxStorageDriver = {
     .name = "ESX",
-    .open = esxStorageOpen, /* 0.7.6 */
-    .close = esxStorageClose, /* 0.7.6 */
-    .numOfPools = esxNumberOfStoragePools, /* 0.8.2 */
-    .listPools = esxListStoragePools, /* 0.8.2 */
-    .numOfDefinedPools = esxNumberOfDefinedStoragePools, /* 0.8.2 */
-    .listDefinedPools = esxListDefinedStoragePools, /* 0.8.2 */
-    .poolLookupByName = esxStoragePoolLookupByName, /* 0.8.2 */
-    .poolLookupByUUID = esxStoragePoolLookupByUUID, /* 0.8.2 */
-    .poolLookupByVolume = esxStoragePoolLookupByVolume, /* 0.8.4 */
-    .poolRefresh = esxStoragePoolRefresh, /* 0.8.2 */
-    .poolGetInfo = esxStoragePoolGetInfo, /* 0.8.2 */
-    .poolGetXMLDesc = esxStoragePoolGetXMLDesc, /* 0.8.2 */
-    .poolGetAutostart = esxStoragePoolGetAutostart, /* 0.8.2 */
-    .poolSetAutostart = esxStoragePoolSetAutostart, /* 0.8.2 */
-    .poolNumOfVolumes = esxStoragePoolNumberOfStorageVolumes, /* 0.8.4 */
-    .poolListVolumes = esxStoragePoolListStorageVolumes, /* 0.8.4 */
-    .volLookupByName = esxStorageVolumeLookupByName, /* 0.8.4 */
-    .volLookupByPath = esxStorageVolumeLookupByPath, /* 0.8.4 */
-    .volLookupByKey = esxStorageVolumeLookupByKey, /* 0.8.4 */
-    .volCreateXML = esxStorageVolumeCreateXML, /* 0.8.4 */
-    .volCreateXMLFrom = esxStorageVolumeCreateXMLFrom, /* 0.8.7 */
-    .volDelete = esxStorageVolumeDelete, /* 0.8.7 */
-    .volWipe = esxStorageVolumeWipe, /* 0.8.7 */
-    .volGetInfo = esxStorageVolumeGetInfo, /* 0.8.4 */
-    .volGetXMLDesc = esxStorageVolumeGetXMLDesc, /* 0.8.4 */
-    .volGetPath = esxStorageVolumeGetPath, /* 0.8.4 */
-    .poolIsActive = esxStoragePoolIsActive, /* 0.8.2 */
-    .poolIsPersistent = esxStoragePoolIsPersistent, /* 0.8.2 */
+    .storageOpen = esxStorageOpen, /* 0.7.6 */
+    .storageClose = esxStorageClose, /* 0.7.6 */
+    .connectNumOfStoragePools = esxConnectNumOfStoragePools, /* 0.8.2 */
+    .connectListStoragePools = esxConnectListStoragePools, /* 0.8.2 */
+    .connectNumOfDefinedStoragePools = esxConnectNumOfDefinedStoragePools, /* 0.8.2 */
+    .connectListDefinedStoragePools = esxConnectListDefinedStoragePools, /* 0.8.2 */
+    .storagePoolLookupByName = esxStoragePoolLookupByName, /* 0.8.2 */
+    .storagePoolLookupByUUID = esxStoragePoolLookupByUUID, /* 0.8.2 */
+    .storagePoolLookupByVolume = esxStoragePoolLookupByVolume, /* 0.8.4 */
+    .storagePoolRefresh = esxStoragePoolRefresh, /* 0.8.2 */
+    .storagePoolGetInfo = esxStoragePoolGetInfo, /* 0.8.2 */
+    .storagePoolGetXMLDesc = esxStoragePoolGetXMLDesc, /* 0.8.2 */
+    .storagePoolGetAutostart = esxStoragePoolGetAutostart, /* 0.8.2 */
+    .storagePoolSetAutostart = esxStoragePoolSetAutostart, /* 0.8.2 */
+    .storagePoolNumOfVolumes = esxStoragePoolNumOfVolumes, /* 0.8.4 */
+    .storagePoolListVolumes = esxStoragePoolListVolumes, /* 0.8.4 */
+    .storageVolLookupByName = esxStorageVolLookupByName, /* 0.8.4 */
+    .storageVolLookupByPath = esxStorageVolLookupByPath, /* 0.8.4 */
+    .storageVolLookupByKey = esxStorageVolLookupByKey, /* 0.8.4 */
+    .storageVolCreateXML = esxStorageVolCreateXML, /* 0.8.4 */
+    .storageVolCreateXMLFrom = esxStorageVolCreateXMLFrom, /* 0.8.7 */
+    .storageVolDelete = esxStorageVolDelete, /* 0.8.7 */
+    .storageVolWipe = esxStorageVolWipe, /* 0.8.7 */
+    .storageVolGetInfo = esxStorageVolGetInfo, /* 0.8.4 */
+    .storageVolGetXMLDesc = esxStorageVolGetXMLDesc, /* 0.8.4 */
+    .storageVolGetPath = esxStorageVolGetPath, /* 0.8.4 */
+    .storagePoolIsActive = esxStoragePoolIsActive, /* 0.8.2 */
+    .storagePoolIsPersistent = esxStoragePoolIsPersistent, /* 0.8.2 */
 };
 
 

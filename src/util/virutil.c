@@ -26,6 +26,7 @@
 
 #include <config.h>
 
+#include <dirent.h>
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdlib.h>
@@ -3003,7 +3004,7 @@ virSetUIDGIDWithCaps(uid_t uid, gid_t gid, unsigned long long capBits,
 {
     int ii, capng_ret, ret = -1;
     bool need_setgid = false, need_setuid = false;
-    bool need_prctl = false, need_setpcap = false;
+    bool need_setpcap = false;
 
     /* First drop all caps (unless the requested uid is "unchanged" or
      * root and clearExistingCaps wasn't requested), then add back
@@ -3043,31 +3044,47 @@ virSetUIDGIDWithCaps(uid_t uid, gid_t gid, unsigned long long capBits,
         capng_update(CAPNG_ADD, CAPNG_EFFECTIVE|CAPNG_PERMITTED, CAP_SETPCAP);
 # endif
 
-    need_prctl = capBits || need_setgid || need_setuid || need_setpcap;
-
     /* Tell system we want to keep caps across uid change */
-    if (need_prctl && prctl(PR_SET_KEEPCAPS, 1, 0, 0, 0)) {
+    if (prctl(PR_SET_KEEPCAPS, 1, 0, 0, 0)) {
         virReportSystemError(errno, "%s",
                              _("prctl failed to set KEEPCAPS"));
         goto cleanup;
     }
 
     /* Change to the temp capabilities */
-    if ((capng_ret = capng_apply(CAPNG_SELECT_BOTH)) < 0) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("cannot apply process capabilities %d"), capng_ret);
-        goto cleanup;
+    if ((capng_ret = capng_apply(CAPNG_SELECT_CAPS)) < 0) {
+        /* Failed.  If we are running unprivileged, and the arguments make sense
+         * for this scenario, assume we're starting some kind of setuid helper:
+         * do not set any of capBits in the permitted or effective sets, and let
+         * the program get them on its own.
+         *
+         * (Too bad we cannot restrict the bounding set to the capabilities we
+         * would like the helper to have!).
+         */
+        if (getuid() > 0 && clearExistingCaps && !need_setuid && !need_setgid) {
+            capng_clear(CAPNG_SELECT_CAPS);
+        } else {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("cannot apply process capabilities %d"), capng_ret);
+            goto cleanup;
+        }
     }
 
     if (virSetUIDGID(uid, gid) < 0)
         goto cleanup;
 
     /* Tell it we are done keeping capabilities */
-    if (need_prctl && prctl(PR_SET_KEEPCAPS, 0, 0, 0, 0)) {
+    if (prctl(PR_SET_KEEPCAPS, 0, 0, 0, 0)) {
         virReportSystemError(errno, "%s",
                              _("prctl failed to reset KEEPCAPS"));
         goto cleanup;
     }
+
+    /* Set bounding set while we have CAP_SETPCAP.  Unfortunately we cannot
+     * do this if we failed to get the capability above, so ignore the
+     * return value.
+     */
+    capng_apply(CAPNG_SELECT_BOUNDS);
 
     /* Drop the caps that allow setuid/gid (unless they were requested) */
     if (need_setgid)
@@ -3078,7 +3095,7 @@ virSetUIDGIDWithCaps(uid_t uid, gid_t gid, unsigned long long capBits,
     if (need_setpcap)
         capng_update(CAPNG_DROP, CAPNG_EFFECTIVE|CAPNG_PERMITTED, CAP_SETPCAP);
 
-    if (need_prctl && ((capng_ret = capng_apply(CAPNG_SELECT_BOTH)) < 0)) {
+    if (((capng_ret = capng_apply(CAPNG_SELECT_CAPS)) < 0)) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("cannot apply process capabilities %d"), capng_ret);
         ret = -1;
@@ -3227,12 +3244,18 @@ bool virIsDevMapperDevice(const char *dev_name ATTRIBUTE_UNUSED)
 bool
 virValidateWWN(const char *wwn) {
     int i;
+    const char *p = wwn;
 
-    for (i = 0; wwn[i]; i++)
-        if (!c_isxdigit(wwn[i]))
+    if (STRPREFIX(wwn, "0x")) {
+        p += 2;
+    }
+
+    for (i = 0; p[i]; i++) {
+        if (!c_isxdigit(p[i]))
             break;
+    }
 
-    if (i != 16 || wwn[i]) {
+    if (i != 16 || p[i]) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                        _("Malformed wwn: %s"));
         return false;
@@ -3570,6 +3593,191 @@ cleanup:
     VIR_FREE(operation_path);
     return ret;
 }
+
+/* virGetHostNameByWWN:
+ *
+ * Iterate over the sysfs tree to get SCSI host name (e.g. scsi_host5)
+ * by wwnn,wwpn pair.
+ */
+char *
+virGetFCHostNameByWWN(const char *sysfs_prefix,
+                      const char *wwnn,
+                      const char *wwpn)
+{
+    const char *prefix = sysfs_prefix ? sysfs_prefix : SYSFS_FC_HOST_PATH;
+    struct dirent *entry = NULL;
+    DIR *dir = NULL;
+    char *wwnn_path = NULL;
+    char *wwpn_path = NULL;
+    char *wwnn_buf = NULL;
+    char *wwpn_buf = NULL;
+    char *p;
+    char *ret = NULL;
+
+    if (!(dir = opendir(prefix))) {
+        virReportSystemError(errno,
+                             _("Failed to opendir path '%s'"),
+                             prefix);
+        return NULL;
+    }
+
+# define READ_WWN(wwn_path, buf)                      \
+    do {                                              \
+        if (virFileReadAll(wwn_path, 1024, &buf) < 0) \
+            goto cleanup;                             \
+        if ((p = strchr(buf, '\n')))                  \
+            *p = '\0';                                \
+        if (STRPREFIX(buf, "0x"))                     \
+            p = buf + strlen("0x");                   \
+        else                                          \
+            p = buf;                                  \
+    } while (0)
+
+    while ((entry = readdir(dir))) {
+        if (entry->d_name[0] == '.')
+            continue;
+
+        if (virAsprintf(&wwnn_path, "%s%s/node_name", prefix,
+                        entry->d_name) < 0) {
+            virReportOOMError();
+            goto cleanup;
+        }
+
+        if (!virFileExists(wwnn_path)) {
+            VIR_FREE(wwnn_path);
+            continue;
+        }
+
+        READ_WWN(wwnn_path, wwnn_buf);
+
+        if (STRNEQ(wwnn, p)) {
+            VIR_FREE(wwnn_buf);
+            VIR_FREE(wwnn_path);
+            continue;
+        }
+
+        if (virAsprintf(&wwpn_path, "%s%s/port_name", prefix,
+                        entry->d_name) < 0) {
+            virReportOOMError();
+            goto cleanup;
+        }
+
+        if (!virFileExists(wwpn_path)) {
+            VIR_FREE(wwnn_buf);
+            VIR_FREE(wwnn_path);
+            VIR_FREE(wwpn_path);
+            continue;
+        }
+
+        READ_WWN(wwpn_path, wwpn_buf);
+
+        if (STRNEQ(wwpn, p)) {
+            VIR_FREE(wwnn_path);
+            VIR_FREE(wwpn_path);
+            VIR_FREE(wwnn_buf);
+            VIR_FREE(wwpn_buf);
+            continue;
+        }
+
+        ret = strdup(entry->d_name);
+        break;
+    }
+
+cleanup:
+# undef READ_WWN
+    closedir(dir);
+    VIR_FREE(wwnn_path);
+    VIR_FREE(wwpn_path);
+    VIR_FREE(wwnn_buf);
+    VIR_FREE(wwpn_buf);
+    return ret;
+}
+
+# define PORT_STATE_ONLINE "Online"
+
+/* virFindFCHostCapableVport:
+ *
+ * Iterate over the sysfs and find out the first online HBA which
+ * supports vport, and not saturated,.
+ */
+char *
+virFindFCHostCapableVport(const char *sysfs_prefix)
+{
+    const char *prefix = sysfs_prefix ? sysfs_prefix : SYSFS_FC_HOST_PATH;
+    DIR *dir = NULL;
+    struct dirent *entry = NULL;
+    char *max_vports = NULL;
+    char *vports = NULL;
+    char *state = NULL;
+    char *ret = NULL;
+
+    if (!(dir = opendir(prefix))) {
+        virReportSystemError(errno,
+                             _("Failed to opendir path '%s'"),
+                             prefix);
+        return NULL;
+    }
+
+    while ((entry = readdir(dir))) {
+        unsigned int host;
+        char *p = NULL;
+
+        if (entry->d_name[0] == '.')
+            continue;
+
+        p = entry->d_name + strlen("host");
+        if (virStrToLong_ui(p, NULL, 10, &host) == -1) {
+            VIR_DEBUG("Failed to parse host number from '%s'",
+                      entry->d_name);
+            continue;
+        }
+
+        if (!virIsCapableVport(NULL, host))
+            continue;
+
+        if (virReadFCHost(NULL, host, "port_state", &state) < 0) {
+             VIR_DEBUG("Failed to read port_state for host%d", host);
+             continue;
+        }
+
+        /* Skip the not online FC host */
+        if (STRNEQ(state, PORT_STATE_ONLINE)) {
+            VIR_FREE(state);
+            continue;
+        }
+        VIR_FREE(state);
+
+        if (virReadFCHost(NULL, host, "max_npiv_vports", &max_vports) < 0) {
+             VIR_DEBUG("Failed to read max_npiv_vports for host%d", host);
+             continue;
+        }
+
+        if (virReadFCHost(NULL, host, "npiv_vports_inuse", &vports) < 0) {
+             VIR_DEBUG("Failed to read npiv_vports_inuse for host%d", host);
+             VIR_FREE(max_vports);
+             continue;
+        }
+
+        /* Compare from the strings directly, instead of converting
+         * the strings to integers first
+         */
+        if ((strlen(max_vports) >= strlen(vports)) ||
+            ((strlen(max_vports) == strlen(vports)) &&
+             strcmp(max_vports, vports) > 0)) {
+            ret = strdup(entry->d_name);
+            goto cleanup;
+        }
+
+        VIR_FREE(max_vports);
+        VIR_FREE(vports);
+    }
+
+cleanup:
+    closedir(dir);
+    VIR_FREE(max_vports);
+    VIR_FREE(vports);
+    return ret;
+}
 #else
 int
 virReadFCHost(const char *sysfs_prefix ATTRIBUTE_UNUSED,
@@ -3607,4 +3815,40 @@ virManageVport(const int parent_host ATTRIBUTE_UNUSED,
     return -1;
 }
 
+char *
+virGetFCHostNameByWWN(const char *sysfs_prefix ATTRIBUTE_UNUSED,
+                      const char *wwnn ATTRIBUTE_UNUSED,
+                      const char *wwpn ATTRIBUTE_UNUSED)
+{
+    virReportSystemError(ENOSYS, "%s", _("Not supported on this platform"));
+    return NULL;
+}
+
+char *
+virFindFCHostCapableVport(const char *sysfs_prefix ATTRIBUTE_UNUSED)
+{
+    virReportSystemError(ENOSYS, "%s", _("Not supported on this platform"));
+    return NULL;
+}
+
 #endif /* __linux__ */
+
+/**
+ * virCompareLimitUlong:
+ *
+ * Compare two unsigned long long numbers. Value '0' of the arguments has a
+ * special meaning of 'unlimited' and thus greater than any other value.
+ *
+ * Returns 0 if the numbers are equal, -1 if b is greater, 1 if a is greater.
+ */
+int
+virCompareLimitUlong(unsigned long long a, unsigned long b)
+{
+    if (a == b)
+        return 0;
+
+    if (a == 0 || a > b)
+        return 1;
+
+    return -1;
+}

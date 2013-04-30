@@ -108,12 +108,62 @@ static int remoteDispatchAuthSaslStepHelper(
 
 
 
-static int remoteDispatchClose(
+static int remoteDispatchConnectBaselineCPU(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_connect_baseline_cpu_args *args,
+    remote_connect_baseline_cpu_ret *ret);
+static int remoteDispatchConnectBaselineCPUHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchConnectBaselineCPU(server, client, msg, rerr, args, ret);
+}
+static int remoteDispatchConnectBaselineCPU(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_connect_baseline_cpu_args *args,
+    remote_connect_baseline_cpu_ret *ret)
+{
+    int rv = -1;
+    char *cpu;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if ((cpu = virConnectBaselineCPU(priv->conn, (const char **) args->xmlCPUs.xmlCPUs_val, args->xmlCPUs.xmlCPUs_len, args->flags)) == NULL)
+        goto cleanup;
+
+    ret->cpu = cpu;
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    return rv;
+}
+
+
+
+static int remoteDispatchConnectClose(
     virNetServerPtr server,
     virNetServerClientPtr client,
     virNetMessagePtr msg,
     virNetMessageErrorPtr rerr);
-static int remoteDispatchCloseHelper(
+static int remoteDispatchConnectCloseHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
     virNetMessagePtr msg,
@@ -122,9 +172,740 @@ static int remoteDispatchCloseHelper(
     void *ret ATTRIBUTE_UNUSED)
 {
   VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
-  return remoteDispatchClose(server, client, msg, rerr);
+  return remoteDispatchConnectClose(server, client, msg, rerr);
 }
-/* remoteDispatchClose body has to be implemented manually */
+/* remoteDispatchConnectClose body has to be implemented manually */
+
+
+
+static int remoteDispatchConnectCompareCPU(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_connect_compare_cpu_args *args,
+    remote_connect_compare_cpu_ret *ret);
+static int remoteDispatchConnectCompareCPUHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchConnectCompareCPU(server, client, msg, rerr, args, ret);
+}
+static int remoteDispatchConnectCompareCPU(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_connect_compare_cpu_args *args,
+    remote_connect_compare_cpu_ret *ret)
+{
+    int rv = -1;
+    int result;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if ((result = virConnectCompareCPU(priv->conn, args->xml, args->flags)) < 0)
+        goto cleanup;
+
+    ret->result = result;
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    return rv;
+}
+
+
+
+static int remoteDispatchConnectDomainEventDeregister(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_connect_domain_event_deregister_ret *ret);
+static int remoteDispatchConnectDomainEventDeregisterHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args ATTRIBUTE_UNUSED,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchConnectDomainEventDeregister(server, client, msg, rerr, ret);
+}
+/* remoteDispatchConnectDomainEventDeregister body has to be implemented manually */
+
+
+
+static int remoteDispatchConnectDomainEventDeregisterAny(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_connect_domain_event_deregister_any_args *args);
+static int remoteDispatchConnectDomainEventDeregisterAnyHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret ATTRIBUTE_UNUSED)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchConnectDomainEventDeregisterAny(server, client, msg, rerr, args);
+}
+/* remoteDispatchConnectDomainEventDeregisterAny body has to be implemented manually */
+
+
+
+static int remoteDispatchConnectDomainEventRegister(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_connect_domain_event_register_ret *ret);
+static int remoteDispatchConnectDomainEventRegisterHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args ATTRIBUTE_UNUSED,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchConnectDomainEventRegister(server, client, msg, rerr, ret);
+}
+/* remoteDispatchConnectDomainEventRegister body has to be implemented manually */
+
+
+
+static int remoteDispatchConnectDomainEventRegisterAny(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_connect_domain_event_register_any_args *args);
+static int remoteDispatchConnectDomainEventRegisterAnyHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret ATTRIBUTE_UNUSED)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchConnectDomainEventRegisterAny(server, client, msg, rerr, args);
+}
+/* remoteDispatchConnectDomainEventRegisterAny body has to be implemented manually */
+
+
+
+static int remoteDispatchConnectDomainXMLFromNative(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_connect_domain_xml_from_native_args *args,
+    remote_connect_domain_xml_from_native_ret *ret);
+static int remoteDispatchConnectDomainXMLFromNativeHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchConnectDomainXMLFromNative(server, client, msg, rerr, args, ret);
+}
+static int remoteDispatchConnectDomainXMLFromNative(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_connect_domain_xml_from_native_args *args,
+    remote_connect_domain_xml_from_native_ret *ret)
+{
+    int rv = -1;
+    char *domainXml;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if ((domainXml = virConnectDomainXMLFromNative(priv->conn, args->nativeFormat, args->nativeConfig, args->flags)) == NULL)
+        goto cleanup;
+
+    ret->domainXml = domainXml;
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    return rv;
+}
+
+
+
+static int remoteDispatchConnectDomainXMLToNative(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_connect_domain_xml_to_native_args *args,
+    remote_connect_domain_xml_to_native_ret *ret);
+static int remoteDispatchConnectDomainXMLToNativeHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchConnectDomainXMLToNative(server, client, msg, rerr, args, ret);
+}
+static int remoteDispatchConnectDomainXMLToNative(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_connect_domain_xml_to_native_args *args,
+    remote_connect_domain_xml_to_native_ret *ret)
+{
+    int rv = -1;
+    char *nativeConfig;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if ((nativeConfig = virConnectDomainXMLToNative(priv->conn, args->nativeFormat, args->domainXml, args->flags)) == NULL)
+        goto cleanup;
+
+    ret->nativeConfig = nativeConfig;
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    return rv;
+}
+
+
+
+static int remoteDispatchConnectFindStoragePoolSources(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_connect_find_storage_pool_sources_args *args,
+    remote_connect_find_storage_pool_sources_ret *ret);
+static int remoteDispatchConnectFindStoragePoolSourcesHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchConnectFindStoragePoolSources(server, client, msg, rerr, args, ret);
+}
+static int remoteDispatchConnectFindStoragePoolSources(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_connect_find_storage_pool_sources_args *args,
+    remote_connect_find_storage_pool_sources_ret *ret)
+{
+    int rv = -1;
+    char *srcSpec;
+    char *xml;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    srcSpec = args->srcSpec ? *args->srcSpec : NULL;
+
+    if ((xml = virConnectFindStoragePoolSources(priv->conn, args->type, srcSpec, args->flags)) == NULL)
+        goto cleanup;
+
+    ret->xml = xml;
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    return rv;
+}
+
+
+
+static int remoteDispatchConnectGetCapabilities(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_connect_get_capabilities_ret *ret);
+static int remoteDispatchConnectGetCapabilitiesHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args ATTRIBUTE_UNUSED,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchConnectGetCapabilities(server, client, msg, rerr, ret);
+}
+static int remoteDispatchConnectGetCapabilities(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_connect_get_capabilities_ret *ret)
+{
+    int rv = -1;
+    char *capabilities;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if ((capabilities = virConnectGetCapabilities(priv->conn)) == NULL)
+        goto cleanup;
+
+    ret->capabilities = capabilities;
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    return rv;
+}
+
+
+
+static int remoteDispatchConnectGetHostname(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_connect_get_hostname_ret *ret);
+static int remoteDispatchConnectGetHostnameHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args ATTRIBUTE_UNUSED,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchConnectGetHostname(server, client, msg, rerr, ret);
+}
+static int remoteDispatchConnectGetHostname(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_connect_get_hostname_ret *ret)
+{
+    int rv = -1;
+    char *hostname;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if ((hostname = virConnectGetHostname(priv->conn)) == NULL)
+        goto cleanup;
+
+    ret->hostname = hostname;
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    return rv;
+}
+
+
+
+static int remoteDispatchConnectGetLibVersion(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_connect_get_lib_version_ret *ret);
+static int remoteDispatchConnectGetLibVersionHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args ATTRIBUTE_UNUSED,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchConnectGetLibVersion(server, client, msg, rerr, ret);
+}
+static int remoteDispatchConnectGetLibVersion(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_connect_get_lib_version_ret *ret)
+{
+    int rv = -1;
+    unsigned long lib_ver;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (virConnectGetLibVersion(priv->conn, &lib_ver) < 0)
+        goto cleanup;
+
+    HYPER_TO_ULONG(ret->lib_ver, lib_ver);
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    return rv;
+}
+
+
+
+static int remoteDispatchConnectGetMaxVcpus(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_connect_get_max_vcpus_args *args,
+    remote_connect_get_max_vcpus_ret *ret);
+static int remoteDispatchConnectGetMaxVcpusHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchConnectGetMaxVcpus(server, client, msg, rerr, args, ret);
+}
+static int remoteDispatchConnectGetMaxVcpus(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_connect_get_max_vcpus_args *args,
+    remote_connect_get_max_vcpus_ret *ret)
+{
+    int rv = -1;
+    char *type;
+    int max_vcpus;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    type = args->type ? *args->type : NULL;
+
+    if ((max_vcpus = virConnectGetMaxVcpus(priv->conn, type)) < 0)
+        goto cleanup;
+
+    ret->max_vcpus = max_vcpus;
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    return rv;
+}
+
+
+
+static int remoteDispatchConnectGetSysinfo(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_connect_get_sysinfo_args *args,
+    remote_connect_get_sysinfo_ret *ret);
+static int remoteDispatchConnectGetSysinfoHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchConnectGetSysinfo(server, client, msg, rerr, args, ret);
+}
+static int remoteDispatchConnectGetSysinfo(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_connect_get_sysinfo_args *args,
+    remote_connect_get_sysinfo_ret *ret)
+{
+    int rv = -1;
+    char *sysinfo;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if ((sysinfo = virConnectGetSysinfo(priv->conn, args->flags)) == NULL)
+        goto cleanup;
+
+    ret->sysinfo = sysinfo;
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    return rv;
+}
+
+
+
+static int remoteDispatchConnectGetType(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_connect_get_type_ret *ret);
+static int remoteDispatchConnectGetTypeHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args ATTRIBUTE_UNUSED,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchConnectGetType(server, client, msg, rerr, ret);
+}
+static int remoteDispatchConnectGetType(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_connect_get_type_ret *ret)
+{
+    int rv = -1;
+    const char *type;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if ((type = virConnectGetType(priv->conn)) == NULL)
+        goto cleanup;
+
+    /* We have to strdup because remoteDispatchClientRequest will
+     * free this string after it's been serialised. */
+    if (!(ret->type = strdup(type))) {
+        virReportOOMError();
+        goto cleanup;
+    }
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    return rv;
+}
+
+
+
+static int remoteDispatchConnectGetURI(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_connect_get_uri_ret *ret);
+static int remoteDispatchConnectGetURIHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args ATTRIBUTE_UNUSED,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchConnectGetURI(server, client, msg, rerr, ret);
+}
+static int remoteDispatchConnectGetURI(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_connect_get_uri_ret *ret)
+{
+    int rv = -1;
+    char *uri;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if ((uri = virConnectGetURI(priv->conn)) == NULL)
+        goto cleanup;
+
+    ret->uri = uri;
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    return rv;
+}
+
+
+
+static int remoteDispatchConnectGetVersion(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_connect_get_version_ret *ret);
+static int remoteDispatchConnectGetVersionHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args ATTRIBUTE_UNUSED,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchConnectGetVersion(server, client, msg, rerr, ret);
+}
+static int remoteDispatchConnectGetVersion(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_connect_get_version_ret *ret)
+{
+    int rv = -1;
+    unsigned long hv_ver;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (virConnectGetVersion(priv->conn, &hv_ver) < 0)
+        goto cleanup;
+
+    HYPER_TO_ULONG(ret->hv_ver, hv_ver);
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    return rv;
+}
+
+
+
+static int remoteDispatchConnectIsSecure(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_connect_is_secure_ret *ret);
+static int remoteDispatchConnectIsSecureHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args ATTRIBUTE_UNUSED,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchConnectIsSecure(server, client, msg, rerr, ret);
+}
+static int remoteDispatchConnectIsSecure(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_connect_is_secure_ret *ret)
+{
+    int rv = -1;
+    int secure;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if ((secure = virConnectIsSecure(priv->conn)) < 0)
+        goto cleanup;
+
+    ret->secure = secure;
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    return rv;
+}
 
 
 
@@ -282,14 +1063,14 @@ static int remoteDispatchConnectListAllStoragePoolsHelper(
 
 
 
-static int remoteDispatchCPUBaseline(
+static int remoteDispatchConnectListDefinedDomains(
     virNetServerPtr server,
     virNetServerClientPtr client,
     virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
-    remote_cpu_baseline_args *args,
-    remote_cpu_baseline_ret *ret);
-static int remoteDispatchCPUBaselineHelper(
+    remote_connect_list_defined_domains_args *args,
+    remote_connect_list_defined_domains_ret *ret);
+static int remoteDispatchConnectListDefinedDomainsHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
     virNetMessagePtr msg,
@@ -298,18 +1079,18 @@ static int remoteDispatchCPUBaselineHelper(
     void *ret)
 {
   VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
-  return remoteDispatchCPUBaseline(server, client, msg, rerr, args, ret);
+  return remoteDispatchConnectListDefinedDomains(server, client, msg, rerr, args, ret);
 }
-static int remoteDispatchCPUBaseline(
+static int remoteDispatchConnectListDefinedDomains(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
     virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
-    remote_cpu_baseline_args *args,
-    remote_cpu_baseline_ret *ret)
+    remote_connect_list_defined_domains_args *args,
+    remote_connect_list_defined_domains_ret *ret)
 {
     int rv = -1;
-    char *cpu;
+    int len;
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
@@ -318,10 +1099,648 @@ static int remoteDispatchCPUBaseline(
         goto cleanup;
     }
 
-    if ((cpu = virConnectBaselineCPU(priv->conn, (const char **) args->xmlCPUs.xmlCPUs_val, args->xmlCPUs.xmlCPUs_len, args->flags)) == NULL)
+    if (args->maxnames > REMOTE_DOMAIN_NAME_LIST_MAX) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "%s", _("maxnames > REMOTE_DOMAIN_NAME_LIST_MAX"));
+        goto cleanup;
+    }
+
+    /* Allocate return buffer. */
+    if (VIR_ALLOC_N(ret->names.names_val, args->maxnames) < 0) {
+        virReportOOMError();
+        goto cleanup;
+    }
+
+    if ((len = virConnectListDefinedDomains(priv->conn, ret->names.names_val, args->maxnames)) < 0)
         goto cleanup;
 
-    ret->cpu = cpu;
+    ret->names.names_len = len;
+    rv = 0;
+
+cleanup:
+    if (rv < 0) {
+        virNetMessageSaveError(rerr);
+        VIR_FREE(ret->names.names_val);
+    }
+    return rv;
+}
+
+
+
+static int remoteDispatchConnectListDefinedInterfaces(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_connect_list_defined_interfaces_args *args,
+    remote_connect_list_defined_interfaces_ret *ret);
+static int remoteDispatchConnectListDefinedInterfacesHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchConnectListDefinedInterfaces(server, client, msg, rerr, args, ret);
+}
+static int remoteDispatchConnectListDefinedInterfaces(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_connect_list_defined_interfaces_args *args,
+    remote_connect_list_defined_interfaces_ret *ret)
+{
+    int rv = -1;
+    int len;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (args->maxnames > REMOTE_DEFINED_INTERFACE_NAME_LIST_MAX) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "%s", _("maxnames > REMOTE_DEFINED_INTERFACE_NAME_LIST_MAX"));
+        goto cleanup;
+    }
+
+    /* Allocate return buffer. */
+    if (VIR_ALLOC_N(ret->names.names_val, args->maxnames) < 0) {
+        virReportOOMError();
+        goto cleanup;
+    }
+
+    if ((len = virConnectListDefinedInterfaces(priv->conn, ret->names.names_val, args->maxnames)) < 0)
+        goto cleanup;
+
+    ret->names.names_len = len;
+    rv = 0;
+
+cleanup:
+    if (rv < 0) {
+        virNetMessageSaveError(rerr);
+        VIR_FREE(ret->names.names_val);
+    }
+    return rv;
+}
+
+
+
+static int remoteDispatchConnectListDefinedNetworks(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_connect_list_defined_networks_args *args,
+    remote_connect_list_defined_networks_ret *ret);
+static int remoteDispatchConnectListDefinedNetworksHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchConnectListDefinedNetworks(server, client, msg, rerr, args, ret);
+}
+static int remoteDispatchConnectListDefinedNetworks(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_connect_list_defined_networks_args *args,
+    remote_connect_list_defined_networks_ret *ret)
+{
+    int rv = -1;
+    int len;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (args->maxnames > REMOTE_NETWORK_NAME_LIST_MAX) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "%s", _("maxnames > REMOTE_NETWORK_NAME_LIST_MAX"));
+        goto cleanup;
+    }
+
+    /* Allocate return buffer. */
+    if (VIR_ALLOC_N(ret->names.names_val, args->maxnames) < 0) {
+        virReportOOMError();
+        goto cleanup;
+    }
+
+    if ((len = virConnectListDefinedNetworks(priv->conn, ret->names.names_val, args->maxnames)) < 0)
+        goto cleanup;
+
+    ret->names.names_len = len;
+    rv = 0;
+
+cleanup:
+    if (rv < 0) {
+        virNetMessageSaveError(rerr);
+        VIR_FREE(ret->names.names_val);
+    }
+    return rv;
+}
+
+
+
+static int remoteDispatchConnectListDefinedStoragePools(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_connect_list_defined_storage_pools_args *args,
+    remote_connect_list_defined_storage_pools_ret *ret);
+static int remoteDispatchConnectListDefinedStoragePoolsHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchConnectListDefinedStoragePools(server, client, msg, rerr, args, ret);
+}
+static int remoteDispatchConnectListDefinedStoragePools(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_connect_list_defined_storage_pools_args *args,
+    remote_connect_list_defined_storage_pools_ret *ret)
+{
+    int rv = -1;
+    int len;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (args->maxnames > REMOTE_STORAGE_POOL_NAME_LIST_MAX) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "%s", _("maxnames > REMOTE_STORAGE_POOL_NAME_LIST_MAX"));
+        goto cleanup;
+    }
+
+    /* Allocate return buffer. */
+    if (VIR_ALLOC_N(ret->names.names_val, args->maxnames) < 0) {
+        virReportOOMError();
+        goto cleanup;
+    }
+
+    if ((len = virConnectListDefinedStoragePools(priv->conn, ret->names.names_val, args->maxnames)) < 0)
+        goto cleanup;
+
+    ret->names.names_len = len;
+    rv = 0;
+
+cleanup:
+    if (rv < 0) {
+        virNetMessageSaveError(rerr);
+        VIR_FREE(ret->names.names_val);
+    }
+    return rv;
+}
+
+
+
+static int remoteDispatchConnectListDomains(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_connect_list_domains_args *args,
+    remote_connect_list_domains_ret *ret);
+static int remoteDispatchConnectListDomainsHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchConnectListDomains(server, client, msg, rerr, args, ret);
+}
+static int remoteDispatchConnectListDomains(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_connect_list_domains_args *args,
+    remote_connect_list_domains_ret *ret)
+{
+    int rv = -1;
+    int len;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (args->maxids > REMOTE_DOMAIN_ID_LIST_MAX) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "%s", _("maxids > REMOTE_DOMAIN_ID_LIST_MAX"));
+        goto cleanup;
+    }
+
+    /* Allocate return buffer. */
+    if (VIR_ALLOC_N(ret->ids.ids_val, args->maxids) < 0) {
+        virReportOOMError();
+        goto cleanup;
+    }
+
+    if ((len = virConnectListDomains(priv->conn, ret->ids.ids_val, args->maxids)) < 0)
+        goto cleanup;
+
+    ret->ids.ids_len = len;
+    rv = 0;
+
+cleanup:
+    if (rv < 0) {
+        virNetMessageSaveError(rerr);
+        VIR_FREE(ret->ids.ids_val);
+    }
+    return rv;
+}
+
+
+
+static int remoteDispatchConnectListInterfaces(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_connect_list_interfaces_args *args,
+    remote_connect_list_interfaces_ret *ret);
+static int remoteDispatchConnectListInterfacesHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchConnectListInterfaces(server, client, msg, rerr, args, ret);
+}
+static int remoteDispatchConnectListInterfaces(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_connect_list_interfaces_args *args,
+    remote_connect_list_interfaces_ret *ret)
+{
+    int rv = -1;
+    int len;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (args->maxnames > REMOTE_INTERFACE_NAME_LIST_MAX) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "%s", _("maxnames > REMOTE_INTERFACE_NAME_LIST_MAX"));
+        goto cleanup;
+    }
+
+    /* Allocate return buffer. */
+    if (VIR_ALLOC_N(ret->names.names_val, args->maxnames) < 0) {
+        virReportOOMError();
+        goto cleanup;
+    }
+
+    if ((len = virConnectListInterfaces(priv->conn, ret->names.names_val, args->maxnames)) < 0)
+        goto cleanup;
+
+    ret->names.names_len = len;
+    rv = 0;
+
+cleanup:
+    if (rv < 0) {
+        virNetMessageSaveError(rerr);
+        VIR_FREE(ret->names.names_val);
+    }
+    return rv;
+}
+
+
+
+static int remoteDispatchConnectListNetworks(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_connect_list_networks_args *args,
+    remote_connect_list_networks_ret *ret);
+static int remoteDispatchConnectListNetworksHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchConnectListNetworks(server, client, msg, rerr, args, ret);
+}
+static int remoteDispatchConnectListNetworks(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_connect_list_networks_args *args,
+    remote_connect_list_networks_ret *ret)
+{
+    int rv = -1;
+    int len;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (args->maxnames > REMOTE_NETWORK_NAME_LIST_MAX) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "%s", _("maxnames > REMOTE_NETWORK_NAME_LIST_MAX"));
+        goto cleanup;
+    }
+
+    /* Allocate return buffer. */
+    if (VIR_ALLOC_N(ret->names.names_val, args->maxnames) < 0) {
+        virReportOOMError();
+        goto cleanup;
+    }
+
+    if ((len = virConnectListNetworks(priv->conn, ret->names.names_val, args->maxnames)) < 0)
+        goto cleanup;
+
+    ret->names.names_len = len;
+    rv = 0;
+
+cleanup:
+    if (rv < 0) {
+        virNetMessageSaveError(rerr);
+        VIR_FREE(ret->names.names_val);
+    }
+    return rv;
+}
+
+
+
+static int remoteDispatchConnectListNWFilters(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_connect_list_nwfilters_args *args,
+    remote_connect_list_nwfilters_ret *ret);
+static int remoteDispatchConnectListNWFiltersHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchConnectListNWFilters(server, client, msg, rerr, args, ret);
+}
+static int remoteDispatchConnectListNWFilters(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_connect_list_nwfilters_args *args,
+    remote_connect_list_nwfilters_ret *ret)
+{
+    int rv = -1;
+    int len;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (args->maxnames > REMOTE_NWFILTER_NAME_LIST_MAX) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "%s", _("maxnames > REMOTE_NWFILTER_NAME_LIST_MAX"));
+        goto cleanup;
+    }
+
+    /* Allocate return buffer. */
+    if (VIR_ALLOC_N(ret->names.names_val, args->maxnames) < 0) {
+        virReportOOMError();
+        goto cleanup;
+    }
+
+    if ((len = virConnectListNWFilters(priv->conn, ret->names.names_val, args->maxnames)) < 0)
+        goto cleanup;
+
+    ret->names.names_len = len;
+    rv = 0;
+
+cleanup:
+    if (rv < 0) {
+        virNetMessageSaveError(rerr);
+        VIR_FREE(ret->names.names_val);
+    }
+    return rv;
+}
+
+
+
+static int remoteDispatchConnectListSecrets(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_connect_list_secrets_args *args,
+    remote_connect_list_secrets_ret *ret);
+static int remoteDispatchConnectListSecretsHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchConnectListSecrets(server, client, msg, rerr, args, ret);
+}
+static int remoteDispatchConnectListSecrets(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_connect_list_secrets_args *args,
+    remote_connect_list_secrets_ret *ret)
+{
+    int rv = -1;
+    int len;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (args->maxuuids > REMOTE_SECRET_UUID_LIST_MAX) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "%s", _("maxuuids > REMOTE_SECRET_UUID_LIST_MAX"));
+        goto cleanup;
+    }
+
+    /* Allocate return buffer. */
+    if (VIR_ALLOC_N(ret->uuids.uuids_val, args->maxuuids) < 0) {
+        virReportOOMError();
+        goto cleanup;
+    }
+
+    if ((len = virConnectListSecrets(priv->conn, ret->uuids.uuids_val, args->maxuuids)) < 0)
+        goto cleanup;
+
+    ret->uuids.uuids_len = len;
+    rv = 0;
+
+cleanup:
+    if (rv < 0) {
+        virNetMessageSaveError(rerr);
+        VIR_FREE(ret->uuids.uuids_val);
+    }
+    return rv;
+}
+
+
+
+static int remoteDispatchConnectListStoragePools(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_connect_list_storage_pools_args *args,
+    remote_connect_list_storage_pools_ret *ret);
+static int remoteDispatchConnectListStoragePoolsHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchConnectListStoragePools(server, client, msg, rerr, args, ret);
+}
+static int remoteDispatchConnectListStoragePools(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_connect_list_storage_pools_args *args,
+    remote_connect_list_storage_pools_ret *ret)
+{
+    int rv = -1;
+    int len;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (args->maxnames > REMOTE_STORAGE_POOL_NAME_LIST_MAX) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "%s", _("maxnames > REMOTE_STORAGE_POOL_NAME_LIST_MAX"));
+        goto cleanup;
+    }
+
+    /* Allocate return buffer. */
+    if (VIR_ALLOC_N(ret->names.names_val, args->maxnames) < 0) {
+        virReportOOMError();
+        goto cleanup;
+    }
+
+    if ((len = virConnectListStoragePools(priv->conn, ret->names.names_val, args->maxnames)) < 0)
+        goto cleanup;
+
+    ret->names.names_len = len;
+    rv = 0;
+
+cleanup:
+    if (rv < 0) {
+        virNetMessageSaveError(rerr);
+        VIR_FREE(ret->names.names_val);
+    }
+    return rv;
+}
+
+
+
+static int remoteDispatchConnectNumOfDefinedDomains(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_connect_num_of_defined_domains_ret *ret);
+static int remoteDispatchConnectNumOfDefinedDomainsHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args ATTRIBUTE_UNUSED,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchConnectNumOfDefinedDomains(server, client, msg, rerr, ret);
+}
+static int remoteDispatchConnectNumOfDefinedDomains(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_connect_num_of_defined_domains_ret *ret)
+{
+    int rv = -1;
+    int num;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if ((num = virConnectNumOfDefinedDomains(priv->conn)) < 0)
+        goto cleanup;
+
+    ret->num = num;
     rv = 0;
 
 cleanup:
@@ -332,34 +1751,32 @@ cleanup:
 
 
 
-static int remoteDispatchCPUCompare(
+static int remoteDispatchConnectNumOfDefinedInterfaces(
     virNetServerPtr server,
     virNetServerClientPtr client,
     virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
-    remote_cpu_compare_args *args,
-    remote_cpu_compare_ret *ret);
-static int remoteDispatchCPUCompareHelper(
+    remote_connect_num_of_defined_interfaces_ret *ret);
+static int remoteDispatchConnectNumOfDefinedInterfacesHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
     virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
-    void *args,
+    void *args ATTRIBUTE_UNUSED,
     void *ret)
 {
   VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
-  return remoteDispatchCPUCompare(server, client, msg, rerr, args, ret);
+  return remoteDispatchConnectNumOfDefinedInterfaces(server, client, msg, rerr, ret);
 }
-static int remoteDispatchCPUCompare(
+static int remoteDispatchConnectNumOfDefinedInterfaces(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
     virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
-    remote_cpu_compare_args *args,
-    remote_cpu_compare_ret *ret)
+    remote_connect_num_of_defined_interfaces_ret *ret)
 {
     int rv = -1;
-    int result;
+    int num;
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
@@ -368,10 +1785,10 @@ static int remoteDispatchCPUCompare(
         goto cleanup;
     }
 
-    if ((result = virConnectCompareCPU(priv->conn, args->xml, args->flags)) == VIR_CPU_COMPARE_ERROR)
+    if ((num = virConnectNumOfDefinedInterfaces(priv->conn)) < 0)
         goto cleanup;
 
-    ret->result = result;
+    ret->num = num;
     rv = 0;
 
 cleanup:
@@ -379,6 +1796,433 @@ cleanup:
         virNetMessageSaveError(rerr);
     return rv;
 }
+
+
+
+static int remoteDispatchConnectNumOfDefinedNetworks(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_connect_num_of_defined_networks_ret *ret);
+static int remoteDispatchConnectNumOfDefinedNetworksHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args ATTRIBUTE_UNUSED,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchConnectNumOfDefinedNetworks(server, client, msg, rerr, ret);
+}
+static int remoteDispatchConnectNumOfDefinedNetworks(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_connect_num_of_defined_networks_ret *ret)
+{
+    int rv = -1;
+    int num;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if ((num = virConnectNumOfDefinedNetworks(priv->conn)) < 0)
+        goto cleanup;
+
+    ret->num = num;
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    return rv;
+}
+
+
+
+static int remoteDispatchConnectNumOfDefinedStoragePools(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_connect_num_of_defined_storage_pools_ret *ret);
+static int remoteDispatchConnectNumOfDefinedStoragePoolsHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args ATTRIBUTE_UNUSED,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchConnectNumOfDefinedStoragePools(server, client, msg, rerr, ret);
+}
+static int remoteDispatchConnectNumOfDefinedStoragePools(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_connect_num_of_defined_storage_pools_ret *ret)
+{
+    int rv = -1;
+    int num;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if ((num = virConnectNumOfDefinedStoragePools(priv->conn)) < 0)
+        goto cleanup;
+
+    ret->num = num;
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    return rv;
+}
+
+
+
+static int remoteDispatchConnectNumOfDomains(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_connect_num_of_domains_ret *ret);
+static int remoteDispatchConnectNumOfDomainsHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args ATTRIBUTE_UNUSED,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchConnectNumOfDomains(server, client, msg, rerr, ret);
+}
+static int remoteDispatchConnectNumOfDomains(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_connect_num_of_domains_ret *ret)
+{
+    int rv = -1;
+    int num;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if ((num = virConnectNumOfDomains(priv->conn)) < 0)
+        goto cleanup;
+
+    ret->num = num;
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    return rv;
+}
+
+
+
+static int remoteDispatchConnectNumOfInterfaces(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_connect_num_of_interfaces_ret *ret);
+static int remoteDispatchConnectNumOfInterfacesHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args ATTRIBUTE_UNUSED,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchConnectNumOfInterfaces(server, client, msg, rerr, ret);
+}
+static int remoteDispatchConnectNumOfInterfaces(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_connect_num_of_interfaces_ret *ret)
+{
+    int rv = -1;
+    int num;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if ((num = virConnectNumOfInterfaces(priv->conn)) < 0)
+        goto cleanup;
+
+    ret->num = num;
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    return rv;
+}
+
+
+
+static int remoteDispatchConnectNumOfNetworks(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_connect_num_of_networks_ret *ret);
+static int remoteDispatchConnectNumOfNetworksHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args ATTRIBUTE_UNUSED,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchConnectNumOfNetworks(server, client, msg, rerr, ret);
+}
+static int remoteDispatchConnectNumOfNetworks(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_connect_num_of_networks_ret *ret)
+{
+    int rv = -1;
+    int num;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if ((num = virConnectNumOfNetworks(priv->conn)) < 0)
+        goto cleanup;
+
+    ret->num = num;
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    return rv;
+}
+
+
+
+static int remoteDispatchConnectNumOfNWFilters(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_connect_num_of_nwfilters_ret *ret);
+static int remoteDispatchConnectNumOfNWFiltersHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args ATTRIBUTE_UNUSED,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchConnectNumOfNWFilters(server, client, msg, rerr, ret);
+}
+static int remoteDispatchConnectNumOfNWFilters(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_connect_num_of_nwfilters_ret *ret)
+{
+    int rv = -1;
+    int num;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if ((num = virConnectNumOfNWFilters(priv->conn)) < 0)
+        goto cleanup;
+
+    ret->num = num;
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    return rv;
+}
+
+
+
+static int remoteDispatchConnectNumOfSecrets(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_connect_num_of_secrets_ret *ret);
+static int remoteDispatchConnectNumOfSecretsHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args ATTRIBUTE_UNUSED,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchConnectNumOfSecrets(server, client, msg, rerr, ret);
+}
+static int remoteDispatchConnectNumOfSecrets(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_connect_num_of_secrets_ret *ret)
+{
+    int rv = -1;
+    int num;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if ((num = virConnectNumOfSecrets(priv->conn)) < 0)
+        goto cleanup;
+
+    ret->num = num;
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    return rv;
+}
+
+
+
+static int remoteDispatchConnectNumOfStoragePools(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_connect_num_of_storage_pools_ret *ret);
+static int remoteDispatchConnectNumOfStoragePoolsHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args ATTRIBUTE_UNUSED,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchConnectNumOfStoragePools(server, client, msg, rerr, ret);
+}
+static int remoteDispatchConnectNumOfStoragePools(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_connect_num_of_storage_pools_ret *ret)
+{
+    int rv = -1;
+    int num;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if ((num = virConnectNumOfStoragePools(priv->conn)) < 0)
+        goto cleanup;
+
+    ret->num = num;
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    return rv;
+}
+
+
+
+static int remoteDispatchConnectOpen(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_connect_open_args *args);
+static int remoteDispatchConnectOpenHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret ATTRIBUTE_UNUSED)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchConnectOpen(server, client, msg, rerr, args);
+}
+/* remoteDispatchConnectOpen body has to be implemented manually */
+
+
+
+static int remoteDispatchConnectSupportsFeature(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_connect_supports_feature_args *args,
+    remote_connect_supports_feature_ret *ret);
+static int remoteDispatchConnectSupportsFeatureHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchConnectSupportsFeature(server, client, msg, rerr, args, ret);
+}
+/* remoteDispatchConnectSupportsFeature body has to be implemented manually */
 
 
 
@@ -1442,90 +3286,6 @@ cleanup:
         virDomainFree(dom);
     return rv;
 }
-
-
-
-static int remoteDispatchDomainEventsDeregister(
-    virNetServerPtr server,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg,
-    virNetMessageErrorPtr rerr,
-    remote_domain_events_deregister_ret *ret);
-static int remoteDispatchDomainEventsDeregisterHelper(
-    virNetServerPtr server,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg,
-    virNetMessageErrorPtr rerr,
-    void *args ATTRIBUTE_UNUSED,
-    void *ret)
-{
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
-  return remoteDispatchDomainEventsDeregister(server, client, msg, rerr, ret);
-}
-/* remoteDispatchDomainEventsDeregister body has to be implemented manually */
-
-
-
-static int remoteDispatchDomainEventsDeregisterAny(
-    virNetServerPtr server,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg,
-    virNetMessageErrorPtr rerr,
-    remote_domain_events_deregister_any_args *args);
-static int remoteDispatchDomainEventsDeregisterAnyHelper(
-    virNetServerPtr server,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg,
-    virNetMessageErrorPtr rerr,
-    void *args,
-    void *ret ATTRIBUTE_UNUSED)
-{
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
-  return remoteDispatchDomainEventsDeregisterAny(server, client, msg, rerr, args);
-}
-/* remoteDispatchDomainEventsDeregisterAny body has to be implemented manually */
-
-
-
-static int remoteDispatchDomainEventsRegister(
-    virNetServerPtr server,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg,
-    virNetMessageErrorPtr rerr,
-    remote_domain_events_register_ret *ret);
-static int remoteDispatchDomainEventsRegisterHelper(
-    virNetServerPtr server,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg,
-    virNetMessageErrorPtr rerr,
-    void *args ATTRIBUTE_UNUSED,
-    void *ret)
-{
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
-  return remoteDispatchDomainEventsRegister(server, client, msg, rerr, ret);
-}
-/* remoteDispatchDomainEventsRegister body has to be implemented manually */
-
-
-
-static int remoteDispatchDomainEventsRegisterAny(
-    virNetServerPtr server,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg,
-    virNetMessageErrorPtr rerr,
-    remote_domain_events_register_any_args *args);
-static int remoteDispatchDomainEventsRegisterAnyHelper(
-    virNetServerPtr server,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg,
-    virNetMessageErrorPtr rerr,
-    void *args,
-    void *ret ATTRIBUTE_UNUSED)
-{
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
-  return remoteDispatchDomainEventsRegisterAny(server, client, msg, rerr, args);
-}
-/* remoteDispatchDomainEventsRegisterAny body has to be implemented manually */
 
 
 
@@ -7130,555 +8890,6 @@ cleanup:
 
 
 
-static int remoteDispatchDomainXMLFromNative(
-    virNetServerPtr server,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg,
-    virNetMessageErrorPtr rerr,
-    remote_domain_xml_from_native_args *args,
-    remote_domain_xml_from_native_ret *ret);
-static int remoteDispatchDomainXMLFromNativeHelper(
-    virNetServerPtr server,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg,
-    virNetMessageErrorPtr rerr,
-    void *args,
-    void *ret)
-{
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
-  return remoteDispatchDomainXMLFromNative(server, client, msg, rerr, args, ret);
-}
-static int remoteDispatchDomainXMLFromNative(
-    virNetServerPtr server ATTRIBUTE_UNUSED,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg ATTRIBUTE_UNUSED,
-    virNetMessageErrorPtr rerr,
-    remote_domain_xml_from_native_args *args,
-    remote_domain_xml_from_native_ret *ret)
-{
-    int rv = -1;
-    char *domainXml;
-    struct daemonClientPrivate *priv =
-        virNetServerClientGetPrivateData(client);
-
-    if (!priv->conn) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
-        goto cleanup;
-    }
-
-    if ((domainXml = virConnectDomainXMLFromNative(priv->conn, args->nativeFormat, args->nativeConfig, args->flags)) == NULL)
-        goto cleanup;
-
-    ret->domainXml = domainXml;
-    rv = 0;
-
-cleanup:
-    if (rv < 0)
-        virNetMessageSaveError(rerr);
-    return rv;
-}
-
-
-
-static int remoteDispatchDomainXMLToNative(
-    virNetServerPtr server,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg,
-    virNetMessageErrorPtr rerr,
-    remote_domain_xml_to_native_args *args,
-    remote_domain_xml_to_native_ret *ret);
-static int remoteDispatchDomainXMLToNativeHelper(
-    virNetServerPtr server,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg,
-    virNetMessageErrorPtr rerr,
-    void *args,
-    void *ret)
-{
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
-  return remoteDispatchDomainXMLToNative(server, client, msg, rerr, args, ret);
-}
-static int remoteDispatchDomainXMLToNative(
-    virNetServerPtr server ATTRIBUTE_UNUSED,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg ATTRIBUTE_UNUSED,
-    virNetMessageErrorPtr rerr,
-    remote_domain_xml_to_native_args *args,
-    remote_domain_xml_to_native_ret *ret)
-{
-    int rv = -1;
-    char *nativeConfig;
-    struct daemonClientPrivate *priv =
-        virNetServerClientGetPrivateData(client);
-
-    if (!priv->conn) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
-        goto cleanup;
-    }
-
-    if ((nativeConfig = virConnectDomainXMLToNative(priv->conn, args->nativeFormat, args->domainXml, args->flags)) == NULL)
-        goto cleanup;
-
-    ret->nativeConfig = nativeConfig;
-    rv = 0;
-
-cleanup:
-    if (rv < 0)
-        virNetMessageSaveError(rerr);
-    return rv;
-}
-
-
-
-static int remoteDispatchFindStoragePoolSources(
-    virNetServerPtr server,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg,
-    virNetMessageErrorPtr rerr,
-    remote_find_storage_pool_sources_args *args,
-    remote_find_storage_pool_sources_ret *ret);
-static int remoteDispatchFindStoragePoolSourcesHelper(
-    virNetServerPtr server,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg,
-    virNetMessageErrorPtr rerr,
-    void *args,
-    void *ret)
-{
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
-  return remoteDispatchFindStoragePoolSources(server, client, msg, rerr, args, ret);
-}
-static int remoteDispatchFindStoragePoolSources(
-    virNetServerPtr server ATTRIBUTE_UNUSED,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg ATTRIBUTE_UNUSED,
-    virNetMessageErrorPtr rerr,
-    remote_find_storage_pool_sources_args *args,
-    remote_find_storage_pool_sources_ret *ret)
-{
-    int rv = -1;
-    char *srcSpec;
-    char *xml;
-    struct daemonClientPrivate *priv =
-        virNetServerClientGetPrivateData(client);
-
-    if (!priv->conn) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
-        goto cleanup;
-    }
-
-    srcSpec = args->srcSpec ? *args->srcSpec : NULL;
-
-    if ((xml = virConnectFindStoragePoolSources(priv->conn, args->type, srcSpec, args->flags)) == NULL)
-        goto cleanup;
-
-    ret->xml = xml;
-    rv = 0;
-
-cleanup:
-    if (rv < 0)
-        virNetMessageSaveError(rerr);
-    return rv;
-}
-
-
-
-static int remoteDispatchGetCapabilities(
-    virNetServerPtr server,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg,
-    virNetMessageErrorPtr rerr,
-    remote_get_capabilities_ret *ret);
-static int remoteDispatchGetCapabilitiesHelper(
-    virNetServerPtr server,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg,
-    virNetMessageErrorPtr rerr,
-    void *args ATTRIBUTE_UNUSED,
-    void *ret)
-{
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
-  return remoteDispatchGetCapabilities(server, client, msg, rerr, ret);
-}
-static int remoteDispatchGetCapabilities(
-    virNetServerPtr server ATTRIBUTE_UNUSED,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg ATTRIBUTE_UNUSED,
-    virNetMessageErrorPtr rerr,
-    remote_get_capabilities_ret *ret)
-{
-    int rv = -1;
-    char *capabilities;
-    struct daemonClientPrivate *priv =
-        virNetServerClientGetPrivateData(client);
-
-    if (!priv->conn) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
-        goto cleanup;
-    }
-
-    if ((capabilities = virConnectGetCapabilities(priv->conn)) == NULL)
-        goto cleanup;
-
-    ret->capabilities = capabilities;
-    rv = 0;
-
-cleanup:
-    if (rv < 0)
-        virNetMessageSaveError(rerr);
-    return rv;
-}
-
-
-
-static int remoteDispatchGetHostname(
-    virNetServerPtr server,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg,
-    virNetMessageErrorPtr rerr,
-    remote_get_hostname_ret *ret);
-static int remoteDispatchGetHostnameHelper(
-    virNetServerPtr server,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg,
-    virNetMessageErrorPtr rerr,
-    void *args ATTRIBUTE_UNUSED,
-    void *ret)
-{
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
-  return remoteDispatchGetHostname(server, client, msg, rerr, ret);
-}
-static int remoteDispatchGetHostname(
-    virNetServerPtr server ATTRIBUTE_UNUSED,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg ATTRIBUTE_UNUSED,
-    virNetMessageErrorPtr rerr,
-    remote_get_hostname_ret *ret)
-{
-    int rv = -1;
-    char *hostname;
-    struct daemonClientPrivate *priv =
-        virNetServerClientGetPrivateData(client);
-
-    if (!priv->conn) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
-        goto cleanup;
-    }
-
-    if ((hostname = virConnectGetHostname(priv->conn)) == NULL)
-        goto cleanup;
-
-    ret->hostname = hostname;
-    rv = 0;
-
-cleanup:
-    if (rv < 0)
-        virNetMessageSaveError(rerr);
-    return rv;
-}
-
-
-
-static int remoteDispatchGetLibVersion(
-    virNetServerPtr server,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg,
-    virNetMessageErrorPtr rerr,
-    remote_get_lib_version_ret *ret);
-static int remoteDispatchGetLibVersionHelper(
-    virNetServerPtr server,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg,
-    virNetMessageErrorPtr rerr,
-    void *args ATTRIBUTE_UNUSED,
-    void *ret)
-{
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
-  return remoteDispatchGetLibVersion(server, client, msg, rerr, ret);
-}
-static int remoteDispatchGetLibVersion(
-    virNetServerPtr server ATTRIBUTE_UNUSED,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg ATTRIBUTE_UNUSED,
-    virNetMessageErrorPtr rerr,
-    remote_get_lib_version_ret *ret)
-{
-    int rv = -1;
-    unsigned long lib_ver;
-    struct daemonClientPrivate *priv =
-        virNetServerClientGetPrivateData(client);
-
-    if (!priv->conn) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
-        goto cleanup;
-    }
-
-    if (virConnectGetLibVersion(priv->conn, &lib_ver) < 0)
-        goto cleanup;
-
-    HYPER_TO_ULONG(ret->lib_ver, lib_ver);
-    rv = 0;
-
-cleanup:
-    if (rv < 0)
-        virNetMessageSaveError(rerr);
-    return rv;
-}
-
-
-
-static int remoteDispatchGetMaxVcpus(
-    virNetServerPtr server,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg,
-    virNetMessageErrorPtr rerr,
-    remote_get_max_vcpus_args *args,
-    remote_get_max_vcpus_ret *ret);
-static int remoteDispatchGetMaxVcpusHelper(
-    virNetServerPtr server,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg,
-    virNetMessageErrorPtr rerr,
-    void *args,
-    void *ret)
-{
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
-  return remoteDispatchGetMaxVcpus(server, client, msg, rerr, args, ret);
-}
-static int remoteDispatchGetMaxVcpus(
-    virNetServerPtr server ATTRIBUTE_UNUSED,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg ATTRIBUTE_UNUSED,
-    virNetMessageErrorPtr rerr,
-    remote_get_max_vcpus_args *args,
-    remote_get_max_vcpus_ret *ret)
-{
-    int rv = -1;
-    char *type;
-    int max_vcpus;
-    struct daemonClientPrivate *priv =
-        virNetServerClientGetPrivateData(client);
-
-    if (!priv->conn) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
-        goto cleanup;
-    }
-
-    type = args->type ? *args->type : NULL;
-
-    if ((max_vcpus = virConnectGetMaxVcpus(priv->conn, type)) < 0)
-        goto cleanup;
-
-    ret->max_vcpus = max_vcpus;
-    rv = 0;
-
-cleanup:
-    if (rv < 0)
-        virNetMessageSaveError(rerr);
-    return rv;
-}
-
-
-
-static int remoteDispatchGetSysinfo(
-    virNetServerPtr server,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg,
-    virNetMessageErrorPtr rerr,
-    remote_get_sysinfo_args *args,
-    remote_get_sysinfo_ret *ret);
-static int remoteDispatchGetSysinfoHelper(
-    virNetServerPtr server,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg,
-    virNetMessageErrorPtr rerr,
-    void *args,
-    void *ret)
-{
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
-  return remoteDispatchGetSysinfo(server, client, msg, rerr, args, ret);
-}
-static int remoteDispatchGetSysinfo(
-    virNetServerPtr server ATTRIBUTE_UNUSED,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg ATTRIBUTE_UNUSED,
-    virNetMessageErrorPtr rerr,
-    remote_get_sysinfo_args *args,
-    remote_get_sysinfo_ret *ret)
-{
-    int rv = -1;
-    char *sysinfo;
-    struct daemonClientPrivate *priv =
-        virNetServerClientGetPrivateData(client);
-
-    if (!priv->conn) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
-        goto cleanup;
-    }
-
-    if ((sysinfo = virConnectGetSysinfo(priv->conn, args->flags)) == NULL)
-        goto cleanup;
-
-    ret->sysinfo = sysinfo;
-    rv = 0;
-
-cleanup:
-    if (rv < 0)
-        virNetMessageSaveError(rerr);
-    return rv;
-}
-
-
-
-static int remoteDispatchGetType(
-    virNetServerPtr server,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg,
-    virNetMessageErrorPtr rerr,
-    remote_get_type_ret *ret);
-static int remoteDispatchGetTypeHelper(
-    virNetServerPtr server,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg,
-    virNetMessageErrorPtr rerr,
-    void *args ATTRIBUTE_UNUSED,
-    void *ret)
-{
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
-  return remoteDispatchGetType(server, client, msg, rerr, ret);
-}
-static int remoteDispatchGetType(
-    virNetServerPtr server ATTRIBUTE_UNUSED,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg ATTRIBUTE_UNUSED,
-    virNetMessageErrorPtr rerr,
-    remote_get_type_ret *ret)
-{
-    int rv = -1;
-    const char *type;
-    struct daemonClientPrivate *priv =
-        virNetServerClientGetPrivateData(client);
-
-    if (!priv->conn) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
-        goto cleanup;
-    }
-
-    if ((type = virConnectGetType(priv->conn)) == NULL)
-        goto cleanup;
-
-    /* We have to strdup because remoteDispatchClientRequest will
-     * free this string after it's been serialised. */
-    if (!(ret->type = strdup(type))) {
-        virReportOOMError();
-        goto cleanup;
-    }
-    rv = 0;
-
-cleanup:
-    if (rv < 0)
-        virNetMessageSaveError(rerr);
-    return rv;
-}
-
-
-
-static int remoteDispatchGetURI(
-    virNetServerPtr server,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg,
-    virNetMessageErrorPtr rerr,
-    remote_get_uri_ret *ret);
-static int remoteDispatchGetURIHelper(
-    virNetServerPtr server,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg,
-    virNetMessageErrorPtr rerr,
-    void *args ATTRIBUTE_UNUSED,
-    void *ret)
-{
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
-  return remoteDispatchGetURI(server, client, msg, rerr, ret);
-}
-static int remoteDispatchGetURI(
-    virNetServerPtr server ATTRIBUTE_UNUSED,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg ATTRIBUTE_UNUSED,
-    virNetMessageErrorPtr rerr,
-    remote_get_uri_ret *ret)
-{
-    int rv = -1;
-    char *uri;
-    struct daemonClientPrivate *priv =
-        virNetServerClientGetPrivateData(client);
-
-    if (!priv->conn) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
-        goto cleanup;
-    }
-
-    if ((uri = virConnectGetURI(priv->conn)) == NULL)
-        goto cleanup;
-
-    ret->uri = uri;
-    rv = 0;
-
-cleanup:
-    if (rv < 0)
-        virNetMessageSaveError(rerr);
-    return rv;
-}
-
-
-
-static int remoteDispatchGetVersion(
-    virNetServerPtr server,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg,
-    virNetMessageErrorPtr rerr,
-    remote_get_version_ret *ret);
-static int remoteDispatchGetVersionHelper(
-    virNetServerPtr server,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg,
-    virNetMessageErrorPtr rerr,
-    void *args ATTRIBUTE_UNUSED,
-    void *ret)
-{
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
-  return remoteDispatchGetVersion(server, client, msg, rerr, ret);
-}
-static int remoteDispatchGetVersion(
-    virNetServerPtr server ATTRIBUTE_UNUSED,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg ATTRIBUTE_UNUSED,
-    virNetMessageErrorPtr rerr,
-    remote_get_version_ret *ret)
-{
-    int rv = -1;
-    unsigned long hv_ver;
-    struct daemonClientPrivate *priv =
-        virNetServerClientGetPrivateData(client);
-
-    if (!priv->conn) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
-        goto cleanup;
-    }
-
-    if (virConnectGetVersion(priv->conn, &hv_ver) < 0)
-        goto cleanup;
-
-    HYPER_TO_ULONG(ret->hv_ver, hv_ver);
-    rv = 0;
-
-cleanup:
-    if (rv < 0)
-        virNetMessageSaveError(rerr);
-    return rv;
-}
-
-
-
 static int remoteDispatchInterfaceChangeBegin(
     virNetServerPtr server,
     virNetServerClientPtr client,
@@ -8236,694 +9447,6 @@ cleanup:
         virNetMessageSaveError(rerr);
     if (iface)
         virInterfaceFree(iface);
-    return rv;
-}
-
-
-
-static int remoteDispatchIsSecure(
-    virNetServerPtr server,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg,
-    virNetMessageErrorPtr rerr,
-    remote_is_secure_ret *ret);
-static int remoteDispatchIsSecureHelper(
-    virNetServerPtr server,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg,
-    virNetMessageErrorPtr rerr,
-    void *args ATTRIBUTE_UNUSED,
-    void *ret)
-{
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
-  return remoteDispatchIsSecure(server, client, msg, rerr, ret);
-}
-static int remoteDispatchIsSecure(
-    virNetServerPtr server ATTRIBUTE_UNUSED,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg ATTRIBUTE_UNUSED,
-    virNetMessageErrorPtr rerr,
-    remote_is_secure_ret *ret)
-{
-    int rv = -1;
-    int secure;
-    struct daemonClientPrivate *priv =
-        virNetServerClientGetPrivateData(client);
-
-    if (!priv->conn) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
-        goto cleanup;
-    }
-
-    if ((secure = virConnectIsSecure(priv->conn)) < 0)
-        goto cleanup;
-
-    ret->secure = secure;
-    rv = 0;
-
-cleanup:
-    if (rv < 0)
-        virNetMessageSaveError(rerr);
-    return rv;
-}
-
-
-
-static int remoteDispatchListDefinedDomains(
-    virNetServerPtr server,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg,
-    virNetMessageErrorPtr rerr,
-    remote_list_defined_domains_args *args,
-    remote_list_defined_domains_ret *ret);
-static int remoteDispatchListDefinedDomainsHelper(
-    virNetServerPtr server,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg,
-    virNetMessageErrorPtr rerr,
-    void *args,
-    void *ret)
-{
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
-  return remoteDispatchListDefinedDomains(server, client, msg, rerr, args, ret);
-}
-static int remoteDispatchListDefinedDomains(
-    virNetServerPtr server ATTRIBUTE_UNUSED,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg ATTRIBUTE_UNUSED,
-    virNetMessageErrorPtr rerr,
-    remote_list_defined_domains_args *args,
-    remote_list_defined_domains_ret *ret)
-{
-    int rv = -1;
-    int len;
-    struct daemonClientPrivate *priv =
-        virNetServerClientGetPrivateData(client);
-
-    if (!priv->conn) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
-        goto cleanup;
-    }
-
-    if (args->maxnames > REMOTE_DOMAIN_NAME_LIST_MAX) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       "%s", _("maxnames > REMOTE_DOMAIN_NAME_LIST_MAX"));
-        goto cleanup;
-    }
-
-    /* Allocate return buffer. */
-    if (VIR_ALLOC_N(ret->names.names_val, args->maxnames) < 0) {
-        virReportOOMError();
-        goto cleanup;
-    }
-
-    if ((len = virConnectListDefinedDomains(priv->conn, ret->names.names_val, args->maxnames)) < 0)
-        goto cleanup;
-
-    ret->names.names_len = len;
-    rv = 0;
-
-cleanup:
-    if (rv < 0) {
-        virNetMessageSaveError(rerr);
-        VIR_FREE(ret->names.names_val);
-    }
-    return rv;
-}
-
-
-
-static int remoteDispatchListDefinedInterfaces(
-    virNetServerPtr server,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg,
-    virNetMessageErrorPtr rerr,
-    remote_list_defined_interfaces_args *args,
-    remote_list_defined_interfaces_ret *ret);
-static int remoteDispatchListDefinedInterfacesHelper(
-    virNetServerPtr server,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg,
-    virNetMessageErrorPtr rerr,
-    void *args,
-    void *ret)
-{
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
-  return remoteDispatchListDefinedInterfaces(server, client, msg, rerr, args, ret);
-}
-static int remoteDispatchListDefinedInterfaces(
-    virNetServerPtr server ATTRIBUTE_UNUSED,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg ATTRIBUTE_UNUSED,
-    virNetMessageErrorPtr rerr,
-    remote_list_defined_interfaces_args *args,
-    remote_list_defined_interfaces_ret *ret)
-{
-    int rv = -1;
-    int len;
-    struct daemonClientPrivate *priv =
-        virNetServerClientGetPrivateData(client);
-
-    if (!priv->conn) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
-        goto cleanup;
-    }
-
-    if (args->maxnames > REMOTE_DEFINED_INTERFACE_NAME_LIST_MAX) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       "%s", _("maxnames > REMOTE_DEFINED_INTERFACE_NAME_LIST_MAX"));
-        goto cleanup;
-    }
-
-    /* Allocate return buffer. */
-    if (VIR_ALLOC_N(ret->names.names_val, args->maxnames) < 0) {
-        virReportOOMError();
-        goto cleanup;
-    }
-
-    if ((len = virConnectListDefinedInterfaces(priv->conn, ret->names.names_val, args->maxnames)) < 0)
-        goto cleanup;
-
-    ret->names.names_len = len;
-    rv = 0;
-
-cleanup:
-    if (rv < 0) {
-        virNetMessageSaveError(rerr);
-        VIR_FREE(ret->names.names_val);
-    }
-    return rv;
-}
-
-
-
-static int remoteDispatchListDefinedNetworks(
-    virNetServerPtr server,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg,
-    virNetMessageErrorPtr rerr,
-    remote_list_defined_networks_args *args,
-    remote_list_defined_networks_ret *ret);
-static int remoteDispatchListDefinedNetworksHelper(
-    virNetServerPtr server,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg,
-    virNetMessageErrorPtr rerr,
-    void *args,
-    void *ret)
-{
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
-  return remoteDispatchListDefinedNetworks(server, client, msg, rerr, args, ret);
-}
-static int remoteDispatchListDefinedNetworks(
-    virNetServerPtr server ATTRIBUTE_UNUSED,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg ATTRIBUTE_UNUSED,
-    virNetMessageErrorPtr rerr,
-    remote_list_defined_networks_args *args,
-    remote_list_defined_networks_ret *ret)
-{
-    int rv = -1;
-    int len;
-    struct daemonClientPrivate *priv =
-        virNetServerClientGetPrivateData(client);
-
-    if (!priv->conn) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
-        goto cleanup;
-    }
-
-    if (args->maxnames > REMOTE_NETWORK_NAME_LIST_MAX) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       "%s", _("maxnames > REMOTE_NETWORK_NAME_LIST_MAX"));
-        goto cleanup;
-    }
-
-    /* Allocate return buffer. */
-    if (VIR_ALLOC_N(ret->names.names_val, args->maxnames) < 0) {
-        virReportOOMError();
-        goto cleanup;
-    }
-
-    if ((len = virConnectListDefinedNetworks(priv->conn, ret->names.names_val, args->maxnames)) < 0)
-        goto cleanup;
-
-    ret->names.names_len = len;
-    rv = 0;
-
-cleanup:
-    if (rv < 0) {
-        virNetMessageSaveError(rerr);
-        VIR_FREE(ret->names.names_val);
-    }
-    return rv;
-}
-
-
-
-static int remoteDispatchListDefinedStoragePools(
-    virNetServerPtr server,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg,
-    virNetMessageErrorPtr rerr,
-    remote_list_defined_storage_pools_args *args,
-    remote_list_defined_storage_pools_ret *ret);
-static int remoteDispatchListDefinedStoragePoolsHelper(
-    virNetServerPtr server,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg,
-    virNetMessageErrorPtr rerr,
-    void *args,
-    void *ret)
-{
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
-  return remoteDispatchListDefinedStoragePools(server, client, msg, rerr, args, ret);
-}
-static int remoteDispatchListDefinedStoragePools(
-    virNetServerPtr server ATTRIBUTE_UNUSED,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg ATTRIBUTE_UNUSED,
-    virNetMessageErrorPtr rerr,
-    remote_list_defined_storage_pools_args *args,
-    remote_list_defined_storage_pools_ret *ret)
-{
-    int rv = -1;
-    int len;
-    struct daemonClientPrivate *priv =
-        virNetServerClientGetPrivateData(client);
-
-    if (!priv->conn) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
-        goto cleanup;
-    }
-
-    if (args->maxnames > REMOTE_STORAGE_POOL_NAME_LIST_MAX) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       "%s", _("maxnames > REMOTE_STORAGE_POOL_NAME_LIST_MAX"));
-        goto cleanup;
-    }
-
-    /* Allocate return buffer. */
-    if (VIR_ALLOC_N(ret->names.names_val, args->maxnames) < 0) {
-        virReportOOMError();
-        goto cleanup;
-    }
-
-    if ((len = virConnectListDefinedStoragePools(priv->conn, ret->names.names_val, args->maxnames)) < 0)
-        goto cleanup;
-
-    ret->names.names_len = len;
-    rv = 0;
-
-cleanup:
-    if (rv < 0) {
-        virNetMessageSaveError(rerr);
-        VIR_FREE(ret->names.names_val);
-    }
-    return rv;
-}
-
-
-
-static int remoteDispatchListDomains(
-    virNetServerPtr server,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg,
-    virNetMessageErrorPtr rerr,
-    remote_list_domains_args *args,
-    remote_list_domains_ret *ret);
-static int remoteDispatchListDomainsHelper(
-    virNetServerPtr server,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg,
-    virNetMessageErrorPtr rerr,
-    void *args,
-    void *ret)
-{
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
-  return remoteDispatchListDomains(server, client, msg, rerr, args, ret);
-}
-static int remoteDispatchListDomains(
-    virNetServerPtr server ATTRIBUTE_UNUSED,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg ATTRIBUTE_UNUSED,
-    virNetMessageErrorPtr rerr,
-    remote_list_domains_args *args,
-    remote_list_domains_ret *ret)
-{
-    int rv = -1;
-    int len;
-    struct daemonClientPrivate *priv =
-        virNetServerClientGetPrivateData(client);
-
-    if (!priv->conn) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
-        goto cleanup;
-    }
-
-    if (args->maxids > REMOTE_DOMAIN_ID_LIST_MAX) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       "%s", _("maxids > REMOTE_DOMAIN_ID_LIST_MAX"));
-        goto cleanup;
-    }
-
-    /* Allocate return buffer. */
-    if (VIR_ALLOC_N(ret->ids.ids_val, args->maxids) < 0) {
-        virReportOOMError();
-        goto cleanup;
-    }
-
-    if ((len = virConnectListDomains(priv->conn, ret->ids.ids_val, args->maxids)) < 0)
-        goto cleanup;
-
-    ret->ids.ids_len = len;
-    rv = 0;
-
-cleanup:
-    if (rv < 0) {
-        virNetMessageSaveError(rerr);
-        VIR_FREE(ret->ids.ids_val);
-    }
-    return rv;
-}
-
-
-
-static int remoteDispatchListInterfaces(
-    virNetServerPtr server,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg,
-    virNetMessageErrorPtr rerr,
-    remote_list_interfaces_args *args,
-    remote_list_interfaces_ret *ret);
-static int remoteDispatchListInterfacesHelper(
-    virNetServerPtr server,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg,
-    virNetMessageErrorPtr rerr,
-    void *args,
-    void *ret)
-{
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
-  return remoteDispatchListInterfaces(server, client, msg, rerr, args, ret);
-}
-static int remoteDispatchListInterfaces(
-    virNetServerPtr server ATTRIBUTE_UNUSED,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg ATTRIBUTE_UNUSED,
-    virNetMessageErrorPtr rerr,
-    remote_list_interfaces_args *args,
-    remote_list_interfaces_ret *ret)
-{
-    int rv = -1;
-    int len;
-    struct daemonClientPrivate *priv =
-        virNetServerClientGetPrivateData(client);
-
-    if (!priv->conn) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
-        goto cleanup;
-    }
-
-    if (args->maxnames > REMOTE_INTERFACE_NAME_LIST_MAX) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       "%s", _("maxnames > REMOTE_INTERFACE_NAME_LIST_MAX"));
-        goto cleanup;
-    }
-
-    /* Allocate return buffer. */
-    if (VIR_ALLOC_N(ret->names.names_val, args->maxnames) < 0) {
-        virReportOOMError();
-        goto cleanup;
-    }
-
-    if ((len = virConnectListInterfaces(priv->conn, ret->names.names_val, args->maxnames)) < 0)
-        goto cleanup;
-
-    ret->names.names_len = len;
-    rv = 0;
-
-cleanup:
-    if (rv < 0) {
-        virNetMessageSaveError(rerr);
-        VIR_FREE(ret->names.names_val);
-    }
-    return rv;
-}
-
-
-
-static int remoteDispatchListNetworks(
-    virNetServerPtr server,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg,
-    virNetMessageErrorPtr rerr,
-    remote_list_networks_args *args,
-    remote_list_networks_ret *ret);
-static int remoteDispatchListNetworksHelper(
-    virNetServerPtr server,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg,
-    virNetMessageErrorPtr rerr,
-    void *args,
-    void *ret)
-{
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
-  return remoteDispatchListNetworks(server, client, msg, rerr, args, ret);
-}
-static int remoteDispatchListNetworks(
-    virNetServerPtr server ATTRIBUTE_UNUSED,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg ATTRIBUTE_UNUSED,
-    virNetMessageErrorPtr rerr,
-    remote_list_networks_args *args,
-    remote_list_networks_ret *ret)
-{
-    int rv = -1;
-    int len;
-    struct daemonClientPrivate *priv =
-        virNetServerClientGetPrivateData(client);
-
-    if (!priv->conn) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
-        goto cleanup;
-    }
-
-    if (args->maxnames > REMOTE_NETWORK_NAME_LIST_MAX) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       "%s", _("maxnames > REMOTE_NETWORK_NAME_LIST_MAX"));
-        goto cleanup;
-    }
-
-    /* Allocate return buffer. */
-    if (VIR_ALLOC_N(ret->names.names_val, args->maxnames) < 0) {
-        virReportOOMError();
-        goto cleanup;
-    }
-
-    if ((len = virConnectListNetworks(priv->conn, ret->names.names_val, args->maxnames)) < 0)
-        goto cleanup;
-
-    ret->names.names_len = len;
-    rv = 0;
-
-cleanup:
-    if (rv < 0) {
-        virNetMessageSaveError(rerr);
-        VIR_FREE(ret->names.names_val);
-    }
-    return rv;
-}
-
-
-
-static int remoteDispatchListNWFilters(
-    virNetServerPtr server,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg,
-    virNetMessageErrorPtr rerr,
-    remote_list_nwfilters_args *args,
-    remote_list_nwfilters_ret *ret);
-static int remoteDispatchListNWFiltersHelper(
-    virNetServerPtr server,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg,
-    virNetMessageErrorPtr rerr,
-    void *args,
-    void *ret)
-{
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
-  return remoteDispatchListNWFilters(server, client, msg, rerr, args, ret);
-}
-static int remoteDispatchListNWFilters(
-    virNetServerPtr server ATTRIBUTE_UNUSED,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg ATTRIBUTE_UNUSED,
-    virNetMessageErrorPtr rerr,
-    remote_list_nwfilters_args *args,
-    remote_list_nwfilters_ret *ret)
-{
-    int rv = -1;
-    int len;
-    struct daemonClientPrivate *priv =
-        virNetServerClientGetPrivateData(client);
-
-    if (!priv->conn) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
-        goto cleanup;
-    }
-
-    if (args->maxnames > REMOTE_NWFILTER_NAME_LIST_MAX) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       "%s", _("maxnames > REMOTE_NWFILTER_NAME_LIST_MAX"));
-        goto cleanup;
-    }
-
-    /* Allocate return buffer. */
-    if (VIR_ALLOC_N(ret->names.names_val, args->maxnames) < 0) {
-        virReportOOMError();
-        goto cleanup;
-    }
-
-    if ((len = virConnectListNWFilters(priv->conn, ret->names.names_val, args->maxnames)) < 0)
-        goto cleanup;
-
-    ret->names.names_len = len;
-    rv = 0;
-
-cleanup:
-    if (rv < 0) {
-        virNetMessageSaveError(rerr);
-        VIR_FREE(ret->names.names_val);
-    }
-    return rv;
-}
-
-
-
-static int remoteDispatchListSecrets(
-    virNetServerPtr server,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg,
-    virNetMessageErrorPtr rerr,
-    remote_list_secrets_args *args,
-    remote_list_secrets_ret *ret);
-static int remoteDispatchListSecretsHelper(
-    virNetServerPtr server,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg,
-    virNetMessageErrorPtr rerr,
-    void *args,
-    void *ret)
-{
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
-  return remoteDispatchListSecrets(server, client, msg, rerr, args, ret);
-}
-static int remoteDispatchListSecrets(
-    virNetServerPtr server ATTRIBUTE_UNUSED,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg ATTRIBUTE_UNUSED,
-    virNetMessageErrorPtr rerr,
-    remote_list_secrets_args *args,
-    remote_list_secrets_ret *ret)
-{
-    int rv = -1;
-    int len;
-    struct daemonClientPrivate *priv =
-        virNetServerClientGetPrivateData(client);
-
-    if (!priv->conn) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
-        goto cleanup;
-    }
-
-    if (args->maxuuids > REMOTE_SECRET_UUID_LIST_MAX) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       "%s", _("maxuuids > REMOTE_SECRET_UUID_LIST_MAX"));
-        goto cleanup;
-    }
-
-    /* Allocate return buffer. */
-    if (VIR_ALLOC_N(ret->uuids.uuids_val, args->maxuuids) < 0) {
-        virReportOOMError();
-        goto cleanup;
-    }
-
-    if ((len = virConnectListSecrets(priv->conn, ret->uuids.uuids_val, args->maxuuids)) < 0)
-        goto cleanup;
-
-    ret->uuids.uuids_len = len;
-    rv = 0;
-
-cleanup:
-    if (rv < 0) {
-        virNetMessageSaveError(rerr);
-        VIR_FREE(ret->uuids.uuids_val);
-    }
-    return rv;
-}
-
-
-
-static int remoteDispatchListStoragePools(
-    virNetServerPtr server,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg,
-    virNetMessageErrorPtr rerr,
-    remote_list_storage_pools_args *args,
-    remote_list_storage_pools_ret *ret);
-static int remoteDispatchListStoragePoolsHelper(
-    virNetServerPtr server,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg,
-    virNetMessageErrorPtr rerr,
-    void *args,
-    void *ret)
-{
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
-  return remoteDispatchListStoragePools(server, client, msg, rerr, args, ret);
-}
-static int remoteDispatchListStoragePools(
-    virNetServerPtr server ATTRIBUTE_UNUSED,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg ATTRIBUTE_UNUSED,
-    virNetMessageErrorPtr rerr,
-    remote_list_storage_pools_args *args,
-    remote_list_storage_pools_ret *ret)
-{
-    int rv = -1;
-    int len;
-    struct daemonClientPrivate *priv =
-        virNetServerClientGetPrivateData(client);
-
-    if (!priv->conn) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
-        goto cleanup;
-    }
-
-    if (args->maxnames > REMOTE_STORAGE_POOL_NAME_LIST_MAX) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       "%s", _("maxnames > REMOTE_STORAGE_POOL_NAME_LIST_MAX"));
-        goto cleanup;
-    }
-
-    /* Allocate return buffer. */
-    if (VIR_ALLOC_N(ret->names.names_val, args->maxnames) < 0) {
-        virReportOOMError();
-        goto cleanup;
-    }
-
-    if ((len = virConnectListStoragePools(priv->conn, ret->names.names_val, args->maxnames)) < 0)
-        goto cleanup;
-
-    ret->names.names_len = len;
-    rv = 0;
-
-cleanup:
-    if (rv < 0) {
-        virNetMessageSaveError(rerr);
-        VIR_FREE(ret->names.names_val);
-    }
     return rv;
 }
 
@@ -9767,6 +10290,61 @@ static int remoteDispatchNodeDeviceDestroy(
         goto cleanup;
 
     if (virNodeDeviceDestroy(dev) < 0)
+        goto cleanup;
+
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    if (dev)
+        virNodeDeviceFree(dev);
+    return rv;
+}
+
+
+
+static int remoteDispatchNodeDeviceDetachFlags(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_node_device_detach_flags_args *args);
+static int remoteDispatchNodeDeviceDetachFlagsHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret ATTRIBUTE_UNUSED)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchNodeDeviceDetachFlags(server, client, msg, rerr, args);
+}
+static int remoteDispatchNodeDeviceDetachFlags(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_node_device_detach_flags_args *args)
+{
+    int rv = -1;
+    virNodeDevicePtr dev = NULL;
+    char *driverName;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (!(dev = virNodeDeviceLookupByName(priv->conn, args->name)))
+        goto cleanup;
+
+    driverName = args->driverName ? *args->driverName : NULL;
+
+    if (virNodeDeviceDetachFlags(dev, driverName, args->flags) < 0)
         goto cleanup;
 
     rv = 0;
@@ -10742,486 +11320,6 @@ cleanup:
 
 
 
-static int remoteDispatchNumOfDefinedDomains(
-    virNetServerPtr server,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg,
-    virNetMessageErrorPtr rerr,
-    remote_num_of_defined_domains_ret *ret);
-static int remoteDispatchNumOfDefinedDomainsHelper(
-    virNetServerPtr server,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg,
-    virNetMessageErrorPtr rerr,
-    void *args ATTRIBUTE_UNUSED,
-    void *ret)
-{
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
-  return remoteDispatchNumOfDefinedDomains(server, client, msg, rerr, ret);
-}
-static int remoteDispatchNumOfDefinedDomains(
-    virNetServerPtr server ATTRIBUTE_UNUSED,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg ATTRIBUTE_UNUSED,
-    virNetMessageErrorPtr rerr,
-    remote_num_of_defined_domains_ret *ret)
-{
-    int rv = -1;
-    int num;
-    struct daemonClientPrivate *priv =
-        virNetServerClientGetPrivateData(client);
-
-    if (!priv->conn) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
-        goto cleanup;
-    }
-
-    if ((num = virConnectNumOfDefinedDomains(priv->conn)) < 0)
-        goto cleanup;
-
-    ret->num = num;
-    rv = 0;
-
-cleanup:
-    if (rv < 0)
-        virNetMessageSaveError(rerr);
-    return rv;
-}
-
-
-
-static int remoteDispatchNumOfDefinedInterfaces(
-    virNetServerPtr server,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg,
-    virNetMessageErrorPtr rerr,
-    remote_num_of_defined_interfaces_ret *ret);
-static int remoteDispatchNumOfDefinedInterfacesHelper(
-    virNetServerPtr server,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg,
-    virNetMessageErrorPtr rerr,
-    void *args ATTRIBUTE_UNUSED,
-    void *ret)
-{
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
-  return remoteDispatchNumOfDefinedInterfaces(server, client, msg, rerr, ret);
-}
-static int remoteDispatchNumOfDefinedInterfaces(
-    virNetServerPtr server ATTRIBUTE_UNUSED,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg ATTRIBUTE_UNUSED,
-    virNetMessageErrorPtr rerr,
-    remote_num_of_defined_interfaces_ret *ret)
-{
-    int rv = -1;
-    int num;
-    struct daemonClientPrivate *priv =
-        virNetServerClientGetPrivateData(client);
-
-    if (!priv->conn) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
-        goto cleanup;
-    }
-
-    if ((num = virConnectNumOfDefinedInterfaces(priv->conn)) < 0)
-        goto cleanup;
-
-    ret->num = num;
-    rv = 0;
-
-cleanup:
-    if (rv < 0)
-        virNetMessageSaveError(rerr);
-    return rv;
-}
-
-
-
-static int remoteDispatchNumOfDefinedNetworks(
-    virNetServerPtr server,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg,
-    virNetMessageErrorPtr rerr,
-    remote_num_of_defined_networks_ret *ret);
-static int remoteDispatchNumOfDefinedNetworksHelper(
-    virNetServerPtr server,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg,
-    virNetMessageErrorPtr rerr,
-    void *args ATTRIBUTE_UNUSED,
-    void *ret)
-{
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
-  return remoteDispatchNumOfDefinedNetworks(server, client, msg, rerr, ret);
-}
-static int remoteDispatchNumOfDefinedNetworks(
-    virNetServerPtr server ATTRIBUTE_UNUSED,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg ATTRIBUTE_UNUSED,
-    virNetMessageErrorPtr rerr,
-    remote_num_of_defined_networks_ret *ret)
-{
-    int rv = -1;
-    int num;
-    struct daemonClientPrivate *priv =
-        virNetServerClientGetPrivateData(client);
-
-    if (!priv->conn) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
-        goto cleanup;
-    }
-
-    if ((num = virConnectNumOfDefinedNetworks(priv->conn)) < 0)
-        goto cleanup;
-
-    ret->num = num;
-    rv = 0;
-
-cleanup:
-    if (rv < 0)
-        virNetMessageSaveError(rerr);
-    return rv;
-}
-
-
-
-static int remoteDispatchNumOfDefinedStoragePools(
-    virNetServerPtr server,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg,
-    virNetMessageErrorPtr rerr,
-    remote_num_of_defined_storage_pools_ret *ret);
-static int remoteDispatchNumOfDefinedStoragePoolsHelper(
-    virNetServerPtr server,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg,
-    virNetMessageErrorPtr rerr,
-    void *args ATTRIBUTE_UNUSED,
-    void *ret)
-{
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
-  return remoteDispatchNumOfDefinedStoragePools(server, client, msg, rerr, ret);
-}
-static int remoteDispatchNumOfDefinedStoragePools(
-    virNetServerPtr server ATTRIBUTE_UNUSED,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg ATTRIBUTE_UNUSED,
-    virNetMessageErrorPtr rerr,
-    remote_num_of_defined_storage_pools_ret *ret)
-{
-    int rv = -1;
-    int num;
-    struct daemonClientPrivate *priv =
-        virNetServerClientGetPrivateData(client);
-
-    if (!priv->conn) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
-        goto cleanup;
-    }
-
-    if ((num = virConnectNumOfDefinedStoragePools(priv->conn)) < 0)
-        goto cleanup;
-
-    ret->num = num;
-    rv = 0;
-
-cleanup:
-    if (rv < 0)
-        virNetMessageSaveError(rerr);
-    return rv;
-}
-
-
-
-static int remoteDispatchNumOfDomains(
-    virNetServerPtr server,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg,
-    virNetMessageErrorPtr rerr,
-    remote_num_of_domains_ret *ret);
-static int remoteDispatchNumOfDomainsHelper(
-    virNetServerPtr server,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg,
-    virNetMessageErrorPtr rerr,
-    void *args ATTRIBUTE_UNUSED,
-    void *ret)
-{
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
-  return remoteDispatchNumOfDomains(server, client, msg, rerr, ret);
-}
-static int remoteDispatchNumOfDomains(
-    virNetServerPtr server ATTRIBUTE_UNUSED,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg ATTRIBUTE_UNUSED,
-    virNetMessageErrorPtr rerr,
-    remote_num_of_domains_ret *ret)
-{
-    int rv = -1;
-    int num;
-    struct daemonClientPrivate *priv =
-        virNetServerClientGetPrivateData(client);
-
-    if (!priv->conn) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
-        goto cleanup;
-    }
-
-    if ((num = virConnectNumOfDomains(priv->conn)) < 0)
-        goto cleanup;
-
-    ret->num = num;
-    rv = 0;
-
-cleanup:
-    if (rv < 0)
-        virNetMessageSaveError(rerr);
-    return rv;
-}
-
-
-
-static int remoteDispatchNumOfInterfaces(
-    virNetServerPtr server,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg,
-    virNetMessageErrorPtr rerr,
-    remote_num_of_interfaces_ret *ret);
-static int remoteDispatchNumOfInterfacesHelper(
-    virNetServerPtr server,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg,
-    virNetMessageErrorPtr rerr,
-    void *args ATTRIBUTE_UNUSED,
-    void *ret)
-{
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
-  return remoteDispatchNumOfInterfaces(server, client, msg, rerr, ret);
-}
-static int remoteDispatchNumOfInterfaces(
-    virNetServerPtr server ATTRIBUTE_UNUSED,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg ATTRIBUTE_UNUSED,
-    virNetMessageErrorPtr rerr,
-    remote_num_of_interfaces_ret *ret)
-{
-    int rv = -1;
-    int num;
-    struct daemonClientPrivate *priv =
-        virNetServerClientGetPrivateData(client);
-
-    if (!priv->conn) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
-        goto cleanup;
-    }
-
-    if ((num = virConnectNumOfInterfaces(priv->conn)) < 0)
-        goto cleanup;
-
-    ret->num = num;
-    rv = 0;
-
-cleanup:
-    if (rv < 0)
-        virNetMessageSaveError(rerr);
-    return rv;
-}
-
-
-
-static int remoteDispatchNumOfNetworks(
-    virNetServerPtr server,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg,
-    virNetMessageErrorPtr rerr,
-    remote_num_of_networks_ret *ret);
-static int remoteDispatchNumOfNetworksHelper(
-    virNetServerPtr server,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg,
-    virNetMessageErrorPtr rerr,
-    void *args ATTRIBUTE_UNUSED,
-    void *ret)
-{
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
-  return remoteDispatchNumOfNetworks(server, client, msg, rerr, ret);
-}
-static int remoteDispatchNumOfNetworks(
-    virNetServerPtr server ATTRIBUTE_UNUSED,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg ATTRIBUTE_UNUSED,
-    virNetMessageErrorPtr rerr,
-    remote_num_of_networks_ret *ret)
-{
-    int rv = -1;
-    int num;
-    struct daemonClientPrivate *priv =
-        virNetServerClientGetPrivateData(client);
-
-    if (!priv->conn) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
-        goto cleanup;
-    }
-
-    if ((num = virConnectNumOfNetworks(priv->conn)) < 0)
-        goto cleanup;
-
-    ret->num = num;
-    rv = 0;
-
-cleanup:
-    if (rv < 0)
-        virNetMessageSaveError(rerr);
-    return rv;
-}
-
-
-
-static int remoteDispatchNumOfNWFilters(
-    virNetServerPtr server,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg,
-    virNetMessageErrorPtr rerr,
-    remote_num_of_nwfilters_ret *ret);
-static int remoteDispatchNumOfNWFiltersHelper(
-    virNetServerPtr server,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg,
-    virNetMessageErrorPtr rerr,
-    void *args ATTRIBUTE_UNUSED,
-    void *ret)
-{
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
-  return remoteDispatchNumOfNWFilters(server, client, msg, rerr, ret);
-}
-static int remoteDispatchNumOfNWFilters(
-    virNetServerPtr server ATTRIBUTE_UNUSED,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg ATTRIBUTE_UNUSED,
-    virNetMessageErrorPtr rerr,
-    remote_num_of_nwfilters_ret *ret)
-{
-    int rv = -1;
-    int num;
-    struct daemonClientPrivate *priv =
-        virNetServerClientGetPrivateData(client);
-
-    if (!priv->conn) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
-        goto cleanup;
-    }
-
-    if ((num = virConnectNumOfNWFilters(priv->conn)) < 0)
-        goto cleanup;
-
-    ret->num = num;
-    rv = 0;
-
-cleanup:
-    if (rv < 0)
-        virNetMessageSaveError(rerr);
-    return rv;
-}
-
-
-
-static int remoteDispatchNumOfSecrets(
-    virNetServerPtr server,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg,
-    virNetMessageErrorPtr rerr,
-    remote_num_of_secrets_ret *ret);
-static int remoteDispatchNumOfSecretsHelper(
-    virNetServerPtr server,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg,
-    virNetMessageErrorPtr rerr,
-    void *args ATTRIBUTE_UNUSED,
-    void *ret)
-{
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
-  return remoteDispatchNumOfSecrets(server, client, msg, rerr, ret);
-}
-static int remoteDispatchNumOfSecrets(
-    virNetServerPtr server ATTRIBUTE_UNUSED,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg ATTRIBUTE_UNUSED,
-    virNetMessageErrorPtr rerr,
-    remote_num_of_secrets_ret *ret)
-{
-    int rv = -1;
-    int num;
-    struct daemonClientPrivate *priv =
-        virNetServerClientGetPrivateData(client);
-
-    if (!priv->conn) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
-        goto cleanup;
-    }
-
-    if ((num = virConnectNumOfSecrets(priv->conn)) < 0)
-        goto cleanup;
-
-    ret->num = num;
-    rv = 0;
-
-cleanup:
-    if (rv < 0)
-        virNetMessageSaveError(rerr);
-    return rv;
-}
-
-
-
-static int remoteDispatchNumOfStoragePools(
-    virNetServerPtr server,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg,
-    virNetMessageErrorPtr rerr,
-    remote_num_of_storage_pools_ret *ret);
-static int remoteDispatchNumOfStoragePoolsHelper(
-    virNetServerPtr server,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg,
-    virNetMessageErrorPtr rerr,
-    void *args ATTRIBUTE_UNUSED,
-    void *ret)
-{
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
-  return remoteDispatchNumOfStoragePools(server, client, msg, rerr, ret);
-}
-static int remoteDispatchNumOfStoragePools(
-    virNetServerPtr server ATTRIBUTE_UNUSED,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg ATTRIBUTE_UNUSED,
-    virNetMessageErrorPtr rerr,
-    remote_num_of_storage_pools_ret *ret)
-{
-    int rv = -1;
-    int num;
-    struct daemonClientPrivate *priv =
-        virNetServerClientGetPrivateData(client);
-
-    if (!priv->conn) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
-        goto cleanup;
-    }
-
-    if ((num = virConnectNumOfStoragePools(priv->conn)) < 0)
-        goto cleanup;
-
-    ret->num = num;
-    rv = 0;
-
-cleanup:
-    if (rv < 0)
-        virNetMessageSaveError(rerr);
-    return rv;
-}
-
-
-
 static int remoteDispatchNWFilterDefineXML(
     virNetServerPtr server,
     virNetServerClientPtr client,
@@ -11483,27 +11581,6 @@ cleanup:
         virNWFilterFree(nwfilter);
     return rv;
 }
-
-
-
-static int remoteDispatchOpen(
-    virNetServerPtr server,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg,
-    virNetMessageErrorPtr rerr,
-    remote_open_args *args);
-static int remoteDispatchOpenHelper(
-    virNetServerPtr server,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg,
-    virNetMessageErrorPtr rerr,
-    void *args,
-    void *ret ATTRIBUTE_UNUSED)
-{
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
-  return remoteDispatchOpen(server, client, msg, rerr, args);
-}
-/* remoteDispatchOpen body has to be implemented manually */
 
 
 
@@ -13708,28 +13785,6 @@ cleanup:
 
 
 
-static int remoteDispatchSupportsFeature(
-    virNetServerPtr server,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg,
-    virNetMessageErrorPtr rerr,
-    remote_supports_feature_args *args,
-    remote_supports_feature_ret *ret);
-static int remoteDispatchSupportsFeatureHelper(
-    virNetServerPtr server,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg,
-    virNetMessageErrorPtr rerr,
-    void *args,
-    void *ret)
-{
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
-  return remoteDispatchSupportsFeature(server, client, msg, rerr, args, ret);
-}
-/* remoteDispatchSupportsFeature body has to be implemented manually */
-
-
-
 virNetServerProgramProc remoteProcs[] = {
 { /* Unused 0 */
    NULL,
@@ -13740,17 +13795,17 @@ virNetServerProgramProc remoteProcs[] = {
    true,
    0
 },
-{ /* Method Open => 1 */
-   remoteDispatchOpenHelper,
-   sizeof(remote_open_args),
-   (xdrproc_t)xdr_remote_open_args,
+{ /* Method ConnectOpen => 1 */
+   remoteDispatchConnectOpenHelper,
+   sizeof(remote_connect_open_args),
+   (xdrproc_t)xdr_remote_connect_open_args,
    0,
    (xdrproc_t)xdr_void,
    true,
    1
 },
-{ /* Method Close => 2 */
-   remoteDispatchCloseHelper,
+{ /* Method ConnectClose => 2 */
+   remoteDispatchConnectCloseHelper,
    0,
    (xdrproc_t)xdr_void,
    0,
@@ -13758,30 +13813,30 @@ virNetServerProgramProc remoteProcs[] = {
    true,
    1
 },
-{ /* Method GetType => 3 */
-   remoteDispatchGetTypeHelper,
+{ /* Method ConnectGetType => 3 */
+   remoteDispatchConnectGetTypeHelper,
    0,
    (xdrproc_t)xdr_void,
-   sizeof(remote_get_type_ret),
-   (xdrproc_t)xdr_remote_get_type_ret,
+   sizeof(remote_connect_get_type_ret),
+   (xdrproc_t)xdr_remote_connect_get_type_ret,
    true,
    1
 },
-{ /* Method GetVersion => 4 */
-   remoteDispatchGetVersionHelper,
+{ /* Method ConnectGetVersion => 4 */
+   remoteDispatchConnectGetVersionHelper,
    0,
    (xdrproc_t)xdr_void,
-   sizeof(remote_get_version_ret),
-   (xdrproc_t)xdr_remote_get_version_ret,
+   sizeof(remote_connect_get_version_ret),
+   (xdrproc_t)xdr_remote_connect_get_version_ret,
    true,
    1
 },
-{ /* Method GetMaxVcpus => 5 */
-   remoteDispatchGetMaxVcpusHelper,
-   sizeof(remote_get_max_vcpus_args),
-   (xdrproc_t)xdr_remote_get_max_vcpus_args,
-   sizeof(remote_get_max_vcpus_ret),
-   (xdrproc_t)xdr_remote_get_max_vcpus_ret,
+{ /* Method ConnectGetMaxVcpus => 5 */
+   remoteDispatchConnectGetMaxVcpusHelper,
+   sizeof(remote_connect_get_max_vcpus_args),
+   (xdrproc_t)xdr_remote_connect_get_max_vcpus_args,
+   sizeof(remote_connect_get_max_vcpus_ret),
+   (xdrproc_t)xdr_remote_connect_get_max_vcpus_ret,
    true,
    1
 },
@@ -13794,12 +13849,12 @@ virNetServerProgramProc remoteProcs[] = {
    true,
    1
 },
-{ /* Method GetCapabilities => 7 */
-   remoteDispatchGetCapabilitiesHelper,
+{ /* Method ConnectGetCapabilities => 7 */
+   remoteDispatchConnectGetCapabilitiesHelper,
    0,
    (xdrproc_t)xdr_void,
-   sizeof(remote_get_capabilities_ret),
-   (xdrproc_t)xdr_remote_get_capabilities_ret,
+   sizeof(remote_connect_get_capabilities_ret),
+   (xdrproc_t)xdr_remote_connect_get_capabilities_ret,
    true,
    0
 },
@@ -13920,12 +13975,12 @@ virNetServerProgramProc remoteProcs[] = {
    true,
    1
 },
-{ /* Method ListDefinedDomains => 21 */
-   remoteDispatchListDefinedDomainsHelper,
-   sizeof(remote_list_defined_domains_args),
-   (xdrproc_t)xdr_remote_list_defined_domains_args,
-   sizeof(remote_list_defined_domains_ret),
-   (xdrproc_t)xdr_remote_list_defined_domains_ret,
+{ /* Method ConnectListDefinedDomains => 21 */
+   remoteDispatchConnectListDefinedDomainsHelper,
+   sizeof(remote_connect_list_defined_domains_args),
+   (xdrproc_t)xdr_remote_connect_list_defined_domains_args,
+   sizeof(remote_connect_list_defined_domains_ret),
+   (xdrproc_t)xdr_remote_connect_list_defined_domains_ret,
    true,
    1
 },
@@ -13956,12 +14011,12 @@ virNetServerProgramProc remoteProcs[] = {
    true,
    1
 },
-{ /* Method NumOfDefinedDomains => 25 */
-   remoteDispatchNumOfDefinedDomainsHelper,
+{ /* Method ConnectNumOfDefinedDomains => 25 */
+   remoteDispatchConnectNumOfDefinedDomainsHelper,
    0,
    (xdrproc_t)xdr_void,
-   sizeof(remote_num_of_defined_domains_ret),
-   (xdrproc_t)xdr_remote_num_of_defined_domains_ret,
+   sizeof(remote_connect_num_of_defined_domains_ret),
+   (xdrproc_t)xdr_remote_connect_num_of_defined_domains_ret,
    true,
    1
 },
@@ -14055,30 +14110,30 @@ virNetServerProgramProc remoteProcs[] = {
    true,
    1
 },
-{ /* Method ListDefinedNetworks => 36 */
-   remoteDispatchListDefinedNetworksHelper,
-   sizeof(remote_list_defined_networks_args),
-   (xdrproc_t)xdr_remote_list_defined_networks_args,
-   sizeof(remote_list_defined_networks_ret),
-   (xdrproc_t)xdr_remote_list_defined_networks_ret,
+{ /* Method ConnectListDefinedNetworks => 36 */
+   remoteDispatchConnectListDefinedNetworksHelper,
+   sizeof(remote_connect_list_defined_networks_args),
+   (xdrproc_t)xdr_remote_connect_list_defined_networks_args,
+   sizeof(remote_connect_list_defined_networks_ret),
+   (xdrproc_t)xdr_remote_connect_list_defined_networks_ret,
    true,
    1
 },
-{ /* Method ListDomains => 37 */
-   remoteDispatchListDomainsHelper,
-   sizeof(remote_list_domains_args),
-   (xdrproc_t)xdr_remote_list_domains_args,
-   sizeof(remote_list_domains_ret),
-   (xdrproc_t)xdr_remote_list_domains_ret,
+{ /* Method ConnectListDomains => 37 */
+   remoteDispatchConnectListDomainsHelper,
+   sizeof(remote_connect_list_domains_args),
+   (xdrproc_t)xdr_remote_connect_list_domains_args,
+   sizeof(remote_connect_list_domains_ret),
+   (xdrproc_t)xdr_remote_connect_list_domains_ret,
    true,
    1
 },
-{ /* Method ListNetworks => 38 */
-   remoteDispatchListNetworksHelper,
-   sizeof(remote_list_networks_args),
-   (xdrproc_t)xdr_remote_list_networks_args,
-   sizeof(remote_list_networks_ret),
-   (xdrproc_t)xdr_remote_list_networks_ret,
+{ /* Method ConnectListNetworks => 38 */
+   remoteDispatchConnectListNetworksHelper,
+   sizeof(remote_connect_list_networks_args),
+   (xdrproc_t)xdr_remote_connect_list_networks_args,
+   sizeof(remote_connect_list_networks_ret),
+   (xdrproc_t)xdr_remote_connect_list_networks_ret,
    true,
    1
 },
@@ -14181,30 +14236,30 @@ virNetServerProgramProc remoteProcs[] = {
    true,
    1
 },
-{ /* Method NumOfDefinedNetworks => 50 */
-   remoteDispatchNumOfDefinedNetworksHelper,
+{ /* Method ConnectNumOfDefinedNetworks => 50 */
+   remoteDispatchConnectNumOfDefinedNetworksHelper,
    0,
    (xdrproc_t)xdr_void,
-   sizeof(remote_num_of_defined_networks_ret),
-   (xdrproc_t)xdr_remote_num_of_defined_networks_ret,
+   sizeof(remote_connect_num_of_defined_networks_ret),
+   (xdrproc_t)xdr_remote_connect_num_of_defined_networks_ret,
    true,
    1
 },
-{ /* Method NumOfDomains => 51 */
-   remoteDispatchNumOfDomainsHelper,
+{ /* Method ConnectNumOfDomains => 51 */
+   remoteDispatchConnectNumOfDomainsHelper,
    0,
    (xdrproc_t)xdr_void,
-   sizeof(remote_num_of_domains_ret),
-   (xdrproc_t)xdr_remote_num_of_domains_ret,
+   sizeof(remote_connect_num_of_domains_ret),
+   (xdrproc_t)xdr_remote_connect_num_of_domains_ret,
    true,
    1
 },
-{ /* Method NumOfNetworks => 52 */
-   remoteDispatchNumOfNetworksHelper,
+{ /* Method ConnectNumOfNetworks => 52 */
+   remoteDispatchConnectNumOfNetworksHelper,
    0,
    (xdrproc_t)xdr_void,
-   sizeof(remote_num_of_networks_ret),
-   (xdrproc_t)xdr_remote_num_of_networks_ret,
+   sizeof(remote_connect_num_of_networks_ret),
+   (xdrproc_t)xdr_remote_connect_num_of_networks_ret,
    true,
    1
 },
@@ -14262,21 +14317,21 @@ virNetServerProgramProc remoteProcs[] = {
    true,
    0
 },
-{ /* Method GetHostname => 59 */
-   remoteDispatchGetHostnameHelper,
+{ /* Method ConnectGetHostname => 59 */
+   remoteDispatchConnectGetHostnameHelper,
    0,
    (xdrproc_t)xdr_void,
-   sizeof(remote_get_hostname_ret),
-   (xdrproc_t)xdr_remote_get_hostname_ret,
+   sizeof(remote_connect_get_hostname_ret),
+   (xdrproc_t)xdr_remote_connect_get_hostname_ret,
    true,
    1
 },
-{ /* Method SupportsFeature => 60 */
-   remoteDispatchSupportsFeatureHelper,
-   sizeof(remote_supports_feature_args),
-   (xdrproc_t)xdr_remote_supports_feature_args,
-   sizeof(remote_supports_feature_ret),
-   (xdrproc_t)xdr_remote_supports_feature_ret,
+{ /* Method ConnectSupportsFeature => 60 */
+   remoteDispatchConnectSupportsFeatureHelper,
+   sizeof(remote_connect_supports_feature_args),
+   (xdrproc_t)xdr_remote_connect_supports_feature_args,
+   sizeof(remote_connect_supports_feature_ret),
+   (xdrproc_t)xdr_remote_connect_supports_feature_ret,
    true,
    1
 },
@@ -14370,48 +14425,48 @@ virNetServerProgramProc remoteProcs[] = {
    true,
    1
 },
-{ /* Method NumOfStoragePools => 71 */
-   remoteDispatchNumOfStoragePoolsHelper,
+{ /* Method ConnectNumOfStoragePools => 71 */
+   remoteDispatchConnectNumOfStoragePoolsHelper,
    0,
    (xdrproc_t)xdr_void,
-   sizeof(remote_num_of_storage_pools_ret),
-   (xdrproc_t)xdr_remote_num_of_storage_pools_ret,
+   sizeof(remote_connect_num_of_storage_pools_ret),
+   (xdrproc_t)xdr_remote_connect_num_of_storage_pools_ret,
    true,
    1
 },
-{ /* Method ListStoragePools => 72 */
-   remoteDispatchListStoragePoolsHelper,
-   sizeof(remote_list_storage_pools_args),
-   (xdrproc_t)xdr_remote_list_storage_pools_args,
-   sizeof(remote_list_storage_pools_ret),
-   (xdrproc_t)xdr_remote_list_storage_pools_ret,
+{ /* Method ConnectListStoragePools => 72 */
+   remoteDispatchConnectListStoragePoolsHelper,
+   sizeof(remote_connect_list_storage_pools_args),
+   (xdrproc_t)xdr_remote_connect_list_storage_pools_args,
+   sizeof(remote_connect_list_storage_pools_ret),
+   (xdrproc_t)xdr_remote_connect_list_storage_pools_ret,
    true,
    1
 },
-{ /* Method NumOfDefinedStoragePools => 73 */
-   remoteDispatchNumOfDefinedStoragePoolsHelper,
+{ /* Method ConnectNumOfDefinedStoragePools => 73 */
+   remoteDispatchConnectNumOfDefinedStoragePoolsHelper,
    0,
    (xdrproc_t)xdr_void,
-   sizeof(remote_num_of_defined_storage_pools_ret),
-   (xdrproc_t)xdr_remote_num_of_defined_storage_pools_ret,
+   sizeof(remote_connect_num_of_defined_storage_pools_ret),
+   (xdrproc_t)xdr_remote_connect_num_of_defined_storage_pools_ret,
    true,
    1
 },
-{ /* Method ListDefinedStoragePools => 74 */
-   remoteDispatchListDefinedStoragePoolsHelper,
-   sizeof(remote_list_defined_storage_pools_args),
-   (xdrproc_t)xdr_remote_list_defined_storage_pools_args,
-   sizeof(remote_list_defined_storage_pools_ret),
-   (xdrproc_t)xdr_remote_list_defined_storage_pools_ret,
+{ /* Method ConnectListDefinedStoragePools => 74 */
+   remoteDispatchConnectListDefinedStoragePoolsHelper,
+   sizeof(remote_connect_list_defined_storage_pools_args),
+   (xdrproc_t)xdr_remote_connect_list_defined_storage_pools_args,
+   sizeof(remote_connect_list_defined_storage_pools_ret),
+   (xdrproc_t)xdr_remote_connect_list_defined_storage_pools_ret,
    true,
    1
 },
-{ /* Method FindStoragePoolSources => 75 */
-   remoteDispatchFindStoragePoolSourcesHelper,
-   sizeof(remote_find_storage_pool_sources_args),
-   (xdrproc_t)xdr_remote_find_storage_pool_sources_args,
-   sizeof(remote_find_storage_pool_sources_ret),
-   (xdrproc_t)xdr_remote_find_storage_pool_sources_ret,
+{ /* Method ConnectFindStoragePoolSources => 75 */
+   remoteDispatchConnectFindStoragePoolSourcesHelper,
+   sizeof(remote_connect_find_storage_pool_sources_args),
+   (xdrproc_t)xdr_remote_connect_find_storage_pool_sources_args,
+   sizeof(remote_connect_find_storage_pool_sources_ret),
+   (xdrproc_t)xdr_remote_connect_find_storage_pool_sources_ret,
    true,
    0
 },
@@ -14676,21 +14731,21 @@ virNetServerProgramProc remoteProcs[] = {
    true,
    0
 },
-{ /* Method DomainEventsRegister => 105 */
-   remoteDispatchDomainEventsRegisterHelper,
+{ /* Method ConnectDomainEventRegister => 105 */
+   remoteDispatchConnectDomainEventRegisterHelper,
    0,
    (xdrproc_t)xdr_void,
-   sizeof(remote_domain_events_register_ret),
-   (xdrproc_t)xdr_remote_domain_events_register_ret,
+   sizeof(remote_connect_domain_event_register_ret),
+   (xdrproc_t)xdr_remote_connect_domain_event_register_ret,
    true,
    1
 },
-{ /* Method DomainEventsDeregister => 106 */
-   remoteDispatchDomainEventsDeregisterHelper,
+{ /* Method ConnectDomainEventDeregister => 106 */
+   remoteDispatchConnectDomainEventDeregisterHelper,
    0,
    (xdrproc_t)xdr_void,
-   sizeof(remote_domain_events_deregister_ret),
-   (xdrproc_t)xdr_remote_domain_events_deregister_ret,
+   sizeof(remote_connect_domain_event_deregister_ret),
+   (xdrproc_t)xdr_remote_connect_domain_event_deregister_ret,
    true,
    1
 },
@@ -14721,12 +14776,12 @@ virNetServerProgramProc remoteProcs[] = {
    true,
    0
 },
-{ /* Method GetURI => 110 */
-   remoteDispatchGetURIHelper,
+{ /* Method ConnectGetURI => 110 */
+   remoteDispatchConnectGetURIHelper,
    0,
    (xdrproc_t)xdr_void,
-   sizeof(remote_get_uri_ret),
-   (xdrproc_t)xdr_remote_get_uri_ret,
+   sizeof(remote_connect_get_uri_ret),
+   (xdrproc_t)xdr_remote_connect_get_uri_ret,
    true,
    1
 },
@@ -14865,21 +14920,21 @@ virNetServerProgramProc remoteProcs[] = {
    true,
    0
 },
-{ /* Method NumOfInterfaces => 126 */
-   remoteDispatchNumOfInterfacesHelper,
+{ /* Method ConnectNumOfInterfaces => 126 */
+   remoteDispatchConnectNumOfInterfacesHelper,
    0,
    (xdrproc_t)xdr_void,
-   sizeof(remote_num_of_interfaces_ret),
-   (xdrproc_t)xdr_remote_num_of_interfaces_ret,
+   sizeof(remote_connect_num_of_interfaces_ret),
+   (xdrproc_t)xdr_remote_connect_num_of_interfaces_ret,
    true,
    1
 },
-{ /* Method ListInterfaces => 127 */
-   remoteDispatchListInterfacesHelper,
-   sizeof(remote_list_interfaces_args),
-   (xdrproc_t)xdr_remote_list_interfaces_args,
-   sizeof(remote_list_interfaces_ret),
-   (xdrproc_t)xdr_remote_list_interfaces_ret,
+{ /* Method ConnectListInterfaces => 127 */
+   remoteDispatchConnectListInterfacesHelper,
+   sizeof(remote_connect_list_interfaces_args),
+   (xdrproc_t)xdr_remote_connect_list_interfaces_args,
+   sizeof(remote_connect_list_interfaces_ret),
+   (xdrproc_t)xdr_remote_connect_list_interfaces_ret,
    true,
    1
 },
@@ -14946,57 +15001,57 @@ virNetServerProgramProc remoteProcs[] = {
    true,
    1
 },
-{ /* Method DomainXMLFromNative => 135 */
-   remoteDispatchDomainXMLFromNativeHelper,
-   sizeof(remote_domain_xml_from_native_args),
-   (xdrproc_t)xdr_remote_domain_xml_from_native_args,
-   sizeof(remote_domain_xml_from_native_ret),
-   (xdrproc_t)xdr_remote_domain_xml_from_native_ret,
+{ /* Method ConnectDomainXMLFromNative => 135 */
+   remoteDispatchConnectDomainXMLFromNativeHelper,
+   sizeof(remote_connect_domain_xml_from_native_args),
+   (xdrproc_t)xdr_remote_connect_domain_xml_from_native_args,
+   sizeof(remote_connect_domain_xml_from_native_ret),
+   (xdrproc_t)xdr_remote_connect_domain_xml_from_native_ret,
    true,
    0
 },
-{ /* Method DomainXMLToNative => 136 */
-   remoteDispatchDomainXMLToNativeHelper,
-   sizeof(remote_domain_xml_to_native_args),
-   (xdrproc_t)xdr_remote_domain_xml_to_native_args,
-   sizeof(remote_domain_xml_to_native_ret),
-   (xdrproc_t)xdr_remote_domain_xml_to_native_ret,
+{ /* Method ConnectDomainXMLToNative => 136 */
+   remoteDispatchConnectDomainXMLToNativeHelper,
+   sizeof(remote_connect_domain_xml_to_native_args),
+   (xdrproc_t)xdr_remote_connect_domain_xml_to_native_args,
+   sizeof(remote_connect_domain_xml_to_native_ret),
+   (xdrproc_t)xdr_remote_connect_domain_xml_to_native_ret,
    true,
    0
 },
-{ /* Method NumOfDefinedInterfaces => 137 */
-   remoteDispatchNumOfDefinedInterfacesHelper,
+{ /* Method ConnectNumOfDefinedInterfaces => 137 */
+   remoteDispatchConnectNumOfDefinedInterfacesHelper,
    0,
    (xdrproc_t)xdr_void,
-   sizeof(remote_num_of_defined_interfaces_ret),
-   (xdrproc_t)xdr_remote_num_of_defined_interfaces_ret,
+   sizeof(remote_connect_num_of_defined_interfaces_ret),
+   (xdrproc_t)xdr_remote_connect_num_of_defined_interfaces_ret,
    true,
    1
 },
-{ /* Method ListDefinedInterfaces => 138 */
-   remoteDispatchListDefinedInterfacesHelper,
-   sizeof(remote_list_defined_interfaces_args),
-   (xdrproc_t)xdr_remote_list_defined_interfaces_args,
-   sizeof(remote_list_defined_interfaces_ret),
-   (xdrproc_t)xdr_remote_list_defined_interfaces_ret,
+{ /* Method ConnectListDefinedInterfaces => 138 */
+   remoteDispatchConnectListDefinedInterfacesHelper,
+   sizeof(remote_connect_list_defined_interfaces_args),
+   (xdrproc_t)xdr_remote_connect_list_defined_interfaces_args,
+   sizeof(remote_connect_list_defined_interfaces_ret),
+   (xdrproc_t)xdr_remote_connect_list_defined_interfaces_ret,
    true,
    1
 },
-{ /* Method NumOfSecrets => 139 */
-   remoteDispatchNumOfSecretsHelper,
+{ /* Method ConnectNumOfSecrets => 139 */
+   remoteDispatchConnectNumOfSecretsHelper,
    0,
    (xdrproc_t)xdr_void,
-   sizeof(remote_num_of_secrets_ret),
-   (xdrproc_t)xdr_remote_num_of_secrets_ret,
+   sizeof(remote_connect_num_of_secrets_ret),
+   (xdrproc_t)xdr_remote_connect_num_of_secrets_ret,
    true,
    1
 },
-{ /* Method ListSecrets => 140 */
-   remoteDispatchListSecretsHelper,
-   sizeof(remote_list_secrets_args),
-   (xdrproc_t)xdr_remote_list_secrets_args,
-   sizeof(remote_list_secrets_ret),
-   (xdrproc_t)xdr_remote_list_secrets_ret,
+{ /* Method ConnectListSecrets => 140 */
+   remoteDispatchConnectListSecretsHelper,
+   sizeof(remote_connect_list_secrets_args),
+   (xdrproc_t)xdr_remote_connect_list_secrets_args,
+   sizeof(remote_connect_list_secrets_ret),
+   (xdrproc_t)xdr_remote_connect_list_secrets_ret,
    true,
    1
 },
@@ -15072,12 +15127,12 @@ virNetServerProgramProc remoteProcs[] = {
    true,
    0
 },
-{ /* Method IsSecure => 149 */
-   remoteDispatchIsSecureHelper,
+{ /* Method ConnectIsSecure => 149 */
+   remoteDispatchConnectIsSecureHelper,
    0,
    (xdrproc_t)xdr_void,
-   sizeof(remote_is_secure_ret),
-   (xdrproc_t)xdr_remote_is_secure_ret,
+   sizeof(remote_connect_is_secure_ret),
+   (xdrproc_t)xdr_remote_connect_is_secure_ret,
    true,
    1
 },
@@ -15144,21 +15199,21 @@ virNetServerProgramProc remoteProcs[] = {
    true,
    1
 },
-{ /* Method GetLibVersion => 157 */
-   remoteDispatchGetLibVersionHelper,
+{ /* Method ConnectGetLibVersion => 157 */
+   remoteDispatchConnectGetLibVersionHelper,
    0,
    (xdrproc_t)xdr_void,
-   sizeof(remote_get_lib_version_ret),
-   (xdrproc_t)xdr_remote_get_lib_version_ret,
+   sizeof(remote_connect_get_lib_version_ret),
+   (xdrproc_t)xdr_remote_connect_get_lib_version_ret,
    true,
    1
 },
-{ /* Method CPUCompare => 158 */
-   remoteDispatchCPUCompareHelper,
-   sizeof(remote_cpu_compare_args),
-   (xdrproc_t)xdr_remote_cpu_compare_args,
-   sizeof(remote_cpu_compare_ret),
-   (xdrproc_t)xdr_remote_cpu_compare_ret,
+{ /* Method ConnectCompareCPU => 158 */
+   remoteDispatchConnectCompareCPUHelper,
+   sizeof(remote_connect_compare_cpu_args),
+   (xdrproc_t)xdr_remote_connect_compare_cpu_args,
+   sizeof(remote_connect_compare_cpu_ret),
+   (xdrproc_t)xdr_remote_connect_compare_cpu_ret,
    true,
    1
 },
@@ -15189,12 +15244,12 @@ virNetServerProgramProc remoteProcs[] = {
    true,
    0
 },
-{ /* Method CPUBaseline => 162 */
-   remoteDispatchCPUBaselineHelper,
-   sizeof(remote_cpu_baseline_args),
-   (xdrproc_t)xdr_remote_cpu_baseline_args,
-   sizeof(remote_cpu_baseline_ret),
-   (xdrproc_t)xdr_remote_cpu_baseline_ret,
+{ /* Method ConnectBaselineCPU => 162 */
+   remoteDispatchConnectBaselineCPUHelper,
+   sizeof(remote_connect_baseline_cpu_args),
+   (xdrproc_t)xdr_remote_connect_baseline_cpu_args,
+   sizeof(remote_connect_baseline_cpu_ret),
+   (xdrproc_t)xdr_remote_connect_baseline_cpu_ret,
    true,
    0
 },
@@ -15234,19 +15289,19 @@ virNetServerProgramProc remoteProcs[] = {
    true,
    0
 },
-{ /* Method DomainEventsRegisterAny => 167 */
-   remoteDispatchDomainEventsRegisterAnyHelper,
-   sizeof(remote_domain_events_register_any_args),
-   (xdrproc_t)xdr_remote_domain_events_register_any_args,
+{ /* Method ConnectDomainEventRegisterAny => 167 */
+   remoteDispatchConnectDomainEventRegisterAnyHelper,
+   sizeof(remote_connect_domain_event_register_any_args),
+   (xdrproc_t)xdr_remote_connect_domain_event_register_any_args,
    0,
    (xdrproc_t)xdr_void,
    true,
    1
 },
-{ /* Method DomainEventsDeregisterAny => 168 */
-   remoteDispatchDomainEventsDeregisterAnyHelper,
-   sizeof(remote_domain_events_deregister_any_args),
-   (xdrproc_t)xdr_remote_domain_events_deregister_any_args,
+{ /* Method ConnectDomainEventDeregisterAny => 168 */
+   remoteDispatchConnectDomainEventDeregisterAnyHelper,
+   sizeof(remote_connect_domain_event_deregister_any_args),
+   (xdrproc_t)xdr_remote_connect_domain_event_deregister_any_args,
    0,
    (xdrproc_t)xdr_void,
    true,
@@ -15333,21 +15388,21 @@ virNetServerProgramProc remoteProcs[] = {
    true,
    1
 },
-{ /* Method NumOfNWFilters => 178 */
-   remoteDispatchNumOfNWFiltersHelper,
+{ /* Method ConnectNumOfNWFilters => 178 */
+   remoteDispatchConnectNumOfNWFiltersHelper,
    0,
    (xdrproc_t)xdr_void,
-   sizeof(remote_num_of_nwfilters_ret),
-   (xdrproc_t)xdr_remote_num_of_nwfilters_ret,
+   sizeof(remote_connect_num_of_nwfilters_ret),
+   (xdrproc_t)xdr_remote_connect_num_of_nwfilters_ret,
    true,
    1
 },
-{ /* Method ListNWFilters => 179 */
-   remoteDispatchListNWFiltersHelper,
-   sizeof(remote_list_nwfilters_args),
-   (xdrproc_t)xdr_remote_list_nwfilters_args,
-   sizeof(remote_list_nwfilters_ret),
-   (xdrproc_t)xdr_remote_list_nwfilters_ret,
+{ /* Method ConnectListNWFilters => 179 */
+   remoteDispatchConnectListNWFiltersHelper,
+   sizeof(remote_connect_list_nwfilters_args),
+   (xdrproc_t)xdr_remote_connect_list_nwfilters_args,
+   sizeof(remote_connect_list_nwfilters_ret),
+   (xdrproc_t)xdr_remote_connect_list_nwfilters_ret,
    true,
    1
 },
@@ -15558,12 +15613,12 @@ virNetServerProgramProc remoteProcs[] = {
    true,
    1
 },
-{ /* Method GetSysinfo => 203 */
-   remoteDispatchGetSysinfoHelper,
-   sizeof(remote_get_sysinfo_args),
-   (xdrproc_t)xdr_remote_get_sysinfo_args,
-   sizeof(remote_get_sysinfo_ret),
-   (xdrproc_t)xdr_remote_get_sysinfo_ret,
+{ /* Method ConnectGetSysinfo => 203 */
+   remoteDispatchConnectGetSysinfoHelper,
+   sizeof(remote_connect_get_sysinfo_args),
+   (xdrproc_t)xdr_remote_connect_get_sysinfo_args,
+   sizeof(remote_connect_get_sysinfo_ret),
+   (xdrproc_t)xdr_remote_connect_get_sysinfo_ret,
    true,
    1
 },
@@ -16435,6 +16490,15 @@ virNetServerProgramProc remoteProcs[] = {
    remoteDispatchDomainMigrateSetCompressionCacheHelper,
    sizeof(remote_domain_migrate_set_compression_cache_args),
    (xdrproc_t)xdr_remote_domain_migrate_set_compression_cache_args,
+   0,
+   (xdrproc_t)xdr_void,
+   true,
+   0
+},
+{ /* Method NodeDeviceDetachFlags => 301 */
+   remoteDispatchNodeDeviceDetachFlagsHelper,
+   sizeof(remote_node_device_detach_flags_args),
+   (xdrproc_t)xdr_remote_node_device_detach_flags_args,
    0,
    (xdrproc_t)xdr_void,
    true,

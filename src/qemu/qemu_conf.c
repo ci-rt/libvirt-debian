@@ -134,14 +134,7 @@ virQEMUDriverConfigPtr virQEMUDriverConfigNew(bool privileged)
     }
     cfg->dynamicOwnership = privileged;
 
-    cfg->cgroupControllers =
-        (1 << VIR_CGROUP_CONTROLLER_CPU) |
-        (1 << VIR_CGROUP_CONTROLLER_DEVICES) |
-        (1 << VIR_CGROUP_CONTROLLER_MEMORY) |
-        (1 << VIR_CGROUP_CONTROLLER_BLKIO) |
-        (1 << VIR_CGROUP_CONTROLLER_CPUSET) |
-        (1 << VIR_CGROUP_CONTROLLER_CPUACCT);
-
+    cfg->cgroupControllers = -1; /* -1 == auto-detect */
 
     if (privileged) {
         if (virAsprintf(&cfg->logDir,
@@ -248,6 +241,8 @@ virQEMUDriverConfigPtr virQEMUDriverConfigNew(bool privileged)
         }
     }
 #endif
+    if (!(cfg->bridgeHelperName = strdup("/usr/libexec/qemu-bridge-helper")))
+        goto no_memory;
 
     cfg->clearEmulatorCapabilities = true;
 
@@ -297,6 +292,7 @@ static void virQEMUDriverConfigDispose(void *obj)
 
     VIR_FREE(cfg->hugetlbfsMount);
     VIR_FREE(cfg->hugepagePath);
+    VIR_FREE(cfg->bridgeHelperName);
 
     VIR_FREE(cfg->saveImageFormat);
     VIR_FREE(cfg->dumpImageFormat);
@@ -454,6 +450,7 @@ int virQEMUDriverConfigLoadFile(virQEMUDriverConfigPtr cfg,
     p = virConfGetValue(conf, "cgroup_controllers");
     CHECK_TYPE("cgroup_controllers", VIR_CONF_LIST);
     if (p) {
+        cfg->cgroupControllers = 0;
         virConfValuePtr pp;
         for (i = 0, pp = p->list; pp; ++i, pp = pp->next) {
             int ctl;
@@ -470,12 +467,6 @@ int virQEMUDriverConfigLoadFile(virQEMUDriverConfigPtr cfg,
                 goto cleanup;
             }
             cfg->cgroupControllers |= (1 << ctl);
-        }
-    }
-    for (i = 0 ; i < VIR_CGROUP_CONTROLLER_LAST ; i++) {
-        if (cfg->cgroupControllers & (1 << i)) {
-            VIR_INFO("Configured cgroup controller '%s'",
-                     virCgroupControllerTypeToString(i));
         }
     }
 
@@ -509,6 +500,7 @@ int virQEMUDriverConfigLoadFile(virQEMUDriverConfigPtr cfg,
     GET_VALUE_BOOL("auto_start_bypass_cache", cfg->autoStartBypassCache);
 
     GET_VALUE_STR("hugetlbfs_mount", cfg->hugetlbfsMount);
+    GET_VALUE_STR("bridge_helper", cfg->bridgeHelperName);
 
     GET_VALUE_BOOL("mac_filter", cfg->macFilter);
 
@@ -551,11 +543,13 @@ virQEMUDriverConfigPtr virQEMUDriverGetConfig(virQEMUDriverPtr driver)
     return conf;
 }
 
-virDomainXMLConfPtr
-virQEMUDriverCreateXMLConf(void)
+virDomainXMLOptionPtr
+virQEMUDriverCreateXMLConf(virQEMUDriverPtr driver)
 {
-    return virDomainXMLConfNew(&virQEMUDriverPrivateDataCallbacks,
-                               &virQEMUDriverDomainXMLNamespace);
+    virQEMUDriverDomainDefParserConfig.priv = driver;
+    return virDomainXMLOptionNew(&virQEMUDriverDomainDefParserConfig,
+                                 &virQEMUDriverPrivateDataCallbacks,
+                                 &virQEMUDriverDomainXMLNamespace);
 }
 
 
@@ -571,14 +565,6 @@ virCapsPtr virQEMUDriverCreateCapabilities(virQEMUDriverPtr driver)
     /* Basic host arch / guest machine capabilities */
     if (!(caps = virQEMUCapsInit(driver->qemuCapsCache)))
         goto no_memory;
-
-    if (cfg->allowDiskFormatProbing) {
-        caps->defaultDiskDriverName = NULL;
-        caps->defaultDiskDriverType = VIR_STORAGE_FILE_AUTO;
-    } else {
-        caps->defaultDiskDriverName = "qemu";
-        caps->defaultDiskDriverType = VIR_STORAGE_FILE_RAW;
-    }
 
     if (virGetHostUUID(caps->host.host_uuid)) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
@@ -1014,9 +1000,18 @@ qemuCheckSharedDisk(virHashTablePtr sharedDisks,
          disk->sgio == VIR_DOMAIN_DISK_SGIO_UNFILTERED))
         goto cleanup;
 
-    virReportError(VIR_ERR_OPERATION_INVALID,
-                   _("sgio of shared disk '%s' conflicts with other "
-                     "active domains"), disk->src);
+    if (disk->type == VIR_DOMAIN_DISK_TYPE_VOLUME) {
+        virReportError(VIR_ERR_OPERATION_INVALID,
+                       _("sgio of shared disk 'pool=%s' 'volume=%s' conflicts "
+                         "with other active domains"),
+                       disk->srcpool->pool,
+                       disk->srcpool->volume);
+    } else {
+        virReportError(VIR_ERR_OPERATION_INVALID,
+                       _("sgio of shared disk '%s' conflicts with other "
+                         "active domains"), disk->src);
+    }
+
     ret = -1;
 
 cleanup:
@@ -1113,8 +1108,12 @@ qemuAddSharedDisk(virQEMUDriverPtr driver,
      * for the shared disk is "sgio" setting, which is only
      * valid for block disk.
      */
-    if (disk->type != VIR_DOMAIN_DISK_TYPE_BLOCK ||
-        !disk->shared || !disk->src)
+    if (!disk->shared ||
+        !disk->src ||
+        (disk->type != VIR_DOMAIN_DISK_TYPE_BLOCK &&
+         !(disk->type == VIR_DOMAIN_DISK_TYPE_VOLUME &&
+           disk->srcpool &&
+           disk->srcpool->voltype == VIR_STORAGE_VOL_BLOCK)))
         return 0;
 
     qemuDriverLock(driver);
@@ -1189,8 +1188,12 @@ qemuRemoveSharedDisk(virQEMUDriverPtr driver,
     int ret = -1;
     int idx;
 
-    if (disk->type != VIR_DOMAIN_DISK_TYPE_BLOCK ||
-        !disk->shared || !disk->src)
+    if (!disk->shared ||
+        !disk->src ||
+        (disk->type != VIR_DOMAIN_DISK_TYPE_BLOCK &&
+         !(disk->type == VIR_DOMAIN_DISK_TYPE_VOLUME &&
+           disk->srcpool &&
+           disk->srcpool->voltype == VIR_STORAGE_VOL_BLOCK)))
         return 0;
 
     qemuDriverLock(driver);
@@ -1239,4 +1242,56 @@ cleanup:
 int qemuDriverAllocateID(virQEMUDriverPtr driver)
 {
     return virAtomicIntInc(&driver->nextvmid);
+}
+
+int
+qemuTranslateDiskSourcePool(virConnectPtr conn,
+                            virDomainDiskDefPtr def)
+{
+    virStoragePoolPtr pool = NULL;
+    virStorageVolPtr vol = NULL;
+    virStorageVolInfo info;
+    int ret = -1;
+
+    if (def->type != VIR_DOMAIN_DISK_TYPE_VOLUME)
+        return 0;
+
+    if (!def->srcpool)
+        return 0;
+
+    if (!(pool = virStoragePoolLookupByName(conn, def->srcpool->pool)))
+        return -1;
+
+    if (!(vol = virStorageVolLookupByName(pool, def->srcpool->volume)))
+        goto cleanup;
+
+    if (virStorageVolGetInfo(vol, &info) < 0)
+        goto cleanup;
+
+    if (def->startupPolicy &&
+        info.type != VIR_STORAGE_VOL_FILE) {
+        virReportError(VIR_ERR_XML_ERROR, "%s",
+                       _("'startupPolicy' is only valid for 'file' type volume"));
+        goto cleanup;
+    }
+
+    switch (info.type) {
+    case VIR_STORAGE_VOL_FILE:
+    case VIR_STORAGE_VOL_BLOCK:
+    case VIR_STORAGE_VOL_DIR:
+        if (!(def->src = virStorageVolGetPath(vol)))
+            goto cleanup;
+        break;
+    case VIR_STORAGE_VOL_NETWORK:
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("Using network volume as disk source is not supported"));
+        goto cleanup;
+    }
+
+    def->srcpool->voltype = info.type;
+    ret = 0;
+cleanup:
+    virStoragePoolFree(pool);
+    virStorageVolFree(vol);
+    return ret;
 }

@@ -66,8 +66,8 @@ hypervInterfaceClose(virConnectPtr conn)
 
 static virInterfaceDriver hypervInterfaceDriver = {
     .name = "Hyper-V",
-    .open = hypervInterfaceOpen, /* 0.9.5 */
-    .close = hypervInterfaceClose, /* 0.9.5 */
+    .interfaceOpen = hypervInterfaceOpen, /* 0.9.5 */
+    .interfaceClose = hypervInterfaceClose, /* 0.9.5 */
 };
 
 

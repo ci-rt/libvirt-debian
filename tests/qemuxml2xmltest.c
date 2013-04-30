@@ -8,10 +8,11 @@
 #include <sys/types.h>
 #include <fcntl.h>
 
+#include "testutils.h"
+
 #ifdef WITH_QEMU
 
 # include "internal.h"
-# include "testutils.h"
 # include "qemu/qemu_conf.h"
 # include "qemu/qemu_domain.h"
 # include "testutilsqemu.h"
@@ -32,7 +33,7 @@ testCompareXMLToXMLFiles(const char *inxml, const char *outxml, bool live)
     if (virtTestLoadFile(outxml, &outXmlData) < 0)
         goto fail;
 
-    if (!(def = virDomainDefParseString(driver.caps, driver.xmlconf, inXmlData,
+    if (!(def = virDomainDefParseString(inXmlData, driver.caps, driver.xmlopt,
                                         QEMU_EXPECTED_VIRT_TYPES,
                                         live ? 0 : VIR_DOMAIN_XML_INACTIVE)))
         goto fail;
@@ -106,7 +107,7 @@ mymain(void)
     if ((driver.caps = testQemuCapsInit()) == NULL)
         return EXIT_FAILURE;
 
-    if (!(driver.xmlconf = virQEMUDriverCreateXMLConf()))
+    if (!(driver.xmlopt = virQEMUDriverCreateXMLConf(&driver)))
         return EXIT_FAILURE;
 
 # define DO_TEST_FULL(name, is_different, when)                         \
@@ -179,6 +180,7 @@ mymain(void)
     DO_TEST("disk-scsi-device");
     DO_TEST("disk-scsi-vscsi");
     DO_TEST("disk-scsi-virtio-scsi");
+    DO_TEST("disk-virtio-scsi-num_queues");
     DO_TEST("disk-scsi-megasas");
     DO_TEST_FULL("disk-mirror", false, WHEN_ACTIVE);
     DO_TEST_FULL("disk-mirror", true, WHEN_INACTIVE);
@@ -206,6 +208,7 @@ mymain(void)
     DO_TEST("net-eth-ifname");
     DO_TEST("net-virtio-network-portgroup");
     DO_TEST("net-hostdev");
+    DO_TEST("net-hostdev-vfio");
     DO_TEST("net-openvswitch");
     DO_TEST("sound");
     DO_TEST("sound-device");
@@ -228,6 +231,7 @@ mymain(void)
 
     DO_TEST("hostdev-usb-address");
     DO_TEST("hostdev-pci-address");
+    DO_TEST("hostdev-vfio");
     DO_TEST("pci-rom");
 
     DO_TEST("encrypted-disk");
@@ -252,9 +256,12 @@ mymain(void)
     DO_TEST("disk-scsi-lun-passthrough-sgio");
 
     DO_TEST("disk-scsi-disk-vpd");
+    DO_TEST("disk-source-pool");
 
     DO_TEST("virtio-rng-random");
     DO_TEST("virtio-rng-egd");
+
+    DO_TEST("pseries-nvram");
 
     /* These tests generate different XML */
     DO_TEST_DIFFERENT("balloon-device-auto");
@@ -272,8 +279,13 @@ mymain(void)
 
     DO_TEST_DIFFERENT("metadata");
 
+    DO_TEST("tpm-passthrough");
+    DO_TEST("pci-bridge");
+    DO_TEST_DIFFERENT("pci-autoadd-addr");
+    DO_TEST_DIFFERENT("pci-autoadd-idx");
+
     virObjectUnref(driver.caps);
-    virObjectUnref(driver.xmlconf);
+    virObjectUnref(driver.xmlopt);
 
     return ret==0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }
@@ -281,7 +293,6 @@ mymain(void)
 VIRT_TEST_MAIN(mymain)
 
 #else
-# include "testutils.h"
 
 int
 main(void)

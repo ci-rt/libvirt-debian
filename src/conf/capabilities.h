@@ -160,15 +160,6 @@ struct _virCaps {
     size_t nguests;
     size_t nguests_max;
     virCapsGuestPtr *guests;
-
-    /* Move to virDomainXMLConf later */
-    unsigned char macPrefix[VIR_MAC_PREFIX_BUFLEN];
-    unsigned int emulatorRequired : 1;
-    const char *defaultDiskDriverName;
-    int defaultDiskDriverType; /* enum virStorageFileFormat */
-    int (*defaultConsoleTargetType)(const char *ostype, virArch guestarch);
-    bool hasWideScsiBus;
-    const char *defaultInitPath;
 };
 
 
@@ -179,20 +170,6 @@ virCapabilitiesNew(virArch hostarch,
 
 extern void
 virCapabilitiesFreeNUMAInfo(virCapsPtr caps);
-
-extern void
-virCapabilitiesSetMacPrefix(virCapsPtr caps,
-                            const unsigned char prefix[VIR_MAC_PREFIX_BUFLEN]);
-
-extern void
-virCapabilitiesGenerateMac(virCapsPtr caps,
-                           virMacAddrPtr mac);
-
-extern void
-virCapabilitiesSetEmulatorRequired(virCapsPtr caps);
-
-extern unsigned int
-virCapabilitiesIsEmulatorRequired(virCapsPtr caps);
 
 extern int
 virCapabilitiesAddHostFeature(virCapsPtr caps,

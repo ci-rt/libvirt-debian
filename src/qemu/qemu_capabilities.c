@@ -38,6 +38,7 @@
 #include "virbitmap.h"
 #include "virnodesuspend.h"
 #include "qemu_monitor.h"
+#include "virstring.h"
 
 #include <fcntl.h>
 #include <sys/stat.h>
@@ -213,6 +214,17 @@ VIR_ENUM_IMPL(virQEMUCaps, QEMU_CAPS_LAST,
               "virtio-ccw",
               "dtb",
               "megasas",
+
+              "ipv6-migration", /* 135 */
+              "machine-opt",
+              "machine-usb-opt",
+              "tpm-passthrough",
+              "tpm-tis",
+
+              "nvram",  /* 140 */
+              "pci-bridge", /* 141 */
+              "vfio-pci", /* 142 */
+              "vfio-pci.bootindex", /* 143 */
     );
 
 struct _virQEMUCaps {
@@ -853,28 +865,15 @@ error:
 }
 
 
-static int virQEMUCapsDefaultConsoleType(const char *ostype ATTRIBUTE_UNUSED,
-                                         virArch arch)
-{
-    if (arch == VIR_ARCH_S390 ||
-        arch == VIR_ARCH_S390X)
-        return VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_VIRTIO;
-    else
-        return VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_SERIAL;
-}
-
-
 virCapsPtr virQEMUCapsInit(virQEMUCapsCachePtr cache)
 {
     virCapsPtr caps;
     int i;
+    virArch hostarch = virArchFromHost();
 
-    if ((caps = virCapabilitiesNew(virArchFromHost(),
+    if ((caps = virCapabilitiesNew(hostarch,
                                    1, 1)) == NULL)
         goto error;
-
-    /* Using KVM's mac prefix for QEMU too */
-    virCapabilitiesSetMacPrefix(caps, (unsigned char[]){ 0x52, 0x54, 0x00 });
 
     /* Some machines have problematic NUMA toplogy causing
      * unexpected failures. We don't want to break the QEMU
@@ -885,7 +884,7 @@ virCapsPtr virQEMUCapsInit(virQEMUCapsCachePtr cache)
         VIR_WARN("Failed to query host NUMA topology, disabling NUMA capabilities");
     }
 
-    if (virQEMUCapsInitCPU(caps, virArchFromHost()) < 0)
+    if (virQEMUCapsInitCPU(caps, hostarch) < 0)
         VIR_WARN("Failed to get host CPU");
 
     /* Add the power management features of the host */
@@ -902,14 +901,9 @@ virCapsPtr virQEMUCapsInit(virQEMUCapsCachePtr cache)
      */
     for (i = 0 ; i < VIR_ARCH_LAST ; i++)
         if (virQEMUCapsInitGuest(caps, cache,
-                                 virArchFromHost(),
+                                 hostarch,
                                  i) < 0)
             goto error;
-
-    /* QEMU Requires an emulator in the XML */
-    virCapabilitiesSetEmulatorRequired(caps);
-
-    caps->defaultConsoleTargetType = virQEMUCapsDefaultConsoleType;
 
     return caps;
 
@@ -1091,6 +1085,13 @@ virQEMUCapsComputeCmdFlags(const char *help,
     if (strstr(help, "-dtb"))
         virQEMUCapsSet(qemuCaps, QEMU_CAPS_DTB);
 
+    if (strstr(help, "-machine"))
+        virQEMUCapsSet(qemuCaps, QEMU_CAPS_MACHINE_OPT);
+
+     /* USB option is supported v1.3.0 onwards */
+    if (qemuCaps->version >= 1003000)
+        virQEMUCapsSet(qemuCaps, QEMU_CAPS_MACHINE_USB_OPT);
+
     /*
      * Handling of -incoming arg with varying features
      *  -incoming tcp    (kvm >= 79, qemu >= 0.10.0)
@@ -1180,6 +1181,9 @@ virQEMUCapsComputeCmdFlags(const char *help,
 
     if (version >= 11000)
         virQEMUCapsSet(qemuCaps, QEMU_CAPS_CPU_HOST);
+
+    if (version >= 1001000)
+        virQEMUCapsSet(qemuCaps, QEMU_CAPS_IPV6_MIGRATION);
 
     if (version >= 1002000)
         virQEMUCapsSet(qemuCaps, QEMU_CAPS_DEVICE_VIDEO_PRIMARY);
@@ -1348,6 +1352,9 @@ struct virQEMUCapsStringFlags virQEMUCapsObjectTypes[] = {
     { "virtio-rng-ccw", QEMU_CAPS_DEVICE_VIRTIO_RNG },
     { "rng-random", QEMU_CAPS_OBJECT_RNG_RANDOM },
     { "rng-egd", QEMU_CAPS_OBJECT_RNG_EGD },
+    { "spapr-nvram", QEMU_CAPS_DEVICE_NVRAM },
+    { "pci-bridge", QEMU_CAPS_DEVICE_PCI_BRIDGE },
+    { "vfio-pci", QEMU_CAPS_DEVICE_VFIO_PCI },
 };
 
 static struct virQEMUCapsStringFlags virQEMUCapsObjectPropsVirtioBlk[] = {
@@ -1368,6 +1375,10 @@ static struct virQEMUCapsStringFlags virQEMUCapsObjectPropsPciAssign[] = {
     { "rombar", QEMU_CAPS_PCI_ROMBAR },
     { "configfd", QEMU_CAPS_PCI_CONFIGFD },
     { "bootindex", QEMU_CAPS_PCI_BOOTINDEX },
+};
+
+static struct virQEMUCapsStringFlags virQEMUCapsObjectPropsVfioPci[] = {
+    { "bootindex", QEMU_CAPS_VFIO_PCI_BOOTINDEX },
 };
 
 static struct virQEMUCapsStringFlags virQEMUCapsObjectPropsScsiDisk[] = {
@@ -1416,6 +1427,8 @@ static struct virQEMUCapsObjectTypeProps virQEMUCapsObjectProps[] = {
       ARRAY_CARDINALITY(virQEMUCapsObjectPropsPciAssign) },
     { "kvm-pci-assign", virQEMUCapsObjectPropsPciAssign,
       ARRAY_CARDINALITY(virQEMUCapsObjectPropsPciAssign) },
+    { "vfio-pci", virQEMUCapsObjectPropsVfioPci,
+      ARRAY_CARDINALITY(virQEMUCapsObjectPropsVfioPci) },
     { "scsi-disk", virQEMUCapsObjectPropsScsiDisk,
       ARRAY_CARDINALITY(virQEMUCapsObjectPropsScsiDisk) },
     { "ide-drive", virQEMUCapsObjectPropsIDEDrive,
@@ -1645,17 +1658,19 @@ int virQEMUCapsGetDefaultVersion(virCapsPtr caps,
 {
     const char *binary;
     virQEMUCapsPtr qemucaps;
+    virArch hostarch;
 
     if (*version > 0)
         return 0;
 
+    hostarch = virArchFromHost();
     if ((binary = virCapabilitiesDefaultGuestEmulator(caps,
                                                       "hvm",
-                                                      virArchFromHost(),
+                                                      hostarch,
                                                       "qemu")) == NULL) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("Cannot find suitable emulator for %s"),
-                       virArchToString(virArchFromHost()));
+                       virArchToString(hostarch));
         return -1;
     }
 
@@ -2121,6 +2136,62 @@ virQEMUCapsProbeQMPCPUDefinitions(virQEMUCapsPtr qemuCaps,
     return 0;
 }
 
+struct tpmTypeToCaps {
+    int type;
+    enum virQEMUCapsFlags caps;
+};
+
+static const struct tpmTypeToCaps virQEMUCapsTPMTypesToCaps[] = {
+    {
+        .type = VIR_DOMAIN_TPM_TYPE_PASSTHROUGH,
+        .caps = QEMU_CAPS_DEVICE_TPM_PASSTHROUGH,
+    },
+};
+
+const struct tpmTypeToCaps virQEMUCapsTPMModelsToCaps[] = {
+    {
+        .type = VIR_DOMAIN_TPM_MODEL_TIS,
+        .caps = QEMU_CAPS_DEVICE_TPM_TIS,
+    },
+};
+
+static int
+virQEMUCapsProbeQMPTPM(virQEMUCapsPtr qemuCaps,
+                       qemuMonitorPtr mon)
+{
+    int nentries, i;
+    char **entries = NULL;
+
+    if ((nentries = qemuMonitorGetTPMModels(mon, &entries)) < 0)
+        return -1;
+
+    if (nentries > 0) {
+        for (i = 0; i < ARRAY_CARDINALITY(virQEMUCapsTPMModelsToCaps); i++) {
+            const char *needle = virDomainTPMModelTypeToString(
+                virQEMUCapsTPMModelsToCaps[i].type);
+            if (virStringArrayHasString(entries, needle))
+                virQEMUCapsSet(qemuCaps,
+                               virQEMUCapsTPMModelsToCaps[i].caps);
+        }
+    }
+    virStringFreeList(entries);
+
+    if ((nentries = qemuMonitorGetTPMTypes(mon, &entries)) < 0)
+        return -1;
+
+    if (nentries > 0) {
+        for (i = 0; i < ARRAY_CARDINALITY(virQEMUCapsTPMTypesToCaps); i++) {
+            const char *needle = virDomainTPMBackendTypeToString(
+                virQEMUCapsTPMTypesToCaps[i].type);
+            if (virStringArrayHasString(entries, needle))
+                virQEMUCapsSet(qemuCaps, virQEMUCapsTPMTypesToCaps[i].caps);
+        }
+    }
+    virStringFreeList(entries);
+
+    return 0;
+}
+
 
 static int
 virQEMUCapsProbeQMPKVMState(virQEMUCapsPtr qemuCaps,
@@ -2310,6 +2381,9 @@ virQEMUCapsInitQMPBasic(virQEMUCapsPtr qemuCaps)
     virQEMUCapsSet(qemuCaps, QEMU_CAPS_SECCOMP_SANDBOX);
     virQEMUCapsSet(qemuCaps, QEMU_CAPS_NO_KVM_PIT);
     virQEMUCapsSet(qemuCaps, QEMU_CAPS_DTB);
+    virQEMUCapsSet(qemuCaps, QEMU_CAPS_IPV6_MIGRATION);
+    virQEMUCapsSet(qemuCaps, QEMU_CAPS_MACHINE_OPT);
+    virQEMUCapsSet(qemuCaps, QEMU_CAPS_DUMP_GUEST_CORE);
 }
 
 
@@ -2442,6 +2516,10 @@ virQEMUCapsInitQMP(virQEMUCapsPtr qemuCaps,
 
     virQEMUCapsInitQMPBasic(qemuCaps);
 
+    /* USB option is supported v1.3.0 onwards */
+    if (qemuCaps->version >= 1003000)
+        virQEMUCapsSet(qemuCaps, QEMU_CAPS_MACHINE_USB_OPT);
+
     if (!(archstr = qemuMonitorGetTargetArch(mon)))
         goto cleanup;
 
@@ -2471,6 +2549,8 @@ virQEMUCapsInitQMP(virQEMUCapsPtr qemuCaps,
     if (virQEMUCapsProbeQMPCPUDefinitions(qemuCaps, mon) < 0)
         goto cleanup;
     if (virQEMUCapsProbeQMPKVMState(qemuCaps, mon) < 0)
+        goto cleanup;
+    if (virQEMUCapsProbeQMPTPM(qemuCaps, mon) < 0)
         goto cleanup;
 
     ret = 0;

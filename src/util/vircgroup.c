@@ -1,7 +1,7 @@
 /*
  * vircgroup.c: methods for managing control cgroups
  *
- * Copyright (C) 2010-2012 Red Hat, Inc.
+ * Copyright (C) 2010-2013 Red Hat, Inc.
  * Copyright IBM Corp. 2008
  *
  * This library is free software; you can redistribute it and/or
@@ -27,6 +27,9 @@
 #if defined HAVE_MNTENT_H && defined HAVE_GETMNTENT_R
 # include <mntent.h>
 #endif
+#if defined HAVE_SYS_MOUNT_H
+# include <sys/mount.h>
+#endif
 #include <fcntl.h>
 #include <string.h>
 #include <errno.h>
@@ -34,13 +37,14 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <signal.h>
-#include <libgen.h>
 #include <dirent.h>
 
-#include "internal.h"
+#define __VIR_CGROUP_ALLOW_INCLUDE_PRIV_H__
+#include "vircgrouppriv.h"
+
 #include "virutil.h"
 #include "viralloc.h"
-#include "vircgroup.h"
+#include "virerror.h"
 #include "virlog.h"
 #include "virfile.h"
 #include "virhash.h"
@@ -48,21 +52,11 @@
 
 #define CGROUP_MAX_VAL 512
 
+#define VIR_FROM_THIS VIR_FROM_CGROUP
+
 VIR_ENUM_IMPL(virCgroupController, VIR_CGROUP_CONTROLLER_LAST,
               "cpu", "cpuacct", "cpuset", "memory", "devices",
-              "freezer", "blkio");
-
-struct virCgroupController {
-    int type;
-    char *mountPoint;
-    char *placement;
-};
-
-struct virCgroup {
-    char *path;
-
-    struct virCgroupController controllers[VIR_CGROUP_CONTROLLER_LAST];
-};
+              "freezer", "blkio", "net_cls", "perf_event");
 
 typedef enum {
     VIR_CGROUP_NONE = 0, /* create subdir under each cgroup if possible. */
@@ -70,8 +64,6 @@ typedef enum {
                                        * before creating subcgroups and
                                        * attaching tasks
                                        */
-    VIR_CGROUP_VCPU = 1 << 1, /* create subdir only under the cgroup cpu,
-                               * cpuacct and cpuset if possible. */
 } virCgroupFlags;
 
 /**
@@ -88,6 +80,7 @@ void virCgroupFree(virCgroupPtr *group)
 
     for (i = 0 ; i < VIR_CGROUP_CONTROLLER_LAST ; i++) {
         VIR_FREE((*group)->controllers[i].mountPoint);
+        VIR_FREE((*group)->controllers[i].linkPoint);
         VIR_FREE((*group)->controllers[i].placement);
     }
 
@@ -96,19 +89,49 @@ void virCgroupFree(virCgroupPtr *group)
 }
 
 /**
- * virCgroupMounted: query whether a cgroup subsystem is mounted or not
+ * virCgroupHasController: query whether a cgroup controller is present
  *
- * @cgroup: The group structure to be queried
+ * @cgroup: The group structure to be queried, or NULL
  * @controller: cgroup subsystem id
  *
- * Returns true if a cgroup is subsystem is mounted.
+ * Returns true if a cgroup controller is mounted and is associated
+ * with this cgroup object.
  */
-bool virCgroupMounted(virCgroupPtr cgroup, int controller)
+bool virCgroupHasController(virCgroupPtr cgroup, int controller)
 {
+    if (!cgroup)
+        return false;
+    if (controller < 0 || controller >= VIR_CGROUP_CONTROLLER_LAST)
+        return false;
     return cgroup->controllers[controller].mountPoint != NULL;
 }
 
 #if defined HAVE_MNTENT_H && defined HAVE_GETMNTENT_R
+static int virCgroupCopyMounts(virCgroupPtr group,
+                               virCgroupPtr parent)
+{
+    int i;
+    for (i = 0 ; i < VIR_CGROUP_CONTROLLER_LAST ; i++) {
+        if (!parent->controllers[i].mountPoint)
+            continue;
+
+        group->controllers[i].mountPoint =
+            strdup(parent->controllers[i].mountPoint);
+
+        if (!group->controllers[i].mountPoint)
+            return -ENOMEM;
+
+        if (parent->controllers[i].linkPoint) {
+            group->controllers[i].linkPoint =
+                strdup(parent->controllers[i].linkPoint);
+
+            if (!group->controllers[i].linkPoint)
+                return -ENOMEM;
+        }
+    }
+    return 0;
+}
+
 /*
  * Process /proc/mounts figuring out what controllers are
  * mounted and where
@@ -148,9 +171,46 @@ static int virCgroupDetectMounts(virCgroupPtr group)
                  * first entry only
                  */
                 if (typelen == len && STREQLEN(typestr, tmp, len) &&
-                    !group->controllers[i].mountPoint &&
-                    !(group->controllers[i].mountPoint = strdup(entry.mnt_dir)))
-                    goto no_memory;
+                    !group->controllers[i].mountPoint) {
+                    char *linksrc;
+                    struct stat sb;
+                    char *tmp2;
+
+                    if (!(group->controllers[i].mountPoint = strdup(entry.mnt_dir)))
+                        goto no_memory;
+
+                    tmp2 = strrchr(entry.mnt_dir, '/');
+                    if (!tmp2) {
+                        errno = EINVAL;
+                        goto error;
+                    }
+                    *tmp2 = '\0';
+                    /* If it is a co-mount it has a filename like "cpu,cpuacct"
+                     * and we must identify the symlink path */
+                    if (strchr(tmp2 + 1, ',')) {
+                        if (virAsprintf(&linksrc, "%s/%s",
+                                        entry.mnt_dir, typestr) < 0)
+                            goto no_memory;
+                        *tmp2 = '/';
+
+                        if (lstat(linksrc, &sb) < 0) {
+                            if (errno == ENOENT) {
+                                VIR_WARN("Controller %s co-mounted at %s is missing symlink at %s",
+                                         typestr, entry.mnt_dir, linksrc);
+                                VIR_FREE(linksrc);
+                            } else {
+                                goto error;
+                            }
+                        } else {
+                            if (!S_ISLNK(sb.st_mode)) {
+                                VIR_WARN("Expecting a symlink at %s for controller %s",
+                                         linksrc, typestr);
+                            } else {
+                                group->controllers[i].linkPoint = linksrc;
+                            }
+                        }
+                    }
+                }
                 tmp = next;
             }
         }
@@ -161,17 +221,69 @@ static int virCgroupDetectMounts(virCgroupPtr group)
     return 0;
 
 no_memory:
+    errno = ENOMEM;
+error:
     VIR_FORCE_FCLOSE(mounts);
-    return -ENOMEM;
+    return -errno;
+}
+
+
+static int virCgroupCopyPlacement(virCgroupPtr group,
+                                  const char *path,
+                                  virCgroupPtr parent)
+{
+    int i;
+    for (i = 0 ; i < VIR_CGROUP_CONTROLLER_LAST ; i++) {
+        if (!group->controllers[i].mountPoint)
+            continue;
+
+        if (path[0] == '/') {
+            if (!(group->controllers[i].placement = strdup(path)))
+                return -ENOMEM;
+        } else {
+            /*
+             * parent=="/" + path="" => "/"
+             * parent=="/libvirt.service" + path=="" => "/libvirt.service"
+             * parent=="/libvirt.service" + path=="foo" => "/libvirt.service/foo"
+             */
+            if (virAsprintf(&group->controllers[i].placement,
+                            "%s%s%s",
+                            parent->controllers[i].placement,
+                            (STREQ(parent->controllers[i].placement, "/") ||
+                             STREQ(path, "") ? "" : "/"),
+                            path) < 0)
+                return -ENOMEM;
+        }
+    }
+
+    return 0;
 }
 
 
 /*
+ * virCgroupDetectPlacement:
+ * @group: the group to process
+ * @path: the relative path to append, not starting with '/'
+ *
  * Process /proc/self/cgroup figuring out what cgroup
  * sub-path the current process is assigned to. ie not
- * necessarily in the root
+ * necessarily in the root. The contents of this file
+ * looks like
+ *
+ * 9:perf_event:/
+ * 8:blkio:/
+ * 7:net_cls:/
+ * 6:freezer:/
+ * 5:devices:/
+ * 4:memory:/
+ * 3:cpuacct,cpu:/
+ * 2:cpuset:/
+ * 1:name=systemd:/user/berrange/2
+ *
+ * It then appends @path to each detected path.
  */
-static int virCgroupDetectPlacement(virCgroupPtr group)
+static int virCgroupDetectPlacement(virCgroupPtr group,
+                                    const char *path)
 {
     int i;
     FILE *mapping  = NULL;
@@ -185,18 +297,18 @@ static int virCgroupDetectPlacement(virCgroupPtr group)
 
     while (fgets(line, sizeof(line), mapping) != NULL) {
         char *controllers = strchr(line, ':');
-        char *path = controllers ? strchr(controllers+1, ':') : NULL;
-        char *nl = path ? strchr(path, '\n') : NULL;
+        char *selfpath = controllers ? strchr(controllers + 1, ':') : NULL;
+        char *nl = selfpath ? strchr(selfpath, '\n') : NULL;
 
-        if (!controllers || !path)
+        if (!controllers || !selfpath)
             continue;
 
         if (nl)
             *nl = '\0';
 
-        *path = '\0';
+        *selfpath = '\0';
         controllers++;
-        path++;
+        selfpath++;
 
         for (i = 0 ; i < VIR_CGROUP_CONTROLLER_LAST ; i++) {
             const char *typestr = virCgroupControllerTypeToString(i);
@@ -206,14 +318,25 @@ static int virCgroupDetectPlacement(virCgroupPtr group)
                 char *next = strchr(tmp, ',');
                 int len;
                 if (next) {
-                    len = next-tmp;
+                    len = next - tmp;
                     next++;
                 } else {
                     len = strlen(tmp);
                 }
-                if (typelen == len && STREQLEN(typestr, tmp, len) &&
-                    !(group->controllers[i].placement = strdup(STREQ(path, "/") ? "" : path)))
-                    goto no_memory;
+
+                /*
+                 * selfpath=="/" + path="" -> "/"
+                 * selfpath=="/libvirt.service" + path="" -> "/libvirt.service"
+                 * selfpath=="/libvirt.service" + path="foo" -> "/libvirt.service/foo"
+                 */
+                if (typelen == len && STREQLEN(typestr, tmp, len)) {
+                    if (virAsprintf(&group->controllers[i].placement,
+                                    "%s%s%s", selfpath,
+                                    (STREQ(selfpath, "/") ||
+                                     STREQ(path, "") ? "" : "/"),
+                                    path) < 0)
+                        goto no_memory;
+                }
 
                 tmp = next;
             }
@@ -230,28 +353,83 @@ no_memory:
 
 }
 
-static int virCgroupDetect(virCgroupPtr group)
+static int virCgroupDetect(virCgroupPtr group,
+                           int controllers,
+                           const char *path,
+                           virCgroupPtr parent)
 {
-    int any = 0;
     int rc;
     int i;
+    int j;
+    VIR_DEBUG("group=%p controllers=%d path=%s parent=%p",
+              group, controllers, path, parent);
 
-    rc = virCgroupDetectMounts(group);
+    if (parent)
+        rc = virCgroupCopyMounts(group, parent);
+    else
+        rc = virCgroupDetectMounts(group);
     if (rc < 0) {
         VIR_ERROR(_("Failed to detect mounts for %s"), group->path);
         return rc;
     }
 
-    /* Check that at least 1 controller is available */
-    for (i = 0 ; i < VIR_CGROUP_CONTROLLER_LAST ; i++) {
-        if (group->controllers[i].mountPoint != NULL)
-            any = 1;
+    if (controllers >= 0) {
+        VIR_DEBUG("Validating controllers %d", controllers);
+        for (i = 0 ; i < VIR_CGROUP_CONTROLLER_LAST ; i++) {
+            VIR_DEBUG("Controller '%s' wanted=%s, mount='%s'",
+                      virCgroupControllerTypeToString(i),
+                      (1 << i) & controllers ? "yes" : "no",
+                      NULLSTR(group->controllers[i].mountPoint));
+            if (((1 << i) & controllers)) {
+                /* Ensure requested controller is present */
+                if (!group->controllers[i].mountPoint) {
+                    VIR_DEBUG("Requested controlled '%s' not mounted",
+                              virCgroupControllerTypeToString(i));
+                    return -ENOENT;
+                }
+            } else {
+                /* Check whether a request to disable a controller
+                 * clashes with co-mounting of controllers */
+                for (j = 0 ; j < VIR_CGROUP_CONTROLLER_LAST ; j++) {
+                    if (j == i)
+                        continue;
+                    if (!((1 << j) & controllers))
+                        continue;
+
+                    if (STREQ_NULLABLE(group->controllers[i].mountPoint,
+                                       group->controllers[j].mountPoint)) {
+                        VIR_DEBUG("Controller '%s' is not wanted, but '%s' is co-mounted",
+                                  virCgroupControllerTypeToString(i),
+                                  virCgroupControllerTypeToString(j));
+                        return -EINVAL;
+                    }
+                }
+                VIR_FREE(group->controllers[i].mountPoint);
+            }
+        }
+    } else {
+        VIR_DEBUG("Auto-detecting controllers");
+        controllers = 0;
+        for (i = 0 ; i < VIR_CGROUP_CONTROLLER_LAST ; i++) {
+            VIR_DEBUG("Controller '%s' present=%s",
+                      virCgroupControllerTypeToString(i),
+                      group->controllers[i].mountPoint ? "yes" : "no");
+            if (group->controllers[i].mountPoint == NULL)
+                continue;
+            controllers |= (1 << i);
+        }
     }
-    if (!any)
+
+    /* Check that at least 1 controller is available */
+    if (!controllers) {
+        VIR_DEBUG("No controllers set");
         return -ENXIO;
+    }
 
-
-    rc = virCgroupDetectPlacement(group);
+    if (parent || path[0] == '/')
+        rc = virCgroupCopyPlacement(group, path, parent);
+    else
+        rc = virCgroupDetectPlacement(group, path);
 
     if (rc == 0) {
         /* Check that for every mounted controller, we found our placement */
@@ -305,10 +483,9 @@ int virCgroupPathOfController(virCgroupPtr group,
     if (group->controllers[controller].placement == NULL)
         return -ENOENT;
 
-    if (virAsprintf(path, "%s%s%s/%s",
+    if (virAsprintf(path, "%s%s/%s",
                     group->controllers[controller].mountPoint,
                     group->controllers[controller].placement,
-                    STREQ(group->path, "/") ? "" : group->path,
                     key ? key : "") == -1)
         return -ENOMEM;
 
@@ -539,22 +716,18 @@ static int virCgroupMakeGroup(virCgroupPtr parent,
         char *path = NULL;
 
         /* Skip over controllers that aren't mounted */
-        if (!group->controllers[i].mountPoint)
-            continue;
-
-        /* We need to control cpu bandwidth for each vcpu now */
-        if ((flags & VIR_CGROUP_VCPU) &&
-            (i != VIR_CGROUP_CONTROLLER_CPU &&
-             i != VIR_CGROUP_CONTROLLER_CPUACCT &&
-             i != VIR_CGROUP_CONTROLLER_CPUSET)) {
-            /* treat it as unmounted and we can use virCgroupAddTask */
-            VIR_FREE(group->controllers[i].mountPoint);
+        if (!group->controllers[i].mountPoint) {
+            VIR_DEBUG("Skipping unmounted controller %s",
+                      virCgroupControllerTypeToString(i));
             continue;
         }
 
         rc = virCgroupPathOfController(group, i, "", &path);
-        if (rc < 0)
+        if (rc < 0) {
+            VIR_DEBUG("Failed to find path of controller %s",
+                      virCgroupControllerTypeToString(i));
             return rc;
+        }
         /* As of Feb 2011, clang can't see that the above function
          * call did not modify group. */
         sa_assert(group->controllers[i].mountPoint);
@@ -568,11 +741,14 @@ static int virCgroupMakeGroup(virCgroupPtr parent,
                  * other controllers even though they are available. So
                  * treat blkio as unmounted if mkdir fails. */
                 if (i == VIR_CGROUP_CONTROLLER_BLKIO) {
+                    VIR_DEBUG("Ignoring mkdir failure with blkio controller. Kernel probably too old");
                     rc = 0;
                     VIR_FREE(group->controllers[i].mountPoint);
                     VIR_FREE(path);
                     continue;
                 } else {
+                    VIR_DEBUG("Failed to create controller %s for group",
+                              virCgroupControllerTypeToString(i));
                     rc = -errno;
                     VIR_FREE(path);
                     break;
@@ -606,17 +782,36 @@ static int virCgroupMakeGroup(virCgroupPtr parent,
         VIR_FREE(path);
     }
 
+    VIR_DEBUG("Done making controllers for group");
     return rc;
 }
 
 
+/**
+ * virCgroupNew:
+ * @path: path for the new group
+ * @parent: parent group, or NULL
+ * @controllers: bitmask of controllers to activate
+ *
+ * Create a new cgroup storing it in @group.
+ *
+ * If @path starts with a '/' it is treated as an
+ * absolute path, and @parent is ignored. Otherwise
+ * it is treated as being relative to @parent. If
+ * @parent is NULL, then the placement of the current
+ * process is used.
+ *
+ */
 static int virCgroupNew(const char *path,
+                        virCgroupPtr parent,
+                        int controllers,
                         virCgroupPtr *group)
 {
     int rc = 0;
     char *typpath = NULL;
 
-    VIR_DEBUG("New group %s", path);
+    VIR_DEBUG("parent=%p path=%s controllers=%d",
+              parent, path, controllers);
     *group = NULL;
 
     if (VIR_ALLOC((*group)) != 0) {
@@ -624,12 +819,22 @@ static int virCgroupNew(const char *path,
         goto err;
     }
 
-    if (!((*group)->path = strdup(path))) {
-        rc = -ENOMEM;
-        goto err;
+    if (path[0] == '/' || !parent) {
+        if (!((*group)->path = strdup(path))) {
+            rc = -ENOMEM;
+            goto err;
+        }
+    } else {
+        if (virAsprintf(&(*group)->path, "%s%s%s",
+                        parent->path,
+                        STREQ(parent->path, "") ? "" : "/",
+                        path) < 0) {
+            rc = -ENOMEM;
+            goto err;
+        }
     }
 
-    rc = virCgroupDetect(*group);
+    rc = virCgroupDetect(*group, controllers, path, parent);
     if (rc < 0)
         goto err;
 
@@ -643,44 +848,26 @@ err:
     return rc;
 }
 
-static int virCgroupAppRoot(bool privileged,
-                            virCgroupPtr *group,
-                            bool create)
+static int virCgroupAppRoot(virCgroupPtr *group,
+                            bool create,
+                            int controllers)
 {
-    virCgroupPtr rootgrp = NULL;
+    virCgroupPtr selfgrp = NULL;
     int rc;
 
-    rc = virCgroupNew("/", &rootgrp);
+    rc = virCgroupNewSelf(&selfgrp);
+
     if (rc != 0)
         return rc;
 
-    if (privileged) {
-        rc = virCgroupNew("/libvirt", group);
-    } else {
-        char *rootname;
-        char *username;
-        username = virGetUserName(getuid());
-        if (!username) {
-            rc = -ENOMEM;
-            goto cleanup;
-        }
-        rc = virAsprintf(&rootname, "/libvirt-%s", username);
-        VIR_FREE(username);
-        if (rc < 0) {
-            rc = -ENOMEM;
-            goto cleanup;
-        }
-
-        rc = virCgroupNew(rootname, group);
-        VIR_FREE(rootname);
-    }
+    rc = virCgroupNew("libvirt", selfgrp, controllers, group);
     if (rc != 0)
         goto cleanup;
 
-    rc = virCgroupMakeGroup(rootgrp, *group, create, VIR_CGROUP_NONE);
+    rc = virCgroupMakeGroup(selfgrp, *group, create, VIR_CGROUP_NONE);
 
 cleanup:
-    virCgroupFree(&rootgrp);
+    virCgroupFree(&selfgrp);
     return rc;
 }
 #endif
@@ -760,6 +947,7 @@ int virCgroupRemove(virCgroupPtr group)
     int i;
     char *grppath = NULL;
 
+    VIR_DEBUG("Removing cgroup %s", group->path);
     for (i = 0 ; i < VIR_CGROUP_CONTROLLER_LAST ; i++) {
         /* Skip over controllers not mounted */
         if (!group->controllers[i].mountPoint)
@@ -775,9 +963,11 @@ int virCgroupRemove(virCgroupPtr group)
         rc = virCgroupRemoveRecursively(grppath);
         VIR_FREE(grppath);
     }
+    VIR_DEBUG("Done removing cgroup %s", group->path);
 
     return rc;
 }
+
 
 /**
  * virCgroupAddTask:
@@ -872,94 +1062,98 @@ cleanup:
  *
  * Returns: 0 on success or -errno on failure
  */
-int virCgroupMoveTask(virCgroupPtr src_group, virCgroupPtr dest_group,
-                      int controller)
+int virCgroupMoveTask(virCgroupPtr src_group, virCgroupPtr dest_group)
 {
-    int rc = 0, err = 0;
+    int rc = 0;
     char *content = NULL;
+    int i;
 
-    if (controller < VIR_CGROUP_CONTROLLER_CPU ||
-        controller > VIR_CGROUP_CONTROLLER_BLKIO)
-        return -EINVAL;
+    for (i = 0 ; i < VIR_CGROUP_CONTROLLER_LAST ; i++) {
+        if (!src_group->controllers[i].mountPoint ||
+            !dest_group->controllers[i].mountPoint)
+            continue;
 
-    if (!src_group->controllers[controller].mountPoint ||
-        !dest_group->controllers[controller].mountPoint) {
-        return -EINVAL;
+        rc = virCgroupGetValueStr(src_group, i, "tasks", &content);
+        if (rc != 0)
+            return rc;
+
+        rc = virCgroupAddTaskStrController(dest_group, content, i);
+        if (rc != 0)
+            goto cleanup;
+
+        VIR_FREE(content);
     }
 
-    rc = virCgroupGetValueStr(src_group, controller, "tasks", &content);
-    if (rc != 0)
-        return rc;
+cleanup:
+    VIR_FREE(content);
+    return rc;
+}
 
-    rc = virCgroupAddTaskStrController(dest_group, content, controller);
+
+#if defined HAVE_MNTENT_H && defined HAVE_GETMNTENT_R
+/**
+ * virCgroupNewPartition:
+ * @path: path for the partition
+ * @create: true to create the cgroup tree
+ * @controllers: mask of controllers to create
+ *
+ * Creates a new cgroup to represent the resource
+ * partition path identified by @name.
+ *
+ * Returns 0 on success, -errno on failure
+ */
+int virCgroupNewPartition(const char *path,
+                          bool create,
+                          int controllers,
+                          virCgroupPtr *group)
+{
+    int rc;
+    char *parentPath = NULL;
+    virCgroupPtr parent = NULL;
+    VIR_DEBUG("path=%s create=%d controllers=%x",
+              path, create, controllers);
+
+    if (path[0] != '/')
+        return -EINVAL;
+
+    rc = virCgroupNew(path, NULL, controllers, group);
     if (rc != 0)
         goto cleanup;
 
-    VIR_FREE(content);
+    if (STRNEQ(path, "/")) {
+        char *tmp;
+        if (!(parentPath = strdup(path))) {
+            rc = -ENOMEM;
+            goto cleanup;
+        }
 
-    return 0;
+        tmp = strrchr(parentPath, '/');
+        tmp++;
+        *tmp = '\0';
+
+        rc = virCgroupNew(parentPath, NULL, controllers, &parent);
+        if (rc != 0)
+            goto cleanup;
+
+        rc = virCgroupMakeGroup(parent, *group, create, VIR_CGROUP_NONE);
+        if (rc != 0) {
+            virCgroupRemove(*group);
+            goto cleanup;
+        }
+    }
 
 cleanup:
-    /*
-     * We don't need to recover dest_cgroup because cgroup will make sure
-     * that one task only resides in one cgroup of the same controller.
-     */
-    err = virCgroupAddTaskStrController(src_group, content, controller);
-    if (err != 0)
-        VIR_ERROR(_("Cannot recover cgroup %s from %s"),
-                  src_group->controllers[controller].mountPoint,
-                  dest_group->controllers[controller].mountPoint);
-    VIR_FREE(content);
-
-    return rc;
-}
-
-/**
- * virCgroupForDriver:
- *
- * @name: name of this driver (e.g., xen, qemu, lxc)
- * @group: Pointer to returned virCgroupPtr
- *
- * Returns 0 on success
- */
-#if defined HAVE_MNTENT_H && defined HAVE_GETMNTENT_R
-int virCgroupForDriver(const char *name,
-                       virCgroupPtr *group,
-                       bool privileged,
-                       bool create)
-{
-    int rc;
-    char *path = NULL;
-    virCgroupPtr rootgrp = NULL;
-
-    rc = virCgroupAppRoot(privileged, &rootgrp, create);
     if (rc != 0)
-        goto out;
-
-    if (virAsprintf(&path, "%s/%s", rootgrp->path, name) < 0) {
-        rc = -ENOMEM;
-        goto out;
-    }
-
-    rc = virCgroupNew(path, group);
-    VIR_FREE(path);
-
-    if (rc == 0) {
-        rc = virCgroupMakeGroup(rootgrp, *group, create, VIR_CGROUP_NONE);
-        if (rc != 0)
-            virCgroupFree(group);
-    }
-
-out:
-    virCgroupFree(&rootgrp);
-
+        virCgroupFree(group);
+    virCgroupFree(&parent);
+    VIR_FREE(parentPath);
     return rc;
 }
 #else
-int virCgroupForDriver(const char *name ATTRIBUTE_UNUSED,
-                       virCgroupPtr *group ATTRIBUTE_UNUSED,
-                       bool privileged ATTRIBUTE_UNUSED,
-                       bool create ATTRIBUTE_UNUSED)
+int virCgroupNewPartition(const char *path ATTRIBUTE_UNUSED,
+                          bool create ATTRIBUTE_UNUSED,
+                          int controllers ATTRIBUTE_UNUSED,
+                          virCgroupPtr *group ATTRIBUTE_UNUSED)
 {
     /* Claim no support */
     return -ENXIO;
@@ -967,26 +1161,75 @@ int virCgroupForDriver(const char *name ATTRIBUTE_UNUSED,
 #endif
 
 /**
-* virCgroupGetAppRoot:
+ * virCgroupNewDriver:
+ *
+ * @name: name of this driver (e.g., xen, qemu, lxc)
+ * @group: Pointer to returned virCgroupPtr
+ *
+ * Returns 0 on success
+ */
+#if defined HAVE_MNTENT_H && defined HAVE_GETMNTENT_R
+int virCgroupNewDriver(const char *name,
+                       bool create,
+                       int controllers,
+                       virCgroupPtr *group)
+{
+    int rc;
+    virCgroupPtr rootgrp = NULL;
+
+    rc = virCgroupAppRoot(&rootgrp,
+                          create, controllers);
+    if (rc != 0)
+        goto out;
+
+    rc = virCgroupNew(name, rootgrp, -1, group);
+    if (rc == 0) {
+        rc = virCgroupMakeGroup(rootgrp, *group, create, VIR_CGROUP_NONE);
+        if (rc != 0) {
+            virCgroupRemove(*group);
+            virCgroupFree(group);
+        }
+    }
+out:
+    virCgroupFree(&rootgrp);
+
+    return rc;
+}
+#else
+int virCgroupNewDriver(const char *name ATTRIBUTE_UNUSED,
+                       bool create ATTRIBUTE_UNUSED,
+                       int controllers ATTRIBUTE_UNUSED,
+                       virCgroupPtr *group ATTRIBUTE_UNUSED)
+{
+    /* Claim no support */
+    return -ENXIO;
+}
+#endif
+
+/**
+* virCgroupNewSelf:
 *
 * @group: Pointer to returned virCgroupPtr
+*
+* Obtain a cgroup representing the config of the
+* current process
 *
 * Returns 0 on success
 */
 #if defined HAVE_MNTENT_H && defined HAVE_GETMNTENT_R
-int virCgroupGetAppRoot(virCgroupPtr *group)
+int virCgroupNewSelf(virCgroupPtr *group)
 {
-    return virCgroupNew("/", group);
+    return virCgroupNew("", NULL, -1, group);
 }
 #else
-int virCgroupGetAppRoot(virCgroupPtr *group ATTRIBUTE_UNUSED)
+int virCgroupNewSelf(virCgroupPtr *group ATTRIBUTE_UNUSED)
 {
     return -ENXIO;
 }
 #endif
 
 /**
- * virCgroupForDomain:
+ * virCgroupNewDomainDriver:
  *
  * @driver: group for driver owning the domain
  * @name: name of the domain
@@ -995,22 +1238,14 @@ int virCgroupGetAppRoot(virCgroupPtr *group ATTRIBUTE_UNUSED)
  * Returns 0 on success
  */
 #if defined HAVE_MNTENT_H && defined HAVE_GETMNTENT_R
-int virCgroupForDomain(virCgroupPtr driver,
-                       const char *name,
-                       virCgroupPtr *group,
-                       bool create)
+int virCgroupNewDomainDriver(virCgroupPtr driver,
+                             const char *name,
+                             bool create,
+                             virCgroupPtr *group)
 {
     int rc;
-    char *path;
 
-    if (driver == NULL)
-        return -EINVAL;
-
-    if (virAsprintf(&path, "%s/%s", driver->path, name) < 0)
-        return -ENOMEM;
-
-    rc = virCgroupNew(path, group);
-    VIR_FREE(path);
+    rc = virCgroupNew(name, driver, -1, group);
 
     if (rc == 0) {
         /*
@@ -1024,104 +1259,169 @@ int virCgroupForDomain(virCgroupPtr driver,
          * cumulative usage that we don't need.
          */
         rc = virCgroupMakeGroup(driver, *group, create, VIR_CGROUP_MEM_HIERACHY);
-        if (rc != 0)
+        if (rc != 0) {
+            virCgroupRemove(*group);
             virCgroupFree(group);
+        }
     }
 
     return rc;
 }
 #else
-int virCgroupForDomain(virCgroupPtr driver ATTRIBUTE_UNUSED,
-                       const char *name ATTRIBUTE_UNUSED,
-                       virCgroupPtr *group ATTRIBUTE_UNUSED,
-                       bool create ATTRIBUTE_UNUSED)
+int virCgroupNewDomainDriver(virCgroupPtr driver ATTRIBUTE_UNUSED,
+                             const char *name ATTRIBUTE_UNUSED,
+                             bool create ATTRIBUTE_UNUSED,
+                             virCgroupPtr *group ATTRIBUTE_UNUSED)
 {
     return -ENXIO;
 }
 #endif
 
 /**
- * virCgroupForVcpu:
+ * virCgroupNewDomainPartition:
  *
- * @driver: group for the domain
- * @vcpuid: id of the vcpu
+ * @partition: partition holding the domain
+ * @driver: name of the driver
+ * @name: name of the domain
  * @group: Pointer to returned virCgroupPtr
  *
  * Returns 0 on success
  */
 #if defined HAVE_MNTENT_H && defined HAVE_GETMNTENT_R
-int virCgroupForVcpu(virCgroupPtr driver,
-                     int vcpuid,
-                     virCgroupPtr *group,
-                     bool create)
+int virCgroupNewDomainPartition(virCgroupPtr partition,
+                                const char *driver,
+                                const char *name,
+                                bool create,
+                                virCgroupPtr *group)
 {
     int rc;
-    char *path;
+    char *grpname = NULL;
 
-    if (driver == NULL)
-        return -EINVAL;
-
-    if (virAsprintf(&path, "%s/vcpu%d", driver->path, vcpuid) < 0)
+    if (virAsprintf(&grpname, "%s.%s.libvirt",
+                    name, driver) < 0)
         return -ENOMEM;
 
-    rc = virCgroupNew(path, group);
-    VIR_FREE(path);
+    rc = virCgroupNew(grpname, partition, -1, group);
 
     if (rc == 0) {
-        rc = virCgroupMakeGroup(driver, *group, create, VIR_CGROUP_VCPU);
-        if (rc != 0)
+        /*
+         * Create a cgroup with memory.use_hierarchy enabled to
+         * surely account memory usage of lxc with ns subsystem
+         * enabled. (To be exact, memory and ns subsystems are
+         * enabled at the same time.)
+         *
+         * The reason why doing it here, not a upper group, say
+         * a group for driver, is to avoid overhead to track
+         * cumulative usage that we don't need.
+         */
+        rc = virCgroupMakeGroup(partition, *group, create, VIR_CGROUP_MEM_HIERACHY);
+        if (rc != 0) {
+            virCgroupRemove(*group);
             virCgroupFree(group);
+        }
     }
 
+    VIR_FREE(grpname);
     return rc;
 }
 #else
-int virCgroupForVcpu(virCgroupPtr driver ATTRIBUTE_UNUSED,
-                     int vcpuid ATTRIBUTE_UNUSED,
-                     virCgroupPtr *group ATTRIBUTE_UNUSED,
-                     bool create ATTRIBUTE_UNUSED)
+int virCgroupNewDomainPartition(virCgroupPtr partition ATTRIBUTE_UNUSED,
+                                const char *driver ATTRIBUTE_UNUSED,
+                                const char *name ATTRIBUTE_UNUSED,
+                                bool create ATTRIBUTE_UNUSED,
+                                virCgroupPtr *group ATTRIBUTE_UNUSED)
 {
     return -ENXIO;
 }
 #endif
 
 /**
- * virCgroupForEmulator:
+ * virCgroupNewVcpu:
  *
- * @driver: group for the domain
+ * @domain: group for the domain
+ * @vcpuid: id of the vcpu
+ * @create: true to create if not already existing
  * @group: Pointer to returned virCgroupPtr
  *
- * Returns: 0 on success or -errno on failure
+ * Returns 0 on success
  */
 #if defined HAVE_MNTENT_H && defined HAVE_GETMNTENT_R
-int virCgroupForEmulator(virCgroupPtr driver,
-                         virCgroupPtr *group,
-                         bool create)
+int virCgroupNewVcpu(virCgroupPtr domain,
+                     int vcpuid,
+                     bool create,
+                     virCgroupPtr *group)
 {
     int rc;
-    char *path;
+    char *name;
+    int controllers;
 
-    if (driver == NULL)
-        return -EINVAL;
-
-    if (virAsprintf(&path, "%s/emulator", driver->path) < 0)
+    if (virAsprintf(&name, "vcpu%d", vcpuid) < 0)
         return -ENOMEM;
 
-    rc = virCgroupNew(path, group);
-    VIR_FREE(path);
+    controllers = ((1 << VIR_CGROUP_CONTROLLER_CPU) |
+                   (1 << VIR_CGROUP_CONTROLLER_CPUACCT) |
+                   (1 << VIR_CGROUP_CONTROLLER_CPUSET));
+
+    rc = virCgroupNew(name, domain, controllers, group);
+    VIR_FREE(name);
 
     if (rc == 0) {
-        rc = virCgroupMakeGroup(driver, *group, create, VIR_CGROUP_VCPU);
-        if (rc != 0)
+        rc = virCgroupMakeGroup(domain, *group, create, VIR_CGROUP_NONE);
+        if (rc != 0) {
+            virCgroupRemove(*group);
             virCgroupFree(group);
+        }
     }
 
     return rc;
 }
 #else
-int virCgroupForEmulator(virCgroupPtr driver ATTRIBUTE_UNUSED,
-                         virCgroupPtr *group ATTRIBUTE_UNUSED,
-                         bool create ATTRIBUTE_UNUSED)
+int virCgroupNewVcpu(virCgroupPtr domain ATTRIBUTE_UNUSED,
+                     int vcpuid ATTRIBUTE_UNUSED,
+                     bool create ATTRIBUTE_UNUSED,
+                     virCgroupPtr *group ATTRIBUTE_UNUSED)
+{
+    return -ENXIO;
+}
+#endif
+
+/**
+ * virCgroupNewEmulator:
+ *
+ * @domain: group for the domain
+ * @create: true to create if not already existing
+ * @group: Pointer to returned virCgroupPtr
+ *
+ * Returns: 0 on success or -errno on failure
+ */
+#if defined HAVE_MNTENT_H && defined HAVE_GETMNTENT_R
+int virCgroupNewEmulator(virCgroupPtr domain,
+                         bool create,
+                         virCgroupPtr *group)
+{
+    int rc;
+    int controllers;
+
+    controllers = ((1 << VIR_CGROUP_CONTROLLER_CPU) |
+                   (1 << VIR_CGROUP_CONTROLLER_CPUACCT) |
+                   (1 << VIR_CGROUP_CONTROLLER_CPUSET));
+
+    rc = virCgroupNew("emulator", domain, controllers, group);
+
+    if (rc == 0) {
+        rc = virCgroupMakeGroup(domain, *group, create, VIR_CGROUP_NONE);
+        if (rc != 0) {
+            virCgroupRemove(*group);
+            virCgroupFree(group);
+        }
+    }
+
+    return rc;
+}
+#else
+int virCgroupNewEmulator(virCgroupPtr domain ATTRIBUTE_UNUSED,
+                         bool create ATTRIBUTE_UNUSED,
+                         virCgroupPtr *group ATTRIBUTE_UNUSED)
 {
     return -ENXIO;
 }
@@ -1996,8 +2296,6 @@ static int virCgroupKillRecursiveInternal(virCgroupPtr group, int signum, virHas
     }
 
     while ((ent = readdir(dp))) {
-        char *subpath;
-
         if (STREQ(ent->d_name, "."))
             continue;
         if (STREQ(ent->d_name, ".."))
@@ -2006,12 +2304,8 @@ static int virCgroupKillRecursiveInternal(virCgroupPtr group, int signum, virHas
             continue;
 
         VIR_DEBUG("Process subdir %s", ent->d_name);
-        if (virAsprintf(&subpath, "%s/%s", group->path, ent->d_name) < 0) {
-            rc = -ENOMEM;
-            goto cleanup;
-        }
 
-        if ((rc = virCgroupNew(subpath, &subgroup)) != 0)
+        if ((rc = virCgroupNew(ent->d_name, group, -1, &subgroup)) != 0)
             goto cleanup;
 
         if ((rc = virCgroupKillRecursiveInternal(subgroup, signum, pids, true)) < 0)
@@ -2096,3 +2390,133 @@ int virCgroupKillPainfully(virCgroupPtr group ATTRIBUTE_UNUSED)
     return -ENOSYS;
 }
 #endif /* HAVE_KILL, HAVE_MNTENT_H, HAVE_GETMNTENT_R */
+
+#ifdef __linux__
+static char *virCgroupIdentifyRoot(virCgroupPtr group)
+{
+    char *ret = NULL;
+    size_t i;
+
+    for (i = 0 ; i < VIR_CGROUP_CONTROLLER_LAST ; i++) {
+        char *tmp;
+        if (!group->controllers[i].mountPoint)
+            continue;
+        if (!(tmp = strrchr(group->controllers[i].mountPoint, '/'))) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Could not find directory separator in %s"),
+                           group->controllers[i].mountPoint);
+            return NULL;
+        }
+
+        tmp[0] = '\0';
+        ret = strdup(group->controllers[i].mountPoint);
+        tmp[0] = '/';
+        if (!ret) {
+            virReportOOMError();
+            return NULL;
+        }
+        return ret;
+    }
+
+    virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                   _("Could not find any mounted controllers"));
+    return NULL;
+}
+
+
+int virCgroupIsolateMount(virCgroupPtr group, const char *oldroot,
+                          const char *mountopts)
+{
+    int ret = -1;
+    size_t i;
+    char *opts = NULL;
+    char *root = NULL;
+
+    if (!(root = virCgroupIdentifyRoot(group)))
+        return -1;
+
+    VIR_DEBUG("Mounting cgroups at '%s'", root);
+
+    if (virFileMakePath(root) < 0) {
+        virReportSystemError(errno,
+                             _("Unable to create directory %s"),
+                             root);
+        goto cleanup;
+    }
+
+    if (virAsprintf(&opts,
+                    "mode=755,size=65536%s", mountopts) < 0) {
+        virReportOOMError();
+        goto cleanup;
+    }
+
+    if (mount("tmpfs", root, "tmpfs", MS_NOSUID|MS_NODEV|MS_NOEXEC, opts) < 0) {
+        virReportSystemError(errno,
+                             _("Failed to mount %s on %s type %s"),
+                             "tmpfs", root, "tmpfs");
+        goto cleanup;
+    }
+
+    for (i = 0 ; i < VIR_CGROUP_CONTROLLER_LAST ; i++) {
+        if (!group->controllers[i].mountPoint)
+            continue;
+
+        if (!virFileExists(group->controllers[i].mountPoint)) {
+            char *src;
+            if (virAsprintf(&src, "%s%s%s",
+                            oldroot,
+                            group->controllers[i].mountPoint,
+                            group->controllers[i].placement) < 0) {
+                virReportOOMError();
+                goto cleanup;
+            }
+
+            VIR_DEBUG("Create mount point '%s'", group->controllers[i].mountPoint);
+            if (virFileMakePath(group->controllers[i].mountPoint) < 0) {
+                virReportSystemError(errno,
+                                     _("Unable to create directory %s"),
+                                     group->controllers[i].mountPoint);
+                VIR_FREE(src);
+                goto cleanup;
+            }
+
+            if (mount(src, group->controllers[i].mountPoint, NULL, MS_BIND, NULL) < 0) {
+                virReportSystemError(errno,
+                                     _("Failed to bind cgroup '%s' on '%s'"),
+                                     src, group->controllers[i].mountPoint);
+            VIR_FREE(src);
+                goto cleanup;
+            }
+
+            VIR_FREE(src);
+        }
+
+        if (group->controllers[i].linkPoint) {
+            VIR_DEBUG("Link mount point '%s' to '%s'",
+                      group->controllers[i].mountPoint,
+                      group->controllers[i].linkPoint);
+            if (symlink(group->controllers[i].mountPoint,
+                        group->controllers[i].linkPoint) < 0) {
+                virReportSystemError(errno,
+                                     _("Unable to symlink directory %s to %s"),
+                                     group->controllers[i].mountPoint,
+                                     group->controllers[i].linkPoint);
+                return -1;
+            }
+        }
+    }
+    ret = 0;
+
+cleanup:
+    VIR_FREE(root);
+    VIR_FREE(opts);
+    return ret;
+}
+#else /* __linux__ */
+int virCgroupIsolateMount(virCgroupPtr group ATTRIBUTE_UNUSED,
+                          const char *oldroot ATTRIBUTE_UNUSED,
+                          const char *mountopts ATTRIBUTE_UNUSED)
+{
+    return -ENOSYS;
+}
+#endif /* __linux__ */

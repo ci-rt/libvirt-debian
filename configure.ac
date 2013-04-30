@@ -3,7 +3,7 @@ dnl Process this file with autoconf to produce a configure script.
 dnl Copyright (C) 2005-2013 Red Hat, Inc.
 dnl See COPYING.LIB for the License of this software
 
-AC_INIT([libvirt], [1.0.4], [libvir-list@redhat.com], [], [http://libvirt.org])
+AC_INIT([libvirt], [1.0.5], [libvir-list@redhat.com], [], [http://libvirt.org])
 AC_CONFIG_SRCDIR([src/libvirt.c])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
@@ -123,7 +123,11 @@ AC_TYPE_UID_T
 dnl Support building Win32 DLLs (must appear *before* AM_PROG_LIBTOOL)
 AC_LIBTOOL_WIN32_DLL
 
-AM_PROG_LIBTOOL
+m4_ifndef([LT_INIT], [
+  AM_PROG_LIBTOOL
+], [
+  LT_INIT([shared disable-static])
+])
 AM_PROG_CC_C_O
 AM_PROG_LD
 
@@ -141,6 +145,8 @@ VERSION_SCRIPT_FLAGS=-Wl,--version-script=
 AC_MSG_RESULT([$VERSION_SCRIPT_FLAGS])
 
 LIBVIRT_COMPILE_WARNINGS
+LIBVIRT_COMPILE_PIE
+LIBVIRT_LINKER_RELRO
 
 LIBVIRT_CHECK_APPARMOR
 LIBVIRT_CHECK_ATTR
@@ -188,7 +194,7 @@ dnl Availability of various common functions (non-fatal if missing),
 dnl and various less common threadsafe functions
 AC_CHECK_FUNCS_ONCE([cfmakeraw geteuid getgid getgrnam_r getmntent_r \
   getpwuid_r getuid initgroups kill mmap newlocale posix_fallocate \
-  posix_memalign regexec sched_getaffinity setns])
+  posix_memalign regexec sched_getaffinity setns symlink])
 
 dnl Availability of pthread functions (if missing, win32 threading is
 dnl assumed).  Because of $LIB_PTHREAD, we cannot use AC_CHECK_FUNCS_ONCE.
@@ -202,7 +208,7 @@ dnl Availability of various common headers (non-fatal if missing).
 AC_CHECK_HEADERS([pwd.h paths.h regex.h sys/un.h \
   sys/poll.h syslog.h mntent.h net/ethernet.h linux/magic.h \
   sys/un.h sys/syscall.h netinet/tcp.h ifaddrs.h libtasn1.h \
-  sys/ucred.h])
+  sys/ucred.h sys/mount.h])
 dnl Check whether endian provides handy macros.
 AC_CHECK_DECLS([htole64], [], [], [[#include <endian.h>]])
 

@@ -31,8 +31,8 @@ VIR_ENUM_DECL(virSecretUsageType)
 typedef struct _virSecretDef virSecretDef;
 typedef virSecretDef *virSecretDefPtr;
 struct _virSecretDef {
-    unsigned ephemeral : 1;
-    unsigned private : 1;
+    bool ephemeral;
+    bool private;
     unsigned char uuid[VIR_UUID_BUFLEN];
     char *description;          /* May be NULL */
     int usage_type;

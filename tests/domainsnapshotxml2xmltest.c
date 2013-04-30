@@ -8,10 +8,11 @@
 #include <sys/types.h>
 #include <fcntl.h>
 
+#include "testutils.h"
+
 #ifdef WITH_QEMU
 
 # include "internal.h"
-# include "testutils.h"
 # include "qemu/qemu_conf.h"
 # include "qemu/qemu_domain.h"
 # include "testutilsqemu.h"
@@ -34,7 +35,7 @@ testCompareXMLToXMLFiles(const char *inxml, const char *uuid, int internal)
     if (internal)
         flags |= VIR_DOMAIN_SNAPSHOT_PARSE_INTERNAL;
     if (!(def = virDomainSnapshotDefParseString(inXmlData, driver.caps,
-                                                driver.xmlconf,
+                                                driver.xmlopt,
                                                 QEMU_EXPECTED_VIRT_TYPES,
                                                 flags)))
         goto fail;
@@ -91,7 +92,7 @@ mymain(void)
     if ((driver.caps = testQemuCapsInit()) == NULL)
         return EXIT_FAILURE;
 
-    if (!(driver.xmlconf = virQEMUDriverCreateXMLConf()))
+    if (!(driver.xmlopt = virQEMUDriverCreateXMLConf(&driver)))
         return EXIT_FAILURE;
 
 # define DO_TEST(name, uuid, internal)                                  \
@@ -117,7 +118,7 @@ mymain(void)
     DO_TEST("external_vm", "c7a5fdbd-edaf-9455-926a-d65c16db1809", 0);
 
     virObjectUnref(driver.caps);
-    virObjectUnref(driver.xmlconf);
+    virObjectUnref(driver.xmlopt);
 
     return ret==0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }
@@ -125,7 +126,6 @@ mymain(void)
 VIRT_TEST_MAIN(mymain)
 
 #else
-# include "testutils.h"
 
 int
 main(void)

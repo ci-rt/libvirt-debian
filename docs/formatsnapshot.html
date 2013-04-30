@@ -283,8 +283,9 @@
             the <a href="formatdomain.html#elementsDisks">disk
             devices</a> specified for the domain at the time of the
             snapshot.  The attribute <code>snapshot</code> is
-            optional, and has the same values of the disk device
-            element for a domain
+            optional, and the possible values are the same as the
+            <code>snapshot<code> attribute for
+             <a href="formatdomain.html#elementsDisks">disk devices</a>
             (<code>no</code>, <code>internal</code>,
             or <code>external</code>).  Some hypervisors like ESX
             require that if specified, the snapshot mode must not
@@ -304,7 +305,7 @@
             snapshots, the original file name becomes the read-only
             snapshot, and the new file name contains the read-write
             delta of all disk changes since the snapshot.
-          </dd></dl>
+          </code></code></dd></dl>
       </dd><dt><code>creationTime</code></dt><dd>The time this snapshot was created.  The time is specified
         in seconds since the Epoch, UTC (i.e. Unix time).  Readonly.
       </dd><dt><code>state</code></dt><dd>The state of the domain at the time this snapshot was taken.

@@ -17,17 +17,17 @@ extern "C" {
 #include "remote_protocol.h"
 #include <arpa/inet.h>
 
-struct qemu_monitor_command_args {
+struct qemu_domain_monitor_command_args {
         remote_nonnull_domain dom;
         remote_nonnull_string cmd;
         u_int flags;
 };
-typedef struct qemu_monitor_command_args qemu_monitor_command_args;
+typedef struct qemu_domain_monitor_command_args qemu_domain_monitor_command_args;
 
-struct qemu_monitor_command_ret {
+struct qemu_domain_monitor_command_ret {
         remote_nonnull_string result;
 };
-typedef struct qemu_monitor_command_ret qemu_monitor_command_ret;
+typedef struct qemu_domain_monitor_command_ret qemu_domain_monitor_command_ret;
 
 struct qemu_domain_attach_args {
         u_int pid_value;
@@ -56,7 +56,7 @@ typedef struct qemu_domain_agent_command_ret qemu_domain_agent_command_ret;
 #define QEMU_PROTOCOL_VERSION 1
 
 enum qemu_procedure {
-        QEMU_PROC_MONITOR_COMMAND = 1,
+        QEMU_PROC_DOMAIN_MONITOR_COMMAND = 1,
         QEMU_PROC_DOMAIN_ATTACH = 2,
         QEMU_PROC_DOMAIN_AGENT_COMMAND = 3,
 };
@@ -65,8 +65,8 @@ typedef enum qemu_procedure qemu_procedure;
 /* the xdr functions */
 
 #if defined(__STDC__) || defined(__cplusplus)
-extern  bool_t xdr_qemu_monitor_command_args (XDR *, qemu_monitor_command_args*);
-extern  bool_t xdr_qemu_monitor_command_ret (XDR *, qemu_monitor_command_ret*);
+extern  bool_t xdr_qemu_domain_monitor_command_args (XDR *, qemu_domain_monitor_command_args*);
+extern  bool_t xdr_qemu_domain_monitor_command_ret (XDR *, qemu_domain_monitor_command_ret*);
 extern  bool_t xdr_qemu_domain_attach_args (XDR *, qemu_domain_attach_args*);
 extern  bool_t xdr_qemu_domain_attach_ret (XDR *, qemu_domain_attach_ret*);
 extern  bool_t xdr_qemu_domain_agent_command_args (XDR *, qemu_domain_agent_command_args*);
@@ -74,8 +74,8 @@ extern  bool_t xdr_qemu_domain_agent_command_ret (XDR *, qemu_domain_agent_comma
 extern  bool_t xdr_qemu_procedure (XDR *, qemu_procedure*);
 
 #else /* K&R C */
-extern bool_t xdr_qemu_monitor_command_args ();
-extern bool_t xdr_qemu_monitor_command_ret ();
+extern bool_t xdr_qemu_domain_monitor_command_args ();
+extern bool_t xdr_qemu_domain_monitor_command_ret ();
 extern bool_t xdr_qemu_domain_attach_args ();
 extern bool_t xdr_qemu_domain_attach_ret ();
 extern bool_t xdr_qemu_domain_agent_command_args ();

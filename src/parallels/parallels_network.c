@@ -2,6 +2,7 @@
  * parallels_storage.c: core privconn functions for managing
  * Parallels Cloud Server hosts
  *
+ * Copyright (C) 2013 Red Hat, Inc.
  * Copyright (C) 2012 Parallels, Inc.
  *
  * This library is free software; you can redistribute it and/or
@@ -23,6 +24,7 @@
 #include <config.h>
 
 #include "datatypes.h"
+#include "dirname.h"
 #include "viralloc.h"
 #include "virerror.h"
 #include "md5.h"
@@ -64,7 +66,7 @@ static int parallelsGetBridgedNetInfo(virNetworkDefPtr def, virJSONValuePtr jobj
         goto cleanup;
     }
 
-    if (!(def->bridge = strdup(basename(bridgePath)))) {
+    if (!(def->bridge = strdup(last_component(bridgePath)))) {
         virReportOOMError();
         goto cleanup;
     }
@@ -334,7 +336,7 @@ cleanup:
 }
 
 static virDrvOpenStatus
-parallelsOpenNetwork(virConnectPtr conn,
+parallelsNetworkOpen(virConnectPtr conn,
                      virConnectAuthPtr auth ATTRIBUTE_UNUSED,
                      unsigned int flags)
 {
@@ -351,7 +353,7 @@ parallelsOpenNetwork(virConnectPtr conn,
     return VIR_DRV_OPEN_SUCCESS;
 }
 
-static int parallelsCloseNetwork(virConnectPtr conn)
+static int parallelsNetworkClose(virConnectPtr conn)
 {
     parallelsConnPtr privconn = conn->privateData;
     parallelsDriverLock(privconn);
@@ -360,7 +362,7 @@ static int parallelsCloseNetwork(virConnectPtr conn)
     return 0;
 }
 
-static int parallelsNumNetworks(virConnectPtr conn)
+static int parallelsConnectNumOfNetworks(virConnectPtr conn)
 {
     int nactive = 0, i;
     parallelsConnPtr privconn = conn->privateData;
@@ -377,9 +379,9 @@ static int parallelsNumNetworks(virConnectPtr conn)
     return nactive;
 }
 
-static int parallelsListNetworks(virConnectPtr conn,
-                                 char **const names,
-                                 int nnames)
+static int parallelsConnectListNetworks(virConnectPtr conn,
+                                        char **const names,
+                                        int nnames)
 {
     parallelsConnPtr privconn = conn->privateData;
     int got = 0, i;
@@ -408,7 +410,7 @@ static int parallelsListNetworks(virConnectPtr conn,
     return -1;
 }
 
-static int parallelsNumDefinedNetworks(virConnectPtr conn)
+static int parallelsConnectNumOfDefinedNetworks(virConnectPtr conn)
 {
     int ninactive = 0, i;
     parallelsConnPtr privconn = conn->privateData;
@@ -425,9 +427,9 @@ static int parallelsNumDefinedNetworks(virConnectPtr conn)
     return ninactive;
 }
 
-static int parallelsListDefinedNetworks(virConnectPtr conn,
-                                        char **const names,
-                                        int nnames)
+static int parallelsConnectListDefinedNetworks(virConnectPtr conn,
+                                               char **const names,
+                                               int nnames)
 {
     parallelsConnPtr privconn = conn->privateData;
     int got = 0, i;
@@ -455,9 +457,9 @@ static int parallelsListDefinedNetworks(virConnectPtr conn,
     return -1;
 }
 
-static int parallelsListAllNetworks(virConnectPtr conn,
-                                    virNetworkPtr **nets,
-                                    unsigned int flags)
+static int parallelsConnectListAllNetworks(virConnectPtr conn,
+                                           virNetworkPtr **nets,
+                                           unsigned int flags)
 {
     parallelsConnPtr privconn = conn->privateData;
     int ret = -1;
@@ -614,13 +616,13 @@ cleanup:
 }
 static virNetworkDriver parallelsNetworkDriver = {
     "Parallels",
-    .open = parallelsOpenNetwork, /* 1.0.1 */
-    .close = parallelsCloseNetwork, /* 1.0.1 */
-    .numOfNetworks = parallelsNumNetworks, /* 1.0.1 */
-    .listNetworks = parallelsListNetworks, /* 1.0.1 */
-    .numOfDefinedNetworks = parallelsNumDefinedNetworks, /* 1.0.1 */
-    .listDefinedNetworks = parallelsListDefinedNetworks, /* 1.0.1 */
-    .listAllNetworks = parallelsListAllNetworks, /* 1.0.1 */
+    .networkOpen = parallelsNetworkOpen, /* 1.0.1 */
+    .networkClose = parallelsNetworkClose, /* 1.0.1 */
+    .connectNumOfNetworks = parallelsConnectNumOfNetworks, /* 1.0.1 */
+    .connectListNetworks = parallelsConnectListNetworks, /* 1.0.1 */
+    .connectNumOfDefinedNetworks = parallelsConnectNumOfDefinedNetworks, /* 1.0.1 */
+    .connectListDefinedNetworks = parallelsConnectListDefinedNetworks, /* 1.0.1 */
+    .connectListAllNetworks = parallelsConnectListAllNetworks, /* 1.0.1 */
     .networkLookupByUUID = parallelsNetworkLookupByUUID, /* 1.0.1 */
     .networkLookupByName = parallelsNetworkLookupByName, /* 1.0.1 */
     .networkGetXMLDesc = parallelsNetworkGetXMLDesc, /* 1.0.1 */
