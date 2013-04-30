@@ -10,7 +10,7 @@ Origin: vendor
  2 files changed, 27 insertions(+), 19 deletions(-)
 
 diff --git a/tools/libvirt-guests.sh.in b/tools/libvirt-guests.sh.in
-index 1c9c46b..f36995f 100644
+index 4f2e203..3ad8864 100644
 --- a/tools/libvirt-guests.sh.in
 +++ b/tools/libvirt-guests.sh.in
 @@ -1,32 +1,41 @@
@@ -70,7 +70,7 @@ index 1c9c46b..f36995f 100644
  
  RETVAL=0
  
-@@ -514,8 +523,7 @@ gueststatus() {
+@@ -515,8 +524,7 @@ gueststatus() {
  
  # rh_status
  # Display current status: whether saved state exists, and whether start
