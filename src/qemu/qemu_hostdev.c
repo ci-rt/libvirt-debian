@@ -1,7 +1,7 @@
 /*
  * qemu_hostdev.c: QEMU hostdev management
  *
- * Copyright (C) 2006-2007, 2009-2012 Red Hat, Inc.
+ * Copyright (C) 2006-2007, 2009-2013 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -51,10 +51,10 @@ qemuGetPciHostDeviceList(virDomainHostdevDefPtr *hostdevs, int nhostdevs)
         if (hostdev->source.subsys.type != VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI)
             continue;
 
-        dev = virPCIDeviceNew(hostdev->source.subsys.u.pci.domain,
-                              hostdev->source.subsys.u.pci.bus,
-                              hostdev->source.subsys.u.pci.slot,
-                              hostdev->source.subsys.u.pci.function);
+        dev = virPCIDeviceNew(hostdev->source.subsys.u.pci.addr.domain,
+                              hostdev->source.subsys.u.pci.addr.bus,
+                              hostdev->source.subsys.u.pci.addr.slot,
+                              hostdev->source.subsys.u.pci.addr.function);
         if (!dev) {
             virObjectUnref(list);
             return NULL;
@@ -67,6 +67,12 @@ qemuGetPciHostDeviceList(virDomainHostdevDefPtr *hostdevs, int nhostdevs)
         }
 
         virPCIDeviceSetManaged(dev, hostdev->managed);
+        if (hostdev->source.subsys.u.pci.backend
+            == VIR_DOMAIN_HOSTDEV_PCI_BACKEND_TYPE_VFIO) {
+            virPCIDeviceSetStubDriver(dev, "vfio-pci");
+        } else {
+            virPCIDeviceSetStubDriver(dev, "pci-stub");
+        }
     }
 
     return list;
@@ -96,10 +102,10 @@ qemuGetActivePciHostDeviceList(virQEMUDriverPtr driver,
         if (hostdev->source.subsys.type != VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI)
             continue;
 
-        dev = virPCIDeviceNew(hostdev->source.subsys.u.pci.domain,
-                              hostdev->source.subsys.u.pci.bus,
-                              hostdev->source.subsys.u.pci.slot,
-                              hostdev->source.subsys.u.pci.function);
+        dev = virPCIDeviceNew(hostdev->source.subsys.u.pci.addr.domain,
+                              hostdev->source.subsys.u.pci.addr.bus,
+                              hostdev->source.subsys.u.pci.addr.slot,
+                              hostdev->source.subsys.u.pci.addr.function);
         if (!dev) {
             virObjectUnref(list);
             return NULL;
@@ -141,15 +147,21 @@ int qemuUpdateActivePciHostdevs(virQEMUDriverPtr driver,
         if (hostdev->source.subsys.type != VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI)
             continue;
 
-        dev = virPCIDeviceNew(hostdev->source.subsys.u.pci.domain,
-                              hostdev->source.subsys.u.pci.bus,
-                              hostdev->source.subsys.u.pci.slot,
-                              hostdev->source.subsys.u.pci.function);
+        dev = virPCIDeviceNew(hostdev->source.subsys.u.pci.addr.domain,
+                              hostdev->source.subsys.u.pci.addr.bus,
+                              hostdev->source.subsys.u.pci.addr.slot,
+                              hostdev->source.subsys.u.pci.addr.function);
 
         if (!dev)
             goto cleanup;
 
         virPCIDeviceSetManaged(dev, hostdev->managed);
+        if (hostdev->source.subsys.u.pci.backend
+            == VIR_DOMAIN_HOSTDEV_PCI_BACKEND_TYPE_VFIO) {
+            virPCIDeviceSetStubDriver(dev, "vfio-pci");
+        } else {
+            virPCIDeviceSetStubDriver(dev, "pci-stub");
+        }
         virPCIDeviceSetUsedBy(dev, def->name);
 
         /* Setup the original states for the PCI device */
@@ -219,10 +231,10 @@ qemuDomainHostdevPciSysfsPath(virDomainHostdevDefPtr hostdev, char **sysfs_path)
 {
     virPCIDeviceAddress config_address;
 
-    config_address.domain = hostdev->source.subsys.u.pci.domain;
-    config_address.bus = hostdev->source.subsys.u.pci.bus;
-    config_address.slot = hostdev->source.subsys.u.pci.slot;
-    config_address.function = hostdev->source.subsys.u.pci.function;
+    config_address.domain = hostdev->source.subsys.u.pci.addr.domain;
+    config_address.bus = hostdev->source.subsys.u.pci.addr.bus;
+    config_address.slot = hostdev->source.subsys.u.pci.addr.slot;
+    config_address.function = hostdev->source.subsys.u.pci.addr.function;
 
     return virPCIDeviceAddressGetSysfsFile(&config_address, sysfs_path);
 }
@@ -472,11 +484,11 @@ int qemuPrepareHostdevPCIDevices(virQEMUDriverPtr driver,
         }
     }
 
-    /* Loop 2: detach managed devices */
+    /* Loop 2: detach managed devices (i.e. bind to appropriate stub driver) */
     for (i = 0; i < virPCIDeviceListCount(pcidevs); i++) {
         virPCIDevicePtr dev = virPCIDeviceListGet(pcidevs, i);
         if (virPCIDeviceGetManaged(dev) &&
-            virPCIDeviceDetach(dev, driver->activePciHostdevs, NULL, "pci-stub") < 0)
+            virPCIDeviceDetach(dev, driver->activePciHostdevs, NULL, NULL) < 0)
             goto reattachdevs;
     }
 
@@ -544,10 +556,10 @@ int qemuPrepareHostdevPCIDevices(virQEMUDriverPtr driver,
         if (hostdev->source.subsys.type != VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI)
             continue;
 
-        dev = virPCIDeviceNew(hostdev->source.subsys.u.pci.domain,
-                              hostdev->source.subsys.u.pci.bus,
-                              hostdev->source.subsys.u.pci.slot,
-                              hostdev->source.subsys.u.pci.function);
+        dev = virPCIDeviceNew(hostdev->source.subsys.u.pci.addr.domain,
+                              hostdev->source.subsys.u.pci.addr.bus,
+                              hostdev->source.subsys.u.pci.addr.slot,
+                              hostdev->source.subsys.u.pci.addr.function);
 
         /* original states "unbind_from_stub", "remove_slot",
          * "reprobe" were already set by pciDettachDevice in
@@ -593,7 +605,11 @@ resetvfnetconfig:
 reattachdevs:
     for (i = 0; i < virPCIDeviceListCount(pcidevs); i++) {
         virPCIDevicePtr dev = virPCIDeviceListGet(pcidevs, i);
-        virPCIDeviceReattach(dev, driver->activePciHostdevs, NULL, "pci-stub");
+
+        /* NB: This doesn't actually re-bind to original driver, just
+         * unbinds from the stub driver
+         */
+        virPCIDeviceReattach(dev, driver->activePciHostdevs, NULL, NULL);
     }
 
 cleanup:
@@ -739,7 +755,7 @@ qemuFindHostdevUSBDevice(virDomainHostdevDefPtr hostdev,
 
 out:
     if (!*usb)
-        hostdev->missing = 1;
+        hostdev->missing = true;
     return 0;
 }
 

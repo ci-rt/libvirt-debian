@@ -45,15 +45,8 @@ vmwareFreeDriver(struct vmware_driver *driver)
     virMutexDestroy(&driver->lock);
     virObjectUnref(driver->domains);
     virObjectUnref(driver->caps);
-    virObjectUnref(driver->xmlconf);
+    virObjectUnref(driver->xmlopt);
     VIR_FREE(driver);
-}
-
-
-static int vmwareDefaultConsoleType(const char *ostype ATTRIBUTE_UNUSED,
-                                    virArch arch ATTRIBUTE_UNUSED)
-{
-    return VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_SERIAL;
 }
 
 
@@ -71,8 +64,6 @@ vmwareCapsInit(void)
 
     if (nodeCapsInitNUMA(caps) < 0)
         goto error;
-
-    virCapabilitiesSetMacPrefix(caps, (unsigned char[]) {0x52, 0x54, 0x00});
 
     /* i686 guests are always supported */
     if ((guest = virCapabilitiesAddGuest(caps,
@@ -124,8 +115,6 @@ vmwareCapsInit(void)
             goto error;
     }
 
-    caps->defaultConsoleTargetType = vmwareDefaultConsoleType;
-
 cleanup:
     virCPUDefFree(cpu);
     if (caps)
@@ -174,13 +163,13 @@ vmwareLoadDomains(struct vmware_driver *driver)
             goto cleanup;
 
         if ((vmdef =
-             virVMXParseConfig(&ctx, driver->caps, vmx)) == NULL) {
+             virVMXParseConfig(&ctx, driver->xmlopt, vmx)) == NULL) {
             goto cleanup;
         }
 
-        if (!(vm = virDomainObjListAdd(driver->domains,
-                                       driver->xmlconf,
-                                       vmdef, 0, NULL)))
+        if (!(vm = virDomainObjListAdd(driver->domains, vmdef,
+                                       driver->xmlopt,
+                                       0, NULL)))
             goto cleanup;
 
         pDomain = vm->privateData;

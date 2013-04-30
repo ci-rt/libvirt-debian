@@ -43,8 +43,8 @@
 #include "virfile.h"
 #include "virhash.h"
 #include "virrandom.h"
-#include "virutil.h"
 #include "virconf.h"
+#include "virtpm.h"
 
 #define VIR_FROM_THIS VIR_FROM_SECURITY
 
@@ -75,6 +75,12 @@ struct _virSecuritySELinuxCallbackData {
 
 #define SECURITY_SELINUX_VOID_DOI       "0"
 #define SECURITY_SELINUX_NAME "selinux"
+
+static int
+virSecuritySELinuxRestoreSecurityTPMFileLabelInt(virSecurityManagerPtr mgr,
+                                                 virDomainDefPtr def,
+                                                 virDomainTPMDefPtr tpm);
+
 
 /*
  * Returns 0 on success, 1 if already reserved, or -1 on fatal error
@@ -679,13 +685,10 @@ virSecuritySELinuxGenSecurityLabel(virSecurityManagerPtr mgr,
             }
         }
 
-        seclabel->label =
-            virSecuritySELinuxGenNewContext(baselabel, mcs, false);
-        if (!seclabel->label)  {
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("cannot generate selinux context for %s"), mcs);
+        seclabel->label = virSecuritySELinuxGenNewContext(baselabel, mcs, false);
+        if (!seclabel->label)
             goto cleanup;
-        }
+
         break;
 
     case VIR_DOMAIN_SECLABEL_NONE:
@@ -703,11 +706,8 @@ virSecuritySELinuxGenSecurityLabel(virSecurityManagerPtr mgr,
         seclabel->imagelabel = virSecuritySELinuxGenNewContext(data->file_context,
                                                                mcs,
                                                                true);
-        if (!seclabel->imagelabel)  {
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("cannot generate selinux context for %s"), mcs);
+        if (!seclabel->imagelabel)
             goto cleanup;
-        }
     }
 
     if (!seclabel->model &&
@@ -1062,6 +1062,83 @@ err:
     return rc;
 }
 
+
+static int
+virSecuritySELinuxSetSecurityTPMFileLabel(virSecurityManagerPtr mgr,
+                                          virDomainDefPtr def,
+                                          virDomainTPMDefPtr tpm)
+{
+    int rc;
+    virSecurityLabelDefPtr seclabel;
+    char *cancel_path;
+    const char *tpmdev;
+
+    seclabel = virDomainDefGetSecurityLabelDef(def, SECURITY_SELINUX_NAME);
+    if (seclabel == NULL)
+        return -1;
+
+    switch (tpm->type) {
+    case VIR_DOMAIN_TPM_TYPE_PASSTHROUGH:
+        tpmdev = tpm->data.passthrough.source.data.file.path;
+        rc = virSecuritySELinuxSetFilecon(tpmdev, seclabel->imagelabel);
+        if (rc < 0)
+            return -1;
+
+        if ((cancel_path = virTPMCreateCancelPath(tpmdev)) != NULL) {
+            rc = virSecuritySELinuxSetFilecon(cancel_path,
+                                              seclabel->imagelabel);
+            VIR_FREE(cancel_path);
+            if (rc < 0) {
+                virSecuritySELinuxRestoreSecurityTPMFileLabelInt(mgr, def,
+                                                                 tpm);
+                return -1;
+            }
+        } else {
+            return -1;
+        }
+        break;
+    case VIR_DOMAIN_TPM_TYPE_LAST:
+        break;
+    }
+
+    return 0;
+}
+
+
+static int
+virSecuritySELinuxRestoreSecurityTPMFileLabelInt(virSecurityManagerPtr mgr,
+                                                 virDomainDefPtr def,
+                                                 virDomainTPMDefPtr tpm)
+{
+    int rc = 0;
+    virSecurityLabelDefPtr seclabel;
+    char *cancel_path;
+    const char *tpmdev;
+
+    seclabel = virDomainDefGetSecurityLabelDef(def, SECURITY_SELINUX_NAME);
+    if (seclabel == NULL)
+        return -1;
+
+    switch (tpm->type) {
+    case VIR_DOMAIN_TPM_TYPE_PASSTHROUGH:
+        tpmdev = tpm->data.passthrough.source.data.file.path;
+        rc = virSecuritySELinuxRestoreSecurityFileLabel(mgr, tpmdev);
+
+        if ((cancel_path = virTPMCreateCancelPath(tpmdev)) != NULL) {
+            if (virSecuritySELinuxRestoreSecurityFileLabel(mgr,
+                                  cancel_path) < 0)
+                rc = -1;
+            VIR_FREE(cancel_path);
+        }
+        break;
+    case VIR_DOMAIN_TPM_TYPE_LAST:
+        break;
+    }
+
+    return rc;
+}
+
+
 static int
 virSecuritySELinuxRestoreSecurityImageLabelInt(virSecurityManagerPtr mgr,
                                                virDomainDefPtr def,
@@ -1257,15 +1334,25 @@ virSecuritySELinuxSetSecurityHostdevSubsysLabel(virDomainDefPtr def,
 
     case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI: {
         virPCIDevicePtr pci =
-            virPCIDeviceNew(dev->source.subsys.u.pci.domain,
-                            dev->source.subsys.u.pci.bus,
-                            dev->source.subsys.u.pci.slot,
-                            dev->source.subsys.u.pci.function);
+            virPCIDeviceNew(dev->source.subsys.u.pci.addr.domain,
+                            dev->source.subsys.u.pci.addr.bus,
+                            dev->source.subsys.u.pci.addr.slot,
+                            dev->source.subsys.u.pci.addr.function);
 
         if (!pci)
             goto done;
 
-        ret = virPCIDeviceFileIterate(pci, virSecuritySELinuxSetSecurityPCILabel, def);
+        if (dev->source.subsys.u.pci.backend
+            == VIR_DOMAIN_HOSTDEV_PCI_BACKEND_TYPE_VFIO) {
+            char *vfioGroupDev = virPCIDeviceGetVFIOGroupDev(pci);
+
+            if (!vfioGroupDev)
+                goto done;
+            ret = virSecuritySELinuxSetSecurityPCILabel(pci, vfioGroupDev, def);
+            VIR_FREE(vfioGroupDev);
+        } else {
+            ret = virPCIDeviceFileIterate(pci, virSecuritySELinuxSetSecurityPCILabel, def);
+        }
         virPCIDeviceFree(pci);
 
         break;
@@ -1419,15 +1506,25 @@ virSecuritySELinuxRestoreSecurityHostdevSubsysLabel(virSecurityManagerPtr mgr,
 
     case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI: {
         virPCIDevicePtr pci =
-            virPCIDeviceNew(dev->source.subsys.u.pci.domain,
-                            dev->source.subsys.u.pci.bus,
-                            dev->source.subsys.u.pci.slot,
-                            dev->source.subsys.u.pci.function);
+            virPCIDeviceNew(dev->source.subsys.u.pci.addr.domain,
+                            dev->source.subsys.u.pci.addr.bus,
+                            dev->source.subsys.u.pci.addr.slot,
+                            dev->source.subsys.u.pci.addr.function);
 
         if (!pci)
             goto done;
 
-        ret = virPCIDeviceFileIterate(pci, virSecuritySELinuxRestoreSecurityPCILabel, mgr);
+        if (dev->source.subsys.u.pci.backend
+            == VIR_DOMAIN_HOSTDEV_PCI_BACKEND_TYPE_VFIO) {
+            char *vfioGroupDev = virPCIDeviceGetVFIOGroupDev(pci);
+
+            if (!vfioGroupDev)
+                goto done;
+            ret = virSecuritySELinuxRestoreSecurityPCILabel(pci, vfioGroupDev, mgr);
+            VIR_FREE(vfioGroupDev);
+        } else {
+            ret = virPCIDeviceFileIterate(pci, virSecuritySELinuxRestoreSecurityPCILabel, mgr);
+        }
         virPCIDeviceFree(pci);
 
         break;
@@ -1733,6 +1830,12 @@ virSecuritySELinuxRestoreSecurityAllLabel(virSecurityManagerPtr mgr,
 
     if (secdef->norelabel || data->skipAllLabel)
         return 0;
+
+    if (def->tpm) {
+        if (virSecuritySELinuxRestoreSecurityTPMFileLabelInt(mgr, def,
+                                                             def->tpm) < 0)
+            rc = -1;
+    }
 
     for (i = 0 ; i < def->nhostdevs ; i++) {
         if (virSecuritySELinuxRestoreSecurityHostdevLabel(mgr,
@@ -2146,6 +2249,11 @@ virSecuritySELinuxSetSecurityAllLabel(virSecurityManagerPtr mgr,
                                                       def,
                                                       def->hostdevs[i],
                                                       NULL) < 0)
+            return -1;
+    }
+    if (def->tpm) {
+        if (virSecuritySELinuxSetSecurityTPMFileLabel(mgr, def,
+                                                      def->tpm) < 0)
             return -1;
     }
 

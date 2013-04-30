@@ -1,7 +1,7 @@
 /*
  * domain_audit.c: Domain audit management
  *
- * Copyright (C) 2006-2012 Red Hat, Inc.
+ * Copyright (C) 2006-2013 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -382,10 +382,10 @@ virDomainAuditHostdev(virDomainObjPtr vm, virDomainHostdevDefPtr hostdev,
         switch (hostdev->source.subsys.type) {
         case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI:
             if (virAsprintf(&address, "%.4x:%.2x:%.2x.%.1x",
-                            hostdev->source.subsys.u.pci.domain,
-                            hostdev->source.subsys.u.pci.bus,
-                            hostdev->source.subsys.u.pci.slot,
-                            hostdev->source.subsys.u.pci.function) < 0) {
+                            hostdev->source.subsys.u.pci.addr.domain,
+                            hostdev->source.subsys.u.pci.addr.bus,
+                            hostdev->source.subsys.u.pci.addr.slot,
+                            hostdev->source.subsys.u.pci.addr.function) < 0) {
                 VIR_WARN("OOM while encoding audit message");
                 goto cleanup;
             }
@@ -524,6 +524,58 @@ cleanup:
 
 
 /**
+ * virDomainAuditTPM:
+ * @vm: domain making a change in pass-through host device
+ * @tpm: TPM device being attached or removed
+ * @reason: one of "start", "attach", or "detach"
+ * @success: true if the device passthrough operation succeeded
+ *
+ * Log an audit message about an attempted device passthrough change.
+ */
+static void
+virDomainAuditTPM(virDomainObjPtr vm, virDomainTPMDefPtr tpm,
+                  const char *reason, bool success)
+{
+    char uuidstr[VIR_UUID_STRING_BUFLEN];
+    char *vmname;
+    char *path = NULL;
+    char *device = NULL;
+    const char *virt;
+
+    virUUIDFormat(vm->def->uuid, uuidstr);
+    if (!(vmname = virAuditEncode("vm", vm->def->name))) {
+        VIR_WARN("OOM while encoding audit message");
+        return;
+    }
+
+    if (!(virt = virDomainVirtTypeToString(vm->def->virtType))) {
+        VIR_WARN("Unexpected virt type %d while encoding audit message", vm->def->virtType);
+        virt = "?";
+    }
+
+    switch (tpm->type) {
+    case VIR_DOMAIN_TPM_TYPE_PASSTHROUGH:
+        path = tpm->data.passthrough.source.data.file.path;
+        if (!(device = virAuditEncode("device", VIR_AUDIT_STR(path)))) {
+            VIR_WARN("OOM while encoding audit message");
+            goto cleanup;
+        }
+
+        VIR_AUDIT(VIR_AUDIT_RECORD_RESOURCE, success,
+                  "virt=%s resrc=dev reason=%s %s uuid=%s %s",
+                  virt, reason, vmname, uuidstr, device);
+        break;
+    default:
+        break;
+    }
+
+cleanup:
+    VIR_FREE(vmname);
+    VIR_FREE(device);
+}
+
+
+/**
  * virDomainAuditCgroup:
  * @vm: domain making the cgroups ACL change
  * @cgroup: cgroup that manages the devices
@@ -630,8 +682,8 @@ virDomainAuditCgroupPath(virDomainObjPtr vm, virCgroupPtr cgroup,
     rdev = virDomainAuditGetRdev(path);
 
     if (!(detail = virAuditEncode("path", path)) ||
-        virAsprintf(&extra, "path path=%s rdev=%s acl=%s",
-                    path, VIR_AUDIT_STR(rdev), perms) < 0) {
+        virAsprintf(&extra, "path %s rdev=%s acl=%s",
+                    detail, VIR_AUDIT_STR(rdev), perms) < 0) {
         VIR_WARN("OOM while encoding audit message");
         goto cleanup;
     }
@@ -760,6 +812,9 @@ virDomainAuditStart(virDomainObjPtr vm, const char *reason, bool success)
 
     if (vm->def->rng)
         virDomainAuditRNG(vm, vm->def->rng, NULL, "start", true);
+
+    if (vm->def->tpm)
+        virDomainAuditTPM(vm, vm->def->tpm, "start", true);
 
     virDomainAuditMemory(vm, 0, vm->def->mem.cur_balloon, "start", true);
     virDomainAuditVcpu(vm, 0, vm->def->vcpus, "start", true);

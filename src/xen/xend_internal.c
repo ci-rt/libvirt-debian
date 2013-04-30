@@ -2409,8 +2409,8 @@ xenDaemonCreateXML(virConnectPtr conn, const char *xmlDesc, unsigned int flags)
 
     virCheckFlags(0, NULL);
 
-    if (!(def = virDomainDefParseString(priv->caps, priv->xmlconf,
-                                        xmlDesc, 1 << VIR_DOMAIN_VIRT_XEN,
+    if (!(def = virDomainDefParseString(xmlDesc, priv->caps, priv->xmlopt,
+                                        1 << VIR_DOMAIN_VIRT_XEN,
                                         VIR_DOMAIN_XML_INACTIVE)))
         return NULL;
 
@@ -2519,8 +2519,8 @@ xenDaemonAttachDeviceFlags(virDomainPtr domain,
                                      NULL)))
         goto cleanup;
 
-    if (!(dev = virDomainDeviceDefParse(priv->caps,
-                                        def, xml, VIR_DOMAIN_XML_INACTIVE)))
+    if (!(dev = virDomainDeviceDefParse(xml, def, priv->caps, priv->xmlopt,
+                                        VIR_DOMAIN_XML_INACTIVE)))
         goto cleanup;
 
 
@@ -2565,7 +2565,7 @@ xenDaemonAttachDeviceFlags(virDomainPtr domain,
 
             virDevicePCIAddress PCIAddr;
 
-            PCIAddr = dev->data.hostdev->source.subsys.u.pci;
+            PCIAddr = dev->data.hostdev->source.subsys.u.pci.addr;
             if (virAsprintf(&target, "PCI device: %.4x:%.2x:%.2x",
                             PCIAddr.domain, PCIAddr.bus, PCIAddr.slot) < 0) {
                 virReportOOMError();
@@ -2679,8 +2679,8 @@ xenDaemonUpdateDeviceFlags(virDomainPtr domain,
                                      NULL)))
         goto cleanup;
 
-    if (!(dev = virDomainDeviceDefParse(priv->caps,
-                                        def, xml, VIR_DOMAIN_XML_INACTIVE)))
+    if (!(dev = virDomainDeviceDefParse(xml, def, priv->caps, priv->xmlopt,
+                                        VIR_DOMAIN_XML_INACTIVE)))
         goto cleanup;
 
 
@@ -2786,8 +2786,8 @@ xenDaemonDetachDeviceFlags(virDomainPtr domain,
                                      NULL)))
         goto cleanup;
 
-    if (!(dev = virDomainDeviceDefParse(priv->caps,
-                                        def, xml, VIR_DOMAIN_XML_INACTIVE)))
+    if (!(dev = virDomainDeviceDefParse(xml, def, priv->caps, priv->xmlopt,
+                                        VIR_DOMAIN_XML_INACTIVE)))
         goto cleanup;
 
     if (virDomainXMLDevID(domain, dev, class, ref, sizeof(ref)))
@@ -3127,8 +3127,8 @@ xenDaemonDomainDefineXML(virConnectPtr conn, const char *xmlDesc)
     if (priv->xendConfigVersion < XEND_CONFIG_VERSION_3_0_4)
         return NULL;
 
-    if (!(def = virDomainDefParseString(priv->caps, priv->xmlconf,
-                                        xmlDesc, 1 << VIR_DOMAIN_VIRT_XEN,
+    if (!(def = virDomainDefParseString(xmlDesc, priv->caps, priv->xmlopt,
+                                        1 << VIR_DOMAIN_VIRT_XEN,
                                         VIR_DOMAIN_XML_INACTIVE))) {
         virReportError(VIR_ERR_XML_ERROR,
                        "%s", _("failed to parse domain description"));
@@ -3730,17 +3730,14 @@ virDomainXMLDevID(virDomainPtr domain,
         if (tmp == NULL)
             return -1;
     } else if (dev->type == VIR_DOMAIN_DEVICE_NET) {
-        char mac[30];
+        char mac[VIR_MAC_STRING_BUFLEN];
         virDomainNetDefPtr def = dev->data.net;
-        snprintf(mac, sizeof(mac), "%02x:%02x:%02x:%02x:%02x:%02x",
-                 def->mac.addr[0], def->mac.addr[1], def->mac.addr[2],
-                 def->mac.addr[3], def->mac.addr[4], def->mac.addr[5]);
+        virMacAddrFormat(&def->mac, mac);
 
         strcpy(class, "vif");
 
         xenUnifiedLock(priv);
-        xref = xenStoreDomainGetNetworkID(domain->conn, domain->id,
-                                          mac);
+        xref = xenStoreDomainGetNetworkID(domain->conn, domain->id, mac);
         xenUnifiedUnlock(priv);
         if (xref == NULL)
             return -1;
@@ -3756,10 +3753,10 @@ virDomainXMLDevID(virDomainPtr domain,
         virDomainHostdevDefPtr def = dev->data.hostdev;
 
         if (virAsprintf(&bdf, "%04x:%02x:%02x.%0x",
-                        def->source.subsys.u.pci.domain,
-                        def->source.subsys.u.pci.bus,
-                        def->source.subsys.u.pci.slot,
-                        def->source.subsys.u.pci.function) < 0) {
+                        def->source.subsys.u.pci.addr.domain,
+                        def->source.subsys.u.pci.addr.bus,
+                        def->source.subsys.u.pci.addr.slot,
+                        def->source.subsys.u.pci.addr.function) < 0) {
             virReportOOMError();
             return -1;
         }

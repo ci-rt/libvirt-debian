@@ -8,10 +8,11 @@
 #include <sys/types.h>
 #include <fcntl.h>
 
+#include "testutils.h"
+
 #ifdef WITH_QEMU
 
 # include "internal.h"
-# include "testutils.h"
 # include "viralloc.h"
 # include "qemu/qemu_capabilities.h"
 # include "qemu/qemu_command.h"
@@ -59,17 +60,17 @@ fakeSecretClose(virConnectPtr conn ATTRIBUTE_UNUSED)
 
 static virSecretDriver fakeSecretDriver = {
     .name = "fake_secret",
-    .open = NULL,
-    .close = fakeSecretClose,
-    .numOfSecrets = NULL,
-    .listSecrets = NULL,
-    .lookupByUUID = NULL,
-    .lookupByUsage = fakeSecretLookupByUsage,
-    .defineXML = NULL,
-    .getXMLDesc = NULL,
-    .setValue = NULL,
-    .getValue = fakeSecretGetValue,
-    .undefine = NULL,
+    .secretOpen = NULL,
+    .secretClose = fakeSecretClose,
+    .connectNumOfSecrets = NULL,
+    .connectListSecrets = NULL,
+    .secretLookupByUUID = NULL,
+    .secretLookupByUsage = fakeSecretLookupByUsage,
+    .secretDefineXML = NULL,
+    .secretGetXMLDesc = NULL,
+    .secretSetValue = NULL,
+    .secretGetValue = fakeSecretGetValue,
+    .secretUndefine = NULL,
 };
 
 typedef enum {
@@ -100,7 +101,7 @@ static int testCompareXMLToArgvFiles(const char *xml,
         goto out;
     conn->secretDriver = &fakeSecretDriver;
 
-    if (!(vmdef = virDomainDefParseFile(driver.caps, driver.xmlconf, xml,
+    if (!(vmdef = virDomainDefParseFile(xml, driver.caps, driver.xmlopt,
                                         QEMU_EXPECTED_VIRT_TYPES,
                                         VIR_DOMAIN_XML_INACTIVE))) {
         if (flags & FLAG_EXPECT_PARSE_ERROR)
@@ -294,7 +295,7 @@ mymain(void)
 
     if ((driver.caps = testQemuCapsInit()) == NULL)
         return EXIT_FAILURE;
-    if (!(driver.xmlconf = virQEMUDriverCreateXMLConf()))
+    if (!(driver.xmlopt = virQEMUDriverCreateXMLConf(&driver)))
         return EXIT_FAILURE;
     VIR_FREE(driver.config->stateDir);
     if ((driver.config->stateDir = strdup("/nowhere")) == NULL)
@@ -363,9 +364,15 @@ mymain(void)
     DO_TEST("minimal-s390", QEMU_CAPS_NAME);
     DO_TEST("machine-aliases1", NONE);
     DO_TEST("machine-aliases2", QEMU_CAPS_KVM);
-    DO_TEST("machine-core-on", QEMU_CAPS_DUMP_GUEST_CORE);
-    DO_TEST("machine-core-off", QEMU_CAPS_DUMP_GUEST_CORE);
+    DO_TEST("machine-core-on", QEMU_CAPS_MACHINE_OPT,
+            QEMU_CAPS_DUMP_GUEST_CORE);
+    DO_TEST("machine-core-off", QEMU_CAPS_MACHINE_OPT,
+            QEMU_CAPS_DUMP_GUEST_CORE);
     DO_TEST_FAILURE("machine-core-on", NONE);
+    DO_TEST_FAILURE("machine-core-on", QEMU_CAPS_MACHINE_OPT);
+    DO_TEST("machine-usb-opt", QEMU_CAPS_MACHINE_OPT,
+            QEMU_CAPS_MACHINE_USB_OPT);
+    DO_TEST("kvm", QEMU_CAPS_MACHINE_OPT);
     DO_TEST("boot-cdrom", NONE);
     DO_TEST("boot-network", NONE);
     DO_TEST("boot-floppy", NONE);
@@ -550,6 +557,9 @@ mymain(void)
     DO_TEST("disk-scsi-virtio-scsi",
             QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG,
             QEMU_CAPS_VIRTIO_SCSI);
+    DO_TEST("disk-virtio-scsi-num_queues",
+            QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG,
+            QEMU_CAPS_VIRTIO_SCSI);
     DO_TEST("disk-scsi-megasas",
             QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG,
             QEMU_CAPS_SCSI_MEGASAS);
@@ -662,6 +672,9 @@ mymain(void)
     DO_TEST("net-mcast", NONE);
     DO_TEST("net-hostdev",
             QEMU_CAPS_PCIDEVICE, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG);
+    DO_TEST("net-hostdev-vfio",
+            QEMU_CAPS_PCIDEVICE, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG,
+            QEMU_CAPS_DEVICE_VFIO_PCI);
 
     DO_TEST("serial-vc", NONE);
     DO_TEST("serial-pty", NONE);
@@ -758,6 +771,9 @@ mymain(void)
     DO_TEST("usb-ich9-companion",
             QEMU_CAPS_CHARDEV, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG,
             QEMU_CAPS_PCI_MULTIFUNCTION, QEMU_CAPS_ICH9_USB_EHCI1);
+    DO_TEST_PARSE_ERROR("usb-ich9-no-companion",
+            QEMU_CAPS_CHARDEV, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG,
+            QEMU_CAPS_PCI_MULTIFUNCTION, QEMU_CAPS_ICH9_USB_EHCI1);
     DO_TEST("usb-hub",
             QEMU_CAPS_CHARDEV, QEMU_CAPS_DEVICE, QEMU_CAPS_USB_HUB,
             QEMU_CAPS_NODEFCONFIG);
@@ -821,6 +837,9 @@ mymain(void)
     DO_TEST("hostdev-pci-address", QEMU_CAPS_PCIDEVICE);
     DO_TEST("hostdev-pci-address-device",
             QEMU_CAPS_PCIDEVICE, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG);
+    DO_TEST("hostdev-vfio",
+            QEMU_CAPS_PCIDEVICE, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG,
+            QEMU_CAPS_DEVICE_VFIO_PCI);
     DO_TEST("pci-rom",
             QEMU_CAPS_PCIDEVICE, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG,
             QEMU_CAPS_PCI_ROMBAR);
@@ -894,10 +913,19 @@ mymain(void)
             QEMU_CAPS_CHARDEV, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG);
     DO_TEST("pseries-vio", QEMU_CAPS_DRIVE,
             QEMU_CAPS_CHARDEV, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG);
+    DO_TEST("pseries-usb-default", QEMU_CAPS_DRIVE,
+            QEMU_CAPS_CHARDEV, QEMU_CAPS_DEVICE,
+            QEMU_CAPS_NODEFCONFIG, QEMU_CAPS_PIIX3_USB_UHCI,
+            QEMU_CAPS_PCI_OHCI, QEMU_CAPS_PCI_MULTIFUNCTION);
+    DO_TEST("pseries-usb-multi", QEMU_CAPS_DRIVE,
+            QEMU_CAPS_CHARDEV, QEMU_CAPS_DEVICE,
+            QEMU_CAPS_NODEFCONFIG, QEMU_CAPS_PIIX3_USB_UHCI,
+            QEMU_CAPS_PCI_OHCI, QEMU_CAPS_PCI_MULTIFUNCTION);
     DO_TEST("pseries-vio-user-assigned", QEMU_CAPS_DRIVE,
             QEMU_CAPS_CHARDEV, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG);
     DO_TEST_ERROR("pseries-vio-address-clash", QEMU_CAPS_DRIVE,
             QEMU_CAPS_CHARDEV, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG);
+    DO_TEST("pseries-nvram", QEMU_CAPS_DEVICE_NVRAM);
     DO_TEST("disk-ide-drive-split",
             QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG,
             QEMU_CAPS_IDE_CD);
@@ -929,9 +957,15 @@ mymain(void)
 
     DO_TEST("ppc-dtb", QEMU_CAPS_KVM, QEMU_CAPS_DTB);
 
+    DO_TEST("tpm-passthrough", QEMU_CAPS_DEVICE,
+            QEMU_CAPS_DEVICE_TPM_PASSTHROUGH, QEMU_CAPS_DEVICE_TPM_TIS);
+
+    DO_TEST("pci-autoadd-addr", QEMU_CAPS_DEVICE, QEMU_CAPS_DEVICE_PCI_BRIDGE);
+    DO_TEST("pci-autoadd-idx", QEMU_CAPS_DEVICE, QEMU_CAPS_DEVICE_PCI_BRIDGE);
+
     virObjectUnref(driver.config);
     virObjectUnref(driver.caps);
-    virObjectUnref(driver.xmlconf);
+    virObjectUnref(driver.xmlopt);
     VIR_FREE(map);
 
     return ret==0 ? EXIT_SUCCESS : EXIT_FAILURE;
@@ -940,7 +974,6 @@ mymain(void)
 VIRT_TEST_MAIN(mymain)
 
 #else
-# include "testutils.h"
 
 int main(void)
 {

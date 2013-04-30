@@ -33,7 +33,6 @@
 #include <sys/mman.h>
 #include <sys/ioctl.h>
 #include <limits.h>
-#include <stdint.h>
 #include <regex.h>
 #include <errno.h>
 
@@ -2279,15 +2278,6 @@ struct guest_arch {
 };
 
 
-static int xenDefaultConsoleType(const char *ostype,
-                                 virArch arch ATTRIBUTE_UNUSED)
-{
-    if (STREQ(ostype, "hvm"))
-        return VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_SERIAL;
-    else
-        return VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_XEN;
-}
-
 static virCapsPtr
 xenHypervisorBuildCapabilities(virConnectPtr conn, virArch hostarch,
                                int host_pae,
@@ -2302,8 +2292,6 @@ xenHypervisorBuildCapabilities(virConnectPtr conn, virArch hostarch,
 
     if ((caps = virCapabilitiesNew(hostarch, 1, 1)) == NULL)
         goto no_memory;
-
-    virCapabilitiesSetMacPrefix(caps, (unsigned char[]){ 0x00, 0x16, 0x3e });
 
     if (hvm_type && STRNEQ(hvm_type, "") &&
         virCapabilitiesAddHostFeature(caps, hvm_type) < 0)
@@ -2415,8 +2403,6 @@ xenHypervisorBuildCapabilities(virConnectPtr conn, virArch hostarch,
         }
 
     }
-
-    caps->defaultConsoleTargetType = xenDefaultConsoleType;
 
     return caps;
 

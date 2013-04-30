@@ -2,7 +2,7 @@
 /*
  * virt-aa-helper: wrapper program used by AppArmor security driver.
  *
- * Copyright (C) 2010-2012 Red Hat, Inc.
+ * Copyright (C) 2010-2013 Red Hat, Inc.
  * Copyright (C) 2009-2011 Canonical Ltd.
  *
  * This library is free software; you can redistribute it and/or
@@ -71,7 +71,7 @@ typedef struct {
     char *files;                /* list of files */
     virDomainDefPtr def;        /* VM definition */
     virCapsPtr caps;            /* VM capabilities */
-    virDomainXMLConfPtr xmlconf;/* XML parser data */
+    virDomainXMLOptionPtr xmlopt;/* XML parser data */
     char *hvm;                  /* type of hypervisor (eg hvm, xen) */
     virArch arch;               /* machine architecture */
     char *newfile;              /* newly added file */
@@ -86,7 +86,7 @@ vahDeinit(vahControl * ctl)
 
     VIR_FREE(ctl->def);
     virObjectUnref(ctl->caps);
-    virObjectUnref(ctl->xmlconf);
+    virObjectUnref(ctl->xmlopt);
     VIR_FREE(ctl->files);
     VIR_FREE(ctl->hvm);
     VIR_FREE(ctl->newfile);
@@ -687,11 +687,6 @@ caps_mockup(vahControl * ctl, const char *xmlStr)
     return rc;
 }
 
-static int aaDefaultConsoleType(const char *ostype ATTRIBUTE_UNUSED,
-                                virArch arch ATTRIBUTE_UNUSED)
-{
-    return VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_SERIAL;
-}
 
 static int
 get_definition(vahControl * ctl, const char *xmlStr)
@@ -711,12 +706,10 @@ get_definition(vahControl * ctl, const char *xmlStr)
         goto exit;
     }
 
-    if (!(ctl->xmlconf = virDomainXMLConfNew(NULL, NULL))) {
+    if (!(ctl->xmlopt = virDomainXMLOptionNew(NULL, NULL, NULL))) {
         vah_error(ctl, 0, _("Failed to create XML config object"));
         goto exit;
     }
-
-    ctl->caps->defaultConsoleTargetType = aaDefaultConsoleType;
 
     if ((guest = virCapabilitiesAddGuest(ctl->caps,
                                          ctl->hvm,
@@ -729,9 +722,9 @@ get_definition(vahControl * ctl, const char *xmlStr)
         goto exit;
     }
 
-    ctl->def = virDomainDefParseString(ctl->caps, ctl->xmlconf,
-                                       xmlStr, -1,
-                                       VIR_DOMAIN_XML_INACTIVE);
+    ctl->def = virDomainDefParseString(xmlStr,
+                                       ctl->caps, ctl->xmlopt,
+                                       -1, VIR_DOMAIN_XML_INACTIVE);
     if (ctl->def == NULL) {
         vah_error(ctl, 0, _("could not parse XML"));
         goto exit;
@@ -1036,10 +1029,10 @@ get_files(vahControl * ctl)
 
             case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI: {
                 virPCIDevicePtr pci = virPCIDeviceNew(
-                           dev->source.subsys.u.pci.domain,
-                           dev->source.subsys.u.pci.bus,
-                           dev->source.subsys.u.pci.slot,
-                           dev->source.subsys.u.pci.function);
+                           dev->source.subsys.u.pci.addr.domain,
+                           dev->source.subsys.u.pci.addr.bus,
+                           dev->source.subsys.u.pci.addr.slot,
+                           dev->source.subsys.u.pci.addr.function);
 
                 if (pci == NULL)
                     continue;

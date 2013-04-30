@@ -124,14 +124,14 @@ cleanup:
 
 
 
-static int qemuDispatchMonitorCommand(
+static int qemuDispatchDomainMonitorCommand(
     virNetServerPtr server,
     virNetServerClientPtr client,
     virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
-    qemu_monitor_command_args *args,
-    qemu_monitor_command_ret *ret);
-static int qemuDispatchMonitorCommandHelper(
+    qemu_domain_monitor_command_args *args,
+    qemu_domain_monitor_command_ret *ret);
+static int qemuDispatchDomainMonitorCommandHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
     virNetMessagePtr msg,
@@ -140,9 +140,9 @@ static int qemuDispatchMonitorCommandHelper(
     void *ret)
 {
   VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
-  return qemuDispatchMonitorCommand(server, client, msg, rerr, args, ret);
+  return qemuDispatchDomainMonitorCommand(server, client, msg, rerr, args, ret);
 }
-/* qemuDispatchMonitorCommand body has to be implemented manually */
+/* qemuDispatchDomainMonitorCommand body has to be implemented manually */
 
 
 
@@ -156,12 +156,12 @@ virNetServerProgramProc qemuProcs[] = {
    true,
    0
 },
-{ /* Method MonitorCommand => 1 */
-   qemuDispatchMonitorCommandHelper,
-   sizeof(qemu_monitor_command_args),
-   (xdrproc_t)xdr_qemu_monitor_command_args,
-   sizeof(qemu_monitor_command_ret),
-   (xdrproc_t)xdr_qemu_monitor_command_ret,
+{ /* Method DomainMonitorCommand => 1 */
+   qemuDispatchDomainMonitorCommandHelper,
+   sizeof(qemu_domain_monitor_command_args),
+   (xdrproc_t)xdr_qemu_domain_monitor_command_args,
+   sizeof(qemu_domain_monitor_command_ret),
+   (xdrproc_t)xdr_qemu_domain_monitor_command_ret,
    true,
    0
 },

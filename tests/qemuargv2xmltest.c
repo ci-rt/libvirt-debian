@@ -8,10 +8,11 @@
 #include <sys/types.h>
 #include <fcntl.h>
 
+#include "testutils.h"
+
 #ifdef WITH_QEMU
 
 # include "internal.h"
-# include "testutils.h"
 # include "qemu/qemu_command.h"
 
 # include "testutilsqemu.h"
@@ -46,7 +47,7 @@ static int testCompareXMLToArgvFiles(const char *xml,
     if (virtTestLoadFile(xml, &expectxml) < 0)
         goto fail;
 
-    if (!(vmdef = qemuParseCommandLineString(driver.caps, driver.xmlconf,
+    if (!(vmdef = qemuParseCommandLineString(driver.caps, driver.xmlopt,
                                              cmd, NULL, NULL, NULL)))
         goto fail;
 
@@ -120,7 +121,7 @@ mymain(void)
     if ((driver.caps = testQemuCapsInit()) == NULL)
         return EXIT_FAILURE;
 
-    if (!(driver.xmlconf = virQEMUDriverCreateXMLConf()))
+    if (!(driver.xmlopt = virQEMUDriverCreateXMLConf(&driver)))
         return EXIT_FAILURE;
 
 # define DO_TEST_FULL(name, extraFlags, migrateFrom)                     \
@@ -243,6 +244,8 @@ mymain(void)
 
     DO_TEST("hyperv");
 
+    DO_TEST("pseries-nvram");
+
     DO_TEST_FULL("restore-v1", 0, "stdio");
     DO_TEST_FULL("restore-v2", 0, "stdio");
     DO_TEST_FULL("restore-v2", 0, "exec:cat");
@@ -252,7 +255,7 @@ mymain(void)
 
     virObjectUnref(driver.config);
     virObjectUnref(driver.caps);
-    virObjectUnref(driver.xmlconf);
+    virObjectUnref(driver.xmlopt);
 
     return ret==0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }
@@ -260,7 +263,6 @@ mymain(void)
 VIRT_TEST_MAIN(mymain)
 
 #else
-# include "testutils.h"
 
 int
 main(void)

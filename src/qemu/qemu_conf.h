@@ -34,7 +34,6 @@
 # include "domain_event.h"
 # include "virthread.h"
 # include "security/security_manager.h"
-# include "vircgroup.h"
 # include "virpci.h"
 # include "virusb.h"
 # include "cpu_conf.h"
@@ -117,6 +116,7 @@ struct _virQEMUDriverConfig {
 
     char *hugetlbfsMount;
     char *hugepagePath;
+    char *bridgeHelperName;
 
     bool macFilter;
 
@@ -164,9 +164,6 @@ struct _virQEMUDriver {
     /* Atomic increment only */
     int nextvmid;
 
-    /* Immutable pointer. Immutable object */
-    virCgroupPtr cgroup;
-
     /* Atomic inc/dec only */
     unsigned int nactive;
 
@@ -189,7 +186,7 @@ struct _virQEMUDriver {
     virCapsPtr caps;
 
     /* Immutable pointer, Immutable object */
-    virDomainXMLConfPtr xmlconf;
+    virDomainXMLOptionPtr xmlopt;
 
     /* Immutable pointer, self-locking APIs */
     virQEMUCapsCachePtr qemuCapsCache;
@@ -301,6 +298,9 @@ void qemuSharedDiskEntryFree(void *payload, const void *name)
     ATTRIBUTE_NONNULL(1);
 
 int qemuDriverAllocateID(virQEMUDriverPtr driver);
-virDomainXMLConfPtr virQEMUDriverCreateXMLConf(void);
+virDomainXMLOptionPtr virQEMUDriverCreateXMLConf(virQEMUDriverPtr driver);
+
+int qemuTranslateDiskSourcePool(virConnectPtr conn,
+                                virDomainDiskDefPtr def);
 
 #endif /* __QEMUD_CONF_H */

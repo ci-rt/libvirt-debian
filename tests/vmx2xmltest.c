@@ -1,5 +1,7 @@
 #include <config.h>
 
+#include "testutils.h"
+
 #ifdef WITH_VMX
 
 # include <stdio.h>
@@ -8,17 +10,12 @@
 
 # include "internal.h"
 # include "viralloc.h"
-# include "testutils.h"
 # include "vmx/vmx.h"
 
 static virCapsPtr caps;
+static virDomainXMLOptionPtr xmlopt;
 static virVMXContext ctx;
 
-static int testDefaultConsoleType(const char *ostype ATTRIBUTE_UNUSED,
-                                  virArch arch ATTRIBUTE_UNUSED)
-{
-    return VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_SERIAL;
-}
 
 static void
 testCapsInit(void)
@@ -31,12 +28,7 @@ testCapsInit(void)
         return;
     }
 
-    caps->defaultConsoleTargetType = testDefaultConsoleType;
-
-    virCapabilitiesSetMacPrefix(caps, (unsigned char[]){ 0x00, 0x0c, 0x29 });
     virCapabilitiesAddHostMigrateTransport(caps, "esx");
-
-    caps->hasWideScsiBus = true;
 
     /* i686 guest */
     guest =
@@ -93,7 +85,7 @@ testCompareFiles(const char *vmx, const char *xml)
         goto failure;
     }
 
-    def = virVMXParseConfig(&ctx, caps, vmxData);
+    def = virVMXParseConfig(&ctx, xmlopt, vmxData);
 
     if (def == NULL) {
         err = virGetLastError();
@@ -221,6 +213,9 @@ mymain(void)
         return EXIT_FAILURE;
     }
 
+    if (!(xmlopt = virVMXDomainXMLConfInit()))
+        return EXIT_FAILURE;
+
     ctx.opaque = NULL;
     ctx.parseFileName = testParseVMXFileName;
     ctx.formatFileName = NULL;
@@ -296,6 +291,7 @@ mymain(void)
     DO_TEST("svga", "svga");
 
     virObjectUnref(caps);
+    virObjectUnref(xmlopt);
 
     return result == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }
@@ -303,7 +299,6 @@ mymain(void)
 VIRT_TEST_MAIN(mymain)
 
 #else
-# include "testutils.h"
 
 int main(void)
 {

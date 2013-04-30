@@ -347,7 +347,7 @@ xdr_remote_domain_disk_error (XDR *xdrs, remote_domain_disk_error *objp)
 }
 
 bool_t
-xdr_remote_open_args (XDR *xdrs, remote_open_args *objp)
+xdr_remote_connect_open_args (XDR *xdrs, remote_connect_open_args *objp)
 {
 
          if (!xdr_remote_string (xdrs, &objp->name))
@@ -358,7 +358,7 @@ xdr_remote_open_args (XDR *xdrs, remote_open_args *objp)
 }
 
 bool_t
-xdr_remote_supports_feature_args (XDR *xdrs, remote_supports_feature_args *objp)
+xdr_remote_connect_supports_feature_args (XDR *xdrs, remote_connect_supports_feature_args *objp)
 {
 
          if (!xdr_int (xdrs, &objp->feature))
@@ -367,7 +367,7 @@ xdr_remote_supports_feature_args (XDR *xdrs, remote_supports_feature_args *objp)
 }
 
 bool_t
-xdr_remote_supports_feature_ret (XDR *xdrs, remote_supports_feature_ret *objp)
+xdr_remote_connect_supports_feature_ret (XDR *xdrs, remote_connect_supports_feature_ret *objp)
 {
 
          if (!xdr_int (xdrs, &objp->supported))
@@ -376,7 +376,7 @@ xdr_remote_supports_feature_ret (XDR *xdrs, remote_supports_feature_ret *objp)
 }
 
 bool_t
-xdr_remote_get_type_ret (XDR *xdrs, remote_get_type_ret *objp)
+xdr_remote_connect_get_type_ret (XDR *xdrs, remote_connect_get_type_ret *objp)
 {
 
          if (!xdr_remote_nonnull_string (xdrs, &objp->type))
@@ -385,7 +385,7 @@ xdr_remote_get_type_ret (XDR *xdrs, remote_get_type_ret *objp)
 }
 
 bool_t
-xdr_remote_get_version_ret (XDR *xdrs, remote_get_version_ret *objp)
+xdr_remote_connect_get_version_ret (XDR *xdrs, remote_connect_get_version_ret *objp)
 {
 
          if (!xdr_uint64_t (xdrs, &objp->hv_ver))
@@ -394,7 +394,7 @@ xdr_remote_get_version_ret (XDR *xdrs, remote_get_version_ret *objp)
 }
 
 bool_t
-xdr_remote_get_lib_version_ret (XDR *xdrs, remote_get_lib_version_ret *objp)
+xdr_remote_connect_get_lib_version_ret (XDR *xdrs, remote_connect_get_lib_version_ret *objp)
 {
 
          if (!xdr_uint64_t (xdrs, &objp->lib_ver))
@@ -403,7 +403,7 @@ xdr_remote_get_lib_version_ret (XDR *xdrs, remote_get_lib_version_ret *objp)
 }
 
 bool_t
-xdr_remote_get_hostname_ret (XDR *xdrs, remote_get_hostname_ret *objp)
+xdr_remote_connect_get_hostname_ret (XDR *xdrs, remote_connect_get_hostname_ret *objp)
 {
 
          if (!xdr_remote_nonnull_string (xdrs, &objp->hostname))
@@ -412,7 +412,7 @@ xdr_remote_get_hostname_ret (XDR *xdrs, remote_get_hostname_ret *objp)
 }
 
 bool_t
-xdr_remote_get_sysinfo_args (XDR *xdrs, remote_get_sysinfo_args *objp)
+xdr_remote_connect_get_sysinfo_args (XDR *xdrs, remote_connect_get_sysinfo_args *objp)
 {
 
          if (!xdr_u_int (xdrs, &objp->flags))
@@ -421,7 +421,7 @@ xdr_remote_get_sysinfo_args (XDR *xdrs, remote_get_sysinfo_args *objp)
 }
 
 bool_t
-xdr_remote_get_sysinfo_ret (XDR *xdrs, remote_get_sysinfo_ret *objp)
+xdr_remote_connect_get_sysinfo_ret (XDR *xdrs, remote_connect_get_sysinfo_ret *objp)
 {
 
          if (!xdr_remote_nonnull_string (xdrs, &objp->sysinfo))
@@ -430,7 +430,7 @@ xdr_remote_get_sysinfo_ret (XDR *xdrs, remote_get_sysinfo_ret *objp)
 }
 
 bool_t
-xdr_remote_get_uri_ret (XDR *xdrs, remote_get_uri_ret *objp)
+xdr_remote_connect_get_uri_ret (XDR *xdrs, remote_connect_get_uri_ret *objp)
 {
 
          if (!xdr_remote_nonnull_string (xdrs, &objp->uri))
@@ -439,7 +439,7 @@ xdr_remote_get_uri_ret (XDR *xdrs, remote_get_uri_ret *objp)
 }
 
 bool_t
-xdr_remote_get_max_vcpus_args (XDR *xdrs, remote_get_max_vcpus_args *objp)
+xdr_remote_connect_get_max_vcpus_args (XDR *xdrs, remote_connect_get_max_vcpus_args *objp)
 {
 
          if (!xdr_remote_string (xdrs, &objp->type))
@@ -448,7 +448,7 @@ xdr_remote_get_max_vcpus_args (XDR *xdrs, remote_get_max_vcpus_args *objp)
 }
 
 bool_t
-xdr_remote_get_max_vcpus_ret (XDR *xdrs, remote_get_max_vcpus_ret *objp)
+xdr_remote_connect_get_max_vcpus_ret (XDR *xdrs, remote_connect_get_max_vcpus_ret *objp)
 {
 
          if (!xdr_int (xdrs, &objp->max_vcpus))
@@ -543,7 +543,7 @@ xdr_remote_node_get_info_ret (XDR *xdrs, remote_node_get_info_ret *objp)
 }
 
 bool_t
-xdr_remote_get_capabilities_ret (XDR *xdrs, remote_get_capabilities_ret *objp)
+xdr_remote_connect_get_capabilities_ret (XDR *xdrs, remote_connect_get_capabilities_ret *objp)
 {
 
          if (!xdr_remote_nonnull_string (xdrs, &objp->capabilities))
@@ -1115,7 +1115,7 @@ xdr_remote_domain_get_block_info_ret (XDR *xdrs, remote_domain_get_block_info_re
 }
 
 bool_t
-xdr_remote_list_domains_args (XDR *xdrs, remote_list_domains_args *objp)
+xdr_remote_connect_list_domains_args (XDR *xdrs, remote_connect_list_domains_args *objp)
 {
 
          if (!xdr_int (xdrs, &objp->maxids))
@@ -1124,7 +1124,7 @@ xdr_remote_list_domains_args (XDR *xdrs, remote_list_domains_args *objp)
 }
 
 bool_t
-xdr_remote_list_domains_ret (XDR *xdrs, remote_list_domains_ret *objp)
+xdr_remote_connect_list_domains_ret (XDR *xdrs, remote_connect_list_domains_ret *objp)
 {
         char **objp_cpp0 = (char **) (void *) &objp->ids.ids_val;
 
@@ -1135,7 +1135,7 @@ xdr_remote_list_domains_ret (XDR *xdrs, remote_list_domains_ret *objp)
 }
 
 bool_t
-xdr_remote_num_of_domains_ret (XDR *xdrs, remote_num_of_domains_ret *objp)
+xdr_remote_connect_num_of_domains_ret (XDR *xdrs, remote_connect_num_of_domains_ret *objp)
 {
 
          if (!xdr_int (xdrs, &objp->num))
@@ -1674,7 +1674,7 @@ xdr_remote_domain_migrate_finish2_ret (XDR *xdrs, remote_domain_migrate_finish2_
 }
 
 bool_t
-xdr_remote_list_defined_domains_args (XDR *xdrs, remote_list_defined_domains_args *objp)
+xdr_remote_connect_list_defined_domains_args (XDR *xdrs, remote_connect_list_defined_domains_args *objp)
 {
 
          if (!xdr_int (xdrs, &objp->maxnames))
@@ -1683,7 +1683,7 @@ xdr_remote_list_defined_domains_args (XDR *xdrs, remote_list_defined_domains_arg
 }
 
 bool_t
-xdr_remote_list_defined_domains_ret (XDR *xdrs, remote_list_defined_domains_ret *objp)
+xdr_remote_connect_list_defined_domains_ret (XDR *xdrs, remote_connect_list_defined_domains_ret *objp)
 {
         char **objp_cpp0 = (char **) (void *) &objp->names.names_val;
 
@@ -1694,7 +1694,7 @@ xdr_remote_list_defined_domains_ret (XDR *xdrs, remote_list_defined_domains_ret 
 }
 
 bool_t
-xdr_remote_num_of_defined_domains_ret (XDR *xdrs, remote_num_of_defined_domains_ret *objp)
+xdr_remote_connect_num_of_defined_domains_ret (XDR *xdrs, remote_connect_num_of_defined_domains_ret *objp)
 {
 
          if (!xdr_int (xdrs, &objp->num))
@@ -2440,7 +2440,7 @@ xdr_remote_domain_get_hostname_ret (XDR *xdrs, remote_domain_get_hostname_ret *o
 }
 
 bool_t
-xdr_remote_num_of_networks_ret (XDR *xdrs, remote_num_of_networks_ret *objp)
+xdr_remote_connect_num_of_networks_ret (XDR *xdrs, remote_connect_num_of_networks_ret *objp)
 {
 
          if (!xdr_int (xdrs, &objp->num))
@@ -2449,7 +2449,7 @@ xdr_remote_num_of_networks_ret (XDR *xdrs, remote_num_of_networks_ret *objp)
 }
 
 bool_t
-xdr_remote_list_networks_args (XDR *xdrs, remote_list_networks_args *objp)
+xdr_remote_connect_list_networks_args (XDR *xdrs, remote_connect_list_networks_args *objp)
 {
 
          if (!xdr_int (xdrs, &objp->maxnames))
@@ -2458,7 +2458,7 @@ xdr_remote_list_networks_args (XDR *xdrs, remote_list_networks_args *objp)
 }
 
 bool_t
-xdr_remote_list_networks_ret (XDR *xdrs, remote_list_networks_ret *objp)
+xdr_remote_connect_list_networks_ret (XDR *xdrs, remote_connect_list_networks_ret *objp)
 {
         char **objp_cpp0 = (char **) (void *) &objp->names.names_val;
 
@@ -2469,7 +2469,7 @@ xdr_remote_list_networks_ret (XDR *xdrs, remote_list_networks_ret *objp)
 }
 
 bool_t
-xdr_remote_num_of_defined_networks_ret (XDR *xdrs, remote_num_of_defined_networks_ret *objp)
+xdr_remote_connect_num_of_defined_networks_ret (XDR *xdrs, remote_connect_num_of_defined_networks_ret *objp)
 {
 
          if (!xdr_int (xdrs, &objp->num))
@@ -2478,7 +2478,7 @@ xdr_remote_num_of_defined_networks_ret (XDR *xdrs, remote_num_of_defined_network
 }
 
 bool_t
-xdr_remote_list_defined_networks_args (XDR *xdrs, remote_list_defined_networks_args *objp)
+xdr_remote_connect_list_defined_networks_args (XDR *xdrs, remote_connect_list_defined_networks_args *objp)
 {
 
          if (!xdr_int (xdrs, &objp->maxnames))
@@ -2487,7 +2487,7 @@ xdr_remote_list_defined_networks_args (XDR *xdrs, remote_list_defined_networks_a
 }
 
 bool_t
-xdr_remote_list_defined_networks_ret (XDR *xdrs, remote_list_defined_networks_ret *objp)
+xdr_remote_connect_list_defined_networks_ret (XDR *xdrs, remote_connect_list_defined_networks_ret *objp)
 {
         char **objp_cpp0 = (char **) (void *) &objp->names.names_val;
 
@@ -2731,7 +2731,7 @@ xdr_remote_network_set_autostart_args (XDR *xdrs, remote_network_set_autostart_a
 }
 
 bool_t
-xdr_remote_num_of_nwfilters_ret (XDR *xdrs, remote_num_of_nwfilters_ret *objp)
+xdr_remote_connect_num_of_nwfilters_ret (XDR *xdrs, remote_connect_num_of_nwfilters_ret *objp)
 {
 
          if (!xdr_int (xdrs, &objp->num))
@@ -2740,7 +2740,7 @@ xdr_remote_num_of_nwfilters_ret (XDR *xdrs, remote_num_of_nwfilters_ret *objp)
 }
 
 bool_t
-xdr_remote_list_nwfilters_args (XDR *xdrs, remote_list_nwfilters_args *objp)
+xdr_remote_connect_list_nwfilters_args (XDR *xdrs, remote_connect_list_nwfilters_args *objp)
 {
 
          if (!xdr_int (xdrs, &objp->maxnames))
@@ -2749,7 +2749,7 @@ xdr_remote_list_nwfilters_args (XDR *xdrs, remote_list_nwfilters_args *objp)
 }
 
 bool_t
-xdr_remote_list_nwfilters_ret (XDR *xdrs, remote_list_nwfilters_ret *objp)
+xdr_remote_connect_list_nwfilters_ret (XDR *xdrs, remote_connect_list_nwfilters_ret *objp)
 {
         char **objp_cpp0 = (char **) (void *) &objp->names.names_val;
 
@@ -2843,7 +2843,7 @@ xdr_remote_nwfilter_get_xml_desc_ret (XDR *xdrs, remote_nwfilter_get_xml_desc_re
 }
 
 bool_t
-xdr_remote_num_of_interfaces_ret (XDR *xdrs, remote_num_of_interfaces_ret *objp)
+xdr_remote_connect_num_of_interfaces_ret (XDR *xdrs, remote_connect_num_of_interfaces_ret *objp)
 {
 
          if (!xdr_int (xdrs, &objp->num))
@@ -2852,7 +2852,7 @@ xdr_remote_num_of_interfaces_ret (XDR *xdrs, remote_num_of_interfaces_ret *objp)
 }
 
 bool_t
-xdr_remote_list_interfaces_args (XDR *xdrs, remote_list_interfaces_args *objp)
+xdr_remote_connect_list_interfaces_args (XDR *xdrs, remote_connect_list_interfaces_args *objp)
 {
 
          if (!xdr_int (xdrs, &objp->maxnames))
@@ -2861,7 +2861,7 @@ xdr_remote_list_interfaces_args (XDR *xdrs, remote_list_interfaces_args *objp)
 }
 
 bool_t
-xdr_remote_list_interfaces_ret (XDR *xdrs, remote_list_interfaces_ret *objp)
+xdr_remote_connect_list_interfaces_ret (XDR *xdrs, remote_connect_list_interfaces_ret *objp)
 {
         char **objp_cpp0 = (char **) (void *) &objp->names.names_val;
 
@@ -2872,7 +2872,7 @@ xdr_remote_list_interfaces_ret (XDR *xdrs, remote_list_interfaces_ret *objp)
 }
 
 bool_t
-xdr_remote_num_of_defined_interfaces_ret (XDR *xdrs, remote_num_of_defined_interfaces_ret *objp)
+xdr_remote_connect_num_of_defined_interfaces_ret (XDR *xdrs, remote_connect_num_of_defined_interfaces_ret *objp)
 {
 
          if (!xdr_int (xdrs, &objp->num))
@@ -2881,7 +2881,7 @@ xdr_remote_num_of_defined_interfaces_ret (XDR *xdrs, remote_num_of_defined_inter
 }
 
 bool_t
-xdr_remote_list_defined_interfaces_args (XDR *xdrs, remote_list_defined_interfaces_args *objp)
+xdr_remote_connect_list_defined_interfaces_args (XDR *xdrs, remote_connect_list_defined_interfaces_args *objp)
 {
 
          if (!xdr_int (xdrs, &objp->maxnames))
@@ -2890,7 +2890,7 @@ xdr_remote_list_defined_interfaces_args (XDR *xdrs, remote_list_defined_interfac
 }
 
 bool_t
-xdr_remote_list_defined_interfaces_ret (XDR *xdrs, remote_list_defined_interfaces_ret *objp)
+xdr_remote_connect_list_defined_interfaces_ret (XDR *xdrs, remote_connect_list_defined_interfaces_ret *objp)
 {
         char **objp_cpp0 = (char **) (void *) &objp->names.names_val;
 
@@ -3122,7 +3122,7 @@ xdr_remote_auth_polkit_ret (XDR *xdrs, remote_auth_polkit_ret *objp)
 }
 
 bool_t
-xdr_remote_num_of_storage_pools_ret (XDR *xdrs, remote_num_of_storage_pools_ret *objp)
+xdr_remote_connect_num_of_storage_pools_ret (XDR *xdrs, remote_connect_num_of_storage_pools_ret *objp)
 {
 
          if (!xdr_int (xdrs, &objp->num))
@@ -3131,7 +3131,7 @@ xdr_remote_num_of_storage_pools_ret (XDR *xdrs, remote_num_of_storage_pools_ret 
 }
 
 bool_t
-xdr_remote_list_storage_pools_args (XDR *xdrs, remote_list_storage_pools_args *objp)
+xdr_remote_connect_list_storage_pools_args (XDR *xdrs, remote_connect_list_storage_pools_args *objp)
 {
 
          if (!xdr_int (xdrs, &objp->maxnames))
@@ -3140,7 +3140,7 @@ xdr_remote_list_storage_pools_args (XDR *xdrs, remote_list_storage_pools_args *o
 }
 
 bool_t
-xdr_remote_list_storage_pools_ret (XDR *xdrs, remote_list_storage_pools_ret *objp)
+xdr_remote_connect_list_storage_pools_ret (XDR *xdrs, remote_connect_list_storage_pools_ret *objp)
 {
         char **objp_cpp0 = (char **) (void *) &objp->names.names_val;
 
@@ -3151,7 +3151,7 @@ xdr_remote_list_storage_pools_ret (XDR *xdrs, remote_list_storage_pools_ret *obj
 }
 
 bool_t
-xdr_remote_num_of_defined_storage_pools_ret (XDR *xdrs, remote_num_of_defined_storage_pools_ret *objp)
+xdr_remote_connect_num_of_defined_storage_pools_ret (XDR *xdrs, remote_connect_num_of_defined_storage_pools_ret *objp)
 {
 
          if (!xdr_int (xdrs, &objp->num))
@@ -3160,7 +3160,7 @@ xdr_remote_num_of_defined_storage_pools_ret (XDR *xdrs, remote_num_of_defined_st
 }
 
 bool_t
-xdr_remote_list_defined_storage_pools_args (XDR *xdrs, remote_list_defined_storage_pools_args *objp)
+xdr_remote_connect_list_defined_storage_pools_args (XDR *xdrs, remote_connect_list_defined_storage_pools_args *objp)
 {
 
          if (!xdr_int (xdrs, &objp->maxnames))
@@ -3169,7 +3169,7 @@ xdr_remote_list_defined_storage_pools_args (XDR *xdrs, remote_list_defined_stora
 }
 
 bool_t
-xdr_remote_list_defined_storage_pools_ret (XDR *xdrs, remote_list_defined_storage_pools_ret *objp)
+xdr_remote_connect_list_defined_storage_pools_ret (XDR *xdrs, remote_connect_list_defined_storage_pools_ret *objp)
 {
         char **objp_cpp0 = (char **) (void *) &objp->names.names_val;
 
@@ -3180,7 +3180,7 @@ xdr_remote_list_defined_storage_pools_ret (XDR *xdrs, remote_list_defined_storag
 }
 
 bool_t
-xdr_remote_find_storage_pool_sources_args (XDR *xdrs, remote_find_storage_pool_sources_args *objp)
+xdr_remote_connect_find_storage_pool_sources_args (XDR *xdrs, remote_connect_find_storage_pool_sources_args *objp)
 {
 
          if (!xdr_remote_nonnull_string (xdrs, &objp->type))
@@ -3193,7 +3193,7 @@ xdr_remote_find_storage_pool_sources_args (XDR *xdrs, remote_find_storage_pool_s
 }
 
 bool_t
-xdr_remote_find_storage_pool_sources_ret (XDR *xdrs, remote_find_storage_pool_sources_ret *objp)
+xdr_remote_connect_find_storage_pool_sources_ret (XDR *xdrs, remote_connect_find_storage_pool_sources_ret *objp)
 {
 
          if (!xdr_remote_nonnull_string (xdrs, &objp->xml))
@@ -3852,6 +3852,19 @@ xdr_remote_node_device_dettach_args (XDR *xdrs, remote_node_device_dettach_args 
 }
 
 bool_t
+xdr_remote_node_device_detach_flags_args (XDR *xdrs, remote_node_device_detach_flags_args *objp)
+{
+
+         if (!xdr_remote_nonnull_string (xdrs, &objp->name))
+                 return FALSE;
+         if (!xdr_remote_string (xdrs, &objp->driverName))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->flags))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
 xdr_remote_node_device_re_attach_args (XDR *xdrs, remote_node_device_re_attach_args *objp)
 {
 
@@ -3899,7 +3912,7 @@ xdr_remote_node_device_destroy_args (XDR *xdrs, remote_node_device_destroy_args 
 }
 
 bool_t
-xdr_remote_domain_events_register_ret (XDR *xdrs, remote_domain_events_register_ret *objp)
+xdr_remote_connect_domain_event_register_ret (XDR *xdrs, remote_connect_domain_event_register_ret *objp)
 {
 
          if (!xdr_int (xdrs, &objp->cb_registered))
@@ -3908,7 +3921,7 @@ xdr_remote_domain_events_register_ret (XDR *xdrs, remote_domain_events_register_
 }
 
 bool_t
-xdr_remote_domain_events_deregister_ret (XDR *xdrs, remote_domain_events_deregister_ret *objp)
+xdr_remote_connect_domain_event_deregister_ret (XDR *xdrs, remote_connect_domain_event_deregister_ret *objp)
 {
 
          if (!xdr_int (xdrs, &objp->cb_registered))
@@ -3930,7 +3943,7 @@ xdr_remote_domain_event_lifecycle_msg (XDR *xdrs, remote_domain_event_lifecycle_
 }
 
 bool_t
-xdr_remote_domain_xml_from_native_args (XDR *xdrs, remote_domain_xml_from_native_args *objp)
+xdr_remote_connect_domain_xml_from_native_args (XDR *xdrs, remote_connect_domain_xml_from_native_args *objp)
 {
 
          if (!xdr_remote_nonnull_string (xdrs, &objp->nativeFormat))
@@ -3943,7 +3956,7 @@ xdr_remote_domain_xml_from_native_args (XDR *xdrs, remote_domain_xml_from_native
 }
 
 bool_t
-xdr_remote_domain_xml_from_native_ret (XDR *xdrs, remote_domain_xml_from_native_ret *objp)
+xdr_remote_connect_domain_xml_from_native_ret (XDR *xdrs, remote_connect_domain_xml_from_native_ret *objp)
 {
 
          if (!xdr_remote_nonnull_string (xdrs, &objp->domainXml))
@@ -3952,7 +3965,7 @@ xdr_remote_domain_xml_from_native_ret (XDR *xdrs, remote_domain_xml_from_native_
 }
 
 bool_t
-xdr_remote_domain_xml_to_native_args (XDR *xdrs, remote_domain_xml_to_native_args *objp)
+xdr_remote_connect_domain_xml_to_native_args (XDR *xdrs, remote_connect_domain_xml_to_native_args *objp)
 {
 
          if (!xdr_remote_nonnull_string (xdrs, &objp->nativeFormat))
@@ -3965,7 +3978,7 @@ xdr_remote_domain_xml_to_native_args (XDR *xdrs, remote_domain_xml_to_native_arg
 }
 
 bool_t
-xdr_remote_domain_xml_to_native_ret (XDR *xdrs, remote_domain_xml_to_native_ret *objp)
+xdr_remote_connect_domain_xml_to_native_ret (XDR *xdrs, remote_connect_domain_xml_to_native_ret *objp)
 {
 
          if (!xdr_remote_nonnull_string (xdrs, &objp->nativeConfig))
@@ -3974,7 +3987,7 @@ xdr_remote_domain_xml_to_native_ret (XDR *xdrs, remote_domain_xml_to_native_ret 
 }
 
 bool_t
-xdr_remote_num_of_secrets_ret (XDR *xdrs, remote_num_of_secrets_ret *objp)
+xdr_remote_connect_num_of_secrets_ret (XDR *xdrs, remote_connect_num_of_secrets_ret *objp)
 {
 
          if (!xdr_int (xdrs, &objp->num))
@@ -3983,7 +3996,7 @@ xdr_remote_num_of_secrets_ret (XDR *xdrs, remote_num_of_secrets_ret *objp)
 }
 
 bool_t
-xdr_remote_list_secrets_args (XDR *xdrs, remote_list_secrets_args *objp)
+xdr_remote_connect_list_secrets_args (XDR *xdrs, remote_connect_list_secrets_args *objp)
 {
 
          if (!xdr_int (xdrs, &objp->maxuuids))
@@ -3992,7 +4005,7 @@ xdr_remote_list_secrets_args (XDR *xdrs, remote_list_secrets_args *objp)
 }
 
 bool_t
-xdr_remote_list_secrets_ret (XDR *xdrs, remote_list_secrets_ret *objp)
+xdr_remote_connect_list_secrets_ret (XDR *xdrs, remote_connect_list_secrets_ret *objp)
 {
         char **objp_cpp0 = (char **) (void *) &objp->uuids.uuids_val;
 
@@ -4140,7 +4153,7 @@ xdr_remote_domain_migrate_prepare_tunnel_args (XDR *xdrs, remote_domain_migrate_
 }
 
 bool_t
-xdr_remote_is_secure_ret (XDR *xdrs, remote_is_secure_ret *objp)
+xdr_remote_connect_is_secure_ret (XDR *xdrs, remote_connect_is_secure_ret *objp)
 {
 
          if (!xdr_int (xdrs, &objp->secure))
@@ -4293,7 +4306,7 @@ xdr_remote_interface_is_active_ret (XDR *xdrs, remote_interface_is_active_ret *o
 }
 
 bool_t
-xdr_remote_cpu_compare_args (XDR *xdrs, remote_cpu_compare_args *objp)
+xdr_remote_connect_compare_cpu_args (XDR *xdrs, remote_connect_compare_cpu_args *objp)
 {
 
          if (!xdr_remote_nonnull_string (xdrs, &objp->xml))
@@ -4304,7 +4317,7 @@ xdr_remote_cpu_compare_args (XDR *xdrs, remote_cpu_compare_args *objp)
 }
 
 bool_t
-xdr_remote_cpu_compare_ret (XDR *xdrs, remote_cpu_compare_ret *objp)
+xdr_remote_connect_compare_cpu_ret (XDR *xdrs, remote_connect_compare_cpu_ret *objp)
 {
 
          if (!xdr_int (xdrs, &objp->result))
@@ -4313,7 +4326,7 @@ xdr_remote_cpu_compare_ret (XDR *xdrs, remote_cpu_compare_ret *objp)
 }
 
 bool_t
-xdr_remote_cpu_baseline_args (XDR *xdrs, remote_cpu_baseline_args *objp)
+xdr_remote_connect_baseline_cpu_args (XDR *xdrs, remote_connect_baseline_cpu_args *objp)
 {
         char **objp_cpp0 = (char **) (void *) &objp->xmlCPUs.xmlCPUs_val;
 
@@ -4326,7 +4339,7 @@ xdr_remote_cpu_baseline_args (XDR *xdrs, remote_cpu_baseline_args *objp)
 }
 
 bool_t
-xdr_remote_cpu_baseline_ret (XDR *xdrs, remote_cpu_baseline_ret *objp)
+xdr_remote_connect_baseline_cpu_ret (XDR *xdrs, remote_connect_baseline_cpu_ret *objp)
 {
 
          if (!xdr_remote_nonnull_string (xdrs, &objp->cpu))
@@ -4487,7 +4500,7 @@ xdr_remote_domain_migrate_get_max_speed_ret (XDR *xdrs, remote_domain_migrate_ge
 }
 
 bool_t
-xdr_remote_domain_events_register_any_args (XDR *xdrs, remote_domain_events_register_any_args *objp)
+xdr_remote_connect_domain_event_register_any_args (XDR *xdrs, remote_connect_domain_event_register_any_args *objp)
 {
 
          if (!xdr_int (xdrs, &objp->eventID))
@@ -4496,7 +4509,7 @@ xdr_remote_domain_events_register_any_args (XDR *xdrs, remote_domain_events_regi
 }
 
 bool_t
-xdr_remote_domain_events_deregister_any_args (XDR *xdrs, remote_domain_events_deregister_any_args *objp)
+xdr_remote_connect_domain_event_deregister_any_args (XDR *xdrs, remote_connect_domain_event_deregister_any_args *objp)
 {
 
          if (!xdr_int (xdrs, &objp->eventID))

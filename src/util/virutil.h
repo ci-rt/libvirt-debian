@@ -295,8 +295,8 @@ int virSetDeviceUnprivSGIO(const char *path,
 int virGetDeviceUnprivSGIO(const char *path,
                            const char *sysfs_dir,
                            int *unpriv_sgio);
-char * virGetUnprivSGIOSysfsPath(const char *path,
-                                 const char *sysfs_dir);
+char *virGetUnprivSGIOSysfsPath(const char *path,
+                                const char *sysfs_dir);
 int virReadFCHost(const char *sysfs_prefix,
                   int host,
                   const char *entry,
@@ -316,5 +316,14 @@ int virManageVport(const int parent_host,
                    const char *wwnn,
                    int operation)
     ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3);
+
+char *virGetFCHostNameByWWN(const char *sysfs_prefix,
+                            const char *wwnn,
+                            const char *wwpn)
+    ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3);
+
+char *virFindFCHostCapableVport(const char *sysfs_prefix);
+
+int virCompareLimitUlong(unsigned long long a, unsigned long b);
 
 #endif /* __VIR_UTIL_H__ */

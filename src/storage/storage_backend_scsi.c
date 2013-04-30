@@ -547,45 +547,6 @@ out:
     return retval;
 }
 
-
-int
-virStorageBackendSCSIGetHostNumber(const char *sysfs_path,
-                                   uint32_t *host)
-{
-    int retval = 0;
-    DIR *sysdir = NULL;
-    struct dirent *dirent = NULL;
-
-    VIR_DEBUG("Finding host number from '%s'", sysfs_path);
-
-    virFileWaitForDevices();
-
-    sysdir = opendir(sysfs_path);
-
-    if (sysdir == NULL) {
-        virReportSystemError(errno,
-                             _("Failed to opendir path '%s'"), sysfs_path);
-        retval = -1;
-        goto out;
-    }
-
-    while ((dirent = readdir(sysdir))) {
-        if (STREQLEN(dirent->d_name, "target", strlen("target"))) {
-            if (sscanf(dirent->d_name,
-                       "target%u:", host) != 1) {
-                VIR_DEBUG("Failed to parse target '%s'", dirent->d_name);
-                retval = -1;
-                break;
-            }
-        }
-    }
-
-    closedir(sysdir);
-out:
-    return retval;
-}
-
-
 static int
 virStorageBackendSCSITriggerRescan(uint32_t host)
 {
@@ -632,59 +593,198 @@ out:
 }
 
 static int
+getHostNumber(const char *adapter_name,
+              unsigned int *result)
+{
+    char *host = (char *)adapter_name;
+
+    /* Specifying adapter like 'host5' is still supported for
+     * back-compat reason.
+     */
+    if (STRPREFIX(host, "scsi_host")) {
+        host += strlen("scsi_host");
+    } else if (STRPREFIX(host, "fc_host")) {
+        host += strlen("fc_host");
+    } else if (STRPREFIX(host, "host")) {
+        host += strlen("host");
+    } else {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Invalid adapter name '%s' for SCSI pool"),
+                       adapter_name);
+        return -1;
+    }
+
+    if (result && virStrToLong_ui(host, NULL, 10, result) == -1) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Invalid adapter name '%s' for SCSI pool"),
+                       adapter_name);
+        return -1;
+    }
+
+    return 0;
+}
+
+static char *
+getAdapterName(virStoragePoolSourceAdapter adapter)
+{
+    char *name = NULL;
+
+    if (adapter.type != VIR_STORAGE_POOL_SOURCE_ADAPTER_TYPE_FC_HOST)
+        return strdup(adapter.data.name);
+
+    if (!(name = virGetFCHostNameByWWN(NULL,
+                                       adapter.data.fchost.wwnn,
+                                       adapter.data.fchost.wwpn))) {
+        virReportError(VIR_ERR_XML_ERROR,
+                       _("Failed to find SCSI host with wwnn='%s', "
+                         "wwpn='%s'"), adapter.data.fchost.wwnn,
+                       adapter.data.fchost.wwpn);
+    }
+
+    return name;
+}
+
+static int
+createVport(virStoragePoolSourceAdapter adapter)
+{
+    unsigned int parent_host;
+    char *name = NULL;
+
+    if (adapter.type != VIR_STORAGE_POOL_SOURCE_ADAPTER_TYPE_FC_HOST)
+        return 0;
+
+    /* This filters either HBA or already created vHBA */
+    if ((name = virGetFCHostNameByWWN(NULL, adapter.data.fchost.wwnn,
+                                      adapter.data.fchost.wwpn))) {
+        VIR_FREE(name);
+        return 0;
+    }
+
+    if (!adapter.data.fchost.parent &&
+        !(adapter.data.fchost.parent = virFindFCHostCapableVport(NULL))) {
+         virReportError(VIR_ERR_XML_ERROR, "%s",
+                       _("'parent' for vHBA not specified, and "
+                         "cannot find one on this host"));
+         return -1;
+    }
+
+    if (getHostNumber(adapter.data.fchost.parent, &parent_host) < 0)
+        return -1;
+
+    if (virManageVport(parent_host, adapter.data.fchost.wwnn,
+                       adapter.data.fchost.wwpn, VPORT_CREATE) < 0)
+        return -1;
+
+    virFileWaitForDevices();
+    return 0;
+}
+
+static int
+deleteVport(virStoragePoolSourceAdapter adapter)
+{
+    unsigned int parent_host;
+
+    if (adapter.type != VIR_STORAGE_POOL_SOURCE_ADAPTER_TYPE_FC_HOST)
+        return 0;
+
+    if (!(virGetFCHostNameByWWN(NULL, adapter.data.fchost.wwnn,
+                                adapter.data.fchost.wwpn)))
+        return -1;
+
+    if (getHostNumber(adapter.data.fchost.parent, &parent_host) < 0)
+        return -1;
+
+    if (virManageVport(parent_host, adapter.data.fchost.wwnn,
+                       adapter.data.fchost.wwpn, VPORT_DELETE) < 0)
+        return -1;
+
+    return 0;
+}
+
+
+static int
 virStorageBackendSCSICheckPool(virConnectPtr conn ATTRIBUTE_UNUSED,
                                virStoragePoolObjPtr pool,
                                bool *isActive)
 {
-    char *path;
+    char *path = NULL;
+    char *name = NULL;
+    unsigned int host;
+    int ret = -1;
 
     *isActive = false;
-    if (virAsprintf(&path, "/sys/class/scsi_host/%s", pool->def->source.adapter) < 0) {
-        virReportOOMError();
+
+    if (!(name = getAdapterName(pool->def->source.adapter)))
         return -1;
+
+    if (getHostNumber(name, &host) < 0)
+        goto cleanup;
+
+    if (virAsprintf(&path, "/sys/class/scsi_host/host%d", host) < 0) {
+        virReportOOMError();
+        goto cleanup;
     }
 
     if (access(path, F_OK) == 0)
         *isActive = true;
 
+    ret = 0;
+cleanup:
     VIR_FREE(path);
-
-    return 0;
+    VIR_FREE(name);
+    return ret;
 }
 
 static int
 virStorageBackendSCSIRefreshPool(virConnectPtr conn ATTRIBUTE_UNUSED,
                                  virStoragePoolObjPtr pool)
 {
-    int retval = 0;
-    uint32_t host;
+    char *name = NULL;
+    unsigned int host;
+    int ret = -1;
 
     pool->def->allocation = pool->def->capacity = pool->def->available = 0;
 
-    if (sscanf(pool->def->source.adapter, "host%u", &host) != 1) {
-        VIR_DEBUG("Failed to get host number from '%s'",
-                    pool->def->source.adapter);
-        retval = -1;
+    if (!(name = getAdapterName(pool->def->source.adapter)))
+        return -1;
+
+    if (getHostNumber(name, &host) < 0)
         goto out;
-    }
 
     VIR_DEBUG("Scanning host%u", host);
 
-    if (virStorageBackendSCSITriggerRescan(host) < 0) {
-        retval = -1;
+    if (virStorageBackendSCSITriggerRescan(host) < 0)
         goto out;
-    }
 
     virStorageBackendSCSIFindLUs(pool, host);
 
+    ret = 0;
 out:
-    return retval;
+    VIR_FREE(name);
+    return ret;
 }
 
+static int
+virStorageBackendSCSIStartPool(virConnectPtr conn ATTRIBUTE_UNUSED,
+                               virStoragePoolObjPtr pool)
+{
+    virStoragePoolSourceAdapter adapter = pool->def->source.adapter;
+    return createVport(adapter);
+}
+
+static int
+virStorageBackendSCSIStopPool(virConnectPtr conn ATTRIBUTE_UNUSED,
+                              virStoragePoolObjPtr pool)
+{
+    virStoragePoolSourceAdapter adapter = pool->def->source.adapter;
+    return deleteVport(adapter);
+}
 
 virStorageBackend virStorageBackendSCSI = {
     .type = VIR_STORAGE_POOL_SCSI,
 
     .checkPool = virStorageBackendSCSICheckPool,
     .refreshPool = virStorageBackendSCSIRefreshPool,
+    .startPool = virStorageBackendSCSIStartPool,
+    .stopPool = virStorageBackendSCSIStopPool,
 };

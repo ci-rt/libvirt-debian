@@ -8,10 +8,11 @@
 #include <sys/types.h>
 #include <fcntl.h>
 
+#include "testutils.h"
+
 #ifdef WITH_QEMU
 
 # include "internal.h"
-# include "testutils.h"
 # include "qemu/qemu_capabilities.h"
 # include "qemu/qemu_command.h"
 # include "qemu/qemu_domain.h"
@@ -51,7 +52,7 @@ static int testCompareXMLToArgvFiles(const char *xml,
     if (len && expectargv[len - 1] == '\n')
         expectargv[len - 1] = '\0';
 
-    if (!(vmdef = virDomainDefParseFile(driver.caps, driver.xmlconf, xml,
+    if (!(vmdef = virDomainDefParseFile(xml, driver.caps, driver.xmlopt,
                                         QEMU_EXPECTED_VIRT_TYPES,
                                         VIR_DOMAIN_XML_INACTIVE)))
         goto fail;
@@ -204,7 +205,7 @@ mymain(void)
     driver.config = virQEMUDriverConfigNew(false);
     if ((driver.caps = testQemuCapsInit()) == NULL)
         return EXIT_FAILURE;
-    if (!(driver.xmlconf = virQEMUDriverCreateXMLConf()))
+    if (!(driver.xmlopt = virQEMUDriverCreateXMLConf(&driver)))
         return EXIT_FAILURE;
     if (virAsprintf(&map, "%s/src/cpu/cpu_map.xml", abs_top_srcdir) < 0 ||
         cpuMapOverride(map) < 0) {
@@ -254,7 +255,7 @@ mymain(void)
 
     virObjectUnref(driver.config);
     virObjectUnref(driver.caps);
-    virObjectUnref(driver.xmlconf);
+    virObjectUnref(driver.xmlopt);
     VIR_FREE(map);
 
     return ret==0 ? EXIT_SUCCESS : EXIT_FAILURE;
@@ -263,7 +264,6 @@ mymain(void)
 VIRT_TEST_MAIN(mymain)
 
 #else
-# include "testutils.h"
 
 int main(void)
 {

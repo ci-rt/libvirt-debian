@@ -69,7 +69,7 @@ UTIL_SOURCES =							\
 		util/virauthconfig.c util/virauthconfig.h	\
 		util/virbitmap.c util/virbitmap.h		\
 		util/virbuffer.c util/virbuffer.h		\
-		util/vircgroup.c util/vircgroup.h		\
+		util/vircgroup.c util/vircgroup.h util/vircgrouppriv.h	\
 		util/vircommand.c util/vircommand.h		\
 		util/virconf.c util/virconf.h			\
 		util/virdbus.c util/virdbus.h			\
@@ -122,6 +122,7 @@ UTIL_SOURCES =							\
 		util/virthreadwin32.h				\
 		util/virthreadpool.c util/virthreadpool.h	\
 		util/virtime.h util/virtime.c			\
+		util/virtpm.h util/virtpm.c			\
 		util/virtypedparam.c util/virtypedparam.h	\
 		util/virusb.c util/virusb.h			\
 		util/viruri.h util/viruri.c			\
@@ -197,8 +198,8 @@ LOCK_DAEMON_SOURCES = \
 
 $(srcdir)/locking/lock_daemon_dispatch_stubs.h: $(LOCK_PROTOCOL) \
 		$(srcdir)/rpc/gendispatch.pl Makefile.am
-	$(AM_V_GEN)perl -w $(srcdir)/rpc/gendispatch.pl \
-	    -b virLockSpaceProtocol VIR_LOCK_SPACE_PROTOCOL \
+	$(AM_V_GEN)perl -w $(srcdir)/rpc/gendispatch.pl --mode=server \
+	    virLockSpaceProtocol VIR_LOCK_SPACE_PROTOCOL \
 	    $(LOCK_PROTOCOL) > $@
 
 
@@ -298,18 +299,18 @@ REMOTE_DRIVER_PROTOCOL = $(REMOTE_PROTOCOL) $(QEMU_PROTOCOL) $(LXC_PROTOCOL)
 
 $(srcdir)/remote/remote_client_bodies.h: $(srcdir)/rpc/gendispatch.pl \
 		$(REMOTE_PROTOCOL) Makefile.am
-	$(AM_V_GEN)$(PERL) -w $(srcdir)/rpc/gendispatch.pl \
-	  -k remote REMOTE $(REMOTE_PROTOCOL) > $@
+	$(AM_V_GEN)$(PERL) -w $(srcdir)/rpc/gendispatch.pl --mode=client \
+	  remote REMOTE $(REMOTE_PROTOCOL) > $@
 
 $(srcdir)/remote/lxc_client_bodies.h: $(srcdir)/rpc/gendispatch.pl \
 		$(LXC_PROTOCOL) Makefile.am
-	$(AM_V_GEN)$(PERL) -w $(srcdir)/rpc/gendispatch.pl \
-	  -k lxc LXC $(LXC_PROTOCOL) > $@
+	$(AM_V_GEN)$(PERL) -w $(srcdir)/rpc/gendispatch.pl --mode=client \
+	  lxc LXC $(LXC_PROTOCOL) > $@
 
 $(srcdir)/remote/qemu_client_bodies.h: $(srcdir)/rpc/gendispatch.pl \
 		$(QEMU_PROTOCOL) Makefile.am
-	$(AM_V_GEN)$(PERL) -w $(srcdir)/rpc/gendispatch.pl \
-	  -k qemu QEMU $(QEMU_PROTOCOL) > $@
+	$(AM_V_GEN)$(PERL) -w $(srcdir)/rpc/gendispatch.pl --mode=client \
+	  qemu QEMU $(QEMU_PROTOCOL) > $@
 
 REMOTE_DRIVER_SOURCES =						\
 		gnutls_1_0_compat.h				\
@@ -341,9 +342,16 @@ r1 = /\* \d+ \*/
 r2 = /\* <[[:xdigit:]]+> \S+:\d+ \*/
 struct_prefix = (remote_|qemu_|lxc_|virNet|keepalive_)
 
+# Depending on configure options, libtool creates one or both of
+# {,.libs/}libvirt_remote_driver_la-remote_protocol.o.  We want the
+# newest of the two, in case configure options changed and a stale
+# file is left around from an earlier build.
 PDWTAGS = \
 	$(AM_V_GEN)if (pdwtags --help) > /dev/null 2>&1; then		\
-	  pdwtags --verbose $(<:.lo=.$(OBJEXT))	> $(@F)-t1 2> $(@F)-t2;	\
+	  o=`ls -t $(<:.lo=.$(OBJEXT)) .libs/$(<:.lo=.$(OBJEXT))	\
+	    2>/dev/null | sed -n 1p`;					\
+	  test -f "$$o" || { echo ".o for $< not found" >&2; exit 1; };	\
+	  pdwtags --verbose $$o > $(@F)-t1 2> $(@F)-t2;			\
 	  if test -s $(@F)-t2; then					\
 	    rm -rf $(@F)-t?;						\
 	    echo 'WARNING: pdwtags appears broken; skipping the $@ test' >&2;\
@@ -419,7 +427,66 @@ else !WITH_REMOTE
 check-protocol:
 endif
 EXTRA_DIST += $(PROTOCOL_STRUCTS)
-check-local: check-protocol check-symfile check-symsorting
+
+check-drivername:
+	$(AM_V_GEN)$(PERL) $(srcdir)/check-drivername.pl \
+		$(srcdir)/driver.h \
+		$(srcdir)/libvirt_public.syms \
+		$(srcdir)/libvirt_qemu.syms \
+		$(srcdir)/libvirt_lxc.syms
+
+EXTRA_DIST += check-drivername.pl
+
+DRIVER_SOURCE_FILES = \
+	esx/esx_device_monitor.c \
+	esx/esx_driver.c \
+	esx/esx_interface_driver.c \
+	esx/esx_network_driver.c \
+	esx/esx_nwfilter_driver.c \
+	esx/esx_secret_driver.c \
+	esx/esx_storage_driver.c \
+	hyperv/hyperv_device_monitor.c \
+	hyperv/hyperv_driver.c \
+	hyperv/hyperv_interface_driver.c \
+	hyperv/hyperv_network_driver.c \
+	hyperv/hyperv_nwfilter_driver.c \
+	hyperv/hyperv_secret_driver.c \
+	hyperv/hyperv_storage_driver.c \
+	interface/interface_backend_netcf.c \
+	interface/interface_backend_udev.c \
+	libxl/libxl_driver.c \
+	lxc/lxc_driver.c \
+	network/bridge_driver.c \
+	node_device/node_device_hal.c \
+	node_device/node_device_udev.c \
+	nwfilter/nwfilter_driver.c \
+	openvz/openvz_driver.c \
+	parallels/parallels_driver.c \
+	parallels/parallels_network.c \
+	parallels/parallels_storage.c \
+	phyp/phyp_driver.c \
+	qemu/qemu_driver.c \
+	remote/remote_driver.c \
+	secret/secret_driver.c \
+	storage/storage_driver.c \
+	test/test_driver.c \
+	uml/uml_driver.c \
+	vbox/vbox_driver.c \
+	vbox/vbox_tmpl.c \
+	vmware/vmware_driver.c \
+	xen/xen_driver.c \
+	xenapi/xenapi_driver.c \
+	$(NULL)
+
+
+check-driverimpls:
+	$(AM_V_GEN)$(PERL) $(srcdir)/check-driverimpls.pl \
+		$(DRIVER_SOURCE_FILES)
+
+EXTRA_DIST += check-driverimpls.pl
+
+check-local: check-protocol check-symfile check-symsorting \
+	check-drivername check-driverimpls
 .PHONY: check-protocol $(PROTOCOL_STRUCTS:structs=struct)
 
 # Mock driver, covering domains, storage, networks, etc
@@ -461,13 +528,13 @@ LXC_MONITOR_PROTOCOL = $(srcdir)/lxc/lxc_monitor_protocol.x
 
 $(srcdir)/lxc/lxc_monitor_dispatch.h: $(srcdir)/rpc/gendispatch.pl \
 		$(LXC_MONITOR_PROTOCOL) Makefile.am
-	$(AM_V_GEN)$(PERL) -w $(srcdir)/rpc/gendispatch.pl \
-	  -k virLXCMonitor VIR_LXC_MONITOR $(LXC_MONITOR_PROTOCOL) > $@
+	$(AM_V_GEN)$(PERL) -w $(srcdir)/rpc/gendispatch.pl --mode=client \
+	  virLXCMonitor VIR_LXC_MONITOR $(LXC_MONITOR_PROTOCOL) > $@
 
 $(srcdir)/lxc/lxc_controller_dispatch.h: $(srcdir)/rpc/gendispatch.pl \
 		$(REMOTE_PROTOCOL) Makefile.am
-	$(AM_V_GEN)$(PERL) -w $(srcdir)/rpc/gendispatch.pl \
-	  -b virLXCMonitor VIR_LXC_MONITOR $(LXC_MONITOR_PROTOCOL) > $@
+	$(AM_V_GEN)$(PERL) -w $(srcdir)/rpc/gendispatch.pl --mode=server \
+	  virLXCMonitor VIR_LXC_MONITOR $(LXC_MONITOR_PROTOCOL) > $@
 
 EXTRA_DIST += \
 	$(LXC_MONITOR_PROTOCOL) \
@@ -1537,10 +1604,15 @@ libvirt_lxc.def: $(srcdir)/libvirt_lxc.syms
 
 # Empty source list - it merely links a bunch of convenience libs together
 libvirt_la_SOURCES =
-libvirt_la_LDFLAGS = $(VERSION_SCRIPT_FLAGS)$(LIBVIRT_SYMBOL_FILE) \
-		     -version-info $(LIBVIRT_VERSION_INFO) \
-		    $(LIBVIRT_NODELETE) $(AM_LDFLAGS) \
-		    $(CYGWIN_EXTRA_LDFLAGS) $(MINGW_EXTRA_LDFLAGS)
+libvirt_la_LDFLAGS = \
+		$(VERSION_SCRIPT_FLAGS)$(LIBVIRT_SYMBOL_FILE) \
+		-version-info $(LIBVIRT_VERSION_INFO) \
+		$(LIBVIRT_NODELETE) \
+		$(AM_LDFLAGS) \
+		$(RELRO_LDFLAGS) \
+		$(CYGWIN_EXTRA_LDFLAGS) \
+		$(MINGW_EXTRA_LDFLAGS) \
+		$(NULL)
 libvirt_la_BUILT_LIBADD += ../gnulib/lib/libgnu.la
 libvirt_la_LIBADD += \
 		    $(DRIVER_MODULE_LIBS) \
@@ -1616,18 +1688,26 @@ endif
 EXTRA_DIST += libvirt_probes.d libvirt_qemu_probes.d
 
 libvirt_qemu_la_SOURCES = libvirt-qemu.c
-libvirt_qemu_la_LDFLAGS = $(VERSION_SCRIPT_FLAGS)$(LIBVIRT_QEMU_SYMBOL_FILE) \
-			  -version-info $(LIBVIRT_VERSION_INFO) \
-			  $(CYGWIN_EXTRA_LDFLAGS) $(MINGW_EXTRA_LDFLAGS) \
-			  $(AM_LDFLAGS)
+libvirt_qemu_la_LDFLAGS = \
+		$(VERSION_SCRIPT_FLAGS)$(LIBVIRT_QEMU_SYMBOL_FILE) \
+		-version-info $(LIBVIRT_VERSION_INFO) \
+		$(AM_LDFLAGS) \
+		$(RELRO_LDFLAGS) \
+		$(CYGWIN_EXTRA_LDFLAGS) \
+		$(MINGW_EXTRA_LDFLAGS) \
+		$(NULL)
 libvirt_qemu_la_CFLAGS = $(AM_CFLAGS)
 libvirt_qemu_la_LIBADD = libvirt.la $(CYGWIN_EXTRA_LIBADD)
 
 libvirt_lxc_la_SOURCES = libvirt-lxc.c
-libvirt_lxc_la_LDFLAGS = $(VERSION_SCRIPT_FLAGS)$(LIBVIRT_LXC_SYMBOL_FILE) \
-			  -version-info $(LIBVIRT_VERSION_INFO) \
-			  $(CYGWIN_EXTRA_LDFLAGS) $(MINGW_EXTRA_LDFLAGS) \
-			  $(AM_LDFLAGS)
+libvirt_lxc_la_LDFLAGS = \
+		$(VERSION_SCRIPT_FLAGS)$(LIBVIRT_LXC_SYMBOL_FILE) \
+		-version-info $(LIBVIRT_VERSION_INFO) \
+		$(AM_LDFLAGS) \
+		$(RELRO_LDFLAGS) \
+		$(CYGWIN_EXTRA_LDFLAGS) \
+		$(MINGW_EXTRA_LDFLAGS) \
+		$(NULL)
 libvirt_lxc_la_CFLAGS = $(AM_CFLAGS)
 libvirt_lxc_la_LIBADD = libvirt.la $(CYGWIN_EXTRA_LIBADD)
 EXTRA_DIST += $(LIBVIRT_LXC_SYMBOL_FILE)
@@ -1670,9 +1750,12 @@ virtlockd_SOURCES = \
 		$(NULL)
 virtlockd_CFLAGS = \
 		$(AM_CFLAGS) \
+		$(PIE_CFLAGS) \
 		$(NULL)
 virtlockd_LDFLAGS = \
 		$(AM_LDFLAGS) \
+		$(PIE_LDFLAGS) \
+		$(RELRO_LDFLAGS) \
 		$(CYGWIN_EXTRA_LDFLAGS) \
 		$(MINGW_EXTRA_LDFLAGS) \
 		$(NULL)
@@ -1917,7 +2000,12 @@ libexec_PROGRAMS =
 if WITH_LIBVIRTD
 libexec_PROGRAMS += libvirt_iohelper
 libvirt_iohelper_SOURCES = $(UTIL_IO_HELPER_SOURCES)
-libvirt_iohelper_LDFLAGS = $(WARN_LDFLAGS) $(AM_LDFLAGS)
+libvirt_iohelper_LDFLAGS = \
+		$(WARN_LDFLAGS) \
+		$(AM_LDFLAGS) \
+		$(PIE_LDFLAGS) \
+		$(RELRO_LDFLAGS) \
+		$(NULL)
 libvirt_iohelper_LDADD =		\
 		libvirt_util.la		\
 		../gnulib/lib/libgnu.la
@@ -1925,7 +2013,10 @@ if WITH_DTRACE_PROBES
 libvirt_iohelper_LDADD += libvirt_probes.lo
 endif
 
-libvirt_iohelper_CFLAGS = $(AM_CFLAGS)
+libvirt_iohelper_CFLAGS = \
+		$(AM_CFLAGS) \
+		$(PIE_CFLAGS) \
+		$(NULL)
 endif
 
 if WITH_STORAGE_DISK
@@ -1933,7 +2024,12 @@ if WITH_LIBVIRTD
 libexec_PROGRAMS += libvirt_parthelper
 
 libvirt_parthelper_SOURCES = $(STORAGE_HELPER_DISK_SOURCES)
-libvirt_parthelper_LDFLAGS = $(WARN_LDFLAGS) $(AM_LDFLAGS)
+libvirt_parthelper_LDFLAGS = \
+		$(WARN_LDFLAGS) \
+		$(AM_LDFLAGS) \
+		$(PIE_LDFLAGS) \
+		$(RELRO_LDFLAGS) \
+		$(NULL)
 libvirt_parthelper_LDADD =		\
 		$(LIBPARTED_LIBS)	\
 		libvirt_util.la		\
@@ -1942,7 +2038,11 @@ if WITH_DTRACE_PROBES
 libvirt_parthelper_LDADD += libvirt_probes.lo
 endif
 
-libvirt_parthelper_CFLAGS = $(LIBPARTED_CFLAGS) $(AM_CFLAGS)
+libvirt_parthelper_CFLAGS = \
+		$(LIBPARTED_CFLAGS) \
+		$(AM_CFLAGS) \
+		$(PIE_CFLAGS) \
+		$(NULL)
 endif
 endif
 EXTRA_DIST += $(STORAGE_HELPER_DISK_SOURCES)
@@ -1952,8 +2052,17 @@ if WITH_SANLOCK
 libexec_PROGRAMS += libvirt_sanlock_helper
 
 libvirt_sanlock_helper_SOURCES = $(LOCK_DRIVER_SANLOCK_HELPER_SOURCES)
-libvirt_sanlock_helper_CFLAGS = -I$(top_srcdir)/src/conf $(AM_CFLAGS)
-libvirt_sanlock_helper_LDFLAGS = $(WARN_LDFLAGS) $(AM_LDFLAGS)
+libvirt_sanlock_helper_CFLAGS = \
+		-I$(top_srcdir)/src/conf \
+		$(AM_CFLAGS) \
+		$(PIE_CFLAGS) \
+		$(NULL)
+libvirt_sanlock_helper_LDFLAGS = \
+		$(WARN_LDFLAGS) \
+		$(AM_LDFLAGS) \
+		$(PIE_LDFLAGS) \
+		$(RELRO_LDFLAGS) \
+		$(NULL)
 libvirt_sanlock_helper_LDADD = libvirt.la
 endif
 
@@ -1965,7 +2074,12 @@ libvirt_lxc_SOURCES =						\
 		$(LXC_CONTROLLER_SOURCES)			\
 		$(NODE_INFO_SOURCES)				\
 		$(DATATYPES_SOURCES)
-libvirt_lxc_LDFLAGS = $(WARN_CFLAGS) $(AM_LDFLAGS)
+libvirt_lxc_LDFLAGS = \
+		$(WARN_LDFLAGS) \
+		$(AM_LDFLAGS) \
+		$(PIE_LDFLAGS) \
+		$(RELRO_LDFLAGS) \
+		$(NULL)
 libvirt_lxc_LDADD =			\
 		$(FUSE_LIBS) \
 		libvirt-net-rpc-server.la \
@@ -1981,8 +2095,10 @@ libvirt_lxc_LDADD += $(SECDRIVER_LIBS)
 libvirt_lxc_CFLAGS =				\
 		-I$(top_srcdir)/src/conf	\
 		$(AM_CFLAGS)                    \
+		$(PIE_CFLAGS)			\
 		$(LIBNL_CFLAGS)			\
-		$(FUSE_CFLAGS)
+		$(FUSE_CFLAGS)			\
+		$(NULL)
 if WITH_BLKID
 libvirt_lxc_CFLAGS += $(BLKID_CFLAGS)
 libvirt_lxc_LDADD += $(BLKID_LIBS)
@@ -2003,7 +2119,12 @@ libexec_PROGRAMS += virt-aa-helper
 
 virt_aa_helper_SOURCES = $(SECURITY_DRIVER_APPARMOR_HELPER_SOURCES)
 
-virt_aa_helper_LDFLAGS = $(WARN_LDFLAGS) $(AM_LDFLAGS)
+virt_aa_helper_LDFLAGS = \
+		$(WARN_LDFLAGS) \
+		$(AM_LDFLAGS) \
+		$(PIE_LDFLAGS) \
+		$(RELRO_LDFLAGS) \
+		$(NULL)
 virt_aa_helper_LDADD =						\
 		libvirt_conf.la					\
 		libvirt_util.la					\
@@ -2014,7 +2135,9 @@ endif
 virt_aa_helper_CFLAGS =						\
 		-I$(top_srcdir)/src/conf			\
 		-I$(top_srcdir)/src/security			\
-		$(AM_CFLAGS)
+		$(AM_CFLAGS) \
+		$(PIE_CFLAGS) \
+		$(NULL)
 endif
 endif
 EXTRA_DIST += $(SECURITY_DRIVER_APPARMOR_HELPER_SOURCES)

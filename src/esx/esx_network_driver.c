@@ -76,7 +76,7 @@ esxNetworkClose(virConnectPtr conn)
 
 
 static int
-esxNumberOfNetworks(virConnectPtr conn)
+esxConnectNumOfNetworks(virConnectPtr conn)
 {
     esxPrivate *priv = conn->networkPrivateData;
     esxVI_HostVirtualSwitch *hostVirtualSwitchList = NULL;
@@ -102,7 +102,7 @@ esxNumberOfNetworks(virConnectPtr conn)
 
 
 static int
-esxListNetworks(virConnectPtr conn, char **const names, int maxnames)
+esxConnectListNetworks(virConnectPtr conn, char **const names, int maxnames)
 {
     bool success = false;
     esxPrivate *priv = conn->networkPrivateData;
@@ -152,7 +152,7 @@ esxListNetworks(virConnectPtr conn, char **const names, int maxnames)
 
 
 static int
-esxNumberOfDefinedNetworks(virConnectPtr conn ATTRIBUTE_UNUSED)
+esxConnectNumOfDefinedNetworks(virConnectPtr conn ATTRIBUTE_UNUSED)
 {
     /* ESX networks are always active */
     return 0;
@@ -161,9 +161,9 @@ esxNumberOfDefinedNetworks(virConnectPtr conn ATTRIBUTE_UNUSED)
 
 
 static int
-esxListDefinedNetworks(virConnectPtr conn ATTRIBUTE_UNUSED,
-                       char **const names ATTRIBUTE_UNUSED,
-                       int maxnames ATTRIBUTE_UNUSED)
+esxConnectListDefinedNetworks(virConnectPtr conn ATTRIBUTE_UNUSED,
+                              char **const names ATTRIBUTE_UNUSED,
+                              int maxnames ATTRIBUTE_UNUSED)
 {
     /* ESX networks are always active */
     return 0;
@@ -933,12 +933,12 @@ esxNetworkIsPersistent(virNetworkPtr network ATTRIBUTE_UNUSED)
 
 static virNetworkDriver esxNetworkDriver = {
     .name = "ESX",
-    .open = esxNetworkOpen, /* 0.7.6 */
-    .close = esxNetworkClose, /* 0.7.6 */
-    .numOfNetworks = esxNumberOfNetworks, /* 0.10.0 */
-    .listNetworks = esxListNetworks, /* 0.10.0 */
-    .numOfDefinedNetworks = esxNumberOfDefinedNetworks, /* 0.10.0 */
-    .listDefinedNetworks = esxListDefinedNetworks, /* 0.10.0 */
+    .networkOpen = esxNetworkOpen, /* 0.7.6 */
+    .networkClose = esxNetworkClose, /* 0.7.6 */
+    .connectNumOfNetworks = esxConnectNumOfNetworks, /* 0.10.0 */
+    .connectListNetworks = esxConnectListNetworks, /* 0.10.0 */
+    .connectNumOfDefinedNetworks = esxConnectNumOfDefinedNetworks, /* 0.10.0 */
+    .connectListDefinedNetworks = esxConnectListDefinedNetworks, /* 0.10.0 */
     .networkLookupByUUID = esxNetworkLookupByUUID, /* 0.10.0 */
     .networkLookupByName = esxNetworkLookupByName, /* 0.10.0 */
     .networkDefineXML = esxNetworkDefineXML, /* 0.10.0 */

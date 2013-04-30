@@ -1696,6 +1696,7 @@ EXTRA_DIST += test-recv.c signature.h macros.h
 
 TESTS += test-regex
 check_PROGRAMS += test-regex
+test_regex_LDADD = $(LDADD) @LIBINTL@
 EXTRA_DIST += test-regex.c macros.h
 
 ## end   gnulib module regex-tests

@@ -60,8 +60,8 @@
 #include "virutil.h"
 #include "viralloc.h"
 #include "virxml.h"
-#include "libvirt/libvirt-qemu.h"
-#include "libvirt/libvirt-lxc.h"
+#include <libvirt/libvirt-qemu.h>
+#include <libvirt/libvirt-lxc.h>
 #include "virfile.h"
 #include "configmake.h"
 #include "virthread.h"
@@ -321,9 +321,18 @@ vshReconnect(vshControl *ctl)
 {
     bool connected = false;
 
-    if (ctl->conn != NULL) {
+    if (ctl->conn) {
+        int ret;
+
         connected = true;
-        virConnectClose(ctl->conn);
+
+        virConnectUnregisterCloseCallback(ctl->conn, vshCatchDisconnect);
+        ret = virConnectClose(ctl->conn);
+        if (ret < 0)
+            vshError(ctl, "%s", _("Failed to disconnect from the hypervisor"));
+        else if (ret > 0)
+            vshError(ctl, "%s", _("One or more references were leaked after "
+                                  "disconnect from the hypervisor"));
     }
 
     ctl->conn = virConnectOpenAuth(ctl->name,
@@ -345,6 +354,79 @@ vshReconnect(vshControl *ctl)
     ctl->useGetInfo = false;
     ctl->useSnapshotOld = false;
 }
+
+
+/*
+ * "connect" command
+ */
+static const vshCmdInfo info_connect[] = {
+    {.name = "help",
+     .data = N_("(re)connect to hypervisor")
+    },
+    {.name = "desc",
+     .data = N_("Connect to local hypervisor. This is built-in "
+                "command after shell start up.")
+    },
+    {.name = NULL}
+};
+
+static const vshCmdOptDef opts_connect[] = {
+    {.name = "name",
+     .type = VSH_OT_DATA,
+     .flags = VSH_OFLAG_EMPTY_OK,
+     .help = N_("hypervisor connection URI")
+    },
+    {.name = "readonly",
+     .type = VSH_OT_BOOL,
+     .help = N_("read-only connection")
+    },
+    {.name = NULL}
+};
+
+static bool
+cmdConnect(vshControl *ctl, const vshCmd *cmd)
+{
+    bool ro = vshCommandOptBool(cmd, "readonly");
+    const char *name = NULL;
+
+    if (ctl->conn) {
+        int ret;
+
+        virConnectUnregisterCloseCallback(ctl->conn, vshCatchDisconnect);
+        ret = virConnectClose(ctl->conn);
+        if (ret < 0)
+            vshError(ctl, "%s", _("Failed to disconnect from the hypervisor"));
+        else if (ret > 0)
+            vshError(ctl, "%s", _("One or more references were leaked after "
+                                  "disconnect from the hypervisor"));
+        ctl->conn = NULL;
+    }
+
+    VIR_FREE(ctl->name);
+    if (vshCommandOptStringReq(ctl, cmd, "name", &name) < 0)
+        return false;
+
+    ctl->name = vshStrdup(ctl, name);
+
+    ctl->useGetInfo = false;
+    ctl->useSnapshotOld = false;
+    ctl->readonly = ro;
+
+    ctl->conn = virConnectOpenAuth(ctl->name, virConnectAuthPtrDefault,
+                                   ctl->readonly ? VIR_CONNECT_RO : 0);
+
+    if (!ctl->conn) {
+        vshError(ctl, "%s", _("Failed to connect to the hypervisor"));
+        return false;
+    }
+
+    if (virConnectRegisterCloseCallback(ctl->conn, vshCatchDisconnect,
+                                        NULL, NULL) < 0)
+        vshError(ctl, "%s", _("Unable to register disconnect callback"));
+
+    return true;
+}
+
 
 #ifndef WIN32
 static void
@@ -2660,9 +2742,13 @@ vshDeinit(vshControl *ctl)
     VIR_FREE(ctl->name);
     if (ctl->conn) {
         int ret;
-        if ((ret = virConnectClose(ctl->conn)) != 0) {
-            vshError(ctl, _("Failed to disconnect from the hypervisor, %d leaked reference(s)"), ret);
-        }
+        virConnectUnregisterCloseCallback(ctl->conn, vshCatchDisconnect);
+        ret = virConnectClose(ctl->conn);
+        if (ret < 0)
+            vshError(ctl, "%s", _("Failed to disconnect from the hypervisor"));
+        else if (ret > 0)
+            vshError(ctl, "%s", _("One or more references were leaked after "
+                                  "disconnect from the hypervisor"));
     }
     virResetLastError();
 
@@ -2991,6 +3077,12 @@ static const vshCmdDef virshCmds[] = {
      .handler = cmdCd,
      .opts = opts_cd,
      .info = info_cd,
+     .flags = VSH_CMD_FLAG_NOCONNECT
+    },
+    {.name = "connect",
+     .handler = cmdConnect,
+     .opts = opts_connect,
+     .info = info_connect,
      .flags = VSH_CMD_FLAG_NOCONNECT
     },
     {.name = "echo",

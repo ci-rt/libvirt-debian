@@ -412,6 +412,7 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/realloc.m4 \
 	$(top_srcdir)/gnulib/m4/regex.m4 \
 	$(top_srcdir)/gnulib/m4/sched_h.m4 \
+	$(top_srcdir)/gnulib/m4/secure_getenv.m4 \
 	$(top_srcdir)/gnulib/m4/select.m4 \
 	$(top_srcdir)/gnulib/m4/servent.m4 \
 	$(top_srcdir)/gnulib/m4/setenv.m4 \
@@ -505,10 +506,13 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/virt-attr.m4 $(top_srcdir)/m4/virt-audit.m4 \
 	$(top_srcdir)/m4/virt-avahi.m4 $(top_srcdir)/m4/virt-blkid.m4 \
 	$(top_srcdir)/m4/virt-capng.m4 \
+	$(top_srcdir)/m4/virt-compile-pie.m4 \
 	$(top_srcdir)/m4/virt-compile-warnings.m4 \
 	$(top_srcdir)/m4/virt-curl.m4 $(top_srcdir)/m4/virt-dbus.m4 \
 	$(top_srcdir)/m4/virt-fuse.m4 $(top_srcdir)/m4/virt-hal.m4 \
-	$(top_srcdir)/m4/virt-lib.m4 $(top_srcdir)/m4/virt-netcf.m4 \
+	$(top_srcdir)/m4/virt-lib.m4 \
+	$(top_srcdir)/m4/virt-linker-relro.m4 \
+	$(top_srcdir)/m4/virt-netcf.m4 \
 	$(top_srcdir)/m4/virt-numactl.m4 \
 	$(top_srcdir)/m4/virt-openwsman.m4 \
 	$(top_srcdir)/m4/virt-pciaccess.m4 \
@@ -1160,9 +1164,7 @@ test_recv_OBJECTS = test-recv.$(OBJEXT)
 test_recv_DEPENDENCIES = $(am__DEPENDENCIES_2)
 test_regex_SOURCES = test-regex.c
 test_regex_OBJECTS = test-regex.$(OBJEXT)
-test_regex_LDADD = $(LDADD)
-test_regex_DEPENDENCIES = libtests.a ../../gnulib/lib/libgnu.la \
-	libtests.a $(am__DEPENDENCIES_1)
+test_regex_DEPENDENCIES = $(am__DEPENDENCIES_2)
 test_sched_SOURCES = test-sched.c
 test_sched_OBJECTS = test-sched.$(OBJEXT)
 test_sched_LDADD = $(LDADD)
@@ -2008,6 +2010,7 @@ GNULIB_ROUNDF = @GNULIB_ROUNDF@
 GNULIB_ROUNDL = @GNULIB_ROUNDL@
 GNULIB_RPMATCH = @GNULIB_RPMATCH@
 GNULIB_SCANF = @GNULIB_SCANF@
+GNULIB_SECURE_GETENV = @GNULIB_SECURE_GETENV@
 GNULIB_SELECT = @GNULIB_SELECT@
 GNULIB_SEND = @GNULIB_SEND@
 GNULIB_SENDTO = @GNULIB_SENDTO@
@@ -2376,6 +2379,7 @@ HAVE_RPMATCH = @HAVE_RPMATCH@
 HAVE_SAME_LONG_DOUBLE_AS_DOUBLE = @HAVE_SAME_LONG_DOUBLE_AS_DOUBLE@
 HAVE_SA_FAMILY_T = @HAVE_SA_FAMILY_T@
 HAVE_SCHED_H = @HAVE_SCHED_H@
+HAVE_SECURE_GETENV = @HAVE_SECURE_GETENV@
 HAVE_SETENV = @HAVE_SETENV@
 HAVE_SETHOSTNAME = @HAVE_SETHOSTNAME@
 HAVE_SIGACTION = @HAVE_SIGACTION@
@@ -2689,6 +2693,8 @@ PATH_SEPARATOR = @PATH_SEPARATOR@
 PCIACCESS_CFLAGS = @PCIACCESS_CFLAGS@
 PCIACCESS_LIBS = @PCIACCESS_LIBS@
 PERL = @PERL@
+PIE_CFLAGS = @PIE_CFLAGS@
+PIE_LDFLAGS = @PIE_LDFLAGS@
 PKCHECK_PATH = @PKCHECK_PATH@
 PKG_CONFIG = @PKG_CONFIG@
 PKG_CONFIG_LIBDIR = @PKG_CONFIG_LIBDIR@
@@ -2720,6 +2726,7 @@ QEMU = @QEMU@
 RADVD = @RADVD@
 RANLIB = @RANLIB@
 READLINE_CFLAGS = @READLINE_CFLAGS@
+RELRO_LDFLAGS = @RELRO_LDFLAGS@
 REPLACE_BTOWC = @REPLACE_BTOWC@
 REPLACE_CALLOC = @REPLACE_CALLOC@
 REPLACE_CANONICALIZE_FILE_NAME = @REPLACE_CANONICALIZE_FILE_NAME@
@@ -3307,6 +3314,7 @@ test_poll_LDADD = $(LDADD) $(LIB_POLL) @LIBSOCKET@ $(INET_PTON_LIB)
 test_pthread_sigmask1_LDADD = $(LDADD) @LIB_PTHREAD_SIGMASK@
 test_pthread_sigmask2_LDADD = $(LDADD) @LIB_PTHREAD_SIGMASK@ @LIBMULTITHREAD@
 test_recv_LDADD = $(LDADD) @LIBSOCKET@
+test_regex_LDADD = $(LDADD) @LIBINTL@
 test_select_LDADD = $(LDADD) @LIB_SELECT@ @LIBSOCKET@ $(INET_PTON_LIB)
 test_select_fd_LDADD = $(LDADD) @LIB_SELECT@
 test_select_stdin_LDADD = $(LDADD) @LIB_SELECT@

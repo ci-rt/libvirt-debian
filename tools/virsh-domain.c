@@ -1021,25 +1021,21 @@ cmdBlkdeviotune(vshControl *ctl, const vshCmd *cmd)
     int nparams = 0;
     int maxparams = 0;
     virTypedParameterPtr params = NULL;
-    unsigned int flags = 0, i = 0;
+    unsigned int flags = VIR_DOMAIN_AFFECT_CURRENT;
+    unsigned int i = 0;
     int rv = 0;
     bool current = vshCommandOptBool(cmd, "current");
     bool config = vshCommandOptBool(cmd, "config");
     bool live = vshCommandOptBool(cmd, "live");
     bool ret = false;
 
-    if (current) {
-        if (live || config) {
-            vshError(ctl, "%s", _("--current must be specified exclusively"));
-            return false;
-        }
-        flags = VIR_DOMAIN_AFFECT_CURRENT;
-    } else {
-        if (config)
-            flags |= VIR_DOMAIN_AFFECT_CONFIG;
-        if (live)
-            flags |= VIR_DOMAIN_AFFECT_LIVE;
-    }
+    VSH_EXCLUSIVE_OPTIONS_VAR(current, live);
+    VSH_EXCLUSIVE_OPTIONS_VAR(current, config);
+
+    if (config)
+        flags |= VIR_DOMAIN_AFFECT_CONFIG;
+    if (live)
+        flags |= VIR_DOMAIN_AFFECT_LIVE;
 
     if (!(dom = vshCommandOptDomain(ctl, cmd, &name)))
         goto cleanup;
@@ -1206,23 +1202,18 @@ cmdBlkiotune(vshControl * ctl, const vshCmd * cmd)
     unsigned int i = 0;
     virTypedParameterPtr params = NULL;
     bool ret = false;
-    unsigned int flags = 0;
+    unsigned int flags = VIR_DOMAIN_AFFECT_CURRENT;
     bool current = vshCommandOptBool(cmd, "current");
     bool config = vshCommandOptBool(cmd, "config");
     bool live = vshCommandOptBool(cmd, "live");
 
-    if (current) {
-        if (live || config) {
-            vshError(ctl, "%s", _("--current must be specified exclusively"));
-            return false;
-        }
-        flags = VIR_DOMAIN_AFFECT_CURRENT;
-    } else {
-        if (config)
-            flags |= VIR_DOMAIN_AFFECT_CONFIG;
-        if (live)
-            flags |= VIR_DOMAIN_AFFECT_LIVE;
-    }
+    VSH_EXCLUSIVE_OPTIONS_VAR(current, live);
+    VSH_EXCLUSIVE_OPTIONS_VAR(current, config);
+
+    if (config)
+        flags |= VIR_DOMAIN_AFFECT_CONFIG;
+    if (live)
+        flags |= VIR_DOMAIN_AFFECT_LIVE;
 
     if (!(dom = vshCommandOptDomain(ctl, cmd, NULL)))
         return false;
@@ -2475,7 +2466,7 @@ cmdDomIftune(vshControl *ctl, const vshCmd *cmd)
     virDomainPtr dom;
     const char *name = NULL, *device = NULL,
                *inboundStr = NULL, *outboundStr = NULL;
-    unsigned int flags = 0;
+    unsigned int flags = VIR_DOMAIN_AFFECT_CURRENT;
     int nparams = 0;
     int maxparams = 0;
     virTypedParameterPtr params = NULL;
@@ -2486,18 +2477,13 @@ cmdDomIftune(vshControl *ctl, const vshCmd *cmd)
     virNetDevBandwidthRate inbound, outbound;
     int i;
 
-    if (current) {
-        if (live || config) {
-            vshError(ctl, "%s", _("--current must be specified exclusively"));
-            return false;
-        }
-        flags = VIR_DOMAIN_AFFECT_CURRENT;
-    } else {
-        if (config)
-            flags |= VIR_DOMAIN_AFFECT_CONFIG;
-        if (live)
-            flags |= VIR_DOMAIN_AFFECT_LIVE;
-    }
+    VSH_EXCLUSIVE_OPTIONS_VAR(current, live);
+    VSH_EXCLUSIVE_OPTIONS_VAR(current, config);
+
+    if (config)
+        flags |= VIR_DOMAIN_AFFECT_CONFIG;
+    if (live)
+        flags |= VIR_DOMAIN_AFFECT_LIVE;
 
     if (!(dom = vshCommandOptDomain(ctl, cmd, &name)))
         return false;
@@ -3918,16 +3904,14 @@ static const vshCmdOptDef opts_schedinfo[] = {
      .flags = VSH_OFLAG_REQ,
      .help = N_("domain name, id or uuid")
     },
-    {.name = "set",
-     .type = VSH_OT_STRING,
-     .help = N_("parameter=value")
-    },
     {.name = "weight",
      .type = VSH_OT_INT,
+     .flags = VSH_OFLAG_REQ_OPT,
      .help = N_("weight for XEN_CREDIT")
     },
     {.name = "cap",
      .type = VSH_OT_INT,
+     .flags = VSH_OFLAG_REQ_OPT,
      .help = N_("cap for XEN_CREDIT")
     },
     {.name = "current",
@@ -3942,72 +3926,100 @@ static const vshCmdOptDef opts_schedinfo[] = {
      .type = VSH_OT_BOOL,
      .help = N_("get/set value from running domain")
     },
+    {.name = "set",
+     .type = VSH_OT_ARGV,
+     .flags = VSH_OFLAG_NONE,
+     .help = N_("parameter=value")
+    },
     {.name = NULL}
 };
+
+static int
+cmdSchedInfoUpdateOne(vshControl *ctl,
+                      virTypedParameterPtr src_params, int nsrc_params,
+                      virTypedParameterPtr *params,
+                      int *nparams, int *maxparams,
+                      const char *field, const char *value)
+{
+    virTypedParameterPtr param;
+    int ret = -1;
+    int i;
+
+    for (i = 0; i < nsrc_params; i++) {
+        param = &(src_params[i]);
+
+        if (STRNEQ(field, param->field))
+            continue;
+
+        if (virTypedParamsAddFromString(params, nparams, maxparams,
+                                        field, param->type,
+                                        value) < 0) {
+            vshSaveLibvirtError();
+            goto cleanup;
+        }
+        ret = 0;
+        break;
+    }
+
+    if (ret < 0)
+        vshError(ctl, _("invalid scheduler option: %s"), field);
+
+ cleanup:
+    return ret;
+}
 
 static int
 cmdSchedInfoUpdate(vshControl *ctl, const vshCmd *cmd,
                    virTypedParameterPtr src_params, int nsrc_params,
                    virTypedParameterPtr *update_params)
 {
-    const char *set_arg;
     char *set_field = NULL;
     char *set_val = NULL;
-    virTypedParameterPtr param;
+    const char *val = NULL;
+    const vshCmdOpt *opt = NULL;
     virTypedParameterPtr params = NULL;
     int nparams = 0;
     int maxparams = 0;
     int ret = -1;
     int rv;
-    int val;
-    int i;
 
-    if (vshCommandOptString(cmd, "set", &set_arg) > 0) {
-        set_field = vshStrdup(ctl, set_arg);
+    while ((opt = vshCommandOptArgv(cmd, opt))) {
+        set_field = vshStrdup(ctl, opt->data);
         if (!(set_val = strchr(set_field, '='))) {
-            vshError(ctl, "%s", _("Invalid syntax for --set, expecting name=value"));
+            vshError(ctl, "%s", _("Invalid syntax for --set, "
+                                  "expecting name=value"));
             goto cleanup;
         }
 
         *set_val = '\0';
         set_val++;
+
+        if (cmdSchedInfoUpdateOne(ctl, src_params, nsrc_params,
+                                  &params, &nparams, &maxparams,
+                                  set_field, set_val) < 0)
+            goto cleanup;
+
+        VIR_FREE(set_field);
     }
 
-    for (i = 0; i < nsrc_params; i++) {
-        param = &(src_params[i]);
+    rv = vshCommandOptStringReq(ctl, cmd, "cap", &val);
+    if (rv < 0 ||
+        (val &&
+         cmdSchedInfoUpdateOne(ctl, src_params, nsrc_params,
+                               &params, &nparams, &maxparams,
+                               "cap", val) < 0))
+        goto cleanup;
 
-        /* Legacy 'weight' and 'cap'  parameter */
-        if (param->type == VIR_TYPED_PARAM_UINT &&
-            (STREQ(param->field, "weight") || STREQ(param->field, "cap")) &&
-            (rv = vshCommandOptInt(cmd, param->field, &val)) != 0) {
-            if (rv < 0) {
-                vshError(ctl, _("Invalid value of %s"), param->field);
-                goto cleanup;
-            }
+    rv = vshCommandOptStringReq(ctl, cmd, "weight", &val);
+    if (rv < 0 ||
+        (val &&
+         cmdSchedInfoUpdateOne(ctl, src_params, nsrc_params,
+                               &params, &nparams, &maxparams,
+                               "weight", val) < 0))
+        goto cleanup;
 
-            if (virTypedParamsAddUInt(&params, &nparams, &maxparams,
-                                      param->field, val) < 0) {
-                vshSaveLibvirtError();
-                goto cleanup;
-            }
-
-            continue;
-        }
-
-        if (set_field && STREQ(set_field, param->field)) {
-            if (virTypedParamsAddFromString(&params, &nparams, &maxparams,
-                                            set_field, param->type,
-                                            set_val) < 0) {
-                vshSaveLibvirtError();
-                goto cleanup;
-            }
-
-            continue;
-        }
-    }
-
-    *update_params = params;
     ret = nparams;
+    *update_params = params;
     params = NULL;
 
 cleanup:
@@ -4027,23 +4039,18 @@ cmdSchedinfo(vshControl *ctl, const vshCmd *cmd)
     int nupdates = 0;
     int i, ret;
     bool ret_val = false;
-    unsigned int flags = 0;
+    unsigned int flags = VIR_DOMAIN_AFFECT_CURRENT;
     bool current = vshCommandOptBool(cmd, "current");
     bool config = vshCommandOptBool(cmd, "config");
     bool live = vshCommandOptBool(cmd, "live");
 
-    if (current) {
-        if (live || config) {
-            vshError(ctl, "%s", _("--current must be specified exclusively"));
-            return false;
-        }
-        flags = VIR_DOMAIN_AFFECT_CURRENT;
-    } else {
-        if (config)
-            flags |= VIR_DOMAIN_AFFECT_CONFIG;
-        if (live)
-            flags |= VIR_DOMAIN_AFFECT_LIVE;
-    }
+    VSH_EXCLUSIVE_OPTIONS_VAR(current, live);
+    VSH_EXCLUSIVE_OPTIONS_VAR(current, config);
+
+    if (config)
+        flags |= VIR_DOMAIN_AFFECT_CONFIG;
+    if (live)
+        flags |= VIR_DOMAIN_AFFECT_LIVE;
 
     if (!(dom = vshCommandOptDomain(ctl, cmd, NULL)))
         return false;
@@ -4102,15 +4109,6 @@ cmdSchedinfo(vshControl *ctl, const vshCmd *cmd)
             if (ret == -1)
                 goto cleanup;
         } else {
-            /* See if we've tried to --set var=val.  If so, the fact that
-               we reach this point (with update == 0) means that "var" did
-               not match any of the settable parameters.  Report the error.  */
-            const char *var_value_pair = NULL;
-            if (vshCommandOptString(cmd, "set", &var_value_pair) > 0) {
-                vshError(ctl, _("invalid scheduler option: %s"),
-                         var_value_pair);
-                goto cleanup;
-            }
             /* When not doing --set, --live and --config do not mix.  */
             if (live && config) {
                 vshError(ctl, "%s",
@@ -4570,7 +4568,7 @@ static const vshCmdOptDef opts_shutdown[] = {
     },
     {.name = "mode",
      .type = VSH_OT_STRING,
-     .help = N_("shutdown mode: acpi|agent")
+     .help = N_("shutdown mode: acpi|agent|initctl|signal")
     },
     {.name = NULL}
 };
@@ -4656,7 +4654,7 @@ static const vshCmdOptDef opts_reboot[] = {
     },
     {.name = "mode",
      .type = VSH_OT_STRING,
-     .help = N_("shutdown mode: acpi|agent")
+     .help = N_("shutdown mode: acpi|agent|initctl|signal")
     },
     {.name = NULL}
 };
@@ -5068,7 +5066,7 @@ static const vshCmdOptDef opts_vcpucount[] = {
     },
     {.name = "maximum",
      .type = VSH_OT_BOOL,
-     .help = N_("get maximum cap on vcpus")
+     .help = N_("get maximum count of vcpus")
     },
     {.name = "active",
      .type = VSH_OT_BOOL,
@@ -5089,36 +5087,102 @@ static const vshCmdOptDef opts_vcpucount[] = {
     {.name = NULL}
 };
 
+/**
+ * Collect the number of vCPUs for a guest possibly with fallback means.
+ *
+ * Returns the count of vCPUs for a domain and certain flags. Returns -2 in case
+ * of error. If @checkState is true, in case live stats can't be collected when
+ * the domain is inactive or persistent stats can't be collected if domain is
+ * transient -1 is returned and no error is reported.
+ */
+
+static int
+vshCPUCountCollect(vshControl *ctl,
+                   virDomainPtr dom,
+                   unsigned int flags,
+                   bool checkState)
+{
+    int ret = -2;
+    virDomainInfo info;
+    int count;
+    char *def = NULL;
+    xmlDocPtr xml = NULL;
+    xmlXPathContextPtr ctxt = NULL;
+
+    if (checkState &&
+        ((flags & VIR_DOMAIN_AFFECT_LIVE && virDomainIsActive(dom) < 1) ||
+         (flags & VIR_DOMAIN_AFFECT_CONFIG && virDomainIsPersistent(dom) < 1)))
+        return -1;
+
+    /* In all cases, try the new API first; if it fails because we are talking
+     * to an older daemon, generally we try a fallback API before giving up.
+     * --current requires the new API, since we don't know whether the domain is
+     *  running or inactive. */
+    if ((count = virDomainGetVcpusFlags(dom, flags)) >= 0)
+        return count;
+
+    /* fallback code */
+     if (!(last_error->code == VIR_ERR_NO_SUPPORT ||
+           last_error->code == VIR_ERR_INVALID_ARG))
+         goto cleanup;
+
+     if (!(flags & (VIR_DOMAIN_AFFECT_LIVE | VIR_DOMAIN_AFFECT_CONFIG)) &&
+         virDomainIsActive(dom) == 1)
+         flags |= VIR_DOMAIN_AFFECT_LIVE;
+
+     vshResetLibvirtError();
+
+     if (flags & VIR_DOMAIN_AFFECT_LIVE) {
+         if (flags & VIR_DOMAIN_VCPU_MAXIMUM) {
+            count = virDomainGetMaxVcpus(dom);
+         } else {
+            if (virDomainGetInfo(dom, &info) < 0)
+                goto cleanup;
+
+            count = info.nrVirtCpu;
+         }
+     } else {
+         if (!(def = virDomainGetXMLDesc(dom, VIR_DOMAIN_XML_INACTIVE)))
+             goto cleanup;
+
+        if (!(xml = virXMLParseStringCtxt(def, _("(domain_definition)"), &ctxt)))
+            goto cleanup;
+
+         if (flags & VIR_DOMAIN_VCPU_MAXIMUM) {
+             if (virXPathInt("string(/domain/vcpus)", ctxt, &count) < 0) {
+                 vshError(ctl, "%s", _("Failed to retrieve maximum vcpu count"));
+                 goto cleanup;
+             }
+         } else {
+             if (virXPathInt("string(/domain/vcpus/@current)",
+                             ctxt, &count) < 0) {
+                 vshError(ctl, "%s", _("Failed to retrieve current vcpu count"));
+                 goto cleanup;
+             }
+         }
+     }
+
+    ret = count;
+cleanup:
+    VIR_FREE(def);
+    xmlXPathFreeContext(ctxt);
+    xmlFreeDoc(xml);
+
+    return ret;
+}
+
 static bool
 cmdVcpucount(vshControl *ctl, const vshCmd *cmd)
 {
     virDomainPtr dom;
-    bool ret = true;
+    bool ret = false;
     bool maximum = vshCommandOptBool(cmd, "maximum");
     bool active = vshCommandOptBool(cmd, "active");
     bool config = vshCommandOptBool(cmd, "config");
     bool live = vshCommandOptBool(cmd, "live");
     bool current = vshCommandOptBool(cmd, "current");
     bool all = maximum + active + current + config + live == 0;
-    int count;
-
-    /* We want one of each pair of mutually exclusive options; that
-     * is, use of flags requires exactly two options.  We reject the
-     * use of more than 2 flags later on.  */
-    if (maximum + active + current + config + live == 1) {
-        if (maximum || active) {
-            vshError(ctl,
-                     _("when using --%s, one of --config, --live, or --current "
-                       "must be specified"),
-                     maximum ? "maximum" : "active");
-        } else {
-            vshError(ctl,
-                     _("when using --%s, either --maximum or --active must be "
-                       "specified"),
-                     (current ? "current" : config ? "config" : "live"));
-        }
-        return false;
-    }
+    unsigned int flags = VIR_DOMAIN_AFFECT_CURRENT;
 
     /* Backwards compatibility: prior to 0.9.4,
      * VIR_DOMAIN_AFFECT_CURRENT was unsupported, and --current meant
@@ -5126,145 +5190,54 @@ cmdVcpucount(vshControl *ctl, const vshCmd *cmd)
      * --live' into the new '--active --live', while treating the new
      * '--maximum --current' correctly rather than rejecting it as
      * '--maximum --active'.  */
-    if (!maximum && !active && current) {
+    if (!maximum && !active && current)
         current = false;
-        active = true;
-    }
 
-    if (maximum && active) {
-        vshError(ctl, "%s",
-                 _("--maximum and --active cannot both be specified"));
-        return false;
-    }
-    if (current + config + live > 1) {
-        vshError(ctl, "%s",
-                 _("--config, --live, and --current are mutually exclusive"));
-        return false;
-    }
+    VSH_EXCLUSIVE_OPTIONS_VAR(current, live);
+    VSH_EXCLUSIVE_OPTIONS_VAR(current, config);
+    VSH_EXCLUSIVE_OPTIONS_VAR(active, maximum);
+
+    if (live)
+        flags |= VIR_DOMAIN_AFFECT_LIVE;
+    if (config)
+        flags |= VIR_DOMAIN_AFFECT_CONFIG;
+    if (maximum)
+        flags |= VIR_DOMAIN_VCPU_MAXIMUM;
 
     if (!(dom = vshCommandOptDomain(ctl, cmd, NULL)))
         return false;
 
-    /* In all cases, try the new API first; if it fails because we are
-     * talking to an older client, generally we try a fallback API
-     * before giving up.  --current requires the new API, since we
-     * don't know whether the domain is running or inactive.  */
-    if (current) {
-        count = virDomainGetVcpusFlags(dom,
-                                       maximum ? VIR_DOMAIN_VCPU_MAXIMUM : 0);
-        if (count < 0) {
-            vshReportError(ctl);
-            ret = false;
-        } else {
-            vshPrint(ctl, "%d\n", count);
-        }
+    if (all) {
+        int conf_max = vshCPUCountCollect(ctl, dom, VIR_DOMAIN_AFFECT_CONFIG |
+                                                    VIR_DOMAIN_VCPU_MAXIMUM, true);
+        int conf_cur = vshCPUCountCollect(ctl, dom, VIR_DOMAIN_AFFECT_CONFIG, true);
+        int live_max = vshCPUCountCollect(ctl, dom, VIR_DOMAIN_AFFECT_LIVE |
+                                                    VIR_DOMAIN_VCPU_MAXIMUM, true);
+        int live_cur = vshCPUCountCollect(ctl, dom, VIR_DOMAIN_AFFECT_LIVE, true);
+
+        if (conf_max == -2 || conf_cur == -2 || live_max == -2 || live_cur ==  -2)
+            goto cleanup;
+
+#define PRINT_COUNT(VAR, WHICH, STATE) if (VAR > 0) \
+    vshPrint(ctl, "%-12s %-12s %3d\n", WHICH, STATE, VAR)
+        PRINT_COUNT(conf_max, _("maximum"), _("config"));
+        PRINT_COUNT(live_max, _("maximum"), _("live"));
+        PRINT_COUNT(conf_cur, _("current"), _("config"));
+        PRINT_COUNT(live_cur, _("current"), _("live"));
+#undef PRINT_COUNT
+
+    } else {
+        int count = vshCPUCountCollect(ctl, dom, flags, false);
+
+        if (count < 0)
+            goto cleanup;
+
+        vshPrint(ctl, "%d\n", count);
     }
 
-    if (all || (maximum && config)) {
-        count = virDomainGetVcpusFlags(dom, (VIR_DOMAIN_VCPU_MAXIMUM |
-                                             VIR_DOMAIN_AFFECT_CONFIG));
-        if (count < 0 && (last_error->code == VIR_ERR_NO_SUPPORT
-                          || last_error->code == VIR_ERR_INVALID_ARG)) {
-            char *tmp;
-            char *xml = virDomainGetXMLDesc(dom, VIR_DOMAIN_XML_INACTIVE);
-            if (xml && (tmp = strstr(xml, "<vcpu"))) {
-                tmp = strchr(tmp, '>');
-                if (!tmp || virStrToLong_i(tmp + 1, &tmp, 10, &count) < 0)
-                    count = -1;
-            }
-            vshResetLibvirtError();
-            VIR_FREE(xml);
-        }
+    ret = true;
 
-        if (count < 0) {
-            vshReportError(ctl);
-            ret = false;
-        } else if (all) {
-            vshPrint(ctl, "%-12s %-12s %3d\n", _("maximum"), _("config"),
-                     count);
-        } else {
-            vshPrint(ctl, "%d\n", count);
-        }
-        vshResetLibvirtError();
-    }
-
-    if (all || (maximum && live)) {
-        count = virDomainGetVcpusFlags(dom, (VIR_DOMAIN_VCPU_MAXIMUM |
-                                             VIR_DOMAIN_AFFECT_LIVE));
-        if (count < 0 && (last_error->code == VIR_ERR_NO_SUPPORT
-                          || last_error->code == VIR_ERR_INVALID_ARG)) {
-            count = virDomainGetMaxVcpus(dom);
-        }
-
-        if (count < 0) {
-            vshReportError(ctl);
-            ret = false;
-        } else if (all) {
-            vshPrint(ctl, "%-12s %-12s %3d\n", _("maximum"), _("live"),
-                     count);
-        } else {
-            vshPrint(ctl, "%d\n", count);
-        }
-        vshResetLibvirtError();
-    }
-
-    if (all || (active && config)) {
-        count = virDomainGetVcpusFlags(dom, VIR_DOMAIN_AFFECT_CONFIG);
-        if (count < 0 && (last_error->code == VIR_ERR_NO_SUPPORT
-                          || last_error->code == VIR_ERR_INVALID_ARG)) {
-            char *tmp, *end;
-            char *xml = virDomainGetXMLDesc(dom, VIR_DOMAIN_XML_INACTIVE);
-            if (xml && (tmp = strstr(xml, "<vcpu"))) {
-                end = strchr(tmp, '>');
-                if (end) {
-                    *end = '\0';
-                    tmp = strstr(tmp, "current=");
-                    if (!tmp)
-                        tmp = end + 1;
-                    else {
-                        tmp += strlen("current=");
-                        tmp += *tmp == '\'' || *tmp == '"';
-                    }
-                }
-                if (!tmp || virStrToLong_i(tmp, &tmp, 10, &count) < 0)
-                    count = -1;
-            }
-            VIR_FREE(xml);
-        }
-
-        if (count < 0) {
-            vshReportError(ctl);
-            ret = false;
-        } else if (all) {
-            vshPrint(ctl, "%-12s %-12s %3d\n", _("current"), _("config"),
-                     count);
-        } else {
-            vshPrint(ctl, "%d\n", count);
-        }
-        vshResetLibvirtError();
-    }
-
-    if (all || (active && live)) {
-        count = virDomainGetVcpusFlags(dom, VIR_DOMAIN_AFFECT_LIVE);
-        if (count < 0 && (last_error->code == VIR_ERR_NO_SUPPORT
-                          || last_error->code == VIR_ERR_INVALID_ARG)) {
-            virDomainInfo info;
-            if (virDomainGetInfo(dom, &info) == 0)
-                count = info.nrVirtCpu;
-        }
-
-        if (count < 0) {
-            vshReportError(ctl);
-            ret = false;
-        } else if (all) {
-            vshPrint(ctl, "%-12s %-12s %3d\n", _("current"), _("live"),
-                     count);
-        } else {
-            vshPrint(ctl, "%d\n", count);
-        }
-        vshResetLibvirtError();
-    }
-
+cleanup:
     virDomainFree(dom);
     return ret;
 }
@@ -5460,6 +5433,97 @@ vshPrintPinInfo(unsigned char *cpumaps, size_t cpumaplen,
     return true;
 }
 
+static unsigned char *
+vshParseCPUList(vshControl *ctl, const char *cpulist,
+                int maxcpu, size_t cpumaplen)
+{
+    unsigned char *cpumap = NULL;
+    const char *cur;
+    bool unuse = false;
+    int i, cpu, lastcpu;
+
+    cpumap = vshCalloc(ctl, cpumaplen, sizeof(*cpumap));
+
+    /* Parse cpulist */
+    cur = cpulist;
+    if (*cur == 'r') {
+        for (cpu = 0; cpu < maxcpu; cpu++)
+            VIR_USE_CPU(cpumap, cpu);
+        return cpumap;
+    } else if (*cur == 0) {
+        goto error;
+    }
+
+    while (*cur != 0) {
+        /* The char '^' denotes exclusive */
+        if (*cur == '^') {
+            cur++;
+            unuse = true;
+        }
+
+        /* Parse physical CPU number */
+        if (!c_isdigit(*cur))
+            goto error;
+
+        if ((cpu = virParseNumber(&cur)) < 0)
+            goto error;
+
+        if (cpu >= maxcpu) {
+            vshError(ctl, _("Physical CPU %d doesn't exist."), cpu);
+            goto cleanup;
+        }
+
+        virSkipSpaces(&cur);
+
+        if (*cur == ',' || *cur == 0) {
+            if (unuse)
+                VIR_UNUSE_CPU(cpumap, cpu);
+            else
+                VIR_USE_CPU(cpumap, cpu);
+        } else if (*cur == '-') {
+            /* The char '-' denotes range */
+            if (unuse)
+                goto error;
+            cur++;
+            virSkipSpaces(&cur);
+
+            /* Parse the end of range */
+            lastcpu = virParseNumber(&cur);
+
+            if (lastcpu < cpu)
+                goto error;
+
+            if (lastcpu >= maxcpu) {
+                vshError(ctl, _("Physical CPU %d doesn't exist."), lastcpu);
+                goto cleanup;
+            }
+
+            for (i = cpu; i <= lastcpu; i++)
+                VIR_USE_CPU(cpumap, i);
+
+            virSkipSpaces(&cur);
+        }
+
+        if (*cur == ',') {
+            cur++;
+            virSkipSpaces(&cur);
+            unuse = false;
+        } else if (*cur == 0) {
+            break;
+        } else {
+            goto error;
+        }
+    }
+
+    return cpumap;
+
+error:
+    vshError(ctl, "%s", _("cpulist: Invalid format."));
+cleanup:
+    VIR_FREE(cpumap);
+    return NULL;
+}
+
 static bool
 cmdVcpuPin(vshControl *ctl, const vshCmd *cmd)
 {
@@ -5467,34 +5531,27 @@ cmdVcpuPin(vshControl *ctl, const vshCmd *cmd)
     virDomainPtr dom;
     int vcpu = -1;
     const char *cpulist = NULL;
-    bool ret = true;
+    bool ret = false;
     unsigned char *cpumap = NULL;
     unsigned char *cpumaps = NULL;
     size_t cpumaplen;
-    int i, cpu, lastcpu, maxcpu, ncpus;
-    bool unuse = false;
-    const char *cur;
+    int i, maxcpu, ncpus;
     bool config = vshCommandOptBool(cmd, "config");
     bool live = vshCommandOptBool(cmd, "live");
     bool current = vshCommandOptBool(cmd, "current");
     bool query = false; /* Query mode if no cpulist */
-    unsigned int flags = 0;
+    unsigned int flags = VIR_DOMAIN_AFFECT_CURRENT;
 
-    if (current) {
-        if (live || config) {
-            vshError(ctl, "%s", _("--current must be specified exclusively"));
-            return false;
-        }
-        flags = VIR_DOMAIN_AFFECT_CURRENT;
-    } else {
-        if (config)
-            flags |= VIR_DOMAIN_AFFECT_CONFIG;
-        if (live)
-            flags |= VIR_DOMAIN_AFFECT_LIVE;
-        /* neither option is specified */
-        if (!live && !config)
-            flags = -1;
-    }
+    VSH_EXCLUSIVE_OPTIONS_VAR(current, live);
+    VSH_EXCLUSIVE_OPTIONS_VAR(current, config);
+
+    if (config)
+        flags |= VIR_DOMAIN_AFFECT_CONFIG;
+    if (live)
+        flags |= VIR_DOMAIN_AFFECT_LIVE;
+    /* none of the options were specified */
+    if (!current && !live && !config)
+        flags = -1;
 
     if (vshCommandOptStringReq(ctl, cmd, "cpulist", &cpulist) < 0)
         return false;
@@ -5545,7 +5602,6 @@ cmdVcpuPin(vshControl *ctl, const vshCmd *cmd)
             vshPrint(ctl, "%s %s\n", _("VCPU:"), _("CPU Affinity"));
             vshPrint(ctl, "----------------------------------\n");
             for (i = 0; i < ncpus; i++) {
-
                if (vcpu != -1 && i != vcpu)
                    continue;
 
@@ -5556,105 +5612,28 @@ cmdVcpuPin(vshControl *ctl, const vshCmd *cmd)
                    break;
             }
 
-        } else {
-            ret = false;
         }
         VIR_FREE(cpumaps);
         goto cleanup;
     }
 
     /* Pin mode: pinning specified vcpu to specified physical cpus*/
-
-    cpumap = vshCalloc(ctl, cpumaplen, sizeof(*cpumap));
-    /* Parse cpulist */
-    cur = cpulist;
-    if (*cur == 0) {
-        goto parse_error;
-    } else if (*cur == 'r') {
-        for (cpu = 0; cpu < maxcpu; cpu++)
-            VIR_USE_CPU(cpumap, cpu);
-        cur = "";
-    }
-
-    while (*cur != 0) {
-
-        /* the char '^' denotes exclusive */
-        if (*cur == '^') {
-            cur++;
-            unuse = true;
-        }
-
-        /* parse physical CPU number */
-        if (!c_isdigit(*cur))
-            goto parse_error;
-        cpu  = virParseNumber(&cur);
-        if (cpu < 0) {
-            goto parse_error;
-        }
-        if (cpu >= maxcpu) {
-            vshError(ctl, _("Physical CPU %d doesn't exist."), cpu);
-            goto parse_error;
-        }
-        virSkipSpaces(&cur);
-
-        if (*cur == ',' || *cur == 0) {
-            if (unuse) {
-                VIR_UNUSE_CPU(cpumap, cpu);
-            } else {
-                VIR_USE_CPU(cpumap, cpu);
-            }
-        } else if (*cur == '-') {
-            /* the char '-' denotes range */
-            if (unuse) {
-                goto parse_error;
-            }
-            cur++;
-            virSkipSpaces(&cur);
-            /* parse the end of range */
-            lastcpu = virParseNumber(&cur);
-            if (lastcpu < cpu) {
-                goto parse_error;
-            }
-            if (lastcpu >= maxcpu) {
-                vshError(ctl, _("Physical CPU %d doesn't exist."), maxcpu);
-                goto parse_error;
-            }
-            for (i = cpu; i <= lastcpu; i++) {
-                VIR_USE_CPU(cpumap, i);
-            }
-            virSkipSpaces(&cur);
-        }
-
-        if (*cur == ',') {
-            cur++;
-            virSkipSpaces(&cur);
-            unuse = false;
-        } else if (*cur == 0) {
-            break;
-        } else {
-            goto parse_error;
-        }
-    }
+    if (!(cpumap = vshParseCPUList(ctl, cpulist, maxcpu, cpumaplen)))
+        goto cleanup;
 
     if (flags == -1) {
-        if (virDomainPinVcpu(dom, vcpu, cpumap, cpumaplen) != 0) {
-            ret = false;
-        }
+        if (virDomainPinVcpu(dom, vcpu, cpumap, cpumaplen) != 0)
+            goto cleanup;
     } else {
-        if (virDomainPinVcpuFlags(dom, vcpu, cpumap, cpumaplen, flags) != 0) {
-            ret = false;
-        }
+        if (virDomainPinVcpuFlags(dom, vcpu, cpumap, cpumaplen, flags) != 0)
+            goto cleanup;
     }
 
+    ret = true;
 cleanup:
     VIR_FREE(cpumap);
     virDomainFree(dom);
     return ret;
-
-parse_error:
-    vshError(ctl, "%s", _("cpulist: Invalid format."));
-    ret = false;
-    goto cleanup;
 }
 
 /*
@@ -5701,34 +5680,27 @@ cmdEmulatorPin(vshControl *ctl, const vshCmd *cmd)
 {
     virDomainPtr dom;
     const char *cpulist = NULL;
-    bool ret = true;
+    bool ret = false;
     unsigned char *cpumap = NULL;
     unsigned char *cpumaps = NULL;
     size_t cpumaplen;
-    int i, cpu, lastcpu, maxcpu;
-    bool unuse = false;
-    const char *cur;
+    int maxcpu;
     bool config = vshCommandOptBool(cmd, "config");
     bool live = vshCommandOptBool(cmd, "live");
     bool current = vshCommandOptBool(cmd, "current");
     bool query = false; /* Query mode if no cpulist */
-    unsigned int flags = 0;
+    unsigned int flags = VIR_DOMAIN_AFFECT_CURRENT;
 
-    if (current) {
-        if (live || config) {
-            vshError(ctl, "%s", _("--current must be specified exclusively"));
-            return false;
-        }
-        flags = VIR_DOMAIN_AFFECT_CURRENT;
-    } else {
-        if (config)
-            flags |= VIR_DOMAIN_AFFECT_CONFIG;
-        if (live)
-            flags |= VIR_DOMAIN_AFFECT_LIVE;
-        /* neither option is specified */
-        if (!live && !config)
-            flags = -1;
-    }
+    VSH_EXCLUSIVE_OPTIONS_VAR(current, live);
+    VSH_EXCLUSIVE_OPTIONS_VAR(current, config);
+
+    if (config)
+        flags |= VIR_DOMAIN_AFFECT_CONFIG;
+    if (live)
+        flags |= VIR_DOMAIN_AFFECT_LIVE;
+    /* none of the options were specified */
+    if (!current && !live && !config)
+        flags = -1;
 
     if (!(dom = vshCommandOptDomain(ctl, cmd, NULL)))
         return false;
@@ -5761,101 +5733,26 @@ cmdEmulatorPin(vshControl *ctl, const vshCmd *cmd)
             vshPrint(ctl, "       *: ");
             ret = vshPrintPinInfo(cpumaps, cpumaplen, maxcpu, 0);
             vshPrint(ctl, "\n");
-        } else {
-            ret = false;
         }
         VIR_FREE(cpumaps);
         goto cleanup;
     }
 
     /* Pin mode: pinning emulator threads to specified physical cpus*/
-
-    cpumap = vshCalloc(ctl, cpumaplen, sizeof(*cpumap));
-    /* Parse cpulist */
-    cur = cpulist;
-    if (*cur == 0) {
-        goto parse_error;
-    } else if (*cur == 'r') {
-        for (cpu = 0; cpu < maxcpu; cpu++)
-            VIR_USE_CPU(cpumap, cpu);
-        cur = "";
-    }
-
-    while (*cur != 0) {
-
-        /* the char '^' denotes exclusive */
-        if (*cur == '^') {
-            cur++;
-            unuse = true;
-        }
-
-        /* parse physical CPU number */
-        if (!c_isdigit(*cur))
-            goto parse_error;
-        cpu  = virParseNumber(&cur);
-        if (cpu < 0) {
-            goto parse_error;
-        }
-        if (cpu >= maxcpu) {
-            vshError(ctl, _("Physical CPU %d doesn't exist."), cpu);
-            goto parse_error;
-        }
-        virSkipSpaces(&cur);
-
-        if (*cur == ',' || *cur == 0) {
-            if (unuse) {
-                VIR_UNUSE_CPU(cpumap, cpu);
-            } else {
-                VIR_USE_CPU(cpumap, cpu);
-            }
-        } else if (*cur == '-') {
-            /* the char '-' denotes range */
-            if (unuse) {
-                goto parse_error;
-            }
-            cur++;
-            virSkipSpaces(&cur);
-            /* parse the end of range */
-            lastcpu = virParseNumber(&cur);
-            if (lastcpu < cpu) {
-                goto parse_error;
-            }
-            if (lastcpu >= maxcpu) {
-                vshError(ctl, _("Physical CPU %d doesn't exist."), maxcpu);
-                goto parse_error;
-            }
-            for (i = cpu; i <= lastcpu; i++) {
-                VIR_USE_CPU(cpumap, i);
-            }
-            virSkipSpaces(&cur);
-        }
-
-        if (*cur == ',') {
-            cur++;
-            virSkipSpaces(&cur);
-            unuse = false;
-        } else if (*cur == 0) {
-            break;
-        } else {
-            goto parse_error;
-        }
-    }
+    if (!(cpumap = vshParseCPUList(ctl, cpulist, maxcpu, cpumaplen)))
+        goto cleanup;
 
     if (flags == -1)
         flags = VIR_DOMAIN_AFFECT_LIVE;
 
     if (virDomainPinEmulator(dom, cpumap, cpumaplen, flags) != 0)
-        ret = false;
+        goto cleanup;
 
+    ret = true;
 cleanup:
     VIR_FREE(cpumap);
     virDomainFree(dom);
     return ret;
-
-parse_error:
-    vshError(ctl, "%s", _("cpulist: Invalid format."));
-    ret = false;
-    goto cleanup;
 }
 
 /*
@@ -5911,23 +5808,18 @@ cmdSetvcpus(vshControl *ctl, const vshCmd *cmd)
     bool config = vshCommandOptBool(cmd, "config");
     bool live = vshCommandOptBool(cmd, "live");
     bool current = vshCommandOptBool(cmd, "current");
-    unsigned int flags = 0;
+    unsigned int flags = VIR_DOMAIN_AFFECT_CURRENT;
 
-    if (current) {
-        if (live || config) {
-            vshError(ctl, "%s", _("--current must be specified exclusively"));
-            return false;
-        }
-        flags = VIR_DOMAIN_AFFECT_CURRENT;
-    } else {
-        if (config)
-            flags |= VIR_DOMAIN_AFFECT_CONFIG;
-        if (live)
-            flags |= VIR_DOMAIN_AFFECT_LIVE;
-        /* neither option is specified */
-        if (!live && !config && !maximum)
-            flags = -1;
-    }
+    VSH_EXCLUSIVE_OPTIONS_VAR(current, live);
+    VSH_EXCLUSIVE_OPTIONS_VAR(current, config);
+
+    if (config)
+        flags |= VIR_DOMAIN_AFFECT_CONFIG;
+    if (live)
+        flags |= VIR_DOMAIN_AFFECT_LIVE;
+    /* none of the options were specified */
+    if (!current && !live && !config && !maximum)
+        flags = -1;
 
     if (!(dom = vshCommandOptDomain(ctl, cmd, NULL)))
         return false;
@@ -6194,7 +6086,7 @@ static const vshCmdInfo info_cpu_stats[] = {
     {.name = "desc",
      .data = N_("Display per-CPU and total statistics about the domain's CPUs")
     },
-    {.name = NULL},
+    {.name = NULL}
 };
 
 static const vshCmdOptDef opts_cpu_stats[] = {
@@ -6215,7 +6107,7 @@ static const vshCmdOptDef opts_cpu_stats[] = {
      .type = VSH_OT_INT,
      .help = N_("Number of shown CPUs at most")
     },
-    {.name = NULL},
+    {.name = NULL}
 };
 
 static bool
@@ -6223,19 +6115,39 @@ cmdCPUStats(vshControl *ctl, const vshCmd *cmd)
 {
     virDomainPtr dom;
     virTypedParameterPtr params = NULL;
-    int i, j, pos, max_id, cpu = -1, show_count = -1, nparams = 0;
+    int i, j, pos, max_id, cpu = 0, show_count = -1, nparams = 0;
     bool show_total = false, show_per_cpu = false;
     unsigned int flags = 0;
     bool ret = false;
+    int rv = 0;
 
     if (!(dom = vshCommandOptDomain(ctl, cmd, NULL)))
         return false;
 
     show_total = vshCommandOptBool(cmd, "total");
-    if (vshCommandOptInt(cmd, "start", &cpu) > 0)
+
+    if ((rv = vshCommandOptInt(cmd, "start", &cpu)) < 0) {
+        vshError(ctl, "%s", _("Unable to parse integer parameter for start"));
+        goto cleanup;
+    } else if (rv > 0) {
+        if (cpu < 0) {
+            vshError(ctl, "%s", _("Invalid value for start CPU"));
+            goto cleanup;
+        }
         show_per_cpu = true;
-    if (vshCommandOptInt(cmd, "count", &show_count) > 0)
+    }
+
+    if ((rv = vshCommandOptInt(cmd, "count", &show_count)) < 0) {
+        vshError(ctl, "%s",
+                 _("Unable to parse integer parameter for CPUs to show"));
+        goto cleanup;
+    } else if (rv > 0) {
+        if (show_count < 0) {
+            vshError(ctl, "%s", _("Invalid value for number of CPUs to show"));
+            goto cleanup;
+        }
         show_per_cpu = true;
+    }
 
     /* default show per_cpu and total */
     if (!show_total && !show_per_cpu) {
@@ -6246,15 +6158,14 @@ cmdCPUStats(vshControl *ctl, const vshCmd *cmd)
     if (!show_per_cpu) /* show total stats only */
         goto do_show_total;
 
-    /* check cpu, show_count, and ignore wrong argument */
-    if (cpu < 0)
-        cpu = 0;
-
     /* get number of cpus on the node */
     if ((max_id = virDomainGetCPUStats(dom, NULL, 0, 0, 0, flags)) < 0)
         goto failed_stats;
-    if (show_count < 0 || show_count > max_id)
+    if (show_count < 0 || show_count > max_id) {
+        if (show_count > max_id)
+            vshPrint(ctl, _("Only %d CPUs available to show\n"), max_id);
         show_count = max_id;
+    }
 
     /* get percpu information */
     if ((nparams = virDomainGetCPUStats(dom, NULL, 0, 0, 1, flags)) < 0)
@@ -6608,18 +6519,13 @@ cmdDesc(vshControl *ctl, const vshCmd *cmd ATTRIBUTE_UNUSED)
     bool ret = false;
     unsigned int flags = VIR_DOMAIN_AFFECT_CURRENT;
 
-    if (current) {
-        if (live || config) {
-            vshError(ctl, "%s", _("--current must be specified exclusively"));
-            return false;
-        }
-        flags = VIR_DOMAIN_AFFECT_CURRENT;
-    } else {
-        if (config)
-            flags |= VIR_DOMAIN_AFFECT_CONFIG;
-        if (live)
-            flags |= VIR_DOMAIN_AFFECT_LIVE;
-    }
+    VSH_EXCLUSIVE_OPTIONS_VAR(current, live);
+    VSH_EXCLUSIVE_OPTIONS_VAR(current, config);
+
+    if (config)
+        flags |= VIR_DOMAIN_AFFECT_CONFIG;
+    if (live)
+        flags |= VIR_DOMAIN_AFFECT_LIVE;
 
     if (!(dom = vshCommandOptDomain(ctl, cmd, NULL)))
         return false;
@@ -6794,7 +6700,7 @@ static const vshCmdOptDef opts_send_key[] = {
 };
 
 static int
-get_integer_keycode(const char *key_name)
+vshKeyCodeGetInt(const char *key_name)
 {
     unsigned int val;
 
@@ -6810,7 +6716,7 @@ cmdSendKey(vshControl *ctl, const vshCmd *cmd)
     int ret = false;
     const char *codeset_option;
     int codeset;
-    int holdtime;
+    unsigned int holdtime = 0;
     int count = 0;
     const vshCmdOpt *opt = NULL;
     int keycode;
@@ -6822,11 +6728,13 @@ cmdSendKey(vshControl *ctl, const vshCmd *cmd)
     if (vshCommandOptString(cmd, "codeset", &codeset_option) <= 0)
         codeset_option = "linux";
 
-    if (vshCommandOptInt(cmd, "holdtime", &holdtime) <= 0)
-        holdtime = 0;
+    if (vshCommandOptUInt(cmd, "holdtime", &holdtime) < 0) {
+        vshError(ctl, _("invalid value of --holdtime"));
+        goto cleanup;
+    }
 
     codeset = virKeycodeSetTypeFromString(codeset_option);
-    if ((int)codeset < 0) {
+    if (codeset < 0) {
         vshError(ctl, _("unknown codeset: '%s'"), codeset_option);
         goto cleanup;
     }
@@ -6837,7 +6745,7 @@ cmdSendKey(vshControl *ctl, const vshCmd *cmd)
             goto cleanup;
         }
 
-        if ((keycode = get_integer_keycode(opt->data)) <= 0) {
+        if ((keycode = vshKeyCodeGetInt(opt->data)) <= 0) {
             if ((keycode = virKeycodeValueFromString(codeset, opt->data)) <= 0) {
                 vshError(ctl, _("invalid keycode: '%s'"), opt->data);
                 goto cleanup;
@@ -7025,23 +6933,18 @@ cmdSetmem(vshControl *ctl, const vshCmd *cmd)
     bool config = vshCommandOptBool(cmd, "config");
     bool live = vshCommandOptBool(cmd, "live");
     bool current = vshCommandOptBool(cmd, "current");
-    unsigned int flags = 0;
+    unsigned int flags = VIR_DOMAIN_AFFECT_CURRENT;
 
-    if (current) {
-        if (live || config) {
-            vshError(ctl, "%s", _("--current must be specified exclusively"));
-            return false;
-        }
-        flags = VIR_DOMAIN_AFFECT_CURRENT;
-    } else {
-        if (config)
-            flags |= VIR_DOMAIN_AFFECT_CONFIG;
-        if (live)
-            flags |= VIR_DOMAIN_AFFECT_LIVE;
-        /* neither option is specified */
-        if (!live && !config)
-            flags = -1;
-    }
+    VSH_EXCLUSIVE_OPTIONS_VAR(current, live);
+    VSH_EXCLUSIVE_OPTIONS_VAR(current, config);
+
+    if (config)
+        flags |= VIR_DOMAIN_AFFECT_CONFIG;
+    if (live)
+        flags |= VIR_DOMAIN_AFFECT_LIVE;
+    /* none of the options were specified */
+    if (!current && !live && !config)
+        flags = -1;
 
     if (!(dom = vshCommandOptDomain(ctl, cmd, NULL)))
         return false;
@@ -7127,22 +7030,18 @@ cmdSetmaxmem(vshControl *ctl, const vshCmd *cmd)
     bool config = vshCommandOptBool(cmd, "config");
     bool live = vshCommandOptBool(cmd, "live");
     bool current = vshCommandOptBool(cmd, "current");
-    unsigned int flags = VIR_DOMAIN_MEM_MAXIMUM;
+    unsigned int flags = VIR_DOMAIN_AFFECT_CURRENT | VIR_DOMAIN_MEM_MAXIMUM;
 
-    if (current) {
-        if (live || config) {
-            vshError(ctl, "%s", _("--current must be specified exclusively"));
-            return false;
-        }
-    } else {
-        if (config)
-            flags |= VIR_DOMAIN_AFFECT_CONFIG;
-        if (live)
-            flags |= VIR_DOMAIN_AFFECT_LIVE;
-        /* neither option is specified */
-        if (!live && !config)
-            flags = -1;
-    }
+    VSH_EXCLUSIVE_OPTIONS_VAR(current, live);
+    VSH_EXCLUSIVE_OPTIONS_VAR(current, config);
+
+    if (config)
+        flags |= VIR_DOMAIN_AFFECT_CONFIG;
+    if (live)
+        flags |= VIR_DOMAIN_AFFECT_LIVE;
+    /* none of the options were specified */
+    if (!current && !live && !config)
+        flags = -1;
 
     if (!(dom = vshCommandOptDomain(ctl, cmd, NULL)))
         return false;
@@ -7264,23 +7163,18 @@ cmdMemtune(vshControl *ctl, const vshCmd *cmd)
     unsigned int i = 0;
     virTypedParameterPtr params = NULL;
     bool ret = false;
-    unsigned int flags = 0;
+    unsigned int flags = VIR_DOMAIN_AFFECT_CURRENT;
     bool current = vshCommandOptBool(cmd, "current");
     bool config = vshCommandOptBool(cmd, "config");
     bool live = vshCommandOptBool(cmd, "live");
 
-    if (current) {
-        if (live || config) {
-            vshError(ctl, "%s", _("--current must be specified exclusively"));
-            return false;
-        }
-        flags = VIR_DOMAIN_AFFECT_CURRENT;
-    } else {
-        if (config)
-            flags |= VIR_DOMAIN_AFFECT_CONFIG;
-        if (live)
-            flags |= VIR_DOMAIN_AFFECT_LIVE;
-    }
+    VSH_EXCLUSIVE_OPTIONS_VAR(current, live);
+    VSH_EXCLUSIVE_OPTIONS_VAR(current, config);
+
+    if (config)
+        flags |= VIR_DOMAIN_AFFECT_CONFIG;
+    if (live)
+        flags |= VIR_DOMAIN_AFFECT_LIVE;
 
     if (!(dom = vshCommandOptDomain(ctl, cmd, NULL)))
         return false;
@@ -7435,24 +7329,19 @@ cmdNumatune(vshControl * ctl, const vshCmd * cmd)
     virTypedParameterPtr params = NULL;
     const char *nodeset = NULL;
     bool ret = false;
-    unsigned int flags = 0;
+    unsigned int flags = VIR_DOMAIN_AFFECT_CURRENT;
     bool current = vshCommandOptBool(cmd, "current");
     bool config = vshCommandOptBool(cmd, "config");
     bool live = vshCommandOptBool(cmd, "live");
     const char *mode = NULL;
 
-    if (current) {
-        if (live || config) {
-            vshError(ctl, "%s", _("--current must be specified exclusively"));
-            return false;
-        }
-        flags = VIR_DOMAIN_AFFECT_CURRENT;
-    } else {
-        if (config)
-            flags |= VIR_DOMAIN_AFFECT_CONFIG;
-        if (live)
-            flags |= VIR_DOMAIN_AFFECT_LIVE;
-    }
+    VSH_EXCLUSIVE_OPTIONS_VAR(current, live);
+    VSH_EXCLUSIVE_OPTIONS_VAR(current, config);
+
+    if (config)
+        flags |= VIR_DOMAIN_AFFECT_CONFIG;
+    if (live)
+        flags |= VIR_DOMAIN_AFFECT_LIVE;
 
     if (!(dom = vshCommandOptDomain(ctl, cmd, NULL)))
         return false;
@@ -9225,12 +9114,20 @@ static const vshCmdOptDef opts_detach_device[] = {
      .help = N_("XML file")
     },
     {.name = "persistent",
-     .type = VSH_OT_ALIAS,
-     .help = "config"
+     .type = VSH_OT_BOOL,
+     .help = N_("make live change persistent")
     },
     {.name = "config",
      .type = VSH_OT_BOOL,
      .help = N_("affect next boot")
+    },
+    {.name = "live",
+     .type = VSH_OT_BOOL,
+     .help = N_("affect running domain")
+    },
+    {.name = "current",
+     .type = VSH_OT_BOOL,
+     .help = N_("affect current domain")
     },
     {.name = NULL}
 };
@@ -9243,10 +9140,28 @@ cmdDetachDevice(vshControl *ctl, const vshCmd *cmd)
     char *buffer = NULL;
     int ret;
     bool funcRet = false;
-    unsigned int flags;
+    bool current = vshCommandOptBool(cmd, "current");
+    bool config = vshCommandOptBool(cmd, "config");
+    bool live = vshCommandOptBool(cmd, "live");
+    bool persistent = vshCommandOptBool(cmd, "persistent");
+    unsigned int flags = VIR_DOMAIN_AFFECT_CURRENT;
+
+    VSH_EXCLUSIVE_OPTIONS_VAR(persistent, current);
+
+    VSH_EXCLUSIVE_OPTIONS_VAR(current, live);
+    VSH_EXCLUSIVE_OPTIONS_VAR(current, config);
+
+    if (config || persistent)
+        flags |= VIR_DOMAIN_AFFECT_CONFIG;
+    if (live)
+        flags |= VIR_DOMAIN_AFFECT_LIVE;
 
     if (!(dom = vshCommandOptDomain(ctl, cmd, NULL)))
         return false;
+
+    if (persistent &&
+        virDomainIsActive(dom) == 1)
+        flags |= VIR_DOMAIN_AFFECT_LIVE;
 
     if (vshCommandOptStringReq(ctl, cmd, "file", &from) < 0)
         goto cleanup;
@@ -9256,14 +9171,10 @@ cmdDetachDevice(vshControl *ctl, const vshCmd *cmd)
         goto cleanup;
     }
 
-    if (vshCommandOptBool(cmd, "config")) {
-        flags = VIR_DOMAIN_AFFECT_CONFIG;
-        if (virDomainIsActive(dom) == 1)
-           flags |= VIR_DOMAIN_AFFECT_LIVE;
+    if (flags != 0)
         ret = virDomainDetachDeviceFlags(dom, buffer, flags);
-    } else {
+    else
         ret = virDomainDetachDevice(dom, buffer);
-    }
 
     if (ret < 0) {
         vshError(ctl, _("Failed to detach device from %s"), from);
@@ -9304,12 +9215,20 @@ static const vshCmdOptDef opts_update_device[] = {
      .help = N_("XML file")
     },
     {.name = "persistent",
-     .type = VSH_OT_ALIAS,
-     .help = "config"
+     .type = VSH_OT_BOOL,
+     .help = N_("make live change persistent")
     },
     {.name = "config",
      .type = VSH_OT_BOOL,
      .help = N_("affect next boot")
+    },
+    {.name = "live",
+     .type = VSH_OT_BOOL,
+     .help = N_("affect running domain")
+    },
+    {.name = "current",
+     .type = VSH_OT_BOOL,
+     .help = N_("affect current domain")
     },
     {.name = "force",
      .type = VSH_OT_BOOL,
@@ -9325,7 +9244,21 @@ cmdUpdateDevice(vshControl *ctl, const vshCmd *cmd)
     const char *from = NULL;
     char *buffer = NULL;
     bool ret = false;
-    unsigned int flags;
+    unsigned int flags = VIR_DOMAIN_AFFECT_CURRENT;
+    bool current = vshCommandOptBool(cmd, "current");
+    bool config = vshCommandOptBool(cmd, "config");
+    bool live = vshCommandOptBool(cmd, "live");
+    bool persistent = vshCommandOptBool(cmd, "persistent");
+
+    VSH_EXCLUSIVE_OPTIONS_VAR(persistent, current);
+
+    VSH_EXCLUSIVE_OPTIONS_VAR(current, live);
+    VSH_EXCLUSIVE_OPTIONS_VAR(current, config);
+
+    if (config || persistent)
+        flags |= VIR_DOMAIN_AFFECT_CONFIG;
+    if (live)
+        flags |= VIR_DOMAIN_AFFECT_LIVE;
 
     if (!(dom = vshCommandOptDomain(ctl, cmd, NULL)))
         return false;
@@ -9333,17 +9266,13 @@ cmdUpdateDevice(vshControl *ctl, const vshCmd *cmd)
     if (vshCommandOptStringReq(ctl, cmd, "file", &from) < 0)
         goto cleanup;
 
+    if (persistent &&
+        virDomainIsActive(dom) == 1)
+        flags |= VIR_DOMAIN_AFFECT_LIVE;
+
     if (virFileReadAll(from, VSH_MAX_XML_FILE, &buffer) < 0) {
         vshReportError(ctl);
         goto cleanup;
-    }
-
-    if (vshCommandOptBool(cmd, "config")) {
-        flags = VIR_DOMAIN_AFFECT_CONFIG;
-        if (virDomainIsActive(dom) == 1)
-           flags |= VIR_DOMAIN_AFFECT_LIVE;
-    } else {
-        flags = VIR_DOMAIN_AFFECT_LIVE;
     }
 
     if (vshCommandOptBool(cmd, "force"))
@@ -9392,12 +9321,20 @@ static const vshCmdOptDef opts_detach_interface[] = {
      .help = N_("MAC address")
     },
     {.name = "persistent",
-     .type = VSH_OT_ALIAS,
-     .help = "config"
+     .type = VSH_OT_BOOL,
+     .help = N_("make live change persistent")
     },
     {.name = "config",
      .type = VSH_OT_BOOL,
      .help = N_("affect next boot")
+    },
+    {.name = "live",
+     .type = VSH_OT_BOOL,
+     .help = N_("affect running domain")
+    },
+    {.name = "current",
+     .type = VSH_OT_BOOL,
+     .help = N_("affect current domain")
     },
     {.name = NULL}
 };
@@ -9412,12 +9349,26 @@ cmdDetachInterface(vshControl *ctl, const vshCmd *cmd)
     xmlNodePtr cur = NULL, matchNode = NULL;
     xmlBufferPtr xml_buf = NULL;
     const char *mac =NULL, *type = NULL;
-    char *doc;
+    char *doc = NULL;
     char buf[64];
     int i = 0, diff_mac;
     int ret;
     int functionReturn = false;
-    unsigned int flags;
+    unsigned int flags = VIR_DOMAIN_AFFECT_CURRENT;
+    bool current = vshCommandOptBool(cmd, "current");
+    bool config = vshCommandOptBool(cmd, "config");
+    bool live = vshCommandOptBool(cmd, "live");
+    bool persistent = vshCommandOptBool(cmd, "persistent");
+
+    VSH_EXCLUSIVE_OPTIONS_VAR(persistent, current);
+
+    VSH_EXCLUSIVE_OPTIONS_VAR(current, live);
+    VSH_EXCLUSIVE_OPTIONS_VAR(current, config);
+
+    if (config || persistent)
+        flags |= VIR_DOMAIN_AFFECT_CONFIG;
+    if (live)
+        flags |= VIR_DOMAIN_AFFECT_LIVE;
 
     if (!(dom = vshCommandOptDomain(ctl, cmd, NULL)))
         return false;
@@ -9428,13 +9379,14 @@ cmdDetachInterface(vshControl *ctl, const vshCmd *cmd)
     if (vshCommandOptStringReq(ctl, cmd, "mac", &mac) < 0)
         goto cleanup;
 
-    doc = virDomainGetXMLDesc(dom, 0);
-    if (!doc)
+    if (persistent &&
+        virDomainIsActive(dom) == 1)
+        flags |= VIR_DOMAIN_AFFECT_LIVE;
+
+    if (!(doc = virDomainGetXMLDesc(dom, 0)))
         goto cleanup;
 
-    xml = virXMLParseStringCtxt(doc, _("(domain_definition)"), &ctxt);
-    VIR_FREE(doc);
-    if (!xml) {
+    if (!(xml = virXMLParseStringCtxt(doc, _("(domain_definition)"), &ctxt))) {
         vshError(ctl, "%s", _("Failed to get interface information"));
         goto cleanup;
     }
@@ -9499,10 +9451,7 @@ cmdDetachInterface(vshControl *ctl, const vshCmd *cmd)
         goto cleanup;
     }
 
-    if (vshCommandOptBool(cmd, "config")) {
-        flags = VIR_DOMAIN_AFFECT_CONFIG;
-        if (virDomainIsActive(dom) == 1)
-            flags |= VIR_DOMAIN_AFFECT_LIVE;
+    if (flags != 0) {
         ret = virDomainDetachDeviceFlags(dom,
                                          (char *)xmlBufferContent(xml_buf),
                                          flags);
@@ -9518,6 +9467,7 @@ cmdDetachInterface(vshControl *ctl, const vshCmd *cmd)
     }
 
  cleanup:
+    VIR_FREE(doc);
     virDomainFree(dom);
     xmlXPathFreeObject(obj);
     xmlXPathFreeContext(ctxt);
@@ -9767,12 +9717,20 @@ static const vshCmdOptDef opts_detach_disk[] = {
      .help = N_("target of disk device")
     },
     {.name = "persistent",
-     .type = VSH_OT_ALIAS,
-     .help = "config"
+     .type = VSH_OT_BOOL,
+     .help = N_("make live change persistent")
     },
     {.name = "config",
      .type = VSH_OT_BOOL,
      .help = N_("affect next boot")
+    },
+    {.name = "live",
+     .type = VSH_OT_BOOL,
+     .help = N_("affect running domain")
+    },
+    {.name = "current",
+     .type = VSH_OT_BOOL,
+     .help = N_("affect current domain")
     },
     {.name = NULL}
 };
@@ -9786,8 +9744,22 @@ cmdDetachDisk(vshControl *ctl, const vshCmd *cmd)
     char *doc = NULL;
     int ret;
     bool functionReturn = false;
-    unsigned int flags;
     xmlNodePtr disk_node = NULL;
+    bool current = vshCommandOptBool(cmd, "current");
+    bool config = vshCommandOptBool(cmd, "config");
+    bool live = vshCommandOptBool(cmd, "live");
+    bool persistent = vshCommandOptBool(cmd, "persistent");
+    unsigned int flags = VIR_DOMAIN_AFFECT_CURRENT;
+
+    VSH_EXCLUSIVE_OPTIONS_VAR(persistent, current);
+
+    VSH_EXCLUSIVE_OPTIONS_VAR(current, live);
+    VSH_EXCLUSIVE_OPTIONS_VAR(current, config);
+
+    if (config || persistent)
+        flags |= VIR_DOMAIN_AFFECT_CONFIG;
+    if (live)
+        flags |= VIR_DOMAIN_AFFECT_LIVE;
 
     if (!(dom = vshCommandOptDomain(ctl, cmd, NULL)))
         return false;
@@ -9795,9 +9767,12 @@ cmdDetachDisk(vshControl *ctl, const vshCmd *cmd)
     if (vshCommandOptStringReq(ctl, cmd, "target", &target) < 0)
         goto cleanup;
 
-    doc = virDomainGetXMLDesc(dom, 0);
-    if (!doc)
+    if (!(doc = virDomainGetXMLDesc(dom, 0)))
         goto cleanup;
+
+    if (persistent &&
+        virDomainIsActive(dom) == 1)
+        flags |= VIR_DOMAIN_AFFECT_LIVE;
 
     if (!(disk_node = vshFindDisk(doc, target, VSH_FIND_DISK_NORMAL)))
         goto cleanup;
@@ -9806,23 +9781,18 @@ cmdDetachDisk(vshControl *ctl, const vshCmd *cmd)
                                        VSH_PREPARE_DISK_XML_NONE)))
         goto cleanup;
 
-    if (vshCommandOptBool(cmd, "config")) {
-        flags = VIR_DOMAIN_AFFECT_CONFIG;
-        if (virDomainIsActive(dom) == 1)
-            flags |= VIR_DOMAIN_AFFECT_LIVE;
-        ret = virDomainDetachDeviceFlags(dom,
-                                         disk_xml,
-                                         flags);
-    } else {
+    if (flags != 0)
+        ret = virDomainDetachDeviceFlags(dom, disk_xml, flags);
+    else
         ret = virDomainDetachDevice(dom, disk_xml);
-    }
 
     if (ret != 0) {
         vshError(ctl, "%s", _("Failed to detach disk"));
-    } else {
-        vshPrint(ctl, "%s", _("Disk detached successfully\n"));
-        functionReturn = true;
+        goto cleanup;
     }
+
+    vshPrint(ctl, "%s", _("Disk detached successfully\n"));
+    functionReturn = true;
 
  cleanup:
     xmlFreeNode(disk_node);
@@ -9961,26 +9931,21 @@ cmdChangeMedia(vshControl *ctl, const vshCmd *cmd)
     const char *doc = NULL;
     xmlNodePtr disk_node = NULL;
     const char *disk_xml = NULL;
-    int flags = 0;
-    bool config, live, current, force = false;
-    bool eject, insert, update = false;
     bool ret = false;
     int prepare_type = 0;
     const char *action = NULL;
+    bool config = vshCommandOptBool(cmd, "config");
+    bool live = vshCommandOptBool(cmd, "live");
+    bool current = vshCommandOptBool(cmd, "current");
+    bool force = vshCommandOptBool(cmd, "force");
+    bool eject = vshCommandOptBool(cmd, "eject");
+    bool insert = vshCommandOptBool(cmd, "insert");
+    bool update = vshCommandOptBool(cmd, "update");
+    unsigned int flags = VIR_DOMAIN_AFFECT_CURRENT;
 
-    config = vshCommandOptBool(cmd, "config");
-    live = vshCommandOptBool(cmd, "live");
-    current = vshCommandOptBool(cmd, "current");
-    force = vshCommandOptBool(cmd, "force");
-    eject = vshCommandOptBool(cmd, "eject");
-    insert = vshCommandOptBool(cmd, "insert");
-    update = vshCommandOptBool(cmd, "update");
-
-    if (eject + insert + update > 1) {
-        vshError(ctl, "%s", _("--eject, --insert, and --update must be specified "
-                            "exclusively."));
-        return false;
-    }
+    VSH_EXCLUSIVE_OPTIONS_VAR(eject, insert);
+    VSH_EXCLUSIVE_OPTIONS_VAR(eject, update);
+    VSH_EXCLUSIVE_OPTIONS_VAR(insert, update);
 
     if (eject) {
         prepare_type = VSH_PREPARE_DISK_XML_EJECT;
@@ -9997,19 +9962,13 @@ cmdChangeMedia(vshControl *ctl, const vshCmd *cmd)
         action = "update";
     }
 
-    if (current) {
-        if (live || config) {
-            vshError(ctl, "%s", _("--current must be specified exclusively"));
-            return false;
-        }
-        flags = VIR_DOMAIN_AFFECT_CURRENT;
-    } else {
-        if (config)
-            flags |= VIR_DOMAIN_AFFECT_CONFIG;
-        if (live)
-            flags |= VIR_DOMAIN_AFFECT_LIVE;
-    }
+    VSH_EXCLUSIVE_OPTIONS_VAR(current, live);
+    VSH_EXCLUSIVE_OPTIONS_VAR(current, config);
 
+    if (config)
+        flags |= VIR_DOMAIN_AFFECT_CONFIG;
+    if (live)
+        flags |= VIR_DOMAIN_AFFECT_LIVE;
     if (force)
         flags |= VIR_DOMAIN_DEVICE_MODIFY_FORCE;
 
@@ -10094,7 +10053,7 @@ cmdDomFSTrim(vshControl *ctl, const vshCmd *cmd)
     unsigned int flags = 0;
 
     if (!(dom = vshCommandOptDomain(ctl, cmd, NULL)))
-        goto cleanup;
+        return ret;
 
     if (vshCommandOptULongLong(cmd, "minimum", &minimum) < 0) {
         vshError(ctl, _("Unable to parse integer parameter minimum"));
@@ -10112,6 +10071,7 @@ cmdDomFSTrim(vshControl *ctl, const vshCmd *cmd)
     ret = true;
 
 cleanup:
+    virDomainFree(dom);
     return ret;
 }
 

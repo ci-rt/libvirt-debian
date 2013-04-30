@@ -33,7 +33,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <errno.h>
-#include <stdio.h>
 #include <libssh2.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -50,7 +49,6 @@
 #include "viralloc.h"
 #include "virlog.h"
 #include "driver.h"
-#include "libvirt/libvirt.h"
 #include "virerror.h"
 #include "viruuid.h"
 #include "domain_conf.h"
@@ -300,13 +298,6 @@ phypGetVIOSPartitionID(virConnectPtr conn)
 }
 
 
-static int phypDefaultConsoleType(const char *ostype ATTRIBUTE_UNUSED,
-                                  virArch arch ATTRIBUTE_UNUSED)
-{
-    return VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_SERIAL;
-}
-
-
 static virCapsPtr
 phypCapsInit(void)
 {
@@ -327,10 +318,6 @@ phypCapsInit(void)
             ("Failed to query host NUMA topology, disabling NUMA capabilities");
     }
 
-    /* XXX shouldn't 'borrow' KVM's prefix */
-    virCapabilitiesSetMacPrefix(caps, (unsigned char[]) {
-                                0x52, 0x54, 0x00});
-
     if ((guest = virCapabilitiesAddGuest(caps,
                                          "linux",
                                          caps->host.arch,
@@ -340,8 +327,6 @@ phypCapsInit(void)
     if (virCapabilitiesAddGuestDomain(guest,
                                       "phyp", NULL, NULL, 0, NULL) == NULL)
         goto no_memory;
-
-    caps->defaultConsoleTargetType = phypDefaultConsoleType;
 
     return caps;
 
@@ -359,7 +344,7 @@ no_memory:
  *       * - All
  * */
 static int
-phypNumDomainsGeneric(virConnectPtr conn, unsigned int type)
+phypConnectNumOfDomainsGeneric(virConnectPtr conn, unsigned int type)
 {
     ConnectionData *connection_data = conn->networkPrivateData;
     phyp_driverPtr phyp_driver = conn->privateData;
@@ -398,8 +383,8 @@ phypNumDomainsGeneric(virConnectPtr conn, unsigned int type)
  *       1 - all
  * */
 static int
-phypListDomainsGeneric(virConnectPtr conn, int *ids, int nids,
-                       unsigned int type)
+phypConnectListDomainsGeneric(virConnectPtr conn, int *ids, int nids,
+                              unsigned int type)
 {
     ConnectionData *connection_data = conn->networkPrivateData;
     phyp_driverPtr phyp_driver = conn->privateData;
@@ -796,7 +781,7 @@ phypUUIDTable_Init(virConnectPtr conn)
     int ret = -1;
     bool table_created = false;
 
-    if ((nids_numdomains = phypNumDomainsGeneric(conn, 2)) < 0)
+    if ((nids_numdomains = phypConnectNumOfDomainsGeneric(conn, 2)) < 0)
         goto cleanup;
 
     if (VIR_ALLOC_N(ids, nids_numdomains) < 0) {
@@ -805,7 +790,7 @@ phypUUIDTable_Init(virConnectPtr conn)
     }
 
     if ((nids_listdomains =
-         phypListDomainsGeneric(conn, ids, nids_numdomains, 1)) < 0)
+         phypConnectListDomainsGeneric(conn, ids, nids_numdomains, 1)) < 0)
         goto cleanup;
 
     /* exit early if there are no domains */
@@ -1114,8 +1099,8 @@ exit:
 }
 
 static virDrvOpenStatus
-phypOpen(virConnectPtr conn,
-         virConnectAuthPtr auth, unsigned int flags)
+phypConnectOpen(virConnectPtr conn,
+                virConnectAuthPtr auth, unsigned int flags)
 {
     LIBSSH2_SESSION *session = NULL;
     ConnectionData *connection_data = NULL;
@@ -1204,7 +1189,7 @@ phypOpen(virConnectPtr conn,
         goto failure;
     }
 
-    if (!(phyp_driver->xmlconf = virDomainXMLConfNew(NULL, NULL)))
+    if (!(phyp_driver->xmlopt = virDomainXMLOptionNew(NULL, NULL, NULL)))
         goto failure;
 
     conn->privateData = phyp_driver;
@@ -1245,7 +1230,7 @@ failure:
 }
 
 static int
-phypClose(virConnectPtr conn)
+phypConnectClose(virConnectPtr conn)
 {
     ConnectionData *connection_data = conn->networkPrivateData;
     phyp_driverPtr phyp_driver = conn->privateData;
@@ -1255,7 +1240,7 @@ phypClose(virConnectPtr conn)
     libssh2_session_free(session);
 
     virObjectUnref(phyp_driver->caps);
-    virObjectUnref(phyp_driver->xmlconf);
+    virObjectUnref(phyp_driver->xmlopt);
     phypUUIDTable_Free(phyp_driver->uuid_table);
     VIR_FREE(phyp_driver->managed_system);
     VIR_FREE(phyp_driver);
@@ -1267,7 +1252,7 @@ phypClose(virConnectPtr conn)
 
 
 static int
-phypIsEncrypted(virConnectPtr conn ATTRIBUTE_UNUSED)
+phypConnectIsEncrypted(virConnectPtr conn ATTRIBUTE_UNUSED)
 {
     /* Phyp uses an SSH tunnel, so is always encrypted */
     return 1;
@@ -1275,7 +1260,7 @@ phypIsEncrypted(virConnectPtr conn ATTRIBUTE_UNUSED)
 
 
 static int
-phypIsSecure(virConnectPtr conn ATTRIBUTE_UNUSED)
+phypConnectIsSecure(virConnectPtr conn ATTRIBUTE_UNUSED)
 {
     /* Phyp uses an SSH tunnel, so is always secure */
     return 1;
@@ -1283,7 +1268,7 @@ phypIsSecure(virConnectPtr conn ATTRIBUTE_UNUSED)
 
 
 static int
-phypIsAlive(virConnectPtr conn)
+phypConnectIsAlive(virConnectPtr conn)
 {
     ConnectionData *connection_data = conn->networkPrivateData;
 
@@ -1299,7 +1284,7 @@ phypIsAlive(virConnectPtr conn)
 
 
 static int
-phypIsUpdated(virDomainPtr conn ATTRIBUTE_UNUSED)
+phypDomainIsUpdated(virDomainPtr conn ATTRIBUTE_UNUSED)
 {
     return 0;
 }
@@ -1440,7 +1425,7 @@ phypDomainGetVcpusFlags(virDomainPtr dom, unsigned int flags)
 }
 
 static int
-phypGetLparCPUMAX(virDomainPtr dom)
+phypDomainGetMaxVcpus(virDomainPtr dom)
 {
     return phypDomainGetVcpusFlags(dom, (VIR_DOMAIN_VCPU_LIVE |
                                          VIR_DOMAIN_VCPU_MAXIMUM));
@@ -1715,7 +1700,7 @@ phypGetVIOSFreeSCSIAdapter(virConnectPtr conn)
 
 
 static int
-phypAttachDevice(virDomainPtr domain, const char *xml)
+phypDomainAttachDevice(virDomainPtr domain, const char *xml)
 {
     int result = -1;
     virConnectPtr conn = domain->conn;
@@ -1754,7 +1739,7 @@ phypAttachDevice(virDomainPtr domain, const char *xml)
         goto cleanup;
     }
 
-    dev = virDomainDeviceDefParse(phyp_driver->caps, def, xml,
+    dev = virDomainDeviceDefParse(xml, def, phyp_driver->caps, NULL,
                                   VIR_DOMAIN_XML_INACTIVE);
     if (!dev) {
         goto cleanup;
@@ -1877,7 +1862,7 @@ cleanup:
 }
 
 static char *
-phypVolumeGetKey(virConnectPtr conn, const char *name)
+phypStorageVolGetKey(virConnectPtr conn, const char *name)
 {
     ConnectionData *connection_data = conn->networkPrivateData;
     phyp_driverPtr phyp_driver = conn->privateData;
@@ -1992,7 +1977,7 @@ phypBuildVolume(virConnectPtr conn, const char *lvname, const char *spname,
         goto cleanup;
     }
 
-    key = phypVolumeGetKey(conn, lvname);
+    key = phypStorageVolGetKey(conn, lvname);
 
 cleanup:
     VIR_FREE(ret);
@@ -2001,12 +1986,12 @@ cleanup:
 }
 
 static virStorageVolPtr
-phypVolumeLookupByName(virStoragePoolPtr pool, const char *volname)
+phypStorageVolLookupByName(virStoragePoolPtr pool, const char *volname)
 {
     char *key;
     virStorageVolPtr vol;
 
-    key = phypVolumeGetKey(pool->conn, volname);
+    key = phypStorageVolGetKey(pool->conn, volname);
 
     if (key == NULL)
         return NULL;
@@ -2062,7 +2047,7 @@ phypStorageVolCreateXML(virStoragePoolPtr pool,
     spdef->source.ndevice = 1;
 
     /*XXX source adapter not working properly, should show hdiskX */
-    if ((spdef->source.adapter =
+    if ((spdef->source.adapter.data.name =
          phypGetStoragePoolDevice(pool->conn, pool->name)) == NULL) {
         VIR_ERROR(_("Unable to determine storage pools's source adapter."));
         goto err;
@@ -2074,7 +2059,7 @@ phypStorageVolCreateXML(virStoragePoolPtr pool,
     }
 
     /* checking if this name already exists on this system */
-    if ((dup_vol = phypVolumeLookupByName(pool, voldef->name)) != NULL) {
+    if ((dup_vol = phypStorageVolLookupByName(pool, voldef->name)) != NULL) {
         VIR_ERROR(_("StoragePool name already exists."));
         virObjectUnref(dup_vol);
         goto err;
@@ -2117,7 +2102,7 @@ err:
 }
 
 static char *
-phypVolumeGetPhysicalVolumeByStoragePool(virStorageVolPtr vol, char *sp)
+phypStorageVolGetPhysicalVolumeByStoragePool(virStorageVolPtr vol, char *sp)
 {
     virConnectPtr conn = vol->conn;
     ConnectionData *connection_data = conn->networkPrivateData;
@@ -2148,7 +2133,7 @@ phypVolumeGetPhysicalVolumeByStoragePool(virStorageVolPtr vol, char *sp)
 }
 
 static virStorageVolPtr
-phypVolumeLookupByPath(virConnectPtr conn, const char *volname)
+phypStorageVolLookupByPath(virConnectPtr conn, const char *volname)
 {
     ConnectionData *connection_data = conn->networkPrivateData;
     phyp_driverPtr phyp_driver = conn->privateData;
@@ -2177,7 +2162,7 @@ phypVolumeLookupByPath(virConnectPtr conn, const char *volname)
     if (exit_status < 0 || ret == NULL)
         goto cleanup;
 
-    key = phypVolumeGetKey(conn, volname);
+    key = phypStorageVolGetKey(conn, volname);
 
     if (key == NULL)
         goto cleanup;
@@ -2244,7 +2229,7 @@ phypStoragePoolLookupByName(virConnectPtr conn, const char *name)
 }
 
 static char *
-phypVolumeGetXMLDesc(virStorageVolPtr vol, unsigned int flags)
+phypStorageVolGetXMLDesc(virStorageVolPtr vol, unsigned int flags)
 {
     virStorageVolDef voldef;
     virStoragePoolDef pool;
@@ -2284,7 +2269,7 @@ phypVolumeGetXMLDesc(virStorageVolPtr vol, unsigned int flags)
 
     pool.source.ndevice = 1;
 
-    if ((pool.source.adapter =
+    if ((pool.source.adapter.data.name =
          phypGetStoragePoolDevice(sp->conn, sp->name)) == NULL) {
         VIR_ERROR(_("Unable to determine storage sps's source adapter."));
         goto cleanup;
@@ -2324,7 +2309,7 @@ cleanup:
  *
  * */
 static char *
-phypVolumeGetPath(virStorageVolPtr vol)
+phypStorageVolGetPath(virStorageVolPtr vol)
 {
     virConnectPtr conn = vol->conn;
     ConnectionData *connection_data = conn->networkPrivateData;
@@ -2355,7 +2340,7 @@ phypVolumeGetPath(virStorageVolPtr vol)
     if (exit_status < 0 || ret == NULL)
         goto cleanup;
 
-    pv = phypVolumeGetPhysicalVolumeByStoragePool(vol, ret);
+    pv = phypStorageVolGetPhysicalVolumeByStoragePool(vol, ret);
 
     if (!pv)
         goto cleanup;
@@ -2467,7 +2452,7 @@ phypStoragePoolNumOfVolumes(virStoragePoolPtr pool)
 }
 
 static int
-phypDestroyStoragePool(virStoragePoolPtr pool)
+phypStoragePoolDestroy(virStoragePoolPtr pool)
 {
     int result = -1;
     virConnectPtr conn = pool->conn;
@@ -2519,12 +2504,19 @@ phypBuildStoragePool(virConnectPtr conn, virStoragePoolDefPtr def)
     int exit_status = 0;
     virBuffer buf = VIR_BUFFER_INITIALIZER;
 
+    if (source.adapter.type !=
+        VIR_STORAGE_POOL_SOURCE_ADAPTER_TYPE_SCSI_HOST) {
+        virReportError(VIR_ERR_XML_ERROR, "%s",
+                       _("Only 'scsi_host' adapter is supported"));
+        goto cleanup;
+    }
+
     if (system_type == HMC)
         virBufferAsprintf(&buf, "viosvrcmd -m %s --id %d -c '",
                           managed_system, vios_id);
 
     virBufferAsprintf(&buf, "mksp -f %schild %s", def->name,
-                      source.adapter);
+                      source.adapter.data.name);
 
     if (system_type == HMC)
         virBufferAddChar(&buf, '\'');
@@ -2545,7 +2537,7 @@ cleanup:
 }
 
 static int
-phypNumOfStoragePools(virConnectPtr conn)
+phypConnectNumOfStoragePools(virConnectPtr conn)
 {
     ConnectionData *connection_data = conn->networkPrivateData;
     phyp_driverPtr phyp_driver = conn->privateData;
@@ -2571,7 +2563,7 @@ phypNumOfStoragePools(virConnectPtr conn)
 }
 
 static int
-phypListStoragePools(virConnectPtr conn, char **const pools, int npools)
+phypConnectListStoragePools(virConnectPtr conn, char **const pools, int npools)
 {
     bool success = false;
     ConnectionData *connection_data = conn->networkPrivateData;
@@ -2634,8 +2626,8 @@ cleanup:
 }
 
 static virStoragePoolPtr
-phypGetStoragePoolLookUpByUUID(virConnectPtr conn,
-                               const unsigned char *uuid)
+phypStoragePoolLookupByUUID(virConnectPtr conn,
+                            const unsigned char *uuid)
 {
     virStoragePoolPtr sp = NULL;
     int npools = 0;
@@ -2649,7 +2641,7 @@ phypGetStoragePoolLookUpByUUID(virConnectPtr conn,
         goto err;
     }
 
-    if ((npools = phypNumOfStoragePools(conn)) == -1) {
+    if ((npools = phypConnectNumOfStoragePools(conn)) == -1) {
         virReportOOMError();
         goto err;
     }
@@ -2659,7 +2651,7 @@ phypGetStoragePoolLookUpByUUID(virConnectPtr conn,
         goto err;
     }
 
-    if ((gotpools = phypListStoragePools(conn, pools, npools)) == -1) {
+    if ((gotpools = phypConnectListStoragePools(conn, pools, npools)) == -1) {
         virReportOOMError();
         goto err;
     }
@@ -2712,7 +2704,7 @@ phypStoragePoolCreateXML(virConnectPtr conn,
     }
 
     /* checking if ID or UUID already exists on this system */
-    if ((dup_sp = phypGetStoragePoolLookUpByUUID(conn, def->uuid)) != NULL) {
+    if ((dup_sp = phypStoragePoolLookupByUUID(conn, def->uuid)) != NULL) {
         VIR_WARN("StoragePool uuid already exists.");
         virObjectUnref(dup_sp);
         goto err;
@@ -2733,7 +2725,7 @@ err:
 }
 
 static char *
-phypGetStoragePoolXMLDesc(virStoragePoolPtr pool, unsigned int flags)
+phypStoragePoolGetXMLDesc(virStoragePoolPtr pool, unsigned int flags)
 {
     virCheckFlags(0, NULL);
 
@@ -2765,7 +2757,7 @@ phypGetStoragePoolXMLDesc(virStoragePoolPtr pool, unsigned int flags)
     def.source.ndevice = 1;
 
     /*XXX source adapter not working properly, should show hdiskX */
-    if ((def.source.adapter =
+    if ((def.source.adapter.data.name =
          phypGetStoragePoolDevice(pool->conn, pool->name)) == NULL) {
         VIR_ERROR(_("Unable to determine storage pools's source adapter."));
         goto err;
@@ -3039,7 +3031,7 @@ phypInterfaceIsActive(virInterfacePtr iface)
 }
 
 static int
-phypListInterfaces(virConnectPtr conn, char **const names, int nnames)
+phypConnectListInterfaces(virConnectPtr conn, char **const names, int nnames)
 {
     ConnectionData *connection_data = conn->networkPrivateData;
     phyp_driverPtr phyp_driver = conn->privateData;
@@ -3097,7 +3089,7 @@ cleanup:
 }
 
 static int
-phypNumOfInterfaces(virConnectPtr conn)
+phypConnectNumOfInterfaces(virConnectPtr conn)
 {
     ConnectionData *connection_data = conn->networkPrivateData;
     phyp_driverPtr phyp_driver = conn->privateData;
@@ -3191,25 +3183,25 @@ cleanup:
 }
 
 static int
-phypNumDefinedDomains(virConnectPtr conn)
+phypConnectNumOfDefinedDomains(virConnectPtr conn)
 {
-    return phypNumDomainsGeneric(conn, 1);
+    return phypConnectNumOfDomainsGeneric(conn, 1);
 }
 
 static int
-phypNumDomains(virConnectPtr conn)
+phypConnectNumOfDomains(virConnectPtr conn)
 {
-    return phypNumDomainsGeneric(conn, 0);
+    return phypConnectNumOfDomainsGeneric(conn, 0);
 }
 
 static int
-phypListDomains(virConnectPtr conn, int *ids, int nids)
+phypConnectListDomains(virConnectPtr conn, int *ids, int nids)
 {
-    return phypListDomainsGeneric(conn, ids, nids, 0);
+    return phypConnectListDomainsGeneric(conn, ids, nids, 0);
 }
 
 static int
-phypListDefinedDomains(virConnectPtr conn, char **const names, int nnames)
+phypConnectListDefinedDomains(virConnectPtr conn, char **const names, int nnames)
 {
     bool success = false;
     ConnectionData *connection_data = conn->networkPrivateData;
@@ -3620,8 +3612,8 @@ cleanup:
 }
 
 static virDomainPtr
-phypDomainCreateAndStart(virConnectPtr conn,
-                         const char *xml, unsigned int flags)
+phypDomainCreateXML(virConnectPtr conn,
+                    const char *xml, unsigned int flags)
 {
     virCheckFlags(0, NULL);
 
@@ -3637,8 +3629,9 @@ phypDomainCreateAndStart(virConnectPtr conn,
 
     virCheckFlags(0, NULL);
 
-    if (!(def = virDomainDefParseString(phyp_driver->caps, phyp_driver->xmlconf,
-                                        xml, 1 << VIR_DOMAIN_VIRT_PHYP,
+    if (!(def = virDomainDefParseString(xml, phyp_driver->caps,
+                                        phyp_driver->xmlopt,
+                                        1 << VIR_DOMAIN_VIRT_PHYP,
                                         VIR_DOMAIN_XML_SECURE)))
         goto err;
 
@@ -3709,7 +3702,7 @@ phypDomainSetVcpusFlags(virDomainPtr dom, unsigned int nvcpus,
     if ((ncpus = phypGetLparCPU(dom->conn, managed_system, dom->id)) == 0)
         return 0;
 
-    if (nvcpus > phypGetLparCPUMAX(dom)) {
+    if (nvcpus > phypDomainGetMaxVcpus(dom)) {
         VIR_ERROR(_("You are trying to set a number of CPUs bigger than "
                      "the max possible."));
         return 0;
@@ -3744,15 +3737,15 @@ phypDomainSetVcpusFlags(virDomainPtr dom, unsigned int nvcpus,
 }
 
 static int
-phypDomainSetCPU(virDomainPtr dom, unsigned int nvcpus)
+phypDomainSetVcpus(virDomainPtr dom, unsigned int nvcpus)
 {
     return phypDomainSetVcpusFlags(dom, nvcpus, VIR_DOMAIN_VCPU_LIVE);
 }
 
 static virDrvOpenStatus
-phypVIOSDriverOpen(virConnectPtr conn,
-                   virConnectAuthPtr auth ATTRIBUTE_UNUSED,
-                   unsigned int flags)
+phypStorageOpen(virConnectPtr conn,
+                virConnectAuthPtr auth ATTRIBUTE_UNUSED,
+                unsigned int flags)
 {
     virCheckFlags(VIR_CONNECT_RO, VIR_DRV_OPEN_ERROR);
 
@@ -3763,7 +3756,26 @@ phypVIOSDriverOpen(virConnectPtr conn,
 }
 
 static int
-phypVIOSDriverClose(virConnectPtr conn ATTRIBUTE_UNUSED)
+phypStorageClose(virConnectPtr conn ATTRIBUTE_UNUSED)
+{
+    return 0;
+}
+
+static virDrvOpenStatus
+phypInterfaceOpen(virConnectPtr conn,
+                virConnectAuthPtr auth ATTRIBUTE_UNUSED,
+                unsigned int flags)
+{
+    virCheckFlags(VIR_CONNECT_RO, VIR_DRV_OPEN_ERROR);
+
+    if (conn->driver->no != VIR_DRV_PHYP)
+        return VIR_DRV_OPEN_DECLINED;
+
+    return VIR_DRV_OPEN_SUCCESS;
+}
+
+static int
+phypInterfaceClose(virConnectPtr conn ATTRIBUTE_UNUSED)
 {
     return 0;
 }
@@ -3771,12 +3783,12 @@ phypVIOSDriverClose(virConnectPtr conn ATTRIBUTE_UNUSED)
 static virDriver phypDriver = {
     .no = VIR_DRV_PHYP,
     .name = "PHYP",
-    .open = phypOpen, /* 0.7.0 */
-    .close = phypClose, /* 0.7.0 */
-    .getCapabilities = phypConnectGetCapabilities, /* 0.7.3 */
-    .listDomains = phypListDomains, /* 0.7.0 */
-    .numOfDomains = phypNumDomains, /* 0.7.0 */
-    .domainCreateXML = phypDomainCreateAndStart, /* 0.7.3 */
+    .connectOpen = phypConnectOpen, /* 0.7.0 */
+    .connectClose = phypConnectClose, /* 0.7.0 */
+    .connectGetCapabilities = phypConnectGetCapabilities, /* 0.7.3 */
+    .connectListDomains = phypConnectListDomains, /* 0.7.0 */
+    .connectNumOfDomains = phypConnectNumOfDomains, /* 0.7.0 */
+    .domainCreateXML = phypDomainCreateXML, /* 0.7.3 */
     .domainLookupByID = phypDomainLookupByID, /* 0.7.0 */
     .domainLookupByName = phypDomainLookupByName, /* 0.7.0 */
     .domainResume = phypDomainResume, /* 0.7.0 */
@@ -3786,48 +3798,48 @@ static virDriver phypDriver = {
     .domainDestroyFlags = phypDomainDestroyFlags, /* 0.9.4 */
     .domainGetInfo = phypDomainGetInfo, /* 0.7.0 */
     .domainGetState = phypDomainGetState, /* 0.9.2 */
-    .domainSetVcpus = phypDomainSetCPU, /* 0.7.3 */
+    .domainSetVcpus = phypDomainSetVcpus, /* 0.7.3 */
     .domainSetVcpusFlags = phypDomainSetVcpusFlags, /* 0.8.5 */
     .domainGetVcpusFlags = phypDomainGetVcpusFlags, /* 0.8.5 */
-    .domainGetMaxVcpus = phypGetLparCPUMAX, /* 0.7.3 */
+    .domainGetMaxVcpus = phypDomainGetMaxVcpus, /* 0.7.3 */
     .domainGetXMLDesc = phypDomainGetXMLDesc, /* 0.7.0 */
-    .listDefinedDomains = phypListDefinedDomains, /* 0.7.0 */
-    .numOfDefinedDomains = phypNumDefinedDomains, /* 0.7.0 */
-    .domainAttachDevice = phypAttachDevice, /* 0.8.2 */
-    .isEncrypted = phypIsEncrypted, /* 0.7.3 */
-    .isSecure = phypIsSecure, /* 0.7.3 */
-    .domainIsUpdated = phypIsUpdated, /* 0.8.6 */
-    .isAlive = phypIsAlive, /* 0.9.8 */
+    .connectListDefinedDomains = phypConnectListDefinedDomains, /* 0.7.0 */
+    .connectNumOfDefinedDomains = phypConnectNumOfDefinedDomains, /* 0.7.0 */
+    .domainAttachDevice = phypDomainAttachDevice, /* 0.8.2 */
+    .connectIsEncrypted = phypConnectIsEncrypted, /* 0.7.3 */
+    .connectIsSecure = phypConnectIsSecure, /* 0.7.3 */
+    .domainIsUpdated = phypDomainIsUpdated, /* 0.8.6 */
+    .connectIsAlive = phypConnectIsAlive, /* 0.9.8 */
 };
 
 static virStorageDriver phypStorageDriver = {
     .name = "PHYP",
-    .open = phypVIOSDriverOpen, /* 0.8.2 */
-    .close = phypVIOSDriverClose, /* 0.8.2 */
+    .storageOpen = phypStorageOpen, /* 0.8.2 */
+    .storageClose = phypStorageClose, /* 0.8.2 */
 
-    .numOfPools = phypNumOfStoragePools, /* 0.8.2 */
-    .listPools = phypListStoragePools, /* 0.8.2 */
-    .poolLookupByName = phypStoragePoolLookupByName, /* 0.8.2 */
-    .poolLookupByUUID = phypGetStoragePoolLookUpByUUID, /* 0.8.2 */
-    .poolCreateXML = phypStoragePoolCreateXML, /* 0.8.2 */
-    .poolDestroy = phypDestroyStoragePool, /* 0.8.2 */
-    .poolGetXMLDesc = phypGetStoragePoolXMLDesc, /* 0.8.2 */
-    .poolNumOfVolumes = phypStoragePoolNumOfVolumes, /* 0.8.2 */
-    .poolListVolumes = phypStoragePoolListVolumes, /* 0.8.2 */
+    .connectNumOfStoragePools = phypConnectNumOfStoragePools, /* 0.8.2 */
+    .connectListStoragePools = phypConnectListStoragePools, /* 0.8.2 */
+    .storagePoolLookupByName = phypStoragePoolLookupByName, /* 0.8.2 */
+    .storagePoolLookupByUUID = phypStoragePoolLookupByUUID, /* 0.8.2 */
+    .storagePoolCreateXML = phypStoragePoolCreateXML, /* 0.8.2 */
+    .storagePoolDestroy = phypStoragePoolDestroy, /* 0.8.2 */
+    .storagePoolGetXMLDesc = phypStoragePoolGetXMLDesc, /* 0.8.2 */
+    .storagePoolNumOfVolumes = phypStoragePoolNumOfVolumes, /* 0.8.2 */
+    .storagePoolListVolumes = phypStoragePoolListVolumes, /* 0.8.2 */
 
-    .volLookupByName = phypVolumeLookupByName, /* 0.8.2 */
-    .volLookupByPath = phypVolumeLookupByPath, /* 0.8.2 */
-    .volCreateXML = phypStorageVolCreateXML, /* 0.8.2 */
-    .volGetXMLDesc = phypVolumeGetXMLDesc, /* 0.8.2 */
-    .volGetPath = phypVolumeGetPath, /* 0.8.2 */
+    .storageVolLookupByName = phypStorageVolLookupByName, /* 0.8.2 */
+    .storageVolLookupByPath = phypStorageVolLookupByPath, /* 0.8.2 */
+    .storageVolCreateXML = phypStorageVolCreateXML, /* 0.8.2 */
+    .storageVolGetXMLDesc = phypStorageVolGetXMLDesc, /* 0.8.2 */
+    .storageVolGetPath = phypStorageVolGetPath, /* 0.8.2 */
 };
 
 static virInterfaceDriver phypInterfaceDriver = {
     .name = "PHYP",
-    .open = phypVIOSDriverOpen, /* 0.9.1 */
-    .close = phypVIOSDriverClose, /* 0.9.1 */
-    .numOfInterfaces = phypNumOfInterfaces, /* 0.9.1 */
-    .listInterfaces = phypListInterfaces, /* 0.9.1 */
+    .interfaceOpen = phypInterfaceOpen, /* 0.9.1 */
+    .interfaceClose = phypInterfaceClose, /* 0.9.1 */
+    .connectNumOfInterfaces = phypConnectNumOfInterfaces, /* 0.9.1 */
+    .connectListInterfaces = phypConnectListInterfaces, /* 0.9.1 */
     .interfaceLookupByName = phypInterfaceLookupByName, /* 0.9.1 */
     .interfaceDefineXML = phypInterfaceDefineXML, /* 0.9.1 */
     .interfaceDestroy = phypInterfaceDestroy, /* 0.9.1 */

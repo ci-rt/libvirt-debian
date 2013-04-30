@@ -3,7 +3,7 @@
  */
 
 static char *
-qemuDomainAgentCommand(virDomainPtr dom, const char *cmd, int timeout, unsigned int flags)
+remoteDomainQemuAgentCommand(virDomainPtr dom, const char *cmd, int timeout, unsigned int flags)
 {
     char *rv = NULL;
     struct private_data *priv = dom->conn->privateData;
@@ -34,7 +34,7 @@ done:
 }
 
 static virDomainPtr
-qemuDomainAttach(virConnectPtr conn, unsigned int pid_value, unsigned int flags)
+remoteDomainQemuAttach(virConnectPtr conn, unsigned int pid_value, unsigned int flags)
 {
     virDomainPtr rv = NULL;
     struct private_data *priv = conn->privateData;

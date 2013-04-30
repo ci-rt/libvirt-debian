@@ -17,13 +17,15 @@
 
 use strict;
 
-use Getopt::Std;
+use Getopt::Long;
 
-# Command line options.
-# -k - client bodies
-# -b - server bodies
-our ($opt_p, $opt_t, $opt_a, $opt_r, $opt_d, $opt_b, $opt_k);
-getopts ('ptardbk');
+my $mode = "debug";
+my $res = GetOptions("mode=s" => \$mode);
+
+die "cannot parse command line options" unless $res;
+
+die "unknown mode '$mode', expecting 'client', 'server' or 'debug'"
+    unless $mode =~ /^(client|server|debug)$/;
 
 my $structprefix = shift or die "missing struct prefix argument";
 my $procprefix = shift or die "missing procedure prefix argument";
@@ -82,10 +84,11 @@ sub name_to_TypeName {
 
 # Read the input file (usually remote_protocol.x) and form an
 # opinion about the name, args and return type of each RPC.
-my ($name, $ProcName, $id, $flags, %calls, @calls);
+my ($name, $ProcName, $id, $flags, %calls, @calls, %opts);
 
 my $collect_args_members = 0;
 my $collect_ret_members = 0;
+my $collect_opts = 0;
 my $last_name;
 
 open PROTOCOL, "<$protocol" or die "cannot open $protocol: $!";
@@ -103,6 +106,19 @@ while (<PROTOCOL>) {
         } elsif ($_ =~ m/^\s*(.*\S)\s*$/) {
             push(@{$calls{$name}->{ret_members}}, $1);
         }
+    } elsif ($collect_opts) {
+        if (m,^\s*\*\s*\@(\w+)\s*:\s*(\w+)\s*$,) {
+            $opts{$1} = $2;
+        } elsif (m,^\s*\*/\s*$,) {
+            $collect_opts = 0;
+        } elsif (m,^\s*\*\s*$,) {
+            # pass
+        } else {
+            die "cannot parse $_";
+        }
+    } elsif (m,/\*\*,) {
+        %opts = ();
+        $collect_opts = 1;
     } elsif (/^struct (${structprefix}_(.*)_args)/ ||
              /^struct (${structprefix}(.*)Args)/) {
         my $structname = $1;
@@ -145,7 +161,7 @@ while (<PROTOCOL>) {
             }
         }
 
-        if ($flags ne "" and ($opt_b or $opt_k)) {
+        if ($flags ne "") {
             if (!($flags =~ m/^\s*\/\*\s*insert@(\d+)\s*\*\/\s*$/)) {
                 die "invalid generator flags for $calls{$name}->{ret}";
             }
@@ -171,11 +187,10 @@ while (<PROTOCOL>) {
 
         $collect_args_members = 0;
         $collect_ret_members = 0;
-    } elsif (/^\s*(${procprefix}_PROC_(.*?))\s*=\s*(\d+)\s*,?(.*)$/) {
+    } elsif (/^\s*(${procprefix}_PROC_(.*?))\s*=\s*(\d+)\s*,?\s*$/) {
         my $constname = $1;
         $name = $2;
         $id = $3;
-        $flags = $4;
         $ProcName = name_to_ProcName ($name);
         $name = lc $name;
         $name =~ s/_//g;
@@ -194,43 +209,45 @@ while (<PROTOCOL>) {
         }
         $calls{$name}->{constname} = $constname;
 
-        if ($opt_b or $opt_k) {
-            if (!($flags =~ m/^\s*\/\*\s*(\S+)\s+(\S+)\s*(\|.*)?\s+(priority:(\S+))?\s*\*\/\s*$/)) {
-                die "invalid generator flags '$flags' for $constname"
-            }
+        if (!exists $opts{generate}) {
+            die "'\@generate' annotation missing for $constname";
+        }
 
-            my $genmode = $opt_b ? $1 : $2;
-            my $genflags = $3;
-            my $priority = defined $5 ? $5 : "low";
+        if ($opts{generate} !~ /^(both|server|client|none)$/) {
+            die "'\@generate' annotation value '$opts{generate}' invalid";
+        }
 
-            if ($genmode eq "autogen") {
-                push(@autogen, $ProcName);
-            } elsif ($genmode eq "skipgen") {
-                # ignore it
-            } else {
-                die "invalid generator flags for ${procprefix}_PROC_${name}"
-            }
+        if ($opts{generate} eq "both") {
+            push(@autogen, $ProcName);
+        } elsif ($mode eq "server" && ($opts{generate} eq "server")) {
+            push(@autogen, $ProcName);
+        } elsif ($mode eq "client" && ($opts{generate} eq "client")) {
+            push(@autogen, $ProcName);
+        }
 
-            if (defined $genflags and $genflags ne "") {
-                if ($genflags =~ m/^\|\s*(read|write)stream@(\d+)\s*$/) {
-                    $calls{$name}->{streamflag} = $1;
-                    $calls{$name}->{streamoffset} = int($2);
-                } else {
-                    die "invalid generator flags for ${procprefix}_PROC_${name}"
-                }
-            } else {
-                $calls{$name}->{streamflag} = "none";
-            }
+        if (exists $opts{readstream}) {
+            $calls{$name}->{streamflag} = "read";
+            $calls{$name}->{streamoffset} = int($opts{readstream});
+        } elsif (exists $opts{writestream}) {
+            $calls{$name}->{streamflag} = "write";
+            $calls{$name}->{streamoffset} = int($opts{writestream});
+        } else {
+            $calls{$name}->{streamflag} = "none";
+        }
 
-            # for now, we distinguish only two levels of prioroty:
-            # low (0) and high (1)
-            if ($priority eq "high") {
+
+        # for now, we distinguish only two levels of priority:
+        # low (0) and high (1)
+        if (exists $opts{priority}) {
+            if ($opts{priority} eq "high") {
                 $calls{$name}->{priority} = 1;
-            } elsif ($priority eq "low") {
+            } elsif ($opts{priority} eq "low") {
                 $calls{$name}->{priority} = 0;
             } else {
-                die "invalid priority ${priority} for ${procprefix}_PROC_${name}"
+                die "\@priority annotation value '$opts{priority}' invalid for $constname"
             }
+        } else {
+            $calls{$name}->{priority} = 0;
         }
 
         $calls[$id] = $calls{$name};
@@ -276,8 +293,8 @@ my $long_legacy = {
     DomainSetMaxMemory          => { arg => { memory => 1 } },
     DomainSetMemory             => { arg => { memory => 1 } },
     DomainSetMemoryFlags        => { arg => { memory => 1 } },
-    GetLibVersion               => { ret => { lib_ver => 1 } },
-    GetVersion                  => { ret => { hv_ver => 1 } },
+    ConnectGetLibVersion        => { ret => { lib_ver => 1 } },
+    ConnectGetVersion           => { ret => { hv_ver => 1 } },
     NodeGetInfo                 => { ret => { memory => 1 } },
     DomainBlockCommit           => { arg => { bandwidth => 1 } },
     DomainBlockPull             => { arg => { bandwidth => 1 } },
@@ -310,12 +327,8 @@ print <<__EOF__;
  */
 __EOF__
 
-if (!$opt_b and !$opt_k) {
-    print "\n";
-}
-
 # Debugging.
-if ($opt_d) {
+if ($mode eq "debug") {
     my @keys = sort (keys %calls);
     foreach (@keys) {
         print "$_:\n";
@@ -326,7 +339,7 @@ if ($opt_d) {
 }
 
 # Bodies for dispatch functions ("remote_dispatch_bodies.h").
-elsif ($opt_b) {
+elsif ($mode eq "server") {
     my %generate = map { $_ => 1 } @autogen;
     my @keys = sort (keys %calls);
 
@@ -593,7 +606,7 @@ elsif ($opt_b) {
                     # error out on unannotated arrays
                     die "remote_nonnull_string array without insert@<offset> annotation: $ret_member";
                 } elsif ($ret_member =~ m/^remote_nonnull_string (\S+);/) {
-                    if ($call->{ProcName} eq "GetType") {
+                    if ($call->{ProcName} eq "ConnectGetType") {
                         # SPECIAL: virConnectGetType returns a constant string that must
                         #          not be freed. Therefore, duplicate the string here.
                         push(@vars_list, "const char *$1");
@@ -880,27 +893,13 @@ elsif ($opt_b) {
 
             if (! @args_list) {
                 push(@args_list, "priv->conn");
-
-                if ($call->{ProcName} ne "NodeGetFreeMemory") {
-                    $prefix = "Connect"
-                }
             }
 
-            if ($call->{ProcName} eq "GetSysinfo" or
-                $call->{ProcName} eq "GetMaxVcpus" or
-                $call->{ProcName} eq "DomainXMLFromNative" or
-                $call->{ProcName} eq "DomainXMLToNative" or
-                $call->{ProcName} eq "FindStoragePoolSources" or
-                $call->{ProcName} =~ m/^List/) {
-                $prefix = "Connect"
-            } elsif ($call->{ProcName} eq "SupportsFeature") {
-                $prefix = "Drv"
-            } elsif ($call->{ProcName} eq "CPUBaseline") {
-                $proc_name = "ConnectBaselineCPU"
-            } elsif ($call->{ProcName} eq "CPUCompare") {
-                $proc_name = "ConnectCompareCPU"
-            } elsif ($structprefix eq "qemu" && $call->{ProcName} =~ /^Domain/) {
+            if ($structprefix eq "qemu" && $call->{ProcName} =~ /^Domain/) {
                 $proc_name =~ s/^(Domain)/${1}Qemu/;
+            }
+            if ($structprefix eq "lxc" && $call->{ProcName} =~ /^Domain/) {
+                $proc_name =~ s/^(Domain)/${1}Lxc/;
             }
 
             if ($single_ret_as_list) {
@@ -1033,7 +1032,7 @@ elsif ($opt_b) {
 }
 
 # Bodies for client functions ("remote_client_bodies.h").
-elsif ($opt_k) {
+elsif ($mode eq "client") {
     my %generate = map { $_ => 1 } @autogen;
     my @keys = sort (keys %calls);
 
@@ -1073,7 +1072,7 @@ elsif ($opt_k) {
                 !($argtype =~ m/^remote_node_device_lookup_by_name_/) and
                 !($argtype =~ m/^remote_node_device_create_xml_/)) {
                 $has_node_device = 1;
-                $priv_name = "devMonPrivateData";
+                $priv_name = "nodeDevicePrivateData";
             }
 
             foreach my $args_member (@{$call->{args_members}}) {
@@ -1310,7 +1309,7 @@ elsif ($opt_k) {
                     my $type_name = name_to_TypeName($name);
 
                     if ($name eq "node_device") {
-                        $priv_name = "devMonPrivateData";
+                        $priv_name = "nodeDevicePrivateData";
                     } elsif ($name =~ m/^storage_/) {
                         $priv_name = "storagePrivateData";
                     } elsif (!($name =~ m/^domain/)) {
@@ -1427,7 +1426,15 @@ elsif ($opt_k) {
         # print function
         print "\n";
         print "static $single_ret_type\n";
-        print "$structprefix$call->{ProcName}(";
+        if ($structprefix eq "remote") {
+            print "$structprefix$call->{ProcName}(";
+        } else {
+            my $proc = $call->{ProcName};
+            my $extra = $structprefix;
+            $extra =~ s/^(\w)/uc $1/e;
+            $proc =~ s/^(Domain)(.*)/$1 . $extra . $2/e;
+            print "remote$proc(";
+        }
 
         print join(", ", @args_list);
 
@@ -1524,6 +1531,9 @@ elsif ($opt_k) {
         my $callflags = "0";
         if ($structprefix eq "qemu") {
             $callflags = "REMOTE_CALL_QEMU";
+        }
+        if ($structprefix eq "lxc") {
+            $callflags = "REMOTE_CALL_LXC";
         }
 
         print "\n";

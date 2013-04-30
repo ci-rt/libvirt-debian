@@ -432,7 +432,7 @@ virStorageGenerateSecretUUID(virConnectPtr conn,
                            _("unable to generate uuid"));
             return -1;
         }
-        tmp = conn->secretDriver->lookupByUUID(conn, uuid);
+        tmp = conn->secretDriver->secretLookupByUUID(conn, uuid);
         if (tmp == NULL)
             return 0;
 
@@ -459,9 +459,9 @@ virStorageGenerateQcowEncryption(virConnectPtr conn,
     int ret = -1;
 
     if (conn->secretDriver == NULL ||
-        conn->secretDriver->lookupByUUID == NULL ||
-        conn->secretDriver->defineXML == NULL ||
-        conn->secretDriver->setValue == NULL) {
+        conn->secretDriver->secretLookupByUUID == NULL ||
+        conn->secretDriver->secretDefineXML == NULL ||
+        conn->secretDriver->secretSetValue == NULL) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("secret storage not supported"));
         goto cleanup;
@@ -480,8 +480,8 @@ virStorageGenerateQcowEncryption(virConnectPtr conn,
         goto cleanup;
     }
 
-    def->ephemeral = 0;
-    def->private = 0;
+    def->ephemeral = false;
+    def->private = false;
     if (virStorageGenerateSecretUUID(conn, def->uuid) < 0)
         goto cleanup;
 
@@ -497,7 +497,7 @@ virStorageGenerateQcowEncryption(virConnectPtr conn,
     if (xml == NULL)
         goto cleanup;
 
-    secret = conn->secretDriver->defineXML(conn, xml, 0);
+    secret = conn->secretDriver->secretDefineXML(conn, xml, 0);
     if (secret == NULL) {
         VIR_FREE(xml);
         goto cleanup;
@@ -507,7 +507,7 @@ virStorageGenerateQcowEncryption(virConnectPtr conn,
     if (virStorageGenerateQcowPassphrase(value) < 0)
         goto cleanup;
 
-    if (conn->secretDriver->setValue(secret, value, sizeof(value), 0) < 0)
+    if (conn->secretDriver->secretSetValue(secret, value, sizeof(value), 0) < 0)
         goto cleanup;
 
     enc_secret->type = VIR_STORAGE_ENCRYPTION_SECRET_TYPE_PASSPHRASE;
@@ -522,8 +522,8 @@ virStorageGenerateQcowEncryption(virConnectPtr conn,
 cleanup:
     if (secret != NULL) {
         if (ret != 0 &&
-            conn->secretDriver->undefine != NULL)
-            conn->secretDriver->undefine(secret);
+            conn->secretDriver->secretUndefine != NULL)
+            conn->secretDriver->secretUndefine(secret);
         virSecretFree(secret);
     }
     virBufferFreeAndReset(&buf);
@@ -652,7 +652,12 @@ virStorageBackendCreateQemuImgCmd(virConnectPtr conn,
     unsigned long long int size_arg;
     bool preallocate = false;
 
-    const char *type = virStorageFileFormatTypeToString(vol->target.format);
+    /* Treat output block devices as 'raw' format */
+    const char *type =
+        virStorageFileFormatTypeToString(vol->type == VIR_STORAGE_VOL_BLOCK ?
+                                         VIR_STORAGE_FILE_RAW :
+                                         vol->target.format);
+
     const char *backingType = vol->backingStore.path ?
         virStorageFileFormatTypeToString(vol->backingStore.format) : NULL;
 

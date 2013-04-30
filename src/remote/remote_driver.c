@@ -2,7 +2,7 @@
  * remote_driver.c: driver to provide access to libvirtd running
  *   on a remote machine
  *
- * Copyright (C) 2007-2012 Red Hat, Inc.
+ * Copyright (C) 2007-2013 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -158,9 +158,9 @@ static char *get_transport_from_scheme(char *scheme);
 
 #ifdef WITH_LIBVIRTD
 static int
-remoteStartup(bool privileged ATTRIBUTE_UNUSED,
-              virStateInhibitCallback callback ATTRIBUTE_UNUSED,
-              void *opaque ATTRIBUTE_UNUSED)
+remoteStateInitialize(bool privileged ATTRIBUTE_UNUSED,
+                      virStateInhibitCallback callback ATTRIBUTE_UNUSED,
+                      void *opaque ATTRIBUTE_UNUSED)
 {
     /* Mark that we're inside the daemon so we can avoid
      * re-entering ourselves
@@ -338,31 +338,30 @@ enum virDrvOpenRemoteFlags {
 };
 
 
-static void remoteClientCloseFunc(virNetClientPtr client ATTRIBUTE_UNUSED,
-                                  int reason,
-                                  void *opaque)
+static void
+remoteClientCloseFunc(virNetClientPtr client ATTRIBUTE_UNUSED,
+                      int reason,
+                      void *opaque)
 {
-    virConnectPtr conn = opaque;
+    virConnectCloseCallbackDataPtr cbdata = opaque;
 
-    virMutexLock(&conn->lock);
-    if (conn->closeCallback) {
-        virConnectCloseFunc closeCallback = conn->closeCallback;
-        void *closeOpaque = conn->closeOpaque;
-        virFreeCallback closeFreeCallback = conn->closeFreeCallback;
-        unsigned closeUnregisterCount = conn->closeUnregisterCount;
+    virObjectLock(cbdata);
 
-        VIR_DEBUG("Triggering connection close callback %p reason=%d",
-                  conn->closeCallback, reason);
-        conn->closeDispatch = true;
-        virMutexUnlock(&conn->lock);
-        closeCallback(conn, reason, closeOpaque);
-        virMutexLock(&conn->lock);
-        conn->closeDispatch = false;
-        if (conn->closeUnregisterCount != closeUnregisterCount &&
-            closeFreeCallback)
-            closeFreeCallback(closeOpaque);
+    if (cbdata->callback) {
+        VIR_DEBUG("Triggering connection close callback %p reason=%d, opaque=%p",
+                  cbdata->callback, reason, cbdata->opaque);
+        cbdata->callback(cbdata->conn, reason, cbdata->opaque);
+
+        if (cbdata->freeCallback)
+            cbdata->freeCallback(cbdata->opaque);
+        cbdata->callback = NULL;
+        cbdata->freeCallback = NULL;
     }
-    virMutexUnlock(&conn->lock);
+    virObjectUnlock(cbdata);
+
+    /* free the connection reference that comes along with the callback
+     * registration */
+    virObjectUnref(cbdata->conn);
 }
 
 /* helper macro to ease extraction of arguments from the URI */
@@ -765,9 +764,11 @@ doRemoteOpen(virConnectPtr conn,
             goto failed;
     }
 
+    virObjectRef(conn->closeCallback);
+
     virNetClientSetCloseCallback(priv->client,
                                  remoteClientCloseFunc,
-                                 conn, NULL);
+                                 conn->closeCallback, virObjectFreeCallback);
 
     if (!(priv->remoteProgram = virNetClientProgramNew(REMOTE_PROGRAM,
                                                        REMOTE_PROTOCOL_VERSION,
@@ -799,14 +800,14 @@ doRemoteOpen(virConnectPtr conn,
         goto failed;
 
     if (virNetClientKeepAliveIsSupported(priv->client)) {
-        remote_supports_feature_args args =
+        remote_connect_supports_feature_args args =
             { VIR_DRV_FEATURE_PROGRAM_KEEPALIVE };
-        remote_supports_feature_ret ret = { 0 };
+        remote_connect_supports_feature_ret ret = { 0 };
         int rc;
 
-        rc = call(conn, priv, 0, REMOTE_PROC_SUPPORTS_FEATURE,
-                  (xdrproc_t)xdr_remote_supports_feature_args, (char *) &args,
-                  (xdrproc_t)xdr_remote_supports_feature_ret, (char *) &ret);
+        rc = call(conn, priv, 0, REMOTE_PROC_CONNECT_SUPPORTS_FEATURE,
+                  (xdrproc_t)xdr_remote_connect_supports_feature_args, (char *) &args,
+                  (xdrproc_t)xdr_remote_connect_supports_feature_ret, (char *) &ret);
 
         if (rc != -1 && ret.supported) {
             priv->serverKeepAlive = true;
@@ -818,25 +819,25 @@ doRemoteOpen(virConnectPtr conn,
 
     /* Finally we can call the remote side's open function. */
     {
-        remote_open_args args = { &name, flags };
+        remote_connect_open_args args = { &name, flags };
 
         VIR_DEBUG("Trying to open URI %s", name);
-        if (call(conn, priv, 0, REMOTE_PROC_OPEN,
-                 (xdrproc_t) xdr_remote_open_args, (char *) &args,
+        if (call(conn, priv, 0, REMOTE_PROC_CONNECT_OPEN,
+                 (xdrproc_t) xdr_remote_connect_open_args, (char *) &args,
                  (xdrproc_t) xdr_void, (char *) NULL) == -1)
             goto failed;
     }
 
     /* Now try and find out what URI the daemon used */
     if (conn->uri == NULL) {
-        remote_get_uri_ret uriret;
+        remote_connect_get_uri_ret uriret;
 
         VIR_DEBUG("Trying to query remote URI");
         memset(&uriret, 0, sizeof(uriret));
         if (call(conn, priv, 0,
-                 REMOTE_PROC_GET_URI,
+                 REMOTE_PROC_CONNECT_GET_URI,
                  (xdrproc_t) xdr_void, (char *) NULL,
-                 (xdrproc_t) xdr_remote_get_uri_ret, (char *) &uriret) < 0)
+                 (xdrproc_t) xdr_remote_connect_get_uri_ret, (char *) &uriret) < 0)
             goto failed;
 
         VIR_DEBUG("Auto-probed URI is %s", uriret.uri);
@@ -935,9 +936,9 @@ remoteOpenSecondaryDriver(virConnectPtr conn,
 }
 
 static virDrvOpenStatus
-remoteOpen(virConnectPtr conn,
-           virConnectAuthPtr auth,
-           unsigned int flags)
+remoteConnectOpen(virConnectPtr conn,
+                  virConnectAuthPtr auth,
+                  unsigned int flags)
 {
     struct private_data *priv;
     int ret, rflags = 0;
@@ -1022,7 +1023,7 @@ doRemoteClose(virConnectPtr conn, struct private_data *priv)
 {
     int ret = 0;
 
-    if (call(conn, priv, 0, REMOTE_PROC_CLOSE,
+    if (call(conn, priv, 0, REMOTE_PROC_CONNECT_CLOSE,
              (xdrproc_t) xdr_void, (char *) NULL,
              (xdrproc_t) xdr_void, (char *) NULL) == -1)
         ret = -1;
@@ -1031,10 +1032,11 @@ doRemoteClose(virConnectPtr conn, struct private_data *priv)
     virObjectUnref(priv->tls);
     priv->tls = NULL;
 #endif
+
     virNetClientSetCloseCallback(priv->client,
                                  NULL,
-                                 NULL,
-                                 NULL);
+                                 conn->closeCallback, virObjectFreeCallback);
+
     virNetClientClose(priv->client);
     virObjectUnref(priv->client);
     priv->client = NULL;
@@ -1056,7 +1058,7 @@ doRemoteClose(virConnectPtr conn, struct private_data *priv)
 }
 
 static int
-remoteClose(virConnectPtr conn)
+remoteConnectClose(virConnectPtr conn)
 {
     int ret = 0;
     struct private_data *priv = conn->privateData;
@@ -1086,10 +1088,10 @@ remoteClose(virConnectPtr conn)
  * http://www.redhat.com/archives/libvir-list/2007-February/msg00096.html
  */
 static const char *
-remoteType(virConnectPtr conn)
+remoteConnectGetType(virConnectPtr conn)
 {
     char *rv = NULL;
-    remote_get_type_ret ret;
+    remote_connect_get_type_ret ret;
     struct private_data *priv = conn->privateData;
 
     remoteDriverLock(priv);
@@ -1101,9 +1103,9 @@ remoteType(virConnectPtr conn)
     }
 
     memset(&ret, 0, sizeof(ret));
-    if (call(conn, priv, 0, REMOTE_PROC_GET_TYPE,
+    if (call(conn, priv, 0, REMOTE_PROC_CONNECT_GET_TYPE,
              (xdrproc_t) xdr_void, (char *) NULL,
-             (xdrproc_t) xdr_remote_get_type_ret, (char *) &ret) == -1)
+             (xdrproc_t) xdr_remote_connect_get_type_ret, (char *) &ret) == -1)
         goto done;
 
     /* Stash. */
@@ -1114,17 +1116,17 @@ done:
     return rv;
 }
 
-static int remoteIsSecure(virConnectPtr conn)
+static int remoteConnectIsSecure(virConnectPtr conn)
 {
     int rv = -1;
     struct private_data *priv = conn->privateData;
-    remote_is_secure_ret ret;
+    remote_connect_is_secure_ret ret;
     remoteDriverLock(priv);
 
     memset(&ret, 0, sizeof(ret));
-    if (call(conn, priv, 0, REMOTE_PROC_IS_SECURE,
+    if (call(conn, priv, 0, REMOTE_PROC_CONNECT_IS_SECURE,
              (xdrproc_t) xdr_void, (char *) NULL,
-             (xdrproc_t) xdr_remote_is_secure_ret, (char *) &ret) == -1)
+             (xdrproc_t) xdr_remote_connect_is_secure_ret, (char *) &ret) == -1)
         goto done;
 
     /* We claim to be secure, if the remote driver
@@ -1142,18 +1144,18 @@ done:
     return rv;
 }
 
-static int remoteIsEncrypted(virConnectPtr conn)
+static int remoteConnectIsEncrypted(virConnectPtr conn)
 {
     int rv = -1;
     int encrypted = 0;
     struct private_data *priv = conn->privateData;
-    remote_is_secure_ret ret;
+    remote_connect_is_secure_ret ret;
     remoteDriverLock(priv);
 
     memset(&ret, 0, sizeof(ret));
-    if (call(conn, priv, 0, REMOTE_PROC_IS_SECURE,
+    if (call(conn, priv, 0, REMOTE_PROC_CONNECT_IS_SECURE,
              (xdrproc_t) xdr_void, (char *) NULL,
-             (xdrproc_t) xdr_remote_is_secure_ret, (char *) &ret) == -1)
+             (xdrproc_t) xdr_remote_connect_is_secure_ret, (char *) &ret) == -1)
         goto done;
 
     if (virNetClientIsEncrypted(priv->client))
@@ -1346,12 +1348,12 @@ done:
 }
 
 static int
-remoteListDomains(virConnectPtr conn, int *ids, int maxids)
+remoteConnectListDomains(virConnectPtr conn, int *ids, int maxids)
 {
     int rv = -1;
     int i;
-    remote_list_domains_args args;
-    remote_list_domains_ret ret;
+    remote_connect_list_domains_args args;
+    remote_connect_list_domains_ret ret;
     struct private_data *priv = conn->privateData;
 
     remoteDriverLock(priv);
@@ -1365,9 +1367,9 @@ remoteListDomains(virConnectPtr conn, int *ids, int maxids)
     args.maxids = maxids;
 
     memset(&ret, 0, sizeof(ret));
-    if (call(conn, priv, 0, REMOTE_PROC_LIST_DOMAINS,
-             (xdrproc_t) xdr_remote_list_domains_args, (char *) &args,
-             (xdrproc_t) xdr_remote_list_domains_ret, (char *) &ret) == -1)
+    if (call(conn, priv, 0, REMOTE_PROC_CONNECT_LIST_DOMAINS,
+             (xdrproc_t) xdr_remote_connect_list_domains_args, (char *) &args,
+             (xdrproc_t) xdr_remote_connect_list_domains_ret, (char *) &ret) == -1)
         goto done;
 
     if (ret.ids.ids_len > maxids) {
@@ -1383,7 +1385,7 @@ remoteListDomains(virConnectPtr conn, int *ids, int maxids)
     rv = ret.ids.ids_len;
 
 cleanup:
-    xdr_free((xdrproc_t) xdr_remote_list_domains_ret, (char *) &ret);
+    xdr_free((xdrproc_t) xdr_remote_connect_list_domains_ret, (char *) &ret);
 
 done:
     remoteDriverUnlock(priv);
@@ -3202,14 +3204,14 @@ remoteStorageClose(virConnectPtr conn)
 }
 
 static char *
-remoteFindStoragePoolSources(virConnectPtr conn,
-                             const char *type,
-                             const char *srcSpec,
-                             unsigned int flags)
+remoteConnectFindStoragePoolSources(virConnectPtr conn,
+                                    const char *type,
+                                    const char *srcSpec,
+                                    unsigned int flags)
 {
     char *rv = NULL;
-    remote_find_storage_pool_sources_args args;
-    remote_find_storage_pool_sources_ret ret;
+    remote_connect_find_storage_pool_sources_args args;
+    remote_connect_find_storage_pool_sources_ret ret;
     struct private_data *priv = conn->storagePrivateData;
 
     remoteDriverLock(priv);
@@ -3219,15 +3221,15 @@ remoteFindStoragePoolSources(virConnectPtr conn,
     args.flags = flags;
 
     memset(&ret, 0, sizeof(ret));
-    if (call(conn, priv, 0, REMOTE_PROC_FIND_STORAGE_POOL_SOURCES,
-             (xdrproc_t) xdr_remote_find_storage_pool_sources_args, (char *) &args,
-             (xdrproc_t) xdr_remote_find_storage_pool_sources_ret, (char *) &ret) == -1)
+    if (call(conn, priv, 0, REMOTE_PROC_CONNECT_FIND_STORAGE_POOL_SOURCES,
+             (xdrproc_t) xdr_remote_connect_find_storage_pool_sources_args, (char *) &args,
+             (xdrproc_t) xdr_remote_connect_find_storage_pool_sources_ret, (char *) &ret) == -1)
         goto done;
 
     rv = ret.xml;
     ret.xml = NULL; /* To stop xdr_free free'ing it */
 
-    xdr_free((xdrproc_t) xdr_remote_find_storage_pool_sources_ret, (char *) &ret);
+    xdr_free((xdrproc_t) xdr_remote_connect_find_storage_pool_sources_ret, (char *) &ret);
 
 done:
     remoteDriverUnlock(priv);
@@ -3365,16 +3367,16 @@ done:
 /*----------------------------------------------------------------------*/
 
 static virDrvOpenStatus ATTRIBUTE_NONNULL(1)
-remoteDevMonOpen(virConnectPtr conn, virConnectAuthPtr auth,
-                 unsigned int flags)
+remoteNodeDeviceOpen(virConnectPtr conn, virConnectAuthPtr auth,
+                     unsigned int flags)
 {
-    return remoteGenericOpen(conn, auth, flags, &conn->devMonPrivateData);
+    return remoteGenericOpen(conn, auth, flags, &conn->nodeDevicePrivateData);
 }
 
 static int
-remoteDevMonClose(virConnectPtr conn)
+remoteNodeDeviceClose(virConnectPtr conn)
 {
-    return remoteGenericClose(conn, &conn->devMonPrivateData);
+    return remoteGenericClose(conn, &conn->nodeDevicePrivateData);
 }
 
 static int
@@ -3383,7 +3385,7 @@ remoteNodeDeviceDettach(virNodeDevicePtr dev)
     int rv = -1;
     remote_node_device_dettach_args args;
     /* This method is unusual in that it uses the HV driver, not the devMon driver
-     * hence its use of privateData, instead of devMonPrivateData */
+     * hence its use of privateData, instead of nodeDevicePrivateData */
     struct private_data *priv = dev->conn->privateData;
 
     remoteDriverLock(priv);
@@ -3403,12 +3405,43 @@ done:
 }
 
 static int
+remoteNodeDeviceDetachFlags(virNodeDevicePtr dev,
+                            const char *driverName,
+                            unsigned int flags)
+{
+    int rv = -1;
+    remote_node_device_detach_flags_args args;
+    /* This method is unusual in that it uses the HV driver, not the
+     * devMon driver hence its use of privateData, instead of
+     * nodeDevicePrivateData
+     */
+    struct private_data *priv = dev->conn->privateData;
+
+    remoteDriverLock(priv);
+
+    args.name = dev->name;
+    args.driverName = driverName ? (char**)&driverName : NULL;
+    args.flags = flags;
+
+    if (call(dev->conn, priv, 0, REMOTE_PROC_NODE_DEVICE_DETACH_FLAGS,
+             (xdrproc_t) xdr_remote_node_device_detach_flags_args,
+             (char *) &args, (xdrproc_t) xdr_void, (char *) NULL) == -1)
+        goto done;
+
+    rv = 0;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static int
 remoteNodeDeviceReAttach(virNodeDevicePtr dev)
 {
     int rv = -1;
     remote_node_device_re_attach_args args;
     /* This method is unusual in that it uses the HV driver, not the devMon driver
-     * hence its use of privateData, instead of devMonPrivateData */
+     * hence its use of privateData, instead of nodeDevicePrivateData */
     struct private_data *priv = dev->conn->privateData;
 
     remoteDriverLock(priv);
@@ -3433,7 +3466,7 @@ remoteNodeDeviceReset(virNodeDevicePtr dev)
     int rv = -1;
     remote_node_device_reset_args args;
     /* This method is unusual in that it uses the HV driver, not the devMon driver
-     * hence its use of privateData, instead of devMonPrivateData */
+     * hence its use of privateData, instead of nodeDevicePrivateData */
     struct private_data *priv = dev->conn->privateData;
 
     remoteDriverLock(priv);
@@ -4193,10 +4226,10 @@ out:
 #endif /* WITH_POLKIT */
 /*----------------------------------------------------------------------*/
 
-static int remoteDomainEventRegister(virConnectPtr conn,
-                                     virConnectDomainEventCallback callback,
-                                     void *opaque,
-                                     virFreeCallback freecb)
+static int remoteConnectDomainEventRegister(virConnectPtr conn,
+                                            virConnectDomainEventCallback callback,
+                                            void *opaque,
+                                            virFreeCallback freecb)
 {
     int rv = -1;
     struct private_data *priv = conn->privateData;
@@ -4212,7 +4245,7 @@ static int remoteDomainEventRegister(virConnectPtr conn,
 
     if (count == 1) {
         /* Tell the server when we are the first callback deregistering */
-        if (call(conn, priv, 0, REMOTE_PROC_DOMAIN_EVENTS_REGISTER,
+        if (call(conn, priv, 0, REMOTE_PROC_CONNECT_DOMAIN_EVENT_REGISTER,
                  (xdrproc_t) xdr_void, (char *) NULL,
                  (xdrproc_t) xdr_void, (char *) NULL) == -1)
             goto done;
@@ -4225,8 +4258,8 @@ done:
     return rv;
 }
 
-static int remoteDomainEventDeregister(virConnectPtr conn,
-                                       virConnectDomainEventCallback callback)
+static int remoteConnectDomainEventDeregister(virConnectPtr conn,
+                                              virConnectDomainEventCallback callback)
 {
     struct private_data *priv = conn->privateData;
     int rv = -1;
@@ -4241,7 +4274,7 @@ static int remoteDomainEventDeregister(virConnectPtr conn,
 
     if (count == 0) {
         /* Tell the server when we are the last callback deregistering */
-        if (call(conn, priv, 0, REMOTE_PROC_DOMAIN_EVENTS_DEREGISTER,
+        if (call(conn, priv, 0, REMOTE_PROC_CONNECT_DOMAIN_EVENT_DEREGISTER,
                  (xdrproc_t) xdr_void, (char *) NULL,
                  (xdrproc_t) xdr_void, (char *) NULL) == -1)
             goto done;
@@ -4947,22 +4980,22 @@ static virStreamDriver remoteStreamDrv = {
     .streamSend = remoteStreamSend,
     .streamFinish = remoteStreamFinish,
     .streamAbort = remoteStreamAbort,
-    .streamAddCallback = remoteStreamEventAddCallback,
-    .streamUpdateCallback = remoteStreamEventUpdateCallback,
-    .streamRemoveCallback = remoteStreamEventRemoveCallback,
+    .streamEventAddCallback = remoteStreamEventAddCallback,
+    .streamEventUpdateCallback = remoteStreamEventUpdateCallback,
+    .streamEventRemoveCallback = remoteStreamEventRemoveCallback,
 };
 
 
-static int remoteDomainEventRegisterAny(virConnectPtr conn,
-                                        virDomainPtr dom,
-                                        int eventID,
-                                        virConnectDomainEventGenericCallback callback,
-                                        void *opaque,
-                                        virFreeCallback freecb)
+static int remoteConnectDomainEventRegisterAny(virConnectPtr conn,
+                                               virDomainPtr dom,
+                                               int eventID,
+                                               virConnectDomainEventGenericCallback callback,
+                                               void *opaque,
+                                               virFreeCallback freecb)
 {
     int rv = -1;
     struct private_data *priv = conn->privateData;
-    remote_domain_events_register_any_args args;
+    remote_connect_domain_event_register_any_args args;
     int callbackID;
     int count;
 
@@ -4982,8 +5015,8 @@ static int remoteDomainEventRegisterAny(virConnectPtr conn,
     if (count == 1) {
         args.eventID = eventID;
 
-        if (call(conn, priv, 0, REMOTE_PROC_DOMAIN_EVENTS_REGISTER_ANY,
-                 (xdrproc_t) xdr_remote_domain_events_register_any_args, (char *) &args,
+        if (call(conn, priv, 0, REMOTE_PROC_CONNECT_DOMAIN_EVENT_REGISTER_ANY,
+                 (xdrproc_t) xdr_remote_connect_domain_event_register_any_args, (char *) &args,
                  (xdrproc_t) xdr_void, (char *)NULL) == -1) {
             virDomainEventStateDeregisterID(conn,
                                             priv->domainEventState,
@@ -5000,12 +5033,12 @@ done:
 }
 
 
-static int remoteDomainEventDeregisterAny(virConnectPtr conn,
-                                          int callbackID)
+static int remoteConnectDomainEventDeregisterAny(virConnectPtr conn,
+                                                 int callbackID)
 {
     struct private_data *priv = conn->privateData;
     int rv = -1;
-    remote_domain_events_deregister_any_args args;
+    remote_connect_domain_event_deregister_any_args args;
     int eventID;
     int count;
 
@@ -5030,8 +5063,8 @@ static int remoteDomainEventDeregisterAny(virConnectPtr conn,
     if (count == 0) {
         args.eventID = callbackID;
 
-        if (call(conn, priv, 0, REMOTE_PROC_DOMAIN_EVENTS_DEREGISTER_ANY,
-                 (xdrproc_t) xdr_remote_domain_events_deregister_any_args, (char *) &args,
+        if (call(conn, priv, 0, REMOTE_PROC_CONNECT_DOMAIN_EVENT_DEREGISTER_ANY,
+                 (xdrproc_t) xdr_remote_connect_domain_event_deregister_any_args, (char *) &args,
                  (xdrproc_t) xdr_void, (char *) NULL) == -1)
             goto done;
     }
@@ -5047,12 +5080,12 @@ done:
 /*----------------------------------------------------------------------*/
 
 static int
-remoteQemuDomainMonitorCommand(virDomainPtr domain, const char *cmd,
+remoteDomainQemuMonitorCommand(virDomainPtr domain, const char *cmd,
                                char **result, unsigned int flags)
 {
     int rv = -1;
-    qemu_monitor_command_args args;
-    qemu_monitor_command_ret ret;
+    qemu_domain_monitor_command_args args;
+    qemu_domain_monitor_command_ret ret;
     struct private_data *priv = domain->conn->privateData;
 
     remoteDriverLock(priv);
@@ -5062,9 +5095,9 @@ remoteQemuDomainMonitorCommand(virDomainPtr domain, const char *cmd,
     args.flags = flags;
 
     memset(&ret, 0, sizeof(ret));
-    if (call(domain->conn, priv, REMOTE_CALL_QEMU, QEMU_PROC_MONITOR_COMMAND,
-             (xdrproc_t) xdr_qemu_monitor_command_args, (char *) &args,
-             (xdrproc_t) xdr_qemu_monitor_command_ret, (char *) &ret) == -1)
+    if (call(domain->conn, priv, REMOTE_CALL_QEMU, QEMU_PROC_DOMAIN_MONITOR_COMMAND,
+             (xdrproc_t) xdr_qemu_domain_monitor_command_args, (char *) &args,
+             (xdrproc_t) xdr_qemu_domain_monitor_command_ret, (char *) &ret) == -1)
         goto done;
 
     *result = strdup(ret.result);
@@ -5076,7 +5109,7 @@ remoteQemuDomainMonitorCommand(virDomainPtr domain, const char *cmd,
     rv = 0;
 
 cleanup:
-    xdr_free((xdrproc_t) xdr_qemu_monitor_command_ret, (char *) &ret);
+    xdr_free((xdrproc_t) xdr_qemu_domain_monitor_command_ret, (char *) &ret);
 
 done:
     remoteDriverUnlock(priv);
@@ -5470,7 +5503,7 @@ done:
 
 
 static int
-remoteSetKeepAlive(virConnectPtr conn, int interval, unsigned int count)
+remoteConnectSetKeepAlive(virConnectPtr conn, int interval, unsigned int count)
 {
     struct private_data *priv = conn->privateData;
     int ret = -1;
@@ -5502,7 +5535,7 @@ cleanup:
 
 
 static int
-remoteIsAlive(virConnectPtr conn)
+remoteConnectIsAlive(virConnectPtr conn)
 {
     struct private_data *priv = conn->privateData;
     bool ret;
@@ -6118,20 +6151,20 @@ unsigned long remoteVersion(void)
 static virDriver remote_driver = {
     .no = VIR_DRV_REMOTE,
     .name = "remote",
-    .open = remoteOpen, /* 0.3.0 */
-    .close = remoteClose, /* 0.3.0 */
-    .supports_feature = remoteSupportsFeature, /* 0.3.0 */
-    .type = remoteType, /* 0.3.0 */
-    .version = remoteGetVersion, /* 0.3.0 */
-    .libvirtVersion = remoteGetLibVersion, /* 0.7.3 */
-    .getHostname = remoteGetHostname, /* 0.3.0 */
-    .getSysinfo = remoteGetSysinfo, /* 0.8.8 */
-    .getMaxVcpus = remoteGetMaxVcpus, /* 0.3.0 */
+    .connectOpen = remoteConnectOpen, /* 0.3.0 */
+    .connectClose = remoteConnectClose, /* 0.3.0 */
+    .connectSupportsFeature = remoteConnectSupportsFeature, /* 0.3.0 */
+    .connectGetType = remoteConnectGetType, /* 0.3.0 */
+    .connectGetVersion = remoteConnectGetVersion, /* 0.3.0 */
+    .connectGetLibVersion = remoteConnectGetLibVersion, /* 0.7.3 */
+    .connectGetHostname = remoteConnectGetHostname, /* 0.3.0 */
+    .connectGetSysinfo = remoteConnectGetSysinfo, /* 0.8.8 */
+    .connectGetMaxVcpus = remoteConnectGetMaxVcpus, /* 0.3.0 */
     .nodeGetInfo = remoteNodeGetInfo, /* 0.3.0 */
-    .getCapabilities = remoteGetCapabilities, /* 0.3.0 */
-    .listDomains = remoteListDomains, /* 0.3.0 */
-    .numOfDomains = remoteNumOfDomains, /* 0.3.0 */
-    .listAllDomains = remoteConnectListAllDomains, /* 0.9.13 */
+    .connectGetCapabilities = remoteConnectGetCapabilities, /* 0.3.0 */
+    .connectListDomains = remoteConnectListDomains, /* 0.3.0 */
+    .connectNumOfDomains = remoteConnectNumOfDomains, /* 0.3.0 */
+    .connectListAllDomains = remoteConnectListAllDomains, /* 0.9.13 */
     .domainCreateXML = remoteDomainCreateXML, /* 0.3.0 */
     .domainLookupByID = remoteDomainLookupByID, /* 0.3.0 */
     .domainLookupByUUID = remoteDomainLookupByUUID, /* 0.3.0 */
@@ -6180,10 +6213,10 @@ static virDriver remote_driver = {
     .domainGetSecurityLabelList = remoteDomainGetSecurityLabelList, /* 0.10.0 */
     .nodeGetSecurityModel = remoteNodeGetSecurityModel, /* 0.6.1 */
     .domainGetXMLDesc = remoteDomainGetXMLDesc, /* 0.3.0 */
-    .domainXMLFromNative = remoteDomainXMLFromNative, /* 0.6.4 */
-    .domainXMLToNative = remoteDomainXMLToNative, /* 0.6.4 */
-    .listDefinedDomains = remoteListDefinedDomains, /* 0.3.0 */
-    .numOfDefinedDomains = remoteNumOfDefinedDomains, /* 0.3.0 */
+    .connectDomainXMLFromNative = remoteConnectDomainXMLFromNative, /* 0.6.4 */
+    .connectDomainXMLToNative = remoteConnectDomainXMLToNative, /* 0.6.4 */
+    .connectListDefinedDomains = remoteConnectListDefinedDomains, /* 0.3.0 */
+    .connectNumOfDefinedDomains = remoteConnectNumOfDefinedDomains, /* 0.3.0 */
     .domainCreate = remoteDomainCreate, /* 0.3.0 */
     .domainCreateWithFlags = remoteDomainCreateWithFlags, /* 0.8.2 */
     .domainDefineXML = remoteDomainDefineXML, /* 0.3.0 */
@@ -6218,21 +6251,22 @@ static virDriver remote_driver = {
     .nodeGetMemoryStats = remoteNodeGetMemoryStats, /* 0.9.3 */
     .nodeGetCellsFreeMemory = remoteNodeGetCellsFreeMemory, /* 0.3.3 */
     .nodeGetFreeMemory = remoteNodeGetFreeMemory, /* 0.3.3 */
-    .domainEventRegister = remoteDomainEventRegister, /* 0.5.0 */
-    .domainEventDeregister = remoteDomainEventDeregister, /* 0.5.0 */
+    .connectDomainEventRegister = remoteConnectDomainEventRegister, /* 0.5.0 */
+    .connectDomainEventDeregister = remoteConnectDomainEventDeregister, /* 0.5.0 */
     .domainMigratePrepare2 = remoteDomainMigratePrepare2, /* 0.5.0 */
     .domainMigrateFinish2 = remoteDomainMigrateFinish2, /* 0.5.0 */
     .nodeDeviceDettach = remoteNodeDeviceDettach, /* 0.6.1 */
+    .nodeDeviceDetachFlags = remoteNodeDeviceDetachFlags, /* 1.0.5 */
     .nodeDeviceReAttach = remoteNodeDeviceReAttach, /* 0.6.1 */
     .nodeDeviceReset = remoteNodeDeviceReset, /* 0.6.1 */
     .domainMigratePrepareTunnel = remoteDomainMigratePrepareTunnel, /* 0.7.2 */
-    .isEncrypted = remoteIsEncrypted, /* 0.7.3 */
-    .isSecure = remoteIsSecure, /* 0.7.3 */
+    .connectIsEncrypted = remoteConnectIsEncrypted, /* 0.7.3 */
+    .connectIsSecure = remoteConnectIsSecure, /* 0.7.3 */
     .domainIsActive = remoteDomainIsActive, /* 0.7.3 */
     .domainIsPersistent = remoteDomainIsPersistent, /* 0.7.3 */
     .domainIsUpdated = remoteDomainIsUpdated, /* 0.8.6 */
-    .cpuCompare = remoteCPUCompare, /* 0.7.5 */
-    .cpuBaseline = remoteCPUBaseline, /* 0.7.7 */
+    .connectCompareCPU = remoteConnectCompareCPU, /* 0.7.5 */
+    .connectBaselineCPU = remoteConnectBaselineCPU, /* 0.7.7 */
     .domainGetJobInfo = remoteDomainGetJobInfo, /* 0.7.7 */
     .domainGetJobStats = remoteDomainGetJobStats, /* 1.0.3 */
     .domainAbortJob = remoteDomainAbortJob, /* 0.7.7 */
@@ -6241,8 +6275,8 @@ static virDriver remote_driver = {
     .domainMigrateSetCompressionCache = remoteDomainMigrateSetCompressionCache, /* 1.0.3 */
     .domainMigrateSetMaxSpeed = remoteDomainMigrateSetMaxSpeed, /* 0.9.0 */
     .domainMigrateGetMaxSpeed = remoteDomainMigrateGetMaxSpeed, /* 0.9.5 */
-    .domainEventRegisterAny = remoteDomainEventRegisterAny, /* 0.8.0 */
-    .domainEventDeregisterAny = remoteDomainEventDeregisterAny, /* 0.8.0 */
+    .connectDomainEventRegisterAny = remoteConnectDomainEventRegisterAny, /* 0.8.0 */
+    .connectDomainEventDeregisterAny = remoteConnectDomainEventDeregisterAny, /* 0.8.0 */
     .domainManagedSave = remoteDomainManagedSave, /* 0.8.0 */
     .domainHasManagedSaveImage = remoteDomainHasManagedSaveImage, /* 0.8.0 */
     .domainManagedSaveRemove = remoteDomainManagedSaveRemove, /* 0.8.0 */
@@ -6262,9 +6296,9 @@ static virDriver remote_driver = {
     .domainSnapshotIsCurrent = remoteDomainSnapshotIsCurrent, /* 0.9.13 */
     .domainSnapshotHasMetadata = remoteDomainSnapshotHasMetadata, /* 0.9.13 */
     .domainSnapshotDelete = remoteDomainSnapshotDelete, /* 0.8.0 */
-    .qemuDomainMonitorCommand = remoteQemuDomainMonitorCommand, /* 0.8.3 */
-    .qemuDomainAttach = qemuDomainAttach, /* 0.9.4 */
-    .qemuDomainArbitraryAgentCommand = qemuDomainAgentCommand, /* 0.10.0 */
+    .domainQemuMonitorCommand = remoteDomainQemuMonitorCommand, /* 0.8.3 */
+    .domainQemuAttach = remoteDomainQemuAttach, /* 0.9.4 */
+    .domainQemuAgentCommand = remoteDomainQemuAgentCommand, /* 0.10.0 */
     .domainOpenConsole = remoteDomainOpenConsole, /* 0.8.6 */
     .domainOpenChannel = remoteDomainOpenChannel, /* 1.0.2 */
     .domainOpenGraphics = remoteDomainOpenGraphics, /* 0.9.7 */
@@ -6283,8 +6317,8 @@ static virDriver remote_driver = {
     .domainBlockPull = remoteDomainBlockPull, /* 0.9.4 */
     .domainBlockRebase = remoteDomainBlockRebase, /* 0.9.10 */
     .domainBlockCommit = remoteDomainBlockCommit, /* 0.10.2 */
-    .setKeepAlive = remoteSetKeepAlive, /* 0.9.8 */
-    .isAlive = remoteIsAlive, /* 0.9.8 */
+    .connectSetKeepAlive = remoteConnectSetKeepAlive, /* 0.9.8 */
+    .connectIsAlive = remoteConnectIsAlive, /* 0.9.8 */
     .nodeSuspendForDuration = remoteNodeSuspendForDuration, /* 0.9.8 */
     .domainSetBlockIoTune = remoteDomainSetBlockIoTune, /* 0.9.8 */
     .domainGetBlockIoTune = remoteDomainGetBlockIoTune, /* 0.9.8 */
@@ -6304,13 +6338,13 @@ static virDriver remote_driver = {
 
 static virNetworkDriver network_driver = {
     .name = "remote",
-    .open = remoteNetworkOpen, /* 0.3.0 */
-    .close = remoteNetworkClose, /* 0.3.0 */
-    .numOfNetworks = remoteNumOfNetworks, /* 0.3.0 */
-    .listNetworks = remoteListNetworks, /* 0.3.0 */
-    .numOfDefinedNetworks = remoteNumOfDefinedNetworks, /* 0.3.0 */
-    .listDefinedNetworks = remoteListDefinedNetworks, /* 0.3.0 */
-    .listAllNetworks = remoteConnectListAllNetworks, /* 0.10.2 */
+    .networkOpen = remoteNetworkOpen, /* 0.3.0 */
+    .networkClose = remoteNetworkClose, /* 0.3.0 */
+    .connectNumOfNetworks = remoteConnectNumOfNetworks, /* 0.3.0 */
+    .connectListNetworks = remoteConnectListNetworks, /* 0.3.0 */
+    .connectNumOfDefinedNetworks = remoteConnectNumOfDefinedNetworks, /* 0.3.0 */
+    .connectListDefinedNetworks = remoteConnectListDefinedNetworks, /* 0.3.0 */
+    .connectListAllNetworks = remoteConnectListAllNetworks, /* 0.10.2 */
     .networkLookupByUUID = remoteNetworkLookupByUUID, /* 0.3.0 */
     .networkLookupByName = remoteNetworkLookupByName, /* 0.3.0 */
     .networkCreateXML = remoteNetworkCreateXML, /* 0.3.0 */
@@ -6329,13 +6363,13 @@ static virNetworkDriver network_driver = {
 
 static virInterfaceDriver interface_driver = {
     .name = "remote",
-    .open = remoteInterfaceOpen, /* 0.7.2 */
-    .close = remoteInterfaceClose, /* 0.7.2 */
-    .numOfInterfaces = remoteNumOfInterfaces, /* 0.7.2 */
-    .listInterfaces = remoteListInterfaces, /* 0.7.2 */
-    .numOfDefinedInterfaces = remoteNumOfDefinedInterfaces, /* 0.7.2 */
-    .listDefinedInterfaces = remoteListDefinedInterfaces, /* 0.7.2 */
-    .listAllInterfaces = remoteConnectListAllInterfaces, /* 0.10.2 */
+    .interfaceOpen = remoteInterfaceOpen, /* 0.7.2 */
+    .interfaceClose = remoteInterfaceClose, /* 0.7.2 */
+    .connectNumOfInterfaces = remoteConnectNumOfInterfaces, /* 0.7.2 */
+    .connectListInterfaces = remoteConnectListInterfaces, /* 0.7.2 */
+    .connectNumOfDefinedInterfaces = remoteConnectNumOfDefinedInterfaces, /* 0.7.2 */
+    .connectListDefinedInterfaces = remoteConnectListDefinedInterfaces, /* 0.7.2 */
+    .connectListAllInterfaces = remoteConnectListAllInterfaces, /* 0.10.2 */
     .interfaceLookupByName = remoteInterfaceLookupByName, /* 0.7.2 */
     .interfaceLookupByMACString = remoteInterfaceLookupByMACString, /* 0.7.2 */
     .interfaceGetXMLDesc = remoteInterfaceGetXMLDesc, /* 0.7.2 */
@@ -6351,103 +6385,103 @@ static virInterfaceDriver interface_driver = {
 
 static virStorageDriver storage_driver = {
     .name = "remote",
-    .open = remoteStorageOpen, /* 0.4.1 */
-    .close = remoteStorageClose, /* 0.4.1 */
-    .numOfPools = remoteNumOfStoragePools, /* 0.4.1 */
-    .listPools = remoteListStoragePools, /* 0.4.1 */
-    .numOfDefinedPools = remoteNumOfDefinedStoragePools, /* 0.4.1 */
-    .listDefinedPools = remoteListDefinedStoragePools, /* 0.4.1 */
-    .listAllPools = remoteConnectListAllStoragePools, /* 0.10.2 */
-    .findPoolSources = remoteFindStoragePoolSources, /* 0.4.5 */
-    .poolLookupByName = remoteStoragePoolLookupByName, /* 0.4.1 */
-    .poolLookupByUUID = remoteStoragePoolLookupByUUID, /* 0.4.1 */
-    .poolLookupByVolume = remoteStoragePoolLookupByVolume, /* 0.4.1 */
-    .poolCreateXML = remoteStoragePoolCreateXML, /* 0.4.1 */
-    .poolDefineXML = remoteStoragePoolDefineXML, /* 0.4.1 */
-    .poolBuild = remoteStoragePoolBuild, /* 0.4.1 */
-    .poolUndefine = remoteStoragePoolUndefine, /* 0.4.1 */
-    .poolCreate = remoteStoragePoolCreate, /* 0.4.1 */
-    .poolDestroy = remoteStoragePoolDestroy, /* 0.4.1 */
-    .poolDelete = remoteStoragePoolDelete, /* 0.4.1 */
-    .poolRefresh = remoteStoragePoolRefresh, /* 0.4.1 */
-    .poolGetInfo = remoteStoragePoolGetInfo, /* 0.4.1 */
-    .poolGetXMLDesc = remoteStoragePoolGetXMLDesc, /* 0.4.1 */
-    .poolGetAutostart = remoteStoragePoolGetAutostart, /* 0.4.1 */
-    .poolSetAutostart = remoteStoragePoolSetAutostart, /* 0.4.1 */
-    .poolNumOfVolumes = remoteStoragePoolNumOfVolumes, /* 0.4.1 */
-    .poolListVolumes = remoteStoragePoolListVolumes, /* 0.4.1 */
-    .poolListAllVolumes = remoteStoragePoolListAllVolumes, /* 0.10.0 */
+    .storageOpen = remoteStorageOpen, /* 0.4.1 */
+    .storageClose = remoteStorageClose, /* 0.4.1 */
+    .connectNumOfStoragePools = remoteConnectNumOfStoragePools, /* 0.4.1 */
+    .connectListStoragePools = remoteConnectListStoragePools, /* 0.4.1 */
+    .connectNumOfDefinedStoragePools = remoteConnectNumOfDefinedStoragePools, /* 0.4.1 */
+    .connectListDefinedStoragePools = remoteConnectListDefinedStoragePools, /* 0.4.1 */
+    .connectListAllStoragePools = remoteConnectListAllStoragePools, /* 0.10.2 */
+    .connectFindStoragePoolSources = remoteConnectFindStoragePoolSources, /* 0.4.5 */
+    .storagePoolLookupByName = remoteStoragePoolLookupByName, /* 0.4.1 */
+    .storagePoolLookupByUUID = remoteStoragePoolLookupByUUID, /* 0.4.1 */
+    .storagePoolLookupByVolume = remoteStoragePoolLookupByVolume, /* 0.4.1 */
+    .storagePoolCreateXML = remoteStoragePoolCreateXML, /* 0.4.1 */
+    .storagePoolDefineXML = remoteStoragePoolDefineXML, /* 0.4.1 */
+    .storagePoolBuild = remoteStoragePoolBuild, /* 0.4.1 */
+    .storagePoolUndefine = remoteStoragePoolUndefine, /* 0.4.1 */
+    .storagePoolCreate = remoteStoragePoolCreate, /* 0.4.1 */
+    .storagePoolDestroy = remoteStoragePoolDestroy, /* 0.4.1 */
+    .storagePoolDelete = remoteStoragePoolDelete, /* 0.4.1 */
+    .storagePoolRefresh = remoteStoragePoolRefresh, /* 0.4.1 */
+    .storagePoolGetInfo = remoteStoragePoolGetInfo, /* 0.4.1 */
+    .storagePoolGetXMLDesc = remoteStoragePoolGetXMLDesc, /* 0.4.1 */
+    .storagePoolGetAutostart = remoteStoragePoolGetAutostart, /* 0.4.1 */
+    .storagePoolSetAutostart = remoteStoragePoolSetAutostart, /* 0.4.1 */
+    .storagePoolNumOfVolumes = remoteStoragePoolNumOfVolumes, /* 0.4.1 */
+    .storagePoolListVolumes = remoteStoragePoolListVolumes, /* 0.4.1 */
+    .storagePoolListAllVolumes = remoteStoragePoolListAllVolumes, /* 0.10.0 */
 
-    .volLookupByName = remoteStorageVolLookupByName, /* 0.4.1 */
-    .volLookupByKey = remoteStorageVolLookupByKey, /* 0.4.1 */
-    .volLookupByPath = remoteStorageVolLookupByPath, /* 0.4.1 */
-    .volCreateXML = remoteStorageVolCreateXML, /* 0.4.1 */
-    .volCreateXMLFrom = remoteStorageVolCreateXMLFrom, /* 0.6.4 */
-    .volDownload = remoteStorageVolDownload, /* 0.9.0 */
-    .volUpload = remoteStorageVolUpload, /* 0.9.0 */
-    .volDelete = remoteStorageVolDelete, /* 0.4.1 */
-    .volWipe = remoteStorageVolWipe, /* 0.8.0 */
-    .volWipePattern = remoteStorageVolWipePattern, /* 0.9.10 */
-    .volGetInfo = remoteStorageVolGetInfo, /* 0.4.1 */
-    .volGetXMLDesc = remoteStorageVolGetXMLDesc, /* 0.4.1 */
-    .volGetPath = remoteStorageVolGetPath, /* 0.4.1 */
-    .volResize = remoteStorageVolResize, /* 0.9.10 */
-    .poolIsActive = remoteStoragePoolIsActive, /* 0.7.3 */
-    .poolIsPersistent = remoteStoragePoolIsPersistent, /* 0.7.3 */
+    .storageVolLookupByName = remoteStorageVolLookupByName, /* 0.4.1 */
+    .storageVolLookupByKey = remoteStorageVolLookupByKey, /* 0.4.1 */
+    .storageVolLookupByPath = remoteStorageVolLookupByPath, /* 0.4.1 */
+    .storageVolCreateXML = remoteStorageVolCreateXML, /* 0.4.1 */
+    .storageVolCreateXMLFrom = remoteStorageVolCreateXMLFrom, /* 0.6.4 */
+    .storageVolDownload = remoteStorageVolDownload, /* 0.9.0 */
+    .storageVolUpload = remoteStorageVolUpload, /* 0.9.0 */
+    .storageVolDelete = remoteStorageVolDelete, /* 0.4.1 */
+    .storageVolWipe = remoteStorageVolWipe, /* 0.8.0 */
+    .storageVolWipePattern = remoteStorageVolWipePattern, /* 0.9.10 */
+    .storageVolGetInfo = remoteStorageVolGetInfo, /* 0.4.1 */
+    .storageVolGetXMLDesc = remoteStorageVolGetXMLDesc, /* 0.4.1 */
+    .storageVolGetPath = remoteStorageVolGetPath, /* 0.4.1 */
+    .storageVolResize = remoteStorageVolResize, /* 0.9.10 */
+    .storagePoolIsActive = remoteStoragePoolIsActive, /* 0.7.3 */
+    .storagePoolIsPersistent = remoteStoragePoolIsPersistent, /* 0.7.3 */
 };
 
 static virSecretDriver secret_driver = {
     .name = "remote",
-    .open = remoteSecretOpen, /* 0.7.1 */
-    .close = remoteSecretClose, /* 0.7.1 */
-    .numOfSecrets = remoteNumOfSecrets, /* 0.7.1 */
-    .listSecrets = remoteListSecrets, /* 0.7.1 */
-    .listAllSecrets = remoteConnectListAllSecrets, /* 0.10.2 */
-    .lookupByUUID = remoteSecretLookupByUUID, /* 0.7.1 */
-    .lookupByUsage = remoteSecretLookupByUsage, /* 0.7.1 */
-    .defineXML = remoteSecretDefineXML, /* 0.7.1 */
-    .getXMLDesc = remoteSecretGetXMLDesc, /* 0.7.1 */
-    .setValue = remoteSecretSetValue, /* 0.7.1 */
-    .getValue = remoteSecretGetValue, /* 0.7.1 */
-    .undefine = remoteSecretUndefine /* 0.7.1 */
+    .secretOpen = remoteSecretOpen, /* 0.7.1 */
+    .secretClose = remoteSecretClose, /* 0.7.1 */
+    .connectNumOfSecrets = remoteConnectNumOfSecrets, /* 0.7.1 */
+    .connectListSecrets = remoteConnectListSecrets, /* 0.7.1 */
+    .connectListAllSecrets = remoteConnectListAllSecrets, /* 0.10.2 */
+    .secretLookupByUUID = remoteSecretLookupByUUID, /* 0.7.1 */
+    .secretLookupByUsage = remoteSecretLookupByUsage, /* 0.7.1 */
+    .secretDefineXML = remoteSecretDefineXML, /* 0.7.1 */
+    .secretGetXMLDesc = remoteSecretGetXMLDesc, /* 0.7.1 */
+    .secretSetValue = remoteSecretSetValue, /* 0.7.1 */
+    .secretGetValue = remoteSecretGetValue, /* 0.7.1 */
+    .secretUndefine = remoteSecretUndefine /* 0.7.1 */
 };
 
-static virDeviceMonitor dev_monitor = {
+static virNodeDeviceDriver node_device_driver = {
     .name = "remote",
-    .open = remoteDevMonOpen, /* 0.5.0 */
-    .close = remoteDevMonClose, /* 0.5.0 */
-    .numOfDevices = remoteNodeNumOfDevices, /* 0.5.0 */
-    .listDevices = remoteNodeListDevices, /* 0.5.0 */
-    .listAllNodeDevices  = remoteConnectListAllNodeDevices, /* 0.10.2 */
-    .deviceLookupByName = remoteNodeDeviceLookupByName, /* 0.5.0 */
-    .deviceLookupSCSIHostByWWN = remoteNodeDeviceLookupSCSIHostByWWN, /* 1.0.2 */
-    .deviceGetXMLDesc = remoteNodeDeviceGetXMLDesc, /* 0.5.0 */
-    .deviceGetParent = remoteNodeDeviceGetParent, /* 0.5.0 */
-    .deviceNumOfCaps = remoteNodeDeviceNumOfCaps, /* 0.5.0 */
-    .deviceListCaps = remoteNodeDeviceListCaps, /* 0.5.0 */
-    .deviceCreateXML = remoteNodeDeviceCreateXML, /* 0.6.3 */
-    .deviceDestroy = remoteNodeDeviceDestroy /* 0.6.3 */
+    .nodeDeviceOpen = remoteNodeDeviceOpen, /* 0.5.0 */
+    .nodeDeviceClose = remoteNodeDeviceClose, /* 0.5.0 */
+    .nodeNumOfDevices = remoteNodeNumOfDevices, /* 0.5.0 */
+    .nodeListDevices = remoteNodeListDevices, /* 0.5.0 */
+    .connectListAllNodeDevices  = remoteConnectListAllNodeDevices, /* 0.10.2 */
+    .nodeDeviceLookupByName = remoteNodeDeviceLookupByName, /* 0.5.0 */
+    .nodeDeviceLookupSCSIHostByWWN = remoteNodeDeviceLookupSCSIHostByWWN, /* 1.0.2 */
+    .nodeDeviceGetXMLDesc = remoteNodeDeviceGetXMLDesc, /* 0.5.0 */
+    .nodeDeviceGetParent = remoteNodeDeviceGetParent, /* 0.5.0 */
+    .nodeDeviceNumOfCaps = remoteNodeDeviceNumOfCaps, /* 0.5.0 */
+    .nodeDeviceListCaps = remoteNodeDeviceListCaps, /* 0.5.0 */
+    .nodeDeviceCreateXML = remoteNodeDeviceCreateXML, /* 0.6.3 */
+    .nodeDeviceDestroy = remoteNodeDeviceDestroy /* 0.6.3 */
 };
 
 static virNWFilterDriver nwfilter_driver = {
     .name = "remote",
-    .open = remoteNWFilterOpen, /* 0.8.0 */
-    .close = remoteNWFilterClose, /* 0.8.0 */
+    .nwfilterOpen = remoteNWFilterOpen, /* 0.8.0 */
+    .nwfilterClose = remoteNWFilterClose, /* 0.8.0 */
     .nwfilterLookupByUUID = remoteNWFilterLookupByUUID, /* 0.8.0 */
     .nwfilterLookupByName = remoteNWFilterLookupByName, /* 0.8.0 */
-    .getXMLDesc           = remoteNWFilterGetXMLDesc, /* 0.8.0 */
-    .defineXML            = remoteNWFilterDefineXML, /* 0.8.0 */
-    .undefine             = remoteNWFilterUndefine, /* 0.8.0 */
-    .numOfNWFilters       = remoteNumOfNWFilters, /* 0.8.0 */
-    .listNWFilters        = remoteListNWFilters, /* 0.8.0 */
-    .listAllNWFilters     = remoteConnectListAllNWFilters, /* 0.10.2 */
+    .nwfilterGetXMLDesc           = remoteNWFilterGetXMLDesc, /* 0.8.0 */
+    .nwfilterDefineXML            = remoteNWFilterDefineXML, /* 0.8.0 */
+    .nwfilterUndefine             = remoteNWFilterUndefine, /* 0.8.0 */
+    .connectNumOfNWFilters       = remoteConnectNumOfNWFilters, /* 0.8.0 */
+    .connectListNWFilters        = remoteConnectListNWFilters, /* 0.8.0 */
+    .connectListAllNWFilters     = remoteConnectListAllNWFilters, /* 0.10.2 */
 };
 
 
 #ifdef WITH_LIBVIRTD
 static virStateDriver state_driver = {
     .name = "Remote",
-    .initialize = remoteStartup,
+    .stateInitialize = remoteStateInitialize,
 };
 #endif
 
@@ -6467,7 +6501,7 @@ remoteRegister(void)
     if (virRegisterNetworkDriver(&network_driver) == -1) return -1;
     if (virRegisterInterfaceDriver(&interface_driver) == -1) return -1;
     if (virRegisterStorageDriver(&storage_driver) == -1) return -1;
-    if (virRegisterDeviceMonitor(&dev_monitor) == -1) return -1;
+    if (virRegisterNodeDeviceDriver(&node_device_driver) == -1) return -1;
     if (virRegisterSecretDriver(&secret_driver) == -1) return -1;
     if (virRegisterNWFilterDriver(&nwfilter_driver) == -1) return -1;
 #ifdef WITH_LIBVIRTD

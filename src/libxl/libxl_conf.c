@@ -64,15 +64,6 @@ static const char *xen_cap_re = "(xen|hvm)-[[:digit:]]+\\.[[:digit:]]+-(x86_32|x
 static regex_t xen_cap_rec;
 
 
-static int libxlDefaultConsoleType(const char *ostype,
-                                   virArch arch ATTRIBUTE_UNUSED)
-{
-    if (STREQ(ostype, "hvm"))
-        return VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_SERIAL;
-    else
-        return VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_XEN;
-}
-
 static virCapsPtr
 libxlBuildCapabilities(virArch hostarch,
                        int host_pae,
@@ -84,8 +75,6 @@ libxlBuildCapabilities(virArch hostarch,
 
     if ((caps = virCapabilitiesNew(hostarch, 1, 1)) == NULL)
         goto no_memory;
-
-    virCapabilitiesSetMacPrefix(caps, (unsigned char[]){ 0x00, 0x16, 0x3e });
 
     if (host_pae &&
         virCapabilitiesAddHostFeature(caps, "pae") < 0)
@@ -163,8 +152,6 @@ libxlBuildCapabilities(virArch hostarch,
                 goto no_memory;
         }
     }
-
-    caps->defaultConsoleTargetType = libxlDefaultConsoleType;
 
     return caps;
 

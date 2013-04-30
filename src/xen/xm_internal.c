@@ -707,7 +707,7 @@ xenXMDomainSetVcpusFlags(virDomainPtr domain,
         goto cleanup;
 
     /* Hypervisor maximum. */
-    if ((max = xenUnifiedGetMaxVcpus(domain->conn, NULL)) < 0) {
+    if ((max = xenUnifiedConnectGetMaxVcpus(domain->conn, NULL)) < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                        _("could not determine max vcpus for the domain"));
         goto cleanup;
@@ -1013,7 +1013,7 @@ xenXMDomainDefineXML(virConnectPtr conn, const char *xml)
         return NULL;
     }
 
-    if (!(def = virDomainDefParseString(priv->caps, priv->xmlconf, xml,
+    if (!(def = virDomainDefParseString(xml, priv->caps, priv->xmlopt,
                                         1 << VIR_DOMAIN_VIRT_XEN,
                                         VIR_DOMAIN_XML_INACTIVE))) {
         xenUnifiedUnlock(priv);
@@ -1310,9 +1310,10 @@ xenXMDomainAttachDeviceFlags(virDomainPtr domain,
         goto cleanup;
     def = entry->def;
 
-    if (!(dev = virDomainDeviceDefParse(priv->caps,
-                                        entry->def,
-                                        xml, VIR_DOMAIN_XML_INACTIVE)))
+    if (!(dev = virDomainDeviceDefParse(xml, entry->def,
+                                        priv->caps,
+                                        priv->xmlopt,
+                                        VIR_DOMAIN_XML_INACTIVE)))
         goto cleanup;
 
     switch (dev->type) {
@@ -1403,9 +1404,10 @@ xenXMDomainDetachDeviceFlags(virDomainPtr domain,
         goto cleanup;
     def = entry->def;
 
-    if (!(dev = virDomainDeviceDefParse(priv->caps,
-                                        entry->def,
-                                        xml, VIR_DOMAIN_XML_INACTIVE)))
+    if (!(dev = virDomainDeviceDefParse(xml, entry->def,
+                                        priv->caps,
+                                        priv->xmlopt,
+                                        VIR_DOMAIN_XML_INACTIVE)))
         goto cleanup;
 
     switch (dev->type) {

@@ -1,7 +1,7 @@
 /*
  * xen_xm.c: Xen XM parsing functions
  *
- * Copyright (C) 2006-2007, 2009-2010, 2012 Red Hat, Inc.
+ * Copyright (C) 2006-2007, 2009-2010, 2012-2013 Red Hat, Inc.
  * Copyright (C) 2011 Univention GmbH
  * Copyright (C) 2006 Daniel P. Berrange
  *
@@ -610,10 +610,10 @@ xenParseXM(virConfPtr conf, int xendConfigVersion,
 
             if (STREQ(head, "r") ||
                 STREQ(head, "ro"))
-                disk->readonly = 1;
+                disk->readonly = true;
             else if ((STREQ(head, "w!")) ||
                      (STREQ(head, "!")))
-                disk->shared = 1;
+                disk->shared = true;
 
             /* Maintain list in sorted order according to target device name */
             if (VIR_REALLOC_N(def->disks, def->ndisks+1) < 0)
@@ -643,7 +643,7 @@ xenParseXM(virConfPtr conf, int xendConfigVersion,
             if (!(disk->dst = strdup("hdc")))
                 goto no_memory;
             disk->bus = VIR_DOMAIN_DISK_BUS_IDE;
-            disk->readonly = 1;
+            disk->readonly = true;
 
             if (VIR_REALLOC_N(def->disks, def->ndisks+1) < 0)
                 goto no_memory;
@@ -875,12 +875,12 @@ xenParseXM(virConfPtr conf, int xendConfigVersion,
             if (!(hostdev = virDomainHostdevDefAlloc()))
                goto cleanup;
 
-            hostdev->managed = 0;
+            hostdev->managed = false;
             hostdev->source.subsys.type = VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI;
-            hostdev->source.subsys.u.pci.domain = domainID;
-            hostdev->source.subsys.u.pci.bus = busID;
-            hostdev->source.subsys.u.pci.slot = slotID;
-            hostdev->source.subsys.u.pci.function = funcID;
+            hostdev->source.subsys.u.pci.addr.domain = domainID;
+            hostdev->source.subsys.u.pci.addr.bus = busID;
+            hostdev->source.subsys.u.pci.addr.slot = slotID;
+            hostdev->source.subsys.u.pci.addr.function = funcID;
 
             if (VIR_REALLOC_N(def->hostdevs, def->nhostdevs+1) < 0) {
                 virDomainHostdevDefFree(hostdev);
@@ -1012,7 +1012,7 @@ xenParseXM(virConfPtr conf, int xendConfigVersion,
                 if (graphics->type == VIR_DOMAIN_GRAPHICS_TYPE_VNC) {
                     if (STRPREFIX(key, "vncunused=")) {
                         if (STREQ(key + 10, "1"))
-                            graphics->data.vnc.autoport = 1;
+                            graphics->data.vnc.autoport = true;
                     } else if (STRPREFIX(key, "vnclisten=")) {
                         if (virDomainGraphicsListenSetAddress(graphics, 0, key+10,
                                                               -1, true) < 0)
@@ -1335,11 +1335,9 @@ static int xenFormatXMNet(virConnectPtr conn,
 {
     virBuffer buf = VIR_BUFFER_INITIALIZER;
     virConfValuePtr val, tmp;
+    char macaddr[VIR_MAC_STRING_BUFLEN];
 
-    virBufferAsprintf(&buf, "mac=%02x:%02x:%02x:%02x:%02x:%02x",
-                      net->mac.addr[0], net->mac.addr[1],
-                      net->mac.addr[2], net->mac.addr[3],
-                      net->mac.addr[4], net->mac.addr[5]);
+    virBufferAsprintf(&buf, "mac=%s", virMacAddrFormat(&net->mac, macaddr));
 
     switch (net->type) {
     case VIR_DOMAIN_NET_TYPE_BRIDGE:
@@ -1472,10 +1470,10 @@ xenFormatXMPCI(virConfPtr conf,
             char *buf;
 
             if (virAsprintf(&buf, "%04x:%02x:%02x.%x",
-                            def->hostdevs[i]->source.subsys.u.pci.domain,
-                            def->hostdevs[i]->source.subsys.u.pci.bus,
-                            def->hostdevs[i]->source.subsys.u.pci.slot,
-                            def->hostdevs[i]->source.subsys.u.pci.function) < 0) {
+                            def->hostdevs[i]->source.subsys.u.pci.addr.domain,
+                            def->hostdevs[i]->source.subsys.u.pci.addr.bus,
+                            def->hostdevs[i]->source.subsys.u.pci.addr.slot,
+                            def->hostdevs[i]->source.subsys.u.pci.addr.function) < 0) {
                 virReportOOMError();
                 goto error;
             }

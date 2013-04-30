@@ -508,16 +508,27 @@ virSecurityDACSetSecurityHostdevLabel(virSecurityManagerPtr mgr,
 
     case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI: {
         virPCIDevicePtr pci =
-            virPCIDeviceNew(dev->source.subsys.u.pci.domain,
-                            dev->source.subsys.u.pci.bus,
-                            dev->source.subsys.u.pci.slot,
-                            dev->source.subsys.u.pci.function);
+            virPCIDeviceNew(dev->source.subsys.u.pci.addr.domain,
+                            dev->source.subsys.u.pci.addr.bus,
+                            dev->source.subsys.u.pci.addr.slot,
+                            dev->source.subsys.u.pci.addr.function);
 
         if (!pci)
             goto done;
 
-        ret = virPCIDeviceFileIterate(pci, virSecurityDACSetSecurityPCILabel,
-                                      params);
+        if (dev->source.subsys.u.pci.backend
+            == VIR_DOMAIN_HOSTDEV_PCI_BACKEND_TYPE_VFIO) {
+            char *vfioGroupDev = virPCIDeviceGetVFIOGroupDev(pci);
+
+            if (!vfioGroupDev)
+                goto done;
+            ret = virSecurityDACSetSecurityPCILabel(pci, vfioGroupDev, params);
+            VIR_FREE(vfioGroupDev);
+        } else {
+            ret = virPCIDeviceFileIterate(pci, virSecurityDACSetSecurityPCILabel,
+                                          params);
+        }
+
         virPCIDeviceFree(pci);
 
         break;
@@ -588,15 +599,25 @@ virSecurityDACRestoreSecurityHostdevLabel(virSecurityManagerPtr mgr,
 
     case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI: {
         virPCIDevicePtr pci =
-            virPCIDeviceNew(dev->source.subsys.u.pci.domain,
-                            dev->source.subsys.u.pci.bus,
-                            dev->source.subsys.u.pci.slot,
-                            dev->source.subsys.u.pci.function);
+            virPCIDeviceNew(dev->source.subsys.u.pci.addr.domain,
+                            dev->source.subsys.u.pci.addr.bus,
+                            dev->source.subsys.u.pci.addr.slot,
+                            dev->source.subsys.u.pci.addr.function);
 
         if (!pci)
             goto done;
 
-        ret = virPCIDeviceFileIterate(pci, virSecurityDACRestoreSecurityPCILabel, mgr);
+        if (dev->source.subsys.u.pci.backend
+            == VIR_DOMAIN_HOSTDEV_PCI_BACKEND_TYPE_VFIO) {
+            char *vfioGroupDev = virPCIDeviceGetVFIOGroupDev(pci);
+
+            if (!vfioGroupDev)
+                goto done;
+            ret = virSecurityDACRestoreSecurityPCILabel(pci, vfioGroupDev, mgr);
+            VIR_FREE(vfioGroupDev);
+        } else {
+            ret = virPCIDeviceFileIterate(pci, virSecurityDACRestoreSecurityPCILabel, mgr);
+        }
         virPCIDeviceFree(pci);
 
         break;
@@ -716,6 +737,46 @@ virSecurityDACRestoreChardevCallback(virDomainDefPtr def ATTRIBUTE_UNUSED,
 
 
 static int
+virSecurityDACSetSecurityTPMFileLabel(virSecurityManagerPtr mgr,
+                                      virDomainDefPtr def,
+                                      virDomainTPMDefPtr tpm)
+{
+    int ret = 0;
+
+    switch (tpm->type) {
+    case VIR_DOMAIN_TPM_TYPE_PASSTHROUGH:
+        ret = virSecurityDACSetChardevLabel(mgr, def,
+                                            &tpm->data.passthrough.source);
+        break;
+    case VIR_DOMAIN_TPM_TYPE_LAST:
+        break;
+    }
+
+    return ret;
+}
+
+
+static int
+virSecurityDACRestoreSecurityTPMFileLabel(
+                                   virSecurityManagerPtr mgr,
+                                   virDomainTPMDefPtr tpm)
+{
+    int ret = 0;
+
+    switch (tpm->type) {
+    case VIR_DOMAIN_TPM_TYPE_PASSTHROUGH:
+        ret = virSecurityDACRestoreChardevLabel(mgr,
+                                          &tpm->data.passthrough.source);
+        break;
+    case VIR_DOMAIN_TPM_TYPE_LAST:
+        break;
+    }
+
+    return ret;
+}
+
+
+static int
 virSecurityDACRestoreSecurityAllLabel(virSecurityManagerPtr mgr,
                                       virDomainDefPtr def,
                                       int migrated)
@@ -751,6 +812,12 @@ virSecurityDACRestoreSecurityAllLabel(virSecurityManagerPtr mgr,
                                virSecurityDACRestoreChardevCallback,
                                mgr) < 0)
         rc = -1;
+
+    if (def->tpm) {
+        if (virSecurityDACRestoreSecurityTPMFileLabel(mgr,
+                                                      def->tpm) < 0)
+            rc = -1;
+    }
 
     if (def->os.kernel &&
         virSecurityDACRestoreSecurityFileLabel(def->os.kernel) < 0)
@@ -814,6 +881,13 @@ virSecurityDACSetSecurityAllLabel(virSecurityManagerPtr mgr,
                                virSecurityDACSetChardevCallback,
                                mgr) < 0)
         return -1;
+
+    if (def->tpm) {
+        if (virSecurityDACSetSecurityTPMFileLabel(mgr,
+                                                  def,
+                                                  def->tpm) < 0)
+            return -1;
+    }
 
     if (virSecurityDACGetImageIds(def, priv, &user, &group))
         return -1;

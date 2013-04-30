@@ -293,7 +293,7 @@ int virLXCCgroupGetMeminfo(virLXCMeminfoPtr meminfo)
     int ret;
     virCgroupPtr cgroup;
 
-    ret = virCgroupGetAppRoot(&cgroup);
+    ret = virCgroupNewSelf(&cgroup);
     if (ret < 0) {
         virReportSystemError(-ret, "%s",
                              _("Unable to get cgroup for container"));
@@ -523,27 +523,99 @@ cleanup:
 }
 
 
-virCgroupPtr virLXCCgroupCreate(virDomainDefPtr def)
+virCgroupPtr virLXCCgroupCreate(virDomainDefPtr def, bool startup)
 {
-    virCgroupPtr driver = NULL;
+    int rc;
+    virCgroupPtr parent = NULL;
+    virCgroupPtr cgroup = NULL;
+
+    if (!def->resource && startup) {
+        virDomainResourceDefPtr res;
+
+        if (VIR_ALLOC(res) < 0) {
+            virReportOOMError();
+            goto cleanup;
+        }
+
+        if (!(res->partition = strdup("/machine"))) {
+            virReportOOMError();
+            VIR_FREE(res);
+            goto cleanup;
+        }
+
+        def->resource = res;
+    }
+
+    if (def->resource &&
+        def->resource->partition) {
+        if (def->resource->partition[0] != '/') {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("Resource partition '%s' must start with '/'"),
+                           def->resource->partition);
+            goto cleanup;
+        }
+        /* We only auto-create the default partition. In other
+         * cases we expec the sysadmin/app to have done so */
+        rc = virCgroupNewPartition(def->resource->partition,
+                                   STREQ(def->resource->partition, "/machine"),
+                                   -1,
+                                   &parent);
+        if (rc != 0) {
+            virReportSystemError(-rc,
+                                 _("Unable to initialize %s cgroup"),
+                                 def->resource->partition);
+            goto cleanup;
+        }
+
+        rc = virCgroupNewDomainPartition(parent,
+                                         "lxc",
+                                         def->name,
+                                         true,
+                                         &cgroup);
+        if (rc != 0) {
+            virReportSystemError(-rc,
+                                 _("Unable to create cgroup for %s"),
+                                 def->name);
+            goto cleanup;
+        }
+    } else {
+        rc = virCgroupNewDriver("lxc",
+                                true,
+                                -1,
+                                &parent);
+        if (rc != 0) {
+            virReportSystemError(-rc,
+                                 _("Unable to create cgroup for %s"),
+                                 def->name);
+            goto cleanup;
+        }
+
+        rc = virCgroupNewDomainDriver(parent,
+                                      def->name,
+                                      true,
+                                      &cgroup);
+        if (rc != 0) {
+            virReportSystemError(-rc,
+                                 _("Unable to create cgroup for %s"),
+                                 def->name);
+            goto cleanup;
+        }
+    }
+
+cleanup:
+    virCgroupFree(&parent);
+    return cgroup;
+}
+
+
+virCgroupPtr virLXCCgroupJoin(virDomainDefPtr def)
+{
     virCgroupPtr cgroup = NULL;
     int ret = -1;
     int rc;
 
-    rc = virCgroupForDriver("lxc", &driver, 1, 0);
-    if (rc != 0) {
-        virReportSystemError(-rc, "%s",
-                             _("Unable to get cgroup for driver"));
-        goto cleanup;
-    }
-
-    rc = virCgroupForDomain(driver, def->name, &cgroup, 1);
-    if (rc != 0) {
-        virReportSystemError(-rc,
-                             _("Unable to create cgroup for domain %s"),
-                             def->name);
-        goto cleanup;
-    }
+    if (!(cgroup = virLXCCgroupCreate(def, true)))
+        return NULL;
 
     rc = virCgroupAddTask(cgroup, getpid());
     if (rc != 0) {
@@ -556,7 +628,6 @@ virCgroupPtr virLXCCgroupCreate(virDomainDefPtr def)
     ret = 0;
 
 cleanup:
-    virCgroupFree(&driver);
     if (ret < 0) {
         virCgroupFree(&cgroup);
         return NULL;
