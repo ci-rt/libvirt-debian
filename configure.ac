@@ -194,7 +194,7 @@ dnl Availability of various common functions (non-fatal if missing),
 dnl and various less common threadsafe functions
 AC_CHECK_FUNCS_ONCE([cfmakeraw geteuid getgid getgrnam_r getmntent_r \
   getpwuid_r getuid initgroups kill mmap newlocale posix_fallocate \
-  posix_memalign regexec sched_getaffinity setns symlink])
+  posix_memalign prlimit regexec sched_getaffinity setns setrlimit symlink])
 
 dnl Availability of pthread functions (if missing, win32 threading is
 dnl assumed).  Because of $LIB_PTHREAD, we cannot use AC_CHECK_FUNCS_ONCE.
@@ -2362,6 +2362,15 @@ AM_CONDITIONAL([HAVE_LIBNL], [test "$have_libnl" = "yes"])
 
 AC_SUBST([LIBNL_CFLAGS])
 AC_SUBST([LIBNL_LIBS])
+
+# Check for Linux vs. BSD ifreq members
+AC_CHECK_MEMBERS([struct ifreq.ifr_newname,
+                  struct ifreq.ifr_ifindex,
+                  struct ifreq.ifr_index],
+                 [], [],
+                 [#include <sys/socket.h>
+                  #include <net/if.h>
+                 ])
 
 # Only COPYING.LIB is under version control, yet COPYING
 # is included as part of the distribution tarball.

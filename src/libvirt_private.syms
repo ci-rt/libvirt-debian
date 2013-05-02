@@ -1185,6 +1185,9 @@ virCommandSetErrorFD;
 virCommandSetGID;
 virCommandSetInputBuffer;
 virCommandSetInputFD;
+virCommandSetMaxFiles;
+virCommandSetMaxMemLock;
+virCommandSetMaxProcesses;
 virCommandSetOutputBuffer;
 virCommandSetOutputFD;
 virCommandSetPidFile;
@@ -1530,6 +1533,7 @@ virNetDevOpenvswitchSetMigrateData;
 virNetDevTapCreate;
 virNetDevTapCreateInBridgePort;
 virNetDevTapDelete;
+virNetDevTapGetName;
 
 
 # util/virnetdevveth.h
@@ -1668,6 +1672,9 @@ virProcessGetNamespaces;
 virProcessKill;
 virProcessKillPainfully;
 virProcessSetAffinity;
+virProcessSetMaxFiles;
+virProcessSetMaxMemLock;
+virProcessSetMaxProcesses;
 virProcessSetNamespaces;
 virProcessTranslateStatus;
 virProcessWait;

@@ -624,6 +624,7 @@
     <function name="VIR_FROM_AUDIT" link="libvirt-virterror.html#VIR_FROM_AUDIT"/>
     <function name="VIR_FROM_AUTH" link="libvirt-virterror.html#VIR_FROM_AUTH"/>
     <function name="VIR_FROM_CAPABILITIES" link="libvirt-virterror.html#VIR_FROM_CAPABILITIES"/>
+    <function name="VIR_FROM_CGROUP" link="libvirt-virterror.html#VIR_FROM_CGROUP"/>
     <function name="VIR_FROM_CONF" link="libvirt-virterror.html#VIR_FROM_CONF"/>
     <function name="VIR_FROM_CPU" link="libvirt-virterror.html#VIR_FROM_CPU"/>
     <function name="VIR_FROM_DBUS" link="libvirt-virterror.html#VIR_FROM_DBUS"/>
@@ -1271,6 +1272,7 @@
     <function name="virNetworkUpdate ()" link="libvirt-libvirt.html#virNetworkUpdate"/>
     <function name="virNodeDeviceCreateXML ()" link="libvirt-libvirt.html#virNodeDeviceCreateXML"/>
     <function name="virNodeDeviceDestroy ()" link="libvirt-libvirt.html#virNodeDeviceDestroy"/>
+    <function name="virNodeDeviceDetachFlags ()" link="libvirt-libvirt.html#virNodeDeviceDetachFlags"/>
     <function name="virNodeDeviceDettach ()" link="libvirt-libvirt.html#virNodeDeviceDettach"/>
     <function name="virNodeDeviceFree ()" link="libvirt-libvirt.html#virNodeDeviceFree"/>
     <function name="virNodeDeviceGetName ()" link="libvirt-libvirt.html#virNodeDeviceGetName"/>

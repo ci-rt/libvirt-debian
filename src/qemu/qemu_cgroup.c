@@ -39,7 +39,7 @@ static const char *const defaultDeviceACL[] = {
     "/dev/null", "/dev/full", "/dev/zero",
     "/dev/random", "/dev/urandom",
     "/dev/ptmx", "/dev/kvm", "/dev/kqemu",
-    "/dev/rtc", "/dev/hpet",
+    "/dev/rtc", "/dev/hpet", "/dev/vfio/vfio",
     NULL,
 };
 #define DEVICE_PTY_MAJOR 136
@@ -191,9 +191,10 @@ qemuSetupTPMCgroup(virDomainDefPtr def,
 }
 
 
-int qemuSetupHostUsbDeviceCgroup(virUSBDevicePtr dev ATTRIBUTE_UNUSED,
-                                 const char *path,
-                                 void *opaque)
+static int
+qemuSetupHostUsbDeviceCgroup(virUSBDevicePtr dev ATTRIBUTE_UNUSED,
+                             const char *path,
+                             void *opaque)
 {
     virDomainObjPtr vm = opaque;
     qemuDomainObjPrivatePtr priv = vm->privateData;
@@ -211,6 +212,158 @@ int qemuSetupHostUsbDeviceCgroup(virUSBDevicePtr dev ATTRIBUTE_UNUSED,
     }
 
     return 0;
+}
+
+
+int
+qemuSetupHostdevCGroup(virDomainObjPtr vm,
+                       virDomainHostdevDefPtr dev)
+{
+    int ret = -1;
+    qemuDomainObjPrivatePtr priv = vm->privateData;
+    virPCIDevicePtr pci = NULL;
+    virUSBDevicePtr usb = NULL;
+    char *path = NULL;
+
+    /* currently this only does something for PCI devices using vfio
+     * for device assignment, but it is called for *all* hostdev
+     * devices.
+     */
+
+    if (!virCgroupHasController(priv->cgroup, VIR_CGROUP_CONTROLLER_DEVICES))
+        return 0;
+
+    if (dev->mode == VIR_DOMAIN_HOSTDEV_MODE_SUBSYS) {
+
+        switch (dev->source.subsys.type) {
+        case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI:
+            if (dev->source.subsys.u.pci.backend
+                != VIR_DOMAIN_HOSTDEV_PCI_BACKEND_VFIO) {
+                int rc;
+
+                pci = virPCIDeviceNew(dev->source.subsys.u.pci.addr.domain,
+                                      dev->source.subsys.u.pci.addr.bus,
+                                      dev->source.subsys.u.pci.addr.slot,
+                                      dev->source.subsys.u.pci.addr.function);
+                if (!pci)
+                    goto cleanup;
+
+                if (!(path = virPCIDeviceGetVFIOGroupDev(pci)))
+                    goto cleanup;
+
+                VIR_DEBUG("Cgroup allow %s for PCI device assignment", path);
+                rc = virCgroupAllowDevicePath(priv->cgroup, path,
+                                              VIR_CGROUP_DEVICE_RW);
+                virDomainAuditCgroupPath(vm, priv->cgroup,
+                                         "allow", path, "rw", rc);
+                if (rc < 0) {
+                    virReportSystemError(-rc,
+                                         _("Unable to allow access "
+                                           "for device path %s"),
+                                         path);
+                    goto cleanup;
+                }
+            }
+            break;
+
+        case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_USB:
+            /* NB: hostdev->missing wasn't previously checked in the
+             * case of hotplug, only when starting a domain. Now it is
+             * always checked, and the cgroup setup skipped if true.
+             */
+            if (dev->missing)
+                break;
+            if ((usb = virUSBDeviceNew(dev->source.subsys.u.usb.bus,
+                                       dev->source.subsys.u.usb.device,
+                                       NULL)) == NULL) {
+                goto cleanup;
+            }
+
+            /* oddly, qemuSetupHostUsbDeviceCgroup doesn't ever
+             * reference the usb object we just created
+             */
+            if (virUSBDeviceFileIterate(usb, qemuSetupHostUsbDeviceCgroup,
+                                        vm) < 0) {
+                goto cleanup;
+            }
+            break;
+        default:
+            break;
+        }
+    }
+
+    ret = 0;
+cleanup:
+    virPCIDeviceFree(pci);
+    virUSBDeviceFree(usb);
+    VIR_FREE(path);
+    return ret;
+}
+
+
+
+int
+qemuTeardownHostdevCgroup(virDomainObjPtr vm,
+                       virDomainHostdevDefPtr dev)
+{
+    int ret = -1;
+    qemuDomainObjPrivatePtr priv = vm->privateData;
+    virPCIDevicePtr pci = NULL;
+    char *path = NULL;
+
+    /* currently this only does something for PCI devices using vfio
+     * for device assignment, but it is called for *all* hostdev
+     * devices.
+     */
+
+    if (!virCgroupHasController(priv->cgroup, VIR_CGROUP_CONTROLLER_DEVICES))
+        return 0;
+
+    if (dev->mode == VIR_DOMAIN_HOSTDEV_MODE_SUBSYS) {
+
+        switch (dev->source.subsys.type) {
+        case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI:
+            if (dev->source.subsys.u.pci.backend
+                != VIR_DOMAIN_HOSTDEV_PCI_BACKEND_VFIO) {
+                int rc;
+
+                pci = virPCIDeviceNew(dev->source.subsys.u.pci.addr.domain,
+                                      dev->source.subsys.u.pci.addr.bus,
+                                      dev->source.subsys.u.pci.addr.slot,
+                                      dev->source.subsys.u.pci.addr.function);
+                if (!pci)
+                    goto cleanup;
+
+                if (!(path = virPCIDeviceGetVFIOGroupDev(pci)))
+                    goto cleanup;
+
+                VIR_DEBUG("Cgroup deny %s for PCI device assignment", path);
+                rc = virCgroupDenyDevicePath(priv->cgroup, path,
+                                             VIR_CGROUP_DEVICE_RWM);
+                virDomainAuditCgroupPath(vm, priv->cgroup,
+                                         "deny", path, "rwm", rc);
+                if (rc < 0) {
+                    virReportSystemError(-rc,
+                                         _("Unable to deny access "
+                                           "for device path %s"),
+                                         path);
+                    goto cleanup;
+                }
+            }
+            break;
+        case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_USB:
+            /* nothing to tear down for USB */
+            break;
+        default:
+            break;
+        }
+    }
+
+    ret = 0;
+cleanup:
+    virPCIDeviceFree(pci);
+    VIR_FREE(path);
+    return ret;
 }
 
 
@@ -420,27 +573,8 @@ int qemuSetupCgroup(virQEMUDriverPtr driver,
             goto cleanup;
 
         for (i = 0; i < vm->def->nhostdevs; i++) {
-            virDomainHostdevDefPtr hostdev = vm->def->hostdevs[i];
-            virUSBDevicePtr usb;
-
-            if (hostdev->mode != VIR_DOMAIN_HOSTDEV_MODE_SUBSYS)
-                continue;
-            if (hostdev->source.subsys.type != VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_USB)
-                continue;
-            if (hostdev->missing)
-                continue;
-
-            if ((usb = virUSBDeviceNew(hostdev->source.subsys.u.usb.bus,
-                                       hostdev->source.subsys.u.usb.device,
-                                       NULL)) == NULL)
+            if (qemuSetupHostdevCGroup(vm, vm->def->hostdevs[i]) < 0)
                 goto cleanup;
-
-            if (virUSBDeviceFileIterate(usb, qemuSetupHostUsbDeviceCgroup,
-                                        vm) < 0) {
-                virUSBDeviceFree(usb);
-                goto cleanup;
-            }
-            virUSBDeviceFree(usb);
         }
     }
 

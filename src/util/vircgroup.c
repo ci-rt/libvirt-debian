@@ -49,6 +49,7 @@
 #include "virfile.h"
 #include "virhash.h"
 #include "virhashcode.h"
+#include "virstring.h"
 
 #define CGROUP_MAX_VAL 512
 
@@ -1091,6 +1092,127 @@ cleanup:
 
 
 #if defined HAVE_MNTENT_H && defined HAVE_GETMNTENT_R
+static int virCgroupPartitionNeedsEscaping(const char *path)
+{
+    FILE *fp = NULL;
+    int ret = 0;
+    char *line = NULL;
+    size_t len;
+
+    /* If it starts with 'cgroup.' or a '_' of any
+     * of the controller names from /proc/cgroups,
+     * then we must prefix a '_'
+     */
+    if (STRPREFIX(path, "cgroup."))
+        return 1;
+
+    if (path[0] == '_')
+        return 1;
+
+    if (!(fp = fopen("/proc/cgroups", "r")))
+        return -errno;
+
+    /*
+     * Data looks like this:
+     * #subsys_name hierarchy num_cgroups enabled
+     * cpuset  2 4  1
+     * cpu     3 48 1
+     * cpuacct 3 48 1
+     * memory  4 4  1
+     * devices 5 4  1
+     * freezer 6 4  1
+     * net_cls 7 1  1
+     */
+    while (getline(&line, &len, fp) > 0) {
+        if (STRPREFIX(line, "#subsys_name")) {
+            VIR_FREE(line);
+            continue;
+        }
+        char *tmp = strchr(line, ' ');
+        if (tmp)
+            *tmp = '\0';
+        len = tmp - line;
+
+        if (STRPREFIX(path, line) &&
+            path[len] == '.') {
+            ret = 1;
+            VIR_FREE(line);
+            goto cleanup;
+        }
+        VIR_FREE(line);
+    }
+
+    if (ferror(fp)) {
+        ret = -EIO;
+        goto cleanup;
+    }
+
+cleanup:
+    VIR_FORCE_FCLOSE(fp);
+    return ret;
+}
+
+static int virCgroupPartitionEscape(char **path)
+{
+    size_t len = strlen(*path) + 1;
+    int rc;
+    char escape = '_';
+
+    if ((rc = virCgroupPartitionNeedsEscaping(*path)) <= 0)
+        return rc;
+
+    if (VIR_INSERT_ELEMENT(*path, 0, len, escape) < 0)
+        return -ENOMEM;
+
+    return 0;
+}
+
+static char *virCgroupSetPartitionSuffix(const char *path)
+{
+    char **tokens = virStringSplit(path, "/", 0);
+    size_t i;
+    char *ret = NULL;
+
+    if (!tokens)
+        return NULL;
+
+    for (i = 0 ; tokens[i] != NULL ; i++) {
+        /* Whitelist the 3 top level fixed dirs
+         * NB i == 0 is "", since we have leading '/'
+         */
+        if (i == 1 &&
+            (STREQ(tokens[i], "machine") ||
+             STREQ(tokens[i], "system") ||
+             STREQ(tokens[i], "user"))) {
+            continue;
+        }
+        /* If there is no suffix set already, then
+         * add ".partition"
+         */
+        if (STRNEQ(tokens[i], "") &&
+            !strchr(tokens[i], '.')) {
+            if (VIR_REALLOC_N(tokens[i],
+                              strlen(tokens[i]) + strlen(".partition") + 1) < 0) {
+                virReportOOMError();
+                goto cleanup;
+            }
+            strcat(tokens[i], ".partition");
+        }
+
+        if (virCgroupPartitionEscape(&(tokens[i])) < 0) {
+            virReportOOMError();
+            goto cleanup;
+        }
+    }
+
+    if (!(ret = virStringJoin((const char **)tokens, "/")))
+        goto cleanup;
+
+cleanup:
+    virStringFreeList(tokens);
+    return ret;
+}
+
 /**
  * virCgroupNewPartition:
  * @path: path for the partition
@@ -1110,19 +1232,28 @@ int virCgroupNewPartition(const char *path,
     int rc;
     char *parentPath = NULL;
     virCgroupPtr parent = NULL;
+    char *newpath;
     VIR_DEBUG("path=%s create=%d controllers=%x",
               path, create, controllers);
 
     if (path[0] != '/')
         return -EINVAL;
 
-    rc = virCgroupNew(path, NULL, controllers, group);
+    /* XXX convert all cgroups APIs to use error report
+     * APIs instead of returning errno */
+    if (!(newpath = virCgroupSetPartitionSuffix(path))) {
+        virResetLastError();
+        rc = -ENOMEM;
+        goto cleanup;
+    }
+
+    rc = virCgroupNew(newpath, NULL, controllers, group);
     if (rc != 0)
         goto cleanup;
 
-    if (STRNEQ(path, "/")) {
+    if (STRNEQ(newpath, "/")) {
         char *tmp;
-        if (!(parentPath = strdup(path))) {
+        if (!(parentPath = strdup(newpath))) {
             rc = -ENOMEM;
             goto cleanup;
         }
@@ -1297,9 +1428,12 @@ int virCgroupNewDomainPartition(virCgroupPtr partition,
     int rc;
     char *grpname = NULL;
 
-    if (virAsprintf(&grpname, "%s.%s.libvirt",
+    if (virAsprintf(&grpname, "%s.libvirt-%s",
                     name, driver) < 0)
         return -ENOMEM;
+
+    if ((rc = virCgroupPartitionEscape(&grpname)) < 0)
+        return rc;
 
     rc = virCgroupNew(grpname, partition, -1, group);
 

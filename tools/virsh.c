@@ -1177,6 +1177,8 @@ vshCmdGrpHelp(vshControl *ctl, const char *grpname)
                  grp->keyword);
 
         for (cmd = grp->commands; cmd->name; cmd++) {
+            if (cmd->flags & VSH_CMD_FLAG_ALIAS)
+                continue;
             vshPrint(ctl, "    %-30s %s\n", cmd->name,
                      _(vshCmddefGetInfo(cmd, "help")));
         }
@@ -2976,7 +2978,8 @@ vshAllowedEscapeChar(char c)
 static bool
 vshParseArgv(vshControl *ctl, int argc, char **argv)
 {
-    int arg, len, debug;
+    int arg, len, debug, i;
+    int longindex = -1;
     struct option opt[] = {
         {"debug", required_argument, NULL, 'd'},
         {"help", no_argument, NULL, 'h'},
@@ -2993,11 +2996,12 @@ vshParseArgv(vshControl *ctl, int argc, char **argv)
     /* Standard (non-command) options. The leading + ensures that no
      * argument reordering takes place, so that command options are
      * not confused with top-level virsh options. */
-    while ((arg = getopt_long(argc, argv, "+:d:hqtc:vVrl:e:", opt, NULL)) != -1) {
+    while ((arg = getopt_long(argc, argv, "+:d:hqtc:vVrl:e:", opt, &longindex)) != -1) {
         switch (arg) {
         case 'd':
             if (virStrToLong_i(optarg, NULL, 10, &debug) < 0) {
-                vshError(ctl, "%s", _("option -d takes a numeric argument"));
+                vshError(ctl, _("option %s takes a numeric argument"),
+                         longindex == -1 ? "-d" : "--debug");
                 exit(EXIT_FAILURE);
             }
             if (debug < VSH_ERR_DEBUG || debug > VSH_ERR_ERROR)
@@ -3048,15 +3052,24 @@ vshParseArgv(vshControl *ctl, int argc, char **argv)
             }
             break;
         case ':':
-            vshError(ctl, _("option '-%c' requires an argument"), optopt);
-            exit(EXIT_FAILURE);
+            for (i = 0; opt[i].name != NULL; i++) {
+                if (opt[i].val == optopt) {
+                    vshError(ctl, _("option '-%c'/'--%s' requires an argument"),
+                             optopt, opt[i].name);
+                    exit(EXIT_FAILURE);
+                }
+            }
         case '?':
-            vshError(ctl, _("unsupported option '-%c'. See --help."), optopt);
+            if (optopt)
+                vshError(ctl, _("unsupported option '-%c'. See --help."), optopt);
+            else
+                vshError(ctl, _("unsupported option '%s'. See --help."), argv[optind - 1]);
             exit(EXIT_FAILURE);
         default:
             vshError(ctl, _("unknown option"));
             exit(EXIT_FAILURE);
         }
+        longindex = -1;
     }
 
     if (argc > optind) {

@@ -4429,9 +4429,11 @@ gl_func_list="$gl_func_list kill"
 gl_func_list="$gl_func_list mmap"
 gl_func_list="$gl_func_list posix_fallocate"
 gl_func_list="$gl_func_list posix_memalign"
+gl_func_list="$gl_func_list prlimit"
 gl_func_list="$gl_func_list regexec"
 gl_func_list="$gl_func_list sched_getaffinity"
 gl_func_list="$gl_func_list setns"
+gl_func_list="$gl_func_list setrlimit"
 gt_needs="$gt_needs "
 # Check that the precious variables saved in the cache have kept the same
 # value.
@@ -59424,7 +59426,23 @@ _ACEOF
 
 
 
+
+
+
+
+
+
+
+
+
+
   :
+
+
+
+
+
+
 
 
 
@@ -68031,6 +68049,45 @@ fi
 
 
 
+
+
+# Check for Linux vs. BSD ifreq members
+ac_fn_c_check_member "$LINENO" "struct ifreq" "ifr_newname" "ac_cv_member_struct_ifreq_ifr_newname" "#include <sys/socket.h>
+                  #include <net/if.h>
+
+"
+if test "x$ac_cv_member_struct_ifreq_ifr_newname" = xyes; then :
+
+cat >>confdefs.h <<_ACEOF
+#define HAVE_STRUCT_IFREQ_IFR_NEWNAME 1
+_ACEOF
+
+
+fi
+ac_fn_c_check_member "$LINENO" "struct ifreq" "ifr_ifindex" "ac_cv_member_struct_ifreq_ifr_ifindex" "#include <sys/socket.h>
+                  #include <net/if.h>
+
+"
+if test "x$ac_cv_member_struct_ifreq_ifr_ifindex" = xyes; then :
+
+cat >>confdefs.h <<_ACEOF
+#define HAVE_STRUCT_IFREQ_IFR_IFINDEX 1
+_ACEOF
+
+
+fi
+ac_fn_c_check_member "$LINENO" "struct ifreq" "ifr_index" "ac_cv_member_struct_ifreq_ifr_index" "#include <sys/socket.h>
+                  #include <net/if.h>
+
+"
+if test "x$ac_cv_member_struct_ifreq_ifr_index" = xyes; then :
+
+cat >>confdefs.h <<_ACEOF
+#define HAVE_STRUCT_IFREQ_IFR_INDEX 1
+_ACEOF
+
+
+fi
 
 
 # Only COPYING.LIB is under version control, yet COPYING

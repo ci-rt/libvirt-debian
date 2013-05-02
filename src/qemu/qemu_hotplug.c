@@ -38,6 +38,7 @@
 #include "viralloc.h"
 #include "virpci.h"
 #include "virfile.h"
+#include "virprocess.h"
 #include "qemu_cgroup.h"
 #include "locking/domain_lock.h"
 #include "network/bridge_driver.h"
@@ -732,21 +733,12 @@ int qemuDomainAttachNetDevice(virConnectPtr conn,
 
     if (actualType == VIR_DOMAIN_NET_TYPE_BRIDGE ||
         actualType == VIR_DOMAIN_NET_TYPE_NETWORK) {
-        /*
-         * If type=bridge then we attempt to allocate the tap fd here only if
-         * running under a privilged user or -netdev bridge option is not
-         * supported.
-         */
-        if (actualType == VIR_DOMAIN_NET_TYPE_NETWORK ||
-            cfg->privileged ||
-            (!virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_NETDEV_BRIDGE))) {
-            if ((tapfd = qemuNetworkIfaceConnect(vm->def, conn, driver, net,
-                                                 priv->qemuCaps)) < 0)
-                goto cleanup;
-            iface_connected = true;
-            if (qemuOpenVhostNet(vm->def, net, priv->qemuCaps, &vhostfd) < 0)
-                goto cleanup;
-        }
+        if ((tapfd = qemuNetworkIfaceConnect(vm->def, conn, driver, net,
+                                             priv->qemuCaps)) < 0)
+            goto cleanup;
+        iface_connected = true;
+        if (qemuOpenVhostNet(vm->def, net, priv->qemuCaps, &vhostfd) < 0)
+            goto cleanup;
     } else if (actualType == VIR_DOMAIN_NET_TYPE_DIRECT) {
         if ((tapfd = qemuPhysIfaceConnect(vm->def, driver, net,
                                           priv->qemuCaps,
@@ -806,12 +798,12 @@ int qemuDomainAttachNetDevice(virConnectPtr conn,
 
     if (virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_NETDEV) &&
         virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE)) {
-        if (!(netstr = qemuBuildHostNetStr(net, driver, priv->qemuCaps,
+        if (!(netstr = qemuBuildHostNetStr(net, driver,
                                            ',', -1, tapfd_name,
                                            vhostfd_name)))
             goto cleanup;
     } else {
-        if (!(netstr = qemuBuildHostNetStr(net, driver, priv->qemuCaps,
+        if (!(netstr = qemuBuildHostNetStr(net, driver,
                                            ' ', vlan, tapfd_name,
                                            vhostfd_name)))
             goto cleanup;
@@ -999,13 +991,25 @@ int qemuDomainAttachHostPciDevice(virQEMUDriverPtr driver,
                                      &hostdev, 1) < 0)
         return -1;
 
-    if ((hostdev->source.subsys.u.pci.backend
-         == VIR_DOMAIN_HOSTDEV_PCI_BACKEND_TYPE_VFIO) &&
-        !virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE_VFIO_PCI)) {
-        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                       _("VFIO PCI device assignment is not supported by "
-                         "this version of qemu"));
-        goto error;
+    if (hostdev->source.subsys.u.pci.backend
+        == VIR_DOMAIN_HOSTDEV_PCI_BACKEND_VFIO) {
+        unsigned long long memKB;
+
+        if (!virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE_VFIO_PCI)) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("VFIO PCI device assignment is not "
+                             "supported by this version of qemu"));
+            goto error;
+        }
+        /* VFIO requires all of the guest's memory to be locked
+         * resident, plus some amount for IO space. Alex Williamson
+         * suggested adding 1GiB for IO space just to be safe (some
+         * finer tuning might be nice, though).
+         * In this case, the guest's memory may already be locked, but
+         * it doesn't hurt to "change" the limit to the same value.
+         */
+        memKB = vm->def->mem.max_balloon + (1024 * 1024);
+        virProcessSetMaxMemLock(vm->pid, memKB * 1024);
     }
 
     if (virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE)) {
@@ -1015,7 +1019,7 @@ int qemuDomainAttachHostPciDevice(virQEMUDriverPtr driver,
             goto error;
         releaseaddr = true;
         if ((hostdev->source.subsys.u.pci.backend
-             != VIR_DOMAIN_HOSTDEV_PCI_BACKEND_TYPE_VFIO) &&
+             != VIR_DOMAIN_HOSTDEV_PCI_BACKEND_VFIO) &&
             virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_PCI_CONFIGFD)) {
             configfd = qemuOpenPCIConfig(hostdev);
             if (configfd >= 0) {
@@ -1147,22 +1151,6 @@ int qemuDomainAttachHostUsbDevice(virQEMUDriverPtr driver,
         goto error;
     }
 
-    if (virCgroupHasController(priv->cgroup, VIR_CGROUP_CONTROLLER_DEVICES)) {
-        virUSBDevicePtr usb;
-
-        if ((usb = virUSBDeviceNew(hostdev->source.subsys.u.usb.bus,
-                                hostdev->source.subsys.u.usb.device,
-                                NULL)) == NULL)
-            goto error;
-
-        if (virUSBDeviceFileIterate(usb, qemuSetupHostUsbDeviceCgroup,
-                                    vm) < 0) {
-            virUSBDeviceFree(usb);
-            goto error;
-        }
-        virUSBDeviceFree(usb);
-    }
-
     qemuDomainObjEnterMonitor(driver, vm);
     if (virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE))
         ret = qemuMonitorAddDevice(priv->mon, devstr);
@@ -1221,9 +1209,12 @@ int qemuDomainAttachHostDevice(virQEMUDriverPtr driver,
         virUSBDeviceListSteal(list, usb);
     }
 
+    if (qemuSetupHostdevCGroup(vm, hostdev) < 0)
+       goto cleanup;
+
     if (virSecurityManagerSetHostdevLabel(driver->securityManager,
                                           vm->def, hostdev, NULL) < 0)
-        goto cleanup;
+        goto teardown_cgroup;
 
     switch (hostdev->source.subsys.type) {
     case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI:
@@ -1252,6 +1243,10 @@ error:
     if (virSecurityManagerRestoreHostdevLabel(driver->securityManager,
                                               vm->def, hostdev, NULL) < 0)
         VIR_WARN("Unable to restore host device labelling on hotplug fail");
+
+teardown_cgroup:
+    if (qemuTeardownHostdevCgroup(vm, hostdev) < 0)
+        VIR_WARN("Unable to remove host device cgroup ACL on hotplug fail");
 
 cleanup:
     virObjectUnref(list);
@@ -2495,6 +2490,9 @@ int qemuDomainDetachThisHostDevice(virQEMUDriverPtr driver,
     }
 
     if (!ret) {
+        if (qemuTeardownHostdevCgroup(vm, detach) < 0)
+            VIR_WARN("Failed to remove host device cgroup ACL");
+
         if (virSecurityManagerRestoreHostdevLabel(driver->securityManager,
                                                   vm->def, detach, NULL) < 0) {
             VIR_WARN("Failed to restore host device labelling");
