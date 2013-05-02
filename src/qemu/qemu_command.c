@@ -28,12 +28,14 @@
 #include "qemu_capabilities.h"
 #include "qemu_bridge_filter.h"
 #include "cpu/cpu.h"
+#include "passfd.h"
 #include "viralloc.h"
 #include "virlog.h"
 #include "virarch.h"
 #include "virerror.h"
 #include "virutil.h"
 #include "virfile.h"
+#include "virnetdev.h"
 #include "virstring.h"
 #include "viruuid.h"
 #include "c-ctype.h"
@@ -47,6 +49,9 @@
 #include "device_conf.h"
 #include "virstoragefile.h"
 #include "virtpm.h"
+#if defined(__linux__)
+# include <linux/capability.h>
+#endif
 
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -198,6 +203,77 @@ error:
 }
 
 
+/**
+ * qemuCreateInBridgePortWithHelper:
+ * @cfg: the configuration object in which the helper name is looked up
+ * @brname: the bridge name
+ * @ifname: the returned interface name
+ * @macaddr: the returned MAC address
+ * @tapfd: file descriptor return value for the new tap device
+ * @flags: OR of virNetDevTapCreateFlags:
+
+ *   VIR_NETDEV_TAP_CREATE_VNET_HDR
+ *     - Enable IFF_VNET_HDR on the tap device
+ *
+ * This function creates a new tap device on a bridge using an external
+ * helper.  The final name for the bridge will be stored in @ifname.
+ *
+ * Returns 0 in case of success or -1 on failure
+ */
+static int qemuCreateInBridgePortWithHelper(virQEMUDriverConfigPtr cfg,
+                                            const char *brname,
+                                            char **ifname,
+                                            int *tapfd,
+                                            unsigned int flags)
+{
+    virCommandPtr cmd;
+    int status;
+    int pair[2] = { -1, -1 };
+
+    if ((flags & ~VIR_NETDEV_TAP_CREATE_VNET_HDR) != VIR_NETDEV_TAP_CREATE_IFUP)
+        return -1;
+
+    if (socketpair(AF_UNIX, SOCK_STREAM, 0, pair) < 0) {
+        virReportSystemError(errno, "%s", _("failed to create socket"));
+        return -1;
+    }
+
+    cmd = virCommandNew(cfg->bridgeHelperName);
+    if (flags & VIR_NETDEV_TAP_CREATE_VNET_HDR)
+        virCommandAddArgFormat(cmd, "--use-vnet");
+    virCommandAddArgFormat(cmd, "--br=%s", brname);
+    virCommandAddArgFormat(cmd, "--fd=%d", pair[1]);
+    virCommandTransferFD(cmd, pair[1]);
+    virCommandClearCaps(cmd);
+#ifdef CAP_NET_ADMIN
+    virCommandAllowCap(cmd, CAP_NET_ADMIN);
+#endif
+    if (virCommandRunAsync(cmd, NULL) < 0) {
+        *tapfd = -1;
+        goto cleanup;
+    }
+
+    do {
+        *tapfd = recvfd(pair[0], 0);
+    } while (*tapfd < 0 && errno == EINTR);
+    if (*tapfd < 0) {
+        virReportSystemError(errno, "%s",
+                             _("failed to retrieve file descriptor for interface"));
+        goto cleanup;
+    }
+
+    if (virNetDevTapGetName(*tapfd, ifname) < 0 ||
+        virCommandWait(cmd, &status) < 0) {
+        VIR_FORCE_CLOSE(*tapfd);
+        *tapfd = -1;
+    }
+
+cleanup:
+    virCommandFree(cmd);
+    VIR_FORCE_CLOSE(pair[0]);
+    return *tapfd < 0 ? -1 : 0;
+}
+
 int
 qemuNetworkIfaceConnect(virDomainDefPtr def,
                         virConnectPtr conn,
@@ -275,11 +351,17 @@ qemuNetworkIfaceConnect(virDomainDefPtr def,
         tap_create_flags |= VIR_NETDEV_TAP_CREATE_VNET_HDR;
     }
 
-    err = virNetDevTapCreateInBridgePort(brname, &net->ifname, &net->mac,
-                                         def->uuid, &tapfd,
-                                         virDomainNetGetActualVirtPortProfile(net),
-                                         virDomainNetGetActualVlan(net),
-                                         tap_create_flags);
+    if (cfg->privileged)
+        err = virNetDevTapCreateInBridgePort(brname, &net->ifname, &net->mac,
+                                             def->uuid, &tapfd,
+                                             virDomainNetGetActualVirtPortProfile(net),
+                                             virDomainNetGetActualVlan(net),
+                                             tap_create_flags);
+    else
+        err = qemuCreateInBridgePortWithHelper(cfg, brname,
+                                               &net->ifname,
+                                               &tapfd, tap_create_flags);
+
     virDomainAuditNetDevice(def, net, "/dev/net/tun", tapfd >= 0);
     if (err < 0) {
         if (template_ifname)
@@ -1325,6 +1407,25 @@ static int qemuCollectPCIAddress(virDomainDefPtr def ATTRIBUTE_UNUSED,
         return 0;
     }
 
+    /* Ignore implicit controllers on slot 0:0:1.0:
+     * implicit IDE controller on 0:0:1.1 (no qemu command line)
+     * implicit USB controller on 0:0:1.2 (-usb)
+     *
+     * If the machine does have a PCI bus, they will get reserved
+     * in qemuAssignDevicePCISlots().
+     */
+    if (device->type == VIR_DOMAIN_DEVICE_CONTROLLER && addr->domain == 0 &&
+        addr->bus == 0 && addr->slot == 1) {
+        virDomainControllerDefPtr cont = device->data.controller;
+        if (cont->type == VIR_DOMAIN_CONTROLLER_TYPE_IDE && cont->idx == 0 &&
+            addr->function == 1)
+            return 0;
+        if (cont->type == VIR_DOMAIN_CONTROLLER_TYPE_USB && cont->idx == 0 &&
+            (cont->model == VIR_DOMAIN_CONTROLLER_MODEL_USB_PIIX3_UHCI ||
+             cont->model == -1) && addr->function == 2)
+            return 0;
+    }
+
     if (addrs->dryRun && qemuDomainPCIAddressSetGrow(addrs, addr) < 0)
         return -1;
 
@@ -1740,12 +1841,9 @@ qemuAssignDevicePCISlots(virDomainDefPtr def,
                          qemuDomainPCIAddressSetPtr addrs)
 {
     size_t i, j;
-    bool reservedIDE = false;
-    bool reservedUSB = false;
     bool qemuDeviceVideoUsable = virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE_VIDEO_PRIMARY);
     virDevicePCIAddress tmp_addr;
     virDevicePCIAddressPtr addrptr;
-    unsigned int *func = &tmp_addr.function;
 
     /* Verify that first IDE and USB controllers (if any) is on the PIIX3, fn 1 */
     for (i = 0; i < def->ncontrollers ; i++) {
@@ -1761,9 +1859,6 @@ qemuAssignDevicePCISlots(virDomainDefPtr def,
                                    _("Primary IDE controller must have PCI address 0:0:1.1"));
                     goto error;
                 }
-                /* If TYPE==PCI, then qemuCollectPCIAddress() function
-                 * has already reserved the address, so we must skip */
-                reservedIDE = true;
             } else {
                 def->controllers[i]->info.type = VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI;
                 def->controllers[i]->info.addr.pci.domain = 0;
@@ -1784,7 +1879,6 @@ qemuAssignDevicePCISlots(virDomainDefPtr def,
                                    _("PIIX3 USB controller must have PCI address 0:0:1.2"));
                     goto error;
                 }
-                reservedUSB = true;
             } else {
                 def->controllers[i]->info.type = VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI;
                 def->controllers[i]->info.addr.pci.domain = 0;
@@ -1801,15 +1895,8 @@ qemuAssignDevicePCISlots(virDomainDefPtr def,
     if (addrs->nbuses) {
         memset(&tmp_addr, 0, sizeof(tmp_addr));
         tmp_addr.slot = 1;
-        for (*func = 0; *func < QEMU_PCI_ADDRESS_FUNCTION_LAST; (*func)++) {
-            if ((*func == 1 && reservedIDE) ||
-                (*func == 2 && reservedUSB))
-                /* we have reserved this pci address */
-                continue;
-
-            if (qemuDomainPCIAddressReserveAddr(addrs, &tmp_addr) < 0)
-                goto error;
-        }
+        if (qemuDomainPCIAddressReserveSlot(addrs, &tmp_addr) < 0)
+            goto error;
     }
 
     if (def->nvideos > 0) {
@@ -1821,6 +1908,9 @@ qemuAssignDevicePCISlots(virDomainDefPtr def,
             primaryVideo->info.addr.pci.slot = 2;
             primaryVideo->info.addr.pci.function = 0;
             addrptr = &primaryVideo->info.addr.pci;
+
+            if (!qemuPCIAddressValidate(addrs, addrptr))
+                goto error;
 
             if (qemuDomainPCIAddressSlotInUse(addrs, addrptr)) {
                 if (qemuDeviceVideoUsable) {
@@ -1848,7 +1938,7 @@ qemuAssignDevicePCISlots(virDomainDefPtr def,
             /* If TYPE==PCI, then qemuCollectPCIAddress() function
              * has already reserved the address, so we must skip */
         }
-    } else if (!qemuDeviceVideoUsable) {
+    } else if (addrs->nbuses && !qemuDeviceVideoUsable) {
         memset(&tmp_addr, 0, sizeof(tmp_addr));
         tmp_addr.slot = 2;
 
@@ -1915,6 +2005,11 @@ qemuAssignDevicePCISlots(virDomainDefPtr def,
     for (i = 0; i < def->ncontrollers ; i++) {
         /* PCI controllers have been dealt with earlier */
         if (def->controllers[i]->type == VIR_DOMAIN_CONTROLLER_TYPE_PCI)
+            continue;
+
+        /* USB controller model 'none' doesn't need a PCI address */
+        if (def->controllers[i]->type == VIR_DOMAIN_CONTROLLER_TYPE_USB &&
+            def->controllers[i]->model == VIR_DOMAIN_CONTROLLER_MODEL_USB_NONE)
             continue;
 
         /* FDC lives behind the ISA bridge; CCID is a usb device */
@@ -3931,7 +4026,6 @@ error:
 char *
 qemuBuildHostNetStr(virDomainNetDefPtr net,
                     virQEMUDriverPtr driver,
-                    virQEMUCapsPtr qemuCaps,
                     char type_sep,
                     int vlan,
                     const char *tapfd,
@@ -3940,7 +4034,6 @@ qemuBuildHostNetStr(virDomainNetDefPtr net,
     bool is_tap = false;
     virBuffer buf = VIR_BUFFER_INITIALIZER;
     enum virDomainNetType netType = virDomainNetGetActualType(net);
-    const char *brname = NULL;
     virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
 
     if (net->script && netType != VIR_DOMAIN_NET_TYPE_ETHERNET) {
@@ -3958,14 +4051,6 @@ qemuBuildHostNetStr(virDomainNetDefPtr net,
      * through, -net tap,fd
      */
     case VIR_DOMAIN_NET_TYPE_BRIDGE:
-        if (!cfg->privileged &&
-            virQEMUCapsGet(qemuCaps, QEMU_CAPS_NETDEV_BRIDGE)) {
-            brname = virDomainNetGetActualBridgeName(net);
-            virBufferAsprintf(&buf, "bridge%cbr=%s", type_sep, brname);
-            type_sep = ',';
-            is_tap = true;
-            break;
-        }
     case VIR_DOMAIN_NET_TYPE_NETWORK:
     case VIR_DOMAIN_NET_TYPE_DIRECT:
         virBufferAsprintf(&buf, "tap%cfd=%s", type_sep, tapfd);
@@ -4090,6 +4175,9 @@ qemuBuildMemballoonDevStr(virDomainMemballoonDefPtr dev,
             virBufferAddLit(&buf, "virtio-balloon-ccw");
             break;
         default:
+            virReportError(VIR_ERR_XML_ERROR,
+                           _("memballoon unsupported with address type '%s'"),
+                           virDomainDeviceAddressTypeToString(dev->info.type));
             goto error;
     }
 
@@ -4346,7 +4434,7 @@ qemuBuildPCIHostdevDevStr(virDomainHostdevDefPtr dev, const char *configfd,
     virBuffer buf = VIR_BUFFER_INITIALIZER;
 
     if (dev->source.subsys.u.pci.backend
-        == VIR_DOMAIN_HOSTDEV_PCI_BACKEND_TYPE_VFIO) {
+        == VIR_DOMAIN_HOSTDEV_PCI_BACKEND_VFIO) {
         virBufferAddLit(&buf, "vfio-pci");
     } else {
         virBufferAddLit(&buf, "pci-assign");
@@ -7081,26 +7169,17 @@ qemuBuildCommandLine(virConnectPtr conn,
 
             if (actualType == VIR_DOMAIN_NET_TYPE_NETWORK ||
                 actualType == VIR_DOMAIN_NET_TYPE_BRIDGE) {
-                /*
-                 * If type='bridge' then we attempt to allocate the tap fd here only if
-                 * running under a privilged user or -netdev bridge option is not
-                 * supported.
-                 */
-                if (actualType == VIR_DOMAIN_NET_TYPE_NETWORK ||
-                    cfg->privileged ||
-                    (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_NETDEV_BRIDGE))) {
-                    int tapfd = qemuNetworkIfaceConnect(def, conn, driver, net,
-                                                        qemuCaps);
-                    if (tapfd < 0)
-                        goto error;
+                int tapfd = qemuNetworkIfaceConnect(def, conn, driver, net,
+                                                    qemuCaps);
+                if (tapfd < 0)
+                    goto error;
 
-                    last_good_net = i;
-                    virCommandTransferFD(cmd, tapfd);
+                last_good_net = i;
+                virCommandTransferFD(cmd, tapfd);
 
-                    if (snprintf(tapfd_name, sizeof(tapfd_name), "%d",
-                                 tapfd) >= sizeof(tapfd_name))
-                        goto no_memory;
-                }
+                if (snprintf(tapfd_name, sizeof(tapfd_name), "%d",
+                             tapfd) >= sizeof(tapfd_name))
+                    goto no_memory;
             } else if (actualType == VIR_DOMAIN_NET_TYPE_DIRECT) {
                 int tapfd = qemuPhysIfaceConnect(def, driver, net,
                                                  qemuCaps, vmop);
@@ -7144,7 +7223,7 @@ qemuBuildCommandLine(virConnectPtr conn,
             if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_NETDEV) &&
                 virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE)) {
                 virCommandAddArg(cmd, "-netdev");
-                if (!(host = qemuBuildHostNetStr(net, driver, qemuCaps,
+                if (!(host = qemuBuildHostNetStr(net, driver,
                                                  ',', vlan, tapfd_name,
                                                  vhostfd_name)))
                     goto error;
@@ -7168,7 +7247,7 @@ qemuBuildCommandLine(virConnectPtr conn,
             if (!(virQEMUCapsGet(qemuCaps, QEMU_CAPS_NETDEV) &&
                   virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE))) {
                 virCommandAddArg(cmd, "-net");
-                if (!(host = qemuBuildHostNetStr(net, driver, qemuCaps,
+                if (!(host = qemuBuildHostNetStr(net, driver,
                                                  ',', vlan, tapfd_name,
                                                  vhostfd_name)))
                     goto error;
@@ -7857,7 +7936,7 @@ qemuBuildCommandLine(virConnectPtr conn,
             } else {
                 if (hostdev->source.subsys.type == VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI) {
                     if (hostdev->source.subsys.u.pci.backend
-                        == VIR_DOMAIN_HOSTDEV_PCI_BACKEND_TYPE_VFIO) {
+                        == VIR_DOMAIN_HOSTDEV_PCI_BACKEND_VFIO) {
                         if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_VFIO_PCI_BOOTINDEX)) {
                             virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                                            _("booting from PCI devices assigned with VFIO "
@@ -7906,19 +7985,30 @@ qemuBuildCommandLine(virConnectPtr conn,
         if (hostdev->mode == VIR_DOMAIN_HOSTDEV_MODE_SUBSYS &&
             hostdev->source.subsys.type == VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI) {
 
-            if ((hostdev->source.subsys.u.pci.backend
-                 == VIR_DOMAIN_HOSTDEV_PCI_BACKEND_TYPE_VFIO) &&
-                !virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE_VFIO_PCI)) {
-                virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                               _("VFIO PCI device assignment is not supported by "
-                                 "this version of qemu"));
-                goto error;
+            if (hostdev->source.subsys.u.pci.backend
+                == VIR_DOMAIN_HOSTDEV_PCI_BACKEND_VFIO) {
+                unsigned long long memKB;
+
+                if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE_VFIO_PCI)) {
+                    virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                                   _("VFIO PCI device assignment is not "
+                                     "supported by this version of qemu"));
+                    goto error;
+                }
+                /* VFIO requires all of the guest's memory to be
+                 * locked resident, plus some amount for IO
+                 * space. Alex Williamson suggested adding 1GiB for IO
+                 * space just to be safe (some finer tuning might be
+                 * nice, though).
+                 */
+                memKB = def->mem.max_balloon + (1024 * 1024);
+                virCommandSetMaxMemLock(cmd, memKB * 1024);
             }
 
             if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE)) {
                 char *configfd_name = NULL;
                 if ((hostdev->source.subsys.u.pci.backend
-                     != VIR_DOMAIN_HOSTDEV_PCI_BACKEND_TYPE_VFIO) &&
+                     != VIR_DOMAIN_HOSTDEV_PCI_BACKEND_VFIO) &&
                     virQEMUCapsGet(qemuCaps, QEMU_CAPS_PCI_CONFIGFD)) {
                     int configfd = qemuOpenPCIConfig(hostdev);
 
@@ -8118,6 +8208,7 @@ error:
     for (i = 0; i <= last_good_net; i++)
         virDomainConfNWFilterTeardown(def->nets[i]);
     virSetError(originalError);
+    virFreeError(originalError);
     virCommandFree(cmd);
     return NULL;
 }
@@ -8453,7 +8544,6 @@ qemuParseCommandLineDisk(virDomainXMLOptionPtr xmlopt,
     def->bus = VIR_DOMAIN_DISK_BUS_IDE;
     def->device = VIR_DOMAIN_DISK_DEVICE_DISK;
     def->type = VIR_DOMAIN_DISK_TYPE_FILE;
-    def->format = VIR_STORAGE_FILE_AUTO;
 
     for (i = 0 ; i < nkeywords ; i++) {
         if (STREQ(keywords[i], "file")) {
@@ -9700,8 +9790,6 @@ virDomainDefPtr qemuParseCommandLine(virCapsPtr qemuCaps,
             WANT_VALUE();
             if (VIR_ALLOC(disk) < 0)
                 goto no_memory;
-
-            disk->format = VIR_STORAGE_FILE_AUTO;
 
             if (STRPREFIX(val, "/dev/"))
                 disk->type = VIR_DOMAIN_DISK_TYPE_BLOCK;

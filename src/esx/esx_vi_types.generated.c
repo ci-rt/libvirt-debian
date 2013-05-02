@@ -515,6 +515,7 @@ ESX_VI__TEMPLATE__ALLOC(DatastoreInfo)
 /* esxVI_DatastoreInfo_Free */
 ESX_VI__TEMPLATE__DYNAMIC_FREE(DatastoreInfo,
 {
+    /* DatastoreInfo */
     ESX_VI__TEMPLATE__DISPATCH__FREE(LocalDatastoreInfo)
     ESX_VI__TEMPLATE__DISPATCH__FREE(NasDatastoreInfo)
     ESX_VI__TEMPLATE__DISPATCH__FREE(VmfsDatastoreInfo)
@@ -583,7 +584,11 @@ ESX_VI__TEMPLATE__ALLOC(Description)
 /* esxVI_Description_Free */
 ESX_VI__TEMPLATE__DYNAMIC_FREE(Description,
 {
+    /* Description */
     ESX_VI__TEMPLATE__DISPATCH__FREE(ElementDescription)
+
+    /* ElementDescription */
+    ESX_VI__TEMPLATE__DISPATCH__FREE(ExtendedElementDescription)
 },
 {
     esxVI_Description_Free(&item->_next);
@@ -739,6 +744,7 @@ ESX_VI__TEMPLATE__ALLOC(ElementDescription)
 /* esxVI_ElementDescription_Free */
 ESX_VI__TEMPLATE__DYNAMIC_FREE(ElementDescription,
 {
+    /* ElementDescription */
     ESX_VI__TEMPLATE__DISPATCH__FREE(ExtendedElementDescription)
 },
 {
@@ -808,6 +814,7 @@ ESX_VI__TEMPLATE__ALLOC(EntityEventArgument)
 /* esxVI_EntityEventArgument_Free */
 ESX_VI__TEMPLATE__DYNAMIC_FREE(EntityEventArgument,
 {
+    /* EntityEventArgument */
     ESX_VI__TEMPLATE__DISPATCH__FREE(VmEventArgument)
 },
 {
@@ -855,7 +862,11 @@ ESX_VI__TEMPLATE__ALLOC(EventArgument)
 /* esxVI_EventArgument_Free */
 ESX_VI__TEMPLATE__DYNAMIC_FREE(EventArgument,
 {
+    /* EventArgument */
     ESX_VI__TEMPLATE__DISPATCH__FREE(EntityEventArgument)
+
+    /* EntityEventArgument */
+    ESX_VI__TEMPLATE__DISPATCH__FREE(VmEventArgument)
 },
 {
     /* no properties */
@@ -1018,6 +1029,7 @@ ESX_VI__TEMPLATE__ALLOC(FileInfo)
 /* esxVI_FileInfo_Free */
 ESX_VI__TEMPLATE__DYNAMIC_FREE(FileInfo,
 {
+    /* FileInfo */
     ESX_VI__TEMPLATE__DISPATCH__FREE(FloppyImageFileInfo)
     ESX_VI__TEMPLATE__DISPATCH__FREE(FolderFileInfo)
     ESX_VI__TEMPLATE__DISPATCH__FREE(IsoImageFileInfo)
@@ -1026,6 +1038,9 @@ ESX_VI__TEMPLATE__DYNAMIC_FREE(FileInfo,
     ESX_VI__TEMPLATE__DISPATCH__FREE(VmLogFileInfo)
     ESX_VI__TEMPLATE__DISPATCH__FREE(VmNvramFileInfo)
     ESX_VI__TEMPLATE__DISPATCH__FREE(VmSnapshotFileInfo)
+
+    /* VmConfigFileInfo */
+    ESX_VI__TEMPLATE__DISPATCH__FREE(TemplateConfigFileInfo)
 },
 {
     esxVI_FileInfo_Free(&item->_next);
@@ -1108,6 +1123,7 @@ ESX_VI__TEMPLATE__ALLOC(FileQuery)
 /* esxVI_FileQuery_Free */
 ESX_VI__TEMPLATE__DYNAMIC_FREE(FileQuery,
 {
+    /* FileQuery */
     ESX_VI__TEMPLATE__DISPATCH__FREE(FloppyImageFileQuery)
     ESX_VI__TEMPLATE__DISPATCH__FREE(FolderFileQuery)
     ESX_VI__TEMPLATE__DISPATCH__FREE(IsoImageFileQuery)
@@ -1116,6 +1132,9 @@ ESX_VI__TEMPLATE__DYNAMIC_FREE(FileQuery,
     ESX_VI__TEMPLATE__DISPATCH__FREE(VmLogFileQuery)
     ESX_VI__TEMPLATE__DISPATCH__FREE(VmNvramFileQuery)
     ESX_VI__TEMPLATE__DISPATCH__FREE(VmSnapshotFileQuery)
+
+    /* VmConfigFileQuery */
+    ESX_VI__TEMPLATE__DISPATCH__FREE(TemplateConfigFileQuery)
 },
 {
     esxVI_FileQuery_Free(&item->_next);
@@ -1822,7 +1841,11 @@ ESX_VI__TEMPLATE__ALLOC(HostDevice)
 /* esxVI_HostDevice_Free */
 ESX_VI__TEMPLATE__DYNAMIC_FREE(HostDevice,
 {
+    /* HostDevice */
     ESX_VI__TEMPLATE__DISPATCH__FREE(ScsiLun)
+
+    /* ScsiLun */
+    ESX_VI__TEMPLATE__DISPATCH__FREE(HostScsiDisk)
 },
 {
     esxVI_HostDevice_Free(&item->_next);
@@ -2104,6 +2127,7 @@ ESX_VI__TEMPLATE__ALLOC(HostFileSystemVolume)
 /* esxVI_HostFileSystemVolume_Free */
 ESX_VI__TEMPLATE__DYNAMIC_FREE(HostFileSystemVolume,
 {
+    /* HostFileSystemVolume */
     ESX_VI__TEMPLATE__DISPATCH__FREE(HostNasVolume)
     ESX_VI__TEMPLATE__DISPATCH__FREE(HostVmfsVolume)
 },
@@ -2150,6 +2174,7 @@ ESX_VI__TEMPLATE__ALLOC(HostHostBusAdapter)
 /* esxVI_HostHostBusAdapter_Free */
 ESX_VI__TEMPLATE__DYNAMIC_FREE(HostHostBusAdapter,
 {
+    /* HostHostBusAdapter */
     ESX_VI__TEMPLATE__DISPATCH__FREE(HostBlockHba)
     ESX_VI__TEMPLATE__DISPATCH__FREE(HostFibreChannelHba)
     ESX_VI__TEMPLATE__DISPATCH__FREE(HostInternetScsiHba)
@@ -4153,6 +4178,7 @@ ESX_VI__TEMPLATE__ALLOC(HostTargetTransport)
 /* esxVI_HostTargetTransport_Free */
 ESX_VI__TEMPLATE__DYNAMIC_FREE(HostTargetTransport,
 {
+    /* HostTargetTransport */
     ESX_VI__TEMPLATE__DISPATCH__FREE(HostBlockAdapterTargetTransport)
     ESX_VI__TEMPLATE__DISPATCH__FREE(HostFibreChannelTargetTransport)
     ESX_VI__TEMPLATE__DISPATCH__FREE(HostInternetScsiTargetTransport)
@@ -4459,6 +4485,7 @@ ESX_VI__TEMPLATE__ALLOC(HostVirtualSwitchBridge)
 /* esxVI_HostVirtualSwitchBridge_Free */
 ESX_VI__TEMPLATE__DYNAMIC_FREE(HostVirtualSwitchBridge,
 {
+    /* HostVirtualSwitchBridge */
     ESX_VI__TEMPLATE__DISPATCH__FREE(HostVirtualSwitchAutoBridge)
     ESX_VI__TEMPLATE__DISPATCH__FREE(HostVirtualSwitchBondBridge)
     ESX_VI__TEMPLATE__DISPATCH__FREE(HostVirtualSwitchSimpleBridge)
@@ -5147,6 +5174,7 @@ ESX_VI__TEMPLATE__ALLOC(OptionType)
 /* esxVI_OptionType_Free */
 ESX_VI__TEMPLATE__DYNAMIC_FREE(OptionType,
 {
+    /* OptionType */
     ESX_VI__TEMPLATE__DISPATCH__FREE(ChoiceOption)
 },
 {
@@ -5182,6 +5210,7 @@ ESX_VI__TEMPLATE__ALLOC(OptionValue)
 /* esxVI_OptionValue_Free */
 ESX_VI__TEMPLATE__DYNAMIC_FREE(OptionValue,
 {
+    /* OptionValue */
     ESX_VI__TEMPLATE__DISPATCH__FREE(HostInternetScsiHbaParamValue)
 },
 {
@@ -5358,6 +5387,7 @@ ESX_VI__TEMPLATE__ALLOC(PerfEntityMetricBase)
 /* esxVI_PerfEntityMetricBase_Free */
 ESX_VI__TEMPLATE__DYNAMIC_FREE(PerfEntityMetricBase,
 {
+    /* PerfEntityMetricBase */
     ESX_VI__TEMPLATE__DISPATCH__FREE(PerfEntityMetric)
 },
 {
@@ -5512,6 +5542,7 @@ ESX_VI__TEMPLATE__ALLOC(PerfMetricSeries)
 /* esxVI_PerfMetricSeries_Free */
 ESX_VI__TEMPLATE__DYNAMIC_FREE(PerfMetricSeries,
 {
+    /* PerfMetricSeries */
     ESX_VI__TEMPLATE__DISPATCH__FREE(PerfMetricIntSeries)
 },
 {
@@ -6042,6 +6073,7 @@ ESX_VI__TEMPLATE__ALLOC(ScsiLun)
 /* esxVI_ScsiLun_Free */
 ESX_VI__TEMPLATE__DYNAMIC_FREE(ScsiLun,
 {
+    /* ScsiLun */
     ESX_VI__TEMPLATE__DISPATCH__FREE(HostScsiDisk)
 },
 {
@@ -6320,6 +6352,7 @@ ESX_VI__TEMPLATE__ALLOC(SelectionSpec)
 /* esxVI_SelectionSpec_Free */
 ESX_VI__TEMPLATE__DYNAMIC_FREE(SelectionSpec,
 {
+    /* SelectionSpec */
     ESX_VI__TEMPLATE__DISPATCH__FREE(TraversalSpec)
 },
 {
@@ -6869,6 +6902,7 @@ ESX_VI__TEMPLATE__ALLOC(VirtualDiskSpec)
 /* esxVI_VirtualDiskSpec_Free */
 ESX_VI__TEMPLATE__DYNAMIC_FREE(VirtualDiskSpec,
 {
+    /* VirtualDiskSpec */
     ESX_VI__TEMPLATE__DISPATCH__FREE(DeviceBackedVirtualDiskSpec)
     ESX_VI__TEMPLATE__DISPATCH__FREE(FileBackedVirtualDiskSpec)
 },
@@ -7156,6 +7190,7 @@ ESX_VI__TEMPLATE__ALLOC(VmConfigFileInfo)
 /* esxVI_VmConfigFileInfo_Free */
 ESX_VI__TEMPLATE__DYNAMIC_FREE(VmConfigFileInfo,
 {
+    /* VmConfigFileInfo */
     ESX_VI__TEMPLATE__DISPATCH__FREE(TemplateConfigFileInfo)
 },
 {
@@ -7228,6 +7263,7 @@ ESX_VI__TEMPLATE__ALLOC(VmConfigFileQuery)
 /* esxVI_VmConfigFileQuery_Free */
 ESX_VI__TEMPLATE__DYNAMIC_FREE(VmConfigFileQuery,
 {
+    /* VmConfigFileQuery */
     ESX_VI__TEMPLATE__DISPATCH__FREE(TemplateConfigFileQuery)
 },
 {
@@ -8140,6 +8176,7 @@ ESX_VI__TEMPLATE__ALLOC(ManagedEntity)
 /* esxVI_ManagedEntity_Free */
 ESX_VI__TEMPLATE__DYNAMIC_FREE(ManagedEntity,
 {
+    /* ManagedEntity */
     ESX_VI__TEMPLATE__DISPATCH__FREE(ComputeResource)
     ESX_VI__TEMPLATE__DISPATCH__FREE(Datacenter)
     ESX_VI__TEMPLATE__DISPATCH__FREE(Folder)

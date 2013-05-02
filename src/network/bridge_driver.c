@@ -2141,6 +2141,7 @@ err:
 
     /* return the original error */
     virSetError(orig_error);
+    virFreeError(orig_error);
     return -1;
 }
 
@@ -3160,8 +3161,14 @@ static virNetworkPtr networkDefineXML(virConnectPtr conn, const char *xml) {
     freeDef = false;
 
     if (virNetworkSaveConfig(driver->networkConfigDir, def) < 0) {
-        virNetworkRemoveInactive(&driver->networks, network);
-        network = NULL;
+        if (!virNetworkObjIsActive(network)) {
+            virNetworkRemoveInactive(&driver->networks, network);
+            network = NULL;
+            goto cleanup;
+        }
+        network->persistent = 0;
+        virNetworkDefFree(network->newDef);
+        network->newDef = NULL;
         goto cleanup;
     }
 
@@ -3859,6 +3866,8 @@ networkAllocateActualDevice(virDomainNetDefPtr iface)
 
     } else if (netdef->forward.type == VIR_NETWORK_FORWARD_HOSTDEV) {
 
+        virDomainHostdevSubsysPciBackendType backend;
+
         if (!iface->data.network.actual
             && (VIR_ALLOC(iface->data.network.actual) < 0)) {
             virReportOOMError();
@@ -3892,6 +3901,27 @@ networkAllocateActualDevice(virDomainNetDefPtr iface)
         iface->data.network.actual->data.hostdev.def.managed = netdef->forward.managed ? 1 : 0;
         iface->data.network.actual->data.hostdev.def.source.subsys.type = dev->type;
         iface->data.network.actual->data.hostdev.def.source.subsys.u.pci.addr = dev->device.pci;
+
+        switch (netdef->forward.driverName)
+        {
+        case VIR_NETWORK_FORWARD_DRIVER_NAME_DEFAULT:
+            backend = VIR_DOMAIN_HOSTDEV_PCI_BACKEND_DEFAULT;
+            break;
+        case VIR_NETWORK_FORWARD_DRIVER_NAME_KVM:
+            backend = VIR_DOMAIN_HOSTDEV_PCI_BACKEND_KVM;
+            break;
+        case VIR_NETWORK_FORWARD_DRIVER_NAME_VFIO:
+            backend = VIR_DOMAIN_HOSTDEV_PCI_BACKEND_VFIO;
+            break;
+        default:
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("unrecognized driver name value %d "
+                             " in network '%s'"),
+                           netdef->forward.driverName, netdef->name);
+            goto error;
+        }
+        iface->data.network.actual->data.hostdev.def.source.subsys.u.pci.backend
+            = backend;
 
         /* merge virtualports from interface, network, and portgroup to
          * arrive at actual virtualport to use

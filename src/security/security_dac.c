@@ -517,11 +517,13 @@ virSecurityDACSetSecurityHostdevLabel(virSecurityManagerPtr mgr,
             goto done;
 
         if (dev->source.subsys.u.pci.backend
-            == VIR_DOMAIN_HOSTDEV_PCI_BACKEND_TYPE_VFIO) {
+            == VIR_DOMAIN_HOSTDEV_PCI_BACKEND_VFIO) {
             char *vfioGroupDev = virPCIDeviceGetVFIOGroupDev(pci);
 
-            if (!vfioGroupDev)
+            if (!vfioGroupDev) {
+                virPCIDeviceFree(pci);
                 goto done;
+            }
             ret = virSecurityDACSetSecurityPCILabel(pci, vfioGroupDev, params);
             VIR_FREE(vfioGroupDev);
         } else {
@@ -530,7 +532,6 @@ virSecurityDACSetSecurityHostdevLabel(virSecurityManagerPtr mgr,
         }
 
         virPCIDeviceFree(pci);
-
         break;
     }
 
@@ -608,18 +609,19 @@ virSecurityDACRestoreSecurityHostdevLabel(virSecurityManagerPtr mgr,
             goto done;
 
         if (dev->source.subsys.u.pci.backend
-            == VIR_DOMAIN_HOSTDEV_PCI_BACKEND_TYPE_VFIO) {
+            == VIR_DOMAIN_HOSTDEV_PCI_BACKEND_VFIO) {
             char *vfioGroupDev = virPCIDeviceGetVFIOGroupDev(pci);
 
-            if (!vfioGroupDev)
+            if (!vfioGroupDev) {
+                virPCIDeviceFree(pci);
                 goto done;
+            }
             ret = virSecurityDACRestoreSecurityPCILabel(pci, vfioGroupDev, mgr);
             VIR_FREE(vfioGroupDev);
         } else {
             ret = virPCIDeviceFileIterate(pci, virSecurityDACRestoreSecurityPCILabel, mgr);
         }
         virPCIDeviceFree(pci);
-
         break;
     }
 

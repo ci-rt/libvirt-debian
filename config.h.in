@@ -1261,6 +1261,9 @@
 /* Define to 1 if the system has the type `posix_spawn_file_actions_t'. */
 #undef HAVE_POSIX_SPAWN_FILE_ACTIONS_T
 
+/* Define to 1 if you have the 'prlimit' function. */
+#undef HAVE_PRLIMIT
+
 /* Define to 1 if you have the `pstat_getdynamic' function. */
 #undef HAVE_PSTAT_GETDYNAMIC
 
@@ -1400,7 +1403,7 @@
 /* Define to 1 if you have the 'setns' function. */
 #undef HAVE_SETNS
 
-/* Define to 1 if you have the `setrlimit' function. */
+/* Define to 1 if you have the 'setrlimit' function. */
 #undef HAVE_SETRLIMIT
 
 /* Define to 1 if you have the 'shutdown' function. */
@@ -1507,6 +1510,15 @@
 
 /* Defined if struct ifreq exists in net/if.h */
 #undef HAVE_STRUCT_IFREQ
+
+/* Define to 1 if `ifr_ifindex' is a member of `struct ifreq'. */
+#undef HAVE_STRUCT_IFREQ_IFR_IFINDEX
+
+/* Define to 1 if `ifr_index' is a member of `struct ifreq'. */
+#undef HAVE_STRUCT_IFREQ_IFR_INDEX
+
+/* Define to 1 if `ifr_newname' is a member of `struct ifreq'. */
+#undef HAVE_STRUCT_IFREQ_IFR_NEWNAME
 
 /* Define to 1 if `decimal_point' is a member of `struct lconv'. */
 #undef HAVE_STRUCT_LCONV_DECIMAL_POINT

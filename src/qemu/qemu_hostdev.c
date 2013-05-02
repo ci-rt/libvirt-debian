@@ -68,7 +68,7 @@ qemuGetPciHostDeviceList(virDomainHostdevDefPtr *hostdevs, int nhostdevs)
 
         virPCIDeviceSetManaged(dev, hostdev->managed);
         if (hostdev->source.subsys.u.pci.backend
-            == VIR_DOMAIN_HOSTDEV_PCI_BACKEND_TYPE_VFIO) {
+            == VIR_DOMAIN_HOSTDEV_PCI_BACKEND_VFIO) {
             virPCIDeviceSetStubDriver(dev, "vfio-pci");
         } else {
             virPCIDeviceSetStubDriver(dev, "pci-stub");
@@ -157,7 +157,7 @@ int qemuUpdateActivePciHostdevs(virQEMUDriverPtr driver,
 
         virPCIDeviceSetManaged(dev, hostdev->managed);
         if (hostdev->source.subsys.u.pci.backend
-            == VIR_DOMAIN_HOSTDEV_PCI_BACKEND_TYPE_VFIO) {
+            == VIR_DOMAIN_HOSTDEV_PCI_BACKEND_VFIO) {
             virPCIDeviceSetStubDriver(dev, "vfio-pci");
         } else {
             virPCIDeviceSetStubDriver(dev, "pci-stub");
@@ -609,7 +609,7 @@ reattachdevs:
         /* NB: This doesn't actually re-bind to original driver, just
          * unbinds from the stub driver
          */
-        virPCIDeviceReattach(dev, driver->activePciHostdevs, NULL, NULL);
+        virPCIDeviceReattach(dev, driver->activePciHostdevs, NULL);
     }
 
 cleanup:
@@ -869,7 +869,7 @@ void qemuReattachPciDevice(virPCIDevicePtr dev, virQEMUDriverPtr driver)
     }
 
     if (virPCIDeviceReattach(dev, driver->activePciHostdevs,
-                             driver->inactivePciHostdevs, "pci-stub") < 0) {
+                             driver->inactivePciHostdevs) < 0) {
         virErrorPtr err = virGetLastError();
         VIR_ERROR(_("Failed to re-attach PCI device: %s"),
                   err ? err->message : _("unknown error"));
