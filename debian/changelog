@@ -1,3 +1,13 @@
+libvirt (1.0.5-1) experimental; urgency=low
+
+  * [c90d756] New upstream version 1.0.5
+    Fixes a kFreeBSD build failure
+  * [910e185] virthreadpthread: don't try to cast pthread_t to void*
+    Fixes another build failure on kFreeBSD
+  * [3f914e6] Add back sanitytest.py that got lost in the upstream tarball
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 02 May 2013 21:34:32 +0200
+
 libvirt (1.0.5~rc1-1) experimental; urgency=low
 
   * [c2302f5] Dont' fail with aug-tools installed.
