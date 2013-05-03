@@ -1,0 +1,27 @@
+From: =?UTF-8?q?Guido=20G=C3=BCnther?= <agx@sigxcpu.org>
+Date: Wed, 1 May 2013 22:35:44 +0200
+Subject: virInitctlRequest: Don't hardcode 384 bytes size
+
+When MAXHOSTNAMELEN is set we have to take it's value into account.
+Otherwise the build fails on kFreeBSD (FreeBSD kernel and GNU userland)
+---
+ src/util/virinitctl.c |    6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/src/util/virinitctl.c b/src/util/virinitctl.c
+index 1618ffa..9a3e8a3 100644
+--- a/src/util/virinitctl.c
++++ b/src/util/virinitctl.c
+@@ -103,7 +103,11 @@ struct virInitctlRequest {
+     } i;
+ };
+ 
+-verify(sizeof(struct virInitctlRequest) == 384);
++# ifdef MAXHOSTNAMELEN
++  verify(sizeof(struct virInitctlRequest) == 320 + MAXHOSTNAMELEN);
++# else
++  verify(sizeof(struct virInitctlRequest) == 384);
++#endif
+ 
+ /*
+  * Send a message to init to change the runlevel
