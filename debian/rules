@@ -7,16 +7,15 @@ include /usr/share/cdbs/1/rules/debhelper.mk
 include /usr/share/cdbs/1/class/autotools.mk
 include /usr/share/cdbs/1/class/python-distutils.mk
 
-ifneq (,$(findstring $(DEB_HOST_ARCH), i386 amd64))
-  DEB_MAKE_CHECK_TARGET = check
-  WITH_XEN = --with-xen
-  WITH_VBOX = --with-vbox
-else
-  WITH_XEN = --without-xen
-  WITH_VBOX = --without-vbox
-endif
-
 ifneq (,$(findstring $(DEB_HOST_ARCH_OS), linux))
+  ifneq (,$(findstring $(DEB_HOST_ARCH), i386 amd64))
+    DEB_MAKE_CHECK_TARGET = check
+    WITH_XEN = --with-xen
+    WITH_VBOX = --with-vbox
+  else
+    WITH_XEN            = --without-xen
+    WITH_VBOX           = --without-vbox
+  endif
   WITH_STORAGE_LVM    = --with-storage-lvm
   WITH_STORAGE_ISCSI  = --with-storage-iscsi
   WITH_STORAGE_DISK   =	--with-storage-disk
@@ -64,6 +63,8 @@ else
   WITH_INIT_SCRIPT    =	--with-init-script=none
   WITH_AUDIT          = --without-audit
   WITH_DTRACE         = --without-dtrace
+  WITH_XEN            = --without-xen
+  WITH_VBOX           = --without-vbox
 endif
 
 DEB_BUILDDIR := $(CURDIR)/debian/build
