@@ -1,3 +1,14 @@
+libvirt (1.0.5-2) experimental; urgency=low
+
+  * [3686504] virInitctlRequest: Don't hardcode 384 bytes size
+    another kFreeBSD build fix
+  * [b47d706] Disable xen and vbox on all non-linux platforms
+  * [031648a] Fixup rpcgen code on kFreeBSD too
+  * [5154850] Make detect_scsi_host_caps a function on all architectures.
+    Another kFreeBSD build fix
+
+ -- Guido Günther <agx@sigxcpu.org>  Fri, 03 May 2013 10:42:38 +0200
+
 libvirt (1.0.5-1) experimental; urgency=low
 
   * [c90d756] New upstream version 1.0.5
