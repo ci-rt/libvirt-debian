@@ -13,3 +13,4 @@ Allow-xen-toolstack-to-find-it-s-binaries.patch
 virthreadpthread-don-t-try-to-cast-pthread_t-to-void.patch
 Add-sanitytest.py.patch
 virInitctlRequest-Don-t-hardcode-384-bytes-size.patch
+Fixup-rpcgen-code-on-kFreeBSD-too.patch
