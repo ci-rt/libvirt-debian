@@ -1,3 +1,11 @@
+libvirt (1.0.5-3) unstable; urgency=low
+
+  * Upload to unstable (Closes: #709216, #705205)
+  * [037b674] daemon: fix leak after listing all volumes.
+    Thanks to Ján Tomko (Closes: #708647)
+
+ -- Guido Günther <agx@sigxcpu.org>  Wed, 29 May 2013 11:10:18 +0200
+
 libvirt (1.0.5-2) experimental; urgency=low
 
   * [3686504] virInitctlRequest: Don't hardcode 384 bytes size
