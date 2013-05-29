@@ -15,3 +15,4 @@ Add-sanitytest.py.patch
 virInitctlRequest-Don-t-hardcode-384-bytes-size.patch
 Fixup-rpcgen-code-on-kFreeBSD-too.patch
 Make-detect_scsi_host_caps-a-function-on-all-archite.patch
+daemon-fix-leak-after-listing-all-volumes.patch
