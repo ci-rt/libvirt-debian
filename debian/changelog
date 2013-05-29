@@ -1,3 +1,15 @@
+libvirt (0.9.12-11+deb7u1) wheezy-proposed-updates; urgency=low
+
+  [ Guido Günther ]
+  * [af660e5] Allow xen toolstack to find it's binaries.
+    Thanks to George Dunlap for the patch. (Closes: #685749)
+
+  [ Luca Tettamanti ]
+  * [90d8287] Fix leak in virStorageBackendLogicalMakeVol
+    (Closes: #705205)
+
+ -- Guido Günther <agx@sigxcpu.org>  Wed, 29 May 2013 13:42:44 +0200
+
 libvirt (0.9.12-11) unstable; urgency=low
 
   * [422c506] Use "getent passwd" instead of the non existing "getent user"
