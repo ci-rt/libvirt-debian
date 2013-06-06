@@ -1220,6 +1220,7 @@
     <function name="virEventUpdateTimeout ()" link="libvirt-libvirt.html#virEventUpdateTimeout"/>
     <function name="virFreeError ()" link="libvirt-virterror.html#virFreeError"/>
     <function name="virGetLastError ()" link="libvirt-virterror.html#virGetLastError"/>
+    <function name="virGetLastErrorMessage ()" link="libvirt-virterror.html#virGetLastErrorMessage"/>
     <function name="virGetVersion ()" link="libvirt-libvirt.html#virGetVersion"/>
     <function name="virInitialize ()" link="libvirt-libvirt.html#virInitialize"/>
     <function name="virInterfaceChangeBegin ()" link="libvirt-libvirt.html#virInterfaceChangeBegin"/>

@@ -40,7 +40,6 @@
 #include "lxc_protocol.h"
 #include "qemu_protocol.h"
 #include "viralloc.h"
-#include "virutil.h"
 #include "virfile.h"
 #include "vircommand.h"
 #include "intprops.h"
@@ -48,6 +47,7 @@
 #include "viruri.h"
 #include "virauth.h"
 #include "virauthconfig.h"
+#include "virstring.h"
 
 #define VIR_FROM_THIS VIR_FROM_REMOTE
 
@@ -368,8 +368,8 @@ remoteClientCloseFunc(virNetClientPtr client ATTRIBUTE_UNUSED,
 #define EXTRACT_URI_ARG_STR(ARG_NAME, ARG_VAR)          \
     if (STRCASEEQ(var->name, ARG_NAME)) {               \
         VIR_FREE(ARG_VAR);                              \
-        if (!(ARG_VAR = strdup(var->value)))            \
-            goto no_memory;                             \
+        if (VIR_STRDUP(ARG_VAR, var->value) < 0)        \
+            goto failed;                                \
         var->ignore = 1;                                \
         continue;                                       \
     }
@@ -497,24 +497,20 @@ doRemoteOpen(virConnectPtr conn,
         if (virAsprintf(&port, "%d", conn->uri->port) < 0)
             goto no_memory;
     } else if (transport == trans_tls) {
-        if (!(port = strdup(LIBVIRTD_TLS_PORT)))
-            goto no_memory;
+        if (VIR_STRDUP(port, LIBVIRTD_TLS_PORT) < 0)
+            goto failed;
     } else if (transport == trans_tcp) {
-        if (!(port = strdup(LIBVIRTD_TCP_PORT)))
-            goto no_memory;
+        if (VIR_STRDUP(port, LIBVIRTD_TCP_PORT) < 0)
+            goto failed;
     } /* Port not used for unix, ext., default for ssh */
 
-    if (conn->uri && conn->uri->server)
-        priv->hostname = strdup(conn->uri->server);
-    else
-        priv->hostname = strdup("localhost");
+    if (VIR_STRDUP(priv->hostname,
+                   conn->uri && conn->uri->server ?
+                   conn->uri->server : "localhost") < 0)
+        goto failed;
 
-    if (!priv->hostname)
-        goto no_memory;
-
-    if (conn->uri && conn->uri->user &&
-        !(username = strdup(conn->uri->user)))
-        goto no_memory;
+    if (conn->uri && VIR_STRDUP(username, conn->uri->user) < 0)
+        goto failed;
 
     /* Get the variables from the query string.
      * Then we need to reconstruct the query string (because
@@ -524,7 +520,7 @@ doRemoteOpen(virConnectPtr conn,
     int i;
 
     if (conn->uri) {
-        for (i = 0; i < conn->uri->paramsCount ; i++) {
+        for (i = 0; i < conn->uri->paramsCount; i++) {
             virURIParamPtr var = &conn->uri->params[i];
             EXTRACT_URI_ARG_STR("name", name);
             EXTRACT_URI_ARG_STR("command", command);
@@ -557,8 +553,8 @@ doRemoteOpen(virConnectPtr conn,
                 (STREQ(conn->uri->scheme, "remote") ||
                  STRPREFIX(conn->uri->scheme, "remote+"))) {
                 /* Allow remote serve to probe */
-                if (!(name = strdup("")))
-                    goto no_memory;
+                if (VIR_STRDUP(name, "") < 0)
+                    goto failed;
             } else {
                 virURI tmpuri = {
                     .scheme = conn->uri->scheme,
@@ -587,8 +583,8 @@ doRemoteOpen(virConnectPtr conn,
         }
     } else {
         /* Probe URI server side */
-        if (!(name = strdup("")))
-            goto no_memory;
+        if (VIR_STRDUP(name, "") < 0)
+            goto failed;
     }
 
     VIR_DEBUG("proceeding with name = %s", name);
@@ -635,15 +631,11 @@ doRemoteOpen(virConnectPtr conn,
         break;
 
     case trans_libssh2:
-        if (!sockname) {
-            if (flags & VIR_DRV_OPEN_REMOTE_RO)
-                sockname = strdup(LIBVIRTD_PRIV_UNIX_SOCKET_RO);
-            else
-                sockname = strdup(LIBVIRTD_PRIV_UNIX_SOCKET);
-
-            if (sockname == NULL)
-                goto no_memory;
-        }
+        if (!sockname &&
+            VIR_STRDUP(sockname,
+                       flags & VIR_DRV_OPEN_REMOTE_RO ?
+                       LIBVIRTD_PRIV_UNIX_SOCKET_RO : LIBVIRTD_PRIV_UNIX_SOCKET) < 0)
+            goto failed;
 
         VIR_DEBUG("Starting LibSSH2 session");
 
@@ -678,12 +670,10 @@ doRemoteOpen(virConnectPtr conn,
                 }
                 VIR_FREE(userdir);
             } else {
-                if (flags & VIR_DRV_OPEN_REMOTE_RO)
-                    sockname = strdup(LIBVIRTD_PRIV_UNIX_SOCKET_RO);
-                else
-                    sockname = strdup(LIBVIRTD_PRIV_UNIX_SOCKET);
-                if (sockname == NULL)
-                    goto no_memory;
+                if (VIR_STRDUP(sockname,
+                               flags & VIR_DRV_OPEN_REMOTE_RO ?
+                               LIBVIRTD_PRIV_UNIX_SOCKET_RO : LIBVIRTD_PRIV_UNIX_SOCKET) < 0)
+                    goto failed;
             }
             VIR_DEBUG("Proceeding with sockname %s", sockname);
         }
@@ -705,17 +695,14 @@ doRemoteOpen(virConnectPtr conn,
         break;
 
     case trans_ssh:
-        if (!command && !(command = strdup("ssh")))
-            goto no_memory;
+        if (!command && VIR_STRDUP(command, "ssh") < 0)
+            goto failed;
 
-        if (!sockname) {
-            if (flags & VIR_DRV_OPEN_REMOTE_RO)
-                sockname = strdup(LIBVIRTD_PRIV_UNIX_SOCKET_RO);
-            else
-                sockname = strdup(LIBVIRTD_PRIV_UNIX_SOCKET);
-            if (!sockname)
-                goto no_memory;
-        }
+        if (!sockname &&
+            VIR_STRDUP(sockname,
+                       flags & VIR_DRV_OPEN_REMOTE_RO ?
+                       LIBVIRTD_PRIV_UNIX_SOCKET_RO : LIBVIRTD_PRIV_UNIX_SOCKET) < 0)
+            goto failed;
 
         if (!(priv->client = virNetClientNewSSH(priv->hostname,
                                                 port,
@@ -1335,7 +1322,7 @@ remoteNodeGetCellsFreeMemory(virConnectPtr conn,
              (xdrproc_t) xdr_remote_node_get_cells_free_memory_ret, (char *)&ret) == -1)
         goto done;
 
-    for (i = 0 ; i < ret.cells.cells_len ; i++)
+    for (i = 0; i < ret.cells.cells_len; i++)
         freeMems[i] = ret.cells.cells_val[i];
 
     xdr_free((xdrproc_t) xdr_remote_node_get_cells_free_memory_ret, (char *) &ret);
@@ -1493,11 +1480,8 @@ remoteSerializeTypedParameters(virTypedParameterPtr params,
 
     for (i = 0; i < nparams; ++i) {
         /* call() will free this: */
-        val[i].field = strdup(params[i].field);
-        if (val[i].field == NULL) {
-            virReportOOMError();
+        if (VIR_STRDUP(val[i].field, params[i].field) < 0)
             goto cleanup;
-        }
         val[i].value.type = params[i].type;
         switch (params[i].type) {
         case VIR_TYPED_PARAM_INT:
@@ -1519,11 +1503,9 @@ remoteSerializeTypedParameters(virTypedParameterPtr params,
             val[i].value.remote_typed_param_value_u.b = params[i].value.b;
             break;
         case VIR_TYPED_PARAM_STRING:
-            val[i].value.remote_typed_param_value_u.s = strdup(params[i].value.s);
-            if (val[i].value.remote_typed_param_value_u.s == NULL) {
-                virReportOOMError();
+            if (VIR_STRDUP(val[i].value.remote_typed_param_value_u.s,
+                           params[i].value.s) < 0)
                 goto cleanup;
-            }
             break;
         default:
             virReportError(VIR_ERR_RPC, _("unknown parameter type: %d"),
@@ -1608,12 +1590,9 @@ remoteDeserializeTypedParameters(remote_typed_param *ret_params_val,
                 ret_param->value.remote_typed_param_value_u.b;
             break;
         case VIR_TYPED_PARAM_STRING:
-            param->value.s =
-                strdup(ret_param->value.remote_typed_param_value_u.s);
-            if (!param->value.s) {
-                virReportOOMError();
+            if (VIR_STRDUP(param->value.s,
+                           ret_param->value.remote_typed_param_value_u.s) < 0)
                 goto cleanup;
-            }
             break;
         default:
             virReportError(VIR_ERR_RPC, _("unknown parameter type: %d"),
@@ -1653,10 +1632,8 @@ remoteDeserializeDomainDiskErrors(remote_domain_disk_error *ret_errors_val,
     }
 
     for (i = 0; i < ret_errors_len; i++) {
-        if (!(errors[i].disk = strdup(ret_errors_val[i].disk))) {
-            virReportOOMError();
+        if (VIR_STRDUP(errors[i].disk, ret_errors_val[i].disk) < 0)
             goto error;
-        }
         errors[i].error = ret_errors_val[i].error;
     }
 
@@ -2416,6 +2393,46 @@ remoteDomainCreate(virDomainPtr domain)
     domain->id = ret2.dom.id;
     xdr_free((xdrproc_t) &xdr_remote_domain_lookup_by_uuid_ret, (char *) &ret2);
 
+    rv = 0;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static int
+remoteDomainCreateWithFlags(virDomainPtr dom, unsigned int flags)
+{
+    int rv = -1;
+    struct private_data *priv = dom->conn->privateData;
+    remote_domain_create_with_flags_args args;
+    remote_domain_lookup_by_uuid_args args2;
+    remote_domain_lookup_by_uuid_ret ret2;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_domain(&args.dom, dom);
+    args.flags = flags;
+
+    if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_CREATE_WITH_FLAGS,
+             (xdrproc_t)xdr_remote_domain_create_with_flags_args, (char *)&args,
+             (xdrproc_t)xdr_void, (char *)NULL) == -1) {
+        goto done;
+    }
+
+    /* Need to do a lookup figure out ID of newly started guest, because
+     * bug in design of REMOTE_PROC_DOMAIN_CREATE_WITH_FLAGS means we aren't getting
+     * it returned.
+     */
+    memcpy(args2.uuid, dom->uuid, VIR_UUID_BUFLEN);
+    memset(&ret2, 0, sizeof(ret2));
+    if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_LOOKUP_BY_UUID,
+             (xdrproc_t) xdr_remote_domain_lookup_by_uuid_args, (char *) &args2,
+             (xdrproc_t) xdr_remote_domain_lookup_by_uuid_ret, (char *) &ret2) == -1)
+        goto done;
+
+    dom->id = ret2.dom.id;
+    xdr_free((xdrproc_t) &xdr_remote_domain_lookup_by_uuid_ret, (char *) &ret2);
     rv = 0;
 
 done:
@@ -3540,7 +3557,7 @@ remoteAuthenticate(virConnectPtr conn, struct private_data *priv,
                            _("unknown authentication type %s"), authtype);
             return -1;
         }
-        for (i = 0 ; i < ret.types.types_len ; i++) {
+        for (i = 0; i < ret.types.types_len; i++) {
             if (ret.types.types_val[i] == want)
                 type = want;
         }
@@ -3683,7 +3700,7 @@ static sasl_callback_t *remoteAuthMakeCallbacks(int *credtype, int ncredtype)
         return NULL;
     }
 
-    for (i = 0, n = 0 ; i < ncredtype ; i++) {
+    for (i = 0, n = 0; i < ncredtype; i++) {
         int id = remoteAuthCredVir2SASL(credtype[i]);
         if (id != 0)
             cbs[n++].id = id;
@@ -3712,7 +3729,7 @@ static int remoteAuthMakeCredentials(sasl_interact_t *interact,
     if (!cred)
         return -1;
 
-    for (ninteract = 0, *ncred = 0 ; interact[ninteract].id != 0 ; ninteract++) {
+    for (ninteract = 0, *ncred = 0; interact[ninteract].id != 0; ninteract++) {
         if (interact[ninteract].result)
             continue;
         (*ncred)++;
@@ -3721,7 +3738,7 @@ static int remoteAuthMakeCredentials(sasl_interact_t *interact,
     if (VIR_ALLOC_N(*cred, *ncred) < 0)
         return -1;
 
-    for (ninteract = 0, *ncred = 0 ; interact[ninteract].id != 0 ; ninteract++) {
+    for (ninteract = 0, *ncred = 0; interact[ninteract].id != 0; ninteract++) {
         if (interact[ninteract].result)
             continue;
 
@@ -3756,7 +3773,7 @@ static void remoteAuthFillInteract(virConnectCredentialPtr cred,
                                    sasl_interact_t *interact)
 {
     int ninteract, ncred;
-    for (ninteract = 0, ncred = 0 ; interact[ninteract].id != 0 ; ninteract++) {
+    for (ninteract = 0, ncred = 0; interact[ninteract].id != 0; ninteract++) {
         if (interact[ninteract].result)
             continue;
         interact[ninteract].result = cred[ncred].result;
@@ -3796,7 +3813,7 @@ static int remoteAuthFillFromConfig(virConnectPtr conn,
             goto cleanup;
     }
 
-    for (ninteract = 0 ; state->interact[ninteract].id != 0 ; ninteract++) {
+    for (ninteract = 0; state->interact[ninteract].id != 0; ninteract++) {
         const char *value = NULL;
 
         switch (state->interact[ninteract].id) {
@@ -3846,7 +3863,7 @@ static void remoteAuthInteractStateClear(struct remoteAuthInteractState *state,
     if (!state)
         return;
 
-    for (i = 0 ; i < state->ncred ; i++)
+    for (i = 0; i < state->ncred; i++)
         VIR_FREE(state->cred[i].result);
     VIR_FREE(state->cred);
     state->ncred = 0;
@@ -4189,7 +4206,7 @@ remoteAuthPolkit(virConnectPtr conn, struct private_data *priv,
     /* Auth failed.  Ask client to obtain it and check again. */
     if (auth && auth->cb) {
         /* Check if the necessary credential type for PolicyKit is supported */
-        for (i = 0 ; i < auth->ncredtype ; i++) {
+        for (i = 0; i < auth->ncredtype; i++) {
             if (auth->credtype[i] == VIR_CRED_EXTERNAL)
                 allowcb = 1;
         }
@@ -4470,28 +4487,28 @@ remoteDomainBuildEventGraphics(virNetClientProgramPtr prog ATTRIBUTE_UNUSED,
         return;
 
     if (VIR_ALLOC(localAddr) < 0)
-        goto no_memory;
+        goto error;
     localAddr->family = msg->local.family;
-    if (!(localAddr->service = strdup(msg->local.service)) ||
-        !(localAddr->node = strdup(msg->local.node)))
-        goto no_memory;
+    if (VIR_STRDUP(localAddr->service, msg->local.service) < 0 ||
+        VIR_STRDUP(localAddr->node, msg->local.node) < 0)
+        goto error;
 
     if (VIR_ALLOC(remoteAddr) < 0)
-        goto no_memory;
+        goto error;
     remoteAddr->family = msg->remote.family;
-    if (!(remoteAddr->service = strdup(msg->remote.service)) ||
-        !(remoteAddr->node = strdup(msg->remote.node)))
-        goto no_memory;
+    if (VIR_STRDUP(remoteAddr->service, msg->remote.service) < 0 ||
+        VIR_STRDUP(remoteAddr->node, msg->remote.node) < 0)
+        goto error;
 
     if (VIR_ALLOC(subject) < 0)
-        goto no_memory;
+        goto error;
     if (VIR_ALLOC_N(subject->identities, msg->subject.subject_len) < 0)
-        goto no_memory;
+        goto error;
     subject->nidentity = msg->subject.subject_len;
-    for (i = 0 ; i < subject->nidentity ; i++) {
-        if (!(subject->identities[i].type = strdup(msg->subject.subject_val[i].type)) ||
-            !(subject->identities[i].name = strdup(msg->subject.subject_val[i].name)))
-            goto no_memory;
+    for (i = 0; i < subject->nidentity; i++) {
+        if (VIR_STRDUP(subject->identities[i].type, msg->subject.subject_val[i].type) < 0 ||
+            VIR_STRDUP(subject->identities[i].name, msg->subject.subject_val[i].name) < 0)
+            goto error;
     }
 
     event = virDomainEventGraphicsNewFromDom(dom,
@@ -4506,7 +4523,7 @@ remoteDomainBuildEventGraphics(virNetClientProgramPtr prog ATTRIBUTE_UNUSED,
     remoteDomainEventQueue(priv, event);
     return;
 
-no_memory:
+error:
     if (localAddr) {
         VIR_FREE(localAddr->service);
         VIR_FREE(localAddr->node);
@@ -4518,7 +4535,7 @@ no_memory:
         VIR_FREE(remoteAddr);
     }
     if (subject) {
-        for (i = 0 ; i < subject->nidentity ; i++) {
+        for (i = 0; i < subject->nidentity; i++) {
             VIR_FREE(subject->identities[i].type);
             VIR_FREE(subject->identities[i].name);
         }
@@ -5100,11 +5117,8 @@ remoteDomainQemuMonitorCommand(virDomainPtr domain, const char *cmd,
              (xdrproc_t) xdr_qemu_domain_monitor_command_ret, (char *) &ret) == -1)
         goto done;
 
-    *result = strdup(ret.result);
-    if (*result == NULL) {
-        virReportOOMError();
+    if (VIR_STRDUP(*result, ret.result) < 0)
         goto cleanup;
-    }
 
     rv = 0;
 

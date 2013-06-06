@@ -47,7 +47,6 @@
 #include "viralloc.h"
 #include "nodeinfo.h"
 #include "physmem.h"
-#include "virutil.h"
 #include "virlog.h"
 #include "virerror.h"
 #include "count-one-bits.h"
@@ -55,7 +54,7 @@
 #include "virarch.h"
 #include "virfile.h"
 #include "virtypedparam.h"
-
+#include "virstring.h"
 
 #define VIR_FROM_THIS VIR_FROM_NONE
 
@@ -867,7 +866,7 @@ error:
 }
 #endif
 
-int nodeGetInfo(virConnectPtr conn ATTRIBUTE_UNUSED, virNodeInfoPtr nodeinfo)
+int nodeGetInfo(virNodeInfoPtr nodeinfo)
 {
     virArch hostarch = virArchFromHost();
 
@@ -941,8 +940,7 @@ cleanup:
 #endif
 }
 
-int nodeGetCPUStats(virConnectPtr conn ATTRIBUTE_UNUSED,
-                    int cpuNum ATTRIBUTE_UNUSED,
+int nodeGetCPUStats(int cpuNum ATTRIBUTE_UNUSED,
                     virNodeCPUStatsPtr params ATTRIBUTE_UNUSED,
                     int *nparams ATTRIBUTE_UNUSED,
                     unsigned int flags)
@@ -970,8 +968,7 @@ int nodeGetCPUStats(virConnectPtr conn ATTRIBUTE_UNUSED,
 #endif
 }
 
-int nodeGetMemoryStats(virConnectPtr conn ATTRIBUTE_UNUSED,
-                       int cellNum ATTRIBUTE_UNUSED,
+int nodeGetMemoryStats(int cellNum ATTRIBUTE_UNUSED,
                        virNodeMemoryStatsPtr params ATTRIBUTE_UNUSED,
                        int *nparams ATTRIBUTE_UNUSED,
                        unsigned int flags)
@@ -985,11 +982,8 @@ int nodeGetMemoryStats(virConnectPtr conn ATTRIBUTE_UNUSED,
         FILE *meminfo;
 
         if (cellNum == VIR_NODE_MEMORY_STATS_ALL_CELLS) {
-            meminfo_path = strdup(MEMINFO_PATH);
-            if (!meminfo_path) {
-                virReportOOMError();
+            if (VIR_STRDUP(meminfo_path, MEMINFO_PATH) < 0)
                 return -1;
-            }
         } else {
 # if WITH_NUMACTL
             if (numa_available() < 0) {
@@ -1192,8 +1186,7 @@ nodeMemoryParametersIsAllSupported(virTypedParameterPtr params,
 #endif
 
 int
-nodeSetMemoryParameters(virConnectPtr conn ATTRIBUTE_UNUSED,
-                        virTypedParameterPtr params ATTRIBUTE_UNUSED,
+nodeSetMemoryParameters(virTypedParameterPtr params ATTRIBUTE_UNUSED,
                         int nparams ATTRIBUTE_UNUSED,
                         unsigned int flags)
 {
@@ -1288,8 +1281,7 @@ cleanup:
 
 #define NODE_MEMORY_PARAMETERS_NUM 8
 int
-nodeGetMemoryParameters(virConnectPtr conn ATTRIBUTE_UNUSED,
-                        virTypedParameterPtr params ATTRIBUTE_UNUSED,
+nodeGetMemoryParameters(virTypedParameterPtr params ATTRIBUTE_UNUSED,
                         int *nparams ATTRIBUTE_UNUSED,
                         unsigned int flags)
 {
@@ -1436,8 +1428,7 @@ nodeGetMemoryParameters(virConnectPtr conn ATTRIBUTE_UNUSED,
 }
 
 int
-nodeGetCPUMap(virConnectPtr conn ATTRIBUTE_UNUSED,
-              unsigned char **cpumap,
+nodeGetCPUMap(unsigned char **cpumap,
               unsigned int *online,
               unsigned int flags)
 {
@@ -1476,7 +1467,7 @@ nodeCapsInitNUMAFake(virCapsPtr caps ATTRIBUTE_UNUSED)
     int s, c, t;
     int id;
 
-    if (nodeGetInfo(NULL, &nodeinfo) < 0)
+    if (nodeGetInfo(&nodeinfo) < 0)
         return -1;
 
     ncpus = VIR_NODEINFO_MAXCPUS(nodeinfo);
@@ -1487,9 +1478,9 @@ nodeCapsInitNUMAFake(virCapsPtr caps ATTRIBUTE_UNUSED)
     }
 
     id = 0;
-    for (s = 0 ; s < nodeinfo.sockets ; s++) {
-        for (c = 0 ; c < nodeinfo.cores ; c++) {
-            for (t = 0 ; t < nodeinfo.threads ; t++) {
+    for (s = 0; s < nodeinfo.sockets; s++) {
+        for (c = 0; c < nodeinfo.cores; c++) {
+            for (t = 0; t < nodeinfo.threads; t++) {
                 cpus[id].id = id;
                 cpus[id].socket_id = s;
                 cpus[id].core_id = c;
@@ -1511,15 +1502,14 @@ nodeCapsInitNUMAFake(virCapsPtr caps ATTRIBUTE_UNUSED)
     return 0;
 
  error:
-    for (; id >= 0 ; id--)
+    for (; id >= 0; id--)
         virBitmapFree(cpus[id].siblings);
     VIR_FREE(cpus);
     return -1;
 }
 
 static int
-nodeGetCellsFreeMemoryFake(virConnectPtr conn ATTRIBUTE_UNUSED,
-                           unsigned long long *freeMems,
+nodeGetCellsFreeMemoryFake(unsigned long long *freeMems,
                            int startCell,
                            int maxCells ATTRIBUTE_UNUSED)
 {
@@ -1544,7 +1534,7 @@ nodeGetCellsFreeMemoryFake(virConnectPtr conn ATTRIBUTE_UNUSED,
 }
 
 static unsigned long long
-nodeGetFreeMemoryFake(virConnectPtr conn ATTRIBUTE_UNUSED)
+nodeGetFreeMemoryFake(void)
 {
     double avail = physmem_available();
     unsigned long long ret;
@@ -1647,7 +1637,7 @@ nodeCapsInitNUMA(virCapsPtr caps)
         goto cleanup;
     memset(allonesmask, 0xff, mask_n_bytes);
 
-    for (n = 0 ; n <= numa_max_node() ; n++) {
+    for (n = 0; n <= numa_max_node(); n++) {
         int i;
         /* The first time this returns -1, ENOENT if node doesn't exist... */
         if (numa_node_to_cpus(n, mask, mask_n_bytes) < 0) {
@@ -1665,14 +1655,14 @@ nodeCapsInitNUMA(virCapsPtr caps)
         /* Detect the amount of memory in the numa cell */
         memory = nodeGetCellMemory(n);
 
-        for (ncpus = 0, i = 0 ; i < max_n_cpus ; i++)
+        for (ncpus = 0, i = 0; i < max_n_cpus; i++)
             if (MASK_CPU_ISSET(mask, i))
                 ncpus++;
 
         if (VIR_ALLOC_N(cpus, ncpus) < 0)
             goto cleanup;
 
-        for (ncpus = 0, i = 0 ; i < max_n_cpus ; i++) {
+        for (ncpus = 0, i = 0; i < max_n_cpus; i++) {
             if (MASK_CPU_ISSET(mask, i)) {
                 if (virNodeCapsFillCPUInfo(i, cpus + ncpus++) < 0) {
                     topology_failed = true;
@@ -1701,8 +1691,7 @@ cleanup:
 
 
 int
-nodeGetCellsFreeMemory(virConnectPtr conn,
-                       unsigned long long *freeMems,
+nodeGetCellsFreeMemory(unsigned long long *freeMems,
                        int startCell,
                        int maxCells)
 {
@@ -1711,7 +1700,7 @@ nodeGetCellsFreeMemory(virConnectPtr conn,
     int maxCell;
 
     if (numa_available() < 0)
-        return nodeGetCellsFreeMemoryFake(conn, freeMems,
+        return nodeGetCellsFreeMemoryFake(freeMems,
                                           startCell, maxCells);
 
     maxCell = numa_max_node();
@@ -1725,7 +1714,7 @@ nodeGetCellsFreeMemory(virConnectPtr conn,
     if (lastCell > maxCell)
         lastCell = maxCell;
 
-    for (numCells = 0, n = startCell ; n <= lastCell ; n++) {
+    for (numCells = 0, n = startCell; n <= lastCell; n++) {
         long long mem;
         if (numa_node_size64(n, &mem) < 0) {
             virReportError(VIR_ERR_INTERNAL_ERROR,
@@ -1742,16 +1731,16 @@ cleanup:
 }
 
 unsigned long long
-nodeGetFreeMemory(virConnectPtr conn)
+nodeGetFreeMemory(void)
 {
     unsigned long long freeMem = 0;
     int n;
 
     if (numa_available() < 0)
-        return nodeGetFreeMemoryFake(conn);
+        return nodeGetFreeMemoryFake();
 
 
-    for (n = 0 ; n <= numa_max_node() ; n++) {
+    for (n = 0; n <= numa_max_node(); n++) {
         long long mem;
         if (numa_node_size64(n, &mem) < 0) {
             virReportError(VIR_ERR_INTERNAL_ERROR,
@@ -1812,17 +1801,16 @@ int nodeCapsInitNUMA(virCapsPtr caps) {
     return nodeCapsInitNUMAFake(caps);
 }
 
-int nodeGetCellsFreeMemory(virConnectPtr conn,
-                           unsigned long long *freeMems,
+int nodeGetCellsFreeMemory(unsigned long long *freeMems,
                            int startCell,
                            int maxCells)
 {
-    return nodeGetCellsFreeMemoryFake(conn, freeMems,
+    return nodeGetCellsFreeMemoryFake(freeMems,
                                       startCell, maxCells);
 }
 
-unsigned long long nodeGetFreeMemory(virConnectPtr conn)
+unsigned long long nodeGetFreeMemory(void)
 {
-    return nodeGetFreeMemoryFake(conn);
+    return nodeGetFreeMemoryFake();
 }
 #endif

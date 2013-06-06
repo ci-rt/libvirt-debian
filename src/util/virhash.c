@@ -30,6 +30,7 @@
 #include "virlog.h"
 #include "virhashcode.h"
 #include "virrandom.h"
+#include "virstring.h"
 
 #define VIR_FROM_THIS VIR_FROM_NONE
 
@@ -85,7 +86,9 @@ static bool virHashStrEqual(const void *namea, const void *nameb)
 
 static void *virHashStrCopy(const void *name)
 {
-    return strdup(name);
+    char *ret;
+    ignore_value(VIR_STRDUP(ret, name));
+    return ret;
 }
 
 static void virHashStrFree(void *name)
@@ -505,7 +508,7 @@ virHashForEach(virHashTablePtr table, virHashIterator iter, void *data)
 
     table->iterating = true;
     table->current = NULL;
-    for (i = 0 ; i < table->size ; i++) {
+    for (i = 0; i < table->size; i++) {
         virHashEntryPtr entry = table->table[i];
         while (entry) {
             virHashEntryPtr next = entry->next;
@@ -551,7 +554,7 @@ virHashRemoveSet(virHashTablePtr table,
 
     table->iterating = true;
     table->current = NULL;
-    for (i = 0 ; i < table->size ; i++) {
+    for (i = 0; i < table->size; i++) {
         virHashEntryPtr *nextptr = table->table + i;
 
         while (*nextptr) {
@@ -625,7 +628,7 @@ void *virHashSearch(virHashTablePtr table,
 
     table->iterating = true;
     table->current = NULL;
-    for (i = 0 ; i < table->size ; i++) {
+    for (i = 0; i < table->size; i++) {
         virHashEntryPtr entry;
         for (entry = table->table[i]; entry; entry = entry->next) {
             if (iter(entry->payload, entry->name, data)) {

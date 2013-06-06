@@ -29,6 +29,7 @@
 #include "virlog.h"
 #include "virfile.h"
 #include "virutil.h"
+#include "virstring.h"
 
 #define VIR_FROM_THIS VIR_FROM_RPC
 
@@ -55,7 +56,7 @@ void virNetMessageClear(virNetMessagePtr msg)
 
     VIR_DEBUG("msg=%p nfds=%zu", msg, msg->nfds);
 
-    for (i = 0 ; i < msg->nfds ; i++)
+    for (i = 0; i < msg->nfds; i++)
         VIR_FORCE_CLOSE(msg->fds[i]);
     VIR_FREE(msg->fds);
     VIR_FREE(msg->buffer);
@@ -75,7 +76,7 @@ void virNetMessageFree(virNetMessagePtr msg)
     if (msg->cb)
         msg->cb(msg, msg->opaque);
 
-    for (i = 0 ; i < msg->nfds ; i++)
+    for (i = 0; i < msg->nfds; i++)
         VIR_FORCE_CLOSE(msg->fds[i]);
     VIR_FREE(msg->buffer);
     VIR_FREE(msg->fds);
@@ -221,7 +222,7 @@ int virNetMessageEncodeHeader(virNetMessagePtr msg)
     int ret = -1;
     unsigned int len = 0;
 
-    msg->bufferLength = VIR_NET_MESSAGE_MAX + VIR_NET_MESSAGE_LEN_MAX;
+    msg->bufferLength = VIR_NET_MESSAGE_INITIAL + VIR_NET_MESSAGE_LEN_MAX;
     if (VIR_REALLOC_N(msg->buffer, msg->bufferLength) < 0) {
         virReportOOMError();
         return ret;
@@ -325,7 +326,7 @@ int virNetMessageDecodeNumFDs(virNetMessagePtr msg)
         virReportOOMError();
         goto cleanup;
     }
-    for (i = 0 ; i < msg->nfds ; i++)
+    for (i = 0; i < msg->nfds; i++)
         msg->fds[i] = -1;
 
     VIR_DEBUG("Got %zu FDs from peer", msg->nfds);
@@ -351,9 +352,27 @@ int virNetMessageEncodePayload(virNetMessagePtr msg,
     xdrmem_create(&xdr, msg->buffer + msg->bufferOffset,
                   msg->bufferLength - msg->bufferOffset, XDR_ENCODE);
 
-    if (!(*filter)(&xdr, data)) {
-        virReportError(VIR_ERR_RPC, "%s", _("Unable to encode message payload"));
-        goto error;
+    /* Try to encode the payload. If the buffer is too small increase it. */
+    while (!(*filter)(&xdr, data)) {
+        if ((msg->bufferLength - VIR_NET_MESSAGE_LEN_MAX) * 4 > VIR_NET_MESSAGE_MAX) {
+            virReportError(VIR_ERR_RPC, "%s", _("Unable to encode message payload"));
+            goto error;
+        }
+
+        xdr_destroy(&xdr);
+
+        msg->bufferLength = (msg->bufferLength - VIR_NET_MESSAGE_LEN_MAX) * 4 +
+            VIR_NET_MESSAGE_LEN_MAX;
+
+        if (VIR_REALLOC_N(msg->buffer, msg->bufferLength) < 0) {
+            virReportOOMError();
+            goto error;
+        }
+
+        xdrmem_create(&xdr, msg->buffer + msg->bufferOffset,
+                      msg->bufferLength - msg->bufferOffset, XDR_ENCODE);
+
+        VIR_DEBUG("Increased message buffer length = %zu", msg->bufferLength);
     }
 
     /* Get the length stored in buffer. */
@@ -415,11 +434,23 @@ int virNetMessageEncodePayloadRaw(virNetMessagePtr msg,
     XDR xdr;
     unsigned int msglen;
 
+    /* If the message buffer is too small for the payload increase it accordingly. */
     if ((msg->bufferLength - msg->bufferOffset) < len) {
-        virReportError(VIR_ERR_RPC,
-                    _("Stream data too long to send (%zu bytes needed, %zu bytes available)"),
-                    len, (msg->bufferLength - msg->bufferOffset));
-        return -1;
+        if ((msg->bufferOffset + len) > VIR_NET_MESSAGE_MAX) {
+            virReportError(VIR_ERR_RPC,
+                           _("Stream data too long to send (%zu bytes needed, %zu bytes available)"),
+                           len, (VIR_NET_MESSAGE_MAX - msg->bufferOffset));
+            return -1;
+        }
+
+        msg->bufferLength = msg->bufferOffset + len;
+
+        if (VIR_REALLOC_N(msg->buffer, msg->bufferLength) < 0) {
+            virReportOOMError();
+            return -1;
+        }
+
+        VIR_DEBUG("Increased message buffer length = %zu", msg->bufferLength);
     }
 
     memcpy(msg->buffer + msg->bufferOffset, data, len);
@@ -484,22 +515,28 @@ void virNetMessageSaveError(virNetMessageErrorPtr rerr)
     if (verr) {
         rerr->code = verr->code;
         rerr->domain = verr->domain;
-        if (verr->message && VIR_ALLOC(rerr->message) == 0)
-            *rerr->message = strdup(verr->message);
+        if (verr->message && VIR_ALLOC(rerr->message) == 0 &&
+            VIR_STRDUP_QUIET(*rerr->message, verr->message) < 0)
+            VIR_FREE(rerr->message);
         rerr->level = verr->level;
-        if (verr->str1 && VIR_ALLOC(rerr->str1) == 0)
-            *rerr->str1 = strdup(verr->str1);
-        if (verr->str2 && VIR_ALLOC(rerr->str2) == 0)
-            *rerr->str2 = strdup(verr->str2);
-        if (verr->str3 && VIR_ALLOC(rerr->str3) == 0)
-            *rerr->str3 = strdup(verr->str3);
+        if (verr->str1 && VIR_ALLOC(rerr->str1) == 0 &&
+            VIR_STRDUP_QUIET(*rerr->str1, verr->str1) < 0)
+            VIR_FREE(rerr->str1);
+        if (verr->str2 && VIR_ALLOC(rerr->str2) == 0 &&
+            VIR_STRDUP_QUIET(*rerr->str2, verr->str2) < 0)
+            VIR_FREE(rerr->str2);
+        if (verr->str3 && VIR_ALLOC(rerr->str3) == 0 &&
+            VIR_STRDUP_QUIET(*rerr->str3, verr->str3) < 0)
+            VIR_FREE(rerr->str3);
         rerr->int1 = verr->int1;
         rerr->int2 = verr->int2;
     } else {
         rerr->code = VIR_ERR_INTERNAL_ERROR;
         rerr->domain = VIR_FROM_RPC;
-        if (VIR_ALLOC(rerr->message) == 0)
-            *rerr->message = strdup(_("Library function returned error but did not set virError"));
+        if (VIR_ALLOC(rerr->message) == 0 &&
+            VIR_STRDUP_QUIET(*rerr->message,
+                             _("Library function returned error but did not set virError")) < 0)
+            VIR_FREE(rerr->message);
         rerr->level = VIR_ERR_ERROR;
     }
 }

@@ -84,6 +84,10 @@
                         </div>
                       </li><li>
                         <div>
+                          <a title="Control groups integration" class="inactive" href="cgroups.html">CGroups</a>
+                        </div>
+                      </li><li>
+                        <div>
                           <a title="Hooks for system specific management" class="inactive" href="hooks.html">Hooks</a>
                         </div>
                       </li></ul>
@@ -181,7 +185,7 @@
           expressive as directly using iptables/ebtables, this can still
           do nearly everything you would want to on a guest NIC filter.
       </li></ul>
-        <h3><a name="name-fw-virtual-network-driver" id="id-fw-virtual-network-driver">The virtual network driver</a>
+        <h3><a name="name-fw-virtual-network-driver" id="id-fw-virtual-network-driver" shape="rect">The virtual network driver</a>
     </h3>
         <p>The typical configuration for guests is to use bridging of the
        physical NIC on the host to connect the guest directly to the LAN.
@@ -214,7 +218,7 @@
        firewall setup is already allowing this, we insert 4 rules into
        the head of the INPUT chain
     </p>
-        <pre>
+        <pre xml:space="preserve">
 target     prot opt in     out     source               destination
 ACCEPT     udp  --  virbr0 *       0.0.0.0/0            0.0.0.0/0           udp dpt:53
 ACCEPT     tcp  --  virbr0 *       0.0.0.0/0            0.0.0.0/0           tcp dpt:53
@@ -230,7 +234,7 @@ ACCEPT     tcp  --  virbr0 *       0.0.0.0/0            0.0.0.0/0           tcp 
         <ul><li>type=isolated
           <br /><br />
 Allow traffic between guests. Deny inbound. Deny outbound.
-    <pre>
+    <pre xml:space="preserve">
 target     prot opt in     out     source               destination
 ACCEPT     all  --  virbr1 virbr1  0.0.0.0/0            0.0.0.0/0
 REJECT     all  --  *      virbr1  0.0.0.0/0            0.0.0.0/0           reject-with icmp-port-unreachable
@@ -240,7 +244,7 @@ REJECT     all  --  virbr1 *       0.0.0.0/0            0.0.0.0/0           reje
 Allow inbound related to an established connection. Allow
 outbound, but only from our expected subnet. Allow traffic
 between guests. Deny all other inbound. Deny all other outbound.
-    <pre>
+    <pre xml:space="preserve">
 target     prot opt in     out     source               destination
 ACCEPT     all  --  *      virbr0  0.0.0.0/0            192.168.122.0/24    state RELATED,ESTABLISHED
 ACCEPT     all  --  virbr0 *       192.168.122.0/24     0.0.0.0/0
@@ -252,7 +256,7 @@ REJECT     all  --  virbr0 *       0.0.0.0/0            0.0.0.0/0           reje
 Allow inbound, but only to our expected subnet. Allow
 outbound, but only from our expected subnet. Allow traffic
 between guests. Deny all other inbound. Deny all other outbound.
-    <pre>
+    <pre xml:space="preserve">
 target     prot opt in     out     source               destination
 ACCEPT     all  --  *      virbr2  0.0.0.0/0            192.168.124.0/24
 ACCEPT     all  --  virbr2 *       192.168.124.0/24     0.0.0.0/0
@@ -261,11 +265,11 @@ REJECT     all  --  *      virbr2  0.0.0.0/0            0.0.0.0/0           reje
 REJECT     all  --  virbr2 *       0.0.0.0/0            0.0.0.0/0           reject-with icmp-port-unreachable</pre>
       </li><li>Finally, with type=nat, there is also an entry in the POSTROUTING
 chain to apply masquerading:
-    <pre>
+    <pre xml:space="preserve">
 target     prot opt in     out     source               destination
 MASQUERADE all  --  *      *       192.168.122.0/24    !192.168.122.0/24</pre>
       </li></ul>
-        <h3><a name="name-fw-network-filter-driver" id="id-fw-network-filter-driver">The network filter driver</a>
+        <h3><a name="name-fw-network-filter-driver" id="id-fw-network-filter-driver" shape="rect">The network filter driver</a>
     </h3>
         <p>This driver provides a fully configurable network filtering capability
        that leverages ebtables, iptables and ip6tables. This was written by
@@ -274,7 +278,7 @@ MASQUERADE all  --  *      *       192.168.122.0/24    !192.168.122.0/24</pre>
        network filtering:
     </p>
         <p>
-          <a href="http://www.dmtf.org/standards/cim/cim_schema_v2230/CIM_Network.pdf">http://www.dmtf.org/standards/cim/cim_schema_v2230/CIM_Network.pdf</a>
+          <a href="http://www.dmtf.org/standards/cim/cim_schema_v2230/CIM_Network.pdf" shape="rect">http://www.dmtf.org/standards/cim/cim_schema_v2230/CIM_Network.pdf</a>
         </p>
         <p>The filters are managed in libvirt as a top level, standalone object.
        This allows the filters to then be referenced by any libvirt object
@@ -311,7 +315,7 @@ MASQUERADE all  --  *      *       192.168.122.0/24    !192.168.122.0/24</pre>
         <p>As with all objects libvirt manages, network filters are configured
 using an XML format. At a high level the format looks like this:
     </p>
-        <pre>
+        <pre xml:space="preserve">
 &lt;filter name='no-spamming' chain='XXXX'&gt;
   &lt;uuid&gt;d217f2d7-5a04-0e01-8b98-ec2743436b74&lt;/uuid&gt;
 
@@ -331,7 +335,7 @@ using an XML format. At a high level the format looks like this:
        happens. It has three attributes, an action, a traffic direction and an
        optional priority. E.g.:
     </p>
-        <pre>&lt;rule action='drop' direction='out' priority='500'&gt;</pre>
+        <pre xml:space="preserve">&lt;rule action='drop' direction='out' priority='500'&gt;</pre>
         <p>Within the rule there are a wide variety of elements allowed, which
        do protocol specific matching. Supported protocols currently include
        <code>mac</code>, <code>arp</code>, <code>rarp</code>, <code>ip</code>,
@@ -343,10 +347,10 @@ using an XML format. At a high level the format looks like this:
        <code>ah/ipv6</code>, <code>sctp/ipv6</code>. Each protocol defines what
        is valid inside the &lt;rule&gt; element. The general pattern though is:
     </p>
-        <pre>
+        <pre xml:space="preserve">
 &lt;protocol match='yes|no' attribute1='value1' attribute2='value2'/&gt;</pre>
         <p>So, eg a TCP protocol, matching ports 0-1023 would be expressed as:</p>
-        <pre>&lt;tcp match='yes' srcportstart='0' srcportend='1023'/&gt;</pre>
+        <pre xml:space="preserve">&lt;tcp match='yes' srcportstart='0' srcportend='1023'/&gt;</pre>
         <p>Attributes can included references to variables defined by the
        object using the rule. So the guest XML format allows each NIC
        to have a MAC address and IP address defined. These are made
@@ -356,7 +360,7 @@ using an XML format. At a high level the format looks like this:
         <p>So to define a filter that prevents IP address spoofing we can
        simply match on source IP address <code>!= $IP</code> like this:
     </p>
-        <pre>
+        <pre xml:space="preserve">
 &lt;filter name='no-ip-spoofing' chain='ipv4'&gt;
   &lt;rule action='drop' direction='out'&gt;
     &lt;ip match='no' srcipaddr='<b>$IP</b>' /&gt;
@@ -365,12 +369,12 @@ using an XML format. At a high level the format looks like this:
         <p>I'm not going to go into details on all the other protocol
        matches you can do, because it'll take far too much space.
        You can read about the options
-       <a href="formatnwfilter.html#nwfelemsRulesProto">here</a>.
+       <a href="formatnwfilter.html#nwfelemsRulesProto" shape="rect">here</a>.
     </p>
         <p>Out of the box in RHEL6/Fedora rawhide, libvirt ships with a
        set of default useful rules:
     </p>
-        <pre>
+        <pre xml:space="preserve">
 # virsh nwfilter-list
 UUID                                  Name
 ----------------------------------------------------------------
@@ -396,7 +400,7 @@ f5c78134-9da4-0c60-a9f0-fb37bc21ac1f  no-other-rarp-traffic
        spoofing, arp spoofing and MAC spoofing. To look at the rules for
        any of these just do:
     </p>
-        <pre>virsh nwfilter-dumpxml FILTERNAME|UUID</pre>
+        <pre xml:space="preserve">virsh nwfilter-dumpxml FILTERNAME|UUID</pre>
         <p>They are all stored in <code>/etc/libvirt/nwfilter</code>, but don't
        edit the files there directly. Use <code>virsh nwfilter-define</code>
        to update them. This ensures the guests have their iptables/ebtables
@@ -408,7 +412,7 @@ f5c78134-9da4-0c60-a9f0-fb37bc21ac1f  no-other-rarp-traffic
        whitelisted <code>&lt;ip address/&gt;</code> the guest is allowed to
        use:
     </p>
-        <pre>
+        <pre xml:space="preserve">
 &lt;interface type='bridge'&gt;
   &lt;mac address='52:54:00:56:44:32'/&gt;
   &lt;source bridge='br1'/&gt;
@@ -442,7 +446,7 @@ f5c78134-9da4-0c60-a9f0-fb37bc21ac1f  no-other-rarp-traffic
        hooks match on the TAP device name of the guest NIC, so they
        should not interact badly with any administrator defined rules:
     </p>
-        <pre>
+        <pre xml:space="preserve">
 Bridge chain: PREROUTING, entries: 1, policy: ACCEPT
 -i vnet0 -j libvirt-I-vnet0
 
@@ -452,7 +456,7 @@ Bridge chain: POSTROUTING, entries: 1, policy: ACCEPT
        create further sub-chains for each protocol then it needs to match
        against:
     </p>
-        <pre>
+        <pre xml:space="preserve">
 Bridge chain: libvirt-I-vnet0, entries: 5, policy: ACCEPT
 -p IPv4 -j I-vnet0-ipv4
 -p ARP -j I-vnet0-arp
@@ -469,7 +473,7 @@ Bridge chain: libvirt-O-vnet0, entries: 4, policy: ACCEPT
        example shows the 'clean-traffic' filter implementation.
        I'm not going to explain what this is doing now. :-)
     </p>
-        <pre>
+        <pre xml:space="preserve">
 Bridge chain: I-vnet0-ipv4, entries: 2, policy: ACCEPT
 -s ! 52:54:0:56:44:32 -j DROP
 -p IPv4 --ip-src ! 10.33.8.131 -j DROP
@@ -508,7 +512,7 @@ Bridge chain: O-vnet0-rarp, entries: 2, policy: ACCEPT
         <p>If I define a new filter 'no-spamming' and then add this to the
        'clean-traffic' filter, I can illustrate how iptables usage works:
     </p>
-        <pre>
+        <pre xml:space="preserve">
 # cat &gt; /root/spamming.xml &lt;&lt;EOF
 &lt;filter name='no-spamming' chain='root'&gt;
   &lt;uuid&gt;d217f2d7-5a04-0e01-8b98-ec2743436b74&lt;/uuid&gt;
@@ -528,7 +532,7 @@ EOF
        have defined, by adding a couple of hooks into the INPUT/FORWARD
        chains:
     </p>
-        <pre>
+        <pre xml:space="preserve">
 Chain INPUT (policy ACCEPT 13M packets, 21G bytes)
 target           prot opt in     out     source               destination
 libvirt-host-in  all  --  *      *       0.0.0.0/0            0.0.0.0/0
@@ -542,7 +546,7 @@ libvirt-in-post  all  --  *      *       0.0.0.0/0            0.0.0.0/0</pre>
        name, so they won't open holes in the admin defined matches for
        the LAN/WAN (if any).
     </p>
-        <pre>
+        <pre xml:space="preserve">
 Chain libvirt-host-in (1 references)
   target     prot opt in     out     source               destination
   HI-vnet0   all  --  *      *       0.0.0.0/0            0.0.0.0/0           [goto] PHYSDEV match --physdev-in vnet0
@@ -561,7 +565,7 @@ Chain libvirt-out (1 references)
         <p>Finally, we can see the interesting bit which is the actual
        implementation of my filter to block port 25 access:
     </p>
-        <pre>
+        <pre xml:space="preserve">
 Chain FI-vnet0 (1 references)
   target     prot opt in     out     source               destination
   DROP       tcp  --  *      *       0.0.0.0/0            0.0.0.0/0           tcp dpt:25
@@ -602,7 +606,7 @@ Chain HI-vnet0 (1 references)
        run <code>service iptables restart</code>, you need to send SIGHUP to
        libvirt to make it recreate its rules.
     </p>
-        <p>More in depth documentation on this is <a href="formatnwfilter.html">here</a>.</p>
+        <p>More in depth documentation on this is <a href="formatnwfilter.html" shape="rect">here</a>.</p>
       </div>
     </div>
     <div id="footer">

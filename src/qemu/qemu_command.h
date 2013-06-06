@@ -1,7 +1,7 @@
 /*
  * qemu_command.h: QEMU command generation
  *
- * Copyright (C) 2006-2012 Red Hat, Inc.
+ * Copyright (C) 2006-2013 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -48,6 +48,19 @@
 # define QEMU_REMOTE_PORT_MIN  5900
 # define QEMU_REMOTE_PORT_MAX  65535
 
+# define QEMU_WEBSOCKET_PORT_MIN  5700
+# define QEMU_WEBSOCKET_PORT_MAX  65535
+
+typedef struct _qemuBuildCommandLineCallbacks qemuBuildCommandLineCallbacks;
+typedef qemuBuildCommandLineCallbacks *qemuBuildCommandLineCallbacksPtr;
+struct _qemuBuildCommandLineCallbacks {
+    char * (*qemuGetSCSIDeviceSgName) (const char *adapter,
+                                       unsigned int bus,
+                                       unsigned int target,
+                                       unsigned int unit);
+};
+
+extern qemuBuildCommandLineCallbacks buildCommandLineCallbacks;
 
 virCommandPtr qemuBuildCommandLine(virConnectPtr conn,
                                    virQEMUDriverPtr driver,
@@ -58,8 +71,9 @@ virCommandPtr qemuBuildCommandLine(virConnectPtr conn,
                                    const char *migrateFrom,
                                    int migrateFd,
                                    virDomainSnapshotObjPtr current_snapshot,
-                                   enum virNetDevVPortProfileOp vmop)
-    ATTRIBUTE_NONNULL(1);
+                                   enum virNetDevVPortProfileOp vmop,
+                                   qemuBuildCommandLineCallbacksPtr callbacks)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(11);
 
 /* Generate string for arch-specific '-device' parameter */
 char *
@@ -73,8 +87,10 @@ char * qemuBuildHostNetStr(virDomainNetDefPtr net,
                            virQEMUDriverPtr driver,
                            char type_sep,
                            int vlan,
-                           const char *tapfd,
-                           const char *vhostfd);
+                           char **tapfd,
+                           int tapfdSize,
+                           char **vhostfd,
+                           int vhostfdSize);
 
 /* Legacy, pre device support */
 char * qemuBuildNicStr(virDomainNetDefPtr net,
@@ -138,6 +154,14 @@ char * qemuBuildUSBHostdevUsbDevStr(virDomainHostdevDefPtr dev);
 char * qemuBuildUSBHostdevDevStr(virDomainHostdevDefPtr dev,
                                  virQEMUCapsPtr qemuCaps);
 
+char * qemuBuildSCSIHostdevDrvStr(virDomainHostdevDefPtr dev,
+                                  virQEMUCapsPtr qemuCaps,
+                                  qemuBuildCommandLineCallbacksPtr callbacks)
+    ATTRIBUTE_NONNULL(3);
+char * qemuBuildSCSIHostdevDevStr(virDomainDefPtr def,
+                                  virDomainHostdevDefPtr dev,
+                                  virQEMUCapsPtr qemuCaps);
+
 char * qemuBuildHubDevStr(virDomainHubDefPtr dev, virQEMUCapsPtr qemuCaps);
 char * qemuBuildRedirdevDevStr(virDomainDefPtr def,
                                virDomainRedirdevDefPtr dev,
@@ -147,7 +171,9 @@ int qemuNetworkIfaceConnect(virDomainDefPtr def,
                             virConnectPtr conn,
                             virQEMUDriverPtr driver,
                             virDomainNetDefPtr net,
-                            virQEMUCapsPtr qemuCaps)
+                            virQEMUCapsPtr qemuCaps,
+                            int *tapfd,
+                            int *tapfdSize)
     ATTRIBUTE_NONNULL(2);
 
 int qemuPhysIfaceConnect(virDomainDefPtr def,
@@ -159,7 +185,10 @@ int qemuPhysIfaceConnect(virDomainDefPtr def,
 int qemuOpenVhostNet(virDomainDefPtr def,
                      virDomainNetDefPtr net,
                      virQEMUCapsPtr qemuCaps,
-                     int *vhostfd);
+                     int *vhostfd,
+                     int *vhostfdSize);
+
+int qemuNetworkPrepareDevices(virDomainDefPtr def);
 
 /*
  * NB: def->name can be NULL upon return and the caller

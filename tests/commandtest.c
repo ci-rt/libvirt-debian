@@ -31,13 +31,13 @@
 #include "testutils.h"
 #include "internal.h"
 #include "nodeinfo.h"
-#include "virutil.h"
 #include "viralloc.h"
 #include "vircommand.h"
 #include "virfile.h"
 #include "virpidfile.h"
 #include "virerror.h"
 #include "virthread.h"
+#include "virstring.h"
 
 #define VIR_FROM_THIS VIR_FROM_NONE
 
@@ -685,7 +685,7 @@ static int test17(const void *unused ATTRIBUTE_UNUSED)
         goto cleanup;
     }
     VIR_FREE(outbuf);
-    if ((outbuf = strdup("should not be leaked")) == NULL) {
+    if (VIR_STRDUP(outbuf, "should not be leaked") < 0) {
         puts("test framework failure");
         goto cleanup;
     }
@@ -891,7 +891,7 @@ static int test21(const void *unused ATTRIBUTE_UNUSED)
         goto cleanup;
     }
 
-    ret = 0;
+    ret = checkoutput("test21");
 cleanup:
     VIR_FREE(outbuf);
     VIR_FREE(errbuf);

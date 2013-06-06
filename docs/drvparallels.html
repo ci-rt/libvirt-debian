@@ -185,18 +185,18 @@
         The libvirt Parallels driver can manage Parallels Cloud Server starting from version 6.0.
     </p>
         <h2>
-          <a name="project" id="project">Project Links</a>
+          <a name="project" shape="rect" id="project">Project Links</a>
         </h2>
         <ul><li>
-        The <a href="http://www.parallels.com/products/server/baremetal/sp/">Parallels Cloud Server</a> Virtualization Solution.
+        The <a href="http://www.parallels.com/products/server/baremetal/sp/" shape="rect">Parallels Cloud Server</a> Virtualization Solution.
       </li></ul>
         <h2>
-          <a name="uri" id="uri">Connections to the Parallels Cloud Server driver</a>
+          <a name="uri" shape="rect" id="uri">Connections to the Parallels Cloud Server driver</a>
         </h2>
         <p>
         The libvirt Parallels driver is a single-instance privileged driver, with a driver name of 'parallels'. Some example connection URIs for the libvirt driver are:
     </p>
-        <pre>
+        <pre xml:space="preserve">
 parallels:///system                     (local access)
 parallels+unix:///system                (local access)
 parallels://example.com/system          (remote access, TLS/x509)
@@ -204,14 +204,14 @@ parallels+tcp://example.com/system      (remote access, SASl/Kerberos)
 parallels+ssh://root@example.com/system (remote access, SSH tunnelled)
 </pre>
         <h2>
-          <a name="example" id="example">Example guest domain XML configuration</a>
+          <a name="example" shape="rect" id="example">Example guest domain XML configuration</a>
         </h2>
         <p>
     Parallels driver require at least one hard disk for new domains
     at this time. It is used for defining directory, where VM should
     be created.
     </p>
-        <pre>
+        <pre xml:space="preserve">
 &lt;domain type='parallels'&gt;
   &lt;name&gt;demo&lt;/name&gt;
   &lt;uuid&gt;54cdecad-4492-4e31-a209-33cc21d64057&lt;/uuid&gt;

@@ -1,7 +1,7 @@
 /*
  * Linux block and network stats.
  *
- * Copyright (C) 2007-2009 Red Hat, Inc.
+ * Copyright (C) 2007-2009, 2013 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -40,10 +40,10 @@
 
 # include "virerror.h"
 # include "datatypes.h"
-# include "virutil.h"
 # include "block_stats.h"
 # include "viralloc.h"
 # include "virfile.h"
+# include "virstring.h"
 
 # define VIR_FROM_THIS VIR_FROM_STATS_LINUX
 
@@ -292,14 +292,14 @@ xenLinuxDomainDeviceID(int domid, const char *path)
      * /sys/devices/xen-backend/(vbd|tap)-{domid}-{devid}/statistics/{...}
      */
 
-    if (strlen(path) >= 5 && STRPREFIX(path, "/dev/"))
-        retval = virAsprintf(&mod_path, "%s", path);
-    else
-        retval = virAsprintf(&mod_path, "/dev/%s", path);
-
-    if (retval < 0) {
-        virReportOOMError();
-        return -1;
+    if (strlen(path) >= 5 && STRPREFIX(path, "/dev/")) {
+        if (VIR_STRDUP(mod_path, path) < 0)
+            return -1;
+    } else {
+        if (virAsprintf(&mod_path, "/dev/%s", path) < 0) {
+            virReportOOMError();
+            return -1;
+        }
     }
 
     retval = -1;
@@ -359,16 +359,16 @@ xenLinuxDomainDeviceID(int domid, const char *path)
 
 int
 xenLinuxDomainBlockStats(xenUnifiedPrivatePtr priv,
-                         virDomainPtr dom,
+                         virDomainDefPtr def,
                          const char *path,
                          struct _virDomainBlockStats *stats)
 {
-    int device = xenLinuxDomainDeviceID(dom->id, path);
+    int device = xenLinuxDomainDeviceID(def->id, path);
 
     if (device < 0)
         return -1;
 
-    return read_bd_stats(priv, device, dom->id, stats);
+    return read_bd_stats(priv, device, def->id, stats);
 }
 
 #endif /* __linux__ */

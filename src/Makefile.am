@@ -1,7 +1,20 @@
 ## Process this file with automake to produce Makefile.in
 
 ## Copyright (C) 2005-2013 Red Hat, Inc.
-## See COPYING.LIB for the License of this software
+##
+## This library is free software; you can redistribute it and/or
+## modify it under the terms of the GNU Lesser General Public
+## License as published by the Free Software Foundation; either
+## version 2.1 of the License, or (at your option) any later version.
+##
+## This library is distributed in the hope that it will be useful,
+## but WITHOUT ANY WARRANTY; without even the implied warranty of
+## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+## Lesser General Public License for more details.
+##
+## You should have received a copy of the GNU Lesser General Public
+## License along with this library.  If not, see
+## <http://www.gnu.org/licenses/>.
 
 # No libraries with the exception of LIBXML should be listed
 # here. List them against the individual XXX_la_CFLAGS targets
@@ -14,13 +27,13 @@ INCLUDES =	-I../gnulib/lib					\
 		-DIN_LIBVIRT					\
 		$(GETTEXT_CPPFLAGS)
 
-AM_CFLAGS =	$(DRIVER_MODULE_CFLAGS)				\
-		$(LIBXML_CFLAGS)				\
+AM_CFLAGS =	$(LIBXML_CFLAGS)				\
 		$(WARN_CFLAGS)					\
 		$(LOCK_CHECKING_CFLAGS)				\
 		$(WIN32_EXTRA_CFLAGS)				\
 		$(COVERAGE_CFLAGS)
-AM_LDFLAGS = $(COVERAGE_LDFLAGS)
+AM_LDFLAGS =	$(DRIVER_MODULE_LDFLAGS)			\
+		$(COVERAGE_LDFLAGS)
 
 EXTRA_DIST = $(conf_DATA) util/keymaps.csv
 
@@ -111,6 +124,7 @@ UTIL_SOURCES =							\
 		util/virportallocator.c util/virportallocator.h \
 		util/virprocess.c util/virprocess.h		\
 		util/virrandom.h util/virrandom.c		\
+		util/virscsi.c util/virscsi.h			\
 		util/virsexpr.c util/virsexpr.h			\
 		util/virsocketaddr.h util/virsocketaddr.c	\
 		util/virstatslinux.c util/virstatslinux.h	\
@@ -438,50 +452,37 @@ check-drivername:
 EXTRA_DIST += check-drivername.pl
 
 DRIVER_SOURCE_FILES = \
-	esx/esx_device_monitor.c \
-	esx/esx_driver.c \
-	esx/esx_interface_driver.c \
-	esx/esx_network_driver.c \
-	esx/esx_nwfilter_driver.c \
-	esx/esx_secret_driver.c \
-	esx/esx_storage_driver.c \
-	hyperv/hyperv_device_monitor.c \
-	hyperv/hyperv_driver.c \
-	hyperv/hyperv_interface_driver.c \
-	hyperv/hyperv_network_driver.c \
-	hyperv/hyperv_nwfilter_driver.c \
-	hyperv/hyperv_secret_driver.c \
-	hyperv/hyperv_storage_driver.c \
-	interface/interface_backend_netcf.c \
-	interface/interface_backend_udev.c \
-	libxl/libxl_driver.c \
-	lxc/lxc_driver.c \
-	network/bridge_driver.c \
-	node_device/node_device_hal.c \
-	node_device/node_device_udev.c \
-	nwfilter/nwfilter_driver.c \
-	openvz/openvz_driver.c \
-	parallels/parallels_driver.c \
-	parallels/parallels_network.c \
-	parallels/parallels_storage.c \
-	phyp/phyp_driver.c \
-	qemu/qemu_driver.c \
-	remote/remote_driver.c \
-	secret/secret_driver.c \
-	storage/storage_driver.c \
-	test/test_driver.c \
-	uml/uml_driver.c \
-	vbox/vbox_driver.c \
+	$(ESX_DRIVER_SOURCES) \
+	$(HYPERV_DRIVER_SORUCES) \
+	$(INTERFACE_DRIVER_SOURCES) \
+	$(LIBXL_DRIVER_SOURCES) \
+	$(LXC_DRIVER_SOURCES) \
+	$(NETWORK_DRIVER_SOURCES) \
+	$(NODE_DEVICE_DRIVER_SOURCES) \
+	$(NODE_DEVICE_DRIVER_HAL_SOURCES) \
+	$(NODE_DEVICE_DRIVER_UDEV_SOURCES) \
+	$(NWFILTER_DRIVER_SOURCES) \
+	$(OPENVZ_DRIVER_SOURCES) \
+	$(PARALLELS_DRIVER_SOURCES) \
+	$(PHYP_DRIVER_SOURCES) \
+	$(QEMU_DRIVER_SOURCES) \
+	$(REMOTE_DRIVER_SOURCES) \
+	$(SECRET_DRIVER_SOURCES) \
+	$(STORAGE_DRIVER_SOURCES) \
+	$(TEST_DRIVER_SOURCES) \
+	$(UML_DRIVER_SOURCES) \
+	$(VBOX_DRIVER_SOURCES) \
 	vbox/vbox_tmpl.c \
-	vmware/vmware_driver.c \
-	xen/xen_driver.c \
-	xenapi/xenapi_driver.c \
+	$(VMWARE_DRIVER_SOURCES) \
+	$(XEN_DRIVER_SOURCES) \
+	$(XENAPI_DRIVER_SOURCES) \
 	$(NULL)
 
 
 check-driverimpls:
 	$(AM_V_GEN)$(PERL) $(srcdir)/check-driverimpls.pl \
-		$(DRIVER_SOURCE_FILES)
+		$(filter /%,$(DRIVER_SOURCE_FILES)) \
+		$(addprefix $(srcdir)/,$(filter-out /%,$(DRIVER_SOURCE_FILES)))
 
 EXTRA_DIST += check-driverimpls.pl
 
@@ -970,12 +971,26 @@ libvirt_driver_vmware_la_SOURCES = $(VMWARE_DRIVER_SOURCES)
 endif
 
 if WITH_VBOX
+noinst_LTLIBRARIES += libvirt_driver_vbox_impl.la
+libvirt_driver_vbox_la_SOURCES =
+libvirt_driver_vbox_la_LIBADD = libvirt_driver_vbox_impl.la
+if WITH_DRIVER_MODULES
+mod_LTLIBRARIES += libvirt_driver_vbox.la
+libvirt_driver_vbox_la_LIBADD += ../gnulib/lib/libgnu.la
+libvirt_driver_vbox_la_LDFLAGS = -module -avoid-version
+else
 noinst_LTLIBRARIES += libvirt_driver_vbox.la
-libvirt_la_BUILT_LIBADD += libvirt_driver_vbox.la
-libvirt_driver_vbox_la_CFLAGS = \
-		-I$(top_srcdir)/src/conf $(AM_CFLAGS)
-libvirt_driver_vbox_la_LIBADD = $(DLOPEN_LIBS) $(MSCOM_LIBS)
-libvirt_driver_vbox_la_SOURCES = $(VBOX_DRIVER_SOURCES)
+# GPLv2-only license requries that it be linked into
+# libvirtd and *not* libvirt.so
+#libvirt_la_BUILT_LIBADD += libvirt_driver_vbox.la
+endif
+
+libvirt_driver_vbox_impl_la_CFLAGS =				\
+		-I$(top_srcdir)/src/conf			\
+		$(AM_CFLAGS)
+libvirt_driver_vbox_impl_la_LDFLAGS = $(AM_LDFLAGS)
+libvirt_driver_vbox_impl_la_LIBADD =  $(DLOPEN_LIBS) $(MSCOM_LIBS)
+libvirt_driver_vbox_impl_la_SOURCES = $(VBOX_DRIVER_SOURCES)
 endif
 
 if WITH_XENAPI
@@ -1548,20 +1563,11 @@ SYM_FILES += $(srcdir)/libvirt_atomic.syms
 endif
 
 EXTRA_DIST += \
-  libvirt_public.syms		\
-  libvirt_private.syms		\
-  libvirt_atomic.syms		\
-  libvirt_driver_modules.syms	\
-  libvirt_daemon.syms		\
-  libvirt_linux.syms		\
-  libvirt_esx.syms		\
-  libvirt_openvz.syms		\
-  libvirt_qemu.syms		\
-  libvirt_sasl.syms		\
-  libvirt_gnutls.syms		\
-  libvirt_vmx.syms		\
-  libvirt_xenxs.syms	\
-  libvirt_libssh2.syms
+	libvirt_public.syms		\
+	libvirt_lxc.syms		\
+	libvirt_qemu.syms		\
+	$(SYM_FILES)			\
+	$(NULL)
 
 GENERATED_SYM_FILES = \
 	libvirt.syms libvirt.def libvirt_qemu.def libvirt_lxc.def
@@ -1721,7 +1727,9 @@ lockd_la_SOURCES = \
 		$(LOCK_DRIVER_LOCKD_SOURCES) \
 		$(LOCK_PROTOCOL_GENERATED) \
 		$(NULL)
-lockd_la_CFLAGS = -I$(top_srcdir)/src/conf $(AM_CFLAGS)
+lockd_la_CFLAGS = -I$(top_srcdir)/src/conf \
+		$(XDR_CFLAGS) \
+		$(AM_CFLAGS)
 lockd_la_LDFLAGS = -module -avoid-version
 lockd_la_LIBADD = ../gnulib/lib/libgnu.la libvirt-net-rpc.la libvirt-net-rpc-client.la
 augeas_DATA += locking/libvirt_lockd.aug
@@ -1751,6 +1759,7 @@ virtlockd_SOURCES = \
 virtlockd_CFLAGS = \
 		$(AM_CFLAGS) \
 		$(PIE_CFLAGS) \
+		$(XDR_CFLAGS) \
 		$(NULL)
 virtlockd_LDFLAGS = \
 		$(AM_LDFLAGS) \
@@ -2001,7 +2010,6 @@ if WITH_LIBVIRTD
 libexec_PROGRAMS += libvirt_iohelper
 libvirt_iohelper_SOURCES = $(UTIL_IO_HELPER_SOURCES)
 libvirt_iohelper_LDFLAGS = \
-		$(WARN_LDFLAGS) \
 		$(AM_LDFLAGS) \
 		$(PIE_LDFLAGS) \
 		$(RELRO_LDFLAGS) \
@@ -2025,7 +2033,6 @@ libexec_PROGRAMS += libvirt_parthelper
 
 libvirt_parthelper_SOURCES = $(STORAGE_HELPER_DISK_SOURCES)
 libvirt_parthelper_LDFLAGS = \
-		$(WARN_LDFLAGS) \
 		$(AM_LDFLAGS) \
 		$(PIE_LDFLAGS) \
 		$(RELRO_LDFLAGS) \
@@ -2058,7 +2065,6 @@ libvirt_sanlock_helper_CFLAGS = \
 		$(PIE_CFLAGS) \
 		$(NULL)
 libvirt_sanlock_helper_LDFLAGS = \
-		$(WARN_LDFLAGS) \
 		$(AM_LDFLAGS) \
 		$(PIE_LDFLAGS) \
 		$(RELRO_LDFLAGS) \
@@ -2075,7 +2081,6 @@ libvirt_lxc_SOURCES =						\
 		$(NODE_INFO_SOURCES)				\
 		$(DATATYPES_SOURCES)
 libvirt_lxc_LDFLAGS = \
-		$(WARN_LDFLAGS) \
 		$(AM_LDFLAGS) \
 		$(PIE_LDFLAGS) \
 		$(RELRO_LDFLAGS) \
@@ -2120,7 +2125,6 @@ libexec_PROGRAMS += virt-aa-helper
 virt_aa_helper_SOURCES = $(SECURITY_DRIVER_APPARMOR_HELPER_SOURCES)
 
 virt_aa_helper_LDFLAGS = \
-		$(WARN_LDFLAGS) \
 		$(AM_LDFLAGS) \
 		$(PIE_LDFLAGS) \
 		$(RELRO_LDFLAGS) \
@@ -2157,6 +2161,7 @@ if WITH_SANLOCK
 endif
 if WITH_QEMU
 	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/lib/libvirt/qemu"
+	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/lib/libvirt/qemu/channel/target"
 	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/run/libvirt/qemu"
 	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/cache/libvirt/qemu"
 	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/log/libvirt/qemu"

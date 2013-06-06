@@ -31,9 +31,9 @@
 #include "datatypes.h"
 #include "viralloc.h"
 #include "virlog.h"
-#include "virutil.h"
 #include "esx_vi.h"
 #include "esx_vi_types.h"
+#include "virstring.h"
 
 #define VIR_FROM_THIS VIR_FROM_ESX
 
@@ -720,10 +720,9 @@ esxVI_GetActualObjectType(xmlNodePtr node, esxVI_Type baseType,
                       BAD_CAST "http://www.w3.org/2001/XMLSchema-instance");
 
     if (type == NULL) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("%s is missing 'type' property"),
-                       esxVI_Type_ToString(baseType));
-        return -1;
+        /* no actual type specified, use base type instead */
+        *actualType = baseType;
+        return 0;
     }
 
     *actualType = esxVI_Type_FromString(type);
@@ -963,8 +962,8 @@ esxVI_AnyType_DeepCopy(esxVI_AnyType **dest, esxVI_AnyType *src)
 
     (*dest)->type = src->type;
 
-    if (esxVI_String_DeepCopyValue(&(*dest)->other, src->other) < 0 ||
-        esxVI_String_DeepCopyValue(&(*dest)->value, src->value) < 0) {
+    if (VIR_STRDUP((*dest)->other, src->other) < 0 ||
+        VIR_STRDUP((*dest)->value, src->value) < 0) {
         goto failure;
     }
 
@@ -1050,14 +1049,8 @@ esxVI_AnyType_Deserialize(xmlNodePtr node, esxVI_AnyType **anyType)
     (*anyType)->value =
       (char *)xmlNodeListGetString(node->doc, node->children, 1);
 
-    if ((*anyType)->value == NULL) {
-        (*anyType)->value = strdup("");
-
-        if ((*anyType)->value == NULL) {
-            virReportOOMError();
-            goto failure;
-        }
-    }
+    if (!(*anyType)->value && VIR_STRDUP((*anyType)->value, "") < 0)
+        goto failure;
 
 #define _DESERIALIZE_NUMBER(_type, _xsdType, _name, _min, _max)               \
         do {                                                                  \
@@ -1177,12 +1170,8 @@ esxVI_String_AppendValueToList(esxVI_String **stringList, const char *value)
         return -1;
     }
 
-    string->value = strdup(value);
-
-    if (string->value == NULL) {
-        virReportOOMError();
+    if (VIR_STRDUP(string->value, value) < 0)
         goto failure;
-    }
 
     if (esxVI_String_AppendToList(stringList, string) < 0) {
         goto failure;
@@ -1244,14 +1233,7 @@ esxVI_String_DeepCopyValue(char **dest, const char *src)
         return 0;
     }
 
-    *dest = strdup(src);
-
-    if (*dest == NULL) {
-        virReportOOMError();
-        return -1;
-    }
-
-    return 0;
+    return VIR_STRDUP(*dest, src);
 }
 
 /* esxVI_String_CastFromAnyType */
@@ -1327,16 +1309,7 @@ esxVI_String_DeserializeValue(xmlNodePtr node, char **value)
 
     *value = (char *)xmlNodeListGetString(node->doc, node->children, 1);
 
-    if (*value == NULL) {
-        *value = strdup("");
-
-        if (*value == NULL) {
-            virReportOOMError();
-            return -1;
-        }
-    }
-
-    return 0;
+    return *value ? 0 : VIR_STRDUP(*value, "");
 }
 
 

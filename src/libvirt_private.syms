@@ -117,6 +117,7 @@ virDomainDefGenSecurityLabelDef;
 virDomainDefGetDefaultEmulator;
 virDomainDefGetSecurityLabelDef;
 virDomainDefMaybeAddController;
+virDomainDefNew;
 virDomainDefParseFile;
 virDomainDefParseNode;
 virDomainDefParseString;
@@ -142,6 +143,7 @@ virDomainDiskDefFree;
 virDomainDiskDefGenSecurityLabelDef;
 virDomainDiskDefGetSecurityLabelDef;
 virDomainDiskDeviceTypeToString;
+virDomainDiskDiscardTypeToString;
 virDomainDiskErrorPolicyTypeFromString;
 virDomainDiskErrorPolicyTypeToString;
 virDomainDiskFindByBusAndDst;
@@ -201,6 +203,8 @@ virDomainGraphicsSpiceZlibCompressionTypeFromString;
 virDomainGraphicsSpiceZlibCompressionTypeToString;
 virDomainGraphicsTypeFromString;
 virDomainGraphicsTypeToString;
+virDomainGraphicsVNCSharePolicyTypeFromString;
+virDomainGraphicsVNCSharePolicyTypeToString;
 virDomainHasDiskMirror;
 virDomainHostdevCapsTypeToString;
 virDomainHostdevDefAlloc;
@@ -699,6 +703,7 @@ virFDStreamConnectUNIX;
 virFDStreamCreateFile;
 virFDStreamOpen;
 virFDStreamOpenFile;
+virFDStreamSetIOHelper;
 
 
 # libvirt_internal.h
@@ -862,7 +867,7 @@ virNetServerClientGetFD;
 virNetServerClientGetIdentity;
 virNetServerClientGetPrivateData;
 virNetServerClientGetReadonly;
-virNetServerClientGetSecurityContext;
+virNetServerClientGetSELinuxContext;
 virNetServerClientGetUNIXIdentity;
 virNetServerClientImmediateClose;
 virNetServerClientInit;
@@ -933,7 +938,7 @@ virNetSocketClose;
 virNetSocketDupFD;
 virNetSocketGetFD;
 virNetSocketGetPort;
-virNetSocketGetSecurityContext;
+virNetSocketGetSELinuxContext;
 virNetSocketGetUNIXIdentity;
 virNetSocketHasCachedData;
 virNetSocketHasPassFD;
@@ -1271,18 +1276,53 @@ virEventPollUpdateTimeout;
 
 
 # util/virfile.h
+saferead;
+safewrite;
+safezero;
+virBuildPathInternal;
+virDirCreate;
+virFileAbsPath;
+virFileAccessibleAs;
+virFileBuildPath;
 virFileClose;
 virFileDeleteTree;
 virFileDirectFdFlag;
+virFileExists;
 virFileFclose;
 virFileFdopen;
+virFileFindMountPoint;
+virFileHasSuffix;
+virFileIsAbsPath;
+virFileIsDir;
+virFileIsExecutable;
+virFileIsLink;
+virFileLinkPointsTo;
+virFileLock;
 virFileLoopDeviceAssociate;
+virFileMakePath;
+virFileMakePathWithMode;
+virFileMatchesNameSuffix;
+virFileNBDDeviceAssociate;
+virFileOpenAs;
+virFileOpenTty;
+virFilePrintf;
+virFileReadAll;
+virFileReadLimFD;
+virFileResolveAllLinks;
+virFileResolveLink;
 virFileRewrite;
+virFileSanitizePath;
+virFileSkipRoot;
+virFileStripSuffix;
 virFileTouch;
+virFileUnlock;
 virFileUpdatePerm;
+virFileWaitForDevices;
 virFileWrapperFdClose;
 virFileWrapperFdFree;
 virFileWrapperFdNew;
+virFileWriteStr;
+virFindFileInPath;
 
 
 # util/virhash.h
@@ -1392,6 +1432,7 @@ virJSONValueObjectGetValue;
 virJSONValueObjectHasKey;
 virJSONValueObjectIsNull;
 virJSONValueObjectKeysNumber;
+virJSONValueObjectRemoveKey;
 virJSONValueToString;
 
 
@@ -1463,6 +1504,7 @@ virMacAddrSetRaw;
 
 
 # util/virnetdev.h
+virNetDevAddRoute;
 virNetDevClearIPv4Address;
 virNetDevExists;
 virNetDevGetIndex;
@@ -1687,6 +1729,29 @@ virRandomGenerateWWN;
 virRandomInt;
 
 
+# util/virscsi.h
+virSCSIDeviceFileIterate;
+virSCSIDeviceFree;
+virSCSIDeviceGetAdapter;
+virSCSIDeviceGetBus;
+virSCSIDeviceGetDevName;
+virSCSIDeviceGetName;
+virSCSIDeviceGetReadonly;
+virSCSIDeviceGetSgName;
+virSCSIDeviceGetTarget;
+virSCSIDeviceGetUnit;
+virSCSIDeviceGetUsedBy;
+virSCSIDeviceListAdd;
+virSCSIDeviceListCount;
+virSCSIDeviceListDel;
+virSCSIDeviceListFind;
+virSCSIDeviceListGet;
+virSCSIDeviceListNew;
+virSCSIDeviceListSteal;
+virSCSIDeviceNew;
+virSCSIDeviceSetUsedBy;
+
+
 # util/virsexpr.h
 sexpr2string;
 sexpr_append;
@@ -1745,10 +1810,29 @@ virStorageFileResize;
 
 
 # util/virstring.h
+virArgvToString;
+virAsprintf;
+virSkipSpaces;
+virSkipSpacesAndBackslash;
+virSkipSpacesBackwards;
+virStrcpy;
+virStrdup;
 virStringArrayHasString;
 virStringFreeList;
 virStringJoin;
+virStringListLength;
 virStringSplit;
+virStrncpy;
+virStrndup;
+virStrToDouble;
+virStrToLong_i;
+virStrToLong_l;
+virStrToLong_ll;
+virStrToLong_ui;
+virStrToLong_ul;
+virStrToLong_ull;
+virTrimSpaces;
+virVasprintf;
 
 
 # util/virsysinfo.h
@@ -1842,46 +1926,11 @@ virUSBDeviceSetUsedBy;
 
 
 # util/virutil.h
-saferead;
-safewrite;
-safezero;
-virArgvToString;
-virAsprintf;
-virBuildPathInternal;
 virCompareLimitUlong;
-virDirCreate;
 virDoubleToStr;
 virEnumFromString;
 virEnumToString;
-virFileAbsPath;
-virFileAccessibleAs;
-virFileBuildPath;
-virFileExists;
-virFileFindMountPoint;
-virFileHasSuffix;
-virFileIsAbsPath;
-virFileIsDir;
-virFileIsExecutable;
-virFileIsLink;
-virFileLinkPointsTo;
-virFileLock;
-virFileMakePath;
-virFileMakePathWithMode;
-virFileMatchesNameSuffix;
-virFileOpenAs;
-virFileOpenTty;
-virFileReadAll;
-virFileReadLimFD;
-virFileResolveAllLinks;
-virFileResolveLink;
-virFileSanitizePath;
-virFileSkipRoot;
-virFileStripSuffix;
-virFileUnlock;
-virFileWaitForDevices;
-virFileWriteStr;
 virFindFCHostCapableVport;
-virFindFileInPath;
 virFormatIntDecimal;
 virGetDeviceID;
 virGetDeviceUnprivSGIO;
@@ -1914,22 +1963,8 @@ virSetInherit;
 virSetNonBlock;
 virSetUIDGID;
 virSetUIDGIDWithCaps;
-virSkipSpaces;
-virSkipSpacesAndBackslash;
-virSkipSpacesBackwards;
-virStrcpy;
 virStrIsPrint;
-virStrncpy;
-virStrToDouble;
-virStrToLong_i;
-virStrToLong_l;
-virStrToLong_ll;
-virStrToLong_ui;
-virStrToLong_ul;
-virStrToLong_ull;
-virTrimSpaces;
 virValidateWWN;
-virVasprintf;
 
 
 # util/viruuid.h

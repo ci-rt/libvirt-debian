@@ -25,13 +25,18 @@
 #include <stdlib.h>
 
 #include <gnutls/gnutls.h>
+#if HAVE_GNUTLS_CRYPTO_H
+# include <gnutls/crypto.h>
+#endif
 #include <gnutls/x509.h>
 #include "gnutls_1_0_compat.h"
 
 #include "virnettlscontext.h"
+#include "virstring.h"
 
 #include "viralloc.h"
 #include "virerror.h"
+#include "virfile.h"
 #include "virutil.h"
 #include "virlog.h"
 #include "virthread.h"
@@ -290,7 +295,7 @@ static int virNetTLSContextCheckCertKeyPurpose(gnutls_x509_crt_t cert,
     bool allowClient = false, allowServer = false;
 
     critical = 0;
-    for (i = 0 ; ; i++) {
+    for (i = 0; ; i++) {
         size = 0;
         status = gnutls_x509_crt_get_key_purpose_oid(cert, i, buffer, &size, NULL);
 
@@ -835,23 +840,23 @@ static int virNetTLSContextLocateCredentials(const char *pkipath,
      */
     if (!*cacert) {
         VIR_DEBUG("Using default TLS CA certificate path");
-        if (!(*cacert = strdup(LIBVIRT_CACERT)))
-            goto out_of_memory;
+        if (VIR_STRDUP(*cacert, LIBVIRT_CACERT) < 0)
+            goto error;
     }
 
     if (!*cacrl) {
         VIR_DEBUG("Using default TLS CA revocation list path");
-        if (!(*cacrl = strdup(LIBVIRT_CACRL)))
-            goto out_of_memory;
+        if (VIR_STRDUP(*cacrl, LIBVIRT_CACRL) < 0)
+            goto error;
     }
 
     if (!*key && !*cert) {
         VIR_DEBUG("Using default TLS key/certificate path");
-        if (!(*key = strdup(isServer ? LIBVIRT_SERVERKEY : LIBVIRT_CLIENTKEY)))
-            goto out_of_memory;
+        if (VIR_STRDUP(*key, isServer ? LIBVIRT_SERVERKEY : LIBVIRT_CLIENTKEY) < 0)
+            goto error;
 
-        if (!(*cert = strdup(isServer ? LIBVIRT_SERVERCERT : LIBVIRT_CLIENTCERT)))
-            goto out_of_memory;
+        if (VIR_STRDUP(*cert, isServer ? LIBVIRT_SERVERCERT : LIBVIRT_CLIENTCERT) < 0)
+            goto error;
     }
 
     VIR_FREE(user_pki_path);
@@ -861,6 +866,7 @@ static int virNetTLSContextLocateCredentials(const char *pkipath,
 
 out_of_memory:
     virReportOOMError();
+error:
     VIR_FREE(*cacert);
     VIR_FREE(*cacrl);
     VIR_FREE(*key);
@@ -1027,10 +1033,8 @@ static int virNetTLSContextValidCertificate(virNetTLSContextPtr ctxt,
                                "[session]", gnutls_strerror(ret));
                 goto authfail;
             }
-            if (!(sess->x509dname = strdup(dname))) {
-                virReportOOMError();
+            if (VIR_STRDUP(sess->x509dname, dname) < 0)
                 goto authfail;
-            }
             VIR_DEBUG("Peer DN is %s", dname);
 
             if (virNetTLSContextCheckCertDN(cert, "[session]", sess->hostname, dname,
@@ -1167,11 +1171,8 @@ virNetTLSSessionPtr virNetTLSSessionNew(virNetTLSContextPtr ctxt,
     if (!(sess = virObjectLockableNew(virNetTLSSessionClass)))
         return NULL;
 
-    if (hostname &&
-        !(sess->hostname = strdup(hostname))) {
-        virReportOOMError();
+    if (VIR_STRDUP(sess->hostname, hostname) < 0)
         goto error;
-    }
 
     if ((err = gnutls_init(&sess->session,
                            ctxt->isServer ? GNUTLS_SERVER : GNUTLS_CLIENT)) != 0) {

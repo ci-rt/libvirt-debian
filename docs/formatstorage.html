@@ -185,7 +185,7 @@
               </li></ul>
           </li></ul>
         <h2>
-          <a name="StoragePool" id="StoragePool">Storage pool XML</a>
+          <a name="StoragePool" shape="rect" id="StoragePool">Storage pool XML</a>
         </h2>
         <p>
       Although all storage pool backends share the same public APIs and
@@ -202,9 +202,9 @@
       The storage pool XML format is available <span class="since">since 0.4.1</span>
     </p>
         <h3>
-          <a name="StoragePoolFirst" id="StoragePoolFirst">General metadata</a>
+          <a name="StoragePoolFirst" shape="rect" id="StoragePoolFirst">General metadata</a>
         </h3>
-        <pre>
+        <pre xml:space="preserve">
       &lt;pool type="iscsi"&gt;
         &lt;name&gt;virtimages&lt;/name&gt;
         &lt;uuid&gt;3e3fce45-4f53-4fa7-bb32-11f34168b82b&lt;/uuid&gt;
@@ -227,14 +227,14 @@
         This value is in bytes. This is not applicable when creating a
         pool. <span class="since">Since 0.4.1</span></dd></dl>
         <h3>
-          <a name="StoragePoolSource" id="StoragePoolSource">Source elements</a>
+          <a name="StoragePoolSource" shape="rect" id="StoragePoolSource">Source elements</a>
         </h3>
         <p>
       A single <code>source</code> element is contained within the top level
       <code>pool</code> element. This tag is used to describe the source of
       the storage pool. It can contain the following child elements:
     </p>
-        <pre>
+        <pre xml:space="preserve">
         ...
         &lt;source&gt;
           &lt;host name="iscsi.example.com"/&gt;
@@ -243,7 +243,7 @@
           &lt;product name="model"/&gt;
         &lt;/source&gt;
         ...</pre>
-        <pre>
+        <pre xml:space="preserve">
         ...
         &lt;source&gt;
         &lt;source&gt;
@@ -294,7 +294,7 @@
         This contains a single attribute <code>name</code> whose value
         is backend specific.  <span class="since">Since 0.8.4</span></dd></dl>
         <h3>
-          <a name="StoragePoolTarget" id="StoragePoolTarget">Target elements</a>
+          <a name="StoragePoolTarget" shape="rect" id="StoragePoolTarget">Target elements</a>
         </h3>
         <p>
       A single <code>target</code> element is contained within the top level
@@ -302,7 +302,7 @@
       the storage pool into the host filesystem. It can contain the following
       child elements:
     </p>
-        <pre>
+        <pre xml:space="preserve">
         ...
         &lt;target&gt;
           &lt;path&gt;/dev/disk/by-path&lt;/path&gt;
@@ -354,11 +354,11 @@
         attribute and is ignored when creating a volume.
         <span class="since">Since 0.10.0</span>
       </dd><dt><code>encryption</code></dt><dd>If present, specifies how the volume is encrypted.  See
-        the <a href="formatstorageencryption.html">Storage Encryption</a> page
+        the <a href="formatstorageencryption.html" shape="rect">Storage Encryption</a> page
         for more information.
       </dd></dl>
         <h3>
-          <a name="StoragePoolExtents" id="StoragePoolExtents">Device extents</a>
+          <a name="StoragePoolExtents" shape="rect" id="StoragePoolExtents">Device extents</a>
         </h3>
         <p>
       If a storage pool exposes information about its underlying
@@ -378,16 +378,16 @@
       device, measured in bytes.  <span class="since">Since 0.4.1</span>
     </p>
         <h2>
-          <a name="StorageVol" id="StorageVol">Storage volume XML</a>
+          <a name="StorageVol" shape="rect" id="StorageVol">Storage volume XML</a>
         </h2>
         <p>
       A storage volume will be either a file or a device node.
       The storage volume XML format is available <span class="since">since 0.4.1</span>
     </p>
         <h3>
-          <a name="StorageVolFirst" id="StorageVolFirst">General metadata</a>
+          <a name="StorageVolFirst" shape="rect" id="StorageVolFirst">General metadata</a>
         </h3>
-        <pre>
+        <pre xml:space="preserve">
       &lt;volume&gt;
         &lt;name&gt;sparse.img&lt;/name&gt;
         &lt;key&gt;/var/lib/xen/images/sparse.img&lt;/key&gt;
@@ -437,7 +437,7 @@
         <span class="since">Since 0.4.1</span></dd><dt><code>target</code></dt><dd>Provides information about the representation of the volume
         on the local host. <span class="since">Since 0.4.1</span></dd></dl>
         <h3>
-          <a name="StorageVolTarget" id="StorageVolTarget">Target elements</a>
+          <a name="StorageVolTarget" shape="rect" id="StorageVolTarget">Target elements</a>
         </h3>
         <p>
       A single <code>target</code> element is contained within the top level
@@ -445,7 +445,7 @@
       the storage volume into the host filesystem. It can contain the following
       child elements:
     </p>
-        <pre>
+        <pre xml:space="preserve">
         ...
         &lt;target&gt;
           &lt;path&gt;/var/lib/virt/images/sparse.img&lt;/path&gt;
@@ -478,7 +478,7 @@
         <span class="since">Since 0.4.1</span>
       </dd></dl>
         <h3>
-          <a name="StorageVolBacking" id="StorageVolBacking">Backing store elements</a>
+          <a name="StorageVolBacking" shape="rect" id="StorageVolBacking">Backing store elements</a>
         </h3>
         <p>
       A single <code>backingStore</code> element is contained within the top level
@@ -486,7 +486,7 @@
       on write, backing store for the storage volume. It can contain the following
       child elements:
     </p>
-        <pre>
+        <pre xml:space="preserve">
         ...
         &lt;backingStore&gt;
           &lt;path&gt;/var/lib/virt/images/master.img&lt;/path&gt;
@@ -518,16 +518,16 @@
         <span class="since">Since 0.6.0</span>
       </dd></dl>
         <h2>
-          <a name="examples" id="examples">Example configuration</a>
+          <a name="examples" shape="rect" id="examples">Example configuration</a>
         </h2>
         <p>
       Here are a couple of examples, for a more complete set demonstrating
-      every type of storage pool, consult the <a href="storage.html">storage driver page</a>
+      every type of storage pool, consult the <a href="storage.html" shape="rect">storage driver page</a>
     </p>
         <h3>
-          <a name="exampleFile" id="exampleFile">File based storage pool</a>
+          <a name="exampleFile" shape="rect" id="exampleFile">File based storage pool</a>
         </h3>
-        <pre>
+        <pre xml:space="preserve">
       &lt;pool type="dir"&gt;
         &lt;name&gt;virtimages&lt;/name&gt;
         &lt;target&gt;
@@ -535,9 +535,9 @@
         &lt;/target&gt;
       &lt;/pool&gt;</pre>
         <h3>
-          <a name="exampleISCSI" id="exampleISCSI">iSCSI based storage pool</a>
+          <a name="exampleISCSI" shape="rect" id="exampleISCSI">iSCSI based storage pool</a>
         </h3>
-        <pre>
+        <pre xml:space="preserve">
       &lt;pool type="iscsi"&gt;
         &lt;name&gt;virtimages&lt;/name&gt;
         &lt;source&gt;
@@ -549,9 +549,9 @@
         &lt;/target&gt;
       &lt;/pool&gt;</pre>
         <h3>
-          <a name="exampleVol" id="exampleVol">Storage volume</a>
+          <a name="exampleVol" shape="rect" id="exampleVol">Storage volume</a>
         </h3>
-        <pre>
+        <pre xml:space="preserve">
       &lt;volume&gt;
         &lt;name&gt;sparse.img&lt;/name&gt;
         &lt;allocation&gt;0&lt;/allocation&gt;

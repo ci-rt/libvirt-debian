@@ -28,6 +28,7 @@
 #include "datatypes.h"
 #include "viralloc.h"
 #include "virerror.h"
+#include "virstring.h"
 
 #define VIR_FROM_THIS VIR_FROM_NONE
 
@@ -162,7 +163,7 @@ virDomainEventCallbackListRemove(virConnectPtr conn,
 {
     int ret = 0;
     int i;
-    for (i = 0 ; i < cbList->count ; i++) {
+    for (i = 0; i < cbList->count; i++) {
         if (cbList->callbacks[i]->cb == VIR_DOMAIN_EVENT_CALLBACK(callback) &&
             cbList->callbacks[i]->eventID == VIR_DOMAIN_EVENT_ID_LIFECYCLE &&
             cbList->callbacks[i]->conn == conn) {
@@ -184,7 +185,7 @@ virDomainEventCallbackListRemove(virConnectPtr conn,
             }
             cbList->count--;
 
-            for (i = 0 ; i < cbList->count ; i++) {
+            for (i = 0; i < cbList->count; i++) {
                 if (!cbList->callbacks[i]->deleted)
                     ret++;
             }
@@ -213,7 +214,7 @@ virDomainEventCallbackListRemoveID(virConnectPtr conn,
 {
     int ret = 0;
     int i;
-    for (i = 0 ; i < cbList->count ; i++) {
+    for (i = 0; i < cbList->count; i++) {
         if (cbList->callbacks[i]->callbackID == callbackID &&
             cbList->callbacks[i]->conn == conn) {
             virFreeCallback freecb = cbList->callbacks[i]->freecb;
@@ -234,7 +235,7 @@ virDomainEventCallbackListRemoveID(virConnectPtr conn,
             }
             cbList->count--;
 
-            for (i = 0 ; i < cbList->count ; i++) {
+            for (i = 0; i < cbList->count; i++) {
                 if (!cbList->callbacks[i]->deleted)
                     ret++;
             }
@@ -255,12 +256,12 @@ virDomainEventCallbackListMarkDelete(virConnectPtr conn,
 {
     int ret = 0;
     int i;
-    for (i = 0 ; i < cbList->count ; i++) {
+    for (i = 0; i < cbList->count; i++) {
         if (cbList->callbacks[i]->cb == VIR_DOMAIN_EVENT_CALLBACK(callback) &&
             cbList->callbacks[i]->eventID == VIR_DOMAIN_EVENT_ID_LIFECYCLE &&
             cbList->callbacks[i]->conn == conn) {
             cbList->callbacks[i]->deleted = 1;
-            for (i = 0 ; i < cbList->count ; i++) {
+            for (i = 0; i < cbList->count; i++) {
                 if (!cbList->callbacks[i]->deleted)
                     ret++;
             }
@@ -281,11 +282,11 @@ virDomainEventCallbackListMarkDeleteID(virConnectPtr conn,
 {
     int ret = 0;
     int i;
-    for (i = 0 ; i < cbList->count ; i++) {
+    for (i = 0; i < cbList->count; i++) {
         if (cbList->callbacks[i]->callbackID == callbackID &&
             cbList->callbacks[i]->conn == conn) {
             cbList->callbacks[i]->deleted = 1;
-            for (i = 0 ; i < cbList->count ; i++) {
+            for (i = 0; i < cbList->count; i++) {
                 if (!cbList->callbacks[i]->deleted)
                     ret++;
             }
@@ -304,7 +305,7 @@ virDomainEventCallbackListPurgeMarked(virDomainEventCallbackListPtr cbList)
 {
     int old_count = cbList->count;
     int i;
-    for (i = 0 ; i < cbList->count ; i++) {
+    for (i = 0; i < cbList->count; i++) {
         if (cbList->callbacks[i]->deleted) {
             virFreeCallback freecb = cbList->callbacks[i]->freecb;
             if (freecb)
@@ -360,7 +361,7 @@ virDomainEventCallbackListAddID(virConnectPtr conn,
     }
 
     /* check if we already have this callback on our list */
-    for (i = 0 ; i < cbList->count ; i++) {
+    for (i = 0; i < cbList->count; i++) {
         if (cbList->callbacks[i]->cb == VIR_DOMAIN_EVENT_CALLBACK(callback) &&
             cbList->callbacks[i]->eventID == eventID &&
             cbList->callbacks[i]->conn == conn &&
@@ -385,8 +386,8 @@ virDomainEventCallbackListAddID(virConnectPtr conn,
     if (dom) {
         if (VIR_ALLOC(event->dom) < 0)
             goto no_memory;
-        if (!(event->dom->name = strdup(dom->name)))
-            goto no_memory;
+        if (VIR_STRDUP(event->dom->name, dom->name) < 0)
+            goto error;
         memcpy(event->dom->uuid, dom->uuid, VIR_UUID_BUFLEN);
         event->dom->id = dom->id;
     }
@@ -402,7 +403,7 @@ virDomainEventCallbackListAddID(virConnectPtr conn,
 
     event->callbackID = cbList->nextID++;
 
-    for (i = 0 ; i < cbList->count ; i++) {
+    for (i = 0; i < cbList->count; i++) {
         if (cbList->callbacks[i]->eventID == eventID &&
             cbList->callbacks[i]->conn == conn &&
             !cbList->callbacks[i]->deleted)
@@ -416,7 +417,7 @@ virDomainEventCallbackListAddID(virConnectPtr conn,
 
 no_memory:
     virReportOOMError();
-
+error:
     if (event) {
         if (event->dom)
             VIR_FREE(event->dom->name);
@@ -458,7 +459,7 @@ virDomainEventCallbackListEventID(virConnectPtr conn,
 {
     int i;
 
-    for (i = 0 ; i < cbList->count ; i++) {
+    for (i = 0; i < cbList->count; i++) {
         if (cbList->callbacks[i]->deleted)
             continue;
 
@@ -498,7 +499,7 @@ void virDomainEventFree(virDomainEventPtr event)
         VIR_FREE(event->data.graphics.authScheme);
         if (event->data.graphics.subject) {
             int i;
-            for (i = 0 ; i < event->data.graphics.subject->nidentity ; i++) {
+            for (i = 0; i < event->data.graphics.subject->nidentity; i++) {
                 VIR_FREE(event->data.graphics.subject->identities[i].type);
                 VIR_FREE(event->data.graphics.subject->identities[i].name);
             }
@@ -537,7 +538,7 @@ virDomainEventQueueClear(virDomainEventQueuePtr queue)
     if (!queue)
         return;
 
-    for (i = 0; i < queue->count ; i++) {
+    for (i = 0; i < queue->count; i++) {
         virDomainEventFree(queue->events[i]);
     }
     VIR_FREE(queue->events);
@@ -668,8 +669,7 @@ static virDomainEventPtr virDomainEventNewInternal(int eventID,
     }
 
     event->eventID = eventID;
-    if (!(event->dom.name = strdup(name))) {
-        virReportOOMError();
+    if (VIR_STRDUP(event->dom.name, name) < 0) {
         VIR_FREE(event);
         return NULL;
     }
@@ -791,9 +791,9 @@ static virDomainEventPtr virDomainEventIOErrorNewFromDomImpl(int event,
 
     if (ev) {
         ev->data.ioError.action = action;
-        if (!(ev->data.ioError.srcPath = strdup(srcPath)) ||
-            !(ev->data.ioError.devAlias = strdup(devAlias)) ||
-            (reason && !(ev->data.ioError.reason = strdup(reason)))) {
+        if (VIR_STRDUP(ev->data.ioError.srcPath, srcPath) < 0 ||
+            VIR_STRDUP(ev->data.ioError.devAlias, devAlias) < 0 ||
+            VIR_STRDUP(ev->data.ioError.reason, reason) < 0) {
             virDomainEventFree(ev);
             ev = NULL;
         }
@@ -815,9 +815,9 @@ static virDomainEventPtr virDomainEventIOErrorNewFromObjImpl(int event,
 
     if (ev) {
         ev->data.ioError.action = action;
-        if (!(ev->data.ioError.srcPath = strdup(srcPath)) ||
-            !(ev->data.ioError.devAlias = strdup(devAlias)) ||
-            (reason && !(ev->data.ioError.reason = strdup(reason)))) {
+        if (VIR_STRDUP(ev->data.ioError.srcPath, srcPath) < 0 ||
+            VIR_STRDUP(ev->data.ioError.devAlias, devAlias) < 0 ||
+            VIR_STRDUP(ev->data.ioError.reason, reason) < 0) {
             virDomainEventFree(ev);
             ev = NULL;
         }
@@ -882,7 +882,7 @@ virDomainEventPtr virDomainEventGraphicsNewFromDom(virDomainPtr dom,
 
     if (ev) {
         ev->data.graphics.phase = phase;
-        if (!(ev->data.graphics.authScheme = strdup(authScheme))) {
+        if (VIR_STRDUP(ev->data.graphics.authScheme, authScheme) < 0) {
             virDomainEventFree(ev);
             return NULL;
         }
@@ -907,7 +907,7 @@ virDomainEventPtr virDomainEventGraphicsNewFromObj(virDomainObjPtr obj,
 
     if (ev) {
         ev->data.graphics.phase = phase;
-        if (!(ev->data.graphics.authScheme = strdup(authScheme))) {
+        if (VIR_STRDUP(ev->data.graphics.authScheme, authScheme) < 0) {
             virDomainEventFree(ev);
             return NULL;
         }
@@ -928,8 +928,7 @@ virDomainEventBlockJobNew(int id, const char *name, unsigned char *uuid,
                                   id, name, uuid);
 
     if (ev) {
-        if (!(ev->data.blockJob.path = strdup(path))) {
-            virReportOOMError();
+        if (VIR_STRDUP(ev->data.blockJob.path, path) < 0) {
             virDomainEventFree(ev);
             return NULL;
         }
@@ -987,15 +986,13 @@ virDomainEventDiskChangeNew(int id, const char *name,
                                   id, name, uuid);
 
     if (ev) {
-        if (!(ev->data.diskChange.devAlias = strdup(devAlias)))
+        if (VIR_STRDUP(ev->data.diskChange.devAlias, devAlias) < 0)
             goto error;
 
-        if (oldSrcPath &&
-            !(ev->data.diskChange.oldSrcPath = strdup(oldSrcPath)))
+        if (VIR_STRDUP(ev->data.diskChange.oldSrcPath, oldSrcPath) < 0)
             goto error;
 
-        if (newSrcPath &&
-            !(ev->data.diskChange.newSrcPath = strdup(newSrcPath)))
+        if (VIR_STRDUP(ev->data.diskChange.newSrcPath, newSrcPath) < 0)
             goto error;
 
         ev->data.diskChange.reason = reason;
@@ -1004,7 +1001,6 @@ virDomainEventDiskChangeNew(int id, const char *name,
     return ev;
 
 error:
-    virReportOOMError();
     virDomainEventFree(ev);
     return NULL;
 }
@@ -1042,7 +1038,7 @@ virDomainEventTrayChangeNew(int id, const char *name,
                                   id, name, uuid);
 
     if (ev) {
-        if (!(ev->data.trayChange.devAlias = strdup(devAlias)))
+        if (VIR_STRDUP(ev->data.trayChange.devAlias, devAlias) < 0)
             goto error;
 
         ev->data.trayChange.reason = reason;
@@ -1051,7 +1047,6 @@ virDomainEventTrayChangeNew(int id, const char *name,
     return ev;
 
 error:
-    virReportOOMError();
     virDomainEventFree(ev);
     return NULL;
 }
@@ -1370,7 +1365,7 @@ virDomainEventDispatch(virDomainEventPtr event,
        to have any removed */
     int cbCount = callbacks->count;
 
-    for (i = 0 ; i < cbCount ; i++) {
+    for (i = 0; i < cbCount; i++) {
         if (!virDomainEventDispatchMatchCallback(event, callbacks->callbacks[i]))
             continue;
 
@@ -1391,7 +1386,7 @@ virDomainEventQueueDispatch(virDomainEventQueuePtr queue,
 {
     int i;
 
-    for (i = 0 ; i < queue->count ; i++) {
+    for (i = 0; i < queue->count; i++) {
         virDomainEventDispatch(queue->events[i], callbacks, dispatch, opaque);
         virDomainEventFree(queue->events[i]);
     }

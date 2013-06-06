@@ -182,6 +182,13 @@ enum virQEMUCapsFlags {
     QEMU_CAPS_DEVICE_PCI_BRIDGE  = 141, /* -device pci-bridge */
     QEMU_CAPS_DEVICE_VFIO_PCI    = 142, /* -device vfio-pci */
     QEMU_CAPS_VFIO_PCI_BOOTINDEX = 143, /* bootindex param for vfio-pci device */
+    QEMU_CAPS_DEVICE_SCSI_GENERIC = 144,  /* -device scsi-generic */
+    QEMU_CAPS_DEVICE_SCSI_GENERIC_BOOTINDEX = 145,  /* -device scsi-generic.bootindex */
+    QEMU_CAPS_MEM_MERGE          = 146, /* -machine mem-merge */
+    QEMU_CAPS_VNC_WEBSOCKET      = 147, /* -vnc x:y,websocket */
+    QEMU_CAPS_DRIVE_DISCARD      = 148, /* -drive discard=off(ignore)|on(unmap) */
+    QEMU_CAPS_MLOCK              = 149, /* -realtime mlock=on|off */
+    QEMU_CAPS_VNC_SHARE_POLICY   = 150, /* set display sharing policy */
 
     QEMU_CAPS_LAST,                   /* this must always be the last item */
 };

@@ -36,6 +36,7 @@
 # include "security/security_manager.h"
 # include "virpci.h"
 # include "virusb.h"
+# include "virscsi.h"
 # include "cpu_conf.h"
 # include "driver.h"
 # include "virportallocator.h"
@@ -44,7 +45,13 @@
 # include "locking/lock_manager.h"
 # include "qemu_capabilities.h"
 
-# define QEMUD_CPUMASK_LEN CPU_SETSIZE
+# ifdef CPU_SETSIZE /* Linux */
+#  define QEMUD_CPUMASK_LEN CPU_SETSIZE
+# elif defined(_SC_NPROCESSORS_CONF) /* Cygwin */
+#  define QEMUD_CPUMASK_LEN (sysconf(_SC_NPROCESSORS_CONF))
+# else
+#  error "Port me"
+# endif
 
 typedef struct _virQEMUCloseCallbacks virQEMUCloseCallbacks;
 typedef virQEMUCloseCallbacks *virQEMUCloseCallbacksPtr;
@@ -113,6 +120,9 @@ struct _virQEMUDriverConfig {
 
     int remotePortMin;
     int remotePortMax;
+
+    int webSocketPortMin;
+    int webSocketPortMax;
 
     char *hugetlbfsMount;
     char *hugepagePath;
@@ -203,12 +213,16 @@ struct _virQEMUDriver {
     virPCIDeviceListPtr activePciHostdevs;
     virPCIDeviceListPtr inactivePciHostdevs;
     virUSBDeviceListPtr activeUsbHostdevs;
+    virSCSIDeviceListPtr activeScsiHostdevs;
 
     /* Immutable pointer. Unsafe APIs. XXX */
-    virHashTablePtr sharedDisks;
+    virHashTablePtr sharedDevices;
 
     /* Immutable pointer, self-locking APIs */
     virPortAllocatorPtr remotePorts;
+
+    /* Immutable pointer, self-locking APIs */
+    virPortAllocatorPtr webSocketPorts;
 
     /* Immutable pointer, lockless APIs*/
     virSysinfoDefPtr hostsysinfo;
@@ -273,29 +287,31 @@ void virQEMUCloseCallbacksRun(virQEMUCloseCallbacksPtr closeCallbacks,
                               virConnectPtr conn,
                               virQEMUDriverPtr driver);
 
-typedef struct _qemuSharedDiskEntry qemuSharedDiskEntry;
-typedef qemuSharedDiskEntry *qemuSharedDiskEntryPtr;
+typedef struct _qemuSharedDeviceEntry qemuSharedDeviceEntry;
+typedef qemuSharedDeviceEntry *qemuSharedDeviceEntryPtr;
 
-bool qemuSharedDiskEntryDomainExists(qemuSharedDiskEntryPtr entry,
-                                     const char *name,
-                                     int *index)
+bool qemuSharedDeviceEntryDomainExists(qemuSharedDeviceEntryPtr entry,
+                                       const char *name,
+                                       int *index)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
 
-int qemuAddSharedDisk(virQEMUDriverPtr driver,
-                      virDomainDiskDefPtr disk,
-                      const char *name)
-    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3);
-
-int qemuRemoveSharedDisk(virQEMUDriverPtr driver,
-                         virDomainDiskDefPtr disk,
-                         const char *name)
-    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3);
-
-char * qemuGetSharedDiskKey(const char *disk_path)
+char * qemuGetSharedDeviceKey(const char *disk_path)
     ATTRIBUTE_NONNULL(1);
 
-void qemuSharedDiskEntryFree(void *payload, const void *name)
+void qemuSharedDeviceEntryFree(void *payload, const void *name)
     ATTRIBUTE_NONNULL(1);
+
+int qemuAddSharedDevice(virQEMUDriverPtr driver,
+                        virDomainDeviceDefPtr dev,
+                        const char *name)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3);
+
+int qemuRemoveSharedDevice(virQEMUDriverPtr driver,
+                           virDomainDeviceDefPtr dev,
+                           const char *name)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3);
+
+int qemuSetUnprivSGIO(virDomainDeviceDefPtr dev);
 
 int qemuDriverAllocateID(virQEMUDriverPtr driver);
 virDomainXMLOptionPtr virQEMUDriverCreateXMLConf(virQEMUDriverPtr driver);

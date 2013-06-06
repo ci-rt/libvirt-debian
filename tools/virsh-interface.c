@@ -1,7 +1,7 @@
 /*
  * virsh-interface.c: Commands to manage host interface
  *
- * Copyright (C) 2005, 2007-2012 Red Hat, Inc.
+ * Copyright (C) 2005, 2007-2013 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -34,8 +34,11 @@
 #include "internal.h"
 #include "virbuffer.h"
 #include "viralloc.h"
+#include "virfile.h"
+#include "virmacaddr.h"
 #include "virutil.h"
 #include "virxml.h"
+#include "virstring.h"
 
 virInterfacePtr
 vshCommandOptInterfaceBy(vshControl *ctl, const vshCmd *cmd,
@@ -44,6 +47,8 @@ vshCommandOptInterfaceBy(vshControl *ctl, const vshCmd *cmd,
 {
     virInterfacePtr iface = NULL;
     const char *n = NULL;
+    bool is_mac = false;
+    virMacAddr dummy;
     virCheckFlags(VSH_BYNAME | VSH_BYMAC, NULL);
 
     if (!optname)
@@ -60,14 +65,17 @@ vshCommandOptInterfaceBy(vshControl *ctl, const vshCmd *cmd,
     if (name)
         *name = n;
 
+    if (virMacAddrParse(n, &dummy) == 0)
+        is_mac = true;
+
     /* try it by NAME */
-    if (flags & VSH_BYNAME) {
+    if (!is_mac && (flags & VSH_BYNAME)) {
         vshDebug(ctl, VSH_ERR_DEBUG, "%s: <%s> trying as interface NAME\n",
                  cmd->def->name, optname);
         iface = virInterfaceLookupByName(ctl->conn, n);
-    }
+
     /* try it by MAC */
-    if (!iface && (flags & VSH_BYMAC)) {
+    } else if (is_mac && (flags & VSH_BYMAC)) {
         vshDebug(ctl, VSH_ERR_DEBUG, "%s: <%s> trying as interface MAC\n",
                  cmd->def->name, optname);
         iface = virInterfaceLookupByMACString(ctl->conn, n);

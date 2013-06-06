@@ -36,6 +36,7 @@
 #include "virlog.h"
 #include "virutil.h"
 #include "virerror.h"
+#include "virstring.h"
 
 #define VIR_FROM_THIS VIR_FROM_RPC
 
@@ -317,17 +318,14 @@ static virNetClientPtr virNetClientNew(virNetSocketPtr sock,
     client->wakeupSendFD = wakeupFD[1];
     wakeupFD[0] = wakeupFD[1] = -1;
 
-    if (hostname &&
-        !(client->hostname = strdup(hostname)))
-        goto no_memory;
+    if (VIR_STRDUP(client->hostname, hostname) < 0)
+        goto error;
 
     PROBE(RPC_CLIENT_NEW,
           "client=%p sock=%p",
           client, client->sock);
     return client;
 
-no_memory:
-    virReportOOMError();
 error:
     VIR_FORCE_CLOSE(wakeupFD[0]);
     VIR_FORCE_CLOSE(wakeupFD[1]);
@@ -414,8 +412,8 @@ virNetClientPtr virNetClientNewLibSSH2(const char *host,
                     goto no_memory;
             }
         } else {
-            if (!(knownhosts = strdup(knownHostsPath)))
-                goto no_memory;
+            if (VIR_STRDUP(knownhosts, knownHostsPath) < 0)
+                goto cleanup;
         }
     }
 
@@ -438,8 +436,8 @@ virNetClientPtr virNetClientNewLibSSH2(const char *host,
                     VIR_FREE(privkey);
             }
         } else {
-            if (!(privkey = strdup(privkeyPath)))
-                goto no_memory;
+            if (VIR_STRDUP(privkey, privkeyPath) < 0)
+                goto cleanup;
         }
     }
 
@@ -602,7 +600,7 @@ void virNetClientDispose(void *obj)
     if (client->closeFf)
         client->closeFf(client->closeOpaque);
 
-    for (i = 0 ; i < client->nprograms ; i++)
+    for (i = 0; i < client->nprograms; i++)
         virObjectUnref(client->programs[i]);
     VIR_FREE(client->programs);
 
@@ -916,7 +914,7 @@ void virNetClientRemoveStream(virNetClientPtr client,
 {
     virObjectLock(client);
     size_t i;
-    for (i = 0 ; i < client->nstreams ; i++) {
+    for (i = 0; i < client->nstreams; i++) {
         if (client->streams[i] == st)
             break;
     }
@@ -1008,7 +1006,7 @@ static int virNetClientCallDispatchMessage(virNetClientPtr client)
     size_t i;
     virNetClientProgramPtr prog = NULL;
 
-    for (i = 0 ; i < client->nprograms ; i++) {
+    for (i = 0; i < client->nprograms; i++) {
         if (virNetClientProgramMatches(client->programs[i],
                                        &client->msg)) {
             prog = client->programs[i];
@@ -1033,7 +1031,7 @@ static int virNetClientCallDispatchStream(virNetClientPtr client)
     virNetClientCallPtr thecall;
 
     /* First identify what stream this packet is directed at */
-    for (i = 0 ; i < client->nstreams ; i++) {
+    for (i = 0; i < client->nstreams; i++) {
         if (virNetClientStreamMatches(client->streams[i],
                                       &client->msg)) {
             st = client->streams[i];
@@ -1175,7 +1173,7 @@ virNetClientIOWriteMessage(virNetClientPtr client,
 
     if (thecall->msg->bufferOffset == thecall->msg->bufferLength) {
         size_t i;
-        for (i = thecall->msg->donefds ; i < thecall->msg->nfds ; i++) {
+        for (i = thecall->msg->donefds; i < thecall->msg->nfds; i++) {
             int rv;
             if ((rv = virNetSocketSendFD(client->sock, thecall->msg->fds[i])) < 0)
                 return -1;
@@ -1297,7 +1295,7 @@ virNetClientIOHandleInput(virNetClientPtr client)
                         virNetMessageDecodeNumFDs(&client->msg) < 0)
                         return -1;
 
-                    for (i = client->msg.donefds ; i < client->msg.nfds ; i++) {
+                    for (i = client->msg.donefds; i < client->msg.nfds; i++) {
                         int rv;
                         if ((rv = virNetSocketRecvFD(client->sock, &(client->msg.fds[i]))) < 0)
                             return -1;

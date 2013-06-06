@@ -336,6 +336,9 @@
 /* Define to 1 when the gnulib module memchr should be tested. */
 #undef GNULIB_TEST_MEMCHR
 
+/* Define to 1 when the gnulib module mkdtemp should be tested. */
+#undef GNULIB_TEST_MKDTEMP
+
 /* Define to 1 when the gnulib module mkostemp should be tested. */
 #undef GNULIB_TEST_MKOSTEMP
 
@@ -344,6 +347,9 @@
 
 /* Define to 1 when the gnulib module mktime should be tested. */
 #undef GNULIB_TEST_MKTIME
+
+/* Define to 1 when the gnulib module nanosleep should be tested. */
+#undef GNULIB_TEST_NANOSLEEP
 
 /* Define to 1 when the gnulib module nl_langinfo should be tested. */
 #undef GNULIB_TEST_NL_LANGINFO
@@ -575,6 +581,9 @@
 /* Define to 1 if you have the 'btowc' function. */
 #undef HAVE_BTOWC
 
+/* Define to 1 if nanosleep mishandles large arguments. */
+#undef HAVE_BUG_BIG_NANOSLEEP
+
 /* Define to 1 if you have the <byteswap.h> header file. */
 #undef HAVE_BYTESWAP_H
 
@@ -734,6 +743,10 @@
 /* Define to 1 if you have the declaration of `isblank', and to 0 if you
    don't. */
 #undef HAVE_DECL_ISBLANK
+
+/* Define to 1 if you have the declaration of `link_addr', and to 0 if you
+   don't. */
+#undef HAVE_DECL_LINK_ADDR
 
 /* Define to 1 if you have the declaration of `localtime_r', and to 0 if you
    don't. */
@@ -962,6 +975,9 @@
 /* Define to 1 if you have the 'getuid' function. */
 #undef HAVE_GETUID
 
+/* Define to 1 if you have the <gnutls/crypto.h> header file. */
+#undef HAVE_GNUTLS_CRYPTO_H
+
 /* Define to 1 if you have the `grantpt' function. */
 #undef HAVE_GRANTPT
 
@@ -1168,6 +1184,9 @@
 
 /* Define to 1 if you have the 'mempcpy' function. */
 #undef HAVE_MEMPCPY
+
+/* Define to 1 if you have the `mkdtemp' function. */
+#undef HAVE_MKDTEMP
 
 /* Define to 1 if you have the 'mkostemp' function. */
 #undef HAVE_MKOSTEMP
@@ -2428,6 +2447,9 @@
 # endif
 #endif
 
+/* Define to 1 if gcc supports pragma push/pop */
+#undef WORKING_PRAGMA_PUSH
+
 /* Enable large inode numbers on Mac OS X 10.5. */
 #undef _DARWIN_USE_64_BIT_INODE
 
@@ -2510,13 +2532,21 @@
    Suppress extern inline with HP-UX cc, as it appears to be broken; see
    <http://lists.gnu.org/archive/html/bug-texinfo/2013-02/msg00030.html>.
 
-   Suppress the use of extern inline on Apple's platforms,
-   as Libc-825.25 (2012-09-19) is incompatible with it; see
+   Suppress extern inline with Sun C in standards-conformance mode, as it
+   mishandles inline functions that call each other.  E.g., for 'inline void f
+   (void) { } inline void g (void) { f (); }', c99 incorrectly complains
+   'reference to static identifier "f" in extern inline function'.
+   This bug was observed with Sun C 5.12 SunOS_i386 2011/11/16.
+
+   Suppress the use of extern inline on Apple's platforms, as Libc at least
+   through Libc-825.26 (2013-04-09) is incompatible with it; see, e.g.,
    <http://lists.gnu.org/archive/html/bug-gnulib/2012-12/msg00023.html>.
    Perhaps Apple will fix this some day.  */
 #if ((__GNUC__ \
       ? defined __GNUC_STDC_INLINE__ && __GNUC_STDC_INLINE__ \
-      : 199901L <= __STDC_VERSION__ && !defined __HP_cc) \
+      : (199901L <= __STDC_VERSION__ \
+         && !defined __HP_cc \
+         && !(defined __SUNPRO_C && __STDC__))) \
      && !defined __APPLE__)
 # define _GL_INLINE inline
 # define _GL_EXTERN_INLINE extern inline

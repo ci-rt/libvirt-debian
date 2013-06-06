@@ -38,7 +38,6 @@
 #include "viruuid.h"
 #include "virbuffer.h"
 #include "virconf.h"
-#include "virutil.h"
 #include "viralloc.h"
 #include "nodeinfo.h"
 #include "virlog.h"
@@ -47,7 +46,7 @@
 #include "vircommand.h"
 #include "virnetdevtap.h"
 #include "virnodesuspend.h"
-
+#include "virstring.h"
 
 #define VIR_FROM_THIS VIR_FROM_UML
 
@@ -110,19 +109,20 @@ umlConnectTapDevice(virConnectPtr conn,
                     const char *bridge)
 {
     bool template_ifname = false;
+    int tapfd = -1;
 
     if (!net->ifname ||
         STRPREFIX(net->ifname, VIR_NET_GENERATED_PREFIX) ||
         strchr(net->ifname, '%')) {
         VIR_FREE(net->ifname);
-        if (!(net->ifname = strdup(VIR_NET_GENERATED_PREFIX "%d")))
-            goto no_memory;
+        if (VIR_STRDUP(net->ifname, VIR_NET_GENERATED_PREFIX "%d") < 0)
+            goto error;
         /* avoid exposing vnet%d in getXMLDesc or error outputs */
         template_ifname = true;
     }
 
     if (virNetDevTapCreateInBridgePort(bridge, &net->ifname, &net->mac,
-                                       vm->uuid, NULL,
+                                       vm->uuid, &tapfd, 1,
                                        virDomainNetGetActualVirtPortProfile(net),
                                        virDomainNetGetActualVlan(net),
                                        VIR_NETDEV_TAP_CREATE_IFUP |
@@ -140,11 +140,11 @@ umlConnectTapDevice(virConnectPtr conn,
         }
     }
 
+    VIR_FORCE_CLOSE(tapfd);
     return 0;
 
-no_memory:
-    virReportOOMError();
 error:
+    VIR_FORCE_CLOSE(tapfd);
     return -1;
 }
 
@@ -410,7 +410,7 @@ virCommandPtr umlBuildCommandLine(virConnectPtr conn,
     if (vm->def->os.root)
         virCommandAddArgPair(cmd, "root", vm->def->os.root);
 
-    for (i = 0 ; i < vm->def->ndisks ; i++) {
+    for (i = 0; i < vm->def->ndisks; i++) {
         virDomainDiskDefPtr disk = vm->def->disks[i];
 
         if (!STRPREFIX(disk->dst, "ubd")) {
@@ -422,7 +422,7 @@ virCommandPtr umlBuildCommandLine(virConnectPtr conn,
         virCommandAddArgPair(cmd, disk->dst, disk->src);
     }
 
-    for (i = 0 ; i < vm->def->nnets ; i++) {
+    for (i = 0; i < vm->def->nnets; i++) {
         char *ret = umlBuildCommandLineNet(conn, vm->def, vm->def->nets[i], i);
         if (!ret)
             goto error;
@@ -430,10 +430,10 @@ virCommandPtr umlBuildCommandLine(virConnectPtr conn,
         VIR_FREE(ret);
     }
 
-    for (i = 0 ; i < UML_MAX_CHAR_DEVICE ; i++) {
+    for (i = 0; i < UML_MAX_CHAR_DEVICE; i++) {
         virDomainChrDefPtr chr = NULL;
         char *ret = NULL;
-        for (j = 0 ; j < vm->def->nconsoles ; j++)
+        for (j = 0; j < vm->def->nconsoles; j++)
             if (vm->def->consoles[j]->target.port == i)
                 chr = vm->def->consoles[j];
         if (chr)
@@ -445,10 +445,10 @@ virCommandPtr umlBuildCommandLine(virConnectPtr conn,
         VIR_FREE(ret);
     }
 
-    for (i = 0 ; i < UML_MAX_CHAR_DEVICE ; i++) {
+    for (i = 0; i < UML_MAX_CHAR_DEVICE; i++) {
         virDomainChrDefPtr chr = NULL;
         char *ret = NULL;
-        for (j = 0 ; j < vm->def->nserials ; j++)
+        for (j = 0; j < vm->def->nserials; j++)
             if (vm->def->serials[j]->target.port == i)
                 chr = vm->def->serials[j];
         if (chr)
@@ -464,8 +464,8 @@ virCommandPtr umlBuildCommandLine(virConnectPtr conn,
     if (vm->def->os.cmdline) {
         char *args, *next_arg;
         char *cmdline;
-        if ((cmdline = strdup(vm->def->os.cmdline)) == NULL)
-            goto no_memory;
+        if (VIR_STRDUP(cmdline, vm->def->os.cmdline) < 0)
+            goto error;
 
         args = cmdline;
         while (*args == ' ')

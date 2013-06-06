@@ -1,9 +1,22 @@
 dnl Process this file with autoconf to produce a configure script.
 
 dnl Copyright (C) 2005-2013 Red Hat, Inc.
-dnl See COPYING.LIB for the License of this software
+dnl
+dnl This library is free software; you can redistribute it and/or
+dnl modify it under the terms of the GNU Lesser General Public
+dnl License as published by the Free Software Foundation; either
+dnl version 2.1 of the License, or (at your option) any later version.
+dnl
+dnl This library is distributed in the hope that it will be useful,
+dnl but WITHOUT ANY WARRANTY; without even the implied warranty of
+dnl MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+dnl Lesser General Public License for more details.
+dnl
+dnl You should have received a copy of the GNU Lesser General Public
+dnl License along with this library.  If not, see
+dnl <http://www.gnu.org/licenses/>.
 
-AC_INIT([libvirt], [1.0.5], [libvir-list@redhat.com], [], [http://libvirt.org])
+AC_INIT([libvirt], [1.0.6], [libvir-list@redhat.com], [], [http://libvirt.org])
 AC_CONFIG_SRCDIR([src/libvirt.c])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
@@ -1090,6 +1103,15 @@ if test "x$with_gnutls" != "xno"; then
     dnl it explicitly for the calls to gcry_control/check_version
     GNUTLS_LIBS="$GNUTLS_LIBS -lgcrypt"
 
+    dnl We're not using gcrypt deprecated features so define
+    dnl GCRYPT_NO_DEPRECATED to avoid deprecated warnings
+    GNUTLS_CFLAGS="$GNUTLS_CFLAGS -DGCRYPT_NO_DEPRECATED"
+
+    dnl gnutls 3.x moved some declarations to a new header
+    AC_CHECK_HEADERS([gnutls/crypto.h], [], [], [[
+      #include <gnutls/gnutls.h>
+    ]])
+
     with_gnutls=yes
   fi
 
@@ -2154,7 +2176,7 @@ if test "$with_driver_modules" = "yes" || test "$with_driver_modules" = "check";
 fi
 
 if test "$with_driver_modules" = "yes" ; then
-  DRIVER_MODULE_CFLAGS="-export-dynamic"
+  DRIVER_MODULE_LDFLAGS="-export-dynamic"
   case $ac_cv_search_dlopen in
     no*) DRIVER_MODULE_LIBS= ;;
     *) DRIVER_MODULE_LIBS=$ac_cv_search_dlopen ;;
@@ -2162,7 +2184,7 @@ if test "$with_driver_modules" = "yes" ; then
   AC_DEFINE_UNQUOTED([WITH_DRIVER_MODULES], 1, [whether to build drivers as modules])
 fi
 AM_CONDITIONAL([WITH_DRIVER_MODULES], [test "$with_driver_modules" != "no"])
-AC_SUBST([DRIVER_MODULE_CFLAGS])
+AC_SUBST([DRIVER_MODULE_LDFLAGS])
 AC_SUBST([DRIVER_MODULE_LIBS])
 
 
@@ -2371,13 +2393,13 @@ AC_CHECK_MEMBERS([struct ifreq.ifr_newname,
                  [#include <sys/socket.h>
                   #include <net/if.h>
                  ])
-
-# Only COPYING.LIB is under version control, yet COPYING
-# is included as part of the distribution tarball.
-# Copy one to the other, but only if this is a srcdir-build.
-# You are unlikely to be doing distribution-related things in a non-srcdir build
-test "x$srcdir" = x. && ! test -f COPYING &&
-cp -f COPYING.LIB COPYING
+# Check for BSD approach for setting MAC addr
+AC_CHECK_DECLS([link_addr],
+               [], [],
+               [#include <sys/types.h>
+                #include <sys/socket.h>
+                #include <net/if_dl.h>
+               ])
 
 # Detect when running under the clang static analyzer's scan-build driver
 # or Coverity-prevent's cov-build.  Define STATIC_ANALYSIS accordingly.

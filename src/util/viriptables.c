@@ -44,8 +44,11 @@
 #include "vircommand.h"
 #include "viralloc.h"
 #include "virerror.h"
+#include "virfile.h"
 #include "virlog.h"
 #include "virthread.h"
+#include "virstring.h"
+#include "virutil.h"
 
 #if HAVE_FIREWALLD
 static char *firewall_cmd_path = NULL;
@@ -116,10 +119,10 @@ iptRulesNew(const char *table,
     if (VIR_ALLOC(rules) < 0)
         return NULL;
 
-    if (!(rules->table = strdup(table)))
+    if (VIR_STRDUP(rules->table, table) < 0)
         goto error;
 
-    if (!(rules->chain = strdup(chain)))
+    if (VIR_STRDUP(rules->chain, chain) < 0)
         goto error;
 
     return rules;

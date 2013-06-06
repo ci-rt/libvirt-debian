@@ -47,6 +47,7 @@
 #include "vircommand.h"
 #include "lxc_hostdev.h"
 #include "virhook.h"
+#include "virstring.h"
 
 #define VIR_FROM_THIS VIR_FROM_LXC
 
@@ -260,7 +261,7 @@ static void virLXCProcessCleanup(virLXCDriverPtr driver,
 
     virLXCDomainReAttachHostDevices(driver, vm->def);
 
-    for (i = 0 ; i < vm->def->nnets ; i++) {
+    for (i = 0; i < vm->def->nnets; i++) {
         virDomainNetDefPtr iface = vm->def->nets[i];
         vport = virDomainNetGetActualVirtPortProfile(iface);
         if (iface->ifname) {
@@ -432,7 +433,7 @@ static int virLXCProcessSetupInterfaces(virConnectPtr conn,
     int ret = -1;
     size_t i;
 
-    for (i = 0 ; i < def->nnets ; i++) {
+    for (i = 0; i < def->nnets; i++) {
         char *veth = NULL;
         /* If appropriate, grab a physical device from the configured
          * network's pool of devices, or resolve bridge device name
@@ -535,7 +536,7 @@ static int virLXCProcessSetupInterfaces(virConnectPtr conn,
 
 cleanup:
     if (ret < 0) {
-        for (i = 0 ; i < def->nnets ; i++) {
+        for (i = 0; i < def->nnets; i++) {
             virDomainNetDefPtr iface = def->nets[i];
             virNetDevVPortProfilePtr vport = virDomainNetGetActualVirtPortProfile(iface);
             if (vport && vport->virtPortType == VIR_NETDEV_VPORT_PROFILE_OPENVSWITCH)
@@ -850,7 +851,7 @@ virLXCProcessBuildControllerCmd(virLXCDriverPtr driver,
     }
 
     virCommandAddArgList(cmd, "--name", vm->def->name, NULL);
-    for (i = 0 ; i < nttyFDs ; i++) {
+    for (i = 0; i < nttyFDs; i++) {
         virCommandAddArg(cmd, "--console");
         virCommandAddArgFormat(cmd, "%d", ttyFDs[i]);
         virCommandPreserveFD(cmd, ttyFDs[i]);
@@ -863,7 +864,7 @@ virLXCProcessBuildControllerCmd(virLXCDriverPtr driver,
     virCommandAddArgFormat(cmd, "%d", handshakefd);
     virCommandAddArg(cmd, "--background");
 
-    for (i = 0 ; i < nveths ; i++) {
+    for (i = 0; i < nveths; i++) {
         virCommandAddArgList(cmd, "--veth", veths[i], NULL);
     }
 
@@ -995,9 +996,9 @@ virLXCProcessEnsureRootFS(virDomainObjPtr vm)
 
     root->type = VIR_DOMAIN_FS_TYPE_MOUNT;
 
-    if (!(root->src = strdup("/")) ||
-        !(root->dst = strdup("/")))
-        goto no_memory;
+    if (VIR_STRDUP(root->src, "/") < 0 ||
+        VIR_STRDUP(root->dst, "/") < 0)
+        goto error;
 
     if (VIR_INSERT_ELEMENT(vm->def->fss,
                            0,
@@ -1009,6 +1010,7 @@ virLXCProcessEnsureRootFS(virDomainObjPtr vm)
 
 no_memory:
     virReportOOMError();
+error:
     virDomainFSDefFree(root);
     return -1;
 }
@@ -1129,7 +1131,7 @@ int virLXCProcessStart(virConnectPtr conn,
         virReportOOMError();
         goto cleanup;
     }
-    for (i = 0 ; i < vm->def->nconsoles ; i++)
+    for (i = 0; i < vm->def->nconsoles; i++)
         ttyFDs[i] = -1;
 
     /* If you are using a SecurityDriver with dynamic labelling,
@@ -1150,7 +1152,7 @@ int virLXCProcessStart(virConnectPtr conn,
                                       vm->def, NULL) < 0)
         goto cleanup;
 
-    for (i = 0 ; i < vm->def->nconsoles ; i++) {
+    for (i = 0; i < vm->def->nconsoles; i++) {
         char *ttyPath;
         if (vm->def->consoles[i]->source.type != VIR_DOMAIN_CHR_TYPE_PTY) {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
@@ -1332,7 +1334,7 @@ cleanup:
         virReportSystemError(errno, "%s", _("could not close logfile"));
         rc = -1;
     }
-    for (i = 0 ; i < nveths ; i++) {
+    for (i = 0; i < nveths; i++) {
         if (rc != 0)
             ignore_value(virNetDevVethDelete(veths[i]));
         VIR_FREE(veths[i]);
@@ -1359,7 +1361,7 @@ cleanup:
             VIR_FREE(vm->def->seclabels[0]->imagelabel);
         }
     }
-    for (i = 0 ; i < nttyFDs ; i++)
+    for (i = 0; i < nttyFDs; i++)
         VIR_FORCE_CLOSE(ttyFDs[i]);
     VIR_FREE(ttyFDs);
     VIR_FORCE_CLOSE(handshakefds[0]);

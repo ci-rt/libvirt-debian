@@ -1,4 +1,6 @@
-<html>
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
   <body>
     <h1>Contributor guidelines</h1>
 
@@ -375,6 +377,35 @@
       int foo(int wizz);    // Good
 </pre>
 
+    <h2><a name="semicolon">Semicolons</a></h2>
+
+    <p>
+      Semicolons should never have a space beforehand.  Inside the
+      condition of a <code>for</code> loop, there should always be a
+      space or line break after each semicolon, except for the special
+      case of an infinite loop (although more infinite loops
+      use <code>while</code>).  While not enforced, loop counters
+      generally use post-increment.
+    </p>
+    <pre>
+      for (i = 0 ;i &lt; limit ; ++i) { // Bad
+      for (i = 0; i &lt; limit; i++) { // Good
+      for (;;) { // ok
+      while (1) { // Better
+</pre>
+    <p>
+      Empty loop bodies are better represented with curly braces and a
+      comment, although use of a semicolon is not currently rejected.
+    </p>
+    <pre>
+      while ((rc = waitpid(pid, &amp;st, 0) == -1) &amp;&amp;
+             errno == EINTR); // ok
+      while ((rc = waitpid(pid, &amp;st, 0) == -1) &amp;&amp;
+             errno == EINTR) { // Better
+          /* nothing */
+      }
+</pre>
+
     <h2><a name="curly_braces">Curly braces</a></h2>
 
     <p>
@@ -517,6 +548,13 @@
 
     <h2><a name="preprocessor">Preprocessor</a></h2>
 
+    <p>Macros defined with an ALL_CAPS name should generally be
+      assumed to be unsafe with regards to arguments with side-effects
+      (that is, MAX(a++, b--) might increment a or decrement b too
+      many or too few times).  Exceptions to this rule are explicitly
+      documented for macros in viralloc.h and virstring.h.
+    </p>
+
     <p>
       For variadic macros, stick with C99 syntax:
     </p>
@@ -614,7 +652,7 @@
       Use of the malloc/free/realloc/calloc APIs is deprecated in the libvirt
       codebase, because they encourage a number of serious coding bugs and do
       not enable compile time verification of checks for NULL. Instead of these
-      routines, use the macros from memory.h.
+      routines, use the macros from viralloc.h.
     </p>
 
     <ul>
@@ -851,6 +889,21 @@
       meaningful).  Note that this is a macro, so arguments could be
       evaluated more than once.  This is equivalent to
       virStrncpy(dest, src, strlen(src), sizeof(dest)).
+    </p>
+
+<pre>
+  VIR_STRDUP(char *dst, const char *src);
+  VIR_STRNDUP(char *dst, const char *src, size_t n);
+</pre>
+    <p>
+      You should avoid using strdup or strndup directly as they do not report
+      out-of-memory error, and do not allow a NULL source. Use
+      VIR_STRDUP or VIR_STRNDUP macros instead, which return 0 for
+      NULL source, 1 for successful copy, and -1 for allocation
+      failure with the error already reported. In very
+      specific cases, when you don't want to report the out-of-memory error, you
+      can use VIR_STRDUP_QUIET or VIR_STRNDUP_QUIET, but such usage is very rare
+      and usually considered a flaw.
     </p>
 
     <h2><a name="strbuf">Variable length string buffer</a></h2>

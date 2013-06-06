@@ -25,9 +25,9 @@
 #include "lock_driver_nop.h"
 #include "virerror.h"
 #include "virlog.h"
-#include "virutil.h"
 #include "viralloc.h"
 #include "viruuid.h"
+#include "virstring.h"
 
 #if HAVE_DLFCN_H
 # include <dlfcn.h>
@@ -79,7 +79,7 @@ static void virLockManagerLogParams(size_t nparams,
 {
     int i;
     char uuidstr[VIR_UUID_STRING_BUFLEN];
-    for (i = 0 ; i < nparams ; i++) {
+    for (i = 0; i < nparams; i++) {
         switch (params[i].type) {
         case VIR_LOCK_MANAGER_PARAM_TYPE_INT:
             VIR_DEBUG("  key=%s type=int value=%d", params[i].key, params[i].value.i);
@@ -194,10 +194,8 @@ virLockManagerPluginPtr virLockManagerPluginNew(const char *name,
     plugin->driver = driver;
     plugin->handle = handle;
     plugin->refs = 1;
-    if (!(plugin->name = strdup(name))) {
-        virReportOOMError();
+    if (VIR_STRDUP(plugin->name, name) < 0)
         goto cleanup;
-    }
 
     VIR_FREE(configFile);
     VIR_FREE(modfile);

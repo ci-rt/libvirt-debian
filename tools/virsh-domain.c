@@ -44,7 +44,6 @@
 #include "console.h"
 #include "viralloc.h"
 #include "vircommand.h"
-#include "virutil.h"
 #include "virfile.h"
 #include "virjson.h"
 #include "virkeycode.h"
@@ -115,15 +114,15 @@ vshCommandOptDomainBy(vshControl *ctl, const vshCmd *cmd,
 static const char *
 vshDomainVcpuStateToString(int state)
 {
-    switch (state) {
+    switch ((virVcpuState) state) {
     case VIR_VCPU_OFFLINE:
         return N_("offline");
     case VIR_VCPU_BLOCKED:
         return N_("idle");
     case VIR_VCPU_RUNNING:
         return N_("running");
-    default:
-        ;/*FALLTHROUGH*/
+    case VIR_VCPU_LAST:
+        break;
     }
     return N_("no state");
 }
@@ -527,7 +526,7 @@ cmdAttachDisk(vshControl *ctl, const vshCmd *cmd)
     virBufferAddLit(&buf, ">\n");
 
     if (driver || subdriver || cache) {
-        virBufferAsprintf(&buf, "  <driver");
+        virBufferAddLit(&buf, "  <driver");
 
         if (driver)
             virBufferAsprintf(&buf, " name='%s'", driver);
@@ -551,7 +550,7 @@ cmdAttachDisk(vshControl *ctl, const vshCmd *cmd)
         virBufferAsprintf(&buf, "  <serial>%s</serial>\n", serial);
 
     if (vshCommandOptBool(cmd, "shareable"))
-        virBufferAsprintf(&buf, "  <shareable/>\n");
+        virBufferAddLit(&buf, "  <shareable/>\n");
 
     if (straddr) {
         if (str2DiskAddress(straddr, &diskAddr) != 0) {
@@ -815,14 +814,14 @@ cmdAttachInterface(vshControl *ctl, const vshCmd *cmd)
         virBufferAsprintf(&buf, "  <model type='%s'/>\n", model);
 
     if (inboundStr || outboundStr) {
-        virBufferAsprintf(&buf, "  <bandwidth>\n");
+        virBufferAddLit(&buf, "  <bandwidth>\n");
         if (inboundStr && inbound.average > 0) {
             virBufferAsprintf(&buf, "    <inbound average='%llu'", inbound.average);
             if (inbound.peak > 0)
                 virBufferAsprintf(&buf, " peak='%llu'", inbound.peak);
             if (inbound.burst > 0)
                 virBufferAsprintf(&buf, " burst='%llu'", inbound.burst);
-            virBufferAsprintf(&buf, "/>\n");
+            virBufferAddLit(&buf, "/>\n");
         }
         if (outboundStr && outbound.average > 0) {
             virBufferAsprintf(&buf, "    <outbound average='%llu'", outbound.average);
@@ -830,9 +829,9 @@ cmdAttachInterface(vshControl *ctl, const vshCmd *cmd)
                 virBufferAsprintf(&buf, " peak='%llu'", outbound.peak);
             if (outbound.burst > 0)
                 virBufferAsprintf(&buf, " burst='%llu'", outbound.burst);
-            virBufferAsprintf(&buf, "/>\n");
+            virBufferAddLit(&buf, "/>\n");
         }
-        virBufferAsprintf(&buf, "  </bandwidth>\n");
+        virBufferAddLit(&buf, "  </bandwidth>\n");
     }
 
     virBufferAddLit(&buf, "</interface>\n");
@@ -1131,7 +1130,8 @@ cmdBlkdeviotune(vshControl *ctl, const vshCmd *cmd)
 
 cleanup:
     virTypedParamsFree(params, nparams);
-    virDomainFree(dom);
+    if (dom)
+        virDomainFree(dom);
     return ret;
 
 save_error:
@@ -5296,7 +5296,7 @@ cmdVcpuinfo(vshControl *ctl, const vshCmd *cmd)
     if ((ncpus = virDomainGetVcpus(dom,
                                    cpuinfo, info.nrVirtCpu,
                                    cpumaps, cpumaplen)) >= 0) {
-        for (n = 0 ; n < ncpus ; n++) {
+        for (n = 0; n < ncpus; n++) {
             vshPrint(ctl, "%-15s %d\n", _("VCPU:"), n);
             vshPrint(ctl, "%-15s %d\n", _("CPU:"), cpuinfo[n].cpu);
             vshPrint(ctl, "%-15s %s\n", _("State:"),
@@ -6820,7 +6820,7 @@ static int getSignalNumber(vshControl *ctl, const char *signame)
     char *lower = vshStrdup(ctl, signame);
     char *tmp = lower;
 
-    for (i = 0 ; signame[i] ; i++)
+    for (i = 0; signame[i]; i++)
         lower[i] = c_tolower(signame[i]);
 
     if (virStrToLong_i(lower, NULL, 10, &signum) >= 0)
@@ -7606,6 +7606,10 @@ static const vshCmdOptDef opts_qemu_agent_command[] = {
      .type = VSH_OT_BOOL,
      .help = N_("execute command without timeout")
     },
+    {.name = "pretty",
+     .type = VSH_OT_BOOL,
+     .help = N_("pretty-print the output")
+    },
     {.name = "cmd",
      .type = VSH_OT_ARGV,
      .flags = VSH_OFLAG_REQ,
@@ -7627,6 +7631,7 @@ cmdQemuAgentCommand(vshControl *ctl, const vshCmd *cmd)
     const vshCmdOpt *opt = NULL;
     virBuffer buf = VIR_BUFFER_INITIALIZER;
     bool pad = false;
+    virJSONValuePtr pretty = NULL;
 
     dom = vshCommandOptDomain(ctl, cmd, NULL);
     if (dom == NULL)
@@ -7671,7 +7676,18 @@ cmdQemuAgentCommand(vshControl *ctl, const vshCmd *cmd)
     }
     result = virDomainQemuAgentCommand(dom, guest_agent_cmd, timeout, flags);
 
-    if (result) printf("%s\n", result);
+    if (vshCommandOptBool(cmd, "pretty")) {
+        char *tmp;
+        pretty = virJSONValueFromString(result);
+        if (pretty && (tmp = virJSONValueToString(pretty, true))) {
+            VIR_FREE(result);
+            result = tmp;
+        } else {
+            vshResetLibvirtError();
+        }
+    }
+
+    vshPrint(ctl, "%s\n", result);
 
     ret = true;
 
@@ -7793,7 +7809,7 @@ cmdLxcEnterNamespace(vshControl *ctl, const vshCmd *cmd)
         }
         _exit(0);
     } else {
-        for (i = 0 ; i < nfdlist ; i++)
+        for (i = 0; i < nfdlist; i++)
             VIR_FORCE_CLOSE(fdlist[i]);
         VIR_FREE(fdlist);
         if (virProcessWait(pid, NULL) < 0)
@@ -8290,15 +8306,15 @@ doMigrate(void *opaque)
 
     if ((flags & VIR_MIGRATE_PEER2PEER) ||
         vshCommandOptBool(cmd, "direct")) {
-        /* For peer2peer migration or direct migration we only expect one URI
-         * a libvirt URI, or a hypervisor specific URI. */
 
-        if (migrateuri != NULL) {
+        /* migrateuri doesn't make sense for tunnelled migration */
+        if (flags & VIR_MIGRATE_TUNNELLED && migrateuri != NULL) {
             vshError(ctl, "%s", _("migrate: Unexpected migrateuri for peer2peer/direct migration"));
             goto out;
         }
 
-        if (virDomainMigrateToURI2(dom, desturi, NULL, xml, flags, dname, 0) == 0)
+        if (virDomainMigrateToURI2(dom, desturi, migrateuri,
+                                   xml, flags, dname, 0) == 0)
             ret = '0';
     } else {
         /* For traditional live migration, connect to the destination host directly. */

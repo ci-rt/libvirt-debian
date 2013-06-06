@@ -28,12 +28,12 @@
 #include "datatypes.h"
 #include "virfile.h"
 #include "viralloc.h"
-#include "virutil.h"
 #include "viruuid.h"
 #include "vircommand.h"
 #include "vmx.h"
 #include "vmware_conf.h"
 #include "vmware_driver.h"
+#include "virstring.h"
 
 static const char *vmw_types[] = { "player", "ws" };
 
@@ -214,7 +214,7 @@ vmwareUpdateVMStatus(struct vmware_driver *driver, virDomainObjPtr vm)
                                &vmxAbsolutePath) < 0)
         goto cleanup;
 
-    for (str = outbuf ; (parsedVmxPath = strtok_r(str, "\n", &saveptr)) != NULL;
+    for (str = outbuf; (parsedVmxPath = strtok_r(str, "\n", &saveptr)) != NULL;
          str = NULL) {
 
         if (parsedVmxPath[0] != '/')
@@ -353,10 +353,8 @@ vmwareDomainDefineXML(virConnectPtr conn, const char *xml)
         goto cleanup;
 
     pDomain = vm->privateData;
-    if ((pDomain->vmxPath = strdup(vmxPath)) == NULL) {
-        virReportOOMError();
+    if (VIR_STRDUP(pDomain->vmxPath, vmxPath) < 0)
         goto cleanup;
-    }
 
     vmwareDomainConfigDisplay(pDomain, vmdef);
 
@@ -637,7 +635,8 @@ vmwareDomainCreateXML(virConnectPtr conn, const char *xml,
         goto cleanup;
 
     pDomain = vm->privateData;
-    pDomain->vmxPath = strdup(vmxPath);
+    if (VIR_STRDUP(pDomain->vmxPath, vmxPath) < 0)
+        goto cleanup;
 
     vmwareDomainConfigDisplay(pDomain, vmdef);
     vmdef = NULL;
@@ -801,8 +800,7 @@ vmwareDomainGetOSType(virDomainPtr dom)
         goto cleanup;
     }
 
-    if (!(ret = strdup(vm->def->os.type)))
-        virReportOOMError();
+    ignore_value(VIR_STRDUP(ret, vm->def->os.type));
 
   cleanup:
     if (vm)

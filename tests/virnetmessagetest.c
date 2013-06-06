@@ -24,11 +24,10 @@
 #include <signal.h>
 
 #include "testutils.h"
-#include "virutil.h"
 #include "virerror.h"
 #include "viralloc.h"
 #include "virlog.h"
-
+#include "virstring.h"
 #include "rpc/virnetmessage.h"
 
 #define VIR_FROM_THIS VIR_FROM_RPC
@@ -47,7 +46,7 @@ static int testMessageHeaderEncode(const void *args ATTRIBUTE_UNUSED)
     };
     /* According to doc to virNetMessageEncodeHeader(&msg):
      * msg->buffer will be this long */
-    unsigned long msg_buf_size = VIR_NET_MESSAGE_MAX + VIR_NET_MESSAGE_LEN_MAX;
+    unsigned long msg_buf_size = VIR_NET_MESSAGE_INITIAL + VIR_NET_MESSAGE_LEN_MAX;
     int ret = -1;
 
     if (!msg) {
@@ -237,18 +236,15 @@ static int testMessagePayloadEncode(const void *args ATTRIBUTE_UNUSED)
     err.domain = VIR_FROM_RPC;
     err.level = VIR_ERR_ERROR;
 
-    if (VIR_ALLOC(err.message) < 0)
+    if (VIR_ALLOC(err.message) < 0 ||
+        VIR_STRDUP(*err.message, "Hello World") < 0 ||
+        VIR_ALLOC(err.str1) < 0 ||
+        VIR_STRDUP(*err.str1, "One") < 0 ||
+        VIR_ALLOC(err.str2) < 0 ||
+        VIR_STRDUP(*err.str2, "Two") < 0 ||
+        VIR_ALLOC(err.str3) < 0 ||
+        VIR_STRDUP(*err.str3, "Three") < 0)
         goto cleanup;
-    *err.message = strdup("Hello World");
-    if (VIR_ALLOC(err.str1) < 0)
-        goto cleanup;
-    *err.str1 = strdup("One");
-    if (VIR_ALLOC(err.str2) < 0)
-        goto cleanup;
-    *err.str2 = strdup("Two");
-    if (VIR_ALLOC(err.str3) < 0)
-        goto cleanup;
-    *err.str3 = strdup("Three");
 
     err.int1 = 1;
     err.int2 = 2;

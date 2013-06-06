@@ -84,6 +84,10 @@
                         </div>
                       </li><li>
                         <div>
+                          <a title="Control groups integration" class="inactive" href="cgroups.html">CGroups</a>
+                        </div>
+                      </li><li>
+                        <div>
                           <a title="Hooks for system specific management" class="inactive" href="hooks.html">Hooks</a>
                         </div>
                       </li></ul>
@@ -162,7 +166,7 @@
             <a href="#git">Built from GIT</a>
           </li></ul>
         <h2>
-          <a name="packages" id="packages">Pre-packaged releases</a>
+          <a name="packages" shape="rect" id="packages">Pre-packaged releases</a>
         </h2>
         <p>
       The libvirt API is now available in all major Linux distributions,
@@ -171,20 +175,20 @@
       module.
     </p>
         <h2>
-          <a name="tarball" id="tarball">Self-built releases</a>
+          <a name="tarball" shape="rect" id="tarball">Self-built releases</a>
         </h2>
         <p>
       libvirt uses GNU autotools for its build system, so deployment
       follows the usual process of <code>configure; make ; make install</code>
     </p>
-        <pre>
+        <pre xml:space="preserve">
 
       # ./configure --prefix=$HOME/usr
       # make
       # make install
     </pre>
         <h2>
-          <a name="git" id="git">Built from GIT</a>
+          <a name="git" shape="rect" id="git">Built from GIT</a>
         </h2>
         <p>
       When building from GIT it is necessary to generate the autotools
@@ -193,7 +197,7 @@
       installed. The process can be automated with the <code>autogen.sh</code>
       script.
     </p>
-        <pre>
+        <pre xml:space="preserve">
 
       # ./autogen.sh --prefix=$HOME/usr
       # make

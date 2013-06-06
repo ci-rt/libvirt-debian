@@ -30,7 +30,6 @@
 # include <unistd.h>
 # include <sys/select.h>
 # include <sys/types.h>
-# include <stdarg.h>
 
 # ifndef MIN
 #  define MIN(a, b) ((a) < (b) ? (a) : (b))
@@ -38,12 +37,6 @@
 # ifndef MAX
 #  define MAX(a, b) ((a) > (b) ? (a) : (b))
 # endif
-
-ssize_t saferead(int fd, void *buf, size_t count) ATTRIBUTE_RETURN_CHECK;
-ssize_t safewrite(int fd, const void *buf, size_t count)
-    ATTRIBUTE_RETURN_CHECK;
-int safezero(int fd, off_t offset, off_t len)
-    ATTRIBUTE_RETURN_CHECK;
 
 int virSetBlocking(int fd, bool blocking) ATTRIBUTE_RETURN_CHECK;
 int virSetNonBlock(int fd) ATTRIBUTE_RETURN_CHECK;
@@ -57,161 +50,15 @@ int virSetUIDGID(uid_t uid, gid_t gid);
 int virSetUIDGIDWithCaps(uid_t uid, gid_t gid, unsigned long long capBits,
                          bool clearExistingCaps);
 
-int virFileReadLimFD(int fd, int maxlen, char **buf) ATTRIBUTE_RETURN_CHECK;
-
-int virFileReadAll(const char *path, int maxlen, char **buf) ATTRIBUTE_RETURN_CHECK;
-
-int virFileWriteStr(const char *path, const char *str, mode_t mode)
-    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_RETURN_CHECK;
-
-int virFileMatchesNameSuffix(const char *file,
-                             const char *name,
-                             const char *suffix);
-
-int virFileHasSuffix(const char *str,
-                     const char *suffix);
-
-int virFileStripSuffix(char *str,
-                       const char *suffix) ATTRIBUTE_RETURN_CHECK;
-
-int virFileLinkPointsTo(const char *checkLink,
-                        const char *checkDest);
-
-int virFileResolveLink(const char *linkpath,
-                       char **resultpath) ATTRIBUTE_RETURN_CHECK;
-int virFileResolveAllLinks(const char *linkpath,
-                           char **resultpath) ATTRIBUTE_RETURN_CHECK;
-
-int virFileIsLink(const char *linkpath)
-    ATTRIBUTE_NONNULL(1) ATTRIBUTE_RETURN_CHECK;
-
-char *virFindFileInPath(const char *file);
-
-bool virFileIsDir (const char *file) ATTRIBUTE_NONNULL(1);
-bool virFileExists(const char *file) ATTRIBUTE_NONNULL(1);
-bool virFileIsExecutable(const char *file) ATTRIBUTE_NONNULL(1);
-
-char *virFileSanitizePath(const char *path);
-
-enum {
-    VIR_FILE_OPEN_NONE        = 0,
-    VIR_FILE_OPEN_NOFORK      = (1 << 0),
-    VIR_FILE_OPEN_FORK        = (1 << 1),
-    VIR_FILE_OPEN_FORCE_MODE  = (1 << 2),
-    VIR_FILE_OPEN_FORCE_OWNER = (1 << 3),
-};
-int virFileAccessibleAs(const char *path, int mode,
-                        uid_t uid, gid_t gid)
-    ATTRIBUTE_NONNULL(1) ATTRIBUTE_RETURN_CHECK;
-int virFileOpenAs(const char *path, int openflags, mode_t mode,
-                  uid_t uid, gid_t gid,
-                  unsigned int flags)
-    ATTRIBUTE_NONNULL(1) ATTRIBUTE_RETURN_CHECK;
-
-enum {
-    VIR_DIR_CREATE_NONE        = 0,
-    VIR_DIR_CREATE_AS_UID      = (1 << 0),
-    VIR_DIR_CREATE_FORCE_PERMS = (1 << 1),
-    VIR_DIR_CREATE_ALLOW_EXIST = (1 << 2),
-};
-int virDirCreate(const char *path, mode_t mode, uid_t uid, gid_t gid,
-                 unsigned int flags) ATTRIBUTE_RETURN_CHECK;
-int virFileMakePath(const char *path) ATTRIBUTE_RETURN_CHECK;
-int virFileMakePathWithMode(const char *path,
-                            mode_t mode) ATTRIBUTE_RETURN_CHECK;
-
-char *virFileBuildPath(const char *dir,
-                       const char *name,
-                       const char *ext) ATTRIBUTE_RETURN_CHECK;
-
-
-# ifdef WIN32
-/* On Win32, the canonical directory separator is the backslash, and
- * the search path separator is the semicolon. Note that also the
- * (forward) slash works as directory separator.
- */
-#  define VIR_FILE_DIR_SEPARATOR '\\'
-#  define VIR_FILE_DIR_SEPARATOR_S "\\"
-#  define VIR_FILE_IS_DIR_SEPARATOR(c) ((c) == VIR_FILE_DIR_SEPARATOR || (c) == '/')
-#  define VIR_FILE_PATH_SEPARATOR ';'
-#  define VIR_FILE_PATH_SEPARATOR_S ";"
-
-# else  /* !WIN32 */
-
-#  define VIR_FILE_DIR_SEPARATOR '/'
-#  define VIR_FILE_DIR_SEPARATOR_S "/"
-#  define VIR_FILE_IS_DIR_SEPARATOR(c) ((c) == VIR_FILE_DIR_SEPARATOR)
-#  define VIR_FILE_PATH_SEPARATOR ':'
-#  define VIR_FILE_PATH_SEPARATOR_S ":"
-
-# endif /* !WIN32 */
-
-bool virFileIsAbsPath(const char *path);
-int virFileAbsPath(const char *path,
-                   char **abspath) ATTRIBUTE_RETURN_CHECK;
-const char *virFileSkipRoot(const char *path);
-
-int virFileOpenTty(int *ttymaster,
-                   char **ttyName,
-                   int rawmode);
-
-char *virArgvToString(const char *const *argv);
-
-int virStrToLong_i(char const *s,
-                     char **end_ptr,
-                     int base,
-                     int *result);
-
-int virStrToLong_ui(char const *s,
-                    char **end_ptr,
-                    int base,
-                    unsigned int *result);
-int virStrToLong_l(char const *s,
-                   char **end_ptr,
-                   int base,
-                   long *result);
-int virStrToLong_ul(char const *s,
-                    char **end_ptr,
-                    int base,
-                    unsigned long *result);
-int virStrToLong_ll(char const *s,
-                    char **end_ptr,
-                    int base,
-                    long long *result);
-int virStrToLong_ull(char const *s,
-                     char **end_ptr,
-                     int base,
-                     unsigned long long *result);
-int virStrToDouble(char const *s,
-                   char **end_ptr,
-                   double *result);
-
 int virScaleInteger(unsigned long long *value, const char *suffix,
                     unsigned long long scale, unsigned long long limit)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_RETURN_CHECK;
 
 int virHexToBin(unsigned char c);
 
-void virSkipSpaces(const char **str) ATTRIBUTE_NONNULL(1);
-void virSkipSpacesAndBackslash(const char **str) ATTRIBUTE_NONNULL(1);
-void virTrimSpaces(char *str, char **endp) ATTRIBUTE_NONNULL(1);
-void virSkipSpacesBackwards(const char *str, char **endp)
-    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
-
 int virParseNumber(const char **str);
 int virParseVersionString(const char *str, unsigned long *version,
                           bool allowMissing);
-int virAsprintf(char **strp, const char *fmt, ...)
-    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_FMT_PRINTF(2, 3)
-    ATTRIBUTE_RETURN_CHECK;
-int virVasprintf(char **strp, const char *fmt, va_list list)
-    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_FMT_PRINTF(2, 0)
-    ATTRIBUTE_RETURN_CHECK;
-char *virStrncpy(char *dest, const char *src, size_t n, size_t destbytes)
-    ATTRIBUTE_RETURN_CHECK;
-char *virStrcpy(char *dest, const char *src, size_t destbytes)
-    ATTRIBUTE_RETURN_CHECK;
-# define virStrcpyStatic(dest, src) virStrcpy((dest), (src), sizeof(dest))
 
 int virDoubleToStr(char **strp, double number)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_RETURN_CHECK;
@@ -260,7 +107,7 @@ static inline int geteuid (void) { return 0; }
 static inline int getgid (void) { return 0; }
 # endif
 
-char *virGetHostname(virConnectPtr conn);
+char *virGetHostname(void);
 
 char *virGetUserDirectory(void);
 char *virGetUserConfigDirectory(void);
@@ -272,13 +119,6 @@ int virGetUserID(const char *name,
                  uid_t *uid) ATTRIBUTE_RETURN_CHECK;
 int virGetGroupID(const char *name,
                   gid_t *gid) ATTRIBUTE_RETURN_CHECK;
-
-char *virFileFindMountPoint(const char *type);
-
-void virFileWaitForDevices(void);
-
-# define virBuildPath(path, ...) virBuildPathInternal(path, __VA_ARGS__, NULL)
-int virBuildPathInternal(char **path, ...) ATTRIBUTE_SENTINEL;
 
 bool virIsDevMapperDevice(const char *dev_name) ATTRIBUTE_NONNULL(1);
 
@@ -303,8 +143,8 @@ int virReadFCHost(const char *sysfs_prefix,
                   char **result)
     ATTRIBUTE_NONNULL(3) ATTRIBUTE_NONNULL(4);
 
-int virIsCapableFCHost(const char *sysfs_prefix, int host);
-int virIsCapableVport(const char *sysfs_prefix, int host);
+bool virIsCapableFCHost(const char *sysfs_prefix, int host);
+bool virIsCapableVport(const char *sysfs_prefix, int host);
 
 enum {
     VPORT_CREATE,

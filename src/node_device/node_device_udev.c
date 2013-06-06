@@ -36,9 +36,10 @@
 #include "virlog.h"
 #include "viralloc.h"
 #include "viruuid.h"
-#include "virutil.h"
 #include "virbuffer.h"
+#include "virfile.h"
 #include "virpci.h"
+#include "virstring.h"
 
 #define VIR_FROM_THIS VIR_FROM_NODEDEV
 
@@ -125,12 +126,10 @@ static int udevGetDeviceProperty(struct udev_device *udev_device,
 
     /* If this allocation is changed, the comment at the beginning
      * of the function must also be changed. */
-    *property_value = strdup(udev_value);
-    if (*property_value == NULL) {
+    if (VIR_STRDUP(*property_value, udev_value) < 0) {
         VIR_ERROR(_("Failed to allocate memory for property value for "
                     "property key '%s' on device with sysname '%s'"),
                   property_key, udev_device_get_sysname(udev_device));
-        virReportOOMError();
         ret = PROPERTY_ERROR;
         goto out;
     }
@@ -214,12 +213,10 @@ static int udevGetDeviceSysfsAttr(struct udev_device *udev_device,
 
     /* If this allocation is changed, the comment at the beginning
      * of the function must also be changed. */
-    *attr_value = strdup(udev_value);
-    if (*attr_value == NULL) {
+    if (VIR_STRDUP(*attr_value, udev_value) < 0) {
         VIR_ERROR(_("Failed to allocate memory for sysfs attribute value for "
                     "sysfs attribute '%s' on device with sysname '%s'"),
                   attr_name, udev_device_get_sysname(udev_device));
-        virReportOOMError();
         ret = PROPERTY_ERROR;
         goto out;
     }
@@ -341,7 +338,7 @@ static int udevGenerateDeviceName(struct udev_device *device,
 
     def->name = virBufferContentAndReset(&buf);
 
-    for (i = 0; i < strlen(def->name) ; i++) {
+    for (i = 0; i < strlen(def->name); i++) {
         if (!(c_isalnum(*(def->name + i)))) {
             *(def->name + i) = '_';
         }
@@ -387,21 +384,9 @@ static int udevTranslatePCIIds(unsigned int vendor,
                     NULL,
                     NULL);
 
-    if (vendor_name != NULL) {
-        *vendor_string = strdup(vendor_name);
-        if (*vendor_string == NULL) {
-            virReportOOMError();
-            goto out;
-        }
-    }
-
-    if (device_name != NULL) {
-        *product_string = strdup(device_name);
-        if (*product_string == NULL) {
-            virReportOOMError();
-            goto out;
-        }
-    }
+    if (VIR_STRDUP(*vendor_string, vendor_name) < 0||
+        VIR_STRDUP(*product_string, device_name) < 0)
+        goto out;
 
     ret = 0;
 
@@ -691,11 +676,8 @@ static int udevProcessSCSITarget(struct udev_device *device ATTRIBUTE_UNUSED,
 
     sysname = udev_device_get_sysname(device);
 
-    data->scsi_target.name = strdup(sysname);
-    if (data->scsi_target.name == NULL) {
-        virReportOOMError();
+    if (VIR_STRDUP(data->scsi_target.name, sysname) < 0)
         goto out;
-    }
 
     if (udevGenerateDeviceName(device, def, NULL) != 0) {
         goto out;
@@ -718,34 +700,34 @@ static int udevGetSCSIType(virNodeDeviceDefPtr def ATTRIBUTE_UNUSED,
 
     switch (type) {
     case TYPE_DISK:
-        *typestring = strdup("disk");
+        ignore_value(VIR_STRDUP(*typestring, "disk"));
         break;
     case TYPE_TAPE:
-        *typestring = strdup("tape");
+        ignore_value(VIR_STRDUP(*typestring, "tape"));
         break;
     case TYPE_PROCESSOR:
-        *typestring = strdup("processor");
+        ignore_value(VIR_STRDUP(*typestring, "processor"));
         break;
     case TYPE_WORM:
-        *typestring = strdup("worm");
+        ignore_value(VIR_STRDUP(*typestring, "worm"));
         break;
     case TYPE_ROM:
-        *typestring = strdup("cdrom");
+        ignore_value(VIR_STRDUP(*typestring, "cdrom"));
         break;
     case TYPE_SCANNER:
-        *typestring = strdup("scanner");
+        ignore_value(VIR_STRDUP(*typestring, "scanner"));
         break;
     case TYPE_MOD:
-        *typestring = strdup("mod");
+        ignore_value(VIR_STRDUP(*typestring, "mod"));
         break;
     case TYPE_MEDIUM_CHANGER:
-        *typestring = strdup("changer");
+        ignore_value(VIR_STRDUP(*typestring, "changer"));
         break;
     case TYPE_ENCLOSURE:
-        *typestring = strdup("enclosure");
+        ignore_value(VIR_STRDUP(*typestring, "enclosure"));
         break;
     case TYPE_RAID:
-        *typestring = strdup("raid");
+        ignore_value(VIR_STRDUP(*typestring, "raid"));
         break;
     case TYPE_NO_LUN:
     default:
@@ -756,7 +738,6 @@ static int udevGetSCSIType(virNodeDeviceDefPtr def ATTRIBUTE_UNUSED,
     if (*typestring == NULL) {
         if (foundtype == 1) {
             ret = -1;
-            virReportOOMError();
         } else {
             VIR_DEBUG("Failed to find SCSI device type %d for %s",
                       type, def->sysfs_path);
@@ -917,11 +898,8 @@ static int udevProcessCDROM(struct udev_device *device,
      * change it to cdrom to preserve compatibility with earlier
      * versions of libvirt.  */
     VIR_FREE(def->caps->data.storage.drive_type);
-    def->caps->data.storage.drive_type = strdup("cdrom");
-    if (def->caps->data.storage.drive_type == NULL) {
-        virReportOOMError();
+    if (VIR_STRDUP(def->caps->data.storage.drive_type, "cdrom") < 0)
         goto out;
-    }
 
     if ((udevGetIntProperty(device, "ID_CDROM_MEDIA",
                             &tmp_int, 0) == PROPERTY_FOUND))
@@ -996,10 +974,7 @@ static int udevKludgeStorageType(virNodeDeviceDefPtr def)
 
     if (STRPREFIX(def->caps->data.storage.block, "/dev/vd")) {
         /* virtio disk */
-        def->caps->data.storage.drive_type = strdup("disk");
-        if (def->caps->data.storage.drive_type != NULL) {
-            ret = 0;
-        }
+        ret = VIR_STRDUP(def->caps->data.storage.drive_type, "disk");
     }
 
     if (ret != 0) {
@@ -1043,7 +1018,9 @@ static int udevProcessStorage(struct udev_device *device,
         VIR_DEBUG("No devnode for '%s'", udev_device_get_devpath(device));
         goto out;
     }
-    data->storage.block = strdup(devnode);
+
+    if (VIR_STRDUP(data->storage.block, devnode) < 0)
+        goto out;
 
     if (udevGetStringProperty(device,
                               "ID_BUS",
@@ -1083,15 +1060,13 @@ static int udevProcessStorage(struct udev_device *device,
                                 &tmp_int, 0) == PROPERTY_FOUND) &&
             (tmp_int == 1)) {
 
-            data->storage.drive_type = strdup("floppy");
-            if (!data->storage.drive_type)
+            if (VIR_STRDUP(data->storage.drive_type, "floppy") < 0)
                 goto out;
         } else if ((udevGetIntProperty(device, "ID_DRIVE_FLASH_SD",
                                        &tmp_int, 0) == PROPERTY_FOUND) &&
                    (tmp_int == 1)) {
 
-            data->storage.drive_type = strdup("sd");
-            if (!data->storage.drive_type)
+            if (VIR_STRDUP(data->storage.drive_type, "sd") < 0)
                 goto out;
         } else {
 
@@ -1294,32 +1269,20 @@ static int udevSetParent(struct udev_device *device,
         dev = virNodeDeviceFindBySysfsPath(&driverState->devs,
                                            parent_sysfs_path);
         if (dev != NULL) {
-            def->parent = strdup(dev->def->name);
+            if (VIR_STRDUP(def->parent, dev->def->name) < 0) {
+                virNodeDeviceObjUnlock(dev);
+                goto out;
+            }
             virNodeDeviceObjUnlock(dev);
 
-            if (def->parent == NULL) {
-                virReportOOMError();
+            if (VIR_STRDUP(def->parent_sysfs_path, parent_sysfs_path) < 0)
                 goto out;
-            }
-
-            def->parent_sysfs_path = strdup(parent_sysfs_path);
-            if (def->parent_sysfs_path == NULL) {
-                virReportOOMError();
-                goto out;
-            }
-
         }
 
     } while (def->parent == NULL && parent_device != NULL);
 
-    if (def->parent == NULL) {
-        def->parent = strdup("computer");
-    }
-
-    if (def->parent == NULL) {
-        virReportOOMError();
+    if (!def->parent && VIR_STRDUP(def->parent, "computer") < 0)
         goto out;
-    }
 
     ret = 0;
 
@@ -1339,7 +1302,9 @@ static int udevAddOneDevice(struct udev_device *device)
         goto out;
     }
 
-    def->sysfs_path = strdup(udev_device_get_syspath(device));
+    if (VIR_STRDUP(def->sysfs_path, udev_device_get_syspath(device)) < 0)
+        goto out;
+
     if (udevGetStringProperty(device,
                               "DRIVER",
                               &def->driver) == PROPERTY_ERROR) {
@@ -1379,7 +1344,7 @@ static int udevAddOneDevice(struct udev_device *device)
 out:
     if (ret != 0) {
         VIR_DEBUG("Discarding device %d %p %s", ret, def,
-                  def ? def->sysfs_path : "");
+                  def ? NULLSTR(def->sysfs_path) : "");
         virNodeDeviceDefFree(def);
     }
 
@@ -1438,7 +1403,7 @@ out:
 }
 
 
-static int nodeDeviceStateCleanup(void)
+static int nodeStateCleanup(void)
 {
     int ret = 0;
 
@@ -1617,11 +1582,8 @@ static int udevSetupSystemDev(void)
         goto out;
     }
 
-    def->name = strdup("computer");
-    if (def->name == NULL) {
-        virReportOOMError();
+    if (VIR_STRDUP(def->name, "computer") < 0)
         goto out;
-    }
 
     if (VIR_ALLOC(def->caps) != 0) {
         virReportOOMError();
@@ -1650,9 +1612,9 @@ out:
     return ret;
 }
 
-static int nodeDeviceStateInitialize(bool privileged ATTRIBUTE_UNUSED,
-                                     virStateInhibitCallback callback ATTRIBUTE_UNUSED,
-                                     void *opaque ATTRIBUTE_UNUSED)
+static int nodeStateInitialize(bool privileged ATTRIBUTE_UNUSED,
+                               virStateInhibitCallback callback ATTRIBUTE_UNUSED,
+                               void *opaque ATTRIBUTE_UNUSED)
 {
     udevPrivate *priv = NULL;
     struct udev *udev = NULL;
@@ -1759,13 +1721,13 @@ out_unlock:
 
 out:
     if (ret == -1) {
-        nodeDeviceStateCleanup();
+        nodeStateCleanup();
     }
     return ret;
 }
 
 
-static int nodeDeviceStateReload(void)
+static int nodeStateReload(void)
 {
     return 0;
 }
@@ -1798,7 +1760,7 @@ static virNodeDeviceDriver udevNodeDeviceDriver = {
     .nodeDeviceClose = nodeDeviceClose, /* 0.7.3 */
     .nodeNumOfDevices = nodeNumOfDevices, /* 0.7.3 */
     .nodeListDevices = nodeListDevices, /* 0.7.3 */
-    .connectListAllNodeDevices = nodeListAllNodeDevices, /* 0.10.2 */
+    .connectListAllNodeDevices = nodeConnectListAllNodeDevices, /* 0.10.2 */
     .nodeDeviceLookupByName = nodeDeviceLookupByName, /* 0.7.3 */
     .nodeDeviceLookupSCSIHostByWWN = nodeDeviceLookupSCSIHostByWWN, /* 1.0.2 */
     .nodeDeviceGetXMLDesc = nodeDeviceGetXMLDesc, /* 0.7.3 */
@@ -1811,9 +1773,9 @@ static virNodeDeviceDriver udevNodeDeviceDriver = {
 
 static virStateDriver udevStateDriver = {
     .name = "udev",
-    .stateInitialize = nodeDeviceStateInitialize, /* 0.7.3 */
-    .stateCleanup = nodeDeviceStateCleanup, /* 0.7.3 */
-    .stateReload = nodeDeviceStateReload, /* 0.7.3 */
+    .stateInitialize = nodeStateInitialize, /* 0.7.3 */
+    .stateCleanup = nodeStateCleanup, /* 0.7.3 */
+    .stateReload = nodeStateReload, /* 0.7.3 */
 };
 
 int udevNodeRegister(void)

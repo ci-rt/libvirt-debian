@@ -235,7 +235,7 @@
       their goals, concepts and XML format.
     </p>
         <h2>
-          <a name="goals" id="goals">Goals and background</a>
+          <a name="goals" shape="rect" id="goals">Goals and background</a>
         </h2>
         <p>
       The goal of the network filtering XML is to enable administrators
@@ -266,7 +266,7 @@
       (Qemu, KVM)</span>
     </p>
         <h2>
-          <a name="nwfconcepts" id="nwfconcepts">Concepts</a>
+          <a name="nwfconcepts" shape="rect" id="nwfconcepts">Concepts</a>
         </h2>
         <p>
       The network traffic filtering subsystem enables configuration
@@ -280,7 +280,7 @@
     following example, the interface description references
     the filter <code>clean-traffic</code>.
     </p>
-        <pre>
+        <pre xml:space="preserve">
   ...
   &lt;devices&gt;
     &lt;interface type='bridge'&gt;
@@ -309,7 +309,7 @@
     following example, the interface description has been extended with
     the parameter <code>IP</code> and a dotted IP address as value.
     </p>
-        <pre>
+        <pre xml:space="preserve">
   ...
   &lt;devices&gt;
     &lt;interface type='bridge'&gt;
@@ -329,7 +329,7 @@
       <br /><br />
     </p>
         <h3>
-          <a name="nwfconceptschains" id="nwfconceptschains">Filtering chains</a>
+          <a name="nwfconceptschains" shape="rect" id="nwfconceptschains">Filtering chains</a>
         </h3>
         <p>
       Filtering rules are organized in filter chains. These chains can be
@@ -363,7 +363,7 @@
       The following filter shows an example of filtering ARP traffic
       in the <code>arp</code> chain.
     </p>
-        <pre>
+        <pre xml:space="preserve">
 &lt;filter name='no-arp-spoofing' chain='arp' priority='-500'&gt;
   &lt;uuid&gt;f88f1932-debf-4aa1-9fbe-f10d3aa4bc95&lt;/uuid&gt;
   &lt;rule action='drop' direction='out' priority='300'&gt;
@@ -404,7 +404,7 @@
       <br /><br />
     </p>
         <h3>
-          <a name="nwfconceptschainpriorities" id="nwfconceptschainpriorities">Filtering chain priorities</a>
+          <a name="nwfconceptschainpriorities" shape="rect" id="nwfconceptschainpriorities">Filtering chain priorities</a>
         </h3>
         <p>
       All chains are connected to the <code>root</code> chain. The order in
@@ -412,11 +412,11 @@
       chain. The following table shows the chains that can be assigned a
       priority and their default priorities.
     </p>
-        <table class="top_table"><tr><th> Chain (prefix) </th><th> Default priority </th></tr><tr><td>stp</td><td>-810</td></tr><tr><td>mac</td><td>-800</td></tr><tr><td>vlan</td><td>-750</td></tr><tr><td>ipv4</td><td>-700</td></tr><tr><td>ipv6</td><td>-600</td></tr><tr><td>arp</td><td>-500</td></tr><tr><td>rarp</td><td>-400</td></tr></table>
+        <table class="top_table"><tr><th rowspan="1" colspan="1"> Chain (prefix) </th><th rowspan="1" colspan="1"> Default priority </th></tr><tr><td rowspan="1" colspan="1">stp</td><td rowspan="1" colspan="1">-810</td></tr><tr><td rowspan="1" colspan="1">mac</td><td rowspan="1" colspan="1">-800</td></tr><tr><td rowspan="1" colspan="1">vlan</td><td rowspan="1" colspan="1">-750</td></tr><tr><td rowspan="1" colspan="1">ipv4</td><td rowspan="1" colspan="1">-700</td></tr><tr><td rowspan="1" colspan="1">ipv6</td><td rowspan="1" colspan="1">-600</td></tr><tr><td rowspan="1" colspan="1">arp</td><td rowspan="1" colspan="1">-500</td></tr><tr><td rowspan="1" colspan="1">rarp</td><td rowspan="1" colspan="1">-400</td></tr></table>
         <p>
       A chain with a lower priority value is accessed before one with a
       higher value.
-      <br /><br />
+      <br />
       <span class="since">Since 0.9.8</span> the above listed chains
       can be assigned custom priorities by writing a value in the
       range [-1000, 1000] into the priority (XML) attribute in the filter
@@ -424,7 +424,7 @@
       for <code>arp</code> chains.
     </p>
         <h3>
-          <a name="nwfconceptsvars" id="nwfconceptsvars">Usage of variables in filters</a>
+          <a name="nwfconceptsvars" shape="rect" id="nwfconceptsvars">Usage of variables in filters</a>
         </h3>
         <p>
 
@@ -448,7 +448,7 @@
       used on an interface if the parameter
       is not explicitly provided but referenced.
       For current limitations on IP address detection, consult the
-      <a href="#nwflimits">section on limitations</a> on how to use this
+      <a href="#nwflimits" shape="rect">section on limitations</a> on how to use this
       feature and what to expect when using it.
       <br /><br />
       The above-shown network filer <code>no-arp-spoofing</code>
@@ -473,7 +473,7 @@
       addresses that are valid on a particular interface. The notation for
       providing multiple elements for the IP variable is:
     </p>
-        <pre>
+        <pre xml:space="preserve">
   ...
   &lt;devices&gt;
     &lt;interface type='bridge'&gt;
@@ -492,7 +492,7 @@
       of IP address shown above, the following rule will create 3
       individual filtering rules, one for each IP address.
     </p>
-        <pre>
+        <pre xml:space="preserve">
   ...
   &lt;rule action='accept' direction='in' priority='500'&gt;
     &lt;tcp srpipaddr='$IP'/&gt;
@@ -505,7 +505,7 @@
       A filtering rule like the following accesses the 2nd element
       of the variable DSTPORTS.
     </p>
-        <pre>
+        <pre xml:space="preserve">
   ...
   &lt;rule action='accept' direction='in' priority='500'&gt;
     &lt;udp dstportstart='$DSTPORTS[1]'/&gt;
@@ -524,7 +524,7 @@
       DSTPORT with those of SRCIPADDRESSES by using two independent
       iterators to access their elements.
     </p>
-        <pre>
+        <pre xml:space="preserve">
   ...
   &lt;rule action='accept' direction='in' priority='500'&gt;
     &lt;ip srcipaddr='$SRCIPADDRESSES[@1]' dstportstart='$DSTPORTS[@2]'/&gt;
@@ -534,7 +534,7 @@
         <p>
       In an example we assign concrete values to SRCIPADDRESSES and DSTPORTS
     </p>
-        <pre>
+        <pre xml:space="preserve">
   SRCIPADDRESSES = [ 10.0.0.1, 11.1.2.3 ]
   DSTPORTS = [ 80, 8080 ]
 </pre>
@@ -542,7 +542,7 @@
       Accessing the variables using $SRCIPADDRESSES[@1] and $DSTPORTS[@2] would
       then result in all combinations of addresses and ports being created:
     </p>
-        <pre>
+        <pre xml:space="preserve">
   10.0.0.1, 80
   10.0.0.1, 8080
   11.1.2.3, 80
@@ -553,7 +553,7 @@
       the notation $SRCIPADDRESSES[@1] and $DSTPORTS[@1], would result in
       parallel access to both lists and result in the following combinations:
     </p>
-        <pre>
+        <pre xml:space="preserve">
   10.0.0.1, 80
   11.1.2.3, 8080
 </pre>
@@ -561,11 +561,8 @@
       Further, the notation of $VARIABLE is short-hand for $VARIABLE[@0]. The
       former notation always assumes the iterator with Id '0'.
     </p>
-        <p>
-
-    </p>
         <h3>
-          <a name="nwfelemsRulesAdvIPAddrDetection" id="nwfelemsRulesAdvIPAddrDetection">Automatic IP address detection</a>
+          <a name="nwfelemsRulesAdvIPAddrDetection" shape="rect" id="nwfelemsRulesAdvIPAddrDetection">Automatic IP address detection</a>
         </h3>
         <p>
        The detection of IP addresses used on a virtual machine's interface
@@ -588,7 +585,7 @@
        When a VM is migrated to another host or resumed after a suspend operation,
        the first packet sent by the VM will again determine the IP address it can
        use on a particular interface.
-       <br /><br />
+       <br />
        A value of <code>dhcp</code> specifies that libvirt should only honor DHCP
        server-assigned addresses with valid leases. This method supports the detection
        and usage of multiple IP address per interface.
@@ -631,7 +628,7 @@
        The following XML provides an example for the activation of IP address learning
        using the DHCP snooping method:
     </p>
-        <pre>
+        <pre xml:space="preserve">
     &lt;interface type='bridge'&gt;
       &lt;source bridge='virbr0'/&gt;
       &lt;filterref filter='clean-traffic'&gt;
@@ -640,16 +637,16 @@
     &lt;/interface&gt;
 </pre>
         <h3>
-          <a name="nwfelemsReservedVars" id="nwfelemsReservedVars">Reserved Variables</a>
+          <a name="nwfelemsReservedVars" shape="rect" id="nwfelemsReservedVars">Reserved Variables</a>
         </h3>
         <p>
       The following table lists reserved variables in use by libvirt.
     </p>
-        <table class="top_table"><tr><th> Variable Name </th><th> Semantics </th></tr><tr><td> MAC </td><td> The MAC address of the interface </td></tr><tr><td> IP </td><td> The list of IP addresses in use by an interface </td></tr><tr><td> IPV6 </td><td> Not currently implemented:
-              the list of IPV6 addresses in use by an interface </td></tr><tr><td> DHCPSERVER </td><td> The list of IP addresses of trusted DHCP servers</td></tr><tr><td> DHCPSERVERV6 </td><td> Not currently implemented:
-              The list of IPv6 addresses of trusted DHCP servers</td></tr><tr><td> CTRL_IP_LEARNING </td><td> The choice of the IP address detection mode </td></tr></table>
+        <table class="top_table"><tr><th rowspan="1" colspan="1"> Variable Name </th><th rowspan="1" colspan="1"> Semantics </th></tr><tr><td rowspan="1" colspan="1"> MAC </td><td rowspan="1" colspan="1"> The MAC address of the interface </td></tr><tr><td rowspan="1" colspan="1"> IP </td><td rowspan="1" colspan="1"> The list of IP addresses in use by an interface </td></tr><tr><td rowspan="1" colspan="1"> IPV6 </td><td rowspan="1" colspan="1"> Not currently implemented:
+              the list of IPV6 addresses in use by an interface </td></tr><tr><td rowspan="1" colspan="1"> DHCPSERVER </td><td rowspan="1" colspan="1"> The list of IP addresses of trusted DHCP servers</td></tr><tr><td rowspan="1" colspan="1"> DHCPSERVERV6 </td><td rowspan="1" colspan="1"> Not currently implemented:
+              The list of IPv6 addresses of trusted DHCP servers</td></tr><tr><td rowspan="1" colspan="1"> CTRL_IP_LEARNING </td><td rowspan="1" colspan="1"> The choice of the IP address detection mode </td></tr></table>
         <h2>
-          <a name="nwfelems" id="nwfelems">Element and attribute overview</a>
+          <a name="nwfelems" shape="rect" id="nwfelems">Element and attribute overview</a>
         </h2>
         <p>
       The root element required for all network filters is
@@ -662,7 +659,7 @@
       ipv4, ipv6, arp and rarp</code>.
     </p>
         <h3>
-          <a name="nwfelemsRefs" id="nwfelemsRefs">References to other filters</a>
+          <a name="nwfelemsRefs" shape="rect" id="nwfelemsRefs">References to other filters</a>
         </h3>
         <p>
      Any filter may hold references to other filters. Individual
@@ -673,7 +670,7 @@
      The following shows the XML of the <code>clean-traffic</code>
      network filter referencing several other filters.
     </p>
-        <pre>
+        <pre xml:space="preserve">
 &lt;filter name='clean-traffic'&gt;
   &lt;uuid&gt;6ef53069-ba34-94a0-d33d-17751b9b8cb1&lt;/uuid&gt;
   &lt;filterref filter='no-mac-spoofing'/&gt;
@@ -700,7 +697,7 @@
     attached.
     </p>
         <h3>
-          <a name="nwfelemsRules" id="nwfelemsRules">Filter rules</a>
+          <a name="nwfelemsRules" shape="rect" id="nwfelemsRules">Filter rules</a>
         </h3>
         <p>
     The following XML shows a simple example of a network
@@ -709,7 +706,7 @@
     variable IP) in an outgoing IP packet is not the expected
     one, thus preventing IP address spoofing by the VM.
     </p>
-        <pre>
+        <pre xml:space="preserve">
 &lt;filter name='no-ip-spoofing' chain='ipv4'&gt;
   &lt;uuid&gt;fce8ae33-e69e-83bf-262e-30786c1f8072&lt;/uuid&gt;
   &lt;rule action='drop' direction='out' priority='500'&gt;
@@ -732,10 +729,10 @@
         (matching the rule passes this filter, but returns control to
         the calling filter for further
         analysis) <span class="since">(since 0.9.7)</span>,
-        or <code>continue<code> (matching the rule goes on to the next
+        or <code>continue</code> (matching the rule goes on to the next
         rule for further analysis) <span class="since">(since
         0.9.7)</span>.
-     </code></code></li><li>
+     </li><li>
         direction -- mandatory; must either be <code>in</code>, <code>out</code> or
          <code>inout</code> if the rule is for incoming,
          outgoing or incoming-and-outgoing traffic
@@ -754,14 +751,14 @@
         their priorities. This allows to interleave filtering rules with
         access to filter chains.
         (See also section on
-         <a href="#nwfconceptschainpriorities">
+         <a href="#nwfconceptschainpriorities" shape="rect">
            filtering chain priorities
          </a>.)
      </li><li>
         statematch -- optional; possible values are '0' or 'false' to
         turn the underlying connection state matching off; default is 'true'
         <br />
-        Also read the section on <a href="#nwfelemsRulesAdv">advanced configuration</a>
+        Also read the section on <a href="#nwfelemsRulesAdv" shape="rect">advanced configuration</a>
         topics.
      </li></ul>
         <p>
@@ -777,7 +774,7 @@
      filtered.
     </p>
         <h4>
-          <a name="nwfelemsRulesProto" id="nwfelemsRulesProto">Supported protocols</a>
+          <a name="nwfelemsRulesProto" shape="rect" id="nwfelemsRulesProto">Supported protocols</a>
         </h4>
         <p>
      The following sections enumerate the list of protocols that
@@ -804,7 +801,7 @@
      may be grouped together. The following
      XML fragment shows such an example using abstract attributes.
     </p>
-        <pre>
+        <pre xml:space="preserve">
 [...]
   &lt;rule action='drop' direction='in'&gt;
     &lt;protocol match='no' attribute1='value1' attribute2='value2'/&gt;
@@ -824,23 +821,23 @@
      <br /><br />
     </p>
         <h5>
-          <a name="nwfelemsRulesProtoMAC" id="nwfelemsRulesProtoMAC">MAC (Ethernet)</a>
+          <a name="nwfelemsRulesProtoMAC" shape="rect" id="nwfelemsRulesProtoMAC">MAC (Ethernet)</a>
         </h5>
         <p>
       Protocol ID: <code>mac</code>
       <br />
       Note: Rules of this type should go into the <code>root</code> chain.
     </p>
-        <table class="top_table"><tr><th> Attribute </th><th> Datatype </th><th> Semantics </th></tr><tr><td>srcmacaddr</td><td>MAC_ADDR</td><td>MAC address of sender</td></tr><tr><td>srcmacmask</td><td>MAC_MASK</td><td>Mask applied to MAC address of sender</td></tr><tr><td>dstmacaddr</td><td>MAC_ADDR</td><td>MAC address of destination</td></tr><tr><td>dstmacmask</td><td>MAC_MASK</td><td>Mask applied to MAC address of destination</td></tr><tr><td>protocolid</td><td>UINT16 (0x600-0xffff), STRING</td><td>Layer 3 protocol ID</td></tr><tr><td>comment <span class="since">(Since 0.8.5)</span></td><td>STRING</td><td>text with max. 256 characters</td></tr></table>
+        <table class="top_table"><tr><th rowspan="1" colspan="1"> Attribute </th><th rowspan="1" colspan="1"> Datatype </th><th rowspan="1" colspan="1"> Semantics </th></tr><tr><td rowspan="1" colspan="1">srcmacaddr</td><td rowspan="1" colspan="1">MAC_ADDR</td><td rowspan="1" colspan="1">MAC address of sender</td></tr><tr><td rowspan="1" colspan="1">srcmacmask</td><td rowspan="1" colspan="1">MAC_MASK</td><td rowspan="1" colspan="1">Mask applied to MAC address of sender</td></tr><tr><td rowspan="1" colspan="1">dstmacaddr</td><td rowspan="1" colspan="1">MAC_ADDR</td><td rowspan="1" colspan="1">MAC address of destination</td></tr><tr><td rowspan="1" colspan="1">dstmacmask</td><td rowspan="1" colspan="1">MAC_MASK</td><td rowspan="1" colspan="1">Mask applied to MAC address of destination</td></tr><tr><td rowspan="1" colspan="1">protocolid</td><td rowspan="1" colspan="1">UINT16 (0x600-0xffff), STRING</td><td rowspan="1" colspan="1">Layer 3 protocol ID</td></tr><tr><td rowspan="1" colspan="1">comment <span class="since">(Since 0.8.5)</span></td><td rowspan="1" colspan="1">STRING</td><td rowspan="1" colspan="1">text with max. 256 characters</td></tr></table>
         <p>
       Valid Strings for <code>protocolid</code> are: arp, rarp, ipv4, ipv6
     </p>
-        <pre>
+        <pre xml:space="preserve">
 [...]
 &lt;mac match='no' srcmacaddr='$MAC'/&gt;
 [...]
 </pre>
-        <h5><a name="nwfelemsRulesProtoVLAN" id="nwfelemsRulesProtoVLAN">VLAN (802.1Q)</a>
+        <h5><a name="nwfelemsRulesProtoVLAN" shape="rect" id="nwfelemsRulesProtoVLAN">VLAN (802.1Q)</a>
       <span class="since">(Since 0.9.8)</span>
     </h5>
         <p>
@@ -849,11 +846,11 @@
       Note: Rules of this type should go either into the <code>root</code> or
       <code>vlan</code> chain.
     </p>
-        <table class="top_table"><tr><th> Attribute </th><th> Datatype </th><th> Semantics </th></tr><tr><td>srcmacaddr</td><td>MAC_ADDR</td><td>MAC address of sender</td></tr><tr><td>srcmacmask</td><td>MAC_MASK</td><td>Mask applied to MAC address of sender</td></tr><tr><td>dstmacaddr</td><td>MAC_ADDR</td><td>MAC address of destination</td></tr><tr><td>dstmacmask</td><td>MAC_MASK</td><td>Mask applied to MAC address of destination</td></tr><tr><td>vlan-id</td><td>UINT16 (0x0-0xfff, 0 - 4095)</td><td>VLAN ID</td></tr><tr><td>encap-protocol</td><td>UINT16 (0x03c-0xfff), String</td><td>Encapsulated layer 3 protocol ID</td></tr><tr><td>comment </td><td>STRING</td><td>text with max. 256 characters</td></tr></table>
+        <table class="top_table"><tr><th rowspan="1" colspan="1"> Attribute </th><th rowspan="1" colspan="1"> Datatype </th><th rowspan="1" colspan="1"> Semantics </th></tr><tr><td rowspan="1" colspan="1">srcmacaddr</td><td rowspan="1" colspan="1">MAC_ADDR</td><td rowspan="1" colspan="1">MAC address of sender</td></tr><tr><td rowspan="1" colspan="1">srcmacmask</td><td rowspan="1" colspan="1">MAC_MASK</td><td rowspan="1" colspan="1">Mask applied to MAC address of sender</td></tr><tr><td rowspan="1" colspan="1">dstmacaddr</td><td rowspan="1" colspan="1">MAC_ADDR</td><td rowspan="1" colspan="1">MAC address of destination</td></tr><tr><td rowspan="1" colspan="1">dstmacmask</td><td rowspan="1" colspan="1">MAC_MASK</td><td rowspan="1" colspan="1">Mask applied to MAC address of destination</td></tr><tr><td rowspan="1" colspan="1">vlan-id</td><td rowspan="1" colspan="1">UINT16 (0x0-0xfff, 0 - 4095)</td><td rowspan="1" colspan="1">VLAN ID</td></tr><tr><td rowspan="1" colspan="1">encap-protocol</td><td rowspan="1" colspan="1">UINT16 (0x03c-0xfff), String</td><td rowspan="1" colspan="1">Encapsulated layer 3 protocol ID</td></tr><tr><td rowspan="1" colspan="1">comment </td><td rowspan="1" colspan="1">STRING</td><td rowspan="1" colspan="1">text with max. 256 characters</td></tr></table>
         <p>
       Valid Strings for <code>encap-protocol</code> are: arp, ipv4, ipv6
     </p>
-        <h5><a name="nwfelemsRulesProtoSTP" id="nwfelemsRulesProtoSTP">STP (Spanning Tree Protocol)</a>
+        <h5><a name="nwfelemsRulesProtoSTP" shape="rect" id="nwfelemsRulesProtoSTP">STP (Spanning Tree Protocol)</a>
       <span class="since">(Since 0.9.8)</span>
     </h5>
         <p>
@@ -862,9 +859,9 @@
       Note: Rules of this type should go either into the <code>root</code> or
       <code>stp</code> chain.
     </p>
-        <table class="top_table"><tr><th> Attribute </th><th> Datatype </th><th> Semantics </th></tr><tr><td>srcmacaddr</td><td>MAC_ADDR</td><td>MAC address of sender</td></tr><tr><td>srcmacmask</td><td>MAC_MASK</td><td>Mask applied to MAC address of sender</td></tr><tr><td>type</td><td>UINT8</td><td>Bridge Protocol Data Unit (BPDU) type</td></tr><tr><td>flags</td><td>UINT8</td><td>BPDU flag</td></tr><tr><td>root-priority</td><td>UINT16</td><td>Root priority (range start)</td></tr><tr><td>root-priority-hi</td><td>UINT16</td><td>Root priority range end</td></tr><tr><td>root-address</td><td>MAC_ADDRESS</td><td>Root MAC address</td></tr><tr><td>root-address-mask</td><td>MAC_MASK</td><td>Root MAC address mask</td></tr><tr><td>root-cost</td><td>UINT32</td><td>Root path cost (range start)</td></tr><tr><td>root-cost-hi</td><td>UINT32</td><td>Root path cost range end</td></tr><tr><td>sender-priority</td><td>UINT16</td><td>Sender priority (range start)</td></tr><tr><td>sender-priority-hi</td><td>UINT16</td><td>Sender priority range end</td></tr><tr><td>sender-address</td><td>MAC_ADDRESS</td><td>BPDU sender MAC address</td></tr><tr><td>sender-address-mask</td><td>MAC_MASK</td><td>BPDU sender MAC address mask</td></tr><tr><td>port</td><td>UINT16</td><td>Port identifier (range start)</td></tr><tr><td>port_hi</td><td>UINT16</td><td>Port identifier range end</td></tr><tr><td>msg-age</td><td>UINT16</td><td>Message age timer (range start)</td></tr><tr><td>msg-age-hi</td><td>UINT16</td><td>Message age timer range end</td></tr><tr><td>max-age</td><td>UINT16</td><td>Maximum age timer (range start)</td></tr><tr><td>max-age-hi</td><td>UINT16</td><td>Maximum age timer range end</td></tr><tr><td>hello-time</td><td>UINT16</td><td>Hello time timer (range start)</td></tr><tr><td>hello-time-hi</td><td>UINT16</td><td>Hello time timer range end</td></tr><tr><td>forward-delay</td><td>UINT16</td><td>Forward delay (range start)</td></tr><tr><td>forward-delay-hi</td><td>UINT16</td><td>Forward delay range end</td></tr><tr><td>comment</td><td>STRING</td><td>text with max. 256 characters</td></tr></table>
+        <table class="top_table"><tr><th rowspan="1" colspan="1"> Attribute </th><th rowspan="1" colspan="1"> Datatype </th><th rowspan="1" colspan="1"> Semantics </th></tr><tr><td rowspan="1" colspan="1">srcmacaddr</td><td rowspan="1" colspan="1">MAC_ADDR</td><td rowspan="1" colspan="1">MAC address of sender</td></tr><tr><td rowspan="1" colspan="1">srcmacmask</td><td rowspan="1" colspan="1">MAC_MASK</td><td rowspan="1" colspan="1">Mask applied to MAC address of sender</td></tr><tr><td rowspan="1" colspan="1">type</td><td rowspan="1" colspan="1">UINT8</td><td rowspan="1" colspan="1">Bridge Protocol Data Unit (BPDU) type</td></tr><tr><td rowspan="1" colspan="1">flags</td><td rowspan="1" colspan="1">UINT8</td><td rowspan="1" colspan="1">BPDU flag</td></tr><tr><td rowspan="1" colspan="1">root-priority</td><td rowspan="1" colspan="1">UINT16</td><td rowspan="1" colspan="1">Root priority (range start)</td></tr><tr><td rowspan="1" colspan="1">root-priority-hi</td><td rowspan="1" colspan="1">UINT16</td><td rowspan="1" colspan="1">Root priority range end</td></tr><tr><td rowspan="1" colspan="1">root-address</td><td rowspan="1" colspan="1">MAC_ADDRESS</td><td rowspan="1" colspan="1">Root MAC address</td></tr><tr><td rowspan="1" colspan="1">root-address-mask</td><td rowspan="1" colspan="1">MAC_MASK</td><td rowspan="1" colspan="1">Root MAC address mask</td></tr><tr><td rowspan="1" colspan="1">root-cost</td><td rowspan="1" colspan="1">UINT32</td><td rowspan="1" colspan="1">Root path cost (range start)</td></tr><tr><td rowspan="1" colspan="1">root-cost-hi</td><td rowspan="1" colspan="1">UINT32</td><td rowspan="1" colspan="1">Root path cost range end</td></tr><tr><td rowspan="1" colspan="1">sender-priority</td><td rowspan="1" colspan="1">UINT16</td><td rowspan="1" colspan="1">Sender priority (range start)</td></tr><tr><td rowspan="1" colspan="1">sender-priority-hi</td><td rowspan="1" colspan="1">UINT16</td><td rowspan="1" colspan="1">Sender priority range end</td></tr><tr><td rowspan="1" colspan="1">sender-address</td><td rowspan="1" colspan="1">MAC_ADDRESS</td><td rowspan="1" colspan="1">BPDU sender MAC address</td></tr><tr><td rowspan="1" colspan="1">sender-address-mask</td><td rowspan="1" colspan="1">MAC_MASK</td><td rowspan="1" colspan="1">BPDU sender MAC address mask</td></tr><tr><td rowspan="1" colspan="1">port</td><td rowspan="1" colspan="1">UINT16</td><td rowspan="1" colspan="1">Port identifier (range start)</td></tr><tr><td rowspan="1" colspan="1">port_hi</td><td rowspan="1" colspan="1">UINT16</td><td rowspan="1" colspan="1">Port identifier range end</td></tr><tr><td rowspan="1" colspan="1">msg-age</td><td rowspan="1" colspan="1">UINT16</td><td rowspan="1" colspan="1">Message age timer (range start)</td></tr><tr><td rowspan="1" colspan="1">msg-age-hi</td><td rowspan="1" colspan="1">UINT16</td><td rowspan="1" colspan="1">Message age timer range end</td></tr><tr><td rowspan="1" colspan="1">max-age</td><td rowspan="1" colspan="1">UINT16</td><td rowspan="1" colspan="1">Maximum age timer (range start)</td></tr><tr><td rowspan="1" colspan="1">max-age-hi</td><td rowspan="1" colspan="1">UINT16</td><td rowspan="1" colspan="1">Maximum age timer range end</td></tr><tr><td rowspan="1" colspan="1">hello-time</td><td rowspan="1" colspan="1">UINT16</td><td rowspan="1" colspan="1">Hello time timer (range start)</td></tr><tr><td rowspan="1" colspan="1">hello-time-hi</td><td rowspan="1" colspan="1">UINT16</td><td rowspan="1" colspan="1">Hello time timer range end</td></tr><tr><td rowspan="1" colspan="1">forward-delay</td><td rowspan="1" colspan="1">UINT16</td><td rowspan="1" colspan="1">Forward delay (range start)</td></tr><tr><td rowspan="1" colspan="1">forward-delay-hi</td><td rowspan="1" colspan="1">UINT16</td><td rowspan="1" colspan="1">Forward delay range end</td></tr><tr><td rowspan="1" colspan="1">comment</td><td rowspan="1" colspan="1">STRING</td><td rowspan="1" colspan="1">text with max. 256 characters</td></tr></table>
         <h5>
-          <a name="nwfelemsRulesProtoARP" id="nwfelemsRulesProtoARP">ARP/RARP</a>
+          <a name="nwfelemsRulesProtoARP" shape="rect" id="nwfelemsRulesProtoARP">ARP/RARP</a>
         </h5>
         <p>
       Protocol ID: <code>arp</code> or <code>rarp</code>
@@ -872,7 +869,7 @@
       Note: Rules of this type should either go into the
       <code>root</code> or <code>arp/rarp</code> chain.
     </p>
-        <table class="top_table"><tr><th> Attribute </th><th> Datatype </th><th> Semantics </th></tr><tr><td>srcmacaddr</td><td>MAC_ADDR</td><td>MAC address of sender</td></tr><tr><td>srcmacmask</td><td>MAC_MASK</td><td>Mask applied to MAC address of sender</td></tr><tr><td>dstmacaddr</td><td>MAC_ADDR</td><td>MAC address of destination</td></tr><tr><td>dstmacmask</td><td>MAC_MASK</td><td>Mask applied to MAC address of destination</td></tr><tr><td>hwtype</td><td>UINT16</td><td>Hardware type</td></tr><tr><td>protocoltype</td><td>UINT16</td><td>Protocol type</td></tr><tr><td>opcode</td><td>UINT16, STRING</td><td>Opcode</td></tr><tr><td>arpsrcmacaddr</td><td>MAC_ADDR</td><td>Source MAC address in ARP/RARP packet</td></tr><tr><td>arpdstmacaddr</td><td>MAC_ADDR</td><td>Destination MAC address in ARP/RARP packet</td></tr><tr><td>arpsrcipaddr</td><td>IP_ADDR</td><td>Source IP address in ARP/RARP packet</td></tr><tr><td>arpdstipaddr</td><td>IP_ADDR</td><td>Destination IP address in ARP/RARP packet</td></tr><tr><td>comment <span class="since">(Since 0.8.5)</span></td><td>STRING</td><td>text with max. 256 characters</td></tr><tr><td>gratuitous <span class="since">(Since 0.9.2)</span></td><td>BOOLEAN</td><td>boolean indicating whether to check for gratuitous ARP packet</td></tr></table>
+        <table class="top_table"><tr><th rowspan="1" colspan="1"> Attribute </th><th rowspan="1" colspan="1"> Datatype </th><th rowspan="1" colspan="1"> Semantics </th></tr><tr><td rowspan="1" colspan="1">srcmacaddr</td><td rowspan="1" colspan="1">MAC_ADDR</td><td rowspan="1" colspan="1">MAC address of sender</td></tr><tr><td rowspan="1" colspan="1">srcmacmask</td><td rowspan="1" colspan="1">MAC_MASK</td><td rowspan="1" colspan="1">Mask applied to MAC address of sender</td></tr><tr><td rowspan="1" colspan="1">dstmacaddr</td><td rowspan="1" colspan="1">MAC_ADDR</td><td rowspan="1" colspan="1">MAC address of destination</td></tr><tr><td rowspan="1" colspan="1">dstmacmask</td><td rowspan="1" colspan="1">MAC_MASK</td><td rowspan="1" colspan="1">Mask applied to MAC address of destination</td></tr><tr><td rowspan="1" colspan="1">hwtype</td><td rowspan="1" colspan="1">UINT16</td><td rowspan="1" colspan="1">Hardware type</td></tr><tr><td rowspan="1" colspan="1">protocoltype</td><td rowspan="1" colspan="1">UINT16</td><td rowspan="1" colspan="1">Protocol type</td></tr><tr><td rowspan="1" colspan="1">opcode</td><td rowspan="1" colspan="1">UINT16, STRING</td><td rowspan="1" colspan="1">Opcode</td></tr><tr><td rowspan="1" colspan="1">arpsrcmacaddr</td><td rowspan="1" colspan="1">MAC_ADDR</td><td rowspan="1" colspan="1">Source MAC address in ARP/RARP packet</td></tr><tr><td rowspan="1" colspan="1">arpdstmacaddr</td><td rowspan="1" colspan="1">MAC_ADDR</td><td rowspan="1" colspan="1">Destination MAC address in ARP/RARP packet</td></tr><tr><td rowspan="1" colspan="1">arpsrcipaddr</td><td rowspan="1" colspan="1">IP_ADDR</td><td rowspan="1" colspan="1">Source IP address in ARP/RARP packet</td></tr><tr><td rowspan="1" colspan="1">arpdstipaddr</td><td rowspan="1" colspan="1">IP_ADDR</td><td rowspan="1" colspan="1">Destination IP address in ARP/RARP packet</td></tr><tr><td rowspan="1" colspan="1">comment <span class="since">(Since 0.8.5)</span></td><td rowspan="1" colspan="1">STRING</td><td rowspan="1" colspan="1">text with max. 256 characters</td></tr><tr><td rowspan="1" colspan="1">gratuitous <span class="since">(Since 0.9.2)</span></td><td rowspan="1" colspan="1">BOOLEAN</td><td rowspan="1" colspan="1">boolean indicating whether to check for gratuitous ARP packet</td></tr></table>
         <p>
       Valid strings for the <code>Opcode</code> field are:
        Request, Reply, Request_Reverse, Reply_Reverse, DRARP_Request,
@@ -880,7 +877,7 @@
       <br /><br />
     </p>
         <h5>
-          <a name="nwfelemsRulesProtoIP" id="nwfelemsRulesProtoIP">IPv4</a>
+          <a name="nwfelemsRulesProtoIP" shape="rect" id="nwfelemsRulesProtoIP">IPv4</a>
         </h5>
         <p>
       Protocol ID: <code>ip</code>
@@ -888,14 +885,14 @@
       Note: Rules of this type should either go into the
       <code>root</code> or <code>ipv4</code> chain.
     </p>
-        <table class="top_table"><tr><th> Attribute </th><th> Datatype </th><th> Semantics </th></tr><tr><td>srcmacaddr</td><td>MAC_ADDR</td><td>MAC address of sender</td></tr><tr><td>srcmacmask</td><td>MAC_MASK</td><td>Mask applied to MAC address of sender</td></tr><tr><td>dstmacaddr</td><td>MAC_ADDR</td><td>MAC address of destination</td></tr><tr><td>dstmacmask</td><td>MAC_MASK</td><td>Mask applied to MAC address of destination</td></tr><tr><td>srcipaddr</td><td>IP_ADDR</td><td>Source IP address</td></tr><tr><td>srcipmask</td><td>IP_MASK</td><td>Mask applied to source IP address</td></tr><tr><td>dstipaddr</td><td>IP_ADDR</td><td>Destination IP address</td></tr><tr><td>dstipmask</td><td>IP_MASK</td><td>Mask applied to destination IP address</td></tr><tr><td>protocol</td><td>UINT8, STRING</td><td>Layer 4 protocol identifier</td></tr><tr><td>srcportstart</td><td>UINT16</td><td>Start of range of valid source ports; requires <code>protocol</code></td></tr><tr><td>srcportend</td><td>UINT16</td><td>End of range of valid source ports; requires <code>protocol</code></td></tr><tr><td>dstportstart</td><td>UINT16</td><td>Start of range of valid destination ports; requires <code>protocol</code></td></tr><tr><td>dstportend</td><td>UINT16</td><td>End of range of valid destination ports; requires <code>protocol</code></td></tr><tr><td>comment <span class="since">(Since 0.8.5)</span></td><td>STRING</td><td>text with max. 256 characters</td></tr></table>
+        <table class="top_table"><tr><th rowspan="1" colspan="1"> Attribute </th><th rowspan="1" colspan="1"> Datatype </th><th rowspan="1" colspan="1"> Semantics </th></tr><tr><td rowspan="1" colspan="1">srcmacaddr</td><td rowspan="1" colspan="1">MAC_ADDR</td><td rowspan="1" colspan="1">MAC address of sender</td></tr><tr><td rowspan="1" colspan="1">srcmacmask</td><td rowspan="1" colspan="1">MAC_MASK</td><td rowspan="1" colspan="1">Mask applied to MAC address of sender</td></tr><tr><td rowspan="1" colspan="1">dstmacaddr</td><td rowspan="1" colspan="1">MAC_ADDR</td><td rowspan="1" colspan="1">MAC address of destination</td></tr><tr><td rowspan="1" colspan="1">dstmacmask</td><td rowspan="1" colspan="1">MAC_MASK</td><td rowspan="1" colspan="1">Mask applied to MAC address of destination</td></tr><tr><td rowspan="1" colspan="1">srcipaddr</td><td rowspan="1" colspan="1">IP_ADDR</td><td rowspan="1" colspan="1">Source IP address</td></tr><tr><td rowspan="1" colspan="1">srcipmask</td><td rowspan="1" colspan="1">IP_MASK</td><td rowspan="1" colspan="1">Mask applied to source IP address</td></tr><tr><td rowspan="1" colspan="1">dstipaddr</td><td rowspan="1" colspan="1">IP_ADDR</td><td rowspan="1" colspan="1">Destination IP address</td></tr><tr><td rowspan="1" colspan="1">dstipmask</td><td rowspan="1" colspan="1">IP_MASK</td><td rowspan="1" colspan="1">Mask applied to destination IP address</td></tr><tr><td rowspan="1" colspan="1">protocol</td><td rowspan="1" colspan="1">UINT8, STRING</td><td rowspan="1" colspan="1">Layer 4 protocol identifier</td></tr><tr><td rowspan="1" colspan="1">srcportstart</td><td rowspan="1" colspan="1">UINT16</td><td rowspan="1" colspan="1">Start of range of valid source ports; requires <code>protocol</code></td></tr><tr><td rowspan="1" colspan="1">srcportend</td><td rowspan="1" colspan="1">UINT16</td><td rowspan="1" colspan="1">End of range of valid source ports; requires <code>protocol</code></td></tr><tr><td rowspan="1" colspan="1">dstportstart</td><td rowspan="1" colspan="1">UINT16</td><td rowspan="1" colspan="1">Start of range of valid destination ports; requires <code>protocol</code></td></tr><tr><td rowspan="1" colspan="1">dstportend</td><td rowspan="1" colspan="1">UINT16</td><td rowspan="1" colspan="1">End of range of valid destination ports; requires <code>protocol</code></td></tr><tr><td rowspan="1" colspan="1">comment <span class="since">(Since 0.8.5)</span></td><td rowspan="1" colspan="1">STRING</td><td rowspan="1" colspan="1">text with max. 256 characters</td></tr></table>
         <p>
       Valid strings for <code>protocol</code> are:
          tcp, udp, udplite, esp, ah, icmp, igmp, sctp
       <br /><br />
     </p>
         <h5>
-          <a name="nwfelemsRulesProtoIPv6" id="nwfelemsRulesProtoIPv6">IPv6</a>
+          <a name="nwfelemsRulesProtoIPv6" shape="rect" id="nwfelemsRulesProtoIPv6">IPv6</a>
         </h5>
         <p>
       Protocol ID: <code>ipv6</code>
@@ -903,14 +900,14 @@
       Note: Rules of this type should either go into the
       <code>root</code> or <code>ipv6</code> chain.
     </p>
-        <table class="top_table"><tr><th> Attribute </th><th> Datatype </th><th> Semantics </th></tr><tr><td>srcmacaddr</td><td>MAC_ADDR</td><td>MAC address of sender</td></tr><tr><td>srcmacmask</td><td>MAC_MASK</td><td>Mask applied to MAC address of sender</td></tr><tr><td>dstmacaddr</td><td>MAC_ADDR</td><td>MAC address of destination</td></tr><tr><td>dstmacmask</td><td>MAC_MASK</td><td>Mask applied to MAC address of destination</td></tr><tr><td>srcipaddr</td><td>IPV6_ADDR</td><td>Source IPv6 address</td></tr><tr><td>srcipmask</td><td>IPV6_MASK</td><td>Mask applied to source IPv6 address</td></tr><tr><td>dstipaddr</td><td>IPV6_ADDR</td><td>Destination IPv6 address</td></tr><tr><td>dstipmask</td><td>IPV6_MASK</td><td>Mask applied to destination IPv6 address</td></tr><tr><td>protocol</td><td>UINT8</td><td>Layer 4 protocol identifier</td></tr><tr><td>srcportstart</td><td>UINT16</td><td>Start of range of valid source ports; requires <code>protocol</code></td></tr><tr><td>srcportend</td><td>UINT16</td><td>End of range of valid source ports; requires <code>protocol</code></td></tr><tr><td>dstportstart</td><td>UINT16</td><td>Start of range of valid destination ports; requires <code>protocol</code></td></tr><tr><td>dstportend</td><td>UINT16</td><td>End of range of valid destination ports; requires <code>protocol</code></td></tr><tr><td>comment <span class="since">(Since 0.8.5)</span></td><td>STRING</td><td>text with max. 256 characters</td></tr></table>
+        <table class="top_table"><tr><th rowspan="1" colspan="1"> Attribute </th><th rowspan="1" colspan="1"> Datatype </th><th rowspan="1" colspan="1"> Semantics </th></tr><tr><td rowspan="1" colspan="1">srcmacaddr</td><td rowspan="1" colspan="1">MAC_ADDR</td><td rowspan="1" colspan="1">MAC address of sender</td></tr><tr><td rowspan="1" colspan="1">srcmacmask</td><td rowspan="1" colspan="1">MAC_MASK</td><td rowspan="1" colspan="1">Mask applied to MAC address of sender</td></tr><tr><td rowspan="1" colspan="1">dstmacaddr</td><td rowspan="1" colspan="1">MAC_ADDR</td><td rowspan="1" colspan="1">MAC address of destination</td></tr><tr><td rowspan="1" colspan="1">dstmacmask</td><td rowspan="1" colspan="1">MAC_MASK</td><td rowspan="1" colspan="1">Mask applied to MAC address of destination</td></tr><tr><td rowspan="1" colspan="1">srcipaddr</td><td rowspan="1" colspan="1">IPV6_ADDR</td><td rowspan="1" colspan="1">Source IPv6 address</td></tr><tr><td rowspan="1" colspan="1">srcipmask</td><td rowspan="1" colspan="1">IPV6_MASK</td><td rowspan="1" colspan="1">Mask applied to source IPv6 address</td></tr><tr><td rowspan="1" colspan="1">dstipaddr</td><td rowspan="1" colspan="1">IPV6_ADDR</td><td rowspan="1" colspan="1">Destination IPv6 address</td></tr><tr><td rowspan="1" colspan="1">dstipmask</td><td rowspan="1" colspan="1">IPV6_MASK</td><td rowspan="1" colspan="1">Mask applied to destination IPv6 address</td></tr><tr><td rowspan="1" colspan="1">protocol</td><td rowspan="1" colspan="1">UINT8</td><td rowspan="1" colspan="1">Layer 4 protocol identifier</td></tr><tr><td rowspan="1" colspan="1">srcportstart</td><td rowspan="1" colspan="1">UINT16</td><td rowspan="1" colspan="1">Start of range of valid source ports; requires <code>protocol</code></td></tr><tr><td rowspan="1" colspan="1">srcportend</td><td rowspan="1" colspan="1">UINT16</td><td rowspan="1" colspan="1">End of range of valid source ports; requires <code>protocol</code></td></tr><tr><td rowspan="1" colspan="1">dstportstart</td><td rowspan="1" colspan="1">UINT16</td><td rowspan="1" colspan="1">Start of range of valid destination ports; requires <code>protocol</code></td></tr><tr><td rowspan="1" colspan="1">dstportend</td><td rowspan="1" colspan="1">UINT16</td><td rowspan="1" colspan="1">End of range of valid destination ports; requires <code>protocol</code></td></tr><tr><td rowspan="1" colspan="1">comment <span class="since">(Since 0.8.5)</span></td><td rowspan="1" colspan="1">STRING</td><td rowspan="1" colspan="1">text with max. 256 characters</td></tr></table>
         <p>
       Valid strings for <code>protocol</code> are:
          tcp, udp, udplite, esp, ah, icmpv6, sctp
       <br /><br />
     </p>
         <h5>
-          <a name="nwfelemsRulesProtoTCP-ipv4" id="nwfelemsRulesProtoTCP-ipv4">TCP/UDP/SCTP</a>
+          <a name="nwfelemsRulesProtoTCP-ipv4" shape="rect" id="nwfelemsRulesProtoTCP-ipv4">TCP/UDP/SCTP</a>
         </h5>
         <p>
       Protocol ID: <code>tcp</code>, <code>udp</code>, <code>sctp</code>
@@ -918,12 +915,12 @@
       Note: The chain parameter is ignored for this type of traffic
       and should either be omitted or set to <code>root</code>.
     </p>
-        <table class="top_table"><tr><th> Attribute </th><th> Datatype </th><th> Semantics </th></tr><tr><td>srcmacaddr</td><td>MAC_ADDR</td><td>MAC address of sender</td></tr><tr><td>srcipaddr</td><td>IP_ADDR</td><td>Source IP address</td></tr><tr><td>srcipmask</td><td>IP_MASK</td><td>Mask applied to source IP address</td></tr><tr><td>dstipaddr</td><td>IP_ADDR</td><td>Destination IP address</td></tr><tr><td>dstipmask</td><td>IP_MASK</td><td>Mask applied to destination IP address</td></tr><tr><td>srcipfrom</td><td>IP_ADDR</td><td>Start of range of source IP address</td></tr><tr><td>srcipto</td><td>IP_ADDR</td><td>End of range of source IP address</td></tr><tr><td>dstipfrom</td><td>IP_ADDR</td><td>Start of range of destination IP address</td></tr><tr><td>dstipto</td><td>IP_ADDR</td><td>End of range of destination IP address</td></tr><tr><td>srcportstart</td><td>UINT16</td><td>Start of range of valid source ports</td></tr><tr><td>srcportend</td><td>UINT16</td><td>End of range of valid source ports</td></tr><tr><td>dstportstart</td><td>UINT16</td><td>Start of range of valid destination ports</td></tr><tr><td>dstportend</td><td>UINT16</td><td>End of range of valid destination ports</td></tr><tr><td>comment <span class="since">(Since 0.8.5)</span></td><td>STRING</td><td>text with max. 256 characters</td></tr><tr><td>state <span class="since">(Since 0.8.5)</span></td><td>STRING</td><td>comma separated list of NEW,ESTABLISHED,RELATED,INVALID or NONE</td></tr><tr><td>flags <span class="since">(Since 0.9.1)</span></td><td>STRING</td><td>TCP-only: format of mask/flags with mask and flags each being a comma separated list of SYN,ACK,URG,PSH,FIN,RST or NONE or ALL</td></tr><tr><td>ipset <span class="since">(Since 0.9.13)</span></td><td>STRING</td><td>The name of an IPSet managed outside of libvirt</td></tr><tr><td>ipsetflags <span class="since">(Since 0.9.13)</span></td><td>IPSETFLAGS</td><td>flags for the IPSet; requires ipset attribute</td></tr></table>
+        <table class="top_table"><tr><th rowspan="1" colspan="1"> Attribute </th><th rowspan="1" colspan="1"> Datatype </th><th rowspan="1" colspan="1"> Semantics </th></tr><tr><td rowspan="1" colspan="1">srcmacaddr</td><td rowspan="1" colspan="1">MAC_ADDR</td><td rowspan="1" colspan="1">MAC address of sender</td></tr><tr><td rowspan="1" colspan="1">srcipaddr</td><td rowspan="1" colspan="1">IP_ADDR</td><td rowspan="1" colspan="1">Source IP address</td></tr><tr><td rowspan="1" colspan="1">srcipmask</td><td rowspan="1" colspan="1">IP_MASK</td><td rowspan="1" colspan="1">Mask applied to source IP address</td></tr><tr><td rowspan="1" colspan="1">dstipaddr</td><td rowspan="1" colspan="1">IP_ADDR</td><td rowspan="1" colspan="1">Destination IP address</td></tr><tr><td rowspan="1" colspan="1">dstipmask</td><td rowspan="1" colspan="1">IP_MASK</td><td rowspan="1" colspan="1">Mask applied to destination IP address</td></tr><tr><td rowspan="1" colspan="1">srcipfrom</td><td rowspan="1" colspan="1">IP_ADDR</td><td rowspan="1" colspan="1">Start of range of source IP address</td></tr><tr><td rowspan="1" colspan="1">srcipto</td><td rowspan="1" colspan="1">IP_ADDR</td><td rowspan="1" colspan="1">End of range of source IP address</td></tr><tr><td rowspan="1" colspan="1">dstipfrom</td><td rowspan="1" colspan="1">IP_ADDR</td><td rowspan="1" colspan="1">Start of range of destination IP address</td></tr><tr><td rowspan="1" colspan="1">dstipto</td><td rowspan="1" colspan="1">IP_ADDR</td><td rowspan="1" colspan="1">End of range of destination IP address</td></tr><tr><td rowspan="1" colspan="1">srcportstart</td><td rowspan="1" colspan="1">UINT16</td><td rowspan="1" colspan="1">Start of range of valid source ports</td></tr><tr><td rowspan="1" colspan="1">srcportend</td><td rowspan="1" colspan="1">UINT16</td><td rowspan="1" colspan="1">End of range of valid source ports</td></tr><tr><td rowspan="1" colspan="1">dstportstart</td><td rowspan="1" colspan="1">UINT16</td><td rowspan="1" colspan="1">Start of range of valid destination ports</td></tr><tr><td rowspan="1" colspan="1">dstportend</td><td rowspan="1" colspan="1">UINT16</td><td rowspan="1" colspan="1">End of range of valid destination ports</td></tr><tr><td rowspan="1" colspan="1">comment <span class="since">(Since 0.8.5)</span></td><td rowspan="1" colspan="1">STRING</td><td rowspan="1" colspan="1">text with max. 256 characters</td></tr><tr><td rowspan="1" colspan="1">state <span class="since">(Since 0.8.5)</span></td><td rowspan="1" colspan="1">STRING</td><td rowspan="1" colspan="1">comma separated list of NEW,ESTABLISHED,RELATED,INVALID or NONE</td></tr><tr><td rowspan="1" colspan="1">flags <span class="since">(Since 0.9.1)</span></td><td rowspan="1" colspan="1">STRING</td><td rowspan="1" colspan="1">TCP-only: format of mask/flags with mask and flags each being a comma separated list of SYN,ACK,URG,PSH,FIN,RST or NONE or ALL</td></tr><tr><td rowspan="1" colspan="1">ipset <span class="since">(Since 0.9.13)</span></td><td rowspan="1" colspan="1">STRING</td><td rowspan="1" colspan="1">The name of an IPSet managed outside of libvirt</td></tr><tr><td rowspan="1" colspan="1">ipsetflags <span class="since">(Since 0.9.13)</span></td><td rowspan="1" colspan="1">IPSETFLAGS</td><td rowspan="1" colspan="1">flags for the IPSet; requires ipset attribute</td></tr></table>
         <p>
       <br /><br />
     </p>
         <h5>
-          <a name="nwfelemsRulesProtoICMP" id="nwfelemsRulesProtoICMP">ICMP</a>
+          <a name="nwfelemsRulesProtoICMP" shape="rect" id="nwfelemsRulesProtoICMP">ICMP</a>
         </h5>
         <p>
       Protocol ID: <code>icmp</code>
@@ -931,12 +928,12 @@
       Note: The chain parameter is ignored for this type of traffic
       and should either be omitted or set to <code>root</code>.
     </p>
-        <table class="top_table"><tr><th> Attribute </th><th> Datatype </th><th> Semantics </th></tr><tr><td>srcmacaddr</td><td>MAC_ADDR</td><td>MAC address of sender</td></tr><tr><td>srcmacmask</td><td>MAC_MASK</td><td>Mask applied to MAC address of sender</td></tr><tr><td>dstmacaddr</td><td>MAC_ADDR</td><td>MAC address of destination</td></tr><tr><td>dstmacmask</td><td>MAC_MASK</td><td>Mask applied to MAC address of destination</td></tr><tr><td>srcipaddr</td><td>IP_ADDR</td><td>Source IP address</td></tr><tr><td>srcipmask</td><td>IP_MASK</td><td>Mask applied to source IP address</td></tr><tr><td>dstipaddr</td><td>IP_ADDR</td><td>Destination IP address</td></tr><tr><td>dstipmask</td><td>IP_MASK</td><td>Mask applied to destination IP address</td></tr><tr><td>srcipfrom</td><td>IP_ADDR</td><td>Start of range of source IP address</td></tr><tr><td>srcipto</td><td>IP_ADDR</td><td>End of range of source IP address</td></tr><tr><td>dstipfrom</td><td>IP_ADDR</td><td>Start of range of destination IP address</td></tr><tr><td>dstipto</td><td>IP_ADDR</td><td>End of range of destination IP address</td></tr><tr><td>type</td><td>UINT16</td><td>ICMP type</td></tr><tr><td>code</td><td>UINT16</td><td>ICMP code</td></tr><tr><td>comment <span class="since">(Since 0.8.5)</span></td><td>STRING</td><td>text with max. 256 characters</td></tr><tr><td>state <span class="since">(Since 0.8.5)</span></td><td>STRING</td><td>comma separated list of NEW,ESTABLISHED,RELATED,INVALID or NONE</td></tr><tr><td>ipset <span class="since">(Since 0.9.13)</span></td><td>STRING</td><td>The name of an IPSet managed outside of libvirt</td></tr><tr><td>ipsetflags <span class="since">(Since 0.9.13)</span></td><td>IPSETFLAGS</td><td>flags for the IPSet; requires ipset attribute</td></tr></table>
+        <table class="top_table"><tr><th rowspan="1" colspan="1"> Attribute </th><th rowspan="1" colspan="1"> Datatype </th><th rowspan="1" colspan="1"> Semantics </th></tr><tr><td rowspan="1" colspan="1">srcmacaddr</td><td rowspan="1" colspan="1">MAC_ADDR</td><td rowspan="1" colspan="1">MAC address of sender</td></tr><tr><td rowspan="1" colspan="1">srcmacmask</td><td rowspan="1" colspan="1">MAC_MASK</td><td rowspan="1" colspan="1">Mask applied to MAC address of sender</td></tr><tr><td rowspan="1" colspan="1">dstmacaddr</td><td rowspan="1" colspan="1">MAC_ADDR</td><td rowspan="1" colspan="1">MAC address of destination</td></tr><tr><td rowspan="1" colspan="1">dstmacmask</td><td rowspan="1" colspan="1">MAC_MASK</td><td rowspan="1" colspan="1">Mask applied to MAC address of destination</td></tr><tr><td rowspan="1" colspan="1">srcipaddr</td><td rowspan="1" colspan="1">IP_ADDR</td><td rowspan="1" colspan="1">Source IP address</td></tr><tr><td rowspan="1" colspan="1">srcipmask</td><td rowspan="1" colspan="1">IP_MASK</td><td rowspan="1" colspan="1">Mask applied to source IP address</td></tr><tr><td rowspan="1" colspan="1">dstipaddr</td><td rowspan="1" colspan="1">IP_ADDR</td><td rowspan="1" colspan="1">Destination IP address</td></tr><tr><td rowspan="1" colspan="1">dstipmask</td><td rowspan="1" colspan="1">IP_MASK</td><td rowspan="1" colspan="1">Mask applied to destination IP address</td></tr><tr><td rowspan="1" colspan="1">srcipfrom</td><td rowspan="1" colspan="1">IP_ADDR</td><td rowspan="1" colspan="1">Start of range of source IP address</td></tr><tr><td rowspan="1" colspan="1">srcipto</td><td rowspan="1" colspan="1">IP_ADDR</td><td rowspan="1" colspan="1">End of range of source IP address</td></tr><tr><td rowspan="1" colspan="1">dstipfrom</td><td rowspan="1" colspan="1">IP_ADDR</td><td rowspan="1" colspan="1">Start of range of destination IP address</td></tr><tr><td rowspan="1" colspan="1">dstipto</td><td rowspan="1" colspan="1">IP_ADDR</td><td rowspan="1" colspan="1">End of range of destination IP address</td></tr><tr><td rowspan="1" colspan="1">type</td><td rowspan="1" colspan="1">UINT16</td><td rowspan="1" colspan="1">ICMP type</td></tr><tr><td rowspan="1" colspan="1">code</td><td rowspan="1" colspan="1">UINT16</td><td rowspan="1" colspan="1">ICMP code</td></tr><tr><td rowspan="1" colspan="1">comment <span class="since">(Since 0.8.5)</span></td><td rowspan="1" colspan="1">STRING</td><td rowspan="1" colspan="1">text with max. 256 characters</td></tr><tr><td rowspan="1" colspan="1">state <span class="since">(Since 0.8.5)</span></td><td rowspan="1" colspan="1">STRING</td><td rowspan="1" colspan="1">comma separated list of NEW,ESTABLISHED,RELATED,INVALID or NONE</td></tr><tr><td rowspan="1" colspan="1">ipset <span class="since">(Since 0.9.13)</span></td><td rowspan="1" colspan="1">STRING</td><td rowspan="1" colspan="1">The name of an IPSet managed outside of libvirt</td></tr><tr><td rowspan="1" colspan="1">ipsetflags <span class="since">(Since 0.9.13)</span></td><td rowspan="1" colspan="1">IPSETFLAGS</td><td rowspan="1" colspan="1">flags for the IPSet; requires ipset attribute</td></tr></table>
         <p>
       <br /><br />
     </p>
         <h5>
-          <a name="nwfelemsRulesProtoMisc" id="nwfelemsRulesProtoMisc">IGMP, ESP, AH, UDPLITE, 'ALL'</a>
+          <a name="nwfelemsRulesProtoMisc" shape="rect" id="nwfelemsRulesProtoMisc">IGMP, ESP, AH, UDPLITE, 'ALL'</a>
         </h5>
         <p>
       Protocol ID: <code>igmp</code>, <code>esp</code>, <code>ah</code>, <code>udplite</code>, <code>all</code>
@@ -944,12 +941,12 @@
       Note: The chain parameter is ignored for this type of traffic
       and should either be omitted or set to <code>root</code>.
     </p>
-        <table class="top_table"><tr><th> Attribute </th><th> Datatype </th><th> Semantics </th></tr><tr><td>srcmacaddr</td><td>MAC_ADDR</td><td>MAC address of sender</td></tr><tr><td>srcmacmask</td><td>MAC_MASK</td><td>Mask applied to MAC address of sender</td></tr><tr><td>dstmacaddr</td><td>MAC_ADDR</td><td>MAC address of destination</td></tr><tr><td>dstmacmask</td><td>MAC_MASK</td><td>Mask applied to MAC address of destination</td></tr><tr><td>srcipaddr</td><td>IP_ADDR</td><td>Source IP address</td></tr><tr><td>srcipmask</td><td>IP_MASK</td><td>Mask applied to source IP address</td></tr><tr><td>dstipaddr</td><td>IP_ADDR</td><td>Destination IP address</td></tr><tr><td>dstipmask</td><td>IP_MASK</td><td>Mask applied to destination IP address</td></tr><tr><td>srcipfrom</td><td>IP_ADDR</td><td>Start of range of source IP address</td></tr><tr><td>srcipto</td><td>IP_ADDR</td><td>End of range of source IP address</td></tr><tr><td>dstipfrom</td><td>IP_ADDR</td><td>Start of range of destination IP address</td></tr><tr><td>dstipto</td><td>IP_ADDR</td><td>End of range of destination IP address</td></tr><tr><td>comment <span class="since">(Since 0.8.5)</span></td><td>STRING</td><td>text with max. 256 characters</td></tr><tr><td>state <span class="since">(Since 0.8.5)</span></td><td>STRING</td><td>comma separated list of NEW,ESTABLISHED,RELATED,INVALID or NONE</td></tr><tr><td>ipset <span class="since">(Since 0.9.13)</span></td><td>STRING</td><td>The name of an IPSet managed outside of libvirt</td></tr><tr><td>ipsetflags <span class="since">(Since 0.9.13)</span></td><td>IPSETFLAGS</td><td>flags for the IPSet; requires ipset attribute</td></tr></table>
+        <table class="top_table"><tr><th rowspan="1" colspan="1"> Attribute </th><th rowspan="1" colspan="1"> Datatype </th><th rowspan="1" colspan="1"> Semantics </th></tr><tr><td rowspan="1" colspan="1">srcmacaddr</td><td rowspan="1" colspan="1">MAC_ADDR</td><td rowspan="1" colspan="1">MAC address of sender</td></tr><tr><td rowspan="1" colspan="1">srcmacmask</td><td rowspan="1" colspan="1">MAC_MASK</td><td rowspan="1" colspan="1">Mask applied to MAC address of sender</td></tr><tr><td rowspan="1" colspan="1">dstmacaddr</td><td rowspan="1" colspan="1">MAC_ADDR</td><td rowspan="1" colspan="1">MAC address of destination</td></tr><tr><td rowspan="1" colspan="1">dstmacmask</td><td rowspan="1" colspan="1">MAC_MASK</td><td rowspan="1" colspan="1">Mask applied to MAC address of destination</td></tr><tr><td rowspan="1" colspan="1">srcipaddr</td><td rowspan="1" colspan="1">IP_ADDR</td><td rowspan="1" colspan="1">Source IP address</td></tr><tr><td rowspan="1" colspan="1">srcipmask</td><td rowspan="1" colspan="1">IP_MASK</td><td rowspan="1" colspan="1">Mask applied to source IP address</td></tr><tr><td rowspan="1" colspan="1">dstipaddr</td><td rowspan="1" colspan="1">IP_ADDR</td><td rowspan="1" colspan="1">Destination IP address</td></tr><tr><td rowspan="1" colspan="1">dstipmask</td><td rowspan="1" colspan="1">IP_MASK</td><td rowspan="1" colspan="1">Mask applied to destination IP address</td></tr><tr><td rowspan="1" colspan="1">srcipfrom</td><td rowspan="1" colspan="1">IP_ADDR</td><td rowspan="1" colspan="1">Start of range of source IP address</td></tr><tr><td rowspan="1" colspan="1">srcipto</td><td rowspan="1" colspan="1">IP_ADDR</td><td rowspan="1" colspan="1">End of range of source IP address</td></tr><tr><td rowspan="1" colspan="1">dstipfrom</td><td rowspan="1" colspan="1">IP_ADDR</td><td rowspan="1" colspan="1">Start of range of destination IP address</td></tr><tr><td rowspan="1" colspan="1">dstipto</td><td rowspan="1" colspan="1">IP_ADDR</td><td rowspan="1" colspan="1">End of range of destination IP address</td></tr><tr><td rowspan="1" colspan="1">comment <span class="since">(Since 0.8.5)</span></td><td rowspan="1" colspan="1">STRING</td><td rowspan="1" colspan="1">text with max. 256 characters</td></tr><tr><td rowspan="1" colspan="1">state <span class="since">(Since 0.8.5)</span></td><td rowspan="1" colspan="1">STRING</td><td rowspan="1" colspan="1">comma separated list of NEW,ESTABLISHED,RELATED,INVALID or NONE</td></tr><tr><td rowspan="1" colspan="1">ipset <span class="since">(Since 0.9.13)</span></td><td rowspan="1" colspan="1">STRING</td><td rowspan="1" colspan="1">The name of an IPSet managed outside of libvirt</td></tr><tr><td rowspan="1" colspan="1">ipsetflags <span class="since">(Since 0.9.13)</span></td><td rowspan="1" colspan="1">IPSETFLAGS</td><td rowspan="1" colspan="1">flags for the IPSet; requires ipset attribute</td></tr></table>
         <p>
       <br /><br />
     </p>
         <h5>
-          <a name="nwfelemsRulesProtoTCP-ipv6" id="nwfelemsRulesProtoTCP-ipv6">TCP/UDP/SCTP over IPV6</a>
+          <a name="nwfelemsRulesProtoTCP-ipv6" shape="rect" id="nwfelemsRulesProtoTCP-ipv6">TCP/UDP/SCTP over IPV6</a>
         </h5>
         <p>
       Protocol ID: <code>tcp-ipv6</code>, <code>udp-ipv6</code>, <code>sctp-ipv6</code>
@@ -957,12 +954,12 @@
       Note: The chain parameter is ignored for this type of traffic
       and should either be omitted or set to <code>root</code>.
     </p>
-        <table class="top_table"><tr><th> Attribute </th><th> Datatype </th><th> Semantics </th></tr><tr><td>srcmacaddr</td><td>MAC_ADDR</td><td>MAC address of sender</td></tr><tr><td>srcipaddr</td><td>IPV6_ADDR</td><td>Source IP address</td></tr><tr><td>srcipmask</td><td>IPV6_MASK</td><td>Mask applied to source IP address</td></tr><tr><td>dstipaddr</td><td>IPV6_ADDR</td><td>Destination IP address</td></tr><tr><td>dstipmask</td><td>IPV6_MASK</td><td>Mask applied to destination IP address</td></tr><tr><td>srcipfrom</td><td>IPV6_ADDR</td><td>Start of range of source IP address</td></tr><tr><td>srcipto</td><td>IPV6_ADDR</td><td>End of range of source IP address</td></tr><tr><td>dstipfrom</td><td>IPV6_ADDR</td><td>Start of range of destination IP address</td></tr><tr><td>dstipto</td><td>IPV6_ADDR</td><td>End of range of destination IP address</td></tr><tr><td>srcportstart</td><td>UINT16</td><td>Start of range of valid source ports</td></tr><tr><td>srcportend</td><td>UINT16</td><td>End of range of valid source ports</td></tr><tr><td>dstportstart</td><td>UINT16</td><td>Start of range of valid destination ports</td></tr><tr><td>dstportend</td><td>UINT16</td><td>End of range of valid destination ports</td></tr><tr><td>comment <span class="since">(Since 0.8.5)</span></td><td>STRING</td><td>text with max. 256 characters</td></tr><tr><td>state <span class="since">(Since 0.8.5)</span></td><td>STRING</td><td>comma separated list of NEW,ESTABLISHED,RELATED,INVALID or NONE</td></tr><tr><td>flags <span class="since">(Since 0.9.1)</span></td><td>STRING</td><td>TCP-only: format of mask/flags with mask and flags each being a comma separated list of SYN,ACK,URG,PSH,FIN,RST or NONE or ALL</td></tr><tr><td>ipset <span class="since">(Since 0.9.13)</span></td><td>STRING</td><td>The name of an IPSet managed outside of libvirt</td></tr><tr><td>ipsetflags <span class="since">(Since 0.9.13)</span></td><td>IPSETFLAGS</td><td>flags for the IPSet; requires ipset attribute</td></tr></table>
+        <table class="top_table"><tr><th rowspan="1" colspan="1"> Attribute </th><th rowspan="1" colspan="1"> Datatype </th><th rowspan="1" colspan="1"> Semantics </th></tr><tr><td rowspan="1" colspan="1">srcmacaddr</td><td rowspan="1" colspan="1">MAC_ADDR</td><td rowspan="1" colspan="1">MAC address of sender</td></tr><tr><td rowspan="1" colspan="1">srcipaddr</td><td rowspan="1" colspan="1">IPV6_ADDR</td><td rowspan="1" colspan="1">Source IP address</td></tr><tr><td rowspan="1" colspan="1">srcipmask</td><td rowspan="1" colspan="1">IPV6_MASK</td><td rowspan="1" colspan="1">Mask applied to source IP address</td></tr><tr><td rowspan="1" colspan="1">dstipaddr</td><td rowspan="1" colspan="1">IPV6_ADDR</td><td rowspan="1" colspan="1">Destination IP address</td></tr><tr><td rowspan="1" colspan="1">dstipmask</td><td rowspan="1" colspan="1">IPV6_MASK</td><td rowspan="1" colspan="1">Mask applied to destination IP address</td></tr><tr><td rowspan="1" colspan="1">srcipfrom</td><td rowspan="1" colspan="1">IPV6_ADDR</td><td rowspan="1" colspan="1">Start of range of source IP address</td></tr><tr><td rowspan="1" colspan="1">srcipto</td><td rowspan="1" colspan="1">IPV6_ADDR</td><td rowspan="1" colspan="1">End of range of source IP address</td></tr><tr><td rowspan="1" colspan="1">dstipfrom</td><td rowspan="1" colspan="1">IPV6_ADDR</td><td rowspan="1" colspan="1">Start of range of destination IP address</td></tr><tr><td rowspan="1" colspan="1">dstipto</td><td rowspan="1" colspan="1">IPV6_ADDR</td><td rowspan="1" colspan="1">End of range of destination IP address</td></tr><tr><td rowspan="1" colspan="1">srcportstart</td><td rowspan="1" colspan="1">UINT16</td><td rowspan="1" colspan="1">Start of range of valid source ports</td></tr><tr><td rowspan="1" colspan="1">srcportend</td><td rowspan="1" colspan="1">UINT16</td><td rowspan="1" colspan="1">End of range of valid source ports</td></tr><tr><td rowspan="1" colspan="1">dstportstart</td><td rowspan="1" colspan="1">UINT16</td><td rowspan="1" colspan="1">Start of range of valid destination ports</td></tr><tr><td rowspan="1" colspan="1">dstportend</td><td rowspan="1" colspan="1">UINT16</td><td rowspan="1" colspan="1">End of range of valid destination ports</td></tr><tr><td rowspan="1" colspan="1">comment <span class="since">(Since 0.8.5)</span></td><td rowspan="1" colspan="1">STRING</td><td rowspan="1" colspan="1">text with max. 256 characters</td></tr><tr><td rowspan="1" colspan="1">state <span class="since">(Since 0.8.5)</span></td><td rowspan="1" colspan="1">STRING</td><td rowspan="1" colspan="1">comma separated list of NEW,ESTABLISHED,RELATED,INVALID or NONE</td></tr><tr><td rowspan="1" colspan="1">flags <span class="since">(Since 0.9.1)</span></td><td rowspan="1" colspan="1">STRING</td><td rowspan="1" colspan="1">TCP-only: format of mask/flags with mask and flags each being a comma separated list of SYN,ACK,URG,PSH,FIN,RST or NONE or ALL</td></tr><tr><td rowspan="1" colspan="1">ipset <span class="since">(Since 0.9.13)</span></td><td rowspan="1" colspan="1">STRING</td><td rowspan="1" colspan="1">The name of an IPSet managed outside of libvirt</td></tr><tr><td rowspan="1" colspan="1">ipsetflags <span class="since">(Since 0.9.13)</span></td><td rowspan="1" colspan="1">IPSETFLAGS</td><td rowspan="1" colspan="1">flags for the IPSet; requires ipset attribute</td></tr></table>
         <p>
       <br /><br />
     </p>
         <h5>
-          <a name="nwfelemsRulesProtoICMPv6" id="nwfelemsRulesProtoICMPv6">ICMPv6</a>
+          <a name="nwfelemsRulesProtoICMPv6" shape="rect" id="nwfelemsRulesProtoICMPv6">ICMPv6</a>
         </h5>
         <p>
       Protocol ID: <code>icmpv6</code>
@@ -970,12 +967,12 @@
       Note: The chain parameter is ignored for this type of traffic
       and should either be omitted or set to <code>root</code>.
     </p>
-        <table class="top_table"><tr><th> Attribute </th><th> Datatype </th><th> Semantics </th></tr><tr><td>srcmacaddr</td><td>MAC_ADDR</td><td>MAC address of sender</td></tr><tr><td>srcipaddr</td><td>IPV6_ADDR</td><td>Source IPv6 address</td></tr><tr><td>srcipmask</td><td>IPV6_MASK</td><td>Mask applied to source IPv6 address</td></tr><tr><td>dstipaddr</td><td>IPV6_ADDR</td><td>Destination IPv6 address</td></tr><tr><td>dstipmask</td><td>IPV6_MASK</td><td>Mask applied to destination IPv6 address</td></tr><tr><td>srcipfrom</td><td>IPV6_ADDR</td><td>Start of range of source IP address</td></tr><tr><td>srcipto</td><td>IPV6_ADDR</td><td>End of range of source IP address</td></tr><tr><td>dstipfrom</td><td>IPV6_ADDR</td><td>Start of range of destination IP address</td></tr><tr><td>dstipto</td><td>IPV6_ADDR</td><td>End of range of destination IP address</td></tr><tr><td>type</td><td>UINT16</td><td>ICMPv6 type</td></tr><tr><td>code</td><td>UINT16</td><td>ICMPv6 code</td></tr><tr><td>comment <span class="since">(Since 0.8.5)</span></td><td>STRING</td><td>text with max. 256 characters</td></tr><tr><td>state <span class="since">(Since 0.8.5)</span></td><td>STRING</td><td>comma separated list of NEW,ESTABLISHED,RELATED,INVALID or NONE</td></tr><tr><td>ipset <span class="since">(Since 0.9.13)</span></td><td>STRING</td><td>The name of an IPSet managed outside of libvirt</td></tr><tr><td>ipsetflags <span class="since">(Since 0.9.13)</span></td><td>IPSETFLAGS</td><td>flags for the IPSet; requires ipset attribute</td></tr></table>
+        <table class="top_table"><tr><th rowspan="1" colspan="1"> Attribute </th><th rowspan="1" colspan="1"> Datatype </th><th rowspan="1" colspan="1"> Semantics </th></tr><tr><td rowspan="1" colspan="1">srcmacaddr</td><td rowspan="1" colspan="1">MAC_ADDR</td><td rowspan="1" colspan="1">MAC address of sender</td></tr><tr><td rowspan="1" colspan="1">srcipaddr</td><td rowspan="1" colspan="1">IPV6_ADDR</td><td rowspan="1" colspan="1">Source IPv6 address</td></tr><tr><td rowspan="1" colspan="1">srcipmask</td><td rowspan="1" colspan="1">IPV6_MASK</td><td rowspan="1" colspan="1">Mask applied to source IPv6 address</td></tr><tr><td rowspan="1" colspan="1">dstipaddr</td><td rowspan="1" colspan="1">IPV6_ADDR</td><td rowspan="1" colspan="1">Destination IPv6 address</td></tr><tr><td rowspan="1" colspan="1">dstipmask</td><td rowspan="1" colspan="1">IPV6_MASK</td><td rowspan="1" colspan="1">Mask applied to destination IPv6 address</td></tr><tr><td rowspan="1" colspan="1">srcipfrom</td><td rowspan="1" colspan="1">IPV6_ADDR</td><td rowspan="1" colspan="1">Start of range of source IP address</td></tr><tr><td rowspan="1" colspan="1">srcipto</td><td rowspan="1" colspan="1">IPV6_ADDR</td><td rowspan="1" colspan="1">End of range of source IP address</td></tr><tr><td rowspan="1" colspan="1">dstipfrom</td><td rowspan="1" colspan="1">IPV6_ADDR</td><td rowspan="1" colspan="1">Start of range of destination IP address</td></tr><tr><td rowspan="1" colspan="1">dstipto</td><td rowspan="1" colspan="1">IPV6_ADDR</td><td rowspan="1" colspan="1">End of range of destination IP address</td></tr><tr><td rowspan="1" colspan="1">type</td><td rowspan="1" colspan="1">UINT16</td><td rowspan="1" colspan="1">ICMPv6 type</td></tr><tr><td rowspan="1" colspan="1">code</td><td rowspan="1" colspan="1">UINT16</td><td rowspan="1" colspan="1">ICMPv6 code</td></tr><tr><td rowspan="1" colspan="1">comment <span class="since">(Since 0.8.5)</span></td><td rowspan="1" colspan="1">STRING</td><td rowspan="1" colspan="1">text with max. 256 characters</td></tr><tr><td rowspan="1" colspan="1">state <span class="since">(Since 0.8.5)</span></td><td rowspan="1" colspan="1">STRING</td><td rowspan="1" colspan="1">comma separated list of NEW,ESTABLISHED,RELATED,INVALID or NONE</td></tr><tr><td rowspan="1" colspan="1">ipset <span class="since">(Since 0.9.13)</span></td><td rowspan="1" colspan="1">STRING</td><td rowspan="1" colspan="1">The name of an IPSet managed outside of libvirt</td></tr><tr><td rowspan="1" colspan="1">ipsetflags <span class="since">(Since 0.9.13)</span></td><td rowspan="1" colspan="1">IPSETFLAGS</td><td rowspan="1" colspan="1">flags for the IPSet; requires ipset attribute</td></tr></table>
         <p>
       <br /><br />
     </p>
         <h5>
-          <a name="nwfelemsRulesProtoMiscv6" id="nwfelemsRulesProtoMiscv6">IGMP, ESP, AH, UDPLITE, 'ALL' over IPv6</a>
+          <a name="nwfelemsRulesProtoMiscv6" shape="rect" id="nwfelemsRulesProtoMiscv6">IGMP, ESP, AH, UDPLITE, 'ALL' over IPv6</a>
         </h5>
         <p>
       Protocol ID: <code>igmp-ipv6</code>, <code>esp-ipv6</code>, <code>ah-ipv6</code>, <code>udplite-ipv6</code>, <code>all-ipv6</code>
@@ -983,19 +980,19 @@
       Note: The chain parameter is ignored for this type of traffic
       and should either be omitted or set to <code>root</code>.
     </p>
-        <table class="top_table"><tr><th> Attribute </th><th> Datatype </th><th> Semantics </th></tr><tr><td>srcmacaddr</td><td>MAC_ADDR</td><td>MAC address of sender</td></tr><tr><td>srcipaddr</td><td>IPV6_ADDR</td><td>Source IPv6 address</td></tr><tr><td>srcipmask</td><td>IPV6_MASK</td><td>Mask applied to source IPv6 address</td></tr><tr><td>dstipaddr</td><td>IPV6_ADDR</td><td>Destination IPv6 address</td></tr><tr><td>dstipmask</td><td>IPV6_MASK</td><td>Mask applied to destination IPv6 address</td></tr><tr><td>srcipfrom</td><td>IPV6_ADDR</td><td>Start of range of source IP address</td></tr><tr><td>srcipto</td><td>IPV6_ADDR</td><td>End of range of source IP address</td></tr><tr><td>dstipfrom</td><td>IPV6_ADDR</td><td>Start of range of destination IP address</td></tr><tr><td>dstipto</td><td>IPV6_ADDR</td><td>End of range of destination IP address</td></tr><tr><td>comment <span class="since">(Since 0.8.5)</span></td><td>STRING</td><td>text with max. 256 characters</td></tr><tr><td>state <span class="since">(Since 0.8.5)</span></td><td>STRING</td><td>comma separated list of NEW,ESTABLISHED,RELATED,INVALID or NONE</td></tr><tr><td>ipset <span class="since">(Since 0.9.13)</span></td><td>STRING</td><td>The name of an IPSet managed outside of libvirt</td></tr><tr><td>ipsetflags <span class="since">(Since 0.9.13)</span></td><td>IPSETFLAGS</td><td>flags for the IPSet; requires ipset attribute</td></tr></table>
+        <table class="top_table"><tr><th rowspan="1" colspan="1"> Attribute </th><th rowspan="1" colspan="1"> Datatype </th><th rowspan="1" colspan="1"> Semantics </th></tr><tr><td rowspan="1" colspan="1">srcmacaddr</td><td rowspan="1" colspan="1">MAC_ADDR</td><td rowspan="1" colspan="1">MAC address of sender</td></tr><tr><td rowspan="1" colspan="1">srcipaddr</td><td rowspan="1" colspan="1">IPV6_ADDR</td><td rowspan="1" colspan="1">Source IPv6 address</td></tr><tr><td rowspan="1" colspan="1">srcipmask</td><td rowspan="1" colspan="1">IPV6_MASK</td><td rowspan="1" colspan="1">Mask applied to source IPv6 address</td></tr><tr><td rowspan="1" colspan="1">dstipaddr</td><td rowspan="1" colspan="1">IPV6_ADDR</td><td rowspan="1" colspan="1">Destination IPv6 address</td></tr><tr><td rowspan="1" colspan="1">dstipmask</td><td rowspan="1" colspan="1">IPV6_MASK</td><td rowspan="1" colspan="1">Mask applied to destination IPv6 address</td></tr><tr><td rowspan="1" colspan="1">srcipfrom</td><td rowspan="1" colspan="1">IPV6_ADDR</td><td rowspan="1" colspan="1">Start of range of source IP address</td></tr><tr><td rowspan="1" colspan="1">srcipto</td><td rowspan="1" colspan="1">IPV6_ADDR</td><td rowspan="1" colspan="1">End of range of source IP address</td></tr><tr><td rowspan="1" colspan="1">dstipfrom</td><td rowspan="1" colspan="1">IPV6_ADDR</td><td rowspan="1" colspan="1">Start of range of destination IP address</td></tr><tr><td rowspan="1" colspan="1">dstipto</td><td rowspan="1" colspan="1">IPV6_ADDR</td><td rowspan="1" colspan="1">End of range of destination IP address</td></tr><tr><td rowspan="1" colspan="1">comment <span class="since">(Since 0.8.5)</span></td><td rowspan="1" colspan="1">STRING</td><td rowspan="1" colspan="1">text with max. 256 characters</td></tr><tr><td rowspan="1" colspan="1">state <span class="since">(Since 0.8.5)</span></td><td rowspan="1" colspan="1">STRING</td><td rowspan="1" colspan="1">comma separated list of NEW,ESTABLISHED,RELATED,INVALID or NONE</td></tr><tr><td rowspan="1" colspan="1">ipset <span class="since">(Since 0.9.13)</span></td><td rowspan="1" colspan="1">STRING</td><td rowspan="1" colspan="1">The name of an IPSet managed outside of libvirt</td></tr><tr><td rowspan="1" colspan="1">ipsetflags <span class="since">(Since 0.9.13)</span></td><td rowspan="1" colspan="1">IPSETFLAGS</td><td rowspan="1" colspan="1">flags for the IPSet; requires ipset attribute</td></tr></table>
         <p>
       <br /><br />
     </p>
         <h3>
-          <a name="nwfelemsRulesAdv" id="nwfelemsRulesAdv">Advanced Filter Configuration Topics</a>
+          <a name="nwfelemsRulesAdv" shape="rect" id="nwfelemsRulesAdv">Advanced Filter Configuration Topics</a>
         </h3>
         <p>
      The following sections discuss advanced filter configuration
      topics.
     </p>
         <h4>
-          <a name="nwfelemsRulesAdvTracking" id="nwfelemsRulesAdvTracking">Connection tracking</a>
+          <a name="nwfelemsRulesAdvTracking" shape="rect" id="nwfelemsRulesAdvTracking">Connection tracking</a>
         </h4>
         <p>
      The network filtering subsystem (on Linux) makes use of the connection
@@ -1017,7 +1014,7 @@
      The following shows an example XML fragement where this feature has been
      turned off for incoming connections to TCP port 12345.
     </p>
-        <pre>
+        <pre xml:space="preserve">
    [...]
     &lt;rule direction='in' action='accept' statematch='false'&gt;
       &lt;tcp dstportstart='12345'/&gt;
@@ -1030,7 +1027,7 @@
      which may or may not be desirable.
     </p>
         <h4>
-          <a name="nwfelemsRulesAdvLimiting" id="nwfelemsRulesAdvLimiting">Limiting Number of Connections</a>
+          <a name="nwfelemsRulesAdvLimiting" shape="rect" id="nwfelemsRulesAdvLimiting">Limiting Number of Connections</a>
         </h4>
         <p>
      To limit the number of connections a VM may establish, a rule must
@@ -1040,7 +1037,7 @@
      and is supposed to have only one active incoming ssh connection at a
      time, the following XML fragment can be used to achieve this.
     </p>
-        <pre>
+        <pre xml:space="preserve">
   [...]
   &lt;rule action='drop' direction='in' priority='400'&gt;
     &lt;tcp connlimit-above='1'/&gt;
@@ -1079,7 +1076,7 @@
      not allow another ICMP ping to go through for a while. Therefore,
      the timeouts have to be tuned in the host's sysfs, i.e.,
     </p>
-        <pre>
+        <pre xml:space="preserve">
   echo 3 &gt; /proc/sys/net/netfilter/nf_conntrack_icmp_timeout
 </pre>
         <p>
@@ -1103,7 +1100,7 @@
       traffic behavior in relation to idle connections.
     </p>
         <h2>
-          <a name="nwfcli" id="nwfcli">Command line tools</a>
+          <a name="nwfcli" shape="rect" id="nwfcli">Command line tools</a>
         </h2>
         <p>
       The libvirt command line tool <code>virsh</code> has been extended
@@ -1113,21 +1110,21 @@
     </p>
         <ul><li>nwfilter-list : list UUIDs and names of all network filters</li><li>nwfilter-define : define a new network filter or update an existing one</li><li>nwfilter-undefine : delete a network filter given its name; it must not be currently in use</li><li>nwfilter-dumpxml : display a network filter given its name</li><li>nwfilter-edit : edit a network filter given its name</li></ul>
         <h2>
-          <a name="nwfexamples" id="nwfexamples">Pre-existing network filters</a>
+          <a name="nwfexamples" shape="rect" id="nwfexamples">Pre-existing network filters</a>
         </h2>
         <p>
      The following is a list of example network filters that are
      automatically installed with libvirt.</p>
-        <table class="top_table"><tr><th> Name </th><th> Description </th></tr><tr><td> no-arp-spoofing </td><td> Prevent a VM from spoofing ARP traffic; this filter
+        <table class="top_table"><tr><th rowspan="1" colspan="1"> Name </th><th rowspan="1" colspan="1"> Description </th></tr><tr><td rowspan="1" colspan="1"> no-arp-spoofing </td><td rowspan="1" colspan="1"> Prevent a VM from spoofing ARP traffic; this filter
               only allows ARP request and reply messages and enforces
               that those packets contain the MAC and IP addresses
-              of the VM.</td></tr><tr><td> allow-dhcp </td><td> Allow a VM to request an IP address via DHCP (from any
-              DHCP server)</td></tr><tr><td> allow-dhcp-server </td><td> Allow a VM to request an IP address from a specified
+              of the VM.</td></tr><tr><td rowspan="1" colspan="1"> allow-dhcp </td><td rowspan="1" colspan="1"> Allow a VM to request an IP address via DHCP (from any
+              DHCP server)</td></tr><tr><td rowspan="1" colspan="1"> allow-dhcp-server </td><td rowspan="1" colspan="1"> Allow a VM to request an IP address from a specified
               DHCP server. The dotted decimal IP address of the DHCP
               server must be provided in a reference to this filter.
-              The name of the variable must be <i>DHCPSERVER</i>.</td></tr><tr><td> no-ip-spoofing </td><td> Prevent a VM from sending of IP packets with
+              The name of the variable must be <i>DHCPSERVER</i>.</td></tr><tr><td rowspan="1" colspan="1"> no-ip-spoofing </td><td rowspan="1" colspan="1"> Prevent a VM from sending of IP packets with
               a source IP address different from the one
-              in the packet. </td></tr><tr><td> no-ip-multicast </td><td> Prevent a VM from sending IP multicast packets. </td></tr><tr><td> clean-traffic </td><td> Prevent MAC, IP and ARP spoofing. This filter references
+              in the packet. </td></tr><tr><td rowspan="1" colspan="1"> no-ip-multicast </td><td rowspan="1" colspan="1"> Prevent a VM from sending IP multicast packets. </td></tr><tr><td rowspan="1" colspan="1"> clean-traffic </td><td rowspan="1" colspan="1"> Prevent MAC, IP and ARP spoofing. This filter references
               several other filters as building blocks. </td></tr></table>
         <p>
      Note that most of the above filters are only building blocks and
@@ -1140,7 +1137,7 @@
      on top of the prevention of packet spoofing.
     </p>
         <h2>
-          <a name="nwfwrite" id="nwfwrite">Writing your own filters</a>
+          <a name="nwfwrite" shape="rect" id="nwfwrite">Writing your own filters</a>
         </h2>
         <p>
      Since libvirt only provides a couple of example networking filters, you
@@ -1205,7 +1202,7 @@
     <code>udp-ipv6</code> traffic filtering node.
     </p>
         <h3>
-          <a name="nwfwriteexample" id="nwfwriteexample">Example custom filter</a>
+          <a name="nwfwriteexample" shape="rect" id="nwfwriteexample">Example custom filter</a>
         </h3>
         <p>
      As an example we want to now build a filter that fulfills the following
@@ -1230,7 +1227,7 @@
      we name our filter <i>test-eth0</i>.
      The result of these considerations is the following network filter XML:
     </p>
-        <pre>
+        <pre xml:space="preserve">
 &lt;filter name='test-eth0'&gt;
   &lt;!-- reference the clean traffic filter to prevent
        MAC, IP and ARP spoofing. By not providing
@@ -1277,7 +1274,7 @@
      An XML fragment for a possible network interface description inside
      the domain XML of the <code>test</code> VM could then look like this:
     </p>
-        <pre>
+        <pre xml:space="preserve">
    [...]
     &lt;interface type='bridge'&gt;
       &lt;source bridge='mybridge'/&gt;
@@ -1291,7 +1288,7 @@
      and only ICMP echo responses be received by the VM, the above
      <code>ICMP</code> rule can be replaced with the following two rules:
     </p>
-        <pre>
+        <pre xml:space="preserve">
   &lt;!-- enable outgoing ICMP echo requests--&gt;
   &lt;rule action='accept' direction='out'&gt;
     &lt;icmp type='8'/&gt;
@@ -1303,7 +1300,7 @@
   &lt;/rule&gt;
 </pre>
         <h3>
-          <a name="nwfwriteexample2nd" id="nwfwriteexample2nd">Second example custom filter</a>
+          <a name="nwfwriteexample2nd" shape="rect" id="nwfwriteexample2nd">Second example custom filter</a>
         </h3>
         <p>
      In this example we now want to build a similar filter as in the
@@ -1338,7 +1335,7 @@
      the following solution
      <span class="since">(since 0.8.5 (Qemu, KVM, UML))</span>:
     </p>
-        <pre>
+        <pre xml:space="preserve">
 &lt;filter name='test-eth0'&gt;
   &lt;!-- reference the clean traffic filter to prevent
        MAC, IP and ARP spoofing. By not providing
@@ -1396,7 +1393,7 @@
      kernel, you must run either one of the following two commands before
      the ftp connection with the VM is established.
     </p>
-        <pre>
+        <pre xml:space="preserve">
     modprobe nf_conntrack_ftp   # where available  or
 
     modprobe ip_conntrack_ftp   # if above is not available
@@ -1423,7 +1420,7 @@
      therefore the connection will not go into the <code>ESTABLISHED</code>
      state and any subsequent packets be dropped.
     </p>
-        <pre>
+        <pre xml:space="preserve">
 &lt;filter name='test-eth0'&gt;
   &lt;!-- reference the clean traffic filter to prevent
        MAC, IP and ARP spoofing. By not providing
@@ -1470,14 +1467,14 @@
 
 </pre>
         <h2>
-          <a name="nwflimits" id="nwflimits">Limitations</a>
+          <a name="nwflimits" shape="rect" id="nwflimits">Limitations</a>
         </h2>
         <p>
      The following sections list (current) limitations of the network
      filtering subsystem.
     </p>
         <h3>
-          <a name="nwflimitsmigr" id="nwflimitsmigr">VM Migration</a>
+          <a name="nwflimitsmigr" shape="rect" id="nwflimitsmigr">VM Migration</a>
         </h3>
         <p>
       VM migration is only supported if the whole filter tree
@@ -1497,7 +1494,7 @@
       associated with an interface.
      </p>
         <h3>
-          <a name="nwflimitsvlan" id="nwflimitsvlan">VLAN filtering on Linux</a>
+          <a name="nwflimitsvlan" shape="rect" id="nwflimitsvlan">VLAN filtering on Linux</a>
         </h3>
         <p>
       VLAN (802.1Q) packets, if sent by a virtual machine, cannot be filtered

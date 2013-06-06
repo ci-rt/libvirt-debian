@@ -28,7 +28,7 @@
 
 # define __VIR_CGROUP_ALLOW_INCLUDE_PRIV_H__
 # include "vircgrouppriv.h"
-# include "virutil.h"
+# include "virstring.h"
 # include "virerror.h"
 # include "virlog.h"
 # include "virfile.h"
@@ -49,7 +49,7 @@ static int validateCgroup(virCgroupPtr cgroup,
         return -1;
     }
 
-    for (i = 0 ; i < VIR_CGROUP_CONTROLLER_LAST ; i++) {
+    for (i = 0; i < VIR_CGROUP_CONTROLLER_LAST; i++) {
         if (STRNEQ_NULLABLE(expectMountPoint[i],
                             cgroup->controllers[i].mountPoint)) {
             fprintf(stderr, "Wrong mount '%s', expected '%s' for '%s'\n",
@@ -176,7 +176,7 @@ static int testCgroupNewForDriver(const void *args ATTRIBUTE_UNUSED)
     /* Asking for impossible combination since devices is not mounted */
     if ((rv = virCgroupNewDriver("lxc", true,
                                  (1 << VIR_CGROUP_CONTROLLER_DEVICES),
-                                 &cgroup)) != -ENOENT) {
+                                 &cgroup)) != -ENXIO) {
         fprintf(stderr, "Should not have created LXC cgroup: %d\n", -rv);
         goto cleanup;
     }
@@ -280,7 +280,7 @@ static int testCgroupNewForPartition(const void *args ATTRIBUTE_UNUSED)
     /* Asking for impossible combination since devices is not mounted */
     if ((rv = virCgroupNewPartition("/virtualmachines", true,
                                     (1 << VIR_CGROUP_CONTROLLER_DEVICES),
-                                    &cgroup)) != -ENOENT) {
+                                    &cgroup)) != -ENXIO) {
         fprintf(stderr, "Should not have created /virtualmachines cgroup: %d\n", -rv);
         goto cleanup;
     }
@@ -501,7 +501,7 @@ mymain(void)
     int ret = 0;
     char *fakesysfsdir;
 
-    if (!(fakesysfsdir = strdup(FAKESYSFSDIRTEMPLATE))) {
+    if (VIR_STRDUP_QUIET(fakesysfsdir, FAKESYSFSDIRTEMPLATE) < 0) {
         fprintf(stderr, "Out of memory\n");
         abort();
     }

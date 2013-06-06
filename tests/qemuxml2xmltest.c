@@ -16,6 +16,7 @@
 # include "qemu/qemu_conf.h"
 # include "qemu/qemu_domain.h"
 # include "testutilsqemu.h"
+# include "virstring.h"
 
 static virQEMUDriver driver;
 
@@ -157,6 +158,7 @@ mymain(void)
     DO_TEST("hyperv");
 
     DO_TEST("hugepages");
+    DO_TEST("nosharepages");
     DO_TEST("disk-aio");
     DO_TEST("disk-cdrom");
     DO_TEST("disk-floppy");
@@ -186,6 +188,7 @@ mymain(void)
     DO_TEST_FULL("disk-mirror", true, WHEN_INACTIVE);
     DO_TEST("graphics-listen-network");
     DO_TEST("graphics-vnc");
+    DO_TEST("graphics-vnc-websocket");
     DO_TEST("graphics-vnc-sasl");
     DO_TEST("graphics-vnc-tls");
     DO_TEST("graphics-sdl");
@@ -243,6 +246,7 @@ mymain(void)
     DO_TEST("smp");
     DO_TEST("lease");
     DO_TEST("event_idx");
+    DO_TEST("vhost_queues");
     DO_TEST("virtio-lun");
 
     DO_TEST("usb-redir");
@@ -257,6 +261,8 @@ mymain(void)
 
     DO_TEST("disk-scsi-disk-vpd");
     DO_TEST("disk-source-pool");
+
+    DO_TEST("disk-drive-discard");
 
     DO_TEST("virtio-rng-random");
     DO_TEST("virtio-rng-egd");
@@ -283,6 +289,16 @@ mymain(void)
     DO_TEST("pci-bridge");
     DO_TEST_DIFFERENT("pci-autoadd-addr");
     DO_TEST_DIFFERENT("pci-autoadd-idx");
+
+    DO_TEST("hostdev-scsi-lsi");
+    DO_TEST("hostdev-scsi-virtio-scsi");
+    DO_TEST("hostdev-scsi-readonly");
+
+    DO_TEST("disk-copy_on_read");
+    DO_TEST("hostdev-scsi-shareable");
+    DO_TEST("hostdev-scsi-sgio");
+
+    DO_TEST_DIFFERENT("hostdev-scsi-autogen-address");
 
     virObjectUnref(driver.caps);
     virObjectUnref(driver.xmlopt);

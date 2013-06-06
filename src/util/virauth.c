@@ -32,6 +32,7 @@
 #include "virerror.h"
 #include "configmake.h"
 #include "virauthconfig.h"
+#include "virstring.h"
 
 #define VIR_FROM_THIS VIR_FROM_AUTH
 
@@ -50,19 +51,19 @@ int virAuthGetConfigFilePath(virConnectPtr conn,
 
     if (authenv) {
         VIR_DEBUG("Using path from env '%s'", authenv);
-        if (!(*path = strdup(authenv)))
-            goto no_memory;
+        if (VIR_STRDUP(*path, authenv) < 0)
+            goto cleanup;
         return 0;
     }
 
     if (conn && conn->uri) {
-        for (i = 0 ; i < conn->uri->paramsCount ; i++) {
+        for (i = 0; i < conn->uri->paramsCount; i++) {
             if (STREQ_NULLABLE(conn->uri->params[i].name, "authfile") &&
                 conn->uri->params[i].value) {
                 VIR_DEBUG("Using path from URI '%s'",
                           conn->uri->params[i].value);
-                if (!(*path = strdup(conn->uri->params[i].value)))
-                    goto no_memory;
+                if (VIR_STRDUP(*path, conn->uri->params[i].value) < 0)
+                    goto cleanup;
                 return 0;
             }
         }
@@ -80,8 +81,8 @@ int virAuthGetConfigFilePath(virConnectPtr conn,
 
     VIR_FREE(*path);
 
-    if (!(*path = strdup(SYSCONFDIR "/libvirt/auth.conf")))
-        goto no_memory;
+    if (VIR_STRDUP(*path, SYSCONFDIR "/libvirt/auth.conf") < 0)
+        goto cleanup;
 
     VIR_DEBUG("Checking for readability of '%s'", *path);
     if (access(*path, R_OK) == 0)
@@ -135,11 +136,8 @@ virAuthGetCredential(virConnectPtr conn,
                             &tmp) < 0)
         goto cleanup;
 
-    if (tmp &&
-        !(*value = strdup(tmp))) {
-        virReportOOMError();
+    if (VIR_STRDUP(*value, tmp) < 0)
         goto cleanup;
-    }
 
     ret = 0;
 

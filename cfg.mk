@@ -378,9 +378,18 @@ sc_prohibit_strtol:
 	  $(_sc_search_regexp)
 
 # Use virAsprintf rather than as'printf since *strp is undefined on error.
+# But for plain %s, virAsprintf is overkill compared to strdup.
 sc_prohibit_asprintf:
 	@prohibit='\<v?a[s]printf\>'					\
 	halt='use virAsprintf, not as'printf				\
+	  $(_sc_search_regexp)
+	@prohibit='virAsprintf.*, *"%s",'				\
+	halt='use VIR_STRDUP instead of virAsprintf with "%s"'		\
+	  $(_sc_search_regexp)
+
+sc_prohibit_strdup:
+	@prohibit='\<strn?dup\> *\('					\
+	halt='use VIR_STRDUP, not strdup'				\
 	  $(_sc_search_regexp)
 
 # Prefer virSetUIDGID.
@@ -440,6 +449,11 @@ sc_prohibit_nonreentrant:
 	done ; \
 	exit $$fail
 
+sc_prohibit_select:
+	@prohibit="\\<select *\\("					\
+	halt="use poll(), not se""lect()"				\
+	  $(_sc_search_regexp)
+
 # Prohibit the inclusion of <ctype.h>.
 sc_prohibit_ctype_h:
 	@prohibit='^# *include  *<ctype\.h>'				\
@@ -484,6 +498,11 @@ sc_avoid_strcase:
 sc_prohibit_virBufferAdd_with_string_literal:
 	@prohibit='\<virBufferAdd *\([^,]+, *"[^"]'			\
 	halt='use virBufferAddLit, not virBufferAdd, with a string literal' \
+	  $(_sc_search_regexp)
+
+sc_prohibit_virBufferAsprintf_with_string_literal:
+	@prohibit='\<virBufferAsprintf *\([^,]+, *"([^%"\]|\\.|%%)*"\)'		\
+	halt='use virBufferAddLit, not virBufferAsprintf, with a string literal' \
 	  $(_sc_search_regexp)
 
 # Not only do they fail to deal well with ipv6, but the gethostby*
@@ -668,10 +687,21 @@ sc_copyright_format:
 	  $(_sc_search_regexp)
 
 # Prefer the new URL listing over the old street address listing when
-# calling out where to get a copy of the [L]GPL.
-sc_copyright_address:
+# calling out where to get a copy of the [L]GPL.  Also, while we have
+# to ship COPYING (GPL) alongside COPYING.LESSER (LGPL), we want any
+# source file that calls out a top-level file to call out the LGPL
+# version.  Note that our typical copyright boilerplate refers to the
+# license by name, not by reference to a top-level file.
+sc_copyright_usage:
 	@prohibit=Boston,' MA'						\
 	halt='Point to <http://www.gnu.org/licenses/>, not an address'	\
+	  $(_sc_search_regexp)
+	@require='COPYING\.LESSER'					\
+	containing='COPYING'						\
+	halt='Refer to COPYING.LESSER for LGPL'				\
+	  $(_sc_search_regexp)
+	@prohibit='COPYING\.LIB'					\
+	halt='Refer to COPYING.LESSER for LGPL'				\
 	  $(_sc_search_regexp)
 
 # Some functions/macros produce messages intended solely for developers
@@ -749,7 +779,7 @@ sc_prohibit_duplicate_header:
 	  }' $$i || fail=1;						\
 	done;								\
 	if test $$fail -eq 1; then					\
-	  { echo "$(ME)": avoid duplicate headers >&2; exit 1; }	\
+	  { echo '$(ME): avoid duplicate headers' 1>&2; exit 1; }	\
 	fi;
 
 # Don't include "libvirt/*.h" in "" form.
@@ -815,7 +845,8 @@ syntax-check: $(top_srcdir)/HACKING bracket-spacing-check
 bracket-spacing-check:
 	$(AM_V_GEN)files=`$(VC_LIST) | grep '\.c$$'`; \
 	$(PERL) $(top_srcdir)/build-aux/bracket-spacing.pl $$files || \
-          (echo $(ME): incorrect whitespace around brackets, see HACKING for rules && exit 1)
+	  { echo '$(ME): incorrect whitespace, see HACKING for rules' 1>&2; \
+	    exit 1; }
 
 # sc_po_check can fail if generated files are not built first
 sc_po_check: \
@@ -832,15 +863,15 @@ $(srcdir)/src/remote/remote_client_bodies.h: $(srcdir)/src/remote/remote_protoco
 # List all syntax-check exemptions:
 exclude_file_name_regexp--sc_avoid_strcase = ^tools/virsh\.h$$
 
-_src1=libvirt|fdstream|qemu/qemu_monitor|util/(vircommand|virutil)|xen/xend_internal|rpc/virnetsocket|lxc/lxc_controller|locking/lock_daemon
+_src1=libvirt|fdstream|qemu/qemu_monitor|util/(vircommand|virfile)|xen/xend_internal|rpc/virnetsocket|lxc/lxc_controller|locking/lock_daemon
 _test1=shunloadtest|virnettlscontexttest|vircgroupmock
 exclude_file_name_regexp--sc_avoid_write = \
   ^(src/($(_src1))|daemon/libvirtd|tools/console|tests/($(_test1)))\.c$$
 
 exclude_file_name_regexp--sc_bindtextdomain = ^(tests|examples)/
 
-exclude_file_name_regexp--sc_copyright_address = \
-  ^COPYING\.LIB$$
+exclude_file_name_regexp--sc_copyright_usage = \
+  ^COPYING(|\.LESSER)$$
 
 exclude_file_name_regexp--sc_flags_usage = ^(docs/|src/util/virnetdevtap\.c$$|tests/vircgroupmock\.c$$)
 
@@ -858,7 +889,10 @@ exclude_file_name_regexp--sc_prohibit_always_true_header_tests = \
   ^python/(libvirt-(lxc-|qemu-)?override|typewrappers)\.c$$
 
 exclude_file_name_regexp--sc_prohibit_asprintf = \
-  ^(bootstrap.conf$$|src/util/virutil\.c$$|examples/domain-events/events-c/event-test\.c$$|tests/vircgroupmock\.c$$)
+  ^(bootstrap.conf$$|src/util/virstring\.c$$|examples/domain-events/events-c/event-test\.c$$|tests/vircgroupmock\.c$$)
+
+exclude_file_name_regexp--sc_prohibit_strdup = \
+  ^(docs/|examples/|python/|src/util/virstring\.c$$)
 
 exclude_file_name_regexp--sc_prohibit_close = \
   (\.p[yl]$$|^docs/|^(src/util/virfile\.c|src/libvirt\.c|tests/vircgroupmock\.c)$$)
@@ -892,7 +926,7 @@ exclude_file_name_regexp--sc_prohibit_setuid = ^src/util/virutil\.c$$
 exclude_file_name_regexp--sc_prohibit_sprintf = \
   ^(docs/hacking\.html\.in)|(examples/systemtap/.*stp)|(src/dtrace2systemtap\.pl)|(src/rpc/gensystemtap\.pl)$$
 
-exclude_file_name_regexp--sc_prohibit_strncpy = ^src/util/virutil\.c$$
+exclude_file_name_regexp--sc_prohibit_strncpy = ^src/util/virstring\.c$$
 
 exclude_file_name_regexp--sc_prohibit_strtol = \
   ^src/(util/virsexpr|(vbox|xen|xenxs)/.*)\.c$$

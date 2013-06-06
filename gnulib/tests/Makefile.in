@@ -118,7 +118,8 @@ TESTS = test-accept$(EXEEXT) test-alloca-opt$(EXEEXT) \
 	test-mbrtowc-w32-3.sh test-mbrtowc-w32-4.sh \
 	test-mbrtowc-w32-5.sh test-mbsinit.sh test-mbsrtowcs1.sh \
 	test-mbsrtowcs2.sh test-mbsrtowcs3.sh test-mbsrtowcs4.sh \
-	test-memchr$(EXEEXT) test-net_if$(EXEEXT) test-netdb$(EXEEXT) \
+	test-memchr$(EXEEXT) test-nanosleep$(EXEEXT) \
+	test-net_if$(EXEEXT) test-netdb$(EXEEXT) \
 	test-netinet_in$(EXEEXT) test-nl_langinfo.sh \
 	test-nonblocking-pipe.sh test-nonblocking-socket.sh \
 	test-nonblocking$(EXEEXT) test-open$(EXEEXT) \
@@ -208,9 +209,9 @@ check_PROGRAMS = test-accept$(EXEEXT) test-alloca-opt$(EXEEXT) \
 	test-math$(EXEEXT) test-mbrtowc$(EXEEXT) \
 	test-mbrtowc-w32$(EXEEXT) test-mbsinit$(EXEEXT) \
 	test-mbsrtowcs$(EXEEXT) test-memchr$(EXEEXT) \
-	test-net_if$(EXEEXT) test-netdb$(EXEEXT) \
-	test-netinet_in$(EXEEXT) test-nl_langinfo$(EXEEXT) \
-	test-nonblocking-pipe-main$(EXEEXT) \
+	test-nanosleep$(EXEEXT) test-net_if$(EXEEXT) \
+	test-netdb$(EXEEXT) test-netinet_in$(EXEEXT) \
+	test-nl_langinfo$(EXEEXT) test-nonblocking-pipe-main$(EXEEXT) \
 	test-nonblocking-pipe-child$(EXEEXT) \
 	test-nonblocking-socket-main$(EXEEXT) \
 	test-nonblocking-socket-child$(EXEEXT) \
@@ -368,6 +369,7 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/md5.m4 \
 	$(top_srcdir)/gnulib/m4/memchr.m4 \
 	$(top_srcdir)/gnulib/m4/mgetgroups.m4 \
+	$(top_srcdir)/gnulib/m4/mkdtemp.m4 \
 	$(top_srcdir)/gnulib/m4/mkostemp.m4 \
 	$(top_srcdir)/gnulib/m4/mkostemps.m4 \
 	$(top_srcdir)/gnulib/m4/mktime.m4 \
@@ -376,6 +378,7 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/msvc-inval.m4 \
 	$(top_srcdir)/gnulib/m4/msvc-nothrow.m4 \
 	$(top_srcdir)/gnulib/m4/multiarch.m4 \
+	$(top_srcdir)/gnulib/m4/nanosleep.m4 \
 	$(top_srcdir)/gnulib/m4/net_if_h.m4 \
 	$(top_srcdir)/gnulib/m4/netdb_h.m4 \
 	$(top_srcdir)/gnulib/m4/netinet_in_h.m4 \
@@ -625,9 +628,7 @@ test_canonicalize_lgpl_DEPENDENCIES = libtests.a \
 	../../gnulib/lib/libgnu.la libtests.a $(am__DEPENDENCIES_1)
 test_chown_SOURCES = test-chown.c
 test_chown_OBJECTS = test-chown.$(OBJEXT)
-test_chown_LDADD = $(LDADD)
-test_chown_DEPENDENCIES = libtests.a ../../gnulib/lib/libgnu.la \
-	libtests.a $(am__DEPENDENCIES_1)
+test_chown_DEPENDENCIES = $(am__DEPENDENCIES_2) $(am__DEPENDENCIES_1)
 test_cloexec_SOURCES = test-cloexec.c
 test_cloexec_OBJECTS = test-cloexec.$(OBJEXT)
 test_cloexec_LDADD = $(LDADD)
@@ -991,6 +992,10 @@ test_memchr_OBJECTS = test-memchr.$(OBJEXT)
 test_memchr_LDADD = $(LDADD)
 test_memchr_DEPENDENCIES = libtests.a ../../gnulib/lib/libgnu.la \
 	libtests.a $(am__DEPENDENCIES_1)
+test_nanosleep_SOURCES = test-nanosleep.c
+test_nanosleep_OBJECTS = test-nanosleep.$(OBJEXT)
+test_nanosleep_DEPENDENCIES = $(am__DEPENDENCIES_2) \
+	$(am__DEPENDENCIES_1)
 test_net_if_SOURCES = test-net_if.c
 test_net_if_OBJECTS = test-net_if.$(OBJEXT)
 test_net_if_DEPENDENCIES = $(am__DEPENDENCIES_2)
@@ -1248,9 +1253,8 @@ test_stat_OBJECTS = test-stat.$(OBJEXT)
 test_stat_DEPENDENCIES = $(am__DEPENDENCIES_2) $(am__DEPENDENCIES_1)
 test_stat_time_SOURCES = test-stat-time.c
 test_stat_time_OBJECTS = test-stat-time.$(OBJEXT)
-test_stat_time_LDADD = $(LDADD)
-test_stat_time_DEPENDENCIES = libtests.a ../../gnulib/lib/libgnu.la \
-	libtests.a $(am__DEPENDENCIES_1)
+test_stat_time_DEPENDENCIES = $(am__DEPENDENCIES_2) \
+	$(am__DEPENDENCIES_1)
 test_stdalign_SOURCES = test-stdalign.c
 test_stdalign_OBJECTS = test-stdalign.$(OBJEXT)
 test_stdalign_LDADD = $(LDADD)
@@ -1503,7 +1507,7 @@ SOURCES = $(libtests_a_SOURCES) $(EXTRA_libtests_a_SOURCES) \
 	test-localename.c test-lseek.c test-lstat.c test-malloc-gnu.c \
 	test-malloca.c test-math.c test-mbrtowc.c test-mbrtowc-w32.c \
 	test-mbsinit.c test-mbsrtowcs.c test-md5.c test-memchr.c \
-	test-net_if.c test-netdb.c test-netinet_in.c \
+	test-nanosleep.c test-net_if.c test-netdb.c test-netinet_in.c \
 	test-nl_langinfo.c test-nonblocking.c \
 	test-nonblocking-pipe-child.c test-nonblocking-pipe-main.c \
 	test-nonblocking-socket-child.c test-nonblocking-socket-main.c \
@@ -1563,7 +1567,7 @@ DIST_SOURCES = $(libtests_a_SOURCES) $(EXTRA_libtests_a_SOURCES) \
 	test-localename.c test-lseek.c test-lstat.c test-malloc-gnu.c \
 	test-malloca.c test-math.c test-mbrtowc.c test-mbrtowc-w32.c \
 	test-mbsinit.c test-mbsrtowcs.c test-md5.c test-memchr.c \
-	test-net_if.c test-netdb.c test-netinet_in.c \
+	test-nanosleep.c test-net_if.c test-netdb.c test-netinet_in.c \
 	test-nl_langinfo.c test-nonblocking.c \
 	test-nonblocking-pipe-child.c test-nonblocking-pipe-main.c \
 	test-nonblocking-socket-child.c test-nonblocking-socket-main.c \
@@ -1705,7 +1709,7 @@ DLLTOOL = @DLLTOOL@
 DLOPEN_LIBS = @DLOPEN_LIBS@
 DMSETUP = @DMSETUP@
 DNSMASQ = @DNSMASQ@
-DRIVER_MODULE_CFLAGS = @DRIVER_MODULE_CFLAGS@
+DRIVER_MODULE_LDFLAGS = @DRIVER_MODULE_LDFLAGS@
 DRIVER_MODULE_LIBS = @DRIVER_MODULE_LIBS@
 DSYMUTIL = @DSYMUTIL@
 DTRACE = @DTRACE@
@@ -2551,6 +2555,7 @@ LIBXML_LIBS = @LIBXML_LIBS@
 LIB_CLOCK_GETTIME = @LIB_CLOCK_GETTIME@
 LIB_EXECINFO = @LIB_EXECINFO@
 LIB_FDATASYNC = @LIB_FDATASYNC@
+LIB_NANOSLEEP = @LIB_NANOSLEEP@
 LIB_POLL = @LIB_POLL@
 LIB_PTHREAD = @LIB_PTHREAD@
 LIB_PTHREAD_SIGMASK = @LIB_PTHREAD_SIGMASK@
@@ -2986,7 +2991,6 @@ VGS = @VGS@
 VGSCAN = @VGSCAN@
 VIRSH_LIBS = @VIRSH_LIBS@
 WARN_CFLAGS = @WARN_CFLAGS@
-WARN_LDFLAGS = @WARN_LDFLAGS@
 WARN_PYTHON_CFLAGS = @WARN_PYTHON_CFLAGS@
 WCHAR_T_SUFFIX = @WCHAR_T_SUFFIX@
 WIN32_EXTRA_CFLAGS = @WIN32_EXTRA_CFLAGS@
@@ -3069,7 +3073,7 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-AUTOMAKE_OPTIONS = 1.5 foreign subdir-objects
+AUTOMAKE_OPTIONS = 1.9.6 foreign subdir-objects
 SUBDIRS = .
 TESTS_ENVIRONMENT = EXEEXT='@EXEEXT@' srcdir='$(srcdir)' \
 	LOCALE_FR='@LOCALE_FR@' LOCALE_FR_UTF8='@LOCALE_FR_UTF8@' \
@@ -3156,6 +3160,7 @@ EXTRA_DIST = test-accept.c signature.h macros.h test-alloca-opt.c \
 	test-mbsrtowcs1.sh test-mbsrtowcs2.sh test-mbsrtowcs3.sh \
 	test-mbsrtowcs4.sh test-mbsrtowcs.c signature.h macros.h \
 	test-memchr.c zerosize-ptr.h signature.h macros.h mgetgroups.h \
+	nanosleep.c test-nanosleep.c signature.h macros.h \
 	test-net_if.c signature.h test-netdb.c test-netinet_in.c \
 	test-nl_langinfo.sh test-nl_langinfo.c signature.h macros.h \
 	test-nonblocking-pipe.sh test-nonblocking-pipe-main.c \
@@ -3209,14 +3214,15 @@ EXTRA_DIST = test-accept.c signature.h macros.h test-alloca-opt.c \
 	$(top_srcdir)/build-aux/snippet/warn-on-use.h test-snprintf.c \
 	signature.h macros.h test-sockets.c spawn.in.h test-spawn.c \
 	test-stat.h test-stat.c signature.h macros.h test-stat-time.c \
-	macros.h test-stdalign.c macros.h test-stdbool.c test-stddef.c \
-	test-stdint.c test-stdio.c test-stdlib.c test-sys_wait.h \
-	test-strchrnul.c signature.h macros.h test-strerror.c \
-	signature.h macros.h test-strerror_r.c signature.h macros.h \
-	test-string.c test-strings.c test-strnlen.c zerosize-ptr.h \
-	signature.h macros.h symlink.c test-symlink.h test-symlink.c \
-	signature.h macros.h test-sys_ioctl.c test-sys_select.c \
-	signature.h test-sys_socket.c test-sys_stat.c test-sys_time.c \
+	macros.h nap.h test-stdalign.c macros.h test-stdbool.c \
+	test-stddef.c test-stdint.c test-stdio.c test-stdlib.c \
+	test-sys_wait.h test-strchrnul.c signature.h macros.h \
+	test-strerror.c signature.h macros.h test-strerror_r.c \
+	signature.h macros.h test-string.c test-strings.c \
+	test-strnlen.c zerosize-ptr.h signature.h macros.h symlink.c \
+	test-symlink.h test-symlink.c signature.h macros.h \
+	test-sys_ioctl.c test-sys_select.c signature.h \
+	test-sys_socket.c test-sys_stat.c test-sys_time.c \
 	test-sys_types.c test-sys_uio.c test-sys_utsname.c \
 	test-sys_wait.c test-sys_wait.h test-termios.c init.sh \
 	test-init.sh test-thread_self.c test-thread_create.c macros.h \
@@ -3277,8 +3283,8 @@ libtests_a_LIBADD = $(gltests_LIBOBJS)
 libtests_a_DEPENDENCIES = $(gltests_LIBOBJS)
 EXTRA_libtests_a_SOURCES = dup.c error.c fdopen.c ftruncate.c \
 	getgroups.c getpagesize.c getsockopt.c grantpt.c isnan.c \
-	isnand.c isnan.c isnanf.c isnan.c isnanl.c spawni.c \
-	spawn_faction_addclose.c spawn_faction_adddup2.c \
+	isnand.c isnan.c isnanf.c isnan.c isnanl.c nanosleep.c \
+	spawni.c spawn_faction_addclose.c spawn_faction_adddup2.c \
 	spawn_faction_addopen.c spawn_faction_destroy.c \
 	spawn_faction_init.c spawnattr_destroy.c spawnattr_init.c \
 	spawnattr_setflags.c spawnattr_setsigmask.c spawnp.c ptsname.c \
@@ -3288,6 +3294,7 @@ EXTRA_libtests_a_SOURCES = dup.c error.c fdopen.c ftruncate.c \
 AM_LIBTOOLFLAGS = --preserve-dup-deps
 test_accept_LDADD = $(LDADD) @LIBSOCKET@
 test_bind_LDADD = $(LDADD) @LIBSOCKET@ $(INET_PTON_LIB)
+test_chown_LDADD = $(LDADD) $(LIB_NANOSLEEP)
 test_connect_LDADD = $(LDADD) @LIBSOCKET@ $(INET_PTON_LIB)
 test_fdatasync_LDADD = $(LDADD) $(LIB_FDATASYNC)
 test_getaddrinfo_LDADD = $(LDADD) @GETADDRINFO_LIB@ @LIBINTL@
@@ -3302,6 +3309,7 @@ test_ldexp_SOURCES = test-ldexp.c randomd.c
 test_ldexp_LDADD = $(LDADD) @LDEXP_LIBM@
 test_listen_LDADD = $(LDADD) @LIBSOCKET@
 test_localename_LDADD = $(LDADD) @INTL_MACOSX_LIBS@ $(LIBTHREAD)
+test_nanosleep_LDADD = $(LDADD) $(LIB_NANOSLEEP)
 test_net_if_LDADD = $(LDADD) @NET_IF_LIB@
 test_nonblocking_pipe_main_LDADD = $(LDADD) @LIBINTL@
 test_nonblocking_socket_main_LDADD = $(LDADD) $(LIBSOCKET) @LIBINTL@
@@ -3331,6 +3339,7 @@ UNUSED_PARAMETER_H = unused-parameter.h
 WARN_ON_USE_H = warn-on-use.h
 test_sockets_LDADD = $(LDADD) @LIBSOCKET@
 test_stat_LDADD = $(LDADD) $(LIBINTL)
+test_stat_time_LDADD = $(LDADD) $(LIB_NANOSLEEP)
 test_thread_self_LDADD = $(LDADD) @LIBTHREAD@
 test_thread_create_LDADD = $(LDADD) @LIBMULTITHREAD@
 test_uname_LDADD = $(LDADD) @GETHOSTNAME_LIB@
@@ -3687,6 +3696,9 @@ test-md5$(EXEEXT): $(test_md5_OBJECTS) $(test_md5_DEPENDENCIES) $(EXTRA_test_md5
 test-memchr$(EXEEXT): $(test_memchr_OBJECTS) $(test_memchr_DEPENDENCIES) $(EXTRA_test_memchr_DEPENDENCIES) 
 	@rm -f test-memchr$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(test_memchr_OBJECTS) $(test_memchr_LDADD) $(LIBS)
+test-nanosleep$(EXEEXT): $(test_nanosleep_OBJECTS) $(test_nanosleep_DEPENDENCIES) $(EXTRA_test_nanosleep_DEPENDENCIES) 
+	@rm -f test-nanosleep$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(test_nanosleep_OBJECTS) $(test_nanosleep_LDADD) $(LIBS)
 test-net_if$(EXEEXT): $(test_net_if_OBJECTS) $(test_net_if_DEPENDENCIES) $(EXTRA_test_net_if_DEPENDENCIES) 
 	@rm -f test-net_if$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(test_net_if_OBJECTS) $(test_net_if_LDADD) $(LIBS)
@@ -4010,6 +4022,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/localename.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/math.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mgetgroups.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nanosleep.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/progname.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ptsname.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ptsname_r.Po@am__quote@
@@ -4126,6 +4139,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-mbsrtowcs.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-md5.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-memchr.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-nanosleep.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-net_if.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-netdb.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-netinet_in.Po@am__quote@

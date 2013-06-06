@@ -39,14 +39,10 @@
 #include "virlog.h"
 #include "viruuid.h"
 #include "virfile.h"
-
+#include "virstring.h"
 #include "xm_internal.h" /* for xenXMDomainConfigParse */
 
 #define VIR_FROM_THIS VIR_FROM_XEN_INOTIFY
-
-struct xenUnifiedDriver xenInotifyDriver = {
-    .xenClose = xenInotifyClose,
-};
 
 static int
 xenInotifyXenCacheLookup(virConnectPtr conn,
@@ -62,12 +58,9 @@ xenInotifyXenCacheLookup(virConnectPtr conn,
         return -1;
     }
 
-    *name = strdup(entry->def->name);
     memcpy(uuid, entry->def->uuid, VIR_UUID_BUFLEN);
-
-    if (!*name) {
+    if (VIR_STRDUP(*name, entry->def->name) < 0) {
         VIR_DEBUG("Error getting dom from def");
-        virReportOOMError();
         return -1;
     }
     return 0;
@@ -80,7 +73,7 @@ xenInotifyXendDomainsDirLookup(virConnectPtr conn,
                                unsigned char *uuid)
 {
     int i;
-    virDomainPtr dom;
+    virDomainDefPtr def;
     const char *uuid_str;
     unsigned char rawuuid[VIR_UUID_BUFLEN];
     xenUnifiedPrivatePtr priv = conn->privateData;
@@ -100,18 +93,15 @@ xenInotifyXendDomainsDirLookup(virConnectPtr conn,
        be set during open while we are building our
        initial list of domains */
     VIR_DEBUG("Looking for dom with uuid: %s", uuid_str);
-    /* XXX Should not have to go via a virDomainPtr obj instance */
-    if (!(dom = xenDaemonLookupByUUID(conn, rawuuid))) {
+
+    if (!(def = xenDaemonLookupByUUID(conn, rawuuid))) {
         /* If we are here, the domain has gone away.
            search for, and create a domain from the stored
            list info */
-        for (i = 0 ; i < priv->configInfoList->count ; i++) {
+        for (i = 0; i < priv->configInfoList->count; i++) {
             if (!memcmp(rawuuid, priv->configInfoList->doms[i]->uuid, VIR_UUID_BUFLEN)) {
-                *name = strdup(priv->configInfoList->doms[i]->name);
-                if (!*name) {
-                    virReportOOMError();
+                if (VIR_STRDUP(*name, priv->configInfoList->doms[i]->name) < 0)
                     return -1;
-                }
                 memcpy(uuid, priv->configInfoList->doms[i]->uuid, VIR_UUID_BUFLEN);
                 VIR_DEBUG("Found dom on list");
                 return 0;
@@ -122,13 +112,12 @@ xenInotifyXendDomainsDirLookup(virConnectPtr conn,
         return -1;
     }
 
-    if (!(*name = strdup(dom->name))) {
-        virReportOOMError();
-        virDomainFree(dom);
+    if (VIR_STRDUP(*name, def->name) < 0) {
+        virDomainDefFree(def);
         return -1;
     }
-    memcpy(uuid, dom->uuid, VIR_UUID_BUFLEN);
-    virDomainFree(dom);
+    memcpy(uuid, def->uuid, VIR_UUID_BUFLEN);
+    virDomainDefFree(def);
     /* succeeded too find domain by uuid */
     return 0;
 }
@@ -179,7 +168,7 @@ xenInotifyXendDomainsDirRemoveEntry(virConnectPtr conn, const char *fname)
     }
 
     /* match and remove on uuid */
-    for (i = 0 ; i < priv->configInfoList->count ; i++) {
+    for (i = 0; i < priv->configInfoList->count; i++) {
         if (!memcmp(uuid, priv->configInfoList->doms[i]->uuid, VIR_UUID_BUFLEN)) {
             VIR_FREE(priv->configInfoList->doms[i]->name);
             VIR_FREE(priv->configInfoList->doms[i]);
@@ -282,7 +271,10 @@ reread:
         if (got < sizeof(struct inotify_event))
             goto cleanup; /* bad */
 
+        VIR_WARNINGS_NO_CAST_ALIGN
         e = (struct inotify_event *)tmp;
+        VIR_WARNINGS_RESET
+
         tmp += sizeof(struct inotify_event);
         got -= sizeof(struct inotify_event);
 
@@ -349,7 +341,7 @@ cleanup:
  *
  * Returns 0 or -1 in case of error.
  */
-virDrvOpenStatus
+int
 xenInotifyOpen(virConnectPtr conn,
                virConnectAuthPtr auth ATTRIBUTE_UNUSED,
                unsigned int flags)
@@ -359,7 +351,7 @@ xenInotifyOpen(virConnectPtr conn,
     char *path;
     xenUnifiedPrivatePtr priv = conn->privateData;
 
-    virCheckFlags(VIR_CONNECT_RO, VIR_DRV_OPEN_ERROR);
+    virCheckFlags(VIR_CONNECT_RO, -1);
 
     if (priv->configDir) {
         priv->useXenConfigCache = 1;

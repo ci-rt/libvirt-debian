@@ -46,7 +46,6 @@
 #include "uml_driver.h"
 #include "uml_conf.h"
 #include "virbuffer.h"
-#include "virutil.h"
 #include "nodeinfo.h"
 #include "virstatslinux.h"
 #include "capabilities.h"
@@ -65,6 +64,7 @@
 #include "virnodesuspend.h"
 #include "virprocess.h"
 #include "viruri.h"
+#include "virstring.h"
 
 #define VIR_FROM_THIS VIR_FROM_UML
 
@@ -248,8 +248,7 @@ requery:
 
     if (res && STRPREFIX(res, "pts:")) {
         VIR_FREE(def->source.data.file.path);
-        if ((def->source.data.file.path = strdup(res + 4)) == NULL) {
-            virReportOOMError();
+        if (VIR_STRDUP(def->source.data.file.path, res + 4) < 0) {
             VIR_FREE(res);
             VIR_FREE(cmd);
             return -1;
@@ -277,13 +276,13 @@ umlIdentifyChrPTY(struct uml_driver *driver,
 {
     int i;
 
-    for (i = 0 ; i < dom->def->nconsoles; i++)
+    for (i = 0; i < dom->def->nconsoles; i++)
         if (dom->def->consoles[i]->source.type == VIR_DOMAIN_CHR_TYPE_PTY)
         if (umlIdentifyOneChrPTY(driver, dom,
                                  dom->def->consoles[i], "con") < 0)
             return -1;
 
-    for (i = 0 ; i < dom->def->nserials; i++)
+    for (i = 0; i < dom->def->nserials; i++)
         if (dom->def->serials[i]->source.type == VIR_DOMAIN_CHR_TYPE_PTY &&
             umlIdentifyOneChrPTY(driver, dom,
                                  dom->def->serials[i], "ssl") < 0)
@@ -491,8 +490,8 @@ umlStateInitialize(bool privileged,
                         "%s/log/libvirt/uml", LOCALSTATEDIR) == -1)
             goto out_of_memory;
 
-        if ((base = strdup(SYSCONFDIR "/libvirt")) == NULL)
-            goto out_of_memory;
+        if (VIR_STRDUP(base, SYSCONFDIR "/libvirt") < 0)
+            goto error;
 
         if (virAsprintf(&uml_driver->monitorDir,
                         "%s/run/libvirt/uml-guest", LOCALSTATEDIR) == -1)
@@ -1005,7 +1004,7 @@ error:
 static void umlCleanupTapDevices(virDomainObjPtr vm) {
     int i;
 
-    for (i = 0 ; i < vm->def->nnets ; i++) {
+    for (i = 0; i < vm->def->nnets; i++) {
         virDomainNetDefPtr def = vm->def->nets[i];
 
         if (def->type != VIR_DOMAIN_NET_TYPE_BRIDGE &&
@@ -1093,7 +1092,7 @@ static int umlStartVMDaemon(virConnectPtr conn,
     if (!(cmd = umlBuildCommandLine(conn, driver, vm)))
         goto cleanup;
 
-    for (i = 0 ; i < vm->def->nconsoles ; i++) {
+    for (i = 0; i < vm->def->nconsoles; i++) {
         VIR_FREE(vm->def->consoles[i]->info.alias);
         if (virAsprintf(&vm->def->consoles[i]->info.alias, "console%zu", i) < 0) {
             virReportOOMError();
@@ -1494,6 +1493,13 @@ cleanup:
     return ret;
 }
 
+
+static char *umlConnectGetHostname(virConnectPtr conn ATTRIBUTE_UNUSED)
+{
+    return virGetHostname();
+}
+
+
 static int umlConnectListDomains(virConnectPtr conn, int *ids, int nids) {
     struct uml_driver *driver = conn->privateData;
     int n;
@@ -1665,8 +1671,7 @@ static char *umlDomainGetOSType(virDomainPtr dom) {
         goto cleanup;
     }
 
-    if (!(type = strdup(vm->def->os.type)))
-        virReportOOMError();
+    ignore_value(VIR_STRDUP(type, vm->def->os.type));
 
 cleanup:
     if (vm)
@@ -2032,7 +2037,7 @@ static int umlDomainAttachUmlDisk(struct uml_driver *driver,
     char *cmd = NULL;
     char *reply = NULL;
 
-    for (i = 0 ; i < vm->def->ndisks ; i++) {
+    for (i = 0; i < vm->def->ndisks; i++) {
         if (STREQ(vm->def->disks[i]->dst, disk->dst)) {
             virReportError(VIR_ERR_OPERATION_FAILED,
                            _("target %s already exists"), disk->dst);
@@ -2158,7 +2163,7 @@ static int umlDomainDetachUmlDisk(struct uml_driver *driver,
     char *cmd;
     char *reply;
 
-    for (i = 0 ; i < vm->def->ndisks ; i++) {
+    for (i = 0; i < vm->def->ndisks; i++) {
         if (STREQ(vm->def->disks[i]->dst, dev->data.disk->dst)) {
             break;
         }
@@ -2451,7 +2456,7 @@ umlDomainOpenConsole(virDomainPtr dom,
     }
 
     if (dev_name) {
-        for (i = 0 ; i < vm->def->nconsoles ; i++) {
+        for (i = 0; i < vm->def->nconsoles; i++) {
             if (vm->def->consoles[i]->info.alias &&
                 STREQ(vm->def->consoles[i]->info.alias, dev_name)) {
                 chr = vm->def->consoles[i];
@@ -2589,6 +2594,92 @@ static int umlConnectListAllDomains(virConnectPtr conn,
 }
 
 
+static int
+umlNodeGetInfo(virConnectPtr conn ATTRIBUTE_UNUSED,
+               virNodeInfoPtr nodeinfo)
+{
+    return nodeGetInfo(nodeinfo);
+}
+
+
+static int
+umlNodeGetCPUStats(virConnectPtr conn ATTRIBUTE_UNUSED,
+                   int cpuNum,
+                   virNodeCPUStatsPtr params,
+                   int *nparams,
+                   unsigned int flags)
+{
+    return nodeGetCPUStats(cpuNum, params, nparams, flags);
+}
+
+
+static int
+umlNodeGetMemoryStats(virConnectPtr conn ATTRIBUTE_UNUSED,
+                      int cellNum,
+                      virNodeMemoryStatsPtr params,
+                      int *nparams,
+                      unsigned int flags)
+{
+    return nodeGetMemoryStats(cellNum, params, nparams, flags);
+}
+
+
+static int
+umlNodeGetCellsFreeMemory(virConnectPtr conn ATTRIBUTE_UNUSED,
+                          unsigned long long *freeMems,
+                          int startCell,
+                          int maxCells)
+{
+    return nodeGetCellsFreeMemory(freeMems, startCell, maxCells);
+}
+
+
+static unsigned long long
+umlNodeGetFreeMemory(virConnectPtr conn ATTRIBUTE_UNUSED)
+{
+    return nodeGetFreeMemory();
+}
+
+
+static int
+umlNodeGetMemoryParameters(virConnectPtr conn ATTRIBUTE_UNUSED,
+                           virTypedParameterPtr params,
+                           int *nparams,
+                           unsigned int flags)
+{
+    return nodeGetMemoryParameters(params, nparams, flags);
+}
+
+
+static int
+umlNodeSetMemoryParameters(virConnectPtr conn ATTRIBUTE_UNUSED,
+                           virTypedParameterPtr params,
+                           int nparams,
+                           unsigned int flags)
+{
+    return nodeSetMemoryParameters(params, nparams, flags);
+}
+
+
+static int
+umlNodeGetCPUMap(virConnectPtr conn ATTRIBUTE_UNUSED,
+                 unsigned char **cpumap,
+                 unsigned int *online,
+                 unsigned int flags)
+{
+    return nodeGetCPUMap(cpumap, online, flags);
+}
+
+
+static int
+umlNodeSuspendForDuration(virConnectPtr conn ATTRIBUTE_UNUSED,
+                          unsigned int target,
+                          unsigned long long duration,
+                          unsigned int flags)
+{
+    return nodeSuspendForDuration(target, duration, flags);
+}
+
 
 static virDriver umlDriver = {
     .no = VIR_DRV_UML,
@@ -2597,8 +2688,8 @@ static virDriver umlDriver = {
     .connectClose = umlConnectClose, /* 0.5.0 */
     .connectGetType = umlConnectGetType, /* 0.5.0 */
     .connectGetVersion = umlConnectGetVersion, /* 0.5.0 */
-    .connectGetHostname = virGetHostname, /* 0.5.0 */
-    .nodeGetInfo = nodeGetInfo, /* 0.5.0 */
+    .connectGetHostname = umlConnectGetHostname, /* 0.5.0 */
+    .nodeGetInfo = umlNodeGetInfo, /* 0.5.0 */
     .connectGetCapabilities = umlConnectGetCapabilities, /* 0.5.0 */
     .connectListDomains = umlConnectListDomains, /* 0.5.0 */
     .connectNumOfDomains = umlConnectNumOfDomains, /* 0.5.0 */
@@ -2632,11 +2723,11 @@ static virDriver umlDriver = {
     .domainGetAutostart = umlDomainGetAutostart, /* 0.5.0 */
     .domainSetAutostart = umlDomainSetAutostart, /* 0.5.0 */
     .domainBlockPeek = umlDomainBlockPeek, /* 0.5.0 */
-    .nodeGetCPUStats = nodeGetCPUStats, /* 0.9.3 */
-    .nodeGetMemoryStats = nodeGetMemoryStats, /* 0.9.3 */
-    .nodeGetCellsFreeMemory = nodeGetCellsFreeMemory, /* 0.5.0 */
-    .nodeGetFreeMemory = nodeGetFreeMemory, /* 0.5.0 */
-    .nodeGetCPUMap = nodeGetCPUMap, /* 1.0.0 */
+    .nodeGetCPUStats = umlNodeGetCPUStats, /* 0.9.3 */
+    .nodeGetMemoryStats = umlNodeGetMemoryStats, /* 0.9.3 */
+    .nodeGetCellsFreeMemory = umlNodeGetCellsFreeMemory, /* 0.5.0 */
+    .nodeGetFreeMemory = umlNodeGetFreeMemory, /* 0.5.0 */
+    .nodeGetCPUMap = umlNodeGetCPUMap, /* 1.0.0 */
     .connectDomainEventRegister = umlConnectDomainEventRegister, /* 0.9.4 */
     .connectDomainEventDeregister = umlConnectDomainEventDeregister, /* 0.9.4 */
     .connectIsEncrypted = umlConnectIsEncrypted, /* 0.7.3 */
@@ -2648,9 +2739,9 @@ static virDriver umlDriver = {
     .connectDomainEventDeregisterAny = umlConnectDomainEventDeregisterAny, /* 0.9.4 */
     .domainOpenConsole = umlDomainOpenConsole, /* 0.8.6 */
     .connectIsAlive = umlConnectIsAlive, /* 0.9.8 */
-    .nodeSuspendForDuration = nodeSuspendForDuration, /* 0.9.8 */
-    .nodeGetMemoryParameters = nodeGetMemoryParameters, /* 0.10.2 */
-    .nodeSetMemoryParameters = nodeSetMemoryParameters, /* 0.10.2 */
+    .nodeSuspendForDuration = umlNodeSuspendForDuration, /* 0.9.8 */
+    .nodeGetMemoryParameters = umlNodeGetMemoryParameters, /* 0.10.2 */
+    .nodeSetMemoryParameters = umlNodeSetMemoryParameters, /* 0.10.2 */
 };
 
 static virStateDriver umlStateDriver = {

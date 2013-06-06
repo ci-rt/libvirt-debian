@@ -162,7 +162,7 @@
       access to content.
     </p>
         <h2>
-          <a name="goals" id="goals">Goals</a>
+          <a name="goals" shape="rect" id="goals">Goals</a>
         </h2>
         <p>
       The high level goal is to prevent the same disk image being
@@ -181,7 +181,7 @@
         due to libvirt driver bug on a single machine.
       </li></ol>
         <h2>
-          <a name="requirement" id="requirement">Requirements</a>
+          <a name="requirement" shape="rect" id="requirement">Requirements</a>
         </h2>
         <p>
       The high level goal leads to a set of requirements
@@ -205,7 +205,7 @@
         as determined by the management application.
       </li></ol>
         <h2>
-          <a name="design" id="design">Design</a>
+          <a name="design" shape="rect" id="design">Design</a>
         </h2>
         <p>
       Within a lock manager the following series of operations
@@ -233,14 +233,14 @@
         for all resources associated with the object
       </li></ul>
         <h2>
-          <a name="impl" id="impl">Plugin Implementations</a>
+          <a name="impl" shape="rect" id="impl">Plugin Implementations</a>
         </h2>
         <p>
       Lock manager implementations are provided as LGPLv2+
       licensed, dlopen()able library modules. The plugins
       will be loadable from the following location:
     </p>
-        <pre>
+        <pre xml:space="preserve">
 /usr/{lib,lib64}/libvirt/lock_manager/$NAME.so
 </pre>
         <p>
@@ -249,7 +249,7 @@
       a static instance of the <code>virLockDriver</code>
       struct. The struct is defined in the header file
     </p>
-        <pre>
+        <pre xml:space="preserve">
       #include &lt;libvirt/plugins/lock_manager.h&gt;
     </pre>
         <p>
@@ -259,14 +259,14 @@
       in the previously mentioned header file
     </p>
         <h2>
-          <a name="qemuIntegrate" id="qemuIntegrate">QEMU Driver integration</a>
+          <a name="qemuIntegrate" shape="rect" id="qemuIntegrate">QEMU Driver integration</a>
         </h2>
         <p>
       With the QEMU driver, the lock plugin will be set
       in the <code>/etc/libvirt/qemu.conf</code> configuration
       file by specifying the lock manager name.
     </p>
-        <pre>
+        <pre xml:space="preserve">
       lockManager="sanlock"
     </pre>
         <p>
@@ -274,7 +274,7 @@
       for backwards compatibility
     </p>
         <h2>
-          <a name="usagePatterns" id="usagePatterns">Lock usage patterns</a>
+          <a name="usagePatterns" shape="rect" id="usagePatterns">Lock usage patterns</a>
         </h2>
         <p>
       The following pseudo code illustrates the common
@@ -282,7 +282,7 @@
       manager plugin callbacks.
     </p>
         <h3>
-          <a name="usageLockAcquire" id="usageLockAcquire">Lock acquisition</a>
+          <a name="usageLockAcquire" shape="rect" id="usageLockAcquire">Lock acquisition</a>
         </h3>
         <p>
       Initial lock acquisition will be performed from the
@@ -292,7 +292,7 @@
       to an existing object holding locks, this will be
       done from the libvirtd process.
     </p>
-        <pre>
+        <pre xml:space="preserve">
       virLockManagerParam params[] = {
         { .type = VIR_LOCK_MANAGER_PARAM_TYPE_UUID,
           .key = "uuid",
@@ -329,14 +329,14 @@
         ...abort...
     </pre>
         <h3>
-          <a name="usageLockAttach" id="usageLockAttach">Lock release</a>
+          <a name="usageLockAttach" shape="rect" id="usageLockAttach">Lock release</a>
         </h3>
         <p>
       The locks are all implicitly released when the process
       that acquired them exits, however, a process may
       voluntarily give up the lock by running
     </p>
-        <pre>
+        <pre xml:space="preserve">
       char *state = NULL;
       virLockManagerParam params[] = {
         { .type = VIR_LOCK_MANAGER_PARAM_TYPE_UUID,

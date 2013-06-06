@@ -2,7 +2,7 @@
 /*
  * esx_driver.c: core driver functions for managing VMware ESX hosts
  *
- * Copyright (C) 2010-2012 Red Hat, Inc.
+ * Copyright (C) 2010-2013 Red Hat, Inc.
  * Copyright (C) 2009-2013 Matthias Bolte <matthias.bolte@googlemail.com>
  * Copyright (C) 2009 Maximilian Wilhelm <max@rfc2324.org>
  *
@@ -28,8 +28,8 @@
 #include "domain_conf.h"
 #include "snapshot_conf.h"
 #include "virauth.h"
-#include "virutil.h"
 #include "viralloc.h"
+#include "virfile.h"
 #include "virlog.h"
 #include "viruuid.h"
 #include "vmx.h"
@@ -45,6 +45,7 @@
 #include "esx_vi.h"
 #include "esx_vi_methods.h"
 #include "esx_util.h"
+#include "virstring.h"
 #include "viruri.h"
 
 #define VIR_FROM_THIS VIR_FROM_ESX
@@ -182,7 +183,7 @@ esxParseVMXFileName(const char *fileName, void *opaque)
                 ++tmp;
             }
 
-            if (esxVI_String_DeepCopyValue(&strippedFileName, tmp) < 0) {
+            if (VIR_STRDUP(strippedFileName, tmp) < 0) {
                 goto cleanup;
             }
 
@@ -208,7 +209,7 @@ esxParseVMXFileName(const char *fileName, void *opaque)
 
         /* Fallback to direct datastore name match */
         if (result == NULL && STRPREFIX(fileName, "/vmfs/volumes/")) {
-            if (esxVI_String_DeepCopyValue(&copyOfFileName, fileName) < 0) {
+            if (VIR_STRDUP(copyOfFileName, fileName) < 0) {
                 goto cleanup;
             }
 
@@ -247,7 +248,7 @@ esxParseVMXFileName(const char *fileName, void *opaque)
         /* If it's an absolute path outside of a datastore just use it as is */
         if (result == NULL && *fileName == '/') {
             /* FIXME: need to deal with Windows paths here too */
-            if (esxVI_String_DeepCopyValue(&result, fileName) < 0) {
+            if (VIR_STRDUP(result, fileName) < 0) {
                 goto cleanup;
             }
         }
@@ -352,7 +353,7 @@ esxFormatVMXFileName(const char *fileName, void *opaque)
         result = virBufferContentAndReset(&buffer);
     } else if (*fileName == '/') {
         /* FIXME: need to deal with Windows paths here too */
-        if (esxVI_String_DeepCopyValue(&result, fileName) < 0) {
+        if (VIR_STRDUP(result, fileName) < 0) {
             goto cleanup;
         }
     } else {
@@ -669,12 +670,8 @@ esxConnectToHost(esxPrivate *priv,
     }
 
     if (conn->uri->user != NULL) {
-        username = strdup(conn->uri->user);
-
-        if (username == NULL) {
-            virReportOOMError();
+        if (VIR_STRDUP(username, conn->uri->user) < 0)
             goto cleanup;
-        }
     } else {
         username = virAuthGetUsername(conn, auth, "esx", "root", conn->uri->server);
 
@@ -751,14 +748,8 @@ esxConnectToHost(esxPrivate *priv,
         VIR_WARN("The server is in maintenance mode");
     }
 
-    if (*vCenterIpAddress != NULL) {
-        *vCenterIpAddress = strdup(*vCenterIpAddress);
-
-        if (*vCenterIpAddress == NULL) {
-            virReportOOMError();
-            goto cleanup;
-        }
-    }
+    if (VIR_STRDUP(*vCenterIpAddress, *vCenterIpAddress) < 0)
+        goto cleanup;
 
     result = 0;
 
@@ -801,10 +792,7 @@ esxConnectToVCenter(esxPrivate *priv,
     }
 
     if (conn->uri->user != NULL) {
-        username = strdup(conn->uri->user);
-
-        if (username == NULL) {
-            virReportOOMError();
+        if (VIR_STRDUP(username, conn->uri->user) < 0) {
             goto cleanup;
         }
     } else {
@@ -1278,12 +1266,8 @@ esxConnectGetHostname(virConnectPtr conn)
     }
 
     if (domainName == NULL || strlen(domainName) < 1) {
-        complete = strdup(hostName);
-
-        if (complete == NULL) {
-            virReportOOMError();
+        if (VIR_STRDUP(complete, hostName) < 0)
             goto cleanup;
-        }
     } else {
         if (virAsprintf(&complete, "%s.%s", hostName, domainName) < 0) {
             virReportOOMError();
@@ -1294,7 +1278,7 @@ esxConnectGetHostname(virConnectPtr conn)
   cleanup:
     /*
      * If we goto cleanup in case of an error then complete is still NULL,
-     * either strdup returned NULL or virAsprintf failed. When virAsprintf
+     * either VIR_STRDUP returned -1 or virAsprintf failed. When virAsprintf
      * fails it guarantees setting complete to NULL
      */
     esxVI_String_Free(&propertyNameList);
@@ -2016,13 +2000,9 @@ esxDomainDestroy(virDomainPtr dom)
 static char *
 esxDomainGetOSType(virDomainPtr domain ATTRIBUTE_UNUSED)
 {
-    char *osType = strdup("hvm");
+    char *osType;
 
-    if (osType == NULL) {
-        virReportOOMError();
-        return NULL;
-    }
-
+    ignore_value(VIR_STRDUP(osType, "hvm"));
     return osType;
 }
 
@@ -3577,12 +3557,10 @@ esxDomainSetAutostart(virDomainPtr domain, int autostart)
 static char *
 esxDomainGetSchedulerType(virDomainPtr domain ATTRIBUTE_UNUSED, int *nparams)
 {
-    char *type = strdup("allocation");
+    char *type;
 
-    if (type == NULL) {
-        virReportOOMError();
+    if (VIR_STRDUP(type, "allocation") < 0)
         return NULL;
-    }
 
     if (nparams != NULL) {
         *nparams = 3; /* reservation, limit, shares */

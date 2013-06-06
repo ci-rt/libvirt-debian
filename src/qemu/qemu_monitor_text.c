@@ -40,6 +40,7 @@
 #include "datatypes.h"
 #include "virerror.h"
 #include "virbuffer.h"
+#include "virstring.h"
 
 #ifdef WITH_DTRACE_PROBES
 # include "libvirt_qemu_probes.h"
@@ -167,7 +168,7 @@ int qemuMonitorTextIOProcess(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
 
                     /* Blank out the password prompt so we don't re-trigger
                      * if we have to go back to sleep for more I/O */
-                    for (i = 0 ; i < strlen(PASSWORD_PROMPT) ; i++)
+                    for (i = 0; i < strlen(PASSWORD_PROMPT); i++)
                         start[i] = ' ';
 
                     /* Handled, so skip forward over password prompt */
@@ -257,11 +258,8 @@ qemuMonitorTextCommandWithHandler(qemuMonitorPtr mon,
         if (msg.rxBuffer) {
             *reply = msg.rxBuffer;
         } else {
-            *reply = strdup("");
-            if (!*reply) {
-                virReportOOMError();
+            if (VIR_STRDUP(*reply, "") < 0)
                 return -1;
-            }
         }
     }
 
@@ -329,10 +327,8 @@ qemuMonitorSendDiskPassphrase(qemuMonitorPtr mon,
 
     /* Extra the path */
     pathStart += strlen(DISK_ENCRYPTION_PREFIX);
-    if (!(path = strndup(pathStart, pathEnd - pathStart))) {
-        virReportOOMError();
+    if (VIR_STRNDUP(path, pathStart, pathEnd - pathStart) < 0)
         return -1;
-    }
 
     /* Fetch the disk password if possible */
     res = qemuMonitorGetDiskSecret(mon,
@@ -2282,11 +2278,9 @@ int qemuMonitorTextGetPtyPaths(qemuMonitorPtr mon,
 
         /* Path is everything after needle to the end of the line */
         *eol = '\0';
-        char *path = strdup(needle + strlen(NEEDLE));
-        if (path == NULL) {
-            virReportOOMError();
+        char *path;
+        if (VIR_STRDUP(path, needle + strlen(NEEDLE)) < 0)
             goto cleanup;
-        }
 
         if (virHashAddEntry(paths, id, path) < 0) {
             virReportError(VIR_ERR_OPERATION_FAILED,

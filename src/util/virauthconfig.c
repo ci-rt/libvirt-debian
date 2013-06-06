@@ -26,10 +26,9 @@
 
 #include "virkeyfile.h"
 #include "viralloc.h"
-#include "virutil.h"
 #include "virlog.h"
 #include "virerror.h"
-
+#include "virstring.h"
 
 struct _virAuthConfig {
     virKeyFilePtr keyfile;
@@ -48,10 +47,8 @@ virAuthConfigPtr virAuthConfigNew(const char *path)
         goto error;
     }
 
-    if (!(auth->path = strdup(path))) {
-        virReportOOMError();
+    if (VIR_STRDUP(auth->path, path) < 0)
         goto error;
-    }
 
     if (!(auth->keyfile = virKeyFileNew()))
         goto error;
@@ -78,10 +75,8 @@ virAuthConfigPtr virAuthConfigNewData(const char *path,
         goto error;
     }
 
-    if (!(auth->path = strdup(path))) {
-        virReportOOMError();
+    if (VIR_STRDUP(auth->path, path) < 0)
         goto error;
-    }
 
     if (!(auth->keyfile = virKeyFileNew()))
         goto error;

@@ -30,8 +30,9 @@
 #include "virlog.h"
 #include "viralloc.h"
 #include "virerror.h"
-#include "virutil.h"
 #include "domain_audit.h"
+#include "virscsi.h"
+#include "virstring.h"
 
 #define VIR_FROM_THIS VIR_FROM_QEMU
 
@@ -214,6 +215,33 @@ qemuSetupHostUsbDeviceCgroup(virUSBDevicePtr dev ATTRIBUTE_UNUSED,
     return 0;
 }
 
+static int
+qemuSetupHostScsiDeviceCgroup(virSCSIDevicePtr dev ATTRIBUTE_UNUSED,
+                              const char *path,
+                              void *opaque)
+{
+    virDomainObjPtr vm = opaque;
+    qemuDomainObjPrivatePtr priv = vm->privateData;
+    int rc;
+
+    VIR_DEBUG("Process path '%s' for SCSI device", path);
+
+    rc = virCgroupAllowDevicePath(priv->cgroup, path,
+                                  virSCSIDeviceGetReadonly(dev) ?
+                                  VIR_CGROUP_DEVICE_READ :
+                                  VIR_CGROUP_DEVICE_RW);
+
+    virDomainAuditCgroupPath(vm, priv->cgroup, "allow", path,
+                             virSCSIDeviceGetReadonly(dev) ? "r" : "rw", rc);
+    if (rc < 0) {
+        virReportSystemError(-rc,
+                             _("Unable to allow device %s"),
+                             path);
+        return -1;
+    }
+
+    return 0;
+}
 
 int
 qemuSetupHostdevCGroup(virDomainObjPtr vm,
@@ -223,6 +251,7 @@ qemuSetupHostdevCGroup(virDomainObjPtr vm,
     qemuDomainObjPrivatePtr priv = vm->privateData;
     virPCIDevicePtr pci = NULL;
     virUSBDevicePtr usb = NULL;
+    virSCSIDevicePtr scsi = NULL;
     char *path = NULL;
 
     /* currently this only does something for PCI devices using vfio
@@ -238,7 +267,7 @@ qemuSetupHostdevCGroup(virDomainObjPtr vm,
         switch (dev->source.subsys.type) {
         case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI:
             if (dev->source.subsys.u.pci.backend
-                != VIR_DOMAIN_HOSTDEV_PCI_BACKEND_VFIO) {
+                == VIR_DOMAIN_HOSTDEV_PCI_BACKEND_VFIO) {
                 int rc;
 
                 pci = virPCIDeviceNew(dev->source.subsys.u.pci.addr.domain,
@@ -287,6 +316,20 @@ qemuSetupHostdevCGroup(virDomainObjPtr vm,
                 goto cleanup;
             }
             break;
+
+        case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_SCSI:
+            if ((scsi = virSCSIDeviceNew(dev->source.subsys.u.scsi.adapter,
+                                         dev->source.subsys.u.scsi.bus,
+                                         dev->source.subsys.u.scsi.target,
+                                         dev->source.subsys.u.scsi.unit,
+                                         dev->readonly)) == NULL)
+                goto cleanup;
+
+            if (virSCSIDeviceFileIterate(scsi,
+                                         qemuSetupHostScsiDeviceCgroup,
+                                         vm) < 0)
+                goto cleanup;
+
         default:
             break;
         }
@@ -296,11 +339,10 @@ qemuSetupHostdevCGroup(virDomainObjPtr vm,
 cleanup:
     virPCIDeviceFree(pci);
     virUSBDeviceFree(usb);
+    virSCSIDeviceFree(scsi);
     VIR_FREE(path);
     return ret;
 }
-
-
 
 int
 qemuTeardownHostdevCgroup(virDomainObjPtr vm,
@@ -324,7 +366,7 @@ qemuTeardownHostdevCgroup(virDomainObjPtr vm,
         switch (dev->source.subsys.type) {
         case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI:
             if (dev->source.subsys.u.pci.backend
-                != VIR_DOMAIN_HOSTDEV_PCI_BACKEND_VFIO) {
+                == VIR_DOMAIN_HOSTDEV_PCI_BACKEND_VFIO) {
                 int rc;
 
                 pci = virPCIDeviceNew(dev->source.subsys.u.pci.addr.domain,
@@ -366,6 +408,273 @@ cleanup:
     return ret;
 }
 
+static int
+qemuSetupBlkioCgroup(virDomainObjPtr vm)
+{
+    qemuDomainObjPrivatePtr priv = vm->privateData;
+    int rc = -1;
+    int i;
+
+    if (!virCgroupHasController(priv->cgroup,
+                                VIR_CGROUP_CONTROLLER_BLKIO)) {
+        if (vm->def->blkio.weight || vm->def->blkio.ndevices) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("Block I/O tuning is not available on this host"));
+            return -1;
+        } else {
+            return 0;
+        }
+    }
+
+    if (vm->def->blkio.weight != 0) {
+        rc = virCgroupSetBlkioWeight(priv->cgroup, vm->def->blkio.weight);
+        if (rc != 0) {
+            virReportSystemError(-rc,
+                                 _("Unable to set io weight for domain %s"),
+                                 vm->def->name);
+            return -1;
+        }
+    }
+
+    if (vm->def->blkio.ndevices) {
+        for (i = 0; i < vm->def->blkio.ndevices; i++) {
+            virBlkioDeviceWeightPtr dw = &vm->def->blkio.devices[i];
+            if (!dw->weight)
+                continue;
+            rc = virCgroupSetBlkioDeviceWeight(priv->cgroup, dw->path,
+                                               dw->weight);
+            if (rc != 0) {
+                virReportSystemError(-rc,
+                                     _("Unable to set io device weight "
+                                       "for domain %s"),
+                                     vm->def->name);
+                return -1;
+            }
+        }
+    }
+
+    return 0;
+}
+
+
+static int
+qemuSetupMemoryCgroup(virDomainObjPtr vm)
+{
+    qemuDomainObjPrivatePtr priv = vm->privateData;
+    unsigned long long hard_limit;
+    int rc;
+    int i;
+
+    if (!virCgroupHasController(priv->cgroup,VIR_CGROUP_CONTROLLER_MEMORY)) {
+        if (vm->def->mem.hard_limit != 0 ||
+            vm->def->mem.soft_limit != 0 ||
+            vm->def->mem.swap_hard_limit != 0) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("Memory cgroup is not available on this host"));
+            return -1;
+        } else {
+            return 0;
+        }
+    }
+
+    hard_limit = vm->def->mem.hard_limit;
+    if (!hard_limit) {
+        /* If there is no hard_limit set, set a reasonable one to avoid
+         * system thrashing caused by exploited qemu.  A 'reasonable
+         * limit' has been chosen:
+         *     (1 + k) * (domain memory + total video memory) + (32MB for
+         *     cache per each disk) + F
+         * where k = 0.5 and F = 200MB.  The cache for disks is important as
+         * kernel cache on the host side counts into the RSS limit. */
+        hard_limit = vm->def->mem.max_balloon;
+        for (i = 0; i < vm->def->nvideos; i++)
+            hard_limit += vm->def->videos[i]->vram;
+        hard_limit = hard_limit * 1.5 + 204800;
+        hard_limit += vm->def->ndisks * 32768;
+    }
+
+    rc = virCgroupSetMemoryHardLimit(priv->cgroup, hard_limit);
+    if (rc != 0) {
+        virReportSystemError(-rc,
+                             _("Unable to set memory hard limit for domain %s"),
+                             vm->def->name);
+        return -1;
+    }
+    if (vm->def->mem.soft_limit != 0) {
+        rc = virCgroupSetMemorySoftLimit(priv->cgroup, vm->def->mem.soft_limit);
+        if (rc != 0) {
+            virReportSystemError(-rc,
+                                 _("Unable to set memory soft limit for domain %s"),
+                                 vm->def->name);
+            return -1;
+        }
+    }
+
+    if (vm->def->mem.swap_hard_limit != 0) {
+        rc = virCgroupSetMemSwapHardLimit(priv->cgroup, vm->def->mem.swap_hard_limit);
+        if (rc != 0) {
+            virReportSystemError(-rc,
+                                 _("Unable to set swap hard limit for domain %s"),
+                                 vm->def->name);
+            return -1;
+        }
+    }
+
+    return 0;
+}
+
+
+static int
+qemuSetupDevicesCgroup(virQEMUDriverPtr driver,
+                       virDomainObjPtr vm)
+{
+    qemuDomainObjPrivatePtr priv = vm->privateData;
+    virQEMUDriverConfigPtr cfg = NULL;
+    const char *const *deviceACL = NULL;
+    int rc = -1;
+    int ret = -1;
+    int i;
+
+    if (!virCgroupHasController(priv->cgroup, VIR_CGROUP_CONTROLLER_DEVICES))
+        return 0;
+
+    rc = virCgroupDenyAllDevices(priv->cgroup);
+    virDomainAuditCgroup(vm, priv->cgroup, "deny", "all", rc == 0);
+    if (rc != 0) {
+        if (rc == -EPERM) {
+            VIR_WARN("Group devices ACL is not accessible, disabling whitelisting");
+            return 0;
+        }
+
+        virReportSystemError(-rc,
+                             _("Unable to deny all devices for %s"), vm->def->name);
+        goto cleanup;
+    }
+
+    for (i = 0; i < vm->def->ndisks; i++) {
+        if (qemuSetupDiskCgroup(vm, vm->def->disks[i]) < 0)
+            goto cleanup;
+    }
+
+    rc = virCgroupAllowDeviceMajor(priv->cgroup, 'c', DEVICE_PTY_MAJOR,
+                                   VIR_CGROUP_DEVICE_RW);
+    virDomainAuditCgroupMajor(vm, priv->cgroup, "allow", DEVICE_PTY_MAJOR,
+                              "pty", "rw", rc == 0);
+    if (rc != 0) {
+        virReportSystemError(-rc, "%s",
+                             _("unable to allow /dev/pts/ devices"));
+        goto cleanup;
+    }
+
+    cfg = virQEMUDriverGetConfig(driver);
+    deviceACL = cfg->cgroupDeviceACL ?
+                (const char *const *)cfg->cgroupDeviceACL :
+                defaultDeviceACL;
+
+    if (vm->def->nsounds &&
+        (!vm->def->ngraphics ||
+         ((vm->def->graphics[0]->type == VIR_DOMAIN_GRAPHICS_TYPE_VNC &&
+           cfg->vncAllowHostAudio) ||
+           (vm->def->graphics[0]->type == VIR_DOMAIN_GRAPHICS_TYPE_SDL)))) {
+        rc = virCgroupAllowDeviceMajor(priv->cgroup, 'c', DEVICE_SND_MAJOR,
+                                       VIR_CGROUP_DEVICE_RW);
+        virDomainAuditCgroupMajor(vm, priv->cgroup, "allow", DEVICE_SND_MAJOR,
+                                  "sound", "rw", rc == 0);
+        if (rc != 0) {
+            virReportSystemError(-rc, "%s",
+                                     _("unable to allow /dev/snd/ devices"));
+            goto cleanup;
+        }
+    }
+
+    for (i = 0; deviceACL[i] != NULL; i++) {
+        if (access(deviceACL[i], F_OK) < 0) {
+            VIR_DEBUG("Ignoring non-existant device %s",
+                      deviceACL[i]);
+            continue;
+        }
+
+        rc = virCgroupAllowDevicePath(priv->cgroup, deviceACL[i],
+                                      VIR_CGROUP_DEVICE_RW);
+        virDomainAuditCgroupPath(vm, priv->cgroup, "allow", deviceACL[i], "rw", rc);
+        if (rc < 0 &&
+            rc != -ENOENT) {
+            virReportSystemError(-rc,
+                                 _("unable to allow device %s"),
+                                 deviceACL[i]);
+            goto cleanup;
+        }
+    }
+
+    if (virDomainChrDefForeach(vm->def,
+                               true,
+                               qemuSetupChardevCgroup,
+                               vm) < 0)
+        goto cleanup;
+
+    if (vm->def->tpm &&
+        (qemuSetupTPMCgroup(vm->def,
+                            vm->def->tpm,
+                            vm) < 0))
+        goto cleanup;
+
+    for (i = 0; i < vm->def->nhostdevs; i++) {
+        if (qemuSetupHostdevCGroup(vm, vm->def->hostdevs[i]) < 0)
+            goto cleanup;
+    }
+
+    ret = 0;
+cleanup:
+    virObjectUnref(cfg);
+    return ret;
+}
+
+
+static int
+qemuSetupCpusetCgroup(virDomainObjPtr vm,
+                      virBitmapPtr nodemask)
+{
+    qemuDomainObjPrivatePtr priv = vm->privateData;
+    char *mask = NULL;
+    int rc;
+    int ret = -1;
+
+    if (!virCgroupHasController(priv->cgroup, VIR_CGROUP_CONTROLLER_CPUSET))
+        return 0;
+
+    if ((vm->def->numatune.memory.nodemask ||
+         (vm->def->numatune.memory.placement_mode ==
+          VIR_NUMA_TUNE_MEM_PLACEMENT_MODE_AUTO)) &&
+        vm->def->numatune.memory.mode == VIR_DOMAIN_NUMATUNE_MEM_STRICT) {
+
+        if (vm->def->numatune.memory.placement_mode ==
+            VIR_NUMA_TUNE_MEM_PLACEMENT_MODE_AUTO)
+            mask = virBitmapFormat(nodemask);
+        else
+            mask = virBitmapFormat(vm->def->numatune.memory.nodemask);
+
+        if (!mask) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("failed to convert memory nodemask"));
+            goto cleanup;
+        }
+
+        rc = virCgroupSetCpusetMems(priv->cgroup, mask);
+
+        if (rc != 0) {
+            virReportSystemError(-rc,
+                                 _("Unable to set cpuset.mems for domain %s"),
+                                 vm->def->name);
+            goto cleanup;
+        }
+    }
+
+    ret = 0;
+cleanup:
+    VIR_FREE(mask);
+    return ret;
+}
+
 
 int qemuInitCgroup(virQEMUDriverPtr driver,
                    virDomainObjPtr vm,
@@ -389,8 +698,7 @@ int qemuInitCgroup(virQEMUDriverPtr driver,
             goto cleanup;
         }
 
-        if (!(res->partition = strdup("/machine"))) {
-            virReportOOMError();
+        if (VIR_STRDUP(res->partition, "/machine") < 0) {
             VIR_FREE(res);
             goto cleanup;
         }
@@ -482,13 +790,7 @@ int qemuSetupCgroup(virQEMUDriverPtr driver,
                     virBitmapPtr nodemask)
 {
     int rc = -1;
-    unsigned int i;
-    virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
     qemuDomainObjPrivatePtr priv = vm->privateData;
-    const char *const *deviceACL =
-        cfg->cgroupDeviceACL ?
-        (const char *const *)cfg->cgroupDeviceACL :
-        defaultDeviceACL;
 
     if (qemuInitCgroup(driver, vm, true) < 0)
         return -1;
@@ -496,179 +798,14 @@ int qemuSetupCgroup(virQEMUDriverPtr driver,
     if (!priv->cgroup)
         goto done;
 
-    if (virCgroupHasController(priv->cgroup, VIR_CGROUP_CONTROLLER_DEVICES)) {
-        rc = virCgroupDenyAllDevices(priv->cgroup);
-        virDomainAuditCgroup(vm, priv->cgroup, "deny", "all", rc == 0);
-        if (rc != 0) {
-            if (rc == -EPERM) {
-                VIR_WARN("Group devices ACL is not accessible, disabling whitelisting");
-                goto done;
-            }
+    if (qemuSetupDevicesCgroup(driver, vm) < 0)
+        goto cleanup;
 
-            virReportSystemError(-rc,
-                                 _("Unable to deny all devices for %s"), vm->def->name);
-            goto cleanup;
-        }
+    if (qemuSetupBlkioCgroup(vm) < 0)
+        goto cleanup;
 
-        for (i = 0; i < vm->def->ndisks ; i++) {
-            if (qemuSetupDiskCgroup(vm, vm->def->disks[i]) < 0)
-                goto cleanup;
-        }
-
-        rc = virCgroupAllowDeviceMajor(priv->cgroup, 'c', DEVICE_PTY_MAJOR,
-                                       VIR_CGROUP_DEVICE_RW);
-        virDomainAuditCgroupMajor(vm, priv->cgroup, "allow", DEVICE_PTY_MAJOR,
-                                  "pty", "rw", rc == 0);
-        if (rc != 0) {
-            virReportSystemError(-rc, "%s",
-                                 _("unable to allow /dev/pts/ devices"));
-            goto cleanup;
-        }
-
-        if (vm->def->nsounds &&
-            (!vm->def->ngraphics ||
-             ((vm->def->graphics[0]->type == VIR_DOMAIN_GRAPHICS_TYPE_VNC &&
-               cfg->vncAllowHostAudio) ||
-              (vm->def->graphics[0]->type == VIR_DOMAIN_GRAPHICS_TYPE_SDL)))) {
-            rc = virCgroupAllowDeviceMajor(priv->cgroup, 'c', DEVICE_SND_MAJOR,
-                                           VIR_CGROUP_DEVICE_RW);
-            virDomainAuditCgroupMajor(vm, priv->cgroup, "allow", DEVICE_SND_MAJOR,
-                                      "sound", "rw", rc == 0);
-            if (rc != 0) {
-                virReportSystemError(-rc, "%s",
-                                     _("unable to allow /dev/snd/ devices"));
-                goto cleanup;
-            }
-        }
-
-        for (i = 0; deviceACL[i] != NULL ; i++) {
-            if (access(deviceACL[i], F_OK) < 0) {
-                VIR_DEBUG("Ignoring non-existant device %s",
-                          deviceACL[i]);
-                continue;
-            }
-
-            rc = virCgroupAllowDevicePath(priv->cgroup, deviceACL[i],
-                                          VIR_CGROUP_DEVICE_RW);
-            virDomainAuditCgroupPath(vm, priv->cgroup, "allow", deviceACL[i], "rw", rc);
-            if (rc < 0 &&
-                rc != -ENOENT) {
-                virReportSystemError(-rc,
-                                     _("unable to allow device %s"),
-                                     deviceACL[i]);
-                goto cleanup;
-            }
-        }
-
-        if (virDomainChrDefForeach(vm->def,
-                                   true,
-                                   qemuSetupChardevCgroup,
-                                   vm) < 0)
-            goto cleanup;
-
-        if (vm->def->tpm &&
-            (qemuSetupTPMCgroup(vm->def,
-                               vm->def->tpm,
-                                vm) < 0))
-            goto cleanup;
-
-        for (i = 0; i < vm->def->nhostdevs; i++) {
-            if (qemuSetupHostdevCGroup(vm, vm->def->hostdevs[i]) < 0)
-                goto cleanup;
-        }
-    }
-
-    if (vm->def->blkio.weight != 0) {
-        if (virCgroupHasController(priv->cgroup, VIR_CGROUP_CONTROLLER_BLKIO)) {
-            rc = virCgroupSetBlkioWeight(priv->cgroup, vm->def->blkio.weight);
-            if (rc != 0) {
-                virReportSystemError(-rc,
-                                     _("Unable to set io weight for domain %s"),
-                                     vm->def->name);
-                goto cleanup;
-            }
-        } else {
-            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                           _("Block I/O tuning is not available on this host"));
-            goto cleanup;
-        }
-    }
-
-    if (vm->def->blkio.ndevices) {
-        if (virCgroupHasController(priv->cgroup, VIR_CGROUP_CONTROLLER_BLKIO)) {
-            for (i = 0; i < vm->def->blkio.ndevices; i++) {
-                virBlkioDeviceWeightPtr dw = &vm->def->blkio.devices[i];
-                if (!dw->weight)
-                    continue;
-                rc = virCgroupSetBlkioDeviceWeight(priv->cgroup, dw->path,
-                                                   dw->weight);
-                if (rc != 0) {
-                    virReportSystemError(-rc,
-                                         _("Unable to set io device weight "
-                                           "for domain %s"),
-                                         vm->def->name);
-                    goto cleanup;
-                }
-            }
-        } else {
-            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                           _("Block I/O tuning is not available on this host"));
-            goto cleanup;
-        }
-    }
-
-    if (virCgroupHasController(priv->cgroup, VIR_CGROUP_CONTROLLER_MEMORY)) {
-        unsigned long long hard_limit = vm->def->mem.hard_limit;
-
-        if (!hard_limit) {
-            /* If there is no hard_limit set, set a reasonable one to avoid
-             * system thrashing caused by exploited qemu.  A 'reasonable
-             * limit' has been chosen:
-             *     (1 + k) * (domain memory + total video memory) + (32MB for
-             *     cache per each disk) + F
-             * where k = 0.5 and F = 200MB.  The cache for disks is important as
-             * kernel cache on the host side counts into the RSS limit. */
-            hard_limit = vm->def->mem.max_balloon;
-            for (i = 0; i < vm->def->nvideos; i++)
-                hard_limit += vm->def->videos[i]->vram;
-            hard_limit = hard_limit * 1.5 + 204800;
-            hard_limit += vm->def->ndisks * 32768;
-        }
-
-        rc = virCgroupSetMemoryHardLimit(priv->cgroup, hard_limit);
-        if (rc != 0) {
-            virReportSystemError(-rc,
-                                 _("Unable to set memory hard limit for domain %s"),
-                                 vm->def->name);
-            goto cleanup;
-        }
-        if (vm->def->mem.soft_limit != 0) {
-            rc = virCgroupSetMemorySoftLimit(priv->cgroup, vm->def->mem.soft_limit);
-            if (rc != 0) {
-                virReportSystemError(-rc,
-                                     _("Unable to set memory soft limit for domain %s"),
-                                     vm->def->name);
-                goto cleanup;
-            }
-        }
-
-        if (vm->def->mem.swap_hard_limit != 0) {
-            rc = virCgroupSetMemSwapHardLimit(priv->cgroup, vm->def->mem.swap_hard_limit);
-            if (rc != 0) {
-                virReportSystemError(-rc,
-                                     _("Unable to set swap hard limit for domain %s"),
-                                     vm->def->name);
-                goto cleanup;
-            }
-        }
-    } else if (vm->def->mem.hard_limit != 0 ||
-               vm->def->mem.soft_limit != 0 ||
-               vm->def->mem.swap_hard_limit != 0) {
-        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                       _("Memory cgroup is not available on this host"));
-    } else {
-        VIR_WARN("Could not autoset a RSS limit for domain %s", vm->def->name);
-    }
+    if (qemuSetupMemoryCgroup(vm) < 0)
+        goto cleanup;
 
     if (vm->def->cputune.shares != 0) {
         if (virCgroupHasController(priv->cgroup, VIR_CGROUP_CONTROLLER_CPU)) {
@@ -685,37 +822,12 @@ int qemuSetupCgroup(virQEMUDriverPtr driver,
         }
     }
 
-    if ((vm->def->numatune.memory.nodemask ||
-         (vm->def->numatune.memory.placement_mode ==
-          VIR_NUMA_TUNE_MEM_PLACEMENT_MODE_AUTO)) &&
-        vm->def->numatune.memory.mode == VIR_DOMAIN_NUMATUNE_MEM_STRICT &&
-        virCgroupHasController(priv->cgroup, VIR_CGROUP_CONTROLLER_CPUSET)) {
-        char *mask = NULL;
-        if (vm->def->numatune.memory.placement_mode ==
-            VIR_NUMA_TUNE_MEM_PLACEMENT_MODE_AUTO)
-            mask = virBitmapFormat(nodemask);
-        else
-            mask = virBitmapFormat(vm->def->numatune.memory.nodemask);
-        if (!mask) {
-            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                           _("failed to convert memory nodemask"));
-            goto cleanup;
-        }
-
-        rc = virCgroupSetCpusetMems(priv->cgroup, mask);
-        VIR_FREE(mask);
-        if (rc != 0) {
-            virReportSystemError(-rc,
-                                 _("Unable to set cpuset.mems for domain %s"),
-                                 vm->def->name);
-            goto cleanup;
-        }
-    }
+    if (qemuSetupCpusetCgroup(vm, nodemask) < 0)
+        goto cleanup;
 
 done:
     rc = 0;
 cleanup:
-    virObjectUnref(cfg);
     return rc == 0 ? 0 : -1;
 }
 

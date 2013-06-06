@@ -160,6 +160,7 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/md5.m4 \
 	$(top_srcdir)/gnulib/m4/memchr.m4 \
 	$(top_srcdir)/gnulib/m4/mgetgroups.m4 \
+	$(top_srcdir)/gnulib/m4/mkdtemp.m4 \
 	$(top_srcdir)/gnulib/m4/mkostemp.m4 \
 	$(top_srcdir)/gnulib/m4/mkostemps.m4 \
 	$(top_srcdir)/gnulib/m4/mktime.m4 \
@@ -168,6 +169,7 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/msvc-inval.m4 \
 	$(top_srcdir)/gnulib/m4/msvc-nothrow.m4 \
 	$(top_srcdir)/gnulib/m4/multiarch.m4 \
+	$(top_srcdir)/gnulib/m4/nanosleep.m4 \
 	$(top_srcdir)/gnulib/m4/net_if_h.m4 \
 	$(top_srcdir)/gnulib/m4/netdb_h.m4 \
 	$(top_srcdir)/gnulib/m4/netinet_in_h.m4 \
@@ -335,10 +337,9 @@ am_virsh_OBJECTS = virsh-console.$(OBJEXT) virsh-virsh.$(OBJEXT) \
 virsh_OBJECTS = $(am_virsh_OBJECTS)
 am__DEPENDENCIES_1 =
 virsh_DEPENDENCIES = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
-	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) ../src/libvirt.la \
-	../src/libvirt-lxc.la ../src/libvirt-qemu.la \
-	../gnulib/lib/libgnu.la $(am__DEPENDENCIES_1) \
-	$(am__DEPENDENCIES_1) $(am__append_2)
+	$(am__DEPENDENCIES_1) ../src/libvirt.la ../src/libvirt-lxc.la \
+	../src/libvirt-qemu.la ../gnulib/lib/libgnu.la \
+	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) $(am__append_2)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
@@ -485,7 +486,7 @@ DLLTOOL = @DLLTOOL@
 DLOPEN_LIBS = @DLOPEN_LIBS@
 DMSETUP = @DMSETUP@
 DNSMASQ = @DNSMASQ@
-DRIVER_MODULE_CFLAGS = @DRIVER_MODULE_CFLAGS@
+DRIVER_MODULE_LDFLAGS = @DRIVER_MODULE_LDFLAGS@
 DRIVER_MODULE_LIBS = @DRIVER_MODULE_LIBS@
 DSYMUTIL = @DSYMUTIL@
 DTRACE = @DTRACE@
@@ -1331,6 +1332,7 @@ LIBXML_LIBS = @LIBXML_LIBS@
 LIB_CLOCK_GETTIME = @LIB_CLOCK_GETTIME@
 LIB_EXECINFO = @LIB_EXECINFO@
 LIB_FDATASYNC = @LIB_FDATASYNC@
+LIB_NANOSLEEP = @LIB_NANOSLEEP@
 LIB_POLL = @LIB_POLL@
 LIB_PTHREAD = @LIB_PTHREAD@
 LIB_PTHREAD_SIGMASK = @LIB_PTHREAD_SIGMASK@
@@ -1766,7 +1768,6 @@ VGS = @VGS@
 VGSCAN = @VGSCAN@
 VIRSH_LIBS = @VIRSH_LIBS@
 WARN_CFLAGS = @WARN_CFLAGS@
-WARN_LDFLAGS = @WARN_LDFLAGS@
 WARN_PYTHON_CFLAGS = @WARN_PYTHON_CFLAGS@
 WCHAR_T_SUFFIX = @WCHAR_T_SUFFIX@
 WIN32_EXTRA_CFLAGS = @WIN32_EXTRA_CFLAGS@
@@ -1892,7 +1893,6 @@ virt_host_validate_SOURCES = \
 		$(NULL)
 
 virt_host_validate_LDFLAGS = \
-		$(WARN_LDFLAGS) \
 		$(PIE_LDFLAGS) \
 		$(RELRO_LDFLAGS) \
 		$(COVERAGE_LDFLAGS) \
@@ -1925,11 +1925,11 @@ virsh_SOURCES = \
 		virsh-volume.c virsh-volume.h			\
 		$(NULL)
 
-virsh_LDFLAGS = $(WARN_LDFLAGS) $(COVERAGE_LDFLAGS)
-virsh_LDADD = $(STATIC_BINARIES) $(WARN_LDFLAGS) $(PIE_LDFLAGS) \
-	$(RELRO_LDFLAGS) ../src/libvirt.la ../src/libvirt-lxc.la \
-	../src/libvirt-qemu.la ../gnulib/lib/libgnu.la $(LIBXML_LIBS) \
-	$(VIRSH_LIBS) $(am__append_2)
+virsh_LDFLAGS = $(COVERAGE_LDFLAGS)
+virsh_LDADD = $(STATIC_BINARIES) $(PIE_LDFLAGS) $(RELRO_LDFLAGS) \
+	../src/libvirt.la ../src/libvirt-lxc.la ../src/libvirt-qemu.la \
+	../gnulib/lib/libgnu.la $(LIBXML_LIBS) $(VIRSH_LIBS) \
+	$(am__append_2)
 virsh_CFLAGS = \
 		$(WARN_CFLAGS)					\
 		$(PIE_CFLAGS)					\

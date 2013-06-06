@@ -749,12 +749,10 @@ static int remoteDispatchConnectGetType(
     if ((type = virConnectGetType(priv->conn)) == NULL)
         goto cleanup;
 
-    /* We have to strdup because remoteDispatchClientRequest will
+    /* We have to VIR_STRDUP because remoteDispatchClientRequest will
      * free this string after it's been serialised. */
-    if (!(ret->type = strdup(type))) {
-        virReportOOMError();
+    if (VIR_STRDUP(ret->type, type) < 0)
         goto cleanup;
-    }
     rv = 0;
 
 cleanup:
@@ -6871,11 +6869,8 @@ static int remoteDispatchDomainScreenshot(
         goto cleanup;
     }
     
-    *mime_p = strdup(mime);
-    if (*mime_p == NULL) {
-        virReportOOMError();
+    if (VIR_STRDUP(*mime_p, mime) < 0)
         goto cleanup;
-    }
 
     ret->mime = mime_p;
     rv = 0;
@@ -7082,7 +7077,7 @@ static int remoteDispatchDomainSetBlkioParameters(
     int rv = -1;
     virDomainPtr dom = NULL;
     virTypedParameterPtr params = NULL;
-    int nparams;
+    int nparams = 0;;
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
@@ -7143,7 +7138,7 @@ static int remoteDispatchDomainSetBlockIoTune(
     int rv = -1;
     virDomainPtr dom = NULL;
     virTypedParameterPtr params = NULL;
-    int nparams;
+    int nparams = 0;;
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
@@ -7204,7 +7199,7 @@ static int remoteDispatchDomainSetInterfaceParameters(
     int rv = -1;
     virDomainPtr dom = NULL;
     virTypedParameterPtr params = NULL;
-    int nparams;
+    int nparams = 0;;
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
@@ -7430,7 +7425,7 @@ static int remoteDispatchDomainSetMemoryParameters(
     int rv = -1;
     virDomainPtr dom = NULL;
     virTypedParameterPtr params = NULL;
-    int nparams;
+    int nparams = 0;;
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
@@ -7550,7 +7545,7 @@ static int remoteDispatchDomainSetNumaParameters(
     int rv = -1;
     virDomainPtr dom = NULL;
     virTypedParameterPtr params = NULL;
-    int nparams;
+    int nparams = 0;;
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
@@ -7611,7 +7606,7 @@ static int remoteDispatchDomainSetSchedulerParameters(
     int rv = -1;
     virDomainPtr dom = NULL;
     virTypedParameterPtr params = NULL;
-    int nparams;
+    int nparams = 0;;
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
@@ -7672,7 +7667,7 @@ static int remoteDispatchDomainSetSchedulerParametersFlags(
     int rv = -1;
     virDomainPtr dom = NULL;
     virTypedParameterPtr params = NULL;
-    int nparams;
+    int nparams = 0;;
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
@@ -11245,7 +11240,7 @@ static int remoteDispatchNodeSetMemoryParameters(
 {
     int rv = -1;
     virTypedParameterPtr params = NULL;
-    int nparams;
+    int nparams = 0;;
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 

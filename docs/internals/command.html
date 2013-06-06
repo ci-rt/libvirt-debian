@@ -178,7 +178,7 @@
       All code is required to use these APIs
     </p>
         <h2>
-          <a name="posix" id="posix">Problems with standard POSIX APIs</a>
+          <a name="posix" shape="rect" id="posix">Problems with standard POSIX APIs</a>
         </h2>
         <p>
       The POSIX specification includes a number of APIs for
@@ -220,7 +220,7 @@
       error prone, particularly wrt memory leak / OOM handling.
     </p>
         <h2>
-          <a name="api" id="api">The libvirt command execution API</a>
+          <a name="api" shape="rect" id="api">The libvirt command execution API</a>
         </h2>
         <p>
       There is now a high level API that provides a safe and
@@ -230,7 +230,7 @@
       header which can be imported using <code>#include "command.h"</code>
     </p>
         <h3>
-          <a name="initial" id="initial">Defining commands in libvirt</a>
+          <a name="initial" shape="rect" id="initial">Defining commands in libvirt</a>
         </h3>
         <p>
       The first step is to declare what command is to be
@@ -239,7 +239,7 @@
       case it will be resolved wrt the <code>$PATH</code>
       environment variable.
     </p>
-        <pre>
+        <pre xml:space="preserve">
   virCommandPtr cmd = virCommandNew("/usr/bin/dnsmasq");
 </pre>
         <p>
@@ -248,34 +248,34 @@
       reported at a later time.
     </p>
         <h3>
-          <a name="args" id="args">Adding arguments to the command</a>
+          <a name="args" shape="rect" id="args">Adding arguments to the command</a>
         </h3>
         <p>
       There are a number of APIs for adding arguments to a
       command. To add a direct string arg
     </p>
-        <pre>
+        <pre xml:space="preserve">
   virCommandAddArg(cmd, "-strict-order");
 </pre>
         <p>
       If an argument takes an attached value of the form
       <code>-arg=val</code>, then this can be done using
     </p>
-        <pre>
+        <pre xml:space="preserve">
   virCommandAddArgPair(cmd, "--conf-file", "/etc/dnsmasq.conf");
 </pre>
         <p>
       If an argument needs to be formatted as if by
       <code>printf</code>:
     </p>
-        <pre>
+        <pre xml:space="preserve">
   virCommandAddArgFormat(cmd, "%d", count);
 </pre>
         <p>
       To add a entire NULL terminated array of arguments in one go,
       there are two options.
     </p>
-        <pre>
+        <pre xml:space="preserve">
   const char *const args[] = {
       "--strict-order", "--except-interface", "lo", NULL
   };
@@ -286,7 +286,7 @@
       This can also be done at the time of initial construction of
       the <code>virCommandPtr</code> object:
     </p>
-        <pre>
+        <pre xml:space="preserve">
   const char *const args[] = {
       "/usr/bin/dnsmasq",
       "--strict-order", "--except-interface",
@@ -297,7 +297,7 @@
                                             "--domain", "localdomain", NULL);
 </pre>
         <h3>
-          <a name="env" id="env">Setting up the environment</a>
+          <a name="env" shape="rect" id="env">Setting up the environment</a>
         </h3>
         <p>
       By default a command will inherit all environment variables
@@ -308,7 +308,7 @@
       explicitly allowed. The first step is usually to pass through
       a small number of variables from the current process.
     </p>
-        <pre>
+        <pre xml:space="preserve">
   virCommandAddEnvPassCommon(cmd);
 </pre>
         <p>
@@ -320,7 +320,7 @@
       avoid unexpected localization of command output. Further
       variables can be passed through from parent explicitly:
     </p>
-        <pre>
+        <pre xml:space="preserve">
   virCommandAddEnvPass(cmd, "DISPLAY");
   virCommandAddEnvPass(cmd, "XAUTHORITY");
 </pre>
@@ -328,18 +328,18 @@
       To define an environment variable in the child with an
       separate key / value:
     </p>
-        <pre>
+        <pre xml:space="preserve">
   virCommandAddEnvPair(cmd, "TERM", "xterm");
 </pre>
         <p>
       If the key/value pair is pre-formatted in the right
       format, it can be set directly
     </p>
-        <pre>
+        <pre xml:space="preserve">
   virCommandAddEnvString(cmd, "TERM=xterm");
 </pre>
         <h3>
-          <a name="misc" id="misc">Miscellaneous other options</a>
+          <a name="misc" shape="rect" id="misc">Miscellaneous other options</a>
         </h3>
         <p>
       Normally the spawned command will retain the current
@@ -348,7 +348,7 @@
       too. If this cleanup is not desired, then the command
       should be marked as daemonized:
     </p>
-        <pre>
+        <pre xml:space="preserve">
   virCommandDaemonize(cmd);
 </pre>
         <p>
@@ -357,7 +357,7 @@
       the actual damonized command. If the PID of the real
       command is required then a pidfile can be requested
     </p>
-        <pre>
+        <pre xml:space="preserve">
   virCommandSetPidFile(cmd, "/var/run/dnsmasq.pid");
 </pre>
         <p>
@@ -365,7 +365,7 @@
       the intermediate process exits.
     </p>
         <h3>
-          <a name="privs" id="privs">Reducing command privileges</a>
+          <a name="privs" shape="rect" id="privs">Reducing command privileges</a>
         </h3>
         <p>
       Normally a command will inherit all privileges of
@@ -374,11 +374,11 @@
       are cleared. With this done it will only be able to
       access resources for which it has explicit DAC permissions
     </p>
-        <pre>
+        <pre xml:space="preserve">
   virCommandClearCaps(cmd);
 </pre>
         <h3>
-          <a name="fds" id="fds">Managing file handles</a>
+          <a name="fds" shape="rect" id="fds">Managing file handles</a>
         </h3>
         <p>
       To prevent unintended resource leaks to child processes, the
@@ -389,7 +389,7 @@
       guaranteeing that the handle will be closed in the parent after
       virCommandRun, virCommandRunAsync, or virCommandFree.
     </p>
-        <pre>
+        <pre xml:space="preserve">
   int sharedfd = open("cmd.log", "w+");
   int childfd = open("conf.txt", "r");
   virCommandPreserveFD(cmd, sharedfd);
@@ -411,14 +411,14 @@
       (mapping a regular file is okay with virCommandRun).  To attach
       file descriptor 7 in the current process to stdin in the child:
     </p>
-        <pre>
+        <pre xml:space="preserve">
   virCommandSetInputFD(cmd, 7);
 </pre>
         <p>
       Equivalently to redirect stdout or stderr in the child,
       pass in a pointer to the desired handle
     </p>
-        <pre>
+        <pre xml:space="preserve">
   int outfd = open("out.log", "w+");
   int errfd = open("err.log", "w+");
   virCommandSetOutputFD(cmd, &amp;outfd);
@@ -429,7 +429,7 @@
       created to fetch stdout/err in the parent, by initializing
       the FD to -1.
     </p>
-        <pre>
+        <pre xml:space="preserve">
   int outfd = -1;
   int errfd = -1
   virCommandSetOutputFD(cmd, &amp;outfd);
@@ -448,11 +448,11 @@
       process perform blocking I/O, but the parent process can request
       non-blocking mode:
     </p>
-        <pre>
+        <pre xml:space="preserve">
   virCommandNonblockingFDs(cmd);
 </pre>
         <h3>
-          <a name="buffers" id="buffers">Feeding &amp; capturing strings to/from the child</a>
+          <a name="buffers" shape="rect" id="buffers">Feeding &amp; capturing strings to/from the child</a>
         </h3>
         <p>
       Often dealing with file handles for stdin/out/err is
@@ -470,7 +470,7 @@
       source for the child's stdin, if there are no embedded NUL
       bytes, and if the command will be run with virCommandRun:
     </p>
-        <pre>
+        <pre xml:space="preserve">
   const char *input = "Hello World\n";
   virCommandSetInputBuffer(cmd, input);
 </pre>
@@ -480,7 +480,7 @@
       output is not expected to contain NUL bytes, and if
       the command will be run with virCommandRun:
     </p>
-        <pre>
+        <pre xml:space="preserve">
   char *output = NULL, *errors = NULL;
   virCommandSetOutputBuffer(cmd, &amp;output);
   virCommandSetErrorBuffer(cmd, &amp;errors);
@@ -500,7 +500,7 @@
       case the child process interleaves output into a single string.
     </p>
         <h3>
-          <a name="directory" id="directory">Setting working directory</a>
+          <a name="directory" shape="rect" id="directory">Setting working directory</a>
         </h3>
         <p>
       Daemonized commands are always run with "/" as the current
@@ -508,11 +508,11 @@
       same working directory as the parent process, but an alternate
       directory can be specified:
     </p>
-        <pre>
+        <pre xml:space="preserve">
   virCommandSetWorkingDirectory(cmd, LOCALSTATEDIR);
 </pre>
         <h3>
-          <a name="hooks" id="hooks">Any additional hooks</a>
+          <a name="hooks" shape="rect" id="hooks">Any additional hooks</a>
         </h3>
         <p>
       If anything else is needed, it is possible to request a hook
@@ -521,18 +521,18 @@
       and executing the new process.  If hook(opaque) returns
       non-zero, then the child process will not be run.
     </p>
-        <pre>
+        <pre xml:space="preserve">
   virCommandSetPreExecHook(cmd, hook, opaque);
 </pre>
         <h3>
-          <a name="logging" id="logging">Logging commands</a>
+          <a name="logging" shape="rect" id="logging">Logging commands</a>
         </h3>
         <p>
       Sometimes, it is desirable to log what command will be run, or
       even to use virCommand solely for creation of a single
       consolidated string without running anything.
     </p>
-        <pre>
+        <pre xml:space="preserve">
   int logfd = ...;
   char *timestamp = virTimestamp();
   char *string = NULL;
@@ -549,14 +549,14 @@
       return -1;
 </pre>
         <h3>
-          <a name="sync" id="sync">Running commands synchronously</a>
+          <a name="sync" shape="rect" id="sync">Running commands synchronously</a>
         </h3>
         <p>
       For most commands, the desired behaviour is to spawn
       the command, wait for it to complete &amp; exit and then
       check that its exit status is zero
     </p>
-        <pre>
+        <pre xml:space="preserve">
   if (virCommandRun(cmd, NULL) &lt; 0)
      return -1;
 </pre>
@@ -573,7 +573,7 @@
       that check manually instead of letting <code>virCommandRun</code>
       raise the error
     </p>
-        <pre>
+        <pre xml:space="preserve">
   int status;
   if (virCommandRun(cmd, &amp;status) &lt; 0)
      return -1;
@@ -583,7 +583,7 @@
   }
 </pre>
         <h3>
-          <a name="async" id="async">Running commands asynchronously</a>
+          <a name="async" shape="rect" id="async">Running commands asynchronously</a>
         </h3>
         <p>
       In certain complex scenarios, particularly special
@@ -591,7 +591,7 @@
       it will be necessary to run the command asynchronously
       and wait for completion separately.
     </p>
-        <pre>
+        <pre xml:space="preserve">
   pid_t pid;
   if (virCommandRunAsync(cmd, &amp;pid) &lt; 0)
      return -1;
@@ -628,7 +628,7 @@
       virCommandAbort to reap the process.
     </p>
         <h3>
-          <a name="release" id="release">Releasing resources</a>
+          <a name="release" shape="rect" id="release">Releasing resources</a>
         </h3>
         <p>
       Once the command has been executed, or if execution
@@ -636,7 +636,7 @@
       resources associated with the <code>virCommandPtr</code>
       object. This is done with:
     </p>
-        <pre>
+        <pre xml:space="preserve">
   virCommandFree(cmd);
 </pre>
         <p>
@@ -646,13 +646,13 @@
       it will be forcably killed and cleaned up (via waitpid).
     </p>
         <h2>
-          <a name="example" id="example">Complete examples</a>
+          <a name="example" shape="rect" id="example">Complete examples</a>
         </h2>
         <p>
       This shows a complete example usage of the APIs roughly
       using the libvirt source src/util/hooks.c
     </p>
-        <pre>
+        <pre xml:space="preserve">
 int runhook(const char *drvstr, const char *id,
             const char *opstr, const char *subopstr,
             const char *extra) {

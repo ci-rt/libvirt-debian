@@ -33,12 +33,20 @@
 #endif
 #include <sched.h>
 
+#ifdef __FreeBSD__
+# include <sys/param.h>
+# include <sys/sysctl.h>
+# include <sys/user.h>
+#endif
+
+#include "viratomic.h"
 #include "virprocess.h"
 #include "virerror.h"
 #include "viralloc.h"
 #include "virfile.h"
 #include "virlog.h"
 #include "virutil.h"
+#include "virstring.h"
 
 #define VIR_FROM_THIS VIR_FROM_NONE
 
@@ -268,7 +276,7 @@ virProcessKillPainfully(pid_t pid, bool force)
      *
      * Note that setting @force could result in dataloss for the process.
      */
-    for (i = 0 ; i < 75; i++) {
+    for (i = 0; i < 75; i++) {
         int signum;
         if (i == 0) {
             signum = SIGTERM; /* kindly suggest it should exit */
@@ -302,8 +310,9 @@ virProcessKillPainfully(pid_t pid, bool force)
         usleep(200 * 1000);
     }
 
-    VIR_DEBUG("Timed out waiting after SIGKILL to process %lld",
-              (long long)pid);
+    virReportSystemError(EBUSY,
+                         _("Failed to terminate process %lld with SIG%s"),
+                         (long long)pid, signame);
 
 cleanup:
     return ret;
@@ -339,7 +348,7 @@ realloc:
     }
 
     CPU_ZERO_S(masklen, mask);
-    for (i = 0 ; i < virBitmapSize(map); i++) {
+    for (i = 0; i < virBitmapSize(map); i++) {
         if (virBitmapGetBit(map, i, &set) < 0)
             return -1;
         if (set)
@@ -363,7 +372,7 @@ realloc:
     cpu_set_t mask;
 
     CPU_ZERO(&mask);
-    for (i = 0 ; i < virBitmapSize(map); i++) {
+    for (i = 0; i < virBitmapSize(map); i++) {
         if (virBitmapGetBit(map, i, &set) < 0)
             return -1;
         if (set)
@@ -426,7 +435,7 @@ realloc:
         return -1;
     }
 
-    for (i = 0 ; i < maxcpu ; i++)
+    for (i = 0; i < maxcpu; i++)
         if (CPU_ISSET_S(i, masklen, mask))
             ignore_value(virBitmapSetBit(*map, i));
     CPU_FREE(mask);
@@ -441,7 +450,7 @@ realloc:
         return -1;
     }
 
-    for (i = 0 ; i < maxcpu ; i++)
+    for (i = 0; i < maxcpu; i++)
         if (CPU_ISSET(i, &mask))
             ignore_value(virBitmapSetBit(*map, i));
 # endif
@@ -561,7 +570,7 @@ cleanup:
     VIR_FREE(nsdir);
     VIR_FREE(nsfile);
     if (ret < 0) {
-        for (i = 0 ; i < *nfdlist ; i++) {
+        for (i = 0; i < *nfdlist; i++) {
             VIR_FORCE_CLOSE((*fdlist)[i]);
         }
         VIR_FREE(*fdlist);
@@ -580,7 +589,7 @@ int virProcessSetNamespaces(size_t nfdlist,
                              _("Expected at least one file descriptor"));
         return -1;
     }
-    for (i = 0 ; i < nfdlist ; i++) {
+    for (i = 0; i < nfdlist; i++) {
         if (setns(fdlist[i], 0) < 0) {
             virReportSystemError(errno, "%s",
                                  _("Unable to join domain namespace"));
@@ -616,7 +625,7 @@ virProcessPrLimit(pid_t pid, int resource, struct rlimit *rlim)
 {
     return prlimit(pid, resource, rlim, NULL);
 }
-#else /* ! HAVE_PRLIMIT */
+#elif HAVE_SETRLIMIT
 static int
 virProcessPrLimit(pid_t pid ATTRIBUTE_UNUSED,
                   int resource ATTRIBUTE_UNUSED,
@@ -625,7 +634,7 @@ virProcessPrLimit(pid_t pid ATTRIBUTE_UNUSED,
     errno = ENOSYS;
     return -1;
 }
-#endif /* ! HAVE_PRLIMIT */
+#endif
 
 #if HAVE_SETRLIMIT && defined(RLIMIT_MEMLOCK)
 int
@@ -755,3 +764,112 @@ virProcessSetMaxFiles(pid_t pid ATTRIBUTE_UNUSED, unsigned int files)
     return -1;
 }
 #endif /* ! (HAVE_SETRLIMIT && defined(RLIMIT_NOFILE)) */
+
+#ifdef __linux__
+/*
+ * Port of code from polkitunixprocess.c under terms
+ * of the LGPLv2+
+ */
+int virProcessGetStartTime(pid_t pid,
+                           unsigned long long *timestamp)
+{
+    char *filename = NULL;
+    char *buf = NULL;
+    char *tmp;
+    int ret = -1;
+    int len;
+    char **tokens = NULL;
+
+    if (virAsprintf(&filename, "/proc/%llu/stat",
+                    (unsigned long long)pid) < 0) {
+        virReportOOMError();
+        return -1;
+    }
+
+    if ((len = virFileReadAll(filename, 1024, &buf)) < 0)
+        goto cleanup;
+
+    /* start time is the token at index 19 after the '(process name)' entry - since only this
+     * field can contain the ')' character, search backwards for this to avoid malicious
+     * processes trying to fool us
+     */
+
+    if (!(tmp = strrchr(buf, ')'))) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Cannot find start time in %s"),
+                       filename);
+        goto cleanup;
+    }
+    tmp += 2; /* skip ') ' */
+    if ((tmp - buf) >= len) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Cannot find start time in %s"),
+                       filename);
+        goto cleanup;
+    }
+
+    tokens = virStringSplit(tmp, " ", 0);
+
+    if (virStringListLength(tokens) < 20) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Cannot find start time in %s"),
+                       filename);
+        goto cleanup;
+    }
+
+    if (virStrToLong_ull(tokens[19],
+                         NULL,
+                         10,
+                         timestamp) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Cannot parse start time %s in %s"),
+                       tokens[19], filename);
+        goto cleanup;
+    }
+
+    ret = 0;
+
+cleanup:
+    virStringFreeList(tokens);
+    VIR_FREE(filename);
+    VIR_FREE(buf);
+    return ret;
+}
+#elif defined(__FreeBSD__)
+int virProcessGetStartTime(pid_t pid,
+                           unsigned long long *timestamp)
+{
+    struct kinfo_proc p;
+    int mib[4];
+    size_t len = 4;
+
+    sysctlnametomib("kern.proc.pid", mib, &len);
+
+    len = sizeof(struct kinfo_proc);
+    mib[3] = pid;
+
+    if (sysctl(mib, 4, &p, &len, NULL, 0) < 0) {
+        virReportSystemError(errno, "%s",
+                             _("Unable to query process ID start time"));
+        return -1;
+    }
+
+    *timestamp = (unsigned long long)p.ki_start.tv_sec;
+
+    return 0;
+
+}
+#else
+int virProcessGetStartTime(pid_t pid,
+                           unsigned long long *timestamp)
+{
+    static int warned = 0;
+    if (virAtomicIntInc(&warned) == 1) {
+        VIR_WARN("Process start time of pid %llu not available on this platform",
+                 (unsigned long long)pid);
+        warned = true;
+    }
+    *timestamp = 0;
+    return 0;
+}
+#endif

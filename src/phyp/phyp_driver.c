@@ -40,10 +40,10 @@
 #include <netdb.h>
 #include <fcntl.h>
 #include <domain_event.h>
+#include <poll.h>
 
 #include "internal.h"
 #include "virauth.h"
-#include "virutil.h"
 #include "datatypes.h"
 #include "virbuffer.h"
 #include "viralloc.h"
@@ -56,8 +56,8 @@
 #include "nodeinfo.h"
 #include "virfile.h"
 #include "interface_conf.h"
-
 #include "phyp_driver.h"
+#include "virstring.h"
 
 #define VIR_FROM_THIS VIR_FROM_PHYP
 
@@ -73,29 +73,22 @@ static unsigned const int PHYP_MAC_SIZE= 12;
 static int
 waitsocket(int socket_fd, LIBSSH2_SESSION * session)
 {
-    struct timeval timeout;
-    fd_set fd;
-    fd_set *writefd = NULL;
-    fd_set *readfd = NULL;
+    struct pollfd fds[1];
     int dir;
 
-    timeout.tv_sec = 0;
-    timeout.tv_usec = 1000;
-
-    FD_ZERO(&fd);
-
-    FD_SET(socket_fd, &fd);
+    memset(fds, 0, sizeof(fds));
+    fds[0].fd = socket_fd;
 
     /* now make sure we wait in the correct direction */
     dir = libssh2_session_block_directions(session);
 
     if (dir & LIBSSH2_SESSION_BLOCK_INBOUND)
-        readfd = &fd;
+        fds[0].events |= POLLIN;
 
     if (dir & LIBSSH2_SESSION_BLOCK_OUTBOUND)
-        writefd = &fd;
+        fds[0].events |= POLLOUT;
 
-    return select(socket_fd + 1, readfd, writefd, NULL, &timeout);
+    return poll(fds, ARRAY_CARDINALITY(fds), -1);
 }
 
 /* this function is the layer that manipulates the ssh channel itself
@@ -955,12 +948,8 @@ openSSHSession(virConnectPtr conn, virConnectAuthPtr auth,
     }
 
     if (conn->uri->user != NULL) {
-        username = strdup(conn->uri->user);
-
-        if (username == NULL) {
-            virReportOOMError();
+        if (VIR_STRDUP(username, conn->uri->user) < 0)
             goto err;
-        }
     } else {
         if (auth == NULL || auth->cb == NULL) {
             virReportError(VIR_ERR_AUTH_FAILED,
@@ -1019,7 +1008,7 @@ connected:
     libssh2_session_set_blocking(session, 0);
 
     while ((rc = libssh2_session_startup(session, sock)) ==
-           LIBSSH2_ERROR_EAGAIN) ;
+           LIBSSH2_ERROR_EAGAIN);
     if (rc) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        "%s", _("Failure establishing SSH session."));
@@ -1037,7 +1026,7 @@ connected:
                                                 pubkey,
                                                 pvtkey,
                                                 NULL)) ==
-           LIBSSH2_ERROR_EAGAIN) ;
+           LIBSSH2_ERROR_EAGAIN);
 
 keyboard_interactive:
     if (rc == LIBSSH2_ERROR_SOCKET_NONE
@@ -1060,7 +1049,7 @@ keyboard_interactive:
         while ((rc =
                 libssh2_userauth_password(session, username,
                                           password)) ==
-               LIBSSH2_ERROR_EAGAIN) ;
+               LIBSSH2_ERROR_EAGAIN);
 
         if (rc) {
             virReportError(VIR_ERR_AUTH_FAILED,
@@ -1142,15 +1131,9 @@ phypConnectOpen(virConnectPtr conn,
 
     if (conn->uri->path) {
         /* need to shift one byte in order to remove the first "/" of URI component */
-        if (conn->uri->path[0] == '/')
-            managed_system = strdup(conn->uri->path + 1);
-        else
-            managed_system = strdup(conn->uri->path);
-
-        if (!managed_system) {
-            virReportOOMError();
+        if (VIR_STRDUP(managed_system,
+                       conn->uri->path + (conn->uri->path[0] == '/')) < 0)
             goto failure;
-        }
 
         /* here we are handling only the first component of the path,
          * so skipping the second:
@@ -1499,12 +1482,8 @@ phypGetBackingDevice(virConnectPtr conn, const char *managed_system,
         else
             goto cleanup;
 
-        backing_device = strdup(char_ptr);
-
-        if (backing_device == NULL) {
-            virReportOOMError();
+        if (VIR_STRDUP(backing_device, char_ptr) < 0)
             goto cleanup;
-        }
     } else {
         backing_device = ret;
         ret = NULL;
@@ -1685,12 +1664,12 @@ phypGetVIOSFreeSCSIAdapter(virConnectPtr conn)
         virBufferAsprintf(&buf, "viosvrcmd -m %s --id %d -c '",
                           managed_system, vios_id);
 
-    virBufferAsprintf(&buf, "lsmap -all -field svsa backing -fmt , ");
+    virBufferAddLit(&buf, "lsmap -all -field svsa backing -fmt , ");
 
     if (system_type == HMC)
         virBufferAddChar(&buf, '\'');
 
-    virBufferAsprintf(&buf, "|sed '/,[^.*]/d; s/,//g; q'");
+    virBufferAddLit(&buf, "|sed '/,[^.*]/d; s/,//g; q'");
     ret = phypExecBuffer(session, &buf, &exit_status, conn, true);
 
     if (exit_status < 0)
@@ -1732,12 +1711,8 @@ phypDomainAttachDevice(virDomainPtr domain, const char *xml)
         goto cleanup;
     }
 
-    def->os.type = strdup("aix");
-
-    if (def->os.type == NULL) {
-        virReportOOMError();
+    if (VIR_STRDUP(def->os.type, "aix") < 0)
         goto cleanup;
-    }
 
     dev = virDomainDeviceDefParse(xml, def, phyp_driver->caps, NULL,
                                   VIR_DOMAIN_XML_INACTIVE);
@@ -1883,7 +1858,7 @@ phypStorageVolGetKey(virConnectPtr conn, const char *name)
     if (system_type == HMC)
         virBufferAddChar(&buf, '\'');
 
-    virBufferAsprintf(&buf, "|sed -e 's/^LV IDENTIFIER://' -e 's/ //g'");
+    virBufferAddLit(&buf, "|sed -e 's/^LV IDENTIFIER://' -e 's/ //g'");
     ret = phypExecBuffer(session, &buf, &exit_status, conn, true);
 
     if (exit_status < 0)
@@ -1913,7 +1888,7 @@ phypGetStoragePoolDevice(virConnectPtr conn, char *name)
     if (system_type == HMC)
         virBufferAddChar(&buf, '\'');
 
-    virBufferAsprintf(&buf, "|sed '1d; s/ //g'");
+    virBufferAddLit(&buf, "|sed '1d; s/ //g'");
     ret = phypExecBuffer(session, &buf, &exit_status, conn, true);
 
     if (exit_status < 0)
@@ -1942,7 +1917,7 @@ phypGetStoragePoolSize(virConnectPtr conn, char *name)
     if (system_type == HMC)
         virBufferAddChar(&buf, '\'');
 
-    virBufferAsprintf(&buf, "|sed '1d; s/ //g'");
+    virBufferAddLit(&buf, "|sed '1d; s/ //g'");
     phypExecInt(session, &buf, conn, &sp_size);
     return sp_size;
 }
@@ -2124,7 +2099,7 @@ phypStorageVolGetPhysicalVolumeByStoragePool(virStorageVolPtr vol, char *sp)
     if (system_type == HMC)
         virBufferAddChar(&buf, '\'');
 
-    virBufferAsprintf(&buf, "|sed 1d");
+    virBufferAddLit(&buf, "|sed 1d");
     ret = phypExecBuffer(session, &buf, &exit_status, conn, true);
 
     if (exit_status < 0)
@@ -2156,7 +2131,7 @@ phypStorageVolLookupByPath(virConnectPtr conn, const char *volname)
     if (system_type == HMC)
         virBufferAddChar(&buf, '\'');
 
-    virBufferAsprintf(&buf, "|sed -e 's/^VOLUME GROUP://g' -e 's/ //g'");
+    virBufferAddLit(&buf, "|sed -e 's/^VOLUME GROUP://g' -e 's/ //g'");
     ret = phypExecBuffer(session, &buf, &exit_status, conn, true);
 
     if (exit_status < 0 || ret == NULL)
@@ -2200,7 +2175,7 @@ phypGetStoragePoolUUID(virConnectPtr conn, unsigned char *uuid,
     if (system_type == HMC)
         virBufferAddChar(&buf, '\'');
 
-    virBufferAsprintf(&buf, "|sed '1,2d'");
+    virBufferAddLit(&buf, "|sed '1,2d'");
     ret = phypExecBuffer(session, &buf, &exit_status, conn, false);
 
     if (exit_status < 0 || ret == NULL)
@@ -2282,12 +2257,8 @@ phypStorageVolGetXMLDesc(virStorageVolPtr vol, unsigned int flags)
         goto cleanup;
     }
 
-    voldef.key = strdup(vol->key);
-
-    if (voldef.key == NULL) {
-        virReportOOMError();
+    if (VIR_STRDUP(voldef.key, vol->key) < 0)
         goto cleanup;
-    }
 
     voldef.type = VIR_STORAGE_POOL_LOGICAL;
 
@@ -2386,7 +2357,7 @@ phypStoragePoolListVolumes(virStoragePoolPtr pool, char **const volumes,
     if (system_type == HMC)
         virBufferAddChar(&buf, '\'');
 
-    virBufferAsprintf(&buf, "|sed '1,2d'");
+    virBufferAddLit(&buf, "|sed '1,2d'");
     ret = phypExecBuffer(session, &buf, &exit_status, conn, false);
 
     /* I need to parse the textual return in order to get the volumes */
@@ -2400,10 +2371,8 @@ phypStoragePoolListVolumes(virStoragePoolPtr pool, char **const volumes,
 
             if (char_ptr) {
                 *char_ptr = '\0';
-                if ((volumes[got++] = strdup(volumes_list)) == NULL) {
-                    virReportOOMError();
+                if (VIR_STRDUP(volumes[got++], volumes_list) < 0)
                     goto cleanup;
-                }
                 char_ptr++;
                 volumes_list = char_ptr;
             } else
@@ -2443,7 +2412,7 @@ phypStoragePoolNumOfVolumes(virStoragePoolPtr pool)
     virBufferAsprintf(&buf, "lsvg -lv %s -field lvname", pool->name);
     if (system_type == HMC)
         virBufferAddChar(&buf, '\'');
-    virBufferAsprintf(&buf, "|grep -c '^.*$'");
+    virBufferAddLit(&buf, "|grep -c '^.*$'");
     if (phypExecInt(session, &buf, conn, &nvolumes) < 0)
         return -1;
 
@@ -2552,12 +2521,12 @@ phypConnectNumOfStoragePools(virConnectPtr conn)
         virBufferAsprintf(&buf, "viosvrcmd -m %s --id %d -c '",
                           managed_system, vios_id);
 
-    virBufferAsprintf(&buf, "lsvg");
+    virBufferAddLit(&buf, "lsvg");
 
     if (system_type == HMC)
         virBufferAddChar(&buf, '\'');
 
-    virBufferAsprintf(&buf, "|grep -c '^.*$'");
+    virBufferAddLit(&buf, "|grep -c '^.*$'");
     phypExecInt(session, &buf, conn, &nsp);
     return nsp;
 }
@@ -2584,7 +2553,7 @@ phypConnectListStoragePools(virConnectPtr conn, char **const pools, int npools)
         virBufferAsprintf(&buf, "viosvrcmd -m %s --id %d -c '",
                           managed_system, vios_id);
 
-    virBufferAsprintf(&buf, "lsvg");
+    virBufferAddLit(&buf, "lsvg");
 
     if (system_type == HMC)
         virBufferAddChar(&buf, '\'');
@@ -2601,10 +2570,8 @@ phypConnectListStoragePools(virConnectPtr conn, char **const pools, int npools)
 
             if (char_ptr) {
                 *char_ptr = '\0';
-                if ((pools[got++] = strdup(storage_pools)) == NULL) {
-                    virReportOOMError();
+                if (VIR_STRDUP(pools[got++], storage_pools) < 0)
                     goto cleanup;
-                }
                 char_ptr++;
                 storage_pools = char_ptr;
             } else
@@ -3068,10 +3035,8 @@ phypConnectListInterfaces(virConnectPtr conn, char **const names, int nnames)
 
         if (char_ptr) {
             *char_ptr = '\0';
-            if ((names[got++] = strdup(networks)) == NULL) {
-                virReportOOMError();
+            if (VIR_STRDUP(names[got++], networks) < 0)
                 goto cleanup;
-            }
             char_ptr++;
             networks = char_ptr;
         } else {
@@ -3220,7 +3185,7 @@ phypConnectListDefinedDomains(virConnectPtr conn, char **const names, int nnames
     virBufferAddLit(&buf, "lssyscfg -r lpar");
     if (system_type == HMC)
         virBufferAsprintf(&buf, " -m %s", managed_system);
-    virBufferAsprintf(&buf, " -F name,state"
+    virBufferAddLit(&buf, " -F name,state"
                       "|sed -n '/Not Activated/ {\n s/,.*$//\n p\n}'");
     ret = phypExecBuffer(session, &buf, &exit_status, conn, false);
 
@@ -3235,10 +3200,8 @@ phypConnectListDefinedDomains(virConnectPtr conn, char **const names, int nnames
 
             if (char_ptr) {
                 *char_ptr = '\0';
-                if ((names[got++] = strdup(domains)) == NULL) {
-                    virReportOOMError();
+                if (VIR_STRDUP(names[got++], domains) < 0)
                     goto cleanup;
-                }
                 char_ptr++;
                 domains = char_ptr;
             } else

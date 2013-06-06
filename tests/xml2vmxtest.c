@@ -11,6 +11,9 @@
 # include "internal.h"
 # include "viralloc.h"
 # include "vmx/vmx.h"
+# include "virstring.h"
+
+# define VIR_FROM_THIS VIR_FROM_VMWARE
 
 static virCapsPtr caps;
 static virVMXContext ctx;
@@ -168,11 +171,8 @@ testFormatVMXFileName(const char *src, void *opaque ATTRIBUTE_UNUSED)
 
     if (STRPREFIX(src, "[")) {
         /* Found potential datastore path */
-        copyOfDatastorePath = strdup(src);
-
-        if (copyOfDatastorePath == NULL) {
+        if (VIR_STRDUP(copyOfDatastorePath, src) < 0)
             goto cleanup;
-        }
 
         /* Expected format: '[<datastore>] <path>' where <path> is optional */
         if ((tmp = STRSKIP(copyOfDatastorePath, "[")) == NULL || *tmp == ']' ||
@@ -193,7 +193,7 @@ testFormatVMXFileName(const char *src, void *opaque ATTRIBUTE_UNUSED)
             goto cleanup;
     } else if (STRPREFIX(src, "/")) {
         /* Found absolute path */
-        absolutePath = strdup(src);
+        ignore_value(VIR_STRDUP(absolutePath, src));
     } else {
         /* Found relative path, this is not supported */
         goto cleanup;

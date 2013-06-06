@@ -1415,6 +1415,7 @@
      <exports symbol='virErrorFunc' type='function'/>
      <exports symbol='virFreeError' type='function'/>
      <exports symbol='virGetLastError' type='function'/>
+     <exports symbol='virGetLastErrorMessage' type='function'/>
      <exports symbol='virResetError' type='function'/>
      <exports symbol='virResetLastError' type='function'/>
      <exports symbol='virSaveLastError' type='function'/>
@@ -2638,8 +2639,8 @@ and ERROR states)'/>
     <typedef name='virDomainEventDefinedDetailType' file='libvirt' type='enum'/>
     <struct name='virDomainEventGraphicsAddress' file='libvirt' type='struct _virDomainEventGraphicsAddress'>
       <field name='family' type='int' info='Address family, virDomainEventGraphicsAddressType'/>
-      <field name='node' type='const char *' info='Address of node (eg IP address, or UNIX path)'/>
-      <field name='service' type='const char *' info='Service name/number (eg TCP port, or NULL)'/>
+      <field name='node' type='char *' info='Address of node (eg IP address, or UNIX path)'/>
+      <field name='service' type='char *' info='Service name/number (eg TCP port, or NULL)'/>
     </struct>
     <typedef name='virDomainEventGraphicsAddressPtr' file='libvirt' type='virDomainEventGraphicsAddress *'/>
     <typedef name='virDomainEventGraphicsAddressType' file='libvirt' type='enum'/>
@@ -2649,8 +2650,8 @@ and ERROR states)'/>
       <field name='identities' type='virDomainEventGraphicsSubjectIdentityPtr' info='Array of identities for subject'/>
     </struct>
     <struct name='virDomainEventGraphicsSubjectIdentity' file='libvirt' type='struct _virDomainEventGraphicsSubjectIdentity'>
-      <field name='type' type='const char *' info='Type of identity'/>
-      <field name='name' type='const char *' info='Identity value'/>
+      <field name='type' type='char *' info='Type of identity'/>
+      <field name='name' type='char *' info='Identity value'/>
     </struct>
     <typedef name='virDomainEventGraphicsSubjectIdentityPtr' file='libvirt' type='virDomainEventGraphicsSubjectIdentity *'/>
     <typedef name='virDomainEventGraphicsSubjectPtr' file='libvirt' type='virDomainEventGraphicsSubject *'/>
@@ -3133,10 +3134,10 @@ VIR_DOMAIN_EVENT_ID_GRAPHICS with virConnectDomainEventRegisterAny()]]></info>
       <arg name='conn' type='virConnectPtr' info='connection object'/>
       <arg name='dom' type='virDomainPtr' info='domain on which the event occurred'/>
       <arg name='phase' type='int' info='the phase of the connection'/>
-      <arg name='local' type='virDomainEventGraphicsAddressPtr' info='the local server address'/>
-      <arg name='remote' type='virDomainEventGraphicsAddressPtr' info='the remote client address'/>
+      <arg name='local' type='const virDomainEventGraphicsAddressPtr' info='the local server address'/>
+      <arg name='remote' type='const virDomainEventGraphicsAddressPtr' info='the remote client address'/>
       <arg name='authScheme' type='const char *' info='the authentication scheme activated'/>
-      <arg name='subject' type='virDomainEventGraphicsSubjectPtr' info='the authenticated subject (user)'/>
+      <arg name='subject' type='const virDomainEventGraphicsSubjectPtr' info='the authenticated subject (user)'/>
       <arg name='opaque' type='void *' info='application specified data'/>
     </functype>
     <functype name='virConnectDomainEventIOErrorCallback' file='libvirt' module='libvirt'>
@@ -4017,7 +4018,9 @@ call would succeed.
 NB. The remote driver imposes a 64K byte limit on 'size'.
 For your program to be able to work reliably over a remote
 connection you should split large requests to <= 65536 bytes.
-However, with 0.9.13 this RPC limit has been raised to 1M byte.]]></info>
+However, with 0.9.13 this RPC limit has been raised to 1M byte.
+Starting with version 1.0.6 the RPC limit has been raised again.
+Now large requests up to 16M byte are supported.]]></info>
       <return type='int' info='0 in case of success or -1 in case of failure. really 64 bits'/>
       <arg name='dom' type='virDomainPtr' info='pointer to the domain object'/>
       <arg name='disk' type='const char *' info='path to the block device, or device shorthand'/>
@@ -5091,7 +5094,9 @@ coherently.
 NB. The remote driver imposes a 64K byte limit on 'size'.
 For your program to be able to work reliably over a remote
 connection you should split large requests to <= 65536 bytes.
-However, with 0.9.13 this RPC limit has been raised to 1M byte.]]></info>
+However, with 0.9.13 this RPC limit has been raised to 1M byte.
+Starting with version 1.0.6 the RPC limit has been raised again.
+Now large requests up to 16M byte are supported.]]></info>
       <return type='int' info='0 in case of success or -1 in case of failure. really 64 bits'/>
       <arg name='dom' type='virDomainPtr' info='pointer to the domain object'/>
       <arg name='start' type='unsigned long long' info='start of memory to peek'/>
@@ -5555,7 +5560,14 @@ resumed it earlier.  Some hypervisors require that @duration be 0, for
 an indefinite suspension.
 
 Dependent on hypervisor used, this may require a
-guest agent to be available, e.g. QEMU.]]></info>
+guest agent to be available, e.g. QEMU.
+
+Beware that at least for QEMU, the domain's process will be terminated
+when VIR_NODE_SUSPEND_TARGET_DISK is used and a new process will be
+launched when libvirt is asked to wake up the domain. As a result of
+this, any runtime changes, such as device hotplug or memory settings,
+are lost unless such changes were made with VIR_DOMAIN_AFFECT_CONFIG
+flag.]]></info>
       <return type='int' info='0 on success, -1 on failure.'/>
       <arg name='dom' type='virDomainPtr' info='a domain object'/>
       <arg name='target' type='unsigned int' info='a value from virNodeSuspendTarget'/>
@@ -5628,9 +5640,12 @@ See also virDomainGetVcpuPinInfo for querying this information.]]></info>
       <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainModificationImpact'/>
     </function>
     <function name='virDomainReboot' file='libvirt' module='libvirt'>
-      <info><![CDATA[Reboot a domain, the domain object is still usable there after but
+      <info><![CDATA[Reboot a domain, the domain object is still usable thereafter, but
 the domain OS is being stopped for a restart.
 Note that the guest OS may ignore the request.
+Additionally, the hypervisor may check and support the domain
+'on_reboot' XML setting resulting in a domain that shuts down instead
+of rebooting.
 
 If @flags is set to zero, then the hypervisor will choose the
 method of shutdown it considers best. To have greater control
@@ -6100,9 +6115,11 @@ Not all hypervisors can support all flag combinations.]]></info>
       <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainVcpuFlags'/>
     </function>
     <function name='virDomainShutdown' file='libvirt' module='libvirt'>
-      <info><![CDATA[Shutdown a domain, the domain object is still usable thereafter but
+      <info><![CDATA[Shutdown a domain, the domain object is still usable thereafter, but
 the domain OS is being stopped. Note that the guest OS may ignore the
-request.  For guests that react to a shutdown request, the differences
+request. Additionally, the hypervisor may check and support the domain
+'on_poweroff' XML setting resulting in a domain that reboots instead of
+shutting down. For guests that react to a shutdown request, the differences
 from virDomainDestroy() are that the guests disk storage will be in a
 stable state rather than having the (virtual) power cord pulled, and
 this command returns as soon as the shutdown request is issued rather
@@ -6117,7 +6134,9 @@ be deleted when the domain quits.]]></info>
     <function name='virDomainShutdownFlags' file='libvirt' module='libvirt'>
       <info><![CDATA[Shutdown a domain, the domain object is still usable thereafter but
 the domain OS is being stopped. Note that the guest OS may ignore the
-request.  For guests that react to a shutdown request, the differences
+request. Additionally, the hypervisor may check and support the domain
+'on_poweroff' XML setting resulting in a domain that reboots instead of
+shutting down. For guests that react to a shutdown request, the differences
 from virDomainDestroy() are that the guest's disk storage will be in a
 stable state rather than having the (virtual) power cord pulled, and
 this command returns as soon as the shutdown request is issued rather
@@ -6816,6 +6835,10 @@ or crashes.]]></info>
 The error object is kept in thread local storage, so separate
 threads can safely access this concurrently.]]></info>
       <return type='virErrorPtr' info='a pointer to the last error or NULL if none occurred.'/>
+    </function>
+    <function name='virGetLastErrorMessage' file='virterror' module='virerror'>
+      <info><![CDATA[Get the most recent error message]]></info>
+      <return type='const char *' info='the most recent error message string in this thread, or a generic message if none is set'/>
     </function>
     <function name='virGetVersion' file='libvirt' module='libvirt'>
       <info><![CDATA[Provides version information. @libVer is the version of the
@@ -8083,7 +8106,8 @@ the reference count.]]></info>
       <info><![CDATA[Changes the capacity of the storage volume @vol to @capacity. The
 operation will fail if the new capacity requires allocation that would
 exceed the remaining free space in the parent pool.  The contents of
-the new capacity will appear as all zero bytes.
+the new capacity will appear as all zero bytes. The capacity value will
+be rounded to the granularity supported by the hypervisor.
 
 Normally, the operation will attempt to affect capacity with a minimum
 impact on allocation (that is, the default operation favors a sparse

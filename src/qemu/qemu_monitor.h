@@ -147,12 +147,12 @@ char *qemuMonitorUnescapeArg(const char *in);
 
 qemuMonitorPtr qemuMonitorOpen(virDomainObjPtr vm,
                                virDomainChrSourceDefPtr config,
-                               int json,
+                               bool json,
                                qemuMonitorCallbacksPtr cb)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(4);
 qemuMonitorPtr qemuMonitorOpenFD(virDomainObjPtr vm,
                                  int sockfd,
-                                 int json,
+                                 bool json,
                                  qemuMonitorCallbacksPtr cb)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(4);
 
@@ -162,12 +162,16 @@ int qemuMonitorSetCapabilities(qemuMonitorPtr mon);
 
 int qemuMonitorSetLink(qemuMonitorPtr mon,
                        const char *name,
-                       enum virDomainNetInterfaceLinkState state) ;
+                       enum virDomainNetInterfaceLinkState state);
 
 /* These APIs are for use by the internal Text/JSON monitor impl code only */
 char *qemuMonitorNextCommandID(qemuMonitorPtr mon);
 int qemuMonitorSend(qemuMonitorPtr mon,
                     qemuMonitorMessagePtr msg);
+virJSONValuePtr qemuMonitorGetOptions(qemuMonitorPtr mon)
+    ATTRIBUTE_NONNULL(1);
+void qemuMonitorSetOptions(qemuMonitorPtr mon, virJSONValuePtr options)
+    ATTRIBUTE_NONNULL(1);
 int qemuMonitorHMPCommandWithFd(qemuMonitorPtr mon,
                                 const char *cmd,
                                 int scm_fd,
@@ -497,8 +501,8 @@ int qemuMonitorRemoveFd(qemuMonitorPtr mon, int fdset, int fd);
  */
 int qemuMonitorAddHostNetwork(qemuMonitorPtr mon,
                               const char *netstr,
-                              int tapfd, const char *tapfd_name,
-                              int vhostfd, const char *vhostfd_name);
+                              int *tapfd, char **tapfdName, int tapfdSize,
+                              int *vhostfd, char **vhostfdName, int vhostfdSize);
 
 int qemuMonitorRemoveHostNetwork(qemuMonitorPtr mon,
                                  int vlan,
@@ -506,8 +510,8 @@ int qemuMonitorRemoveHostNetwork(qemuMonitorPtr mon,
 
 int qemuMonitorAddNetdev(qemuMonitorPtr mon,
                          const char *netdevstr,
-                         int tapfd, const char *tapfd_name,
-                         int vhostfd, const char *vhostfd_name);
+                         int *tapfd, char **tapfdName, int tapfdSize,
+                         int *vhostfd, char **vhostfdName, int vhostfdSize);
 
 int qemuMonitorRemoveNetdev(qemuMonitorPtr mon,
                             const char *alias);
@@ -664,6 +668,9 @@ int qemuMonitorGetCommands(qemuMonitorPtr mon,
                            char ***commands);
 int qemuMonitorGetEvents(qemuMonitorPtr mon,
                          char ***events);
+int qemuMonitorGetCommandLineOptionParameters(qemuMonitorPtr mon,
+                                              const char *option,
+                                              char ***params);
 
 int qemuMonitorGetKVMState(qemuMonitorPtr mon,
                            bool *enabled,

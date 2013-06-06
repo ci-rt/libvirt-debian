@@ -254,6 +254,7 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/md5.m4 \
 	$(top_srcdir)/gnulib/m4/memchr.m4 \
 	$(top_srcdir)/gnulib/m4/mgetgroups.m4 \
+	$(top_srcdir)/gnulib/m4/mkdtemp.m4 \
 	$(top_srcdir)/gnulib/m4/mkostemp.m4 \
 	$(top_srcdir)/gnulib/m4/mkostemps.m4 \
 	$(top_srcdir)/gnulib/m4/mktime.m4 \
@@ -262,6 +263,7 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/msvc-inval.m4 \
 	$(top_srcdir)/gnulib/m4/msvc-nothrow.m4 \
 	$(top_srcdir)/gnulib/m4/multiarch.m4 \
+	$(top_srcdir)/gnulib/m4/nanosleep.m4 \
 	$(top_srcdir)/gnulib/m4/net_if_h.m4 \
 	$(top_srcdir)/gnulib/m4/netdb_h.m4 \
 	$(top_srcdir)/gnulib/m4/netinet_in_h.m4 \
@@ -510,7 +512,8 @@ am__EXEEXT_17 = virshtest$(EXEEXT) sockettest$(EXEEXT) \
 	virendiantest$(EXEEXT) viridentitytest$(EXEEXT) \
 	virkeycodetest$(EXEEXT) virlockspacetest$(EXEEXT) \
 	virstringtest$(EXEEXT) virportallocatortest$(EXEEXT) \
-	sysinfotest$(EXEEXT) virstoragetest$(EXEEXT) $(am__EXEEXT_1) \
+	sysinfotest$(EXEEXT) virstoragetest$(EXEEXT) \
+	fdstreamtest$(EXEEXT) fchosttest$(EXEEXT) $(am__EXEEXT_1) \
 	$(am__EXEEXT_2) $(am__EXEEXT_3) $(am__EXEEXT_4) \
 	$(am__EXEEXT_5) $(am__EXEEXT_6) $(am__EXEEXT_7) \
 	$(am__EXEEXT_8) $(am__EXEEXT_9) $(am__EXEEXT_10) \
@@ -561,6 +564,12 @@ am__eventtest_SOURCES_DIST = eventtest.c testutils.h testutils.c
 @WITH_LIBVIRTD_TRUE@	testutils.$(OBJEXT)
 eventtest_OBJECTS = $(am_eventtest_OBJECTS)
 @WITH_LIBVIRTD_TRUE@eventtest_DEPENDENCIES = $(am__DEPENDENCIES_2)
+am_fchosttest_OBJECTS = fchosttest.$(OBJEXT) testutils.$(OBJEXT)
+fchosttest_OBJECTS = $(am_fchosttest_OBJECTS)
+fchosttest_DEPENDENCIES = $(am__DEPENDENCIES_2)
+am_fdstreamtest_OBJECTS = fdstreamtest.$(OBJEXT) testutils.$(OBJEXT)
+fdstreamtest_OBJECTS = $(am_fdstreamtest_OBJECTS)
+fdstreamtest_DEPENDENCIES = $(am__DEPENDENCIES_2)
 am_interfacexml2xmltest_OBJECTS = interfacexml2xmltest.$(OBJEXT) \
 	testutils.$(OBJEXT)
 interfacexml2xmltest_OBJECTS = $(am_interfacexml2xmltest_OBJECTS)
@@ -894,7 +903,8 @@ SOURCES = $(libqemumonitortestutils_la_SOURCES) \
 	$(vircgroupmock_la_SOURCES) $(commandhelper_SOURCES) \
 	$(commandtest_SOURCES) $(cputest_SOURCES) \
 	$(domainsnapshotxml2xmltest_SOURCES) $(esxutilstest_SOURCES) \
-	$(eventtest_SOURCES) $(interfacexml2xmltest_SOURCES) \
+	$(eventtest_SOURCES) $(fchosttest_SOURCES) \
+	$(fdstreamtest_SOURCES) $(interfacexml2xmltest_SOURCES) \
 	$(jsontest_SOURCES) $(libvirtdconftest_SOURCES) \
 	$(lxcxml2xmltest_SOURCES) $(networkxml2conftest_SOURCES) \
 	$(networkxml2xmltest_SOURCES) $(nodedevxml2xmltest_SOURCES) \
@@ -934,6 +944,7 @@ DIST_SOURCES = $(am__libqemumonitortestutils_la_SOURCES_DIST) \
 	$(commandtest_SOURCES) $(cputest_SOURCES) \
 	$(am__domainsnapshotxml2xmltest_SOURCES_DIST) \
 	$(am__esxutilstest_SOURCES_DIST) $(am__eventtest_SOURCES_DIST) \
+	$(fchosttest_SOURCES) $(fdstreamtest_SOURCES) \
 	$(interfacexml2xmltest_SOURCES) $(jsontest_SOURCES) \
 	$(am__libvirtdconftest_SOURCES_DIST) \
 	$(am__lxcxml2xmltest_SOURCES_DIST) \
@@ -1057,7 +1068,7 @@ DLLTOOL = @DLLTOOL@
 DLOPEN_LIBS = @DLOPEN_LIBS@
 DMSETUP = @DMSETUP@
 DNSMASQ = @DNSMASQ@
-DRIVER_MODULE_CFLAGS = @DRIVER_MODULE_CFLAGS@
+DRIVER_MODULE_LDFLAGS = @DRIVER_MODULE_LDFLAGS@
 DRIVER_MODULE_LIBS = @DRIVER_MODULE_LIBS@
 DSYMUTIL = @DSYMUTIL@
 DTRACE = @DTRACE@
@@ -1903,6 +1914,7 @@ LIBXML_LIBS = @LIBXML_LIBS@
 LIB_CLOCK_GETTIME = @LIB_CLOCK_GETTIME@
 LIB_EXECINFO = @LIB_EXECINFO@
 LIB_FDATASYNC = @LIB_FDATASYNC@
+LIB_NANOSLEEP = @LIB_NANOSLEEP@
 LIB_POLL = @LIB_POLL@
 LIB_PTHREAD = @LIB_PTHREAD@
 LIB_PTHREAD_SIGMASK = @LIB_PTHREAD_SIGMASK@
@@ -2338,7 +2350,6 @@ VGS = @VGS@
 VGSCAN = @VGSCAN@
 VIRSH_LIBS = @VIRSH_LIBS@
 WARN_CFLAGS = @WARN_CFLAGS@
-WARN_LDFLAGS = @WARN_LDFLAGS@
 WARN_PYTHON_CFLAGS = @WARN_PYTHON_CFLAGS@
 WCHAR_T_SUFFIX = @WCHAR_T_SUFFIX@
 WIN32_EXTRA_CFLAGS = @WIN32_EXTRA_CFLAGS@
@@ -2448,25 +2459,26 @@ LDADDS = \
 EXTRA_DIST = capabilityschemadata capabilityschematest commanddata \
 	confdata cputestdata domainschemadata domainschematest \
 	domainsnapshotschematest domainsnapshotxml2xmlin \
-	domainsnapshotxml2xmlout interfaceschemadata lxcxml2xmldata \
-	networkschematest networkxml2xmlin networkxml2xmlout \
-	networkxml2confdata nodedevschemadata nodedevschematest \
-	nodeinfodata nwfilterschematest nwfilterxml2xmlin \
-	nwfilterxml2xmlout oomtrace.pl qemuhelpdata qemuxml2argvdata \
-	qemuxml2xmloutdata qemuxmlnsdata securityselinuxlabeldata \
-	schematestutils.sh sexpr2xmldata storagepoolschematest \
+	domainsnapshotxml2xmlout fchostdata interfaceschemadata \
+	lxcxml2xmldata networkschematest networkxml2xmlin \
+	networkxml2xmlout networkxml2confdata nodedevschemadata \
+	nodedevschematest nodeinfodata nwfilterschematest \
+	nwfilterxml2xmlin nwfilterxml2xmlout oomtrace.pl qemuhelpdata \
+	qemuxml2argvdata qemuxml2xmloutdata qemuxmlnsdata \
+	securityselinuxlabeldata schematestutils.sh sexpr2xmldata \
+	storagepoolschemadata storagepoolschematest \
 	storagepoolxml2xmlin storagepoolxml2xmlout \
-	storagevolxml2argvdata storagevolschematest \
-	storagevolxml2xmlin storagevolxml2xmlout sysinfodata \
-	test-lib.sh vmx2xmldata xencapsdata xmconfigdata xml2sexprdata \
-	xml2vmxdata .valgrind.supp $(am__append_20) $(am__append_22) \
-	$(test_scripts) $(am__append_24) $(am__append_27) \
-	$(am__append_29) $(am__append_30) openvzutilstest.conf \
-	$(am__append_31) $(am__append_32) $(am__append_33) \
-	$(am__append_34) $(am__append_35) $(am__append_36) \
-	$(am__append_39) $(am__append_40) securityselinuxtest.c \
-	securityselinuxlabeltest.c securityselinuxhelper.c \
-	$(am__append_43)
+	storagevolxml2argvdata storagevolschemadata \
+	storagevolschematest storagevolxml2xmlin storagevolxml2xmlout \
+	sysinfodata test-lib.sh vmx2xmldata xencapsdata xmconfigdata \
+	xml2sexprdata xml2vmxdata .valgrind.supp $(am__append_20) \
+	$(am__append_22) $(test_scripts) $(am__append_24) \
+	$(am__append_27) $(am__append_29) $(am__append_30) \
+	openvzutilstest.conf $(am__append_31) $(am__append_32) \
+	$(am__append_33) $(am__append_34) $(am__append_35) \
+	$(am__append_36) $(am__append_39) $(am__append_40) \
+	securityselinuxtest.c securityselinuxlabeltest.c \
+	securityselinuxhelper.c $(am__append_43)
 test_helpers = commandhelper ssh test_conf
 test_programs = virshtest sockettest nodeinfotest virbuftest \
 	commandtest seclabeltest virhashtest virnetmessagetest \
@@ -2474,15 +2486,16 @@ test_programs = virshtest sockettest nodeinfotest virbuftest \
 	virtimetest viruritest virkeyfiletest virauthconfigtest \
 	virbitmaptest vircgrouptest virendiantest viridentitytest \
 	virkeycodetest virlockspacetest virstringtest \
-	virportallocatortest sysinfotest virstoragetest $(NULL) \
-	$(am__append_3) $(am__append_4) $(am__append_5) \
-	$(am__append_6) $(am__append_7) $(am__append_8) \
-	$(am__append_9) $(am__append_10) $(am__append_11) \
-	$(am__append_12) $(am__append_13) $(am__append_14) \
-	networkxml2xmltest $(am__append_15) $(am__append_16) \
-	nwfilterxml2xmltest $(am__append_17) storagevolxml2xmltest \
-	storagepoolxml2xmltest nodedevxml2xmltest interfacexml2xmltest \
-	cputest $(am__append_19)
+	virportallocatortest sysinfotest virstoragetest fdstreamtest \
+	fchosttest $(NULL) $(am__append_3) $(am__append_4) \
+	$(am__append_5) $(am__append_6) $(am__append_7) \
+	$(am__append_8) $(am__append_9) $(am__append_10) \
+	$(am__append_11) $(am__append_12) $(am__append_13) \
+	$(am__append_14) networkxml2xmltest $(am__append_15) \
+	$(am__append_16) nwfilterxml2xmltest $(am__append_17) \
+	storagevolxml2xmltest storagepoolxml2xmltest \
+	nodedevxml2xmltest interfacexml2xmltest cputest \
+	$(am__append_19)
 
 # This is a fake SSH we use from virnetsockettest
 ssh_SOURCES = ssh.c
@@ -2845,6 +2858,14 @@ sysinfotest_SOURCES = \
 	sysinfotest.c testutils.h testutils.c
 
 sysinfotest_LDADD = $(LDADDS)
+fdstreamtest_SOURCES = \
+	fdstreamtest.c testutils.h testutils.c
+
+fdstreamtest_LDADD = $(LDADDS)
+fchosttest_SOURCES = \
+       fchosttest.c testutils.h testutils.c
+
+fchosttest_LDADD = $(LDADDS)
 @WITH_CIL_TRUE@CILOPTFLAGS = 
 @WITH_CIL_TRUE@CILOPTINCS = 
 @WITH_CIL_TRUE@CILOPTPACKAGES = -package unix,str,cil
@@ -2949,6 +2970,12 @@ esxutilstest$(EXEEXT): $(esxutilstest_OBJECTS) $(esxutilstest_DEPENDENCIES) $(EX
 eventtest$(EXEEXT): $(eventtest_OBJECTS) $(eventtest_DEPENDENCIES) $(EXTRA_eventtest_DEPENDENCIES) 
 	@rm -f eventtest$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(eventtest_OBJECTS) $(eventtest_LDADD) $(LIBS)
+fchosttest$(EXEEXT): $(fchosttest_OBJECTS) $(fchosttest_DEPENDENCIES) $(EXTRA_fchosttest_DEPENDENCIES) 
+	@rm -f fchosttest$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(fchosttest_OBJECTS) $(fchosttest_LDADD) $(LIBS)
+fdstreamtest$(EXEEXT): $(fdstreamtest_OBJECTS) $(fdstreamtest_DEPENDENCIES) $(EXTRA_fdstreamtest_DEPENDENCIES) 
+	@rm -f fdstreamtest$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(fdstreamtest_OBJECTS) $(fdstreamtest_LDADD) $(LIBS)
 interfacexml2xmltest$(EXEEXT): $(interfacexml2xmltest_OBJECTS) $(interfacexml2xmltest_DEPENDENCIES) $(EXTRA_interfacexml2xmltest_DEPENDENCIES) 
 	@rm -f interfacexml2xmltest$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(interfacexml2xmltest_OBJECTS) $(interfacexml2xmltest_LDADD) $(LIBS)
@@ -3142,6 +3169,8 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/domainsnapshotxml2xmltest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/esxutilstest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eventtest.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fchosttest.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fdstreamtest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/interfacexml2xmltest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/jsontest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirportallocatormock_la-virportallocatortest.Plo@am__quote@

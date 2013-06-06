@@ -40,10 +40,10 @@
 #include "viralloc.h"
 #include "virxml.h"
 #include "viruuid.h"
-#include "virutil.h"
 #include "virbuffer.h"
 #include "c-ctype.h"
 #include "virfile.h"
+#include "virstring.h"
 
 #define MAX_BRIDGE_ID 256
 #define VIR_FROM_THIS VIR_FROM_NETWORK
@@ -71,7 +71,7 @@ virNetworkObjPtr virNetworkFindByUUID(const virNetworkObjListPtr nets,
 {
     unsigned int i;
 
-    for (i = 0 ; i < nets->count ; i++) {
+    for (i = 0; i < nets->count; i++) {
         virNetworkObjLock(nets->objs[i]);
         if (!memcmp(nets->objs[i]->def->uuid, uuid, VIR_UUID_BUFLEN))
             return nets->objs[i];
@@ -86,7 +86,7 @@ virNetworkObjPtr virNetworkFindByName(const virNetworkObjListPtr nets,
 {
     unsigned int i;
 
-    for (i = 0 ; i < nets->count ; i++) {
+    for (i = 0; i < nets->count; i++) {
         virNetworkObjLock(nets->objs[i]);
         if (STREQ(nets->objs[i]->def->name, name))
             return nets->objs[i];
@@ -143,6 +143,12 @@ virNetworkIpDefClear(virNetworkIpDefPtr def)
 }
 
 static void
+virNetworkRouteDefClear(virNetworkRouteDefPtr def)
+{
+    VIR_FREE(def->family);
+}
+
+static void
 virNetworkDNSTxtDefClear(virNetworkDNSTxtDefPtr def)
 {
     VIR_FREE(def->name);
@@ -191,12 +197,12 @@ virNetworkForwardDefClear(virNetworkForwardDefPtr def)
 {
     int ii;
 
-    for (ii = 0 ; ii < def->npfs && def->pfs ; ii++) {
+    for (ii = 0; ii < def->npfs && def->pfs; ii++) {
         virNetworkForwardPfDefClear(&def->pfs[ii]);
     }
     VIR_FREE(def->pfs);
 
-    for (ii = 0 ; ii < def->nifs && def->ifs ; ii++) {
+    for (ii = 0; ii < def->nifs && def->ifs; ii++) {
         virNetworkForwardIfDefClear(&def->ifs[ii]);
     }
     VIR_FREE(def->ifs);
@@ -216,10 +222,15 @@ virNetworkDefFree(virNetworkDefPtr def)
 
     virNetworkForwardDefClear(&def->forward);
 
-    for (ii = 0 ; ii < def->nips && def->ips ; ii++) {
+    for (ii = 0; ii < def->nips && def->ips; ii++) {
         virNetworkIpDefClear(&def->ips[ii]);
     }
     VIR_FREE(def->ips);
+
+    for (ii = 0; ii < def->nroutes && def->routes; ii++) {
+        virNetworkRouteDefClear(&def->routes[ii]);
+    }
+    VIR_FREE(def->routes);
 
     for (ii = 0; ii < def->nPortGroups && def->portGroups; ii++) {
         virPortGroupDefClear(&def->portGroups[ii]);
@@ -253,7 +264,7 @@ void virNetworkObjListFree(virNetworkObjListPtr nets)
 {
     unsigned int i;
 
-    for (i = 0 ; i < nets->count ; i++)
+    for (i = 0; i < nets->count; i++)
         virNetworkObjFree(nets->objs[i]);
 
     VIR_FREE(nets->objs);
@@ -537,7 +548,7 @@ void virNetworkRemoveInactive(virNetworkObjListPtr nets,
     unsigned int i;
 
     virNetworkObjUnlock(net);
-    for (i = 0 ; i < nets->count ; i++) {
+    for (i = 0; i < nets->count; i++) {
         virNetworkObjLock(nets->objs[i]);
         if (nets->objs[i] == net) {
             virNetworkObjUnlock(nets->objs[i]);
@@ -1270,6 +1281,233 @@ cleanup:
 }
 
 static int
+virNetworkRouteDefParseXML(const char *networkName,
+                           xmlNodePtr node,
+                           xmlXPathContextPtr ctxt,
+                           virNetworkRouteDefPtr def)
+{
+    /*
+     * virNetworkRouteDef object is already allocated as part
+     * of an array.  On failure clear: it out, but don't free it.
+     */
+
+    xmlNodePtr save;
+    char *address = NULL, *netmask = NULL;
+    char *gateway = NULL;
+    unsigned long prefix = 0, metric = 0;
+    int result = -1;
+    int prefixRc, metricRc;
+    virSocketAddr testAddr;
+
+    save = ctxt->node;
+    ctxt->node = node;
+
+    /* grab raw data from XML */
+    def->family = virXPathString("string(./@family)", ctxt);
+    address = virXPathString("string(./@address)", ctxt);
+    netmask = virXPathString("string(./@netmask)", ctxt);
+    gateway = virXPathString("string(./@gateway)", ctxt);
+    prefixRc = virXPathULong("string(./@prefix)", ctxt, &prefix);
+    if (prefixRc == -2) {
+        virReportError(VIR_ERR_XML_ERROR,
+                       _("Invalid prefix specified "
+                         "in route definition of network '%s'"),
+                       networkName);
+        goto cleanup;
+    }
+    def->has_prefix = (prefixRc == 0);
+    def->prefix = prefix;
+    metricRc = virXPathULong("string(./@metric)", ctxt, &metric);
+    if (metricRc == -2) {
+        virReportError(VIR_ERR_XML_ERROR,
+                       _("Invalid metric specified "
+                         "in route definition of network '%s'"),
+                       networkName);
+        goto cleanup;
+    }
+    if (metricRc == 0) {
+        def->has_metric = true;
+        if (metric == 0) {
+            virReportError(VIR_ERR_XML_ERROR,
+                           _("Invalid metric value, must be > 0 "
+                             "in route definition of network '%s'"),
+                           networkName);
+            goto cleanup;
+        }
+    }
+    def->metric = metric;
+
+    /* Note: both network and gateway addresses must be specified */
+
+    if (!address) {
+        virReportError(VIR_ERR_XML_ERROR,
+                       _("Missing required address attribute "
+                         "in route definition of network '%s'"),
+                       networkName);
+        goto cleanup;
+    }
+
+    if (!gateway) {
+        virReportError(VIR_ERR_XML_ERROR,
+                       _("Missing required gateway attribute "
+                         "in route definition of network '%s'"),
+                       networkName);
+        goto cleanup;
+    }
+
+    if (virSocketAddrParse(&def->address, address, AF_UNSPEC) < 0) {
+        virReportError(VIR_ERR_XML_ERROR,
+                       _("Bad network address '%s' "
+                         "in route definition of network '%s'"),
+                       address, networkName);
+        goto cleanup;
+    }
+
+    if (virSocketAddrParse(&def->gateway, gateway, AF_UNSPEC) < 0) {
+        virReportError(VIR_ERR_XML_ERROR,
+                       _("Bad gateway address '%s' "
+                         "in route definition of network '%s'"),
+                       gateway, networkName);
+        goto cleanup;
+    }
+
+    /* validate network address, etc. for each family */
+    if ((def->family == NULL) || (STREQ(def->family, "ipv4"))) {
+        if (!(VIR_SOCKET_ADDR_IS_FAMILY(&def->address, AF_INET) ||
+              VIR_SOCKET_ADDR_IS_FAMILY(&def->address, AF_UNSPEC))) {
+            virReportError(VIR_ERR_XML_ERROR,
+                           def->family == NULL ?
+                           _("No family specified for non-IPv4 address '%s' "
+                             "in route definition of network '%s'") :
+                           _("IPv4 family specified for non-IPv4 address '%s' "
+                             "in route definition of network '%s'"),
+                           address, networkName);
+            goto cleanup;
+        }
+        if (!VIR_SOCKET_ADDR_IS_FAMILY(&def->gateway, AF_INET)) {
+            virReportError(VIR_ERR_XML_ERROR,
+                           def->family == NULL ?
+                           _("No family specified for non-IPv4 gateway '%s' "
+                             "in route definition of network '%s'") :
+                           _("IPv4 family specified for non-IPv4 gateway '%s' "
+                             "in route definition of network '%s'"),
+                           address, networkName);
+            goto cleanup;
+        }
+        if (netmask) {
+            if (virSocketAddrParse(&def->netmask, netmask, AF_UNSPEC) < 0) {
+                virReportError(VIR_ERR_XML_ERROR,
+                               _("Bad netmask address '%s' "
+                                 "in route definition of network '%s'"),
+                               netmask, networkName);
+                goto cleanup;
+            }
+            if (!VIR_SOCKET_ADDR_IS_FAMILY(&def->netmask, AF_INET)) {
+                virReportError(VIR_ERR_XML_ERROR,
+                               _("Network '%s' has invalid netmask '%s' "
+                                 "for address '%s' (both must be IPv4)"),
+                               networkName, netmask, address);
+                goto cleanup;
+            }
+            if (def->has_prefix) {
+                /* can't have both netmask and prefix at the same time */
+                virReportError(VIR_ERR_XML_ERROR,
+                               _("Route definition '%s' cannot have both "
+                                 "a prefix and a netmask"),
+                               networkName);
+                goto cleanup;
+            }
+        }
+        if (def->prefix > 32) {
+            virReportError(VIR_ERR_XML_ERROR,
+                           _("Invalid prefix %u specified "
+                             "in route definition of network '%s', "
+                             "must be 0 - 32"),
+                           def->prefix, networkName);
+            goto cleanup;
+        }
+    } else if (STREQ(def->family, "ipv6")) {
+        if (!VIR_SOCKET_ADDR_IS_FAMILY(&def->address, AF_INET6)) {
+            virReportError(VIR_ERR_XML_ERROR,
+                           _("ipv6 family specified for non-IPv6 address '%s' "
+                             "in route definition of network '%s'"),
+                           address, networkName);
+            goto cleanup;
+        }
+        if (netmask) {
+            virReportError(VIR_ERR_XML_ERROR,
+                           _("Specifying netmask invalid for IPv6 address '%s' "
+                             "in route definition of network '%s'"),
+                           address, networkName);
+            goto cleanup;
+        }
+        if (!VIR_SOCKET_ADDR_IS_FAMILY(&def->gateway, AF_INET6)) {
+            virReportError(VIR_ERR_XML_ERROR,
+                           _("ipv6 specified for non-IPv6 gateway address '%s' "
+                             "in route definition of network '%s'"),
+                           gateway, networkName);
+            goto cleanup;
+        }
+        if (def->prefix > 128) {
+            virReportError(VIR_ERR_XML_ERROR,
+                           _("Invalid prefix %u specified "
+                             "in route definition of network '%s', "
+                             "must be 0 - 128"),
+                           def->prefix, networkName);
+            goto cleanup;
+        }
+    } else {
+        virReportError(VIR_ERR_XML_ERROR,
+                       _("Unrecognized family '%s' "
+                         "in route definition of network'%s'"),
+                       def->family, networkName);
+        goto cleanup;
+    }
+
+    /* make sure the address is a network address */
+    if (netmask) {
+        if (virSocketAddrMask(&def->address, &def->netmask, &testAddr) < 0) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("error converting address '%s' with netmask '%s' "
+                             "to network-address "
+                             "in route definition of network '%s'"),
+                           address, netmask, networkName);
+            goto cleanup;
+        }
+    } else {
+        if (virSocketAddrMaskByPrefix(&def->address,
+                                      def->prefix, &testAddr) < 0) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("error converting address '%s' with prefix %u "
+                             "to network-address "
+                             "in route definition of network '%s'"),
+                           address, def->prefix, networkName);
+            goto cleanup;
+        }
+    }
+    if (!virSocketAddrEqual(&def->address, &testAddr)) {
+        virReportError(VIR_ERR_XML_ERROR,
+                       _("address '%s' in route definition of network '%s' "
+                         "is not a network address"),
+                       address, networkName);
+        goto cleanup;
+    }
+
+    result = 0;
+
+cleanup:
+    if (result < 0) {
+        virNetworkRouteDefClear(def);
+    }
+    VIR_FREE(address);
+    VIR_FREE(netmask);
+    VIR_FREE(gateway);
+
+    ctxt->node = save;
+    return result;
+}
+
+static int
 virNetworkPortGroupParseXML(virPortGroupDefPtr def,
                             xmlNodePtr node,
                             xmlXPathContextPtr ctxt)
@@ -1684,8 +1922,9 @@ virNetworkDefParseXML(xmlXPathContextPtr ctxt)
     char *tmp;
     char *stp = NULL;
     xmlNodePtr *ipNodes = NULL;
+    xmlNodePtr *routeNodes = NULL;
     xmlNodePtr *portGroupNodes = NULL;
-    int nIps, nPortGroups;
+    int nIps, nPortGroups, nRoutes;
     xmlNodePtr dnsNode = NULL;
     xmlNodePtr virtPortNode = NULL;
     xmlNodePtr forwardNode = NULL;
@@ -1839,6 +2078,69 @@ virNetworkDefParseXML(xmlXPathContextPtr ctxt)
     }
     VIR_FREE(ipNodes);
 
+    nRoutes = virXPathNodeSet("./route", ctxt, &routeNodes);
+    if (nRoutes < 0)
+        goto error;
+
+    if (nRoutes > 0) {
+        int ii;
+
+        /* allocate array to hold all the route definitions */
+        if (VIR_ALLOC_N(def->routes, nRoutes) < 0) {
+            virReportOOMError();
+            goto error;
+        }
+        /* parse each definition */
+        for (ii = 0; ii < nRoutes; ii++) {
+            int ret = virNetworkRouteDefParseXML(def->name, routeNodes[ii],
+                                              ctxt, &def->routes[ii]);
+            if (ret < 0)
+                goto error;
+            def->nroutes++;
+        }
+
+        /* now validate the correctness of any static route gateways specified
+         *
+         * note: the parameters within each definition are verified/assumed valid;
+         * the question being asked and answered here is if the specified gateway
+         * is directly reachable from this bridge.
+         */
+        nRoutes = def->nroutes;
+        nIps = def->nips;
+        for (ii = 0; ii < nRoutes; ii++) {
+            int jj;
+            virSocketAddr testAddr, testGw;
+            bool addrMatch;
+            virNetworkRouteDefPtr gwdef = &def->routes[ii];
+            addrMatch = false;
+            for (jj = 0; jj < nIps; jj++) {
+                virNetworkIpDefPtr def2 = &def->ips[jj];
+                if (VIR_SOCKET_ADDR_FAMILY(&gwdef->gateway)
+                    != VIR_SOCKET_ADDR_FAMILY(&def2->address)) {
+                    continue;
+                }
+                int prefix = virNetworkIpDefPrefix(def2);
+                virSocketAddrMaskByPrefix(&def2->address, prefix, &testAddr);
+                virSocketAddrMaskByPrefix(&gwdef->gateway, prefix, &testGw);
+                if (VIR_SOCKET_ADDR_VALID(&testAddr) &&
+                    VIR_SOCKET_ADDR_VALID(&testGw) &&
+                    virSocketAddrEqual(&testAddr, &testGw)) {
+                    addrMatch = true;
+                    break;
+                }
+            }
+            if (!addrMatch) {
+                char *gw = virSocketAddrFormat(&gwdef->gateway);
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                               _("unreachable static route gateway '%s' specified for network '%s'"),
+                               gw, def->name);
+                VIR_FREE(gw);
+                goto error;
+            }
+        }
+    }
+    VIR_FREE(routeNodes);
+
     forwardNode = virXPathNode("./forward", ctxt);
     if (forwardNode &&
         virNetworkForwardDefParseXML(def->name, forwardNode, ctxt, &def->forward) < 0) {
@@ -1911,6 +2213,7 @@ virNetworkDefParseXML(xmlXPathContextPtr ctxt)
     return def;
 
 error:
+    VIR_FREE(routeNodes);
     VIR_FREE(stp);
     virNetworkDefFree(def);
     VIR_FREE(ipNodes);
@@ -1988,13 +2291,13 @@ virNetworkDNSDefFormat(virBufferPtr buf,
     virBufferAddLit(buf, "<dns>\n");
     virBufferAdjustIndent(buf, 2);
 
-    for (i = 0 ; i < def->ntxts ; i++) {
+    for (i = 0; i < def->ntxts; i++) {
         virBufferAsprintf(buf, "<txt name='%s' value='%s' />\n",
                               def->txts[i].name,
                               def->txts[i].value);
     }
 
-    for (i = 0 ; i < def->nsrvs ; i++) {
+    for (i = 0; i < def->nsrvs; i++) {
         if (def->srvs[i].service && def->srvs[i].protocol) {
             virBufferAsprintf(buf, "<srv service='%s' protocol='%s'",
                                   def->srvs[i].service,
@@ -2011,14 +2314,14 @@ virNetworkDNSDefFormat(virBufferPtr buf,
             if (def->srvs[i].weight)
                 virBufferAsprintf(buf, " weight='%d'", def->srvs[i].weight);
 
-            virBufferAsprintf(buf, "/>\n");
+            virBufferAddLit(buf, "/>\n");
         }
     }
 
     if (def->nhosts) {
         int ii, j;
 
-        for (ii = 0 ; ii < def->nhosts; ii++) {
+        for (ii = 0; ii < def->nhosts; ii++) {
             char *ip = virSocketAddrFormat(&def->hosts[ii].ip);
 
             virBufferAsprintf(buf, "<host ip='%s'>\n", ip);
@@ -2028,7 +2331,7 @@ virNetworkDNSDefFormat(virBufferPtr buf,
                                   def->hosts[ii].names[j]);
 
             virBufferAdjustIndent(buf, -2);
-            virBufferAsprintf(buf, "</host>\n");
+            virBufferAddLit(buf, "</host>\n");
             VIR_FREE(ip);
         }
     }
@@ -2078,7 +2381,7 @@ virNetworkIpDefFormat(virBufferPtr buf,
         virBufferAddLit(buf, "<dhcp>\n");
         virBufferAdjustIndent(buf, 2);
 
-        for (ii = 0 ; ii < def->nranges ; ii++) {
+        for (ii = 0; ii < def->nranges; ii++) {
             char *saddr = virSocketAddrFormat(&def->ranges[ii].start);
             if (!saddr)
                 goto error;
@@ -2092,7 +2395,7 @@ virNetworkIpDefFormat(virBufferPtr buf,
             VIR_FREE(saddr);
             VIR_FREE(eaddr);
         }
-        for (ii = 0 ; ii < def->nhosts ; ii++) {
+        for (ii = 0; ii < def->nhosts; ii++) {
             virBufferAddLit(buf, "<host ");
             if (def->hosts[ii].mac)
                 virBufferAsprintf(buf, "mac='%s' ", def->hosts[ii].mac);
@@ -2129,6 +2432,53 @@ virNetworkIpDefFormat(virBufferPtr buf,
 
     virBufferAdjustIndent(buf, -2);
     virBufferAddLit(buf, "</ip>\n");
+
+    result = 0;
+error:
+    return result;
+}
+
+static int
+virNetworkRouteDefFormat(virBufferPtr buf,
+                      const virNetworkRouteDefPtr def)
+{
+    int result = -1;
+
+    virBufferAddLit(buf, "<route");
+
+    if (def->family) {
+        virBufferAsprintf(buf, " family='%s'", def->family);
+    }
+    if (VIR_SOCKET_ADDR_VALID(&def->address)) {
+        char *addr = virSocketAddrFormat(&def->address);
+
+        if (!addr)
+            goto error;
+        virBufferAsprintf(buf, " address='%s'", addr);
+        VIR_FREE(addr);
+    }
+    if (VIR_SOCKET_ADDR_VALID(&def->netmask)) {
+        char *addr = virSocketAddrFormat(&def->netmask);
+
+        if (!addr)
+            goto error;
+        virBufferAsprintf(buf, " netmask='%s'", addr);
+        VIR_FREE(addr);
+    }
+    if (def->has_prefix) {
+        virBufferAsprintf(buf," prefix='%u'", def->prefix);
+    }
+    if (VIR_SOCKET_ADDR_VALID(&def->gateway)) {
+        char *addr = virSocketAddrFormat(&def->gateway);
+        if (!addr)
+            goto error;
+        virBufferAsprintf(buf, " gateway='%s'", addr);
+        VIR_FREE(addr);
+    }
+    if (def->has_metric && def->metric > 0) {
+        virBufferAsprintf(buf," metric='%u'", def->metric);
+    }
+    virBufferAddLit(buf, "/>\n");
 
     result = 0;
 error:
@@ -2344,6 +2694,11 @@ virNetworkDefFormatInternal(virBufferPtr buf,
 
     for (ii = 0; ii < def->nips; ii++) {
         if (virNetworkIpDefFormat(buf, &def->ips[ii]) < 0)
+            goto error;
+    }
+
+    for (ii = 0; ii < def->nroutes; ii++) {
+        if (virNetworkRouteDefFormat(buf, &def->routes[ii]) < 0)
             goto error;
     }
 
@@ -2781,7 +3136,7 @@ int virNetworkBridgeInUse(const virNetworkObjListPtr nets,
     unsigned int i;
     unsigned int ret = 0;
 
-    for (i = 0 ; i < nets->count ; i++) {
+    for (i = 0; i < nets->count; i++) {
         virNetworkObjLock(nets->objs[i]);
         if (nets->objs[i]->def->bridge &&
             STREQ(nets->objs[i]->def->bridge, bridge) &&

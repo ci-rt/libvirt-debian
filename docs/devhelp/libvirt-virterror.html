@@ -52,6 +52,7 @@ void	<a href="#virDefaultErrorFunc">virDefaultErrorFunc</a>		(<a href="libvirt-v
 typedef void <a href="#virErrorFunc">virErrorFunc</a>			(void * userData, <br/>					 <a href="libvirt-virterror.html#virErrorPtr">virErrorPtr</a> error);
 void	<a href="#virFreeError">virFreeError</a>			(<a href="libvirt-virterror.html#virErrorPtr">virErrorPtr</a> err);
 <a href="libvirt-virterror.html#virErrorPtr">virErrorPtr</a>	<a href="#virGetLastError">virGetLastError</a>		(void);
+const char *	<a href="#virGetLastErrorMessage">virGetLastErrorMessage</a>	(void);
 void	<a href="#virResetError">virResetError</a>			(<a href="libvirt-virterror.html#virErrorPtr">virErrorPtr</a> err);
 void	<a href="#virResetLastError">virResetLastError</a>		(void);
 <a href="libvirt-virterror.html#virErrorPtr">virErrorPtr</a>	<a href="#virSaveLastError">virSaveLastError</a>	(void);
@@ -325,6 +326,10 @@ One will need to free the result with virResetError()</p>
 The error object is kept in thread local storage, so separate
 threads can safely access this concurrently.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a pointer to the last error or NULL if none occurred.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virGetLastErrorMessage"/>virGetLastErrorMessage ()</h3><pre class="programlisting">const char *	virGetLastErrorMessage	(void)<br/>
+</pre><p>Get the most recent error message</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the most recent error message string in this thread, or a generic message if none is set</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virResetError"/>virResetError ()</h3><pre class="programlisting">void	virResetError			(<a href="libvirt-virterror.html#virErrorPtr">virErrorPtr</a> err)<br/>
 </pre><p>Reset the error being pointed to</p>

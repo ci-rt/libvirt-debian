@@ -26,32 +26,14 @@
 # include "internal.h"
 # include "driver.h"
 
-extern struct xenUnifiedDriver xenStoreDriver;
-int xenStoreInit (void);
-
-virDrvOpenStatus	xenStoreOpen	(virConnectPtr conn,
+int		xenStoreOpen		(virConnectPtr conn,
                                          virConnectAuthPtr auth,
                                          unsigned int flags);
 int		xenStoreClose		(virConnectPtr conn);
-int		xenStoreGetDomainInfo	(virDomainPtr domain,
-                                         virDomainInfoPtr info);
-int		xenStoreDomainGetState	(virDomainPtr domain,
-                                         int *state,
-                                         int *reason,
-                                         unsigned int flags);
 int		xenStoreNumOfDomains	(virConnectPtr conn);
 int		xenStoreListDomains	(virConnectPtr conn,
                                          int *ids,
                                          int maxids);
-virDomainPtr	xenStoreLookupByName(virConnectPtr conn,
-                                         const char *name);
-unsigned long	xenStoreGetMaxMemory	(virDomainPtr domain);
-int		xenStoreDomainSetMemory	(virDomainPtr domain,
-                                         unsigned long memory);
-unsigned long long xenStoreDomainGetMaxMemory(virDomainPtr domain);
-int		xenStoreDomainShutdown	(virDomainPtr domain);
-int		xenStoreDomainReboot	(virDomainPtr domain,
-                                         unsigned int flags);
 
 int             xenStoreDomainGetVNCPort(virConnectPtr conn,
                                          int domid);

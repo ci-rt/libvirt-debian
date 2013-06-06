@@ -322,7 +322,7 @@ int	<a href="#virConnectDomainEventDeregister">virConnectDomainEventDeregister</
 int	<a href="#virConnectDomainEventDeregisterAny">virConnectDomainEventDeregisterAny</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 int callbackID);
 typedef void <a href="#virConnectDomainEventDiskChangeCallback">virConnectDomainEventDiskChangeCallback</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>						 const char * oldSrcPath, <br/>						 const char * newSrcPath, <br/>						 const char * devAlias, <br/>						 int reason, <br/>						 void * opaque);
 typedef void <a href="#virConnectDomainEventGenericCallback">virConnectDomainEventGenericCallback</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>						 void * opaque);
-typedef void <a href="#virConnectDomainEventGraphicsCallback">virConnectDomainEventGraphicsCallback</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>						 int phase, <br/>						 <a href="libvirt-libvirt.html#virDomainEventGraphicsAddressPtr">virDomainEventGraphicsAddressPtr</a> local, <br/>						 <a href="libvirt-libvirt.html#virDomainEventGraphicsAddressPtr">virDomainEventGraphicsAddressPtr</a> remote, <br/>						 const char * authScheme, <br/>						 <a href="libvirt-libvirt.html#virDomainEventGraphicsSubjectPtr">virDomainEventGraphicsSubjectPtr</a> subject, <br/>						 void * opaque);
+typedef void <a href="#virConnectDomainEventGraphicsCallback">virConnectDomainEventGraphicsCallback</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>						 int phase, <br/>						 const <a href="libvirt-libvirt.html#virDomainEventGraphicsAddressPtr">virDomainEventGraphicsAddressPtr</a> local, <br/>						 const <a href="libvirt-libvirt.html#virDomainEventGraphicsAddressPtr">virDomainEventGraphicsAddressPtr</a> remote, <br/>						 const char * authScheme, <br/>						 const <a href="libvirt-libvirt.html#virDomainEventGraphicsSubjectPtr">virDomainEventGraphicsSubjectPtr</a> subject, <br/>						 void * opaque);
 typedef void <a href="#virConnectDomainEventIOErrorCallback">virConnectDomainEventIOErrorCallback</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>						 const char * srcPath, <br/>						 const char * devAlias, <br/>						 int action, <br/>						 void * opaque);
 typedef void <a href="#virConnectDomainEventIOErrorReasonCallback">virConnectDomainEventIOErrorReasonCallback</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>							 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>							 const char * srcPath, <br/>							 const char * devAlias, <br/>							 int action, <br/>							 const char * reason, <br/>							 void * opaque);
 typedef void <a href="#virConnectDomainEventPMSuspendCallback">virConnectDomainEventPMSuspendCallback</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>						 int reason, <br/>						 void * opaque);
@@ -1524,8 +1524,8 @@ The content of this structure is not made public by the API.
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainEventGraphicsAddress">Structure </a>virDomainEventGraphicsAddress</h3><pre class="programlisting">struct _virDomainEventGraphicsAddress {
     int	family	: Address family, <a href="libvirt-libvirt.html#virDomainEventGraphicsAddressType">virDomainEventGraphicsAddressType</a>
-    const char *	node	: Address of node (eg IP address, or UNIX path)
-    const char *	service	: Service name/number (eg TCP port, or NULL)
+    char *	node	: Address of node (eg IP address, or UNIX path)
+    char *	service	: Service name/number (eg TCP port, or NULL)
 } virDomainEventGraphicsAddress;
 </pre><p/>
 </div>
@@ -1560,8 +1560,8 @@ The content of this structure is not made public by the API.
 </div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainEventGraphicsSubjectIdentity">Structure </a>virDomainEventGraphicsSubjectIdentity</h3><pre class="programlisting">struct _virDomainEventGraphicsSubjectIdentity {
-    const char *	type	: Type of identity
-    const char *	name	: Identity value
+    char *	type	: Type of identity
+    char *	name	: Identity value
 } virDomainEventGraphicsSubjectIdentity;
 </pre><p/>
 </div>
@@ -2638,7 +2638,7 @@ VIR_DOMAIN_EVENT_ID_DISK_CHANGE with virConnectDomainEventRegisterAny()</p>
 have a customization with extra parameters</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>the connection pointer</td></tr><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>the domain pointer</td></tr><tr><td><span class="term"><i><tt>opaque</tt></i>:</span></td><td>application specified data</td></tr></tbody></table></div></div>
         <hr/>
-        <div class="refsect2" lang="en"><h3><a name="virConnectDomainEventGraphicsCallback"/>Function type virConnectDomainEventGraphicsCallback</h3><pre class="programlisting">void	virConnectDomainEventGraphicsCallback	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>						 int phase, <br/>						 <a href="libvirt-libvirt.html#virDomainEventGraphicsAddressPtr">virDomainEventGraphicsAddressPtr</a> local, <br/>						 <a href="libvirt-libvirt.html#virDomainEventGraphicsAddressPtr">virDomainEventGraphicsAddressPtr</a> remote, <br/>						 const char * authScheme, <br/>						 <a href="libvirt-libvirt.html#virDomainEventGraphicsSubjectPtr">virDomainEventGraphicsSubjectPtr</a> subject, <br/>						 void * opaque)<br/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectDomainEventGraphicsCallback"/>Function type virConnectDomainEventGraphicsCallback</h3><pre class="programlisting">void	virConnectDomainEventGraphicsCallback	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>						 int phase, <br/>						 const <a href="libvirt-libvirt.html#virDomainEventGraphicsAddressPtr">virDomainEventGraphicsAddressPtr</a> local, <br/>						 const <a href="libvirt-libvirt.html#virDomainEventGraphicsAddressPtr">virDomainEventGraphicsAddressPtr</a> remote, <br/>						 const char * authScheme, <br/>						 const <a href="libvirt-libvirt.html#virDomainEventGraphicsSubjectPtr">virDomainEventGraphicsSubjectPtr</a> subject, <br/>						 void * opaque)<br/>
 </pre><p>The callback signature to use when registering for an event of type
 VIR_DOMAIN_EVENT_ID_GRAPHICS with virConnectDomainEventRegisterAny()</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>connection object</td></tr><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>domain on which the event occurred</td></tr><tr><td><span class="term"><i><tt>phase</tt></i>:</span></td><td>the phase of the connection</td></tr><tr><td><span class="term"><i><tt>local</tt></i>:</span></td><td>the local server address</td></tr><tr><td><span class="term"><i><tt>remote</tt></i>:</span></td><td>the remote client address</td></tr><tr><td><span class="term"><i><tt>authScheme</tt></i>:</span></td><td>the authentication scheme activated</td></tr><tr><td><span class="term"><i><tt>subject</tt></i>:</span></td><td>the authenticated subject (user)</td></tr><tr><td><span class="term"><i><tt>opaque</tt></i>:</span></td><td>application specified data</td></tr></tbody></table></div></div>
@@ -3483,7 +3483,9 @@ call would succeed.
 NB. The remote driver imposes a 64K byte limit on 'size'.
 For your program to be able to work reliably over a remote
 connection you should split large requests to &lt;= 65536 bytes.
-However, with 0.9.13 this RPC limit has been raised to 1M byte.</p>
+However, with 0.9.13 this RPC limit has been raised to 1M byte.
+Starting with version 1.0.6 the RPC limit has been raised again.
+Now large requests up to 16M byte are supported.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>pointer to the domain object</td></tr><tr><td><span class="term"><i><tt>disk</tt></i>:</span></td><td>path to the block device, or device shorthand</td></tr><tr><td><span class="term"><i><tt>offset</tt></i>:</span></td><td>offset within block device</td></tr><tr><td><span class="term"><i><tt>size</tt></i>:</span></td><td>size to read</td></tr><tr><td><span class="term"><i><tt>buffer</tt></i>:</span></td><td>return buffer (must be at least size bytes)</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>extra flags; not used yet, so callers should always pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success or -1 in case of failure. really 64 bits</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainBlockPull"/>virDomainBlockPull ()</h3><pre class="programlisting">int	virDomainBlockPull		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 const char * disk, <br/>					 unsigned long bandwidth, <br/>					 unsigned int flags)<br/>
@@ -4369,7 +4371,9 @@ coherently.
 NB. The remote driver imposes a 64K byte limit on 'size'.
 For your program to be able to work reliably over a remote
 connection you should split large requests to &lt;= 65536 bytes.
-However, with 0.9.13 this RPC limit has been raised to 1M byte.</p>
+However, with 0.9.13 this RPC limit has been raised to 1M byte.
+Starting with version 1.0.6 the RPC limit has been raised again.
+Now large requests up to 16M byte are supported.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>pointer to the domain object</td></tr><tr><td><span class="term"><i><tt>start</tt></i>:</span></td><td>start of memory to peek</td></tr><tr><td><span class="term"><i><tt>size</tt></i>:</span></td><td>size of memory to peek</td></tr><tr><td><span class="term"><i><tt>buffer</tt></i>:</span></td><td>return buffer (must be at least size bytes)</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt.html#virDomainMemoryFlags">virDomainMemoryFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success or -1 in case of failure. really 64 bits</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainMemoryStats"/>virDomainMemoryStats ()</h3><pre class="programlisting">int	virDomainMemoryStats		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 <a href="libvirt-libvirt.html#virDomainMemoryStatPtr">virDomainMemoryStatPtr</a> stats, <br/>					 unsigned int nr_stats, <br/>					 unsigned int flags)<br/>
@@ -4772,7 +4776,14 @@ resumed it earlier. Some hypervisors require that @duration be 0, for
 an indefinite suspension.
 
 Dependent on hypervisor used, this may require a
-guest agent to be available, e.g. QEMU.</p>
+guest agent to be available, e.g. QEMU.
+
+Beware that at least for QEMU, the domain's process will be terminated
+when <a href="libvirt-libvirt.html#VIR_NODE_SUSPEND_TARGET_DISK">VIR_NODE_SUSPEND_TARGET_DISK</a> is used and a new process will be
+launched when libvirt is asked to wake up the domain. As a result of
+this, any runtime changes, such as device hotplug or memory settings,
+are lost unless such changes were made with VIR_DOMAIN_AFFECT_CONFIG
+flag.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>a domain object</td></tr><tr><td><span class="term"><i><tt>target</tt></i>:</span></td><td>a value from <a href="libvirt-libvirt.html#virNodeSuspendTarget">virNodeSuspendTarget</a></td></tr><tr><td><span class="term"><i><tt>duration</tt></i>:</span></td><td>duration in seconds to suspend, or 0 for indefinite</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>extra flags; not used yet, so callers should always pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 on success, -1 on failure.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainPMWakeup"/>virDomainPMWakeup ()</h3><pre class="programlisting">int	virDomainPMWakeup		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 unsigned int flags)<br/>
@@ -4826,9 +4837,12 @@ See also <a href="libvirt-libvirt.html#virDomainGetVcpuPinInfo">virDomainGetVcpu
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>pointer to domain object, or NULL for Domain0</td></tr><tr><td><span class="term"><i><tt>vcpu</tt></i>:</span></td><td>virtual CPU number</td></tr><tr><td><span class="term"><i><tt>cpumap</tt></i>:</span></td><td>pointer to a bit map of real CPUs (in 8-bit bytes) (IN) Each bit set to 1 means that corresponding CPU is usable. Bytes are stored in little-endian order: CPU0-7, 8-15... In each byte, lowest CPU number is least significant bit.</td></tr><tr><td><span class="term"><i><tt>maplen</tt></i>:</span></td><td>number of bytes in cpumap, from 1 up to size of CPU map in underlying virtualization system (Xen...). If maplen &lt; size, missing bytes are set to zero. If maplen &gt; size, failure code is returned.</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt.html#virDomainModificationImpact">virDomainModificationImpact</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success, -1 in case of failure.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainReboot"/>virDomainReboot ()</h3><pre class="programlisting">int	virDomainReboot			(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 unsigned int flags)<br/>
-</pre><p>Reboot a domain, the domain object is still usable there after but
+</pre><p>Reboot a domain, the domain object is still usable thereafter, but
 the domain OS is being stopped for a restart.
 Note that the guest OS may ignore the request.
+Additionally, the hypervisor may check and support the domain
+'on_reboot' XML setting resulting in a domain that shuts down instead
+of rebooting.
 
 If @flags is set to zero, then the hypervisor will choose the
 method of shutdown it considers best. To have greater control
@@ -5208,9 +5222,11 @@ Not all hypervisors can support all flag combinations.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>pointer to domain object, or NULL for Domain0</td></tr><tr><td><span class="term"><i><tt>nvcpus</tt></i>:</span></td><td>the new number of virtual CPUs for this domain, must be at least 1</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt.html#virDomainVcpuFlags">virDomainVcpuFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success, -1 in case of failure.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainShutdown"/>virDomainShutdown ()</h3><pre class="programlisting">int	virDomainShutdown		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain)<br/>
-</pre><p>Shutdown a domain, the domain object is still usable thereafter but
+</pre><p>Shutdown a domain, the domain object is still usable thereafter, but
 the domain OS is being stopped. Note that the guest OS may ignore the
-request. For guests that react to a shutdown request, the differences
+request. Additionally, the hypervisor may check and support the domain
+'on_poweroff' XML setting resulting in a domain that reboots instead of
+shutting down. For guests that react to a shutdown request, the differences
 from virDomainDestroy() are that the guests disk storage will be in a
 stable state rather than having the (virtual) power cord pulled, and
 this command returns as soon as the shutdown request is issued rather
@@ -5224,7 +5240,9 @@ be deleted when the domain quits.</p>
         <div class="refsect2" lang="en"><h3><a name="virDomainShutdownFlags"/>virDomainShutdownFlags ()</h3><pre class="programlisting">int	virDomainShutdownFlags		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 unsigned int flags)<br/>
 </pre><p>Shutdown a domain, the domain object is still usable thereafter but
 the domain OS is being stopped. Note that the guest OS may ignore the
-request. For guests that react to a shutdown request, the differences
+request. Additionally, the hypervisor may check and support the domain
+'on_poweroff' XML setting resulting in a domain that reboots instead of
+shutting down. For guests that react to a shutdown request, the differences
 from virDomainDestroy() are that the guest's disk storage will be in a
 stable state rather than having the (virtual) power cord pulled, and
 this command returns as soon as the shutdown request is issued rather
@@ -6727,7 +6745,8 @@ the reference count.</p>
 </pre><p>Changes the capacity of the storage volume @vol to @capacity. The
 operation will fail if the new capacity requires allocation that would
 exceed the remaining free space in the parent pool. The contents of
-the new capacity will appear as all zero bytes.
+the new capacity will appear as all zero bytes. The capacity value will
+be rounded to the granularity supported by the hypervisor.
 
 Normally, the operation will attempt to affect capacity with a minimum
 impact on allocation (that is, the default operation favors a sparse

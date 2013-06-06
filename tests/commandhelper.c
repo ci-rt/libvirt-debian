@@ -31,6 +31,7 @@
 #include "viralloc.h"
 #include "virfile.h"
 #include "testutils.h"
+#include "virstring.h"
 
 #ifndef WIN32
 
@@ -42,9 +43,13 @@ static int envsort(const void *a, const void *b) {
     const char *bstr = *bstrptr;
     char *aeq = strchr(astr, '=');
     char *beq = strchr(bstr, '=');
-    char *akey = strndup(astr, aeq - astr);
-    char *bkey = strndup(bstr, beq - bstr);
-    int ret = strcmp(akey, bkey);
+    char *akey;
+    char *bkey;
+    int ret;
+
+    ignore_value(VIR_STRNDUP_QUIET(akey, astr, aeq - astr));
+    ignore_value(VIR_STRNDUP_QUIET(bkey, bstr, beq - bstr));
+    ret = strcmp(akey, bkey);
     VIR_FREE(akey);
     VIR_FREE(bkey);
     return ret;
@@ -60,7 +65,7 @@ int main(int argc, char **argv) {
     if (!log)
         goto error;
 
-    for (i = 1 ; i < argc ; i++) {
+    for (i = 1; i < argc; i++) {
         fprintf(log, "ARG:%s\n", argv[i]);
     }
 
@@ -83,14 +88,14 @@ int main(int argc, char **argv) {
     }
     qsort(newenv, n, sizeof(newenv[0]), envsort);
 
-    for (i = 0 ; i < n ; i++) {
+    for (i = 0; i < n; i++) {
         /* Ignore the variables used to instruct the loader into
          * behaving differently, as they could throw the tests off. */
         if (!STRPREFIX(newenv[i], "LD_"))
             fprintf(log, "ENV:%s\n", newenv[i]);
     }
 
-    for (i = 0 ; i < sysconf(_SC_OPEN_MAX) ; i++) {
+    for (i = 0; i < sysconf(_SC_OPEN_MAX); i++) {
         int f;
         int closed;
         if (i == fileno(log))

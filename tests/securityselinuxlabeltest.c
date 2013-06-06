@@ -37,9 +37,8 @@
 #include "virerror.h"
 #include "virfile.h"
 #include "virlog.h"
-#include "virutil.h"
 #include "security/security_manager.h"
-
+#include "virstring.h"
 
 #define VIR_FROM_THIS VIR_FROM_NONE
 
@@ -117,10 +116,9 @@ testSELinuxLoadFileList(const char *testname,
             goto cleanup;
         }
         if (*tmp != '\0' && *tmp != '\n') {
-            if (!(context = strdup(tmp))) {
+            if (VIR_STRDUP(context, tmp) < 0) {
                 VIR_FREE(line);
                 VIR_FREE(file);
-                virReportOOMError();
                 goto cleanup;
             }
 
@@ -171,7 +169,7 @@ testSELinuxLoadDef(const char *testname)
                                         0)))
         goto cleanup;
 
-    for (i = 0 ; i < def->ndisks ; i++) {
+    for (i = 0; i < def->ndisks; i++) {
         if (def->disks[i]->type != VIR_DOMAIN_DISK_TYPE_FILE &&
             def->disks[i]->type != VIR_DOMAIN_DISK_TYPE_BLOCK)
             continue;
@@ -180,7 +178,7 @@ testSELinuxLoadDef(const char *testname)
             goto cleanup;
     }
 
-    for (i = 0 ; i < def->nserials ; i++) {
+    for (i = 0; i < def->nserials; i++) {
         if (def->serials[i]->source.type != VIR_DOMAIN_CHR_TYPE_FILE &&
             def->serials[i]->source.type != VIR_DOMAIN_CHR_TYPE_PIPE &&
             def->serials[i]->source.type != VIR_DOMAIN_CHR_TYPE_DEV &&
@@ -218,7 +216,7 @@ testSELinuxCreateDisks(testSELinuxFile *files, size_t nfiles)
     if (virFileMakePath(abs_builddir "/securityselinuxlabeldata") < 0)
         return -1;
 
-    for (i = 0 ; i < nfiles ; i++) {
+    for (i = 0; i < nfiles; i++) {
         if (virFileTouch(files[i].file, 0600) < 0)
             return -1;
     }
@@ -230,7 +228,7 @@ testSELinuxDeleteDisks(testSELinuxFile *files, size_t nfiles)
 {
     size_t i;
 
-    for (i = 0 ; i < nfiles ; i++) {
+    for (i = 0; i < nfiles; i++) {
         if (unlink(files[i].file) < 0)
             return -1;
     }
@@ -243,7 +241,7 @@ testSELinuxCheckLabels(testSELinuxFile *files, size_t nfiles)
     size_t i;
     security_context_t ctx;
 
-    for (i = 0 ; i < nfiles ; i++) {
+    for (i = 0; i < nfiles; i++) {
         if (getfilecon(files[i].file, &ctx) < 0) {
             if (errno == ENODATA) {
                 ctx = NULL;
@@ -296,7 +294,7 @@ cleanup:
         goto cleanup;
 
     virDomainDefFree(def);
-    for (i = 0 ; i < nfiles; i++) {
+    for (i = 0; i < nfiles; i++) {
         VIR_FREE(files[i].file);
         VIR_FREE(files[i].context);
     }

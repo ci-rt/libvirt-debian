@@ -42,10 +42,6 @@ while (<>) {
             my $prefix = $impl;
             $prefix =~ s/^([a-z]+(?:Unified)?)(.*?)$/$1/;
 
-            # External impls
-            next if $prefix eq "node";
-            next if $prefix eq "vir";
-
             if (defined $mainprefix) {
                 if ($mainprefix ne $prefix) {
                     print "$ARGV:$. Bad prefix '$prefix' for API '$api', expecting '$mainprefix'\n";
@@ -72,7 +68,8 @@ while (<>) {
             }
         }
     } elsif (/^(?:static\s+)?(vir(?:\w+)?Driver)\s+/) {
-        next if $1 eq "virNWFilterCallbackDriver";
+        next if $1 eq "virNWFilterCallbackDriver" ||
+                $1 eq "virNWFilterTechDriver";
         $intable = 1;
         $table = $1;
     }

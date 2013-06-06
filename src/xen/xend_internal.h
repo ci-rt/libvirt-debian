@@ -1,16 +1,23 @@
 /*
  * xend_internal.h
  *
- * Copyright (C) 2006-2008, 2010-2012 Red Hat, Inc.
- * Copyright (C) 2005,2006
+ * Copyright (C) 2006-2008, 2010-2013 Red Hat, Inc.
+ * Copyright (C) 2005,2006 Anthony Liguori <aliguori@us.ibm.com>
+ *  and Daniel Veillard <veillard@redhat.com>
  *
- *      Anthony Liguori <aliguori@us.ibm.com>
- *	Daniel Veillard <veillard@redhat.com>
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
  *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
  *
- *  This file is subject to the terms and conditions of the GNU Lesser General
- *  Public License. See the file COPYING in the main directory of this archive
- *  for more details.
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
  */
 
 #ifndef __XEND_INTERNAL_H_
@@ -69,19 +76,6 @@ int xenDaemonDomainLookupByName_ids(virConnectPtr xend,
                             const char *name, unsigned char *uuid);
 
 
-/**
- * \brief Lookup the name of a domain
- * \param xend A xend instance
- * \param id The id of the domain
- * \param name pointer to store a copy of the name
- * \param uuid pointer to store a copy of the uuid
- *
- * This method looks up the name/uuid of a domain
- */
-int xenDaemonDomainLookupByID(virConnectPtr xend,
-                              int id,
-                              char **name, unsigned char *uuid);
-
 
 virDomainDefPtr
 xenDaemonDomainFetch(virConnectPtr xend,
@@ -95,74 +89,129 @@ xenDaemonDomainFetch(virConnectPtr xend,
 
 
 /* refactored ones */
-virDrvOpenStatus xenDaemonOpen(virConnectPtr conn, virConnectAuthPtr auth,
-                               unsigned int flags);
+int xenDaemonOpen(virConnectPtr conn, virConnectAuthPtr auth,
+                  unsigned int flags);
 int xenDaemonClose(virConnectPtr conn);
-int xenDaemonGetVersion(virConnectPtr conn, unsigned long *hvVer);
 int xenDaemonNodeGetInfo(virConnectPtr conn, virNodeInfoPtr info);
 int xenDaemonNodeGetTopology(virConnectPtr conn, virCapsPtr caps);
-int xenDaemonDomainSuspend(virDomainPtr domain);
-int xenDaemonDomainResume(virDomainPtr domain);
-int xenDaemonDomainShutdown(virDomainPtr domain);
-int xenDaemonDomainReboot(virDomainPtr domain, unsigned int flags);
-int xenDaemonDomainDestroyFlags(virDomainPtr domain, unsigned int flags);
-int xenDaemonDomainSave(virDomainPtr domain, const char *filename);
-int xenDaemonDomainCoreDump(virDomainPtr domain, const char *filename,
+int xenDaemonDomainSuspend(virConnectPtr conn, virDomainDefPtr def);
+int xenDaemonDomainResume(virConnectPtr conn, virDomainDefPtr def);
+int xenDaemonDomainShutdown(virConnectPtr conn, virDomainDefPtr def);
+int xenDaemonDomainReboot(virConnectPtr conn, virDomainDefPtr def);
+int xenDaemonDomainDestroy(virConnectPtr conn, virDomainDefPtr def);
+int xenDaemonDomainSave(virConnectPtr conn,
+                        virDomainDefPtr def,
+                        const char *filename);
+int xenDaemonDomainCoreDump(virConnectPtr conn,
+                            virDomainDefPtr def,
+                            const char *filename,
                             unsigned int flags);
 int xenDaemonDomainRestore(virConnectPtr conn, const char *filename);
-int xenDaemonDomainSetMemory(virDomainPtr domain, unsigned long memory);
-int xenDaemonDomainSetMaxMemory(virDomainPtr domain, unsigned long memory);
-int xenDaemonDomainGetInfo(virDomainPtr domain, virDomainInfoPtr info);
-int xenDaemonDomainGetState(virDomainPtr domain,
+int xenDaemonDomainSetMemory(virConnectPtr conn,
+                             virDomainDefPtr def,
+                             unsigned long memory);
+int xenDaemonDomainSetMaxMemory(virConnectPtr conn,
+                                virDomainDefPtr def,
+                                unsigned long memory);
+int xenDaemonDomainGetInfo(virConnectPtr conn,
+                           virDomainDefPtr def,
+                           virDomainInfoPtr info);
+int xenDaemonDomainGetState(virConnectPtr conn,
+                            virDomainDefPtr def,
                             int *state,
-                            int *reason,
-                            unsigned int flags);
-char *xenDaemonDomainGetXMLDesc(virDomainPtr domain, unsigned int flags,
-                                const char *cpus);
-unsigned long long xenDaemonDomainGetMaxMemory(virDomainPtr domain);
+                            int *reason);
+virDomainDefPtr xenDaemonDomainGetXMLDesc(virConnectPtr conn,
+                                          virDomainDefPtr def,
+                                          const char *cpus);
+unsigned long long xenDaemonDomainGetMaxMemory(virConnectPtr conn,
+                                               virDomainDefPtr def);
 char **xenDaemonListDomainsOld(virConnectPtr xend);
 
-virDomainPtr xenDaemonDomainDefineXML(virConnectPtr xend, const char *sexpr);
-int xenDaemonDomainCreate(virDomainPtr domain);
-int xenDaemonDomainUndefine(virDomainPtr domain);
+char *xenDaemonDomainGetOSType(virConnectPtr conn,
+                               virDomainDefPtr def);
 
-int	xenDaemonDomainSetVcpus		(virDomainPtr domain,
+int xenDaemonNumOfDefinedDomains(virConnectPtr conn);
+int xenDaemonListDefinedDomains(virConnectPtr conn,
+                                char **const names,
+                                int maxnames);
+
+int xenDaemonAttachDeviceFlags(virConnectPtr conn,
+                               virDomainDefPtr def,
+                               const char *xml,
+                               unsigned int flags);
+int xenDaemonDetachDeviceFlags(virConnectPtr conn,
+                               virDomainDefPtr def,
+                               const char *xml,
+                               unsigned int flags);
+
+int xenDaemonDomainDefineXML(virConnectPtr conn,
+                             virDomainDefPtr def);
+int xenDaemonDomainCreate(virConnectPtr conn,
+                          virDomainDefPtr def);
+int xenDaemonDomainUndefine(virConnectPtr conn,
+                            virDomainDefPtr def);
+
+int	xenDaemonDomainSetVcpus		(virConnectPtr conn,
+                                         virDomainDefPtr def,
                                          unsigned int vcpus);
-int	xenDaemonDomainSetVcpusFlags	(virDomainPtr domain,
+int	xenDaemonDomainSetVcpusFlags	(virConnectPtr conn,
+                                         virDomainDefPtr def,
                                          unsigned int vcpus,
                                          unsigned int flags);
-int	xenDaemonDomainPinVcpu		(virDomainPtr domain,
+int	xenDaemonDomainPinVcpu		(virConnectPtr conn,
+                                         virDomainDefPtr def,
                                          unsigned int vcpu,
                                          unsigned char *cpumap,
                                          int maplen);
-int     xenDaemonDomainGetVcpusFlags    (virDomainPtr domain,
+int     xenDaemonDomainGetVcpusFlags    (virConnectPtr conn,
+                                         virDomainDefPtr def,
                                          unsigned int flags);
-int	xenDaemonDomainGetVcpus		(virDomainPtr domain,
+int	xenDaemonDomainGetVcpus		(virConnectPtr conn,
+                                         virDomainDefPtr def,
                                          virVcpuInfoPtr info,
                                          int maxinfo,
                                          unsigned char *cpumaps,
                                          int maplen);
-int xenDaemonUpdateDeviceFlags(virDomainPtr domain, const char *xml,
+int xenDaemonUpdateDeviceFlags(virConnectPtr conn,
+                               virDomainDefPtr def,
+                               const char *xml,
                                unsigned int flags);
-int xenDaemonDomainGetAutostart          (virDomainPtr dom,
-                                          int *autostart);
-int xenDaemonDomainSetAutostart          (virDomainPtr domain,
-                                          int autostart);
+int xenDaemonDomainGetAutostart(virConnectPtr conn,
+                                virDomainDefPtr def,
+                                int *autostart);
+int xenDaemonDomainSetAutostart(virConnectPtr conn,
+                                virDomainDefPtr def,
+                                int autostart);
 
-/* xen_unified calls through here. */
-extern struct xenUnifiedDriver xenDaemonDriver;
-int xenDaemonInit (void);
+int xenDaemonCreateXML(virConnectPtr conn, virDomainDefPtr def);
+virDomainDefPtr xenDaemonLookupByUUID(virConnectPtr conn, const unsigned char *uuid);
+virDomainDefPtr xenDaemonLookupByName(virConnectPtr conn, const char *domname);
+int xenDaemonDomainMigratePrepare (virConnectPtr dconn,
+                                   char **cookie, int *cookielen,
+                                   const char *uri_in, char **uri_out,
+                                   unsigned long flags, const char *dname, unsigned long resource);
+int xenDaemonDomainMigratePerform (virConnectPtr conn,
+                                   virDomainDefPtr def,
+                                   const char *cookie, int cookielen,
+                                   const char *uri, unsigned long flags,
+                                   const char *dname, unsigned long resource);
 
-virDomainPtr xenDaemonCreateXML(virConnectPtr conn, const char *xmlDesc,
-                                unsigned int flags);
-virDomainPtr xenDaemonLookupByID(virConnectPtr conn, int id);
-virDomainPtr xenDaemonLookupByUUID(virConnectPtr conn, const unsigned char *uuid);
-virDomainPtr xenDaemonLookupByName(virConnectPtr conn, const char *domname);
-int xenDaemonDomainMigratePrepare (virConnectPtr dconn, char **cookie, int *cookielen, const char *uri_in, char **uri_out, unsigned long flags, const char *dname, unsigned long resource);
-int xenDaemonDomainMigratePerform (virDomainPtr domain, const char *cookie, int cookielen, const char *uri, unsigned long flags, const char *dname, unsigned long resource);
+int xenDaemonDomainBlockPeek(virConnectPtr conn,
+                             virDomainDefPtr def,
+                             const char *path,
+                             unsigned long long offset,
+                             size_t size,
+                             void *buffer);
 
-int xenDaemonDomainBlockPeek (virDomainPtr domain, const char *path, unsigned long long offset, size_t size, void *buffer);
-int xenDaemonListDomains(virConnectPtr conn, int *ids, int maxids);
-int xenDaemonNumOfDomains(virConnectPtr conn);
+char * xenDaemonGetSchedulerType(virConnectPtr conn,
+                                 int *nparams);
+int xenDaemonGetSchedulerParameters(virConnectPtr conn,
+                                    virDomainDefPtr def,
+                                    virTypedParameterPtr params,
+                                    int *nparams);
+int xenDaemonSetSchedulerParameters(virConnectPtr conn,
+                                    virDomainDefPtr def,
+                                    virTypedParameterPtr params,
+                                    int nparams);
 
 #endif /* __XEND_INTERNAL_H_ */

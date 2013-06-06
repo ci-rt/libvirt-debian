@@ -10,7 +10,7 @@
  * in a reliable fashion if merely after a list of partitions & sizes,
  * though it is fine for creating partitions.
  *
- * Copyright (C) 2007-2008, 2010 Red Hat, Inc.
+ * Copyright (C) 2007-2008, 2010, 2013 Red Hat, Inc.
  * Copyright (C) 2007-2008 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -42,8 +42,10 @@
 #include <locale.h>
 
 #include "virutil.h"
+#include "virfile.h"
 #include "c-ctype.h"
 #include "configmake.h"
+#include "virstring.h"
 
 /* we don't need to include the full internal.h just for this */
 #define STREQ(a,b) (strcmp(a,b) == 0)
@@ -86,10 +88,8 @@ int main(int argc, char **argv)
     path = argv[1];
     if (virIsDevMapperDevice(path)) {
         partsep = "p";
-        canonical_path = strdup(path);
-        if (canonical_path == NULL) {
+        if (VIR_STRDUP_QUIET(canonical_path, path) < 0)
             return 2;
-        }
     } else {
         if (virFileResolveLink(path, &canonical_path) != 0) {
             return 2;

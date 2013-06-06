@@ -40,10 +40,10 @@
 #include "virlog.h"
 #include "virerror.h"
 #include "viralloc.h"
-#include "virutil.h"
 #include "virfile.h"
 #include "md5.h"
 #include "virconf.h"
+#include "virstring.h"
 
 #include "configmake.h"
 
@@ -129,8 +129,7 @@ static int virLockManagerSanlockLoadConfig(const char *configFile)
     CHECK_TYPE("disk_lease_dir", VIR_CONF_STRING);
     if (p && p->str) {
         VIR_FREE(driver->autoDiskLeasePath);
-        if (!(driver->autoDiskLeasePath = strdup(p->str))) {
-            virReportOOMError();
+        if (VIR_STRDUP(driver->autoDiskLeasePath, p->str) < 0) {
             virConfFree(conf);
             return -1;
         }
@@ -150,8 +149,7 @@ static int virLockManagerSanlockLoadConfig(const char *configFile)
     p = virConfGetValue(conf, "user");
     CHECK_TYPE("user", VIR_CONF_STRING);
     if (p) {
-        if (!(tmp = strdup(p->str))) {
-            virReportOOMError();
+        if (VIR_STRDUP(tmp, p->str) < 0) {
             virConfFree(conf);
             return -1;
         }
@@ -167,8 +165,7 @@ static int virLockManagerSanlockLoadConfig(const char *configFile)
     p = virConfGetValue(conf, "group");
     CHECK_TYPE("group", VIR_CONF_STRING);
     if (p) {
-        if (!(tmp = strdup(p->str))) {
-            virReportOOMError();
+        if (VIR_STRDUP(tmp, p->str) < 0) {
             virConfFree(conf);
             return -1;
         }
@@ -408,9 +405,8 @@ static int virLockManagerSanlockInit(unsigned int version,
     driver->autoDiskLease = false;
     driver->user = (uid_t) -1;
     driver->group = (gid_t) -1;
-    if (!(driver->autoDiskLeasePath = strdup(LOCALSTATEDIR "/lib/libvirt/sanlock"))) {
+    if (VIR_STRDUP(driver->autoDiskLeasePath, LOCALSTATEDIR "/lib/libvirt/sanlock") < 0) {
         VIR_FREE(driver);
-        virReportOOMError();
         goto error;
     }
 
@@ -544,7 +540,7 @@ static int virLockManagerSanlockDiskLeaseName(const char *path,
         return -1;
     }
 
-    for (i = 0 ; i < MD5_DIGEST_SIZE ; i++) {
+    for (i = 0; i < MD5_DIGEST_SIZE; i++) {
         str[i*2] = hex[(buf[i] >> 4) & 0xf];
         str[(i*2)+1] = hex[buf[i] & 0xf];
     }
@@ -1024,7 +1020,7 @@ static int virLockManagerSanlockAcquire(virLockManagerPtr lock,
     VIR_DEBUG("Acquire completed fd=%d", sock);
 
     if (res_free) {
-        for (i = 0 ; i < res_count ; i++) {
+        for (i = 0; i < res_count; i++) {
             VIR_FREE(res_args[i]);
         }
         VIR_FREE(res_args);
@@ -1037,7 +1033,7 @@ static int virLockManagerSanlockAcquire(virLockManagerPtr lock,
 
 error:
     if (res_free) {
-        for (i = 0 ; i < res_count ; i++) {
+        for (i = 0; i < res_count; i++) {
             VIR_FREE(res_args[i]);
         }
         VIR_FREE(res_args);

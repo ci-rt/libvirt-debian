@@ -332,7 +332,7 @@ static int myDomainEventGraphicsCallback(virConnectPtr conn ATTRIBUTE_UNUSED,
            remote->family, remote->node, remote->service);
 
     printf("auth: %s ", authScheme);
-    for (i = 0 ; i < subject->nidentity ; i++) {
+    for (i = 0; i < subject->nidentity; i++) {
         printf(" identity: %s=%s",
                subject->identities[i].type,
                subject->identities[i].name);
@@ -468,7 +468,17 @@ int main(int argc, char **argv)
         return -1;
     }
 
-    virEventRegisterDefaultImpl();
+    if (virInitialize() < 0) {
+        fprintf(stderr, "Failed to initialize libvirt");
+        return -1;
+    }
+
+    if (virEventRegisterDefaultImpl() < 0) {
+        virErrorPtr err = virGetLastError();
+        fprintf(stderr, "Failed to register event implementation: %s\n",
+                err && err->message ? err->message: "Unknown error");
+        return -1;
+    }
 
     virConnectPtr dconn = NULL;
     dconn = virConnectOpenAuth(argc > 1 ? argv[1] : NULL,

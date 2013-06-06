@@ -14,8 +14,8 @@
 
 # include "internal.h"
 # include "qemu/qemu_command.h"
-
 # include "testutilsqemu.h"
+# include "virstring.h"
 
 static virQEMUDriver driver;
 
@@ -200,6 +200,8 @@ mymain(void)
     DO_TEST("disk-usb");
     DO_TEST("graphics-vnc");
     DO_TEST("graphics-vnc-socket");
+    DO_TEST("graphics-vnc-websocket");
+    DO_TEST("graphics-vnc-policy");
 
     DO_TEST("graphics-vnc-sasl");
     DO_TEST("graphics-vnc-tls");
@@ -245,6 +247,8 @@ mymain(void)
     DO_TEST("hyperv");
 
     DO_TEST("pseries-nvram");
+
+    DO_TEST("nosharepages");
 
     DO_TEST_FULL("restore-v1", 0, "stdio");
     DO_TEST_FULL("restore-v2", 0, "stdio");

@@ -33,10 +33,11 @@
 #include "virbitmap.h"
 #include "viralloc.h"
 #include "virbuffer.h"
-#include "virutil.h"
 #include "c-ctype.h"
 #include "count-one-bits.h"
+#include "virstring.h"
 
+#define VIR_FROM_THIS VIR_FROM_NONE
 
 struct _virBitmap {
     size_t max_bit;
@@ -227,8 +228,11 @@ char *virBitmapFormat(virBitmapPtr bitmap)
         return NULL;
 
     cur = virBitmapNextSetBit(bitmap, -1);
-    if (cur < 0)
-        return strdup("");
+    if (cur < 0) {
+        char *ret;
+        ignore_value(VIR_STRDUP(ret, ""));
+        return ret;
+    }
 
     start = prev = cur;
     while (prev >= 0) {

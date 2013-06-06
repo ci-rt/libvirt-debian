@@ -130,6 +130,11 @@
     %define with_libxl 0
 %endif
 
+# vbox is available only on i386 x86_64
+%ifnarch %{ix86} x86_64
+    %define with_vbox 0
+%endif
+
 # Numactl is not available on s390[x] and ARM
 %ifarch s390 s390x %{arm}
     %define with_numactl 0
@@ -340,7 +345,7 @@
 
 Summary: Library providing a simple virtualization API
 Name: libvirt
-Version: 1.0.5
+Version: 1.0.6
 Release: 1%{?dist}%{?extra_release}
 License: LGPLv2+
 Group: Development/Libraries
@@ -375,6 +380,9 @@ Requires: libvirt-daemon-driver-uml = %{version}-%{release}
         %endif
         %if %{with_xen}
 Requires: libvirt-daemon-driver-xen = %{version}-%{release}
+        %endif
+        %if %{with_vbox}
+Requires: libvirt-daemon-driver-vbox = %{version}-%{release}
         %endif
 
 Requires: libvirt-daemon-driver-interface = %{version}-%{release}
@@ -718,6 +726,8 @@ Requires: numad
     %endif
 # libvirtd depends on 'messagebus' service
 Requires: dbus
+# For uid creation during pre
+Requires(pre): shadow-utils
 
 %description daemon
 Server side daemon required to manage the virtualization capabilities
@@ -878,6 +888,19 @@ Xen
         %endif
 
 
+        %if %{with_vbox}
+%package daemon-driver-vbox
+Summary: VirtualBox driver plugin for the libvirtd daemon
+Group: Development/Libraries
+Requires: libvirt-daemon = %{version}-%{release}
+
+%description daemon-driver-vbox
+The vbox driver plugin for the libvirtd daemon, providing
+an implementation of the hypervisor driver APIs using
+VirtualBox
+        %endif
+
+
         %if %{with_libxl}
 %package daemon-driver-libxl
 Summary: Libxl driver plugin for the libvirtd daemon
@@ -1010,6 +1033,28 @@ Requires: xen
 Server side daemon and driver required to manage the virtualization
 capabilities of XEN
     %endif
+
+    %if %{with_vbox}
+%package daemon-vbox
+Summary: Server side daemon & driver required to run VirtualBox guests
+Group: Development/Libraries
+
+Requires: libvirt-daemon = %{version}-%{release}
+        %if %{with_driver_modules}
+Requires: libvirt-daemon-driver-vbox = %{version}-%{release}
+Requires: libvirt-daemon-driver-interface = %{version}-%{release}
+Requires: libvirt-daemon-driver-network = %{version}-%{release}
+Requires: libvirt-daemon-driver-nodedev = %{version}-%{release}
+Requires: libvirt-daemon-driver-nwfilter = %{version}-%{release}
+Requires: libvirt-daemon-driver-secret = %{version}-%{release}
+Requires: libvirt-daemon-driver-storage = %{version}-%{release}
+        %endif
+Requires: vbox
+
+%description daemon-vbox
+Server side daemon and driver required to manage the virtualization
+capabilities of VirtualBox
+    %endif
 %endif # %{with_libvirtd}
 
 %package client
@@ -1020,7 +1065,7 @@ Requires: ncurses
 # So remote clients can access libvirt over SSH tunnel
 # (client invokes 'nc' against the UNIX socket on the server)
 Requires: nc
-# Needed by libvirt-guests init script.
+# Needed by /usr/libexec/libvirt-guests.sh script.
 Requires: gettext
 # Needed by virt-pki-validate script.
 Requires: gnutls-utils
@@ -1444,14 +1489,19 @@ make check
 %if %{with_libvirtd}
 %pre daemon
     %if 0%{?fedora} >= 12 || 0%{?rhel} >= 6
-# Normally 'setup' adds this in /etc/passwd, but this is
-# here for case of upgrades from earlier Fedora/RHEL. This
-# UID/GID pair is reserved for qemu:qemu
-getent group kvm >/dev/null || groupadd -g 36 -r kvm
-getent group qemu >/dev/null || groupadd -g 107 -r qemu
-getent passwd qemu >/dev/null || \
-  useradd -r -u 107 -g qemu -G kvm -d / -s /sbin/nologin \
-    -c "qemu user" qemu
+# We want soft static allocation of well-known ids, as disk images
+# are commonly shared across NFS mounts by id rather than name; see
+# https://fedoraproject.org/wiki/Packaging:UsersAndGroups
+getent group kvm >/dev/null || groupadd -f -g 36 -r kvm
+getent group qemu >/dev/null || groupadd -f -g 107 -r qemu
+if ! getent passwd qemu >/dev/null; then
+  if ! getent passwd 107 >/dev/null; then
+    useradd -r -u 107 -g qemu -G kvm -d / -s /sbin/nologin -c "qemu user" qemu
+  else
+    useradd -r -g qemu -G kvm -d / -s /sbin/nologin -c "qemu user" qemu
+  fi
+fi
+exit 0
     %endif
 
 %post daemon
@@ -1657,7 +1707,7 @@ fi
 %files daemon
 %defattr(-, root, root)
 
-%doc AUTHORS ChangeLog.gz NEWS README COPYING.LIB TODO
+%doc AUTHORS ChangeLog.gz NEWS README COPYING COPYING.LESSER TODO
 %dir %attr(0700, root, root) %{_sysconfdir}/libvirt/
 
     %if %{with_network}
@@ -1721,6 +1771,7 @@ fi
     %if %{with_qemu}
 %ghost %dir %attr(0700, root, root) %{_localstatedir}/run/libvirt/qemu/
 %dir %attr(0750, %{qemu_user}, %{qemu_group}) %{_localstatedir}/lib/libvirt/qemu/
+%dir %attr(0750, %{qemu_user}, %{qemu_group}) %{_localstatedir}/lib/libvirt/qemu/channel/target/
 %dir %attr(0750, %{qemu_user}, %{qemu_group}) %{_localstatedir}/cache/libvirt/qemu/
     %endif
     %if %{with_lxc}
@@ -1861,6 +1912,12 @@ fi
 %defattr(-, root, root)
 %{_libdir}/%{name}/connection-driver/libvirt_driver_libxl.so
         %endif
+
+        %if %{with_vbox}
+%files daemon-driver-vbox
+%defattr(-, root, root)
+%{_libdir}/%{name}/connection-driver/libvirt_driver_vbox.so
+        %endif
     %endif # %{with_driver_modules}
 
     %if %{with_qemu_tcg}
@@ -1887,6 +1944,11 @@ fi
 %files daemon-xen
 %defattr(-, root, root)
     %endif
+
+    %if %{with_vbox}
+%files daemon-vbox
+%defattr(-, root, root)
+    %endif
 %endif # %{with_libvirtd}
 
 %if %{with_sanlock}
@@ -1906,7 +1968,7 @@ fi
 
 %files client -f %{name}.lang
 %defattr(-, root, root)
-%doc AUTHORS ChangeLog.gz NEWS README COPYING.LIB TODO
+%doc AUTHORS ChangeLog.gz NEWS README COPYING COPYING.LESSER TODO
 
 %config(noreplace) %{_sysconfdir}/libvirt/libvirt.conf
 %{_mandir}/man1/virsh.1*
@@ -1986,7 +2048,7 @@ fi
 %files python
 %defattr(-, root, root)
 
-%doc AUTHORS NEWS README COPYING.LIB
+%doc AUTHORS NEWS README COPYING COPYING.LESSER
 %{_libdir}/python*/site-packages/libvirt.py*
 %{_libdir}/python*/site-packages/libvirt_qemu.py*
 %{_libdir}/python*/site-packages/libvirt_lxc.py*
@@ -1998,6 +2060,14 @@ fi
 %endif
 
 %changelog
+* Mon Jun  3 2013 Daniel Veillard <veillard@redhat.com> - 1.0.6-1
+- Move VirtualBox driver into libvirtd
+- Support for static routes on a virtual bridge
+- Various improvement for hostdev SCSI support
+- Switch to VIR_STRDUP and VIR_STRNDUP
+- Various cleanups and improvement in Xen and LXC drivers
+- various bug fixes and improvements including localizations
+
 * Thu May  2 2013 Daniel Veillard <veillard@redhat.com> - 1.0.5-1
 - add support for NVRAM device
 - Add XML config for resource partitions

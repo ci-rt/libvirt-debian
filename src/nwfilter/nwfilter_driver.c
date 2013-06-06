@@ -41,6 +41,7 @@
 #include "nwfilter_driver.h"
 #include "nwfilter_gentech_driver.h"
 #include "configmake.h"
+#include "virstring.h"
 
 #include "nwfilter_ipaddrmap.h"
 #include "nwfilter_dhcpsnoop.h"
@@ -220,8 +221,8 @@ nwfilterStateInitialize(bool privileged,
         goto error;
     }
 
-    if ((base = strdup(SYSCONFDIR "/libvirt")) == NULL)
-        goto out_of_memory;
+    if (VIR_STRDUP(base, SYSCONFDIR "/libvirt") < 0)
+        goto error;
 
     if (virAsprintf(&driverState->configDir,
                     "%s/nwfilter", base) == -1)
@@ -451,11 +452,10 @@ nwfilterConnectListNWFilters(virConnectPtr conn,
     int got = 0, i;
 
     nwfilterDriverLock(driver);
-    for (i = 0 ; i < driver->nwfilters.count && got < nnames ; i++) {
+    for (i = 0; i < driver->nwfilters.count && got < nnames; i++) {
         virNWFilterObjLock(driver->nwfilters.objs[i]);
-        if (!(names[got] = strdup(driver->nwfilters.objs[i]->def->name))) {
+        if (VIR_STRDUP(names[got], driver->nwfilters.objs[i]->def->name) < 0) {
              virNWFilterObjUnlock(driver->nwfilters.objs[i]);
-             virReportOOMError();
              goto cleanup;
         }
         got++;
@@ -466,7 +466,7 @@ nwfilterConnectListNWFilters(virConnectPtr conn,
 
  cleanup:
     nwfilterDriverUnlock(driver);
-    for (i = 0 ; i < got ; i++)
+    for (i = 0; i < got; i++)
         VIR_FREE(names[i]);
     memset(names, 0, nnames * sizeof(*names));
     return -1;
@@ -499,7 +499,7 @@ nwfilterConnectListAllNWFilters(virConnectPtr conn,
         goto cleanup;
     }
 
-    for (i = 0 ; i < driver->nwfilters.count; i++) {
+    for (i = 0; i < driver->nwfilters.count; i++) {
         obj = driver->nwfilters.objs[i];
         virNWFilterObjLock(obj);
         if (!(filter = virGetNWFilter(conn, obj->def->name,

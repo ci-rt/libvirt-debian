@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012 Red Hat, Inc.
+ * Copyright (C) 2012-2013 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -27,8 +27,10 @@
 #include "virutil.h"
 #include "c-ctype.h"
 #include "virerror.h"
+#include "virfile.h"
 #include "virlog.h"
 #include "virconf.h"
+#include "virstring.h"
 
 #define VIR_FROM_THIS VIR_FROM_NONE
 
@@ -221,7 +223,7 @@ mymain(void)
         goto cleanup;
     }
     VIR_DEBUG("Initial config [%s]", filedata);
-    for (i = 0 ; params[i] != 0 ; i++) {
+    for (i = 0; params[i] != 0; i++) {
         const struct testCorruptData data = { params, filedata, filename, i };
         if (virtTestRun("Test corruption", 1, testCorrupt, &data) < 0)
             ret = -1;

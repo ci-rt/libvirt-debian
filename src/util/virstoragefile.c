@@ -43,6 +43,8 @@
 #include "vircommand.h"
 #include "virhash.h"
 #include "virendian.h"
+#include "virstring.h"
+#include "virutil.h"
 
 #define VIR_FROM_THIS VIR_FROM_STORAGE
 
@@ -226,11 +228,8 @@ cowGetBackingStore(char **res,
         return BACKING_STORE_OK;
     }
 
-    *res = strndup((const char*)buf + 4+4, COW_FILENAME_MAXLEN);
-    if (*res == NULL) {
-        virReportOOMError();
+    if (VIR_STRNDUP(*res, (const char*)buf + 4 + 4, COW_FILENAME_MAXLEN) < 0)
         return BACKING_STORE_ERROR;
-    }
     return BACKING_STORE_OK;
 }
 
@@ -438,11 +437,8 @@ vmdk4GetBackingStore(char **res,
         goto cleanup;
     }
     *end = '\0';
-    *res = strdup(start);
-    if (*res == NULL) {
-        virReportOOMError();
+    if (VIR_STRDUP(*res, start) < 0)
         goto cleanup;
-    }
 
     ret = BACKING_STORE_OK;
 
@@ -639,7 +635,7 @@ virStorageFileProbeFormatFromBuf(const char *path,
     VIR_DEBUG("path=%s", path);
 
     /* First check file magic */
-    for (i = 0 ; i < VIR_STORAGE_FILE_LAST ; i++) {
+    for (i = 0; i < VIR_STORAGE_FILE_LAST; i++) {
         if (virStorageFileMatchesMagic(i, buf, buflen)) {
             if (!virStorageFileMatchesVersion(i, buf, buflen)) {
                 possibleFormat = i;
@@ -656,7 +652,7 @@ virStorageFileProbeFormatFromBuf(const char *path,
                  path, virStorageFileFormatTypeToString(possibleFormat));
 
     /* No magic, so check file extension */
-    for (i = 0 ; i < VIR_STORAGE_FILE_LAST ; i++) {
+    for (i = 0; i < VIR_STORAGE_FILE_LAST; i++) {
         if (virStorageFileMatchesExtension(i, path)) {
             format = i;
             goto cleanup;
@@ -773,9 +769,7 @@ virStorageFileGetMetadataInternal(const char *path,
 
         meta->backingStoreIsFile = false;
         if (backing != NULL) {
-            meta->backingStore = strdup(backing);
-            if (meta->backingStore == NULL) {
-                virReportOOMError();
+            if (VIR_STRDUP(meta->backingStore, backing) < 0) {
                 VIR_FREE(backing);
                 goto cleanup;
             }
@@ -891,7 +885,7 @@ virStorageFileProbeFormat(const char *path, uid_t uid, gid_t gid)
     int fd, ret;
 
     if ((fd = virFileOpenAs(path, O_RDONLY, 0, uid, gid, 0)) < 0) {
-        virReportSystemError(errno, _("cannot open file '%s'"), path);
+        virReportSystemError(-fd, _("Failed to open file '%s'"), path);
         return -1;
     }
 
@@ -950,7 +944,7 @@ virStorageFileGetMetadataRecurse(const char *path, const char *directory,
         return NULL;
 
     if ((fd = virFileOpenAs(path, O_RDONLY, 0, uid, gid, 0)) < 0) {
-        virReportSystemError(-fd, _("cannot open file '%s'"), path);
+        virReportSystemError(-fd, _("Failed to open file '%s'"), path);
         return NULL;
     }
 
@@ -1094,10 +1088,8 @@ int virStorageFileIsSharedFSType(const char *path,
     struct statfs sb;
     int statfs_ret;
 
-    if ((dirpath = strdup(path)) == NULL) {
-        virReportOOMError();
+    if (VIR_STRDUP(dirpath, path) < 0)
         return -1;
-    }
 
     do {
 

@@ -46,7 +46,6 @@
 #include "lxc_driver.h"
 #include "lxc_process.h"
 #include "viralloc.h"
-#include "virutil.h"
 #include "virnetdevbridge.h"
 #include "virnetdevveth.h"
 #include "nodeinfo.h"
@@ -68,6 +67,7 @@
 #include "virtime.h"
 #include "virtypedparam.h"
 #include "viruri.h"
+#include "virstring.h"
 
 #define VIR_FROM_THIS VIR_FROM_LXC
 
@@ -626,10 +626,7 @@ static char *lxcDomainGetOSType(virDomainPtr dom)
         goto cleanup;
     }
 
-    ret = strdup(vm->def->os.type);
-
-    if (ret == NULL)
-        virReportOOMError();
+    ignore_value(VIR_STRDUP(ret, vm->def->os.type));
 
 cleanup:
     if (vm)
@@ -1562,6 +1559,13 @@ static int lxcConnectGetVersion(virConnectPtr conn ATTRIBUTE_UNUSED, unsigned lo
 }
 
 
+static char *lxcConnectGetHostname(virConnectPtr conn ATTRIBUTE_UNUSED)
+{
+    return virGetHostname();
+}
+
+
+
 /*
  * check whether the host supports CFS bandwidth
  *
@@ -1629,9 +1633,7 @@ static char *lxcDomainGetSchedulerType(virDomainPtr dom,
             *nparams = 3;
     }
 
-    ret = strdup("posix");
-    if (!ret)
-        virReportOOMError();
+    ignore_value(VIR_STRDUP(ret, "posix"));
 
 cleanup:
     if (vm)
@@ -2189,7 +2191,7 @@ lxcDomainInterfaceStats(virDomainPtr dom,
     }
 
     /* Check the path is one of the domain's network interfaces. */
-    for (i = 0 ; i < vm->def->nnets ; i++) {
+    for (i = 0; i < vm->def->nnets; i++) {
         if (vm->def->nets[i]->ifname &&
             STREQ(vm->def->nets[i]->ifname, path)) {
             ret = 0;
@@ -2542,7 +2544,7 @@ lxcDomainOpenConsole(virDomainPtr dom,
     }
 
     if (dev_name) {
-        for (i = 0 ; i < vm->def->nconsoles ; i++) {
+        for (i = 0; i < vm->def->nconsoles; i++) {
             if (vm->def->consoles[i]->info.alias &&
                 STREQ(vm->def->consoles[i]->info.alias, dev_name)) {
                 chr = vm->def->consoles[i];
@@ -4124,17 +4126,9 @@ lxcDomainDetachDeviceLive(virLXCDriverPtr driver,
 }
 
 
-/* Actions for lxcDomainModifyDeviceFlags */
-enum {
-    LXC_DEVICE_ATTACH,
-    LXC_DEVICE_UPDATE,
-    LXC_DEVICE_DETACH,
-};
-
-
-static int
-lxcDomainModifyDeviceFlags(virDomainPtr dom, const char *xml,
-                           unsigned int flags, int action)
+static int lxcDomainAttachDeviceFlags(virDomainPtr dom,
+                                      const char *xml,
+                                      unsigned int flags)
 {
     virLXCDriverPtr driver = dom->conn->privateData;
     virDomainObjPtr vm = NULL;
@@ -4144,9 +4138,7 @@ lxcDomainModifyDeviceFlags(virDomainPtr dom, const char *xml,
     unsigned int affect;
 
     virCheckFlags(VIR_DOMAIN_AFFECT_LIVE |
-                  VIR_DOMAIN_AFFECT_CONFIG |
-                  (action == LXC_DEVICE_UPDATE ?
-                   VIR_DOMAIN_DEVICE_MODIFY_FORCE : 0), -1);
+                  VIR_DOMAIN_AFFECT_CONFIG, -1);
 
     affect = flags & (VIR_DOMAIN_AFFECT_LIVE | VIR_DOMAIN_AFFECT_CONFIG);
 
@@ -4208,23 +4200,7 @@ lxcDomainModifyDeviceFlags(virDomainPtr dom, const char *xml,
         vmdef = virDomainObjCopyPersistentDef(vm, driver->caps, driver->xmlopt);
         if (!vmdef)
             goto cleanup;
-        switch (action) {
-        case LXC_DEVICE_ATTACH:
-            ret = lxcDomainAttachDeviceConfig(vmdef, dev);
-            break;
-        case LXC_DEVICE_DETACH:
-            ret = lxcDomainDetachDeviceConfig(vmdef, dev);
-            break;
-        case LXC_DEVICE_UPDATE:
-            ret = lxcDomainUpdateDeviceConfig(vmdef, dev);
-            break;
-        default:
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("unknown domain modify action %d"), action);
-            break;
-        }
-
-        if (ret == -1)
+        if ((ret = lxcDomainAttachDeviceConfig(vmdef, dev)) < 0)
             goto cleanup;
     }
 
@@ -4232,21 +4208,7 @@ lxcDomainModifyDeviceFlags(virDomainPtr dom, const char *xml,
         if (virDomainDefCompatibleDevice(vm->def, dev_copy) < 0)
             goto cleanup;
 
-        switch (action) {
-        case LXC_DEVICE_ATTACH:
-            ret = lxcDomainAttachDeviceLive(dom->conn, driver, vm, dev_copy);
-            break;
-        case LXC_DEVICE_DETACH:
-            ret = lxcDomainDetachDeviceLive(driver, vm, dev_copy);
-            break;
-        default:
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("unknown domain modify action %d"), action);
-            ret = -1;
-            break;
-        }
-
-        if (ret == -1)
+        if ((ret = lxcDomainAttachDeviceLive(dom->conn, driver, vm, dev_copy)) < 0)
             goto cleanup;
         /*
          * update domain status forcibly because the domain status may be
@@ -4280,15 +4242,6 @@ cleanup:
 }
 
 
-static int lxcDomainAttachDeviceFlags(virDomainPtr dom,
-                                      const char *xml,
-                                      unsigned int flags)
-{
-    return lxcDomainModifyDeviceFlags(dom, xml, flags,
-                                       LXC_DEVICE_ATTACH);
-}
-
-
 static int lxcDomainAttachDevice(virDomainPtr dom,
                                  const char *xml)
 {
@@ -4301,8 +4254,109 @@ static int lxcDomainUpdateDeviceFlags(virDomainPtr dom,
                                       const char *xml,
                                       unsigned int flags)
 {
-    return lxcDomainModifyDeviceFlags(dom, xml, flags,
-                                       LXC_DEVICE_UPDATE);
+    virLXCDriverPtr driver = dom->conn->privateData;
+    virDomainObjPtr vm = NULL;
+    virDomainDefPtr vmdef = NULL;
+    virDomainDeviceDefPtr dev = NULL, dev_copy = NULL;
+    int ret = -1;
+    unsigned int affect;
+
+    virCheckFlags(VIR_DOMAIN_AFFECT_LIVE |
+                  VIR_DOMAIN_AFFECT_CONFIG |
+                  VIR_DOMAIN_DEVICE_MODIFY_FORCE, -1);
+
+    affect = flags & (VIR_DOMAIN_AFFECT_LIVE | VIR_DOMAIN_AFFECT_CONFIG);
+
+    lxcDriverLock(driver);
+    vm = virDomainObjListFindByUUID(driver->domains, dom->uuid);
+
+    if (!vm) {
+        char uuidstr[VIR_UUID_STRING_BUFLEN];
+        virUUIDFormat(dom->uuid, uuidstr);
+        virReportError(VIR_ERR_NO_DOMAIN,
+                       _("no domain with matching uuid '%s'"), uuidstr);
+        goto cleanup;
+    }
+
+    if (virDomainObjIsActive(vm)) {
+        if (affect == VIR_DOMAIN_AFFECT_CURRENT)
+            flags |= VIR_DOMAIN_AFFECT_LIVE;
+    } else {
+        if (affect == VIR_DOMAIN_AFFECT_CURRENT)
+            flags |= VIR_DOMAIN_AFFECT_CONFIG;
+        /* check consistency between flags and the vm state */
+        if (flags & VIR_DOMAIN_AFFECT_LIVE) {
+            virReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                           _("cannot do live update a device on "
+                             "inactive domain"));
+            goto cleanup;
+        }
+    }
+
+    if ((flags & VIR_DOMAIN_AFFECT_CONFIG) && !vm->persistent) {
+         virReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                        _("cannot modify device on transient domain"));
+         goto cleanup;
+    }
+
+    dev = dev_copy = virDomainDeviceDefParse(xml, vm->def,
+                                             driver->caps, driver->xmlopt,
+                                             VIR_DOMAIN_XML_INACTIVE);
+    if (dev == NULL)
+        goto cleanup;
+
+    if (flags & VIR_DOMAIN_AFFECT_CONFIG &&
+        flags & VIR_DOMAIN_AFFECT_LIVE) {
+        /* If we are affecting both CONFIG and LIVE
+         * create a deep copy of device as adding
+         * to CONFIG takes one instance.
+         */
+        dev_copy = virDomainDeviceDefCopy(dev, vm->def,
+                                          driver->caps, driver->xmlopt);
+        if (!dev_copy)
+            goto cleanup;
+    }
+
+    if (flags & VIR_DOMAIN_AFFECT_CONFIG) {
+        if (virDomainDefCompatibleDevice(vm->def, dev) < 0)
+            goto cleanup;
+
+        /* Make a copy for updated domain. */
+        vmdef = virDomainObjCopyPersistentDef(vm, driver->caps, driver->xmlopt);
+        if (!vmdef)
+            goto cleanup;
+        if ((ret = lxcDomainUpdateDeviceConfig(vmdef, dev)) < 0)
+            goto cleanup;
+    }
+
+    if (flags & VIR_DOMAIN_AFFECT_LIVE) {
+        if (virDomainDefCompatibleDevice(vm->def, dev_copy) < 0)
+            goto cleanup;
+
+        virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
+                       _("Unable to modify live devices"));
+
+        goto cleanup;
+    }
+
+    /* Finally, if no error until here, we can save config. */
+    if (flags & VIR_DOMAIN_AFFECT_CONFIG) {
+        ret = virDomainSaveConfig(driver->configDir, vmdef);
+        if (!ret) {
+            virDomainObjAssignDef(vm, vmdef, false, NULL);
+            vmdef = NULL;
+        }
+    }
+
+cleanup:
+    virDomainDefFree(vmdef);
+    if (dev != dev_copy)
+        virDomainDeviceDefFree(dev_copy);
+    virDomainDeviceDefFree(dev);
+    if (vm)
+        virObjectUnlock(vm);
+    lxcDriverUnlock(driver);
+    return ret;
 }
 
 
@@ -4310,8 +4364,116 @@ static int lxcDomainDetachDeviceFlags(virDomainPtr dom,
                                       const char *xml,
                                       unsigned int flags)
 {
-    return lxcDomainModifyDeviceFlags(dom, xml, flags,
-                                      LXC_DEVICE_DETACH);
+    virLXCDriverPtr driver = dom->conn->privateData;
+    virDomainObjPtr vm = NULL;
+    virDomainDefPtr vmdef = NULL;
+    virDomainDeviceDefPtr dev = NULL, dev_copy = NULL;
+    int ret = -1;
+    unsigned int affect;
+
+    virCheckFlags(VIR_DOMAIN_AFFECT_LIVE |
+                  VIR_DOMAIN_AFFECT_CONFIG, -1);
+
+    affect = flags & (VIR_DOMAIN_AFFECT_LIVE | VIR_DOMAIN_AFFECT_CONFIG);
+
+    lxcDriverLock(driver);
+    vm = virDomainObjListFindByUUID(driver->domains, dom->uuid);
+
+    if (!vm) {
+        char uuidstr[VIR_UUID_STRING_BUFLEN];
+        virUUIDFormat(dom->uuid, uuidstr);
+        virReportError(VIR_ERR_NO_DOMAIN,
+                       _("no domain with matching uuid '%s'"), uuidstr);
+        goto cleanup;
+    }
+
+    if (virDomainObjIsActive(vm)) {
+        if (affect == VIR_DOMAIN_AFFECT_CURRENT)
+            flags |= VIR_DOMAIN_AFFECT_LIVE;
+    } else {
+        if (affect == VIR_DOMAIN_AFFECT_CURRENT)
+            flags |= VIR_DOMAIN_AFFECT_CONFIG;
+        /* check consistency between flags and the vm state */
+        if (flags & VIR_DOMAIN_AFFECT_LIVE) {
+            virReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                           _("cannot do live update a device on "
+                             "inactive domain"));
+            goto cleanup;
+        }
+    }
+
+    if ((flags & VIR_DOMAIN_AFFECT_CONFIG) && !vm->persistent) {
+         virReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                        _("cannot modify device on transient domain"));
+         goto cleanup;
+    }
+
+    dev = dev_copy = virDomainDeviceDefParse(xml, vm->def,
+                                             driver->caps, driver->xmlopt,
+                                             VIR_DOMAIN_XML_INACTIVE);
+    if (dev == NULL)
+        goto cleanup;
+
+    if (flags & VIR_DOMAIN_AFFECT_CONFIG &&
+        flags & VIR_DOMAIN_AFFECT_LIVE) {
+        /* If we are affecting both CONFIG and LIVE
+         * create a deep copy of device as adding
+         * to CONFIG takes one instance.
+         */
+        dev_copy = virDomainDeviceDefCopy(dev, vm->def,
+                                          driver->caps, driver->xmlopt);
+        if (!dev_copy)
+            goto cleanup;
+    }
+
+    if (flags & VIR_DOMAIN_AFFECT_CONFIG) {
+        if (virDomainDefCompatibleDevice(vm->def, dev) < 0)
+            goto cleanup;
+
+        /* Make a copy for updated domain. */
+        vmdef = virDomainObjCopyPersistentDef(vm, driver->caps, driver->xmlopt);
+        if (!vmdef)
+            goto cleanup;
+
+        if ((ret = lxcDomainDetachDeviceConfig(vmdef, dev)) < 0)
+            goto cleanup;
+    }
+
+    if (flags & VIR_DOMAIN_AFFECT_LIVE) {
+        if (virDomainDefCompatibleDevice(vm->def, dev_copy) < 0)
+            goto cleanup;
+
+        if ((ret = lxcDomainDetachDeviceLive(driver, vm, dev_copy)) < 0)
+            goto cleanup;
+        /*
+         * update domain status forcibly because the domain status may be
+         * changed even if we failed to attach the device. For example,
+         * a new controller may be created.
+         */
+        if (virDomainSaveStatus(driver->xmlopt, driver->stateDir, vm) < 0) {
+            ret = -1;
+            goto cleanup;
+        }
+    }
+
+    /* Finally, if no error until here, we can save config. */
+    if (flags & VIR_DOMAIN_AFFECT_CONFIG) {
+        ret = virDomainSaveConfig(driver->configDir, vmdef);
+        if (!ret) {
+            virDomainObjAssignDef(vm, vmdef, false, NULL);
+            vmdef = NULL;
+        }
+    }
+
+cleanup:
+    virDomainDefFree(vmdef);
+    if (dev != dev_copy)
+        virDomainDeviceDefFree(dev_copy);
+    virDomainDeviceDefFree(dev);
+    if (vm)
+        virObjectUnlock(vm);
+    lxcDriverUnlock(driver);
+    return ret;
 }
 
 
@@ -4395,6 +4557,93 @@ lxcConnectGetSysinfo(virConnectPtr conn, unsigned int flags)
 }
 
 
+static int
+lxcNodeGetInfo(virConnectPtr conn ATTRIBUTE_UNUSED,
+               virNodeInfoPtr nodeinfo)
+{
+    return nodeGetInfo(nodeinfo);
+}
+
+
+static int
+lxcNodeGetCPUStats(virConnectPtr conn ATTRIBUTE_UNUSED,
+                   int cpuNum,
+                   virNodeCPUStatsPtr params,
+                   int *nparams,
+                   unsigned int flags)
+{
+    return nodeGetCPUStats(cpuNum, params, nparams, flags);
+}
+
+
+static int
+lxcNodeGetMemoryStats(virConnectPtr conn ATTRIBUTE_UNUSED,
+                      int cellNum,
+                      virNodeMemoryStatsPtr params,
+                      int *nparams,
+                      unsigned int flags)
+{
+    return nodeGetMemoryStats(cellNum, params, nparams, flags);
+}
+
+
+static int
+lxcNodeGetCellsFreeMemory(virConnectPtr conn ATTRIBUTE_UNUSED,
+                          unsigned long long *freeMems,
+                          int startCell,
+                          int maxCells)
+{
+    return nodeGetCellsFreeMemory(freeMems, startCell, maxCells);
+}
+
+
+static unsigned long long
+lxcNodeGetFreeMemory(virConnectPtr conn ATTRIBUTE_UNUSED)
+{
+    return nodeGetFreeMemory();
+}
+
+
+static int
+lxcNodeGetMemoryParameters(virConnectPtr conn ATTRIBUTE_UNUSED,
+                           virTypedParameterPtr params,
+                           int *nparams,
+                           unsigned int flags)
+{
+    return nodeGetMemoryParameters(params, nparams, flags);
+}
+
+
+static int
+lxcNodeSetMemoryParameters(virConnectPtr conn ATTRIBUTE_UNUSED,
+                           virTypedParameterPtr params,
+                           int nparams,
+                           unsigned int flags)
+{
+    return nodeSetMemoryParameters(params, nparams, flags);
+}
+
+
+static int
+lxcNodeGetCPUMap(virConnectPtr conn ATTRIBUTE_UNUSED,
+                 unsigned char **cpumap,
+                 unsigned int *online,
+                 unsigned int flags)
+{
+    return nodeGetCPUMap(cpumap, online, flags);
+}
+
+
+static int
+lxcNodeSuspendForDuration(virConnectPtr conn ATTRIBUTE_UNUSED,
+                          unsigned int target,
+                          unsigned long long duration,
+                          unsigned int flags)
+{
+    return nodeSuspendForDuration(target, duration, flags);
+}
+
+
 /* Function Tables */
 static virDriver lxcDriver = {
     .no = VIR_DRV_LXC,
@@ -4402,9 +4651,9 @@ static virDriver lxcDriver = {
     .connectOpen = lxcConnectOpen, /* 0.4.2 */
     .connectClose = lxcConnectClose, /* 0.4.2 */
     .connectGetVersion = lxcConnectGetVersion, /* 0.4.6 */
-    .connectGetHostname = virGetHostname, /* 0.6.3 */
+    .connectGetHostname = lxcConnectGetHostname, /* 0.6.3 */
     .connectGetSysinfo = lxcConnectGetSysinfo, /* 1.0.5 */
-    .nodeGetInfo = nodeGetInfo, /* 0.6.5 */
+    .nodeGetInfo = lxcNodeGetInfo, /* 0.6.5 */
     .connectGetCapabilities = lxcConnectGetCapabilities, /* 0.6.5 */
     .connectListDomains = lxcConnectListDomains, /* 0.4.2 */
     .connectNumOfDomains = lxcConnectNumOfDomains, /* 0.4.2 */
@@ -4450,11 +4699,11 @@ static virDriver lxcDriver = {
     .domainSetSchedulerParameters = lxcDomainSetSchedulerParameters, /* 0.5.0 */
     .domainSetSchedulerParametersFlags = lxcDomainSetSchedulerParametersFlags, /* 0.9.2 */
     .domainInterfaceStats = lxcDomainInterfaceStats, /* 0.7.3 */
-    .nodeGetCPUStats = nodeGetCPUStats, /* 0.9.3 */
-    .nodeGetMemoryStats = nodeGetMemoryStats, /* 0.9.3 */
-    .nodeGetCellsFreeMemory = nodeGetCellsFreeMemory, /* 0.6.5 */
-    .nodeGetFreeMemory = nodeGetFreeMemory, /* 0.6.5 */
-    .nodeGetCPUMap = nodeGetCPUMap, /* 1.0.0 */
+    .nodeGetCPUStats = lxcNodeGetCPUStats, /* 0.9.3 */
+    .nodeGetMemoryStats = lxcNodeGetMemoryStats, /* 0.9.3 */
+    .nodeGetCellsFreeMemory = lxcNodeGetCellsFreeMemory, /* 0.6.5 */
+    .nodeGetFreeMemory = lxcNodeGetFreeMemory, /* 0.6.5 */
+    .nodeGetCPUMap = lxcNodeGetCPUMap, /* 1.0.0 */
     .connectDomainEventRegister = lxcConnectDomainEventRegister, /* 0.7.0 */
     .connectDomainEventDeregister = lxcConnectDomainEventDeregister, /* 0.7.0 */
     .connectIsEncrypted = lxcConnectIsEncrypted, /* 0.7.3 */
@@ -4466,9 +4715,9 @@ static virDriver lxcDriver = {
     .connectDomainEventDeregisterAny = lxcConnectDomainEventDeregisterAny, /* 0.8.0 */
     .domainOpenConsole = lxcDomainOpenConsole, /* 0.8.6 */
     .connectIsAlive = lxcConnectIsAlive, /* 0.9.8 */
-    .nodeSuspendForDuration = nodeSuspendForDuration, /* 0.9.8 */
-    .nodeGetMemoryParameters = nodeGetMemoryParameters, /* 0.10.2 */
-    .nodeSetMemoryParameters = nodeSetMemoryParameters, /* 0.10.2 */
+    .nodeSuspendForDuration = lxcNodeSuspendForDuration, /* 0.9.8 */
+    .nodeGetMemoryParameters = lxcNodeGetMemoryParameters, /* 0.10.2 */
+    .nodeSetMemoryParameters = lxcNodeSetMemoryParameters, /* 0.10.2 */
     .domainSendProcessSignal = lxcDomainSendProcessSignal, /* 1.0.1 */
     .domainShutdown = lxcDomainShutdown, /* 1.0.1 */
     .domainShutdownFlags = lxcDomainShutdownFlags, /* 1.0.1 */

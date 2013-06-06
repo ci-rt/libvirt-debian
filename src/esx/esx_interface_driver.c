@@ -25,7 +25,6 @@
 #include <config.h>
 
 #include "internal.h"
-#include "virutil.h"
 #include "viralloc.h"
 #include "virlog.h"
 #include "viruuid.h"
@@ -36,6 +35,7 @@
 #include "esx_vi.h"
 #include "esx_vi_methods.h"
 #include "esx_util.h"
+#include "virstring.h"
 
 #define VIR_FROM_THIS VIR_FROM_ESX
 
@@ -115,12 +115,8 @@ esxConnectListInterfaces(virConnectPtr conn, char **const names, int maxnames)
 
     for (physicalNic = physicalNicList; physicalNic != NULL;
          physicalNic = physicalNic->_next) {
-        names[count] = strdup(physicalNic->device);
-
-        if (names[count] == NULL) {
-            virReportOOMError();
+        if (VIR_STRDUP(names[count], physicalNic->device) < 0)
             goto cleanup;
-        }
 
         ++count;
     }

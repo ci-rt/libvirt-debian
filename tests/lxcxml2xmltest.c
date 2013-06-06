@@ -15,6 +15,7 @@
 # include "internal.h"
 # include "lxc/lxc_conf.h"
 # include "testutilslxc.h"
+# include "virstring.h"
 
 static virCapsPtr caps;
 static virDomainXMLOptionPtr xmlopt;
@@ -127,6 +128,7 @@ mymain(void)
 
     DO_TEST("systemd");
     DO_TEST("hostdev");
+    DO_TEST("disk-formats");
 
     virObjectUnref(caps);
     virObjectUnref(xmlopt);
