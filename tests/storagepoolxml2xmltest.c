@@ -90,9 +90,12 @@ mymain(void)
     DO_TEST("pool-iscsi-auth");
     DO_TEST("pool-netfs");
     DO_TEST("pool-scsi");
+    DO_TEST("pool-scsi-type-scsi-host");
+    DO_TEST("pool-scsi-type-fc-host");
     DO_TEST("pool-mpath");
     DO_TEST("pool-iscsi-multiiqn");
     DO_TEST("pool-iscsi-vendor-product");
+    DO_TEST("pool-sheepdog");
 
     return ret==0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }

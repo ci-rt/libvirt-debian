@@ -15,8 +15,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Author: Daniel P. Berrange <berrange@redhat.com>
  */
@@ -27,27 +27,30 @@
 # include "qemu_conf.h"
 # include "domain_conf.h"
 
-int qemuUpdateActivePciHostdevs(struct qemud_driver *driver,
+int qemuUpdateActivePciHostdevs(virQEMUDriverPtr driver,
                                 virDomainDefPtr def);
-int qemuUpdateActiveUsbHostdevs(struct qemud_driver *driver,
+int qemuUpdateActiveUsbHostdevs(virQEMUDriverPtr driver,
                                 virDomainDefPtr def);
-int qemuPrepareHostdevPCIDevices(struct qemud_driver *driver,
+int qemuPrepareHostdevPCIDevices(virQEMUDriverPtr driver,
                                  const char *name,
                                  const unsigned char *uuid,
                                  virDomainHostdevDefPtr *hostdevs,
                                  int nhostdevs);
-int qemuPrepareHostdevUSBDevices(struct qemud_driver *driver,
+int qemuFindHostdevUSBDevice(virDomainHostdevDefPtr hostdev,
+                             bool mandatory,
+                             virUSBDevicePtr *usb);
+int qemuPrepareHostdevUSBDevices(virQEMUDriverPtr driver,
                                  const char *name,
-                                 virDomainHostdevDefPtr *hostdevs,
-                                 int nhostdevs);
-int qemuPrepareHostDevices(struct qemud_driver *driver,
-                           virDomainDefPtr def);
-void qemuReattachPciDevice(pciDevice *dev, struct qemud_driver *driver);
-void qemuDomainReAttachHostdevDevices(struct qemud_driver *driver,
+                                 virUSBDeviceListPtr list);
+int qemuPrepareHostDevices(virQEMUDriverPtr driver,
+                           virDomainDefPtr def,
+                           bool coldBoot);
+void qemuReattachPciDevice(virPCIDevicePtr dev, virQEMUDriverPtr driver);
+void qemuDomainReAttachHostdevDevices(virQEMUDriverPtr driver,
                                       const char *name,
                                       virDomainHostdevDefPtr *hostdevs,
                                       int nhostdevs);
-void qemuDomainReAttachHostDevices(struct qemud_driver *driver,
+void qemuDomainReAttachHostDevices(virQEMUDriverPtr driver,
                                    virDomainDefPtr def);
 int qemuDomainHostdevIsVirtualFunction(virDomainHostdevDefPtr hostdev);
 int qemuDomainHostdevNetConfigReplace(virDomainHostdevDefPtr hostdev,

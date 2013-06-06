@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-## Copyright (C) 2005-2011 Red Hat, Inc.
+## Copyright (C) 2005-2012 Red Hat, Inc.
 ## See COPYING.LIB for the License of this software
 
 LCOV = lcov
@@ -20,33 +20,35 @@ XML_EXAMPLES = \
 EXTRA_DIST = \
   ChangeLog-old \
   libvirt.spec libvirt.spec.in \
-  mingw32-libvirt.spec.in \
+  mingw-libvirt.spec.in \
   libvirt.pc.in \
   autobuild.sh \
   Makefile.nonreentrant \
   autogen.sh \
   cfg.mk \
   examples/domain-events/events-python \
+  run.in \
+  AUTHORS.in \
   $(XML_EXAMPLES)
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = libvirt.pc
 
 NEWS: $(top_srcdir)/docs/news.xsl $(top_srcdir)/docs/news.html.in
-	-@(if [ -x $(XSLTPROC) ] ; then				\
+	$(AM_V_GEN)if [ -x $(XSLTPROC) ] ; then			\
 	  $(XSLTPROC) --nonet $(top_srcdir)/docs/news.xsl	\
 	     $(top_srcdir)/docs/news.html.in			\
 	   | perl -0777 -pe 's/\n\n+$$/\n/'			\
 	   | perl -pe 's/[ \t]+$$//'				\
-	   > $@-t && mv $@-t $@ ; fi );
+	   > $@-t && mv $@-t $@ ; fi
 
 $(top_srcdir)/HACKING: $(top_srcdir)/docs/hacking1.xsl $(top_srcdir)/docs/hacking2.xsl \
                        $(top_srcdir)/docs/wrapstring.xsl $(top_srcdir)/docs/hacking.html.in
-	-@(if [ -x $(XSLTPROC) ] ; then \
+	$(AM_V_GEN)if [ -x $(XSLTPROC) ] ; then \
 	   $(XSLTPROC) --nonet $(top_srcdir)/docs/hacking1.xsl $(top_srcdir)/docs/hacking.html.in | \
 	   $(XSLTPROC) --nonet $(top_srcdir)/docs/hacking2.xsl - \
 	   | perl -0777 -pe 's/\n\n+$$/\n/' \
-	   > $@-t && mv $@-t $@ ; fi );
+	   > $@-t && mv $@-t $@ ; fi;
 
 rpm: clean
 	@(unset CDPATH ; $(MAKE) dist && rpmbuild -ta $(distdir).tar.gz)
@@ -77,16 +79,25 @@ MAINTAINERCLEANFILES = .git-module-status
 # disable this check
 distuninstallcheck:
 
-dist-hook: gen-ChangeLog
+dist-hook: gen-ChangeLog gen-AUTHORS
 
 # Generate the ChangeLog file (with all entries since the switch to git)
 # and insert it into the directory we're about to use to create a tarball.
 gen_start_date = 2009-07-04
 .PHONY: gen-ChangeLog
 gen-ChangeLog:
-	if test -d .git; then					\
+	$(AM_V_GEN)if test -d .git; then			\
 	  $(top_srcdir)/build-aux/gitlog-to-changelog		\
 	    --since=$(gen_start_date) > $(distdir)/cl-t;	\
 	  rm -f $(distdir)/ChangeLog;				\
 	  mv $(distdir)/cl-t $(distdir)/ChangeLog;		\
+	fi
+
+.PHONY: gen-AUTHORS
+gen-AUTHORS:
+	$(AM_V_GEN)if test -d $(srcdir)/.git; then \
+	    out="`cd $(srcdir) && git log --pretty=format:'%aN <%aE>' | sort -u`" && \
+	    perl -p -e "s/#authorslist#// and print '$$out'" \
+	      < $(srcdir)/AUTHORS.in > $(distdir)/AUTHORS-tmp && \
+	    mv -f $(distdir)/AUTHORS-tmp $(distdir)/AUTHORS ; \
 	fi

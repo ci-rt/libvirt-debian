@@ -17,8 +17,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Authors:
  * Shuveb Hussain <shuveb@binarykarma.com>
@@ -36,23 +36,21 @@
 #include <dirent.h>
 #include <time.h>
 #include <sys/stat.h>
-#include <unistd.h>
 #include <limits.h>
 #include <errno.h>
 #include <string.h>
-#include <sys/utsname.h>
 #include <sys/wait.h>
 
-#include "virterror_internal.h"
+#include "virerror.h"
 #include "openvz_conf.h"
-#include "uuid.h"
-#include "buf.h"
-#include "memory.h"
-#include "util.h"
+#include "openvz_util.h"
+#include "viruuid.h"
+#include "virbuffer.h"
+#include "viralloc.h"
+#include "virutil.h"
 #include "nodeinfo.h"
 #include "virfile.h"
-#include "command.h"
-#include "ignore-value.h"
+#include "vircommand.h"
 
 #define VIR_FROM_THIS VIR_FROM_OPENVZ
 
@@ -120,8 +118,8 @@ int openvzExtractVersion(struct openvz_driver *driver)
         return 0;
 
     if (openvzExtractVersionInfo(VZCTL, &driver->version) < 0) {
-        openvzError(VIR_ERR_INTERNAL_ERROR, "%s",
-                    _("Could not extract vzctl version"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Could not extract vzctl version"));
         return -1;
     }
 
@@ -129,32 +127,61 @@ int openvzExtractVersion(struct openvz_driver *driver)
 }
 
 
-static int openvzDefaultConsoleType(const char *ostype ATTRIBUTE_UNUSED)
+/* Parse config values of the form barrier:limit into barrier and limit */
+static int
+openvzParseBarrierLimit(const char* value,
+                        unsigned long long *barrier,
+                        unsigned long long *limit)
 {
-    return VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_OPENVZ;
+    char *token;
+    char *saveptr = NULL;
+    char *str = strdup(value);
+
+    if (str == NULL) {
+        virReportOOMError();
+        goto error;
+    }
+
+    token = strtok_r(str, ":", &saveptr);
+    if (token == NULL) {
+        goto error;
+    } else {
+        if (barrier != NULL) {
+            if (virStrToLong_ull(token, NULL, 10, barrier))
+                goto error;
+        }
+    }
+    token = strtok_r(NULL, ":", &saveptr);
+    if (token == NULL) {
+        goto error;
+    } else {
+        if (limit != NULL) {
+            if (virStrToLong_ull(token, NULL, 10, limit))
+                goto error;
+        }
+    }
+    return 0;
+error:
+    VIR_FREE(str);
+    return -1;
 }
+
 
 virCapsPtr openvzCapsInit(void)
 {
-    struct utsname utsname;
     virCapsPtr caps;
     virCapsGuestPtr guest;
 
-    uname(&utsname);
-
-    if ((caps = virCapabilitiesNew(utsname.machine,
+    if ((caps = virCapabilitiesNew(virArchFromHost(),
                                    0, 0)) == NULL)
         goto no_memory;
 
     if (nodeCapsInitNUMA(caps) < 0)
         goto no_memory;
 
-    virCapabilitiesSetMacPrefix(caps, (unsigned char[]){ 0x52, 0x54, 0x00 });
-
     if ((guest = virCapabilitiesAddGuest(caps,
                                          "exe",
-                                         utsname.machine,
-                                         sizeof(int) == 4 ? 32 : 8,
+                                         caps->host.arch,
                                          NULL,
                                          NULL,
                                          0,
@@ -169,12 +196,10 @@ virCapsPtr openvzCapsInit(void)
                                       NULL) == NULL)
         goto no_memory;
 
-    caps->defaultInitPath = "/sbin/init";
-    caps->defaultConsoleTargetType = openvzDefaultConsoleType;
-
     return caps;
+
 no_memory:
-    virCapabilitiesFree(caps);
+    virObjectUnref(caps);
     return NULL;
 }
 
@@ -194,9 +219,9 @@ openvzReadNetworkConf(virDomainDefPtr def,
      */
     ret = openvzReadVPSConfigParam(veid, "IP_ADDRESS", &temp);
     if (ret < 0) {
-        openvzError(VIR_ERR_INTERNAL_ERROR,
-                    _("Could not read 'IP_ADDRESS' from config for container %d"),
-                    veid);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Could not read 'IP_ADDRESS' from config for container %d"),
+                       veid);
         goto error;
     } else if (ret > 0) {
         token = strtok_r(temp, " ", &saveptr);
@@ -226,9 +251,9 @@ openvzReadNetworkConf(virDomainDefPtr def,
      */
     ret = openvzReadVPSConfigParam(veid, "NETIF", &temp);
     if (ret < 0) {
-        openvzError(VIR_ERR_INTERNAL_ERROR,
-                    _("Could not read 'NETIF' from config for container %d"),
-                    veid);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Could not read 'NETIF' from config for container %d"),
+                       veid);
         goto error;
     } else if (ret > 0) {
         token = strtok_r(temp, ";", &saveptr);
@@ -245,15 +270,15 @@ openvzReadNetworkConf(virDomainDefPtr def,
 
             /*parse string*/
             do {
-                char *next = strchrnul (p, ',');
+                char *next = strchrnul(p, ',');
                 if (STRPREFIX(p, "ifname=")) {
                     /* skip in libvirt */
                 } else if (STRPREFIX(p, "host_ifname=")) {
                     p += 12;
                     len = next - p;
                     if (len > 16) {
-                        openvzError(VIR_ERR_INTERNAL_ERROR, "%s",
-                                    _("Too long network device name"));
+                        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                                       _("Too long network device name"));
                         goto error;
                     }
 
@@ -261,16 +286,16 @@ openvzReadNetworkConf(virDomainDefPtr def,
                         goto no_memory;
 
                     if (virStrncpy(net->ifname, p, len, len+1) == NULL) {
-                        openvzError(VIR_ERR_INTERNAL_ERROR,
-                                    _("Network ifname %s too long for destination"), p);
+                        virReportError(VIR_ERR_INTERNAL_ERROR,
+                                       _("Network ifname %s too long for destination"), p);
                         goto error;
                     }
                 } else if (STRPREFIX(p, "bridge=")) {
                     p += 7;
                     len = next - p;
                     if (len > 16) {
-                        openvzError(VIR_ERR_INTERNAL_ERROR, "%s",
-                                    _("Too long bridge device name"));
+                        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                                       _("Too long bridge device name"));
                         goto error;
                     }
 
@@ -278,26 +303,26 @@ openvzReadNetworkConf(virDomainDefPtr def,
                         goto no_memory;
 
                     if (virStrncpy(net->data.bridge.brname, p, len, len+1) == NULL) {
-                        openvzError(VIR_ERR_INTERNAL_ERROR,
-                                    _("Bridge name %s too long for destination"), p);
+                        virReportError(VIR_ERR_INTERNAL_ERROR,
+                                       _("Bridge name %s too long for destination"), p);
                         goto error;
                     }
                 } else if (STRPREFIX(p, "mac=")) {
                     p += 4;
                     len = next - p;
                     if (len != 17) { /* should be 17 */
-                        openvzError(VIR_ERR_INTERNAL_ERROR, "%s",
-                                    _("Wrong length MAC address"));
+                        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                                       _("Wrong length MAC address"));
                         goto error;
                     }
                     if (virStrncpy(cpy_temp, p, len, sizeof(cpy_temp)) == NULL) {
-                        openvzError(VIR_ERR_INTERNAL_ERROR,
-                                    _("MAC address %s too long for destination"), p);
+                        virReportError(VIR_ERR_INTERNAL_ERROR,
+                                       _("MAC address %s too long for destination"), p);
                         goto error;
                     }
-                    if (virMacAddrParse(cpy_temp, net->mac) < 0) {
-                        openvzError(VIR_ERR_INTERNAL_ERROR, "%s",
-                                    _("Wrong MAC address"));
+                    if (virMacAddrParse(cpy_temp, &net->mac) < 0) {
+                        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                                       _("Wrong MAC address"));
                         goto error;
                     }
                 }
@@ -366,12 +391,14 @@ openvzReadFSConf(virDomainDefPtr def,
     virDomainFSDefPtr fs = NULL;
     char *veid_str = NULL;
     char *temp = NULL;
+    const char *param;
+    unsigned long long barrier, limit;
 
     ret = openvzReadVPSConfigParam(veid, "OSTEMPLATE", &temp);
     if (ret < 0) {
-        openvzError(VIR_ERR_INTERNAL_ERROR,
-                    _("Could not read 'OSTEMPLATE' from config for container %d"),
-                    veid);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Could not read 'OSTEMPLATE' from config for container %d"),
+                       veid);
         goto error;
     } else if (ret > 0) {
         if (VIR_ALLOC(fs) < 0)
@@ -383,9 +410,9 @@ openvzReadFSConf(virDomainDefPtr def,
         /* OSTEMPLATE was not found, VE was booted from a private dir directly */
         ret = openvzReadVPSConfigParam(veid, "VE_PRIVATE", &temp);
         if (ret <= 0) {
-            openvzError(VIR_ERR_INTERNAL_ERROR,
-                        _("Could not read 'VE_PRIVATE' from config for container %d"),
-                        veid);
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Could not read 'VE_PRIVATE' from config for container %d"),
+                           veid);
             goto error;
         }
 
@@ -402,6 +429,27 @@ openvzReadFSConf(virDomainDefPtr def,
     }
 
     fs->dst = strdup("/");
+
+    param = "DISKSPACE";
+    ret = openvzReadVPSConfigParam(veid, param, &temp);
+    if (ret > 0) {
+        if (openvzParseBarrierLimit(temp, &barrier, &limit)) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Could not read '%s' from config for container %d"),
+                           param, veid);
+            goto error;
+        } else {
+            /* Ensure that we can multiply by 1024 without overflowing. */
+            if (barrier > ULLONG_MAX / 1024 ||
+                limit > ULLONG_MAX / 1024) {
+                virReportSystemError(VIR_ERR_OVERFLOW, "%s",
+                                     _("Unable to parse quota"));
+                goto error;
+            }
+            fs->space_soft_limit = barrier * 1024; /* unit is bytes */
+            fs->space_hard_limit = limit * 1024;   /* unit is bytes */
+        }
+    }
 
     if (fs->src == NULL || fs->dst == NULL)
         goto no_memory;
@@ -423,6 +471,75 @@ error:
 }
 
 
+static int
+openvzReadMemConf(virDomainDefPtr def, int veid)
+{
+    int ret = -1;
+    char *temp = NULL;
+    unsigned long long barrier, limit;
+    const char *param;
+    long kb_per_pages;
+
+    kb_per_pages = openvzKBPerPages();
+    if (kb_per_pages < 0)
+        goto error;
+
+    /* Memory allocation guarantee */
+    param = "VMGUARPAGES";
+    ret = openvzReadVPSConfigParam(veid, param, &temp);
+    if (ret < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Could not read '%s' from config for container %d"),
+                       param, veid);
+        goto error;
+    } else if (ret > 0) {
+        ret = openvzParseBarrierLimit(temp, &barrier, NULL);
+        if (ret < 0) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Could not parse barrier of '%s' "
+                             "from config for container %d"), param, veid);
+            goto error;
+        }
+        if (barrier == LONG_MAX)
+            def->mem.min_guarantee = 0ull;
+        else
+            def->mem.min_guarantee = barrier * kb_per_pages;
+    }
+
+    /* Memory hard and soft limits */
+    param = "PRIVVMPAGES";
+    ret = openvzReadVPSConfigParam(veid, param, &temp);
+    if (ret < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Could not read '%s' from config for container %d"),
+                       param, veid);
+        goto error;
+    } else if (ret > 0) {
+        ret = openvzParseBarrierLimit(temp, &barrier, &limit);
+        if (ret < 0) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Could not parse barrier and limit of '%s' "
+                             "from config for container %d"), param, veid);
+            goto error;
+        }
+        if (barrier == LONG_MAX)
+            def->mem.soft_limit = 0ull;
+        else
+            def->mem.soft_limit = barrier * kb_per_pages;
+
+        if (limit == LONG_MAX)
+            def->mem.hard_limit = 0ull;
+        else
+            def->mem.hard_limit = limit * kb_per_pages;
+    }
+
+    ret = 0;
+error:
+    VIR_FREE(temp);
+    return ret;
+}
+
+
 /* Free all memory associated with a openvz_driver structure */
 void
 openvzFreeDriver(struct openvz_driver *driver)
@@ -430,8 +547,9 @@ openvzFreeDriver(struct openvz_driver *driver)
     if (!driver)
         return;
 
-    virDomainObjListDeinit(&driver->domains);
-    virCapabilitiesFree(driver->caps);
+    virObjectUnref(driver->xmlopt);
+    virObjectUnref(driver->domains);
+    virObjectUnref(driver->caps);
     VIR_FREE(driver);
 }
 
@@ -442,6 +560,7 @@ int openvzLoadDomains(struct openvz_driver *driver) {
     char *status;
     char uuidstr[VIR_UUID_STRING_BUFLEN];
     virDomainObjPtr dom = NULL;
+    virDomainDefPtr def = NULL;
     char *temp = NULL;
     char *outbuf = NULL;
     char *line;
@@ -457,91 +576,89 @@ int openvzLoadDomains(struct openvz_driver *driver) {
 
     line = outbuf;
     while (line[0] != '\0') {
+        unsigned int flags = 0;
         if (virStrToLong_i(line, &status, 10, &veid) < 0 ||
             *status++ != ' ' ||
             (line = strchr(status, '\n')) == NULL) {
-            openvzError(VIR_ERR_INTERNAL_ERROR, "%s",
-                        _("Failed to parse vzlist output"));
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("Failed to parse vzlist output"));
             goto cleanup;
         }
         *line++ = '\0';
 
-        if (VIR_ALLOC(dom) < 0)
+        if (VIR_ALLOC(def) < 0)
             goto no_memory;
 
-        if (virMutexInit(&dom->lock) < 0) {
-            openvzError(VIR_ERR_INTERNAL_ERROR, "%s",
-                        _("cannot initialize mutex"));
-            VIR_FREE(dom);
-            goto cleanup;
-        }
+        def->virtType = VIR_DOMAIN_VIRT_OPENVZ;
 
-        virDomainObjLock(dom);
-
-        if (VIR_ALLOC(dom->def) < 0)
-            goto no_memory;
-
-        dom->def->virtType = VIR_DOMAIN_VIRT_OPENVZ;
-
-        if (STREQ(status, "stopped")) {
-            virDomainObjSetState(dom, VIR_DOMAIN_SHUTOFF,
-                                 VIR_DOMAIN_SHUTOFF_UNKNOWN);
-        } else {
-            virDomainObjSetState(dom, VIR_DOMAIN_RUNNING,
-                                 VIR_DOMAIN_RUNNING_UNKNOWN);
-        }
-
-        dom->refs = 1;
-        dom->pid = veid;
-        if (virDomainObjGetState(dom, NULL) == VIR_DOMAIN_SHUTOFF)
-            dom->def->id = -1;
+        if (STREQ(status, "stopped"))
+            def->id = -1;
         else
-            dom->def->id = veid;
-        /* XXX OpenVZ doesn't appear to have concept of a transient domain */
-        dom->persistent = 1;
-
-        if (virAsprintf(&dom->def->name, "%i", veid) < 0)
+            def->id = veid;
+        if (virAsprintf(&def->name, "%i", veid) < 0)
             goto no_memory;
 
         openvzGetVPSUUID(veid, uuidstr, sizeof(uuidstr));
-        ret = virUUIDParse(uuidstr, dom->def->uuid);
+        ret = virUUIDParse(uuidstr, def->uuid);
 
         if (ret == -1) {
-            openvzError(VIR_ERR_INTERNAL_ERROR, "%s",
-                        _("UUID in config file malformed"));
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("UUID in config file malformed"));
             goto cleanup;
         }
 
-        if (!(dom->def->os.type = strdup("exe")))
+        if (!(def->os.type = strdup("exe")))
             goto no_memory;
-        if (!(dom->def->os.init = strdup("/sbin/init")))
+        if (!(def->os.init = strdup("/sbin/init")))
             goto no_memory;
 
         ret = openvzReadVPSConfigParam(veid, "CPUS", &temp);
         if (ret < 0) {
-            openvzError(VIR_ERR_INTERNAL_ERROR,
-                        _("Could not read config for container %d"),
-                        veid);
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Could not read config for container %d"),
+                           veid);
             goto cleanup;
         } else if (ret > 0) {
-            dom->def->maxvcpus = strtoI(temp);
+            def->maxvcpus = strtoI(temp);
         }
 
-        if (ret == 0 || dom->def->maxvcpus == 0)
-            dom->def->maxvcpus = openvzGetNodeCPUs();
-        dom->def->vcpus = dom->def->maxvcpus;
+        if (ret == 0 || def->maxvcpus == 0)
+            def->maxvcpus = openvzGetNodeCPUs();
+        def->vcpus = def->maxvcpus;
 
         /* XXX load rest of VM config data .... */
 
-        openvzReadNetworkConf(dom->def, veid);
-        openvzReadFSConf(dom->def, veid);
+        openvzReadNetworkConf(def, veid);
+        openvzReadFSConf(def, veid);
+        openvzReadMemConf(def, veid);
 
-        virUUIDFormat(dom->def->uuid, uuidstr);
-        if (virHashAddEntry(driver->domains.objs, uuidstr, dom) < 0)
+        virUUIDFormat(def->uuid, uuidstr);
+        flags = VIR_DOMAIN_OBJ_LIST_ADD_CHECK_LIVE;
+        if (STRNEQ(status, "stopped"))
+            flags |= VIR_DOMAIN_OBJ_LIST_ADD_LIVE;
+
+        if (!(dom = virDomainObjListAdd(driver->domains,
+                                        def,
+                                        driver->xmlopt,
+                                        flags,
+                                        NULL)))
             goto cleanup;
 
-        virDomainObjUnlock(dom);
+        if (STREQ(status, "stopped")) {
+            virDomainObjSetState(dom, VIR_DOMAIN_SHUTOFF,
+                                 VIR_DOMAIN_SHUTOFF_UNKNOWN);
+            dom->pid = -1;
+        } else {
+            virDomainObjSetState(dom, VIR_DOMAIN_RUNNING,
+                                 VIR_DOMAIN_RUNNING_UNKNOWN);
+            dom->pid = veid;
+        }
+        /* XXX OpenVZ doesn't appear to have concept of a transient domain */
+        dom->persistent = 1;
+
+        virObjectUnlock(dom);
         dom = NULL;
+        def = NULL;
     }
 
     virCommandFree(cmd);
@@ -557,9 +674,8 @@ int openvzLoadDomains(struct openvz_driver *driver) {
     virCommandFree(cmd);
     VIR_FREE(temp);
     VIR_FREE(outbuf);
-    /* dom hasn't been shared yet, so unref should return 0 */
-    if (dom)
-        ignore_value(virDomainObjUnref(dom));
+    virObjectUnref(dom);
+    virDomainDefFree(def);
     return -1;
 }
 
@@ -854,7 +970,7 @@ openvz_readline(int fd, char *ptr, int maxlen)
     char c;
 
     for (n = 1; n < maxlen; n++) {
-        if ( (rc = read(fd, &c, 1)) == 1) {
+        if ((rc = read(fd, &c, 1)) == 1) {
             *ptr++ = c;
             if (c == '\n')
                 break;
@@ -905,8 +1021,8 @@ openvzGetVPSUUID(int vpsid, char *uuidstr, size_t len)
 
         if (iden != NULL && uuidbuf != NULL && STREQ(iden, "#UUID:")) {
             if (virStrcpy(uuidstr, uuidbuf, len) == NULL) {
-                openvzError(VIR_ERR_INTERNAL_ERROR,
-                            _("invalid uuid %s"), uuidbuf);
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("invalid uuid %s"), uuidbuf);
                 goto cleanup;
             }
             break;
@@ -967,8 +1083,8 @@ openvzSetUUID(int vpsid){
     unsigned char uuid[VIR_UUID_BUFLEN];
 
     if (virUUIDGenerate(uuid)) {
-        openvzError(VIR_ERR_INTERNAL_ERROR, "%s",
-                    _("Failed to generate UUID"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Failed to generate UUID"));
         return -1;
     }
 
@@ -1012,8 +1128,8 @@ static int openvzAssignUUIDs(void)
         errno = 0;
     }
     if (errno) {
-        openvzError(VIR_ERR_INTERNAL_ERROR, "%s",
-                    _("Failed to scan configuration directory"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Failed to scan configuration directory"));
         ret = -1;
     }
 
@@ -1050,7 +1166,7 @@ int openvzGetVEID(const char *name) {
     if (ok && veid >= 0)
         return veid;
 
-    openvzError(VIR_ERR_INTERNAL_ERROR, "%s",
-                _("Failed to parse vzlist output"));
+    virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                   _("Failed to parse vzlist output"));
     return -1;
 }

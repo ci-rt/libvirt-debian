@@ -9,8 +9,12 @@
       <li>Discuss any large changes on the mailing list first.  Post patches
         early and listen to feedback.</li>
 
-      <li><p>Post patches in unified diff format.  A command similar to this
-        should work:</p>
+      <li><p>Post patches in unified diff format, with git rename
+        detection enabled.  You need a one-time setup of:</p>
+<pre>
+  git config diff.renames true
+</pre>
+        <p>After that, a command similar to this should work:</p>
 <pre>
   diff -urp libvirt.orig/ libvirt.modified/ &gt; libvirt-myfeature.patch
 </pre>
@@ -18,18 +22,84 @@
           or:
         </p>
 <pre>
-  git diff > libvirt-myfeature.patch
+  git diff &gt; libvirt-myfeature.patch
 </pre>
+        <p>Also, for code motion patches, you may find that <code>git
+        diff --patience</code> provides an easier-to-read patch.
+        However, the usual workflow of libvirt developer is:</p>
+<pre>
+  git checkout master
+  git pull
+  git checkout -t origin -b workbranch
+  Hack, committing any changes along the way
+</pre>
+        <p>Then, when you want to post your patches:</p>
+<pre>
+  git pull --rebase
+  (fix any conflicts)
+  git send-email --cover-letter --no-chain-reply-to --annotate \
+                 --to=libvir-list@redhat.com master
+</pre>
+        <p>(Note that the "git send-email" subcommand may not be in
+        the main git package and using it may require installion of a
+        separate package, for example the "git-email" package in
+        Fedora.)  For a single patch you can omit
+        <code>--cover-letter</code>, but a series of two or more
+        patches needs a cover letter. If you get tired of typing
+        <code>--to=libvir-list@redhat.com</code> designation you can
+        set it in git config:</p>
+<pre>
+  git config sendemail.to libvir-list@redhat.com
+</pre>
+        <p>Please follow this as close as you can, especially the rebase and
+        git send-email part, as it makes life easier for other developers to
+        review your patch set. One should avoid sending patches as attachments,
+        but rather send them in email body along with commit message. If a
+        developer is sending another version of the patch (e.g. to address
+        review comments), he is advised to note differences to previous
+        versions after the <code>---</code> line in the patch so that it helps
+        reviewers but doesn't become part of git history. Moreover, such patch
+        needs to be prefixed correctly with
+        <code>--subject-prefix=PATCHv2</code> appended to <code>git
+            send-email</code> (substitute <code>v2</code> with the correct
+        version if needed though).</p>
       </li>
-      <li>Split large changes into a series of smaller patches, self-contained
-        if possible, with an explanation of each patch and an explanation of how
-        the sequence of patches fits together.</li>
+
+      <li><p>In your commit message, make the summary line reasonably
+          short (60 characters is typical), followed by a blank line,
+          followed by any longer description of why your patch makes
+          sense.  If the patch fixes a regression, and you know what
+          commit introduced the problem, mentioning that is useful.
+          If the patch resolves a bugzilla report, mentioning the URL
+          of the bug number is useful; but also summarize the issue
+          rather than making all readers follow the link.  You can use
+          'git shortlog -30' to get an idea of typical summary lines.
+          Libvirt does not currently attach any meaning to
+          Signed-off-by: lines, so it is up to you if you want to
+          include or omit them in the commit message.
+        </p>
+      </li>
+
+      <li><p>Split large changes into a series of smaller patches,
+        self-contained if possible, with an explanation of each patch
+        and an explanation of how the sequence of patches fits
+        together. Moreover, please keep in mind that it's required to
+        be able to compile cleanly (<b>including</b> <code>make
+        check</code> and <code>make syntax-check</code>) after each
+        patch.  A feature does not have to work until the end of a
+        series, but intermediate patches must compile and not cause
+        test-suite failures (this is to preserve the usefulness
+        of <code>git bisect</code>, among other things).</p>
+      </li>
+
       <li>Make sure your patches apply against libvirt GIT.  Developers
         only follow GIT and don't care much about released versions.</li>
       <li><p>Run the automated tests on your code before submitting any changes.
-          In particular, configure with compile warnings set to -Werror:</p>
+          In particular, configure with compile warnings set to
+          -Werror.  This is done automatically for a git checkout; from a
+          tarball, use:</p>
 <pre>
-  ./configure --enable-compile-warnings=error
+  ./configure --enable-werror
 </pre>
         <p>
           and run the tests:
@@ -39,8 +109,9 @@
   make syntax-check
   make -C tests valgrind
 </pre>
-        <p>
-          The latter test checks for memory leaks.
+        <p><a href="http://valgrind.org/">Valgrind</a> is a test that checks
+        for memory management issues, such as leaks or use of uninitialized
+        variables.
         </p>
 
         <p>
@@ -61,7 +132,99 @@
 <pre>
   ./qemuxml2xmltest
 </pre>
+        <p>There is also a <code>./run</code> script at the top level,
+          to make it easier to run programs that have not yet been
+          installed, as well as to wrap invocations of various tests
+          under gdb or Valgrind.
+        </p>
 
+      </li>
+      <li><p>The Valgrind test should produce similar output to
+          <code>make check</code>. If the output has traces within libvirt
+          API's, then investigation is required in order to determine the
+          cause of the issue. Output such as the following indicates some
+          sort of leak:
+        </p>
+<pre>
+==5414== 4 bytes in 1 blocks are definitely lost in loss record 3 of 89
+==5414==    at 0x4A0881C: malloc (vg_replace_malloc.c:270)
+==5414==    by 0x34DE0AAB85: xmlStrndup (in /usr/lib64/libxml2.so.2.7.8)
+==5414==    by 0x4CC97A6: virDomainVideoDefParseXML (domain_conf.c:7410)
+==5414==    by 0x4CD581D: virDomainDefParseXML (domain_conf.c:10188)
+==5414==    by 0x4CD8C73: virDomainDefParseNode (domain_conf.c:10640)
+==5414==    by 0x4CD8DDB: virDomainDefParse (domain_conf.c:10590)
+==5414==    by 0x41CB1D: testCompareXMLToArgvHelper (qemuxml2argvtest.c:100)
+==5414==    by 0x41E20F: virtTestRun (testutils.c:161)
+==5414==    by 0x41C7CB: mymain (qemuxml2argvtest.c:866)
+==5414==    by 0x41E84A: virtTestMain (testutils.c:723)
+==5414==    by 0x34D9021734: (below main) (in /usr/lib64/libc-2.15.so)
+</pre>
+        <p>In this example, the <code>virDomainDefParseXML()</code> had
+           an error path where the <code>virDomainVideoDefPtr video</code>
+           pointer was not properly disposed. By simply adding a
+           <code>virDomainVideoDefFree(video);</code> in the error path,
+           the issue was resolved.
+        </p>
+
+        <p>Another common mistake is calling a printing function, such as
+           <code>VIR_DEBUG()</code> without initializing a variable to be
+           printed.  The following example involved a call which could return
+           an error, but not set variables passed by reference to the call.
+           The solution was to initialize the variables prior to the call.
+        </p>
+<pre>
+==4749== Use of uninitialised value of size 8
+==4749==    at 0x34D904650B: _itoa_word (in /usr/lib64/libc-2.15.so)
+==4749==    by 0x34D9049118: vfprintf (in /usr/lib64/libc-2.15.so)
+==4749==    by 0x34D9108F60: __vasprintf_chk (in /usr/lib64/libc-2.15.so)
+==4749==    by 0x4CAEEF7: virVasprintf (stdio2.h:199)
+==4749==    by 0x4C8A55E: virLogVMessage (virlog.c:814)
+==4749==    by 0x4C8AA96: virLogMessage (virlog.c:751)
+==4749==    by 0x4DA0056: virNetTLSContextCheckCertKeyUsage (virnettlscontext.c:225)
+==4749==    by 0x4DA06DB: virNetTLSContextCheckCert (virnettlscontext.c:439)
+==4749==    by 0x4DA1620: virNetTLSContextNew (virnettlscontext.c:562)
+==4749==    by 0x4DA26FC: virNetTLSContextNewServer (virnettlscontext.c:927)
+==4749==    by 0x409C39: testTLSContextInit (virnettlscontexttest.c:467)
+==4749==    by 0x40AB8F: virtTestRun (testutils.c:161)
+</pre>
+        <p>Valgrind will also find some false positives or code paths
+           which cannot be resolved by making changes to the libvirt code.
+           For these paths, it is possible to add a filter to avoid the
+           errors. For example:
+        </p>
+<pre>
+==4643== 7 bytes in 1 blocks are possibly lost in loss record 4 of 20
+==4643==    at 0x4A0881C: malloc (vg_replace_malloc.c:270)
+==4643==    by 0x34D90853F1: strdup (in /usr/lib64/libc-2.15.so)
+==4643==    by 0x34EEC2C08A: ??? (in /usr/lib64/libnl.so.1.1)
+==4643==    by 0x34EEC15B81: ??? (in /usr/lib64/libnl.so.1.1)
+==4643==    by 0x34D8C0EE15: call_init.part.0 (in /usr/lib64/ld-2.15.so)
+==4643==    by 0x34D8C0EECF: _dl_init (in /usr/lib64/ld-2.15.so)
+==4643==    by 0x34D8C01569: ??? (in /usr/lib64/ld-2.15.so)
+
+</pre>
+        <p>In this instance, it is acceptible to modify the
+           <code>tests/.valgrind.supp</code> file in order to add a
+           suppression filter. The filter should be unique enough to
+           not suppress real leaks, but it should be generic enough to
+           cover multiple code paths. The format of the entry can be
+           found in the documentation found at the
+           <a href="http://valgrind.org/">Valgrind home page.</a>
+           The following trace was added to <code>tests/.valgrind.supp</code>
+           in order to suppress the warning:
+        </p>
+<pre>
+{
+    dlInitMemoryLeak1
+    Memcheck:Leak
+    fun:?alloc
+    ...
+    fun:call_init.part.0
+    fun:_dl_init
+    ...
+    obj:*/lib*/ld-2.*so*
+}
+</pre>
       </li>
       <li>Update tests and/or documentation, particularly if you are adding
         a new feature or changing the output of a program.</li>
@@ -163,6 +326,55 @@
     </p>
 
 
+    <h2><a name="bracket_spacing">Bracket spacing</a></h2>
+
+    <p>
+      The keywords <code>if</code>, <code>for</code>, <code>while</code>,
+      and <code>switch</code> must have a single space following them
+      before the opening bracket. E.g.
+    </p>
+    <pre>
+      if(foo)   // Bad
+      if (foo)  // Good
+</pre>
+
+    <p>
+      Function implementations must <strong>not</strong> have any whitespace
+      between the function name and the opening bracket. E.g.
+    </p>
+    <pre>
+      int foo (int wizz)  // Bad
+      int foo(int wizz)   // Good
+</pre>
+
+    <p>
+      Function calls must <strong>not</strong> have any whitespace
+      between the function name and the opening bracket. E.g.
+    </p>
+    <pre>
+      bar = foo (wizz);  // Bad
+      bar = foo(wizz);   // Good
+</pre>
+
+    <p>
+      Function typedefs must <strong>not</strong> have any whitespace
+      between the closing bracket of the function name and opening
+      bracket of the arg list. E.g.
+    </p>
+    <pre>
+      typedef int (*foo) (int wizz);  // Bad
+      typedef int (*foo)(int wizz);   // Good
+</pre>
+
+    <p>
+      There must not be any whitespace immediately following any
+      opening bracket, or immediately prior to any closing bracket. E.g.
+    </p>
+    <pre>
+      int foo( int wizz );  // Bad
+      int foo(int wizz);    // Good
+</pre>
+
     <h2><a name="curly_braces">Curly braces</a></h2>
 
     <p>
@@ -182,7 +394,7 @@
 </pre>
 
     <p>
-      However, the moment your loop/if/else body extends onto a second
+      However, the moment your loop/if/else body extends on to a second
       line, for whatever reason (even if it's just an added comment), then
       you should add braces.  Otherwise, it would be too easy to insert a
       statement just before that comment (without adding braces), thinking
@@ -303,7 +515,7 @@
   }
 </pre>
 
-    <h2><a href="types">Preprocessor</a></h2>
+    <h2><a name="preprocessor">Preprocessor</a></h2>
 
     <p>
       For variadic macros, stick with C99 syntax:
@@ -321,7 +533,7 @@
   #endif
 </pre>
 
-    <h2><a href="types">C types</a></h2>
+    <h2><a name="types">C types</a></h2>
 
     <p>
       Use the right type.
@@ -505,8 +717,8 @@
     <p>
       Usage of the <code>fdopen()</code>, <code>close()</code>, <code>fclose()</code>
       APIs is deprecated in libvirt code base to help avoiding double-closing of files
-      or file descriptors, which is particulary dangerous in a multi-threaded
-      applications. Instead of these APIs, use the macros from virfile.h
+      or file descriptors, which is particularly dangerous in a multi-threaded
+      application. Instead of these APIs, use the macros from virfile.h
     </p>
 
    <ul>
@@ -701,7 +913,7 @@
   #include &lt;string.h&gt;
   #include &lt;limits.h&gt;
 
-  #if HAVE_NUMACTL                Some system includes aren't supported
+  #if WITH_NUMACTL                Some system includes aren't supported
   # include &lt;numa.h&gt;              everywhere so need these #if guards.
   #endif
 
@@ -717,10 +929,12 @@
 </pre>
 
     <p>
-      Of particular note: <b>Do not</b> include libvirt/libvirt.h or
-      libvirt/virterror.h.  It is included by "internal.h" already and there
-      are some special reasons why you cannot include these files
-      explicitly.
+      Of particular note: <b>Do not</b> include libvirt/libvirt.h,
+      libvirt/virterror.h, libvirt/libvirt-qemu.h, or libvirt/libvirt-lxc.h.
+      They are included by "internal.h" already and there are some special reasons
+      why you cannot include these files explicitly. One of the special cases,
+      "libvirt/libvirt.h" is included prior to "internal.h" in "remote_protocol.x",
+      to avoid exposing *_LAST enum elements.
     </p>
 
 

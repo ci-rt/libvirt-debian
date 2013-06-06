@@ -6,7 +6,7 @@
   <memoryBacking>
     <hugepages/>
   </memoryBacking>
-  <vcpu>1</vcpu>
+  <vcpu placement='static'>1</vcpu>
   <os>
     <type arch='i686' machine='pc'>hvm</type>
     <boot dev='hd'/>
@@ -24,6 +24,7 @@
     </disk>
     <controller type='usb' index='0'/>
     <controller type='ide' index='0'/>
+    <controller type='pci' index='0' model='pci-root'/>
     <memballoon model='virtio'/>
   </devices>
 </domain>

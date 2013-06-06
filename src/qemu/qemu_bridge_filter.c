@@ -13,8 +13,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Authors:
  *     Gerhard Stenzel <gerhard.stenzel@de.ibm.com>
@@ -22,19 +22,19 @@
 
 #include <config.h>
 
-#include "ebtables.h"
+#include "virebtables.h"
 #include "qemu_conf.h"
 #include "qemu_driver.h"
-#include "util.h"
-#include "virterror_internal.h"
-#include "logging.h"
+#include "virutil.h"
+#include "virerror.h"
+#include "virlog.h"
 
 #include "qemu_bridge_filter.h"
 
 #define VIR_FROM_THIS VIR_FROM_QEMU
 
 int
-networkAddEbtablesRules(struct qemud_driver *driver) {
+networkAddEbtablesRules(virQEMUDriverPtr driver) {
     int err;
 
     /* Set forward policy to DROP */
@@ -50,7 +50,7 @@ networkAddEbtablesRules(struct qemud_driver *driver) {
 
 
 int
-networkDisableAllFrames(struct qemud_driver *driver) {
+networkDisableAllFrames(virQEMUDriverPtr driver) {
     int err;
 
     /* add default rules */
@@ -64,9 +64,9 @@ networkDisableAllFrames(struct qemud_driver *driver) {
 }
 
 int
-networkAllowMacOnPort(struct qemud_driver *driver,
+networkAllowMacOnPort(virQEMUDriverPtr driver,
                       const char * ifname,
-                      const unsigned char * mac) {
+                      const virMacAddrPtr mac) {
 
     int err;
 
@@ -85,9 +85,9 @@ networkAllowMacOnPort(struct qemud_driver *driver,
 
 
 int
-networkDisallowMacOnPort(struct qemud_driver *driver,
+networkDisallowMacOnPort(virQEMUDriverPtr driver,
                          const char * ifname,
-                         const unsigned char * mac) {
+                         const virMacAddrPtr mac) {
 
     int err;
 

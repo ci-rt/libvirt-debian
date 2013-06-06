@@ -110,6 +110,14 @@
                         <div>
                           <a title="Driver for Microsoft Hyper-V" class="inactive" href="drvhyperv.html">Microsoft Hyper-V</a>
                         </div>
+                      </li><li>
+                        <div>
+                          <a title="Driver for IBM PowerVM" class="inactive" href="drvphyp.html">IBM PowerVM</a>
+                        </div>
+                      </li><li>
+                        <div>
+                          <a title="Driver for Parallels Cloud Server" class="inactive" href="drvparallels.html">Parallels</a>
+                        </div>
                       </li></ul>
                   </div>
                 </li><li>
@@ -223,13 +231,20 @@
         libvirt will automatically process XM configuration files kept in
         the <code>/etc/xen</code> directory. It is important not to place
         any other non-config files in this directory.
+      </li><li>
+        <strong>libxl</strong>: Starting with Xen 4.2, the legacy XenD/xm
+        toolstack is deprecated in favor of libxl, also commonly called
+        libxenlight.  libvirt supports this new Xen toolstack via the
+        libxl driver.  If XenD is enabled, the legacy xen driver consisting
+        of the above mentioned channels will be used.  If XenD is disabled,
+        the libxl driver will be used.
       </li></ul>
         <h2>
           <a name="uri" id="uri">Connections to Xen driver</a>
         </h2>
         <p>
     The libvirt Xen driver is a single-instance privileged driver,
-    with a driver name of 'xen'. Some example conection URIs for
+    with a driver name of 'xen'. Some example connection URIs for
     the libvirt driver are:
     </p>
         <pre>

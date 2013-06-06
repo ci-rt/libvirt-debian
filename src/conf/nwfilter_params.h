@@ -1,7 +1,7 @@
 /*
  * nwfilter_params.h: parsing and data maintenance of filter parameters
  *
- * Copyright (C) 2011 Red Hat, Inc.
+ * Copyright (C) 2011-2012 Red Hat, Inc.
  * Copyright (C) 2010 IBM Corporation
  *
  * This library is free software; you can redistribute it and/or
@@ -15,8 +15,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Author: Stefan Berger <stefanb@us.ibm.com>
  */
@@ -24,7 +24,8 @@
 # define NWFILTER_PARAMS_H
 
 # include "virhash.h"
-# include "buf.h"
+# include "virbuffer.h"
+# include "virmacaddr.h"
 
 enum virNWFilterVarValueType {
     NWFILTER_VALUE_TYPE_SIMPLE,
@@ -56,6 +57,8 @@ const char *virNWFilterVarValueGetSimple(const virNWFilterVarValuePtr val);
 const char *virNWFilterVarValueGetNthValue(virNWFilterVarValuePtr val,
                                            unsigned int idx);
 unsigned int virNWFilterVarValueGetCardinality(const virNWFilterVarValuePtr);
+bool virNWFilterVarValueEqual(const virNWFilterVarValuePtr a,
+                              const virNWFilterVarValuePtr b);
 int virNWFilterVarValueAddValue(virNWFilterVarValuePtr val, char *value);
 int virNWFilterVarValueDelValue(virNWFilterVarValuePtr val, const char *value);
 
@@ -84,12 +87,19 @@ void *virNWFilterHashTableRemoveEntry(virNWFilterHashTablePtr table,
                                       const char *name);
 int virNWFilterHashTablePutAll(virNWFilterHashTablePtr src,
                                virNWFilterHashTablePtr dest);
+bool virNWFilterHashTableEqual(virNWFilterHashTablePtr a,
+                               virNWFilterHashTablePtr b);
 
 # define VALID_VARNAME \
   "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_"
 
 # define VALID_VARVALUE \
   "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.:"
+
+# define NWFILTER_VARNAME_IP "IP"
+# define NWFILTER_VARNAME_MAC "MAC"
+# define NWFILTER_VARNAME_CTRL_IP_LEARNING "CTRL_IP_LEARNING"
+# define NWFILTER_VARNAME_DHCPSERVER "DHCPSERVER"
 
 enum virNWFilterVarAccessType {
     VIR_NWFILTER_VAR_ACCESS_ELEMENT = 0,

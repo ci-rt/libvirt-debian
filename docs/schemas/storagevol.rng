@@ -13,7 +13,7 @@
   <define name='vol'>
     <element name='volume'>
       <element name='name'>
-        <ref name='name'/>
+        <ref name='volName'/>
       </element>
       <optional>
         <element name='key'>
@@ -46,7 +46,7 @@
     <optional>
       <element name='permissions'>
         <element name='mode'>
-          <ref name='unsignedInt'/>
+          <ref name='octalMode'/>
         </element>
         <element name='owner'>
           <ref name='unsignedInt'/>
@@ -63,15 +63,51 @@
     </optional>
   </define>
 
+  <define name='timestamps'>
+    <optional>
+      <element name='timestamps'>
+        <interleave>
+          <optional>
+            <element name='atime'>
+              <ref name='timestamp'/>
+            </element>
+          </optional>
+          <optional>
+            <element name='btime'>
+              <ref name='timestamp'/>
+            </element>
+          </optional>
+          <optional>
+            <element name='ctime'>
+              <ref name='timestamp'/>
+            </element>
+          </optional>
+          <optional>
+            <element name='mtime'>
+              <ref name='timestamp'/>
+            </element>
+          </optional>
+        </interleave>
+      </element>
+    </optional>
+  </define>
+
+  <define name='timestamp'>
+    <data type='string'>
+      <param name="pattern">[0-9]+(\.[0-9]{0,9})?</param>
+    </data>
+  </define>
+
   <define name='target'>
     <element name='target'>
       <optional>
         <element name='path'>
-          <ref name='absFilePath'/>
+          <data type='anyURI'/>
         </element>
       </optional>
       <ref name='format'/>
       <ref name='permissions'/>
+      <ref name='timestamps'/>
       <optional>
         <ref name='encryption'/>
       </optional>
@@ -137,13 +173,13 @@
       <value>vfat</value>
       <value>hfs+</value>
       <value>xfs</value>
+      <value>ocfs2</value>
     </choice>
-
   </define>
-
 
   <define name='formatfile'>
     <choice>
+      <value>unknown</value>
       <value>raw</value>
       <value>dir</value>
       <value>bochs</value>
@@ -153,8 +189,22 @@
       <value>iso</value>
       <value>qcow</value>
       <value>qcow2</value>
+      <value>qed</value>
       <value>vmdk</value>
       <value>vpc</value>
+    </choice>
+  </define>
+
+  <define name='formatdisk'>
+    <choice>
+      <value>none</value>
+      <value>linux</value>
+      <value>fat16</value>
+      <value>fat32</value>
+      <value>linux-swap</value>
+      <value>linux-lvm</value>
+      <value>linux-raid</value>
+      <value>extended</value>
     </choice>
   </define>
 
@@ -165,16 +215,11 @@
           <choice>
             <ref name='formatfile'/>
             <ref name='formatdev'/>
+            <ref name='formatdisk'/>
           </choice>
         </attribute>
       </element>
     </optional>
-  </define>
-
-  <define name='name'>
-    <data type='string'>
-      <param name="pattern">[a-zA-Z0-9_\+\-\.]+</param>
-    </data>
   </define>
 
 </grammar>

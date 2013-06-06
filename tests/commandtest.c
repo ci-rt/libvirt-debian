@@ -1,7 +1,7 @@
 /*
  * commandtest.c: Test the libCommand API
  *
- * Copyright (C) 2010-2012 Red Hat, Inc.
+ * Copyright (C) 2010-2013 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -14,8 +14,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
  */
 
 #include <config.h>
@@ -31,11 +31,24 @@
 #include "testutils.h"
 #include "internal.h"
 #include "nodeinfo.h"
-#include "util.h"
-#include "memory.h"
-#include "command.h"
+#include "virutil.h"
+#include "viralloc.h"
+#include "vircommand.h"
 #include "virfile.h"
 #include "virpidfile.h"
+#include "virerror.h"
+#include "virthread.h"
+
+#define VIR_FROM_THIS VIR_FROM_NONE
+
+typedef struct _virCommandTestData virCommandTestData;
+typedef virCommandTestData *virCommandTestDataPtr;
+struct _virCommandTestData {
+    virMutex lock;
+    virThread thread;
+    bool quit;
+    bool running;
+};
 
 #ifdef WIN32
 
@@ -328,7 +341,9 @@ static int test8(const void *unused ATTRIBUTE_UNUSED)
 {
     virCommandPtr cmd = virCommandNew(abs_builddir "/commandhelper");
 
+    virCommandAddEnvString(cmd, "USER=bogus");
     virCommandAddEnvString(cmd, "LANG=C");
+    virCommandAddEnvPair(cmd, "USER", "also bogus");
     virCommandAddEnvPair(cmd, "USER", "test");
 
     if (virCommandRun(cmd, NULL) < 0) {
@@ -604,12 +619,14 @@ static int test16(const void *unused ATTRIBUTE_UNUSED)
 {
     virCommandPtr cmd = virCommandNew("true");
     char *outactual = NULL;
-    const char *outexpect = "A=B true C";
+    const char *outexpect = "A=B C='D  E' true F 'G  H'";
     int ret = -1;
     int fd = -1;
 
     virCommandAddEnvPair(cmd, "A", "B");
-    virCommandAddArg(cmd, "C");
+    virCommandAddEnvPair(cmd, "C", "D  E");
+    virCommandAddArg(cmd, "F");
+    virCommandAddArg(cmd, "G  H");
 
     if ((outactual = virCommandToString(cmd)) == NULL) {
         virErrorPtr err = virGetLastError();
@@ -618,12 +635,12 @@ static int test16(const void *unused ATTRIBUTE_UNUSED)
     }
     if ((fd = open(abs_builddir "/commandhelper.log",
                    O_CREAT | O_TRUNC | O_WRONLY, 0600)) < 0) {
-        printf("Cannot open log file: %s\n", strerror (errno));
+        printf("Cannot open log file: %s\n", strerror(errno));
         goto cleanup;
     }
     virCommandWriteArgLog(cmd, fd);
     if (VIR_CLOSE(fd) < 0) {
-        printf("Cannot close log file: %s\n", strerror (errno));
+        printf("Cannot close log file: %s\n", strerror(errno));
         goto cleanup;
     }
 
@@ -649,7 +666,7 @@ static int test17(const void *unused ATTRIBUTE_UNUSED)
     virCommandPtr cmd = virCommandNew("true");
     int ret = -1;
     char *outbuf;
-    char *errbuf;
+    char *errbuf = NULL;
 
     virCommandSetOutputBuffer(cmd, &outbuf);
     if (outbuf != NULL) {
@@ -663,7 +680,7 @@ static int test17(const void *unused ATTRIBUTE_UNUSED)
         goto cleanup;
     }
 
-    if (!outbuf || *outbuf) {
+    if (*outbuf) {
         puts("output buffer is not an allocated empty string");
         goto cleanup;
     }
@@ -685,7 +702,7 @@ static int test17(const void *unused ATTRIBUTE_UNUSED)
         goto cleanup;
     }
 
-    if (!outbuf || *outbuf || !errbuf || *errbuf) {
+    if (*outbuf || *errbuf) {
         puts("output buffers are not allocated empty strings");
         goto cleanup;
     }
@@ -784,6 +801,44 @@ cleanup:
     return ret;
 }
 
+/*
+ * Run program, no args, inherit all ENV, keep CWD.
+ * Ignore huge stdin data, to provoke SIGPIPE or EPIPE in parent.
+ */
+static int test20(const void *unused ATTRIBUTE_UNUSED)
+{
+    virCommandPtr cmd = virCommandNewArgList(abs_builddir "/commandhelper",
+                                             "--close-stdin", NULL);
+    char *buf;
+    int ret = -1;
+
+    struct sigaction sig_action;
+
+    sig_action.sa_handler = SIG_IGN;
+    sig_action.sa_flags = 0;
+    sigemptyset(&sig_action.sa_mask);
+
+    sigaction(SIGPIPE, &sig_action, NULL);
+
+    if (virAsprintf(&buf, "1\n%100000d\n", 2) < 0) {
+        virReportOOMError();
+        goto cleanup;
+    }
+    virCommandSetInputBuffer(cmd, buf);
+
+    if (virCommandRun(cmd, NULL) < 0) {
+        virErrorPtr err = virGetLastError();
+        printf("Cannot run child %s\n", err->message);
+        goto cleanup;
+    }
+
+    ret = checkoutput("test20");
+cleanup:
+    virCommandFree(cmd);
+    VIR_FREE(buf);
+    return ret;
+}
+
 static const char *const newenv[] = {
     "PATH=/usr/bin:/bin",
     "HOSTNAME=test",
@@ -796,17 +851,101 @@ static const char *const newenv[] = {
     NULL
 };
 
+static int test21(const void *unused ATTRIBUTE_UNUSED)
+{
+    virCommandPtr cmd = virCommandNew(abs_builddir "/commandhelper");
+    int ret = -1;
+    const char *wrbuf = "Hello world\n";
+    char *outbuf = NULL, *errbuf = NULL;
+    const char *outbufExpected="BEGIN STDOUT\n"
+        "Hello world\n"
+        "END STDOUT\n";
+    const char *errbufExpected="BEGIN STDERR\n"
+        "Hello world\n"
+        "END STDERR\n";
+
+    virCommandSetInputBuffer(cmd, wrbuf);
+    virCommandSetOutputBuffer(cmd, &outbuf);
+    virCommandSetErrorBuffer(cmd, &errbuf);
+    virCommandDoAsyncIO(cmd);
+
+    if (virCommandRunAsync(cmd, NULL) < 0) {
+        virErrorPtr err = virGetLastError();
+        printf("Cannot run child %s\n", err->message);
+        goto cleanup;
+    }
+
+    if (virCommandWait(cmd, NULL) < 0)
+        goto cleanup;
+
+    if (virTestGetVerbose())
+        printf("STDOUT:%s\nSTDERR:%s\n", NULLSTR(outbuf), NULLSTR(errbuf));
+
+    if (STRNEQ(outbuf, outbufExpected)) {
+        virtTestDifference(stderr, outbufExpected, outbuf);
+        goto cleanup;
+    }
+
+    if (STRNEQ(errbuf, errbufExpected)) {
+        virtTestDifference(stderr, errbufExpected, errbuf);
+        goto cleanup;
+    }
+
+    ret = 0;
+cleanup:
+    VIR_FREE(outbuf);
+    VIR_FREE(errbuf);
+    virCommandFree(cmd);
+    return ret;
+}
+
+static void virCommandThreadWorker(void *opaque)
+{
+    virCommandTestDataPtr test = opaque;
+
+    virMutexLock(&test->lock);
+
+    while (!test->quit) {
+        virMutexUnlock(&test->lock);
+
+        if (virEventRunDefaultImpl() < 0) {
+            test->quit = true;
+            break;
+        }
+
+        virMutexLock(&test->lock);
+    }
+
+    test->running = false;
+
+    virMutexUnlock(&test->lock);
+    return;
+}
+
+static void
+virCommandTestFreeTimer(int timer ATTRIBUTE_UNUSED,
+                        void *opaque ATTRIBUTE_UNUSED)
+{
+    /* nothing to be done here */
+}
+
 static int
 mymain(void)
 {
     int ret = 0;
     int fd;
+    virCommandTestDataPtr test = NULL;
+    int timer = -1;
+    int virinitret;
+
+    if (virThreadInitialize() < 0)
+        return EXIT_FAILURE;
 
     if (chdir("/tmp") < 0)
         return EXIT_FAILURE;
 
     setpgid(0, 0);
-    setsid();
+    ignore_value(setsid());
 
     /* Our test expects particular fd values; to get that, we must not
      * leak fds that we inherited from a lazy parent.  At the same
@@ -822,23 +961,63 @@ mymain(void)
         dup2(fd, 3) < 0 ||
         dup2(fd, 4) < 0 ||
         dup2(fd, 5) < 0 ||
-        (fd > 5 && VIR_CLOSE(fd) < 0))
+        dup2(fd, 6) < 0 ||
+        dup2(fd, 7) < 0 ||
+        dup2(fd, 8) < 0 ||
+        (fd > 8 && VIR_CLOSE(fd) < 0)) {
+        VIR_FORCE_CLOSE(fd);
         return EXIT_FAILURE;
+    }
 
     /* Prime the debug/verbose settings from the env vars,
      * since we're about to reset 'environ' */
-    virTestGetDebug();
-    virTestGetVerbose();
+    ignore_value(virTestGetDebug());
+    ignore_value(virTestGetVerbose());
 
-    virInitialize();
+    /* Make sure to not leak fd's */
+    virinitret = virInitialize();
 
     /* Phase two of killing interfering fds; see above.  */
+    /* coverity[overwrite_var] - silence the obvious */
     fd = 3;
     VIR_FORCE_CLOSE(fd);
     fd = 4;
     VIR_FORCE_CLOSE(fd);
     fd = 5;
     VIR_FORCE_CLOSE(fd);
+    fd = 6;
+    VIR_FORCE_CLOSE(fd);
+    fd = 7;
+    VIR_FORCE_CLOSE(fd);
+    fd = 8;
+    VIR_FORCE_CLOSE(fd);
+
+    if (virinitret < 0)
+        return EXIT_FAILURE;
+
+    virEventRegisterDefaultImpl();
+    if (VIR_ALLOC(test) < 0) {
+        virReportOOMError();
+        goto cleanup;
+    }
+
+    if (virMutexInit(&test->lock) < 0) {
+        printf("Unable to init mutex: %d\n", errno);
+        goto cleanup;
+    }
+
+    virMutexLock(&test->lock);
+
+    if (virThreadCreate(&test->thread,
+                        true,
+                        virCommandThreadWorker,
+                        test) < 0) {
+        virMutexUnlock(&test->lock);
+        goto cleanup;
+    }
+
+    test->running = true;
+    virMutexUnlock(&test->lock);
 
     environ = (char **)newenv;
 
@@ -867,6 +1046,26 @@ mymain(void)
     DO_TEST(test17);
     DO_TEST(test18);
     DO_TEST(test19);
+    DO_TEST(test20);
+    DO_TEST(test21);
+
+    virMutexLock(&test->lock);
+    if (test->running) {
+        test->quit = true;
+        /* HACK: Add a dummy timeout to break event loop */
+        timer = virEventAddTimeout(0, virCommandTestFreeTimer, NULL, NULL);
+    }
+    virMutexUnlock(&test->lock);
+
+cleanup:
+    if (test->running)
+        virThreadJoin(&test->thread);
+
+    if (timer != -1)
+        virEventRemoveTimeout(timer);
+
+    virMutexDestroy(&test->lock);
+    VIR_FREE(test);
 
     return ret==0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }

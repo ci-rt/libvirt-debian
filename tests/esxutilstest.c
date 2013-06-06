@@ -1,5 +1,7 @@
 #include <config.h>
 
+#include "testutils.h"
+
 #ifdef WITH_ESX
 
 # include <stdio.h>
@@ -7,9 +9,8 @@
 # include <unistd.h>
 
 # include "internal.h"
-# include "memory.h"
-# include "testutils.h"
-# include "util.h"
+# include "viralloc.h"
+# include "virutil.h"
 # include "vmx/vmx.h"
 # include "esx/esx_util.h"
 # include "esx/esx_vi_types.h"
@@ -279,7 +280,6 @@ mymain(void)
 VIRT_TEST_MAIN(mymain)
 
 #else
-# include "testutils.h"
 
 int main(void)
 {

@@ -92,6 +92,8 @@ mymain(void)
     } while (0)
 #define DO_TEST(name) DO_TEST_FULL(name, 0)
 
+    DO_TEST("dhcp6host-routed-network");
+    DO_TEST("empty-allow-ipv6");
     DO_TEST("isolated-network");
     DO_TEST("routed-network");
     DO_TEST("nat-network");
@@ -104,7 +106,10 @@ mymain(void)
     DO_TEST("host-bridge-net");
     DO_TEST("vepa-net");
     DO_TEST("bandwidth-network");
+    DO_TEST("openvswitch-net");
     DO_TEST_FULL("passthrough-pf", VIR_NETWORK_XML_INACTIVE);
+    DO_TEST("hostdev");
+    DO_TEST_FULL("hostdev-pf", VIR_NETWORK_XML_INACTIVE);
 
     return ret==0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }

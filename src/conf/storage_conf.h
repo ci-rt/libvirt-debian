@@ -15,8 +15,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Author: Daniel P. Berrange <berrange@redhat.com>
  */
@@ -25,9 +25,9 @@
 # define __VIR_STORAGE_CONF_H__
 
 # include "internal.h"
-# include "util.h"
+# include "virutil.h"
 # include "storage_encryption_conf.h"
-# include "threads.h"
+# include "virthread.h"
 
 # include <libxml/tree.h>
 
@@ -45,6 +45,18 @@ struct _virStoragePerms {
 };
 
 /* Storage volumes */
+
+typedef struct _virStorageTimestamps virStorageTimestamps;
+typedef virStorageTimestamps *virStorageTimestampsPtr;
+struct _virStorageTimestamps {
+    struct timespec atime;
+    /* if btime.tv_nsec == -1 then
+     * birth time is unknown
+     */
+    struct timespec btime;
+    struct timespec ctime;
+    struct timespec mtime;
+};
 
 
 /*
@@ -77,6 +89,7 @@ struct _virStorageVolTarget {
     char *path;
     int format;
     virStoragePerms perms;
+    virStorageTimestampsPtr timestamps;
     int type; /* only used by disk backend for partition type */
     /* Currently used only in virStorageVolDef.target, not in .backingstore. */
     virStorageEncryptionPtr encryption;
@@ -120,6 +133,8 @@ enum virStoragePoolType {
     VIR_STORAGE_POOL_ISCSI,    /* iSCSI targets */
     VIR_STORAGE_POOL_SCSI,     /* SCSI HBA */
     VIR_STORAGE_POOL_MPATH,    /* Multipath devices */
+    VIR_STORAGE_POOL_RBD,      /* RADOS Block Device */
+    VIR_STORAGE_POOL_SHEEPDOG, /* Sheepdog device */
 
     VIR_STORAGE_POOL_LAST,
 };
@@ -137,6 +152,7 @@ enum virStoragePoolDeviceType {
 enum virStoragePoolAuthType {
     VIR_STORAGE_POOL_AUTH_NONE,
     VIR_STORAGE_POOL_AUTH_CHAP,
+    VIR_STORAGE_POOL_AUTH_CEPHX,
 };
 
 typedef struct _virStoragePoolAuthChap virStoragePoolAuthChap;
@@ -146,6 +162,16 @@ struct _virStoragePoolAuthChap {
     char *passwd;
 };
 
+typedef struct _virStoragePoolAuthCephx virStoragePoolAuthCephx;
+typedef virStoragePoolAuthCephx *virStoragePoolAuthCephxPtr;
+struct _virStoragePoolAuthCephx {
+    char *username;
+    struct {
+            unsigned char uuid[VIR_UUID_BUFLEN];
+            char *usage;
+            bool uuidUsable;
+    } secret;
+};
 
 /*
  * For remote pools, info on how to reach the host
@@ -207,13 +233,35 @@ struct _virStoragePoolSourceDevice {
     } geometry;
 };
 
+enum virStoragePoolSourceAdapterType {
+    VIR_STORAGE_POOL_SOURCE_ADAPTER_TYPE_DEFAULT = 0,
+    VIR_STORAGE_POOL_SOURCE_ADAPTER_TYPE_SCSI_HOST,
+    VIR_STORAGE_POOL_SOURCE_ADAPTER_TYPE_FC_HOST,
 
+    VIR_STORAGE_POOL_SOURCE_ADAPTER_TYPE_LAST,
+};
+VIR_ENUM_DECL(virStoragePoolSourceAdapterType)
+
+typedef struct _virStoragePoolSourceAdapter virStoragePoolSourceAdapter;
+struct _virStoragePoolSourceAdapter {
+    int type; /* enum virStoragePoolSourceAdapterType */
+
+    union {
+        char *name;
+        struct {
+            char *parent;
+            char *wwnn;
+            char *wwpn;
+        } fchost;
+    } data;
+};
 
 typedef struct _virStoragePoolSource virStoragePoolSource;
 typedef virStoragePoolSource *virStoragePoolSourcePtr;
 struct _virStoragePoolSource {
-    /* An optional host */
-    virStoragePoolSourceHost host;
+    /* An optional (maybe multiple) host(s) */
+    size_t nhost;
+    virStoragePoolSourceHostPtr hosts;
 
     /* And either one or more devices ... */
     int ndevice;
@@ -223,7 +271,7 @@ struct _virStoragePoolSource {
     char *dir;
 
     /* Or an adapter */
-    char *adapter;
+    virStoragePoolSourceAdapter adapter;
 
     /* Or a name */
     char *name;
@@ -234,6 +282,7 @@ struct _virStoragePoolSource {
     int authType;       /* virStoragePoolAuthType */
     union {
         virStoragePoolAuthChap chap;
+        virStoragePoolAuthCephx cephx;
     } auth;
 
     /* Vendor of the source */
@@ -322,10 +371,6 @@ struct _virStoragePoolSourceList {
 static inline int virStoragePoolObjIsActive(virStoragePoolObjPtr pool) {
     return pool->active;
 }
-
-# define virStorageReportError(code, ...)                                \
-    virReportErrorHelper(VIR_FROM_STORAGE, code, __FILE__,               \
-                         __FUNCTION__, __LINE__, __VA_ARGS__)
 
 int virStoragePoolLoadAllConfigs(virStoragePoolObjListPtr pools,
                                  const char *configDir,
@@ -494,5 +539,40 @@ enum virStoragePartedFsType {
     VIR_STORAGE_PARTED_FS_TYPE_LAST,
 };
 VIR_ENUM_DECL(virStoragePartedFsType)
+
+# define VIR_CONNECT_LIST_STORAGE_POOLS_FILTERS_ACTIVE   \
+                (VIR_CONNECT_LIST_STORAGE_POOLS_ACTIVE | \
+                 VIR_CONNECT_LIST_STORAGE_POOLS_INACTIVE)
+
+# define VIR_CONNECT_LIST_STORAGE_POOLS_FILTERS_PERSISTENT   \
+                (VIR_CONNECT_LIST_STORAGE_POOLS_PERSISTENT | \
+                 VIR_CONNECT_LIST_STORAGE_POOLS_TRANSIENT)
+
+# define VIR_CONNECT_LIST_STORAGE_POOLS_FILTERS_AUTOSTART    \
+                (VIR_CONNECT_LIST_STORAGE_POOLS_AUTOSTART |  \
+                 VIR_CONNECT_LIST_STORAGE_POOLS_NO_AUTOSTART)
+
+# define VIR_CONNECT_LIST_STORAGE_POOLS_FILTERS_POOL_TYPE  \
+                (VIR_CONNECT_LIST_STORAGE_POOLS_DIR      | \
+                 VIR_CONNECT_LIST_STORAGE_POOLS_FS       | \
+                 VIR_CONNECT_LIST_STORAGE_POOLS_NETFS    | \
+                 VIR_CONNECT_LIST_STORAGE_POOLS_LOGICAL  | \
+                 VIR_CONNECT_LIST_STORAGE_POOLS_DISK     | \
+                 VIR_CONNECT_LIST_STORAGE_POOLS_ISCSI    | \
+                 VIR_CONNECT_LIST_STORAGE_POOLS_SCSI     | \
+                 VIR_CONNECT_LIST_STORAGE_POOLS_MPATH    | \
+                 VIR_CONNECT_LIST_STORAGE_POOLS_RBD      | \
+                 VIR_CONNECT_LIST_STORAGE_POOLS_SHEEPDOG)
+
+# define VIR_CONNECT_LIST_STORAGE_POOLS_FILTERS_ALL                  \
+                (VIR_CONNECT_LIST_STORAGE_POOLS_FILTERS_ACTIVE     | \
+                 VIR_CONNECT_LIST_STORAGE_POOLS_FILTERS_PERSISTENT | \
+                 VIR_CONNECT_LIST_STORAGE_POOLS_FILTERS_AUTOSTART  | \
+                 VIR_CONNECT_LIST_STORAGE_POOLS_FILTERS_POOL_TYPE)
+
+int virStoragePoolList(virConnectPtr conn,
+                       virStoragePoolObjList poolobjs,
+                       virStoragePoolPtr **pools,
+                       unsigned int flags);
 
 #endif /* __VIR_STORAGE_CONF_H__ */

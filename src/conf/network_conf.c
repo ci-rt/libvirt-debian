@@ -1,7 +1,7 @@
 /*
  * network_conf.c: network XML handling
  *
- * Copyright (C) 2006-2012 Red Hat, Inc.
+ * Copyright (C) 2006-2013 Red Hat, Inc.
  * Copyright (C) 2006-2008 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -15,8 +15,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Author: Daniel P. Berrange <berrange@redhat.com>
  */
@@ -31,31 +31,40 @@
 #include <string.h>
 #include <dirent.h>
 
-#include "virterror_internal.h"
+#include "virerror.h"
 #include "datatypes.h"
 #include "network_conf.h"
 #include "netdev_vport_profile_conf.h"
 #include "netdev_bandwidth_conf.h"
-#include "memory.h"
-#include "xml.h"
-#include "uuid.h"
-#include "util.h"
-#include "buf.h"
+#include "netdev_vlan_conf.h"
+#include "viralloc.h"
+#include "virxml.h"
+#include "viruuid.h"
+#include "virutil.h"
+#include "virbuffer.h"
 #include "c-ctype.h"
 #include "virfile.h"
 
 #define MAX_BRIDGE_ID 256
 #define VIR_FROM_THIS VIR_FROM_NETWORK
-
-VIR_ENUM_DECL(virNetworkForward)
+#define NEXT_FREE_CLASS_ID 3
+/* currently, /sbin/tc implementation allows up to 16 bits for minor class size */
+#define CLASS_ID_BITMAP_SIZE (1<<16)
 
 VIR_ENUM_IMPL(virNetworkForward,
               VIR_NETWORK_FORWARD_LAST,
-              "none", "nat", "route", "bridge", "private", "vepa", "passthrough" )
+              "none", "nat", "route", "bridge", "private", "vepa", "passthrough", "hostdev")
 
-#define virNetworkReportError(code, ...)                                \
-    virReportErrorHelper(VIR_FROM_NETWORK, code, __FILE__,              \
-                         __FUNCTION__, __LINE__, __VA_ARGS__)
+VIR_ENUM_DECL(virNetworkForwardHostdevDevice)
+VIR_ENUM_IMPL(virNetworkForwardHostdevDevice,
+              VIR_NETWORK_FORWARD_HOSTDEV_DEVICE_LAST,
+              "none", "pci", "netdev")
+
+VIR_ENUM_IMPL(virNetworkForwardDriverName,
+              VIR_NETWORK_FORWARD_DRIVER_NAME_LAST,
+              "default",
+              "kvm",
+              "vfio")
 
 virNetworkObjPtr virNetworkFindByUUID(const virNetworkObjListPtr nets,
                                       const unsigned char *uuid)
@@ -94,64 +103,107 @@ virPortGroupDefClear(virPortGroupDefPtr def)
     VIR_FREE(def->name);
     VIR_FREE(def->virtPortProfile);
     virNetDevBandwidthFree(def->bandwidth);
+    virNetDevVlanClear(&def->vlan);
     def->bandwidth = NULL;
 }
 
 static void
 virNetworkForwardIfDefClear(virNetworkForwardIfDefPtr def)
 {
+    if (def->type == VIR_NETWORK_FORWARD_HOSTDEV_DEVICE_NETDEV)
+        VIR_FREE(def->device.dev);
+}
+
+static void
+virNetworkForwardPfDefClear(virNetworkForwardPfDefPtr def)
+{
     VIR_FREE(def->dev);
 }
 
-static void virNetworkIpDefClear(virNetworkIpDefPtr def)
+static void
+virNetworkDHCPHostDefClear(virNetworkDHCPHostDefPtr def)
 {
-    int ii;
+    VIR_FREE(def->mac);
+    VIR_FREE(def->id);
+    VIR_FREE(def->name);
+}
 
+static void
+virNetworkIpDefClear(virNetworkIpDefPtr def)
+{
     VIR_FREE(def->family);
     VIR_FREE(def->ranges);
 
-    for (ii = 0 ; ii < def->nhosts && def->hosts ; ii++) {
-        VIR_FREE(def->hosts[ii].mac);
-        VIR_FREE(def->hosts[ii].name);
-    }
+    while (def->nhosts--)
+        virNetworkDHCPHostDefClear(&def->hosts[def->nhosts]);
 
     VIR_FREE(def->hosts);
     VIR_FREE(def->tftproot);
     VIR_FREE(def->bootfile);
 }
 
-static void virNetworkDNSDefFree(virNetworkDNSDefPtr def)
+static void
+virNetworkDNSTxtDefClear(virNetworkDNSTxtDefPtr def)
 {
-    if (def) {
-        if (def->txtrecords) {
-            while (def->ntxtrecords--) {
-                VIR_FREE(def->txtrecords[def->ntxtrecords].name);
-                VIR_FREE(def->txtrecords[def->ntxtrecords].value);
-            }
-        }
-        VIR_FREE(def->txtrecords);
-        if (def->nhosts) {
-            while (def->nhosts--) {
-                while (def->hosts[def->nhosts].nnames--)
-                    VIR_FREE(def->hosts[def->nhosts].names[def->hosts[def->nhosts].nnames]);
-                VIR_FREE(def->hosts[def->nhosts].names);
-            }
-        }
+    VIR_FREE(def->name);
+    VIR_FREE(def->value);
+}
+
+static void
+virNetworkDNSHostDefClear(virNetworkDNSHostDefPtr def)
+{
+    while (def->nnames--)
+        VIR_FREE(def->names[def->nnames]);
+    VIR_FREE(def->names);
+}
+
+static void
+virNetworkDNSSrvDefClear(virNetworkDNSSrvDefPtr def)
+{
+    VIR_FREE(def->domain);
+    VIR_FREE(def->service);
+    VIR_FREE(def->protocol);
+    VIR_FREE(def->target);
+}
+
+static void
+virNetworkDNSDefClear(virNetworkDNSDefPtr def)
+{
+    if (def->txts) {
+        while (def->ntxts--)
+            virNetworkDNSTxtDefClear(&def->txts[def->ntxts]);
+        VIR_FREE(def->txts);
+    }
+    if (def->hosts) {
+        while (def->nhosts--)
+            virNetworkDNSHostDefClear(&def->hosts[def->nhosts]);
         VIR_FREE(def->hosts);
-        if (def->nsrvrecords) {
-            while (def->nsrvrecords--) {
-                VIR_FREE(def->srvrecords[def->nsrvrecords].domain);
-                VIR_FREE(def->srvrecords[def->nsrvrecords].service);
-                VIR_FREE(def->srvrecords[def->nsrvrecords].protocol);
-                VIR_FREE(def->srvrecords[def->nsrvrecords].target);
-            }
-        }
-        VIR_FREE(def->srvrecords);
-        VIR_FREE(def);
+    }
+    if (def->srvs) {
+        while (def->nsrvs--)
+            virNetworkDNSSrvDefClear(&def->srvs[def->nsrvs]);
+        VIR_FREE(def->srvs);
     }
 }
 
-void virNetworkDefFree(virNetworkDefPtr def)
+static void
+virNetworkForwardDefClear(virNetworkForwardDefPtr def)
+{
+    int ii;
+
+    for (ii = 0 ; ii < def->npfs && def->pfs ; ii++) {
+        virNetworkForwardPfDefClear(&def->pfs[ii]);
+    }
+    VIR_FREE(def->pfs);
+
+    for (ii = 0 ; ii < def->nifs && def->ifs ; ii++) {
+        virNetworkForwardIfDefClear(&def->ifs[ii]);
+    }
+    VIR_FREE(def->ifs);
+}
+
+void
+virNetworkDefFree(virNetworkDefPtr def)
 {
     int ii;
 
@@ -162,15 +214,7 @@ void virNetworkDefFree(virNetworkDefPtr def)
     VIR_FREE(def->bridge);
     VIR_FREE(def->domain);
 
-    for (ii = 0 ; ii < def->nForwardPfs && def->forwardPfs ; ii++) {
-        virNetworkForwardIfDefClear(&def->forwardPfs[ii]);
-    }
-    VIR_FREE(def->forwardPfs);
-
-    for (ii = 0 ; ii < def->nForwardIfs && def->forwardIfs ; ii++) {
-        virNetworkForwardIfDefClear(&def->forwardIfs[ii]);
-    }
-    VIR_FREE(def->forwardIfs);
+    virNetworkForwardDefClear(&def->forward);
 
     for (ii = 0 ; ii < def->nips && def->ips ; ii++) {
         virNetworkIpDefClear(&def->ips[ii]);
@@ -182,12 +226,12 @@ void virNetworkDefFree(virNetworkDefPtr def)
     }
     VIR_FREE(def->portGroups);
 
-    virNetworkDNSDefFree(def->dns);
+    virNetworkDNSDefClear(&def->dns);
 
     VIR_FREE(def->virtPortProfile);
 
     virNetDevBandwidthFree(def->bandwidth);
-
+    virNetDevVlanClear(&def->vlan);
     VIR_FREE(def);
 }
 
@@ -198,6 +242,7 @@ void virNetworkObjFree(virNetworkObjPtr net)
 
     virNetworkDefFree(net->def);
     virNetworkDefFree(net->newDef);
+    virBitmapFree(net->class_id);
 
     virMutexDestroy(&net->lock);
 
@@ -215,21 +260,82 @@ void virNetworkObjListFree(virNetworkObjListPtr nets)
     nets->count = 0;
 }
 
-virNetworkObjPtr virNetworkAssignDef(virNetworkObjListPtr nets,
-                                     const virNetworkDefPtr def)
+/*
+ * virNetworkObjAssignDef:
+ * @network: the network object to update
+ * @def: the new NetworkDef (will be consumed by this function iff successful)
+ * @live: is this new def the "live" version, or the "persistent" version
+ *
+ * Replace the appropriate copy of the given network's NetworkDef
+ * with def. Use "live" and current state of the network to determine
+ * which to replace.
+ *
+ * Returns 0 on success, -1 on failure.
+ */
+int
+virNetworkObjAssignDef(virNetworkObjPtr network,
+                       const virNetworkDefPtr def,
+                       bool live)
+{
+    if (virNetworkObjIsActive(network)) {
+        if (live) {
+            virNetworkDefFree(network->def);
+            network->def = def;
+        } else if (network->persistent) {
+            /* save current configuration to be restored on network shutdown */
+            virNetworkDefFree(network->newDef);
+            network->newDef = def;
+        } else {
+            virReportError(VIR_ERR_OPERATION_INVALID,
+                           _("cannot save persistent config of transient "
+                             "network '%s'"), network->def->name);
+            return -1;
+        }
+    } else if (!live) {
+        virNetworkDefFree(network->newDef);
+        virNetworkDefFree(network->def);
+        network->newDef = NULL;
+        network->def = def;
+    } else {
+        virReportError(VIR_ERR_OPERATION_INVALID,
+                       _("cannot save live config of inactive "
+                         "network '%s'"), network->def->name);
+        return -1;
+    }
+    return 0;
+}
+
+/*
+ * virNetworkAssignDef:
+ * @nets: list of all networks
+ * @def: the new NetworkDef (will be consumed by this function iff successful)
+ * @live: is this new def the "live" version, or the "persistent" version
+ *
+ * Either replace the appropriate copy of the NetworkDef with name
+ * matching def->name or, if not found, create a new NetworkObj with
+ * def. For an existing network, use "live" and current state of the
+ * network to determine which to replace.
+ *
+ * Returns -1 on failure, 0 on success.
+ */
+virNetworkObjPtr
+virNetworkAssignDef(virNetworkObjListPtr nets,
+                    const virNetworkDefPtr def,
+                    bool live)
 {
     virNetworkObjPtr network;
 
     if ((network = virNetworkFindByName(nets, def->name))) {
-        if (!virNetworkObjIsActive(network)) {
-            virNetworkDefFree(network->def);
-            network->def = def;
-        } else {
-            virNetworkDefFree(network->newDef);
-            network->newDef = def;
+        if (virNetworkObjAssignDef(network, def, live) < 0) {
+            virNetworkObjUnlock(network);
+            return NULL;
         }
-
         return network;
+    }
+
+    if (VIR_REALLOC_N(nets->objs, nets->count + 1) < 0) {
+        virReportOOMError();
+        return NULL;
     }
 
     if (VIR_ALLOC(network) < 0) {
@@ -237,25 +343,192 @@ virNetworkObjPtr virNetworkAssignDef(virNetworkObjListPtr nets,
         return NULL;
     }
     if (virMutexInit(&network->lock) < 0) {
-        virNetworkReportError(VIR_ERR_INTERNAL_ERROR,
-                              "%s", _("cannot initialize mutex"));
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "%s", _("cannot initialize mutex"));
         VIR_FREE(network);
         return NULL;
     }
     virNetworkObjLock(network);
     network->def = def;
 
-    if (VIR_REALLOC_N(nets->objs, nets->count + 1) < 0) {
+    if (!(network->class_id = virBitmapNew(CLASS_ID_BITMAP_SIZE))) {
         virReportOOMError();
-        VIR_FREE(network);
-        return NULL;
+        goto error;
     }
 
+    /* The first three class IDs are already taken */
+    ignore_value(virBitmapSetBit(network->class_id, 0));
+    ignore_value(virBitmapSetBit(network->class_id, 1));
+    ignore_value(virBitmapSetBit(network->class_id, 2));
+
+    network->def = def;
     nets->objs[nets->count] = network;
     nets->count++;
 
     return network;
+error:
+    virNetworkObjUnlock(network);
+    virNetworkObjFree(network);
+    return NULL;
 
+}
+
+/*
+ * virNetworkObjSetDefTransient:
+ * @network: network object pointer
+ * @live: if true, run this operation even for an inactive network.
+ *   this allows freely updated network->def with runtime defaults
+ *   before starting the network, which will be discarded on network
+ *   shutdown. Any cleanup paths need to be sure to handle newDef if
+ *   the network is never started.
+ *
+ * Mark the active network config as transient. Ensures live-only update
+ * operations do not persist past network destroy.
+ *
+ * Returns 0 on success, -1 on failure
+ */
+int
+virNetworkObjSetDefTransient(virNetworkObjPtr network, bool live)
+{
+    if (!virNetworkObjIsActive(network) && !live)
+        return 0;
+
+    if (!network->persistent || network->newDef)
+        return 0;
+
+    network->newDef = virNetworkDefCopy(network->def, VIR_NETWORK_XML_INACTIVE);
+    return network->newDef ? 0 : -1;
+}
+
+/* virNetworkObjUnsetDefTransient:
+ *
+ * This *undoes* what virNetworkObjSetDefTransient did.
+ */
+void
+virNetworkObjUnsetDefTransient(virNetworkObjPtr network)
+{
+    if (network->newDef) {
+        virNetworkDefFree(network->def);
+        network->def = network->newDef;
+        network->newDef = NULL;
+    }
+}
+
+/*
+ * virNetworkObjGetPersistentDef:
+ * @network: network object pointer
+ *
+ * Return the persistent network configuration. If network is transient,
+ * return the running config.
+ *
+ * Returns NULL on error, virNetworkDefPtr on success.
+ */
+virNetworkDefPtr
+virNetworkObjGetPersistentDef(virNetworkObjPtr network)
+{
+    if (network->newDef)
+        return network->newDef;
+    else
+        return network->def;
+}
+
+/*
+ * virNetworkObjReplacePersistentDef:
+ * @network: network object pointer
+ * @def: new virNetworkDef to replace current persistent config
+ *
+ * Replace the "persistent" network configuration with the given new
+ * virNetworkDef. This pays attention to whether or not the network
+ * is active.
+ *
+ * Returns -1 on error, 0 on success
+ */
+int
+virNetworkObjReplacePersistentDef(virNetworkObjPtr network,
+                                  virNetworkDefPtr def)
+{
+    if (virNetworkObjIsActive(network)) {
+        virNetworkDefFree(network->newDef);
+        network->newDef = def;
+    } else {
+        virNetworkDefFree(network->def);
+        network->def = def;
+    }
+    return 0;
+}
+
+/*
+ * virNetworkDefCopy:
+ * @def: NetworkDef to copy
+ * @flags: VIR_NETWORK_XML_INACTIVE if appropriate
+ *
+ * make a deep copy of the given NetworkDef
+ *
+ * Returns a new NetworkDef on success, or NULL on failure.
+ */
+virNetworkDefPtr
+virNetworkDefCopy(virNetworkDefPtr def, unsigned int flags)
+{
+    char *xml = NULL;
+    virNetworkDefPtr newDef = NULL;
+
+    if (!def) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "%s", _("NULL NetworkDef"));
+        return NULL;
+    }
+
+    /* deep copy with a format/parse cycle */
+    if (!(xml = virNetworkDefFormat(def, flags)))
+        goto cleanup;
+    newDef = virNetworkDefParseString(xml);
+cleanup:
+    VIR_FREE(xml);
+    return newDef;
+}
+
+/*
+ * virNetworkConfigChangeSetup:
+ *
+ * 1) checks whether network state is consistent with the requested
+ *    type of modification.
+ *
+ * 3) make sure there are separate "def" and "newDef" copies of
+ *    networkDef if appropriate.
+ *
+ * Returns 0 on success, -1 on error.
+ */
+int
+virNetworkConfigChangeSetup(virNetworkObjPtr network, unsigned int flags)
+{
+    bool isActive;
+    int ret = -1;
+
+    isActive = virNetworkObjIsActive(network);
+
+    if (!isActive && (flags & VIR_NETWORK_UPDATE_AFFECT_LIVE)) {
+        virReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                       _("network is not running"));
+        goto cleanup;
+    }
+
+    if (flags & VIR_NETWORK_UPDATE_AFFECT_CONFIG) {
+        if (!network->persistent) {
+            virReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                           _("cannot change persistent config of a "
+                             "transient network"));
+            goto cleanup;
+        }
+        /* this should already have been done by the driver, but do it
+         * anyway just in case.
+         */
+        if (isActive && (virNetworkObjSetDefTransient(network, false) < 0))
+            goto cleanup;
+    }
+
+    ret = 0;
+cleanup:
+    return ret;
 }
 
 void virNetworkRemoveInactive(virNetworkObjListPtr nets,
@@ -315,33 +588,9 @@ virNetworkDefGetIpByIndex(const virNetworkDefPtr def,
  */
 int virNetworkIpDefPrefix(const virNetworkIpDefPtr def)
 {
-    if (def->prefix > 0) {
-        return def->prefix;
-    } else if (VIR_SOCKET_ADDR_VALID(&def->netmask)) {
-        return virSocketAddrGetNumNetmaskBits(&def->netmask);
-    } else if (VIR_SOCKET_ADDR_IS_FAMILY(&def->address, AF_INET)) {
-        /* Return the natural prefix for the network's ip address.
-         * On Linux we could use the IN_CLASSx() macros, but those
-         * aren't guaranteed on all platforms, so we just deal with
-         * the bits ourselves.
-         */
-        unsigned char octet
-            = ntohl(def->address.data.inet4.sin_addr.s_addr) >> 24;
-        if ((octet & 0x80) == 0) {
-            /* Class A network */
-            return 8;
-        } else if ((octet & 0xC0) == 0x80) {
-            /* Class B network */
-            return 16;
-        } else if ((octet & 0xE0) == 0xC0) {
-            /* Class C network */
-            return 24;
-        }
-        return -1;
-    } else if (VIR_SOCKET_ADDR_IS_FAMILY(&def->address, AF_INET6)) {
-        return 64;
-    }
-    return -1;
+    return virSocketAddrGetIpPrefix(&def->address,
+                                    &def->netmask,
+                                    def->prefix);
 }
 
 /* Fill in a virSocketAddr with the proper netmask for this
@@ -362,9 +611,171 @@ int virNetworkIpDefNetmask(const virNetworkIpDefPtr def,
 
 
 static int
-virNetworkDHCPRangeDefParseXML(const char *networkName,
-                               virNetworkIpDefPtr def,
-                               xmlNodePtr node)
+virSocketAddrRangeParseXML(const char *networkName,
+                               xmlNodePtr node,
+                               virSocketAddrRangePtr range)
+{
+
+
+    char *start = NULL, *end = NULL;
+    int ret = -1;
+
+    if (!(start = virXMLPropString(node, "start"))) {
+        virReportError(VIR_ERR_XML_ERROR,
+                       _("Missing 'start' attribute in dhcp range for network '%s'"),
+                       networkName);
+        goto cleanup;
+    }
+    if (virSocketAddrParse(&range->start, start, AF_UNSPEC) < 0)
+        goto cleanup;
+
+    if (!(end = virXMLPropString(node, "end"))) {
+        virReportError(VIR_ERR_XML_ERROR,
+                       _("Missing 'end' attribute in dhcp range for network '%s'"),
+                       networkName);
+        goto cleanup;
+    }
+    if (virSocketAddrParse(&range->end, end, AF_UNSPEC) < 0)
+        goto cleanup;
+
+    /* do a sanity check of the range */
+    if (virSocketAddrGetRange(&range->start, &range->end) < 0) {
+        virReportError(VIR_ERR_XML_ERROR,
+                       _("Invalid dhcp range '%s' to '%s' in network '%s'"),
+                       start, end, networkName);
+        goto cleanup;
+    }
+
+    ret = 0;
+
+cleanup:
+    VIR_FREE(start);
+    VIR_FREE(end);
+    return ret;
+}
+
+static int
+virNetworkDHCPHostDefParseXML(const char *networkName,
+                              const virNetworkIpDefPtr def,
+                              xmlNodePtr node,
+                              virNetworkDHCPHostDefPtr host,
+                              bool partialOkay)
+{
+    char *mac = NULL, *name = NULL, *ip = NULL, *id = NULL;
+    virMacAddr addr;
+    virSocketAddr inaddr;
+    int ret = -1;
+
+    mac = virXMLPropString(node, "mac");
+    if (mac != NULL) {
+        if (VIR_SOCKET_ADDR_IS_FAMILY(&def->address, AF_INET6)) {
+            virReportError(VIR_ERR_XML_ERROR,
+                           _("Invalid to specify MAC address '%s' "
+                             "in network '%s' IPv6 static host definition"),
+                           mac, networkName);
+            goto cleanup;
+        }
+        if (virMacAddrParse(mac, &addr) < 0) {
+            virReportError(VIR_ERR_XML_ERROR,
+                           _("Cannot parse MAC address '%s' in network '%s'"),
+                           mac, networkName);
+            goto cleanup;
+        }
+        if (virMacAddrIsMulticast(&addr)) {
+            virReportError(VIR_ERR_XML_ERROR,
+                           _("expected unicast mac address, found "
+                             "multicast '%s' in network '%s'"),
+                           (const char *)mac, networkName);
+            goto cleanup;
+        }
+    }
+
+    id = virXMLPropString(node, "id");
+    if (id) {
+        char *cp = id + strspn(id, "0123456789abcdefABCDEF:");
+        if (*cp) {
+            virReportError(VIR_ERR_XML_ERROR,
+                           _("Invalid character '%c' in id '%s' of network '%s'"),
+                           *cp, id, networkName);
+        }
+    }
+
+    name = virXMLPropString(node, "name");
+    if (name && (!c_isalpha(name[0]))) {
+        virReportError(VIR_ERR_XML_ERROR,
+                       _("Cannot use host name '%s' in network '%s'"),
+                       name, networkName);
+        goto cleanup;
+    }
+
+    ip = virXMLPropString(node, "ip");
+    if (ip && (virSocketAddrParse(&inaddr, ip, AF_UNSPEC) < 0)) {
+        virReportError(VIR_ERR_XML_ERROR,
+                       _("Invalid IP address in static host definition "
+                         "for network '%s'"),
+                       networkName);
+        goto cleanup;
+    }
+
+    if (partialOkay) {
+        /* for search/match, you just need one of the three */
+        if (!(mac || name || ip)) {
+            virReportError(VIR_ERR_XML_ERROR,
+                           _("At least one of name, mac, or ip attribute "
+                             "must be specified for static host definition "
+                             "in network '%s' "),
+                           networkName);
+        }
+    } else {
+        /* normal usage - you need at least name (IPv6) or one of MAC
+         * address or name (IPv4)
+         */
+        if (VIR_SOCKET_ADDR_IS_FAMILY(&def->address, AF_INET6)) {
+            if (!(id || name)) {
+                virReportError(VIR_ERR_XML_ERROR,
+                           _("Static host definition in IPv6 network '%s' "
+                             "must have id or name attribute"),
+                           networkName);
+                goto cleanup;
+            }
+        } else if (!(mac || name)) {
+            virReportError(VIR_ERR_XML_ERROR,
+                           _("Static host definition in IPv4 network '%s' "
+                             "must have mac or name attribute"),
+                           networkName);
+            goto cleanup;
+        }
+        if (!ip) {
+            virReportError(VIR_ERR_XML_ERROR,
+                           _("Missing IP address in static host definition "
+                             "for network '%s'"),
+                           networkName);
+            goto cleanup;
+        }
+    }
+
+    host->mac = mac;
+    mac = NULL;
+    host->id = id;
+    id = NULL;
+    host->name = name;
+    name = NULL;
+    if (ip)
+        host->ip = inaddr;
+    ret = 0;
+
+cleanup:
+    VIR_FREE(mac);
+    VIR_FREE(id);
+    VIR_FREE(name);
+    VIR_FREE(ip);
+    return ret;
+}
+
+static int
+virNetworkDHCPDefParseXML(const char *networkName,
+                          xmlNodePtr node,
+                          virNetworkIpDefPtr def)
 {
 
     xmlNodePtr cur;
@@ -373,116 +784,34 @@ virNetworkDHCPRangeDefParseXML(const char *networkName,
     while (cur != NULL) {
         if (cur->type == XML_ELEMENT_NODE &&
             xmlStrEqual(cur->name, BAD_CAST "range")) {
-            char *start, *end;
-            virSocketAddr saddr, eaddr;
-            int range;
-
-            if (!(start = virXMLPropString(cur, "start"))) {
-                cur = cur->next;
-                continue;
-            }
-            if (!(end = virXMLPropString(cur, "end"))) {
-                VIR_FREE(start);
-                cur = cur->next;
-                continue;
-            }
-
-            if (virSocketAddrParse(&saddr, start, AF_UNSPEC) < 0) {
-                VIR_FREE(start);
-                VIR_FREE(end);
-                return -1;
-            }
-            if (virSocketAddrParse(&eaddr, end, AF_UNSPEC) < 0) {
-                VIR_FREE(start);
-                VIR_FREE(end);
-                return -1;
-            }
-
-            range = virSocketAddrGetRange(&saddr, &eaddr);
-            if (range < 0) {
-                virNetworkReportError(VIR_ERR_XML_ERROR,
-                                      _("Invalid dhcp range '%s' to '%s' in network '%s'"),
-                                      start, end, networkName);
-                VIR_FREE(start);
-                VIR_FREE(end);
-                return -1;
-            }
-            VIR_FREE(start);
-            VIR_FREE(end);
 
             if (VIR_REALLOC_N(def->ranges, def->nranges + 1) < 0) {
                 virReportOOMError();
                 return -1;
             }
-            def->ranges[def->nranges].start = saddr;
-            def->ranges[def->nranges].end = eaddr;
+            if (virSocketAddrRangeParseXML(networkName, cur,
+                                               &def->ranges[def->nranges]) < 0) {
+                return -1;
+            }
             def->nranges++;
+
         } else if (cur->type == XML_ELEMENT_NODE &&
             xmlStrEqual(cur->name, BAD_CAST "host")) {
-            char *mac = NULL, *name = NULL, *ip;
-            unsigned char addr[6];
-            virSocketAddr inaddr;
 
-            mac = virXMLPropString(cur, "mac");
-            if (mac != NULL) {
-                if (virMacAddrParse(mac, &addr[0]) < 0) {
-                    virNetworkReportError(VIR_ERR_XML_ERROR,
-                                          _("Cannot parse MAC address '%s' in network '%s'"),
-                                          mac, networkName);
-                    VIR_FREE(mac);
-                    return -1;
-                }
-                if (virMacAddrIsMulticast(addr)) {
-                    virNetworkReportError(VIR_ERR_XML_ERROR,
-                                         _("expected unicast mac address, found multicast '%s' in network '%s'"),
-                                         (const char *)mac, networkName);
-                    VIR_FREE(mac);
-                    return -1;
-                }
-            }
-            name = virXMLPropString(cur, "name");
-            if ((name != NULL) && (!c_isalpha(name[0]))) {
-                virNetworkReportError(VIR_ERR_XML_ERROR,
-                                      _("Cannot use name address '%s' in network '%s'"),
-                                      name, networkName);
-                VIR_FREE(mac);
-                VIR_FREE(name);
-                return -1;
-            }
-            /*
-             * You need at least one MAC address or one host name
-             */
-            if ((mac == NULL) && (name == NULL)) {
-                virNetworkReportError(VIR_ERR_XML_ERROR,
-                                      _("Static host definition in network '%s' must have mac or name attribute"),
-                                      networkName);
-                return -1;
-            }
-            ip = virXMLPropString(cur, "ip");
-            if ((ip == NULL) ||
-                (virSocketAddrParse(&inaddr, ip, AF_UNSPEC) < 0)) {
-                virNetworkReportError(VIR_ERR_XML_ERROR,
-                                      _("Missing IP address in static host definition for network '%s'"),
-                                      networkName);
-                VIR_FREE(ip);
-                VIR_FREE(mac);
-                VIR_FREE(name);
-                return -1;
-            }
-            VIR_FREE(ip);
             if (VIR_REALLOC_N(def->hosts, def->nhosts + 1) < 0) {
-                VIR_FREE(mac);
-                VIR_FREE(name);
                 virReportOOMError();
                 return -1;
             }
-            def->hosts[def->nhosts].mac = mac;
-            def->hosts[def->nhosts].name = name;
-            def->hosts[def->nhosts].ip = inaddr;
+            if (virNetworkDHCPHostDefParseXML(networkName, def, cur,
+                                              &def->hosts[def->nhosts],
+                                              false) < 0) {
+                return -1;
+            }
             def->nhosts++;
 
-        } else if (cur->type == XML_ELEMENT_NODE &&
-            xmlStrEqual(cur->name, BAD_CAST "bootp")) {
+        } else if (VIR_SOCKET_ADDR_IS_FAMILY(&def->address, AF_INET) &&
+                   cur->type == XML_ELEMENT_NODE &&
+                   xmlStrEqual(cur->name, BAD_CAST "bootp")) {
             char *file;
             char *server;
             virSocketAddr inaddr;
@@ -513,235 +842,287 @@ virNetworkDHCPRangeDefParseXML(const char *networkName,
 }
 
 static int
-virNetworkDNSHostsDefParseXML(virNetworkDNSDefPtr def,
-                              xmlNodePtr node)
+virNetworkDNSHostDefParseXML(const char *networkName,
+                             xmlNodePtr node,
+                             virNetworkDNSHostDefPtr def,
+                             bool partialOkay)
 {
     xmlNodePtr cur;
     char *ip;
-    virSocketAddr inaddr;
-    int ret = -1;
 
-    if (!(ip = virXMLPropString(node, "ip")) ||
-        (virSocketAddrParse(&inaddr, ip, AF_UNSPEC) < 0)) {
-        virNetworkReportError(VIR_ERR_XML_DETAIL,
-                              _("Missing IP address in DNS host definition"));
+    if (!(ip = virXMLPropString(node, "ip")) && !partialOkay) {
+        virReportError(VIR_ERR_XML_DETAIL,
+                       _("Missing IP address in network '%s' DNS HOST record"),
+                       networkName);
+        VIR_FREE(ip);
+        goto error;
+    }
+
+    if (ip && (virSocketAddrParse(&def->ip, ip, AF_UNSPEC) < 0)) {
+        virReportError(VIR_ERR_XML_DETAIL,
+                       _("Invalid IP address in network '%s' DNS HOST record"),
+                       networkName);
         VIR_FREE(ip);
         goto error;
     }
     VIR_FREE(ip);
-
-    if (VIR_REALLOC_N(def->hosts, def->nhosts + 1) < 0) {
-        virReportOOMError();
-        goto error;
-    }
-
-    def->hosts[def->nhosts].ip = inaddr;
-    def->hosts[def->nhosts].nnames = 0;
-
-    if (VIR_ALLOC(def->hosts[def->nhosts].names) < 0) {
-        virReportOOMError();
-        goto error;
-    }
 
     cur = node->children;
     while (cur != NULL) {
         if (cur->type == XML_ELEMENT_NODE &&
             xmlStrEqual(cur->name, BAD_CAST "hostname")) {
               if (cur->children != NULL) {
-                  if (VIR_REALLOC_N(def->hosts[def->nhosts].names, def->hosts[def->nhosts].nnames + 1) < 0) {
+                  if (VIR_REALLOC_N(def->names, def->nnames + 1) < 0) {
                       virReportOOMError();
                       goto error;
                   }
-
-                  def->hosts[def->nhosts].names[def->hosts[def->nhosts].nnames] = strdup((char *)cur->children->content);
-                  def->hosts[def->nhosts].nnames++;
+                  def->names[def->nnames++] = (char *)xmlNodeGetContent(cur);
+                  if (!def->names[def->nnames - 1]) {
+                      virReportError(VIR_ERR_XML_DETAIL,
+                                     _("Missing hostname in network '%s' DNS HOST record"),
+                                     networkName);
+                  }
               }
         }
-
         cur = cur->next;
     }
+    if (def->nnames == 0 && !partialOkay) {
+        virReportError(VIR_ERR_XML_DETAIL,
+                       _("Missing hostname in network '%s' DNS HOST record"),
+                       networkName);
+        goto error;
+    }
 
-    def->nhosts++;
+    if (!VIR_SOCKET_ADDR_VALID(&def->ip) && def->nnames == 0) {
+        virReportError(VIR_ERR_XML_DETAIL,
+                       _("Missing ip and hostname in network '%s' DNS HOST record"),
+                       networkName);
+        goto error;
+    }
 
-    ret = 0;
+    return 0;
 
 error:
-    return ret;
+    virNetworkDNSHostDefClear(def);
+    return -1;
 }
 
 static int
-virNetworkDNSSrvDefParseXML(virNetworkDNSDefPtr def,
-                            xmlNodePtr cur,
-                            xmlXPathContextPtr ctxt)
+virNetworkDNSSrvDefParseXML(const char *networkName,
+                            xmlNodePtr node,
+                            xmlXPathContextPtr ctxt,
+                            virNetworkDNSSrvDefPtr def,
+                            bool partialOkay)
 {
-    char *domain;
-    char *service;
-    char *protocol;
-    char *target;
-    int port;
-    int priority;
-    int weight;
-    int ret = 0;
-
-    if (!(service = virXMLPropString(cur, "service"))) {
-        virNetworkReportError(VIR_ERR_XML_DETAIL,
-                              "%s", _("Missing required service attribute in dns srv record"));
+    if (!(def->service = virXMLPropString(node, "service")) && !partialOkay) {
+        virReportError(VIR_ERR_XML_DETAIL,
+                       _("Missing required service attribute in DNS SRV record "
+                         " of network %s"), networkName);
+        goto error;
+    }
+    if (strlen(def->service) > DNS_RECORD_LENGTH_SRV) {
+        virReportError(VIR_ERR_XML_DETAIL,
+                       _("Service name '%s' in network %s is too long, limit is %d bytes"),
+                       def->service, networkName, DNS_RECORD_LENGTH_SRV);
         goto error;
     }
 
-    if (strlen(service) > DNS_RECORD_LENGTH_SRV) {
-        char *name = NULL;
-
-        virAsprintf(&name, _("Service name is too long, limit is %d bytes"), DNS_RECORD_LENGTH_SRV);
-        virNetworkReportError(VIR_ERR_XML_DETAIL,
-                              "%s", name);
-        VIR_FREE(name);
-        goto error;
-    }
-
-    if (!(protocol = virXMLPropString(cur, "protocol"))) {
-        virNetworkReportError(VIR_ERR_XML_DETAIL,
-                              _("Missing required protocol attribute in dns srv record '%s'"), service);
+    if (!(def->protocol = virXMLPropString(node, "protocol")) && !partialOkay) {
+        virReportError(VIR_ERR_XML_DETAIL,
+                       _("Missing required protocol attribute "
+                         "in dns srv record '%s' of network %s"),
+                       def->service, networkName);
         goto error;
     }
 
     /* Check whether protocol value is the supported one */
-    if (STRNEQ(protocol, "tcp") && (STRNEQ(protocol, "udp"))) {
-        virNetworkReportError(VIR_ERR_XML_DETAIL,
-                              _("Invalid protocol attribute value '%s'"), protocol);
+    if (STRNEQ(def->protocol, "tcp") && (STRNEQ(def->protocol, "udp"))) {
+        virReportError(VIR_ERR_XML_DETAIL,
+                       _("Invalid protocol attribute value '%s' "
+                         " in DNS SRV record of network %s"),
+                       def->protocol, networkName);
         goto error;
     }
 
-    if (VIR_REALLOC_N(def->srvrecords, def->nsrvrecords + 1) < 0) {
-        virReportOOMError();
-        goto error;
-    }
-
-    def->srvrecords[def->nsrvrecords].service = service;
-    def->srvrecords[def->nsrvrecords].protocol = protocol;
-    def->srvrecords[def->nsrvrecords].domain = NULL;
-    def->srvrecords[def->nsrvrecords].target = NULL;
-    def->srvrecords[def->nsrvrecords].port = 0;
-    def->srvrecords[def->nsrvrecords].priority = 0;
-    def->srvrecords[def->nsrvrecords].weight = 0;
-
-    /* Following attributes are optional but we had to make sure they're NULL above */
-    if ((target = virXMLPropString(cur, "target")) && (domain = virXMLPropString(cur, "domain"))) {
+    /* Following attributes are optional */
+    if ((def->target = virXMLPropString(node, "target")) &&
+        (def->domain = virXMLPropString(node, "domain"))) {
         xmlNodePtr save_ctxt = ctxt->node;
 
-        ctxt->node = cur;
-        if (virXPathInt("string(./@port)", ctxt, &port))
-            def->srvrecords[def->nsrvrecords].port = port;
+        ctxt->node = node;
+        if (virXPathUInt("string(./@port)", ctxt, &def->port) < 0 ||
+            def->port > 65535) {
+            virReportError(VIR_ERR_XML_DETAIL,
+                           _("Missing or invalid port attribute "
+                             "in network %s"), networkName);
+            goto error;
+        }
 
-        if (virXPathInt("string(./@priority)", ctxt, &priority))
-            def->srvrecords[def->nsrvrecords].priority = priority;
+        if (virXPathUInt("string(./@priority)", ctxt, &def->priority) < 0 ||
+            def->priority > 65535) {
+            virReportError(VIR_ERR_XML_DETAIL,
+                           _("Missing or invalid priority attribute "
+                             "in network %s"), networkName);
+            goto error;
+        }
 
-        if (virXPathInt("string(./@weight)", ctxt, &weight))
-            def->srvrecords[def->nsrvrecords].weight = weight;
+        if (virXPathUInt("string(./@weight)", ctxt, &def->weight) < 0 ||
+            def->weight > 65535) {
+            virReportError(VIR_ERR_XML_DETAIL,
+                           _("Missing or invalid weight attribute "
+                             "in network %s"), networkName);
+            goto error;
+        }
+
         ctxt->node = save_ctxt;
-
-        def->srvrecords[def->nsrvrecords].domain = domain;
-        def->srvrecords[def->nsrvrecords].target = target;
-        def->srvrecords[def->nsrvrecords].port = port;
-        def->srvrecords[def->nsrvrecords].priority = priority;
-        def->srvrecords[def->nsrvrecords].weight = weight;
     }
 
-    def->nsrvrecords++;
-
-    goto cleanup;
+    if (!(def->service || def->protocol)) {
+        virReportError(VIR_ERR_XML_DETAIL,
+                       _("Missing required service attribute or protocol "
+                         "in DNS SRV record of network %s"), networkName);
+        goto error;
+    }
+    return 0;
 
 error:
-    VIR_FREE(domain);
-    VIR_FREE(service);
-    VIR_FREE(protocol);
-    VIR_FREE(target);
-
-    ret = -1;
-
-cleanup:
-    return ret;
+    virNetworkDNSSrvDefClear(def);
+    return -1;
 }
 
 static int
-virNetworkDNSDefParseXML(virNetworkDNSDefPtr *dnsdef,
-                         xmlNodePtr node,
-                         xmlXPathContextPtr ctxt)
+virNetworkDNSTxtDefParseXML(const char *networkName,
+                            xmlNodePtr node,
+                            virNetworkDNSTxtDefPtr def,
+                            bool partialOkay)
 {
-    xmlNodePtr cur;
-    int ret = -1;
-    char *name = NULL;
-    char *value = NULL;
-    virNetworkDNSDefPtr def = NULL;
-
-    if (VIR_ALLOC(def) < 0) {
-        virReportOOMError();
+    if (!(def->name = virXMLPropString(node, "name"))) {
+        virReportError(VIR_ERR_XML_DETAIL,
+                       _("missing required name attribute in DNS TXT record "
+                         "of network %s"), networkName);
+        goto error;
+    }
+    if (strchr(def->name, ' ') != NULL) {
+        virReportError(VIR_ERR_XML_DETAIL,
+                       _("prohibited space character in DNS TXT record "
+                         "name '%s' of network %s"), def->name, networkName);
+        goto error;
+    }
+    if (!(def->value = virXMLPropString(node, "value")) && !partialOkay) {
+        virReportError(VIR_ERR_XML_DETAIL,
+                       _("missing required value attribute in DNS TXT record "
+                         "named '%s' of network %s"), def->name, networkName);
         goto error;
     }
 
-    cur = node->children;
-    while (cur != NULL) {
-        if (cur->type == XML_ELEMENT_NODE &&
-            xmlStrEqual(cur->name, BAD_CAST "txt")) {
-            if (!(name = virXMLPropString(cur, "name"))) {
-                virNetworkReportError(VIR_ERR_XML_DETAIL,
-                                      "%s", _("Missing required name attribute in dns txt record"));
-                goto error;
-            }
-            if (!(value = virXMLPropString(cur, "value"))) {
-                virNetworkReportError(VIR_ERR_XML_DETAIL,
-                                      _("Missing required value attribute in dns txt record '%s'"), name);
-                goto error;
-            }
+    if (!(def->name || def->value)) {
+        virReportError(VIR_ERR_XML_DETAIL,
+                       _("Missing required name or value "
+                         "in DNS TXT record of network %s"), networkName);
+        goto error;
+    }
+    return 0;
 
-            if (strchr(name, ' ') != NULL) {
-                virNetworkReportError(VIR_ERR_XML_DETAIL,
-                                      _("spaces are not allowed in DNS TXT record names (name is '%s')"), name);
-                goto error;
-            }
+error:
+    virNetworkDNSTxtDefClear(def);
+    return -1;
+}
 
-            if (VIR_REALLOC_N(def->txtrecords, def->ntxtrecords + 1) < 0) {
-                virReportOOMError();
-                goto error;
-            }
+static int
+virNetworkDNSDefParseXML(const char *networkName,
+                         xmlNodePtr node,
+                         xmlXPathContextPtr ctxt,
+                         virNetworkDNSDefPtr def)
+{
+    xmlNodePtr *hostNodes = NULL;
+    xmlNodePtr *srvNodes = NULL;
+    xmlNodePtr *txtNodes = NULL;
+    int nhosts, nsrvs, ntxts;
+    int ii, ret = -1;
+    xmlNodePtr save = ctxt->node;
 
-            def->txtrecords[def->ntxtrecords].name = name;
-            def->txtrecords[def->ntxtrecords].value = value;
-            def->ntxtrecords++;
-            name = NULL;
-            value = NULL;
-        } else if (cur->type == XML_ELEMENT_NODE &&
-            xmlStrEqual(cur->name, BAD_CAST "srv")) {
-            ret = virNetworkDNSSrvDefParseXML(def, cur, ctxt);
-            if (ret < 0)
-                goto error;
-        } else if (cur->type == XML_ELEMENT_NODE &&
-            xmlStrEqual(cur->name, BAD_CAST "host")) {
-            ret = virNetworkDNSHostsDefParseXML(def, cur);
-            if (ret < 0)
-                goto error;
+    ctxt->node = node;
+
+    nhosts = virXPathNodeSet("./host", ctxt, &hostNodes);
+    if (nhosts < 0) {
+        virReportError(VIR_ERR_XML_ERROR,
+                       _("invalid <host> element found in <dns> of network %s"),
+                       networkName);
+        goto cleanup;
+    }
+    if (nhosts > 0) {
+        if (VIR_ALLOC_N(def->hosts, nhosts) < 0) {
+            virReportOOMError();
+            goto cleanup;
         }
 
-        cur = cur->next;
+        for (ii = 0; ii < nhosts; ii++) {
+            if (virNetworkDNSHostDefParseXML(networkName, hostNodes[ii],
+                                             &def->hosts[def->nhosts], false) < 0) {
+                goto cleanup;
+            }
+            def->nhosts++;
+        }
+    }
+
+    nsrvs = virXPathNodeSet("./srv", ctxt, &srvNodes);
+    if (nsrvs < 0) {
+        virReportError(VIR_ERR_XML_ERROR,
+                       _("invalid <srv> element found in <dns> of network %s"),
+                       networkName);
+        goto cleanup;
+    }
+    if (nsrvs > 0) {
+        if (VIR_ALLOC_N(def->srvs, nsrvs) < 0) {
+            virReportOOMError();
+            goto cleanup;
+        }
+
+        for (ii = 0; ii < nsrvs; ii++) {
+            if (virNetworkDNSSrvDefParseXML(networkName, srvNodes[ii], ctxt,
+                                            &def->srvs[def->nsrvs], false) < 0) {
+                goto cleanup;
+            }
+            def->nsrvs++;
+        }
+    }
+
+    ntxts = virXPathNodeSet("./txt", ctxt, &txtNodes);
+    if (ntxts < 0) {
+        virReportError(VIR_ERR_XML_ERROR,
+                       _("invalid <txt> element found in <dns> of network %s"),
+                       networkName);
+        goto cleanup;
+    }
+    if (ntxts > 0) {
+        if (VIR_ALLOC_N(def->txts, ntxts) < 0) {
+            virReportOOMError();
+            goto cleanup;
+        }
+
+        for (ii = 0; ii < ntxts; ii++) {
+            if (virNetworkDNSTxtDefParseXML(networkName, txtNodes[ii],
+                                            &def->txts[def->ntxts], false) < 0) {
+                goto cleanup;
+            }
+            def->ntxts++;
+        }
     }
 
     ret = 0;
-error:
-    if (ret < 0) {
-        VIR_FREE(name);
-        VIR_FREE(value);
-        virNetworkDNSDefFree(def);
-    } else {
-        *dnsdef = def;
-    }
+cleanup:
+    VIR_FREE(hostNodes);
+    VIR_FREE(srvNodes);
+    VIR_FREE(txtNodes);
+    ctxt->node = save;
     return ret;
 }
 
 static int
-virNetworkIPParseXML(const char *networkName,
-                     virNetworkIpDefPtr def,
-                     xmlNodePtr node,
-                     xmlXPathContextPtr ctxt)
+virNetworkIPDefParseXML(const char *networkName,
+                        xmlNodePtr node,
+                        xmlXPathContextPtr ctxt,
+                        virNetworkIpDefPtr def)
 {
     /*
      * virNetworkIpDef object is already allocated as part of an array.
@@ -750,7 +1131,8 @@ virNetworkIPParseXML(const char *networkName,
 
     xmlNodePtr cur, save;
     char *address = NULL, *netmask = NULL;
-    unsigned long prefix;
+    unsigned long prefix = 0;
+    int prefixRc;
     int result = -1;
 
     save = ctxt->node;
@@ -758,119 +1140,125 @@ virNetworkIPParseXML(const char *networkName,
 
     /* grab raw data from XML */
     def->family = virXPathString("string(./@family)", ctxt);
+
     address = virXPathString("string(./@address)", ctxt);
-    if (virXPathULong("string(./@prefix)", ctxt, &prefix) < 0)
+    if (!address) {
+        virReportError(VIR_ERR_XML_ERROR,
+                       _("Missing required address attribute in network '%s'"),
+                       networkName);
+        goto cleanup;
+    }
+    if (virSocketAddrParse(&def->address, address, AF_UNSPEC) < 0) {
+        virReportError(VIR_ERR_XML_ERROR,
+                       _("Invalid address '%s' in network '%s'"),
+                       address, networkName);
+        goto cleanup;
+    }
+
+    netmask = virXPathString("string(./@netmask)", ctxt);
+    if (netmask &&
+        (virSocketAddrParse(&def->netmask, netmask, AF_UNSPEC) < 0)) {
+        virReportError(VIR_ERR_XML_ERROR,
+                       _("Invalid netmask '%s' in network '%s'"),
+                       netmask, networkName);
+        goto cleanup;
+    }
+
+    prefixRc = virXPathULong("string(./@prefix)", ctxt, &prefix);
+    if (prefixRc == -2) {
+        virReportError(VIR_ERR_XML_ERROR,
+                       _("Invalid ULong value specified for prefix in definition of network '%s'"),
+                       networkName);
+        goto cleanup;
+    }
+    if (prefixRc < 0)
         def->prefix = 0;
     else
         def->prefix = prefix;
 
-    netmask = virXPathString("string(./@netmask)", ctxt);
-
-    if (address) {
-        if (virSocketAddrParse(&def->address, address, AF_UNSPEC) < 0) {
-            virNetworkReportError(VIR_ERR_XML_ERROR,
-                                  _("Bad address '%s' in definition of network '%s'"),
-                                  address, networkName);
-            goto error;
-        }
-
-    }
-
-    /* validate family vs. address */
-    if (def->family == NULL) {
+    /* validate address, etc. for each family */
+    if ((def->family == NULL) || (STREQ(def->family, "ipv4"))) {
         if (!(VIR_SOCKET_ADDR_IS_FAMILY(&def->address, AF_INET) ||
               VIR_SOCKET_ADDR_IS_FAMILY(&def->address, AF_UNSPEC))) {
-            virNetworkReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                                  _("no family specified for non-IPv4 address '%s' in network '%s'"),
-                                  address, networkName);
-            goto error;
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("%s family specified for non-IPv4 address '%s' in network '%s'"),
+                           def->family == NULL? "no" : "ipv4", address, networkName);
+            goto cleanup;
         }
-    } else if (STREQ(def->family, "ipv4")) {
-        if (!VIR_SOCKET_ADDR_IS_FAMILY(&def->address, AF_INET)) {
-            virNetworkReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                                  _("family 'ipv4' specified for non-IPv4 address '%s' in network '%s'"),
-                                  address, networkName);
-            goto error;
+        if (netmask) {
+            if (!VIR_SOCKET_ADDR_IS_FAMILY(&def->netmask, AF_INET)) {
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                               _("Invalid netmask '%s' for address '%s' "
+                                 "in network '%s' (both must be IPv4)"),
+                               netmask, address, networkName);
+                goto cleanup;
+            }
+            if (def->prefix > 0) {
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                               _("Network '%s' IP address cannot have "
+                                 "both a prefix and a netmask"), networkName);
+                goto cleanup;
+            }
+        } else if (def->prefix > 32) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("Invalid IPv4 prefix '%lu' in network '%s'"),
+                           prefix, networkName);
+            goto cleanup;
         }
     } else if (STREQ(def->family, "ipv6")) {
         if (!VIR_SOCKET_ADDR_IS_FAMILY(&def->address, AF_INET6)) {
-            virNetworkReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                                  _("family 'ipv6' specified for non-IPv6 address '%s' in network '%s'"),
-                                  address, networkName);
-            goto error;
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("Family 'ipv6' specified for non-IPv6 address '%s' in network '%s'"),
+                           address, networkName);
+            goto cleanup;
+        }
+        if (netmask) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("netmask not allowed for IPv6 address '%s' in network '%s'"),
+                           address, networkName);
+            goto cleanup;
+        }
+        if (def->prefix > 128) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("Invalid IPv6 prefix '%lu' in network '%s'"),
+                           prefix, networkName);
+            goto cleanup;
         }
     } else {
-        virNetworkReportError(VIR_ERR_XML_ERROR,
-                              _("Unrecognized family '%s' in definition of network '%s'"),
-                              def->family, networkName);
-        goto error;
+        virReportError(VIR_ERR_XML_ERROR,
+                       _("Unrecognized family '%s' in network '%s'"),
+                       def->family, networkName);
+        goto cleanup;
     }
 
-    /* parse/validate netmask */
-    if (netmask) {
-        if (address == NULL) {
-            /* netmask is meaningless without an address */
-            virNetworkReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                                  _("netmask specified without address in network '%s'"),
-                                  networkName);
-            goto error;
-        }
+    cur = node->children;
+    while (cur != NULL) {
+        if (cur->type == XML_ELEMENT_NODE &&
+            xmlStrEqual(cur->name, BAD_CAST "dhcp")) {
+            if (virNetworkDHCPDefParseXML(networkName, cur, def) < 0)
+                goto cleanup;
+        } else if (cur->type == XML_ELEMENT_NODE &&
+                   xmlStrEqual(cur->name, BAD_CAST "tftp")) {
+            char *root;
 
-        if (!VIR_SOCKET_ADDR_IS_FAMILY(&def->address, AF_INET)) {
-            virNetworkReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                                  _("netmask not supported for address '%s' in network '%s' (IPv4 only)"),
-                                  address, networkName);
-            goto error;
-        }
-
-        if (def->prefix > 0) {
-            /* can't have both netmask and prefix at the same time */
-            virNetworkReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                                  _("network '%s' cannot have both prefix='%u' and a netmask"),
-                                  networkName, def->prefix);
-            goto error;
-        }
-
-        if (virSocketAddrParse(&def->netmask, netmask, AF_UNSPEC) < 0)
-            goto error;
-
-        if (!VIR_SOCKET_ADDR_IS_FAMILY(&def->netmask, AF_INET)) {
-            virNetworkReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                                  _("network '%s' has invalid netmask '%s' for address '%s' (both must be IPv4)"),
-                                  networkName, netmask, address);
-            goto error;
-        }
-    }
-
-    if (VIR_SOCKET_ADDR_IS_FAMILY(&def->address, AF_INET)) {
-        /* parse IPv4-related info */
-        cur = node->children;
-        while (cur != NULL) {
-            if (cur->type == XML_ELEMENT_NODE &&
-                xmlStrEqual(cur->name, BAD_CAST "dhcp")) {
-                result = virNetworkDHCPRangeDefParseXML(networkName, def, cur);
-                if (result)
-                    goto error;
-
-            } else if (cur->type == XML_ELEMENT_NODE &&
-                       xmlStrEqual(cur->name, BAD_CAST "tftp")) {
-                char *root;
-
-                if (!(root = virXMLPropString(cur, "root"))) {
-                    cur = cur->next;
-                    continue;
-                }
-
-                def->tftproot = (char *)root;
+            if (!VIR_SOCKET_ADDR_IS_FAMILY(&def->address, AF_INET)) {
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                               _("Unsupported <tftp> element in an IPv6 element in network '%s'"),
+                               networkName);
+                goto cleanup;
             }
-
-            cur = cur->next;
+            if (!(root = virXMLPropString(cur, "root"))) {
+                cur = cur->next;
+                continue;
+            }
+            def->tftproot = (char *)root;
         }
+        cur = cur->next;
     }
 
     result = 0;
 
-error:
+cleanup:
     if (result < 0) {
         virNetworkIpDefClear(def);
     }
@@ -893,6 +1281,7 @@ virNetworkPortGroupParseXML(virPortGroupDefPtr def,
 
     xmlNodePtr save;
     xmlNodePtr virtPortNode;
+    xmlNodePtr vlanNode;
     xmlNodePtr bandwidth_node;
     char *isDefault = NULL;
 
@@ -903,22 +1292,33 @@ virNetworkPortGroupParseXML(virPortGroupDefPtr def,
 
     /* grab raw data from XML */
     def->name = virXPathString("string(./@name)", ctxt);
+    if (!def->name) {
+        virReportError(VIR_ERR_XML_ERROR, "%s",
+                       _("Missing required name attribute in portgroup"));
+        goto cleanup;
+    }
+
     isDefault = virXPathString("string(./@default)", ctxt);
     def->isDefault = isDefault && STRCASEEQ(isDefault, "yes");
 
     virtPortNode = virXPathNode("./virtualport", ctxt);
     if (virtPortNode &&
-        (!(def->virtPortProfile = virNetDevVPortProfileParse(virtPortNode))))
-        goto error;
+        (!(def->virtPortProfile = virNetDevVPortProfileParse(virtPortNode, 0)))) {
+        goto cleanup;
+    }
 
     bandwidth_node = virXPathNode("./bandwidth", ctxt);
     if (bandwidth_node &&
-        !(def->bandwidth = virNetDevBandwidthParse(bandwidth_node))) {
-        goto error;
+        !(def->bandwidth = virNetDevBandwidthParse(bandwidth_node, -1))) {
+        goto cleanup;
     }
 
+    vlanNode = virXPathNode("./vlan", ctxt);
+    if (vlanNode && virNetDevVlanParse(vlanNode, ctxt, &def->vlan) < 0)
+        goto cleanup;
+
     result = 0;
-error:
+cleanup:
     if (result < 0) {
         virPortGroupDefClear(def);
     }
@@ -926,6 +1326,355 @@ error:
 
     ctxt->node = save;
     return result;
+}
+
+static int
+virNetworkForwardNatDefParseXML(const char *networkName,
+                                xmlNodePtr node,
+                                xmlXPathContextPtr ctxt,
+                                virNetworkForwardDefPtr def)
+{
+    int ret = -1;
+    xmlNodePtr *natAddrNodes = NULL;
+    xmlNodePtr *natPortNodes = NULL;
+    int nNatAddrs, nNatPorts;
+    char *addrStart = NULL;
+    char *addrEnd = NULL;
+    xmlNodePtr save = ctxt->node;
+
+    ctxt->node = node;
+
+    if (def->type != VIR_NETWORK_FORWARD_NAT) {
+        virReportError(VIR_ERR_XML_ERROR,
+                       _("The <nat> element can only be used when <forward> 'mode' is 'nat' in network %s"),
+                       networkName);
+        goto cleanup;
+    }
+
+    /* addresses for SNAT */
+    nNatAddrs = virXPathNodeSet("./address", ctxt, &natAddrNodes);
+    if (nNatAddrs < 0) {
+        virReportError(VIR_ERR_XML_ERROR,
+                       _("invalid <address> element found in <forward> of "
+                         "network %s"), networkName);
+        goto cleanup;
+    } else if (nNatAddrs > 1) {
+        virReportError(VIR_ERR_XML_ERROR,
+                       _("Only one <address> element is allowed in <nat> in "
+                         "<forward> in network %s"), networkName);
+        goto cleanup;
+    } else if (nNatAddrs == 1) {
+        addrStart = virXMLPropString(*natAddrNodes, "start");
+        if (addrStart == NULL) {
+            virReportError(VIR_ERR_XML_ERROR,
+                           _("missing 'start' attribute in <address> element in <nat> in "
+                             "<forward> in network %s"), networkName);
+            goto cleanup;
+        }
+        addrEnd = virXMLPropString(*natAddrNodes, "end");
+        if (addrEnd == NULL) {
+            virReportError(VIR_ERR_XML_ERROR,
+                           _("missing 'end' attribute in <address> element in <nat> in "
+                             "<forward> in network %s"), networkName);
+            goto cleanup;
+        }
+    }
+
+    if (addrStart && virSocketAddrParse(&def->addr.start, addrStart, AF_INET) < 0) {
+        virReportError(VIR_ERR_XML_ERROR,
+                       _("Bad ipv4 start address '%s' in <nat> in <forward> in "
+                         "network '%s'"), addrStart, networkName);
+        goto cleanup;
+    }
+
+    if (addrEnd && virSocketAddrParse(&def->addr.end, addrEnd, AF_INET) < 0) {
+        virReportError(VIR_ERR_XML_ERROR,
+                       _("Bad ipv4 end address '%s' in <nat> in <forward> in "
+                         "network '%s'"), addrEnd, networkName);
+        goto cleanup;
+    }
+
+    /* ports for SNAT and MASQUERADE */
+    nNatPorts = virXPathNodeSet("./port", ctxt, &natPortNodes);
+    if (nNatPorts < 0) {
+        virReportError(VIR_ERR_XML_ERROR,
+                       _("invalid <port> element found in <forward> of "
+                         "network %s"), networkName);
+        goto cleanup;
+    } else if (nNatPorts > 1) {
+        virReportError(VIR_ERR_XML_ERROR,
+                       _("Only one <port> element is allowed in <nat> in "
+                         "<forward> in network %s"), networkName);
+        goto cleanup;
+    } else if (nNatPorts == 1) {
+        if (virXPathUInt("string(./port[1]/@start)", ctxt, &def->port.start) < 0
+            || def->port.start > 65535) {
+
+            virReportError(VIR_ERR_XML_DETAIL,
+                           _("Missing or invalid 'start' attribute in <port> "
+                             "in <nat> in <forward> in network %s"),
+                             networkName);
+            goto cleanup;
+        }
+        if (virXPathUInt("string(./port[1]/@end)", ctxt, &def->port.end) < 0
+            || def->port.end > 65535 || def->port.end < def->port.start) {
+            virReportError(VIR_ERR_XML_DETAIL,
+                           _("Missing or invalid 'end' attribute in <port> in "
+                             "<nat> in <forward> in network %s"), networkName);
+            goto cleanup;
+        }
+    }
+    ret = 0;
+
+cleanup:
+    VIR_FREE(addrStart);
+    VIR_FREE(addrEnd);
+    VIR_FREE(natAddrNodes);
+    VIR_FREE(natPortNodes);
+    ctxt->node = save;
+    return ret;
+}
+
+static int
+virNetworkForwardDefParseXML(const char *networkName,
+                             xmlNodePtr node,
+                             xmlXPathContextPtr ctxt,
+                             virNetworkForwardDefPtr def)
+{
+    int ii, ret = -1;
+    xmlNodePtr *forwardIfNodes = NULL;
+    xmlNodePtr *forwardPfNodes = NULL;
+    xmlNodePtr *forwardAddrNodes = NULL;
+    xmlNodePtr *forwardNatNodes = NULL;
+    int nForwardIfs, nForwardAddrs, nForwardPfs, nForwardNats;
+    char *forwardDev = NULL;
+    char *forwardManaged = NULL;
+    char *forwardDriverName = NULL;
+    char *type = NULL;
+    xmlNodePtr save = ctxt->node;
+
+    ctxt->node = node;
+
+    if (!(type = virXPathString("string(./@mode)", ctxt))) {
+        def->type = VIR_NETWORK_FORWARD_NAT;
+    } else {
+        if ((def->type = virNetworkForwardTypeFromString(type)) < 0) {
+            virReportError(VIR_ERR_XML_ERROR,
+                           _("unknown forwarding type '%s'"), type);
+            goto cleanup;
+        }
+        VIR_FREE(type);
+    }
+
+    forwardManaged = virXPathString("string(./@managed)", ctxt);
+    if (forwardManaged != NULL &&
+        STRCASEEQ(forwardManaged, "yes")) {
+        def->managed = true;
+    }
+
+    forwardDriverName = virXPathString("string(./driver/@name)", ctxt);
+    if (forwardDriverName) {
+        int driverName
+            = virNetworkForwardDriverNameTypeFromString(forwardDriverName);
+
+        if (driverName <= 0) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Unknown forward <driver name='%s'/> "
+                             "in network %s"),
+                           forwardDriverName, networkName);
+            goto cleanup;
+        }
+        def->driverName = driverName;
+    }
+
+    /* bridge and hostdev modes can use a pool of physical interfaces */
+    nForwardIfs = virXPathNodeSet("./interface", ctxt, &forwardIfNodes);
+    if (nForwardIfs < 0) {
+        virReportError(VIR_ERR_XML_ERROR,
+                       _("invalid <interface> element found in <forward> of network %s"),
+                       networkName);
+        goto cleanup;
+    }
+
+    nForwardAddrs = virXPathNodeSet("./address", ctxt, &forwardAddrNodes);
+    if (nForwardAddrs < 0) {
+        virReportError(VIR_ERR_XML_ERROR,
+                       _("invalid <address> element found in <forward> of network %s"),
+                       networkName);
+        goto cleanup;
+    }
+
+    nForwardPfs = virXPathNodeSet("./pf", ctxt, &forwardPfNodes);
+    if (nForwardPfs < 0) {
+        virReportError(VIR_ERR_XML_ERROR,
+                       _("invalid <pf> element found in <forward> of network %s"),
+                       networkName);
+        goto cleanup;
+    }
+
+    nForwardNats = virXPathNodeSet("./nat", ctxt, &forwardNatNodes);
+    if (nForwardNats < 0) {
+        virReportError(VIR_ERR_XML_ERROR,
+                       _("invalid <nat> element found in <forward> of network %s"),
+                       networkName);
+        goto cleanup;
+    } else if (nForwardNats > 1) {
+        virReportError(VIR_ERR_XML_ERROR,
+                       _("Only one <nat> element is allowed in <forward> of network %s"),
+                       networkName);
+        goto cleanup;
+    } else if (nForwardNats == 1) {
+        if (virNetworkForwardNatDefParseXML(networkName,
+                                            *forwardNatNodes,
+                                            ctxt, def) < 0)
+            goto cleanup;
+    }
+
+    if (((nForwardIfs > 0) + (nForwardAddrs > 0) + (nForwardPfs > 0)) > 1) {
+        virReportError(VIR_ERR_XML_ERROR,
+                       _("<address>, <interface>, and <pf> elements in <forward> "
+                         "of network %s are mutually exclusive"),
+                       networkName);
+        goto cleanup;
+    }
+
+    forwardDev = virXPathString("string(./@dev)", ctxt);
+    if (forwardDev && (nForwardAddrs > 0 || nForwardPfs > 0)) {
+        virReportError(VIR_ERR_XML_ERROR, "%s",
+                       _("the <forward> 'dev' attribute cannot be used when "
+                         "<address> or <pf> sub-elements are present "
+                         "in network %s"));
+        goto cleanup;
+    }
+
+    if (nForwardIfs > 0 || forwardDev) {
+
+        if (VIR_ALLOC_N(def->ifs, MAX(nForwardIfs, 1)) < 0) {
+            virReportOOMError();
+            goto cleanup;
+        }
+
+        if (forwardDev) {
+            def->ifs[0].device.dev = forwardDev;
+            def->ifs[0].type = VIR_NETWORK_FORWARD_HOSTDEV_DEVICE_NETDEV;
+            forwardDev = NULL;
+            def->nifs++;
+        }
+
+        /* parse each <interface> */
+        for (ii = 0; ii < nForwardIfs; ii++) {
+            forwardDev = virXMLPropString(forwardIfNodes[ii], "dev");
+            if (!forwardDev) {
+                virReportError(VIR_ERR_XML_ERROR,
+                               _("Missing required dev attribute in "
+                                 "<forward> <interface> element of network %s"),
+                               networkName);
+                goto cleanup;
+            }
+
+            if ((ii == 0) && (def->nifs == 1)) {
+                /* both <forward dev='x'> and <interface dev='x'/> are
+                 * present.  If they don't match, it's an error.
+                 */
+                if (STRNEQ(forwardDev, def->ifs[0].device.dev)) {
+                    virReportError(VIR_ERR_XML_ERROR,
+                                   _("<forward dev='%s'> must match first "
+                                     "<interface dev='%s'/> in network %s"),
+                                   def->ifs[0].device.dev,
+                                   forwardDev, networkName);
+                    goto cleanup;
+                }
+                VIR_FREE(forwardDev);
+                continue;
+            }
+
+            def->ifs[ii].device.dev = forwardDev;
+            forwardDev = NULL;
+            def->ifs[ii].type = VIR_NETWORK_FORWARD_HOSTDEV_DEVICE_NETDEV;
+            def->nifs++;
+        }
+
+    } else if (nForwardAddrs > 0) {
+
+        if (VIR_ALLOC_N(def->ifs, nForwardAddrs) < 0) {
+            virReportOOMError();
+            goto cleanup;
+        }
+
+        for (ii = 0; ii < nForwardAddrs; ii++) {
+            if (!(type = virXMLPropString(forwardAddrNodes[ii], "type"))) {
+                virReportError(VIR_ERR_XML_ERROR,
+                               _("missing address type in network %s"),
+                               networkName);
+                goto cleanup;
+            }
+
+            if ((def->ifs[ii].type = virNetworkForwardHostdevDeviceTypeFromString(type)) < 0) {
+                virReportError(VIR_ERR_XML_ERROR,
+                               _("unknown address type '%s' in network %s"),
+                               type, networkName);
+                goto cleanup;
+            }
+
+            switch (def->ifs[ii].type) {
+            case VIR_NETWORK_FORWARD_HOSTDEV_DEVICE_PCI:
+                if (virDevicePCIAddressParseXML(forwardAddrNodes[ii],
+                                                &def->ifs[ii].device.pci) < 0) {
+                    goto cleanup;
+                }
+                break;
+
+            /* Add USB case here if we ever find a reason to support it */
+
+            default:
+                virReportError(VIR_ERR_XML_ERROR,
+                               _("unsupported address type '%s' in network %s"),
+                               type, networkName);
+                goto cleanup;
+            }
+            VIR_FREE(type);
+            def->nifs++;
+        }
+
+    } else if (nForwardPfs > 1) {
+        virReportError(VIR_ERR_XML_ERROR,
+                       _("Only one <pf> element is allowed in <forward> of network %s"),
+                       networkName);
+        goto cleanup;
+    } else if (nForwardPfs == 1) {
+
+        if (VIR_ALLOC_N(def->pfs, nForwardPfs) < 0) {
+            virReportOOMError();
+            goto cleanup;
+        }
+
+        forwardDev = virXMLPropString(*forwardPfNodes, "dev");
+        if (!forwardDev) {
+            virReportError(VIR_ERR_XML_ERROR,
+                           _("Missing required dev attribute "
+                             "in <pf> element of network '%s'"),
+                           networkName);
+            goto cleanup;
+        }
+
+        def->pfs->dev = forwardDev;
+        forwardDev = NULL;
+        def->npfs++;
+
+    }
+
+    ret = 0;
+cleanup:
+    VIR_FREE(type);
+    VIR_FREE(forwardDev);
+    VIR_FREE(forwardManaged);
+    VIR_FREE(forwardDriverName);
+    VIR_FREE(forwardPfNodes);
+    VIR_FREE(forwardIfNodes);
+    VIR_FREE(forwardAddrNodes);
+    VIR_FREE(forwardNatNodes);
+    ctxt->node = save;
+    return ret;
 }
 
 static virNetworkDefPtr
@@ -936,15 +1685,14 @@ virNetworkDefParseXML(xmlXPathContextPtr ctxt)
     char *stp = NULL;
     xmlNodePtr *ipNodes = NULL;
     xmlNodePtr *portGroupNodes = NULL;
-    xmlNodePtr *forwardIfNodes = NULL;
-    xmlNodePtr *forwardPfNodes = NULL;
+    int nIps, nPortGroups;
     xmlNodePtr dnsNode = NULL;
     xmlNodePtr virtPortNode = NULL;
     xmlNodePtr forwardNode = NULL;
-    int nIps, nPortGroups, nForwardIfs, nForwardPfs;
-    char *forwardDev = NULL;
+    char *ipv6nogwStr = NULL;
     xmlNodePtr save = ctxt->node;
     xmlNodePtr bandwidthNode = NULL;
+    xmlNodePtr vlanNode;
 
     if (VIR_ALLOC(def) < 0) {
         virReportOOMError();
@@ -954,7 +1702,7 @@ virNetworkDefParseXML(xmlXPathContextPtr ctxt)
     /* Extract network name */
     def->name = virXPathString("string(./name[1])", ctxt);
     if (!def->name) {
-        virNetworkReportError(VIR_ERR_NO_NAME, NULL);
+        virReportError(VIR_ERR_NO_NAME, NULL);
         goto error;
     }
 
@@ -962,47 +1710,69 @@ virNetworkDefParseXML(xmlXPathContextPtr ctxt)
     tmp = virXPathString("string(./uuid[1])", ctxt);
     if (!tmp) {
         if (virUUIDGenerate(def->uuid)) {
-            virNetworkReportError(VIR_ERR_INTERNAL_ERROR,
-                                  "%s", _("Failed to generate UUID"));
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           "%s", _("Failed to generate UUID"));
             goto error;
         }
     } else {
         if (virUUIDParse(tmp, def->uuid) < 0) {
             VIR_FREE(tmp);
-            virNetworkReportError(VIR_ERR_INTERNAL_ERROR,
-                                  "%s", _("malformed uuid element"));
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           "%s", _("malformed uuid element"));
             goto error;
         }
         VIR_FREE(tmp);
+        def->uuid_specified = true;
+    }
+
+    /* check if definitions with no IPv6 gateway addresses is to
+     * allow guest-to-guest communications.
+     */
+    ipv6nogwStr = virXPathString("string(./@ipv6)", ctxt);
+    if (ipv6nogwStr) {
+        if (STREQ(ipv6nogwStr, "yes")) {
+            def->ipv6nogw = true;
+        } else if (STRNEQ(ipv6nogwStr, "no")) {
+            virReportError(VIR_ERR_XML_ERROR,
+                           _("Invalid ipv6 setting '%s' in network '%s'"),
+                           ipv6nogwStr, def->name);
+            goto error;
+        }
+        VIR_FREE(ipv6nogwStr);
     }
 
     /* Parse network domain information */
     def->domain = virXPathString("string(./domain[1]/@name)", ctxt);
 
     if ((bandwidthNode = virXPathNode("./bandwidth", ctxt)) != NULL &&
-        (def->bandwidth = virNetDevBandwidthParse(bandwidthNode)) == NULL)
+        (def->bandwidth = virNetDevBandwidthParse(bandwidthNode, -1)) == NULL)
+        goto error;
+
+    vlanNode = virXPathNode("./vlan", ctxt);
+    if (vlanNode && virNetDevVlanParse(vlanNode, ctxt, &def->vlan) < 0)
         goto error;
 
     /* Parse bridge information */
     def->bridge = virXPathString("string(./bridge[1]/@name)", ctxt);
     stp = virXPathString("string(./bridge[1]/@stp)", ctxt);
+    def->stp = (stp && STREQ(stp, "off")) ? false : true;
 
     if (virXPathULong("string(./bridge[1]/@delay)", ctxt, &def->delay) < 0)
         def->delay = 0;
 
     tmp = virXPathString("string(./mac[1]/@address)", ctxt);
     if (tmp) {
-        if (virMacAddrParse(tmp, def->mac) < 0) {
-            virNetworkReportError(VIR_ERR_XML_ERROR,
-                                  _("Invalid bridge mac address '%s' in network '%s'"),
-                                  tmp, def->name);
+        if (virMacAddrParse(tmp, &def->mac) < 0) {
+            virReportError(VIR_ERR_XML_ERROR,
+                           _("Invalid bridge mac address '%s' in network '%s'"),
+                           tmp, def->name);
             VIR_FREE(tmp);
             goto error;
         }
-        if (virMacAddrIsMulticast(def->mac)) {
-            virNetworkReportError(VIR_ERR_XML_ERROR,
-                                 _("Invalid multicast bridge mac address '%s' in network '%s'"),
-                                 tmp, def->name);
+        if (virMacAddrIsMulticast(&def->mac)) {
+            virReportError(VIR_ERR_XML_ERROR,
+                           _("Invalid multicast bridge mac address '%s' in network '%s'"),
+                           tmp, def->name);
             VIR_FREE(tmp);
             goto error;
         }
@@ -1011,15 +1781,17 @@ virNetworkDefParseXML(xmlXPathContextPtr ctxt)
     }
 
     dnsNode = virXPathNode("./dns", ctxt);
-    if (dnsNode != NULL) {
-        if (virNetworkDNSDefParseXML(&def->dns, dnsNode, ctxt) < 0)
-            goto error;
+    if (dnsNode != NULL &&
+        virNetworkDNSDefParseXML(def->name, dnsNode, ctxt, &def->dns) < 0) {
+        goto error;
     }
 
     virtPortNode = virXPathNode("./virtualport", ctxt);
     if (virtPortNode &&
-        (!(def->virtPortProfile = virNetDevVPortProfileParse(virtPortNode))))
+        (!(def->virtPortProfile = virNetDevVPortProfileParse(virtPortNode,
+                                                             VIR_VPORT_XML_REQUIRE_TYPE)))) {
         goto error;
+    }
 
     nPortGroups = virXPathNodeSet("./portgroup", ctxt, &portGroupNodes);
     if (nPortGroups < 0)
@@ -1058,8 +1830,8 @@ virNetworkDefParseXML(xmlXPathContextPtr ctxt)
         }
         /* parse each addr */
         for (ii = 0; ii < nIps; ii++) {
-            int ret = virNetworkIPParseXML(def->name, &def->ips[ii],
-                                           ipNodes[ii], ctxt);
+            int ret = virNetworkIPDefParseXML(def->name, ipNodes[ii],
+                                              ctxt, &def->ips[ii]);
             if (ret < 0)
                 goto error;
             def->nips++;
@@ -1068,170 +1840,82 @@ virNetworkDefParseXML(xmlXPathContextPtr ctxt)
     VIR_FREE(ipNodes);
 
     forwardNode = virXPathNode("./forward", ctxt);
-    if (!forwardNode) {
-        def->forwardType = VIR_NETWORK_FORWARD_NONE;
-        def->stp = (stp && STREQ(stp, "off")) ? 0 : 1;
-    } else {
-        ctxt->node = forwardNode;
-        tmp = virXPathString("string(./@mode)", ctxt);
-        if (tmp) {
-            if ((def->forwardType = virNetworkForwardTypeFromString(tmp)) < 0) {
-                virNetworkReportError(VIR_ERR_XML_ERROR,
-                                      _("unknown forwarding type '%s'"), tmp);
-                VIR_FREE(tmp);
-                goto error;
-            }
-            VIR_FREE(tmp);
-        } else {
-            def->forwardType = VIR_NETWORK_FORWARD_NAT;
-        }
-
-        forwardDev = virXPathString("string(./@dev)", ctxt);
-
-        /* all of these modes can use a pool of physical interfaces */
-        nForwardIfs = virXPathNodeSet("./interface", ctxt, &forwardIfNodes);
-        nForwardPfs = virXPathNodeSet("./pf", ctxt, &forwardPfNodes);
-
-        if (nForwardIfs < 0 || nForwardPfs < 0) {
-            virNetworkReportError(VIR_ERR_XML_ERROR,
-                                  _("No interface pool or SRIOV physical device given"));
-            goto error;
-        }
-
-        if (nForwardPfs == 1) {
-            if (VIR_ALLOC_N(def->forwardPfs, nForwardPfs) < 0) {
-                virReportOOMError();
-                goto error;
-            }
-
-            if (forwardDev) {
-                virNetworkReportError(VIR_ERR_XML_ERROR,
-                                      _("A forward Dev should not be used when using a SRIOV PF"));
-                goto error;
-            }
-
-            forwardDev = virXMLPropString(*forwardPfNodes, "dev");
-            if (!forwardDev) {
-                virNetworkReportError(VIR_ERR_XML_ERROR,
-                                      _("Missing required dev attribute in network '%s' pf element"),
-                                      def->name);
-                goto error;
-            }
-
-            def->forwardPfs->usageCount = 0;
-            def->forwardPfs->dev = forwardDev;
-            forwardDev = NULL;
-            def->nForwardPfs++;
-        } else if (nForwardPfs > 1) {
-            virNetworkReportError(VIR_ERR_XML_ERROR,
-                                  _("Use of more than one physical interface is not allowed"));
-            goto error;
-        }
-        if (nForwardIfs > 0 || forwardDev) {
-            int ii;
-
-            /* allocate array to hold all the portgroups */
-            if (VIR_ALLOC_N(def->forwardIfs, MAX(nForwardIfs, 1)) < 0) {
-                virReportOOMError();
-                goto error;
-            }
-
-            if (forwardDev) {
-                def->forwardIfs[0].usageCount = 0;
-                def->forwardIfs[0].dev = forwardDev;
-                forwardDev = NULL;
-                def->nForwardIfs++;
-            }
-
-            /* parse each forwardIf */
-            for (ii = 0; ii < nForwardIfs; ii++) {
-                forwardDev = virXMLPropString(forwardIfNodes[ii], "dev");
-                if (!forwardDev) {
-                    virNetworkReportError(VIR_ERR_XML_ERROR,
-                                          _("Missing required dev attribute in network '%s' forward interface element"),
-                                          def->name);
-                    goto error;
-                }
-
-                if ((ii == 0) && (def->nForwardIfs == 1)) {
-                    /* both forwardDev and an interface element are present.
-                     * If they don't match, it's an error. */
-                    if (STRNEQ(forwardDev, def->forwardIfs[0].dev)) {
-                        virNetworkReportError(VIR_ERR_XML_ERROR,
-                                              _("forward dev '%s' must match first interface element dev '%s' in network '%s'"),
-                                              def->forwardIfs[0].dev,
-                                              forwardDev, def->name);
-                        goto error;
-                    }
-                    VIR_FREE(forwardDev);
-                    continue;
-                }
-
-                def->forwardIfs[ii].dev = forwardDev;
-                forwardDev = NULL;
-                def->forwardIfs[ii].usageCount = 0;
-                def->nForwardIfs++;
-            }
-        }
-        VIR_FREE(forwardDev);
-        VIR_FREE(forwardPfNodes);
-        VIR_FREE(forwardIfNodes);
-
-        switch (def->forwardType) {
-        case VIR_NETWORK_FORWARD_ROUTE:
-        case VIR_NETWORK_FORWARD_NAT:
-            /* It's pointless to specify L3 forwarding without specifying
-             * the network we're on.
-             */
-            if (def->nips == 0) {
-                virNetworkReportError(VIR_ERR_XML_ERROR,
-                                      _("%s forwarding requested, but no IP address provided for network '%s'"),
-                                      virNetworkForwardTypeToString(def->forwardType),
-                                      def->name);
-                goto error;
-            }
-            if (def->nForwardIfs > 1) {
-                virNetworkReportError(VIR_ERR_XML_ERROR,
-                                      _("multiple forwarding interfaces specified for network '%s', only one is supported"),
-                                      def->name);
-                goto error;
-            }
-            def->stp = (stp && STREQ(stp, "off")) ? 0 : 1;
-            break;
-        case VIR_NETWORK_FORWARD_PRIVATE:
-        case VIR_NETWORK_FORWARD_VEPA:
-        case VIR_NETWORK_FORWARD_PASSTHROUGH:
-            if (def->bridge) {
-                virNetworkReportError(VIR_ERR_XML_ERROR,
-                                      _("bridge name not allowed in %s mode (network '%s'"),
-                                      virNetworkForwardTypeToString(def->forwardType),
-                                      def->name);
-                goto error;
-            }
-            /* fall through to next case */
-        case VIR_NETWORK_FORWARD_BRIDGE:
-            if (def->delay || stp) {
-                virNetworkReportError(VIR_ERR_XML_ERROR,
-                                      _("bridge delay/stp options only allowed in route, nat, and isolated mode, not in %s (network '%s')"),
-                                      virNetworkForwardTypeToString(def->forwardType),
-                                      def->name);
-                goto error;
-            }
-            break;
-        }
+    if (forwardNode &&
+        virNetworkForwardDefParseXML(def->name, forwardNode, ctxt, &def->forward) < 0) {
+        goto error;
     }
+
+    /* Validate some items in the main NetworkDef that need to align
+     * with the chosen forward mode.
+     */
+    switch (def->forward.type) {
+    case VIR_NETWORK_FORWARD_NONE:
+        break;
+
+    case VIR_NETWORK_FORWARD_ROUTE:
+    case VIR_NETWORK_FORWARD_NAT:
+        /* It's pointless to specify L3 forwarding without specifying
+         * the network we're on.
+         */
+        if (def->nips == 0) {
+            virReportError(VIR_ERR_XML_ERROR,
+                           _("%s forwarding requested, "
+                             "but no IP address provided for network '%s'"),
+                           virNetworkForwardTypeToString(def->forward.type),
+                           def->name);
+            goto error;
+        }
+        if (def->forward.nifs > 1) {
+            virReportError(VIR_ERR_XML_ERROR,
+                           _("multiple forwarding interfaces specified "
+                             "for network '%s', only one is supported"),
+                           def->name);
+            goto error;
+        }
+        break;
+
+    case VIR_NETWORK_FORWARD_PRIVATE:
+    case VIR_NETWORK_FORWARD_VEPA:
+    case VIR_NETWORK_FORWARD_PASSTHROUGH:
+    case VIR_NETWORK_FORWARD_HOSTDEV:
+        if (def->bridge) {
+            virReportError(VIR_ERR_XML_ERROR,
+                           _("bridge name not allowed in %s mode (network '%s')"),
+                           virNetworkForwardTypeToString(def->forward.type),
+                           def->name);
+            goto error;
+        }
+        /* fall through to next case */
+    case VIR_NETWORK_FORWARD_BRIDGE:
+        if (def->delay || stp) {
+            virReportError(VIR_ERR_XML_ERROR,
+                           _("bridge delay/stp options only allowed in route, nat, and isolated mode, not in %s (network '%s')"),
+                           virNetworkForwardTypeToString(def->forward.type),
+                           def->name);
+            goto error;
+        }
+        if (def->bridge && (def->forward.nifs || def->forward.npfs)) {
+            virReportError(VIR_ERR_XML_ERROR,
+                           _("A network with forward mode='%s' can specify "
+                             "a bridge name or a forward dev, but not "
+                             "both (network '%s')"),
+                           virNetworkForwardTypeToString(def->forward.type),
+                           def->name);
+            goto error;
+        }
+        break;
+    }
+
     VIR_FREE(stp);
     ctxt->node = save;
     return def;
 
- error:
+error:
     VIR_FREE(stp);
     virNetworkDefFree(def);
     VIR_FREE(ipNodes);
     VIR_FREE(portGroupNodes);
-    VIR_FREE(forwardIfNodes);
-    VIR_FREE(forwardPfNodes);
-    VIR_FREE(forwardDev);
+    VIR_FREE(ipv6nogwStr);
     ctxt->node = save;
     return NULL;
 }
@@ -1269,10 +1953,10 @@ virNetworkDefPtr virNetworkDefParseNode(xmlDocPtr xml,
     virNetworkDefPtr def = NULL;
 
     if (!xmlStrEqual(root->name, BAD_CAST "network")) {
-        virNetworkReportError(VIR_ERR_XML_ERROR,
-                              _("unexpected root element <%s>, "
-                                "expecting <network>"),
-                              root->name);
+        virReportError(VIR_ERR_XML_ERROR,
+                       _("unexpected root element <%s>, "
+                         "expecting <network>"),
+                       root->name);
         return NULL;
     }
 
@@ -1290,6 +1974,7 @@ cleanup:
     return def;
 }
 
+
 static int
 virNetworkDNSDefFormat(virBufferPtr buf,
                        virNetworkDNSDefPtr def)
@@ -1297,33 +1982,34 @@ virNetworkDNSDefFormat(virBufferPtr buf,
     int result = 0;
     int i;
 
-    if (def == NULL)
+    if (!(def->nhosts || def->nsrvs || def->ntxts))
         goto out;
 
-    virBufferAddLit(buf, "  <dns>\n");
+    virBufferAddLit(buf, "<dns>\n");
+    virBufferAdjustIndent(buf, 2);
 
-    for (i = 0 ; i < def->ntxtrecords ; i++) {
-        virBufferAsprintf(buf, "    <txt name='%s' value='%s' />\n",
-                              def->txtrecords[i].name,
-                              def->txtrecords[i].value);
+    for (i = 0 ; i < def->ntxts ; i++) {
+        virBufferAsprintf(buf, "<txt name='%s' value='%s' />\n",
+                              def->txts[i].name,
+                              def->txts[i].value);
     }
 
-    for (i = 0 ; i < def->nsrvrecords ; i++) {
-        if (def->srvrecords[i].service && def->srvrecords[i].protocol) {
-            virBufferAsprintf(buf, "    <srv service='%s' protocol='%s'",
-                                  def->srvrecords[i].service,
-                                  def->srvrecords[i].protocol);
+    for (i = 0 ; i < def->nsrvs ; i++) {
+        if (def->srvs[i].service && def->srvs[i].protocol) {
+            virBufferAsprintf(buf, "<srv service='%s' protocol='%s'",
+                                  def->srvs[i].service,
+                                  def->srvs[i].protocol);
 
-            if (def->srvrecords[i].domain)
-                virBufferAsprintf(buf, " domain='%s'", def->srvrecords[i].domain);
-            if (def->srvrecords[i].target)
-                virBufferAsprintf(buf, " target='%s'", def->srvrecords[i].target);
-            if (def->srvrecords[i].port)
-                virBufferAsprintf(buf, " port='%d'", def->srvrecords[i].port);
-            if (def->srvrecords[i].priority)
-                virBufferAsprintf(buf, " priority='%d'", def->srvrecords[i].priority);
-            if (def->srvrecords[i].weight)
-                virBufferAsprintf(buf, " weight='%d'", def->srvrecords[i].weight);
+            if (def->srvs[i].domain)
+                virBufferAsprintf(buf, " domain='%s'", def->srvs[i].domain);
+            if (def->srvs[i].target)
+                virBufferAsprintf(buf, " target='%s'", def->srvs[i].target);
+            if (def->srvs[i].port)
+                virBufferAsprintf(buf, " port='%d'", def->srvs[i].port);
+            if (def->srvs[i].priority)
+                virBufferAsprintf(buf, " priority='%d'", def->srvs[i].priority);
+            if (def->srvs[i].weight)
+                virBufferAsprintf(buf, " weight='%d'", def->srvs[i].weight);
 
             virBufferAsprintf(buf, "/>\n");
         }
@@ -1335,18 +2021,19 @@ virNetworkDNSDefFormat(virBufferPtr buf,
         for (ii = 0 ; ii < def->nhosts; ii++) {
             char *ip = virSocketAddrFormat(&def->hosts[ii].ip);
 
-            virBufferAsprintf(buf, "    <host ip='%s'>\n", ip);
-
+            virBufferAsprintf(buf, "<host ip='%s'>\n", ip);
+            virBufferAdjustIndent(buf, 2);
             for (j = 0; j < def->hosts[ii].nnames; j++)
-                virBufferAsprintf(buf, "      <hostname>%s</hostname>\n",
-                                               def->hosts[ii].names[j]);
+                virBufferAsprintf(buf, "<hostname>%s</hostname>\n",
+                                  def->hosts[ii].names[j]);
 
-            virBufferAsprintf(buf, "    </host>\n");
+            virBufferAdjustIndent(buf, -2);
+            virBufferAsprintf(buf, "</host>\n");
             VIR_FREE(ip);
         }
     }
-
-    virBufferAddLit(buf, "  </dns>\n");
+    virBufferAdjustIndent(buf, -2);
+    virBufferAddLit(buf, "</dns>\n");
 out:
     return result;
 }
@@ -1357,7 +2044,7 @@ virNetworkIpDefFormat(virBufferPtr buf,
 {
     int result = -1;
 
-    virBufferAddLit(buf, "  <ip");
+    virBufferAddLit(buf, "<ip");
 
     if (def->family) {
         virBufferAsprintf(buf, " family='%s'", def->family);
@@ -1380,14 +2067,17 @@ virNetworkIpDefFormat(virBufferPtr buf,
         virBufferAsprintf(buf," prefix='%u'", def->prefix);
     }
     virBufferAddLit(buf, ">\n");
+    virBufferAdjustIndent(buf, 2);
 
     if (def->tftproot) {
-        virBufferEscapeString(buf, "    <tftp root='%s' />\n",
+        virBufferEscapeString(buf, "<tftp root='%s' />\n",
                               def->tftproot);
     }
     if ((def->nranges || def->nhosts)) {
         int ii;
-        virBufferAddLit(buf, "    <dhcp>\n");
+        virBufferAddLit(buf, "<dhcp>\n");
+        virBufferAdjustIndent(buf, 2);
+
         for (ii = 0 ; ii < def->nranges ; ii++) {
             char *saddr = virSocketAddrFormat(&def->ranges[ii].start);
             if (!saddr)
@@ -1397,15 +2087,17 @@ virNetworkIpDefFormat(virBufferPtr buf,
                 VIR_FREE(saddr);
                 goto error;
             }
-            virBufferAsprintf(buf, "      <range start='%s' end='%s' />\n",
+            virBufferAsprintf(buf, "<range start='%s' end='%s' />\n",
                               saddr, eaddr);
             VIR_FREE(saddr);
             VIR_FREE(eaddr);
         }
         for (ii = 0 ; ii < def->nhosts ; ii++) {
-            virBufferAddLit(buf, "      <host ");
+            virBufferAddLit(buf, "<host ");
             if (def->hosts[ii].mac)
                 virBufferAsprintf(buf, "mac='%s' ", def->hosts[ii].mac);
+            if (def->hosts[ii].id)
+                virBufferAsprintf(buf, "id='%s' ", def->hosts[ii].id);
             if (def->hosts[ii].name)
                 virBufferAsprintf(buf, "name='%s' ", def->hosts[ii].name);
             if (VIR_SOCKET_ADDR_VALID(&def->hosts[ii].ip)) {
@@ -1418,7 +2110,7 @@ virNetworkIpDefFormat(virBufferPtr buf,
             virBufferAddLit(buf, "/>\n");
         }
         if (def->bootfile) {
-            virBufferEscapeString(buf, "      <bootp file='%s' ",
+            virBufferEscapeString(buf, "<bootp file='%s' ",
                                   def->bootfile);
             if (VIR_SOCKET_ADDR_VALID(&def->bootserver)) {
                 char *ipaddr = virSocketAddrFormat(&def->bootserver);
@@ -1428,12 +2120,15 @@ virNetworkIpDefFormat(virBufferPtr buf,
                 VIR_FREE(ipaddr);
             }
             virBufferAddLit(buf, "/>\n");
+
         }
 
-        virBufferAddLit(buf, "    </dhcp>\n");
+        virBufferAdjustIndent(buf, -2);
+        virBufferAddLit(buf, "</dhcp>\n");
     }
 
-    virBufferAddLit(buf, "  </ip>\n");
+    virBufferAdjustIndent(buf, -2);
+    virBufferAddLit(buf, "</ip>\n");
 
     result = 0;
 error:
@@ -1444,124 +2139,281 @@ static int
 virPortGroupDefFormat(virBufferPtr buf,
                       const virPortGroupDefPtr def)
 {
-    virBufferAsprintf(buf, "  <portgroup name='%s'", def->name);
+    virBufferAsprintf(buf, "<portgroup name='%s'", def->name);
     if (def->isDefault) {
         virBufferAddLit(buf, " default='yes'");
     }
     virBufferAddLit(buf, ">\n");
-    virBufferAdjustIndent(buf, 4);
+    virBufferAdjustIndent(buf, 2);
+    if (virNetDevVlanFormat(&def->vlan, buf) < 0)
+        return -1;
     if (virNetDevVPortProfileFormat(def->virtPortProfile, buf) < 0)
         return -1;
     virNetDevBandwidthFormat(def->bandwidth, buf);
-    virBufferAdjustIndent(buf, -4);
-    virBufferAddLit(buf, "  </portgroup>\n");
+    virBufferAdjustIndent(buf, -2);
+    virBufferAddLit(buf, "</portgroup>\n");
     return 0;
 }
 
-char *virNetworkDefFormat(const virNetworkDefPtr def, unsigned int flags)
+static int
+virNetworkForwardNatDefFormat(virBufferPtr buf,
+                              const virNetworkForwardDefPtr fwd)
 {
-    virBuffer buf = VIR_BUFFER_INITIALIZER;
+    char *addrStart = NULL;
+    char *addrEnd = NULL;
+    int ret = -1;
+
+    if (VIR_SOCKET_ADDR_VALID(&fwd->addr.start)) {
+        addrStart = virSocketAddrFormat(&fwd->addr.start);
+        if (!addrStart)
+            goto cleanup;
+    }
+
+    if (VIR_SOCKET_ADDR_VALID(&fwd->addr.end)) {
+        addrEnd = virSocketAddrFormat(&fwd->addr.end);
+        if (!addrEnd)
+            goto cleanup;
+    }
+
+    if (!addrEnd && !addrStart && !fwd->port.start && !fwd->port.end)
+        return 0;
+
+    virBufferAddLit(buf, "<nat>\n");
+    virBufferAdjustIndent(buf, 2);
+
+    if (addrStart) {
+        virBufferAsprintf(buf, "<address start='%s'", addrStart);
+        if (addrEnd)
+            virBufferAsprintf(buf, " end='%s'", addrEnd);
+        virBufferAddLit(buf, "/>\n");
+    }
+
+    if (fwd->port.start || fwd->port.end) {
+        virBufferAsprintf(buf, "<port start='%d'", fwd->port.start);
+        if (fwd->port.end)
+            virBufferAsprintf(buf, " end='%d'", fwd->port.end);
+        virBufferAddLit(buf, "/>\n");
+    }
+
+    virBufferAdjustIndent(buf, -2);
+    virBufferAddLit(buf, "</nat>\n");
+    ret = 0;
+
+cleanup:
+    VIR_FREE(addrStart);
+    VIR_FREE(addrEnd);
+    return ret;
+}
+
+static int
+virNetworkDefFormatInternal(virBufferPtr buf,
+                            const virNetworkDefPtr def,
+                            unsigned int flags)
+{
     unsigned char *uuid;
     char uuidstr[VIR_UUID_STRING_BUFLEN];
-    int ii;
+    int ii, shortforward;
 
-    virBufferAddLit(&buf, "<network>\n");
-    virBufferEscapeString(&buf, "  <name>%s</name>\n", def->name);
+    virBufferAddLit(buf, "<network");
+    if (!(flags & VIR_NETWORK_XML_INACTIVE) && (def->connections > 0)) {
+        virBufferAsprintf(buf, " connections='%d'", def->connections);
+    }
+    if (def->ipv6nogw)
+        virBufferAddLit(buf, " ipv6='yes'");
+    virBufferAddLit(buf, ">\n");
+    virBufferAdjustIndent(buf, 2);
+    virBufferEscapeString(buf, "<name>%s</name>\n", def->name);
 
     uuid = def->uuid;
     virUUIDFormat(uuid, uuidstr);
-    virBufferAsprintf(&buf, "  <uuid>%s</uuid>\n", uuidstr);
+    virBufferAsprintf(buf, "<uuid>%s</uuid>\n", uuidstr);
 
-    if (def->forwardType != VIR_NETWORK_FORWARD_NONE) {
+    if (def->forward.type != VIR_NETWORK_FORWARD_NONE) {
         const char *dev = NULL;
-        if (!def->nForwardPfs)
+        if (!def->forward.npfs)
             dev = virNetworkDefForwardIf(def, 0);
-        const char *mode = virNetworkForwardTypeToString(def->forwardType);
+        const char *mode = virNetworkForwardTypeToString(def->forward.type);
 
         if (!mode) {
-            virNetworkReportError(VIR_ERR_INTERNAL_ERROR,
-                                  _("Unknown forward type %d in network '%s'"),
-                                  def->forwardType, def->name);
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Unknown forward type %d in network '%s'"),
+                           def->forward.type, def->name);
             goto error;
         }
-        virBufferAddLit(&buf, "  <forward");
-        virBufferEscapeString(&buf, " dev='%s'", dev);
-        virBufferAsprintf(&buf, " mode='%s'%s>\n", mode,
-                          (def->nForwardIfs || def->nForwardPfs) ? "" : "/");
+        virBufferAddLit(buf, "<forward");
+        virBufferEscapeString(buf, " dev='%s'", dev);
+        virBufferAsprintf(buf, " mode='%s'", mode);
+        if (def->forward.type == VIR_NETWORK_FORWARD_HOSTDEV) {
+            if (def->forward.managed)
+                virBufferAddLit(buf, " managed='yes'");
+            else
+                virBufferAddLit(buf, " managed='no'");
+        }
+        shortforward = !(def->forward.nifs || def->forward.npfs
+                         || VIR_SOCKET_ADDR_VALID(&def->forward.addr.start)
+                         || VIR_SOCKET_ADDR_VALID(&def->forward.addr.end)
+                         || def->forward.port.start
+                         || def->forward.port.end
+                         || (def->forward.driverName
+                             != VIR_NETWORK_FORWARD_DRIVER_NAME_DEFAULT));
+        virBufferAsprintf(buf, "%s>\n", shortforward ? "/" : "");
+        virBufferAdjustIndent(buf, 2);
 
-        /* For now, hard-coded to at most 1 forwardPfs */
-        if (def->nForwardPfs)
-            virBufferEscapeString(&buf, "    <pf dev='%s'/>\n",
-                                  def->forwardPfs[0].dev);
+        if (def->forward.driverName
+            != VIR_NETWORK_FORWARD_DRIVER_NAME_DEFAULT) {
+            const char *driverName
+                = virNetworkForwardDriverNameTypeToString(def->forward.driverName);
+            if (!driverName) {
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("unexpected hostdev driver name type %d "),
+                               def->forward.driverName);
+                goto error;
+            }
+            virBufferAsprintf(buf, "<driver name='%s'/>\n", driverName);
+        }
+        if (def->forward.type == VIR_NETWORK_FORWARD_NAT) {
+            if (virNetworkForwardNatDefFormat(buf, &def->forward) < 0)
+                goto error;
+        }
 
-        if (def->nForwardIfs &&
-            (!def->nForwardPfs || !(flags & VIR_NETWORK_XML_INACTIVE))) {
-            for (ii = 0; ii < def->nForwardIfs; ii++) {
-                virBufferEscapeString(&buf, "    <interface dev='%s'/>\n",
-                                      def->forwardIfs[ii].dev);
+        /* For now, hard-coded to at most 1 forward.pfs */
+        if (def->forward.npfs)
+            virBufferEscapeString(buf, "<pf dev='%s'/>\n",
+                                  def->forward.pfs[0].dev);
+
+        if (def->forward.nifs &&
+            (!def->forward.npfs || !(flags & VIR_NETWORK_XML_INACTIVE))) {
+            for (ii = 0; ii < def->forward.nifs; ii++) {
+                if (def->forward.type != VIR_NETWORK_FORWARD_HOSTDEV) {
+                    virBufferEscapeString(buf, "<interface dev='%s'",
+                                          def->forward.ifs[ii].device.dev);
+                    if (!(flags & VIR_NETWORK_XML_INACTIVE) &&
+                        (def->forward.ifs[ii].connections > 0)) {
+                        virBufferAsprintf(buf, " connections='%d'",
+                                          def->forward.ifs[ii].connections);
+                    }
+                    virBufferAddLit(buf, "/>\n");
+                }
+                else {
+                    if (def->forward.ifs[ii].type ==  VIR_NETWORK_FORWARD_HOSTDEV_DEVICE_PCI) {
+                        if (virDevicePCIAddressFormat(buf,
+                                                      def->forward.ifs[ii].device.pci,
+                                                      true) < 0)
+                            goto error;
+                    }
+                }
             }
         }
-        if (def->nForwardPfs || def->nForwardIfs)
-            virBufferAddLit(&buf, "  </forward>\n");
+        virBufferAdjustIndent(buf, -2);
+        if (!shortforward)
+            virBufferAddLit(buf, "</forward>\n");
     }
 
-    if (def->forwardType == VIR_NETWORK_FORWARD_NONE ||
-         def->forwardType == VIR_NETWORK_FORWARD_NAT ||
-         def->forwardType == VIR_NETWORK_FORWARD_ROUTE) {
+    if (def->forward.type == VIR_NETWORK_FORWARD_NONE ||
+         def->forward.type == VIR_NETWORK_FORWARD_NAT ||
+         def->forward.type == VIR_NETWORK_FORWARD_ROUTE) {
 
-        virBufferAddLit(&buf, "  <bridge");
+        virBufferAddLit(buf, "<bridge");
         if (def->bridge)
-            virBufferEscapeString(&buf, " name='%s'", def->bridge);
-        virBufferAsprintf(&buf, " stp='%s' delay='%ld' />\n",
+            virBufferEscapeString(buf, " name='%s'", def->bridge);
+        virBufferAsprintf(buf, " stp='%s' delay='%ld' />\n",
                           def->stp ? "on" : "off",
                           def->delay);
-    } else if (def->forwardType == VIR_NETWORK_FORWARD_BRIDGE &&
+    } else if (def->forward.type == VIR_NETWORK_FORWARD_BRIDGE &&
                def->bridge) {
-       virBufferEscapeString(&buf, "  <bridge name='%s' />\n", def->bridge);
+        virBufferEscapeString(buf, "<bridge name='%s' />\n", def->bridge);
     }
 
 
     if (def->mac_specified) {
         char macaddr[VIR_MAC_STRING_BUFLEN];
-        virMacAddrFormat(def->mac, macaddr);
-        virBufferAsprintf(&buf, "  <mac address='%s'/>\n", macaddr);
+        virMacAddrFormat(&def->mac, macaddr);
+        virBufferAsprintf(buf, "<mac address='%s'/>\n", macaddr);
     }
 
     if (def->domain)
-        virBufferAsprintf(&buf, "  <domain name='%s'/>\n", def->domain);
+        virBufferAsprintf(buf, "<domain name='%s'/>\n", def->domain);
 
-    if (virNetworkDNSDefFormat(&buf, def->dns) < 0)
+    if (virNetworkDNSDefFormat(buf, &def->dns) < 0)
         goto error;
 
-    virBufferAdjustIndent(&buf, 2);
-    if (virNetDevBandwidthFormat(def->bandwidth, &buf) < 0)
+    if (virNetDevVlanFormat(&def->vlan, buf) < 0)
         goto error;
-    virBufferAdjustIndent(&buf, -2);
+    if (virNetDevBandwidthFormat(def->bandwidth, buf) < 0)
+        goto error;
 
     for (ii = 0; ii < def->nips; ii++) {
-        if (virNetworkIpDefFormat(&buf, &def->ips[ii]) < 0)
+        if (virNetworkIpDefFormat(buf, &def->ips[ii]) < 0)
             goto error;
     }
 
-    virBufferAdjustIndent(&buf, 2);
-    if (virNetDevVPortProfileFormat(def->virtPortProfile, &buf) < 0)
+    if (virNetDevVPortProfileFormat(def->virtPortProfile, buf) < 0)
         goto error;
-    virBufferAdjustIndent(&buf, -2);
 
     for (ii = 0; ii < def->nPortGroups; ii++)
-        if (virPortGroupDefFormat(&buf, &def->portGroups[ii]) < 0)
+        if (virPortGroupDefFormat(buf, &def->portGroups[ii]) < 0)
             goto error;
 
-    virBufferAddLit(&buf, "</network>\n");
+    virBufferAdjustIndent(buf, -2);
+    virBufferAddLit(buf, "</network>\n");
+
+    return 0;
+
+error:
+    return -1;
+}
+
+char *
+virNetworkDefFormat(virNetworkDefPtr def,
+                    unsigned int flags)
+{
+    virBuffer buf = VIR_BUFFER_INITIALIZER;
+
+    if (virNetworkDefFormatInternal(&buf, def, flags) < 0)
+        goto error;
 
     if (virBufferError(&buf))
         goto no_memory;
 
     return virBufferContentAndReset(&buf);
 
- no_memory:
+no_memory:
     virReportOOMError();
-  error:
+error:
+    virBufferFreeAndReset(&buf);
+    return NULL;
+}
+
+static char *
+virNetworkObjFormat(virNetworkObjPtr net,
+                    unsigned int flags)
+{
+    virBuffer buf = VIR_BUFFER_INITIALIZER;
+    char *class_id = virBitmapFormat(net->class_id);
+
+    if (!class_id)
+        goto no_memory;
+
+    virBufferAddLit(&buf, "<networkstatus>\n");
+    virBufferAsprintf(&buf, "  <class_id bitmap='%s'/>\n", class_id);
+    virBufferAsprintf(&buf, "  <floor sum='%llu'/>\n", net->floor_sum);
+    VIR_FREE(class_id);
+
+    virBufferAdjustIndent(&buf, 2);
+    if (virNetworkDefFormatInternal(&buf, net->def, flags) < 0)
+        goto error;
+
+    virBufferAdjustIndent(&buf, -2);
+    virBufferAddLit(&buf, "</networkstatus>");
+
+    if (virBufferError(&buf))
+        goto no_memory;
+
+    return virBufferContentAndReset(&buf);
+
+no_memory:
+    virReportOOMError();
+error:
     virBufferFreeAndReset(&buf);
     return NULL;
 }
@@ -1586,6 +2438,7 @@ int virNetworkSaveXML(const char *configDir,
                       virNetworkDefPtr def,
                       const char *xml)
 {
+    char uuidstr[VIR_UUID_STRING_BUFLEN];
     char *configFile = NULL;
     int ret = -1;
 
@@ -1599,7 +2452,10 @@ int virNetworkSaveXML(const char *configDir,
         goto cleanup;
     }
 
-    ret = virXMLSaveFile(configFile, def->name, "net-edit", xml);
+    virUUIDFormat(def->uuid, uuidstr);
+    ret = virXMLSaveFile(configFile,
+                         virXMLPickShellSafeComment(def->name, uuidstr),
+                         "net-edit", xml);
 
  cleanup:
     VIR_FREE(configFile);
@@ -1612,7 +2468,7 @@ int virNetworkSaveConfig(const char *configDir,
     int ret = -1;
     char *xml;
 
-    if (!(xml = virNetworkDefFormat(def, 0)))
+    if (!(xml = virNetworkDefFormat(def, VIR_NETWORK_XML_INACTIVE)))
         goto cleanup;
 
     if (virNetworkSaveXML(configDir, def, xml))
@@ -1624,6 +2480,123 @@ cleanup:
     return ret;
 }
 
+
+int virNetworkSaveStatus(const char *statusDir,
+                         virNetworkObjPtr network)
+{
+    int ret = -1;
+    int flags = 0;
+    char *xml;
+
+    if (!(xml = virNetworkObjFormat(network, flags)))
+        goto cleanup;
+
+    if (virNetworkSaveXML(statusDir, network->def, xml))
+        goto cleanup;
+
+    ret = 0;
+cleanup:
+    VIR_FREE(xml);
+    return ret;
+}
+
+virNetworkObjPtr
+virNetworkLoadState(virNetworkObjListPtr nets,
+                    const char *stateDir,
+                    const char *name)
+{
+    char *configFile = NULL;
+    virNetworkDefPtr def = NULL;
+    virNetworkObjPtr net = NULL;
+    xmlDocPtr xml = NULL;
+    xmlNodePtr node = NULL;
+    xmlXPathContextPtr ctxt = NULL;
+    virBitmapPtr class_id_map = NULL;
+    unsigned long long floor_sum_val = 0;
+
+
+    if ((configFile = virNetworkConfigFile(stateDir, name)) == NULL)
+        goto error;
+
+    if (!(xml = virXMLParseCtxt(configFile, NULL, _("(network status)"), &ctxt)))
+        goto error;
+
+    if (!(node = virXPathNode("//network", ctxt))) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Could not find any 'network' element in status file"));
+        goto error;
+    }
+
+    /* parse the definition first */
+    ctxt->node = node;
+    if (!(def = virNetworkDefParseXML(ctxt)))
+        goto error;
+
+    if (!STREQ(name, def->name)) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Network config filename '%s'"
+                         " does not match network name '%s'"),
+                       configFile, def->name);
+        goto error;
+    }
+
+    /* now parse possible status data */
+    node = xmlDocGetRootElement(xml);
+    if (xmlStrEqual(node->name, BAD_CAST "networkstatus")) {
+        /* Newer network status file. Contains useful
+         * info which are not to be found in bare config XML */
+        char *class_id = NULL;
+        char *floor_sum = NULL;
+
+        ctxt->node = node;
+        if ((class_id = virXPathString("string(./class_id[1]/@bitmap)", ctxt))) {
+            if (virBitmapParse(class_id, 0, &class_id_map,
+                               CLASS_ID_BITMAP_SIZE) < 0) {
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("Malformed 'class_id' attribute: %s"),
+                               class_id);
+                VIR_FREE(class_id);
+                goto error;
+            }
+        }
+        VIR_FREE(class_id);
+
+        floor_sum = virXPathString("string(./floor[1]/@sum)", ctxt);
+        if (floor_sum &&
+            virStrToLong_ull(floor_sum, NULL, 10, &floor_sum_val) < 0) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Malformed 'floor_sum' attribute: %s"),
+                           floor_sum);
+            VIR_FREE(floor_sum);
+        }
+        VIR_FREE(floor_sum);
+    }
+
+    /* create the object */
+    if (!(net = virNetworkAssignDef(nets, def, true)))
+        goto error;
+    /* do not put any "goto error" below this comment */
+
+    /* assign status data stored in the network object */
+    if (class_id_map) {
+        virBitmapFree(net->class_id);
+        net->class_id = class_id_map;
+    }
+
+    if (floor_sum_val > 0)
+        net->floor_sum = floor_sum_val;
+
+cleanup:
+    VIR_FREE(configFile);
+    xmlFreeDoc(xml);
+    xmlXPathFreeContext(ctxt);
+    return net;
+
+error:
+    virBitmapFree(class_id_map);
+    virNetworkDefFree(def);
+    goto cleanup;
+}
 
 virNetworkObjPtr virNetworkLoadConfig(virNetworkObjListPtr nets,
                                       const char *configDir,
@@ -1647,16 +2620,16 @@ virNetworkObjPtr virNetworkLoadConfig(virNetworkObjListPtr nets,
         goto error;
 
     if (!STREQ(name, def->name)) {
-        virNetworkReportError(VIR_ERR_INTERNAL_ERROR,
-                              _("Network config filename '%s'"
-                                " does not match network name '%s'"),
-                              configFile, def->name);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Network config filename '%s'"
+                         " does not match network name '%s'"),
+                       configFile, def->name);
         goto error;
     }
 
-    if (def->forwardType == VIR_NETWORK_FORWARD_NONE ||
-        def->forwardType == VIR_NETWORK_FORWARD_NAT ||
-        def->forwardType == VIR_NETWORK_FORWARD_ROUTE) {
+    if (def->forward.type == VIR_NETWORK_FORWARD_NONE ||
+        def->forward.type == VIR_NETWORK_FORWARD_NAT ||
+        def->forward.type == VIR_NETWORK_FORWARD_ROUTE) {
 
         /* Generate a bridge if none is specified, but don't check for collisions
          * if a bridge is hardcoded, so the network is at least defined.
@@ -1665,7 +2638,7 @@ virNetworkObjPtr virNetworkLoadConfig(virNetworkObjListPtr nets,
             goto error;
     }
 
-    if (!(net = virNetworkAssignDef(nets, def)))
+    if (!(net = virNetworkAssignDef(nets, def, false)))
         goto error;
 
     net->autostart = autostart;
@@ -1682,6 +2655,40 @@ error:
     virNetworkDefFree(def);
     return NULL;
 }
+
+
+int
+virNetworkLoadAllState(virNetworkObjListPtr nets,
+                       const char *stateDir)
+{
+    DIR *dir;
+    struct dirent *entry;
+
+    if (!(dir = opendir(stateDir))) {
+        if (errno == ENOENT)
+            return 0;
+
+        virReportSystemError(errno, _("Failed to open dir '%s'"), stateDir);
+        return -1;
+    }
+
+    while ((entry = readdir(dir))) {
+        virNetworkObjPtr net;
+
+        if (entry->d_name[0] == '.')
+            continue;
+
+        if (!virFileStripSuffix(entry->d_name, ".xml"))
+            continue;
+
+        if ((net = virNetworkLoadState(nets, stateDir, entry->d_name)))
+            virNetworkObjUnlock(net);
+    }
+
+    closedir(dir);
+    return 0;
+}
+
 
 int virNetworkLoadAllConfigs(virNetworkObjListPtr nets,
                              const char *configDir,
@@ -1809,9 +2816,9 @@ char *virNetworkAllocateBridge(const virNetworkObjListPtr nets,
         id++;
     } while (id <= MAX_BRIDGE_ID);
 
-    virNetworkReportError(VIR_ERR_INTERNAL_ERROR,
-                          _("Bridge generation exceeded max id %d"),
-                          MAX_BRIDGE_ID);
+    virReportError(VIR_ERR_INTERNAL_ERROR,
+                   _("Bridge generation exceeded max id %d"),
+                   MAX_BRIDGE_ID);
     return NULL;
 }
 
@@ -1827,9 +2834,9 @@ int virNetworkSetBridgeName(const virNetworkObjListPtr nets,
          * defined. */
         if (check_collision &&
             virNetworkBridgeInUse(nets, def->bridge, def->name)) {
-            virNetworkReportError(VIR_ERR_INTERNAL_ERROR,
-                                  _("bridge name '%s' already in use."),
-                                  def->bridge);
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("bridge name '%s' already in use."),
+                           def->bridge);
             goto error;
         }
     } else {
@@ -1851,9 +2858,973 @@ void virNetworkSetBridgeMacAddr(virNetworkDefPtr def)
          * autogenerate a random one.
          */
         virMacAddrGenerate((unsigned char[]){ 0x52, 0x54, 0 },
-                           def->mac);
+                           &def->mac);
         def->mac_specified = true;
     }
+}
+
+/* NetworkObj backend of the virNetworkUpdate API */
+
+static void
+virNetworkDefUpdateNoSupport(virNetworkDefPtr def, const char *section)
+{
+    virReportError(VIR_ERR_NO_SUPPORT,
+                   _("can't update '%s' section of network '%s'"),
+                   section, def->name);
+}
+static void
+virNetworkDefUpdateUnknownCommand(unsigned int command)
+{
+    virReportError(VIR_ERR_NO_SUPPORT,
+                   _("unrecognized network update command code %d"), command);
+}
+
+static int
+virNetworkDefUpdateCheckElementName(virNetworkDefPtr def,
+                                    xmlNodePtr node,
+                                    const char *section)
+{
+    if (!xmlStrEqual(node->name, BAD_CAST section)) {
+        virReportError(VIR_ERR_XML_ERROR,
+                       _("unexpected element <%s>, expecting <%s>, "
+                         "while updating network '%s'"),
+                       node->name, section, def->name);
+        return -1;
+    }
+    return 0;
+}
+
+static int
+virNetworkDefUpdateBridge(virNetworkDefPtr def,
+                          unsigned int command ATTRIBUTE_UNUSED,
+                          int parentIndex ATTRIBUTE_UNUSED,
+                          xmlXPathContextPtr ctxt ATTRIBUTE_UNUSED,
+                          /* virNetworkUpdateFlags */
+                          unsigned int fflags ATTRIBUTE_UNUSED)
+{
+    virNetworkDefUpdateNoSupport(def, "bridge");
+    return -1;
+}
+
+static int
+virNetworkDefUpdateDomain(virNetworkDefPtr def,
+                          unsigned int command ATTRIBUTE_UNUSED,
+                          int parentIndex ATTRIBUTE_UNUSED,
+                          xmlXPathContextPtr ctxt ATTRIBUTE_UNUSED,
+                          /* virNetworkUpdateFlags */
+                          unsigned int fflags ATTRIBUTE_UNUSED)
+{
+    virNetworkDefUpdateNoSupport(def, "domain");
+    return -1;
+}
+
+static int
+virNetworkDefUpdateIP(virNetworkDefPtr def,
+                      unsigned int command ATTRIBUTE_UNUSED,
+                      int parentIndex ATTRIBUTE_UNUSED,
+                      xmlXPathContextPtr ctxt ATTRIBUTE_UNUSED,
+                      /* virNetworkUpdateFlags */
+                      unsigned int fflags ATTRIBUTE_UNUSED)
+{
+    virNetworkDefUpdateNoSupport(def, "ip");
+    return -1;
+}
+
+static virNetworkIpDefPtr
+virNetworkIpDefByIndex(virNetworkDefPtr def, int parentIndex)
+{
+    virNetworkIpDefPtr ipdef = NULL;
+    int ii;
+
+    /* first find which ip element's dhcp host list to work on */
+    if (parentIndex >= 0) {
+        ipdef = virNetworkDefGetIpByIndex(def, AF_UNSPEC, parentIndex);
+        if (!(ipdef)) {
+            virReportError(VIR_ERR_OPERATION_INVALID,
+                           _("couldn't update dhcp host entry - no <ip> "
+                             "element found at index %d in network '%s'"),
+                           parentIndex, def->name);
+        }
+        return ipdef;
+    }
+
+    /* -1 means "find the most appropriate", which in this case
+     * means the one and only <ip> that has <dhcp> element
+     */
+    for (ii = 0;
+         (ipdef = virNetworkDefGetIpByIndex(def, AF_UNSPEC, ii));
+         ii++) {
+        if (ipdef->nranges || ipdef->nhosts)
+            break;
+    }
+    if (!ipdef) {
+        ipdef = virNetworkDefGetIpByIndex(def, AF_INET, 0);
+        if (!ipdef)
+            ipdef = virNetworkDefGetIpByIndex(def, AF_INET6, 0);
+    }
+    if (!ipdef) {
+        virReportError(VIR_ERR_OPERATION_INVALID,
+                       _("couldn't update dhcp host entry - no <ip> "
+                         "element found in network '%s'"), def->name);
+    }
+    return ipdef;
+}
+
+static int
+virNetworkDefUpdateIPDHCPHost(virNetworkDefPtr def,
+                              unsigned int command,
+                              int parentIndex,
+                              xmlXPathContextPtr ctxt,
+                              /* virNetworkUpdateFlags */
+                              unsigned int fflags ATTRIBUTE_UNUSED)
+{
+    int ii, ret = -1;
+    virNetworkIpDefPtr ipdef = virNetworkIpDefByIndex(def, parentIndex);
+    virNetworkDHCPHostDef host;
+
+    memset(&host, 0, sizeof(host));
+
+    if (virNetworkDefUpdateCheckElementName(def, ctxt->node, "host") < 0)
+        goto cleanup;
+
+    /* ipdef is the ip element that needs its host array updated */
+    if (!ipdef)
+        goto cleanup;
+
+    /* parse the xml into a virNetworkDHCPHostDef */
+    if (command == VIR_NETWORK_UPDATE_COMMAND_MODIFY) {
+
+        if (virNetworkDHCPHostDefParseXML(def->name, ipdef,
+                                          ctxt->node, &host, false) < 0) {
+            goto cleanup;
+        }
+
+        /* search for the entry with this (mac|name),
+         * and update the IP+(mac|name) */
+        for (ii = 0; ii < ipdef->nhosts; ii++) {
+            if ((host.mac &&
+                 !virMacAddrCompare(host.mac, ipdef->hosts[ii].mac)) ||
+                (host.name &&
+                 STREQ_NULLABLE(host.name, ipdef->hosts[ii].name))) {
+                break;
+            }
+        }
+
+        if (ii == ipdef->nhosts) {
+            virReportError(VIR_ERR_OPERATION_INVALID,
+                           _("couldn't locate an existing dhcp host entry with "
+                             "\"mac='%s'\" in network '%s'"),
+                           host.mac, def->name);
+            goto cleanup;
+        }
+
+        /* clear the existing hosts entry, move the new one in its place,
+         * then clear out the extra copy to get rid of the duplicate pointers
+         * to its data (mac and name strings).
+         */
+        virNetworkDHCPHostDefClear(&ipdef->hosts[ii]);
+        ipdef->hosts[ii] = host;
+        memset(&host, 0, sizeof(host));
+
+    } else if ((command == VIR_NETWORK_UPDATE_COMMAND_ADD_FIRST) ||
+               (command == VIR_NETWORK_UPDATE_COMMAND_ADD_LAST)) {
+
+        if (virNetworkDHCPHostDefParseXML(def->name, ipdef,
+                                          ctxt->node, &host, true) < 0) {
+            goto cleanup;
+        }
+
+        /* log error if an entry with same name/address/ip already exists */
+        for (ii = 0; ii < ipdef->nhosts; ii++) {
+            if ((host.mac &&
+                 !virMacAddrCompare(host.mac, ipdef->hosts[ii].mac)) ||
+                (host.name &&
+                 STREQ_NULLABLE(host.name, ipdef->hosts[ii].name)) ||
+                (VIR_SOCKET_ADDR_VALID(&host.ip) &&
+                 virSocketAddrEqual(&host.ip, &ipdef->hosts[ii].ip))) {
+                char *ip = virSocketAddrFormat(&host.ip);
+
+                virReportError(VIR_ERR_OPERATION_INVALID,
+                               _("there is an existing dhcp host entry in "
+                                 "network '%s' that matches "
+                                 "\"<host mac='%s' name='%s' ip='%s'/>\""),
+                               def->name, host.mac, host.name,
+                               ip ? ip : "unknown");
+                VIR_FREE(ip);
+                goto cleanup;
+            }
+        }
+
+        /* add to beginning/end of list */
+        if (VIR_INSERT_ELEMENT(ipdef->hosts,
+                               command == VIR_NETWORK_UPDATE_COMMAND_ADD_FIRST
+                               ? 0 : ipdef->nhosts,
+                               ipdef->nhosts, host) < 0) {
+            virReportOOMError();
+            goto cleanup;
+        }
+    } else if (command == VIR_NETWORK_UPDATE_COMMAND_DELETE) {
+
+        if (virNetworkDHCPHostDefParseXML(def->name, ipdef,
+                                          ctxt->node, &host, false) < 0) {
+            goto cleanup;
+        }
+
+        /* find matching entry - all specified attributes must match */
+        for (ii = 0; ii < ipdef->nhosts; ii++) {
+            if ((!host.mac ||
+                 !virMacAddrCompare(host.mac, ipdef->hosts[ii].mac)) &&
+                (!host.name ||
+                 STREQ_NULLABLE(host.name, ipdef->hosts[ii].name)) &&
+                (!VIR_SOCKET_ADDR_VALID(&host.ip) ||
+                 virSocketAddrEqual(&host.ip, &ipdef->hosts[ii].ip))) {
+                break;
+            }
+        }
+        if (ii == ipdef->nhosts) {
+            virReportError(VIR_ERR_OPERATION_INVALID,
+                           _("couldn't locate a matching dhcp host entry "
+                             "in network '%s'"), def->name);
+            goto cleanup;
+        }
+
+        /* remove it */
+        virNetworkDHCPHostDefClear(&ipdef->hosts[ii]);
+        VIR_DELETE_ELEMENT(ipdef->hosts, ii, ipdef->nhosts);
+
+    } else {
+        virNetworkDefUpdateUnknownCommand(command);
+        goto cleanup;
+    }
+
+    ret = 0;
+cleanup:
+    virNetworkDHCPHostDefClear(&host);
+    return ret;
+}
+
+static int
+virNetworkDefUpdateIPDHCPRange(virNetworkDefPtr def,
+                               unsigned int command,
+                               int parentIndex ATTRIBUTE_UNUSED,
+                               xmlXPathContextPtr ctxt,
+                               /* virNetworkUpdateFlags */
+                               unsigned int fflags ATTRIBUTE_UNUSED)
+{
+    int ii, ret = -1;
+    virNetworkIpDefPtr ipdef = virNetworkIpDefByIndex(def, parentIndex);
+    virSocketAddrRange range;
+
+    memset(&range, 0, sizeof(range));
+
+    if (virNetworkDefUpdateCheckElementName(def, ctxt->node, "range") < 0)
+        goto cleanup;
+
+    /* ipdef is the ip element that needs its range array updated */
+    if (!ipdef)
+        goto cleanup;
+
+    /* parse the xml into a virSocketAddrRange */
+    if (command == VIR_NETWORK_UPDATE_COMMAND_MODIFY) {
+
+        virReportError(VIR_ERR_NO_SUPPORT, "%s",
+                       _("dhcp ranges cannot be modified, "
+                         "only added or deleted"));
+        goto cleanup;
+    }
+
+    if (virSocketAddrRangeParseXML(def->name, ctxt->node, &range) < 0)
+        goto cleanup;
+
+    /* check if an entry with same name/address/ip already exists */
+    for (ii = 0; ii < ipdef->nranges; ii++) {
+        if (virSocketAddrEqual(&range.start, &ipdef->ranges[ii].start) &&
+            virSocketAddrEqual(&range.end, &ipdef->ranges[ii].end)) {
+            break;
+        }
+    }
+
+    if ((command == VIR_NETWORK_UPDATE_COMMAND_ADD_FIRST) ||
+        (command == VIR_NETWORK_UPDATE_COMMAND_ADD_LAST)) {
+
+        if (ii < ipdef->nranges) {
+            char *startip = virSocketAddrFormat(&range.start);
+            char *endip = virSocketAddrFormat(&range.end);
+
+            virReportError(VIR_ERR_OPERATION_INVALID,
+                           _("there is an existing dhcp range entry in "
+                             "network '%s' that matches "
+                             "\"<range start='%s' end='%s'/>\""),
+                           def->name,
+                           startip ? startip : "unknown",
+                           endip ? endip : "unknown");
+            goto cleanup;
+        }
+
+        /* add to beginning/end of list */
+        if (VIR_INSERT_ELEMENT(ipdef->ranges,
+                               command == VIR_NETWORK_UPDATE_COMMAND_ADD_FIRST
+                               ? 0 : ipdef->nranges,
+                               ipdef->nranges, range) < 0) {
+            virReportOOMError();
+            goto cleanup;
+        }
+
+    } else if (command == VIR_NETWORK_UPDATE_COMMAND_DELETE) {
+
+        if (ii == ipdef->nranges) {
+            virReportError(VIR_ERR_OPERATION_INVALID,
+                           _("couldn't locate a matching dhcp range entry "
+                             "in network '%s'"), def->name);
+            goto cleanup;
+        }
+
+        /* remove it */
+        /* NB: nothing to clear from a RangeDef that's being freed */
+        VIR_DELETE_ELEMENT(ipdef->ranges, ii, ipdef->nranges);
+
+    } else {
+        virNetworkDefUpdateUnknownCommand(command);
+        goto cleanup;
+    }
+
+    ret = 0;
+cleanup:
+    return ret;
+}
+
+static int
+virNetworkDefUpdateForward(virNetworkDefPtr def,
+                           unsigned int command ATTRIBUTE_UNUSED,
+                           int parentIndex ATTRIBUTE_UNUSED,
+                           xmlXPathContextPtr ctxt ATTRIBUTE_UNUSED,
+                           /* virNetworkUpdateFlags */
+                           unsigned int fflags ATTRIBUTE_UNUSED)
+{
+    virNetworkDefUpdateNoSupport(def, "forward");
+    return -1;
+}
+
+static int
+virNetworkDefUpdateForwardInterface(virNetworkDefPtr def,
+                                    unsigned int command,
+                                    int parentIndex ATTRIBUTE_UNUSED,
+                                    xmlXPathContextPtr ctxt,
+                                    /* virNetworkUpdateFlags */
+                                    unsigned int fflags ATTRIBUTE_UNUSED)
+{
+    int ii, ret = -1;
+    virNetworkForwardIfDef iface;
+
+    memset(&iface, 0, sizeof(iface));
+
+    if (virNetworkDefUpdateCheckElementName(def, ctxt->node, "interface") < 0)
+        goto cleanup;
+
+    if (command == VIR_NETWORK_UPDATE_COMMAND_MODIFY) {
+        virReportError(VIR_ERR_NO_SUPPORT, "%s",
+                       _("forward interface entries cannot be modified, "
+                         "only added or deleted"));
+        goto cleanup;
+    }
+
+    /* parsing this is so simple that it doesn't have its own function */
+    iface.type = VIR_NETWORK_FORWARD_HOSTDEV_DEVICE_NETDEV;
+    if (!(iface.device.dev = virXMLPropString(ctxt->node, "dev"))) {
+        virReportError(VIR_ERR_XML_ERROR, "%s",
+                       _("missing dev attribute in <interface> element"));
+        goto cleanup;
+    }
+
+    /* check if an <interface> with same dev name already exists */
+    for (ii = 0; ii < def->forward.nifs; ii++) {
+        if (def->forward.ifs[ii].type
+            == VIR_NETWORK_FORWARD_HOSTDEV_DEVICE_NETDEV &&
+            STREQ(iface.device.dev, def->forward.ifs[ii].device.dev))
+            break;
+    }
+
+    if ((command == VIR_NETWORK_UPDATE_COMMAND_ADD_FIRST) ||
+        (command == VIR_NETWORK_UPDATE_COMMAND_ADD_LAST)) {
+
+        if (ii < def->forward.nifs) {
+            virReportError(VIR_ERR_OPERATION_INVALID,
+                           _("there is an existing interface entry "
+                             "in network '%s' that matches "
+                             "\"<interface dev='%s'>\""),
+                           def->name, iface.device.dev);
+            goto cleanup;
+        }
+
+        /* add to beginning/end of list */
+        if (VIR_INSERT_ELEMENT(def->forward.ifs,
+                               command == VIR_NETWORK_UPDATE_COMMAND_ADD_FIRST
+                               ? 0 : def->forward.nifs,
+                               def->forward.nifs, iface) < 0) {
+            virReportOOMError();
+            goto cleanup;
+        }
+
+    } else if (command == VIR_NETWORK_UPDATE_COMMAND_DELETE) {
+
+        if (ii == def->forward.nifs) {
+            virReportError(VIR_ERR_OPERATION_INVALID,
+                           _("couldn't find an interface entry "
+                             "in network '%s' matching <interface dev='%s'>"),
+                           def->name, iface.device.dev);
+            goto cleanup;
+        }
+
+        /* fail if the interface is being used */
+        if (def->forward.ifs[ii].connections > 0) {
+            virReportError(VIR_ERR_OPERATION_INVALID,
+                           _("unable to delete interface '%s' "
+                             "in network '%s'. It is currently being used "
+                             " by %d domains."),
+                           iface.device.dev, def->name,
+                           def->forward.ifs[ii].connections);
+            goto cleanup;
+        }
+
+        /* remove it */
+        virNetworkForwardIfDefClear(&def->forward.ifs[ii]);
+        VIR_DELETE_ELEMENT(def->forward.ifs, ii, def->forward.nifs);
+
+    } else {
+        virNetworkDefUpdateUnknownCommand(command);
+        goto cleanup;
+    }
+
+    ret = 0;
+cleanup:
+    virNetworkForwardIfDefClear(&iface);
+    return ret;
+}
+
+static int
+virNetworkDefUpdateForwardPF(virNetworkDefPtr def,
+                             unsigned int command ATTRIBUTE_UNUSED,
+                             int parentIndex ATTRIBUTE_UNUSED,
+                             xmlXPathContextPtr ctxt ATTRIBUTE_UNUSED,
+                             /* virNetworkUpdateFlags */
+                             unsigned int fflags ATTRIBUTE_UNUSED)
+{
+    virNetworkDefUpdateNoSupport(def, "forward pf");
+    return -1;
+}
+
+static int
+virNetworkDefUpdatePortGroup(virNetworkDefPtr def,
+                             unsigned int command,
+                             int parentIndex ATTRIBUTE_UNUSED,
+                             xmlXPathContextPtr ctxt,
+                             /* virNetworkUpdateFlags */
+                             unsigned int fflags ATTRIBUTE_UNUSED)
+{
+    int ii, foundName = -1, foundDefault = -1;
+    int ret = -1;
+    virPortGroupDef portgroup;
+
+    memset(&portgroup, 0, sizeof(portgroup));
+
+    if (virNetworkDefUpdateCheckElementName(def, ctxt->node, "portgroup") < 0)
+        goto cleanup;
+
+    if (virNetworkPortGroupParseXML(&portgroup, ctxt->node, ctxt) < 0)
+        goto cleanup;
+
+    /* check if a portgroup with same name already exists */
+    for (ii = 0; ii < def->nPortGroups; ii++) {
+        if (STREQ(portgroup.name, def->portGroups[ii].name))
+            foundName = ii;
+        if (def->portGroups[ii].isDefault)
+            foundDefault = ii;
+    }
+    if (foundName == -1 &&
+        ((command == VIR_NETWORK_UPDATE_COMMAND_MODIFY) ||
+         (command == VIR_NETWORK_UPDATE_COMMAND_DELETE))) {
+        virReportError(VIR_ERR_OPERATION_INVALID,
+                       _("couldn't find a portgroup entry "
+                         "in network '%s' matching <portgroup name='%s'>"),
+                       def->name, portgroup.name);
+        goto cleanup;
+    } else if (foundName >= 0 &&
+               ((command == VIR_NETWORK_UPDATE_COMMAND_ADD_FIRST) ||
+                (command == VIR_NETWORK_UPDATE_COMMAND_ADD_LAST))) {
+        virReportError(VIR_ERR_OPERATION_INVALID,
+                       _("there is an existing portgroup entry in "
+                         "network '%s' that matches "
+                         "\"<portgroup name='%s'>\""),
+                       def->name, portgroup.name);
+        goto cleanup;
+    }
+
+    /* if there is already a different default, we can't make this
+     * one the default.
+     */
+    if (command != VIR_NETWORK_UPDATE_COMMAND_DELETE &&
+        portgroup.isDefault &&
+        foundDefault >= 0 && foundDefault != foundName) {
+        virReportError(VIR_ERR_OPERATION_INVALID,
+                       _("a different portgroup entry in "
+                         "network '%s' is already set as the default. "
+                         "Only one default is allowed."),
+                       def->name);
+        goto cleanup;
+    }
+
+    if (command == VIR_NETWORK_UPDATE_COMMAND_MODIFY) {
+
+        /* replace existing entry */
+        virPortGroupDefClear(&def->portGroups[foundName]);
+        def->portGroups[foundName] = portgroup;
+        memset(&portgroup, 0, sizeof(portgroup));
+
+    } else if ((command == VIR_NETWORK_UPDATE_COMMAND_ADD_FIRST) ||
+        (command == VIR_NETWORK_UPDATE_COMMAND_ADD_LAST)) {
+
+        /* add to beginning/end of list */
+        if (VIR_INSERT_ELEMENT(def->portGroups,
+                               command == VIR_NETWORK_UPDATE_COMMAND_ADD_FIRST
+                               ? 0 : def->nPortGroups,
+                               def->nPortGroups, portgroup) < 0) {
+            virReportOOMError();
+            goto cleanup;
+        }
+
+    } else if (command == VIR_NETWORK_UPDATE_COMMAND_DELETE) {
+
+        /* remove it */
+        virPortGroupDefClear(&def->portGroups[foundName]);
+        VIR_DELETE_ELEMENT(def->portGroups, foundName, def->nPortGroups);
+
+    } else {
+        virNetworkDefUpdateUnknownCommand(command);
+        goto cleanup;
+    }
+
+    ret = 0;
+cleanup:
+    virPortGroupDefClear(&portgroup);
+    return ret;
+}
+
+static int
+virNetworkDefUpdateDNSHost(virNetworkDefPtr def,
+                           unsigned int command ATTRIBUTE_UNUSED,
+                           int parentIndex ATTRIBUTE_UNUSED,
+                           xmlXPathContextPtr ctxt ATTRIBUTE_UNUSED,
+                           /* virNetworkUpdateFlags */
+                           unsigned int fflags ATTRIBUTE_UNUSED)
+{
+    int ii, jj, kk, foundIdx = -1, ret = -1;
+    virNetworkDNSDefPtr dns = &def->dns;
+    virNetworkDNSHostDef host;
+    bool isAdd = (command == VIR_NETWORK_UPDATE_COMMAND_ADD_FIRST ||
+                  command == VIR_NETWORK_UPDATE_COMMAND_ADD_LAST);
+    int foundCt = 0;
+
+    memset(&host, 0, sizeof(host));
+
+    if (command == VIR_NETWORK_UPDATE_COMMAND_MODIFY) {
+        virReportError(VIR_ERR_NO_SUPPORT, "%s",
+                       _("DNS HOST records cannot be modified, "
+                         "only added or deleted"));
+        goto cleanup;
+    }
+
+    if (virNetworkDefUpdateCheckElementName(def, ctxt->node, "host") < 0)
+        goto cleanup;
+
+    if (virNetworkDNSHostDefParseXML(def->name, ctxt->node, &host, !isAdd) < 0)
+        goto cleanup;
+
+    for (ii = 0; ii < dns->nhosts; ii++) {
+        bool foundThisTime = false;
+
+        if (virSocketAddrEqual(&host.ip, &dns->hosts[ii].ip))
+            foundThisTime = true;
+
+        for (jj = 0; jj < host.nnames && !foundThisTime; jj++) {
+            for (kk = 0; kk < dns->hosts[ii].nnames && !foundThisTime; kk++) {
+                if (STREQ(host.names[jj], dns->hosts[ii].names[kk]))
+                    foundThisTime = true;
+            }
+        }
+        if (foundThisTime) {
+            foundCt++;
+            foundIdx = ii;
+        }
+    }
+
+    if (isAdd) {
+
+        if (foundCt > 0) {
+            virReportError(VIR_ERR_OPERATION_INVALID,
+                           _("there is already at least one DNS HOST "
+                             "record with a matching field in network %s"),
+                           def->name);
+            goto cleanup;
+        }
+
+        /* add to beginning/end of list */
+        if (VIR_INSERT_ELEMENT(dns->hosts,
+                               command == VIR_NETWORK_UPDATE_COMMAND_ADD_FIRST
+                               ? 0 : dns->nhosts, dns->nhosts, host) < 0) {
+            virReportOOMError();
+            goto cleanup;
+        }
+
+    } else if (command == VIR_NETWORK_UPDATE_COMMAND_DELETE) {
+
+        if (foundCt == 0) {
+            virReportError(VIR_ERR_OPERATION_INVALID,
+                           _("couldn't locate a matching DNS HOST "
+                             "record in network %s"), def->name);
+            goto cleanup;
+        }
+        if (foundCt > 1) {
+            virReportError(VIR_ERR_OPERATION_INVALID,
+                           _("multiple matching DNS HOST records were "
+                             "found in network %s"), def->name);
+            goto cleanup;
+        }
+
+        /* remove it */
+        virNetworkDNSHostDefClear(&dns->hosts[foundIdx]);
+        VIR_DELETE_ELEMENT(dns->hosts, foundIdx, dns->nhosts);
+
+    } else {
+        virNetworkDefUpdateUnknownCommand(command);
+        goto cleanup;
+    }
+
+    ret = 0;
+cleanup:
+    virNetworkDNSHostDefClear(&host);
+    return ret;
+}
+
+static int
+virNetworkDefUpdateDNSSrv(virNetworkDefPtr def,
+                          unsigned int command ATTRIBUTE_UNUSED,
+                          int parentIndex ATTRIBUTE_UNUSED,
+                          xmlXPathContextPtr ctxt ATTRIBUTE_UNUSED,
+                          /* virNetworkUpdateFlags */
+                          unsigned int fflags ATTRIBUTE_UNUSED)
+{
+    int ii, foundIdx = -1, ret = -1;
+    virNetworkDNSDefPtr dns = &def->dns;
+    virNetworkDNSSrvDef srv;
+    bool isAdd = (command == VIR_NETWORK_UPDATE_COMMAND_ADD_FIRST ||
+                  command == VIR_NETWORK_UPDATE_COMMAND_ADD_LAST);
+    int foundCt = 0;
+
+    memset(&srv, 0, sizeof(srv));
+
+    if (command == VIR_NETWORK_UPDATE_COMMAND_MODIFY) {
+        virReportError(VIR_ERR_NO_SUPPORT, "%s",
+                       _("DNS SRV records cannot be modified, "
+                         "only added or deleted"));
+        goto cleanup;
+    }
+
+    if (virNetworkDefUpdateCheckElementName(def, ctxt->node, "srv") < 0)
+        goto cleanup;
+
+    if (virNetworkDNSSrvDefParseXML(def->name, ctxt->node, ctxt, &srv, !isAdd) < 0)
+        goto cleanup;
+
+    for (ii = 0; ii < dns->nsrvs; ii++) {
+        if ((!srv.domain || STREQ_NULLABLE(srv.domain, dns->srvs[ii].domain)) &&
+            (!srv.service || STREQ_NULLABLE(srv.service, dns->srvs[ii].service)) &&
+            (!srv.protocol || STREQ_NULLABLE(srv.protocol, dns->srvs[ii].protocol)) &&
+            (!srv.target || STREQ_NULLABLE(srv.target, dns->srvs[ii].target))) {
+            foundCt++;
+            foundIdx = ii;
+        }
+    }
+
+    if (isAdd) {
+
+        if (foundCt > 0) {
+            virReportError(VIR_ERR_OPERATION_INVALID,
+                           _("there is already at least one DNS SRV "
+                             "record matching all specified fields in network %s"),
+                           def->name);
+            goto cleanup;
+        }
+
+        /* add to beginning/end of list */
+        if (VIR_INSERT_ELEMENT(dns->srvs,
+                               command == VIR_NETWORK_UPDATE_COMMAND_ADD_FIRST
+                               ? 0 : dns->nsrvs, dns->nsrvs, srv) < 0) {
+            virReportOOMError();
+            goto cleanup;
+        }
+
+    } else if (command == VIR_NETWORK_UPDATE_COMMAND_DELETE) {
+
+        if (foundCt == 0) {
+            virReportError(VIR_ERR_OPERATION_INVALID,
+                           _("couldn't locate a matching DNS SRV "
+                             "record in network %s"), def->name);
+            goto cleanup;
+        }
+        if (foundCt > 1) {
+            virReportError(VIR_ERR_OPERATION_INVALID,
+                           _("multiple DNS SRV records matching all specified "
+                             "fields were found in network %s"), def->name);
+            goto cleanup;
+        }
+
+        /* remove it */
+        virNetworkDNSSrvDefClear(&dns->srvs[foundIdx]);
+        VIR_DELETE_ELEMENT(dns->srvs, foundIdx, dns->nsrvs);
+
+    } else {
+        virNetworkDefUpdateUnknownCommand(command);
+        goto cleanup;
+    }
+
+    ret = 0;
+cleanup:
+    virNetworkDNSSrvDefClear(&srv);
+    return ret;
+}
+
+static int
+virNetworkDefUpdateDNSTxt(virNetworkDefPtr def,
+                          unsigned int command ATTRIBUTE_UNUSED,
+                          int parentIndex ATTRIBUTE_UNUSED,
+                          xmlXPathContextPtr ctxt ATTRIBUTE_UNUSED,
+                          /* virNetworkUpdateFlags */
+                          unsigned int fflags ATTRIBUTE_UNUSED)
+{
+    int foundIdx, ret = -1;
+    virNetworkDNSDefPtr dns = &def->dns;
+    virNetworkDNSTxtDef txt;
+    bool isAdd = (command == VIR_NETWORK_UPDATE_COMMAND_ADD_FIRST ||
+                  command == VIR_NETWORK_UPDATE_COMMAND_ADD_LAST);
+
+    memset(&txt, 0, sizeof(txt));
+
+    if (command == VIR_NETWORK_UPDATE_COMMAND_MODIFY) {
+        virReportError(VIR_ERR_NO_SUPPORT, "%s",
+                       _("DNS TXT records cannot be modified, "
+                         "only added or deleted"));
+        goto cleanup;
+    }
+
+    if (virNetworkDefUpdateCheckElementName(def, ctxt->node, "txt") < 0)
+        goto cleanup;
+
+    if (virNetworkDNSTxtDefParseXML(def->name, ctxt->node, &txt, !isAdd) < 0)
+        goto cleanup;
+
+    for (foundIdx = 0; foundIdx < dns->ntxts; foundIdx++) {
+        if (STREQ(txt.name, dns->txts[foundIdx].name))
+            break;
+    }
+
+    if (isAdd) {
+
+        if (foundIdx < dns->ntxts) {
+            virReportError(VIR_ERR_OPERATION_INVALID,
+                           _("there is already a DNS TXT record "
+                             "with name '%s' in network %s"),
+                           txt.name, def->name);
+            goto cleanup;
+        }
+
+        /* add to beginning/end of list */
+        if (VIR_INSERT_ELEMENT(dns->txts,
+                               command == VIR_NETWORK_UPDATE_COMMAND_ADD_FIRST
+                               ? 0 : dns->ntxts, dns->ntxts, txt) < 0) {
+            virReportOOMError();
+            goto cleanup;
+        }
+
+    } else if (command == VIR_NETWORK_UPDATE_COMMAND_DELETE) {
+
+        if (foundIdx == dns->ntxts) {
+            virReportError(VIR_ERR_OPERATION_INVALID,
+                           _("couldn't locate a matching DNS TXT "
+                             "record in network %s"), def->name);
+            goto cleanup;
+        }
+
+        /* remove it */
+        virNetworkDNSTxtDefClear(&dns->txts[foundIdx]);
+        VIR_DELETE_ELEMENT(dns->txts, foundIdx, dns->ntxts);
+
+    } else {
+        virNetworkDefUpdateUnknownCommand(command);
+        goto cleanup;
+    }
+
+    ret = 0;
+cleanup:
+    virNetworkDNSTxtDefClear(&txt);
+    return ret;
+}
+
+static int
+virNetworkDefUpdateSection(virNetworkDefPtr def,
+                           unsigned int command, /* virNetworkUpdateCommand */
+                           unsigned int section, /* virNetworkUpdateSection */
+                           int parentIndex,
+                           const char *xml,
+                           unsigned int flags)  /* virNetworkUpdateFlags */
+{
+    int ret = -1;
+    xmlDocPtr doc;
+    xmlXPathContextPtr ctxt = NULL;
+
+    if (!(doc = virXMLParseStringCtxt(xml, _("network_update_xml"), &ctxt)))
+        goto cleanup;
+
+    switch (section) {
+    case VIR_NETWORK_SECTION_BRIDGE:
+       ret = virNetworkDefUpdateBridge(def, command, parentIndex, ctxt, flags);
+        break;
+
+    case VIR_NETWORK_SECTION_DOMAIN:
+        ret = virNetworkDefUpdateDomain(def, command, parentIndex, ctxt, flags);
+        break;
+    case VIR_NETWORK_SECTION_IP:
+        ret = virNetworkDefUpdateIP(def, command, parentIndex, ctxt, flags);
+        break;
+    case VIR_NETWORK_SECTION_IP_DHCP_HOST:
+        ret = virNetworkDefUpdateIPDHCPHost(def, command,
+                                            parentIndex, ctxt, flags);
+        break;
+    case VIR_NETWORK_SECTION_IP_DHCP_RANGE:
+        ret = virNetworkDefUpdateIPDHCPRange(def, command,
+                                             parentIndex, ctxt, flags);
+        break;
+    case VIR_NETWORK_SECTION_FORWARD:
+        ret = virNetworkDefUpdateForward(def, command,
+                                         parentIndex, ctxt, flags);
+        break;
+    case VIR_NETWORK_SECTION_FORWARD_INTERFACE:
+        ret = virNetworkDefUpdateForwardInterface(def, command,
+                                                  parentIndex, ctxt, flags);
+        break;
+    case VIR_NETWORK_SECTION_FORWARD_PF:
+        ret = virNetworkDefUpdateForwardPF(def, command,
+                                           parentIndex, ctxt, flags);
+        break;
+    case VIR_NETWORK_SECTION_PORTGROUP:
+        ret = virNetworkDefUpdatePortGroup(def, command,
+                                           parentIndex, ctxt, flags);
+        break;
+    case VIR_NETWORK_SECTION_DNS_HOST:
+        ret = virNetworkDefUpdateDNSHost(def, command,
+                                         parentIndex, ctxt, flags);
+        break;
+    case VIR_NETWORK_SECTION_DNS_TXT:
+        ret = virNetworkDefUpdateDNSTxt(def, command, parentIndex, ctxt, flags);
+        break;
+    case VIR_NETWORK_SECTION_DNS_SRV:
+        ret = virNetworkDefUpdateDNSSrv(def, command, parentIndex, ctxt, flags);
+        break;
+    default:
+        virReportError(VIR_ERR_NO_SUPPORT, "%s",
+                       _("can't update unrecognized section of network"));
+        break;
+    }
+
+cleanup:
+    xmlFreeDoc(doc);
+    xmlXPathFreeContext(ctxt);
+    return ret;
+}
+
+/*
+ * virNetworkObjUpdate:
+ *
+ * Apply the supplied update to the given virNetworkObj. Except for
+ * @network pointing to an actual network object rather than the
+ * opaque virNetworkPtr, parameters are identical to the public API
+ * virNetworkUpdate.
+ *
+ * The original virNetworkDefs are copied, and all modifications made
+ * to these copies. The originals are replaced with the copies only
+ * after success has been guaranteed.
+ *
+ * Returns: -1 on error, 0 on success.
+ */
+int
+virNetworkObjUpdate(virNetworkObjPtr network,
+                    unsigned int command, /* virNetworkUpdateCommand */
+                    unsigned int section, /* virNetworkUpdateSection */
+                    int parentIndex,
+                    const char *xml,
+                    unsigned int flags)  /* virNetworkUpdateFlags */
+{
+    int ret = -1;
+    virNetworkDefPtr livedef = NULL, configdef = NULL;
+
+    /* normalize config data, and check for common invalid requests. */
+    if (virNetworkConfigChangeSetup(network, flags) < 0)
+       goto cleanup;
+
+    if (flags & VIR_NETWORK_UPDATE_AFFECT_LIVE) {
+        virNetworkDefPtr checkdef;
+
+        /* work on a copy of the def */
+        if (!(livedef = virNetworkDefCopy(network->def, 0)))
+            goto cleanup;
+        if (virNetworkDefUpdateSection(livedef, command, section,
+                                       parentIndex, xml, flags) < 0) {
+            goto cleanup;
+        }
+        /* run a final format/parse cycle to make sure we didn't
+         * add anything illegal to the def
+         */
+        if (!(checkdef = virNetworkDefCopy(livedef, 0)))
+            goto cleanup;
+        virNetworkDefFree(checkdef);
+    }
+
+    if (flags & VIR_NETWORK_UPDATE_AFFECT_CONFIG) {
+        virNetworkDefPtr checkdef;
+
+        /* work on a copy of the def */
+        if (!(configdef = virNetworkDefCopy(virNetworkObjGetPersistentDef(network),
+                                            VIR_NETWORK_XML_INACTIVE))) {
+            goto cleanup;
+        }
+        if (virNetworkDefUpdateSection(configdef, command, section,
+                                       parentIndex, xml, flags) < 0) {
+            goto cleanup;
+        }
+        if (!(checkdef = virNetworkDefCopy(configdef,
+                                           VIR_NETWORK_XML_INACTIVE))) {
+            goto cleanup;
+        }
+        virNetworkDefFree(checkdef);
+    }
+
+    if (configdef) {
+        /* successfully modified copy, now replace original */
+        if (virNetworkObjReplacePersistentDef(network, configdef) < 0)
+           goto cleanup;
+        configdef = NULL;
+    }
+    if (livedef) {
+        /* successfully modified copy, now replace original */
+        virNetworkDefFree(network->def);
+        network->def = livedef;
+        livedef = NULL;
+    }
+
+    ret = 0;
+cleanup:
+    virNetworkDefFree(livedef);
+    virNetworkDefFree(configdef);
+    return ret;
 }
 
 /*
@@ -1869,7 +3840,7 @@ void virNetworkSetBridgeMacAddr(virNetworkDefPtr def)
 int
 virNetworkObjIsDuplicate(virNetworkObjListPtr doms,
                          virNetworkDefPtr def,
-                         unsigned int check_active)
+                         bool check_active)
 {
     int ret = -1;
     int dupVM = 0;
@@ -1882,18 +3853,18 @@ virNetworkObjIsDuplicate(virNetworkObjListPtr doms,
         if (STRNEQ(vm->def->name, def->name)) {
             char uuidstr[VIR_UUID_STRING_BUFLEN];
             virUUIDFormat(vm->def->uuid, uuidstr);
-            virNetworkReportError(VIR_ERR_OPERATION_FAILED,
-                                  _("network '%s' is already defined with uuid %s"),
-                                  vm->def->name, uuidstr);
+            virReportError(VIR_ERR_OPERATION_FAILED,
+                           _("network '%s' is already defined with uuid %s"),
+                           vm->def->name, uuidstr);
             goto cleanup;
         }
 
         if (check_active) {
             /* UUID & name match, but if VM is already active, refuse it */
             if (virNetworkObjIsActive(vm)) {
-                virNetworkReportError(VIR_ERR_OPERATION_INVALID,
-                                      _("network is already active as '%s'"),
-                                      vm->def->name);
+                virReportError(VIR_ERR_OPERATION_INVALID,
+                               _("network is already active as '%s'"),
+                               vm->def->name);
                 goto cleanup;
             }
         }
@@ -1905,9 +3876,9 @@ virNetworkObjIsDuplicate(virNetworkObjListPtr doms,
         if (vm) {
             char uuidstr[VIR_UUID_STRING_BUFLEN];
             virUUIDFormat(vm->def->uuid, uuidstr);
-            virNetworkReportError(VIR_ERR_OPERATION_FAILED,
-                                  _("network '%s' already exists with uuid %s"),
-                                  def->name, uuidstr);
+            virReportError(VIR_ERR_OPERATION_FAILED,
+                           _("network '%s' already exists with uuid %s"),
+                           def->name, uuidstr);
             goto cleanup;
         }
     }
@@ -1928,4 +3899,95 @@ void virNetworkObjLock(virNetworkObjPtr obj)
 void virNetworkObjUnlock(virNetworkObjPtr obj)
 {
     virMutexUnlock(&obj->lock);
+}
+
+#define MATCH(FLAG) (flags & (FLAG))
+static bool
+virNetworkMatch(virNetworkObjPtr netobj,
+                unsigned int flags)
+{
+    /* filter by active state */
+    if (MATCH(VIR_CONNECT_LIST_NETWORKS_FILTERS_ACTIVE) &&
+        !((MATCH(VIR_CONNECT_LIST_NETWORKS_ACTIVE) &&
+           virNetworkObjIsActive(netobj)) ||
+          (MATCH(VIR_CONNECT_LIST_NETWORKS_INACTIVE) &&
+           !virNetworkObjIsActive(netobj))))
+        return false;
+
+    /* filter by persistence */
+    if (MATCH(VIR_CONNECT_LIST_NETWORKS_FILTERS_PERSISTENT) &&
+        !((MATCH(VIR_CONNECT_LIST_NETWORKS_PERSISTENT) &&
+           netobj->persistent) ||
+          (MATCH(VIR_CONNECT_LIST_NETWORKS_TRANSIENT) &&
+           !netobj->persistent)))
+        return false;
+
+    /* filter by autostart option */
+    if (MATCH(VIR_CONNECT_LIST_NETWORKS_FILTERS_AUTOSTART) &&
+        !((MATCH(VIR_CONNECT_LIST_NETWORKS_AUTOSTART) &&
+           netobj->autostart) ||
+          (MATCH(VIR_CONNECT_LIST_NETWORKS_NO_AUTOSTART) &&
+           !netobj->autostart)))
+        return false;
+
+    return true;
+}
+#undef MATCH
+
+int
+virNetworkList(virConnectPtr conn,
+               virNetworkObjList netobjs,
+               virNetworkPtr **nets,
+               unsigned int flags)
+{
+    virNetworkPtr *tmp_nets = NULL;
+    virNetworkPtr net = NULL;
+    int nnets = 0;
+    int ret = -1;
+    int i;
+
+    if (nets) {
+        if (VIR_ALLOC_N(tmp_nets, netobjs.count + 1) < 0) {
+            virReportOOMError();
+            goto cleanup;
+        }
+    }
+
+    for (i = 0; i < netobjs.count; i++) {
+        virNetworkObjPtr netobj = netobjs.objs[i];
+        virNetworkObjLock(netobj);
+        if (virNetworkMatch(netobj, flags)) {
+            if (nets) {
+                if (!(net = virGetNetwork(conn,
+                                          netobj->def->name,
+                                          netobj->def->uuid))) {
+                    virNetworkObjUnlock(netobj);
+                    goto cleanup;
+                }
+                tmp_nets[nnets] = net;
+            }
+            nnets++;
+        }
+        virNetworkObjUnlock(netobj);
+    }
+
+    if (tmp_nets) {
+        /* trim the array to the final size */
+        ignore_value(VIR_REALLOC_N(tmp_nets, nnets + 1));
+        *nets = tmp_nets;
+        tmp_nets = NULL;
+    }
+
+    ret = nnets;
+
+cleanup:
+    if (tmp_nets) {
+        for (i = 0; i < nnets; i++) {
+            if (tmp_nets[i])
+                virNetworkFree(tmp_nets[i]);
+        }
+    }
+
+    VIR_FREE(tmp_nets);
+    return ret;
 }

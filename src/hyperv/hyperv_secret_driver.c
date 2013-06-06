@@ -16,20 +16,20 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  */
 
 #include <config.h>
 
 #include "internal.h"
-#include "virterror_internal.h"
+#include "virerror.h"
 #include "datatypes.h"
-#include "util.h"
-#include "memory.h"
-#include "logging.h"
-#include "uuid.h"
+#include "virutil.h"
+#include "viralloc.h"
+#include "virlog.h"
+#include "viruuid.h"
 #include "hyperv_secret_driver.h"
 
 #define VIR_FROM_THIS VIR_FROM_HYPERV
@@ -66,8 +66,8 @@ hypervSecretClose(virConnectPtr conn)
 
 static virSecretDriver hypervSecretDriver = {
     .name = "Hyper-V",
-    .open = hypervSecretOpen, /* 0.9.5 */
-    .close = hypervSecretClose, /* 0.9.5 */
+    .secretOpen = hypervSecretOpen, /* 0.9.5 */
+    .secretClose = hypervSecretClose, /* 0.9.5 */
 };
 
 

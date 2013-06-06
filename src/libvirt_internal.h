@@ -14,8 +14,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * NB This file is ABI sensitive. Things here impact the wire
  * protocol ABI in the remote driver. Same rules as for things
@@ -28,10 +28,15 @@
 # include "internal.h"
 
 # ifdef WITH_LIBVIRTD
-int virStateInitialize(int privileged);
+typedef void (*virStateInhibitCallback)(bool inhibit,
+                                        void *opaque);
+
+int virStateInitialize(bool privileged,
+                       virStateInhibitCallback inhibit,
+                       void *opaque);
 int virStateCleanup(void);
 int virStateReload(void);
-int virStateActive(void);
+int virStateStop(void);
 # endif
 
 /* Feature detection.  This is a libvirt-private interface for determining
@@ -95,10 +100,20 @@ enum {
      * messages).
      */
     VIR_DRV_FEATURE_PROGRAM_KEEPALIVE = 10,
+
+    /*
+     * Support for VIR_DOMAIN_XML_MIGRATABLE flag in domainGetXMLDesc
+     */
+    VIR_DRV_FEATURE_XML_MIGRATABLE = 11,
+
+    /*
+     * Support for offline migration.
+     */
+    VIR_DRV_FEATURE_MIGRATION_OFFLINE = 12,
 };
 
 
-int virDrvSupportsFeature (virConnectPtr conn, int feature);
+int virConnectSupportsFeature(virConnectPtr conn, int feature);
 
 int virDomainMigratePrepare (virConnectPtr dconn,
                              char **cookie,

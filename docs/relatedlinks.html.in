@@ -59,6 +59,27 @@
       <li>
         <a href="http://en.wikipedia.org/wiki/Virtualization">Wikipedia Virtualization</a>
       </li>
+      <li>
+        <a href="http://www.ibm.com/developerworks/linux/library/l-kvm-libvirt-audit/index.html">IBM developerworks article about libvirt and audit.</a>
+      </li>
+    </ul>
+
+    <h2>Blogs and Podcasts</h2>
+
+    <ul>
+      <li>
+        <a href="http://twit.tv/show/floss-weekly/213">FLOSS Weekly
+        podcast on the topic of libvirt</a>
+      </li>
+      <li>
+        <a href="http://berrange.com/topics/libvirt/">Daniel
+        Berrange's blog on useful libvirt development tips</a>
+      </li>
+      <li>
+        <a href="http://planet.virt-tools.org/index.html">Virt Tools
+        Blog Planet: blog aggregation of several virt-related
+        feeds</a>
+      </li>
     </ul>
 
   </body>

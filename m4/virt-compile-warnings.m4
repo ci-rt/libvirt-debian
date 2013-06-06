@@ -55,6 +55,62 @@ AC_DEFUN([LIBVIRT_COMPILE_WARNINGS],[
     dontwarn="$dontwarn -Wunsafe-loop-optimizations"
     # Things like virAsprintf mean we can't use this
     dontwarn="$dontwarn -Wformat-nonliteral"
+    # Gnulib's stat-time.h violates this
+    dontwarn="$dontwarn -Waggregate-return"
+    # gcc 4.4.6 complains this is C++ only; gcc 4.7.0 implies this from -Wall
+    dontwarn="$dontwarn -Wenum-compare"
+
+    # gcc 4.2 treats attribute(format) as an implicit attribute(nonnull),
+    # which triggers spurious warnings for our usage
+    AC_CACHE_CHECK([whether gcc -Wformat allows NULL strings],
+      [lv_cv_gcc_wformat_null_works], [
+      save_CFLAGS=$CFLAGS
+      CFLAGS='-Wunknown-pragmas -Werror -Wformat'
+      AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
+        #include <stddef.h>
+        static __attribute__ ((__format__ (__printf__, 1, 2))) int
+        foo (const char *fmt, ...) { return !fmt; }
+      ]], [[
+        return foo(NULL);
+      ]])],
+      [lv_cv_gcc_wformat_null_works=yes],
+      [lv_cv_gcc_wformat_null_works=no])
+      CFLAGS=$save_CFLAGS])
+
+    # Gnulib uses '#pragma GCC diagnostic push' to silence some
+    # warnings, but older gcc doesn't support this.
+    AC_CACHE_CHECK([whether pragma GCC diagnostic push works],
+      [lv_cv_gcc_pragma_push_works], [
+      save_CFLAGS=$CFLAGS
+      CFLAGS='-Wunknown-pragmas -Werror'
+      AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
+        #pragma GCC diagnostic push
+        #pragma GCC diagnostic pop
+      ]])],
+      [lv_cv_gcc_pragma_push_works=yes],
+      [lv_cv_gcc_pragma_push_works=no])
+      CFLAGS=$save_CFLAGS])
+    if test $lv_cv_gcc_pragma_push_works = no; then
+      dontwarn="$dontwarn -Wmissing-prototypes"
+      dontwarn="$dontwarn -Wmissing-declarations"
+      dontwarn="$dontwarn -Wcast-align"
+    fi
+
+    dnl Check whether strchr(s, char variable) causes a bogus compile
+    dnl warning, which is the case with GCC < 4.6 on some glibc
+    AC_CACHE_CHECK([whether GCC -Wlogical-op gives bogus warnings],
+      [lv_cv_gcc_wlogical_op_broken], [
+      save_CFLAGS="$CFLAGS"
+      CFLAGS="-O2 -Wlogical-op -Werror"
+      AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
+        #include <string.h>
+        ]], [[
+        const char *haystack;
+        char needle;
+        return strchr(haystack, needle) == haystack;]])],
+        [lv_cv_gcc_wlogical_op_broken=no],
+        [lv_cv_gcc_wlogical_op_broken=yes])
+      CFLAGS="$save_CFLAGS"])
 
     # We might fundamentally need some of these disabled forever, but
     # ideally we'd turn many of them on
@@ -90,8 +146,14 @@ AC_DEFUN([LIBVIRT_COMPILE_WARNINGS],[
     gl_WARN_ADD([-Wjump-misses-init])
 
     # GNULIB turns on -Wformat=2 which implies -Wformat-nonliteral,
-    # so we need to manually re-exclude it.
+    # so we need to manually re-exclude it.  Also, older gcc 4.2
+    # added an implied ATTRIBUTE_NONNULL on any parameter marked
+    # ATTRIBUTE_FMT_PRINT, which causes -Wformat failure on our
+    # intentional use of virReportError(code, NULL).
     gl_WARN_ADD([-Wno-format-nonliteral])
+    if test $lv_cv_gcc_wformat_null_works = no; then
+      gl_WARN_ADD([-Wno-format])
+    fi
 
     # This should be < 256 really. Currently we're down to 4096,
     # but using 1024 bytes sized buffers (mostly for virStrerror)
@@ -102,8 +164,13 @@ AC_DEFUN([LIBVIRT_COMPILE_WARNINGS],[
     # Silence certain warnings in gnulib, and use improved glibc headers
     AC_DEFINE([lint], [1],
       [Define to 1 if the compiler is checking for lint.])
-    AC_DEFINE([_FORTIFY_SOURCE], [2],
-      [enable compile-time and run-time bounds-checking, and some warnings])
+    AH_VERBATIM([FORTIFY_SOURCE],
+    [/* Enable compile-time and run-time bounds-checking, and some warnings,
+        without upsetting newer glibc. */
+     #if !defined _FORTIFY_SOURCE && defined __OPTIMIZE__ && __OPTIMIZE__
+     # define _FORTIFY_SOURCE 2
+     #endif
+    ])
 
     # Extra special flags
     dnl -fstack-protector stuff passes gl_WARN_ADD with gcc
@@ -146,4 +213,10 @@ AC_DEFUN([LIBVIRT_COMPILE_WARNINGS],[
     WARN_PYTHON_CFLAGS=$WARN_CFLAGS
     AC_SUBST(WARN_PYTHON_CFLAGS)
     WARN_CFLAGS=$save_WARN_CFLAGS
+
+    if test "$gl_cv_warn_c__Wlogical_op" = yes &&
+       test "$lv_cv_gcc_wlogical_op_broken" = yes; then
+      AC_DEFINE_UNQUOTED([BROKEN_GCC_WLOGICALOP], 1,
+       [Define to 1 if gcc -Wlogical-op reports false positives on strchr])
+    fi
 ])

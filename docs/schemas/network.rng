@@ -12,6 +12,21 @@
   <define name="network">
 
     <element name="network">
+      <optional>
+        <attribute name="connections">
+          <data type="unsignedInt"/>
+        </attribute>
+      </optional>
+      <!-- Enables IPv6 guest-to-guest communications on a network
+           with no gateways addresses specified -->
+      <optional>
+        <attribute name="ipv6">
+         <choice>
+          <value>yes</value>
+          <value>no</value>
+          </choice>
+         </attribute>
+       </optional>
       <interleave>
 
         <!-- The name of the network, used to refer to it through the API
@@ -82,22 +97,67 @@
                   <value>passthrough</value>
                   <value>private</value>
                   <value>vepa</value>
+                  <value>hostdev</value>
+                </choice>
+              </attribute>
+            </optional>
+
+            <optional>
+              <attribute name="managed">
+                <choice>
+                  <value>yes</value>
+                  <value>no</value>
                 </choice>
               </attribute>
             </optional>
             <interleave>
-              <zeroOrMore>
-                <element name='interface'>
-                  <attribute name='dev'>
-                    <ref name='deviceName'/>
-                  </attribute>
-                </element>
-              </zeroOrMore>
+              <choice>
+                <group>
+                  <zeroOrMore>
+                    <element name='interface'>
+                      <attribute name='dev'>
+                        <ref name='deviceName'/>
+                      </attribute>
+                      <optional>
+                        <attribute name="connections">
+                          <data type="unsignedInt"/>
+                        </attribute>
+                      </optional>
+                    </element>
+                  </zeroOrMore>
+                </group>
+                <group>
+                  <zeroOrMore>
+                    <element name='address'>
+                      <attribute name='type'>
+                        <value>pci</value>
+                      </attribute>
+                      <ref name="pciaddress"/>
+                      <optional>
+                        <attribute name="connections">
+                          <data type="unsignedInt"/>
+                        </attribute>
+                      </optional>
+                    </element>
+                  </zeroOrMore>
+                </group>
+              </choice>
               <optional>
                 <element name='pf'>
                   <attribute name='dev'>
                     <ref name='deviceName'/>
                   </attribute>
+                </element>
+              </optional>
+              <optional>
+                <element name="driver">
+                  <attribute name="name">
+                    <choice>
+                      <value>kvm</value>
+                      <value>vfio</value>
+                    </choice>
+                  </attribute>
+                  <empty/>
                 </element>
               </optional>
             </interleave>
@@ -123,9 +183,17 @@
                 </choice>
               </attribute>
             </optional>
+            <interleave>
+              <optional>
+                <ref name="virtualPortProfile"/>
+              </optional>
+              <optional>
+                <ref name="bandwidth"/>
+              </optional>
             <optional>
-              <ref name="virtualPortProfile"/>
+              <ref name="vlan"/>
             </optional>
+            </interleave>
           </element>
         </zeroOrMore>
 
@@ -161,7 +229,7 @@
               </zeroOrMore>
               <zeroOrMore>
                 <element name="host">
-                  <attribute name="ip"><ref name="ipv4Addr"/></attribute>
+                  <attribute name="ip"><ref name="ipAddr"/></attribute>
                   <oneOrMore>
                     <element name="hostname"><ref name="dnsName"/></element>
                   </oneOrMore>
@@ -171,6 +239,9 @@
         </optional>
        <optional>
          <ref name="bandwidth"/>
+       </optional>
+       <optional>
+         <ref name="vlan"/>
        </optional>
        <optional>
          <element name="link">
@@ -212,15 +283,25 @@
               <element name="dhcp">
                 <zeroOrMore>
                   <element name="range">
-                    <attribute name="start"><ref name="ipv4Addr"/></attribute>
-                    <attribute name="end"><ref name="ipv4Addr"/></attribute>
+                    <attribute name="start"><ref name="ipAddr"/></attribute>
+                    <attribute name="end"><ref name="ipAddr"/></attribute>
                   </element>
                 </zeroOrMore>
                 <zeroOrMore>
                   <element name="host">
-                    <attribute name="mac"><ref name="uniMacAddr"/></attribute>
-                    <attribute name="name"><text/></attribute>
-                    <attribute name="ip"><ref name="ipv4Addr"/></attribute>
+                    <choice>
+                      <group>
+                        <choice>
+                          <attribute name="mac"><ref name="uniMacAddr"/></attribute>
+                          <attribute name="id"><ref name="DUID"/></attribute>
+                        </choice>
+                        <optional>
+                          <attribute name="name"><text/></attribute>
+                        </optional>
+                      </group>
+                      <attribute name="name"><text/></attribute>
+                    </choice>
+                    <attribute name="ip"><ref name="ipAddr"/></attribute>
                   </element>
                 </zeroOrMore>
                 <optional>

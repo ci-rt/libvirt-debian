@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2009-2011 Red Hat, Inc.
+ * Copyright (C) 2009-2013 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -12,8 +12,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Authors:
  *     Daniel Veillard <veillard@redhat.com>
@@ -24,15 +24,12 @@
 #include <config.h>
 
 #include "virsocketaddr.h"
-#include "virterror_internal.h"
-#include "util.h"
+#include "virerror.h"
+#include "virutil.h"
 
 #include <netdb.h>
 
 #define VIR_FROM_THIS VIR_FROM_NONE
-#define virSocketError(code, ...)                                       \
-    virReportErrorHelper(VIR_FROM_THIS, code, __FILE__,                 \
-                         __FUNCTION__, __LINE__, __VA_ARGS__)
 
 /*
  * Helpers to extract the IP arrays from the virSocketAddrPtr
@@ -92,7 +89,7 @@ int virSocketAddrParse(virSocketAddrPtr addr, const char *val, int family) {
     int err;
 
     if (val == NULL) {
-        virSocketError(VIR_ERR_INVALID_ARG, "%s", _("Missing address"));
+        virReportError(VIR_ERR_INVALID_ARG, "%s", _("Missing address"));
         return -1;
     }
 
@@ -100,14 +97,14 @@ int virSocketAddrParse(virSocketAddrPtr addr, const char *val, int family) {
     hints.ai_family = family;
     hints.ai_flags = AI_NUMERICHOST;
     if ((err = getaddrinfo(val, NULL, &hints, &res)) != 0) {
-        virSocketError(VIR_ERR_SYSTEM_ERROR,
+        virReportError(VIR_ERR_SYSTEM_ERROR,
                        _("Cannot parse socket address '%s': %s"),
                        val, gai_strerror(err));
         return -1;
     }
 
     if (res == NULL) {
-        virSocketError(VIR_ERR_SYSTEM_ERROR,
+        virReportError(VIR_ERR_SYSTEM_ERROR,
                        _("No socket addresses found for '%s'"),
                        val);
         return -1;
@@ -152,6 +149,84 @@ virSocketAddrParseIPv6(virSocketAddrPtr addr, const char *val) {
 }
 
 /*
+ * virSocketAddrSetIPv4Addr:
+ * @addr: the location to store the result
+ * @val: the 32bit integer in host byte order representing the IPv4 address
+ *
+ * Set the IPv4 address given an integer in host order. This function does not
+ * touch any previously set port.
+ */
+void
+virSocketAddrSetIPv4Addr(virSocketAddrPtr addr, uint32_t val)
+{
+    addr->data.stor.ss_family = AF_INET;
+    addr->data.inet4.sin_addr.s_addr = htonl(val);
+    addr->len = sizeof(struct sockaddr_in);
+}
+
+/*
+ * virSocketAddrEqual:
+ * @s1: the location of the one IP address
+ * @s2: the location of the other IP address
+ *
+ * Compare two IP addresses for equality. Two addresses are equal
+ * if their IP addresses and ports are equal.
+ */
+bool
+virSocketAddrEqual(const virSocketAddrPtr s1, const virSocketAddrPtr s2)
+{
+    if (s1->data.stor.ss_family != s2->data.stor.ss_family)
+        return false;
+
+    switch (s1->data.stor.ss_family) {
+    case AF_INET:
+        return (memcmp(&s1->data.inet4.sin_addr.s_addr,
+                       &s2->data.inet4.sin_addr.s_addr,
+                       sizeof(s1->data.inet4.sin_addr.s_addr)) == 0 &&
+                s1->data.inet4.sin_port == s2->data.inet4.sin_port);
+    case AF_INET6:
+        return (memcmp(&s1->data.inet6.sin6_addr.s6_addr,
+                       &s2->data.inet6.sin6_addr.s6_addr,
+                       sizeof(s1->data.inet6.sin6_addr.s6_addr)) == 0 &&
+                s1->data.inet6.sin6_port == s2->data.inet6.sin6_port);
+    }
+    return false;
+}
+
+/*
+ * virSocketAddrIsPrivate:
+ * @s: the location of the IP address
+ *
+ * Return true if this address is in its family's defined
+ * "private/local" address space. For IPv4, private addresses are in
+ * the range of 192.168.0.0/16, 172.16.0.0/12, or 10.0.0.0/8.  For
+ * IPv6, local addresses are in the range of FC00::/7 or FEC0::/10
+ * (that last one is deprecated, but still in use).
+ *
+ * See RFC1918, RFC3484, and RFC4193 for details.
+ */
+bool
+virSocketAddrIsPrivate(const virSocketAddrPtr addr)
+{
+    unsigned long val;
+
+    switch (addr->data.stor.ss_family) {
+    case AF_INET:
+       val = ntohl(addr->data.inet4.sin_addr.s_addr);
+
+       return ((val & 0xFFFF0000) == ((192L << 24) + (168 << 16)) ||
+               (val & 0xFFF00000) == ((172L << 24) + (16  << 16)) ||
+               (val & 0xFF000000) == ((10L  << 24)));
+
+    case AF_INET6:
+        return ((addr->data.inet6.sin6_addr.s6_addr[0] & 0xFE) == 0xFC ||
+                ((addr->data.inet6.sin6_addr.s6_addr[0] & 0xFF) == 0xFE &&
+                 (addr->data.inet6.sin6_addr.s6_addr[1] & 0xC0) == 0xC0));
+    }
+    return false;
+}
+
+/*
  * virSocketAddrFormat:
  * @addr: an initialized virSocketAddrPtr
  *
@@ -185,7 +260,7 @@ virSocketAddrFormatFull(virSocketAddrPtr addr,
     int err;
 
     if (addr == NULL) {
-        virSocketError(VIR_ERR_INVALID_ARG, "%s", _("Missing address"));
+        virReportError(VIR_ERR_INVALID_ARG, "%s", _("Missing address"));
         return NULL;
     }
 
@@ -208,7 +283,7 @@ virSocketAddrFormatFull(virSocketAddrPtr addr,
                            host, sizeof(host),
                            port, sizeof(port),
                            NI_NUMERICHOST | NI_NUMERICSERV)) != 0) {
-        virSocketError(VIR_ERR_SYSTEM_ERROR,
+        virReportError(VIR_ERR_SYSTEM_ERROR,
                        _("Cannot convert socket address to string: %s"),
                        gai_strerror(err));
         return NULL;
@@ -246,15 +321,11 @@ virSocketAddrSetPort(virSocketAddrPtr addr, int port) {
 
     port = htons(port);
 
-    if(addr->data.stor.ss_family == AF_INET) {
+    if (addr->data.stor.ss_family == AF_INET) {
         addr->data.inet4.sin_port = port;
-    }
-
-    else if(addr->data.stor.ss_family == AF_INET6) {
+    } else if (addr->data.stor.ss_family == AF_INET6) {
         addr->data.inet6.sin6_port = port;
-    }
-
-    else {
+    } else {
         return -1;
     }
 
@@ -273,11 +344,9 @@ virSocketAddrGetPort(virSocketAddrPtr addr) {
     if (addr == NULL)
         return -1;
 
-    if(addr->data.stor.ss_family == AF_INET) {
+    if (addr->data.stor.ss_family == AF_INET) {
         return ntohs(addr->data.inet4.sin_port);
-    }
-
-    else if(addr->data.stor.ss_family == AF_INET6) {
+    } else if (addr->data.stor.ss_family == AF_INET6) {
         return ntohs(addr->data.inet6.sin6_port);
     }
 
@@ -376,7 +445,7 @@ virSocketAddrMaskByPrefix(const virSocketAddrPtr addr,
  * virSocketAddrBroadcast:
  * @addr: address that needs to be turned into broadcast address (IPv4 only)
  * @netmask: the netmask address
- * @broadcast: virSocketAddr to recieve the broadcast address
+ * @broadcast: virSocketAddr to receive the broadcast address
  *
  * Mask ON the host bits of @addr according to @netmask, turning it
  * into a broadcast address.
@@ -406,7 +475,7 @@ virSocketAddrBroadcast(const virSocketAddrPtr addr,
  * virSocketAddrBroadcastByPrefix:
  * @addr: address that needs to be turned into broadcast address (IPv4 only)
  * @prefix: prefix (# of 1 bits) of netmask to apply
- * @broadcast: virSocketAddr to recieve the broadcast address
+ * @broadcast: virSocketAddr to receive the broadcast address
  *
  * Mask off the host bits of @addr according to @prefix, turning it
  * into a network address.
@@ -685,4 +754,53 @@ virSocketAddrPrefixToNetmask(unsigned int prefix,
 
 error:
     return result;
+ }
+
+/**
+ * virSocketAddrGetIpPrefix:
+ * @address: network address
+ * @netmask: netmask for this network
+ * @prefix: prefix if specified instead of netmask
+ *
+ * Returns prefix value on success or -1 on error.
+ */
+
+int
+virSocketAddrGetIpPrefix(const virSocketAddrPtr address,
+                         const virSocketAddrPtr netmask,
+                         int prefix)
+{
+    if (prefix > 0) {
+        return prefix;
+    } else if (VIR_SOCKET_ADDR_VALID(netmask)) {
+        return virSocketAddrGetNumNetmaskBits(netmask);
+    } else if (VIR_SOCKET_ADDR_IS_FAMILY(address, AF_INET)) {
+        /* Return the natural prefix for the network's ip address.
+         * On Linux we could use the IN_CLASSx() macros, but those
+         * aren't guaranteed on all platforms, so we just deal with
+         * the bits ourselves.
+         */
+        unsigned char octet
+            = ntohl(address->data.inet4.sin_addr.s_addr) >> 24;
+        if ((octet & 0x80) == 0) {
+            /* Class A network */
+            return 8;
+        } else if ((octet & 0xC0) == 0x80) {
+            /* Class B network */
+            return 16;
+        } else if ((octet & 0xE0) == 0xC0) {
+            /* Class C network */
+            return 24;
+        }
+        return -1;
+    } else if (VIR_SOCKET_ADDR_IS_FAMILY(address, AF_INET6)) {
+        return 64;
+    }
+
+    /* When none of the three (address/netmask/prefix) is given, 0 is
+     * returned rather than error, because this is a valid
+     * expectation, e.g. for the address/prefix used for a default
+     * route (the destination of a default route is 0.0.0.0/0).
+     */
+    return 0;
 }

@@ -1,7 +1,7 @@
 /*
  * qemu_conf.h: QEMU configuration management
  *
- * Copyright (C) 2006-2007, 2009-2012 Red Hat, Inc.
+ * Copyright (C) 2006-2007, 2009-2013 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -15,8 +15,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Author: Daniel P. Berrange <berrange@redhat.com>
  */
@@ -26,52 +26,66 @@
 
 # include <config.h>
 
-# include "ebtables.h"
+# include "virebtables.h"
 # include "internal.h"
 # include "capabilities.h"
 # include "network_conf.h"
 # include "domain_conf.h"
 # include "domain_event.h"
-# include "threads.h"
+# include "virthread.h"
 # include "security/security_manager.h"
-# include "cgroup.h"
-# include "pci.h"
-# include "hostusb.h"
+# include "virpci.h"
+# include "virusb.h"
 # include "cpu_conf.h"
 # include "driver.h"
-# include "bitmap.h"
-# include "command.h"
-# include "threadpool.h"
+# include "virportallocator.h"
+# include "vircommand.h"
+# include "virthreadpool.h"
 # include "locking/lock_manager.h"
+# include "qemu_capabilities.h"
 
 # define QEMUD_CPUMASK_LEN CPU_SETSIZE
 
-typedef struct _qemuDriverCloseDef qemuDriverCloseDef;
-typedef qemuDriverCloseDef *qemuDriverCloseDefPtr;
+typedef struct _virQEMUCloseCallbacks virQEMUCloseCallbacks;
+typedef virQEMUCloseCallbacks *virQEMUCloseCallbacksPtr;
 
-/* Main driver state */
-struct qemud_driver {
-    virMutex lock;
+typedef struct _virQEMUDriver virQEMUDriver;
+typedef virQEMUDriver *virQEMUDriverPtr;
 
-    virThreadPoolPtr workerPool;
+typedef struct _virQEMUDriverConfig virQEMUDriverConfig;
+typedef virQEMUDriverConfig *virQEMUDriverConfigPtr;
 
-    int privileged;
+/* Main driver config. The data in these object
+ * instances is immutable, so can be accessed
+ * without locking. Threads must, however, hold
+ * a valid reference on the object to prevent it
+ * being released while they use it.
+ *
+ * eg
+ *  qemuDriverLock(driver);
+ *  virQEMUDriverConfigPtr cfg = virObjectRef(driver->config);
+ *  qemuDriverUnlock(driver);
+ *
+ *  ...do stuff with 'cfg'..
+ *
+ *  virObjectUnref(cfg);
+ */
+struct _virQEMUDriverConfig {
+    virObject parent;
+
+    bool privileged;
+    const char *uri;
 
     uid_t user;
     gid_t group;
     int dynamicOwnership;
 
-    unsigned int qemuVersion;
-    int nextvmid;
-
-    virCgroupPtr cgroup;
     int cgroupControllers;
     char **cgroupDeviceACL;
 
-    virDomainObjList domains;
-
-    /* These four directories are ones libvirtd uses (so must be root:root
+    /* These five directories are ones libvirtd uses (so must be root:root
      * to avoid security risk from QEMU processes */
+    char *configBaseDir;
     char *configDir;
     char *autostartDir;
     char *logDir;
@@ -82,74 +96,128 @@ struct qemud_driver {
     char *cacheDir;
     char *saveDir;
     char *snapshotDir;
-    char *qemuImgBinary;
-    unsigned int vncAutoUnixSocket : 1;
-    unsigned int vncTLS : 1;
-    unsigned int vncTLSx509verify : 1;
-    unsigned int vncSASL : 1;
+
+    bool vncAutoUnixSocket;
+    bool vncTLS;
+    bool vncTLSx509verify;
+    bool vncSASL;
     char *vncTLSx509certdir;
     char *vncListen;
     char *vncPassword;
     char *vncSASLdir;
-    unsigned int spiceTLS : 1;
+
+    bool spiceTLS;
     char *spiceTLSx509certdir;
     char *spiceListen;
     char *spicePassword;
-    char *hugetlbfs_mount;
-    char *hugepage_path;
 
-    unsigned int macFilter : 1;
-    ebtablesContext *ebtables;
+    int remotePortMin;
+    int remotePortMax;
 
-    unsigned int relaxedACS : 1;
-    unsigned int vncAllowHostAudio : 1;
-    unsigned int clearEmulatorCapabilities : 1;
-    unsigned int allowDiskFormatProbing : 1;
-    unsigned int setProcessName : 1;
+    char *hugetlbfsMount;
+    char *hugepagePath;
+    char *bridgeHelperName;
+
+    bool macFilter;
+
+    bool relaxedACS;
+    bool vncAllowHostAudio;
+    bool clearEmulatorCapabilities;
+    bool allowDiskFormatProbing;
+    bool setProcessName;
 
     int maxProcesses;
     int maxFiles;
 
-    int max_queued;
+    int maxQueuedJobs;
 
-    virCapsPtr caps;
-
-    virDomainEventStatePtr domainEventState;
-
-    char *securityDriverName;
+    char **securityDriverNames;
     bool securityDefaultConfined;
     bool securityRequireConfined;
-    virSecurityManagerPtr securityManager;
 
     char *saveImageFormat;
     char *dumpImageFormat;
 
     char *autoDumpPath;
     bool autoDumpBypassCache;
-
     bool autoStartBypassCache;
 
-    pciDeviceList *activePciHostdevs;
-    usbDeviceList *activeUsbHostdevs;
-
-    /* The devices which is are not in use by the host or any guest. */
-    pciDeviceList *inactivePciHostdevs;
-
-    virBitmapPtr reservedVNCPorts;
-
-    virSysinfoDefPtr hostsysinfo;
-
-    virLockManagerPluginPtr lockManager;
-
-    /* Mapping of 'char *uuidstr' -> qemuDriverCloseDefPtr of domains
-     * which want a specific cleanup to be done when a connection is
-     * closed. Such cleanup may be to automatically destroy the
-     * domain or abort a particular job running on it.
-     */
-    virHashTablePtr closeCallbacks;
+    char *lockManagerName;
 
     int keepAliveInterval;
     unsigned int keepAliveCount;
+
+    int seccompSandbox;
+};
+
+/* Main driver state */
+struct _virQEMUDriver {
+    virMutex lock;
+
+    /* Require lock to get reference on 'config',
+     * then lockless thereafter */
+    virQEMUDriverConfigPtr config;
+
+    /* Immutable pointer, self-locking APIs */
+    virThreadPoolPtr workerPool;
+
+    /* Atomic increment only */
+    int nextvmid;
+
+    /* Atomic inc/dec only */
+    unsigned int nactive;
+
+    /* Immutable pointers. Caller must provide locking */
+    virStateInhibitCallback inhibitCallback;
+    void *inhibitOpaque;
+
+    /* Immutable pointer, self-locking APIs */
+    virDomainObjListPtr domains;
+
+    /* Immutable pointer */
+    char *qemuImgBinary;
+
+    /* Immutable pointer, lockless APIs. Pointless abstraction */
+    ebtablesContext *ebtables;
+
+    /* Require lock to get a reference on the object,
+     * lockless access thereafter
+     */
+    virCapsPtr caps;
+
+    /* Immutable pointer, Immutable object */
+    virDomainXMLOptionPtr xmlopt;
+
+    /* Immutable pointer, self-locking APIs */
+    virQEMUCapsCachePtr qemuCapsCache;
+
+    /* Immutable pointer, self-locking APIs */
+    virDomainEventStatePtr domainEventState;
+
+    /* Immutable pointer. self-locking APIs */
+    virSecurityManagerPtr securityManager;
+
+    /* Immutable pointers. Requires locks to be held before
+     * calling APIs. activePciHostdevs must be locked before
+     * inactivePciHostdevs */
+    virPCIDeviceListPtr activePciHostdevs;
+    virPCIDeviceListPtr inactivePciHostdevs;
+    virUSBDeviceListPtr activeUsbHostdevs;
+
+    /* Immutable pointer. Unsafe APIs. XXX */
+    virHashTablePtr sharedDisks;
+
+    /* Immutable pointer, self-locking APIs */
+    virPortAllocatorPtr remotePorts;
+
+    /* Immutable pointer, lockless APIs*/
+    virSysinfoDefPtr hostsysinfo;
+
+    /* Immutable pointer. lockless access */
+    virLockManagerPluginPtr lockManager;
+
+    /* Immutable pointer, self-clocking APIs */
+    virQEMUCloseCallbacksPtr closeCallbacks;
 };
 
 typedef struct _qemuDomainCmdlineDef qemuDomainCmdlineDef;
@@ -167,15 +235,17 @@ struct _qemuDomainCmdlineDef {
 # define QEMUD_MIGRATION_FIRST_PORT 49152
 # define QEMUD_MIGRATION_NUM_PORTS 64
 
-# define qemuReportError(code, ...)                                      \
-    virReportErrorHelper(VIR_FROM_QEMU, code, __FILE__,                  \
-                         __FUNCTION__, __LINE__, __VA_ARGS__)
 
+virQEMUDriverConfigPtr virQEMUDriverConfigNew(bool privileged);
 
-void qemuDriverLock(struct qemud_driver *driver);
-void qemuDriverUnlock(struct qemud_driver *driver);
-int qemudLoadDriverConfig(struct qemud_driver *driver,
-                          const char *filename);
+int virQEMUDriverConfigLoadFile(virQEMUDriverConfigPtr cfg,
+                                const char *filename);
+
+virQEMUDriverConfigPtr virQEMUDriverGetConfig(virQEMUDriverPtr driver);
+
+virCapsPtr virQEMUDriverCreateCapabilities(virQEMUDriverPtr driver);
+virCapsPtr virQEMUDriverGetCapabilities(virQEMUDriverPtr driver,
+                                        bool refresh);
 
 struct qemuDomainDiskInfo {
     bool removable;
@@ -184,22 +254,53 @@ struct qemuDomainDiskInfo {
     int io_status;
 };
 
-typedef virDomainObjPtr (*qemuDriverCloseCallback)(struct qemud_driver *driver,
-                                                   virDomainObjPtr vm,
-                                                   virConnectPtr conn);
-int qemuDriverCloseCallbackInit(struct qemud_driver *driver);
-void qemuDriverCloseCallbackShutdown(struct qemud_driver *driver);
-int qemuDriverCloseCallbackSet(struct qemud_driver *driver,
+typedef virDomainObjPtr (*virQEMUCloseCallback)(virQEMUDriverPtr driver,
+                                                virDomainObjPtr vm,
+                                                virConnectPtr conn);
+virQEMUCloseCallbacksPtr virQEMUCloseCallbacksNew(void);
+int virQEMUCloseCallbacksSet(virQEMUCloseCallbacksPtr closeCallbacks,
+                             virDomainObjPtr vm,
+                             virConnectPtr conn,
+                             virQEMUCloseCallback cb);
+int virQEMUCloseCallbacksUnset(virQEMUCloseCallbacksPtr closeCallbacks,
                                virDomainObjPtr vm,
-                               virConnectPtr conn,
-                               qemuDriverCloseCallback cb);
-int qemuDriverCloseCallbackUnset(struct qemud_driver *driver,
-                                 virDomainObjPtr vm,
-                                 qemuDriverCloseCallback cb);
-qemuDriverCloseCallback qemuDriverCloseCallbackGet(struct qemud_driver *driver,
-                                                   virDomainObjPtr vm,
-                                                   virConnectPtr conn);
-void qemuDriverCloseCallbackRunAll(struct qemud_driver *driver,
-                                   virConnectPtr conn);
+                               virQEMUCloseCallback cb);
+virQEMUCloseCallback
+virQEMUCloseCallbacksGet(virQEMUCloseCallbacksPtr closeCallbacks,
+                         virDomainObjPtr vm,
+                         virConnectPtr conn);
+void virQEMUCloseCallbacksRun(virQEMUCloseCallbacksPtr closeCallbacks,
+                              virConnectPtr conn,
+                              virQEMUDriverPtr driver);
+
+typedef struct _qemuSharedDiskEntry qemuSharedDiskEntry;
+typedef qemuSharedDiskEntry *qemuSharedDiskEntryPtr;
+
+bool qemuSharedDiskEntryDomainExists(qemuSharedDiskEntryPtr entry,
+                                     const char *name,
+                                     int *index)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
+
+int qemuAddSharedDisk(virQEMUDriverPtr driver,
+                      virDomainDiskDefPtr disk,
+                      const char *name)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3);
+
+int qemuRemoveSharedDisk(virQEMUDriverPtr driver,
+                         virDomainDiskDefPtr disk,
+                         const char *name)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3);
+
+char * qemuGetSharedDiskKey(const char *disk_path)
+    ATTRIBUTE_NONNULL(1);
+
+void qemuSharedDiskEntryFree(void *payload, const void *name)
+    ATTRIBUTE_NONNULL(1);
+
+int qemuDriverAllocateID(virQEMUDriverPtr driver);
+virDomainXMLOptionPtr virQEMUDriverCreateXMLConf(virQEMUDriverPtr driver);
+
+int qemuTranslateDiskSourcePool(virConnectPtr conn,
+                                virDomainDiskDefPtr def);
 
 #endif /* __QEMUD_CONF_H */

@@ -13,8 +13,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Authors:
  *     David L. Leskovec <dlesko at linux.vnet.ibm.com>
@@ -26,16 +26,12 @@
 #include <sys/wait.h>
 
 #include "virnetdevveth.h"
-#include "memory.h"
-#include "logging.h"
-#include "command.h"
-#include "virterror_internal.h"
+#include "viralloc.h"
+#include "virlog.h"
+#include "vircommand.h"
+#include "virerror.h"
 
 #define VIR_FROM_THIS VIR_FROM_NONE
-
-#define virNetDevvError(code, ...)                                  \
-    virReportErrorHelper(VIR_FROM_NONE, code, __FILE__,             \
-                         __FUNCTION__, __LINE__, __VA_ARGS__)
 
 /* Functions */
 /**
@@ -166,24 +162,9 @@ cleanup:
  */
 int virNetDevVethDelete(const char *veth)
 {
-    int rc;
     const char *argv[] = {"ip", "link", "del", veth, NULL};
-    int cmdResult = 0;
 
     VIR_DEBUG("veth: %s", veth);
 
-    rc = virRun(argv, &cmdResult);
-
-    if (rc != 0 ||
-        (WIFEXITED(cmdResult) && WEXITSTATUS(cmdResult) != 0)) {
-        /*
-         * Prevent overwriting an error log which may be set
-         * where an actual failure occurs.
-         */
-        VIR_DEBUG("Failed to delete '%s' (%d)",
-                  veth, WEXITSTATUS(cmdResult));
-        rc = -1;
-    }
-
-    return rc;
+    return virRun(argv, NULL);
 }

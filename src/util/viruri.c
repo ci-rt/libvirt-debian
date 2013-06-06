@@ -3,24 +3,31 @@
  *
  * Copyright (C) 2012 Red Hat, Inc.
  *
- * See COPYING.LIB for the License of this software
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
  */
 
 #include <config.h>
 
 #include "viruri.h"
 
-#include "memory.h"
-#include "util.h"
-#include "virterror_internal.h"
-#include "buf.h"
+#include "viralloc.h"
+#include "virutil.h"
+#include "virerror.h"
+#include "virbuffer.h"
 
 #define VIR_FROM_THIS VIR_FROM_URI
-
-#define virURIReportError(code, ...)                                    \
-    virReportErrorHelper(VIR_FROM_THIS, code, __FILE__,                 \
-                         __FUNCTION__, __LINE__, __VA_ARGS__)
-
 
 static int
 virURIParamAppend(virURIPtr uri,
@@ -32,7 +39,7 @@ virURIParamAppend(virURIPtr uri,
 
     if (!(pname = strdup(name)))
         goto no_memory;
-    if (!(pvalue = strdup (value)))
+    if (!(pvalue = strdup(value)))
         goto no_memory;
 
     if (VIR_RESIZE_N(uri->params, uri->paramsAlloc, uri->paramsCount, 1) < 0)
@@ -66,14 +73,14 @@ virURIParseParams(virURIPtr uri)
         char *name = NULL, *value = NULL;
 
         /* Find the next separator, or end of the string. */
-        end = strchr (query, '&');
+        end = strchr(query, '&');
         if (!end)
-            end = strchr (query, ';');
+            end = strchr(query, ';');
         if (!end)
-            end = query + strlen (query);
+            end = query + strlen(query);
 
         /* Find the first '=' character between here and end. */
-        eq = strchr (query, '=');
+        eq = strchr(query, '=');
         if (eq && eq >= end) eq = NULL;
 
         /* Empty section (eg. "&&"). */
@@ -84,14 +91,14 @@ virURIParseParams(virURIPtr uri)
          * and consistent with CGI.pm we assume value is "".
          */
         else if (!eq) {
-            name = xmlURIUnescapeString (query, end - query, NULL);
+            name = xmlURIUnescapeString(query, end - query, NULL);
             if (!name) goto no_memory;
         }
         /* Or if we have "name=" here (works around annoying
          * problem when calling xmlURIUnescapeString with len = 0).
          */
         else if (eq+1 == end) {
-            name = xmlURIUnescapeString (query, eq - query, NULL);
+            name = xmlURIUnescapeString(query, eq - query, NULL);
             if (!name) goto no_memory;
         }
         /* If the '=' character is at the beginning then we have
@@ -102,10 +109,10 @@ virURIParseParams(virURIPtr uri)
 
         /* Otherwise it's "name=value". */
         else {
-            name = xmlURIUnescapeString (query, eq - query, NULL);
+            name = xmlURIUnescapeString(query, eq - query, NULL);
             if (!name)
                 goto no_memory;
-            value = xmlURIUnescapeString (eq+1, end - (eq+1), NULL);
+            value = xmlURIUnescapeString(eq+1, end - (eq+1), NULL);
             if (!value) {
                 VIR_FREE(name);
                 goto no_memory;
@@ -155,8 +162,8 @@ virURIParse(const char *uri)
 
     if (!xmluri) {
         /* libxml2 does not tell us what failed. Grr :-( */
-        virURIReportError(VIR_ERR_INTERNAL_ERROR,
-                          "Unable to parse URI %s", uri);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Unable to parse URI %s"), uri);
         return NULL;
     }
 
@@ -285,9 +292,9 @@ char *virURIFormatParams(virURIPtr uri)
 
     for (i = 0; i < uri->paramsCount; ++i) {
         if (!uri->params[i].ignore) {
-            if (amp) virBufferAddChar (&buf, '&');
-            virBufferStrcat (&buf, uri->params[i].name, "=", NULL);
-            virBufferURIEncodeString (&buf, uri->params[i].value);
+            if (amp) virBufferAddChar(&buf, '&');
+            virBufferStrcat(&buf, uri->params[i].name, "=", NULL);
+            virBufferURIEncodeString(&buf, uri->params[i].value);
             amp = 1;
         }
     }

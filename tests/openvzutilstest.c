@@ -1,5 +1,7 @@
 #include <config.h>
 
+#include "testutils.h"
+
 #ifdef WITH_OPENVZ
 
 # include <stdio.h>
@@ -7,9 +9,8 @@
 # include <unistd.h>
 
 # include "internal.h"
-# include "memory.h"
-# include "testutils.h"
-# include "util.h"
+# include "viralloc.h"
+# include "virutil.h"
 # include "openvz/openvz_conf.h"
 
 static int
@@ -80,7 +81,7 @@ testReadNetworkConf(const void *data ATTRIBUTE_UNUSED)
         "  <uuid>00000000-0000-0000-0000-000000000000</uuid>\n"
         "  <memory unit='KiB'>0</memory>\n"
         "  <currentMemory unit='KiB'>0</currentMemory>\n"
-        "  <vcpu>0</vcpu>\n"
+        "  <vcpu placement='static'>0</vcpu>\n"
         "  <os>\n"
         "    <type>exe</type>\n"
         "    <init>/sbin/init</init>\n"
@@ -160,7 +161,6 @@ mymain(void)
 VIRT_TEST_MAIN(mymain)
 
 #else
-# include "testutils.h"
 
 int main(void)
 {

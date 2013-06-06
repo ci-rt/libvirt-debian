@@ -15,8 +15,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Author: Daniel P. Berrange <berrange@redhat.com>
  */
@@ -24,7 +24,6 @@
 #ifndef __VIR_NODEINFO_H__
 # define __VIR_NODEINFO_H__
 
-# include "libvirt/libvirt.h"
 # include "capabilities.h"
 
 int nodeGetInfo(virConnectPtr conn, virNodeInfoPtr nodeinfo);
@@ -46,7 +45,22 @@ int nodeGetCellsFreeMemory(virConnectPtr conn,
                            int maxCells);
 unsigned long long nodeGetFreeMemory(virConnectPtr conn);
 
-char *nodeGetCPUmap(virConnectPtr conn,
-                    int *max_id,
-                    const char *mapname);
+virBitmapPtr nodeGetCPUBitmap(int *max_id);
+int nodeGetCPUCount(void);
+
+int nodeGetMemoryParameters(virConnectPtr conn,
+                            virTypedParameterPtr params,
+                            int *nparams,
+                            unsigned int flags);
+
+int nodeSetMemoryParameters(virConnectPtr conn,
+                            virTypedParameterPtr params,
+                            int nparams,
+                            unsigned int flags);
+
+int nodeGetCPUMap(virConnectPtr conn,
+                  unsigned char **cpumap,
+                  unsigned int *online,
+                  unsigned int flags);
+
 #endif /* __VIR_NODEINFO_H__*/

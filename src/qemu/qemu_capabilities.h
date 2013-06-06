@@ -1,7 +1,7 @@
 /*
  * qemu_capabilities.h: QEMU capabilities generation
  *
- * Copyright (C) 2006-2012 Red Hat, Inc.
+ * Copyright (C) 2006-2013 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -15,8 +15,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Author: Daniel P. Berrange <berrange@redhat.com>
  */
@@ -24,11 +24,13 @@
 #ifndef __QEMU_CAPABILITIES_H__
 # define __QEMU_CAPABILITIES_H__
 
-# include "bitmap.h"
+# include "virobject.h"
 # include "capabilities.h"
+# include "vircommand.h"
+# include "qemu_monitor.h"
 
 /* Internal flags to keep track of qemu command line capabilities */
-enum qemuCapsFlags {
+enum virQEMUCapsFlags {
     QEMU_CAPS_KQEMU              =  0, /* Whether KQEMU is compiled in */
     QEMU_CAPS_VNC_COLON          =  1, /* VNC takes or address + display */
     QEMU_CAPS_NO_REBOOT          =  2, /* Is the -no-reboot flag available */
@@ -42,7 +44,7 @@ enum qemuCapsFlags {
     QEMU_CAPS_MIGRATE_QEMU_TCP   = 10, /* have qemu tcp migration */
     QEMU_CAPS_MIGRATE_QEMU_EXEC  = 11, /* have qemu exec migration */
     QEMU_CAPS_DRIVE_CACHE_V2     = 12, /* cache= flag wanting new v2 values */
-    QEMU_CAPS_KVM                = 13, /* Whether KVM is compiled in */
+    QEMU_CAPS_KVM                = 13, /* Whether KVM is enabled by default */
     QEMU_CAPS_DRIVE_FORMAT       = 14, /* Is -drive format= avail */
     QEMU_CAPS_VGA                = 15, /* Is -vga avail */
 
@@ -124,53 +126,141 @@ enum qemuCapsFlags {
     QEMU_CAPS_SCSI_DISK_CHANNEL  = 87, /* Is scsi-disk.channel available? */
     QEMU_CAPS_SCSI_BLOCK         = 88, /* -device scsi-block */
     QEMU_CAPS_TRANSACTION        = 89, /* transaction monitor command */
+    QEMU_CAPS_BLOCKJOB_SYNC      = 90, /* RHEL 6.2 block_job_cancel */
+    QEMU_CAPS_BLOCKJOB_ASYNC     = 91, /* qemu 1.1 block-job-cancel */
+    QEMU_CAPS_SCSI_CD            = 92, /* -device scsi-cd */
+    QEMU_CAPS_IDE_CD             = 93, /* -device ide-cd */
+    QEMU_CAPS_NO_USER_CONFIG     = 94, /* -no-user-config */
+    QEMU_CAPS_HDA_MICRO          = 95, /* -device hda-micro */
+    QEMU_CAPS_DUMP_GUEST_MEMORY  = 96, /* dump-guest-memory command */
+    QEMU_CAPS_NEC_USB_XHCI       = 97, /* -device nec-usb-xhci */
+    QEMU_CAPS_VIRTIO_S390        = 98, /* -device virtio-*-s390 */
+    QEMU_CAPS_BALLOON_EVENT      = 99, /* Async event for balloon changes */
+    QEMU_CAPS_NETDEV_BRIDGE      = 100, /* bridge helper support */
+    QEMU_CAPS_SCSI_LSI           = 101, /* -device lsi */
+    QEMU_CAPS_VIRTIO_SCSI        = 102, /* -device virtio-scsi-* */
+    QEMU_CAPS_BLOCKIO            = 103, /* -device ...logical_block_size & co */
+    QEMU_CAPS_DISABLE_S3         = 104, /* S3 BIOS Advertisement on/off */
+    QEMU_CAPS_DISABLE_S4         = 105, /* S4 BIOS Advertisement on/off */
+    QEMU_CAPS_USB_REDIR_FILTER   = 106, /* usb-redir.filter */
+    QEMU_CAPS_IDE_DRIVE_WWN      = 107, /* Is ide-drive.wwn available? */
+    QEMU_CAPS_SCSI_DISK_WWN      = 108, /* Is scsi-disk.wwn available? */
+    QEMU_CAPS_SECCOMP_SANDBOX    = 109, /* -sandbox */
+    QEMU_CAPS_REBOOT_TIMEOUT     = 110, /* -boot reboot-timeout */
+    QEMU_CAPS_DUMP_GUEST_CORE    = 111, /* dump-guest-core-parameter */
+    QEMU_CAPS_SEAMLESS_MIGRATION = 112, /* seamless-migration for SPICE */
+    QEMU_CAPS_BLOCK_COMMIT       = 113, /* block-commit */
+    QEMU_CAPS_VNC                = 114, /* Is -vnc available? */
+    QEMU_CAPS_DRIVE_MIRROR       = 115, /* drive-mirror monitor command */
+    QEMU_CAPS_USB_REDIR_BOOTINDEX = 116, /* usb-redir.bootindex */
+    QEMU_CAPS_USB_HOST_BOOTINDEX = 117, /* usb-host.bootindex */
+    QEMU_CAPS_DISK_SNAPSHOT      = 118, /* blockdev-snapshot-sync command */
+    QEMU_CAPS_DEVICE_QXL         = 119, /* -device qxl */
+    QEMU_CAPS_DEVICE_VGA         = 120, /* -device VGA */
+    QEMU_CAPS_DEVICE_CIRRUS_VGA  = 121, /* -device cirrus-vga */
+    QEMU_CAPS_DEVICE_VMWARE_SVGA = 122, /* -device vmware-svga */
+    QEMU_CAPS_DEVICE_VIDEO_PRIMARY = 123, /* safe to use -device XXX
+                                           for primary video device */
+    QEMU_CAPS_SCLP_S390          = 124, /* -device sclp* */
+    QEMU_CAPS_DEVICE_USB_SERIAL  = 125, /* -device usb-serial */
+    QEMU_CAPS_DEVICE_USB_NET     = 126, /* -device usb-net */
+    QEMU_CAPS_ADD_FD             = 127, /* -add-fd */
+    QEMU_CAPS_NBD_SERVER         = 128, /* nbd-server-start QMP command */
+    QEMU_CAPS_DEVICE_VIRTIO_RNG  = 129, /* virtio-rng device */
+    QEMU_CAPS_OBJECT_RNG_RANDOM  = 130, /* the rng-random backend for
+                                           virtio rng */
+    QEMU_CAPS_OBJECT_RNG_EGD     = 131, /* EGD protocol daemon for rng */
+    QEMU_CAPS_VIRTIO_CCW         = 132, /* -device virtio-*-ccw */
+    QEMU_CAPS_DTB                = 133, /* -dtb file */
+    QEMU_CAPS_SCSI_MEGASAS       = 134, /* -device megasas */
+    QEMU_CAPS_IPV6_MIGRATION     = 135, /* -incoming [::] */
+    QEMU_CAPS_MACHINE_OPT        = 136, /* -machine xxxx*/
+    QEMU_CAPS_MACHINE_USB_OPT    = 137, /* -machine xxx,usb=on/off */
+    QEMU_CAPS_DEVICE_TPM_PASSTHROUGH = 138, /* -tpmdev passthrough */
+    QEMU_CAPS_DEVICE_TPM_TIS     = 139, /* -device tpm_tis */
+    QEMU_CAPS_DEVICE_NVRAM       = 140,  /* -global spapr-nvram.reg=xxxx */
+    QEMU_CAPS_DEVICE_PCI_BRIDGE  = 141, /* -device pci-bridge */
+    QEMU_CAPS_DEVICE_VFIO_PCI    = 142, /* -device vfio-pci */
+    QEMU_CAPS_VFIO_PCI_BOOTINDEX = 143, /* bootindex param for vfio-pci device */
 
     QEMU_CAPS_LAST,                   /* this must always be the last item */
 };
 
-virBitmapPtr qemuCapsNew(void);
+typedef struct _virQEMUCaps virQEMUCaps;
+typedef virQEMUCaps *virQEMUCapsPtr;
 
-# define qemuCapsFree(caps)  virBitmapFree(caps)
+typedef struct _virQEMUCapsCache virQEMUCapsCache;
+typedef virQEMUCapsCache *virQEMUCapsCachePtr;
 
-void qemuCapsSet(virBitmapPtr caps,
-                 enum qemuCapsFlags flag) ATTRIBUTE_NONNULL(1);
+virQEMUCapsPtr virQEMUCapsNew(void);
+virQEMUCapsPtr virQEMUCapsNewCopy(virQEMUCapsPtr qemuCaps);
+virQEMUCapsPtr virQEMUCapsNewForBinary(const char *binary,
+                                       const char *libDir,
+                                       uid_t runUid,
+                                       gid_t runGid);
 
-void qemuCapsSetList(virBitmapPtr caps, ...) ATTRIBUTE_NONNULL(1);
+int virQEMUCapsProbeQMP(virQEMUCapsPtr qemuCaps,
+                        qemuMonitorPtr mon);
 
-void qemuCapsClear(virBitmapPtr caps,
-                   enum qemuCapsFlags flag) ATTRIBUTE_NONNULL(1);
+void virQEMUCapsSet(virQEMUCapsPtr qemuCaps,
+                    enum virQEMUCapsFlags flag) ATTRIBUTE_NONNULL(1);
 
-bool qemuCapsGet(virBitmapPtr caps,
-                 enum qemuCapsFlags flag);
+void virQEMUCapsSetList(virQEMUCapsPtr qemuCaps, ...) ATTRIBUTE_NONNULL(1);
 
-virCapsPtr qemuCapsInit(virCapsPtr old_caps);
+void virQEMUCapsClear(virQEMUCapsPtr qemuCaps,
+                      enum virQEMUCapsFlags flag) ATTRIBUTE_NONNULL(1);
 
-int qemuCapsProbeMachineTypes(const char *binary,
-                              virCapsGuestMachinePtr **machines,
-                              int *nmachines);
+bool virQEMUCapsGet(virQEMUCapsPtr qemuCaps,
+                    enum virQEMUCapsFlags flag);
 
-int qemuCapsProbeCPUModels(const char *qemu,
-                           virBitmapPtr qemuCaps,
-                           const char *arch,
-                           unsigned int *count,
-                           const char ***cpus);
+char *virQEMUCapsFlagsString(virQEMUCapsPtr qemuCaps);
 
-int qemuCapsExtractVersion(virCapsPtr caps,
-                           unsigned int *version);
-int qemuCapsExtractVersionInfo(const char *qemu, const char *arch,
-                               unsigned int *version,
-                               virBitmapPtr *qemuCaps);
+const char *virQEMUCapsGetBinary(virQEMUCapsPtr qemuCaps);
+virArch virQEMUCapsGetArch(virQEMUCapsPtr qemuCaps);
+unsigned int virQEMUCapsGetVersion(virQEMUCapsPtr qemuCaps);
+unsigned int virQEMUCapsGetKVMVersion(virQEMUCapsPtr qemuCaps);
+int virQEMUCapsAddCPUDefinition(virQEMUCapsPtr qemuCaps,
+                                const char *name);
+size_t virQEMUCapsGetCPUDefinitions(virQEMUCapsPtr qemuCaps,
+                                    char ***names);
+size_t virQEMUCapsGetMachineTypes(virQEMUCapsPtr qemuCaps,
+                                  char ***names);
+const char *virQEMUCapsGetCanonicalMachine(virQEMUCapsPtr qemuCaps,
+                                           const char *name);
 
-int qemuCapsParseHelpStr(const char *qemu,
-                         const char *str,
-                         virBitmapPtr qemuCaps,
-                         unsigned int *version,
-                         unsigned int *is_kvm,
-                         unsigned int *kvm_version,
-                         bool check_yajl);
-int qemuCapsParseDeviceStr(const char *str,
-                           virBitmapPtr qemuCaps);
+int virQEMUCapsGetMachineTypesCaps(virQEMUCapsPtr qemuCaps,
+                                   size_t *nmachines,
+                                   virCapsGuestMachinePtr **machines);
 
-VIR_ENUM_DECL(qemuCaps);
+bool virQEMUCapsIsValid(virQEMUCapsPtr qemuCaps);
 
+
+virQEMUCapsCachePtr virQEMUCapsCacheNew(const char *libDir,
+                                        uid_t uid, gid_t gid);
+virQEMUCapsPtr virQEMUCapsCacheLookup(virQEMUCapsCachePtr cache,
+                                      const char *binary);
+virQEMUCapsPtr virQEMUCapsCacheLookupCopy(virQEMUCapsCachePtr cache,
+                                          const char *binary);
+void virQEMUCapsCacheFree(virQEMUCapsCachePtr cache);
+
+virCapsPtr virQEMUCapsInit(virQEMUCapsCachePtr cache);
+
+int virQEMUCapsGetDefaultVersion(virCapsPtr caps,
+                                 virQEMUCapsCachePtr capsCache,
+                                 unsigned int *version);
+
+/* Only for use by test suite */
+int virQEMUCapsParseHelpStr(const char *qemu,
+                            const char *str,
+                            virQEMUCapsPtr qemuCaps,
+                            unsigned int *version,
+                            unsigned int *is_kvm,
+                            unsigned int *kvm_version,
+                            bool check_yajl);
+/* Only for use by test suite */
+int virQEMUCapsParseDeviceStr(virQEMUCapsPtr qemuCaps, const char *str);
+
+VIR_ENUM_DECL(virQEMUCaps);
+
+bool virQEMUCapsUsedQMP(virQEMUCapsPtr qemuCaps);
 #endif /* __QEMU_CAPABILITIES_H__*/

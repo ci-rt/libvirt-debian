@@ -1,7 +1,7 @@
 /*
  * virnetserverprogram.c: generic network RPC server program
  *
- * Copyright (C) 2006-2011 Red Hat, Inc.
+ * Copyright (C) 2006-2012 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -15,8 +15,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Author: Daniel P. Berrange <berrange@redhat.com>
  */
@@ -26,24 +26,40 @@
 #include "virnetserverprogram.h"
 #include "virnetserverclient.h"
 
-#include "memory.h"
-#include "virterror_internal.h"
-#include "logging.h"
+#include "viralloc.h"
+#include "virerror.h"
+#include "virlog.h"
 #include "virfile.h"
+#include "virthread.h"
 
 #define VIR_FROM_THIS VIR_FROM_RPC
-#define virNetError(code, ...)                                    \
-    virReportErrorHelper(VIR_FROM_THIS, code, __FILE__,           \
-                         __FUNCTION__, __LINE__, __VA_ARGS__)
 
 struct _virNetServerProgram {
-    int refs;
+    virObject object;
 
     unsigned program;
     unsigned version;
     virNetServerProgramProcPtr procs;
     size_t nprocs;
 };
+
+
+static virClassPtr virNetServerProgramClass;
+static void virNetServerProgramDispose(void *obj);
+
+static int virNetServerProgramOnceInit(void)
+{
+    if (!(virNetServerProgramClass = virClassNew(virClassForObject(),
+                                                 "virNetServerProgram",
+                                                 sizeof(virNetServerProgram),
+                                                 virNetServerProgramDispose)))
+        return -1;
+
+    return 0;
+}
+
+VIR_ONCE_GLOBAL_INIT(virNetServerProgram)
+
 
 virNetServerProgramPtr virNetServerProgramNew(unsigned program,
                                               unsigned version,
@@ -52,18 +68,18 @@ virNetServerProgramPtr virNetServerProgramNew(unsigned program,
 {
     virNetServerProgramPtr prog;
 
-    if (VIR_ALLOC(prog) < 0) {
-        virReportOOMError();
+    if (virNetServerProgramInitialize() < 0)
         return NULL;
-    }
 
-    prog->refs = 1;
+    if (!(prog = virObjectNew(virNetServerProgramClass)))
+        return NULL;
+
     prog->program = program;
     prog->version = version;
     prog->procs = procs;
     prog->nprocs = nprocs;
 
-    VIR_DEBUG("prog=%p refs=%d", prog, prog->refs);
+    VIR_DEBUG("prog=%p", prog);
 
     return prog;
 }
@@ -81,13 +97,6 @@ int virNetServerProgramGetVersion(virNetServerProgramPtr prog)
 }
 
 
-void virNetServerProgramRef(virNetServerProgramPtr prog)
-{
-    prog->refs++;
-    VIR_DEBUG("prog=%p refs=%d", prog, prog->refs);
-}
-
-
 int virNetServerProgramMatches(virNetServerProgramPtr prog,
                                virNetMessagePtr msg)
 {
@@ -101,12 +110,19 @@ int virNetServerProgramMatches(virNetServerProgramPtr prog,
 static virNetServerProgramProcPtr virNetServerProgramGetProc(virNetServerProgramPtr prog,
                                                              int procedure)
 {
+    virNetServerProgramProcPtr proc;
+
     if (procedure < 0)
         return NULL;
     if (procedure >= prog->nprocs)
         return NULL;
 
-    return &prog->procs[procedure];
+    proc = &prog->procs[procedure];
+
+    if (!proc->func)
+        return NULL;
+
+    return proc;
 }
 
 unsigned int
@@ -218,8 +234,8 @@ int virNetServerProgramUnknownError(virNetServerClientPtr client,
 {
     virNetMessageError rerr;
 
-    virNetError(VIR_ERR_RPC,
-                _("Cannot find program %d version %d"), req->prog, req->vers);
+    virReportError(VIR_ERR_RPC,
+                   _("Cannot find program %d version %d"), req->prog, req->vers);
 
     memset(&rerr, 0, sizeof(rerr));
     return virNetServerProgramSendError(req->prog,
@@ -270,16 +286,16 @@ int virNetServerProgramDispatch(virNetServerProgramPtr prog,
 
     /* Check version, etc. */
     if (msg->header.prog != prog->program) {
-        virNetError(VIR_ERR_RPC,
-                    _("program mismatch (actual %x, expected %x)"),
-                    msg->header.prog, prog->program);
+        virReportError(VIR_ERR_RPC,
+                       _("program mismatch (actual %x, expected %x)"),
+                       msg->header.prog, prog->program);
         goto error;
     }
 
     if (msg->header.vers != prog->version) {
-        virNetError(VIR_ERR_RPC,
-                    _("version mismatch (actual %x, expected %x)"),
-                    msg->header.vers, prog->version);
+        virReportError(VIR_ERR_RPC,
+                       _("version mismatch (actual %x, expected %x)"),
+                       msg->header.vers, prog->version);
         goto error;
     }
 
@@ -307,9 +323,9 @@ int virNetServerProgramDispatch(virNetServerProgramPtr prog,
         break;
 
     default:
-        virNetError(VIR_ERR_RPC,
-                    _("Unexpected message type %u"),
-                    msg->header.type);
+        virReportError(VIR_ERR_RPC,
+                       _("Unexpected message type %u"),
+                       msg->header.type);
         goto error;
     }
 
@@ -359,22 +375,23 @@ virNetServerProgramDispatchCall(virNetServerProgramPtr prog,
     virNetServerProgramProcPtr dispatcher;
     virNetMessageError rerr;
     size_t i;
+    virIdentityPtr identity = NULL;
 
     memset(&rerr, 0, sizeof(rerr));
 
     if (msg->header.status != VIR_NET_OK) {
-        virNetError(VIR_ERR_RPC,
-                    _("Unexpected message status %u"),
-                    msg->header.status);
+        virReportError(VIR_ERR_RPC,
+                       _("Unexpected message status %u"),
+                       msg->header.status);
         goto error;
     }
 
     dispatcher = virNetServerProgramGetProc(prog, msg->header.proc);
 
     if (!dispatcher) {
-        virNetError(VIR_ERR_RPC,
-                    _("unknown procedure: %d"),
-                    msg->header.proc);
+        virReportError(VIR_ERR_RPC,
+                       _("unknown procedure: %d"),
+                       msg->header.proc);
         goto error;
     }
 
@@ -386,8 +403,8 @@ virNetServerProgramDispatchCall(virNetServerProgramPtr prog,
         /* Explicitly *NOT* calling  remoteDispatchAuthError() because
            we want back-compatibility with libvirt clients which don't
            support the VIR_ERR_AUTH_FAILED error code */
-        virNetError(VIR_ERR_RPC,
-                    "%s", _("authentication required"));
+        virReportError(VIR_ERR_RPC,
+                       "%s", _("authentication required"));
         goto error;
     }
 
@@ -403,6 +420,12 @@ virNetServerProgramDispatchCall(virNetServerProgramPtr prog,
     if (virNetMessageDecodePayload(msg, dispatcher->arg_filter, arg) < 0)
         goto error;
 
+    if (!(identity = virNetServerClientGetIdentity(client)))
+        goto error;
+
+    if (virIdentitySetCurrent(identity) < 0)
+        goto error;
+
     /*
      * When the RPC handler is called:
      *
@@ -415,18 +438,24 @@ virNetServerProgramDispatchCall(virNetServerProgramPtr prog,
      */
     rv = (dispatcher->func)(server, client, msg, &rerr, arg, ret);
 
+    if (virIdentitySetCurrent(NULL) < 0)
+        goto error;
+
     /*
-     * Clear out the FDs we got from the client, we don't
-     * want to send them back !
+     * If rv == 1, this indicates the dispatch func has
+     * populated 'msg' with a list of FDs to return to
+     * the caller.
      *
-     * XXX we don't have a way to let dispatcher->func
-     * return any FDs. Fortunately we don't need this
-     * capability just yet
+     * Otherwise we must clear out the FDs we got from
+     * the client originally.
+     *
      */
-    for (i = 0 ; i < msg->nfds ; i++)
-        VIR_FORCE_CLOSE(msg->fds[i]);
-    VIR_FREE(msg->fds);
-    msg->nfds = 0;
+    if (rv != 1) {
+        for (i = 0 ; i < msg->nfds ; i++)
+            VIR_FORCE_CLOSE(msg->fds[i]);
+        VIR_FREE(msg->fds);
+        msg->nfds = 0;
+    }
 
     xdr_free(dispatcher->arg_filter, arg);
 
@@ -462,6 +491,7 @@ virNetServerProgramDispatchCall(virNetServerProgramPtr prog,
     VIR_FREE(arg);
     VIR_FREE(ret);
 
+    virObjectUnref(identity);
     /* Put reply on end of tx queue to send out  */
     return virNetServerClientSendMessage(client, msg);
 
@@ -472,6 +502,7 @@ error:
 
     VIR_FREE(arg);
     VIR_FREE(ret);
+    virObjectUnref(identity);
 
     return rv;
 }
@@ -519,16 +550,6 @@ int virNetServerProgramSendStreamData(virNetServerProgramPtr prog,
 }
 
 
-void virNetServerProgramFree(virNetServerProgramPtr prog)
+void virNetServerProgramDispose(void *obj ATTRIBUTE_UNUSED)
 {
-    if (!prog)
-        return;
-
-    VIR_DEBUG("prog=%p refs=%d", prog, prog->refs);
-
-    prog->refs--;
-    if (prog->refs > 0)
-        return;
-
-    VIR_FREE(prog);
 }

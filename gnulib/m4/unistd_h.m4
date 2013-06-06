@@ -1,5 +1,5 @@
-# unistd_h.m4 serial 64
-dnl Copyright (C) 2006-2012 Free Software Foundation, Inc.
+# unistd_h.m4 serial 66
+dnl Copyright (C) 2006-2013 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -11,7 +11,6 @@ AC_DEFUN([gl_UNISTD_H],
   dnl Use AC_REQUIRE here, so that the default behavior below is expanded
   dnl once only, before all statements that occur in other macros.
   AC_REQUIRE([gl_UNISTD_H_DEFAULTS])
-  AC_REQUIRE([AC_C_INLINE])
 
   gl_CHECK_NEXT_HEADERS([unistd.h])
   if test $ac_cv_header_unistd_h = yes; then
@@ -25,7 +24,7 @@ AC_DEFUN([gl_UNISTD_H],
   AC_REQUIRE([AC_TYPE_PID_T])
 
   dnl Determine WINDOWS_64_BIT_OFF_T.
-  AC_REQUIRE([gl_SYS_TYPES_H])
+  AC_REQUIRE([gl_TYPE_OFF_T])
 
   dnl Check for declarations of anything we want to poison if the
   dnl corresponding gnulib module is not in use.

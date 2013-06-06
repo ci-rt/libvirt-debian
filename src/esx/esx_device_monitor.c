@@ -17,18 +17,18 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  */
 
 #include <config.h>
 
 #include "internal.h"
-#include "util.h"
-#include "memory.h"
-#include "logging.h"
-#include "uuid.h"
+#include "virutil.h"
+#include "viralloc.h"
+#include "virlog.h"
+#include "viruuid.h"
 #include "esx_private.h"
 #include "esx_device_monitor.h"
 #include "esx_vi.h"
@@ -40,9 +40,9 @@
 
 
 static virDrvOpenStatus
-esxDeviceOpen(virConnectPtr conn,
-              virConnectAuthPtr auth ATTRIBUTE_UNUSED,
-              unsigned int flags)
+esxNodeDeviceOpen(virConnectPtr conn,
+                  virConnectAuthPtr auth ATTRIBUTE_UNUSED,
+                  unsigned int flags)
 {
     virCheckFlags(VIR_CONNECT_RO, VIR_DRV_OPEN_ERROR);
 
@@ -50,7 +50,7 @@ esxDeviceOpen(virConnectPtr conn,
         return VIR_DRV_OPEN_DECLINED;
     }
 
-    conn->devMonPrivateData = conn->privateData;
+    conn->nodeDevicePrivateData = conn->privateData;
 
     return VIR_DRV_OPEN_SUCCESS;
 }
@@ -58,19 +58,19 @@ esxDeviceOpen(virConnectPtr conn,
 
 
 static int
-esxDeviceClose(virConnectPtr conn)
+esxNodeDeviceClose(virConnectPtr conn)
 {
-    conn->devMonPrivateData = NULL;
+    conn->nodeDevicePrivateData = NULL;
 
     return 0;
 }
 
 
 
-static virDeviceMonitor esxDeviceMonitor = {
+static virNodeDeviceDriver esxNodeDeviceDriver = {
     .name = "ESX",
-    .open = esxDeviceOpen, /* 0.7.6 */
-    .close = esxDeviceClose, /* 0.7.6 */
+    .nodeDeviceOpen = esxNodeDeviceOpen, /* 0.7.6 */
+    .nodeDeviceClose = esxNodeDeviceClose, /* 0.7.6 */
 };
 
 
@@ -78,5 +78,5 @@ static virDeviceMonitor esxDeviceMonitor = {
 int
 esxDeviceRegister(void)
 {
-    return virRegisterDeviceMonitor(&esxDeviceMonitor);
+    return virRegisterNodeDeviceDriver(&esxNodeDeviceDriver);
 }

@@ -1,5 +1,5 @@
 /*---------------------------------------------------------------------------*/
-/*  Copyright (c) 2011 SUSE LINUX Products GmbH, Nuernberg, Germany.
+/*  Copyright (C) 2011-2013 SUSE LINUX Products GmbH, Nuernberg, Germany.
  *  Copyright (C) 2011 Univention GmbH.
  *
  * This library is free software; you can redistribute it and/or
@@ -13,8 +13,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Authors:
  *     Jim Fehlig <jfehlig@novell.com>
@@ -34,7 +34,8 @@
 # include "domain_event.h"
 # include "capabilities.h"
 # include "configmake.h"
-# include "bitmap.h"
+# include "virportallocator.h"
+# include "virobject.h"
 
 
 # define LIBXL_VNC_PORT_MIN  5900
@@ -53,15 +54,21 @@ typedef libxlDriverPrivate *libxlDriverPrivatePtr;
 struct _libxlDriverPrivate {
     virMutex lock;
     virCapsPtr caps;
+    virDomainXMLOptionPtr xmlopt;
     unsigned int version;
 
     FILE *logger_file;
     xentoollog_logger *logger;
     /* libxl ctx for driver wide ops; getVersion, getNodeInfo, ... */
-    libxl_ctx ctx;
+    libxl_ctx *ctx;
 
-    virBitmapPtr reservedVNCPorts;
-    virDomainObjList domains;
+    virPortAllocatorPtr reservedVNCPorts;
+
+    size_t nactive;
+    virStateInhibitCallback inhibitCallback;
+    void *inhibitOpaque;
+
+    virDomainObjListPtr domains;
 
     virDomainEventStatePtr domainEventState;
 
@@ -73,14 +80,20 @@ struct _libxlDriverPrivate {
     char *saveDir;
 };
 
+typedef struct _libxlEventHookInfo libxlEventHookInfo;
+typedef libxlEventHookInfo *libxlEventHookInfoPtr;
+
 typedef struct _libxlDomainObjPrivate libxlDomainObjPrivate;
 typedef libxlDomainObjPrivate *libxlDomainObjPrivatePtr;
 struct _libxlDomainObjPrivate {
+    virObjectLockable parent;
+
     /* per domain libxl ctx */
-    libxl_ctx ctx;
-    libxl_waiter *dWaiter;
-    int waiterFD;
-    int eventHdl;
+    libxl_ctx *ctx;
+    libxl_evgen_domain_death *deathW;
+
+    /* list of libxl timeout registrations */
+    libxlEventHookInfoPtr timerRegistrations;
 };
 
 # define LIBXL_SAVE_MAGIC "libvirt-xml\n \0 \r"
@@ -96,21 +109,15 @@ struct _libxlSavefileHeader {
     uint32_t unused[10];
 };
 
-# define libxlError(code, ...)                                     \
-    virReportErrorHelper(VIR_FROM_LIBXL, code, __FILE__,           \
-                         __FUNCTION__, __LINE__, __VA_ARGS__)
-
 virCapsPtr
 libxlMakeCapabilities(libxl_ctx *ctx);
 
 int
-libxlMakeDisk(virDomainDefPtr def, virDomainDiskDefPtr l_dev,
-              libxl_device_disk *x_dev);
+libxlMakeDisk(virDomainDiskDefPtr l_dev, libxl_device_disk *x_dev);
 int
-libxlMakeNic(virDomainDefPtr def, virDomainNetDefPtr l_nic,
-             libxl_device_nic *x_nic);
+libxlMakeNic(virDomainNetDefPtr l_nic, libxl_device_nic *x_nic);
 int
-libxlMakeVfb(libxlDriverPrivatePtr driver, virDomainDefPtr def,
+libxlMakeVfb(libxlDriverPrivatePtr driver,
              virDomainGraphicsDefPtr l_vfb, libxl_device_vfb *x_vfb);
 
 int

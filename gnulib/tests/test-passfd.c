@@ -1,5 +1,5 @@
 /* Test of passing file descriptors.
-   Copyright (C) 2011-2012 Free Software Foundation, Inc.
+   Copyright (C) 2011-2013 Free Software Foundation, Inc.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -45,8 +45,9 @@ main ()
 
 # if HAVE_DECL_ALARM
   /* Avoid hanging on failure.  */
+  int alarm_value = 5;
   signal (SIGALRM, SIG_DFL);
-  alarm (5);
+  alarm (alarm_value);
 # endif
 
   fdnull = open ("/dev/null", O_RDWR);

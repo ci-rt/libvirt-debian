@@ -185,7 +185,7 @@ for the authentication file using the following sequence:
     </p>
         <ol><li>The file path specified by the $LIBVIRT_AUTH_FILE environment
         variable.</li><li>The file path specified by the "authfile=/some/file" URI
-        query parameter</li><li>The file $HOME/.libvirt/auth.conf</li><li>The file /etc/libvirt/auth.conf</li></ol>
+        query parameter</li><li>The file $XDG_CONFIG_HOME/libvirt/auth.conf</li><li>The file /etc/libvirt/auth.conf</li></ol>
         <p>
       The auth configuration file uses the traditional <code>".ini"</code>
       style syntax. There are two types of groups that can be present in
@@ -378,7 +378,8 @@ The SASL mechanism configured by default is DIGEST-MD5, which provides a basic
 username+password style authentication. To enable Kerberos single-sign-on instead,
 the libvirt SASL configuration file must be changed. This is <code>/etc/sasl2/libvirt.conf</code>.
 The <code>mech_list</code> parameter must first be changed to <code>gssapi</code>
-instead of the default <code>digest-md5</code>. If SASL is enabled on the UNIX
+instead of the default <code>digest-md5</code>, and keytab should be set to
+<code>/etc/libvirt/krb5.tab</code> . If SASL is enabled on the UNIX
 and/or TLS sockets, Kerberos will also be used for them. Like DIGEST-MD5, the Kerberos
 mechanism provides data encryption of the session.
 </p>
@@ -397,13 +398,15 @@ Plugin "gssapiv2" [loaded],     API version: 4
         features: WANT_CLIENT_FIRST|PROXY_AUTHENTICATION|NEED_SERVER_FQDN
 </pre>
         <p>
-Next it is necessary for the administrator of the Kerberos realm to issue a principle
-for the libvirt server. There needs to be one principle per host running the libvirt
-daemon. The principle should be named <code>libvirt/full.hostname@KERBEROS.REALM</code>.
-This is typically done by running the <code>kadmin.local</code> command on the Kerberos
-server, though some Kerberos servers have alternate ways of setting up service principles.
-Once created, the principle should be exported to a keytab, copied to the host running
-the libvirt daemon and placed in <code>/etc/libvirt/krb5.tab</code>
+Next it is necessary for the administrator of the Kerberos realm to
+issue a principal for the libvirt server. There needs to be one
+principal per host running the libvirt daemon. The principal should be
+named <code>libvirt/full.hostname@KERBEROS.REALM</code>.  This is
+typically done by running the <code>kadmin.local</code> command on the
+Kerberos server, though some Kerberos servers have alternate ways of
+setting up service principals.  Once created, the principal should be
+exported to a keytab, copied to the host running the libvirt daemon
+and placed in <code>/etc/libvirt/krb5.tab</code>
 </p>
         <pre>
 # kadmin.local
@@ -425,7 +428,7 @@ kadmin.local: quit
 </pre>
         <p>
 Any client application wishing to connect to a Kerberos enabled libvirt server
-merely needs to run <code>kinit</code> to gain a user principle. This may well
+merely needs to run <code>kinit</code> to gain a user principal. This may well
 be done automatically when a user logs into a desktop session, if PAM is setup
 to authenticate against Kerberos.
 </p>

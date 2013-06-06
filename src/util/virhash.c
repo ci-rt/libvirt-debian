@@ -24,10 +24,10 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "virterror_internal.h"
+#include "virerror.h"
 #include "virhash.h"
-#include "memory.h"
-#include "logging.h"
+#include "viralloc.h"
+#include "virlog.h"
 #include "virhashcode.h"
 #include "virrandom.h"
 
@@ -360,7 +360,7 @@ virHashUpdateEntry(virHashTablePtr table, const void *name,
  *
  * Find the userdata specified by @name
  *
- * Returns the a pointer to the userdata
+ * Returns a pointer to the userdata
  */
 void *
 virHashLookup(virHashTablePtr table, const void *name)
@@ -388,7 +388,7 @@ virHashLookup(virHashTablePtr table, const void *name)
  * Find the userdata specified by @name
  * and remove it from the hash without freeing it.
  *
- * Returns the a pointer to the userdata
+ * Returns a pointer to the userdata
  */
 void *virHashSteal(virHashTablePtr table, const void *name)
 {
@@ -573,6 +573,31 @@ virHashRemoveSet(virHashTablePtr table,
     table->iterating = false;
 
     return count;
+}
+
+static int
+_virHashRemoveAllIter(const void *payload ATTRIBUTE_UNUSED,
+                      const void *name ATTRIBUTE_UNUSED,
+                      const void *data ATTRIBUTE_UNUSED)
+{
+    return 1;
+}
+
+/**
+ * virHashRemoveAll
+ * @table: the hash table to clear
+ *
+ * Free the hash @table's contents. The userdata is
+ * deallocated with the function provided at creation time.
+ *
+ * Returns the number of items removed on success, -1 on failure
+ */
+ssize_t
+virHashRemoveAll(virHashTablePtr table)
+{
+    return virHashRemoveSet(table,
+                            _virHashRemoveAllIter,
+                            NULL);
 }
 
 /**

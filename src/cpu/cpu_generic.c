@@ -15,8 +15,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Authors:
  *      Jiri Denemark <jdenemar@redhat.com>
@@ -24,7 +24,7 @@
 
 #include <config.h>
 
-#include "memory.h"
+#include "viralloc.h"
 #include "virhash.h"
 #include "cpu.h"
 #include "cpu_generic.h"
@@ -64,7 +64,8 @@ genericCompare(virCPUDefPtr host,
     unsigned int i;
     unsigned int reqfeatures;
 
-    if ((cpu->arch && STRNEQ(host->arch, cpu->arch)) ||
+    if (((cpu->arch != VIR_ARCH_NONE) &&
+         (host->arch != cpu->arch)) ||
         STRNEQ(host->model, cpu->model))
         return VIR_CPU_COMPARE_INCOMPATIBLE;
 
@@ -122,28 +123,19 @@ genericBaseline(virCPUDefPtr *cpus,
     unsigned int count;
     unsigned int i, j;
 
-    if (models) {
-        bool found = false;
-        for (i = 0; i < nmodels; i++) {
-            if (STREQ(cpus[0]->model, models[i])) {
-                found = true;
-                break;
-            }
-        }
-        if (!found) {
-            virCPUReportError(VIR_ERR_INTERNAL_ERROR,
-                    _("CPU model '%s' is not support by hypervisor"),
-                    cpus[0]->model);
-            goto error;
-        }
+    if (!cpuModelIsAllowed(cpus[0]->model, models, nmodels)) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                       _("CPU model %s is not supported by hypervisor"),
+                       cpus[0]->model);
+        goto error;
     }
 
     if (VIR_ALLOC(cpu) < 0 ||
-        !(cpu->arch = strdup(cpus[0]->arch)) ||
         !(cpu->model = strdup(cpus[0]->model)) ||
         VIR_ALLOC_N(features, cpus[0]->nfeatures) < 0)
         goto no_memory;
 
+    cpu->arch = cpus[0]->arch;
     cpu->type = VIR_CPU_TYPE_HOST;
 
     count = nfeatures = cpus[0]->nfeatures;
@@ -153,17 +145,18 @@ genericBaseline(virCPUDefPtr *cpus,
     for (i = 1; i < ncpus; i++) {
         virHashTablePtr hash;
 
-        if (STRNEQ(cpu->arch, cpus[i]->arch)) {
-            virCPUReportError(VIR_ERR_INTERNAL_ERROR,
-                    _("CPUs have incompatible architectures: '%s' != '%s'"),
-                    cpu->arch, cpus[i]->arch);
+        if (cpu->arch != cpus[i]->arch) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("CPUs have incompatible architectures: '%s' != '%s'"),
+                           virArchToString(cpu->arch),
+                           virArchToString(cpus[i]->arch));
             goto error;
         }
 
         if (STRNEQ(cpu->model, cpus[i]->model)) {
-            virCPUReportError(VIR_ERR_INTERNAL_ERROR,
-                    _("CPU models don't match: '%s' != '%s'"),
-                    cpu->model, cpus[i]->model);
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("CPU models don't match: '%s' != '%s'"),
+                           cpu->model, cpus[i]->model);
             goto error;
         }
 

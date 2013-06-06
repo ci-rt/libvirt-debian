@@ -15,8 +15,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Author: Daniel P. Berrange <berrange@redhat.com>
  */
@@ -25,17 +25,15 @@
 # define __VIR_NET_SERVER_H__
 
 # include <signal.h>
-# if HAVE_DBUS
-#  include <dbus/dbus.h>
-# endif
 
-# include "virnettlscontext.h"
+# ifdef WITH_GNUTLS
+#  include "virnettlscontext.h"
+# endif
 # include "virnetserverprogram.h"
 # include "virnetserverclient.h"
 # include "virnetserverservice.h"
-
-typedef int (*virNetServerClientInitHook)(virNetServerPtr srv,
-                                          virNetServerClientPtr client);
+# include "virobject.h"
+# include "virjson.h"
 
 virNetServerPtr virNetServerNew(size_t min_workers,
                                 size_t max_workers,
@@ -45,23 +43,29 @@ virNetServerPtr virNetServerNew(size_t min_workers,
                                 unsigned int keepaliveCount,
                                 bool keepaliveRequired,
                                 const char *mdnsGroupName,
-                                bool connectDBus,
-                                virNetServerClientInitHook clientInitHook);
+                                virNetServerClientPrivNew clientPrivNew,
+                                virNetServerClientPrivPreExecRestart clientPrivPreExecRestart,
+                                virFreeCallback clientPrivFree,
+                                void *clientPrivOpaque);
+
+virNetServerPtr virNetServerNewPostExecRestart(virJSONValuePtr object,
+                                               virNetServerClientPrivNew clientPrivNew,
+                                               virNetServerClientPrivNewPostExecRestart clientPrivNewPostExecRestart,
+                                               virNetServerClientPrivPreExecRestart clientPrivPreExecRestart,
+                                               virFreeCallback clientPrivFree,
+                                               void *clientPrivOpaque);
+
+virJSONValuePtr virNetServerPreExecRestart(virNetServerPtr srv);
 
 typedef int (*virNetServerAutoShutdownFunc)(virNetServerPtr srv, void *opaque);
 
-void virNetServerRef(virNetServerPtr srv);
-
 bool virNetServerIsPrivileged(virNetServerPtr srv);
 
-# if HAVE_DBUS
-DBusConnection* virNetServerGetDBusConn(virNetServerPtr srv);
-# endif
-
 void virNetServerAutoShutdown(virNetServerPtr srv,
-                              unsigned int timeout,
-                              virNetServerAutoShutdownFunc func,
-                              void *opaque);
+                              unsigned int timeout);
+
+void virNetServerAddShutdownInhibition(virNetServerPtr srv);
+void virNetServerRemoveShutdownInhibition(virNetServerPtr srv);
 
 typedef void (*virNetServerSignalFunc)(virNetServerPtr srv, siginfo_t *info, void *opaque);
 
@@ -77,8 +81,10 @@ int virNetServerAddService(virNetServerPtr srv,
 int virNetServerAddProgram(virNetServerPtr srv,
                            virNetServerProgramPtr prog);
 
+# if WITH_GNUTLS
 int virNetServerSetTLSContext(virNetServerPtr srv,
                               virNetTLSContextPtr tls);
+# endif
 
 void virNetServerUpdateServices(virNetServerPtr srv,
                                 bool enabled);
@@ -86,8 +92,6 @@ void virNetServerUpdateServices(virNetServerPtr srv,
 void virNetServerRun(virNetServerPtr srv);
 
 void virNetServerQuit(virNetServerPtr srv);
-
-void virNetServerFree(virNetServerPtr srv);
 
 void virNetServerClose(virNetServerPtr srv);
 

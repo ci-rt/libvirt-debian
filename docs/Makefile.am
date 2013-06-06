@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-## Copyright (C) 2005-2011 Red Hat, Inc.
+## Copyright (C) 2005-2012 Red Hat, Inc.
 ## See COPYING.LIB for the License of this software
 
 SUBDIRS= schemas
@@ -71,9 +71,19 @@ gif = \
   architecture.gif \
   node.gif
 
-dot_html_in = $(notdir $(wildcard $(srcdir)/*.html.in)) todo.html.in hvsupport.html.in \
-      $(patsubst $(srcdir)/%,%,$(wildcard $(srcdir)/internals/*.html.in))
+
+internals_html_in = \
+  $(patsubst $(srcdir)/%,%,$(wildcard $(srcdir)/internals/*.html.in))
+internals_html = $(internals_html_in:%.html.in=%.html)
+
+dot_html_in = $(notdir $(wildcard $(srcdir)/*.html.in)) \
+  todo.html.in \
+  hvsupport.html.in
 dot_html = $(dot_html_in:%.html.in=%.html)
+
+dot_php_in = $(notdir $(wildcard $(srcdir)/*.php.in))
+dot_php_code_in = $(dot_php_in:%.php.in=%.php.code.in)
+dot_php = $(dot_php_in:%.php.in=%.php)
 
 patches = $(patsubst $(srcdir)/%,%,$(wildcard $(srcdir)/api_extension/*.patch))
 
@@ -85,8 +95,12 @@ qemu_xml = \
   libvirt-qemu-api.xml \
   libvirt-qemu-refs.xml
 
+lxc_xml = \
+  libvirt-lxc-api.xml \
+  libvirt-lxc-refs.xml
+
 apidir = $(pkgdatadir)/api
-api_DATA = libvirt-api.xml libvirt-qemu-api.xml
+api_DATA = libvirt-api.xml libvirt-qemu-api.xml libvirt-lxc-api.xml
 
 fig = \
   libvirt-net-logical.fig \
@@ -106,22 +120,27 @@ EXTRA_DIST=					\
   hacking1.xsl hacking2.xsl wrapstring.xsl \
   $(dot_html) $(dot_html_in) $(gif) $(apihtml) $(apipng) \
   $(devhelphtml) $(devhelppng) $(devhelpcss) $(devhelpxsl) \
-  $(xml) $(qemu_xml) $(fig) $(png) $(css) \
-  $(patches) \
+  $(xml) $(qemu_xml) $(lxc_xml) $(fig) $(png) $(css) \
+  $(patches) $(dot_php_in) $(dot_php_code_in) $(dot_php)\
+  $(internals_html_in) $(internals_html) \
   sitemap.html.in \
   todo.pl hvsupport.pl todo.cfg-example
 
 MAINTAINERCLEANFILES = \
   $(addprefix $(srcdir)/,$(dot_html)) \
   $(addprefix $(srcdir)/,$(apihtml)) \
-  $(addprefix $(srcdir)/,$(devhelphtml))
+  $(addprefix $(srcdir)/,$(devhelphtml)) \
+  $(addprefix $(srcdir)/,$(internals_html)) \
+  $(addprefix $(srcdir)/,$(dot_php))
 
 all-am: web
 
 api: $(srcdir)/libvirt-api.xml $(srcdir)/libvirt-refs.xml
 qemu_api: $(srcdir)/libvirt-qemu-api.xml $(srcdir)/libvirt-qemu-refs.xml
+lxc_api: $(srcdir)/libvirt-lxc-api.xml $(srcdir)/libvirt-lxc-refs.xml
 
-web: $(dot_html) html/index.html devhelp/index.html
+web: $(dot_html) $(internals_html) html/index.html devhelp/index.html \
+  $(dot_php)
 
 todo.html.in: todo.pl
 	if [ -f  todo.cfg ]; then \
@@ -138,7 +157,8 @@ todo:
 	$(MAKE) todo.html
 
 hvsupport.html.in: $(srcdir)/hvsupport.pl $(srcdir)/../src/libvirt_public.syms \
-	 $(srcdir)/../src/libvirt_qemu.syms $(srcdir)/../src/driver.h
+	$(srcdir)/../src/libvirt_qemu.syms $(srcdir)/../src/libvirt_lxc.syms \
+	$(srcdir)/../src/driver.h
 	$(AM_V_GEN)$(PERL) $(srcdir)/hvsupport.pl $(srcdir)/../src > $@ || { rm $@ && exit 1; }
 
 .PHONY: todo
@@ -173,6 +193,19 @@ internals/%.html.tmp: internals/%.html.in subsite.xsl page.xsl sitemap.html.in
 	  || { rm $(srcdir)/$@ && exit 1; }; \
 	  else echo "missing XHTML1 DTD" ; fi ; fi
 
+%.php.tmp: %.php.in site.xsl page.xsl sitemap.html.in
+	@if [ -x $(XSLTPROC) ] ; then \
+	  echo "Generating $@"; \
+	  $(XSLTPROC) --stringparam pagename $(@:.tmp=) --nonet --html \
+	    $(top_srcdir)/docs/site.xsl $< > $@ \
+	    || { rm $@ && exit 1; }; fi
+
+%.php: %.php.tmp %.php.code.in
+	@if [ -x $(XSLTPROC) ] ; then \
+	  echo "Scripting $@"; \
+	    sed -e '/<a id="php_placeholder"><\/a>/r '"$(srcdir)/$@.code.in" \
+	    -e /php_placeholder/d < $@.tmp > $(srcdir)/$@ \
+	    || { rm $(srcdir)/$@ && exit 1; }; fi
 
 html/index.html: libvirt-api.xml newapi.xsl page.xsl sitemap.html.in
 	$(AM_V_GEN)if [ -x $(XSLTPROC) ] ; then \
@@ -193,23 +226,34 @@ $(addprefix $(srcdir)/,$(devhelphtml)): $(srcdir)/libvirt-api.xml $(devhelpxsl)
 
 python_generated_files = \
 		$(srcdir)/html/libvirt-libvirt.html \
+		$(srcdir)/html/libvirt-libvirt-lxc.html \
 		$(srcdir)/html/libvirt-libvirt-qemu.html \
 		$(srcdir)/html/libvirt-virterror.html \
 		$(srcdir)/libvirt-api.xml \
 		$(srcdir)/libvirt-refs.xml \
+		$(srcdir)/libvirt-lxc-api.xml \
+		$(srcdir)/libvirt-lxc-refs.xml \
 		$(srcdir)/libvirt-qemu-api.xml \
-		$(srcdir)/libvirt-qemu-refs.xml
+		$(srcdir)/libvirt-qemu-refs.xml \
+		$(NULL)
 
-APIBUILD="$(srcdir)/apibuild.py"
-APIBUILD_STAMP="$(APIBUILD).stamp"
+APIBUILD=$(srcdir)/apibuild.py
+APIBUILD_STAMP=$(APIBUILD).stamp
+EXTRA_DIST += $(APIBUILD_STAMP)
 
 $(python_generated_files): $(APIBUILD_STAMP)
 
 $(APIBUILD_STAMP): $(srcdir)/apibuild.py \
-		$(srcdir)/../include/libvirt/*.h \
+		$(srcdir)/../include/libvirt/libvirt.h.in \
+		$(srcdir)/../include/libvirt/libvirt-lxc.h \
+		$(srcdir)/../include/libvirt/libvirt-qemu.h \
+		$(srcdir)/../include/libvirt/virterror.h \
 		$(srcdir)/../src/libvirt.c \
+		$(srcdir)/../src/libvirt-lxc.c \
 		$(srcdir)/../src/libvirt-qemu.c \
-		$(srcdir)/../src/util/virterror.c
+		$(srcdir)/../src/util/virerror.c \
+		$(srcdir)/../src/util/virevent.c \
+		$(srcdir)/../src/util/virtypedparam.c
 	$(AM_V_GEN)srcdir=$(srcdir) $(PYTHON) $(APIBUILD)
 	touch $@
 
@@ -222,9 +266,10 @@ clean-local:
 maintainer-clean-local: clean-local
 	rm -rf $(srcdir)/libvirt-api.xml $(srcdir)/libvirt-refs.xml todo.html.in hvsupport.html.in
 	rm -rf $(srcdir)/libvirt-qemu-api.xml $(srcdir)/libvirt-qemu-refs.xml
+	rm -rf $(srcdir)/libvirt-lxc-api.xml $(srcdir)/libvirt-lxc-refs.xml
 	rm -rf $(APIBUILD_STAMP)
 
-rebuild: api qemu_api all
+rebuild: api qemu_api lxc_api all
 
 install-data-local:
 	$(mkinstalldirs) $(DESTDIR)$(HTML_DIR)
@@ -235,10 +280,14 @@ install-data-local:
 	  $(INSTALL) -m 0644 $(srcdir)/$$h $(DESTDIR)$(HTML_DIR)/html; done
 	for p in $(apipng); do \
 	  $(INSTALL) -m 0644 $(srcdir)/$$p $(DESTDIR)$(HTML_DIR)/html; done
+	$(mkinstalldirs) $(DESTDIR)$(HTML_DIR)/internals
+	for f in $(internals_html); do \
+	  $(INSTALL) -m 0644 $(srcdir)/$$f $(DESTDIR)$(HTML_DIR)/internals; done
 	$(mkinstalldirs) $(DESTDIR)$(DEVHELP_DIR)
 	for file in $(devhelphtml) $(devhelppng) $(devhelpcss); do \
 	    $(INSTALL) -m 0644 $(srcdir)/$${file} $(DESTDIR)$(DEVHELP_DIR) ; \
 	done
+	$(INSTALL_DATA) $(srcdir)/libvirtLogo.png $(DESTDIR)$(pkgdatadir)
 
 uninstall-local:
 	for h in $(apihtml); do rm $(DESTDIR)$(HTML_DIR)/$$h; done

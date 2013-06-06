@@ -104,7 +104,7 @@ mymain(void)
                         1, testCompareXMLToXMLHelper, &info) < 0) \
             ret = -1;   \
        }    \
-    while(0);
+    while (0);
 
     DO_TEST("pool-dir", "vol-file");
     DO_TEST("pool-dir", "vol-file-backing");
@@ -112,6 +112,7 @@ mymain(void)
     DO_TEST("pool-disk", "vol-partition");
     DO_TEST("pool-logical", "vol-logical");
     DO_TEST("pool-logical", "vol-logical-backing");
+    DO_TEST("pool-sheepdog", "vol-sheepdog");
 
     return ret==0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }

@@ -10,11 +10,13 @@
 
 #include "internal.h"
 #include "xen/xend_internal.h"
+#include "xen/xen_driver.h"
 #include "xenxs/xen_sxpr.h"
 #include "testutils.h"
 #include "testutilsxen.h"
 
 static virCapsPtr caps;
+static virDomainXMLOptionPtr xmlopt;
 
 static int
 testCompareFiles(const char *xml, const char *sexpr, int xendConfigVersion)
@@ -31,7 +33,8 @@ testCompareFiles(const char *xml, const char *sexpr, int xendConfigVersion)
   if (virtTestLoadFile(sexpr, &sexprData) < 0)
       goto fail;
 
-  if (!(def = virDomainDefParseString(caps, xmlData, 1 << VIR_DOMAIN_VIRT_XEN,
+  if (!(def = virDomainDefParseString(xmlData, caps, xmlopt,
+                                      1 << VIR_DOMAIN_VIRT_XEN,
                                       VIR_DOMAIN_XML_INACTIVE)))
       goto fail;
 
@@ -102,6 +105,9 @@ mymain(void)
     if (!(caps = testXenCapsInit()))
         return EXIT_FAILURE;
 
+    if (!(xmlopt = xenDomainXMLConfInit()))
+        return EXIT_FAILURE;
+
     DO_TEST("pv", "pv", "pvtest", 1);
     DO_TEST("fv", "fv", "fvtest", 1);
     DO_TEST("pv", "pv", "pvtest", 2);
@@ -168,7 +174,8 @@ mymain(void)
     DO_TEST("boot-grub", "boot-grub", "fvtest", 1);
     DO_TEST("escape", "escape", "fvtest", 1);
 
-    virCapabilitiesFree(caps);
+    virObjectUnref(caps);
+    virObjectUnref(xmlopt);
 
     return ret==0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }

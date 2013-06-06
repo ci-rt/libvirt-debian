@@ -24,6 +24,9 @@
 /* Define to the number of bits in type 'wint_t'. */
 #undef BITSIZEOF_WINT_T
 
+/* Define to 1 if gcc -Wlogical-op reports false positives on strchr */
+#undef BROKEN_GCC_WLOGICALOP
+
 /* Define to 1 if chown fails to change ctime when at least one argument was
    not -1. */
 #undef CHOWN_CHANGE_TIME_BUG
@@ -37,12 +40,15 @@
 /* Define to 1 if chown mishandles trailing slash. */
 #undef CHOWN_TRAILING_SLASH_BUG
 
-/* Define to one of '_getb67', 'GETB67', 'getb67' for Cray-2 and Cray-YMP
-   systems. This function is required for 'alloca.c' support on those systems.
+/* Location of collie program */
+#undef COLLIE
+
+/* Define to one of `_getb67', `GETB67', `getb67' for Cray-2 and Cray-YMP
+   systems. This function is required for `alloca.c' support on those systems.
    */
 #undef CRAY_STACKSEG_END
 
-/* Define to 1 if using 'alloca.c'. */
+/* Define to 1 if using `alloca.c'. */
 #undef C_ALLOCA
 
 /* Define as the bit index in the word where to find bit 0 of the exponent of
@@ -51,6 +57,12 @@
 
 /* Define as the word index where to find the exponent of 'double'. */
 #undef DBL_EXPBIT0_WORD
+
+/* Define as the bit index in the word where to find the sign of 'double'. */
+#undef DBL_SIGNBIT_BIT
+
+/* Define as the word index where to find the sign of 'double'. */
+#undef DBL_SIGNBIT_WORD
 
 /* Location or name of the dmsetup program */
 #undef DMSETUP
@@ -73,6 +85,26 @@
 
 /* Define this to 1 if F_DUPFD behavior does not match POSIX */
 #undef FCNTL_DUPFD_BUGGY
+
+/* Define as the bit index in the word where to find bit 0 of the exponent of
+   'float'. */
+#undef FLT_EXPBIT0_BIT
+
+/* Define as the word index where to find the exponent of 'float'. */
+#undef FLT_EXPBIT0_WORD
+
+/* Define as the bit index in the word where to find the sign of 'float'. */
+#undef FLT_SIGNBIT_BIT
+
+/* Define as the word index where to find the sign of 'float'. */
+#undef FLT_SIGNBIT_WORD
+
+/* Enable compile-time and run-time bounds-checking, and some warnings,
+        without upsetting newer glibc. */
+     #if !defined _FORTIFY_SOURCE && defined __OPTIMIZE__ && __OPTIMIZE__
+     # define _FORTIFY_SOURCE 2
+     #endif
+    
 
 /* Define to 1 if the system's ftello function has the Solaris bug. */
 #undef FTELLO_BROKEN_AFTER_SWITCHING_FROM_READ_TO_WRITE
@@ -111,12 +143,20 @@
 #undef GNULIB_FFLUSH
 
 /* Define to a C preprocessor expression that evaluates to 1 or 0, depending
+   whether the gnulib module fscanf shall be considered present. */
+#undef GNULIB_FSCANF
+
+/* Define to a C preprocessor expression that evaluates to 1 or 0, depending
    whether the gnulib module malloc-gnu shall be considered present. */
 #undef GNULIB_MALLOC_GNU
 
 /* Define to a C preprocessor expression that evaluates to 1 or 0, depending
-   whether the gnulib module mkstemps shall be considered present. */
-#undef GNULIB_MKSTEMPS
+   whether the gnulib module mkostemp shall be considered present. */
+#undef GNULIB_MKOSTEMP
+
+/* Define to a C preprocessor expression that evaluates to 1 or 0, depending
+   whether the gnulib module mkostemps shall be considered present. */
+#undef GNULIB_MKOSTEMPS
 
 /* Define to a C preprocessor expression that evaluates to 1 or 0, depending
    whether the gnulib module nonblocking shall be considered present. */
@@ -125,6 +165,10 @@
 /* Define to a C preprocessor expression that evaluates to 1 or 0, depending
    whether the gnulib module realloc-gnu shall be considered present. */
 #undef GNULIB_REALLOC_GNU
+
+/* Define to a C preprocessor expression that evaluates to 1 or 0, depending
+   whether the gnulib module scanf shall be considered present. */
+#undef GNULIB_SCANF
 
 /* Define to a C preprocessor expression that evaluates to 1 or 0, depending
    whether the gnulib module sigpipe shall be considered present. */
@@ -189,6 +233,9 @@
 
 /* Define to 1 when the gnulib module fflush should be tested. */
 #undef GNULIB_TEST_FFLUSH
+
+/* Define to 1 when the gnulib module ffsl should be tested. */
+#undef GNULIB_TEST_FFSL
 
 /* Define to 1 when the gnulib module fpurge should be tested. */
 #undef GNULIB_TEST_FPURGE
@@ -256,6 +303,9 @@
 /* Define to 1 when the gnulib module ioctl should be tested. */
 #undef GNULIB_TEST_IOCTL
 
+/* Define to 1 when the gnulib module isatty should be tested. */
+#undef GNULIB_TEST_ISATTY
+
 /* Define to 1 when the gnulib module listen should be tested. */
 #undef GNULIB_TEST_LISTEN
 
@@ -286,11 +336,11 @@
 /* Define to 1 when the gnulib module memchr should be tested. */
 #undef GNULIB_TEST_MEMCHR
 
-/* Define to 1 when the gnulib module mkstemp should be tested. */
-#undef GNULIB_TEST_MKSTEMP
+/* Define to 1 when the gnulib module mkostemp should be tested. */
+#undef GNULIB_TEST_MKOSTEMP
 
-/* Define to 1 when the gnulib module mkstemps should be tested. */
-#undef GNULIB_TEST_MKSTEMPS
+/* Define to 1 when the gnulib module mkostemps should be tested. */
+#undef GNULIB_TEST_MKOSTEMPS
 
 /* Define to 1 when the gnulib module mktime should be tested. */
 #undef GNULIB_TEST_MKTIME
@@ -397,6 +447,9 @@
 /* Define to 1 when the gnulib module recv should be tested. */
 #undef GNULIB_TEST_RECV
 
+/* Define to 1 when the gnulib module secure_getenv should be tested. */
+#undef GNULIB_TEST_SECURE_GETENV
+
 /* Define to 1 when the gnulib module select should be tested. */
 #undef GNULIB_TEST_SELECT
 
@@ -414,6 +467,9 @@
 
 /* Define to 1 when the gnulib module sigaction should be tested. */
 #undef GNULIB_TEST_SIGACTION
+
+/* Define to 1 when the gnulib module signbit should be tested. */
+#undef GNULIB_TEST_SIGNBIT
 
 /* Define to 1 when the gnulib module sigprocmask should be tested. */
 #undef GNULIB_TEST_SIGPROCMASK
@@ -502,9 +558,6 @@
 /* Define to 1 when the gnulib module write should be tested. */
 #undef GNULIB_TEST_WRITE
 
-/* Define to 1 if you have the 'alarm' function. */
-#undef HAVE_ALARM
-
 /* Define to 1 if you have 'alloca' after including <alloca.h>, a header that
    may be supplied by this distribution. */
 #undef HAVE_ALLOCA
@@ -513,17 +566,8 @@
    */
 #undef HAVE_ALLOCA_H
 
-/* whether AppArmor is available for security */
-#undef HAVE_APPARMOR
-
 /* Define to 1 if you have the <arpa/inet.h> header file. */
 #undef HAVE_ARPA_INET_H
-
-/* whether libaudit is available */
-#undef HAVE_AUDIT
-
-/* whether Avahi is used to broadcast server presense */
-#undef HAVE_AVAHI
 
 /* Define to 1 if you have the <bp-sym.h> header file. */
 #undef HAVE_BP_SYM_H
@@ -539,9 +583,6 @@
 
 /* Define to 1 if you have the 'canonicalize_file_name' function. */
 #undef HAVE_CANONICALIZE_FILE_NAME
-
-/* whether capng is available for privilege reduction */
-#undef HAVE_CAPNG
 
 /* Define to 1 if you have the 'catgets' function. */
 #undef HAVE_CATGETS
@@ -563,17 +604,29 @@
 /* Define to 1 if you have the `chsize' function. */
 #undef HAVE_CHSIZE
 
-/* Defined if clock_gettime() exists in librt.so */
+/* Define to 1 if you have the `clock_gettime' function. */
 #undef HAVE_CLOCK_GETTIME
+
+/* Define to 1 if you have the `clock_settime' function. */
+#undef HAVE_CLOCK_SETTIME
 
 /* Define to 1 if you have the `confstr' function. */
 #undef HAVE_CONFSTR
 
+/* Define if the copysignf function is declared in <math.h> and available in
+   libc. */
+#undef HAVE_COPYSIGNF_IN_LIBC
+
+/* Define if the copysignl function is declared in <math.h> and available in
+   libc. */
+#undef HAVE_COPYSIGNL_IN_LIBC
+
+/* Define if the copysign function is declared in <math.h> and available in
+   libc. */
+#undef HAVE_COPYSIGN_IN_LIBC
+
 /* whether CPUID instruction is supported */
 #undef HAVE_CPUID
-
-/* use DBus for PolicyKit */
-#undef HAVE_DBUS
 
 /* Define to 1 if you have the `dbus_watch_get_unix_fd' function. */
 #undef HAVE_DBUS_WATCH_GET_UNIX_FD
@@ -585,6 +638,18 @@
 /* Define to 1 if you have the declaration of `alarm', and to 0 if you don't.
    */
 #undef HAVE_DECL_ALARM
+
+/* Define to 1 if you have the declaration of `copysign', and to 0 if you
+   don't. */
+#undef HAVE_DECL_COPYSIGN
+
+/* Define to 1 if you have the declaration of `copysignf', and to 0 if you
+   don't. */
+#undef HAVE_DECL_COPYSIGNF
+
+/* Define to 1 if you have the declaration of `copysignl', and to 0 if you
+   don't. */
+#undef HAVE_DECL_COPYSIGNL
 
 /* Define to 1 if you have the declaration of `fdatasync', and to 0 if you
    don't. */
@@ -654,6 +719,10 @@
    don't. */
 #undef HAVE_DECL_GETPASS
 
+/* Define to 1 if you have the declaration of `htole64', and to 0 if you
+   don't. */
+#undef HAVE_DECL_HTOLE64
+
 /* Define to 1 if you have the declaration of `inet_ntop', and to 0 if you
    don't. */
 #undef HAVE_DECL_INET_NTOP
@@ -669,6 +738,10 @@
 /* Define to 1 if you have the declaration of `localtime_r', and to 0 if you
    don't. */
 #undef HAVE_DECL_LOCALTIME_R
+
+/* Define to 1 if you have the declaration of `LO_FLAGS_AUTOCLEAR', and to 0
+   if you don't. */
+#undef HAVE_DECL_LO_FLAGS_AUTOCLEAR
 
 /* Define to 1 if you have the declaration of `MACVLAN_MODE_PASSTHRU', and to
    0 if you don't. */
@@ -701,6 +774,10 @@
 /* Define to 1 if you have the declaration of `putc_unlocked', and to 0 if you
    don't. */
 #undef HAVE_DECL_PUTC_UNLOCKED
+
+/* Define to 1 if you have the declaration of `SANLK_INQ_WAIT', and to 0 if
+   you don't. */
+#undef HAVE_DECL_SANLK_INQ_WAIT
 
 /* Define to 1 if you have the declaration of `setenv', and to 0 if you don't.
    */
@@ -762,6 +839,10 @@
    */
 #undef HAVE_DECL_WCTOB
 
+/* Define to 1 if you have the declaration of `_putenv', and to 0 if you
+   don't. */
+#undef HAVE_DECL__PUTENV
+
 /* Define to 1 if you have the declaration of `_snprintf', and to 0 if you
    don't. */
 #undef HAVE_DECL__SNPRINTF
@@ -779,6 +860,9 @@
 /* Define if you have the declaration of environ. */
 #undef HAVE_ENVIRON_DECL
 
+/* Define to 1 if you have the <execinfo.h> header file. */
+#undef HAVE_EXECINFO_H
+
 /* Define to 1 if you have the 'fchown' function. */
 #undef HAVE_FCHOWN
 
@@ -793,6 +877,12 @@
 
 /* Define to 1 if you have the 'ffs' function. */
 #undef HAVE_FFS
+
+/* Define to 1 if you have the 'ffsl' function. */
+#undef HAVE_FFSL
+
+/* whether firewalld support is enabled */
+#undef HAVE_FIREWALLD
 
 /* Define to 1 if you have the `flockfile' function. */
 #undef HAVE_FLOCKFILE
@@ -878,14 +968,14 @@
 /* Define to 1 if you have the <grp.h> header file. */
 #undef HAVE_GRP_H
 
-/* use HAL for host device enumeration */
-#undef HAVE_HAL
-
 /* Define if you have the iconv() function and it works. */
 #undef HAVE_ICONV
 
 /* Define to 1 if you have the <ifaddrs.h> header file. */
 #undef HAVE_IFADDRS_H
+
+/* Define if you have if_nameindex. */
+#undef HAVE_IF_NAMEINDEX
 
 /* Define to 1 if you have the `inet_ntop' function. */
 #undef HAVE_INET_NTOP
@@ -895,11 +985,6 @@
 
 /* Define to 1 if you have the 'initgroups' function. */
 #undef HAVE_INITGROUPS
-
-/* Define to 1 if the compiler supports one of the keywords 'inline',
-   '__inline__', '__inline' and effectively inlines functions marked as such.
-   */
-#undef HAVE_INLINE
 
 /* Define if you have the 'intmax_t' type in <stdint.h> or <inttypes.h>. */
 #undef HAVE_INTMAX_T
@@ -923,6 +1008,18 @@
 /* Define to 1 if you have the 'isblank' function. */
 #undef HAVE_ISBLANK
 
+/* Define if the isnan(double) function is available in libc. */
+#undef HAVE_ISNAND_IN_LIBC
+
+/* Define if the isnan(float) function is available in libc. */
+#undef HAVE_ISNANF_IN_LIBC
+
+/* Define if the isnan(long double) function is available in libc. */
+#undef HAVE_ISNANL_IN_LIBC
+
+/* Define to 1 if you have the `issetugid' function. */
+#undef HAVE_ISSETUGID
+
 /* Define to 1 if you have the 'iswcntrl' function. */
 #undef HAVE_ISWCNTRL
 
@@ -944,11 +1041,11 @@
 /* Define to 1 if you have the `apparmor' library (-lapparmor). */
 #undef HAVE_LIBAPPARMOR
 
+/* Define to 1 if you have the `attr' library (-lattr). */
+#undef HAVE_LIBATTR
+
 /* Define to 1 if you have the `audit' library (-laudit). */
 #undef HAVE_LIBAUDIT
-
-/* libblkid is present */
-#undef HAVE_LIBBLKID
 
 /* Define to 1 if you have the `cap-ng' library (-lcap-ng). */
 #undef HAVE_LIBCAP_NG
@@ -962,9 +1059,6 @@
 /* Define to 1 if you have the `gnutls' library (-lgnutls). */
 #undef HAVE_LIBGNUTLS
 
-/* Define to 1 if you have the `libhal_get_all_devices' function. */
-#undef HAVE_LIBHAL_GET_ALL_DEVICES
-
 /* Define to 1 if you have the `intl' library (-lintl). */
 #undef HAVE_LIBINTL
 
@@ -973,6 +1067,12 @@
 
 /* whether the netlink library is available */
 #undef HAVE_LIBNL
+
+/* whether the netlink v1 library is available */
+#undef HAVE_LIBNL1
+
+/* Use libnl-3.0 */
+#undef HAVE_LIBNL3
 
 /* Define to 1 if you have the `numa' library (-lnuma). */
 #undef HAVE_LIBNUMA
@@ -986,6 +1086,12 @@
 /* Define to 1 if you have the `portablexdr' library (-lportablexdr). */
 #undef HAVE_LIBPORTABLEXDR
 
+/* Define to 1 if you have the `sanlock_client' library (-lsanlock_client). */
+#undef HAVE_LIBSANLOCK_CLIENT
+
+/* Define to 1 if you have the `sasl2' library (-lsasl2). */
+#undef HAVE_LIBSASL2
+
 /* Define to 1 if you have the `selinux' library (-lselinux). */
 #undef HAVE_LIBSELINUX
 
@@ -997,6 +1103,9 @@
 
 /* Define to 1 if you have the `uuid' library (-luuid). */
 #undef HAVE_LIBUUID
+
+/* Define to 1 if you have the `yajl' library (-lyajl). */
+#undef HAVE_LIBYAJL
 
 /* Define to 1 if you have the <linux/if_bridge.h> header file. */
 #undef HAVE_LINUX_IF_BRIDGE_H
@@ -1039,6 +1148,9 @@
    config.h and <sys/mman.h>. */
 #undef HAVE_MAP_ANONYMOUS
 
+/* Define to 1 if you have the <math.h> header file. */
+#undef HAVE_MATH_H
+
 /* Define to 1 if you have the `mbrtowc' function. */
 #undef HAVE_MBRTOWC
 
@@ -1057,11 +1169,11 @@
 /* Define to 1 if you have the 'mempcpy' function. */
 #undef HAVE_MEMPCPY
 
-/* Define to 1 if you have the 'mkstemp' function. */
-#undef HAVE_MKSTEMP
+/* Define to 1 if you have the 'mkostemp' function. */
+#undef HAVE_MKOSTEMP
 
-/* Define to 1 if you have the 'mkstemps' function. */
-#undef HAVE_MKSTEMPS
+/* Define to 1 if you have the 'mkostemps' function. */
+#undef HAVE_MKOSTEMPS
 
 /* Define to 1 if you have the 'mmap' function. */
 #undef HAVE_MMAP
@@ -1100,9 +1212,6 @@
 /* Define to 1 if you have the 'nl_langinfo' function. */
 #undef HAVE_NL_LANGINFO
 
-/* whether numactl is available for topology info */
-#undef HAVE_NUMACTL
-
 /* whether numad is available */
 #undef HAVE_NUMAD
 
@@ -1120,15 +1229,6 @@
 
 /* Define to 1 if you have the 'pipe2' function. */
 #undef HAVE_PIPE2
-
-/* use PolicyKit for UNIX socket access checks */
-#undef HAVE_POLKIT
-
-/* use PolicyKit for UNIX socket access checks */
-#undef HAVE_POLKIT0
-
-/* use PolicyKit for UNIX socket access checks */
-#undef HAVE_POLKIT1
 
 /* Define to 1 if you have the `polkit_context_is_caller_authorized' function.
    */
@@ -1160,6 +1260,9 @@
 
 /* Define to 1 if the system has the type `posix_spawn_file_actions_t'. */
 #undef HAVE_POSIX_SPAWN_FILE_ACTIONS_T
+
+/* Define to 1 if you have the 'prlimit' function. */
+#undef HAVE_PRLIMIT
 
 /* Define to 1 if you have the `pstat_getdynamic' function. */
 #undef HAVE_PSTAT_GETDYNAMIC
@@ -1246,11 +1349,14 @@
 /* Define to 1 if you have the `revoke' function. */
 #undef HAVE_REVOKE
 
-/* whether Sanlock plugin for lock management is available */
-#undef HAVE_SANLOCK
+/* Define to 1 if 'long double' and 'double' have the same representation. */
+#undef HAVE_SAME_LONG_DOUBLE_AS_DOUBLE
 
-/* whether Cyrus SASL is available for authentication */
-#undef HAVE_SASL
+/* whether sanlock supports sanlock_inq_lockspace */
+#undef HAVE_SANLOCK_INQ_LOCKSPACE
+
+/* whether Sanlock supports sanlock_killpath */
+#undef HAVE_SANLOCK_KILLPATH
 
 /* Define to 1 if the system has the type `sa_family_t'. */
 #undef HAVE_SA_FAMILY_T
@@ -1270,11 +1376,14 @@
 /* Define to 1 if you have the <search.h> header file. */
 #undef HAVE_SEARCH_H
 
-/* whether basic SELinux functionality is available */
-#undef HAVE_SELINUX
+/* Define to 1 if you have the 'secure_getenv' function. */
+#undef HAVE_SECURE_GETENV
 
 /* Define to 1 if you have the <selinux/label.h> header file. */
 #undef HAVE_SELINUX_LABEL_H
+
+/* Define to 1 if you have the `selinux_lxc_contexts_path' function. */
+#undef HAVE_SELINUX_LXC_CONTEXTS_PATH
 
 /* Define to 1 if you have the 'sendmsg' function. */
 #undef HAVE_SENDMSG
@@ -1291,7 +1400,10 @@
 /* Define to 1 if you have the `setlocale' function. */
 #undef HAVE_SETLOCALE
 
-/* Define to 1 if you have the `setrlimit' function. */
+/* Define to 1 if you have the 'setns' function. */
+#undef HAVE_SETNS
+
+/* Define to 1 if you have the 'setrlimit' function. */
 #undef HAVE_SETRLIMIT
 
 /* Define to 1 if you have the 'shutdown' function. */
@@ -1396,8 +1508,17 @@
 /* Define to 1 if the system has the type `struct addrinfo'. */
 #undef HAVE_STRUCT_ADDRINFO
 
-/* Defined if struct ifreq existsin net/if.h */
+/* Defined if struct ifreq exists in net/if.h */
 #undef HAVE_STRUCT_IFREQ
+
+/* Define to 1 if `ifr_ifindex' is a member of `struct ifreq'. */
+#undef HAVE_STRUCT_IFREQ_IFR_IFINDEX
+
+/* Define to 1 if `ifr_index' is a member of `struct ifreq'. */
+#undef HAVE_STRUCT_IFREQ_IFR_INDEX
+
+/* Define to 1 if `ifr_newname' is a member of `struct ifreq'. */
+#undef HAVE_STRUCT_IFREQ_IFR_NEWNAME
 
 /* Define to 1 if `decimal_point' is a member of `struct lconv'. */
 #undef HAVE_STRUCT_LCONV_DECIMAL_POINT
@@ -1471,6 +1592,9 @@
 /* Define to 1 if you have the <sys/mman.h> header file. */
 #undef HAVE_SYS_MMAN_H
 
+/* Define to 1 if you have the <sys/mount.h> header file. */
+#undef HAVE_SYS_MOUNT_H
+
 /* Define to 1 if you have the <sys/param.h> header file. */
 #undef HAVE_SYS_PARAM_H
 
@@ -1516,6 +1640,9 @@
 /* Define to 1 if you have the <sys/types.h> header file. */
 #undef HAVE_SYS_TYPES_H
 
+/* Define to 1 if you have the <sys/ucred.h> header file. */
+#undef HAVE_SYS_UCRED_H
+
 /* Define to 1 if you have the <sys/uio.h> header file. */
 #undef HAVE_SYS_UIO_H
 
@@ -1557,9 +1684,6 @@
 
 /* Define to 1 if you have the `ttyname_r' function. */
 #undef HAVE_TTYNAME_R
-
-/* use UDEV for host device enumeration */
-#undef HAVE_UDEV
 
 /* Define to 1 if you have the `uname' function. */
 #undef HAVE_UNAME
@@ -1655,6 +1779,9 @@
 /* Define to 1 if you have the `xdr_u_int64_t' function. */
 #undef HAVE_XDR_U_INT64_T
 
+/* Define to 1 if you have the <xenstore.h> header file. */
+#undef HAVE_XENSTORE_H
+
 /* Define to 1 if you have the <xen/dom0_ops.h> header file. */
 #undef HAVE_XEN_DOM0_OPS_H
 
@@ -1675,12 +1802,6 @@
 
 /* Have query_raw field in libxml2 xmlURI structure */
 #undef HAVE_XMLURI_QUERY_RAW
-
-/* whether YAJL is available for JSON parsing/formatting */
-#undef HAVE_YAJL
-
-/* whether YAJL has API version 2 */
-#undef HAVE_YAJL2
 
 /* Define to 1 if the system has the type `_Bool'. */
 #undef HAVE__BOOL
@@ -1713,6 +1834,9 @@
 /* Define to 1 if you have the '__fsetlocking' function. */
 #undef HAVE___FSETLOCKING
 
+/* Define to 1 if you have the `__secure_getenv' function. */
+#undef HAVE___SECURE_GETENV
+
 /* Define to 1 if you have the '__xpg_strerror_r' function. */
 #undef HAVE___XPG_STRERROR_R
 
@@ -1728,8 +1852,25 @@
 /* path to ip binary */
 #undef IP_PATH
 
+/* Define to 1 if isatty() may fail without setting errno. */
+#undef ISATTY_FAILS_WITHOUT_SETTING_ERRNO
+
 /* Location of iscsiadm program */
 #undef ISCSIADM
+
+/* Define as the bit index in the word where to find bit 0 of the exponent of
+   'long double'. */
+#undef LDBL_EXPBIT0_BIT
+
+/* Define as the word index where to find the exponent of 'long double'. */
+#undef LDBL_EXPBIT0_WORD
+
+/* Define as the bit index in the word where to find the sign of 'long
+   double'. */
+#undef LDBL_SIGNBIT_BIT
+
+/* Define as the word index where to find the sign of 'long double'. */
+#undef LDBL_SIGNBIT_WORD
 
 /* Define to 1 if lseek does not detect pipes. */
 #undef LSEEK_PIPE_BROKEN
@@ -1918,9 +2059,9 @@
 /* If using the C implementation of alloca, define if you know the
    direction of stack growth for your system; otherwise it will be
    automatically deduced at runtime.
-        STACK_DIRECTION > 0 => grows toward higher addresses
-        STACK_DIRECTION < 0 => grows toward lower addresses
-        STACK_DIRECTION = 0 => direction of growth unknown */
+	STACK_DIRECTION > 0 => grows toward higher addresses
+	STACK_DIRECTION < 0 => grows toward lower addresses
+	STACK_DIRECTION = 0 => direction of growth unknown */
 #undef STACK_DIRECTION
 
 /* Define to 1 when performing static analysis. */
@@ -1985,6 +2126,38 @@
    made weak. */
 #undef USE_SOLARIS_THREADS_WEAK
 
+/* Enable extensions on AIX 3, Interix.  */
+#ifndef _ALL_SOURCE
+# undef _ALL_SOURCE
+#endif
+/* Enable general extensions on OS X.  */
+#ifndef _DARWIN_C_SOURCE
+# undef _DARWIN_C_SOURCE
+#endif
+/* Enable GNU extensions on systems that have them.  */
+#ifndef _GNU_SOURCE
+# undef _GNU_SOURCE
+#endif
+/* Enable threading extensions on Solaris.  */
+#ifndef _POSIX_PTHREAD_SEMANTICS
+# undef _POSIX_PTHREAD_SEMANTICS
+#endif
+/* Enable extensions on HP NonStop.  */
+#ifndef _TANDEM_SOURCE
+# undef _TANDEM_SOURCE
+#endif
+/* Enable X/Open extensions if necessary.  HP-UX 11.11 defines
+   mbstate_t only if _XOPEN_SOURCE is defined to 500, regardless of
+   whether compiling with -Ae or -D_HPUX_SOURCE=1.  */
+#ifndef _XOPEN_SOURCE
+# undef _XOPEN_SOURCE
+#endif
+/* Enable general extensions on Solaris.  */
+#ifndef __EXTENSIONS__
+# undef __EXTENSIONS__
+#endif
+
+
 /* Define if the Win32 multithreading API can be used. */
 #undef USE_WIN32_THREADS
 
@@ -2012,8 +2185,17 @@
 /* Location of vgscan program */
 #undef VGSCAN
 
-/* path to directory containing UUCP pty lock files */
-#undef VIR_PTY_LOCK_FILE_PATH
+/* Use GCC atomic ops */
+#undef VIR_ATOMIC_OPS_GCC
+
+/* Use pthread atomic ops emulation */
+#undef VIR_ATOMIC_OPS_PTHREAD
+
+/* Use Win32 atomic ops */
+#undef VIR_ATOMIC_OPS_WIN32
+
+/* path to directory containing UUCP device lock files */
+#undef VIR_CHRDEV_LOCK_FILE_PATH
 
 /* Define to the absolute path of a shell that does not truncate on <>
    redirection, if /bin/sh does not fit the bill */
@@ -2033,8 +2215,32 @@
    'wint_t'. */
 #undef WINT_T_SUFFIX
 
+/* whether libapparmor is available */
+#undef WITH_APPARMOR
+
+/* whether libattr is available */
+#undef WITH_ATTR
+
+/* whether libaudit is available */
+#undef WITH_AUDIT
+
+/* whether avahi-client >= 0.6.0 is available */
+#undef WITH_AVAHI
+
+/* whether blkid >= 2.17 is available */
+#undef WITH_BLKID
+
 /* whether bridge code is needed */
 #undef WITH_BRIDGE
+
+/* whether libcap-ng is available */
+#undef WITH_CAPNG
+
+/* whether libcurl >= 7.18.0 is available */
+#undef WITH_CURL
+
+/* whether dbus-1 >= 1.0.0 is available */
+#undef WITH_DBUS
 
 /* whether to build drivers as modules */
 #undef WITH_DRIVER_MODULES
@@ -2045,8 +2251,20 @@
 /* whether ESX driver is enabled */
 #undef WITH_ESX
 
+/* whether fuse >= 2.8.6 is available */
+#undef WITH_FUSE
+
+/* whether GNUTLS is available for encryption */
+#undef WITH_GNUTLS
+
+/* whether hal >= 0.5.0 is available */
+#undef WITH_HAL
+
 /* whether Hyper-V driver is enabled */
 #undef WITH_HYPERV
+
+/* whether the interface driver is enabled */
+#undef WITH_INTERFACE
 
 /* whether libvirtd daemon is enabled */
 #undef WITH_LIBVIRTD
@@ -2060,8 +2278,7 @@
 /* whether macvtap support is enabled */
 #undef WITH_MACVTAP
 
-/* whether libnetcf is available to configure physical host network interfaces
-   */
+/* whether netcf >= 0.1.4 is available */
 #undef WITH_NETCF
 
 /* whether network driver is enabled */
@@ -2070,14 +2287,35 @@
 /* with node device driver */
 #undef WITH_NODE_DEVICES
 
+/* whether libnuma is available */
+#undef WITH_NUMACTL
+
 /* whether local network filter management driver is available */
 #undef WITH_NWFILTER
 
 /* whether OpenVZ driver is enabled */
 #undef WITH_OPENVZ
 
+/* whether openwsman >= 2.2.3 is available */
+#undef WITH_OPENWSMAN
+
+/* whether Parallels driver is enabled */
+#undef WITH_PARALLELS
+
+/* whether pciaccess >= 0.10.0 is available */
+#undef WITH_PCIACCESS
+
 /* whether IBM HMC / IVM driver is enabled */
 #undef WITH_PHYP
+
+/* use PolicyKit for UNIX socket access checks */
+#undef WITH_POLKIT
+
+/* use PolicyKit for UNIX socket access checks */
+#undef WITH_POLKIT0
+
+/* use PolicyKit for UNIX socket access checks */
+#undef WITH_POLKIT1
 
 /* whether QEMU driver is enabled */
 #undef WITH_QEMU
@@ -2088,6 +2326,15 @@
 /* whether building for the RHEL-5 API */
 #undef WITH_RHEL5_API
 
+/* whether libsanlock_client is available */
+#undef WITH_SANLOCK
+
+/* whether libsasl2 is available */
+#undef WITH_SASL
+
+/* whether libsasl2 is available */
+#undef WITH_SASL1
+
 /* whether AppArmor security driver is available */
 #undef WITH_SECDRIVER_APPARMOR
 
@@ -2096,6 +2343,15 @@
 
 /* whether local secrets management driver is available */
 #undef WITH_SECRETS
+
+/* whether libselinux is available */
+#undef WITH_SELINUX
+
+/* whether libssh2 >= 1.3 is available */
+#undef WITH_SSH2
+
+/* Define to 1 if at least one storage backend is in use */
+#undef WITH_STORAGE
 
 /* whether directory backend for storage driver is enabled */
 #undef WITH_STORAGE_DIR
@@ -2115,11 +2371,20 @@
 /* whether mpath backend for storage driver is enabled */
 #undef WITH_STORAGE_MPATH
 
+/* whether RBD backend for storage driver is enabled */
+#undef WITH_STORAGE_RBD
+
 /* whether SCSI backend for storage driver is enabled */
 #undef WITH_STORAGE_SCSI
 
+/* whether Sheepdog backend for storage driver is enabled */
+#undef WITH_STORAGE_SHEEPDOG
+
 /* whether Test driver is enabled */
 #undef WITH_TEST
+
+/* whether libudev >= 145 is available */
+#undef WITH_UDEV
 
 /* whether UML driver is enabled */
 #undef WITH_UML
@@ -2145,6 +2410,12 @@
 /* whether Xen inotify sub-driver is enabled */
 #undef WITH_XEN_INOTIFY
 
+/* whether libyajl is available */
+#undef WITH_YAJL
+
+/* whether libyajl is available */
+#undef WITH_YAJL2
+
 /* Define WORDS_BIGENDIAN to 1 if your processor stores words with the most
    significant byte first (like Motorola and SPARC, unlike Intel). */
 #if defined AC_APPLE_UNIVERSAL_BUILD
@@ -2157,16 +2428,11 @@
 # endif
 #endif
 
-/* Enable large inode numbers on Mac OS X.  */
-#ifndef _DARWIN_USE_64_BIT_INODE
-# define _DARWIN_USE_64_BIT_INODE 1
-#endif
+/* Enable large inode numbers on Mac OS X 10.5. */
+#undef _DARWIN_USE_64_BIT_INODE
 
 /* Number of bits in a file offset, on hosts where this is settable. */
 #undef _FILE_OFFSET_BITS
-
-/* enable compile-time and run-time bounds-checking, and some warnings */
-#undef _FORTIFY_SOURCE
 
 /* Define to 1 if Gnulib overrides 'struct stat' on Windows so that struct
    stat.st_size becomes 64-bit. */
@@ -2187,8 +2453,12 @@
 /* Define to 1 if on MINIX. */
 #undef _MINIX
 
+/* Define to 1 to make NetBSD features available. MINIX 3 needs this. */
+#undef _NETBSD_SOURCE
+
 /* The _Noreturn keyword of C11.  */
-#ifndef _Noreturn
+#if ! (defined _Noreturn \
+       || (defined __STDC_VERSION__ && 201112 <= __STDC_VERSION__))
 # if (3 <= __GNUC__ || (__GNUC__ == 2 && 8 <= __GNUC_MINOR__) \
       || 0x5110 <= __SUNPRO_C)
 #  define _Noreturn __attribute__ ((__noreturn__))
@@ -2218,37 +2488,69 @@
 /* Define if you want regoff_t to be at least as wide POSIX requires. */
 #undef _REGEX_LARGE_OFFSETS
 
-/* Define to 500 only on HP-UX. */
-#undef _XOPEN_SOURCE
-
-/* Enable extensions on AIX 3, Interix.  */
-#ifndef _ALL_SOURCE
-# undef _ALL_SOURCE
-#endif
-/* Enable general extensions on MacOS X.  */
-#ifndef _DARWIN_C_SOURCE
-# undef _DARWIN_C_SOURCE
-#endif
-/* Enable GNU extensions on systems that have them.  */
-#ifndef _GNU_SOURCE
-# undef _GNU_SOURCE
-#endif
-/* Enable threading extensions on Solaris.  */
-#ifndef _POSIX_PTHREAD_SEMANTICS
-# undef _POSIX_PTHREAD_SEMANTICS
-#endif
-/* Enable extensions on HP NonStop.  */
-#ifndef _TANDEM_SOURCE
-# undef _TANDEM_SOURCE
-#endif
-/* Enable general extensions on Solaris.  */
-#ifndef __EXTENSIONS__
-# undef __EXTENSIONS__
-#endif
-
-
 /* Define as a replacement for the ISO C99 __func__ variable. */
 #undef __func__
+
+/* Hack to avoid symbol clash */
+#undef base64_encode
+
+/* Hack to avoid symbol clash */
+#undef base64_encode_alloc
+
+/* _GL_INLINE is a portable alternative to ISO C99 plain 'inline'.
+   _GL_EXTERN_INLINE is a portable alternative to 'extern inline'.
+   _GL_INLINE_HEADER_BEGIN contains useful stuff to put
+     in an include file, before uses of _GL_INLINE.
+     It suppresses GCC's bogus "no previous prototype for 'FOO'" diagnostic,
+     when FOO is an inline function in the header; see
+     <http://gcc.gnu.org/bugzilla/show_bug.cgi?id=54113>.
+   _GL_INLINE_HEADER_END contains useful stuff to put
+     in the same include file, after uses of _GL_INLINE.
+
+   Suppress extern inline with HP-UX cc, as it appears to be broken; see
+   <http://lists.gnu.org/archive/html/bug-texinfo/2013-02/msg00030.html>.
+
+   Suppress the use of extern inline on Apple's platforms,
+   as Libc-825.25 (2012-09-19) is incompatible with it; see
+   <http://lists.gnu.org/archive/html/bug-gnulib/2012-12/msg00023.html>.
+   Perhaps Apple will fix this some day.  */
+#if ((__GNUC__ \
+      ? defined __GNUC_STDC_INLINE__ && __GNUC_STDC_INLINE__ \
+      : 199901L <= __STDC_VERSION__ && !defined __HP_cc) \
+     && !defined __APPLE__)
+# define _GL_INLINE inline
+# define _GL_EXTERN_INLINE extern inline
+#elif 2 < __GNUC__ + (7 <= __GNUC_MINOR__) && !defined __APPLE__
+# if __GNUC_GNU_INLINE__
+   /* __gnu_inline__ suppresses a GCC 4.2 diagnostic.  */
+#  define _GL_INLINE extern inline __attribute__ ((__gnu_inline__))
+# else
+#  define _GL_INLINE extern inline
+# endif
+# define _GL_EXTERN_INLINE extern
+#else
+# define _GL_INLINE static _GL_UNUSED
+# define _GL_EXTERN_INLINE static _GL_UNUSED
+#endif
+
+#if 4 < __GNUC__ + (6 <= __GNUC_MINOR__)
+# if defined __GNUC_STDC_INLINE__ && __GNUC_STDC_INLINE__
+#  define _GL_INLINE_HEADER_CONST_PRAGMA
+# else
+#  define _GL_INLINE_HEADER_CONST_PRAGMA \
+     _Pragma ("GCC diagnostic ignored \"-Wsuggest-attribute=const\"")
+# endif
+# define _GL_INLINE_HEADER_BEGIN \
+    _Pragma ("GCC diagnostic push") \
+    _Pragma ("GCC diagnostic ignored \"-Wmissing-prototypes\"") \
+    _Pragma ("GCC diagnostic ignored \"-Wmissing-declarations\"") \
+    _GL_INLINE_HEADER_CONST_PRAGMA
+# define _GL_INLINE_HEADER_END \
+    _Pragma ("GCC diagnostic pop")
+#else
+# define _GL_INLINE_HEADER_BEGIN
+# define _GL_INLINE_HEADER_END
+#endif
 
 /* Define to a replacement function name for fnmatch(). */
 #undef fnmatch
@@ -2271,10 +2573,13 @@
 /* Define to long or long long if <stdint.h> and <inttypes.h> don't define. */
 #undef intmax_t
 
+/* Hack to avoid symbol clash */
+#undef isbase64
+
 /* Work around a bug in Apple GCC 4.0.1 build 5465: In C99 mode, it supports
    the ISO C 99 semantics of 'extern inline' (unlike the GNU C semantics of
    earlier versions), but does not display it by setting __GNUC_STDC_INLINE__.
-   __APPLE__ && __MACH__ test for MacOS X.
+   __APPLE__ && __MACH__ test for Mac OS X.
    __APPLE_CC__ tests for the Apple compiler and its version.
    __STDC_VERSION__ tests for the C99 mode.  */
 #if defined __APPLE__ && defined __MACH__ && __APPLE_CC__ >= 5465 && !defined __cplusplus && __STDC_VERSION__ >= 199901L && !defined __GNUC_STDC_INLINE__

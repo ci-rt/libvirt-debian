@@ -1,5 +1,7 @@
 #include <config.h>
 
+#include "testutils.h"
+
 #ifdef WITH_VMX
 
 # include <stdio.h>
@@ -7,39 +9,32 @@
 # include <unistd.h>
 
 # include "internal.h"
-# include "memory.h"
-# include "testutils.h"
+# include "viralloc.h"
 # include "vmx/vmx.h"
 
 static virCapsPtr caps;
+static virDomainXMLOptionPtr xmlopt;
 static virVMXContext ctx;
 
-static int testDefaultConsoleType(const char *ostype ATTRIBUTE_UNUSED)
-{
-    return VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_SERIAL;
-}
 
 static void
 testCapsInit(void)
 {
     virCapsGuestPtr guest = NULL;
 
-    caps = virCapabilitiesNew("i686", 1, 1);
+    caps = virCapabilitiesNew(VIR_ARCH_I686, 1, 1);
 
     if (caps == NULL) {
         return;
     }
 
-    caps->defaultConsoleTargetType = testDefaultConsoleType;
-
-    virCapabilitiesSetMacPrefix(caps, (unsigned char[]){ 0x00, 0x0c, 0x29 });
     virCapabilitiesAddHostMigrateTransport(caps, "esx");
-
-    caps->hasWideScsiBus = true;
 
     /* i686 guest */
     guest =
-      virCapabilitiesAddGuest(caps, "hvm", "i686", 32, NULL, NULL, 0, NULL);
+      virCapabilitiesAddGuest(caps, "hvm",
+                              VIR_ARCH_I686,
+                              NULL, NULL, 0, NULL);
 
     if (guest == NULL) {
         goto failure;
@@ -52,7 +47,9 @@ testCapsInit(void)
 
     /* x86_64 guest */
     guest =
-      virCapabilitiesAddGuest(caps, "hvm", "x86_64", 64, NULL, NULL, 0, NULL);
+      virCapabilitiesAddGuest(caps, "hvm",
+                              VIR_ARCH_X86_64,
+                              NULL, NULL, 0, NULL);
 
     if (guest == NULL) {
         goto failure;
@@ -66,7 +63,7 @@ testCapsInit(void)
     return;
 
   failure:
-    virCapabilitiesFree(caps);
+    virObjectUnref(caps);
     caps = NULL;
 }
 
@@ -88,7 +85,7 @@ testCompareFiles(const char *vmx, const char *xml)
         goto failure;
     }
 
-    def = virVMXParseConfig(&ctx, caps, vmxData);
+    def = virVMXParseConfig(&ctx, xmlopt, vmxData);
 
     if (def == NULL) {
         err = virGetLastError();
@@ -174,7 +171,9 @@ testParseVMXFileName(const char *fileName, void *opaque ATTRIBUTE_UNUSED)
             goto cleanup;
         }
 
-        virAsprintf(&src, "[%s] %s", datastoreName, directoryAndFileName);
+        if (virAsprintf(&src, "[%s] %s", datastoreName,
+                        directoryAndFileName) < 0)
+            goto cleanup;
     } else if (STRPREFIX(fileName, "/")) {
         /* Found absolute path referencing a file outside a datastore */
         src = strdup(fileName);
@@ -183,7 +182,8 @@ testParseVMXFileName(const char *fileName, void *opaque ATTRIBUTE_UNUSED)
         src = NULL;
     } else {
         /* Found single file name referencing a file inside a datastore */
-        virAsprintf(&src, "[datastore] directory/%s", fileName);
+        if (virAsprintf(&src, "[datastore] directory/%s", fileName) < 0)
+            goto cleanup;
     }
 
   cleanup:
@@ -213,6 +213,9 @@ mymain(void)
         return EXIT_FAILURE;
     }
 
+    if (!(xmlopt = virVMXDomainXMLConfInit()))
+        return EXIT_FAILURE;
+
     ctx.opaque = NULL;
     ctx.parseFileName = testParseVMXFileName;
     ctx.formatFileName = NULL;
@@ -239,6 +242,8 @@ mymain(void)
 
     DO_TEST("floppy-file", "floppy-file");
     DO_TEST("floppy-device", "floppy-device");
+
+    DO_TEST("sharedfolder", "sharedfolder");
 
     DO_TEST("ethernet-e1000", "ethernet-e1000");
     DO_TEST("ethernet-vmxnet2", "ethernet-vmxnet2");
@@ -285,7 +290,8 @@ mymain(void)
 
     DO_TEST("svga", "svga");
 
-    virCapabilitiesFree(caps);
+    virObjectUnref(caps);
+    virObjectUnref(xmlopt);
 
     return result == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }
@@ -293,7 +299,6 @@ mymain(void)
 VIRT_TEST_MAIN(mymain)
 
 #else
-# include "testutils.h"
 
 int main(void)
 {

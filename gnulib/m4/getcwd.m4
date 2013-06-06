@@ -1,12 +1,12 @@
 # getcwd.m4 - check for working getcwd that is compatible with glibc
 
-# Copyright (C) 2001, 2003-2007, 2009-2012 Free Software Foundation, Inc.
+# Copyright (C) 2001, 2003-2007, 2009-2013 Free Software Foundation, Inc.
 # This file is free software; the Free Software Foundation
 # gives unlimited permission to copy and/or distribute it,
 # with or without modifications, as long as this notice is preserved.
 
 # Written by Paul Eggert.
-# serial 11
+# serial 12
 
 AC_DEFUN([gl_FUNC_GETCWD_NULL],
   [
@@ -45,15 +45,14 @@ AC_DEFUN([gl_FUNC_GETCWD_NULL],
          ]])],
         [gl_cv_func_getcwd_null=yes],
         [gl_cv_func_getcwd_null=no],
-        [[
-       case "$host_os" in
-                               # Guess yes on glibc systems.
-         *-gnu*)               gl_cv_func_getcwd_null="guessing yes";;
-                               # Guess yes on Cygwin.
-         cygwin*)              gl_cv_func_getcwd_null="guessing yes";;
-                               # If we don't know, assume the worst.
-         *)                    gl_cv_func_getcwd_null="guessing no";;
-       esac
+        [[case "$host_os" in
+                     # Guess yes on glibc systems.
+            *-gnu*)  gl_cv_func_getcwd_null="guessing yes";;
+                     # Guess yes on Cygwin.
+            cygwin*) gl_cv_func_getcwd_null="guessing yes";;
+                     # If we don't know, assume the worst.
+            *)       gl_cv_func_getcwd_null="guessing no";;
+          esac
         ]])])
 ])
 
@@ -124,7 +123,7 @@ AC_DEFUN([gl_FUNC_GETCWD],
   dnl Define HAVE_MINIMALLY_WORKING_GETCWD and HAVE_PARTLY_WORKING_GETCWD
   dnl if appropriate.
   case "$gl_cv_func_getcwd_path_max" in
-    "no, it has the AIX bug") ;;
+    "no"|"no, it has the AIX bug") ;;
     *)
       AC_DEFINE([HAVE_MINIMALLY_WORKING_GETCWD], [1],
         [Define to 1 if getcwd minimally works, that is, its result can be

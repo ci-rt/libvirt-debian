@@ -9,6 +9,7 @@
 # include <limits.h>
 # include <verify.h>
 # include <stdbool.h>
+# include <stdint.h>
 
 # if STATIC_ANALYSIS
 #  undef NDEBUG /* Don't let a prior NDEBUG definition cause trouble.  */
@@ -39,12 +40,14 @@
 # define N_(str) str
 
 # include "libvirt/libvirt.h"
+# include "libvirt/libvirt-lxc.h"
 # include "libvirt/libvirt-qemu.h"
 # include "libvirt/virterror.h"
 
 # include "libvirt_internal.h"
 
 # include "c-strcase.h"
+# include "ignore-value.h"
 
 /* On architectures which lack these limits, define them (ie. Cygwin).
  * Note that the libvirt code should be robust enough to handle the
@@ -54,10 +57,6 @@
  */
 # ifndef HOST_NAME_MAX
 #  define HOST_NAME_MAX 256
-# endif
-
-# ifndef IF_NAMESIZE
-#  define IF_NAMESIZE 16
 # endif
 
 # ifndef INET_ADDRSTRLEN
@@ -77,10 +76,9 @@
 # define STRSKIP(a,b) (STRPREFIX(a,b) ? (a) + strlen(b) : NULL)
 
 # define STREQ_NULLABLE(a, b)                           \
-    ((!(a) && !(b)) || ((a) && (b) && STREQ((a), (b))))
+    ((a) ? (b) && STREQ((a) ? (a) : "", (b) ? (b) : "") : !(b))
 # define STRNEQ_NULLABLE(a, b)                          \
-    ((!(a) ^ !(b)) || ((a) && (b) && STRNEQ((a), (b))))
-
+    ((a) ? !(b) || STRNEQ((a) ? (a) : "", (b) ? (b) : "") : !!(b))
 
 # define NUL_TERMINATE(buf) do { (buf)[sizeof(buf)-1] = '\0'; } while (0)
 # define ARRAY_CARDINALITY(Array) (sizeof(Array) / sizeof(*(Array)))
@@ -110,7 +108,7 @@
 /**
  * ATTRIBUTE_UNUSED:
  *
- * Macro to flag conciously unused parameters to functions
+ * Macro to flag consciously unused parameters to functions
  */
 #  ifndef ATTRIBUTE_UNUSED
 #   define ATTRIBUTE_UNUSED __attribute__((__unused__))
@@ -150,9 +148,11 @@
  */
 #  ifndef ATTRIBUTE_FMT_PRINTF
 #   if __GNUC_PREREQ (4, 4)
-#    define ATTRIBUTE_FMT_PRINTF(fmtpos,argpos) __attribute__((__format__ (gnu_printf, fmtpos,argpos)))
+#    define ATTRIBUTE_FMT_PRINTF(fmtpos,argpos) \
+    __attribute__((__format__ (__gnu_printf__, fmtpos, argpos)))
 #   else
-#    define ATTRIBUTE_FMT_PRINTF(fmtpos,argpos) __attribute__((__format__ (printf, fmtpos,argpos)))
+#    define ATTRIBUTE_FMT_PRINTF(fmtpos,argpos) \
+    __attribute__((__format__ (__printf__, fmtpos, argpos)))
 #   endif
 #  endif
 
@@ -181,9 +181,22 @@
 #   endif
 #  endif
 
+/* gcc's handling of attribute nonnull is less than stellar - it does
+ * NOT improve diagnostics, and merely allows gcc to optimize away
+ * null code checks even when the caller manages to pass null in spite
+ * of the attribute, leading to weird crashes.  Coverity, on the other
+ * hand, knows how to do better static analysis based on knowing
+ * whether a parameter is nonnull.  Make this attribute conditional
+ * based on whether we are compiling for real or for analysis, while
+ * still requiring correct gcc syntax when it is turned off.  See also
+ * http://gcc.gnu.org/bugzilla/show_bug.cgi?id=17308 */
 #  ifndef ATTRIBUTE_NONNULL
 #   if __GNUC_PREREQ (3, 3)
-#    define ATTRIBUTE_NONNULL(m) __attribute__((__nonnull__(m)))
+#    if STATIC_ANALYSIS
+#     define ATTRIBUTE_NONNULL(m) __attribute__((__nonnull__(m)))
+#    else
+#     define ATTRIBUTE_NONNULL(m) __attribute__(())
+#    endif
 #   else
 #    define ATTRIBUTE_NONNULL(m)
 #   endif
@@ -201,12 +214,23 @@
 #  endif
 # endif				/* __GNUC__ */
 
+
+# if __GNUC_PREREQ (4, 6)
+#  define VIR_WARNINGS_NO_CAST_ALIGN \
+    _Pragma ("GCC diagnostic push") \
+    _Pragma ("GCC diagnostic ignored \"-Wcast-align\"")
+
+#  define VIR_WARNINGS_RESET \
+    _Pragma ("GCC diagnostic pop")
+# else
+#  define VIR_WARNINGS_NO_CAST_ALIGN
+#  define VIR_WARNINGS_RESET
+# endif
+
 /*
  * Use this when passing possibly-NULL strings to printf-a-likes.
  */
-# define NULLSTR(s) \
-    ((void)verify_true(sizeof(*(s)) == sizeof(char)),   \
-     (s) ? (s) : "(null)")
+# define NULLSTR(s) ((s) ? (s) : "(null)")
 
 /**
  * TODO:
@@ -232,16 +256,85 @@
     do {                                                                \
         unsigned long __unsuppflags = flags & ~(supported);             \
         if (__unsuppflags) {                                            \
-            virReportErrorHelper(VIR_FROM_THIS,                         \
-                                 VIR_ERR_INVALID_ARG,                   \
-                                 __FILE__,                              \
-                                 __FUNCTION__,                          \
-                                 __LINE__,                              \
-                                 _("%s: unsupported flags (0x%lx)"),    \
-                                 __FUNCTION__, __unsuppflags);          \
+            virReportInvalidArg(flags,                                  \
+                                _("unsupported flags (0x%lx) in function %s"), \
+                                __unsuppflags, __FUNCTION__);           \
             return retval;                                              \
         }                                                               \
     } while (0)
+
+/**
+ * virCheckFlagsGoto:
+ * @supported: an OR'ed set of supported flags
+ * @label: label to jump to on error
+ *
+ * To avoid memory leaks this macro has to be used before any non-trivial
+ * code which could possibly allocate some memory.
+ *
+ * Returns nothing. Jumps to a label if unsupported flags were
+ * passed to it.
+ */
+# define virCheckFlagsGoto(supported, label)                            \
+    do {                                                                \
+        unsigned long __unsuppflags = flags & ~(supported);             \
+        if (__unsuppflags) {                                            \
+            virReportInvalidArg(flags,                                  \
+                                _("unsupported flags (0x%lx) in function %s"), \
+                                __unsuppflags, __FUNCTION__);           \
+            goto label;                                                 \
+        }                                                               \
+    } while (0)
+
+# define virCheckNonNullArgReturn(argname, retval)  \
+    do {                                            \
+        if (argname == NULL) {                      \
+            virReportInvalidNonNullArg(argname);    \
+            return retval;                          \
+        }                                           \
+    } while (0)
+# define virCheckNullArgGoto(argname, label)        \
+    do {                                            \
+        if (argname != NULL) {                      \
+            virReportInvalidNullArg(argname);       \
+            goto label;                             \
+        }                                           \
+    } while (0)
+# define virCheckNonNullArgGoto(argname, label)     \
+    do {                                            \
+        if (argname == NULL) {                      \
+            virReportInvalidNonNullArg(argname);    \
+            goto label;                             \
+        }                                           \
+    } while (0)
+# define virCheckPositiveArgGoto(argname, label)    \
+    do {                                            \
+        if (argname <= 0) {                         \
+            virReportInvalidPositiveArg(argname);   \
+            goto label;                             \
+        }                                           \
+    } while (0)
+# define virCheckNonZeroArgGoto(argname, label)     \
+    do {                                            \
+        if (argname == 0) {                         \
+            virReportInvalidNonZeroArg(argname);    \
+            goto label;                             \
+        }                                           \
+    } while (0)
+# define virCheckZeroArgGoto(argname, label)        \
+    do {                                            \
+        if (argname != 0) {                         \
+            virReportInvalidNonZeroArg(argname);    \
+            goto label;                             \
+        }                                           \
+    } while (0)
+# define virCheckNonNegativeArgGoto(argname, label)     \
+    do {                                                \
+        if (argname < 0) {                              \
+            virReportInvalidNonNegativeArg(argname);    \
+            goto label;                                 \
+        }                                               \
+    } while (0)
+
 
 /* divide value by size, rounding up */
 # define VIR_DIV_UP(value, size) (((value) + (size) - 1) / (size))
@@ -250,7 +343,7 @@
 # if WITH_DTRACE_PROBES
 #  ifndef LIBVIRT_PROBES_H
 #   define LIBVIRT_PROBES_H
-#   include "probes.h"
+#   include "libvirt_probes.h"
 #  endif /* LIBVIRT_PROBES_H */
 
 /* Systemtap 1.2 headers have a bug where they cannot handle a
@@ -305,15 +398,17 @@
 
 #  define PROBE_EXPAND(NAME, ARGS) NAME(ARGS)
 #  define PROBE(NAME, FMT, ...)                              \
-    VIR_DEBUG_INT("trace." __FILE__ , __func__, __LINE__,    \
+    VIR_DEBUG_INT(VIR_LOG_FROM_TRACE,                        \
+                  __FILE__, __LINE__, __func__,              \
                   #NAME ": " FMT, __VA_ARGS__);              \
-    if (LIBVIRT_ ## NAME ## _ENABLED()) {                   \
-        PROBE_EXPAND(LIBVIRT_ ## NAME,                      \
+    if (LIBVIRT_ ## NAME ## _ENABLED()) {                    \
+        PROBE_EXPAND(LIBVIRT_ ## NAME,                       \
                      VIR_ADD_CASTS(__VA_ARGS__));            \
     }
 # else
 #  define PROBE(NAME, FMT, ...)                              \
-    VIR_DEBUG_INT("trace." __FILE__, __func__, __LINE__,     \
+    VIR_DEBUG_INT(VIR_LOG_FROM_TRACE,                        \
+                  __FILE__, __LINE__, __func__,              \
                   #NAME ": " FMT, __VA_ARGS__);
 # endif
 

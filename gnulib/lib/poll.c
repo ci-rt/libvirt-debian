@@ -1,7 +1,7 @@
 /* Emulation for poll(2)
    Contributed by Paolo Bonzini.
 
-   Copyright 2001-2003, 2006-2012 Free Software Foundation, Inc.
+   Copyright 2001-2003, 2006-2013 Free Software Foundation, Inc.
 
    This file is part of gnulib.
 
@@ -303,6 +303,10 @@ compute_revents (int fd, int sought, fd_set *rfds, fd_set *wfds, fd_set *efds)
                || socket_errno == ECONNABORTED || socket_errno == ENETRESET)
         happened |= POLLHUP;
 
+      /* some systems can't use recv() on non-socket, including HP NonStop */
+      else if (socket_errno == ENOTSOCK)
+        happened |= (POLLIN | POLLRDNORM) & sought;
+
       else
         happened |= POLLERR;
     }
@@ -350,7 +354,7 @@ poll (struct pollfd *pfd, nfds_t nfd, int timeout)
 
   /* EFAULT is not necessary to implement, but let's do it in the
      simplest case. */
-  if (!pfd)
+  if (!pfd && nfd)
     {
       errno = EFAULT;
       return -1;
@@ -598,7 +602,7 @@ restart:
 
   if (!rc && timeout == INFTIM)
     {
-      SwitchToThread();
+      SleepEx (1, TRUE);
       goto restart;
     }
 

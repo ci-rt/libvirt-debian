@@ -12,8 +12,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Author: Daniel P. Berrange <berrange@redhat.com>
  */
@@ -27,12 +27,12 @@
 #include <gnutls/x509.h>
 
 #include "testutils.h"
-#include "util.h"
-#include "virterror_internal.h"
-#include "memory.h"
-#include "logging.h"
+#include "virutil.h"
+#include "virerror.h"
+#include "viralloc.h"
+#include "virlog.h"
 #include "virfile.h"
-#include "command.h"
+#include "vircommand.h"
 #include "virsocketaddr.h"
 #include "gnutls_1_0_compat.h"
 
@@ -160,7 +160,7 @@ testTLSGenerateCert(struct testTLSCertReq *req)
     static char buffer[1024*1024];
     size_t size = sizeof(buffer);
     char serial[5] = { 1, 2, 3, 4, 0 };
-    gnutls_datum_t der = { (unsigned char *)buffer, size };
+    gnutls_datum_t der;
     time_t start = time(NULL) + (60*60*req->start_offset);
     time_t expire = time(NULL) + (60*60*(req->expire_offset
                                          ? req->expire_offset : 24));
@@ -294,6 +294,7 @@ testTLSGenerateCert(struct testTLSCertReq *req)
                                                         der.size,
                                                         req->basicConstraintsCritical)) < 0) {
             VIR_WARN("Failed to set certificate basic constraints %s", gnutls_strerror(err));
+            VIR_FREE(der.data);
             abort();
         }
         asn1_delete_structure(&ext);
@@ -321,6 +322,7 @@ testTLSGenerateCert(struct testTLSCertReq *req)
                                                         der.size,
                                                         req->keyUsageCritical)) < 0) {
             VIR_WARN("Failed to set certificate key usage %s", gnutls_strerror(err));
+            VIR_FREE(der.data);
             abort();
         }
         asn1_delete_structure(&ext);
@@ -352,6 +354,7 @@ testTLSGenerateCert(struct testTLSCertReq *req)
                                                         der.size,
                                                         req->keyPurposeCritical)) < 0) {
             VIR_WARN("Failed to set certificate key purpose %s", gnutls_strerror(err));
+            VIR_FREE(der.data);
             abort();
         }
         asn1_delete_structure(&ext);
@@ -448,7 +451,7 @@ struct testTLSContextData {
  * This code is done when libvirtd starts up, or before
  * a libvirt client connects. The test is ensuring that
  * the creation of virNetTLSContextPtr fails if we
- * give bogus certs, or suceeds for good certs
+ * give bogus certs, or succeeds for good certs
  */
 static int testTLSContextInit(const void *opaque)
 {
@@ -496,7 +499,7 @@ static int testTLSContextInit(const void *opaque)
     ret = 0;
 
 cleanup:
-    virNetTLSContextFree(ctxt);
+    virObjectUnref(ctxt);
     gnutls_x509_crt_deinit(data->careq.crt);
     gnutls_x509_crt_deinit(data->certreq.crt);
     data->careq.crt = data->certreq.crt = NULL;
@@ -662,7 +665,7 @@ static int testTLSSessionInit(const void *opaque)
             if (rv < 0)
                 goto cleanup;
             if (rv == VIR_NET_TLS_HANDSHAKE_COMPLETE)
-                serverShake = true;
+                clientShake = true;
         }
     } while (!clientShake && !serverShake);
 
@@ -710,10 +713,10 @@ static int testTLSSessionInit(const void *opaque)
     ret = 0;
 
 cleanup:
-    virNetTLSContextFree(serverCtxt);
-    virNetTLSContextFree(clientCtxt);
-    virNetTLSSessionFree(serverSess);
-    virNetTLSSessionFree(clientSess);
+    virObjectUnref(serverCtxt);
+    virObjectUnref(clientCtxt);
+    virObjectUnref(serverSess);
+    virObjectUnref(clientSess);
     gnutls_x509_crt_deinit(data->careq.crt);
     if (data->othercareq.filename)
         gnutls_x509_crt_deinit(data->othercareq.crt);
@@ -870,6 +873,16 @@ mymain(void)
         false, false, NULL, NULL,
         0, 0,
     };
+
+    DO_CTX_TEST(true, cacert1req, servercertreq, false);
+    DO_CTX_TEST(true, cacert2req, servercertreq, false);
+# if 0
+    DO_CTX_TEST(true, cacert3req, servercertreq, false);
+# endif
+    DO_CTX_TEST(true, cacert4req, servercertreq, false);
+
+    /* Now some bad certs */
+
     /* Key usage:dig-sig:not-critical */
     static struct testTLSCertReq cacert5req = {
         NULL, NULL, "cacert5.pem", "UK",
@@ -879,17 +892,6 @@ mymain(void)
         false, false, NULL, NULL,
         0, 0,
     };
-
-    DO_CTX_TEST(true, cacert1req, servercertreq, false);
-    DO_CTX_TEST(true, cacert2req, servercertreq, false);
-# if 0
-    DO_CTX_TEST(true, cacert3req, servercertreq, false);
-# endif
-    DO_CTX_TEST(true, cacert4req, servercertreq, false);
-    DO_CTX_TEST(true, cacert5req, servercertreq, false);
-
-    /* Now some bad certs */
-
     /* no-basic */
     static struct testTLSCertReq cacert6req = {
         NULL, NULL, "cacert6.pem", "UK",
@@ -909,6 +911,12 @@ mymain(void)
         0, 0,
     };
 
+    /* Technically a CA cert with basic constraints
+     * key purpose == key signing + non-critical should
+     * be rejected. GNUTLS < 3 does not reject it and
+     * we don't anticipate them changing this behaviour
+     */
+    DO_CTX_TEST(true, cacert5req, servercertreq, GNUTLS_VERSION_MAJOR >= 3);
     DO_CTX_TEST(true, cacert6req, servercertreq, true);
     DO_CTX_TEST(true, cacert7req, servercertreq, true);
 

@@ -15,8 +15,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Author: Daniel P. Berrange <berrange@redhat.com>
  */
@@ -32,10 +32,11 @@
 # include <rpc/types.h>
 # include <rpc/xdr.h>
 # include "remote_protocol.h"
+# include "lxc_protocol.h"
 # include "qemu_protocol.h"
-# include "logging.h"
-# include "threads.h"
-# if HAVE_SASL
+# include "virlog.h"
+# include "virthread.h"
+# if WITH_SASL
 #  include "virnetsaslcontext.h"
 # endif
 # include "virnetserverprogram.h"
@@ -52,7 +53,7 @@ struct daemonClientPrivate {
 
     int domainEventCallbackID[VIR_DOMAIN_EVENT_ID_LAST];
 
-# if HAVE_SASL
+# if WITH_SASL
     virNetSASLSessionPtr sasl;
 # endif
 
@@ -66,7 +67,7 @@ struct daemonClientPrivate {
     bool keepalive_supported;
 };
 
-# if HAVE_SASL
+# if WITH_SASL
 extern virNetSASLContextPtr saslCtxt;
 # endif
 extern virNetServerProgramPtr remoteProgram;

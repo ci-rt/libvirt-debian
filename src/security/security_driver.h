@@ -1,10 +1,19 @@
 /*
- * Copyright (C) 2008, 2010 Red Hat, Inc.
+ * Copyright (C) 2008, 2010-2013 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Authors:
  *     James Morris <jmorris@namei.org>
@@ -31,7 +40,7 @@ typedef enum {
 typedef struct _virSecurityDriver virSecurityDriver;
 typedef virSecurityDriver *virSecurityDriverPtr;
 
-typedef virSecurityDriverStatus (*virSecurityDriverProbe) (void);
+typedef virSecurityDriverStatus (*virSecurityDriverProbe) (const char *virtDriver);
 typedef int (*virSecurityDriverOpen) (virSecurityManagerPtr mgr);
 typedef int (*virSecurityDriverClose) (virSecurityManagerPtr mgr);
 
@@ -52,10 +61,12 @@ typedef int (*virSecurityDomainSetImageLabel) (virSecurityManagerPtr mgr,
                                                virDomainDiskDefPtr disk);
 typedef int (*virSecurityDomainRestoreHostdevLabel) (virSecurityManagerPtr mgr,
                                                      virDomainDefPtr def,
-                                                     virDomainHostdevDefPtr dev);
+                                                     virDomainHostdevDefPtr dev,
+                                                     const char *vroot);
 typedef int (*virSecurityDomainSetHostdevLabel) (virSecurityManagerPtr mgr,
                                                  virDomainDefPtr def,
-                                                 virDomainHostdevDefPtr dev);
+                                                 virDomainHostdevDefPtr dev,
+                                                 const char *vroot);
 typedef int (*virSecurityDomainSetSavedStateLabel) (virSecurityManagerPtr mgr,
                                                     virDomainDefPtr def,
                                                     const char *savefile);
@@ -81,11 +92,22 @@ typedef int (*virSecurityDomainGetProcessLabel) (virSecurityManagerPtr mgr,
                                                  virSecurityLabelPtr sec);
 typedef int (*virSecurityDomainSetProcessLabel) (virSecurityManagerPtr mgr,
                                                  virDomainDefPtr def);
+typedef int (*virSecurityDomainSetChildProcessLabel) (virSecurityManagerPtr mgr,
+                                                      virDomainDefPtr def,
+                                                      virCommandPtr cmd);
 typedef int (*virSecurityDomainSecurityVerify) (virSecurityManagerPtr mgr,
                                                 virDomainDefPtr def);
 typedef int (*virSecurityDomainSetImageFDLabel) (virSecurityManagerPtr mgr,
                                                  virDomainDefPtr def,
                                                  int fd);
+typedef int (*virSecurityDomainSetTapFDLabel) (virSecurityManagerPtr mgr,
+                                               virDomainDefPtr def,
+                                               int fd);
+typedef char *(*virSecurityDomainGetMountOptions) (virSecurityManagerPtr mgr,
+                                                         virDomainDefPtr def);
+typedef int (*virSecurityDomainSetHugepages) (virSecurityManagerPtr mgr,
+                                                         virDomainDefPtr def,
+                                                         const char *path);
 
 struct _virSecurityDriver {
     size_t privateDataLen;
@@ -112,6 +134,7 @@ struct _virSecurityDriver {
 
     virSecurityDomainGetProcessLabel domainGetSecurityProcessLabel;
     virSecurityDomainSetProcessLabel domainSetSecurityProcessLabel;
+    virSecurityDomainSetChildProcessLabel domainSetSecurityChildProcessLabel;
 
     virSecurityDomainSetAllLabel domainSetSecurityAllLabel;
     virSecurityDomainRestoreAllLabel domainRestoreSecurityAllLabel;
@@ -123,8 +146,13 @@ struct _virSecurityDriver {
     virSecurityDomainRestoreSavedStateLabel domainRestoreSavedStateLabel;
 
     virSecurityDomainSetImageFDLabel domainSetSecurityImageFDLabel;
+    virSecurityDomainSetTapFDLabel domainSetSecurityTapFDLabel;
+
+    virSecurityDomainGetMountOptions domainGetSecurityMountOptions;
+    virSecurityDomainSetHugepages domainSetSecurityHugepages;
 };
 
-virSecurityDriverPtr virSecurityDriverLookup(const char *name);
+virSecurityDriverPtr virSecurityDriverLookup(const char *name,
+                                             const char *virtDriver);
 
 #endif /* __VIR_SECURITY_H__ */

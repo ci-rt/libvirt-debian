@@ -2,6 +2,17 @@
 
 
 
+int esxVI_AddPortGroup
+      (esxVI_Context *ctx,
+       esxVI_ManagedObjectReference *_this,                /* required */
+       esxVI_HostPortGroupSpec *portgrp);                  /* required */
+
+int esxVI_AddVirtualSwitch
+      (esxVI_Context *ctx,
+       esxVI_ManagedObjectReference *_this,                /* required */
+       const char *vswitchName,                            /* required */
+       esxVI_HostVirtualSwitchSpec *spec);                 /* optional */
+
 int esxVI_AnswerVM
       (esxVI_Context *ctx,
        esxVI_ManagedObjectReference *_this,                /* required */
@@ -66,6 +77,7 @@ int esxVI_FindByUuid
        esxVI_ManagedObjectReference *datacenter,           /* optional */
        const char *uuid,                                   /* required */
        esxVI_Boolean vmSearch,                             /* required */
+       esxVI_Boolean instanceUuid,                         /* optional */
        esxVI_ManagedObjectReference **output);             /* optional */
 
 int esxVI_Login
@@ -157,11 +169,26 @@ int esxVI_RegisterVM_Task
        esxVI_ManagedObjectReference *host,                 /* optional */
        esxVI_ManagedObjectReference **output);             /* required */
 
+int esxVI_RemovePortGroup
+      (esxVI_Context *ctx,
+       esxVI_ManagedObjectReference *_this,                /* required */
+       const char *pgName);                                /* required */
+
 int esxVI_RemoveSnapshot_Task
       (esxVI_Context *ctx,
        esxVI_ManagedObjectReference *_this,                /* required */
        esxVI_Boolean removeChildren,                       /* required */
        esxVI_ManagedObjectReference **output);             /* required */
+
+int esxVI_RemoveVirtualSwitch
+      (esxVI_Context *ctx,
+       esxVI_ManagedObjectReference *_this,                /* required */
+       const char *vswitchName);                           /* required */
+
+int esxVI_RescanHba
+      (esxVI_Context *ctx,
+       esxVI_ManagedObjectReference *_this,                /* required */
+       const char *hbaDevice);                             /* required */
 
 int esxVI_RetrieveProperties
       (esxVI_Context *ctx,
@@ -172,6 +199,7 @@ int esxVI_RevertToSnapshot_Task
       (esxVI_Context *ctx,
        esxVI_ManagedObjectReference *_this,                /* required */
        esxVI_ManagedObjectReference *host,                 /* optional */
+       esxVI_Boolean suppressPowerOn,                      /* optional */
        esxVI_ManagedObjectReference **output);             /* required */
 
 int esxVI_SearchDatastoreSubFolders_Task

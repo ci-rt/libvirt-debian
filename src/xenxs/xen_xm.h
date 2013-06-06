@@ -16,8 +16,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Author: Daniel P. Berrange <berrange@redhat.com>
  * Author: Markus Groß <gross@univention.de>
@@ -27,7 +27,7 @@
 # define __VIR_XEN_XM_H__
 
 # include "internal.h"
-# include "conf.h"
+# include "virconf.h"
 # include "domain_conf.h"
 
 virConfPtr xenFormatXM(virConnectPtr conn, virDomainDefPtr def,

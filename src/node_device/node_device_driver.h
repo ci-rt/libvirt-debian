@@ -15,8 +15,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Author: David F. Lively <dlively@virtualiron.com>
  */
@@ -39,41 +39,40 @@
 
 # define LINUX_NEW_DEVICE_WAIT_TIME 60
 
-# ifdef HAVE_HAL
+# ifdef WITH_HAL
 int halNodeRegister(void);
 # endif
-# ifdef HAVE_UDEV
+# ifdef WITH_UDEV
 int udevNodeRegister(void);
 # endif
 
-void nodeDeviceLock(virDeviceMonitorStatePtr driver);
-void nodeDeviceUnlock(virDeviceMonitorStatePtr driver);
+void nodeDeviceLock(virNodeDeviceDriverStatePtr driver);
+void nodeDeviceUnlock(virNodeDeviceDriverStatePtr driver);
 
 int nodedevRegister(void);
 
 # ifdef __linux__
 
-#  define check_fc_host(d) check_fc_host_linux(d)
-int check_fc_host_linux(union _virNodeDevCapData *d);
-
-#  define check_vport_capable(d) check_vport_capable_linux(d)
-int check_vport_capable_linux(union _virNodeDevCapData *d);
-
-#  define read_wwn(host, file, wwn) read_wwn_linux(host, file, wwn)
-int read_wwn_linux(int host, const char *file, char **wwn);
+#  define detect_scsi_host_caps(d) detect_scsi_host_caps_linux(d)
+int detect_scsi_host_caps_linux(union _virNodeDevCapData *d);
 
 # else  /* __linux__ */
 
-#  define check_fc_host(d)                      (-1)
-#  define check_vport_capable(d)                (-1)
-#  define read_wwn(host, file, wwn)
+#  define detect_scsi_host_caps(d)                      (-1)
 
 # endif /* __linux__ */
 
 int nodeNumOfDevices(virConnectPtr conn, const char *cap, unsigned int flags);
 int nodeListDevices(virConnectPtr conn, const char *cap, char **const names,
                     int maxnames, unsigned int flags);
+int nodeListAllNodeDevices(virConnectPtr conn,
+                           virNodeDevicePtr **devices,
+                           unsigned int flags);
 virNodeDevicePtr nodeDeviceLookupByName(virConnectPtr conn, const char *name);
+virNodeDevicePtr nodeDeviceLookupSCSIHostByWWN(virConnectPtr conn,
+                                               const char *wwnn,
+                                               const char *wwpn,
+                                               unsigned int flags);
 char *nodeDeviceGetXMLDesc(virNodeDevicePtr dev, unsigned int flags);
 char *nodeDeviceGetParent(virNodeDevicePtr dev);
 int nodeDeviceNumOfCaps(virNodeDevicePtr dev);

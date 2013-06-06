@@ -16,8 +16,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -29,12 +29,13 @@
 
 #include "virpidfile.h"
 #include "virfile.h"
-#include "memory.h"
-#include "util.h"
+#include "viralloc.h"
+#include "virutil.h"
 #include "intprops.h"
-#include "logging.h"
-#include "virterror_internal.h"
+#include "virlog.h"
+#include "virerror.h"
 #include "c-ctype.h"
+#include "areadlink.h"
 
 #define VIR_FROM_THIS VIR_FROM_NONE
 
@@ -203,38 +204,91 @@ int virPidFileRead(const char *dir,
  */
 int virPidFileReadPathIfAlive(const char *path,
                               pid_t *pid,
-                              const char *binpath)
+                              const char *binPath)
 {
-    int rc;
-    char *procpath = NULL;
+    int ret;
+    bool isLink;
+    char *procPath = NULL;
+    char *procLink = NULL;
+    size_t procLinkLen;
+    char *resolvedBinPath = NULL;
+    char *resolvedProcLink = NULL;
+    const char deletedText[] = " (deleted)";
+    size_t deletedTextLen = strlen(deletedText);
+    pid_t retPid;
 
-    rc = virPidFileReadPath(path, pid);
-    if (rc < 0)
-        return rc;
+    /* only set this at the very end on success */
+    *pid = -1;
+
+    if ((ret = virPidFileReadPath(path, &retPid)) < 0)
+        goto cleanup;
 
 #ifndef WIN32
     /* Check that it's still alive.  Safe to skip this sanity check on
      * mingw, which lacks kill().  */
-    if (kill(*pid, 0) < 0) {
-        *pid = -1;
-        return 0;
+    if (kill(retPid, 0) < 0) {
+        ret = 0;
+        retPid = -1;
+        goto cleanup;
     }
 #endif
 
-    if (binpath) {
-        if (virAsprintf(&procpath, "/proc/%d/exe", *pid) < 0) {
-            *pid = -1;
-            return -1;
-        }
-
-        if (virFileIsLink(procpath) &&
-            virFileLinkPointsTo(procpath, binpath) == 0)
-            *pid = -1;
-
-        VIR_FREE(procpath);
+    if (!binPath) {
+        /* we only knew the pid, and that pid is alive, so we can
+         * return it.
+         */
+        ret = 0;
+        goto cleanup;
     }
 
-    return 0;
+    if (virAsprintf(&procPath, "/proc/%lld/exe", (long long)retPid) < 0) {
+        ret = -ENOMEM;
+        goto cleanup;
+    }
+
+    if ((ret = virFileIsLink(procPath)) < 0)
+        goto cleanup;
+    isLink = ret;
+
+    if (isLink && virFileLinkPointsTo(procPath, binPath)) {
+        /* the link in /proc/$pid/exe is a symlink to a file
+         * that has the same inode as the file at binpath.
+         */
+        ret = 0;
+        goto cleanup;
+    }
+
+    /* Even if virFileLinkPointsTo returns a mismatch, it could be
+     * that the binary was deleted/replaced after it was executed. In
+     * that case the link in /proc/$pid/exe will contain
+     * "$procpath (deleted)".  Read that link, remove the " (deleted)"
+     * part, and see if it has the same canonicalized name as binpath.
+     */
+    if (!(procLink = areadlink(procPath))) {
+        ret = -errno;
+        goto cleanup;
+    }
+    procLinkLen = strlen(procLink);
+    if (procLinkLen > deletedTextLen)
+        procLink[procLinkLen - deletedTextLen] = 0;
+
+    if ((ret = virFileResolveAllLinks(binPath, &resolvedBinPath)) < 0)
+        goto cleanup;
+    if ((ret = virFileResolveAllLinks(procLink, &resolvedProcLink)) < 0)
+        goto cleanup;
+
+    ret = STREQ(resolvedBinPath, resolvedProcLink) ? 0 : -1;
+
+cleanup:
+    VIR_FREE(procPath);
+    VIR_FREE(procLink);
+    VIR_FREE(resolvedProcLink);
+    VIR_FREE(resolvedBinPath);
+
+    /* return the originally set pid of -1 unless we proclaim success */
+    if (ret == 0)
+        *pid = retPid;
+    return ret;
 }
 
 
@@ -316,9 +370,6 @@ cleanup:
     return rc;
 }
 
-
-verify(sizeof(pid_t) <= sizeof(unsigned int));
-
 int virPidFileAcquirePath(const char *path,
                           pid_t pid)
 {
@@ -369,7 +420,7 @@ int virPidFileAcquirePath(const char *path,
             VIR_DEBUG("Pid file '%s' disappeared: %s",
                       path, virStrerror(errno, ebuf, sizeof(ebuf)));
             VIR_FORCE_CLOSE(fd);
-            /* Someone else must be racing with us, so try agin */
+            /* Someone else must be racing with us, so try again */
             continue;
         }
 
@@ -378,7 +429,7 @@ int virPidFileAcquirePath(const char *path,
 
         VIR_DEBUG("Pid file '%s' was recreated", path);
         VIR_FORCE_CLOSE(fd);
-        /* Someone else must be racing with us, so try agin */
+        /* Someone else must be racing with us, so try again */
     }
 
     snprintf(pidstr, sizeof(pidstr), "%lld", (long long) pid);

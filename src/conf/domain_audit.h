@@ -15,8 +15,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Author: Daniel P. Berrange <berrange@redhat.com>
  */
@@ -25,12 +25,16 @@
 # define __VIR_DOMAIN_AUDIT_H__
 
 # include "domain_conf.h"
-# include "cgroup.h"
+# include "vircgroup.h"
 
 void virDomainAuditStart(virDomainObjPtr vm,
                          const char *reason,
                          bool success)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
+void virDomainAuditInit(virDomainObjPtr vm,
+                        pid_t pid,
+                        ino_t pidns)
+    ATTRIBUTE_NONNULL(1);
 void virDomainAuditStop(virDomainObjPtr vm,
                         const char *reason)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);

@@ -3,7 +3,8 @@
 #
 # esx_vi_generator.py: generates most of the SOAP type mapping code
 #
-# Copyright (C) 2010-2011 Matthias Bolte <matthias.bolte@googlemail.com>
+# Copyright (C) 2010-2012 Matthias Bolte <matthias.bolte@googlemail.com>
+# Copyright (C) 2013 Ata E Husain Bohra <ata.husain@hotmail.com>
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -16,8 +17,8 @@
 # Lesser General Public License for more details.
 #
 # You should have received a copy of the GNU Lesser General Public
-# License along with this library; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+# License along with this library.  If not, see
+# <http://www.gnu.org/licenses/>.
 #
 
 import sys
@@ -484,6 +485,26 @@ class Object(Type):
         return members
 
 
+    def generate_dispatch(self, suffix, is_first=True):
+        source = ""
+
+        if self.extended_by is not None:
+            if not is_first:
+                source += "\n"
+
+            source += "    /* %s */\n" % self.name
+
+            for extended_by in self.extended_by:
+                source += "    ESX_VI__TEMPLATE__DISPATCH__%s(%s)\n" \
+                          % (suffix, extended_by)
+
+            for extended_by in self.extended_by:
+                source += objects_by_name[extended_by] \
+                          .generate_dispatch(suffix, False)
+
+        return source
+
+
     def generate_free_code(self, add_banner=False):
         source = ""
 
@@ -765,16 +786,14 @@ class Object(Type):
             source += "ESX_VI__TEMPLATE__DYNAMIC_FREE(%s,\n" % self.name
             source += "{\n"
 
-            for extended_by in self.extended_by:
-                source += "    ESX_VI__TEMPLATE__DISPATCH__FREE(%s)\n" \
-                          % extended_by
+            source += self.generate_dispatch('FREE')
 
             source += "},\n"
             source += "{\n"
 
             if self.features & Object.FEATURE__LIST:
                 if self.extends is not None:
-                    # avoid "dereferencing type-punned pointer will brea
+                    # avoid "dereferencing type-punned pointer will break
                     # strict-aliasing rules" warnings
                     source += "    esxVI_%s *next = (esxVI_%s *)item->_next;\n\n" \
                               % (self.extends, self.extends)
@@ -832,12 +851,10 @@ class Object(Type):
         else:
             if self.features & Object.FEATURE__DEEP_COPY:
                 source += "/* esxVI_%s_DeepCopy */\n" % self.name
-                source += "ESX_VI__TEMPLATE__DYNAMIC_DEEP_COPY(%s)\n" % self.name
+                source += "ESX_VI__TEMPLATE__DYNAMIC_DEEP_COPY(%s,\n" % self.name
                 source += "{\n"
 
-                for extended_by in self.extended_by:
-                    source += "    ESX_VI__TEMPLATE__DISPATCH__DEEP_COPY(%s)\n" \
-                              % extended_by
+                source += self.generate_dispatch('DEEP_COPY')
 
                 source += "},\n"
                 source += "{\n"
@@ -863,9 +880,7 @@ class Object(Type):
                           % self.name
                 source += "{\n"
 
-                for extended_by in self.extended_by:
-                    source += "    ESX_VI__TEMPLATE__DISPATCH__CAST_FROM_ANY_TYPE(%s)\n" \
-                              % extended_by
+                source += self.generate_dispatch('CAST_FROM_ANY_TYPE')
 
                 source += "})\n\n"
 
@@ -895,9 +910,7 @@ class Object(Type):
                 source += "ESX_VI__TEMPLATE__DYNAMIC_SERIALIZE(%s,\n" % self.name
                 source += "{\n"
 
-                for extended_by in self.extended_by:
-                    source += "    ESX_VI__TEMPLATE__DISPATCH__SERIALIZE(%s)\n" \
-                              % extended_by
+                source += self.generate_dispatch('SERIALIZE')
 
                 source += "},\n"
                 source += "{\n"
@@ -933,9 +946,7 @@ class Object(Type):
                           % self.name
                 source += "{\n"
 
-                for extended_by in self.extended_by:
-                    source += "    ESX_VI__TEMPLATE__DISPATCH__DESERIALIZE(%s)\n" \
-                              % extended_by
+                source += self.generate_dispatch('DESERIALIZE')
 
                 source += "},\n"
                 source += "{\n"
@@ -990,6 +1001,26 @@ class ManagedObject(Type):
             members += "    /* no properties */\n"
 
         return members
+
+
+    def generate_dispatch(self, suffix, is_first=True):
+        source = ""
+
+        if self.extended_by is not None:
+            if not is_first:
+                source += "\n"
+
+            source += "    /* %s */\n" % self.name
+
+            for extended_by in self.extended_by:
+                source += "    ESX_VI__TEMPLATE__DISPATCH__%s(%s)\n" \
+                          % (suffix, extended_by)
+
+            for extended_by in self.extended_by:
+                source += managed_objects_by_name[extended_by] \
+                          .generate_dispatch(suffix, False)
+
+        return source
 
 
     def generate_free_code(self, add_banner=False):
@@ -1208,13 +1239,12 @@ class ManagedObject(Type):
             source += "ESX_VI__TEMPLATE__DYNAMIC_FREE(%s,\n" % self.name
             source += "{\n"
 
-            for extended_by in self.extended_by:
-                source += "    ESX_VI__TEMPLATE__DISPATCH__FREE(%s)\n" % extended_by
+            source += self.generate_dispatch('FREE')
 
             source += "},\n"
             source += "{\n"
 
-            if self.features & Object.FEATURE__LIST:
+            if self.features & ManagedObject.FEATURE__LIST:
                 if self.extends is not None:
                     # avoid "dereferencing type-punned pointer will break
                     # strict-aliasing rules" warnings
@@ -1496,6 +1526,7 @@ def open_and_print(filename):
 predefined_enums = ["Boolean"]
 
 predefined_objects = ["AnyType",
+                      "Byte",
                       "Int",
                       "Long",
                       "String",
@@ -1519,9 +1550,36 @@ additional_object_features = { "AutoStartDefaults"          : Object.FEATURE__AN
                                                               Object.FEATURE__ANY_TYPE,
                                "HostDatastoreBrowserSearchResults" : Object.FEATURE__LIST |
                                                               Object.FEATURE__ANY_TYPE,
+                               "HostHostBusAdapter"         : Object.FEATURE__LIST |
+                                                              Object.FEATURE__ANY_TYPE,
+                               "HostInternetScsiHba"        : Object.FEATURE__DYNAMIC_CAST |
+                                                              Object.FEATURE__DEEP_COPY,
+                               "HostInternetScsiTargetTransport"  : Object.FEATURE__DYNAMIC_CAST,
+                               "HostScsiDisk"               : Object.FEATURE__LIST |
+                                                              Object.FEATURE__ANY_TYPE |
+                                                              Object.FEATURE__DYNAMIC_CAST,
+                               "HostScsiTopologyInterface"  : Object.FEATURE__LIST |
+                                                              Object.FEATURE__ANY_TYPE,
+                               "HostScsiTopologyLun"        : Object.FEATURE__ANY_TYPE |
+                                                              Object.FEATURE__LIST |
+                                                              Object.FEATURE__DEEP_COPY,
+                               "HostScsiTopologyTarget"     : Object.FEATURE__ANY_TYPE |
+                                                              Object.FEATURE__LIST,
+                               "HostPortGroup"              : Object.FEATURE__LIST |
+                                                              Object.FEATURE__ANY_TYPE,
+                               "HostVirtualSwitch"          : Object.FEATURE__DEEP_COPY |
+                                                              Object.FEATURE__LIST |
+                                                              Object.FEATURE__ANY_TYPE,
                                "ManagedObjectReference"     : Object.FEATURE__ANY_TYPE,
                                "ObjectContent"              : Object.FEATURE__DEEP_COPY,
+                               "PhysicalNic"                : Object.FEATURE__DEEP_COPY |
+                                                              Object.FEATURE__LIST |
+                                                              Object.FEATURE__ANY_TYPE,
                                "ResourcePoolResourceUsage"  : Object.FEATURE__ANY_TYPE,
+                               "ScsiLun"                    : Object.FEATURE__LIST |
+                                                              Object.FEATURE__ANY_TYPE |
+                                                              Object.FEATURE__DEEP_COPY,
+                               "ScsiLunDurableName"         : Object.FEATURE__LIST,
                                "ServiceContent"             : Object.FEATURE__DESERIALIZE,
                                "SharesInfo"                 : Object.FEATURE__ANY_TYPE,
                                "TaskInfo"                   : Object.FEATURE__LIST |

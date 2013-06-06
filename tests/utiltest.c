@@ -6,9 +6,9 @@
 #include <unistd.h>
 
 #include "internal.h"
-#include "memory.h"
+#include "viralloc.h"
 #include "testutils.h"
-#include "util.h"
+#include "virutil.h"
 
 
 static void

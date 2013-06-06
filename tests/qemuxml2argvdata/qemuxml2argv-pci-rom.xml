@@ -3,7 +3,7 @@
   <uuid>c7a5fdbd-edaf-9466-926a-d65c16db1809</uuid>
   <memory unit='KiB'>219100</memory>
   <currentMemory unit='KiB'>219100</currentMemory>
-  <vcpu>1</vcpu>
+  <vcpu placement='static'>1</vcpu>
   <os>
     <type arch='i686' machine='pc'>hvm</type>
     <boot dev='hd'/>
@@ -21,6 +21,7 @@
     </disk>
     <controller type='usb' index='0'/>
     <controller type='ide' index='0'/>
+    <controller type='pci' index='0' model='pci-root'/>
     <interface type='user'>
       <mac address='52:54:00:24:a5:9f'/>
       <model type='virtio'/>

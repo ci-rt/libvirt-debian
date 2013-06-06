@@ -2,8 +2,9 @@
 # These symbols are dependent upon --with-esx via WITH_ESX or --with-vmware via WITH_VMWARE.
 #
 
-# vmx.h
+# vmx/vmx.h
 virVMXConvertToUTF8;
+virVMXDomainXMLConfInit;
 virVMXEscapeHex;
 virVMXFormatCDROM;
 virVMXFormatConfig;
@@ -21,3 +22,8 @@ virVMXParseSCSIController;
 virVMXParseSerial;
 virVMXParseVNC;
 virVMXUnescapeHex;
+
+# Let emacs know we want case-insensitive sorting
+# Local Variables:
+# sort-fold-case: t
+# End:

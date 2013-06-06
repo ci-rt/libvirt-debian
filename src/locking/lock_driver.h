@@ -1,7 +1,7 @@
 /*
  * lock_driver.h: Defines the lock driver plugin API
  *
- * Copyright (C) 2010-2011 Red Hat, Inc.
+ * Copyright (C) 2010-2011, 2013 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -14,8 +14,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -23,6 +23,7 @@
 # define __VIR_PLUGINS_LOCK_DRIVER_H__
 
 # include "internal.h"
+# include "domain_conf.h"
 
 typedef struct _virLockManager virLockManager;
 typedef virLockManager *virLockManagerPtr;
@@ -66,6 +67,7 @@ typedef enum {
 
 enum {
     VIR_LOCK_MANAGER_PARAM_TYPE_STRING,
+    VIR_LOCK_MANAGER_PARAM_TYPE_CSTRING,
     VIR_LOCK_MANAGER_PARAM_TYPE_INT,
     VIR_LOCK_MANAGER_PARAM_TYPE_LONG,
     VIR_LOCK_MANAGER_PARAM_TYPE_UINT,
@@ -84,6 +86,7 @@ struct _virLockManagerParam {
         unsigned long long ul;
         double d;
         char *str;
+        const char *cstr;
         unsigned char uuid[16];
     } value;
 };
@@ -153,6 +156,7 @@ typedef int (*virLockDriverDeinit)(void);
  * - uuid: the domain uuid (uuid)
  * - name: the domain name (string)
  * - pid: process ID to own/owning the lock (unsigned int)
+ * - uri: URI for connecting to the driver the domain belongs to (string)
  *
  * Returns 0 if successful initialized a new context, -1 on error
  */
@@ -182,8 +186,8 @@ typedef void (*virLockDriverFree)(virLockManagerPtr man);
  *
  * Assign a resource to a managed object. This will
  * only be called prior to the object is being locked
- * when it is inactive. eg, to set the initial  boot
- * time disk assignments on a VM
+ * when it is inactive (e.g. to set the initial  boot
+ * time disk assignments on a VM).
  * The format of @name varies according to
  * the resource @type. A VIR_LOCK_MANAGER_RESOURCE_TYPE_DISK
  * will have the fully qualified file path, while a resource
@@ -215,12 +219,13 @@ typedef int (*virLockDriverAddResource)(virLockManagerPtr man,
  * @manager: the lock manager context
  * @state: the current lock state
  * @flags: optional flags, currently unused
+ * @action: action to take when lock is lost
  * @fd: optional return the leaked FD
  *
  * Start managing resources for the object. This
  * must be called from the PID that represents the
  * object to be managed. If the lock is lost at any
- * time, the PID will be killed off by the lock manager.
+ * time, the specified action will be taken.
  * The optional state contains information about the
  * locks previously held for the object.
  *
@@ -234,6 +239,7 @@ typedef int (*virLockDriverAddResource)(virLockManagerPtr man,
 typedef int (*virLockDriverAcquire)(virLockManagerPtr man,
                                     const char *state,
                                     unsigned int flags,
+                                    virDomainLockFailureAction action,
                                     int *fd);
 
 /**

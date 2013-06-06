@@ -1,5 +1,5 @@
 /* Test of ptsname(3).
-   Copyright (C) 2010-2012 Free Software Foundation, Inc.
+   Copyright (C) 2010-2013 Free Software Foundation, Inc.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -21,6 +21,7 @@
 #include "signature.h"
 SIGNATURE_CHECK (ptsname, char *, (int));
 
+#include <errno.h>
 #include <fcntl.h>
 #include <signal.h>
 #include <stdio.h>
@@ -58,9 +59,21 @@ main (void)
 #if HAVE_DECL_ALARM
   /* Declare failure if test takes too long, by using default abort
      caused by SIGALRM.  */
+  int alarm_value = 5;
   signal (SIGALRM, SIG_DFL);
-  alarm (5);
+  alarm (alarm_value);
 #endif
+
+  {
+    char *result;
+
+    errno = 0;
+    result = ptsname (-1);
+    ASSERT (result == NULL);
+    ASSERT (errno == EBADF
+            || errno == ENOTTY /* seen on glibc */
+           );
+  }
 
   {
     int fd;
@@ -109,7 +122,7 @@ main (void)
 
 #else
 
-  /* Try various master names of MacOS X: /dev/pty[p-w][0-9a-f]  */
+  /* Try various master names of Mac OS X: /dev/pty[p-w][0-9a-f]  */
   {
     int char1;
     int char2;

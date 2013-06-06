@@ -1,6 +1,6 @@
 /* Test for nonblocking read and write.
 
-   Copyright (C) 2011-2012 Free Software Foundation, Inc.
+   Copyright (C) 2011-2013 Free Software Foundation, Inc.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -24,7 +24,7 @@
      Linux/SPARC                     >= 126977
      Linux/IA-64, Linux/MIPS         >= 253953
      Linux/PPC64                     >= 1048576
-     FreeBSD, OpenBSD, MacOS X       >= 65537
+     FreeBSD, OpenBSD, Mac OS X      >= 65537
      AIX                             >= 32769
      HP-UX                           >= 8193
      IRIX                            >= 10241

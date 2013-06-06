@@ -14,8 +14,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,8 +28,10 @@
 typedef struct _virLockManagerPlugin virLockManagerPlugin;
 typedef virLockManagerPlugin *virLockManagerPluginPtr;
 
+void virLockManagerSetPluginDir(const char *dir);
 virLockManagerPluginPtr virLockManagerPluginNew(const char *name,
-                                                const char *configFile,
+                                                const char *driverName,
+                                                const char *configDir,
                                                 unsigned int flags);
 void virLockManagerPluginRef(virLockManagerPluginPtr plugin);
 void virLockManagerPluginUnref(virLockManagerPluginPtr plugin);
@@ -37,8 +39,9 @@ void virLockManagerPluginUnref(virLockManagerPluginPtr plugin);
 const char *virLockManagerPluginGetName(virLockManagerPluginPtr plugin);
 bool virLockManagerPluginUsesState(virLockManagerPluginPtr plugin);
 
+virLockDriverPtr virLockManagerPluginGetDriver(virLockManagerPluginPtr plugin);
 
-virLockManagerPtr virLockManagerNew(virLockManagerPluginPtr plugin,
+virLockManagerPtr virLockManagerNew(virLockDriverPtr driver,
                                     unsigned int type,
                                     size_t nparams,
                                     virLockManagerParamPtr params,
@@ -54,6 +57,7 @@ int virLockManagerAddResource(virLockManagerPtr manager,
 int virLockManagerAcquire(virLockManagerPtr manager,
                           const char *state,
                           unsigned int flags,
+                          virDomainLockFailureAction action,
                           int *fd);
 int virLockManagerRelease(virLockManagerPtr manager,
                           char **state,

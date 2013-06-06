@@ -29,9 +29,11 @@
       <li><strong><a href="drvvmware.html">VMware Workstation/Player</a></strong></li>
       <li><strong><a href="drvxen.html">Xen</a></strong></li>
       <li><strong><a href="drvhyperv.html">Microsoft Hyper-V</a></strong></li>
+      <li><strong><a href="drvphyp.html">IBM PowerVM (phyp)</a></strong></li>
+      <li><strong><a href="drvparallels.html">Parallels</a></strong></li>
     </ul>
 
-    <h2><a name="stroage">Storage drivers</a></h2>
+    <h2><a name="storage">Storage drivers</a></h2>
 
     <ul>
       <li><strong><a href="storage.html#StorageBackendDir">Directory backend</a></strong></li>
@@ -42,6 +44,8 @@
       <li><strong><a href="storage.html#StorageBackendISCSI">iSCSI backend</a></strong></li>
       <li><strong><a href="storage.html#StorageBackendSCSI">SCSI backend</a></strong></li>
       <li><strong><a href="storage.html#StorageBackendMultipath">Multipath backend</a></strong></li>
+      <li><strong><a href="storage.html#StorageBackendRBD">RBD (RADOS Block Device) backend</a></strong></li>
+      <li><strong><a href="storage.html#StorageBackendSheepdog">Sheepdog backend</a></strong></li>
     </ul>
   </body>
 </html>

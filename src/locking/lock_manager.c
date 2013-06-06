@@ -14,8 +14,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -23,11 +23,11 @@
 
 #include "lock_manager.h"
 #include "lock_driver_nop.h"
-#include "virterror_internal.h"
-#include "logging.h"
-#include "util.h"
-#include "memory.h"
-#include "uuid.h"
+#include "virerror.h"
+#include "virlog.h"
+#include "virutil.h"
+#include "viralloc.h"
+#include "viruuid.h"
 
 #if HAVE_DLFCN_H
 # include <dlfcn.h>
@@ -39,13 +39,9 @@
 
 #define VIR_FROM_THIS VIR_FROM_LOCKING
 
-#define virLockError(code, ...)                                      \
-    virReportErrorHelper(VIR_FROM_THIS, code, __FILE__,              \
-                             __FUNCTION__, __LINE__, __VA_ARGS__)
-
-#define CHECK_PLUGIN(field, errret)                                  \
-    if (!plugin->driver->field) {                                    \
-        virLockError(VIR_ERR_INTERNAL_ERROR,                         \
+#define CHECK_DRIVER(field, errret)                                  \
+    if (!driver->field) {                                            \
+        virReportError(VIR_ERR_INTERNAL_ERROR,                       \
                      _("Missing '%s' field in lock manager driver"), \
                      #field);                                        \
         return errret;                                               \
@@ -53,9 +49,9 @@
 
 #define CHECK_MANAGER(field, errret)                                 \
     if (!lock->driver->field) {                                      \
-        virLockError(VIR_ERR_INTERNAL_ERROR,                         \
-                     _("Missing '%s' field in lock manager driver"), \
-                     #field);                                        \
+        virReportError(VIR_ERR_INTERNAL_ERROR,                         \
+                       _("Missing '%s' field in lock manager driver"), \
+                       #field);                                        \
         return errret;                                               \
     }
 
@@ -67,6 +63,16 @@ struct _virLockManagerPlugin {
 };
 
 #define DEFAULT_LOCK_MANAGER_PLUGIN_DIR LIBDIR "/libvirt/lock-driver"
+
+static const char *virLockManagerPluginDir = DEFAULT_LOCK_MANAGER_PLUGIN_DIR;
+
+void
+virLockManagerSetPluginDir(const char *dir)
+{
+    if (dir)
+        virLockManagerPluginDir = dir;
+}
+
 
 static void virLockManagerLogParams(size_t nparams,
                                     virLockManagerParamPtr params)
@@ -92,6 +98,9 @@ static void virLockManagerLogParams(size_t nparams,
             break;
         case VIR_LOCK_MANAGER_PARAM_TYPE_STRING:
             VIR_DEBUG("  key=%s type=string value=%s", params[i].key, params[i].value.str);
+            break;
+        case VIR_LOCK_MANAGER_PARAM_TYPE_CSTRING:
+            VIR_DEBUG("  key=%s type=cstring value=%s", params[i].key, params[i].value.cstr);
             break;
         case VIR_LOCK_MANAGER_PARAM_TYPE_UUID:
             virUUIDFormat(params[i].value.uuid, uuidstr);
@@ -119,7 +128,8 @@ static void virLockManagerLogParams(size_t nparams,
  */
 #if HAVE_DLFCN_H
 virLockManagerPluginPtr virLockManagerPluginNew(const char *name,
-                                                const char *configFile,
+                                                const char *driverName,
+                                                const char *configDir,
                                                 unsigned int flags)
 {
     void *handle = NULL;
@@ -127,18 +137,28 @@ virLockManagerPluginPtr virLockManagerPluginNew(const char *name,
     virLockManagerPluginPtr plugin = NULL;
     const char *moddir = getenv("LIBVIRT_LOCK_MANAGER_PLUGIN_DIR");
     char *modfile = NULL;
+    char *configFile = NULL;
+
+    VIR_DEBUG("name=%s driverName=%s configDir=%s flags=%x",
+              name, driverName, configDir, flags);
+
+    if (virAsprintf(&configFile, "%s/%s-%s.conf",
+                    configDir, driverName, name) < 0) {
+        virReportOOMError();
+        return NULL;
+    }
 
     if (STREQ(name, "nop")) {
         driver = &virLockDriverNop;
     } else {
         if (moddir == NULL)
-            moddir = DEFAULT_LOCK_MANAGER_PLUGIN_DIR;
+            moddir = virLockManagerPluginDir;
 
         VIR_DEBUG("Module load %s from %s", name, moddir);
 
         if (virAsprintf(&modfile, "%s/%s.so", moddir, name) < 0) {
             virReportOOMError();
-            return NULL;
+            goto cleanup;
         }
 
         if (access(modfile, R_OK) < 0) {
@@ -150,15 +170,15 @@ virLockManagerPluginPtr virLockManagerPluginNew(const char *name,
 
         handle = dlopen(modfile, RTLD_NOW | RTLD_LOCAL);
         if (!handle) {
-            virLockError(VIR_ERR_SYSTEM_ERROR,
-                         _("Failed to load plugin %s: %s"),
-                         modfile, dlerror());
+            virReportError(VIR_ERR_SYSTEM_ERROR,
+                           _("Failed to load plugin %s: %s"),
+                           modfile, dlerror());
             goto cleanup;
         }
 
         if (!(driver = dlsym(handle, "virLockDriverImpl"))) {
-            virLockError(VIR_ERR_INTERNAL_ERROR, "%s",
-                         _("Missing plugin initialization symbol 'virLockDriverImpl'"));
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("Missing plugin initialization symbol 'virLockDriverImpl'"));
             goto cleanup;
         }
     }
@@ -179,10 +199,12 @@ virLockManagerPluginPtr virLockManagerPluginNew(const char *name,
         goto cleanup;
     }
 
+    VIR_FREE(configFile);
     VIR_FREE(modfile);
     return plugin;
 
 cleanup:
+    VIR_FREE(configFile);
     VIR_FREE(plugin);
     VIR_FREE(modfile);
     if (handle)
@@ -192,11 +214,12 @@ cleanup:
 #else /* !HAVE_DLFCN_H */
 virLockManagerPluginPtr
 virLockManagerPluginNew(const char *name ATTRIBUTE_UNUSED,
-                        const char *configFile ATTRIBUTE_UNUSED,
+                        const char *driverName ATTRIBUTE_UNUSED,
+                        const char *configDir ATTRIBUTE_UNUSED,
                         unsigned int flags_unused ATTRIBUTE_UNUSED)
 {
-    virLockError(VIR_ERR_INTERNAL_ERROR, "%s",
-                 _("this platform is missing dlopen"));
+    virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                   _("this platform is missing dlopen"));
     return NULL;
 }
 #endif /* !HAVE_DLFCN_H */
@@ -269,9 +292,16 @@ bool virLockManagerPluginUsesState(virLockManagerPluginPtr plugin)
 }
 
 
+virLockDriverPtr virLockManagerPluginGetDriver(virLockManagerPluginPtr plugin)
+{
+    VIR_DEBUG("plugin=%p", plugin);
+
+    return plugin->driver;
+}
+
 /**
  * virLockManagerNew:
- * @plugin: the plugin implementation to use
+ * @driver: the lock manager implementation to use
  * @type: the type of process to be supervised
  * @flags: optional flags, currently unused
  *
@@ -280,27 +310,27 @@ bool virLockManagerPluginUsesState(virLockManagerPluginPtr plugin)
  *
  * Returns a new lock manager context
  */
-virLockManagerPtr virLockManagerNew(virLockManagerPluginPtr plugin,
+virLockManagerPtr virLockManagerNew(virLockDriverPtr driver,
                                     unsigned int type,
                                     size_t nparams,
                                     virLockManagerParamPtr params,
                                     unsigned int flags)
 {
     virLockManagerPtr lock;
-    VIR_DEBUG("plugin=%p type=%u nparams=%zu params=%p flags=%x",
-              plugin, type, nparams, params, flags);
+    VIR_DEBUG("driver=%p type=%u nparams=%zu params=%p flags=%x",
+              driver, type, nparams, params, flags);
     virLockManagerLogParams(nparams, params);
 
-    CHECK_PLUGIN(drvNew, NULL);
+    CHECK_DRIVER(drvNew, NULL);
 
     if (VIR_ALLOC(lock) < 0) {
         virReportOOMError();
         return NULL;
     }
 
-    lock->driver = plugin->driver;
+    lock->driver = driver;
 
-    if (plugin->driver->drvNew(lock, type, nparams, params, flags) < 0) {
+    if (driver->drvNew(lock, type, nparams, params, flags) < 0) {
         VIR_FREE(lock);
         return NULL;
     }
@@ -331,17 +361,18 @@ int virLockManagerAddResource(virLockManagerPtr lock,
 int virLockManagerAcquire(virLockManagerPtr lock,
                           const char *state,
                           unsigned int flags,
+                          virDomainLockFailureAction action,
                           int *fd)
 {
-    VIR_DEBUG("lock=%p state='%s' flags=%x fd=%p",
-              lock, NULLSTR(state), flags, fd);
+    VIR_DEBUG("lock=%p state='%s' flags=%x action=%d fd=%p",
+              lock, NULLSTR(state), flags, action, fd);
 
     CHECK_MANAGER(drvAcquire, -1);
 
     if (fd)
         *fd = -1;
 
-    return lock->driver->drvAcquire(lock, state, flags, fd);
+    return lock->driver->drvAcquire(lock, state, flags, action, fd);
 }
 
 

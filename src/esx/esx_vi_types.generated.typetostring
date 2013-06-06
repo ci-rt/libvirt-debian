@@ -5,6 +5,9 @@
           case esxVI_Type_AutoStartWaitHeartbeatSetting:
             return "AutoStartWaitHeartbeatSetting";
 
+          case esxVI_Type_FibreChannelPortType:
+            return "FibreChannelPortType";
+
           case esxVI_Type_ManagedEntityStatus:
             return "ManagedEntityStatus";
 
@@ -69,6 +72,9 @@
           case esxVI_Type_EventArgument:
             return "EventArgument";
 
+          case esxVI_Type_ExtendedElementDescription:
+            return "ExtendedElementDescription";
+
           case esxVI_Type_FileBackedVirtualDiskSpec:
             return "FileBackedVirtualDiskSpec";
 
@@ -96,6 +102,12 @@
           case esxVI_Type_HostAutoStartManagerConfig:
             return "HostAutoStartManagerConfig";
 
+          case esxVI_Type_HostBlockAdapterTargetTransport:
+            return "HostBlockAdapterTargetTransport";
+
+          case esxVI_Type_HostBlockHba:
+            return "HostBlockHba";
+
           case esxVI_Type_HostConfigManager:
             return "HostConfigManager";
 
@@ -108,8 +120,65 @@
           case esxVI_Type_HostDatastoreBrowserSearchSpec:
             return "HostDatastoreBrowserSearchSpec";
 
+          case esxVI_Type_HostDevice:
+            return "HostDevice";
+
+          case esxVI_Type_HostDiskDimensionsLba:
+            return "HostDiskDimensionsLba";
+
+          case esxVI_Type_HostFibreChannelHba:
+            return "HostFibreChannelHba";
+
+          case esxVI_Type_HostFibreChannelTargetTransport:
+            return "HostFibreChannelTargetTransport";
+
           case esxVI_Type_HostFileSystemVolume:
             return "HostFileSystemVolume";
+
+          case esxVI_Type_HostHostBusAdapter:
+            return "HostHostBusAdapter";
+
+          case esxVI_Type_HostInternetScsiHba:
+            return "HostInternetScsiHba";
+
+          case esxVI_Type_HostInternetScsiHbaAuthenticationCapabilities:
+            return "HostInternetScsiHbaAuthenticationCapabilities";
+
+          case esxVI_Type_HostInternetScsiHbaAuthenticationProperties:
+            return "HostInternetScsiHbaAuthenticationProperties";
+
+          case esxVI_Type_HostInternetScsiHbaDigestCapabilities:
+            return "HostInternetScsiHbaDigestCapabilities";
+
+          case esxVI_Type_HostInternetScsiHbaDigestProperties:
+            return "HostInternetScsiHbaDigestProperties";
+
+          case esxVI_Type_HostInternetScsiHbaDiscoveryCapabilities:
+            return "HostInternetScsiHbaDiscoveryCapabilities";
+
+          case esxVI_Type_HostInternetScsiHbaDiscoveryProperties:
+            return "HostInternetScsiHbaDiscoveryProperties";
+
+          case esxVI_Type_HostInternetScsiHbaIPCapabilities:
+            return "HostInternetScsiHbaIPCapabilities";
+
+          case esxVI_Type_HostInternetScsiHbaIPProperties:
+            return "HostInternetScsiHbaIPProperties";
+
+          case esxVI_Type_HostInternetScsiHbaParamValue:
+            return "HostInternetScsiHbaParamValue";
+
+          case esxVI_Type_HostInternetScsiHbaSendTarget:
+            return "HostInternetScsiHbaSendTarget";
+
+          case esxVI_Type_HostInternetScsiHbaStaticTarget:
+            return "HostInternetScsiHbaStaticTarget";
+
+          case esxVI_Type_HostInternetScsiTargetTransport:
+            return "HostInternetScsiTargetTransport";
+
+          case esxVI_Type_HostIpConfig:
+            return "HostIpConfig";
 
           case esxVI_Type_HostMountInfo:
             return "HostMountInfo";
@@ -117,8 +186,80 @@
           case esxVI_Type_HostNasVolume:
             return "HostNasVolume";
 
+          case esxVI_Type_HostNetOffloadCapabilities:
+            return "HostNetOffloadCapabilities";
+
+          case esxVI_Type_HostNetworkPolicy:
+            return "HostNetworkPolicy";
+
+          case esxVI_Type_HostNetworkSecurityPolicy:
+            return "HostNetworkSecurityPolicy";
+
+          case esxVI_Type_HostNetworkTrafficShapingPolicy:
+            return "HostNetworkTrafficShapingPolicy";
+
+          case esxVI_Type_HostNicFailureCriteria:
+            return "HostNicFailureCriteria";
+
+          case esxVI_Type_HostNicOrderPolicy:
+            return "HostNicOrderPolicy";
+
+          case esxVI_Type_HostNicTeamingPolicy:
+            return "HostNicTeamingPolicy";
+
+          case esxVI_Type_HostParallelScsiHba:
+            return "HostParallelScsiHba";
+
+          case esxVI_Type_HostParallelScsiTargetTransport:
+            return "HostParallelScsiTargetTransport";
+
+          case esxVI_Type_HostPortGroup:
+            return "HostPortGroup";
+
+          case esxVI_Type_HostPortGroupPort:
+            return "HostPortGroupPort";
+
+          case esxVI_Type_HostPortGroupSpec:
+            return "HostPortGroupSpec";
+
+          case esxVI_Type_HostScsiDisk:
+            return "HostScsiDisk";
+
           case esxVI_Type_HostScsiDiskPartition:
             return "HostScsiDiskPartition";
+
+          case esxVI_Type_HostScsiTopologyInterface:
+            return "HostScsiTopologyInterface";
+
+          case esxVI_Type_HostScsiTopologyLun:
+            return "HostScsiTopologyLun";
+
+          case esxVI_Type_HostScsiTopologyTarget:
+            return "HostScsiTopologyTarget";
+
+          case esxVI_Type_HostTargetTransport:
+            return "HostTargetTransport";
+
+          case esxVI_Type_HostVirtualSwitch:
+            return "HostVirtualSwitch";
+
+          case esxVI_Type_HostVirtualSwitchAutoBridge:
+            return "HostVirtualSwitchAutoBridge";
+
+          case esxVI_Type_HostVirtualSwitchBeaconConfig:
+            return "HostVirtualSwitchBeaconConfig";
+
+          case esxVI_Type_HostVirtualSwitchBondBridge:
+            return "HostVirtualSwitchBondBridge";
+
+          case esxVI_Type_HostVirtualSwitchBridge:
+            return "HostVirtualSwitchBridge";
+
+          case esxVI_Type_HostVirtualSwitchSimpleBridge:
+            return "HostVirtualSwitchSimpleBridge";
+
+          case esxVI_Type_HostVirtualSwitchSpec:
+            return "HostVirtualSwitchSpec";
 
           case esxVI_Type_HostVmfsVolume:
             return "HostVmfsVolume";
@@ -128,6 +269,9 @@
 
           case esxVI_Type_IsoImageFileQuery:
             return "IsoImageFileQuery";
+
+          case esxVI_Type_KeyAnyValue:
+            return "KeyAnyValue";
 
           case esxVI_Type_LocalDatastoreInfo:
             return "LocalDatastoreInfo";
@@ -149,6 +293,9 @@
 
           case esxVI_Type_OptionType:
             return "OptionType";
+
+          case esxVI_Type_OptionValue:
+            return "OptionValue";
 
           case esxVI_Type_PerfCounterInfo:
             return "PerfCounterInfo";
@@ -174,6 +321,15 @@
           case esxVI_Type_PerfSampleInfo:
             return "PerfSampleInfo";
 
+          case esxVI_Type_PhysicalNic:
+            return "PhysicalNic";
+
+          case esxVI_Type_PhysicalNicLinkInfo:
+            return "PhysicalNicLinkInfo";
+
+          case esxVI_Type_PhysicalNicSpec:
+            return "PhysicalNicSpec";
+
           case esxVI_Type_PropertyChange:
             return "PropertyChange";
 
@@ -191,6 +347,18 @@
 
           case esxVI_Type_ResourcePoolResourceUsage:
             return "ResourcePoolResourceUsage";
+
+          case esxVI_Type_ScsiLun:
+            return "ScsiLun";
+
+          case esxVI_Type_ScsiLunCapabilities:
+            return "ScsiLunCapabilities";
+
+          case esxVI_Type_ScsiLunDescriptor:
+            return "ScsiLunDescriptor";
+
+          case esxVI_Type_ScsiLunDurableName:
+            return "ScsiLunDurableName";
 
           case esxVI_Type_SelectionSpec:
             return "SelectionSpec";

@@ -1,6 +1,7 @@
 /*
  * domain_event.h: domain event queue processing helpers
  *
+ * Copyright (C) 2012 Red Hat, Inc.
  * Copyright (C) 2008 VirtualIron
  *
  * This library is free software; you can redistribute it and/or
@@ -14,8 +15,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Author: Ben Guthro
  */
@@ -125,6 +126,12 @@ virDomainEventPtr virDomainEventPMWakeupNewFromDom(virDomainPtr dom);
 virDomainEventPtr virDomainEventPMSuspendNewFromObj(virDomainObjPtr obj);
 virDomainEventPtr virDomainEventPMSuspendNewFromDom(virDomainPtr dom);
 
+virDomainEventPtr virDomainEventBalloonChangeNewFromDom(virDomainPtr dom, unsigned long long actual);
+virDomainEventPtr virDomainEventBalloonChangeNewFromObj(virDomainObjPtr obj, unsigned long long actual);
+
+virDomainEventPtr virDomainEventPMSuspendDiskNewFromObj(virDomainObjPtr obj);
+virDomainEventPtr virDomainEventPMSuspendDiskNewFromDom(virDomainPtr dom);
+
 void virDomainEventFree(virDomainEventPtr event);
 
 void virDomainEventStateFree(virDomainEventStatePtr state);
@@ -159,10 +166,6 @@ int
 virDomainEventStateDeregisterID(virConnectPtr conn,
                                 virDomainEventStatePtr state,
                                 int callbackID)
-    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
-int
-virDomainEventStateDeregisterConn(virConnectPtr conn,
-                                  virDomainEventStatePtr state)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
 int
 virDomainEventStateEventID(virConnectPtr conn,

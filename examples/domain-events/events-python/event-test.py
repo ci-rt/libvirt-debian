@@ -126,7 +126,7 @@ class virEventLoopPure:
         self.poll.register(self.pipetrick[0], select.POLLIN)
 
 
-    # Calculate when the next timeout is due to occurr, returning
+    # Calculate when the next timeout is due to occur, returning
     # the absolute timestamp for the next timeout, or 0 if there is
     # no timeout due
     def next_timeout(self):
@@ -169,7 +169,7 @@ class virEventLoopPure:
     #
     # Due to the coarse granularity of schedular timeslices, if
     # we ask for a sleep of 500ms in order to satisfy a timer, we
-    # may return upto 1 schedular timeslice early. So even though
+    # may return up to 1 schedular timeslice early. So even though
     # our sleep timeout was reached, the registered timer may not
     # technically be at its expiry point. This leads to us going
     # back around the loop with a crazy 5ms sleep. So when checking
@@ -178,48 +178,53 @@ class virEventLoopPure:
     def run_once(self):
         sleep = -1
         self.runningPoll = True
-        next = self.next_timeout()
-        debug("Next timeout due at %d" % next)
-        if next > 0:
+        try:
+            next = self.next_timeout()
+            debug("Next timeout due at %d" % next)
+            if next > 0:
+                now = int(time.time() * 1000)
+                if now >= next:
+                    sleep = 0
+                else:
+                    sleep = (next - now) / 1000.0
+
+            debug("Poll with a sleep of %d" % sleep)
+            events = self.poll.poll(sleep)
+
+            # Dispatch any file handle events that occurred
+            for (fd, revents) in events:
+                # See if the events was from the self-pipe
+                # telling us to wakup. if so, then discard
+                # the data just continue
+                if fd == self.pipetrick[0]:
+                    self.pendingWakeup = False
+                    data = os.read(fd, 1)
+                    continue
+
+                h = self.get_handle_by_fd(fd)
+                if h:
+                    debug("Dispatch fd %d handle %d events %d" % (fd, h.get_id(), revents))
+                    h.dispatch(self.events_from_poll(revents))
+
             now = int(time.time() * 1000)
-            if now >= next:
-                sleep = 0
-            else:
-                sleep = (next - now) / 1000.0
+            for t in self.timers:
+                interval = t.get_interval()
+                if interval < 0:
+                    continue
 
-        debug("Poll with a sleep of %d" % sleep)
-        events = self.poll.poll(sleep)
+                want = t.get_last_fired() + interval
+                # Deduct 20ms, since scheduler timeslice
+                # means we could be ever so slightly early
+                if now >= (want-20):
+                    debug("Dispatch timer %d now %s want %s" % (t.get_id(), str(now), str(want)))
+                    t.set_last_fired(now)
+                    t.dispatch()
 
-        # Dispatch any file handle events that occurred
-        for (fd, revents) in events:
-            # See if the events was from the self-pipe
-            # telling us to wakup. if so, then discard
-            # the data just continue
-            if fd == self.pipetrick[0]:
-                self.pendingWakeup = False
-                data = os.read(fd, 1)
-                continue
-
-            h = self.get_handle_by_fd(fd)
-            if h:
-                debug("Dispatch fd %d handle %d events %d" % (fd, h.get_id(), revents))
-                h.dispatch(self.events_from_poll(revents))
-
-        now = int(time.time() * 1000)
-        for t in self.timers:
-            interval = t.get_interval()
-            if interval < 0:
-                continue
-
-            want = t.get_last_fired() + interval
-            # Deduct 20ms, since schedular timeslice
-            # means we could be ever so slightly early
-            if now >= (want-20):
-                debug("Dispatch timer %d now %s want %s" % (t.get_id(), str(now), str(want)))
-                t.set_last_fired(now)
-                t.dispatch()
-
-        self.runningPoll = False
+        except (os.error, select.error), e:
+            if e.args[0] != errno.EINTR:
+                raise
+        finally:
+            self.runningPoll = False
 
 
     # Actually the event loop forever
@@ -284,7 +289,7 @@ class virEventLoopPure:
     def update_timer(self, timerID, interval):
         for h in self.timers:
             if h.get_id() == timerID:
-                h.set_interval(interval);
+                h.set_interval(interval)
                 self.interrupt()
 
                 debug("Update timer %d interval %d"  % (timerID, interval))
@@ -320,25 +325,25 @@ class virEventLoopPure:
         if events & libvirt.VIR_EVENT_HANDLE_WRITABLE:
             ret |= select.POLLOUT
         if events & libvirt.VIR_EVENT_HANDLE_ERROR:
-            ret |= select.POLLERR;
+            ret |= select.POLLERR
         if events & libvirt.VIR_EVENT_HANDLE_HANGUP:
-            ret |= select.POLLHUP;
+            ret |= select.POLLHUP
         return ret
 
     # Convert from poll() event constants, to libvirt events constants
     def events_from_poll(self, events):
-        ret = 0;
+        ret = 0
         if events & select.POLLIN:
-            ret |= libvirt.VIR_EVENT_HANDLE_READABLE;
+            ret |= libvirt.VIR_EVENT_HANDLE_READABLE
         if events & select.POLLOUT:
-            ret |= libvirt.VIR_EVENT_HANDLE_WRITABLE;
+            ret |= libvirt.VIR_EVENT_HANDLE_WRITABLE
         if events & select.POLLNVAL:
-            ret |= libvirt.VIR_EVENT_HANDLE_ERROR;
+            ret |= libvirt.VIR_EVENT_HANDLE_ERROR
         if events & select.POLLERR:
-            ret |= libvirt.VIR_EVENT_HANDLE_ERROR;
+            ret |= libvirt.VIR_EVENT_HANDLE_ERROR
         if events & select.POLLHUP:
-            ret |= libvirt.VIR_EVENT_HANDLE_HANGUP;
-        return ret;
+            ret |= libvirt.VIR_EVENT_HANDLE_HANGUP
+        return ret
 
 
 ###########################################################################
@@ -431,18 +436,20 @@ def eventToString(event):
                      "Suspended",
                      "Resumed",
                      "Stopped",
-                     "Shutdown" );
-    return eventStrings[event];
+                     "Shutdown",
+                     "PMSuspended" )
+    return eventStrings[event]
 
 def detailToString(event, detail):
     eventStrings = (
         ( "Added", "Updated" ),
-        ( "Removed" ),
-        ( "Booted", "Migrated", "Restored", "Snapshot" ),
-        ( "Paused", "Migrated", "IOError", "Watchdog" ),
-        ( "Unpaused", "Migrated"),
+        ( "Removed", ),
+        ( "Booted", "Migrated", "Restored", "Snapshot", "Wakeup" ),
+        ( "Paused", "Migrated", "IOError", "Watchdog", "Restored", "Snapshot", "API error" ),
+        ( "Unpaused", "Migrated", "Snapshot" ),
         ( "Shutdown", "Destroyed", "Crashed", "Migrated", "Saved", "Failed", "Snapshot"),
-        ( "Finished" )
+        ( "Finished", ),
+        ( "Memory", "Disk" )
         )
     return eventStrings[event][detail]
 
@@ -483,6 +490,21 @@ def myDomainEventPMWakeupCallback(conn, dom, reason, opaque):
 def myDomainEventPMSuspendCallback(conn, dom, reason, opaque):
     print "myDomainEventPMSuspendCallback: Domain %s(%s) system pmsuspend" % (
             dom.name(), dom.ID())
+def myDomainEventBalloonChangeCallback(conn, dom, actual, opaque):
+    print "myDomainEventBalloonChangeCallback: Domain %s(%s) %d" % (dom.name(), dom.ID(), actual)
+def myDomainEventPMSuspendDiskCallback(conn, dom, reason, opaque):
+    print "myDomainEventPMSuspendDiskCallback: Domain %s(%s) system pmsuspend_disk" % (
+            dom.name(), dom.ID())
+
+run = True
+
+def myConnectionCloseCallback(conn, reason, opaque):
+    reasonStrings = (
+        "Error", "End-of-file", "Keepalive", "Client",
+        )
+    print "myConnectionCloseCallback: %s: %s" % (conn.getURI(), reasonStrings[reason])
+    run = False
+
 def usage(out=sys.stderr):
     print >>out, "usage: "+os.path.basename(sys.argv[0])+" [-hdl] [uri]"
     print >>out, "   uri will default to qemu:///system"
@@ -532,6 +554,8 @@ def main():
         if (old_exitfunc): old_exitfunc()
     sys.exitfunc = exit
 
+    vc.registerCloseCallback(myConnectionCloseCallback, None)
+
     #Add 2 callbacks to prove this works with more than just one
     vc.domainEventRegister(myDomainEventCallback1,None)
     vc.domainEventRegisterAny(None, libvirt.VIR_DOMAIN_EVENT_ID_LIFECYCLE, myDomainEventCallback2, None)
@@ -544,6 +568,8 @@ def main():
     vc.domainEventRegisterAny(None, libvirt.VIR_DOMAIN_EVENT_ID_TRAY_CHANGE, myDomainEventTrayChangeCallback, None)
     vc.domainEventRegisterAny(None, libvirt.VIR_DOMAIN_EVENT_ID_PMWAKEUP, myDomainEventPMWakeupCallback, None)
     vc.domainEventRegisterAny(None, libvirt.VIR_DOMAIN_EVENT_ID_PMSUSPEND, myDomainEventPMSuspendCallback, None)
+    vc.domainEventRegisterAny(None, libvirt.VIR_DOMAIN_EVENT_ID_BALLOON_CHANGE, myDomainEventBalloonChangeCallback, None)
+    vc.domainEventRegisterAny(None, libvirt.VIR_DOMAIN_EVENT_ID_PMSUSPEND_DISK, myDomainEventPMSuspendDiskCallback, None)
 
     vc.setKeepAlive(5, 3)
 
@@ -551,7 +577,7 @@ def main():
     # of demo we'll just go to sleep. The other option is to
     # run the event loop in your main thread if your app is
     # totally event based.
-    while vc.isAlive() == 1:
+    while run:
         time.sleep(1)
 
 

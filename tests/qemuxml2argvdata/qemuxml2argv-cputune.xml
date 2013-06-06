@@ -3,13 +3,14 @@
   <uuid>c7a5fdbd-edaf-9455-926a-d65c16db1809</uuid>
   <memory unit='KiB'>219136</memory>
   <currentMemory unit='KiB'>219136</currentMemory>
-  <vcpu>2</vcpu>
+  <vcpu placement='static'>2</vcpu>
   <cputune>
     <shares>2048</shares>
     <period>1000000</period>
     <quota>-1</quota>
     <vcpupin vcpu='0' cpuset='0'/>
     <vcpupin vcpu='1' cpuset='1'/>
+    <emulatorpin cpuset='1'/>
   </cputune>
   <os>
     <type arch='i686' machine='pc'>hvm</type>
@@ -28,6 +29,7 @@
     </disk>
     <controller type='usb' index='0'/>
     <controller type='ide' index='0'/>
+    <controller type='pci' index='0' model='pci-root'/>
     <memballoon model='virtio'/>
   </devices>
 </domain>

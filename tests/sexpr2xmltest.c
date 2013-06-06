@@ -5,7 +5,7 @@
 #include <unistd.h>
 
 #include "internal.h"
-#include "xml.h"
+#include "virxml.h"
 #include "datatypes.h"
 #include "xen/xen_driver.h"
 #include "xen/xend_internal.h"
@@ -71,8 +71,7 @@ testCompareFiles(const char *xml, const char *sexpr, int xendConfigVersion)
   VIR_FREE(sexprData);
   VIR_FREE(gotxml);
   virDomainDefFree(def);
-  if (conn)
-    virUnrefConnect(conn);
+  virObjectUnref(conn);
 
   return ret;
 }
@@ -184,7 +183,7 @@ mymain(void)
 
     DO_TEST("boot-grub", "boot-grub", 1);
 
-    virCapabilitiesFree(caps);
+    virObjectUnref(caps);
 
     return ret==0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }

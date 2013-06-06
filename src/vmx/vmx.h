@@ -15,8 +15,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,11 +24,12 @@
 # define __VIR_VMX_H__
 
 # include "internal.h"
-# include "conf.h"
+# include "virconf.h"
 # include "domain_conf.h"
 
 typedef struct _virVMXContext virVMXContext;
 
+virDomainXMLOptionPtr virVMXDomainXMLConfInit(void);
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -78,7 +79,8 @@ char *virVMXConvertToUTF8(const char *encoding, const char *string);
  * VMX -> Domain XML
  */
 
-virDomainDefPtr virVMXParseConfig(virVMXContext *ctx, virCapsPtr caps,
+virDomainDefPtr virVMXParseConfig(virVMXContext *ctx,
+                                  virDomainXMLOptionPtr xmlopt,
                                   const char *vmx);
 
 int virVMXParseVNC(virConfPtr conf, virDomainGraphicsDefPtr *def);
@@ -86,9 +88,11 @@ int virVMXParseVNC(virConfPtr conf, virDomainGraphicsDefPtr *def);
 int virVMXParseSCSIController(virConfPtr conf, int controller, bool *present,
                               int *virtualDev);
 
-int virVMXParseDisk(virVMXContext *ctx, virCapsPtr caps, virConfPtr conf,
-                    int device, int busType, int controllerOrBus, int unit,
-                    virDomainDiskDefPtr *def);
+int virVMXParseDisk(virVMXContext *ctx, virDomainXMLOptionPtr xmlopt,
+                    virConfPtr conf, int device, int busType,
+                    int controllerOrBus, int unit, virDomainDiskDefPtr *def);
+
+int virVMXParseFileSystem(virConfPtr conf, int number, virDomainFSDefPtr *def);
 
 int virVMXParseEthernet(virConfPtr conf, int controller, virDomainNetDefPtr *def);
 
@@ -106,7 +110,7 @@ int virVMXParseSVGA(virConfPtr conf, virDomainVideoDefPtr *def);
  * Domain XML -> VMX
  */
 
-char *virVMXFormatConfig(virVMXContext *ctx, virCapsPtr caps,
+char *virVMXFormatConfig(virVMXContext *ctx, virDomainXMLOptionPtr xmlopt,
                          virDomainDefPtr def, int virtualHW_version);
 
 int virVMXFormatVNC(virDomainGraphicsDefPtr def, virBufferPtr buffer);
@@ -119,6 +123,9 @@ int virVMXFormatCDROM(virVMXContext *ctx, virDomainDiskDefPtr def,
 
 int virVMXFormatFloppy(virVMXContext *ctx, virDomainDiskDefPtr def,
                        virBufferPtr buffer, bool floppy_present[2]);
+
+int virVMXFormatFileSystem(virDomainFSDefPtr def, int number,
+                           virBufferPtr buffer);
 
 int virVMXFormatEthernet(virDomainNetDefPtr def, int controller,
                          virBufferPtr buffer);

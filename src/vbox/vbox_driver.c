@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright (C) 2010-2011 Red Hat, Inc.
+ * Copyright (C) 2010-2012 Red Hat, Inc.
  * Copyright (C) 2008-2009 Sun Microsystems, Inc.
  *
  * This file is part of a free software library; you can redistribute
@@ -29,18 +29,16 @@
 
 #include <config.h>
 
-#include <stdint.h>
 #include <unistd.h>
-#include <sys/types.h>
 
 #include "internal.h"
 
 #include "datatypes.h"
-#include "logging.h"
+#include "virlog.h"
 #include "vbox_driver.h"
 #include "vbox_glue.h"
-#include "virterror_internal.h"
-#include "util.h"
+#include "virerror.h"
+#include "virutil.h"
 
 #define VIR_FROM_THIS VIR_FROM_VBOX
 
@@ -67,10 +65,6 @@ extern virStorageDriver vbox41StorageDriver;
 static virDriver vboxDriverDummy;
 
 #define VIR_FROM_THIS VIR_FROM_VBOX
-
-#define vboxError(code, ...) \
-        virReportErrorHelper(VIR_FROM_VBOX, code, __FILE__, \
-                             __FUNCTION__, __LINE__, __VA_ARGS__)
 
 int vboxRegister(void) {
     virDriverPtr        driver;
@@ -147,9 +141,9 @@ int vboxRegister(void) {
     return 0;
 }
 
-static virDrvOpenStatus vboxOpenDummy(virConnectPtr conn,
-                                      virConnectAuthPtr auth ATTRIBUTE_UNUSED,
-                                      unsigned int flags)
+static virDrvOpenStatus vboxConnectOpen(virConnectPtr conn,
+                                        virConnectAuthPtr auth ATTRIBUTE_UNUSED,
+                                        unsigned int flags)
 {
     uid_t uid = getuid();
 
@@ -157,38 +151,38 @@ static virDrvOpenStatus vboxOpenDummy(virConnectPtr conn,
 
     if (conn->uri == NULL ||
         conn->uri->scheme == NULL ||
-        STRNEQ (conn->uri->scheme, "vbox") ||
+        STRNEQ(conn->uri->scheme, "vbox") ||
         conn->uri->server != NULL)
         return VIR_DRV_OPEN_DECLINED;
 
     if (conn->uri->path == NULL || STREQ(conn->uri->path, "")) {
-        vboxError(VIR_ERR_INTERNAL_ERROR, "%s",
-                  _("no VirtualBox driver path specified (try vbox:///session)"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("no VirtualBox driver path specified (try vbox:///session)"));
         return VIR_DRV_OPEN_ERROR;
     }
 
     if (uid != 0) {
-        if (STRNEQ (conn->uri->path, "/session")) {
-            vboxError(VIR_ERR_INTERNAL_ERROR,
-                      _("unknown driver path '%s' specified (try vbox:///session)"), conn->uri->path);
+        if (STRNEQ(conn->uri->path, "/session")) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("unknown driver path '%s' specified (try vbox:///session)"), conn->uri->path);
             return VIR_DRV_OPEN_ERROR;
         }
     } else { /* root */
-        if (STRNEQ (conn->uri->path, "/system") &&
-            STRNEQ (conn->uri->path, "/session")) {
-            vboxError(VIR_ERR_INTERNAL_ERROR,
-                      _("unknown driver path '%s' specified (try vbox:///system)"), conn->uri->path);
+        if (STRNEQ(conn->uri->path, "/system") &&
+            STRNEQ(conn->uri->path, "/session")) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("unknown driver path '%s' specified (try vbox:///system)"), conn->uri->path);
             return VIR_DRV_OPEN_ERROR;
         }
     }
 
-    vboxError(VIR_ERR_INTERNAL_ERROR, "%s",
-              _("unable to initialize VirtualBox driver API"));
+    virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                   _("unable to initialize VirtualBox driver API"));
     return VIR_DRV_OPEN_ERROR;
 }
 
 static virDriver vboxDriverDummy = {
     VIR_DRV_VBOX,
     "VBOX",
-    .open = vboxOpenDummy,
+    .connectOpen = vboxConnectOpen,
 };

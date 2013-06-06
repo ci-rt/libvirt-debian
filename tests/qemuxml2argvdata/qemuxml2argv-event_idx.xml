@@ -3,7 +3,7 @@
   <uuid>bba65c0e-c049-934f-b6aa-4e2c0582acdf</uuid>
   <memory unit='KiB'>1048576</memory>
   <currentMemory unit='KiB'>1048576</currentMemory>
-  <vcpu>1</vcpu>
+  <vcpu placement='static'>1</vcpu>
   <os>
     <type arch='x86_64' machine='pc-0.13'>hvm</type>
     <boot dev='cdrom'/>
@@ -34,6 +34,7 @@
       <address type='pci' domain='0x0000' bus='0x00' slot='0x06' function='0x0'/>
     </controller>
     <controller type='ide' index='0'/>
+    <controller type='pci' index='0' model='pci-root'/>
     <interface type='user'>
       <mac address='52:54:00:e5:48:58'/>
       <model type='virtio'/>
@@ -45,14 +46,6 @@
     <console type='pty'>
       <target type='serial' port='0'/>
     </console>
-    <input type='mouse' bus='ps2'/>
-    <graphics type='vnc' port='5091' autoport='no' listen='127.0.0.1'>
-      <listen type='address' address='127.0.0.1'/>
-    </graphics>
-    <video>
-      <model type='vga' vram='9216' heads='1'/>
-      <address type='pci' domain='0x0000' bus='0x00' slot='0x02' function='0x0'/>
-    </video>
     <memballoon model='virtio'/>
   </devices>
 </domain>

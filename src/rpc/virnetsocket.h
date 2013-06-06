@@ -15,8 +15,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Author: Daniel P. Berrange <berrange@redhat.com>
  */
@@ -25,11 +25,15 @@
 # define __VIR_NET_SOCKET_H__
 
 # include "virsocketaddr.h"
-# include "command.h"
-# include "virnettlscontext.h"
-# ifdef HAVE_SASL
+# include "vircommand.h"
+# ifdef WITH_GNUTLS
+#  include "virnettlscontext.h"
+# endif
+# include "virobject.h"
+# ifdef WITH_SASL
 #  include "virnetsaslcontext.h"
 # endif
+# include "virjson.h"
 
 typedef struct _virNetSocket virNetSocket;
 typedef virNetSocket *virNetSocketPtr;
@@ -50,6 +54,9 @@ int virNetSocketNewListenUNIX(const char *path,
                               uid_t user,
                               gid_t grp,
                               virNetSocketPtr *addr);
+
+int virNetSocketNewListenFD(int fd,
+                            virNetSocketPtr *addr);
 
 int virNetSocketNewConnectTCP(const char *nodename,
                               const char *service,
@@ -74,8 +81,25 @@ int virNetSocketNewConnectSSH(const char *nodename,
                               const char *path,
                               virNetSocketPtr *addr);
 
+int virNetSocketNewConnectLibSSH2(const char *host,
+                                  const char *port,
+                                  const char *username,
+                                  const char *password,
+                                  const char *privkey,
+                                  const char *knownHosts,
+                                  const char *knownHostsVerify,
+                                  const char *authMethods,
+                                  const char *command,
+                                  virConnectAuthPtr auth,
+                                  virNetSocketPtr *retsock);
+
 int virNetSocketNewConnectExternal(const char **cmdargv,
                                    virNetSocketPtr *addr);
+
+
+virNetSocketPtr virNetSocketNewPostExecRestart(virJSONValuePtr object);
+
+virJSONValuePtr virNetSocketPreExecRestart(virNetSocketPtr sock);
 
 int virNetSocketGetFD(virNetSocketPtr sock);
 int virNetSocketDupFD(virNetSocketPtr sock, bool cloexec);
@@ -90,6 +114,8 @@ int virNetSocketGetUNIXIdentity(virNetSocketPtr sock,
                                 uid_t *uid,
                                 gid_t *gid,
                                 pid_t *pid);
+int virNetSocketGetSecurityContext(virNetSocketPtr sock,
+                                   char **context);
 
 int virNetSocketSetBlocking(virNetSocketPtr sock,
                             bool blocking);
@@ -100,16 +126,17 @@ ssize_t virNetSocketWrite(virNetSocketPtr sock, const char *buf, size_t len);
 int virNetSocketSendFD(virNetSocketPtr sock, int fd);
 int virNetSocketRecvFD(virNetSocketPtr sock, int *fd);
 
+# ifdef WITH_GNUTLS
 void virNetSocketSetTLSSession(virNetSocketPtr sock,
                                virNetTLSSessionPtr sess);
-# ifdef HAVE_SASL
+# endif
+
+# ifdef WITH_SASL
 void virNetSocketSetSASLSession(virNetSocketPtr sock,
                                 virNetSASLSessionPtr sess);
 # endif
 bool virNetSocketHasCachedData(virNetSocketPtr sock);
 bool virNetSocketHasPendingData(virNetSocketPtr sock);
-void virNetSocketRef(virNetSocketPtr sock);
-void virNetSocketFree(virNetSocketPtr sock);
 
 const char *virNetSocketLocalAddrString(virNetSocketPtr sock);
 const char *virNetSocketRemoteAddrString(virNetSocketPtr sock);

@@ -1,7 +1,7 @@
 /*
  * node_device_udev.c: node device enumeration - libudev implementation
  *
- * Copyright (C) 2009-2012 Red Hat, Inc.
+ * Copyright (C) 2009-2013 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -14,8 +14,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Author: Dave Allan <dallan@redhat.com>
  */
@@ -26,18 +26,19 @@
 #include <scsi/scsi.h>
 #include <c-ctype.h>
 
+#include "dirname.h"
 #include "node_device_udev.h"
-#include "virterror_internal.h"
+#include "virerror.h"
 #include "node_device_conf.h"
 #include "node_device_driver.h"
 #include "driver.h"
 #include "datatypes.h"
-#include "logging.h"
-#include "memory.h"
-#include "uuid.h"
-#include "util.h"
-#include "buf.h"
-#include "pci.h"
+#include "virlog.h"
+#include "viralloc.h"
+#include "viruuid.h"
+#include "virutil.h"
+#include "virbuffer.h"
+#include "virpci.h"
 
 #define VIR_FROM_THIS VIR_FROM_NODEDEV
 
@@ -50,7 +51,7 @@ struct _udevPrivate {
     int watch;
 };
 
-static virDeviceMonitorStatePtr driverState = NULL;
+static virNodeDeviceDriverStatePtr driverState = NULL;
 
 static int udevStrToLong_ull(char const *s,
                              char **end_ptr,
@@ -358,7 +359,7 @@ static void udevLogFunction(struct udev *udev ATTRIBUTE_UNUSED,
                             const char *fmt,
                             va_list args)
 {
-    VIR_ERROR_INT(file, fn, line, fmt, args);
+    VIR_ERROR_INT(VIR_LOG_FROM_LIBRARY, file, line, fn, fmt, args);
 }
 
 
@@ -416,6 +417,7 @@ static int udevProcessPCI(struct udev_device *device,
     union _virNodeDevCapData *data = &def->caps->data;
     int ret = -1;
     char *p;
+    int rc;
 
     syspath = udev_device_get_syspath(device);
 
@@ -481,12 +483,16 @@ static int udevProcessPCI(struct udev_device *device,
         goto out;
     }
 
-    if (!pciGetPhysicalFunction(syspath, &data->pci_dev.physical_function))
+    if (!virPCIGetPhysicalFunction(syspath, &data->pci_dev.physical_function))
         data->pci_dev.flags |= VIR_NODE_DEV_CAP_FLAG_PCI_PHYSICAL_FUNCTION;
 
-    if (!pciGetVirtualFunctions(syspath, &data->pci_dev.virtual_functions,
-        &data->pci_dev.num_virtual_functions) ||
-        data->pci_dev.num_virtual_functions > 0)
+    rc = virPCIGetVirtualFunctions(syspath,
+                                   &data->pci_dev.virtual_functions,
+                                   &data->pci_dev.num_virtual_functions);
+    /* Out of memory */
+    if (rc < 0)
+        goto out;
+    else if (!rc && (data->pci_dev.num_virtual_functions > 0))
         data->pci_dev.flags |= VIR_NODE_DEV_CAP_FLAG_PCI_VIRTUAL_FUNCTION;
 
     ret = 0;
@@ -648,7 +654,7 @@ static int udevProcessSCSIHost(struct udev_device *device ATTRIBUTE_UNUSED,
     union _virNodeDevCapData *data = &def->caps->data;
     char *filename = NULL;
 
-    filename = basename(def->sysfs_path);
+    filename = last_component(def->sysfs_path);
 
     if (!STRPREFIX(filename, "host")) {
         VIR_ERROR(_("SCSI host found, but its udev name '%s' does "
@@ -663,8 +669,7 @@ static int udevProcessSCSIHost(struct udev_device *device ATTRIBUTE_UNUSED,
         goto out;
     }
 
-    check_fc_host(&def->caps->data);
-    check_vport_capable(&def->caps->data);
+    detect_scsi_host_caps(&def->caps->data);
 
     if (udevGenerateDeviceName(device, def, NULL) != 0) {
         goto out;
@@ -770,7 +775,7 @@ static int udevProcessSCSIDevice(struct udev_device *device ATTRIBUTE_UNUSED,
     union _virNodeDevCapData *data = &def->caps->data;
     char *filename = NULL, *p = NULL;
 
-    filename = basename(def->sysfs_path);
+    filename = last_component(def->sysfs_path);
 
     if (udevStrToLong_ui(filename, &p, 10, &data->scsi.host) == -1) {
         goto out;
@@ -948,6 +953,35 @@ static int udevProcessFloppy(struct udev_device *device,
     return udevProcessRemoveableMedia(device, def, has_media);
 }
 
+
+static int udevProcessSD(struct udev_device *device,
+                         virNodeDeviceDefPtr def)
+{
+    union _virNodeDevCapData *data = &def->caps->data;
+    int ret = 0;
+
+    if (udevGetUint64SysfsAttr(device,
+                               "size",
+                               &data->storage.num_blocks) == PROPERTY_ERROR) {
+        goto out;
+    }
+
+    if (udevGetUint64SysfsAttr(device,
+                               "queue/logical_block_size",
+                               &data->storage.logical_block_size)
+        == PROPERTY_ERROR) {
+        goto out;
+    }
+
+    data->storage.size = data->storage.num_blocks *
+        data->storage.logical_block_size;
+
+out:
+    return ret;
+}
+
+
+
 /* This function exists to deal with the case in which a driver does
  * not provide a device type in the usual place, but udev told us it's
  * a storage device, and we can make a good guess at what kind of
@@ -1005,7 +1039,7 @@ static int udevProcessStorage(struct udev_device *device,
     const char* devnode;
 
     devnode = udev_device_get_devnode(device);
-    if(!devnode) {
+    if (!devnode) {
         VIR_DEBUG("No devnode for '%s'", udev_device_get_devpath(device));
         goto out;
     }
@@ -1052,6 +1086,13 @@ static int udevProcessStorage(struct udev_device *device,
             data->storage.drive_type = strdup("floppy");
             if (!data->storage.drive_type)
                 goto out;
+        } else if ((udevGetIntProperty(device, "ID_DRIVE_FLASH_SD",
+                                       &tmp_int, 0) == PROPERTY_FOUND) &&
+                   (tmp_int == 1)) {
+
+            data->storage.drive_type = strdup("sd");
+            if (!data->storage.drive_type)
+                goto out;
         } else {
 
             /* If udev doesn't have it, perhaps we can guess it. */
@@ -1067,6 +1108,8 @@ static int udevProcessStorage(struct udev_device *device,
         ret = udevProcessDisk(device, def);
     } else if (STREQ(def->caps->data.storage.drive_type, "floppy")) {
         ret = udevProcessFloppy(device, def);
+    } else if (STREQ(def->caps->data.storage.drive_type, "sd")) {
+        ret = udevProcessSD(device, def);
     } else {
         VIR_DEBUG("Unsupported storage type '%s'",
                   def->caps->data.storage.drive_type);
@@ -1078,6 +1121,7 @@ static int udevProcessStorage(struct udev_device *device,
     }
 
 out:
+    VIR_DEBUG("Storage ret=%d", ret);
     return ret;
 }
 
@@ -1241,9 +1285,9 @@ static int udevSetParent(struct udev_device *device,
 
         parent_sysfs_path = udev_device_get_syspath(parent_device);
         if (parent_sysfs_path == NULL) {
-            virNodeDeviceReportError(VIR_ERR_INTERNAL_ERROR,
-                                     _("Could not get syspath for parent of '%s'"),
-                                     udev_device_get_syspath(parent_device));
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Could not get syspath for parent of '%s'"),
+                           udev_device_get_syspath(parent_device));
             goto out;
         }
 
@@ -1334,6 +1378,8 @@ static int udevAddOneDevice(struct udev_device *device)
 
 out:
     if (ret != 0) {
+        VIR_DEBUG("Discarding device %d %p %s", ret, def,
+                  def ? def->sysfs_path : "");
         virNodeDeviceDefFree(def);
     }
 
@@ -1392,7 +1438,7 @@ out:
 }
 
 
-static int udevDeviceMonitorShutdown(void)
+static int nodeDeviceStateCleanup(void)
 {
     int ret = 0;
 
@@ -1604,7 +1650,9 @@ out:
     return ret;
 }
 
-static int udevDeviceMonitorStartup(int privileged ATTRIBUTE_UNUSED)
+static int nodeDeviceStateInitialize(bool privileged ATTRIBUTE_UNUSED,
+                                     virStateInhibitCallback callback ATTRIBUTE_UNUSED,
+                                     void *opaque ATTRIBUTE_UNUSED)
 {
     udevPrivate *priv = NULL;
     struct udev *udev = NULL;
@@ -1711,28 +1759,21 @@ out_unlock:
 
 out:
     if (ret == -1) {
-        udevDeviceMonitorShutdown();
+        nodeDeviceStateCleanup();
     }
     return ret;
 }
 
 
-static int udevDeviceMonitorReload(void)
+static int nodeDeviceStateReload(void)
 {
     return 0;
 }
 
 
-static int udevDeviceMonitorActive(void)
-{
-    /* Always ready to deal with a shutdown */
-    return 0;
-}
-
-
-static virDrvOpenStatus udevNodeDrvOpen(virConnectPtr conn,
-                                        virConnectAuthPtr auth ATTRIBUTE_UNUSED,
-                                        unsigned int flags)
+static virDrvOpenStatus nodeDeviceOpen(virConnectPtr conn,
+                                       virConnectAuthPtr auth ATTRIBUTE_UNUSED,
+                                       unsigned int flags)
 {
     virCheckFlags(VIR_CONNECT_RO, VIR_DRV_OPEN_ERROR);
 
@@ -1740,45 +1781,46 @@ static virDrvOpenStatus udevNodeDrvOpen(virConnectPtr conn,
         return VIR_DRV_OPEN_DECLINED;
     }
 
-    conn->devMonPrivateData = driverState;
+    conn->nodeDevicePrivateData = driverState;
 
     return VIR_DRV_OPEN_SUCCESS;
 }
 
-static int udevNodeDrvClose(virConnectPtr conn)
+static int nodeDeviceClose(virConnectPtr conn)
 {
-    conn->devMonPrivateData = NULL;
+    conn->nodeDevicePrivateData = NULL;
     return 0;
 }
 
-static virDeviceMonitor udevDeviceMonitor = {
-    .name = "udevDeviceMonitor",
-    .open = udevNodeDrvOpen, /* 0.7.3 */
-    .close = udevNodeDrvClose, /* 0.7.3 */
-    .numOfDevices = nodeNumOfDevices, /* 0.7.3 */
-    .listDevices = nodeListDevices, /* 0.7.3 */
-    .deviceLookupByName = nodeDeviceLookupByName, /* 0.7.3 */
-    .deviceGetXMLDesc = nodeDeviceGetXMLDesc, /* 0.7.3 */
-    .deviceGetParent = nodeDeviceGetParent, /* 0.7.3 */
-    .deviceNumOfCaps = nodeDeviceNumOfCaps, /* 0.7.3 */
-    .deviceListCaps = nodeDeviceListCaps, /* 0.7.3 */
-    .deviceCreateXML = nodeDeviceCreateXML, /* 0.7.3 */
-    .deviceDestroy = nodeDeviceDestroy, /* 0.7.3 */
+static virNodeDeviceDriver udevNodeDeviceDriver = {
+    .name = "udevNodeDeviceDriver",
+    .nodeDeviceOpen = nodeDeviceOpen, /* 0.7.3 */
+    .nodeDeviceClose = nodeDeviceClose, /* 0.7.3 */
+    .nodeNumOfDevices = nodeNumOfDevices, /* 0.7.3 */
+    .nodeListDevices = nodeListDevices, /* 0.7.3 */
+    .connectListAllNodeDevices = nodeListAllNodeDevices, /* 0.10.2 */
+    .nodeDeviceLookupByName = nodeDeviceLookupByName, /* 0.7.3 */
+    .nodeDeviceLookupSCSIHostByWWN = nodeDeviceLookupSCSIHostByWWN, /* 1.0.2 */
+    .nodeDeviceGetXMLDesc = nodeDeviceGetXMLDesc, /* 0.7.3 */
+    .nodeDeviceGetParent = nodeDeviceGetParent, /* 0.7.3 */
+    .nodeDeviceNumOfCaps = nodeDeviceNumOfCaps, /* 0.7.3 */
+    .nodeDeviceListCaps = nodeDeviceListCaps, /* 0.7.3 */
+    .nodeDeviceCreateXML = nodeDeviceCreateXML, /* 0.7.3 */
+    .nodeDeviceDestroy = nodeDeviceDestroy, /* 0.7.3 */
 };
 
 static virStateDriver udevStateDriver = {
     .name = "udev",
-    .initialize = udevDeviceMonitorStartup, /* 0.7.3 */
-    .cleanup = udevDeviceMonitorShutdown, /* 0.7.3 */
-    .reload = udevDeviceMonitorReload, /* 0.7.3 */
-    .active = udevDeviceMonitorActive, /* 0.7.3 */
+    .stateInitialize = nodeDeviceStateInitialize, /* 0.7.3 */
+    .stateCleanup = nodeDeviceStateCleanup, /* 0.7.3 */
+    .stateReload = nodeDeviceStateReload, /* 0.7.3 */
 };
 
 int udevNodeRegister(void)
 {
     VIR_DEBUG("Registering udev node device backend");
 
-    if (virRegisterDeviceMonitor(&udevDeviceMonitor) < 0) {
+    if (virRegisterNodeDeviceDriver(&udevNodeDeviceDriver) < 0) {
         return -1;
     }
 

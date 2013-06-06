@@ -1,7 +1,7 @@
 /*
  * commandhelper.c: Auxiliary program for commandtest
  *
- * Copyright (C) 2010-2012 Red Hat, Inc.
+ * Copyright (C) 2010-2013 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -14,8 +14,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
  */
 
 #include <config.h>
@@ -27,8 +27,8 @@
 #include <string.h>
 
 #include "internal.h"
-#include "util.h"
-#include "memory.h"
+#include "virutil.h"
+#include "viralloc.h"
 #include "virfile.h"
 #include "testutils.h"
 
@@ -71,9 +71,8 @@ int main(int argc, char **argv) {
         origenv++;
     }
 
-    if (VIR_ALLOC_N(newenv, n) < 0) {
-        exit(EXIT_FAILURE);
-    }
+    if (VIR_ALLOC_N(newenv, n) < 0)
+        return EXIT_FAILURE;
 
     origenv = environ;
     n = i = 0;
@@ -112,6 +111,12 @@ int main(int argc, char **argv) {
     VIR_FREE(cwd);
 
     VIR_FORCE_FCLOSE(log);
+
+    if (argc > 1 && STREQ(argv[1], "--close-stdin")) {
+        if (freopen("/dev/null", "r", stdin) != stdin)
+            goto error;
+        usleep(100*1000);
+    }
 
     char buf[1024];
     ssize_t got;

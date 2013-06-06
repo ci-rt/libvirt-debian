@@ -16,8 +16,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Author: David F. Lively <dlively@virtualiron.com>
  */
@@ -28,16 +28,15 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <time.h>
-#include <sys/stat.h>
 
-#include "virterror_internal.h"
+#include "virerror.h"
 #include "datatypes.h"
-#include "memory.h"
-#include "logging.h"
+#include "viralloc.h"
+#include "virlog.h"
 #include "node_device_conf.h"
 #include "node_device_hal.h"
 #include "node_device_driver.h"
-#include "util.h"
+#include "virutil.h"
 
 #define VIR_FROM_THIS VIR_FROM_NODEDEV
 
@@ -49,7 +48,7 @@ static int update_caps(virNodeDeviceObjPtr dev)
     while (cap) {
         /* The only caps that currently need updating are FC related. */
         if (cap->type == VIR_NODE_DEV_CAP_SCSI_HOST) {
-            check_fc_host(&dev->def->caps->data);
+            detect_scsi_host_caps(&dev->def->caps->data);
         }
         cap = cap->next;
     }
@@ -58,7 +57,7 @@ static int update_caps(virNodeDeviceObjPtr dev)
 }
 
 
-#if defined (__linux__) && defined (HAVE_HAL)
+#if defined (__linux__) && defined (WITH_HAL)
 /* Under libudev changes to the driver name should be picked up as
  * "change" events, so we don't call update driver name unless we're
  * using the HAL backend. */
@@ -113,11 +112,11 @@ static int update_driver_name(virNodeDeviceObjPtr dev ATTRIBUTE_UNUSED)
 #endif
 
 
-void nodeDeviceLock(virDeviceMonitorStatePtr driver)
+void nodeDeviceLock(virNodeDeviceDriverStatePtr driver)
 {
     virMutexLock(&driver->lock);
 }
-void nodeDeviceUnlock(virDeviceMonitorStatePtr driver)
+void nodeDeviceUnlock(virNodeDeviceDriverStatePtr driver)
 {
     virMutexUnlock(&driver->lock);
 }
@@ -127,7 +126,7 @@ nodeNumOfDevices(virConnectPtr conn,
                  const char *cap,
                  unsigned int flags)
 {
-    virDeviceMonitorStatePtr driver = conn->devMonPrivateData;
+    virNodeDeviceDriverStatePtr driver = conn->nodeDevicePrivateData;
     int ndevs = 0;
     unsigned int i;
 
@@ -152,7 +151,7 @@ nodeListDevices(virConnectPtr conn,
                 char **const names, int maxnames,
                 unsigned int flags)
 {
-    virDeviceMonitorStatePtr driver = conn->devMonPrivateData;
+    virNodeDeviceDriverStatePtr driver = conn->nodeDevicePrivateData;
     int ndevs = 0;
     unsigned int i;
 
@@ -183,11 +182,26 @@ nodeListDevices(virConnectPtr conn,
     return -1;
 }
 
+int
+nodeListAllNodeDevices(virConnectPtr conn,
+                       virNodeDevicePtr **devices,
+                       unsigned int flags)
+{
+    virNodeDeviceDriverStatePtr driver = conn->nodeDevicePrivateData;
+    int ret = -1;
+
+    virCheckFlags(VIR_CONNECT_LIST_NODE_DEVICES_FILTERS_CAP, -1);
+
+    nodeDeviceLock(driver);
+    ret = virNodeDeviceList(conn, driver->devs, devices, flags);
+    nodeDeviceUnlock(driver);
+    return ret;
+}
 
 virNodeDevicePtr
 nodeDeviceLookupByName(virConnectPtr conn, const char *name)
 {
-    virDeviceMonitorStatePtr driver = conn->devMonPrivateData;
+    virNodeDeviceDriverStatePtr driver = conn->nodeDevicePrivateData;
     virNodeDeviceObjPtr obj;
     virNodeDevicePtr ret = NULL;
 
@@ -196,7 +210,7 @@ nodeDeviceLookupByName(virConnectPtr conn, const char *name)
     nodeDeviceUnlock(driver);
 
     if (!obj) {
-        virNodeDeviceReportError(VIR_ERR_NO_NODE_DEVICE, NULL);
+        virReportError(VIR_ERR_NO_NODE_DEVICE, NULL);
         goto cleanup;
     }
 
@@ -209,33 +223,33 @@ cleanup:
 }
 
 
-static virNodeDevicePtr
-nodeDeviceLookupByWWN(virConnectPtr conn,
-                      const char *wwnn,
-                      const char *wwpn)
+virNodeDevicePtr
+nodeDeviceLookupSCSIHostByWWN(virConnectPtr conn,
+                              const char *wwnn,
+                              const char *wwpn,
+                              unsigned int flags)
 {
     unsigned int i;
-    virDeviceMonitorStatePtr driver = conn->devMonPrivateData;
+    virNodeDeviceDriverStatePtr driver = conn->nodeDevicePrivateData;
     virNodeDeviceObjListPtr devs = &driver->devs;
     virNodeDevCapsDefPtr cap = NULL;
     virNodeDeviceObjPtr obj = NULL;
     virNodeDevicePtr dev = NULL;
 
+    virCheckFlags(0, NULL);
+
     nodeDeviceLock(driver);
 
     for (i = 0; i < devs->count; i++) {
-
         obj = devs->objs[i];
         virNodeDeviceObjLock(obj);
         cap = obj->def->caps;
 
         while (cap) {
-
             if (cap->type == VIR_NODE_DEV_CAP_SCSI_HOST) {
-                check_fc_host(&cap->data);
+                detect_scsi_host_caps(&cap->data);
                 if (cap->data.scsi_host.flags &
                     VIR_NODE_DEV_CAP_FLAG_HBA_FC_HOST) {
-
                     if (STREQ(cap->data.scsi_host.wwnn, wwnn) &&
                         STREQ(cap->data.scsi_host.wwpn, wwpn)) {
                         dev = virGetNodeDevice(conn, obj->def->name);
@@ -260,7 +274,7 @@ char *
 nodeDeviceGetXMLDesc(virNodeDevicePtr dev,
                      unsigned int flags)
 {
-    virDeviceMonitorStatePtr driver = dev->conn->devMonPrivateData;
+    virNodeDeviceDriverStatePtr driver = dev->conn->nodeDevicePrivateData;
     virNodeDeviceObjPtr obj;
     char *ret = NULL;
 
@@ -271,9 +285,9 @@ nodeDeviceGetXMLDesc(virNodeDevicePtr dev,
     nodeDeviceUnlock(driver);
 
     if (!obj) {
-        virNodeDeviceReportError(VIR_ERR_NO_NODE_DEVICE,
-                                 _("no node device with matching name '%s'"),
-                                 dev->name);
+        virReportError(VIR_ERR_NO_NODE_DEVICE,
+                       _("no node device with matching name '%s'"),
+                       dev->name);
         goto cleanup;
     }
 
@@ -292,7 +306,7 @@ cleanup:
 char *
 nodeDeviceGetParent(virNodeDevicePtr dev)
 {
-    virDeviceMonitorStatePtr driver = dev->conn->devMonPrivateData;
+    virNodeDeviceDriverStatePtr driver = dev->conn->nodeDevicePrivateData;
     virNodeDeviceObjPtr obj;
     char *ret = NULL;
 
@@ -301,9 +315,9 @@ nodeDeviceGetParent(virNodeDevicePtr dev)
     nodeDeviceUnlock(driver);
 
     if (!obj) {
-        virNodeDeviceReportError(VIR_ERR_NO_NODE_DEVICE,
-                                 _("no node device with matching name '%s'"),
-                                 dev->name);
+        virReportError(VIR_ERR_NO_NODE_DEVICE,
+                       _("no node device with matching name '%s'"),
+                       dev->name);
         goto cleanup;
     }
 
@@ -312,8 +326,8 @@ nodeDeviceGetParent(virNodeDevicePtr dev)
         if (!ret)
             virReportOOMError();
     } else {
-        virNodeDeviceReportError(VIR_ERR_INTERNAL_ERROR,
-                                 "%s", _("no parent for this device"));
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "%s", _("no parent for this device"));
     }
 
 cleanup:
@@ -326,7 +340,7 @@ cleanup:
 int
 nodeDeviceNumOfCaps(virNodeDevicePtr dev)
 {
-    virDeviceMonitorStatePtr driver = dev->conn->devMonPrivateData;
+    virNodeDeviceDriverStatePtr driver = dev->conn->nodeDevicePrivateData;
     virNodeDeviceObjPtr obj;
     virNodeDevCapsDefPtr caps;
     int ncaps = 0;
@@ -337,9 +351,9 @@ nodeDeviceNumOfCaps(virNodeDevicePtr dev)
     nodeDeviceUnlock(driver);
 
     if (!obj) {
-        virNodeDeviceReportError(VIR_ERR_NO_NODE_DEVICE,
-                                 _("no node device with matching name '%s'"),
-                                 dev->name);
+        virReportError(VIR_ERR_NO_NODE_DEVICE,
+                       _("no node device with matching name '%s'"),
+                       dev->name);
         goto cleanup;
     }
 
@@ -357,7 +371,7 @@ cleanup:
 int
 nodeDeviceListCaps(virNodeDevicePtr dev, char **const names, int maxnames)
 {
-    virDeviceMonitorStatePtr driver = dev->conn->devMonPrivateData;
+    virNodeDeviceDriverStatePtr driver = dev->conn->nodeDevicePrivateData;
     virNodeDeviceObjPtr obj;
     virNodeDevCapsDefPtr caps;
     int ncaps = 0;
@@ -368,9 +382,9 @@ nodeDeviceListCaps(virNodeDevicePtr dev, char **const names, int maxnames)
     nodeDeviceUnlock(driver);
 
     if (!obj) {
-        virNodeDeviceReportError(VIR_ERR_NO_NODE_DEVICE,
-                                 _("no node device with matching name '%s'"),
-                                 dev->name);
+        virReportError(VIR_ERR_NO_NODE_DEVICE,
+                       _("no node device with matching name '%s'"),
+                       dev->name);
         goto cleanup;
     }
 
@@ -394,92 +408,6 @@ cleanup:
     return ret;
 }
 
-
-static int
-nodeDeviceVportCreateDelete(const int parent_host,
-                            const char *wwpn,
-                            const char *wwnn,
-                            int operation)
-{
-    int retval = 0;
-    char *operation_path = NULL, *vport_name = NULL;
-    const char *operation_file = NULL;
-    struct stat st;
-
-    switch (operation) {
-    case VPORT_CREATE:
-        operation_file = LINUX_SYSFS_VPORT_CREATE_POSTFIX;
-        break;
-    case VPORT_DELETE:
-        operation_file = LINUX_SYSFS_VPORT_DELETE_POSTFIX;
-        break;
-    default:
-        virNodeDeviceReportError(VIR_ERR_INTERNAL_ERROR,
-                                 _("Invalid vport operation (%d)"), operation);
-        retval = -1;
-        goto cleanup;
-        break;
-    }
-
-    if (virAsprintf(&operation_path,
-                    "%shost%d%s",
-                    LINUX_SYSFS_FC_HOST_PREFIX,
-                    parent_host,
-                    operation_file) < 0) {
-
-        virReportOOMError();
-        retval = -1;
-        goto cleanup;
-    }
-
-    if (stat(operation_path, &st) != 0) {
-        VIR_FREE(operation_path);
-        if (virAsprintf(&operation_path,
-                        "%shost%d%s",
-                        LINUX_SYSFS_SCSI_HOST_PREFIX,
-                        parent_host,
-                        operation_file) < 0) {
-            virReportOOMError();
-            retval = -1;
-            goto cleanup;
-        }
-
-        if (stat(operation_path, &st) != 0) {
-            VIR_ERROR(_("No vport operation path found for host%d"),
-                      parent_host);
-            retval = -1;
-            goto cleanup;
-        }
-    }
-
-    VIR_DEBUG("Vport operation path is '%s'", operation_path);
-
-    if (virAsprintf(&vport_name,
-                    "%s:%s",
-                    wwpn,
-                    wwnn) < 0) {
-
-        virReportOOMError();
-        retval = -1;
-        goto cleanup;
-    }
-
-    if (virFileWriteStr(operation_path, vport_name, 0) == -1) {
-        virReportSystemError(errno,
-                             _("Write of '%s' to '%s' during "
-                               "vport create/delete failed"),
-                             vport_name, operation_path);
-        retval = -1;
-    }
-
-cleanup:
-    VIR_FREE(vport_name);
-    VIR_FREE(operation_path);
-    VIR_DEBUG("%s", _("Vport operation complete"));
-    return retval;
-}
-
-
 static int
 get_time(time_t *t)
 {
@@ -487,8 +415,8 @@ get_time(time_t *t)
 
     *t = time(NULL);
     if (*t == (time_t)-1) {
-        virNodeDeviceReportError(VIR_ERR_INTERNAL_ERROR,
-                                 "%s", _("Could not get current time"));
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "%s", _("Could not get current time"));
 
         *t = 0;
         ret = -1;
@@ -514,7 +442,7 @@ get_time(time_t *t)
 static virNodeDevicePtr
 find_new_device(virConnectPtr conn, const char *wwnn, const char *wwpn)
 {
-    virDeviceMonitorStatePtr driver = conn->devMonPrivateData;
+    virNodeDeviceDriverStatePtr driver = conn->nodeDevicePrivateData;
     virNodeDevicePtr dev = NULL;
     time_t start = 0, now = 0;
 
@@ -531,7 +459,7 @@ find_new_device(virConnectPtr conn, const char *wwnn, const char *wwpn)
 
         virFileWaitForDevices();
 
-        dev = nodeDeviceLookupByWWN(conn, wwnn, wwpn);
+        dev = nodeDeviceLookupSCSIHostByWWN(conn, wwnn, wwpn, 0);
 
         if (dev != NULL) {
             break;
@@ -553,7 +481,7 @@ nodeDeviceCreateXML(virConnectPtr conn,
                     const char *xmlDesc,
                     unsigned int flags)
 {
-    virDeviceMonitorStatePtr driver = conn->devMonPrivateData;
+    virNodeDeviceDriverStatePtr driver = conn->nodeDevicePrivateData;
     virNodeDeviceDefPtr def = NULL;
     char *wwnn = NULL, *wwpn = NULL;
     int parent_host = -1;
@@ -581,10 +509,10 @@ nodeDeviceCreateXML(virConnectPtr conn,
         goto cleanup;
     }
 
-    if (nodeDeviceVportCreateDelete(parent_host,
-                                    wwpn,
-                                    wwnn,
-                                    VPORT_CREATE) == -1) {
+    if (virManageVport(parent_host,
+                       wwpn,
+                       wwnn,
+                       VPORT_CREATE) == -1) {
         goto cleanup;
     }
 
@@ -593,7 +521,7 @@ nodeDeviceCreateXML(virConnectPtr conn,
      * we're returning what we get... */
 
     if (dev == NULL) {
-        virNodeDeviceReportError(VIR_ERR_NO_NODE_DEVICE, NULL);
+        virReportError(VIR_ERR_NO_NODE_DEVICE, NULL);
     }
 
 cleanup:
@@ -609,7 +537,7 @@ int
 nodeDeviceDestroy(virNodeDevicePtr dev)
 {
     int ret = -1;
-    virDeviceMonitorStatePtr driver = dev->conn->devMonPrivateData;
+    virNodeDeviceDriverStatePtr driver = dev->conn->nodeDevicePrivateData;
     virNodeDeviceObjPtr obj = NULL;
     char *parent_name = NULL, *wwnn = NULL, *wwpn = NULL;
     int parent_host = -1;
@@ -619,7 +547,7 @@ nodeDeviceDestroy(virNodeDevicePtr dev)
     nodeDeviceUnlock(driver);
 
     if (!obj) {
-        virNodeDeviceReportError(VIR_ERR_NO_NODE_DEVICE, NULL);
+        virReportError(VIR_ERR_NO_NODE_DEVICE, NULL);
         goto out;
     }
 
@@ -648,10 +576,10 @@ nodeDeviceDestroy(virNodeDevicePtr dev)
         goto out;
     }
 
-    if (nodeDeviceVportCreateDelete(parent_host,
-                                    wwpn,
-                                    wwnn,
-                                    VPORT_DELETE) == -1) {
+    if (virManageVport(parent_host,
+                       wwpn,
+                       wwnn,
+                       VPORT_DELETE) == -1) {
         goto out;
     }
 
@@ -666,16 +594,16 @@ out:
 }
 
 int nodedevRegister(void) {
-#if defined(HAVE_HAL) && defined(HAVE_UDEV)
+#if defined(WITH_HAL) && defined(WITH_UDEV)
     /* Register only one of these two - they conflict */
     if (udevNodeRegister() == -1)
         return halNodeRegister();
     return 0;
 #else
-# ifdef HAVE_HAL
+# ifdef WITH_HAL
     return halNodeRegister();
 # endif
-# ifdef HAVE_UDEV
+# ifdef WITH_UDEV
     return udevNodeRegister();
 # endif
 #endif

@@ -1,5 +1,5 @@
 /* Test of localeconv() function.
-   Copyright (C) 2012 Free Software Foundation, Inc.
+   Copyright (C) 2012-2013 Free Software Foundation, Inc.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -37,13 +37,13 @@ main ()
 
     ASSERT (STREQ (l->decimal_point, "."));
     ASSERT (STREQ (l->thousands_sep, ""));
-#if !defined __FreeBSD__
+#if !(defined __FreeBSD__ || defined __sun)
     ASSERT (STREQ (l->grouping, ""));
 #endif
 
     ASSERT (STREQ (l->mon_decimal_point, ""));
     ASSERT (STREQ (l->mon_thousands_sep, ""));
-#if !defined __FreeBSD__
+#if !(defined __FreeBSD__ || defined __sun)
     ASSERT (STREQ (l->mon_grouping, ""));
 #endif
     ASSERT (STREQ (l->positive_sign, ""));

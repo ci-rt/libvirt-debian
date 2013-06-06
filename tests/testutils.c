@@ -1,9 +1,21 @@
 /*
  * testutils.c: basic test utils
  *
- * Copyright (C) 2005-2012 Red Hat, Inc.
+ * Copyright (C) 2005-2013 Red Hat, Inc.
  *
- * See COPYING.LIB for the License of this software
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Karel Zak <kzak@redhat.com>
  */
@@ -15,26 +27,24 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#ifndef WIN32
-# include <sys/wait.h>
-#endif
-#ifdef HAVE_REGEX_H
-# include <regex.h>
-#endif
+#include <sys/wait.h>
+#include <regex.h>
 #include <unistd.h>
 #include <string.h>
 #include <fcntl.h>
 #include <limits.h>
 #include "testutils.h"
 #include "internal.h"
-#include "memory.h"
-#include "util.h"
-#include "threads.h"
-#include "virterror_internal.h"
-#include "buf.h"
-#include "logging.h"
-#include "command.h"
+#include "viralloc.h"
+#include "virutil.h"
+#include "virthread.h"
+#include "virerror.h"
+#include "virbuffer.h"
+#include "virlog.h"
+#include "vircommand.h"
 #include "virrandom.h"
+#include "dirname.h"
+#include "virprocess.h"
 
 #if TEST_OOM_TRACE
 # include <execinfo.h>
@@ -43,6 +53,8 @@
 #ifdef HAVE_PATHS_H
 # include <paths.h>
 #endif
+
+#define VIR_FROM_THIS VIR_FROM_NONE
 
 #define GETTIMEOFDAY(T) gettimeofday(T, NULL)
 #define DIFF_MSEC(T, U)                                 \
@@ -200,12 +212,12 @@ virtTestLoadFile(const char *file, char **buf)
     int len, tmplen, buflen;
 
     if (!fp) {
-        fprintf (stderr, "%s: failed to open: %s\n", file, strerror(errno));
+        fprintf(stderr, "%s: failed to open: %s\n", file, strerror(errno));
         return -1;
     }
 
     if (fstat(fileno(fp), &st) < 0) {
-        fprintf (stderr, "%s: failed to fstat: %s\n", file, strerror(errno));
+        fprintf(stderr, "%s: failed to fstat: %s\n", file, strerror(errno));
         VIR_FORCE_FCLOSE(fp);
         return -1;
     }
@@ -213,7 +225,7 @@ virtTestLoadFile(const char *file, char **buf)
     tmplen = buflen = st.st_size + 1;
 
     if (VIR_ALLOC_N(*buf, buflen) < 0) {
-        fprintf (stderr, "%s: larger than available memory (> %d)\n", file, buflen);
+        fprintf(stderr, "%s: larger than available memory (> %d)\n", file, buflen);
         VIR_FORCE_FCLOSE(fp);
         return -1;
     }
@@ -237,7 +249,7 @@ virtTestLoadFile(const char *file, char **buf)
             tmplen -= len;
         }
         if (ferror(fp)) {
-            fprintf (stderr, "%s: read failed: %s\n", file, strerror(errno));
+            fprintf(stderr, "%s: read failed: %s\n", file, strerror(errno));
             VIR_FORCE_FCLOSE(fp);
             VIR_FREE(*buf);
             return -1;
@@ -266,7 +278,7 @@ void virtTestCaptureProgramExecChild(const char *const argv[],
     if ((stdinfd = open("/dev/null", O_RDONLY)) < 0)
         goto cleanup;
 
-    open_max = sysconf (_SC_OPEN_MAX);
+    open_max = sysconf(_SC_OPEN_MAX);
     for (i = 0; i < open_max; i++) {
         if (i != stdinfd &&
             i != pipefd) {
@@ -305,7 +317,7 @@ virtTestCaptureProgramOutput(const char *const argv[], char **buf, int maxlen)
         virtTestCaptureProgramExecChild(argv, pipefd[1]);
 
         VIR_FORCE_CLOSE(pipefd[1]);
-        _exit(1);
+        _exit(EXIT_FAILURE);
 
     case -1:
         return -1;
@@ -314,7 +326,7 @@ virtTestCaptureProgramOutput(const char *const argv[], char **buf, int maxlen)
         VIR_FORCE_CLOSE(pipefd[1]);
         len = virFileReadLimFD(pipefd[0], maxlen, buf);
         VIR_FORCE_CLOSE(pipefd[0]);
-        if (virPidWait(pid, NULL) < 0)
+        if (virProcessWait(pid, NULL) < 0)
             return -1;
 
         return len;
@@ -463,18 +475,22 @@ struct virtTestLogData {
 
 static struct virtTestLogData testLog = { VIR_BUFFER_INITIALIZER };
 
-static int
-virtTestLogOutput(const char *category ATTRIBUTE_UNUSED,
-                  int priority ATTRIBUTE_UNUSED,
+static void
+virtTestLogOutput(virLogSource source ATTRIBUTE_UNUSED,
+                  virLogPriority priority ATTRIBUTE_UNUSED,
+                  const char *filename ATTRIBUTE_UNUSED,
+                  int lineno ATTRIBUTE_UNUSED,
                   const char *funcname ATTRIBUTE_UNUSED,
-                  long long lineno ATTRIBUTE_UNUSED,
                   const char *timestamp,
+                  virLogMetadataPtr metadata ATTRIBUTE_UNUSED,
+                  unsigned int flags,
+                  const char *rawstr ATTRIBUTE_UNUSED,
                   const char *str,
                   void *data)
 {
     struct virtTestLogData *log = data;
+    virCheckFlags(VIR_LOG_STACK_TRACE,);
     virBufferAsprintf(&log->buf, "%s: %s", timestamp, str);
-    return strlen(timestamp) + 2 + strlen(str);
 }
 
 static void
@@ -570,27 +586,30 @@ int virtTestMain(int argc,
         abs_srcdir_cleanup = true;
     }
     if (!abs_srcdir)
-        exit(EXIT_AM_HARDFAIL);
+        return EXIT_AM_HARDFAIL;
 
-    progname = argv[0];
-    if (STRPREFIX(progname, "./"))
-        progname += 2;
+    progname = last_component(argv[0]);
+    if (STRPREFIX(progname, "lt-"))
+        progname += 3;
     if (argc > 1) {
         fprintf(stderr, "Usage: %s\n", argv[0]);
+        fputs("effective environment variables:\n"
+              "VIR_TEST_VERBOSE set to show names of individual tests\n"
+              "VIR_TEST_DEBUG set to show information for debugging failures\n",
+              stderr);
         return EXIT_FAILURE;
     }
     fprintf(stderr, "TEST: %s\n", progname);
 
     if (virThreadInitialize() < 0 ||
-        virErrorInitialize() < 0 ||
-        virRandomInitialize(time(NULL) ^ getpid()))
-        return 1;
+        virErrorInitialize() < 0)
+        return EXIT_FAILURE;
 
     virLogSetFromEnv();
     if (!getenv("LIBVIRT_DEBUG") && !virLogGetNbOutputs()) {
         if (virLogDefineOutput(virtTestLogOutput, virtTestLogClose, &testLog,
-                               0, 0, NULL, 0) < 0)
-            return 1;
+                               VIR_LOG_DEBUG, VIR_LOG_TO_STDERR, NULL, 0) < 0)
+            return EXIT_FAILURE;
     }
 
 #if TEST_OOM
@@ -678,9 +697,9 @@ int virtTestMain(int argc,
             if (worker) {
                 _exit(ret);
             } else {
-                int i, status;
+                int i;
                 for (i = 0 ; i < mp ; i++) {
-                    if (virPidWait(workers[i], NULL) < 0)
+                    if (virProcessWait(workers[i], NULL) < 0)
                         ret = EXIT_FAILURE;
                 }
                 VIR_FREE(workers);
@@ -712,7 +731,6 @@ cleanup:
 }
 
 
-#ifdef HAVE_REGEX_H
 int virtTestClearLineRegex(const char *pattern,
                            char *str)
 {
@@ -756,10 +774,3 @@ int virtTestClearLineRegex(const char *pattern,
 
     return 0;
 }
-#else
-int virtTestClearLineRegex(const char *pattern ATTRIBUTE_UNUSED,
-                           char *str ATTRIBUTE_UNUSED)
-{
-    return 0;
-}
-#endif

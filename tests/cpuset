@@ -14,7 +14,8 @@
 # GNU General Public License for more details.
 
 # You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# along with this program.  If not, see
+# <http://www.gnu.org/licenses/>.
 
 test -z "$srcdir" && srcdir=$(pwd)
 test -z "$abs_top_srcdir" && abs_top_srcdir=$(pwd)/..
@@ -33,15 +34,15 @@ fail=0
 $abs_top_builddir/tools/virsh --connect test:///default dumpxml 1 > xml || fail=1
 
 # require the presence of the string we'll transform
-grep '<vcpu>' xml > /dev/null || fail=1
+grep '<vcpu placement' xml > /dev/null || fail=1
 
-sed "s/vcpu>/vcpu cpuset='aaa'>/" xml > xml-invalid || fail=1
+sed "s/vcpu placement='static'>/vcpu cpuset='aaa'>/" xml > xml-invalid || fail=1
 
 # Require failure and a diagnostic.
 $abs_top_builddir/tools/virsh --connect test:///default define xml-invalid > out 2>&1 && fail=1
 cat <<\EOF > exp || fail=1
 error: Failed to define domain from xml-invalid
-error: internal error topology cpuset syntax error
+error: XML error: topology cpuset syntax error
 
 EOF
 compare exp out || fail=1

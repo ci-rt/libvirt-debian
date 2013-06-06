@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2007-2011 Red Hat, Inc.
+ * Copyright (C) 2007-2013 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -12,8 +12,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Authors:
  *     Mark McLoughlin <markmc@redhat.com>
@@ -23,16 +23,17 @@
 #include <config.h>
 
 #include "virnetdevbridge.h"
-#include "virterror_internal.h"
-#include "util.h"
+#include "virerror.h"
+#include "virutil.h"
 #include "virfile.h"
-#include "memory.h"
+#include "viralloc.h"
 #include "intprops.h"
 
 #include <sys/ioctl.h>
-#ifdef HAVE_NET_IF_H
-# include <net/if.h>
-#endif
+#include <sys/socket.h>
+#include <net/if.h>
+#include <netinet/in.h>
+
 #ifdef __linux__
 # include <linux/sockios.h>
 # include <linux/param.h>     /* HZ                 */
@@ -45,7 +46,7 @@
 #define VIR_FROM_THIS VIR_FROM_NONE
 
 
-#if defined(HAVE_NET_IF_H) && defined(SIOCBRADDBR)
+#if defined(HAVE_STRUCT_IFREQ) && defined(__linux__)
 static int virNetDevSetupControlFull(const char *ifname,
                                      struct ifreq *ifr,
                                      int domain,
@@ -88,7 +89,7 @@ static int virNetDevSetupControl(const char *ifname,
 }
 #endif
 
-#ifdef __linux__
+#if defined(HAVE_STRUCT_IFREQ) && defined(__linux__)
 # define SYSFS_NET_DIR "/sys/class/net"
 /*
  * Bridge parameters can be set via sysfs on newish kernels,
@@ -210,7 +211,7 @@ cleanup:
  *
  * Returns 0 in case of success or -1 on failure
  */
-#ifdef SIOCBRADDBR
+#if defined(HAVE_STRUCT_IFREQ) && defined(SIOCBRADDBR)
 int virNetDevBridgeCreate(const char *brname)
 {
     int fd = -1;
@@ -248,7 +249,7 @@ int virNetDevBridgeCreate(const char *brname)
  *
  * Returns 0 in case of success or an errno code in case of failure.
  */
-#ifdef SIOCBRDELBR
+#if defined(HAVE_STRUCT_IFREQ) && defined(SIOCBRDELBR)
 int virNetDevBridgeDelete(const char *brname)
 {
     int fd = -1;
@@ -287,7 +288,7 @@ int virNetDevBridgeDelete(const char *brname ATTRIBUTE_UNUSED)
  *
  * Returns 0 in case of success or an errno code in case of failure.
  */
-#ifdef SIOCBRADDIF
+#if defined(HAVE_STRUCT_IFREQ) && defined(SIOCBRADDIF)
 int virNetDevBridgeAddPort(const char *brname,
                            const char *ifname)
 {
@@ -334,7 +335,7 @@ int virNetDevBridgeAddPort(const char *brname,
  *
  * Returns 0 in case of success or an errno code in case of failure.
  */
-#ifdef SIOCBRDELIF
+#if defined(HAVE_STRUCT_IFREQ) && defined(SIOCBRDELIF)
 int virNetDevBridgeRemovePort(const char *brname,
                               const char *ifname)
 {
@@ -374,11 +375,11 @@ int virNetDevBridgeRemovePort(const char *brname,
 #endif
 
 
-#ifdef __linux__
+#if defined(HAVE_STRUCT_IFREQ) && defined(__linux__)
 /**
  * virNetDevBridgeSetSTPDelay:
  * @brname: the bridge name
- * @delay: delay in seconds
+ * @delay: delay in milliseconds
  *
  * Set the bridge forward delay
  *

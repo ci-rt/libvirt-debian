@@ -14,8 +14,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Authors:
  *      Jiri Denemark <jdenemar@redhat.com>
@@ -24,20 +24,19 @@
 #ifndef __VIR_CPU_H__
 # define __VIR_CPU_H__
 
-# include "virterror_internal.h"
+# include "virerror.h"
 # include "datatypes.h"
+# include "virarch.h"
 # include "conf/cpu_conf.h"
 # include "cpu_x86_data.h"
-
-
-# define virCPUReportError(code, ...)                              \
-    virReportErrorHelper(VIR_FROM_CPU, code, __FILE__,             \
-                         __FUNCTION__, __LINE__, __VA_ARGS__)
+# include "cpu_ppc_data.h"
 
 
 union cpuData {
     struct cpuX86Data x86;
     /* generic driver needs no data */
+    /* PowerPC driver need data*/
+    struct cpuPPCData ppc;
 };
 
 
@@ -70,7 +69,8 @@ typedef union cpuData *
 typedef virCPUCompareResult
 (*cpuArchGuestData) (virCPUDefPtr host,
                      virCPUDefPtr guest,
-                     union cpuData **data);
+                     union cpuData **data,
+                     char **message);
 
 typedef virCPUDefPtr
 (*cpuArchBaseline)  (virCPUDefPtr *cpus,
@@ -89,7 +89,7 @@ typedef int
 
 struct cpuArchDriver {
     const char *name;
-    const char **arch;
+    const virArch *arch;
     unsigned int narch;
     cpuArchCompare      compare;
     cpuArchDecode       decode;
@@ -119,7 +119,7 @@ cpuDecode   (virCPUDefPtr cpu,
              const char *preferred);
 
 extern int
-cpuEncode   (const char *arch,
+cpuEncode   (virArch arch,
              const virCPUDefPtr cpu,
              union cpuData **forced,
              union cpuData **required,
@@ -129,16 +129,17 @@ cpuEncode   (const char *arch,
              union cpuData **vendor);
 
 extern void
-cpuDataFree (const char *arch,
+cpuDataFree (virArch arch,
              union cpuData *data);
 
 extern union cpuData *
-cpuNodeData (const char *arch);
+cpuNodeData (virArch arch);
 
 extern virCPUCompareResult
 cpuGuestData(virCPUDefPtr host,
              virCPUDefPtr guest,
-             union cpuData **data);
+             union cpuData **data,
+             char **msg);
 
 extern char *
 cpuBaselineXML(const char **xmlCPUs,
@@ -157,9 +158,14 @@ cpuUpdate   (virCPUDefPtr guest,
              const virCPUDefPtr host);
 
 extern int
-cpuHasFeature(const char *arch,
+cpuHasFeature(virArch arch,
               const union cpuData *data,
               const char *feature);
 
+
+bool
+cpuModelIsAllowed(const char *model,
+                  const char **models,
+                  unsigned int nmodels);
 
 #endif /* __VIR_CPU_H__ */

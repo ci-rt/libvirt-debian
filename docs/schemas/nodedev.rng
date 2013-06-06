@@ -1,3 +1,4 @@
+<?xml version="1.0"?>
 <!-- A Relax NG schema for the libvirt node device XML format -->
 <grammar xmlns="http://relaxng.org/ns/structure/1.0"
     datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
@@ -13,6 +14,12 @@
       <element name="name"><text/></element>
       <optional>
         <element name="parent"><text/></element>
+      </optional>
+
+      <optional>
+        <element name="driver">
+          <element name="name"><text/></element>
+        </element>
       </optional>
 
       <zeroOrMore>
@@ -114,6 +121,28 @@
         <empty/>
       </choice>
     </element>
+
+    <optional>
+      <element name='capability'>
+        <attribute name='type'>
+          <value>phys_function</value>
+        </attribute>
+        <optional>
+          <ref name='address'/>
+        </optional>
+      </element>
+    </optional>
+
+    <optional>
+      <element name='capability'>
+        <attribute name='type'>
+          <value>virt_functions</value>
+        </attribute>
+        <optional>
+          <ref name='address'/>
+        </optional>
+      </element>
+    </optional>
 
   </define>
 
@@ -217,12 +246,6 @@
     </attribute>
   </define>
 
-  <define name='wwn'>
-    <data type='string'>
-      <param name='pattern'>(0-9a-fA-F){16}</param>
-    </data>
-  </define>
-
   <define name='capsfchost'>
     <attribute name='type'>
       <value>fc_host</value>
@@ -245,6 +268,12 @@
     <attribute name='type'>
       <value>vports_ops</value>
     </attribute>
+    <element name='max_vports'>
+      <ref name='unsignedInt'/>
+    </element>
+    <element name='vports'>
+      <ref name='unsignedInt'/>
+    </element>
   </define>
 
   <define name='capscsihost'>
@@ -366,6 +395,15 @@
   <define name='capstoragefixed'>
     <element name='size'>
       <ref name='unsignedLong'/>
+    </element>
+  </define>
+
+  <define name='address'>
+    <element name='address'>
+      <attribute name='domain'><ref name='hexuint'/></attribute>
+      <attribute name='bus'><ref name='hexuint'/></attribute>
+      <attribute name='slot'><ref name='hexuint'/></attribute>
+      <attribute name='function'><ref name='hexuint'/></attribute>
     </element>
   </define>
 

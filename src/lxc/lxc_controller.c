@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010-2011 Red Hat, Inc.
+ * Copyright (C) 2010-2013 Red Hat, Inc.
  * Copyright IBM Corp. 2008
  *
  * lxc_controller.c: linux container process controller
@@ -18,8 +18,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
  */
 
 #include <config.h>
@@ -29,7 +29,6 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <sys/un.h>
-#include <sys/utsname.h>
 #include <sys/personality.h>
 #include <unistd.h>
 #include <paths.h>
@@ -39,703 +38,40 @@
 #include <getopt.h>
 #include <sys/mount.h>
 #include <locale.h>
-#include <linux/loop.h>
-#include <dirent.h>
 #include <grp.h>
 #include <sys/stat.h>
+#include <time.h>
 
-#if HAVE_CAPNG
+#if WITH_CAPNG
 # include <cap-ng.h>
 #endif
 
-#if HAVE_NUMACTL
-# define NUMA_VERSION1_COMPATIBILITY 1
-# include <numa.h>
-#endif
-#if HAVE_SELINUX
-# include <selinux/selinux.h>
-#endif
-
-#include "virterror_internal.h"
-#include "logging.h"
-#include "util.h"
+#include "virerror.h"
+#include "virlog.h"
+#include "virutil.h"
 
 #include "lxc_conf.h"
 #include "lxc_container.h"
+#include "lxc_cgroup.h"
+#include "lxc_monitor_protocol.h"
+#include "lxc_fuse.h"
 #include "virnetdev.h"
 #include "virnetdevveth.h"
-#include "memory.h"
-#include "util.h"
+#include "viralloc.h"
 #include "virfile.h"
 #include "virpidfile.h"
-#include "command.h"
-#include "processinfo.h"
+#include "vircommand.h"
 #include "nodeinfo.h"
+#include "virrandom.h"
+#include "virprocess.h"
+#include "virnuma.h"
+#include "rpc/virnetserver.h"
 
 #define VIR_FROM_THIS VIR_FROM_LXC
 
-struct cgroup_device_policy {
-    char type;
-    int major;
-    int minor;
-};
-
-
-static int lxcGetLoopFD(char **dev_name)
-{
-    int fd = -1;
-    DIR *dh = NULL;
-    struct dirent *de;
-    char *looppath;
-    struct loop_info64 lo;
-
-    VIR_DEBUG("Looking for loop devices in /dev");
-
-    if (!(dh = opendir("/dev"))) {
-        virReportSystemError(errno, "%s",
-                             _("Unable to read /dev"));
-        goto cleanup;
-    }
-
-    while ((de = readdir(dh)) != NULL) {
-        if (!STRPREFIX(de->d_name, "loop"))
-            continue;
-
-        if (virAsprintf(&looppath, "/dev/%s", de->d_name) < 0) {
-            virReportOOMError();
-            goto cleanup;
-        }
-
-        VIR_DEBUG("Checking up on device %s", looppath);
-        if ((fd = open(looppath, O_RDWR)) < 0) {
-            virReportSystemError(errno,
-                                 _("Unable to open %s"), looppath);
-            goto cleanup;
-        }
-
-        if (ioctl(fd, LOOP_GET_STATUS64, &lo) < 0) {
-            /* Got a free device, return the fd */
-            if (errno == ENXIO)
-                goto cleanup;
-
-            VIR_FORCE_CLOSE(fd);
-            virReportSystemError(errno,
-                                 _("Unable to get loop status on %s"),
-                                 looppath);
-            goto cleanup;
-        }
-
-        /* Oh well, try the next device */
-        VIR_FORCE_CLOSE(fd);
-        VIR_FREE(looppath);
-    }
-
-    lxcError(VIR_ERR_INTERNAL_ERROR, "%s",
-             _("Unable to find a free loop device in /dev"));
-
-cleanup:
-    if (fd != -1) {
-        VIR_DEBUG("Got free loop device %s %d", looppath, fd);
-        *dev_name = looppath;
-    } else {
-        VIR_DEBUG("No free loop devices available");
-        VIR_FREE(looppath);
-    }
-    if (dh)
-        closedir(dh);
-    return fd;
-}
-
-static int lxcSetupLoopDevice(virDomainFSDefPtr fs)
-{
-    int lofd = -1;
-    int fsfd = -1;
-    struct loop_info64 lo;
-    char *loname = NULL;
-    int ret = -1;
-
-    if ((lofd = lxcGetLoopFD(&loname)) < 0)
-        return -1;
-
-    memset(&lo, 0, sizeof(lo));
-    lo.lo_flags = LO_FLAGS_AUTOCLEAR;
-
-    if ((fsfd = open(fs->src, O_RDWR)) < 0) {
-        virReportSystemError(errno,
-                             _("Unable to open %s"), fs->src);
-        goto cleanup;
-    }
-
-    if (ioctl(lofd, LOOP_SET_FD, fsfd) < 0) {
-        virReportSystemError(errno,
-                             _("Unable to attach %s to loop device"),
-                             fs->src);
-        goto cleanup;
-    }
-
-    if (ioctl(lofd, LOOP_SET_STATUS64, &lo) < 0) {
-        virReportSystemError(errno, "%s",
-                             _("Unable to mark loop device as autoclear"));
-
-        if (ioctl(lofd, LOOP_CLR_FD, 0) < 0)
-            VIR_WARN("Unable to detach %s from loop device", fs->src);
-        goto cleanup;
-    }
-
-    VIR_DEBUG("Attached loop device  %s %d to %s", fs->src, lofd, loname);
-    /*
-     * We now change it into a block device type, so that
-     * the rest of container setup 'just works'
-     */
-    fs->type = VIR_DOMAIN_FS_TYPE_BLOCK;
-    VIR_FREE(fs->src);
-    fs->src = loname;
-    loname = NULL;
-
-    ret = 0;
-
-cleanup:
-    VIR_FREE(loname);
-    VIR_FORCE_CLOSE(fsfd);
-    if (ret == -1)
-        VIR_FORCE_CLOSE(lofd);
-    return lofd;
-}
-
-
-static int lxcSetupLoopDevices(virDomainDefPtr def, size_t *nloopDevs, int **loopDevs)
-{
-    size_t i;
-    int ret = -1;
-
-    for (i = 0 ; i < def->nfss ; i++) {
-        int fd;
-
-        if (def->fss[i]->type != VIR_DOMAIN_FS_TYPE_FILE)
-            continue;
-
-        fd = lxcSetupLoopDevice(def->fss[i]);
-        if (fd < 0)
-            goto cleanup;
-
-        VIR_DEBUG("Saving loop fd %d", fd);
-        if (VIR_REALLOC_N(*loopDevs, *nloopDevs+1) < 0) {
-            VIR_FORCE_CLOSE(fd);
-            virReportOOMError();
-            goto cleanup;
-        }
-        (*loopDevs)[(*nloopDevs)++] = fd;
-    }
-
-    VIR_DEBUG("Setup all loop devices");
-    ret = 0;
-
-cleanup:
-    return ret;
-}
-
-#if HAVE_NUMACTL
-static int lxcSetContainerNUMAPolicy(virDomainDefPtr def)
-{
-    nodemask_t mask;
-    int mode = -1;
-    int node = -1;
-    int ret = -1;
-    int i = 0;
-    int maxnode = 0;
-    bool warned = false;
-
-    if (!def->numatune.memory.nodemask)
-        return 0;
-
-    VIR_DEBUG("Setting NUMA memory policy");
-
-    if (numa_available() < 0) {
-        lxcError(VIR_ERR_CONFIG_UNSUPPORTED,
-                 "%s", _("Host kernel is not aware of NUMA."));
-        return -1;
-    }
-
-    maxnode = numa_max_node() + 1;
-
-    /* Convert nodemask to NUMA bitmask. */
-    nodemask_zero(&mask);
-    for (i = 0; i < VIR_DOMAIN_CPUMASK_LEN; i++) {
-        if (def->numatune.memory.nodemask[i]) {
-            if (i > NUMA_NUM_NODES) {
-                lxcError(VIR_ERR_CONFIG_UNSUPPORTED,
-                         _("Host cannot support NUMA node %d"), i);
-                return -1;
-            }
-            if (i > maxnode && !warned) {
-                VIR_WARN("nodeset is out of range, there is only %d NUMA "
-                         "nodes on host", maxnode);
-                warned = true;
-            }
-            nodemask_set(&mask, i);
-        }
-    }
-
-    mode = def->numatune.memory.mode;
-
-    if (mode == VIR_DOMAIN_NUMATUNE_MEM_STRICT) {
-        numa_set_bind_policy(1);
-        numa_set_membind(&mask);
-        numa_set_bind_policy(0);
-    } else if (mode == VIR_DOMAIN_NUMATUNE_MEM_PREFERRED) {
-        int nnodes = 0;
-        for (i = 0; i < NUMA_NUM_NODES; i++) {
-            if (nodemask_isset(&mask, i)) {
-                node = i;
-                nnodes++;
-            }
-        }
-
-        if (nnodes != 1) {
-            lxcError(VIR_ERR_CONFIG_UNSUPPORTED,
-                     "%s", _("NUMA memory tuning in 'preferred' mode "
-                             "only supports single node"));
-            goto cleanup;
-        }
-
-        numa_set_bind_policy(0);
-        numa_set_preferred(node);
-    } else if (mode == VIR_DOMAIN_NUMATUNE_MEM_INTERLEAVE) {
-        numa_set_interleave_mask(&mask);
-    } else {
-        lxcError(VIR_ERR_CONFIG_UNSUPPORTED,
-                 _("Unable to set NUMA policy %s"),
-                 virDomainNumatuneMemModeTypeToString(mode));
-        goto cleanup;
-    }
-
-    ret = 0;
-
-cleanup:
-    return ret;
-}
-#else
-static int lxcSetContainerNUMAPolicy(virDomainDefPtr def)
-{
-    if (def->numatune.memory.nodemask) {
-        lxcError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                 _("NUMA policy is not available on this platform"));
-        return -1;
-    }
-
-    return 0;
-}
-#endif
-
-
-/*
- * To be run while still single threaded
- */
-static int lxcSetContainerCpuAffinity(virDomainDefPtr def)
-{
-    int i, hostcpus, maxcpu = CPU_SETSIZE;
-    virNodeInfo nodeinfo;
-    unsigned char *cpumap;
-    int cpumaplen;
-
-    VIR_DEBUG("Setting CPU affinity");
-
-    if (nodeGetInfo(NULL, &nodeinfo) < 0)
-        return -1;
-
-    /* setaffinity fails if you set bits for CPUs which
-     * aren't present, so we have to limit ourselves */
-    hostcpus = VIR_NODEINFO_MAXCPUS(nodeinfo);
-    if (maxcpu > hostcpus)
-        maxcpu = hostcpus;
-
-    cpumaplen = VIR_CPU_MAPLEN(maxcpu);
-    if (VIR_ALLOC_N(cpumap, cpumaplen) < 0) {
-        virReportOOMError();
-        return -1;
-    }
-
-    if (def->cpumask) {
-        /* XXX why don't we keep 'cpumask' in the libvirt cpumap
-         * format to start with ?!?! */
-        for (i = 0 ; i < maxcpu && i < def->cpumasklen ; i++)
-            if (def->cpumask[i])
-                VIR_USE_CPU(cpumap, i);
-    } else {
-        /* You may think this is redundant, but we can't assume libvirtd
-         * itself is running on all pCPUs, so we need to explicitly set
-         * the spawned LXC instance to all pCPUs if no map is given in
-         * its config file */
-        for (i = 0 ; i < maxcpu ; i++)
-            VIR_USE_CPU(cpumap, i);
-    }
-
-    /* We are pressuming we are running between fork/exec of LXC
-     * so use '0' to indicate our own process ID. No threads are
-     * running at this point
-     */
-    if (virProcessInfoSetAffinity(0, /* Self */
-                                  cpumap, cpumaplen, maxcpu) < 0) {
-        VIR_FREE(cpumap);
-        return -1;
-    }
-    VIR_FREE(cpumap);
-
-    return 0;
-}
-
-
-static int lxcSetContainerCpuTune(virCgroupPtr cgroup, virDomainDefPtr def)
-{
-    int ret = -1;
-    if (def->cputune.shares != 0) {
-        int rc = virCgroupSetCpuShares(cgroup, def->cputune.shares);
-        if (rc != 0) {
-            virReportSystemError(-rc,
-                                 _("Unable to set io cpu shares for domain %s"),
-                                 def->name);
-            goto cleanup;
-        }
-    }
-    if (def->cputune.quota != 0) {
-        int rc = virCgroupSetCpuCfsQuota(cgroup, def->cputune.quota);
-        if (rc != 0) {
-            virReportSystemError(-rc,
-                                 _("Unable to set io cpu quota for domain %s"),
-                                 def->name);
-            goto cleanup;
-        }
-    }
-    if (def->cputune.period != 0) {
-        int rc = virCgroupSetCpuCfsPeriod(cgroup, def->cputune.period);
-        if (rc != 0) {
-            virReportSystemError(-rc,
-                                 _("Unable to set io cpu period for domain %s"),
-                                 def->name);
-            goto cleanup;
-        }
-    }
-    ret = 0;
-cleanup:
-    return ret;
-}
-
-
-static int lxcSetContainerBlkioTune(virCgroupPtr cgroup, virDomainDefPtr def)
-{
-    int ret = -1;
-
-    if (def->blkio.weight) {
-        int rc = virCgroupSetBlkioWeight(cgroup, def->blkio.weight);
-        if (rc != 0) {
-            virReportSystemError(-rc,
-                                 _("Unable to set Blkio weight for domain %s"),
-                                 def->name);
-            goto cleanup;
-        }
-    }
-
-    ret = 0;
-cleanup:
-    return ret;
-}
-
-
-static int lxcSetContainerMemTune(virCgroupPtr cgroup, virDomainDefPtr def)
-{
-    int ret = -1;
-    int rc;
-
-    rc = virCgroupSetMemory(cgroup, def->mem.max_balloon);
-    if (rc != 0) {
-        virReportSystemError(-rc,
-                             _("Unable to set memory limit for domain %s"),
-                             def->name);
-        goto cleanup;
-    }
-
-    if (def->mem.hard_limit) {
-        rc = virCgroupSetMemoryHardLimit(cgroup, def->mem.hard_limit);
-        if (rc != 0) {
-            virReportSystemError(-rc,
-                                 _("Unable to set memory hard limit for domain %s"),
-                                 def->name);
-            goto cleanup;
-        }
-    }
-
-    if (def->mem.soft_limit) {
-        rc = virCgroupSetMemorySoftLimit(cgroup, def->mem.soft_limit);
-        if (rc != 0) {
-            virReportSystemError(-rc,
-                                 _("Unable to set memory soft limit for domain %s"),
-                                 def->name);
-            goto cleanup;
-        }
-    }
-
-    if (def->mem.swap_hard_limit) {
-        rc = virCgroupSetMemSwapHardLimit(cgroup, def->mem.swap_hard_limit);
-        if (rc != 0) {
-            virReportSystemError(-rc,
-                                 _("Unable to set swap hard limit for domain %s"),
-                                 def->name);
-            goto cleanup;
-        }
-    }
-
-    ret = 0;
-cleanup:
-    return ret;
-}
-
-
-static int lxcSetContainerDeviceACL(virCgroupPtr cgroup, virDomainDefPtr def)
-{
-    int ret = -1;
-    int rc;
-    size_t i;
-    static const struct cgroup_device_policy devices[] = {
-        {'c', LXC_DEV_MAJ_MEMORY, LXC_DEV_MIN_NULL},
-        {'c', LXC_DEV_MAJ_MEMORY, LXC_DEV_MIN_ZERO},
-        {'c', LXC_DEV_MAJ_MEMORY, LXC_DEV_MIN_FULL},
-        {'c', LXC_DEV_MAJ_MEMORY, LXC_DEV_MIN_RANDOM},
-        {'c', LXC_DEV_MAJ_MEMORY, LXC_DEV_MIN_URANDOM},
-        {'c', LXC_DEV_MAJ_TTY, LXC_DEV_MIN_TTY},
-        {'c', LXC_DEV_MAJ_TTY, LXC_DEV_MIN_PTMX},
-        {0,   0, 0}};
-
-    rc = virCgroupDenyAllDevices(cgroup);
-    if (rc != 0) {
-        virReportSystemError(-rc,
-                             _("Unable to deny devices for domain %s"),
-                             def->name);
-        goto cleanup;
-    }
-
-    for (i = 0; devices[i].type != 0; i++) {
-        const struct cgroup_device_policy *dev = &devices[i];
-        rc = virCgroupAllowDevice(cgroup,
-                                  dev->type,
-                                  dev->major,
-                                  dev->minor,
-                                  VIR_CGROUP_DEVICE_RWM);
-        if (rc != 0) {
-            virReportSystemError(-rc,
-                                 _("Unable to allow device %c:%d:%d for domain %s"),
-                                 dev->type, dev->major, dev->minor, def->name);
-            goto cleanup;
-        }
-    }
-
-    for (i = 0 ; i < def->nfss ; i++) {
-        if (def->fss[i]->type != VIR_DOMAIN_FS_TYPE_BLOCK)
-            continue;
-
-        rc = virCgroupAllowDevicePath(cgroup,
-                                      def->fss[i]->src,
-                                      def->fss[i]->readonly ?
-                                      VIR_CGROUP_DEVICE_READ :
-                                      VIR_CGROUP_DEVICE_RW);
-        if (rc != 0) {
-            virReportSystemError(-rc,
-                                 _("Unable to allow device %s for domain %s"),
-                                 def->fss[i]->src, def->name);
-            goto cleanup;
-        }
-    }
-
-    rc = virCgroupAllowDeviceMajor(cgroup, 'c', LXC_DEV_MAJ_PTY,
-                                   VIR_CGROUP_DEVICE_RWM);
-    if (rc != 0) {
-        virReportSystemError(-rc,
-                             _("Unable to allow PTY devices for domain %s"),
-                             def->name);
-        goto cleanup;
-    }
-
-    ret = 0;
-cleanup:
-    return ret;
-}
-
-
-/**
- * lxcSetContainerResources
- * @def: pointer to virtual machine structure
- *
- * Creates a cgroup for the container, moves the task inside,
- * and sets resource limits
- *
- * Returns 0 on success or -1 in case of error
- */
-static int lxcSetContainerResources(virDomainDefPtr def)
-{
-    virCgroupPtr driver;
-    virCgroupPtr cgroup;
-    int rc = -1;
-
-    if (lxcSetContainerCpuAffinity(def) < 0)
-        return -1;
-
-    if (lxcSetContainerNUMAPolicy(def) < 0)
-        return -1;
-
-    rc = virCgroupForDriver("lxc", &driver, 1, 0);
-    if (rc != 0) {
-        /* Skip all if no driver cgroup is configured */
-        if (rc == -ENXIO || rc == -ENOENT)
-            return 0;
-
-        virReportSystemError(-rc, "%s",
-                             _("Unable to get cgroup for driver"));
-        return rc;
-    }
-
-    rc = virCgroupForDomain(driver, def->name, &cgroup, 1);
-    if (rc != 0) {
-        virReportSystemError(-rc,
-                             _("Unable to create cgroup for domain %s"),
-                             def->name);
-        goto cleanup;
-    }
-
-    if (lxcSetContainerCpuTune(cgroup, def) < 0)
-        goto cleanup;
-
-    if (lxcSetContainerBlkioTune(cgroup, def) < 0)
-        goto cleanup;
-
-    if (lxcSetContainerMemTune(cgroup, def) < 0)
-        goto cleanup;
-
-    if (lxcSetContainerDeviceACL(cgroup, def) < 0)
-        goto cleanup;
-
-    rc = virCgroupAddTask(cgroup, getpid());
-    if (rc != 0) {
-        virReportSystemError(-rc,
-                             _("Unable to add task %d to cgroup for domain %s"),
-                             getpid(), def->name);
-    }
-
-cleanup:
-    virCgroupFree(&driver);
-    virCgroupFree(&cgroup);
-
-    return rc;
-}
-
-static char*lxcMonitorPath(virDomainDefPtr def)
-{
-    char *sockpath;
-
-    if (virAsprintf(&sockpath, "%s/%s.sock",
-                    LXC_STATE_DIR, def->name) < 0)
-        virReportOOMError();
-    return sockpath;
-}
-
-static int lxcMonitorServer(const char *sockpath)
-{
-    int fd;
-    struct sockaddr_un addr;
-
-    if ((fd = socket(PF_UNIX, SOCK_STREAM, 0)) < 0) {
-        virReportSystemError(errno,
-                             _("failed to create server socket '%s'"),
-                             sockpath);
-        goto error;
-    }
-
-    unlink(sockpath);
-    memset(&addr, 0, sizeof(addr));
-    addr.sun_family = AF_UNIX;
-    if (virStrcpyStatic(addr.sun_path, sockpath) == NULL) {
-        lxcError(VIR_ERR_INTERNAL_ERROR,
-                 _("Socket path %s too long for destination"), sockpath);
-        goto error;
-    }
-
-    if (bind(fd, (struct sockaddr *) &addr, sizeof(addr)) < 0) {
-        virReportSystemError(errno,
-                             _("failed to bind server socket '%s'"),
-                             sockpath);
-        goto error;
-    }
-    if (listen(fd, 30 /* backlog */ ) < 0) {
-        virReportSystemError(errno,
-                             _("failed to listen server socket %s"),
-                             sockpath);
-        goto error;
-    }
-
-    return fd;
-
-error:
-    VIR_FORCE_CLOSE(fd);
-    return -1;
-}
-
-
-static int lxcControllerClearCapabilities(void)
-{
-#if HAVE_CAPNG
-    int ret;
-
-    capng_clear(CAPNG_SELECT_BOTH);
-
-    if ((ret = capng_apply(CAPNG_SELECT_BOTH)) < 0) {
-        lxcError(VIR_ERR_INTERNAL_ERROR,
-                 _("failed to apply capabilities: %d"), ret);
-        return -1;
-    }
-#else
-    VIR_WARN("libcap-ng support not compiled in, unable to clear capabilities");
-#endif
-    return 0;
-}
-
-/* Return true if it is ok to ignore an accept-after-epoll syscall
-   that fails with the specified errno value.  Else false.  */
-static bool
-ignorable_accept_errno(int errnum)
-{
-  return (errnum == EINVAL
-          || errnum == ECONNABORTED
-          || errnum == EAGAIN
-          || errnum == EWOULDBLOCK);
-}
-
-static bool quit = false;
-static virMutex lock;
-static int sigpipe[2];
-
-static void lxcSignalChildHandler(int signum ATTRIBUTE_UNUSED)
-{
-    ignore_value(write(sigpipe[1], "1", 1));
-}
-
-static void lxcSignalChildIO(int watch ATTRIBUTE_UNUSED,
-                             int fd ATTRIBUTE_UNUSED,
-                             int events ATTRIBUTE_UNUSED, void *opaque)
-{
-    char buf[1];
-    int ret;
-    int *container = opaque;
-
-    ignore_value(read(sigpipe[0], buf, 1));
-    ret = waitpid(-1, NULL, WNOHANG);
-    if (ret == *container) {
-        virMutexLock(&lock);
-        quit = true;
-        virMutexUnlock(&lock);
-    }
-}
-
-
-struct lxcConsole {
-
+typedef struct _virLXCControllerConsole virLXCControllerConsole;
+typedef virLXCControllerConsole *virLXCControllerConsolePtr;
+struct _virLXCControllerConsole {
     int hostWatch;
     int hostFd;  /* PTY FD in the host OS */
     bool hostClosed;
@@ -755,92 +91,628 @@ struct lxcConsole {
     char fromHostBuf[1024];
     size_t fromContLen;
     char fromContBuf[1024];
+
+    virNetServerPtr server;
 };
 
-struct lxcMonitor {
-    int serverWatch;
-    int serverFd;  /* Server listen socket */
-    int clientWatch;
-    int clientFd;  /* Current client FD (if any) */
+typedef struct _virLXCController virLXCController;
+typedef virLXCController *virLXCControllerPtr;
+struct _virLXCController {
+    char *name;
+    virDomainDefPtr def;
+
+    int handshakeFd;
+
+    pid_t initpid;
+
+    size_t nveths;
+    char **veths;
+
+    size_t nconsoles;
+    virLXCControllerConsolePtr consoles;
+    char *devptmx;
+
+    size_t nloopDevs;
+    int *loopDevFds;
+
+    virSecurityManagerPtr securityManager;
+
+    /* Server socket */
+    virNetServerPtr server;
+    bool firstClient;
+    virNetServerClientPtr client;
+    virNetServerProgramPtr prog;
+    bool inShutdown;
+    int timerShutdown;
+
+    virLXCFusePtr fuse;
 };
 
+#include "lxc_controller_dispatch.h"
 
-static void lxcClientIO(int watch ATTRIBUTE_UNUSED, int fd, int events, void *opaque)
+static void virLXCControllerFree(virLXCControllerPtr ctrl);
+static int virLXCControllerEventSendInit(virLXCControllerPtr ctrl,
+                                         pid_t initpid);
+
+static void virLXCControllerQuitTimer(int timer ATTRIBUTE_UNUSED, void *opaque)
 {
-    struct lxcMonitor *monitor = opaque;
-    char buf[1024];
-    ssize_t ret;
+    virLXCControllerPtr ctrl = opaque;
 
-    if (events & (VIR_EVENT_HANDLE_HANGUP |
-                  VIR_EVENT_HANDLE_ERROR)) {
-        virEventRemoveHandle(monitor->clientWatch);
-        monitor->clientWatch = -1;
-        return;
-    }
-
-reread:
-    ret = read(fd, buf, sizeof(buf));
-    if (ret == -1 && errno == EINTR)
-        goto reread;
-    if (ret == -1 && errno == EAGAIN)
-        return;
-    if (ret == -1) {
-        lxcError(VIR_ERR_INTERNAL_ERROR, "%s",
-                 _("Unable to read from monitor client"));
-        virMutexLock(&lock);
-        quit = true;
-        virMutexUnlock(&lock);
-        return;
-    }
-    if (ret == 0) {
-        VIR_DEBUG("Client %d gone", fd);
-        VIR_FORCE_CLOSE(monitor->clientFd);
-        virEventRemoveHandle(monitor->clientWatch);
-        monitor->clientWatch = -1;
-    }
+    VIR_DEBUG("Triggering event loop quit");
+    virNetServerQuit(ctrl->server);
 }
 
 
-static void lxcServerAccept(int watch ATTRIBUTE_UNUSED, int fd, int events ATTRIBUTE_UNUSED, void *opaque)
+static virLXCControllerPtr virLXCControllerNew(const char *name)
 {
-    struct lxcMonitor *monitor = opaque;
-    int client;
+    virLXCControllerPtr ctrl = NULL;
+    virCapsPtr caps = NULL;
+    virDomainXMLOptionPtr xmlopt = NULL;
+    char *configFile = NULL;
 
-    if ((client = accept(fd, NULL, NULL)) < 0) {
-        /* First reflex may be simply to declare accept failure
-           to be a fatal error.  However, accept may fail when
-           a client quits between the above poll and here.
-           That case is not fatal, but rather to be expected,
-           if not common, so ignore it.  */
-        if (ignorable_accept_errno(errno))
-            return;
+    if (VIR_ALLOC(ctrl) < 0)
+        goto no_memory;
+
+    ctrl->timerShutdown = -1;
+    ctrl->firstClient = true;
+
+    if (!(ctrl->name = strdup(name)))
+        goto no_memory;
+
+    if ((caps = lxcCapsInit(NULL)) == NULL)
+        goto error;
+
+    if (!(xmlopt = lxcDomainXMLConfInit()))
+        goto error;
+
+    if ((configFile = virDomainConfigFile(LXC_STATE_DIR,
+                                          ctrl->name)) == NULL)
+        goto error;
+
+    if ((ctrl->def = virDomainDefParseFile(configFile,
+                                           caps, xmlopt,
+                                           1 << VIR_DOMAIN_VIRT_LXC,
+                                           0)) == NULL)
+        goto error;
+
+    if ((ctrl->timerShutdown = virEventAddTimeout(-1,
+                                                  virLXCControllerQuitTimer, ctrl,
+                                                  NULL)) < 0)
+        goto error;
+
+cleanup:
+    VIR_FREE(configFile);
+    virObjectUnref(caps);
+    virObjectUnref(xmlopt);
+    return ctrl;
+
+no_memory:
+    virReportOOMError();
+error:
+    virLXCControllerFree(ctrl);
+    ctrl = NULL;
+    goto cleanup;
+}
+
+
+static int virLXCControllerCloseLoopDevices(virLXCControllerPtr ctrl)
+{
+    size_t i;
+
+    for (i = 0 ; i < ctrl->nloopDevs ; i++)
+        VIR_FORCE_CLOSE(ctrl->loopDevFds[i]);
+
+    return 0;
+}
+
+
+static void virLXCControllerStopInit(virLXCControllerPtr ctrl)
+{
+    if (ctrl->initpid == 0)
+        return;
+
+    virLXCControllerCloseLoopDevices(ctrl);
+    virProcessAbort(ctrl->initpid);
+    ctrl->initpid = 0;
+}
+
+
+static void virLXCControllerConsoleClose(virLXCControllerConsolePtr console)
+{
+    if (console->hostWatch != -1)
+        virEventRemoveHandle(console->hostWatch);
+    VIR_FORCE_CLOSE(console->hostFd);
+
+    if (console->contWatch != -1)
+        virEventRemoveHandle(console->contWatch);
+    VIR_FORCE_CLOSE(console->contFd);
+
+    if (console->epollWatch != -1)
+        virEventRemoveHandle(console->epollWatch);
+    VIR_FORCE_CLOSE(console->epollFd);
+}
+
+
+static void
+virLXCControllerFreeFuse(virLXCControllerPtr ctrl)
+{
+    return lxcFreeFuse(&ctrl->fuse);
+}
+
+
+static void virLXCControllerFree(virLXCControllerPtr ctrl)
+{
+    size_t i;
+
+    if (!ctrl)
+        return;
+
+    virLXCControllerStopInit(ctrl);
+
+    virObjectUnref(ctrl->securityManager);
+
+    for (i = 0 ; i < ctrl->nveths ; i++)
+        VIR_FREE(ctrl->veths[i]);
+    VIR_FREE(ctrl->veths);
+
+    for (i = 0 ; i < ctrl->nconsoles ; i++)
+        virLXCControllerConsoleClose(&(ctrl->consoles[i]));
+    VIR_FREE(ctrl->consoles);
+
+    VIR_FREE(ctrl->devptmx);
+
+    virDomainDefFree(ctrl->def);
+    VIR_FREE(ctrl->name);
+
+    if (ctrl->timerShutdown != -1)
+        virEventRemoveTimeout(ctrl->timerShutdown);
+
+    virObjectUnref(ctrl->server);
+    virLXCControllerFreeFuse(ctrl);
+
+    /* This must always be the last thing to be closed */
+    VIR_FORCE_CLOSE(ctrl->handshakeFd);
+    VIR_FREE(ctrl);
+}
+
+
+static int virLXCControllerAddConsole(virLXCControllerPtr ctrl,
+                                      int hostFd)
+{
+    if (VIR_EXPAND_N(ctrl->consoles, ctrl->nconsoles, 1) < 0) {
+        virReportOOMError();
+        return -1;
+    }
+    ctrl->consoles[ctrl->nconsoles-1].server = ctrl->server;
+    ctrl->consoles[ctrl->nconsoles-1].hostFd = hostFd;
+    ctrl->consoles[ctrl->nconsoles-1].hostWatch = -1;
+
+    ctrl->consoles[ctrl->nconsoles-1].contFd = -1;
+    ctrl->consoles[ctrl->nconsoles-1].contWatch = -1;
+
+    ctrl->consoles[ctrl->nconsoles-1].epollFd = -1;
+    ctrl->consoles[ctrl->nconsoles-1].epollWatch = -1;
+    return 0;
+}
+
+
+static int virLXCControllerConsoleSetNonblocking(virLXCControllerConsolePtr console)
+{
+    if (virSetBlocking(console->hostFd, false) < 0 ||
+        virSetBlocking(console->contFd, false) < 0) {
         virReportSystemError(errno, "%s",
-                             _("Unable to accept monitor client"));
-        virMutexLock(&lock);
-        quit = true;
-        virMutexUnlock(&lock);
-        return;
+                             _("Unable to set console file descriptor non-blocking"));
+        return -1;
     }
-    VIR_DEBUG("New client %d (old %d)\n", client, monitor->clientFd);
-    VIR_FORCE_CLOSE(monitor->clientFd);
-    virEventRemoveHandle(monitor->clientWatch);
 
-    monitor->clientFd = client;
-    if ((monitor->clientWatch = virEventAddHandle(monitor->clientFd,
-                                                  VIR_EVENT_HANDLE_READABLE,
-                                                  lxcClientIO,
-                                                  monitor,
-                                                  NULL)) < 0) {
-        lxcError(VIR_ERR_INTERNAL_ERROR, "%s",
-                 _("Unable to watch client socket"));
-        virMutexLock(&lock);
-        quit = true;
-        virMutexUnlock(&lock);
-        return;
+    return 0;
+}
+
+
+static int virLXCControllerDaemonHandshake(virLXCControllerPtr ctrl)
+{
+    if (lxcContainerSendContinue(ctrl->handshakeFd) < 0) {
+        virReportSystemError(errno, "%s",
+                             _("error sending continue signal to daemon"));
+        return -1;
+    }
+    VIR_FORCE_CLOSE(ctrl->handshakeFd);
+    return 0;
+}
+
+
+static int virLXCControllerValidateNICs(virLXCControllerPtr ctrl)
+{
+    if (ctrl->def->nnets != ctrl->nveths) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("expecting %zu veths, but got %zu"),
+                       ctrl->def->nnets, ctrl->nveths);
+        return -1;
+    }
+
+    return 0;
+}
+
+
+static int virLXCControllerValidateConsoles(virLXCControllerPtr ctrl)
+{
+    if (ctrl->def->nconsoles != ctrl->nconsoles) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("expecting %zu consoles, but got %zu tty file handlers"),
+                       ctrl->def->nconsoles, ctrl->nconsoles);
+        return -1;
+    }
+
+    return 0;
+}
+
+
+static int virLXCControllerSetupLoopDeviceFS(virDomainFSDefPtr fs)
+{
+    int lofd;
+    char *loname = NULL;
+
+    if ((lofd = virFileLoopDeviceAssociate(fs->src, &loname)) < 0)
+        return -1;
+
+    /*
+     * We now change it into a block device type, so that
+     * the rest of container setup 'just works'
+     */
+    fs->type = VIR_DOMAIN_FS_TYPE_BLOCK;
+    VIR_FREE(fs->src);
+    fs->src = loname;
+    loname = NULL;
+
+    return lofd;
+}
+
+
+static int virLXCControllerSetupLoopDeviceDisk(virDomainDiskDefPtr disk)
+{
+    int lofd;
+    char *loname = NULL;
+
+    if ((lofd = virFileLoopDeviceAssociate(disk->src, &loname)) < 0)
+        return -1;
+
+    /*
+     * We now change it into a block device type, so that
+     * the rest of container setup 'just works'
+     */
+    disk->type = VIR_DOMAIN_DISK_TYPE_BLOCK;
+    VIR_FREE(disk->src);
+    disk->src = loname;
+    loname = NULL;
+
+    return lofd;
+}
+
+
+static int virLXCControllerSetupLoopDevices(virLXCControllerPtr ctrl)
+{
+    size_t i;
+    int ret = -1;
+
+    for (i = 0 ; i < ctrl->def->nfss ; i++) {
+        virDomainFSDefPtr fs = ctrl->def->fss[i];
+        int fd;
+
+        if (fs->type != VIR_DOMAIN_FS_TYPE_FILE)
+            continue;
+
+        fd = virLXCControllerSetupLoopDeviceFS(fs);
+        if (fd < 0)
+            goto cleanup;
+
+        VIR_DEBUG("Saving loop fd %d", fd);
+        if (VIR_EXPAND_N(ctrl->loopDevFds, ctrl->nloopDevs, 1) < 0) {
+            VIR_FORCE_CLOSE(fd);
+            virReportOOMError();
+            goto cleanup;
+        }
+        ctrl->loopDevFds[ctrl->nloopDevs - 1] = fd;
+    }
+
+    for (i = 0 ; i < ctrl->def->ndisks ; i++) {
+        virDomainDiskDefPtr disk = ctrl->def->disks[i];
+        int fd;
+
+        if (disk->type != VIR_DOMAIN_DISK_TYPE_FILE)
+            continue;
+
+        switch (disk->format) {
+            /* We treat 'none' as meaning 'raw' since we
+             * don't want to go into the auto-probing
+             * business for security reasons
+             */
+        case VIR_STORAGE_FILE_RAW:
+        case VIR_STORAGE_FILE_NONE:
+            if (disk->driverName &&
+                STRNEQ(disk->driverName, "loop")) {
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                               _("disk driver %s is not supported"),
+                               disk->driverName);
+                goto cleanup;
+            }
+
+            fd = virLXCControllerSetupLoopDeviceDisk(disk);
+            if (fd < 0)
+                goto cleanup;
+            break;
+
+        default:
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("disk format %s is not supported"),
+                           virStorageFileFormatTypeToString(disk->format));
+            goto cleanup;
+        }
+
+        VIR_DEBUG("Saving loop fd %d", fd);
+        if (VIR_EXPAND_N(ctrl->loopDevFds, ctrl->nloopDevs, 1) < 0) {
+            VIR_FORCE_CLOSE(fd);
+            virReportOOMError();
+            goto cleanup;
+        }
+        ctrl->loopDevFds[ctrl->nloopDevs - 1] = fd;
+    }
+
+    VIR_DEBUG("Setup all loop devices");
+    ret = 0;
+
+cleanup:
+    return ret;
+}
+
+
+/*
+ * To be run while still single threaded
+ */
+static int virLXCControllerSetupCpuAffinity(virLXCControllerPtr ctrl)
+{
+    int hostcpus, maxcpu = CPU_SETSIZE;
+    virBitmapPtr cpumap, cpumapToSet;
+
+    VIR_DEBUG("Setting CPU affinity");
+
+    /* setaffinity fails if you set bits for CPUs which
+     * aren't present, so we have to limit ourselves */
+    if ((hostcpus = nodeGetCPUCount()) < 0)
+        return -1;
+
+    if (maxcpu > hostcpus)
+        maxcpu = hostcpus;
+
+    cpumap = virBitmapNew(maxcpu);
+    if (!cpumap)
+        return -1;
+
+    cpumapToSet = cpumap;
+
+    if (ctrl->def->cpumask) {
+        cpumapToSet = ctrl->def->cpumask;
+    } else {
+        /* You may think this is redundant, but we can't assume libvirtd
+         * itself is running on all pCPUs, so we need to explicitly set
+         * the spawned LXC instance to all pCPUs if no map is given in
+         * its config file */
+        virBitmapSetAll(cpumap);
+    }
+
+    /* We are presuming we are running between fork/exec of LXC
+     * so use '0' to indicate our own process ID. No threads are
+     * running at this point
+     */
+    if (virProcessSetAffinity(0 /* Self */, cpumapToSet) < 0) {
+        virBitmapFree(cpumap);
+        return -1;
+    }
+    virBitmapFree(cpumap);
+
+    return 0;
+}
+
+
+static int virLXCControllerGetNumadAdvice(virLXCControllerPtr ctrl,
+                                          virBitmapPtr *mask)
+{
+    virBitmapPtr nodemask = NULL;
+    char *nodeset = NULL;
+    int ret = -1;
+
+    /* Get the advisory nodeset from numad if 'placement' of
+     * either <vcpu> or <numatune> is 'auto'.
+     */
+    if ((ctrl->def->placement_mode ==
+         VIR_DOMAIN_CPU_PLACEMENT_MODE_AUTO) ||
+        (ctrl->def->numatune.memory.placement_mode ==
+         VIR_NUMA_TUNE_MEM_PLACEMENT_MODE_AUTO)) {
+        nodeset = virNumaGetAutoPlacementAdvice(ctrl->def->vcpus,
+                                                ctrl->def->mem.cur_balloon);
+        if (!nodeset)
+            goto cleanup;
+
+        VIR_DEBUG("Nodeset returned from numad: %s", nodeset);
+
+        if (virBitmapParse(nodeset, 0, &nodemask, VIR_DOMAIN_CPUMASK_LEN) < 0)
+            goto cleanup;
+    }
+
+    ret = 0;
+    *mask = nodemask;
+
+cleanup:
+    VIR_FREE(nodeset);
+    return ret;
+}
+
+
+/**
+ * virLXCControllerSetupResourceLimits
+ * @ctrl: the controller state
+ *
+ * Creates a cgroup for the container, moves the task inside,
+ * and sets resource limits
+ *
+ * Returns 0 on success or -1 in case of error
+ */
+static int virLXCControllerSetupResourceLimits(virLXCControllerPtr ctrl,
+                                               virCgroupPtr cgroup)
+{
+    virBitmapPtr nodemask = NULL;
+    int ret = -1;
+
+    if (virLXCControllerGetNumadAdvice(ctrl, &nodemask) < 0 ||
+        virNumaSetupMemoryPolicy(ctrl->def->numatune, nodemask) < 0)
+        goto cleanup;
+
+    if (virLXCControllerSetupCpuAffinity(ctrl) < 0)
+        goto cleanup;
+
+    if (virLXCCgroupSetup(ctrl->def, cgroup, nodemask) < 0)
+        goto cleanup;
+
+    ret = 0;
+cleanup:
+    virBitmapFree(nodemask);
+    return ret;
+}
+
+
+static void virLXCControllerClientCloseHook(virNetServerClientPtr client)
+{
+    virLXCControllerPtr ctrl = virNetServerClientGetPrivateData(client);
+
+    VIR_DEBUG("Client %p has closed", client);
+    if (ctrl->client == client)
+        ctrl->client = NULL;
+    if (ctrl->inShutdown) {
+        VIR_DEBUG("Arm timer to quit event loop");
+        virEventUpdateTimeout(ctrl->timerShutdown, 0);
     }
 }
 
-static void lxcConsoleUpdateWatch(struct lxcConsole *console)
+static void virLXCControllerClientPrivateFree(void *data)
+{
+    virLXCControllerPtr ctrl = data;
+    VIR_DEBUG("Got private data free %p", ctrl);
+}
+
+static void *virLXCControllerClientPrivateNew(virNetServerClientPtr client,
+                                              void *opaque)
+{
+    virLXCControllerPtr ctrl = opaque;
+
+    virNetServerClientSetCloseHook(client, virLXCControllerClientCloseHook);
+    VIR_DEBUG("Got new client %p", client);
+    ctrl->client = client;
+
+    if (ctrl->initpid && ctrl->firstClient)
+        virLXCControllerEventSendInit(ctrl, ctrl->initpid);
+    ctrl->firstClient = false;
+
+    return ctrl;
+}
+
+
+static int virLXCControllerSetupServer(virLXCControllerPtr ctrl)
+{
+    virNetServerServicePtr svc = NULL;
+    char *sockpath;
+
+    if (virAsprintf(&sockpath, "%s/%s.sock",
+                    LXC_STATE_DIR, ctrl->name) < 0) {
+        virReportOOMError();
+        return -1;
+    }
+
+    if (!(ctrl->server = virNetServerNew(0, 0, 0, 1,
+                                         -1, 0, false,
+                                         NULL,
+                                         virLXCControllerClientPrivateNew,
+                                         NULL,
+                                         virLXCControllerClientPrivateFree,
+                                         ctrl)))
+        goto error;
+
+    if (!(svc = virNetServerServiceNewUNIX(sockpath,
+                                           0700,
+                                           0,
+                                           0,
+#if WITH_GNUTLS
+                                           NULL,
+#endif
+                                           false,
+                                           5)))
+        goto error;
+
+    if (virNetServerAddService(ctrl->server, svc, NULL) < 0)
+        goto error;
+    virObjectUnref(svc);
+    svc = NULL;
+
+    if (!(ctrl->prog = virNetServerProgramNew(VIR_LXC_MONITOR_PROGRAM,
+                                              VIR_LXC_MONITOR_PROGRAM_VERSION,
+                                              virLXCMonitorProcs,
+                                              virLXCMonitorNProcs)))
+        goto error;
+
+    virNetServerUpdateServices(ctrl->server, true);
+    VIR_FREE(sockpath);
+    return 0;
+
+error:
+    VIR_FREE(sockpath);
+    virObjectUnref(ctrl->server);
+    ctrl->server = NULL;
+    virObjectUnref(svc);
+    return -1;
+}
+
+
+static int lxcControllerClearCapabilities(void)
+{
+#if WITH_CAPNG
+    int ret;
+
+    capng_clear(CAPNG_SELECT_BOTH);
+
+    if ((ret = capng_apply(CAPNG_SELECT_BOTH)) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("failed to apply capabilities: %d"), ret);
+        return -1;
+    }
+#else
+    VIR_WARN("libcap-ng support not compiled in, unable to clear capabilities");
+#endif
+    return 0;
+}
+
+static bool wantReboot = false;
+static virMutex lock;
+
+
+static void virLXCControllerSignalChildIO(virNetServerPtr server,
+                                          siginfo_t *info ATTRIBUTE_UNUSED,
+                                          void *opaque)
+{
+    virLXCControllerPtr ctrl = opaque;
+    int ret;
+    int status;
+
+    ret = waitpid(-1, &status, WNOHANG);
+    if (ret == ctrl->initpid) {
+        virNetServerQuit(server);
+        virMutexLock(&lock);
+        if (WIFSIGNALED(status) &&
+            WTERMSIG(status) == SIGHUP)
+            wantReboot = true;
+        virMutexUnlock(&lock);
+    }
+}
+
+
+static void virLXCControllerConsoleUpdateWatch(virLXCControllerConsolePtr console)
 {
     int hostEvents = 0;
     int contEvents = 0;
@@ -883,7 +755,7 @@ static void lxcConsoleUpdateWatch(struct lxcConsole *console)
                 VIR_DEBUG(":fail");
                 virReportSystemError(errno, "%s",
                                      _("Unable to add epoll fd"));
-                quit = true;
+                virNetServerQuit(console->server);
                 goto cleanup;
             }
             console->hostEpoll = events;
@@ -894,8 +766,8 @@ static void lxcConsoleUpdateWatch(struct lxcConsole *console)
         if (epoll_ctl(console->epollFd, EPOLL_CTL_DEL, console->hostFd, NULL) < 0) {
             virReportSystemError(errno, "%s",
                                  _("Unable to remove epoll fd"));
-                VIR_DEBUG(":fail");
-            quit = true;
+            VIR_DEBUG(":fail");
+            virNetServerQuit(console->server);
             goto cleanup;
         }
         console->hostEpoll = 0;
@@ -920,7 +792,7 @@ static void lxcConsoleUpdateWatch(struct lxcConsole *console)
                 virReportSystemError(errno, "%s",
                                      _("Unable to add epoll fd"));
                 VIR_DEBUG(":fail");
-                quit = true;
+                virNetServerQuit(console->server);
                 goto cleanup;
             }
             console->contEpoll = events;
@@ -931,8 +803,8 @@ static void lxcConsoleUpdateWatch(struct lxcConsole *console)
         if (epoll_ctl(console->epollFd, EPOLL_CTL_DEL, console->contFd, NULL) < 0) {
             virReportSystemError(errno, "%s",
                                  _("Unable to remove epoll fd"));
-                VIR_DEBUG(":fail");
-            quit = true;
+            VIR_DEBUG(":fail");
+            virNetServerQuit(console->server);
             goto cleanup;
         }
         console->contEpoll = 0;
@@ -942,9 +814,9 @@ cleanup:
 }
 
 
-static void lxcEpollIO(int watch, int fd, int events, void *opaque)
+static void virLXCControllerConsoleEPoll(int watch, int fd, int events, void *opaque)
 {
-    struct lxcConsole *console = opaque;
+    virLXCControllerConsolePtr console = opaque;
 
     virMutexLock(&lock);
     VIR_DEBUG("IO event watch=%d fd=%d events=%d fromHost=%zu fromcont=%zu",
@@ -957,11 +829,11 @@ static void lxcEpollIO(int watch, int fd, int events, void *opaque)
         int ret;
         ret = epoll_wait(console->epollFd, &event, 1, 0);
         if (ret < 0) {
-            if (ret == EINTR)
+            if (errno == EINTR)
                 continue;
             virReportSystemError(errno, "%s",
                                  _("Unable to wait on epoll"));
-            quit = true;
+            virNetServerQuit(console->server);
             goto cleanup;
         }
 
@@ -980,7 +852,7 @@ static void lxcEpollIO(int watch, int fd, int events, void *opaque)
             } else {
                 console->contClosed = false;
             }
-            lxcConsoleUpdateWatch(console);
+            virLXCControllerConsoleUpdateWatch(console);
             break;
         }
     }
@@ -989,9 +861,9 @@ cleanup:
     virMutexUnlock(&lock);
 }
 
-static void lxcConsoleIO(int watch, int fd, int events, void *opaque)
+static void virLXCControllerConsoleIO(int watch, int fd, int events, void *opaque)
 {
-    struct lxcConsole *console = opaque;
+    virLXCControllerConsolePtr console = opaque;
 
     virMutexLock(&lock);
     VIR_DEBUG("IO event watch=%d fd=%d events=%d fromHost=%zu fromcont=%zu",
@@ -1070,7 +942,7 @@ static void lxcConsoleIO(int watch, int fd, int events, void *opaque)
         VIR_DEBUG("Got EOF on %d %d", watch, fd);
     }
 
-    lxcConsoleUpdateWatch(console);
+    virLXCControllerConsoleUpdateWatch(console);
     virMutexUnlock(&lock);
     return;
 
@@ -1078,7 +950,7 @@ error:
     virEventRemoveHandle(console->contWatch);
     virEventRemoveHandle(console->hostWatch);
     console->contWatch = console->hostWatch = -1;
-    quit = true;
+    virNetServerQuit(console->server);
     virMutexUnlock(&lock);
 }
 
@@ -1087,25 +959,13 @@ error:
  * lxcControllerMain
  * @serverFd: server socket fd to accept client requests
  * @clientFd: initial client which is the libvirtd daemon
- * @hostFd: open fd for application facing Pty
- * @contFd: open fd for container facing Pty
  *
  * Processes I/O on consoles and the monitor
  *
  * Returns 0 on success or -1 in case of error
  */
-static int lxcControllerMain(int serverFd,
-                             int clientFd,
-                             int *hostFds,
-                             int *contFds,
-                             size_t nFds,
-                             pid_t container)
+static int virLXCControllerMain(virLXCControllerPtr ctrl)
 {
-    struct lxcConsole *consoles;
-    struct lxcMonitor monitor = {
-        .serverFd = serverFd,
-        .clientFd = clientFd,
-    };
     virErrorPtr err;
     int rc = -1;
     size_t i;
@@ -1113,144 +973,72 @@ static int lxcControllerMain(int serverFd,
     if (virMutexInit(&lock) < 0)
         goto cleanup2;
 
-    if (pipe2(sigpipe, O_CLOEXEC|O_NONBLOCK) < 0) {
-        virReportSystemError(errno, "%s",
-                             _("Cannot create signal pipe"));
+    if (virNetServerAddSignalHandler(ctrl->server,
+                                     SIGCHLD,
+                                     virLXCControllerSignalChildIO,
+                                     ctrl) < 0)
         goto cleanup;
-    }
 
-    if (virEventAddHandle(sigpipe[0],
-                          VIR_EVENT_HANDLE_READABLE,
-                          lxcSignalChildIO,
-                          &container,
-                          NULL) < 0) {
-        lxcError(VIR_ERR_INTERNAL_ERROR, "%s",
-                 _("Unable to watch signal pipe"));
-        goto cleanup;
-    }
-
-    if (signal(SIGCHLD, lxcSignalChildHandler) == SIG_ERR) {
-        virReportSystemError(errno, "%s",
-                             _("Cannot install signal handler"));
-        goto cleanup;
-    }
-
-    VIR_DEBUG("serverFd=%d clientFd=%d",
-              serverFd, clientFd);
     virResetLastError();
 
-    if ((monitor.serverWatch = virEventAddHandle(monitor.serverFd,
-                                                 VIR_EVENT_HANDLE_READABLE,
-                                                 lxcServerAccept,
-                                                 &monitor,
-                                                 NULL)) < 0) {
-        lxcError(VIR_ERR_INTERNAL_ERROR, "%s",
-                 _("Unable to watch monitor socket"));
-        goto cleanup;
-    }
-
-    if (monitor.clientFd != -1 &&
-        (monitor.clientWatch = virEventAddHandle(monitor.clientFd,
-                                                 VIR_EVENT_HANDLE_READABLE,
-                                                 lxcClientIO,
-                                                 &monitor,
-                                                 NULL)) < 0) {
-        lxcError(VIR_ERR_INTERNAL_ERROR, "%s",
-                 _("Unable to watch client socket"));
-        goto cleanup;
-    }
-
-    if (VIR_ALLOC_N(consoles, nFds) < 0) {
-        virReportOOMError();
-        goto cleanup;
-    }
-
-    for (i = 0 ; i < nFds ; i++) {
-        consoles[i].epollFd = -1;
-        consoles[i].epollWatch = -1;
-        consoles[i].hostWatch = -1;
-        consoles[i].contWatch = -1;
-    }
-
-    for (i = 0 ; i < nFds ; i++) {
-        consoles[i].hostFd = hostFds[i];
-        consoles[i].contFd = contFds[i];
-
-        if ((consoles[i].epollFd = epoll_create1(EPOLL_CLOEXEC)) < 0) {
+    for (i = 0 ; i < ctrl->nconsoles ; i++) {
+        if ((ctrl->consoles[i].epollFd = epoll_create1(EPOLL_CLOEXEC)) < 0) {
             virReportSystemError(errno, "%s",
                                  _("Unable to create epoll fd"));
             goto cleanup;
         }
 
-        if ((consoles[i].epollWatch = virEventAddHandle(consoles[i].epollFd,
-                                                        VIR_EVENT_HANDLE_READABLE,
-                                                        lxcEpollIO,
-                                                        &consoles[i],
-                                                        NULL)) < 0) {
-            lxcError(VIR_ERR_INTERNAL_ERROR, "%s",
-                     _("Unable to watch epoll FD"));
+        if ((ctrl->consoles[i].epollWatch = virEventAddHandle(ctrl->consoles[i].epollFd,
+                                                              VIR_EVENT_HANDLE_READABLE,
+                                                              virLXCControllerConsoleEPoll,
+                                                              &(ctrl->consoles[i]),
+                                                              NULL)) < 0) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("Unable to watch epoll FD"));
             goto cleanup;
         }
 
-        if ((consoles[i].hostWatch = virEventAddHandle(consoles[i].hostFd,
-                                                       VIR_EVENT_HANDLE_READABLE,
-                                                       lxcConsoleIO,
-                                                       &consoles[i],
-                                                       NULL)) < 0) {
-            lxcError(VIR_ERR_INTERNAL_ERROR, "%s",
-                     _("Unable to watch host console PTY"));
+        if ((ctrl->consoles[i].hostWatch = virEventAddHandle(ctrl->consoles[i].hostFd,
+                                                             VIR_EVENT_HANDLE_READABLE,
+                                                             virLXCControllerConsoleIO,
+                                                             &(ctrl->consoles[i]),
+                                                             NULL)) < 0) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("Unable to watch host console PTY"));
             goto cleanup;
         }
 
-        if ((consoles[i].contWatch = virEventAddHandle(consoles[i].contFd,
-                                                       VIR_EVENT_HANDLE_READABLE,
-                                                       lxcConsoleIO,
-                                                       &consoles[i],
-                                                       NULL)) < 0) {
-            lxcError(VIR_ERR_INTERNAL_ERROR, "%s",
-                     _("Unable to watch host console PTY"));
+        if ((ctrl->consoles[i].contWatch = virEventAddHandle(ctrl->consoles[i].contFd,
+                                                             VIR_EVENT_HANDLE_READABLE,
+                                                             virLXCControllerConsoleIO,
+                                                             &(ctrl->consoles[i]),
+                                                             NULL)) < 0) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("Unable to watch host console PTY"));
             goto cleanup;
         }
     }
 
-    virMutexLock(&lock);
-    while (!quit) {
-        virMutexUnlock(&lock);
-        if (virEventRunDefaultImpl() < 0)
-            goto cleanup;
-        virMutexLock(&lock);
-    }
-    virMutexUnlock(&lock);
+    virNetServerRun(ctrl->server);
 
     err = virGetLastError();
     if (!err || err->code == VIR_ERR_OK)
-        rc = 0;
+        rc = wantReboot ? 1 : 0;
 
 cleanup:
     virMutexDestroy(&lock);
-    signal(SIGCHLD, SIG_DFL);
 cleanup2:
-    VIR_FORCE_CLOSE(monitor.serverFd);
-    VIR_FORCE_CLOSE(monitor.clientFd);
 
-    for (i = 0 ; i < nFds ; i++) {
-        if (consoles[i].epollWatch != -1)
-            virEventRemoveHandle(consoles[i].epollWatch);
-        VIR_FORCE_CLOSE(consoles[i].epollFd);
-        if (consoles[i].contWatch != -1)
-            virEventRemoveHandle(consoles[i].contWatch);
-        if (consoles[i].hostWatch != -1)
-            virEventRemoveHandle(consoles[i].hostWatch);
-    }
+    for (i = 0 ; i < ctrl->nconsoles ; i++)
+        virLXCControllerConsoleClose(&(ctrl->consoles[i]));
 
-    VIR_FREE(consoles);
     return rc;
 }
 
 
 
 /**
- * lxcControllerMoveInterfaces
+ * virLXCControllerMoveInterfaces
  * @nveths: number of interfaces
  * @veths: interface names
  * @container: pid of container
@@ -1259,51 +1047,68 @@ cleanup2:
  *
  * Returns 0 on success or -1 in case of error
  */
-static int lxcControllerMoveInterfaces(unsigned int nveths,
-                                       char **veths,
-                                       pid_t container)
+static int virLXCControllerMoveInterfaces(virLXCControllerPtr ctrl)
 {
-    unsigned int i;
-    for (i = 0 ; i < nveths ; i++)
-        if (virNetDevSetNamespace(veths[i], container) < 0)
+    size_t i;
+    virDomainDefPtr def = ctrl->def;
+
+    for (i = 0 ; i < ctrl->nveths ; i++) {
+        if (virNetDevSetNamespace(ctrl->veths[i], ctrl->initpid) < 0)
             return -1;
+    }
+
+    for (i = 0; i < def->nhostdevs; i ++) {
+        virDomainHostdevDefPtr hdev = def->hostdevs[i];
+
+        if (hdev->mode != VIR_DOMAIN_HOSTDEV_MODE_CAPABILITIES)
+            continue;
+
+        virDomainHostdevCaps hdcaps = hdev->source.caps;
+
+        if (hdcaps.type != VIR_DOMAIN_HOSTDEV_CAPS_TYPE_NET)
+           continue;
+
+        if (virNetDevSetNamespace(hdcaps.u.net.iface, ctrl->initpid) < 0)
+            return -1;
+    }
 
     return 0;
 }
 
 
 /**
- * lxcCleanupInterfaces:
- * @nveths: number of interfaces
- * @veths: interface names
+ * virLXCControllerDeleteInterfaces:
+ * @ctrl: the LXC controller
  *
  * Cleans up the container interfaces by deleting the veth device pairs.
  *
  * Returns 0 on success or -1 in case of error
  */
-static int lxcControllerCleanupInterfaces(unsigned int nveths,
-                                          char **veths)
+static int virLXCControllerDeleteInterfaces(virLXCControllerPtr ctrl)
 {
-    unsigned int i;
-    for (i = 0 ; i < nveths ; i++)
-        ignore_value(virNetDevVethDelete(veths[i]));
+    size_t i;
+    int ret = 0;
 
-    return 0;
+    for (i = 0 ; i < ctrl->nveths ; i++) {
+        if (virNetDevVethDelete(ctrl->veths[i]) < 0)
+            ret = -1;
+    }
+
+    return ret;
 }
+
 
 static int lxcSetPersonality(virDomainDefPtr def)
 {
-    struct utsname utsname;
-    const char *altArch;
+    virArch altArch;
 
-    uname(&utsname);
-
-    altArch = lxcContainerGetAlt32bitArch(utsname.machine);
+    altArch = lxcContainerGetAlt32bitArch(virArchFromHost());
     if (altArch &&
-        STREQ(def->os.arch, altArch)) {
+        (def->os.arch == altArch)) {
         if (personality(PER_LINUX32) < 0) {
             virReportSystemError(errno, _("Unable to request personality for %s on %s"),
-                                 altArch, utsname.machine);
+                                 virArchToString(altArch),
+                                 virArchToString(virArchFromHost()));
             return -1;
         }
     }
@@ -1362,58 +1167,50 @@ cleanup:
     return ret;
 }
 
+
 static int
-lxcControllerRun(virDomainDefPtr def,
-                 virSecurityManagerPtr securityDriver,
-                 unsigned int nveths,
-                 char **veths,
-                 int monitor,
-                 int client,
-                 int *ttyFDs,
-                 size_t nttyFDs,
-                 int handshakefd)
+virLXCControllerSetupPrivateNS(void)
 {
-    int rc = -1;
-    int control[2] = { -1, -1};
-    int containerhandshake[2] = { -1, -1 };
-    int *containerTtyFDs = NULL;
-    char **containerTtyPaths = NULL;
-    pid_t container = -1;
-    virDomainFSDefPtr root;
+    int ret = -1;
+
+    if (unshare(CLONE_NEWNS) < 0) {
+        virReportSystemError(errno, "%s",
+                             _("Cannot unshare mount namespace"));
+        goto cleanup;
+    }
+
+    if (mount("", "/", NULL, MS_SLAVE|MS_REC, NULL) < 0) {
+        virReportSystemError(errno, "%s",
+                             _("Failed to switch root mount into slave mode"));
+        goto cleanup;
+    }
+
+    ret = 0;
+cleanup:
+    return ret;
+}
+
+
+static int
+virLXCControllerSetupDevPTS(virLXCControllerPtr ctrl)
+{
+    virDomainFSDefPtr root = virDomainGetRootFilesystem(ctrl->def);
+    char *mount_options = NULL;
+    char *opts = NULL;
     char *devpts = NULL;
-    char *devptmx = NULL;
-    size_t nloopDevs = 0;
-    int *loopDevs = NULL;
-    size_t i;
+    int ret = -1;
 
-    if (VIR_ALLOC_N(containerTtyFDs, nttyFDs) < 0) {
-        virReportOOMError();
-        goto cleanup;
-    }
-    if (VIR_ALLOC_N(containerTtyPaths, nttyFDs) < 0) {
-        virReportOOMError();
-        goto cleanup;
+    if (!root) {
+        if (ctrl->nconsoles != 1) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("Expected exactly one console, but got %zu"),
+                           ctrl->nconsoles);
+            return -1;
+        }
+        return 0;
     }
 
-    if (socketpair(PF_UNIX, SOCK_STREAM, 0, control) < 0) {
-        virReportSystemError(errno, "%s",
-                             _("sockpair failed"));
-        goto cleanup;
-    }
-
-    if (socketpair(PF_UNIX, SOCK_STREAM, 0, containerhandshake) < 0) {
-        virReportSystemError(errno, "%s",
-                             _("socketpair failed"));
-        goto cleanup;
-    }
-
-    if (lxcSetupLoopDevices(def, &nloopDevs, &loopDevs) < 0)
-        goto cleanup;
-
-    root = virDomainGetRootFilesystem(def);
-
-    if (lxcSetContainerResources(def) < 0)
-        goto cleanup;
+    VIR_DEBUG("Setting up private /dev/pts");
 
     /*
      * If doing a chroot style setup, we need to prepare
@@ -1435,127 +1232,242 @@ lxcControllerRun(virDomainDefPtr def,
      * into slave mode, just in case it was currently
      * marked as shared
      */
-    if (root) {
-#if HAVE_SELINUX
-        security_context_t con;
-#else
-        bool con = false;
-#endif
-        char *opts;
-        VIR_DEBUG("Setting up private /dev/pts");
+    mount_options = virSecurityManagerGetMountOptions(ctrl->securityManager,
+                                                      ctrl->def);
 
-        if (!virFileExists(root->src)) {
-            virReportSystemError(errno,
-                                 _("root source %s does not exist"),
-                                 root->src);
-            goto cleanup;
-        }
-
-        if (unshare(CLONE_NEWNS) < 0) {
-            virReportSystemError(errno, "%s",
-                                 _("Cannot unshare mount namespace"));
-            goto cleanup;
-        }
-
-        if (mount("", "/", NULL, MS_SLAVE|MS_REC, NULL) < 0) {
-            virReportSystemError(errno, "%s",
-                                 _("Failed to switch root mount into slave mode"));
-            goto cleanup;
-        }
-
-        if (virAsprintf(&devpts, "%s/dev/pts", root->src) < 0 ||
-            virAsprintf(&devptmx, "%s/dev/pts/ptmx", root->src) < 0) {
-            virReportOOMError();
-            goto cleanup;
-        }
-
-        if (virFileMakePath(devpts) < 0) {
-            virReportSystemError(errno,
-                                 _("Failed to make path %s"),
-                                 devpts);
-            goto cleanup;
-        }
-
-#if HAVE_SELINUX
-        if (getfilecon(root->src, &con) < 0 &&
-            errno != ENOTSUP) {
-            virReportSystemError(errno,
-                                 _("Failed to query file context on %s"),
-                                 root->src);
-            goto cleanup;
-        }
-#endif
-        /* XXX should we support gid=X for X!=5 for distros which use
-         * a different gid for tty?  */
-        if (virAsprintf(&opts, "newinstance,ptmxmode=0666,mode=0620,gid=5%s%s%s",
-                        con ? ",context=\"" : "",
-                        con ? (const char *)con : "",
-                        con ? "\"" : "") < 0) {
-            virReportOOMError();
-            goto cleanup;
-        }
-
-        VIR_DEBUG("Mount devpts on %s type=tmpfs flags=%x, opts=%s",
-                  devpts, MS_NOSUID, opts);
-        if (mount("devpts", devpts, "devpts", MS_NOSUID, opts) < 0) {
-            VIR_FREE(opts);
-            virReportSystemError(errno,
-                                 _("Failed to mount devpts on %s"),
-                                 devpts);
-            goto cleanup;
-        }
-        VIR_FREE(opts);
-
-        if (access(devptmx, R_OK) < 0) {
-            VIR_WARN("Kernel does not support private devpts, using shared devpts");
-            VIR_FREE(devptmx);
-        }
-    } else {
-        if (nttyFDs != 1) {
-            lxcError(VIR_ERR_CONFIG_UNSUPPORTED,
-                     _("Expected exactly one TTY fd, but got %zu"), nttyFDs);
-            goto cleanup;
-        }
+    if (virAsprintf(&devpts, "%s/%s.devpts",
+                    LXC_STATE_DIR, ctrl->def->name) < 0 ||
+        virAsprintf(&ctrl->devptmx, "%s/%s.devpts/ptmx",
+                    LXC_STATE_DIR, ctrl->def->name) < 0) {
+        virReportOOMError();
+        goto cleanup;
     }
 
-    for (i = 0 ; i < nttyFDs ; i++) {
-        if (devptmx) {
-            VIR_DEBUG("Opening tty on private %s", devptmx);
-            if (lxcCreateTty(devptmx,
-                             &containerTtyFDs[i],
-                             &containerTtyPaths[i]) < 0) {
-                virReportSystemError(errno, "%s",
-                                     _("Failed to allocate tty"));
-                goto cleanup;
-            }
-        } else {
-            VIR_DEBUG("Opening tty on shared /dev/ptmx");
-            if (virFileOpenTty(&containerTtyFDs[i],
-                               &containerTtyPaths[i],
-                               0) < 0) {
-                virReportSystemError(errno, "%s",
-                                     _("Failed to allocate tty"));
-                goto cleanup;
-            }
-        }
+    if (virFileMakePath(devpts) < 0) {
+        virReportSystemError(errno,
+                             _("Failed to make path %s"),
+                             devpts);
+        goto cleanup;
     }
 
-    if (lxcSetPersonality(def) < 0)
+    /* XXX should we support gid=X for X!=5 for distros which use
+     * a different gid for tty?  */
+    if (virAsprintf(&opts, "newinstance,ptmxmode=0666,mode=0620,gid=5%s",
+                    (mount_options ? mount_options : "")) < 0) {
+        virReportOOMError();
+        goto cleanup;
+    }
+
+    VIR_DEBUG("Mount devpts on %s type=tmpfs flags=%x, opts=%s",
+              devpts, MS_NOSUID, opts);
+    if (mount("devpts", devpts, "devpts", MS_NOSUID, opts) < 0) {
+        virReportSystemError(errno,
+                             _("Failed to mount devpts on %s"),
+                             devpts);
+        goto cleanup;
+    }
+
+    if (access(ctrl->devptmx, R_OK) < 0) {
+        virReportSystemError(ENOSYS, "%s",
+                             _("Kernel does not support private devpts"));
+        goto cleanup;
+    }
+
+    ret = 0;
+
+cleanup:
+    VIR_FREE(opts);
+    VIR_FREE(devpts);
+    return ret;
+}
+
+
+static int
+virLXCControllerSetupFuse(virLXCControllerPtr ctrl)
+{
+    return lxcSetupFuse(&ctrl->fuse, ctrl->def);
+}
+
+static int
+virLXCControllerSetupConsoles(virLXCControllerPtr ctrl,
+                              char **containerTTYPaths)
+{
+    size_t i;
+
+    for (i = 0 ; i < ctrl->nconsoles ; i++) {
+        VIR_DEBUG("Opening tty on private %s", ctrl->devptmx);
+        if (lxcCreateTty(ctrl->devptmx,
+                         &ctrl->consoles[i].contFd,
+                         &containerTTYPaths[i]) < 0) {
+            virReportSystemError(errno, "%s",
+                                     _("Failed to allocate tty"));
+            return -1;
+        }
+    }
+    return 0;
+}
+
+
+static void
+virLXCControllerEventSend(virLXCControllerPtr ctrl,
+                          int procnr,
+                          xdrproc_t proc,
+                          void *data)
+{
+    virNetMessagePtr msg;
+
+    if (!ctrl->client) {
+        VIR_WARN("Dropping event %d becuase libvirtd is not connected", procnr);
+        return;
+    }
+
+    VIR_DEBUG("Send event %d client=%p", procnr, ctrl->client);
+    if (!(msg = virNetMessageNew(false)))
+        goto error;
+
+    msg->header.prog = virNetServerProgramGetID(ctrl->prog);
+    msg->header.vers = virNetServerProgramGetVersion(ctrl->prog);
+    msg->header.proc = procnr;
+    msg->header.type = VIR_NET_MESSAGE;
+    msg->header.serial = 1;
+    msg->header.status = VIR_NET_OK;
+
+    if (virNetMessageEncodeHeader(msg) < 0)
+        goto error;
+
+    if (virNetMessageEncodePayload(msg, proc, data) < 0)
+        goto error;
+
+    VIR_DEBUG("Queue event %d %zu", procnr, msg->bufferLength);
+    virNetServerClientSendMessage(ctrl->client, msg);
+
+    xdr_free(proc, data);
+    return;
+
+error:
+    virNetMessageFree(msg);
+    xdr_free(proc, data);
+}
+
+
+static int
+virLXCControllerEventSendExit(virLXCControllerPtr ctrl,
+                              int exitstatus)
+{
+    virLXCMonitorExitEventMsg msg;
+
+    VIR_DEBUG("Exit status %d (client=%p)", exitstatus, ctrl->client);
+    memset(&msg, 0, sizeof(msg));
+    switch (exitstatus) {
+    case 0:
+        msg.status = VIR_LXC_MONITOR_EXIT_STATUS_SHUTDOWN;
+        break;
+    case 1:
+        msg.status = VIR_LXC_MONITOR_EXIT_STATUS_REBOOT;
+        break;
+    default:
+        msg.status = VIR_LXC_MONITOR_EXIT_STATUS_ERROR;
+        break;
+    }
+
+    virLXCControllerEventSend(ctrl,
+                              VIR_LXC_MONITOR_PROC_EXIT_EVENT,
+                              (xdrproc_t)xdr_virLXCMonitorExitEventMsg,
+                              (void*)&msg);
+
+    if (ctrl->client) {
+        VIR_DEBUG("Waiting for client to complete dispatch");
+        ctrl->inShutdown = true;
+        virNetServerClientDelayedClose(ctrl->client);
+        virNetServerRun(ctrl->server);
+    }
+    VIR_DEBUG("Client has gone away");
+    return 0;
+}
+
+
+static int
+virLXCControllerEventSendInit(virLXCControllerPtr ctrl,
+                              pid_t initpid)
+{
+    virLXCMonitorInitEventMsg msg;
+
+    VIR_DEBUG("Init pid %llu", (unsigned long long)initpid);
+    memset(&msg, 0, sizeof(msg));
+    msg.initpid = initpid;
+
+    virLXCControllerEventSend(ctrl,
+                              VIR_LXC_MONITOR_PROC_INIT_EVENT,
+                              (xdrproc_t)xdr_virLXCMonitorInitEventMsg,
+                              (void*)&msg);
+    return 0;
+}
+
+
+static int
+virLXCControllerRun(virLXCControllerPtr ctrl)
+{
+    int rc = -1;
+    int control[2] = { -1, -1};
+    int containerhandshake[2] = { -1, -1 };
+    char **containerTTYPaths = NULL;
+    size_t i;
+    virCgroupPtr cgroup = NULL;
+
+    if (VIR_ALLOC_N(containerTTYPaths, ctrl->nconsoles) < 0) {
+        virReportOOMError();
+        goto cleanup;
+    }
+
+    if (socketpair(PF_UNIX, SOCK_STREAM, 0, control) < 0) {
+        virReportSystemError(errno, "%s",
+                             _("sockpair failed"));
+        goto cleanup;
+    }
+
+    if (socketpair(PF_UNIX, SOCK_STREAM, 0, containerhandshake) < 0) {
+        virReportSystemError(errno, "%s",
+                             _("socketpair failed"));
+        goto cleanup;
+    }
+
+    if (virLXCControllerSetupPrivateNS() < 0)
         goto cleanup;
 
-    if ((container = lxcContainerStart(def,
-                                       securityDriver,
-                                       nveths,
-                                       veths,
-                                       control[1],
-                                       containerhandshake[1],
-                                       containerTtyPaths,
-                                       nttyFDs)) < 0)
+    if (!(cgroup = virLXCCgroupJoin(ctrl->def)))
+        goto cleanup;
+
+    if (virLXCControllerSetupLoopDevices(ctrl) < 0)
+        goto cleanup;
+
+    if (virLXCControllerSetupResourceLimits(ctrl, cgroup) < 0)
+        goto cleanup;
+
+    if (virLXCControllerSetupDevPTS(ctrl) < 0)
+        goto cleanup;
+
+    if (virLXCControllerSetupFuse(ctrl) < 0)
+        goto cleanup;
+
+    if (virLXCControllerSetupConsoles(ctrl, containerTTYPaths) < 0)
+        goto cleanup;
+
+    if (lxcSetPersonality(ctrl->def) < 0)
+        goto cleanup;
+
+    if ((ctrl->initpid = lxcContainerStart(ctrl->def,
+                                           ctrl->securityManager,
+                                           ctrl->nveths,
+                                           ctrl->veths,
+                                           control[1],
+                                           containerhandshake[1],
+                                           containerTTYPaths,
+                                           ctrl->nconsoles)) < 0)
         goto cleanup;
     VIR_FORCE_CLOSE(control[1]);
     VIR_FORCE_CLOSE(containerhandshake[1]);
 
-    if (lxcControllerMoveInterfaces(nveths, veths, container) < 0)
+    if (virLXCControllerMoveInterfaces(ctrl) < 0)
         goto cleanup;
 
     if (lxcContainerSendContinue(control[0]) < 0) {
@@ -1572,61 +1484,33 @@ lxcControllerRun(virDomainDefPtr def,
 
     /* Now the container is fully setup... */
 
-    /* ...we can close the loop devices... */
-
-    for (i = 0 ; i < nloopDevs ; i++)
-        VIR_FORCE_CLOSE(loopDevs[i]);
-
     /* ...and reduce our privileges */
     if (lxcControllerClearCapabilities() < 0)
         goto cleanup;
 
-    if (lxcContainerSendContinue(handshakefd) < 0) {
-        virReportSystemError(errno, "%s",
-                             _("error sending continue signal to parent"));
+    if (virLXCControllerDaemonHandshake(ctrl) < 0)
         goto cleanup;
-    }
-    VIR_FORCE_CLOSE(handshakefd);
 
-    if (virSetBlocking(monitor, false) < 0 ||
-        virSetBlocking(client, false) < 0) {
-        virReportSystemError(errno, "%s",
-                             _("Unable to set file descriptor non-blocking"));
-        goto cleanup;
-    }
-    for (i = 0 ; i < nttyFDs ; i++) {
-        if (virSetBlocking(ttyFDs[i], false) < 0 ||
-            virSetBlocking(containerTtyFDs[i], false) < 0) {
-            virReportSystemError(errno, "%s",
-                                 _("Unable to set file descriptor non-blocking"));
+    for (i = 0 ; i < ctrl->nconsoles ; i++)
+        if (virLXCControllerConsoleSetNonblocking(&(ctrl->consoles[i])) < 0)
             goto cleanup;
-        }
-    }
 
-    rc = lxcControllerMain(monitor, client, ttyFDs, containerTtyFDs, nttyFDs, container);
-    monitor = client = -1;
+    rc = virLXCControllerMain(ctrl);
+
+    virLXCControllerEventSendExit(ctrl, rc);
 
 cleanup:
-    VIR_FREE(devptmx);
-    VIR_FREE(devpts);
     VIR_FORCE_CLOSE(control[0]);
     VIR_FORCE_CLOSE(control[1]);
-    VIR_FORCE_CLOSE(handshakefd);
     VIR_FORCE_CLOSE(containerhandshake[0]);
     VIR_FORCE_CLOSE(containerhandshake[1]);
 
-    for (i = 0 ; i < nttyFDs ; i++)
-        VIR_FREE(containerTtyPaths[i]);
-    VIR_FREE(containerTtyPaths);
-    for (i = 0 ; i < nttyFDs ; i++)
-        VIR_FORCE_CLOSE(containerTtyFDs[i]);
-    VIR_FREE(containerTtyFDs);
+    for (i = 0 ; i < ctrl->nconsoles ; i++)
+        VIR_FREE(containerTTYPaths[i]);
+    VIR_FREE(containerTTYPaths);
 
-    for (i = 0 ; i < nloopDevs ; i++)
-        VIR_FORCE_CLOSE(loopDevs[i]);
-    VIR_FREE(loopDevs);
-
-    virPidAbort(container);
+    virCgroupFree(&cgroup);
+    virLXCControllerStopInit(ctrl);
 
     return rc;
 }
@@ -1636,17 +1520,11 @@ int main(int argc, char *argv[])
 {
     pid_t pid;
     int rc = 1;
-    int client;
     char *name = NULL;
-    int nveths = 0;
+    size_t nveths = 0;
     char **veths = NULL;
-    int monitor = -1;
-    int handshakefd = -1;
+    int handshakeFd = -1;
     int bg = 0;
-    virCapsPtr caps = NULL;
-    virDomainDefPtr def = NULL;
-    char *configFile = NULL;
-    char *sockpath = NULL;
     const struct option options[] = {
         { "background", 0, NULL, 'b' },
         { "name",   1, NULL, 'n' },
@@ -1659,7 +1537,9 @@ int main(int argc, char *argv[])
     };
     int *ttyFDs = NULL;
     size_t nttyFDs = 0;
-    virSecurityManagerPtr securityDriver = NULL;
+    virLXCControllerPtr ctrl = NULL;
+    size_t i;
+    const char *securityDriver = "none";
 
     if (setlocale(LC_ALL, "") == NULL ||
         bindtextdomain(PACKAGE, LOCALEDIR) == NULL ||
@@ -1667,6 +1547,9 @@ int main(int argc, char *argv[])
         fprintf(stderr, _("%s: initialization failed\n"), argv[0]);
         exit(EXIT_FAILURE);
     }
+
+    /* Initialize logging */
+    virLogSetFromEnv();
 
     while (1) {
         int c;
@@ -1712,7 +1595,7 @@ int main(int argc, char *argv[])
             break;
 
         case 's':
-            if (virStrToLong_i(optarg, NULL, 10, &handshakefd) < 0) {
+            if (virStrToLong_i(optarg, NULL, 10, &handshakeFd) < 0) {
                 fprintf(stderr, "malformed --handshakefd argument '%s'",
                         optarg);
                 goto cleanup;
@@ -1720,11 +1603,7 @@ int main(int argc, char *argv[])
             break;
 
         case 'S':
-            if (!(securityDriver = virSecurityManagerNew(optarg, false, false, false))) {
-                fprintf(stderr, "Cannot create security manager '%s'",
-                        optarg);
-                goto cleanup;
-            }
+            securityDriver = optarg;
             break;
 
         case 'h':
@@ -1746,20 +1625,12 @@ int main(int argc, char *argv[])
         }
     }
 
-    if (securityDriver == NULL) {
-        if (!(securityDriver = virSecurityManagerNew("none", false, false, false))) {
-            fprintf(stderr, "%s: cannot initialize nop security manager", argv[0]);
-            goto cleanup;
-        }
-    }
-
-
     if (name == NULL) {
         fprintf(stderr, "%s: missing --name argument for configuration\n", argv[0]);
         goto cleanup;
     }
 
-    if (handshakefd < 0) {
+    if (handshakeFd < 0) {
         fprintf(stderr, "%s: missing --handshake argument for container PTY\n",
                 argv[0]);
         goto cleanup;
@@ -1772,28 +1643,42 @@ int main(int argc, char *argv[])
 
     virEventRegisterDefaultImpl();
 
-    if ((caps = lxcCapsInit(NULL)) == NULL)
+    if (!(ctrl = virLXCControllerNew(name)))
         goto cleanup;
 
-    if ((configFile = virDomainConfigFile(LXC_STATE_DIR,
-                                          name)) == NULL)
+    ctrl->handshakeFd = handshakeFd;
+
+    if (!(ctrl->securityManager = virSecurityManagerNew(securityDriver,
+                                                        LXC_DRIVER_NAME,
+                                                        false, false, false)))
         goto cleanup;
 
-    if ((def = virDomainDefParseFile(caps, configFile,
-                                     1 << VIR_DOMAIN_VIRT_LXC,
-                                     VIR_DOMAIN_XML_INACTIVE)) == NULL)
-        goto cleanup;
-
-    if (def->nnets != nveths) {
-        fprintf(stderr, "%s: expecting %d veths, but got %d\n",
-                argv[0], def->nnets, nveths);
-        goto cleanup;
+    if (ctrl->def->seclabels) {
+        VIR_DEBUG("Security model %s type %s label %s imagelabel %s",
+                  NULLSTR(ctrl->def->seclabels[0]->model),
+                  virDomainSeclabelTypeToString(ctrl->def->seclabels[0]->type),
+                  NULLSTR(ctrl->def->seclabels[0]->label),
+                  NULLSTR(ctrl->def->seclabels[0]->imagelabel));
+    } else {
+        VIR_DEBUG("Security model not initialized");
     }
 
-    if ((sockpath = lxcMonitorPath(def)) == NULL)
+    ctrl->veths = veths;
+    ctrl->nveths = nveths;
+
+    for (i = 0 ; i < nttyFDs ; i++) {
+        if (virLXCControllerAddConsole(ctrl, ttyFDs[i]) < 0)
+            goto cleanup;
+        ttyFDs[i] = -1;
+    }
+
+    if (virLXCControllerValidateNICs(ctrl) < 0)
         goto cleanup;
 
-    if ((monitor = lxcMonitorServer(sockpath)) < 0)
+    if (virLXCControllerValidateConsoles(ctrl) < 0)
+        goto cleanup;
+
+    if (virLXCControllerSetupServer(ctrl) < 0)
         goto cleanup;
 
     if (bg) {
@@ -1814,7 +1699,7 @@ int main(int argc, char *argv[])
             _exit(0);
         }
 
-        /* Don't hold onto any cwd we inherit from libvirtd either */
+        /* Don't hold on to any cwd we inherit from libvirtd either */
         if (chdir("/") < 0) {
             virReportSystemError(errno, "%s",
                                  _("Unable to change to root dir"));
@@ -1828,27 +1713,26 @@ int main(int argc, char *argv[])
         }
     }
 
-    /* Initialize logging */
-    virLogSetFromEnv();
-
-    /* Accept initial client which is the libvirtd daemon */
-    if ((client = accept(monitor, NULL, 0)) < 0) {
-        virReportSystemError(errno, "%s",
-                             _("Failed to accept a connection from driver"));
-        goto cleanup;
-    }
-
-    rc = lxcControllerRun(def, securityDriver,
-                          nveths, veths, monitor, client,
-                          ttyFDs, nttyFDs, handshakefd);
+    rc = virLXCControllerRun(ctrl);
 
 cleanup:
-    if (def)
-        virPidFileDelete(LXC_STATE_DIR, def->name);
-    lxcControllerCleanupInterfaces(nveths, veths);
-    if (sockpath)
-        unlink(sockpath);
-    VIR_FREE(sockpath);
+    if (rc < 0) {
+        virErrorPtr err = virGetLastError();
+        if (err && err->message)
+            fprintf(stderr, "%s\n", err->message);
+        else
+            fprintf(stderr, "%s\n",
+                    _("Unknown failure in libvirt_lxc startup"));
+    }
 
-    return rc ? EXIT_FAILURE : EXIT_SUCCESS;
+    virPidFileDelete(LXC_STATE_DIR, name);
+    if (ctrl)
+        virLXCControllerDeleteInterfaces(ctrl);
+    for (i = 0 ; i < nttyFDs ; i++)
+        VIR_FORCE_CLOSE(ttyFDs[i]);
+    VIR_FREE(ttyFDs);
+
+    virLXCControllerFree(ctrl);
+
+    return rc < 0? EXIT_FAILURE : EXIT_SUCCESS;
 }

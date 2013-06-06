@@ -207,8 +207,10 @@
       new API are:
     </p>
         <ol><li>define the public API</li><li>define the internal driver API</li><li>implement the public API</li><li>implement the remote protocol:
-        <ol><li>define the wire protocol format</li><li>implement the RPC client</li><li>implement the server side dispatcher</li></ol></li><li>use new API where appropriate in drivers</li><li>add virsh support</li><li>add common handling for new API</li><li>for each driver that can support the new API:
-        <ol><li>add prerequisite support</li><li>fully implement new API</li></ol></li></ol>
+        <ol><li>define the wire protocol format</li><li>implement the RPC client</li><li>implement the server side dispatcher</li></ol>
+      </li><li>use new API where appropriate in drivers</li><li>add virsh support</li><li>add common handling for new API</li><li>for each driver that can support the new API:
+        <ol><li>add prerequisite support</li><li>fully implement new API</li></ol>
+      </li></ol>
         <p>
       It is, of course, possible to implement the pieces in any order, but
       if the development tasks are completed in the order listed, the code

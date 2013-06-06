@@ -1,6 +1,6 @@
-# serial 9
+# serial 11
 
-# Copyright (C) 2009-2012 Free Software Foundation, Inc.
+# Copyright (C) 2009-2013 Free Software Foundation, Inc.
 #
 # This file is free software; the Free Software Foundation
 # gives unlimited permission to copy and/or distribute it,
@@ -47,7 +47,13 @@ AC_DEFUN([gl_FUNC_STAT],
       return result;
            ]])],
          [gl_cv_func_stat_file_slash=yes], [gl_cv_func_stat_file_slash=no],
-         [gl_cv_func_stat_file_slash="guessing no"])
+         [case "$host_os" in
+                    # Guess yes on glibc systems.
+            *-gnu*) gl_cv_func_stat_file_slash="guessing yes" ;;
+                    # If we don't know, assume the worst.
+            *)      gl_cv_func_stat_file_slash="guessing no" ;;
+          esac
+         ])
        rm -f conftest.tmp conftest.lnk])
   case $gl_cv_func_stat_dir_slash in
     *no) REPLACE_STAT=1
@@ -62,8 +68,4 @@ AC_DEFUN([gl_FUNC_STAT],
 ])
 
 # Prerequisites of lib/stat.c.
-AC_DEFUN([gl_PREREQ_STAT],
-[
-  AC_REQUIRE([AC_C_INLINE])
-  :
-])
+AC_DEFUN([gl_PREREQ_STAT], [:])

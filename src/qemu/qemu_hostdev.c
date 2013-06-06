@@ -1,7 +1,7 @@
 /*
  * qemu_hostdev.c: QEMU hostdev management
  *
- * Copyright (C) 2006-2007, 2009-2012 Red Hat, Inc.
+ * Copyright (C) 2006-2007, 2009-2013 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -15,8 +15,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Author: Daniel P. Berrange <berrange@redhat.com>
  */
@@ -24,107 +24,122 @@
 #include <config.h>
 
 #include "qemu_hostdev.h"
-#include "logging.h"
-#include "virterror_internal.h"
-#include "memory.h"
-#include "pci.h"
-#include "hostusb.h"
+#include "virlog.h"
+#include "virerror.h"
+#include "viralloc.h"
+#include "virpci.h"
+#include "virusb.h"
 #include "virnetdev.h"
 
-static pciDeviceList *
+#define VIR_FROM_THIS VIR_FROM_QEMU
+
+static virPCIDeviceListPtr
 qemuGetPciHostDeviceList(virDomainHostdevDefPtr *hostdevs, int nhostdevs)
 {
-    pciDeviceList *list;
+    virPCIDeviceListPtr list;
     int i;
 
-    if (!(list = pciDeviceListNew()))
+    if (!(list = virPCIDeviceListNew()))
         return NULL;
 
     for (i = 0 ; i < nhostdevs ; i++) {
         virDomainHostdevDefPtr hostdev = hostdevs[i];
-        pciDevice *dev;
+        virPCIDevicePtr dev;
 
         if (hostdev->mode != VIR_DOMAIN_HOSTDEV_MODE_SUBSYS)
             continue;
         if (hostdev->source.subsys.type != VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI)
             continue;
 
-        dev = pciGetDevice(hostdev->source.subsys.u.pci.domain,
-                           hostdev->source.subsys.u.pci.bus,
-                           hostdev->source.subsys.u.pci.slot,
-                           hostdev->source.subsys.u.pci.function);
+        dev = virPCIDeviceNew(hostdev->source.subsys.u.pci.addr.domain,
+                              hostdev->source.subsys.u.pci.addr.bus,
+                              hostdev->source.subsys.u.pci.addr.slot,
+                              hostdev->source.subsys.u.pci.addr.function);
         if (!dev) {
-            pciDeviceListFree(list);
+            virObjectUnref(list);
             return NULL;
         }
 
-        if (pciDeviceListAdd(list, dev) < 0) {
-            pciFreeDevice(dev);
-            pciDeviceListFree(list);
+        if (virPCIDeviceListAdd(list, dev) < 0) {
+            virPCIDeviceFree(dev);
+            virObjectUnref(list);
             return NULL;
         }
 
-        pciDeviceSetManaged(dev, hostdev->managed);
+        virPCIDeviceSetManaged(dev, hostdev->managed);
+        if (hostdev->source.subsys.u.pci.backend
+            == VIR_DOMAIN_HOSTDEV_PCI_BACKEND_VFIO) {
+            virPCIDeviceSetStubDriver(dev, "vfio-pci");
+        } else {
+            virPCIDeviceSetStubDriver(dev, "pci-stub");
+        }
     }
 
     return list;
 }
 
-static pciDeviceList *
-qemuGetActivePciHostDeviceList(struct qemud_driver *driver,
+/*
+ * Pre-condition: driver->activePciHostdevs is locked
+ */
+static virPCIDeviceListPtr
+qemuGetActivePciHostDeviceList(virQEMUDriverPtr driver,
                                virDomainHostdevDefPtr *hostdevs,
                                int nhostdevs)
 {
-    pciDeviceList *list;
+    virPCIDeviceListPtr list;
     int i;
 
-    if (!(list = pciDeviceListNew()))
+    if (!(list = virPCIDeviceListNew()))
         return NULL;
 
     for (i = 0 ; i < nhostdevs ; i++) {
         virDomainHostdevDefPtr hostdev = hostdevs[i];
-        pciDevice *dev;
-        pciDevice *activeDev;
+        virPCIDevicePtr dev;
+        virPCIDevicePtr activeDev;
 
         if (hostdev->mode != VIR_DOMAIN_HOSTDEV_MODE_SUBSYS)
             continue;
         if (hostdev->source.subsys.type != VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI)
             continue;
 
-        dev = pciGetDevice(hostdev->source.subsys.u.pci.domain,
-                           hostdev->source.subsys.u.pci.bus,
-                           hostdev->source.subsys.u.pci.slot,
-                           hostdev->source.subsys.u.pci.function);
+        dev = virPCIDeviceNew(hostdev->source.subsys.u.pci.addr.domain,
+                              hostdev->source.subsys.u.pci.addr.bus,
+                              hostdev->source.subsys.u.pci.addr.slot,
+                              hostdev->source.subsys.u.pci.addr.function);
         if (!dev) {
-            pciDeviceListFree(list);
+            virObjectUnref(list);
             return NULL;
         }
 
-        if ((activeDev = pciDeviceListFind(driver->activePciHostdevs, dev))) {
-            if (pciDeviceListAdd(list, activeDev) < 0) {
-                pciFreeDevice(dev);
-                pciDeviceListFree(list);
+        if ((activeDev = virPCIDeviceListFind(driver->activePciHostdevs, dev))) {
+            if (virPCIDeviceListAdd(list, activeDev) < 0) {
+                virPCIDeviceFree(dev);
+                virObjectUnref(list);
                 return NULL;
             }
         }
 
-        pciFreeDevice(dev);
+        virPCIDeviceFree(dev);
     }
 
     return list;
 }
 
-int qemuUpdateActivePciHostdevs(struct qemud_driver *driver,
+int qemuUpdateActivePciHostdevs(virQEMUDriverPtr driver,
                                 virDomainDefPtr def)
 {
     virDomainHostdevDefPtr hostdev = NULL;
     int i;
+    int ret = -1;
 
     if (!def->nhostdevs)
         return 0;
 
+    virObjectLock(driver->activePciHostdevs);
+    virObjectLock(driver->inactivePciHostdevs);
+
     for (i = 0; i < def->nhostdevs; i++) {
-        pciDevice *dev = NULL;
+        virPCIDevicePtr dev = NULL;
         hostdev = def->hostdevs[i];
 
         if (hostdev->mode != VIR_DOMAIN_HOSTDEV_MODE_SUBSYS)
@@ -132,43 +147,54 @@ int qemuUpdateActivePciHostdevs(struct qemud_driver *driver,
         if (hostdev->source.subsys.type != VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI)
             continue;
 
-        dev = pciGetDevice(hostdev->source.subsys.u.pci.domain,
-                           hostdev->source.subsys.u.pci.bus,
-                           hostdev->source.subsys.u.pci.slot,
-                           hostdev->source.subsys.u.pci.function);
+        dev = virPCIDeviceNew(hostdev->source.subsys.u.pci.addr.domain,
+                              hostdev->source.subsys.u.pci.addr.bus,
+                              hostdev->source.subsys.u.pci.addr.slot,
+                              hostdev->source.subsys.u.pci.addr.function);
 
         if (!dev)
-            return -1;
+            goto cleanup;
 
-        pciDeviceSetManaged(dev, hostdev->managed);
-        pciDeviceSetUsedBy(dev, def->name);
+        virPCIDeviceSetManaged(dev, hostdev->managed);
+        if (hostdev->source.subsys.u.pci.backend
+            == VIR_DOMAIN_HOSTDEV_PCI_BACKEND_VFIO) {
+            virPCIDeviceSetStubDriver(dev, "vfio-pci");
+        } else {
+            virPCIDeviceSetStubDriver(dev, "pci-stub");
+        }
+        virPCIDeviceSetUsedBy(dev, def->name);
 
         /* Setup the original states for the PCI device */
-        pciDeviceSetUnbindFromStub(dev, hostdev->origstates.states.pci.unbind_from_stub);
-        pciDeviceSetRemoveSlot(dev, hostdev->origstates.states.pci.remove_slot);
-        pciDeviceSetReprobe(dev, hostdev->origstates.states.pci.reprobe);
+        virPCIDeviceSetUnbindFromStub(dev, hostdev->origstates.states.pci.unbind_from_stub);
+        virPCIDeviceSetRemoveSlot(dev, hostdev->origstates.states.pci.remove_slot);
+        virPCIDeviceSetReprobe(dev, hostdev->origstates.states.pci.reprobe);
 
-        if (pciDeviceListAdd(driver->activePciHostdevs, dev) < 0) {
-            pciFreeDevice(dev);
-            return -1;
+        if (virPCIDeviceListAdd(driver->activePciHostdevs, dev) < 0) {
+            virPCIDeviceFree(dev);
+            goto cleanup;
         }
     }
 
-    return 0;
+cleanup:
+    virObjectUnlock(driver->activePciHostdevs);
+    virObjectUnlock(driver->inactivePciHostdevs);
+    return ret;
 }
 
 int
-qemuUpdateActiveUsbHostdevs(struct qemud_driver *driver,
+qemuUpdateActiveUsbHostdevs(virQEMUDriverPtr driver,
                             virDomainDefPtr def)
 {
     virDomainHostdevDefPtr hostdev = NULL;
     int i;
+    int ret = -1;
 
     if (!def->nhostdevs)
         return 0;
 
+    virObjectLock(driver->activeUsbHostdevs);
     for (i = 0; i < def->nhostdevs; i++) {
-        usbDevice *usb = NULL;
+        virUSBDevicePtr usb = NULL;
         hostdev = def->hostdevs[i];
 
         if (hostdev->mode != VIR_DOMAIN_HOSTDEV_MODE_SUBSYS)
@@ -176,8 +202,9 @@ qemuUpdateActiveUsbHostdevs(struct qemud_driver *driver,
         if (hostdev->source.subsys.type != VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_USB)
             continue;
 
-        usb = usbGetDevice(hostdev->source.subsys.u.usb.bus,
-                           hostdev->source.subsys.u.usb.device);
+        usb = virUSBDeviceNew(hostdev->source.subsys.u.usb.bus,
+                              hostdev->source.subsys.u.usb.device,
+                              NULL);
         if (!usb) {
             VIR_WARN("Unable to reattach USB device %03d.%03d on domain %s",
                      hostdev->source.subsys.u.usb.bus,
@@ -186,28 +213,30 @@ qemuUpdateActiveUsbHostdevs(struct qemud_driver *driver,
             continue;
         }
 
-        usbDeviceSetUsedBy(usb, def->name);
+        virUSBDeviceSetUsedBy(usb, def->name);
 
-        if (usbDeviceListAdd(driver->activeUsbHostdevs, usb) < 0) {
-            usbFreeDevice(usb);
-            return -1;
+        if (virUSBDeviceListAdd(driver->activeUsbHostdevs, usb) < 0) {
+            virUSBDeviceFree(usb);
+            goto cleanup;
         }
     }
-
-    return 0;
+    ret = 0;
+cleanup:
+    virObjectUnlock(driver->activeUsbHostdevs);
+    return ret;
 }
 
 static int
 qemuDomainHostdevPciSysfsPath(virDomainHostdevDefPtr hostdev, char **sysfs_path)
 {
-    struct pci_config_address config_address;
+    virPCIDeviceAddress config_address;
 
-    config_address.domain = hostdev->source.subsys.u.pci.domain;
-    config_address.bus = hostdev->source.subsys.u.pci.bus;
-    config_address.slot = hostdev->source.subsys.u.pci.slot;
-    config_address.function = hostdev->source.subsys.u.pci.function;
+    config_address.domain = hostdev->source.subsys.u.pci.addr.domain;
+    config_address.bus = hostdev->source.subsys.u.pci.addr.bus;
+    config_address.slot = hostdev->source.subsys.u.pci.addr.slot;
+    config_address.function = hostdev->source.subsys.u.pci.addr.function;
 
-    return pciConfigAddressToSysfsFile(&config_address, sysfs_path);
+    return virPCIDeviceAddressGetSysfsFile(&config_address, sysfs_path);
 }
 
 int
@@ -219,7 +248,7 @@ qemuDomainHostdevIsVirtualFunction(virDomainHostdevDefPtr hostdev)
     if (qemuDomainHostdevPciSysfsPath(hostdev, &sysfs_path) < 0)
         return ret;
 
-    ret = pciDeviceIsVirtualFunction(sysfs_path);
+    ret = virPCIIsVirtualFunction(sysfs_path);
 
     VIR_FREE(sysfs_path);
 
@@ -236,12 +265,12 @@ qemuDomainHostdevNetDevice(virDomainHostdevDefPtr hostdev, char **linkdev,
     if (qemuDomainHostdevPciSysfsPath(hostdev, &sysfs_path) < 0)
         return ret;
 
-    if (pciDeviceIsVirtualFunction(sysfs_path) == 1) {
-        if (pciDeviceGetVirtualFunctionInfo(sysfs_path, linkdev,
-                                            vf) < 0)
+    if (virPCIIsVirtualFunction(sysfs_path) == 1) {
+        if (virPCIGetVirtualFunctionInfo(sysfs_path, linkdev,
+                                         vf) < 0)
             goto cleanup;
     } else {
-        if (pciDeviceNetName(sysfs_path, linkdev) < 0)
+        if (virPCIGetNetName(sysfs_path, linkdev) < 0)
             goto cleanup;
         *vf = -1;
     }
@@ -257,7 +286,7 @@ cleanup:
 static int
 qemuDomainHostdevNetConfigVirtPortProfile(const char *linkdev, int vf,
                                           virNetDevVPortProfilePtr virtPort,
-                                          const unsigned char *macaddr,
+                                          const virMacAddrPtr macaddr,
                                           const unsigned char *uuid,
                                           int associate)
 {
@@ -266,15 +295,16 @@ qemuDomainHostdevNetConfigVirtPortProfile(const char *linkdev, int vf,
     if (!virtPort)
         return ret;
 
-    switch(virtPort->virtPortType) {
+    switch (virtPort->virtPortType) {
     case VIR_NETDEV_VPORT_PROFILE_NONE:
     case VIR_NETDEV_VPORT_PROFILE_OPENVSWITCH:
     case VIR_NETDEV_VPORT_PROFILE_8021QBG:
     case VIR_NETDEV_VPORT_PROFILE_LAST:
-        qemuReportError(VIR_ERR_CONFIG_UNSUPPORTED, _("virtualport type %s is "
-                        "currently not supported on interfaces of type "
-                        "hostdev"),
-                        virNetDevVPortTypeToString(virtPort->virtPortType));
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                       _("virtualport type %s is "
+                         "currently not supported on interfaces of type "
+                         "hostdev"),
+                       virNetDevVPortTypeToString(virtPort->virtPortType));
         break;
 
     case VIR_NETDEV_VPORT_PROFILE_8021QBH:
@@ -298,6 +328,7 @@ qemuDomainHostdevNetConfigReplace(virDomainHostdevDefPtr hostdev,
                                   char *stateDir)
 {
     char *linkdev = NULL;
+    virNetDevVlanPtr vlan;
     virNetDevVPortProfilePtr virtPort;
     int ret = -1;
     int vf = -1;
@@ -307,28 +338,55 @@ qemuDomainHostdevNetConfigReplace(virDomainHostdevDefPtr hostdev,
 
     isvf = qemuDomainHostdevIsVirtualFunction(hostdev);
     if (isvf <= 0) {
-        qemuReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                        _("Interface type hostdev is currently supported on"
-                        " SR-IOV Virtual Functions only"));
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("Interface type hostdev is currently supported on"
+                         " SR-IOV Virtual Functions only"));
         return ret;
     }
 
     if (qemuDomainHostdevNetDevice(hostdev, &linkdev, &vf) < 0)
         return ret;
 
+    vlan = virDomainNetGetActualVlan(hostdev->parent.data.net);
     virtPort = virDomainNetGetActualVirtPortProfile(
                                  hostdev->parent.data.net);
-    if (virtPort)
+    if (virtPort) {
+        if (vlan) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("direct setting of the vlan tag is not allowed "
+                             "for hostdev devices using %s mode"),
+                           virNetDevVPortTypeToString(virtPort->virtPortType));
+            goto cleanup;
+        }
         ret = qemuDomainHostdevNetConfigVirtPortProfile(linkdev, vf,
-                            virtPort, hostdev->parent.data.net->mac, uuid,
+                            virtPort, &hostdev->parent.data.net->mac, uuid,
                             port_profile_associate);
-    else
-        /* Set only mac */
-        ret = virNetDevReplaceNetConfig(linkdev, vf,
-                                        hostdev->parent.data.net->mac, vlanid,
-                                        stateDir);
-    VIR_FREE(linkdev);
+    } else {
+        /* Set only mac and vlan */
+        if (vlan) {
+            if (vlan->nTags != 1 || vlan->trunk) {
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                               _("vlan trunking is not supported "
+                                 "by SR-IOV network devices"));
+                goto cleanup;
+            }
+            if (vf == -1) {
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                               _("vlan can only be set for SR-IOV VFs, but "
+                                 "%s is not a VF"), linkdev);
+                goto cleanup;
+            }
+            vlanid = vlan->tag[0];
+        } else  if (vf >= 0) {
+            vlanid = 0; /* assure any current vlan tag is reset */
+        }
 
+        ret = virNetDevReplaceNetConfig(linkdev, vf,
+                                        &hostdev->parent.data.net->mac,
+                                        vlanid, stateDir);
+    }
+cleanup:
+    VIR_FREE(linkdev);
     return ret;
 }
 
@@ -345,9 +403,9 @@ qemuDomainHostdevNetConfigRestore(virDomainHostdevDefPtr hostdev,
 
     isvf = qemuDomainHostdevIsVirtualFunction(hostdev);
     if (isvf <= 0) {
-        qemuReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                        _("Interface type hostdev is currently supported on"
-                        " SR-IOV Virtual Functions only"));
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("Interface type hostdev is currently supported on"
+                         " SR-IOV Virtual Functions only"));
         return ret;
     }
 
@@ -358,7 +416,7 @@ qemuDomainHostdevNetConfigRestore(virDomainHostdevDefPtr hostdev,
                                  hostdev->parent.data.net);
     if (virtPort)
         ret = qemuDomainHostdevNetConfigVirtPortProfile(linkdev, vf, virtPort,
-                                          hostdev->parent.data.net->mac, NULL,
+                                          &hostdev->parent.data.net->mac, NULL,
                                           port_profile_associate);
     else
         ret = virNetDevRestoreNetConfig(linkdev, vf, stateDir);
@@ -368,19 +426,23 @@ qemuDomainHostdevNetConfigRestore(virDomainHostdevDefPtr hostdev,
     return ret;
 }
 
-int qemuPrepareHostdevPCIDevices(struct qemud_driver *driver,
+int qemuPrepareHostdevPCIDevices(virQEMUDriverPtr driver,
                                  const char *name,
                                  const unsigned char *uuid,
                                  virDomainHostdevDefPtr *hostdevs,
                                  int nhostdevs)
 {
-    pciDeviceList *pcidevs;
+    virPCIDeviceListPtr pcidevs;
     int last_processed_hostdev_vf = -1;
     int i;
     int ret = -1;
+    virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
+
+    virObjectLock(driver->activePciHostdevs);
+    virObjectLock(driver->inactivePciHostdevs);
 
     if (!(pcidevs = qemuGetPciHostDeviceList(hostdevs, nhostdevs)))
-        return -1;
+        goto cleanup;
 
     /* We have to use 9 loops here. *All* devices must
      * be detached before we reset any of them, because
@@ -394,48 +456,48 @@ int qemuPrepareHostdevPCIDevices(struct qemud_driver *driver,
      * to pci-stub.ko
      */
 
-    for (i = 0; i < pciDeviceListCount(pcidevs); i++) {
-        pciDevice *dev = pciDeviceListGet(pcidevs, i);
-        pciDevice *other;
+    for (i = 0; i < virPCIDeviceListCount(pcidevs); i++) {
+        virPCIDevicePtr dev = virPCIDeviceListGet(pcidevs, i);
+        virPCIDevicePtr other;
 
-        if (!pciDeviceIsAssignable(dev, !driver->relaxedACS)) {
-            qemuReportError(VIR_ERR_OPERATION_INVALID,
-                            _("PCI device %s is not assignable"),
-                            pciDeviceGetName(dev));
+        if (!virPCIDeviceIsAssignable(dev, !cfg->relaxedACS)) {
+            virReportError(VIR_ERR_OPERATION_INVALID,
+                           _("PCI device %s is not assignable"),
+                           virPCIDeviceGetName(dev));
             goto cleanup;
         }
         /* The device is in use by other active domain if
          * the dev is in list driver->activePciHostdevs.
          */
-        if ((other = pciDeviceListFind(driver->activePciHostdevs, dev))) {
-            const char *other_name = pciDeviceGetUsedBy(other);
+        if ((other = virPCIDeviceListFind(driver->activePciHostdevs, dev))) {
+            const char *other_name = virPCIDeviceGetUsedBy(other);
 
             if (other_name)
-                qemuReportError(VIR_ERR_OPERATION_INVALID,
-                                _("PCI device %s is in use by domain %s"),
-                                pciDeviceGetName(dev), other_name);
+                virReportError(VIR_ERR_OPERATION_INVALID,
+                               _("PCI device %s is in use by domain %s"),
+                               virPCIDeviceGetName(dev), other_name);
             else
-                qemuReportError(VIR_ERR_OPERATION_INVALID,
-                                _("PCI device %s is already in use"),
-                                pciDeviceGetName(dev));
+                virReportError(VIR_ERR_OPERATION_INVALID,
+                               _("PCI device %s is already in use"),
+                               virPCIDeviceGetName(dev));
             goto cleanup;
         }
     }
 
-    /* Loop 2: detach managed devices */
-    for (i = 0; i < pciDeviceListCount(pcidevs); i++) {
-        pciDevice *dev = pciDeviceListGet(pcidevs, i);
-        if (pciDeviceGetManaged(dev) &&
-            pciDettachDevice(dev, driver->activePciHostdevs, NULL) < 0)
+    /* Loop 2: detach managed devices (i.e. bind to appropriate stub driver) */
+    for (i = 0; i < virPCIDeviceListCount(pcidevs); i++) {
+        virPCIDevicePtr dev = virPCIDeviceListGet(pcidevs, i);
+        if (virPCIDeviceGetManaged(dev) &&
+            virPCIDeviceDetach(dev, driver->activePciHostdevs, NULL, NULL) < 0)
             goto reattachdevs;
     }
 
     /* Loop 3: Now that all the PCI hostdevs have been detached, we
      * can safely reset them */
-    for (i = 0; i < pciDeviceListCount(pcidevs); i++) {
-        pciDevice *dev = pciDeviceListGet(pcidevs, i);
-        if (pciResetDevice(dev, driver->activePciHostdevs,
-                           driver->inactivePciHostdevs) < 0)
+    for (i = 0; i < virPCIDeviceListCount(pcidevs); i++) {
+        virPCIDevicePtr dev = virPCIDeviceListGet(pcidevs, i);
+        if (virPCIDeviceReset(dev, driver->activePciHostdevs,
+                              driver->inactivePciHostdevs) < 0)
             goto reattachdevs;
     }
 
@@ -450,7 +512,7 @@ int qemuPrepareHostdevPCIDevices(struct qemud_driver *driver,
          if (hostdev->parent.type == VIR_DOMAIN_DEVICE_NET &&
              hostdev->parent.data.net) {
              if (qemuDomainHostdevNetConfigReplace(hostdev, uuid,
-                                                   driver->stateDir) < 0) {
+                                                   cfg->stateDir) < 0) {
                  goto resetvfnetconfig;
              }
          }
@@ -458,36 +520,35 @@ int qemuPrepareHostdevPCIDevices(struct qemud_driver *driver,
     }
 
     /* Loop 5: Now mark all the devices as active */
-    for (i = 0; i < pciDeviceListCount(pcidevs); i++) {
-        pciDevice *dev = pciDeviceListGet(pcidevs, i);
-        if (pciDeviceListAdd(driver->activePciHostdevs, dev) < 0) {
-            pciFreeDevice(dev);
+    for (i = 0; i < virPCIDeviceListCount(pcidevs); i++) {
+        virPCIDevicePtr dev = virPCIDeviceListGet(pcidevs, i);
+        if (virPCIDeviceListAdd(driver->activePciHostdevs, dev) < 0)
             goto inactivedevs;
-        }
     }
 
     /* Loop 6: Now remove the devices from inactive list. */
-    for (i = 0; i < pciDeviceListCount(pcidevs); i++) {
-         pciDevice *dev = pciDeviceListGet(pcidevs, i);
-         pciDeviceListDel(driver->inactivePciHostdevs, dev);
+    for (i = 0; i < virPCIDeviceListCount(pcidevs); i++) {
+         virPCIDevicePtr dev = virPCIDeviceListGet(pcidevs, i);
+         virPCIDeviceListDel(driver->inactivePciHostdevs, dev);
     }
 
     /* Loop 7: Now set the used_by_domain of the device in
      * driver->activePciHostdevs as domain name.
      */
-    for (i = 0; i < pciDeviceListCount(pcidevs); i++) {
-        pciDevice *dev, *activeDev;
+    for (i = 0; i < virPCIDeviceListCount(pcidevs); i++) {
+        virPCIDevicePtr dev, activeDev;
 
-        dev = pciDeviceListGet(pcidevs, i);
-        activeDev = pciDeviceListFind(driver->activePciHostdevs, dev);
+        dev = virPCIDeviceListGet(pcidevs, i);
+        activeDev = virPCIDeviceListFind(driver->activePciHostdevs, dev);
 
-        pciDeviceSetUsedBy(activeDev, name);
+        if (activeDev)
+            virPCIDeviceSetUsedBy(activeDev, name);
     }
 
     /* Loop 8: Now set the original states for hostdev def */
     for (i = 0; i < nhostdevs; i++) {
-        pciDevice *dev;
-        pciDevice *pcidev;
+        virPCIDevicePtr dev;
+        virPCIDevicePtr pcidev;
         virDomainHostdevDefPtr hostdev = hostdevs[i];
 
         if (hostdev->mode != VIR_DOMAIN_HOSTDEV_MODE_SUBSYS)
@@ -495,43 +556,41 @@ int qemuPrepareHostdevPCIDevices(struct qemud_driver *driver,
         if (hostdev->source.subsys.type != VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI)
             continue;
 
-        dev = pciGetDevice(hostdev->source.subsys.u.pci.domain,
-                           hostdev->source.subsys.u.pci.bus,
-                           hostdev->source.subsys.u.pci.slot,
-                           hostdev->source.subsys.u.pci.function);
+        dev = virPCIDeviceNew(hostdev->source.subsys.u.pci.addr.domain,
+                              hostdev->source.subsys.u.pci.addr.bus,
+                              hostdev->source.subsys.u.pci.addr.slot,
+                              hostdev->source.subsys.u.pci.addr.function);
 
         /* original states "unbind_from_stub", "remove_slot",
          * "reprobe" were already set by pciDettachDevice in
          * loop 2.
          */
-        if ((pcidev = pciDeviceListFind(pcidevs, dev))) {
+        if ((pcidev = virPCIDeviceListFind(pcidevs, dev))) {
             hostdev->origstates.states.pci.unbind_from_stub =
-                pciDeviceGetUnbindFromStub(pcidev);
+                virPCIDeviceGetUnbindFromStub(pcidev);
             hostdev->origstates.states.pci.remove_slot =
-                pciDeviceGetRemoveSlot(pcidev);
+                virPCIDeviceGetRemoveSlot(pcidev);
             hostdev->origstates.states.pci.reprobe =
-                pciDeviceGetReprobe(pcidev);
+                virPCIDeviceGetReprobe(pcidev);
         }
 
-        pciFreeDevice(dev);
+        virPCIDeviceFree(dev);
     }
 
     /* Loop 9: Now steal all the devices from pcidevs */
-    while (pciDeviceListCount(pcidevs) > 0) {
-        pciDevice *dev = pciDeviceListGet(pcidevs, 0);
-        pciDeviceListSteal(pcidevs, dev);
-    }
+    while (virPCIDeviceListCount(pcidevs) > 0)
+        virPCIDeviceListStealIndex(pcidevs, 0);
 
     ret = 0;
     goto cleanup;
 
 inactivedevs:
     /* Only steal all the devices from driver->activePciHostdevs. We will
-     * free them in pciDeviceListFree().
+     * free them in virObjectUnref().
      */
-    while (pciDeviceListCount(pcidevs) > 0) {
-        pciDevice *dev = pciDeviceListGet(pcidevs, 0);
-        pciDeviceListSteal(driver->activePciHostdevs, dev);
+    while (virPCIDeviceListCount(pcidevs) > 0) {
+        virPCIDevicePtr dev = virPCIDeviceListGet(pcidevs, 0);
+        virPCIDeviceListSteal(driver->activePciHostdevs, dev);
     }
 
 resetvfnetconfig:
@@ -539,225 +598,329 @@ resetvfnetconfig:
          virDomainHostdevDefPtr hostdev = hostdevs[i];
          if (hostdev->parent.type == VIR_DOMAIN_DEVICE_NET &&
              hostdev->parent.data.net) {
-             qemuDomainHostdevNetConfigRestore(hostdev, driver->stateDir);
+             qemuDomainHostdevNetConfigRestore(hostdev, cfg->stateDir);
          }
     }
 
 reattachdevs:
-    for (i = 0; i < pciDeviceListCount(pcidevs); i++) {
-        pciDevice *dev = pciDeviceListGet(pcidevs, i);
-        pciReAttachDevice(dev, driver->activePciHostdevs, NULL);
+    for (i = 0; i < virPCIDeviceListCount(pcidevs); i++) {
+        virPCIDevicePtr dev = virPCIDeviceListGet(pcidevs, i);
+
+        /* NB: This doesn't actually re-bind to original driver, just
+         * unbinds from the stub driver
+         */
+        virPCIDeviceReattach(dev, driver->activePciHostdevs, NULL);
     }
 
 cleanup:
-    pciDeviceListFree(pcidevs);
+    virObjectUnlock(driver->activePciHostdevs);
+    virObjectUnlock(driver->inactivePciHostdevs);
+    virObjectUnref(pcidevs);
+    virObjectUnref(cfg);
     return ret;
 }
 
-static int
-qemuPrepareHostPCIDevices(struct qemud_driver *driver,
-                          virDomainDefPtr def)
+int
+qemuPrepareHostdevUSBDevices(virQEMUDriverPtr driver,
+                             const char *name,
+                             virUSBDeviceListPtr list)
 {
-    return qemuPrepareHostdevPCIDevices(driver, def->name, def->uuid,
-                                        def->hostdevs, def->nhostdevs);
+    int i, j;
+    unsigned int count;
+    virUSBDevicePtr tmp;
+
+    virObjectLock(driver->activeUsbHostdevs);
+    count = virUSBDeviceListCount(list);
+
+    for (i = 0; i < count; i++) {
+        virUSBDevicePtr usb = virUSBDeviceListGet(list, i);
+        if ((tmp = virUSBDeviceListFind(driver->activeUsbHostdevs, usb))) {
+            const char *other_name = virUSBDeviceGetUsedBy(tmp);
+
+            if (other_name)
+                virReportError(VIR_ERR_OPERATION_INVALID,
+                               _("USB device %s is in use by domain %s"),
+                               virUSBDeviceGetName(tmp), other_name);
+            else
+                virReportError(VIR_ERR_OPERATION_INVALID,
+                               _("USB device %s is already in use"),
+                               virUSBDeviceGetName(tmp));
+            goto error;
+        }
+
+        virUSBDeviceSetUsedBy(usb, name);
+        VIR_DEBUG("Adding %03d.%03d dom=%s to activeUsbHostdevs",
+                  virUSBDeviceGetBus(usb), virUSBDeviceGetDevno(usb), name);
+        /*
+         * The caller is responsible to steal these usb devices
+         * from the virUSBDeviceList that passed in on success,
+         * perform rollback on failure.
+         */
+        if (virUSBDeviceListAdd(driver->activeUsbHostdevs, usb) < 0)
+            goto error;
+    }
+
+    virObjectUnlock(driver->activeUsbHostdevs);
+    return 0;
+
+error:
+    for (j = 0; j < i; j++) {
+        tmp = virUSBDeviceListGet(list, i);
+        virUSBDeviceListSteal(driver->activeUsbHostdevs, tmp);
+    }
+    virObjectUnlock(driver->activeUsbHostdevs);
+    return -1;
 }
 
 int
-qemuPrepareHostdevUSBDevices(struct qemud_driver *driver,
-                             const char *name,
-                             virDomainHostdevDefPtr *hostdevs,
-                             int nhostdevs)
+qemuFindHostdevUSBDevice(virDomainHostdevDefPtr hostdev,
+                         bool mandatory,
+                         virUSBDevicePtr *usb)
 {
-    int ret = -1;
-    int i;
-    usbDeviceList *list;
-    usbDevice *tmp;
+    unsigned vendor = hostdev->source.subsys.u.usb.vendor;
+    unsigned product = hostdev->source.subsys.u.usb.product;
+    unsigned bus = hostdev->source.subsys.u.usb.bus;
+    unsigned device = hostdev->source.subsys.u.usb.device;
+    bool autoAddress = hostdev->source.subsys.u.usb.autoAddress;
+    int rc;
+
+    *usb = NULL;
+
+    if (vendor && bus) {
+        rc = virUSBDeviceFind(vendor, product, bus, device,
+                              NULL,
+                              autoAddress ? false : mandatory,
+                              usb);
+        if (rc < 0) {
+            return -1;
+        } else if (!autoAddress) {
+            goto out;
+        } else {
+            VIR_INFO("USB device %x:%x could not be found at previous"
+                     " address (bus:%u device:%u)",
+                     vendor, product, bus, device);
+        }
+    }
+
+    /* When vendor is specified, its USB address is either unspecified or the
+     * device could not be found at the USB device where it had been
+     * automatically found before.
+     */
+    if (vendor) {
+        virUSBDeviceListPtr devs;
+
+        rc = virUSBDeviceFindByVendor(vendor, product, NULL, mandatory, &devs);
+        if (rc < 0)
+            return -1;
+
+        if (rc == 1) {
+            *usb = virUSBDeviceListGet(devs, 0);
+            virUSBDeviceListSteal(devs, *usb);
+        }
+        virObjectUnref(devs);
+
+        if (rc == 0) {
+            goto out;
+        } else if (rc > 1) {
+            if (autoAddress) {
+                virReportError(VIR_ERR_OPERATION_FAILED,
+                               _("Multiple USB devices for %x:%x were found,"
+                                 " but none of them is at bus:%u device:%u"),
+                               vendor, product, bus, device);
+            } else {
+                virReportError(VIR_ERR_OPERATION_FAILED,
+                               _("Multiple USB devices for %x:%x, "
+                                 "use <address> to specify one"),
+                               vendor, product);
+            }
+            return -1;
+        }
+
+        hostdev->source.subsys.u.usb.bus = virUSBDeviceGetBus(*usb);
+        hostdev->source.subsys.u.usb.device = virUSBDeviceGetDevno(*usb);
+        hostdev->source.subsys.u.usb.autoAddress = true;
+
+        if (autoAddress) {
+            VIR_INFO("USB device %x:%x found at bus:%u device:%u (moved"
+                     " from bus:%u device:%u)",
+                     vendor, product,
+                     hostdev->source.subsys.u.usb.bus,
+                     hostdev->source.subsys.u.usb.device,
+                     bus, device);
+        }
+    } else if (!vendor && bus) {
+        if (virUSBDeviceFindByBus(bus, device, NULL, mandatory, usb) < 0)
+            return -1;
+    }
+
+out:
+    if (!*usb)
+        hostdev->missing = true;
+    return 0;
+}
+
+static int
+qemuPrepareHostUSBDevices(virQEMUDriverPtr driver,
+                          virDomainDefPtr def,
+                          bool coldBoot)
+{
+    int i, ret = -1;
+    virUSBDeviceListPtr list;
+    virUSBDevicePtr tmp;
+    virDomainHostdevDefPtr *hostdevs = def->hostdevs;
+    int nhostdevs = def->nhostdevs;
 
     /* To prevent situation where USB device is assigned to two domains
      * we need to keep a list of currently assigned USB devices.
      * This is done in several loops which cannot be joined into one big
      * loop. See qemuPrepareHostdevPCIDevices()
      */
-    if (!(list = usbDeviceListNew()))
+    if (!(list = virUSBDeviceListNew()))
         goto cleanup;
 
-    /* Loop 1: build temporary list and validate no usb device
-     * is already taken
+    /* Loop 1: build temporary list
      */
     for (i = 0 ; i < nhostdevs ; i++) {
         virDomainHostdevDefPtr hostdev = hostdevs[i];
+        bool required = true;
+        virUSBDevicePtr usb;
 
         if (hostdev->mode != VIR_DOMAIN_HOSTDEV_MODE_SUBSYS)
             continue;
         if (hostdev->source.subsys.type != VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_USB)
             continue;
 
-        /* Resolve a vendor/product to bus/device */
-        if (hostdev->source.subsys.u.usb.vendor) {
-            usbDevice *usb
-                = usbFindDevice(hostdev->source.subsys.u.usb.vendor,
-                                hostdev->source.subsys.u.usb.product);
+        if (hostdev->startupPolicy == VIR_DOMAIN_STARTUP_POLICY_OPTIONAL ||
+            (hostdev->startupPolicy == VIR_DOMAIN_STARTUP_POLICY_REQUISITE &&
+             !coldBoot))
+            required = false;
 
-            if (!usb)
-                goto cleanup;
+        if (qemuFindHostdevUSBDevice(hostdev, required, &usb) < 0)
+            goto cleanup;
 
-            if ((tmp = usbDeviceListFind(driver->activeUsbHostdevs, usb))) {
-                const char *other_name = usbDeviceGetUsedBy(tmp);
-
-                if (other_name)
-                    qemuReportError(VIR_ERR_OPERATION_INVALID,
-                                    _("USB device %s is in use by domain %s"),
-                                    usbDeviceGetName(tmp), other_name);
-                else
-                    qemuReportError(VIR_ERR_OPERATION_INVALID,
-                                    _("USB device %s is already in use"),
-                                    usbDeviceGetName(tmp));
-                usbFreeDevice(usb);
-                goto cleanup;
-            }
-
-            hostdev->source.subsys.u.usb.bus = usbDeviceGetBus(usb);
-            hostdev->source.subsys.u.usb.device = usbDeviceGetDevno(usb);
-
-            if (usbDeviceListAdd(list, usb) < 0) {
-                usbFreeDevice(usb);
-                goto cleanup;
-            }
-
+        if (usb && virUSBDeviceListAdd(list, usb) < 0) {
+            virUSBDeviceFree(usb);
+            goto cleanup;
         }
     }
 
-    /* Loop 2: Mark devices in temporary list as used by @name
+    /* Mark devices in temporary list as used by @name
      * and add them do driver list. However, if something goes
      * wrong, perform rollback.
      */
-    for (i = 0; i < usbDeviceListCount(list); i++) {
-        tmp = usbDeviceListGet(list, i);
-        usbDeviceSetUsedBy(tmp, name);
+    if (qemuPrepareHostdevUSBDevices(driver, def->name, list) < 0)
+        goto cleanup;
 
-        VIR_DEBUG("Adding %03d.%03d dom=%s to activeUsbHostdevs",
-                  usbDeviceGetBus(tmp), usbDeviceGetDevno(tmp), name);
-        if (usbDeviceListAdd(driver->activeUsbHostdevs, tmp) < 0) {
-            usbFreeDevice(tmp);
-            goto inactivedevs;
-        }
-    }
-
-    /* Loop 3: Temporary list was successfully merged with
+    /* Loop 2: Temporary list was successfully merged with
      * driver list, so steal all items to avoid freeing them
      * in cleanup label.
      */
-    while (usbDeviceListCount(list) > 0) {
-        tmp = usbDeviceListGet(list, 0);
-        usbDeviceListSteal(list, tmp);
+    while (virUSBDeviceListCount(list) > 0) {
+        tmp = virUSBDeviceListGet(list, 0);
+        virUSBDeviceListSteal(list, tmp);
     }
 
     ret = 0;
-    goto cleanup;
-
-inactivedevs:
-    /* Steal devices from driver->activeUsbHostdevs.
-     * We will free them later.
-     */
-    for (i = 0; i < usbDeviceListCount(list); i++) {
-        tmp = usbDeviceListGet(list, i);
-        usbDeviceListSteal(driver->activeUsbHostdevs, tmp);
-    }
 
 cleanup:
-    usbDeviceListFree(list);
+    virObjectUnref(list);
     return ret;
 }
 
-static int
-qemuPrepareHostUSBDevices(struct qemud_driver *driver,
-                          virDomainDefPtr def)
-{
-    return qemuPrepareHostdevUSBDevices(driver, def->name, def->hostdevs, def->nhostdevs);
-}
-
-int qemuPrepareHostDevices(struct qemud_driver *driver,
-                           virDomainDefPtr def)
+int qemuPrepareHostDevices(virQEMUDriverPtr driver,
+                           virDomainDefPtr def,
+                           bool coldBoot)
 {
     if (!def->nhostdevs)
         return 0;
 
-    if (qemuPrepareHostPCIDevices(driver, def) < 0)
+    if (qemuPrepareHostdevPCIDevices(driver, def->name, def->uuid,
+                                     def->hostdevs, def->nhostdevs) < 0)
         return -1;
 
-    if (qemuPrepareHostUSBDevices(driver, def) < 0)
+    if (qemuPrepareHostUSBDevices(driver, def, coldBoot) < 0)
         return -1;
 
     return 0;
 }
 
 
-void qemuReattachPciDevice(pciDevice *dev, struct qemud_driver *driver)
+/*
+ * Pre-condition: driver->inactivePciHostdevs & driver->activePciHostdevs
+ * are locked
+ */
+void qemuReattachPciDevice(virPCIDevicePtr dev, virQEMUDriverPtr driver)
 {
     int retries = 100;
 
     /* If the device is not managed and was attached to guest
      * successfully, it must have been inactive.
      */
-    if (!pciDeviceGetManaged(dev)) {
-        pciDeviceListAdd(driver->inactivePciHostdevs, dev);
+    if (!virPCIDeviceGetManaged(dev)) {
+        if (virPCIDeviceListAdd(driver->inactivePciHostdevs, dev) < 0)
+            virPCIDeviceFree(dev);
         return;
     }
 
-    while (pciWaitForDeviceCleanup(dev, "kvm_assigned_device")
+    while (virPCIDeviceWaitForCleanup(dev, "kvm_assigned_device")
            && retries) {
         usleep(100*1000);
         retries--;
     }
 
-    if (pciReAttachDevice(dev, driver->activePciHostdevs,
-                          driver->inactivePciHostdevs) < 0) {
+    if (virPCIDeviceReattach(dev, driver->activePciHostdevs,
+                             driver->inactivePciHostdevs) < 0) {
         virErrorPtr err = virGetLastError();
         VIR_ERROR(_("Failed to re-attach PCI device: %s"),
                   err ? err->message : _("unknown error"));
         virResetError(err);
     }
+    virPCIDeviceFree(dev);
 }
 
 
-void qemuDomainReAttachHostdevDevices(struct qemud_driver *driver,
+void qemuDomainReAttachHostdevDevices(virQEMUDriverPtr driver,
                                       const char *name,
                                       virDomainHostdevDefPtr *hostdevs,
                                       int nhostdevs)
 {
-    pciDeviceList *pcidevs;
+    virPCIDeviceListPtr pcidevs;
     int i;
+    virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
+
+    virObjectLock(driver->activePciHostdevs);
+    virObjectLock(driver->inactivePciHostdevs);
 
     if (!(pcidevs = qemuGetActivePciHostDeviceList(driver,
                                                    hostdevs,
                                                    nhostdevs))) {
         virErrorPtr err = virGetLastError();
-        VIR_ERROR(_("Failed to allocate pciDeviceList: %s"),
+        VIR_ERROR(_("Failed to allocate PCI device list: %s"),
                   err ? err->message : _("unknown error"));
         virResetError(err);
-        return;
+        goto cleanup;
     }
 
     /* Again 4 loops; mark all devices as inactive before reset
      * them and reset all the devices before re-attach.
      * Attach mac and port profile parameters to devices
      */
-    for (i = 0; i < pciDeviceListCount(pcidevs); i++) {
-        pciDevice *dev = pciDeviceListGet(pcidevs, i);
-        pciDevice *activeDev = NULL;
+    for (i = 0; i < virPCIDeviceListCount(pcidevs); i++) {
+        virPCIDevicePtr dev = virPCIDeviceListGet(pcidevs, i);
+        virPCIDevicePtr activeDev = NULL;
 
         /* Never delete the dev from list driver->activePciHostdevs
          * if it's used by other domain.
          */
-        activeDev = pciDeviceListFind(driver->activePciHostdevs, dev);
+        activeDev = virPCIDeviceListFind(driver->activePciHostdevs, dev);
         if (activeDev &&
-            STRNEQ_NULLABLE(name, pciDeviceGetUsedBy(activeDev))) {
-            pciDeviceListSteal(pcidevs, dev);
+            STRNEQ_NULLABLE(name, virPCIDeviceGetUsedBy(activeDev))) {
+            virPCIDeviceListSteal(pcidevs, dev);
             continue;
         }
 
-        /* pciDeviceListFree() will take care of freeing the dev. */
-        pciDeviceListSteal(driver->activePciHostdevs, dev);
+        /* virObjectUnref() will take care of freeing the dev. */
+        virPCIDeviceListSteal(driver->activePciHostdevs, dev);
     }
 
     /*
@@ -772,14 +935,14 @@ void qemuDomainReAttachHostdevDevices(struct qemud_driver *driver,
              continue;
          if (hostdev->parent.type == VIR_DOMAIN_DEVICE_NET &&
              hostdev->parent.data.net) {
-             qemuDomainHostdevNetConfigRestore(hostdev, driver->stateDir);
+             qemuDomainHostdevNetConfigRestore(hostdev, cfg->stateDir);
          }
     }
 
-    for (i = 0; i < pciDeviceListCount(pcidevs); i++) {
-        pciDevice *dev = pciDeviceListGet(pcidevs, i);
-        if (pciResetDevice(dev, driver->activePciHostdevs,
-                           driver->inactivePciHostdevs) < 0) {
+    for (i = 0; i < virPCIDeviceListCount(pcidevs); i++) {
+        virPCIDevicePtr dev = virPCIDeviceListGet(pcidevs, i);
+        if (virPCIDeviceReset(dev, driver->activePciHostdevs,
+                              driver->inactivePciHostdevs) < 0) {
             virErrorPtr err = virGetLastError();
             VIR_ERROR(_("Failed to reset PCI device: %s"),
                       err ? err->message : _("unknown error"));
@@ -787,34 +950,42 @@ void qemuDomainReAttachHostdevDevices(struct qemud_driver *driver,
         }
     }
 
-    for (i = 0; i < pciDeviceListCount(pcidevs); i++) {
-        pciDevice *dev = pciDeviceListGet(pcidevs, i);
+    while (virPCIDeviceListCount(pcidevs) > 0) {
+        virPCIDevicePtr dev = virPCIDeviceListStealIndex(pcidevs, 0);
         qemuReattachPciDevice(dev, driver);
     }
 
-    pciDeviceListFree(pcidevs);
+    virObjectUnref(pcidevs);
+cleanup:
+    virObjectUnlock(driver->activePciHostdevs);
+    virObjectUnlock(driver->inactivePciHostdevs);
+    virObjectUnref(cfg);
 }
 
 static void
-qemuDomainReAttachHostUsbDevices(struct qemud_driver *driver,
+qemuDomainReAttachHostUsbDevices(virQEMUDriverPtr driver,
                                  const char *name,
                                  virDomainHostdevDefPtr *hostdevs,
                                  int nhostdevs)
 {
     int i;
 
+    virObjectLock(driver->activeUsbHostdevs);
     for (i = 0; i < nhostdevs; i++) {
         virDomainHostdevDefPtr hostdev = hostdevs[i];
-        usbDevice *usb, *tmp;
+        virUSBDevicePtr usb, tmp;
         const char *used_by = NULL;
 
         if (hostdev->mode != VIR_DOMAIN_HOSTDEV_MODE_SUBSYS)
             continue;
         if (hostdev->source.subsys.type != VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_USB)
             continue;
+        if (hostdev->missing)
+            continue;
 
-        usb = usbGetDevice(hostdev->source.subsys.u.usb.bus,
-                           hostdev->source.subsys.u.usb.device);
+        usb = virUSBDeviceNew(hostdev->source.subsys.u.usb.bus,
+                              hostdev->source.subsys.u.usb.device,
+                              NULL);
 
         if (!usb) {
             VIR_WARN("Unable to reattach USB device %03d.%03d on domain %s",
@@ -830,8 +1001,8 @@ qemuDomainReAttachHostUsbDevices(struct qemud_driver *driver,
          * Therefore we want to steal only those devices from
          * the list which were taken by @name */
 
-        tmp = usbDeviceListFind(driver->activeUsbHostdevs, usb);
-        usbFreeDevice(usb);
+        tmp = virUSBDeviceListFind(driver->activeUsbHostdevs, usb);
+        virUSBDeviceFree(usb);
 
         if (!tmp) {
             VIR_WARN("Unable to find device %03d.%03d "
@@ -841,19 +1012,20 @@ qemuDomainReAttachHostUsbDevices(struct qemud_driver *driver,
             continue;
         }
 
-        used_by = usbDeviceGetUsedBy(tmp);
+        used_by = virUSBDeviceGetUsedBy(tmp);
         if (STREQ_NULLABLE(used_by, name)) {
             VIR_DEBUG("Removing %03d.%03d dom=%s from activeUsbHostdevs",
                       hostdev->source.subsys.u.usb.bus,
                       hostdev->source.subsys.u.usb.device,
                       name);
 
-            usbDeviceListDel(driver->activeUsbHostdevs, tmp);
+            virUSBDeviceListDel(driver->activeUsbHostdevs, tmp);
         }
     }
+    virObjectUnlock(driver->activeUsbHostdevs);
 }
 
-void qemuDomainReAttachHostDevices(struct qemud_driver *driver,
+void qemuDomainReAttachHostDevices(virQEMUDriverPtr driver,
                                    virDomainDefPtr def)
 {
     if (!def->nhostdevs)

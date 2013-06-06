@@ -136,14 +136,18 @@
               <dd>The SCSI host number.</dd>
               <dt><code>capability</code></dt>
               <dd>Current capabilities include "vports_ops" (indicates
-                vport operations are supported) and "fc_host", the later
-                implies following sub-elements: <code>wwnn</code>,
-                <code>wwpn</code>, <code>fabric_wwn</code>.
+                vport operations are supported) and "fc_host". "vport_ops"
+                could contain two optional sub-elements: <code>vports</code>,
+                and <code>max_vports</code>. <code>vports</code> shows the
+                number of vport in use. <code>max_vports</code> shows the
+                maximum vports the HBA supports. "fc_host" implies following
+                sub-elements: <code>wwnn</code>, <code>wwpn</code>, and
+                <code>fabric_wwn</code>.
               </dd>
             </dl>
           </dd>
           <dt><code>scsi</code></dt>
-          <dd>Desribes a SCSI device.  Sub-elements include:
+          <dd>Describes a SCSI device.  Sub-elements include:
             <dl>
               <dt><code>host</code></dt>
               <dd>The SCSI host containing the device.</dd>
@@ -184,7 +188,7 @@
                 available.</dd>
               <dt><code>capability</code></dt>
               <dd>If present, an additional capability is listed via
-                the attribute <code>type</code>.  Current capabilites
+                the attribute <code>type</code>.  Current capabilities
                 include "hotpluggable" and "removable", with the
                 latter implying the following
                 sub-elements: <code>media_available</code> (0 or

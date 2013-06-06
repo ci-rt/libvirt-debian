@@ -3,7 +3,7 @@
   <uuid>8369f1ac-7e46-e869-4ca5-759d51478066</uuid>
   <memory unit='KiB'>500000</memory>
   <currentMemory unit='KiB'>500000</currentMemory>
-  <vcpu>1</vcpu>
+  <vcpu placement='static'>1</vcpu>
   <os>
     <type arch='x86_64'>exe</type>
     <init>/bin/systemd</init>
@@ -15,6 +15,7 @@
   <on_reboot>restart</on_reboot>
   <on_crash>destroy</on_crash>
   <devices>
+    <emulator>/usr/libexec/libvirt_lxc</emulator>
     <filesystem type='mount' accessmode='passthrough'>
       <source dir='/root/container'/>
       <target dir='/'/>
