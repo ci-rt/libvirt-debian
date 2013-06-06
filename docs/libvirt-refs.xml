@@ -1171,6 +1171,7 @@
     <reference name='virFreeCallback' href='html/libvirt-libvirt.html#virFreeCallback'/>
     <reference name='virFreeError' href='html/libvirt-virterror.html#virFreeError'/>
     <reference name='virGetLastError' href='html/libvirt-virterror.html#virGetLastError'/>
+    <reference name='virGetLastErrorMessage' href='html/libvirt-virterror.html#virGetLastErrorMessage'/>
     <reference name='virGetVersion' href='html/libvirt-libvirt.html#virGetVersion'/>
     <reference name='virInitialize' href='html/libvirt-libvirt.html#virInitialize'/>
     <reference name='virInterface' href='html/libvirt-libvirt.html#virInterface'/>
@@ -2589,6 +2590,7 @@
       <ref name='virFreeCallback'/>
       <ref name='virFreeError'/>
       <ref name='virGetLastError'/>
+      <ref name='virGetLastErrorMessage'/>
       <ref name='virGetVersion'/>
       <ref name='virInitialize'/>
       <ref name='virInterface'/>
@@ -2959,6 +2961,12 @@
       <ref name='virSecretLookupByUUID'/>
       <ref name='virSecretSetValue'/>
       <ref name='virStoragePoolLookupByUUID'/>
+    </type>
+    <type name='const virDomainEventGraphicsAddressPtr'>
+      <ref name='virConnectDomainEventGraphicsCallback'/>
+    </type>
+    <type name='const virDomainEventGraphicsSubjectPtr'>
+      <ref name='virConnectDomainEventGraphicsCallback'/>
     </type>
     <type name='double'>
       <ref name='virTypedParamsAddDouble'/>
@@ -3393,12 +3401,6 @@
     </type>
     <type name='virDomainDiskErrorPtr'>
       <ref name='virDomainGetDiskErrors'/>
-    </type>
-    <type name='virDomainEventGraphicsAddressPtr'>
-      <ref name='virConnectDomainEventGraphicsCallback'/>
-    </type>
-    <type name='virDomainEventGraphicsSubjectPtr'>
-      <ref name='virConnectDomainEventGraphicsCallback'/>
     </type>
     <type name='virDomainInfoPtr'>
       <ref name='virDomainGetInfo'/>
@@ -5297,6 +5299,7 @@
       <ref name='virErrorPtr'/>
       <ref name='virFreeError'/>
       <ref name='virGetLastError'/>
+      <ref name='virGetLastErrorMessage'/>
       <ref name='virResetError'/>
       <ref name='virResetLastError'/>
       <ref name='virSaveLastError'/>
@@ -5345,7 +5348,10 @@
         </word>
         <word name='Additionally'>
           <ref name='virDomainCoreDump'/>
+          <ref name='virDomainReboot'/>
           <ref name='virDomainRevertToSnapshot'/>
+          <ref name='virDomainShutdown'/>
+          <ref name='virDomainShutdownFlags'/>
         </word>
         <word name='Address'>
           <ref name='_virDomainEventGraphicsAddress'/>
@@ -5415,6 +5421,9 @@
         </word>
       </letter>
       <letter name='B'>
+        <word name='Beware'>
+          <ref name='virDomainPMSuspendForDuration'/>
+        </word>
         <word name='Blkio'>
           <ref name='VIR_DOMAIN_BLKIO_WEIGHT'/>
         </word>
@@ -6157,6 +6166,10 @@
           <ref name='virConnectSetKeepAlive'/>
           <ref name='virNodeGetFreeMemory'/>
         </word>
+        <word name='Now'>
+          <ref name='virDomainBlockPeek'/>
+          <ref name='virDomainMemoryPeek'/>
+        </word>
         <word name='Number'>
           <ref name='_virDomainEventGraphicsSubject'/>
           <ref name='virDomainSetBlockIoTune'/>
@@ -6611,6 +6624,10 @@
         <word name='Start'>
           <ref name='virConnectSetKeepAlive'/>
         </word>
+        <word name='Starting'>
+          <ref name='virDomainBlockPeek'/>
+          <ref name='virDomainMemoryPeek'/>
+        </word>
         <word name='Starts'>
           <ref name='virStoragePoolCreate'/>
         </word>
@@ -6959,6 +6976,7 @@
           <ref name='virDomainGetSchedulerParametersFlags'/>
           <ref name='virDomainGetVcpuPinInfo'/>
           <ref name='virDomainGetVcpusFlags'/>
+          <ref name='virDomainPMSuspendForDuration'/>
           <ref name='virDomainPinEmulator'/>
           <ref name='virDomainPinVcpuFlags'/>
           <ref name='virDomainSetInterfaceParameters'/>
@@ -7536,6 +7554,7 @@
           <ref name='virNodeGetMemoryStats'/>
         </word>
         <word name='VIR_NODE_SUSPEND_TARGET_DISK'>
+          <ref name='virDomainPMSuspendForDuration'/>
           <ref name='virNodeSuspendForDuration'/>
         </word>
         <word name='VIR_NODE_SUSPEND_TARGET_HYBRID'>
@@ -7918,6 +7937,7 @@
           <ref name='virDomainGetVcpuPinInfo'/>
         </word>
         <word name='again'>
+          <ref name='virDomainBlockPeek'/>
           <ref name='virDomainBlockStatsFlags'/>
           <ref name='virDomainDestroyFlags'/>
           <ref name='virDomainGetBlkioParameters'/>
@@ -7925,6 +7945,7 @@
           <ref name='virDomainGetInterfaceParameters'/>
           <ref name='virDomainGetMemoryParameters'/>
           <ref name='virDomainGetNumaParameters'/>
+          <ref name='virDomainMemoryPeek'/>
           <ref name='virNodeDeviceReAttach'/>
           <ref name='virNodeGetCPUStats'/>
           <ref name='virNodeGetMemoryParameters'/>
@@ -8232,6 +8253,7 @@
           <ref name='virConnectListAllDomains'/>
           <ref name='virDomainMigrate'/>
           <ref name='virDomainMigrate2'/>
+          <ref name='virDomainPMSuspendForDuration'/>
         </word>
         <word name='aspects'>
           <ref name='virNodeDeviceGetXMLDesc'/>
@@ -9036,6 +9058,7 @@
           <ref name='virDomainMigrate2'/>
           <ref name='virDomainMigrateToURI'/>
           <ref name='virDomainMigrateToURI2'/>
+          <ref name='virDomainPMSuspendForDuration'/>
           <ref name='virDomainPinVcpu'/>
           <ref name='virDomainRevertToSnapshot'/>
           <ref name='virDomainSetMemory'/>
@@ -9081,6 +9104,9 @@
         </word>
         <word name='check'>
           <ref name='_virNodeInfo'/>
+          <ref name='virDomainReboot'/>
+          <ref name='virDomainShutdown'/>
+          <ref name='virDomainShutdownFlags'/>
           <ref name='virDomainSnapshotCreateXML'/>
           <ref name='virTypedParamsGetBoolean'/>
           <ref name='virTypedParamsGetDouble'/>
@@ -10391,6 +10417,9 @@
           <ref name='virDomainDestroy'/>
           <ref name='virDomainDestroyFlags'/>
           <ref name='virDomainIsPersistent'/>
+          <ref name='virDomainReboot'/>
+          <ref name='virDomainShutdown'/>
+          <ref name='virDomainShutdownFlags'/>
           <ref name='virInterfaceCreate'/>
           <ref name='virNetworkDestroy'/>
           <ref name='virNetworkIsPersistent'/>
@@ -11488,6 +11517,7 @@
           <ref name='virConnectDomainEventGenericCallback'/>
           <ref name='virEventRegisterDefaultImpl'/>
           <ref name='virEventRegisterImpl'/>
+          <ref name='virGetLastErrorMessage'/>
         </word>
         <word name='get'>
           <ref name='virConnSetErrorFunc'/>
@@ -11564,6 +11594,9 @@
           <ref name='virStreamRecvAll'/>
           <ref name='virStreamSend'/>
           <ref name='virStreamSendAll'/>
+        </word>
+        <word name='granularity'>
+          <ref name='virStorageVolResize'/>
         </word>
         <word name='graphics'>
           <ref name='virDomainOpenGraphics'/>
@@ -11799,6 +11832,7 @@
         <word name='hotplug'>
           <ref name='virDomainAttachDevice'/>
           <ref name='virDomainGetCPUStats'/>
+          <ref name='virDomainPMSuspendForDuration'/>
         </word>
         <word name='hotplugged'>
           <ref name='virDomainGetDiskErrors'/>
@@ -12274,6 +12308,9 @@
           <ref name='virDomainDestroy'/>
           <ref name='virDomainDestroyFlags'/>
           <ref name='virDomainLookupByID'/>
+          <ref name='virDomainReboot'/>
+          <ref name='virDomainShutdown'/>
+          <ref name='virDomainShutdownFlags'/>
           <ref name='virGetVersion'/>
           <ref name='virNodeDeviceDettach'/>
           <ref name='virStreamRecv'/>
@@ -12678,6 +12715,7 @@
         </word>
         <word name='launched'>
           <ref name='virConnectOpen'/>
+          <ref name='virDomainPMSuspendForDuration'/>
         </word>
         <word name='launching'>
           <ref name='virDomainMigrate2'/>
@@ -12706,6 +12744,7 @@
           <ref name='virDomainBlockPeek'/>
           <ref name='virDomainGetCPUStats'/>
           <ref name='virDomainMemoryPeek'/>
+          <ref name='virDomainPMSuspendForDuration'/>
           <ref name='virDomainPinEmulator'/>
           <ref name='virDomainPinVcpu'/>
           <ref name='virDomainPinVcpuFlags'/>
@@ -12816,31 +12855,6 @@
         <word name='likely'>
           <ref name='virDomainGetJobStats'/>
           <ref name='virEventAddHandleFunc'/>
-        </word>
-        <word name='limit'>
-          <ref name='VIR_DOMAIN_MEMORY_SOFT_LIMIT'/>
-          <ref name='VIR_DOMAIN_MEMORY_SWAP_HARD_LIMIT'/>
-          <ref name='VIR_DOMAIN_SCHEDULER_LIMIT'/>
-          <ref name='virDomainBlockCommit'/>
-          <ref name='virDomainBlockJobSetSpeed'/>
-          <ref name='virDomainBlockPeek'/>
-          <ref name='virDomainBlockPull'/>
-          <ref name='virDomainBlockRebase'/>
-          <ref name='virDomainGetCPUStats'/>
-          <ref name='virDomainGetVcpusFlags'/>
-          <ref name='virDomainListAllSnapshots'/>
-          <ref name='virDomainMemoryPeek'/>
-          <ref name='virDomainMigrate'/>
-          <ref name='virDomainMigrate2'/>
-          <ref name='virDomainMigrateGetMaxSpeed'/>
-          <ref name='virDomainMigrateSetMaxSpeed'/>
-          <ref name='virDomainMigrateToURI'/>
-          <ref name='virDomainMigrateToURI2'/>
-          <ref name='virDomainSetVcpusFlags'/>
-          <ref name='virDomainSnapshotListNames'/>
-          <ref name='virDomainSnapshotNum'/>
-          <ref name='virStorageVolDownload'/>
-          <ref name='virStorageVolUpload'/>
         </word>
         <word name='limitations'>
           <ref name='virDomainMigrate'/>
@@ -13063,6 +13077,9 @@
         <word name='lossy'>
           <ref name='virDomainRevertToSnapshot'/>
         </word>
+        <word name='lost'>
+          <ref name='virDomainPMSuspendForDuration'/>
+        </word>
         <word name='lower-level'>
           <ref name='virDomainBlockCommit'/>
         </word>
@@ -13109,6 +13126,7 @@
         <word name='made'>
           <ref name='virDomainAttachDeviceFlags'/>
           <ref name='virDomainBlockCommit'/>
+          <ref name='virDomainPMSuspendForDuration'/>
           <ref name='virDomainRevertToSnapshot'/>
           <ref name='virDomainUpdateDeviceFlags'/>
           <ref name='virInterfaceChangeCommit'/>
@@ -13337,6 +13355,7 @@
         <word name='message'>
           <ref name='_virError'/>
           <ref name='virConnectSetKeepAlive'/>
+          <ref name='virGetLastErrorMessage'/>
         </word>
         <word name='messages'>
           <ref name='virConnectSetKeepAlive'/>
@@ -13495,6 +13514,7 @@
         <word name='most'>
           <ref name='VIR_DOMAIN_JOB_MEMORY_CONSTANT'/>
           <ref name='virConnectBaselineCPU'/>
+          <ref name='virGetLastErrorMessage'/>
           <ref name='virNodeGetFreeMemory'/>
           <ref name='virStoragePoolListVolumes'/>
           <ref name='virStreamEventAddCallback'/>
@@ -13826,6 +13846,7 @@
         <word name='none'>
           <ref name='virConnGetLastError'/>
           <ref name='virGetLastError'/>
+          <ref name='virGetLastErrorMessage'/>
         </word>
         <word name='nor'>
           <ref name='virConnectListAllSecrets'/>
@@ -13921,6 +13942,8 @@
           <ref name='virConnectNumOfNWFilters'/>
         </word>
       </letter>
+    </chunk>
+    <chunk name='chunk15'>
       <letter name='o'>
         <word name='obliterate'>
           <ref name='virStoragePoolDelete'/>
@@ -14009,6 +14032,13 @@
         <word name='omitting'>
           <ref name='virDomainSaveImageDefineXML'/>
           <ref name='virDomainUndefineFlags'/>
+        </word>
+        <word name='on_poweroff'>
+          <ref name='virDomainShutdown'/>
+          <ref name='virDomainShutdownFlags'/>
+        </word>
+        <word name='on_reboot'>
+          <ref name='virDomainReboot'/>
         </word>
         <word name='once'>
           <ref name='virConnectDomainEventRegister'/>
@@ -14280,7 +14310,7 @@
         </word>
       </letter>
     </chunk>
-    <chunk name='chunk15'>
+    <chunk name='chunk16'>
       <letter name='p'>
         <word name='page'>
           <ref name='VIR_DOMAIN_JOB_COMPRESSION_OVERFLOW'/>
@@ -14849,6 +14879,7 @@
           <ref name='virDomainMigrate2'/>
           <ref name='virDomainMigrateToURI'/>
           <ref name='virDomainMigrateToURI2'/>
+          <ref name='virDomainPMSuspendForDuration'/>
           <ref name='virDomainResume'/>
           <ref name='virDomainSendProcessSignal'/>
           <ref name='virDomainSuspend'/>
@@ -15010,7 +15041,7 @@
         </word>
       </letter>
     </chunk>
-    <chunk name='chunk16'>
+    <chunk name='chunk17'>
       <letter name='q'>
         <word name='qcow2'>
           <ref name='virStorageVolCreateXML'/>
@@ -15237,6 +15268,13 @@
           <ref name='virInterfaceDefineXML'/>
           <ref name='virInterfaceUndefine'/>
         </word>
+        <word name='rebooting'>
+          <ref name='virDomainReboot'/>
+        </word>
+        <word name='reboots'>
+          <ref name='virDomainShutdown'/>
+          <ref name='virDomainShutdownFlags'/>
+        </word>
         <word name='receive'>
           <ref name='virConnCopyLastError'/>
           <ref name='virConnectDomainEventRegister'/>
@@ -15255,6 +15293,9 @@
           <ref name='virEventHandleCallback'/>
           <ref name='virEventTimeoutCallback'/>
           <ref name='virStreamEventCallback'/>
+        </word>
+        <word name='recent'>
+          <ref name='virGetLastErrorMessage'/>
         </word>
         <word name='recommended'>
           <ref name='virConnectDomainEventDeregister'/>
@@ -15784,11 +15825,15 @@
           <ref name='virConnectSetKeepAlive'/>
           <ref name='virCopyLastError'/>
           <ref name='virDomainManagedSave'/>
+          <ref name='virDomainPMSuspendForDuration'/>
           <ref name='virEventRegisterDefaultImpl'/>
         </word>
         <word name='resulting'>
           <ref name='virDomainGetMetadata'/>
+          <ref name='virDomainReboot'/>
           <ref name='virDomainSetMetadata'/>
+          <ref name='virDomainShutdown'/>
+          <ref name='virDomainShutdownFlags'/>
         </word>
         <word name='resultlen'>
           <ref name='virConnectAuthCallbackPtr'/>
@@ -15920,6 +15965,7 @@
           <ref name='virDomainSetMemoryFlags'/>
         </word>
         <word name='runtime'>
+          <ref name='virDomainPMSuspendForDuration'/>
           <ref name='virDomainPinVcpu'/>
           <ref name='virDomainSetMemory'/>
           <ref name='virDomainSetVcpus'/>
@@ -15927,7 +15973,7 @@
         </word>
       </letter>
     </chunk>
-    <chunk name='chunk17'>
+    <chunk name='chunk18'>
       <letter name='s'>
         <word name='safe'>
           <ref name='virConnectRegisterCloseCallback'/>
@@ -16197,6 +16243,9 @@
           <ref name='virDomainGetEmulatorPinInfo'/>
           <ref name='virDomainGetVcpuPinInfo'/>
           <ref name='virDomainListAllSnapshots'/>
+          <ref name='virDomainReboot'/>
+          <ref name='virDomainShutdown'/>
+          <ref name='virDomainShutdownFlags'/>
           <ref name='virDomainSnapshotListAllChildren'/>
           <ref name='virDomainSnapshotListChildrenNames'/>
           <ref name='virDomainSnapshotListNames'/>
@@ -16208,6 +16257,7 @@
           <ref name='virStoragePoolSetAutostart'/>
         </word>
         <word name='settings'>
+          <ref name='virDomainPMSuspendForDuration'/>
           <ref name='virDomainSetSchedulerParameters'/>
           <ref name='virInterfaceChangeRollback'/>
           <ref name='virInterfaceGetXMLDesc'/>
@@ -16287,8 +16337,13 @@
           <ref name='virDomainShutdownFlags'/>
           <ref name='virNetworkDestroy'/>
         </word>
+        <word name='shuts'>
+          <ref name='virDomainReboot'/>
+        </word>
         <word name='shutting'>
           <ref name='virDomainIsPersistent'/>
+          <ref name='virDomainShutdown'/>
+          <ref name='virDomainShutdownFlags'/>
           <ref name='virNetworkIsPersistent'/>
           <ref name='virStoragePoolIsPersistent'/>
         </word>
@@ -17029,7 +17084,7 @@
         </word>
       </letter>
     </chunk>
-    <chunk name='chunk18'>
+    <chunk name='chunk19'>
       <letter name='t'>
         <word name='tail'>
           <ref name='virDomainGetCPUStats'/>
@@ -17103,6 +17158,7 @@
           <ref name='virConnectDomainXMLToNative'/>
           <ref name='virConnectGetType'/>
           <ref name='virDomainGetXMLDesc'/>
+          <ref name='virDomainPMSuspendForDuration'/>
           <ref name='virDomainSaveImageGetXMLDesc'/>
           <ref name='virDomainSnapshotGetXMLDesc'/>
           <ref name='virInterfaceGetXMLDesc'/>
@@ -17145,6 +17201,7 @@
         </word>
         <word name='thereafter'>
           <ref name='virDomainFree'/>
+          <ref name='virDomainReboot'/>
           <ref name='virDomainShutdown'/>
           <ref name='virDomainShutdownFlags'/>
           <ref name='virDomainSnapshotFree'/>
@@ -17223,6 +17280,7 @@
           <ref name='virDomainSnapshotRef'/>
           <ref name='virEventRunDefaultImpl'/>
           <ref name='virGetLastError'/>
+          <ref name='virGetLastErrorMessage'/>
           <ref name='virInitialize'/>
           <ref name='virInterfaceRef'/>
           <ref name='virNWFilterRef'/>
@@ -17570,7 +17628,7 @@
         </word>
       </letter>
     </chunk>
-    <chunk name='chunk19'>
+    <chunk name='chunk20'>
       <letter name='u'>
         <word name='uint'>
           <ref name='VIR_DOMAIN_BANDWIDTH_IN_AVERAGE'/>
@@ -17724,6 +17782,7 @@
           <ref name='virDomainGetBlockIoTune'/>
           <ref name='virDomainGetCPUStats'/>
           <ref name='virDomainGetXMLDesc'/>
+          <ref name='virDomainPMSuspendForDuration'/>
           <ref name='virDomainSaveImageGetXMLDesc'/>
           <ref name='virDomainSnapshotCreateXML'/>
           <ref name='virDomainSnapshotGetXMLDesc'/>
@@ -17935,7 +17994,7 @@
         </word>
       </letter>
     </chunk>
-    <chunk name='chunk20'>
+    <chunk name='chunk21'>
       <letter name='v'>
         <word name='vCPUs'>
           <ref name='virDomainGetVcpusFlags'/>
@@ -18023,7 +18082,9 @@
           <ref name='LIBVIR_VERSION_NUMBER'/>
           <ref name='virConnectGetLibVersion'/>
           <ref name='virConnectGetVersion'/>
+          <ref name='virDomainBlockPeek'/>
           <ref name='virDomainGetCPUStats'/>
+          <ref name='virDomainMemoryPeek'/>
           <ref name='virDomainMemoryStats'/>
           <ref name='virGetVersion'/>
         </word>
@@ -19123,7 +19184,7 @@
         </word>
       </letter>
     </chunk>
-    <chunk name='chunk21'>
+    <chunk name='chunk22'>
       <letter name='w'>
         <word name='wait'>
           <ref name='VIR_NODE_CPU_STATS_IOWAIT'/>
@@ -19136,6 +19197,9 @@
         <word name='waits'>
           <ref name='virDomainBlockJobAbort'/>
           <ref name='virDomainDestroy'/>
+        </word>
+        <word name='wake'>
+          <ref name='virDomainPMSuspendForDuration'/>
         </word>
         <word name='waken'>
           <ref name='virConnectDomainEventPMSuspendCallback'/>
@@ -19217,6 +19281,7 @@
           <ref name='virDomainGetNumaParameters'/>
           <ref name='virDomainGetSchedulerParameters'/>
           <ref name='virDomainGetSchedulerParametersFlags'/>
+          <ref name='virDomainPMSuspendForDuration'/>
           <ref name='virDomainSnapshotDelete'/>
           <ref name='virDomainSnapshotListChildrenNames'/>
           <ref name='virDomainSnapshotListNames'/>
@@ -19408,6 +19473,8 @@
           <ref name='virDomainSetBlockIoTune'/>
         </word>
       </letter>
+    </chunk>
+    <chunk name='chunk23'>
       <letter name='y'>
         <word name='your'>
           <ref name='virDomainBlockPeek'/>
@@ -19415,8 +19482,6 @@
           <ref name='virDomainMemoryPeek'/>
         </word>
       </letter>
-    </chunk>
-    <chunk name='chunk22'>
       <letter name='z'>
         <word name='zero'>
           <ref name='VIR_DOMAIN_JOB_MEMORY_CONSTANT'/>
@@ -19456,15 +19521,16 @@
       <chunk name='chunk11' start='i' end='i'/>
       <chunk name='chunk12' start='j' end='l'/>
       <chunk name='chunk13' start='m' end='m'/>
-      <chunk name='chunk14' start='n' end='o'/>
-      <chunk name='chunk15' start='p' end='p'/>
-      <chunk name='chunk16' start='q' end='r'/>
-      <chunk name='chunk17' start='s' end='s'/>
-      <chunk name='chunk18' start='t' end='t'/>
-      <chunk name='chunk19' start='u' end='u'/>
-      <chunk name='chunk20' start='v' end='v'/>
-      <chunk name='chunk21' start='w' end='y'/>
-      <chunk name='chunk22' start='z' end='z'/>
+      <chunk name='chunk14' start='n' end='n'/>
+      <chunk name='chunk15' start='o' end='o'/>
+      <chunk name='chunk16' start='p' end='p'/>
+      <chunk name='chunk17' start='q' end='r'/>
+      <chunk name='chunk18' start='s' end='s'/>
+      <chunk name='chunk19' start='t' end='t'/>
+      <chunk name='chunk20' start='u' end='u'/>
+      <chunk name='chunk21' start='v' end='v'/>
+      <chunk name='chunk22' start='w' end='x'/>
+      <chunk name='chunk23' start='y' end='z'/>
     </chunks>
   </index>
 </apirefs>

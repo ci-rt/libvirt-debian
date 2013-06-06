@@ -1,7 +1,7 @@
 /*
  * virlog.c: internal logging and debugging
  *
- * Copyright (C) 2008, 2010-2012 Red Hat, Inc.
+ * Copyright (C) 2008, 2010-2013 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -50,6 +50,7 @@
 #include "virfile.h"
 #include "virtime.h"
 #include "intprops.h"
+#include "virstring.h"
 
 /* Journald output is only supported on Linux new enough to expose
  * htole64.  */
@@ -370,7 +371,7 @@ virLogDumpAllFD(const char *msg, int len)
     if (len <= 0)
         len = strlen(msg);
 
-    for (i = 0; i < virLogNbOutputs;i++) {
+    for (i = 0; i < virLogNbOutputs; i++) {
         if (virLogOutputs[i].f == virLogOutputToFd) {
             int fd = (intptr_t) virLogOutputs[i].data;
 
@@ -513,7 +514,7 @@ virLogResetFilters(void)
 {
     int i;
 
-    for (i = 0; i < virLogNbFilters;i++)
+    for (i = 0; i < virLogNbFilters; i++)
         VIR_FREE(virLogFilters[i].match);
     VIR_FREE(virLogFilters);
     virLogNbFilters = 0;
@@ -549,15 +550,14 @@ virLogDefineFilter(const char *match,
         return -1;
 
     virLogLock();
-    for (i = 0;i < virLogNbFilters;i++) {
+    for (i = 0; i < virLogNbFilters; i++) {
         if (STREQ(virLogFilters[i].match, match)) {
             virLogFilters[i].priority = priority;
             goto cleanup;
         }
     }
 
-    mdup = strdup(match);
-    if (mdup == NULL) {
+    if (VIR_STRDUP_QUIET(mdup, match) < 0) {
         i = -1;
         goto cleanup;
     }
@@ -573,6 +573,8 @@ virLogDefineFilter(const char *match,
     virLogNbFilters++;
 cleanup:
     virLogUnlock();
+    if (i < 0)
+        virReportOOMError();
     return i;
 }
 
@@ -595,7 +597,7 @@ virLogFiltersCheck(const char *input,
     int i;
 
     virLogLock();
-    for (i = 0;i < virLogNbFilters;i++) {
+    for (i = 0; i < virLogNbFilters; i++) {
         if (strstr(input, virLogFilters[i].match)) {
             ret = virLogFilters[i].priority;
             *flags = virLogFilters[i].flags;
@@ -619,7 +621,7 @@ virLogResetOutputs(void)
 {
     int i;
 
-    for (i = 0;i < virLogNbOutputs;i++) {
+    for (i = 0; i < virLogNbOutputs; i++) {
         if (virLogOutputs[i].c != NULL)
             virLogOutputs[i].c(virLogOutputs[i].data);
         VIR_FREE(virLogOutputs[i].name);
@@ -664,10 +666,11 @@ virLogDefineOutput(virLogOutputFunc f,
         return -1;
 
     if (dest == VIR_LOG_TO_SYSLOG || dest == VIR_LOG_TO_FILE) {
-        if (name == NULL)
+        if (!name) {
+            virReportOOMError();
             return -1;
-        ndup = strdup(name);
-        if (ndup == NULL)
+        }
+        if (VIR_STRDUP(ndup, name) < 0)
             return -1;
     }
 
@@ -707,11 +710,11 @@ virLogFormatString(char **msg,
      * to just grep for it to find the right place.
      */
     if ((funcname != NULL)) {
-        ret = virAsprintf(msg, "%d: %s : %s:%d : %s\n",
+        ret = virAsprintf(msg, "%llu: %s : %s:%d : %s\n",
                           virThreadSelfID(), virLogPriorityString(priority),
                           funcname, linenr, str);
     } else {
-        ret = virAsprintf(msg, "%d: %s : %s\n",
+        ret = virAsprintf(msg, "%llu: %s : %s\n",
                           virThreadSelfID(), virLogPriorityString(priority),
                           str);
     }
@@ -1046,8 +1049,7 @@ virLogAddOutputToSyslog(virLogPriority priority,
      * ident needs to be kept around on Solaris
      */
     VIR_FREE(current_ident);
-    current_ident = strdup(ident);
-    if (current_ident == NULL)
+    if (VIR_STRDUP(current_ident, ident) < 0)
         return -1;
 
     openlog(current_ident, 0, 0);
@@ -1328,8 +1330,7 @@ virLogParseOutputs(const char *outputs)
             if (str == cur)
                 goto cleanup;
 #if HAVE_SYSLOG_H
-            name = strndup(str, cur - str);
-            if (name == NULL)
+            if (VIR_STRNDUP(name, str, cur - str) < 0)
                 goto cleanup;
             if (virLogAddOutputToSyslog(prio, name) == 0)
                 count++;
@@ -1345,8 +1346,7 @@ virLogParseOutputs(const char *outputs)
                 cur++;
             if (str == cur)
                 goto cleanup;
-            name = strndup(str, cur - str);
-            if (name == NULL)
+            if (VIR_STRNDUP(name, str, cur - str) < 0)
                 goto cleanup;
             if (virFileAbsPath(name, &abspath) < 0) {
                 VIR_FREE(name);
@@ -1423,8 +1423,7 @@ virLogParseFilters(const char *filters)
             cur++;
         if (str == cur)
             goto cleanup;
-        name = strndup(str, cur - str);
-        if (name == NULL)
+        if (VIR_STRNDUP(name, str, cur - str) < 0)
             goto cleanup;
         if (virLogDefineFilter(name, prio, flags) >= 0)
             count++;
@@ -1502,7 +1501,7 @@ virLogGetOutputs(void)
     for (i = 0; i < virLogNbOutputs; i++) {
         virLogDestination dest = virLogOutputs[i].dest;
         if (i)
-            virBufferAsprintf(&outputbuf, " ");
+            virBufferAddChar(&outputbuf, ' ');
         switch (dest) {
             case VIR_LOG_TO_SYSLOG:
             case VIR_LOG_TO_FILE:

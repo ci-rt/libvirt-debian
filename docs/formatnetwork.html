@@ -183,11 +183,11 @@
           </li></ul>
         <p>
       This page provides an introduction to the network XML format. For background
-      information on the concepts referred to here, consult the <a href="archnetwork.html">network driver architecture</a>
+      information on the concepts referred to here, consult the <a href="archnetwork.html" shape="rect">network driver architecture</a>
       page.
     </p>
         <h2>
-          <a name="elements" id="elements">Element and attribute overview</a>
+          <a name="elements" shape="rect" id="elements">Element and attribute overview</a>
         </h2>
         <p>
       The root element required for all virtual networks is
@@ -201,13 +201,13 @@
       available <span class="since">since 0.3.0</span>
     </p>
         <h3>
-          <a name="elementsMetadata" id="elementsMetadata">General metadata</a>
+          <a name="elementsMetadata" shape="rect" id="elementsMetadata">General metadata</a>
         </h3>
         <p>
       The first elements provide basic metadata about the virtual
       network.
     </p>
-        <pre>
+        <pre xml:space="preserve">
       &lt;network ipv6='yes'&gt;
         &lt;name&gt;default&lt;/name&gt;
         &lt;uuid&gt;3e3fce45-4f53-4fa7-bb32-11f34168b82b&lt;/uuid&gt;
@@ -227,13 +227,13 @@
         see the example below for the example with no gateway addresses.
         <span class="since">Since 1.0.1</span></dd></dl>
         <h3>
-          <a name="elementsConnect" id="elementsConnect">Connectivity</a>
+          <a name="elementsConnect" shape="rect" id="elementsConnect">Connectivity</a>
         </h3>
         <p>
       The next set of elements control how a virtual network is
       provided connectivity to the physical LAN (if at all).
     </p>
-        <pre>
+        <pre xml:space="preserve">
         ...
         &lt;bridge name="virbr0" stp="on" delay="5"/&gt;
         &lt;domain name="example.com"/&gt;
@@ -301,7 +301,7 @@
             subelements and <code>start</code> and <code>stop</code>
             attributes:
             </p>
-            <pre>
+            <pre xml:space="preserve">
 ...
   &lt;forward mode='nat'&gt;
     &lt;nat&gt;
@@ -318,7 +318,7 @@
             The port range to be used for the <code>&lt;nat&gt;</code> can
             be set via the subelement <code>&lt;port&gt;</code>:
             </p>
-            <pre>
+            <pre xml:space="preserve">
 ...
   &lt;forward mode='nat'&gt;
     &lt;nat&gt;
@@ -336,7 +336,7 @@
             traffic to this host. All incoming and outgoing sessions
             to guest on these networks are unrestricted. (To restrict
             incoming traffic to a guest on a routed network, you can
-            configure <a href="formatnwfilter.html">nwfilter rules</a>
+            configure <a href="formatnwfilter.html" shape="rect">nwfilter rules</a>
             on the guest's interfaces.)
             <span class="since">Since 0.4.2</span>
           </dd><dt><code>bridge</code></dt><dd>
@@ -354,7 +354,7 @@
             the forward element has one or
             more <code>&lt;interface&gt;</code>
             subelements, <span class="since">Since 0.9.4</span>)
-            (see <a href="formatdomain.html#elementsNICSDirect">Direct
+            (see <a href="formatdomain.html#elementsNICSDirect" shape="rect">Direct
             attachment to physical interface</a> for descriptions of
             the various macvtap modes). libvirt doesn't attempt to
             manage the bridge interface at all, thus
@@ -459,7 +459,7 @@
         have multiple <code>&lt;interface&gt;</code> subelements, each
         one giving the name of a physical interface that can be used
         for this network <span class="since">Since 0.9.4</span>:
-        <pre>
+        <pre xml:space="preserve">
 ...
   &lt;forward mode='passthrough'&gt;
     &lt;interface dev='eth10'/&gt;
@@ -486,7 +486,7 @@
           corresponding physical interface associated with multiple
           virtual interfaces:
         </p>
-        <pre>
+        <pre xml:space="preserve">
 ...
   &lt;forward mode='passthrough'&gt;
     &lt;pf dev='eth0'/&gt;
@@ -513,7 +513,7 @@
           <code>&lt;slot&gt;</code>, and <code>&lt;function&gt;</code>
           attributes.
         </p>
-        <pre>
+        <pre xml:space="preserve">
 ...
   &lt;forward mode='hostdev' managed='yes'&gt;
     &lt;driver name='vfio'/&gt;
@@ -529,7 +529,7 @@
         call out the  corresponding physical interface associated with
         multiple virtual interfaces (similar to passthrough mode):
 
-        <pre>
+        <pre xml:space="preserve">
 ...
   &lt;forward mode='hostdev' managed='yes'&gt;
     &lt;pf dev='eth0'/&gt;
@@ -539,9 +539,9 @@
 
       </dd></dl>
         <h5>
-          <a name="elementQoS" id="elementQoS">Quality of service</a>
+          <a name="elementQoS" shape="rect" id="elementQoS">Quality of service</a>
         </h5>
-        <pre>
+        <pre xml:space="preserve">
 ...
   &lt;forward mode='nat' dev='eth0'/&gt;
   <b>&lt;bandwidth&gt;
@@ -570,9 +570,9 @@
         <span class="since">Since 0.9.4</span>
       </p>
         <h5>
-          <a name="elementVlanTag" id="elementVlanTag">Setting VLAN tag (on supported network types only)</a>
+          <a name="elementVlanTag" shape="rect" id="elementVlanTag">Setting VLAN tag (on supported network types only)</a>
         </h5>
-        <pre>
+        <pre xml:space="preserve">
   ...
   &lt;devices&gt;
     &lt;interface type='bridge'&gt;
@@ -619,9 +619,9 @@
       or <code>&lt;interface&gt;</code>.
     </p>
         <h5>
-          <a name="elementsPortgroup" id="elementsPortgroup">Portgroups</a>
+          <a name="elementsPortgroup" shape="rect" id="elementsPortgroup">Portgroups</a>
         </h5>
-        <pre>
+        <pre xml:space="preserve">
 ...
   &lt;forward mode='private'/&gt;
     &lt;interface dev="eth20"/&gt;
@@ -660,9 +660,9 @@
       network), and each portgroup has a name, as well as various
       subelements associated with it. The currently supported
       subelements are <code>&lt;bandwidth&gt;</code>
-      (documented <a href="formatdomain.html#elementQoS">here</a>)
+      (documented <a href="formatdomain.html#elementQoS" shape="rect">here</a>)
       and <code>&lt;virtualport&gt;</code>
-      (documented <a href="formatdomain.html#elementsNICSDirect">here</a>).
+      (documented <a href="formatdomain.html#elementsNICSDirect" shape="rect">here</a>).
       If a domain interface definition specifies a portgroup (by
       adding a <code>portgroup</code> attribute to
       the <code>&lt;source&gt;</code> subelement), that portgroup's
@@ -682,8 +682,62 @@
       considered an error, and will prevent the interface from
       starting.
     </p>
+        <h5>
+          <a name="elementsStaticroute" shape="rect" id="elementsStaticroute">Static Routes</a>
+        </h5>
+        <p>
+      Static route definitions are used to provide routing information
+      to the virtualization host for networks which are not directly
+      reachable from the virtualization host, but *are* reachable from
+      a guest domain that is itself reachable from the
+      host <span class="since">since 1.0.6</span>.
+    </p>
+        <p>
+      As shown in <a href="formatnetwork.html#examplesNoGateway" shape="rect">this
+      example</a>, it is possible to define a virtual network
+      interface with no IPv4 or IPv6 addresses.  Such networks are
+      useful to provide host connectivity to networks which are only
+      reachable via a guest.  A guest with connectivity both to the
+      guest-only network and to another network that is directly
+      reachable from the host can act as a gateway between the
+      networks.  A static route added to the "host-visible" network
+      definition provides the routing information so that IP packets
+      can be sent from the virtualization host to guests on the hidden
+      network.
+    </p>
+        <p>
+      Here is a fragment of a definition which shows the static
+      route specification as well as the  IPv4 and IPv6 definitions
+      for network addresses which are referred to in the
+      <code>gateway</code> gateway address specifications.  Note
+      that the third static route specification includes the
+      <code>metric</code> attribute specification with a value of 2.
+      This particular route would *not* be preferred if there was
+      another existing rout on the system with the same address and
+      prefix but with a lower value for the metric. If there is a
+      route in the host system configuration that should be overriden
+      by a route in a virtual network whenever the virtual network is
+      running, the configuration for the system-defined route should
+      be modified to have a higher metric, and the route on the
+      virtual network given a lower metric (for example, the default
+      metric of "1").
+    </p>
+        <pre xml:space="preserve">
+      ...
+        &lt;ip address="192.168.122.1" netmask="255.255.255.0"&gt;
+          &lt;dhcp&gt;
+            &lt;range start="192.168.122.128" end="192.168.122.254" /&gt;
+          &lt;/dhcp&gt;
+        &lt;/ip&gt;
+        &lt;route address="192.168.222.0" prefix="24" gateway="192.168.122.2" /&gt;
+        &lt;ip family="ipv6" address="2001:db8:ca2:2::1" prefix="64" /&gt;
+        &lt;route family="ipv6" address="2001:db8:ca2:3::" prefix="64" gateway="2001:db8:ca2:2::2"/&gt;
+        &lt;route family="ipv6" address="2001:db9:4:1::" prefix="64" gateway="2001:db8:ca2:2::3" metric='2'&gt;
+        &lt;/route&gt;
+      ...
+    </pre>
         <h3>
-          <a name="elementsAddress" id="elementsAddress">Addressing</a>
+          <a name="elementsAddress" shape="rect" id="elementsAddress">Addressing</a>
         </h3>
         <p>
       The final set of elements define the addresses (IPv4 and/or
@@ -693,7 +747,7 @@
       (no <code>forward</code> element specified), and for those with
       a forward mode of 'route' or 'nat'.
     </p>
-        <pre>
+        <pre xml:space="preserve">
         ...
         &lt;mac address='00:16:3E:5D:C7:9E'/&gt;
         &lt;domain name="example.com"/&gt;
@@ -713,6 +767,7 @@
           &lt;/dhcp&gt;
         &lt;/ip&gt;
         &lt;ip family="ipv6" address="2001:db8:ca2:2::1" prefix="64" /&gt;
+        &lt;route family="ipv6" address="2001:db9:ca1:1::" prefix="64" gateway="2001:db8:ca2:2::2" /&gt;
       &lt;/network&gt;</pre>
         <dl><dt><code>mac</code></dt><dd>The <code>address</code> attribute defines a MAC
         (hardware) address formatted as 6 groups of 2-digit
@@ -829,10 +884,10 @@
           </dd></dl>
       </dd></dl>
         <h2>
-          <a name="examples" id="examples">Example configuration</a>
+          <a name="examples" shape="rect" id="examples">Example configuration</a>
         </h2>
         <h3>
-          <a name="examplesNAT" id="examplesNAT">NAT based network</a>
+          <a name="examplesNAT" shape="rect" id="examplesNAT">NAT based network</a>
         </h3>
         <p>
       This example is the so called "default" virtual network. It is
@@ -843,7 +898,7 @@
       configuration. In the absence of host networking, it at least allows
       guests to talk directly to each other.
     </p>
-        <pre>
+        <pre xml:space="preserve">
       &lt;network&gt;
         &lt;name&gt;default&lt;/name&gt;
         &lt;bridge name="virbr0" /&gt;
@@ -859,7 +914,7 @@
       Below is a variation of the above example which adds an IPv6
       dhcp range definition.
     </p>
-        <pre>
+        <pre xml:space="preserve">
       &lt;network&gt;
         &lt;name&gt;default6&lt;/name&gt;
         &lt;bridge name="virbr0" /&gt;
@@ -876,7 +931,7 @@
         &lt;/ip&gt;
       &lt;/network&gt;</pre>
         <h3>
-          <a name="examplesRoute" id="examplesRoute">Routed network config</a>
+          <a name="examplesRoute" shape="rect" id="examplesRoute">Routed network config</a>
         </h3>
         <p>
       This is a variant on the default network which routes traffic
@@ -886,7 +941,7 @@
       further specifies that guest traffic may only go out via the
       <code>eth1</code> host network device.
     </p>
-        <pre>
+        <pre xml:space="preserve">
       &lt;network&gt;
         &lt;name&gt;local&lt;/name&gt;
         &lt;bridge name="virbr1" /&gt;
@@ -907,7 +962,7 @@
       address.  The first is a DUID-LLT, the second a DUID-LL, and
       the third a DUID-UUID.  <span class="since">Since 1.0.3</span>
     </p>
-        <pre>
+        <pre xml:space="preserve">
       &lt;network&gt;
         &lt;name&gt;local6&lt;/name&gt;
         &lt;bridge name="virbr1" /&gt;
@@ -926,8 +981,33 @@
           &lt;/dhcp&gt;
         &lt;/ip&gt;
       &lt;/network&gt;</pre>
+        <p>
+      Below is yet another IPv6 variation.  This variation has only
+      IPv6 defined with DHCPv6 on the primary IPv6 network.  A static
+      link if defined for a second IPv6 network which will not be
+      directly visible on the bridge interface but there will be a
+      static route defined for this network via the specified
+      gateway. Note that the gateway address must be directly
+      reachable via (on the same subnet as) one of the &lt;ip&gt;
+      addresses defined for this &lt;network&gt;.
+      <span class="since">Since 1.0.6</span>
+    </p>
+        <pre xml:space="preserve">
+      &lt;network&gt;
+        &lt;name&gt;net7&lt;/name&gt;
+        &lt;bridge name="virbr7" /&gt;
+        &lt;forward mode="route"/&gt;
+        &lt;ip family="ipv6" address="2001:db8:ca2:7::1" prefix="64" &gt;
+          &lt;dhcp&gt;
+            &lt;range start="2001:db8:ca2:7::100" end="2001:db8:ca2::1ff" /&gt;
+            &lt;host id="0:4:7e:7d:f0:7d:a8:bc:c5:d2:13:32:11:ed:16:ea:84:63" name="lucas" ip="2001:db8:ca2:2:3::4" /&gt;
+          &lt;/dhcp&gt;
+        &lt;/ip&gt;
+        &lt;route family="ipv6" address="2001:db8:ca2:8::" prefix="64" gateway="2001:db8:ca2:7::4" &gt;
+        &lt;/route&gt;
+      &lt;/network&gt;</pre>
         <h3>
-          <a name="examplesPrivate" id="examplesPrivate">Isolated network config</a>
+          <a name="examplesPrivate" shape="rect" id="examplesPrivate">Isolated network config</a>
         </h3>
         <p>
       This variant provides a completely isolated private network
@@ -936,7 +1016,7 @@
       the omission of the <code>forward</code> element in the XML
       description.
     </p>
-        <pre>
+        <pre xml:space="preserve">
       &lt;network&gt;
         &lt;name&gt;private&lt;/name&gt;
         &lt;bridge name="virbr2" /&gt;
@@ -948,7 +1028,7 @@
         &lt;ip family="ipv6" address="2001:db8:ca2:3::1" prefix="64" /&gt;
       &lt;/network&gt;</pre>
         <h3>
-          <a name="examplesPrivate6" id="examplesPrivate6">Isolated IPv6 network config</a>
+          <a name="examplesPrivate6" shape="rect" id="examplesPrivate6">Isolated IPv6 network config</a>
         </h3>
         <p>
       This variation of an isolated network defines only IPv6.
@@ -958,7 +1038,7 @@
       address.  The first is a DUID-LLT, the second a DUID-LL, and
       the third a DUID-UUID.  <span class="since">Since 1.0.3</span>
     </p>
-        <pre>
+        <pre xml:space="preserve">
       &lt;network&gt;
         &lt;name&gt;sixnet&lt;/name&gt;
         &lt;bridge name="virbr6" /&gt;
@@ -972,7 +1052,7 @@
         &lt;/ip&gt;
       &lt;/network&gt;</pre>
         <h3>
-          <a name="examplesBridge" id="examplesBridge">Using an existing host bridge</a>
+          <a name="examplesBridge" shape="rect" id="examplesBridge">Using an existing host bridge</a>
         </h3>
         <p>
       <span class="since">Since 0.9.4</span>
@@ -982,14 +1062,14 @@
       the physical network, and there will be no restrictions on
       inbound or outbound connections).
     </p>
-        <pre>
+        <pre xml:space="preserve">
       &lt;network&gt;
         &lt;name&gt;host-bridge&lt;/name&gt;
         &lt;forward mode="bridge"/&gt;
         &lt;bridge name="br0"/&gt;
       &lt;/network&gt;</pre>
         <h3>
-          <a name="examplesDirect" id="examplesDirect">Using a macvtap "direct" connection</a>
+          <a name="examplesDirect" shape="rect" id="examplesDirect">Using a macvtap "direct" connection</a>
         </h3>
         <p>
       <span class="since">Since 0.9.4, QEMU and KVM only, requires
@@ -1011,7 +1091,7 @@
       network). The other forward modes that use macvtap (private,
       vepa, and passthrough) would be used in a similar fashion.
     </p>
-        <pre>
+        <pre xml:space="preserve">
       &lt;network&gt;
         &lt;name&gt;direct-macvtap&lt;/name&gt;
         &lt;forward mode="bridge"&gt;
@@ -1023,7 +1103,7 @@
         &lt;/forward&gt;
       &lt;/network&gt;</pre>
         <h3>
-          <a name="examplesNoGateway" id="examplesNoGateway">Network config with no gateway addresses</a>
+          <a name="examplesNoGateway" shape="rect" id="examplesNoGateway">Network config with no gateway addresses</a>
         </h3>
         <p>
     A valid network definition can contain no IPv4 or IPv6 addresses.  Such a definition
@@ -1034,7 +1114,7 @@
     However, the new ipv6='yes' must be added for guest-to-guest IPv6
     communication.
     </p>
-        <pre>
+        <pre xml:space="preserve">
       &lt;network ipv6='yes'&gt;
         &lt;name&gt;nogw&lt;/name&gt;
         &lt;uuid&gt;7a3b7497-1ec7-8aef-6d5c-38dff9109e93&lt;/uuid&gt;

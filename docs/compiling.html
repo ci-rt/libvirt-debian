@@ -117,7 +117,7 @@
       </div>
       <div id="content">
         <h1>
-          <a name="installation" id="installation">libvirt Installation</a>
+          <a name="installation" shape="rect" id="installation">libvirt Installation</a>
         </h1>
         <ul><li>
             <a href="#compiling">Compiling a release tarball</a>
@@ -125,12 +125,12 @@
             <a href="#building">Building from a GIT checkout</a>
           </li></ul>
         <h2>
-          <a name="compiling" id="compiling">Compiling a release tarball</a>
+          <a name="compiling" shape="rect" id="compiling">Compiling a release tarball</a>
         </h2>
         <p>
       libvirt uses the standard configure/make/install steps:
     </p>
-        <pre>
+        <pre xml:space="preserve">
       $ gunzip -c libvirt-x.x.x.tar.gz | tar xvf -
       $ cd libvirt-x.x.x
       $ ./configure</pre>
@@ -142,7 +142,7 @@
       To get the complete list of the options it can take, pass it the
       <i>--help</i> option like this:
     </p>
-        <pre>
+        <pre xml:space="preserve">
       $ ./configure <i>--help</i></pre>
         <p>
       When you have determined which options you want to use (if any),
@@ -159,7 +159,7 @@
       access to, then you can instead run the <i>make install</i> command
       without putting <b>sudo</b> before it.
     </p>
-        <pre>
+        <pre xml:space="preserve">
       $ ./configure <i>[possible options]</i>
       $ make
       $ <b>sudo</b> <i>make install</i></pre>
@@ -168,7 +168,7 @@
       to update your list of installed shared libs.
     </p>
         <h2>
-          <a name="building" id="building">Building from a GIT checkout</a>
+          <a name="building" shape="rect" id="building">Building from a GIT checkout</a>
         </h2>
         <p>
       The libvirt build process uses GNU autotools, so after obtaining a
@@ -179,7 +179,7 @@
       but this is not recommended. To build &amp; install libvirt to your home
       directory the following commands can be run:
     </p>
-        <pre>
+        <pre xml:space="preserve">
       $ ./autogen.sh --prefix=$HOME/usr
       $ make
       $ <b>sudo</b> make install</pre>
@@ -189,7 +189,7 @@
       paths will all be different. To produce a build that is compatible
       with normal OS vendor prefixes, use
     </p>
-        <pre>
+        <pre xml:space="preserve">
       $ ./autogen.sh --system
       $ make
     </pre>
@@ -199,7 +199,7 @@
       run libvirt directly from the source tree. For example to run
       a privileged libvirtd instance
     </p>
-        <pre>
+        <pre xml:space="preserve">
       $ su -
       # service libvirtd stop  (or systemctl stop libvirtd.service)
       # /home/to/your/checkout/daemon/libvirtd
@@ -208,7 +208,7 @@
       It is also possible to run virsh directly from the source tree
       using the ./run script (which sets some environment variables):
     </p>
-        <pre>
+        <pre xml:space="preserve">
       $ ./run ./tools/virsh ....
     </pre>
       </div>

@@ -45,6 +45,7 @@
 #include "virrandom.h"
 #include "virhash.h"
 #include "viruuid.h"
+#include "virstring.h"
 
 #include "locking/lock_daemon_dispatch.h"
 #include "locking/lock_protocol.h"
@@ -214,7 +215,7 @@ virLockDaemonNewPostExecRestart(virJSONValuePtr object, bool privileged)
         goto error;
     }
 
-    for (i = 0 ; i < n ; i++) {
+    for (i = 0; i < n; i++) {
         virLockSpacePtr lockspace;
 
         child = virJSONValueArrayGet(lockspaces, i);
@@ -369,8 +370,8 @@ virLockDaemonPidFilePath(bool privileged,
                          char **pidfile)
 {
     if (privileged) {
-        if (!(*pidfile = strdup(LOCALSTATEDIR "/run/virtlockd.pid")))
-            goto no_memory;
+        if (VIR_STRDUP(*pidfile, LOCALSTATEDIR "/run/virtlockd.pid") < 0)
+            goto error;
     } else {
         char *rundir = NULL;
         mode_t old_umask;
@@ -387,7 +388,8 @@ virLockDaemonPidFilePath(bool privileged,
 
         if (virAsprintf(pidfile, "%s/virtlockd.pid", rundir) < 0) {
             VIR_FREE(rundir);
-            goto no_memory;
+            virReportOOMError();
+            goto error;
         }
 
         VIR_FREE(rundir);
@@ -395,8 +397,6 @@ virLockDaemonPidFilePath(bool privileged,
 
     return 0;
 
-no_memory:
-    virReportOOMError();
 error:
     return -1;
 }
@@ -407,8 +407,8 @@ virLockDaemonUnixSocketPaths(bool privileged,
                              char **sockfile)
 {
     if (privileged) {
-        if (!(*sockfile = strdup(LOCALSTATEDIR "/run/libvirt/virtlockd-sock")))
-            goto no_memory;
+        if (VIR_STRDUP(*sockfile, LOCALSTATEDIR "/run/libvirt/virtlockd-sock") < 0)
+            goto error;
     } else {
         char *rundir = NULL;
         mode_t old_umask;
@@ -425,15 +425,14 @@ virLockDaemonUnixSocketPaths(bool privileged,
 
         if (virAsprintf(sockfile, "%s/virtlockd-sock", rundir) < 0) {
             VIR_FREE(rundir);
-            goto no_memory;
+            virReportOOMError();
+            goto error;
         }
 
         VIR_FREE(rundir);
     }
     return 0;
 
-no_memory:
-    virReportOOMError();
 error:
     return -1;
 }
@@ -750,7 +749,7 @@ virLockDaemonClientFree(void *opaque)
          * closed the connection, we must kill it off
          * to make sure it doesn't do nasty stuff */
         if (data.gotError || data.hadSomeLeases) {
-            for (i = 0 ; i < 15 ; i++) {
+            for (i = 0; i < 15; i++) {
                 int signum;
                 if (i == 0)
                     signum = SIGTERM;
@@ -782,6 +781,7 @@ virLockDaemonClientNew(virNetServerClientPtr client,
     virLockDaemonClientPtr priv;
     uid_t clientuid;
     gid_t clientgid;
+    unsigned long long timestamp;
     bool privileged = opaque != NULL;
 
     if (VIR_ALLOC(priv) < 0) {
@@ -798,7 +798,8 @@ virLockDaemonClientNew(virNetServerClientPtr client,
     if (virNetServerClientGetUNIXIdentity(client,
                                           &clientuid,
                                           &clientgid,
-                                          &priv->clientPid) < 0)
+                                          &priv->clientPid,
+                                          &timestamp) < 0)
         goto error;
 
     VIR_DEBUG("New client pid %llu uid %llu",
@@ -866,10 +867,8 @@ virLockDaemonClientNewPostExecRestart(virNetServerClientPtr client,
                        _("Missing ownerName data in JSON document"));
         goto error;
     }
-    if (!(priv->ownerName = strdup(ownerName))) {
-        virReportOOMError();
+    if (VIR_STRDUP(priv->ownerName, ownerName) < 0)
         goto error;
-    }
     if (!(ownerUUID = virJSONValueObjectGetString(object, "ownerUUID"))) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                        _("Missing ownerUUID data in JSON document"));
@@ -1220,14 +1219,18 @@ int main(int argc, char **argv) {
 
         case 'p':
             VIR_FREE(pid_file);
-            if (!(pid_file = strdup(optarg)))
+            if (VIR_STRDUP_QUIET(pid_file, optarg) < 0) {
+                VIR_ERROR(_("Can't allocate memory"));
                 exit(EXIT_FAILURE);
+            }
             break;
 
         case 'f':
             VIR_FREE(remote_config_file);
-            if (!(remote_config_file = strdup(optarg)))
+            if (VIR_STRDUP_QUIET(remote_config_file, optarg) < 0) {
+                VIR_ERROR(_("Can't allocate memory"));
                 exit(EXIT_FAILURE);
+            }
             break;
 
         case OPT_VERSION:
@@ -1311,8 +1314,8 @@ int main(int argc, char **argv) {
 
     /* Ensure the rundir exists (on tmpfs on some systems) */
     if (privileged) {
-        if (!(run_dir = strdup(LOCALSTATEDIR "/run/libvirt"))) {
-            virReportOOMError();
+        if (VIR_STRDUP_QUIET(run_dir, LOCALSTATEDIR "/run/libvirt") < 0) {
+            VIR_ERROR(_("Can't allocate memory"));
             goto cleanup;
         }
     } else {

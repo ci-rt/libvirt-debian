@@ -28,6 +28,7 @@
 #include "virtypedparam.h"
 #include "ignore-value.h"
 #include "virutil.h"
+#include "virstring.h"
 
 #ifndef __CYGWIN__
 extern void initlibvirtmod(void);
@@ -80,7 +81,7 @@ getPyVirTypedParameter(const virTypedParameterPtr params, int nparams)
     if ((info = PyDict_New()) == NULL)
         return NULL;
 
-    for (i = 0 ; i < nparams ; i++) {
+    for (i = 0; i < nparams; i++) {
         switch (params[i].type) {
         case VIR_TYPED_PARAM_INT:
             val = PyInt_FromLong(params[i].value.i);
@@ -151,7 +152,11 @@ setPyVirTypedParameter(PyObject *info,
                        const virTypedParameterPtr params, int nparams)
 {
     PyObject *key, *value;
+#if PY_MAJOR_VERSION == 2 && PY_MINOR_VERSION <= 4
+    int pos = 0;
+#else
     Py_ssize_t pos = 0;
+#endif
     virTypedParameterPtr temp = NULL, ret = NULL;
     Py_ssize_t size;
     int i;
@@ -1404,7 +1409,7 @@ libvirt_virDomainGetVcpus(PyObject *self ATTRIBUTE_UNUSED,
     if ((pycpumap = PyList_New(dominfo.nrVirtCpu)) == NULL)
         goto cleanup;
 
-    for (i = 0 ; i < dominfo.nrVirtCpu ; i++) {
+    for (i = 0; i < dominfo.nrVirtCpu; i++) {
         PyObject *info = PyTuple_New(4);
         PyObject *item = NULL;
 
@@ -1436,12 +1441,12 @@ libvirt_virDomainGetVcpus(PyObject *self ATTRIBUTE_UNUSED,
             Py_XDECREF(item);
             goto cleanup;
     }
-    for (i = 0 ; i < dominfo.nrVirtCpu ; i++) {
+    for (i = 0; i < dominfo.nrVirtCpu; i++) {
         PyObject *info = PyTuple_New(cpunum);
         int j;
         if (info == NULL)
             goto cleanup;
-        for (j = 0 ; j < cpunum ; j++) {
+        for (j = 0; j < cpunum; j++) {
             PyObject *item = NULL;
             if ((item = PyBool_FromLong(VIR_CPU_USABLE(cpumap, cpumaplen, i, j))) == NULL ||
                 PyTuple_SetItem(info, j, item) < 0) {
@@ -1945,7 +1950,7 @@ static int virConnectCredCallbackWrapper(virConnectCredentialPtr cred,
 
     list = PyTuple_New(2);
     pycred = PyTuple_New(ncred);
-    for (i = 0 ; i < ncred ; i++) {
+    for (i = 0; i < ncred; i++) {
         PyObject *pycreditem;
         pycreditem = PyList_New(5);
         Py_INCREF(Py_None);
@@ -1980,7 +1985,7 @@ static int virConnectCredCallbackWrapper(virConnectCredentialPtr cred,
 
     ret = PyLong_AsLong(pyret);
     if (ret == 0) {
-        for (i = 0 ; i < ncred ; i++) {
+        for (i = 0; i < ncred; i++) {
             PyObject *pycreditem;
             PyObject *pyresult;
             char *result = NULL;
@@ -2031,7 +2036,7 @@ libvirt_virConnectOpenAuth(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
         int i;
         if (VIR_ALLOC_N(auth.credtype, auth.ncredtype) < 0)
             return VIR_PY_NONE;
-        for (i = 0 ; i < auth.ncredtype ; i++) {
+        for (i = 0; i < auth.ncredtype; i++) {
             PyObject *val;
             val = PyList_GetItem(pycredtype, i);
             auth.credtype[i] = (int)PyLong_AsLong(val);
@@ -2171,7 +2176,7 @@ libvirt_virConnectListDomainsID(PyObject *self ATTRIBUTE_UNUSED,
     py_retval = PyList_New(c_retval);
 
     if (ids) {
-        for (i = 0;i < c_retval;i++) {
+        for (i = 0; i < c_retval; i++) {
             PyList_SetItem(py_retval, i, libvirt_intWrap(ids[i]));
         }
         VIR_FREE(ids);
@@ -2261,7 +2266,7 @@ libvirt_virConnectListDefinedDomains(PyObject *self ATTRIBUTE_UNUSED,
     py_retval = PyList_New(c_retval);
 
     if (names) {
-        for (i = 0;i < c_retval;i++) {
+        for (i = 0; i < c_retval; i++) {
             PyList_SetItem(py_retval, i, libvirt_constcharPtrWrap(names[i]));
             VIR_FREE(names[i]);
         }
@@ -2740,7 +2745,7 @@ libvirt_virConnectListNetworks(PyObject *self ATTRIBUTE_UNUSED,
     py_retval = PyList_New(c_retval);
 
     if (names) {
-        for (i = 0;i < c_retval;i++) {
+        for (i = 0; i < c_retval; i++) {
             PyList_SetItem(py_retval, i, libvirt_constcharPtrWrap(names[i]));
             VIR_FREE(names[i]);
         }
@@ -2785,7 +2790,7 @@ libvirt_virConnectListDefinedNetworks(PyObject *self ATTRIBUTE_UNUSED,
     py_retval = PyList_New(c_retval);
 
     if (names) {
-        for (i = 0;i < c_retval;i++) {
+        for (i = 0; i < c_retval; i++) {
             PyList_SetItem(py_retval, i, libvirt_constcharPtrWrap(names[i]));
             VIR_FREE(names[i]);
         }
@@ -2992,7 +2997,7 @@ libvirt_virNodeGetCellsFreeMemory(PyObject *self ATTRIBUTE_UNUSED, PyObject *arg
         return VIR_PY_NONE;
     }
     py_retval = PyList_New(c_retval);
-    for (i = 0;i < c_retval;i++) {
+    for (i = 0; i < c_retval; i++) {
         PyList_SetItem(py_retval, i,
                 libvirt_longlongWrap((long long) freeMems[i]));
     }
@@ -3160,7 +3165,7 @@ libvirt_virConnectListStoragePools(PyObject *self ATTRIBUTE_UNUSED,
     py_retval = PyList_New(c_retval);
     if (py_retval == NULL) {
         if (names) {
-            for (i = 0;i < c_retval;i++)
+            for (i = 0; i < c_retval; i++)
                 VIR_FREE(names[i]);
             VIR_FREE(names);
         }
@@ -3168,7 +3173,7 @@ libvirt_virConnectListStoragePools(PyObject *self ATTRIBUTE_UNUSED,
     }
 
     if (names) {
-        for (i = 0;i < c_retval;i++) {
+        for (i = 0; i < c_retval; i++) {
             PyList_SetItem(py_retval, i, libvirt_constcharPtrWrap(names[i]));
             VIR_FREE(names[i]);
         }
@@ -3213,7 +3218,7 @@ libvirt_virConnectListDefinedStoragePools(PyObject *self ATTRIBUTE_UNUSED,
     py_retval = PyList_New(c_retval);
     if (py_retval == NULL) {
         if (names) {
-            for (i = 0;i < c_retval;i++)
+            for (i = 0; i < c_retval; i++)
                 VIR_FREE(names[i]);
             VIR_FREE(names);
         }
@@ -3221,7 +3226,7 @@ libvirt_virConnectListDefinedStoragePools(PyObject *self ATTRIBUTE_UNUSED,
     }
 
     if (names) {
-        for (i = 0;i < c_retval;i++) {
+        for (i = 0; i < c_retval; i++) {
             PyList_SetItem(py_retval, i, libvirt_constcharPtrWrap(names[i]));
             VIR_FREE(names[i]);
         }
@@ -3312,7 +3317,7 @@ libvirt_virStoragePoolListVolumes(PyObject *self ATTRIBUTE_UNUSED,
     py_retval = PyList_New(c_retval);
     if (py_retval == NULL) {
         if (names) {
-            for (i = 0;i < c_retval;i++)
+            for (i = 0; i < c_retval; i++)
                 VIR_FREE(names[i]);
             VIR_FREE(names);
         }
@@ -3320,7 +3325,7 @@ libvirt_virStoragePoolListVolumes(PyObject *self ATTRIBUTE_UNUSED,
     }
 
     if (names) {
-        for (i = 0;i < c_retval;i++) {
+        for (i = 0; i < c_retval; i++) {
             PyList_SetItem(py_retval, i, libvirt_constcharPtrWrap(names[i]));
             VIR_FREE(names[i]);
         }
@@ -3573,7 +3578,7 @@ libvirt_virNodeListDevices(PyObject *self ATTRIBUTE_UNUSED,
     py_retval = PyList_New(c_retval);
 
     if (names) {
-        for (i = 0;i < c_retval;i++) {
+        for (i = 0; i < c_retval; i++) {
             PyList_SetItem(py_retval, i, libvirt_constcharPtrWrap(names[i]));
             VIR_FREE(names[i]);
         }
@@ -3663,7 +3668,7 @@ libvirt_virNodeDeviceListCaps(PyObject *self ATTRIBUTE_UNUSED,
     py_retval = PyList_New(c_retval);
 
     if (names) {
-        for (i = 0;i < c_retval;i++) {
+        for (i = 0; i < c_retval; i++) {
             PyList_SetItem(py_retval, i, libvirt_constcharPtrWrap(names[i]));
             VIR_FREE(names[i]);
         }
@@ -3782,7 +3787,7 @@ libvirt_virConnectListSecrets(PyObject *self ATTRIBUTE_UNUSED,
     py_retval = PyList_New(c_retval);
 
     if (uuids) {
-        for (i = 0;i < c_retval;i++) {
+        for (i = 0; i < c_retval; i++) {
             PyList_SetItem(py_retval, i, libvirt_constcharPtrWrap(uuids[i]));
             VIR_FREE(uuids[i]);
         }
@@ -4001,7 +4006,7 @@ libvirt_virConnectListNWFilters(PyObject *self ATTRIBUTE_UNUSED,
     py_retval = PyList_New(c_retval);
 
     if (uuids) {
-        for (i = 0;i < c_retval;i++) {
+        for (i = 0; i < c_retval; i++) {
             PyList_SetItem(py_retval, i, libvirt_constcharPtrWrap(uuids[i]));
             VIR_FREE(uuids[i]);
         }
@@ -4092,7 +4097,7 @@ libvirt_virConnectListInterfaces(PyObject *self ATTRIBUTE_UNUSED,
     py_retval = PyList_New(c_retval);
     if (py_retval == NULL) {
         if (names) {
-            for (i = 0;i < c_retval;i++)
+            for (i = 0; i < c_retval; i++)
                 VIR_FREE(names[i]);
             VIR_FREE(names);
         }
@@ -4100,7 +4105,7 @@ libvirt_virConnectListInterfaces(PyObject *self ATTRIBUTE_UNUSED,
     }
 
     if (names) {
-        for (i = 0;i < c_retval;i++) {
+        for (i = 0; i < c_retval; i++) {
             PyList_SetItem(py_retval, i, libvirt_constcharPtrWrap(names[i]));
             VIR_FREE(names[i]);
         }
@@ -4146,7 +4151,7 @@ libvirt_virConnectListDefinedInterfaces(PyObject *self ATTRIBUTE_UNUSED,
     py_retval = PyList_New(c_retval);
     if (py_retval == NULL) {
         if (names) {
-            for (i = 0;i < c_retval;i++)
+            for (i = 0; i < c_retval; i++)
                 VIR_FREE(names[i]);
             VIR_FREE(names);
         }
@@ -4154,7 +4159,7 @@ libvirt_virConnectListDefinedInterfaces(PyObject *self ATTRIBUTE_UNUSED,
     }
 
     if (names) {
-        for (i = 0;i < c_retval;i++) {
+        for (i = 0; i < c_retval; i++) {
             PyList_SetItem(py_retval, i, libvirt_constcharPtrWrap(names[i]));
             VIR_FREE(names[i]);
         }
@@ -5650,7 +5655,7 @@ libvirt_virConnectDomainEventGraphicsCallback(virConnectPtr conn ATTRIBUTE_UNUSE
                    libvirt_constcharPtrWrap(remote->service));
 
     pyobj_subject = PyList_New(subject->nidentity);
-    for (i = 0 ; i < subject->nidentity ; i++) {
+    for (i = 0; i < subject->nidentity; i++) {
         PyObject *pair = PyTuple_New(2);
         PyTuple_SetItem(pair, 0, libvirt_constcharPtrWrap(subject->identities[i].type));
         PyTuple_SetItem(pair, 1, libvirt_constcharPtrWrap(subject->identities[i].name));

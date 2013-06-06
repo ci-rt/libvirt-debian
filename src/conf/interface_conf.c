@@ -1,7 +1,7 @@
 /*
  * interface_conf.c: interfaces XML handling
  *
- * Copyright (C) 2006-2010 Red Hat, Inc.
+ * Copyright (C) 2006-2010, 2013 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -30,7 +30,6 @@
 #include "viralloc.h"
 #include "virxml.h"
 #include "viruuid.h"
-#include "virutil.h"
 #include "virbuffer.h"
 
 #define VIR_FROM_THIS VIR_FROM_INTERFACE
@@ -81,7 +80,7 @@ void virInterfaceDefFree(virInterfaceDefPtr def)
     switch (def->type) {
         case VIR_INTERFACE_TYPE_BRIDGE:
             VIR_FREE(def->data.bridge.delay);
-            for (i = 0;i < def->data.bridge.nbItf;i++) {
+            for (i = 0; i < def->data.bridge.nbItf; i++) {
                 if (def->data.bridge.itf[i] == NULL)
                     break; /* to cope with half parsed data on errors */
                 virInterfaceDefFree(def->data.bridge.itf[i]);
@@ -90,7 +89,7 @@ void virInterfaceDefFree(virInterfaceDefPtr def)
             break;
         case VIR_INTERFACE_TYPE_BOND:
             VIR_FREE(def->data.bond.target);
-            for (i = 0;i < def->data.bond.nbItf;i++) {
+            for (i = 0; i < def->data.bond.nbItf; i++) {
                 if (def->data.bond.itf[i] == NULL)
                     break; /* to cope with half parsed data on errors */
                 virInterfaceDefFree(def->data.bond.itf[i]);
@@ -505,7 +504,7 @@ virInterfaceDefParseBridge(virInterfaceDefPtr def,
         }
         def->data.bridge.nbItf = nbItf;
 
-        for (i = 0; i < nbItf;i++) {
+        for (i = 0; i < nbItf; i++) {
             ctxt->node = interfaces[i];
             itf = virInterfaceDefParseXML(ctxt, VIR_INTERFACE_TYPE_BRIDGE);
             if (itf == NULL) {
@@ -552,7 +551,7 @@ virInterfaceDefParseBondItfs(virInterfaceDefPtr def,
     }
     def->data.bond.nbItf = nbItf;
 
-    for (i = 0; i < nbItf;i++) {
+    for (i = 0; i < nbItf; i++) {
         ctxt->node = interfaces[i];
         itf = virInterfaceDefParseXML(ctxt, VIR_INTERFACE_TYPE_BOND);
         if (itf == NULL) {
@@ -887,7 +886,7 @@ virInterfaceBridgeDefFormat(virBufferPtr buf,
         virBufferAsprintf(buf, " delay='%s'", def->data.bridge.delay);
     virBufferAddLit(buf, ">\n");
 
-    for (i = 0;i < def->data.bridge.nbItf;i++) {
+    for (i = 0; i < def->data.bridge.nbItf; i++) {
         if (virInterfaceDefDevFormat(buf,
                                      def->data.bridge.itf[i], level+2) < 0)
             ret = -1;
@@ -949,7 +948,7 @@ virInterfaceBondDefFormat(virBufferPtr buf,
             virBufferAddLit(buf, " validate='all'");
         virBufferAddLit(buf, "/>\n");
     }
-    for (i = 0;i < def->data.bond.nbItf;i++) {
+    for (i = 0; i < def->data.bond.nbItf; i++) {
         if (virInterfaceDefDevFormat(buf, def->data.bond.itf[i], level+2) < 0)
             ret = -1;
     }
@@ -1172,7 +1171,7 @@ int virInterfaceFindByMACString(const virInterfaceObjListPtr interfaces,
 {
     unsigned int i, matchct = 0;
 
-    for (i = 0 ; i < interfaces->count ; i++) {
+    for (i = 0; i < interfaces->count; i++) {
 
         virInterfaceObjLock(interfaces->objs[i]);
         if (STRCASEEQ(interfaces->objs[i]->def->mac, mac)) {
@@ -1196,7 +1195,7 @@ virInterfaceObjPtr virInterfaceFindByName(const virInterfaceObjListPtr
 {
     unsigned int i;
 
-    for (i = 0 ; i < interfaces->count ; i++) {
+    for (i = 0; i < interfaces->count; i++) {
         virInterfaceObjLock(interfaces->objs[i]);
         if (STREQ(interfaces->objs[i]->def->name, name))
             return interfaces->objs[i];
@@ -1210,7 +1209,7 @@ void virInterfaceObjListFree(virInterfaceObjListPtr interfaces)
 {
     unsigned int i;
 
-    for (i = 0 ; i < interfaces->count ; i++)
+    for (i = 0; i < interfaces->count; i++)
         virInterfaceObjFree(interfaces->objs[i]);
 
     VIR_FREE(interfaces->objs);
@@ -1299,7 +1298,7 @@ void virInterfaceRemove(virInterfaceObjListPtr interfaces,
     unsigned int i;
 
     virInterfaceObjUnlock(iface);
-    for (i = 0 ; i < interfaces->count ; i++) {
+    for (i = 0; i < interfaces->count; i++) {
         virInterfaceObjLock(interfaces->objs[i]);
         if (interfaces->objs[i] == iface) {
             virInterfaceObjUnlock(interfaces->objs[i]);

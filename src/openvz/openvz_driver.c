@@ -48,7 +48,6 @@
 #include "openvz_driver.h"
 #include "openvz_util.h"
 #include "virbuffer.h"
-#include "virutil.h"
 #include "openvz_conf.h"
 #include "nodeinfo.h"
 #include "viralloc.h"
@@ -58,6 +57,7 @@
 #include "vircommand.h"
 #include "viruri.h"
 #include "virstatslinux.h"
+#include "virstring.h"
 
 #define VIR_FROM_THIS VIR_FROM_OPENVZ
 
@@ -88,28 +88,14 @@ static void openvzDriverUnlock(struct openvz_driver *driver)
 
 struct openvz_driver ovz_driver;
 
-static void cmdExecFree(const char *cmdExec[])
-{
-    int i=-1;
-    while (cmdExec[++i]) {
-        VIR_FREE(cmdExec[i]);
-    }
-}
-
-
 static int
 openvzDomainDefPostParse(virDomainDefPtr def,
                          virCapsPtr caps ATTRIBUTE_UNUSED,
                          void *opaque ATTRIBUTE_UNUSED)
 {
     /* fill the init path */
-    if (STREQ(def->os.type, "exe") && !def->os.init) {
-        if (!(def->os.init = strdup("/sbin/init"))) {
-            virReportOOMError();
-            return -1;
-        }
-    }
-
+    if (STREQ(def->os.type, "exe") && !def->os.init)
+        return VIR_STRDUP(def->os.init, "/sbin/init") < 0 ? -1 : 0;
     return 0;
 }
 
@@ -343,6 +329,13 @@ static int openvzConnectGetVersion(virConnectPtr conn, unsigned long *version) {
     return 0;
 }
 
+
+static char *openvzConnectGetHostname(virConnectPtr conn ATTRIBUTE_UNUSED)
+{
+    return virGetHostname();
+}
+
+
 static char *openvzDomainGetOSType(virDomainPtr dom)
 {
     struct  openvz_driver *driver = dom->conn->privateData;
@@ -358,8 +351,7 @@ static char *openvzDomainGetOSType(virDomainPtr dom)
         goto cleanup;
     }
 
-    if (!(ret = strdup(vm->def->os.type)))
-        virReportOOMError();
+    ignore_value(VIR_STRDUP(ret, vm->def->os.type));
 
 cleanup:
     if (vm)
@@ -770,14 +762,14 @@ cleanup:
 static char *
 openvzGenerateVethName(int veid, char *dev_name_ve)
 {
-    char    dev_name[32];
     int     ifNo = 0;
+    char    *ret;
 
     if (sscanf(dev_name_ve, "%*[^0-9]%d", &ifNo) != 1)
         return NULL;
-    if (snprintf(dev_name, sizeof(dev_name), "veth%d.%d", veid, ifNo) < 7)
-        return NULL;
-    return strdup(dev_name);
+    if (virAsprintf(&ret, "veth%d.%d.", veid, ifNo) < 0)
+        virReportOOMError();
+    return ret;
 }
 
 static char *
@@ -788,7 +780,7 @@ openvzGenerateContainerVethName(int veid)
 
     /* try to get line "^NETIF=..." from config */
     if (openvzReadVPSConfigParam(veid, "NETIF", &temp) <= 0) {
-        name = strdup("eth0");
+        ignore_value(VIR_STRDUP(name, "eth0"));
     } else {
         char *saveptr = NULL;
         char *s;
@@ -803,14 +795,11 @@ openvzGenerateContainerVethName(int veid)
         }
 
         /* set new name */
-        ignore_value(virAsprintf(&name, "eth%d", max + 1));
+        if (virAsprintf(&name, "eth%d", max + 1) < 0)
+            virReportOOMError();
     }
 
     VIR_FREE(temp);
-
-    if (name == NULL) {
-        virReportOOMError();
-    }
 
     return name;
 }
@@ -820,22 +809,12 @@ openvzDomainSetNetwork(virConnectPtr conn, const char *vpsid,
                        virDomainNetDefPtr net,
                        virBufferPtr configBuf)
 {
-    int rc = 0, narg;
-    const char *prog[OPENVZ_MAX_ARG];
+    int rc = -1;
     char macaddr[VIR_MAC_STRING_BUFLEN];
     virMacAddr host_mac;
     char host_macaddr[VIR_MAC_STRING_BUFLEN];
     struct openvz_driver *driver =  conn->privateData;
-    char *opt = NULL;
-
-#define ADD_ARG_LIT(thisarg)                                            \
-    do {                                                                \
-        if (narg >= OPENVZ_MAX_ARG)                                             \
-                 goto no_memory;                                        \
-        if ((prog[narg++] = strdup(thisarg)) == NULL)                   \
-            goto no_memory;                                             \
-    } while (0)
-
+    virCommandPtr cmd = NULL;
 
     if (net == NULL)
        return 0;
@@ -845,18 +824,11 @@ openvzDomainSetNetwork(virConnectPtr conn, const char *vpsid,
         return -1;
     }
 
-    for (narg = 0; narg < OPENVZ_MAX_ARG; narg++)
-        prog[narg] = NULL;
+    if (net->type != VIR_DOMAIN_NET_TYPE_BRIDGE &&
+        net->type != VIR_DOMAIN_NET_TYPE_ETHERNET)
+        return 0;
 
-    narg = 0;
-
-    if (net->type == VIR_DOMAIN_NET_TYPE_BRIDGE ||
-        net->type == VIR_DOMAIN_NET_TYPE_ETHERNET) {
-        ADD_ARG_LIT(VZCTL);
-        ADD_ARG_LIT("--quiet");
-        ADD_ARG_LIT("set");
-        ADD_ARG_LIT(vpsid);
-    }
+    cmd = virCommandNewArgList(VZCTL, "--quiet", "set", vpsid, NULL);
 
     virMacAddrFormat(&net->mac, macaddr);
     virDomainNetGenerateMAC(driver->xmlopt, &host_mac);
@@ -868,9 +840,6 @@ openvzDomainSetNetwork(virConnectPtr conn, const char *vpsid,
         virBuffer buf = VIR_BUFFER_INITIALIZER;
         int veid = openvzGetVEID(vpsid);
 
-        /* --netif_add ifname[,mac,host_ifname,host_mac] */
-        ADD_ARG_LIT("--netif_add") ;
-
         /* if user doesn't specify guest interface name,
          * then we need to generate it */
         if (net->data.ethernet.dev == NULL) {
@@ -878,8 +847,7 @@ openvzDomainSetNetwork(virConnectPtr conn, const char *vpsid,
             if (net->data.ethernet.dev == NULL) {
                virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                               _("Could not generate eth name for container"));
-               rc = -1;
-               goto exit;
+               goto cleanup;
             }
         }
 
@@ -890,8 +858,7 @@ openvzDomainSetNetwork(virConnectPtr conn, const char *vpsid,
             if (net->ifname == NULL) {
                virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                               _("Could not generate veth name"));
-               rc = -1;
-               goto exit;
+               goto cleanup;
             }
         }
 
@@ -912,40 +879,23 @@ openvzDomainSetNetwork(virConnectPtr conn, const char *vpsid,
             }
         }
 
-        if (!(opt = virBufferContentAndReset(&buf)))
-            goto no_memory;
-
-        ADD_ARG_LIT(opt) ;
-        VIR_FREE(opt);
+        /* --netif_add ifname[,mac,host_ifname,host_mac] */
+        virCommandAddArg(cmd, "--netif_add");
+        virCommandAddArgBuffer(cmd, &buf);
     } else if (net->type == VIR_DOMAIN_NET_TYPE_ETHERNET &&
               net->data.ethernet.ipaddr != NULL) {
         /* --ipadd ip */
-        ADD_ARG_LIT("--ipadd") ;
-        ADD_ARG_LIT(net->data.ethernet.ipaddr) ;
+        virCommandAddArgList(cmd, "--ipadd", net->data.ethernet.ipaddr, NULL);
     }
 
     /* TODO: processing NAT and physical device */
 
-    if (prog[0] != NULL) {
-        ADD_ARG_LIT("--save");
-        if (virRun(prog, NULL) < 0) {
-           rc = -1;
-           goto exit;
-        }
-    }
+    virCommandAddArg(cmd, "--save");
+    rc = virCommandRun(cmd, NULL);
 
- exit:
-    cmdExecFree(prog);
+ cleanup:
+    virCommandFree(cmd);
     return rc;
-
- no_memory:
-    VIR_FREE(opt);
-    virReportError(VIR_ERR_INTERNAL_ERROR,
-                   _("Could not put argument to %s"), VZCTL);
-    cmdExecFree(prog);
-    return -1;
-
-#undef ADD_ARG_LIT
 }
 
 
@@ -959,7 +909,7 @@ openvzDomainSetNetworkConfig(virConnectPtr conn,
     int first = 1;
     struct openvz_driver *driver =  conn->privateData;
 
-    for (i = 0 ; i < def->nnets ; i++) {
+    for (i = 0; i < def->nnets; i++) {
         if (driver->version < VZCTL_BRIDGE_MIN_VERSION &&
             def->nets[i]->type == VIR_DOMAIN_NET_TYPE_BRIDGE) {
             if (first)
@@ -1642,10 +1592,8 @@ static int openvzConnectListDefinedDomains(virConnectPtr conn ATTRIBUTE_UNUSED,
             continue;
         }
         snprintf(vpsname, sizeof(vpsname), "%d", veid);
-        if (!(names[got] = strdup(vpsname))) {
-            virReportOOMError();
+        if (VIR_STRDUP(names[got], vpsname) < 0)
             goto out;
-        }
         got ++;
     }
 
@@ -1662,7 +1610,7 @@ out:
     VIR_FORCE_CLOSE(outfd);
     virCommandFree(cmd);
     if (rc < 0) {
-        for (; got >= 0 ; got--)
+        for (; got >= 0; got--)
             VIR_FREE(names[got]);
     }
     return rc;
@@ -2031,7 +1979,7 @@ openvzDomainInterfaceStats(virDomainPtr dom,
     }
 
     /* Check the path is one of the domain's network interfaces. */
-    for (i = 0 ; i < vm->def->nnets ; i++) {
+    for (i = 0; i < vm->def->nnets; i++) {
         if (vm->def->nets[i]->ifname &&
             STREQ(vm->def->nets[i]->ifname, path)) {
             ret = 0;
@@ -2175,6 +2123,64 @@ openvzConnectListAllDomains(virConnectPtr conn,
 }
 
 
+
+static int
+openvzNodeGetInfo(virConnectPtr conn ATTRIBUTE_UNUSED,
+                  virNodeInfoPtr nodeinfo)
+{
+    return nodeGetInfo(nodeinfo);
+}
+
+
+static int
+openvzNodeGetCPUStats(virConnectPtr conn ATTRIBUTE_UNUSED,
+                      int cpuNum,
+                      virNodeCPUStatsPtr params,
+                      int *nparams,
+                      unsigned int flags)
+{
+    return nodeGetCPUStats(cpuNum, params, nparams, flags);
+}
+
+
+static int
+openvzNodeGetMemoryStats(virConnectPtr conn ATTRIBUTE_UNUSED,
+                         int cellNum,
+                         virNodeMemoryStatsPtr params,
+                         int *nparams,
+                         unsigned int flags)
+{
+    return nodeGetMemoryStats(cellNum, params, nparams, flags);
+}
+
+
+static int
+openvzNodeGetCellsFreeMemory(virConnectPtr conn ATTRIBUTE_UNUSED,
+                             unsigned long long *freeMems,
+                             int startCell,
+                             int maxCells)
+{
+    return nodeGetCellsFreeMemory(freeMems, startCell, maxCells);
+}
+
+
+static unsigned long long
+openvzNodeGetFreeMemory(virConnectPtr conn ATTRIBUTE_UNUSED)
+{
+    return nodeGetFreeMemory();
+}
+
+
+static int
+openvzNodeGetCPUMap(virConnectPtr conn ATTRIBUTE_UNUSED,
+                    unsigned char **cpumap,
+                    unsigned int *online,
+                    unsigned int flags)
+{
+    return nodeGetCPUMap(cpumap, online, flags);
+}
+
+
 static virDriver openvzDriver = {
     .no = VIR_DRV_OPENVZ,
     .name = "OPENVZ",
@@ -2182,14 +2188,14 @@ static virDriver openvzDriver = {
     .connectClose = openvzConnectClose, /* 0.3.1 */
     .connectGetType = openvzConnectGetType, /* 0.3.1 */
     .connectGetVersion = openvzConnectGetVersion, /* 0.5.0 */
-    .connectGetHostname = virGetHostname, /* 0.9.12 */
+    .connectGetHostname = openvzConnectGetHostname, /* 0.9.12 */
     .connectGetMaxVcpus = openvzConnectGetMaxVcpus, /* 0.4.6 */
-    .nodeGetInfo = nodeGetInfo, /* 0.3.2 */
-    .nodeGetCPUStats = nodeGetCPUStats, /* 0.9.12 */
-    .nodeGetMemoryStats = nodeGetMemoryStats, /* 0.9.12 */
-    .nodeGetCellsFreeMemory = nodeGetCellsFreeMemory, /* 0.9.12 */
-    .nodeGetFreeMemory = nodeGetFreeMemory, /* 0.9.12 */
-    .nodeGetCPUMap = nodeGetCPUMap, /* 1.0.0 */
+    .nodeGetInfo = openvzNodeGetInfo, /* 0.3.2 */
+    .nodeGetCPUStats = openvzNodeGetCPUStats, /* 0.9.12 */
+    .nodeGetMemoryStats = openvzNodeGetMemoryStats, /* 0.9.12 */
+    .nodeGetCellsFreeMemory = openvzNodeGetCellsFreeMemory, /* 0.9.12 */
+    .nodeGetFreeMemory = openvzNodeGetFreeMemory, /* 0.9.12 */
+    .nodeGetCPUMap = openvzNodeGetCPUMap, /* 1.0.0 */
     .connectGetCapabilities = openvzConnectGetCapabilities, /* 0.4.6 */
     .connectListDomains = openvzConnectListDomains, /* 0.3.1 */
     .connectNumOfDomains = openvzConnectNumOfDomains, /* 0.3.1 */

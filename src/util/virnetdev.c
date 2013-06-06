@@ -30,6 +30,8 @@
 #include "viralloc.h"
 #include "virpci.h"
 #include "virlog.h"
+#include "virstring.h"
+#include "virutil.h"
 
 #include <sys/ioctl.h>
 #include <net/if.h>
@@ -43,6 +45,11 @@
 # define VIR_NETDEV_FAMILY AF_LOCAL
 #else
 # undef HAVE_STRUCT_IFREQ
+#endif
+
+#if HAVE_DECL_LINK_ADDR
+# include <sys/sockio.h>
+# include <net/if_dl.h>
 #endif
 
 #define VIR_FROM_THIS VIR_FROM_NONE
@@ -108,7 +115,7 @@ int virNetDevExists(const char *ifname)
         return -1;
 
     if (ioctl(fd, SIOCGIFFLAGS, &ifr)) {
-        if (errno == ENODEV)
+        if (errno == ENODEV || errno == ENXIO)
             ret = 0;
         else
             virReportSystemError(errno,
@@ -176,6 +183,40 @@ int virNetDevSetMAC(const char *ifname,
 cleanup:
     VIR_FORCE_CLOSE(fd);
     return ret;
+}
+#elif defined(SIOCSIFLLADDR) && defined(HAVE_STRUCT_IFREQ) && \
+    HAVE_DECL_LINK_ADDR
+int virNetDevSetMAC(const char *ifname,
+                    const virMacAddrPtr macaddr)
+{
+        struct ifreq ifr;
+        struct sockaddr_dl sdl;
+        char mac[VIR_MAC_STRING_BUFLEN + 1] = ":";
+        int s;
+        int ret = -1;
+
+        if ((s = virNetDevSetupControl(ifname, &ifr)) < 0)
+            return -1;
+
+        virMacAddrFormat(macaddr, mac + 1);
+        sdl.sdl_len = sizeof(sdl);
+        link_addr(mac, &sdl);
+
+        memcpy(ifr.ifr_addr.sa_data, sdl.sdl_data, VIR_MAC_BUFLEN);
+        ifr.ifr_addr.sa_len = VIR_MAC_BUFLEN;
+
+        if (ioctl(s, SIOCSIFLLADDR, &ifr) < 0) {
+            virReportSystemError(errno,
+                                 _("Cannot set interface MAC on '%s'"),
+                                 ifname);
+            goto cleanup;
+        }
+
+        ret = 0;
+cleanup:
+        VIR_FORCE_CLOSE(s);
+
+        return ret;
 }
 #else
 int virNetDevSetMAC(const char *ifname,
@@ -776,6 +817,52 @@ int virNetDevSetIPv4Address(const char *ifname,
 cleanup:
     VIR_FREE(addrstr);
     VIR_FREE(bcaststr);
+    virCommandFree(cmd);
+    return ret;
+}
+
+/**
+ * virNetDevAddRoute:
+ * @ifname: the interface name
+ * @addr: the IP network address (IPv4 or IPv6)
+ * @prefix: number of 1 bits in the netmask
+ * @gateway: via address for route (same as @addr)
+ *
+ * Add a route for a network IP address to an interface. This function
+ * *does not* remove any previously added IP static routes.
+ *
+ * Returns 0 in case of success or -1 in case of error.
+ */
+
+int
+virNetDevAddRoute(const char *ifname,
+                  virSocketAddrPtr addr,
+                  unsigned int prefix,
+                  virSocketAddrPtr gateway,
+                  unsigned int metric)
+{
+    virCommandPtr cmd = NULL;
+    char *addrstr = NULL, *gatewaystr = NULL;
+    int ret = -1;
+
+    if (!(addrstr = virSocketAddrFormat(addr)))
+        goto cleanup;
+    if (!(gatewaystr = virSocketAddrFormat(gateway)))
+        goto cleanup;
+    cmd = virCommandNew(IP_PATH);
+    virCommandAddArgList(cmd, "route", "add", NULL);
+    virCommandAddArgFormat(cmd, "%s/%u", addrstr, prefix);
+    virCommandAddArgList(cmd, "via", gatewaystr, "dev", ifname,
+                              "proto", "static", "metric", NULL);
+    virCommandAddArgFormat(cmd, "%u", metric);
+
+    if (virCommandRun(cmd, NULL) < 0)
+        goto cleanup;
+
+    ret = 0;
+cleanup:
+    VIR_FREE(addrstr);
+    VIR_FREE(gatewaystr);
     virCommandFree(cmd);
     return ret;
 }

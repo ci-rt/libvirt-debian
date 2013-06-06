@@ -205,13 +205,13 @@
       structure / operation of the internal RPC library APIs.
     </p>
         <h2>
-          <a name="protocol" id="protocol">RPC protocol</a>
+          <a name="protocol" shape="rect" id="protocol">RPC protocol</a>
         </h2>
         <p>
       libvirt uses a simple, variable length, packet based RPC protocol.
       All structured data within packets is encoded using the
-      <a href="http://en.wikipedia.org/wiki/External_Data_Representation">XDR standard</a>
-      as currently defined by <a href="https://tools.ietf.org/html/rfc4506">RFC 4506</a>.
+      <a href="http://en.wikipedia.org/wiki/External_Data_Representation" shape="rect">XDR standard</a>
+      as currently defined by <a href="https://tools.ietf.org/html/rfc4506" shape="rect">RFC 4506</a>.
       On any connection running the RPC protocol, there can be multiple
       programs active, each supporting one or more versions. A program
       defines a set of procedures that it supports. The procedures can
@@ -224,7 +224,7 @@
       in the libvirt source tree.
     </p>
         <h3>
-          <a href="protocolframing">Packet framing</a>
+          <a href="protocolframing" shape="rect">Packet framing</a>
         </h3>
         <p>
       On the wire, there is no explicit packet framing marker. Instead
@@ -233,7 +233,7 @@
       the 4-bytes of the length word itself. Conceptually the framing
       looks like this:
     </p>
-        <pre>
+        <pre xml:space="preserve">
 |~~~   Packet 1   ~~~|~~~   Packet 2   ~~~|~~~  Packet 3    ~~~|~~~
 
 +-------+------------+-------+------------+-------+------------+...
@@ -244,7 +244,7 @@
 
 </pre>
         <h3>
-          <a href="protocoldata">Packet data</a>
+          <a href="protocoldata" shape="rect">Packet data</a>
         </h3>
         <p>
       The data in each packet is split into two parts, a short
@@ -252,7 +252,7 @@
       So a packet from the illustration above is more correctly
       shown as
     </p>
-        <pre>
+        <pre xml:space="preserve">
 
 +-------+-------------+---------------....---+
 | n=U32 | 6*U32       | (n-(7*4))*U8         |
@@ -261,13 +261,13 @@
 |~ Len ~|~  Header   ~|~  Payload     ....  ~|
 </pre>
         <h3>
-          <a href="protocolheader">Packet header</a>
+          <a href="protocolheader" shape="rect">Packet header</a>
         </h3>
         <p>
       The header contains 6 fields, encoded as signed/unsigned 32-bit
       integers.
     </p>
-        <pre>
+        <pre xml:space="preserve">
 +---------------+
 | program=U32   |
 +---------------+
@@ -317,9 +317,9 @@
             and error information is being returned. For streams this indicates
             that not all data was sent and the stream has aborted</li><li>continue: for streams this indicates that further data packets
             will be following</li></ol>
-    </dd></dl>
+      </dd></dl>
         <h3>
-          <a href="protocolpayload">Packet payload</a>
+          <a href="protocolpayload" shape="rect">Packet payload</a>
         </h3>
         <p>
       The payload of a packet will vary depending on the <code>type</code>
@@ -341,14 +341,14 @@
       definition for the program+version in question
     </p>
         <h3>
-          <a name="wireexamples" id="wireexamples">Wire examples</a>
+          <a name="wireexamples" shape="rect" id="wireexamples">Wire examples</a>
         </h3>
         <p>
       The following diagrams illustrate some example packet exchanges
       between a client and server
     </p>
         <h4>
-          <a name="wireexamplescall" id="wireexamplescall">Method call</a>
+          <a name="wireexamplescall" shape="rect" id="wireexamplescall">Method call</a>
         </h4>
         <p>
       A single method call and successful
@@ -356,7 +356,7 @@
       of input args, and 4 bytes worth of return values. The overall input
       packet length is 4 + 24 + 10 == 38, and output packet length 32
     </p>
-        <pre>
+        <pre xml:space="preserve">
           +--+-----------------------+-----------+
    C --&gt;  |38| 8 | 1 | 3 | 0 | 1 | 0 | .o.oOo.o. |  --&gt; S  (call)
           +--+-----------------------+-----------+
@@ -366,12 +366,12 @@
           +--+-----------------------+--------+
     </pre>
         <h4>
-          <a name="wireexamplescallerr" id="wireexamplescallerr">Method call with error</a>
+          <a name="wireexamplescallerr" shape="rect" id="wireexamplescallerr">Method call with error</a>
         </h4>
         <p>
       An unsuccessful method call will instead return an error object
     </p>
-        <pre>
+        <pre xml:space="preserve">
           +--+-----------------------+-----------+
    C --&gt;  |38| 8 | 1 | 3 | 0 | 1 | 0 | .o.oOo.o. |  --&gt; S   (call)
           +--+-----------------------+-----------+
@@ -381,13 +381,13 @@
           +--+-----------------------+--------------------------+
     </pre>
         <h4>
-          <a name="wireexamplescallup" id="wireexamplescallup">Method call with upload stream</a>
+          <a name="wireexamplescallup" shape="rect" id="wireexamplescallup">Method call with upload stream</a>
         </h4>
         <p>
       A method call which also involves uploading some data over
       a stream will result in
     </p>
-        <pre>
+        <pre xml:space="preserve">
           +--+-----------------------+-----------+
    C --&gt;  |38| 8 | 1 | 3 | 0 | 1 | 0 | .o.oOo.o. |  --&gt; S  (call)
           +--+-----------------------+-----------+
@@ -417,13 +417,13 @@
           +--+-----------------------+
     </pre>
         <h4>
-          <a name="wireexamplescallbi" id="wireexamplescallbi">Method call bidirectional stream</a>
+          <a name="wireexamplescallbi" shape="rect" id="wireexamplescallbi">Method call bidirectional stream</a>
         </h4>
         <p>
       A method call which also involves a bi-directional stream will
       result in
     </p>
-        <pre>
+        <pre xml:space="preserve">
           +--+-----------------------+-----------+
    C --&gt;  |38| 8 | 1 | 3 | 0 | 1 | 0 | .o.oOo.o. |  --&gt; S  (call)
           +--+-----------------------+-----------+
@@ -471,9 +471,9 @@
           +--+-----------------------+
     </pre>
         <h4>
-          <a name="wireexamplescallmany" id="wireexamplescallmany">Method calls overlapping</a>
+          <a name="wireexamplescallmany" shape="rect" id="wireexamplescallmany">Method calls overlapping</a>
         </h4>
-        <pre>
+        <pre xml:space="preserve">
           +--+-----------------------+-----------+
    C --&gt;  |38| 8 | 1 | 3 | 0 | 1 | 0 | .o.oOo.o. |  --&gt; S  (call 1)
           +--+-----------------------+-----------+
@@ -500,7 +500,7 @@
           +--+-----------------------+--------+
     </pre>
         <h4>
-          <a name="wireexamplescallfd" id="wireexamplescallfd">Method call with passed FD</a>
+          <a name="wireexamplescallfd" shape="rect" id="wireexamplescallfd">Method call with passed FD</a>
         </h4>
         <p>
       A single method call with 2 passed file descriptors and successful
@@ -510,7 +510,7 @@
       then has a 1 byte dummy payload. The overall input
       packet length is 4 + 24 + 4 + 2 + 10 == 44, and output packet length 32.
     </p>
-        <pre>
+        <pre xml:space="preserve">
           +--+-----------------------+---------------+-------+
    C --&gt;  |44| 8 | 1 | 3 | 0 | 1 | 0 | 2 | .o.oOo.o. | 0 | 0 |  --&gt; S  (call)
           +--+-----------------------+---------------+-------+
@@ -520,14 +520,14 @@
           +--+-----------------------+--------+
     </pre>
         <h2>
-          <a name="security" id="security">RPC security</a>
+          <a name="security" shape="rect" id="security">RPC security</a>
         </h2>
         <p>
       There are various things to consider to ensure an implementation
       of the RPC protocol can be satisfactorily secured
     </p>
         <h3>
-          <a name="securitytls" id="securitytls">Authentication/encryption</a>
+          <a name="securitytls" shape="rect" id="securitytls">Authentication/encryption</a>
         </h3>
         <p>
       The basic RPC protocol does not define or require any specific
@@ -541,7 +541,7 @@
       stream can of course be tunnelled over transports such as SSH.
     </p>
         <h3>
-          <a name="securitylimits" id="securitylimits">Data limits</a>
+          <a name="securitylimits" shape="rect" id="securitylimits">Data limits</a>
         </h3>
         <p>
       Although the protocol itself defines many arbitrary sized data values in the
@@ -553,7 +553,7 @@
       breaking compatibility of the RPC data on the wire.
     </p>
         <h3>
-          <a name="securityvalidate" id="securityvalidate">Data validation</a>
+          <a name="securityvalidate" shape="rect" id="securityvalidate">Data validation</a>
         </h3>
         <p>
       It is important that all data be fully validated before performing
@@ -569,7 +569,7 @@
       execution API (e.g. corresponding libvirt public API).
     </p>
         <h2>
-          <a name="internals" id="internals">RPC internal APIs</a>
+          <a name="internals" shape="rect" id="internals">RPC internal APIs</a>
         </h2>
         <p>
       The generic internal RPC library code lives in the <code>src/rpc/</code>
@@ -578,7 +578,7 @@
       purposes are:
     </p>
         <h3>
-          <a name="apioverview" id="apioverview">Overview of RPC objects</a>
+          <a name="apioverview" shape="rect" id="apioverview">Overview of RPC objects</a>
         </h3>
         <p>
       The following is a high level overview of the role of each
@@ -660,7 +660,7 @@
         authentication policy for incoming clients.
       </dd></dl>
         <h3>
-          <a name="apiclientdispatch" id="apiclientdispatch">Client RPC dispatch</a>
+          <a name="apiclientdispatch" shape="rect" id="apiclientdispatch">Client RPC dispatch</a>
         </h3>
         <p>
       The client RPC code must allow for multiple overlapping RPC method
@@ -691,7 +691,7 @@
       grabs the buck, and re-enabled when the buck is released.
     </p>
         <h4>
-          <a name="apiclientdispatchex1" id="apiclientdispatchex1">Example with buck passing</a>
+          <a name="apiclientdispatchex1" shape="rect" id="apiclientdispatchex1">Example with buck passing</a>
         </h4>
         <p>
       In the first example, a second thread issues a API call
@@ -699,7 +699,7 @@
       first call arrives first, so the buck is passed to the
       second thread.
     </p>
-        <pre>
+        <pre xml:space="preserve">
         Thread-1
            |
            V
@@ -738,7 +738,7 @@
                       Return API2()
     </pre>
         <h4>
-          <a name="apiclientdispatchex2" id="apiclientdispatchex2">Example without buck passing</a>
+          <a name="apiclientdispatchex2" shape="rect" id="apiclientdispatchex2">Example without buck passing</a>
         </h4>
         <p>
       In this second example, a second thread issues an API call
@@ -747,7 +747,7 @@
       the second that its reply is ready, and there is no need
       to pass the buck
     </p>
-        <pre>
+        <pre xml:space="preserve">
         Thread-1
            |
            V
@@ -787,14 +787,14 @@
        Return API1()
     </pre>
         <h4>
-          <a name="apiclientdispatchex3" id="apiclientdispatchex3">Example with async events</a>
+          <a name="apiclientdispatchex3" shape="rect" id="apiclientdispatchex3">Example with async events</a>
         </h4>
         <p>
       In this example, only one thread is present and it has to
       deal with some async events arriving. The events are actually
       dispatched to the application from the event loop thread
     </p>
-        <pre>
+        <pre xml:space="preserve">
         Thread-1
            |
            V
@@ -826,7 +826,7 @@
                           ...
     </pre>
         <h3>
-          <a name="apiserverdispatch" id="apiserverdispatch">Server RPC dispatch</a>
+          <a name="apiserverdispatch" shape="rect" id="apiserverdispatch">Server RPC dispatch</a>
         </h3>
         <p>
       The RPC server code must support receipt of incoming RPC requests from
@@ -906,13 +906,13 @@
       queue.
     </p>
         <h4>
-          <a name="apiserverdispatchex1" id="apiserverdispatchex1">Example with overlapping methods</a>
+          <a name="apiserverdispatchex1" shape="rect" id="apiserverdispatchex1">Example with overlapping methods</a>
         </h4>
         <p>
       This example illustrates processing of two incoming methods with
       overlapping execution
     </p>
-        <pre>
+        <pre xml:space="preserve">
    Event thread    Worker 1       Worker 2
        |               |              |
        V               V              V
@@ -952,12 +952,12 @@
       ...
     </pre>
         <h4>
-          <a name="apiserverdispatchex2" id="apiserverdispatchex2">Example with stream data</a>
+          <a name="apiserverdispatchex2" shape="rect" id="apiserverdispatchex2">Example with stream data</a>
         </h4>
         <p>
       This example illustrates processing of stream data
     </p>
-        <pre>
+        <pre xml:space="preserve">
    Event thread
        |
        V

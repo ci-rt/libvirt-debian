@@ -160,7 +160,7 @@
             <a href="#example">Examples</a>
           </li></ul>
         <h2>
-          <a name="SnapshotAttributes" id="SnapshotAttributes">Snapshot XML</a>
+          <a name="SnapshotAttributes" shape="rect" id="SnapshotAttributes">Snapshot XML</a>
         </h2>
         <p>
       There are several types of snapshots:
@@ -280,12 +280,12 @@
             mandatory, and must match either the <code>&lt;target
             dev='name'/&gt;</code> or an unambiguous <code>&lt;source
             file='name'/&gt;</code> of one of
-            the <a href="formatdomain.html#elementsDisks">disk
+            the <a href="formatdomain.html#elementsDisks" shape="rect">disk
             devices</a> specified for the domain at the time of the
             snapshot.  The attribute <code>snapshot</code> is
             optional, and the possible values are the same as the
             <code>snapshot</code> attribute for
-             <a href="formatdomain.html#elementsDisks">disk devices</a>
+             <a href="formatdomain.html#elementsDisks" shape="rect">disk devices</a>
             (<code>no</code>, <code>internal</code>,
             or <code>external</code>).  Some hypervisors like ESX
             require that if specified, the snapshot mode must not
@@ -330,16 +330,16 @@
         <code>VIR_DOMAIN_SNAPSHOT_REVERT_FORCE</code> flag
         in <code>virDomainRevertToSnapshot()</code>.  Newer versions
         of libvirt (<span class="since">since 0.9.5</span>) store the entire
-        inactive <a href="formatdomain.html">domain configuration</a>
+        inactive <a href="formatdomain.html" shape="rect">domain configuration</a>
         at the time of the snapshot (<span class="since">since
         0.9.5</span>).  Readonly.
       </dd></dl>
         <h2>
-          <a name="example" id="example">Examples</a>
+          <a name="example" shape="rect" id="example">Examples</a>
         </h2>
         <p>Using this XML to create a disk snapshot of just vda on a qemu
       domain with two disks:</p>
-        <pre>
+        <pre xml:space="preserve">
 &lt;domainsnapshot&gt;
   &lt;description&gt;Snapshot of OS install and updates&lt;/description&gt;
   &lt;disks&gt;
@@ -351,7 +351,7 @@
 &lt;/domainsnapshot&gt;</pre>
         <p>will result in XML similar to this from
       <code>virDomainSnapshotGetXMLDesc()</code>:</p>
-        <pre>
+        <pre xml:space="preserve">
 &lt;domainsnapshot&gt;
   &lt;name&gt;1270477159&lt;/name&gt;
   &lt;description&gt;Snapshot of OS install and updates&lt;/description&gt;
@@ -396,7 +396,7 @@
       to <code>virDomainGetXMLDesc()</code> will show that the domain
       has been changed to reflect the snapshot:
     </p>
-        <pre>
+        <pre xml:space="preserve">
 &lt;domain&gt;
   &lt;name&gt;fedora&lt;/name&gt;
   &lt;uuid&gt;93a5c045-6457-2c09-e56c-927cdf34e178&lt;/uuid&gt;

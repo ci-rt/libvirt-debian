@@ -79,7 +79,7 @@ void virCgroupFree(virCgroupPtr *group)
     if (*group == NULL)
         return;
 
-    for (i = 0 ; i < VIR_CGROUP_CONTROLLER_LAST ; i++) {
+    for (i = 0; i < VIR_CGROUP_CONTROLLER_LAST; i++) {
         VIR_FREE((*group)->controllers[i].mountPoint);
         VIR_FREE((*group)->controllers[i].linkPoint);
         VIR_FREE((*group)->controllers[i].placement);
@@ -112,23 +112,17 @@ static int virCgroupCopyMounts(virCgroupPtr group,
                                virCgroupPtr parent)
 {
     int i;
-    for (i = 0 ; i < VIR_CGROUP_CONTROLLER_LAST ; i++) {
+    for (i = 0; i < VIR_CGROUP_CONTROLLER_LAST; i++) {
         if (!parent->controllers[i].mountPoint)
             continue;
 
-        group->controllers[i].mountPoint =
-            strdup(parent->controllers[i].mountPoint);
-
-        if (!group->controllers[i].mountPoint)
+        if (VIR_STRDUP_QUIET(group->controllers[i].mountPoint,
+                             parent->controllers[i].mountPoint) < 0)
             return -ENOMEM;
 
-        if (parent->controllers[i].linkPoint) {
-            group->controllers[i].linkPoint =
-                strdup(parent->controllers[i].linkPoint);
-
-            if (!group->controllers[i].linkPoint)
-                return -ENOMEM;
-        }
+        if (VIR_STRDUP_QUIET(group->controllers[i].linkPoint,
+                             parent->controllers[i].linkPoint) < 0)
+            return -ENOMEM;
     }
     return 0;
 }
@@ -154,7 +148,7 @@ static int virCgroupDetectMounts(virCgroupPtr group)
         if (STRNEQ(entry.mnt_type, "cgroup"))
             continue;
 
-        for (i = 0 ; i < VIR_CGROUP_CONTROLLER_LAST ; i++) {
+        for (i = 0; i < VIR_CGROUP_CONTROLLER_LAST; i++) {
             const char *typestr = virCgroupControllerTypeToString(i);
             int typelen = strlen(typestr);
             char *tmp = entry.mnt_opts;
@@ -177,8 +171,9 @@ static int virCgroupDetectMounts(virCgroupPtr group)
                     struct stat sb;
                     char *tmp2;
 
-                    if (!(group->controllers[i].mountPoint = strdup(entry.mnt_dir)))
-                        goto no_memory;
+                    if (VIR_STRDUP_QUIET(group->controllers[i].mountPoint,
+                                         entry.mnt_dir) < 0)
+                        goto error;
 
                     tmp2 = strrchr(entry.mnt_dir, '/');
                     if (!tmp2) {
@@ -191,7 +186,7 @@ static int virCgroupDetectMounts(virCgroupPtr group)
                     if (strchr(tmp2 + 1, ',')) {
                         if (virAsprintf(&linksrc, "%s/%s",
                                         entry.mnt_dir, typestr) < 0)
-                            goto no_memory;
+                            goto error;
                         *tmp2 = '/';
 
                         if (lstat(linksrc, &sb) < 0) {
@@ -221,8 +216,6 @@ static int virCgroupDetectMounts(virCgroupPtr group)
 
     return 0;
 
-no_memory:
-    errno = ENOMEM;
 error:
     VIR_FORCE_FCLOSE(mounts);
     return -errno;
@@ -234,12 +227,12 @@ static int virCgroupCopyPlacement(virCgroupPtr group,
                                   virCgroupPtr parent)
 {
     int i;
-    for (i = 0 ; i < VIR_CGROUP_CONTROLLER_LAST ; i++) {
+    for (i = 0; i < VIR_CGROUP_CONTROLLER_LAST; i++) {
         if (!group->controllers[i].mountPoint)
             continue;
 
         if (path[0] == '/') {
-            if (!(group->controllers[i].placement = strdup(path)))
+            if (VIR_STRDUP_QUIET(group->controllers[i].placement, path) < 0)
                 return -ENOMEM;
         } else {
             /*
@@ -311,7 +304,7 @@ static int virCgroupDetectPlacement(virCgroupPtr group,
         controllers++;
         selfpath++;
 
-        for (i = 0 ; i < VIR_CGROUP_CONTROLLER_LAST ; i++) {
+        for (i = 0; i < VIR_CGROUP_CONTROLLER_LAST; i++) {
             const char *typestr = virCgroupControllerTypeToString(i);
             int typelen = strlen(typestr);
             char *tmp = controllers;
@@ -375,23 +368,23 @@ static int virCgroupDetect(virCgroupPtr group,
     }
 
     if (controllers >= 0) {
-        VIR_DEBUG("Validating controllers %d", controllers);
-        for (i = 0 ; i < VIR_CGROUP_CONTROLLER_LAST ; i++) {
+        VIR_DEBUG("Filtering controllers %d", controllers);
+        for (i = 0; i < VIR_CGROUP_CONTROLLER_LAST; i++) {
             VIR_DEBUG("Controller '%s' wanted=%s, mount='%s'",
                       virCgroupControllerTypeToString(i),
                       (1 << i) & controllers ? "yes" : "no",
                       NULLSTR(group->controllers[i].mountPoint));
             if (((1 << i) & controllers)) {
-                /* Ensure requested controller is present */
+                /* Remove non-existent controllers  */
                 if (!group->controllers[i].mountPoint) {
-                    VIR_DEBUG("Requested controlled '%s' not mounted",
+                    VIR_DEBUG("Requested controller '%s' not mounted, ignoring",
                               virCgroupControllerTypeToString(i));
-                    return -ENOENT;
+                    controllers &= ~(1 << i);
                 }
             } else {
                 /* Check whether a request to disable a controller
                  * clashes with co-mounting of controllers */
-                for (j = 0 ; j < VIR_CGROUP_CONTROLLER_LAST ; j++) {
+                for (j = 0; j < VIR_CGROUP_CONTROLLER_LAST; j++) {
                     if (j == i)
                         continue;
                     if (!((1 << j) & controllers))
@@ -411,7 +404,7 @@ static int virCgroupDetect(virCgroupPtr group,
     } else {
         VIR_DEBUG("Auto-detecting controllers");
         controllers = 0;
-        for (i = 0 ; i < VIR_CGROUP_CONTROLLER_LAST ; i++) {
+        for (i = 0; i < VIR_CGROUP_CONTROLLER_LAST; i++) {
             VIR_DEBUG("Controller '%s' present=%s",
                       virCgroupControllerTypeToString(i),
                       group->controllers[i].mountPoint ? "yes" : "no");
@@ -434,7 +427,7 @@ static int virCgroupDetect(virCgroupPtr group,
 
     if (rc == 0) {
         /* Check that for every mounted controller, we found our placement */
-        for (i = 0 ; i < VIR_CGROUP_CONTROLLER_LAST ; i++) {
+        for (i = 0; i < VIR_CGROUP_CONTROLLER_LAST; i++) {
             if (!group->controllers[i].mountPoint)
                 continue;
 
@@ -467,7 +460,7 @@ int virCgroupPathOfController(virCgroupPtr group,
 {
     if (controller == -1) {
         int i;
-        for (i = 0 ; i < VIR_CGROUP_CONTROLLER_LAST ; i++) {
+        for (i = 0; i < VIR_CGROUP_CONTROLLER_LAST; i++) {
             if (group->controllers[i].mountPoint &&
                 group->controllers[i].placement) {
                 controller = i;
@@ -645,7 +638,7 @@ static int virCgroupCpuSetInherit(virCgroupPtr parent, virCgroupPtr group)
     };
 
     VIR_DEBUG("Setting up inheritance %s -> %s", parent->path, group->path);
-    for (i = 0; i < ARRAY_CARDINALITY(inherit_values) ; i++) {
+    for (i = 0; i < ARRAY_CARDINALITY(inherit_values); i++) {
         char *value;
 
         rc = virCgroupGetValueStr(parent,
@@ -713,7 +706,7 @@ static int virCgroupMakeGroup(virCgroupPtr parent,
     int rc = 0;
 
     VIR_DEBUG("Make group %s", group->path);
-    for (i = 0 ; i < VIR_CGROUP_CONTROLLER_LAST ; i++) {
+    for (i = 0; i < VIR_CGROUP_CONTROLLER_LAST; i++) {
         char *path = NULL;
 
         /* Skip over controllers that aren't mounted */
@@ -821,7 +814,7 @@ static int virCgroupNew(const char *path,
     }
 
     if (path[0] == '/' || !parent) {
-        if (!((*group)->path = strdup(path))) {
+        if (VIR_STRDUP_QUIET((*group)->path, path) < 0) {
             rc = -ENOMEM;
             goto err;
         }
@@ -949,7 +942,7 @@ int virCgroupRemove(virCgroupPtr group)
     char *grppath = NULL;
 
     VIR_DEBUG("Removing cgroup %s", group->path);
-    for (i = 0 ; i < VIR_CGROUP_CONTROLLER_LAST ; i++) {
+    for (i = 0; i < VIR_CGROUP_CONTROLLER_LAST; i++) {
         /* Skip over controllers not mounted */
         if (!group->controllers[i].mountPoint)
             continue;
@@ -983,7 +976,7 @@ int virCgroupAddTask(virCgroupPtr group, pid_t pid)
     int rc = 0;
     int i;
 
-    for (i = 0 ; i < VIR_CGROUP_CONTROLLER_LAST ; i++) {
+    for (i = 0; i < VIR_CGROUP_CONTROLLER_LAST; i++) {
         /* Skip over controllers not mounted */
         if (!group->controllers[i].mountPoint)
             continue;
@@ -1027,8 +1020,8 @@ static int virCgroupAddTaskStrController(virCgroupPtr group,
     int rc = 0;
     char *endp;
 
-    if (virAsprintf(&str, "%s", pidstr) < 0)
-        return -1;
+    if (VIR_STRDUP_QUIET(str, pidstr) < 0)
+        return -ENOMEM;
 
     cur = str;
     while (*cur != '\0') {
@@ -1037,7 +1030,11 @@ static int virCgroupAddTaskStrController(virCgroupPtr group,
             goto cleanup;
 
         rc = virCgroupAddTaskController(group, p, controller);
-        if (rc != 0)
+        /* A thread that exits between when we first read the source
+         * tasks and now is not fatal.  */
+        if (rc == -ESRCH)
+            rc = 0;
+        else if (rc != 0)
             goto cleanup;
 
         next = strchr(cur, '\n');
@@ -1069,20 +1066,28 @@ int virCgroupMoveTask(virCgroupPtr src_group, virCgroupPtr dest_group)
     char *content = NULL;
     int i;
 
-    for (i = 0 ; i < VIR_CGROUP_CONTROLLER_LAST ; i++) {
+    for (i = 0; i < VIR_CGROUP_CONTROLLER_LAST; i++) {
         if (!src_group->controllers[i].mountPoint ||
             !dest_group->controllers[i].mountPoint)
             continue;
 
-        rc = virCgroupGetValueStr(src_group, i, "tasks", &content);
-        if (rc != 0)
-            return rc;
+        /* New threads are created in the same group as their parent;
+         * but if a thread is created after we first read we aren't
+         * aware that it needs to move.  Therefore, we must iterate
+         * until content is empty.  */
+        while (1) {
+            rc = virCgroupGetValueStr(src_group, i, "tasks", &content);
+            if (rc != 0)
+                return rc;
+            if (!*content)
+                break;
 
-        rc = virCgroupAddTaskStrController(dest_group, content, i);
-        if (rc != 0)
-            goto cleanup;
+            rc = virCgroupAddTaskStrController(dest_group, content, i);
+            if (rc != 0)
+                goto cleanup;
 
-        VIR_FREE(content);
+            VIR_FREE(content);
+        }
     }
 
 cleanup:
@@ -1106,11 +1111,17 @@ static int virCgroupPartitionNeedsEscaping(const char *path)
     if (STRPREFIX(path, "cgroup."))
         return 1;
 
-    if (path[0] == '_')
+    if (path[0] == '_' ||
+        path[0] == '.')
         return 1;
 
-    if (!(fp = fopen("/proc/cgroups", "r")))
+    if (!(fp = fopen("/proc/cgroups", "r"))) {
+        /* The API contract is that we return ENXIO
+         * if cgroups are not available on a host */
+        if (errno == ENOENT)
+            errno = ENXIO;
         return -errno;
+    }
 
     /*
      * Data looks like this:
@@ -1167,16 +1178,16 @@ static int virCgroupPartitionEscape(char **path)
     return 0;
 }
 
-static char *virCgroupSetPartitionSuffix(const char *path)
+static int virCgroupSetPartitionSuffix(const char *path, char **res)
 {
     char **tokens = virStringSplit(path, "/", 0);
     size_t i;
-    char *ret = NULL;
+    int ret = -1;
 
     if (!tokens)
-        return NULL;
+        return ret;
 
-    for (i = 0 ; tokens[i] != NULL ; i++) {
+    for (i = 0; tokens[i] != NULL; i++) {
         /* Whitelist the 3 top level fixed dirs
          * NB i == 0 is "", since we have leading '/'
          */
@@ -1193,20 +1204,27 @@ static char *virCgroupSetPartitionSuffix(const char *path)
             !strchr(tokens[i], '.')) {
             if (VIR_REALLOC_N(tokens[i],
                               strlen(tokens[i]) + strlen(".partition") + 1) < 0) {
+                ret = -ENOMEM;
                 virReportOOMError();
                 goto cleanup;
             }
             strcat(tokens[i], ".partition");
         }
 
-        if (virCgroupPartitionEscape(&(tokens[i])) < 0) {
-            virReportOOMError();
+        ret = virCgroupPartitionEscape(&(tokens[i]));
+        if (ret < 0) {
+            if (ret == -ENOMEM)
+                virReportOOMError();
             goto cleanup;
         }
     }
 
-    if (!(ret = virStringJoin((const char **)tokens, "/")))
+    if (!(*res = virStringJoin((const char **)tokens, "/"))) {
+        ret = -ENOMEM;
         goto cleanup;
+    }
+
+    ret = 0;
 
 cleanup:
     virStringFreeList(tokens);
@@ -1241,9 +1259,9 @@ int virCgroupNewPartition(const char *path,
 
     /* XXX convert all cgroups APIs to use error report
      * APIs instead of returning errno */
-    if (!(newpath = virCgroupSetPartitionSuffix(path))) {
+    rc = virCgroupSetPartitionSuffix(path, &newpath);
+    if (rc < 0) {
         virResetLastError();
-        rc = -ENOMEM;
         goto cleanup;
     }
 
@@ -1253,7 +1271,7 @@ int virCgroupNewPartition(const char *path,
 
     if (STRNEQ(newpath, "/")) {
         char *tmp;
-        if (!(parentPath = strdup(newpath))) {
+        if (VIR_STRDUP_QUIET(parentPath, newpath) < 0) {
             rc = -ENOMEM;
             goto cleanup;
         }
@@ -2486,7 +2504,7 @@ int virCgroupKillPainfully(virCgroupPtr group)
     int i;
     int rc;
     VIR_DEBUG("cgroup=%p path=%s", group, group->path);
-    for (i = 0 ; i < 15 ; i++) {
+    for (i = 0; i < 15; i++) {
         int signum;
         if (i == 0)
             signum = SIGTERM;
@@ -2531,7 +2549,7 @@ static char *virCgroupIdentifyRoot(virCgroupPtr group)
     char *ret = NULL;
     size_t i;
 
-    for (i = 0 ; i < VIR_CGROUP_CONTROLLER_LAST ; i++) {
+    for (i = 0; i < VIR_CGROUP_CONTROLLER_LAST; i++) {
         char *tmp;
         if (!group->controllers[i].mountPoint)
             continue;
@@ -2542,13 +2560,8 @@ static char *virCgroupIdentifyRoot(virCgroupPtr group)
             return NULL;
         }
 
-        tmp[0] = '\0';
-        ret = strdup(group->controllers[i].mountPoint);
-        tmp[0] = '/';
-        if (!ret) {
-            virReportOOMError();
-            return NULL;
-        }
+        ignore_value(VIR_STRNDUP_QUIET(ret, group->controllers[i].mountPoint,
+                                       tmp - group->controllers[i].mountPoint));
         return ret;
     }
 
@@ -2591,7 +2604,7 @@ int virCgroupIsolateMount(virCgroupPtr group, const char *oldroot,
         goto cleanup;
     }
 
-    for (i = 0 ; i < VIR_CGROUP_CONTROLLER_LAST ; i++) {
+    for (i = 0; i < VIR_CGROUP_CONTROLLER_LAST; i++) {
         if (!group->controllers[i].mountPoint)
             continue;
 

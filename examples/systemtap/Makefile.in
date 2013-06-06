@@ -152,6 +152,7 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/md5.m4 \
 	$(top_srcdir)/gnulib/m4/memchr.m4 \
 	$(top_srcdir)/gnulib/m4/mgetgroups.m4 \
+	$(top_srcdir)/gnulib/m4/mkdtemp.m4 \
 	$(top_srcdir)/gnulib/m4/mkostemp.m4 \
 	$(top_srcdir)/gnulib/m4/mkostemps.m4 \
 	$(top_srcdir)/gnulib/m4/mktime.m4 \
@@ -160,6 +161,7 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/msvc-inval.m4 \
 	$(top_srcdir)/gnulib/m4/msvc-nothrow.m4 \
 	$(top_srcdir)/gnulib/m4/multiarch.m4 \
+	$(top_srcdir)/gnulib/m4/nanosleep.m4 \
 	$(top_srcdir)/gnulib/m4/net_if_h.m4 \
 	$(top_srcdir)/gnulib/m4/netdb_h.m4 \
 	$(top_srcdir)/gnulib/m4/netinet_in_h.m4 \
@@ -386,7 +388,7 @@ DLLTOOL = @DLLTOOL@
 DLOPEN_LIBS = @DLOPEN_LIBS@
 DMSETUP = @DMSETUP@
 DNSMASQ = @DNSMASQ@
-DRIVER_MODULE_CFLAGS = @DRIVER_MODULE_CFLAGS@
+DRIVER_MODULE_LDFLAGS = @DRIVER_MODULE_LDFLAGS@
 DRIVER_MODULE_LIBS = @DRIVER_MODULE_LIBS@
 DSYMUTIL = @DSYMUTIL@
 DTRACE = @DTRACE@
@@ -1232,6 +1234,7 @@ LIBXML_LIBS = @LIBXML_LIBS@
 LIB_CLOCK_GETTIME = @LIB_CLOCK_GETTIME@
 LIB_EXECINFO = @LIB_EXECINFO@
 LIB_FDATASYNC = @LIB_FDATASYNC@
+LIB_NANOSLEEP = @LIB_NANOSLEEP@
 LIB_POLL = @LIB_POLL@
 LIB_PTHREAD = @LIB_PTHREAD@
 LIB_PTHREAD_SIGMASK = @LIB_PTHREAD_SIGMASK@
@@ -1667,7 +1670,6 @@ VGS = @VGS@
 VGSCAN = @VGSCAN@
 VIRSH_LIBS = @VIRSH_LIBS@
 WARN_CFLAGS = @WARN_CFLAGS@
-WARN_LDFLAGS = @WARN_LDFLAGS@
 WARN_PYTHON_CFLAGS = @WARN_PYTHON_CFLAGS@
 WCHAR_T_SUFFIX = @WCHAR_T_SUFFIX@
 WIN32_EXTRA_CFLAGS = @WIN32_EXTRA_CFLAGS@

@@ -1,7 +1,20 @@
 # Makefile for libvirt python library
 
-## Copyright (C) 2005-2012 Red Hat, Inc.
-## See COPYING.LIB for the License of this software
+## Copyright (C) 2005-2013 Red Hat, Inc.
+##
+## This library is free software; you can redistribute it and/or
+## modify it under the terms of the GNU Lesser General Public
+## License as published by the Free Software Foundation; either
+## version 2.1 of the License, or (at your option) any later version.
+##
+## This library is distributed in the hope that it will be useful,
+## but WITHOUT ANY WARRANTY; without even the implied warranty of
+## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+## Lesser General Public License for more details.
+##
+## You should have received a copy of the GNU Lesser General Public
+## License along with this library.  If not, see
+## <http://www.gnu.org/licenses/>.
 
 SUBDIRS= . tests
 
@@ -40,6 +53,7 @@ EXTRA_DIST =			\
 	libvirt-lxc-override-api.xml \
 	libvirt-qemu-override.c	\
 	libvirt-qemu-override-api.xml \
+	sanitytest.py \
 	$(CLASSES_EXTRA) \
 	$(DOCS)
 
@@ -124,8 +138,6 @@ $(libvirtmod_la_OBJECTS): $(GENERATED)
 $(libvirtmod_qemu_la_OBJECTS): $(QEMU_GENERATED)
 $(libvirtmod_lxc_la_OBJECTS): $(LXC_GENERATED)
 
-EXTRA_DIST += sanitytest.py
-
 check-local:
 	$(AM_V_GEN)../run $(PYTHON) $(srcdir)/sanitytest.py
 
@@ -143,7 +155,8 @@ uninstall-local:
 	rm -f $(DESTDIR)$(pyexecdir)/libvirt_lxc.py
 	rm -f $(DESTDIR)$(pyexecdir)/libvirt_qemu.py
 
-CLEANFILES= $(GENERATED) $(QEMU_GENERATED) $(LXC_GENERATED) $(GENERATE).stamp
+CLEANFILES= $(GENERATED) $(QEMU_GENERATED) $(LXC_GENERATED) $(GENERATE).stamp \
+	*.pyc
 
 else
 all:

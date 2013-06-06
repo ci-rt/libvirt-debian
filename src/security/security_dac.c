@@ -25,12 +25,14 @@
 
 #include "security_dac.h"
 #include "virerror.h"
-#include "virutil.h"
+#include "virfile.h"
 #include "viralloc.h"
 #include "virlog.h"
 #include "virpci.h"
 #include "virusb.h"
+#include "virscsi.h"
 #include "virstoragefile.h"
+#include "virstring.h"
 
 #define VIR_FROM_THIS VIR_FROM_SECURITY
 #define SECURITY_DAC_NAME "dac"
@@ -44,29 +46,32 @@ struct _virSecurityDACData {
     bool dynamicOwnership;
 };
 
-void virSecurityDACSetUser(virSecurityManagerPtr mgr,
-                           uid_t user)
+void
+virSecurityDACSetUser(virSecurityManagerPtr mgr,
+                      uid_t user)
 {
     virSecurityDACDataPtr priv = virSecurityManagerGetPrivateData(mgr);
     priv->user = user;
 }
 
-void virSecurityDACSetGroup(virSecurityManagerPtr mgr,
-                            gid_t group)
+void
+virSecurityDACSetGroup(virSecurityManagerPtr mgr,
+                       gid_t group)
 {
     virSecurityDACDataPtr priv = virSecurityManagerGetPrivateData(mgr);
     priv->group = group;
 }
 
-void virSecurityDACSetDynamicOwnership(virSecurityManagerPtr mgr,
-                                       bool dynamicOwnership)
+void
+virSecurityDACSetDynamicOwnership(virSecurityManagerPtr mgr,
+                                  bool dynamicOwnership)
 {
     virSecurityDACDataPtr priv = virSecurityManagerGetPrivateData(mgr);
     priv->dynamicOwnership = dynamicOwnership;
 }
 
-static
-int parseIds(const char *label, uid_t *uidPtr, gid_t *gidPtr)
+static int
+parseIds(const char *label, uid_t *uidPtr, gid_t *gidPtr)
 {
     int rc = -1;
     uid_t theuid;
@@ -76,11 +81,8 @@ int parseIds(const char *label, uid_t *uidPtr, gid_t *gidPtr)
     char *owner = NULL;
     char *group = NULL;
 
-    tmp_label = strdup(label);
-    if (tmp_label == NULL) {
-        virReportOOMError();
+    if (VIR_STRDUP(tmp_label, label) < 0)
         goto cleanup;
-    }
 
     /* Split label */
     sep = strchr(tmp_label, ':');
@@ -115,8 +117,8 @@ cleanup:
 }
 
 /* returns 1 if label isn't found, 0 on success, -1 on error */
-static
-int virSecurityDACParseIds(virDomainDefPtr def, uid_t *uidPtr, gid_t *gidPtr)
+static int
+virSecurityDACParseIds(virDomainDefPtr def, uid_t *uidPtr, gid_t *gidPtr)
 {
     uid_t uid;
     gid_t gid;
@@ -142,9 +144,9 @@ int virSecurityDACParseIds(virDomainDefPtr def, uid_t *uidPtr, gid_t *gidPtr)
     return 0;
 }
 
-static
-int virSecurityDACGetIds(virDomainDefPtr def, virSecurityDACDataPtr priv,
-                         uid_t *uidPtr, gid_t *gidPtr)
+static int
+virSecurityDACGetIds(virDomainDefPtr def, virSecurityDACDataPtr priv,
+                     uid_t *uidPtr, gid_t *gidPtr)
 {
     int ret;
 
@@ -175,9 +177,9 @@ int virSecurityDACGetIds(virDomainDefPtr def, virSecurityDACDataPtr priv,
 
 
 /* returns 1 if label isn't found, 0 on success, -1 on error */
-static
-int virSecurityDACParseImageIds(virDomainDefPtr def,
-                                uid_t *uidPtr, gid_t *gidPtr)
+static int
+virSecurityDACParseImageIds(virDomainDefPtr def,
+                            uid_t *uidPtr, gid_t *gidPtr)
 {
     uid_t uid;
     gid_t gid;
@@ -203,9 +205,9 @@ int virSecurityDACParseImageIds(virDomainDefPtr def,
     return 0;
 }
 
-static
-int virSecurityDACGetImageIds(virDomainDefPtr def, virSecurityDACDataPtr priv,
-                         uid_t *uidPtr, gid_t *gidPtr)
+static int
+virSecurityDACGetImageIds(virDomainDefPtr def, virSecurityDACDataPtr priv,
+                          uid_t *uidPtr, gid_t *gidPtr)
 {
     int ret;
 
@@ -254,12 +256,14 @@ virSecurityDACClose(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED)
 }
 
 
-static const char * virSecurityDACGetModel(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED)
+static const char *
+virSecurityDACGetModel(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED)
 {
     return SECURITY_DAC_NAME;
 }
 
-static const char * virSecurityDACGetDOI(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED)
+static const char *
+virSecurityDACGetDOI(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED)
 {
     return "0";
 }
@@ -434,9 +438,8 @@ virSecurityDACRestoreSecurityImageLabel(virSecurityManagerPtr mgr,
 
 
 static int
-virSecurityDACSetSecurityPCILabel(virPCIDevicePtr dev ATTRIBUTE_UNUSED,
-                                  const char *file,
-                                  void *opaque)
+virSecurityDACSetSecurityHostdevLabelHelper(const char *file,
+                                            void *opaque)
 {
     void **params = opaque;
     virSecurityManagerPtr mgr = params[0];
@@ -453,21 +456,29 @@ virSecurityDACSetSecurityPCILabel(virPCIDevicePtr dev ATTRIBUTE_UNUSED,
 
 
 static int
+virSecurityDACSetSecurityPCILabel(virPCIDevicePtr dev ATTRIBUTE_UNUSED,
+                                  const char *file,
+                                  void *opaque)
+{
+    return virSecurityDACSetSecurityHostdevLabelHelper(file, opaque);
+}
+
+
+static int
 virSecurityDACSetSecurityUSBLabel(virUSBDevicePtr dev ATTRIBUTE_UNUSED,
                                   const char *file,
                                   void *opaque)
 {
-    void **params = opaque;
-    virSecurityManagerPtr mgr = params[0];
-    virDomainDefPtr def = params[1];
-    virSecurityDACDataPtr priv = virSecurityManagerGetPrivateData(mgr);
-    uid_t user;
-    gid_t group;
+    return virSecurityDACSetSecurityHostdevLabelHelper(file, opaque);
+}
 
-    if (virSecurityDACGetIds(def, priv, &user, &group))
-        return -1;
 
-    return virSecurityDACSetOwnership(file, user, group);
+static int
+virSecurityDACSetSecuritySCSILabel(virSCSIDevicePtr dev ATTRIBUTE_UNUSED,
+                                   const char *file,
+                                   void *opaque)
+{
+    return virSecurityDACSetSecurityHostdevLabelHelper(file, opaque);
 }
 
 
@@ -535,6 +546,24 @@ virSecurityDACSetSecurityHostdevLabel(virSecurityManagerPtr mgr,
         break;
     }
 
+    case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_SCSI: {
+        virSCSIDevicePtr scsi =
+            virSCSIDeviceNew(dev->source.subsys.u.scsi.adapter,
+                             dev->source.subsys.u.scsi.bus,
+                             dev->source.subsys.u.scsi.target,
+                             dev->source.subsys.u.scsi.unit,
+                             dev->readonly);
+
+        if (!scsi)
+            goto done;
+
+        ret = virSCSIDeviceFileIterate(scsi, virSecurityDACSetSecuritySCSILabel,
+                                       params);
+        virSCSIDeviceFree(scsi);
+
+        break;
+    }
+
     default:
         ret = 0;
         break;
@@ -558,6 +587,15 @@ static int
 virSecurityDACRestoreSecurityUSBLabel(virUSBDevicePtr dev ATTRIBUTE_UNUSED,
                                       const char *file,
                                       void *opaque ATTRIBUTE_UNUSED)
+{
+    return virSecurityDACRestoreSecurityFileLabel(file);
+}
+
+
+static int
+virSecurityDACRestoreSecuritySCSILabel(virSCSIDevicePtr dev ATTRIBUTE_UNUSED,
+                                       const char *file,
+                                       void *opaque ATTRIBUTE_UNUSED)
 {
     return virSecurityDACRestoreSecurityFileLabel(file);
 }
@@ -622,6 +660,23 @@ virSecurityDACRestoreSecurityHostdevLabel(virSecurityManagerPtr mgr,
             ret = virPCIDeviceFileIterate(pci, virSecurityDACRestoreSecurityPCILabel, mgr);
         }
         virPCIDeviceFree(pci);
+        break;
+    }
+
+    case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_SCSI: {
+        virSCSIDevicePtr scsi =
+            virSCSIDeviceNew(dev->source.subsys.u.scsi.adapter,
+                             dev->source.subsys.u.scsi.bus,
+                             dev->source.subsys.u.scsi.target,
+                             dev->source.subsys.u.scsi.unit,
+                             dev->readonly);
+
+        if (!scsi)
+            goto done;
+
+        ret = virSCSIDeviceFileIterate(scsi, virSecurityDACRestoreSecuritySCSILabel, mgr);
+        virSCSIDeviceFree(scsi);
+
         break;
     }
 
@@ -759,9 +814,8 @@ virSecurityDACSetSecurityTPMFileLabel(virSecurityManagerPtr mgr,
 
 
 static int
-virSecurityDACRestoreSecurityTPMFileLabel(
-                                   virSecurityManagerPtr mgr,
-                                   virDomainTPMDefPtr tpm)
+virSecurityDACRestoreSecurityTPMFileLabel(virSecurityManagerPtr mgr,
+                                          virDomainTPMDefPtr tpm)
 {
     int ret = 0;
 
@@ -794,14 +848,14 @@ virSecurityDACRestoreSecurityAllLabel(virSecurityManagerPtr mgr,
     VIR_DEBUG("Restoring security label on %s migrated=%d",
               def->name, migrated);
 
-    for (i = 0 ; i < def->nhostdevs ; i++) {
+    for (i = 0; i < def->nhostdevs; i++) {
         if (virSecurityDACRestoreSecurityHostdevLabel(mgr,
                                                       def,
                                                       def->hostdevs[i],
                                                       NULL) < 0)
             rc = -1;
     }
-    for (i = 0 ; i < def->ndisks ; i++) {
+    for (i = 0; i < def->ndisks; i++) {
         if (virSecurityDACRestoreSecurityImageLabelInt(mgr,
                                                        def,
                                                        def->disks[i],
@@ -861,7 +915,7 @@ virSecurityDACSetSecurityAllLabel(virSecurityManagerPtr mgr,
     if (!priv->dynamicOwnership)
         return 0;
 
-    for (i = 0 ; i < def->ndisks ; i++) {
+    for (i = 0; i < def->ndisks; i++) {
         /* XXX fixme - we need to recursively label the entire tree :-( */
         if (def->disks[i]->type == VIR_DOMAIN_DISK_TYPE_DIR)
             continue;
@@ -870,7 +924,7 @@ virSecurityDACSetSecurityAllLabel(virSecurityManagerPtr mgr,
                                                 def->disks[i]) < 0)
             return -1;
     }
-    for (i = 0 ; i < def->nhostdevs ; i++) {
+    for (i = 0; i < def->nhostdevs; i++) {
         if (virSecurityDACSetSecurityHostdevLabel(mgr,
                                                   def,
                                                   def->hostdevs[i],
@@ -1051,18 +1105,10 @@ virSecurityDACGenLabel(virSecurityManagerPtr mgr,
         return rc;
     }
 
-    if (!seclabel->norelabel) {
-        if (seclabel->imagelabel == NULL && seclabel->label != NULL) {
-            seclabel->imagelabel = strdup(seclabel->label);
-            if (seclabel->imagelabel == NULL) {
-                virReportError(VIR_ERR_INTERNAL_ERROR,
-                               _("cannot generate dac user and group id "
-                                 "for domain %s"), def->name);
-                VIR_FREE(seclabel->label);
-                seclabel->label = NULL;
-                return rc;
-            }
-        }
+    if (!seclabel->norelabel && !seclabel->imagelabel &&
+        VIR_STRDUP(seclabel->imagelabel, seclabel->label) < 0) {
+        VIR_FREE(seclabel->label);
+        return rc;
     }
 
     return 0;
@@ -1141,8 +1187,10 @@ virSecurityDACSetTapFDLabel(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
     return 0;
 }
 
-static char *virSecurityDACGetMountOptions(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
-                                           virDomainDefPtr vm ATTRIBUTE_UNUSED) {
+static char *
+virSecurityDACGetMountOptions(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
+                              virDomainDefPtr vm ATTRIBUTE_UNUSED)
+{
     return NULL;
 }
 

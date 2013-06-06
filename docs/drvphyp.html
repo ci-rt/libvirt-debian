@@ -187,19 +187,19 @@
         guests.  VIOS connections are tunneled through HMC.
     </p>
         <h2>
-          <a name="project" id="project">Project Links</a>
+          <a name="project" shape="rect" id="project">Project Links</a>
         </h2>
         <ul><li>
-        The <a href="http://www-03.ibm.com/systems/power/software/virtualization/index.html">IBM
+        The <a href="http://www-03.ibm.com/systems/power/software/virtualization/index.html" shape="rect">IBM
         PowerVM</a> hypervisor
       </li></ul>
         <h2>
-          <a name="uri" id="uri">Connections to the PowerVM driver</a>
+          <a name="uri" shape="rect" id="uri">Connections to the PowerVM driver</a>
         </h2>
         <p>
         Some example remote connection URIs for the driver are:
     </p>
-        <pre>
+        <pre xml:space="preserve">
 phyp://user@hmc/system (HMC connection)
 phyp://user@ivm/system (IVM connection)
 </pre>
@@ -207,19 +207,19 @@ phyp://user@ivm/system (IVM connection)
         <strong>Note</strong>: In contrast to other drivers, the
         PowerVM (or phyp) driver is a client-side-only driver,
         internally using ssh to connect to the specified hmc or ivm
-        server. Therefore, the <a href="remote.html">remote transport
+        server. Therefore, the <a href="remote.html" shape="rect">remote transport
         mechanism</a> provided by the remote driver and libvirtd will
         not work, and you cannot use URIs like
         <code>phyp+ssh://example.com</code>.
     </p>
         <h3>
-          <a name="uriformat" id="uriformat">URI Format</a>
+          <a name="uriformat" shape="rect" id="uriformat">URI Format</a>
         </h3>
         <p>
         URIs have this general form (<code>[...]</code> marks an
         optional part, <code>{...|...}</code> marks a mandatory choice).
     </p>
-        <pre>
+        <pre xml:space="preserve">
 phyp://[username@]{hmc|ivm}/managed_system
 </pre>
       </div>

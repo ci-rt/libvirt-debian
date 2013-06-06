@@ -30,45 +30,76 @@
 # include "virconf.h"
 # include "domain_conf.h"
 
-extern struct xenUnifiedDriver xenXMDriver;
-
 int xenXMConfigCacheRefresh (virConnectPtr conn);
 int xenXMConfigCacheAddFile(virConnectPtr conn, const char *filename);
 int xenXMConfigCacheRemoveFile(virConnectPtr conn, const char *filename);
 
-virDrvOpenStatus xenXMOpen(virConnectPtr conn, virConnectAuthPtr auth,
-                           unsigned int flags);
+int xenXMOpen(virConnectPtr conn, virConnectAuthPtr auth, unsigned int flags);
 int xenXMClose(virConnectPtr conn);
 const char *xenXMGetType(virConnectPtr conn);
-int xenXMDomainGetInfo(virDomainPtr domain, virDomainInfoPtr info);
-int xenXMDomainGetState(virDomainPtr domain,
+int xenXMDomainGetInfo(virConnectPtr conn,
+                       virDomainDefPtr def,
+                       virDomainInfoPtr info);
+int xenXMDomainGetState(virConnectPtr conn,
+                        virDomainDefPtr def,
                         int *state,
-                        int *reason,
-                        unsigned int flags);
-char *xenXMDomainGetXMLDesc(virDomainPtr domain, unsigned int flags);
-int xenXMDomainSetMemory(virDomainPtr domain, unsigned long memory);
-int xenXMDomainSetMaxMemory(virDomainPtr domain, unsigned long memory);
-unsigned long long xenXMDomainGetMaxMemory(virDomainPtr domain);
-int xenXMDomainSetVcpus(virDomainPtr domain, unsigned int vcpus);
-int xenXMDomainSetVcpusFlags(virDomainPtr domain, unsigned int vcpus,
+                        int *reason);
+virDomainDefPtr xenXMDomainGetXMLDesc(virConnectPtr conn,
+                                      virDomainDefPtr def);
+int xenXMDomainSetMemory(virConnectPtr conn,
+                         virDomainDefPtr def,
+                         unsigned long memory);
+int xenXMDomainSetMaxMemory(virConnectPtr conn,
+                            virDomainDefPtr def,
+                            unsigned long memory);
+unsigned long long xenXMDomainGetMaxMemory(virConnectPtr conn,
+                                           virDomainDefPtr def);
+int xenXMDomainSetVcpus(virConnectPtr conn,
+                        virDomainDefPtr def,
+                        unsigned int vcpus);
+int xenXMDomainSetVcpusFlags(virConnectPtr conn,
+                             virDomainDefPtr def,
+                             unsigned int vcpus,
                              unsigned int flags);
-int xenXMDomainGetVcpusFlags(virDomainPtr domain, unsigned int flags);
-int xenXMDomainPinVcpu(virDomainPtr domain, unsigned int vcpu,
-                       unsigned char *cpumap, int maplen);
-virDomainPtr xenXMDomainLookupByName(virConnectPtr conn, const char *domname);
-virDomainPtr xenXMDomainLookupByUUID(virConnectPtr conn,
-                                     const unsigned char *uuid);
+int xenXMDomainGetVcpusFlags(virConnectPtr conn,
+                             virDomainDefPtr def,
+                             unsigned int flags);
+int xenXMDomainPinVcpu(virConnectPtr conn,
+                       virDomainDefPtr def,
+                       unsigned int vcpu,
+                       unsigned char *cpumap,
+                       int maplen);
+virDomainDefPtr xenXMDomainLookupByName(virConnectPtr conn, const char *domname);
+virDomainDefPtr xenXMDomainLookupByUUID(virConnectPtr conn, const unsigned char *uuid);
 
 int xenXMListDefinedDomains(virConnectPtr conn, char ** const names, int maxnames);
 int xenXMNumOfDefinedDomains(virConnectPtr conn);
 
-int xenXMDomainCreate(virDomainPtr domain);
-virDomainPtr xenXMDomainDefineXML(virConnectPtr con, const char *xml);
-int xenXMDomainUndefine(virDomainPtr domain);
+int xenXMDomainCreate(virConnectPtr conn,
+                      virDomainDefPtr def);
+int xenXMDomainDefineXML(virConnectPtr con, virDomainDefPtr def);
+int xenXMDomainUndefine(virConnectPtr conn, virDomainDefPtr def);
 
-int xenXMDomainBlockPeek (virDomainPtr dom, const char *path, unsigned long long offset, size_t size, void *buffer);
+int xenXMDomainBlockPeek(virConnectPtr conn,
+                         virDomainDefPtr def,
+                         const char *path,
+                         unsigned long long offset,
+                         size_t size,
+                         void *buffer);
 
-int xenXMDomainGetAutostart(virDomainPtr dom, int *autostart);
-int xenXMDomainSetAutostart(virDomainPtr dom, int autostart);
+int xenXMDomainGetAutostart(virDomainDefPtr def,
+                            int *autostart);
+int xenXMDomainSetAutostart(virDomainDefPtr def,
+                            int autostart);
+
+int xenXMDomainAttachDeviceFlags(virConnectPtr conn,
+                                 virDomainDefPtr def,
+                                 const char *xml,
+                                 unsigned int flags);
+
+int xenXMDomainDetachDeviceFlags(virConnectPtr conn,
+                                 virDomainDefPtr def,
+                                 const char *xml,
+                                 unsigned int flags);
 
 #endif

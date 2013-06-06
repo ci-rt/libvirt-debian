@@ -54,6 +54,7 @@
 #include "nwfilter_ebiptables_driver.h"
 #include "nwfilter_ipaddrmap.h"
 #include "nwfilter_learnipaddr.h"
+#include "virstring.h"
 
 #define VIR_FROM_THIS VIR_FROM_NWFILTER
 
@@ -250,6 +251,14 @@ virNWFilterTerminateLearnReq(const char *ifname) {
     int ifindex;
     virNWFilterIPAddrLearnReqPtr req;
 
+    /* It's possible that it's already been removed as a result of
+     * virNWFilterDeregisterLearnReq during learnIPAddressThread() exit
+     */
+    if (virNetDevExists(ifname) != 1) {
+        virResetLastError();
+        return 0;
+    }
+
     if (virNetDevGetIndex(ifname, &ifindex) < 0) {
         virResetLastError();
         return rc;
@@ -416,7 +425,7 @@ learnIPAddressThread(void *arg)
             req->status = EINVAL;
             goto done;
         }
-        virBufferAsprintf(&buf, "src port 67 and dst port 68");
+        virBufferAddLit(&buf, "src port 67 and dst port 68");
         break;
     default:
         if (techdriver->applyBasicRules(req->ifname,
@@ -704,11 +713,8 @@ virNWFilterLearnIPAddress(virNWFilterTechDriverPtr techdriver,
     if (virNWFilterHashTablePutAll(filterparams, ht) < 0)
         goto err_free_ht;
 
-    req->filtername = strdup(filtername);
-    if (req->filtername == NULL) {
-        virReportOOMError();
+    if (VIR_STRDUP(req->filtername, filtername) < 0)
         goto err_free_ht;
-    }
 
     if (virStrcpyStatic(req->ifname, ifname) == NULL) {
         virReportError(VIR_ERR_INTERNAL_ERROR,

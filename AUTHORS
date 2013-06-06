@@ -104,6 +104,7 @@ Beat Jörg <Beat.Joerg@ssatr.ch>
 Benjamin Cama <benoar@dolka.fr>
 Bharata B Rao <bharata@linux.vnet.ibm.com>
 Bogdan Purcareata <bogdan.purcareata@freescale.com>
+Boris Fiuczynski <fiuczy@linux.vnet.ibm.com>
 Bryan Kearney <bkearney@redhat.com>
 Chang Liu <lingjiao.lc@taobao.com>
 Charles Duffy <charles_duffy@messageone.com>
@@ -124,6 +125,7 @@ Dan Smith <danms@us.ibm.com>
 Daniel Berrange <berrange@redhat.com>
 Daniel Berteaud <daniel@firewall-services.com>
 Daniel Gollub <gollub@b1-systems.de>
+Daniel Hansel <daniel.hansel@linux.vnet.ibm.com>
 Daniel J Walsh <dwalsh@redhat.com>
 Daniel P. Berrange <berrange@redhat.com>
 Daniel Veillard <veillard@redhat.com>
@@ -184,6 +186,7 @@ Jan Kiszka <jan.kiszka@siemens.com>
 Jasper Lievisse Adriaanse <jasper@humppa.nl>
 Jean-Baptiste Rouault <jean-baptiste.rouault@diateam.net>
 Jesse Cook <code.crashenx@gmail.com>
+Jesse J. Cook <jesse.j.cook@member.fsf.org>
 Jim Fehlig <jfehlig@suse.com>
 Jim Meyering <meyering@redhat.com>
 Jim Paris <jim@jtan.com>
@@ -220,6 +223,7 @@ MORITA Kazutaka <morita.kazutaka@lab.ntt.co.jp>
 Marc-André Lureau <marcandre.lureau@redhat.com>
 Marcelo Cerri <mhcerri@linux.vnet.ibm.com>
 Marco Bozzolan <bozzolan@gmail.com>
+Marek Marczykowski <marmarek@invisiblethingslab.com>
 Mark McLoughlin <markmc@redhat.com>
 Mark Wu <dwu@redhat.com>
 Markus Groß <gross@univention.de>
@@ -339,7 +343,9 @@ Yuji NISHIDA <nishidy@nict.go.jp>
 Yuri Chornoivan <yurchor@ukr.net>
 Zdenek Styblik <stybla@turnovfree.net>
 Zeeshan Ali (Khattak) <zeeshanak@gnome.org>
+Zhang Xiaohe <zhangxh@cn.fujitsu.com>
 liguang <lig.fnst@cn.fujitsu.com>
+yangdongsheng <yangds.fnst@cn.fujitsu.com>
 Марк Коренберг <socketpair@gmail.com>
 
 [....send patches to get your name here....]

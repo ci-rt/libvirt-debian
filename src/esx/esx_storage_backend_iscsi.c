@@ -28,7 +28,6 @@
 
 #include "internal.h"
 #include "md5.h"
-#include "virutil.h"
 #include "viralloc.h"
 #include "virlog.h"
 #include "viruuid.h"
@@ -39,6 +38,7 @@
 #include "esx_vi.h"
 #include "esx_vi_methods.h"
 #include "esx_util.h"
+#include "virstring.h"
 
 #define VIR_FROM_THIS VIR_FROM_ESX
 
@@ -51,7 +51,7 @@ verify(MD5_DIGEST_SIZE == VIR_UUID_BUFLEN);
 
 
 static int
-esxStorageBackendISCSINumberOfPools(virConnectPtr conn)
+esxConnectNumOfStoragePools(virConnectPtr conn)
 {
     bool success = false;
     int count = 0;
@@ -95,8 +95,8 @@ esxStorageBackendISCSINumberOfPools(virConnectPtr conn)
 
 
 static int
-esxStorageBackendISCSIListPools(virConnectPtr conn, char **const names,
-                                const int maxnames)
+esxConnectListStoragePools(virConnectPtr conn, char **const names,
+                           const int maxnames)
 {
     bool success = false;
     int count = 0;
@@ -131,12 +131,8 @@ esxStorageBackendISCSIListPools(virConnectPtr conn, char **const names,
      */
     for (target = hostInternetScsiHba->configuredStaticTarget;
          target != NULL && count < maxnames; target = target->_next) {
-        names[count] = strdup(target->iScsiName);
-
-        if (names[count] == NULL) {
-            virReportOOMError();
+        if (VIR_STRDUP(names[count], target->iScsiName) < 0)
             goto cleanup;
-        }
 
         ++count;
     }
@@ -158,8 +154,8 @@ esxStorageBackendISCSIListPools(virConnectPtr conn, char **const names,
 
 
 static virStoragePoolPtr
-esxStorageBackendISCSIPoolLookupByName(virConnectPtr conn,
-                                       const char *name)
+esxStoragePoolLookupByName(virConnectPtr conn,
+                           const char *name)
 {
     esxPrivate *priv = conn->storagePrivateData;
     esxVI_HostInternetScsiHbaStaticTarget *target = NULL;
@@ -200,8 +196,8 @@ esxStorageBackendISCSIPoolLookupByName(virConnectPtr conn,
 
 
 static virStoragePoolPtr
-esxStorageBackendISCSIPoolLookupByUUID(virConnectPtr conn,
-                                       const unsigned char *uuid)
+esxStoragePoolLookupByUUID(virConnectPtr conn,
+                           const unsigned char *uuid)
 {
     virStoragePoolPtr pool = NULL;
     esxPrivate *priv = conn->storagePrivateData;
@@ -249,8 +245,8 @@ esxStorageBackendISCSIPoolLookupByUUID(virConnectPtr conn,
 
 
 static int
-esxStorageBackendISCSIPoolRefresh(virStoragePoolPtr pool,
-                                  unsigned int flags)
+esxStoragePoolRefresh(virStoragePoolPtr pool,
+                      unsigned int flags)
 {
     int result = -1;
     esxPrivate *priv = pool->conn->storagePrivateData;
@@ -284,8 +280,8 @@ esxStorageBackendISCSIPoolRefresh(virStoragePoolPtr pool,
 
 
 static int
-esxStorageBackendISCSIPoolGetInfo(virStoragePoolPtr pool ATTRIBUTE_UNUSED,
-                                  virStoragePoolInfoPtr info)
+esxStoragePoolGetInfo(virStoragePoolPtr pool ATTRIBUTE_UNUSED,
+                      virStoragePoolInfoPtr info)
 {
     /* These fields are not valid for iSCSI pool */
     info->allocation = info->capacity = info->available = 0;
@@ -297,7 +293,7 @@ esxStorageBackendISCSIPoolGetInfo(virStoragePoolPtr pool ATTRIBUTE_UNUSED,
 
 
 static char *
-esxStorageBackendISCSIPoolGetXMLDesc(virStoragePoolPtr pool, unsigned int flags)
+esxStoragePoolGetXMLDesc(virStoragePoolPtr pool, unsigned int flags)
 {
     char *xml = NULL;
     esxPrivate *priv = pool->conn->storagePrivateData;
@@ -362,7 +358,7 @@ esxStorageBackendISCSIPoolGetXMLDesc(virStoragePoolPtr pool, unsigned int flags)
 
 
 static int
-esxStorageBackendISCSIPoolNumberOfVolumes(virStoragePoolPtr pool)
+esxStoragePoolNumOfVolumes(virStoragePoolPtr pool)
 {
     int count = 0;
     esxPrivate *priv = pool->conn->storagePrivateData;
@@ -388,8 +384,8 @@ esxStorageBackendISCSIPoolNumberOfVolumes(virStoragePoolPtr pool)
 
 
 static int
-esxStorageBackendISCSIPoolListVolumes(virStoragePoolPtr pool, char **const names,
-                                      int maxnames)
+esxStoragePoolListVolumes(virStoragePoolPtr pool, char **const names,
+                          int maxnames)
 {
     bool success = false;
     int count = 0;
@@ -420,12 +416,8 @@ esxStorageBackendISCSIPoolListVolumes(virStoragePoolPtr pool, char **const names
              hostScsiTopologyLun != NULL && count < maxnames;
              hostScsiTopologyLun = hostScsiTopologyLun->_next) {
             if (STREQ(hostScsiTopologyLun->scsiLun, scsiLun->key)) {
-                names[count] = strdup(scsiLun->deviceName);
-
-                if (names[count] == NULL) {
-                    virReportOOMError();
+                if (VIR_STRDUP(names[count], scsiLun->deviceName) < 0)
                     goto cleanup;
-                }
 
                 ++count;
             }
@@ -452,8 +444,8 @@ esxStorageBackendISCSIPoolListVolumes(virStoragePoolPtr pool, char **const names
 
 
 static virStorageVolPtr
-esxStorageBackendISCSIVolumeLookupByName(virStoragePoolPtr pool,
-                                         const char *name)
+esxStorageVolLookupByName(virStoragePoolPtr pool,
+                          const char *name)
 {
     virStorageVolPtr volume = NULL;
     esxPrivate *priv = pool->conn->storagePrivateData;
@@ -499,7 +491,7 @@ esxStorageBackendISCSIVolumeLookupByName(virStoragePoolPtr pool,
 
 
 static virStorageVolPtr
-esxStorageBackendISCSIVolumeLookupByPath(virConnectPtr conn, const char *path)
+esxStorageVolLookupByPath(virConnectPtr conn, const char *path)
 {
     virStorageVolPtr volume = NULL;
     esxPrivate *priv = conn->storagePrivateData;
@@ -547,7 +539,7 @@ esxStorageBackendISCSIVolumeLookupByPath(virConnectPtr conn, const char *path)
 
 
 static virStorageVolPtr
-esxStorageBackendISCSIVolumeLookupByKey(virConnectPtr conn, const char *key)
+esxStorageVolLookupByKey(virConnectPtr conn, const char *key)
 {
     virStorageVolPtr volume = NULL;
     esxPrivate *priv = conn->storagePrivateData;
@@ -560,7 +552,7 @@ esxStorageBackendISCSIVolumeLookupByKey(virConnectPtr conn, const char *key)
 
     /* key may be LUN device path */
     if (STRPREFIX(key, "/")) {
-        return esxStorageBackendISCSIVolumeLookupByPath(conn, key);
+        return esxStorageVolLookupByPath(conn, key);
     }
 
     if (esxVI_LookupScsiLunList(priv->primary, &scsiLunList) < 0) {
@@ -602,9 +594,9 @@ esxStorageBackendISCSIVolumeLookupByKey(virConnectPtr conn, const char *key)
 
 
 static virStorageVolPtr
-esxStorageBackendISCSIVolumeCreateXML(virStoragePoolPtr pool ATTRIBUTE_UNUSED,
-                                      const char *xmldesc ATTRIBUTE_UNUSED,
-                                      unsigned int flags)
+esxStorageVolCreateXML(virStoragePoolPtr pool ATTRIBUTE_UNUSED,
+                       const char *xmldesc ATTRIBUTE_UNUSED,
+                       unsigned int flags)
 {
     virCheckFlags(0, NULL);
 
@@ -617,10 +609,10 @@ esxStorageBackendISCSIVolumeCreateXML(virStoragePoolPtr pool ATTRIBUTE_UNUSED,
 
 
 static virStorageVolPtr
-esxStorageBackendISCSIVolumeCreateXMLFrom(virStoragePoolPtr pool ATTRIBUTE_UNUSED,
-                                          const char *xmldesc ATTRIBUTE_UNUSED,
-                                          virStorageVolPtr sourceVolume ATTRIBUTE_UNUSED,
-                                          unsigned int flags)
+esxStorageVolCreateXMLFrom(virStoragePoolPtr pool ATTRIBUTE_UNUSED,
+                           const char *xmldesc ATTRIBUTE_UNUSED,
+                           virStorageVolPtr sourceVolume ATTRIBUTE_UNUSED,
+                           unsigned int flags)
 {
     virCheckFlags(0, NULL);
 
@@ -633,8 +625,8 @@ esxStorageBackendISCSIVolumeCreateXMLFrom(virStoragePoolPtr pool ATTRIBUTE_UNUSE
 
 
 static char *
-esxStorageBackendISCSIVolumeGetXMLDesc(virStorageVolPtr volume,
-                                       unsigned int flags)
+esxStorageVolGetXMLDesc(virStorageVolPtr volume,
+                        unsigned int flags)
 {
     char *xml = NULL;
     esxPrivate *priv = volume->conn->storagePrivateData;
@@ -680,7 +672,7 @@ esxStorageBackendISCSIVolumeGetXMLDesc(virStorageVolPtr volume,
 
     virUUIDFormat(md5, uuid_string);
 
-    if (esxVI_String_DeepCopyValue(&def.key, uuid_string) < 0) {
+    if (VIR_STRDUP(def.key, uuid_string) < 0) {
         goto cleanup;
     }
 
@@ -709,8 +701,8 @@ esxStorageBackendISCSIVolumeGetXMLDesc(virStorageVolPtr volume,
 
 
 static int
-esxStorageBackendISCSIVolumeDelete(virStorageVolPtr volume ATTRIBUTE_UNUSED,
-                                   unsigned int flags)
+esxStorageVolDelete(virStorageVolPtr volume ATTRIBUTE_UNUSED,
+                    unsigned int flags)
 {
     virCheckFlags(0, -1);
 
@@ -723,8 +715,8 @@ esxStorageBackendISCSIVolumeDelete(virStorageVolPtr volume ATTRIBUTE_UNUSED,
 
 
 static int
-esxStorageBackendISCSIVolumeWipe(virStorageVolPtr volume ATTRIBUTE_UNUSED,
-                                 unsigned int flags)
+esxStorageVolWipe(virStorageVolPtr volume ATTRIBUTE_UNUSED,
+                  unsigned int flags)
 {
     virCheckFlags(0, -1);
 
@@ -738,37 +730,33 @@ esxStorageBackendISCSIVolumeWipe(virStorageVolPtr volume ATTRIBUTE_UNUSED,
 
 
 static char *
-esxStorageBackendISCSIVolumeGetPath(virStorageVolPtr volume)
+esxStorageVolGetPath(virStorageVolPtr volume)
 {
-    char *path = strdup(volume->name);
+    char *path;
 
-    if (path == NULL) {
-        virReportOOMError();
-        return NULL;
-    }
-
+    ignore_value(VIR_STRDUP(path, volume->name));
     return path;
 }
 
 
 
 virStorageDriver esxStorageBackendISCSI = {
-    .connectNumOfStoragePools = esxStorageBackendISCSINumberOfPools, /* 1.0.1 */
-    .connectListStoragePools = esxStorageBackendISCSIListPools, /* 1.0.1 */
-    .storagePoolLookupByName = esxStorageBackendISCSIPoolLookupByName, /* 1.0.1 */
-    .storagePoolLookupByUUID = esxStorageBackendISCSIPoolLookupByUUID, /* 1.0.1 */
-    .storagePoolRefresh = esxStorageBackendISCSIPoolRefresh, /* 1.0.1 */
-    .storagePoolGetInfo = esxStorageBackendISCSIPoolGetInfo, /* 1.0.1 */
-    .storagePoolGetXMLDesc = esxStorageBackendISCSIPoolGetXMLDesc, /* 1.0.1 */
-    .storagePoolNumOfVolumes = esxStorageBackendISCSIPoolNumberOfVolumes, /* 1.0.1 */
-    .storagePoolListVolumes = esxStorageBackendISCSIPoolListVolumes, /* 1.0.1 */
-    .storageVolLookupByName = esxStorageBackendISCSIVolumeLookupByName, /* 1.0.1 */
-    .storageVolLookupByPath = esxStorageBackendISCSIVolumeLookupByPath, /* 1.0.1 */
-    .storageVolLookupByKey = esxStorageBackendISCSIVolumeLookupByKey, /* 1.0.1 */
-    .storageVolCreateXML = esxStorageBackendISCSIVolumeCreateXML, /* 1.0.1 */
-    .storageVolCreateXMLFrom = esxStorageBackendISCSIVolumeCreateXMLFrom, /* 1.0.1 */
-    .storageVolGetXMLDesc = esxStorageBackendISCSIVolumeGetXMLDesc, /* 1.0.1 */
-    .storageVolDelete = esxStorageBackendISCSIVolumeDelete, /* 1.0.1 */
-    .storageVolWipe = esxStorageBackendISCSIVolumeWipe, /* 1.0.1 */
-    .storageVolGetPath = esxStorageBackendISCSIVolumeGetPath, /* 1.0.1 */
+    .connectNumOfStoragePools = esxConnectNumOfStoragePools, /* 1.0.1 */
+    .connectListStoragePools = esxConnectListStoragePools, /* 1.0.1 */
+    .storagePoolLookupByName = esxStoragePoolLookupByName, /* 1.0.1 */
+    .storagePoolLookupByUUID = esxStoragePoolLookupByUUID, /* 1.0.1 */
+    .storagePoolRefresh = esxStoragePoolRefresh, /* 1.0.1 */
+    .storagePoolGetInfo = esxStoragePoolGetInfo, /* 1.0.1 */
+    .storagePoolGetXMLDesc = esxStoragePoolGetXMLDesc, /* 1.0.1 */
+    .storagePoolNumOfVolumes = esxStoragePoolNumOfVolumes, /* 1.0.1 */
+    .storagePoolListVolumes = esxStoragePoolListVolumes, /* 1.0.1 */
+    .storageVolLookupByName = esxStorageVolLookupByName, /* 1.0.1 */
+    .storageVolLookupByPath = esxStorageVolLookupByPath, /* 1.0.1 */
+    .storageVolLookupByKey = esxStorageVolLookupByKey, /* 1.0.1 */
+    .storageVolCreateXML = esxStorageVolCreateXML, /* 1.0.1 */
+    .storageVolCreateXMLFrom = esxStorageVolCreateXMLFrom, /* 1.0.1 */
+    .storageVolGetXMLDesc = esxStorageVolGetXMLDesc, /* 1.0.1 */
+    .storageVolDelete = esxStorageVolDelete, /* 1.0.1 */
+    .storageVolWipe = esxStorageVolWipe, /* 1.0.1 */
+    .storageVolGetPath = esxStorageVolGetPath, /* 1.0.1 */
 };

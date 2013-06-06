@@ -1,7 +1,7 @@
 /*
  * virjson.c: JSON object parsing/formatting
  *
- * Copyright (C) 2009-2010, 2012 Red Hat, Inc.
+ * Copyright (C) 2009-2010, 2012-2013 Red Hat, Inc.
  * Copyright (C) 2009 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -27,6 +27,7 @@
 #include "viralloc.h"
 #include "virerror.h"
 #include "virlog.h"
+#include "virstring.h"
 #include "virutil.h"
 
 #if WITH_YAJL
@@ -69,14 +70,14 @@ void virJSONValueFree(virJSONValuePtr value)
 
     switch ((virJSONType) value->type) {
     case VIR_JSON_TYPE_OBJECT:
-        for (i = 0 ; i < value->data.object.npairs; i++) {
+        for (i = 0; i < value->data.object.npairs; i++) {
             VIR_FREE(value->data.object.pairs[i].key);
             virJSONValueFree(value->data.object.pairs[i].value);
         }
         VIR_FREE(value->data.object.pairs);
         break;
     case VIR_JSON_TYPE_ARRAY:
-        for (i = 0 ; i < value->data.array.nvalues ; i++)
+        for (i = 0; i < value->data.array.nvalues; i++)
             virJSONValueFree(value->data.array.values[i]);
         VIR_FREE(value->data.array.values);
         break;
@@ -106,7 +107,7 @@ virJSONValuePtr virJSONValueNewString(const char *data)
         return NULL;
 
     val->type = VIR_JSON_TYPE_STRING;
-    if (!(val->data.string = strdup(data))) {
+    if (VIR_STRDUP(val->data.string, data) < 0) {
         VIR_FREE(val);
         return NULL;
     }
@@ -125,7 +126,7 @@ virJSONValuePtr virJSONValueNewStringLen(const char *data, size_t length)
         return NULL;
 
     val->type = VIR_JSON_TYPE_STRING;
-    if (!(val->data.string = strndup(data, length))) {
+    if (VIR_STRNDUP(val->data.string, data, length) < 0) {
         VIR_FREE(val);
         return NULL;
     }
@@ -141,7 +142,7 @@ static virJSONValuePtr virJSONValueNewNumber(const char *data)
         return NULL;
 
     val->type = VIR_JSON_TYPE_NUMBER;
-    if (!(val->data.number = strdup(data))) {
+    if (VIR_STRDUP(val->data.number, data) < 0) {
         VIR_FREE(val);
         return NULL;
     }
@@ -268,7 +269,7 @@ int virJSONValueObjectAppend(virJSONValuePtr object, const char *key, virJSONVal
     if (virJSONValueObjectHasKey(object, key))
         return -1;
 
-    if (!(newkey = strdup(key)))
+    if (VIR_STRDUP(newkey, key) < 0)
         return -1;
 
     if (VIR_REALLOC_N(object->data.object.pairs,
@@ -405,7 +406,7 @@ int virJSONValueObjectHasKey(virJSONValuePtr object, const char *key)
     if (object->type != VIR_JSON_TYPE_OBJECT)
         return -1;
 
-    for (i = 0 ; i < object->data.object.npairs ; i++) {
+    for (i = 0; i < object->data.object.npairs; i++) {
         if (STREQ(object->data.object.pairs[i].key, key))
             return 1;
     }
@@ -420,7 +421,7 @@ virJSONValuePtr virJSONValueObjectGet(virJSONValuePtr object, const char *key)
     if (object->type != VIR_JSON_TYPE_OBJECT)
         return NULL;
 
-    for (i = 0 ; i < object->data.object.npairs ; i++) {
+    for (i = 0; i < object->data.object.npairs; i++) {
         if (STREQ(object->data.object.pairs[i].key, key))
             return object->data.object.pairs[i].value;
     }
@@ -445,6 +446,38 @@ const char *virJSONValueObjectGetKey(virJSONValuePtr object, unsigned int n)
         return NULL;
 
     return object->data.object.pairs[n].key;
+}
+
+/* Remove the key-value pair tied to @key out of @object.  If @value is
+ * not NULL, the dropped value object is returned instead of freed.
+ * Returns 1 on success, 0 if no key was found, and -1 on error.  */
+int
+virJSONValueObjectRemoveKey(virJSONValuePtr object, const char *key,
+                            virJSONValuePtr *value)
+{
+    int i;
+
+    if (value)
+        *value = NULL;
+
+    if (object->type != VIR_JSON_TYPE_OBJECT)
+        return -1;
+
+    for (i = 0; i < object->data.object.npairs; i++) {
+        if (STREQ(object->data.object.pairs[i].key, key)) {
+            if (value) {
+                *value = object->data.object.pairs[i].value;
+                object->data.object.pairs[i].value = NULL;
+            }
+            VIR_FREE(object->data.object.pairs[i].key);
+            virJSONValueFree(object->data.object.pairs[i].value);
+            VIR_DELETE_ELEMENT(object->data.object.pairs, i,
+                               object->data.object.npairs);
+            return 1;
+        }
+    }
+
+    return 0;
 }
 
 virJSONValuePtr virJSONValueObjectGetValue(virJSONValuePtr object, unsigned int n)
@@ -750,10 +783,10 @@ static int virJSONParserHandleNumber(void *ctx,
                                      yajl_size_t l)
 {
     virJSONParserPtr parser = ctx;
-    char *str = strndup(s, l);
+    char *str;
     virJSONValuePtr value;
 
-    if (!str)
+    if (VIR_STRNDUP(str, s, l) < 0)
         return -1;
     value = virJSONValueNewNumber(str);
     VIR_FREE(str);
@@ -807,8 +840,7 @@ static int virJSONParserHandleMapKey(void *ctx,
     state = &parser->state[parser->nstate-1];
     if (state->key)
         return 0;
-    state->key = strndup((const char *)stringVal, stringLen);
-    if (!state->key)
+    if (VIR_STRNDUP(state->key, (const char *)stringVal, stringLen) < 0)
         return 0;
     return 1;
 }
@@ -980,7 +1012,7 @@ cleanup:
 
     if (parser.nstate) {
         int i;
-        for (i = 0 ; i < parser.nstate ; i++) {
+        for (i = 0; i < parser.nstate; i++) {
             VIR_FREE(parser.state[i].key);
         }
     }
@@ -1002,7 +1034,7 @@ static int virJSONValueToStringOne(virJSONValuePtr object,
     case VIR_JSON_TYPE_OBJECT:
         if (yajl_gen_map_open(g) != yajl_gen_status_ok)
             return -1;
-        for (i = 0; i < object->data.object.npairs ; i++) {
+        for (i = 0; i < object->data.object.npairs; i++) {
             if (yajl_gen_string(g,
                                 (unsigned char *)object->data.object.pairs[i].key,
                                 strlen(object->data.object.pairs[i].key))
@@ -1017,7 +1049,7 @@ static int virJSONValueToStringOne(virJSONValuePtr object,
     case VIR_JSON_TYPE_ARRAY:
         if (yajl_gen_array_open(g) != yajl_gen_status_ok)
             return -1;
-        for (i = 0; i < object->data.array.nvalues ; i++) {
+        for (i = 0; i < object->data.array.nvalues; i++) {
             if (virJSONValueToStringOne(object->data.array.values[i], g) < 0)
                 return -1;
         }
@@ -1093,8 +1125,7 @@ char *virJSONValueToString(virJSONValuePtr object,
         goto cleanup;
     }
 
-    if (!(ret = strdup((const char *)str)))
-        virReportOOMError();
+    ignore_value(VIR_STRDUP(ret, (const char *)str));
 
 cleanup:
     yajl_gen_free(g);

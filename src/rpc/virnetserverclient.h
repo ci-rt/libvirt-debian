@@ -99,10 +99,11 @@ bool virNetServerClientIsSecure(virNetServerClientPtr client);
 bool virNetServerClientIsLocal(virNetServerClientPtr client);
 
 int virNetServerClientGetUNIXIdentity(virNetServerClientPtr client,
-                                      uid_t *uid, gid_t *gid, pid_t *pid);
+                                      uid_t *uid, gid_t *gid, pid_t *pid,
+                                      unsigned long long *timestamp);
 
-int virNetServerClientGetSecurityContext(virNetServerClientPtr client,
-                                         char **context);
+int virNetServerClientGetSELinuxContext(virNetServerClientPtr client,
+                                        char **context);
 
 virIdentityPtr virNetServerClientGetIdentity(virNetServerClientPtr client);
 

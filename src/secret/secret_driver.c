@@ -37,11 +37,11 @@
 #include "secret_conf.h"
 #include "secret_driver.h"
 #include "virthread.h"
-#include "virutil.h"
 #include "viruuid.h"
 #include "virerror.h"
 #include "virfile.h"
 #include "configmake.h"
+#include "virstring.h"
 
 #define VIR_FROM_THIS VIR_FROM_SECRET
 
@@ -1097,9 +1097,8 @@ secretStateInitialize(bool privileged,
     secretDriverLock(driverState);
 
     if (privileged) {
-        base = strdup(SYSCONFDIR "/libvirt");
-        if (base == NULL)
-            goto out_of_memory;
+        if (VIR_STRDUP(base, SYSCONFDIR "/libvirt") < 0)
+            goto error;
     } else {
         base = virGetUserConfigDirectory();
         if (!base)

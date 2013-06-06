@@ -50,6 +50,7 @@
 #include "virprocess.h"
 #include "virbuffer.h"
 #include "virthread.h"
+#include "virstring.h"
 
 #define VIR_FROM_THIS VIR_FROM_NONE
 
@@ -889,7 +890,7 @@ virCommandKeepFD(virCommandPtr cmd, int fd, bool transfer)
         (transfer && (ret = virCommandFDSet(fd, &cmd->transfer,
                                             &cmd->transfer_size)))) {
         if (!cmd->has_error)
-            cmd->has_error = ret ? ret : -1 ;
+            cmd->has_error = ret ? ret : -1;
         VIR_DEBUG("cannot preserve %d", fd);
         return fd > STDERR_FILENO;
     }
@@ -945,9 +946,8 @@ virCommandSetPidFile(virCommandPtr cmd, const char *pidfile)
         return;
 
     VIR_FREE(cmd->pidfile);
-    if (!(cmd->pidfile = strdup(pidfile))) {
+    if (VIR_STRDUP_QUIET(cmd->pidfile, pidfile) < 0)
         cmd->has_error = ENOMEM;
-    }
 }
 
 
@@ -1048,7 +1048,7 @@ virCommandSetSELinuxLabel(virCommandPtr cmd,
 
 #if defined(WITH_SECDRIVER_SELINUX)
     VIR_FREE(cmd->seLinuxLabel);
-    if (label && !(cmd->seLinuxLabel = strdup(label)))
+    if (VIR_STRDUP_QUIET(cmd->seLinuxLabel, label) < 0)
         cmd->has_error = ENOMEM;
 #endif
     return;
@@ -1073,7 +1073,7 @@ virCommandSetAppArmorProfile(virCommandPtr cmd,
 
 #if defined(WITH_SECDRIVER_APPARMOR)
     VIR_FREE(cmd->appArmorProfile);
-    if (profile && !(cmd->appArmorProfile = strdup(profile)))
+    if (VIR_STRDUP_QUIET(cmd->appArmorProfile, profile) < 0)
         cmd->has_error = ENOMEM;
 #endif
     return;
@@ -1204,7 +1204,7 @@ virCommandAddEnvString(virCommandPtr cmd, const char *str)
     if (!cmd || cmd->has_error)
         return;
 
-    if (!(env = strdup(str))) {
+    if (VIR_STRDUP_QUIET(env, str) < 0) {
         cmd->has_error = ENOMEM;
         return;
     }
@@ -1308,7 +1308,7 @@ virCommandAddArg(virCommandPtr cmd, const char *val)
     if (!cmd || cmd->has_error)
         return;
 
-    if (!(arg = strdup(val))) {
+    if (VIR_STRDUP_QUIET(arg, val) < 0) {
         cmd->has_error = ENOMEM;
         return;
     }
@@ -1349,11 +1349,11 @@ virCommandAddArgBuffer(virCommandPtr cmd, virBufferPtr buf)
     }
 
     cmd->args[cmd->nargs] = virBufferContentAndReset(buf);
-    if (!cmd->args[cmd->nargs])
-        cmd->args[cmd->nargs] = strdup("");
     if (!cmd->args[cmd->nargs]) {
-        cmd->has_error = ENOMEM;
-        return;
+        if (VIR_STRDUP_QUIET(cmd->args[cmd->nargs], "") < 0) {
+            cmd->has_error = ENOMEM;
+            return;
+        }
     }
     cmd->nargs++;
 }
@@ -1439,8 +1439,9 @@ virCommandAddArgSet(virCommandPtr cmd, const char *const*vals)
 
     narg = 0;
     while (vals[narg] != NULL) {
-        char *arg = strdup(vals[narg++]);
-        if (!arg) {
+        char *arg;
+
+        if (VIR_STRDUP_QUIET(arg, vals[narg++]) < 0) {
             cmd->has_error = ENOMEM;
             return;
         }
@@ -1480,8 +1481,7 @@ virCommandAddArgList(virCommandPtr cmd, ...)
         char *arg = va_arg(list, char *);
         if (!arg)
             break;
-        arg = strdup(arg);
-        if (!arg) {
+        if (VIR_STRDUP_QUIET(arg, arg) < 0) {
             cmd->has_error = ENOMEM;
             va_end(list);
             return;
@@ -1510,8 +1510,7 @@ virCommandSetWorkingDirectory(virCommandPtr cmd, const char *pwd)
         cmd->has_error = -1;
         VIR_DEBUG("cannot set directory twice");
     } else {
-        cmd->pwd = strdup(pwd);
-        if (!cmd->pwd)
+        if (VIR_STRDUP_QUIET(cmd->pwd, pwd) < 0)
             cmd->has_error = ENOMEM;
     }
 }
@@ -1538,8 +1537,7 @@ virCommandSetInputBuffer(virCommandPtr cmd, const char *inbuf)
         return;
     }
 
-    cmd->inbuf = strdup(inbuf);
-    if (!cmd->inbuf)
+    if (VIR_STRDUP_QUIET(cmd->inbuf, inbuf) < 0)
         cmd->has_error = ENOMEM;
 }
 
@@ -1738,13 +1736,13 @@ virCommandWriteArgLog(virCommandPtr cmd, int logfd)
     if (!cmd || cmd->has_error)
         return;
 
-    for (i = 0 ; i < cmd->nenv ; i++) {
+    for (i = 0; i < cmd->nenv; i++) {
         if (safewrite(logfd, cmd->env[i], strlen(cmd->env[i])) < 0)
             ioError = errno;
         if (safewrite(logfd, " ", 1) < 0)
             ioError = errno;
     }
-    for (i = 0 ; i < cmd->nargs ; i++) {
+    for (i = 0; i < cmd->nargs; i++) {
         if (safewrite(logfd, cmd->args[i], strlen(cmd->args[i])) < 0)
             ioError = errno;
         if (safewrite(logfd, i == cmd->nargs - 1 ? "\n" : " ", 1) < 0)
@@ -1893,7 +1891,7 @@ virCommandProcessIO(virCommandPtr cmd)
             goto cleanup;
         }
 
-        for (i = 0; i < nfds ; i++) {
+        for (i = 0; i < nfds; i++) {
             if (fds[i].revents & (POLLIN | POLLHUP | POLLERR) &&
                 (fds[i].fd == errfd || fds[i].fd == outfd)) {
                 char data[1024];
@@ -2563,11 +2561,11 @@ virCommandFree(virCommandPtr cmd)
     VIR_FORCE_CLOSE(cmd->outfd);
     VIR_FORCE_CLOSE(cmd->errfd);
 
-    for (i = 0 ; i < cmd->nargs ; i++)
+    for (i = 0; i < cmd->nargs; i++)
         VIR_FREE(cmd->args[i]);
     VIR_FREE(cmd->args);
 
-    for (i = 0 ; i < cmd->nenv ; i++)
+    for (i = 0; i < cmd->nenv; i++)
         VIR_FREE(cmd->env[i]);
     VIR_FREE(cmd->env);
 

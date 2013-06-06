@@ -1,7 +1,20 @@
 ## Process this file with automake to produce Makefile.in
 
 ## Copyright (C) 2005-2013 Red Hat, Inc.
-## See COPYING.LIB for the License of this software
+##
+## This library is free software; you can redistribute it and/or
+## modify it under the terms of the GNU Lesser General Public
+## License as published by the Free Software Foundation; either
+## version 2.1 of the License, or (at your option) any later version.
+##
+## This library is distributed in the hope that it will be useful,
+## but WITHOUT ANY WARRANTY; without even the implied warranty of
+## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+## Lesser General Public License for more details.
+##
+## You should have received a copy of the GNU Lesser General Public
+## License along with this library.  If not, see
+## <http://www.gnu.org/licenses/>.
 
 SHELL = $(PREFERABLY_POSIX_SHELL)
 
@@ -52,6 +65,7 @@ EXTRA_DIST =		\
 	domainsnapshotschematest \
 	domainsnapshotxml2xmlin \
 	domainsnapshotxml2xmlout \
+	fchostdata \
 	interfaceschemadata \
 	lxcxml2xmldata \
 	networkschematest \
@@ -72,10 +86,12 @@ EXTRA_DIST =		\
 	securityselinuxlabeldata \
 	schematestutils.sh \
 	sexpr2xmldata \
+	storagepoolschemadata \
 	storagepoolschematest \
 	storagepoolxml2xmlin \
 	storagepoolxml2xmlout \
 	storagevolxml2argvdata \
+	storagevolschemadata \
 	storagevolschematest \
 	storagevolxml2xmlin \
 	storagevolxml2xmlout \
@@ -107,6 +123,8 @@ test_programs = virshtest sockettest \
         virportallocatortest \
 	sysinfotest \
 	virstoragetest \
+        fdstreamtest \
+        fchosttest \
 	$(NULL)
 
 if WITH_GNUTLS
@@ -709,6 +727,14 @@ shunloadtest_DEPENDENCIES = libshunload.la
 sysinfotest_SOURCES = \
 	sysinfotest.c testutils.h testutils.c
 sysinfotest_LDADD = $(LDADDS)
+
+fdstreamtest_SOURCES = \
+	fdstreamtest.c testutils.h testutils.c
+fdstreamtest_LDADD = $(LDADDS)
+
+fchosttest_SOURCES = \
+       fchosttest.c testutils.h testutils.c
+fchosttest_LDADD = $(LDADDS)
 
 if WITH_CIL
 CILOPTFLAGS =

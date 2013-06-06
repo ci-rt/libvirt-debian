@@ -47,7 +47,7 @@
 #include "domain_conf.h"
 #include "c-ctype.h"
 #include "virfile.h"
-
+#include "virstring.h"
 
 #define VIR_FROM_THIS VIR_FROM_NWFILTER
 
@@ -349,7 +349,7 @@ void
 virNWFilterObjListFree(virNWFilterObjListPtr nwfilters)
 {
     unsigned int i;
-    for (i = 0 ; i < nwfilters->count ; i++)
+    for (i = 0; i < nwfilters->count; i++)
         virNWFilterObjFree(nwfilters->objs[i]);
     VIR_FREE(nwfilters->objs);
     nwfilters->count = 0;
@@ -400,12 +400,8 @@ virNWFilterRuleDefAddString(virNWFilterRuleDefPtr nwf,
         return NULL;
     }
 
-    nwf->strings[nwf->nstrings] = strndup(string, maxstrlen);
-
-    if (!nwf->strings[nwf->nstrings]) {
-        virReportOOMError();
+    if (VIR_STRNDUP(nwf->strings[nwf->nstrings], string, maxstrlen) < 0)
         return NULL;
-    }
 
     nwf->nstrings++;
 
@@ -421,7 +417,7 @@ virNWFilterObjRemove(virNWFilterObjListPtr nwfilters,
 
     virNWFilterObjUnlock(nwfilter);
 
-    for (i = 0 ; i < nwfilters->count ; i++) {
+    for (i = 0; i < nwfilters->count; i++) {
         virNWFilterObjLock(nwfilters->objs[i]);
         if (nwfilters->objs[i] == nwfilter) {
             virNWFilterObjUnlock(nwfilters->objs[i]);
@@ -2556,12 +2552,9 @@ virNWFilterDefParseXML(xmlXPathContextPtr ctxt) {
         }
         chain = NULL;
     } else {
-        ret->chainsuffix = strdup(virNWFilterChainSuffixTypeToString(
-                                  VIR_NWFILTER_CHAINSUFFIX_ROOT));
-        if (ret->chainsuffix == NULL) {
-            virReportOOMError();
+        if (VIR_STRDUP(ret->chainsuffix,
+                       virNWFilterChainSuffixTypeToString(VIR_NWFILTER_CHAINSUFFIX_ROOT)) < 0)
             goto cleanup;
-        }
     }
 
     uuid = virXPathString("string(./uuid)", ctxt);
@@ -2688,7 +2681,7 @@ virNWFilterObjFindByUUID(virNWFilterObjListPtr nwfilters,
 {
     unsigned int i;
 
-    for (i = 0 ; i < nwfilters->count ; i++) {
+    for (i = 0; i < nwfilters->count; i++) {
         virNWFilterObjLock(nwfilters->objs[i]);
         if (!memcmp(nwfilters->objs[i]->def->uuid, uuid, VIR_UUID_BUFLEN))
             return nwfilters->objs[i];
@@ -2704,7 +2697,7 @@ virNWFilterObjFindByName(virNWFilterObjListPtr nwfilters, const char *name)
 {
     unsigned int i;
 
-    for (i = 0 ; i < nwfilters->count ; i++) {
+    for (i = 0; i < nwfilters->count; i++) {
         virNWFilterObjLock(nwfilters->objs[i]);
         if (STREQ(nwfilters->objs[i]->def->name, name))
             return nwfilters->objs[i];
@@ -3094,9 +3087,7 @@ virNWFilterObjLoad(virConnectPtr conn,
     }
 
     VIR_FREE(nwfilter->configFile); /* for driver reload */
-    nwfilter->configFile = strdup(path);
-    if (nwfilter->configFile == NULL) {
-        virReportOOMError();
+    if (VIR_STRDUP(nwfilter->configFile, path) < 0) {
         virNWFilterDefFree(def);
         return NULL;
     }

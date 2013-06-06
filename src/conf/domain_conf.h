@@ -32,7 +32,6 @@
 # include "capabilities.h"
 # include "storage_encryption_conf.h"
 # include "cpu_conf.h"
-# include "virutil.h"
 # include "virthread.h"
 # include "virhash.h"
 # include "virsocketaddr.h"
@@ -385,6 +384,7 @@ enum virDomainHostdevMode {
 enum virDomainHostdevSubsysType {
     VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_USB,
     VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI,
+    VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_SCSI,
 
     VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_LAST
 };
@@ -418,6 +418,13 @@ struct _virDomainHostdevSubsys {
             virDevicePCIAddress addr; /* host address */
             int backend; /* enum virDomainHostdevSubsysPciBackendType */
         } pci;
+        struct {
+            char *adapter;
+            unsigned bus;
+            unsigned target;
+            unsigned unit;
+            int sgio; /* enum virDomainDeviceSGIO */
+        } scsi;
     } u;
 };
 
@@ -455,6 +462,8 @@ struct _virDomainHostdevDef {
     int startupPolicy; /* enum virDomainStartupPolicy */
     bool managed;
     bool missing;
+    bool readonly;
+    bool shareable;
     union {
         virDomainHostdevSubsys subsys;
         virDomainHostdevCaps caps;
@@ -610,12 +619,20 @@ enum virDomainDiskSecretType {
     VIR_DOMAIN_DISK_SECRET_TYPE_LAST
 };
 
-enum virDomainDiskSGIO {
-    VIR_DOMAIN_DISK_SGIO_DEFAULT = 0,
-    VIR_DOMAIN_DISK_SGIO_FILTERED,
-    VIR_DOMAIN_DISK_SGIO_UNFILTERED,
+enum virDomainDeviceSGIO {
+    VIR_DOMAIN_DEVICE_SGIO_DEFAULT = 0,
+    VIR_DOMAIN_DEVICE_SGIO_FILTERED,
+    VIR_DOMAIN_DEVICE_SGIO_UNFILTERED,
 
-    VIR_DOMAIN_DISK_SGIO_LAST
+    VIR_DOMAIN_DEVICE_SGIO_LAST
+};
+
+enum virDomainDiskDiscard {
+    VIR_DOMAIN_DISK_DISCARD_DEFAULT = 0,
+    VIR_DOMAIN_DISK_DISCARD_UNMAP,
+    VIR_DOMAIN_DISK_DISCARD_IGNORE,
+
+    VIR_DOMAIN_DISK_DISCARD_LAST
 };
 
 typedef struct _virDomainBlockIoTuneInfo virDomainBlockIoTuneInfo;
@@ -699,7 +716,8 @@ struct _virDomainDiskDef {
     virStorageEncryptionPtr encryption;
     bool rawio_specified;
     int rawio; /* no = 0, yes = 1 */
-    int sgio; /* enum virDomainDiskSGIO */
+    int sgio; /* enum virDomainDeviceSGIO */
+    int discard; /* enum virDomainDiskDiscard */
 
     size_t nseclabels;
     virSecurityDeviceLabelDefPtr *seclabels;
@@ -793,6 +811,8 @@ enum virDomainFSDriverType {
     VIR_DOMAIN_FS_DRIVER_TYPE_DEFAULT = 0,
     VIR_DOMAIN_FS_DRIVER_TYPE_PATH,
     VIR_DOMAIN_FS_DRIVER_TYPE_HANDLE,
+    VIR_DOMAIN_FS_DRIVER_TYPE_LOOP,
+    VIR_DOMAIN_FS_DRIVER_TYPE_NBD,
 
     VIR_DOMAIN_FS_DRIVER_TYPE_LAST
 };
@@ -819,9 +839,10 @@ enum virDomainFSWrpolicy {
 
 struct _virDomainFSDef {
     int type;
-    int fsdriver;
-    int accessmode;
+    int fsdriver; /* enum virDomainFSDriverType */
+    int accessmode; /* enum virDomainFSAccessMode */
     int wrpolicy; /* enum virDomainFSWrpolicy */
+    int format; /* enum virStorageFileFormat */
     unsigned long long usage;
     char *src;
     char *dst;
@@ -913,6 +934,7 @@ struct _virDomainNetDef {
             enum virDomainNetVirtioTxModeType txmode;
             enum virDomainIoEventFd ioeventfd;
             enum virDomainVirtioEventIdx event_idx;
+            unsigned int queues; /* Multiqueue virtio-net */
         } virtio;
     } driver;
     union {
@@ -1267,6 +1289,15 @@ enum virDomainGraphicsType {
     VIR_DOMAIN_GRAPHICS_TYPE_LAST
 };
 
+enum virDomainGraphicsVNCSharePolicy {
+    VIR_DOMAIN_GRAPHICS_VNC_SHARE_DEFAULT = 0,
+    VIR_DOMAIN_GRAPHICS_VNC_SHARE_ALLOW_EXCLUSIVE,
+    VIR_DOMAIN_GRAPHICS_VNC_SHARE_FORCE_SHARED,
+    VIR_DOMAIN_GRAPHICS_VNC_SHARE_IGNORE,
+
+    VIR_DOMAIN_GRAPHICS_VNC_SHARE_LAST
+};
+
 enum virDomainGraphicsAuthConnectedType {
     VIR_DOMAIN_GRAPHICS_AUTH_CONNECTED_DEFAULT = 0,
     VIR_DOMAIN_GRAPHICS_AUTH_CONNECTED_FAIL,
@@ -1401,10 +1432,12 @@ struct _virDomainGraphicsDef {
     union {
         struct {
             int port;
+            int websocket;
             bool autoport;
             char *keymap;
             char *socket;
             virDomainGraphicsAuthDef auth;
+            int sharePolicy;
         } vnc;
         struct {
             char *display;
@@ -1840,6 +1873,8 @@ struct _virDomainDef {
         unsigned long long max_balloon; /* in kibibytes */
         unsigned long long cur_balloon; /* in kibibytes */
         bool hugepage_backed;
+        bool nosharepages;
+        bool locked;
         int dump_core; /* enum virDomainMemDump */
         unsigned long long hard_limit; /* in kibibytes */
         unsigned long long soft_limit; /* in kibibytes */
@@ -2148,6 +2183,10 @@ void virDomainDefFree(virDomainDefPtr vm);
 
 virDomainChrDefPtr virDomainChrDefNew(void);
 
+virDomainDefPtr virDomainDefNew(const char *name,
+                                const unsigned char *uuid,
+                                int id);
+
 enum {
     VIR_DOMAIN_OBJ_LIST_ADD_LIVE = (1 << 0),
     VIR_DOMAIN_OBJ_LIST_ADD_CHECK_LIVE = (1 << 1),
@@ -2450,8 +2489,9 @@ VIR_ENUM_DECL(virDomainDiskProtocol)
 VIR_ENUM_DECL(virDomainDiskProtocolTransport)
 VIR_ENUM_DECL(virDomainDiskIo)
 VIR_ENUM_DECL(virDomainDiskSecretType)
-VIR_ENUM_DECL(virDomainDiskSGIO)
+VIR_ENUM_DECL(virDomainDeviceSGIO)
 VIR_ENUM_DECL(virDomainDiskTray)
+VIR_ENUM_DECL(virDomainDiskDiscard)
 VIR_ENUM_DECL(virDomainIoEventFd)
 VIR_ENUM_DECL(virDomainVirtioEventIdx)
 VIR_ENUM_DECL(virDomainDiskCopyOnRead)
@@ -2503,6 +2543,7 @@ VIR_ENUM_DECL(virDomainGraphicsSpicePlaybackCompression)
 VIR_ENUM_DECL(virDomainGraphicsSpiceStreamingMode)
 VIR_ENUM_DECL(virDomainGraphicsSpiceClipboardCopypaste)
 VIR_ENUM_DECL(virDomainGraphicsSpiceMouseMode)
+VIR_ENUM_DECL(virDomainGraphicsVNCSharePolicy)
 VIR_ENUM_DECL(virDomainHyperv)
 VIR_ENUM_DECL(virDomainRNGModel)
 VIR_ENUM_DECL(virDomainRNGBackend)

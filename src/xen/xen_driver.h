@@ -82,43 +82,6 @@ extern int xenRegister (void);
      VIR_MIGRATE_PAUSED |                       \
      VIR_MIGRATE_PERSIST_DEST)
 
-/* _xenUnifiedDriver:
- *
- * Entry points into the underlying Xen drivers.  This structure
- * will eventually go away and instead xen unified will make direct
- * calls to the underlying Xen drivers.
- *
- * To reiterate - the goal is to remove elements from this structure
- * until it is empty, replacing indirect calls through this
- * structure with direct calls in xen_unified.c.
- */
-struct xenUnifiedDriver {
-    virDrvConnectClose xenClose; /* Only mandatory callback; all others may be NULL */
-    virDrvConnectGetVersion  xenVersion;
-    virDrvConnectGetHostname xenGetHostname;
-    virDrvDomainSuspend xenDomainSuspend;
-    virDrvDomainResume xenDomainResume;
-    virDrvDomainShutdown xenDomainShutdown;
-    virDrvDomainReboot xenDomainReboot;
-    virDrvDomainDestroyFlags xenDomainDestroyFlags;
-    virDrvDomainGetOSType xenDomainGetOSType;
-    virDrvDomainGetMaxMemory xenDomainGetMaxMemory;
-    virDrvDomainSetMaxMemory xenDomainSetMaxMemory;
-    virDrvDomainSetMemory xenDomainSetMemory;
-    virDrvDomainGetInfo xenDomainGetInfo;
-    virDrvDomainPinVcpu xenDomainPinVcpu;
-    virDrvDomainGetVcpus xenDomainGetVcpus;
-    virDrvConnectListDefinedDomains xenListDefinedDomains;
-    virDrvConnectNumOfDefinedDomains xenNumOfDefinedDomains;
-    virDrvDomainCreate xenDomainCreate;
-    virDrvDomainDefineXML xenDomainDefineXML;
-    virDrvDomainUndefine xenDomainUndefine;
-    virDrvDomainAttachDeviceFlags xenDomainAttachDeviceFlags;
-    virDrvDomainDetachDeviceFlags xenDomainDetachDeviceFlags;
-    virDrvDomainGetSchedulerType xenDomainGetSchedulerType;
-    virDrvDomainGetSchedulerParameters xenDomainGetSchedulerParameters;
-    virDrvDomainSetSchedulerParameters xenDomainSetSchedulerParameters;
-};
 
 typedef struct xenXMConfCache *xenXMConfCachePtr;
 typedef struct xenXMConfCache {
@@ -209,7 +172,7 @@ struct _xenUnifiedPrivate {
     int inotifyFD;
     int inotifyWatch;
 
-    int  useXenConfigCache ;
+    int  useXenConfigCache;
     xenUnifiedDomainInfoListPtr configInfoList;
 # endif
 

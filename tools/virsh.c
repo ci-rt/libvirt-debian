@@ -57,7 +57,6 @@
 #include "base64.h"
 #include "virbuffer.h"
 #include "console.h"
-#include "virutil.h"
 #include "viralloc.h"
 #include "virxml.h"
 #include <libvirt/libvirt-qemu.h>
@@ -71,6 +70,7 @@
 #include "virbitmap.h"
 #include "conf/domain_conf.h"
 #include "virtypedparam.h"
+#include "virstring.h"
 
 #include "virsh-domain.h"
 #include "virsh-domain-monitor.h"
@@ -122,9 +122,7 @@ _vshStrdup(vshControl *ctl, const char *s, const char *filename, int line)
 {
     char *x;
 
-    if (s == NULL)
-        return NULL;
-    if ((x = strdup(s)))
+    if (VIR_STRDUP(x, s) >= 0)
         return x;
     vshError(ctl, _("%s: %d: failed to allocate %lu bytes"),
              filename, line, (unsigned long)strlen(s));
@@ -610,7 +608,7 @@ vshTreePrintInternal(vshControl *ctl,
     }
 
     /* Determine the index of the last child device */
-    for (i = 0 ; i < num_devices ; i++) {
+    for (i = 0; i < num_devices; i++) {
         const char *parent = (lookup)(i, true, opaque);
 
         if (parent && STREQ(parent, dev))
@@ -625,7 +623,7 @@ vshTreePrintInternal(vshControl *ctl,
     virBufferAddLit(indent, "  ");
     if (virBufferError(indent))
         goto cleanup;
-    for (i = 0 ; i < num_devices ; i++) {
+    for (i = 0; i < num_devices; i++) {
         const char *parent = (lookup)(i, true, opaque);
 
         if (parent && STREQ(parent, dev) &&
@@ -1268,7 +1266,7 @@ vshCmddefHelp(vshControl *ctl, const char *cmdname)
             fprintf(stdout, "    %s\n", _(desc));
         }
 
-        if (def->opts) {
+        if (def->opts && def->opts->name) {
             const vshCmdOptDef *opt;
             fputs(_("\n  OPTIONS\n"), stdout);
             for (opt = def->opts; opt->name; opt++) {
@@ -2181,7 +2179,7 @@ vshGetTypedParamValue(vshControl *ctl, virTypedParameterPtr item)
         break;
 
     case VIR_TYPED_PARAM_BOOLEAN:
-        ret = virAsprintf(&str, "%s", item->value.b ? _("yes") : _("no"));
+        str = vshStrdup(ctl, item->value.b ? _("yes") : _("no"));
         break;
 
     case VIR_TYPED_PARAM_STRING:
@@ -3053,12 +3051,15 @@ vshParseArgv(vshControl *ctl, int argc, char **argv)
             break;
         case ':':
             for (i = 0; opt[i].name != NULL; i++) {
-                if (opt[i].val == optopt) {
-                    vshError(ctl, _("option '-%c'/'--%s' requires an argument"),
-                             optopt, opt[i].name);
-                    exit(EXIT_FAILURE);
-                }
+                if (opt[i].val == optopt)
+                    break;
             }
+            if (opt[i].name)
+                vshError(ctl, _("option '-%c'/'--%s' requires an argument"),
+                         optopt, opt[i].name);
+            else
+                vshError(ctl, _("option '-%c' requires an argument"), optopt);
+            exit(EXIT_FAILURE);
         case '?':
             if (optopt)
                 vshError(ctl, _("unsupported option '-%c'. See --help."), optopt);

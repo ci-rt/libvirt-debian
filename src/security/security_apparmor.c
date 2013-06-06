@@ -38,7 +38,6 @@
 #include "internal.h"
 
 #include "security_apparmor.h"
-#include "virutil.h"
 #include "viralloc.h"
 #include "virerror.h"
 #include "datatypes.h"
@@ -49,6 +48,8 @@
 #include "configmake.h"
 #include "vircommand.h"
 #include "virlog.h"
+#include "virstring.h"
+#include "virscsi.h"
 
 #define VIR_FROM_THIS VIR_FROM_SECURITY
 #define SECURITY_APPARMOR_VOID_DOI      "0"
@@ -94,7 +95,7 @@ profile_status(const char *str, const int check_enforcing)
         virReportSystemError(errno,
                              _("Failed to read AppArmor profiles list "
                              "\'%s\'"), APPARMOR_PROFILES_PATH);
-        goto clean;
+        goto cleanup;
     }
 
     if (strstr(content, tmp) != NULL)
@@ -105,7 +106,7 @@ profile_status(const char *str, const int check_enforcing)
     }
 
     VIR_FREE(content);
-  clean:
+  cleanup:
     VIR_FREE(tmp);
     VIR_FREE(etmp);
 
@@ -294,20 +295,19 @@ reload_profile(virSecurityManagerPtr mgr,
                            _("cannot update AppArmor profile "
                              "\'%s\'"),
                            secdef->imagelabel);
-            goto clean;
+            goto cleanup;
         }
     }
 
     rc = 0;
-  clean:
+  cleanup:
     VIR_FREE(profile_name);
 
     return rc;
 }
 
 static int
-AppArmorSetSecurityUSBLabel(virUSBDevicePtr dev ATTRIBUTE_UNUSED,
-                           const char *file, void *opaque)
+AppArmorSetSecurityHostdevLabelHelper(const char *file, void *opaque)
 {
     struct SDPDOP *ptr = opaque;
     virDomainDefPtr def = ptr->def;
@@ -328,25 +328,24 @@ AppArmorSetSecurityUSBLabel(virUSBDevicePtr dev ATTRIBUTE_UNUSED,
 }
 
 static int
+AppArmorSetSecurityUSBLabel(virUSBDevicePtr dev ATTRIBUTE_UNUSED,
+                            const char *file, void *opaque)
+{
+    return AppArmorSetSecurityHostdevLabelHelper(file, opaque);
+}
+
+static int
 AppArmorSetSecurityPCILabel(virPCIDevicePtr dev ATTRIBUTE_UNUSED,
                             const char *file, void *opaque)
 {
-    struct SDPDOP *ptr = opaque;
-    virDomainDefPtr def = ptr->def;
+    return AppArmorSetSecurityHostdevLabelHelper(file, opaque);
+}
 
-    if (reload_profile(ptr->mgr, def, file, true) < 0) {
-        const virSecurityLabelDefPtr secdef = virDomainDefGetSecurityLabelDef(
-                                                def, SECURITY_APPARMOR_NAME);
-        if (!secdef) {
-            virReportOOMError();
-            return -1;
-        }
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("cannot update AppArmor profile \'%s\'"),
-                       secdef->imagelabel);
-        return -1;
-    }
-    return 0;
+static int
+AppArmorSetSecuritySCSILabel(virSCSIDevicePtr dev ATTRIBUTE_UNUSED,
+                             const char *file, void *opaque)
+{
+    return AppArmorSetSecurityHostdevLabelHelper(file, opaque);
 }
 
 /* Called on libvirtd startup to see if AppArmor is available */
@@ -372,11 +371,11 @@ AppArmorSecurityManagerProbe(const char *virtDriver)
     if (!virFileExists(template)) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("template \'%s\' does not exist"), template);
-        goto clean;
+        goto cleanup;
     }
     rc = SECURITY_DRIVER_ENABLE;
 
-  clean:
+  cleanup:
     VIR_FREE(template);
 
     return rc;
@@ -446,24 +445,15 @@ AppArmorGenSecurityLabel(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
     if ((profile_name = get_profile_name(def)) == NULL)
         return rc;
 
-    secdef->label = strndup(profile_name, strlen(profile_name));
-    if (!secdef->label) {
-        virReportOOMError();
-        goto clean;
-    }
+    if (VIR_STRDUP(secdef->label, profile_name) < 0)
+        goto cleanup;
 
     /* set imagelabel the same as label (but we won't use it) */
-    secdef->imagelabel = strndup(profile_name,
-                                 strlen(profile_name));
-    if (!secdef->imagelabel) {
-        virReportOOMError();
+    if (VIR_STRDUP(secdef->imagelabel, profile_name) < 0)
         goto err;
-    }
 
-    if (!secdef->model && !(secdef->model = strdup(SECURITY_APPARMOR_NAME))) {
-        virReportOOMError();
+    if (!secdef->model && VIR_STRDUP(secdef->model, SECURITY_APPARMOR_NAME) < 0)
         goto err;
-    }
 
     /* Now that we have a label, load the profile into the kernel. */
     if (load_profile(mgr, secdef->label, def, NULL, false) < 0) {
@@ -474,14 +464,14 @@ AppArmorGenSecurityLabel(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
     }
 
     rc = 0;
-    goto clean;
+    goto cleanup;
 
   err:
     VIR_FREE(secdef->label);
     VIR_FREE(secdef->imagelabel);
     VIR_FREE(secdef->model);
 
-  clean:
+  cleanup:
     VIR_FREE(profile_name);
 
     return rc;
@@ -526,17 +516,17 @@ AppArmorGetSecurityProcessLabel(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
         VIR_SECURITY_LABEL_BUFLEN) == NULL) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        "%s", _("error copying profile name"));
-        goto clean;
+        goto cleanup;
     }
 
     if ((sec->enforcing = profile_status(profile_name, 1)) < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        "%s", _("error calling profile_status()"));
-        goto clean;
+        goto cleanup;
     }
     rc = 0;
 
-  clean:
+  cleanup:
     VIR_FREE(profile_name);
 
     return rc;
@@ -609,17 +599,17 @@ AppArmorSetSecurityProcessLabel(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
                          "hypervisor driver is \'%s\'."),
                        secdef->model, SECURITY_APPARMOR_NAME);
         if (use_apparmor() > 0)
-            goto clean;
+            goto cleanup;
     }
 
     if (aa_change_profile(profile_name) < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                        _("error calling aa_change_profile()"));
-        goto clean;
+        goto cleanup;
     }
     rc = 0;
 
-  clean:
+  cleanup:
     VIR_FREE(profile_name);
 
     return rc;
@@ -736,13 +726,13 @@ AppArmorSetSecurityImageLabel(virSecurityManagerPtr mgr,
                                _("cannot update AppArmor profile "
                                  "\'%s\'"),
                                secdef->imagelabel);
-                goto clean;
+                goto cleanup;
             }
         }
     }
     rc = 0;
 
-  clean:
+  cleanup:
     VIR_FREE(profile_name);
 
     return rc;
@@ -848,6 +838,23 @@ AppArmorSetSecurityHostdevLabel(virSecurityManagerPtr mgr,
         break;
     }
 
+    case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_SCSI: {
+        virSCSIDevicePtr scsi =
+            virSCSIDeviceNew(dev->source.subsys.u.scsi.adapter,
+                             dev->source.subsys.u.scsi.bus,
+                             dev->source.subsys.u.scsi.target,
+                             dev->source.subsys.u.scsi.unit,
+                             dev->readonly);
+
+         if (!scsi)
+             goto done;
+
+        ret = virSCSIDeviceFileIterate(scsi, AppArmorSetSecuritySCSILabel, ptr);
+        virSCSIDeviceFree(scsi);
+
+        break;
+    }
+
     default:
         ret = 0;
         break;
@@ -933,10 +940,7 @@ AppArmorGetMountOptions(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
 {
     char *opts;
 
-    if (!(opts = strdup(""))) {
-        virReportOOMError();
-        return NULL;
-    }
+    ignore_value(VIR_STRDUP(opts, ""));
     return opts;
 }
 

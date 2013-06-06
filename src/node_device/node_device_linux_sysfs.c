@@ -32,13 +32,14 @@
 #include "viralloc.h"
 #include "virlog.h"
 #include "virfile.h"
+#include "virstring.h"
 
 #define VIR_FROM_THIS VIR_FROM_NODEDEV
 
 #ifdef __linux__
 
 int
-detect_scsi_host_caps_linux(union _virNodeDevCapData *d)
+detect_scsi_host_caps(union _virNodeDevCapData *d)
 {
     char *max_vports = NULL;
     char *vports = NULL;
@@ -46,7 +47,7 @@ detect_scsi_host_caps_linux(union _virNodeDevCapData *d)
 
     VIR_DEBUG("Checking if host%d is an FC HBA", d->scsi_host.host);
 
-    if (virIsCapableFCHost(NULL, d->scsi_host.host) == 0) {
+    if (virIsCapableFCHost(NULL, d->scsi_host.host)) {
         d->scsi_host.flags |= VIR_NODE_DEV_CAP_FLAG_HBA_FC_HOST;
 
         if (virReadFCHost(NULL,
@@ -75,7 +76,7 @@ detect_scsi_host_caps_linux(union _virNodeDevCapData *d)
         }
     }
 
-    if (virIsCapableVport(NULL, d->scsi_host.host) == 0) {
+    if (virIsCapableVport(NULL, d->scsi_host.host)) {
         d->scsi_host.flags |= VIR_NODE_DEV_CAP_FLAG_HBA_VPORT_OPS;
 
         if (virReadFCHost(NULL,
@@ -125,6 +126,14 @@ cleanup:
     VIR_FREE(max_vports);
     VIR_FREE(vports);
     return ret;
+}
+
+#else
+
+int
+detect_scsi_host_caps(union _virNodeDevCapData *d ATTRIBUTE_UNUSED)
+{
+    return -1;
 }
 
 #endif /* __linux__ */

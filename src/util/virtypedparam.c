@@ -27,6 +27,7 @@
 #include "viralloc.h"
 #include "virutil.h"
 #include "virerror.h"
+#include "virstring.h"
 
 #define VIR_FROM_THIS VIR_FROM_NONE
 
@@ -149,12 +150,8 @@ virTypedParameterAssign(virTypedParameterPtr param, const char *name,
         break;
     case VIR_TYPED_PARAM_STRING:
         param->value.s = va_arg(ap, char *);
-        if (!param->value.s)
-            param->value.s = strdup("");
-        if (!param->value.s) {
-            virReportOOMError();
+        if (!param->value.s && VIR_STRDUP(param->value.s, "") < 0)
             goto cleanup;
-        }
         break;
     default:
         virReportError(VIR_ERR_INTERNAL_ERROR,
@@ -247,10 +244,8 @@ virTypedParameterAssignFromStr(virTypedParameterPtr param, const char *name,
         }
         break;
     case VIR_TYPED_PARAM_STRING:
-        if (!(param->value.s = strdup(val))) {
-            virReportOOMError();
+        if (VIR_STRDUP(param->value.s, val) < 0)
             goto cleanup;
-        }
         break;
     default:
         virReportError(VIR_ERR_INTERNAL_ERROR,
@@ -912,10 +907,8 @@ virTypedParamsAddString(virTypedParameterPtr *params,
     }
     *maxparams = max;
 
-    if (value && !(str = strdup(value))) {
-        virReportOOMError();
+    if (VIR_STRDUP(str, value) < 0)
         goto error;
-    }
 
     if (virTypedParameterAssign(*params + n, name,
                                 VIR_TYPED_PARAM_STRING, str) < 0) {

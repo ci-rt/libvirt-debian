@@ -50,11 +50,8 @@ static int qemuDispatchDomainAgentCommand(
         goto cleanup;
     }
     
-    *result_p = strdup(result);
-    if (*result_p == NULL) {
-        virReportOOMError();
+    if (VIR_STRDUP(*result_p, result) < 0)
         goto cleanup;
-    }
 
     ret->result = result_p;
     rv = 0;

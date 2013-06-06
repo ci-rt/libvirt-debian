@@ -1,5 +1,5 @@
 /*---------------------------------------------------------------------------*/
-/*  Copyright (C) 2006-2012 Red Hat, Inc.
+/*  Copyright (C) 2006-2013 Red Hat, Inc.
  *  Copyright (C) 2011-2013 SUSE LINUX Products GmbH, Nuernberg, Germany.
  *  Copyright (C) 2011 Univention GmbH.
  *
@@ -44,6 +44,7 @@
 #include "xen_xm.h"
 #include "virtypedparam.h"
 #include "viruri.h"
+#include "virstring.h"
 
 #define VIR_FROM_THIS VIR_FROM_LIBXL
 
@@ -549,8 +550,8 @@ libxlSaveImageOpen(libxlDriverPrivatePtr driver, const char *from,
     char *xml = NULL;
 
     if ((fd = virFileOpenAs(from, O_RDONLY, 0, -1, -1, 0)) < 0) {
-        virReportError(VIR_ERR_OPERATION_FAILED,
-                       "%s", _("cannot read domain image"));
+        virReportSystemError(-fd,
+                             _("Failed to open domain image file '%s'"), from);
         goto error;
     }
 
@@ -696,12 +697,24 @@ libxlVmReap(libxlDriverPrivatePtr driver,
 }
 
 /*
- * Handle previously registered event notification from libxenlight
+ * Handle previously registered event notification from libxenlight.
+ *
+ * Note: Xen 4.3 removed the const from the event handler signature.
+ * Detect which signature to use based on
+ * LIBXL_HAVE_NONCONST_EVENT_OCCURS_EVENT_ARG.
  */
+
+#ifdef LIBXL_HAVE_NONCONST_EVENT_OCCURS_EVENT_ARG
+# define VIR_LIBXL_EVENT_CONST /* empty */
+#else
+# define VIR_LIBXL_EVENT_CONST const
+#endif
+
 static void
-libxlEventHandler(void *data ATTRIBUTE_UNUSED, const libxl_event *event)
+libxlEventHandler(void *data, VIR_LIBXL_EVENT_CONST libxl_event *event)
 {
     libxlDriverPrivatePtr driver = libxl_driver;
+    libxlDomainObjPrivatePtr priv = ((virDomainObjPtr)data)->privateData;
     virDomainObjPtr vm = NULL;
     virDomainEventPtr dom_event = NULL;
     libxl_shutdown_reason xl_reason = event->u.domain_shutdown.shutdown_reason;
@@ -758,6 +771,8 @@ cleanup:
         libxlDomainEventQueue(driver, dom_event);
         libxlDriverUnlock(driver);
     }
+    /* Cast away any const */
+    libxl_event_free(priv->ctx, (libxl_event *)event);
 }
 
 static const struct libxl_event_hooks ev_hooks = {
@@ -1410,6 +1425,13 @@ libxlConnectGetVersion(virConnectPtr conn, unsigned long *version)
     return 0;
 }
 
+
+static char *libxlConnectGetHostname(virConnectPtr conn ATTRIBUTE_UNUSED)
+{
+    return virGetHostname();
+}
+
+
 static int
 libxlConnectGetMaxVcpus(virConnectPtr conn, const char *type ATTRIBUTE_UNUSED)
 {
@@ -1880,8 +1902,7 @@ libxlDomainGetOSType(virDomainPtr dom)
         goto cleanup;
     }
 
-    if (!(type = strdup(vm->def->os.type)))
-        virReportOOMError();
+    ignore_value(VIR_STRDUP(type, vm->def->os.type));
 
 cleanup:
     if (vm)
@@ -3192,7 +3213,7 @@ libxlDomainChangeEjectableMedia(libxlDomainObjPrivatePtr priv,
     int i;
     int ret = -1;
 
-    for (i = 0 ; i < vm->def->ndisks ; i++) {
+    for (i = 0; i < vm->def->ndisks; i++) {
         if (vm->def->disks[i]->bus == disk->bus &&
             STREQ(vm->def->disks[i]->dst, disk->dst)) {
             origdisk = vm->def->disks[i];
@@ -3531,16 +3552,10 @@ cleanup:
     return ret;
 }
 
-/* Actions for libxlDomainModifyDeviceFlags */
-enum {
-    LIBXL_DEVICE_ATTACH,
-    LIBXL_DEVICE_DETACH,
-    LIBXL_DEVICE_UPDATE,
-};
 
 static int
-libxlDomainModifyDeviceFlags(virDomainPtr dom, const char *xml,
-                             unsigned int flags, int action)
+libxlDomainAttachDeviceFlags(virDomainPtr dom, const char *xml,
+                             unsigned int flags)
 {
     libxlDriverPrivatePtr driver = dom->conn->privateData;
     virDomainObjPtr vm = NULL;
@@ -3593,23 +3608,11 @@ libxlDomainModifyDeviceFlags(virDomainPtr dom, const char *xml,
                                                     driver->xmlopt)))
             goto cleanup;
 
-        switch (action) {
-            case LIBXL_DEVICE_ATTACH:
-                ret = libxlDomainAttachDeviceConfig(vmdef, dev);
-                break;
-            case LIBXL_DEVICE_DETACH:
-                ret = libxlDomainDetachDeviceConfig(vmdef, dev);
-                break;
-            case LIBXL_DEVICE_UPDATE:
-                ret = libxlDomainUpdateDeviceConfig(vmdef, dev);
-                break;
-            default:
-                virReportError(VIR_ERR_INTERNAL_ERROR,
-                               _("unknown domain modify action %d"), action);
-                break;
-        }
-    } else
+        if ((ret = libxlDomainAttachDeviceConfig(vmdef, dev)) < 0)
+            goto cleanup;
+    } else {
         ret = 0;
+    }
 
     if (flags & VIR_DOMAIN_DEVICE_MODIFY_LIVE) {
         /* If dev exists it was created to modify the domain config. Free it. */
@@ -3619,21 +3622,9 @@ libxlDomainModifyDeviceFlags(virDomainPtr dom, const char *xml,
                                             VIR_DOMAIN_XML_INACTIVE)))
             goto cleanup;
 
-        switch (action) {
-            case LIBXL_DEVICE_ATTACH:
-                ret = libxlDomainAttachDeviceLive(priv, vm, dev);
-                break;
-            case LIBXL_DEVICE_DETACH:
-                ret = libxlDomainDetachDeviceLive(priv, vm, dev);
-                break;
-            case LIBXL_DEVICE_UPDATE:
-                ret = libxlDomainUpdateDeviceLive(priv, vm, dev);
-                break;
-            default:
-                virReportError(VIR_ERR_INTERNAL_ERROR,
-                               _("unknown domain modify action %d"), action);
-                break;
-        }
+        if ((ret = libxlDomainAttachDeviceLive(priv, vm, dev)) < 0)
+            goto cleanup;
+
         /*
          * update domain status forcibly because the domain status may be
          * changed even if we attach the device failed.
@@ -3661,13 +3652,6 @@ cleanup:
 }
 
 static int
-libxlDomainAttachDeviceFlags(virDomainPtr dom, const char *xml,
-                             unsigned int flags)
-{
-    return libxlDomainModifyDeviceFlags(dom, xml, flags, LIBXL_DEVICE_ATTACH);
-}
-
-static int
 libxlDomainAttachDevice(virDomainPtr dom, const char *xml)
 {
     return libxlDomainAttachDeviceFlags(dom, xml,
@@ -3678,7 +3662,98 @@ static int
 libxlDomainDetachDeviceFlags(virDomainPtr dom, const char *xml,
                              unsigned int flags)
 {
-    return libxlDomainModifyDeviceFlags(dom, xml, flags, LIBXL_DEVICE_DETACH);
+    libxlDriverPrivatePtr driver = dom->conn->privateData;
+    virDomainObjPtr vm = NULL;
+    virDomainDefPtr vmdef = NULL;
+    virDomainDeviceDefPtr dev = NULL;
+    libxlDomainObjPrivatePtr priv;
+    int ret = -1;
+
+    virCheckFlags(VIR_DOMAIN_DEVICE_MODIFY_LIVE |
+                  VIR_DOMAIN_DEVICE_MODIFY_CONFIG, -1);
+
+    libxlDriverLock(driver);
+    vm = virDomainObjListFindByUUID(driver->domains, dom->uuid);
+
+    if (!vm) {
+        virReportError(VIR_ERR_NO_DOMAIN, "%s", _("no domain with matching uuid"));
+        goto cleanup;
+    }
+
+    if (virDomainObjIsActive(vm)) {
+        if (flags == VIR_DOMAIN_DEVICE_MODIFY_CURRENT)
+            flags |= VIR_DOMAIN_DEVICE_MODIFY_LIVE;
+    } else {
+        if (flags == VIR_DOMAIN_DEVICE_MODIFY_CURRENT)
+            flags |= VIR_DOMAIN_DEVICE_MODIFY_CONFIG;
+        /* check consistency between flags and the vm state */
+        if (flags & VIR_DOMAIN_DEVICE_MODIFY_LIVE) {
+            virReportError(VIR_ERR_OPERATION_INVALID,
+                           "%s", _("Domain is not running"));
+            goto cleanup;
+        }
+    }
+
+    if ((flags & VIR_DOMAIN_DEVICE_MODIFY_CONFIG) && !vm->persistent) {
+         virReportError(VIR_ERR_OPERATION_INVALID,
+                        "%s", _("cannot modify device on transient domain"));
+         goto cleanup;
+    }
+
+    priv = vm->privateData;
+
+    if (flags & VIR_DOMAIN_DEVICE_MODIFY_CONFIG) {
+        if (!(dev = virDomainDeviceDefParse(xml, vm->def,
+                                            driver->caps, driver->xmlopt,
+                                            VIR_DOMAIN_XML_INACTIVE)))
+            goto cleanup;
+
+        /* Make a copy for updated domain. */
+        if (!(vmdef = virDomainObjCopyPersistentDef(vm, driver->caps,
+                                                    driver->xmlopt)))
+            goto cleanup;
+
+        if ((ret = libxlDomainDetachDeviceConfig(vmdef, dev)) < 0)
+            goto cleanup;
+    } else {
+        ret = 0;
+    }
+
+    if (flags & VIR_DOMAIN_DEVICE_MODIFY_LIVE) {
+        /* If dev exists it was created to modify the domain config. Free it. */
+        virDomainDeviceDefFree(dev);
+        if (!(dev = virDomainDeviceDefParse(xml, vm->def,
+                                            driver->caps, driver->xmlopt,
+                                            VIR_DOMAIN_XML_INACTIVE)))
+            goto cleanup;
+
+        if ((ret = libxlDomainDetachDeviceLive(priv, vm, dev)) < 0)
+            goto cleanup;
+
+        /*
+         * update domain status forcibly because the domain status may be
+         * changed even if we attach the device failed.
+         */
+        if (virDomainSaveStatus(driver->xmlopt, driver->stateDir, vm) < 0)
+            ret = -1;
+    }
+
+    /* Finally, if no error until here, we can save config. */
+    if (!ret && (flags & VIR_DOMAIN_DEVICE_MODIFY_CONFIG)) {
+        ret = virDomainSaveConfig(driver->configDir, vmdef);
+        if (!ret) {
+            virDomainObjAssignDef(vm, vmdef, false, NULL);
+            vmdef = NULL;
+        }
+    }
+
+cleanup:
+    virDomainDefFree(vmdef);
+    virDomainDeviceDefFree(dev);
+    if (vm)
+        virObjectUnlock(vm);
+    libxlDriverUnlock(driver);
+    return ret;
 }
 
 static int
@@ -3692,7 +3767,98 @@ static int
 libxlDomainUpdateDeviceFlags(virDomainPtr dom, const char *xml,
                              unsigned int flags)
 {
-    return libxlDomainModifyDeviceFlags(dom, xml, flags, LIBXL_DEVICE_UPDATE);
+    libxlDriverPrivatePtr driver = dom->conn->privateData;
+    virDomainObjPtr vm = NULL;
+    virDomainDefPtr vmdef = NULL;
+    virDomainDeviceDefPtr dev = NULL;
+    libxlDomainObjPrivatePtr priv;
+    int ret = -1;
+
+    virCheckFlags(VIR_DOMAIN_DEVICE_MODIFY_LIVE |
+                  VIR_DOMAIN_DEVICE_MODIFY_CONFIG, -1);
+
+    libxlDriverLock(driver);
+    vm = virDomainObjListFindByUUID(driver->domains, dom->uuid);
+
+    if (!vm) {
+        virReportError(VIR_ERR_NO_DOMAIN, "%s", _("no domain with matching uuid"));
+        goto cleanup;
+    }
+
+    if (virDomainObjIsActive(vm)) {
+        if (flags == VIR_DOMAIN_DEVICE_MODIFY_CURRENT)
+            flags |= VIR_DOMAIN_DEVICE_MODIFY_LIVE;
+    } else {
+        if (flags == VIR_DOMAIN_DEVICE_MODIFY_CURRENT)
+            flags |= VIR_DOMAIN_DEVICE_MODIFY_CONFIG;
+        /* check consistency between flags and the vm state */
+        if (flags & VIR_DOMAIN_DEVICE_MODIFY_LIVE) {
+            virReportError(VIR_ERR_OPERATION_INVALID,
+                           "%s", _("Domain is not running"));
+            goto cleanup;
+        }
+    }
+
+    if ((flags & VIR_DOMAIN_DEVICE_MODIFY_CONFIG) && !vm->persistent) {
+         virReportError(VIR_ERR_OPERATION_INVALID,
+                        "%s", _("cannot modify device on transient domain"));
+         goto cleanup;
+    }
+
+    priv = vm->privateData;
+
+    if (flags & VIR_DOMAIN_DEVICE_MODIFY_CONFIG) {
+        if (!(dev = virDomainDeviceDefParse(xml, vm->def,
+                                            driver->caps, driver->xmlopt,
+                                            VIR_DOMAIN_XML_INACTIVE)))
+            goto cleanup;
+
+        /* Make a copy for updated domain. */
+        if (!(vmdef = virDomainObjCopyPersistentDef(vm, driver->caps,
+                                                    driver->xmlopt)))
+            goto cleanup;
+
+        if ((ret = libxlDomainUpdateDeviceConfig(vmdef, dev)) < 0)
+            goto cleanup;
+    } else {
+        ret = 0;
+    }
+
+    if (flags & VIR_DOMAIN_DEVICE_MODIFY_LIVE) {
+        /* If dev exists it was created to modify the domain config. Free it. */
+        virDomainDeviceDefFree(dev);
+        if (!(dev = virDomainDeviceDefParse(xml, vm->def,
+                                            driver->caps, driver->xmlopt,
+                                            VIR_DOMAIN_XML_INACTIVE)))
+            goto cleanup;
+
+        if ((ret = libxlDomainUpdateDeviceLive(priv, vm, dev)) < 0)
+            goto cleanup;
+
+        /*
+         * update domain status forcibly because the domain status may be
+         * changed even if we attach the device failed.
+         */
+        if (virDomainSaveStatus(driver->xmlopt, driver->stateDir, vm) < 0)
+            ret = -1;
+    }
+
+    /* Finally, if no error until here, we can save config. */
+    if (!ret && (flags & VIR_DOMAIN_DEVICE_MODIFY_CONFIG)) {
+        ret = virDomainSaveConfig(driver->configDir, vmdef);
+        if (!ret) {
+            virDomainObjAssignDef(vm, vmdef, false, NULL);
+            vmdef = NULL;
+        }
+    }
+
+cleanup:
+    virDomainDefFree(vmdef);
+    virDomainDeviceDefFree(dev);
+    if (vm)
+        virObjectUnlock(vm);
+    libxlDriverUnlock(driver);
+    return ret;
 }
 
 static unsigned long long
@@ -3855,6 +4021,7 @@ libxlDomainGetSchedulerType(virDomainPtr dom, int *nparams)
     libxlDomainObjPrivatePtr priv;
     virDomainObjPtr vm;
     char * ret = NULL;
+    const char *name = NULL;
     libxl_scheduler sched_id;
 
     libxlDriverLock(driver);
@@ -3878,18 +4045,18 @@ libxlDomainGetSchedulerType(virDomainPtr dom, int *nparams)
         *nparams = 0;
     switch (sched_id) {
     case LIBXL_SCHEDULER_SEDF:
-        ret = strdup("sedf");
+        name = "sedf";
         break;
     case LIBXL_SCHEDULER_CREDIT:
-        ret = strdup("credit");
+        name = "credit";
         if (nparams)
             *nparams = XEN_SCHED_CREDIT_NPARAM;
         break;
     case LIBXL_SCHEDULER_CREDIT2:
-        ret = strdup("credit2");
+        name = "credit2";
         break;
     case LIBXL_SCHEDULER_ARINC653:
-        ret = strdup("arinc653");
+        name = "arinc653";
         break;
     default:
         virReportError(VIR_ERR_INTERNAL_ERROR,
@@ -3898,8 +4065,7 @@ libxlDomainGetSchedulerType(virDomainPtr dom, int *nparams)
         goto cleanup;
     }
 
-    if (!ret)
-        virReportOOMError();
+    ignore_value(VIR_STRDUP(ret, name));
 
 cleanup:
     if (vm)
@@ -4202,7 +4368,7 @@ static virDriver libxlDriver = {
     .connectClose = libxlConnectClose, /* 0.9.0 */
     .connectGetType = libxlConnectGetType, /* 0.9.0 */
     .connectGetVersion = libxlConnectGetVersion, /* 0.9.0 */
-    .connectGetHostname = virGetHostname, /* 0.9.0 */
+    .connectGetHostname = libxlConnectGetHostname, /* 0.9.0 */
     .connectGetMaxVcpus = libxlConnectGetMaxVcpus, /* 0.9.0 */
     .nodeGetInfo = libxlNodeGetInfo, /* 0.9.0 */
     .connectGetCapabilities = libxlConnectGetCapabilities, /* 0.9.0 */

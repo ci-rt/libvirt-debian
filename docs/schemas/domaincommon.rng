@@ -490,11 +490,23 @@
       </optional>
       <optional>
         <element name="memoryBacking">
-          <optional>
-            <element name="hugepages">
-              <empty/>
-            </element>
-          </optional>
+          <interleave>
+            <optional>
+              <element name="hugepages">
+                <empty/>
+              </element>
+            </optional>
+            <optional>
+              <element name="nosharepages">
+                <empty/>
+              </element>
+            </optional>
+            <optional>
+              <element name="locked">
+                <empty/>
+              </element>
+            </optional>
+          </interleave>
         </element>
       </optional>
 
@@ -888,7 +900,7 @@
   <define name="diskspec">
     <interleave>
       <optional>
-        <ref name="driver"/>
+        <ref name="diskDriver"/>
       </optional>
       <optional>
         <ref name='diskMirror'/>
@@ -1270,7 +1282,7 @@
   <!--
       Disk may use a special driver for access.
     -->
-  <define name="driver">
+  <define name="diskDriver">
     <element name="driver">
       <choice>
         <group>
@@ -1304,6 +1316,9 @@
       <optional>
         <ref name="copy_on_read"/>
       </optional>
+      <optional>
+        <ref name="discard"/>
+      </optional>
       <empty/>
     </element>
   </define>
@@ -1314,13 +1329,13 @@
     <optional>
       <attribute name='type'>
         <choice>
-          <ref name='diskFormat'/>
+          <ref name='storageFormat'/>
           <value>aio</value> <!-- back-compat for 'raw' -->
         </choice>
       </attribute>
     </optional>
   </define>
-  <define name='diskFormat'>
+  <define name='storageFormat'>
     <choice>
       <value>raw</value>
       <value>dir</value>
@@ -1397,6 +1412,14 @@
       <choice>
         <value>on</value>
         <value>off</value>
+      </choice>
+    </attribute>
+    </define>
+  <define name="discard">
+    <attribute name='discard'>
+      <choice>
+        <value>unmap</value>
+        <value>ignore</value>
       </choice>
     </attribute>
   </define>
@@ -1518,6 +1541,9 @@
           <attribute name="type">
             <value>file</value>
           </attribute>
+          <optional>
+            <ref name="fsDriver"/>
+          </optional>
           <interleave>
             <element name="source">
               <attribute name="file">
@@ -1531,6 +1557,9 @@
           <attribute name="type">
             <value>block</value>
           </attribute>
+          <optional>
+            <ref name="fsDriver"/>
+          </optional>
           <interleave>
             <element name="source">
               <attribute name="dev">
@@ -1547,6 +1576,9 @@
               <value>mount</value>
             </attribute>
           </optional>
+          <optional>
+            <ref name="fsDriver"/>
+          </optional>
           <interleave>
             <element name="source">
               <attribute name="dir">
@@ -1554,22 +1586,6 @@
               </attribute>
               <empty/>
             </element>
-            <optional>
-              <element name="driver">
-                <attribute name="type">
-                  <choice>
-                    <value>path</value>
-                    <value>handle</value>
-                  </choice>
-                </attribute>
-                <optional>
-                  <attribute name="wrpolicy">
-                    <value>immediate</value>
-                  </attribute>
-                </optional>
-                <empty/>
-              </element>
-            </optional>
           </interleave>
         </group>
         <group>
@@ -1577,6 +1593,9 @@
             <attribute name="type">
               <value>bind</value>
             </attribute>
+          </optional>
+          <optional>
+            <ref name="fsDriver"/>
           </optional>
           <interleave>
             <element name="source">
@@ -1591,6 +1610,9 @@
           <attribute name="type">
             <value>template</value>
           </attribute>
+          <optional>
+            <ref name="fsDriver"/>
+          </optional>
           <interleave>
             <element name="source">
               <attribute name="name">
@@ -1604,6 +1626,9 @@
           <attribute name="type">
             <value>ram</value>
           </attribute>
+          <optional>
+            <ref name="fsDriver"/>
+          </optional>
           <interleave>
             <element name="source">
               <attribute name="usage">
@@ -1661,6 +1686,36 @@
       </interleave>
     </element>
   </define>
+  <define name="fsDriver">
+    <element name="driver">
+      <!-- Annoying inconsistency. 'disk' uses 'name'
+           for this kind of info, and 'type' for the
+           storage format. We need the latter too, so
+           had to invent a new attribute name -->
+      <optional>
+        <attribute name="type">
+          <choice>
+            <value>path</value>
+            <value>handle</value>
+            <value>loop</value>
+            <value>nbd</value>
+          </choice>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name="format">
+          <ref name="storageFormat"/>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name="wrpolicy">
+          <value>immediate</value>
+        </attribute>
+      </optional>
+      <empty/>
+    </element>
+  </define>
+
   <!--
       An interface description can either be of type bridge in which case
       it will use a bridging source, or of type ethernet which uses a device
@@ -1958,6 +2013,11 @@
                 </attribute>
               </optional>
               <optional>
+                <attribute name='queues'>
+                  <ref name="positiveInteger"/>
+                </attribute>
+              </optional>
+              <optional>
                 <attribute name="txmode">
                   <choice>
                     <value>iothread</value>
@@ -2071,8 +2131,22 @@
                 </attribute>
               </optional>
               <optional>
+                <attribute name="websocket">
+                  <ref name="PortNumber"/>
+                </attribute>
+              </optional>
+              <optional>
                 <attribute name="listen">
                   <ref name="addrIPorName"/>
+                </attribute>
+              </optional>
+              <optional>
+                <attribute name='sharePolicy'>
+                  <choice>
+                    <value>allow-exclusive</value>
+                    <value>force-shared</value>
+                    <value>ignore</value>
+                  </choice>
                 </attribute>
               </optional>
             </group>
@@ -3054,26 +3128,38 @@
 
   <define name="hostdev">
     <element name="hostdev">
-      <choice>
-        <group>
-          <ref name="hostdevsubsys"/>
-        </group>
-        <group>
-          <ref name="hostdevcaps"/>
-        </group>
-      </choice>
-      <optional>
-        <ref name="alias"/>
-      </optional>
-      <optional>
-        <ref name="deviceBoot"/>
-      </optional>
-      <optional>
-        <ref name="rom"/>
-      </optional>
-      <optional>
-        <ref name="address"/>
-      </optional>
+      <interleave>
+        <choice>
+          <group>
+            <ref name="hostdevsubsys"/>
+          </group>
+          <group>
+            <ref name="hostdevcaps"/>
+          </group>
+        </choice>
+        <optional>
+          <ref name="alias"/>
+        </optional>
+        <optional>
+          <ref name="deviceBoot"/>
+        </optional>
+        <optional>
+          <ref name="rom"/>
+        </optional>
+        <optional>
+          <ref name="address"/>
+        </optional>
+        <optional>
+          <element name="readonly">
+            <empty/>
+          </element>
+        </optional>
+        <optional>
+          <element name="shareable">
+            <empty/>
+          </element>
+        </optional>
+      </interleave>
     </element>
   </define>
 
@@ -3094,6 +3180,7 @@
     <choice>
       <ref name="hostdevsubsyspci"/>
       <ref name="hostdevsubsysusb"/>
+      <ref name="hostdevsubsysscsi"/>
     </choice>
   </define>
 
@@ -3162,6 +3249,28 @@
     </element>
   </define>
 
+  <define name="hostdevsubsysscsi">
+    <attribute name="type">
+      <value>scsi</value>
+    </attribute>
+    <optional>
+      <attribute name="sgio">
+        <choice>
+          <value>filtered</value>
+          <value>unfiltered</value>
+        </choice>
+      </attribute>
+    </optional>
+    <element name="source">
+      <interleave>
+        <ref name="sourceinfoadapter"/>
+        <element name="address">
+          <ref name="scsiaddress"/>
+        </element>
+      </interleave>
+    </element>
+  </define>
+
   <define name="hostdevcapsstorage">
     <attribute name="type">
       <value>storage</value>
@@ -3216,6 +3325,17 @@
         <ref name="usbPort"/>
       </attribute>
     </element>
+  </define>
+  <define name="scsiaddress">
+    <attribute name="bus">
+      <ref name="driveBus"/>
+    </attribute>
+    <attribute name="target">
+      <ref name="driveTarget"/>
+    </attribute>
+    <attribute name="unit">
+      <ref name="driveUnit"/>
+    </attribute>
   </define>
   <define name="usbportaddress">
     <attribute name="bus">
@@ -3805,7 +3925,7 @@
       </attribute>
       <optional>
         <attribute name='format'>
-          <ref name='diskFormat'/>
+          <ref name='storageFormat'/>
         </attribute>
       </optional>
       <optional>

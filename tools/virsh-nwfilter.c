@@ -1,7 +1,7 @@
 /*
  * virsh-nwfilter.c: Commands to manage network filters
  *
- * Copyright (C) 2005, 2007-2012 Red Hat, Inc.
+ * Copyright (C) 2005, 2007-2013 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -34,6 +34,7 @@
 #include "internal.h"
 #include "virbuffer.h"
 #include "viralloc.h"
+#include "virfile.h"
 #include "virutil.h"
 #include "virxml.h"
 
@@ -308,7 +309,7 @@ fallback:
     list->nfilters = 0;
 
     /* get the network filters */
-    for (i = 0; i < nfilters ; i++) {
+    for (i = 0; i < nfilters; i++) {
         if (!(filter = virNWFilterLookupByName(ctl->conn, names[i])))
             continue;
         list->filters[list->nfilters++] = filter;

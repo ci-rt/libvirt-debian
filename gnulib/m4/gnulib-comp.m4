@@ -250,6 +250,7 @@ AC_DEFUN([gl_EARLY],
   # Code from module memchr:
   # Code from module memchr-tests:
   # Code from module mgetgroups:
+  # Code from module mkdtemp:
   # Code from module mkostemp:
   # Code from module mkostemps:
   # Code from module mktempd:
@@ -258,6 +259,8 @@ AC_DEFUN([gl_EARLY],
   # Code from module msvc-inval:
   # Code from module msvc-nothrow:
   # Code from module multiarch:
+  # Code from module nanosleep:
+  # Code from module nanosleep-tests:
   # Code from module net_if:
   # Code from module net_if-tests:
   # Code from module netdb:
@@ -842,6 +845,12 @@ AC_SUBST([LTALLOCA])
     gl_PREREQ_MEMCHR
   fi
   gl_STRING_MODULE_INDICATOR([memchr])
+  gl_FUNC_MKDTEMP
+  if test $HAVE_MKDTEMP = 0; then
+    AC_LIBOBJ([mkdtemp])
+    gl_PREREQ_MKDTEMP
+  fi
+  gl_STDLIB_MODULE_INDICATOR([mkdtemp])
   gl_FUNC_MKOSTEMP
   if test $HAVE_MKOSTEMP = 0; then
     AC_LIBOBJ([mkostemp])
@@ -1373,6 +1382,13 @@ changequote([, ])dnl
   AC_CHECK_HEADERS_ONCE([sys/mman.h])
   AC_CHECK_FUNCS_ONCE([mprotect])
   gl_MGETGROUPS
+  gl_FUNC_NANOSLEEP
+  if test $HAVE_NANOSLEEP = 0 || test $REPLACE_NANOSLEEP = 1; then
+    AC_LIBOBJ([nanosleep])
+    gl_PREREQ_NANOSLEEP
+  fi
+  gl_TIME_MODULE_INDICATOR([nanosleep])
+  AC_CHECK_DECLS_ONCE([alarm])
   NET_IF_LIB=
   gl_saved_libs="$LIBS"
   AC_SEARCH_LIBS([if_nameindex], [socket],
@@ -1778,6 +1794,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/md5.h
   lib/memchr.c
   lib/memchr.valgrind
+  lib/mkdtemp.c
   lib/mkostemp.c
   lib/mkostemps.c
   lib/mktime-internal.h
@@ -2028,6 +2045,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/md5.m4
   m4/memchr.m4
   m4/mgetgroups.m4
+  m4/mkdtemp.m4
   m4/mkostemp.m4
   m4/mkostemps.m4
   m4/mktime.m4
@@ -2036,6 +2054,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/msvc-inval.m4
   m4/msvc-nothrow.m4
   m4/multiarch.m4
+  m4/nanosleep.m4
   m4/net_if_h.m4
   m4/netdb_h.m4
   m4/netinet_in_h.m4
@@ -2300,6 +2319,7 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-mbsrtowcs4.sh
   tests/test-md5.c
   tests/test-memchr.c
+  tests/test-nanosleep.c
   tests/test-net_if.c
   tests/test-netdb.c
   tests/test-netinet_in.c
@@ -2465,6 +2485,7 @@ AC_DEFUN([gl_FILE_LIST], [
   tests=lib/math.in.h
   tests=lib/mgetgroups.c
   tests=lib/mgetgroups.h
+  tests=lib/nanosleep.c
   tests=lib/progname.c
   tests=lib/progname.h
   tests=lib/ptsname.c

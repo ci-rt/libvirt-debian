@@ -147,6 +147,8 @@
           </li><li>
             <a href="#bracket_spacing">Bracket spacing</a>
           </li><li>
+            <a href="#semicolon">Semicolons</a>
+          </li><li>
             <a href="#curly_braces">Curly braces</a>
           </li><li>
             <a href="#preprocessor">Preprocessor</a>
@@ -172,35 +174,35 @@
             <a href="#committers">Libvirt committer guidelines</a>
           </li></ul>
         <h2>
-          <a name="patches" id="patches">General tips for contributing patches</a>
+          <a name="patches" shape="rect" id="patches">General tips for contributing patches</a>
         </h2>
         <ol><li>Discuss any large changes on the mailing list first.  Post patches
         early and listen to feedback.</li><li><p>Post patches in unified diff format, with git rename
         detection enabled.  You need a one-time setup of:</p>
-<pre>
+<pre xml:space="preserve">
   git config diff.renames true
 </pre>
         <p>After that, a command similar to this should work:</p>
-<pre>
+<pre xml:space="preserve">
   diff -urp libvirt.orig/ libvirt.modified/ &gt; libvirt-myfeature.patch
 </pre>
         <p>
           or:
         </p>
-<pre>
+<pre xml:space="preserve">
   git diff &gt; libvirt-myfeature.patch
 </pre>
         <p>Also, for code motion patches, you may find that <code>git
         diff --patience</code> provides an easier-to-read patch.
         However, the usual workflow of libvirt developer is:</p>
-<pre>
+<pre xml:space="preserve">
   git checkout master
   git pull
   git checkout -t origin -b workbranch
   Hack, committing any changes along the way
 </pre>
         <p>Then, when you want to post your patches:</p>
-<pre>
+<pre xml:space="preserve">
   git pull --rebase
   (fix any conflicts)
   git send-email --cover-letter --no-chain-reply-to --annotate \
@@ -214,7 +216,7 @@
         patches needs a cover letter. If you get tired of typing
         <code>--to=libvir-list@redhat.com</code> designation you can
         set it in git config:</p>
-<pre>
+<pre xml:space="preserve">
   git config sendemail.to libvir-list@redhat.com
 </pre>
         <p>Please follow this as close as you can, especially the rebase and
@@ -257,18 +259,18 @@
           In particular, configure with compile warnings set to
           -Werror.  This is done automatically for a git checkout; from a
           tarball, use:</p>
-<pre>
+<pre xml:space="preserve">
   ./configure --enable-werror
 </pre>
         <p>
           and run the tests:
         </p>
-<pre>
+<pre xml:space="preserve">
   make check
   make syntax-check
   make -C tests valgrind
 </pre>
-        <p><a href="http://valgrind.org/">Valgrind</a> is a test that checks
+        <p><a href="http://valgrind.org/" shape="rect">Valgrind</a> is a test that checks
         for memory management issues, such as leaks or use of uninitialized
         variables.
         </p>
@@ -280,7 +282,7 @@
           larger amounts of information:
         </p>
 
-<pre>
+<pre xml:space="preserve">
   VIR_TEST_DEBUG=1 make check    (or)
   VIR_TEST_DEBUG=2 make check
 </pre>
@@ -288,7 +290,7 @@
           Also, individual tests can be run from inside the <code>tests/</code>
           directory, like:
         </p>
-<pre>
+<pre xml:space="preserve">
   ./qemuxml2xmltest
 </pre>
         <p>There is also a <code>./run</code> script at the top level,
@@ -303,7 +305,7 @@
           cause of the issue. Output such as the following indicates some
           sort of leak:
         </p>
-<pre>
+<pre xml:space="preserve">
 ==5414== 4 bytes in 1 blocks are definitely lost in loss record 3 of 89
 ==5414==    at 0x4A0881C: malloc (vg_replace_malloc.c:270)
 ==5414==    by 0x34DE0AAB85: xmlStrndup (in /usr/lib64/libxml2.so.2.7.8)
@@ -330,7 +332,7 @@
            an error, but not set variables passed by reference to the call.
            The solution was to initialize the variables prior to the call.
         </p>
-<pre>
+<pre xml:space="preserve">
 ==4749== Use of uninitialised value of size 8
 ==4749==    at 0x34D904650B: _itoa_word (in /usr/lib64/libc-2.15.so)
 ==4749==    by 0x34D9049118: vfprintf (in /usr/lib64/libc-2.15.so)
@@ -350,7 +352,7 @@
            For these paths, it is possible to add a filter to avoid the
            errors. For example:
         </p>
-<pre>
+<pre xml:space="preserve">
 ==4643== 7 bytes in 1 blocks are possibly lost in loss record 4 of 20
 ==4643==    at 0x4A0881C: malloc (vg_replace_malloc.c:270)
 ==4643==    by 0x34D90853F1: strdup (in /usr/lib64/libc-2.15.so)
@@ -367,11 +369,11 @@
            not suppress real leaks, but it should be generic enough to
            cover multiple code paths. The format of the entry can be
            found in the documentation found at the
-           <a href="http://valgrind.org/">Valgrind home page.</a>
+           <a href="http://valgrind.org/" shape="rect">Valgrind home page.</a>
            The following trace was added to <code>tests/.valgrind.supp</code>
            in order to suppress the warning:
         </p>
-<pre>
+<pre xml:space="preserve">
 {
     dlInitMemoryLeak1
     Memcheck:Leak
@@ -388,11 +390,11 @@
         <p>
       There is more on this subject, including lots of links to background
       reading on the subject, on
-      <a href="http://et.redhat.com/~rjones/how-to-supply-code-to-open-source-projects/">
+      <a href="http://et.redhat.com/~rjones/how-to-supply-code-to-open-source-projects/" shape="rect">
         Richard Jones' guide to working with open source projects</a>
     </p>
         <h2>
-          <a name="indent" id="indent">Code indentation</a>
+          <a name="indent" shape="rect" id="indent">Code indentation</a>
         </h2>
         <p>
       Libvirt's C source code generally adheres to some basic code-formatting
@@ -405,7 +407,7 @@
       If you use Emacs, add the following to one of one of your start-up files
       (e.g., ~/.emacs), to help ensure that you get indentation right:
     </p>
-        <pre>
+        <pre xml:space="preserve">
   ;;; When editing C sources in libvirt, use this style.
   (defun libvirt-c-mode ()
     "C mode with adjusted defaults for use with libvirt."
@@ -421,7 +423,7 @@
         <p>
       If you use vim, append the following to your ~/.vimrc file:
     </p>
-        <pre>
+        <pre xml:space="preserve">
   set nocompatible
   filetype on
   set autoindent
@@ -444,7 +446,7 @@
       which will load the .lvimrc only when you edit libvirt code.
     </p>
         <h2>
-          <a name="formatting" id="formatting">Code formatting (especially for new code)</a>
+          <a name="formatting" shape="rect" id="formatting">Code formatting (especially for new code)</a>
         </h2>
         <p>
       With new code, we can be even more strict.
@@ -452,7 +454,7 @@
       Note that this also gives you an idea of the type of spacing we prefer
       around operators and keywords:
     </p>
-        <pre>
+        <pre xml:space="preserve">
   indent-libvirt()
   {
     indent -bad -bap -bbb -bli4 -br -ce -brs -cs -i4 -l75 -lc75 \
@@ -476,14 +478,14 @@
       scope, rather than immediately before use.
     </p>
         <h2>
-          <a name="bracket_spacing" id="bracket_spacing">Bracket spacing</a>
+          <a name="bracket_spacing" shape="rect" id="bracket_spacing">Bracket spacing</a>
         </h2>
         <p>
       The keywords <code>if</code>, <code>for</code>, <code>while</code>,
       and <code>switch</code> must have a single space following them
       before the opening bracket. E.g.
     </p>
-        <pre>
+        <pre xml:space="preserve">
       if(foo)   // Bad
       if (foo)  // Good
 </pre>
@@ -491,7 +493,7 @@
       Function implementations must <strong>not</strong> have any whitespace
       between the function name and the opening bracket. E.g.
     </p>
-        <pre>
+        <pre xml:space="preserve">
       int foo (int wizz)  // Bad
       int foo(int wizz)   // Good
 </pre>
@@ -499,7 +501,7 @@
       Function calls must <strong>not</strong> have any whitespace
       between the function name and the opening bracket. E.g.
     </p>
-        <pre>
+        <pre xml:space="preserve">
       bar = foo (wizz);  // Bad
       bar = foo(wizz);   // Good
 </pre>
@@ -508,7 +510,7 @@
       between the closing bracket of the function name and opening
       bracket of the arg list. E.g.
     </p>
-        <pre>
+        <pre xml:space="preserve">
       typedef int (*foo) (int wizz);  // Bad
       typedef int (*foo)(int wizz);   // Good
 </pre>
@@ -516,12 +518,41 @@
       There must not be any whitespace immediately following any
       opening bracket, or immediately prior to any closing bracket. E.g.
     </p>
-        <pre>
+        <pre xml:space="preserve">
       int foo( int wizz );  // Bad
       int foo(int wizz);    // Good
 </pre>
         <h2>
-          <a name="curly_braces" id="curly_braces">Curly braces</a>
+          <a name="semicolon" shape="rect" id="semicolon">Semicolons</a>
+        </h2>
+        <p>
+      Semicolons should never have a space beforehand.  Inside the
+      condition of a <code>for</code> loop, there should always be a
+      space or line break after each semicolon, except for the special
+      case of an infinite loop (although more infinite loops
+      use <code>while</code>).  While not enforced, loop counters
+      generally use post-increment.
+    </p>
+        <pre xml:space="preserve">
+      for (i = 0 ;i &lt; limit ; ++i) { // Bad
+      for (i = 0; i &lt; limit; i++) { // Good
+      for (;;) { // ok
+      while (1) { // Better
+</pre>
+        <p>
+      Empty loop bodies are better represented with curly braces and a
+      comment, although use of a semicolon is not currently rejected.
+    </p>
+        <pre xml:space="preserve">
+      while ((rc = waitpid(pid, &amp;st, 0) == -1) &amp;&amp;
+             errno == EINTR); // ok
+      while ((rc = waitpid(pid, &amp;st, 0) == -1) &amp;&amp;
+             errno == EINTR) { // Better
+          /* nothing */
+      }
+</pre>
+        <h2>
+          <a name="curly_braces" shape="rect" id="curly_braces">Curly braces</a>
         </h2>
         <p>
       Omit the curly braces around an <code>if</code>, <code>while</code>,
@@ -533,7 +564,7 @@
         <p>
       Omitting braces with a single-line body is fine:
     </p>
-        <pre>
+        <pre xml:space="preserve">
   while (expr) // one-line body -&gt; omitting curly braces is ok
       single_line_stmt();
 </pre>
@@ -544,7 +575,7 @@
       statement just before that comment (without adding braces), thinking
       it is already a multi-statement loop:
     </p>
-        <pre>
+        <pre xml:space="preserve">
   while (true) // BAD! multi-line body with no braces
       /* comment... */
       single_line_stmt();
@@ -552,7 +583,7 @@
         <p>
       Do this instead:
     </p>
-        <pre>
+        <pre xml:space="preserve">
   while (true) { // Always put braces around a multi-line body.
       /* comment... */
       single_line_stmt();
@@ -562,7 +593,7 @@
       There is one exception: when the second body line is not at the same
       indentation level as the first body line:
     </p>
-        <pre>
+        <pre xml:space="preserve">
   if (expr)
       die("a diagnostic that would make this line"
           " extend past the 80-column limit"));
@@ -575,7 +606,7 @@
         <p>
       To reiterate, don't do this:
     </p>
-        <pre>
+        <pre xml:space="preserve">
   if (expr)            // BAD: no braces around...
       while (expr_2) { // ... a multi-line body
           ...
@@ -584,7 +615,7 @@
         <p>
       Do this, instead:
     </p>
-        <pre>
+        <pre xml:space="preserve">
   if (expr) {
       while (expr_2) {
           ...
@@ -603,7 +634,7 @@
       short block first and making the longer, multi-line block be the
       <code>else</code> block.
     </p>
-        <pre>
+        <pre xml:space="preserve">
   if (expr) {
       ...
       ...
@@ -626,7 +657,7 @@
       an if-then-else block when the simpler block occurs first, rather than
       after the more involved block:
     </p>
-        <pre>
+        <pre xml:space="preserve">
   if (!expr) {
     x = y; // putting the smaller block first is more readable
   } else {
@@ -638,7 +669,7 @@
       But if negating a complex condition is too ugly, then at least
       add braces:
     </p>
-        <pre>
+        <pre xml:space="preserve">
   if (complex expr not worth negating) {
       ...
       ...
@@ -647,24 +678,30 @@
   }
 </pre>
         <h2>
-          <a name="preprocessor" id="preprocessor">Preprocessor</a>
+          <a name="preprocessor" shape="rect" id="preprocessor">Preprocessor</a>
         </h2>
+        <p>Macros defined with an ALL_CAPS name should generally be
+      assumed to be unsafe with regards to arguments with side-effects
+      (that is, MAX(a++, b--) might increment a or decrement b too
+      many or too few times).  Exceptions to this rule are explicitly
+      documented for macros in viralloc.h and virstring.h.
+    </p>
         <p>
       For variadic macros, stick with C99 syntax:
     </p>
-        <pre>
+        <pre xml:space="preserve">
   #define vshPrint(_ctl, ...) fprintf(stdout, __VA_ARGS__)
 </pre>
         <p>Use parenthesis when checking if a macro is defined, and use
     indentation to track nesting:
     </p>
-        <pre>
+        <pre xml:space="preserve">
   #if defined(HAVE_POSIX_FALLOCATE) &amp;&amp; !defined(HAVE_FALLOCATE)
   # define fallocate(a,ignored,b,c) posix_fallocate(a,b,c)
   #endif
 </pre>
         <h2>
-          <a name="types" id="types">C types</a>
+          <a name="types" shape="rect" id="types">C types</a>
         </h2>
         <p>
       Use the right type.
@@ -719,17 +756,17 @@
       it points to, or it is aliased to another pointer that is.
     </p>
         <h2>
-          <a name="memalloc" id="memalloc">Low level memory management</a>
+          <a name="memalloc" shape="rect" id="memalloc">Low level memory management</a>
         </h2>
         <p>
       Use of the malloc/free/realloc/calloc APIs is deprecated in the libvirt
       codebase, because they encourage a number of serious coding bugs and do
       not enable compile time verification of checks for NULL. Instead of these
-      routines, use the macros from memory.h.
+      routines, use the macros from viralloc.h.
     </p>
         <ul><li><p>To allocate a single object:</p>
 
-<pre>
+<pre xml:space="preserve">
   virDomainPtr domain;
 
   if (VIR_ALLOC(domain) &lt; 0) {
@@ -738,7 +775,7 @@
   }
 </pre>
       </li><li><p>To allocate an array of objects:</p>
-<pre>
+<pre xml:space="preserve">
   virDomainPtr domains;
   size_t ndomains = 10;
 
@@ -748,7 +785,7 @@
   }
 </pre>
       </li><li><p>To allocate an array of object pointers:</p>
-<pre>
+<pre xml:space="preserve">
   virDomainPtr *domains;
   size_t ndomains = 10;
 
@@ -761,7 +798,7 @@
       longer (however, note that repeatedly expanding an array by 1
       scales quadratically, so this is recommended only for smaller
       arrays):</p>
-<pre>
+<pre xml:space="preserve">
   virDomainPtr domains;
   size_t ndomains = 0;
 
@@ -774,7 +811,7 @@
       element (this approach scales better, but requires tracking
       allocation separately from usage)</p>
 
-<pre>
+<pre xml:space="preserve">
   virDomainPtr domains;
   size_t ndomains = 0;
   size_t ndomains_max = 0;
@@ -788,14 +825,14 @@
       </li><li><p>To trim an array of domains from its allocated size down
       to the actual used size:</p>
 
-<pre>
+<pre xml:space="preserve">
   virDomainPtr domains;
   size_t ndomains = x;
   size_t ndomains_max = y;
 
   VIR_SHRINK_N(domains, ndomains_max, ndomains_max - ndomains);
 </pre></li><li><p>To free an array of domains:</p>
-<pre>
+<pre xml:space="preserve">
   virDomainPtr domains;
   size_t ndomains = x;
   size_t ndomains_max = y;
@@ -808,7 +845,7 @@
 </pre>
       </li></ul>
         <h2>
-          <a name="file_handling" id="file_handling">File handling</a>
+          <a name="file_handling" shape="rect" id="file_handling">File handling</a>
         </h2>
         <p>
       Usage of the <code>fdopen()</code>, <code>close()</code>, <code>fclose()</code>
@@ -818,7 +855,7 @@
     </p>
         <ul><li><p>Open a file from a file descriptor:</p>
 
-<pre>
+<pre xml:space="preserve">
   if ((file = VIR_FDOPEN(fd, "r")) == NULL) {
       virReportSystemError(errno, "%s",
                            _("failed to open file from file descriptor"));
@@ -826,63 +863,63 @@
   }
   /* fd is now invalid; only access the file using file variable */
 </pre></li><li><p>Close a file descriptor:</p>
-<pre>
+<pre xml:space="preserve">
   if (VIR_CLOSE(fd) &lt; 0) {
       virReportSystemError(errno, "%s", _("failed to close file"));
   }
 </pre></li><li><p>Close a file:</p>
 
-<pre>
+<pre xml:space="preserve">
   if (VIR_FCLOSE(file) &lt; 0) {
       virReportSystemError(errno, "%s", _("failed to close file"));
   }
 </pre></li><li><p>Close a file or file descriptor in an error path, without losing
              the previous <code>errno</code> value:</p>
 
-<pre>
+<pre xml:space="preserve">
   VIR_FORCE_CLOSE(fd);
   VIR_FORCE_FCLOSE(file);
 </pre>
       </li></ul>
         <h2>
-          <a name="string_comparision" id="string_comparision">String comparisons</a>
+          <a name="string_comparision" shape="rect" id="string_comparision">String comparisons</a>
         </h2>
         <p>
       Do not use the strcmp, strncmp, etc functions directly. Instead use
       one of the following semantically named macros
     </p>
         <ul><li><p>For strict equality:</p>
-<pre>
+<pre xml:space="preserve">
   STREQ(a,b)
   STRNEQ(a,b)
 </pre>
       </li><li><p>For case insensitive equality:</p>
-<pre>
+<pre xml:space="preserve">
   STRCASEEQ(a,b)
   STRCASENEQ(a,b)
 </pre>
       </li><li><p>For strict equality of a substring:</p>
-<pre>
+<pre xml:space="preserve">
   STREQLEN(a,b,n)
   STRNEQLEN(a,b,n)
 </pre>
       </li><li><p>For case insensitive equality of a substring:</p>
-<pre>
+<pre xml:space="preserve">
   STRCASEEQLEN(a,b,n)
   STRCASENEQLEN(a,b,n)
 </pre>
       </li><li><p>For strict equality of a prefix:</p>
-<pre>
+<pre xml:space="preserve">
   STRPREFIX(a,b)
 </pre>
       </li><li><p>To avoid having to check if a or b are NULL:</p>
-<pre>
+<pre xml:space="preserve">
   STREQ_NULLABLE(a, b)
   STRNEQ_NULLABLE(a, b)
 </pre>
       </li></ul>
         <h2>
-          <a name="string_copying" id="string_copying">String copying</a>
+          <a name="string_copying" shape="rect" id="string_copying">String copying</a>
         </h2>
         <p>
       Do not use the strncpy function.  According to the man page, it
@@ -890,7 +927,7 @@
       it extremely dangerous to use.  Instead, use one of the
       functionally equivalent functions:
     </p>
-        <pre>
+        <pre xml:space="preserve">
   virStrncpy(char *dest, const char *src, size_t n, size_t destbytes)
 </pre>
         <p>
@@ -903,7 +940,7 @@
       bytes from the source are copied into the destination and a
       trailing \0 is appended.
     </p>
-        <pre>
+        <pre xml:space="preserve">
   virStrcpy(char *dest, const char *src, size_t destbytes)
 </pre>
         <p>
@@ -912,7 +949,7 @@
       be evaluated more than once.  This is equivalent to
       virStrncpy(dest, src, strlen(src), destbytes)
       </p>
-        <pre>
+        <pre xml:space="preserve">
   virStrcpyStatic(char *dest, const char *src)
 </pre>
         <p>
@@ -923,8 +960,22 @@
       evaluated more than once.  This is equivalent to
       virStrncpy(dest, src, strlen(src), sizeof(dest)).
     </p>
+        <pre xml:space="preserve">
+  VIR_STRDUP(char *dst, const char *src);
+  VIR_STRNDUP(char *dst, const char *src, size_t n);
+</pre>
+        <p>
+      You should avoid using strdup or strndup directly as they do not report
+      out-of-memory error, and do not allow a NULL source. Use
+      VIR_STRDUP or VIR_STRNDUP macros instead, which return 0 for
+      NULL source, 1 for successful copy, and -1 for allocation
+      failure with the error already reported. In very
+      specific cases, when you don't want to report the out-of-memory error, you
+      can use VIR_STRDUP_QUIET or VIR_STRNDUP_QUIET, but such usage is very rare
+      and usually considered a flaw.
+    </p>
         <h2>
-          <a name="strbuf" id="strbuf">Variable length string buffer</a>
+          <a name="strbuf" shape="rect" id="strbuf">Variable length string buffer</a>
         </h2>
         <p>
       If there is a need for complex string concatenations, avoid using
@@ -932,7 +983,7 @@
       make use of the virBuffer API described in buf.h
     </p>
         <p>Typical usage is as follows:</p>
-        <pre>
+        <pre xml:space="preserve">
   char *
   somefunction(...)
   {
@@ -957,7 +1008,7 @@
   }
 </pre>
         <h2>
-          <a name="includes" id="includes">Include files</a>
+          <a name="includes" shape="rect" id="includes">Include files</a>
         </h2>
         <p>
       There are now quite a large number of include files, both libvirt
@@ -965,7 +1016,7 @@
       complexity it's best to stick to the following general plan for all
       *.c source files:
     </p>
-        <pre>
+        <pre xml:space="preserve">
   /*
    * Copyright notice
    * ....
@@ -1003,7 +1054,7 @@
       to avoid exposing *_LAST enum elements.
     </p>
         <h2>
-          <a name="printf" id="printf">Printf-style functions</a>
+          <a name="printf" shape="rect" id="printf">Printf-style functions</a>
         </h2>
         <p>
       Whenever you add a new printf-style function, i.e., one with a format
@@ -1011,7 +1062,7 @@
       gcc's printf attribute directive in the prototype.  For example, here's
       the one for virAsprintf, in util.h:
     </p>
-        <pre>
+        <pre xml:space="preserve">
   int virAsprintf(char **strp, const char *fmt, ...)
       ATTRIBUTE_FORMAT(printf, 2, 3);
 </pre>
@@ -1029,7 +1080,7 @@
       does for snprintf.
     </p>
         <h2>
-          <a name="goto" id="goto">Use of goto</a>
+          <a name="goto" shape="rect" id="goto">Use of goto</a>
         </h2>
         <p>
       The use of goto is not forbidden, and goto is widely used
@@ -1073,20 +1124,20 @@
       Although libvirt does not encourage the Linux kernel wind/unwind
       style of multiple labels, there's a good general discussion of
       the issue archived at
-      <a href="http://kerneltrap.org/node/553/2131">KernelTrap</a>
+      <a href="http://kerneltrap.org/node/553/2131" shape="rect">KernelTrap</a>
     </p>
         <p>
       When using goto, please use one of these standard labels if it
       makes sense:
     </p>
-        <pre>
+        <pre xml:space="preserve">
       error: A path only taken upon return with an error code
     cleanup: A path taken upon return with success code + optional error
   no_memory: A path only taken upon return with an OOM error code
       retry: If needing to jump upwards (e.g., retry on EINTR)
 </pre>
         <h2>
-          <a name="committers" id="committers">Libvirt committer guidelines</a>
+          <a name="committers" shape="rect" id="committers">Libvirt committer guidelines</a>
         </h2>
         <p>
       The AUTHORS files indicates the list of people with commit access right
@@ -1105,7 +1156,7 @@
       don't raise errors. Try to look for warnings too; for example,
       configure with
     </p>
-        <pre>
+        <pre xml:space="preserve">
   --enable-compile-warnings=error
 </pre>
         <p>

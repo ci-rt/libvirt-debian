@@ -124,7 +124,7 @@
 .\" ========================================================================
 .\"
 .IX Title "VIRSH 1"
-.TH VIRSH 1 "2013-04-23" "libvirt-1.0.5" "Virtualization Support"
+.TH VIRSH 1 "2013-06-03" "libvirt-1.0.6" "Virtualization Support"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -1634,6 +1634,12 @@ hypervisor driver and 0 should be used.).
 .Sp
 Note that this command requires a guest agent configured and running in the
 domain's guest \s-1OS\s0.
+.Sp
+Beware that at least for \s-1QEMU\s0, the domain's process will be terminated when
+target disk is used and a new process will be launched when libvirt is asked
+to wake up the domain. As a result of this, any runtime changes, such as
+device hotplug or memory settings, are lost unless such changes were made
+with \fI\-\-config\fR flag.
 .IP "\fBdompmwakeup\fR \fIdomain\fR" 4
 .IX Item "dompmwakeup domain"
 Wakeup a domain from pmsuspended state (either suspended by dompmsuspend or

@@ -201,11 +201,9 @@ int qemuMonitorJSONIOProcess(qemuMonitorPtr mon,
 
         if (nl) {
             int got = nl - (data + used);
-            char *line = strndup(data + used, got);
-            if (!line) {
-                virReportOOMError();
+            char *line;
+            if (VIR_STRNDUP(line, data + used, got) < 0)
                 return -1;
-            }
             used += got + strlen(LINE_ENDING);
             line[got] = '\0'; /* kill \n */
             if (qemuMonitorJSONIOProcessLine(mon, line, msg) < 0) {
@@ -515,7 +513,7 @@ static void
 qemuFreeKeywords(int nkeywords, char **keywords, char **values)
 {
     int i;
-    for (i = 0 ; i < nkeywords ; i++) {
+    for (i = 0; i < nkeywords; i++) {
         VIR_FREE(keywords[i]);
         VIR_FREE(values[i]);
     }
@@ -540,7 +538,7 @@ qemuMonitorJSONKeywordStringToJSON(const char *str, const char *firstkeyword)
     if (nkeywords < 0)
         goto error;
 
-    for (i = 0 ; i < nkeywords ; i++) {
+    for (i = 0; i < nkeywords; i++) {
         if (values[i] == NULL) {
             if (i != 0) {
                 virReportError(VIR_ERR_INTERNAL_ERROR,
@@ -958,15 +956,9 @@ qemuMonitorJSONHumanCommandWithFd(qemuMonitorPtr mon,
     if (reply_str) {
         const char *data;
 
-        if ((data = virJSONValueGetString(obj)))
-            *reply_str = strdup(data);
-        else
-            *reply_str = strdup("");
-
-        if (!*reply_str) {
-            virReportOOMError();
+        data = virJSONValueGetString(obj);
+        if (VIR_STRDUP(*reply_str, data ? data : "") < 0)
             goto cleanup;
-        }
     }
 
     ret = 0;
@@ -1208,7 +1200,7 @@ qemuMonitorJSONExtractCPUInfo(virJSONValuePtr reply,
         goto cleanup;
     }
 
-    for (i = 0 ; i < ncpus ; i++) {
+    for (i = 0; i < ncpus; i++) {
         virJSONValuePtr entry = virJSONValueArrayGet(data, i);
         int thread;
         if (!entry) {
@@ -1643,7 +1635,7 @@ int qemuMonitorJSONGetBlockStatsInfo(qemuMonitorPtr mon,
         goto cleanup;
     }
 
-    for (i = 0 ; i < virJSONValueArraySize(devices) ; i++) {
+    for (i = 0; i < virJSONValueArraySize(devices); i++) {
         virJSONValuePtr dev = virJSONValueArrayGet(devices, i);
         virJSONValuePtr stats;
         const char *thisdev;
@@ -1797,7 +1789,7 @@ int qemuMonitorJSONGetBlockStatsParamsNumber(qemuMonitorPtr mon,
         goto cleanup;
     }
 
-    for (i = 0 ; i < stats->data.object.npairs; i++) {
+    for (i = 0; i < stats->data.object.npairs; i++) {
         const char *key = stats->data.object.pairs[i].key;
 
         if (STREQ(key, "rd_bytes") ||
@@ -1857,7 +1849,7 @@ int qemuMonitorJSONGetBlockExtent(qemuMonitorPtr mon,
         goto cleanup;
     }
 
-    for (i = 0 ; i < virJSONValueArraySize(devices) ; i++) {
+    for (i = 0; i < virJSONValueArraySize(devices); i++) {
         virJSONValuePtr dev = virJSONValueArrayGet(devices, i);
         virJSONValuePtr stats;
         virJSONValuePtr parent;
@@ -2923,7 +2915,7 @@ static int qemuMonitorJSONExtractPtyPaths(virJSONValuePtr reply,
         goto cleanup;
     }
 
-    for (i = 0 ; i < virJSONValueArraySize(data) ; i++) {
+    for (i = 0; i < virJSONValueArraySize(data); i++) {
         virJSONValuePtr entry = virJSONValueArrayGet(data, i);
         const char *type;
         const char *id;
@@ -2946,11 +2938,9 @@ static int qemuMonitorJSONExtractPtyPaths(virJSONValuePtr reply,
         }
 
         if (STRPREFIX(type, "pty:")) {
-            char *path = strdup(type + strlen("pty:"));
-            if (!path) {
-                virReportOOMError();
+            char *path;
+            if (VIR_STRDUP(path, type + strlen("pty:")) < 0)
                 goto cleanup;
-            }
 
             if (virHashAddEntry(paths, id, path) < 0) {
                 virReportError(VIR_ERR_OPERATION_FAILED,
@@ -3925,10 +3915,8 @@ int qemuMonitorJSONGetVersion(qemuMonitorPtr mon,
                            _("query-version reply was missing 'package' version"));
             goto cleanup;
         }
-        if (!(*package = strdup(tmp))) {
-            virReportOOMError();
+        if (VIR_STRDUP(*package, tmp) < 0)
             goto cleanup;
-        }
     }
 
     ret = 0;
@@ -3978,12 +3966,13 @@ int qemuMonitorJSONGetMachines(qemuMonitorPtr mon,
         goto cleanup;
     }
 
-    if (VIR_ALLOC_N(infolist, n) < 0) {
+    /* null-terminated list */
+    if (VIR_ALLOC_N(infolist, n + 1) < 0) {
         virReportOOMError();
         goto cleanup;
     }
 
-    for (i = 0 ; i < n ; i++) {
+    for (i = 0; i < n; i++) {
         virJSONValuePtr child = virJSONValueArrayGet(data, i);
         const char *tmp;
         qemuMonitorMachineInfoPtr info;
@@ -4001,10 +3990,8 @@ int qemuMonitorJSONGetMachines(qemuMonitorPtr mon,
             goto cleanup;
         }
 
-        if (!(info->name = strdup(tmp))) {
-            virReportOOMError();
+        if (VIR_STRDUP(info->name, tmp) < 0)
             goto cleanup;
-        }
 
         if (virJSONValueObjectHasKey(child, "is-default") &&
             virJSONValueObjectGetBoolean(child, "is-default", &info->isDefault) < 0) {
@@ -4019,10 +4006,8 @@ int qemuMonitorJSONGetMachines(qemuMonitorPtr mon,
                                _("query-machines reply has malformed 'alias' data"));
                 goto cleanup;
             }
-            if (!(info->alias = strdup(tmp))) {
-                virReportOOMError();
+            if (VIR_STRDUP(info->alias, tmp) < 0)
                 goto cleanup;
-            }
         }
     }
 
@@ -4031,7 +4016,7 @@ int qemuMonitorJSONGetMachines(qemuMonitorPtr mon,
 
 cleanup:
     if (ret < 0 && infolist) {
-        for (i = 0 ; i < n ; i++)
+        for (i = 0; i < n; i++)
             qemuMonitorMachineInfoFree(infolist[i]);
         VIR_FREE(infolist);
     }
@@ -4091,12 +4076,13 @@ int qemuMonitorJSONGetCPUDefinitions(qemuMonitorPtr mon,
         goto cleanup;
     }
 
-    if (VIR_ALLOC_N(cpulist, n) < 0) {
+    /* null-terminated list */
+    if (VIR_ALLOC_N(cpulist, n + 1) < 0) {
         virReportOOMError();
         goto cleanup;
     }
 
-    for (i = 0 ; i < n ; i++) {
+    for (i = 0; i < n; i++) {
         virJSONValuePtr child = virJSONValueArrayGet(data, i);
         const char *tmp;
 
@@ -4106,21 +4092,16 @@ int qemuMonitorJSONGetCPUDefinitions(qemuMonitorPtr mon,
             goto cleanup;
         }
 
-        if (!(cpulist[i] = strdup(tmp))) {
-            virReportOOMError();
+        if (VIR_STRDUP(cpulist[i], tmp) < 0)
             goto cleanup;
-        }
     }
 
     ret = n;
     *cpus = cpulist;
 
 cleanup:
-    if (ret < 0 && cpulist) {
-        for (i = 0 ; i < n ; i++)
-            VIR_FREE(cpulist[i]);
-        VIR_FREE(cpulist);
-    }
+    if (ret < 0)
+        virStringFreeList(cpulist);
     virJSONValueFree(cmd);
     virJSONValueFree(reply);
     return ret;
@@ -4165,12 +4146,13 @@ int qemuMonitorJSONGetCommands(qemuMonitorPtr mon,
         goto cleanup;
     }
 
-    if (VIR_ALLOC_N(commandlist, n) < 0) {
+    /* null-terminated list */
+    if (VIR_ALLOC_N(commandlist, n + 1) < 0) {
         virReportOOMError();
         goto cleanup;
     }
 
-    for (i = 0 ; i < n ; i++) {
+    for (i = 0; i < n; i++) {
         virJSONValuePtr child = virJSONValueArrayGet(data, i);
         const char *tmp;
 
@@ -4180,21 +4162,16 @@ int qemuMonitorJSONGetCommands(qemuMonitorPtr mon,
             goto cleanup;
         }
 
-        if (!(commandlist[i] = strdup(tmp))) {
-            virReportOOMError();
+        if (VIR_STRDUP(commandlist[i], tmp) < 0)
             goto cleanup;
-        }
     }
 
     ret = n;
     *commands = commandlist;
 
 cleanup:
-    if (ret < 0 && commandlist) {
-        for (i = 0 ; i < n ; i++)
-            VIR_FREE(commandlist[i]);
-        VIR_FREE(commandlist);
-    }
+    if (ret < 0)
+        virStringFreeList(commandlist);
     virJSONValueFree(cmd);
     virJSONValueFree(reply);
     return ret;
@@ -4244,12 +4221,13 @@ int qemuMonitorJSONGetEvents(qemuMonitorPtr mon,
         goto cleanup;
     }
 
-    if (VIR_ALLOC_N(eventlist, n) < 0) {
+    /* null-terminated list */
+    if (VIR_ALLOC_N(eventlist, n + 1) < 0) {
         virReportOOMError();
         goto cleanup;
     }
 
-    for (i = 0 ; i < n ; i++) {
+    for (i = 0; i < n; i++) {
         virJSONValuePtr child = virJSONValueArrayGet(data, i);
         const char *tmp;
 
@@ -4259,21 +4237,136 @@ int qemuMonitorJSONGetEvents(qemuMonitorPtr mon,
             goto cleanup;
         }
 
-        if (!(eventlist[i] = strdup(tmp))) {
-            virReportOOMError();
+        if (VIR_STRDUP(eventlist[i], tmp) < 0)
             goto cleanup;
-        }
     }
 
     ret = n;
     *events = eventlist;
 
 cleanup:
-    if (ret < 0 && eventlist) {
-        for (i = 0 ; i < n ; i++)
-            VIR_FREE(eventlist[i]);
-        VIR_FREE(eventlist);
+    if (ret < 0)
+        virStringFreeList(eventlist);
+    virJSONValueFree(cmd);
+    virJSONValueFree(reply);
+    return ret;
+}
+
+
+int
+qemuMonitorJSONGetCommandLineOptionParameters(qemuMonitorPtr mon,
+                                              const char *option,
+                                              char ***params)
+{
+    int ret;
+    virJSONValuePtr cmd = NULL;
+    virJSONValuePtr reply = NULL;
+    virJSONValuePtr data = NULL;
+    virJSONValuePtr array = NULL;
+    char **paramlist = NULL;
+    int n = 0;
+    size_t i;
+
+    *params = NULL;
+
+    /* query-command-line-options has fixed output for a given qemu
+     * binary; but since callers want to query parameters for one
+     * option at a time, we cache the option list from qemu.  */
+    if (!(array = qemuMonitorGetOptions(mon))) {
+        if (!(cmd = qemuMonitorJSONMakeCommand("query-command-line-options",
+                                               NULL)))
+            return -1;
+
+        ret = qemuMonitorJSONCommand(mon, cmd, &reply);
+
+        if (ret == 0) {
+            if (qemuMonitorJSONHasError(reply, "CommandNotFound"))
+                goto cleanup;
+            ret = qemuMonitorJSONCheckError(cmd, reply);
+        }
+
+        if (ret < 0)
+            goto cleanup;
+
+        if (virJSONValueObjectRemoveKey(reply, "return", &array) <= 0) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("query-command-line-options reply was missing "
+                             "return data"));
+            goto cleanup;
+        }
+        qemuMonitorSetOptions(mon, array);
     }
+
+    ret = -1;
+
+    if ((n = virJSONValueArraySize(array)) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("query-command-line-options reply data was not "
+                         "an array"));
+        goto cleanup;
+    }
+
+    for (i = 0; i < n; i++) {
+        virJSONValuePtr child = virJSONValueArrayGet(array, i);
+        const char *tmp;
+
+        if (!(tmp = virJSONValueObjectGetString(child, "option"))) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("query-command-line-options reply data was "
+                             "missing 'option'"));
+            goto cleanup;
+        }
+        if (STREQ(tmp, option)) {
+            data = virJSONValueObjectGet(child, "parameters");
+            break;
+        }
+    }
+
+    if (!data) {
+        /* Option not found; return 0 parameters rather than an error.  */
+        ret = 0;
+        goto cleanup;
+    }
+
+    if ((n = virJSONValueArraySize(data)) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("query-command-line-options parameter data was not "
+                         "an array"));
+        goto cleanup;
+    }
+
+    /* null-terminated list */
+    if (VIR_ALLOC_N(paramlist, n + 1) < 0) {
+        virReportOOMError();
+        goto cleanup;
+    }
+
+    for (i = 0; i < n; i++) {
+        virJSONValuePtr child = virJSONValueArrayGet(data, i);
+        const char *tmp;
+
+        if (!(tmp = virJSONValueObjectGetString(child, "name"))) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("query-command-line-options parameter data was "
+                             "missing 'name'"));
+            goto cleanup;
+        }
+
+        if (VIR_STRDUP(paramlist[i], tmp) < 0)
+            goto cleanup;
+    }
+
+    ret = n;
+    *params = paramlist;
+
+cleanup:
+    /* If we failed before getting the JSON array of options, we (try)
+     * to cache an empty array to speed up the next failure.  */
+    if (!qemuMonitorGetOptions(mon))
+        qemuMonitorSetOptions(mon, virJSONValueNewArray());
+
+    if (ret < 0)
+        virStringFreeList(paramlist);
     virJSONValueFree(cmd);
     virJSONValueFree(reply);
     return ret;
@@ -4369,12 +4462,13 @@ int qemuMonitorJSONGetObjectTypes(qemuMonitorPtr mon,
         goto cleanup;
     }
 
-    if (VIR_ALLOC_N(typelist, n) < 0) {
+    /* null-terminated list */
+    if (VIR_ALLOC_N(typelist, n + 1) < 0) {
         virReportOOMError();
         goto cleanup;
     }
 
-    for (i = 0 ; i < n ; i++) {
+    for (i = 0; i < n; i++) {
         virJSONValuePtr child = virJSONValueArrayGet(data, i);
         const char *tmp;
 
@@ -4384,21 +4478,16 @@ int qemuMonitorJSONGetObjectTypes(qemuMonitorPtr mon,
             goto cleanup;
         }
 
-        if (!(typelist[i] = strdup(tmp))) {
-            virReportOOMError();
+        if (VIR_STRDUP(typelist[i], tmp) < 0)
             goto cleanup;
-        }
     }
 
     ret = n;
     *types = typelist;
 
 cleanup:
-    if (ret < 0 && typelist) {
-        for (i = 0 ; i < n ; i++)
-            VIR_FREE(typelist[i]);
-        VIR_FREE(typelist);
-    }
+    if (ret < 0)
+        virStringFreeList(typelist);
     virJSONValueFree(cmd);
     virJSONValueFree(reply);
     return ret;
@@ -4451,12 +4540,13 @@ int qemuMonitorJSONGetObjectProps(qemuMonitorPtr mon,
         goto cleanup;
     }
 
-    if (VIR_ALLOC_N(proplist, n) < 0) {
+    /* null-terminated list */
+    if (VIR_ALLOC_N(proplist, n + 1) < 0) {
         virReportOOMError();
         goto cleanup;
     }
 
-    for (i = 0 ; i < n ; i++) {
+    for (i = 0; i < n; i++) {
         virJSONValuePtr child = virJSONValueArrayGet(data, i);
         const char *tmp;
 
@@ -4466,21 +4556,16 @@ int qemuMonitorJSONGetObjectProps(qemuMonitorPtr mon,
             goto cleanup;
         }
 
-        if (!(proplist[i] = strdup(tmp))) {
-            virReportOOMError();
+        if (VIR_STRDUP(proplist[i], tmp) < 0)
             goto cleanup;
-        }
     }
 
     ret = n;
     *props = proplist;
 
 cleanup:
-    if (ret < 0 && proplist) {
-        for (i = 0 ; i < n ; i++)
-            VIR_FREE(proplist[i]);
-        VIR_FREE(proplist);
-    }
+    if (ret < 0)
+        virStringFreeList(proplist);
     virJSONValueFree(cmd);
     virJSONValueFree(reply);
     return ret;
@@ -4520,10 +4605,7 @@ qemuMonitorJSONGetTargetArch(qemuMonitorPtr mon)
         goto cleanup;
     }
 
-    if (!(ret = strdup(arch))) {
-        virReportOOMError();
-        goto cleanup;
-    }
+    ignore_value(VIR_STRDUP(ret, arch));
 
 cleanup:
     virJSONValueFree(cmd);
@@ -4806,7 +4888,7 @@ qemuMonitorJSONGetStringArray(qemuMonitorPtr mon, const char *qmpCmd,
         goto cleanup;
     }
 
-    for (i = 0 ; i < n ; i++) {
+    for (i = 0; i < n; i++) {
         virJSONValuePtr child = virJSONValueArrayGet(data, i);
         const char *tmp;
 
@@ -4817,10 +4899,8 @@ qemuMonitorJSONGetStringArray(qemuMonitorPtr mon, const char *qmpCmd,
             goto cleanup;
         }
 
-        if (!(list[i] = strdup(tmp))) {
-            virReportOOMError();
+        if (VIR_STRDUP(list[i], tmp) < 0)
             goto cleanup;
-        }
     }
 
     ret = n;

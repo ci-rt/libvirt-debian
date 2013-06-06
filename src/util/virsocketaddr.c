@@ -25,7 +25,7 @@
 
 #include "virsocketaddr.h"
 #include "virerror.h"
-#include "virutil.h"
+#include "virstring.h"
 
 #include <netdb.h>
 
@@ -49,7 +49,7 @@ static int virSocketAddrGetIPv4Addr(virSocketAddrPtr addr, virSocketAddrIPv4Ptr 
 
     val = ntohl(addr->data.inet4.sin_addr.s_addr);
 
-    for (i = 0;i < 4;i++) {
+    for (i = 0; i < 4; i++) {
         (*tab)[3 - i] = val & 0xFF;
         val >>= 8;
     }
@@ -63,7 +63,7 @@ static int virSocketAddrGetIPv6Addr(virSocketAddrPtr addr, virSocketAddrIPv6Ptr 
     if ((addr == NULL) || (tab == NULL) || (addr->data.stor.ss_family != AF_INET6))
         return -1;
 
-    for (i = 0;i < 8;i++) {
+    for (i = 0; i < 8; i++) {
         (*tab)[i] = ((addr->data.inet6.sin6_addr.s6_addr[2 * i] << 8) |
                      addr->data.inet6.sin6_addr.s6_addr[2 * i + 1]);
     }
@@ -272,8 +272,8 @@ virSocketAddrFormatFull(virSocketAddrPtr addr,
                             separator ? separator : ":") < 0)
                 goto no_memory;
         } else {
-            if (!(addrstr = strdup("127.0.0.1")))
-                goto no_memory;
+            if (VIR_STRDUP(addrstr, "127.0.0.1") < 0)
+                goto error;
         }
         return addrstr;
     }
@@ -293,14 +293,15 @@ virSocketAddrFormatFull(virSocketAddrPtr addr,
         if (virAsprintf(&addrstr, "%s%s%s", host, separator, port) == -1)
             goto no_memory;
     } else {
-        if (!(addrstr = strdup(host)))
-            goto no_memory;
+        if (VIR_STRDUP(addrstr, host) < 0)
+            goto error;
     }
 
     return addrstr;
 
 no_memory:
     virReportOOMError();
+error:
     return NULL;
 }
 
@@ -529,7 +530,7 @@ int virSocketAddrCheckNetmask(virSocketAddrPtr addr1, virSocketAddrPtr addr2,
             (virSocketAddrGetIPv4Addr(netmask, &tm) < 0))
             return -1;
 
-        for (i = 0;i < 4;i++) {
+        for (i = 0; i < 4; i++) {
             if ((t1[i] & tm[i]) != (t2[i] & tm[i]))
                 return 0;
         }
@@ -542,7 +543,7 @@ int virSocketAddrCheckNetmask(virSocketAddrPtr addr1, virSocketAddrPtr addr2,
             (virSocketAddrGetIPv6Addr(netmask, &tm) < 0))
             return -1;
 
-        for (i = 0;i < 8;i++) {
+        for (i = 0; i < 8; i++) {
             if ((t1[i] & tm[i]) != (t2[i] & tm[i]))
                 return 0;
         }
@@ -580,7 +581,7 @@ int virSocketAddrGetRange(virSocketAddrPtr start, virSocketAddrPtr end) {
             (virSocketAddrGetIPv4Addr(end, &t2) < 0))
             return -1;
 
-        for (i = 0;i < 2;i++) {
+        for (i = 0; i < 2; i++) {
             if (t1[i] != t2[i])
                 return -1;
         }
@@ -595,7 +596,7 @@ int virSocketAddrGetRange(virSocketAddrPtr start, virSocketAddrPtr end) {
             (virSocketAddrGetIPv6Addr(end, &t2) < 0))
             return -1;
 
-        for (i = 0;i < 7;i++) {
+        for (i = 0; i < 7; i++) {
             if (t1[i] != t2[i])
                 return -1;
         }

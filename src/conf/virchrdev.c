@@ -37,6 +37,7 @@
 #include "virlog.h"
 #include "virerror.h"
 #include "virfile.h"
+#include "virstring.h"
 
 #define VIR_FROM_THIS VIR_FROM_NONE
 
@@ -51,7 +52,7 @@ typedef struct _virChrdevStreamInfo virChrdevStreamInfo;
 typedef virChrdevStreamInfo *virChrdevStreamInfoPtr;
 struct _virChrdevStreamInfo {
     virChrdevsPtr devs;
-    const char *path;
+    char *path;
 };
 
 #ifdef VIR_CHRDEV_LOCK_FILE_PATH
@@ -72,10 +73,8 @@ static char *virChrdevLockFilePath(const char *dev)
     char *filename;
     char *p;
 
-    if (!(devCopy = strdup(dev))) {
-        virReportOOMError();
+    if (VIR_STRDUP(devCopy, dev) < 0)
         goto cleanup;
-    }
 
     /* skip the leading "/dev/" */
     filename = STRSKIP(devCopy, "/dev");
@@ -90,8 +89,10 @@ static char *virChrdevLockFilePath(const char *dev)
         ++p;
     }
 
-    if (virAsprintf(&path, "%s/LCK..%s", VIR_CHRDEV_LOCK_FILE_PATH, filename) < 0)
+    if (virAsprintf(&path, "%s/LCK..%s", VIR_CHRDEV_LOCK_FILE_PATH, filename) < 0) {
+        virReportOOMError();
         goto cleanup;
+    }
 
     sanitizedPath = virFileSanitizePath(path);
 
@@ -137,8 +138,10 @@ static int virChrdevLockFileCreate(const char *dev)
 
     /* ensure correct format according to filesystem hierarchy standard */
     /* http://www.pathname.com/fhs/pub/fhs-2.3.html#VARLOCKLOCKFILES */
-    if (virAsprintf(&pidStr, "%10lld\n", (long long) getpid()) < 0)
+    if (virAsprintf(&pidStr, "%10lld\n", (long long) getpid()) < 0) {
+        virReportOOMError();
         goto cleanup;
+    }
 
     /* create the lock file */
     if ((lockfd = open(path, O_WRONLY | O_CREAT | O_EXCL, 00644)) < 0) {
@@ -340,8 +343,10 @@ int virChrdevOpen(virChrdevsPtr devs,
 {
     virChrdevStreamInfoPtr cbdata = NULL;
     virStreamPtr savedStream;
-    const char *path;
+    char *path;
     int ret;
+    bool added = false;
+    virErrorPtr savedError;
 
     switch (source->type) {
     case VIR_DOMAIN_CHR_TYPE_PTY:
@@ -398,12 +403,11 @@ int virChrdevOpen(virChrdevsPtr devs,
 
     if (virHashAddEntry(devs->hash, path, st) < 0)
         goto error;
+    added = true;
 
     cbdata->devs = devs;
-    if (!(cbdata->path = strdup(path))) {
-        virReportOOMError();
+    if (VIR_STRDUP(cbdata->path, path) < 0)
         goto error;
-    }
 
     /* open the character device */
     switch (source->type) {
@@ -432,8 +436,16 @@ int virChrdevOpen(virChrdevsPtr devs,
     return 0;
 
 error:
-    virStreamFree(st);
-    virHashRemoveEntry(devs->hash, path);
+    savedError = virSaveLastError();
+
+    if (added)
+        virHashRemoveEntry(devs->hash, path);
+    else
+        virStreamFree(st);
+
+    virSetError(savedError);
+    virFreeError(savedError);
+
     if (cbdata)
         VIR_FREE(cbdata->path);
     VIR_FREE(cbdata);

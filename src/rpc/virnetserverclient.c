@@ -1,7 +1,7 @@
 /*
  * virnetserverclient.c: generic network RPC server client
  *
- * Copyright (C) 2006-2011 Red Hat, Inc.
+ * Copyright (C) 2006-2013 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -23,6 +23,7 @@
 
 #include <config.h>
 
+#include "internal.h"
 #if WITH_SASL
 # include <sasl/sasl.h>
 #endif
@@ -34,6 +35,8 @@
 #include "viralloc.h"
 #include "virthread.h"
 #include "virkeepalive.h"
+#include "virstring.h"
+#include "virutil.h"
 
 #define VIR_FROM_THIS VIR_FROM_RPC
 
@@ -634,12 +637,15 @@ bool virNetServerClientIsLocal(virNetServerClientPtr client)
 
 
 int virNetServerClientGetUNIXIdentity(virNetServerClientPtr client,
-                                      uid_t *uid, gid_t *gid, pid_t *pid)
+                                      uid_t *uid, gid_t *gid, pid_t *pid,
+                                      unsigned long long *timestamp)
 {
     int ret = -1;
     virObjectLock(client);
     if (client->sock)
-        ret = virNetSocketGetUNIXIdentity(client->sock, uid, gid, pid);
+        ret = virNetSocketGetUNIXIdentity(client->sock,
+                                          uid, gid, pid,
+                                          timestamp);
     virObjectUnlock(client);
     return ret;
 }
@@ -649,6 +655,7 @@ static virIdentityPtr
 virNetServerClientCreateIdentity(virNetServerClientPtr client)
 {
     char *processid = NULL;
+    char *processtime = NULL;
     char *username = NULL;
     char *groupname = NULL;
 #if WITH_SASL
@@ -662,15 +669,23 @@ virNetServerClientCreateIdentity(virNetServerClientPtr client)
         gid_t gid;
         uid_t uid;
         pid_t pid;
-        if (virNetSocketGetUNIXIdentity(client->sock, &uid, &gid, &pid) < 0)
+        unsigned long long timestamp;
+        if (virNetSocketGetUNIXIdentity(client->sock,
+                                        &uid, &gid, &pid,
+                                        &timestamp) < 0)
             goto cleanup;
 
         if (!(username = virGetUserName(uid)))
             goto cleanup;
         if (!(groupname = virGetGroupName(gid)))
             goto cleanup;
-        if (virAsprintf(&processid, "%lld",
-                        (long long)pid) < 0) {
+        if (virAsprintf(&processid, "%llu",
+                        (unsigned long long)pid) < 0) {
+            virReportOOMError();
+            goto cleanup;
+        }
+        if (virAsprintf(&processtime, "%llu",
+                        timestamp) < 0) {
             virReportOOMError();
             goto cleanup;
         }
@@ -679,27 +694,21 @@ virNetServerClientCreateIdentity(virNetServerClientPtr client)
 #if WITH_SASL
     if (client->sasl) {
         const char *identity = virNetSASLSessionGetIdentity(client->sasl);
-        if (identity &&
-            !(saslname = strdup(identity))) {
-            virReportOOMError();
+        if (VIR_STRDUP(saslname, identity) < 0)
             goto cleanup;
-        }
     }
 #endif
 
 #if WITH_GNUTLS
     if (client->tls) {
         const char *identity = virNetTLSSessionGetX509DName(client->tls);
-        if (identity &&
-            !(x509dname = strdup(identity))) {
-            virReportOOMError();
+        if (VIR_STRDUP(x509dname, identity) < 0)
             goto cleanup;
-        }
     }
 #endif
 
     if (client->sock &&
-        virNetSocketGetSecurityContext(client->sock, &seccontext) < 0)
+        virNetSocketGetSELinuxContext(client->sock, &seccontext) < 0)
         goto cleanup;
 
     if (!(ret = virIdentityNew()))
@@ -720,6 +729,11 @@ virNetServerClientCreateIdentity(virNetServerClientPtr client)
                            VIR_IDENTITY_ATTR_UNIX_PROCESS_ID,
                            processid) < 0)
         goto error;
+    if (processtime &&
+        virIdentitySetAttr(ret,
+                           VIR_IDENTITY_ATTR_UNIX_PROCESS_TIME,
+                           processtime) < 0)
+        goto error;
 #if HAVE_SASL
     if (saslname &&
         virIdentitySetAttr(ret,
@@ -734,7 +748,7 @@ virNetServerClientCreateIdentity(virNetServerClientPtr client)
         goto error;
     if (seccontext &&
         virIdentitySetAttr(ret,
-                           VIR_IDENTITY_ATTR_SECURITY_CONTEXT,
+                           VIR_IDENTITY_ATTR_SELINUX_CONTEXT,
                            seccontext) < 0)
         goto error;
 
@@ -742,6 +756,7 @@ cleanup:
     VIR_FREE(username);
     VIR_FREE(groupname);
     VIR_FREE(processid);
+    VIR_FREE(processtime);
     VIR_FREE(seccontext);
 #if HAVE_SASL
     VIR_FREE(saslname);
@@ -769,14 +784,14 @@ virIdentityPtr virNetServerClientGetIdentity(virNetServerClientPtr client)
 }
 
 
-int virNetServerClientGetSecurityContext(virNetServerClientPtr client,
-                                         char **context)
+int virNetServerClientGetSELinuxContext(virNetServerClientPtr client,
+                                        char **context)
 {
     int ret = 0;
     *context = NULL;
     virObjectLock(client);
     if (client->sock)
-        ret = virNetSocketGetSecurityContext(client->sock, context);
+        ret = virNetSocketGetSELinuxContext(client->sock, context);
     virObjectUnlock(client);
     return ret;
 }
@@ -1146,7 +1161,7 @@ readmore:
         }
 
         /* Try getting the file descriptors (may fail if blocking) */
-        for (i = msg->donefds ; i < msg->nfds ; i++) {
+        for (i = msg->donefds; i < msg->nfds; i++) {
             int rv;
             if ((rv = virNetSocketRecvFD(client->sock, &(msg->fds[i]))) < 0) {
                 virNetMessageQueueServe(&client->rx);
@@ -1297,7 +1312,7 @@ virNetServerClientDispatchWrite(virNetServerClientPtr client)
             virNetMessagePtr msg;
             size_t i;
 
-            for (i = client->tx->donefds ; i < client->tx->nfds ; i++) {
+            for (i = client->tx->donefds; i < client->tx->nfds; i++) {
                 int rv;
                 if ((rv = virNetSocketSendFD(client->sock, client->tx->fds[i])) < 0) {
                     client->wantClose = true;

@@ -42,11 +42,11 @@
 #include "secret_conf.h"
 #include "snapshot_conf.h"
 #include "virstoragefile.h"
-#include "virutil.h"
 #include "viruuid.h"
 #include "virfile.h"
 #include "virerror.h"
 #include "virxml.h"
+#include "virstring.h"
 
 #define VIR_FROM_THIS VIR_FROM_DOMAIN_SNAPSHOT
 
@@ -463,10 +463,8 @@ virDomainSnapshotAlignDisks(virDomainSnapshotDefPtr def,
         }
         if (STRNEQ(disk->name, def->dom->disks[idx]->dst)) {
             VIR_FREE(disk->name);
-            if (!(disk->name = strdup(def->dom->disks[idx]->dst))) {
-                virReportOOMError();
+            if (VIR_STRDUP(disk->name, def->dom->disks[idx]->dst) < 0)
                 goto cleanup;
-            }
         }
     }
 
@@ -485,10 +483,8 @@ virDomainSnapshotAlignDisks(virDomainSnapshotDefPtr def,
         if (inuse)
             continue;
         disk = &def->disks[ndisks++];
-        if (!(disk->name = strdup(def->dom->disks[i]->dst))) {
-            virReportOOMError();
+        if (VIR_STRDUP(disk->name, def->dom->disks[i]->dst) < 0)
             goto cleanup;
-        }
         disk->index = i;
         disk->snapshot = def->dom->disks[i]->snapshot;
         if (!disk->snapshot)
@@ -768,9 +764,8 @@ static void virDomainSnapshotObjListCopyNames(void *payload,
         return;
 
     if (data->names && data->count < data->maxnames &&
-        !(data->names[data->count] = strdup(obj->def->name))) {
+        VIR_STRDUP(data->names[data->count], obj->def->name) < 0) {
         data->error = true;
-        virReportOOMError();
         return;
     }
     data->count++;

@@ -45,7 +45,6 @@
 
 #include "datatypes.h"
 #include "virerror.h"
-#include "virutil.h"
 #include "viralloc.h"
 #include "internal.h"
 #include "secret_conf.h"
@@ -55,6 +54,7 @@
 #include "virlog.h"
 #include "virfile.h"
 #include "stat-time.h"
+#include "virstring.h"
 
 #if WITH_STORAGE_LVM
 # include "storage_backend_logical.h"
@@ -405,7 +405,7 @@ virStorageBackendCreateRaw(virConnectPtr conn ATTRIBUTE_UNUSED,
                             vol->target.perms.gid,
                             operation_flags)) < 0) {
         virReportSystemError(-fd,
-                             _("cannot create path '%s'"),
+                             _("Failed to create file '%s'"),
                              vol->target.path);
         goto cleanup;
     }
@@ -486,11 +486,8 @@ virStorageGenerateQcowEncryption(virConnectPtr conn,
         goto cleanup;
 
     def->usage_type = VIR_SECRET_USAGE_TYPE_VOLUME;
-    def->usage.volume = strdup(vol->target.path);
-    if (def->usage.volume == NULL) {
-        virReportOOMError();
+    if (VIR_STRDUP(def->usage.volume, vol->target.path) < 0)
         goto cleanup;
-    }
     xml = virSecretDefFormat(def);
     virSecretDefFree(def);
     def = NULL;
@@ -1261,12 +1258,11 @@ virStorageBackendUpdateVolTargetInfoFD(virStorageVolTargetPtr target,
             target->perms.label = NULL;
         }
     } else {
-        target->perms.label = strdup(filecon);
-        freecon(filecon);
-        if (target->perms.label == NULL) {
-            virReportOOMError();
+        if (VIR_STRDUP(target->perms.label, filecon) < 0) {
+            freecon(filecon);
             return -1;
         }
+        freecon(filecon);
     }
 #else
     target->perms.label = NULL;
@@ -1451,10 +1447,7 @@ virStorageBackendStablePath(virStoragePoolObjPtr pool,
      * the original non-stable dev path
      */
 
-    stablepath = strdup(devpath);
-
-    if (stablepath == NULL)
-        virReportOOMError();
+    ignore_value(VIR_STRDUP(stablepath, devpath));
 
     return stablepath;
 }
@@ -1492,14 +1485,14 @@ virStorageBackendRunProgRegex(virStoragePoolObjPtr pool,
         return -1;
     }
 
-    for (i = 0 ; i < nregex ; i++) {
+    for (i = 0; i < nregex; i++) {
         err = regcomp(&reg[i], regex[i], REG_EXTENDED);
         if (err != 0) {
             char error[100];
             regerror(err, &reg[i], error, sizeof(error));
             virReportError(VIR_ERR_INTERNAL_ERROR,
                            _("Failed to compile regex %s"), error);
-            for (j = 0 ; j <= i ; j++)
+            for (j = 0; j <= i; j++)
                 regfree(&reg[j]);
             VIR_FREE(reg);
             return -1;
@@ -1545,7 +1538,7 @@ virStorageBackendRunProgRegex(virStoragePoolObjPtr pool,
         if (!p)
             p = line;
 
-        for (i = 0 ; i <= maxReg && i < nregex ; i++) {
+        for (i = 0; i <= maxReg && i < nregex; i++) {
             if (regexec(&reg[i], p, nvars[i]+1, vars, 0) == 0) {
                 maxReg++;
 
@@ -1553,14 +1546,11 @@ virStorageBackendRunProgRegex(virStoragePoolObjPtr pool,
                     ngroup = 0;
 
                 /* NULL terminate each captured group in the line */
-                for (j = 0 ; j < nvars[i] ; j++) {
+                for (j = 0; j < nvars[i]; j++) {
                     /* NB vars[0] is the full pattern, so we offset j by 1 */
                     p[vars[j+1].rm_eo] = '\0';
-                    if ((groups[ngroup++] =
-                         strdup(p + vars[j+1].rm_so)) == NULL) {
-                        virReportOOMError();
+                    if (VIR_STRDUP(groups[ngroup++], p + vars[j+1].rm_so) < 0)
                         goto cleanup;
-                    }
                 }
 
                 /* We're matching on the last regex, so callback time */
@@ -1569,7 +1559,7 @@ virStorageBackendRunProgRegex(virStoragePoolObjPtr pool,
                         goto cleanup;
 
                     /* Release matches & restart to matching the first regex */
-                    for (j = 0 ; j < totgroups ; j++)
+                    for (j = 0; j < totgroups; j++)
                         VIR_FREE(groups[j]);
                     maxReg = 0;
                     ngroup = 0;
@@ -1581,13 +1571,13 @@ virStorageBackendRunProgRegex(virStoragePoolObjPtr pool,
     ret = virCommandWait(cmd, NULL);
 cleanup:
     if (groups) {
-        for (j = 0 ; j < totgroups ; j++)
+        for (j = 0; j < totgroups; j++)
             VIR_FREE(groups[j]);
         VIR_FREE(groups);
     }
     VIR_FREE(vars);
 
-    for (i = 0 ; i < nregex ; i++)
+    for (i = 0; i < nregex; i++)
         regfree(&reg[i]);
 
     VIR_FREE(reg);

@@ -42,6 +42,8 @@
 #include "vircommand.h"
 #include "virerror.h"
 #include "virfile.h"
+#include "virstring.h"
+#include "virutil.h"
 
 #define PCI_SYSFS "/sys/bus/pci/"
 #define PCI_ID_LEN 10   /* "XXXX XXXX" */
@@ -945,10 +947,8 @@ virPCIDeviceUnbindFromStub(virPCIDevicePtr dev)
         goto cleanup;
     }
     /* drvdir = "/sys/bus/pci/drivers/${drivername}" */
-    if (!(driver = strdup(last_component(drvdir)))) {
-        virReportOOMError();
+    if (VIR_STRDUP(driver, last_component(drvdir)) < 0)
         goto cleanup;
-    }
 
     if (!dev->unbind_from_stub)
         goto remove_slot;
@@ -1390,10 +1390,8 @@ virPCIGetAddrString(unsigned int domain,
 
     dev = virPCIDeviceNew(domain, bus, slot, function);
     if (dev != NULL) {
-        if ((*pciConfigAddr = strdup(dev->name)) == NULL) {
-            virReportOOMError();
+        if (VIR_STRDUP(*pciConfigAddr, dev->name) < 0)
             goto cleanup;
-        }
         ret = 0;
     }
 
@@ -2266,10 +2264,7 @@ virPCIGetNetName(char *device_link_sysfs_path, char **netname)
             continue;
 
         /* Assume a single directory entry */
-        *netname = strdup(entry->d_name);
-        if (!*netname)
-            virReportOOMError();
-        else
+        if (VIR_STRDUP(*netname, entry->d_name) > 0)
             ret = 0;
         break;
     }

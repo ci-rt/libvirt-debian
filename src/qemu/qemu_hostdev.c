@@ -29,6 +29,7 @@
 #include "viralloc.h"
 #include "virpci.h"
 #include "virusb.h"
+#include "virscsi.h"
 #include "virnetdev.h"
 
 #define VIR_FROM_THIS VIR_FROM_QEMU
@@ -42,7 +43,7 @@ qemuGetPciHostDeviceList(virDomainHostdevDefPtr *hostdevs, int nhostdevs)
     if (!(list = virPCIDeviceListNew()))
         return NULL;
 
-    for (i = 0 ; i < nhostdevs ; i++) {
+    for (i = 0; i < nhostdevs; i++) {
         virDomainHostdevDefPtr hostdev = hostdevs[i];
         virPCIDevicePtr dev;
 
@@ -92,7 +93,7 @@ qemuGetActivePciHostDeviceList(virQEMUDriverPtr driver,
     if (!(list = virPCIDeviceListNew()))
         return NULL;
 
-    for (i = 0 ; i < nhostdevs ; i++) {
+    for (i = 0; i < nhostdevs; i++) {
         virDomainHostdevDefPtr hostdev = hostdevs[i];
         virPCIDevicePtr dev;
         virPCIDevicePtr activeDev;
@@ -175,6 +176,7 @@ int qemuUpdateActivePciHostdevs(virQEMUDriverPtr driver,
         }
     }
 
+    ret = 0;
 cleanup:
     virObjectUnlock(driver->activePciHostdevs);
     virObjectUnlock(driver->inactivePciHostdevs);
@@ -223,6 +225,47 @@ qemuUpdateActiveUsbHostdevs(virQEMUDriverPtr driver,
     ret = 0;
 cleanup:
     virObjectUnlock(driver->activeUsbHostdevs);
+    return ret;
+}
+
+int
+qemuUpdateActiveScsiHostdevs(virQEMUDriverPtr driver,
+                             virDomainDefPtr def)
+{
+    virDomainHostdevDefPtr hostdev = NULL;
+    int i;
+    int ret = -1;
+
+    if (!def->nhostdevs)
+        return 0;
+
+    virObjectLock(driver->activeScsiHostdevs);
+    for (i = 0; i < def->nhostdevs; i++) {
+        virSCSIDevicePtr scsi = NULL;
+        hostdev = def->hostdevs[i];
+
+        if (hostdev->mode != VIR_DOMAIN_HOSTDEV_MODE_SUBSYS ||
+            hostdev->source.subsys.type != VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_SCSI)
+            continue;
+
+        if (!(scsi = virSCSIDeviceNew(hostdev->source.subsys.u.scsi.adapter,
+                                      hostdev->source.subsys.u.scsi.bus,
+                                      hostdev->source.subsys.u.scsi.target,
+                                      hostdev->source.subsys.u.scsi.unit,
+                                      hostdev->readonly)))
+            goto cleanup;
+
+        virSCSIDeviceSetUsedBy(scsi, def->name);
+
+        if (virSCSIDeviceListAdd(driver->activeScsiHostdevs, scsi) < 0) {
+            virSCSIDeviceFree(scsi);
+            goto cleanup;
+        }
+    }
+    ret = 0;
+
+cleanup:
+    virObjectUnlock(driver->activeScsiHostdevs);
     return ret;
 }
 
@@ -780,7 +823,7 @@ qemuPrepareHostUSBDevices(virQEMUDriverPtr driver,
 
     /* Loop 1: build temporary list
      */
-    for (i = 0 ; i < nhostdevs ; i++) {
+    for (i = 0; i < nhostdevs; i++) {
         virDomainHostdevDefPtr hostdev = hostdevs[i];
         bool required = true;
         virUSBDevicePtr usb;
@@ -827,6 +870,123 @@ cleanup:
     return ret;
 }
 
+int
+qemuPrepareHostdevSCSIDevices(virQEMUDriverPtr driver,
+                              const char *name,
+                              virDomainHostdevDefPtr *hostdevs,
+                              int nhostdevs)
+{
+    int i, j, count;
+    virSCSIDeviceListPtr list;
+    virSCSIDevicePtr tmp;
+
+    /* Loop 1: Add the shared scsi host device to shared device
+     * table.
+     */
+    for (i = 0; i < nhostdevs; i++) {
+        virDomainDeviceDef dev;
+
+        dev.type = VIR_DOMAIN_DEVICE_HOSTDEV;
+        dev.data.hostdev = hostdevs[i];
+
+        if (qemuAddSharedDevice(driver, &dev, name) < 0)
+            return -1;
+
+        if (qemuSetUnprivSGIO(&dev) < 0)
+            return -1;
+    }
+
+    /* To prevent situation where SCSI device is assigned to two domains
+     * we need to keep a list of currently assigned SCSI devices.
+     * This is done in several loops which cannot be joined into one big
+     * loop. See qemuPrepareHostdevPCIDevices()
+     */
+    if (!(list = virSCSIDeviceListNew()))
+        goto cleanup;
+
+    /* Loop 2: build temporary list */
+    for (i = 0; i < nhostdevs; i++) {
+        virDomainHostdevDefPtr hostdev = hostdevs[i];
+        virSCSIDevicePtr scsi;
+
+        if (hostdev->mode != VIR_DOMAIN_HOSTDEV_MODE_SUBSYS ||
+            hostdev->source.subsys.type != VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_SCSI)
+            continue;
+
+        if (hostdev->managed) {
+            virReportError(VIR_ERR_XML_ERROR, "%s",
+                           _("SCSI host device doesn't support managed mode"));
+            goto cleanup;
+        }
+
+        if (!(scsi = virSCSIDeviceNew(hostdev->source.subsys.u.scsi.adapter,
+                                      hostdev->source.subsys.u.scsi.bus,
+                                      hostdev->source.subsys.u.scsi.target,
+                                      hostdev->source.subsys.u.scsi.unit,
+                                      hostdev->readonly)))
+            goto cleanup;
+
+        if (scsi && virSCSIDeviceListAdd(list, scsi) < 0) {
+            virSCSIDeviceFree(scsi);
+            goto cleanup;
+        }
+    }
+
+    /* Loop 3: Mark devices in temporary list as used by @name
+     * and add them to driver list. However, if something goes
+     * wrong, perform rollback.
+     */
+    virObjectLock(driver->activeScsiHostdevs);
+    count = virSCSIDeviceListCount(list);
+
+    for (i = 0; i < count; i++) {
+        virSCSIDevicePtr scsi = virSCSIDeviceListGet(list, i);
+        if ((tmp = virSCSIDeviceListFind(driver->activeScsiHostdevs, scsi))) {
+            const char *other_name = virSCSIDeviceGetUsedBy(tmp);
+
+            if (other_name)
+                virReportError(VIR_ERR_OPERATION_INVALID,
+                               _("SCSI device %s is in use by domain %s"),
+                               virSCSIDeviceGetName(tmp), other_name);
+            else
+                virReportError(VIR_ERR_OPERATION_INVALID,
+                               _("SCSI device %s is already in use"),
+                               virSCSIDeviceGetName(tmp));
+            goto error;
+        }
+
+        virSCSIDeviceSetUsedBy(scsi, name);
+        VIR_DEBUG("Adding %s to activeScsiHostdevs", virSCSIDeviceGetName(scsi));
+
+        if (virSCSIDeviceListAdd(driver->activeScsiHostdevs, scsi) < 0)
+            goto error;
+    }
+
+    virObjectUnlock(driver->activeScsiHostdevs);
+
+    /* Loop 4: Temporary list was successfully merged with
+     * driver list, so steal all items to avoid freeing them
+     * when freeing temporary list.
+     */
+    while (virSCSIDeviceListCount(list) > 0) {
+        tmp = virSCSIDeviceListGet(list, 0);
+        virSCSIDeviceListSteal(list, tmp);
+    }
+
+    virObjectUnref(list);
+    return 0;
+
+error:
+    for (j = 0; j < i; j++) {
+        tmp = virSCSIDeviceListGet(list, i);
+        virSCSIDeviceListSteal(driver->activeScsiHostdevs, tmp);
+    }
+    virObjectUnlock(driver->activeScsiHostdevs);
+cleanup:
+    virObjectUnref(list);
+    return -1;
+}
+
 int qemuPrepareHostDevices(virQEMUDriverPtr driver,
                            virDomainDefPtr def,
                            bool coldBoot)
@@ -839,6 +999,10 @@ int qemuPrepareHostDevices(virQEMUDriverPtr driver,
         return -1;
 
     if (qemuPrepareHostUSBDevices(driver, def, coldBoot) < 0)
+        return -1;
+
+    if (qemuPrepareHostdevSCSIDevices(driver, def->name,
+                                      def->hostdevs, def->nhostdevs) < 0)
         return -1;
 
     return 0;
@@ -1025,6 +1189,75 @@ qemuDomainReAttachHostUsbDevices(virQEMUDriverPtr driver,
     virObjectUnlock(driver->activeUsbHostdevs);
 }
 
+void
+qemuDomainReAttachHostScsiDevices(virQEMUDriverPtr driver,
+                                  const char *name,
+                                  virDomainHostdevDefPtr *hostdevs,
+                                  int nhostdevs)
+{
+    int i;
+
+    virObjectLock(driver->activeScsiHostdevs);
+    for (i = 0; i < nhostdevs; i++) {
+        virDomainHostdevDefPtr hostdev = hostdevs[i];
+        virSCSIDevicePtr scsi, tmp;
+        const char *used_by = NULL;
+        virDomainDeviceDef dev;
+
+        dev.type = VIR_DOMAIN_DEVICE_HOSTDEV;
+        dev.data.hostdev = hostdev;
+
+        ignore_value(qemuRemoveSharedDevice(driver, &dev, name));
+
+        if (hostdev->mode != VIR_DOMAIN_HOSTDEV_MODE_SUBSYS ||
+            hostdev->source.subsys.type != VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_SCSI)
+            continue;
+
+        if (!(scsi = virSCSIDeviceNew(hostdev->source.subsys.u.scsi.adapter,
+                                      hostdev->source.subsys.u.scsi.bus,
+                                      hostdev->source.subsys.u.scsi.target,
+                                      hostdev->source.subsys.u.scsi.unit,
+                                      hostdev->readonly))) {
+            VIR_WARN("Unable to reattach SCSI device %s:%d:%d:%d on domain %s",
+                     hostdev->source.subsys.u.scsi.adapter,
+                     hostdev->source.subsys.u.scsi.bus,
+                     hostdev->source.subsys.u.scsi.target,
+                     hostdev->source.subsys.u.scsi.unit,
+                     name);
+            continue;
+        }
+
+        /* Only delete the devices which are marked as being used by @name,
+         * because qemuProcessStart could fail on the half way. */
+
+        tmp = virSCSIDeviceListFind(driver->activeScsiHostdevs, scsi);
+        virSCSIDeviceFree(scsi);
+
+        if (!tmp) {
+            VIR_WARN("Unable to find device %s:%d:%d:%d "
+                     "in list of active SCSI devices",
+                     hostdev->source.subsys.u.scsi.adapter,
+                     hostdev->source.subsys.u.scsi.bus,
+                     hostdev->source.subsys.u.scsi.target,
+                     hostdev->source.subsys.u.scsi.unit);
+            continue;
+        }
+
+        used_by = virSCSIDeviceGetUsedBy(tmp);
+        if (STREQ_NULLABLE(used_by, name)) {
+            VIR_DEBUG("Removing %s:%d:%d:%d dom=%s from activeScsiHostdevs",
+                      hostdev->source.subsys.u.scsi.adapter,
+                      hostdev->source.subsys.u.scsi.bus,
+                      hostdev->source.subsys.u.scsi.target,
+                      hostdev->source.subsys.u.scsi.unit,
+                      name);
+
+            virSCSIDeviceListDel(driver->activeScsiHostdevs, tmp);
+        }
+    }
+    virObjectUnlock(driver->activeScsiHostdevs);
+}
+
 void qemuDomainReAttachHostDevices(virQEMUDriverPtr driver,
                                    virDomainDefPtr def)
 {
@@ -1036,4 +1269,7 @@ void qemuDomainReAttachHostDevices(virQEMUDriverPtr driver,
 
     qemuDomainReAttachHostUsbDevices(driver, def->name, def->hostdevs,
                                      def->nhostdevs);
+
+    qemuDomainReAttachHostScsiDevices(driver, def->name, def->hostdevs,
+                                      def->nhostdevs);
 }

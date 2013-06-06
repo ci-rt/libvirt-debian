@@ -3,13 +3,13 @@
  */
 
 /*
- * Copyright (C) 2010-2012 Red Hat, Inc.
+ * Copyright (C) 2010-2013 Red Hat, Inc.
  * Copyright (C) 2008-2009 Sun Microsystems, Inc.
  *
  * This file is part of a free software library; you can redistribute
  * it and/or modify it under the terms of the GNU Lesser General
  * Public License version 2.1 as published by the Free Software
- * Foundation and shipped in the "COPYING" file with this library.
+ * Foundation and shipped in the "COPYING.LESSER" file with this library.
  * The library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY of any kind.
  *

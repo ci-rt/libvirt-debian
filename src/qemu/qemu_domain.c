@@ -37,6 +37,7 @@
 #include "domain_event.h"
 #include "virtime.h"
 #include "virstoragefile.h"
+#include "virstring.h"
 
 #include <sys/time.h>
 #include <fcntl.h>
@@ -186,7 +187,7 @@ qemuDomainObjTransferJob(virDomainObjPtr obj)
 {
     qemuDomainObjPrivatePtr priv = obj->privateData;
 
-    VIR_DEBUG("Changing job owner from %d to %d",
+    VIR_DEBUG("Changing job owner from %llu to %llu",
               priv->job.owner, virThreadSelfID());
     priv->job.owner = virThreadSelfID();
 }
@@ -290,7 +291,7 @@ qemuDomainObjPrivateXMLFormat(virBufferPtr buf, void *data)
     if (priv->nvcpupids) {
         int i;
         virBufferAddLit(buf, "  <vcpus>\n");
-        for (i = 0 ; i < priv->nvcpupids ; i++) {
+        for (i = 0; i < priv->nvcpupids; i++) {
             virBufferAsprintf(buf, "    <vcpu pid='%d'/>\n", priv->vcpupids[i]);
         }
         virBufferAddLit(buf, "  </vcpus>\n");
@@ -299,7 +300,7 @@ qemuDomainObjPrivateXMLFormat(virBufferPtr buf, void *data)
     if (priv->qemuCaps) {
         int i;
         virBufferAddLit(buf, "  <qemuCaps>\n");
-        for (i = 0 ; i < QEMU_CAPS_LAST ; i++) {
+        for (i = 0; i < QEMU_CAPS_LAST; i++) {
             if (virQEMUCapsGet(priv->qemuCaps, i)) {
                 virBufferAsprintf(buf, "    <flag name='%s'/>\n",
                                   virQEMUCapsTypeToString(i));
@@ -329,7 +330,7 @@ qemuDomainObjPrivateXMLFormat(virBufferPtr buf, void *data)
     priv->job.active = job;
 
     if (priv->fakeReboot)
-        virBufferAsprintf(buf, "  <fakereboot/>\n");
+        virBufferAddLit(buf, "  <fakereboot/>\n");
 
     return 0;
 }
@@ -363,11 +364,8 @@ qemuDomainObjPrivateXMLParse(xmlXPathContextPtr ctxt, void *data)
         priv->monConfig->type = VIR_DOMAIN_CHR_TYPE_PTY;
     VIR_FREE(tmp);
 
-    if (virXPathBoolean("count(./monitor[@json = '1']) > 0", ctxt)) {
-        priv->monJSON = 1;
-    } else {
-        priv->monJSON = 0;
-    }
+    priv->monJSON = virXPathBoolean("count(./monitor[@json = '1']) > 0",
+                                    ctxt) > 0;
 
     switch (priv->monConfig->type) {
     case VIR_DOMAIN_CHR_TYPE_PTY:
@@ -394,7 +392,7 @@ qemuDomainObjPrivateXMLParse(xmlXPathContextPtr ctxt, void *data)
             goto error;
         }
 
-        for (i = 0 ; i < n ; i++) {
+        for (i = 0; i < n; i++) {
             char *pidstr = virXMLPropString(nodes[i], "pid");
             if (!pidstr)
                 goto error;
@@ -417,7 +415,7 @@ qemuDomainObjPrivateXMLParse(xmlXPathContextPtr ctxt, void *data)
         if (!(qemuCaps = virQEMUCapsNew()))
             goto error;
 
-        for (i = 0 ; i < n ; i++) {
+        for (i = 0; i < n; i++) {
             char *str = virXMLPropString(nodes[i], "name");
             if (str) {
                 int flag = virQEMUCapsTypeFromString(str);
@@ -729,14 +727,10 @@ qemuDomainDeviceDefPostParse(virDomainDeviceDefPtr dev,
     if (dev->type == VIR_DOMAIN_DEVICE_NET &&
         dev->data.net->type != VIR_DOMAIN_NET_TYPE_HOSTDEV &&
         !dev->data.net->model) {
-        if (def->os.arch == VIR_ARCH_S390 ||
-            def->os.arch == VIR_ARCH_S390X)
-            dev->data.net->model = strdup("virtio");
-        else
-            dev->data.net->model = strdup("rtl8139");
-
-        if (!dev->data.net->model)
-            goto no_memory;
+        if (VIR_STRDUP(dev->data.net->model,
+                       def->os.arch == VIR_ARCH_S390 ||
+                       def->os.arch == VIR_ARCH_S390X ? "virtio" : "rtl8139") < 0)
+            goto cleanup;
     }
 
     /* set default disk types and drivers */
@@ -760,8 +754,8 @@ qemuDomainDeviceDefPostParse(virDomainDeviceDefPtr dev,
             } else {
                 /* default driver if probing is forbidden */
                 if (!disk->driverName &&
-                    !(disk->driverName = strdup("qemu")))
-                        goto no_memory;
+                    VIR_STRDUP(disk->driverName, "qemu") < 0)
+                        goto cleanup;
 
                 /* default disk format for drives */
                 if (disk->format == VIR_STORAGE_FILE_NONE &&
@@ -792,15 +786,29 @@ qemuDomainDeviceDefPostParse(virDomainDeviceDefPtr dev,
         (def->os.arch == VIR_ARCH_S390 || def->os.arch == VIR_ARCH_S390X))
         dev->data.controller->model = VIR_DOMAIN_CONTROLLER_MODEL_USB_NONE;
 
+    /* auto generate unix socket path */
+    if (dev->type == VIR_DOMAIN_DEVICE_CHR &&
+        dev->data.chr->deviceType == VIR_DOMAIN_CHR_DEVICE_TYPE_CHANNEL &&
+        dev->data.chr->targetType == VIR_DOMAIN_CHR_CHANNEL_TARGET_TYPE_VIRTIO &&
+        dev->data.chr->source.type == VIR_DOMAIN_CHR_TYPE_UNIX &&
+        !dev->data.chr->source.data.nix.path &&
+        (driver && (cfg = virQEMUDriverGetConfig(driver)))) {
+
+        if (virAsprintf(&dev->data.chr->source.data.nix.path,
+                        "%s/channel/target/%s.%s",
+                        cfg->libDir, def->name,
+                        dev->data.chr->target.name) < 0) {
+            virReportOOMError();
+            goto cleanup;
+        }
+        dev->data.chr->source.data.nix.listen = true;
+    }
+
     ret = 0;
 
 cleanup:
     virObjectUnref(cfg);
     return ret;
-
-no_memory:
-    virReportOOMError();
-    goto cleanup;
 }
 
 
@@ -829,7 +837,7 @@ qemuDomainObjSetJobPhase(virQEMUDriverPtr driver,
                          int phase)
 {
     qemuDomainObjPrivatePtr priv = obj->privateData;
-    int me = virThreadSelfID();
+    unsigned long long me = virThreadSelfID();
 
     if (!priv->job.asyncJob)
         return;
@@ -839,7 +847,7 @@ qemuDomainObjSetJobPhase(virQEMUDriverPtr driver,
               qemuDomainAsyncJobPhaseToString(priv->job.asyncJob, phase));
 
     if (priv->job.asyncOwner && me != priv->job.asyncOwner) {
-        VIR_WARN("'%s' async job is owned by thread %d",
+        VIR_WARN("'%s' async job is owned by thread %llu",
                  qemuDomainAsyncJobTypeToString(priv->job.asyncJob),
                  priv->job.asyncOwner);
     }
@@ -881,7 +889,7 @@ qemuDomainObjReleaseAsyncJob(virDomainObjPtr obj)
               qemuDomainAsyncJobTypeToString(priv->job.asyncJob));
 
     if (priv->job.asyncOwner != virThreadSelfID()) {
-        VIR_WARN("'%s' async job is owned by thread %d",
+        VIR_WARN("'%s' async job is owned by thread %llu",
                  qemuDomainAsyncJobTypeToString(priv->job.asyncJob),
                  priv->job.asyncOwner);
     }
@@ -975,7 +983,7 @@ retry:
 
 error:
     VIR_WARN("Cannot start job (%s, %s) for domain %s;"
-             " current job is (%s, %s) owned by (%d, %d)",
+             " current job is (%s, %s) owned by (%llu, %llu)",
              qemuDomainJobTypeToString(job),
              qemuDomainAsyncJobTypeToString(asyncJob),
              obj->def->name,
@@ -1039,7 +1047,7 @@ qemuDomainObjBeginNestedJob(virQEMUDriverPtr driver,
     }
 
     if (priv->job.asyncOwner != virThreadSelfID()) {
-        VIR_WARN("This thread doesn't seem to be the async job owner: %d",
+        VIR_WARN("This thread doesn't seem to be the async job owner: %llu",
                  priv->job.asyncOwner);
     }
 
@@ -1488,10 +1496,10 @@ void qemuDomainObjCheckTaint(virQEMUDriverPtr driver,
     if (obj->def->cpu && obj->def->cpu->mode == VIR_CPU_MODE_HOST_PASSTHROUGH)
         qemuDomainObjTaint(driver, obj, VIR_DOMAIN_TAINT_HOST_CPU, logFD);
 
-    for (i = 0 ; i < obj->def->ndisks ; i++)
+    for (i = 0; i < obj->def->ndisks; i++)
         qemuDomainObjCheckDiskTaint(driver, obj, obj->def->disks[i], logFD);
 
-    for (i = 0 ; i < obj->def->nnets ; i++)
+    for (i = 0; i < obj->def->nnets; i++)
         qemuDomainObjCheckNetTaint(driver, obj, obj->def->nets[i], logFD);
 
     virObjectUnref(cfg);

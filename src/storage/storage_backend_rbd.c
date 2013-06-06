@@ -26,11 +26,11 @@
 #include "virerror.h"
 #include "storage_backend_rbd.h"
 #include "storage_conf.h"
-#include "virutil.h"
 #include "viralloc.h"
 #include "virlog.h"
 #include "base64.h"
 #include "viruuid.h"
+#include "virstring.h"
 #include "rados/librados.h"
 #include "rbd/librbd.h"
 
@@ -334,10 +334,9 @@ static int virStorageBackendRBDRefreshPool(virConnectPtr conn ATTRIBUTE_UNUSED,
         if (VIR_ALLOC(vol) < 0)
             goto out_of_memory;
 
-        vol->name = strdup(name);
-        if (vol->name == NULL) {
+        if (VIR_STRDUP(vol->name, name) < 0) {
             VIR_FREE(vol);
-            goto out_of_memory;
+            goto cleanup;
         }
 
         name += strlen(name) + 1;

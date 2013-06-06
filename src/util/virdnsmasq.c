@@ -1,7 +1,7 @@
 /*
  * virdnsmasq.c: Helper APIs for managing dnsmasq
  *
- * Copyright (C) 2007-2012 Red Hat, Inc.
+ * Copyright (C) 2007-2013 Red Hat, Inc.
  * Copyright (C) 2010 Satoru SATOH <satoru.satoh@gmail.com>
  *
  * This library is free software; you can redistribute it and/or
@@ -49,6 +49,7 @@
 #include "virerror.h"
 #include "virlog.h"
 #include "virfile.h"
+#include "virstring.h"
 
 #define VIR_FROM_THIS VIR_FROM_NETWORK
 #define DNSMASQ_HOSTSFILE_SUFFIX "hostsfile"
@@ -117,8 +118,8 @@ addnhostsAdd(dnsmasqAddnHostsfile *addnhostsfile,
         if (VIR_ALLOC(addnhostsfile->hosts[idx].hostnames) < 0)
             goto alloc_error;
 
-        if (virAsprintf(&addnhostsfile->hosts[idx].ip, "%s", ipstr) < 0)
-            goto alloc_error;
+        if (VIR_STRDUP(addnhostsfile->hosts[idx].ip, ipstr) < 0)
+            goto error;
 
         addnhostsfile->hosts[idx].nhostnames = 0;
         addnhostsfile->nhosts++;
@@ -127,8 +128,9 @@ addnhostsAdd(dnsmasqAddnHostsfile *addnhostsfile,
     if (VIR_REALLOC_N(addnhostsfile->hosts[idx].hostnames, addnhostsfile->hosts[idx].nhostnames + 1) < 0)
         goto alloc_error;
 
-    if (virAsprintf(&addnhostsfile->hosts[idx].hostnames[addnhostsfile->hosts[idx].nhostnames], "%s", name) < 0)
-        goto alloc_error;
+    if (VIR_STRDUP(addnhostsfile->hosts[idx].hostnames[addnhostsfile->hosts[idx].nhostnames],
+                   name) < 0)
+        goto error;
 
     VIR_FREE(ipstr);
 
@@ -138,6 +140,7 @@ addnhostsAdd(dnsmasqAddnHostsfile *addnhostsfile,
 
  alloc_error:
     virReportOOMError();
+ error:
     VIR_FREE(ipstr);
     return -1;
 }
@@ -468,10 +471,8 @@ dnsmasqContextNew(const char *network_name,
         return NULL;
     }
 
-    if (!(ctx->config_dir = strdup(config_dir))) {
-        virReportOOMError();
+    if (VIR_STRDUP(ctx->config_dir, config_dir) < 0)
         goto error;
-    }
 
     if (!(ctx->hostsfile = hostsfileNew(network_name, config_dir)))
         goto error;
@@ -795,14 +796,15 @@ dnsmasqCapsNewEmpty(const char *binaryPath)
         return NULL;
     if (!(caps = virObjectNew(dnsmasqCapsClass)))
         return NULL;
-    if (!(caps->flags = virBitmapNew(DNSMASQ_CAPS_LAST)))
+    if (!(caps->flags = virBitmapNew(DNSMASQ_CAPS_LAST))) {
+        virReportOOMError();
         goto error;
-    if (!(caps->binaryPath = strdup(binaryPath ? binaryPath : DNSMASQ)))
+    }
+    if (VIR_STRDUP(caps->binaryPath, binaryPath ? binaryPath : DNSMASQ) < 0)
         goto error;
     return caps;
 
 error:
-    virReportOOMError();
     virObjectUnref(caps);
     return NULL;
 }

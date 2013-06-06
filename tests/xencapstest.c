@@ -10,6 +10,7 @@
 #include "testutils.h"
 #include "xen/xen_hypervisor.h"
 #include "virfile.h"
+#include "virstring.h"
 
 static int
 testCompareFiles(virArch hostmachine, const char *xml_rel,
@@ -160,7 +161,8 @@ mymain(void)
     int ret = 0;
 
     xenHypervisorInit(&hv_versions);
-    virInitialize();
+    if (virInitialize() < 0)
+        return EXIT_FAILURE;
 
     if (virtTestRun("Capabilities for i686, no PAE, no HVM",
                     1, testXeni686, NULL) != 0)

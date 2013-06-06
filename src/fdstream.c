@@ -40,6 +40,7 @@
 #include "virutil.h"
 #include "virfile.h"
 #include "configmake.h"
+#include "virstring.h"
 
 #define VIR_FROM_THIS VIR_FROM_STREAMS
 
@@ -72,6 +73,18 @@ struct virFDStreamData {
 
     virMutex lock;
 };
+
+
+static const char *iohelper_path = LIBEXECDIR "/libvirt_iohelper";
+
+void virFDStreamSetIOHelper(const char *path)
+{
+    if (path == NULL)
+        iohelper_path = LIBEXECDIR "/libvirt_iohelper";
+    else
+        iohelper_path = path;
+}
+
 
 static int virFDStreamRemoveCallback(virStreamPtr stream)
 {
@@ -633,14 +646,14 @@ virFDStreamOpenFileInternal(virStreamPtr st,
             goto error;
         }
 
-        cmd = virCommandNewArgList(LIBEXECDIR "/libvirt_iohelper",
+        cmd = virCommandNewArgList(iohelper_path,
                                    path,
                                    NULL);
         virCommandAddArgFormat(cmd, "%llu", length);
         virCommandTransferFD(cmd, fd);
         virCommandAddArgFormat(cmd, "%d", fd);
 
-        if (oflags == O_RDONLY) {
+        if ((oflags & O_ACCMODE) == O_RDONLY) {
             childfd = fds[1];
             fd = fds[0];
             virCommandSetOutputFD(cmd, &childfd);

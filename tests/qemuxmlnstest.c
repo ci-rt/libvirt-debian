@@ -18,8 +18,10 @@
 # include "qemu/qemu_domain.h"
 # include "datatypes.h"
 # include "cpu/cpu_map.h"
-
 # include "testutilsqemu.h"
+# include "virstring.h"
+
+# define VIR_FROM_THIS VIR_FROM_QEMU
 
 static const char *abs_top_srcdir;
 static virQEMUDriver driver;
@@ -68,7 +70,7 @@ static int testCompareXMLToArgvFiles(const char *xml,
      * detects such paths, strips the extra '/' and makes the path absolute.
      */
     if (vmdef->emulator && STRPREFIX(vmdef->emulator, "/.")) {
-        if (!(emulator = strdup(vmdef->emulator + 1)))
+        if (VIR_STRDUP(emulator, vmdef->emulator + 1) < 0)
             goto fail;
         VIR_FREE(vmdef->emulator);
         vmdef->emulator = NULL;
@@ -111,7 +113,8 @@ static int testCompareXMLToArgvFiles(const char *xml,
     if (!(cmd = qemuBuildCommandLine(conn, &driver,
                                      vmdef, &monitor_chr, json, extraFlags,
                                      migrateFrom, migrateFd, NULL,
-                                     VIR_NETDEV_VPORT_PROFILE_OP_NO_OP)))
+                                     VIR_NETDEV_VPORT_PROFILE_OP_NO_OP,
+                                     &testCallbacks)))
         goto fail;
 
     if (!!virGetLastError() != expectError) {

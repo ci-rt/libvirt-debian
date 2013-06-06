@@ -255,28 +255,28 @@
       Libvirt supports the following storage pool types:
     </p>
         <ul><li>
-        <a href="#StorageBackendDir">Directory backend</a>
+        <a href="#StorageBackendDir" shape="rect">Directory backend</a>
       </li><li>
-        <a href="#StorageBackendFS">Local filesystem backend</a>
+        <a href="#StorageBackendFS" shape="rect">Local filesystem backend</a>
       </li><li>
-        <a href="#StorageBackendNetFS">Network filesystem backend</a>
+        <a href="#StorageBackendNetFS" shape="rect">Network filesystem backend</a>
       </li><li>
-        <a href="#StorageBackendLogical">Logical backend</a>
+        <a href="#StorageBackendLogical" shape="rect">Logical backend</a>
       </li><li>
-        <a href="#StorageBackendDisk">Disk backend</a>
+        <a href="#StorageBackendDisk" shape="rect">Disk backend</a>
       </li><li>
-        <a href="#StorageBackendISCSI">iSCSI backend</a>
+        <a href="#StorageBackendISCSI" shape="rect">iSCSI backend</a>
       </li><li>
-        <a href="#StorageBackendSCSI">SCSI backend</a>
+        <a href="#StorageBackendSCSI" shape="rect">SCSI backend</a>
       </li><li>
-        <a href="#StorageBackendMultipath">Multipath backend</a>
+        <a href="#StorageBackendMultipath" shape="rect">Multipath backend</a>
       </li><li>
-        <a href="#StorageBackendRBD">RBD (RADOS Block Device) backend</a>
+        <a href="#StorageBackendRBD" shape="rect">RBD (RADOS Block Device) backend</a>
       </li><li>
-        <a href="#StorageBackendSheepdog">Sheepdog backend</a>
+        <a href="#StorageBackendSheepdog" shape="rect">Sheepdog backend</a>
       </li></ul>
         <h2>
-          <a name="StorageBackendDir" id="StorageBackendDir">Directory pool</a>
+          <a name="StorageBackendDir" shape="rect" id="StorageBackendDir">Directory pool</a>
         </h2>
         <p>
       A pool with a type of <code>dir</code> provides the means to manage
@@ -288,7 +288,7 @@
       defined, the <code>build</code> operation can be used to create it.
     </p>
         <h3>Example pool input definition</h3>
-        <pre>
+        <pre xml:space="preserve">
       &lt;pool type="dir"&gt;
         &lt;name&gt;virtimages&lt;/name&gt;
         &lt;target&gt;
@@ -315,7 +315,7 @@
 
     </p>
         <h2>
-          <a name="StorageBackendFS" id="StorageBackendFS">Filesystem pool</a>
+          <a name="StorageBackendFS" shape="rect" id="StorageBackendFS">Filesystem pool</a>
         </h2>
         <p>
       This is a variant of the directory pool. Instead of creating a
@@ -327,7 +327,7 @@
       required.
     </p>
         <h3>Example pool input</h3>
-        <pre>
+        <pre xml:space="preserve">
       &lt;pool type="fs"&gt;
         &lt;name&gt;virtimages&lt;/name&gt;
         &lt;source&gt;
@@ -372,7 +372,7 @@
       pool type.
     </p>
         <h2>
-          <a name="StorageBackendNetFS" id="StorageBackendNetFS">Network filesystem pool</a>
+          <a name="StorageBackendNetFS" shape="rect" id="StorageBackendNetFS">Network filesystem pool</a>
         </h2>
         <p>
       This is a variant of the filesystem pool. Instead of requiring
@@ -382,7 +382,7 @@
       point. It will default to using NFS as the protocol.
     </p>
         <h3>Example pool input</h3>
-        <pre>
+        <pre xml:space="preserve">
       &lt;pool type="netfs"&gt;
         &lt;name&gt;virtimages&lt;/name&gt;
         &lt;source&gt;
@@ -410,7 +410,7 @@
       pool type.
     </p>
         <h2>
-          <a name="StorageBackendLogical" id="StorageBackendLogical">Logical volume pools</a>
+          <a name="StorageBackendLogical" shape="rect" id="StorageBackendLogical">Logical volume pools</a>
         </h2>
         <p>
       This provides a pool based on an LVM volume group. For a
@@ -421,7 +421,7 @@
       of storage from the volume group.
     </p>
         <h3>Example pool input</h3>
-        <pre>
+        <pre xml:space="preserve">
       &lt;pool type="logical"&gt;
         &lt;name&gt;HostVG&lt;/name&gt;
         &lt;source&gt;
@@ -445,7 +445,7 @@
       The logical volume pool does not use the volume format type element.
     </p>
         <h2>
-          <a name="StorageBackendDisk" id="StorageBackendDisk">Disk volume pools</a>
+          <a name="StorageBackendDisk" shape="rect" id="StorageBackendDisk">Disk volume pools</a>
         </h2>
         <p>
       This provides a pool based on a physical disk. Volumes are created
@@ -455,7 +455,7 @@
       new volumes. A volume cannot span across 2 different free extents.
     </p>
         <h3>Example pool input</h3>
-        <pre>
+        <pre xml:space="preserve">
       &lt;pool type="disk"&gt;
         &lt;name&gt;sda&lt;/name&gt;
         &lt;source&gt;
@@ -514,7 +514,7 @@
         <code>extended</code>
       </li></ul>
         <h2>
-          <a name="StorageBackendISCSI" id="StorageBackendISCSI">iSCSI volume pools</a>
+          <a name="StorageBackendISCSI" shape="rect" id="StorageBackendISCSI">iSCSI volume pools</a>
         </h2>
         <p>
       This provides a pool based on an iSCSI target. Volumes must be
@@ -525,7 +525,7 @@
       for the target path. These provide persistent stable naming for LUNs
     </p>
         <h3>Example pool input</h3>
-        <pre>
+        <pre xml:space="preserve">
       &lt;pool type="iscsi"&gt;
         &lt;name&gt;virtimages&lt;/name&gt;
         &lt;source&gt;
@@ -545,7 +545,7 @@
       The iSCSI volume pool does not use the volume format type element.
     </p>
         <h2>
-          <a name="StorageBackendSCSI" id="StorageBackendSCSI">SCSI volume pools</a>
+          <a name="StorageBackendSCSI" shape="rect" id="StorageBackendSCSI">SCSI volume pools</a>
         </h2>
         <p>
       This provides a pool based on a SCSI HBA. Volumes are preexisting SCSI
@@ -556,7 +556,7 @@
       <span class="since">Since 0.6.2</span>
     </p>
         <h3>Example pool input</h3>
-        <pre>
+        <pre xml:space="preserve">
       &lt;pool type="scsi"&gt;
         &lt;name&gt;virtimages&lt;/name&gt;
         &lt;source&gt;
@@ -575,7 +575,7 @@
       The SCSI volume pool does not use the volume format type element.
     </p>
         <h2>
-          <a name="StorageBackendMultipath" id="StorageBackendMultipath">Multipath pools</a>
+          <a name="StorageBackendMultipath" shape="rect" id="StorageBackendMultipath">Multipath pools</a>
         </h2>
         <p>
       This provides a pool that contains all the multipath devices on the
@@ -589,7 +589,7 @@
       <span class="since">Since 0.7.1</span>
     </p>
         <h3>Example pool input</h3>
-        <pre>
+        <pre xml:space="preserve">
       &lt;pool type="mpath"&gt;
         &lt;name&gt;virtimages&lt;/name&gt;
         &lt;target&gt;
@@ -605,7 +605,7 @@
       The Multipath volume pool does not use the volume format type element.
     </p>
         <h2>
-          <a name="StorageBackendRBD" id="StorageBackendRBD">RBD pools</a>
+          <a name="StorageBackendRBD" shape="rect" id="StorageBackendRBD">RBD pools</a>
         </h2>
         <p>
       This storage driver provides a pool which contains all RBD
@@ -625,7 +625,7 @@
       <span class="since">Since 0.9.13</span>
     </p>
         <h3>Example pool input</h3>
-        <pre>
+        <pre xml:space="preserve">
       &lt;pool type="rbd"&gt;
         &lt;name&gt;myrbdpool&lt;/name&gt;
         &lt;source&gt;
@@ -639,7 +639,7 @@
         &lt;/source&gt;
       &lt;/pool&gt;</pre>
         <h3>Example volume output</h3>
-        <pre>
+        <pre xml:space="preserve">
        &lt;volume&gt;
          &lt;name&gt;myvol&lt;/name&gt;
          &lt;key&gt;rbd/myvol&lt;/key&gt;
@@ -661,7 +661,7 @@
         <p>RBD images can be attached to Qemu guests when Qemu is built
     with RBD support. Information about attaching a RBD image to a
     guest can be found
-    at <a href="formatdomain.html#elementsDisks">format domain</a>
+    at <a href="formatdomain.html#elementsDisks" shape="rect">format domain</a>
     page.</p>
         <h3>Valid pool format types</h3>
         <p>
@@ -672,7 +672,7 @@
       The RBD pool does not use the volume format type element.
     </p>
         <h2>
-          <a name="StorageBackendSheepdog" id="StorageBackendSheepdog">Sheepdog pools</a>
+          <a name="StorageBackendSheepdog" shape="rect" id="StorageBackendSheepdog">Sheepdog pools</a>
         </h2>
         <p>
       This provides a pool based on a Sheepdog Cluster.
@@ -685,7 +685,7 @@
       <span class="since">Since 0.9.13</span>
     </p>
         <h3>Example pool input</h3>
-        <pre>
+        <pre xml:space="preserve">
       &lt;pool type="sheepdog"&gt;
         &lt;name&gt;mysheeppool&lt;/name&gt;
         &lt;source&gt;
@@ -694,7 +694,7 @@
         &lt;/source&gt;
       &lt;/pool&gt;</pre>
         <h3>Example volume output</h3>
-        <pre>
+        <pre xml:space="preserve">
        &lt;volume&gt;
          &lt;name&gt;myvol&lt;/name&gt;
          &lt;key&gt;sheep/myvol&lt;/key&gt;
@@ -716,7 +716,7 @@
         <p>Sheepdog images can be attached to Qemu guests.
     Information about attaching a Sheepdog image to a
     guest can be found
-    at the <a href="formatdomain.html#elementsDisks">format domain</a>
+    at the <a href="formatdomain.html#elementsDisks" shape="rect">format domain</a>
     page.</p>
         <h3>Valid pool format types</h3>
         <p>

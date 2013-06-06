@@ -52,7 +52,7 @@
 #include "virfile.h"
 #include "virthread.h"
 #include "virprocess.h"
-
+#include "virstring.h"
 #include "passfd.h"
 
 #if WITH_SSH2
@@ -321,7 +321,7 @@ int virNetSocketNewListenTCP(const char *nodename,
     return 0;
 
 error:
-    for (i = 0 ; i < nsocks ; i++)
+    for (i = 0; i < nsocks; i++)
         virObjectUnref(socks[i]);
     VIR_FREE(socks);
     freeaddrinfo(ai);
@@ -800,10 +800,10 @@ virNetSocketNewConnectLibSSH2(const char *host,
     if (virNetSSHSessionSetChannelCommand(sess, command) != 0)
         goto error;
 
-    if (!(authMethodNext = authMethodsCopy = strdup(authMethods))) {
-        virReportOOMError();
+    if (VIR_STRDUP(authMethodsCopy, authMethods) < 0)
         goto error;
-    }
+
+    authMethodNext = authMethodsCopy;
 
     while ((authMethod = strsep(&authMethodNext, ","))) {
         if (STRCASEEQ(authMethod, "keyboard-interactive"))
@@ -1055,7 +1055,7 @@ int virNetSocketDupFD(virNetSocketPtr sock, bool cloexec)
     int fd;
 
     if (cloexec)
-        fd = fcntl(sock->fd, F_DUPFD_CLOEXEC);
+        fd = fcntl(sock->fd, F_DUPFD_CLOEXEC, 0);
     else
         fd = dup(sock->fd);
     if (fd < 0) {
@@ -1103,31 +1103,41 @@ int virNetSocketGetPort(virNetSocketPtr sock)
 int virNetSocketGetUNIXIdentity(virNetSocketPtr sock,
                                 uid_t *uid,
                                 gid_t *gid,
-                                pid_t *pid)
+                                pid_t *pid,
+                                unsigned long long *timestamp)
 {
     struct ucred cr;
     socklen_t cr_len = sizeof(cr);
+    int ret = -1;
+
     virObjectLock(sock);
 
     if (getsockopt(sock->fd, SOL_SOCKET, SO_PEERCRED, &cr, &cr_len) < 0) {
         virReportSystemError(errno, "%s",
                              _("Failed to get client socket identity"));
-        virObjectUnlock(sock);
-        return -1;
+        goto cleanup;
     }
+
+    if (virProcessGetStartTime(cr.pid, timestamp) < 0)
+        goto cleanup;
 
     *pid = cr.pid;
     *uid = cr.uid;
     *gid = cr.gid;
 
+    ret = 0;
+
+cleanup:
     virObjectUnlock(sock);
-    return 0;
+    return ret;
 }
 #elif defined(LOCAL_PEERCRED)
+
 int virNetSocketGetUNIXIdentity(virNetSocketPtr sock,
                                 uid_t *uid,
                                 gid_t *gid,
-                                pid_t *pid)
+                                pid_t *pid,
+                                unsigned long long *timestamp ATTRIBUTE_UNUSED)
 {
     struct xucred cr;
     socklen_t cr_len = sizeof(cr);
@@ -1151,7 +1161,8 @@ int virNetSocketGetUNIXIdentity(virNetSocketPtr sock,
 int virNetSocketGetUNIXIdentity(virNetSocketPtr sock ATTRIBUTE_UNUSED,
                                 uid_t *uid ATTRIBUTE_UNUSED,
                                 gid_t *gid ATTRIBUTE_UNUSED,
-                                pid_t *pid ATTRIBUTE_UNUSED)
+                                pid_t *pid ATTRIBUTE_UNUSED,
+                                unsigned long long *timestamp ATTRIBUTE_UNUSED)
 {
     /* XXX Many more OS support UNIX socket credentials we could port to. See dbus ....*/
     virReportSystemError(ENOSYS, "%s",
@@ -1161,8 +1172,8 @@ int virNetSocketGetUNIXIdentity(virNetSocketPtr sock ATTRIBUTE_UNUSED,
 #endif
 
 #ifdef WITH_SELINUX
-int virNetSocketGetSecurityContext(virNetSocketPtr sock,
-                                   char **context)
+int virNetSocketGetSELinuxContext(virNetSocketPtr sock,
+                                  char **context)
 {
     security_context_t seccon = NULL;
     int ret = -1;
@@ -1180,10 +1191,8 @@ int virNetSocketGetSecurityContext(virNetSocketPtr sock,
         goto cleanup;
     }
 
-    if (!(*context = strdup(seccon))) {
-        virReportOOMError();
+    if (VIR_STRDUP(*context, seccon) < 0)
         goto cleanup;
-    }
 
     ret = 0;
 cleanup:
@@ -1192,8 +1201,8 @@ cleanup:
     return ret;
 }
 #else
-int virNetSocketGetSecurityContext(virNetSocketPtr sock ATTRIBUTE_UNUSED,
-                                   char **context)
+int virNetSocketGetSELinuxContext(virNetSocketPtr sock ATTRIBUTE_UNUSED,
+                                  char **context)
 {
     *context = NULL;
     return 0;

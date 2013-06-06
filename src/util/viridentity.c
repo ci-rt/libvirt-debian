@@ -34,6 +34,7 @@
 #include "virobject.h"
 #include "virthread.h"
 #include "virutil.h"
+#include "virstring.h"
 
 #define VIR_FROM_THIS VIR_FROM_IDENTITY
 
@@ -150,12 +151,11 @@ virIdentityPtr virIdentityGetSystem(void)
                              _("Unable to lookup SELinux process context"));
         goto cleanup;
     }
-    seccontext = strdup(con);
-    freecon(con);
-    if (!seccontext) {
-        virReportOOMError();
+    if (VIR_STRDUP(seccontext, con) < 0) {
+        freecon(con);
         goto cleanup;
     }
+    freecon(con);
 #endif
 
     if (!(ret = virIdentityNew()))
@@ -173,7 +173,7 @@ virIdentityPtr virIdentityGetSystem(void)
         goto error;
     if (seccontext &&
         virIdentitySetAttr(ret,
-                           VIR_IDENTITY_ATTR_SECURITY_CONTEXT,
+                           VIR_IDENTITY_ATTR_SELINUX_CONTEXT,
                            seccontext) < 0)
         goto error;
 
@@ -217,7 +217,7 @@ static void virIdentityDispose(void *object)
     virIdentityPtr ident = object;
     size_t i;
 
-    for (i = 0 ; i < VIR_IDENTITY_ATTR_LAST ; i++)
+    for (i = 0; i < VIR_IDENTITY_ATTR_LAST; i++)
         VIR_FREE(ident->attrs[i]);
 }
 
@@ -246,10 +246,8 @@ int virIdentitySetAttr(virIdentityPtr ident,
         goto cleanup;
     }
 
-    if (!(ident->attrs[attr] = strdup(value))) {
-        virReportOOMError();
+    if (VIR_STRDUP(ident->attrs[attr], value) < 0)
         goto cleanup;
-    }
 
     ret = 0;
 
@@ -300,7 +298,7 @@ bool virIdentityIsEqual(virIdentityPtr identA,
     size_t i;
     VIR_DEBUG("identA=%p identB=%p", identA, identB);
 
-    for (i = 0 ; i < VIR_IDENTITY_ATTR_LAST ; i++) {
+    for (i = 0; i < VIR_IDENTITY_ATTR_LAST; i++) {
         if (STRNEQ_NULLABLE(identA->attrs[i],
                             identB->attrs[i]))
             goto cleanup;

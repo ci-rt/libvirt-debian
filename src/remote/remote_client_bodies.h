@@ -313,16 +313,14 @@ remoteConnectListDefinedDomains(virConnectPtr conn, char **const names, int maxn
 
     /* This call is caller-frees (although that isn't clear from
      * the documentation).  However xdr_free will free up both the
-     * names and the list of pointers, so we have to strdup the
+     * names and the list of pointers, so we have to VIR_STRDUP the
      * names here. */
     for (i = 0; i < ret.names.names_len; ++i) {
-        names[i] = strdup(ret.names.names_val[i]);
-
-        if (names[i] == NULL) {
+        if (VIR_STRDUP(names[i],
+                       ret.names.names_val[i]) < 0) {
             for (--i; i >= 0; --i)
                 VIR_FREE(names[i]);
 
-            virReportOOMError();
             goto cleanup;
         }
     }
@@ -374,16 +372,14 @@ remoteConnectListDefinedInterfaces(virConnectPtr conn, char **const names, int m
 
     /* This call is caller-frees (although that isn't clear from
      * the documentation).  However xdr_free will free up both the
-     * names and the list of pointers, so we have to strdup the
+     * names and the list of pointers, so we have to VIR_STRDUP the
      * names here. */
     for (i = 0; i < ret.names.names_len; ++i) {
-        names[i] = strdup(ret.names.names_val[i]);
-
-        if (names[i] == NULL) {
+        if (VIR_STRDUP(names[i],
+                       ret.names.names_val[i]) < 0) {
             for (--i; i >= 0; --i)
                 VIR_FREE(names[i]);
 
-            virReportOOMError();
             goto cleanup;
         }
     }
@@ -435,16 +431,14 @@ remoteConnectListDefinedNetworks(virConnectPtr conn, char **const names, int max
 
     /* This call is caller-frees (although that isn't clear from
      * the documentation).  However xdr_free will free up both the
-     * names and the list of pointers, so we have to strdup the
+     * names and the list of pointers, so we have to VIR_STRDUP the
      * names here. */
     for (i = 0; i < ret.names.names_len; ++i) {
-        names[i] = strdup(ret.names.names_val[i]);
-
-        if (names[i] == NULL) {
+        if (VIR_STRDUP(names[i],
+                       ret.names.names_val[i]) < 0) {
             for (--i; i >= 0; --i)
                 VIR_FREE(names[i]);
 
-            virReportOOMError();
             goto cleanup;
         }
     }
@@ -496,16 +490,14 @@ remoteConnectListDefinedStoragePools(virConnectPtr conn, char **const names, int
 
     /* This call is caller-frees (although that isn't clear from
      * the documentation).  However xdr_free will free up both the
-     * names and the list of pointers, so we have to strdup the
+     * names and the list of pointers, so we have to VIR_STRDUP the
      * names here. */
     for (i = 0; i < ret.names.names_len; ++i) {
-        names[i] = strdup(ret.names.names_val[i]);
-
-        if (names[i] == NULL) {
+        if (VIR_STRDUP(names[i],
+                       ret.names.names_val[i]) < 0) {
             for (--i; i >= 0; --i)
                 VIR_FREE(names[i]);
 
-            virReportOOMError();
             goto cleanup;
         }
     }
@@ -557,16 +549,14 @@ remoteConnectListInterfaces(virConnectPtr conn, char **const names, int maxnames
 
     /* This call is caller-frees (although that isn't clear from
      * the documentation).  However xdr_free will free up both the
-     * names and the list of pointers, so we have to strdup the
+     * names and the list of pointers, so we have to VIR_STRDUP the
      * names here. */
     for (i = 0; i < ret.names.names_len; ++i) {
-        names[i] = strdup(ret.names.names_val[i]);
-
-        if (names[i] == NULL) {
+        if (VIR_STRDUP(names[i],
+                       ret.names.names_val[i]) < 0) {
             for (--i; i >= 0; --i)
                 VIR_FREE(names[i]);
 
-            virReportOOMError();
             goto cleanup;
         }
     }
@@ -618,16 +608,14 @@ remoteConnectListNetworks(virConnectPtr conn, char **const names, int maxnames)
 
     /* This call is caller-frees (although that isn't clear from
      * the documentation).  However xdr_free will free up both the
-     * names and the list of pointers, so we have to strdup the
+     * names and the list of pointers, so we have to VIR_STRDUP the
      * names here. */
     for (i = 0; i < ret.names.names_len; ++i) {
-        names[i] = strdup(ret.names.names_val[i]);
-
-        if (names[i] == NULL) {
+        if (VIR_STRDUP(names[i],
+                       ret.names.names_val[i]) < 0) {
             for (--i; i >= 0; --i)
                 VIR_FREE(names[i]);
 
-            virReportOOMError();
             goto cleanup;
         }
     }
@@ -679,16 +667,14 @@ remoteConnectListNWFilters(virConnectPtr conn, char **const names, int maxnames)
 
     /* This call is caller-frees (although that isn't clear from
      * the documentation).  However xdr_free will free up both the
-     * names and the list of pointers, so we have to strdup the
+     * names and the list of pointers, so we have to VIR_STRDUP the
      * names here. */
     for (i = 0; i < ret.names.names_len; ++i) {
-        names[i] = strdup(ret.names.names_val[i]);
-
-        if (names[i] == NULL) {
+        if (VIR_STRDUP(names[i],
+                       ret.names.names_val[i]) < 0) {
             for (--i; i >= 0; --i)
                 VIR_FREE(names[i]);
 
-            virReportOOMError();
             goto cleanup;
         }
     }
@@ -740,16 +726,14 @@ remoteConnectListSecrets(virConnectPtr conn, char **const uuids, int maxuuids)
 
     /* This call is caller-frees (although that isn't clear from
      * the documentation).  However xdr_free will free up both the
-     * names and the list of pointers, so we have to strdup the
+     * names and the list of pointers, so we have to VIR_STRDUP the
      * names here. */
     for (i = 0; i < ret.uuids.uuids_len; ++i) {
-        uuids[i] = strdup(ret.uuids.uuids_val[i]);
-
-        if (uuids[i] == NULL) {
+        if (VIR_STRDUP(uuids[i],
+                       ret.uuids.uuids_val[i]) < 0) {
             for (--i; i >= 0; --i)
                 VIR_FREE(uuids[i]);
 
-            virReportOOMError();
             goto cleanup;
         }
     }
@@ -801,16 +785,14 @@ remoteConnectListStoragePools(virConnectPtr conn, char **const names, int maxnam
 
     /* This call is caller-frees (although that isn't clear from
      * the documentation).  However xdr_free will free up both the
-     * names and the list of pointers, so we have to strdup the
+     * names and the list of pointers, so we have to VIR_STRDUP the
      * names here. */
     for (i = 0; i < ret.names.names_len; ++i) {
-        names[i] = strdup(ret.names.names_val[i]);
-
-        if (names[i] == NULL) {
+        if (VIR_STRDUP(names[i],
+                       ret.names.names_val[i]) < 0) {
             for (--i; i >= 0; --i)
                 VIR_FREE(names[i]);
 
-            virReportOOMError();
             goto cleanup;
         }
     }
@@ -1383,36 +1365,6 @@ remoteDomainCoreDump(virDomainPtr dom, const char *to, unsigned int flags)
         goto done;
     }
 
-    rv = 0;
-
-done:
-    remoteDriverUnlock(priv);
-    return rv;
-}
-
-static int
-remoteDomainCreateWithFlags(virDomainPtr dom, unsigned int flags)
-{
-    int rv = -1;
-    struct private_data *priv = dom->conn->privateData;
-    remote_domain_create_with_flags_args args;
-    remote_domain_create_with_flags_ret ret;
-
-    remoteDriverLock(priv);
-
-    make_nonnull_domain(&args.dom, dom);
-    args.flags = flags;
-
-    memset(&ret, 0, sizeof(ret));
-
-    if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_CREATE_WITH_FLAGS,
-             (xdrproc_t)xdr_remote_domain_create_with_flags_args, (char *)&args,
-             (xdrproc_t)xdr_remote_domain_create_with_flags_ret, (char *)&ret) == -1) {
-        goto done;
-    }
-
-    dom->id = ret.dom.id;
-    xdr_free((xdrproc_t)xdr_remote_domain_create_with_flags_ret, (char *)&ret);
     rv = 0;
 
 done:
@@ -3917,16 +3869,14 @@ remoteDomainSnapshotListChildrenNames(virDomainSnapshotPtr snap, char **const na
 
     /* This call is caller-frees (although that isn't clear from
      * the documentation).  However xdr_free will free up both the
-     * names and the list of pointers, so we have to strdup the
+     * names and the list of pointers, so we have to VIR_STRDUP the
      * names here. */
     for (i = 0; i < ret.names.names_len; ++i) {
-        names[i] = strdup(ret.names.names_val[i]);
-
-        if (names[i] == NULL) {
+        if (VIR_STRDUP(names[i],
+                       ret.names.names_val[i]) < 0) {
             for (--i; i >= 0; --i)
                 VIR_FREE(names[i]);
 
-            virReportOOMError();
             goto cleanup;
         }
     }
@@ -3980,16 +3930,14 @@ remoteDomainSnapshotListNames(virDomainPtr dom, char **const names, int maxnames
 
     /* This call is caller-frees (although that isn't clear from
      * the documentation).  However xdr_free will free up both the
-     * names and the list of pointers, so we have to strdup the
+     * names and the list of pointers, so we have to VIR_STRDUP the
      * names here. */
     for (i = 0; i < ret.names.names_len; ++i) {
-        names[i] = strdup(ret.names.names_val[i]);
-
-        if (names[i] == NULL) {
+        if (VIR_STRDUP(names[i],
+                       ret.names.names_val[i]) < 0) {
             for (--i; i >= 0; --i)
                 VIR_FREE(names[i]);
 
-            virReportOOMError();
             goto cleanup;
         }
     }
@@ -4997,16 +4945,14 @@ remoteNodeDeviceListCaps(virNodeDevicePtr dev, char **const names, int maxnames)
 
     /* This call is caller-frees (although that isn't clear from
      * the documentation).  However xdr_free will free up both the
-     * names and the list of pointers, so we have to strdup the
+     * names and the list of pointers, so we have to VIR_STRDUP the
      * names here. */
     for (i = 0; i < ret.names.names_len; ++i) {
-        names[i] = strdup(ret.names.names_val[i]);
-
-        if (names[i] == NULL) {
+        if (VIR_STRDUP(names[i],
+                       ret.names.names_val[i]) < 0) {
             for (--i; i >= 0; --i)
                 VIR_FREE(names[i]);
 
-            virReportOOMError();
             goto cleanup;
         }
     }
@@ -5201,16 +5147,14 @@ remoteNodeListDevices(virConnectPtr conn, const char *cap, char **const names, i
 
     /* This call is caller-frees (although that isn't clear from
      * the documentation).  However xdr_free will free up both the
-     * names and the list of pointers, so we have to strdup the
+     * names and the list of pointers, so we have to VIR_STRDUP the
      * names here. */
     for (i = 0; i < ret.names.names_len; ++i) {
-        names[i] = strdup(ret.names.names_val[i]);
-
-        if (names[i] == NULL) {
+        if (VIR_STRDUP(names[i],
+                       ret.names.names_val[i]) < 0) {
             for (--i; i >= 0; --i)
                 VIR_FREE(names[i]);
 
-            virReportOOMError();
             goto cleanup;
         }
     }
@@ -5953,16 +5897,14 @@ remoteStoragePoolListVolumes(virStoragePoolPtr pool, char **const names, int max
 
     /* This call is caller-frees (although that isn't clear from
      * the documentation).  However xdr_free will free up both the
-     * names and the list of pointers, so we have to strdup the
+     * names and the list of pointers, so we have to VIR_STRDUP the
      * names here. */
     for (i = 0; i < ret.names.names_len; ++i) {
-        names[i] = strdup(ret.names.names_val[i]);
-
-        if (names[i] == NULL) {
+        if (VIR_STRDUP(names[i],
+                       ret.names.names_val[i]) < 0) {
             for (--i; i >= 0; --i)
                 VIR_FREE(names[i]);
 
-            virReportOOMError();
             goto cleanup;
         }
     }

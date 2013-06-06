@@ -42,13 +42,14 @@
 #include "datatypes.h"
 #include "virerror.h"
 #include "viralloc.h"
-#include "virutil.h"
 #include "virlog.h"
 #include "vircommand.h"
 #include "configmake.h"
+#include "virfile.h"
 #include "virstoragefile.h"
 #include "nodeinfo.h"
 #include "c-ctype.h"
+#include "virstring.h"
 
 #include "parallels_driver.h"
 #include "parallels_utils.h"
@@ -186,8 +187,8 @@ parallelsGetSerialInfo(virDomainChrDefPtr chr,
             return -1;
         }
 
-        if (!(chr->source.data.file.path = strdup(tmp)))
-            goto no_memory;
+        if (VIR_STRDUP(chr->source.data.file.path, tmp) < 0)
+            return -1;
     } else if (virJSONValueObjectHasKey(value, "socket")) {
         chr->source.type = VIR_DOMAIN_CHR_TYPE_UNIX;
 
@@ -197,8 +198,8 @@ parallelsGetSerialInfo(virDomainChrDefPtr chr,
             return -1;
         }
 
-        if (!(chr->source.data.nix.path = strdup(tmp)))
-            goto no_memory;
+        if (VIR_STRDUP(chr->source.data.nix.path, tmp) < 0)
+            return -1;
         chr->source.data.nix.listen = false;
     } else if (virJSONValueObjectHasKey(value, "real")) {
         chr->source.type = VIR_DOMAIN_CHR_TYPE_DEV;
@@ -209,18 +210,14 @@ parallelsGetSerialInfo(virDomainChrDefPtr chr,
             return -1;
         }
 
-        if (!(chr->source.data.file.path = strdup(tmp)))
-            goto no_memory;
+        if (VIR_STRDUP(chr->source.data.file.path, tmp) < 0)
+            return -1;
     } else {
         parallelsParseError();
         return -1;
     }
 
     return 0;
-
-  no_memory:
-    virReportOOMError();
-    return -1;
 }
 
 static int
@@ -318,10 +315,8 @@ parallelsGetHddInfo(virDomainDefPtr def,
             return -1;
         }
 
-        if (!(disk->src = strdup(tmp))) {
-            virReportOOMError();
+        if (VIR_STRDUP(disk->src, tmp) < 0)
             return -1;
-        }
     } else {
         disk->type = VIR_DOMAIN_DISK_TYPE_FILE;
 
@@ -330,10 +325,8 @@ parallelsGetHddInfo(virDomainDefPtr def,
             return -1;
         }
 
-        if (!(disk->src = strdup(tmp))) {
-            virReportOOMError();
+        if (VIR_STRDUP(disk->src, tmp) < 0)
             return -1;
-        }
     }
 
     tmp = virJSONValueObjectGetString(value, "port");
@@ -454,10 +447,8 @@ parallelsGetNetInfo(virDomainNetDefPtr net,
 
     /* use device name, shown by prlctl as target device
      * for identifying network adapter in virDomainDefineXML */
-    if (!(net->ifname = strdup(key))) {
-        virReportOOMError();
+    if (VIR_STRDUP(net->ifname, key) < 0)
         goto error;
-    }
 
     net->type = VIR_DOMAIN_NET_TYPE_NETWORK;
 
@@ -478,10 +469,8 @@ parallelsGetNetInfo(virDomainNetDefPtr net,
             goto error;
         }
 
-        if (!(net->data.network.name = strdup(tmp))) {
-            virReportOOMError();
+        if (VIR_STRDUP(net->data.network.name, tmp) < 0)
             goto error;
-        }
     } else if (virJSONValueObjectHasKey(value, "type")) {
         if (!(tmp = virJSONValueObjectGetString(value, "type"))) {
             parallelsParseError();
@@ -493,10 +482,9 @@ parallelsGetNetInfo(virDomainNetDefPtr net,
             goto error;
         }
 
-        if (!(net->data.network.name = strdup(PARALLELS_ROUTED_NETWORK_NAME))) {
-            virReportOOMError();
+        if (VIR_STRDUP(net->data.network.name,
+                       PARALLELS_ROUTED_NETWORK_NAME) < 0)
             goto error;
-        }
     } else {
         parallelsParseError();
         goto error;
@@ -641,8 +629,8 @@ parallelsAddVNCInfo(virDomainDefPtr def, virJSONValuePtr jobj_root)
 
     gr->nListens = 1;
 
-    if (!(gr->listens[0].address = strdup(tmp)))
-        goto no_memory;
+    if (VIR_STRDUP(gr->listens[0].address, tmp) < 0)
+        goto cleanup;
 
     gr->listens[0].type = VIR_DOMAIN_GRAPHICS_LISTEN_TYPE_ADDRESS;
 
@@ -686,8 +674,8 @@ parallelsLoadDomain(parallelsConnPtr privconn, virJSONValuePtr jobj)
         parallelsParseError();
         goto cleanup;
     }
-    if (!(def->name = strdup(tmp)))
-        goto no_memory;
+    if (VIR_STRDUP(def->name, tmp) < 0)
+        goto cleanup;
 
     if (!(tmp = virJSONValueObjectGetString(jobj, "ID"))) {
         parallelsParseError();
@@ -704,8 +692,8 @@ parallelsLoadDomain(parallelsConnPtr privconn, virJSONValuePtr jobj)
         parallelsParseError();
         goto cleanup;
     }
-    if (!(def->description = strdup(tmp)))
-        goto no_memory;
+    if (VIR_STRDUP(def->description, tmp) < 0)
+        goto cleanup;
 
     if (!(jobj2 = virJSONValueObjectGet(jobj, "Hardware"))) {
         parallelsParseError();
@@ -724,7 +712,7 @@ parallelsLoadDomain(parallelsConnPtr privconn, virJSONValuePtr jobj)
         if (STREQ(tmp, "unlimited")) {
             virNodeInfo nodeinfo;
 
-            if (nodeGetInfo(NULL, &nodeinfo) < 0) {
+            if (nodeGetInfo(&nodeinfo) < 0) {
                 virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                                _("Can't get node info"));
                 goto cleanup;
@@ -771,13 +759,13 @@ parallelsLoadDomain(parallelsConnPtr privconn, virJSONValuePtr jobj)
     }
 
     if (STREQ(tmp, "CT")) {
-        if (!(def->os.type = strdup("exe")))
-            goto no_memory;
-        if (!(def->os.init = strdup("/sbin/init")))
-            goto no_memory;
+        if (VIR_STRDUP(def->os.type, "exe") < 0)
+            goto cleanup;
+        if (VIR_STRDUP(def->os.init, "/sbin/init") < 0)
+            goto cleanup;
     } else if (STREQ(tmp, "VM")) {
-        if (!(def->os.type = strdup("hvm")))
-            goto no_memory;
+        if (VIR_STRDUP(def->os.type, "hvm") < 0)
+            goto cleanup;
     }
 
     def->os.arch = VIR_ARCH_X86_64;
@@ -792,16 +780,16 @@ parallelsLoadDomain(parallelsConnPtr privconn, virJSONValuePtr jobj)
         parallelsParseError();
         goto cleanup;
     }
-    if (!(pdom->uuid = strdup(tmp)))
-        goto no_memory;
+    if (VIR_STRDUP(pdom->uuid, tmp) < 0)
+        goto cleanup;
 
     if (!(tmp = virJSONValueObjectGetString(jobj, "Home"))) {
         parallelsParseError();
         goto cleanup;
     }
 
-    if (!(pdom->home = strdup(tmp)))
-        goto no_memory;
+    if (VIR_STRDUP(pdom->home, tmp) < 0)
+        goto cleanup;
 
     if (!(state = virJSONValueObjectGetString(jobj, "State"))) {
         parallelsParseError();
@@ -1043,6 +1031,13 @@ cleanup:
     return ret;
 }
 
+
+static char *parallelsConnectGetHostname(virConnectPtr conn ATTRIBUTE_UNUSED)
+{
+    return virGetHostname();
+}
+
+
 static int
 parallelsConnectListDomains(virConnectPtr conn, int *ids, int maxids)
 {
@@ -1239,8 +1234,7 @@ parallelsDomainGetOSType(virDomainPtr domain)
         goto cleanup;
     }
 
-    if (!(ret = strdup(privdom->def->os.type)))
-        virReportOOMError();
+    ignore_value(VIR_STRDUP(ret, privdom->def->os.type));
 
   cleanup:
     if (privdom)
@@ -2387,14 +2381,22 @@ parallelsDomainDefineXML(virConnectPtr conn, const char *xml)
     return ret;
 }
 
+static int
+parallelsNodeGetInfo(virConnectPtr conn ATTRIBUTE_UNUSED,
+                     virNodeInfoPtr nodeinfo)
+{
+    return nodeGetInfo(nodeinfo);
+}
+
+
 static virDriver parallelsDriver = {
     .no = VIR_DRV_PARALLELS,
     .name = "Parallels",
     .connectOpen = parallelsConnectOpen,            /* 0.10.0 */
     .connectClose = parallelsConnectClose,          /* 0.10.0 */
     .connectGetVersion = parallelsConnectGetVersion,   /* 0.10.0 */
-    .connectGetHostname = virGetHostname,      /* 0.10.0 */
-    .nodeGetInfo = nodeGetInfo,      /* 0.10.0 */
+    .connectGetHostname = parallelsConnectGetHostname,      /* 0.10.0 */
+    .nodeGetInfo = parallelsNodeGetInfo,      /* 0.10.0 */
     .connectGetCapabilities = parallelsConnectGetCapabilities,      /* 0.10.0 */
     .connectListDomains = parallelsConnectListDomains,      /* 0.10.0 */
     .connectNumOfDomains = parallelsConnectNumOfDomains,    /* 0.10.0 */

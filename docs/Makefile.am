@@ -1,7 +1,20 @@
 ## Process this file with automake to produce Makefile.in
 
-## Copyright (C) 2005-2012 Red Hat, Inc.
-## See COPYING.LIB for the License of this software
+## Copyright (C) 2005-2013 Red Hat, Inc.
+##
+## This library is free software; you can redistribute it and/or
+## modify it under the terms of the GNU Lesser General Public
+## License as published by the Free Software Foundation; either
+## version 2.1 of the License, or (at your option) any later version.
+##
+## This library is distributed in the hope that it will be useful,
+## but WITHOUT ANY WARRANTY; without even the implied warranty of
+## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+## Lesser General Public License for more details.
+##
+## You should have received a copy of the GNU Lesser General Public
+## License along with this library.  If not, see
+## <http://www.gnu.org/licenses/>.
 
 SUBDIRS= schemas
 
@@ -149,7 +162,7 @@ todo.html.in: todo.pl
 		|| { rm $@ && exit 1; }; \
 	else \
 		echo "Stubbing $@"; \
-		echo "<html><body><h1>Todo list</h1></body></html>" > $@ ; \
+		echo "<html xmlns=\"http://www.w3.org/1999/xhtml\"><body><h1>Todo list unavailable: no config file</h1></body></html>" > $@ ; \
 	fi
 
 todo:
@@ -171,7 +184,7 @@ internals/%.html.tmp: internals/%.html.in subsite.xsl page.xsl sitemap.html.in
 	  echo "Generating $@"; \
 	  $(MKDIR_P) internals; \
 	  name=`echo $@ | sed -e 's/.tmp//'`; \
-	  $(XSLTPROC) --stringparam pagename $$name --nonet --html \
+	  $(XSLTPROC) --stringparam pagename $$name --nonet \
 	    $(top_srcdir)/docs/subsite.xsl $< > $@ \
 	    || { rm $@ && exit 1; }; fi
 
@@ -179,7 +192,7 @@ internals/%.html.tmp: internals/%.html.in subsite.xsl page.xsl sitemap.html.in
 	@if [ -x $(XSLTPROC) ] ; then \
 	  echo "Generating $@"; \
 	  name=`echo $@ | sed -e 's/.tmp//'`; \
-	  $(XSLTPROC) --stringparam pagename $$name --nonet --html \
+	  $(XSLTPROC) --stringparam pagename $$name --nonet \
 	    $(top_srcdir)/docs/site.xsl $< > $@ \
 	    || { rm $@ && exit 1; }; fi
 
@@ -196,7 +209,7 @@ internals/%.html.tmp: internals/%.html.in subsite.xsl page.xsl sitemap.html.in
 %.php.tmp: %.php.in site.xsl page.xsl sitemap.html.in
 	@if [ -x $(XSLTPROC) ] ; then \
 	  echo "Generating $@"; \
-	  $(XSLTPROC) --stringparam pagename $(@:.tmp=) --nonet --html \
+	  $(XSLTPROC) --stringparam pagename $(@:.tmp=) --nonet \
 	    $(top_srcdir)/docs/site.xsl $< > $@ \
 	    || { rm $@ && exit 1; }; fi
 

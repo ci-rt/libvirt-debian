@@ -93,6 +93,10 @@
                         </div>
                       </li><li>
                         <div>
+                          <a title="Control groups integration" class="inactive" href="cgroups.html">CGroups</a>
+                        </div>
+                      </li><li>
+                        <div>
                           <a title="Hooks for system specific management" class="inactive" href="hooks.html">Hooks</a>
                         </div>
                       </li></ul>
@@ -164,12 +168,7 @@
       <div id="content">
         <h1>Windows support</h1>
         <ul><li>
-            <a href="#installer">Experimental installation package</a>
-            <ul><li>
-                <a href="#caveats">Caveats</a>
-              </li><li>
-                <a href="#knowninstallerprobs">Existing problems with this installer we know about</a>
-              </li></ul>
+            <a href="#installer">Installation packages</a>
           </li><li>
             <a href="#conntypes">Connection types</a>
           </li><li>
@@ -194,57 +193,23 @@
       as well but we either haven't tested or received reports for them.
     </p>
         <h2>
-          <a name="installer" id="installer">Experimental installation package</a>
+          <a name="installer" shape="rect" id="installer">Installation packages</a>
         </h2>
         <p>
-      A windows installation package is in development.  An experimental
-      version is available here:
-    </p>
-        <a href="http://libvirt.org/sources/win32_experimental/Libvirt-0.8.8-0.exe">http://libvirt.org/sources/win32_experimental/Libvirt-0.8.8-0.exe</a>
-        <p>
-      <b>It is not production ready.</b>
+      Users who need pre-built Windows DLLs of libvirt are advised
+      to use the <a href="http://virt-manager.org" shape="rect">Virt Viewer</a>
+      pre-compiled <a href="http://virt-manager.org/download/" shape="rect">Windows MSI packages</a>
     </p>
         <p>
-      This version includes the libvirt development headers and libraries
-      for compiling against, the virsh shell with its needed dependencies,
-      and untested Python bindings.
+      These installers include the libvirt, gtk-vnc and spice-gtk DLLs
+      along with any of their pre-requisite supporting DLLs, the virsh
+      command line tool and the virt-viewer &amp; remote-viewer graphical
+      tools. The development headers are not currently provided in this
+      installer, so this cannot be used for compiling new applications
+      against libvirt.
     </p>
-        <h3>
-          <a name="caveats" id="caveats">Caveats</a>
-        </h3>
-        <ul><li>
-        This installer just repackages the files compiled using Matthias
-        Bolte's msys_setup scripting (described below).
-      </li><li>
-        This is a .exe installer, created using NSIS.  We're looking into
-        something to create .msi installers as well.
-      </li><li>
-        The script for the NSIS installer is available online
-        <a href="https://github.com/justinclift/nsis_libvirt_installer">here</a>.
-      </li></ul>
-        <h3>
-          <a name="knowninstallerprobs" id="knowninstallerprobs">Existing problems with this installer we know about</a>
-        </h3>
-        <p>
-      These are problems we know about, and need to be fixed in subsequent
-      versions of the installer (assistance welcomed):
-    </p>
-        <ul><li>
-        New versions install over other libvirt versions
-        <br /><br />
-        If a version of this installer has installed libvirt on the system
-        already, this installer will automatically suggest the same
-        installation location, then overwrite the version already there
-        without checking.
-        <br /><br />
-        This is fairly non-optimal, and should be fixed.  What should
-        probably happen, is for this installer to detect an existing
-        installation then offer to either uninstall it first or ask for a
-        new installation location.
-        <br /><br />
-      </li></ul>
         <h2>
-          <a name="conntypes" id="conntypes">Connection types</a>
+          <a name="conntypes" shape="rect" id="conntypes">Connection types</a>
         </h2>
         <p>
       These connection types are known to work:
@@ -272,16 +237,16 @@
       be used in security sensitive environments.</b>
     </p>
         <h2>
-          <a name="esx" id="esx">Connecting to VMware ESX/vSphere</a>
+          <a name="esx" shape="rect" id="esx">Connecting to VMware ESX/vSphere</a>
         </h2>
         <p>
       Details on the capabilities, certificates, and connection string
       syntax used for connecting to VMware ESX and vSphere can be found
       online here:<br />
     </p>
-        <a href="http://libvirt.org/drvesx.html">http://libvirt.org/drvesx.html</a>
+        <a href="http://libvirt.org/drvesx.html" shape="rect">http://libvirt.org/drvesx.html</a>
         <h2>
-          <a name="tlscerts" id="tlscerts">TLS Certificates</a>
+          <a name="tlscerts" shape="rect" id="tlscerts">TLS Certificates</a>
         </h2>
         <p>
       TLS certificates need to have been created and placed in the correct
@@ -291,7 +256,7 @@
         <p>
       Information on generating TLS certificates can be found here:
     </p>
-        <a href="http://wiki.libvirt.org/page/TLSSetup">http://wiki.libvirt.org/page/TLSSetup</a>
+        <a href="http://wiki.libvirt.org/page/TLSSetup" shape="rect">http://wiki.libvirt.org/page/TLSSetup</a>
         <p>
       These instructions are for *nix, and have not yet been adapted for
       Windows.  You'll need to figure out the Windows equivalents until
@@ -319,45 +284,45 @@
     </p>
         <ul><li>C:\Users\someuser\AppData\Roaming\libvirt\pki\CA\cacert.pem</li><li>C:\Users\someuser\AppData\Roaming\libvirt\pki\libvirt\clientcert.pem</li><li>C:\Users\someuser\AppData\Roaming\libvirt\pki\libvirt\private\clientkey.pem</li></ul>
         <h2>
-          <a name="feedback" id="feedback">Feedback</a>
+          <a name="feedback" shape="rect" id="feedback">Feedback</a>
         </h2>
         <p>
       Feedback and suggestions on changes to make and what else to include
-      <a href="contact.html">are desired</a>.
+      <a href="contact.html" shape="rect">are desired</a>.
     </p>
         <h2>
-          <a name="compiling" id="compiling">Compiling yourself</a>
+          <a name="compiling" shape="rect" id="compiling">Compiling yourself</a>
         </h2>
         <p>
       Libvirt can be compiled on Windows using the free
-      <a href="http://www.mingw.org/">MinGW compiler</a>.
+      <a href="http://www.mingw.org/" shape="rect">MinGW compiler</a>.
     </p>
         <h3>
-          <a name="msys_setup" id="msys_setup">MSYS Build script</a>
+          <a name="msys_setup" shape="rect" id="msys_setup">MSYS Build script</a>
         </h3>
         <p>
       The easiest way is to use the <b>msys_setup</b> script, developed by
       Matthias Bolte.  This is actively developed and kept current with
       libvirt releases:
     </p>
-        <a href="https://github.com/photron/msys_setup">https://github.com/photron/msys_setup</a>
+        <a href="https://github.com/photron/msys_setup" shape="rect">https://github.com/photron/msys_setup</a>
         <h3>
-          <a name="cross-compile" id="cross-compile">Cross compiling</a>
+          <a name="cross-compile" shape="rect" id="cross-compile">Cross compiling</a>
         </h3>
         <p>
       You can also cross-compile to a Windows target from a Fedora machine
       using the packages available
-      <a href="http://hg.et.redhat.com/misc/fedora-mingw--devel/">from the Fedora MinGW project</a>
+      <a href="http://hg.et.redhat.com/misc/fedora-mingw--devel/" shape="rect">from the Fedora MinGW project</a>
       (which includes a working libvirt specfile).
     </p>
         <h3>
-          <a name="configure" id="configure">By hand</a>
+          <a name="configure" shape="rect" id="configure">By hand</a>
         </h3>
         <p>
       Use these options when following the instructions on the
-      <a href="compiling.html">Compiling</a> page.
+      <a href="compiling.html" shape="rect">Compiling</a> page.
     </p>
-        <pre>
+        <pre xml:space="preserve">
 ./configure \
   --without-sasl \
   --without-avahi \

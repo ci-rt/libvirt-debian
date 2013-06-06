@@ -59,9 +59,12 @@
 # include "rpc/virnettlscontext.h"
 #endif
 #include "vircommand.h"
+#include "virfile.h"
 #include "virrandom.h"
 #include "viruri.h"
 #include "virthread.h"
+#include "virstring.h"
+#include "virutil.h"
 
 #ifdef WITH_TEST
 # include "test/test_driver.h"
@@ -77,9 +80,6 @@
 #endif
 #ifdef WITH_PHYP
 # include "phyp/phyp_driver.h"
-#endif
-#ifdef WITH_VBOX
-# include "vbox/vbox_driver.h"
 #endif
 #ifdef WITH_ESX
 # include "esx/esx_driver.h"
@@ -150,7 +150,7 @@ static int virConnectAuthCallbackDefault(virConnectCredentialPtr cred,
                                          void *cbdata ATTRIBUTE_UNUSED) {
     int i;
 
-    for (i = 0 ; i < ncred ; i++) {
+    for (i = 0; i < ncred; i++) {
         char buf[1024];
         char *bufptr = buf;
         size_t len;
@@ -211,11 +211,9 @@ static int virConnectAuthCallbackDefault(virConnectCredentialPtr cred,
         }
 
         if (cred[i].type != VIR_CRED_EXTERNAL) {
-            if (STREQ(bufptr, "") && cred[i].defresult)
-                cred[i].result = strdup(cred[i].defresult);
-            else
-                cred[i].result = strdup(bufptr);
-            if (!cred[i].result)
+            if (VIR_STRDUP(cred[i].result,
+                           STREQ(bufptr, "") && cred[i].defresult ?
+                           cred[i].defresult : bufptr) < 0)
                 return -1;
             cred[i].resultlen = strlen(cred[i].result);
         }
@@ -462,10 +460,6 @@ virGlobalInit(void)
 #endif
 #ifdef WITH_PHYP
     if (phypRegister() == -1)
-        goto error;
-#endif
-#ifdef WITH_VBOX
-    if (vboxRegister() == -1)
         goto error;
 #endif
 #ifdef WITH_ESX
@@ -826,7 +820,7 @@ int virStateInitialize(bool privileged,
     if (virInitialize() < 0)
         return -1;
 
-    for (i = 0 ; i < virStateDriverTabCount ; i++) {
+    for (i = 0; i < virStateDriverTabCount; i++) {
         if (virStateDriverTab[i]->stateInitialize) {
             VIR_DEBUG("Running global init for %s state driver",
                       virStateDriverTab[i]->name);
@@ -852,7 +846,7 @@ int virStateInitialize(bool privileged,
 int virStateCleanup(void) {
     int i, ret = 0;
 
-    for (i = 0 ; i < virStateDriverTabCount ; i++) {
+    for (i = 0; i < virStateDriverTabCount; i++) {
         if (virStateDriverTab[i]->stateCleanup &&
             virStateDriverTab[i]->stateCleanup() < 0)
             ret = -1;
@@ -870,7 +864,7 @@ int virStateCleanup(void) {
 int virStateReload(void) {
     int i, ret = 0;
 
-    for (i = 0 ; i < virStateDriverTabCount ; i++) {
+    for (i = 0; i < virStateDriverTabCount; i++) {
         if (virStateDriverTab[i]->stateReload &&
             virStateDriverTab[i]->stateReload() < 0)
             ret = -1;
@@ -888,7 +882,7 @@ int virStateReload(void) {
 int virStateStop(void) {
     int i, ret = 0;
 
-    for (i = 0 ; i < virStateDriverTabCount ; i++) {
+    for (i = 0; i < virStateDriverTabCount; i++) {
         if (virStateDriverTab[i]->stateStop &&
             virStateDriverTab[i]->stateStop())
             ret = 1;
@@ -1044,11 +1038,7 @@ virConnectOpenFindURIAliasMatch(virConfValuePtr value, const char *alias, char *
             STREQLEN(entry->str, alias, alias_len)) {
             VIR_DEBUG("Resolved alias '%s' to '%s'",
                       alias, offset+1);
-            if (!(*uri = strdup(offset+1))) {
-                virReportOOMError();
-                return -1;
-            }
-            return 0;
+            return VIR_STRDUP(*uri, offset+1);
         }
 
         entry = entry->next;
@@ -2482,6 +2472,13 @@ error:
  * Dependent on hypervisor used, this may require a
  * guest agent to be available, e.g. QEMU.
  *
+ * Beware that at least for QEMU, the domain's process will be terminated
+ * when VIR_NODE_SUSPEND_TARGET_DISK is used and a new process will be
+ * launched when libvirt is asked to wake up the domain. As a result of
+ * this, any runtime changes, such as device hotplug or memory settings,
+ * are lost unless such changes were made with VIR_DOMAIN_AFFECT_CONFIG
+ * flag.
+ *
  * Returns: 0 on success,
  *          -1 on failure.
  */
@@ -3184,9 +3181,11 @@ error:
  * virDomainShutdown:
  * @domain: a domain object
  *
- * Shutdown a domain, the domain object is still usable thereafter but
+ * Shutdown a domain, the domain object is still usable thereafter, but
  * the domain OS is being stopped. Note that the guest OS may ignore the
- * request.  For guests that react to a shutdown request, the differences
+ * request. Additionally, the hypervisor may check and support the domain
+ * 'on_poweroff' XML setting resulting in a domain that reboots instead of
+ * shutting down. For guests that react to a shutdown request, the differences
  * from virDomainDestroy() are that the guests disk storage will be in a
  * stable state rather than having the (virtual) power cord pulled, and
  * this command returns as soon as the shutdown request is issued rather
@@ -3241,7 +3240,9 @@ error:
  *
  * Shutdown a domain, the domain object is still usable thereafter but
  * the domain OS is being stopped. Note that the guest OS may ignore the
- * request.  For guests that react to a shutdown request, the differences
+ * request. Additionally, the hypervisor may check and support the domain
+ * 'on_poweroff' XML setting resulting in a domain that reboots instead of
+ * shutting down. For guests that react to a shutdown request, the differences
  * from virDomainDestroy() are that the guest's disk storage will be in a
  * stable state rather than having the (virtual) power cord pulled, and
  * this command returns as soon as the shutdown request is issued rather
@@ -3300,9 +3301,12 @@ error:
  * @domain: a domain object
  * @flags: bitwise-OR of virDomainRebootFlagValues
  *
- * Reboot a domain, the domain object is still usable there after but
+ * Reboot a domain, the domain object is still usable thereafter, but
  * the domain OS is being stopped for a restart.
  * Note that the guest OS may ignore the request.
+ * Additionally, the hypervisor may check and support the domain
+ * 'on_reboot' XML setting resulting in a domain that shuts down instead
+ * of rebooting.
  *
  * If @flags is set to zero, then the hypervisor will choose the
  * method of shutdown it considers best. To have greater control
@@ -7784,6 +7788,8 @@ error:
  * For your program to be able to work reliably over a remote
  * connection you should split large requests to <= 65536 bytes.
  * However, with 0.9.13 this RPC limit has been raised to 1M byte.
+ * Starting with version 1.0.6 the RPC limit has been raised again.
+ * Now large requests up to 16M byte are supported.
  *
  * Returns: 0 in case of success or -1 in case of failure.
  */
@@ -7934,6 +7940,8 @@ error:
  * For your program to be able to work reliably over a remote
  * connection you should split large requests to <= 65536 bytes.
  * However, with 0.9.13 this RPC limit has been raised to 1M byte.
+ * Starting with version 1.0.6 the RPC limit has been raised again.
+ * Now large requests up to 16M byte are supported.
  *
  * Returns: 0 in case of success or -1 in case of failure.
  */
@@ -13695,10 +13703,10 @@ virStorageVolDownload(virStorageVolPtr vol,
         vol->conn->storageDriver->storageVolDownload) {
         int ret;
         ret = vol->conn->storageDriver->storageVolDownload(vol,
-                                                    stream,
-                                                    offset,
-                                                    length,
-                                                    flags);
+                                                           stream,
+                                                           offset,
+                                                           length,
+                                                           flags);
         if (ret < 0)
             goto error;
         return ret;
@@ -14123,7 +14131,8 @@ error:
  * Changes the capacity of the storage volume @vol to @capacity. The
  * operation will fail if the new capacity requires allocation that would
  * exceed the remaining free space in the parent pool.  The contents of
- * the new capacity will appear as all zero bytes.
+ * the new capacity will appear as all zero bytes. The capacity value will
+ * be rounded to the granularity supported by the hypervisor.
  *
  * Normally, the operation will attempt to affect capacity with a minimum
  * impact on allocation (that is, the default operation favors a sparse

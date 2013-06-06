@@ -28,15 +28,6 @@
 # include "driver.h"
 # include "node_device_conf.h"
 
-# define LINUX_SYSFS_SCSI_HOST_PREFIX "/sys/class/scsi_host/"
-# define LINUX_SYSFS_SCSI_HOST_POSTFIX "device"
-# define LINUX_SYSFS_FC_HOST_PREFIX "/sys/class/fc_host/"
-
-# define VPORT_CREATE 0
-# define VPORT_DELETE 1
-# define LINUX_SYSFS_VPORT_CREATE_POSTFIX "/vport_create"
-# define LINUX_SYSFS_VPORT_DELETE_POSTFIX "/vport_delete"
-
 # define LINUX_NEW_DEVICE_WAIT_TIME 60
 
 # ifdef WITH_HAL
@@ -51,23 +42,14 @@ void nodeDeviceUnlock(virNodeDeviceDriverStatePtr driver);
 
 int nodedevRegister(void);
 
-# ifdef __linux__
-
-#  define detect_scsi_host_caps(d) detect_scsi_host_caps_linux(d)
-int detect_scsi_host_caps_linux(union _virNodeDevCapData *d);
-
-# else  /* __linux__ */
-
-#  define detect_scsi_host_caps(d)                      (-1)
-
-# endif /* __linux__ */
+int detect_scsi_host_caps(union _virNodeDevCapData *d);
 
 int nodeNumOfDevices(virConnectPtr conn, const char *cap, unsigned int flags);
 int nodeListDevices(virConnectPtr conn, const char *cap, char **const names,
                     int maxnames, unsigned int flags);
-int nodeListAllNodeDevices(virConnectPtr conn,
-                           virNodeDevicePtr **devices,
-                           unsigned int flags);
+int nodeConnectListAllNodeDevices(virConnectPtr conn,
+                                  virNodeDevicePtr **devices,
+                                  unsigned int flags);
 virNodeDevicePtr nodeDeviceLookupByName(virConnectPtr conn, const char *name);
 virNodeDevicePtr nodeDeviceLookupSCSIHostByWWN(virConnectPtr conn,
                                                const char *wwnn,

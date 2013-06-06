@@ -84,6 +84,10 @@
                         </div>
                       </li><li>
                         <div>
+                          <a title="Control groups integration" class="inactive" href="cgroups.html">CGroups</a>
+                        </div>
+                      </li><li>
+                        <div>
                           <a title="Hooks for system specific management" class="inactive" href="hooks.html">Hooks</a>
                         </div>
                       </li></ul>
@@ -174,7 +178,7 @@
             <a href="#ACL_server_kerberos">Kerberos auth</a>
           </li></ul>
         <h2>
-          <a name="Auth_client_config" id="Auth_client_config">Client configuration</a>
+          <a name="Auth_client_config" shape="rect" id="Auth_client_config">Client configuration</a>
         </h2>
         <p>
       When connecting to a remote hypervisor which requires authentication,
@@ -202,7 +206,7 @@ for the authentication file using the following sequence:
       Each set of credentials has a name, which is part of the group
       entry name. Overall the syntax is
     </p>
-        <pre>
+        <pre xml:space="preserve">
 [credentials-$NAME]
 credname1=value1
 credname2=value2</pre>
@@ -210,7 +214,7 @@ credname2=value2</pre>
       For example, to define two sets of credentials used for production
       and test machines, using libvirtd, and a further ESX server for dev:
     </p>
-        <pre>
+        <pre xml:space="preserve">
 [credentials-test]
 authname=fred
 password=123456
@@ -227,14 +231,14 @@ password=hello</pre>
       specific machine services. The config file group names compromise
       the service type and host:
     </p>
-        <pre>
+        <pre xml:space="preserve">
 [auth-$SERVICE-$HOSTNAME]
 credentials=$CREDENTIALS</pre>
         <p>
       For example, following the previous example, here is how to
       list some machines
     </p>
-        <pre>
+        <pre xml:space="preserve">
 [auth-libvirt-test1.example.com]
 credentials=test
 
@@ -263,7 +267,7 @@ credentials=dev</pre>
       to storage VNC or SPICE login credentials
     </p>
         <h2>
-          <a name="ACL_server_config" id="ACL_server_config">Server configuration</a>
+          <a name="ACL_server_config" shape="rect" id="ACL_server_config">Server configuration</a>
         </h2>
         <p>
 The libvirt daemon allows the administrator to choose the authentication
@@ -276,7 +280,7 @@ The SASL scheme can be further configured to choose between a large
 number of different mechanisms.
 </p>
         <h2>
-          <a name="ACL_server_unix_perms" id="ACL_server_unix_perms">UNIX socket permissions/group</a>
+          <a name="ACL_server_unix_perms" shape="rect" id="ACL_server_unix_perms">UNIX socket permissions/group</a>
         </h2>
         <p>
 If libvirt does not contain support for PolicyKit, then access control for
@@ -295,7 +299,7 @@ latter <code>wheel</code> would let any user in the wheel group connect to
 the libvirt daemon.
 </p>
         <h2>
-          <a name="ACL_server_polkit" id="ACL_server_polkit">UNIX socket PolicyKit auth</a>
+          <a name="ACL_server_polkit" shape="rect" id="ACL_server_polkit">UNIX socket PolicyKit auth</a>
         </h2>
         <p>
 If libvirt contains support for PolicyKit, then access control options are
@@ -320,7 +324,7 @@ access, and <code>org.libvirt.unix.monitor</code> for read-only access.
         <p>
 As an example, this gives the user <code>fred</code> full management access:
     </p>
-        <pre>[Allow fred libvirt management permissions]
+        <pre xml:space="preserve">[Allow fred libvirt management permissions]
 Identity=unix-user:fred
 Action=org.libvirt.unix.manage
 ResultAny=yes
@@ -328,10 +332,10 @@ ResultInactive=yes
 ResultActive=yes</pre>
         <p>
 Further examples of PolicyKit setup can be found on the
-<a href="http://wiki.libvirt.org/page/SSHPolicyKitSetup">wiki page</a>.
+<a href="http://wiki.libvirt.org/page/SSHPolicyKitSetup" shape="rect">wiki page</a>.
     </p>
         <h2>
-          <a name="ACL_server_username" id="ACL_server_username">Username/password auth</a>
+          <a name="ACL_server_username" shape="rect" id="ACL_server_username">Username/password auth</a>
         </h2>
         <p>
 The plain TCP socket of the libvirt daemon defaults to using SASL for authentication.
@@ -348,7 +352,7 @@ on the TCP socket. Adding users and setting their passwords is done with the <co
 command. When running this command it is important to tell it that the appname is <code>libvirt</code>.
 As an example, to add a user <code>fred</code>, run
 </p>
-        <pre>
+        <pre xml:space="preserve">
 # saslpasswd2 -a libvirt fred
 Password: xxxxxx
 Again (for verification): xxxxxx
@@ -358,7 +362,7 @@ To see a list of all accounts the <code>sasldblistusers2</code> command can be u
 This command expects to be given the path to the libvirt user database, which is kept
 in <code>/etc/libvirt/passwd.db</code>
 </p>
-        <pre>
+        <pre xml:space="preserve">
 # sasldblistusers2 -f /etc/libvirt/passwd.db
 fred@t60wlan.home.berrange.com: userPassword
 </pre>
@@ -366,11 +370,11 @@ fred@t60wlan.home.berrange.com: userPassword
 Finally, to disable a user's access, the <code>saslpasswd2</code> command can be used
 again:
 </p>
-        <pre>
+        <pre xml:space="preserve">
 # saslpasswd2 -a libvirt -d fred
 </pre>
         <h2>
-          <a name="ACL_server_kerberos" id="ACL_server_kerberos">Kerberos auth</a>
+          <a name="ACL_server_kerberos" shape="rect" id="ACL_server_kerberos">Kerberos auth</a>
         </h2>
         <p>
 The plain TCP socket of the libvirt daemon defaults to using SASL for authentication.
@@ -389,7 +393,7 @@ may be necessary to install a sub-package such as <code>cyrus-sasl-gssapi</code>
 To check whether the Kerberos plugin is installed run the <code>pluginviewer</code>
 program and verify that <code>gssapi</code> is listed,eg:
 </p>
-        <pre>
+        <pre xml:space="preserve">
 # pluginviewer
 ...snip...
 Plugin "gssapiv2" [loaded],     API version: 4
@@ -408,7 +412,7 @@ setting up service principals.  Once created, the principal should be
 exported to a keytab, copied to the host running the libvirt daemon
 and placed in <code>/etc/libvirt/krb5.tab</code>
 </p>
-        <pre>
+        <pre xml:space="preserve">
 # kadmin.local
 kadmin.local: add_principal libvirt/foo.example.com
 Enter password for principal "libvirt/foo.example.com@EXAMPLE.COM":

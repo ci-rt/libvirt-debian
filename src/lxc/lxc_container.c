@@ -52,10 +52,13 @@
 # include <blkid/blkid.h>
 #endif
 
+#if WITH_SELINUX
+# include <selinux/selinux.h>
+#endif
+
 #include "virerror.h"
 #include "virlog.h"
 #include "lxc_container.h"
-#include "virutil.h"
 #include "viralloc.h"
 #include "virnetdevveth.h"
 #include "viruuid.h"
@@ -64,6 +67,7 @@
 #include "vircommand.h"
 #include "virnetdev.h"
 #include "virprocess.h"
+#include "virstring.h"
 
 #define VIR_FROM_THIS VIR_FROM_LXC
 
@@ -349,7 +353,7 @@ static int lxcContainerRenameAndEnableInterfaces(bool privNet,
     size_t i;
     char *newname = NULL;
 
-    for (i = 0 ; i < nveths ; i++) {
+    for (i = 0; i < nveths; i++) {
         if (virAsprintf(&newname, "eth%zu", i) < 0) {
             virReportOOMError();
             rc = -1;
@@ -439,10 +443,8 @@ static int lxcContainerGetSubtree(const char *prefix,
             virReportOOMError();
             goto cleanup;
         }
-        if (!(mounts[nmounts] = strdup(mntent.mnt_dir))) {
-            virReportOOMError();
+        if (VIR_STRDUP(mounts[nmounts], mntent.mnt_dir) < 0)
             goto cleanup;
-        }
         nmounts++;
         VIR_DEBUG("Grabbed %s", mntent.mnt_dir);
     }
@@ -473,7 +475,7 @@ static int lxcContainerUnmountSubtree(const char *prefix,
 
     if (lxcContainerGetSubtree(prefix, &mounts, &nmounts) < 0)
         goto cleanup;
-    for (i = 0 ; i < nmounts ; i++) {
+    for (i = 0; i < nmounts; i++) {
         VIR_DEBUG("Umount %s", mounts[i]);
         if (umount(mounts[i]) < 0) {
             char ebuf[1024];
@@ -507,7 +509,7 @@ static int lxcContainerUnmountSubtree(const char *prefix,
     ret = 0;
 
 cleanup:
-    for (i = 0 ; i < nmounts ; i++)
+    for (i = 0; i < nmounts; i++)
         VIR_FREE(mounts[i]);
     VIR_FREE(mounts);
 
@@ -657,8 +659,7 @@ err:
 }
 
 
-static int lxcContainerMountBasicFS(bool pivotRoot,
-                                    char *sec_mount_options)
+static int lxcContainerMountBasicFS(char *sec_mount_options)
 {
     const struct {
         const char *src;
@@ -686,9 +687,9 @@ static int lxcContainerMountBasicFS(bool pivotRoot,
     int i, rc = -1;
     char *opts = NULL;
 
-    VIR_DEBUG("Mounting basic filesystems pivotRoot=%d", pivotRoot);
+    VIR_DEBUG("Mounting basic filesystems sec_mount_options=%s", sec_mount_options);
 
-    for (i = 0 ; i < ARRAY_CARDINALITY(mnts) ; i++) {
+    for (i = 0; i < ARRAY_CARDINALITY(mnts); i++) {
         const char *srcpath = NULL;
 
         VIR_DEBUG("Processing %s -> %s",
@@ -700,6 +701,12 @@ static int lxcContainerMountBasicFS(bool pivotRoot,
         if ((srcpath[0] == '/') &&
             (access(srcpath, R_OK) < 0))
             continue;
+
+#if WITH_SELINUX
+        if (STREQ(mnts[i].src, SELINUX_MOUNT) &&
+            !is_selinux_enabled())
+            continue;
+#endif
 
         if (virFileMakePath(mnts[i].dst) < 0) {
             virReportSystemError(errno,
@@ -719,27 +726,24 @@ static int lxcContainerMountBasicFS(bool pivotRoot,
         }
     }
 
-    if (pivotRoot) {
-        /*
-         * tmpfs is limited to 64kb, since we only have device nodes in there
-         * and don't want to DOS the entire OS RAM usage
-         */
+    /*
+     * tmpfs is limited to 64kb, since we only have device nodes in there
+     * and don't want to DOS the entire OS RAM usage
+     */
 
-        ignore_value(virAsprintf(&opts,
-                                 "mode=755,size=65536%s", sec_mount_options));
-        if (!opts) {
-            virReportOOMError();
-            goto cleanup;
-        }
+    if (virAsprintf(&opts,
+                    "mode=755,size=65536%s", sec_mount_options) < 0) {
+        virReportOOMError();
+        goto cleanup;
+    }
 
-        VIR_DEBUG("Mount devfs on /dev type=tmpfs flags=%x, opts=%s",
-                  MS_NOSUID, opts);
-        if (mount("devfs", "/dev", "tmpfs", MS_NOSUID, opts) < 0) {
-            virReportSystemError(errno,
-                                 _("Failed to mount %s on %s type %s (%s)"),
-                                 "devfs", "/dev", "tmpfs", opts);
-            goto cleanup;
-        }
+    VIR_DEBUG("Mount devfs on /dev type=tmpfs flags=%x, opts=%s",
+              MS_NOSUID, opts);
+    if (mount("devfs", "/dev", "tmpfs", MS_NOSUID, opts) < 0) {
+        virReportSystemError(errno,
+                             _("Failed to mount %s on %s type %s (%s)"),
+                             "devfs", "/dev", "tmpfs", opts);
+        goto cleanup;
     }
 
     rc = 0;
@@ -752,14 +756,16 @@ cleanup:
 
 #if WITH_FUSE
 static int lxcContainerMountProcFuse(virDomainDefPtr def,
-                                     const char *srcprefix)
+                                     const char *stateDir)
 {
     int ret;
     char *meminfo_path = NULL;
 
+    VIR_DEBUG("Mount /proc/meminfo stateDir=%s", stateDir);
+
     if ((ret = virAsprintf(&meminfo_path,
-                           "%s/%s/%s.fuse/meminfo",
-                           srcprefix ? srcprefix : "", LXC_STATE_DIR,
+                           "/.oldroot/%s/%s.fuse/meminfo",
+                           stateDir,
                            def->name)) < 0)
         return ret;
 
@@ -775,21 +781,23 @@ static int lxcContainerMountProcFuse(virDomainDefPtr def,
 }
 #else
 static int lxcContainerMountProcFuse(virDomainDefPtr def ATTRIBUTE_UNUSED,
-                                     const char *srcprefix ATTRIBUTE_UNUSED)
+                                     const char *stateDir ATTRIBUTE_UNUSED)
 {
     return 0;
 }
 #endif
 
 static int lxcContainerMountFSDevPTS(virDomainDefPtr def,
-                                     const char *srcprefix)
+                                     const char *stateDir)
 {
     int ret;
     char *path = NULL;
 
+    VIR_DEBUG("Mount /dev/pts stateDir=%s", stateDir);
+
     if ((ret = virAsprintf(&path,
-                           "%s/%s/%s.devpts",
-                           srcprefix ? srcprefix : "", LXC_STATE_DIR,
+                           "/.oldroot/%s/%s.devpts",
+                           stateDir,
                            def->name)) < 0)
         return ret;
 
@@ -841,7 +849,7 @@ static int lxcContainerPopulateDevices(char **ttyPaths, size_t nttyPaths)
     };
 
     /* Populate /dev/ with a few important bits */
-    for (i = 0 ; i < ARRAY_CARDINALITY(devs) ; i++) {
+    for (i = 0; i < ARRAY_CARDINALITY(devs); i++) {
         dev_t dev = makedev(devs[i].maj, devs[i].min);
         if (mknod(devs[i].path, S_IFCHR, dev) < 0 ||
             chmod(devs[i].path, devs[i].mode)) {
@@ -852,7 +860,7 @@ static int lxcContainerPopulateDevices(char **ttyPaths, size_t nttyPaths)
         }
     }
 
-    for (i = 0 ; i < ARRAY_CARDINALITY(links) ; i++) {
+    for (i = 0; i < ARRAY_CARDINALITY(links); i++) {
         if (symlink(links[i].src, links[i].dst) < 0) {
             virReportSystemError(errno,
                                  _("Failed to symlink device %s to %s"),
@@ -882,7 +890,7 @@ static int lxcContainerPopulateDevices(char **ttyPaths, size_t nttyPaths)
         }
     }
 
-    for (i = 0 ; i < nttyPaths ; i++) {
+    for (i = 0; i < nttyPaths; i++) {
         char *tty;
         if (virAsprintf(&tty, "/dev/tty%zu", i+1) < 0) {
             virReportOOMError();
@@ -1041,10 +1049,8 @@ lxcContainerMountDetectFilesystem(const char *src, char **type)
         goto cleanup;
     }
 
-    if (!(*type = strdup(data))) {
-        virReportOOMError();
+    if (VIR_STRDUP(*type, data) < 0)
         goto cleanup;
-    }
 
 done:
     ret = 0;
@@ -1075,8 +1081,7 @@ lxcContainerMountDetectFilesystem(const char *src ATTRIBUTE_UNUSED,
  */
 static int lxcContainerMountFSBlockAuto(virDomainFSDefPtr fs,
                                         int fsflags,
-                                        const char *src,
-                                        const char *srcprefix)
+                                        const char *src)
 {
     FILE *fp = NULL;
     int ret = -1;
@@ -1086,12 +1091,12 @@ static int lxcContainerMountFSBlockAuto(virDomainFSDefPtr fs,
     char *line = NULL;
     const char *type;
 
-    VIR_DEBUG("src=%s srcprefix=%s dst=%s", src, srcprefix, fs->dst);
+    VIR_DEBUG("src=%s dst=%s", src, fs->dst);
 
     /* First time around we use /etc/filesystems */
 retry:
-    if (virAsprintf(&fslist, "%s%s",
-                    srcprefix, tryProc ? "/proc/filesystems" : "/etc/filesystems") < 0) {
+    if (virAsprintf(&fslist, "/.oldroot%s",
+                    tryProc ? "/proc/filesystems" : "/etc/filesystems") < 0) {
         virReportOOMError();
         goto cleanup;
     }
@@ -1204,8 +1209,7 @@ cleanup:
  * probing for filesystem type
  */
 static int lxcContainerMountFSBlockHelper(virDomainFSDefPtr fs,
-                                          const char *src,
-                                          const char *srcprefix)
+                                          const char *src)
 {
     int fsflags = 0;
     int ret = -1;
@@ -1234,7 +1238,7 @@ static int lxcContainerMountFSBlockHelper(virDomainFSDefPtr fs,
         }
         ret = 0;
     } else {
-        ret = lxcContainerMountFSBlockAuto(fs, fsflags, src, srcprefix);
+        ret = lxcContainerMountFSBlockAuto(fs, fsflags, src);
     }
 
 cleanup:
@@ -1254,7 +1258,7 @@ static int lxcContainerMountFSBlock(virDomainFSDefPtr fs,
         goto cleanup;
     }
 
-    ret = lxcContainerMountFSBlockHelper(fs, src, srcprefix);
+    ret = lxcContainerMountFSBlockHelper(fs, src);
 
     VIR_DEBUG("Done mounting filesystem ret=%d", ret);
 
@@ -1308,16 +1312,15 @@ cleanup:
 
 
 static int lxcContainerMountFS(virDomainFSDefPtr fs,
-                               const char *srcprefix,
                                char *sec_mount_options)
 {
     switch (fs->type) {
     case VIR_DOMAIN_FS_TYPE_MOUNT:
-        if (lxcContainerMountFSBind(fs, srcprefix) < 0)
+        if (lxcContainerMountFSBind(fs, "/.oldroot") < 0)
             return -1;
         break;
     case VIR_DOMAIN_FS_TYPE_BLOCK:
-        if (lxcContainerMountFSBlock(fs, srcprefix) < 0)
+        if (lxcContainerMountFSBlock(fs, "/.oldroot") < 0)
             return -1;
         break;
     case VIR_DOMAIN_FS_TYPE_RAM:
@@ -1347,35 +1350,31 @@ static int lxcContainerMountFS(virDomainFSDefPtr fs,
 
 
 static int lxcContainerMountAllFS(virDomainDefPtr vmDef,
-                                  const char *dstprefix,
-                                  bool skipRoot,
                                   char *sec_mount_options)
 {
     size_t i;
-    VIR_DEBUG("Mounting %s %d", dstprefix, skipRoot);
+    VIR_DEBUG("Mounting all non-root filesystems");
 
     /* Pull in rest of container's mounts */
-    for (i = 0 ; i < vmDef->nfss ; i++) {
-        if (skipRoot &&
-            STREQ(vmDef->fss[i]->dst, "/"))
+    for (i = 0; i < vmDef->nfss; i++) {
+        if (STREQ(vmDef->fss[i]->dst, "/"))
             continue;
 
         if (lxcContainerUnmountSubtree(vmDef->fss[i]->dst,
                                        false) < 0)
             return -1;
 
-        if (lxcContainerMountFS(vmDef->fss[i], dstprefix, sec_mount_options) < 0)
+        if (lxcContainerMountFS(vmDef->fss[i], sec_mount_options) < 0)
             return -1;
     }
 
-    VIR_DEBUG("Mounted all filesystems");
+    VIR_DEBUG("Mounted all non-root filesystems");
     return 0;
 }
 
 
 static int lxcContainerSetupDisk(virDomainDefPtr vmDef,
                                  virDomainDiskDefPtr def,
-                                 const char *dstprefix,
                                  virSecurityManagerPtr securityDriver)
 {
     char *src = NULL;
@@ -1396,7 +1395,7 @@ static int lxcContainerSetupDisk(virDomainDefPtr vmDef,
         goto cleanup;
     }
 
-    if (virAsprintf(&src, "%s/%s", dstprefix, def->src) < 0) {
+    if (virAsprintf(&src, "/.oldroot/%s", def->src) < 0) {
         virReportOOMError();
         goto cleanup;
     }
@@ -1456,15 +1455,14 @@ cleanup:
 }
 
 static int lxcContainerSetupAllDisks(virDomainDefPtr vmDef,
-                                     const char *dstprefix,
                                      virSecurityManagerPtr securityDriver)
 {
     size_t i;
-    VIR_DEBUG("Setting up disks %s", dstprefix);
+    VIR_DEBUG("Setting up disks");
 
-    for (i = 0 ; i < vmDef->ndisks ; i++) {
+    for (i = 0; i < vmDef->ndisks; i++) {
         if (lxcContainerSetupDisk(vmDef, vmDef->disks[i],
-                                  dstprefix, securityDriver) < 0)
+                                  securityDriver) < 0)
             return -1;
     }
 
@@ -1475,7 +1473,6 @@ static int lxcContainerSetupAllDisks(virDomainDefPtr vmDef,
 
 static int lxcContainerSetupHostdevSubsysUSB(virDomainDefPtr vmDef ATTRIBUTE_UNUSED,
                                              virDomainHostdevDefPtr def ATTRIBUTE_UNUSED,
-                                             const char *dstprefix ATTRIBUTE_UNUSED,
                                              virSecurityManagerPtr securityDriver ATTRIBUTE_UNUSED)
 {
     int ret = -1;
@@ -1498,7 +1495,7 @@ static int lxcContainerSetupHostdevSubsysUSB(virDomainDefPtr vmDef ATTRIBUTE_UNU
         goto cleanup;
     }
 
-    if (virAsprintf(&src, "%s/%s", dstprefix, dstfile) < 0) {
+    if (virAsprintf(&src, "/.oldroot/%s", dstfile) < 0) {
         virReportOOMError();
         goto cleanup;
     }
@@ -1548,7 +1545,6 @@ cleanup:
 
 static int lxcContainerSetupHostdevCapsStorage(virDomainDefPtr vmDef ATTRIBUTE_UNUSED,
                                                virDomainHostdevDefPtr def ATTRIBUTE_UNUSED,
-                                               const char *dstprefix ATTRIBUTE_UNUSED,
                                                virSecurityManagerPtr securityDriver ATTRIBUTE_UNUSED)
 {
     char *src = NULL;
@@ -1562,7 +1558,7 @@ static int lxcContainerSetupHostdevCapsStorage(virDomainDefPtr vmDef ATTRIBUTE_U
         goto cleanup;
     }
 
-    if (virAsprintf(&src, "%s/%s", dstprefix, def->source.caps.u.storage.block) < 0) {
+    if (virAsprintf(&src, "/.oldroot/%s", def->source.caps.u.storage.block) < 0) {
         virReportOOMError();
         goto cleanup;
     }
@@ -1606,7 +1602,6 @@ cleanup:
 
 static int lxcContainerSetupHostdevCapsMisc(virDomainDefPtr vmDef ATTRIBUTE_UNUSED,
                                             virDomainHostdevDefPtr def ATTRIBUTE_UNUSED,
-                                            const char *dstprefix ATTRIBUTE_UNUSED,
                                             virSecurityManagerPtr securityDriver ATTRIBUTE_UNUSED)
 {
     char *src = NULL;
@@ -1620,7 +1615,7 @@ static int lxcContainerSetupHostdevCapsMisc(virDomainDefPtr vmDef ATTRIBUTE_UNUS
         goto cleanup;
     }
 
-    if (virAsprintf(&src, "%s/%s", dstprefix, def->source.caps.u.misc.chardev) < 0) {
+    if (virAsprintf(&src, "/.oldroot/%s", def->source.caps.u.misc.chardev) < 0) {
         virReportOOMError();
         goto cleanup;
     }
@@ -1663,12 +1658,11 @@ cleanup:
 
 static int lxcContainerSetupHostdevSubsys(virDomainDefPtr vmDef,
                                           virDomainHostdevDefPtr def,
-                                          const char *dstprefix,
                                           virSecurityManagerPtr securityDriver)
 {
     switch (def->source.subsys.type) {
     case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_USB:
-        return lxcContainerSetupHostdevSubsysUSB(vmDef, def, dstprefix, securityDriver);
+        return lxcContainerSetupHostdevSubsysUSB(vmDef, def, securityDriver);
 
     default:
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
@@ -1681,15 +1675,14 @@ static int lxcContainerSetupHostdevSubsys(virDomainDefPtr vmDef,
 
 static int lxcContainerSetupHostdevCaps(virDomainDefPtr vmDef,
                                         virDomainHostdevDefPtr def,
-                                        const char *dstprefix,
                                         virSecurityManagerPtr securityDriver)
 {
     switch (def->source.subsys.type) {
     case VIR_DOMAIN_HOSTDEV_CAPS_TYPE_STORAGE:
-        return lxcContainerSetupHostdevCapsStorage(vmDef, def, dstprefix, securityDriver);
+        return lxcContainerSetupHostdevCapsStorage(vmDef, def, securityDriver);
 
     case VIR_DOMAIN_HOSTDEV_CAPS_TYPE_MISC:
-        return lxcContainerSetupHostdevCapsMisc(vmDef, def, dstprefix, securityDriver);
+        return lxcContainerSetupHostdevCapsMisc(vmDef, def, securityDriver);
 
     case VIR_DOMAIN_HOSTDEV_CAPS_TYPE_NET:
         return 0; // case is handled in virLXCControllerMoveInterfaces
@@ -1704,21 +1697,20 @@ static int lxcContainerSetupHostdevCaps(virDomainDefPtr vmDef,
 
 
 static int lxcContainerSetupAllHostdevs(virDomainDefPtr vmDef,
-                                        const char *dstprefix,
                                         virSecurityManagerPtr securityDriver)
 {
     size_t i;
-    VIR_DEBUG("Setting up hostdevs %s", dstprefix);
+    VIR_DEBUG("Setting up hostdevs");
 
-    for (i = 0 ; i < vmDef->nhostdevs ; i++) {
+    for (i = 0; i < vmDef->nhostdevs; i++) {
         virDomainHostdevDefPtr def = vmDef->hostdevs[i];
         switch (def->mode) {
         case VIR_DOMAIN_HOSTDEV_MODE_SUBSYS:
-            if (lxcContainerSetupHostdevSubsys(vmDef, def, dstprefix, securityDriver) < 0)
+            if (lxcContainerSetupHostdevSubsys(vmDef, def, securityDriver) < 0)
                 return -1;
             break;
         case VIR_DOMAIN_HOSTDEV_MODE_CAPABILITIES:
-            if (lxcContainerSetupHostdevCaps(vmDef, def, dstprefix, securityDriver) < 0)
+            if (lxcContainerSetupHostdevCaps(vmDef, def, securityDriver) < 0)
                 return -1;
             break;
         default:
@@ -1748,6 +1740,7 @@ static int lxcContainerSetupPivotRoot(virDomainDefPtr vmDef,
     int rc;
     int ret = -1;
     char *sec_mount_options;
+    char *stateDir = NULL;
 
     if (!(sec_mount_options = virSecurityManagerGetMountOptions(securityDriver, vmDef)))
         return -1;
@@ -1759,6 +1752,9 @@ static int lxcContainerSetupPivotRoot(virDomainDefPtr vmDef,
                              _("Cannot identify cgroup placement"));
         goto cleanup;
     }
+
+    if (virFileResolveAllLinks(LXC_STATE_DIR, &stateDir) < 0)
+        goto cleanup;
 
     /* Ensure the root filesystem is mounted */
     if (lxcContainerPrepareRoot(vmDef, root) < 0)
@@ -1772,6 +1768,11 @@ static int lxcContainerSetupPivotRoot(virDomainDefPtr vmDef,
     /* Some versions of Linux kernel don't let you overmount
      * the selinux filesystem, so make sure we kill it first
      */
+    /* Filed coverity bug for false positive 'USE_AFTER_FREE' due to swap
+     * of root->src with root->dst and the VIR_FREE(root->src) prior to the
+     * reset of root->src in lxcContainerPrepareRoot()
+     */
+    /* coverity[deref_arg] */
     if (STREQ(root->src, "/") &&
         lxcContainerUnmountSubtree(SELINUX_MOUNT, false) < 0)
         goto cleanup;
@@ -1788,11 +1789,11 @@ static int lxcContainerSetupPivotRoot(virDomainDefPtr vmDef,
         goto cleanup;
 
     /* Mounts the core /proc, /sys, etc filesystems */
-    if (lxcContainerMountBasicFS(true, sec_mount_options) < 0)
+    if (lxcContainerMountBasicFS(sec_mount_options) < 0)
         goto cleanup;
 
     /* Mounts /proc/meminfo etc sysinfo */
-    if (lxcContainerMountProcFuse(vmDef, "/.oldroot") < 0)
+    if (lxcContainerMountProcFuse(vmDef, stateDir) < 0)
         goto cleanup;
 
     /* Now we can re-mount the cgroups controllers in the
@@ -1801,7 +1802,7 @@ static int lxcContainerSetupPivotRoot(virDomainDefPtr vmDef,
         goto cleanup;
 
     /* Mounts /dev/pts */
-    if (lxcContainerMountFSDevPTS(vmDef, "/.oldroot") < 0)
+    if (lxcContainerMountFSDevPTS(vmDef, stateDir) < 0)
         goto cleanup;
 
     /* Populates device nodes in /dev/ */
@@ -1809,15 +1810,15 @@ static int lxcContainerSetupPivotRoot(virDomainDefPtr vmDef,
         goto cleanup;
 
     /* Sets up any non-root mounts from guest config */
-    if (lxcContainerMountAllFS(vmDef, "/.oldroot", true, sec_mount_options) < 0)
+    if (lxcContainerMountAllFS(vmDef, sec_mount_options) < 0)
         goto cleanup;
 
     /* Sets up any extra disks from guest config */
-    if (lxcContainerSetupAllDisks(vmDef, "/.oldroot", securityDriver) < 0)
+    if (lxcContainerSetupAllDisks(vmDef, securityDriver) < 0)
         goto cleanup;
 
     /* Sets up any extra host devices from guest config */
-    if (lxcContainerSetupAllHostdevs(vmDef, "/.oldroot", securityDriver) < 0)
+    if (lxcContainerSetupAllHostdevs(vmDef, securityDriver) < 0)
         goto cleanup;
 
    /* Gets rid of all remaining mounts from host OS, including /.oldroot itself */
@@ -1827,6 +1828,7 @@ static int lxcContainerSetupPivotRoot(virDomainDefPtr vmDef,
     ret = 0;
 
 cleanup:
+    VIR_FREE(stateDir);
     virCgroupFree(&cgroup);
     VIR_FREE(sec_mount_options);
     return ret;
@@ -1838,7 +1840,7 @@ static int lxcContainerResolveSymlinks(virDomainDefPtr vmDef)
     char *newroot;
     size_t i;
 
-    for (i = 0 ; i < vmDef->nfss ; i++) {
+    for (i = 0; i < vmDef->nfss; i++) {
         virDomainFSDefPtr fs = vmDef->fss[i];
         if (!fs->src)
             continue;
@@ -1938,26 +1940,16 @@ static int lxcContainerChild(void *data)
     root = virDomainGetRootFilesystem(vmDef);
 
     if (argv->nttyPaths) {
-        if (root) {
-            const char *tty = argv->ttyPaths[0];
-            if (STRPREFIX(tty, "/dev/pts/"))
-                tty += strlen("/dev/pts/");
-            if (virAsprintf(&ttyPath, "%s/%s.devpts/%s",
-                            LXC_STATE_DIR, vmDef->name, tty) < 0) {
-                virReportOOMError();
-                goto cleanup;
-            }
-        } else {
-            if (!(ttyPath = strdup(argv->ttyPaths[0]))) {
-                virReportOOMError();
-                goto cleanup;
-            }
-        }
-    } else {
-        if (!(ttyPath = strdup("/dev/null"))) {
+        const char *tty = argv->ttyPaths[0];
+        if (STRPREFIX(tty, "/dev/pts/"))
+            tty += strlen("/dev/pts/");
+        if (virAsprintf(&ttyPath, "%s/%s.devpts/%s",
+                        LXC_STATE_DIR, vmDef->name, tty) < 0) {
             virReportOOMError();
             goto cleanup;
         }
+    } else if (VIR_STRDUP(ttyPath, "/dev/null") < 0) {
+            goto cleanup;
     }
 
     VIR_DEBUG("Container TTY path: %s", ttyPath);
@@ -2078,7 +2070,7 @@ lxcNeedNetworkNamespace(virDomainDefPtr def)
         return true;
     if (def->features & (1 << VIR_DOMAIN_FEATURE_PRIVNET))
         return true;
-    for (i = 0 ; i < def->nhostdevs ; i++) {
+    for (i = 0; i < def->nhostdevs; i++) {
         if (def->hostdevs[i]->mode == VIR_DOMAIN_HOSTDEV_MODE_CAPABILITIES &&
             def->hostdevs[i]->source.caps.type == VIR_DOMAIN_HOSTDEV_CAPS_TYPE_NET)
             return true;

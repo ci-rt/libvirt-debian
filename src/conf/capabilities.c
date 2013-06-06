@@ -28,11 +28,10 @@
 #include "capabilities.h"
 #include "virbuffer.h"
 #include "viralloc.h"
-#include "virutil.h"
 #include "viruuid.h"
 #include "cpu_conf.h"
 #include "virerror.h"
-
+#include "virstring.h"
 
 #define VIR_FROM_THIS VIR_FROM_CAPABILITIES
 
@@ -130,7 +129,7 @@ virCapabilitiesFreeGuestDomain(virCapsGuestDomainPtr dom)
 
     VIR_FREE(dom->info.emulator);
     VIR_FREE(dom->info.loader);
-    for (i = 0 ; i < dom->info.nmachines ; i++)
+    for (i = 0; i < dom->info.nmachines; i++)
         virCapabilitiesFreeGuestMachine(dom->info.machines[i]);
     VIR_FREE(dom->info.machines);
     VIR_FREE(dom->type);
@@ -158,15 +157,15 @@ virCapabilitiesFreeGuest(virCapsGuestPtr guest)
 
     VIR_FREE(guest->arch.defaultInfo.emulator);
     VIR_FREE(guest->arch.defaultInfo.loader);
-    for (i = 0 ; i < guest->arch.defaultInfo.nmachines ; i++)
+    for (i = 0; i < guest->arch.defaultInfo.nmachines; i++)
         virCapabilitiesFreeGuestMachine(guest->arch.defaultInfo.machines[i]);
     VIR_FREE(guest->arch.defaultInfo.machines);
 
-    for (i = 0 ; i < guest->arch.ndomains ; i++)
+    for (i = 0; i < guest->arch.ndomains; i++)
         virCapabilitiesFreeGuestDomain(guest->arch.domains[i]);
     VIR_FREE(guest->arch.domains);
 
-    for (i = 0 ; i < guest->nfeatures ; i++)
+    for (i = 0; i < guest->nfeatures; i++)
         virCapabilitiesFreeGuestFeature(guest->features[i]);
     VIR_FREE(guest->features);
 
@@ -178,7 +177,7 @@ virCapabilitiesFreeNUMAInfo(virCapsPtr caps)
 {
     int i;
 
-    for (i = 0 ; i < caps->host.nnumaCell ; i++)
+    for (i = 0; i < caps->host.nnumaCell; i++)
         virCapabilitiesFreeHostNUMACell(caps->host.numaCell[i]);
     VIR_FREE(caps->host.numaCell);
     caps->host.nnumaCell = 0;
@@ -190,17 +189,17 @@ virCapabilitiesDispose(void *object)
     virCapsPtr caps = object;
     int i;
 
-    for (i = 0 ; i < caps->nguests ; i++)
+    for (i = 0; i < caps->nguests; i++)
         virCapabilitiesFreeGuest(caps->guests[i]);
     VIR_FREE(caps->guests);
 
-    for (i = 0 ; i < caps->host.nfeatures ; i++)
+    for (i = 0; i < caps->host.nfeatures; i++)
         VIR_FREE(caps->host.features[i]);
     VIR_FREE(caps->host.features);
 
     virCapabilitiesFreeNUMAInfo(caps);
 
-    for (i = 0 ; i < caps->host.nmigrateTrans ; i++)
+    for (i = 0; i < caps->host.nmigrateTrans; i++)
         VIR_FREE(caps->host.migrateTrans[i]);
     VIR_FREE(caps->host.migrateTrans);
 
@@ -229,7 +228,7 @@ virCapabilitiesAddHostFeature(virCapsPtr caps,
                      caps->host.nfeatures, 1) < 0)
         return -1;
 
-    if ((caps->host.features[caps->host.nfeatures] = strdup(name)) == NULL)
+    if (VIR_STRDUP(caps->host.features[caps->host.nfeatures], name) < 0)
         return -1;
     caps->host.nfeatures++;
 
@@ -251,7 +250,7 @@ virCapabilitiesAddHostMigrateTransport(virCapsPtr caps,
                      caps->host.nmigrateTrans, 1) < 0)
         return -1;
 
-    if ((caps->host.migrateTrans[caps->host.nmigrateTrans] = strdup(name)) == NULL)
+    if (VIR_STRDUP(caps->host.migrateTrans[caps->host.nmigrateTrans], name) < 0)
         return -1;
     caps->host.nmigrateTrans++;
 
@@ -335,7 +334,7 @@ virCapabilitiesAllocMachines(const char *const *names, int nnames)
 
     for (i = 0; i < nnames; i++) {
         if (VIR_ALLOC(machines[i]) < 0 ||
-            !(machines[i]->name = strdup(names[i]))) {
+            VIR_STRDUP(machines[i]->name, names[i]) < 0) {
             virCapabilitiesFreeMachines(machines, nnames);
             return NULL;
         }
@@ -391,24 +390,21 @@ virCapabilitiesAddGuest(virCapsPtr caps,
     virCapsGuestPtr guest;
 
     if (VIR_ALLOC(guest) < 0)
-        goto no_memory;
+        goto error;
 
-    if ((guest->ostype = strdup(ostype)) == NULL)
-        goto no_memory;
+    if (VIR_STRDUP(guest->ostype, ostype) < 0)
+        goto error;
 
     guest->arch.id = arch;
     guest->arch.wordsize = virArchGetWordSize(arch);
 
-    if (emulator &&
-        (guest->arch.defaultInfo.emulator = strdup(emulator)) == NULL)
-        goto no_memory;
-    if (loader &&
-        (guest->arch.defaultInfo.loader = strdup(loader)) == NULL)
-        goto no_memory;
+    if (VIR_STRDUP(guest->arch.defaultInfo.emulator, emulator) < 0 ||
+        VIR_STRDUP(guest->arch.defaultInfo.loader, loader) < 0)
+        goto error;
 
     if (VIR_RESIZE_N(caps->guests, caps->nguests_max,
                      caps->nguests, 1) < 0)
-        goto no_memory;
+        goto error;
     caps->guests[caps->nguests++] = guest;
 
     if (nmachines) {
@@ -418,7 +414,7 @@ virCapabilitiesAddGuest(virCapsPtr caps,
 
     return guest;
 
- no_memory:
+error:
     virCapabilitiesFreeGuest(guest);
     return NULL;
 }
@@ -447,21 +443,16 @@ virCapabilitiesAddGuestDomain(virCapsGuestPtr guest,
     virCapsGuestDomainPtr dom;
 
     if (VIR_ALLOC(dom) < 0)
-        goto no_memory;
+        goto error;
 
-    if ((dom->type = strdup(hvtype)) == NULL)
-        goto no_memory;
-
-    if (emulator &&
-        (dom->info.emulator = strdup(emulator)) == NULL)
-        goto no_memory;
-    if (loader &&
-        (dom->info.loader = strdup(loader)) == NULL)
-        goto no_memory;
+    if (VIR_STRDUP(dom->type, hvtype) < 0 ||
+        VIR_STRDUP(dom->info.emulator, emulator) < 0 ||
+        VIR_STRDUP(dom->info.loader, loader) < 0)
+        goto error;
 
     if (VIR_RESIZE_N(guest->arch.domains, guest->arch.ndomains_max,
                      guest->arch.ndomains, 1) < 0)
-        goto no_memory;
+        goto error;
     guest->arch.domains[guest->arch.ndomains] = dom;
     guest->arch.ndomains++;
 
@@ -472,7 +463,7 @@ virCapabilitiesAddGuestDomain(virCapsGuestPtr guest,
 
     return dom;
 
- no_memory:
+error:
     virCapabilitiesFreeGuestDomain(dom);
     return NULL;
 }
@@ -498,7 +489,7 @@ virCapabilitiesAddGuestFeature(virCapsGuestPtr guest,
     if (VIR_ALLOC(feature) < 0)
         goto no_memory;
 
-    if ((feature->name = strdup(name)) == NULL)
+    if (VIR_STRDUP(feature->name, name) < 0)
         goto no_memory;
     feature->defaultOn = defaultOn;
     feature->toggle = toggle;
@@ -528,7 +519,7 @@ virCapabilitiesSupportsGuestArch(virCapsPtr caps,
                                  virArch arch)
 {
     int i;
-    for (i = 0 ; i < caps->nguests ; i++) {
+    for (i = 0; i < caps->nguests; i++) {
         if (caps->guests[i]->arch.id == arch)
             return 1;
     }
@@ -549,7 +540,7 @@ virCapabilitiesSupportsGuestOSType(virCapsPtr caps,
                                    const char *ostype)
 {
     int i;
-    for (i = 0 ; i < caps->nguests ; i++) {
+    for (i = 0; i < caps->nguests; i++) {
         if (STREQ(caps->guests[i]->ostype, ostype))
             return 1;
     }
@@ -572,7 +563,7 @@ virCapabilitiesSupportsGuestOSTypeArch(virCapsPtr caps,
                                        virArch arch)
 {
     int i;
-    for (i = 0 ; i < caps->nguests ; i++) {
+    for (i = 0; i < caps->nguests; i++) {
         if (STREQ(caps->guests[i]->ostype, ostype) &&
             caps->guests[i]->arch.id == arch)
             return 1;
@@ -597,9 +588,9 @@ virCapabilitiesDefaultGuestArch(virCapsPtr caps,
     int i, j;
 
     /* First try to find one matching host arch */
-    for (i = 0 ; i < caps->nguests ; i++) {
+    for (i = 0; i < caps->nguests; i++) {
         if (STREQ(caps->guests[i]->ostype, ostype)) {
-            for (j = 0 ; j < caps->guests[i]->arch.ndomains ; j++) {
+            for (j = 0; j < caps->guests[i]->arch.ndomains; j++) {
                 if (STREQ(caps->guests[i]->arch.domains[j]->type, domain) &&
                     caps->guests[i]->arch.id == caps->host.arch)
                     return caps->guests[i]->arch.id;
@@ -608,9 +599,9 @@ virCapabilitiesDefaultGuestArch(virCapsPtr caps,
     }
 
     /* Otherwise find the first match */
-    for (i = 0 ; i < caps->nguests ; i++) {
+    for (i = 0; i < caps->nguests; i++) {
         if (STREQ(caps->guests[i]->ostype, ostype)) {
-            for (j = 0 ; j < caps->guests[i]->arch.ndomains ; j++) {
+            for (j = 0; j < caps->guests[i]->arch.ndomains; j++) {
                 if (STREQ(caps->guests[i]->arch.domains[j]->type, domain))
                     return caps->guests[i]->arch.id;
             }
@@ -639,7 +630,7 @@ virCapabilitiesDefaultGuestMachine(virCapsPtr caps,
 {
     int i;
 
-    for (i = 0 ; i < caps->nguests ; i++) {
+    for (i = 0; i < caps->nguests; i++) {
         virCapsGuestPtr guest = caps->guests[i];
         int j;
 
@@ -684,12 +675,12 @@ virCapabilitiesDefaultGuestEmulator(virCapsPtr caps,
                                     const char *domain)
 {
     int i, j;
-    for (i = 0 ; i < caps->nguests ; i++) {
+    for (i = 0; i < caps->nguests; i++) {
         char *emulator;
         if (STREQ(caps->guests[i]->ostype, ostype) &&
             caps->guests[i]->arch.id == arch) {
             emulator = caps->guests[i]->arch.defaultInfo.emulator;
-            for (j = 0 ; j < caps->guests[i]->arch.ndomains ; j++) {
+            for (j = 0; j < caps->guests[i]->arch.ndomains; j++) {
                 if (STREQ(caps->guests[i]->arch.domains[j]->type, domain)) {
                     if (caps->guests[i]->arch.domains[j]->info.emulator)
                         emulator = caps->guests[i]->arch.domains[j]->info.emulator;
@@ -779,7 +770,7 @@ virCapabilitiesFormatXML(virCapsPtr caps)
 
     if (caps->host.nfeatures) {
         virBufferAddLit(&xml, "      <features>\n");
-        for (i = 0 ; i < caps->host.nfeatures ; i++) {
+        for (i = 0; i < caps->host.nfeatures; i++) {
             virBufferAsprintf(&xml, "        <%s/>\n",
                               caps->host.features[i]);
         }
@@ -815,7 +806,7 @@ virCapabilitiesFormatXML(virCapsPtr caps)
             virBufferAddLit(&xml, "      <live/>\n");
         if (caps->host.nmigrateTrans) {
             virBufferAddLit(&xml, "      <uri_transports>\n");
-            for (i = 0 ; i < caps->host.nmigrateTrans ; i++) {
+            for (i = 0; i < caps->host.nmigrateTrans; i++) {
                 virBufferAsprintf(&xml, "        <uri_transport>%s</uri_transport>\n",
                                       caps->host.migrateTrans[i]);
             }
@@ -841,7 +832,7 @@ virCapabilitiesFormatXML(virCapsPtr caps)
     virBufferAddLit(&xml, "  </host>\n\n");
 
 
-    for (i = 0 ; i < caps->nguests ; i++) {
+    for (i = 0; i < caps->nguests; i++) {
         virBufferAddLit(&xml, "  <guest>\n");
         virBufferAsprintf(&xml, "    <os_type>%s</os_type>\n",
                           caps->guests[i]->ostype);
@@ -857,7 +848,7 @@ virCapabilitiesFormatXML(virCapsPtr caps)
                 virBufferAsprintf(&xml, "      <loader>%s</loader>\n",
                                   caps->guests[i]->arch.defaultInfo.loader);
 
-        for (j = 0 ; j < caps->guests[i]->arch.defaultInfo.nmachines ; j++) {
+        for (j = 0; j < caps->guests[i]->arch.defaultInfo.nmachines; j++) {
             virCapsGuestMachinePtr machine = caps->guests[i]->arch.defaultInfo.machines[j];
             virBufferAddLit(&xml, "      <machine");
             if (machine->canonical)
@@ -865,7 +856,7 @@ virCapabilitiesFormatXML(virCapsPtr caps)
             virBufferAsprintf(&xml, ">%s</machine>\n", machine->name);
         }
 
-        for (j = 0 ; j < caps->guests[i]->arch.ndomains ; j++) {
+        for (j = 0; j < caps->guests[i]->arch.ndomains; j++) {
             virBufferAsprintf(&xml, "      <domain type='%s'>\n",
                                   caps->guests[i]->arch.domains[j]->type);
             if (caps->guests[i]->arch.domains[j]->info.emulator)
@@ -875,7 +866,7 @@ virCapabilitiesFormatXML(virCapsPtr caps)
                 virBufferAsprintf(&xml, "        <loader>%s</loader>\n",
                                   caps->guests[i]->arch.domains[j]->info.loader);
 
-            for (k = 0 ; k < caps->guests[i]->arch.domains[j]->info.nmachines ; k++) {
+            for (k = 0; k < caps->guests[i]->arch.domains[j]->info.nmachines; k++) {
                 virCapsGuestMachinePtr machine = caps->guests[i]->arch.domains[j]->info.machines[k];
                 virBufferAddLit(&xml, "        <machine");
                 if (machine->canonical)
@@ -890,7 +881,7 @@ virCapabilitiesFormatXML(virCapsPtr caps)
         if (caps->guests[i]->nfeatures) {
             virBufferAddLit(&xml, "    <features>\n");
 
-            for (j = 0 ; j < caps->guests[i]->nfeatures ; j++) {
+            for (j = 0; j < caps->guests[i]->nfeatures; j++) {
                 if (STREQ(caps->guests[i]->features[j]->name, "pae") ||
                     STREQ(caps->guests[i]->features[j]->name, "nonpae") ||
                     STREQ(caps->guests[i]->features[j]->name, "ia64_be") ||

@@ -113,9 +113,10 @@ int virNetSocketGetPort(virNetSocketPtr sock);
 int virNetSocketGetUNIXIdentity(virNetSocketPtr sock,
                                 uid_t *uid,
                                 gid_t *gid,
-                                pid_t *pid);
-int virNetSocketGetSecurityContext(virNetSocketPtr sock,
-                                   char **context);
+                                pid_t *pid,
+                                unsigned long long *timestamp);
+int virNetSocketGetSELinuxContext(virNetSocketPtr sock,
+                                  char **context);
 
 int virNetSocketSetBlocking(virNetSocketPtr sock,
                             bool blocking);

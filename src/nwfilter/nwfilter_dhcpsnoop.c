@@ -2,7 +2,7 @@
  * nwfilter_dhcpsnoop.c: support for DHCP snooping used by a VM
  *                       on an interface
  *
- * Copyright (C) 2012 Red Hat, Inc.
+ * Copyright (C) 2012-2013 Red Hat, Inc.
  * Copyright (C) 2011,2012 IBM Corp.
  *
  * Authors:
@@ -29,13 +29,13 @@
 /*
  * Note about testing:
  *   On the host run in a shell:
- *      while :; do kill -SIGHUP `pidof libvirtd` ; echo "HUP $RANDOM"; sleep 20; done
+ *      while :; do kill -SIGHUP `pidof libvirtd`; echo "HUP $RANDOM"; sleep 20; done
  *
  *   Inside a couple of VMs that for example use the 'clean-traffic' filter:
- *      while :; do kill -SIGTERM `pidof dhclient`; dhclient eth0 ; ifconfig eth0; done
+ *      while :; do kill -SIGTERM `pidof dhclient`; dhclient eth0; ifconfig eth0; done
  *
  *   On the host check the lease file and that it's periodically shortened:
- *      cat /var/run/libvirt/network/nwfilter.leases ; date +%s
+ *      cat /var/run/libvirt/network/nwfilter.leases; date +%s
  *
  *   On the host also check that the ebtables rules 'look' ok:
  *      ebtables -t nat -L
@@ -68,6 +68,7 @@
 #include "virthreadpool.h"
 #include "configmake.h"
 #include "virtime.h"
+#include "virstring.h"
 
 #define VIR_FROM_THIS VIR_FROM_NWFILTER
 
@@ -132,11 +133,11 @@ struct _virNWFilterSnoopReq {
     virNWFilterTechDriverPtr             techdriver;
     char                                *ifname;
     int                                  ifindex;
-    const char                          *linkdev;
+    char                                *linkdev;
     enum virDomainNetType                nettype;
     char                                 ifkey[VIR_IFKEY_LEN];
     virMacAddr                           macaddr;
-    const char                          *filtername;
+    char                                *filtername;
     virNWFilterHashTablePtr              vars;
     virNWFilterDriverStatePtr            driver;
     /* start and end of lease list, ordered by lease time */
@@ -368,7 +369,7 @@ virNWFilterSnoopListAdd(virNWFilterSnoopIPLeasePtr plnew,
 
     for (pl = *end; pl && plnew->timeout < pl->timeout;
          pl = pl->prev)
-        /* empty */ ;
+        ; /* empty */
 
     if (!pl) {
         plnew->next = *start;
@@ -525,7 +526,7 @@ virNWFilterSnoopIPLeaseGetByIP(virNWFilterSnoopIPLeasePtr start,
     for (pl = start;
          pl && !virSocketAddrEqual(&pl->ipAddress, ipaddr);
          pl = pl->next)
-        /* empty */ ;
+        ; /* empty */
     return pl;
 }
 
@@ -1109,10 +1110,8 @@ virNWFilterSnoopDHCPOpen(const char *ifname, virMacAddr *mac,
          * generate much more traffic than if we filtered by VM and
          * braodcast MAC as well
          */
-        if (virAsprintf(&ext_filter, "%s", filter) < 0) {
-            virReportOOMError();
+        if (VIR_STRDUP(ext_filter, filter) < 0)
             return NULL;
-        }
     }
 
     handle = pcap_create(ifname, pcap_errbuf);
@@ -1407,7 +1406,7 @@ virNWFilterDHCPSnoopThread(void *req0)
             fds[i].fd = pcap_fileno(pcapConf[i].handle);
         }
         tmp = virNetDevGetIndex(req->ifname, &ifindex);
-        threadkey = strdup(req->threadkey);
+        ignore_value(VIR_STRDUP(threadkey, req->threadkey));
         worker = virThreadPoolNew(1, 1, 0,
                                   virNWFilterDHCPDecodeWorker,
                                   req);
@@ -1630,15 +1629,17 @@ virNWFilterDHCPSnoopReq(virNWFilterTechDriverPtr techdriver,
     req->driver = driver;
     req->techdriver = techdriver;
     tmp = virNetDevGetIndex(ifname, &req->ifindex);
-    req->linkdev = linkdev ? strdup(linkdev) : NULL;
     req->nettype = nettype;
-    req->ifname = strdup(ifname);
     virMacAddrSet(&req->macaddr, macaddr);
-    req->filtername = strdup(filtername);
     req->vars = virNWFilterHashTableCreate(0);
+    req->linkdev = NULL;
 
-    if (!req->ifname || !req->filtername || !req->vars || tmp < 0 ||
-        (linkdev != NULL && req->linkdev == NULL)) {
+    if (VIR_STRDUP(req->ifname, ifname) < 0 ||
+        VIR_STRDUP(req->filtername, filtername) < 0 ||
+        VIR_STRDUP(req->linkdev, linkdev) < 0)
+        goto exit_snoopreqput;
+
+    if (!req->vars || tmp < 0) {
         virReportOOMError();
         goto exit_snoopreqput;
     }
@@ -2117,6 +2118,16 @@ err_exit:
     return -1;
 }
 
+/**
+ * End a DHCP snoop thread on the given interface or end all
+ * DHCP snoop threads.
+ *
+ * @ifname: Name of an interface or NULL to stop all snoop threads
+ *
+ * It is not an error to call this function with an interface name
+ * for which no thread is snooping traffic. In this case the call will
+ * be a no-op.
+ */
 void
 virNWFilterDHCPSnoopEnd(const char *ifname)
 {
@@ -2130,11 +2141,8 @@ virNWFilterDHCPSnoopEnd(const char *ifname)
     if (ifname) {
         ifkey = (char *)virHashLookup(virNWFilterSnoopState.ifnameToKey,
                                       ifname);
-        if (!ifkey) {
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("ifname \"%s\" not in key map"), ifname);
+        if (!ifkey)
             goto cleanup;
-        }
 
         ignore_value(virHashRemoveEntry(virNWFilterSnoopState.ifnameToKey,
                                         ifname));

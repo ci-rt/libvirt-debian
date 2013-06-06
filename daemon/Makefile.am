@@ -1,7 +1,20 @@
 ## Process this file with automake to produce Makefile.in
 
 ## Copyright (C) 2005-2013 Red Hat, Inc.
-## See COPYING.LIB for the License of this software
+##
+## This library is free software; you can redistribute it and/or
+## modify it under the terms of the GNU Lesser General Public
+## License as published by the Free Software Foundation; either
+## version 2.1 of the License, or (at your option) any later version.
+##
+## This library is distributed in the hope that it will be useful,
+## but WITHOUT ANY WARRANTY; without even the implied warranty of
+## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+## Lesser General Public License for more details.
+##
+## You should have received a copy of the GNU Lesser General Public
+## License along with this library.  If not, see
+## <http://www.gnu.org/licenses/>.
 
 INCLUDES = \
 	-I$(top_builddir)/gnulib/lib -I$(top_srcdir)/gnulib/lib \
@@ -111,7 +124,6 @@ libvirtd_CFLAGS = \
 	-DQEMUD_PID_FILE="\"$(QEMUD_PID_FILE)\""
 
 libvirtd_LDFLAGS =					\
-	$(WARN_LDFLAGS)					\
 	$(PIE_LDFLAGS)					\
 	$(RELRO_LDFLAGS)				\
 	$(COVERAGE_LDFLAGS)
@@ -154,6 +166,10 @@ endif
 
 if WITH_UML
     libvirtd_LDADD += ../src/libvirt_driver_uml.la
+endif
+
+if WITH_VBOX
+    libvirtd_LDADD += ../src/libvirt_driver_vbox.la
 endif
 
 if WITH_STORAGE

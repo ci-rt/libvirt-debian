@@ -50,7 +50,6 @@
 #include "virhook.h"
 #include "virfile.h"
 #include "virpidfile.h"
-#include "virutil.h"
 #include "c-ctype.h"
 #include "nodeinfo.h"
 #include "domain_audit.h"
@@ -64,6 +63,7 @@
 #include "virbitmap.h"
 #include "viratomic.h"
 #include "virnuma.h"
+#include "virstring.h"
 
 #define VIR_FROM_THIS VIR_FROM_QEMU
 
@@ -199,7 +199,7 @@ qemuFindAgentConfig(virDomainDefPtr def)
     virDomainChrSourceDefPtr config = NULL;
     int i;
 
-    for (i = 0 ; i < def->nchannels ; i++) {
+    for (i = 0; i < def->nchannels; i++) {
         virDomainChrDefPtr channel = def->channels[i];
 
         if (channel->targetType != VIR_DOMAIN_CHR_CHANNEL_TARGET_TYPE_VIRTIO)
@@ -547,6 +547,7 @@ qemuProcessFakeReboot(void *opaque)
     virDomainObjPtr vm = opaque;
     qemuDomainObjPrivatePtr priv = vm->privateData;
     virDomainEventPtr event = NULL;
+    virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
     int ret = -1;
     VIR_DEBUG("vm=%p", vm);
     virObjectLock(vm);
@@ -585,6 +586,11 @@ qemuProcessFakeReboot(void *opaque)
                                      VIR_DOMAIN_EVENT_RESUMED,
                                      VIR_DOMAIN_EVENT_RESUMED_UNPAUSED);
 
+    if (virDomainSaveStatus(driver->xmlopt, cfg->stateDir, vm) < 0) {
+        VIR_WARN("Unable to save status on vm %s after state change",
+                 vm->def->name);
+    }
+
     ret = 0;
 
 endjob:
@@ -601,6 +607,7 @@ cleanup:
     }
     if (event)
         qemuDomainEventQueue(driver, event);
+    virObjectUnref(cfg);
 }
 
 
@@ -1000,16 +1007,16 @@ qemuProcessHandleGraphics(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
     if (VIR_ALLOC(localAddr) < 0)
         goto no_memory;
     localAddr->family = localFamily;
-    if (!(localAddr->service = strdup(localService)) ||
-        !(localAddr->node = strdup(localNode)))
-        goto no_memory;
+    if (VIR_STRDUP(localAddr->service, localService) < 0 ||
+        VIR_STRDUP(localAddr->node, localNode) < 0)
+        goto error;
 
     if (VIR_ALLOC(remoteAddr) < 0)
         goto no_memory;
     remoteAddr->family = remoteFamily;
-    if (!(remoteAddr->service = strdup(remoteService)) ||
-        !(remoteAddr->node = strdup(remoteNode)))
-        goto no_memory;
+    if (VIR_STRDUP(remoteAddr->service, remoteService) < 0 ||
+        VIR_STRDUP(remoteAddr->node, remoteNode) < 0)
+        goto error;
 
     if (VIR_ALLOC(subject) < 0)
         goto no_memory;
@@ -1017,17 +1024,17 @@ qemuProcessHandleGraphics(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
         if (VIR_REALLOC_N(subject->identities, subject->nidentity+1) < 0)
             goto no_memory;
         subject->nidentity++;
-        if (!(subject->identities[subject->nidentity-1].type = strdup("x509dname")) ||
-            !(subject->identities[subject->nidentity-1].name = strdup(x509dname)))
-            goto no_memory;
+        if (VIR_STRDUP(subject->identities[subject->nidentity-1].type, "x509dname") < 0 ||
+            VIR_STRDUP(subject->identities[subject->nidentity-1].name, x509dname) < 0)
+            goto error;
     }
     if (saslUsername) {
         if (VIR_REALLOC_N(subject->identities, subject->nidentity+1) < 0)
             goto no_memory;
         subject->nidentity++;
-        if (!(subject->identities[subject->nidentity-1].type = strdup("saslUsername")) ||
-            !(subject->identities[subject->nidentity-1].name = strdup(saslUsername)))
-            goto no_memory;
+        if (VIR_STRDUP(subject->identities[subject->nidentity-1].type, "saslUsername") < 0 ||
+            VIR_STRDUP(subject->identities[subject->nidentity-1].name, saslUsername) < 0)
+            goto error;
     }
 
     virObjectLock(vm);
@@ -1041,6 +1048,7 @@ qemuProcessHandleGraphics(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
 
 no_memory:
     virReportOOMError();
+error:
     if (localAddr) {
         VIR_FREE(localAddr->service);
         VIR_FREE(localAddr->node);
@@ -1052,7 +1060,7 @@ no_memory:
         VIR_FREE(remoteAddr);
     }
     if (subject) {
-        for (i = 0 ; i < subject->nidentity ; i++) {
+        for (i = 0; i < subject->nidentity; i++) {
             VIR_FREE(subject->identities[i].type);
             VIR_FREE(subject->identities[i].name);
         }
@@ -1480,11 +1488,8 @@ qemuProcessExtractTTYPath(const char *haystack,
      */
     while (*tmp) {
         if (c_isspace(*tmp)) {
-            *path = strndup(dev, tmp-dev);
-            if (*path == NULL) {
-                virReportOOMError();
+            if (VIR_STRNDUP(*path, dev, tmp - dev) < 0)
                 return -1;
-            }
 
             /* ... now further update offset till we get EOL */
             *offset = tmp - haystack;
@@ -1511,7 +1516,7 @@ qemuProcessLookupPTYs(virDomainChrDefPtr *devices,
     int i;
     const char *prefix = chardevfmt ? "char" : "";
 
-    for (i = 0 ; i < count ; i++) {
+    for (i = 0; i < count; i++) {
         virDomainChrDefPtr chr = devices[i];
         if (chr->source.type == VIR_DOMAIN_CHR_TYPE_PTY) {
             char id[32];
@@ -1539,12 +1544,8 @@ qemuProcessLookupPTYs(virDomainChrDefPtr *devices,
             }
 
             VIR_FREE(chr->source.data.file.path);
-            chr->source.data.file.path = strdup(path);
-
-            if (chr->source.data.file.path == NULL) {
-                virReportOOMError();
+            if (VIR_STRDUP(chr->source.data.file.path, path) < 0)
                 return -1;
-            }
         }
     }
 
@@ -1606,7 +1607,7 @@ qemuProcessFindCharDevicePTYs(virDomainObjPtr vm,
        device args. This code must match that ordering.... */
 
     /* first comes the serial devices */
-    for (i = 0 ; i < vm->def->nserials ; i++) {
+    for (i = 0; i < vm->def->nserials; i++) {
         virDomainChrDefPtr chr = vm->def->serials[i];
         if (chr->source.type == VIR_DOMAIN_CHR_TYPE_PTY) {
             if ((ret = qemuProcessExtractTTYPath(output, &offset,
@@ -1616,7 +1617,7 @@ qemuProcessFindCharDevicePTYs(virDomainObjPtr vm,
     }
 
     /* then the parallel devices */
-    for (i = 0 ; i < vm->def->nparallels ; i++) {
+    for (i = 0; i < vm->def->nparallels; i++) {
         virDomainChrDefPtr chr = vm->def->parallels[i];
         if (chr->source.type == VIR_DOMAIN_CHR_TYPE_PTY) {
             if ((ret = qemuProcessExtractTTYPath(output, &offset,
@@ -1626,7 +1627,7 @@ qemuProcessFindCharDevicePTYs(virDomainObjPtr vm,
     }
 
     /* then the channel devices */
-    for (i = 0 ; i < vm->def->nchannels ; i++) {
+    for (i = 0; i < vm->def->nchannels; i++) {
         virDomainChrDefPtr chr = vm->def->channels[i];
         if (chr->source.type == VIR_DOMAIN_CHR_TYPE_PTY) {
             if ((ret = qemuProcessExtractTTYPath(output, &offset,
@@ -1635,7 +1636,7 @@ qemuProcessFindCharDevicePTYs(virDomainObjPtr vm,
         }
     }
 
-    for (i = 0 ; i < vm->def->nconsoles ; i++) {
+    for (i = 0; i < vm->def->nconsoles; i++) {
         virDomainChrDefPtr chr = vm->def->consoles[i];
         /* For historical reasons, console[0] can be just an alias
          * for serial[0]; That's why we need to update it as well */
@@ -1989,7 +1990,7 @@ qemuProcessInitPasswords(virConnectPtr conn,
     virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
     int i;
 
-    for (i = 0 ; i < vm->def->ngraphics; ++i) {
+    for (i = 0; i < vm->def->ngraphics; ++i) {
         virDomainGraphicsDefPtr graphics = vm->def->graphics[i];
         if (graphics->type == VIR_DOMAIN_GRAPHICS_TYPE_VNC) {
             ret = qemuDomainChangeGraphicsPasswords(driver, vm,
@@ -2008,7 +2009,7 @@ qemuProcessInitPasswords(virConnectPtr conn,
         goto cleanup;
 
     if (virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE)) {
-        for (i = 0 ; i < vm->def->ndisks ; i++) {
+        for (i = 0; i < vm->def->ndisks; i++) {
             char *secret;
             size_t secretLen;
             const char *alias;
@@ -2082,7 +2083,7 @@ qemuProcessAssignNextPCIAddress(virDomainDeviceInfo *info,
 
     VIR_DEBUG("Look for %x:%x out of %d", vendor, product, naddrs);
 
-    for (i = 0 ; (i < naddrs) && !found; i++) {
+    for (i = 0; (i < naddrs) && !found; i++) {
         VIR_DEBUG("Maybe %x:%x", addrs[i].vendor, addrs[i].product);
         if (addrs[i].vendor == vendor &&
             addrs[i].product == product) {
@@ -2299,7 +2300,7 @@ qemuProcessDetectPCIAddresses(virDomainObjPtr vm,
      * actual device data structure instead ?
      */
 
-    for (i = 0 ; i < vm->def->ndisks ; i++) {
+    for (i = 0; i < vm->def->ndisks; i++) {
         if (qemuProcessGetPCIDiskVendorProduct(vm->def->disks[i], &vendor, &product) < 0)
             continue;
 
@@ -2313,7 +2314,7 @@ qemuProcessDetectPCIAddresses(virDomainObjPtr vm,
         }
     }
 
-    for (i = 0 ; i < vm->def->nnets ; i++) {
+    for (i = 0; i < vm->def->nnets; i++) {
         if (qemuProcessGetPCINetVendorProduct(vm->def->nets[i], &vendor, &product) < 0)
             continue;
 
@@ -2327,7 +2328,7 @@ qemuProcessDetectPCIAddresses(virDomainObjPtr vm,
         }
     }
 
-    for (i = 0 ; i < vm->def->ncontrollers ; i++) {
+    for (i = 0; i < vm->def->ncontrollers; i++) {
         if (qemuProcessGetPCIControllerVendorProduct(vm->def->controllers[i], &vendor, &product) < 0)
             continue;
 
@@ -2341,7 +2342,7 @@ qemuProcessDetectPCIAddresses(virDomainObjPtr vm,
         }
     }
 
-    for (i = 0 ; i < vm->def->nvideos ; i++) {
+    for (i = 0; i < vm->def->nvideos; i++) {
         if (qemuProcessGetPCIVideoVendorProduct(vm->def->videos[i], &vendor, &product) < 0)
             continue;
 
@@ -2355,7 +2356,7 @@ qemuProcessDetectPCIAddresses(virDomainObjPtr vm,
         }
     }
 
-    for (i = 0 ; i < vm->def->nsounds ; i++) {
+    for (i = 0; i < vm->def->nsounds; i++) {
         if (qemuProcessGetPCISoundVendorProduct(vm->def->sounds[i], &vendor, &product) < 0)
             continue;
 
@@ -2611,7 +2612,7 @@ qemuProcessNotifyNets(virDomainDefPtr def)
 {
     int ii;
 
-    for (ii = 0 ; ii < def->nnets ; ii++) {
+    for (ii = 0; ii < def->nnets; ii++) {
         virDomainNetDefPtr net = def->nets[ii];
         if (networkNotifyActualDevice(net) < 0)
             return -1;
@@ -2629,7 +2630,7 @@ qemuProcessFiltersInstantiate(virConnectPtr conn,
     if (!conn)
         return 1;
 
-    for (i = 0 ; i < def->nnets ; i++) {
+    for (i = 0; i < def->nnets; i++) {
         virDomainNetDefPtr net = def->nets[i];
         if ((net->filter) && (net->ifname)) {
            if (virDomainConfNWFilterInstantiate(conn, def->uuid, net) < 0) {
@@ -2666,12 +2667,12 @@ qemuProcessUpdateState(virQEMUDriverPtr driver, virDomainObjPtr vm)
     if (state == VIR_DOMAIN_PAUSED && running) {
         newState = VIR_DOMAIN_RUNNING;
         newReason = VIR_DOMAIN_RUNNING_UNPAUSED;
-        msg = strdup("was unpaused");
+        ignore_value(VIR_STRDUP_QUIET(msg, "was unpaused"));
     } else if (state == VIR_DOMAIN_RUNNING && !running) {
         if (reason == VIR_DOMAIN_PAUSED_SHUTTING_DOWN) {
             newState = VIR_DOMAIN_SHUTDOWN;
             newReason = VIR_DOMAIN_SHUTDOWN_UNKNOWN;
-            msg = strdup("shutdown");
+            ignore_value(VIR_STRDUP_QUIET(msg, "shutdown"));
         } else {
             newState = VIR_DOMAIN_PAUSED;
             newReason = reason;
@@ -2681,19 +2682,14 @@ qemuProcessUpdateState(virQEMUDriverPtr driver, virDomainObjPtr vm)
     } else if (state == VIR_DOMAIN_SHUTOFF && running) {
         newState = VIR_DOMAIN_RUNNING;
         newReason = VIR_DOMAIN_RUNNING_BOOTED;
-        msg = strdup("finished booting");
+        ignore_value(VIR_STRDUP_QUIET(msg, "finished booting"));
     }
 
     if (newState != VIR_DOMAIN_NOSTATE) {
-        if (!msg) {
-            virReportOOMError();
-            return -1;
-        }
-
         VIR_DEBUG("Domain %s %s while its monitor was disconnected;"
                   " changing state to %s (%s)",
                   vm->def->name,
-                  msg,
+                  NULLSTR(msg),
                   virDomainStateTypeToString(newState),
                   virDomainStateReasonToString(newState, newReason));
         VIR_FREE(msg);
@@ -2972,17 +2968,24 @@ qemuProcessReconnect(void *opaque)
     if (qemuUpdateActiveUsbHostdevs(driver, obj->def) < 0)
         goto error;
 
+    if (qemuUpdateActiveScsiHostdevs(driver, obj->def) < 0)
+        goto error;
+
     if (qemuInitCgroup(driver, obj, false) < 0)
         goto error;
 
     /* XXX: Need to change as long as lock is introduced for
-     * qemu_driver->sharedDisks.
+     * qemu_driver->sharedDevices.
      */
     for (i = 0; i < obj->def->ndisks; i++) {
+        virDomainDeviceDef dev;
+
         if (qemuTranslateDiskSourcePool(conn, obj->def->disks[i]) < 0)
             goto error;
-        if (qemuAddSharedDisk(driver, obj->def->disks[i],
-                              obj->def->name) < 0)
+
+        dev.type = VIR_DOMAIN_DEVICE_DISK;
+        dev.data.disk = obj->def->disks[i];
+        if (qemuAddSharedDevice(driver, &dev, obj->def->name) < 0)
             goto error;
     }
 
@@ -3196,43 +3199,29 @@ qemuProcessReconnectAll(virConnectPtr conn, virQEMUDriverPtr driver)
     virDomainObjListForEach(driver->domains, qemuProcessReconnectHelper, &data);
 }
 
-int
-qemuSetUnprivSGIO(virDomainDiskDefPtr disk)
+static int
+qemuProcessVNCAllocatePorts(virQEMUDriverPtr driver,
+                            virDomainGraphicsDefPtr graphics)
 {
-    char *sysfs_path = NULL;
-    int val = -1;
-    int ret = 0;
+    unsigned short port;
 
-    /* "sgio" is only valid for block disk; cdrom
-     * and floopy disk can have empty source.
-     */
-    if (!disk->src ||
-        disk->device != VIR_DOMAIN_DISK_DEVICE_LUN ||
-        (disk->type != VIR_DOMAIN_DISK_TYPE_BLOCK &&
-         !(disk->type == VIR_DOMAIN_DISK_TYPE_VOLUME &&
-           disk->srcpool &&
-           disk->srcpool->voltype == VIR_STORAGE_VOL_BLOCK)))
+    if (graphics->data.vnc.socket)
         return 0;
 
-    sysfs_path = virGetUnprivSGIOSysfsPath(disk->src, NULL);
-    if (sysfs_path == NULL)
-        return -1;
+    if (graphics->data.vnc.autoport) {
+        if (virPortAllocatorAcquire(driver->remotePorts, &port) < 0)
+            return -1;
+        graphics->data.vnc.port = port;
+    }
 
-    /* By default, filter the SG_IO commands, i.e. set unpriv_sgio to 0.  */
-    val = (disk->sgio == VIR_DOMAIN_DISK_SGIO_UNFILTERED);
+    if (graphics->data.vnc.websocket == -1) {
+        if (virPortAllocatorAcquire(driver->webSocketPorts, &port) < 0)
+            return -1;
+        graphics->data.vnc.websocket = port;
+    }
 
-    /* Do not do anything if unpriv_sgio is not supported by the kernel and the
-     * whitelist is enabled.  But if requesting unfiltered access, always call
-     * virSetDeviceUnprivSGIO, to report an error for unsupported unpriv_sgio.
-     */
-    if ((virFileExists(sysfs_path) || val == 1) &&
-        virSetDeviceUnprivSGIO(disk->src, NULL, val) < 0)
-        ret = -1;
-
-    VIR_FREE(sysfs_path);
-    return ret;
+    return 0;
 }
-
 
 static int
 qemuProcessSPICEAllocatePorts(virQEMUDriverPtr driver,
@@ -3249,7 +3238,7 @@ qemuProcessSPICEAllocatePorts(virQEMUDriverPtr driver,
 
     if (graphics->data.spice.autoport) {
         /* check if tlsPort or port need allocation */
-        for (i = 0 ; i < VIR_DOMAIN_GRAPHICS_SPICE_CHANNEL_LAST ; i++) {
+        for (i = 0; i < VIR_DOMAIN_GRAPHICS_SPICE_CHANNEL_LAST; i++) {
             switch (graphics->data.spice.channels[i]) {
             case VIR_DOMAIN_GRAPHICS_SPICE_CHANNEL_MODE_SECURE:
                 needTLSPort = true;
@@ -3422,6 +3411,14 @@ int qemuProcessStart(virConnectPtr conn,
             goto cleanup;
     }
 
+    /* network devices must be "prepared" before hostdevs, because
+     * setting up a network device might create a new hostdev that
+     * will need to be setup.
+     */
+    VIR_DEBUG("Preparing network devices");
+    if (qemuNetworkPrepareDevices(vm->def) < 0)
+       goto cleanup;
+
     /* Must be run before security labelling */
     VIR_DEBUG("Preparing host devices");
     if (qemuPrepareHostDevices(driver, vm->def, !migrateFrom) < 0)
@@ -3457,15 +3454,11 @@ int qemuProcessStart(virConnectPtr conn,
     VIR_DEBUG("Ensuring no historical cgroup is lying around");
     qemuRemoveCgroup(vm);
 
-    for (i = 0 ; i < vm->def->ngraphics; ++i) {
+    for (i = 0; i < vm->def->ngraphics; ++i) {
         virDomainGraphicsDefPtr graphics = vm->def->graphics[i];
-        if (graphics->type == VIR_DOMAIN_GRAPHICS_TYPE_VNC &&
-            !graphics->data.vnc.socket &&
-            graphics->data.vnc.autoport) {
-            unsigned short port;
-            if (virPortAllocatorAcquire(driver->remotePorts, &port) < 0)
+        if (graphics->type == VIR_DOMAIN_GRAPHICS_TYPE_VNC) {
+            if (qemuProcessVNCAllocatePorts(driver, graphics) < 0)
                 goto cleanup;
-            graphics->data.vnc.port = port;
         } else if (graphics->type == VIR_DOMAIN_GRAPHICS_TYPE_SPICE) {
             if (qemuProcessSPICEAllocatePorts(driver, cfg, graphics) < 0)
                 goto cleanup;
@@ -3479,13 +3472,10 @@ int qemuProcessStart(virConnectPtr conn,
                     goto cleanup;
                 }
                 graphics->listens[0].type = VIR_DOMAIN_GRAPHICS_LISTEN_TYPE_ADDRESS;
-                if (graphics->type == VIR_DOMAIN_GRAPHICS_TYPE_VNC)
-                    graphics->listens[0].address = strdup(cfg->vncListen);
-                else
-                    graphics->listens[0].address = strdup(cfg->spiceListen);
-                if (!graphics->listens[0].address) {
+                if (VIR_STRDUP(graphics->listens[0].address,
+                               graphics->type == VIR_DOMAIN_GRAPHICS_TYPE_VNC ?
+                               cfg->vncListen : cfg->spiceListen) < 0) {
                     VIR_SHRINK_N(graphics->listens, graphics->nListens, 1);
-                    virReportOOMError();
                     goto cleanup;
                 }
             }
@@ -3528,7 +3518,7 @@ int qemuProcessStart(virConnectPtr conn,
                                     flags & VIR_QEMU_PROCESS_START_COLD) < 0)
         goto cleanup;
 
-    for (i = 0; i < vm->def->ndisks ; i++) {
+    for (i = 0; i < vm->def->ndisks; i++) {
         if (qemuDomainDetermineDiskChain(driver, vm->def->disks[i],
                                          false) < 0)
             goto cleanup;
@@ -3567,11 +3557,7 @@ int qemuProcessStart(virConnectPtr conn,
     if (qemuProcessPrepareMonitorChr(cfg, priv->monConfig, vm->def->name) < 0)
         goto cleanup;
 
-    if (virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_MONITOR_JSON))
-        priv->monJSON = 1;
-    else
-        priv->monJSON = 0;
-
+    priv->monJSON = virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_MONITOR_JSON);
     priv->monError = false;
     priv->monStart = 0;
     priv->gotShutdown = false;
@@ -3611,8 +3597,9 @@ int qemuProcessStart(virConnectPtr conn,
 
     VIR_DEBUG("Building emulator command line");
     if (!(cmd = qemuBuildCommandLine(conn, driver, vm->def, priv->monConfig,
-                                     priv->monJSON != 0, priv->qemuCaps,
-                                     migrateFrom, stdin_fd, snapshot, vmop)))
+                                     priv->monJSON, priv->qemuCaps,
+                                     migrateFrom, stdin_fd, snapshot, vmop,
+                                     &buildCommandLineCallbacks)))
         goto cleanup;
 
     /* now that we know it is about to start call the hook if present */
@@ -3660,6 +3647,7 @@ int qemuProcessStart(virConnectPtr conn,
 
     /* in case a certain disk is desirous of CAP_SYS_RAWIO, add this */
     for (i = 0; i < vm->def->ndisks; i++) {
+        virDomainDeviceDef dev;
         virDomainDiskDefPtr disk = vm->def->disks[i];
 
         if (vm->def->disks[i]->rawio == 1)
@@ -3670,10 +3658,12 @@ int qemuProcessStart(virConnectPtr conn,
                            _("Raw I/O is not supported on this platform"));
 #endif
 
-        if (qemuAddSharedDisk(driver, disk, vm->def->name) < 0)
+        dev.type = VIR_DOMAIN_DEVICE_DISK;
+        dev.data.disk = disk;
+        if (qemuAddSharedDevice(driver, &dev, vm->def->name) < 0)
             goto cleanup;
 
-        if (qemuSetUnprivSGIO(disk) < 0)
+        if (qemuSetUnprivSGIO(&dev) < 0)
             goto cleanup;
     }
 
@@ -3934,7 +3924,7 @@ qemuProcessKill(virDomainObjPtr vm, unsigned int flags)
         }
     }
 
-    if ((flags & VIR_QEMU_PROCESS_KILL_NOWAIT)) {
+    if (flags & VIR_QEMU_PROCESS_KILL_NOWAIT) {
         virProcessKill(vm->pid,
                        (flags & VIR_QEMU_PROCESS_KILL_FORCE) ?
                        SIGKILL : SIGTERM);
@@ -4016,7 +4006,7 @@ void qemuProcessStop(virQEMUDriverPtr driver,
 
     if (cfg->macFilter) {
         def = vm->def;
-        for (i = 0 ; i < def->nnets ; i++) {
+        for (i = 0; i < def->nnets; i++) {
             virDomainNetDefPtr net = def->nets[i];
             if (net->ifname == NULL)
                 continue;
@@ -4081,8 +4071,12 @@ void qemuProcessStop(virQEMUDriverPtr driver,
     virSecurityManagerReleaseLabel(driver->securityManager, vm->def);
 
     for (i = 0; i < vm->def->ndisks; i++) {
+        virDomainDeviceDef dev;
         virDomainDiskDefPtr disk = vm->def->disks[i];
-        ignore_value(qemuRemoveSharedDisk(driver, disk, vm->def->name));
+
+        dev.type = VIR_DOMAIN_DEVICE_DISK;
+        dev.data.disk = disk;
+        ignore_value(qemuRemoveSharedDevice(driver, &dev, vm->def->name));
     }
 
     /* Clear out dynamically assigned labels */
@@ -4145,12 +4139,17 @@ retry:
     /* Remove VNC and Spice ports from port reservation bitmap, but only if
        they were reserved by the driver (autoport=yes)
     */
-    for (i = 0 ; i < vm->def->ngraphics; ++i) {
+    for (i = 0; i < vm->def->ngraphics; ++i) {
         virDomainGraphicsDefPtr graphics = vm->def->graphics[i];
-        if (graphics->type == VIR_DOMAIN_GRAPHICS_TYPE_VNC &&
-            graphics->data.vnc.autoport) {
-            ignore_value(virPortAllocatorRelease(driver->remotePorts,
-                                                 graphics->data.vnc.port));
+        if (graphics->type == VIR_DOMAIN_GRAPHICS_TYPE_VNC) {
+            if (graphics->data.vnc.autoport) {
+                ignore_value(virPortAllocatorRelease(driver->remotePorts,
+                                                     graphics->data.vnc.port));
+            }
+            if (graphics->data.vnc.websocket) {
+                ignore_value(virPortAllocatorRelease(driver->webSocketPorts,
+                                                     graphics->data.vnc.port));
+            }
         }
         if (graphics->type == VIR_DOMAIN_GRAPHICS_TYPE_SPICE &&
             graphics->data.spice.autoport) {
@@ -4251,9 +4250,8 @@ int qemuProcessAttach(virConnectPtr conn ATTRIBUTE_UNUSED,
     }
 
     VIR_FREE(priv->pidfile);
-    if (pidfile &&
-        !(priv->pidfile = strdup(pidfile)))
-        goto no_memory;
+    if (VIR_STRDUP(priv->pidfile, pidfile) < 0)
+        goto cleanup;
 
     VIR_DEBUG("Detect security driver config");
     sec_managers = virSecurityManagerGetNested(driver->securityManager);
@@ -4274,11 +4272,11 @@ int qemuProcessAttach(virConnectPtr conn ATTRIBUTE_UNUSED,
                                               vm->def, vm->pid, seclabel) < 0)
             goto cleanup;
 
-        if (!(seclabeldef->model = strdup(model)))
-            goto no_memory;
+        if (VIR_STRDUP(seclabeldef->model, model) < 0)
+            goto cleanup;
 
-        if (!(seclabeldef->label = strdup(seclabel->label)))
-            goto no_memory;
+        if (VIR_STRDUP(seclabeldef->label, seclabel->label) < 0)
+            goto cleanup;
         VIR_FREE(seclabel);
     }
 

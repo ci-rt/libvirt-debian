@@ -31,11 +31,11 @@
 #include "internal.h"
 #include "testutils.h"
 #include "viralloc.h"
-#include "virutil.h"
 #include "virlog.h"
 #include "virerror.h"
+#include "virfile.h"
 #include "security/security_manager.h"
-
+#include "virstring.h"
 
 #define VIR_FROM_THIS VIR_FROM_NONE
 
@@ -82,17 +82,18 @@ testBuildDomainDef(bool dynamic,
     def->seclabels[0]->type = dynamic ? VIR_DOMAIN_SECLABEL_DYNAMIC : VIR_DOMAIN_SECLABEL_STATIC;
 
     if (label &&
-        !(def->seclabels[0]->label = strdup(label)))
-        goto no_memory;
+        VIR_STRDUP(def->seclabels[0]->label, label) < 0)
+        goto error;
 
     if (baselabel &&
-        !(def->seclabels[0]->baselabel = strdup(baselabel)))
-        goto no_memory;
+        VIR_STRDUP(def->seclabels[0]->baselabel, baselabel) < 0)
+        goto error;
 
     return def;
 
 no_memory:
     virReportOOMError();
+error:
     virDomainDefFree(def);
     return NULL;
 }

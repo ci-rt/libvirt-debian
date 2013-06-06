@@ -31,6 +31,7 @@
 #include "viruuid.h"
 #include "virlog.h"
 #include "viralloc.h"
+#include "virstring.h"
 
 /* Return nn:mm in hex for block and character devices, and NULL
  * for other file types, stat failure, or allocation failure.  */
@@ -394,6 +395,16 @@ virDomainAuditHostdev(virDomainObjPtr vm, virDomainHostdevDefPtr hostdev,
             if (virAsprintf(&address, "%.3d.%.3d",
                             hostdev->source.subsys.u.usb.bus,
                             hostdev->source.subsys.u.usb.device) < 0) {
+                VIR_WARN("OOM while encoding audit message");
+                goto cleanup;
+            }
+            break;
+        case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_SCSI:
+            if (virAsprintf(&address, "%s:%d:%d:%d",
+                            hostdev->source.subsys.u.scsi.adapter,
+                            hostdev->source.subsys.u.scsi.bus,
+                            hostdev->source.subsys.u.scsi.target,
+                            hostdev->source.subsys.u.scsi.unit) < 0) {
                 VIR_WARN("OOM while encoding audit message");
                 goto cleanup;
             }
@@ -784,28 +795,28 @@ virDomainAuditStart(virDomainObjPtr vm, const char *reason, bool success)
 {
     int i;
 
-    for (i = 0 ; i < vm->def->ndisks ; i++) {
+    for (i = 0; i < vm->def->ndisks; i++) {
         virDomainDiskDefPtr disk = vm->def->disks[i];
         if (disk->src) /* Skips CDROM without media initially inserted */
             virDomainAuditDisk(vm, NULL, disk->src, "start", true);
     }
 
-    for (i = 0 ; i < vm->def->nfss ; i++) {
+    for (i = 0; i < vm->def->nfss; i++) {
         virDomainFSDefPtr fs = vm->def->fss[i];
         virDomainAuditFS(vm, NULL, fs, "start", true);
     }
 
-    for (i = 0 ; i < vm->def->nnets ; i++) {
+    for (i = 0; i < vm->def->nnets; i++) {
         virDomainNetDefPtr net = vm->def->nets[i];
         virDomainAuditNet(vm, NULL, net, "start", true);
     }
 
-    for (i = 0 ; i < vm->def->nhostdevs ; i++) {
+    for (i = 0; i < vm->def->nhostdevs; i++) {
         virDomainHostdevDefPtr hostdev = vm->def->hostdevs[i];
         virDomainAuditHostdev(vm, hostdev, "start", true);
     }
 
-    for (i = 0 ; i < vm->def->nredirdevs ; i++) {
+    for (i = 0; i < vm->def->nredirdevs; i++) {
         virDomainRedirdevDefPtr redirdev = vm->def->redirdevs[i];
         virDomainAuditRedirdev(vm, redirdev, "start", true);
     }

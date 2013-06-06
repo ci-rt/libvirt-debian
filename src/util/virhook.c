@@ -1,7 +1,7 @@
 /*
  * virhook.c: implementation of the synchronous hooks support
  *
- * Copyright (C) 2010-2012 Red Hat, Inc.
+ * Copyright (C) 2010-2013 Red Hat, Inc.
  * Copyright (C) 2010 Daniel Veillard
  *
  * This library is free software; you can redistribute it and/or
@@ -142,7 +142,7 @@ virHookInitialize(void) {
     int i, res, ret = 0;
 
     virHooksFound = 0;
-    for (i = 0;i < VIR_HOOK_DRIVER_LAST;i++) {
+    for (i = 0; i < VIR_HOOK_DRIVER_LAST; i++) {
         res = virHookCheck(i, virHookDriverTypeToString(i));
         if (res < 0)
             return -1;

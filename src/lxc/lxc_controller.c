@@ -48,7 +48,6 @@
 
 #include "virerror.h"
 #include "virlog.h"
-#include "virutil.h"
 
 #include "lxc_conf.h"
 #include "lxc_container.h"
@@ -66,6 +65,7 @@
 #include "virprocess.h"
 #include "virnuma.h"
 #include "rpc/virnetserver.h"
+#include "virstring.h"
 
 #define VIR_FROM_THIS VIR_FROM_LXC
 
@@ -150,14 +150,16 @@ static virLXCControllerPtr virLXCControllerNew(const char *name)
     virDomainXMLOptionPtr xmlopt = NULL;
     char *configFile = NULL;
 
-    if (VIR_ALLOC(ctrl) < 0)
-        goto no_memory;
+    if (VIR_ALLOC(ctrl) < 0) {
+        virReportOOMError();
+        goto error;
+    }
 
     ctrl->timerShutdown = -1;
     ctrl->firstClient = true;
 
-    if (!(ctrl->name = strdup(name)))
-        goto no_memory;
+    if (VIR_STRDUP(ctrl->name, name) < 0)
+        goto error;
 
     if ((caps = lxcCapsInit(NULL)) == NULL)
         goto error;
@@ -186,8 +188,6 @@ cleanup:
     virObjectUnref(xmlopt);
     return ctrl;
 
-no_memory:
-    virReportOOMError();
 error:
     virLXCControllerFree(ctrl);
     ctrl = NULL;
@@ -199,7 +199,7 @@ static int virLXCControllerCloseLoopDevices(virLXCControllerPtr ctrl)
 {
     size_t i;
 
-    for (i = 0 ; i < ctrl->nloopDevs ; i++)
+    for (i = 0; i < ctrl->nloopDevs; i++)
         VIR_FORCE_CLOSE(ctrl->loopDevFds[i]);
 
     return 0;
@@ -251,11 +251,11 @@ static void virLXCControllerFree(virLXCControllerPtr ctrl)
 
     virObjectUnref(ctrl->securityManager);
 
-    for (i = 0 ; i < ctrl->nveths ; i++)
+    for (i = 0; i < ctrl->nveths; i++)
         VIR_FREE(ctrl->veths[i]);
     VIR_FREE(ctrl->veths);
 
-    for (i = 0 ; i < ctrl->nconsoles ; i++)
+    for (i = 0; i < ctrl->nconsoles; i++)
         virLXCControllerConsoleClose(&(ctrl->consoles[i]));
     VIR_FREE(ctrl->consoles);
 
@@ -389,72 +389,158 @@ static int virLXCControllerSetupLoopDeviceDisk(virDomainDiskDefPtr disk)
 }
 
 
+static int virLXCControllerSetupNBDDeviceFS(virDomainFSDefPtr fs)
+{
+    char *dev;
+
+    if (fs->format <= VIR_STORAGE_FILE_NONE) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("An explicit disk format must be specified"));
+        return -1;
+    }
+
+    if (virFileNBDDeviceAssociate(fs->src,
+                                  fs->format,
+                                  fs->readonly,
+                                  &dev) < 0)
+        return -1;
+
+    /*
+     * We now change it into a block device type, so that
+     * the rest of container setup 'just works'
+     */
+    fs->type = VIR_DOMAIN_DISK_TYPE_BLOCK;
+    VIR_FREE(fs->src);
+    fs->src = dev;
+
+    return 0;
+}
+
+
+static int virLXCControllerSetupNBDDeviceDisk(virDomainDiskDefPtr disk)
+{
+    char *dev;
+
+    if (disk->format <= VIR_STORAGE_FILE_NONE) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("An explicit disk format must be specified"));
+        return -1;
+    }
+
+    if (virFileNBDDeviceAssociate(disk->src,
+                                  disk->format,
+                                  disk->readonly,
+                                  &dev) < 0)
+        return -1;
+
+    /*
+     * We now change it into a block device type, so that
+     * the rest of container setup 'just works'
+     */
+    disk->type = VIR_DOMAIN_DISK_TYPE_BLOCK;
+    VIR_FREE(disk->src);
+    disk->src = dev;
+
+    return 0;
+}
+
+
 static int virLXCControllerSetupLoopDevices(virLXCControllerPtr ctrl)
 {
     size_t i;
     int ret = -1;
 
-    for (i = 0 ; i < ctrl->def->nfss ; i++) {
+    for (i = 0; i < ctrl->def->nfss; i++) {
         virDomainFSDefPtr fs = ctrl->def->fss[i];
         int fd;
 
         if (fs->type != VIR_DOMAIN_FS_TYPE_FILE)
             continue;
 
-        fd = virLXCControllerSetupLoopDeviceFS(fs);
-        if (fd < 0)
-            goto cleanup;
+        if (fs->fsdriver == VIR_DOMAIN_FS_DRIVER_TYPE_LOOP) {
+            if (fs->format != VIR_STORAGE_FILE_RAW &&
+                fs->format != VIR_STORAGE_FILE_NONE) {
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                               _("fs format %s is not supported"),
+                               virStorageFileFormatTypeToString(fs->format));
+                goto cleanup;
+            }
 
-        VIR_DEBUG("Saving loop fd %d", fd);
-        if (VIR_EXPAND_N(ctrl->loopDevFds, ctrl->nloopDevs, 1) < 0) {
-            VIR_FORCE_CLOSE(fd);
-            virReportOOMError();
-            goto cleanup;
+            fd = virLXCControllerSetupLoopDeviceFS(fs);
+            if (fd < 0)
+                goto cleanup;
+
+            VIR_DEBUG("Saving loop fd %d", fd);
+            if (VIR_EXPAND_N(ctrl->loopDevFds, ctrl->nloopDevs, 1) < 0) {
+                VIR_FORCE_CLOSE(fd);
+                virReportOOMError();
+                goto cleanup;
+            }
+            ctrl->loopDevFds[ctrl->nloopDevs - 1] = fd;
+        } else if (fs->fsdriver == VIR_DOMAIN_FS_DRIVER_TYPE_NBD) {
+            if (virLXCControllerSetupNBDDeviceFS(fs) < 0)
+                goto cleanup;
+        } else {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("fs driver %s is not supported"),
+                           virDomainFSDriverTypeTypeToString(fs->fsdriver));
         }
-        ctrl->loopDevFds[ctrl->nloopDevs - 1] = fd;
     }
 
-    for (i = 0 ; i < ctrl->def->ndisks ; i++) {
+    for (i = 0; i < ctrl->def->ndisks; i++) {
         virDomainDiskDefPtr disk = ctrl->def->disks[i];
         int fd;
 
         if (disk->type != VIR_DOMAIN_DISK_TYPE_FILE)
             continue;
 
-        switch (disk->format) {
+        /* If no driverName is set, we prefer 'loop' for
+         * dealing with raw or undefined formats, otherwise
+         * we use 'nbd'.
+         */
+        if (STREQ_NULLABLE(disk->driverName, "loop") ||
+            (!disk->driverName &&
+             (disk->format == VIR_STORAGE_FILE_RAW ||
+              disk->format == VIR_STORAGE_FILE_NONE))) {
+            if (disk->format != VIR_STORAGE_FILE_RAW &&
+                disk->format != VIR_STORAGE_FILE_NONE) {
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                               _("disk format %s is not supported"),
+                               virStorageFileFormatTypeToString(disk->format));
+                goto cleanup;
+            }
+
             /* We treat 'none' as meaning 'raw' since we
              * don't want to go into the auto-probing
              * business for security reasons
              */
-        case VIR_STORAGE_FILE_RAW:
-        case VIR_STORAGE_FILE_NONE:
-            if (disk->driverName &&
-                STRNEQ(disk->driverName, "loop")) {
-                virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                               _("disk driver %s is not supported"),
-                               disk->driverName);
-                goto cleanup;
-            }
-
             fd = virLXCControllerSetupLoopDeviceDisk(disk);
             if (fd < 0)
                 goto cleanup;
-            break;
 
-        default:
+            VIR_DEBUG("Saving loop fd %d", fd);
+            if (VIR_EXPAND_N(ctrl->loopDevFds, ctrl->nloopDevs, 1) < 0) {
+                VIR_FORCE_CLOSE(fd);
+                virReportOOMError();
+                goto cleanup;
+            }
+            ctrl->loopDevFds[ctrl->nloopDevs - 1] = fd;
+        } else if (STREQ_NULLABLE(disk->driverName, "nbd") ||
+                   !disk->driverName) {
+            if (disk->cachemode != VIR_DOMAIN_DISK_CACHE_DEFAULT &&
+                disk->cachemode != VIR_DOMAIN_DISK_CACHE_DISABLE) {
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                               _("Disk cache mode %s is not supported"),
+                               virDomainDiskCacheTypeToString(disk->cachemode));
+                goto cleanup;
+            }
+            if (virLXCControllerSetupNBDDeviceDisk(disk) < 0)
+                goto cleanup;
+        } else {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                           _("disk format %s is not supported"),
-                           virStorageFileFormatTypeToString(disk->format));
-            goto cleanup;
+                           _("disk driver %s is not supported"),
+                           disk->driverName);
         }
-
-        VIR_DEBUG("Saving loop fd %d", fd);
-        if (VIR_EXPAND_N(ctrl->loopDevFds, ctrl->nloopDevs, 1) < 0) {
-            VIR_FORCE_CLOSE(fd);
-            virReportOOMError();
-            goto cleanup;
-        }
-        ctrl->loopDevFds[ctrl->nloopDevs - 1] = fd;
     }
 
     VIR_DEBUG("Setup all loop devices");
@@ -981,7 +1067,7 @@ static int virLXCControllerMain(virLXCControllerPtr ctrl)
 
     virResetLastError();
 
-    for (i = 0 ; i < ctrl->nconsoles ; i++) {
+    for (i = 0; i < ctrl->nconsoles; i++) {
         if ((ctrl->consoles[i].epollFd = epoll_create1(EPOLL_CLOEXEC)) < 0) {
             virReportSystemError(errno, "%s",
                                  _("Unable to create epoll fd"));
@@ -1029,7 +1115,7 @@ cleanup:
     virMutexDestroy(&lock);
 cleanup2:
 
-    for (i = 0 ; i < ctrl->nconsoles ; i++)
+    for (i = 0; i < ctrl->nconsoles; i++)
         virLXCControllerConsoleClose(&(ctrl->consoles[i]));
 
     return rc;
@@ -1052,7 +1138,7 @@ static int virLXCControllerMoveInterfaces(virLXCControllerPtr ctrl)
     size_t i;
     virDomainDefPtr def = ctrl->def;
 
-    for (i = 0 ; i < ctrl->nveths ; i++) {
+    for (i = 0; i < ctrl->nveths; i++) {
         if (virNetDevSetNamespace(ctrl->veths[i], ctrl->initpid) < 0)
             return -1;
     }
@@ -1089,7 +1175,7 @@ static int virLXCControllerDeleteInterfaces(virLXCControllerPtr ctrl)
     size_t i;
     int ret = 0;
 
-    for (i = 0 ; i < ctrl->nveths ; i++) {
+    for (i = 0; i < ctrl->nveths; i++) {
         if (virNetDevVethDelete(ctrl->veths[i]) < 0)
             ret = -1;
     }
@@ -1173,6 +1259,27 @@ virLXCControllerSetupPrivateNS(void)
 {
     int ret = -1;
 
+    /*
+     * If doing a chroot style setup, we need to prepare
+     * a private /dev/pts for the child now, which they
+     * will later move into position.
+     *
+     * This is complex because 'virsh console' needs to
+     * use /dev/pts from the host OS, and the guest OS
+     * needs to use /dev/pts from the guest.
+     *
+     * This means that we (libvirt_lxc) need to see and
+     * use both /dev/pts instances. We're running in the
+     * host OS context though and don't want to expose
+     * the guest OS /dev/pts there.
+     *
+     * Thus we call unshare(CLONE_NS) so that we can see
+     * the guest's new /dev/pts, without it becoming
+     * visible to the host OS. We also put the root FS
+     * into slave mode, just in case it was currently
+     * marked as shared
+     */
+
     if (unshare(CLONE_NEWNS) < 0) {
         virReportSystemError(errno, "%s",
                              _("Cannot unshare mount namespace"));
@@ -1194,44 +1301,13 @@ cleanup:
 static int
 virLXCControllerSetupDevPTS(virLXCControllerPtr ctrl)
 {
-    virDomainFSDefPtr root = virDomainGetRootFilesystem(ctrl->def);
     char *mount_options = NULL;
     char *opts = NULL;
     char *devpts = NULL;
     int ret = -1;
 
-    if (!root) {
-        if (ctrl->nconsoles != 1) {
-            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                           _("Expected exactly one console, but got %zu"),
-                           ctrl->nconsoles);
-            return -1;
-        }
-        return 0;
-    }
-
     VIR_DEBUG("Setting up private /dev/pts");
 
-    /*
-     * If doing a chroot style setup, we need to prepare
-     * a private /dev/pts for the child now, which they
-     * will later move into position.
-     *
-     * This is complex because 'virsh console' needs to
-     * use /dev/pts from the host OS, and the guest OS
-     * needs to use /dev/pts from the guest.
-     *
-     * This means that we (libvirt_lxc) need to see and
-     * use both /dev/pts instances. We're running in the
-     * host OS context though and don't want to expose
-     * the guest OS /dev/pts there.
-     *
-     * Thus we call unshare(CLONE_NS) so that we can see
-     * the guest's new /dev/pts, without it becoming
-     * visible to the host OS. We also put the root FS
-     * into slave mode, just in case it was currently
-     * marked as shared
-     */
     mount_options = virSecurityManagerGetMountOptions(ctrl->securityManager,
                                                       ctrl->def);
 
@@ -1278,6 +1354,7 @@ virLXCControllerSetupDevPTS(virLXCControllerPtr ctrl)
 cleanup:
     VIR_FREE(opts);
     VIR_FREE(devpts);
+    VIR_FREE(mount_options);
     return ret;
 }
 
@@ -1294,7 +1371,7 @@ virLXCControllerSetupConsoles(virLXCControllerPtr ctrl,
 {
     size_t i;
 
-    for (i = 0 ; i < ctrl->nconsoles ; i++) {
+    for (i = 0; i < ctrl->nconsoles; i++) {
         VIR_DEBUG("Opening tty on private %s", ctrl->devptmx);
         if (lxcCreateTty(ctrl->devptmx,
                          &ctrl->consoles[i].contFd,
@@ -1491,7 +1568,7 @@ virLXCControllerRun(virLXCControllerPtr ctrl)
     if (virLXCControllerDaemonHandshake(ctrl) < 0)
         goto cleanup;
 
-    for (i = 0 ; i < ctrl->nconsoles ; i++)
+    for (i = 0; i < ctrl->nconsoles; i++)
         if (virLXCControllerConsoleSetNonblocking(&(ctrl->consoles[i])) < 0)
             goto cleanup;
 
@@ -1505,7 +1582,7 @@ cleanup:
     VIR_FORCE_CLOSE(containerhandshake[0]);
     VIR_FORCE_CLOSE(containerhandshake[1]);
 
-    for (i = 0 ; i < ctrl->nconsoles ; i++)
+    for (i = 0; i < ctrl->nconsoles; i++)
         VIR_FREE(containerTTYPaths[i]);
     VIR_FREE(containerTTYPaths);
 
@@ -1566,10 +1643,8 @@ int main(int argc, char *argv[])
             break;
 
         case 'n':
-            if ((name = strdup(optarg)) == NULL) {
-                virReportOOMError();
+            if (VIR_STRDUP(name, optarg) < 0)
                 goto cleanup;
-            }
             break;
 
         case 'v':
@@ -1577,10 +1652,8 @@ int main(int argc, char *argv[])
                 virReportOOMError();
                 goto cleanup;
             }
-            if ((veths[nveths++] = strdup(optarg)) == NULL) {
-                virReportOOMError();
+            if (VIR_STRDUP(veths[nveths++], optarg) < 0)
                 goto cleanup;
-            }
             break;
 
         case 'c':
@@ -1666,7 +1739,7 @@ int main(int argc, char *argv[])
     ctrl->veths = veths;
     ctrl->nveths = nveths;
 
-    for (i = 0 ; i < nttyFDs ; i++) {
+    for (i = 0; i < nttyFDs; i++) {
         if (virLXCControllerAddConsole(ctrl, ttyFDs[i]) < 0)
             goto cleanup;
         ttyFDs[i] = -1;
@@ -1728,7 +1801,7 @@ cleanup:
     virPidFileDelete(LXC_STATE_DIR, name);
     if (ctrl)
         virLXCControllerDeleteInterfaces(ctrl);
-    for (i = 0 ; i < nttyFDs ; i++)
+    for (i = 0; i < nttyFDs; i++)
         VIR_FORCE_CLOSE(ttyFDs[i]);
     VIR_FREE(ttyFDs);
 

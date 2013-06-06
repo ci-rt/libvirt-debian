@@ -52,7 +52,6 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-@WITH_PYTHON_TRUE@am__append_1 = sanitytest.py
 subdir = python
 DIST_COMMON = README $(srcdir)/Makefile.am $(srcdir)/Makefile.in TODO
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -156,6 +155,7 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/md5.m4 \
 	$(top_srcdir)/gnulib/m4/memchr.m4 \
 	$(top_srcdir)/gnulib/m4/mgetgroups.m4 \
+	$(top_srcdir)/gnulib/m4/mkdtemp.m4 \
 	$(top_srcdir)/gnulib/m4/mkostemp.m4 \
 	$(top_srcdir)/gnulib/m4/mkostemps.m4 \
 	$(top_srcdir)/gnulib/m4/mktime.m4 \
@@ -164,6 +164,7 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/msvc-inval.m4 \
 	$(top_srcdir)/gnulib/m4/msvc-nothrow.m4 \
 	$(top_srcdir)/gnulib/m4/multiarch.m4 \
+	$(top_srcdir)/gnulib/m4/nanosleep.m4 \
 	$(top_srcdir)/gnulib/m4/net_if_h.m4 \
 	$(top_srcdir)/gnulib/m4/netdb_h.m4 \
 	$(top_srcdir)/gnulib/m4/netinet_in_h.m4 \
@@ -535,7 +536,7 @@ DLLTOOL = @DLLTOOL@
 DLOPEN_LIBS = @DLOPEN_LIBS@
 DMSETUP = @DMSETUP@
 DNSMASQ = @DNSMASQ@
-DRIVER_MODULE_CFLAGS = @DRIVER_MODULE_CFLAGS@
+DRIVER_MODULE_LDFLAGS = @DRIVER_MODULE_LDFLAGS@
 DRIVER_MODULE_LIBS = @DRIVER_MODULE_LIBS@
 DSYMUTIL = @DSYMUTIL@
 DTRACE = @DTRACE@
@@ -1381,6 +1382,7 @@ LIBXML_LIBS = @LIBXML_LIBS@
 LIB_CLOCK_GETTIME = @LIB_CLOCK_GETTIME@
 LIB_EXECINFO = @LIB_EXECINFO@
 LIB_FDATASYNC = @LIB_FDATASYNC@
+LIB_NANOSLEEP = @LIB_NANOSLEEP@
 LIB_POLL = @LIB_POLL@
 LIB_PTHREAD = @LIB_PTHREAD@
 LIB_PTHREAD_SIGMASK = @LIB_PTHREAD_SIGMASK@
@@ -1816,7 +1818,6 @@ VGS = @VGS@
 VGSCAN = @VGSCAN@
 VIRSH_LIBS = @VIRSH_LIBS@
 WARN_CFLAGS = @WARN_CFLAGS@
-WARN_LDFLAGS = @WARN_LDFLAGS@
 WARN_PYTHON_CFLAGS = @WARN_PYTHON_CFLAGS@
 WCHAR_T_SUFFIX = @WCHAR_T_SUFFIX@
 WIN32_EXTRA_CFLAGS = @WIN32_EXTRA_CFLAGS@
@@ -1921,12 +1922,21 @@ CLASSES_EXTRA = \
 	libvirt-override-virStoragePool.py \
 	libvirt-override-virStream.py
 
-EXTRA_DIST = generator.py typewrappers.c typewrappers.h \
-	libvirt-override.c libvirt-override.py \
-	libvirt-override-api.xml libvirt-lxc-override.c \
-	libvirt-lxc-override-api.xml libvirt-qemu-override.c \
-	libvirt-qemu-override-api.xml $(CLASSES_EXTRA) $(DOCS) \
-	$(am__append_1)
+EXTRA_DIST = \
+	generator.py		\
+	typewrappers.c		\
+	typewrappers.h		\
+	libvirt-override.c	\
+	libvirt-override.py	\
+	libvirt-override-api.xml \
+	libvirt-lxc-override.c	\
+	libvirt-lxc-override-api.xml \
+	libvirt-qemu-override.c	\
+	libvirt-qemu-override-api.xml \
+	sanitytest.py \
+	$(CLASSES_EXTRA) \
+	$(DOCS)
+
 @WITH_PYTHON_TRUE@mylibs = \
 @WITH_PYTHON_TRUE@	$(top_builddir)/src/libvirt.la \
 @WITH_PYTHON_TRUE@	$(top_builddir)/gnulib/lib/libgnu.la
@@ -1992,7 +2002,9 @@ EXTRA_DIST = generator.py typewrappers.c typewrappers.h \
 @WITH_PYTHON_TRUE@	   libvirt-lxc.h \
 @WITH_PYTHON_TRUE@	   libvirt_lxc.py
 
-@WITH_PYTHON_TRUE@CLEANFILES = $(GENERATED) $(QEMU_GENERATED) $(LXC_GENERATED) $(GENERATE).stamp
+@WITH_PYTHON_TRUE@CLEANFILES = $(GENERATED) $(QEMU_GENERATED) $(LXC_GENERATED) $(GENERATE).stamp \
+@WITH_PYTHON_TRUE@	*.pyc
+
 all: all-recursive
 
 .SUFFIXES:

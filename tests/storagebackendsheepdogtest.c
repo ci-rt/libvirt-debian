@@ -32,7 +32,9 @@
 #include "internal.h"
 #include "testutils.h"
 #include "storage/storage_backend_sheepdog.h"
+#include "virstring.h"
 
+#define VIR_FROM_THIS VIR_FROM_NONE
 
 typedef struct {
     const char *output;
@@ -56,8 +58,7 @@ test_node_info_parser(collie_test test, char *poolxml)
     if (!(pool = virStoragePoolDefParseString(poolXmlData)))
         goto cleanup;
 
-    output = strdup(test.output);
-    if (!output)
+    if (VIR_STRDUP(output, test.output) < 0)
         goto cleanup;
 
     if (virStorageBackendSheepdogParseNodeInfo(pool, output) !=
@@ -101,8 +102,7 @@ test_vdi_list_parser(collie_test test, char *poolxml, char *volxml)
     if (!(vol = virStorageVolDefParseString(pool, volXmlData)))
         goto cleanup;
 
-    output = strdup(test.output);
-    if (!output)
+    if (VIR_STRDUP(output, test.output) < 0)
         goto cleanup;
 
     if (virStorageBackendSheepdogParseVdiList(vol, output) !=

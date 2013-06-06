@@ -154,22 +154,22 @@
             <a href="#Remote">Daemon and Remote Access</a>
           </li></ul>
         <h2>
-          <a name="Objects" id="Objects">Objects Exposed</a>
+          <a name="Objects" shape="rect" id="Objects">Objects Exposed</a>
         </h2>
-        <p> As defined in the <a href="goals.html">goals section</a>, the libvirt
+        <p> As defined in the <a href="goals.html" shape="rect">goals section</a>, the libvirt
     API is designed to expose all the resources needed to manage the
     virtualization support of recent operating systems. The first object
     manipulated through the API is the <code>virConnectPtr</code>, which
     represents the connection to a hypervisor. Any application using libvirt
     is likely to start using the
-    API by calling one of <a href="html/libvirt-libvirt.html#virConnectOpen">the virConnectOpen functions</a>. You will note that those functions take
-    a name argument which is actually a <a href="uri.html">connection URI</a>
+    API by calling one of <a href="html/libvirt-libvirt.html#virConnectOpen" shape="rect">the virConnectOpen functions</a>. You will note that those functions take
+    a name argument which is actually a <a href="uri.html" shape="rect">connection URI</a>
     to select the right hypervisor to open.
     A URI is needed to allow remote connections and also select between
     different possible hypervisors. For example, on a Linux system it may be
     possible to use both KVM and LinuxContainers on the same node. A NULL
     name will default to a preselected hypervisor, but it's probably not a
-    wise thing to do in most cases. See the <a href="uri.html">connection
+    wise thing to do in most cases. See the <a href="uri.html" shape="rect">connection
     URI</a> page for a full descriptions of the values allowed.</p>
         <p> Once the application obtains a <a href="html/libvirt-libvirt.html#virConnectPtr"><code>virConnectPtr</code></a>
     connection to the hypervisor it can then use it to manage the hypervisor's
@@ -183,7 +183,7 @@
         <p> The figure above shows the five main objects exported by the API:</p>
         <ul><li><a href="html/libvirt-libvirt.html#virConnectPtr"><code>virConnectPtr</code></a>
       <p>Represents the connection to a hypervisor. Use one of the
-      <a href="html/libvirt-libvirt.html#virConnectOpen">virConnectOpen</a>
+      <a href="html/libvirt-libvirt.html#virConnectOpen" shape="rect">virConnectOpen</a>
       functions to obtain connection to the hypervisor which is then used
       as a parameter to other connection API's.</p></li><li><a href="html/libvirt-libvirt.html#virDomainPtr"><code>virDomainPtr</code></a>
       <p>Represents one domain either active or defined (i.e. existing as
@@ -220,11 +220,11 @@
       provided by the hypervisor for one given activation of the object;
       however, it becomes invalid once the resource is deactivated.</p></li><li><code>UUID</code>
       <p> A 16 byte unique identifier
-      as defined in <a href="http://www.ietf.org/rfc/rfc4122.txt">RFC 4122</a>,
+      as defined in <a href="http://www.ietf.org/rfc/rfc4122.txt" shape="rect">RFC 4122</a>,
       which is guaranteed to be unique for long term usage and across a
       set of nodes.</p></li></ul>
         <h2>
-          <a name="Functions" id="Functions">Functions and Naming Conventions</a>
+          <a name="Functions" shape="rect" id="Functions">Functions and Naming Conventions</a>
         </h2>
         <p> The naming of the functions present in the library is usually
       composed by a prefix describing the object associated to the function
@@ -257,10 +257,10 @@
         <ul><li><a href="html/libvirt-libvirt.html#virDomainDestroy"><code>virDomainDestroy</code></a></li><li><a href="html/libvirt-libvirt.html#virNetworkDestroy"><code>virNetworkDestroy</code></a></li><li><a href="html/libvirt-libvirt.html#virStoragePoolDestroy"><code>virStoragePoolDestroy</code></a></li></ul>
       </li></ul>
         <p> For more in-depth details of the storage related APIs see
-      <a href="storage.html">the storage management page</a>.
+      <a href="storage.html" shape="rect">the storage management page</a>.
     </p>
         <h2>
-          <a name="Drivers" id="Drivers">The libvirt Drivers</a>
+          <a name="Drivers" shape="rect" id="Drivers">The libvirt Drivers</a>
         </h2>
         <p>Drivers are the basic building block for libvirt functionality
     to support the capability to handle specific hypervisor driver calls.
@@ -277,19 +277,19 @@
         <p>The driver architecture is also used to support other virtualization
     components such as storage, storage pools, host device, networking,
     network interfaces, and network filters.</p>
-        <p>See the <a href="drivers.html">libvirt drivers</a> page for more
+        <p>See the <a href="drivers.html" shape="rect">libvirt drivers</a> page for more
     information on hypervisor and storage specific drivers.</p>
         <p>Not all drivers support every virtualization function possible.
-    The <a href="hvsupport.html">libvirt API support matrix</a> lists
+    The <a href="hvsupport.html" shape="rect">libvirt API support matrix</a> lists
     the various functions and support found in each driver by the version
     support was added into libvirt.
     </p>
         <h2>
-          <a name="Remote" id="Remote">Daemon and Remote Access</a>
+          <a name="Remote" shape="rect" id="Remote">Daemon and Remote Access</a>
         </h2>
         <p>Access to libvirt drivers is primarily handled by the libvirtd
-    daemon through the <a href="remote.html">remote</a> driver via an
-    <a href="internals/rpc.html">RPC</a>. Some hypervisors do support
+    daemon through the <a href="remote.html" shape="rect">remote</a> driver via an
+    <a href="internals/rpc.html" shape="rect">RPC</a>. Some hypervisors do support
     client-side connections and responses, such as Test, OpenVZ, VMware,
     Power VM (phyp), VirtualBox (vbox), ESX, Hyper-V, Xen, and Parallels.
     The libvirtd daemon service is started on the host at system boot
@@ -299,18 +299,18 @@
     for client-side driver registrations, but then extends the registered
     driver list to encompass all known drivers supported for all driver
     types supported on the host. </p>
-        <p>The libvirt client <a href="apps.html">applications</a> use a
-    <a href="uri.html">URI</a> to obtain the <code>virConnectPtr</code>.
+        <p>The libvirt client <a href="apps.html" shape="rect">applications</a> use a
+    <a href="uri.html" shape="rect">URI</a> to obtain the <code>virConnectPtr</code>.
     The <code>virConnectPtr</code> keeps track of the driver connection
     plus a variety of other connections (network, interface, storage, etc.).
     The <code>virConnectPtr</code> is then used as a parameter to other
-    virtualization <a href="#Functions">functions</a>. Depending upon the
+    virtualization <a href="#Functions" shape="rect">functions</a>. Depending upon the
     driver being used, calls will be routed through the remote driver to
     the libvirtd daemon. The daemon will reference the connection specific
     driver in order to retreive the requested information and then pass
     back status and/or data through the connection back to the application.
     The application can then decide what to do with that data, such as
-    display, write log data, etc. <a href="migration.html">Migration</a>
+    display, write log data, etc. <a href="migration.html" shape="rect">Migration</a>
     is an example of many facets of the architecture in use.</p>
         <p class="image">
       <img alt="The libvirt daemon and remote architecture" src="libvirt-daemon-arch.png" />
@@ -325,11 +325,11 @@
     for processing.
     </p>
         <p>If you are interested in contributing to libvirt, read the
-    <a href="http://wiki.libvirt.org/page/FAQ">FAQ</a> and
-    <a href="hacking.html">hacking</a> guidelines to gain an understanding
+    <a href="http://wiki.libvirt.org/page/FAQ" shape="rect">FAQ</a> and
+    <a href="hacking.html" shape="rect">hacking</a> guidelines to gain an understanding
     of basic rules and guidelines.  In order to add new API functionality
     follow the instructions regarding
-    <a href="api_extension.html">implementing a new API in libvirt</a>.
+    <a href="api_extension.html" shape="rect">implementing a new API in libvirt</a>.
     </p>
       </div>
     </div>

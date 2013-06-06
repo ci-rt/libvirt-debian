@@ -39,7 +39,6 @@
 #include "virerror.h"
 #include "datatypes.h"
 #include "driver.h"
-#include "virutil.h"
 #include "storage_driver.h"
 #include "storage_conf.h"
 #include "viralloc.h"
@@ -48,6 +47,7 @@
 #include "virfile.h"
 #include "fdstream.h"
 #include "configmake.h"
+#include "virstring.h"
 
 #define VIR_FROM_THIS VIR_FROM_STORAGE
 
@@ -68,7 +68,7 @@ static void
 storageDriverAutostart(virStorageDriverStatePtr driver) {
     unsigned int i;
 
-    for (i = 0 ; i < driver->pools.count ; i++) {
+    for (i = 0; i < driver->pools.count; i++) {
         virStoragePoolObjPtr pool = driver->pools.objs[i];
         virStorageBackendPtr backend;
         bool started = false;
@@ -144,8 +144,8 @@ storageStateInitialize(bool privileged,
     storageDriverLock(driverState);
 
     if (privileged) {
-        if ((base = strdup(SYSCONFDIR "/libvirt")) == NULL)
-            goto out_of_memory;
+        if (VIR_STRDUP(base, SYSCONFDIR "/libvirt") < 0)
+            goto error;
     } else {
         base = virGetUserConfigDirectory();
         if (!base)
@@ -314,7 +314,7 @@ storageConnectNumOfStoragePools(virConnectPtr conn) {
     unsigned int i, nactive = 0;
 
     storageDriverLock(driver);
-    for (i = 0 ; i < driver->pools.count ; i++) {
+    for (i = 0; i < driver->pools.count; i++) {
         virStoragePoolObjLock(driver->pools.objs[i]);
         if (virStoragePoolObjIsActive(driver->pools.objs[i]))
             nactive++;
@@ -333,12 +333,11 @@ storageConnectListStoragePools(virConnectPtr conn,
     int got = 0, i;
 
     storageDriverLock(driver);
-    for (i = 0 ; i < driver->pools.count && got < nnames ; i++) {
+    for (i = 0; i < driver->pools.count && got < nnames; i++) {
         virStoragePoolObjLock(driver->pools.objs[i]);
         if (virStoragePoolObjIsActive(driver->pools.objs[i])) {
-            if (!(names[got] = strdup(driver->pools.objs[i]->def->name))) {
+            if (VIR_STRDUP(names[got], driver->pools.objs[i]->def->name) < 0) {
                 virStoragePoolObjUnlock(driver->pools.objs[i]);
-                virReportOOMError();
                 goto cleanup;
             }
             got++;
@@ -350,7 +349,7 @@ storageConnectListStoragePools(virConnectPtr conn,
 
  cleanup:
     storageDriverUnlock(driver);
-    for (i = 0 ; i < got ; i++)
+    for (i = 0; i < got; i++)
         VIR_FREE(names[i]);
     memset(names, 0, nnames * sizeof(*names));
     return -1;
@@ -362,7 +361,7 @@ storageConnectNumOfDefinedStoragePools(virConnectPtr conn) {
     unsigned int i, nactive = 0;
 
     storageDriverLock(driver);
-    for (i = 0 ; i < driver->pools.count ; i++) {
+    for (i = 0; i < driver->pools.count; i++) {
         virStoragePoolObjLock(driver->pools.objs[i]);
         if (!virStoragePoolObjIsActive(driver->pools.objs[i]))
             nactive++;
@@ -381,12 +380,11 @@ storageConnectListDefinedStoragePools(virConnectPtr conn,
     int got = 0, i;
 
     storageDriverLock(driver);
-    for (i = 0 ; i < driver->pools.count && got < nnames ; i++) {
+    for (i = 0; i < driver->pools.count && got < nnames; i++) {
         virStoragePoolObjLock(driver->pools.objs[i]);
         if (!virStoragePoolObjIsActive(driver->pools.objs[i])) {
-            if (!(names[got] = strdup(driver->pools.objs[i]->def->name))) {
+            if (VIR_STRDUP(names[got], driver->pools.objs[i]->def->name) < 0) {
                 virStoragePoolObjUnlock(driver->pools.objs[i]);
-                virReportOOMError();
                 goto cleanup;
             }
             got++;
@@ -398,7 +396,7 @@ storageConnectListDefinedStoragePools(virConnectPtr conn,
 
  cleanup:
     storageDriverUnlock(driver);
-    for (i = 0 ; i < got ; i++) {
+    for (i = 0; i < got; i++) {
         VIR_FREE(names[i]);
     }
     memset(names, 0, nnames * sizeof(*names));
@@ -1116,11 +1114,9 @@ storagePoolListVolumes(virStoragePoolPtr obj,
         goto cleanup;
     }
 
-    for (i = 0 ; i < pool->volumes.count && n < maxnames ; i++) {
-        if ((names[n++] = strdup(pool->volumes.objs[i]->name)) == NULL) {
-            virReportOOMError();
+    for (i = 0; i < pool->volumes.count && n < maxnames; i++) {
+        if (VIR_STRDUP(names[n++], pool->volumes.objs[i]->name) < 0)
             goto cleanup;
-        }
     }
 
     virStoragePoolObjUnlock(pool);
@@ -1129,7 +1125,7 @@ storagePoolListVolumes(virStoragePoolPtr obj,
  cleanup:
     if (pool)
         virStoragePoolObjUnlock(pool);
-    for (n = 0 ; n < maxnames ; n++)
+    for (n = 0; n < maxnames; n++)
         VIR_FREE(names[n]);
 
     memset(names, 0, maxnames * sizeof(*names));
@@ -1178,7 +1174,7 @@ storagePoolListAllVolumes(virStoragePoolPtr pool,
          goto cleanup;
     }
 
-    for (i = 0 ; i < obj->volumes.count; i++) {
+    for (i = 0; i < obj->volumes.count; i++) {
         if (!(vol = virGetStorageVol(pool->conn, obj->def->name,
                                      obj->volumes.objs[i]->name,
                                      obj->volumes.objs[i]->key,
@@ -1257,7 +1253,7 @@ storageVolLookupByKey(virConnectPtr conn,
     virStorageVolPtr ret = NULL;
 
     storageDriverLock(driver);
-    for (i = 0 ; i < driver->pools.count && !ret ; i++) {
+    for (i = 0; i < driver->pools.count && !ret; i++) {
         virStoragePoolObjLock(driver->pools.objs[i]);
         if (virStoragePoolObjIsActive(driver->pools.objs[i])) {
             virStorageVolDefPtr vol =
@@ -1294,7 +1290,7 @@ storageVolLookupByPath(virConnectPtr conn,
         return NULL;
 
     storageDriverLock(driver);
-    for (i = 0 ; i < driver->pools.count && !ret ; i++) {
+    for (i = 0; i < driver->pools.count && !ret; i++) {
         virStoragePoolObjLock(driver->pools.objs[i]);
         if (virStoragePoolObjIsActive(driver->pools.objs[i])) {
             virStorageVolDefPtr vol;
@@ -2173,7 +2169,7 @@ storageVolDelete(virStorageVolPtr obj,
     if (backend->deleteVol(obj->conn, pool, vol, flags) < 0)
         goto cleanup;
 
-    for (i = 0 ; i < pool->volumes.count ; i++) {
+    for (i = 0; i < pool->volumes.count; i++) {
         if (pool->volumes.objs[i] == vol) {
             VIR_INFO("Deleting volume '%s' from storage pool '%s'",
                      vol->name, pool->def->name);
@@ -2340,9 +2336,7 @@ storageVolGetPath(virStorageVolPtr obj) {
         goto cleanup;
     }
 
-    ret = strdup(vol->target.path);
-    if (ret == NULL)
-        virReportOOMError();
+    ignore_value(VIR_STRDUP(ret, vol->target.path));
 
 cleanup:
     if (pool)
