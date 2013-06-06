@@ -5,25 +5,17 @@ Subject: Debianize libvirt-guests
 Origin: vendor
 
 ---
- tools/libvirt-guests.sh.in   |   42 +++++++++++++++++++++++++-----------------
+ tools/libvirt-guests.sh.in   |   41 ++++++++++++++++++++++++-----------------
  tools/libvirt-guests.sysconf |    4 ++--
- 2 files changed, 27 insertions(+), 19 deletions(-)
+ 2 files changed, 26 insertions(+), 19 deletions(-)
 
 diff --git a/tools/libvirt-guests.sh.in b/tools/libvirt-guests.sh.in
-index 4f2e203..3ad8864 100644
+index 38e93c5..0f729be 100644
 --- a/tools/libvirt-guests.sh.in
 +++ b/tools/libvirt-guests.sh.in
-@@ -1,32 +1,41 @@
+@@ -1,5 +1,17 @@
  #!/bin/sh
 -
--sysconfdir="@sysconfdir@"
--localstatedir="@localstatedir@"
--libvirtd="@sbindir@"/libvirtd
--
--# Source function library.
--test ! -r "$sysconfdir"/rc.d/init.d/functions ||
--    . "$sysconfdir"/rc.d/init.d/functions
-+# the following is the LSB init header
 +#
 +### BEGIN INIT INFO
 +# Provides: libvirt-guests
@@ -36,7 +28,21 @@ index 4f2e203..3ad8864 100644
 +#              on shutdown and resuming them on next boot
 +#              See http://libvirt.org
 +### END INIT INFO
-+
++#
+ # Copyright (C) 2011-2013 Red Hat, Inc.
+ #
+ # This library is free software; you can redistribute it and/or
+@@ -16,33 +28,29 @@
+ # License along with this library.  If not, see
+ # <http://www.gnu.org/licenses/>.
+ 
+-sysconfdir="@sysconfdir@"
+-localstatedir="@localstatedir@"
+-libvirtd="@sbindir@"/libvirtd
+-
+-# Source function library.
+-test ! -r "$sysconfdir"/rc.d/init.d/functions ||
+-    . "$sysconfdir"/rc.d/init.d/functions
 +sysconfdir=/etc
 +localstatedir=/var
 +libvirtd=/usr/sbin/libvirtd
@@ -70,7 +76,7 @@ index 4f2e203..3ad8864 100644
  
  RETVAL=0
  
-@@ -515,8 +524,7 @@ gueststatus() {
+@@ -531,8 +539,7 @@ gueststatus() {
  
  # rh_status
  # Display current status: whether saved state exists, and whether start

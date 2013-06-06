@@ -10,9 +10,3 @@ Don-t-fail-if-we-can-t-setup-avahi.patch
 Reduce-udevadm-settle-timeout-to-10-seconds.patch
 debian/Debianize-systemd-service-files.patch
 Allow-xen-toolstack-to-find-it-s-binaries.patch
-virthreadpthread-don-t-try-to-cast-pthread_t-to-void.patch
-Add-sanitytest.py.patch
-virInitctlRequest-Don-t-hardcode-384-bytes-size.patch
-Fixup-rpcgen-code-on-kFreeBSD-too.patch
-Make-detect_scsi_host_caps-a-function-on-all-archite.patch
-daemon-fix-leak-after-listing-all-volumes.patch
