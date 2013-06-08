@@ -20,3 +20,4 @@ rpc-Fix-crash-on-error-paths-of-message-dispatching.patch
 qemu-Add-support-for-no-user-config.patch
 debian/Allow-xen-toolstack-to-find-it-s-binaries.patch
 fix-leak-virStorageBackendLogicalMakeVol.patch
+upstream/Fix-libvirtd-crash-when-destroying-a-domain-with-att.patch
