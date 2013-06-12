@@ -33,7 +33,7 @@ Build-Depends: cdbs (>= 0.4.90~),
  libpcap0.8-dev,
  libnuma-dev [amd64 i386 ia64 mips mipsel powerpc],
  radvd [linux-any],
- libnetcf-dev (>= 1:0.2.2) [linux-any],
+ libnetcf-dev (>= 1:0.2.3-3~) [linux-any],
  libsanlock-dev [linux-any],
  libaudit-dev (<= 1:2.2.2) [linux-any],
  systemtap-sdt-dev [amd64 armel armhf i386 ia64 powerpc s390],
@@ -55,8 +55,7 @@ X-Python-Version: >= 2.6
 
 Package: libvirt-bin
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, adduser, libvirt0 (= ${binary:Version}), logrotate, gettext-base,
- libnetcf1 (>= 1:0.2.2)
+Depends: ${shlibs:Depends}, ${misc:Depends}, adduser, libvirt0 (= ${binary:Version}), logrotate, gettext-base
 Enhances: qemu, qemu-kvm, xen
 Section: admin
 Recommends: netcat-openbsd,
