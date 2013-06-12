@@ -51,7 +51,6 @@ Vcs-Git: git://git.debian.org/git/pkg-libvirt/libvirt.git
 Vcs-Browser: http://git.debian.org/?p=pkg-libvirt/libvirt.git
 Homepage: http://libvirt.org
 Standards-Version: 3.9.3
-DM-Upload-Allowed: yes
 X-Python-Version: >= 2.6
 
 Package: libvirt-bin
