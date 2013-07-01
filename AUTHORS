@@ -88,6 +88,7 @@ Alex Williamson <alex.williamson@redhat.com>
 Alexander Larsson <alexl@redhat.com>
 Alexander Todorov <atodorov@otb.bg>
 Alon Levy <alevy@redhat.com>
+Alvaro Polo <apoloval@gmail.com>
 Amy Griffis <amy.griffis@hp.com>
 Andres Lagar-Cavilla <andres@lagarcavilla.org>
 Ansis Atteka <aatteka@nicira.com>
@@ -139,6 +140,7 @@ David S. Wang <dwang2@cisco.com>
 David Weber <wb@munzinger.de>
 Davidlohr Bueso <dave@gnu.org>
 Deepak C Shetty <deepakcs@linux.vnet.ibm.com>
+Dennis Chen <xschen@tnsoft.com.cn>
 Diego Elio Pettenò <flameeyes@gmail.com>
 Dipankar Sarma <dipankar@in.ibm.com>
 Dirk Herrendoerfer <d.herrendoerfer@herrendoerfer.name>
@@ -159,6 +161,7 @@ Ersek Laszlo <lacos@caesar.elte.hu>
 Eugen Feller <eugen.feller@inria.fr>
 Federico Simoncelli <fsimonce@redhat.com>
 Florian Vichot <florian.vichot@diateam.net>
+Frediano Ziglio <frediano.ziglio@citrix.com>
 Frido Roose <frido.roose@gmail.com>
 Fritz Elfert <fritz@fritz-elfert.de>
 Gao feng <gaofeng@cn.fujitsu.com>
@@ -224,6 +227,7 @@ Marc-André Lureau <marcandre.lureau@redhat.com>
 Marcelo Cerri <mhcerri@linux.vnet.ibm.com>
 Marco Bozzolan <bozzolan@gmail.com>
 Marek Marczykowski <marmarek@invisiblethingslab.com>
+Marek Marczykowski-Górecki <marmarek@invisiblethingslab.com>
 Mark McLoughlin <markmc@redhat.com>
 Mark Wu <dwu@redhat.com>
 Markus Groß <gross@univention.de>
@@ -279,6 +283,7 @@ Richa Marwaha <rmarwah@linux.vnet.ibm.com>
 Richard Jones <rjones@redhat.com>
 Richard Laager <rlaager@wiktel.com>
 Richard W.M. Jones <rjones@redhat.com>
+Richard Weinberger <richard@nod.at>
 Rolf Eike Beer <eike@sf-mail.de>
 Roman Bogorodskiy <bogorodskiy@gmail.com>
 Rommer <rommer@active.by>
@@ -344,7 +349,10 @@ Yuri Chornoivan <yurchor@ukr.net>
 Zdenek Styblik <stybla@turnovfree.net>
 Zeeshan Ali (Khattak) <zeeshanak@gnome.org>
 Zhang Xiaohe <zhangxh@cn.fujitsu.com>
+james robson <jrobson@websense.com>
 liguang <lig.fnst@cn.fujitsu.com>
+ryan woodsmall <rwoodsmall@gmail.com>
+xuzhang <xuzhang@redhat.com>
 yangdongsheng <yangds.fnst@cn.fujitsu.com>
 Марк Коренберг <socketpair@gmail.com>
 

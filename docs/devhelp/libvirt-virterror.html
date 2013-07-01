@@ -138,7 +138,8 @@ void	<a href="#virSetErrorFunc">virSetErrorFunc</a>			(void * userData, <br/>			
     <a name="VIR_FROM_INITCTL">VIR_FROM_INITCTL</a> = 52 /* Error from initctl device communication */
     <a name="VIR_FROM_IDENTITY">VIR_FROM_IDENTITY</a> = 53 /* Error from identity code */
     <a name="VIR_FROM_CGROUP">VIR_FROM_CGROUP</a> = 54 /* Error from cgroups */
-    <a name="VIR_ERR_DOMAIN_LAST">VIR_ERR_DOMAIN_LAST</a> = 55
+    <a name="VIR_FROM_ACCESS">VIR_FROM_ACCESS</a> = 55 /* Error from access control manager */
+    <a name="VIR_ERR_DOMAIN_LAST">VIR_ERR_DOMAIN_LAST</a> = 56
 };
 </pre><p/>
 </div>
@@ -240,6 +241,7 @@ void	<a href="#virSetErrorFunc">virSetErrorFunc</a>			(void * userData, <br/>			
     <a name="VIR_ERR_SSH">VIR_ERR_SSH</a> = 85 /* error in ssh transport driver */
     <a name="VIR_ERR_AGENT_UNRESPONSIVE">VIR_ERR_AGENT_UNRESPONSIVE</a> = 86 /* guest agent is unresponsive, not running or not usable */
     <a name="VIR_ERR_RESOURCE_BUSY">VIR_ERR_RESOURCE_BUSY</a> = 87 /* resource is already in use */
+    <a name="VIR_ERR_ACCESS_DENIED">VIR_ERR_ACCESS_DENIED</a> = 88 /* operation on the object/resource was denied */
 };
 </pre><p/>
 </div>

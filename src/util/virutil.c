@@ -136,16 +136,16 @@ virPipeReadUntilEOF(int outfd, int errfd,
 
     struct pollfd fds[2];
     int i;
-    int finished[2];
+    bool finished[2];
 
     fds[0].fd = outfd;
     fds[0].events = POLLIN;
     fds[0].revents = 0;
-    finished[0] = 0;
+    finished[0] = false;
     fds[1].fd = errfd;
     fds[1].events = POLLIN;
     fds[1].revents = 0;
-    finished[1] = 0;
+    finished[1] = false;
 
     while (!(finished[0] && finished[1])) {
 
@@ -162,7 +162,7 @@ virPipeReadUntilEOF(int outfd, int errfd,
             if (!(fds[i].revents))
                 continue;
             else if (fds[i].revents & POLLHUP)
-                finished[i] = 1;
+                finished[i] = true;
 
             if (!(fds[i].revents & POLLIN)) {
                 if (fds[i].revents & POLLHUP)
@@ -176,10 +176,10 @@ virPipeReadUntilEOF(int outfd, int errfd,
             got = read(fds[i].fd, data, sizeof(data));
 
             if (got == sizeof(data))
-                finished[i] = 0;
+                finished[i] = false;
 
             if (got == 0) {
-                finished[i] = 1;
+                finished[i] = true;
                 continue;
             }
             if (got < 0) {
@@ -759,12 +759,13 @@ static char *virGetXDGDirectory(const char *xdgenvname, const char *xdgdefdir)
 {
     const char *path = getenv(xdgenvname);
     char *ret = NULL;
-    char *home = virGetUserEnt(geteuid(), VIR_USER_ENT_DIRECTORY);
+    char *home = NULL;
 
     if (path && path[0]) {
         if (virAsprintf(&ret, "%s/libvirt", path) < 0)
             goto no_memory;
     } else {
+        home = virGetUserEnt(geteuid(), VIR_USER_ENT_DIRECTORY);
         if (virAsprintf(&ret, "%s/%s/libvirt", home, xdgdefdir) < 0)
             goto no_memory;
     }
@@ -1791,8 +1792,8 @@ virManageVport(const int parent_host,
 
     if (virAsprintf(&vport_name,
                     "%s:%s",
-                    wwnn,
-                    wwpn) < 0) {
+                    wwpn,
+                    wwnn) < 0) {
         virReportOOMError();
         goto cleanup;
     }

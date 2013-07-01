@@ -609,7 +609,7 @@ qemuMonitorIO(int watch, int fd, int events, void *opaque) {
             events & VIR_EVENT_HANDLE_HANGUP) {
             virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                            _("End of file from monitor"));
-            eof = 1;
+            eof = true;
             events &= ~VIR_EVENT_HANDLE_HANGUP;
         }
 
@@ -617,14 +617,14 @@ qemuMonitorIO(int watch, int fd, int events, void *opaque) {
             events & VIR_EVENT_HANDLE_ERROR) {
             virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                            _("Invalid file descriptor while waiting for monitor"));
-            eof = 1;
+            eof = true;
             events &= ~VIR_EVENT_HANDLE_ERROR;
         }
         if (!error && events) {
             virReportError(VIR_ERR_INTERNAL_ERROR,
                            _("Unhandled event %d for monitor fd %d"),
                            events, mon->fd);
-            error = 1;
+            error = true;
         }
     }
 
@@ -1670,7 +1670,7 @@ int qemuMonitorSetBalloon(qemuMonitorPtr mon,
 }
 
 
-int qemuMonitorSetCPU(qemuMonitorPtr mon, int cpu, int online)
+int qemuMonitorSetCPU(qemuMonitorPtr mon, int cpu, bool online)
 {
     int ret;
     VIR_DEBUG("mon=%p cpu=%d online=%d", mon, cpu, online);

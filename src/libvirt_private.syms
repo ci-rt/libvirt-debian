@@ -5,6 +5,43 @@
 # Keep this file sorted by header name, then by symbols with each header.
 #
 
+# access/viraccessmanager.h
+virAccessManagerCheckConnect;
+virAccessManagerCheckDomain;
+virAccessManagerCheckInterface;
+virAccessManagerCheckNetwork;
+virAccessManagerCheckNodeDevice;
+virAccessManagerCheckNWFilter;
+virAccessManagerCheckSecret;
+virAccessManagerCheckStoragePool;
+virAccessManagerCheckStorageVol;
+virAccessManagerGetDefault;
+virAccessManagerNew;
+virAccessManagerNewStack;
+virAccessManagerSetDefault;
+
+
+# access/viraccessperm.h
+virAccessPermConnectTypeFromString;
+virAccessPermConnectTypeToString;
+virAccessPermDomainTypeFromString;
+virAccessPermDomainTypeToString;
+virAccessPermInterfaceTypeFromString;
+virAccessPermInterfaceTypeToString;
+virAccessPermNetworkTypeFromString;
+virAccessPermNetworkTypeToString;
+virAccessPermNodeDeviceTypeFromString;
+virAccessPermNodeDeviceTypeToString;
+virAccessPermNWFilterTypeFromString;
+virAccessPermNWFilterTypeToString;
+virAccessPermSecretTypeFromString;
+virAccessPermSecretTypeToString;
+virAccessPermStoragePoolTypeFromString;
+virAccessPermStoragePoolTypeToString;
+virAccessPermStorageVolTypeFromString;
+virAccessPermStorageVolTypeToString;
+
+
 # conf/capabilities.h
 virCapabilitiesAddGuest;
 virCapabilitiesAddGuestDomain;
@@ -709,17 +746,23 @@ virFDStreamSetIOHelper;
 # libvirt_internal.h
 virConnectSupportsFeature;
 virDomainMigrateBegin3;
+virDomainMigrateBegin3Params;
 virDomainMigrateConfirm3;
+virDomainMigrateConfirm3Params;
 virDomainMigrateFinish;
 virDomainMigrateFinish2;
 virDomainMigrateFinish3;
+virDomainMigrateFinish3Params;
 virDomainMigratePerform;
 virDomainMigratePerform3;
+virDomainMigratePerform3Params;
 virDomainMigratePrepare;
 virDomainMigratePrepare2;
 virDomainMigratePrepare3;
+virDomainMigratePrepare3Params;
 virDomainMigratePrepareTunnel;
 virDomainMigratePrepareTunnel3;
+virDomainMigratePrepareTunnel3Params;
 virRegisterDriver;
 virRegisterInterfaceDriver;
 virRegisterNetworkDriver;
@@ -1351,9 +1394,12 @@ virHookPresent;
 
 # util/viridentity.h
 virIdentityGetAttr;
+virIdentityGetCurrent;
+virIdentityGetSystem;
 virIdentityIsEqual;
 virIdentityNew;
 virIdentitySetAttr;
+virIdentitySetCurrent;
 
 
 # util/virinitctl.h
@@ -1480,12 +1526,14 @@ virLogMessage;
 virLogParseDefaultPriority;
 virLogParseFilters;
 virLogParseOutputs;
+virLogPriorityFromSyslog;
 virLogProbablyLogMessage;
 virLogReset;
 virLogSetBufferSize;
 virLogSetDefaultPriority;
 virLogSetFromEnv;
 virLogUnlock;
+virLogVMessage;
 
 
 # util/virmacaddr.h
@@ -1530,6 +1578,7 @@ virNetDevSetMTUFromDevice;
 virNetDevSetName;
 virNetDevSetNamespace;
 virNetDevSetOnline;
+virNetDevSetupControl;
 virNetDevValidateConfig;
 
 
@@ -1644,10 +1693,17 @@ virObjectUnref;
 
 
 # util/virpci.h
+virPCIDeviceAddressGetIOMMUGroupAddresses;
+virPCIDeviceAddressGetIOMMUGroupNum;
 virPCIDeviceAddressGetSysfsFile;
+virPCIDeviceAddressIOMMUGroupIterate;
+virPCIDeviceAddressParse;
+virPCIDeviceCopy;
 virPCIDeviceDetach;
 virPCIDeviceFileIterate;
 virPCIDeviceFree;
+virPCIDeviceGetIOMMUGroupDev;
+virPCIDeviceGetIOMMUGroupList;
 virPCIDeviceGetManaged;
 virPCIDeviceGetName;
 virPCIDeviceGetRemoveSlot;
@@ -1655,12 +1711,13 @@ virPCIDeviceGetReprobe;
 virPCIDeviceGetStubDriver;
 virPCIDeviceGetUnbindFromStub;
 virPCIDeviceGetUsedBy;
-virPCIDeviceGetVFIOGroupDev;
 virPCIDeviceIsAssignable;
 virPCIDeviceListAdd;
+virPCIDeviceListAddCopy;
 virPCIDeviceListCount;
 virPCIDeviceListDel;
 virPCIDeviceListFind;
+virPCIDeviceListFindByIDs;
 virPCIDeviceListFindIndex;
 virPCIDeviceListGet;
 virPCIDeviceListNew;
@@ -1711,6 +1768,7 @@ virPortAllocatorRelease;
 virProcessAbort;
 virProcessGetAffinity;
 virProcessGetNamespaces;
+virProcessGetStartTime;
 virProcessKill;
 virProcessKillPainfully;
 virProcessSetAffinity;
@@ -1782,6 +1840,7 @@ virSocketAddrGetPort;
 virSocketAddrGetRange;
 virSocketAddrIsNetmask;
 virSocketAddrIsPrivate;
+virSocketAddrIsWildcard;
 virSocketAddrMask;
 virSocketAddrMaskByPrefix;
 virSocketAddrParse;
@@ -1794,6 +1853,8 @@ virSocketAddrSetPort;
 
 # util/virstoragefile.h
 virStorageFileChainLookup;
+virStorageFileFeatureTypeFromString;
+virStorageFileFeatureTypeToString;
 virStorageFileFormatTypeFromString;
 virStorageFileFormatTypeToString;
 virStorageFileFreeMetadata;
@@ -1892,9 +1953,15 @@ virTPMCreateCancelPath;
 
 
 # util/virtypedparam.h
-virTypedParameterArrayValidate;
 virTypedParameterAssign;
 virTypedParameterAssignFromStr;
+virTypedParameterToString;
+virTypedParameterTypeFromString;
+virTypedParameterTypeToString;
+virTypedParamsCheck;
+virTypedParamsCopy;
+virTypedParamsReplaceString;
+virTypedParamsValidate;
 
 
 # util/viruri.h

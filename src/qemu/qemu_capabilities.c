@@ -662,8 +662,8 @@ virQEMUCapsInitGuest(virCapsPtr caps,
 {
     virCapsGuestPtr guest;
     int i;
-    int haskvm = 0;
-    int haskqemu = 0;
+    bool haskvm = false;
+    bool haskqemu = false;
     char *kvmbin = NULL;
     char *binary = NULL;
     virCapsGuestMachinePtr *machines = NULL;
@@ -725,11 +725,11 @@ virQEMUCapsInitGuest(virCapsPtr caps,
         (virQEMUCapsGet(qemubinCaps, QEMU_CAPS_KVM) ||
          virQEMUCapsGet(qemubinCaps, QEMU_CAPS_ENABLE_KVM) ||
          kvmbin))
-        haskvm = 1;
+        haskvm = true;
 
     if (access("/dev/kqemu", F_OK) == 0 &&
         virQEMUCapsGet(qemubinCaps, QEMU_CAPS_KQEMU))
-        haskqemu = 1;
+        haskqemu = true;
 
     if (virQEMUCapsGetMachineTypesCaps(qemubinCaps, &nmachines, &machines) < 0)
         goto error;
@@ -917,7 +917,7 @@ error:
 static int
 virQEMUCapsComputeCmdFlags(const char *help,
                            unsigned int version,
-                           unsigned int is_kvm,
+                           bool is_kvm,
                            unsigned int kvm_version,
                            virQEMUCapsPtr qemuCaps,
                            bool check_yajl ATTRIBUTE_UNUSED)
@@ -1221,7 +1221,7 @@ int virQEMUCapsParseHelpStr(const char *qemu,
                             const char *help,
                             virQEMUCapsPtr qemuCaps,
                             unsigned int *version,
-                            unsigned int *is_kvm,
+                            bool *is_kvm,
                             unsigned int *kvm_version,
                             bool check_yajl)
 {
@@ -1229,7 +1229,8 @@ int virQEMUCapsParseHelpStr(const char *qemu,
     const char *p = help;
     char *strflags;
 
-    *version = *is_kvm = *kvm_version = 0;
+    *version = *kvm_version = 0;
+    *is_kvm = false;
 
     if (STRPREFIX(p, QEMU_VERSION_STR_1))
         p += strlen(QEMU_VERSION_STR_1);
@@ -1262,12 +1263,12 @@ int virQEMUCapsParseHelpStr(const char *qemu,
     SKIP_BLANKS(p);
 
     if (STRPREFIX(p, QEMU_KVM_VER_PREFIX)) {
-        *is_kvm = 1;
+        *is_kvm = true;
         p += strlen(QEMU_KVM_VER_PREFIX);
     } else if (STRPREFIX(p, KVM_VER_PREFIX)) {
         int ret;
 
-        *is_kvm = 1;
+        *is_kvm = true;
         p += strlen(KVM_VER_PREFIX);
 
         ret = virParseNumber(&p);
@@ -1314,6 +1315,27 @@ struct virQEMUCapsStringFlags {
     int flag;
 };
 
+
+struct virQEMUCapsStringFlags virQEMUCapsCommands[] = {
+    { "system_wakeup", QEMU_CAPS_WAKEUP },
+    { "transaction", QEMU_CAPS_TRANSACTION },
+    { "block_job_cancel", QEMU_CAPS_BLOCKJOB_SYNC },
+    { "block-job-cancel", QEMU_CAPS_BLOCKJOB_ASYNC },
+    { "dump-guest-memory", QEMU_CAPS_DUMP_GUEST_MEMORY },
+    { "query-spice", QEMU_CAPS_SPICE },
+    { "query-kvm", QEMU_CAPS_KVM },
+    { "block-commit", QEMU_CAPS_BLOCK_COMMIT },
+    { "query-vnc", QEMU_CAPS_VNC },
+    { "drive-mirror", QEMU_CAPS_DRIVE_MIRROR },
+    { "blockdev-snapshot-sync", QEMU_CAPS_DISK_SNAPSHOT },
+    { "add-fd", QEMU_CAPS_ADD_FD },
+    { "nbd-server-start", QEMU_CAPS_NBD_SERVER },
+};
+
+struct virQEMUCapsStringFlags virQEMUCapsEvents[] = {
+    { "BALLOON_CHANGE", QEMU_CAPS_BALLOON_EVENT },
+    { "SPICE_MIGRATE_COMPLETED", QEMU_CAPS_SEAMLESS_MIGRATION },
+};
 
 struct virQEMUCapsStringFlags virQEMUCapsObjectTypes[] = {
     { "hda-duplex", QEMU_CAPS_HDA_DUPLEX },
@@ -1950,42 +1972,15 @@ virQEMUCapsProbeQMPCommands(virQEMUCapsPtr qemuCaps,
 {
     char **commands = NULL;
     int ncommands;
-    size_t i;
 
     if ((ncommands = qemuMonitorGetCommands(mon, &commands)) < 0)
         return -1;
 
-    for (i = 0; i < ncommands; i++) {
-        char *name = commands[i];
-        if (STREQ(name, "system_wakeup"))
-            virQEMUCapsSet(qemuCaps, QEMU_CAPS_WAKEUP);
-        else if (STREQ(name, "transaction"))
-            virQEMUCapsSet(qemuCaps, QEMU_CAPS_TRANSACTION);
-        else if (STREQ(name, "block_job_cancel"))
-            virQEMUCapsSet(qemuCaps, QEMU_CAPS_BLOCKJOB_SYNC);
-        else if (STREQ(name, "block-job-cancel"))
-            virQEMUCapsSet(qemuCaps, QEMU_CAPS_BLOCKJOB_ASYNC);
-        else if (STREQ(name, "dump-guest-memory"))
-            virQEMUCapsSet(qemuCaps, QEMU_CAPS_DUMP_GUEST_MEMORY);
-        else if (STREQ(name, "query-spice"))
-            virQEMUCapsSet(qemuCaps, QEMU_CAPS_SPICE);
-        else if (STREQ(name, "query-kvm"))
-            virQEMUCapsSet(qemuCaps, QEMU_CAPS_KVM);
-        else if (STREQ(name, "block-commit"))
-            virQEMUCapsSet(qemuCaps, QEMU_CAPS_BLOCK_COMMIT);
-        else if (STREQ(name, "query-vnc"))
-            virQEMUCapsSet(qemuCaps, QEMU_CAPS_VNC);
-        else if (STREQ(name, "drive-mirror"))
-            virQEMUCapsSet(qemuCaps, QEMU_CAPS_DRIVE_MIRROR);
-        else if (STREQ(name, "blockdev-snapshot-sync"))
-            virQEMUCapsSet(qemuCaps, QEMU_CAPS_DISK_SNAPSHOT);
-        else if (STREQ(name, "add-fd"))
-            virQEMUCapsSet(qemuCaps, QEMU_CAPS_ADD_FD);
-        else if (STREQ(name, "nbd-server-start"))
-            virQEMUCapsSet(qemuCaps, QEMU_CAPS_NBD_SERVER);
-        VIR_FREE(name);
-    }
-    VIR_FREE(commands);
+    virQEMUCapsProcessStringFlags(qemuCaps,
+                                  ARRAY_CARDINALITY(virQEMUCapsCommands),
+                                  virQEMUCapsCommands,
+                                  ncommands, commands);
+    virQEMUCapsFreeStringList(ncommands, commands);
 
     /* QMP add-fd was introduced in 1.2, but did not support
      * management control of set numbering, and did not have a
@@ -2013,21 +2008,15 @@ virQEMUCapsProbeQMPEvents(virQEMUCapsPtr qemuCaps,
 {
     char **events = NULL;
     int nevents;
-    size_t i;
 
     if ((nevents = qemuMonitorGetEvents(mon, &events)) < 0)
         return -1;
 
-    for (i = 0; i < nevents; i++) {
-        char *name = events[i];
-
-        if (STREQ(name, "BALLOON_CHANGE"))
-            virQEMUCapsSet(qemuCaps, QEMU_CAPS_BALLOON_EVENT);
-        if (STREQ(name, "SPICE_MIGRATE_COMPLETED"))
-            virQEMUCapsSet(qemuCaps, QEMU_CAPS_SEAMLESS_MIGRATION);
-        VIR_FREE(name);
-    }
-    VIR_FREE(events);
+    virQEMUCapsProcessStringFlags(qemuCaps,
+                                  ARRAY_CARDINALITY(virQEMUCapsEvents),
+                                  virQEMUCapsEvents,
+                                  nevents, events);
+    virQEMUCapsFreeStringList(nevents, events);
 
     return 0;
 }
@@ -2282,7 +2271,7 @@ static int
 virQEMUCapsInitHelp(virQEMUCapsPtr qemuCaps, uid_t runUid, gid_t runGid)
 {
     virCommandPtr cmd = NULL;
-    unsigned int is_kvm;
+    bool is_kvm;
     char *help = NULL;
     int ret = -1;
     const char *tmp;
@@ -2417,6 +2406,7 @@ virQEMUCapsInitQMPBasic(virQEMUCapsPtr qemuCaps)
     virQEMUCapsSet(qemuCaps, QEMU_CAPS_MACHINE_OPT);
     virQEMUCapsSet(qemuCaps, QEMU_CAPS_DUMP_GUEST_CORE);
     virQEMUCapsSet(qemuCaps, QEMU_CAPS_VNC_SHARE_POLICY);
+    virQEMUCapsSet(qemuCaps, QEMU_CAPS_DEVICE_VIDEO_PRIMARY);
 }
 
 /* Capabilities that are architecture depending

@@ -1,7 +1,7 @@
 /*
  * node_device_conf.h: config handling for node devices
  *
- * Copyright (C) 2010-2011 Red Hat, Inc.
+ * Copyright (C) 2009-2013 Red Hat, Inc.
  * Copyright (C) 2008 Virtual Iron Software, Inc.
  * Copyright (C) 2008 David F. Lively
  *
@@ -48,6 +48,8 @@ enum virNodeDevCapType {
     VIR_NODE_DEV_CAP_STORAGE,		/* Storage device */
     VIR_NODE_DEV_CAP_FC_HOST,		/* FC Host Bus Adapter */
     VIR_NODE_DEV_CAP_VPORTS,		/* HBA which is capable of vports */
+    VIR_NODE_DEV_CAP_SCSI_GENERIC,      /* SCSI generic device */
+
     VIR_NODE_DEV_CAP_LAST
 };
 
@@ -110,6 +112,9 @@ struct _virNodeDevCapsDef {
             virPCIDeviceAddressPtr *virtual_functions;
             unsigned int num_virtual_functions;
             unsigned int flags;
+            virPCIDeviceAddressPtr *iommuGroupDevices;
+            size_t nIommuGroupDevices;
+            unsigned int iommuGroupNumber;
         } pci_dev;
         struct {
             unsigned int bus;
@@ -165,6 +170,9 @@ struct _virNodeDevCapsDef {
             char *media_label;
             unsigned int flags;	/* virNodeDevStorageCapFlags bits */
         } storage;
+        struct {
+            char *path;
+        } sg; /* SCSI generic device */
     } data;
     virNodeDevCapsDefPtr next;          /* next capability */
 };
@@ -269,7 +277,8 @@ void virNodeDeviceObjUnlock(virNodeDeviceObjPtr obj);
                  VIR_CONNECT_LIST_NODE_DEVICES_CAP_SCSI          | \
                  VIR_CONNECT_LIST_NODE_DEVICES_CAP_STORAGE       | \
                  VIR_CONNECT_LIST_NODE_DEVICES_CAP_FC_HOST       | \
-                 VIR_CONNECT_LIST_NODE_DEVICES_CAP_VPORTS)
+                 VIR_CONNECT_LIST_NODE_DEVICES_CAP_VPORTS        | \
+                 VIR_CONNECT_LIST_NODE_DEVICES_CAP_SCSI_GENERIC)
 
 int virNodeDeviceList(virConnectPtr conn,
                       virNodeDeviceObjList devobjs,

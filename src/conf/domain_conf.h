@@ -1420,6 +1420,7 @@ struct _virDomainGraphicsListenDef {
     int type;   /* enum virDomainGraphicsListenType */
     char *address;
     char *network;
+    bool fromConfig;    /* true if the @address is config file originated */
 };
 
 struct _virDomainGraphicsDef {
@@ -1583,6 +1584,8 @@ enum virDomainFeatureState {
 
 enum virDomainHyperv {
     VIR_DOMAIN_HYPERV_RELAXED = 0,
+    VIR_DOMAIN_HYPERV_VAPIC,
+    VIR_DOMAIN_HYPERV_SPINLOCKS,
 
     VIR_DOMAIN_HYPERV_LAST
 };
@@ -1767,6 +1770,11 @@ struct _virDomainClockDef {
         struct {
             long long adjustment;
             int basis;
+
+            /* Store the base date (-rtc base=$date, in seconds
+             * since the Epoch) of guest process, internal only
+             */
+            unsigned long long basedate;
         } variable;
 
         /* Timezone name, when
@@ -1920,6 +1928,7 @@ struct _virDomainDef {
     int apic_eoi;
     /* These options are of type virDomainFeatureState */
     int hyperv_features[VIR_DOMAIN_HYPERV_LAST];
+    unsigned int hyperv_spinlocks;
 
     virDomainClockDef clock;
 

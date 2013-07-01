@@ -1,6 +1,7 @@
 /*
  * node_device_conf.c: config handling for node devices
  *
+ * Copyright (C) 2009-2013 Red Hat, Inc.
  * Copyright (C) 2008 Virtual Iron Software, Inc.
  * Copyright (C) 2008 David F. Lively
  *
@@ -31,6 +32,7 @@
 #include "viralloc.h"
 #include "virstring.h"
 #include "node_device_conf.h"
+#include "device_conf.h"
 #include "virxml.h"
 #include "virbuffer.h"
 #include "viruuid.h"
@@ -49,7 +51,8 @@ VIR_ENUM_IMPL(virNodeDevCap, VIR_NODE_DEV_CAP_LAST,
               "scsi",
               "storage",
               "fc_host",
-              "vports")
+              "vports",
+              "scsi_generic")
 
 VIR_ENUM_IMPL(virNodeDevNetCap, VIR_NODE_DEV_CAP_NET_LAST,
               "80203",
@@ -236,6 +239,7 @@ char *virNodeDeviceDefFormat(const virNodeDeviceDefPtr def)
 
     virBufferAddLit(&buf, "<device>\n");
     virBufferEscapeString(&buf, "  <name>%s</name>\n", def->name);
+    virBufferEscapeString(&buf, "  <path>%s</path>\n", def->sysfs_path);
     if (def->parent) {
         virBufferEscapeString(&buf, "  <parent>%s</parent>\n", def->parent);
     }
@@ -327,6 +331,20 @@ char *virNodeDeviceDefFormat(const virNodeDeviceDefPtr def)
                                       data->pci_dev.virtual_functions[i]->function);
                 }
                 virBufferAddLit(&buf, "    </capability>\n");
+            }
+            if (data->pci_dev.nIommuGroupDevices) {
+                virBufferAsprintf(&buf, "    <iommuGroup number='%d'>\n",
+                                  data->pci_dev.iommuGroupNumber);
+                for (i = 0; i < data->pci_dev.nIommuGroupDevices; i++) {
+                    virBufferAsprintf(&buf,
+                                      "      <address domain='0x%.4x' bus='0x%.2x' "
+                                      "slot='0x%.2x' function='0x%.1x'/>\n",
+                                      data->pci_dev.iommuGroupDevices[i]->domain,
+                                      data->pci_dev.iommuGroupDevices[i]->bus,
+                                      data->pci_dev.iommuGroupDevices[i]->slot,
+                                      data->pci_dev.iommuGroupDevices[i]->function);
+                }
+                virBufferAddLit(&buf, "    </iommuGroup>\n");
             }
             break;
         case VIR_NODE_DEV_CAP_USB_DEV:
@@ -470,6 +488,10 @@ char *virNodeDeviceDefFormat(const virNodeDeviceDefPtr def)
             if (data->storage.flags & VIR_NODE_DEV_CAP_STORAGE_HOTPLUGGABLE)
                 virBufferAddLit(&buf,
                                 "    <capability type='hotpluggable' />\n");
+            break;
+        case VIR_NODE_DEV_CAP_SCSI_GENERIC:
+            virBufferEscapeString(&buf, "    <char>%s</char>\n",
+                                  data->sg.path);
             break;
         case VIR_NODE_DEV_CAP_FC_HOST:
         case VIR_NODE_DEV_CAP_VPORTS:
@@ -960,12 +982,72 @@ out:
 }
 
 static int
+virNodeDevCapPciDevIommuGroupParseXML(xmlXPathContextPtr ctxt,
+                                      xmlNodePtr iommuGroupNode,
+                                      union _virNodeDevCapData *data)
+{
+    xmlNodePtr origNode = ctxt->node;
+    xmlNodePtr *addrNodes = NULL;
+    char *numberStr = NULL;
+    int nAddrNodes, ii, ret = -1;
+    virPCIDeviceAddressPtr pciAddr = NULL;
+
+    ctxt->node = iommuGroupNode;
+
+    numberStr = virXMLPropString(iommuGroupNode, "number");
+    if (!numberStr) {
+        virReportError(VIR_ERR_XML_ERROR,
+                       "%s", _("missing iommuGroup number attribute"));
+        goto cleanup;
+    }
+    if (virStrToLong_ui(numberStr, NULL, 10,
+                        &data->pci_dev.iommuGroupNumber) < 0) {
+        virReportError(VIR_ERR_XML_ERROR,
+                       _("invalid iommuGroup number attribute '%s'"),
+                       numberStr);
+        goto cleanup;
+    }
+
+    if ((nAddrNodes = virXPathNodeSet("./address", ctxt, &addrNodes)) < 0)
+        goto cleanup;
+
+    for (ii = 0; ii < nAddrNodes; ii++) {
+        virDevicePCIAddress addr = { 0, 0, 0, 0, 0 };
+        if (virDevicePCIAddressParseXML(addrNodes[ii], &addr) < 0)
+            goto cleanup;
+        if (VIR_ALLOC(pciAddr) < 0) {
+            virReportOOMError();
+            goto cleanup;
+        }
+        pciAddr->domain = addr.domain;
+        pciAddr->bus = addr.bus;
+        pciAddr->slot = addr.slot;
+        pciAddr->function = addr.function;
+        if (VIR_APPEND_ELEMENT(data->pci_dev.iommuGroupDevices,
+                               data->pci_dev.nIommuGroupDevices,
+                               pciAddr) < 0) {
+            virReportOOMError();
+            goto cleanup;
+        }
+    }
+
+    ret = 0;
+cleanup:
+    ctxt->node = origNode;
+    VIR_FREE(numberStr);
+    VIR_FREE(addrNodes);
+    VIR_FREE(pciAddr);
+    return ret;
+}
+
+
+static int
 virNodeDevCapPciDevParseXML(xmlXPathContextPtr ctxt,
                             virNodeDeviceDefPtr def,
                             xmlNodePtr node,
                             union _virNodeDevCapData *data)
 {
-    xmlNodePtr orignode;
+    xmlNodePtr orignode, iommuGroupNode;
     int ret = -1;
 
     orignode = ctxt->node;
@@ -1010,6 +1092,12 @@ virNodeDevCapPciDevParseXML(xmlXPathContextPtr ctxt,
     data->pci_dev.vendor_name  = virXPathString("string(./vendor[1])", ctxt);
     data->pci_dev.product_name = virXPathString("string(./product[1])", ctxt);
 
+    if ((iommuGroupNode = virXPathNode("./iommuGroup[1]", ctxt))) {
+        if (virNodeDevCapPciDevIommuGroupParseXML(ctxt, iommuGroupNode,
+                                                  data) < 0) {
+            goto out;
+        }
+    }
     ret = 0;
 out:
     ctxt->node = orignode;
@@ -1379,6 +1467,11 @@ void virNodeDevCapsDefFree(virNodeDevCapsDefPtr caps)
         for (i = 0; i < data->pci_dev.num_virtual_functions; i++) {
             VIR_FREE(data->pci_dev.virtual_functions[i]);
         }
+        VIR_FREE(data->pci_dev.virtual_functions);
+        for (i = 0; i < data->pci_dev.nIommuGroupDevices; i++) {
+            VIR_FREE(data->pci_dev.iommuGroupDevices[i]);
+        }
+        VIR_FREE(data->pci_dev.iommuGroupDevices);
         break;
     case VIR_NODE_DEV_CAP_USB_DEV:
         VIR_FREE(data->usb_dev.product_name);
@@ -1410,6 +1503,9 @@ void virNodeDevCapsDefFree(virNodeDevCapsDefPtr caps)
         VIR_FREE(data->storage.vendor);
         VIR_FREE(data->storage.serial);
         VIR_FREE(data->storage.media_label);
+        break;
+    case VIR_NODE_DEV_CAP_SCSI_GENERIC:
+        VIR_FREE(data->sg.path);
         break;
     case VIR_NODE_DEV_CAP_FC_HOST:
     case VIR_NODE_DEV_CAP_VPORTS:
@@ -1487,7 +1583,9 @@ virNodeDeviceMatch(virNodeDeviceObjPtr devobj,
               (MATCH(VIR_CONNECT_LIST_NODE_DEVICES_CAP_FC_HOST) &&
                virNodeDeviceCapMatch(devobj, VIR_NODE_DEV_CAP_FC_HOST))       ||
               (MATCH(VIR_CONNECT_LIST_NODE_DEVICES_CAP_VPORTS) &&
-               virNodeDeviceCapMatch(devobj, VIR_NODE_DEV_CAP_VPORTS))))
+               virNodeDeviceCapMatch(devobj, VIR_NODE_DEV_CAP_VPORTS))        ||
+              (MATCH(VIR_CONNECT_LIST_NODE_DEVICES_CAP_SCSI_GENERIC) &&
+               virNodeDeviceCapMatch(devobj, VIR_NODE_DEV_CAP_SCSI_GENERIC))))
             return false;
     }
 

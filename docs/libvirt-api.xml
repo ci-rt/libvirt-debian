@@ -81,6 +81,11 @@
      <exports symbol='VIR_DOMAIN_SCHED_FIELD_LENGTH' type='macro'/>
      <exports symbol='VIR_DOMAIN_SEND_KEY_MAX_KEYS' type='macro'/>
      <exports symbol='VIR_GET_CPUMAP' type='macro'/>
+     <exports symbol='VIR_MIGRATE_PARAM_BANDWIDTH' type='macro'/>
+     <exports symbol='VIR_MIGRATE_PARAM_DEST_NAME' type='macro'/>
+     <exports symbol='VIR_MIGRATE_PARAM_DEST_XML' type='macro'/>
+     <exports symbol='VIR_MIGRATE_PARAM_GRAPHICS_URI' type='macro'/>
+     <exports symbol='VIR_MIGRATE_PARAM_URI' type='macro'/>
      <exports symbol='VIR_NODEINFO_MAXCPUS' type='macro'/>
      <exports symbol='VIR_NODE_CPU_STATS_FIELD_LENGTH' type='macro'/>
      <exports symbol='VIR_NODE_CPU_STATS_IDLE' type='macro'/>
@@ -135,6 +140,7 @@
      <exports symbol='VIR_CONNECT_LIST_NODE_DEVICES_CAP_NET' type='enum'/>
      <exports symbol='VIR_CONNECT_LIST_NODE_DEVICES_CAP_PCI_DEV' type='enum'/>
      <exports symbol='VIR_CONNECT_LIST_NODE_DEVICES_CAP_SCSI' type='enum'/>
+     <exports symbol='VIR_CONNECT_LIST_NODE_DEVICES_CAP_SCSI_GENERIC' type='enum'/>
      <exports symbol='VIR_CONNECT_LIST_NODE_DEVICES_CAP_SCSI_HOST' type='enum'/>
      <exports symbol='VIR_CONNECT_LIST_NODE_DEVICES_CAP_SCSI_TARGET' type='enum'/>
      <exports symbol='VIR_CONNECT_LIST_NODE_DEVICES_CAP_STORAGE' type='enum'/>
@@ -518,6 +524,7 @@
      <exports symbol='VIR_DOMAIN_UNDEFINE_SNAPSHOTS_METADATA' type='enum'/>
      <exports symbol='VIR_DOMAIN_VCPU_CONFIG' type='enum'/>
      <exports symbol='VIR_DOMAIN_VCPU_CURRENT' type='enum'/>
+     <exports symbol='VIR_DOMAIN_VCPU_GUEST' type='enum'/>
      <exports symbol='VIR_DOMAIN_VCPU_LIVE' type='enum'/>
      <exports symbol='VIR_DOMAIN_VCPU_MAXIMUM' type='enum'/>
      <exports symbol='VIR_DOMAIN_XML_INACTIVE' type='enum'/>
@@ -547,6 +554,7 @@
      <exports symbol='VIR_KEYCODE_SET_XT_KBD' type='enum'/>
      <exports symbol='VIR_MEMORY_PHYSICAL' type='enum'/>
      <exports symbol='VIR_MEMORY_VIRTUAL' type='enum'/>
+     <exports symbol='VIR_MIGRATE_ABORT_ON_ERROR' type='enum'/>
      <exports symbol='VIR_MIGRATE_CHANGE_PROTECTION' type='enum'/>
      <exports symbol='VIR_MIGRATE_COMPRESSED' type='enum'/>
      <exports symbol='VIR_MIGRATE_LIVE' type='enum'/>
@@ -992,6 +1000,7 @@
      <exports symbol='virDomainMemoryStats' type='function'/>
      <exports symbol='virDomainMigrate' type='function'/>
      <exports symbol='virDomainMigrate2' type='function'/>
+     <exports symbol='virDomainMigrate3' type='function'/>
      <exports symbol='virDomainMigrateGetCompressionCache' type='function'/>
      <exports symbol='virDomainMigrateGetMaxSpeed' type='function'/>
      <exports symbol='virDomainMigrateSetCompressionCache' type='function'/>
@@ -999,6 +1008,7 @@
      <exports symbol='virDomainMigrateSetMaxSpeed' type='function'/>
      <exports symbol='virDomainMigrateToURI' type='function'/>
      <exports symbol='virDomainMigrateToURI2' type='function'/>
+     <exports symbol='virDomainMigrateToURI3' type='function'/>
      <exports symbol='virDomainOpenChannel' type='function'/>
      <exports symbol='virDomainOpenConsole' type='function'/>
      <exports symbol='virDomainOpenGraphics' type='function'/>
@@ -1253,6 +1263,7 @@
      <summary>error handling interfaces for the libvirt library</summary>
      <description>Provides the interfaces of the libvirt library to handle errors raised while using the library.  Copyright (C) 2006, 2010-2012 Red Hat, Inc.  This library is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation; either version 2.1 of the License, or (at your option) any later version.  This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more details.  You should have received a copy of the GNU Lesser General Public License along with this library.  If not, see &lt;http://www.gnu.org/licenses/&gt;. </description>
      <author>Daniel Veillard &lt;veillard@redhat.com&gt; </author>
+     <exports symbol='VIR_ERR_ACCESS_DENIED' type='enum'/>
      <exports symbol='VIR_ERR_AGENT_UNRESPONSIVE' type='enum'/>
      <exports symbol='VIR_ERR_ARGUMENT_UNSUPPORTED' type='enum'/>
      <exports symbol='VIR_ERR_AUTH_CANCELLED' type='enum'/>
@@ -1339,6 +1350,7 @@
      <exports symbol='VIR_ERR_XEN_CALL' type='enum'/>
      <exports symbol='VIR_ERR_XML_DETAIL' type='enum'/>
      <exports symbol='VIR_ERR_XML_ERROR' type='enum'/>
+     <exports symbol='VIR_FROM_ACCESS' type='enum'/>
      <exports symbol='VIR_FROM_AUDIT' type='enum'/>
      <exports symbol='VIR_FROM_AUTH' type='enum'/>
      <exports symbol='VIR_FROM_CAPABILITIES' type='enum'/>
@@ -1665,6 +1677,21 @@
       <arg name='maplen' info='the length (in bytes) of one cpumap'/>
       <arg name='vcpu' info='the virtual CPU number'/>
     </macro>
+    <macro name='VIR_MIGRATE_PARAM_BANDWIDTH' file='libvirt'>
+      <info><![CDATA[virDomainMigrate* params field: the maximum bandwidth (in MiB/s) that will be used for migration as VIR_TYPED_PARAM_ULLONG. If set to 0 or omitted, libvirt will choose a suitable default. Some hypervisors do not support this feature and will return an error if this field is used and is not 0.]]></info>
+    </macro>
+    <macro name='VIR_MIGRATE_PARAM_DEST_NAME' file='libvirt'>
+      <info><![CDATA[virDomainMigrate* params field: the name to be used for the domain on the destination host as VIR_TYPED_PARAM_STRING. Omitting this parameter keeps the domain name the same. This field is only allowed to be used with hypervisors that support domain renaming during migration.]]></info>
+    </macro>
+    <macro name='VIR_MIGRATE_PARAM_DEST_XML' file='libvirt'>
+      <info><![CDATA[virDomainMigrate* params field: the new configuration to be used for the domain on the destination host as VIR_TYPED_PARAM_STRING. The configuration must include an identical set of virtual devices, to ensure a stable guest ABI across migration. Only parameters related to host side configuration can be changed in the XML. Hypervisors which support this field will forbid migration if the provided XML would cause a change in the guest ABI. This field cannot be used to rename the domain during migration (use VIR_MIGRATE_PARAM_DEST_NAME field for that purpose). Domain name in the destination XML must match the original domain name.  Omitting this parameter keeps the original domain configuration. Using this field with hypervisors that do not support changing domain configuration during migration will result in a failure.]]></info>
+    </macro>
+    <macro name='VIR_MIGRATE_PARAM_GRAPHICS_URI' file='libvirt'>
+      <info><![CDATA[virDomainMigrate* params field: URI to use for migrating client's connection to domain's graphical console as VIR_TYPED_PARAM_STRING. If specified, the client will be asked to automatically reconnect using these parameters instead of the automatically computed ones. This can be useful if, e.g., the client does not have a direct access to the network virtualization hosts are connected to and needs to connect through a proxy. The URI is formed as follows:  protocol://hostname[:port]/[?parameters]  where protocol is either "spice" or "vnc" and parameters is a list of protocol specific parameters separated by '&'. Currently recognized parameters are "tlsPort" and "tlsSubject". For example,  spice://target.host.com:1234/?tlsPort=4567]]></info>
+    </macro>
+    <macro name='VIR_MIGRATE_PARAM_URI' file='libvirt'>
+      <info><![CDATA[virDomainMigrate* params field: URI to use for initiating domain migration as VIR_TYPED_PARAM_STRING. It takes a hypervisor specific format. The uri_transports element of the hypervisor capabilities XML includes details of the supported URI schemes. When omitted libvirt will auto-generate suitable default URI. It is typically only necessary to specify this URI if the destination host has multiple interfaces and a specific interface is required to transmit migration data.  This filed may not be used when VIR_MIGRATE_TUNNELLED flag is set.]]></info>
+    </macro>
     <macro name='VIR_NODEINFO_MAXCPUS' file='libvirt'>
       <info><![CDATA[This macro is to calculate the total number of CPUs supported but not necessary active in the host.]]></info>
       <arg name='nodeinfo' info='virNodeInfo instance'/>
@@ -1767,6 +1794,7 @@
     <enum name='VIR_CONNECT_LIST_NODE_DEVICES_CAP_NET' file='libvirt' value='16' type='virConnectListAllNodeDeviceFlags' info='Network device'/>
     <enum name='VIR_CONNECT_LIST_NODE_DEVICES_CAP_PCI_DEV' file='libvirt' value='2' type='virConnectListAllNodeDeviceFlags' info='PCI device'/>
     <enum name='VIR_CONNECT_LIST_NODE_DEVICES_CAP_SCSI' file='libvirt' value='128' type='virConnectListAllNodeDeviceFlags' info='SCSI device'/>
+    <enum name='VIR_CONNECT_LIST_NODE_DEVICES_CAP_SCSI_GENERIC' file='libvirt' value='2048' type='virConnectListAllNodeDeviceFlags' info='Capable of scsi_generic'/>
     <enum name='VIR_CONNECT_LIST_NODE_DEVICES_CAP_SCSI_HOST' file='libvirt' value='32' type='virConnectListAllNodeDeviceFlags' info='SCSI Host Bus Adapter'/>
     <enum name='VIR_CONNECT_LIST_NODE_DEVICES_CAP_SCSI_TARGET' file='libvirt' value='64' type='virConnectListAllNodeDeviceFlags' info='SCSI Target'/>
     <enum name='VIR_CONNECT_LIST_NODE_DEVICES_CAP_STORAGE' file='libvirt' value='256' type='virConnectListAllNodeDeviceFlags' info='Storage device'/>
@@ -2218,6 +2246,7 @@ then also remove any
 snapshot metadata Future undefine control flags should come here.'/>
     <enum name='VIR_DOMAIN_VCPU_CONFIG' file='libvirt' value='VIR_DOMAIN_AFFECT_CONFIG' type='virDomainVcpuFlags' info='Additionally, these flags may be bitwise-OR&apos;d in.'/>
     <enum name='VIR_DOMAIN_VCPU_CURRENT' file='libvirt' value='VIR_DOMAIN_AFFECT_CURRENT' type='virDomainVcpuFlags'/>
+    <enum name='VIR_DOMAIN_VCPU_GUEST' file='libvirt' value='8' type='virDomainVcpuFlags' info='Modify state of the cpu in the guest'/>
     <enum name='VIR_DOMAIN_VCPU_LIVE' file='libvirt' value='VIR_DOMAIN_AFFECT_LIVE' type='virDomainVcpuFlags'/>
     <enum name='VIR_DOMAIN_VCPU_MAXIMUM' file='libvirt' value='4' type='virDomainVcpuFlags' info='Max rather than current count'/>
     <enum name='VIR_DOMAIN_XML_INACTIVE' file='libvirt' value='2' type='virDomainXMLFlags' info='dump inactive domain information'/>
@@ -2229,6 +2258,8 @@ snapshot metadata Future undefine control flags should come here.'/>
     <enum name='VIR_DUMP_LIVE' file='libvirt' value='2' type='virDomainCoreDumpFlags' info='live dump'/>
     <enum name='VIR_DUMP_MEMORY_ONLY' file='libvirt' value='16' type='virDomainCoreDumpFlags' info='use dump-guest-memory'/>
     <enum name='VIR_DUMP_RESET' file='libvirt' value='8' type='virDomainCoreDumpFlags' info='reset domain after dump finishes'/>
+    <enum name='VIR_ERR_ACCESS_DENIED' file='virterror' value='88' type='virErrorNumber' info='operation on the object/resource
+was denied'/>
     <enum name='VIR_ERR_AGENT_UNRESPONSIVE' file='virterror' value='86' type='virErrorNumber' info='guest agent is unresponsive,
 not running or not usable'/>
     <enum name='VIR_ERR_ARGUMENT_UNSUPPORTED' file='virterror' value='74' type='virErrorNumber' info='valid API use but unsupported by
@@ -2243,7 +2274,7 @@ the given driver'/>
 construct'/>
     <enum name='VIR_ERR_CONF_SYNTAX' file='virterror' value='33' type='virErrorNumber' info='failed to parse the syntax of a
 conf file'/>
-    <enum name='VIR_ERR_DOMAIN_LAST' file='virterror' value='55' type='virErrorDomain'/>
+    <enum name='VIR_ERR_DOMAIN_LAST' file='virterror' value='56' type='virErrorDomain'/>
     <enum name='VIR_ERR_DOM_EXIST' file='virterror' value='28' type='virErrorNumber' info='the domain already exist'/>
     <enum name='VIR_ERR_DRIVER_FULL' file='virterror' value='25' type='virErrorNumber' info='too many drivers registered'/>
     <enum name='VIR_ERR_ERROR' file='virterror' value='2' type='virErrorLevel' info='An error'/>
@@ -2334,6 +2365,7 @@ formed or broken'/>
     <enum name='VIR_EVENT_HANDLE_HANGUP' file='libvirt' value='8' type='virEventHandleType'/>
     <enum name='VIR_EVENT_HANDLE_READABLE' file='libvirt' value='1' type='virEventHandleType'/>
     <enum name='VIR_EVENT_HANDLE_WRITABLE' file='libvirt' value='2' type='virEventHandleType'/>
+    <enum name='VIR_FROM_ACCESS' file='virterror' value='55' type='virErrorDomain' info='Error from access control manager'/>
     <enum name='VIR_FROM_AUDIT' file='virterror' value='36' type='virErrorDomain' info='Error from auditing subsystem'/>
     <enum name='VIR_FROM_AUTH' file='virterror' value='46' type='virErrorDomain' info='Error from auth handling'/>
     <enum name='VIR_FROM_CAPABILITIES' file='virterror' value='44' type='virErrorDomain' info='Error from capabilities'/>
@@ -2407,6 +2439,7 @@ Retained for ABI/API compat only'/>
     <enum name='VIR_KEYCODE_SET_XT_KBD' file='libvirt' value='6' type='virKeycodeSet'/>
     <enum name='VIR_MEMORY_PHYSICAL' file='libvirt' value='2' type='virDomainMemoryFlags' info='addresses are physical addresses'/>
     <enum name='VIR_MEMORY_VIRTUAL' file='libvirt' value='1' type='virDomainMemoryFlags' info='addresses are virtual addresses'/>
+    <enum name='VIR_MIGRATE_ABORT_ON_ERROR' file='libvirt' value='4096' type='virDomainMigrateFlags' info='abort migration on I/O errors happened during migration'/>
     <enum name='VIR_MIGRATE_CHANGE_PROTECTION' file='libvirt' value='256' type='virDomainMigrateFlags' info='protect for changing domain configuration through the
  whole migration process; this will be used automatically
  when supported'/>
@@ -3513,7 +3546,8 @@ capability type, flags include:
   VIR_CONNECT_LIST_NODE_DEVICES_CAP_SCSI
   VIR_CONNECT_LIST_NODE_DEVICES_CAP_STORAGE
   VIR_CONNECT_LIST_NODE_DEVICES_CAP_FC_HOST
-  VIR_CONNECT_LIST_NODE_DEVICES_CAP_VPORTS]]></info>
+  VIR_CONNECT_LIST_NODE_DEVICES_CAP_VPORTS
+  VIR_CONNECT_LIST_NODE_DEVICES_CAP_SCSI_GENERIC]]></info>
       <return type='int' info='the number of node devices found or -1 and sets @devices to NULL in case of error.  On success, the array stored into @devices is guaranteed to have an extra allocated element set to NULL but not included in the return count, to make iteration easier.  The caller is responsible for calling virNodeDeviceFree() on each array element, then calling free() on @devices.'/>
       <arg name='conn' type='virConnectPtr' info='Pointer to the hypervisor connection.'/>
       <arg name='devices' type='virNodeDevicePtr **' info='Pointer to a variable to store the array containing the node device objects or NULL if the list is not required (just returns number of node devices).'/>
@@ -4898,7 +4932,11 @@ is currently running.
 
 If @flags includes VIR_DOMAIN_VCPU_MAXIMUM, then the maximum
 virtual CPU limit is queried.  Otherwise, this call queries the
-current virtual CPU limit.]]></info>
+current virtual CPU count.
+
+If @flags includes VIR_DOMAIN_VCPU_GUEST, then the state of the processors
+is modified in the guest instead of the hypervisor. This flag is only usable
+on live domains. Guest agent may be needed for this flag to be available.]]></info>
       <return type='int' info='the number of vCPUs in case of success, -1 in case of failure.'/>
       <arg name='domain' type='virDomainPtr' info='pointer to domain object, or NULL for Domain0'/>
       <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainVcpuFlags'/>
@@ -5292,6 +5330,30 @@ original domain name.]]></info>
       <arg name='uri' type='const char *' info='(optional) dest hostname/URI as seen from the source host'/>
       <arg name='bandwidth' type='unsigned long' info='(optional) specify migration bandwidth limit in MiB/s'/>
     </function>
+    <function name='virDomainMigrate3' file='libvirt' module='libvirt'>
+      <info><![CDATA[Migrate the domain object from its current host to the destination host
+given by dconn (a connection to the destination host).
+
+See virDomainMigrateFlags documentation for description of individual flags.
+
+VIR_MIGRATE_TUNNELLED and VIR_MIGRATE_PEER2PEER are not supported by this
+API, use virDomainMigrateToURI3 instead.
+
+If you want to copy non-shared storage within migration you
+can use either VIR_MIGRATE_NON_SHARED_DISK or
+VIR_MIGRATE_NON_SHARED_INC as they are mutually exclusive.
+
+There are many limitations on migration imposed by the underlying
+technology - for example it may not be possible to migrate between
+different processors even with the same architecture, or between
+different types of hypervisor.]]></info>
+      <return type='virDomainPtr' info='the new domain object if the migration was successful, or NULL in case of error.  Note that the new domain object exists in the scope of the destination connection (dconn).'/>
+      <arg name='domain' type='virDomainPtr' info='a domain object'/>
+      <arg name='dconn' type='virConnectPtr' info='destination host (a connection object)'/>
+      <arg name='params' type='virTypedParameterPtr' info='(optional) migration parameters'/>
+      <arg name='nparams' type='unsigned int' info='(optional) number of migration parameters in @params'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainMigrateFlags'/>
+    </function>
     <function name='virDomainMigrateGetCompressionCache' file='libvirt' module='libvirt'>
       <info><![CDATA[Gets current size of the cache (in bytes) used for compressing repeatedly
 transferred memory pages during live migration.]]></info>
@@ -5484,6 +5546,40 @@ different types of hypervisor.]]></info>
       <arg name='flags' type='unsigned long' info='bitwise-OR of virDomainMigrateFlags'/>
       <arg name='dname' type='const char *' info='(optional) rename domain to this at destination'/>
       <arg name='bandwidth' type='unsigned long' info='(optional) specify migration bandwidth limit in MiB/s'/>
+    </function>
+    <function name='virDomainMigrateToURI3' file='libvirt' module='libvirt'>
+      <info><![CDATA[Migrate the domain object from its current host to the destination host
+given by URI.
+
+See virDomainMigrateFlags documentation for description of individual flags.
+
+The operation of this API hinges on the VIR_MIGRATE_PEER2PEER flag.
+
+If the VIR_MIGRATE_PEER2PEER flag is set, the @dconnuri parameter must be a
+valid libvirt connection URI, by which the source libvirt daemon can connect
+to the destination libvirt.
+
+If the VIR_MIGRATE_PEER2PEER flag is NOT set, then @dconnuri must be NULL
+and VIR_MIGRATE_PARAM_URI migration parameter must be filled in with
+hypervisor specific URI used to initiate the migration. This is called
+"direct" migration.
+
+VIR_MIGRATE_TUNNELLED requires that VIR_MIGRATE_PEER2PEER be set.
+
+If you want to copy non-shared storage within migration you
+can use either VIR_MIGRATE_NON_SHARED_DISK or
+VIR_MIGRATE_NON_SHARED_INC as they are mutually exclusive.
+
+There are many limitations on migration imposed by the underlying
+technology - for example it may not be possible to migrate between
+different processors even with the same architecture, or between
+different types of hypervisor.]]></info>
+      <return type='int' info='0 if the migration succeeded, -1 upon error.'/>
+      <arg name='domain' type='virDomainPtr' info='a domain object'/>
+      <arg name='dconnuri' type='const char *' info='(optional) URI for target libvirtd if @flags includes VIR_MIGRATE_PEER2PEER'/>
+      <arg name='params' type='virTypedParameterPtr' info='(optional) migration parameters'/>
+      <arg name='nparams' type='unsigned int' info='(optional) number of migration parameters in @params'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainMigrateFlags'/>
     </function>
     <function name='virDomainOpenChannel' file='libvirt' module='libvirt'>
       <info><![CDATA[This opens the host interface associated with a channel device on a
@@ -6108,6 +6204,12 @@ CPU limit is altered; generally, this value must be less than or
 equal to virConnectGetMaxVcpus().  Otherwise, this call affects the
 current virtual CPU limit, which must be less than or equal to the
 maximum limit.
+
+If @flags includes VIR_DOMAIN_VCPU_GUEST, then the state of processors is
+modified inside the guest instead of the hypervisor. This flag can only
+be used with live guests and is incompatible with VIR_DOMAIN_VCPU_MAXIMUM.
+The usage of this flag may require a guest agent configured.
+
 Not all hypervisors can support all flag combinations.]]></info>
       <return type='int' info='0 in case of success, -1 in case of failure.'/>
       <arg name='domain' type='virDomainPtr' info='pointer to domain object, or NULL for Domain0'/>

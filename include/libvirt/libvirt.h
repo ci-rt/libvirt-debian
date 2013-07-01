@@ -1188,7 +1188,85 @@ typedef enum {
     VIR_MIGRATE_UNSAFE            = (1 << 9), /* force migration even if it is considered unsafe */
     VIR_MIGRATE_OFFLINE           = (1 << 10), /* offline migrate */
     VIR_MIGRATE_COMPRESSED        = (1 << 11), /* compress data during migration */
+    VIR_MIGRATE_ABORT_ON_ERROR    = (1 << 12), /* abort migration on I/O errors happened during migration */
 } virDomainMigrateFlags;
+
+
+/**
+ * VIR_MIGRATE_PARAM_URI:
+ *
+ * virDomainMigrate* params field: URI to use for initiating domain migration
+ * as VIR_TYPED_PARAM_STRING. It takes a hypervisor specific format. The
+ * uri_transports element of the hypervisor capabilities XML includes details
+ * of the supported URI schemes. When omitted libvirt will auto-generate
+ * suitable default URI. It is typically only necessary to specify this URI if
+ * the destination host has multiple interfaces and a specific interface is
+ * required to transmit migration data.
+ *
+ * This filed may not be used when VIR_MIGRATE_TUNNELLED flag is set.
+ */
+#define VIR_MIGRATE_PARAM_URI               "migrate_uri"
+
+/**
+ * VIR_MIGRATE_PARAM_DEST_NAME:
+ *
+ * virDomainMigrate* params field: the name to be used for the domain on the
+ * destination host as VIR_TYPED_PARAM_STRING. Omitting this parameter keeps
+ * the domain name the same. This field is only allowed to be used with
+ * hypervisors that support domain renaming during migration.
+ */
+#define VIR_MIGRATE_PARAM_DEST_NAME         "destination_name"
+
+/**
+ * VIR_MIGRATE_PARAM_DEST_XML:
+ *
+ * virDomainMigrate* params field: the new configuration to be used for the
+ * domain on the destination host as VIR_TYPED_PARAM_STRING. The configuration
+ * must include an identical set of virtual devices, to ensure a stable guest
+ * ABI across migration. Only parameters related to host side configuration
+ * can be changed in the XML. Hypervisors which support this field will forbid
+ * migration if the provided XML would cause a change in the guest ABI. This
+ * field cannot be used to rename the domain during migration (use
+ * VIR_MIGRATE_PARAM_DEST_NAME field for that purpose). Domain name in the
+ * destination XML must match the original domain name.
+ *
+ * Omitting this parameter keeps the original domain configuration. Using this
+ * field with hypervisors that do not support changing domain configuration
+ * during migration will result in a failure.
+ */
+#define VIR_MIGRATE_PARAM_DEST_XML          "destination_xml"
+
+/**
+ * VIR_MIGRATE_PARAM_BANDWIDTH:
+ *
+ * virDomainMigrate* params field: the maximum bandwidth (in MiB/s) that will
+ * be used for migration as VIR_TYPED_PARAM_ULLONG. If set to 0 or omitted,
+ * libvirt will choose a suitable default. Some hypervisors do not support this
+ * feature and will return an error if this field is used and is not 0.
+ */
+#define VIR_MIGRATE_PARAM_BANDWIDTH         "bandwidth"
+
+/**
+ * VIR_MIGRATE_PARAM_GRAPHICS_URI:
+ *
+ * virDomainMigrate* params field: URI to use for migrating client's connection
+ * to domain's graphical console as VIR_TYPED_PARAM_STRING. If specified, the
+ * client will be asked to automatically reconnect using these parameters
+ * instead of the automatically computed ones. This can be useful if, e.g., the
+ * client does not have a direct access to the network virtualization hosts are
+ * connected to and needs to connect through a proxy. The URI is formed as
+ * follows:
+ *
+ *      protocol://hostname[:port]/[?parameters]
+ *
+ * where protocol is either "spice" or "vnc" and parameters is a list of
+ * protocol specific parameters separated by '&'. Currently recognized
+ * parameters are "tlsPort" and "tlsSubject". For example,
+ *
+ *      spice://target.host.com:1234/?tlsPort=4567
+ */
+#define VIR_MIGRATE_PARAM_GRAPHICS_URI      "graphics_uri"
+
 
 /* Domain migration. */
 virDomainPtr virDomainMigrate (virDomainPtr domain, virConnectPtr dconn,
@@ -1198,6 +1276,11 @@ virDomainPtr virDomainMigrate2(virDomainPtr domain, virConnectPtr dconn,
                                const char *dxml,
                                unsigned long flags, const char *dname,
                                const char *uri, unsigned long bandwidth);
+virDomainPtr virDomainMigrate3(virDomainPtr domain,
+                               virConnectPtr dconn,
+                               virTypedParameterPtr params,
+                               unsigned int nparams,
+                               unsigned int flags);
 
 int virDomainMigrateToURI (virDomainPtr domain, const char *duri,
                            unsigned long flags, const char *dname,
@@ -1210,6 +1293,11 @@ int virDomainMigrateToURI2(virDomainPtr domain,
                            unsigned long flags,
                            const char *dname,
                            unsigned long bandwidth);
+int virDomainMigrateToURI3(virDomainPtr domain,
+                           const char *dconnuri,
+                           virTypedParameterPtr params,
+                           unsigned int nparams,
+                           unsigned int flags);
 
 int virDomainMigrateSetMaxDowntime (virDomainPtr domain,
                                     unsigned long long downtime,
@@ -1363,7 +1451,7 @@ VIR_EXPORT_VAR virConnectAuthPtr virConnectAuthPtrDefault;
  * version * 1,000,000 + minor * 1000 + micro
  */
 
-#define LIBVIR_VERSION_NUMBER 1000006
+#define LIBVIR_VERSION_NUMBER 1001000
 
 int                     virGetVersion           (unsigned long *libVer,
                                                  const char *type,
@@ -2120,6 +2208,7 @@ typedef enum {
 
     /* Additionally, these flags may be bitwise-OR'd in.  */
     VIR_DOMAIN_VCPU_MAXIMUM = (1 << 2), /* Max rather than current count */
+    VIR_DOMAIN_VCPU_GUEST   = (1 << 3), /* Modify state of the cpu in the guest */
 } virDomainVcpuFlags;
 
 int                     virDomainSetVcpus       (virDomainPtr domain,
@@ -3258,6 +3347,7 @@ typedef enum {
     VIR_CONNECT_LIST_NODE_DEVICES_CAP_STORAGE       = 1 << 8,  /* Storage device */
     VIR_CONNECT_LIST_NODE_DEVICES_CAP_FC_HOST       = 1 << 9,  /* FC Host Bus Adapter */
     VIR_CONNECT_LIST_NODE_DEVICES_CAP_VPORTS        = 1 << 10, /* Capable of vport */
+    VIR_CONNECT_LIST_NODE_DEVICES_CAP_SCSI_GENERIC  = 1 << 11, /* Capable of scsi_generic */
 } virConnectListAllNodeDeviceFlags;
 
 int                     virConnectListAllNodeDevices (virConnectPtr conn,

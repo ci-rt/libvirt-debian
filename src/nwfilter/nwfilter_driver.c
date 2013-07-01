@@ -42,6 +42,7 @@
 #include "nwfilter_gentech_driver.h"
 #include "configmake.h"
 #include "virstring.h"
+#include "viraccessapicheck.h"
 
 #include "nwfilter_ipaddrmap.h"
 #include "nwfilter_dhcpsnoop.h"
@@ -191,6 +192,8 @@ nwfilterStateInitialize(bool privileged,
     if (!privileged)
         return 0;
 
+    nwfilterDriverLock(driverState);
+
     if (virNWFilterIPAddrMapInit() < 0)
         goto err_free_driverstate;
     if (virNWFilterLearnInit() < 0)
@@ -202,8 +205,6 @@ nwfilterStateInitialize(bool privileged,
 
     if (virNWFilterConfLayerInit(virNWFilterDomainFWUpdateCB) < 0)
         goto err_techdrivers_shutdown;
-
-    nwfilterDriverLock(driverState);
 
     /*
      * startup the DBus late so we don't get a reload signal while
@@ -316,16 +317,10 @@ nwfilterStateReload(void) {
 bool
 virNWFilterDriverIsWatchingFirewallD(void)
 {
-    bool ret;
-
     if (!driverState)
         return false;
 
-    nwfilterDriverLock(driverState);
-    ret = driverState->watchingFirewallD;
-    nwfilterDriverUnlock(driverState);
-
-    return ret;
+    return driverState->watchingFirewallD;
 }
 
 /**
@@ -380,6 +375,9 @@ nwfilterLookupByUUID(virConnectPtr conn,
         goto cleanup;
     }
 
+    if (virNWFilterLookupByUUIDEnsureACL(conn, nwfilter->def) < 0)
+        goto cleanup;
+
     ret = virGetNWFilter(conn, nwfilter->def->name, nwfilter->def->uuid);
 
 cleanup:
@@ -405,6 +403,9 @@ nwfilterLookupByName(virConnectPtr conn,
                        _("no nwfilter with matching name '%s'"), name);
         goto cleanup;
     }
+
+    if (virNWFilterLookupByNameEnsureACL(conn, nwfilter->def) < 0)
+        goto cleanup;
 
     ret = virGetNWFilter(conn, nwfilter->def->name, nwfilter->def->uuid);
 
@@ -440,6 +441,10 @@ nwfilterClose(virConnectPtr conn) {
 static int
 nwfilterConnectNumOfNWFilters(virConnectPtr conn) {
     virNWFilterDriverStatePtr driver = conn->nwfilterPrivateData;
+
+    if (virConnectNumOfNWFiltersEnsureACL(conn) < 0)
+        return -1;
+
     return driver->nwfilters.count;
 }
 
@@ -450,6 +455,9 @@ nwfilterConnectListNWFilters(virConnectPtr conn,
                              int nnames) {
     virNWFilterDriverStatePtr driver = conn->nwfilterPrivateData;
     int got = 0, i;
+
+    if (virConnectListNWFiltersEnsureACL(conn) < 0)
+        return -1;
 
     nwfilterDriverLock(driver);
     for (i = 0; i < driver->nwfilters.count && got < nnames; i++) {
@@ -486,6 +494,9 @@ nwfilterConnectListAllNWFilters(virConnectPtr conn,
     int ret = -1;
 
     virCheckFlags(0, -1);
+
+    if (virConnectListAllNWFiltersEnsureACL(conn) < 0)
+        return -1;
 
     nwfilterDriverLock(driver);
 
@@ -543,6 +554,9 @@ nwfilterDefineXML(virConnectPtr conn,
     if (!(def = virNWFilterDefParseString(conn, xml)))
         goto cleanup;
 
+    if (virNWFilterDefineXMLEnsureACL(conn, def) < 0)
+        goto cleanup;
+
     if (!(nwfilter = virNWFilterObjAssignDef(conn, &driver->nwfilters, def)))
         goto cleanup;
 
@@ -583,6 +597,9 @@ nwfilterUndefine(virNWFilterPtr obj) {
                        "%s", _("no nwfilter with matching uuid"));
         goto cleanup;
     }
+
+    if (virNWFilterUndefineEnsureACL(obj->conn, nwfilter->def) < 0)
+        goto cleanup;
 
     if (virNWFilterTestUnassignDef(obj->conn, nwfilter) < 0) {
         virReportError(VIR_ERR_OPERATION_INVALID,
@@ -631,6 +648,9 @@ nwfilterGetXMLDesc(virNWFilterPtr obj,
                        "%s", _("no nwfilter with matching uuid"));
         goto cleanup;
     }
+
+    if (virNWFilterGetXMLDescEnsureACL(obj->conn, nwfilter->def) < 0)
+        goto cleanup;
 
     ret = virNWFilterDefFormat(nwfilter->def);
 

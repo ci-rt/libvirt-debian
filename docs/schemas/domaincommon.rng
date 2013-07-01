@@ -243,11 +243,9 @@
         <optional>
           <ref name="osbootkernel"/>
         </optional>
-        <optional>
-          <zeroOrMore>
-            <ref name="osbootdev"/>
-          </zeroOrMore>
-        </optional>
+        <zeroOrMore>
+          <ref name="osbootdev"/>
+        </zeroOrMore>
         <optional>
           <element name="bootmenu">
             <attribute name="enable">
@@ -4015,6 +4013,19 @@
         <optional>
           <element name="relaxed">
             <ref name="hypervtristate"/>
+          </element>
+        </optional>
+        <optional>
+          <element name="vapic">
+            <ref name="hypervtristate"/>
+          </element>
+        </optional>
+        <optional>
+          <element name="spinlocks">
+            <ref name="hypervtristate"/>
+            <attribute name="retries">
+              <data type="integer"/>
+            </attribute>
           </element>
         </optional>
       </interleave>

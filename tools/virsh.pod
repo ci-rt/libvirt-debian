@@ -1043,7 +1043,8 @@ stats.
 =item B<migrate> [I<--live>] [I<--offline>] [I<--direct>] [I<--p2p> [I<--tunnelled>]]
 [I<--persistent>] [I<--undefinesource>] [I<--suspend>] [I<--copy-storage-all>]
 [I<--copy-storage-inc>] [I<--change-protection>] [I<--unsafe>] [I<--verbose>]
-[I<--compressed>] I<domain> I<desturi> [I<migrateuri>] [I<dname>]
+[I<--compressed>] [I<--abort-on-error>]
+I<domain> I<desturi> [I<migrateuri>] [I<graphicsuri>] [I<dname>]
 [I<--timeout> B<seconds>] [I<--xml> B<file>]
 
 Migrate domain to another host.  Add I<--live> for live migration; <--p2p>
@@ -1066,7 +1067,8 @@ is implicitly enabled when supported by the hypervisor, but can be explicitly
 used to reject the migration if the hypervisor lacks change protection
 support.  I<--verbose> displays the progress of migration.  I<--compressed>
 activates compression of memory pages that have to be transferred repeatedly
-during live migration.
+during live migration. I<--abort-on-error> cancels the migration if a soft
+error (for example I/O error) happens during the migration.
 
 B<Note>: Individual hypervisors usually do not support all possible types of
 migration. For example, QEMU does not support direct migration.
@@ -1133,6 +1135,22 @@ might be specified to choose a specific port number outside the default range in
 order to comply with local firewall policies.
 
 =back
+
+Optional I<graphicsuri> overrides connection parameters used for automatically
+reconnecting a graphical clients at the end of migration. If omitted, libvirt
+will compute the parameters based on target host IP address. In case the
+client does not have a direct access to the network virtualization hosts are
+connected to and needs to connect through a proxy, I<graphicsuri> may be used
+to specify the address the client should connect to. The URI is formed as
+follows:
+
+    protocol://hostname[:port]/[?parameters]
+
+where protocol is either "spice" or "vnc" and parameters is a list of protocol
+specific parameters separated by '&'. Currently recognized parameters are
+"tlsPort" and "tlsSubject". For example,
+
+    spice://target.host.com:1234/?tlsPort=4567
 
 =item B<migrate-setmaxdowntime> I<domain> I<downtime>
 
@@ -1585,7 +1603,7 @@ exclusive. If no flag is specified, behavior is different depending
 on hypervisor.
 
 =item B<setvcpus> I<domain> I<count> [I<--maximum>] [[I<--config>]
-[I<--live>] | [I<--current>]]
+[I<--live>] | [I<--current>]] [I<--guest>]
 
 Change the number of virtual CPUs active in a guest domain.  By default,
 this command works on active guest domains.  To change the settings for an
@@ -1610,6 +1628,10 @@ flag is assumed and the guest domain must be active.  In this situation it
 is up to the hypervisor whether the I<--config> flag is also assumed, and
 therefore whether the XML configuration is adjusted to make the change
 persistent.
+
+If I<--guest> is specified, then the count of cpus is modified in the guest
+instead of the hypervisor. This flag is usable only for live domains
+and may require guest agent to be configured in the guest.
 
 The I<--maximum> flag controls the maximum number of virtual cpus that can
 be hot-plugged the next time the domain is booted.  As such, it must only be
@@ -1737,7 +1759,7 @@ NOTE: For an inactive domain, the domain name or UUID must be used as the
 I<domain>.
 
 =item B<vcpucount> I<domain>  [{I<--maximum> | I<--active>}
-{I<--config> | I<--live> | I<--current>}]
+{I<--config> | I<--live> | I<--current>}] [I<--guest>]
 
 Print information about the virtual cpu counts of the given
 I<domain>.  If no flags are specified, all possible counts are
@@ -1754,7 +1776,10 @@ time the domain will be booted, I<--live> requires a running domain and
 lists current values, and I<--current> queries according to the current
 state of the domain (corresponding to I<--live> if running, or
 I<--config> if inactive); these three flags are mutually exclusive.
-Thus, this command always takes exactly zero or two flags.
+
+If I<--guest> is specified, then the count of cpus is reported from
+the perspective of the guest. This flag is usable only for live domains
+and may require guest agent to be configured in the guest.
 
 =item B<vcpuinfo> I<domain>
 
@@ -1816,7 +1841,8 @@ format of the device sections to get the most accurate set of accepted values.
 
 =over 4
 
-=item B<attach-device> I<domain> I<FILE> [I<--config>]
+=item B<attach-device> I<domain> I<FILE>
+[[[I<--live>] [I<--config>] | [I<--current>]] | [I<--persistent>]]
 
 Attach a device to the domain, using a device definition in an XML
 file using a device definition element such as <disk> or <interface>
@@ -1824,22 +1850,32 @@ as the top-level element.  See the documentation at
 L<http://libvirt.org/formatdomain.html#elementsDevices> to learn about
 libvirt XML format for a device.  If I<--config> is specified the
 command alters the persistent domain configuration with the device
-attach taking effect the next time libvirt starts the domain.  For
-compatibility purposes, I<--persistent> is an alias of I<--config>.
+attach taking effect the next time libvirt starts the domain.
 For cdrom and floppy devices, this command only replaces the media
 within an existing device; consider using B<update-device> for this
 usage.  For passthrough host devices, see also B<nodedev-detach>,
 needed if the device does not use managed mode.
+
+If I<--live> is specified, affect a running domain.
+If I<--config> is specified, affect the next startup of a persistent domain.
+If I<--current> is specified, affect the current domain state.
+Both I<--live> and I<--config> flags may be given, but I<--current> is
+exclusive. When no flag is specified legacy API is used whose behavior depends
+on the hypervisor driver.
+
+For compatibility purposes, I<--persistent> behaves like I<--config> for
+an offline domain, and like I<--live> I<--config> for a running domain.
 
 B<Note>: using of partial device definition XML files may lead to unexpected
 results as some fields may be autogenerated and thus match devices other than
 expected.
 
 =item B<attach-disk> I<domain> I<source> I<target>
+[[[I<--live>] [I<--config>] | [I<--current>]] | [I<--persistent>]]
 [I<--driver driver>] [I<--subdriver subdriver>] [I<--cache cache>]
 [I<--type type>] [I<--mode mode>] [I<--config>] [I<--sourcetype soucetype>]
-[I<--serial serial>] [I<--shareable>] [I<--rawio>] [I<--address address>]
-[I<--multifunction>] [I<--print-xml>]
+[I<--serial serial>] [I<--wwn wwn>] [I<--shareable>] [I<--rawio>]
+[I<--address address>] [I<--multifunction>] [I<--print-xml>]
 
 Attach a new disk device to the domain.
 I<source> is path for the files and devices. I<target> controls the bus or
@@ -1856,13 +1892,11 @@ alternative to the disk default, although this use only replaces the media
 within the existing virtual cdrom or floppy device; consider using
 B<update-device> for this usage instead.
 I<mode> can specify the two specific mode I<readonly> or I<shareable>.
-I<--config> indicates the changes will affect the next boot of the domain,
-for compatibility purposes, I<--persistent> is alias of I<--config>.
 I<sourcetype> can indicate the type of source (block|file)
 I<cache> can be one of "default", "none", "writethrough", "writeback",
 "directsync" or "unsafe".
-I<serial> is the serial of disk device. I<shareable> indicates the disk device
-is shareable between domains.
+I<serial> is the serial of disk device. I<wwn> is the wwn of disk device.
+I<shareable> indicates the disk device is shareable between domains.
 I<rawio> indicates the disk needs rawio capability.
 I<address> is the address of disk device in the form of pci:domain.bus.slot.function,
 scsi:controller.bus.unit or ide:controller.bus.unit.
@@ -1872,25 +1906,41 @@ address.
 If I<--print-xml> is specified, then the XML of the disk that would be attached
 is printed instead.
 
+If I<--live> is specified, affect a running domain.
+If I<--config> is specified, affect the next startup of a persistent domain.
+If I<--current> is specified, affect the current domain state.
+Both I<--live> and I<--config> flags may be given, but I<--current> is
+exclusive. When no flag is specified legacy API is used whose behavior depends
+on the hypervisor driver.
+
+For compatibility purposes, I<--persistent> behaves like I<--config> for
+an offline domain, and like I<--live> I<--config> for a running domain.
+
 =item B<attach-interface> I<domain> I<type> I<source>
+[[[I<--live>] [I<--config>] | [I<--current>]] | [I<--persistent>]]
 [I<--target target>] [I<--mac mac>] [I<--script script>] [I<--model model>]
 [I<--config>] [I<--inbound average,peak,burst>] [I<--outbound average,peak,burst>]
 
-Attach a new network interface to the domain.
-I<type> can be either I<network> to indicate a physical network device or
-I<bridge> to indicate a bridge to a device.
-I<source> indicates the source device.
-I<target> allows to indicate the target device in the guest. Names starting
-with 'vnet' are considered as auto-generated an hence blanked out.
-I<mac> allows to specify the MAC address of the network interface.
-I<script> allows to specify a path to a script handling a bridge instead of
-the default one.
-I<model> allows to specify the model type.
-I<--config> indicates the changes will affect the next boot of the domain,
-for compatibility purposes, I<--persistent> is alias of I<--config>.
-I<inbound> and I<outbound> control the bandwidth of the interface. I<peak>
-and I<burst> are optional, so "average,peak", "average,,burst" and
+Attach a new network interface to the domain.  I<type> can be either I<network>
+to indicate a physical network device or I<bridge> to indicate a bridge to a
+device.  I<source> indicates the source device.  I<target> allows to indicate
+the target device in the guest. Names starting with 'vnet' are considered as
+auto-generated an hence blanked out.  I<mac> allows to specify the MAC address
+of the network interface.  I<script> allows to specify a path to a script
+handling a bridge instead of the default one.  I<model> allows to specify the
+model type.  I<inbound> and I<outbound> control the bandwidth of the interface.
+I<peak> and I<burst> are optional, so "average,peak", "average,,burst" and
 "average" are also legal.
+
+If I<--live> is specified, affect a running domain.
+If I<--config> is specified, affect the next startup of a persistent domain.
+If I<--current> is specified, affect the current domain state.
+Both I<--live> and I<--config> flags may be given, but I<--current> is
+exclusive. When no flag is specified legacy API is used whose behavior depends
+on the hypervisor driver.
+
+For compatibility purposes, I<--persistent> behaves like I<--config> for
+an offline domain, and like I<--live> I<--config> for a running domain.
 
 B<Note>: the optional target value is the name of a device to be created
 as the back-end on the node. If not provided a device named "vnetN" or "vifN"
@@ -2086,9 +2136,9 @@ List all of the devices available on the node that are known by libvirt.
 I<cap> is used to filter the list by capability types, the types must be
 separated by comma, e.g. --cap pci,scsi, valid capability types include
 'system', 'pci', 'usb_device', 'usb', 'net', 'scsi_host', 'scsi_target',
-'scsi', 'storage', 'fc_host', 'vports'. If I<--tree> is used, the output
-is formatted in a tree representing parents of each node. I<cap> and
-I<--tree> are mutually exclusive.
+'scsi', 'storage', 'fc_host', 'vports', 'scsi_generic'. If I<--tree> is
+used, the output is formatted in a tree representing parents of each node.
+I<cap> and I<--tree> are mutually exclusive.
 
 =item B<nodedev-reattach> I<nodedev>
 

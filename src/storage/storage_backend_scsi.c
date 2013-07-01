@@ -498,7 +498,7 @@ virStorageBackendSCSIFindLUs(virStoragePoolObjPtr pool,
 {
     int retval = 0;
     uint32_t bus, target, lun;
-    char *device_path = NULL;
+    const char *device_path = "/sys/bus/scsi/devices";
     DIR *devicedir = NULL;
     struct dirent *lun_dirent = NULL;
     char devicepattern[64];
@@ -507,18 +507,12 @@ virStorageBackendSCSIFindLUs(virStoragePoolObjPtr pool,
 
     virFileWaitForDevices();
 
-    if (virAsprintf(&device_path, "/sys/bus/scsi/devices") < 0) {
-        virReportOOMError();
-        goto out;
-    }
-
     devicedir = opendir(device_path);
 
     if (devicedir == NULL) {
         virReportSystemError(errno,
                              _("Failed to opendir path '%s'"), device_path);
-        retval = -1;
-        goto out;
+        return -1;
     }
 
     snprintf(devicepattern, sizeof(devicepattern), "%u:%%u:%%u:%%u\n", scanhost);
@@ -536,8 +530,6 @@ virStorageBackendSCSIFindLUs(virStoragePoolObjPtr pool,
 
     closedir(devicedir);
 
-out:
-    VIR_FREE(device_path);
     return retval;
 }
 
@@ -667,8 +659,8 @@ createVport(virStoragePoolSourceAdapter adapter)
     if (getHostNumber(adapter.data.fchost.parent, &parent_host) < 0)
         return -1;
 
-    if (virManageVport(parent_host, adapter.data.fchost.wwnn,
-                       adapter.data.fchost.wwpn, VPORT_CREATE) < 0)
+    if (virManageVport(parent_host, adapter.data.fchost.wwpn,
+                       adapter.data.fchost.wwnn, VPORT_CREATE) < 0)
         return -1;
 
     virFileWaitForDevices();
@@ -690,8 +682,8 @@ deleteVport(virStoragePoolSourceAdapter adapter)
     if (getHostNumber(adapter.data.fchost.parent, &parent_host) < 0)
         return -1;
 
-    if (virManageVport(parent_host, adapter.data.fchost.wwnn,
-                       adapter.data.fchost.wwpn, VPORT_DELETE) < 0)
+    if (virManageVport(parent_host, adapter.data.fchost.wwpn,
+                       adapter.data.fchost.wwnn, VPORT_DELETE) < 0)
         return -1;
 
     return 0;

@@ -5175,6 +5175,28 @@ static int remoteDispatchDomainMigrateBegin3Helper(
 
 
 
+static int remoteDispatchDomainMigrateBegin3Params(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_domain_migrate_begin3_params_args *args,
+    remote_domain_migrate_begin3_params_ret *ret);
+static int remoteDispatchDomainMigrateBegin3ParamsHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainMigrateBegin3Params(server, client, msg, rerr, args, ret);
+}
+/* remoteDispatchDomainMigrateBegin3Params body has to be implemented manually */
+
+
+
 static int remoteDispatchDomainMigrateConfirm3(
     virNetServerPtr server,
     virNetServerClientPtr client,
@@ -5193,6 +5215,27 @@ static int remoteDispatchDomainMigrateConfirm3Helper(
   return remoteDispatchDomainMigrateConfirm3(server, client, msg, rerr, args);
 }
 /* remoteDispatchDomainMigrateConfirm3 body has to be implemented manually */
+
+
+
+static int remoteDispatchDomainMigrateConfirm3Params(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_domain_migrate_confirm3_params_args *args);
+static int remoteDispatchDomainMigrateConfirm3ParamsHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret ATTRIBUTE_UNUSED)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainMigrateConfirm3Params(server, client, msg, rerr, args);
+}
+/* remoteDispatchDomainMigrateConfirm3Params body has to be implemented manually */
 
 
 
@@ -5325,6 +5368,28 @@ static int remoteDispatchDomainMigrateFinish3Helper(
   return remoteDispatchDomainMigrateFinish3(server, client, msg, rerr, args, ret);
 }
 /* remoteDispatchDomainMigrateFinish3 body has to be implemented manually */
+
+
+
+static int remoteDispatchDomainMigrateFinish3Params(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_domain_migrate_finish3_params_args *args,
+    remote_domain_migrate_finish3_params_ret *ret);
+static int remoteDispatchDomainMigrateFinish3ParamsHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainMigrateFinish3Params(server, client, msg, rerr, args, ret);
+}
+/* remoteDispatchDomainMigrateFinish3Params body has to be implemented manually */
 
 
 
@@ -5523,6 +5588,28 @@ static int remoteDispatchDomainMigratePerform3Helper(
 
 
 
+static int remoteDispatchDomainMigratePerform3Params(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_domain_migrate_perform3_params_args *args,
+    remote_domain_migrate_perform3_params_ret *ret);
+static int remoteDispatchDomainMigratePerform3ParamsHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainMigratePerform3Params(server, client, msg, rerr, args, ret);
+}
+/* remoteDispatchDomainMigratePerform3Params body has to be implemented manually */
+
+
+
 static int remoteDispatchDomainMigratePrepare(
     virNetServerPtr server,
     virNetServerClientPtr client,
@@ -5586,6 +5673,28 @@ static int remoteDispatchDomainMigratePrepare3Helper(
   return remoteDispatchDomainMigratePrepare3(server, client, msg, rerr, args, ret);
 }
 /* remoteDispatchDomainMigratePrepare3 body has to be implemented manually */
+
+
+
+static int remoteDispatchDomainMigratePrepare3Params(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_domain_migrate_prepare3_params_args *args,
+    remote_domain_migrate_prepare3_params_ret *ret);
+static int remoteDispatchDomainMigratePrepare3ParamsHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainMigratePrepare3Params(server, client, msg, rerr, args, ret);
+}
+/* remoteDispatchDomainMigratePrepare3Params body has to be implemented manually */
 
 
 
@@ -5739,6 +5848,28 @@ cleanup:
     }
     return rv;
 }
+
+
+
+static int remoteDispatchDomainMigratePrepareTunnel3Params(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_domain_migrate_prepare_tunnel3_params_args *args,
+    remote_domain_migrate_prepare_tunnel3_params_ret *ret);
+static int remoteDispatchDomainMigratePrepareTunnel3ParamsHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainMigratePrepareTunnel3Params(server, client, msg, rerr, args, ret);
+}
+/* remoteDispatchDomainMigratePrepareTunnel3Params body has to be implemented manually */
 
 
 
@@ -16494,6 +16625,60 @@ virNetServerProgramProc remoteProcs[] = {
    remoteDispatchNodeDeviceDetachFlagsHelper,
    sizeof(remote_node_device_detach_flags_args),
    (xdrproc_t)xdr_remote_node_device_detach_flags_args,
+   0,
+   (xdrproc_t)xdr_void,
+   true,
+   0
+},
+{ /* Method DomainMigrateBegin3Params => 302 */
+   remoteDispatchDomainMigrateBegin3ParamsHelper,
+   sizeof(remote_domain_migrate_begin3_params_args),
+   (xdrproc_t)xdr_remote_domain_migrate_begin3_params_args,
+   sizeof(remote_domain_migrate_begin3_params_ret),
+   (xdrproc_t)xdr_remote_domain_migrate_begin3_params_ret,
+   true,
+   0
+},
+{ /* Method DomainMigratePrepare3Params => 303 */
+   remoteDispatchDomainMigratePrepare3ParamsHelper,
+   sizeof(remote_domain_migrate_prepare3_params_args),
+   (xdrproc_t)xdr_remote_domain_migrate_prepare3_params_args,
+   sizeof(remote_domain_migrate_prepare3_params_ret),
+   (xdrproc_t)xdr_remote_domain_migrate_prepare3_params_ret,
+   true,
+   0
+},
+{ /* Method DomainMigratePrepareTunnel3Params => 304 */
+   remoteDispatchDomainMigratePrepareTunnel3ParamsHelper,
+   sizeof(remote_domain_migrate_prepare_tunnel3_params_args),
+   (xdrproc_t)xdr_remote_domain_migrate_prepare_tunnel3_params_args,
+   sizeof(remote_domain_migrate_prepare_tunnel3_params_ret),
+   (xdrproc_t)xdr_remote_domain_migrate_prepare_tunnel3_params_ret,
+   true,
+   0
+},
+{ /* Method DomainMigratePerform3Params => 305 */
+   remoteDispatchDomainMigratePerform3ParamsHelper,
+   sizeof(remote_domain_migrate_perform3_params_args),
+   (xdrproc_t)xdr_remote_domain_migrate_perform3_params_args,
+   sizeof(remote_domain_migrate_perform3_params_ret),
+   (xdrproc_t)xdr_remote_domain_migrate_perform3_params_ret,
+   true,
+   0
+},
+{ /* Method DomainMigrateFinish3Params => 306 */
+   remoteDispatchDomainMigrateFinish3ParamsHelper,
+   sizeof(remote_domain_migrate_finish3_params_args),
+   (xdrproc_t)xdr_remote_domain_migrate_finish3_params_args,
+   sizeof(remote_domain_migrate_finish3_params_ret),
+   (xdrproc_t)xdr_remote_domain_migrate_finish3_params_ret,
+   true,
+   0
+},
+{ /* Method DomainMigrateConfirm3Params => 307 */
+   remoteDispatchDomainMigrateConfirm3ParamsHelper,
+   sizeof(remote_domain_migrate_confirm3_params_args),
+   (xdrproc_t)xdr_remote_domain_migrate_confirm3_params_args,
    0,
    (xdrproc_t)xdr_void,
    true,

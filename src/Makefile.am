@@ -478,16 +478,34 @@ DRIVER_SOURCE_FILES = \
 	$(XENAPI_DRIVER_SOURCES) \
 	$(NULL)
 
+STATEFUL_DRIVER_SOURCE_FILES = \
+	$(INTERFACE_DRIVER_SOURCES) \
+	$(LIBXL_DRIVER_SOURCES) \
+	$(LXC_DRIVER_SOURCES) \
+	$(NETWORK_DRIVER_SOURCES) \
+	$(NODE_DEVICE_DRIVER_SOURCES) \
+	$(NWFILTER_DRIVER_SOURCES) \
+	$(QEMU_DRIVER_SOURCES) \
+	$(SECRET_DRIVER_SOURCES) \
+	$(STORAGE_DRIVER_SOURCES) \
+	$(UML_DRIVER_SOURCES) \
+	$(XEN_DRIVER_SOURCES) \
+	$(NULL)
+
 
 check-driverimpls:
 	$(AM_V_GEN)$(PERL) $(srcdir)/check-driverimpls.pl \
 		$(filter /%,$(DRIVER_SOURCE_FILES)) \
 		$(addprefix $(srcdir)/,$(filter-out /%,$(DRIVER_SOURCE_FILES)))
 
-EXTRA_DIST += check-driverimpls.pl
+check-aclrules:
+	$(AM_V_GEN)$(PERL) $(srcdir)/check-aclrules.pl \
+		$(addprefix $(srcdir)/,$(filter-out /%,$(STATEFUL_DRIVER_SOURCE_FILES)))
+
+EXTRA_DIST += check-driverimpls.pl check-aclrules.pl
 
 check-local: check-protocol check-symfile check-symsorting \
-	check-drivername check-driverimpls
+	check-drivername check-driverimpls check-aclrules
 .PHONY: check-protocol $(PROTOCOL_STRUCTS:structs=struct)
 
 # Mock driver, covering domains, storage, networks, etc
@@ -593,7 +611,8 @@ VBOX_DRIVER_SOURCES =						\
 	vbox/vbox_V3_1.c vbox/vbox_CAPI_v3_1.h			\
 	vbox/vbox_V3_2.c vbox/vbox_CAPI_v3_2.h			\
 	vbox/vbox_V4_0.c vbox/vbox_CAPI_v4_0.h			\
-	vbox/vbox_V4_1.c vbox/vbox_CAPI_v4_1.h
+	vbox/vbox_V4_1.c vbox/vbox_CAPI_v4_1.h			\
+	vbox/vbox_V4_2.c vbox/vbox_CAPI_v4_2.h
 
 VBOX_DRIVER_EXTRA_DIST =					\
 		vbox/vbox_tmpl.c vbox/README			\
@@ -788,6 +807,32 @@ SECURITY_DRIVER_SELINUX_SOURCES =				\
 SECURITY_DRIVER_APPARMOR_SOURCES =				\
 		security/security_apparmor.h security/security_apparmor.c
 
+ACCESS_DRIVER_GENERATED = \
+		$(srcdir)/access/viraccessapicheck.h \
+		$(srcdir)/access/viraccessapicheck.c \
+		$(srcdir)/access/viraccessapicheckqemu.h \
+		$(srcdir)/access/viraccessapicheckqemu.c \
+		$(srcdir)/access/viraccessapichecklxc.h \
+		$(srcdir)/access/viraccessapichecklxc.c
+
+ACCESS_DRIVER_SYMFILES = \
+		libvirt_access.syms \
+		libvirt_access_qemu.syms \
+		libvirt_access_lxc.syms
+
+ACCESS_DRIVER_SOURCES = \
+		access/viraccessperm.h access/viraccessperm.c \
+		access/viraccessmanager.h access/viraccessmanager.c \
+		access/viraccessdriver.h \
+		access/viraccessdrivernop.h access/viraccessdrivernop.c \
+		access/viraccessdriverstack.h access/viraccessdriverstack.c
+
+ACCESS_DRIVER_POLKIT_SOURCES = \
+		access/viraccessdriverpolkit.h access/viraccessdriverpolkit.c
+
+ACCESS_DRIVER_POLKIT_POLICY = \
+		$(srcdir)/access/org.libvirt.api.policy
+
 
 NODE_DEVICE_DRIVER_SOURCES =					\
 		node_device/node_device_driver.c		\
@@ -937,6 +982,7 @@ endif
 
 libvirt_driver_xen_impl_la_CFLAGS =					\
 		$(XEN_CFLAGS)					\
+		-I$(top_srcdir)/src/access			\
 		-I$(top_srcdir)/src/conf			\
 		-I$(top_srcdir)/src/xenxs			\
 		$(AM_CFLAGS)
@@ -1017,9 +1063,11 @@ noinst_LTLIBRARIES += libvirt_driver_libxl.la
 #libvirt_la_BUILT_LIBADD += libvirt_driver_libxl.la
 endif
 
-libvirt_driver_libxl_impl_la_CFLAGS = $(LIBXL_CFLAGS)		\
-		-I$(top_srcdir)/src/conf			\
-		-I$(top_srcdir)/src/xenxs			\
+libvirt_driver_libxl_impl_la_CFLAGS = 		\
+		$(LIBXL_CFLAGS)			\
+		-I$(top_srcdir)/src/access	\
+		-I$(top_srcdir)/src/conf	\
+		-I$(top_srcdir)/src/xenxs	\
 		$(AM_CFLAGS)
 libvirt_driver_libxl_impl_la_LDFLAGS = $(AM_LDFLAGS)
 libvirt_driver_libxl_impl_la_LIBADD = $(LIBXL_LIBS) libvirt_xenxs.la
@@ -1040,9 +1088,12 @@ noinst_LTLIBRARIES += libvirt_driver_qemu.la
 #libvirt_la_BUILT_LIBADD += libvirt_driver_qemu.la
 endif
 
-libvirt_driver_qemu_impl_la_CFLAGS = $(GNUTLS_CFLAGS) \
-                                $(LIBNL_CFLAGS) \
-		-I$(top_srcdir)/src/conf $(AM_CFLAGS)
+libvirt_driver_qemu_impl_la_CFLAGS = \
+		$(GNUTLS_CFLAGS) \
+		$(LIBNL_CFLAGS) \
+		-I$(top_srcdir)/src/access \
+		-I$(top_srcdir)/src/conf \
+		$(AM_CFLAGS)
 libvirt_driver_qemu_impl_la_LDFLAGS = $(AM_LDFLAGS)
 libvirt_driver_qemu_impl_la_LIBADD = $(CAPNG_LIBS) \
                                 $(GNUTLS_LIBS) \
@@ -1077,7 +1128,9 @@ endif
 libvirt_driver_lxc_impl_la_CFLAGS = \
 		$(LIBNL_CFLAGS) \
 		$(FUSE_CFLAGS) \
-		-I$(top_srcdir)/src/conf $(AM_CFLAGS)
+		-I$(top_srcdir)/src/access \
+		-I$(top_srcdir)/src/conf \
+		$(AM_CFLAGS)
 libvirt_driver_lxc_impl_la_LIBADD = $(CAPNG_LIBS) $(LIBNL_LIBS) $(FUSE_LIBS)
 if WITH_BLKID
 libvirt_driver_lxc_impl_la_CFLAGS += $(BLKID_CFLAGS)
@@ -1110,7 +1163,9 @@ noinst_LTLIBRARIES += libvirt_driver_uml.la
 endif
 
 libvirt_driver_uml_impl_la_CFLAGS = \
-		-I$(top_srcdir)/src/conf $(AM_CFLAGS)
+		-I$(top_srcdir)/src/access \
+		-I$(top_srcdir)/src/conf \
+		$(AM_CFLAGS)
 libvirt_driver_uml_impl_la_LDFLAGS = $(AM_LDFLAGS)
 # libvirt_driver_uml_impl_la_LIBADD =
 libvirt_driver_uml_impl_la_SOURCES = $(UML_DRIVER_SOURCES)
@@ -1193,8 +1248,11 @@ noinst_LTLIBRARIES += libvirt_driver_network.la
 endif
 
 libvirt_driver_network_impl_la_CFLAGS = \
-		$(LIBNL_CFLAGS) $(DBUS_CFLAGS) \
-		-I$(top_srcdir)/src/conf $(AM_CFLAGS) $(DBUS_CFLAGS)
+		$(LIBNL_CFLAGS) \
+		$(DBUS_CFLAGS) \
+		-I$(top_srcdir)/src/access \
+		-I$(top_srcdir)/src/conf \
+		$(AM_CFLAGS)
 libvirt_driver_network_impl_la_SOURCES = $(NETWORK_DRIVER_SOURCES)
 endif
 EXTRA_DIST += network/default.xml
@@ -1208,7 +1266,10 @@ noinst_LTLIBRARIES += libvirt_driver_interface.la
 # Stateful, so linked to daemon instead
 #libvirt_la_BUILT_LIBADD += libvirt_driver_interface.la
 endif
-libvirt_driver_interface_la_CFLAGS = -I$(top_srcdir)/src/conf $(AM_CFLAGS)
+libvirt_driver_interface_la_CFLAGS = \
+		-I$(top_srcdir)/src/access \
+		-I$(top_srcdir)/src/conf \
+		$(AM_CFLAGS)
 libvirt_driver_interface_la_LDFLAGS = $(AM_LDFLAGS)
 libvirt_driver_interface_la_LIBADD =
 if WITH_NETCF
@@ -1236,7 +1297,9 @@ noinst_LTLIBRARIES += libvirt_driver_secret.la
 #libvirt_la_BUILT_LIBADD += libvirt_driver_secret.la
 endif
 libvirt_driver_secret_la_CFLAGS = \
-		-I$(top_srcdir)/src/conf $(AM_CFLAGS)
+		-I$(top_srcdir)/src/access \
+		-I$(top_srcdir)/src/conf \
+		$(AM_CFLAGS)
 if WITH_DRIVER_MODULES
 libvirt_driver_secret_la_LIBADD = ../gnulib/lib/libgnu.la
 libvirt_driver_secret_la_LDFLAGS = -module -avoid-version $(AM_LDFLAGS)
@@ -1247,7 +1310,9 @@ endif
 # Needed to keep automake quiet about conditionals
 libvirt_driver_storage_impl_la_SOURCES =
 libvirt_driver_storage_impl_la_CFLAGS = \
-		-I$(top_srcdir)/src/conf $(AM_CFLAGS)
+		-I$(top_srcdir)/src/access \
+		-I$(top_srcdir)/src/conf \
+		$(AM_CFLAGS)
 libvirt_driver_storage_impl_la_LDFLAGS = $(AM_LDFLAGS)
 libvirt_driver_storage_impl_la_LIBADD =
 libvirt_driver_storage_impl_la_LIBADD += $(SECDRIVER_LIBS)
@@ -1315,7 +1380,9 @@ endif
 libvirt_driver_nodedev_la_SOURCES = $(NODE_DEVICE_DRIVER_SOURCES)
 
 libvirt_driver_nodedev_la_CFLAGS = \
-		-I$(top_srcdir)/src/conf $(AM_CFLAGS)
+		-I$(top_srcdir)/src/access \
+		-I$(top_srcdir)/src/conf \
+		$(AM_CFLAGS)
 libvirt_driver_nodedev_la_LDFLAGS = $(AM_LDFLAGS)
 libvirt_driver_nodedev_la_LIBADD =
 
@@ -1347,8 +1414,13 @@ noinst_LTLIBRARIES += libvirt_driver_nwfilter.la
 # Stateful, so linked to daemon instead
 #libvirt_la_BUILT_LIBADD += libvirt_driver_nwfilter.la
 endif
-libvirt_driver_nwfilter_la_CFLAGS = $(LIBPCAP_CFLAGS) \
-		-I$(top_srcdir)/src/conf $(LIBNL_CFLAGS) $(AM_CFLAGS) $(DBUS_CFLAGS)
+libvirt_driver_nwfilter_la_CFLAGS = \
+		$(LIBPCAP_CFLAGS) \
+		$(LIBNL_CFLAGS) \
+		$(DBUS_CFLAGS) \
+		-I$(top_srcdir)/src/access \
+		-I$(top_srcdir)/src/conf \
+		$(AM_CFLAGS)
 libvirt_driver_nwfilter_la_LDFLAGS = $(LD_AMFLAGS)
 libvirt_driver_nwfilter_la_LIBADD = $(LIBPCAP_LIBS) $(LIBNL_LIBS) $(DBUS_LIBS)
 if WITH_DRIVER_MODULES
@@ -1374,6 +1446,77 @@ if WITH_SECDRIVER_APPARMOR
 libvirt_security_manager_la_SOURCES += $(SECURITY_DRIVER_APPARMOR_SOURCES)
 libvirt_security_manager_la_CFLAGS += $(APPARMOR_CFLAGS)
 endif
+
+libvirt_driver_access_la_SOURCES = $(ACCESS_DRIVER_SOURCES) $(ACCESS_DRIVER_GENERATED)
+noinst_LTLIBRARIES += libvirt_driver_access.la
+libvirt_la_BUILT_LIBADD += libvirt_driver_access.la
+libvirt_driver_access_la_CFLAGS = \
+		-I$(top_srcdir)/src/conf $(AM_CFLAGS)
+libvirt_driver_access_la_LDFLAGS = $(AM_LDFLAGS)
+libvirt_driver_access_la_LIBADD =
+
+EXTRA_DIST += access/genpolkit.pl
+
+if WITH_POLKIT1
+libvirt_driver_access_la_SOURCES += $(ACCESS_DRIVER_POLKIT_SOURCES)
+
+polkitactiondir = $(datadir)/polkit-1/actions
+polkitaction_DATA = $(ACCESS_DRIVER_POLKIT_POLICY)
+
+$(ACCESS_DRIVER_POLKIT_POLICY): $(srcdir)/access/viraccessperm.h \
+    $(srcdir)/access/genpolkit.pl Makefile.am
+	$(AM_V_GEN)$(PERL) $(srcdir)/access/genpolkit.pl < $< > $@ || rm -f $@
+
+CLEANFILES += $(ACCESS_DRIVER_POLKIT_POLICY)
+BUILT_SOURCES += $(ACCESS_DRIVER_POLKIT_POLICY)
+else
+EXTRA_DIST += $(ACCESS_DRIVER_POLKIT_SOURCES)
+endif
+
+
+USED_SYM_FILES += $(ACCESS_DRIVER_SYMFILES)
+BUILT_SOURCES += $(ACCESS_DRIVER_GENERATED) $(ACCESS_DRIVER_SYMFILES)
+CLEANFILES += $(ACCESS_DRIVER_GENERATED) $(ACCESS_DRIVER_SYMFILES)
+
+libvirt_access.syms: $(srcdir)/rpc/gendispatch.pl \
+			$(REMOTE_PROTOCOL) Makefile.am
+	$(AM_V_GEN)$(PERL) -w $(srcdir)/rpc/gendispatch.pl --mode=aclsym \
+	  remote REMOTE $(REMOTE_PROTOCOL) > $@
+libvirt_access_qemu.syms: $(srcdir)/rpc/gendispatch.pl \
+			$(QEMU_PROTOCOL) Makefile.am
+	$(AM_V_GEN)$(PERL) -w $(srcdir)/rpc/gendispatch.pl --mode=aclsym \
+	  qemu QEMU $(QEMU_PROTOCOL) > $@
+libvirt_access_lxc.syms: $(srcdir)/rpc/gendispatch.pl \
+			$(LXC_PROTOCOL) Makefile.am
+	$(AM_V_GEN)$(PERL) -w $(srcdir)/rpc/gendispatch.pl --mode=aclsym \
+	  lxc LXC $(LXC_PROTOCOL) > $@
+
+$(srcdir)/access/viraccessapicheck.h: $(srcdir)/rpc/gendispatch.pl \
+			$(REMOTE_PROTOCOL) Makefile.am
+	$(AM_V_GEN)$(PERL) -w $(srcdir)/rpc/gendispatch.pl --mode=aclheader \
+	  remote REMOTE $(REMOTE_PROTOCOL) > $@
+$(srcdir)/access/viraccessapicheck.c: $(srcdir)/rpc/gendispatch.pl \
+			$(REMOTE_PROTOCOL) Makefile.am
+	$(AM_V_GEN)$(PERL) -w $(srcdir)/rpc/gendispatch.pl --mode=aclbody \
+	  remote REMOTE $(REMOTE_PROTOCOL) access/viraccessapicheck.h > $@
+
+$(srcdir)/access/viraccessapicheckqemu.h: $(srcdir)/rpc/gendispatch.pl \
+			$(QEMU_PROTOCOL) Makefile.am
+	$(AM_V_GEN)$(PERL) -w $(srcdir)/rpc/gendispatch.pl --mode=aclheader \
+	  qemu QEMU $(QEMU_PROTOCOL) > $@
+$(srcdir)/access/viraccessapicheckqemu.c: $(srcdir)/rpc/gendispatch.pl \
+			$(QEMU_PROTOCOL) Makefile.am
+	$(AM_V_GEN)$(PERL) -w $(srcdir)/rpc/gendispatch.pl --mode=aclbody \
+	  qemu QEMU $(QEMU_PROTOCOL) access/viraccessapicheckqemu.h > $@
+
+$(srcdir)/access/viraccessapichecklxc.h: $(srcdir)/rpc/gendispatch.pl \
+			$(LXC_PROTOCOL) Makefile.am
+	$(AM_V_GEN)$(PERL) -w $(srcdir)/rpc/gendispatch.pl --mode=aclheader \
+	  lxc LXC $(LXC_PROTOCOL) > $@
+$(srcdir)/access/viraccessapichecklxc.c: $(srcdir)/rpc/gendispatch.pl \
+			$(LXC_PROTOCOL) Makefile.am
+	$(AM_V_GEN)$(PERL) -w $(srcdir)/rpc/gendispatch.pl --mode=aclbody \
+	  lxc LXC $(LXC_PROTOCOL) access/viraccessapichecklxc.h > $@
 
 # Add all conditional sources just in case...
 EXTRA_DIST +=							\
@@ -1413,7 +1556,8 @@ EXTRA_DIST +=							\
 		$(SECRET_DRIVER_SOURCES)			\
 		$(VBOX_DRIVER_EXTRA_DIST)			\
 		$(VMWARE_DRIVER_SOURCES)			\
-		$(XENXS_SOURCES)
+		$(XENXS_SOURCES)				\
+		$(ACCESS_DRIVER_POLKIT_POLICY)
 
 check-local: check-augeas
 

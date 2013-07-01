@@ -157,6 +157,28 @@ static int testNetmaskHelper(const void *opaque)
     return testNetmask(data->addr1, data->addr2, data->netmask, data->pass);
 }
 
+static int testWildcard(const char *addrstr,
+                        bool pass)
+{
+    virSocketAddr addr;
+
+    if (virSocketAddrParse(&addr, addrstr, AF_UNSPEC) < 0)
+        return -1;
+
+    if (virSocketAddrIsWildcard(&addr))
+        return pass ? 0 : -1;
+    return pass ? -1 : 0;
+}
+
+struct testWildcardData {
+    const char *addr;
+    bool pass;
+};
+static int testWildcardHelper(const void *opaque)
+{
+    const struct testWildcardData *data = opaque;
+    return testWildcard(data->addr, data->pass);
+}
 
 static int
 mymain(void)
@@ -193,6 +215,20 @@ mymain(void)
             ret = -1;                                                   \
     } while (0)
 
+#define DO_TEST_PARSE_AND_CHECK_FORMAT(addrstr, addrformated, family, pass) \
+    do {                                                                \
+        virSocketAddr addr;                                             \
+        struct testParseData data = { &addr, addrstr, family, true};    \
+        memset(&addr, 0, sizeof(addr));                                 \
+        if (virtTestRun("Test parse " addrstr " family " #family,       \
+                        1, testParseHelper, &data) < 0)                 \
+            ret = -1;                                                   \
+        struct testFormatData data2 = { &addr, addrformated, pass };    \
+        if (virtTestRun("Test format " addrstr " family " #family,      \
+                        1, testFormatHelper, &data2) < 0)               \
+            ret = -1;                                                   \
+    } while (0)
+
 #define DO_TEST_RANGE(saddr, eaddr, size, pass)                         \
     do {                                                                \
         struct testRangeData data = { saddr, eaddr, size, pass };       \
@@ -209,12 +245,30 @@ mymain(void)
             ret = -1;                                                   \
     } while (0)
 
+#define DO_TEST_WILDCARD(addr, pass)                                    \
+    do {                                                                \
+        struct testWildcardData data = { addr, pass};                   \
+        if (virtTestRun("Test wildcard " addr, 1,                       \
+                        testWildcardHelper, &data) < 0)                 \
+            ret = -1;                                                   \
+    } while (0)
+
 
     DO_TEST_PARSE_AND_FORMAT("127.0.0.1", AF_UNSPEC, true);
     DO_TEST_PARSE_AND_FORMAT("127.0.0.1", AF_INET, true);
     DO_TEST_PARSE_AND_FORMAT("127.0.0.1", AF_INET6, false);
     DO_TEST_PARSE_AND_FORMAT("127.0.0.1", AF_UNIX, false);
     DO_TEST_PARSE_AND_FORMAT("127.0.0.256", AF_UNSPEC, false);
+
+    DO_TEST_PARSE_AND_CHECK_FORMAT("127.0.0.2", "127.0.0.2", AF_INET, true);
+    DO_TEST_PARSE_AND_CHECK_FORMAT("127.0.0.2", "127.0.0.3", AF_INET, false);
+    DO_TEST_PARSE_AND_CHECK_FORMAT("0", "0.0.0.0", AF_INET, true);
+    DO_TEST_PARSE_AND_CHECK_FORMAT("127", "0.0.0.127", AF_INET, true);
+    DO_TEST_PARSE_AND_CHECK_FORMAT("127", "127.0.0.0", AF_INET, false);
+    DO_TEST_PARSE_AND_CHECK_FORMAT("127.2", "127.0.0.2", AF_INET, true);
+    DO_TEST_PARSE_AND_CHECK_FORMAT("127.2", "127.2.0.0", AF_INET, false);
+    DO_TEST_PARSE_AND_CHECK_FORMAT("1.2.3", "1.2.0.3", AF_INET, true);
+    DO_TEST_PARSE_AND_CHECK_FORMAT("1.2.3", "1.2.3.0", AF_INET, false);
 
     DO_TEST_PARSE_AND_FORMAT("::1", AF_UNSPEC, true);
     DO_TEST_PARSE_AND_FORMAT("::1", AF_INET, false);
@@ -251,6 +305,14 @@ mymain(void)
                     "ffff:ffff:ffff:ffff:ffff:ffff:fff8:0", true);
     DO_TEST_NETMASK("2000::1:1", "9000::1:1",
                     "ffff:ffff:ffff:ffff:ffff:ffff:ffff:0", false);
+
+    DO_TEST_WILDCARD("0.0.0.0", true);
+    DO_TEST_WILDCARD("::", true);
+    DO_TEST_WILDCARD("0", true);
+    DO_TEST_WILDCARD("0.0", true);
+    DO_TEST_WILDCARD("0.0.0", true);
+    DO_TEST_WILDCARD("1", false);
+    DO_TEST_WILDCARD("0.1", false);
 
     return ret==0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }

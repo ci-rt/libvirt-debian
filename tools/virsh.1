@@ -124,7 +124,7 @@
 .\" ========================================================================
 .\"
 .IX Title "VIRSH 1"
-.TH VIRSH 1 "2013-06-03" "libvirt-1.0.6" "Virtualization Support"
+.TH VIRSH 1 "2013-06-25" "libvirt-1.1.0" "Virtualization Support"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -1047,8 +1047,8 @@ be running. Default it shows stats for all CPUs, and a total. Use
 \&\fI\-\-total\fR for only the total stats, \fIstart\fR for only the per-cpu
 stats of the CPUs from \fIstart\fR, \fIcount\fR for only \fIcount\fR CPUs'
 stats.
-.IP "\fBmigrate\fR [\fI\-\-live\fR] [\fI\-\-offline\fR] [\fI\-\-direct\fR] [\fI\-\-p2p\fR [\fI\-\-tunnelled\fR]] [\fI\-\-persistent\fR] [\fI\-\-undefinesource\fR] [\fI\-\-suspend\fR] [\fI\-\-copy\-storage\-all\fR] [\fI\-\-copy\-storage\-inc\fR] [\fI\-\-change\-protection\fR] [\fI\-\-unsafe\fR] [\fI\-\-verbose\fR] [\fI\-\-compressed\fR] \fIdomain\fR \fIdesturi\fR [\fImigrateuri\fR] [\fIdname\fR] [\fI\-\-timeout\fR \fBseconds\fR] [\fI\-\-xml\fR \fBfile\fR]" 4
-.IX Item "migrate [--live] [--offline] [--direct] [--p2p [--tunnelled]] [--persistent] [--undefinesource] [--suspend] [--copy-storage-all] [--copy-storage-inc] [--change-protection] [--unsafe] [--verbose] [--compressed] domain desturi [migrateuri] [dname] [--timeout seconds] [--xml file]"
+.IP "\fBmigrate\fR [\fI\-\-live\fR] [\fI\-\-offline\fR] [\fI\-\-direct\fR] [\fI\-\-p2p\fR [\fI\-\-tunnelled\fR]] [\fI\-\-persistent\fR] [\fI\-\-undefinesource\fR] [\fI\-\-suspend\fR] [\fI\-\-copy\-storage\-all\fR] [\fI\-\-copy\-storage\-inc\fR] [\fI\-\-change\-protection\fR] [\fI\-\-unsafe\fR] [\fI\-\-verbose\fR] [\fI\-\-compressed\fR] [\fI\-\-abort\-on\-error\fR] \fIdomain\fR \fIdesturi\fR [\fImigrateuri\fR] [\fIgraphicsuri\fR] [\fIdname\fR] [\fI\-\-timeout\fR \fBseconds\fR] [\fI\-\-xml\fR \fBfile\fR]" 4
+.IX Item "migrate [--live] [--offline] [--direct] [--p2p [--tunnelled]] [--persistent] [--undefinesource] [--suspend] [--copy-storage-all] [--copy-storage-inc] [--change-protection] [--unsafe] [--verbose] [--compressed] [--abort-on-error] domain desturi [migrateuri] [graphicsuri] [dname] [--timeout seconds] [--xml file]"
 Migrate domain to another host.  Add \fI\-\-live\fR for live migration; <\-\-p2p>
 for peer\-2\-peer migration; \fI\-\-direct\fR for direct migration; or \fI\-\-tunnelled\fR
 for tunnelled migration.  \fI\-\-offline\fR migrates domain definition without
@@ -1069,7 +1069,8 @@ is implicitly enabled when supported by the hypervisor, but can be explicitly
 used to reject the migration if the hypervisor lacks change protection
 support.  \fI\-\-verbose\fR displays the progress of migration.  \fI\-\-compressed\fR
 activates compression of memory pages that have to be transferred repeatedly
-during live migration.
+during live migration. \fI\-\-abort\-on\-error\fR cancels the migration if a soft
+error (for example I/O error) happens during the migration.
 .Sp
 \&\fBNote\fR: Individual hypervisors usually do not support all possible types of
 migration. For example, \s-1QEMU\s0 does not support direct migration.
@@ -1133,6 +1134,26 @@ might be specified to choose a specific port number outside the default range in
 order to comply with local firewall policies.
 .RE
 .RS 4
+.Sp
+Optional \fIgraphicsuri\fR overrides connection parameters used for automatically
+reconnecting a graphical clients at the end of migration. If omitted, libvirt
+will compute the parameters based on target host \s-1IP\s0 address. In case the
+client does not have a direct access to the network virtualization hosts are
+connected to and needs to connect through a proxy, \fIgraphicsuri\fR may be used
+to specify the address the client should connect to. The \s-1URI\s0 is formed as
+follows:
+.Sp
+.Vb 1
+\&    protocol://hostname[:port]/[?parameters]
+.Ve
+.Sp
+where protocol is either \*(L"spice\*(R" or \*(L"vnc\*(R" and parameters is a list of protocol
+specific parameters separated by '&'. Currently recognized parameters are
+\&\*(L"tlsPort\*(R" and \*(L"tlsSubject\*(R". For example,
+.Sp
+.Vb 1
+\&    spice://target.host.com:1234/?tlsPort=4567
+.Ve
 .RE
 .IP "\fBmigrate-setmaxdowntime\fR \fIdomain\fR \fIdowntime\fR" 4
 .IX Item "migrate-setmaxdowntime domain downtime"
@@ -1546,8 +1567,8 @@ If \fI\-\-current\fR is specified, affect the current guest state.
 Both \fI\-\-live\fR and \fI\-\-config\fR flags may be given, but \fI\-\-current\fR is
 exclusive. If no flag is specified, behavior is different depending
 on hypervisor.
-.IP "\fBsetvcpus\fR \fIdomain\fR \fIcount\fR [\fI\-\-maximum\fR] [[\fI\-\-config\fR] [\fI\-\-live\fR] | [\fI\-\-current\fR]]" 4
-.IX Item "setvcpus domain count [--maximum] [[--config] [--live] | [--current]]"
+.IP "\fBsetvcpus\fR \fIdomain\fR \fIcount\fR [\fI\-\-maximum\fR] [[\fI\-\-config\fR] [\fI\-\-live\fR] | [\fI\-\-current\fR]] [\fI\-\-guest\fR]" 4
+.IX Item "setvcpus domain count [--maximum] [[--config] [--live] | [--current]] [--guest]"
 Change the number of virtual CPUs active in a guest domain.  By default,
 this command works on active guest domains.  To change the settings for an
 inactive guest domain, use the \fI\-\-config\fR flag.
@@ -1571,6 +1592,10 @@ flag is assumed and the guest domain must be active.  In this situation it
 is up to the hypervisor whether the \fI\-\-config\fR flag is also assumed, and
 therefore whether the \s-1XML\s0 configuration is adjusted to make the change
 persistent.
+.Sp
+If \fI\-\-guest\fR is specified, then the count of cpus is modified in the guest
+instead of the hypervisor. This flag is usable only for live domains
+and may require guest agent to be configured in the guest.
 .Sp
 The \fI\-\-maximum\fR flag controls the maximum number of virtual cpus that can
 be hot-plugged the next time the domain is booted.  As such, it must only be
@@ -1685,8 +1710,8 @@ wiped before removal.
 .Sp
 \&\s-1NOTE:\s0 For an inactive domain, the domain name or \s-1UUID\s0 must be used as the
 \&\fIdomain\fR.
-.IP "\fBvcpucount\fR \fIdomain\fR  [{\fI\-\-maximum\fR | \fI\-\-active\fR} {\fI\-\-config\fR | \fI\-\-live\fR | \fI\-\-current\fR}]" 4
-.IX Item "vcpucount domain  [{--maximum | --active} {--config | --live | --current}]"
+.IP "\fBvcpucount\fR \fIdomain\fR  [{\fI\-\-maximum\fR | \fI\-\-active\fR} {\fI\-\-config\fR | \fI\-\-live\fR | \fI\-\-current\fR}] [\fI\-\-guest\fR]" 4
+.IX Item "vcpucount domain  [{--maximum | --active} {--config | --live | --current}] [--guest]"
 Print information about the virtual cpu counts of the given
 \&\fIdomain\fR.  If no flags are specified, all possible counts are
 listed in a table; otherwise, the output is limited to just the
@@ -1702,7 +1727,10 @@ time the domain will be booted, \fI\-\-live\fR requires a running domain and
 lists current values, and \fI\-\-current\fR queries according to the current
 state of the domain (corresponding to \fI\-\-live\fR if running, or
 \&\fI\-\-config\fR if inactive); these three flags are mutually exclusive.
-Thus, this command always takes exactly zero or two flags.
+.Sp
+If \fI\-\-guest\fR is specified, then the count of cpus is reported from
+the perspective of the guest. This flag is usable only for live domains
+and may require guest agent to be configured in the guest.
 .IP "\fBvcpuinfo\fR \fIdomain\fR" 4
 .IX Item "vcpuinfo domain"
 Returns basic information about the domain virtual CPUs, like the number of
@@ -1751,26 +1779,35 @@ The \fIdomain\fR can be specified as a short integer, a name or a full \s-1UUID\
 To better understand the values allowed as options for the command
 reading the documentation at <http://libvirt.org/formatdomain.html> on the
 format of the device sections to get the most accurate set of accepted values.
-.IP "\fBattach-device\fR \fIdomain\fR \fI\s-1FILE\s0\fR [\fI\-\-config\fR]" 4
-.IX Item "attach-device domain FILE [--config]"
+.IP "\fBattach-device\fR \fIdomain\fR \fI\s-1FILE\s0\fR [[[\fI\-\-live\fR] [\fI\-\-config\fR] | [\fI\-\-current\fR]] | [\fI\-\-persistent\fR]]" 4
+.IX Item "attach-device domain FILE [[[--live] [--config] | [--current]] | [--persistent]]"
 Attach a device to the domain, using a device definition in an \s-1XML\s0
 file using a device definition element such as <disk> or <interface>
 as the top-level element.  See the documentation at
 <http://libvirt.org/formatdomain.html#elementsDevices> to learn about
 libvirt \s-1XML\s0 format for a device.  If \fI\-\-config\fR is specified the
 command alters the persistent domain configuration with the device
-attach taking effect the next time libvirt starts the domain.  For
-compatibility purposes, \fI\-\-persistent\fR is an alias of \fI\-\-config\fR.
+attach taking effect the next time libvirt starts the domain.
 For cdrom and floppy devices, this command only replaces the media
 within an existing device; consider using \fBupdate-device\fR for this
 usage.  For passthrough host devices, see also \fBnodedev-detach\fR,
 needed if the device does not use managed mode.
 .Sp
+If \fI\-\-live\fR is specified, affect a running domain.
+If \fI\-\-config\fR is specified, affect the next startup of a persistent domain.
+If \fI\-\-current\fR is specified, affect the current domain state.
+Both \fI\-\-live\fR and \fI\-\-config\fR flags may be given, but \fI\-\-current\fR is
+exclusive. When no flag is specified legacy \s-1API\s0 is used whose behavior depends
+on the hypervisor driver.
+.Sp
+For compatibility purposes, \fI\-\-persistent\fR behaves like \fI\-\-config\fR for
+an offline domain, and like \fI\-\-live\fR \fI\-\-config\fR for a running domain.
+.Sp
 \&\fBNote\fR: using of partial device definition \s-1XML\s0 files may lead to unexpected
 results as some fields may be autogenerated and thus match devices other than
 expected.
-.IP "\fBattach-disk\fR \fIdomain\fR \fIsource\fR \fItarget\fR [\fI\-\-driver driver\fR] [\fI\-\-subdriver subdriver\fR] [\fI\-\-cache cache\fR] [\fI\-\-type type\fR] [\fI\-\-mode mode\fR] [\fI\-\-config\fR] [\fI\-\-sourcetype soucetype\fR] [\fI\-\-serial serial\fR] [\fI\-\-shareable\fR] [\fI\-\-rawio\fR] [\fI\-\-address address\fR] [\fI\-\-multifunction\fR] [\fI\-\-print\-xml\fR]" 4
-.IX Item "attach-disk domain source target [--driver driver] [--subdriver subdriver] [--cache cache] [--type type] [--mode mode] [--config] [--sourcetype soucetype] [--serial serial] [--shareable] [--rawio] [--address address] [--multifunction] [--print-xml]"
+.IP "\fBattach-disk\fR \fIdomain\fR \fIsource\fR \fItarget\fR [[[\fI\-\-live\fR] [\fI\-\-config\fR] | [\fI\-\-current\fR]] | [\fI\-\-persistent\fR]] [\fI\-\-driver driver\fR] [\fI\-\-subdriver subdriver\fR] [\fI\-\-cache cache\fR] [\fI\-\-type type\fR] [\fI\-\-mode mode\fR] [\fI\-\-config\fR] [\fI\-\-sourcetype soucetype\fR] [\fI\-\-serial serial\fR] [\fI\-\-wwn wwn\fR] [\fI\-\-shareable\fR] [\fI\-\-rawio\fR] [\fI\-\-address address\fR] [\fI\-\-multifunction\fR] [\fI\-\-print\-xml\fR]" 4
+.IX Item "attach-disk domain source target [[[--live] [--config] | [--current]] | [--persistent]] [--driver driver] [--subdriver subdriver] [--cache cache] [--type type] [--mode mode] [--config] [--sourcetype soucetype] [--serial serial] [--wwn wwn] [--shareable] [--rawio] [--address address] [--multifunction] [--print-xml]"
 Attach a new disk device to the domain.
 \&\fIsource\fR is path for the files and devices. \fItarget\fR controls the bus or
 device under which the disk is exposed to the guest \s-1OS\s0. It indicates the
@@ -1786,13 +1823,11 @@ alternative to the disk default, although this use only replaces the media
 within the existing virtual cdrom or floppy device; consider using
 \&\fBupdate-device\fR for this usage instead.
 \&\fImode\fR can specify the two specific mode \fIreadonly\fR or \fIshareable\fR.
-\&\fI\-\-config\fR indicates the changes will affect the next boot of the domain,
-for compatibility purposes, \fI\-\-persistent\fR is alias of \fI\-\-config\fR.
 \&\fIsourcetype\fR can indicate the type of source (block|file)
 \&\fIcache\fR can be one of \*(L"default\*(R", \*(L"none\*(R", \*(L"writethrough\*(R", \*(L"writeback\*(R",
 \&\*(L"directsync\*(R" or \*(L"unsafe\*(R".
-\&\fIserial\fR is the serial of disk device. \fIshareable\fR indicates the disk device
-is shareable between domains.
+\&\fIserial\fR is the serial of disk device. \fIwwn\fR is the wwn of disk device.
+\&\fIshareable\fR indicates the disk device is shareable between domains.
 \&\fIrawio\fR indicates the disk needs rawio capability.
 \&\fIaddress\fR is the address of disk device in the form of pci:domain.bus.slot.function,
 scsi:controller.bus.unit or ide:controller.bus.unit.
@@ -1801,23 +1836,38 @@ address.
 .Sp
 If \fI\-\-print\-xml\fR is specified, then the \s-1XML\s0 of the disk that would be attached
 is printed instead.
-.IP "\fBattach-interface\fR \fIdomain\fR \fItype\fR \fIsource\fR [\fI\-\-target target\fR] [\fI\-\-mac mac\fR] [\fI\-\-script script\fR] [\fI\-\-model model\fR] [\fI\-\-config\fR] [\fI\-\-inbound average,peak,burst\fR] [\fI\-\-outbound average,peak,burst\fR]" 4
-.IX Item "attach-interface domain type source [--target target] [--mac mac] [--script script] [--model model] [--config] [--inbound average,peak,burst] [--outbound average,peak,burst]"
-Attach a new network interface to the domain.
-\&\fItype\fR can be either \fInetwork\fR to indicate a physical network device or
-\&\fIbridge\fR to indicate a bridge to a device.
-\&\fIsource\fR indicates the source device.
-\&\fItarget\fR allows to indicate the target device in the guest. Names starting
-with 'vnet' are considered as auto-generated an hence blanked out.
-\&\fImac\fR allows to specify the \s-1MAC\s0 address of the network interface.
-\&\fIscript\fR allows to specify a path to a script handling a bridge instead of
-the default one.
-\&\fImodel\fR allows to specify the model type.
-\&\fI\-\-config\fR indicates the changes will affect the next boot of the domain,
-for compatibility purposes, \fI\-\-persistent\fR is alias of \fI\-\-config\fR.
-\&\fIinbound\fR and \fIoutbound\fR control the bandwidth of the interface. \fIpeak\fR
-and \fIburst\fR are optional, so \*(L"average,peak\*(R", \*(L"average,,burst\*(R" and
+.Sp
+If \fI\-\-live\fR is specified, affect a running domain.
+If \fI\-\-config\fR is specified, affect the next startup of a persistent domain.
+If \fI\-\-current\fR is specified, affect the current domain state.
+Both \fI\-\-live\fR and \fI\-\-config\fR flags may be given, but \fI\-\-current\fR is
+exclusive. When no flag is specified legacy \s-1API\s0 is used whose behavior depends
+on the hypervisor driver.
+.Sp
+For compatibility purposes, \fI\-\-persistent\fR behaves like \fI\-\-config\fR for
+an offline domain, and like \fI\-\-live\fR \fI\-\-config\fR for a running domain.
+.IP "\fBattach-interface\fR \fIdomain\fR \fItype\fR \fIsource\fR [[[\fI\-\-live\fR] [\fI\-\-config\fR] | [\fI\-\-current\fR]] | [\fI\-\-persistent\fR]] [\fI\-\-target target\fR] [\fI\-\-mac mac\fR] [\fI\-\-script script\fR] [\fI\-\-model model\fR] [\fI\-\-config\fR] [\fI\-\-inbound average,peak,burst\fR] [\fI\-\-outbound average,peak,burst\fR]" 4
+.IX Item "attach-interface domain type source [[[--live] [--config] | [--current]] | [--persistent]] [--target target] [--mac mac] [--script script] [--model model] [--config] [--inbound average,peak,burst] [--outbound average,peak,burst]"
+Attach a new network interface to the domain.  \fItype\fR can be either \fInetwork\fR
+to indicate a physical network device or \fIbridge\fR to indicate a bridge to a
+device.  \fIsource\fR indicates the source device.  \fItarget\fR allows to indicate
+the target device in the guest. Names starting with 'vnet' are considered as
+auto-generated an hence blanked out.  \fImac\fR allows to specify the \s-1MAC\s0 address
+of the network interface.  \fIscript\fR allows to specify a path to a script
+handling a bridge instead of the default one.  \fImodel\fR allows to specify the
+model type.  \fIinbound\fR and \fIoutbound\fR control the bandwidth of the interface.
+\&\fIpeak\fR and \fIburst\fR are optional, so \*(L"average,peak\*(R", \*(L"average,,burst\*(R" and
 \&\*(L"average\*(R" are also legal.
+.Sp
+If \fI\-\-live\fR is specified, affect a running domain.
+If \fI\-\-config\fR is specified, affect the next startup of a persistent domain.
+If \fI\-\-current\fR is specified, affect the current domain state.
+Both \fI\-\-live\fR and \fI\-\-config\fR flags may be given, but \fI\-\-current\fR is
+exclusive. When no flag is specified legacy \s-1API\s0 is used whose behavior depends
+on the hypervisor driver.
+.Sp
+For compatibility purposes, \fI\-\-persistent\fR behaves like \fI\-\-config\fR for
+an offline domain, and like \fI\-\-live\fR \fI\-\-config\fR for a running domain.
 .Sp
 \&\fBNote\fR: the optional target value is the name of a device to be created
 as the back-end on the node. If not provided a device named \*(L"vnetN\*(R" or \*(L"vifN\*(R"
@@ -1993,9 +2043,9 @@ List all of the devices available on the node that are known by libvirt.
 \&\fIcap\fR is used to filter the list by capability types, the types must be
 separated by comma, e.g. \-\-cap pci,scsi, valid capability types include
 \&'system', 'pci', 'usb_device', 'usb', 'net', 'scsi_host', 'scsi_target',
-\&'scsi', 'storage', 'fc_host', 'vports'. If \fI\-\-tree\fR is used, the output
-is formatted in a tree representing parents of each node. \fIcap\fR and
-\&\fI\-\-tree\fR are mutually exclusive.
+\&'scsi', 'storage', 'fc_host', 'vports', 'scsi_generic'. If \fI\-\-tree\fR is
+used, the output is formatted in a tree representing parents of each node.
+\&\fIcap\fR and \fI\-\-tree\fR are mutually exclusive.
 .IP "\fBnodedev-reattach\fR \fInodedev\fR" 4
 .IX Item "nodedev-reattach nodedev"
 Declare that \fInodedev\fR is no longer in use by any guests, and that

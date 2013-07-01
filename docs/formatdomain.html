@@ -434,7 +434,7 @@
         configure in the desired way, which is why per-device boot elements
         (see <a href="#elementsDisks" shape="rect">disks</a>,
         <a href="#elementsNICS" shape="rect">network interfaces</a>, and
-        <a href="#elementsUSB" shape="rect">USB and PCI devices</a> sections below) were
+        <a href="#elementsHostDev" shape="rect">USB and PCI devices</a> sections below) were
         introduced and they are the preferred way providing full control over
         booting order. The <code>boot</code> element and per-device boot
         elements are mutually exclusive. <span class="since">Since 0.1.3,
@@ -1202,6 +1202,8 @@
     &lt;privnet/&gt;
     &lt;hyperv&gt;
       &lt;relaxed state='on'/&gt;
+      &lt;vapic state='on'/&gt;
+      &lt;spinlocks state='on' retries='4096'&lt;/spinlocks&gt;
     &lt;/hyperv&gt;
 
   &lt;/features&gt;
@@ -1231,8 +1233,7 @@
         virtualization drivers, such as LXC.
       </dd><dt><code>hyperv</code></dt><dd>Enable various features improving behavior of guests
         running Microsoft Windows.
-      <table class="top_table"><tr><th rowspan="1" colspan="1">Feature</th><th rowspan="1" colspan="1">Description</th><th rowspan="1" colspan="1">Value</th></tr><tr><td rowspan="1" colspan="1">relaxed</td><td rowspan="1" colspan="1">Relax contstraints on timers</td><td rowspan="1" colspan="1"> on, off</td></tr></table>
-      <span class="since">Since 1.0.0 (QEMU only)</span>
+      <table class="top_table"><tr><th rowspan="1" colspan="1">Feature</th><th rowspan="1" colspan="1">Description</th><th rowspan="1" colspan="1">Value</th><th rowspan="1" colspan="1">Since</th></tr><tr><td rowspan="1" colspan="1">relaxed</td><td rowspan="1" colspan="1">Relax contstraints on timers</td><td rowspan="1" colspan="1"> on, off</td><td rowspan="1" colspan="1"><span class="since">1.0.0 (QEMU only)</span></td></tr><tr><td rowspan="1" colspan="1">vapic</td><td rowspan="1" colspan="1">Enable virtual APIC</td><td rowspan="1" colspan="1">on, off</td><td rowspan="1" colspan="1"><span class="since">1.1.0 (QEMU only)</span></td></tr><tr><td rowspan="1" colspan="1">spinlocks</td><td rowspan="1" colspan="1">Enable spinlock support</td><td rowspan="1" colspan="1">on, off; retries - at least 4095</td><td rowspan="1" colspan="1"><span class="since">1.1.0 (QEMU only)</span></td></tr></table>
       </dd></dl>
         <h3>
           <a name="elementsTime" shape="rect" id="elementsTime">Time keeping</a>
@@ -3151,6 +3152,13 @@ qemu-kvm -net nic,model=? /dev/null
         &lt;parameters interfaceid='09b11c53-8b5c-4eeb-8f00-d84eaa0aaa4f'/&gt;
       &lt;/virtualport&gt;
     &lt;/interface&gt;
+    &lt;interface type='bridge'&gt;
+      <b>&lt;vlan trunk='yes'&gt;</b>
+        <b>&lt;tag id='42'/&gt;</b>
+        <b>&lt;tag id='123' nativeMode='untagged'/&gt;</b>
+      <b>&lt;/vlan&gt;</b>
+      ...
+    &lt;/interface&gt;
   &lt;devices&gt;
   ...</pre>
         <p>
@@ -3174,6 +3182,14 @@ qemu-kvm -net nic,model=? /dev/null
       with a single tag is desired, the optional
       attribute <code>trunk='yes'</code> can be added to the toplevel
       vlan element.
+    </p>
+        <p>
+      For network connections using openvswitch it is possible to
+      configure the 'native-tagged' and 'native-untagged' vlan modes
+      <span class="since">Since 1.1.0.</span> This uses the optional
+      <code>nativeMode</code> attribute on the <code>&lt;tag&gt;</code>
+      element: <code>nativeMode</code> may be set to 'tagged' or
+      'untagged'. The id atribute of the element sets the native vlan.
     </p>
         <h5>
           <a name="elementLink" shape="rect" id="elementLink">Modifying virtual link state</a>
@@ -4194,7 +4210,7 @@ qemu-kvm -net nic,model=? /dev/null
   &lt;devices&gt;
     &lt;tpm model='tpm-tis'&gt;
       &lt;backend type='passthrough'&gt;
-        &lt;backend path='/dev/tpm0'/&gt;
+        &lt;device path='/dev/tpm0'/&gt;
       &lt;/backend&gt;
     &lt;/tpm&gt;
   &lt;/devices&gt;
