@@ -414,8 +414,17 @@ libxlMakeDomBuildInfo(virDomainDefPtr def, libxl_domain_config *d_config)
         b_info->shadow_memkb = 4 * (256 * libxl_bitmap_count_set(&b_info->avail_vcpus) +
                                     2 * (b_info->max_memkb / 1024));
     } else {
-        if (VIR_STRDUP(b_info->u.pv.bootloader, def->os.bootloader) < 0)
-            goto error;
+        /*
+         * For compatibility with the legacy xen toolstack, default to pygrub
+         * if bootloader is not specified AND direct kernel boot is not specified.
+         */
+        if (def->os.bootloader) {
+            if (VIR_STRDUP(b_info->u.pv.bootloader, def->os.bootloader) < 0)
+                goto error;
+        } else if (def->os.kernel == NULL) {
+            if (VIR_STRDUP(b_info->u.pv.bootloader, LIBXL_BOOTLOADER_PATH) < 0)
+                goto error;
+        }
         if (def->os.bootloaderArgs) {
             if (!(b_info->u.pv.bootloader_args =
                   virStringSplit(def->os.bootloaderArgs, " \t\n", 0)))
@@ -443,6 +452,8 @@ error:
 int
 libxlMakeDisk(virDomainDiskDefPtr l_disk, libxl_device_disk *x_disk)
 {
+    libxl_device_disk_init(x_disk);
+
     if (VIR_STRDUP(x_disk->pdev_path, l_disk->src) < 0)
         return -1;
 
@@ -473,14 +484,59 @@ libxlMakeDisk(virDomainDiskDefPtr l_disk, libxl_device_disk *x_disk)
                 break;
             default:
                 virReportError(VIR_ERR_INTERNAL_ERROR,
-                               _("libxenlight does not support disk driver %s"),
-                               virStorageFileFormatTypeToString(l_disk->format));
+                               _("libxenlight does not support disk format %s "
+                                 "with disk driver %s"),
+                               virStorageFileFormatTypeToString(l_disk->format),
+                               l_disk->driverName);
+                return -1;
+            }
+        } else if (STREQ(l_disk->driverName, "qemu")) {
+            x_disk->backend = LIBXL_DISK_BACKEND_QDISK;
+            switch (l_disk->format) {
+            case VIR_STORAGE_FILE_QCOW:
+                x_disk->format = LIBXL_DISK_FORMAT_QCOW;
+                break;
+            case VIR_STORAGE_FILE_QCOW2:
+                x_disk->format = LIBXL_DISK_FORMAT_QCOW2;
+                break;
+            case VIR_STORAGE_FILE_VHD:
+                x_disk->format = LIBXL_DISK_FORMAT_VHD;
+                break;
+            case VIR_STORAGE_FILE_NONE:
+                /* No subtype specified, default to raw */
+            case VIR_STORAGE_FILE_RAW:
+                x_disk->format = LIBXL_DISK_FORMAT_RAW;
+                break;
+            default:
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("libxenlight does not support disk format %s "
+                                 "with disk driver %s"),
+                               virStorageFileFormatTypeToString(l_disk->format),
+                               l_disk->driverName);
                 return -1;
             }
         } else if (STREQ(l_disk->driverName, "file")) {
+            if (l_disk->format != VIR_STORAGE_FILE_NONE &&
+                l_disk->format != VIR_STORAGE_FILE_RAW) {
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("libxenlight does not support disk format %s "
+                                 "with disk driver %s"),
+                               virStorageFileFormatTypeToString(l_disk->format),
+                               l_disk->driverName);
+                return -1;
+            }
             x_disk->format = LIBXL_DISK_FORMAT_RAW;
             x_disk->backend = LIBXL_DISK_BACKEND_TAP;
         } else if (STREQ(l_disk->driverName, "phy")) {
+            if (l_disk->format != VIR_STORAGE_FILE_NONE &&
+                l_disk->format != VIR_STORAGE_FILE_RAW) {
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("libxenlight does not support disk format %s "
+                                 "with disk driver %s"),
+                               virStorageFileFormatTypeToString(l_disk->format),
+                               l_disk->driverName);
+                return -1;
+            }
             x_disk->format = LIBXL_DISK_FORMAT_RAW;
             x_disk->backend = LIBXL_DISK_BACKEND_PHY;
         } else {
@@ -550,6 +606,8 @@ libxlMakeNic(virDomainNetDefPtr l_nic, libxl_device_nic *x_nic)
      * x_nics[i].mtu = 1492;
      */
 
+    libxl_device_nic_init(x_nic);
+
     virMacAddrGetRaw(&l_nic->mac, x_nic->mac);
 
     if (l_nic->model && !STREQ(l_nic->model, "netfront")) {
@@ -563,18 +621,20 @@ libxlMakeNic(virDomainNetDefPtr l_nic, libxl_device_nic *x_nic)
     if (VIR_STRDUP(x_nic->ifname, l_nic->ifname) < 0)
         return -1;
 
-    if (l_nic->type == VIR_DOMAIN_NET_TYPE_BRIDGE) {
-        if (VIR_STRDUP(x_nic->bridge, l_nic->data.bridge.brname) < 0)
+    switch (l_nic->type) {
+        case VIR_DOMAIN_NET_TYPE_BRIDGE:
+            if (VIR_STRDUP(x_nic->bridge, l_nic->data.bridge.brname) < 0)
+                return -1;
+            /* fallthrough */
+        case VIR_DOMAIN_NET_TYPE_ETHERNET:
+            if (VIR_STRDUP(x_nic->script, l_nic->script) < 0)
+                return -1;
+            break;
+        default:
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                    _("libxenlight does not support network device type %s"),
+                    virDomainNetTypeToString(l_nic->type));
             return -1;
-        if (VIR_STRDUP(x_nic->script, l_nic->script) < 0)
-            return -1;
-    } else {
-        if (l_nic->script) {
-            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                           _("scripts are not supported on interfaces of type %s"),
-                           virDomainNetTypeToString(l_nic->type));
-            return -1;
-        }
     }
 
     return 0;
@@ -594,8 +654,6 @@ libxlMakeNicList(virDomainDefPtr def,  libxl_domain_config *d_config)
     }
 
     for (i = 0; i < nnics; i++) {
-        x_nics[i].devid = i;
-
         if (libxlMakeNic(l_nics[i], &x_nics[i]))
             goto error;
     }
@@ -619,6 +677,8 @@ libxlMakeVfb(libxlDriverPrivatePtr driver,
 {
     unsigned short port;
     const char *listenAddr;
+
+    libxl_device_vfb_init(x_vfb);
 
     switch (l_vfb->type) {
         case VIR_DOMAIN_GRAPHICS_TYPE_SDL:
@@ -685,7 +745,6 @@ libxlMakeVfbList(libxlDriverPrivatePtr driver,
     }
 
     for (i = 0; i < nvfbs; i++) {
-        libxl_device_vfb_init(&x_vfbs[i]);
         libxl_device_vkb_init(&x_vkbs[i]);
 
         if (libxlMakeVfb(driver, l_vfbs[i], &x_vfbs[i]) < 0)
@@ -746,6 +805,7 @@ int
 libxlBuildDomainConfig(libxlDriverPrivatePtr driver,
                        virDomainDefPtr def, libxl_domain_config *d_config)
 {
+    libxl_domain_config_init(d_config);
 
     if (libxlMakeDomCreateInfo(driver, def, &d_config->c_info) < 0)
         return -1;

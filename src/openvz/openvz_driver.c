@@ -815,6 +815,7 @@ openvzDomainSetNetwork(virConnectPtr conn, const char *vpsid,
     char host_macaddr[VIR_MAC_STRING_BUFLEN];
     struct openvz_driver *driver =  conn->privateData;
     virCommandPtr cmd = NULL;
+    char *guest_ifname = NULL;
 
     if (net == NULL)
        return 0;
@@ -840,11 +841,15 @@ openvzDomainSetNetwork(virConnectPtr conn, const char *vpsid,
         virBuffer buf = VIR_BUFFER_INITIALIZER;
         int veid = openvzGetVEID(vpsid);
 
-        /* if user doesn't specify guest interface name,
-         * then we need to generate it */
-        if (net->data.ethernet.dev == NULL) {
-            net->data.ethernet.dev = openvzGenerateContainerVethName(veid);
-            if (net->data.ethernet.dev == NULL) {
+        /* if net is ethernet and the user has specified guest interface name,
+         * let's use it; otherwise generate a new one */
+        if (net->type == VIR_DOMAIN_NET_TYPE_ETHERNET &&
+            net->data.ethernet.dev != NULL) {
+            if (VIR_STRDUP(guest_ifname, net->data.ethernet.dev) == -1)
+                goto cleanup;
+        } else {
+            guest_ifname = openvzGenerateContainerVethName(veid);
+            if (guest_ifname == NULL) {
                virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                               _("Could not generate eth name for container"));
                goto cleanup;
@@ -854,7 +859,7 @@ openvzDomainSetNetwork(virConnectPtr conn, const char *vpsid,
         /* if user doesn't specified host interface name,
          * than we need to generate it */
         if (net->ifname == NULL) {
-            net->ifname = openvzGenerateVethName(veid, net->data.ethernet.dev);
+            net->ifname = openvzGenerateVethName(veid, guest_ifname);
             if (net->ifname == NULL) {
                virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                               _("Could not generate veth name"));
@@ -862,7 +867,7 @@ openvzDomainSetNetwork(virConnectPtr conn, const char *vpsid,
             }
         }
 
-        virBufferAdd(&buf, net->data.ethernet.dev, -1); /* Guest dev */
+        virBufferAdd(&buf, guest_ifname, -1); /* Guest dev */
         virBufferAsprintf(&buf, ",%s", macaddr); /* Guest dev mac */
         virBufferAsprintf(&buf, ",%s", net->ifname); /* Host dev */
         virBufferAsprintf(&buf, ",%s", host_macaddr); /* Host dev mac */
@@ -871,7 +876,7 @@ openvzDomainSetNetwork(virConnectPtr conn, const char *vpsid,
             if (driver->version >= VZCTL_BRIDGE_MIN_VERSION) {
                 virBufferAsprintf(&buf, ",%s", net->data.bridge.brname); /* Host bridge */
             } else {
-                virBufferAsprintf(configBuf, "ifname=%s", net->data.ethernet.dev);
+                virBufferAsprintf(configBuf, "ifname=%s", guest_ifname);
                 virBufferAsprintf(configBuf, ",mac=%s", macaddr); /* Guest dev mac */
                 virBufferAsprintf(configBuf, ",host_ifname=%s", net->ifname); /* Host dev */
                 virBufferAsprintf(configBuf, ",host_mac=%s", host_macaddr); /* Host dev mac */
@@ -895,6 +900,7 @@ openvzDomainSetNetwork(virConnectPtr conn, const char *vpsid,
 
  cleanup:
     virCommandFree(cmd);
+    VIR_FREE(guest_ifname);
     return rc;
 }
 
@@ -1865,14 +1871,14 @@ openvzDomainSetMemoryParameters(virDomainPtr domain,
         goto cleanup;
 
     virCheckFlags(0, -1);
-    if (virTypedParameterArrayValidate(params, nparams,
-                                       VIR_DOMAIN_MEMORY_HARD_LIMIT,
-                                       VIR_TYPED_PARAM_ULLONG,
-                                       VIR_DOMAIN_MEMORY_SOFT_LIMIT,
-                                       VIR_TYPED_PARAM_ULLONG,
-                                       VIR_DOMAIN_MEMORY_MIN_GUARANTEE,
-                                       VIR_TYPED_PARAM_ULLONG,
-                                       NULL) < 0)
+    if (virTypedParamsValidate(params, nparams,
+                               VIR_DOMAIN_MEMORY_HARD_LIMIT,
+                               VIR_TYPED_PARAM_ULLONG,
+                               VIR_DOMAIN_MEMORY_SOFT_LIMIT,
+                               VIR_TYPED_PARAM_ULLONG,
+                               VIR_DOMAIN_MEMORY_MIN_GUARANTEE,
+                               VIR_TYPED_PARAM_ULLONG,
+                               NULL) < 0)
         return -1;
 
     for (i = 0; i < nparams; i++) {

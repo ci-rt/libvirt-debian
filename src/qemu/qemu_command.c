@@ -293,7 +293,8 @@ qemuNetworkIfaceConnect(virDomainDefPtr def,
     virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
 
     if (actualType == VIR_DOMAIN_NET_TYPE_NETWORK) {
-        int active, fail = 0;
+        int active;
+        bool fail = false;
         virErrorPtr errobj;
         virNetworkPtr network = virNetworkLookupByName(conn,
                                                        net->data.network.name);
@@ -302,7 +303,7 @@ qemuNetworkIfaceConnect(virDomainDefPtr def,
 
         active = virNetworkIsActive(network);
         if (active != 1) {
-            fail = 1;
+            fail = true;
 
             if (active == 0)
                 virReportError(VIR_ERR_INTERNAL_ERROR,
@@ -313,7 +314,7 @@ qemuNetworkIfaceConnect(virDomainDefPtr def,
         if (!fail) {
             brname = virNetworkGetBridgeName(network);
             if (brname == NULL)
-                fail = 1;
+                fail = true;
         }
 
         /* Make sure any above failure is preserved */
@@ -5518,6 +5519,9 @@ qemuBuildClockArgStr(virDomainClockDefPtr def)
         now += def->data.variable.adjustment;
         gmtime_r(&now, &nowbits);
 
+        /* Store the guest's basedate */
+        def->data.variable.basedate = now;
+
         virBufferAsprintf(&buf, "base=%d-%02d-%02dT%02d:%02d:%02d",
                           nowbits.tm_year + 1900,
                           nowbits.tm_mon + 1,
@@ -5782,9 +5786,16 @@ qemuBuildCpuArgStr(const virQEMUDriverPtr driver,
         for (i = 0; i < VIR_DOMAIN_HYPERV_LAST; i++) {
             switch ((enum virDomainHyperv) i) {
             case VIR_DOMAIN_HYPERV_RELAXED:
+            case VIR_DOMAIN_HYPERV_VAPIC:
                 if (def->hyperv_features[i] == VIR_DOMAIN_FEATURE_STATE_ON)
                     virBufferAsprintf(&buf, ",hv_%s",
                                       virDomainHypervTypeToString(i));
+                break;
+
+            case VIR_DOMAIN_HYPERV_SPINLOCKS:
+                if (def->hyperv_features[i] == VIR_DOMAIN_FEATURE_STATE_ON)
+                    virBufferAsprintf(&buf, ",hv_spinlocks=0x%x",
+                                      def->hyperv_spinlocks);
                 break;
 
             case VIR_DOMAIN_HYPERV_LAST:
@@ -5817,25 +5828,25 @@ qemuBuildObsoleteAccelArg(virCommandPtr cmd,
                           const virDomainDefPtr def,
                           virQEMUCapsPtr qemuCaps)
 {
-    int disableKQEMU = 0;
-    int enableKQEMU = 0;
-    int disableKVM = 0;
-    int enableKVM = 0;
+    bool disableKQEMU = false;
+    bool enableKQEMU = false;
+    bool disableKVM = false;
+    bool enableKVM = false;
 
     switch (def->virtType) {
     case VIR_DOMAIN_VIRT_QEMU:
         if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_KQEMU))
-            disableKQEMU = 1;
+            disableKQEMU = true;
         if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_KVM))
-            disableKVM = 1;
+            disableKVM = true;
         break;
 
     case VIR_DOMAIN_VIRT_KQEMU:
         if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_KVM))
-            disableKVM = 1;
+            disableKVM = true;
 
         if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_ENABLE_KQEMU)) {
-            enableKQEMU = 1;
+            enableKQEMU = true;
         } else if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_KQEMU)) {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                            _("the QEMU binary does not support kqemu"));
@@ -5845,10 +5856,10 @@ qemuBuildObsoleteAccelArg(virCommandPtr cmd,
 
     case VIR_DOMAIN_VIRT_KVM:
         if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_KQEMU))
-            disableKQEMU = 1;
+            disableKQEMU = true;
 
         if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_ENABLE_KVM)) {
-            enableKVM = 1;
+            enableKVM = true;
         } else if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_KVM)) {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                            _("the QEMU binary does not support kvm"));
@@ -7346,7 +7357,7 @@ qemuBuildCommandLine(virConnectPtr conn,
             char *optstr;
             int bootindex = 0;
             virDomainDiskDefPtr disk = def->disks[i];
-            int withDeviceArg = 0;
+            bool withDeviceArg = false;
             bool deviceFlagMasked = false;
 
             /* Unless we have -device, then USB disks need special
@@ -7390,7 +7401,7 @@ qemuBuildCommandLine(virConnectPtr conn,
                care that we can't use -device */
             if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE)) {
                 if (disk->bus != VIR_DOMAIN_DISK_BUS_XEN) {
-                    withDeviceArg = 1;
+                    withDeviceArg = true;
                 } else {
                     virQEMUCapsClear(qemuCaps, QEMU_CAPS_DEVICE);
                     deviceFlagMasked = true;
@@ -9236,7 +9247,7 @@ qemuParseCommandLineNet(virDomainXMLOptionPtr xmlopt,
     const char *nic;
     int wantvlan = 0;
     const char *tmp;
-    int genmac = 1;
+    bool genmac = true;
     int i;
 
     tmp = strchr(val, ',');
@@ -9327,7 +9338,7 @@ qemuParseCommandLineNet(virDomainXMLOptionPtr xmlopt,
 
     for (i = 0; i < nkeywords; i++) {
         if (STREQ(keywords[i], "macaddr")) {
-            genmac = 0;
+            genmac = false;
             if (virMacAddrParse(values[i], &def->mac) < 0) {
                 virReportError(VIR_ERR_INTERNAL_ERROR,
                                _("unable to parse mac address '%s'"),
@@ -9622,73 +9633,69 @@ qemuParseCommandLineCPU(virDomainDefPtr dom,
                         const char *val)
 {
     virCPUDefPtr cpu = NULL;
-    const char *p = val;
-    const char *next;
+    char **tokens;
+    char **hv_tokens = NULL;
     char *model = NULL;
+    int ret = -1;
+    int i;
 
-    do {
-        if (*p == '\0' || *p == ',')
+    if (!(tokens = virStringSplit(val, ",", 0)))
+        goto cleanup;
+
+    if (tokens[0] == NULL)
+        goto syntax;
+
+    for (i = 0; tokens[i] != NULL; i++) {
+        if (*tokens[i] == '\0')
             goto syntax;
 
-        if ((next = strchr(p, ',')))
-            next++;
-
-        if (p == val) {
-            if (VIR_STRNDUP(model, p, next ? next - p - 1 : -1) < 0)
-                goto error;
+        if (i == 0) {
+            if (VIR_STRDUP(model, tokens[i]) < 0)
+                goto cleanup;
 
             if (!STREQ(model, "qemu32") && !STREQ(model, "qemu64")) {
                 if (!(cpu = qemuInitGuestCPU(dom)))
-                    goto error;
+                    goto cleanup;
 
                 cpu->model = model;
                 model = NULL;
             }
-        } else if (*p == '+' || *p == '-') {
-            char *feature;
+        } else if (*tokens[i] == '+' || *tokens[i] == '-') {
+            const char *feature = tokens[i] + 1; /* '+' or '-' */
             int policy;
-            int ret = 0;
 
-            if (*p == '+')
+            if (*tokens[i] == '+')
                 policy = VIR_CPU_FEATURE_REQUIRE;
             else
                 policy = VIR_CPU_FEATURE_DISABLE;
 
-            p++;
-            if (*p == '\0' || *p == ',')
+            if (*feature == '\0')
                 goto syntax;
-
-            if (VIR_STRNDUP(feature, p, next ? next - p - 1 : -1) < 0)
-                goto error;
 
             if (STREQ(feature, "kvmclock")) {
                 bool present = (policy == VIR_CPU_FEATURE_REQUIRE);
-                int i;
+                int j;
 
-                for (i = 0; i < dom->clock.ntimers; i++) {
-                    if (dom->clock.timers[i]->name == VIR_DOMAIN_TIMER_NAME_KVMCLOCK) {
+                for (j = 0; j < dom->clock.ntimers; j++) {
+                    if (dom->clock.timers[j]->name == VIR_DOMAIN_TIMER_NAME_KVMCLOCK)
                         break;
-                    }
                 }
 
-                if (i == dom->clock.ntimers) {
-                    if (VIR_REALLOC_N(dom->clock.timers, i+1) < 0 ||
-                        VIR_ALLOC(dom->clock.timers[i]) < 0)
+                if (j == dom->clock.ntimers) {
+                    if (VIR_REALLOC_N(dom->clock.timers, j + 1) < 0 ||
+                        VIR_ALLOC(dom->clock.timers[j]) < 0)
                         goto no_memory;
-                    dom->clock.timers[i]->name = VIR_DOMAIN_TIMER_NAME_KVMCLOCK;
-                    dom->clock.timers[i]->present = -1;
-                    dom->clock.timers[i]->tickpolicy = -1;
-                    dom->clock.timers[i]->track = -1;
+                    dom->clock.timers[j]->name = VIR_DOMAIN_TIMER_NAME_KVMCLOCK;
+                    dom->clock.timers[j]->present = present;
+                    dom->clock.timers[j]->tickpolicy = -1;
+                    dom->clock.timers[j]->track = -1;
                     dom->clock.ntimers++;
-                }
-
-                if (dom->clock.timers[i]->present != -1 &&
-                    dom->clock.timers[i]->present != present) {
+                } else if (dom->clock.timers[j]->present != -1 &&
+                    dom->clock.timers[j]->present != present) {
                     virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                                    _("conflicting occurrences of kvmclock feature"));
-                    goto error;
+                    goto cleanup;
                 }
-                dom->clock.timers[i]->present = present;
             } else if (STREQ(feature, "kvm_pv_eoi")) {
                 if (policy == VIR_CPU_FEATURE_REQUIRE)
                     dom->apic_eoi = VIR_DOMAIN_FEATURE_STATE_ON;
@@ -9697,28 +9704,31 @@ qemuParseCommandLineCPU(virDomainDefPtr dom,
             } else {
                 if (!cpu) {
                     if (!(cpu = qemuInitGuestCPU(dom)))
-                        goto error;
+                        goto cleanup;
 
                     cpu->model = model;
                     model = NULL;
                 }
 
-                ret = virCPUDefAddFeature(cpu, feature, policy);
+                if (virCPUDefAddFeature(cpu, feature, policy) < 0)
+                    goto cleanup;
             }
-
-            VIR_FREE(feature);
-            if (ret < 0)
-                goto error;
-        } else if (STRPREFIX(p, "hv_")) {
-            char *feature;
+        } else if (STRPREFIX(tokens[i], "hv_")) {
+            const char *token = tokens[i] + 3; /* "hv_" */
+            const char *feature, *value;
             int f;
-            p += 3; /* "hv_" */
 
-            if (*p == '\0' || *p == ',')
+            if (*token == '\0')
                 goto syntax;
 
-            if (VIR_STRNDUP(feature, p, next ? next - p - 1 : -1) < 0)
-                goto error;
+            if (!(hv_tokens = virStringSplit(token, "=", 2)))
+                goto cleanup;
+
+            feature = hv_tokens[0];
+            value = hv_tokens[1];
+
+            if (*feature == '\0')
+                goto syntax;
 
             dom->features |= (1 << VIR_DOMAIN_FEATURE_HYPERV);
 
@@ -9726,32 +9736,55 @@ qemuParseCommandLineCPU(virDomainDefPtr dom,
                 virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                                _("unsupported HyperV Enlightenment feature "
                                  "'%s'"), feature);
-                goto error;
+                goto cleanup;
             }
 
             switch ((enum virDomainHyperv) f) {
             case VIR_DOMAIN_HYPERV_RELAXED:
+            case VIR_DOMAIN_HYPERV_VAPIC:
+                if (value) {
+                    virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                                   _("HyperV feature '%s' should not "
+                                     "have a value"), feature);
+                    goto cleanup;
+                }
                 dom->hyperv_features[f] = VIR_DOMAIN_FEATURE_STATE_ON;
+                break;
+
+            case VIR_DOMAIN_HYPERV_SPINLOCKS:
+                dom->hyperv_features[f] = VIR_DOMAIN_FEATURE_STATE_ON;
+                if (!value) {
+                    virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                                   _("missing HyperV spinlock retry count"));
+                    goto cleanup;
+                }
+
+                if (virStrToLong_ui(value, NULL, 0, &dom->hyperv_spinlocks) < 0) {
+                    virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                                   _("cannot parse HyperV spinlock retry count"));
+                    goto cleanup;
+                }
+
+                if (dom->hyperv_spinlocks < 0xFFF)
+                    dom->hyperv_spinlocks = 0xFFF;
                 break;
 
             case VIR_DOMAIN_HYPERV_LAST:
                 break;
             }
-
-            VIR_FREE(feature);
+            virStringFreeList(hv_tokens);
+            hv_tokens = NULL;
         }
-    } while ((p = next));
+    }
 
     if (dom->os.arch == VIR_ARCH_X86_64) {
         bool is_32bit = false;
         if (cpu) {
             union cpuData *cpuData = NULL;
-            int ret;
 
-            ret = cpuEncode(VIR_ARCH_X86_64, cpu, NULL, &cpuData,
-                            NULL, NULL, NULL, NULL);
-            if (ret < 0)
-                goto error;
+            if (cpuEncode(VIR_ARCH_X86_64, cpu, NULL, &cpuData,
+                          NULL, NULL, NULL, NULL) < 0)
+                goto cleanup;
 
             is_32bit = (cpuHasFeature(VIR_ARCH_X86_64, cpuData, "lm") != 1);
             cpuDataFree(VIR_ARCH_X86_64, cpuData);
@@ -9759,22 +9792,26 @@ qemuParseCommandLineCPU(virDomainDefPtr dom,
             is_32bit = STREQ(model, "qemu32");
         }
 
-        if (is_32bit) {
+        if (is_32bit)
             dom->os.arch = VIR_ARCH_I686;
-        }
     }
+
+    ret = 0;
+
+cleanup:
     VIR_FREE(model);
-    return 0;
+    virStringFreeList(tokens);
+    virStringFreeList(hv_tokens);
+    return ret;
 
 syntax:
     virReportError(VIR_ERR_INTERNAL_ERROR,
                    _("unknown CPU syntax '%s'"), val);
-    goto error;
+    goto cleanup;
 
 no_memory:
     virReportOOMError();
-error:
-    return -1;
+    goto cleanup;
 }
 
 
@@ -9889,7 +9926,7 @@ virDomainDefPtr qemuParseCommandLine(virCapsPtr qemuCaps,
 {
     virDomainDefPtr def;
     int i;
-    int nographics = 0;
+    bool nographics = false;
     bool fullscreen = false;
     char *path;
     int nnics = 0;
@@ -10274,7 +10311,7 @@ virDomainDefPtr qemuParseCommandLine(virCapsPtr qemuCaps,
         } else if (STREQ(arg, "-enable-kvm")) {
             def->virtType = VIR_DOMAIN_VIRT_KVM;
         } else if (STREQ(arg, "-nographic")) {
-            nographics = 1;
+            nographics = true;
         } else if (STREQ(arg, "-full-screen")) {
             fullscreen = true;
         } else if (STREQ(arg, "-localtime")) {

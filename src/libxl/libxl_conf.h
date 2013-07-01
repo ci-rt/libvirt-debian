@@ -25,8 +25,6 @@
 #ifndef LIBXL_CONF_H
 # define LIBXL_CONF_H
 
-# include <config.h>
-
 # include <libxl.h>
 
 # include "internal.h"
@@ -47,6 +45,7 @@
 # define LIBXL_LOG_DIR LOCALSTATEDIR "/log/libvirt/libxl"
 # define LIBXL_LIB_DIR LOCALSTATEDIR "/lib/libvirt/libxl"
 # define LIBXL_SAVE_DIR LIBXL_LIB_DIR "/save"
+# define LIBXL_BOOTLOADER_PATH BINDIR "/pygrub"
 
 
 typedef struct _libxlDriverPrivate libxlDriverPrivate;
@@ -64,6 +63,10 @@ struct _libxlDriverPrivate {
 
     virPortAllocatorPtr reservedVNCPorts;
 
+    /* Controls automatic ballooning of domain0. If true, attempt to get
+     * memory for new domains from domain0. */
+    bool autoballoon;
+
     size_t nactive;
     virStateInhibitCallback inhibitCallback;
     void *inhibitOpaque;
@@ -71,6 +74,7 @@ struct _libxlDriverPrivate {
     virDomainObjListPtr domains;
 
     virDomainEventStatePtr domainEventState;
+    virSysinfoDefPtr hostsysinfo;
 
     char *configDir;
     char *autostartDir;

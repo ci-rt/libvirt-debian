@@ -83,6 +83,11 @@
     <function name="VIR_DOMAIN_SCHED_FIELD_LENGTH" link="libvirt-libvirt.html#VIR_DOMAIN_SCHED_FIELD_LENGTH"/>
     <function name="VIR_DOMAIN_SEND_KEY_MAX_KEYS" link="libvirt-libvirt.html#VIR_DOMAIN_SEND_KEY_MAX_KEYS"/>
     <function name="VIR_GET_CPUMAP" link="libvirt-libvirt.html#VIR_GET_CPUMAP"/>
+    <function name="VIR_MIGRATE_PARAM_BANDWIDTH" link="libvirt-libvirt.html#VIR_MIGRATE_PARAM_BANDWIDTH"/>
+    <function name="VIR_MIGRATE_PARAM_DEST_NAME" link="libvirt-libvirt.html#VIR_MIGRATE_PARAM_DEST_NAME"/>
+    <function name="VIR_MIGRATE_PARAM_DEST_XML" link="libvirt-libvirt.html#VIR_MIGRATE_PARAM_DEST_XML"/>
+    <function name="VIR_MIGRATE_PARAM_GRAPHICS_URI" link="libvirt-libvirt.html#VIR_MIGRATE_PARAM_GRAPHICS_URI"/>
+    <function name="VIR_MIGRATE_PARAM_URI" link="libvirt-libvirt.html#VIR_MIGRATE_PARAM_URI"/>
     <function name="VIR_NODEINFO_MAXCPUS" link="libvirt-libvirt.html#VIR_NODEINFO_MAXCPUS"/>
     <function name="VIR_NODE_CPU_STATS_FIELD_LENGTH" link="libvirt-libvirt.html#VIR_NODE_CPU_STATS_FIELD_LENGTH"/>
     <function name="VIR_NODE_CPU_STATS_IDLE" link="libvirt-libvirt.html#VIR_NODE_CPU_STATS_IDLE"/>
@@ -137,6 +142,7 @@
     <function name="VIR_CONNECT_LIST_NODE_DEVICES_CAP_NET" link="libvirt-libvirt.html#VIR_CONNECT_LIST_NODE_DEVICES_CAP_NET"/>
     <function name="VIR_CONNECT_LIST_NODE_DEVICES_CAP_PCI_DEV" link="libvirt-libvirt.html#VIR_CONNECT_LIST_NODE_DEVICES_CAP_PCI_DEV"/>
     <function name="VIR_CONNECT_LIST_NODE_DEVICES_CAP_SCSI" link="libvirt-libvirt.html#VIR_CONNECT_LIST_NODE_DEVICES_CAP_SCSI"/>
+    <function name="VIR_CONNECT_LIST_NODE_DEVICES_CAP_SCSI_GENERIC" link="libvirt-libvirt.html#VIR_CONNECT_LIST_NODE_DEVICES_CAP_SCSI_GENERIC"/>
     <function name="VIR_CONNECT_LIST_NODE_DEVICES_CAP_SCSI_HOST" link="libvirt-libvirt.html#VIR_CONNECT_LIST_NODE_DEVICES_CAP_SCSI_HOST"/>
     <function name="VIR_CONNECT_LIST_NODE_DEVICES_CAP_SCSI_TARGET" link="libvirt-libvirt.html#VIR_CONNECT_LIST_NODE_DEVICES_CAP_SCSI_TARGET"/>
     <function name="VIR_CONNECT_LIST_NODE_DEVICES_CAP_STORAGE" link="libvirt-libvirt.html#VIR_CONNECT_LIST_NODE_DEVICES_CAP_STORAGE"/>
@@ -520,6 +526,7 @@
     <function name="VIR_DOMAIN_UNDEFINE_SNAPSHOTS_METADATA" link="libvirt-libvirt.html#VIR_DOMAIN_UNDEFINE_SNAPSHOTS_METADATA"/>
     <function name="VIR_DOMAIN_VCPU_CONFIG" link="libvirt-libvirt.html#VIR_DOMAIN_VCPU_CONFIG"/>
     <function name="VIR_DOMAIN_VCPU_CURRENT" link="libvirt-libvirt.html#VIR_DOMAIN_VCPU_CURRENT"/>
+    <function name="VIR_DOMAIN_VCPU_GUEST" link="libvirt-libvirt.html#VIR_DOMAIN_VCPU_GUEST"/>
     <function name="VIR_DOMAIN_VCPU_LIVE" link="libvirt-libvirt.html#VIR_DOMAIN_VCPU_LIVE"/>
     <function name="VIR_DOMAIN_VCPU_MAXIMUM" link="libvirt-libvirt.html#VIR_DOMAIN_VCPU_MAXIMUM"/>
     <function name="VIR_DOMAIN_XML_INACTIVE" link="libvirt-libvirt.html#VIR_DOMAIN_XML_INACTIVE"/>
@@ -531,6 +538,7 @@
     <function name="VIR_DUMP_LIVE" link="libvirt-libvirt.html#VIR_DUMP_LIVE"/>
     <function name="VIR_DUMP_MEMORY_ONLY" link="libvirt-libvirt.html#VIR_DUMP_MEMORY_ONLY"/>
     <function name="VIR_DUMP_RESET" link="libvirt-libvirt.html#VIR_DUMP_RESET"/>
+    <function name="VIR_ERR_ACCESS_DENIED" link="libvirt-virterror.html#VIR_ERR_ACCESS_DENIED"/>
     <function name="VIR_ERR_AGENT_UNRESPONSIVE" link="libvirt-virterror.html#VIR_ERR_AGENT_UNRESPONSIVE"/>
     <function name="VIR_ERR_ARGUMENT_UNSUPPORTED" link="libvirt-virterror.html#VIR_ERR_ARGUMENT_UNSUPPORTED"/>
     <function name="VIR_ERR_AUTH_CANCELLED" link="libvirt-virterror.html#VIR_ERR_AUTH_CANCELLED"/>
@@ -621,6 +629,7 @@
     <function name="VIR_EVENT_HANDLE_HANGUP" link="libvirt-libvirt.html#VIR_EVENT_HANDLE_HANGUP"/>
     <function name="VIR_EVENT_HANDLE_READABLE" link="libvirt-libvirt.html#VIR_EVENT_HANDLE_READABLE"/>
     <function name="VIR_EVENT_HANDLE_WRITABLE" link="libvirt-libvirt.html#VIR_EVENT_HANDLE_WRITABLE"/>
+    <function name="VIR_FROM_ACCESS" link="libvirt-virterror.html#VIR_FROM_ACCESS"/>
     <function name="VIR_FROM_AUDIT" link="libvirt-virterror.html#VIR_FROM_AUDIT"/>
     <function name="VIR_FROM_AUTH" link="libvirt-virterror.html#VIR_FROM_AUTH"/>
     <function name="VIR_FROM_CAPABILITIES" link="libvirt-virterror.html#VIR_FROM_CAPABILITIES"/>
@@ -690,6 +699,7 @@
     <function name="VIR_KEYCODE_SET_XT_KBD" link="libvirt-libvirt.html#VIR_KEYCODE_SET_XT_KBD"/>
     <function name="VIR_MEMORY_PHYSICAL" link="libvirt-libvirt.html#VIR_MEMORY_PHYSICAL"/>
     <function name="VIR_MEMORY_VIRTUAL" link="libvirt-libvirt.html#VIR_MEMORY_VIRTUAL"/>
+    <function name="VIR_MIGRATE_ABORT_ON_ERROR" link="libvirt-libvirt.html#VIR_MIGRATE_ABORT_ON_ERROR"/>
     <function name="VIR_MIGRATE_CHANGE_PROTECTION" link="libvirt-libvirt.html#VIR_MIGRATE_CHANGE_PROTECTION"/>
     <function name="VIR_MIGRATE_COMPRESSED" link="libvirt-libvirt.html#VIR_MIGRATE_COMPRESSED"/>
     <function name="VIR_MIGRATE_LIVE" link="libvirt-libvirt.html#VIR_MIGRATE_LIVE"/>
@@ -1142,6 +1152,7 @@
     <function name="virDomainMemoryStats ()" link="libvirt-libvirt.html#virDomainMemoryStats"/>
     <function name="virDomainMigrate ()" link="libvirt-libvirt.html#virDomainMigrate"/>
     <function name="virDomainMigrate2 ()" link="libvirt-libvirt.html#virDomainMigrate2"/>
+    <function name="virDomainMigrate3 ()" link="libvirt-libvirt.html#virDomainMigrate3"/>
     <function name="virDomainMigrateGetCompressionCache ()" link="libvirt-libvirt.html#virDomainMigrateGetCompressionCache"/>
     <function name="virDomainMigrateGetMaxSpeed ()" link="libvirt-libvirt.html#virDomainMigrateGetMaxSpeed"/>
     <function name="virDomainMigrateSetCompressionCache ()" link="libvirt-libvirt.html#virDomainMigrateSetCompressionCache"/>
@@ -1149,6 +1160,7 @@
     <function name="virDomainMigrateSetMaxSpeed ()" link="libvirt-libvirt.html#virDomainMigrateSetMaxSpeed"/>
     <function name="virDomainMigrateToURI ()" link="libvirt-libvirt.html#virDomainMigrateToURI"/>
     <function name="virDomainMigrateToURI2 ()" link="libvirt-libvirt.html#virDomainMigrateToURI2"/>
+    <function name="virDomainMigrateToURI3 ()" link="libvirt-libvirt.html#virDomainMigrateToURI3"/>
     <function name="virDomainOpenChannel ()" link="libvirt-libvirt.html#virDomainOpenChannel"/>
     <function name="virDomainOpenConsole ()" link="libvirt-libvirt.html#virDomainOpenConsole"/>
     <function name="virDomainOpenGraphics ()" link="libvirt-libvirt.html#virDomainOpenGraphics"/>

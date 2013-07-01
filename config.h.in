@@ -578,6 +578,9 @@
 /* Define to 1 if you have the <bp-sym.h> header file. */
 #undef HAVE_BP_SYM_H
 
+/* whether BSD style bridge management is available */
+#undef HAVE_BSD_BRIDGE_MGMT
+
 /* Define to 1 if you have the 'btowc' function. */
 #undef HAVE_BTOWC
 
@@ -647,6 +650,18 @@
 /* Define to 1 if you have the declaration of `alarm', and to 0 if you don't.
    */
 #undef HAVE_DECL_ALARM
+
+/* Define to 1 if you have the declaration of `BRDGADD', and to 0 if you
+   don't. */
+#undef HAVE_DECL_BRDGADD
+
+/* Define to 1 if you have the declaration of `BRDGDEL', and to 0 if you
+   don't. */
+#undef HAVE_DECL_BRDGDEL
+
+/* Define to 1 if you have the declaration of `BRDGSFD', and to 0 if you
+   don't. */
+#undef HAVE_DECL_BRDGSFD
 
 /* Define to 1 if you have the declaration of `copysign', and to 0 if you
    don't. */

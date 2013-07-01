@@ -106,7 +106,6 @@ static int udevStrToLong_i(char const *s,
     return ret;
 }
 
-
 /* This function allocates memory from the heap for the property
  * value.  That memory must be later freed by some other code. */
 static int udevGetDeviceProperty(struct udev_device *udev_device,
@@ -348,15 +347,37 @@ static int udevGenerateDeviceName(struct udev_device *device,
 }
 
 
-static void udevLogFunction(struct udev *udev ATTRIBUTE_UNUSED,
-                            int priority ATTRIBUTE_UNUSED,
-                            const char *file,
-                            int line,
-                            const char *fn,
-                            const char *fmt,
-                            va_list args)
+typedef void (*udevLogFunctionPtr)(struct udev *udev,
+                                   int priority,
+                                   const char *file,
+                                   int line,
+                                   const char *fn,
+                                   const char *format,
+                                   va_list args);
+
+static void
+ATTRIBUTE_FMT_PRINTF(6,0)
+udevLogFunction(struct udev *udev ATTRIBUTE_UNUSED,
+                int priority,
+                const char *file,
+                int line,
+                const char *fn,
+                const char *fmt,
+                va_list args)
 {
-    VIR_ERROR_INT(VIR_LOG_FROM_LIBRARY, file, line, fn, fmt, args);
+    virBuffer buf = VIR_BUFFER_INITIALIZER;
+    const char *format = NULL;
+
+    virBufferAdd(&buf, fmt, -1);
+    virBufferTrim(&buf, "\n", -1);
+
+    format = virBufferContentAndReset(&buf);
+
+    virLogVMessage(VIR_LOG_FROM_LIBRARY,
+                   virLogPriorityFromSyslog(priority),
+                   file, line, fn, NULL, format ? format : fmt, args);
+
+    VIR_FREE(format);
 }
 
 
@@ -400,7 +421,8 @@ static int udevProcessPCI(struct udev_device *device,
 {
     const char *syspath = NULL;
     union _virNodeDevCapData *data = &def->caps->data;
-    int ret = -1;
+    virPCIDeviceAddress addr;
+    int tmpGroup, ret = -1;
     char *p;
     int rc;
 
@@ -479,6 +501,23 @@ static int udevProcessPCI(struct udev_device *device,
         goto out;
     else if (!rc && (data->pci_dev.num_virtual_functions > 0))
         data->pci_dev.flags |= VIR_NODE_DEV_CAP_FLAG_PCI_VIRTUAL_FUNCTION;
+
+    /* iommu group */
+    addr.domain = data->pci_dev.domain;
+    addr.bus = data->pci_dev.bus;
+    addr.slot = data->pci_dev.slot;
+    addr.function = data->pci_dev.function;
+    tmpGroup = virPCIDeviceAddressGetIOMMUGroupNum(&addr);
+    if (tmpGroup == -1) {
+        /* error was already reported */
+        goto out;
+        /* -2 return means there is no iommu_group data */
+    } else if (tmpGroup >= 0) {
+        if (virPCIDeviceAddressGetIOMMUGroupAddresses(&addr, &data->pci_dev.iommuGroupDevices,
+                                                      &data->pci_dev.nIommuGroupDevices) < 0)
+            goto out;
+        data->pci_dev.iommuGroupNumber = tmpGroup;
+    }
 
     ret = 0;
 
@@ -1100,78 +1139,84 @@ out:
     return ret;
 }
 
+static int
+udevProcessScsiGeneric(struct udev_device *dev,
+                       virNodeDeviceDefPtr def)
+{
+    if (udevGetStringProperty(dev,
+                              "DEVNAME",
+                              &def->caps->data.sg.path) != PROPERTY_FOUND)
+        return -1;
 
-static int udevGetDeviceType(struct udev_device *device,
-                             enum virNodeDevCapType *type)
+    if (udevGenerateDeviceName(dev, def, NULL) != 0)
+        return -1;
+
+    return 0;
+}
+
+static bool
+udevHasDeviceProperty(struct udev_device *dev,
+                      const char *key)
+{
+    if (udev_device_get_property_value(dev, key))
+        return true;
+
+    return false;
+}
+
+static int
+udevGetDeviceType(struct udev_device *device,
+                  enum virNodeDevCapType *type)
 {
     const char *devtype = NULL;
-    char *tmp_string = NULL;
-    unsigned int tmp = 0;
-    int ret = 0;
+    char *subsystem = NULL;
+    int ret = -1;
 
     devtype = udev_device_get_devtype(device);
-    VIR_DEBUG("Found device type '%s' for device '%s'",
-              NULLSTR(devtype), udev_device_get_sysname(device));
+    *type = 0;
 
-    if (devtype != NULL && STREQ(devtype, "usb_device")) {
-        *type = VIR_NODE_DEV_CAP_USB_DEV;
-        goto out;
+    if (devtype) {
+        if (STREQ(devtype, "usb_device"))
+            *type = VIR_NODE_DEV_CAP_USB_DEV;
+        else if (STREQ(devtype, "usb_interface"))
+            *type = VIR_NODE_DEV_CAP_USB_INTERFACE;
+        else if (STREQ(devtype, "scsi_host"))
+            *type = VIR_NODE_DEV_CAP_SCSI_HOST;
+        else if (STREQ(devtype, "scsi_target"))
+            *type = VIR_NODE_DEV_CAP_SCSI_TARGET;
+        else if (STREQ(devtype, "scsi_device"))
+            *type = VIR_NODE_DEV_CAP_SCSI;
+        else if (STREQ(devtype, "disk"))
+            *type = VIR_NODE_DEV_CAP_STORAGE;
+        else if (STREQ(devtype, "wlan"))
+            *type = VIR_NODE_DEV_CAP_NET;
+    } else {
+        /* PCI devices don't set the DEVTYPE property. */
+        if (udevHasDeviceProperty(device, "PCI_CLASS"))
+            *type = VIR_NODE_DEV_CAP_PCI_DEV;
+
+        /* Wired network interfaces don't set the DEVTYPE property,
+         * USB devices also have an INTERFACE property, but they do
+         * set DEVTYPE, so if devtype is NULL and the INTERFACE
+         * property exists, we have a network device. */
+        if (udevHasDeviceProperty(device, "INTERFACE"))
+            *type = VIR_NODE_DEV_CAP_NET;
+
+        /* SCSI generic device doesn't set DEVTYPE property */
+        if (udevGetStringProperty(device, "SUBSYSTEM", &subsystem) ==
+            PROPERTY_FOUND &&
+            STREQ(subsystem, "scsi_generic"))
+            *type = VIR_NODE_DEV_CAP_SCSI_GENERIC;
+        VIR_FREE(subsystem);
     }
 
-    if (devtype != NULL && STREQ(devtype, "usb_interface")) {
-        *type = VIR_NODE_DEV_CAP_USB_INTERFACE;
-        goto out;
-    }
+    if (!*type)
+        VIR_DEBUG("Could not determine device type for device "
+                  "with sysfs name '%s'",
+                  udev_device_get_sysname(device));
+    else
+        ret = 0;
 
-    if (devtype != NULL && STREQ(devtype, "scsi_host")) {
-        *type = VIR_NODE_DEV_CAP_SCSI_HOST;
-        goto out;
-    }
-
-    if (devtype != NULL && STREQ(devtype, "scsi_target")) {
-        *type = VIR_NODE_DEV_CAP_SCSI_TARGET;
-        goto out;
-    }
-
-    if (devtype != NULL && STREQ(devtype, "scsi_device")) {
-        *type = VIR_NODE_DEV_CAP_SCSI;
-        goto out;
-    }
-
-    if (devtype != NULL && STREQ(devtype, "disk")) {
-        *type = VIR_NODE_DEV_CAP_STORAGE;
-        goto out;
-    }
-
-    if (devtype != NULL && STREQ(devtype, "wlan")) {
-        *type = VIR_NODE_DEV_CAP_NET;
-        goto out;
-    }
-
-    if (udevGetUintProperty(device, "PCI_CLASS", &tmp, 16) == PROPERTY_FOUND) {
-        *type = VIR_NODE_DEV_CAP_PCI_DEV;
-        goto out;
-    }
-
-    /* It does not appear that wired network interfaces set the
-     * DEVTYPE property.  USB devices also have an INTERFACE property,
-     * but they do set DEVTYPE, so if devtype is NULL and the
-     * INTERFACE property exists, we have a network device. */
-    if (devtype == NULL &&
-        udevGetStringProperty(device,
-                              "INTERFACE",
-                              &tmp_string) == PROPERTY_FOUND) {
-        VIR_FREE(tmp_string);
-        *type = VIR_NODE_DEV_CAP_NET;
-        goto out;
-    }
-
-    VIR_DEBUG("Could not determine device type for device "
-              "with sysfs path '%s'",
-              udev_device_get_sysname(device));
-    ret = -1;
-
-out:
     return ret;
 }
 
@@ -1208,6 +1253,9 @@ static int udevGetDeviceDetails(struct udev_device *device,
         break;
     case VIR_NODE_DEV_CAP_STORAGE:
         ret = udevProcessStorage(device, def);
+        break;
+    case VIR_NODE_DEV_CAP_SCSI_GENERIC:
+        ret = udevProcessScsiGeneric(device, def);
         break;
     default:
         VIR_ERROR(_("Unknown device type %d"), def->caps->type);
@@ -1672,7 +1720,8 @@ static int nodeStateInitialize(bool privileged ATTRIBUTE_UNUSED,
      * its return value.
      */
     udev = udev_new();
-    udev_set_log_fn(udev, udevLogFunction);
+    /* cast to get rid of missing-format-attribute warning */
+    udev_set_log_fn(udev, (udevLogFunctionPtr) udevLogFunction);
 
     priv->udev_monitor = udev_monitor_new_from_netlink(udev, "udev");
     if (priv->udev_monitor == NULL) {

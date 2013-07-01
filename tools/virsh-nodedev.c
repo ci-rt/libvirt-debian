@@ -453,6 +453,9 @@ cmdNodeListDevices(vshControl *ctl, const vshCmd *cmd ATTRIBUTE_UNUSED)
         case VIR_NODE_DEV_CAP_VPORTS:
             flags |= VIR_CONNECT_LIST_NODE_DEVICES_CAP_VPORTS;
             break;
+        case VIR_NODE_DEV_CAP_SCSI_GENERIC:
+            flags |= VIR_CONNECT_LIST_NODE_DEVICES_CAP_SCSI_GENERIC;
+            break;
         default:
             break;
         }
@@ -602,7 +605,7 @@ static const vshCmdOptDef opts_node_device_detach[] = {
     },
     {.name = "driver",
      .type = VSH_OT_STRING,
-     .help = N_("pci device assignment backend driver (e.g. 'vfio' or 'kvm'")
+     .help = N_("pci device assignment backend driver (e.g. 'vfio' or 'kvm')")
     },
     {.name = NULL}
 };

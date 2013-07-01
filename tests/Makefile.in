@@ -64,7 +64,7 @@ host_triplet = @host@
 
 @WITH_QEMU_TRUE@am__append_8 = qemuxml2argvtest qemuxml2xmltest qemuxmlnstest \
 @WITH_QEMU_TRUE@	qemuargv2xmltest qemuhelptest domainsnapshotxml2xmltest \
-@WITH_QEMU_TRUE@	qemumonitortest qemumonitorjsontest
+@WITH_QEMU_TRUE@	qemumonitortest qemumonitorjsontest qemuhotplugtest
 
 @WITH_LXC_TRUE@am__append_9 = lxcxml2xmltest
 @WITH_OPENVZ_TRUE@am__append_10 = openvzutilstest
@@ -130,7 +130,7 @@ TESTS = $(am__EXEEXT_17) $(am__EXEEXT_20)
 @WITH_QEMU_FALSE@am__append_27 = qemuxml2argvtest.c qemuxml2xmltest.c qemuargv2xmltest.c \
 @WITH_QEMU_FALSE@	qemuxmlnstest.c qemuhelptest.c domainsnapshotxml2xmltest.c \
 @WITH_QEMU_FALSE@	qemumonitortest.c testutilsqemu.c testutilsqemu.h \
-@WITH_QEMU_FALSE@	qemumonitorjsontest.c \
+@WITH_QEMU_FALSE@	qemumonitorjsontest.c qemuhotplugtest.c \
 @WITH_QEMU_FALSE@	$(QEMUMONITORTESTUTILS_SOURCES)
 
 @WITH_LXC_TRUE@@WITH_NETWORK_TRUE@am__append_28 = ../src/libvirt_driver_network_impl.la
@@ -488,7 +488,8 @@ vircgroupmock_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 @WITH_QEMU_TRUE@	qemuhelptest$(EXEEXT) \
 @WITH_QEMU_TRUE@	domainsnapshotxml2xmltest$(EXEEXT) \
 @WITH_QEMU_TRUE@	qemumonitortest$(EXEEXT) \
-@WITH_QEMU_TRUE@	qemumonitorjsontest$(EXEEXT)
+@WITH_QEMU_TRUE@	qemumonitorjsontest$(EXEEXT) \
+@WITH_QEMU_TRUE@	qemuhotplugtest$(EXEEXT)
 @WITH_LXC_TRUE@am__EXEEXT_7 = lxcxml2xmltest$(EXEEXT)
 @WITH_OPENVZ_TRUE@am__EXEEXT_8 = openvzutilstest$(EXEEXT)
 @WITH_ESX_TRUE@am__EXEEXT_9 = esxutilstest$(EXEEXT)
@@ -642,6 +643,14 @@ am__qemuhelptest_SOURCES_DIST = qemuhelptest.c testutils.c testutils.h
 @WITH_QEMU_TRUE@	testutils.$(OBJEXT)
 qemuhelptest_OBJECTS = $(am_qemuhelptest_OBJECTS)
 @WITH_QEMU_TRUE@qemuhelptest_DEPENDENCIES = $(am__DEPENDENCIES_3)
+am__qemuhotplugtest_SOURCES_DIST = qemuhotplugtest.c testutils.c \
+	testutils.h testutilsqemu.c testutilsqemu.h
+@WITH_QEMU_TRUE@am_qemuhotplugtest_OBJECTS =  \
+@WITH_QEMU_TRUE@	qemuhotplugtest.$(OBJEXT) testutils.$(OBJEXT) \
+@WITH_QEMU_TRUE@	testutilsqemu.$(OBJEXT)
+qemuhotplugtest_OBJECTS = $(am_qemuhotplugtest_OBJECTS)
+@WITH_QEMU_TRUE@qemuhotplugtest_DEPENDENCIES = $(am__DEPENDENCIES_3) \
+@WITH_QEMU_TRUE@	libqemumonitortestutils.la
 am__qemumonitorjsontest_SOURCES_DIST = qemumonitorjsontest.c \
 	testutils.c testutils.h testutilsqemu.c testutilsqemu.h
 @WITH_QEMU_TRUE@am_qemumonitorjsontest_OBJECTS =  \
@@ -911,10 +920,11 @@ SOURCES = $(libqemumonitortestutils_la_SOURCES) \
 	$(nodeinfotest_SOURCES) $(nwfilterxml2xmltest_SOURCES) \
 	$(object_locking_SOURCES) $(openvzutilstest_SOURCES) \
 	$(qemuargv2xmltest_SOURCES) $(qemuhelptest_SOURCES) \
-	$(qemumonitorjsontest_SOURCES) $(qemumonitortest_SOURCES) \
-	$(qemuxml2argvtest_SOURCES) $(qemuxml2xmltest_SOURCES) \
-	$(qemuxmlnstest_SOURCES) $(reconnect_SOURCES) \
-	$(seclabeltest_SOURCES) $(securityselinuxlabeltest_SOURCES) \
+	$(qemuhotplugtest_SOURCES) $(qemumonitorjsontest_SOURCES) \
+	$(qemumonitortest_SOURCES) $(qemuxml2argvtest_SOURCES) \
+	$(qemuxml2xmltest_SOURCES) $(qemuxmlnstest_SOURCES) \
+	$(reconnect_SOURCES) $(seclabeltest_SOURCES) \
+	$(securityselinuxlabeltest_SOURCES) \
 	$(securityselinuxtest_SOURCES) $(sexpr2xmltest_SOURCES) \
 	$(shunloadtest_SOURCES) $(sockettest_SOURCES) $(ssh_SOURCES) \
 	$(statstest_SOURCES) $(storagebackendsheepdogtest_SOURCES) \
@@ -955,6 +965,7 @@ DIST_SOURCES = $(am__libqemumonitortestutils_la_SOURCES_DIST) \
 	$(am__openvzutilstest_SOURCES_DIST) \
 	$(am__qemuargv2xmltest_SOURCES_DIST) \
 	$(am__qemuhelptest_SOURCES_DIST) \
+	$(am__qemuhotplugtest_SOURCES_DIST) \
 	$(am__qemumonitorjsontest_SOURCES_DIST) \
 	$(am__qemumonitortest_SOURCES_DIST) \
 	$(am__qemuxml2argvtest_SOURCES_DIST) \
@@ -1039,7 +1050,6 @@ BITSIZEOF_WCHAR_T = @BITSIZEOF_WCHAR_T@
 BITSIZEOF_WINT_T = @BITSIZEOF_WINT_T@
 BLKID_CFLAGS = @BLKID_CFLAGS@
 BLKID_LIBS = @BLKID_LIBS@
-BRCTL = @BRCTL@
 BYTESWAP_H = @BYTESWAP_H@
 CAPNG_CFLAGS = @CAPNG_CFLAGS@
 CAPNG_LIBS = @CAPNG_LIBS@
@@ -2464,9 +2474,9 @@ EXTRA_DIST = capabilityschemadata capabilityschematest commanddata \
 	networkxml2xmlout networkxml2confdata nodedevschemadata \
 	nodedevschematest nodeinfodata nwfilterschematest \
 	nwfilterxml2xmlin nwfilterxml2xmlout oomtrace.pl qemuhelpdata \
-	qemuxml2argvdata qemuxml2xmloutdata qemuxmlnsdata \
-	securityselinuxlabeldata schematestutils.sh sexpr2xmldata \
-	storagepoolschemadata storagepoolschematest \
+	qemuhotplugtestdata qemuxml2argvdata qemuxml2xmloutdata \
+	qemuxmlnsdata securityselinuxlabeldata schematestutils.sh \
+	sexpr2xmldata storagepoolschemadata storagepoolschematest \
 	storagepoolxml2xmlin storagepoolxml2xmlout \
 	storagevolxml2argvdata storagevolschemadata \
 	storagevolschematest storagevolxml2xmlin storagevolxml2xmlout \
@@ -2604,6 +2614,13 @@ QEMUMONITORTESTUTILS_SOURCES = \
 @WITH_QEMU_TRUE@	$(NULL)
 
 @WITH_QEMU_TRUE@qemumonitorjsontest_LDADD = $(qemu_LDADDS) libqemumonitortestutils.la
+@WITH_QEMU_TRUE@qemuhotplugtest_SOURCES = \
+@WITH_QEMU_TRUE@	qemuhotplugtest.c \
+@WITH_QEMU_TRUE@	testutils.c testutils.h \
+@WITH_QEMU_TRUE@	testutilsqemu.c testutilsqemu.h \
+@WITH_QEMU_TRUE@	$(NULL)
+
+@WITH_QEMU_TRUE@qemuhotplugtest_LDADD = $(qemu_LDADDS) libqemumonitortestutils.la
 @WITH_QEMU_TRUE@domainsnapshotxml2xmltest_SOURCES = \
 @WITH_QEMU_TRUE@	domainsnapshotxml2xmltest.c testutilsqemu.c testutilsqemu.h \
 @WITH_QEMU_TRUE@	testutils.c testutils.h
@@ -3015,6 +3032,9 @@ qemuargv2xmltest$(EXEEXT): $(qemuargv2xmltest_OBJECTS) $(qemuargv2xmltest_DEPEND
 qemuhelptest$(EXEEXT): $(qemuhelptest_OBJECTS) $(qemuhelptest_DEPENDENCIES) $(EXTRA_qemuhelptest_DEPENDENCIES) 
 	@rm -f qemuhelptest$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(qemuhelptest_OBJECTS) $(qemuhelptest_LDADD) $(LIBS)
+qemuhotplugtest$(EXEEXT): $(qemuhotplugtest_OBJECTS) $(qemuhotplugtest_DEPENDENCIES) $(EXTRA_qemuhotplugtest_DEPENDENCIES) 
+	@rm -f qemuhotplugtest$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(qemuhotplugtest_OBJECTS) $(qemuhotplugtest_LDADD) $(LIBS)
 qemumonitorjsontest$(EXEEXT): $(qemumonitorjsontest_OBJECTS) $(qemumonitorjsontest_DEPENDENCIES) $(EXTRA_qemumonitorjsontest_DEPENDENCIES) 
 	@rm -f qemumonitorjsontest$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(qemumonitorjsontest_OBJECTS) $(qemumonitorjsontest_LDADD) $(LIBS)
@@ -3186,6 +3206,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pkix_asn1_tab.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/qemuargv2xmltest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/qemuhelptest.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/qemuhotplugtest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/qemumonitorjsontest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/qemumonitortest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/qemumonitortestutils.Plo@am__quote@

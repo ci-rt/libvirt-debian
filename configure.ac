@@ -16,7 +16,7 @@ dnl You should have received a copy of the GNU Lesser General Public
 dnl License along with this library.  If not, see
 dnl <http://www.gnu.org/licenses/>.
 
-AC_INIT([libvirt], [1.0.6], [libvir-list@redhat.com], [], [http://libvirt.org])
+AC_INIT([libvirt], [1.1.0], [libvir-list@redhat.com], [], [http://libvirt.org])
 AC_CONFIG_SRCDIR([src/libvirt.c])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
@@ -317,8 +317,6 @@ dnl along the $PATH at runtime and fail if it's not there.
 AC_PATH_PROG([DNSMASQ], [dnsmasq], [dnsmasq],
 	[/sbin:/usr/sbin:/usr/local/sbin:$PATH])
 AC_PATH_PROG([RADVD], [radvd], [radvd],
-	[/sbin:/usr/sbin:/usr/local/sbin:$PATH])
-AC_PATH_PROG([BRCTL], [brctl], [brctl],
 	[/sbin:/usr/sbin:/usr/local/sbin:$PATH])
 AC_PATH_PROG([TC], [tc], [tc],
     [/sbin:/usr/sbin:/usr/local/sbin:$PATH])
@@ -2399,6 +2397,17 @@ AC_CHECK_DECLS([link_addr],
                [#include <sys/types.h>
                 #include <sys/socket.h>
                 #include <net/if_dl.h>
+               ])
+
+# Check for BSD approach for bridge management
+AC_CHECK_DECLS([BRDGSFD, BRDGADD, BRDGDEL],
+               [AC_DEFINE([HAVE_BSD_BRIDGE_MGMT],
+                          [1],
+                          [whether BSD style bridge management is available])],
+               [],
+               [#include <net/if.h>
+                #include <net/ethernet.h>
+                #include <net/if_bridgevar.h>
                ])
 
 # Detect when running under the clang static analyzer's scan-build driver

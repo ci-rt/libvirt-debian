@@ -24,10 +24,16 @@
 # define __VIR_TYPED_PARAM_H_
 
 # include "internal.h"
+# include "virutil.h"
 
-int virTypedParameterArrayValidate(virTypedParameterPtr params, int nparams,
-                                   /* const char *name, int type ... */ ...)
+int virTypedParamsValidate(virTypedParameterPtr params, int nparams,
+                           /* const char *name, int type ... */ ...)
     ATTRIBUTE_SENTINEL ATTRIBUTE_RETURN_CHECK;
+
+bool virTypedParamsCheck(virTypedParameterPtr params,
+                         int nparams,
+                         const char **names,
+                         int nnames);
 
 int virTypedParameterAssign(virTypedParameterPtr param, const char *name,
                             int type, /* TYPE arg */ ...)
@@ -38,5 +44,33 @@ int virTypedParameterAssignFromStr(virTypedParameterPtr param,
                                    int type,
                                    const char *val)
     ATTRIBUTE_RETURN_CHECK;
+
+int virTypedParamsReplaceString(virTypedParameterPtr *params,
+                                int *nparams,
+                                const char *name,
+                                const char *value);
+
+int virTypedParamsCopy(virTypedParameterPtr *dst,
+                       virTypedParameterPtr src,
+                       int nparams);
+
+char *virTypedParameterToString(virTypedParameterPtr param);
+
+VIR_ENUM_DECL(virTypedParameter)
+
+# define VIR_TYPED_PARAMS_DEBUG(params, nparams)                            \
+    do {                                                                    \
+        int _i;                                                             \
+        if (!params)                                                        \
+            break;                                                          \
+        for (_i = 0; _i < (nparams); _i++) {                                \
+            char *_value = virTypedParameterToString((params) + _i);        \
+            VIR_DEBUG("params[\"%s\"]=(%s)%s",                              \
+                      (params)[_i].field,                                   \
+                      virTypedParameterTypeToString((params)[_i].type),     \
+                      NULLSTR(_value));                                     \
+            VIR_FREE(_value);                                               \
+        }                                                                   \
+    } while (0)
 
 #endif /* __VIR_TYPED_PARAM_H */

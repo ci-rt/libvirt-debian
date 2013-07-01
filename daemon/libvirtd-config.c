@@ -283,7 +283,7 @@ daemonConfigNew(bool privileged ATTRIBUTE_UNUSED)
          * running in disconnected operation, and report a less
          * useful Avahi string
          */
-        ret = virAsprintf(&data->mdns_name, "Virtualization Host");
+        ret = VIR_STRDUP(data->mdns_name, "Virtualization Host");
     } else {
         char *tmp;
         /* Extract the host part of the potentially FQDN */
@@ -316,6 +316,12 @@ daemonConfigFree(struct daemonConfig *data)
     VIR_FREE(data->listen_addr);
     VIR_FREE(data->tls_port);
     VIR_FREE(data->tcp_port);
+    tmp = data->access_drivers;
+    while (tmp && *tmp) {
+        VIR_FREE(*tmp);
+        tmp++;
+    }
+    VIR_FREE(data->access_drivers);
 
     VIR_FREE(data->unix_sock_ro_perms);
     VIR_FREE(data->unix_sock_rw_perms);
@@ -377,6 +383,10 @@ daemonConfigLoadOptions(struct daemonConfig *data,
     if (remoteConfigGetAuth(conf, "auth_tcp", &data->auth_tcp, filename) < 0)
         goto error;
     if (remoteConfigGetAuth(conf, "auth_tls", &data->auth_tls, filename) < 0)
+        goto error;
+
+    if (remoteConfigGetStringList(conf, "access_drivers",
+                                  &data->access_drivers, filename) < 0)
         goto error;
 
     GET_CONF_STR(conf, filename, unix_sock_group);

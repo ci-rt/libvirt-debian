@@ -54,7 +54,11 @@
 %define with_qemu_tcg      %{with_qemu}
 # Change if we ever provide qemu-kvm binaries on non-x86 hosts
 %if 0%{?fedora} >= 18
-    %define qemu_kvm_arches    %{ix86} x86_64 ppc64 s390x
+    %if 0%{?fedora} >= 20
+        %define qemu_kvm_arches    %{ix86} x86_64 ppc64 s390x %{arm}
+    %else
+        %define qemu_kvm_arches    %{ix86} x86_64 ppc64 s390x
+    %endif
 %else
     %define qemu_kvm_arches    %{ix86} x86_64
 %endif
@@ -408,7 +412,7 @@ BuildRequires: python-devel
 %if %{with_systemd}
 BuildRequires: systemd-units
 %endif
-%if %{with_xen}
+%if %{with_xen} || %{with_libxl}
 BuildRequires: xen-devel
 %endif
 BuildRequires: libxml2-devel
@@ -418,6 +422,7 @@ BuildRequires: readline-devel
 BuildRequires: ncurses-devel
 BuildRequires: gettext
 BuildRequires: libtasn1-devel
+BuildRequires: libgcrypt-devel
 BuildRequires: gnutls-devel
 BuildRequires: libattr-devel
 %if %{with_libvirtd}
@@ -1049,7 +1054,6 @@ Requires: libvirt-daemon-driver-nwfilter = %{version}-%{release}
 Requires: libvirt-daemon-driver-secret = %{version}-%{release}
 Requires: libvirt-daemon-driver-storage = %{version}-%{release}
         %endif
-Requires: vbox
 
 %description daemon-vbox
 Server side daemon and driver required to manage the virtualization
@@ -1816,6 +1820,7 @@ fi
     %if %{with_polkit}
         %if 0%{?fedora} >= 12 || 0%{?rhel} >= 6
 %{_datadir}/polkit-1/actions/org.libvirt.unix.policy
+%{_datadir}/polkit-1/actions/org.libvirt.api.policy
         %else
 %{_datadir}/PolicyKit/policy/org.libvirt.unix.policy
         %endif
@@ -2002,6 +2007,7 @@ fi
 %{_datadir}/libvirt/schemas/nwfilter.rng
 %{_datadir}/libvirt/schemas/secret.rng
 %{_datadir}/libvirt/schemas/storageencryption.rng
+%{_datadir}/libvirt/schemas/storagefilefeatures.rng
 %{_datadir}/libvirt/schemas/storagepool.rng
 %{_datadir}/libvirt/schemas/storagevol.rng
 
@@ -2060,6 +2066,14 @@ fi
 %endif
 
 %changelog
+* Mon Jul  1 2013 Daniel Veillard <veillard@redhat.com> - 1.1.0-1
+- CVE-2013-2218: Fix crash listing network interfaces with filters
+- Fine grained ACL support for the API
+- Extensible migration APIs
+- various improvements in the Xen driver
+- agent based vCPU hotplug support
+- various bug fixes and improvements including localizations
+
 * Mon Jun  3 2013 Daniel Veillard <veillard@redhat.com> - 1.0.6-1
 - Move VirtualBox driver into libvirtd
 - Support for static routes on a virtual bridge

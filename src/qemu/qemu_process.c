@@ -796,6 +796,19 @@ qemuProcessHandleRTCChange(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
     virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
 
     virObjectLock(vm);
+
+    /* QEMU's RTC_CHANGE event returns the offset from the specified
+     * date instead of the host UTC if a specific date is provided
+     * (-rtc base=$date). We need to convert it to be offset from
+     * host UTC.
+     */
+    if (vm->def->clock.offset == VIR_DOMAIN_CLOCK_OFFSET_VARIABLE) {
+        time_t now = time(NULL);
+
+        offset += vm->def->clock.data.variable.basedate -
+                  (unsigned long long)now;
+    }
+
     event = virDomainEventRTCChangeNewFromObj(vm, offset);
 
     if (vm->def->clock.offset == VIR_DOMAIN_CLOCK_OFFSET_VARIABLE)
@@ -1411,12 +1424,11 @@ qemuProcessReadLogOutput(virDomainObjPtr vm,
 
     while (retries) {
         ssize_t func_ret;
-        int isdead = 0;
+        bool isdead;
 
         func_ret = func(vm, buf, fd);
 
-        if (kill(vm->pid, 0) == -1 && errno == ESRCH)
-            isdead = 1;
+        isdead = kill(vm->pid, 0) == -1 && errno == ESRCH;
 
         got = qemuProcessReadLog(fd, buf, buflen, got);
         if (got < 0) {
@@ -2078,23 +2090,22 @@ qemuProcessAssignNextPCIAddress(virDomainDeviceInfo *info,
                                 qemuMonitorPCIAddress *addrs,
                                 int naddrs)
 {
-    int found = 0;
+    bool found = false;
     int i;
 
     VIR_DEBUG("Look for %x:%x out of %d", vendor, product, naddrs);
 
-    for (i = 0; (i < naddrs) && !found; i++) {
+    for (i = 0; i < naddrs; i++) {
         VIR_DEBUG("Maybe %x:%x", addrs[i].vendor, addrs[i].product);
         if (addrs[i].vendor == vendor &&
             addrs[i].product == product) {
             VIR_DEBUG("Match %d", i);
-            found = 1;
+            found = true;
             break;
         }
     }
-    if (!found) {
+    if (!found)
         return -1;
-    }
 
     /* Blank it out so this device isn't matched again */
     addrs[i].vendor = 0;
@@ -2624,7 +2635,6 @@ static int
 qemuProcessFiltersInstantiate(virConnectPtr conn,
                               virDomainDefPtr def)
 {
-    int err = 0;
     int i;
 
     if (!conn)
@@ -2633,14 +2643,12 @@ qemuProcessFiltersInstantiate(virConnectPtr conn,
     for (i = 0; i < def->nnets; i++) {
         virDomainNetDefPtr net = def->nets[i];
         if ((net->filter) && (net->ifname)) {
-           if (virDomainConfNWFilterInstantiate(conn, def->uuid, net) < 0) {
-                err = 1;
-                break;
-            }
+            if (virDomainConfNWFilterInstantiate(conn, def->uuid, net) < 0)
+                return 1;
         }
     }
 
-    return err;
+    return 0;
 }
 
 static int
@@ -3478,6 +3486,7 @@ int qemuProcessStart(virConnectPtr conn,
                     VIR_SHRINK_N(graphics->listens, graphics->nListens, 1);
                     goto cleanup;
                 }
+                graphics->listens[0].fromConfig = true;
             }
         }
     }

@@ -60,15 +60,16 @@ testCompareXMLToArgvFiles(bool shouldFail,
 
     cmd = virStorageBackendCreateQemuImgCmd(conn, &poolobj, vol, inputvol,
                                             flags, create_tool, imgformat);
-
-    actualCmdline = virCommandToString(cmd);
-    if (!actualCmdline) {
+    if (!cmd) {
         if (shouldFail) {
             virResetLastError();
             ret = 0;
         }
         goto cleanup;
     }
+
+    if (!(actualCmdline = virCommandToString(cmd)))
+        goto cleanup;
 
     len = virtTestLoadFile(cmdline, &expectedCmdline);
     if (len < 0)
@@ -187,6 +188,12 @@ mymain(void)
             "qcow2-nobacking-none", 0, FMT_NONE);
     DO_TEST(false, "pool-dir", "vol-qcow2-nobacking", "vol-file",
             "qcow2-nobacking-convert-none", 0, FMT_NONE);
+    DO_TEST(false, "pool-dir", "vol-qcow2-lazy", NULL, "qcow2-lazy", 0,
+            FMT_OPTIONS);
+    DO_TEST(false, "pool-dir", "vol-qcow2-1.1", NULL, "qcow2-1.1", 0,
+            FMT_OPTIONS);
+    DO_TEST(true, "pool-dir", "vol-qcow2-0.10-lazy", NULL, "qcow2-0.10-lazy", 0,
+            FMT_OPTIONS);
 
     return ret==0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }

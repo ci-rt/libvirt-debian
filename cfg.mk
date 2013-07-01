@@ -165,6 +165,7 @@ useless_free_options =				\
   --name=virNodeDeviceObjFree			\
   --name=virObjectUnref                         \
   --name=virObjectFreeCallback                  \
+  --name=virPCIDeviceFree                       \
   --name=virSecretDefFree			\
   --name=virStorageEncryptionFree		\
   --name=virStorageEncryptionSecretFree		\
@@ -797,6 +798,15 @@ sc_prohibit_include_public_headers_brackets:
 	halt='Do not include libvirt/*.h in internal source'		\
 	  $(_sc_search_regexp)
 
+# <config.h> is only needed in .c files; .h files do not need it since
+# .c files must include config.h before any other .h.
+sc_prohibit_config_h_in_headers:
+	@prohibit='^# *include\>.*config\.h'				\
+	in_vc_files='\.h$$'						\
+	halt='headers should not include <config.h>'			\
+	  $(_sc_search_regexp)
+
+
 # We don't use this feature of maint.mk.
 prev_version_file = /dev/null
 
@@ -937,10 +947,11 @@ exclude_file_name_regexp--sc_prohibit_xmlURI = ^src/util/viruri\.c$$
 
 exclude_file_name_regexp--sc_prohibit_return_as_function = \.py$$
 
-_virsh_includes=(edit|domain-monitor|domain|volume|pool|network|interface|nwfilter|secret|snapshot|host|nodedev)
-exclude_file_name_regexp--sc_require_config_h = ^(examples/|tools/virsh-$(_virsh_includes)\.c$$)
+exclude_file_name_regexp--sc_require_config_h = \
+	^(examples/|tools/virsh-edit\.c$$)
 
-exclude_file_name_regexp--sc_require_config_h_first = ^(examples/|tools/virsh-$(_virsh_includes)\.c$$)
+exclude_file_name_regexp--sc_require_config_h_first = \
+	^(examples/|tools/virsh-edit\.c$$)
 
 exclude_file_name_regexp--sc_trailing_blank = \
   (/qemuhelpdata/|/sysinfodata/.*\.data|\.(fig|gif|ico|png)$$)

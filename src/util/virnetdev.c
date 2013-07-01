@@ -62,13 +62,15 @@ static int virNetDevSetupControlFull(const char *ifname,
 {
     int fd;
 
-    memset(ifr, 0, sizeof(*ifr));
+    if (ifr && ifname) {
+        memset(ifr, 0, sizeof(*ifr));
 
-    if (virStrcpyStatic(ifr->ifr_name, ifname) == NULL) {
-        virReportSystemError(ERANGE,
-                             _("Network interface name '%s' is too long"),
-                             ifname);
-        return -1;
+        if (virStrcpyStatic(ifr->ifr_name, ifname) == NULL) {
+            virReportSystemError(ERANGE,
+                                 _("Network interface name '%s' is too long"),
+                                 ifname);
+            return -1;
+        }
     }
 
     if ((fd = socket(domain, type, 0)) < 0) {
@@ -88,12 +90,23 @@ static int virNetDevSetupControlFull(const char *ifname,
 }
 
 
-static int virNetDevSetupControl(const char *ifname,
-                                 struct ifreq *ifr)
+int
+virNetDevSetupControl(const char *ifname,
+                      struct ifreq *ifr)
 {
     return virNetDevSetupControlFull(ifname, ifr, VIR_NETDEV_FAMILY, SOCK_DGRAM);
 }
-#endif
+#else /* !HAVE_STRUCT_IFREQ */
+int
+virNetDevSetupControl(const char *ifname ATTRIBUTE_UNUSED,
+                      void *ifr ATTRIBUTE_UNUSED)
+{
+    virReportSystemError(ENOSYS, "%s",
+                         _("Network device configuration is not supported "
+                           "on this platform"));
+    return -1;
+}
+#endif /* HAVE_STRUCT_IFREQ */
 
 
 #if defined(SIOCGIFFLAGS) && defined(HAVE_STRUCT_IFREQ)
@@ -1087,6 +1100,9 @@ virNetDevGetVirtualFunctions(const char *pfname,
     char *pci_sysfs_device_link = NULL;
     char *pciConfigAddr = NULL;
 
+    *virt_fns = NULL;
+    *n_vfname = 0;
+
     if (virNetDevSysfsFile(&pf_sysfs_device_link, pfname, "device") < 0)
         return ret;
 
@@ -1564,7 +1580,6 @@ virNetDevParseVfConfig(struct nlattr **tb, int32_t vf, virMacAddrPtr mac,
     struct ifla_vf_vlan *vf_vlan;
     struct nlattr *tb_vf_info = {NULL, };
     struct nlattr *tb_vf[IFLA_VF_MAX+1];
-    int found = 0;
     int rem;
 
     if (!tb[IFLA_VFINFO_LIST]) {
@@ -1588,7 +1603,7 @@ virNetDevParseVfConfig(struct nlattr **tb, int32_t vf, virMacAddrPtr mac,
             vf_mac = RTA_DATA(tb_vf[IFLA_VF_MAC]);
             if (vf_mac && vf_mac->vf == vf)  {
                 virMacAddrSetRaw(mac, vf_mac->mac);
-                found = 1;
+                rc = 0;
             }
         }
 
@@ -1596,17 +1611,17 @@ virNetDevParseVfConfig(struct nlattr **tb, int32_t vf, virMacAddrPtr mac,
             vf_vlan = RTA_DATA(tb_vf[IFLA_VF_VLAN]);
             if (vf_vlan && vf_vlan->vf == vf)  {
                 *vlanid = vf_vlan->vlan;
-                found = 1;
+                rc = 0;
             }
         }
-        if (found) {
-            rc = 0;
-            goto cleanup;
-        }
+
+        if (rc == 0)
+            break;
     }
-    virReportError(VIR_ERR_INTERNAL_ERROR,
-                   _("couldn't find IFLA_VF_INFO for VF %d "
-                     "in netlink response"), vf);
+    if (rc < 0)
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("couldn't find IFLA_VF_INFO for VF %d "
+                         "in netlink response"), vf);
 cleanup:
     return rc;
 }

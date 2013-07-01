@@ -1599,7 +1599,7 @@ int qemuMonitorJSONGetBlockStatsInfo(qemuMonitorPtr mon,
 {
     int ret;
     int i;
-    int found = 0;
+    bool found = false;
     virJSONValuePtr cmd = qemuMonitorJSONMakeCommand("query-blockstats",
                                                      NULL);
     virJSONValuePtr reply = NULL;
@@ -1661,7 +1661,7 @@ int qemuMonitorJSONGetBlockStatsInfo(qemuMonitorPtr mon,
         if (STRNEQ(thisdev, dev_name))
             continue;
 
-        found = 1;
+        found = true;
         if ((stats = virJSONValueObjectGet(dev, "stats")) == NULL ||
             stats->type != VIR_JSON_TYPE_OBJECT) {
             virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
@@ -1823,7 +1823,7 @@ int qemuMonitorJSONGetBlockExtent(qemuMonitorPtr mon,
 {
     int ret = -1;
     int i;
-    int found = 0;
+    bool found = false;
     virJSONValuePtr cmd = qemuMonitorJSONMakeCommand("query-blockstats",
                                                      NULL);
     virJSONValuePtr reply = NULL;
@@ -1876,7 +1876,7 @@ int qemuMonitorJSONGetBlockExtent(qemuMonitorPtr mon,
         if (STRNEQ(thisdev, dev_name))
             continue;
 
-        found = 1;
+        found = true;
         if ((parent = virJSONValueObjectGet(dev, "parent")) == NULL ||
             parent->type != VIR_JSON_TYPE_OBJECT) {
             virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
@@ -2076,11 +2076,44 @@ cleanup:
  * or -1 on failure
  */
 int qemuMonitorJSONSetCPU(qemuMonitorPtr mon,
-                          int cpu, int online)
+                          int cpu, bool online)
 {
-    /* XXX Update to use QMP, if QMP ever adds support for cpu hotplug */
+    int ret = -1;
+    virJSONValuePtr cmd = NULL;
+    virJSONValuePtr reply = NULL;
+
+    if (online) {
+        cmd = qemuMonitorJSONMakeCommand("cpu-add",
+                                         "i:id", cpu,
+                                         NULL);
+    } else {
+        /* offlining is not yet implemented in qmp */
+        goto fallback;
+    }
+    if (!cmd)
+        goto cleanup;
+
+    if ((ret = qemuMonitorJSONCommand(mon, cmd, &reply)) < 0)
+        goto cleanup;
+
+    if (qemuMonitorJSONHasError(reply, "CommandNotFound"))
+        goto fallback;
+    else
+        ret = qemuMonitorJSONCheckError(cmd, reply);
+
+    /* this function has non-standard return values, so adapt it */
+    if (ret == 0)
+        ret = 1;
+
+cleanup:
+    virJSONValueFree(cmd);
+    virJSONValueFree(reply);
+    return ret;
+
+fallback:
     VIR_DEBUG("no QMP support for cpu_set, trying HMP");
-    return qemuMonitorTextSetCPU(mon, cpu, online);
+    ret = qemuMonitorTextSetCPU(mon, cpu, online);
+    goto cleanup;
 }
 
 

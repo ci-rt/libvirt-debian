@@ -45,13 +45,13 @@ virPCIDevicePtr virPCIDeviceNew(unsigned int domain,
                                 unsigned int bus,
                                 unsigned int slot,
                                 unsigned int function);
+virPCIDevicePtr virPCIDeviceCopy(virPCIDevicePtr dev);
 void virPCIDeviceFree(virPCIDevicePtr dev);
 const char *virPCIDeviceGetName(virPCIDevicePtr dev);
 
 int virPCIDeviceDetach(virPCIDevicePtr dev,
                        virPCIDeviceListPtr activeDevs,
-                       virPCIDeviceListPtr inactiveDevs,
-                       const char *driver);
+                       virPCIDeviceListPtr inactiveDevs);
 int virPCIDeviceReattach(virPCIDevicePtr dev,
                          virPCIDeviceListPtr activeDevs,
                          virPCIDeviceListPtr inactiveDevs);
@@ -62,8 +62,8 @@ int virPCIDeviceReset(virPCIDevicePtr dev,
 void virPCIDeviceSetManaged(virPCIDevice *dev,
                             bool managed);
 unsigned int virPCIDeviceGetManaged(virPCIDevice *dev);
-void virPCIDeviceSetStubDriver(virPCIDevicePtr dev,
-                               const char *driver);
+int virPCIDeviceSetStubDriver(virPCIDevicePtr dev,
+                              const char *driver);
 const char *virPCIDeviceGetStubDriver(virPCIDevicePtr dev);
 void virPCIDeviceSetUsedBy(virPCIDevice *dev,
                            const char *used_by);
@@ -83,6 +83,7 @@ void virPCIDeviceReattachInit(virPCIDevice *dev);
 virPCIDeviceListPtr virPCIDeviceListNew(void);
 int  virPCIDeviceListAdd(virPCIDeviceListPtr list,
                          virPCIDevicePtr dev);
+int virPCIDeviceListAddCopy(virPCIDeviceListPtr list, virPCIDevicePtr dev);
 virPCIDevicePtr virPCIDeviceListGet(virPCIDeviceListPtr list,
                                     int idx);
 int virPCIDeviceListCount(virPCIDeviceListPtr list);
@@ -94,6 +95,12 @@ void virPCIDeviceListDel(virPCIDeviceListPtr list,
                          virPCIDevicePtr dev);
 virPCIDevicePtr virPCIDeviceListFind(virPCIDeviceListPtr list,
                                      virPCIDevicePtr dev);
+virPCIDevicePtr
+virPCIDeviceListFindByIDs(virPCIDeviceListPtr list,
+                          unsigned int domain,
+                          unsigned int bus,
+                          unsigned int slot,
+                          unsigned int function);
 int virPCIDeviceListFindIndex(virPCIDeviceListPtr list,
                               virPCIDevicePtr dev);
 
@@ -106,12 +113,21 @@ int virPCIDeviceListFindIndex(virPCIDeviceListPtr list,
  */
 typedef int (*virPCIDeviceFileActor)(virPCIDevicePtr dev,
                                      const char *path, void *opaque);
-
 int virPCIDeviceFileIterate(virPCIDevicePtr dev,
                             virPCIDeviceFileActor actor,
                             void *opaque);
-char *
-virPCIDeviceGetVFIOGroupDev(virPCIDevicePtr dev);
+
+typedef int (*virPCIDeviceAddressActor)(virPCIDeviceAddress *addr,
+                                        void *opaque);
+int virPCIDeviceAddressIOMMUGroupIterate(virPCIDeviceAddressPtr orig,
+                                         virPCIDeviceAddressActor actor,
+                                         void *opaque);
+virPCIDeviceListPtr virPCIDeviceGetIOMMUGroupList(virPCIDevicePtr dev);
+int virPCIDeviceAddressGetIOMMUGroupAddresses(virPCIDeviceAddressPtr devAddr,
+                                              virPCIDeviceAddressPtr **iommuGroupDevices,
+                                              size_t *nIommuGroupDevices);
+int virPCIDeviceAddressGetIOMMUGroupNum(virPCIDeviceAddressPtr dev);
+char *virPCIDeviceGetIOMMUGroupDev(virPCIDevicePtr dev);
 
 int virPCIDeviceIsAssignable(virPCIDevicePtr dev,
                              int strict_acs_check);
@@ -145,6 +161,8 @@ int virPCIGetAddrString(unsigned int domain,
                         unsigned int function,
                         char **pciConfigAddr)
     ATTRIBUTE_NONNULL(5) ATTRIBUTE_RETURN_CHECK;
+
+int virPCIDeviceAddressParse(char *address, virPCIDeviceAddressPtr bdf);
 
 int virPCIGetVirtualFunctionInfo(const char *vf_sysfs_device_path,
                                  char **pfname, int *vf_index);

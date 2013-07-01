@@ -23,6 +23,7 @@
 #include <config.h>
 
 #include "virnetdevbridge.h"
+#include "virnetdev.h"
 #include "virerror.h"
 #include "virutil.h"
 #include "virfile.h"
@@ -44,49 +45,49 @@
 # define MS_TO_JIFFIES(ms) (((ms)*HZ)/1000)
 #endif
 
+#if defined(HAVE_BSD_BRIDGE_MGMT)
+# include <net/ethernet.h>
+# include <net/if_bridgevar.h>
+#endif
+
 #define VIR_FROM_THIS VIR_FROM_NONE
 
 
-#if defined(HAVE_STRUCT_IFREQ) && defined(__linux__)
-static int virNetDevSetupControlFull(const char *ifname,
-                                     struct ifreq *ifr,
-                                     int domain,
-                                     int type)
+#if defined(HAVE_BSD_BRIDGE_MGMT)
+static int virNetDevBridgeCmd(const char *brname,
+                              u_long op,
+                              void *arg,
+                              size_t argsize)
 {
-    int fd;
+    int s;
+    int ret = -1;
+    struct ifdrv ifd;
 
-    if (ifname && ifr) {
-        memset(ifr, 0, sizeof(*ifr));
+    memset(&ifd, 0, sizeof(ifd));
 
-        if (virStrcpyStatic(ifr->ifr_name, ifname) == NULL) {
-            virReportSystemError(ERANGE,
-                                 _("Network interface name '%s' is too long"),
-                                 ifname);
-            return -1;
-        }
-    }
-
-    if ((fd = socket(domain, type, 0)) < 0) {
+    if ((s = socket(AF_LOCAL, SOCK_DGRAM, 0)) < 0) {
         virReportSystemError(errno, "%s",
                              _("Cannot open network interface control socket"));
         return -1;
     }
 
-    if (virSetInherit(fd, false) < 0) {
-        virReportSystemError(errno, "%s",
-                             _("Cannot set close-on-exec flag for socket"));
-        VIR_FORCE_CLOSE(fd);
-        return -1;
+    if (virStrcpyStatic(ifd.ifd_name, brname) == NULL) {
+       virReportSystemError(ERANGE,
+                            _("Network interface name '%s' is too long"),
+                            brname);
+       goto cleanup;
     }
 
-    return fd;
-}
+    ifd.ifd_cmd = op;
+    ifd.ifd_len = argsize;
+    ifd.ifd_data = arg;
 
+    ret = ioctl(s, SIOCSDRVSPEC, &ifd);
 
-static int virNetDevSetupControl(const char *ifname,
-                                 struct ifreq *ifr)
-{
-    return virNetDevSetupControlFull(ifname, ifr, AF_PACKET, SOCK_DGRAM);
+cleanup:
+    VIR_FORCE_CLOSE(s);
+
+    return ret;
 }
 #endif
 
@@ -233,6 +234,31 @@ cleanup:
     VIR_FORCE_CLOSE(fd);
     return ret;
 }
+#elif defined(HAVE_STRUCT_IFREQ) && defined(SIOCIFCREATE2)
+int virNetDevBridgeCreate(const char *brname)
+{
+    int s;
+    struct ifreq ifr;
+    int ret = - 1;
+
+    if ((s = virNetDevSetupControl("bridge", &ifr)) < 0)
+        return -1;
+
+    if (ioctl(s, SIOCIFCREATE2, &ifr) < 0) {
+        virReportSystemError(errno, "%s",
+                             _("Unable to create bridge device"));
+        goto cleanup;
+    }
+
+    if (virNetDevSetName(ifr.ifr_name, brname) == -1) {
+        goto cleanup;
+    }
+
+    ret = 0;
+cleanup:
+    VIR_FORCE_CLOSE(s);
+    return ret;
+}
 #else
 int virNetDevBridgeCreate(const char *brname)
 {
@@ -269,6 +295,28 @@ int virNetDevBridgeDelete(const char *brname)
 
 cleanup:
     VIR_FORCE_CLOSE(fd);
+    return ret;
+}
+#elif defined(HAVE_STRUCT_IFREQ) && defined(SIOCIFDESTROY)
+int virNetDevBridgeDelete(const char *brname)
+{
+    int s;
+    struct ifreq ifr;
+    int ret = -1;
+
+    if ((s = virNetDevSetupControl(brname, &ifr)) < 0)
+        return -1;
+
+    if (ioctl(s, SIOCIFDESTROY, &ifr) < 0) {
+        virReportSystemError(errno,
+                             _("Unable to remove bridge %s"),
+                             brname);
+        goto cleanup;
+    }
+
+    ret = 0;
+cleanup:
+    VIR_FORCE_CLOSE(s);
     return ret;
 }
 #else
@@ -317,6 +365,28 @@ cleanup:
     VIR_FORCE_CLOSE(fd);
     return ret;
 }
+#elif defined(HAVE_BSD_BRIDGE_MGMT)
+int virNetDevBridgeAddPort(const char *brname,
+                           const char *ifname)
+{
+    struct ifbreq req;
+
+    memset(&req, 0, sizeof(req));
+    if (virStrcpyStatic(req.ifbr_ifsname, ifname) == NULL) {
+        virReportSystemError(ERANGE,
+                             _("Network interface name '%s' is too long"),
+                             ifname);
+        return -1;
+    }
+
+    if (virNetDevBridgeCmd(brname, BRDGADD, &req, sizeof(req)) < 0) {
+        virReportSystemError(errno,
+                             _("Unable to add bridge %s port %s"), brname, ifname);
+        return -1;
+    }
+
+    return 0;
+}
 #else
 int virNetDevBridgeAddPort(const char *brname,
                            const char *ifname)
@@ -364,6 +434,28 @@ int virNetDevBridgeRemovePort(const char *brname,
 cleanup:
     VIR_FORCE_CLOSE(fd);
     return ret;
+}
+#elif defined(HAVE_BSD_BRIDGE_MGMT)
+int virNetDevBridgeRemovePort(const char *brname,
+                           const char *ifname)
+{
+    struct ifbreq req;
+
+    memset(&req, 0, sizeof(req));
+    if (virStrcpyStatic(req.ifbr_ifsname, ifname) == NULL) {
+        virReportSystemError(ERANGE,
+                             _("Network interface name '%s' is too long"),
+                             ifname);
+        return -1;
+    }
+
+    if (virNetDevBridgeCmd(brname, BRDGDEL, &req, sizeof(req)) < 0) {
+        virReportSystemError(errno,
+                             _("Unable to remove bridge %s port %s"), brname, ifname);
+       return -1;
+    }
+
+    return 0;
 }
 #else
 int virNetDevBridgeRemovePort(const char *brname,
@@ -496,7 +588,51 @@ cleanup:
     VIR_FORCE_CLOSE(fd);
     return ret;
 }
-#else /* !__linux__ */
+#elif defined(HAVE_BSD_BRIDGE_MGMT)
+int virNetDevBridgeSetSTPDelay(const char *brname,
+                               int delay)
+{
+    struct ifbrparam param;
+    u_long delay_seconds = delay / 1000;
+
+    /* FreeBSD doesn't allow setting STP delay < 4 */
+    delay_seconds = delay_seconds < 4 ? 4 : delay_seconds;
+    param.ifbrp_fwddelay = delay_seconds & 0xff;
+
+    if (virNetDevBridgeCmd(brname, BRDGSFD, &param, sizeof(param)) < 0) {
+        virReportSystemError(errno,
+                             _("Unable to set STP delay on %s"), brname);
+        return -1;
+    }
+
+    return 0;
+}
+int virNetDevBridgeGetSTPDelay(const char *brname,
+                               int *delay ATTRIBUTE_UNUSED)
+{
+    virReportSystemError(ENOSYS,
+                         _("Unable to get STP delay on %s on this platform"),
+                         brname);
+    return -1;
+}
+
+int virNetDevBridgeSetSTP(const char *brname ATTRIBUTE_UNUSED,
+                          bool enable ATTRIBUTE_UNUSED)
+
+{
+    /* FreeBSD doesn't allow to set STP per bridge,
+     * only per-device in bridge */
+    return 0;
+}
+int virNetDevBridgeGetSTP(const char *brname,
+                          bool *enable ATTRIBUTE_UNUSED)
+{
+    virReportSystemError(ENOSYS,
+                         _("Unable to get STP on %s on this platform"),
+                         brname);
+    return -1;
+}
+#else
 int virNetDevBridgeSetSTPDelay(const char *brname,
                                int delay ATTRIBUTE_UNUSED)
 {
@@ -531,4 +667,4 @@ int virNetDevBridgeGetSTP(const char *brname,
                          brname);
     return -1;
 }
-#endif /* __linux__ */
+#endif

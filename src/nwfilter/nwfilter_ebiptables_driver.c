@@ -248,9 +248,9 @@ static int
 printVar(virNWFilterVarCombIterPtr vars,
          char *buf, int bufsize,
          nwItemDescPtr item,
-         int *done)
+         bool *done)
 {
-    *done = 0;
+    *done = false;
 
     if ((item->flags & NWFILTER_ENTRY_ITEM_FLAG_HAS_VAR)) {
         const char *val;
@@ -271,7 +271,7 @@ printVar(virNWFilterVarCombIterPtr vars,
             return -1;
         }
 
-        *done = 1;
+        *done = true;
     }
     return 0;
 }
@@ -283,7 +283,7 @@ _printDataType(virNWFilterVarCombIterPtr vars,
                nwItemDescPtr item,
                bool asHex, bool directionIn)
 {
-    int done;
+    bool done;
     char *data;
     uint8_t ctr;
     virBuffer vb = VIR_BUFFER_INITIALIZER;
@@ -971,7 +971,7 @@ static int
 iptablesHandleSrcMacAddr(virBufferPtr buf,
                          virNWFilterVarCombIterPtr vars,
                          nwItemDescPtr srcMacAddr,
-                         int directionIn,
+                         bool directionIn,
                          bool *srcmacskipped)
 {
     char macaddr[VIR_MAC_STRING_BUFLEN];
@@ -1008,7 +1008,7 @@ iptablesHandleIpHdr(virBufferPtr buf,
                     virBufferPtr afterStateMatch,
                     virNWFilterVarCombIterPtr vars,
                     ipHdrDataDefPtr ipHdr,
-                    int directionIn,
+                    bool directionIn,
                     bool *skipRule, bool *skipMatch,
                     virBufferPtr prefix)
 {
@@ -1204,7 +1204,7 @@ static int
 iptablesHandlePortData(virBufferPtr buf,
                        virNWFilterVarCombIterPtr vars,
                        portDataDefPtr portData,
-                       int directionIn)
+                       bool directionIn)
 {
     char portstr[20];
     const char *sport = "--sport";
@@ -1270,7 +1270,7 @@ err_exit:
 
 
 static void
-iptablesEnforceDirection(int directionIn,
+iptablesEnforceDirection(bool directionIn,
                          virNWFilterRuleDefPtr rule,
                          virBufferPtr buf)
 {
@@ -1313,7 +1313,7 @@ iptablesEnforceDirection(int directionIn,
  * pointed to by res, != 0 otherwise.
  */
 static int
-_iptablesCreateRuleInstance(int directionIn,
+_iptablesCreateRuleInstance(bool directionIn,
                             const char *chainPrefix,
                             virNWFilterDefPtr nwfilter,
                             virNWFilterRuleDefPtr rule,
@@ -1801,7 +1801,7 @@ iptablesCreateRuleInstanceStateCtrl(virNWFilterDefPtr nwfilter,
                                     bool isIPv6)
 {
     int rc;
-    int directionIn = 0;
+    bool directionIn = false;
     char chainPrefix[2];
     bool maySkipICMP, inout = false;
     char *matchState = NULL;
@@ -1809,7 +1809,7 @@ iptablesCreateRuleInstanceStateCtrl(virNWFilterDefPtr nwfilter,
 
     if ((rule->tt == VIR_NWFILTER_RULE_DIRECTION_IN) ||
         (rule->tt == VIR_NWFILTER_RULE_DIRECTION_INOUT)) {
-        directionIn = 1;
+        directionIn = true;
         inout = (rule->tt == VIR_NWFILTER_RULE_DIRECTION_INOUT);
     }
 
@@ -1926,9 +1926,9 @@ iptablesCreateRuleInstance(virNWFilterDefPtr nwfilter,
                            bool isIPv6)
 {
     int rc;
-    int directionIn = 0;
+    bool directionIn = false;
     char chainPrefix[2];
-    int needState = 1;
+    bool needState = true;
     bool maySkipICMP, inout = false;
     const char *matchState;
 
@@ -1944,14 +1944,14 @@ iptablesCreateRuleInstance(virNWFilterDefPtr nwfilter,
 
     if ((rule->tt == VIR_NWFILTER_RULE_DIRECTION_IN) ||
         (rule->tt == VIR_NWFILTER_RULE_DIRECTION_INOUT)) {
-        directionIn = 1;
+        directionIn = true;
         inout = (rule->tt == VIR_NWFILTER_RULE_DIRECTION_INOUT);
         if (inout)
-            needState = 0;
+            needState = false;
     }
 
     if ((rule->flags & RULE_FLAG_NO_STATEMATCH))
-        needState = 0;
+        needState = false;
 
     chainPrefix[0] = 'F';
 
@@ -2701,7 +2701,7 @@ ebiptablesCreateRuleInstance(enum virDomainNetType nettype ATTRIBUTE_UNUSED,
     case VIR_NWFILTER_RULE_PROTOCOL_ICMP:
     case VIR_NWFILTER_RULE_PROTOCOL_IGMP:
     case VIR_NWFILTER_RULE_PROTOCOL_ALL:
-        isIPv6 = 0;
+        isIPv6 = false;
         rc = iptablesCreateRuleInstance(nwfilter,
                                         rule,
                                         ifname,
@@ -2718,7 +2718,7 @@ ebiptablesCreateRuleInstance(enum virDomainNetType nettype ATTRIBUTE_UNUSED,
     case VIR_NWFILTER_RULE_PROTOCOL_SCTPoIPV6:
     case VIR_NWFILTER_RULE_PROTOCOL_ICMPV6:
     case VIR_NWFILTER_RULE_PROTOCOL_ALLoIPV6:
-        isIPv6 = 1;
+        isIPv6 = true;
         rc = iptablesCreateRuleInstance(nwfilter,
                                         rule,
                                         ifname,
@@ -3008,7 +3008,7 @@ ebtablesCreateTmpSubChain(ebiptablesRuleInstPtr *inst,
         ignore_value(VIR_STRDUP(protostr, ""));
         break;
     case L2_PROTO_STP_IDX:
-        ignore_value(virAsprintf(&protostr, "-d " NWFILTER_MAC_BGA " "));
+        ignore_value(VIR_STRDUP(protostr, "-d " NWFILTER_MAC_BGA " "));
         break;
     default:
         ignore_value(virAsprintf(&protostr, "-p 0x%04x ",

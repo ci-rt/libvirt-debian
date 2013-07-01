@@ -537,7 +537,7 @@ static int virCgroupGetValueStr(virCgroupPtr group,
         VIR_DEBUG("Failed to read %s: %m\n", keypath);
     } else {
         /* Terminated with '\n' has sometimes harmful effects to the caller */
-        if ((*value)[rc - 1] == '\n')
+        if (rc > 0 && (*value)[rc - 1] == '\n')
             (*value)[rc - 1] = '\0';
 
         rc = 0;
@@ -1076,6 +1076,7 @@ int virCgroupMoveTask(virCgroupPtr src_group, virCgroupPtr dest_group)
          * aware that it needs to move.  Therefore, we must iterate
          * until content is empty.  */
         while (1) {
+            VIR_FREE(content);
             rc = virCgroupGetValueStr(src_group, i, "tasks", &content);
             if (rc != 0)
                 return rc;
@@ -1085,8 +1086,6 @@ int virCgroupMoveTask(virCgroupPtr src_group, virCgroupPtr dest_group)
             rc = virCgroupAddTaskStrController(dest_group, content, i);
             if (rc != 0)
                 goto cleanup;
-
-            VIR_FREE(content);
         }
     }
 
@@ -2315,7 +2314,7 @@ int virCgroupGetFreezerState(virCgroupPtr group, char **state)
 static int virCgroupKillInternal(virCgroupPtr group, int signum, virHashTablePtr pids)
 {
     int rc;
-    int killedAny = 0;
+    bool killedAny = false;
     char *keypath = NULL;
     bool done = false;
     FILE *fp = NULL;
@@ -2359,7 +2358,7 @@ static int virCgroupKillInternal(virCgroupPtr group, int signum, virHashTablePtr
                     }
                     /* Leave RC == 0 since we didn't kill one */
                 } else {
-                    killedAny = 1;
+                    killedAny = true;
                     done = false;
                 }
 
