@@ -116,11 +116,11 @@ binary-install/libvirt-bin::
 	    debian/libvirt-bin.libvirt-guests.init
 	cp tools/libvirt-guests.sysconf \
 	    debian/libvirt-bin.libvirt-guests.default
-	dh_systemd_enable
-	dh_installinit --name=libvirt-guests --no-restart-on-upgrade -- defaults 29 71
 	-mv debian/libvirt-bin/lib/systemd/system/libvirtd.service \
 	    debian/libvirt-bin/lib/systemd/system/libvirt-bin.service
-	dh_systemd_start
+	dh_systemd_enable
+	dh_installinit --name=libvirt-guests --no-restart-on-upgrade -- defaults 29 71
+	dh_systemd_start --restart-after-upgrade
 	rm debian/libvirt-bin/usr/lib/libvirt/connection-driver/*.la
 
 	for l in $(LOGROTATE); do \
