@@ -1,3 +1,23 @@
+libvirt (1.1.0-1) unstable; urgency=low
+
+  [ Guido Günther ]
+  * [f0c8ed9] Remove now unused DM-Upload-Allowed
+  * [aff716e] Depend on newer libnetcf1 that has a proper symbols file so we
+    can drop the explicit libnetcf1 dependency in libvirt-bin
+    (Closes: #712073)
+  * [985164b] New upstream version 1.1.0. Addresses CVE-2013-2218.
+    (Closes: #714699)
+  * [390c5bd] Update symbols file
+  * [9854fa9] Rebase patches
+  * [9f9bb30] Move renaming of the service files prior to the dh_systemd_*
+    helpers so they pick up the right service name.
+
+  [ Michael Stapelberg ]
+  * [5978fc0] switch to dh-systemd for proper systemd maintscripts
+    (Closes: #714197)
+
+ -- Guido Günther <agx@sigxcpu.org>  Tue, 02 Jul 2013 22:40:05 +0200
+
 libvirt (1.0.6-1) unstable; urgency=low
 
   * [d233204] Make sure qemu.conf isn't world readable by default
