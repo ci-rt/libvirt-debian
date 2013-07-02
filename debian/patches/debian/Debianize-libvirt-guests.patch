@@ -5,8 +5,8 @@ Subject: Debianize libvirt-guests
 Origin: vendor
 
 ---
- tools/libvirt-guests.sh.in   |   41 ++++++++++++++++++++++++-----------------
- tools/libvirt-guests.sysconf |    4 ++--
+ tools/libvirt-guests.sh.in   | 41 ++++++++++++++++++++++++-----------------
+ tools/libvirt-guests.sysconf |  4 ++--
  2 files changed, 26 insertions(+), 19 deletions(-)
 
 diff --git a/tools/libvirt-guests.sh.in b/tools/libvirt-guests.sh.in

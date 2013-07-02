@@ -3,11 +3,11 @@ Date: Fri, 7 Mar 2008 09:08:25 +0100
 Subject: remove-RHism.diff
 
 ---
- tools/virsh.pod |    2 +-
+ tools/virsh.pod | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/tools/virsh.pod b/tools/virsh.pod
-index 7c8ce18..66ff2b4 100644
+index 94fe897..583be37 100644
 --- a/tools/virsh.pod
 +++ b/tools/virsh.pod
 @@ -107,7 +107,7 @@ alphabetic character, @, [, ], \, ^, _.

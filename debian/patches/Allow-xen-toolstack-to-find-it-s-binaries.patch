@@ -4,18 +4,18 @@ Subject: Allow xen toolstack to find it's binaries
 
 Closes: #685749
 ---
- docs/schemas/capability.rng            |    4 ++--
- src/xen/xen_hypervisor.c               |    6 ++----
- tests/xencapsdata/xen-i686-pae-hvm.xml |    6 +++---
- tests/xencapsdata/xen-i686-pae.xml     |    2 +-
- tests/xencapsdata/xen-i686.xml         |    2 +-
- tests/xencapsdata/xen-ia64-be-hvm.xml  |    6 +++---
- tests/xencapsdata/xen-ia64-be.xml      |    2 +-
- tests/xencapsdata/xen-ia64-hvm.xml     |    6 +++---
- tests/xencapsdata/xen-ia64.xml         |    2 +-
- tests/xencapsdata/xen-ppc64.xml        |    2 +-
- tests/xencapsdata/xen-x86_64-hvm.xml   |   10 +++++-----
- tests/xencapsdata/xen-x86_64.xml       |    2 +-
+ docs/schemas/capability.rng            |  4 ++--
+ src/xen/xen_hypervisor.c               |  6 ++----
+ tests/xencapsdata/xen-i686-pae-hvm.xml |  6 +++---
+ tests/xencapsdata/xen-i686-pae.xml     |  2 +-
+ tests/xencapsdata/xen-i686.xml         |  2 +-
+ tests/xencapsdata/xen-ia64-be-hvm.xml  |  6 +++---
+ tests/xencapsdata/xen-ia64-be.xml      |  2 +-
+ tests/xencapsdata/xen-ia64-hvm.xml     |  6 +++---
+ tests/xencapsdata/xen-ia64.xml         |  2 +-
+ tests/xencapsdata/xen-ppc64.xml        |  2 +-
+ tests/xencapsdata/xen-x86_64-hvm.xml   | 10 +++++-----
+ tests/xencapsdata/xen-x86_64.xml       |  2 +-
  12 files changed, 24 insertions(+), 26 deletions(-)
 
 diff --git a/docs/schemas/capability.rng b/docs/schemas/capability.rng
@@ -39,7 +39,7 @@ index 106ca73..9745e26 100644
    </define>
  
 diff --git a/src/xen/xen_hypervisor.c b/src/xen/xen_hypervisor.c
-index 4043d6d..dabdbaa 100644
+index a318ea5..e9da6a3 100644
 --- a/src/xen/xen_hypervisor.c
 +++ b/src/xen/xen_hypervisor.c
 @@ -2081,11 +2081,9 @@ xenHypervisorBuildCapabilities(virConnectPtr conn, virArch hostarch,

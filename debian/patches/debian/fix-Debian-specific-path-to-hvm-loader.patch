@@ -5,15 +5,15 @@ Subject: fix Debian specific path to hvm loader
 Closes: #517059
 
 ---
- src/xen/xen_hypervisor.c               |    2 +-
- tests/xencapsdata/xen-i686-pae-hvm.xml |    2 +-
- tests/xencapsdata/xen-ia64-be-hvm.xml  |    2 +-
- tests/xencapsdata/xen-ia64-hvm.xml     |    2 +-
- tests/xencapsdata/xen-x86_64-hvm.xml   |    4 ++--
+ src/xen/xen_hypervisor.c               | 2 +-
+ tests/xencapsdata/xen-i686-pae-hvm.xml | 2 +-
+ tests/xencapsdata/xen-ia64-be-hvm.xml  | 2 +-
+ tests/xencapsdata/xen-ia64-hvm.xml     | 2 +-
+ tests/xencapsdata/xen-x86_64-hvm.xml   | 4 ++--
  5 files changed, 6 insertions(+), 6 deletions(-)
 
 diff --git a/src/xen/xen_hypervisor.c b/src/xen/xen_hypervisor.c
-index cfc8139..4043d6d 100644
+index 9d9c3ee..a318ea5 100644
 --- a/src/xen/xen_hypervisor.c
 +++ b/src/xen/xen_hypervisor.c
 @@ -2085,7 +2085,7 @@ xenHypervisorBuildCapabilities(virConnectPtr conn, virArch hostarch,

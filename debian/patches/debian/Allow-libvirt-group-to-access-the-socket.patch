@@ -3,12 +3,12 @@ Date: Thu, 26 Jun 2008 20:01:38 +0200
 Subject: Allow libvirt group to access the socket
 
 ---
- daemon/libvirtd.conf        |    8 ++++----
- daemon/test_libvirtd.aug.in |    4 ----
+ daemon/libvirtd.conf        | 8 ++++----
+ daemon/test_libvirtd.aug.in | 4 ----
  2 files changed, 4 insertions(+), 8 deletions(-)
 
 diff --git a/daemon/libvirtd.conf b/daemon/libvirtd.conf
-index 47da520..bf0b92a 100644
+index af4493e..61d08e3 100644
 --- a/daemon/libvirtd.conf
 +++ b/daemon/libvirtd.conf
 @@ -78,7 +78,7 @@
@@ -48,7 +48,7 @@ index 47da520..bf0b92a 100644
  # Change the authentication scheme for TCP sockets.
  #
 diff --git a/daemon/test_libvirtd.aug.in b/daemon/test_libvirtd.aug.in
-index 455b74a..3c4a0b7 100644
+index 4e3b878..e213f63 100644
 --- a/daemon/test_libvirtd.aug.in
 +++ b/daemon/test_libvirtd.aug.in
 @@ -9,12 +9,8 @@ module Test_libvirtd =
@@ -63,4 +63,4 @@ index 455b74a..3c4a0b7 100644
 -        { "auth_unix_rw" = "none" }
          { "auth_tcp" = "sasl" }
          { "auth_tls" = "none" }
-         { "key_file" = "/etc/pki/libvirt/private/serverkey.pem" }
+         { "access_drivers"

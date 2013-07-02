@@ -5,15 +5,15 @@ Subject: Don't enable default network on boot
 to not interfere with existing network configurations
 
 ---
- src/Makefile.am |    3 ---
- src/Makefile.in |    3 ---
+ src/Makefile.am | 3 ---
+ src/Makefile.in | 3 ---
  2 files changed, 6 deletions(-)
 
 diff --git a/src/Makefile.am b/src/Makefile.am
-index 680101f..b1e3d01 100644
+index 4cf999d..e82ed3e 100644
 --- a/src/Makefile.am
 +++ b/src/Makefile.am
-@@ -2196,9 +2196,6 @@ if WITH_NETWORK
+@@ -2340,9 +2340,6 @@ if WITH_NETWORK
  	    cp $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/default.xml.t \
  	      $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/default.xml && \
  	    rm $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/default.xml.t; }
@@ -24,10 +24,10 @@ index 680101f..b1e3d01 100644
  
  uninstall-local:: uninstall-init uninstall-systemd
 diff --git a/src/Makefile.in b/src/Makefile.in
-index b616b9e..299ad53 100644
+index 1ef1a46..2b7e632 100644
 --- a/src/Makefile.in
 +++ b/src/Makefile.in
-@@ -7656,9 +7656,6 @@ install-data-local: install-init install-systemd
+@@ -7919,9 +7919,6 @@ install-data-local: install-init install-systemd
  @WITH_NETWORK_TRUE@	    cp $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/default.xml.t \
  @WITH_NETWORK_TRUE@	      $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/default.xml && \
  @WITH_NETWORK_TRUE@	    rm $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/default.xml.t; }

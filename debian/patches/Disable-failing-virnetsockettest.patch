@@ -4,7 +4,7 @@ Subject: Disable failing virnetsockettest
 
 until we debugged the interaction with pbuilder
 ---
- tests/virnetsockettest.c |    2 ++
+ tests/virnetsockettest.c | 2 ++
  1 file changed, 2 insertions(+)
 
 diff --git a/tests/virnetsockettest.c b/tests/virnetsockettest.c
