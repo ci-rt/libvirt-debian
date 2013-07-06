@@ -3,7 +3,7 @@ Section: libs
 Priority: optional
 Maintainer: Debian Libvirt Maintainers <pkg-libvirt-maintainers@lists.alioth.debian.org>
 Uploaders: Guido Günther <agx@sigxcpu.org>, Laurent Léonard <laurent@open-minds.org>
-Build-Depends: cdbs (>= 0.4.90~),
+Build-Depends:
  debhelper (>= 7),
  dh-systemd (>= 1.3),
  libxml2-dev,

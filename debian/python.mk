@@ -24,15 +24,15 @@ otherpy = \
 	done; \
 	ln -sf $(PY_DIR)$(PYDEFAULTVER) $(PY_DIR)
 
-configure/python-libvirt::
+configure::
 	set -e; for v in $(PYVERSIONS); do \
 		cp -la $(PY_DIR) $(PY_DIR)$$v; \
 	done
 	$(RM) -r $(PY_DIR)
 	ln -sf $(PY_DIR)$(PYDEFAULTVER) $(PY_DIR)
 
-build/python-libvirt::
+build::
 	$(call otherpy, all)
 
-install/python-libvirt::
+install::
 	$(call otherpy, install DESTDIR=$(CURDIR)/debian/tmp)
