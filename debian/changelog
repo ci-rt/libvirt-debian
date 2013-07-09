@@ -1,3 +1,11 @@
+libvirt (1.1.0-2) unstable; urgency=low
+
+  * [ac2fb88] Create /var/lib/libvirt/qemu/channel/target (Closes: #712179)
+  * [54deab3] Switch to dh
+  * [642e1f9] Set LD_PRELOAD empty (Closes: #714515)
+
+ -- Guido Günther <agx@sigxcpu.org>  Tue, 09 Jul 2013 15:51:16 +0200
+
 libvirt (1.1.0-1) unstable; urgency=low
 
   [ Guido Günther ]
