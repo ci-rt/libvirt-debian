@@ -1,0 +1,39 @@
+From: =?UTF-8?q?Guido=20G=C3=BCnther?= <agx@sigxcpu.org>
+Date: Sun, 7 Jul 2013 14:59:48 +0200
+Subject: Create directory for lease files if it's missing
+
+If we don't autostart a network it's not being created.
+
+Debian Bug http://bugs.debian.org/715200
+---
+ src/nwfilter/nwfilter_dhcpsnoop.c | 10 ++++++++--
+ 1 file changed, 8 insertions(+), 2 deletions(-)
+
+diff --git a/src/nwfilter/nwfilter_dhcpsnoop.c b/src/nwfilter/nwfilter_dhcpsnoop.c
+index 708e67f..3fdb507 100644
+--- a/src/nwfilter/nwfilter_dhcpsnoop.c
++++ b/src/nwfilter/nwfilter_dhcpsnoop.c
+@@ -74,8 +74,9 @@
+ 
+ #ifdef HAVE_LIBPCAP
+ 
+-# define LEASEFILE LOCALSTATEDIR "/run/libvirt/network/nwfilter.leases"
+-# define TMPLEASEFILE LOCALSTATEDIR "/run/libvirt/network/nwfilter.ltmp"
++# define LEASEFILE_DIR LOCALSTATEDIR "/run/libvirt/network/"
++# define LEASEFILE LEASEFILE_DIR "nwfilter.leases"
++# define TMPLEASEFILE LEASEFILE_DIR "nwfilter.ltmp"
+ 
+ struct virNWFilterSnoopState {
+     /* lease file */
+@@ -1893,6 +1894,11 @@ virNWFilterSnoopLeaseFileRefresh(void)
+ {
+     int tfd;
+ 
++    if (virFileMakePathWithMode(LEASEFILE_DIR, 0700) < 0) {
++        virReportError(errno, _("mkdir(\"%s\")"), LEASEFILE_DIR);
++        return;
++    }
++
+     if (unlink(TMPLEASEFILE) < 0 && errno != ENOENT)
+         virReportSystemError(errno, _("unlink(\"%s\")"), TMPLEASEFILE);
+ 
