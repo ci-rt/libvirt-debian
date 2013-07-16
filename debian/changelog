@@ -1,3 +1,14 @@
+libvirt (1.1.0-3) unstable; urgency=low
+
+  * [3a2a899] Create directory for lease files if it's missing
+    (Closes: #715200)
+  * [000df64] Don't assume EXAMPLES_DIR exists as seen on the autobuilders
+    (Closes: #717059)
+  * [8369f65] Fix crash when multiple event callbacks were registered.
+    CVE-2013-2230. Thanks to Ján Tomko (Closes: #715559)
+
+ -- Guido Günther <agx@sigxcpu.org>  Tue, 16 Jul 2013 16:03:40 +0200
+
 libvirt (1.1.0-2) unstable; urgency=low
 
   * [ac2fb88] Create /var/lib/libvirt/qemu/channel/target (Closes: #712179)
