@@ -141,7 +141,7 @@ override_dh_installinit:
 override_dh_installdocs:
 	dh_installdocs
 	# Remove binaries and object files examples
-	find $(EXAMPLES_DIR) -name "*.o" -type f -delete -o -name .libs -type d -exec rm -rf {} \;
+	[ ! -d $(EXAMPLES_DIR) ] || find $(EXAMPLES_DIR) -name "*.o" -type f -delete -o -name .libs -type d -exec rm -rf {} \;
 	rm -f $(EXAMPLES_DIR)domain-events/events-c/event-test
 	rm -f $(EXAMPLES_DIR)dominfo/info1
 	rm -f $(EXAMPLES_DIR)domsuspend/suspend
