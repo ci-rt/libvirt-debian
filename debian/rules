@@ -4,9 +4,9 @@ export VIR_TEST_DEBUG=1
 
 ifneq (,$(findstring $(DEB_HOST_ARCH_OS), linux))
   ifneq (,$(findstring $(DEB_HOST_ARCH), i386 amd64))
-    DEB_MAKE_CHECK_TARGET = check
     WITH_XEN = --with-xen
     WITH_VBOX = --with-vbox
+    MAKE_CHECK = 1
   else
     WITH_XEN            = --without-xen
     WITH_VBOX           = --without-vbox
@@ -110,8 +110,9 @@ override_dh_auto_install:
 	DEB_BUILDDIR=$(DEB_BUILDDIR) make -f debian/python.mk install
 
 override_dh_auto_test:
-	export LD_PRELOAD=""; \
-	dh_auto_test -O--builddirectory=$(DEB_BUILDDIR)
+	export LD_PRELOAD="";     \
+	[ -z "$(MAKE_CHECK)" ] || \
+	  dh_auto_test -O--builddirectory=$(DEB_BUILDDIR)
 
 override_dh_install:
 	dh_install
