@@ -12,3 +12,4 @@ debian/Debianize-systemd-service-files.patch
 Allow-xen-toolstack-to-find-it-s-binaries.patch
 Create-directory-for-lease-files-if-it-s-missing.patch
 Fix-crash-when-multiple-event-callbacks-were-registe.patch
+CVE-2013-4153-qemu-Fix-double-free-of-returned-JSON-.patch
