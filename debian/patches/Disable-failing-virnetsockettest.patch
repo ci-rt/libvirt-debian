@@ -8,7 +8,7 @@ until we debugged the interaction with pbuilder
  1 file changed, 2 insertions(+)
 
 diff --git a/tests/virnetsockettest.c b/tests/virnetsockettest.c
-index 4c5a0ea..261e63f 100644
+index 5b434ba..fad9a98 100644
 --- a/tests/virnetsockettest.c
 +++ b/tests/virnetsockettest.c
 @@ -497,10 +497,12 @@ mymain(void)
