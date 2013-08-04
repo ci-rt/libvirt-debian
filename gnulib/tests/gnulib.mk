@@ -553,15 +553,6 @@ EXTRA_DIST += test-getdtablesize.c signature.h macros.h
 
 ## end   gnulib module getdtablesize-tests
 
-## begin gnulib module getgroups
-
-
-EXTRA_DIST += getgroups.c
-
-EXTRA_libtests_a_SOURCES += getgroups.c
-
-## end   gnulib module getgroups
-
 ## begin gnulib module getgroups-tests
 
 TESTS += test-getgroups
@@ -641,14 +632,6 @@ check_PROGRAMS += test-gettimeofday
 EXTRA_DIST += signature.h test-gettimeofday.c
 
 ## end   gnulib module gettimeofday-tests
-
-## begin gnulib module getugroups
-
-libtests_a_SOURCES += getugroups.c
-
-EXTRA_DIST += getugroups.h
-
-## end   gnulib module getugroups
 
 ## begin gnulib module grantpt
 
@@ -1258,14 +1241,6 @@ EXTRA_DIST += test-memchr.c zerosize-ptr.h signature.h macros.h
 
 ## end   gnulib module memchr-tests
 
-## begin gnulib module mgetgroups
-
-libtests_a_SOURCES += mgetgroups.c
-
-EXTRA_DIST += mgetgroups.h
-
-## end   gnulib module mgetgroups
-
 ## begin gnulib module nanosleep
 
 
@@ -1684,15 +1659,6 @@ check_PROGRAMS += test-readlink
 EXTRA_DIST += test-readlink.h test-readlink.c signature.h macros.h
 
 ## end   gnulib module readlink-tests
-
-## begin gnulib module realloc-gnu
-
-
-EXTRA_DIST += realloc.c
-
-EXTRA_libtests_a_SOURCES += realloc.c
-
-## end   gnulib module realloc-gnu
 
 ## begin gnulib module realloc-gnu-tests
 
@@ -2492,13 +2458,6 @@ test_xalloc_die_LDADD = $(LDADD) @LIBINTL@
 EXTRA_DIST += test-xalloc-die.c test-xalloc-die.sh
 
 ## end   gnulib module xalloc-die-tests
-
-## begin gnulib module xalloc-oversized
-
-
-EXTRA_DIST += xalloc-oversized.h
-
-## end   gnulib module xalloc-oversized
 
 # Clean up after Solaris cc.
 clean-local:

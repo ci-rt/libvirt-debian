@@ -702,6 +702,11 @@ AC_SUBST([LTALLOCA])
     gl_PREREQ_GETDTABLESIZE
   fi
   gl_UNISTD_MODULE_INDICATOR([getdtablesize])
+  gl_FUNC_GETGROUPS
+  if test $HAVE_GETGROUPS = 0 || test $REPLACE_GETGROUPS = 1; then
+    AC_LIBOBJ([getgroups])
+  fi
+  gl_UNISTD_MODULE_INDICATOR([getgroups])
   gl_FUNC_GETHOSTNAME
   if test $HAVE_GETHOSTNAME = 0; then
     AC_LIBOBJ([gethostname])
@@ -737,6 +742,7 @@ AC_SUBST([LTALLOCA])
     gl_PREREQ_GETTIMEOFDAY
   fi
   gl_SYS_TIME_MODULE_INDICATOR([gettimeofday])
+  gl_GETUGROUPS
   # Autoconf 2.61a.99 and earlier don't support linking a file only
   # in VPATH builds.  But since GNUmakefile is for maintainer use
   # only, it does not matter if we skip the link with older autoconf.
@@ -790,6 +796,7 @@ AC_SUBST([LTALLOCA])
   fi
   gl_LOCALE_MODULE_INDICATOR([localeconv])
   gl_LOCK
+  gl_MODULE_INDICATOR([lock])
   gl_FUNC_LSEEK
   if test $REPLACE_LSEEK = 1; then
     AC_LIBOBJ([lseek])
@@ -845,6 +852,7 @@ AC_SUBST([LTALLOCA])
     gl_PREREQ_MEMCHR
   fi
   gl_STRING_MODULE_INDICATOR([memchr])
+  gl_MGETGROUPS
   gl_FUNC_MKDTEMP
   if test $HAVE_MKDTEMP = 0; then
     AC_LIBOBJ([mkdtemp])
@@ -945,6 +953,7 @@ AC_SUBST([LTALLOCA])
   fi
   gl_STDLIB_MODULE_INDICATOR([posix_openpt])
   gl_PTHREAD_CHECK
+  gl_MODULE_INDICATOR([pthread])
   gl_FUNC_PTHREAD_SIGMASK
   if test $HAVE_PTHREAD_SIGMASK = 0 || test $REPLACE_PTHREAD_SIGMASK = 1; then
     AC_LIBOBJ([pthread_sigmask])
@@ -976,6 +985,11 @@ AC_SUBST([LTALLOCA])
     gl_PREREQ_READLINK
   fi
   gl_UNISTD_MODULE_INDICATOR([readlink])
+  gl_FUNC_REALLOC_GNU
+  if test $REPLACE_REALLOC = 1; then
+    AC_LIBOBJ([realloc])
+  fi
+  gl_MODULE_INDICATOR([realloc-gnu])
   gl_FUNC_REALLOC_POSIX
   if test $REPLACE_REALLOC = 1; then
     AC_LIBOBJ([realloc])
@@ -1319,11 +1333,6 @@ changequote([, ])dnl
     gl_PREREQ_FTRUNCATE
   fi
   gl_UNISTD_MODULE_INDICATOR([ftruncate])
-  gl_FUNC_GETGROUPS
-  if test $HAVE_GETGROUPS = 0 || test $REPLACE_GETGROUPS = 1; then
-    AC_LIBOBJ([getgroups])
-  fi
-  gl_UNISTD_MODULE_INDICATOR([getgroups])
   gl_FUNC_GETPAGESIZE
   if test $REPLACE_GETPAGESIZE = 1; then
     AC_LIBOBJ([getpagesize])
@@ -1334,7 +1343,6 @@ changequote([, ])dnl
     AC_LIBOBJ([getsockopt])
   fi
   gl_SYS_SOCKET_MODULE_INDICATOR([getsockopt])
-  gl_GETUGROUPS
   gl_FUNC_GRANTPT
   if test $HAVE_GRANTPT = 0; then
     AC_LIBOBJ([grantpt])
@@ -1381,7 +1389,6 @@ changequote([, ])dnl
   gl_FUNC_MMAP_ANON
   AC_CHECK_HEADERS_ONCE([sys/mman.h])
   AC_CHECK_FUNCS_ONCE([mprotect])
-  gl_MGETGROUPS
   gl_FUNC_NANOSLEEP
   if test $HAVE_NANOSLEEP = 0 || test $REPLACE_NANOSLEEP = 1; then
     AC_LIBOBJ([nanosleep])
@@ -1495,11 +1502,6 @@ changequote([, ])dnl
     gl_PREREQ_READ
   fi
   gl_UNISTD_MODULE_INDICATOR([read])
-  gl_FUNC_REALLOC_GNU
-  if test $REPLACE_REALLOC = 1; then
-    AC_LIBOBJ([realloc])
-  fi
-  gl_MODULE_INDICATOR([realloc-gnu])
   AC_CHECK_HEADERS_ONCE([sys/wait.h])
   gl_FUNC_SETLOCALE
   if test $REPLACE_SETLOCALE = 1; then
@@ -1753,6 +1755,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/getcwd-lgpl.c
   lib/getdelim.c
   lib/getdtablesize.c
+  lib/getgroups.c
   lib/gethostname.c
   lib/getline.c
   lib/getpass.c
@@ -1761,6 +1764,8 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/getsockname.c
   lib/gettext.h
   lib/gettimeofday.c
+  lib/getugroups.c
+  lib/getugroups.h
   lib/glthread/lock.c
   lib/glthread/lock.h
   lib/glthread/threadlib.c
@@ -1794,6 +1799,8 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/md5.h
   lib/memchr.c
   lib/memchr.valgrind
+  lib/mgetgroups.c
+  lib/mgetgroups.h
   lib/mkdtemp.c
   lib/mkostemp.c
   lib/mkostemps.c
@@ -1931,6 +1938,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/wcrtomb.c
   lib/wctype-h.c
   lib/wctype.in.h
+  lib/xalloc-oversized.h
   lib/xsize.c
   lib/xsize.h
   m4/00gnulib.m4
@@ -2463,11 +2471,8 @@ AC_DEFUN([gl_FILE_LIST], [
   tests=lib/float+.h
   tests=lib/fpucw.h
   tests=lib/ftruncate.c
-  tests=lib/getgroups.c
   tests=lib/getpagesize.c
   tests=lib/getsockopt.c
-  tests=lib/getugroups.c
-  tests=lib/getugroups.h
   tests=lib/glthread/thread.c
   tests=lib/glthread/thread.h
   tests=lib/grantpt.c
@@ -2483,8 +2488,6 @@ AC_DEFUN([gl_FILE_LIST], [
   tests=lib/localename.h
   tests=lib/math.c
   tests=lib/math.in.h
-  tests=lib/mgetgroups.c
-  tests=lib/mgetgroups.h
   tests=lib/nanosleep.c
   tests=lib/progname.c
   tests=lib/progname.h
@@ -2493,7 +2496,6 @@ AC_DEFUN([gl_FILE_LIST], [
   tests=lib/pty-private.h
   tests=lib/putenv.c
   tests=lib/read.c
-  tests=lib/realloc.c
   tests=lib/same-inode.h
   tests=lib/setlocale.c
   tests=lib/signbitd.c
@@ -2523,7 +2525,6 @@ AC_DEFUN([gl_FILE_LIST], [
   tests=lib/wctomb.c
   tests=lib/write.c
   tests=lib/xalloc-die.c
-  tests=lib/xalloc-oversized.h
   tests=lib/xalloc.h
   tests=lib/xmalloc.c
   top/GNUmakefile

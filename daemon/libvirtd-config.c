@@ -67,7 +67,8 @@ remoteConfigGetStringList(virConfPtr conf, const char *key, char ***list_arg,
         break;
 
     case VIR_CONF_LIST: {
-        int i, len = 0;
+        int len = 0;
+        size_t i;
         virConfValuePtr pp;
         for (pp = p->list; pp; pp = pp->next)
             len++;
@@ -87,7 +88,7 @@ remoteConfigGetStringList(virConfPtr conf, const char *key, char ***list_arg,
                 return -1;
             }
             if (VIR_STRDUP(list[i], pp->str) < 0) {
-                int j;
+                size_t j;
                 for (j = 0; j < i; j++)
                     VIR_FREE(list[j]);
                 VIR_FREE(list);
@@ -200,15 +201,13 @@ daemonConfigFilePath(bool privileged, char **configfile)
 
         if (virAsprintf(configfile, "%s/libvirtd.conf", configdir) < 0) {
             VIR_FREE(configdir);
-            goto no_memory;
+            goto error;
         }
         VIR_FREE(configdir);
     }
 
     return 0;
 
-no_memory:
-    virReportOOMError();
 error:
     return -1;
 }
@@ -220,10 +219,8 @@ daemonConfigNew(bool privileged ATTRIBUTE_UNUSED)
     char *localhost;
     int ret;
 
-    if (VIR_ALLOC(data) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC(data) < 0)
         return NULL;
-    }
 
     data->listen_tls = 1;
     data->listen_tcp = 0;
@@ -294,12 +291,10 @@ daemonConfigNew(bool privileged ATTRIBUTE_UNUSED)
     }
     VIR_FREE(localhost);
     if (ret < 0)
-        goto no_memory;
+        goto error;
 
     return data;
 
-no_memory:
-    virReportOOMError();
 error:
     daemonConfigFree(data);
     return NULL;

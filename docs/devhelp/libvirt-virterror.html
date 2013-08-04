@@ -139,7 +139,8 @@ void	<a href="#virSetErrorFunc">virSetErrorFunc</a>			(void * userData, <br/>			
     <a name="VIR_FROM_IDENTITY">VIR_FROM_IDENTITY</a> = 53 /* Error from identity code */
     <a name="VIR_FROM_CGROUP">VIR_FROM_CGROUP</a> = 54 /* Error from cgroups */
     <a name="VIR_FROM_ACCESS">VIR_FROM_ACCESS</a> = 55 /* Error from access control manager */
-    <a name="VIR_ERR_DOMAIN_LAST">VIR_ERR_DOMAIN_LAST</a> = 56
+    <a name="VIR_FROM_SYSTEMD">VIR_FROM_SYSTEMD</a> = 56 /* Error from systemd code */
+    <a name="VIR_ERR_DOMAIN_LAST">VIR_ERR_DOMAIN_LAST</a> = 57
 };
 </pre><p/>
 </div>
@@ -242,6 +243,7 @@ void	<a href="#virSetErrorFunc">virSetErrorFunc</a>			(void * userData, <br/>			
     <a name="VIR_ERR_AGENT_UNRESPONSIVE">VIR_ERR_AGENT_UNRESPONSIVE</a> = 86 /* guest agent is unresponsive, not running or not usable */
     <a name="VIR_ERR_RESOURCE_BUSY">VIR_ERR_RESOURCE_BUSY</a> = 87 /* resource is already in use */
     <a name="VIR_ERR_ACCESS_DENIED">VIR_ERR_ACCESS_DENIED</a> = 88 /* operation on the object/resource was denied */
+    <a name="VIR_ERR_DBUS_SERVICE">VIR_ERR_DBUS_SERVICE</a> = 89 /* error from a dbus service */
 };
 </pre><p/>
 </div>

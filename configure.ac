@@ -16,7 +16,7 @@ dnl You should have received a copy of the GNU Lesser General Public
 dnl License along with this library.  If not, see
 dnl <http://www.gnu.org/licenses/>.
 
-AC_INIT([libvirt], [1.1.0], [libvir-list@redhat.com], [], [http://libvirt.org])
+AC_INIT([libvirt], [1.1.1], [libvir-list@redhat.com], [], [http://libvirt.org])
 AC_CONFIG_SRCDIR([src/libvirt.c])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
@@ -206,8 +206,8 @@ AC_CHECK_SIZEOF([long])
 dnl Availability of various common functions (non-fatal if missing),
 dnl and various less common threadsafe functions
 AC_CHECK_FUNCS_ONCE([cfmakeraw geteuid getgid getgrnam_r getmntent_r \
-  getpwuid_r getuid initgroups kill mmap newlocale posix_fallocate \
-  posix_memalign prlimit regexec sched_getaffinity setns setrlimit symlink])
+  getpwuid_r getuid kill mmap newlocale posix_fallocate posix_memalign \
+  prlimit regexec sched_getaffinity setgroups setns setrlimit symlink])
 
 dnl Availability of pthread functions (if missing, win32 threading is
 dnl assumed).  Because of $LIB_PTHREAD, we cannot use AC_CHECK_FUNCS_ONCE.
@@ -893,13 +893,14 @@ if test "$with_libvirtd" = "no" ; then
   with_lxc=no
 fi
 if test "$with_lxc" = "yes" || test "$with_lxc" = "check"; then
-    AC_TRY_LINK([
+    AC_LINK_IFELSE([AC_LANG_PROGRAM(
+    [[
         #include <sched.h>
         #include <linux/loop.h>
         #include <sys/epoll.h>
-    ], [
-        unshare (!(LO_FLAGS_AUTOCLEAR + EPOLL_CLOEXEC));
-    ], [
+    ]], [[
+        unshare(!(LO_FLAGS_AUTOCLEAR + EPOLL_CLOEXEC));
+    ]])], [
         with_lxc=yes
        AC_DEFINE([HAVE_DECL_LO_FLAGS_AUTOCLEAR], [1],
          [Define to 1 if you have the declaration of `LO_FLAGS_AUTOCLEAR',
@@ -2391,13 +2392,19 @@ AC_CHECK_MEMBERS([struct ifreq.ifr_newname,
                  [#include <sys/socket.h>
                   #include <net/if.h>
                  ])
+
 # Check for BSD approach for setting MAC addr
-AC_CHECK_DECLS([link_addr],
-               [], [],
-               [#include <sys/types.h>
-                #include <sys/socket.h>
-                #include <net/if_dl.h>
-               ])
+AC_LINK_IFELSE([AC_LANG_PROGRAM(
+     [[
+        #include <sys/types.h>
+        #include <sys/socket.h>
+        #include <net/if_dl.h>
+     ]],
+     [[
+        link_addr(0, 0)]])],
+     [AC_DEFINE([HAVE_DECL_LINK_ADDR],
+                [1],
+                [whether link_addr is available])])
 
 # Check for BSD approach for bridge management
 AC_CHECK_DECLS([BRDGSFD, BRDGADD, BRDGDEL],
@@ -2405,7 +2412,8 @@ AC_CHECK_DECLS([BRDGSFD, BRDGADD, BRDGDEL],
                           [1],
                           [whether BSD style bridge management is available])],
                [],
-               [#include <net/if.h>
+               [#include <stdint.h>
+                #include <net/if.h>
                 #include <net/ethernet.h>
                 #include <net/if_bridgevar.h>
                ])

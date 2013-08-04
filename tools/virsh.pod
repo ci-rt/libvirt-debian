@@ -539,6 +539,7 @@ the I<--force> flag may be specified, requesting to disconnect any existing
 sessions, such as in a case of a broken connection.
 
 =item B<create> I<FILE> [I<--console>] [I<--paused>] [I<--autodestroy>]
+[I<--pass-fds N,M,...>]
 
 Create a domain from an XML <file>. An easy way to create the XML
 <file> is to use the B<dumpxml> command to obtain the definition of a
@@ -548,6 +549,11 @@ If I<--console> is requested, attach to the console after creation.
 If I<--autodestroy> is requested, then the guest will be automatically
 destroyed when virsh closes its connection to libvirt, or otherwise
 exits.
+
+If I<--pass-fds> is specified, the argument is a comma separated list
+of open file descriptors which should be pass on into the guest. The
+file descriptors will be re-numered in the guest, starting from 3. This
+is only supported with container based virtualization.
 
 B<Example>
 
@@ -668,9 +674,29 @@ Both I<--live> and I<--current> flags may be given, but I<--current> is
 exclusive. If no flag is specified, behavior is different depending
 on hypervisor.
 
-=item B<dommemstat> I<domain>
+=item B<dommemstat> I<domain> [I<--period> B<seconds>]
+[[I<--config>] [I<--live>] | [I<--current>]]
 
 Get memory stats for a running domain.
+
+Depending on the hypervisor a variety of statistics can be returned
+
+For QEMU/KVM with a memory balloon, setting the optional I<--period> to a
+value larger than 0 in seconds will allow the balloon driver to return
+additional statistics which will be displayed by subsequent B<dommemstat>
+commands. Setting the I<--period> to 0 will stop the balloon driver collection,
+but does not clear the statistics in the balloon driver. Requires at least
+QEMU/KVM 1.5 to be running on the host.
+
+The I<--live>, I<--config>, and I<--current> flags are only valid when using
+the I<--period> option in order to set the collection period for the balloon
+driver. If I<--live> is specified, only the running guest collection period
+is affected. If I<--config> is specified, affect the next boot of a persistent
+guest. If I<--current> is specified, affect the current guest state.
+
+Both I<--live> and I<--config> flags may be given, but I<--current> is
+exclusive. If no flag is specified, behavior is different depending
+on the guest state.
 
 =item B<domblkerror> I<domain>
 
@@ -1661,7 +1687,7 @@ For strict control over ordering, use a single mode at a time and
 repeat the command.
 
 =item B<start> I<domain-name-or-uuid> [I<--console>] [I<--paused>]
-[I<--autodestroy>] [I<--bypass-cache>] [I<--force-boot>]
+[I<--autodestroy>] [I<--bypass-cache>] [I<--force-boot>] [I<--pass-fds N,M,...>]
 
 Start a (previously defined) inactive domain, either from the last
 B<managedsave> state, or via a fresh boot if no managedsave state is
@@ -1674,6 +1700,11 @@ exits.  If I<--bypass-cache> is specified, and managedsave state exists,
 the restore will avoid the file system cache, although this may slow
 down the operation.  If I<--force-boot> is specified, then any
 managedsave state is discarded and a fresh boot occurs.
+
+If I<--pass-fds> is specified, the argument is a comma separated list
+of open file descriptors which should be pass on into the guest. The
+file descriptors will be re-numered in the guest, starting from 3. This
+is only supported with container based virtualization.
 
 =item B<suspend> I<domain>
 
@@ -2113,13 +2144,19 @@ name or wwn pair in "wwnn,wwpn" format (only works for HBA). Note
 that this makes libvirt quit managing a host device, and may even make
 that device unusable by the rest of the physical host until a reboot.
 
-=item B<nodedev-detach> I<nodedev>
+=item B<nodedev-detach> I<nodedev> [I<--driver backend_driver>]
 
 Detach I<nodedev> from the host, so that it can safely be used by
 guests via <hostdev> passthrough.  This is reversed with
 B<nodedev-reattach>, and is done automatically for managed devices.
 For compatibility purposes, this command can also be spelled
 B<nodedev-dettach>.
+
+Different backend drivers expect the device to be bound to different
+dummy devices. For example, QEMU's "kvm" backend driver (the default)
+expects the device to be bound to pci-stub, but its "vfio" backend
+driver expects the device to be bound to vfio-pci. The I<--driver>
+parameter can be used to specify the desired backend driver.
 
 =item B<nodedev-dumpxml> I<device>
 

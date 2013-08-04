@@ -596,7 +596,7 @@ virNetDevMacVLanVPortProfileCallback(struct nlmsghdr *hdr,
             if (virMacAddrCmpRaw(&calld->macaddress, mac->mac))
             {
                 /* Repeat the same check for a broadcast mac */
-                int i;
+                size_t i;
 
                 for (i = 0; i < VIR_MAC_BUFLEN; i++) {
                     if (calld->macaddress.addr[i] != 0xff) {
@@ -764,11 +764,11 @@ virNetDevMacVLanVPortProfileRegisterCallback(const char *ifname,
 
     if (virtPortProfile && virNetlinkEventServiceIsRunning(NETLINK_ROUTE)) {
         if (VIR_ALLOC(calld) < 0)
-            goto memory_error;
+            goto error;
         if (VIR_STRDUP(calld->cr_ifname, ifname) < 0)
             goto error;
         if (VIR_ALLOC(calld->virtPortProfile) < 0)
-            goto memory_error;
+            goto error;
         memcpy(calld->virtPortProfile, virtPortProfile, sizeof(*virtPortProfile));
         virMacAddrSet(&calld->macaddress, macaddress);
         if (VIR_STRDUP(calld->linkdev, linkdev) < 0)
@@ -785,8 +785,6 @@ virNetDevMacVLanVPortProfileRegisterCallback(const char *ifname,
 
     return 0;
 
-memory_error:
-    virReportOOMError();
 error:
     virNetlinkCallbackDataFree(calld);
     return -1;

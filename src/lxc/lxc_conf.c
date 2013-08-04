@@ -41,9 +41,25 @@
 
 #define VIR_FROM_THIS VIR_FROM_LXC
 
+static virClassPtr virLXCDriverConfigClass;
+static void virLXCDriverConfigDispose(void *obj);
+
+static int virLXCConfigOnceInit(void)
+{
+    if (!(virLXCDriverConfigClass = virClassNew(virClassForObject(),
+                                                 "virLXCDriverConfig",
+                                                 sizeof(virLXCDriverConfig),
+                                                 virLXCDriverConfigDispose)))
+        return -1;
+
+    return 0;
+}
+
+VIR_ONCE_GLOBAL_INIT(virLXCConfig)
+
 
 /* Functions */
-virCapsPtr lxcCapsInit(virLXCDriverPtr driver)
+virCapsPtr virLXCDriverCapsInit(virLXCDriverPtr driver)
 {
     virCapsPtr caps;
     virCapsGuestPtr guest;
@@ -114,16 +130,14 @@ virCapsPtr lxcCapsInit(virLXCDriverPtr driver)
 
         doi = virSecurityManagerGetDOI(driver->securityManager);
         model = virSecurityManagerGetModel(driver->securityManager);
-        if (STRNEQ(model, "none")) {
-            /* Allocate just the primary security driver for LXC. */
-            if (VIR_ALLOC(caps->host.secModels) < 0)
-                goto no_memory;
-            caps->host.nsecModels = 1;
-            if (VIR_STRDUP(caps->host.secModels[0].model, model) < 0)
-                goto error;
-            if (VIR_STRDUP(caps->host.secModels[0].doi, doi) < 0)
-                goto error;
-        }
+        /* Allocate the primary security driver for LXC. */
+        if (VIR_ALLOC(caps->host.secModels) < 0)
+            goto error;
+        caps->host.nsecModels = 1;
+        if (VIR_STRDUP(caps->host.secModels[0].model, model) < 0)
+            goto error;
+        if (VIR_STRDUP(caps->host.secModels[0].doi, doi) < 0)
+            goto error;
 
         VIR_DEBUG("Initialized caps for security driver \"%s\" with "
                   "DOI \"%s\"", model, doi);
@@ -133,12 +147,42 @@ virCapsPtr lxcCapsInit(virLXCDriverPtr driver)
 
     return caps;
 
-no_memory:
-    virReportOOMError();
-
 error:
     virObjectUnref(caps);
     return NULL;
+}
+
+
+/**
+ * virLXCDriverGetCapabilities:
+ *
+ * Get a reference to the virCapsPtr instance for the
+ * driver. If @refresh is true, the capabilities will be
+ * rebuilt first
+ *
+ * The caller must release the reference with virObjetUnref
+ *
+ * Returns: a reference to a virCapsPtr instance or NULL
+ */
+virCapsPtr virLXCDriverGetCapabilities(virLXCDriverPtr driver,
+                                       bool refresh)
+{
+    virCapsPtr ret;
+    if (refresh) {
+        virCapsPtr caps = NULL;
+        if ((caps = virLXCDriverCapsInit(driver)) == NULL)
+            return NULL;
+
+        lxcDriverLock(driver);
+        virObjectUnref(driver->caps);
+        driver->caps = caps;
+    } else {
+        lxcDriverLock(driver);
+    }
+
+    ret = virObjectRef(driver->caps);
+    lxcDriverUnlock(driver);
+    return ret;
 }
 
 
@@ -151,28 +195,42 @@ lxcDomainXMLConfInit(void)
 }
 
 
-int lxcLoadDriverConfig(virLXCDriverPtr driver)
+virLXCDriverConfigPtr
+virLXCDriverConfigNew(void)
 {
-    char *filename;
-    virConfPtr conf;
-    virConfValuePtr p;
+    virLXCDriverConfigPtr cfg;
 
-    driver->securityDefaultConfined = false;
-    driver->securityRequireConfined = false;
+    if (virLXCConfigInitialize() < 0)
+        return NULL;
+
+    if (!(cfg = virObjectNew(virLXCDriverConfigClass)))
+        return NULL;
+
+    cfg->securityDefaultConfined = false;
+    cfg->securityRequireConfined = false;
 
     /* Set the container configuration directory */
-    if (VIR_STRDUP(driver->configDir, LXC_CONFIG_DIR) < 0)
+    if (VIR_STRDUP(cfg->configDir, LXC_CONFIG_DIR) < 0)
         goto error;
-    if (VIR_STRDUP(driver->stateDir, LXC_STATE_DIR) < 0)
+    if (VIR_STRDUP(cfg->stateDir, LXC_STATE_DIR) < 0)
         goto error;
-    if (VIR_STRDUP(driver->logDir, LXC_LOG_DIR) < 0)
+    if (VIR_STRDUP(cfg->logDir, LXC_LOG_DIR) < 0)
         goto error;
-    if (VIR_STRDUP(driver->autostartDir, LXC_AUTOSTART_DIR) < 0)
+    if (VIR_STRDUP(cfg->autostartDir, LXC_AUTOSTART_DIR) < 0)
         goto error;
 
+    return cfg;
+error:
+    virObjectUnref(cfg);
+    return NULL;
+}
 
-    if (VIR_STRDUP(filename, SYSCONFDIR "/libvirt/lxc.conf") < 0)
-        goto error;
+int
+virLXCLoadDriverConfig(virLXCDriverConfigPtr cfg,
+                       const char *filename)
+{
+    virConfPtr conf;
+    virConfValuePtr p;
 
     /* Avoid error from non-existant or unreadable file. */
     if (access(filename, R_OK) == -1)
@@ -191,12 +249,12 @@ int lxcLoadDriverConfig(virLXCDriverPtr driver)
 
     p = virConfGetValue(conf, "log_with_libvirtd");
     CHECK_TYPE("log_with_libvirtd", VIR_CONF_LONG);
-    if (p) driver->log_libvirtd = p->l;
+    if (p) cfg->log_libvirtd = p->l;
 
     p = virConfGetValue(conf, "security_driver");
     CHECK_TYPE("security_driver", VIR_CONF_STRING);
     if (p && p->str) {
-        if (VIR_STRDUP(driver->securityDriverName, p->str) < 0) {
+        if (VIR_STRDUP(cfg->securityDriverName, p->str) < 0) {
             virConfFree(conf);
             return -1;
         }
@@ -204,11 +262,11 @@ int lxcLoadDriverConfig(virLXCDriverPtr driver)
 
     p = virConfGetValue(conf, "security_default_confined");
     CHECK_TYPE("security_default_confined", VIR_CONF_LONG);
-    if (p) driver->securityDefaultConfined = p->l;
+    if (p) cfg->securityDefaultConfined = p->l;
 
     p = virConfGetValue(conf, "security_require_confined");
     CHECK_TYPE("security_require_confined", VIR_CONF_LONG);
-    if (p) driver->securityRequireConfined = p->l;
+    if (p) cfg->securityRequireConfined = p->l;
 
 
 #undef CHECK_TYPE
@@ -216,9 +274,26 @@ int lxcLoadDriverConfig(virLXCDriverPtr driver)
     virConfFree(conf);
 
 done:
-    VIR_FREE(filename);
     return 0;
+}
 
-error:
-    return -1;
+virLXCDriverConfigPtr virLXCDriverGetConfig(virLXCDriverPtr driver)
+{
+    virLXCDriverConfigPtr cfg;
+    lxcDriverLock(driver);
+    cfg = virObjectRef(driver->config);
+    lxcDriverUnlock(driver);
+    return cfg;
+}
+
+static void
+virLXCDriverConfigDispose(void *obj)
+{
+    virLXCDriverConfigPtr cfg = obj;
+
+    VIR_FREE(cfg->configDir);
+    VIR_FREE(cfg->autostartDir);
+    VIR_FREE(cfg->stateDir);
+    VIR_FREE(cfg->logDir);
+    VIR_FREE(cfg->securityDriverName);
 }

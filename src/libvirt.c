@@ -149,7 +149,7 @@ cleanup:
 static int virConnectAuthCallbackDefault(virConnectCredentialPtr cred,
                                          unsigned int ncred,
                                          void *cbdata ATTRIBUTE_UNUSED) {
-    int i;
+    size_t i;
 
     for (i = 0; i < ncred; i++) {
         char buf[1024];
@@ -275,7 +275,7 @@ static int virTLSMutexInit(void **priv)
 {
     virMutexPtr lock = NULL;
 
-    if (VIR_ALLOC(lock) < 0)
+    if (VIR_ALLOC_QUIET(lock) < 0)
         return ENOMEM;
 
     if (virMutexInit(lock) < 0) {
@@ -808,7 +808,11 @@ virRegisterStateDriver(virStateDriverPtr driver)
  * @callback: callback to invoke to inhibit shutdown of the daemon
  * @opaque: data to pass to @callback
  *
- * Initialize all virtualization drivers.
+ * Initialize all virtualization drivers. Accomplished in two phases,
+ * the first being state and structure initialization followed by any
+ * auto start supported by the driver.  This is done to ensure dependencies
+ * that some drivers may have on another driver having been initialized
+ * will exist, such as the storage driver's need to use the secret driver.
  *
  * Returns 0 if all succeed, -1 upon any failure.
  */
@@ -816,7 +820,7 @@ int virStateInitialize(bool privileged,
                        virStateInhibitCallback callback,
                        void *opaque)
 {
-    int i;
+    size_t i;
 
     if (virInitialize() < 0)
         return -1;
@@ -836,6 +840,14 @@ int virStateInitialize(bool privileged,
             }
         }
     }
+
+    for (i = 0; i < virStateDriverTabCount; i++) {
+        if (virStateDriverTab[i]->stateAutoStart) {
+            VIR_DEBUG("Running global auto start for %s state driver",
+                      virStateDriverTab[i]->name);
+            virStateDriverTab[i]->stateAutoStart();
+        }
+    }
     return 0;
 }
 
@@ -847,7 +859,8 @@ int virStateInitialize(bool privileged,
  * Returns 0 if all succeed, -1 upon any failure.
  */
 int virStateCleanup(void) {
-    int i, ret = 0;
+    size_t i;
+    int ret = 0;
 
     for (i = 0; i < virStateDriverTabCount; i++) {
         if (virStateDriverTab[i]->stateCleanup &&
@@ -865,7 +878,8 @@ int virStateCleanup(void) {
  * Returns 0 if all succeed, -1 upon any failure.
  */
 int virStateReload(void) {
-    int i, ret = 0;
+    size_t i;
+    int ret = 0;
 
     for (i = 0; i < virStateDriverTabCount; i++) {
         if (virStateDriverTab[i]->stateReload &&
@@ -883,7 +897,8 @@ int virStateReload(void) {
  * Returns 0 if successful, -1 on failure
  */
 int virStateStop(void) {
-    int i, ret = 0;
+    size_t i;
+    int ret = 0;
 
     for (i = 0; i < virStateDriverTabCount; i++) {
         if (virStateDriverTab[i]->stateStop &&
@@ -947,26 +962,21 @@ virConnectGetConfigFilePath(void)
     if (geteuid() == 0) {
         if (virAsprintf(&path, "%s/libvirt/libvirt.conf",
                         SYSCONFDIR) < 0)
-            goto no_memory;
+            return NULL;
     } else {
         char *userdir = virGetUserConfigDirectory();
         if (!userdir)
-            goto error;
+            return NULL;
 
         if (virAsprintf(&path, "%s/libvirt.conf",
                         userdir) < 0) {
             VIR_FREE(userdir);
-            goto no_memory;
+            return NULL;
         }
         VIR_FREE(userdir);
     }
 
     return path;
-
-no_memory:
-    virReportOOMError();
-error:
-    return NULL;
 }
 
 static int
@@ -1100,7 +1110,8 @@ do_open(const char *name,
         virConnectAuthPtr auth,
         unsigned int flags)
 {
-    int i, res;
+    size_t i;
+    int res;
     virConnectPtr ret;
     virConfPtr conf = NULL;
 
@@ -1201,10 +1212,10 @@ do_open(const char *name,
             goto failed;
         }
 
-        VIR_DEBUG("trying driver %d (%s) ...", i, virDriverTab[i]->name);
+        VIR_DEBUG("trying driver %zu (%s) ...", i, virDriverTab[i]->name);
         ret->driver = virDriverTab[i];
         res = virDriverTab[i]->connectOpen(ret, auth, flags);
-        VIR_DEBUG("driver %d %s returned %s",
+        VIR_DEBUG("driver %zu %s returned %s",
                   i, virDriverTab[i]->name,
                   res == VIR_DRV_OPEN_SUCCESS ? "SUCCESS" :
                   (res == VIR_DRV_OPEN_DECLINED ? "DECLINED" :
@@ -1230,7 +1241,7 @@ do_open(const char *name,
 
     for (i = 0; i < virNetworkDriverTabCount; i++) {
         res = virNetworkDriverTab[i]->networkOpen(ret, auth, flags);
-        VIR_DEBUG("network driver %d %s returned %s",
+        VIR_DEBUG("network driver %zu %s returned %s",
                   i, virNetworkDriverTab[i]->name,
                   res == VIR_DRV_OPEN_SUCCESS ? "SUCCESS" :
                   (res == VIR_DRV_OPEN_DECLINED ? "DECLINED" :
@@ -1246,7 +1257,7 @@ do_open(const char *name,
 
     for (i = 0; i < virInterfaceDriverTabCount; i++) {
         res = virInterfaceDriverTab[i]->interfaceOpen(ret, auth, flags);
-        VIR_DEBUG("interface driver %d %s returned %s",
+        VIR_DEBUG("interface driver %zu %s returned %s",
                   i, virInterfaceDriverTab[i]->name,
                   res == VIR_DRV_OPEN_SUCCESS ? "SUCCESS" :
                   (res == VIR_DRV_OPEN_DECLINED ? "DECLINED" :
@@ -1263,7 +1274,7 @@ do_open(const char *name,
     /* Secondary driver for storage. Optional */
     for (i = 0; i < virStorageDriverTabCount; i++) {
         res = virStorageDriverTab[i]->storageOpen(ret, auth, flags);
-        VIR_DEBUG("storage driver %d %s returned %s",
+        VIR_DEBUG("storage driver %zu %s returned %s",
                   i, virStorageDriverTab[i]->name,
                   res == VIR_DRV_OPEN_SUCCESS ? "SUCCESS" :
                   (res == VIR_DRV_OPEN_DECLINED ? "DECLINED" :
@@ -1280,7 +1291,7 @@ do_open(const char *name,
     /* Node driver (optional) */
     for (i = 0; i < virNodeDeviceDriverTabCount; i++) {
         res = virNodeDeviceDriverTab[i]->nodeDeviceOpen(ret, auth, flags);
-        VIR_DEBUG("node driver %d %s returned %s",
+        VIR_DEBUG("node driver %zu %s returned %s",
                   i, virNodeDeviceDriverTab[i]->name,
                   res == VIR_DRV_OPEN_SUCCESS ? "SUCCESS" :
                   (res == VIR_DRV_OPEN_DECLINED ? "DECLINED" :
@@ -1297,7 +1308,7 @@ do_open(const char *name,
     /* Secret manipulation driver. Optional */
     for (i = 0; i < virSecretDriverTabCount; i++) {
         res = virSecretDriverTab[i]->secretOpen(ret, auth, flags);
-        VIR_DEBUG("secret driver %d %s returned %s",
+        VIR_DEBUG("secret driver %zu %s returned %s",
                   i, virSecretDriverTab[i]->name,
                   res == VIR_DRV_OPEN_SUCCESS ? "SUCCESS" :
                   (res == VIR_DRV_OPEN_DECLINED ? "DECLINED" :
@@ -1314,7 +1325,7 @@ do_open(const char *name,
     /* Network filter driver. Optional */
     for (i = 0; i < virNWFilterDriverTabCount; i++) {
         res = virNWFilterDriverTab[i]->nwfilterOpen(ret, auth, flags);
-        VIR_DEBUG("nwfilter driver %d %s returned %s",
+        VIR_DEBUG("nwfilter driver %zu %s returned %s",
                   i, virNWFilterDriverTab[i]->name,
                   res == VIR_DRV_OPEN_SUCCESS ? "SUCCESS" :
                   (res == VIR_DRV_OPEN_DECLINED ? "DECLINED" :
@@ -1993,6 +2004,79 @@ virDomainCreateXML(virConnectPtr conn, const char *xmlDesc,
     if (conn->driver->domainCreateXML) {
         virDomainPtr ret;
         ret = conn->driver->domainCreateXML(conn, xmlDesc, flags);
+        if (!ret)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
+error:
+    virDispatchError(conn);
+    return NULL;
+}
+
+/**
+ * virDomainCreateXMLWithFiles:
+ * @conn: pointer to the hypervisor connection
+ * @xmlDesc: string containing an XML description of the domain
+ * @nfiles: number of file descriptors passed
+ * @files: list of file descriptors passed
+ * @flags: bitwise-OR of supported virDomainCreateFlags
+ *
+ * Launch a new guest domain, based on an XML description similar
+ * to the one returned by virDomainGetXMLDesc()
+ * This function may require privileged access to the hypervisor.
+ * The domain is not persistent, so its definition will disappear when it
+ * is destroyed, or if the host is restarted (see virDomainDefineXML() to
+ * define persistent domains).
+ *
+ * @files provides an array of file descriptors which will be
+ * made available to the 'init' process of the guest. The file
+ * handles exposed to the guest will be renumbered to start
+ * from 3 (ie immediately following stderr). This is only
+ * supported for guests which use container based virtualization
+ * technology.
+ *
+ * If the VIR_DOMAIN_START_PAUSED flag is set, the guest domain
+ * will be started, but its CPUs will remain paused. The CPUs
+ * can later be manually started using virDomainResume.
+ *
+ * If the VIR_DOMAIN_START_AUTODESTROY flag is set, the guest
+ * domain will be automatically destroyed when the virConnectPtr
+ * object is finally released. This will also happen if the
+ * client application crashes / loses its connection to the
+ * libvirtd daemon. Any domains marked for auto destroy will
+ * block attempts at migration, save-to-file, or snapshots.
+ *
+ * Returns a new domain object or NULL in case of failure
+ */
+virDomainPtr
+virDomainCreateXMLWithFiles(virConnectPtr conn, const char *xmlDesc,
+                            unsigned int nfiles,
+                            int *files,
+                            unsigned int flags)
+{
+    VIR_DEBUG("conn=%p, xmlDesc=%s, nfiles=%u, files=%p, flags=%x",
+              conn, xmlDesc, nfiles, files, flags);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECT(conn)) {
+        virLibConnError(VIR_ERR_INVALID_CONN, __FUNCTION__);
+        virDispatchError(NULL);
+        return NULL;
+    }
+    virCheckNonNullArgGoto(xmlDesc, error);
+    if (conn->flags & VIR_CONNECT_RO) {
+        virLibConnError(VIR_ERR_OPERATION_DENIED, __FUNCTION__);
+        goto error;
+    }
+
+    if (conn->driver->domainCreateXMLWithFiles) {
+        virDomainPtr ret;
+        ret = conn->driver->domainCreateXMLWithFiles(conn, xmlDesc,
+                                                     nfiles, files,
+                                                     flags);
         if (!ret)
             goto error;
         return ret;
@@ -3782,6 +3866,70 @@ error:
     return -1;
 }
 
+/**
+ * virDomainSetMemoryStatsPeriod:
+ * @domain: a domain object or NULL
+ * @period: the period in seconds for stats collection
+ * @flags: bitwise-OR of virDomainMemoryModFlags
+ *
+ * Dynamically change the domain memory balloon driver statistics collection
+ * period. Use 0 to disable and a positive value to enable.
+ *
+ * @flags may include VIR_DOMAIN_AFFECT_LIVE or VIR_DOMAIN_AFFECT_CONFIG.
+ * Both flags may be set. If VIR_DOMAIN_AFFECT_LIVE is set, the change affects
+ * a running domain and will fail if domain is not active.
+ * If VIR_DOMAIN_AFFECT_CONFIG is set, the change affects persistent state,
+ * and will fail for transient domains. If neither flag is specified
+ * (that is, @flags is VIR_DOMAIN_AFFECT_CURRENT), then an inactive domain
+ * modifies persistent setup, while an active domain is hypervisor-dependent
+ * on whether just live or both live and persistent state is changed.
+ *
+ * Not all hypervisors can support all flag combinations.
+ *
+ * Returns 0 in case of success, -1 in case of failure.
+ */
+
+int
+virDomainSetMemoryStatsPeriod(virDomainPtr domain, int period,
+                              unsigned int flags)
+{
+    virConnectPtr conn;
+
+    VIR_DOMAIN_DEBUG(domain, "peroid=%d, flags=%x", period, flags);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECTED_DOMAIN(domain)) {
+        virLibDomainError(VIR_ERR_INVALID_DOMAIN, __FUNCTION__);
+        virDispatchError(NULL);
+        return -1;
+    }
+
+    if (domain->conn->flags & VIR_CONNECT_RO) {
+        virLibDomainError(VIR_ERR_OPERATION_DENIED, __FUNCTION__);
+        goto error;
+    }
+
+    /* This must be positive to set the balloon collection period */
+    virCheckNonNegativeArgGoto(period, error);
+
+    conn = domain->conn;
+
+    if (conn->driver->domainSetMemoryStatsPeriod) {
+        int ret;
+        ret = conn->driver->domainSetMemoryStatsPeriod(domain, period, flags);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    virDispatchError(domain->conn);
+    return -1;
+}
+
 /* Helper function called to validate incoming client array on any
  * interface that sets typed parameters in the hypervisor.  */
 static int
@@ -3790,7 +3938,7 @@ virTypedParameterValidateSet(virConnectPtr conn,
                              int nparams)
 {
     bool string_okay;
-    int i;
+    size_t i;
 
     string_okay = VIR_DRV_SUPPORTS_FEATURE(conn->driver,
                                            conn,
@@ -4563,16 +4711,17 @@ virDomainMigrateVersion1(virDomainPtr domain,
     char *cookie = NULL;
     int cookielen = 0, ret;
     virDomainInfo info;
-    unsigned int destflags = flags & ~VIR_MIGRATE_ABORT_ON_ERROR;
+    unsigned int destflags;
 
     VIR_DOMAIN_DEBUG(domain,
                      "dconn=%p, flags=%lx, dname=%s, uri=%s, bandwidth=%lu",
                      dconn, flags, NULLSTR(dname), NULLSTR(uri), bandwidth);
 
     ret = virDomainGetInfo(domain, &info);
-    if (ret == 0 && info.state == VIR_DOMAIN_PAUSED) {
+    if (ret == 0 && info.state == VIR_DOMAIN_PAUSED)
         flags |= VIR_MIGRATE_PAUSED;
-    }
+
+    destflags = flags & ~VIR_MIGRATE_ABORT_ON_ERROR;
 
     /* Prepare the migration.
      *
@@ -4659,7 +4808,7 @@ virDomainMigrateVersion2(virDomainPtr domain,
     virErrorPtr orig_err = NULL;
     unsigned int getxml_flags = 0;
     int cancelled;
-    unsigned int destflags = flags & ~VIR_MIGRATE_ABORT_ON_ERROR;
+    unsigned long destflags;
 
     VIR_DOMAIN_DEBUG(domain,
                      "dconn=%p, flags=%lx, dname=%s, uri=%s, bandwidth=%lu",
@@ -4699,11 +4848,12 @@ virDomainMigrateVersion2(virDomainPtr domain,
         return NULL;
 
     ret = virDomainGetInfo(domain, &info);
-    if (ret == 0 && info.state == VIR_DOMAIN_PAUSED) {
+    if (ret == 0 && info.state == VIR_DOMAIN_PAUSED)
         flags |= VIR_MIGRATE_PAUSED;
-    }
 
-    VIR_DEBUG("Prepare2 %p flags=%lx", dconn, flags);
+    destflags = flags & ~VIR_MIGRATE_ABORT_ON_ERROR;
+
+    VIR_DEBUG("Prepare2 %p flags=%lx", dconn, destflags);
     ret = dconn->driver->domainMigratePrepare2
         (dconn, &cookie, &cookielen, uri, &uri_out, destflags, dname,
          bandwidth, dom_xml);
@@ -4811,7 +4961,7 @@ virDomainMigrateVersion3Full(virDomainPtr domain,
     int cancelled = 1;
     unsigned long protection = 0;
     bool notify_source = true;
-    unsigned int destflags = flags & ~VIR_MIGRATE_ABORT_ON_ERROR;
+    unsigned int destflags;
     int state;
     virTypedParameterPtr tmp;
 
@@ -4870,7 +5020,9 @@ virDomainMigrateVersion3Full(virDomainPtr domain,
     if (ret == 0 && state == VIR_DOMAIN_PAUSED)
         flags |= VIR_MIGRATE_PAUSED;
 
-    VIR_DEBUG("Prepare3 %p flags=%x", dconn, flags);
+    destflags = flags & ~VIR_MIGRATE_ABORT_ON_ERROR;
+
+    VIR_DEBUG("Prepare3 %p flags=%x", dconn, destflags);
     cookiein = cookieout;
     cookieinlen = cookieoutlen;
     cookieout = NULL;
@@ -7521,7 +7673,7 @@ error:
  * @flags: extra flags; not used yet, so callers should always pass 0
  *
  * This function provides memory stats of the node.
- * If you want to get total cpu statistics of the node, you must specify
+ * If you want to get total memory statistics of the node, you must specify
  * VIR_NODE_MEMORY_STATS_ALL_CELLS to @cellNum.
  * The @params array will be filled with the values equal to the number of
  * stats suggested by @nparams
@@ -9194,7 +9346,7 @@ error:
  *
  * Example of usage:
  * virDomainPtr *domains;
- * int i;
+ * size_t i;
  * int ret;
  * unsigned int flags = VIR_CONNECT_LIST_DOMAINS_RUNNING |
  *                      VIR_CONNECT_LIST_DOMAINS_PERSISTENT;
@@ -9345,6 +9497,87 @@ virDomainCreateWithFlags(virDomainPtr domain, unsigned int flags) {
     if (conn->driver->domainCreateWithFlags) {
         int ret;
         ret = conn->driver->domainCreateWithFlags(domain, flags);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    virDispatchError(domain->conn);
+    return -1;
+}
+
+/**
+ * virDomainCreateWithFiles:
+ * @domain: pointer to a defined domain
+ * @nfiles: number of file descriptors passed
+ * @files: list of file descriptors passed
+ * @flags: bitwise-OR of supported virDomainCreateFlags
+ *
+ * Launch a defined domain. If the call succeeds the domain moves from the
+ * defined to the running domains pools.
+ *
+ * @files provides an array of file descriptors which will be
+ * made available to the 'init' process of the guest. The file
+ * handles exposed to the guest will be renumbered to start
+ * from 3 (ie immediately following stderr). This is only
+ * supported for guests which use container based virtualization
+ * technology.
+ *
+ * If the VIR_DOMAIN_START_PAUSED flag is set, or if the guest domain
+ * has a managed save image that requested paused state (see
+ * virDomainManagedSave()) the guest domain will be started, but its
+ * CPUs will remain paused. The CPUs can later be manually started
+ * using virDomainResume().  In all other cases, the guest domain will
+ * be running.
+ *
+ * If the VIR_DOMAIN_START_AUTODESTROY flag is set, the guest
+ * domain will be automatically destroyed when the virConnectPtr
+ * object is finally released. This will also happen if the
+ * client application crashes / loses its connection to the
+ * libvirtd daemon. Any domains marked for auto destroy will
+ * block attempts at migration, save-to-file, or snapshots.
+ *
+ * If the VIR_DOMAIN_START_BYPASS_CACHE flag is set, and there is a
+ * managed save file for this domain (created by virDomainManagedSave()),
+ * then libvirt will attempt to bypass the file system cache while restoring
+ * the file, or fail if it cannot do so for the given system; this can allow
+ * less pressure on file system cache, but also risks slowing loads from NFS.
+ *
+ * If the VIR_DOMAIN_START_FORCE_BOOT flag is set, then any managed save
+ * file for this domain is discarded, and the domain boots from scratch.
+ *
+ * Returns 0 in case of success, -1 in case of error
+ */
+int
+virDomainCreateWithFiles(virDomainPtr domain, unsigned int nfiles,
+                         int *files, unsigned int flags)
+{
+    virConnectPtr conn;
+
+    VIR_DOMAIN_DEBUG(domain, "nfiles=%u, files=%p, flags=%x",
+                     nfiles, files, flags);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECTED_DOMAIN(domain)) {
+        virLibDomainError(VIR_ERR_INVALID_DOMAIN, __FUNCTION__);
+        virDispatchError(NULL);
+        return -1;
+    }
+    conn = domain->conn;
+    if (conn->flags & VIR_CONNECT_RO) {
+        virLibDomainError(VIR_ERR_OPERATION_DENIED, __FUNCTION__);
+        goto error;
+    }
+
+    if (conn->driver->domainCreateWithFiles) {
+        int ret;
+        ret = conn->driver->domainCreateWithFiles(domain,
+                                                  nfiles, files,
+                                                  flags);
         if (ret < 0)
             goto error;
         return ret;
@@ -10821,6 +11054,22 @@ error:
  * Some hypervisors may prevent this operation if there is a current
  * block copy operation on the device being detached; in that case,
  * use virDomainBlockJobAbort() to stop the block copy first.
+ *
+ * Beware that depending on the hypervisor and device type, detaching a device
+ * from a running domain may be asynchronous. That is, calling
+ * virDomainDetachDeviceFlags may just request device removal while the device
+ * is actually removed later (in cooperation with a guest OS). Previously,
+ * this fact was ignored and the device could have been removed from domain
+ * configuration before it was actually removed by the hypervisor causing
+ * various failures on subsequent operations. To check whether the device was
+ * successfully removed, either recheck domain configuration using
+ * virDomainGetXMLDesc() or add handler for VIR_DOMAIN_EVENT_ID_DEVICE_REMOVED
+ * event. In case the device is already gone when virDomainDetachDeviceFlags
+ * returns, the event is delivered before this API call ends. To help existing
+ * clients work better in most cases, this API will try to transform an
+ * asynchronous device removal that finishes shortly after the request into
+ * a synchronous removal. In other words, this API may wait a bit for the
+ * removal to complete in case it was not synchronous.
  *
  * Returns 0 in case of success, -1 in case of failure.
  */
@@ -16974,10 +17223,8 @@ int virStreamSendAll(virStreamPtr stream,
         goto cleanup;
     }
 
-    if (VIR_ALLOC_N(bytes, want) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC_N(bytes, want) < 0)
         goto cleanup;
-    }
 
     for (;;) {
         int got, offset = 0;
@@ -17074,10 +17321,8 @@ int virStreamRecvAll(virStreamPtr stream,
     }
 
 
-    if (VIR_ALLOC_N(bytes, want) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC_N(bytes, want) < 0)
         goto cleanup;
-    }
 
     for (;;) {
         int got, offset = 0;
@@ -18290,13 +18535,13 @@ virConnectBaselineCPU(virConnectPtr conn,
                       unsigned int ncpus,
                       unsigned int flags)
 {
-    unsigned int i;
+    size_t i;
 
     VIR_DEBUG("conn=%p, xmlCPUs=%p, ncpus=%u, flags=%x",
               conn, xmlCPUs, ncpus, flags);
     if (xmlCPUs) {
         for (i = 0; i < ncpus; i++)
-            VIR_DEBUG("xmlCPUs[%u]=%s", i, NULLSTR(xmlCPUs[i]));
+            VIR_DEBUG("xmlCPUs[%zu]=%s", i, NULLSTR(xmlCPUs[i]));
     }
 
     virResetLastError();

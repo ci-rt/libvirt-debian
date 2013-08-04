@@ -77,12 +77,12 @@ virLockManagerSetPluginDir(const char *dir)
 static void virLockManagerLogParams(size_t nparams,
                                     virLockManagerParamPtr params)
 {
-    int i;
+    size_t i;
     char uuidstr[VIR_UUID_STRING_BUFLEN];
     for (i = 0; i < nparams; i++) {
         switch (params[i].type) {
         case VIR_LOCK_MANAGER_PARAM_TYPE_INT:
-            VIR_DEBUG("  key=%s type=int value=%d", params[i].key, params[i].value.i);
+            VIR_DEBUG("  key=%s type=int value=%d", params[i].key, params[i].value.iv);
             break;
         case VIR_LOCK_MANAGER_PARAM_TYPE_UINT:
             VIR_DEBUG("  key=%s type=uint value=%u", params[i].key, params[i].value.ui);
@@ -143,10 +143,8 @@ virLockManagerPluginPtr virLockManagerPluginNew(const char *name,
               name, driverName, configDir, flags);
 
     if (virAsprintf(&configFile, "%s/%s-%s.conf",
-                    configDir, driverName, name) < 0) {
-        virReportOOMError();
+                    configDir, driverName, name) < 0)
         return NULL;
-    }
 
     if (STREQ(name, "nop")) {
         driver = &virLockDriverNop;
@@ -156,10 +154,8 @@ virLockManagerPluginPtr virLockManagerPluginNew(const char *name,
 
         VIR_DEBUG("Module load %s from %s", name, moddir);
 
-        if (virAsprintf(&modfile, "%s/%s.so", moddir, name) < 0) {
-            virReportOOMError();
+        if (virAsprintf(&modfile, "%s/%s.so", moddir, name) < 0)
             goto cleanup;
-        }
 
         if (access(modfile, R_OK) < 0) {
             virReportSystemError(errno,
@@ -186,10 +182,8 @@ virLockManagerPluginPtr virLockManagerPluginNew(const char *name,
     if (driver->drvInit(VIR_LOCK_MANAGER_VERSION, configFile, flags) < 0)
         goto cleanup;
 
-    if (VIR_ALLOC(plugin) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC(plugin) < 0)
         goto cleanup;
-    }
 
     plugin->driver = driver;
     plugin->handle = handle;
@@ -321,10 +315,8 @@ virLockManagerPtr virLockManagerNew(virLockDriverPtr driver,
 
     CHECK_DRIVER(drvNew, NULL);
 
-    if (VIR_ALLOC(lock) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC(lock) < 0)
         return NULL;
-    }
 
     lock->driver = driver;
 

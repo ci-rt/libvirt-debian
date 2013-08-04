@@ -137,7 +137,7 @@ VIR_ONCE_GLOBAL_INIT(qemuAgent)
 static char *
 qemuAgentEscapeNonPrintable(const char *text)
 {
-    int i;
+    size_t i;
     virBuffer buf = VIR_BUFFER_INITIALIZER;
     for (i = 0; text[i] != '\0'; i++) {
         if (text[i] == '\\')
@@ -169,7 +169,8 @@ qemuAgentOpenUnix(const char *monitor, pid_t cpid, bool *inProgress)
     struct sockaddr_un addr;
     int monfd;
     int timeout = 3; /* In seconds */
-    int ret, i = 0;
+    int ret;
+    size_t i = 0;
 
     *inProgress = false;
 
@@ -359,7 +360,7 @@ static int qemuAgentIOProcessData(qemuAgentPtr mon,
                                   qemuAgentMessagePtr msg)
 {
     int used = 0;
-    int i = 0;
+    size_t i = 0;
 #if DEBUG_IO
 # if DEBUG_RAW_IO
     char *str1 = qemuAgentEscapeNonPrintable(data);
@@ -514,10 +515,8 @@ qemuAgentIORead(qemuAgentPtr mon)
 
     if (avail < 1024) {
         if (VIR_REALLOC_N(mon->buffer,
-                          mon->bufferLength + 1024) < 0) {
-            virReportOOMError();
+                          mon->bufferLength + 1024) < 0)
             return -1;
-        }
         mon->bufferLength += 1024;
         avail += 1024;
     }
@@ -919,10 +918,8 @@ qemuAgentGuestSync(qemuAgentPtr mon)
 
     if (virAsprintf(&sync_msg.txBuffer,
                     "{\"execute\":\"guest-sync\", "
-                    "\"arguments\":{\"id\":%llu}}", id) < 0) {
-        virReportOOMError();
+                    "\"arguments\":{\"id\":%llu}}", id) < 0)
         return -1;
-    }
 
     sync_msg.txLength = strlen(sync_msg.txBuffer);
 
@@ -988,10 +985,8 @@ qemuAgentCommand(qemuAgentPtr mon,
 
     if (!(cmdstr = virJSONValueToString(cmd, false)))
         goto cleanup;
-    if (virAsprintf(&msg.txBuffer, "%s" LINE_ENDING, cmdstr) < 0) {
-        virReportOOMError();
+    if (virAsprintf(&msg.txBuffer, "%s" LINE_ENDING, cmdstr) < 0)
         goto cleanup;
-    }
     msg.txLength = strlen(msg.txBuffer);
 
     VIR_DEBUG("Send command '%s' for write, seconds = %d", cmdstr, seconds);
@@ -1147,10 +1142,10 @@ qemuAgentMakeCommand(const char *cmdname,
     va_start(args, cmdname);
 
     if (!(obj = virJSONValueNewObject()))
-        goto no_memory;
+        goto error;
 
     if (virJSONValueObjectAppendString(obj, "execute", cmdname) < 0)
-        goto no_memory;
+        goto error;
 
     while ((key = va_arg(args, char *)) != NULL) {
         int ret;
@@ -1169,7 +1164,7 @@ qemuAgentMakeCommand(const char *cmdname,
 
         if (!jargs &&
             !(jargs = virJSONValueNewObject()))
-            goto no_memory;
+            goto error;
 
         /* This doesn't support maps/arrays.  This hasn't
          * proved to be a problem..... yet :-)  */
@@ -1220,19 +1215,17 @@ qemuAgentMakeCommand(const char *cmdname,
             goto error;
         }
         if (ret < 0)
-            goto no_memory;
+            goto error;
     }
 
     if (jargs &&
         virJSONValueObjectAppend(obj, "arguments", jargs) < 0)
-        goto no_memory;
+        goto error;
 
     va_end(args);
 
     return obj;
 
-no_memory:
-    virReportOOMError();
 error:
     virJSONValueFree(obj);
     virJSONValueFree(jargs);
@@ -1469,7 +1462,7 @@ qemuAgentGetVCPUs(qemuAgentPtr mon,
                   qemuAgentCPUInfoPtr *info)
 {
     int ret = -1;
-    int i;
+    size_t i;
     virJSONValuePtr cmd;
     virJSONValuePtr reply = NULL;
     virJSONValuePtr data = NULL;
@@ -1497,10 +1490,8 @@ qemuAgentGetVCPUs(qemuAgentPtr mon,
 
     ndata = virJSONValueArraySize(data);
 
-    if (VIR_ALLOC_N(*info, ndata) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC_N(*info, ndata) < 0)
         goto cleanup;
-    }
 
     for (i = 0; i < ndata; i++) {
         virJSONValuePtr entry = virJSONValueArrayGet(data, i);
@@ -1538,7 +1529,6 @@ qemuAgentGetVCPUs(qemuAgentPtr mon,
 cleanup:
     virJSONValueFree(cmd);
     virJSONValueFree(reply);
-    virJSONValueFree(data);
     return ret;
 }
 
@@ -1562,23 +1552,23 @@ qemuAgentSetVCPUs(qemuAgentPtr mon,
 
     /* create the key data array */
     if (!(cpus = virJSONValueNewArray()))
-        goto no_memory;
+        goto cleanup;
 
     for (i = 0; i < ninfo; i++) {
         qemuAgentCPUInfoPtr in = &info[i];
 
         /* create single cpu object */
         if (!(cpu = virJSONValueNewObject()))
-            goto no_memory;
+            goto cleanup;
 
         if (virJSONValueObjectAppendNumberInt(cpu, "logical-id", in->id) < 0)
-            goto no_memory;
+            goto cleanup;
 
         if (virJSONValueObjectAppendBoolean(cpu, "online", in->online) < 0)
-            goto no_memory;
+            goto cleanup;
 
         if (virJSONValueArrayAppend(cpus, cpu) < 0)
-            goto no_memory;
+            goto cleanup;
 
         cpu = NULL;
     }
@@ -1606,8 +1596,4 @@ cleanup:
     virJSONValueFree(cpu);
     virJSONValueFree(cpus);
     return ret;
-
-no_memory:
-    virReportOOMError();
-    goto cleanup;
 }

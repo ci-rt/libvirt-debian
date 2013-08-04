@@ -54,7 +54,8 @@ out:
 static int
 showDomains(virConnectPtr conn)
 {
-    int ret = 0, i, numNames, numInactiveDomains, numActiveDomains;
+    int ret = 0, numNames, numInactiveDomains, numActiveDomains;
+    size_t i;
     int flags = VIR_CONNECT_LIST_DOMAINS_ACTIVE |
                 VIR_CONNECT_LIST_DOMAINS_INACTIVE;
     virDomainPtr *nameList = NULL;
@@ -89,6 +90,13 @@ showDomains(virConnectPtr conn)
     numNames = virConnectListAllDomains(conn,
                                         &nameList,
                                         flags);
+    if (numNames == -1) {
+        ret = 1;
+        printf("Failed to get a list of all domains: %s\n",
+               virGetLastErrorMessage());
+        goto out;
+    }
+
     for (i = 0; i < numNames; i++) {
         int active = virDomainIsActive(nameList[i]);
         printf("  %8s (%s)\n",

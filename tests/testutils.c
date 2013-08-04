@@ -68,7 +68,9 @@ static unsigned int testDebug = -1;
 static unsigned int testVerbose = -1;
 
 static unsigned int testOOM = 0;
-static unsigned int testCounter = 0;
+static size_t testCounter = 0;
+static size_t testStart = 0;
+static size_t testEnd = 0;
 
 char *progname;
 char *abs_srcdir;
@@ -77,7 +79,7 @@ double
 virtTestCountAverage(double *items, int nitems)
 {
     long double sum = 0;
-    int i;
+    size_t i;
 
     for (i=1; i < nitems; i++)
         sum += items[i];
@@ -96,14 +98,14 @@ void virtTestResult(const char *name, int ret, const char *msg, ...)
 
     testCounter++;
     if (virTestGetVerbose()) {
-        fprintf(stderr, "%3d) %-60s ", testCounter, name);
+        fprintf(stderr, "%3zu) %-60s ", testCounter, name);
         if (ret == 0)
             fprintf(stderr, "OK\n");
         else {
             fprintf(stderr, "FAILED\n");
             if (msg) {
                 char *str;
-                if (virVasprintf(&str, msg, vargs) == 0) {
+                if (virVasprintfQuiet(&str, msg, vargs) == 0) {
                     fprintf(stderr, "%s", str);
                     VIR_FREE(str);
                 }
@@ -112,7 +114,7 @@ void virtTestResult(const char *name, int ret, const char *msg, ...)
     } else {
         if (testCounter != 1 &&
             !((testCounter-1) % 40)) {
-            fprintf(stderr, " %-3d\n", (testCounter-1));
+            fprintf(stderr, " %-3zu\n", (testCounter-1));
             fprintf(stderr, "      ");
         }
         if (ret == 0)
@@ -132,7 +134,8 @@ void virtTestResult(const char *name, int ret, const char *msg, ...)
 int
 virtTestRun(const char *title, int nloops, int (*body)(const void *data), const void *data)
 {
-    int i, ret = 0;
+    int ret = 0;
+    size_t i;
     double *ts = NULL;
 
     if (testCounter == 0 && !virTestGetVerbose())
@@ -140,9 +143,16 @@ virtTestRun(const char *title, int nloops, int (*body)(const void *data), const 
 
     testCounter++;
 
+
+    /* Skip tests if out of range */
+    if ((testStart != 0) &&
+        (testCounter < testStart ||
+         testCounter > testEnd))
+        return 0;
+
     if (testOOM < 2) {
         if (virTestGetVerbose())
-            fprintf(stderr, "%2d) %-65s ... ", testCounter, title);
+            fprintf(stderr, "%2zu) %-65s ... ", testCounter, title);
     }
 
     if (nloops > 1 && (VIR_ALLOC_N(ts, nloops) < 0))
@@ -185,7 +195,7 @@ virtTestRun(const char *title, int nloops, int (*body)(const void *data), const 
         } else {
             if (testCounter != 1 &&
                 !((testCounter-1) % 40)) {
-                fprintf(stderr, " %-3d\n", (testCounter-1));
+                fprintf(stderr, " %-3zu\n", (testCounter-1));
                 fprintf(stderr, "      ");
             }
             if (ret == 0)
@@ -265,7 +275,7 @@ virtTestLoadFile(const char *file, char **buf)
 static
 void virtTestCaptureProgramExecChild(const char *const argv[],
                                      int pipefd) {
-    int i;
+    size_t i;
     int open_max;
     int stdinfd = -1;
     const char *const env[] = {
@@ -280,10 +290,14 @@ void virtTestCaptureProgramExecChild(const char *const argv[],
         goto cleanup;
 
     open_max = sysconf(_SC_OPEN_MAX);
+    if (open_max < 0)
+        goto cleanup;
+
     for (i = 0; i < open_max; i++) {
         if (i != stdinfd &&
             i != pipefd) {
-            int tmpfd = i;
+            int tmpfd;
+            tmpfd = i;
             VIR_FORCE_CLOSE(tmpfd);
         }
     }
@@ -523,7 +537,7 @@ virtTestErrorHook(int n, void *data ATTRIBUTE_UNUSED)
 {
     void *trace[30];
     int ntrace = ARRAY_CARDINALITY(trace);
-    int i;
+    size_t i;
     char **symbols = NULL;
 
     ntrace = backtrace(trace, ntrace);
@@ -573,6 +587,7 @@ int virtTestMain(int argc,
 {
     int ret;
     bool abs_srcdir_cleanup = false;
+    char *testRange = NULL;
 #if TEST_OOM
     int approxAlloc = 0;
     int n;
@@ -613,6 +628,33 @@ int virtTestMain(int argc,
         if (virLogDefineOutput(virtTestLogOutput, virtTestLogClose, &testLog,
                                VIR_LOG_DEBUG, VIR_LOG_TO_STDERR, NULL, 0) < 0)
             return EXIT_FAILURE;
+    }
+
+    if ((testRange = getenv("VIR_TEST_RANGE")) != NULL) {
+        char *end = NULL;
+        unsigned int iv;
+        if (virStrToLong_ui(testRange, &end, 10, &iv) < 0) {
+            fprintf(stderr, "Cannot parse range %s\n", testRange);
+            return EXIT_FAILURE;
+        }
+        testStart = testEnd = iv;
+        if (end && *end) {
+            if (*end != '-') {
+                fprintf(stderr, "Cannot parse range %s\n", testRange);
+                return EXIT_FAILURE;
+            }
+            end++;
+            if (virStrToLong_ui(end, NULL, 10, &iv) < 0) {
+                fprintf(stderr, "Cannot parse range %s\n", testRange);
+                return EXIT_FAILURE;
+            }
+            testEnd = iv;
+
+            if (testEnd < testStart) {
+                fprintf(stderr, "Test range end %zu must be >= %zu\n", testEnd, testStart);
+                return EXIT_FAILURE;
+            }
+        }
     }
 
 #if TEST_OOM
@@ -665,7 +707,7 @@ int virtTestMain(int argc,
             fprintf(stderr, "%d) OOM of %d allocs ", testCounter, approxAlloc);
 
         if (mp) {
-            int i;
+            size_t i;
             for (i = 0; i < mp; i++) {
                 workers[i] = fork();
                 if (workers[i] == 0) {
@@ -700,7 +742,7 @@ int virtTestMain(int argc,
             if (worker) {
                 _exit(ret);
             } else {
-                int i;
+                size_t i;
                 for (i = 0; i < mp; i++) {
                     if (virProcessWait(workers[i], NULL) < 0)
                         ret = EXIT_FAILURE;
@@ -727,8 +769,8 @@ cleanup:
     virResetLastError();
     if (!virTestGetVerbose() && ret != EXIT_AM_SKIP) {
         if (testCounter == 0 || testCounter % 40)
-            fprintf(stderr, "%*s", 40 - (testCounter % 40), "");
-        fprintf(stderr, " %-3d %s\n", testCounter, ret == 0 ? "OK" : "FAIL");
+            fprintf(stderr, "%*s", 40 - (int)(testCounter % 40), "");
+        fprintf(stderr, " %-3zu %s\n", testCounter, ret == 0 ? "OK" : "FAIL");
     }
     return ret;
 }

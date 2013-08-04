@@ -57,7 +57,7 @@ static virNWFilterTechDriverPtr filter_tech_drivers[] = {
 
 
 void virNWFilterTechDriversInit(bool privileged) {
-    int i = 0;
+    size_t i = 0;
     VIR_DEBUG("Initializing NWFilter technology drivers");
     while (filter_tech_drivers[i]) {
         if (!(filter_tech_drivers[i]->flags & TECHDRV_FLAG_INITIALIZED))
@@ -68,7 +68,7 @@ void virNWFilterTechDriversInit(bool privileged) {
 
 
 void virNWFilterTechDriversShutdown(void) {
-    int i = 0;
+    size_t i = 0;
     while (filter_tech_drivers[i]) {
         if ((filter_tech_drivers[i]->flags & TECHDRV_FLAG_INITIALIZED))
             filter_tech_drivers[i]->shutdown();
@@ -79,7 +79,7 @@ void virNWFilterTechDriversShutdown(void) {
 
 virNWFilterTechDriverPtr
 virNWFilterTechDriverForName(const char *name) {
-    int i = 0;
+    size_t i = 0;
     while (filter_tech_drivers[i]) {
        if (STREQ(filter_tech_drivers[i]->name, name)) {
            if ((filter_tech_drivers[i]->flags & TECHDRV_FLAG_INITIALIZED) == 0)
@@ -110,10 +110,8 @@ int
 virNWFilterRuleInstAddData(virNWFilterRuleInstPtr res,
                            void *data)
 {
-    if (VIR_REALLOC_N(res->data, res->ndata+1) < 0) {
-        virReportOOMError();
+    if (VIR_REALLOC_N(res->data, res->ndata+1) < 0)
         return -1;
-    }
     res->data[res->ndata++] = data;
     return 0;
 }
@@ -122,7 +120,7 @@ virNWFilterRuleInstAddData(virNWFilterRuleInstPtr res,
 static void
 virNWFilterRuleInstFree(virNWFilterRuleInstPtr inst)
 {
-    int i;
+    size_t i;
     if (!inst)
         return;
 
@@ -201,10 +199,8 @@ virNWFilterHashTablePtr
 virNWFilterCreateVarHashmap(char *macaddr,
                             const virNWFilterVarValuePtr ipaddr) {
     virNWFilterHashTablePtr table = virNWFilterHashTableCreate(0);
-    if (!table) {
-        virReportOOMError();
+    if (!table)
         return NULL;
-    }
 
     if (virNWFilterVarHashmapAddStdValues(table, macaddr, ipaddr) < 0) {
         virNWFilterHashTableFree(table);
@@ -300,13 +296,11 @@ virNWFilterRuleInstantiate(virNWFilterTechDriverPtr techdriver,
                            virNWFilterHashTablePtr vars)
 {
     int rc;
-    int i;
+    size_t i;
     virNWFilterRuleInstPtr ret;
 
-    if (VIR_ALLOC(ret) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC(ret) < 0)
         return NULL;
-    }
 
     ret->techdriver = techdriver;
 
@@ -340,10 +334,8 @@ virNWFilterCreateVarsFrom(virNWFilterHashTablePtr vars1,
                           virNWFilterHashTablePtr vars2)
 {
     virNWFilterHashTablePtr res = virNWFilterHashTableCreate(0);
-    if (!res) {
-        virReportOOMError();
+    if (!res)
         return NULL;
-    }
 
     if (virNWFilterHashTablePutAll(vars1, res) < 0)
         goto err_exit;
@@ -395,7 +387,7 @@ _virNWFilterInstantiateRec(virNWFilterTechDriverPtr techdriver,
 {
     virNWFilterObjPtr obj;
     int rc = 0;
-    int i;
+    size_t i;
     virNWFilterRuleInstPtr inst;
     virNWFilterDefPtr next_filter;
 
@@ -415,7 +407,6 @@ _virNWFilterInstantiateRec(virNWFilterTechDriverPtr techdriver,
             }
 
             if (VIR_REALLOC_N(*insts, (*nEntries)+1) < 0) {
-                virReportOOMError();
                 rc = -1;
                 break;
             }
@@ -441,7 +432,6 @@ _virNWFilterInstantiateRec(virNWFilterTechDriverPtr techdriver,
                                       virNWFilterCreateVarsFrom(inc->params,
                                                                 vars);
                 if (!tmpvars) {
-                    virReportOOMError();
                     rc = -1;
                     virNWFilterObjUnlock(obj);
                     break;
@@ -497,7 +487,7 @@ virNWFilterDetermineMissingVarsRec(virNWFilterDefPtr filter,
 {
     virNWFilterObjPtr obj;
     int rc = 0;
-    int i, j;
+    size_t i, j;
     virNWFilterDefPtr next_filter;
     virNWFilterVarValuePtr val;
 
@@ -553,7 +543,6 @@ virNWFilterDetermineMissingVarsRec(virNWFilterDefPtr filter,
                                       virNWFilterCreateVarsFrom(inc->params,
                                                                 vars);
                 if (!tmpvars) {
-                    virReportOOMError();
                     rc = -1;
                     virNWFilterObjUnlock(obj);
                     break;
@@ -601,7 +590,7 @@ virNWFilterRuleInstancesToArray(int nEntries,
                                 void ***ptrs,
                                 int *nptrs)
 {
-    int i,j;
+    size_t i,j;
 
     *nptrs = 0;
 
@@ -611,10 +600,8 @@ virNWFilterRuleInstancesToArray(int nEntries,
     if ((*nptrs) == 0)
         return 0;
 
-    if (VIR_ALLOC_N((*ptrs), (*nptrs)) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC_N((*ptrs), (*nptrs)) < 0)
         return -1;
-    }
 
     (*nptrs) = 0;
 
@@ -662,7 +649,8 @@ virNWFilterInstantiate(const unsigned char *vmuuid ATTRIBUTE_UNUSED,
                        bool forceWithPendingReq)
 {
     int rc;
-    int j, nptrs;
+    size_t j;
+    int nptrs;
     int nEntries = 0;
     virNWFilterRuleInstPtr *insts = NULL;
     void **ptrs = NULL;
@@ -674,7 +662,6 @@ virNWFilterInstantiate(const unsigned char *vmuuid ATTRIBUTE_UNUSED,
 
     virNWFilterHashTablePtr missing_vars = virNWFilterHashTableCreate(0);
     if (!missing_vars) {
-        virReportOOMError();
         rc = -1;
         goto err_exit;
     }
@@ -1155,7 +1142,7 @@ virNWFilterDomainFWUpdateCB(virDomainObjPtr obj,
 {
     virDomainDefPtr vm = obj->def;
     struct domUpdateCBStruct *cb = data;
-    int i;
+    size_t i;
     bool skipIface;
     int ret = 0;
 

@@ -114,7 +114,7 @@ cpuTestLoadMultiXML(const char *arch,
     xmlNodePtr *nodes = NULL;
     virCPUDefPtr *cpus = NULL;
     int n;
-    int i;
+    size_t i;
 
     if (virAsprintf(&xml, "%s/cputestdata/%s-%s.xml", abs_srcdir, arch, name) < 0)
         goto cleanup;
@@ -261,7 +261,7 @@ cpuTestGuestData(const void *arg)
     virCPUDefPtr host = NULL;
     virCPUDefPtr cpu = NULL;
     virCPUDefPtr guest = NULL;
-    union cpuData *guestData = NULL;
+    virCPUDataPtr guestData = NULL;
     virCPUCompareResult cmpResult;
     virBuffer buf = VIR_BUFFER_INITIALIZER;
     char *result = NULL;
@@ -308,8 +308,7 @@ cpuTestGuestData(const void *arg)
 
 cleanup:
     VIR_FREE(result);
-    if (host)
-        cpuDataFree(host->arch, guestData);
+    cpuDataFree(guestData);
     virCPUDefFree(host);
     virCPUDefFree(cpu);
     virCPUDefFree(guest);
@@ -326,7 +325,7 @@ cpuTestBaseline(const void *arg)
     virCPUDefPtr baseline = NULL;
     unsigned int ncpus = 0;
     char *result = NULL;
-    unsigned int i;
+    size_t i;
 
     if (!(cpus = cpuTestLoadMultiXML(data->arch, data->name, &ncpus)))
         goto cleanup;
@@ -359,7 +358,7 @@ cpuTestBaseline(const void *arg)
             cmp != VIR_CPU_COMPARE_IDENTICAL) {
             if (virTestGetVerbose()) {
                 fprintf(stderr,
-                        "\nbaseline CPU is incompatible with CPU %u\n", i);
+                        "\nbaseline CPU is incompatible with CPU %zu\n", i);
                 fprintf(stderr, "%74s", "... ");
             }
             ret = -1;
@@ -417,7 +416,7 @@ cpuTestHasFeature(const void *arg)
     const struct data *data = arg;
     int ret = -1;
     virCPUDefPtr host = NULL;
-    union cpuData *hostData = NULL;
+    virCPUDataPtr hostData = NULL;
     int result;
 
     if (!(host = cpuTestLoadXML(data->arch, data->host)))
@@ -427,7 +426,7 @@ cpuTestHasFeature(const void *arg)
                   NULL, NULL, NULL, NULL) < 0)
         goto cleanup;
 
-    result = cpuHasFeature(host->arch, hostData, data->name);
+    result = cpuHasFeature(hostData, data->name);
     if (data->result == -1)
         virResetLastError();
 
@@ -445,8 +444,7 @@ cpuTestHasFeature(const void *arg)
     ret = 0;
 
 cleanup:
-    if (host)
-        cpuDataFree(host->arch, hostData);
+    cpuDataFree(hostData);
     virCPUDefFree(host);
     return ret;
 }
@@ -583,6 +581,7 @@ mymain(void)
     DO_TEST_COMPARE("x86", "host", "pentium3-amd", VIR_CPU_COMPARE_INCOMPATIBLE);
     DO_TEST_COMPARE("x86", "host-amd", "pentium3-amd", VIR_CPU_COMPARE_SUPERSET);
     DO_TEST_COMPARE("x86", "host-worse", "nehalem-force", VIR_CPU_COMPARE_IDENTICAL);
+    DO_TEST_COMPARE("x86", "host-SandyBridge", "exact-force-Haswell", VIR_CPU_COMPARE_IDENTICAL);
 
     /* guest updates for migration
      * automatically compares host CPU with the result */

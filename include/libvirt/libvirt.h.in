@@ -155,6 +155,7 @@ typedef enum {
     VIR_DOMAIN_RUNNING_SAVE_CANCELED = 7,   /* returned from failed save process */
     VIR_DOMAIN_RUNNING_WAKEUP = 8,          /* returned from pmsuspended due to
                                                wakeup event */
+    VIR_DOMAIN_RUNNING_CRASHED = 9,         /* resumed from crashed */
 
 #ifdef VIR_ENUM_SENTINELS
     VIR_DOMAIN_RUNNING_LAST
@@ -180,6 +181,7 @@ typedef enum {
     VIR_DOMAIN_PAUSED_FROM_SNAPSHOT = 7, /* paused after restoring from snapshot */
     VIR_DOMAIN_PAUSED_SHUTTING_DOWN = 8, /* paused during shutdown process */
     VIR_DOMAIN_PAUSED_SNAPSHOT = 9,      /* paused while creating a snapshot */
+    VIR_DOMAIN_PAUSED_CRASHED = 10,     /* paused due to a guest crash */
 
 #ifdef VIR_ENUM_SENTINELS
     VIR_DOMAIN_PAUSED_LAST
@@ -212,6 +214,7 @@ typedef enum {
 
 typedef enum {
     VIR_DOMAIN_CRASHED_UNKNOWN = 0,     /* crashed for unknown reason */
+    VIR_DOMAIN_CRASHED_PANICKED = 1,    /* domain panicked */
 
 #ifdef VIR_ENUM_SENTINELS
     VIR_DOMAIN_CRASHED_LAST
@@ -1571,6 +1574,11 @@ virConnectPtr           virDomainGetConnect     (virDomainPtr domain);
 virDomainPtr            virDomainCreateXML      (virConnectPtr conn,
                                                  const char *xmlDesc,
                                                  unsigned int flags);
+virDomainPtr            virDomainCreateXMLWithFiles(virConnectPtr conn,
+                                                    const char *xmlDesc,
+                                                    unsigned int nfiles,
+                                                    int *files,
+                                                    unsigned int flags);
 virDomainPtr            virDomainLookupByName   (virConnectPtr conn,
                                                  const char *name);
 virDomainPtr            virDomainLookupByID     (virConnectPtr conn,
@@ -1905,6 +1913,9 @@ int                     virDomainSetMemory      (virDomainPtr domain,
 int                     virDomainSetMemoryFlags (virDomainPtr domain,
                                                  unsigned long memory,
                                                  unsigned int flags);
+int                     virDomainSetMemoryStatsPeriod (virDomainPtr domain,
+                                                       int period,
+                                                       unsigned int flags);
 int                     virDomainGetMaxVcpus    (virDomainPtr domain);
 int                     virDomainGetSecurityLabel (virDomainPtr domain,
                                                    virSecurityLabelPtr seclabel);
@@ -2169,6 +2180,11 @@ int                     virConnectListAllDomains (virConnectPtr conn,
                                                   unsigned int flags);
 int                     virDomainCreate         (virDomainPtr domain);
 int                     virDomainCreateWithFlags (virDomainPtr domain,
+                                                  unsigned int flags);
+
+int                     virDomainCreateWithFiles (virDomainPtr domain,
+                                                  unsigned int nfiles,
+                                                  int *files,
                                                   unsigned int flags);
 
 int                     virDomainGetAutostart   (virDomainPtr domain,
@@ -3409,6 +3425,7 @@ typedef enum {
     VIR_DOMAIN_EVENT_STOPPED = 5,
     VIR_DOMAIN_EVENT_SHUTDOWN = 6,
     VIR_DOMAIN_EVENT_PMSUSPENDED = 7,
+    VIR_DOMAIN_EVENT_CRASHED = 8,
 
 #ifdef VIR_ENUM_SENTINELS
     VIR_DOMAIN_EVENT_LAST
@@ -3539,6 +3556,17 @@ typedef enum {
     VIR_DOMAIN_EVENT_PMSUSPENDED_LAST
 #endif
 } virDomainEventPMSuspendedDetailType;
+
+/*
+ * Details about the 'crashed' lifecycle event
+ */
+typedef enum {
+    VIR_DOMAIN_EVENT_CRASHED_PANICKED = 0, /* Guest was panicked */
+
+#ifdef VIR_ENUM_SENTINELS
+    VIR_DOMAIN_EVENT_CRASHED_LAST
+#endif
+} virDomainEventCrashedDetailType;
 
 /**
  * virConnectDomainEventCallback:
@@ -4835,6 +4863,23 @@ typedef void (*virConnectDomainEventPMSuspendDiskCallback)(virConnectPtr conn,
                                                            int reason,
                                                            void *opaque);
 
+/**
+ * virConnectDomainEventDeviceRemovedCallback:
+ * @conn: connection object
+ * @dom: domain on which the event occurred
+ * @devAlias: device alias
+ * @opaque: application specified data
+ *
+ * This callback occurs when a device is removed from the domain.
+ *
+ * The callback signature to use when registering for an event of type
+ * VIR_DOMAIN_EVENT_ID_DEVICE_REMOVED with virConnectDomainEventRegisterAny()
+ */
+typedef void (*virConnectDomainEventDeviceRemovedCallback)(virConnectPtr conn,
+                                                           virDomainPtr dom,
+                                                           const char *devAlias,
+                                                           void *opaque);
+
 
 /**
  * VIR_DOMAIN_EVENT_CALLBACK:
@@ -4861,6 +4906,7 @@ typedef enum {
     VIR_DOMAIN_EVENT_ID_PMSUSPEND = 12,      /* virConnectDomainEventPMSuspendCallback */
     VIR_DOMAIN_EVENT_ID_BALLOON_CHANGE = 13, /* virConnectDomainEventBalloonChangeCallback */
     VIR_DOMAIN_EVENT_ID_PMSUSPEND_DISK = 14, /* virConnectDomainEventPMSuspendDiskCallback */
+    VIR_DOMAIN_EVENT_ID_DEVICE_REMOVED = 15, /* virConnectDomainEventDeviceRemovedCallback */
 
 #ifdef VIR_ENUM_SENTINELS
     VIR_DOMAIN_EVENT_ID_LAST

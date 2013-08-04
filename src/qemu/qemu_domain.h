@@ -168,11 +168,22 @@ struct _qemuDomainObjPrivate {
     size_t ncleanupCallbacks_max;
 
     virCgroupPtr cgroup;
+
+    virCond unplugFinished; /* signals that unpluggingDevice was unplugged */
+    const char *unpluggingDevice; /* alias of the device that is being unplugged */
+    char **qemuDevices; /* NULL-terminated list of devices aliases known to QEMU */
 };
 
-struct qemuDomainWatchdogEvent
-{
+typedef enum {
+    QEMU_PROCESS_EVENT_WATCHDOG = 0,
+    QEMU_PROCESS_EVENT_GUESTPANIC,
+
+    QEMU_PROCESS_EVENT_LAST
+} qemuProcessEventType;
+
+struct qemuProcessEvent {
     virDomainObjPtr vm;
+    qemuProcessEventType eventType;
     int action;
 };
 
@@ -350,5 +361,10 @@ void qemuDomainCleanupRun(virQEMUDriverPtr driver,
 extern virDomainXMLPrivateDataCallbacks virQEMUDriverPrivateDataCallbacks;
 extern virDomainXMLNamespace virQEMUDriverDomainXMLNamespace;
 extern virDomainDefParserConfig virQEMUDriverDomainDefParserConfig;
+
+unsigned long long qemuDomainMemoryLimit(virDomainDefPtr def);
+
+int qemuDomainUpdateDeviceList(virQEMUDriverPtr driver,
+                               virDomainObjPtr vm);
 
 #endif /* __QEMU_DOMAIN_H__ */

@@ -14,6 +14,8 @@
 #include "testutilsqemu.h"
 #include "virstring.h"
 
+#define VIR_FROM_THIS VIR_FROM_NONE
+
 static int
 testCompareXMLToXMLFiles(const char *inxml, const char *outxml)
 {
@@ -85,6 +87,7 @@ mymain(void)
     DO_TEST("pool-dir");
     DO_TEST("pool-fs");
     DO_TEST("pool-logical");
+    DO_TEST("pool-logical-nopath");
     DO_TEST("pool-logical-create");
     DO_TEST("pool-disk");
     DO_TEST("pool-iscsi");

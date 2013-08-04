@@ -78,10 +78,8 @@ static int update_driver_name(virNodeDeviceObjPtr dev)
 
     VIR_FREE(dev->def->driver);
 
-    if (virAsprintf(&driver_link, "%s/driver", dev->def->sysfs_path) < 0) {
-        virReportOOMError();
+    if (virAsprintf(&driver_link, "%s/driver", dev->def->sysfs_path) < 0)
         goto cleanup;
-    }
 
     /* Some devices don't have an explicit driver, so just return
        without a name */
@@ -131,7 +129,7 @@ nodeNumOfDevices(virConnectPtr conn,
 {
     virNodeDeviceDriverStatePtr driver = conn->nodeDevicePrivateData;
     int ndevs = 0;
-    unsigned int i;
+    size_t i;
 
     if (virNodeNumOfDevicesEnsureACL(conn) < 0)
         return -1;
@@ -140,11 +138,13 @@ nodeNumOfDevices(virConnectPtr conn,
 
     nodeDeviceLock(driver);
     for (i = 0; i < driver->devs.count; i++) {
-        virNodeDeviceObjLock(driver->devs.objs[i]);
-        if ((cap == NULL) ||
-            virNodeDeviceHasCap(driver->devs.objs[i], cap))
+        virNodeDeviceObjPtr obj = driver->devs.objs[i];
+        virNodeDeviceObjLock(obj);
+        if (virNodeNumOfDevicesCheckACL(conn, obj->def) &&
+            ((cap == NULL) ||
+             virNodeDeviceHasCap(obj, cap)))
             ++ndevs;
-        virNodeDeviceObjUnlock(driver->devs.objs[i]);
+        virNodeDeviceObjUnlock(obj);
     }
     nodeDeviceUnlock(driver);
 
@@ -159,7 +159,7 @@ nodeListDevices(virConnectPtr conn,
 {
     virNodeDeviceDriverStatePtr driver = conn->nodeDevicePrivateData;
     int ndevs = 0;
-    unsigned int i;
+    size_t i;
 
     if (virNodeListDevicesEnsureACL(conn) < 0)
         return -1;
@@ -168,15 +168,17 @@ nodeListDevices(virConnectPtr conn,
 
     nodeDeviceLock(driver);
     for (i = 0; i < driver->devs.count && ndevs < maxnames; i++) {
-        virNodeDeviceObjLock(driver->devs.objs[i]);
-        if (cap == NULL ||
-            virNodeDeviceHasCap(driver->devs.objs[i], cap)) {
-            if (VIR_STRDUP(names[ndevs++], driver->devs.objs[i]->def->name) < 0) {
-                virNodeDeviceObjUnlock(driver->devs.objs[i]);
+        virNodeDeviceObjPtr obj = driver->devs.objs[i];
+        virNodeDeviceObjLock(obj);
+        if (virNodeListDevicesCheckACL(conn, obj->def) &&
+            (cap == NULL ||
+             virNodeDeviceHasCap(obj, cap))) {
+            if (VIR_STRDUP(names[ndevs++], obj->def->name) < 0) {
+                virNodeDeviceObjUnlock(obj);
                 goto failure;
             }
         }
-        virNodeDeviceObjUnlock(driver->devs.objs[i]);
+        virNodeDeviceObjUnlock(obj);
     }
     nodeDeviceUnlock(driver);
 
@@ -204,7 +206,9 @@ nodeConnectListAllNodeDevices(virConnectPtr conn,
         return -1;
 
     nodeDeviceLock(driver);
-    ret = virNodeDeviceList(conn, driver->devs, devices, flags);
+    ret = virNodeDeviceObjListExport(conn, driver->devs, devices,
+                                     virConnectListAllNodeDevicesCheckACL,
+                                     flags);
     nodeDeviceUnlock(driver);
     return ret;
 }
@@ -243,7 +247,7 @@ nodeDeviceLookupSCSIHostByWWN(virConnectPtr conn,
                               const char *wwpn,
                               unsigned int flags)
 {
-    unsigned int i;
+    size_t i;
     virNodeDeviceDriverStatePtr driver = conn->nodeDevicePrivateData;
     virNodeDeviceObjListPtr devs = &driver->devs;
     virNodeDevCapsDefPtr cap = NULL;

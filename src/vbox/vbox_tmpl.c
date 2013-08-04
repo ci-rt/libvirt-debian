@@ -289,7 +289,7 @@ static void nsIDtoChar(unsigned char *uuid, const nsID *iid) {
     char uuidstrsrc[VIR_UUID_STRING_BUFLEN];
     char uuidstrdst[VIR_UUID_STRING_BUFLEN];
     unsigned char uuidinterim[VIR_UUID_BUFLEN];
-    int i;
+    size_t i;
 
     memcpy(uuidinterim, iid, VIR_UUID_BUFLEN);
     virUUIDFormat(uuidinterim, uuidstrsrc);
@@ -329,7 +329,7 @@ static void nsIDFromChar(nsID *iid, const unsigned char *uuid) {
     char uuidstrsrc[VIR_UUID_STRING_BUFLEN];
     char uuidstrdst[VIR_UUID_STRING_BUFLEN];
     unsigned char uuidinterim[VIR_UUID_BUFLEN];
-    int i;
+    size_t i;
 
     virUUIDFormat(uuid, uuidstrsrc);
 
@@ -1036,10 +1036,8 @@ static virDrvOpenStatus vboxConnectOpen(virConnectPtr conn,
         }
     }
 
-    if (VIR_ALLOC(data) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC(data) < 0)
         return VIR_DRV_OPEN_ERROR;
-    }
 
     if (!(data->caps = vboxCapsInit()) ||
         vboxInitialize(data) < 0 ||
@@ -1151,7 +1149,7 @@ static int vboxConnectListDomains(virConnectPtr conn, int *ids, int nids) {
     vboxArray machines = VBOX_ARRAY_INITIALIZER;
     PRUint32 state;
     nsresult rc;
-    int i, j;
+    size_t i, j;
 
     rc = vboxArrayGet(&machines, data->vboxObj, data->vboxObj->vtbl->GetMachines);
     if (NS_FAILED(rc)) {
@@ -1188,7 +1186,7 @@ static int vboxConnectNumOfDomains(virConnectPtr conn) {
     vboxArray machines = VBOX_ARRAY_INITIALIZER;
     PRUint32 state;
     nsresult rc;
-    int i;
+    size_t i;
 
     rc = vboxArrayGet(&machines, data->vboxObj, data->vboxObj->vtbl->GetMachines);
     if (NS_FAILED(rc)) {
@@ -1319,7 +1317,8 @@ static virDomainPtr vboxDomainLookupByUUID(virConnectPtr conn, const unsigned ch
     char      *machineNameUtf8  = NULL;
     PRUnichar *machineNameUtf16 = NULL;
     unsigned char iid_as_uuid[VIR_UUID_BUFLEN];
-    int i, matched = 0;
+    size_t i;
+    int matched = 0;
     nsresult rc;
 
     rc = vboxArrayGet(&machines, data->vboxObj, data->vboxObj->vtbl->GetMachines);
@@ -1389,7 +1388,8 @@ static virDomainPtr vboxDomainLookupByName(virConnectPtr conn, const char *name)
     char      *machineNameUtf8  = NULL;
     PRUnichar *machineNameUtf16 = NULL;
     unsigned char uuid[VIR_UUID_BUFLEN];
-    int i, matched = 0;
+    size_t i;
+    int matched = 0;
     nsresult rc;
 
     rc = vboxArrayGet(&machines, data->vboxObj, data->vboxObj->vtbl->GetMachines);
@@ -1457,7 +1457,8 @@ static int vboxDomainIsActive(virDomainPtr dom) {
     char      *machineNameUtf8  = NULL;
     PRUnichar *machineNameUtf16 = NULL;
     unsigned char uuid[VIR_UUID_BUFLEN];
-    int i, matched = 0;
+    size_t i;
+    int matched = 0;
     nsresult rc;
 
     rc = vboxArrayGet(&machines, data->vboxObj, data->vboxObj->vtbl->GetMachines);
@@ -1917,7 +1918,7 @@ static int vboxDomainGetInfo(virDomainPtr dom, virDomainInfoPtr info) {
     char *machineName    = NULL;
     PRUnichar *machineNameUtf16 = NULL;
     nsresult rc;
-    int i = 0;
+    size_t i = 0;
 
     rc = vboxArrayGet(&machines, data->vboxObj, data->vboxObj->vtbl->GetMachines);
     if (NS_FAILED(rc)) {
@@ -2240,10 +2241,8 @@ static char *vboxDomainGetXMLDesc(virDomainPtr dom, unsigned int flags) {
 
     /* Flags checked by virDomainDefFormat */
 
-    if (VIR_ALLOC(def) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC(def) < 0)
         goto cleanup;
-    }
 
     vboxIIDFromUUID(&iid, dom->uuid);
     rc = VBOX_OBJECT_GET_MACHINE(iid.value, &machine);
@@ -2252,7 +2251,7 @@ static char *vboxDomainGetXMLDesc(virDomainPtr dom, unsigned int flags) {
 
         machine->vtbl->GetAccessible(machine, &accessible);
         if (accessible) {
-            int i = 0;
+            size_t i = 0;
             PRBool PAEEnabled                   = PR_FALSE;
             PRBool ACPIEnabled                  = PR_FALSE;
             PRBool IOAPICEnabled                = PR_FALSE;
@@ -2420,12 +2419,9 @@ static char *vboxDomainGetXMLDesc(virDomainPtr dom, unsigned int flags) {
                         if (VIR_ALLOC(def->videos[0]->accel) >= 0) {
                             def->videos[0]->accel->support3d = accelerate3DEnabled;
                             def->videos[0]->accel->support2d = accelerate2DEnabled;
-                        } else
-                            virReportOOMError();
-                    } else
-                        virReportOOMError();
-                } else
-                    virReportOOMError();
+                        }
+                    }
+                }
             }
 
             /* dump display options vrdp/gui/sdl */
@@ -2631,8 +2627,7 @@ static char *vboxDomainGetXMLDesc(virDomainPtr dom, unsigned int flags) {
                         def->disks[i]->device = VIR_DOMAIN_DISK_DEVICE_DISK;
                         def->disks[i]->bus = VIR_DOMAIN_DISK_BUS_IDE;
                         def->disks[i]->type = VIR_DOMAIN_DISK_TYPE_FILE;
-                    } else
-                        virReportOOMError();
+                    }
                 }
             }
 
@@ -2726,13 +2721,11 @@ static char *vboxDomainGetXMLDesc(virDomainPtr dom, unsigned int flags) {
             if (VIR_ALLOC_N(def->disks, def->ndisks) >= 0) {
                 for (i = 0; i < def->ndisks; i++) {
                     if (VIR_ALLOC(def->disks[i]) < 0) {
-                        virReportOOMError();
                         error = true;
                         break;
                     }
                 }
             } else {
-                virReportOOMError();
                 error = true;
             }
 
@@ -2785,7 +2778,6 @@ static char *vboxDomainGetXMLDesc(virDomainPtr dom, unsigned int flags) {
                 if (!(def->disks[diskCount]->src)) {
                     VBOX_RELEASE(medium);
                     VBOX_RELEASE(storageController);
-                    virReportOOMError();
                     error = true;
                     break;
                 }
@@ -2861,10 +2853,8 @@ static char *vboxDomainGetXMLDesc(virDomainPtr dom, unsigned int flags) {
                          machine->vtbl->GetSharedFolders);
 
             if (sharedFolders.count > 0) {
-                if (VIR_ALLOC_N(def->fss, sharedFolders.count) < 0) {
-                    virReportOOMError();
+                if (VIR_ALLOC_N(def->fss, sharedFolders.count) < 0)
                     goto sharedFoldersCleanup;
-                }
 
                 for (i = 0; i < sharedFolders.count; i++) {
                     ISharedFolder *sharedFolder = sharedFolders.items[i];
@@ -2874,10 +2864,8 @@ static char *vboxDomainGetXMLDesc(virDomainPtr dom, unsigned int flags) {
                     char *hostPath = NULL;
                     PRBool writable = PR_FALSE;
 
-                    if (VIR_ALLOC(def->fss[i]) < 0) {
-                        virReportOOMError();
+                    if (VIR_ALLOC(def->fss[i]) < 0)
                         goto sharedFoldersCleanup;
-                    }
 
                     def->fss[i]->type = VIR_DOMAIN_FS_TYPE_MOUNT;
 
@@ -2933,9 +2921,7 @@ sharedFoldersCleanup:
             /* Allocate memory for the networkcards which are enabled */
             if ((def->nnets > 0) && (VIR_ALLOC_N(def->nets, def->nnets) >= 0)) {
                 for (i = 0; i < def->nnets; i++) {
-                    if (VIR_ALLOC(def->nets[i]) >= 0) {
-                    } else
-                        virReportOOMError();
+                    ignore_value(VIR_ALLOC(def->nets[i]));
                 }
             }
 
@@ -3082,11 +3068,9 @@ sharedFoldersCleanup:
                         } else {
                             VIR_FREE(def->sounds);
                             def->nsounds = 0;
-                            virReportOOMError();
                         }
                     } else {
                         def->nsounds = 0;
-                        virReportOOMError();
                     }
                 }
                 VBOX_RELEASE(audioAdapter);
@@ -3122,11 +3106,9 @@ sharedFoldersCleanup:
                                 def->ndisks--;
                             } else {
                                 def->ndisks--;
-                                virReportOOMError();
                             }
                         } else {
                             def->ndisks--;
-                            virReportOOMError();
                         }
 
                         VBOX_UTF8_FREE(location);
@@ -3170,11 +3152,9 @@ sharedFoldersCleanup:
                                     def->ndisks--;
                                 } else {
                                     def->ndisks--;
-                                    virReportOOMError();
                                 }
                             } else {
                                 def->ndisks--;
-                                virReportOOMError();
                             }
 
                             VBOX_UTF8_FREE(location);
@@ -3211,9 +3191,7 @@ sharedFoldersCleanup:
             /* Allocate memory for the serial ports which are enabled */
             if ((def->nserials > 0) && (VIR_ALLOC_N(def->serials, def->nserials) >= 0)) {
                 for (i = 0; i < def->nserials; i++) {
-                    if (VIR_ALLOC(def->serials[i]) >= 0) {
-                    } else
-                        virReportOOMError();
+                    ignore_value(VIR_ALLOC(def->serials[i]));
                 }
             }
 
@@ -3297,9 +3275,7 @@ sharedFoldersCleanup:
             /* Allocate memory for the parallel ports which are enabled */
             if ((def->nparallels > 0) && (VIR_ALLOC_N(def->parallels, def->nparallels) >= 0)) {
                 for (i = 0; i < def->nparallels; i++) {
-                    if (VIR_ALLOC(def->parallels[i]) >= 0) {
-                    } else
-                        virReportOOMError();
+                    ignore_value(VIR_ALLOC(def->parallels[i]));
                 }
             }
 
@@ -3419,12 +3395,10 @@ sharedFoldersCleanup:
                                             VBOX_UTF8_FREE(productIdUtf8);
 
                                             USBFilterCount++;
-                                        } else
-                                            virReportOOMError();
+                                        }
                                     }
                                 }
-                            } else
-                                virReportOOMError();
+                            }
                         }
                     }
 
@@ -3459,7 +3433,7 @@ static int vboxConnectListDefinedDomains(virConnectPtr conn, char ** const names
     PRUnichar *machineNameUtf16 = NULL;
     PRUint32 state;
     nsresult rc;
-    int i, j;
+    size_t i, j;
 
     rc = vboxArrayGet(&machines, data->vboxObj, data->vboxObj->vtbl->GetMachines);
     if (NS_FAILED(rc)) {
@@ -3468,6 +3442,8 @@ static int vboxConnectListDefinedDomains(virConnectPtr conn, char ** const names
                        (unsigned)rc);
         goto cleanup;
     }
+
+    memset(names, 0, sizeof(names[i]) * maxnames);
 
     ret = 0;
     for (i = 0, j = 0; (i < machines.count) && (j < maxnames); i++) {
@@ -3485,7 +3461,7 @@ static int vboxConnectListDefinedDomains(virConnectPtr conn, char ** const names
                     if (VIR_STRDUP(names[j], machineName) < 0) {
                         VBOX_UTF16_FREE(machineNameUtf16);
                         VBOX_UTF8_FREE(machineName);
-                        for (; j >= 0; j--)
+                        for (j = 0; j < maxnames; j++)
                             VIR_FREE(names[j]);
                         ret = -1;
                         goto cleanup;
@@ -3509,7 +3485,7 @@ static int vboxConnectNumOfDefinedDomains(virConnectPtr conn) {
     vboxArray machines = VBOX_ARRAY_INITIALIZER;
     PRUint32 state       = MachineState_Null;
     nsresult rc;
-    int i;
+    size_t i;
 
     rc = vboxArrayGet(&machines, data->vboxObj, data->vboxObj->vtbl->GetMachines);
     if (NS_FAILED(rc)) {
@@ -3543,7 +3519,7 @@ cleanup:
 
 
 static int
-vboxStartMachine(virDomainPtr dom, int i, IMachine *machine,
+vboxStartMachine(virDomainPtr dom, int maxDomID, IMachine *machine,
                  vboxIID *iid ATTRIBUTE_UNUSED /* >= 4.0 */)
 {
     VBOX_OBJECT_CHECK(dom->conn, int, -1);
@@ -3628,9 +3604,7 @@ vboxStartMachine(virDomainPtr dom, int i, IMachine *machine,
     if (guiPresent) {
         if (guiDisplay) {
             char *displayutf8;
-            if (virAsprintf(&displayutf8, "DISPLAY=%s", guiDisplay) < 0)
-                virReportOOMError();
-            else {
+            if (virAsprintf(&displayutf8, "DISPLAY=%s", guiDisplay) >= 0) {
                 VBOX_UTF8_TO_UTF16(displayutf8, &env);
                 VIR_FREE(displayutf8);
             }
@@ -3643,9 +3617,7 @@ vboxStartMachine(virDomainPtr dom, int i, IMachine *machine,
     if (sdlPresent) {
         if (sdlDisplay) {
             char *displayutf8;
-            if (virAsprintf(&displayutf8, "DISPLAY=%s", sdlDisplay) < 0)
-                virReportOOMError();
-            else {
+            if (virAsprintf(&displayutf8, "DISPLAY=%s", sdlDisplay) >= 0) {
                 VBOX_UTF8_TO_UTF16(displayutf8, &env);
                 VIR_FREE(displayutf8);
             }
@@ -3694,7 +3666,7 @@ vboxStartMachine(virDomainPtr dom, int i, IMachine *machine,
             ret = -1;
         } else {
             /* all ok set the domid */
-            dom->id = i + 1;
+            dom->id = maxDomID + 1;
             ret = 0;
         }
     }
@@ -3714,7 +3686,7 @@ static int vboxDomainCreateWithFlags(virDomainPtr dom, unsigned int flags) {
     vboxArray machines = VBOX_ARRAY_INITIALIZER;
     unsigned char uuid[VIR_UUID_BUFLEN] = {0};
     nsresult rc;
-    int i = 0;
+    size_t i = 0;
 
     virCheckFlags(0, -1);
 
@@ -3786,7 +3758,7 @@ vboxSetBootDeviceOrder(virDomainDefPtr def, vboxGlobalData *data,
 {
     ISystemProperties *systemProperties = NULL;
     PRUint32 maxBootPosition            = 0;
-    int i = 0;
+    size_t i = 0;
 
     VIR_DEBUG("def->os.type             %s", def->os.type);
     VIR_DEBUG("def->os.arch             %s", virArchToString(def->os.arch));
@@ -3837,7 +3809,7 @@ vboxSetBootDeviceOrder(virDomainDefPtr def, vboxGlobalData *data,
 static void
 vboxAttachDrives(virDomainDefPtr def, vboxGlobalData *data, IMachine *machine)
 {
-    int i;
+    size_t i;
     nsresult rc;
 
 #if VBOX_API_VERSION < 3001
@@ -3845,18 +3817,18 @@ vboxAttachDrives(virDomainDefPtr def, vboxGlobalData *data, IMachine *machine)
         return;
 
     for (i = 0; i < def->ndisks; i++) {
-        VIR_DEBUG("disk(%d) type:       %d", i, def->disks[i]->type);
-        VIR_DEBUG("disk(%d) device:     %d", i, def->disks[i]->device);
-        VIR_DEBUG("disk(%d) bus:        %d", i, def->disks[i]->bus);
-        VIR_DEBUG("disk(%d) src:        %s", i, def->disks[i]->src);
-        VIR_DEBUG("disk(%d) dst:        %s", i, def->disks[i]->dst);
-        VIR_DEBUG("disk(%d) driverName: %s", i, def->disks[i]->driverName);
-        VIR_DEBUG("disk(%d) driverType: %s", i,
+        VIR_DEBUG("disk(%zu) type:       %d", i, def->disks[i]->type);
+        VIR_DEBUG("disk(%zu) device:     %d", i, def->disks[i]->device);
+        VIR_DEBUG("disk(%zu) bus:        %d", i, def->disks[i]->bus);
+        VIR_DEBUG("disk(%zu) src:        %s", i, def->disks[i]->src);
+        VIR_DEBUG("disk(%zu) dst:        %s", i, def->disks[i]->dst);
+        VIR_DEBUG("disk(%zu) driverName: %s", i, def->disks[i]->driverName);
+        VIR_DEBUG("disk(%zu) driverType: %s", i,
                   virStorageFileFormatTypeToString(def->disks[i]->format));
-        VIR_DEBUG("disk(%d) cachemode:  %d", i, def->disks[i]->cachemode);
-        VIR_DEBUG("disk(%d) readonly:   %s", i, (def->disks[i]->readonly
+        VIR_DEBUG("disk(%zu) cachemode:  %d", i, def->disks[i]->cachemode);
+        VIR_DEBUG("disk(%zu) readonly:   %s", i, (def->disks[i]->readonly
                                              ? "True" : "False"));
-        VIR_DEBUG("disk(%d) shared:     %s", i, (def->disks[i]->shared
+        VIR_DEBUG("disk(%zu) shared:     %s", i, (def->disks[i]->shared
                                              ? "True" : "False"));
 
         if (def->disks[i]->device == VIR_DOMAIN_DISK_DEVICE_CDROM) {
@@ -4126,18 +4098,18 @@ vboxAttachDrives(virDomainDefPtr def, vboxGlobalData *data, IMachine *machine)
     }
 
     for (i = 0; i < def->ndisks && !error; i++) {
-        VIR_DEBUG("disk(%d) type:       %d", i, def->disks[i]->type);
-        VIR_DEBUG("disk(%d) device:     %d", i, def->disks[i]->device);
-        VIR_DEBUG("disk(%d) bus:        %d", i, def->disks[i]->bus);
-        VIR_DEBUG("disk(%d) src:        %s", i, def->disks[i]->src);
-        VIR_DEBUG("disk(%d) dst:        %s", i, def->disks[i]->dst);
-        VIR_DEBUG("disk(%d) driverName: %s", i, def->disks[i]->driverName);
-        VIR_DEBUG("disk(%d) driverType: %s", i,
+        VIR_DEBUG("disk(%zu) type:       %d", i, def->disks[i]->type);
+        VIR_DEBUG("disk(%zu) device:     %d", i, def->disks[i]->device);
+        VIR_DEBUG("disk(%zu) bus:        %d", i, def->disks[i]->bus);
+        VIR_DEBUG("disk(%zu) src:        %s", i, def->disks[i]->src);
+        VIR_DEBUG("disk(%zu) dst:        %s", i, def->disks[i]->dst);
+        VIR_DEBUG("disk(%zu) driverName: %s", i, def->disks[i]->driverName);
+        VIR_DEBUG("disk(%zu) driverType: %s", i,
                   virStorageFileFormatTypeToString(def->disks[i]->format));
-        VIR_DEBUG("disk(%d) cachemode:  %d", i, def->disks[i]->cachemode);
-        VIR_DEBUG("disk(%d) readonly:   %s", i, (def->disks[i]->readonly
+        VIR_DEBUG("disk(%zu) cachemode:  %d", i, def->disks[i]->cachemode);
+        VIR_DEBUG("disk(%zu) readonly:   %s", i, (def->disks[i]->readonly
                                              ? "True" : "False"));
-        VIR_DEBUG("disk(%d) shared:     %s", i, (def->disks[i]->shared
+        VIR_DEBUG("disk(%zu) shared:     %s", i, (def->disks[i]->shared
                                              ? "True" : "False"));
 
         if (def->disks[i]->type == VIR_DOMAIN_DISK_TYPE_FILE &&
@@ -4368,7 +4340,7 @@ vboxAttachNetwork(virDomainDefPtr def, vboxGlobalData *data, IMachine *machine)
     PRUint32 chipsetType                = ChipsetType_Null;
 #endif /* VBOX_API_VERSION >= 4001 */
     PRUint32 networkAdapterCount        = 0;
-    int i = 0;
+    size_t i = 0;
 
 #if VBOX_API_VERSION >= 4001
     machine->vtbl->GetChipsetType(machine, &chipsetType);
@@ -4407,20 +4379,20 @@ vboxAttachNetwork(virDomainDefPtr def, vboxGlobalData *data, IMachine *machine)
                  def->nets[i]->mac.addr[5]);
         macaddrvbox[VIR_MAC_STRING_BUFLEN - 6] = '\0';
 
-        VIR_DEBUG("NIC(%d): Type:   %d", i, def->nets[i]->type);
-        VIR_DEBUG("NIC(%d): Model:  %s", i, def->nets[i]->model);
-        VIR_DEBUG("NIC(%d): Mac:    %s", i, macaddr);
-        VIR_DEBUG("NIC(%d): ifname: %s", i, def->nets[i]->ifname);
+        VIR_DEBUG("NIC(%zu): Type:   %d", i, def->nets[i]->type);
+        VIR_DEBUG("NIC(%zu): Model:  %s", i, def->nets[i]->model);
+        VIR_DEBUG("NIC(%zu): Mac:    %s", i, macaddr);
+        VIR_DEBUG("NIC(%zu): ifname: %s", i, def->nets[i]->ifname);
         if (def->nets[i]->type == VIR_DOMAIN_NET_TYPE_NETWORK) {
-            VIR_DEBUG("NIC(%d): name:    %s", i, def->nets[i]->data.network.name);
+            VIR_DEBUG("NIC(%zu): name:    %s", i, def->nets[i]->data.network.name);
         } else if (def->nets[i]->type == VIR_DOMAIN_NET_TYPE_INTERNAL) {
-            VIR_DEBUG("NIC(%d): name:   %s", i, def->nets[i]->data.internal.name);
+            VIR_DEBUG("NIC(%zu): name:   %s", i, def->nets[i]->data.internal.name);
         } else if (def->nets[i]->type == VIR_DOMAIN_NET_TYPE_USER) {
-            VIR_DEBUG("NIC(%d): NAT.", i);
+            VIR_DEBUG("NIC(%zu): NAT.", i);
         } else if (def->nets[i]->type == VIR_DOMAIN_NET_TYPE_BRIDGE) {
-            VIR_DEBUG("NIC(%d): brname: %s", i, def->nets[i]->data.bridge.brname);
-            VIR_DEBUG("NIC(%d): script: %s", i, def->nets[i]->script);
-            VIR_DEBUG("NIC(%d): ipaddr: %s", i, def->nets[i]->data.bridge.ipaddr);
+            VIR_DEBUG("NIC(%zu): brname: %s", i, def->nets[i]->data.bridge.brname);
+            VIR_DEBUG("NIC(%zu): script: %s", i, def->nets[i]->script);
+            VIR_DEBUG("NIC(%zu): ipaddr: %s", i, def->nets[i]->data.bridge.ipaddr);
         }
 
         machine->vtbl->GetNetworkAdapter(machine, i, &adapter);
@@ -4539,7 +4511,7 @@ vboxAttachSerial(virDomainDefPtr def, vboxGlobalData *data, IMachine *machine)
 {
     ISystemProperties *systemProperties = NULL;
     PRUint32 serialPortCount            = 0;
-    int i = 0;
+    size_t i = 0;
 
     data->vboxObj->vtbl->GetSystemProperties(data->vboxObj, &systemProperties);
     if (systemProperties) {
@@ -4554,8 +4526,8 @@ vboxAttachSerial(virDomainDefPtr def, vboxGlobalData *data, IMachine *machine)
     for (i = 0; (i < def->nserials) && (i < serialPortCount); i++) {
         ISerialPort *serialPort = NULL;
 
-        VIR_DEBUG("SerialPort(%d): Type: %d", i, def->serials[i]->source.type);
-        VIR_DEBUG("SerialPort(%d): target.port: %d", i,
+        VIR_DEBUG("SerialPort(%zu): Type: %d", i, def->serials[i]->source.type);
+        VIR_DEBUG("SerialPort(%zu): target.port: %d", i,
               def->serials[i]->target.port);
 
         machine->vtbl->GetSerialPort(machine, i, &serialPort);
@@ -4582,12 +4554,12 @@ vboxAttachSerial(virDomainDefPtr def, vboxGlobalData *data, IMachine *machine)
             if (def->serials[i]->target.port == 0) {
                 serialPort->vtbl->SetIRQ(serialPort, 4);
                 serialPort->vtbl->SetIOBase(serialPort, 1016);
-                VIR_DEBUG(" serialPort-%d irq: %d, iobase 0x%x, path: %s",
+                VIR_DEBUG(" serialPort-%zu irq: %d, iobase 0x%x, path: %s",
                       i, 4, 1016, def->serials[i]->source.data.file.path);
             } else if (def->serials[i]->target.port == 1) {
                 serialPort->vtbl->SetIRQ(serialPort, 3);
                 serialPort->vtbl->SetIOBase(serialPort, 760);
-                VIR_DEBUG(" serialPort-%d irq: %d, iobase 0x%x, path: %s",
+                VIR_DEBUG(" serialPort-%zu irq: %d, iobase 0x%x, path: %s",
                       i, 3, 760, def->serials[i]->source.data.file.path);
             }
 
@@ -4615,7 +4587,7 @@ vboxAttachParallel(virDomainDefPtr def, vboxGlobalData *data, IMachine *machine)
 {
     ISystemProperties *systemProperties = NULL;
     PRUint32 parallelPortCount          = 0;
-    int i = 0;
+    size_t i = 0;
 
     data->vboxObj->vtbl->GetSystemProperties(data->vboxObj, &systemProperties);
     if (systemProperties) {
@@ -4630,8 +4602,8 @@ vboxAttachParallel(virDomainDefPtr def, vboxGlobalData *data, IMachine *machine)
     for (i = 0; (i < def->nparallels) && (i < parallelPortCount); i++) {
         IParallelPort *parallelPort = NULL;
 
-        VIR_DEBUG("ParallelPort(%d): Type: %d", i, def->parallels[i]->source.type);
-        VIR_DEBUG("ParallelPort(%d): target.port: %d", i,
+        VIR_DEBUG("ParallelPort(%zu): Type: %d", i, def->parallels[i]->source.type);
+        VIR_DEBUG("ParallelPort(%zu): target.port: %d", i,
               def->parallels[i]->target.port);
 
         machine->vtbl->GetParallelPort(machine, i, &parallelPort);
@@ -4653,12 +4625,12 @@ vboxAttachParallel(virDomainDefPtr def, vboxGlobalData *data, IMachine *machine)
                 if (i == 0) {
                     parallelPort->vtbl->SetIRQ(parallelPort, 7);
                     parallelPort->vtbl->SetIOBase(parallelPort, 888);
-                    VIR_DEBUG(" parallePort-%d irq: %d, iobase 0x%x, path: %s",
+                    VIR_DEBUG(" parallePort-%zu irq: %d, iobase 0x%x, path: %s",
                           i, 7, 888, def->parallels[i]->source.data.file.path);
                 } else if (i == 1) {
                     parallelPort->vtbl->SetIRQ(parallelPort, 5);
                     parallelPort->vtbl->SetIOBase(parallelPort, 632);
-                    VIR_DEBUG(" parallePort-%d irq: %d, iobase 0x%x, path: %s",
+                    VIR_DEBUG(" parallePort-%zu irq: %d, iobase 0x%x, path: %s",
                           i, 5, 632, def->parallels[i]->source.data.file.path);
                 }
             }
@@ -4706,7 +4678,7 @@ vboxAttachDisplay(virDomainDefPtr def, vboxGlobalData *data, IMachine *machine)
     int guiPresent   = 0;
     char *guiDisplay = NULL;
     char *sdlDisplay = NULL;
-    int i = 0;
+    size_t i = 0;
 
     for (i = 0; i < def->ngraphics; i++) {
 #if VBOX_API_VERSION < 4000
@@ -4895,7 +4867,7 @@ static void
 vboxAttachUSB(virDomainDefPtr def, vboxGlobalData *data, IMachine *machine)
 {
     IUSBController *USBController = NULL;
-    int i = 0;
+    size_t i = 0;
     bool isUSB = false;
 
     if (def->nhostdevs == 0)
@@ -4949,9 +4921,7 @@ vboxAttachUSB(virDomainDefPtr def, vboxGlobalData *data, IMachine *machine)
                         /* Zero pad for nice alignment when fewer than 9999
                          * devices.
                          */
-                        if (virAsprintf(&filtername, "filter%04d", i) < 0) {
-                            virReportOOMError();
-                        } else {
+                        if (virAsprintf(&filtername, "filter%04zu", i) >= 0) {
                             VBOX_UTF8_TO_UTF16(filtername, &filternameUtf16);
                             VIR_FREE(filtername);
                             USBController->vtbl->CreateDeviceFilter(USBController,
@@ -5002,7 +4972,7 @@ vboxAttachUSB(virDomainDefPtr def, vboxGlobalData *data, IMachine *machine)
 static void
 vboxAttachSharedFolder(virDomainDefPtr def, vboxGlobalData *data, IMachine *machine)
 {
-    int i;
+    size_t i;
     PRUnichar *nameUtf16;
     PRUnichar *hostPathUtf16;
     PRBool writable;
@@ -5269,7 +5239,7 @@ vboxDomainUndefineFlags(virDomainPtr dom, unsigned int flags)
                  * remove them all so that the machine can be undefined
                  */
                 vboxArray storageControllers = VBOX_ARRAY_INITIALIZER;
-                int i = 0, j = 0;
+                size_t i = 0, j = 0;
 
                 vboxArrayGet(&storageControllers, machine,
                              machine->vtbl->GetStorageControllers);
@@ -5403,10 +5373,8 @@ static int vboxDomainAttachDeviceImpl(virDomainPtr dom,
     virDomainDeviceDefPtr dev  = NULL;
     nsresult rc;
 
-    if (VIR_ALLOC(def) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC(def) < 0)
         return ret;
-    }
 
     if (VIR_STRDUP(def->os.type, "hvm") < 0)
         goto cleanup;
@@ -5634,10 +5602,8 @@ static int vboxDomainDetachDevice(virDomainPtr dom, const char *xml) {
     virDomainDeviceDefPtr dev  = NULL;
     nsresult rc;
 
-    if (VIR_ALLOC(def) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC(def) < 0)
         return ret;
-    }
 
     if (VIR_STRDUP(def->os.type, "hvm") < 0)
         goto cleanup;
@@ -5798,10 +5764,8 @@ vboxDomainSnapshotGetAll(virDomainPtr dom,
     if (count == 0)
         goto out;
 
-    if (VIR_ALLOC_N(list, count) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC_N(list, count) < 0)
         goto error;
-    }
 
 #if VBOX_API_VERSION < 4000
     rc = machine->vtbl->GetSnapshot(machine, empty.value, list);
@@ -5819,7 +5783,7 @@ vboxDomainSnapshotGetAll(virDomainPtr dom,
     top = 1;
     for (next = 0; next < count; next++) {
         vboxArray children = VBOX_ARRAY_INITIALIZER;
-        unsigned int i;
+        size_t i;
 
         if (!list[next]) {
             virReportError(VIR_ERR_INTERNAL_ERROR,
@@ -5874,7 +5838,7 @@ vboxDomainSnapshotGet(vboxGlobalData *data,
     ISnapshot *snapshot = NULL;
     nsresult rc;
     int count = 0;
-    int i;
+    size_t i;
 
     if ((count = vboxDomainSnapshotGetAll(dom, machine, &snapshots)) < 0)
         goto cleanup;
@@ -6066,7 +6030,7 @@ vboxDomainSnapshotGetXMLDesc(virDomainSnapshotPtr snapshot,
         goto cleanup;
 
     if (VIR_ALLOC(def) < 0)
-        goto no_memory;
+        goto cleanup;
     if (VIR_STRDUP(def->name, snapshot->name) < 0)
         goto cleanup;
 
@@ -6116,7 +6080,7 @@ vboxDomainSnapshotGetXMLDesc(virDomainSnapshotPtr snapshot,
         VBOX_UTF16_FREE(str16);
         if (VIR_STRDUP(def->parent, str8) < 0) {
             VBOX_UTF8_FREE(str8);
-            goto no_memory;
+            goto cleanup;
         }
         VBOX_UTF8_FREE(str8);
     }
@@ -6143,10 +6107,6 @@ cleanup:
     VBOX_RELEASE(machine);
     vboxIIDUnalloc(&domiid);
     return ret;
-
-no_memory:
-    virReportOOMError();
-    goto cleanup;
 }
 
 static int
@@ -6208,7 +6168,7 @@ vboxDomainSnapshotListNames(virDomainPtr dom,
     nsresult rc;
     ISnapshot **snapshots = NULL;
     int count = 0;
-    int i;
+    size_t i;
 
     virCheckFlags(VIR_DOMAIN_SNAPSHOT_LIST_ROOTS |
                   VIR_DOMAIN_SNAPSHOT_LIST_METADATA, -1);
@@ -6229,10 +6189,8 @@ vboxDomainSnapshotListNames(virDomainPtr dom,
     if (flags & VIR_DOMAIN_SNAPSHOT_LIST_ROOTS) {
         vboxIID empty = VBOX_IID_INITIALIZER;
 
-        if (VIR_ALLOC_N(snapshots, 1) < 0) {
-            virReportOOMError();
+        if (VIR_ALLOC_N(snapshots, 1) < 0)
             goto cleanup;
-        }
 #if VBOX_API_VERSION < 4000
         rc = machine->vtbl->GetSnapshot(machine, empty.value, snapshots);
 #else /* VBOX_API_VERSION >= 4000 */
@@ -6266,7 +6224,6 @@ vboxDomainSnapshotListNames(virDomainPtr dom,
         VBOX_UTF16_TO_UTF8(nameUtf16, &name);
         VBOX_UTF16_FREE(nameUtf16);
         if (VIR_STRDUP(names[i], name) < 0) {
-            virReportOOMError();
             VBOX_UTF8_FREE(name);
             goto cleanup;
         }
@@ -6826,7 +6783,7 @@ vboxDomainSnapshotDeleteTree(vboxGlobalData *data,
     vboxArray children = VBOX_ARRAY_INITIALIZER;
     int ret = -1;
     nsresult rc;
-    unsigned int i;
+    size_t i;
 
     rc = vboxArrayGet(&children, snapshot, snapshot->vtbl->GetChildren);
     if (NS_FAILED(rc)) {
@@ -7218,7 +7175,6 @@ static IVirtualBoxCallback *vboxAllocCallbackObj(void) {
      */
     if ((VIR_ALLOC(vboxCallback) < 0) || (VIR_ALLOC(vboxCallback->vtbl) < 0)) {
         VIR_FREE(vboxCallback);
-        virReportOOMError();
         return NULL;
     }
 
@@ -7489,7 +7445,7 @@ static int vboxNetworkClose(virConnectPtr conn) {
 static int vboxConnectNumOfNetworks(virConnectPtr conn) {
     VBOX_OBJECT_HOST_CHECK(conn, int, 0);
     vboxArray networkInterfaces = VBOX_ARRAY_INITIALIZER;
-    int i = 0;
+    size_t i = 0;
 
     vboxArrayGet(&networkInterfaces, host, host->vtbl->GetNetworkInterfaces);
 
@@ -7522,7 +7478,7 @@ static int vboxConnectNumOfNetworks(virConnectPtr conn) {
 static int vboxConnectListNetworks(virConnectPtr conn, char **const names, int nnames) {
     VBOX_OBJECT_HOST_CHECK(conn, int, 0);
     vboxArray networkInterfaces = VBOX_ARRAY_INITIALIZER;
-    int i = 0;
+    size_t i = 0;
 
     vboxArrayGet(&networkInterfaces, host, host->vtbl->GetNetworkInterfaces);
 
@@ -7567,7 +7523,7 @@ static int vboxConnectListNetworks(virConnectPtr conn, char **const names, int n
 static int vboxConnectNumOfDefinedNetworks(virConnectPtr conn) {
     VBOX_OBJECT_HOST_CHECK(conn, int, 0);
     vboxArray networkInterfaces = VBOX_ARRAY_INITIALIZER;
-    int i = 0;
+    size_t i = 0;
 
     vboxArrayGet(&networkInterfaces, host, host->vtbl->GetNetworkInterfaces);
 
@@ -7600,7 +7556,7 @@ static int vboxConnectNumOfDefinedNetworks(virConnectPtr conn) {
 static int vboxConnectListDefinedNetworks(virConnectPtr conn, char **const names, int nnames) {
     VBOX_OBJECT_HOST_CHECK(conn, int, 0);
     vboxArray networkInterfaces = VBOX_ARRAY_INITIALIZER;
-    int i = 0;
+    size_t i = 0;
 
     vboxArrayGet(&networkInterfaces, host, host->vtbl->GetNetworkInterfaces);
 
@@ -7795,7 +7751,6 @@ static virNetworkPtr vboxNetworkDefineCreateXML(virConnectPtr conn, const char *
             if (virAsprintf(&networkNameUtf8, "HostInterfaceNetworking-%s", networkInterfaceNameUtf8) < 0) {
                 VBOX_RELEASE(host);
                 VBOX_RELEASE(networkInterface);
-                virReportOOMError();
                 goto cleanup;
             }
         }
@@ -7951,10 +7906,8 @@ static int vboxNetworkUndefineDestroy(virNetworkPtr network, bool removeinterfac
      * show up in the net-list in virsh
      */
 
-    if (virAsprintf(&networkNameUtf8, "HostInterfaceNetworking-%s", network->name) < 0) {
-        virReportOOMError();
+    if (virAsprintf(&networkNameUtf8, "HostInterfaceNetworking-%s", network->name) < 0)
         goto cleanup;
-    }
 
     VBOX_UTF8_TO_UTF16(network->name, &networkInterfaceNameUtf16);
 
@@ -8040,10 +7993,8 @@ static int vboxNetworkCreate(virNetworkPtr network) {
      * server by giving the machine static IP
      */
 
-    if (virAsprintf(&networkNameUtf8, "HostInterfaceNetworking-%s", network->name) < 0) {
-        virReportOOMError();
+    if (virAsprintf(&networkNameUtf8, "HostInterfaceNetworking-%s", network->name) < 0)
         goto cleanup;
-    }
 
     VBOX_UTF8_TO_UTF16(network->name, &networkInterfaceNameUtf16);
 
@@ -8112,21 +8063,15 @@ static char *vboxNetworkGetXMLDesc(virNetworkPtr network,
 
     virCheckFlags(0, NULL);
 
-    if (VIR_ALLOC(def) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC(def) < 0)
         goto cleanup;
-    }
-    if (VIR_ALLOC(ipdef) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC(ipdef) < 0)
         goto cleanup;
-    }
     def->ips = ipdef;
     def->nips = 1;
 
-    if (virAsprintf(&networkNameUtf8, "HostInterfaceNetworking-%s", network->name) < 0) {
-        virReportOOMError();
+    if (virAsprintf(&networkNameUtf8, "HostInterfaceNetworking-%s", network->name) < 0)
         goto cleanup;
-    }
 
     VBOX_UTF8_TO_UTF16(network->name, &networkInterfaceNameUtf16);
 
@@ -8190,7 +8135,6 @@ static char *vboxNetworkGetXMLDesc(virNetworkPtr network,
                         }
                     } else {
                         ipdef->nranges = 0;
-                        virReportOOMError();
                     }
 
                     ipdef->nhosts = 1;
@@ -8251,8 +8195,6 @@ static char *vboxNetworkGetXMLDesc(virNetworkPtr network,
                 DEBUGIID("Network UUID", vboxnet0IID.value);
                 vboxIIDUnalloc(&vboxnet0IID);
                 VBOX_UTF16_FREE(networkNameUtf16);
-            } else {
-                virReportOOMError();
             }
         }
 
@@ -8344,7 +8286,7 @@ static int vboxStoragePoolNumOfVolumes(virStoragePoolPtr pool) {
     vboxArray hardDisks = VBOX_ARRAY_INITIALIZER;
     PRUint32 hardDiskAccessible = 0;
     nsresult rc;
-    int i;
+    size_t i;
 
     rc = vboxArrayGet(&hardDisks, data->vboxObj, data->vboxObj->vtbl->GetHardDisks);
     if (NS_SUCCEEDED(rc)) {
@@ -8377,7 +8319,7 @@ static int vboxStoragePoolListVolumes(virStoragePoolPtr pool, char **const names
     vboxArray hardDisks = VBOX_ARRAY_INITIALIZER;
     PRUint32 numActive     = 0;
     nsresult rc;
-    int i;
+    size_t i;
 
     rc = vboxArrayGet(&hardDisks, data->vboxObj, data->vboxObj->vtbl->GetHardDisks);
     if (NS_SUCCEEDED(rc)) {
@@ -8424,7 +8366,7 @@ static virStorageVolPtr vboxStorageVolLookupByName(virStoragePoolPtr pool, const
     VBOX_OBJECT_CHECK(pool->conn, virStorageVolPtr, NULL);
     vboxArray hardDisks = VBOX_ARRAY_INITIALIZER;
     nsresult rc;
-    int i;
+    size_t i;
 
     if (!name)
         return ret;
@@ -8729,8 +8671,8 @@ static int vboxStorageVolDelete(virStorageVolPtr vol,
     IHardDisk *hardDisk  = NULL;
     int deregister = 0;
     nsresult rc;
-    int i = 0;
-    int j = 0;
+    size_t i = 0;
+    size_t j = 0;
 
     virCheckFlags(0, -1);
 
@@ -9182,7 +9124,6 @@ vboxDomainScreenshot(virDomainPtr dom,
     }
 
     if (virAsprintf(&tmp, "%s/cache/libvirt/vbox.screendump.XXXXXX", LOCALSTATEDIR) < 0) {
-        virReportOOMError();
         VBOX_RELEASE(machine);
         return NULL;
     }
@@ -9281,7 +9222,7 @@ vboxConnectListAllDomains(virConnectPtr conn,
     vboxIID iid = VBOX_IID_INITIALIZER;
     PRUint32 state;
     nsresult rc;
-    int i;
+    size_t i;
     virDomainPtr dom;
     virDomainPtr *doms = NULL;
     int count = 0;
@@ -9303,7 +9244,7 @@ vboxConnectListAllDomains(virConnectPtr conn,
          !MATCH(VIR_CONNECT_LIST_DOMAINS_NO_MANAGEDSAVE))) {
         if (domains &&
             VIR_ALLOC_N(*domains, 1) < 0)
-            goto no_memory;
+            goto cleanup;
 
         ret = 0;
         goto cleanup;
@@ -9318,7 +9259,7 @@ vboxConnectListAllDomains(virConnectPtr conn,
 
     if (domains &&
         VIR_ALLOC_N(doms, machines.count + 1) < 0)
-        goto no_memory;
+        goto cleanup;
 
     for (i = 0; i < machines.count; i++) {
         IMachine *machine = machines.items[i];
@@ -9419,10 +9360,6 @@ cleanup:
 
     vboxArrayRelease(&machines);
     return ret;
-
-no_memory:
-    virReportOOMError();
-    goto cleanup;
 }
 #undef MATCH
 

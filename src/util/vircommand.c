@@ -64,6 +64,14 @@ enum {
     VIR_EXEC_ASYNC_IO   = (1 << 4),
 };
 
+typedef struct _virCommandFD virCommandFD;
+typedef virCommandFD *virCommandFDPtr;
+
+struct _virCommandFD {
+    int fd;
+    unsigned int flags;
+};
+
 struct _virCommand {
     int has_error; /* ENOMEM on allocation failure, -1 for anything else.  */
 
@@ -77,10 +85,8 @@ struct _virCommand {
 
     char *pwd;
 
-    int *preserve; /* FDs to pass to child. */
-    int preserve_size;
-    int *transfer; /* FDs to close in parent. */
-    int transfer_size;
+    size_t npassfd;
+    virCommandFDPtr passfd;
 
     unsigned int flags;
 
@@ -135,14 +141,15 @@ struct _virCommand {
  * false otherwise.
  */
 static bool
-virCommandFDIsSet(int fd,
-                  const int *set,
-                  int set_size)
+virCommandFDIsSet(virCommandPtr cmd,
+                  int fd)
 {
-    int i = 0;
+    size_t i = 0;
+    if (!cmd)
+        return false;
 
-    while (i < set_size)
-        if (set[i++] == fd)
+    while (i < cmd->npassfd)
+        if (cmd->passfd[i++].fd == fd)
             return true;
 
     return false;
@@ -163,22 +170,21 @@ virCommandFDIsSet(int fd,
  *          ENOMEM on OOM
  */
 static int
-virCommandFDSet(int fd,
-                int **set,
-                int *set_size)
+virCommandFDSet(virCommandPtr cmd,
+                int fd,
+                unsigned int flags)
 {
-    if (fd < 0 || !set || !set_size)
+    if (!cmd || fd < 0)
         return -1;
 
-    if (virCommandFDIsSet(fd, *set, *set_size))
+    if (virCommandFDIsSet(cmd, fd))
         return 0;
 
-    if (VIR_REALLOC_N(*set, *set_size + 1) < 0) {
+    if (VIR_EXPAND_N(cmd->passfd, cmd->npassfd, 1) < 0)
         return ENOMEM;
-    }
 
-    (*set)[*set_size] = fd;
-    (*set_size)++;
+    cmd->passfd[cmd->npassfd - 1].fd = fd;
+    cmd->passfd[cmd->npassfd - 1].flags = flags;
 
     return 0;
 }
@@ -259,7 +265,7 @@ virFork(pid_t *pid)
         /* child process */
 
         int logprio;
-        int i;
+        size_t i;
 
         /* Remove any error callback so errors in child now
            get sent to stderr where they stand a fighting chance
@@ -392,7 +398,7 @@ static int
 virExec(virCommandPtr cmd)
 {
     pid_t pid;
-    int null = -1, i, openmax;
+    int null = -1, fd, openmax;
     int pipeout[2] = {-1,-1};
     int pipeerr[2] = {-1,-1};
     int childin = cmd->infd;
@@ -402,6 +408,8 @@ virExec(virCommandPtr cmd)
     const char *binary = NULL;
     int forkRet, ret;
     struct sigaction waxon, waxoff;
+    gid_t *groups = NULL;
+    int ngroups;
 
     if (cmd->args[0][0] != '/') {
         if (!(binary = virFindFileInPath(cmd->args[0]))) {
@@ -472,6 +480,9 @@ virExec(virCommandPtr cmd)
         childerr = null;
     }
 
+    if ((ngroups = virGetGroupList(cmd->uid, cmd->gid, &groups)) < 0)
+        goto cleanup;
+
     forkRet = virFork(&pid);
 
     if (pid < 0) {
@@ -497,6 +508,7 @@ virExec(virCommandPtr cmd)
 
         if (binary != cmd->args[0])
             VIR_FREE(binary);
+        VIR_FREE(groups);
 
         return 0;
     }
@@ -511,15 +523,19 @@ virExec(virCommandPtr cmd)
     }
 
     openmax = sysconf(_SC_OPEN_MAX);
-    for (i = 3; i < openmax; i++) {
-        if (i == childin || i == childout || i == childerr)
+    if (openmax < 0) {
+        virReportSystemError(errno,  "%s",
+                             _("sysconf(_SC_OPEN_MAX) failed"));
+        goto fork_error;
+    }
+    for (fd = 3; fd < openmax; fd++) {
+        if (fd == childin || fd == childout || fd == childerr)
             continue;
-        if (!cmd->preserve ||
-            !virCommandFDIsSet(i, cmd->preserve, cmd->preserve_size)) {
-            tmpfd = i;
+        if (!virCommandFDIsSet(cmd, fd)) {
+            tmpfd = fd;
             VIR_MASS_CLOSE(tmpfd);
-        } else if (virSetInherit(i, true) < 0) {
-            virReportSystemError(errno, _("failed to preserve fd %d"), i);
+        } else if (virSetInherit(fd, true) < 0) {
+            virReportSystemError(errno, _("failed to preserve fd %d"), fd);
             goto fork_error;
         }
     }
@@ -651,7 +667,8 @@ virExec(virCommandPtr cmd)
         cmd->capabilities || (cmd->flags & VIR_EXEC_CLEAR_CAPS)) {
         VIR_DEBUG("Setting child uid:gid to %d:%d with caps %llx",
                   (int)cmd->uid, (int)cmd->gid, cmd->capabilities);
-        if (virSetUIDGIDWithCaps(cmd->uid, cmd->gid, cmd->capabilities,
+        if (virSetUIDGIDWithCaps(cmd->uid, cmd->gid, groups, ngroups,
+                                 cmd->capabilities,
                                  !!(cmd->flags & VIR_EXEC_CLEAR_CAPS)) < 0) {
             goto fork_error;
         }
@@ -695,6 +712,7 @@ virExec(virCommandPtr cmd)
     /* This is cleanup of parent process only - child
        should never jump here on error */
 
+    VIR_FREE(groups);
     if (binary != cmd->args[0])
         VIR_FREE(binary);
 
@@ -869,67 +887,51 @@ virCommandNewVAList(const char *binary, va_list list)
 }
 
 
-/*
- * Preserve the specified file descriptor in the child, instead of
- * closing it.  FD must not be one of the three standard streams.  If
- * transfer is true, then fd will be closed in the parent after a call
- * to Run/RunAsync/Free, otherwise caller is still responsible for fd.
- * Returns true if a transferring caller should close FD now, and
- * false if the transfer is successfully recorded.
+#define VIR_COMMAND_MAYBE_CLOSE_FD(fd, flags)       \
+    if ((fd > STDERR_FILENO) &&                     \
+        (flags & VIR_COMMAND_PASS_FD_CLOSE_PARENT)) \
+        VIR_FORCE_CLOSE(fd)
+
+/**
+ * virCommandPassFD:
+ * @cmd: the command to modify
+ * @fd: fd to reassign to the child
+ * @flags: the flags
+ *
+ * Transfer the specified file descriptor to the child, instead
+ * of closing it on exec. @fd must not be one of the three
+ * standard streams.
+ *
+ * If the flag VIR_COMMAND_PASS_FD_CLOSE_PARENT is set then fd will
+ * be closed in the parent no later than Run/RunAsync/Free. The parent
+ * should cease using the @fd when this call completes
  */
-static bool
-virCommandKeepFD(virCommandPtr cmd, int fd, bool transfer)
+void
+virCommandPassFD(virCommandPtr cmd, int fd, unsigned int flags)
 {
     int ret = 0;
 
-    if (!cmd)
-        return fd > STDERR_FILENO;
-
-    if (fd <= STDERR_FILENO ||
-        (ret = virCommandFDSet(fd, &cmd->preserve, &cmd->preserve_size)) ||
-        (transfer && (ret = virCommandFDSet(fd, &cmd->transfer,
-                                            &cmd->transfer_size)))) {
-        if (!cmd->has_error)
-            cmd->has_error = ret ? ret : -1;
-        VIR_DEBUG("cannot preserve %d", fd);
-        return fd > STDERR_FILENO;
+    if (!cmd) {
+        VIR_COMMAND_MAYBE_CLOSE_FD(fd, flags);
+        return;
     }
 
-    return false;
-}
+    if (fd <= STDERR_FILENO) {
+        VIR_DEBUG("invalid fd %d", fd);
+        VIR_COMMAND_MAYBE_CLOSE_FD(fd, flags);
+        if (!cmd->has_error)
+            cmd->has_error = -1;
+        return;
+    }
 
-/**
- * virCommandPreserveFD:
- * @cmd: the command to modify
- * @fd: fd to mark for inheritance into child
- *
- * Preserve the specified file descriptor
- * in the child, instead of closing it on exec.
- * The parent is still responsible for managing fd.
- */
-void
-virCommandPreserveFD(virCommandPtr cmd, int fd)
-{
-    virCommandKeepFD(cmd, fd, false);
+    if ((ret = virCommandFDSet(cmd, fd, flags)) != 0) {
+        if (!cmd->has_error)
+            cmd->has_error = ret;
+        VIR_DEBUG("cannot preserve %d", fd);
+        VIR_COMMAND_MAYBE_CLOSE_FD(fd, flags);
+        return;
+    }
 }
-
-/**
- * virCommandTransferFD:
- * @cmd: the command to modify
- * @fd: fd to reassign to the child
- *
- * Transfer the specified file descriptor
- * to the child, instead of closing it on exec.
- * The parent should no longer use fd, and the parent's copy will
- * be automatically closed no later than during Run/RunAsync/Free.
- */
-void
-virCommandTransferFD(virCommandPtr cmd, int fd)
-{
-    if (virCommandKeepFD(cmd, fd, true))
-        VIR_FORCE_CLOSE(fd);
-}
-
 
 /**
  * virCommandSetPidFile:
@@ -1840,24 +1842,20 @@ virCommandProcessIO(virCommandPtr cmd)
      * results accumulated over a prior run of the same command.  */
     if (cmd->outbuf) {
         outfd = cmd->outfd;
-        if (VIR_REALLOC_N(*cmd->outbuf, 1) < 0) {
-            virReportOOMError();
+        if (VIR_REALLOC_N(*cmd->outbuf, 1) < 0)
             ret = -1;
-        }
     }
     if (cmd->errbuf) {
         errfd = cmd->errfd;
-        if (VIR_REALLOC_N(*cmd->errbuf, 1) < 0) {
-            virReportOOMError();
+        if (VIR_REALLOC_N(*cmd->errbuf, 1) < 0)
             ret = -1;
-        }
     }
     if (ret == -1)
         goto cleanup;
     ret = -1;
 
     for (;;) {
-        int i;
+        size_t i;
         struct pollfd fds[3];
         int nfds = 0;
 
@@ -1924,10 +1922,8 @@ virCommandProcessIO(virCommandPtr cmd)
                     else
                         errfd = -1;
                 } else {
-                    if (VIR_REALLOC_N(*buf, *len + done + 1) < 0) {
-                        virReportOOMError();
+                    if (VIR_REALLOC_N(*buf, *len + done + 1) < 0)
                         goto cleanup;
-                    }
                     memcpy(*buf + *len, data, done);
                     *len += done;
                 }
@@ -2176,7 +2172,7 @@ virCommandRunAsync(virCommandPtr cmd, pid_t *pid)
 {
     int ret = -1;
     char *str;
-    int i;
+    size_t i;
     bool synchronous = false;
     int infd[2] = {-1, -1};
 
@@ -2245,11 +2241,12 @@ virCommandRunAsync(virCommandPtr cmd, pid_t *pid)
     VIR_DEBUG("Command result %d, with PID %d",
               ret, (int)cmd->pid);
 
-    for (i = 0; i < cmd->transfer_size; i++) {
-        VIR_FORCE_CLOSE(cmd->transfer[i]);
+    for (i = 0; i < cmd->npassfd; i++) {
+        if (cmd->passfd[i].flags & VIR_COMMAND_PASS_FD_CLOSE_PARENT)
+            VIR_FORCE_CLOSE(cmd->passfd[i].fd);
     }
-    cmd->transfer_size = 0;
-    VIR_FREE(cmd->transfer);
+    cmd->npassfd = 0;
+    VIR_FREE(cmd->passfd);
 
     if (ret == 0 && pid)
         *pid = cmd->pid;
@@ -2424,8 +2421,10 @@ void virCommandRequireHandshake(virCommandPtr cmd)
               "keep handshake wait=%d notify=%d",
               cmd->handshakeWait[1], cmd->handshakeNotify[0],
               cmd->handshakeWait[0], cmd->handshakeNotify[1]);
-    virCommandTransferFD(cmd, cmd->handshakeWait[1]);
-    virCommandTransferFD(cmd, cmd->handshakeNotify[0]);
+    virCommandPassFD(cmd, cmd->handshakeWait[1],
+                     VIR_COMMAND_PASS_FD_CLOSE_PARENT);
+    virCommandPassFD(cmd, cmd->handshakeNotify[0],
+                     VIR_COMMAND_PASS_FD_CLOSE_PARENT);
     cmd->handshake = true;
 }
 
@@ -2471,7 +2470,6 @@ int virCommandHandshakeWait(virCommandPtr cmd)
         char *msg;
         ssize_t len;
         if (VIR_ALLOC_N(msg, 1024) < 0) {
-            virReportOOMError();
             VIR_FORCE_CLOSE(cmd->handshakeWait[0]);
             return -1;
         }
@@ -2545,13 +2543,16 @@ int virCommandHandshakeNotify(virCommandPtr cmd)
 void
 virCommandFree(virCommandPtr cmd)
 {
-    int i;
+    size_t i;
     if (!cmd)
         return;
 
-    for (i = 0; i < cmd->transfer_size; i++) {
-        VIR_FORCE_CLOSE(cmd->transfer[i]);
+    for (i = 0; i < cmd->npassfd; i++) {
+        if (cmd->passfd[i].flags & VIR_COMMAND_PASS_FD_CLOSE_PARENT)
+            VIR_FORCE_CLOSE(cmd->passfd[i].fd);
     }
+    cmd->npassfd = 0;
+    VIR_FREE(cmd->passfd);
 
     if (cmd->asyncioThread) {
         virThreadJoin(cmd->asyncioThread);
@@ -2573,7 +2574,7 @@ virCommandFree(virCommandPtr cmd)
 
     if (cmd->handshake) {
         /* The other 2 fds in these arrays are closed
-         * due to use with virCommandTransferFD
+         * due to use with virCommandPassFD
          */
         VIR_FORCE_CLOSE(cmd->handshakeWait[0]);
         VIR_FORCE_CLOSE(cmd->handshakeNotify[1]);
@@ -2584,8 +2585,6 @@ virCommandFree(virCommandPtr cmd)
     if (cmd->reap)
         virCommandAbort(cmd);
 
-    VIR_FREE(cmd->transfer);
-    VIR_FREE(cmd->preserve);
 #if defined(WITH_SECDRIVER_SELINUX)
     VIR_FREE(cmd->seLinuxLabel);
 #endif

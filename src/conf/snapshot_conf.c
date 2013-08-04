@@ -86,7 +86,7 @@ virDomainSnapshotDiskDefClear(virDomainSnapshotDiskDefPtr disk)
 
 void virDomainSnapshotDefFree(virDomainSnapshotDefPtr def)
 {
-    int i;
+    size_t i;
 
     if (!def)
         return;
@@ -178,7 +178,8 @@ virDomainSnapshotDefParseString(const char *xmlStr,
     virDomainSnapshotDefPtr def = NULL;
     virDomainSnapshotDefPtr ret = NULL;
     xmlNodePtr *nodes = NULL;
-    int i;
+    size_t i;
+    int n;
     char *creation = NULL, *state = NULL;
     struct timeval tv;
     int active;
@@ -195,10 +196,8 @@ virDomainSnapshotDefParseString(const char *xmlStr,
     }
     xmlKeepBlanksDefault(keepBlanksDefault);
 
-    if (VIR_ALLOC(def) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC(def) < 0)
         goto cleanup;
-    }
 
     if (!xmlStrEqual(ctxt->node->name, BAD_CAST "domainsnapshot")) {
         virReportError(VIR_ERR_XML_ERROR, "%s", _("domainsnapshot"));
@@ -214,10 +213,8 @@ virDomainSnapshotDefParseString(const char *xmlStr,
                            _("a redefined snapshot must have a name"));
             goto cleanup;
         }
-        if (virAsprintf(&def->name, "%lld", (long long)tv.tv_sec) < 0) {
-            virReportOOMError();
+        if (virAsprintf(&def->name, "%lld", (long long)tv.tv_sec) < 0)
             goto cleanup;
-        }
     }
 
     def->description = virXPathString("string(./description)", ctxt);
@@ -317,20 +314,18 @@ virDomainSnapshotDefParseString(const char *xmlStr,
     def->file = memoryFile;
     memoryFile = NULL;
 
-    if ((i = virXPathNodeSet("./disks/*", ctxt, &nodes)) < 0)
+    if ((n = virXPathNodeSet("./disks/*", ctxt, &nodes)) < 0)
         goto cleanup;
     if (flags & VIR_DOMAIN_SNAPSHOT_PARSE_DISKS) {
-        def->ndisks = i;
-        if (def->ndisks && VIR_ALLOC_N(def->disks, def->ndisks) < 0) {
-            virReportOOMError();
+        def->ndisks = n;
+        if (def->ndisks && VIR_ALLOC_N(def->disks, def->ndisks) < 0)
             goto cleanup;
-        }
         for (i = 0; i < def->ndisks; i++) {
             if (virDomainSnapshotDiskDefParseXML(nodes[i], &def->disks[i]) < 0)
                 goto cleanup;
         }
         VIR_FREE(nodes);
-    } else if (i) {
+    } else if (n) {
         virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
                        _("unable to handle disk requests in snapshot"));
         goto cleanup;
@@ -385,7 +380,7 @@ virDomainSnapshotAlignDisks(virDomainSnapshotDefPtr def,
 {
     int ret = -1;
     virBitmapPtr map = NULL;
-    int i;
+    size_t i;
     int ndisks;
     bool inuse;
 
@@ -407,10 +402,8 @@ virDomainSnapshotAlignDisks(virDomainSnapshotDefPtr def,
         goto cleanup;
     }
 
-    if (!(map = virBitmapNew(def->dom->ndisks))) {
-        virReportOOMError();
+    if (!(map = virBitmapNew(def->dom->ndisks)))
         goto cleanup;
-    }
 
     /* Double check requested disks.  */
     for (i = 0; i < def->ndisks; i++) {
@@ -471,10 +464,8 @@ virDomainSnapshotAlignDisks(virDomainSnapshotDefPtr def,
     /* Provide defaults for all remaining disks.  */
     ndisks = def->ndisks;
     if (VIR_EXPAND_N(def->disks, def->ndisks,
-                     def->dom->ndisks - def->ndisks) < 0) {
-        virReportOOMError();
+                     def->dom->ndisks - def->ndisks) < 0)
         goto cleanup;
-    }
 
     for (i = 0; i < def->dom->ndisks; i++) {
         virDomainSnapshotDiskDefPtr disk;
@@ -522,21 +513,18 @@ virDomainSnapshotAlignDisks(virDomainSnapshotDefPtr def,
 
             tmp = strrchr(original, '.');
             if (!tmp || strchr(tmp, '/')) {
-                ignore_value(virAsprintf(&disk->file, "%s.%s",
-                                         original, def->name));
+                if (virAsprintf(&disk->file, "%s.%s", original, def->name) < 0)
+                    goto cleanup;
             } else {
                 if ((tmp - original) > INT_MAX) {
                     virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                                    _("integer overflow"));
                     goto cleanup;
                 }
-                ignore_value(virAsprintf(&disk->file, "%.*s.%s",
-                                         (int) (tmp - original), original,
-                                         def->name));
-            }
-            if (!disk->file) {
-                virReportOOMError();
-                goto cleanup;
+                if (virAsprintf(&disk->file, "%.*s.%s",
+                                (int) (tmp - original), original,
+                                def->name) < 0)
+                    goto cleanup;
             }
         }
     }
@@ -581,7 +569,7 @@ char *virDomainSnapshotDefFormat(const char *domain_uuid,
                                  int internal)
 {
     virBuffer buf = VIR_BUFFER_INITIALIZER;
-    int i;
+    size_t i;
 
     virCheckFlags(VIR_DOMAIN_XML_SECURE |
                   VIR_DOMAIN_XML_UPDATE_CPU, NULL);
@@ -644,10 +632,8 @@ static virDomainSnapshotObjPtr virDomainSnapshotObjNew(void)
 {
     virDomainSnapshotObjPtr snapshot;
 
-    if (VIR_ALLOC(snapshot) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC(snapshot) < 0)
         return NULL;
-    }
 
     VIR_DEBUG("obj=%p", snapshot);
 
@@ -703,10 +689,8 @@ virDomainSnapshotObjListPtr
 virDomainSnapshotObjListNew(void)
 {
     virDomainSnapshotObjListPtr snapshots;
-    if (VIR_ALLOC(snapshots) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC(snapshots) < 0)
         return NULL;
-    }
     snapshots->objs = virHashCreate(50, virDomainSnapshotObjListDataFree);
     if (!snapshots->objs) {
         VIR_FREE(snapshots);
@@ -784,7 +768,7 @@ virDomainSnapshotObjListGetNames(virDomainSnapshotObjListPtr snapshots,
 {
     struct virDomainSnapshotNameData data = { names, maxnames, flags, 0,
                                               false };
-    int i;
+    size_t i;
 
     if (!from) {
         /* LIST_ROOTS and LIST_DESCENDANTS have the same bit value,
@@ -1026,15 +1010,13 @@ virDomainListSnapshots(virDomainSnapshotObjListPtr snapshots,
     virDomainSnapshotPtr *list = NULL;
     char **names;
     int ret = -1;
-    int i;
+    size_t i;
 
     if (!snaps || count < 0)
         return count;
     if (VIR_ALLOC_N(names, count) < 0 ||
-        VIR_ALLOC_N(list, count + 1) < 0) {
-        virReportOOMError();
+        VIR_ALLOC_N(list, count + 1) < 0)
         goto cleanup;
-    }
 
     if (virDomainSnapshotObjListGetNames(snapshots, from, names, count,
                                          flags) < 0)
@@ -1062,7 +1044,7 @@ cleanup:
 bool
 virDomainSnapshotDefIsExternal(virDomainSnapshotDefPtr def)
 {
-    int i;
+    size_t i;
 
     if (def->memory == VIR_DOMAIN_SNAPSHOT_LOCATION_EXTERNAL)
         return true;

@@ -18,6 +18,8 @@
 # include "testutilsqemu.h"
 # include "virstring.h"
 
+# define VIR_FROM_THIS VIR_FROM_NONE
+
 static virQEMUDriver driver;
 
 static int
@@ -156,6 +158,7 @@ mymain(void)
     DO_TEST("eoi-enabled");
 
     DO_TEST("hyperv");
+    DO_TEST("hyperv-off");
 
     DO_TEST("hugepages");
     DO_TEST("nosharepages");
@@ -261,6 +264,7 @@ mymain(void)
 
     DO_TEST("disk-scsi-disk-vpd");
     DO_TEST("disk-source-pool");
+    DO_TEST("disk-source-pool-mode");
 
     DO_TEST("disk-drive-discard");
 
@@ -287,6 +291,7 @@ mymain(void)
 
     DO_TEST("tpm-passthrough");
     DO_TEST("pci-bridge");
+    DO_TEST_DIFFERENT("pci-bridge-many-disks");
     DO_TEST_DIFFERENT("pci-autoadd-addr");
     DO_TEST_DIFFERENT("pci-autoadd-idx");
 

@@ -46,6 +46,7 @@ typedef virCapsGuestMachine *virCapsGuestMachinePtr;
 struct _virCapsGuestMachine {
     char *name;
     char *canonical;
+    unsigned int maxCpus;
 };
 
 typedef struct _virCapsGuestDomainInfo virCapsGuestDomainInfo;
@@ -256,5 +257,7 @@ virCapabilitiesDefaultGuestEmulator(virCapsPtr caps,
 extern char *
 virCapabilitiesFormatXML(virCapsPtr caps);
 
+virBitmapPtr virCapabilitiesGetCpusForNodemask(virCapsPtr caps,
+                                               virBitmapPtr nodemask);
 
 #endif /* __VIR_CAPABILITIES_H */

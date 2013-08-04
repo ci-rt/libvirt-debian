@@ -38,7 +38,7 @@ static virPCIDeviceListPtr
 qemuGetPciHostDeviceList(virDomainHostdevDefPtr *hostdevs, int nhostdevs)
 {
     virPCIDeviceListPtr list;
-    int i;
+    size_t i;
 
     if (!(list = virPCIDeviceListNew()))
         return NULL;
@@ -100,7 +100,7 @@ qemuGetActivePciHostDeviceList(virQEMUDriverPtr driver,
                                int nhostdevs)
 {
     virPCIDeviceListPtr list;
-    int i;
+    size_t i;
 
     if (!(list = virPCIDeviceListNew()))
         return NULL;
@@ -133,7 +133,7 @@ int qemuUpdateActivePciHostdevs(virQEMUDriverPtr driver,
 {
     virDomainHostdevDefPtr hostdev = NULL;
     virPCIDevicePtr dev = NULL;
-    int i;
+    size_t i;
     int ret = -1;
 
     if (!def->nhostdevs)
@@ -193,7 +193,7 @@ qemuUpdateActiveUsbHostdevs(virQEMUDriverPtr driver,
                             virDomainDefPtr def)
 {
     virDomainHostdevDefPtr hostdev = NULL;
-    int i;
+    size_t i;
     int ret = -1;
 
     if (!def->nhostdevs)
@@ -238,7 +238,7 @@ qemuUpdateActiveScsiHostdevs(virQEMUDriverPtr driver,
                              virDomainDefPtr def)
 {
     virDomainHostdevDefPtr hostdev = NULL;
-    int i;
+    size_t i;
     int ret = -1;
 
     if (!def->nhostdevs)
@@ -482,7 +482,7 @@ int qemuPrepareHostdevPCIDevices(virQEMUDriverPtr driver,
 {
     virPCIDeviceListPtr pcidevs;
     int last_processed_hostdev_vf = -1;
-    int i;
+    size_t i;
     int ret = -1;
     virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
 
@@ -544,8 +544,7 @@ int qemuPrepareHostdevPCIDevices(virQEMUDriverPtr driver,
      * can safely reset them */
     for (i = 0; i < virPCIDeviceListCount(pcidevs); i++) {
         virPCIDevicePtr dev = virPCIDeviceListGet(pcidevs, i);
-        if (STREQ_NULLABLE(virPCIDeviceGetStubDriver(dev), "vfio-pci"))
-            continue;
+
         if (virPCIDeviceReset(dev, driver->activePciHostdevs,
                               driver->inactivePciHostdevs) < 0)
             goto reattachdevs;
@@ -644,7 +643,8 @@ inactivedevs:
     }
 
 resetvfnetconfig:
-    for (i = 0; i < last_processed_hostdev_vf; i++) {
+    for (i = 0; last_processed_hostdev_vf != -1 &&
+                i < last_processed_hostdev_vf; i++) {
          virDomainHostdevDefPtr hostdev = hostdevs[i];
          if (hostdev->parent.type == VIR_DOMAIN_DEVICE_NET &&
              hostdev->parent.data.net) {
@@ -675,7 +675,7 @@ qemuPrepareHostdevUSBDevices(virQEMUDriverPtr driver,
                              const char *name,
                              virUSBDeviceListPtr list)
 {
-    int i, j;
+    size_t i, j;
     unsigned int count;
     virUSBDevicePtr tmp;
 
@@ -814,7 +814,8 @@ qemuPrepareHostUSBDevices(virQEMUDriverPtr driver,
                           virDomainDefPtr def,
                           bool coldBoot)
 {
-    int i, ret = -1;
+    size_t i;
+    int ret = -1;
     virUSBDeviceListPtr list;
     virUSBDevicePtr tmp;
     virDomainHostdevDefPtr *hostdevs = def->hostdevs;
@@ -883,7 +884,8 @@ qemuPrepareHostdevSCSIDevices(virQEMUDriverPtr driver,
                               virDomainHostdevDefPtr *hostdevs,
                               int nhostdevs)
 {
-    int i, j, count;
+    size_t i, j;
+    int count;
     virSCSIDeviceListPtr list;
     virSCSIDevicePtr tmp;
 
@@ -1056,7 +1058,7 @@ void qemuDomainReAttachHostdevDevices(virQEMUDriverPtr driver,
                                       int nhostdevs)
 {
     virPCIDeviceListPtr pcidevs;
-    int i;
+    size_t i;
     virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
 
     virObjectLock(driver->activePciHostdevs);
@@ -1116,8 +1118,7 @@ void qemuDomainReAttachHostdevDevices(virQEMUDriverPtr driver,
 
     for (i = 0; i < virPCIDeviceListCount(pcidevs); i++) {
         virPCIDevicePtr dev = virPCIDeviceListGet(pcidevs, i);
-        if (STREQ_NULLABLE(virPCIDeviceGetStubDriver(dev), "vfio-pci"))
-            continue;
+
         if (virPCIDeviceReset(dev, driver->activePciHostdevs,
                               driver->inactivePciHostdevs) < 0) {
             virErrorPtr err = virGetLastError();
@@ -1145,7 +1146,7 @@ qemuDomainReAttachHostUsbDevices(virQEMUDriverPtr driver,
                                  virDomainHostdevDefPtr *hostdevs,
                                  int nhostdevs)
 {
-    int i;
+    size_t i;
 
     virObjectLock(driver->activeUsbHostdevs);
     for (i = 0; i < nhostdevs; i++) {
@@ -1208,7 +1209,7 @@ qemuDomainReAttachHostScsiDevices(virQEMUDriverPtr driver,
                                   virDomainHostdevDefPtr *hostdevs,
                                   int nhostdevs)
 {
-    int i;
+    size_t i;
 
     virObjectLock(driver->activeScsiHostdevs);
     for (i = 0; i < nhostdevs; i++) {

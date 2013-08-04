@@ -156,7 +156,7 @@ int virNetDevTapCreate(char **ifname,
                        int tapfdSize,
                        unsigned int flags)
 {
-    int i;
+    size_t i;
     struct ifreq ifr;
     int ret = -1;
     int fd;
@@ -311,13 +311,11 @@ int virNetDevTapCreate(char **ifname,
      * matches this pattern
      */
     if (strstr(*ifname, "%d") != NULL) {
-        int i;
+        size_t i;
         for (i = 0; i <= IF_MAXUNIT; i++) {
             char *newname;
-            if (virAsprintf(&newname, *ifname, i) < 0) {
-                virReportOOMError();
+            if (virAsprintf(&newname, *ifname, i) < 0)
                 goto cleanup;
-            }
 
             if (virNetDevExists(newname) == 0) {
                 newifname = newname;
@@ -339,10 +337,8 @@ int virNetDevTapCreate(char **ifname,
 
     if (tapfd) {
         char *dev_path = NULL;
-        if (virAsprintf(&dev_path, "/dev/%s", ifr.ifr_name) < 0) {
-            virReportOOMError();
+        if (virAsprintf(&dev_path, "/dev/%s", ifr.ifr_name) < 0)
             goto cleanup;
-        }
 
         if ((*tapfd = open(dev_path, O_RDWR)) < 0) {
             virReportSystemError(errno,

@@ -206,15 +206,21 @@ qemuDomainTrackJob(enum qemuDomainJob job)
 }
 
 
-static void
-*qemuDomainObjPrivateAlloc(void)
+static void *
+qemuDomainObjPrivateAlloc(void)
 {
     qemuDomainObjPrivatePtr priv;
 
     if (VIR_ALLOC(priv) < 0)
         return NULL;
 
-    if (qemuDomainObjInitJob(priv) < 0)
+    if (qemuDomainObjInitJob(priv) < 0) {
+        virReportSystemError(errno, "%s",
+                             _("Unable to init qemu driver mutexes"));
+        goto error;
+    }
+
+    if (virCondInit(&priv->unplugFinished) < 0)
         goto error;
 
     if (!(priv->devs = virChrdevAlloc()))
@@ -245,6 +251,7 @@ qemuDomainObjPrivateFree(void *data)
     VIR_FREE(priv->lockState);
     VIR_FREE(priv->origname);
 
+    virCondDestroy(&priv->unplugFinished);
     virChrdevFree(priv->devs);
 
     /* This should never be non-NULL if we get here, but just in case... */
@@ -289,7 +296,7 @@ qemuDomainObjPrivateXMLFormat(virBufferPtr buf, void *data)
 
 
     if (priv->nvcpupids) {
-        int i;
+        size_t i;
         virBufferAddLit(buf, "  <vcpus>\n");
         for (i = 0; i < priv->nvcpupids; i++) {
             virBufferAsprintf(buf, "    <vcpu pid='%d'/>\n", priv->vcpupids[i]);
@@ -298,7 +305,7 @@ qemuDomainObjPrivateXMLFormat(virBufferPtr buf, void *data)
     }
 
     if (priv->qemuCaps) {
-        int i;
+        size_t i;
         virBufferAddLit(buf, "  <qemuCaps>\n");
         for (i = 0; i < QEMU_CAPS_LAST; i++) {
             if (virQEMUCapsGet(priv->qemuCaps, i)) {
@@ -332,6 +339,16 @@ qemuDomainObjPrivateXMLFormat(virBufferPtr buf, void *data)
     if (priv->fakeReboot)
         virBufferAddLit(buf, "  <fakereboot/>\n");
 
+    if (priv->qemuDevices && *priv->qemuDevices) {
+        char **tmp = priv->qemuDevices;
+        virBufferAddLit(buf, "  <devices>\n");
+        while (*tmp) {
+            virBufferAsprintf(buf, "    <device alias='%s'/>\n", *tmp);
+            tmp++;
+        }
+        virBufferAddLit(buf, "  </devices>\n");
+    }
+
     return 0;
 }
 
@@ -341,14 +358,13 @@ qemuDomainObjPrivateXMLParse(xmlXPathContextPtr ctxt, void *data)
     qemuDomainObjPrivatePtr priv = data;
     char *monitorpath;
     char *tmp;
-    int n, i;
+    int n;
+    size_t i;
     xmlNodePtr *nodes = NULL;
     virQEMUCapsPtr qemuCaps = NULL;
 
-    if (VIR_ALLOC(priv->monConfig) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC(priv->monConfig) < 0)
         goto error;
-    }
 
     if (!(monitorpath =
           virXPathString("string(./monitor[1]/@path)", ctxt))) {
@@ -387,10 +403,8 @@ qemuDomainObjPrivateXMLParse(xmlXPathContextPtr ctxt, void *data)
         goto error;
     if (n) {
         priv->nvcpupids = n;
-        if (VIR_REALLOC_N(priv->vcpupids, priv->nvcpupids) < 0) {
-            virReportOOMError();
+        if (VIR_REALLOC_N(priv->vcpupids, priv->nvcpupids) < 0)
             goto error;
-        }
 
         for (i = 0; i < n; i++) {
             char *pidstr = virXMLPropString(nodes[i], "pid");
@@ -475,12 +489,35 @@ qemuDomainObjPrivateXMLParse(xmlXPathContextPtr ctxt, void *data)
 
     priv->fakeReboot = virXPathBoolean("boolean(./fakereboot)", ctxt) == 1;
 
+    if ((n = virXPathNodeSet("./devices/device", ctxt, &nodes)) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("failed to parse qemu device list"));
+        goto error;
+    }
+    if (n > 0) {
+        /* NULL-terminated list */
+        if (VIR_ALLOC_N(priv->qemuDevices, n + 1) < 0)
+            goto error;
+
+        for (i = 0; i < n; i++) {
+            priv->qemuDevices[i] = virXMLPropString(nodes[i], "alias");
+            if (!priv->qemuDevices[i]) {
+                virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                               _("failed to parse qemu device list"));
+                goto error;
+            }
+        }
+    }
+    VIR_FREE(nodes);
+
     return 0;
 
 error:
     virDomainChrSourceDefFree(priv->monConfig);
     priv->monConfig = NULL;
     VIR_FREE(nodes);
+    virStringFreeList(priv->qemuDevices);
+    priv->qemuDevices = NULL;
     virObjectUnref(qemuCaps);
     return -1;
 }
@@ -498,7 +535,7 @@ static void
 qemuDomainDefNamespaceFree(void *nsdata)
 {
     qemuDomainCmdlineDefPtr cmd = nsdata;
-    unsigned int i;
+    size_t i;
 
     if (!cmd)
         return;
@@ -524,7 +561,8 @@ qemuDomainDefNamespaceParse(xmlDocPtr xml ATTRIBUTE_UNUSED,
     qemuDomainCmdlineDefPtr cmd = NULL;
     bool uses_qemu_ns = false;
     xmlNodePtr *nodes = NULL;
-    int n, i;
+    int n;
+    size_t i;
 
     if (xmlXPathRegisterNs(ctxt, BAD_CAST "qemu", BAD_CAST QEMU_NAMESPACE_HREF) < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
@@ -533,10 +571,8 @@ qemuDomainDefNamespaceParse(xmlDocPtr xml ATTRIBUTE_UNUSED,
         return -1;
     }
 
-    if (VIR_ALLOC(cmd) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC(cmd) < 0)
         return -1;
-    }
 
     /* first handle the extra command-line arguments */
     n = virXPathNodeSet("./qemu:commandline/qemu:arg", ctxt, &nodes);
@@ -545,7 +581,7 @@ qemuDomainDefNamespaceParse(xmlDocPtr xml ATTRIBUTE_UNUSED,
     uses_qemu_ns |= n > 0;
 
     if (n && VIR_ALLOC_N(cmd->args, n) < 0)
-        goto no_memory;
+        goto error;
 
     for (i = 0; i < n; i++) {
         cmd->args[cmd->num_args] = virXMLPropString(nodes[i], "value");
@@ -566,10 +602,10 @@ qemuDomainDefNamespaceParse(xmlDocPtr xml ATTRIBUTE_UNUSED,
     uses_qemu_ns |= n > 0;
 
     if (n && VIR_ALLOC_N(cmd->env_name, n) < 0)
-        goto no_memory;
+        goto error;
 
     if (n && VIR_ALLOC_N(cmd->env_value, n) < 0)
-        goto no_memory;
+        goto error;
 
     for (i = 0; i < n; i++) {
         char *tmp;
@@ -612,9 +648,6 @@ qemuDomainDefNamespaceParse(xmlDocPtr xml ATTRIBUTE_UNUSED,
 
     return 0;
 
-no_memory:
-    virReportOOMError();
-
 error:
     VIR_FREE(nodes);
     qemuDomainDefNamespaceFree(cmd);
@@ -626,7 +659,7 @@ qemuDomainDefNamespaceFormatXML(virBufferPtr buf,
                                 void *nsdata)
 {
     qemuDomainCmdlineDefPtr cmd = nsdata;
-    unsigned int i;
+    size_t i;
 
     if (!cmd->num_args && !cmd->num_env)
         return 0;
@@ -797,10 +830,8 @@ qemuDomainDeviceDefPostParse(virDomainDeviceDefPtr dev,
         if (virAsprintf(&dev->data.chr->source.data.nix.path,
                         "%s/channel/target/%s.%s",
                         cfg->libDir, def->name,
-                        dev->data.chr->target.name) < 0) {
-            virReportOOMError();
+                        dev->data.chr->target.name) < 0)
             goto cleanup;
-        }
         dev->data.chr->source.data.nix.listen = true;
     }
 
@@ -1338,7 +1369,7 @@ qemuDomainDefFormatBuf(virQEMUDriverPtr driver,
     }
 
     if ((flags & VIR_DOMAIN_XML_MIGRATABLE)) {
-        int i;
+        size_t i;
         int toremove = 0;
         virDomainControllerDefPtr usb = NULL, pci = NULL;
 
@@ -1390,7 +1421,6 @@ qemuDomainDefFormatBuf(virQEMUDriverPtr driver,
             ncontrollers = def->ncontrollers;
             if (VIR_ALLOC_N(def->controllers, ncontrollers - toremove) < 0) {
                 controllers = NULL;
-                virReportOOMError();
                 goto cleanup;
             }
 
@@ -1507,7 +1537,7 @@ void qemuDomainObjCheckTaint(virQEMUDriverPtr driver,
                              virDomainObjPtr obj,
                              int logFD)
 {
-    int i;
+    size_t i;
     virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
 
     if (cfg->privileged &&
@@ -1578,10 +1608,8 @@ qemuDomainOpenLogHelper(virQEMUDriverConfigPtr cfg,
     int fd = -1;
     bool trunc = false;
 
-    if (virAsprintf(&logfile, "%s/%s.log", cfg->logDir, vm->def->name) < 0) {
-        virReportOOMError();
+    if (virAsprintf(&logfile, "%s/%s.log", cfg->logDir, vm->def->name) < 0)
         return -1;
-    }
 
     /* To make SELinux happy we always need to open in append mode.
      * So we fake O_TRUNC by calling ftruncate after open instead
@@ -1691,10 +1719,8 @@ int qemuDomainAppendLog(virQEMUDriverPtr driver,
         (fd = qemuDomainCreateLog(driver, obj, true)) < 0)
         goto cleanup;
 
-    if (virVasprintf(&message, fmt, argptr) < 0) {
-        virReportOOMError();
+    if (virVasprintf(&message, fmt, argptr) < 0)
         goto cleanup;
-    }
     if (safewrite(fd, message, strlen(message)) < 0) {
         virReportSystemError(errno, _("Unable to write to domain logfile %s"),
                              obj->def->name);
@@ -1741,20 +1767,16 @@ qemuDomainSnapshotWriteMetadata(virDomainObjPtr vm,
     if (newxml == NULL)
         return -1;
 
-    if (virAsprintf(&snapDir, "%s/%s", snapshotDir, vm->def->name) < 0) {
-        virReportOOMError();
+    if (virAsprintf(&snapDir, "%s/%s", snapshotDir, vm->def->name) < 0)
         goto cleanup;
-    }
     if (virFileMakePath(snapDir) < 0) {
         virReportSystemError(errno, _("cannot create snapshot directory '%s'"),
                              snapDir);
         goto cleanup;
     }
 
-    if (virAsprintf(&snapFile, "%s/%s.xml", snapDir, snapshot->def->name) < 0) {
-        virReportOOMError();
+    if (virAsprintf(&snapFile, "%s/%s.xml", snapDir, snapshot->def->name) < 0)
         goto cleanup;
-    }
 
     ret = virXMLSaveFile(snapFile, NULL, "snapshot-edit", newxml);
 
@@ -1776,7 +1798,7 @@ qemuDomainSnapshotForEachQcow2Raw(virQEMUDriverPtr driver,
                                   int ndisks)
 {
     const char *qemuimgarg[] = { NULL, "snapshot", NULL, NULL, NULL, NULL };
-    int i;
+    size_t i;
     bool skipped = false;
 
     qemuimgarg[0] = qemuFindQemuImgBinary(driver);
@@ -1886,10 +1908,8 @@ qemuDomainSnapshotDiscard(virQEMUDriverPtr driver,
     }
 
     if (virAsprintf(&snapFile, "%s/%s/%s.xml", cfg->snapshotDir,
-                    vm->def->name, snap->def->name) < 0) {
-        virReportOOMError();
+                    vm->def->name, snap->def->name) < 0)
         goto cleanup;
-    }
 
     if (snap == vm->current_snapshot) {
         if (update_current && snap->def->parent) {
@@ -2012,7 +2032,7 @@ qemuDomainCheckDiskPresence(virQEMUDriverPtr driver,
                             bool cold_boot)
 {
     int ret = -1;
-    int i;
+    size_t i;
     virDomainDiskDefPtr disk;
     char uuid[VIR_UUID_STRING_BUFLEN];
     virDomainEventPtr event = NULL;
@@ -2087,7 +2107,7 @@ qemuDomainCleanupAdd(virDomainObjPtr vm,
                      qemuDomainCleanupCallback cb)
 {
     qemuDomainObjPrivatePtr priv = vm->privateData;
-    int i;
+    size_t i;
 
     VIR_DEBUG("vm=%s, cb=%p", vm->def->name, cb);
 
@@ -2098,10 +2118,8 @@ qemuDomainCleanupAdd(virDomainObjPtr vm,
 
     if (VIR_RESIZE_N(priv->cleanupCallbacks,
                      priv->ncleanupCallbacks_max,
-                     priv->ncleanupCallbacks, 1) < 0) {
-        virReportOOMError();
+                     priv->ncleanupCallbacks, 1) < 0)
         return -1;
-    }
 
     priv->cleanupCallbacks[priv->ncleanupCallbacks++] = cb;
     return 0;
@@ -2112,7 +2130,7 @@ qemuDomainCleanupRemove(virDomainObjPtr vm,
                         qemuDomainCleanupCallback cb)
 {
     qemuDomainObjPrivatePtr priv = vm->privateData;
-    int i;
+    size_t i;
 
     VIR_DEBUG("vm=%s, cb=%p", vm->def->name, cb);
 
@@ -2135,13 +2153,13 @@ qemuDomainCleanupRun(virQEMUDriverPtr driver,
                      virDomainObjPtr vm)
 {
     qemuDomainObjPrivatePtr priv = vm->privateData;
-    int i;
+    size_t i;
 
     VIR_DEBUG("driver=%p, vm=%s", driver, vm->def->name);
 
     /* run cleanup callbacks in reverse order */
-    for (i = priv->ncleanupCallbacks - 1; i >= 0; i--) {
-        if (priv->cleanupCallbacks[i])
+    for (i = 0; i < priv->ncleanupCallbacks; i++) {
+        if (priv->cleanupCallbacks[priv->ncleanupCallbacks - (i + 1)])
             priv->cleanupCallbacks[i](driver, vm);
     }
 
@@ -2180,4 +2198,75 @@ qemuDomainDetermineDiskChain(virQEMUDriverPtr driver,
 cleanup:
     virObjectUnref(cfg);
     return ret;
+}
+
+
+unsigned long long
+qemuDomainMemoryLimit(virDomainDefPtr def)
+{
+    unsigned long long mem;
+    size_t i;
+
+    if (def->mem.hard_limit) {
+        mem = def->mem.hard_limit;
+    } else {
+        /* If there is no hard_limit set, compute a reasonable one to avoid
+         * system thrashing caused by exploited qemu.  A 'reasonable
+         * limit' has been chosen:
+         *     (1 + k) * (domain memory + total video memory) + (32MB for
+         *     cache per each disk) + F
+         * where k = 0.5 and F = 400MB.  The cache for disks is important as
+         * kernel cache on the host side counts into the RSS limit.
+         * Moreover, VFIO requires some amount for IO space. Alex Williamson
+         * suggested adding 1GiB for IO space just to be safe (some finer
+         * tuning might be nice, though).
+         *
+         * Technically, the disk cache does not have to be included in
+         * RLIMIT_MEMLOCK but it doesn't hurt as it's just an upper limit and
+         * it makes this function and its usage simpler.
+         */
+        mem = def->mem.max_balloon;
+        for (i = 0; i < def->nvideos; i++)
+            mem += def->videos[i]->vram;
+        mem *= 1.5;
+        mem += def->ndisks * 32768;
+        mem += 409600;
+
+        for (i = 0; i < def->nhostdevs; i++) {
+            virDomainHostdevDefPtr hostdev = def->hostdevs[i];
+            if (hostdev->mode == VIR_DOMAIN_HOSTDEV_MODE_SUBSYS &&
+                hostdev->source.subsys.type ==
+                    VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI &&
+                hostdev->source.subsys.u.pci.backend ==
+                    VIR_DOMAIN_HOSTDEV_PCI_BACKEND_VFIO) {
+                mem += 1024 * 1024;
+                break;
+            }
+        }
+    }
+
+    return mem;
+}
+
+
+int
+qemuDomainUpdateDeviceList(virQEMUDriverPtr driver,
+                           virDomainObjPtr vm)
+{
+    qemuDomainObjPrivatePtr priv = vm->privateData;
+    char **aliases;
+
+    if (!virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE_DEL_EVENT))
+        return 0;
+
+    qemuDomainObjEnterMonitor(driver, vm);
+    if (qemuMonitorGetDeviceAliases(priv->mon, &aliases) < 0) {
+        qemuDomainObjExitMonitor(driver, vm);
+        return -1;
+    }
+    qemuDomainObjExitMonitor(driver, vm);
+
+    virStringFreeList(priv->qemuDevices);
+    priv->qemuDevices = aliases;
+    return 0;
 }

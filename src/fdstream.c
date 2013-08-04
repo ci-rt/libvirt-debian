@@ -488,10 +488,8 @@ static int virFDStreamOpenInternal(virStreamPtr st,
         virSetNonBlock(fd) < 0)
         return -1;
 
-    if (VIR_ALLOC(fdst) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC(fdst) < 0)
         return -1;
-    }
 
     fdst->fd = fd;
     fdst->cmd = cmd;
@@ -524,7 +522,7 @@ int virFDStreamConnectUNIX(virStreamPtr st,
                            bool abstract)
 {
     struct sockaddr_un sa;
-    int i = 0;
+    size_t i = 0;
     int timeout = 3;
     int ret;
 
@@ -650,7 +648,8 @@ virFDStreamOpenFileInternal(virStreamPtr st,
                                    path,
                                    NULL);
         virCommandAddArgFormat(cmd, "%llu", length);
-        virCommandTransferFD(cmd, fd);
+        virCommandPassFD(cmd, fd,
+                         VIR_COMMAND_PASS_FD_CLOSE_PARENT);
         virCommandAddArgFormat(cmd, "%d", fd);
 
         if ((oflags & O_ACCMODE) == O_RDONLY) {

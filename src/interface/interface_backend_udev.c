@@ -73,10 +73,8 @@ udevGetMinimalDefForDevice(struct udev_device *dev)
     virInterfaceDef *def;
 
     /* Allocate our interface definition structure */
-    if (VIR_ALLOC(def) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC(def) < 0)
         return NULL;
-    }
 
     if (VIR_STRDUP(def->name, udev_device_get_sysname(dev)) < 0)
         goto cleanup;
@@ -141,10 +139,8 @@ udevInterfaceOpen(virConnectPtr conn,
 
     virCheckFlags(VIR_CONNECT_RO, VIR_DRV_OPEN_ERROR);
 
-    if (VIR_ALLOC(driverState) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC(driverState) < 0)
         goto cleanup;
-    }
 
     driverState->udev = udev_new();
     if (!driverState->udev) {
@@ -181,7 +177,8 @@ udevInterfaceClose(virConnectPtr conn)
 }
 
 static int
-udevNumOfInterfacesByStatus(virConnectPtr conn, virUdevStatus status)
+udevNumOfInterfacesByStatus(virConnectPtr conn, virUdevStatus status,
+                            virInterfaceObjListFilter filter)
 {
     struct udev_iface_driver *driverState = conn->interfacePrivateData;
     struct udev *udev = udev_ref(driverState->udev);
@@ -208,7 +205,18 @@ udevNumOfInterfacesByStatus(virConnectPtr conn, virUdevStatus status)
 
     /* For each item so we can count */
     udev_list_entry_foreach(dev_entry, devices) {
-        count++;
+        struct udev_device *dev;
+        const char *path;
+        virInterfaceDefPtr def;
+
+        path = udev_list_entry_get_name(dev_entry);
+        dev = udev_device_new_from_syspath(udev, path);
+
+        def = udevGetMinimalDefForDevice(dev);
+        if (filter(conn, def))
+            count++;
+        udev_device_unref(dev);
+        virInterfaceDefFree(def);
     }
 
 cleanup:
@@ -223,7 +231,8 @@ static int
 udevListInterfacesByStatus(virConnectPtr conn,
                            char **const names,
                            int names_len,
-                           virUdevStatus status)
+                           virUdevStatus status,
+                           virInterfaceObjListFilter filter)
 {
     struct udev_iface_driver *driverState = conn->interfacePrivateData;
     struct udev *udev = udev_ref(driverState->udev);
@@ -251,6 +260,7 @@ udevListInterfacesByStatus(virConnectPtr conn,
     udev_list_entry_foreach(dev_entry, devices) {
         struct udev_device *dev;
         const char *path;
+        virInterfaceDefPtr def;
 
         /* Ensure we won't exceed the size of our array */
         if (count > names_len)
@@ -258,13 +268,18 @@ udevListInterfacesByStatus(virConnectPtr conn,
 
         path = udev_list_entry_get_name(dev_entry);
         dev = udev_device_new_from_syspath(udev, path);
-        if (VIR_STRDUP(names[count], udev_device_get_sysname(dev)) < 0) {
-            udev_device_unref(dev);
-            goto error;
+
+        def = udevGetMinimalDefForDevice(dev);
+        if (filter(conn, def)) {
+            if (VIR_STRDUP(names[count], udev_device_get_sysname(dev)) < 0) {
+                udev_device_unref(dev);
+                virInterfaceDefFree(def);
+                goto error;
+            }
+            count++;
         }
         udev_device_unref(dev);
-
-        count++;
+        virInterfaceDefFree(def);
     }
 
     udev_enumerate_unref(enumerate);
@@ -289,7 +304,8 @@ udevConnectNumOfInterfaces(virConnectPtr conn)
     if (virConnectNumOfInterfacesEnsureACL(conn) < 0)
         return -1;
 
-    return udevNumOfInterfacesByStatus(conn, VIR_UDEV_IFACE_ACTIVE);
+    return udevNumOfInterfacesByStatus(conn, VIR_UDEV_IFACE_ACTIVE,
+                                       virConnectNumOfInterfacesCheckACL);
 }
 
 static int
@@ -301,7 +317,8 @@ udevConnectListInterfaces(virConnectPtr conn,
         return -1;
 
     return udevListInterfacesByStatus(conn, names, names_len,
-                                      VIR_UDEV_IFACE_ACTIVE);
+                                      VIR_UDEV_IFACE_ACTIVE,
+                                      virConnectListInterfacesCheckACL);
 }
 
 static int
@@ -310,7 +327,8 @@ udevConnectNumOfDefinedInterfaces(virConnectPtr conn)
     if (virConnectNumOfDefinedInterfacesEnsureACL(conn) < 0)
         return -1;
 
-    return udevNumOfInterfacesByStatus(conn, VIR_UDEV_IFACE_INACTIVE);
+    return udevNumOfInterfacesByStatus(conn, VIR_UDEV_IFACE_INACTIVE,
+                                       virConnectNumOfDefinedInterfacesCheckACL);
 }
 
 static int
@@ -322,7 +340,8 @@ udevConnectListDefinedInterfaces(virConnectPtr conn,
         return -1;
 
     return udevListInterfacesByStatus(conn, names, names_len,
-                                      VIR_UDEV_IFACE_INACTIVE);
+                                      VIR_UDEV_IFACE_INACTIVE,
+                                      virConnectListDefinedInterfacesCheckACL);
 }
 
 #define MATCH(FLAG) (flags & (FLAG))
@@ -380,12 +399,9 @@ udevConnectListAllInterfaces(virConnectPtr conn,
     }
 
     /* If we're asked for the ifaces then alloc up memory */
-    if (ifaces) {
-        if (VIR_ALLOC_N(ifaces_list, count + 1) < 0) {
-            virReportOOMError();
-            ret = -1;
-            goto cleanup;
-        }
+    if (ifaces && VIR_ALLOC_N(ifaces_list, count + 1) < 0) {
+        ret = -1;
+        goto cleanup;
     }
 
     /* Get a list we can walk */
@@ -400,12 +416,21 @@ udevConnectListAllInterfaces(virConnectPtr conn,
         const char *path;
         const char *name;
         const char *macaddr;
+        virInterfaceDefPtr def;
 
         path = udev_list_entry_get_name(dev_entry);
         dev = udev_device_new_from_syspath(udev, path);
         name = udev_device_get_sysname(dev);
         macaddr = udev_device_get_sysattr_value(dev, "address");
         status = STREQ(udev_device_get_sysattr_value(dev, "operstate"), "up");
+
+        def = udevGetMinimalDefForDevice(dev);
+        if (!virConnectListAllInterfacesCheckACL(conn, def)) {
+            udev_device_unref(dev);
+            virInterfaceDefFree(def);
+            continue;
+        }
+        virInterfaceDefFree(def);
 
         /* Filter the results */
         if (MATCH(VIR_CONNECT_LIST_INTERFACES_FILTERS_ACTIVE) &&
@@ -609,7 +634,7 @@ udevGetIfaceDefBond(struct udev *udev,
 {
     struct dirent **slave_list = NULL;
     int slave_count = 0;
-    int i;
+    size_t i;
     const char *tmp_str;
     int tmp_int;
 
@@ -783,10 +808,8 @@ udevGetIfaceDefBond(struct udev *udev,
     }
 
     /* Allocate our list of slave devices */
-    if (VIR_ALLOC_N(ifacedef->data.bond.itf, slave_count) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC_N(ifacedef->data.bond.itf, slave_count) < 0)
         goto error;
-    }
     ifacedef->data.bond.nbItf = slave_count;
 
     for (i = 0; i < slave_count; i++) {
@@ -819,7 +842,7 @@ udevGetIfaceDefBond(struct udev *udev,
     return 0;
 
 error:
-    for (i = 0; i < slave_count; i++) {
+    for (i = 0; slave_count != -1 && i < slave_count; i++) {
         VIR_FREE(slave_list[i]);
     }
     VIR_FREE(slave_list);
@@ -840,7 +863,7 @@ udevGetIfaceDefBridge(struct udev *udev,
     char *member_path;
     const char *tmp_str;
     int stp;
-    int i;
+    size_t i;
 
     /* Set our type to Bridge  */
     ifacedef->type = VIR_INTERFACE_TYPE_BRIDGE;
@@ -886,10 +909,8 @@ udevGetIfaceDefBridge(struct udev *udev,
 
     /* Members of the bridge */
     if (virAsprintf(&member_path, "%s/%s",
-                udev_device_get_syspath(dev), "brif") < 0) {
-        virReportOOMError();
+                udev_device_get_syspath(dev), "brif") < 0)
         goto error;
-    }
 
     /* Get each member of the bridge */
     member_count = scandir(member_path, &member_list,
@@ -906,10 +927,8 @@ udevGetIfaceDefBridge(struct udev *udev,
     }
 
     /* Allocate our list of member devices */
-    if (VIR_ALLOC_N(ifacedef->data.bridge.itf, member_count) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC_N(ifacedef->data.bridge.itf, member_count) < 0)
         goto error;
-    }
     ifacedef->data.bridge.nbItf = member_count;
 
     /* Get the interface defintions for each member of the bridge */
@@ -930,7 +949,7 @@ udevGetIfaceDefBridge(struct udev *udev,
     return 0;
 
 error:
-    for (i = 0; i < member_count; i++) {
+    for (i = 0; member_count != -1 && i < member_count; i++) {
         VIR_FREE(member_list[i]);
     }
     VIR_FREE(member_list);
@@ -984,10 +1003,8 @@ udevGetIfaceDef(struct udev *udev, const char *name)
     const char *devtype;
 
     /* Allocate our interface definition structure */
-    if (VIR_ALLOC(ifacedef) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC(ifacedef) < 0)
         return NULL;
-    }
 
     /* Clear our structure and set safe defaults */
     ifacedef->startmode = VIR_INTERFACE_START_UNSPECIFIED;

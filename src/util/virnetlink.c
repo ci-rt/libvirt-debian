@@ -326,7 +326,8 @@ virNetlinkEventCallback(int watch,
     struct nlmsghdr *msg;
     struct sockaddr_nl peer;
     struct ucred *creds = NULL;
-    int i, length;
+    size_t i;
+    int length;
     bool handled = false;
 
     length = nl_recv(srv->netlinknh, &peer,
@@ -349,7 +350,7 @@ virNetlinkEventCallback(int watch,
         if (srv->handles[i].deleted != VIR_NETLINK_HANDLE_VALID)
             continue;
 
-        VIR_DEBUG("dispatching client %d.", i);
+        VIR_DEBUG("dispatching client %zu.", i);
 
         (srv->handles[i].handleCB)(msg, length, &peer, &handled,
                                    srv->handles[i].opaque);
@@ -378,7 +379,7 @@ virNetlinkEventServiceStop(unsigned int protocol)
         return -EINVAL;
 
     virNetlinkEventSrvPrivatePtr srv = server[protocol];
-    int i;
+    size_t i;
 
     VIR_INFO("stopping netlink event service");
 
@@ -414,7 +415,7 @@ virNetlinkEventServiceStop(unsigned int protocol)
 int
 virNetlinkEventServiceStopAll(void)
 {
-    unsigned int i, j;
+    size_t i, j;
     virNetlinkEventSrvPrivatePtr srv = NULL;
 
     VIR_INFO("stopping all netlink event services");
@@ -516,10 +517,8 @@ virNetlinkEventServiceStart(unsigned int protocol, unsigned int groups)
 
     VIR_INFO("starting netlink event service with protocol %d", protocol);
 
-    if (VIR_ALLOC(srv) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC(srv) < 0)
         return -1;
-    }
 
     if (virMutexInit(&srv->lock) < 0) {
         VIR_FREE(srv);
@@ -614,7 +613,8 @@ virNetlinkEventAddClient(virNetlinkEventHandleCallback handleCB,
                          void *opaque, const virMacAddrPtr macaddr,
                          unsigned int protocol)
 {
-    int i, r, ret = -1;
+    size_t i;
+    int r, ret = -1;
     virNetlinkEventSrvPrivatePtr srv = NULL;
 
     if (protocol >= MAX_LINKS)
@@ -645,10 +645,8 @@ virNetlinkEventAddClient(virNetlinkEventHandleCallback handleCB,
         VIR_DEBUG("Used %zu handle slots, adding at least %d more",
                   srv->handlesAlloc, NETLINK_EVENT_ALLOC_EXTENT);
         if (VIR_RESIZE_N(srv->handles, srv->handlesAlloc,
-                        srv->handlesCount, NETLINK_EVENT_ALLOC_EXTENT) < 0) {
-            virReportOOMError();
+                        srv->handlesCount, NETLINK_EVENT_ALLOC_EXTENT) < 0)
             goto error;
-        }
     }
     r = srv->handlesCount++;
 
@@ -689,7 +687,7 @@ int
 virNetlinkEventRemoveClient(int watch, const virMacAddrPtr macaddr,
                             unsigned int protocol)
 {
-    int i;
+    size_t i;
     int ret = -1;
     virNetlinkEventSrvPrivatePtr srv = NULL;
 

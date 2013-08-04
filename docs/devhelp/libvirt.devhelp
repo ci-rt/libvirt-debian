@@ -228,6 +228,7 @@
     <function name="VIR_DOMAIN_CONTROL_OK" link="libvirt-libvirt.html#VIR_DOMAIN_CONTROL_OK"/>
     <function name="VIR_DOMAIN_CRASHED" link="libvirt-libvirt.html#VIR_DOMAIN_CRASHED"/>
     <function name="VIR_DOMAIN_CRASHED_LAST" link="libvirt-libvirt.html#VIR_DOMAIN_CRASHED_LAST"/>
+    <function name="VIR_DOMAIN_CRASHED_PANICKED" link="libvirt-libvirt.html#VIR_DOMAIN_CRASHED_PANICKED"/>
     <function name="VIR_DOMAIN_CRASHED_UNKNOWN" link="libvirt-libvirt.html#VIR_DOMAIN_CRASHED_UNKNOWN"/>
     <function name="VIR_DOMAIN_DESTROY_DEFAULT" link="libvirt-libvirt.html#VIR_DOMAIN_DESTROY_DEFAULT"/>
     <function name="VIR_DOMAIN_DESTROY_GRACEFUL" link="libvirt-libvirt.html#VIR_DOMAIN_DESTROY_GRACEFUL"/>
@@ -239,6 +240,9 @@
     <function name="VIR_DOMAIN_DISK_ERROR_NONE" link="libvirt-libvirt.html#VIR_DOMAIN_DISK_ERROR_NONE"/>
     <function name="VIR_DOMAIN_DISK_ERROR_NO_SPACE" link="libvirt-libvirt.html#VIR_DOMAIN_DISK_ERROR_NO_SPACE"/>
     <function name="VIR_DOMAIN_DISK_ERROR_UNSPEC" link="libvirt-libvirt.html#VIR_DOMAIN_DISK_ERROR_UNSPEC"/>
+    <function name="VIR_DOMAIN_EVENT_CRASHED" link="libvirt-libvirt.html#VIR_DOMAIN_EVENT_CRASHED"/>
+    <function name="VIR_DOMAIN_EVENT_CRASHED_LAST" link="libvirt-libvirt.html#VIR_DOMAIN_EVENT_CRASHED_LAST"/>
+    <function name="VIR_DOMAIN_EVENT_CRASHED_PANICKED" link="libvirt-libvirt.html#VIR_DOMAIN_EVENT_CRASHED_PANICKED"/>
     <function name="VIR_DOMAIN_EVENT_DEFINED" link="libvirt-libvirt.html#VIR_DOMAIN_EVENT_DEFINED"/>
     <function name="VIR_DOMAIN_EVENT_DEFINED_ADDED" link="libvirt-libvirt.html#VIR_DOMAIN_EVENT_DEFINED_ADDED"/>
     <function name="VIR_DOMAIN_EVENT_DEFINED_LAST" link="libvirt-libvirt.html#VIR_DOMAIN_EVENT_DEFINED_LAST"/>
@@ -256,6 +260,7 @@
     <function name="VIR_DOMAIN_EVENT_ID_BALLOON_CHANGE" link="libvirt-libvirt.html#VIR_DOMAIN_EVENT_ID_BALLOON_CHANGE"/>
     <function name="VIR_DOMAIN_EVENT_ID_BLOCK_JOB" link="libvirt-libvirt.html#VIR_DOMAIN_EVENT_ID_BLOCK_JOB"/>
     <function name="VIR_DOMAIN_EVENT_ID_CONTROL_ERROR" link="libvirt-libvirt.html#VIR_DOMAIN_EVENT_ID_CONTROL_ERROR"/>
+    <function name="VIR_DOMAIN_EVENT_ID_DEVICE_REMOVED" link="libvirt-libvirt.html#VIR_DOMAIN_EVENT_ID_DEVICE_REMOVED"/>
     <function name="VIR_DOMAIN_EVENT_ID_DISK_CHANGE" link="libvirt-libvirt.html#VIR_DOMAIN_EVENT_ID_DISK_CHANGE"/>
     <function name="VIR_DOMAIN_EVENT_ID_GRAPHICS" link="libvirt-libvirt.html#VIR_DOMAIN_EVENT_ID_GRAPHICS"/>
     <function name="VIR_DOMAIN_EVENT_ID_IO_ERROR" link="libvirt-libvirt.html#VIR_DOMAIN_EVENT_ID_IO_ERROR"/>
@@ -366,6 +371,7 @@
     <function name="VIR_DOMAIN_NUMATUNE_MEM_STRICT" link="libvirt-libvirt.html#VIR_DOMAIN_NUMATUNE_MEM_STRICT"/>
     <function name="VIR_DOMAIN_OPEN_GRAPHICS_SKIPAUTH" link="libvirt-libvirt.html#VIR_DOMAIN_OPEN_GRAPHICS_SKIPAUTH"/>
     <function name="VIR_DOMAIN_PAUSED" link="libvirt-libvirt.html#VIR_DOMAIN_PAUSED"/>
+    <function name="VIR_DOMAIN_PAUSED_CRASHED" link="libvirt-libvirt.html#VIR_DOMAIN_PAUSED_CRASHED"/>
     <function name="VIR_DOMAIN_PAUSED_DUMP" link="libvirt-libvirt.html#VIR_DOMAIN_PAUSED_DUMP"/>
     <function name="VIR_DOMAIN_PAUSED_FROM_SNAPSHOT" link="libvirt-libvirt.html#VIR_DOMAIN_PAUSED_FROM_SNAPSHOT"/>
     <function name="VIR_DOMAIN_PAUSED_IOERROR" link="libvirt-libvirt.html#VIR_DOMAIN_PAUSED_IOERROR"/>
@@ -455,6 +461,7 @@
     <function name="VIR_DOMAIN_REBOOT_SIGNAL" link="libvirt-libvirt.html#VIR_DOMAIN_REBOOT_SIGNAL"/>
     <function name="VIR_DOMAIN_RUNNING" link="libvirt-libvirt.html#VIR_DOMAIN_RUNNING"/>
     <function name="VIR_DOMAIN_RUNNING_BOOTED" link="libvirt-libvirt.html#VIR_DOMAIN_RUNNING_BOOTED"/>
+    <function name="VIR_DOMAIN_RUNNING_CRASHED" link="libvirt-libvirt.html#VIR_DOMAIN_RUNNING_CRASHED"/>
     <function name="VIR_DOMAIN_RUNNING_FROM_SNAPSHOT" link="libvirt-libvirt.html#VIR_DOMAIN_RUNNING_FROM_SNAPSHOT"/>
     <function name="VIR_DOMAIN_RUNNING_LAST" link="libvirt-libvirt.html#VIR_DOMAIN_RUNNING_LAST"/>
     <function name="VIR_DOMAIN_RUNNING_MIGRATED" link="libvirt-libvirt.html#VIR_DOMAIN_RUNNING_MIGRATED"/>
@@ -548,6 +555,7 @@
     <function name="VIR_ERR_CALL_FAILED" link="libvirt-virterror.html#VIR_ERR_CALL_FAILED"/>
     <function name="VIR_ERR_CONFIG_UNSUPPORTED" link="libvirt-virterror.html#VIR_ERR_CONFIG_UNSUPPORTED"/>
     <function name="VIR_ERR_CONF_SYNTAX" link="libvirt-virterror.html#VIR_ERR_CONF_SYNTAX"/>
+    <function name="VIR_ERR_DBUS_SERVICE" link="libvirt-virterror.html#VIR_ERR_DBUS_SERVICE"/>
     <function name="VIR_ERR_DOMAIN_LAST" link="libvirt-virterror.html#VIR_ERR_DOMAIN_LAST"/>
     <function name="VIR_ERR_DOM_EXIST" link="libvirt-virterror.html#VIR_ERR_DOM_EXIST"/>
     <function name="VIR_ERR_DRIVER_FULL" link="libvirt-virterror.html#VIR_ERR_DRIVER_FULL"/>
@@ -673,6 +681,7 @@
     <function name="VIR_FROM_STORAGE" link="libvirt-virterror.html#VIR_FROM_STORAGE"/>
     <function name="VIR_FROM_STREAMS" link="libvirt-virterror.html#VIR_FROM_STREAMS"/>
     <function name="VIR_FROM_SYSINFO" link="libvirt-virterror.html#VIR_FROM_SYSINFO"/>
+    <function name="VIR_FROM_SYSTEMD" link="libvirt-virterror.html#VIR_FROM_SYSTEMD"/>
     <function name="VIR_FROM_TEST" link="libvirt-virterror.html#VIR_FROM_TEST"/>
     <function name="VIR_FROM_UML" link="libvirt-virterror.html#VIR_FROM_UML"/>
     <function name="VIR_FROM_URI" link="libvirt-virterror.html#VIR_FROM_URI"/>
@@ -844,6 +853,7 @@
     <function name="virDomainDeviceModifyFlags" link="libvirt-libvirt.html#virDomainDeviceModifyFlags"/>
     <function name="virDomainDiskErrorCode" link="libvirt-libvirt.html#virDomainDiskErrorCode"/>
     <function name="virDomainDiskErrorPtr" link="libvirt-libvirt.html#virDomainDiskErrorPtr"/>
+    <function name="virDomainEventCrashedDetailType" link="libvirt-libvirt.html#virDomainEventCrashedDetailType"/>
     <function name="virDomainEventDefinedDetailType" link="libvirt-libvirt.html#virDomainEventDefinedDetailType"/>
     <function name="virDomainEventGraphicsAddressPtr" link="libvirt-libvirt.html#virDomainEventGraphicsAddressPtr"/>
     <function name="virDomainEventGraphicsAddressType" link="libvirt-libvirt.html#virDomainEventGraphicsAddressType"/>
@@ -989,6 +999,7 @@
     <function name="virConnectDomainEventBalloonChangeCallback" link="libvirt-libvirt.html#virConnectDomainEventBalloonChangeCallback"/>
     <function name="virConnectDomainEventBlockJobCallback" link="libvirt-libvirt.html#virConnectDomainEventBlockJobCallback"/>
     <function name="virConnectDomainEventCallback" link="libvirt-libvirt.html#virConnectDomainEventCallback"/>
+    <function name="virConnectDomainEventDeviceRemovedCallback" link="libvirt-libvirt.html#virConnectDomainEventDeviceRemovedCallback"/>
     <function name="virConnectDomainEventDiskChangeCallback" link="libvirt-libvirt.html#virConnectDomainEventDiskChangeCallback"/>
     <function name="virConnectDomainEventGenericCallback" link="libvirt-libvirt.html#virConnectDomainEventGenericCallback"/>
     <function name="virConnectDomainEventGraphicsCallback" link="libvirt-libvirt.html#virConnectDomainEventGraphicsCallback"/>
@@ -1090,8 +1101,10 @@
     <function name="virDomainCoreDump ()" link="libvirt-libvirt.html#virDomainCoreDump"/>
     <function name="virDomainCreate ()" link="libvirt-libvirt.html#virDomainCreate"/>
     <function name="virDomainCreateLinux ()" link="libvirt-libvirt.html#virDomainCreateLinux"/>
+    <function name="virDomainCreateWithFiles ()" link="libvirt-libvirt.html#virDomainCreateWithFiles"/>
     <function name="virDomainCreateWithFlags ()" link="libvirt-libvirt.html#virDomainCreateWithFlags"/>
     <function name="virDomainCreateXML ()" link="libvirt-libvirt.html#virDomainCreateXML"/>
+    <function name="virDomainCreateXMLWithFiles ()" link="libvirt-libvirt.html#virDomainCreateXMLWithFiles"/>
     <function name="virDomainDefineXML ()" link="libvirt-libvirt.html#virDomainDefineXML"/>
     <function name="virDomainDestroy ()" link="libvirt-libvirt.html#virDomainDestroy"/>
     <function name="virDomainDestroyFlags ()" link="libvirt-libvirt.html#virDomainDestroyFlags"/>
@@ -1191,6 +1204,7 @@
     <function name="virDomainSetMemory ()" link="libvirt-libvirt.html#virDomainSetMemory"/>
     <function name="virDomainSetMemoryFlags ()" link="libvirt-libvirt.html#virDomainSetMemoryFlags"/>
     <function name="virDomainSetMemoryParameters ()" link="libvirt-libvirt.html#virDomainSetMemoryParameters"/>
+    <function name="virDomainSetMemoryStatsPeriod ()" link="libvirt-libvirt.html#virDomainSetMemoryStatsPeriod"/>
     <function name="virDomainSetMetadata ()" link="libvirt-libvirt.html#virDomainSetMetadata"/>
     <function name="virDomainSetNumaParameters ()" link="libvirt-libvirt.html#virDomainSetNumaParameters"/>
     <function name="virDomainSetSchedulerParameters ()" link="libvirt-libvirt.html#virDomainSetSchedulerParameters"/>

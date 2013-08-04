@@ -438,6 +438,7 @@ mymain(void)
     DO_TEST("kvmclock+eoi-disabled", QEMU_CAPS_ENABLE_KVM);
 
     DO_TEST("hyperv", NONE);
+    DO_TEST("hyperv-off", NONE);
 
     DO_TEST("hugepages", QEMU_CAPS_MEM_PATH);
     DO_TEST("nosharepages", QEMU_CAPS_MACHINE_OPT, QEMU_CAPS_MEM_MERGE);
@@ -836,6 +837,7 @@ mymain(void)
     DO_TEST("balloon-device", QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG);
     DO_TEST("balloon-device-auto",
             QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG);
+    DO_TEST("balloon-device-period", QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG);
     DO_TEST("sound", NONE);
     DO_TEST("sound-device",
             QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG,
@@ -990,6 +992,8 @@ mymain(void)
 
     DO_TEST("pci-autoadd-addr", QEMU_CAPS_DEVICE, QEMU_CAPS_DEVICE_PCI_BRIDGE);
     DO_TEST("pci-autoadd-idx", QEMU_CAPS_DEVICE, QEMU_CAPS_DEVICE_PCI_BRIDGE);
+    DO_TEST("pci-bridge-many-disks",
+            QEMU_CAPS_DEVICE, QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE_PCI_BRIDGE);
 
     DO_TEST("hostdev-scsi-lsi", QEMU_CAPS_DRIVE,
             QEMU_CAPS_DEVICE, QEMU_CAPS_DRIVE,
@@ -1013,6 +1017,15 @@ mymain(void)
     DO_TEST_FAILURE("mlock-on", NONE);
     DO_TEST("mlock-off", QEMU_CAPS_MLOCK);
     DO_TEST("mlock-unsupported", NONE);
+
+    DO_TEST_PARSE_ERROR("pci-bridge-negative-index-invalid",
+                        QEMU_CAPS_DEVICE, QEMU_CAPS_DEVICE_PCI_BRIDGE);
+    DO_TEST_PARSE_ERROR("pci-bridge-duplicate-index",
+                        QEMU_CAPS_DEVICE, QEMU_CAPS_DEVICE_PCI_BRIDGE);
+    DO_TEST_PARSE_ERROR("pci-root-nonzero-index",
+                        QEMU_CAPS_DEVICE, QEMU_CAPS_DEVICE_PCI_BRIDGE);
+    DO_TEST_PARSE_ERROR("pci-root-address",
+                        QEMU_CAPS_DEVICE, QEMU_CAPS_DEVICE_PCI_BRIDGE);
 
     virObjectUnref(driver.config);
     virObjectUnref(driver.caps);

@@ -45,10 +45,8 @@ static int qemuDispatchDomainAgentCommand(
     if ((result = virDomainQemuAgentCommand(dom, args->cmd, args->timeout, args->flags)) == NULL)
         goto cleanup;
 
-    if (VIR_ALLOC(result_p) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC(result_p) < 0)
         goto cleanup;
-    }
     
     if (VIR_STRDUP(*result_p, result) < 0)
         goto cleanup;

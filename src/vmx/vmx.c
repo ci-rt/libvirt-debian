@@ -553,10 +553,8 @@ virVMXEscapeHex(const char *string, char escape, const char *special)
         ++length;
     }
 
-    if (VIR_ALLOC_N(escaped, length) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC_N(escaped, length) < 0)
         return NULL;
-    }
 
     tmp1 = string; /* reading from this one */
     tmp2 = escaped; /* writing to this one */
@@ -1058,7 +1056,8 @@ virVMXHandleLegacySCSIDiskDriverName(virDomainDefPtr def,
                                      virDomainDiskDefPtr disk)
 {
     char *tmp;
-    int model, i;
+    int model;
+    size_t i;
     virDomainControllerDefPtr controller = NULL;
 
     if (disk->bus != VIR_DOMAIN_DISK_BUS_SCSI || disk->driverName == NULL) {
@@ -1114,17 +1113,15 @@ virVMXGatherSCSIControllers(virVMXContext *ctx, virDomainDefPtr def,
                             int virtualDev[4], bool present[4])
 {
     int result = -1;
-    int i, k;
+    size_t i, k;
     virDomainDiskDefPtr disk;
     virDomainControllerDefPtr controller;
     bool controllerHasDisksAttached;
     int count = 0;
     int *autodetectedModels;
 
-    if (VIR_ALLOC_N(autodetectedModels, def->ndisks) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC_N(autodetectedModels, def->ndisks) < 0)
         return -1;
-    }
 
     for (i = 0; i < def->ncontrollers; ++i) {
         controller = def->controllers[i];
@@ -1287,10 +1284,8 @@ virVMXParseConfig(virVMXContext *ctx,
     }
 
     /* Allocate domain def */
-    if (VIR_ALLOC(def) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC(def) < 0)
         goto cleanup;
-    }
 
     def->virtType = VIR_DOMAIN_VIRT_VMWARE;
     def->id = -1;
@@ -1432,10 +1427,8 @@ virVMXParseConfig(virVMXContext *ctx,
         cpumasklen = 0;
 
         def->cpumask = virBitmapNew(VIR_DOMAIN_CPUMASK_LEN);
-        if (!def->cpumask) {
-            virReportOOMError();
+        if (!def->cpumask)
             goto cleanup;
-        }
 
         while (*current != '\0') {
             virSkipSpaces(&current);
@@ -1551,10 +1544,8 @@ virVMXParseConfig(virVMXContext *ctx,
     /* FIXME */
 
     /* def:graphics */
-    if (VIR_ALLOC_N(def->graphics, 1) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC_N(def->graphics, 1) < 0)
         goto cleanup;
-    }
 
     def->ngraphics = 0;
 
@@ -1567,10 +1558,8 @@ virVMXParseConfig(virVMXContext *ctx,
     }
 
     /* def:disks: 4 * 15 scsi + 2 * 2 ide + 2 floppy = 66 */
-    if (VIR_ALLOC_N(def->disks, 66) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC_N(def->disks, 66) < 0)
         goto cleanup;
-    }
 
     def->ndisks = 0;
 
@@ -1664,8 +1653,7 @@ virVMXParseConfig(virVMXContext *ctx,
 
     for (controller = 0; controller < def->ncontrollers; ++controller) {
         if (def->controllers[controller]->type == VIR_DOMAIN_CONTROLLER_TYPE_SCSI) {
-            if (def->controllers[controller]->idx < 0 ||
-                def->controllers[controller]->idx > 3) {
+            if (def->controllers[controller]->idx > 3) {
                 virReportError(VIR_ERR_INTERNAL_ERROR,
                                _("SCSI controller index %d out of [0..3] range"),
                                def->controllers[controller]->idx);
@@ -1692,10 +1680,8 @@ virVMXParseConfig(virVMXContext *ctx,
         if (sharedFolder_maxNum > 0) {
             int number;
 
-            if (VIR_ALLOC_N(def->fss, sharedFolder_maxNum) < 0) {
-                virReportOOMError();
+            if (VIR_ALLOC_N(def->fss, sharedFolder_maxNum) < 0)
                 goto cleanup;
-            }
 
             def->nfss = 0;
 
@@ -1713,10 +1699,8 @@ virVMXParseConfig(virVMXContext *ctx,
     }
 
     /* def:nets */
-    if (VIR_ALLOC_N(def->nets, 4) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC_N(def->nets, 4) < 0)
         goto cleanup;
-    }
 
     def->nnets = 0;
 
@@ -1735,10 +1719,8 @@ virVMXParseConfig(virVMXContext *ctx,
     /* FIXME */
 
     /* def:videos */
-    if (VIR_ALLOC_N(def->videos, 1) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC_N(def->videos, 1) < 0)
         goto cleanup;
-    }
 
     def->nvideos = 0;
 
@@ -1755,10 +1737,8 @@ virVMXParseConfig(virVMXContext *ctx,
     /* FIXME */
 
     /* def:serials */
-    if (VIR_ALLOC_N(def->serials, 4) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC_N(def->serials, 4) < 0)
         goto cleanup;
-    }
 
     def->nserials = 0;
 
@@ -1774,10 +1754,8 @@ virVMXParseConfig(virVMXContext *ctx,
     }
 
     /* def:parallels */
-    if (VIR_ALLOC_N(def->parallels, 3) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC_N(def->parallels, 3) < 0)
         goto cleanup;
-    }
 
     def->nparallels = 0;
 
@@ -1832,10 +1810,8 @@ virVMXParseVNC(virConfPtr conf, virDomainGraphicsDefPtr *def)
         return 0;
     }
 
-    if (VIR_ALLOC(*def) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC(*def) < 0)
         goto failure;
-    }
 
     (*def)->type = VIR_DOMAIN_GRAPHICS_TYPE_VNC;
 
@@ -2006,10 +1982,8 @@ virVMXParseDisk(virVMXContext *ctx, virDomainXMLOptionPtr xmlopt, virConfPtr con
         return -1;
     }
 
-    if (VIR_ALLOC(*def) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC(*def) < 0)
         return -1;
-    }
 
     (*def)->device = device;
     (*def)->bus = busType;
@@ -2032,10 +2006,8 @@ virVMXParseDisk(virVMXContext *ctx, virDomainXMLOptionPtr xmlopt, virConfPtr con
                 goto cleanup;
             }
 
-            if (virAsprintf(&prefix, "scsi%d:%d", controllerOrBus, unit) < 0) {
-                virReportOOMError();
+            if (virAsprintf(&prefix, "scsi%d:%d", controllerOrBus, unit) < 0)
                 goto cleanup;
-            }
 
             (*def)->dst =
                virIndexToDiskName
@@ -2058,10 +2030,8 @@ virVMXParseDisk(virVMXContext *ctx, virDomainXMLOptionPtr xmlopt, virConfPtr con
                 goto cleanup;
             }
 
-            if (virAsprintf(&prefix, "ide%d:%d", controllerOrBus, unit) < 0) {
-                virReportOOMError();
+            if (virAsprintf(&prefix, "ide%d:%d", controllerOrBus, unit) < 0)
                 goto cleanup;
-            }
 
             (*def)->dst = virIndexToDiskName(controllerOrBus * 2 + unit, "hd");
 
@@ -2091,10 +2061,8 @@ virVMXParseDisk(virVMXContext *ctx, virDomainXMLOptionPtr xmlopt, virConfPtr con
                 goto cleanup;
             }
 
-            if (virAsprintf(&prefix, "floppy%d", unit) < 0) {
-                virReportOOMError();
+            if (virAsprintf(&prefix, "floppy%d", unit) < 0)
                 goto cleanup;
-            }
 
             (*def)->dst = virIndexToDiskName(unit, "fd");
 
@@ -2347,10 +2315,8 @@ int virVMXParseFileSystem(virConfPtr conf, int number, virDomainFSDefPtr *def)
         return -1;
     }
 
-    if (VIR_ALLOC(*def) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC(*def) < 0)
         return -1;
-    }
 
     (*def)->type = VIR_DOMAIN_FS_TYPE_MOUNT;
 
@@ -2472,10 +2438,8 @@ virVMXParseEthernet(virConfPtr conf, int controller, virDomainNetDefPtr *def)
         return -1;
     }
 
-    if (VIR_ALLOC(*def) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC(*def) < 0)
         return -1;
-    }
 
     snprintf(prefix, sizeof(prefix), "ethernet%d", controller);
 
@@ -2691,10 +2655,8 @@ virVMXParseSerial(virVMXContext *ctx, virConfPtr conf, int port,
         return -1;
     }
 
-    if (VIR_ALLOC(*def) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC(*def) < 0)
         return -1;
-    }
 
     (*def)->deviceType = VIR_DOMAIN_CHR_DEVICE_TYPE_SERIAL;
 
@@ -2782,10 +2744,8 @@ virVMXParseSerial(virVMXContext *ctx, virConfPtr conf, int port,
             goto cleanup;
 
         if (virAsprintf(&(*def)->source.data.tcp.service, "%d",
-                        parsedUri->port) < 0) {
-            virReportOOMError();
+                        parsedUri->port) < 0)
             goto cleanup;
-        }
 
         /* See vSphere API documentation about VirtualSerialPortURIBackingInfo */
         if (parsedUri->scheme == NULL ||
@@ -2884,10 +2844,8 @@ virVMXParseParallel(virVMXContext *ctx, virConfPtr conf, int port,
         return -1;
     }
 
-    if (VIR_ALLOC(*def) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC(*def) < 0)
         return -1;
-    }
 
     (*def)->deviceType = VIR_DOMAIN_CHR_DEVICE_TYPE_PARALLEL;
 
@@ -2982,10 +2940,8 @@ virVMXParseSVGA(virConfPtr conf, virDomainVideoDefPtr *def)
         return -1;
     }
 
-    if (VIR_ALLOC(*def) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC(*def) < 0)
         return -1;
-    }
 
     (*def)->type = VIR_DOMAIN_VIDEO_TYPE_VMVGA;
 
@@ -3019,7 +2975,7 @@ virVMXFormatConfig(virVMXContext *ctx, virDomainXMLOptionPtr xmlopt, virDomainDe
                    int virtualHW_version)
 {
     char *vmx = NULL;
-    int i;
+    size_t i;
     int sched_cpu_affinity_length;
     unsigned char zero[VIR_UUID_BUFLEN];
     virBuffer buffer = VIR_BUFFER_INITIALIZER;
@@ -3158,12 +3114,13 @@ virVMXFormatConfig(virVMXContext *ctx, virDomainXMLOptionPtr xmlopt, virDomainDe
 
     /* def:cpumask -> vmx:sched.cpu.affinity */
     if (def->cpumask && virBitmapSize(def->cpumask) > 0) {
+        int bit;
         virBufferAddLit(&buffer, "sched.cpu.affinity = \"");
 
         sched_cpu_affinity_length = 0;
 
-        i = -1;
-        while ((i = virBitmapNextSetBit(def->cpumask, i)) >= 0) {
+        bit = -1;
+        while ((bit = virBitmapNextSetBit(def->cpumask, bit)) >= 0) {
             ++sched_cpu_affinity_length;
         }
 
@@ -3175,9 +3132,9 @@ virVMXFormatConfig(virVMXContext *ctx, virDomainXMLOptionPtr xmlopt, virDomainDe
             goto cleanup;
         }
 
-        i = -1;
-        while ((i = virBitmapNextSetBit(def->cpumask, i)) >= 0) {
-            virBufferAsprintf(&buffer, "%d", i);
+        bit = -1;
+        while ((bit = virBitmapNextSetBit(def->cpumask, bit)) >= 0) {
+            virBufferAsprintf(&buffer, "%d", bit);
 
             if (sched_cpu_affinity_length > 1) {
                 virBufferAddChar(&buffer, ',');
@@ -3237,10 +3194,10 @@ virVMXFormatConfig(virVMXContext *ctx, virDomainXMLOptionPtr xmlopt, virDomainDe
 
     for (i = 0; i < 4; ++i) {
         if (scsi_present[i]) {
-            virBufferAsprintf(&buffer, "scsi%d.present = \"true\"\n", i);
+            virBufferAsprintf(&buffer, "scsi%zu.present = \"true\"\n", i);
 
             if (scsi_virtualDev[i] != -1) {
-                virBufferAsprintf(&buffer, "scsi%d.virtualDev = \"%s\"\n", i,
+                virBufferAsprintf(&buffer, "scsi%zu.virtualDev = \"%s\"\n", i,
                                   virVMXControllerModelSCSITypeToString
                                     (scsi_virtualDev[i]));
             }
@@ -3282,7 +3239,7 @@ virVMXFormatConfig(virVMXContext *ctx, virDomainXMLOptionPtr xmlopt, virDomainDe
     for (i = 0; i < 2; ++i) {
         /* floppy[0..1].present defaults to true, disable it explicitly */
         if (! floppy_present[i]) {
-            virBufferAsprintf(&buffer, "floppy%d.present = \"false\"\n", i);
+            virBufferAsprintf(&buffer, "floppy%zu.present = \"false\"\n", i);
         }
     }
 

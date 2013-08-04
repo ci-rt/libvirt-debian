@@ -283,7 +283,7 @@ remoteConnectListDefinedDomains(virConnectPtr conn, char **const names, int maxn
     struct private_data *priv = conn->privateData;
     remote_connect_list_defined_domains_args args;
     remote_connect_list_defined_domains_ret ret;
-    int i;
+    size_t i;
 
     remoteDriverLock(priv);
 
@@ -318,8 +318,9 @@ remoteConnectListDefinedDomains(virConnectPtr conn, char **const names, int maxn
     for (i = 0; i < ret.names.names_len; ++i) {
         if (VIR_STRDUP(names[i],
                        ret.names.names_val[i]) < 0) {
-            for (--i; i >= 0; --i)
-                VIR_FREE(names[i]);
+            size_t j;
+            for (j = 0; j < i; j++)
+                VIR_FREE(names[j]);
 
             goto cleanup;
         }
@@ -342,7 +343,7 @@ remoteConnectListDefinedInterfaces(virConnectPtr conn, char **const names, int m
     struct private_data *priv = conn->interfacePrivateData;
     remote_connect_list_defined_interfaces_args args;
     remote_connect_list_defined_interfaces_ret ret;
-    int i;
+    size_t i;
 
     remoteDriverLock(priv);
 
@@ -377,8 +378,9 @@ remoteConnectListDefinedInterfaces(virConnectPtr conn, char **const names, int m
     for (i = 0; i < ret.names.names_len; ++i) {
         if (VIR_STRDUP(names[i],
                        ret.names.names_val[i]) < 0) {
-            for (--i; i >= 0; --i)
-                VIR_FREE(names[i]);
+            size_t j;
+            for (j = 0; j < i; j++)
+                VIR_FREE(names[j]);
 
             goto cleanup;
         }
@@ -401,7 +403,7 @@ remoteConnectListDefinedNetworks(virConnectPtr conn, char **const names, int max
     struct private_data *priv = conn->networkPrivateData;
     remote_connect_list_defined_networks_args args;
     remote_connect_list_defined_networks_ret ret;
-    int i;
+    size_t i;
 
     remoteDriverLock(priv);
 
@@ -436,8 +438,9 @@ remoteConnectListDefinedNetworks(virConnectPtr conn, char **const names, int max
     for (i = 0; i < ret.names.names_len; ++i) {
         if (VIR_STRDUP(names[i],
                        ret.names.names_val[i]) < 0) {
-            for (--i; i >= 0; --i)
-                VIR_FREE(names[i]);
+            size_t j;
+            for (j = 0; j < i; j++)
+                VIR_FREE(names[j]);
 
             goto cleanup;
         }
@@ -460,7 +463,7 @@ remoteConnectListDefinedStoragePools(virConnectPtr conn, char **const names, int
     struct private_data *priv = conn->storagePrivateData;
     remote_connect_list_defined_storage_pools_args args;
     remote_connect_list_defined_storage_pools_ret ret;
-    int i;
+    size_t i;
 
     remoteDriverLock(priv);
 
@@ -495,8 +498,9 @@ remoteConnectListDefinedStoragePools(virConnectPtr conn, char **const names, int
     for (i = 0; i < ret.names.names_len; ++i) {
         if (VIR_STRDUP(names[i],
                        ret.names.names_val[i]) < 0) {
-            for (--i; i >= 0; --i)
-                VIR_FREE(names[i]);
+            size_t j;
+            for (j = 0; j < i; j++)
+                VIR_FREE(names[j]);
 
             goto cleanup;
         }
@@ -519,7 +523,7 @@ remoteConnectListInterfaces(virConnectPtr conn, char **const names, int maxnames
     struct private_data *priv = conn->interfacePrivateData;
     remote_connect_list_interfaces_args args;
     remote_connect_list_interfaces_ret ret;
-    int i;
+    size_t i;
 
     remoteDriverLock(priv);
 
@@ -554,8 +558,9 @@ remoteConnectListInterfaces(virConnectPtr conn, char **const names, int maxnames
     for (i = 0; i < ret.names.names_len; ++i) {
         if (VIR_STRDUP(names[i],
                        ret.names.names_val[i]) < 0) {
-            for (--i; i >= 0; --i)
-                VIR_FREE(names[i]);
+            size_t j;
+            for (j = 0; j < i; j++)
+                VIR_FREE(names[j]);
 
             goto cleanup;
         }
@@ -578,7 +583,7 @@ remoteConnectListNetworks(virConnectPtr conn, char **const names, int maxnames)
     struct private_data *priv = conn->networkPrivateData;
     remote_connect_list_networks_args args;
     remote_connect_list_networks_ret ret;
-    int i;
+    size_t i;
 
     remoteDriverLock(priv);
 
@@ -613,8 +618,9 @@ remoteConnectListNetworks(virConnectPtr conn, char **const names, int maxnames)
     for (i = 0; i < ret.names.names_len; ++i) {
         if (VIR_STRDUP(names[i],
                        ret.names.names_val[i]) < 0) {
-            for (--i; i >= 0; --i)
-                VIR_FREE(names[i]);
+            size_t j;
+            for (j = 0; j < i; j++)
+                VIR_FREE(names[j]);
 
             goto cleanup;
         }
@@ -637,7 +643,7 @@ remoteConnectListNWFilters(virConnectPtr conn, char **const names, int maxnames)
     struct private_data *priv = conn->nwfilterPrivateData;
     remote_connect_list_nwfilters_args args;
     remote_connect_list_nwfilters_ret ret;
-    int i;
+    size_t i;
 
     remoteDriverLock(priv);
 
@@ -672,8 +678,9 @@ remoteConnectListNWFilters(virConnectPtr conn, char **const names, int maxnames)
     for (i = 0; i < ret.names.names_len; ++i) {
         if (VIR_STRDUP(names[i],
                        ret.names.names_val[i]) < 0) {
-            for (--i; i >= 0; --i)
-                VIR_FREE(names[i]);
+            size_t j;
+            for (j = 0; j < i; j++)
+                VIR_FREE(names[j]);
 
             goto cleanup;
         }
@@ -696,7 +703,7 @@ remoteConnectListSecrets(virConnectPtr conn, char **const uuids, int maxuuids)
     struct private_data *priv = conn->secretPrivateData;
     remote_connect_list_secrets_args args;
     remote_connect_list_secrets_ret ret;
-    int i;
+    size_t i;
 
     remoteDriverLock(priv);
 
@@ -731,8 +738,9 @@ remoteConnectListSecrets(virConnectPtr conn, char **const uuids, int maxuuids)
     for (i = 0; i < ret.uuids.uuids_len; ++i) {
         if (VIR_STRDUP(uuids[i],
                        ret.uuids.uuids_val[i]) < 0) {
-            for (--i; i >= 0; --i)
-                VIR_FREE(uuids[i]);
+            size_t j;
+            for (j = 0; j < i; j++)
+                VIR_FREE(uuids[j]);
 
             goto cleanup;
         }
@@ -755,7 +763,7 @@ remoteConnectListStoragePools(virConnectPtr conn, char **const names, int maxnam
     struct private_data *priv = conn->storagePrivateData;
     remote_connect_list_storage_pools_args args;
     remote_connect_list_storage_pools_ret ret;
-    int i;
+    size_t i;
 
     remoteDriverLock(priv);
 
@@ -790,8 +798,9 @@ remoteConnectListStoragePools(virConnectPtr conn, char **const names, int maxnam
     for (i = 0; i < ret.names.names_len; ++i) {
         if (VIR_STRDUP(names[i],
                        ret.names.names_val[i]) < 0) {
-            for (--i; i >= 0; --i)
-                VIR_FREE(names[i]);
+            size_t j;
+            for (j = 0; j < i; j++)
+                VIR_FREE(names[j]);
 
             goto cleanup;
         }
@@ -3413,6 +3422,32 @@ done:
 }
 
 static int
+remoteDomainSetMemoryStatsPeriod(virDomainPtr dom, int period, unsigned int flags)
+{
+    int rv = -1;
+    struct private_data *priv = dom->conn->privateData;
+    remote_domain_set_memory_stats_period_args args;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_domain(&args.dom, dom);
+    args.period = period;
+    args.flags = flags;
+
+    if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_SET_MEMORY_STATS_PERIOD,
+             (xdrproc_t)xdr_remote_domain_set_memory_stats_period_args, (char *)&args,
+             (xdrproc_t)xdr_void, (char *)NULL) == -1) {
+        goto done;
+    }
+
+    rv = 0;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static int
 remoteDomainSetMetadata(virDomainPtr dom, int type, const char *metadata, const char *key, const char *uri, unsigned int flags)
 {
     int rv = -1;
@@ -3837,7 +3872,7 @@ remoteDomainSnapshotListChildrenNames(virDomainSnapshotPtr snap, char **const na
     struct private_data *priv = snap->domain->conn->privateData;
     remote_domain_snapshot_list_children_names_args args;
     remote_domain_snapshot_list_children_names_ret ret;
-    int i;
+    size_t i;
 
     remoteDriverLock(priv);
 
@@ -3874,8 +3909,9 @@ remoteDomainSnapshotListChildrenNames(virDomainSnapshotPtr snap, char **const na
     for (i = 0; i < ret.names.names_len; ++i) {
         if (VIR_STRDUP(names[i],
                        ret.names.names_val[i]) < 0) {
-            for (--i; i >= 0; --i)
-                VIR_FREE(names[i]);
+            size_t j;
+            for (j = 0; j < i; j++)
+                VIR_FREE(names[j]);
 
             goto cleanup;
         }
@@ -3898,7 +3934,7 @@ remoteDomainSnapshotListNames(virDomainPtr dom, char **const names, int maxnames
     struct private_data *priv = dom->conn->privateData;
     remote_domain_snapshot_list_names_args args;
     remote_domain_snapshot_list_names_ret ret;
-    int i;
+    size_t i;
 
     remoteDriverLock(priv);
 
@@ -3935,8 +3971,9 @@ remoteDomainSnapshotListNames(virDomainPtr dom, char **const names, int maxnames
     for (i = 0; i < ret.names.names_len; ++i) {
         if (VIR_STRDUP(names[i],
                        ret.names.names_val[i]) < 0) {
-            for (--i; i >= 0; --i)
-                VIR_FREE(names[i]);
+            size_t j;
+            for (j = 0; j < i; j++)
+                VIR_FREE(names[j]);
 
             goto cleanup;
         }
@@ -4914,7 +4951,7 @@ remoteNodeDeviceListCaps(virNodeDevicePtr dev, char **const names, int maxnames)
     struct private_data *priv = dev->conn->nodeDevicePrivateData;
     remote_node_device_list_caps_args args;
     remote_node_device_list_caps_ret ret;
-    int i;
+    size_t i;
 
     remoteDriverLock(priv);
 
@@ -4950,8 +4987,9 @@ remoteNodeDeviceListCaps(virNodeDevicePtr dev, char **const names, int maxnames)
     for (i = 0; i < ret.names.names_len; ++i) {
         if (VIR_STRDUP(names[i],
                        ret.names.names_val[i]) < 0) {
-            for (--i; i >= 0; --i)
-                VIR_FREE(names[i]);
+            size_t j;
+            for (j = 0; j < i; j++)
+                VIR_FREE(names[j]);
 
             goto cleanup;
         }
@@ -5115,7 +5153,7 @@ remoteNodeListDevices(virConnectPtr conn, const char *cap, char **const names, i
     struct private_data *priv = conn->nodeDevicePrivateData;
     remote_node_list_devices_args args;
     remote_node_list_devices_ret ret;
-    int i;
+    size_t i;
 
     remoteDriverLock(priv);
 
@@ -5152,8 +5190,9 @@ remoteNodeListDevices(virConnectPtr conn, const char *cap, char **const names, i
     for (i = 0; i < ret.names.names_len; ++i) {
         if (VIR_STRDUP(names[i],
                        ret.names.names_val[i]) < 0) {
-            for (--i; i >= 0; --i)
-                VIR_FREE(names[i]);
+            size_t j;
+            for (j = 0; j < i; j++)
+                VIR_FREE(names[j]);
 
             goto cleanup;
         }
@@ -5866,7 +5905,7 @@ remoteStoragePoolListVolumes(virStoragePoolPtr pool, char **const names, int max
     struct private_data *priv = pool->conn->storagePrivateData;
     remote_storage_pool_list_volumes_args args;
     remote_storage_pool_list_volumes_ret ret;
-    int i;
+    size_t i;
 
     remoteDriverLock(priv);
 
@@ -5902,8 +5941,9 @@ remoteStoragePoolListVolumes(virStoragePoolPtr pool, char **const names, int max
     for (i = 0; i < ret.names.names_len; ++i) {
         if (VIR_STRDUP(names[i],
                        ret.names.names_val[i]) < 0) {
-            for (--i; i >= 0; --i)
-                VIR_FREE(names[i]);
+            size_t j;
+            for (j = 0; j < i; j++)
+                VIR_FREE(names[j]);
 
             goto cleanup;
         }

@@ -123,7 +123,7 @@ virCapabilitiesFreeGuestMachine(virCapsGuestMachinePtr machine)
 static void
 virCapabilitiesFreeGuestDomain(virCapsGuestDomainPtr dom)
 {
-    int i;
+    size_t i;
     if (dom == NULL)
         return;
 
@@ -149,7 +149,7 @@ virCapabilitiesFreeGuestFeature(virCapsGuestFeaturePtr feature)
 static void
 virCapabilitiesFreeGuest(virCapsGuestPtr guest)
 {
-    int i;
+    size_t i;
     if (guest == NULL)
         return;
 
@@ -175,7 +175,7 @@ virCapabilitiesFreeGuest(virCapsGuestPtr guest)
 void
 virCapabilitiesFreeNUMAInfo(virCapsPtr caps)
 {
-    int i;
+    size_t i;
 
     for (i = 0; i < caps->host.nnumaCell; i++)
         virCapabilitiesFreeHostNUMACell(caps->host.numaCell[i]);
@@ -187,7 +187,7 @@ static void
 virCapabilitiesDispose(void *object)
 {
     virCapsPtr caps = object;
-    int i;
+    size_t i;
 
     for (i = 0; i < caps->nguests; i++)
         virCapabilitiesFreeGuest(caps->guests[i]);
@@ -327,7 +327,7 @@ virCapsGuestMachinePtr *
 virCapabilitiesAllocMachines(const char *const *names, int nnames)
 {
     virCapsGuestMachinePtr *machines;
-    int i;
+    size_t i;
 
     if (VIR_ALLOC_N(machines, nnames) < 0)
         return NULL;
@@ -353,7 +353,7 @@ void
 virCapabilitiesFreeMachines(virCapsGuestMachinePtr *machines,
                             int nmachines)
 {
-    int i;
+    size_t i;
     if (!machines)
         return;
     for (i = 0; i < nmachines && machines[i]; i++) {
@@ -518,7 +518,7 @@ extern int
 virCapabilitiesSupportsGuestArch(virCapsPtr caps,
                                  virArch arch)
 {
-    int i;
+    size_t i;
     for (i = 0; i < caps->nguests; i++) {
         if (caps->guests[i]->arch.id == arch)
             return 1;
@@ -539,7 +539,7 @@ extern int
 virCapabilitiesSupportsGuestOSType(virCapsPtr caps,
                                    const char *ostype)
 {
-    int i;
+    size_t i;
     for (i = 0; i < caps->nguests; i++) {
         if (STREQ(caps->guests[i]->ostype, ostype))
             return 1;
@@ -562,7 +562,7 @@ virCapabilitiesSupportsGuestOSTypeArch(virCapsPtr caps,
                                        const char *ostype,
                                        virArch arch)
 {
-    int i;
+    size_t i;
     for (i = 0; i < caps->nguests; i++) {
         if (STREQ(caps->guests[i]->ostype, ostype) &&
             caps->guests[i]->arch.id == arch)
@@ -585,7 +585,7 @@ virCapabilitiesDefaultGuestArch(virCapsPtr caps,
                                 const char *ostype,
                                 const char *domain)
 {
-    int i, j;
+    size_t i, j;
 
     /* First try to find one matching host arch */
     for (i = 0; i < caps->nguests; i++) {
@@ -628,11 +628,11 @@ virCapabilitiesDefaultGuestMachine(virCapsPtr caps,
                                    virArch arch,
                                    const char *domain)
 {
-    int i;
+    size_t i;
 
     for (i = 0; i < caps->nguests; i++) {
         virCapsGuestPtr guest = caps->guests[i];
-        int j;
+        size_t j;
 
         if (!STREQ(guest->ostype, ostype) ||
             guest->arch.id != arch)
@@ -674,7 +674,7 @@ virCapabilitiesDefaultGuestEmulator(virCapsPtr caps,
                                     virArch arch,
                                     const char *domain)
 {
-    int i, j;
+    size_t i, j;
     for (i = 0; i < caps->nguests; i++) {
         char *emulator;
         if (STREQ(caps->guests[i]->ostype, ostype) &&
@@ -697,8 +697,8 @@ virCapabilitiesFormatNUMATopology(virBufferPtr xml,
                                   size_t ncells,
                                   virCapsHostNUMACellPtr *cells)
 {
-    int i;
-    int j;
+    size_t i;
+    size_t j;
     char *siblings;
 
     virBufferAddLit(xml, "    <topology>\n");
@@ -754,7 +754,7 @@ char *
 virCapabilitiesFormatXML(virCapsPtr caps)
 {
     virBuffer xml = VIR_BUFFER_INITIALIZER;
-    int i, j, k;
+    size_t i, j, k;
     char host_uuid[VIR_UUID_STRING_BUFLEN];
 
     virBufferAddLit(&xml, "<capabilities>\n\n");
@@ -853,6 +853,8 @@ virCapabilitiesFormatXML(virCapsPtr caps)
             virBufferAddLit(&xml, "      <machine");
             if (machine->canonical)
                 virBufferAsprintf(&xml, " canonical='%s'", machine->canonical);
+            if (machine->maxCpus > 0)
+                virBufferAsprintf(&xml, " maxCpus='%d'", machine->maxCpus);
             virBufferAsprintf(&xml, ">%s</machine>\n", machine->name);
         }
 
@@ -871,6 +873,8 @@ virCapabilitiesFormatXML(virCapsPtr caps)
                 virBufferAddLit(&xml, "        <machine");
                 if (machine->canonical)
                     virBufferAsprintf(&xml, " canonical='%s'", machine->canonical);
+                if (machine->maxCpus > 0)
+                    virBufferAsprintf(&xml, " maxCpus='%d'", machine->maxCpus);
                 virBufferAsprintf(&xml, ">%s</machine>\n", machine->name);
             }
             virBufferAddLit(&xml, "      </domain>\n");
@@ -911,4 +915,68 @@ virCapabilitiesFormatXML(virCapsPtr caps)
     }
 
     return virBufferContentAndReset(&xml);
+}
+
+/* get the maximum ID of cpus in the host */
+static unsigned int
+virCapabilitiesGetHostMaxcpu(virCapsPtr caps)
+{
+    unsigned int maxcpu = 0;
+    size_t node;
+    size_t cpu;
+
+    for (node = 0; node < caps->host.nnumaCell; node++) {
+        virCapsHostNUMACellPtr cell = caps->host.numaCell[node];
+
+        for (cpu = 0; cpu < cell->ncpus; cpu++) {
+            if (cell->cpus[cpu].id > maxcpu)
+                maxcpu = cell->cpus[cpu].id;
+        }
+    }
+
+    return maxcpu;
+}
+
+/* set cpus of a numa node in the bitmask */
+static int
+virCapabilitiesGetCpusForNode(virCapsPtr caps,
+                              size_t node,
+                              virBitmapPtr cpumask)
+{
+    virCapsHostNUMACellPtr cell = caps->host.numaCell[node];
+    size_t cpu;
+
+    for (cpu = 0; cpu < cell->ncpus; cpu++) {
+        if (virBitmapSetBit(cpumask, cell->cpus[cpu].id) < 0) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Cpu '%u' in node '%zu' is out of range "
+                             "of the provided bitmap"),
+                           cell->cpus[cpu].id, node);
+            return -1;
+        }
+    }
+
+    return 0;
+}
+
+virBitmapPtr
+virCapabilitiesGetCpusForNodemask(virCapsPtr caps,
+                                  virBitmapPtr nodemask)
+{
+    virBitmapPtr ret = NULL;
+    unsigned int maxcpu = virCapabilitiesGetHostMaxcpu(caps);
+    ssize_t node = -1;
+
+    if (!(ret = virBitmapNew(maxcpu + 1)))
+        return NULL;
+
+
+    while ((node = virBitmapNextSetBit(nodemask, node)) >= 0) {
+        if (virCapabilitiesGetCpusForNode(caps, node, ret) < 0) {
+            virBitmapFree(ret);
+            return NULL;
+        }
+    }
+
+    return ret;
 }

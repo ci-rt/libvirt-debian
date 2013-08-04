@@ -136,6 +136,12 @@ typedef virDomainPtr
 (*virDrvDomainCreateXML)(virConnectPtr conn,
                          const char *xmlDesc,
                          unsigned int flags);
+typedef virDomainPtr
+(*virDrvDomainCreateXMLWithFiles)(virConnectPtr conn,
+                                  const char *xmlDesc,
+                                  unsigned int nfiles,
+                                  int *files,
+                                  unsigned int flags);
 
 typedef virDomainPtr
 (*virDrvDomainLookupByID)(virConnectPtr conn,
@@ -205,6 +211,11 @@ typedef int
 (*virDrvDomainSetMemoryFlags)(virDomainPtr domain,
                               unsigned long memory,
                               unsigned int flags);
+
+typedef int
+(*virDrvDomainSetMemoryStatsPeriod)(virDomainPtr domain,
+                                    int period,
+                                    unsigned int flags);
 
 typedef int
 (*virDrvDomainSetMemoryParameters)(virDomainPtr domain,
@@ -333,6 +344,11 @@ typedef int
 
 typedef int
 (*virDrvDomainCreateWithFlags)(virDomainPtr dom,
+                               unsigned int flags);
+typedef int
+(*virDrvDomainCreateWithFiles)(virDomainPtr dom,
+                               unsigned int nfiles,
+                               int *files,
                                unsigned int flags);
 
 typedef virDomainPtr
@@ -1139,6 +1155,7 @@ struct _virDriver {
     virDrvConnectNumOfDomains connectNumOfDomains;
     virDrvConnectListAllDomains connectListAllDomains;
     virDrvDomainCreateXML domainCreateXML;
+    virDrvDomainCreateXMLWithFiles domainCreateXMLWithFiles;
     virDrvDomainLookupByID domainLookupByID;
     virDrvDomainLookupByUUID domainLookupByUUID;
     virDrvDomainLookupByName domainLookupByName;
@@ -1158,6 +1175,7 @@ struct _virDriver {
     virDrvDomainSetMaxMemory domainSetMaxMemory;
     virDrvDomainSetMemory domainSetMemory;
     virDrvDomainSetMemoryFlags domainSetMemoryFlags;
+    virDrvDomainSetMemoryStatsPeriod domainSetMemoryStatsPeriod;
     virDrvDomainSetMemoryParameters domainSetMemoryParameters;
     virDrvDomainGetMemoryParameters domainGetMemoryParameters;
     virDrvDomainSetNumaParameters domainSetNumaParameters;
@@ -1195,6 +1213,7 @@ struct _virDriver {
     virDrvConnectNumOfDefinedDomains connectNumOfDefinedDomains;
     virDrvDomainCreate domainCreate;
     virDrvDomainCreateWithFlags domainCreateWithFlags;
+    virDrvDomainCreateWithFiles domainCreateWithFiles;
     virDrvDomainDefineXML domainDefineXML;
     virDrvDomainUndefine domainUndefine;
     virDrvDomainUndefineFlags domainUndefineFlags;
@@ -1781,6 +1800,9 @@ typedef int
                          virStateInhibitCallback callback,
                          void *opaque);
 
+typedef void
+(*virDrvStateAutoStart)(void);
+
 typedef int
 (*virDrvStateCleanup)(void);
 
@@ -1796,6 +1818,7 @@ typedef virStateDriver *virStateDriverPtr;
 struct _virStateDriver {
     const char *name;
     virDrvStateInitialize stateInitialize;
+    virDrvStateAutoStart stateAutoStart;
     virDrvStateCleanup stateCleanup;
     virDrvStateReload stateReload;
     virDrvStateStop stateStop;

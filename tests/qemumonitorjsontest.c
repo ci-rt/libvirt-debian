@@ -23,6 +23,7 @@
 #include "testutilsqemu.h"
 #include "qemumonitortestutils.h"
 #include "qemu/qemu_conf.h"
+#include "qemu/qemu_monitor_json.h"
 #include "virthread.h"
 #include "virerror.h"
 #include "virstring.h"
@@ -236,7 +237,7 @@ testQemuMonitorJSONGetMachines(const void *data)
     qemuMonitorMachineInfoPtr *info;
     int ninfo = 0;
     const char *null = NULL;
-    int i;
+    size_t i;
 
     if (!test)
         return -1;
@@ -317,7 +318,7 @@ testQemuMonitorJSONGetCPUDefinitions(const void *data)
     int ret = -1;
     char **cpus = NULL;
     int ncpus = 0;
-    int i;
+    size_t i;
 
     if (!test)
         return -1;
@@ -383,7 +384,7 @@ testQemuMonitorJSONGetCommands(const void *data)
     int ret = -1;
     char **commands = NULL;
     int ncommands = 0;
-    int i;
+    size_t i;
 
     if (!test)
         return -1;
@@ -594,6 +595,353 @@ cleanup:
     return ret;
 }
 
+static int
+testQemuMonitorJSONAttachChardev(const void *data)
+{
+    const virDomainXMLOptionPtr xmlopt = (virDomainXMLOptionPtr)data;
+    qemuMonitorTestPtr test = qemuMonitorTestNew(true, xmlopt);
+    virDomainChrSourceDef chr;
+    int ret = 0;
+
+    if (!test)
+        return -1;
+
+#define DO_CHECK(chrID, reply, fail)                                \
+    if (qemuMonitorTestAddItem(test, "chardev-add", reply) < 0)     \
+        goto cleanup;                                               \
+    if (qemuMonitorAttachCharDev(qemuMonitorTestGetMonitor(test),   \
+                                     chrID, &chr) < 0)              \
+        ret = fail ? ret  : -1;                                     \
+    else                                                            \
+        ret = fail ? -1 : ret;                                      \
+
+#define CHECK(chrID, reply) \
+    DO_CHECK(chrID, reply, false)
+
+#define CHECK_FAIL(chrID, reply) \
+    DO_CHECK(chrID, reply, true)
+
+    chr = (virDomainChrSourceDef) { .type = VIR_DOMAIN_CHR_TYPE_NULL };
+    CHECK("chr_null", "{\"return\": {}}");
+
+    chr = (virDomainChrSourceDef) { .type =VIR_DOMAIN_CHR_TYPE_VC };
+    CHECK("chr_vc", "{\"return\": {}}");
+
+#define PTY_PATH "/dev/ttyS0"
+    chr = (virDomainChrSourceDef) { .type = VIR_DOMAIN_CHR_TYPE_PTY };
+    CHECK("chr_pty", "{\"return\": {\"pty\" : \"" PTY_PATH "\"}}");
+    if (STRNEQ_NULLABLE(PTY_PATH, chr.data.file.path)) {
+        VIR_FREE(chr.data.file.path);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "expected PTY path: %s got: %s",
+                       PTY_PATH, NULLSTR(chr.data.file.path));
+        ret = -1;
+    }
+    VIR_FREE(chr.data.file.path);
+
+    chr = (virDomainChrSourceDef) { .type = VIR_DOMAIN_CHR_TYPE_PTY };
+    CHECK_FAIL("chr_pty_fail", "{\"return\": {}}");
+#undef PTY_PATH
+
+    chr = (virDomainChrSourceDef) { .type = VIR_DOMAIN_CHR_TYPE_FILE };
+    CHECK("chr_file", "{\"return\": {}}");
+
+    chr = (virDomainChrSourceDef) { .type = VIR_DOMAIN_CHR_TYPE_DEV };
+    CHECK("chr_dev", "{\"return\": {}}");
+
+    chr = (virDomainChrSourceDef) { .type = VIR_DOMAIN_CHR_TYPE_TCP };
+    CHECK("chr_tcp", "{\"return\": {}}");
+
+    chr = (virDomainChrSourceDef) { .type = VIR_DOMAIN_CHR_TYPE_UDP };
+    CHECK("chr_udp", "{\"return\": {}}");
+
+    chr = (virDomainChrSourceDef) { .type = VIR_DOMAIN_CHR_TYPE_UNIX };
+    CHECK("chr_unix", "{\"return\": {}}");
+
+    chr = (virDomainChrSourceDef) { .type = VIR_DOMAIN_CHR_TYPE_SPICEVMC };
+    CHECK_FAIL("chr_spicevmc", "{\"return\": {}}");
+
+    chr = (virDomainChrSourceDef) { .type = VIR_DOMAIN_CHR_TYPE_PIPE };
+    CHECK_FAIL("chr_pipe", "{\"return\": {}}");
+
+    chr = (virDomainChrSourceDef) { .type = VIR_DOMAIN_CHR_TYPE_STDIO };
+    CHECK_FAIL("chr_stdio", "{\"return\": {}}");
+
+#undef CHECK
+#undef CHECK_FAIL
+#undef DO_CHECK
+
+cleanup:
+    qemuMonitorTestFree(test);
+    return ret;
+}
+
+static int
+testQemuMonitorJSONDetachChardev(const void *data)
+{
+    const virDomainXMLOptionPtr xmlopt = (virDomainXMLOptionPtr)data;
+    qemuMonitorTestPtr test = qemuMonitorTestNew(true, xmlopt);
+    int ret = -1;
+
+    if (!test)
+        return ret;
+
+    if (qemuMonitorTestAddItem(test, "chardev-remove", "{\"return\": {}}") < 0)
+        goto cleanup;
+
+    if (qemuMonitorDetachCharDev(qemuMonitorTestGetMonitor(test),
+                                 "dummy_chrID") < 0)
+        goto cleanup;
+
+    ret = 0;
+
+cleanup:
+    qemuMonitorTestFree(test);
+    return ret;
+}
+
+/*
+ * This test will request to return a list of paths for "/". It should be
+ * a simple list of 1 real element that being the "machine". The following
+ * is the execution and expected return:
+ *
+ *  {"execute":"qom-list", "arguments": { "path": "/"}}"
+ *  {"return": [{"name": "machine", "type": "child<container>"}, \
+ *              {"name": "type", "type": "string"}]}
+ */
+static int
+testQemuMonitorJSONGetListPaths(const void *data)
+{
+    const virDomainXMLOptionPtr xmlopt = (virDomainXMLOptionPtr)data;
+    qemuMonitorTestPtr test = qemuMonitorTestNew(true, xmlopt);
+    int ret = -1;
+    qemuMonitorJSONListPathPtr *paths;
+    int npaths = 0;
+    size_t i;
+
+    if (!test)
+        return -1;
+
+    if (qemuMonitorTestAddItem(test, "qom-list",
+                               "{ "
+                               "  \"return\": [ "
+                               "  {\"name\": \"machine\", "
+                               "   \"type\": \"child<container>\"}, "
+                               "  {\"name\": \"type\", "
+                               "   \"type\": \"string\"} "
+                               " ]"
+                               "}") < 0)
+        goto cleanup;
+
+    /* present with path */
+    if ((npaths = qemuMonitorJSONGetObjectListPaths(
+                                                qemuMonitorTestGetMonitor(test),
+                                                "/",
+                                                &paths)) < 0)
+        goto cleanup;
+
+    if (npaths != 2) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "npaths was %d, expected 1", npaths);
+        goto cleanup;
+    }
+
+#define CHECK(i, wantname, wanttype)                                    \
+    do {                                                                \
+        if (STRNEQ(paths[i]->name, (wantname))) {                       \
+            virReportError(VIR_ERR_INTERNAL_ERROR,                      \
+                           "name was %s, expected %s",                  \
+                           paths[i]->name, (wantname));                 \
+            goto cleanup;                                               \
+        }                                                               \
+        if (STRNEQ_NULLABLE(paths[i]->type, (wanttype))) {              \
+            virReportError(VIR_ERR_INTERNAL_ERROR,                      \
+                           "type was %s, expected %s",                  \
+                           NULLSTR(paths[i]->type), (wanttype));        \
+            goto cleanup;                                               \
+        }                                                               \
+    } while (0)
+
+    CHECK(0, "machine", "child<container>");
+
+#undef CHECK
+
+    ret = 0;
+
+cleanup:
+    qemuMonitorTestFree(test);
+    for (i = 0; i < npaths; i++)
+        qemuMonitorJSONListPathFree(paths[i]);
+    VIR_FREE(paths);
+    return ret;
+}
+
+
+/*
+ * This test will use a path to /machine/i440fx which should exist in order
+ * to ensure that the qom-get property fetch works properly. The following
+ * is the execution and expected return:
+ *
+ *
+ *  { "execute": "qom-get","arguments": \
+ *      { "path": "/machine/i440fx","property": "realized"}}
+ *   {"return": true}
+ */
+static int
+testQemuMonitorJSONGetObjectProperty(const void *data)
+{
+    const virDomainXMLOptionPtr xmlopt = (virDomainXMLOptionPtr)data;
+    qemuMonitorTestPtr test = qemuMonitorTestNew(true, xmlopt);
+    int ret = -1;
+    qemuMonitorJSONObjectProperty prop;
+
+    if (!test)
+        return -1;
+
+    if (qemuMonitorTestAddItem(test, "qom-get",
+                               "{ \"return\": true }") < 0)
+        goto cleanup;
+
+    /* Present with path and property */
+    memset(&prop, 0, sizeof(qemuMonitorJSONObjectProperty));
+    prop.type = QEMU_MONITOR_OBJECT_PROPERTY_BOOLEAN;
+    if (qemuMonitorJSONGetObjectProperty(qemuMonitorTestGetMonitor(test),
+                                         "/machine/i440fx",
+                                         "realized",
+                                         &prop) < 0)
+        goto cleanup;
+
+    if (!prop.val.b) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       "expected true, but false returned");
+        goto cleanup;
+    }
+
+    ret = 0;
+cleanup:
+    qemuMonitorTestFree(test);
+    return ret;
+}
+
+
+/*
+ * This test will use a path to /machine/i440fx which should exist in order
+ * to ensure that the qom-set property set works properly. The test will
+ * set a true property to true just as a proof of concept.  Setting it to
+ * false is not a good idea...
+ */
+static int
+testQemuMonitorJSONSetObjectProperty(const void *data)
+{
+    const virDomainXMLOptionPtr xmlopt = (virDomainXMLOptionPtr)data;
+    qemuMonitorTestPtr test = qemuMonitorTestNew(true, xmlopt);
+    int ret = -1;
+    qemuMonitorJSONObjectProperty prop;
+
+    if (!test)
+        return -1;
+
+    if (qemuMonitorTestAddItem(test, "qom-set",
+                               "{ \"return\": {} }") < 0)
+        goto cleanup;
+    if (qemuMonitorTestAddItem(test, "qom-get",
+                               "{ \"return\": true }") < 0)
+        goto cleanup;
+
+    /* Let's attempt the setting */
+    memset(&prop, 0, sizeof(qemuMonitorJSONObjectProperty));
+    prop.type = QEMU_MONITOR_OBJECT_PROPERTY_BOOLEAN;
+    prop.val.b = true;
+    if (qemuMonitorJSONSetObjectProperty(qemuMonitorTestGetMonitor(test),
+                                         "/machine/i440fx",
+                                         "realized",
+                                         &prop) < 0)
+        goto cleanup;
+
+    /* To make sure it worked, fetch the property - if this succeeds then
+     * we didn't hose things
+     */
+    memset(&prop, 0, sizeof(qemuMonitorJSONObjectProperty));
+    prop.type = QEMU_MONITOR_OBJECT_PROPERTY_BOOLEAN;
+    if (qemuMonitorJSONGetObjectProperty(qemuMonitorTestGetMonitor(test),
+                                         "/machine/i440fx",
+                                         "realized",
+                                         &prop) < 0)
+        goto cleanup;
+
+    if (!prop.val.b) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       "expected true, but false returned");
+        goto cleanup;
+    }
+
+    ret = 0;
+cleanup:
+    qemuMonitorTestFree(test);
+    return ret;
+}
+
+
+static int
+testQemuMonitorJSONGetDeviceAliases(const void *data)
+{
+    const virDomainXMLOptionPtr xmlopt = (virDomainXMLOptionPtr)data;
+    qemuMonitorTestPtr test = qemuMonitorTestNew(true, xmlopt);
+    int ret = -1;
+    char **aliases = NULL;
+    char **alias;
+    const char *expected[] = {
+        "virtio-disk25", "video0", "serial0", "ide0-0-0", "usb", NULL };
+
+    if (!test)
+        return -1;
+
+    if (qemuMonitorTestAddItem(test,
+                               "qom-list",
+                               "{\"return\": ["
+                               " {\"name\": \"virtio-disk25\","
+                               "  \"type\": \"child<virtio-blk-pci>\"},"
+                               " {\"name\": \"video0\","
+                               "  \"type\": \"child<VGA>\"},"
+                               " {\"name\": \"serial0\","
+                               "  \"type\": \"child<isa-serial>\"},"
+                               " {\"name\": \"ide0-0-0\","
+                               "  \"type\": \"child<ide-cd>\"},"
+                               " {\"name\": \"usb\","
+                               "  \"type\": \"child<piix3-usb-uhci>\"},"
+                               " {\"name\": \"type\", \"type\": \"string\"}"
+                               "]}") < 0)
+        goto cleanup;
+
+    if (qemuMonitorJSONGetDeviceAliases(qemuMonitorTestGetMonitor(test),
+                                        &aliases) < 0)
+        goto cleanup;
+
+    if (!aliases) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", "no aliases returned");
+        goto cleanup;
+    }
+
+    ret = 0;
+    for (alias = aliases; *alias; alias++) {
+        if (!virStringArrayHasString((char **) expected, *alias)) {
+            fprintf(stderr, "got unexpected device alias '%s'\n", *alias);
+            ret = -1;
+        }
+    }
+    for (alias = (char **) expected; *alias; alias++) {
+        if (!virStringArrayHasString(aliases, *alias)) {
+            fprintf(stderr, "missing expected alias '%s'\n", *alias);
+            ret = -1;
+        }
+    }
+
+cleanup:
+    virStringFreeList(aliases);
+    qemuMonitorTestFree(test);
+    return ret;
+}
+
 
 static int
 mymain(void)
@@ -623,6 +971,12 @@ mymain(void)
     DO_TEST(GetCommands);
     DO_TEST(GetTPMModels);
     DO_TEST(GetCommandLineOptionParameters);
+    DO_TEST(AttachChardev);
+    DO_TEST(DetachChardev);
+    DO_TEST(GetListPaths);
+    DO_TEST(GetObjectProperty);
+    DO_TEST(SetObjectProperty);
+    DO_TEST(GetDeviceAliases);
 
     virObjectUnref(xmlopt);
 

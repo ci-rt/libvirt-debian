@@ -64,7 +64,7 @@ dhcphostFree(dnsmasqDhcpHost *host)
 static void
 addnhostFree(dnsmasqAddnHost *host)
 {
-    int i;
+    size_t i;
 
     for (i = 0; i < host->nhostnames; i++)
         VIR_FREE(host->hostnames[i]);
@@ -75,7 +75,7 @@ addnhostFree(dnsmasqAddnHost *host)
 static void
 addnhostsFree(dnsmasqAddnHostsfile *addnhostsfile)
 {
-    unsigned int i;
+    size_t i;
 
     if (addnhostsfile->hosts) {
         for (i = 0; i < addnhostsfile->nhosts; i++)
@@ -98,7 +98,7 @@ addnhostsAdd(dnsmasqAddnHostsfile *addnhostsfile,
 {
     char *ipstr = NULL;
     int idx = -1;
-    int i;
+    size_t i;
 
     if (!(ipstr = virSocketAddrFormat(ip)))
         return -1;
@@ -112,11 +112,11 @@ addnhostsAdd(dnsmasqAddnHostsfile *addnhostsfile,
 
     if (idx < 0) {
         if (VIR_REALLOC_N(addnhostsfile->hosts, addnhostsfile->nhosts + 1) < 0)
-            goto alloc_error;
+            goto error;
 
         idx = addnhostsfile->nhosts;
         if (VIR_ALLOC(addnhostsfile->hosts[idx].hostnames) < 0)
-            goto alloc_error;
+            goto error;
 
         if (VIR_STRDUP(addnhostsfile->hosts[idx].ip, ipstr) < 0)
             goto error;
@@ -126,7 +126,7 @@ addnhostsAdd(dnsmasqAddnHostsfile *addnhostsfile,
     }
 
     if (VIR_REALLOC_N(addnhostsfile->hosts[idx].hostnames, addnhostsfile->hosts[idx].nhostnames + 1) < 0)
-        goto alloc_error;
+        goto error;
 
     if (VIR_STRDUP(addnhostsfile->hosts[idx].hostnames[addnhostsfile->hosts[idx].nhostnames],
                    name) < 0)
@@ -138,8 +138,6 @@ addnhostsAdd(dnsmasqAddnHostsfile *addnhostsfile,
 
     return 0;
 
- alloc_error:
-    virReportOOMError();
  error:
     VIR_FREE(ipstr);
     return -1;
@@ -151,19 +149,15 @@ addnhostsNew(const char *name,
 {
     dnsmasqAddnHostsfile *addnhostsfile;
 
-    if (VIR_ALLOC(addnhostsfile) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC(addnhostsfile) < 0)
         return NULL;
-    }
 
     addnhostsfile->hosts = NULL;
     addnhostsfile->nhosts = 0;
 
     if (virAsprintf(&addnhostsfile->path, "%s/%s.%s", config_dir, name,
-                    DNSMASQ_ADDNHOSTSFILE_SUFFIX) < 0) {
-        virReportOOMError();
+                    DNSMASQ_ADDNHOSTSFILE_SUFFIX) < 0)
         goto error;
-    }
 
     return addnhostsfile;
 
@@ -180,7 +174,7 @@ addnhostsWrite(const char *path,
     char *tmp;
     FILE *f;
     bool istmp = true;
-    unsigned int i, ii;
+    size_t i, j;
     int rc = 0;
 
     /* even if there are 0 hosts, create a 0 length file, to allow
@@ -209,8 +203,8 @@ addnhostsWrite(const char *path,
             goto cleanup;
         }
 
-        for (ii = 0; ii < hosts[i].nhostnames; ii++) {
-            if (fputs(hosts[i].hostnames[ii], f) == EOF || fputc('\t', f) == EOF) {
+        for (j = 0; j < hosts[i].nhostnames; j++) {
+            if (fputs(hosts[i].hostnames[j], f) == EOF || fputc('\t', f) == EOF) {
                 rc = -errno;
                 VIR_FORCE_FCLOSE(f);
 
@@ -282,7 +276,7 @@ genericFileDelete(char *path)
 static void
 hostsfileFree(dnsmasqHostsfile *hostsfile)
 {
-    unsigned int i;
+    size_t i;
 
     if (hostsfile->hosts) {
         for (i = 0; i < hostsfile->nhosts; i++)
@@ -311,7 +305,7 @@ hostsfileAdd(dnsmasqHostsfile *hostsfile,
 {
     char *ipstr = NULL;
     if (VIR_REALLOC_N(hostsfile->hosts, hostsfile->nhosts + 1) < 0)
-        goto alloc_error;
+        goto error;
 
     if (!(ipstr = virSocketAddrFormat(ip)))
         return -1;
@@ -321,28 +315,28 @@ hostsfileAdd(dnsmasqHostsfile *hostsfile,
         if (name && id) {
             if (virAsprintf(&hostsfile->hosts[hostsfile->nhosts].host,
                             "id:%s,%s,[%s]", id, name, ipstr) < 0)
-                goto alloc_error;
+                goto error;
         } else if (name && !id) {
             if (virAsprintf(&hostsfile->hosts[hostsfile->nhosts].host,
                             "%s,[%s]", name, ipstr) < 0)
-                goto alloc_error;
+                goto error;
         } else if (!name && id) {
             if (virAsprintf(&hostsfile->hosts[hostsfile->nhosts].host,
                             "id:%s,[%s]", id, ipstr) < 0)
-                goto alloc_error;
+                goto error;
         }
     } else if (name && mac) {
         if (virAsprintf(&hostsfile->hosts[hostsfile->nhosts].host, "%s,%s,%s",
                         mac, ipstr, name) < 0)
-            goto alloc_error;
+            goto error;
     } else if (name && !mac){
         if (virAsprintf(&hostsfile->hosts[hostsfile->nhosts].host, "%s,%s",
                         name, ipstr) < 0)
-            goto alloc_error;
+            goto error;
     } else {
         if (virAsprintf(&hostsfile->hosts[hostsfile->nhosts].host, "%s,%s",
                         mac, ipstr) < 0)
-            goto alloc_error;
+            goto error;
     }
     VIR_FREE(ipstr);
 
@@ -350,8 +344,7 @@ hostsfileAdd(dnsmasqHostsfile *hostsfile,
 
     return 0;
 
- alloc_error:
-    virReportOOMError();
+ error:
     VIR_FREE(ipstr);
     return -1;
 }
@@ -362,19 +355,15 @@ hostsfileNew(const char *name,
 {
     dnsmasqHostsfile *hostsfile;
 
-    if (VIR_ALLOC(hostsfile) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC(hostsfile) < 0)
         return NULL;
-    }
 
     hostsfile->hosts = NULL;
     hostsfile->nhosts = 0;
 
     if (virAsprintf(&hostsfile->path, "%s/%s.%s", config_dir, name,
-                    DNSMASQ_HOSTSFILE_SUFFIX) < 0) {
-        virReportOOMError();
+                    DNSMASQ_HOSTSFILE_SUFFIX) < 0)
         goto error;
-    }
 
     return hostsfile;
 
@@ -391,7 +380,7 @@ hostsfileWrite(const char *path,
     char *tmp;
     FILE *f;
     bool istmp = true;
-    unsigned int i;
+    size_t i;
     int rc = 0;
 
     /* even if there are 0 hosts, create a 0 length file, to allow
@@ -466,10 +455,8 @@ dnsmasqContextNew(const char *network_name,
 {
     dnsmasqContext *ctx;
 
-    if (VIR_ALLOC(ctx) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC(ctx) < 0)
         return NULL;
-    }
 
     if (VIR_STRDUP(ctx->config_dir, config_dir) < 0)
         goto error;
@@ -772,10 +759,8 @@ dnsmasqCapsRefreshInternal(dnsmasqCapsPtr caps, bool force)
         goto cleanup;
     }
 
-    if (virAsprintf(&complete, "%s\n%s", version, help) < 0) {
-        virReportOOMError();
+    if (virAsprintf(&complete, "%s\n%s", version, help) < 0)
         goto cleanup;
-    }
 
     ret = dnsmasqCapsSetFromBuffer(caps, complete);
 
@@ -796,10 +781,8 @@ dnsmasqCapsNewEmpty(const char *binaryPath)
         return NULL;
     if (!(caps = virObjectNew(dnsmasqCapsClass)))
         return NULL;
-    if (!(caps->flags = virBitmapNew(DNSMASQ_CAPS_LAST))) {
-        virReportOOMError();
+    if (!(caps->flags = virBitmapNew(DNSMASQ_CAPS_LAST)))
         goto error;
-    }
     if (VIR_STRDUP(caps->binaryPath, binaryPath ? binaryPath : DNSMASQ) < 0)
         goto error;
     return caps;

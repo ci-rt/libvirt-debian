@@ -33,6 +33,7 @@
 #include "virscsi.h"
 #include "virstoragefile.h"
 #include "virstring.h"
+#include "virutil.h"
 
 #define VIR_FROM_THIS VIR_FROM_SECURITY
 #define SECURITY_DAC_NAME "dac"
@@ -43,6 +44,8 @@ typedef virSecurityDACData *virSecurityDACDataPtr;
 struct _virSecurityDACData {
     uid_t user;
     gid_t group;
+    gid_t *groups;
+    int ngroups;
     bool dynamicOwnership;
 };
 
@@ -70,52 +73,6 @@ virSecurityDACSetDynamicOwnership(virSecurityManagerPtr mgr,
     priv->dynamicOwnership = dynamicOwnership;
 }
 
-static int
-parseIds(const char *label, uid_t *uidPtr, gid_t *gidPtr)
-{
-    int rc = -1;
-    uid_t theuid;
-    gid_t thegid;
-    char *tmp_label = NULL;
-    char *sep = NULL;
-    char *owner = NULL;
-    char *group = NULL;
-
-    if (VIR_STRDUP(tmp_label, label) < 0)
-        goto cleanup;
-
-    /* Split label */
-    sep = strchr(tmp_label, ':');
-    if (sep == NULL) {
-        virReportError(VIR_ERR_INVALID_ARG,
-                       _("Missing separator ':' in DAC label \"%s\""),
-                       label);
-        goto cleanup;
-    }
-    *sep = '\0';
-    owner = tmp_label;
-    group = sep + 1;
-
-    /* Parse owner and group, error message is defined by
-     * virGetUserID or virGetGroupID.
-     */
-    if (virGetUserID(owner, &theuid) < 0 ||
-        virGetGroupID(group, &thegid) < 0)
-        goto cleanup;
-
-    if (uidPtr)
-        *uidPtr = theuid;
-    if (gidPtr)
-        *gidPtr = thegid;
-
-    rc = 0;
-
-cleanup:
-    VIR_FREE(tmp_label);
-
-    return rc;
-}
-
 /* returns 1 if label isn't found, 0 on success, -1 on error */
 static int
 virSecurityDACParseIds(virDomainDefPtr def, uid_t *uidPtr, gid_t *gidPtr)
@@ -133,7 +90,7 @@ virSecurityDACParseIds(virDomainDefPtr def, uid_t *uidPtr, gid_t *gidPtr)
         return 1;
     }
 
-    if (parseIds(seclabel->label, &uid, &gid) < 0)
+    if (virParseOwnershipIds(seclabel->label, &uid, &gid) < 0)
         return -1;
 
     if (uidPtr)
@@ -146,7 +103,8 @@ virSecurityDACParseIds(virDomainDefPtr def, uid_t *uidPtr, gid_t *gidPtr)
 
 static int
 virSecurityDACGetIds(virDomainDefPtr def, virSecurityDACDataPtr priv,
-                     uid_t *uidPtr, gid_t *gidPtr)
+                     uid_t *uidPtr, gid_t *gidPtr,
+                     gid_t **groups, int *ngroups)
 {
     int ret;
 
@@ -157,8 +115,13 @@ virSecurityDACGetIds(virDomainDefPtr def, virSecurityDACDataPtr priv,
         return -1;
     }
 
-    if ((ret = virSecurityDACParseIds(def, uidPtr, gidPtr)) <= 0)
+    if ((ret = virSecurityDACParseIds(def, uidPtr, gidPtr)) <= 0) {
+        if (groups)
+            *groups = NULL;
+        if (ngroups)
+            *ngroups = 0;
         return ret;
+    }
 
     if (!priv) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
@@ -171,6 +134,10 @@ virSecurityDACGetIds(virDomainDefPtr def, virSecurityDACDataPtr priv,
         *uidPtr = priv->user;
     if (gidPtr)
         *gidPtr = priv->group;
+    if (groups)
+        *groups = priv->groups;
+    if (ngroups)
+        *ngroups = priv->ngroups;
 
     return 0;
 }
@@ -194,7 +161,7 @@ virSecurityDACParseImageIds(virDomainDefPtr def,
         return 1;
     }
 
-    if (parseIds(seclabel->imagelabel, &uid, &gid) < 0)
+    if (virParseOwnershipIds(seclabel->imagelabel, &uid, &gid) < 0)
         return -1;
 
     if (uidPtr)
@@ -250,8 +217,10 @@ virSecurityDACOpen(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED)
 }
 
 static int
-virSecurityDACClose(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED)
+virSecurityDACClose(virSecurityManagerPtr mgr)
 {
+    virSecurityDACDataPtr priv = virSecurityManagerGetPrivateData(mgr);
+    VIR_FREE(priv->groups);
     return 0;
 }
 
@@ -266,6 +235,21 @@ static const char *
 virSecurityDACGetDOI(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED)
 {
     return "0";
+}
+
+static int
+virSecurityDACPreFork(virSecurityManagerPtr mgr)
+{
+    virSecurityDACDataPtr priv = virSecurityManagerGetPrivateData(mgr);
+    int ngroups;
+
+    VIR_FREE(priv->groups);
+    priv->ngroups = 0;
+    if ((ngroups = virGetGroupList(priv->user, priv->group,
+                                   &priv->groups)) < 0)
+        return -1;
+    priv->ngroups = ngroups;
+    return 0;
 }
 
 static int
@@ -448,7 +432,7 @@ virSecurityDACSetSecurityHostdevLabelHelper(const char *file,
     uid_t user;
     gid_t group;
 
-    if (virSecurityDACGetIds(def, priv, &user, &group))
+    if (virSecurityDACGetIds(def, priv, &user, &group, NULL, NULL))
         return -1;
 
     return virSecurityDACSetOwnership(file, user, group);
@@ -702,7 +686,7 @@ virSecurityDACSetChardevLabel(virSecurityManagerPtr mgr,
     uid_t user;
     gid_t group;
 
-    if (virSecurityDACGetIds(def, priv, &user, &group))
+    if (virSecurityDACGetIds(def, priv, &user, &group, NULL, NULL))
         return -1;
 
     switch (dev->type) {
@@ -713,10 +697,8 @@ virSecurityDACSetChardevLabel(virSecurityManagerPtr mgr,
 
     case VIR_DOMAIN_CHR_TYPE_PIPE:
         if ((virAsprintf(&in, "%s.in", dev->data.file.path) < 0) ||
-            (virAsprintf(&out, "%s.out", dev->data.file.path) < 0)) {
-            virReportOOMError();
+            (virAsprintf(&out, "%s.out", dev->data.file.path) < 0))
             goto done;
-        }
         if (virFileExists(in) && virFileExists(out)) {
             if ((virSecurityDACSetOwnership(in, user, group) < 0) ||
                 (virSecurityDACSetOwnership(out, user, group) < 0)) {
@@ -755,10 +737,8 @@ virSecurityDACRestoreChardevLabel(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
 
     case VIR_DOMAIN_CHR_TYPE_PIPE:
         if ((virAsprintf(&out, "%s.out", dev->data.file.path) < 0) ||
-            (virAsprintf(&in, "%s.in", dev->data.file.path) < 0)) {
-            virReportOOMError();
+            (virAsprintf(&in, "%s.in", dev->data.file.path) < 0))
             goto done;
-        }
         if (virFileExists(in) && virFileExists(out)) {
             if ((virSecurityDACRestoreSecurityFileLabel(out) < 0) ||
                 (virSecurityDACRestoreSecurityFileLabel(in) < 0)) {
@@ -838,7 +818,7 @@ virSecurityDACRestoreSecurityAllLabel(virSecurityManagerPtr mgr,
                                       int migrated)
 {
     virSecurityDACDataPtr priv = virSecurityManagerGetPrivateData(mgr);
-    int i;
+    size_t i;
     int rc = 0;
 
     if (!priv->dynamicOwnership)
@@ -908,7 +888,7 @@ virSecurityDACSetSecurityAllLabel(virSecurityManagerPtr mgr,
                                   const char *stdin_path ATTRIBUTE_UNUSED)
 {
     virSecurityDACDataPtr priv = virSecurityManagerGetPrivateData(mgr);
-    int i;
+    size_t i;
     uid_t user;
     gid_t group;
 
@@ -1000,15 +980,17 @@ virSecurityDACSetProcessLabel(virSecurityManagerPtr mgr,
 {
     uid_t user;
     gid_t group;
+    gid_t *groups;
+    int ngroups;
     virSecurityDACDataPtr priv = virSecurityManagerGetPrivateData(mgr);
 
-    if (virSecurityDACGetIds(def, priv, &user, &group))
+    if (virSecurityDACGetIds(def, priv, &user, &group, &groups, &ngroups))
         return -1;
 
-    VIR_DEBUG("Dropping privileges of DEF to %u:%u",
-              (unsigned int) user, (unsigned int) group);
+    VIR_DEBUG("Dropping privileges of DEF to %u:%u, %d supplemental groups",
+              (unsigned int) user, (unsigned int) group, ngroups);
 
-    if (virSetUIDGID(user, group) < 0)
+    if (virSetUIDGID(user, group, groups, ngroups) < 0)
         return -1;
 
     return 0;
@@ -1024,7 +1006,7 @@ virSecurityDACSetChildProcessLabel(virSecurityManagerPtr mgr,
     gid_t group;
     virSecurityDACDataPtr priv = virSecurityManagerGetPrivateData(mgr);
 
-    if (virSecurityDACGetIds(def, priv, &user, &group))
+    if (virSecurityDACGetIds(def, priv, &user, &group, NULL, NULL))
         return -1;
 
     VIR_DEBUG("Setting child to drop privileges of DEF to %u:%u",
@@ -1084,10 +1066,8 @@ virSecurityDACGenLabel(virSecurityManagerPtr mgr,
     case VIR_DOMAIN_SECLABEL_DYNAMIC:
         if (virAsprintf(&seclabel->label, "%u:%u",
                         (unsigned int) priv->user,
-                        (unsigned int) priv->group) < 0) {
-            virReportOOMError();
+                        (unsigned int) priv->group) < 0)
             return rc;
-        }
         if (seclabel->label == NULL) {
             virReportError(VIR_ERR_INTERNAL_ERROR,
                            _("cannot generate dac user and group id "
@@ -1203,6 +1183,8 @@ virSecurityDriver virSecurityDriverDAC = {
 
     .getModel                           = virSecurityDACGetModel,
     .getDOI                             = virSecurityDACGetDOI,
+
+    .preFork                            = virSecurityDACPreFork,
 
     .domainSecurityVerify               = virSecurityDACVerify,
 

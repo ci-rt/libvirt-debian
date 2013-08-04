@@ -60,7 +60,7 @@ struct _virUSBDevice {
 
 struct _virUSBDeviceList {
     virObjectLockable parent;
-    unsigned int count;
+    size_t count;
     virUSBDevicePtr *devs;
 };
 
@@ -96,10 +96,8 @@ static int virUSBSysReadFile(const char *f_name, const char *d_name,
     char *ignore = NULL;
 
     tmp = virAsprintf(&filename, USB_SYSFS "/devices/%s/%s", d_name, f_name);
-    if (tmp < 0) {
-        virReportOOMError();
+    if (tmp < 0)
         goto cleanup;
-    }
 
     if (virFileReadAll(filename, 1024, &buf) < 0)
         goto cleanup;
@@ -334,10 +332,8 @@ virUSBDeviceNew(unsigned int bus,
 {
     virUSBDevicePtr dev;
 
-    if (VIR_ALLOC(dev) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC(dev) < 0)
         return NULL;
-    }
 
     dev->bus     = bus;
     dev->dev     = devno;
@@ -353,7 +349,6 @@ virUSBDeviceNew(unsigned int bus,
     if (virAsprintf(&dev->path, "%s" USB_DEVFS "%03d/%03d",
                     vroot ? vroot : "",
                     dev->bus, dev->dev) < 0) {
-        virReportOOMError();
         virUSBDeviceFree(dev);
         return NULL;
     }
@@ -437,7 +432,7 @@ static void
 virUSBDeviceListDispose(void *obj)
 {
     virUSBDeviceListPtr list = obj;
-    int i;
+    size_t i;
 
     for (i = 0; i < list->count; i++)
         virUSBDeviceFree(list->devs[i]);
@@ -455,15 +450,7 @@ virUSBDeviceListAdd(virUSBDeviceListPtr list,
                        dev->name);
         return -1;
     }
-
-    if (VIR_REALLOC_N(list->devs, list->count+1) < 0) {
-        virReportOOMError();
-        return -1;
-    }
-
-    list->devs[list->count++] = dev;
-
-    return 0;
+    return VIR_APPEND_ELEMENT(list->devs, list->count, dev);
 }
 
 virUSBDevicePtr
@@ -488,25 +475,15 @@ virUSBDeviceListSteal(virUSBDeviceListPtr list,
                       virUSBDevicePtr dev)
 {
     virUSBDevicePtr ret = NULL;
-    int i;
+    size_t i;
 
     for (i = 0; i < list->count; i++) {
-        if (list->devs[i]->bus != dev->bus ||
-            list->devs[i]->dev != dev->dev)
-            continue;
-
-        ret = list->devs[i];
-
-        if (i != list->count--)
-            memmove(&list->devs[i],
-                    &list->devs[i+1],
-                    sizeof(*list->devs) * (list->count - i));
-
-        if (VIR_REALLOC_N(list->devs, list->count) < 0) {
-            ; /* not fatal */
+        if (list->devs[i]->bus == dev->bus &&
+            list->devs[i]->dev == dev->dev) {
+            ret = list->devs[i];
+            VIR_DELETE_ELEMENT(list->devs, i, list->count);
+            break;
         }
-
-        break;
     }
     return ret;
 }
@@ -523,7 +500,7 @@ virUSBDevicePtr
 virUSBDeviceListFind(virUSBDeviceListPtr list,
                      virUSBDevicePtr dev)
 {
-    int i;
+    size_t i;
 
     for (i = 0; i < list->count; i++) {
         if (list->devs[i]->bus == dev->bus &&

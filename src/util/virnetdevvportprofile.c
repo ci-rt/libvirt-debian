@@ -410,10 +410,8 @@ int virNetDevVPortProfileMerge3(virNetDevVPortProfilePtr *result,
     }
 
     /* at least one of the source profiles is non-empty */
-    if (VIR_ALLOC(*result) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC(*result) < 0)
         return ret;
-    }
 
     /* start with the interface's profile. There are no pointers in a
      * virtualPortProfile, so a shallow copy is sufficient.
@@ -783,7 +781,7 @@ virNetDevVPortProfileGetNthParent(const char *ifname, int ifindex, unsigned int 
     int rc;
     struct nlattr *tb[IFLA_MAX + 1] = { NULL, };
     bool end = false;
-    unsigned int i = 0;
+    size_t i = 0;
 
     *nth = 0;
 

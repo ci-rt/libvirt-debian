@@ -11,6 +11,8 @@
 #include "virfile.h"
 #include "virstring.h"
 
+#define VIR_FROM_THIS VIR_FROM_NONE
+
 #if ! (defined __linux__  &&  (defined(__x86_64__) || \
                                defined(__amd64__)  || \
                                defined(__i386__)  || \
@@ -121,7 +123,7 @@ static int
 mymain(void)
 {
     int ret = 0;
-    int i;
+    size_t i;
     const char *nodeData[] = {
         "test1",
 # if !(defined(__powerpc__) ||                  \
