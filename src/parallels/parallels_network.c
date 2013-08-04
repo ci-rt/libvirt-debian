@@ -57,10 +57,8 @@ static int parallelsGetBridgedNetInfo(virNetworkDefPtr def, virJSONValuePtr jobj
     }
 
     if (virAsprintf(&bridgeLink, "%s/%s/brport/bridge",
-                    SYSFS_NET_DIR, ifname) < 0) {
-        virReportOOMError();
+                    SYSFS_NET_DIR, ifname) < 0)
         goto cleanup;
-    }
 
     if (virFileResolveLink(bridgeLink, &bridgePath) < 0) {
         virReportSystemError(errno, _("cannot read link '%s'"), bridgeLink);
@@ -71,10 +69,8 @@ static int parallelsGetBridgedNetInfo(virNetworkDefPtr def, virJSONValuePtr jobj
         goto cleanup;
 
     if (virAsprintf(&bridgeAddressPath, "%s/%s/brport/bridge/address",
-                    SYSFS_NET_DIR, ifname) < 0) {
-        virReportOOMError();
+                    SYSFS_NET_DIR, ifname) < 0)
         goto cleanup;
-    }
 
     if ((len = virFileReadAll(bridgeAddressPath, 18, &bridgeAddress)) < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
@@ -112,10 +108,8 @@ static int parallelsGetHostOnlyNetInfo(virNetworkDefPtr def, const char *name)
     virJSONValuePtr jobj = NULL, jobj2;
     int ret = -1;
 
-    if (VIR_EXPAND_N(def->ips, def->nips, 1) < 0) {
-        virReportOOMError();
+    if (VIR_EXPAND_N(def->ips, def->nips, 1) < 0)
         goto cleanup;
-    }
 
     jobj = parallelsParseOutput("prlsrvctl", "net", "info", "-j", name, NULL);
 
@@ -157,10 +151,8 @@ static int parallelsGetHostOnlyNetInfo(virNetworkDefPtr def, const char *name)
         goto cleanup;
     }
 
-    if (VIR_EXPAND_N(def->ips[0].ranges, def->ips[0].nranges, 1) < 0) {
-        virReportOOMError();
+    if (VIR_EXPAND_N(def->ips[0].ranges, def->ips[0].nranges, 1) < 0)
         goto cleanup;
-    }
 
     if (!(tmp = virJSONValueObjectGetString(jobj2, "IP scope start address"))) {
         parallelsParseError();
@@ -198,7 +190,7 @@ parallelsLoadNetwork(parallelsConnPtr privconn, virJSONValuePtr jobj)
     unsigned char md5[MD5_DIGEST_SIZE];
 
     if (VIR_ALLOC(def) < 0)
-        goto no_memory;
+        goto cleanup;
 
     if (!(tmp = virJSONValueObjectGetString(jobj, "Network ID"))) {
         parallelsParseError();
@@ -244,8 +236,6 @@ parallelsLoadNetwork(parallelsConnPtr privconn, virJSONValuePtr jobj)
     virNetworkObjUnlock(net);
     return net;
 
-no_memory:
-    virReportOOMError();
 cleanup:
     virNetworkDefFree(def);
     return NULL;
@@ -258,7 +248,7 @@ parallelsAddRoutedNetwork(parallelsConnPtr privconn)
     virNetworkDefPtr def;
 
     if (VIR_ALLOC(def) < 0)
-        goto no_memory;
+        goto cleanup;
 
     def->forward.type = VIR_NETWORK_FORWARD_ROUTE;
 
@@ -283,8 +273,6 @@ parallelsAddRoutedNetwork(parallelsConnPtr privconn)
 
     return net;
 
-no_memory:
-    virReportOOMError();
 cleanup:
     virNetworkDefFree(def);
     return NULL;
@@ -295,7 +283,8 @@ static int parallelsLoadNetworks(parallelsConnPtr privconn)
     virJSONValuePtr jobj, jobj2;
     virNetworkObjPtr net;
     int ret = -1;
-    int count, i;
+    int count;
+    size_t i;
 
     jobj = parallelsParseOutput("prlsrvctl", "net", "list", "-j", NULL);
 
@@ -362,7 +351,8 @@ static int parallelsNetworkClose(virConnectPtr conn)
 
 static int parallelsConnectNumOfNetworks(virConnectPtr conn)
 {
-    int nactive = 0, i;
+    int nactive = 0;
+    size_t i;
     parallelsConnPtr privconn = conn->privateData;
 
     parallelsDriverLock(privconn);
@@ -382,7 +372,8 @@ static int parallelsConnectListNetworks(virConnectPtr conn,
                                         int nnames)
 {
     parallelsConnPtr privconn = conn->privateData;
-    int got = 0, i;
+    int got = 0;
+    size_t i;
 
     parallelsDriverLock(privconn);
     for (i = 0; i < privconn->networks.count && got < nnames; i++) {
@@ -409,7 +400,8 @@ static int parallelsConnectListNetworks(virConnectPtr conn,
 
 static int parallelsConnectNumOfDefinedNetworks(virConnectPtr conn)
 {
-    int ninactive = 0, i;
+    int ninactive = 0;
+    size_t i;
     parallelsConnPtr privconn = conn->privateData;
 
     parallelsDriverLock(privconn);
@@ -429,7 +421,8 @@ static int parallelsConnectListDefinedNetworks(virConnectPtr conn,
                                                int nnames)
 {
     parallelsConnPtr privconn = conn->privateData;
-    int got = 0, i;
+    int got = 0;
+    size_t i;
 
     parallelsDriverLock(privconn);
     for (i = 0; i < privconn->networks.count && got < nnames; i++) {
@@ -463,7 +456,7 @@ static int parallelsConnectListAllNetworks(virConnectPtr conn,
     virCheckFlags(VIR_CONNECT_LIST_NETWORKS_FILTERS_ALL, -1);
 
     parallelsDriverLock(privconn);
-    ret = virNetworkList(conn, privconn->networks, nets, flags);
+    ret = virNetworkObjListExport(conn, privconn->networks, nets, NULL, flags);
     parallelsDriverUnlock(privconn);
 
     return ret;

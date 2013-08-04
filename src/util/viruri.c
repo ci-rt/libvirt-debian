@@ -40,10 +40,8 @@ virURIParamAppend(virURIPtr uri,
     if (VIR_STRDUP(pname, name) < 0 || VIR_STRDUP(pvalue, value) < 0)
         goto error;
 
-    if (VIR_RESIZE_N(uri->params, uri->paramsAlloc, uri->paramsCount, 1) < 0) {
-        virReportOOMError();
+    if (VIR_RESIZE_N(uri->params, uri->paramsAlloc, uri->paramsCount, 1) < 0)
         goto error;
-    }
 
     uri->params[uri->paramsCount].name = pname;
     uri->params[uri->paramsCount].value = pvalue;
@@ -166,10 +164,8 @@ virURIParse(const char *uri)
         return NULL;
     }
 
-    if (VIR_ALLOC(ret) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC(ret) < 0)
         goto error;
-    }
 
     if (VIR_STRDUP(ret->scheme, xmluri->scheme) < 0)
         goto error;
@@ -256,10 +252,8 @@ virURIFormat(virURIPtr uri)
     if (xmluri.server != NULL &&
         strchr(xmluri.server, ':') != NULL) {
 
-        if (virAsprintf(&tmpserver, "[%s]", xmluri.server) < 0) {
-            virReportOOMError();
+        if (virAsprintf(&tmpserver, "[%s]", xmluri.server) < 0)
             return NULL;
-        }
 
         xmluri.server = tmpserver;
     }
@@ -280,7 +274,7 @@ cleanup:
 char *virURIFormatParams(virURIPtr uri)
 {
     virBuffer buf = VIR_BUFFER_INITIALIZER;
-    int i;
+    size_t i;
     bool amp = false;
 
     for (i = 0; i < uri->paramsCount; ++i) {

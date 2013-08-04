@@ -140,6 +140,11 @@ struct _qemuMonitorCallbacks {
                                unsigned long long actual);
     int (*domainPMSuspendDisk)(qemuMonitorPtr mon,
                                virDomainObjPtr vm);
+    int (*domainGuestPanic)(qemuMonitorPtr mon,
+                            virDomainObjPtr vm);
+    int (*domainDeviceDeleted)(qemuMonitorPtr mon,
+                               virDomainObjPtr vm,
+                               const char *devAlias);
 };
 
 char *qemuMonitorEscapeArg(const char *in);
@@ -220,6 +225,9 @@ int qemuMonitorEmitBlockJob(qemuMonitorPtr mon,
 int qemuMonitorEmitBalloonChange(qemuMonitorPtr mon,
                                  unsigned long long actual);
 int qemuMonitorEmitPMSuspendDisk(qemuMonitorPtr mon);
+int qemuMonitorEmitGuestPanic(qemuMonitorPtr mon);
+int qemuMonitorEmitDeviceDeleted(qemuMonitorPtr mon,
+                                 const char *devAlias);
 
 int qemuMonitorStartCPUs(qemuMonitorPtr mon,
                          virConnectPtr conn);
@@ -239,6 +247,7 @@ typedef enum {
     QEMU_MONITOR_VM_STATUS_SAVE_VM,
     QEMU_MONITOR_VM_STATUS_SHUTDOWN,
     QEMU_MONITOR_VM_STATUS_WATCHDOG,
+    QEMU_MONITOR_VM_STATUS_GUEST_PANICKED,
 
     QEMU_MONITOR_VM_STATUS_LAST
 } qemuMonitorVMStatus;
@@ -261,6 +270,8 @@ int qemuMonitorGetBalloonInfo(qemuMonitorPtr mon,
 int qemuMonitorGetMemoryStats(qemuMonitorPtr mon,
                               virDomainMemoryStatPtr stats,
                               unsigned int nr_stats);
+int qemuMonitorSetMemoryStatsPeriod(qemuMonitorPtr mon,
+                                    int period);
 
 int qemuMonitorBlockIOStatusToError(const char *status);
 virHashTablePtr qemuMonitorGetBlockInfo(qemuMonitorPtr mon);
@@ -654,6 +665,7 @@ struct _qemuMonitorMachineInfo {
     char *name;
     bool isDefault;
     char *alias;
+    unsigned int maxCpus;
 };
 
 int qemuMonitorGetMachines(qemuMonitorPtr mon,
@@ -695,6 +707,15 @@ int qemuMonitorGetTPMModels(qemuMonitorPtr mon,
 
 int qemuMonitorGetTPMTypes(qemuMonitorPtr mon,
                            char ***tpmtypes);
+
+int qemuMonitorAttachCharDev(qemuMonitorPtr mon,
+                             const char *chrID,
+                             virDomainChrSourceDefPtr chr);
+int qemuMonitorDetachCharDev(qemuMonitorPtr mon,
+                             const char *chrID);
+
+int qemuMonitorGetDeviceAliases(qemuMonitorPtr mon,
+                                char ***aliases);
 
 /**
  * When running two dd process and using <> redirection, we need a

@@ -141,20 +141,16 @@ virSecuritySELinuxMCSFind(virSecurityManagerPtr mgr,
         VIR_DEBUG("Try cat %s:c%d,c%d", sens, c1 + catMin, c2 + catMin);
 
         if (c1 == c2) {
-            if (virAsprintf(&mcs, "%s:c%d", sens, catMin + c1) < 0) {
-                virReportOOMError();
+            if (virAsprintf(&mcs, "%s:c%d", sens, catMin + c1) < 0)
                 return NULL;
-            }
         } else {
             if (c1 > c2) {
                 int t = c1;
                 c1 = c2;
                 c2 = t;
             }
-            if (virAsprintf(&mcs, "%s:c%d,c%d", sens, catMin + c1, catMin + c2) < 0) {
-                virReportOOMError();
+            if (virAsprintf(&mcs, "%s:c%d,c%d", sens, catMin + c1, catMin + c2) < 0)
                 return NULL;
-            }
         }
 
         if (virHashLookup(data->mcs, mcs) == NULL)
@@ -589,23 +585,22 @@ virSecuritySELinuxGenSecurityLabel(virSecurityManagerPtr mgr,
     int catMin, catMax;
 
     seclabel = virDomainDefGetSecurityLabelDef(def, SECURITY_SELINUX_NAME);
-    if (seclabel == NULL) {
+    if (seclabel == NULL)
         return rc;
-    }
 
     data = virSecurityManagerGetPrivateData(mgr);
 
     VIR_DEBUG("label=%s", virSecurityManagerGetDriver(mgr));
     if (seclabel->type == VIR_DOMAIN_SECLABEL_DYNAMIC &&
         seclabel->label) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       "%s", _("security label already defined for VM"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("security label already defined for VM"));
         return rc;
     }
 
     if (seclabel->imagelabel) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       "%s", _("security image label already defined for VM"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("security image label already defined for VM"));
         return rc;
     }
 
@@ -628,9 +623,8 @@ virSecuritySELinuxGenSecurityLabel(virSecurityManagerPtr mgr,
             return rc;
         }
 
-        range = context_range_get(ctx);
-        if (!range) {
-            virReportOOMError();
+        if (!(range = context_range_get(ctx))) {
+            virReportSystemError(errno, "%s", _("unable to get selinux context range"));
             goto cleanup;
         }
         if (VIR_STRDUP(mcs, range) < 0)
@@ -689,13 +683,12 @@ virSecuritySELinuxGenSecurityLabel(virSecurityManagerPtr mgr,
         goto cleanup;
     }
 
-    if (!seclabel->norelabel) {
-        seclabel->imagelabel = virSecuritySELinuxGenNewContext(data->file_context,
-                                                               mcs,
-                                                               true);
-        if (!seclabel->imagelabel)
-            goto cleanup;
-    }
+    /* always generate a image label, needed to label new objects */
+    seclabel->imagelabel = virSecuritySELinuxGenNewContext(data->file_context,
+                                                           mcs,
+                                                           true);
+    if (!seclabel->imagelabel)
+        goto cleanup;
 
     if (!seclabel->model &&
         VIR_STRDUP(seclabel->model, SECURITY_SELINUX_NAME) < 0)
@@ -1227,8 +1220,8 @@ virSecuritySELinuxSetSecurityFileLabel(virDomainDiskDefPtr disk,
         if (!disk_seclabel)
             return -1;
         disk_seclabel->norelabel = true;
-        if (VIR_APPEND_ELEMENT(disk->seclabels, disk->nseclabels, disk_seclabel) < 0) {
-            virReportOOMError();
+        if (VIR_APPEND_ELEMENT(disk->seclabels, disk->nseclabels,
+                               disk_seclabel) < 0) {
             virSecurityDeviceLabelDefFree(disk_seclabel);
             return -1;
         }
@@ -1392,10 +1385,8 @@ virSecuritySELinuxSetSecurityHostdevCapsLabel(virDomainDefPtr def,
     case VIR_DOMAIN_HOSTDEV_CAPS_TYPE_STORAGE: {
         if (vroot) {
             if (virAsprintf(&path, "%s/%s", vroot,
-                            dev->source.caps.u.storage.block) < 0) {
-                virReportOOMError();
+                            dev->source.caps.u.storage.block) < 0)
                 return -1;
-            }
         } else {
             if (VIR_STRDUP(path, dev->source.caps.u.storage.block) < 0)
                 return -1;
@@ -1408,10 +1399,8 @@ virSecuritySELinuxSetSecurityHostdevCapsLabel(virDomainDefPtr def,
     case VIR_DOMAIN_HOSTDEV_CAPS_TYPE_MISC: {
         if (vroot) {
             if (virAsprintf(&path, "%s/%s", vroot,
-                            dev->source.caps.u.misc.chardev) < 0) {
-                virReportOOMError();
+                            dev->source.caps.u.misc.chardev) < 0)
                 return -1;
-            }
         } else {
             if (VIR_STRDUP(path, dev->source.caps.u.misc.chardev) < 0)
                 return -1;
@@ -1582,10 +1571,8 @@ virSecuritySELinuxRestoreSecurityHostdevCapsLabel(virSecurityManagerPtr mgr,
     case VIR_DOMAIN_HOSTDEV_CAPS_TYPE_STORAGE: {
         if (vroot) {
             if (virAsprintf(&path, "%s/%s", vroot,
-                            dev->source.caps.u.storage.block) < 0) {
-                virReportOOMError();
+                            dev->source.caps.u.storage.block) < 0)
                 return -1;
-            }
         } else {
             if (VIR_STRDUP(path, dev->source.caps.u.storage.block) < 0)
                 return -1;
@@ -1598,10 +1585,8 @@ virSecuritySELinuxRestoreSecurityHostdevCapsLabel(virSecurityManagerPtr mgr,
     case VIR_DOMAIN_HOSTDEV_CAPS_TYPE_MISC: {
         if (vroot) {
             if (virAsprintf(&path, "%s/%s", vroot,
-                            dev->source.caps.u.misc.chardev) < 0) {
-                virReportOOMError();
+                            dev->source.caps.u.misc.chardev) < 0)
                 return -1;
-            }
         } else {
             if (VIR_STRDUP(path, dev->source.caps.u.misc.chardev) < 0)
                 return -1;
@@ -1695,10 +1680,8 @@ virSecuritySELinuxSetSecurityChardevLabel(virDomainDefPtr def,
 
     case VIR_DOMAIN_CHR_TYPE_PIPE:
         if ((virAsprintf(&in, "%s.in", dev_source->data.file.path) < 0) ||
-            (virAsprintf(&out, "%s.out", dev_source->data.file.path) < 0)) {
-            virReportOOMError();
+            (virAsprintf(&out, "%s.out", dev_source->data.file.path) < 0))
             goto done;
-        }
         if (virFileExists(in) && virFileExists(out)) {
             if ((virSecuritySELinuxSetFilecon(in, imagelabel) < 0) ||
                 (virSecuritySELinuxSetFilecon(out, imagelabel) < 0)) {
@@ -1762,10 +1745,8 @@ virSecuritySELinuxRestoreSecurityChardevLabel(virSecurityManagerPtr mgr,
 
     case VIR_DOMAIN_CHR_TYPE_PIPE:
         if ((virAsprintf(&out, "%s.out", dev_source->data.file.path) < 0) ||
-            (virAsprintf(&in, "%s.in", dev_source->data.file.path) < 0)) {
-            virReportOOMError();
+            (virAsprintf(&in, "%s.in", dev_source->data.file.path) < 0))
             goto done;
-        }
         if (virFileExists(in) && virFileExists(out)) {
             if ((virSecuritySELinuxRestoreSecurityFileLabel(mgr, out) < 0) ||
                 (virSecuritySELinuxRestoreSecurityFileLabel(mgr, in) < 0)) {
@@ -1845,7 +1826,7 @@ virSecuritySELinuxRestoreSecurityAllLabel(virSecurityManagerPtr mgr,
 {
     virSecurityLabelDefPtr secdef;
     virSecuritySELinuxDataPtr data = virSecurityManagerGetPrivateData(mgr);
-    int i;
+    size_t i;
     int rc = 0;
 
     VIR_DEBUG("Restoring security label on %s", def->name);
@@ -2246,7 +2227,7 @@ virSecuritySELinuxSetSecurityAllLabel(virSecurityManagerPtr mgr,
                                       virDomainDefPtr def,
                                       const char *stdin_path)
 {
-    int i;
+    size_t i;
     virSecuritySELinuxDataPtr data = virSecurityManagerGetPrivateData(mgr);
     virSecurityLabelDefPtr secdef;
 
@@ -2399,7 +2380,8 @@ virSecuritySELinuxGenImageLabel(virSecurityManagerPtr mgr,
     if (secdef->label) {
         ctx = context_new(secdef->label);
         if (!ctx) {
-            virReportOOMError();
+            virReportSystemError(errno, _("unable to create selinux context for: %s"),
+                                 secdef->label);
             goto cleanup;
         }
         range = context_range_get(ctx);
@@ -2432,10 +2414,8 @@ virSecuritySELinuxGetSecurityMountOptions(virSecurityManagerPtr mgr,
         if (secdef->imagelabel &&
             virAsprintf(&opts,
                         ",context=\"%s\"",
-                        (const char*) secdef->imagelabel) < 0) {
-            virReportOOMError();
+                        (const char*) secdef->imagelabel) < 0)
             return NULL;
-        }
     }
 
     if (!opts && VIR_STRDUP(opts, "") < 0)

@@ -50,14 +50,11 @@ virStorageBackendDiskMakeDataVol(virStoragePoolObjPtr pool,
     char *tmp, *devpath;
 
     if (vol == NULL) {
-        if (VIR_ALLOC(vol) < 0) {
-            virReportOOMError();
+        if (VIR_ALLOC(vol) < 0)
             return -1;
-        }
 
         if (VIR_REALLOC_N(pool->volumes.objs,
                           pool->volumes.count+1) < 0) {
-            virReportOOMError();
             virStorageVolDefFree(vol);
             return -1;
         }
@@ -94,10 +91,8 @@ virStorageBackendDiskMakeDataVol(virStoragePoolObjPtr pool,
     }
 
     if (vol->source.extents == NULL) {
-        if (VIR_ALLOC(vol->source.extents) < 0) {
-            virReportOOMError();
+        if (VIR_ALLOC(vol->source.extents) < 0)
             return -1;
-        }
         vol->source.nextent = 1;
 
         if (virStrToLong_ull(groups[3], NULL, 10,
@@ -437,7 +432,7 @@ virStorageBackendDiskPartTypeToCreate(virStoragePoolObjPtr pool)
     if (pool->def->source.format == VIR_STORAGE_POOL_DISK_DOS) {
         /* count primary and extended paritions,
            can't be more than 3 to create a new primary partition */
-        int i;
+        size_t i;
         int count = 0;
         for (i = 0; i < pool->volumes.count; i++) {
              if (pool->volumes.objs[i]->target.type == VIR_STORAGE_VOL_DISK_TYPE_PRIMARY ||
@@ -459,7 +454,7 @@ virStorageBackendDiskPartFormat(virStoragePoolObjPtr pool,
                                 virStorageVolDefPtr vol,
                                 char** partFormat)
 {
-    int i;
+    size_t i;
     if (pool->def->source.format == VIR_STORAGE_POOL_DISK_DOS) {
         const char *partedFormat;
         partedFormat = virStoragePartedFsTypeTypeToString(vol->target.format);
@@ -487,10 +482,8 @@ virStorageBackendDiskPartFormat(virStoragePoolObjPtr pool,
             /* XXX Only support one extended partition */
             switch (virStorageBackendDiskPartTypeToCreate(pool)) {
             case VIR_STORAGE_VOL_DISK_TYPE_PRIMARY:
-                if (virAsprintf(partFormat, "primary %s", partedFormat) < 0) {
-                    virReportOOMError();
+                if (virAsprintf(partFormat, "primary %s", partedFormat) < 0)
                     return -1;
-                }
                 break;
             case VIR_STORAGE_VOL_DISK_TYPE_LOGICAL:
                 /* make sure we have a extended partition */
@@ -498,10 +491,8 @@ virStorageBackendDiskPartFormat(virStoragePoolObjPtr pool,
                     if (pool->volumes.objs[i]->target.format ==
                         VIR_STORAGE_VOL_DISK_EXTENDED) {
                         if (virAsprintf(partFormat, "logical %s",
-                                        partedFormat) < 0) {
-                            virReportOOMError();
+                                        partedFormat) < 0)
                             return -1;
-                        }
                         break;
                     }
                 }
@@ -536,7 +527,7 @@ virStorageBackendDiskPartBoundries(virStoragePoolObjPtr pool,
                                    unsigned long long *end,
                                    unsigned long long allocation)
 {
-    int i;
+    size_t i;
     int smallestExtent = -1;
     unsigned long long smallestSize = 0;
     unsigned long long extraBytes = 0;

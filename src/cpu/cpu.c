@@ -50,8 +50,8 @@ static struct cpuArchDriver *drivers[] = {
 static struct cpuArchDriver *
 cpuGetSubDriver(virArch arch)
 {
-    unsigned int i;
-    unsigned int j;
+    size_t i;
+    size_t j;
 
     if (arch == VIR_ARCH_NONE) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
@@ -130,7 +130,7 @@ cpuCompare(virCPUDefPtr host,
 
 int
 cpuDecode(virCPUDefPtr cpu,
-          const union cpuData *data,
+          const virCPUDataPtr data,
           const char **models,
           unsigned int nmodels,
           const char *preferred)
@@ -140,9 +140,9 @@ cpuDecode(virCPUDefPtr cpu,
     VIR_DEBUG("cpu=%p, data=%p, nmodels=%u, preferred=%s",
               cpu, data, nmodels, NULLSTR(preferred));
     if (models) {
-        unsigned int i;
+        size_t i;
         for (i = 0; i < nmodels; i++)
-            VIR_DEBUG("models[%u]=%s", i, NULLSTR(models[i]));
+            VIR_DEBUG("models[%zu]=%s", i, NULLSTR(models[i]));
     }
 
     if (models == NULL && nmodels != 0) {
@@ -174,12 +174,12 @@ cpuDecode(virCPUDefPtr cpu,
 int
 cpuEncode(virArch arch,
           const virCPUDefPtr cpu,
-          union cpuData **forced,
-          union cpuData **required,
-          union cpuData **optional,
-          union cpuData **disabled,
-          union cpuData **forbidden,
-          union cpuData **vendor)
+          virCPUDataPtr *forced,
+          virCPUDataPtr *required,
+          virCPUDataPtr *optional,
+          virCPUDataPtr *disabled,
+          virCPUDataPtr *forbidden,
+          virCPUDataPtr *vendor)
 {
     struct cpuArchDriver *driver;
 
@@ -198,29 +198,28 @@ cpuEncode(virArch arch,
         return -1;
     }
 
-    return driver->encode(cpu, forced, required,
+    return driver->encode(arch, cpu, forced, required,
                           optional, disabled, forbidden, vendor);
 }
 
 
 void
-cpuDataFree(virArch arch,
-            union cpuData *data)
+cpuDataFree(virCPUDataPtr data)
 {
     struct cpuArchDriver *driver;
 
-    VIR_DEBUG("arch=%s, data=%p", virArchToString(arch), data);
+    VIR_DEBUG("data=%p", data);
 
     if (data == NULL)
         return;
 
-    if ((driver = cpuGetSubDriver(arch)) == NULL)
+    if ((driver = cpuGetSubDriver(data->arch)) == NULL)
         return;
 
     if (driver->free == NULL) {
         virReportError(VIR_ERR_NO_SUPPORT,
                        _("cannot free CPU data for %s architecture"),
-                       virArchToString(arch));
+                       virArchToString(data->arch));
         return;
     }
 
@@ -228,7 +227,7 @@ cpuDataFree(virArch arch,
 }
 
 
-union cpuData *
+virCPUDataPtr
 cpuNodeData(virArch arch)
 {
     struct cpuArchDriver *driver;
@@ -252,7 +251,7 @@ cpuNodeData(virArch arch)
 virCPUCompareResult
 cpuGuestData(virCPUDefPtr host,
              virCPUDefPtr guest,
-             union cpuData **data,
+             virCPUDataPtr *data,
              char **msg)
 {
     struct cpuArchDriver *driver;
@@ -284,16 +283,16 @@ cpuBaselineXML(const char **xmlCPUs,
     virCPUDefPtr *cpus = NULL;
     virCPUDefPtr cpu = NULL;
     char *cpustr;
-    unsigned int i;
+    size_t i;
 
     VIR_DEBUG("ncpus=%u, nmodels=%u", ncpus, nmodels);
     if (xmlCPUs) {
         for (i = 0; i < ncpus; i++)
-            VIR_DEBUG("xmlCPUs[%u]=%s", i, NULLSTR(xmlCPUs[i]));
+            VIR_DEBUG("xmlCPUs[%zu]=%s", i, NULLSTR(xmlCPUs[i]));
     }
     if (models) {
         for (i = 0; i < nmodels; i++)
-            VIR_DEBUG("models[%u]=%s", i, NULLSTR(models[i]));
+            VIR_DEBUG("models[%zu]=%s", i, NULLSTR(models[i]));
     }
 
     if (xmlCPUs == NULL && ncpus != 0) {
@@ -308,7 +307,7 @@ cpuBaselineXML(const char **xmlCPUs,
     }
 
     if (VIR_ALLOC_N(cpus, ncpus))
-        goto no_memory;
+        goto error;
 
     for (i = 0; i < ncpus; i++) {
         if (!(doc = virXMLParseStringCtxt(xmlCPUs[i], _("(CPU_definition)"), &ctxt)))
@@ -341,8 +340,6 @@ cleanup:
 
     return cpustr;
 
-no_memory:
-    virReportOOMError();
 error:
     cpustr = NULL;
     goto cleanup;
@@ -356,16 +353,16 @@ cpuBaseline(virCPUDefPtr *cpus,
             unsigned int nmodels)
 {
     struct cpuArchDriver *driver;
-    unsigned int i;
+    size_t i;
 
     VIR_DEBUG("ncpus=%u, nmodels=%u", ncpus, nmodels);
     if (cpus) {
         for (i = 0; i < ncpus; i++)
-            VIR_DEBUG("cpus[%u]=%p", i, cpus[i]);
+            VIR_DEBUG("cpus[%zu]=%p", i, cpus[i]);
     }
     if (models) {
         for (i = 0; i < nmodels; i++)
-            VIR_DEBUG("models[%u]=%s", i, NULLSTR(models[i]));
+            VIR_DEBUG("models[%zu]=%s", i, NULLSTR(models[i]));
     }
 
     if (cpus == NULL && ncpus != 0) {
@@ -421,22 +418,20 @@ cpuUpdate(virCPUDefPtr guest,
 }
 
 int
-cpuHasFeature(virArch arch,
-              const union cpuData *data,
+cpuHasFeature(const virCPUDataPtr data,
               const char *feature)
 {
     struct cpuArchDriver *driver;
 
-    VIR_DEBUG("arch=%s, data=%p, feature=%s",
-              virArchToString(arch), data, feature);
+    VIR_DEBUG("data=%p, feature=%s", data, feature);
 
-    if ((driver = cpuGetSubDriver(arch)) == NULL)
+    if ((driver = cpuGetSubDriver(data->arch)) == NULL)
         return -1;
 
     if (driver->hasFeature == NULL) {
         virReportError(VIR_ERR_NO_SUPPORT,
                        _("cannot check guest CPU data for %s architecture"),
-                       virArchToString(arch));
+                       virArchToString(data->arch));
         return -1;
     }
 
@@ -448,7 +443,7 @@ cpuModelIsAllowed(const char *model,
                   const char **models,
                   unsigned int nmodels)
 {
-    unsigned int i;
+    size_t i;
 
     if (!models || !nmodels)
         return true;

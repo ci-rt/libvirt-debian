@@ -75,12 +75,12 @@ virCommandPtr qemuBuildCommandLine(virConnectPtr conn,
                                    qemuBuildCommandLineCallbacksPtr callbacks)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(11);
 
-/* Generate string for arch-specific '-device' parameter */
-char *
-qemuBuildChrDeviceStr (virDomainChrDefPtr serial,
-                       virQEMUCapsPtr qemuCaps,
-                       virArch arch,
-                       char *machine);
+/* Generate '-device' string for chardev device */
+int
+qemuBuildChrDeviceStr(char **deviceStr,
+                      virDomainDefPtr vmdef,
+                      virDomainChrDefPtr chr,
+                      virQEMUCapsPtr qemuCaps);
 
 /* With vlan == -1, use netdev syntax, else old hostnet */
 char * qemuBuildHostNetStr(virDomainNetDefPtr net,
@@ -221,6 +221,27 @@ int qemuDomainAssignAddresses(virDomainDefPtr def,
 int qemuDomainAssignSpaprVIOAddresses(virDomainDefPtr def,
                                       virQEMUCapsPtr qemuCaps);
 
+void qemuDomainReleaseDeviceAddress(virDomainObjPtr vm,
+                                    virDomainDeviceInfoPtr info,
+                                    const char *devstr);
+
+typedef enum {
+   QEMU_PCI_CONNECT_HOTPLUGGABLE = 1 << 0,
+   /* This bus supports hot-plug */
+   QEMU_PCI_CONNECT_SINGLESLOT   = 1 << 1,
+   /* This "bus" has only a single downstream slot/port */
+
+   QEMU_PCI_CONNECT_TYPE_PCI     = 1 << 2,
+   /* PCI devices can connect to this bus */
+} qemuDomainPCIConnectFlags;
+
+/* a combination of all bit that describe the type of connections
+ * allowed, e.g. PCI, PCIe, switch
+ */
+# define QEMU_PCI_CONNECT_TYPES_MASK \
+    QEMU_PCI_CONNECT_TYPE_PCI
+
+
 int qemuDomainAssignPCIAddresses(virDomainDefPtr def,
                                  virQEMUCapsPtr qemuCaps,
                                  virDomainObjPtr obj);
@@ -228,16 +249,17 @@ qemuDomainPCIAddressSetPtr qemuDomainPCIAddressSetCreate(virDomainDefPtr def,
                                                          unsigned int nbuses,
                                                          bool dryRun);
 int qemuDomainPCIAddressReserveSlot(qemuDomainPCIAddressSetPtr addrs,
-                                    virDevicePCIAddressPtr addr);
+                                    virDevicePCIAddressPtr addr,
+                                    qemuDomainPCIConnectFlags flags);
 int qemuDomainPCIAddressReserveAddr(qemuDomainPCIAddressSetPtr addrs,
-                                    virDevicePCIAddressPtr addr);
+                                    virDevicePCIAddressPtr addr,
+                                    qemuDomainPCIConnectFlags flags);
 int qemuDomainPCIAddressSetNextAddr(qemuDomainPCIAddressSetPtr addrs,
-                                    virDomainDeviceInfoPtr dev);
+                                    virDomainDeviceInfoPtr dev,
+                                    qemuDomainPCIConnectFlags flags);
 int qemuDomainPCIAddressEnsureAddr(qemuDomainPCIAddressSetPtr addrs,
                                    virDomainDeviceInfoPtr dev);
 int qemuDomainPCIAddressReleaseAddr(qemuDomainPCIAddressSetPtr addrs,
-                                    virDevicePCIAddressPtr addr);
-int qemuDomainPCIAddressReleaseSlot(qemuDomainPCIAddressSetPtr addrs,
                                     virDevicePCIAddressPtr addr);
 
 void qemuDomainPCIAddressSetFree(qemuDomainPCIAddressSetPtr addrs);
@@ -245,8 +267,6 @@ int  qemuAssignDevicePCISlots(virDomainDefPtr def,
                               virQEMUCapsPtr qemuCaps,
                               qemuDomainPCIAddressSetPtr addrs);
 
-int qemuDomainCCWAddressReleaseAddr(qemuDomainCCWAddressSetPtr addrs,
-                                    virDomainDeviceInfoPtr dev);
 int qemuDomainCCWAddressAssign(virDomainDeviceInfoPtr dev, qemuDomainCCWAddressSetPtr addrs,
                                bool autoassign);
 void qemuDomainCCWAddressSetFree(qemuDomainCCWAddressSetPtr addrs);
@@ -260,6 +280,9 @@ int qemuAssignDeviceDiskAlias(virDomainDefPtr vmdef,
 int qemuAssignDeviceHostdevAlias(virDomainDefPtr def, virDomainHostdevDefPtr hostdev, int idx);
 int qemuAssignDeviceControllerAlias(virDomainControllerDefPtr controller);
 int qemuAssignDeviceRedirdevAlias(virDomainDefPtr def, virDomainRedirdevDefPtr redirdev, int idx);
+int qemuAssignDeviceChrAlias(virDomainDefPtr def,
+                             virDomainChrDefPtr chr,
+                             ssize_t idx);
 
 int
 qemuParseKeywords(const char *str,

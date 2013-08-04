@@ -239,10 +239,8 @@ umlIdentifyOneChrPTY(struct uml_driver *driver,
     char *cmd;
     char *res = NULL;
     int retries = 0;
-    if (virAsprintf(&cmd, "config %s%d", dev, def->target.port) < 0) {
-        virReportOOMError();
+    if (virAsprintf(&cmd, "config %s%d", dev, def->target.port) < 0)
         return -1;
-    }
 requery:
     if (umlMonitorCommand(driver, dom, cmd, &res) < 0)
         return -1;
@@ -275,7 +273,7 @@ static int
 umlIdentifyChrPTY(struct uml_driver *driver,
                   virDomainObjPtr dom)
 {
-    int i;
+    size_t i;
 
     for (i = 0; i < dom->def->nconsoles; i++)
         if (dom->def->consoles[i]->source.type == VIR_DOMAIN_CHR_TYPE_PTY)
@@ -572,8 +570,6 @@ umlStateInitialize(bool privileged,
 
     umlDriverUnlock(uml_driver);
 
-    umlAutostartConfigs(uml_driver);
-
     VIR_FREE(userdir);
 
     virNWFilterRegisterCallbackDriver(&umlCallbackDriver);
@@ -588,6 +584,20 @@ error:
     umlDriverUnlock(uml_driver);
     umlStateCleanup();
     return -1;
+}
+
+/**
+ * umlStateAutoStart:
+ *
+ * Function to autostart the Uml daemons
+ */
+static void
+umlStateAutoStart(void)
+{
+    if (!uml_driver)
+        return;
+
+    umlAutostartConfigs(uml_driver);
 }
 
 static void umlNotifyLoadDomain(virDomainObjPtr vm, int newVM, void *opaque)
@@ -793,10 +803,8 @@ static int umlReadPidFile(struct uml_driver *driver,
 
     vm->pid = -1;
     if (virAsprintf(&pidfile, "%s/%s/pid",
-                    driver->monitorDir, vm->def->name) < 0) {
-        virReportOOMError();
+                    driver->monitorDir, vm->def->name) < 0)
         return -1;
-    }
 
 reopen:
     if (!(file = fopen(pidfile, "r"))) {
@@ -835,10 +843,8 @@ static int umlMonitorAddress(const struct uml_driver *driver,
     int retval = 0;
 
     if (virAsprintf(&sockname, "%s/%s/mconsole",
-                    driver->monitorDir, vm->def->name) < 0) {
-        virReportOOMError();
+                    driver->monitorDir, vm->def->name) < 0)
         return -1;
-    }
 
     memset(addr, 0, sizeof(*addr));
     addr->sun_family = AF_UNIX;
@@ -974,10 +980,8 @@ static int umlMonitorCommand(const struct uml_driver *driver,
             goto error;
         }
 
-        if (VIR_REALLOC_N(retdata, retlen + res.length) < 0) {
-            virReportOOMError();
+        if (VIR_REALLOC_N(retdata, retlen + res.length) < 0)
             goto error;
-        }
         memcpy(retdata + retlen, res.data, res.length);
         retlen += res.length - 1;
         retdata[retlen] = '\0';
@@ -1003,7 +1007,7 @@ error:
 
 
 static void umlCleanupTapDevices(virDomainObjPtr vm) {
-    int i;
+    size_t i;
 
     for (i = 0; i < vm->def->nnets; i++) {
         virDomainNetDefPtr def = vm->def->nets[i];
@@ -1057,10 +1061,8 @@ static int umlStartVMDaemon(virConnectPtr conn,
     }
 
     if (virAsprintf(&logfile, "%s/%s.log",
-                    driver->logDir, vm->def->name) < 0) {
-        virReportOOMError();
+                    driver->logDir, vm->def->name) < 0)
         return -1;
-    }
 
     if ((logfd = open(logfile, O_CREAT | O_TRUNC | O_WRONLY,
                       S_IRUSR | S_IWUSR)) < 0) {
@@ -1095,10 +1097,8 @@ static int umlStartVMDaemon(virConnectPtr conn,
 
     for (i = 0; i < vm->def->nconsoles; i++) {
         VIR_FREE(vm->def->consoles[i]->info.alias);
-        if (virAsprintf(&vm->def->consoles[i]->info.alias, "console%zu", i) < 0) {
-            virReportOOMError();
+        if (virAsprintf(&vm->def->consoles[i]->info.alias, "console%zu", i) < 0)
             goto cleanup;
-        }
     }
 
     virCommandWriteArgLog(cmd, logfd);
@@ -1545,7 +1545,8 @@ static int umlConnectListDomains(virConnectPtr conn, int *ids, int nids) {
         return -1;
 
     umlDriverLock(driver);
-    n = virDomainObjListGetActiveIDs(driver->domains, ids, nids);
+    n = virDomainObjListGetActiveIDs(driver->domains, ids, nids,
+                                     virConnectListDomainsCheckACL, conn);
     umlDriverUnlock(driver);
 
     return n;
@@ -1558,7 +1559,8 @@ static int umlConnectNumOfDomains(virConnectPtr conn) {
         return -1;
 
     umlDriverLock(driver);
-    n = virDomainObjListNumOfDomains(driver->domains, 1);
+    n = virDomainObjListNumOfDomains(driver->domains, true,
+                                     virConnectNumOfDomainsCheckACL, conn);
     umlDriverUnlock(driver);
 
     return n;
@@ -1965,7 +1967,8 @@ static int umlConnectListDefinedDomains(virConnectPtr conn,
         return -1;
 
     umlDriverLock(driver);
-    n = virDomainObjListGetInactiveNames(driver->domains, names, nnames);
+    n = virDomainObjListGetInactiveNames(driver->domains, names, nnames,
+                                         virConnectListDefinedDomainsCheckACL, conn);
     umlDriverUnlock(driver);
 
     return n;
@@ -1979,7 +1982,8 @@ static int umlConnectNumOfDefinedDomains(virConnectPtr conn) {
         return -1;
 
     umlDriverLock(driver);
-    n = virDomainObjListNumOfDomains(driver->domains, 0);
+    n = virDomainObjListNumOfDomains(driver->domains, false,
+                                     virConnectNumOfDefinedDomainsCheckACL, conn);
     umlDriverUnlock(driver);
 
     return n;
@@ -2123,7 +2127,7 @@ static int umlDomainAttachUmlDisk(struct uml_driver *driver,
                                   virDomainObjPtr vm,
                                   virDomainDiskDefPtr disk)
 {
-    int i;
+    size_t i;
     char *cmd = NULL;
     char *reply = NULL;
 
@@ -2141,18 +2145,14 @@ static int umlDomainAttachUmlDisk(struct uml_driver *driver,
         goto error;
     }
 
-    if (virAsprintf(&cmd, "config %s=%s", disk->dst, disk->src) < 0) {
-        virReportOOMError();
+    if (virAsprintf(&cmd, "config %s=%s", disk->dst, disk->src) < 0)
         return -1;
-    }
 
     if (umlMonitorCommand(driver, vm, cmd, &reply) < 0)
         goto error;
 
-    if (VIR_REALLOC_N(vm->def->disks, vm->def->ndisks+1) < 0) {
-        virReportOOMError();
+    if (VIR_REALLOC_N(vm->def->disks, vm->def->ndisks+1) < 0)
         goto error;
-    }
 
     virDomainDiskInsertPreAlloced(vm->def, disk);
 
@@ -2251,7 +2251,8 @@ static int umlDomainDetachUmlDisk(struct uml_driver *driver,
                                   virDomainObjPtr vm,
                                   virDomainDeviceDefPtr dev)
 {
-    int i, ret = -1;
+    size_t i;
+    int ret = -1;
     virDomainDiskDefPtr detach = NULL;
     char *cmd;
     char *reply;
@@ -2270,10 +2271,8 @@ static int umlDomainDetachUmlDisk(struct uml_driver *driver,
 
     detach = vm->def->disks[i];
 
-    if (virAsprintf(&cmd, "remove %s", detach->dst) < 0) {
-        virReportOOMError();
+    if (virAsprintf(&cmd, "remove %s", detach->dst) < 0)
         return -1;
-    }
 
     if (umlMonitorCommand(driver, vm, cmd, &reply) < 0)
         goto cleanup;
@@ -2710,7 +2709,8 @@ static int umlConnectListAllDomains(virConnectPtr conn,
         return -1;
 
     umlDriverLock(driver);
-    ret = virDomainObjListExport(driver->domains, conn, domains, flags);
+    ret = virDomainObjListExport(driver->domains, conn, domains,
+                                 virConnectListAllDomainsCheckACL, flags);
     umlDriverUnlock(driver);
 
     return ret;
@@ -2897,6 +2897,7 @@ static virDriver umlDriver = {
 static virStateDriver umlStateDriver = {
     .name = "UML",
     .stateInitialize = umlStateInitialize,
+    .stateAutoStart = umlStateAutoStart,
     .stateCleanup = umlStateCleanup,
     .stateReload = umlStateReload,
 };

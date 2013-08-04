@@ -767,8 +767,7 @@ openvzGenerateVethName(int veid, char *dev_name_ve)
 
     if (sscanf(dev_name_ve, "%*[^0-9]%d", &ifNo) != 1)
         return NULL;
-    if (virAsprintf(&ret, "veth%d.%d.", veid, ifNo) < 0)
-        virReportOOMError();
+    ignore_value(virAsprintf(&ret, "veth%d.%d.", veid, ifNo));
     return ret;
 }
 
@@ -795,8 +794,7 @@ openvzGenerateContainerVethName(int veid)
         }
 
         /* set new name */
-        if (virAsprintf(&name, "eth%d", max + 1) < 0)
-            virReportOOMError();
+        ignore_value(virAsprintf(&name, "eth%d", max + 1));
     }
 
     VIR_FREE(temp);
@@ -909,7 +907,7 @@ static int
 openvzDomainSetNetworkConfig(virConnectPtr conn,
                              virDomainDefPtr def)
 {
-    unsigned int i;
+    size_t i;
     virBuffer buf = VIR_BUFFER_INITIALIZER;
     char *param;
     int first = 1;
@@ -1448,10 +1446,8 @@ static virDrvOpenStatus openvzConnectOpen(virConnectPtr conn,
     /* We now know the URI is definitely for this driver, so beyond
      * here, don't return DECLINED, always use ERROR */
 
-    if (VIR_ALLOC(driver) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC(driver) < 0)
         return VIR_DRV_OPEN_ERROR;
-    }
 
     if (!(driver->domains = virDomainObjListNew()))
         goto cleanup;
@@ -1566,7 +1562,7 @@ static int openvzConnectNumOfDomains(virConnectPtr conn) {
     int n;
 
     openvzDriverLock(driver);
-    n = virDomainObjListNumOfDomains(driver->domains, 1);
+    n = virDomainObjListNumOfDomains(driver->domains, true, NULL, NULL);
     openvzDriverUnlock(driver);
 
     return n;
@@ -1678,7 +1674,7 @@ static int openvzConnectNumOfDefinedDomains(virConnectPtr conn) {
     int n;
 
     openvzDriverLock(driver);
-    n = virDomainObjListNumOfDomains(driver->domains, 0);
+    n = virDomainObjListNumOfDomains(driver->domains, false, NULL, NULL);
     openvzDriverUnlock(driver);
 
     return n;
@@ -1793,7 +1789,8 @@ openvzDomainGetMemoryParameters(virDomainPtr domain,
                                 int *nparams,
                                 unsigned int flags)
 {
-    int i, result = -1;
+    size_t i;
+    int result = -1;
     const char *name;
     long kb_per_pages;
     unsigned long long barrier, limit, val;
@@ -1863,7 +1860,8 @@ openvzDomainSetMemoryParameters(virDomainPtr domain,
                                 int nparams,
                                 unsigned int flags)
 {
-    int i, result = -1;
+    size_t i;
+    int result = -1;
     long kb_per_pages;
 
     kb_per_pages = openvzKBPerPages();
@@ -1963,7 +1961,7 @@ openvzDomainInterfaceStats(virDomainPtr dom,
 {
     struct openvz_driver *driver = dom->conn->privateData;
     virDomainObjPtr vm;
-    int i;
+    size_t i;
     int ret = -1;
 
     openvzDriverLock(driver);
@@ -2122,7 +2120,8 @@ openvzConnectListAllDomains(virConnectPtr conn,
     virCheckFlags(VIR_CONNECT_LIST_DOMAINS_FILTERS_ALL, -1);
 
     openvzDriverLock(driver);
-    ret = virDomainObjListExport(driver->domains, conn, domains, flags);
+    ret = virDomainObjListExport(driver->domains, conn, domains,
+                                 NULL, flags);
     openvzDriverUnlock(driver);
 
     return ret;

@@ -208,20 +208,14 @@ xenDomainUsedCpus(virDomainPtr dom)
     if (xenUnifiedNodeGetInfo(dom->conn, &nodeinfo) < 0)
         return NULL;
 
-    if (!(cpulist = virBitmapNew(priv->nbNodeCpus))) {
-        virReportOOMError();
+    if (!(cpulist = virBitmapNew(priv->nbNodeCpus)))
         goto done;
-    }
-    if (VIR_ALLOC_N(cpuinfo, nb_vcpu) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC_N(cpuinfo, nb_vcpu) < 0)
         goto done;
-    }
     cpumaplen = VIR_CPU_MAPLEN(VIR_NODEINFO_MAXCPUS(nodeinfo));
     if (xalloc_oversized(nb_vcpu, cpumaplen) ||
-        VIR_ALLOC_N(cpumap, nb_vcpu * cpumaplen) < 0) {
-        virReportOOMError();
+        VIR_ALLOC_N(cpumap, nb_vcpu * cpumaplen) < 0)
         goto done;
-    }
 
     if ((ncpus = xenUnifiedDomainGetVcpus(dom, cpuinfo, nb_vcpu,
                                           cpumap, cpumaplen)) >= 0) {
@@ -371,6 +365,13 @@ xenUnifiedConnectOpen(virConnectPtr conn, virConnectAuthPtr auth, unsigned int f
         if (!xenUnifiedProbe())
             return VIR_DRV_OPEN_DECLINED;
 
+#ifdef WITH_LIBXL
+        /* Decline xen:// URI if xend is not running and libxenlight
+         * driver is potentially available. */
+        if (!xenUnifiedXendProbe())
+            return VIR_DRV_OPEN_DECLINED;
+#endif
+
         if (!(conn->uri = virURIParse("xen:///")))
             return VIR_DRV_OPEN_ERROR;
     } else {
@@ -380,6 +381,12 @@ xenUnifiedConnectOpen(virConnectPtr conn, virConnectAuthPtr auth, unsigned int f
                 STRCASENEQ(conn->uri->scheme, "http"))
                 return VIR_DRV_OPEN_DECLINED;
 
+#ifdef WITH_LIBXL
+            /* Decline xen:// URI if xend is not running and libxenlight
+             * driver is potentially available. */
+            if (!xenUnifiedXendProbe())
+                return VIR_DRV_OPEN_DECLINED;
+#endif
 
             /* Return an error if the path isn't '' or '/' */
             if (conn->uri->path &&
@@ -401,13 +408,6 @@ xenUnifiedConnectOpen(virConnectPtr conn, virConnectAuthPtr auth, unsigned int f
         }
     }
 
-#ifdef WITH_LIBXL
-    /* Decline xen:// URI if xend is not running and libxenlight
-     * driver is potentially available. */
-    if (!xenUnifiedXendProbe())
-        return VIR_DRV_OPEN_DECLINED;
-#endif
-
     /* We now know the URI is definitely for this driver, so beyond
      * here, don't return DECLINED, always use ERROR */
 
@@ -415,10 +415,8 @@ xenUnifiedConnectOpen(virConnectPtr conn, virConnectAuthPtr auth, unsigned int f
         return VIR_DRV_OPEN_ERROR;
 
     /* Allocate per-connection private data. */
-    if (VIR_ALLOC(priv) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC(priv) < 0)
         return VIR_DRV_OPEN_ERROR;
-    }
     if (virMutexInit(&priv->lock) < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        "%s", _("cannot initialize mutex"));
@@ -856,10 +854,8 @@ xenUnifiedDomainIsPersistent(virDomainPtr dom)
                 /* If its running there's no official way to tell, so we
                  * go behind xend's back & look at the config dir */
                 virUUIDFormat(dom->uuid, uuidstr);
-                if (virAsprintf(&path, "%s/%s", XEND_DOMAINS_DIR, uuidstr) < 0) {
-                    virReportOOMError();
+                if (virAsprintf(&path, "%s/%s", XEND_DOMAINS_DIR, uuidstr) < 0)
                     goto cleanup;
-                }
                 if (access(path, R_OK) == 0)
                     ret = 1;
                 else if (errno == ENOENT)
@@ -1202,10 +1198,8 @@ xenUnifiedDomainManagedSavePath(xenUnifiedPrivatePtr priv,
 {
     char *ret;
 
-    if (virAsprintf(&ret, "%s/%s.save", priv->saveDir, def->name) < 0) {
-        virReportOOMError();
+    if (virAsprintf(&ret, "%s/%s.save", priv->saveDir, def->name) < 0)
         return NULL;
-    }
 
     VIR_DEBUG("managed save image: %s", ret);
     return ret;
@@ -1617,10 +1611,8 @@ xenUnifiedConnectDomainXMLToNative(virConnectPtr conn,
         if (!conf)
             goto cleanup;
 
-        if (VIR_ALLOC_N(ret, len) < 0) {
-            virReportOOMError();
+        if (VIR_ALLOC_N(ret, len) < 0)
             goto cleanup;
-        }
 
         if (virConfWriteMem(ret, &len, conf) < 0) {
             VIR_FREE(ret);
@@ -2459,7 +2451,8 @@ static int
 xenUnifiedNodeDeviceAssignedDomainId(virNodeDevicePtr dev)
 {
     int numdomains;
-    int ret = -1, i;
+    int ret = -1;
+    size_t i;
     int *ids = NULL;
     char *bdf = NULL;
     char *xref = NULL;
@@ -2473,10 +2466,8 @@ xenUnifiedNodeDeviceAssignedDomainId(virNodeDevicePtr dev)
         return ret;
     }
     if (numdomains > 0){
-        if (VIR_ALLOC_N(ids, numdomains) < 0) {
-            virReportOOMError();
+        if (VIR_ALLOC_N(ids, numdomains) < 0)
             goto out;
-        }
         if ((numdomains = xenUnifiedConnectListDomains(conn, &ids[0], numdomains)) < 0) {
             goto out;
         }
@@ -2487,10 +2478,8 @@ xenUnifiedNodeDeviceAssignedDomainId(virNodeDevicePtr dev)
         goto out;
 
     if (virAsprintf(&bdf, "%04x:%02x:%02x.%0x",
-                    domain, bus, slot, function) < 0) {
-        virReportOOMError();
+                    domain, bus, slot, function) < 0)
         goto out;
-    }
 
     xenUnifiedLock(priv);
     /* Check if bdf is assigned to one of active domains */
@@ -2786,7 +2775,7 @@ xenRegister(void)
 void
 xenUnifiedDomainInfoListFree(xenUnifiedDomainInfoListPtr list)
 {
-    int i;
+    size_t i;
 
     if (list == NULL)
         return;
@@ -2824,7 +2813,7 @@ xenUnifiedAddDomainInfo(xenUnifiedDomainInfoListPtr list,
     }
 
     if (VIR_ALLOC(info) < 0)
-        goto memory_error;
+        goto error;
     if (VIR_STRDUP(info->name, name) < 0)
         goto error;
 
@@ -2834,14 +2823,12 @@ xenUnifiedAddDomainInfo(xenUnifiedDomainInfoListPtr list,
     /* Make space on list */
     n = list->count;
     if (VIR_REALLOC_N(list->doms, n + 1) < 0) {
-        goto memory_error;
+        goto error;
     }
 
     list->doms[n] = info;
     list->count++;
     return 0;
-memory_error:
-    virReportOOMError();
 error:
     if (info)
         VIR_FREE(info->name);
@@ -2861,7 +2848,7 @@ xenUnifiedRemoveDomainInfo(xenUnifiedDomainInfoListPtr list,
                            int id, char *name,
                            unsigned char *uuid)
 {
-    int i;
+    size_t i;
     for (i = 0; i < list->count; i++) {
         if (list->doms[i]->id == id &&
             STREQ(list->doms[i]->name, name) &&

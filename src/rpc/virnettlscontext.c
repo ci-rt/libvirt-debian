@@ -287,7 +287,7 @@ static int virNetTLSContextCheckCertKeyPurpose(gnutls_x509_crt_t cert,
                                                bool isServer)
 {
     int status;
-    int i;
+    size_t i;
     unsigned int purposeCritical;
     unsigned int critical;
     char *buffer = NULL;
@@ -300,7 +300,7 @@ static int virNetTLSContextCheckCertKeyPurpose(gnutls_x509_crt_t cert,
         status = gnutls_x509_crt_get_key_purpose_oid(cert, i, buffer, &size, NULL);
 
         if (status == GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE) {
-            VIR_DEBUG("No key purpose data available at slot %d", i);
+            VIR_DEBUG("No key purpose data available at slot %zu", i);
 
             /* If there is no data at all, then we must allow client/server to pass */
             if (i == 0)
@@ -314,10 +314,8 @@ static int virNetTLSContextCheckCertKeyPurpose(gnutls_x509_crt_t cert,
             return -1;
         }
 
-        if (VIR_ALLOC_N(buffer, size) < 0) {
-            virReportOOMError();
+        if (VIR_ALLOC_N(buffer, size) < 0)
             return -1;
-        }
 
         status = gnutls_x509_crt_get_key_purpose_oid(cert, i, buffer, &size, &purposeCritical);
         if (status < 0) {
@@ -776,17 +774,17 @@ static int virNetTLSContextLocateCredentials(const char *pkipath,
         VIR_DEBUG("Told to use TLS credentials in %s", pkipath);
         if ((virAsprintf(cacert, "%s/%s", pkipath,
                          "cacert.pem")) < 0)
-            goto out_of_memory;
+            goto error;
         if ((virAsprintf(cacrl, "%s/%s", pkipath,
                          "cacrl.pem")) < 0)
-            goto out_of_memory;
+            goto error;
         if ((virAsprintf(key, "%s/%s", pkipath,
                          isServer ? "serverkey.pem" : "clientkey.pem")) < 0)
-            goto out_of_memory;
+            goto error;
 
         if ((virAsprintf(cert, "%s/%s", pkipath,
                          isServer ? "servercert.pem" : "clientcert.pem")) < 0)
-             goto out_of_memory;
+             goto error;
     } else if (tryUserPkiPath) {
         /* Check to see if $HOME/.pki contains at least one of the
          * files and if so, use that
@@ -794,28 +792,28 @@ static int virNetTLSContextLocateCredentials(const char *pkipath,
         userdir = virGetUserDirectory();
 
         if (!userdir)
-            goto out_of_memory;
+            goto error;
 
         if (virAsprintf(&user_pki_path, "%s/.pki/libvirt", userdir) < 0)
-            goto out_of_memory;
+            goto error;
 
         VIR_DEBUG("Trying to find TLS user credentials in %s", user_pki_path);
 
         if ((virAsprintf(cacert, "%s/%s", user_pki_path,
                          "cacert.pem")) < 0)
-            goto out_of_memory;
+            goto error;
 
         if ((virAsprintf(cacrl, "%s/%s", user_pki_path,
                          "cacrl.pem")) < 0)
-            goto out_of_memory;
+            goto error;
 
         if ((virAsprintf(key, "%s/%s", user_pki_path,
                          isServer ? "serverkey.pem" : "clientkey.pem")) < 0)
-            goto out_of_memory;
+            goto error;
 
         if ((virAsprintf(cert, "%s/%s", user_pki_path,
                          isServer ? "servercert.pem" : "clientcert.pem")) < 0)
-            goto out_of_memory;
+            goto error;
 
         /*
          * If some of the files can't be found, fallback
@@ -864,8 +862,6 @@ static int virNetTLSContextLocateCredentials(const char *pkipath,
 
     return 0;
 
-out_of_memory:
-    virReportOOMError();
 error:
     VIR_FREE(*cacert);
     VIR_FREE(*cacrl);
@@ -954,7 +950,8 @@ static int virNetTLSContextValidCertificate(virNetTLSContextPtr ctxt,
     int ret;
     unsigned int status;
     const gnutls_datum_t *certs;
-    unsigned int nCerts, i;
+    unsigned int nCerts;
+    size_t i;
     char dname[256];
     char *dnameptr = dname;
     size_t dnamesize = sizeof(dname);

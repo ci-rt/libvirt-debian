@@ -186,7 +186,7 @@ remoteFindDaemonPath(void)
         SBINDIR "/libvirtd_dbg",
         NULL
     };
-    int i;
+    size_t i;
     const char *customDaemon = getenv("LIBVIRTD_PATH");
 
     if (customDaemon)
@@ -268,6 +268,11 @@ remoteDomainBuildEventPMSuspendDisk(virNetClientProgramPtr prog,
                                   virNetClientPtr client,
                                   void *evdata, void *opaque);
 
+static void
+remoteDomainBuildEventDeviceRemoved(virNetClientProgramPtr prog,
+                                    virNetClientPtr client,
+                                    void *evdata, void *opaque);
+
 static virNetClientProgramEvent remoteDomainEvents[] = {
     { REMOTE_PROC_DOMAIN_EVENT_RTC_CHANGE,
       remoteDomainBuildEventRTCChange,
@@ -329,6 +334,10 @@ static virNetClientProgramEvent remoteDomainEvents[] = {
       remoteDomainBuildEventPMSuspendDisk,
       sizeof(remote_domain_event_pmsuspend_disk_msg),
       (xdrproc_t)xdr_remote_domain_event_pmsuspend_disk_msg },
+    { REMOTE_PROC_DOMAIN_EVENT_DEVICE_REMOVED,
+      remoteDomainBuildEventDeviceRemoved,
+      sizeof(remote_domain_event_device_removed_msg),
+      (xdrproc_t)xdr_remote_domain_event_device_removed_msg },
 };
 
 enum virDrvOpenRemoteFlags {
@@ -495,7 +504,7 @@ doRemoteOpen(virConnectPtr conn,
     /* Remote server defaults to "localhost" if not specified. */
     if (conn->uri && conn->uri->port != 0) {
         if (virAsprintf(&port, "%d", conn->uri->port) < 0)
-            goto no_memory;
+            goto failed;
     } else if (transport == trans_tls) {
         if (VIR_STRDUP(port, LIBVIRTD_TLS_PORT) < 0)
             goto failed;
@@ -517,7 +526,7 @@ doRemoteOpen(virConnectPtr conn,
      * feasibly it might contain variables needed by the real driver,
      * although that won't be the case for now).
      */
-    int i;
+    size_t i;
 
     if (conn->uri) {
         for (i = 0; i < conn->uri->paramsCount; i++) {
@@ -609,6 +618,7 @@ doRemoteOpen(virConnectPtr conn,
         priv->is_secure = 1;
 #else
         (void)sanity;
+        (void)verify;
         virReportError(VIR_ERR_INVALID_ARG, "%s",
                        _("GNUTLS support not available in this build"));
         goto failed;
@@ -658,7 +668,8 @@ doRemoteOpen(virConnectPtr conn,
                                               sshauth,
                                               netcat,
                                               sockname,
-                                              auth);
+                                              auth,
+                                              conn->uri);
         if (!priv->client)
             goto failed;
 
@@ -676,7 +687,7 @@ doRemoteOpen(virConnectPtr conn,
 
                 if (virAsprintf(&sockname, "%s/" LIBVIRTD_USER_UNIX_SOCKET, userdir) < 0) {
                     VIR_FREE(userdir);
-                    goto no_memory;
+                    goto failed;
                 }
                 VIR_FREE(userdir);
             } else {
@@ -877,9 +888,6 @@ doRemoteOpen(virConnectPtr conn,
 
     return retcode;
 
-no_memory:
-    virReportOOMError();
-
  failed:
     virObjectUnref(priv->remoteProgram);
     virObjectUnref(priv->lxcProgram);
@@ -898,10 +906,8 @@ static struct private_data *
 remoteAllocPrivateData(void)
 {
     struct private_data *priv;
-    if (VIR_ALLOC(priv) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC(priv) < 0)
         return NULL;
-    }
 
     if (virMutexInit(&priv->lock) < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
@@ -1191,7 +1197,7 @@ remoteNodeGetCPUStats(virConnectPtr conn,
     int rv = -1;
     remote_node_get_cpu_stats_args args;
     remote_node_get_cpu_stats_ret ret;
-    int i = -1;
+    size_t i;
     struct private_data *priv = conn->privateData;
 
     remoteDriverLock(priv);
@@ -1257,7 +1263,7 @@ remoteNodeGetMemoryStats(virConnectPtr conn,
     int rv = -1;
     remote_node_get_memory_stats_args args;
     remote_node_get_memory_stats_ret ret;
-    int i = -1;
+    size_t i;
     struct private_data *priv = conn->privateData;
 
     remoteDriverLock(priv);
@@ -1320,7 +1326,7 @@ remoteNodeGetCellsFreeMemory(virConnectPtr conn,
     int rv = -1;
     remote_node_get_cells_free_memory_args args;
     remote_node_get_cells_free_memory_ret ret;
-    int i;
+    size_t i;
     struct private_data *priv = conn->privateData;
 
     remoteDriverLock(priv);
@@ -1357,7 +1363,7 @@ static int
 remoteConnectListDomains(virConnectPtr conn, int *ids, int maxids)
 {
     int rv = -1;
-    int i;
+    size_t i;
     remote_connect_list_domains_args args;
     remote_connect_list_domains_ret ret;
     struct private_data *priv = conn->privateData;
@@ -1404,7 +1410,7 @@ remoteConnectListAllDomains(virConnectPtr conn,
                             unsigned int flags)
 {
     int rv = -1;
-    int i;
+    size_t i;
     virDomainPtr *doms = NULL;
     remote_connect_list_all_domains_args args;
     remote_connect_list_all_domains_ret ret;
@@ -1428,17 +1434,13 @@ remoteConnectListAllDomains(virConnectPtr conn,
         goto done;
 
     if (domains) {
-        if (VIR_ALLOC_N(doms, ret.domains.domains_len + 1) < 0) {
-            virReportOOMError();
+        if (VIR_ALLOC_N(doms, ret.domains.domains_len + 1) < 0)
             goto cleanup;
-        }
 
         for (i = 0; i < ret.domains.domains_len; i++) {
             doms[i] = get_nonnull_domain(conn, ret.domains.domains_val[i]);
-            if (!doms[i]) {
-                virReportOOMError();
+            if (!doms[i])
                 goto cleanup;
-            }
         }
         *domains = doms;
         doms = NULL;
@@ -1466,7 +1468,7 @@ static void
 remoteFreeTypedParameters(remote_typed_param *args_params_val,
                           u_int args_params_len)
 {
-    u_int i;
+    size_t i;
 
     if (args_params_val == NULL)
         return;
@@ -1487,15 +1489,13 @@ remoteSerializeTypedParameters(virTypedParameterPtr params,
                                remote_typed_param **args_params_val,
                                u_int *args_params_len)
 {
-    int i;
+    size_t i;
     int rv = -1;
     remote_typed_param *val;
 
     *args_params_len = nparams;
-    if (VIR_ALLOC_N(val, nparams) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC_N(val, nparams) < 0)
         goto cleanup;
-    }
 
     for (i = 0; i < nparams; ++i) {
         /* call() will free this: */
@@ -1550,7 +1550,7 @@ remoteDeserializeTypedParameters(remote_typed_param *ret_params_val,
                                  virTypedParameterPtr *params,
                                  int *nparams)
 {
-    int i = 0;
+    size_t i = 0;
     int rv = -1;
     bool userAllocated = *params != NULL;
 
@@ -1562,10 +1562,8 @@ remoteDeserializeTypedParameters(remote_typed_param *ret_params_val,
             goto cleanup;
         }
     } else {
-        if (VIR_ALLOC_N(*params, ret_params_len) < 0) {
-            virReportOOMError();
+        if (VIR_ALLOC_N(*params, ret_params_len) < 0)
             goto cleanup;
-        }
     }
     *nparams = ret_params_len;
 
@@ -1641,8 +1639,8 @@ remoteDeserializeDomainDiskErrors(remote_domain_disk_error *ret_errors_val,
                                   virDomainDiskErrorPtr errors,
                                   int maxerrors)
 {
-    int i = 0;
-    int j;
+    size_t i = 0;
+    size_t j;
 
     if (ret_errors_len > limit || ret_errors_len > maxerrors) {
         virReportError(VIR_ERR_RPC, "%s",
@@ -1880,7 +1878,7 @@ remoteDomainGetVcpuPinInfo(virDomainPtr domain,
                            unsigned int flags)
 {
     int rv = -1;
-    int i;
+    size_t i;
     remote_domain_get_vcpu_pin_info_args args;
     remote_domain_get_vcpu_pin_info_ret ret;
     struct private_data *priv = domain->conn->privateData;
@@ -1991,7 +1989,7 @@ remoteDomainGetEmulatorPinInfo(virDomainPtr domain,
                                unsigned int flags)
 {
     int rv = -1;
-    int i;
+    size_t i;
     remote_domain_get_emulator_pin_info_args args;
     remote_domain_get_emulator_pin_info_ret ret;
     struct private_data *priv = domain->conn->privateData;
@@ -2050,7 +2048,7 @@ remoteDomainGetVcpus(virDomainPtr domain,
                      int maplen)
 {
     int rv = -1;
-    int i;
+    size_t i;
     remote_domain_get_vcpus_args args;
     remote_domain_get_vcpus_ret ret;
     struct private_data *priv = domain->conn->privateData;
@@ -2163,7 +2161,8 @@ remoteDomainGetSecurityLabelList(virDomainPtr domain, virSecurityLabelPtr* secla
     remote_domain_get_security_label_list_args args;
     remote_domain_get_security_label_list_ret ret;
     struct private_data *priv = domain->conn->privateData;
-    int i, rv = -1;
+    size_t i;
+    int rv = -1;
 
     remoteDriverLock(priv);
 
@@ -2425,8 +2424,7 @@ remoteDomainCreateWithFlags(virDomainPtr dom, unsigned int flags)
     int rv = -1;
     struct private_data *priv = dom->conn->privateData;
     remote_domain_create_with_flags_args args;
-    remote_domain_lookup_by_uuid_args args2;
-    remote_domain_lookup_by_uuid_ret ret2;
+    remote_domain_create_with_flags_args ret;
 
     remoteDriverLock(priv);
 
@@ -2435,23 +2433,12 @@ remoteDomainCreateWithFlags(virDomainPtr dom, unsigned int flags)
 
     if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_CREATE_WITH_FLAGS,
              (xdrproc_t)xdr_remote_domain_create_with_flags_args, (char *)&args,
-             (xdrproc_t)xdr_void, (char *)NULL) == -1) {
+             (xdrproc_t)xdr_remote_domain_create_with_flags_ret, (char *)&ret) == -1) {
         goto done;
     }
 
-    /* Need to do a lookup figure out ID of newly started guest, because
-     * bug in design of REMOTE_PROC_DOMAIN_CREATE_WITH_FLAGS means we aren't getting
-     * it returned.
-     */
-    memcpy(args2.uuid, dom->uuid, VIR_UUID_BUFLEN);
-    memset(&ret2, 0, sizeof(ret2));
-    if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_LOOKUP_BY_UUID,
-             (xdrproc_t) xdr_remote_domain_lookup_by_uuid_args, (char *) &args2,
-             (xdrproc_t) xdr_remote_domain_lookup_by_uuid_ret, (char *) &ret2) == -1)
-        goto done;
-
-    dom->id = ret2.dom.id;
-    xdr_free((xdrproc_t) &xdr_remote_domain_lookup_by_uuid_ret, (char *) &ret2);
+    dom->id = ret.dom.id;
+    xdr_free((xdrproc_t) &xdr_remote_domain_create_with_flags_ret, (char *) &ret);
     rv = 0;
 
 done:
@@ -2497,7 +2484,7 @@ remoteDomainMemoryStats(virDomainPtr domain,
     remote_domain_memory_stats_args args;
     remote_domain_memory_stats_ret ret;
     struct private_data *priv = domain->conn->privateData;
-    unsigned int i;
+    size_t i;
 
     remoteDriverLock(priv);
 
@@ -2825,7 +2812,7 @@ remoteConnectListAllNetworks(virConnectPtr conn,
                              unsigned int flags)
 {
     int rv = -1;
-    int i;
+    size_t i;
     virNetworkPtr *tmp_nets = NULL;
     remote_connect_list_all_networks_args args;
     remote_connect_list_all_networks_ret ret;
@@ -2849,17 +2836,13 @@ remoteConnectListAllNetworks(virConnectPtr conn,
         goto done;
 
     if (nets) {
-        if (VIR_ALLOC_N(tmp_nets, ret.nets.nets_len + 1) < 0) {
-            virReportOOMError();
+        if (VIR_ALLOC_N(tmp_nets, ret.nets.nets_len + 1) < 0)
             goto cleanup;
-        }
 
         for (i = 0; i < ret.nets.nets_len; i++) {
             tmp_nets[i] = get_nonnull_network(conn, ret.nets.nets_val[i]);
-            if (!tmp_nets[i]) {
-                virReportOOMError();
+            if (!tmp_nets[i])
                 goto cleanup;
-            }
         }
         *nets = tmp_nets;
         tmp_nets = NULL;
@@ -2888,7 +2871,7 @@ remoteConnectListAllInterfaces(virConnectPtr conn,
                                unsigned int flags)
 {
     int rv = -1;
-    int i;
+    size_t i;
     virInterfacePtr *tmp_ifaces = NULL;
     remote_connect_list_all_interfaces_args args;
     remote_connect_list_all_interfaces_ret ret;
@@ -2912,17 +2895,13 @@ remoteConnectListAllInterfaces(virConnectPtr conn,
         goto done;
 
     if (ifaces) {
-        if (VIR_ALLOC_N(tmp_ifaces, ret.ifaces.ifaces_len + 1) < 0) {
-            virReportOOMError();
+        if (VIR_ALLOC_N(tmp_ifaces, ret.ifaces.ifaces_len + 1) < 0)
             goto cleanup;
-        }
 
         for (i = 0; i < ret.ifaces.ifaces_len; i++) {
             tmp_ifaces[i] = get_nonnull_interface(conn, ret.ifaces.ifaces_val[i]);
-            if (!tmp_ifaces[i]) {
-                virReportOOMError();
+            if (!tmp_ifaces[i])
                 goto cleanup;
-            }
         }
         *ifaces = tmp_ifaces;
         tmp_ifaces = NULL;
@@ -2951,7 +2930,7 @@ remoteConnectListAllNodeDevices(virConnectPtr conn,
                                 unsigned int flags)
 {
     int rv = -1;
-    int i;
+    size_t i;
     virNodeDevicePtr *tmp_devices = NULL;
     remote_connect_list_all_node_devices_args args;
     remote_connect_list_all_node_devices_ret ret;
@@ -2975,17 +2954,13 @@ remoteConnectListAllNodeDevices(virConnectPtr conn,
         goto done;
 
     if (devices) {
-        if (VIR_ALLOC_N(tmp_devices, ret.devices.devices_len + 1) < 0) {
-            virReportOOMError();
+        if (VIR_ALLOC_N(tmp_devices, ret.devices.devices_len + 1) < 0)
             goto cleanup;
-        }
 
         for (i = 0; i < ret.devices.devices_len; i++) {
             tmp_devices[i] = get_nonnull_node_device(conn, ret.devices.devices_val[i]);
-            if (!tmp_devices[i]) {
-                virReportOOMError();
+            if (!tmp_devices[i])
                 goto cleanup;
-            }
         }
         *devices = tmp_devices;
         tmp_devices = NULL;
@@ -3014,7 +2989,7 @@ remoteConnectListAllNWFilters(virConnectPtr conn,
                               unsigned int flags)
 {
     int rv = -1;
-    int i;
+    size_t i;
     virNWFilterPtr *tmp_filters = NULL;
     remote_connect_list_all_nwfilters_args args;
     remote_connect_list_all_nwfilters_ret ret;
@@ -3038,17 +3013,13 @@ remoteConnectListAllNWFilters(virConnectPtr conn,
         goto done;
 
     if (filters) {
-        if (VIR_ALLOC_N(tmp_filters, ret.filters.filters_len + 1) < 0) {
-            virReportOOMError();
+        if (VIR_ALLOC_N(tmp_filters, ret.filters.filters_len + 1) < 0)
             goto cleanup;
-        }
 
         for (i = 0; i < ret.filters.filters_len; i++) {
             tmp_filters[i] = get_nonnull_nwfilter(conn, ret.filters.filters_val[i]);
-            if (!tmp_filters[i]) {
-                virReportOOMError();
+            if (!tmp_filters[i])
                 goto cleanup;
-            }
         }
         *filters = tmp_filters;
         tmp_filters = NULL;
@@ -3077,7 +3048,7 @@ remoteConnectListAllSecrets(virConnectPtr conn,
                             unsigned int flags)
 {
     int rv = -1;
-    int i;
+    size_t i;
     virSecretPtr *tmp_secrets = NULL;
     remote_connect_list_all_secrets_args args;
     remote_connect_list_all_secrets_ret ret;
@@ -3101,17 +3072,13 @@ remoteConnectListAllSecrets(virConnectPtr conn,
         goto done;
 
     if (secrets) {
-        if (VIR_ALLOC_N(tmp_secrets, ret.secrets.secrets_len + 1) < 0) {
-            virReportOOMError();
+        if (VIR_ALLOC_N(tmp_secrets, ret.secrets.secrets_len + 1) < 0)
             goto cleanup;
-        }
 
         for (i = 0; i < ret.secrets.secrets_len; i++) {
             tmp_secrets[i] = get_nonnull_secret(conn, ret.secrets.secrets_val[i]);
-            if (!tmp_secrets[i]) {
-                virReportOOMError();
+            if (!tmp_secrets[i])
                 goto cleanup;
-            }
         }
         *secrets = tmp_secrets;
         tmp_secrets = NULL;
@@ -3278,7 +3245,7 @@ remoteConnectListAllStoragePools(virConnectPtr conn,
                                  unsigned int flags)
 {
     int rv = -1;
-    int i;
+    size_t i;
     virStoragePoolPtr *tmp_pools = NULL;
     remote_connect_list_all_storage_pools_args args;
     remote_connect_list_all_storage_pools_ret ret;
@@ -3302,17 +3269,13 @@ remoteConnectListAllStoragePools(virConnectPtr conn,
         goto done;
 
     if (pools) {
-        if (VIR_ALLOC_N(tmp_pools, ret.pools.pools_len + 1) < 0) {
-            virReportOOMError();
+        if (VIR_ALLOC_N(tmp_pools, ret.pools.pools_len + 1) < 0)
             goto cleanup;
-        }
 
         for (i = 0; i < ret.pools.pools_len; i++) {
             tmp_pools[i] = get_nonnull_storage_pool(conn, ret.pools.pools_val[i]);
-            if (!tmp_pools[i]) {
-                virReportOOMError();
+            if (!tmp_pools[i])
                 goto cleanup;
-            }
         }
         *pools = tmp_pools;
         tmp_pools = NULL;
@@ -3341,7 +3304,7 @@ remoteStoragePoolListAllVolumes(virStoragePoolPtr pool,
                                 unsigned int flags)
 {
     int rv = -1;
-    int i;
+    size_t i;
     virStorageVolPtr *tmp_vols = NULL;
     remote_storage_pool_list_all_volumes_args args;
     remote_storage_pool_list_all_volumes_ret ret;
@@ -3366,17 +3329,13 @@ remoteStoragePoolListAllVolumes(virStoragePoolPtr pool,
         goto done;
 
     if (vols) {
-        if (VIR_ALLOC_N(tmp_vols, ret.vols.vols_len + 1) < 0) {
-            virReportOOMError();
+        if (VIR_ALLOC_N(tmp_vols, ret.vols.vols_len + 1) < 0)
             goto cleanup;
-        }
 
         for (i = 0; i < ret.vols.vols_len; i++) {
             tmp_vols[i] = get_nonnull_storage_vol(pool->conn, ret.vols.vols_val[i]);
-            if (!tmp_vols[i]) {
-                virReportOOMError();
+            if (!tmp_vols[i])
                 goto cleanup;
-            }
         }
         *vols = tmp_vols;
         tmp_vols = NULL;
@@ -3565,7 +3524,8 @@ remoteAuthenticate(virConnectPtr conn, struct private_data *priv,
         return 0;
 
     if (authtype) {
-        int want, i;
+        int want;
+        size_t i;
         if (STRCASEEQ(authtype, "sasl") ||
             STRCASEEQLEN(authtype, "sasl.", 5)) {
             want = REMOTE_AUTH_SASL;
@@ -3714,7 +3674,8 @@ static int remoteAuthCredSASL2Vir(int vircred)
 static sasl_callback_t *remoteAuthMakeCallbacks(int *credtype, int ncredtype)
 {
     sasl_callback_t *cbs;
-    int i, n;
+    size_t i;
+    int n;
     if (VIR_ALLOC_N(cbs, ncredtype+1) < 0) {
         return NULL;
     }
@@ -4204,7 +4165,8 @@ remoteAuthPolkit(virConnectPtr conn, struct private_data *priv,
                  virConnectAuthPtr auth)
 {
     remote_auth_polkit_ret ret;
-    int i, allowcb = 0;
+    size_t i;
+    int allowcb = 0;
     virConnectCredential cred = {
         VIR_CRED_EXTERNAL,
         conn->flags & VIR_CONNECT_RO ? "org.libvirt.unix.monitor" : "org.libvirt.unix.manage",
@@ -4499,7 +4461,7 @@ remoteDomainBuildEventGraphics(virNetClientProgramPtr prog ATTRIBUTE_UNUSED,
     virDomainEventGraphicsAddressPtr localAddr = NULL;
     virDomainEventGraphicsAddressPtr remoteAddr = NULL;
     virDomainEventGraphicsSubjectPtr subject = NULL;
-    int i;
+    size_t i;
 
     dom = get_nonnull_domain(conn, msg->dom);
     if (!dom)
@@ -4730,6 +4692,29 @@ remoteDomainBuildEventPMSuspendDisk(virNetClientProgramPtr prog ATTRIBUTE_UNUSED
 }
 
 
+static void
+remoteDomainBuildEventDeviceRemoved(virNetClientProgramPtr prog ATTRIBUTE_UNUSED,
+                                    virNetClientPtr client ATTRIBUTE_UNUSED,
+                                    void *evdata, void *opaque)
+{
+    virConnectPtr conn = opaque;
+    struct private_data *priv = conn->privateData;
+    remote_domain_event_device_removed_msg *msg = evdata;
+    virDomainPtr dom;
+    virDomainEventPtr event = NULL;
+
+    dom = get_nonnull_domain(conn, msg->dom);
+    if (!dom)
+        return;
+
+    event = virDomainEventDeviceRemovedNewFromDom(dom, msg->devAlias);
+
+    virDomainFree(dom);
+
+    remoteDomainEventQueue(priv, event);
+}
+
+
 static virDrvOpenStatus ATTRIBUTE_NONNULL(1)
 remoteSecretOpen(virConnectPtr conn, virConnectAuthPtr auth,
                  unsigned int flags)
@@ -4880,10 +4865,8 @@ remoteStreamEventAddCallback(virStreamPtr st,
     int ret = -1;
     struct remoteStreamCallbackData *cbdata;
 
-    if (VIR_ALLOC(cbdata) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC(cbdata) < 0)
         return -1;
-    }
     cbdata->cb = cb;
     cbdata->opaque = opaque;
     cbdata->ff = ff;
@@ -5752,7 +5735,7 @@ remoteDomainListAllSnapshots(virDomainPtr dom,
                              unsigned int flags)
 {
     int rv = -1;
-    int i;
+    size_t i;
     virDomainSnapshotPtr *snaps = NULL;
     remote_domain_list_all_snapshots_args args;
     remote_domain_list_all_snapshots_ret ret;
@@ -5777,16 +5760,12 @@ remoteDomainListAllSnapshots(virDomainPtr dom,
         goto done;
 
     if (snapshots) {
-        if (VIR_ALLOC_N(snaps, ret.snapshots.snapshots_len + 1) < 0) {
-            virReportOOMError();
+        if (VIR_ALLOC_N(snaps, ret.snapshots.snapshots_len + 1) < 0)
             goto cleanup;
-        }
         for (i = 0; i < ret.snapshots.snapshots_len; i++) {
             snaps[i] = get_nonnull_domain_snapshot(dom, ret.snapshots.snapshots_val[i]);
-            if (!snaps[i]) {
-                virReportOOMError();
+            if (!snaps[i])
                 goto cleanup;
-            }
         }
         *snapshots = snaps;
         snaps = NULL;
@@ -5815,7 +5794,7 @@ remoteDomainSnapshotListAllChildren(virDomainSnapshotPtr parent,
                                     unsigned int flags)
 {
     int rv = -1;
-    int i;
+    size_t i;
     virDomainSnapshotPtr *snaps = NULL;
     remote_domain_snapshot_list_all_children_args args;
     remote_domain_snapshot_list_all_children_ret ret;
@@ -5840,16 +5819,12 @@ remoteDomainSnapshotListAllChildren(virDomainSnapshotPtr parent,
         goto done;
 
     if (snapshots) {
-        if (VIR_ALLOC_N(snaps, ret.snapshots.snapshots_len + 1) < 0) {
-            virReportOOMError();
+        if (VIR_ALLOC_N(snaps, ret.snapshots.snapshots_len + 1) < 0)
             goto cleanup;
-        }
         for (i = 0; i < ret.snapshots.snapshots_len; i++) {
             snaps[i] = get_nonnull_domain_snapshot(parent->domain, ret.snapshots.snapshots_val[i]);
-            if (!snaps[i]) {
-                virReportOOMError();
+            if (!snaps[i])
                 goto cleanup;
-            }
         }
         *snapshots = snaps;
         snaps = NULL;
@@ -5949,10 +5924,8 @@ remoteNodeGetCPUMap(virConnectPtr conn,
         goto cleanup;
 
     if (cpumap) {
-        if (VIR_ALLOC_N(*cpumap, ret.cpumap.cpumap_len) < 0) {
-            virReportOOMError();
+        if (VIR_ALLOC_N(*cpumap, ret.cpumap.cpumap_len) < 0)
             goto cleanup;
-        }
         memcpy(*cpumap, ret.cpumap.cpumap_val, ret.cpumap.cpumap_len);
     }
 
@@ -6434,6 +6407,75 @@ cleanup:
 }
 
 
+static virDomainPtr
+remoteDomainCreateXMLWithFiles(virConnectPtr conn, const char *xml_desc,
+                               unsigned int nfiles, int *files, unsigned int flags)
+{
+    virDomainPtr rv = NULL;
+    struct private_data *priv = conn->privateData;
+    remote_domain_create_xml_with_files_args args;
+    remote_domain_create_xml_with_files_ret ret;
+
+    remoteDriverLock(priv);
+
+    args.xml_desc = (char *)xml_desc;
+    args.flags = flags;
+
+    memset(&ret, 0, sizeof(ret));
+
+    if (callFull(conn, priv, 0,
+                 files, nfiles,
+                 NULL, NULL,
+                 REMOTE_PROC_DOMAIN_CREATE_XML_WITH_FILES,
+                 (xdrproc_t)xdr_remote_domain_create_xml_with_files_args, (char *)&args,
+                 (xdrproc_t)xdr_remote_domain_create_xml_with_files_ret, (char *)&ret) == -1) {
+        goto done;
+    }
+
+    rv = get_nonnull_domain(conn, ret.dom);
+    xdr_free((xdrproc_t)xdr_remote_domain_create_xml_with_files_ret, (char *)&ret);
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+
+static int
+remoteDomainCreateWithFiles(virDomainPtr dom,
+                            unsigned int nfiles, int *files,
+                            unsigned int flags)
+{
+    int rv = -1;
+    struct private_data *priv = dom->conn->privateData;
+    remote_domain_create_with_files_args args;
+    remote_domain_create_with_files_ret ret;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_domain(&args.dom, dom);
+    args.flags = flags;
+
+    memset(&ret, 0, sizeof(ret));
+
+    if (callFull(dom->conn, priv, 0,
+                 files, nfiles,
+                 NULL, NULL,
+                 REMOTE_PROC_DOMAIN_CREATE_WITH_FILES,
+                 (xdrproc_t)xdr_remote_domain_create_with_files_args, (char *)&args,
+                 (xdrproc_t)xdr_remote_domain_create_with_files_ret, (char *)&ret) == -1) {
+        goto done;
+    }
+
+    dom->id = ret.dom.id;
+    xdr_free((xdrproc_t) &xdr_remote_domain_create_with_files_ret, (char *) &ret);
+    rv = 0;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
 static void
 remoteDomainEventQueue(struct private_data *priv, virDomainEventPtr event)
 {
@@ -6591,6 +6633,7 @@ static virDriver remote_driver = {
     .connectNumOfDomains = remoteConnectNumOfDomains, /* 0.3.0 */
     .connectListAllDomains = remoteConnectListAllDomains, /* 0.9.13 */
     .domainCreateXML = remoteDomainCreateXML, /* 0.3.0 */
+    .domainCreateXMLWithFiles = remoteDomainCreateXMLWithFiles, /* 1.1.1 */
     .domainLookupByID = remoteDomainLookupByID, /* 0.3.0 */
     .domainLookupByUUID = remoteDomainLookupByUUID, /* 0.3.0 */
     .domainLookupByName = remoteDomainLookupByName, /* 0.3.0 */
@@ -6609,6 +6652,7 @@ static virDriver remote_driver = {
     .domainSetMaxMemory = remoteDomainSetMaxMemory, /* 0.3.0 */
     .domainSetMemory = remoteDomainSetMemory, /* 0.3.0 */
     .domainSetMemoryFlags = remoteDomainSetMemoryFlags, /* 0.9.0 */
+    .domainSetMemoryStatsPeriod = remoteDomainSetMemoryStatsPeriod, /* 1.1.1 */
     .domainSetMemoryParameters = remoteDomainSetMemoryParameters, /* 0.8.5 */
     .domainGetMemoryParameters = remoteDomainGetMemoryParameters, /* 0.8.5 */
     .domainSetBlkioParameters = remoteDomainSetBlkioParameters, /* 0.9.0 */
@@ -6644,6 +6688,7 @@ static virDriver remote_driver = {
     .connectNumOfDefinedDomains = remoteConnectNumOfDefinedDomains, /* 0.3.0 */
     .domainCreate = remoteDomainCreate, /* 0.3.0 */
     .domainCreateWithFlags = remoteDomainCreateWithFlags, /* 0.8.2 */
+    .domainCreateWithFiles = remoteDomainCreateWithFiles, /* 1.1.1 */
     .domainDefineXML = remoteDomainDefineXML, /* 0.3.0 */
     .domainUndefine = remoteDomainUndefine, /* 0.3.0 */
     .domainUndefineFlags = remoteDomainUndefineFlags, /* 0.9.4 */

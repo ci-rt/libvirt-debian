@@ -1104,10 +1104,8 @@ static int remoteDispatchConnectListDefinedDomains(
     }
 
     /* Allocate return buffer. */
-    if (VIR_ALLOC_N(ret->names.names_val, args->maxnames) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC_N(ret->names.names_val, args->maxnames) < 0)
         goto cleanup;
-    }
 
     if ((len = virConnectListDefinedDomains(priv->conn, ret->names.names_val, args->maxnames)) < 0)
         goto cleanup;
@@ -1168,10 +1166,8 @@ static int remoteDispatchConnectListDefinedInterfaces(
     }
 
     /* Allocate return buffer. */
-    if (VIR_ALLOC_N(ret->names.names_val, args->maxnames) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC_N(ret->names.names_val, args->maxnames) < 0)
         goto cleanup;
-    }
 
     if ((len = virConnectListDefinedInterfaces(priv->conn, ret->names.names_val, args->maxnames)) < 0)
         goto cleanup;
@@ -1232,10 +1228,8 @@ static int remoteDispatchConnectListDefinedNetworks(
     }
 
     /* Allocate return buffer. */
-    if (VIR_ALLOC_N(ret->names.names_val, args->maxnames) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC_N(ret->names.names_val, args->maxnames) < 0)
         goto cleanup;
-    }
 
     if ((len = virConnectListDefinedNetworks(priv->conn, ret->names.names_val, args->maxnames)) < 0)
         goto cleanup;
@@ -1296,10 +1290,8 @@ static int remoteDispatchConnectListDefinedStoragePools(
     }
 
     /* Allocate return buffer. */
-    if (VIR_ALLOC_N(ret->names.names_val, args->maxnames) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC_N(ret->names.names_val, args->maxnames) < 0)
         goto cleanup;
-    }
 
     if ((len = virConnectListDefinedStoragePools(priv->conn, ret->names.names_val, args->maxnames)) < 0)
         goto cleanup;
@@ -1360,10 +1352,8 @@ static int remoteDispatchConnectListDomains(
     }
 
     /* Allocate return buffer. */
-    if (VIR_ALLOC_N(ret->ids.ids_val, args->maxids) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC_N(ret->ids.ids_val, args->maxids) < 0)
         goto cleanup;
-    }
 
     if ((len = virConnectListDomains(priv->conn, ret->ids.ids_val, args->maxids)) < 0)
         goto cleanup;
@@ -1424,10 +1414,8 @@ static int remoteDispatchConnectListInterfaces(
     }
 
     /* Allocate return buffer. */
-    if (VIR_ALLOC_N(ret->names.names_val, args->maxnames) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC_N(ret->names.names_val, args->maxnames) < 0)
         goto cleanup;
-    }
 
     if ((len = virConnectListInterfaces(priv->conn, ret->names.names_val, args->maxnames)) < 0)
         goto cleanup;
@@ -1488,10 +1476,8 @@ static int remoteDispatchConnectListNetworks(
     }
 
     /* Allocate return buffer. */
-    if (VIR_ALLOC_N(ret->names.names_val, args->maxnames) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC_N(ret->names.names_val, args->maxnames) < 0)
         goto cleanup;
-    }
 
     if ((len = virConnectListNetworks(priv->conn, ret->names.names_val, args->maxnames)) < 0)
         goto cleanup;
@@ -1552,10 +1538,8 @@ static int remoteDispatchConnectListNWFilters(
     }
 
     /* Allocate return buffer. */
-    if (VIR_ALLOC_N(ret->names.names_val, args->maxnames) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC_N(ret->names.names_val, args->maxnames) < 0)
         goto cleanup;
-    }
 
     if ((len = virConnectListNWFilters(priv->conn, ret->names.names_val, args->maxnames)) < 0)
         goto cleanup;
@@ -1616,10 +1600,8 @@ static int remoteDispatchConnectListSecrets(
     }
 
     /* Allocate return buffer. */
-    if (VIR_ALLOC_N(ret->uuids.uuids_val, args->maxuuids) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC_N(ret->uuids.uuids_val, args->maxuuids) < 0)
         goto cleanup;
-    }
 
     if ((len = virConnectListSecrets(priv->conn, ret->uuids.uuids_val, args->maxuuids)) < 0)
         goto cleanup;
@@ -1680,10 +1662,8 @@ static int remoteDispatchConnectListStoragePools(
     }
 
     /* Allocate return buffer. */
-    if (VIR_ALLOC_N(ret->names.names_val, args->maxnames) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC_N(ret->names.names_val, args->maxnames) < 0)
         goto cleanup;
-    }
 
     if ((len = virConnectListStoragePools(priv->conn, ret->names.names_val, args->maxnames)) < 0)
         goto cleanup;
@@ -2920,6 +2900,28 @@ cleanup:
 
 
 
+static int remoteDispatchDomainCreateWithFiles(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_domain_create_with_files_args *args,
+    remote_domain_create_with_files_ret *ret);
+static int remoteDispatchDomainCreateWithFilesHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainCreateWithFiles(server, client, msg, rerr, args, ret);
+}
+/* remoteDispatchDomainCreateWithFiles body has to be implemented manually */
+
+
+
 static int remoteDispatchDomainCreateWithFlags(
     virNetServerPtr server,
     virNetServerClientPtr client,
@@ -3024,6 +3026,28 @@ cleanup:
         virDomainFree(dom);
     return rv;
 }
+
+
+
+static int remoteDispatchDomainCreateXMLWithFiles(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_domain_create_xml_with_files_args *args,
+    remote_domain_create_xml_with_files_ret *ret);
+static int remoteDispatchDomainCreateXMLWithFilesHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainCreateXMLWithFiles(server, client, msg, rerr, args, ret);
+}
+/* remoteDispatchDomainCreateXMLWithFiles body has to be implemented manually */
 
 
 
@@ -6995,10 +7019,8 @@ static int remoteDispatchDomainScreenshot(
     if (daemonAddClientStream(client, stream, true) < 0)
         goto cleanup;
 
-    if (VIR_ALLOC(mime_p) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC(mime_p) < 0)
         goto cleanup;
-    }
     
     if (VIR_STRDUP(*mime_p, mime) < 0)
         goto cleanup;
@@ -7585,6 +7607,58 @@ cleanup:
     if (dom)
         virDomainFree(dom);
     virTypedParamsFree(params, nparams);
+    return rv;
+}
+
+
+
+static int remoteDispatchDomainSetMemoryStatsPeriod(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_domain_set_memory_stats_period_args *args);
+static int remoteDispatchDomainSetMemoryStatsPeriodHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret ATTRIBUTE_UNUSED)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainSetMemoryStatsPeriod(server, client, msg, rerr, args);
+}
+static int remoteDispatchDomainSetMemoryStatsPeriod(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_domain_set_memory_stats_period_args *args)
+{
+    int rv = -1;
+    virDomainPtr dom = NULL;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (!(dom = get_nonnull_domain(priv->conn, args->dom)))
+        goto cleanup;
+
+    if (virDomainSetMemoryStatsPeriod(dom, args->period, args->flags) < 0)
+        goto cleanup;
+
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    if (dom)
+        virDomainFree(dom);
     return rv;
 }
 
@@ -8537,10 +8611,8 @@ static int remoteDispatchDomainSnapshotListChildrenNames(
         goto cleanup;
 
     /* Allocate return buffer. */
-    if (VIR_ALLOC_N(ret->names.names_val, args->maxnames) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC_N(ret->names.names_val, args->maxnames) < 0)
         goto cleanup;
-    }
 
     if ((len = virDomainSnapshotListChildrenNames(snapshot, ret->names.names_val, args->maxnames, args->flags)) < 0)
         goto cleanup;
@@ -8609,10 +8681,8 @@ static int remoteDispatchDomainSnapshotListNames(
         goto cleanup;
 
     /* Allocate return buffer. */
-    if (VIR_ALLOC_N(ret->names.names_val, args->maxnames) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC_N(ret->names.names_val, args->maxnames) < 0)
         goto cleanup;
-    }
 
     if ((len = virDomainSnapshotListNames(dom, ret->names.names_val, args->maxnames, args->flags)) < 0)
         goto cleanup;
@@ -10662,10 +10732,8 @@ static int remoteDispatchNodeDeviceListCaps(
         goto cleanup;
 
     /* Allocate return buffer. */
-    if (VIR_ALLOC_N(ret->names.names_val, args->maxnames) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC_N(ret->names.names_val, args->maxnames) < 0)
         goto cleanup;
-    }
 
     if ((len = virNodeDeviceListCaps(dev, ret->names.names_val, args->maxnames)) < 0)
         goto cleanup;
@@ -10992,10 +11060,8 @@ static int remoteDispatchNodeGetCellsFreeMemory(
     }
 
     /* Allocate return buffer. */
-    if (VIR_ALLOC_N(ret->cells.cells_val, args->maxcells) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC_N(ret->cells.cells_val, args->maxcells) < 0)
         goto cleanup;
-    }
 
     if ((len = virNodeGetCellsFreeMemory(priv->conn, (unsigned long long *)ret->cells.cells_val, args->startCell, args->maxcells)) <= 0)
         goto cleanup;
@@ -11271,10 +11337,8 @@ static int remoteDispatchNodeListDevices(
     cap = args->cap ? *args->cap : NULL;
 
     /* Allocate return buffer. */
-    if (VIR_ALLOC_N(ret->names.names_val, args->maxnames) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC_N(ret->names.names_val, args->maxnames) < 0)
         goto cleanup;
-    }
 
     if ((len = virNodeListDevices(priv->conn, cap, ret->names.names_val, args->maxnames, args->flags)) < 0)
         goto cleanup;
@@ -12712,10 +12776,8 @@ static int remoteDispatchStoragePoolListVolumes(
         goto cleanup;
 
     /* Allocate return buffer. */
-    if (VIR_ALLOC_N(ret->names.names_val, args->maxnames) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC_N(ret->names.names_val, args->maxnames) < 0)
         goto cleanup;
-    }
 
     if ((len = virStoragePoolListVolumes(pool, ret->names.names_val, args->maxnames)) < 0)
         goto cleanup;
@@ -16679,6 +16741,42 @@ virNetServerProgramProc remoteProcs[] = {
    remoteDispatchDomainMigrateConfirm3ParamsHelper,
    sizeof(remote_domain_migrate_confirm3_params_args),
    (xdrproc_t)xdr_remote_domain_migrate_confirm3_params_args,
+   0,
+   (xdrproc_t)xdr_void,
+   true,
+   0
+},
+{ /* Method DomainSetMemoryStatsPeriod => 308 */
+   remoteDispatchDomainSetMemoryStatsPeriodHelper,
+   sizeof(remote_domain_set_memory_stats_period_args),
+   (xdrproc_t)xdr_remote_domain_set_memory_stats_period_args,
+   0,
+   (xdrproc_t)xdr_void,
+   true,
+   0
+},
+{ /* Method DomainCreateXMLWithFiles => 309 */
+   remoteDispatchDomainCreateXMLWithFilesHelper,
+   sizeof(remote_domain_create_xml_with_files_args),
+   (xdrproc_t)xdr_remote_domain_create_xml_with_files_args,
+   sizeof(remote_domain_create_xml_with_files_ret),
+   (xdrproc_t)xdr_remote_domain_create_xml_with_files_ret,
+   true,
+   0
+},
+{ /* Method DomainCreateWithFiles => 310 */
+   remoteDispatchDomainCreateWithFilesHelper,
+   sizeof(remote_domain_create_with_files_args),
+   (xdrproc_t)xdr_remote_domain_create_with_files_args,
+   sizeof(remote_domain_create_with_files_ret),
+   (xdrproc_t)xdr_remote_domain_create_with_files_ret,
+   true,
+   0
+},
+{ /* Async event DomainEventDeviceRemoved => 311 */
+   NULL,
+   0,
+   (xdrproc_t)xdr_void,
    0,
    (xdrproc_t)xdr_void,
    true,

@@ -71,7 +71,7 @@ libxlBuildCapabilities(virArch hostarch,
                        int nr_guest_archs)
 {
     virCapsPtr caps;
-    int i;
+    size_t i;
 
     if ((caps = virCapabilitiesNew(hostarch, 1, 1)) == NULL)
         goto no_memory;
@@ -168,7 +168,7 @@ libxlMakeCapabilitiesInternal(virArch hostarch,
     char *str, *token;
     regmatch_t subs[4];
     char *saveptr = NULL;
-    int i;
+    size_t i;
 
     int host_pae = 0;
     struct guest_arch guest_archs[32];
@@ -278,12 +278,11 @@ libxlMakeCapabilitiesInternal(virArch hostarch,
                                        host_pae,
                                        guest_archs,
                                        nr_guest_archs)) == NULL)
-        goto no_memory;
+        goto error;
 
     return caps;
 
- no_memory:
-    virReportOOMError();
+ error:
     virObjectUnref(caps);
     return NULL;
 }
@@ -332,11 +331,13 @@ error:
 }
 
 static int
-libxlMakeDomBuildInfo(virDomainDefPtr def, libxl_domain_config *d_config)
+libxlMakeDomBuildInfo(virDomainObjPtr vm, libxl_domain_config *d_config)
 {
+    virDomainDefPtr def = vm->def;
+    libxlDomainObjPrivatePtr priv = vm->privateData;
     libxl_domain_build_info *b_info = &d_config->b_info;
     int hvm = STREQ(def->os.type, "hvm");
-    int i;
+    size_t i;
 
     libxl_domain_build_info_init(b_info);
 
@@ -344,8 +345,14 @@ libxlMakeDomBuildInfo(virDomainDefPtr def, libxl_domain_config *d_config)
         libxl_domain_build_info_init_type(b_info, LIBXL_DOMAIN_TYPE_HVM);
     else
         libxl_domain_build_info_init_type(b_info, LIBXL_DOMAIN_TYPE_PV);
+
     b_info->max_vcpus = def->maxvcpus;
-    libxl_bitmap_set((&b_info->avail_vcpus), def->vcpus);
+    if (libxl_cpu_bitmap_alloc(priv->ctx, &b_info->avail_vcpus, def->maxvcpus))
+        goto error;
+    libxl_bitmap_set_none(&b_info->avail_vcpus);
+    for (i = 0; i < def->vcpus; i++)
+        libxl_bitmap_set((&b_info->avail_vcpus), i);
+
     if (def->clock.ntimers > 0 &&
         def->clock.timers[0]->name == VIR_DOMAIN_TIMER_NAME_TSC) {
         switch (def->clock.timers[0]->mode) {
@@ -574,12 +581,10 @@ libxlMakeDiskList(virDomainDefPtr def, libxl_domain_config *d_config)
     virDomainDiskDefPtr *l_disks = def->disks;
     int ndisks = def->ndisks;
     libxl_device_disk *x_disks;
-    int i;
+    size_t i;
 
-    if (VIR_ALLOC_N(x_disks, ndisks) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC_N(x_disks, ndisks) < 0)
         return -1;
-    }
 
     for (i = 0; i < ndisks; i++) {
         if (libxlMakeDisk(l_disks[i], &x_disks[i]) < 0)
@@ -646,12 +651,10 @@ libxlMakeNicList(virDomainDefPtr def,  libxl_domain_config *d_config)
     virDomainNetDefPtr *l_nics = def->nets;
     int nnics = def->nnets;
     libxl_device_nic *x_nics;
-    int i;
+    size_t i;
 
-    if (VIR_ALLOC_N(x_nics, nnics) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC_N(x_nics, nnics) < 0)
         return -1;
-    }
 
     for (i = 0; i < nnics; i++) {
         if (libxlMakeNic(l_nics[i], &x_nics[i]))
@@ -729,17 +732,14 @@ libxlMakeVfbList(libxlDriverPrivatePtr driver,
     int nvfbs = def->ngraphics;
     libxl_device_vfb *x_vfbs;
     libxl_device_vkb *x_vkbs;
-    int i;
+    size_t i;
 
     if (nvfbs == 0)
         return 0;
 
-    if (VIR_ALLOC_N(x_vfbs, nvfbs) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC_N(x_vfbs, nvfbs) < 0)
         return -1;
-    }
     if (VIR_ALLOC_N(x_vkbs, nvfbs) < 0) {
-        virReportOOMError();
         VIR_FREE(x_vfbs);
         return -1;
     }
@@ -803,14 +803,16 @@ libxlMakeCapabilities(libxl_ctx *ctx)
 
 int
 libxlBuildDomainConfig(libxlDriverPrivatePtr driver,
-                       virDomainDefPtr def, libxl_domain_config *d_config)
+                       virDomainObjPtr vm, libxl_domain_config *d_config)
 {
+    virDomainDefPtr def = vm->def;
+
     libxl_domain_config_init(d_config);
 
     if (libxlMakeDomCreateInfo(driver, def, &d_config->c_info) < 0)
         return -1;
 
-    if (libxlMakeDomBuildInfo(def, d_config) < 0) {
+    if (libxlMakeDomBuildInfo(vm, d_config) < 0) {
         return -1;
     }
 

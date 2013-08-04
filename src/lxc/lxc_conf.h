@@ -35,6 +35,7 @@
 # include "vircgroup.h"
 # include "virsysinfo.h"
 # include "virusb.h"
+# include "virclosecallbacks.h"
 
 # define LXC_DRIVER_NAME "LXC"
 
@@ -46,21 +47,12 @@
 typedef struct _virLXCDriver virLXCDriver;
 typedef virLXCDriver *virLXCDriverPtr;
 
-struct _virLXCDriver {
-    virMutex lock;
+typedef struct _virLXCDriverConfig virLXCDriverConfig;
+typedef virLXCDriverConfig *virLXCDriverConfigPtr;
 
-    virCapsPtr caps;
-    virDomainXMLOptionPtr xmlopt;
+struct _virLXCDriverConfig {
+    virObject parent;
 
-    virCgroupPtr cgroup;
-
-    virSysinfoDefPtr hostsysinfo;
-
-    size_t nactive;
-    virStateInhibitCallback inhibitCallback;
-    void *inhibitOpaque;
-
-    virDomainObjListPtr domains;
     char *configDir;
     char *autostartDir;
     char *stateDir;
@@ -68,23 +60,59 @@ struct _virLXCDriver {
     int log_libvirtd;
     int have_netns;
 
-    virUSBDeviceListPtr activeUsbHostdevs;
-
-    virDomainEventStatePtr domainEventState;
-
     char *securityDriverName;
     bool securityDefaultConfined;
     bool securityRequireConfined;
-    virSecurityManagerPtr securityManager;
-
-    /* Mapping of 'char *uuidstr' -> virConnectPtr
-     * of guests which will be automatically killed
-     * when the virConnectPtr is closed*/
-    virHashTablePtr autodestroy;
 };
 
-int lxcLoadDriverConfig(virLXCDriverPtr driver);
-virCapsPtr lxcCapsInit(virLXCDriverPtr driver);
+struct _virLXCDriver {
+    virMutex lock;
+
+    /* Require lock to get reference on 'config',
+     * then lockless thereafter */
+    virLXCDriverConfigPtr config;
+
+    /* Require lock to get a reference on the object,
+     * lockless access thereafter */
+    virCapsPtr caps;
+
+    /* Immutable pointer, Immutable object */
+    virDomainXMLOptionPtr xmlopt;
+
+    /* Immutable pointer, lockless APIs*/
+    virSysinfoDefPtr hostsysinfo;
+
+    /* Atomic inc/dec only */
+    unsigned int nactive;
+
+    /* Immutable pointers. Caller must provide locking */
+    virStateInhibitCallback inhibitCallback;
+    void *inhibitOpaque;
+
+    /* Immutable pointer, self-locking APIs */
+    virDomainObjListPtr domains;
+
+    /* Immutable pointer. Requires lock to be held before
+     * calling APIs. */
+    virUSBDeviceListPtr activeUsbHostdevs;
+
+    /* Immutable pointer, self-locking APIs */
+    virDomainEventStatePtr domainEventState;
+
+    /* Immutable pointer. self-locking APIs */
+    virSecurityManagerPtr securityManager;
+
+    /* Immutable pointer, self-locking APIs */
+    virCloseCallbacksPtr closeCallbacks;
+};
+
+virLXCDriverConfigPtr virLXCDriverConfigNew(void);
+virLXCDriverConfigPtr virLXCDriverGetConfig(virLXCDriverPtr driver);
+int virLXCLoadDriverConfig(virLXCDriverConfigPtr cfg,
+                           const char *filename);
+virCapsPtr virLXCDriverCapsInit(virLXCDriverPtr driver);
+virCapsPtr virLXCDriverGetCapabilities(virLXCDriverPtr driver,
+                                       bool refresh);
 virDomainXMLOptionPtr lxcDomainXMLConfInit(void);
 
 static inline void lxcDriverLock(virLXCDriverPtr driver)

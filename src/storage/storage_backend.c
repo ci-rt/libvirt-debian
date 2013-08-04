@@ -161,13 +161,11 @@ virStorageBackendCopyToFD(virStorageVolDefPtr vol,
 
     if (VIR_ALLOC_N(zerobuf, wbytes) < 0) {
         ret = -errno;
-        virReportOOMError();
         goto cleanup;
     }
 
     if (VIR_ALLOC_N(buf, rbytes) < 0) {
         ret = -errno;
-        virReportOOMError();
         goto cleanup;
     }
 
@@ -466,10 +464,8 @@ virStorageGenerateQcowEncryption(virConnectPtr conn,
     }
 
     if (VIR_ALLOC(enc_secret) < 0 || VIR_REALLOC_N(enc->secrets, 1) < 0 ||
-        VIR_ALLOC(def) < 0) {
-        virReportOOMError();
+        VIR_ALLOC(def) < 0)
         goto cleanup;
-    }
 
     def->ephemeral = false;
     def->private = false;
@@ -640,7 +636,7 @@ virStorageBackendCreateQemuImgOpts(char **opts,
 {
     virBuffer buf = VIR_BUFFER_INITIALIZER;
     bool b;
-    int i;
+    size_t i;
 
     if (backingType)
         virBufferAsprintf(&buf, "backing_fmt=%s,", backingType);
@@ -667,6 +663,7 @@ virStorageBackendCreateQemuImgOpts(char **opts,
                     }
                     break;
 
+                /* coverity[dead_error_begin] */
                 case VIR_STORAGE_FILE_FEATURE_LAST:
                     ;
                 }
@@ -798,10 +795,8 @@ virStorageBackendCreateQemuImgCmd(virConnectPtr conn,
          */
         if ('/' != *(vol->backingStore.path) &&
             virAsprintf(&absolutePath, "%s/%s", pool->def->target.path,
-                        vol->backingStore.path) < 0) {
-            virReportOOMError();
+                        vol->backingStore.path) < 0)
             return NULL;
-        }
         accessRetCode = access(absolutePath ? absolutePath
                                : vol->backingStore.path, R_OK);
         VIR_FREE(absolutePath);
@@ -986,10 +981,8 @@ virStorageBackendCreateQcowCreate(virConnectPtr conn ATTRIBUTE_UNUSED,
 
     /* Size in MB - yes different units to qemu-img :-( */
     if (virAsprintf(&size, "%llu",
-                    VIR_DIV_UP(vol->capacity, (1024 * 1024))) < 0) {
-        virReportOOMError();
+                    VIR_DIV_UP(vol->capacity, (1024 * 1024))) < 0)
         return -1;
-    }
 
     cmd = virCommandNewArgList("qcow-create", size, vol->target.path, NULL);
 
@@ -1077,7 +1070,7 @@ virStorageBackendGetBuildVolFromFunction(virStorageVolDefPtr vol,
 virStorageBackendPtr
 virStorageBackendForType(int type)
 {
-    unsigned int i;
+    size_t i;
     for (i = 0; backends[i]; i++)
         if (backends[i]->type == type)
             return backends[i];
@@ -1298,10 +1291,8 @@ virStorageBackendUpdateVolTargetInfoFD(virStorageVolTargetPtr target,
     target->perms.uid = sb.st_uid;
     target->perms.gid = sb.st_gid;
 
-    if (!target->timestamps && VIR_ALLOC(target->timestamps) < 0) {
-        virReportOOMError();
+    if (!target->timestamps && VIR_ALLOC(target->timestamps) < 0)
         return -1;
-    }
     target->timestamps->atime = get_stat_atime(&sb);
     target->timestamps->btime = get_stat_birthtime(&sb);
     target->timestamps->ctime = get_stat_ctime(&sb);
@@ -1372,7 +1363,7 @@ int
 virStorageBackendDetectBlockVolFormatFD(virStorageVolTargetPtr target,
                                         int fd)
 {
-    int i;
+    size_t i;
     off_t start;
     unsigned char buffer[1024];
     ssize_t bytes;
@@ -1485,7 +1476,6 @@ virStorageBackendStablePath(virStoragePoolObjPtr pool,
         if (virAsprintf(&stablepath, "%s/%s",
                         pool->def->target.path,
                         dent->d_name) == -1) {
-            virReportOOMError();
             closedir(dh);
             return NULL;
         }
@@ -1538,15 +1528,14 @@ virStorageBackendRunProgRegex(virStoragePoolObjPtr pool,
     regex_t *reg;
     regmatch_t *vars = NULL;
     char line[1024];
-    int maxReg = 0, i, j;
+    int maxReg = 0;
+    size_t i, j;
     int totgroups = 0, ngroup = 0, maxvars = 0;
     char **groups;
 
     /* Compile all regular expressions */
-    if (VIR_ALLOC_N(reg, nregex) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC_N(reg, nregex) < 0)
         return -1;
-    }
 
     for (i = 0; i < nregex; i++) {
         err = regcomp(&reg[i], regex[i], REG_EXTENDED);
@@ -1568,14 +1557,10 @@ virStorageBackendRunProgRegex(virStoragePoolObjPtr pool,
     }
 
     /* Storage for matched variables */
-    if (VIR_ALLOC_N(groups, totgroups) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC_N(groups, totgroups) < 0)
         goto cleanup;
-    }
-    if (VIR_ALLOC_N(vars, maxvars+1) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC_N(vars, maxvars+1) < 0)
         goto cleanup;
-    }
 
     virCommandSetOutputFD(cmd, &fd);
     if (virCommandRunAsync(cmd, NULL) < 0) {
@@ -1674,15 +1659,13 @@ virStorageBackendRunProgNul(virStoragePoolObjPtr pool,
     FILE *fp = NULL;
     char **v;
     int ret = -1;
-    int i;
+    size_t i;
 
     if (n_columns == 0)
         return -1;
 
-    if (VIR_ALLOC_N(v, n_columns) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC_N(v, n_columns) < 0)
         return -1;
-    }
     for (i = 0; i < n_columns; i++)
         v[i] = NULL;
 

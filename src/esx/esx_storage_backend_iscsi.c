@@ -103,7 +103,7 @@ esxConnectListStoragePools(virConnectPtr conn, char **const names,
     esxPrivate *priv = conn->storagePrivateData;
     esxVI_HostInternetScsiHba *hostInternetScsiHba = NULL;
     esxVI_HostInternetScsiHbaStaticTarget *target;
-    int i;
+    size_t i;
 
     if (maxnames == 0) {
         return 0;
@@ -334,10 +334,8 @@ esxStoragePoolGetXMLDesc(virStoragePoolPtr pool, unsigned int flags)
 
     def.source.nhost = 1;
 
-    if (VIR_ALLOC_N(def.source.hosts, def.source.nhost) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC_N(def.source.hosts, def.source.nhost) < 0)
         goto cleanup;
-    }
 
     def.source.hosts[0].name = target->address;
 
@@ -394,7 +392,7 @@ esxStoragePoolListVolumes(virStoragePoolPtr pool, char **const names,
     esxVI_HostScsiTopologyLun *hostScsiTopologyLun;
     esxVI_ScsiLun *scsiLunList = NULL;
     esxVI_ScsiLun *scsiLun = NULL;
-    int i;
+    size_t i;
 
     if (esxVI_LookupHostScsiTopologyLunListByTargetName
           (priv->primary, pool->name, &hostScsiTopologyLunList) < 0) {

@@ -83,7 +83,7 @@ char **virStringSplit(const char *string,
             size_t len = tmp - remainder;
 
             if (VIR_RESIZE_N(tokens, maxtokens, ntokens, 1) < 0)
-                goto no_memory;
+                goto error;
 
             if (VIR_STRNDUP(tokens[ntokens], remainder, len) < 0)
                 goto error;
@@ -94,7 +94,7 @@ char **virStringSplit(const char *string,
     }
     if (*string) {
         if (VIR_RESIZE_N(tokens, maxtokens, ntokens, 1) < 0)
-            goto no_memory;
+            goto error;
 
         if (VIR_STRDUP(tokens[ntokens], remainder) < 0)
             goto error;
@@ -102,13 +102,11 @@ char **virStringSplit(const char *string,
     }
 
     if (VIR_RESIZE_N(tokens, maxtokens, ntokens, 1) < 0)
-        goto no_memory;
+        goto error;
     tokens[ntokens++] = NULL;
 
     return tokens;
 
-no_memory:
-    virReportOOMError();
 error:
     for (i = 0; i < ntokens; i++)
         VIR_FREE(tokens[i]);
@@ -173,6 +171,9 @@ bool
 virStringArrayHasString(char **strings, const char *needle)
 {
     size_t i = 0;
+
+    if (!strings)
+        return false;
 
     while (strings[i]) {
         if (STREQ(strings[i++], needle))
@@ -321,35 +322,41 @@ virStrToDouble(char const *s,
     return 0;
 }
 
-/**
- * virVasprintf
- *
- * like glibc's vasprintf but makes sure *strp == NULL on failure
- */
 int
-virVasprintf(char **strp, const char *fmt, va_list list)
+virVasprintfInternal(bool report,
+                     int domcode,
+                     const char *filename,
+                     const char *funcname,
+                     size_t linenr,
+                     char **strp,
+                     const char *fmt,
+                     va_list list)
 {
     int ret;
 
-    if ((ret = vasprintf(strp, fmt, list)) == -1)
+    if ((ret = vasprintf(strp, fmt, list)) == -1) {
+        if (report)
+            virReportOOMErrorFull(domcode, filename, funcname, linenr);
         *strp = NULL;
-
+    }
     return ret;
 }
 
-/**
- * virAsprintf
- *
- * like glibc's_asprintf but makes sure *strp == NULL on failure
- */
 int
-virAsprintf(char **strp, const char *fmt, ...)
+virAsprintfInternal(bool report,
+                    int domcode,
+                    const char *filename,
+                    const char *funcname,
+                    size_t linenr,
+                    char **strp,
+                    const char *fmt, ...)
 {
     va_list ap;
     int ret;
 
     va_start(ap, fmt);
-    ret = virVasprintf(strp, fmt, ap);
+    ret = virVasprintfInternal(report, domcode, filename,
+                               funcname, linenr, strp, fmt, ap);
     va_end(ap);
     return ret;
 }
@@ -490,7 +497,8 @@ virSkipSpacesBackwards(const char *str, char **endp)
 char *
 virArgvToString(const char *const *argv)
 {
-    int len, i;
+    int len;
+    size_t i;
     char *ret, *p;
 
     for (len = 1, i = 0; argv[i]; i++)

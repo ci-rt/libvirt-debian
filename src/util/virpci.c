@@ -80,7 +80,7 @@ struct _virPCIDevice {
 struct _virPCIDeviceList {
     virObjectLockable parent;
 
-    unsigned int count;
+    size_t count;
     virPCIDevicePtr *devs;
 };
 
@@ -187,6 +187,87 @@ static int virPCIOnceInit(void)
 }
 
 VIR_ONCE_GLOBAL_INIT(virPCI)
+
+
+static int
+virPCIDriverDir(char **buffer, const char *driver)
+{
+    VIR_FREE(*buffer);
+
+    if (virAsprintf(buffer, PCI_SYSFS "drivers/%s", driver) < 0)
+        return -1;
+    return 0;
+}
+
+
+static int
+virPCIDriverFile(char **buffer, const char *driver, const char *file)
+{
+    VIR_FREE(*buffer);
+
+    if (virAsprintf(buffer, PCI_SYSFS "drivers/%s/%s", driver, file) < 0)
+        return -1;
+    return 0;
+}
+
+
+static int
+virPCIFile(char **buffer, const char *device, const char *file)
+{
+    VIR_FREE(*buffer);
+
+    if (virAsprintf(buffer, PCI_SYSFS "devices/%s/%s", device, file) < 0)
+        return -1;
+    return 0;
+}
+
+
+/* virPCIDeviceGetDriverPathAndName - put the path to the driver
+ * directory of the driver in use for this device in @path and the
+ * name of the driver in @name. Both could be NULL if it's not bound
+ * to any driver.
+ *
+ * Return 0 for success, -1 for error.
+ */
+static int
+virPCIDeviceGetDriverPathAndName(virPCIDevicePtr dev, char **path, char **name)
+{
+    int ret = -1;
+    char *drvlink = NULL;
+
+    *path = *name = NULL;
+    /* drvlink = "/sys/bus/pci/dddd:bb:ss.ff/driver" */
+    if (virPCIFile(&drvlink, dev->name, "driver") < 0)
+        goto cleanup;
+
+    if (virFileIsLink(drvlink) != 1) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Invalid device %s driver file %s is not a symlink"),
+                       dev->name, drvlink);
+        goto cleanup;
+    }
+    if (virFileResolveLink(drvlink, path) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Unable to resolve device %s driver symlink %s"),
+                       dev->name, drvlink);
+        goto cleanup;
+    }
+    /* path = "/sys/bus/pci/drivers/${drivername}" */
+
+    if (VIR_STRDUP(*name, last_component(*path)) < 0)
+        goto cleanup;
+    /* name = "${drivername}" */
+
+    ret = 0;
+cleanup:
+    VIR_FREE(drvlink);
+    if (ret < 0) {
+        VIR_FREE(*path);
+        VIR_FREE(*name);
+    }
+    return ret;
+}
+
 
 static int
 virPCIDeviceConfigOpen(virPCIDevicePtr dev, bool fatal)
@@ -480,10 +561,8 @@ virPCIDeviceDetectFunctionLevelReset(virPCIDevicePtr dev, int cfgfd)
      * device is a VF, we just assume FLR works
      */
 
-    if (virAsprintf(&path, PCI_SYSFS "devices/%s/physfn", dev->name) < 0) {
-        virReportOOMError();
+    if (virAsprintf(&path, PCI_SYSFS "devices/%s/physfn", dev->name) < 0)
         return -1;
-    }
 
     found = virFileExists(path);
     VIR_FREE(path);
@@ -793,8 +872,10 @@ virPCIDeviceReset(virPCIDevicePtr dev,
                   virPCIDeviceList *activeDevs,
                   virPCIDeviceList *inactiveDevs)
 {
+    char *drvPath = NULL;
+    char *drvName = NULL;
     int ret = -1;
-    int fd;
+    int fd = -1;
 
     if (activeDevs && virPCIDeviceListFind(activeDevs, dev)) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
@@ -802,8 +883,24 @@ virPCIDeviceReset(virPCIDevicePtr dev,
         return -1;
     }
 
+    /* If the device is currently bound to vfio-pci, ignore all
+     * requests to reset it, since the vfio-pci driver will always
+     * reset it whenever appropriate, so doing it ourselves would just
+     * be redundant.
+     */
+    if (virPCIDeviceGetDriverPathAndName(dev, &drvPath, &drvName) < 0)
+        goto cleanup;
+
+    if (STREQ_NULLABLE(drvName, "vfio-pci")) {
+        VIR_DEBUG("Device %s is bound to vfio-pci - skip reset",
+                  dev->name);
+        ret = 0;
+        goto cleanup;
+    }
+    VIR_DEBUG("Resetting device %s", dev->name);
+
     if ((fd = virPCIDeviceConfigOpen(dev, true)) < 0)
-        return -1;
+        goto cleanup;
 
     if (virPCIDeviceInit(dev, fd) < 0)
         goto cleanup;
@@ -832,98 +929,14 @@ virPCIDeviceReset(virPCIDevicePtr dev,
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("Unable to reset PCI device %s: %s"),
                        dev->name,
-                       err ? err->message : _("no FLR, PM reset or bus reset available"));
+                       err ? err->message :
+                       _("no FLR, PM reset or bus reset available"));
     }
 
 cleanup:
+    VIR_FREE(drvPath);
+    VIR_FREE(drvName);
     virPCIDeviceConfigClose(dev, fd);
-    return ret;
-}
-
-
-static int
-virPCIDriverDir(char **buffer, const char *driver)
-{
-    VIR_FREE(*buffer);
-
-    if (virAsprintf(buffer, PCI_SYSFS "drivers/%s", driver) < 0) {
-        virReportOOMError();
-        return -1;
-    }
-
-    return 0;
-}
-
-static int
-virPCIDriverFile(char **buffer, const char *driver, const char *file)
-{
-    VIR_FREE(*buffer);
-
-    if (virAsprintf(buffer, PCI_SYSFS "drivers/%s/%s", driver, file) < 0) {
-        virReportOOMError();
-        return -1;
-    }
-
-    return 0;
-}
-
-static int
-virPCIFile(char **buffer, const char *device, const char *file)
-{
-    VIR_FREE(*buffer);
-
-    if (virAsprintf(buffer, PCI_SYSFS "devices/%s/%s", device, file) < 0) {
-        virReportOOMError();
-        return -1;
-    }
-
-    return 0;
-}
-
-
-/* virPCIDeviceGetDriverPathAndName - put the path to the driver
- * directory of the driver in use for this device in @path and the
- * name of the driver in @name. Both could be NULL if it's not bound
- * to any driver.
- *
- * Return 0 for success, -1 for error.
- */
-static int
-virPCIDeviceGetDriverPathAndName(virPCIDevicePtr dev, char **path, char **name)
-{
-    int ret = -1;
-    char *drvlink = NULL;
-
-    *path = *name = NULL;
-    /* drvlink = "/sys/bus/pci/dddd:bb:ss.ff/driver" */
-    if (virPCIFile(&drvlink, dev->name, "driver") < 0)
-        goto cleanup;
-
-    if (virFileIsLink(drvlink) != 1) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("Invalid device %s driver file %s is not a symlink"),
-                       dev->name, drvlink);
-        goto cleanup;
-    }
-    if (virFileResolveLink(drvlink, path) < 0) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("Unable to resolve device %s driver symlink %s"),
-                       dev->name, drvlink);
-        goto cleanup;
-    }
-    /* path = "/sys/bus/pci/drivers/${drivername}" */
-
-    if (VIR_STRDUP(*name, last_component(*path)) < 0)
-        goto cleanup;
-    /* name = "${drivername}" */
-
-    ret = 0;
-cleanup:
-    VIR_FREE(drvlink);
-    if (ret < 0) {
-        VIR_FREE(*path);
-        VIR_FREE(*name);
-    }
     return ret;
 }
 
@@ -1468,10 +1481,8 @@ virPCIDeviceNew(unsigned int domain,
     char *vendor = NULL;
     char *product = NULL;
 
-    if (VIR_ALLOC(dev) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC(dev) < 0)
         return NULL;
-    }
 
     dev->domain   = domain;
     dev->bus      = bus;
@@ -1487,10 +1498,8 @@ virPCIDeviceNew(unsigned int domain,
         goto error;
     }
     if (virAsprintf(&dev->path, PCI_SYSFS "devices/%s/config",
-                    dev->name) < 0) {
-        virReportOOMError();
+                    dev->name) < 0)
         goto error;
-    }
 
     if (access(dev->path, F_OK) != 0) {
         virReportSystemError(errno,
@@ -1537,10 +1546,8 @@ virPCIDeviceCopy(virPCIDevicePtr dev)
 {
     virPCIDevicePtr copy;
 
-    if (VIR_ALLOC(copy) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC(copy) < 0)
         return NULL;
-    }
 
     /* shallow copy to take care of most attributes */
     *copy = *dev;
@@ -1672,7 +1679,7 @@ static void
 virPCIDeviceListDispose(void *obj)
 {
     virPCIDeviceListPtr list = obj;
-    int i;
+    size_t i;
 
     for (i = 0; i < list->count; i++) {
         virPCIDeviceFree(list->devs[i]);
@@ -1692,15 +1699,7 @@ virPCIDeviceListAdd(virPCIDeviceListPtr list,
                        _("Device %s is already in use"), dev->name);
         return -1;
     }
-
-    if (VIR_REALLOC_N(list->devs, list->count+1) < 0) {
-        virReportOOMError();
-        return -1;
-    }
-
-    list->devs[list->count++] = dev;
-
-    return 0;
+    return VIR_APPEND_ELEMENT(list->devs, list->count, dev);
 }
 
 
@@ -1748,17 +1747,7 @@ virPCIDeviceListStealIndex(virPCIDeviceListPtr list,
         return NULL;
 
     ret = list->devs[idx];
-
-    if (idx != --list->count) {
-        memmove(&list->devs[idx],
-                &list->devs[idx + 1],
-                sizeof(*list->devs) * (list->count - idx));
-    }
-
-    if (VIR_REALLOC_N(list->devs, list->count) < 0) {
-        ; /* not fatal */
-    }
-
+    VIR_DELETE_ELEMENT(list->devs, idx, list->count);
     return ret;
 }
 
@@ -1780,7 +1769,7 @@ virPCIDeviceListDel(virPCIDeviceListPtr list,
 int
 virPCIDeviceListFindIndex(virPCIDeviceListPtr list, virPCIDevicePtr dev)
 {
-    int i;
+    size_t i;
 
     for (i = 0; i < list->count; i++)
         if (list->devs[i]->domain   == dev->domain &&
@@ -1799,7 +1788,7 @@ virPCIDeviceListFindByIDs(virPCIDeviceListPtr list,
                           unsigned int slot,
                           unsigned int function)
 {
-    int i;
+    size_t i;
 
     for (i = 0; i < list->count; i++) {
         if (list->devs[i]->domain == domain &&
@@ -1815,10 +1804,10 @@ virPCIDeviceListFindByIDs(virPCIDeviceListPtr list,
 virPCIDevicePtr
 virPCIDeviceListFind(virPCIDeviceListPtr list, virPCIDevicePtr dev)
 {
-    int i;
+    int idx;
 
-    if ((i = virPCIDeviceListFindIndex(list, dev)) >= 0)
-        return list->devs[i];
+    if ((idx = virPCIDeviceListFindIndex(list, dev)) >= 0)
+        return list->devs[idx];
     else
         return NULL;
 }
@@ -1835,10 +1824,8 @@ int virPCIDeviceFileIterate(virPCIDevicePtr dev,
     struct dirent *ent;
 
     if (virAsprintf(&pcidir, "/sys/bus/pci/devices/%04x:%02x:%02x.%x",
-                    dev->domain, dev->bus, dev->slot, dev->function) < 0) {
-        virReportOOMError();
+                    dev->domain, dev->bus, dev->slot, dev->function) < 0)
         goto cleanup;
-    }
 
     if (!(dir = opendir(pcidir))) {
         virReportSystemError(errno,
@@ -1855,10 +1842,8 @@ int virPCIDeviceFileIterate(virPCIDevicePtr dev,
             STRPREFIX(ent->d_name, "resource") ||
             STREQ(ent->d_name, "rom") ||
             STREQ(ent->d_name, "reset")) {
-            if (virAsprintf(&file, "%s/%s", pcidir, ent->d_name) < 0) {
-                virReportOOMError();
+            if (virAsprintf(&file, "%s/%s", pcidir, ent->d_name) < 0)
                 goto cleanup;
-            }
             if ((actor)(dev, file, opaque) < 0)
                 goto cleanup;
 
@@ -1894,10 +1879,8 @@ virPCIDeviceAddressIOMMUGroupIterate(virPCIDeviceAddressPtr orig,
 
     if (virAsprintf(&groupPath,
                     PCI_SYSFS "devices/%04x:%02x:%02x.%x/iommu_group/devices",
-                    orig->domain, orig->bus, orig->slot, orig->function) < 0) {
-        virReportOOMError();
+                    orig->domain, orig->bus, orig->slot, orig->function) < 0)
         goto cleanup;
-    }
 
     if (!(groupDir = opendir(groupPath))) {
         /* just process the original device, nothing more */
@@ -2009,10 +1992,8 @@ virPCIGetIOMMUGroupAddressesAddOne(virPCIDeviceAddressPtr newDevAddr, void *opaq
     *copyAddr = *newDevAddr;
 
     if (VIR_APPEND_ELEMENT(*addrList->iommuGroupDevices,
-                           *addrList->nIommuGroupDevices, copyAddr) < 0) {
-        virReportOOMError();
+                           *addrList->nIommuGroupDevices, copyAddr) < 0)
         goto cleanup;
-    }
 
     ret = 0;
 cleanup:
@@ -2063,10 +2044,8 @@ virPCIDeviceAddressGetIOMMUGroupNum(virPCIDeviceAddressPtr addr)
     int ret = -1;
 
     if (virAsprintf(&devName, "%.4x:%.2x:%.2x.%.1x", addr->domain,
-                    addr->bus, addr->slot, addr->function) < 0) {
-        virReportOOMError();
+                    addr->bus, addr->slot, addr->function) < 0)
         goto cleanup;
-    }
 
     if (virPCIFile(&devPath, devName, "iommu_group") < 0)
         goto cleanup;
@@ -2125,10 +2104,8 @@ virPCIDeviceGetIOMMUGroupDev(virPCIDevicePtr dev)
         goto cleanup;
     }
     if (virAsprintf(&groupDev, "/dev/vfio/%s",
-                    last_component(groupPath)) < 0) {
-        virReportOOMError();
+                    last_component(groupPath)) < 0)
         goto cleanup;
-    }
 cleanup:
     VIR_FREE(devPath);
     VIR_FREE(groupPath);
@@ -2354,10 +2331,8 @@ virPCIGetDeviceAddressFromSysfsLink(const char *device_link,
     }
 
     config_address = last_component(device_path);
-    if (VIR_ALLOC(*bdf) != 0) {
-        virReportOOMError();
+    if (VIR_ALLOC(*bdf) != 0)
         goto out;
-    }
 
     if (virPCIDeviceAddressParse(config_address, *bdf) != 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
@@ -2416,7 +2391,7 @@ virPCIGetVirtualFunctions(const char *sysfs_path,
                           unsigned int *num_virtual_functions)
 {
     int ret = -1;
-    int i;
+    size_t i;
     DIR *dir = NULL;
     struct dirent *entry = NULL;
     char *device_link = NULL;
@@ -2460,7 +2435,6 @@ virPCIGetVirtualFunctions(const char *sysfs_path,
 
             if (VIR_REALLOC_N(*virtual_functions,
                               *num_virtual_functions + 1) < 0) {
-                virReportOOMError();
                 VIR_FREE(config_addr);
                 goto error;
             }
@@ -2498,10 +2472,8 @@ virPCIIsVirtualFunction(const char *vf_sysfs_device_link)
     int ret = -1;
 
     if (virAsprintf(&vf_sysfs_physfn_link, "%s/physfn",
-                    vf_sysfs_device_link) < 0) {
-        virReportOOMError();
+                    vf_sysfs_device_link) < 0)
         return ret;
-    }
 
     ret = virFileExists(vf_sysfs_physfn_link);
 
@@ -2518,7 +2490,8 @@ virPCIGetVirtualFunctionIndex(const char *pf_sysfs_device_link,
                               const char *vf_sysfs_device_link,
                               int *vf_index)
 {
-    int ret = -1, i;
+    int ret = -1;
+    size_t i;
     unsigned int num_virt_fns = 0;
     virPCIDeviceAddressPtr vf_bdf = NULL;
     virPCIDeviceAddressPtr *virt_fns = NULL;
@@ -2563,11 +2536,8 @@ int
 virPCIGetSysfsFile(char *virPCIDeviceName, char **pci_sysfs_device_link)
 {
     if (virAsprintf(pci_sysfs_device_link, PCI_SYSFS "devices/%s",
-                    virPCIDeviceName) < 0) {
-        virReportOOMError();
+                    virPCIDeviceName) < 0)
         return -1;
-    }
-
     return 0;
 }
 
@@ -2577,11 +2547,8 @@ virPCIDeviceAddressGetSysfsFile(virPCIDeviceAddressPtr dev,
 {
     if (virAsprintf(pci_sysfs_device_link,
                     PCI_SYSFS "devices/%04x:%02x:%02x.%x", dev->domain,
-                    dev->bus, dev->slot, dev->function) < 0) {
-        virReportOOMError();
+                    dev->bus, dev->slot, dev->function) < 0)
         return -1;
-    }
-
     return 0;
 }
 

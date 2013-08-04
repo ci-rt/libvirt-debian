@@ -53,10 +53,8 @@ virSecurityStackAddNested(virSecurityManagerPtr mgr,
     while (tmp && tmp->next)
         tmp = tmp->next;
 
-    if (VIR_ALLOC(item) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC(item) < 0)
         return -1;
-    }
     item->securityManager = nested;
     if (tmp)
         tmp->next = item;
@@ -111,6 +109,32 @@ static const char *
 virSecurityStackGetDOI(virSecurityManagerPtr mgr)
 {
     return virSecurityManagerGetDOI(virSecurityStackGetPrimary(mgr));
+}
+
+static int
+virSecurityStackPreFork(virSecurityManagerPtr mgr)
+{
+    virSecurityStackDataPtr priv = virSecurityManagerGetPrivateData(mgr);
+    virSecurityStackItemPtr item = priv->itemsHead;
+    int rc = 0;
+
+    /* XXX For now, we rely on no driver having any state that requires
+     * rollback if a later driver in the stack fails; if this changes,
+     * we'd need to split this into transaction semantics by dividing
+     * the work into prepare/commit/abort.  */
+    for (; item; item = item->next) {
+        if (virSecurityManagerPreFork(item->securityManager) < 0) {
+            rc = -1;
+            break;
+        }
+        /* Undo the unbalanced locking left behind after recursion; if
+         * PostFork ever delegates to driver callbacks, we'd instead
+         * need to recurse to an internal method that does not regrab
+         * a lock. */
+        virSecurityManagerPostFork(item->securityManager);
+    }
+
+    return rc;
 }
 
 static int
@@ -515,17 +539,16 @@ virSecurityStackGetNested(virSecurityManagerPtr mgr)
     virSecurityManagerPtr *list = NULL;
     virSecurityStackDataPtr priv = virSecurityManagerGetPrivateData(mgr);
     virSecurityStackItemPtr item;
-    int len = 0, i = 0;
+    int len = 0;
+    size_t i;
 
     for (item = priv->itemsHead; item; item = item->next)
         len++;
 
-    if (VIR_ALLOC_N(list, len + 1) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC_N(list, len + 1) < 0)
         return NULL;
-    }
 
-    for (item = priv->itemsHead; item; item = item->next, i++)
+    for (i = 0, item = priv->itemsHead; item; item = item->next, i++)
         list[i] = item->securityManager;
     list[len] = NULL;
 
@@ -541,6 +564,8 @@ virSecurityDriver virSecurityDriverStack = {
 
     .getModel                           = virSecurityStackGetModel,
     .getDOI                             = virSecurityStackGetDOI,
+
+    .preFork                            = virSecurityStackPreFork,
 
     .domainSecurityVerify               = virSecurityStackVerify,
 

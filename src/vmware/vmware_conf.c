@@ -56,7 +56,7 @@ vmwareCapsInit(void)
     virCapsPtr caps = NULL;
     virCapsGuestPtr guest = NULL;
     virCPUDefPtr cpu = NULL;
-    union cpuData *data = NULL;
+    virCPUDataPtr data = NULL;
 
     if ((caps = virCapabilitiesNew(virArchFromHost(),
                                    0, 0)) == NULL)
@@ -77,15 +77,10 @@ vmwareCapsInit(void)
                                       NULL, NULL, 0, NULL) == NULL)
         goto error;
 
-    if (VIR_ALLOC(cpu) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC(cpu) < 0)
         goto error;
-    }
 
-    if (!(cpu->arch = caps->host.arch)) {
-        virReportOOMError();
-        goto error;
-    }
+    cpu->arch = caps->host.arch;
     cpu->type = VIR_CPU_TYPE_HOST;
 
     if (!(data = cpuNodeData(cpu->arch))
@@ -99,9 +94,9 @@ vmwareCapsInit(void)
      *  - Host CPU is x86_64 with virtualization extensions
      */
     if (caps->host.arch == VIR_ARCH_X86_64 ||
-        (cpuHasFeature(caps->host.arch, data, "lm") &&
-         (cpuHasFeature(caps->host.arch, data, "vmx") ||
-          cpuHasFeature(caps->host.arch, data, "svm")))) {
+        (cpuHasFeature(data, "lm") &&
+         (cpuHasFeature(data, "vmx") ||
+          cpuHasFeature(data, "svm")))) {
 
         if ((guest = virCapabilitiesAddGuest(caps,
                                              "hvm",
@@ -117,8 +112,7 @@ vmwareCapsInit(void)
 
 cleanup:
     virCPUDefFree(cpu);
-    if (caps)
-        cpuDataFree(caps->host.arch, data);
+    cpuDataFree(data);
 
     return caps;
 
@@ -261,7 +255,7 @@ cleanup:
 int
 vmwareDomainConfigDisplay(vmwareDomainPtr pDomain, virDomainDefPtr def)
 {
-    int i = 0;
+    size_t i;
 
     if (def->ngraphics == 0) {
         pDomain->gui = true;
@@ -315,17 +309,15 @@ error:
 int
 vmwareConstructVmxPath(char *directoryName, char *name, char **vmxPath)
 {
-    if (directoryName != NULL) {
-        if (virAsprintf(vmxPath, "%s/%s.vmx", directoryName, name) < 0) {
-            virReportOOMError();
-            return -1;
-        }
-    } else {
-        if (virAsprintf(vmxPath, "%s.vmx", name) < 0) {
-            virReportOOMError();
-            return -1;
-        }
-    }
+    int ret;
+
+    if (directoryName != NULL)
+        ret = virAsprintf(vmxPath, "%s/%s.vmx", directoryName, name);
+    else
+        ret = virAsprintf(vmxPath, "%s.vmx", name);
+
+    if (ret < 0)
+        return -1;
     return 0;
 }
 
@@ -336,7 +328,7 @@ vmwareVmxPath(virDomainDefPtr vmdef, char **vmxPath)
     char *directoryName = NULL;
     char *fileName = NULL;
     int ret = -1;
-    int i = 0;
+    size_t i;
 
     /*
      * Build VMX URL. Use the source of the first file-based harddisk
@@ -385,10 +377,8 @@ vmwareVmxPath(virDomainDefPtr vmdef, char **vmxPath)
         goto cleanup;
     }
 
-    if (vmwareConstructVmxPath(directoryName, vmdef->name, vmxPath) < 0) {
-        virReportOOMError();
+    if (vmwareConstructVmxPath(directoryName, vmdef->name, vmxPath) < 0)
         goto cleanup;
-    }
 
     ret = 0;
 
@@ -427,10 +417,8 @@ vmwareMoveFile(char *srcFile, char *dstFile)
 int
 vmwareMakePath(char *srcDir, char *srcName, char *srcExt, char **outpath)
 {
-    if (virAsprintf(outpath, "%s/%s.%s", srcDir, srcName, srcExt) < 0) {
-        virReportOOMError();
+    if (virAsprintf(outpath, "%s/%s.%s", srcDir, srcName, srcExt) < 0)
         return -1;
-    }
     return 0;
 }
 
@@ -448,10 +436,8 @@ vmwareExtractPid(const char * vmxPath)
         goto cleanup;
 
     if (virAsprintf(&logFilePath, "%s/vmware.log",
-                    vmxDir) < 0) {
-        virReportOOMError();
+                    vmxDir) < 0)
         goto cleanup;
-    }
 
     if ((logFile = fopen(logFilePath, "r")) == NULL)
         goto cleanup;

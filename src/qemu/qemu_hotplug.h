@@ -85,10 +85,10 @@ int qemuDomainChangeNetLinkState(virQEMUDriverPtr driver,
                                  int linkstate);
 int qemuDomainDetachVirtioDiskDevice(virQEMUDriverPtr driver,
                                      virDomainObjPtr vm,
-                                     virDomainDeviceDefPtr dev);
+                                     virDomainDiskDefPtr disk);
 int qemuDomainDetachDiskDevice(virQEMUDriverPtr driver,
                                virDomainObjPtr vm,
-                               virDomainDeviceDefPtr dev);
+                               virDomainDiskDefPtr disk);
 int qemuDomainDetachPciControllerDevice(virQEMUDriverPtr driver,
                                         virDomainObjPtr vm,
                                         virDomainDeviceDefPtr dev);
@@ -104,6 +104,26 @@ int qemuDomainAttachLease(virQEMUDriverPtr driver,
 int qemuDomainDetachLease(virQEMUDriverPtr driver,
                           virDomainObjPtr vm,
                           virDomainLeaseDefPtr lease);
+int qemuDomainAttachChrDevice(virQEMUDriverPtr driver,
+                              virDomainObjPtr vm,
+                              virDomainChrDefPtr chr);
+int qemuDomainDetachChrDevice(virQEMUDriverPtr driver,
+                              virDomainObjPtr vm,
+                              virDomainChrDefPtr chr);
 
+
+int
+qemuDomainChrInsert(virDomainDefPtr vmdef,
+                    virDomainChrDefPtr chr);
+virDomainChrDefPtr
+qemuDomainChrRemove(virDomainDefPtr vmdef,
+                    virDomainChrDefPtr chr);
+
+void qemuDomainRemoveDevice(virQEMUDriverPtr driver,
+                            virDomainObjPtr vm,
+                            virDomainDeviceDefPtr dev);
+
+void qemuDomainSignalDeviceRemoval(virDomainObjPtr vm,
+                                   const char *devAlias);
 
 #endif /* __QEMU_HOTPLUG_H__ */

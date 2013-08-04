@@ -1164,6 +1164,26 @@ xdr_remote_domain_create_xml_ret (XDR *xdrs, remote_domain_create_xml_ret *objp)
 }
 
 bool_t
+xdr_remote_domain_create_xml_with_files_args (XDR *xdrs, remote_domain_create_xml_with_files_args *objp)
+{
+
+         if (!xdr_remote_nonnull_string (xdrs, &objp->xml_desc))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->flags))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_domain_create_xml_with_files_ret (XDR *xdrs, remote_domain_create_xml_with_files_ret *objp)
+{
+
+         if (!xdr_remote_nonnull_domain (xdrs, &objp->dom))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
 xdr_remote_domain_lookup_by_id_args (XDR *xdrs, remote_domain_lookup_by_id_args *objp)
 {
 
@@ -1377,6 +1397,19 @@ xdr_remote_domain_set_memory_flags_args (XDR *xdrs, remote_domain_set_memory_fla
          if (!xdr_remote_nonnull_domain (xdrs, &objp->dom))
                  return FALSE;
          if (!xdr_uint64_t (xdrs, &objp->memory))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->flags))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_domain_set_memory_stats_period_args (XDR *xdrs, remote_domain_set_memory_stats_period_args *objp)
+{
+
+         if (!xdr_remote_nonnull_domain (xdrs, &objp->dom))
+                 return FALSE;
+         if (!xdr_int (xdrs, &objp->period))
                  return FALSE;
          if (!xdr_u_int (xdrs, &objp->flags))
                  return FALSE;
@@ -1724,6 +1757,26 @@ xdr_remote_domain_create_with_flags_args (XDR *xdrs, remote_domain_create_with_f
 
 bool_t
 xdr_remote_domain_create_with_flags_ret (XDR *xdrs, remote_domain_create_with_flags_ret *objp)
+{
+
+         if (!xdr_remote_nonnull_domain (xdrs, &objp->dom))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_domain_create_with_files_args (XDR *xdrs, remote_domain_create_with_files_args *objp)
+{
+
+         if (!xdr_remote_nonnull_domain (xdrs, &objp->dom))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->flags))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_domain_create_with_files_ret (XDR *xdrs, remote_domain_create_with_files_ret *objp)
 {
 
          if (!xdr_remote_nonnull_domain (xdrs, &objp->dom))
@@ -5851,6 +5904,17 @@ xdr_remote_domain_migrate_confirm3_params_args (XDR *xdrs, remote_domain_migrate
          if (!xdr_u_int (xdrs, &objp->flags))
                  return FALSE;
          if (!xdr_int (xdrs, &objp->cancelled))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_domain_event_device_removed_msg (XDR *xdrs, remote_domain_event_device_removed_msg *objp)
+{
+
+         if (!xdr_remote_nonnull_domain (xdrs, &objp->dom))
+                 return FALSE;
+         if (!xdr_remote_nonnull_string (xdrs, &objp->devAlias))
                  return FALSE;
         return TRUE;
 }

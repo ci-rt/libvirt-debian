@@ -60,18 +60,6 @@ AC_DEFUN([LIBVIRT_COMPILE_WARNINGS],[
     # gcc 4.4.6 complains this is C++ only; gcc 4.7.0 implies this from -Wall
     dontwarn="$dontwarn -Wenum-compare"
 
-    # clang rather horribly ignores unknown warning flags by
-    # default. Thus to get gl_WARN_ADD to reliably detect
-    # flags, we need to set '-Werror -Wunknown-warning-option'
-    # in CFLAGS while probing support
-    WARN_CFLAGS=
-    orig_CFLAGS="$CFLAGS"
-    gl_WARN_ADD([-Wunknown-warning-option])
-    if test -n "$WARN_CFLAGS" ; then
-        WARN_CFLAGS=
-        CFLAGS="-Werror -Wunknown-warning-option $CFLAGS"
-    fi
-
     # gcc 4.2 treats attribute(format) as an implicit attribute(nonnull),
     # which triggers spurious warnings for our usage
     AC_CACHE_CHECK([whether gcc -Wformat allows NULL strings],
@@ -244,7 +232,4 @@ AC_DEFUN([LIBVIRT_COMPILE_WARNINGS],[
       AC_DEFINE_UNQUOTED([BROKEN_GCC_WLOGICALOP], 1,
        [Define to 1 if gcc -Wlogical-op reports false positives on strchr])
     fi
-
-    # Remove stuff we set for clang
-    CFLAGS="$orig_CFLAGS"
 ])

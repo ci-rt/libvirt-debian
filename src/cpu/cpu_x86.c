@@ -51,7 +51,7 @@ struct x86_vendor {
 
 struct x86_feature {
     char *name;
-    union cpuData *data;
+    struct cpuX86Data *data;
 
     struct x86_feature *next;
 };
@@ -59,7 +59,7 @@ struct x86_feature {
 struct x86_model {
     char *name;
     const struct x86_vendor *vendor;
-    union cpuData *data;
+    struct cpuX86Data *data;
 
     struct x86_model *next;
 };
@@ -80,7 +80,7 @@ enum compare_result {
 
 
 struct data_iterator {
-    union cpuData *data;
+    struct cpuX86Data *data;
     int pos;
     bool extended;
 };
@@ -150,12 +150,10 @@ static struct cpuX86cpuid *
 x86DataCpuidNext(struct data_iterator *iterator)
 {
     struct cpuX86cpuid *ret;
-    struct cpuX86Data *data;
+    struct cpuX86Data *data = iterator->data;
 
-    if (!iterator->data)
+    if (!data)
         return NULL;
-
-    data = &iterator->data->x86;
 
     do {
         ret = NULL;
@@ -180,21 +178,21 @@ x86DataCpuidNext(struct data_iterator *iterator)
 
 
 static struct cpuX86cpuid *
-x86DataCpuid(const union cpuData *data,
+x86DataCpuid(const struct cpuX86Data *data,
              uint32_t function)
 {
     struct cpuX86cpuid *cpuids;
     int len;
-    unsigned int i;
+    size_t i;
 
     if (function < CPUX86_EXTENDED) {
-        cpuids = data->x86.basic;
-        len = data->x86.basic_len;
+        cpuids = data->basic;
+        len = data->basic_len;
         i = function;
     }
     else {
-        cpuids = data->x86.extended;
-        len = data->x86.extended_len;
+        cpuids = data->extended;
+        len = data->extended_len;
         i = function - CPUX86_EXTENDED;
     }
 
@@ -206,77 +204,99 @@ x86DataCpuid(const union cpuData *data,
 
 
 static void
-x86DataFree(union cpuData *data)
+x86DataFree(struct cpuX86Data *data)
 {
     if (data == NULL)
         return;
 
-    VIR_FREE(data->x86.basic);
-    VIR_FREE(data->x86.extended);
+    VIR_FREE(data->basic);
+    VIR_FREE(data->extended);
     VIR_FREE(data);
 }
 
 
-static union cpuData *
-x86DataCopy(const union cpuData *data)
+static virCPUDataPtr
+x86MakeCPUData(virArch arch, struct cpuX86Data **data)
 {
-    union cpuData *copy = NULL;
-    int i;
+    virCPUDataPtr cpuData;
+
+    if (VIR_ALLOC(cpuData) < 0)
+        return NULL;
+
+    cpuData->arch = arch;
+    cpuData->data.x86 = *data;
+    *data = NULL;
+
+    return cpuData;
+}
+
+static void
+x86FreeCPUData(virCPUDataPtr data)
+{
+    if (!data)
+        return;
+
+    x86DataFree(data->data.x86);
+    VIR_FREE(data);
+}
+
+
+static struct cpuX86Data *
+x86DataCopy(const struct cpuX86Data *data)
+{
+    struct cpuX86Data *copy = NULL;
+    size_t i;
 
     if (VIR_ALLOC(copy) < 0
-        || VIR_ALLOC_N(copy->x86.basic, data->x86.basic_len) < 0
-        || VIR_ALLOC_N(copy->x86.extended, data->x86.extended_len) < 0) {
+        || VIR_ALLOC_N(copy->basic, data->basic_len) < 0
+        || VIR_ALLOC_N(copy->extended, data->extended_len) < 0) {
         x86DataFree(copy);
         return NULL;
     }
 
-    copy->x86.basic_len = data->x86.basic_len;
-    for (i = 0; i < data->x86.basic_len; i++)
-        copy->x86.basic[i] = data->x86.basic[i];
+    copy->basic_len = data->basic_len;
+    for (i = 0; i < data->basic_len; i++)
+        copy->basic[i] = data->basic[i];
 
-    copy->x86.extended_len = data->x86.extended_len;
-    for (i = 0; i < data->x86.extended_len; i++)
-        copy->x86.extended[i] = data->x86.extended[i];
+    copy->extended_len = data->extended_len;
+    for (i = 0; i < data->extended_len; i++)
+        copy->extended[i] = data->extended[i];
 
     return copy;
 }
 
 
 static int
-x86DataExpand(union cpuData *data,
+x86DataExpand(struct cpuX86Data *data,
               int basic_by,
               int extended_by)
 {
     size_t i;
 
     if (basic_by > 0) {
-        size_t len = data->x86.basic_len;
-        if (VIR_EXPAND_N(data->x86.basic, data->x86.basic_len, basic_by) < 0)
-            goto no_memory;
+        size_t len = data->basic_len;
+        if (VIR_EXPAND_N(data->basic, data->basic_len, basic_by) < 0)
+            return -1;
 
         for (i = 0; i < basic_by; i++)
-            data->x86.basic[len + i].function = len + i;
+            data->basic[len + i].function = len + i;
     }
 
     if (extended_by > 0) {
-        size_t len = data->x86.extended_len;
-        if (VIR_EXPAND_N(data->x86.extended, data->x86.extended_len, extended_by) < 0)
-            goto no_memory;
+        size_t len = data->extended_len;
+        if (VIR_EXPAND_N(data->extended, data->extended_len, extended_by) < 0)
+            return -1;
 
         for (i = 0; i < extended_by; i++)
-            data->x86.extended[len + i].function = len + i + CPUX86_EXTENDED;
+            data->extended[len + i].function = len + i + CPUX86_EXTENDED;
     }
 
     return 0;
-
-no_memory:
-    virReportOOMError();
-    return -1;
 }
 
 
 static int
-x86DataAddCpuid(union cpuData *data,
+x86DataAddCpuid(struct cpuX86Data *data,
                 const struct cpuX86cpuid *cpuid)
 {
     unsigned int basic_by = 0;
@@ -286,12 +306,12 @@ x86DataAddCpuid(union cpuData *data,
 
     if (cpuid->function < CPUX86_EXTENDED) {
         pos = cpuid->function;
-        basic_by = pos + 1 - data->x86.basic_len;
-        cpuids = &data->x86.basic;
+        basic_by = pos + 1 - data->basic_len;
+        cpuids = &data->basic;
     } else {
         pos = cpuid->function - CPUX86_EXTENDED;
-        extended_by = pos + 1 - data->x86.extended_len;
-        cpuids = &data->x86.extended;
+        extended_by = pos + 1 - data->extended_len;
+        cpuids = &data->extended;
     }
 
     if (x86DataExpand(data, basic_by, extended_by) < 0)
@@ -304,24 +324,24 @@ x86DataAddCpuid(union cpuData *data,
 
 
 static int
-x86DataAdd(union cpuData *data1,
-           const union cpuData *data2)
+x86DataAdd(struct cpuX86Data *data1,
+           const struct cpuX86Data *data2)
 {
-    unsigned int i;
+    size_t i;
 
     if (x86DataExpand(data1,
-                      data2->x86.basic_len - data1->x86.basic_len,
-                      data2->x86.extended_len - data1->x86.extended_len) < 0)
+                      data2->basic_len - data1->basic_len,
+                      data2->extended_len - data1->extended_len) < 0)
         return -1;
 
-    for (i = 0; i < data2->x86.basic_len; i++) {
-        x86cpuidSetBits(data1->x86.basic + i,
-                        data2->x86.basic + i);
+    for (i = 0; i < data2->basic_len; i++) {
+        x86cpuidSetBits(data1->basic + i,
+                        data2->basic + i);
     }
 
-    for (i = 0; i < data2->x86.extended_len; i++) {
-        x86cpuidSetBits(data1->x86.extended + i,
-                        data2->x86.extended + i);
+    for (i = 0; i < data2->extended_len; i++) {
+        x86cpuidSetBits(data1->extended + i,
+                        data2->extended + i);
     }
 
     return 0;
@@ -329,29 +349,29 @@ x86DataAdd(union cpuData *data1,
 
 
 static void
-x86DataSubtract(union cpuData *data1,
-                const union cpuData *data2)
+x86DataSubtract(struct cpuX86Data *data1,
+                const struct cpuX86Data *data2)
 {
-    unsigned int i;
+    size_t i;
     unsigned int len;
 
-    len = MIN(data1->x86.basic_len, data2->x86.basic_len);
+    len = MIN(data1->basic_len, data2->basic_len);
     for (i = 0; i < len; i++) {
-        x86cpuidClearBits(data1->x86.basic + i,
-                          data2->x86.basic + i);
+        x86cpuidClearBits(data1->basic + i,
+                          data2->basic + i);
     }
 
-    len = MIN(data1->x86.extended_len, data2->x86.extended_len);
+    len = MIN(data1->extended_len, data2->extended_len);
     for (i = 0; i < len; i++) {
-        x86cpuidClearBits(data1->x86.extended + i,
-                          data2->x86.extended + i);
+        x86cpuidClearBits(data1->extended + i,
+                          data2->extended + i);
     }
 }
 
 
 static void
-x86DataIntersect(union cpuData *data1,
-                 const union cpuData *data2)
+x86DataIntersect(struct cpuX86Data *data1,
+                 const struct cpuX86Data *data2)
 {
     struct data_iterator iter = DATA_ITERATOR_INIT(data1);
     struct cpuX86cpuid *cpuid1;
@@ -368,7 +388,7 @@ x86DataIntersect(union cpuData *data1,
 
 
 static bool
-x86DataIsEmpty(union cpuData *data)
+x86DataIsEmpty(struct cpuX86Data *data)
 {
     struct data_iterator iter = DATA_ITERATOR_INIT(data);
 
@@ -377,11 +397,11 @@ x86DataIsEmpty(union cpuData *data)
 
 
 static bool
-x86DataIsSubset(const union cpuData *data,
-                const union cpuData *subset)
+x86DataIsSubset(const struct cpuX86Data *data,
+                const struct cpuX86Data *subset)
 {
 
-    struct data_iterator iter = DATA_ITERATOR_INIT((union cpuData *) subset);
+    struct data_iterator iter = DATA_ITERATOR_INIT((struct cpuX86Data *)subset);
     const struct cpuX86cpuid *cpuid;
     const struct cpuX86cpuid *cpuidSubset;
 
@@ -399,7 +419,7 @@ x86DataIsSubset(const union cpuData *data,
 static int
 x86DataToCPUFeatures(virCPUDefPtr cpu,
                      int policy,
-                     union cpuData *data,
+                     struct cpuX86Data *data,
                      const struct x86_map *map)
 {
     const struct x86_feature *feature = map->features;
@@ -419,7 +439,7 @@ x86DataToCPUFeatures(virCPUDefPtr cpu,
 
 /* also removes bits corresponding to vendor string from data */
 static const struct x86_vendor *
-x86DataToVendor(union cpuData *data,
+x86DataToVendor(struct cpuX86Data *data,
                 const struct x86_map *map)
 {
     const struct x86_vendor *vendor = map->vendors;
@@ -439,24 +459,24 @@ x86DataToVendor(union cpuData *data,
 
 
 static virCPUDefPtr
-x86DataToCPU(const union cpuData *data,
+x86DataToCPU(const struct cpuX86Data *data,
              const struct x86_model *model,
              const struct x86_map *map)
 {
     virCPUDefPtr cpu;
-    union cpuData *copy = NULL;
-    union cpuData *modelData = NULL;
+    struct cpuX86Data *copy = NULL;
+    struct cpuX86Data *modelData = NULL;
     const struct x86_vendor *vendor;
 
     if (VIR_ALLOC(cpu) < 0 ||
         VIR_STRDUP(cpu->model, model->name) < 0 ||
         !(copy = x86DataCopy(data)) ||
         !(modelData = x86DataCopy(model->data)))
-        goto no_memory;
+        goto error;
 
     if ((vendor = x86DataToVendor(copy, map)) &&
         VIR_STRDUP(cpu->vendor, vendor->name) < 0)
-        goto no_memory;
+        goto error;
 
     x86DataSubtract(copy, modelData);
     x86DataSubtract(modelData, data);
@@ -473,8 +493,6 @@ cleanup:
     x86DataFree(copy);
     return cpu;
 
-no_memory:
-    virReportOOMError();
 error:
     virCPUDefFree(cpu);
     cpu = NULL;
@@ -520,7 +538,7 @@ x86VendorLoad(xmlXPathContextPtr ctxt,
     int ret = 0;
 
     if (VIR_ALLOC(vendor) < 0)
-        goto no_memory;
+        goto error;
 
     vendor->name = virXPathString("string(@name)", ctxt);
     if (!vendor->name) {
@@ -564,8 +582,7 @@ out:
 
     return ret;
 
-no_memory:
-    virReportOOMError();
+error:
     ret = -1;
 ignore:
     x86VendorFree(vendor);
@@ -623,7 +640,7 @@ x86FeatureFind(const struct x86_map *map,
 static char *
 x86FeatureNames(const struct x86_map *map,
                 const char *separator,
-                union cpuData *data)
+                struct cpuX86Data *data)
 {
     virBuffer ret = VIR_BUFFER_INITIALIZER;
     bool first = true;
@@ -656,11 +673,11 @@ x86FeatureLoad(xmlXPathContextPtr ctxt,
     xmlNodePtr ctxt_node = ctxt->node;
     struct x86_feature *feature;
     int ret = 0;
-    int i;
+    size_t i;
     int n;
 
     if (!(feature = x86FeatureNew()))
-        goto no_memory;
+        goto error;
 
     feature->name = virXPathString("string(@name)", ctxt);
     if (feature->name == NULL) {
@@ -695,7 +712,7 @@ x86FeatureLoad(xmlXPathContextPtr ctxt,
         if (ret_fun < 0 || ret_eax == -2 || ret_ebx == -2
             || ret_ecx == -2 || ret_edx == -2) {
             virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("Invalid cpuid[%d] in %s feature"), i, feature->name);
+                           _("Invalid cpuid[%zu] in %s feature"), i, feature->name);
             goto ignore;
         }
 
@@ -706,7 +723,7 @@ x86FeatureLoad(xmlXPathContextPtr ctxt,
         cpuid.edx = edx;
 
         if (x86DataAddCpuid(feature->data, &cpuid))
-            goto no_memory;
+            goto error;
     }
 
     if (map->features == NULL)
@@ -722,8 +739,7 @@ out:
 
     return ret;
 
-no_memory:
-    virReportOOMError();
+error:
     ret = -1;
 
 ignore:
@@ -803,7 +819,7 @@ x86ModelFromCPU(const virCPUDefPtr cpu,
                 int policy)
 {
     struct x86_model *model = NULL;
-    int i;
+    size_t i;
 
     if (policy == VIR_CPU_FEATURE_REQUIRE) {
         if ((model = x86ModelFind(map, cpu->model)) == NULL) {
@@ -813,9 +829,9 @@ x86ModelFromCPU(const virCPUDefPtr cpu,
         }
 
         if ((model = x86ModelCopy(model)) == NULL)
-            goto no_memory;
+            goto error;
     } else if (!(model = x86ModelNew())) {
-        goto no_memory;
+        goto error;
     } else if (cpu->type == VIR_CPU_TYPE_HOST) {
         return model;
     }
@@ -834,13 +850,10 @@ x86ModelFromCPU(const virCPUDefPtr cpu,
         }
 
         if (x86DataAdd(model->data, feature->data))
-            goto no_memory;
+            goto error;
     }
 
     return model;
-
-no_memory:
-    virReportOOMError();
 
 error:
     x86ModelFree(model);
@@ -854,7 +867,7 @@ x86ModelSubtractCPU(struct x86_model *model,
                     const struct x86_map *map)
 {
     const struct x86_model *cpu_model;
-    unsigned int i;
+    size_t i;
 
     if (!(cpu_model = x86ModelFind(map, cpu->model))) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
@@ -936,11 +949,11 @@ x86ModelLoad(xmlXPathContextPtr ctxt,
     struct x86_model *model;
     char *vendor = NULL;
     int ret = 0;
-    int i;
+    size_t i;
     int n;
 
     if (!(model = x86ModelNew()))
-        goto no_memory;
+        goto error;
 
     model->name = virXPathString("string(@name)", ctxt);
     if (model->name == NULL) {
@@ -974,7 +987,7 @@ x86ModelLoad(xmlXPathContextPtr ctxt,
         model->vendor = ancestor->vendor;
         x86DataFree(model->data);
         if (!(model->data = x86DataCopy(ancestor->data)))
-            goto no_memory;
+            goto error;
     }
 
     if (virXPathBoolean("boolean(./vendor)", ctxt)) {
@@ -1018,7 +1031,7 @@ x86ModelLoad(xmlXPathContextPtr ctxt,
         VIR_FREE(name);
 
         if (x86DataAdd(model->data, feature->data))
-            goto no_memory;
+            goto error;
     }
 
     if (map->models == NULL)
@@ -1033,8 +1046,7 @@ out:
     VIR_FREE(nodes);
     return ret;
 
-no_memory:
-    virReportOOMError();
+error:
     ret = -1;
 
 ignore:
@@ -1098,10 +1110,8 @@ x86LoadMap(void)
 {
     struct x86_map *map;
 
-    if (VIR_ALLOC(map) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC(map) < 0)
         return NULL;
-    }
 
     if (cpuMapLoad("x86", x86MapLoadCallback, map) < 0)
         goto error;
@@ -1117,7 +1127,7 @@ error:
 /* A helper macro to exit the cpu computation function without writing
  * redundant code:
  * MSG: error message
- * CPU_DEF: a union cpuData pointer with flags that are conflicting
+ * CPU_DEF: a struct cpuX86Data pointer with flags that are conflicting
  * RET: return code to set
  *
  * This macro generates the error string outputs it into logs.
@@ -1125,12 +1135,14 @@ error:
 #define virX86CpuIncompatible(MSG, CPU_DEF)                             \
         do {                                                            \
             char *flagsStr = NULL;                                      \
-            if (!(flagsStr = x86FeatureNames(map, ", ", (CPU_DEF))))    \
-                goto no_memory;                                         \
+            if (!(flagsStr = x86FeatureNames(map, ", ", (CPU_DEF)))) {  \
+                virReportOOMError();                                    \
+                goto error;                                             \
+            }                                                           \
             if (message &&                                              \
                 virAsprintf(message, "%s: %s", _(MSG), flagsStr) < 0) { \
                 VIR_FREE(flagsStr);                                     \
-                goto no_memory;                                         \
+                goto error;                                             \
             }                                                           \
             VIR_DEBUG("%s: %s", MSG, flagsStr);                         \
             VIR_FREE(flagsStr);                                         \
@@ -1140,7 +1152,7 @@ error:
 static virCPUCompareResult
 x86Compute(virCPUDefPtr host,
            virCPUDefPtr cpu,
-           union cpuData **guest,
+           virCPUDataPtr *guest,
            char **message)
 {
     struct x86_map *map = NULL;
@@ -1154,7 +1166,8 @@ x86Compute(virCPUDefPtr host,
     struct x86_model *guest_model = NULL;
     virCPUCompareResult ret;
     enum compare_result result;
-    unsigned int i;
+    virArch arch;
+    size_t i;
 
     if (cpu->arch != VIR_ARCH_NONE) {
         bool found = false;
@@ -1173,9 +1186,12 @@ x86Compute(virCPUDefPtr host,
                 virAsprintf(message,
                             _("CPU arch %s does not match host arch"),
                             virArchToString(cpu->arch)) < 0)
-                goto no_memory;
+                goto error;
             return VIR_CPU_COMPARE_INCOMPATIBLE;
         }
+        arch = cpu->arch;
+    } else {
+        arch = host->arch;
     }
 
     if (cpu->vendor &&
@@ -1187,7 +1203,7 @@ x86Compute(virCPUDefPtr host,
                         _("host CPU vendor does not match required "
                           "CPU vendor %s"),
                         cpu->vendor) < 0)
-            goto no_memory;
+            goto error;
         return VIR_CPU_COMPARE_INCOMPATIBLE;
     }
 
@@ -1207,6 +1223,11 @@ x86Compute(virCPUDefPtr host,
         goto out;
     }
 
+    /* first remove features that were inherited from the CPU model and were
+     * explicitly forced, disabled, or made optional
+     */
+    x86DataSubtract(cpu_require->data, cpu_force->data);
+    x86DataSubtract(cpu_require->data, cpu_optional->data);
     x86DataSubtract(cpu_require->data, cpu_disable->data);
     result = x86ModelCompare(host_model, cpu_require);
     if (result == SUBSET || result == UNRELATED) {
@@ -1220,7 +1241,7 @@ x86Compute(virCPUDefPtr host,
     ret = VIR_CPU_COMPARE_IDENTICAL;
 
     if ((diff = x86ModelCopy(host_model)) == NULL)
-        goto no_memory;
+        goto error;
 
     x86DataSubtract(diff->data, cpu_optional->data);
     x86DataSubtract(diff->data, cpu_require->data);
@@ -1240,20 +1261,25 @@ x86Compute(virCPUDefPtr host,
     }
 
     if (guest != NULL) {
+        struct cpuX86Data *guestData;
+
         if ((guest_model = x86ModelCopy(host_model)) == NULL)
-            goto no_memory;
+            goto error;
 
         if (cpu->type == VIR_CPU_TYPE_GUEST
             && cpu->match == VIR_CPU_MATCH_EXACT)
             x86DataSubtract(guest_model->data, diff->data);
 
         if (x86DataAdd(guest_model->data, cpu_force->data))
-            goto no_memory;
+            goto error;
 
         x86DataSubtract(guest_model->data, cpu_disable->data);
 
-        if ((*guest = x86DataCopy(guest_model->data)) == NULL)
-            goto no_memory;
+        if (!(guestData = x86DataCopy(guest_model->data)) ||
+            !(*guest = x86MakeCPUData(arch, &guestData))) {
+            x86DataFree(guestData);
+            goto error;
+        }
     }
 
 out:
@@ -1268,9 +1294,6 @@ out:
     x86ModelFree(guest_model);
 
     return ret;
-
-no_memory:
-    virReportOOMError();
 
 error:
     ret = VIR_CPU_COMPARE_ERROR;
@@ -1290,7 +1313,7 @@ x86Compare(virCPUDefPtr host,
 static virCPUCompareResult
 x86GuestData(virCPUDefPtr host,
              virCPUDefPtr guest,
-             union cpuData **data,
+             virCPUDataPtr *data,
              char **message)
 {
     return x86Compute(host, guest, data, message);
@@ -1299,7 +1322,7 @@ x86GuestData(virCPUDefPtr host,
 
 static int
 x86Decode(virCPUDefPtr cpu,
-          const union cpuData *data,
+          const struct cpuX86Data *data,
           const char **models,
           unsigned int nmodels,
           const char *preferred)
@@ -1309,7 +1332,7 @@ x86Decode(virCPUDefPtr cpu,
     const struct x86_model *candidate;
     virCPUDefPtr cpuCandidate;
     virCPUDefPtr cpuModel = NULL;
-    unsigned int i;
+    size_t i;
 
     if (data == NULL || (map = x86LoadMap()) == NULL)
         return -1;
@@ -1398,14 +1421,24 @@ out:
     return ret;
 }
 
+static int
+x86DecodeCPUData(virCPUDefPtr cpu,
+                 const virCPUDataPtr data,
+                 const char **models,
+                 unsigned int nmodels,
+                 const char *preferred)
+{
+    return x86Decode(cpu, data->data.x86, models, nmodels, preferred);
+}
 
-static union cpuData *
+
+static struct cpuX86Data *
 x86EncodePolicy(const virCPUDefPtr cpu,
                 const struct x86_map *map,
                 enum virCPUFeaturePolicy policy)
 {
     struct x86_model *model;
-    union cpuData *data = NULL;
+    struct cpuX86Data *data = NULL;
 
     if (!(model = x86ModelFromCPU(cpu, map, policy)))
         return NULL;
@@ -1419,22 +1452,36 @@ x86EncodePolicy(const virCPUDefPtr cpu,
 
 
 static int
-x86Encode(const virCPUDefPtr cpu,
-          union cpuData **forced,
-          union cpuData **required,
-          union cpuData **optional,
-          union cpuData **disabled,
-          union cpuData **forbidden,
-          union cpuData **vendor)
+x86Encode(virArch arch,
+          const virCPUDefPtr cpu,
+          virCPUDataPtr *forced,
+          virCPUDataPtr *required,
+          virCPUDataPtr *optional,
+          virCPUDataPtr *disabled,
+          virCPUDataPtr *forbidden,
+          virCPUDataPtr *vendor)
 {
     struct x86_map *map = NULL;
-    union cpuData *data_forced = NULL;
-    union cpuData *data_required = NULL;
-    union cpuData *data_optional = NULL;
-    union cpuData *data_disabled = NULL;
-    union cpuData *data_forbidden = NULL;
-    union cpuData *data_vendor = NULL;
+    struct cpuX86Data *data_forced = NULL;
+    struct cpuX86Data *data_required = NULL;
+    struct cpuX86Data *data_optional = NULL;
+    struct cpuX86Data *data_disabled = NULL;
+    struct cpuX86Data *data_forbidden = NULL;
+    struct cpuX86Data *data_vendor = NULL;
     int ret = -1;
+
+    if (forced)
+        *forced = NULL;
+    if (required)
+        *required = NULL;
+    if (optional)
+        *optional = NULL;
+    if (disabled)
+        *disabled = NULL;
+    if (forbidden)
+        *forbidden = NULL;
+    if (vendor)
+        *vendor = NULL;
 
     if ((map = x86LoadMap()) == NULL)
         goto error;
@@ -1481,23 +1528,28 @@ x86Encode(const virCPUDefPtr cpu,
         if (v &&
             (VIR_ALLOC(data_vendor) < 0 ||
              x86DataAddCpuid(data_vendor, &v->cpuid) < 0)) {
-            virReportOOMError();
             goto error;
         }
     }
 
-    if (forced)
-        *forced = data_forced;
-    if (required)
-        *required = data_required;
-    if (optional)
-        *optional = data_optional;
-    if (disabled)
-        *disabled = data_disabled;
-    if (forbidden)
-        *forbidden = data_forbidden;
-    if (vendor)
-        *vendor = data_vendor;
+    if (forced &&
+        !(*forced = x86MakeCPUData(arch, &data_forced)))
+        goto error;
+    if (required &&
+        !(*required = x86MakeCPUData(arch, &data_required)))
+        goto error;
+    if (optional &&
+        !(*optional = x86MakeCPUData(arch, &data_optional)))
+        goto error;
+    if (disabled &&
+        !(*disabled = x86MakeCPUData(arch, &data_disabled)))
+        goto error;
+    if (forbidden &&
+        !(*forbidden = x86MakeCPUData(arch, &data_forbidden)))
+        goto error;
+    if (vendor &&
+        !(*vendor = x86MakeCPUData(arch, &data_vendor)))
+        goto error;
 
     ret = 0;
 
@@ -1513,6 +1565,18 @@ error:
     x86DataFree(data_disabled);
     x86DataFree(data_forbidden);
     x86DataFree(data_vendor);
+    if (forced)
+        x86FreeCPUData(*forced);
+    if (required)
+        x86FreeCPUData(*required);
+    if (optional)
+        x86FreeCPUData(*optional);
+    if (disabled)
+        x86FreeCPUData(*disabled);
+    if (forbidden)
+        x86FreeCPUData(*forbidden);
+    if (vendor)
+        x86FreeCPUData(*vendor);
     goto cleanup;
 }
 
@@ -1562,10 +1626,8 @@ cpuidSet(uint32_t base, struct cpuX86cpuid **set)
     cpuidCall(&cpuid);
     max = cpuid.eax - base;
 
-    if (VIR_ALLOC_N(*set, max + 1) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC_N(*set, max + 1) < 0)
         return -1;
-    }
 
     for (i = 0; i <= max; i++) {
         cpuid.function = base | i;
@@ -1577,26 +1639,28 @@ cpuidSet(uint32_t base, struct cpuX86cpuid **set)
 }
 
 
-static union cpuData *
+static virCPUDataPtr
 x86NodeData(void)
 {
-    union cpuData *data;
+    virCPUDataPtr cpuData = NULL;
+    struct cpuX86Data *data;
     int ret;
 
-    if (VIR_ALLOC(data) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC(data) < 0)
         return NULL;
-    }
 
-    if ((ret = cpuidSet(CPUX86_BASIC, &data->x86.basic)) < 0)
+    if ((ret = cpuidSet(CPUX86_BASIC, &data->basic)) < 0)
         goto error;
-    data->x86.basic_len = ret;
+    data->basic_len = ret;
 
-    if ((ret = cpuidSet(CPUX86_EXTENDED, &data->x86.extended)) < 0)
+    if ((ret = cpuidSet(CPUX86_EXTENDED, &data->extended)) < 0)
         goto error;
-    data->x86.extended_len = ret;
+    data->extended_len = ret;
 
-    return data;
+    if (!(cpuData = x86MakeCPUData(virArchFromHost(), &data)))
+        goto error;
+
+    return cpuData;
 
 error:
     x86DataFree(data);
@@ -1615,7 +1679,7 @@ x86Baseline(virCPUDefPtr *cpus,
     struct x86_map *map = NULL;
     struct x86_model *base_model = NULL;
     virCPUDefPtr cpu = NULL;
-    unsigned int i;
+    size_t i;
     const struct x86_vendor *vendor = NULL;
     struct x86_model *model = NULL;
     bool outputVendor = true;
@@ -1627,7 +1691,7 @@ x86Baseline(virCPUDefPtr *cpus,
         goto error;
 
     if (VIR_ALLOC(cpu) < 0)
-        goto no_memory;
+        goto error;
 
     cpu->arch = cpus[0]->arch;
     cpu->type = VIR_CPU_TYPE_GUEST;
@@ -1689,7 +1753,7 @@ x86Baseline(virCPUDefPtr *cpus,
     }
 
     if (vendor && x86DataAddCpuid(base_model->data, &vendor->cpuid) < 0)
-        goto no_memory;
+        goto error;
 
     if (x86Decode(cpu, base_model->data, models, nmodels, NULL) < 0)
         goto error;
@@ -1705,8 +1769,6 @@ cleanup:
 
     return cpu;
 
-no_memory:
-    virReportOOMError();
 error:
     x86ModelFree(model);
     virCPUDefFree(cpu);
@@ -1720,7 +1782,7 @@ x86UpdateCustom(virCPUDefPtr guest,
                 const virCPUDefPtr host)
 {
     int ret = -1;
-    unsigned int i;
+    size_t i;
     struct x86_map *map;
     struct x86_model *host_model = NULL;
 
@@ -1747,9 +1809,9 @@ x86UpdateCustom(virCPUDefPtr guest,
 
     if (guest->match == VIR_CPU_MATCH_MINIMUM) {
         guest->match = VIR_CPU_MATCH_EXACT;
-        if (x86ModelSubtractCPU(host_model, guest, map)
-            || x86DataToCPUFeatures(guest, VIR_CPU_FEATURE_REQUIRE,
-                                    host_model->data, map))
+        if (x86ModelSubtractCPU(host_model, guest, map) ||
+            x86DataToCPUFeatures(guest, VIR_CPU_FEATURE_REQUIRE,
+                                 host_model->data, map))
             goto cleanup;
     }
 
@@ -1761,6 +1823,41 @@ cleanup:
     return ret;
 }
 
+
+static int
+x86UpdateHostModel(virCPUDefPtr guest,
+                   const virCPUDefPtr host)
+{
+    virCPUDefPtr oldguest;
+    size_t i;
+
+    guest->match = VIR_CPU_MATCH_EXACT;
+
+    /* no updates are required */
+    if (guest->nfeatures == 0) {
+        virCPUDefFreeModel(guest);
+        return virCPUDefCopyModel(guest, host, true);
+    }
+
+    /* update the host model according to the desired configuration */
+    if (!(oldguest = virCPUDefCopy(guest)))
+        return -1;
+
+    virCPUDefFreeModel(guest);
+    if (virCPUDefCopyModel(guest, host, true) < 0)
+        return -1;
+
+    for (i = 0; i < oldguest->nfeatures; i++) {
+        if (virCPUDefUpdateFeature(guest,
+                                   oldguest->features[i].name,
+                                   oldguest->features[i].policy) < 0)
+            return -1;
+    }
+
+    return 0;
+}
+
+
 static int
 x86Update(virCPUDefPtr guest,
           const virCPUDefPtr host)
@@ -1770,11 +1867,10 @@ x86Update(virCPUDefPtr guest,
         return x86UpdateCustom(guest, host);
 
     case VIR_CPU_MODE_HOST_MODEL:
+        return x86UpdateHostModel(guest, host);
+
     case VIR_CPU_MODE_HOST_PASSTHROUGH:
-        if (guest->mode == VIR_CPU_MODE_HOST_MODEL)
-            guest->match = VIR_CPU_MATCH_EXACT;
-        else
-            guest->match = VIR_CPU_MATCH_MINIMUM;
+        guest->match = VIR_CPU_MATCH_MINIMUM;
         virCPUDefFreeModel(guest);
         return virCPUDefCopyModel(guest, host, true);
 
@@ -1787,7 +1883,7 @@ x86Update(virCPUDefPtr guest,
     return -1;
 }
 
-static int x86HasFeature(const union cpuData *data,
+static int x86HasFeature(const virCPUDataPtr data,
                          const char *name)
 {
     struct x86_map *map;
@@ -1800,7 +1896,7 @@ static int x86HasFeature(const union cpuData *data,
     if (!(feature = x86FeatureFind(map, name)))
         goto cleanup;
 
-    ret = x86DataIsSubset(data, feature->data) ? 1 : 0;
+    ret = x86DataIsSubset(data->data.x86, feature->data) ? 1 : 0;
 
 cleanup:
     x86MapFree(map);
@@ -1812,9 +1908,9 @@ struct cpuArchDriver cpuDriverX86 = {
     .arch = archs,
     .narch = ARRAY_CARDINALITY(archs),
     .compare    = x86Compare,
-    .decode     = x86Decode,
+    .decode     = x86DecodeCPUData,
     .encode     = x86Encode,
-    .free       = x86DataFree,
+    .free       = x86FreeCPUData,
 #if HAVE_CPUID
     .nodeData   = x86NodeData,
 #else

@@ -9,14 +9,15 @@
 
 #define VIR_FROM_THIS VIR_FROM_ACCESS
 
-/* Returns: -1 on error (denied==error), 0 on allowed */
+/* Returns: -1 on error/denied, 0 on allowed */
 int virDomainQemuAgentCommandEnsureACL(virConnectPtr conn, virDomainDefPtr domain)
 {
     virAccessManagerPtr mgr;
     int rv;
 
-    if (!(mgr = virAccessManagerGetDefault()))
+    if (!(mgr = virAccessManagerGetDefault())) {
         return -1;
+    }
 
     if ((rv = virAccessManagerCheckDomain(mgr, conn->driver->name, domain, VIR_ACCESS_PERM_DOMAIN_WRITE)) <= 0) {
         virObjectUnref(mgr);
@@ -28,14 +29,15 @@ int virDomainQemuAgentCommandEnsureACL(virConnectPtr conn, virDomainDefPtr domai
     return 0;
 }
 
-/* Returns: -1 on error (denied==error), 0 on allowed */
+/* Returns: -1 on error/denied, 0 on allowed */
 int virDomainQemuAttachEnsureACL(virConnectPtr conn, virDomainDefPtr domain)
 {
     virAccessManagerPtr mgr;
     int rv;
 
-    if (!(mgr = virAccessManagerGetDefault()))
+    if (!(mgr = virAccessManagerGetDefault())) {
         return -1;
+    }
 
     if ((rv = virAccessManagerCheckDomain(mgr, conn->driver->name, domain, VIR_ACCESS_PERM_DOMAIN_START)) <= 0) {
         virObjectUnref(mgr);
@@ -53,14 +55,15 @@ int virDomainQemuAttachEnsureACL(virConnectPtr conn, virDomainDefPtr domain)
     return 0;
 }
 
-/* Returns: -1 on error (denied==error), 0 on allowed */
+/* Returns: -1 on error/denied, 0 on allowed */
 int virDomainQemuMonitorCommandEnsureACL(virConnectPtr conn, virDomainDefPtr domain)
 {
     virAccessManagerPtr mgr;
     int rv;
 
-    if (!(mgr = virAccessManagerGetDefault()))
+    if (!(mgr = virAccessManagerGetDefault())) {
         return -1;
+    }
 
     if ((rv = virAccessManagerCheckDomain(mgr, conn->driver->name, domain, VIR_ACCESS_PERM_DOMAIN_WRITE)) <= 0) {
         virObjectUnref(mgr);

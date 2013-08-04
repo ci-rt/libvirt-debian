@@ -48,12 +48,12 @@ static int lxcProcGetattr(const char *path, struct stat *stbuf)
     int res;
     char *mempath = NULL;
     struct stat sb;
+    struct fuse_context *context = fuse_get_context();
+    virDomainDefPtr def = (virDomainDefPtr)context->private_data;
 
     memset(stbuf, 0, sizeof(struct stat));
-    if (virAsprintf(&mempath, "/proc/%s", path) < 0) {
-        virReportOOMError();
+    if (virAsprintf(&mempath, "/proc/%s", path) < 0)
         return -errno;
-    }
 
     res = 0;
 
@@ -66,6 +66,8 @@ static int lxcProcGetattr(const char *path, struct stat *stbuf)
             goto cleanup;
         }
 
+        stbuf->st_uid = def->idmap.uidmap ? def->idmap.uidmap[0].target : 0;
+        stbuf->st_gid = def->idmap.gidmap ? def->idmap.gidmap[0].target : 0;
         stbuf->st_mode = sb.st_mode;
         stbuf->st_nlink = 1;
         stbuf->st_blksize = sb.st_blksize;
@@ -137,8 +139,10 @@ static int lxcProcReadMeminfo(char *hostpath, virDomainDefPtr def,
     virBuffer buffer = VIR_BUFFER_INITIALIZER;
     virBufferPtr new_meminfo = &buffer;
 
-    if ((res = virLXCCgroupGetMeminfo(&meminfo)) < 0)
-        return res;
+    if (virLXCCgroupGetMeminfo(&meminfo) < 0) {
+        virErrorSetErrnoFromLastError();
+        return -errno;
+    }
 
     fd = fopen(hostpath, "r");
     if (fd == NULL) {
@@ -234,10 +238,8 @@ static int lxcProcRead(const char *path ATTRIBUTE_UNUSED,
     struct fuse_context *context = NULL;
     virDomainDefPtr def = NULL;
 
-    if (virAsprintf(&hostpath, "/proc/%s", path) < 0) {
-        virReportOOMError();
+    if (virAsprintf(&hostpath, "/proc/%s", path) < 0)
         return -errno;
-    }
 
     context = fuse_get_context();
     def = (virDomainDefPtr)context->private_data;
@@ -293,10 +295,8 @@ int lxcSetupFuse(virLXCFusePtr *f, virDomainDefPtr def)
         goto cleanup2;
 
     if (virAsprintf(&fuse->mountpoint, "%s/%s.fuse/", LXC_STATE_DIR,
-                    def->name) < 0) {
-        virReportOOMError();
+                    def->name) < 0)
         goto cleanup1;
-    }
 
     if (virFileMakePath(fuse->mountpoint) < 0) {
         virReportSystemError(errno, _("Cannot create %s"),

@@ -35,6 +35,7 @@
 
 #ifndef WIN32
 
+# define VIR_FROM_THIS VIR_FROM_NONE
 
 static int envsort(const void *a, const void *b) {
     const char *const*astrptr = a;
@@ -56,7 +57,8 @@ static int envsort(const void *a, const void *b) {
 }
 
 int main(int argc, char **argv) {
-    int i, n;
+    size_t i, n;
+    int open_max;
     char **origenv;
     char **newenv;
     char *cwd;
@@ -76,7 +78,7 @@ int main(int argc, char **argv) {
         origenv++;
     }
 
-    if (VIR_ALLOC_N(newenv, n) < 0)
+    if (VIR_ALLOC_N_QUIET(newenv, n) < 0)
         return EXIT_FAILURE;
 
     origenv = environ;
@@ -95,7 +97,10 @@ int main(int argc, char **argv) {
             fprintf(log, "ENV:%s\n", newenv[i]);
     }
 
-    for (i = 0; i < sysconf(_SC_OPEN_MAX); i++) {
+    open_max = sysconf(_SC_OPEN_MAX);
+    if (open_max < 0)
+        return EXIT_FAILURE;
+    for (i = 0; i < open_max; i++) {
         int f;
         int closed;
         if (i == fileno(log))
@@ -103,7 +108,7 @@ int main(int argc, char **argv) {
         closed = fcntl(i, F_GETFD, &f) == -1 &&
             errno == EBADF;
         if (!closed)
-            fprintf(log, "FD:%d\n", i);
+            fprintf(log, "FD:%zu\n", i);
     }
 
     fprintf(log, "DAEMON:%s\n", getpgrp() == getsid(0) ? "yes" : "no");

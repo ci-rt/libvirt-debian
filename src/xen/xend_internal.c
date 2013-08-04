@@ -283,10 +283,8 @@ xend_req(int fd, char **content)
     int content_length = 0;
     int retcode = 0;
 
-    if (VIR_ALLOC_N(buffer, buffer_size) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC_N(buffer, buffer_size) < 0)
         return -1;
-    }
 
     while (sreads(fd, buffer, buffer_size) > 0) {
         if (STREQ(buffer, "\r\n"))
@@ -315,10 +313,8 @@ xend_req(int fd, char **content)
         /* Allocate one byte beyond the end of the largest buffer we will read.
            Combined with the fact that VIR_ALLOC_N zeros the returned buffer,
            this guarantees that "content" will always be NUL-terminated. */
-        if (VIR_ALLOC_N(*content, content_length + 1) < 0) {
-            virReportOOMError();
+        if (VIR_ALLOC_N(*content, content_length + 1) < 0)
             return -1;
-        }
 
         ret = sread(fd, *content, content_length);
         if (ret < 0)
@@ -748,7 +744,7 @@ xenDaemonListDomainsOld(virConnectPtr xend)
     struct sexpr *root = NULL;
     char **ret = NULL;
     int count = 0;
-    int i;
+    size_t i;
     struct sexpr *_for_i, *node;
 
     root = sexpr_get(xend, "/xend/domain");
@@ -762,10 +758,8 @@ xenDaemonListDomainsOld(virConnectPtr xend)
         count++;
     }
 
-    if (VIR_ALLOC_N(ret, count + 1) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC_N(ret, count + 1) < 0)
         goto error;
-    }
 
     i = 0;
     for (_for_i = root, node = root->u.s.car; _for_i->kind == SEXPR_CONS;
@@ -1073,7 +1067,7 @@ sexpr_to_xend_topology(const struct sexpr *root, virCapsPtr caps)
         if (STRPREFIX(cur, "no cpus")) {
             nb_cpus = 0;
             if (!(cpuset = virBitmapNew(numCpus)))
-                goto memory_error;
+                goto error;
         } else {
             nb_cpus = virBitmapParse(cur, 'n', &cpuset, numCpus);
             if (nb_cpus < 0)
@@ -1082,7 +1076,7 @@ sexpr_to_xend_topology(const struct sexpr *root, virCapsPtr caps)
 
         if (VIR_ALLOC_N(cpuInfo, numCpus) < 0) {
             virBitmapFree(cpuset);
-            goto memory_error;
+            goto error;
         }
 
         for (n = 0, cpu = 0; cpu < numCpus; cpu++) {
@@ -1095,7 +1089,7 @@ sexpr_to_xend_topology(const struct sexpr *root, virCapsPtr caps)
         virBitmapFree(cpuset);
 
         if (virCapabilitiesAddHostNUMACell(caps, cell, nb_cpus, 0, cpuInfo) < 0)
-            goto memory_error;
+            goto error;
         cpuInfo = NULL;
     }
 
@@ -1107,10 +1101,6 @@ sexpr_to_xend_topology(const struct sexpr *root, virCapsPtr caps)
     virCapabilitiesClearHostNUMACellCPUTopology(cpuInfo, nb_cpus);
     VIR_FREE(cpuInfo);
     return -1;
-
-  memory_error:
-    virReportOOMError();
-    goto error;
 }
 
 
@@ -1219,10 +1209,8 @@ xenDaemonOpen(virConnectPtr conn,
             goto failed;
     } else if (STRCASEEQ(conn->uri->scheme, "http")) {
         if (conn->uri->port &&
-            virAsprintf(&port, "%d", conn->uri->port) == -1) {
-            virReportOOMError();
+            virAsprintf(&port, "%d", conn->uri->port) == -1)
             goto failed;
-        }
 
         if (xenDaemonOpen_tcp(conn,
                               conn->uri->server ? conn->uri->server : "localhost",
@@ -1855,7 +1843,8 @@ xenDaemonDomainPinVcpu(virConnectPtr conn,
                        int maplen)
 {
     char buf[VIR_UUID_BUFLEN], mapstr[sizeof(cpumap_t) * 64];
-    int i, j, ret;
+    size_t i, j;
+    int ret;
     xenUnifiedPrivatePtr priv = conn->privateData;
     virDomainDefPtr def = NULL;
 
@@ -1874,7 +1863,7 @@ xenDaemonDomainPinVcpu(virConnectPtr conn,
     /* from bit map, build character string of mapped CPU numbers */
     for (i = 0; i < maplen; i++) for (j = 0; j < 8; j++)
      if (cpumap[i] & (1 << j)) {
-        snprintf(buf, sizeof(buf), "%d,", (8 * i) + j);
+        snprintf(buf, sizeof(buf), "%zu,", (8 * i) + j);
         strcat(mapstr, buf);
     }
     if (priv->xendConfigVersion < XEND_CONFIG_VERSION_3_0_4)
@@ -1895,10 +1884,8 @@ xenDaemonDomainPinVcpu(virConnectPtr conn,
 
     if (ret == 0) {
         if (!def->cputune.vcpupin) {
-            if (VIR_ALLOC(def->cputune.vcpupin) < 0) {
-                virReportOOMError();
+            if (VIR_ALLOC(def->cputune.vcpupin) < 0)
                 goto cleanup;
-            }
             def->cputune.nvcpupin = 0;
         }
         if (virDomainVcpuPinAdd(&def->cputune.vcpupin,
@@ -2302,10 +2289,8 @@ xenDaemonAttachDeviceFlags(virConnectPtr conn,
 
             PCIAddr = dev->data.hostdev->source.subsys.u.pci.addr;
             if (virAsprintf(&target, "PCI device: %.4x:%.2x:%.2x",
-                            PCIAddr.domain, PCIAddr.bus, PCIAddr.slot) < 0) {
-                virReportOOMError();
+                            PCIAddr.domain, PCIAddr.bus, PCIAddr.slot) < 0)
                 goto cleanup;
-            }
         } else {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                            _("unsupported device type"));
@@ -2911,7 +2896,8 @@ xenDaemonListDefinedDomains(virConnectPtr conn,
                             int maxnames)
 {
     struct sexpr *root = NULL;
-    int i, ret = -1;
+    size_t i;
+    int ret = -1;
     struct sexpr *_for_i, *node;
 
     if (maxnames == 0)
@@ -2920,8 +2906,6 @@ xenDaemonListDefinedDomains(virConnectPtr conn,
     root = sexpr_get(conn, "/xend/domain?state=halted");
     if (root == NULL)
         goto error;
-
-    ret = 0;
 
     /* coverity[copy_paste_error] */
     for (_for_i = root, node = root->u.s.car; _for_i->kind == SEXPR_CONS;
@@ -2936,15 +2920,15 @@ xenDaemonListDefinedDomains(virConnectPtr conn,
             break;
     }
 
+    ret = 0;
+
 cleanup:
     sexpr_free(root);
     return ret;
 
 error:
-    for (i = 0; i < ret; ++i)
+    for (i = 0; ret != -1 && i < ret; ++i)
         VIR_FREE(names[i]);
-
-    ret = -1;
 
     goto cleanup;
 }
@@ -3133,7 +3117,7 @@ xenDaemonSetSchedulerParameters(virConnectPtr conn,
     xenUnifiedPrivatePtr priv = conn->privateData;
     struct sexpr *root;
     char *sched_type = NULL;
-    int i;
+    size_t i;
     int sched_nparam = 0;
     int ret = -1;
 
@@ -3393,10 +3377,8 @@ virDomainXMLDevID(virConnectPtr conn,
                         hostdef->source.subsys.u.pci.addr.domain,
                         hostdef->source.subsys.u.pci.addr.bus,
                         hostdef->source.subsys.u.pci.addr.slot,
-                        hostdef->source.subsys.u.pci.addr.function) < 0) {
-            virReportOOMError();
+                        hostdef->source.subsys.u.pci.addr.function) < 0)
             return -1;
-        }
 
         strcpy(class, "pci");
 

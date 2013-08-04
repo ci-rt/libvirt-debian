@@ -56,6 +56,9 @@
           <ref name="pm"/>
         </optional>
         <optional>
+          <ref name="idmap"/>
+        </optional>
+        <optional>
           <ref name="devices"/>
         </optional>
         <zeroOrMore>
@@ -462,6 +465,34 @@
         </element>
       </optional>
     </interleave>
+  </define>
+  <define name="idmap">
+    <zeroOrMore>
+      <element name="uid">
+        <attribute name="start">
+          <ref name="unsignedInt"/>
+        </attribute>
+        <attribute name="target">
+          <ref name="unsignedInt"/>
+        </attribute>
+        <attribute name="count">
+          <ref name="unsignedInt"/>
+        </attribute>
+      </element>
+    </zeroOrMore>
+    <zeroOrMore>
+      <element name="gid">
+        <attribute name="start">
+          <ref name="unsignedInt"/>
+        </attribute>
+        <attribute name="target">
+          <ref name="unsignedInt"/>
+        </attribute>
+        <attribute name="count">
+          <ref name="unsignedInt"/>
+        </attribute>
+      </element>
+    </zeroOrMore>
   </define>
   <!--
       Resources usage defines the amount of memory (maximum and possibly
@@ -1142,6 +1173,14 @@
                 <attribute name="volume">
                   <ref name="volName"/>
                 </attribute>
+                <optional>
+                  <attribute name="mode">
+                    <choice>
+                      <value>host</value>
+                      <value>direct</value>
+                    </choice>
+                  </attribute>
+                </optional>
                 <optional>
                   <ref name="startupPolicy"/>
                 </optional>
@@ -2915,6 +2954,13 @@
       <optional>
         <ref name="address"/>
       </optional>
+      <optional>
+        <element name="stats">
+          <attribute name="period">
+            <ref name="positiveInteger"/>
+          </attribute>
+        </element>
+      </optional>
     </element>
   </define>
   <define name="parallel">
@@ -4023,9 +4069,11 @@
         <optional>
           <element name="spinlocks">
             <ref name="hypervtristate"/>
-            <attribute name="retries">
-              <data type="integer"/>
-            </attribute>
+            <optional>
+              <attribute name="retries">
+                <data type="unsignedInt"/>
+              </attribute>
+            </optional>
           </element>
         </optional>
       </interleave>

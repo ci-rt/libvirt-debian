@@ -94,10 +94,8 @@ tryLoadOne(const char *dir, bool setAppHome, bool ignoreMissing,
     PFNVBOXGETXPCOMCFUNCTIONS pfnGetFunctions;
 
     if (dir != NULL) {
-        if (virAsprintf(&name, "%s/%s", dir, DYNLIB_NAME) < 0) {
-            virReportOOMError();
+        if (virAsprintf(&name, "%s/%s", dir, DYNLIB_NAME) < 0)
             return -1;
-        }
 
         if (!virFileExists(name)) {
             if (!ignoreMissing) {
@@ -186,7 +184,7 @@ cleanup:
 int
 VBoxCGlueInit(unsigned int *version)
 {
-    int i;
+    size_t i;
     static const char *knownDirs[] = {
         "/usr/lib/virtualbox",
         "/usr/lib/virtualbox-ose",
@@ -336,7 +334,7 @@ vboxArrayGetWithUintArg(vboxArray *array, void *self, void *getter, PRUint32 arg
 void
 vboxArrayRelease(vboxArray *array)
 {
-    int i;
+    size_t i;
     nsISupports *supports;
 
     if (array->items == NULL) {
@@ -363,7 +361,7 @@ vboxArrayRelease(vboxArray *array)
 void
 vboxArrayUnalloc(vboxArray *array)
 {
-    int i;
+    size_t i;
     void *item;
 
     if (array->items == NULL) {

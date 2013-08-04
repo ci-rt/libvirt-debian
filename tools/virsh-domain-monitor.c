@@ -192,6 +192,8 @@ vshDomainStateReasonToString(int state, int reason)
             return N_("save canceled");
         case VIR_DOMAIN_RUNNING_WAKEUP:
             return N_("event wakeup");
+        case VIR_DOMAIN_RUNNING_CRASHED:
+            return N_("crashed");
         case VIR_DOMAIN_RUNNING_UNKNOWN:
         case VIR_DOMAIN_RUNNING_LAST:
             ;
@@ -226,6 +228,8 @@ vshDomainStateReasonToString(int state, int reason)
             return N_("shutting down");
         case VIR_DOMAIN_PAUSED_SNAPSHOT:
             return N_("creating snapshot");
+        case VIR_DOMAIN_PAUSED_CRASHED:
+            return N_("crashed");
         case VIR_DOMAIN_PAUSED_UNKNOWN:
         case VIR_DOMAIN_PAUSED_LAST:
             ;
@@ -266,6 +270,8 @@ vshDomainStateReasonToString(int state, int reason)
 
     case VIR_DOMAIN_CRASHED:
         switch ((virDomainCrashedReason) reason) {
+        case VIR_DOMAIN_CRASHED_PANICKED:
+            return N_("panicked");
         case VIR_DOMAIN_CRASHED_UNKNOWN:
         case VIR_DOMAIN_CRASHED_LAST:
             ;
@@ -306,6 +312,23 @@ static const vshCmdOptDef opts_dommemstat[] = {
      .flags = VSH_OFLAG_REQ,
      .help = N_("domain name, id or uuid")
     },
+    {.name = "period",
+     .type = VSH_OT_DATA,
+     .flags = VSH_OFLAG_REQ_OPT,
+     .help = N_("period in seconds to set collection")
+    },
+    {.name = "config",
+     .type = VSH_OT_BOOL,
+     .help = N_("affect next boot")
+    },
+    {.name = "live",
+     .type = VSH_OT_BOOL,
+     .help = N_("affect running domain")
+    },
+    {.name = "current",
+     .type = VSH_OT_BOOL,
+     .help = N_("affect current domain")
+    },
     {.name = NULL}
 };
 
@@ -315,16 +338,58 @@ cmdDomMemStat(vshControl *ctl, const vshCmd *cmd)
     virDomainPtr dom;
     const char *name;
     struct _virDomainMemoryStat stats[VIR_DOMAIN_MEMORY_STAT_NR];
-    unsigned int nr_stats, i;
+    unsigned int nr_stats;
+    size_t i;
+    int ret = false;
+    int rv = 0;
+    int period = -1;
+    bool config = vshCommandOptBool(cmd, "config");
+    bool live = vshCommandOptBool(cmd, "live");
+    bool current = vshCommandOptBool(cmd, "current");
+    unsigned int flags = VIR_DOMAIN_AFFECT_CURRENT;
+
+    VSH_EXCLUSIVE_OPTIONS_VAR(current, live);
+    VSH_EXCLUSIVE_OPTIONS_VAR(current, config);
+    if (config)
+        flags |= VIR_DOMAIN_AFFECT_CONFIG;
+    if (live)
+        flags |= VIR_DOMAIN_AFFECT_LIVE;
 
     if (!(dom = vshCommandOptDomain(ctl, cmd, &name)))
         return false;
 
+    /* If none of the options were specified and we're active
+     * then be sure to allow active modification */
+    if (!current && !live && !config && virDomainIsActive(dom) == 1)
+        flags |= VIR_DOMAIN_AFFECT_LIVE;
+
+    /* Providing a period will adjust the balloon driver collection period.
+     * This is not really an unsigned long, but it
+     */
+    if ((rv = vshCommandOptInt(cmd, "period", &period)) < 0) {
+        vshError(ctl, "%s",
+                 _("Unable to parse integer parameter."));
+        goto cleanup;
+    }
+    if (rv > 0) {
+        if (period < 0) {
+            vshError(ctl, _("Invalid collection period value '%d'"), period);
+            goto cleanup;
+        }
+
+        if (virDomainSetMemoryStatsPeriod(dom, period, flags) < 0) {
+            vshError(ctl, "%s",
+                     _("Unable to change balloon collection period."));
+        } else {
+            ret = true;
+        }
+        goto cleanup;
+    }
+
     nr_stats = virDomainMemoryStats(dom, stats, VIR_DOMAIN_MEMORY_STAT_NR, 0);
     if (nr_stats == -1) {
         vshError(ctl, _("Failed to get memory statistics for domain %s"), name);
-        virDomainFree(dom);
-        return false;
+        goto cleanup;
     }
 
     for (i = 0; i < nr_stats; i++) {
@@ -346,8 +411,10 @@ cmdDomMemStat(vshControl *ctl, const vshCmd *cmd)
             vshPrint(ctl, "rss %llu\n", stats[i].val);
     }
 
+    ret = true;
+cleanup:
     virDomainFree(dom);
-    return true;
+    return ret;
 }
 
 /*
@@ -446,7 +513,7 @@ cmdDomblklist(vshControl *ctl, const vshCmd *cmd)
     xmlXPathContextPtr ctxt = NULL;
     int ndisks;
     xmlNodePtr *disks = NULL;
-    int i;
+    size_t i;
     bool details = false;
 
     if (vshCommandOptBool(cmd, "inactive"))
@@ -556,7 +623,7 @@ cmdDomiflist(vshControl *ctl, const vshCmd *cmd)
     xmlXPathContextPtr ctxt = NULL;
     int ninterfaces;
     xmlNodePtr *interfaces = NULL;
-    int i;
+    size_t i;
 
     if (vshCommandOptBool(cmd, "inactive"))
         flags |= VIR_DOMAIN_XML_INACTIVE;
@@ -701,10 +768,8 @@ cmdDomIfGetLink(vshControl *ctl, const vshCmd *cmd)
 
     if (virAsprintf(&xpath, "/domain/devices/interface[(mac/@address = '%s') or "
                             "                          (target/@dev = '%s')]",
-                           macstr, iface) < 0) {
-        virReportOOMError();
+                           macstr, iface) < 0)
         goto cleanup;
-    }
 
     if ((ninterfaces = virXPathNodeSet(xpath, ctxt, &interfaces)) < 0) {
         vshError(ctl, _("Failed to extract interface information"));
@@ -874,7 +939,7 @@ cmdDomblkstat(vshControl *ctl, const vshCmd *cmd)
     char *value = NULL;
     const char *field = NULL;
     int rc, nparams = 0;
-    int i = 0;
+    size_t i;
     bool ret = false;
     bool human = vshCommandOptBool(cmd, "human"); /* human readable output */
 
@@ -1082,7 +1147,7 @@ cmdDomBlkError(vshControl *ctl, const vshCmd *cmd)
     virDomainPtr dom;
     virDomainDiskErrorPtr disks = NULL;
     unsigned int ndisks;
-    int i;
+    size_t i;
     int count;
     bool ret = false;
 
@@ -1374,7 +1439,7 @@ typedef struct vshDomainList *vshDomainListPtr;
 static void
 vshDomainListFree(vshDomainListPtr domlist)
 {
-    int i;
+    size_t i;
 
     if (domlist && domlist->domains) {
         for (i = 0; i < domlist->ndomains; i++) {
@@ -1390,7 +1455,7 @@ static vshDomainListPtr
 vshDomainListCollect(vshControl *ctl, unsigned int flags)
 {
     vshDomainListPtr list = vshMalloc(ctl, sizeof(*list));
-    int i;
+    size_t i;
     int ret;
     int *ids = NULL;
     int nids = 0;
@@ -1592,7 +1657,7 @@ finished:
     success = true;
 
 cleanup:
-    for (i = 0; i < nnames; i++)
+    for (i = 0; nnames != -1 && i < nnames; i++)
         VIR_FREE(names[i]);
 
     if (!success) {
@@ -1696,7 +1761,7 @@ cmdList(vshControl *ctl, const vshCmd *cmd)
     bool optTable = vshCommandOptBool(cmd, "table");
     bool optUUID = vshCommandOptBool(cmd, "uuid");
     bool optName = vshCommandOptBool(cmd, "name");
-    int i;
+    size_t i;
     char *title;
     char uuid[VIR_UUID_STRING_BUFLEN];
     int state;

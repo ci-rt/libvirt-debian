@@ -194,8 +194,9 @@ static int test3(const void *unused ATTRIBUTE_UNUSED)
     int newfd3 = dup(STDERR_FILENO);
     int ret = -1;
 
-    virCommandPreserveFD(cmd, newfd1);
-    virCommandTransferFD(cmd, newfd3);
+    virCommandPassFD(cmd, newfd1, 0);
+    virCommandPassFD(cmd, newfd3,
+                     VIR_COMMAND_PASS_FD_CLOSE_PARENT);
 
     if (virCommandRun(cmd, NULL) < 0) {
         virErrorPtr err = virGetLastError();
@@ -820,10 +821,8 @@ static int test20(const void *unused ATTRIBUTE_UNUSED)
 
     sigaction(SIGPIPE, &sig_action, NULL);
 
-    if (virAsprintf(&buf, "1\n%100000d\n", 2) < 0) {
-        virReportOOMError();
+    if (virAsprintf(&buf, "1\n%100000d\n", 2) < 0)
         goto cleanup;
-    }
     virCommandSetInputBuffer(cmd, buf);
 
     if (virCommandRun(cmd, NULL) < 0) {
@@ -996,10 +995,8 @@ mymain(void)
         return EXIT_FAILURE;
 
     virEventRegisterDefaultImpl();
-    if (VIR_ALLOC(test) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC(test) < 0)
         goto cleanup;
-    }
 
     if (virMutexInit(&test->lock) < 0) {
         printf("Unable to init mutex: %d\n", errno);

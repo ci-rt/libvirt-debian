@@ -59,8 +59,12 @@ int qemuMonitorJSONGetVirtType(qemuMonitorPtr mon,
 int qemuMonitorJSONGetBalloonInfo(qemuMonitorPtr mon,
                                   unsigned long long *currmem);
 int qemuMonitorJSONGetMemoryStats(qemuMonitorPtr mon,
+                                  char *balloonpath,
                                   virDomainMemoryStatPtr stats,
                                   unsigned int nr_stats);
+int qemuMonitorJSONSetMemoryStatsPeriod(qemuMonitorPtr mon,
+                                        char *balloonpath,
+                                        int period);
 int qemuMonitorJSONGetBlockInfo(qemuMonitorPtr mon,
                                 virHashTablePtr table);
 int qemuMonitorJSONGetBlockStatsInfo(qemuMonitorPtr mon,
@@ -332,6 +336,66 @@ int qemuMonitorJSONGetKVMState(qemuMonitorPtr mon,
 int qemuMonitorJSONGetObjectTypes(qemuMonitorPtr mon,
                                   char ***types)
     ATTRIBUTE_NONNULL(2);
+
+/* ListPath structures and API's are public only for qemumonitorjsontest */
+typedef struct _qemuMonitorJSONListPath qemuMonitorJSONListPath;
+typedef qemuMonitorJSONListPath *qemuMonitorJSONListPathPtr;
+
+struct _qemuMonitorJSONListPath {
+    char *name;
+    char *type;
+};
+
+int qemuMonitorJSONGetObjectListPaths(qemuMonitorPtr mon,
+                                      const char *path,
+                                      qemuMonitorJSONListPathPtr **paths)
+    ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3);
+
+void qemuMonitorJSONListPathFree(qemuMonitorJSONListPathPtr paths);
+
+/* ObjectProperty structures and Get/Set API's are public only
+ * for qemumonitorjsontest
+ */
+/* Flags for the 'type' field in _qemuMonitorJSONObjectProperty */
+typedef enum {
+    QEMU_MONITOR_OBJECT_PROPERTY_BOOLEAN=1,
+    QEMU_MONITOR_OBJECT_PROPERTY_INT,
+    QEMU_MONITOR_OBJECT_PROPERTY_LONG,
+    QEMU_MONITOR_OBJECT_PROPERTY_UINT,
+    QEMU_MONITOR_OBJECT_PROPERTY_ULONG,
+    QEMU_MONITOR_OBJECT_PROPERTY_DOUBLE,
+    QEMU_MONITOR_OBJECT_PROPERTY_STRING,
+
+    QEMU_MONITOR_OBJECT_PROPERTY_LAST
+} qemuMonitorJSONObjectPropertyType;
+
+typedef struct _qemuMonitorJSONObjectProperty qemuMonitorJSONObjectProperty;
+typedef qemuMonitorJSONObjectProperty *qemuMonitorJSONObjectPropertyPtr;
+struct _qemuMonitorJSONObjectProperty {
+    int type;    /* qemuMonitorJSONObjectPropertyType */
+    union {
+        bool b;
+        int iv;
+        long long l;
+        unsigned int ui;
+        unsigned long long ul;
+        double d;
+        char *str;
+    } val;
+};
+
+int qemuMonitorJSONGetObjectProperty(qemuMonitorPtr mon,
+                                     const char *path,
+                                     const char *property,
+                                     qemuMonitorJSONObjectPropertyPtr prop)
+    ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3) ATTRIBUTE_NONNULL(4);
+
+int qemuMonitorJSONSetObjectProperty(qemuMonitorPtr mon,
+                                     const char *path,
+                                     const char *property,
+                                     qemuMonitorJSONObjectPropertyPtr prop)
+    ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3) ATTRIBUTE_NONNULL(4);
+
 int qemuMonitorJSONGetObjectProps(qemuMonitorPtr mon,
                                   const char *type,
                                   char ***props)
@@ -352,5 +416,14 @@ int qemuMonitorJSONGetTPMModels(qemuMonitorPtr mon,
 int qemuMonitorJSONGetTPMTypes(qemuMonitorPtr mon,
                                char ***tpmtypes)
     ATTRIBUTE_NONNULL(2);
+
+int qemuMonitorJSONAttachCharDev(qemuMonitorPtr mon,
+                                 const char *chrID,
+                                 virDomainChrSourceDefPtr chr);
+int qemuMonitorJSONDetachCharDev(qemuMonitorPtr mon,
+                                 const char *chrID);
+
+int qemuMonitorJSONGetDeviceAliases(qemuMonitorPtr mon,
+                                    char ***aliases);
 
 #endif /* QEMU_MONITOR_JSON_H */

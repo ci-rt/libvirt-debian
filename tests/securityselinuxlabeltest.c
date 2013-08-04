@@ -61,10 +61,8 @@ testSELinuxMungePath(char **path)
     char *tmp;
 
     if (virAsprintf(&tmp, "%s/securityselinuxlabeldata%s",
-                    abs_builddir, *path) < 0) {
-        virReportOOMError();
+                    abs_builddir, *path) < 0)
         return -1;
-    }
 
     VIR_FREE(*path);
     *path = tmp;
@@ -79,59 +77,58 @@ testSELinuxLoadFileList(const char *testname,
     int ret = -1;
     char *path = NULL;
     FILE *fp = NULL;
+    char *line = NULL;
 
     *files = NULL;
     *nfiles = 0;
 
     if (virAsprintf(&path, "%s/securityselinuxlabeldata/%s.txt",
-                    abs_srcdir, testname) < 0) {
-        virReportOOMError();
+                    abs_srcdir, testname) < 0)
         goto cleanup;
-    }
 
     if (!(fp = fopen(path, "r"))) {
         goto cleanup;
     }
 
+    if (VIR_ALLOC_N(line, 1024) < 0)
+        goto cleanup;
+
     while (!feof(fp)) {
-        char *line;
-        char *file, *context;
-        if (VIR_ALLOC_N(line, 1024) < 0) {
-            virReportOOMError();
-            goto cleanup;
-        }
+        char *file, *context, *tmp;
         if (!fgets(line, 1024, fp)) {
             if (!feof(fp))
                 goto cleanup;
             break;
         }
 
-        char *tmp = strchr(line, ';');
+        tmp = strchr(line, ';');
+        if (!tmp) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           "unexpected format for line '%s'",
+                           line);
+            goto cleanup;
+        }
         *tmp = '\0';
         tmp++;
 
-        if (virAsprintf(&file, "%s/securityselinuxlabeldata%s", abs_builddir, line) < 0) {
-            VIR_FREE(line);
-            virReportOOMError();
+        if (virAsprintf(&file, "%s/securityselinuxlabeldata%s",
+                        abs_builddir, line) < 0)
             goto cleanup;
-        }
         if (*tmp != '\0' && *tmp != '\n') {
             if (VIR_STRDUP(context, tmp) < 0) {
-                VIR_FREE(line);
                 VIR_FREE(file);
                 goto cleanup;
             }
 
             tmp = strchr(context, '\n');
-            *tmp = '\0';
+            if (tmp)
+                *tmp = '\0';
         } else {
             context = NULL;
         }
 
-        if (VIR_EXPAND_N(*files, *nfiles, 1) < 0) {
-            virReportOOMError();
+        if (VIR_EXPAND_N(*files, *nfiles, 1) < 0)
             goto cleanup;
-        }
 
         (*files)[(*nfiles)-1].file = file;
         (*files)[(*nfiles)-1].context = context;
@@ -142,6 +139,7 @@ testSELinuxLoadFileList(const char *testname,
 cleanup:
     VIR_FORCE_FCLOSE(fp);
     VIR_FREE(path);
+    VIR_FREE(line);
     return ret;
 }
 
@@ -155,10 +153,8 @@ testSELinuxLoadDef(const char *testname)
     size_t i;
 
     if (virAsprintf(&xmlfile, "%s/securityselinuxlabeldata/%s.xml",
-                    abs_srcdir, testname) < 0) {
-        virReportOOMError();
+                    abs_srcdir, testname) < 0)
         goto cleanup;
-    }
 
     if (virFileReadAll(xmlfile, 1024*1024, &xmlstr) < 0) {
         goto cleanup;

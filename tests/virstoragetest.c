@@ -98,10 +98,8 @@ testPrepImages(void)
         virAsprintf(&absqcow2, "%s/qcow2", datadir) < 0 ||
         virAsprintf(&abswrap, "%s/wrap", datadir) < 0 ||
         virAsprintf(&absqed, "%s/qed", datadir) < 0 ||
-        virAsprintf(&abslink2, "%s/sub/link2", datadir) < 0) {
-        virReportOOMError();
+        virAsprintf(&abslink2, "%s/sub/link2", datadir) < 0)
         goto cleanup;
-    }
 
     if (virFileMakePath(datadir "/sub") < 0) {
         fprintf(stderr, "unable to create directory %s\n", datadir "/sub");
@@ -220,7 +218,7 @@ testStorageChain(const void *args)
     int ret = -1;
     virStorageFileMetadataPtr meta;
     virStorageFileMetadataPtr elt;
-    int i = 0;
+    size_t i = 0;
 
     meta = virStorageFileGetMetadata(data->start, data->format, -1, -1,
                                      (data->flags & ALLOW_PROBE) != 0);
@@ -271,7 +269,6 @@ testStorageChain(const void *args)
                         NULLSTR(elt->directory),
                         elt->backingStoreFormat, elt->backingStoreIsFile,
                         elt->capacity, elt->encrypted) < 0) {
-            virReportOOMError();
             VIR_FREE(expect);
             VIR_FREE(actual);
             goto cleanup;

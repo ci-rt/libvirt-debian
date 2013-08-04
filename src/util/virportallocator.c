@@ -86,7 +86,6 @@ virPortAllocatorPtr virPortAllocatorNew(unsigned short start,
     pa->end = end;
 
     if (!(pa->bitmap = virBitmapNew((end-start)+1))) {
-        virReportOOMError();
         virObjectUnref(pa);
         return NULL;
     }
@@ -98,7 +97,7 @@ int virPortAllocatorAcquire(virPortAllocatorPtr pa,
                             unsigned short *port)
 {
     int ret = -1;
-    int i;
+    size_t i;
     int fd = -1;
 
     *port = 0;
@@ -112,7 +111,7 @@ int virPortAllocatorAcquire(virPortAllocatorPtr pa,
         if (virBitmapGetBit(pa->bitmap,
                             i - pa->start, &used) < 0) {
             virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("Failed to query port %d"), i);
+                           _("Failed to query port %zu"), i);
             goto cleanup;
         }
 
@@ -138,7 +137,7 @@ int virPortAllocatorAcquire(virPortAllocatorPtr pa,
         if (bind(fd, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
             if (errno != EADDRINUSE) {
                 virReportSystemError(errno,
-                                     _("Unable to bind to port %d"), i);
+                                     _("Unable to bind to port %zu"), i);
                 goto cleanup;
             }
             /* In use, try next */
@@ -148,7 +147,7 @@ int virPortAllocatorAcquire(virPortAllocatorPtr pa,
             if (virBitmapSetBit(pa->bitmap,
                                 i - pa->start) < 0) {
                 virReportError(VIR_ERR_INTERNAL_ERROR,
-                               _("Failed to reserve port %d"), i);
+                               _("Failed to reserve port %zu"), i);
                 goto cleanup;
             }
             *port = i;
@@ -166,6 +165,10 @@ int virPortAllocatorRelease(virPortAllocatorPtr pa,
                             unsigned short port)
 {
     int ret = -1;
+
+    if (!port)
+        return 0;
+
     virObjectLock(pa);
 
     if (port < pa->start ||

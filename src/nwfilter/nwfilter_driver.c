@@ -178,10 +178,8 @@ nwfilterStateInitialize(bool privileged,
     sysbus = virDBusGetSystemBus();
 #endif /* WITH_DBUS */
 
-    if (VIR_ALLOC(driverState) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC(driverState) < 0)
         return -1;
-    }
 
     if (virMutexInit(&driverState->lock) < 0)
         goto err_free_driverstate;
@@ -227,7 +225,7 @@ nwfilterStateInitialize(bool privileged,
 
     if (virAsprintf(&driverState->configDir,
                     "%s/nwfilter", base) == -1)
-        goto out_of_memory;
+        goto error;
 
     VIR_FREE(base);
 
@@ -239,9 +237,6 @@ nwfilterStateInitialize(bool privileged,
     nwfilterDriverUnlock(driverState);
 
     return 0;
-
-out_of_memory:
-    virReportOOMError();
 
 error:
     VIR_FREE(base);
@@ -441,11 +436,22 @@ nwfilterClose(virConnectPtr conn) {
 static int
 nwfilterConnectNumOfNWFilters(virConnectPtr conn) {
     virNWFilterDriverStatePtr driver = conn->nwfilterPrivateData;
+    size_t i;
+    int n;
 
     if (virConnectNumOfNWFiltersEnsureACL(conn) < 0)
         return -1;
 
-    return driver->nwfilters.count;
+    n = 0;
+    for (i = 0; i < driver->nwfilters.count; i++) {
+        virNWFilterObjPtr obj = driver->nwfilters.objs[i];
+        virNWFilterObjLock(obj);
+        if (virConnectNumOfNWFiltersCheckACL(conn, obj->def))
+            n++;
+        virNWFilterObjUnlock(obj);
+    }
+
+    return n;
 }
 
 
@@ -454,20 +460,24 @@ nwfilterConnectListNWFilters(virConnectPtr conn,
                              char **const names,
                              int nnames) {
     virNWFilterDriverStatePtr driver = conn->nwfilterPrivateData;
-    int got = 0, i;
+    int got = 0;
+    size_t i;
 
     if (virConnectListNWFiltersEnsureACL(conn) < 0)
         return -1;
 
     nwfilterDriverLock(driver);
     for (i = 0; i < driver->nwfilters.count && got < nnames; i++) {
-        virNWFilterObjLock(driver->nwfilters.objs[i]);
-        if (VIR_STRDUP(names[got], driver->nwfilters.objs[i]->def->name) < 0) {
-             virNWFilterObjUnlock(driver->nwfilters.objs[i]);
-             goto cleanup;
+        virNWFilterObjPtr obj = driver->nwfilters.objs[i];
+        virNWFilterObjLock(obj);
+        if (virConnectListNWFiltersCheckACL(conn, obj->def)) {
+            if (VIR_STRDUP(names[got], obj->def->name) < 0) {
+                virNWFilterObjUnlock(obj);
+                goto cleanup;
+            }
+            got++;
         }
-        got++;
-        virNWFilterObjUnlock(driver->nwfilters.objs[i]);
+        virNWFilterObjUnlock(obj);
     }
     nwfilterDriverUnlock(driver);
     return got;
@@ -490,7 +500,7 @@ nwfilterConnectListAllNWFilters(virConnectPtr conn,
     int nfilters = 0;
     virNWFilterPtr filter = NULL;
     virNWFilterObjPtr obj = NULL;
-    int i;
+    size_t i;
     int ret = -1;
 
     virCheckFlags(0, -1);
@@ -505,21 +515,21 @@ nwfilterConnectListAllNWFilters(virConnectPtr conn,
         goto cleanup;
     }
 
-    if (VIR_ALLOC_N(tmp_filters, driver->nwfilters.count + 1) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC_N(tmp_filters, driver->nwfilters.count + 1) < 0)
         goto cleanup;
-    }
 
     for (i = 0; i < driver->nwfilters.count; i++) {
         obj = driver->nwfilters.objs[i];
         virNWFilterObjLock(obj);
-        if (!(filter = virGetNWFilter(conn, obj->def->name,
-                                      obj->def->uuid))) {
-            virNWFilterObjUnlock(obj);
-            goto cleanup;
+        if (virConnectListAllNWFiltersCheckACL(conn, obj->def)) {
+            if (!(filter = virGetNWFilter(conn, obj->def->name,
+                                          obj->def->uuid))) {
+                virNWFilterObjUnlock(obj);
+                goto cleanup;
+            }
+            tmp_filters[nfilters++] = filter;
         }
         virNWFilterObjUnlock(obj);
-        tmp_filters[nfilters++] = filter;
     }
 
     *filters = tmp_filters;

@@ -56,13 +56,19 @@ int lxcContainerStart(virDomainDefPtr def,
                       virSecurityManagerPtr securityDriver,
                       size_t nveths,
                       char **veths,
+                      size_t npassFDs,
+                      int *passFDs,
                       int control,
                       int handshakefd,
-                      char **ttyPaths,
-                      size_t nttyPaths);
+                      size_t nttyPaths,
+                      char **ttyPaths);
 
 int lxcContainerAvailable(int features);
 
+int lxcContainerSetupHostdevCapsMakePath(const char *dev);
+
 virArch lxcContainerGetAlt32bitArch(virArch arch);
+
+int lxcContainerChown(virDomainDefPtr def, const char *path);
 
 #endif /* LXC_CONTAINER_H */

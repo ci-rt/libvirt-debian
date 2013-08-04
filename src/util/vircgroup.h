@@ -46,26 +46,17 @@ enum {
 
 VIR_ENUM_DECL(virCgroupController);
 
+bool virCgroupAvailable(void);
+
 int virCgroupNewPartition(const char *path,
                           bool create,
                           int controllers,
                           virCgroupPtr *group)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(4);
 
-int virCgroupNewDriver(const char *name,
-                       bool create,
-                       int controllers,
-                       virCgroupPtr *group)
-    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(4);
-
 int virCgroupNewSelf(virCgroupPtr *group)
     ATTRIBUTE_NONNULL(1);
 
-int virCgroupNewDomainDriver(virCgroupPtr driver,
-                             const char *name,
-                             bool create,
-                             virCgroupPtr *group)
-    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(4);
 int virCgroupNewDomainPartition(virCgroupPtr partition,
                                 const char *driver,
                                 const char *name,
@@ -83,6 +74,31 @@ int virCgroupNewEmulator(virCgroupPtr domain,
                          bool create,
                          virCgroupPtr *group)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(3);
+
+int virCgroupNewDetect(pid_t pid,
+                       int controllers,
+                       virCgroupPtr *group);
+
+int virCgroupNewDetectMachine(const char *name,
+                              const char *drivername,
+                              pid_t pid,
+                              int controllers,
+                              virCgroupPtr *group);
+
+int virCgroupNewMachine(const char *name,
+                        const char *drivername,
+                        bool privileged,
+                        const unsigned char *uuid,
+                        const char *rootdir,
+                        pid_t pidleader,
+                        bool isContainer,
+                        const char *partition,
+                        int controllers,
+                        virCgroupPtr *group)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2)
+    ATTRIBUTE_NONNULL(4);
+
+bool virCgroupNewIgnoreError(void);
 
 int virCgroupPathOfController(virCgroupPtr group,
                               int controller,

@@ -734,6 +734,15 @@ struct remote_domain_create_xml_ret {
     remote_nonnull_domain dom;
 };
 
+struct remote_domain_create_xml_with_files_args {
+    remote_nonnull_string xml_desc;
+    unsigned int flags;
+};
+
+struct remote_domain_create_xml_with_files_ret {
+    remote_nonnull_domain dom;
+};
+
 struct remote_domain_lookup_by_id_args {
     int id;
 };
@@ -830,6 +839,12 @@ struct remote_domain_set_memory_args {
 struct remote_domain_set_memory_flags_args {
     remote_nonnull_domain dom;
     unsigned hyper memory;
+    unsigned int flags;
+};
+
+struct remote_domain_set_memory_stats_period_args {
+    remote_nonnull_domain dom;
+    int period;
     unsigned int flags;
 };
 
@@ -986,6 +1001,15 @@ struct remote_domain_create_with_flags_args {
 };
 
 struct remote_domain_create_with_flags_ret {
+    remote_nonnull_domain dom;
+};
+
+struct remote_domain_create_with_files_args {
+    remote_nonnull_domain dom;
+    unsigned int flags;
+};
+
+struct remote_domain_create_with_files_ret {
     remote_nonnull_domain dom;
 };
 
@@ -2806,6 +2830,11 @@ struct remote_domain_migrate_confirm3_params_args {
     opaque cookie_in<REMOTE_MIGRATE_COOKIE_MAX>;
     unsigned int flags;
     int cancelled;
+};
+
+struct remote_domain_event_device_removed_msg {
+    remote_nonnull_domain dom;
+    remote_nonnull_string devAlias;
 };
 
 /*----- Protocol. -----*/
@@ -4944,6 +4973,32 @@ enum remote_procedure {
      * @generate: none
      * @acl: domain:migrate
      */
-    REMOTE_PROC_DOMAIN_MIGRATE_CONFIRM3_PARAMS = 307
+    REMOTE_PROC_DOMAIN_MIGRATE_CONFIRM3_PARAMS = 307,
 
+    /**
+     * @generate: both
+     * @acl: domain:write
+     * @acl: domain:save:!VIR_DOMAIN_AFFECT_CONFIG|VIR_DOMAIN_AFFECT_LIVE
+     * @acl: domain:save:VIR_DOMAIN_AFFECT_CONFIG
+     */
+    REMOTE_PROC_DOMAIN_SET_MEMORY_STATS_PERIOD = 308,
+
+    /**
+     * @generate: none
+     * @acl: domain:write
+     * @acl: domain:start
+     */
+    REMOTE_PROC_DOMAIN_CREATE_XML_WITH_FILES = 309,
+
+    /**
+     * @generate: none
+     * @acl: domain:start
+     */
+    REMOTE_PROC_DOMAIN_CREATE_WITH_FILES = 310,
+
+    /**
+     * @generate: both
+     * @acl: none
+     */
+    REMOTE_PROC_DOMAIN_EVENT_DEVICE_REMOVED = 311
 };

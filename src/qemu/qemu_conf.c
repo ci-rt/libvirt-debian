@@ -52,29 +52,13 @@
 #include "virfile.h"
 #include "virstring.h"
 #include "viratomic.h"
+#include "storage_conf.h"
 #include "configmake.h"
 
 #define VIR_FROM_THIS VIR_FROM_QEMU
 
-typedef struct _qemuDriverCloseDef qemuDriverCloseDef;
-typedef qemuDriverCloseDef *qemuDriverCloseDefPtr;
-struct _qemuDriverCloseDef {
-    virConnectPtr conn;
-    virQEMUCloseCallback cb;
-};
-
-struct _virQEMUCloseCallbacks {
-    virObjectLockable parent;
-
-    /* UUID string to qemuDriverCloseDef mapping */
-    virHashTablePtr list;
-};
-
-
 static virClassPtr virQEMUDriverConfigClass;
-static virClassPtr virQEMUCloseCallbacksClass;
 static void virQEMUDriverConfigDispose(void *obj);
-static void virQEMUCloseCallbacksDispose(void *obj);
 
 static int virQEMUConfigOnceInit(void)
 {
@@ -83,12 +67,7 @@ static int virQEMUConfigOnceInit(void)
                                            sizeof(virQEMUDriverConfig),
                                            virQEMUDriverConfigDispose);
 
-    virQEMUCloseCallbacksClass = virClassNew(virClassForObjectLockable(),
-                                             "virQEMUCloseCallbacks",
-                                             sizeof(virQEMUCloseCallbacks),
-                                             virQEMUCloseCallbacksDispose);
-
-    if (!virQEMUDriverConfigClass || !virQEMUCloseCallbacksClass)
+    if (!virQEMUDriverConfigClass)
         return -1;
     else
         return 0;
@@ -138,31 +117,31 @@ virQEMUDriverConfigPtr virQEMUDriverConfigNew(bool privileged)
     if (privileged) {
         if (virAsprintf(&cfg->logDir,
                         "%s/log/libvirt/qemu", LOCALSTATEDIR) < 0)
-            goto no_memory;
+            goto error;
 
         if (VIR_STRDUP(cfg->configBaseDir, SYSCONFDIR "/libvirt") < 0)
             goto error;
 
         if (virAsprintf(&cfg->stateDir,
                       "%s/run/libvirt/qemu", LOCALSTATEDIR) < 0)
-            goto no_memory;
+            goto error;
 
         if (virAsprintf(&cfg->libDir,
                       "%s/lib/libvirt/qemu", LOCALSTATEDIR) < 0)
-            goto no_memory;
+            goto error;
 
         if (virAsprintf(&cfg->cacheDir,
                       "%s/cache/libvirt/qemu", LOCALSTATEDIR) < 0)
-            goto no_memory;
+            goto error;
         if (virAsprintf(&cfg->saveDir,
                       "%s/lib/libvirt/qemu/save", LOCALSTATEDIR) < 0)
-            goto no_memory;
+            goto error;
         if (virAsprintf(&cfg->snapshotDir,
                         "%s/lib/libvirt/qemu/snapshot", LOCALSTATEDIR) < 0)
-            goto no_memory;
+            goto error;
         if (virAsprintf(&cfg->autoDumpPath,
                         "%s/lib/libvirt/qemu/dump", LOCALSTATEDIR) < 0)
-            goto no_memory;
+            goto error;
     } else {
         char *rundir;
         char *cachedir;
@@ -174,11 +153,11 @@ virQEMUDriverConfigPtr virQEMUDriverConfigNew(bool privileged)
         if (virAsprintf(&cfg->logDir,
                         "%s/qemu/log", cachedir) < 0) {
             VIR_FREE(cachedir);
-            goto no_memory;
+            goto error;
         }
         if (virAsprintf(&cfg->cacheDir, "%s/qemu/cache", cachedir) < 0) {
             VIR_FREE(cachedir);
-            goto no_memory;
+            goto error;
         }
         VIR_FREE(cachedir);
 
@@ -187,7 +166,7 @@ virQEMUDriverConfigPtr virQEMUDriverConfigNew(bool privileged)
             goto error;
         if (virAsprintf(&cfg->stateDir, "%s/qemu/run", rundir) < 0) {
             VIR_FREE(rundir);
-            goto no_memory;
+            goto error;
         }
         VIR_FREE(rundir);
 
@@ -195,19 +174,19 @@ virQEMUDriverConfigPtr virQEMUDriverConfigNew(bool privileged)
             goto error;
 
         if (virAsprintf(&cfg->libDir, "%s/qemu/lib", cfg->configBaseDir) < 0)
-            goto no_memory;
+            goto error;
         if (virAsprintf(&cfg->saveDir, "%s/qemu/save", cfg->configBaseDir) < 0)
-            goto no_memory;
+            goto error;
         if (virAsprintf(&cfg->snapshotDir, "%s/qemu/snapshot", cfg->configBaseDir) < 0)
-            goto no_memory;
+            goto error;
         if (virAsprintf(&cfg->autoDumpPath, "%s/qemu/dump", cfg->configBaseDir) < 0)
-            goto no_memory;
+            goto error;
     }
 
     if (virAsprintf(&cfg->configDir, "%s/qemu", cfg->configBaseDir) < 0)
-        goto no_memory;
+        goto error;
     if (virAsprintf(&cfg->autostartDir, "%s/qemu/autostart", cfg->configBaseDir) < 0)
-        goto no_memory;
+        goto error;
 
 
     if (VIR_STRDUP(cfg->vncListen, "127.0.0.1") < 0)
@@ -255,8 +234,6 @@ virQEMUDriverConfigPtr virQEMUDriverConfigNew(bool privileged)
 
     return cfg;
 
-no_memory:
-    virReportOOMError();
 error:
     virObjectUnref(cfg);
     return NULL;
@@ -310,7 +287,7 @@ int virQEMUDriverConfigLoadFile(virQEMUDriverConfigPtr cfg,
     virConfPtr conf = NULL;
     virConfValuePtr p;
     int ret = -1;
-    int i;
+    size_t i;
 
     /* Just check the file is readable before opening it, otherwise
      * libvirt emits an error.
@@ -377,7 +354,7 @@ int virQEMUDriverConfigLoadFile(virQEMUDriverConfigPtr cfg,
         }
 
         if (VIR_ALLOC_N(cfg->securityDriverNames, len + 1) < 0)
-            goto no_memory;
+            goto cleanup;
 
         for (i = 0, pp = p->list; pp; i++, pp = pp->next) {
             if (VIR_STRDUP(cfg->securityDriverNames[i], pp->str) < 0)
@@ -388,7 +365,7 @@ int virQEMUDriverConfigLoadFile(virQEMUDriverConfigPtr cfg,
         CHECK_TYPE("security_driver", VIR_CONF_STRING);
         if (p && p->str) {
             if (VIR_ALLOC_N(cfg->securityDriverNames, 2) < 0)
-                goto no_memory;
+                goto cleanup;
             if (VIR_STRDUP(cfg->securityDriverNames[0], p->str) < 0)
                 goto cleanup;
 
@@ -508,7 +485,7 @@ int virQEMUDriverConfigLoadFile(virQEMUDriverConfigPtr cfg,
         for (pp = p->list; pp; pp = pp->next)
             len++;
         if (VIR_ALLOC_N(cfg->cgroupDeviceACL, 1+len) < 0)
-            goto no_memory;
+            goto cleanup;
 
         for (i = 0, pp = p->list; pp; ++i, pp = pp->next) {
             if (pp->type != VIR_CONF_STRING) {
@@ -555,10 +532,6 @@ int virQEMUDriverConfigLoadFile(virQEMUDriverConfigPtr cfg,
 cleanup:
     virConfFree(conf);
     return ret;
-
-no_memory:
-    virReportOOMError();
-    goto cleanup;
 }
 #undef GET_VALUE_BOOL
 #undef GET_VALUE_LONG
@@ -594,7 +567,7 @@ virCapsPtr virQEMUDriverCreateCapabilities(virQEMUDriverPtr driver)
 
     /* Basic host arch / guest machine capabilities */
     if (!(caps = virQEMUCapsInit(driver->qemuCapsCache)))
-        goto no_memory;
+        goto error;
 
     if (virGetHostUUID(caps->host.host_uuid)) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
@@ -612,7 +585,7 @@ virCapsPtr virQEMUDriverCreateCapabilities(virQEMUDriverPtr driver)
     caps->host.nsecModels = i;
 
     if (VIR_ALLOC_N(caps->host.secModels, caps->host.nsecModels) < 0)
-        goto no_memory;
+        goto error;
 
     for (i = 0; sec_managers[i]; i++) {
         doi = virSecurityManagerGetDOI(sec_managers[i]);
@@ -628,8 +601,6 @@ virCapsPtr virQEMUDriverCreateCapabilities(virQEMUDriverPtr driver)
     virObjectUnref(cfg);
     return caps;
 
-no_memory:
-    virReportOOMError();
 error:
     VIR_FREE(sec_managers);
     virObjectUnref(caps);
@@ -670,281 +641,6 @@ virCapsPtr virQEMUDriverGetCapabilities(virQEMUDriverPtr driver,
     return ret;
 }
 
-
-static void
-virQEMUCloseCallbacksFreeData(void *payload,
-                              const void *name ATTRIBUTE_UNUSED)
-{
-    VIR_FREE(payload);
-}
-
-virQEMUCloseCallbacksPtr
-virQEMUCloseCallbacksNew(void)
-{
-    virQEMUCloseCallbacksPtr closeCallbacks;
-
-    if (virQEMUConfigInitialize() < 0)
-        return NULL;
-
-    if (!(closeCallbacks = virObjectLockableNew(virQEMUCloseCallbacksClass)))
-        return NULL;
-
-    closeCallbacks->list = virHashCreate(5, virQEMUCloseCallbacksFreeData);
-    if (!closeCallbacks->list) {
-        virObjectUnref(closeCallbacks);
-        return NULL;
-    }
-
-    return closeCallbacks;
-}
-
-static void
-virQEMUCloseCallbacksDispose(void *obj)
-{
-    virQEMUCloseCallbacksPtr closeCallbacks = obj;
-
-    virHashFree(closeCallbacks->list);
-}
-
-int
-virQEMUCloseCallbacksSet(virQEMUCloseCallbacksPtr closeCallbacks,
-                         virDomainObjPtr vm,
-                         virConnectPtr conn,
-                         virQEMUCloseCallback cb)
-{
-    char uuidstr[VIR_UUID_STRING_BUFLEN];
-    qemuDriverCloseDefPtr closeDef;
-    int ret = -1;
-
-    virUUIDFormat(vm->def->uuid, uuidstr);
-    VIR_DEBUG("vm=%s, uuid=%s, conn=%p, cb=%p",
-              vm->def->name, uuidstr, conn, cb);
-
-    virObjectLock(closeCallbacks);
-
-    closeDef = virHashLookup(closeCallbacks->list, uuidstr);
-    if (closeDef) {
-        if (closeDef->conn != conn) {
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("Close callback for domain %s already registered"
-                             " with another connection %p"),
-                           vm->def->name, closeDef->conn);
-            goto cleanup;
-        }
-        if (closeDef->cb && closeDef->cb != cb) {
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("Another close callback is already defined for"
-                             " domain %s"), vm->def->name);
-            goto cleanup;
-        }
-
-        closeDef->cb = cb;
-    } else {
-        if (VIR_ALLOC(closeDef) < 0) {
-            virReportOOMError();
-            goto cleanup;
-        }
-
-        closeDef->conn = conn;
-        closeDef->cb = cb;
-        if (virHashAddEntry(closeCallbacks->list, uuidstr, closeDef) < 0) {
-            VIR_FREE(closeDef);
-            goto cleanup;
-        }
-    }
-
-    ret = 0;
-cleanup:
-    virObjectUnlock(closeCallbacks);
-    return ret;
-}
-
-int
-virQEMUCloseCallbacksUnset(virQEMUCloseCallbacksPtr closeCallbacks,
-                           virDomainObjPtr vm,
-                           virQEMUCloseCallback cb)
-{
-    char uuidstr[VIR_UUID_STRING_BUFLEN];
-    qemuDriverCloseDefPtr closeDef;
-    int ret = -1;
-
-    virUUIDFormat(vm->def->uuid, uuidstr);
-    VIR_DEBUG("vm=%s, uuid=%s, cb=%p",
-              vm->def->name, uuidstr, cb);
-
-    virObjectLock(closeCallbacks);
-
-    closeDef = virHashLookup(closeCallbacks->list, uuidstr);
-    if (!closeDef)
-        goto cleanup;
-
-    if (closeDef->cb && closeDef->cb != cb) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("Trying to remove mismatching close callback for"
-                         " domain %s"), vm->def->name);
-        goto cleanup;
-    }
-
-    ret = virHashRemoveEntry(closeCallbacks->list, uuidstr);
-cleanup:
-    virObjectUnlock(closeCallbacks);
-    return ret;
-}
-
-virQEMUCloseCallback
-virQEMUCloseCallbacksGet(virQEMUCloseCallbacksPtr closeCallbacks,
-                         virDomainObjPtr vm,
-                         virConnectPtr conn)
-{
-    char uuidstr[VIR_UUID_STRING_BUFLEN];
-    qemuDriverCloseDefPtr closeDef;
-    virQEMUCloseCallback cb = NULL;
-
-    virUUIDFormat(vm->def->uuid, uuidstr);
-    VIR_DEBUG("vm=%s, uuid=%s, conn=%p",
-              vm->def->name, uuidstr, conn);
-
-    virObjectLock(closeCallbacks);
-
-    closeDef = virHashLookup(closeCallbacks->list, uuidstr);
-    if (closeDef && (!conn || closeDef->conn == conn))
-        cb = closeDef->cb;
-
-    virObjectUnlock(closeCallbacks);
-
-    VIR_DEBUG("cb=%p", cb);
-    return cb;
-}
-
-
-typedef struct _virQEMUCloseCallbacksListEntry virQEMUCloseCallbacksListEntry;
-typedef virQEMUCloseCallbacksListEntry *virQEMUCloseCallbacksListEntryPtr;
-struct _virQEMUCloseCallbacksListEntry {
-    unsigned char uuid[VIR_UUID_BUFLEN];
-    virQEMUCloseCallback callback;
-};
-
-
-typedef struct _virQEMUCloseCallbacksList virQEMUCloseCallbacksList;
-typedef virQEMUCloseCallbacksList *virQEMUCloseCallbacksListPtr;
-struct _virQEMUCloseCallbacksList {
-    size_t nentries;
-    virQEMUCloseCallbacksListEntryPtr entries;
-};
-
-
-struct virQEMUCloseCallbacksData {
-    virConnectPtr conn;
-    virQEMUCloseCallbacksListPtr list;
-    bool oom;
-};
-
-
-static void
-virQEMUCloseCallbacksGetOne(void *payload,
-                            const void *key,
-                            void *opaque)
-{
-    struct virQEMUCloseCallbacksData *data = opaque;
-    qemuDriverCloseDefPtr closeDef = payload;
-    const char *uuidstr = key;
-    unsigned char uuid[VIR_UUID_BUFLEN];
-
-    if (virUUIDParse(uuidstr, uuid) < 0)
-        return;
-
-    VIR_DEBUG("conn=%p, thisconn=%p, uuid=%s, cb=%p",
-              closeDef->conn, data->conn, uuidstr, closeDef->cb);
-
-    if (data->conn != closeDef->conn || !closeDef->cb)
-        return;
-
-    if (VIR_EXPAND_N(data->list->entries,
-                     data->list->nentries, 1) < 0) {
-        data->oom = true;
-        return;
-    }
-
-    memcpy(data->list->entries[data->list->nentries - 1].uuid,
-           uuid, VIR_UUID_BUFLEN);
-    data->list->entries[data->list->nentries - 1].callback = closeDef->cb;
-}
-
-
-static virQEMUCloseCallbacksListPtr
-virQEMUCloseCallbacksGetForConn(virQEMUCloseCallbacksPtr closeCallbacks,
-                                virConnectPtr conn)
-{
-    virQEMUCloseCallbacksListPtr list = NULL;
-    struct virQEMUCloseCallbacksData data;
-
-    if (VIR_ALLOC(list) < 0) {
-        virReportOOMError();
-        return NULL;
-    }
-
-    data.conn = conn;
-    data.list = list;
-    data.oom = false;
-
-    virHashForEach(closeCallbacks->list, virQEMUCloseCallbacksGetOne, &data);
-
-    if (data.oom) {
-        VIR_FREE(list->entries);
-        VIR_FREE(list);
-        virReportOOMError();
-        return NULL;
-    }
-
-    return list;
-}
-
-
-void
-virQEMUCloseCallbacksRun(virQEMUCloseCallbacksPtr closeCallbacks,
-                         virConnectPtr conn,
-                         virQEMUDriverPtr driver)
-{
-    virQEMUCloseCallbacksListPtr list;
-    size_t i;
-
-    VIR_DEBUG("conn=%p", conn);
-
-    /* We must not hold the lock while running the callbacks,
-     * so first we obtain the list of callbacks, then remove
-     * them all from the hash. At that point we can release
-     * the lock and run the callbacks safely. */
-
-    virObjectLock(closeCallbacks);
-    list = virQEMUCloseCallbacksGetForConn(closeCallbacks, conn);
-    if (!list)
-        return;
-
-    for (i = 0; i < list->nentries; i++) {
-        virHashRemoveEntry(closeCallbacks->list,
-                           list->entries[i].uuid);
-    }
-    virObjectUnlock(closeCallbacks);
-
-    for (i = 0; i < list->nentries; i++) {
-        virDomainObjPtr vm;
-
-        if (!(vm = virDomainObjListFindByUUID(driver->domains,
-                                              list->entries[i].uuid))) {
-            char uuidstr[VIR_UUID_STRING_BUFLEN];
-            virUUIDFormat(list->entries[i].uuid, uuidstr);
-            VIR_DEBUG("No domain object with UUID %s", uuidstr);
-            continue;
-        }
-
-        vm = list->entries[i].callback(driver, vm, conn);
-        if (vm)
-            virObjectUnlock(vm);
-    }
-    VIR_FREE(list->entries);
-    VIR_FREE(list);
-}
-
 struct _qemuSharedDeviceEntry {
     size_t ref;
     char **domains; /* array of domain names */
@@ -965,10 +661,8 @@ qemuGetSharedDeviceKey(const char *device_path)
         return NULL;
     }
 
-    if (virAsprintf(&key, "%d:%d", maj, min) < 0) {
-        virReportOOMError();
+    if (virAsprintf(&key, "%d:%d", maj, min) < 0)
         return NULL;
-    }
 
     return key;
 }
@@ -1013,10 +707,8 @@ qemuCheckSharedDevice(virHashTablePtr sharedDevices,
                                                      hostdev->source.subsys.u.scsi.unit)))
             goto cleanup;
 
-        if (virAsprintf(&hostdev_path, "/dev/%s", hostdev_name) < 0) {
-            virReportOOMError();
+        if (virAsprintf(&hostdev_path, "/dev/%s", hostdev_name) < 0)
             goto cleanup;
-        }
 
         device_path = hostdev_path;
     } else {
@@ -1127,15 +819,11 @@ qemuSharedDeviceEntryCopy(const qemuSharedDeviceEntryPtr entry)
     qemuSharedDeviceEntryPtr ret = NULL;
     size_t i;
 
-    if (VIR_ALLOC(ret) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC(ret) < 0)
         return NULL;
-    }
 
-    if (VIR_ALLOC_N(ret->domains, entry->ref) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC_N(ret->domains, entry->ref) < 0)
         goto cleanup;
-    }
 
     for (i = 0; i < entry->ref; i++) {
         if (VIR_STRDUP(ret->domains[i], entry->domains[i]) < 0)
@@ -1180,12 +868,7 @@ qemuAddSharedDevice(virQEMUDriverPtr driver,
     if (dev->type == VIR_DOMAIN_DEVICE_DISK) {
         disk = dev->data.disk;
 
-        if (!disk->shared ||
-            !disk->src ||
-            (disk->type != VIR_DOMAIN_DISK_TYPE_BLOCK &&
-             !(disk->type == VIR_DOMAIN_DISK_TYPE_VOLUME &&
-               disk->srcpool &&
-               disk->srcpool->voltype == VIR_STORAGE_VOL_BLOCK)))
+        if (!disk->shared || !virDomainDiskSourceIsBlockType(disk))
             return 0;
     } else if (dev->type == VIR_DOMAIN_DEVICE_HOSTDEV) {
         hostdev = dev->data.hostdev;
@@ -1212,10 +895,8 @@ qemuAddSharedDevice(virQEMUDriverPtr driver,
                                                  hostdev->source.subsys.u.scsi.unit)))
             goto cleanup;
 
-        if (virAsprintf(&dev_path, "/dev/%s", dev_name) < 0) {
-            virReportOOMError();
+        if (virAsprintf(&dev_path, "/dev/%s", dev_name) < 0)
             goto cleanup;
-        }
 
         if (!(key = qemuGetSharedDeviceKey(dev_path)))
             goto cleanup;
@@ -1236,7 +917,6 @@ qemuAddSharedDevice(virQEMUDriverPtr driver,
         if (VIR_EXPAND_N(new_entry->domains, new_entry->ref, 1) < 0 ||
             VIR_STRDUP(new_entry->domains[new_entry->ref - 1], name) < 0) {
             qemuSharedDeviceEntryFree(new_entry, NULL);
-            virReportOOMError();
             goto cleanup;
         }
 
@@ -1249,7 +929,6 @@ qemuAddSharedDevice(virQEMUDriverPtr driver,
             VIR_ALLOC_N(entry->domains, 1) < 0 ||
             VIR_STRDUP(entry->domains[0], name) < 0) {
             qemuSharedDeviceEntryFree(entry, NULL);
-            virReportOOMError();
             goto cleanup;
         }
 
@@ -1295,12 +974,7 @@ qemuRemoveSharedDevice(virQEMUDriverPtr driver,
     if (dev->type == VIR_DOMAIN_DEVICE_DISK) {
         disk = dev->data.disk;
 
-        if (!disk->shared ||
-            !disk->src ||
-            (disk->type != VIR_DOMAIN_DISK_TYPE_BLOCK &&
-             !(disk->type == VIR_DOMAIN_DISK_TYPE_VOLUME &&
-               disk->srcpool &&
-               disk->srcpool->voltype == VIR_STORAGE_VOL_BLOCK)))
+        if (!disk->shared || !virDomainDiskSourceIsBlockType(disk))
             return 0;
     } else if (dev->type == VIR_DOMAIN_DEVICE_HOSTDEV) {
         hostdev = dev->data.hostdev;
@@ -1325,10 +999,8 @@ qemuRemoveSharedDevice(virQEMUDriverPtr driver,
                                                  hostdev->source.subsys.u.scsi.unit)))
             goto cleanup;
 
-        if (virAsprintf(&dev_path, "/dev/%s", dev_name) < 0) {
-            virReportOOMError();
+        if (virAsprintf(&dev_path, "/dev/%s", dev_name) < 0)
             goto cleanup;
-        }
 
         if (!(key = qemuGetSharedDeviceKey(dev_path)))
             goto cleanup;
@@ -1392,12 +1064,8 @@ qemuSetUnprivSGIO(virDomainDeviceDefPtr dev)
     if (dev->type == VIR_DOMAIN_DEVICE_DISK) {
         disk = dev->data.disk;
 
-        if (!disk->src ||
-            disk->device != VIR_DOMAIN_DISK_DEVICE_LUN ||
-            (disk->type != VIR_DOMAIN_DISK_TYPE_BLOCK &&
-             !(disk->type == VIR_DOMAIN_DISK_TYPE_VOLUME &&
-               disk->srcpool &&
-               disk->srcpool->voltype == VIR_STORAGE_VOL_BLOCK)))
+        if (disk->device != VIR_DOMAIN_DISK_DEVICE_LUN ||
+            virDomainDiskSourceIsBlockType(disk))
             return 0;
 
         path = disk->src;
@@ -1415,10 +1083,8 @@ qemuSetUnprivSGIO(virDomainDeviceDefPtr dev)
                                                      hostdev->source.subsys.u.scsi.unit)))
             goto cleanup;
 
-        if (virAsprintf(&hostdev_path, "/dev/%s", hostdev_name) < 0) {
-            virReportOOMError();
+        if (virAsprintf(&hostdev_path, "/dev/%s", hostdev_name) < 0)
             goto cleanup;
-        }
 
         path = hostdev_path;
     } else {
@@ -1459,14 +1125,130 @@ int qemuDriverAllocateID(virQEMUDriverPtr driver)
     return virAtomicIntInc(&driver->nextvmid);
 }
 
+static int
+qemuAddISCSIPoolSourceHost(virDomainDiskDefPtr def,
+                           virStoragePoolDefPtr pooldef)
+{
+    int ret = -1;
+    char **tokens = NULL;
+
+    /* Only support one host */
+    if (pooldef->source.nhost != 1) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("Expected exactly 1 host for the storage pool"));
+        goto cleanup;
+    }
+
+    /* iscsi pool only supports one host */
+    def->nhosts = 1;
+
+    if (VIR_ALLOC_N(def->hosts, def->nhosts) < 0)
+        goto cleanup;
+
+    if (VIR_STRDUP(def->hosts[0].name, pooldef->source.hosts[0].name) < 0)
+        goto cleanup;
+
+    if (virAsprintf(&def->hosts[0].port, "%d",
+                    pooldef->source.hosts[0].port ?
+                    pooldef->source.hosts[0].port :
+                    3260) < 0)
+        goto cleanup;
+
+    /* iscsi volume has name like "unit:0:0:1" */
+    if (!(tokens = virStringSplit(def->srcpool->volume, ":", 0)))
+        goto cleanup;
+
+    if (virStringListLength(tokens) != 4) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("unexpected iscsi volume name '%s'"),
+                       def->srcpool->volume);
+        goto cleanup;
+    }
+
+    /* iscsi pool has only one source device path */
+    if (virAsprintf(&def->src, "%s/%s",
+                    pooldef->source.devices[0].path,
+                    tokens[3]) < 0)
+        goto cleanup;
+
+    /* Storage pool have not supported these 2 attributes yet,
+     * use the defaults.
+     */
+    def->hosts[0].transport = VIR_DOMAIN_DISK_PROTO_TRANS_TCP;
+    def->hosts[0].socket = NULL;
+
+    def->protocol = VIR_DOMAIN_DISK_PROTOCOL_ISCSI;
+
+    ret = 0;
+
+cleanup:
+    virStringFreeList(tokens);
+    return ret;
+}
+
+static int
+qemuTranslateDiskSourcePoolAuth(virDomainDiskDefPtr def,
+                                virStoragePoolDefPtr pooldef)
+{
+    int ret = -1;
+
+    /* Only necessary when authentication set */
+    if (pooldef->source.authType == VIR_STORAGE_POOL_AUTH_NONE) {
+        ret = 0;
+        goto cleanup;
+    }
+
+    /* Copy the authentication information from the storage pool
+     * into the virDomainDiskDef
+     */
+    if (pooldef->source.authType == VIR_STORAGE_POOL_AUTH_CHAP) {
+        if (VIR_STRDUP(def->auth.username,
+                       pooldef->source.auth.chap.username) < 0)
+            goto cleanup;
+        if (pooldef->source.auth.chap.secret.uuidUsable) {
+            def->auth.secretType = VIR_DOMAIN_DISK_SECRET_TYPE_UUID;
+            memcpy(def->auth.secret.uuid,
+                   pooldef->source.auth.chap.secret.uuid,
+                   VIR_UUID_BUFLEN);
+        } else {
+            if (VIR_STRDUP(def->auth.secret.usage,
+                           pooldef->source.auth.chap.secret.usage) < 0)
+                goto cleanup;
+            def->auth.secretType = VIR_DOMAIN_DISK_SECRET_TYPE_USAGE;
+        }
+    } else if (pooldef->source.authType == VIR_STORAGE_POOL_AUTH_CEPHX) {
+        if (VIR_STRDUP(def->auth.username,
+                       pooldef->source.auth.cephx.username) < 0)
+            goto cleanup;
+        if (pooldef->source.auth.cephx.secret.uuidUsable) {
+            def->auth.secretType = VIR_DOMAIN_DISK_SECRET_TYPE_UUID;
+            memcpy(def->auth.secret.uuid,
+                   pooldef->source.auth.cephx.secret.uuid,
+                   VIR_UUID_BUFLEN);
+        } else {
+            if (VIR_STRDUP(def->auth.secret.usage,
+                           pooldef->source.auth.cephx.secret.usage) < 0)
+                goto cleanup;
+            def->auth.secretType = VIR_DOMAIN_DISK_SECRET_TYPE_USAGE;
+        }
+    }
+    ret = 0;
+
+cleanup:
+    return ret;
+}
+
 int
 qemuTranslateDiskSourcePool(virConnectPtr conn,
                             virDomainDiskDefPtr def)
 {
+    virStoragePoolDefPtr pooldef = NULL;
     virStoragePoolPtr pool = NULL;
     virStorageVolPtr vol = NULL;
+    char *poolxml = NULL;
     virStorageVolInfo info;
     int ret = -1;
+    virErrorPtr savedError = NULL;
 
     if (def->type != VIR_DOMAIN_DISK_TYPE_VOLUME)
         return 0;
@@ -1492,10 +1274,47 @@ qemuTranslateDiskSourcePool(virConnectPtr conn,
 
     switch (info.type) {
     case VIR_STORAGE_VOL_FILE:
-    case VIR_STORAGE_VOL_BLOCK:
     case VIR_STORAGE_VOL_DIR:
         if (!(def->src = virStorageVolGetPath(vol)))
             goto cleanup;
+        break;
+    case VIR_STORAGE_VOL_BLOCK:
+        if (!(poolxml = virStoragePoolGetXMLDesc(pool, 0)))
+            goto cleanup;
+
+        if (!(pooldef = virStoragePoolDefParseString(poolxml)))
+            goto cleanup;
+
+        if (def->srcpool->mode && pooldef->type != VIR_STORAGE_POOL_ISCSI) {
+            virReportError(VIR_ERR_XML_ERROR, "%s",
+                           _("disk source mode is only valid when "
+                             "storage pool is of iscsi type"));
+            goto cleanup;
+        }
+
+        def->srcpool->pooltype = pooldef->type;
+        if (pooldef->type == VIR_STORAGE_POOL_ISCSI) {
+            /* Default to use the LUN's path on host */
+            if (!def->srcpool->mode)
+                def->srcpool->mode = VIR_DOMAIN_DISK_SOURCE_POOL_MODE_HOST;
+
+            if (def->srcpool->mode ==
+                VIR_DOMAIN_DISK_SOURCE_POOL_MODE_DIRECT) {
+                if (qemuAddISCSIPoolSourceHost(def, pooldef) < 0)
+                    goto cleanup;
+            } else if (def->srcpool->mode ==
+                       VIR_DOMAIN_DISK_SOURCE_POOL_MODE_HOST) {
+                if (!(def->src = virStorageVolGetPath(vol)))
+                    goto cleanup;
+            }
+
+            if (qemuTranslateDiskSourcePoolAuth(def, pooldef) < 0)
+                goto cleanup;
+        } else {
+            if (!(def->src = virStorageVolGetPath(vol)))
+                goto cleanup;
+        }
+
         break;
     case VIR_STORAGE_VOL_NETWORK:
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
@@ -1506,7 +1325,18 @@ qemuTranslateDiskSourcePool(virConnectPtr conn,
     def->srcpool->voltype = info.type;
     ret = 0;
 cleanup:
-    virStoragePoolFree(pool);
-    virStorageVolFree(vol);
+    if (ret < 0)
+        savedError = virSaveLastError();
+    if (pool)
+        virStoragePoolFree(pool);
+    if (vol)
+        virStorageVolFree(vol);
+    if (savedError) {
+        virSetError(savedError);
+        virFreeError(savedError);
+    }
+
+    VIR_FREE(poolxml);
+    virStoragePoolDefFree(pooldef);
     return ret;
 }

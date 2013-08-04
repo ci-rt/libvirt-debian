@@ -39,7 +39,18 @@
 #ifdef __linux__
 # include <linux/sockios.h>
 # include <linux/param.h>     /* HZ                 */
+/* Depending on the version of kernel vs. glibc, there may be a collision
+ * between <net/in.h> and kernel IPv6 structures.  The different types
+ * are ABI compatible, but choke the C type system; work around it by
+ * using temporary redefinitions.  */
+# define in6_addr in6_addr_
+# define sockaddr_in6 sockaddr_in6_
+# define ipv6_mreq ipv6_mreq_
+# include <linux/in6.h>
 # include <linux/if_bridge.h> /* SYSFS_BRIDGE_ATTR  */
+# undef in6_addr
+# undef sockaddr_in6
+# undef ipv6_mreq
 
 # define JIFFIES_TO_MS(j) (((j)*1000)/HZ)
 # define MS_TO_JIFFIES(ms) (((ms)*HZ)/1000)
@@ -108,10 +119,8 @@ static int virNetDevBridgeSet(const char *brname,
     char *path = NULL;
     int ret = -1;
 
-    if (virAsprintf(&path, "%s/%s/bridge/%s", SYSFS_NET_DIR, brname, paramname) < 0) {
-        virReportOOMError();
+    if (virAsprintf(&path, "%s/%s/bridge/%s", SYSFS_NET_DIR, brname, paramname) < 0)
         return -1;
-    }
 
     if (virFileExists(path)) {
         char valuestr[INT_BUFSIZE_BOUND(value)];
@@ -157,10 +166,8 @@ static int virNetDevBridgeGet(const char *brname,
     char *path = NULL;
     int ret = -1;
 
-    if (virAsprintf(&path, "%s/%s/bridge/%s", SYSFS_NET_DIR, brname, paramname) < 0) {
-        virReportOOMError();
+    if (virAsprintf(&path, "%s/%s/bridge/%s", SYSFS_NET_DIR, brname, paramname) < 0)
         return -1;
-    }
 
     if (virFileExists(path)) {
         char *valuestr;
@@ -515,14 +522,14 @@ int virNetDevBridgeGetSTPDelay(const char *brname,
     int fd = -1;
     int ret = -1;
     struct ifreq ifr;
-    unsigned long i;
+    unsigned long val;
 
     if ((fd = virNetDevSetupControl(brname, &ifr)) < 0)
         goto cleanup;
 
-    ret = virNetDevBridgeGet(brname, "forward_delay", &i,
+    ret = virNetDevBridgeGet(brname, "forward_delay", &val,
                              fd, &ifr);
-    *delayms = JIFFIES_TO_MS(i);
+    *delayms = JIFFIES_TO_MS(val);
 
 cleanup:
     VIR_FORCE_CLOSE(fd);
@@ -575,14 +582,14 @@ int virNetDevBridgeGetSTP(const char *brname,
     int fd = -1;
     int ret = -1;
     struct ifreq ifr;
-    unsigned long i;
+    unsigned long val;
 
     if ((fd = virNetDevSetupControl(brname, &ifr)) < 0)
         goto cleanup;
 
-    ret = virNetDevBridgeGet(brname, "stp_state", &i,
+    ret = virNetDevBridgeGet(brname, "stp_state", &val,
                              fd, &ifr);
-    *enabled = i ? true : false;
+    *enabled = val ? true : false;
 
 cleanup:
     VIR_FORCE_CLOSE(fd);

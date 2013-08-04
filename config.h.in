@@ -109,6 +109,10 @@
 /* Define to 1 if the system's ftello function has the Solaris bug. */
 #undef FTELLO_BROKEN_AFTER_SWITCHING_FROM_READ_TO_WRITE
 
+/* Define to 1 if fflush is known to work on stdin as per POSIX.1-2008, 0 if
+   fflush is known to not work, -1 if unknown. */
+#undef FUNC_FFLUSH_STDIN
+
 /* Define to 1 if nl_langinfo (YESEXPR) returns a non-empty string. */
 #undef FUNC_NL_LANGINFO_YESEXPR_WORKS
 
@@ -147,6 +151,10 @@
 #undef GNULIB_FSCANF
 
 /* Define to a C preprocessor expression that evaluates to 1 or 0, depending
+   whether the gnulib module lock shall be considered present. */
+#undef GNULIB_LOCK
+
+/* Define to a C preprocessor expression that evaluates to 1 or 0, depending
    whether the gnulib module malloc-gnu shall be considered present. */
 #undef GNULIB_MALLOC_GNU
 
@@ -161,6 +169,10 @@
 /* Define to a C preprocessor expression that evaluates to 1 or 0, depending
    whether the gnulib module nonblocking shall be considered present. */
 #undef GNULIB_NONBLOCKING
+
+/* Define to a C preprocessor expression that evaluates to 1 or 0, depending
+   whether the gnulib module pthread shall be considered present. */
+#undef GNULIB_PTHREAD
 
 /* Define to a C preprocessor expression that evaluates to 1 or 0, depending
    whether the gnulib module realloc-gnu shall be considered present. */
@@ -759,8 +771,7 @@
    don't. */
 #undef HAVE_DECL_ISBLANK
 
-/* Define to 1 if you have the declaration of `link_addr', and to 0 if you
-   don't. */
+/* whether link_addr is available */
 #undef HAVE_DECL_LINK_ADDR
 
 /* Define to 1 if you have the declaration of `localtime_r', and to 0 if you
@@ -1013,9 +1024,6 @@
 
 /* Define to 1 if you have the `inet_pton' function. */
 #undef HAVE_INET_PTON
-
-/* Define to 1 if you have the 'initgroups' function. */
-#undef HAVE_INITGROUPS
 
 /* Define if you have the 'intmax_t' type in <stdint.h> or <inttypes.h>. */
 #undef HAVE_INTMAX_T
@@ -1430,6 +1438,9 @@
 
 /* Define to 1 if you have the `seteuid' function. */
 #undef HAVE_SETEUID
+
+/* Define to 1 if you have the 'setgroups' function. */
+#undef HAVE_SETGROUPS
 
 /* Define to 1 if you have the `setlocale' function. */
 #undef HAVE_SETLOCALE
@@ -2534,15 +2545,7 @@
 /* Hack to avoid symbol clash */
 #undef base64_encode_alloc
 
-/* _GL_INLINE is a portable alternative to ISO C99 plain 'inline'.
-   _GL_EXTERN_INLINE is a portable alternative to 'extern inline'.
-   _GL_INLINE_HEADER_BEGIN contains useful stuff to put
-     in an include file, before uses of _GL_INLINE.
-     It suppresses GCC's bogus "no previous prototype for 'FOO'" diagnostic,
-     when FOO is an inline function in the header; see
-     <http://gcc.gnu.org/bugzilla/show_bug.cgi?id=54113>.
-   _GL_INLINE_HEADER_END contains useful stuff to put
-     in the same include file, after uses of _GL_INLINE.
+/* Please see the Gnulib manual for how to use these macros.
 
    Suppress extern inline with HP-UX cc, as it appears to be broken; see
    <http://lists.gnu.org/archive/html/bug-texinfo/2013-02/msg00030.html>.
@@ -2565,7 +2568,8 @@
      && !defined __APPLE__)
 # define _GL_INLINE inline
 # define _GL_EXTERN_INLINE extern inline
-#elif 2 < __GNUC__ + (7 <= __GNUC_MINOR__) && !defined __APPLE__
+#elif (2 < __GNUC__ + (7 <= __GNUC_MINOR__) && !defined __STRICT_ANSI__ \
+       && !defined __APPLE__)
 # if __GNUC_GNU_INLINE__
    /* __gnu_inline__ suppresses a GCC 4.2 diagnostic.  */
 #  define _GL_INLINE extern inline __attribute__ ((__gnu_inline__))
@@ -2585,6 +2589,10 @@
 #  define _GL_INLINE_HEADER_CONST_PRAGMA \
      _Pragma ("GCC diagnostic ignored \"-Wsuggest-attribute=const\"")
 # endif
+  /* Suppress GCC's bogus "no previous prototype for 'FOO'"
+     and "no previous declaration for 'FOO'"  diagnostics,
+     when FOO is an inline function in the header; see
+     <http://gcc.gnu.org/bugzilla/show_bug.cgi?id=54113>.  */
 # define _GL_INLINE_HEADER_BEGIN \
     _Pragma ("GCC diagnostic push") \
     _Pragma ("GCC diagnostic ignored \"-Wmissing-prototypes\"") \

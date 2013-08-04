@@ -83,6 +83,10 @@ struct _qemuMonitor {
 
     /* cache of query-command-line-options results */
     virJSONValuePtr options;
+
+    /* If found, path to the virtio memballoon driver */
+    char *balloonpath;
+    bool ballooninit;
 };
 
 static virClassPtr qemuMonitorClass;
@@ -114,7 +118,7 @@ VIR_ENUM_IMPL(qemuMonitorVMStatus,
               QEMU_MONITOR_VM_STATUS_LAST,
               "debug", "inmigrate", "internal-error", "io-error", "paused",
               "postmigrate", "prelaunch", "finish-migrate", "restore-vm",
-              "running", "save-vm", "shutdown", "watchdog")
+              "running", "save-vm", "shutdown", "watchdog", "guest-panic")
 
 typedef enum {
     QEMU_MONITOR_BLOCK_IO_STATUS_OK,
@@ -133,7 +137,7 @@ VIR_ENUM_IMPL(qemuMonitorBlockIOStatus,
 char *qemuMonitorEscapeArg(const char *in)
 {
     int len = 0;
-    int i, j;
+    size_t i, j;
     char *out;
 
     /* To pass through the QEMU monitor, we need to use escape
@@ -184,7 +188,7 @@ char *qemuMonitorEscapeArg(const char *in)
 
 char *qemuMonitorUnescapeArg(const char *in)
 {
-    int i, j;
+    size_t i, j;
     char *out;
     int len = strlen(in);
     char next;
@@ -224,7 +228,7 @@ char *qemuMonitorUnescapeArg(const char *in)
 # include <c-ctype.h>
 static char * qemuMonitorEscapeNonPrintable(const char *text)
 {
-    int i;
+    size_t i;
     virBuffer buf = VIR_BUFFER_INITIALIZER;
     for (i = 0; text[i] != '\0'; i++) {
         if (c_isprint(text[i]) ||
@@ -248,6 +252,7 @@ static void qemuMonitorDispose(void *obj)
     virCondDestroy(&mon->notify);
     VIR_FREE(mon->buffer);
     virJSONValueFree(mon->options);
+    VIR_FREE(mon->balloonpath);
 }
 
 
@@ -257,7 +262,8 @@ qemuMonitorOpenUnix(const char *monitor, pid_t cpid)
     struct sockaddr_un addr;
     int monfd;
     int timeout = 3; /* In seconds */
-    int ret, i = 0;
+    int ret;
+    size_t i = 0;
 
     if ((monfd = socket(AF_UNIX, SOCK_STREAM, 0)) < 0) {
         virReportSystemError(errno,
@@ -489,10 +495,8 @@ qemuMonitorIORead(qemuMonitorPtr mon)
 
     if (avail < 1024) {
         if (VIR_REALLOC_N(mon->buffer,
-                          mon->bufferLength + 1024) < 0) {
-            virReportOOMError();
+                          mon->bufferLength + 1024) < 0)
             return -1;
-        }
         mon->bufferLength += 1024;
         avail += 1024;
     }
@@ -864,10 +868,7 @@ char *qemuMonitorNextCommandID(qemuMonitorPtr mon)
 {
     char *id;
 
-    if (virAsprintf(&id, "libvirt-%d", ++mon->nextSerial) < 0) {
-        virReportOOMError();
-        return NULL;
-    }
+    ignore_value(virAsprintf(&id, "libvirt-%d", ++mon->nextSerial));
     return id;
 }
 
@@ -927,6 +928,113 @@ void
 qemuMonitorSetOptions(qemuMonitorPtr mon, virJSONValuePtr options)
 {
     mon->options = options;
+}
+
+/* Search the qom objects for the balloon driver object by it's known name
+ * of "virtio-balloon-pci".  The entry for the driver will be found in the
+ * returned 'type' field using the syntax "child<virtio-balloon-pci>".
+ *
+ * Once found, check the entry to ensure it has the correct property listed.
+ * If it does not, then obtaining statistics from qemu will not be possible.
+ * This feature was added to qemu 1.5.
+ *
+ * This procedure will be call recursively until found or the qom-list is
+ * exhausted.
+ *
+ * Returns:
+ *
+ *   1  - Found
+ *   0  - Not found still looking
+ *  -1  - Error bail out
+ *
+ * NOTE: This assumes we have already called qemuDomainObjEnterMonitor()
+ */
+static int
+qemuMonitorFindBalloonObjectPath(qemuMonitorPtr mon,
+                                 virDomainObjPtr vm,
+                                 const char *curpath)
+{
+    size_t i, j, npaths = 0, nprops = 0;
+    int ret = 0;
+    char *nextpath = NULL;
+    qemuMonitorJSONListPathPtr *paths = NULL;
+    qemuMonitorJSONListPathPtr *bprops = NULL;
+
+    if (mon->balloonpath) {
+        return 1;
+    } else if (mon->ballooninit) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Cannot determine balloon device path"));
+        return -1;
+    }
+
+    /* Not supported */
+    if (!vm->def->memballoon ||
+        vm->def->memballoon->model != VIR_DOMAIN_MEMBALLOON_MODEL_VIRTIO) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Memory balloon model must be virtio to "
+                         "get memballoon path"));
+        return -1;
+    }
+
+    VIR_DEBUG("Searching for Balloon Object Path starting at %s", curpath);
+
+    npaths = qemuMonitorJSONGetObjectListPaths(mon, curpath, &paths);
+
+    for (i = 0; i < npaths && ret == 0; i++) {
+
+        if (STREQ_NULLABLE(paths[i]->type, "link<virtio-balloon-pci>")) {
+            VIR_DEBUG("Path to <virtio-balloon-pci> is '%s/%s'",
+                      curpath, paths[i]->name);
+            if (virAsprintf(&nextpath, "%s/%s", curpath, paths[i]->name) < 0) {
+                ret = -1;
+                goto cleanup;
+            }
+
+            /* Now look at the each of the property entries to determine
+             * whether "guest-stats-polling-interval" exists.  If not,
+             * then this version of qemu/kvm does not support the feature.
+             */
+            nprops = qemuMonitorJSONGetObjectListPaths(mon, nextpath, &bprops);
+            for (j = 0; j < nprops; j++) {
+                if (STREQ(bprops[j]->name, "guest-stats-polling-interval")) {
+                    VIR_DEBUG("Found Balloon Object Path %s", nextpath);
+                    mon->balloonpath = nextpath;
+                    nextpath = NULL;
+                    ret = 1;
+                    goto cleanup;
+                }
+            }
+
+            /* If we get here, we found the path, but not the property */
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("Property 'guest-stats-polling-interval' "
+                             "not found on memory balloon driver."));
+            ret = -1;
+            goto cleanup;
+        }
+
+        /* Type entries that begin with "child<" are a branch that can be
+         * traversed looking for more entries
+         */
+        if (paths[i]->type && STRPREFIX(paths[i]->type, "child<")) {
+            if (virAsprintf(&nextpath, "%s/%s", curpath, paths[i]->name) < 0) {
+                ret = -1;
+                goto cleanup;
+            }
+            ret = qemuMonitorFindBalloonObjectPath(mon, vm, nextpath);
+        }
+    }
+
+cleanup:
+    for (i = 0; i < npaths; i++)
+        qemuMonitorJSONListPathFree(paths[i]);
+    VIR_FREE(paths);
+    for (j = 0; j < nprops; j++)
+        qemuMonitorJSONListPathFree(bprops[j]);
+    VIR_FREE(bprops);
+    VIR_FREE(nextpath);
+    return ret;
 }
 
 int qemuMonitorHMPCommandWithFd(qemuMonitorPtr mon,
@@ -1029,6 +1137,15 @@ int qemuMonitorEmitResume(qemuMonitorPtr mon)
     VIR_DEBUG("mon=%p", mon);
 
     QEMU_MONITOR_CALLBACK(mon, ret, domainResume, mon->vm);
+    return ret;
+}
+
+
+int qemuMonitorEmitGuestPanic(qemuMonitorPtr mon)
+{
+    int ret = -1;
+    VIR_DEBUG("mon=%p", mon);
+    QEMU_MONITOR_CALLBACK(mon, ret, domainGuestPanic, mon->vm);
     return ret;
 }
 
@@ -1153,6 +1270,19 @@ int qemuMonitorEmitBalloonChange(qemuMonitorPtr mon,
     VIR_DEBUG("mon=%p", mon);
 
     QEMU_MONITOR_CALLBACK(mon, ret, domainBalloonChange, mon->vm, actual);
+    return ret;
+}
+
+
+int
+qemuMonitorEmitDeviceDeleted(qemuMonitorPtr mon,
+                             const char *devAlias)
+{
+    int ret = -1;
+    VIR_DEBUG("mon=%p", mon);
+
+    QEMU_MONITOR_CALLBACK(mon, ret, domainDeviceDeleted, mon->vm, devAlias);
+
     return ret;
 }
 
@@ -1374,10 +1504,40 @@ int qemuMonitorGetMemoryStats(qemuMonitorPtr mon,
         return -1;
     }
 
-    if (mon->json)
-        ret = qemuMonitorJSONGetMemoryStats(mon, stats, nr_stats);
-    else
+    if (mon->json) {
+        ignore_value(qemuMonitorFindBalloonObjectPath(mon, mon->vm, "/"));
+        mon->ballooninit = true;
+        ret = qemuMonitorJSONGetMemoryStats(mon, mon->balloonpath,
+                                            stats, nr_stats);
+    } else {
         ret = qemuMonitorTextGetMemoryStats(mon, stats, nr_stats);
+    }
+    return ret;
+}
+
+int qemuMonitorSetMemoryStatsPeriod(qemuMonitorPtr mon,
+                                    int period)
+{
+    int ret = -1;
+    VIR_DEBUG("mon=%p period=%d", mon, period);
+
+    if (!mon) {
+        virReportError(VIR_ERR_INVALID_ARG, "%s",
+                       _("monitor must not be NULL"));
+        return -1;
+    }
+
+    if (!mon->json) {
+        virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
+                       _("JSON monitor is required"));
+        return -1;
+    }
+
+    if (qemuMonitorFindBalloonObjectPath(mon, mon->vm, "/") == 1) {
+        ret = qemuMonitorJSONSetMemoryStatsPeriod(mon, mon->balloonpath,
+                                                  period);
+    }
+    mon->ballooninit = true;
     return ret;
 }
 
@@ -1953,10 +2113,8 @@ int qemuMonitorMigrateToHost(qemuMonitorPtr mon,
     }
 
 
-    if (virAsprintf(&uri, "tcp:%s:%d", hostname, port) < 0) {
-        virReportOOMError();
+    if (virAsprintf(&uri, "tcp:%s:%d", hostname, port) < 0)
         return -1;
-    }
 
     if (mon->json)
         ret = qemuMonitorJSONMigrate(mon, flags, uri);
@@ -1985,15 +2143,11 @@ int qemuMonitorMigrateToCommand(qemuMonitorPtr mon,
     }
 
     argstr = virArgvToString(argv);
-    if (!argstr) {
-        virReportOOMError();
+    if (!argstr)
         goto cleanup;
-    }
 
-    if (virAsprintf(&dest, "exec:%s", argstr) < 0) {
-        virReportOOMError();
+    if (virAsprintf(&dest, "exec:%s", argstr) < 0)
         goto cleanup;
-    }
 
     if (mon->json)
         ret = qemuMonitorJSONMigrate(mon, flags, dest);
@@ -2034,10 +2188,8 @@ int qemuMonitorMigrateToFile(qemuMonitorPtr mon,
     }
 
     argstr = virArgvToString(argv);
-    if (!argstr) {
-        virReportOOMError();
+    if (!argstr)
         goto cleanup;
-    }
 
     /* Migrate to file */
     virBufferEscapeShell(&buf, target);
@@ -2059,10 +2211,8 @@ int qemuMonitorMigrateToFile(qemuMonitorPtr mon,
                     offset / QEMU_MONITOR_MIGRATE_TO_FILE_BS,
                     QEMU_MONITOR_MIGRATE_TO_FILE_TRANSFER_SIZE,
                     QEMU_MONITOR_MIGRATE_TO_FILE_TRANSFER_SIZE,
-                    safe_target) < 0) {
-        virReportOOMError();
+                    safe_target) < 0)
         goto cleanup;
-    }
 
     if (mon->json)
         ret = qemuMonitorJSONMigrate(mon, flags, dest);
@@ -2091,10 +2241,8 @@ int qemuMonitorMigrateToUnix(qemuMonitorPtr mon,
         return -1;
     }
 
-    if (virAsprintf(&dest, "unix:%s", unixfile) < 0) {
-        virReportOOMError();
+    if (virAsprintf(&dest, "unix:%s", unixfile) < 0)
         return -1;
-    }
 
     if (mon->json)
         ret = qemuMonitorJSONMigrate(mon, flags, dest);
@@ -2482,7 +2630,7 @@ int qemuMonitorAddHostNetwork(qemuMonitorPtr mon,
                               int *vhostfd, char **vhostfdName, int vhostfdSize)
 {
     int ret = -1;
-    int i = 0, j = 0;
+    size_t i = 0, j = 0;
 
     VIR_DEBUG("mon=%p netstr=%s tapfd=%p tapfdName=%p tapfdSize=%d "
               "vhostfd=%p vhostfdName=%p vhostfdSize=%d",
@@ -2555,7 +2703,7 @@ int qemuMonitorAddNetdev(qemuMonitorPtr mon,
                          int *vhostfd, char **vhostfdName, int vhostfdSize)
 {
     int ret = -1;
-    int i = 0, j = 0;
+    size_t i = 0, j = 0;
 
     VIR_DEBUG("mon=%p netdevstr=%s tapfd=%p tapfdName=%p tapfdSize=%d"
               "vhostfd=%p vhostfdName=%p vhostfdSize=%d",
@@ -3186,6 +3334,9 @@ int qemuMonitorVMStatusToPausedReason(const char *status)
     case QEMU_MONITOR_VM_STATUS_WATCHDOG:
         return VIR_DOMAIN_PAUSED_WATCHDOG;
 
+    case QEMU_MONITOR_VM_STATUS_GUEST_PANICKED:
+        return VIR_DOMAIN_PAUSED_CRASHED;
+
     /* unreachable from this point on */
     case QEMU_MONITOR_VM_STATUS_LAST:
         ;
@@ -3625,4 +3776,66 @@ int qemuMonitorGetTPMTypes(qemuMonitorPtr mon,
     }
 
     return qemuMonitorJSONGetTPMTypes(mon, tpmtypes);
+}
+
+int qemuMonitorAttachCharDev(qemuMonitorPtr mon,
+                             const char *chrID,
+                             virDomainChrSourceDefPtr chr)
+{
+    VIR_DEBUG("mon=%p chrID=%s chr=%p", mon, chrID, chr);
+
+    if (!mon) {
+        virReportError(VIR_ERR_INVALID_ARG, "%s",
+                       _("monitor must not be NULL"));
+        return -1;
+    }
+
+    if (!mon->json) {
+        virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
+                       _("JSON monitor is required"));
+        return -1;
+    }
+
+    return qemuMonitorJSONAttachCharDev(mon, chrID, chr);
+}
+
+int qemuMonitorDetachCharDev(qemuMonitorPtr mon,
+                             const char *chrID)
+{
+    VIR_DEBUG("mon=%p chrID=%s", mon, chrID);
+
+    if (!mon) {
+        virReportError(VIR_ERR_INVALID_ARG, "%s",
+                       _("monitor must not be NULL"));
+        return -1;
+    }
+
+    if (!mon->json) {
+        virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
+                       _("JSON monitor is required"));
+        return -1;
+    }
+
+    return qemuMonitorJSONDetachCharDev(mon, chrID);
+}
+
+int
+qemuMonitorGetDeviceAliases(qemuMonitorPtr mon,
+                            char ***aliases)
+{
+    VIR_DEBUG("mon=%p, aliases=%p", mon, aliases);
+
+    if (!mon) {
+        virReportError(VIR_ERR_INVALID_ARG, "%s",
+                       _("monitor must not be NULL"));
+        return -1;
+    }
+
+    if (!mon->json) {
+        virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
+                       _("JSON monitor is required"));
+        return -1;
+    }
+
+    return qemuMonitorJSONGetDeviceAliases(mon, aliases);
 }

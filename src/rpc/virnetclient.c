@@ -389,7 +389,8 @@ virNetClientPtr virNetClientNewLibSSH2(const char *host,
                                        const char *authMethods,
                                        const char *netcatPath,
                                        const char *socketPath,
-                                       virConnectAuthPtr authPtr)
+                                       virConnectAuthPtr authPtr,
+                                       virURIPtr uri)
 {
     virNetSocketPtr sock = NULL;
     virNetClientPtr ret = NULL;
@@ -443,9 +444,9 @@ virNetClientPtr virNetClientNewLibSSH2(const char *host,
 
     if (!authMethods) {
         if (privkey)
-            authMethods = "agent,privkey,keyboard-interactive";
+            authMethods = "agent,privkey,password,keyboard-interactive";
         else
-            authMethods = "agent,keyboard-interactive";
+            authMethods = "agent,password,keyboard-interactive";
     }
 
     DEFAULT_VALUE(host, "localhost");
@@ -471,9 +472,9 @@ virNetClientPtr virNetClientNewLibSSH2(const char *host,
     if (!(command = virBufferContentAndReset(&buf)))
         goto no_memory;
 
-    if (virNetSocketNewConnectLibSSH2(host, port, username, NULL, privkey,
+    if (virNetSocketNewConnectLibSSH2(host, port, username, privkey,
                                       knownhosts, knownHostsVerify, authMethods,
-                                      command, authPtr, &sock) != 0)
+                                      command, authPtr, uri, &sock) != 0)
         goto cleanup;
 
     if (!(ret = virNetClientNew(sock, NULL)))
@@ -592,7 +593,7 @@ bool virNetClientHasPassFD(virNetClientPtr client)
 void virNetClientDispose(void *obj)
 {
     virNetClientPtr client = obj;
-    int i;
+    size_t i;
 
     PROBE(RPC_CLIENT_DISPOSE,
           "client=%p", client);
@@ -875,15 +876,14 @@ int virNetClientAddProgram(virNetClientPtr client,
     virObjectLock(client);
 
     if (VIR_EXPAND_N(client->programs, client->nprograms, 1) < 0)
-        goto no_memory;
+        goto error;
 
     client->programs[client->nprograms-1] = virObjectRef(prog);
 
     virObjectUnlock(client);
     return 0;
 
-no_memory:
-    virReportOOMError();
+error:
     virObjectUnlock(client);
     return -1;
 }
@@ -895,15 +895,14 @@ int virNetClientAddStream(virNetClientPtr client,
     virObjectLock(client);
 
     if (VIR_EXPAND_N(client->streams, client->nstreams, 1) < 0)
-        goto no_memory;
+        goto error;
 
     client->streams[client->nstreams-1] = virObjectRef(st);
 
     virObjectUnlock(client);
     return 0;
 
-no_memory:
-    virReportOOMError();
+error:
     virObjectUnlock(client);
     return -1;
 }
@@ -981,10 +980,8 @@ virNetClientCallDispatchReply(virNetClientPtr client)
         return -1;
     }
 
-    if (VIR_REALLOC_N(thecall->msg->buffer, client->msg.bufferLength) < 0) {
-        virReportOOMError();
+    if (VIR_REALLOC_N(thecall->msg->buffer, client->msg.bufferLength) < 0)
         return -1;
-    }
 
     memcpy(thecall->msg->buffer, client->msg.buffer, client->msg.bufferLength);
     memcpy(&thecall->msg->header, &client->msg.header, sizeof(client->msg.header));
@@ -1233,10 +1230,8 @@ virNetClientIOReadMessage(virNetClientPtr client)
     /* Start by reading length word */
     if (client->msg.bufferLength == 0) {
         client->msg.bufferLength = 4;
-        if (VIR_ALLOC_N(client->msg.buffer, client->msg.bufferLength) < 0) {
-            virReportOOMError();
+        if (VIR_ALLOC_N(client->msg.buffer, client->msg.bufferLength) < 0)
             return -ENOMEM;
-        }
     }
 
     wantData = client->msg.bufferLength - client->msg.bufferOffset;
@@ -1888,10 +1883,8 @@ virNetClientCallNew(virNetMessagePtr msg,
         goto error;
     }
 
-    if (VIR_ALLOC(call) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC(call) < 0)
         goto error;
-    }
 
     if (virCondInit(&call->cond) < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
@@ -1964,10 +1957,8 @@ static int virNetClientSendInternal(virNetClientPtr client,
         return -1;
     }
 
-    if (!(call = virNetClientCallNew(msg, expectReply, nonBlock))) {
-        virReportOOMError();
+    if (!(call = virNetClientCallNew(msg, expectReply, nonBlock)))
         return -1;
-    }
 
     call->haveThread = true;
     ret = virNetClientIO(client, call);

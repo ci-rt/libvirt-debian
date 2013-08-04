@@ -80,10 +80,8 @@ static virSecurityManagerPtr virSecurityManagerNewDriver(virSecurityDriverPtr dr
               allowDiskFormatProbing, defaultConfined,
               requireConfined);
 
-    if (VIR_ALLOC_N(privateData, drv->privateDataLen) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC_N(privateData, drv->privateDataLen) < 0)
         return NULL;
-    }
 
     if (!(mgr = virObjectLockableNew(virSecurityManagerClass))) {
         VIR_FREE(privateData);
@@ -195,11 +193,23 @@ virSecurityManagerPtr virSecurityManagerNew(const char *name,
 
 /*
  * Must be called before fork()'ing to ensure mutex state
- * is sane for the child to use
+ * is sane for the child to use. A negative return means the
+ * child must not be forked; a successful return must be
+ * followed by a call to virSecurityManagerPostFork() in both
+ * parent and child.
  */
-void virSecurityManagerPreFork(virSecurityManagerPtr mgr)
+int virSecurityManagerPreFork(virSecurityManagerPtr mgr)
 {
+    int ret = 0;
+
     virObjectLock(mgr);
+    if (mgr->drv->preFork) {
+        ret = mgr->drv->preFork(mgr);
+        if (ret < 0)
+            virObjectUnlock(mgr);
+    }
+
+    return ret;
 }
 
 
@@ -438,6 +448,9 @@ int virSecurityManagerGenLabel(virSecurityManagerPtr mgr,
 
     virObjectLock(mgr);
     for (i = 0; i < vm->nseclabels; i++) {
+        if (!vm->seclabels[i]->model)
+            continue;
+
         for (j = 0; sec_managers[j]; j++)
             if (STREQ(vm->seclabels[i]->model, sec_managers[j]->drv->name))
                 break;
@@ -487,10 +500,8 @@ int virSecurityManagerGenLabel(virSecurityManagerPtr mgr,
             /* The seclabel must be added to @vm prior calling domainGenSecurityLabel
              * which may require seclabel to be presented already */
             if (generated &&
-                VIR_APPEND_ELEMENT(vm->seclabels, vm->nseclabels, seclabel) < 0) {
-                virReportOOMError();
+                VIR_APPEND_ELEMENT(vm->seclabels, vm->nseclabels, seclabel) < 0)
                 goto cleanup;
-            }
 
             if (sec_managers[i]->drv->domainGenSecurityLabel(sec_managers[i], vm) < 0) {
                 if (VIR_DELETE_ELEMENT(vm->seclabels,
@@ -703,10 +714,8 @@ virSecurityManagerGetNested(virSecurityManagerPtr mgr)
         return virSecurityStackGetNested(mgr);
     }
 
-    if (VIR_ALLOC_N(list, 2) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC_N(list, 2) < 0)
         return NULL;
-    }
 
     list[0] = mgr;
     list[1] = NULL;

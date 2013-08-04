@@ -221,10 +221,8 @@ static int virNetServerDispatchNewMessage(virNetServerClientPtr client,
     if (srv->workers) {
         virNetServerJobPtr job;
 
-        if (VIR_ALLOC(job) < 0) {
-            virReportOOMError();
+        if (VIR_ALLOC(job) < 0)
             goto cleanup;
-        }
 
         job->client = client;
         job->msg = msg;
@@ -267,10 +265,8 @@ static int virNetServerAddClient(virNetServerPtr srv,
     if (virNetServerClientInit(client) < 0)
         goto error;
 
-    if (VIR_EXPAND_N(srv->clients, srv->nclients, 1) < 0) {
-        virReportOOMError();
+    if (VIR_EXPAND_N(srv->clients, srv->nclients, 1) < 0)
         goto error;
-    }
     srv->clients[srv->nclients-1] = client;
     virObjectRef(client);
 
@@ -856,7 +852,7 @@ virNetServerSignalEvent(int watch,
                         void *opaque) {
     virNetServerPtr srv = opaque;
     siginfo_t siginfo;
-    int i;
+    size_t i;
 
     virObjectLock(srv);
 
@@ -933,10 +929,10 @@ int virNetServerAddSignalHandler(virNetServerPtr srv,
         goto error;
 
     if (VIR_EXPAND_N(srv->signals, srv->nsignals, 1) < 0)
-        goto no_memory;
+        goto error;
 
     if (VIR_ALLOC(sigdata) < 0)
-        goto no_memory;
+        goto error;
 
     sigdata->signum = signum;
     sigdata->func = func;
@@ -954,8 +950,6 @@ int virNetServerAddSignalHandler(virNetServerPtr srv,
     virObjectUnlock(srv);
     return 0;
 
-no_memory:
-    virReportOOMError();
 error:
     VIR_FREE(sigdata);
     virObjectUnlock(srv);
@@ -971,7 +965,7 @@ int virNetServerAddService(virNetServerPtr srv,
     virObjectLock(srv);
 
     if (VIR_EXPAND_N(srv->services, srv->nservices, 1) < 0)
-        goto no_memory;
+        goto error;
 
     if (mdnsEntryName) {
         int port = virNetServerServiceGetPort(svc);
@@ -992,8 +986,6 @@ int virNetServerAddService(virNetServerPtr srv,
     virObjectUnlock(srv);
     return 0;
 
-no_memory:
-    virReportOOMError();
 error:
     virObjectUnlock(srv);
     return -1;
@@ -1005,15 +997,14 @@ int virNetServerAddProgram(virNetServerPtr srv,
     virObjectLock(srv);
 
     if (VIR_EXPAND_N(srv->programs, srv->nprograms, 1) < 0)
-        goto no_memory;
+        goto error;
 
     srv->programs[srv->nprograms-1] = virObjectRef(prog);
 
     virObjectUnlock(srv);
     return 0;
 
-no_memory:
-    virReportOOMError();
+error:
     virObjectUnlock(srv);
     return -1;
 }
@@ -1046,7 +1037,7 @@ static void virNetServerAutoShutdownTimer(int timerid ATTRIBUTE_UNUSED,
 void virNetServerUpdateServices(virNetServerPtr srv,
                                 bool enabled)
 {
-    int i;
+    size_t i;
 
     virObjectLock(srv);
     for (i = 0; i < srv->nservices; i++)
@@ -1060,7 +1051,7 @@ void virNetServerRun(virNetServerPtr srv)
 {
     int timerid = -1;
     bool timerActive = false;
-    int i;
+    size_t i;
 
     virObjectLock(srv);
 
@@ -1156,7 +1147,7 @@ void virNetServerQuit(virNetServerPtr srv)
 void virNetServerDispose(void *obj)
 {
     virNetServerPtr srv = obj;
-    int i;
+    size_t i;
 
     VIR_FORCE_CLOSE(srv->autoShutdownInhibitFd);
 
@@ -1195,7 +1186,7 @@ void virNetServerDispose(void *obj)
 
 void virNetServerClose(virNetServerPtr srv)
 {
-    int i;
+    size_t i;
 
     if (!srv)
         return;

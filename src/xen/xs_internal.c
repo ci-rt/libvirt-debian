@@ -132,18 +132,14 @@ xenStoreOpen(virConnectPtr conn,
     }
 
     /* Init activeDomainList */
-    if (VIR_ALLOC(priv->activeDomainList) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC(priv->activeDomainList) < 0)
         return -1;
-    }
 
     /* Init watch list before filling in domInfoList,
        so we can know if it is the first time through
        when the callback fires */
-    if (VIR_ALLOC(priv->xsWatchList) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC(priv->xsWatchList) < 0)
         return -1;
-    }
 
     /* This will get called once at start */
     if (xenStoreAddWatch(conn, "@releaseDomain",
@@ -227,7 +223,8 @@ xenStoreNumOfDomains(virConnectPtr conn)
 {
     unsigned int num;
     char **idlist = NULL, *endptr;
-    int i, ret = -1, realnum = 0;
+    size_t i;
+    int ret = -1, realnum = 0;
     long id;
     xenUnifiedPrivatePtr priv = conn->privateData;
 
@@ -268,7 +265,8 @@ xenStoreDoListDomains(virConnectPtr conn,
                       int maxids)
 {
     char **idlist = NULL, *endptr;
-    unsigned int num, i;
+    unsigned int num;
+    size_t i;
     int ret = -1;
     long id;
 
@@ -408,7 +406,8 @@ char *
 xenStoreDomainGetNetworkID(virConnectPtr conn, int id, const char *mac)
 {
     char dir[80], path[128], **list = NULL, *val = NULL;
-    unsigned int len, i, num;
+    unsigned int len, num;
+    size_t i;
     char *ret = NULL;
     xenUnifiedPrivatePtr priv = conn->privateData;
 
@@ -457,7 +456,8 @@ char *
 xenStoreDomainGetDiskID(virConnectPtr conn, int id, const char *dev)
 {
     char dir[80], path[128], **list = NULL, *val = NULL;
-    unsigned int devlen, len, i, num;
+    unsigned int devlen, len, num;
+    size_t i;
     char *ret = NULL;
     xenUnifiedPrivatePtr priv = conn->privateData;
 
@@ -529,7 +529,8 @@ char *
 xenStoreDomainGetPCIID(virConnectPtr conn, int id, const char *bdf)
 {
     char dir[80], path[128], **list = NULL, *val = NULL;
-    unsigned int len, i, num;
+    unsigned int len, num;
+    size_t i;
     char *ret = NULL;
     xenUnifiedPrivatePtr priv = conn->privateData;
 
@@ -614,7 +615,7 @@ xenStoreDomainGetUUID(virConnectPtr conn, int id, unsigned char *uuid)
 static void
 xenStoreWatchListFree(xenStoreWatchListPtr list)
 {
-    int i;
+    size_t i;
     for (i=0; i<list->count; i++) {
         VIR_FREE(list->watches[i]->path);
         VIR_FREE(list->watches[i]->token);
@@ -656,10 +657,8 @@ xenStoreAddWatch(virConnectPtr conn,
         }
     }
 
-    if (VIR_ALLOC(watch) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC(watch) < 0)
         goto error;
-    }
 
     watch->cb = cb;
     watch->opaque = opaque;
@@ -669,10 +668,8 @@ xenStoreAddWatch(virConnectPtr conn,
 
     /* Make space on list */
     n = list->count;
-    if (VIR_REALLOC_N(list->watches, n + 1) < 0) {
-        virReportOOMError();
+    if (VIR_REALLOC_N(list->watches, n + 1) < 0)
         goto error;
-    }
 
     list->watches[n] = watch;
     list->count++;
@@ -695,7 +692,7 @@ xenStoreAddWatch(virConnectPtr conn,
 int
 xenStoreRemoveWatch(virConnectPtr conn, const char *path, const char *token)
 {
-    int i;
+    size_t i;
     xenStoreWatchListPtr list;
     xenUnifiedPrivatePtr priv = conn->privateData;
 
@@ -744,7 +741,7 @@ xenStoreFindWatch(xenStoreWatchListPtr list,
                   const char *path,
                   const char *token)
 {
-    int i;
+    size_t i;
     for (i = 0; i < list->count; i++)
         if (STREQ(path, list->watches[i]->path) &&
             STREQ(token, list->watches[i]->token))
@@ -805,7 +802,8 @@ xenStoreDomainIntroduced(virConnectPtr conn,
                          const char *token ATTRIBUTE_UNUSED,
                          void *opaque)
 {
-    int i, j, found, missing = 0, retries = 20;
+    size_t i, j;
+    int found, missing = 0, retries = 20;
     int new_domain_cnt;
     int *new_domids;
     int nread;
@@ -817,10 +815,8 @@ retry:
     if (new_domain_cnt < 0)
         return -1;
 
-    if (VIR_ALLOC_N(new_domids,new_domain_cnt) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC_N(new_domids,new_domain_cnt) < 0)
         return -1;
-    }
     nread = xenStoreDoListDomains(conn, priv, new_domids, new_domain_cnt);
     if (nread != new_domain_cnt) {
         /* mismatch. retry this read */
@@ -887,7 +883,8 @@ xenStoreDomainReleased(virConnectPtr conn,
                        const char *token ATTRIBUTE_UNUSED,
                        void *opaque)
 {
-    int i, j, found, removed, retries = 20;
+    size_t i, j;
+    int found, removed, retries = 20;
     int new_domain_cnt;
     int *new_domids;
     int nread;
@@ -901,10 +898,8 @@ retry:
     if (new_domain_cnt < 0)
         return -1;
 
-    if (VIR_ALLOC_N(new_domids,new_domain_cnt) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC_N(new_domids,new_domain_cnt) < 0)
         return -1;
-    }
     nread = xenStoreDoListDomains(conn, priv, new_domids, new_domain_cnt);
     if (nread != new_domain_cnt) {
         /* mismatch. retry this read */

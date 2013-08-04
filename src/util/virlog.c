@@ -204,14 +204,14 @@ virLogOnceInit(void)
         return -1;
 
     virLogLock();
-    if (VIR_ALLOC_N(virLogBuffer, virLogSize + 1) < 0) {
+    if (VIR_ALLOC_N_QUIET(virLogBuffer, virLogSize + 1) < 0) {
         /*
          * The debug buffer is not a critical component, allow startup
          * even in case of failure to allocate it in case of a
          * configuration mistake.
          */
         virLogSize = 64 * 1024;
-        if (VIR_ALLOC_N(virLogBuffer, virLogSize + 1) < 0) {
+        if (VIR_ALLOC_N_QUIET(virLogBuffer, virLogSize + 1) < 0) {
             pbm = "Failed to allocate debug buffer: deactivating debug log\n";
             virLogSize = 0;
         } else {
@@ -223,7 +223,7 @@ virLogOnceInit(void)
     virLogEnd = 0;
     virLogDefaultPriority = VIR_LOG_DEFAULT;
 
-    if (VIR_ALLOC(virLogRegex) >= 0) {
+    if (VIR_ALLOC_QUIET(virLogRegex) >= 0) {
         if (regcomp(virLogRegex, VIR_LOG_REGEX, REG_EXTENDED) != 0)
             VIR_FREE(virLogRegex);
     }
@@ -276,7 +276,7 @@ virLogSetBufferSize(int size)
     }
 
     virLogSize = size * 1024;
-    if (VIR_ALLOC_N(virLogBuffer, virLogSize + 1) < 0) {
+    if (VIR_ALLOC_N_QUIET(virLogBuffer, virLogSize + 1) < 0) {
         pbm = "Failed to allocate debug buffer of %d kB\n";
         virLogBuffer = oldLogBuffer;
         virLogSize = oldsize;
@@ -366,7 +366,7 @@ virLogStr(const char *str)
 static void
 virLogDumpAllFD(const char *msg, int len)
 {
-    int i;
+    size_t i;
     bool found = false;
 
     if (len <= 0)
@@ -513,7 +513,7 @@ virLogSetDefaultPriority(virLogPriority priority)
 static int
 virLogResetFilters(void)
 {
-    int i;
+    size_t i;
 
     for (i = 0; i < virLogNbFilters; i++)
         VIR_FREE(virLogFilters[i].match);
@@ -541,7 +541,8 @@ virLogDefineFilter(const char *match,
                    virLogPriority priority,
                    unsigned int flags)
 {
-    int i;
+    size_t i;
+    int ret = -1;
     char *mdup = NULL;
 
     virCheckFlags(VIR_LOG_STACK_TRACE, -1);
@@ -554,29 +555,27 @@ virLogDefineFilter(const char *match,
     for (i = 0; i < virLogNbFilters; i++) {
         if (STREQ(virLogFilters[i].match, match)) {
             virLogFilters[i].priority = priority;
+            ret = i;
             goto cleanup;
         }
     }
 
-    if (VIR_STRDUP_QUIET(mdup, match) < 0) {
-        i = -1;
+    if (VIR_STRDUP_QUIET(mdup, match) < 0)
         goto cleanup;
-    }
-    i = virLogNbFilters;
-    if (VIR_REALLOC_N(virLogFilters, virLogNbFilters + 1)) {
-        i = -1;
+    if (VIR_REALLOC_N_QUIET(virLogFilters, virLogNbFilters + 1)) {
         VIR_FREE(mdup);
         goto cleanup;
     }
+    ret = virLogNbFilters;
     virLogFilters[i].match = mdup;
     virLogFilters[i].priority = priority;
     virLogFilters[i].flags = flags;
     virLogNbFilters++;
 cleanup:
     virLogUnlock();
-    if (i < 0)
+    if (ret < 0)
         virReportOOMError();
-    return i;
+    return ret;
 }
 
 
@@ -595,7 +594,7 @@ virLogFiltersCheck(const char *input,
                    unsigned int *flags)
 {
     int ret = 0;
-    int i;
+    size_t i;
 
     virLogLock();
     for (i = 0; i < virLogNbFilters; i++) {
@@ -620,7 +619,7 @@ virLogFiltersCheck(const char *input,
 static int
 virLogResetOutputs(void)
 {
-    int i;
+    size_t i;
 
     for (i = 0; i < virLogNbOutputs; i++) {
         if (virLogOutputs[i].c != NULL)
@@ -676,7 +675,7 @@ virLogDefineOutput(virLogOutputFunc f,
     }
 
     virLogLock();
-    if (VIR_REALLOC_N(virLogOutputs, virLogNbOutputs + 1)) {
+    if (VIR_REALLOC_N_QUIET(virLogOutputs, virLogNbOutputs + 1)) {
         VIR_FREE(ndup);
         goto cleanup;
     }
@@ -711,13 +710,13 @@ virLogFormatString(char **msg,
      * to just grep for it to find the right place.
      */
     if ((funcname != NULL)) {
-        ret = virAsprintf(msg, "%llu: %s : %s:%d : %s\n",
-                          virThreadSelfID(), virLogPriorityString(priority),
-                          funcname, linenr, str);
+        ret = virAsprintfQuiet(msg, "%llu: %s : %s:%d : %s\n",
+                               virThreadSelfID(), virLogPriorityString(priority),
+                               funcname, linenr, str);
     } else {
-        ret = virAsprintf(msg, "%llu: %s : %s\n",
-                          virThreadSelfID(), virLogPriorityString(priority),
-                          str);
+        ret = virAsprintfQuiet(msg, "%llu: %s : %s\n",
+                               virThreadSelfID(), virLogPriorityString(priority),
+                               str);
     }
     return ret;
 }
@@ -805,7 +804,8 @@ virLogVMessage(virLogSource source,
     char *str = NULL;
     char *msg = NULL;
     char timestamp[VIR_TIME_STRING_BUFLEN];
-    int fprio, i, ret;
+    int fprio, ret;
+    size_t i;
     int saved_errno = errno;
     bool emit = true;
     unsigned int filterflags = 0;
@@ -833,7 +833,7 @@ virLogVMessage(virLogSource source,
     /*
      * serialize the error message, add level and timestamp
      */
-    if (virVasprintf(&str, fmt, vargs) < 0) {
+    if (virVasprintfQuiet(&str, fmt, vargs) < 0) {
         goto cleanup;
     }
 
@@ -945,7 +945,7 @@ virLogOutputToFd(virLogSource source ATTRIBUTE_UNUSED,
     if (fd < 0)
         return;
 
-    if (virAsprintf(&msg, "%s: %s", timestamp, str) < 0)
+    if (virAsprintfQuiet(&msg, "%s: %s", timestamp, str) < 0)
         return;
 
     ignore_value(safewrite(fd, msg, strlen(msg)));
@@ -1486,7 +1486,7 @@ virLogGetDefaultPriority(void)
 char *
 virLogGetFilters(void)
 {
-    int i;
+    size_t i;
     virBuffer filterbuf = VIR_BUFFER_INITIALIZER;
 
     virLogLock();
@@ -1520,7 +1520,7 @@ virLogGetFilters(void)
 char *
 virLogGetOutputs(void)
 {
-    int i;
+    size_t i;
     virBuffer outputbuf = VIR_BUFFER_INITIALIZER;
 
     virLogLock();

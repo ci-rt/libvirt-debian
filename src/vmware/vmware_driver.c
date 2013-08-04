@@ -126,10 +126,8 @@ vmwareConnectOpen(virConnectPtr conn,
         VIR_FREE(vmrun);
     }
 
-    if (VIR_ALLOC(driver) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC(driver) < 0)
         return VIR_DRV_OPEN_ERROR;
-    }
 
     if (virMutexInit(&driver->lock) < 0)
         goto cleanup;
@@ -987,7 +985,7 @@ vmwareConnectNumOfDefinedDomains(virConnectPtr conn)
 
     vmwareDriverLock(driver);
     vmwareDomainObjListUpdateAll(driver->domains, driver);
-    n = virDomainObjListNumOfDomains(driver->domains, 0);
+    n = virDomainObjListNumOfDomains(driver->domains, false, NULL, NULL);
     vmwareDriverUnlock(driver);
 
     return n;
@@ -1001,7 +999,7 @@ vmwareConnectNumOfDomains(virConnectPtr conn)
 
     vmwareDriverLock(driver);
     vmwareDomainObjListUpdateAll(driver->domains, driver);
-    n = virDomainObjListNumOfDomains(driver->domains, 1);
+    n = virDomainObjListNumOfDomains(driver->domains, true, NULL, NULL);
     vmwareDriverUnlock(driver);
 
     return n;
@@ -1016,7 +1014,7 @@ vmwareConnectListDomains(virConnectPtr conn, int *ids, int nids)
 
     vmwareDriverLock(driver);
     vmwareDomainObjListUpdateAll(driver->domains, driver);
-    n = virDomainObjListGetActiveIDs(driver->domains, ids, nids);
+    n = virDomainObjListGetActiveIDs(driver->domains, ids, nids, NULL, NULL);
     vmwareDriverUnlock(driver);
 
     return n;
@@ -1031,7 +1029,8 @@ vmwareConnectListDefinedDomains(virConnectPtr conn,
 
     vmwareDriverLock(driver);
     vmwareDomainObjListUpdateAll(driver->domains, driver);
-    n = virDomainObjListGetInactiveNames(driver->domains, names, nnames);
+    n = virDomainObjListGetInactiveNames(driver->domains, names, nnames,
+                                         NULL, NULL);
     vmwareDriverUnlock(driver);
     return n;
 }
@@ -1121,7 +1120,8 @@ vmwareConnectListAllDomains(virConnectPtr conn,
 
     vmwareDriverLock(driver);
     vmwareDomainObjListUpdateAll(driver->domains, driver);
-    ret = virDomainObjListExport(driver->domains, conn, domains, flags);
+    ret = virDomainObjListExport(driver->domains, conn, domains,
+                                 NULL, flags);
     vmwareDriverUnlock(driver);
     return ret;
 }

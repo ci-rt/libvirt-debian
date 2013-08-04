@@ -146,24 +146,31 @@ enum virStoragePoolAuthType {
     VIR_STORAGE_POOL_AUTH_NONE,
     VIR_STORAGE_POOL_AUTH_CHAP,
     VIR_STORAGE_POOL_AUTH_CEPHX,
+
+    VIR_STORAGE_POOL_AUTH_LAST,
+};
+VIR_ENUM_DECL(virStoragePoolAuthType)
+
+typedef struct _virStoragePoolAuthSecret virStoragePoolAuthSecret;
+typedef virStoragePoolAuthSecret *virStoragePoolAuthSecretPtr;
+struct _virStoragePoolAuthSecret {
+    unsigned char uuid[VIR_UUID_BUFLEN];
+    char *usage;
+    bool uuidUsable;
 };
 
 typedef struct _virStoragePoolAuthChap virStoragePoolAuthChap;
 typedef virStoragePoolAuthChap *virStoragePoolAuthChapPtr;
 struct _virStoragePoolAuthChap {
-    char *login;
-    char *passwd;
+    char *username;
+    virStoragePoolAuthSecret secret;
 };
 
 typedef struct _virStoragePoolAuthCephx virStoragePoolAuthCephx;
 typedef virStoragePoolAuthCephx *virStoragePoolAuthCephxPtr;
 struct _virStoragePoolAuthCephx {
     char *username;
-    struct {
-            unsigned char uuid[VIR_UUID_BUFLEN];
-            char *usage;
-            bool uuidUsable;
-    } secret;
+    virStoragePoolAuthSecret secret;
 };
 
 /*
@@ -347,6 +354,7 @@ struct _virStorageDriverState {
 
     char *configDir;
     char *autostartDir;
+    bool privileged;
 };
 
 typedef struct _virStoragePoolSourceList virStoragePoolSourceList;
@@ -357,6 +365,8 @@ struct _virStoragePoolSourceList {
     virStoragePoolSourcePtr sources;
 };
 
+typedef bool (*virStoragePoolObjListFilter)(virConnectPtr conn,
+                                            virStoragePoolDefPtr def);
 
 static inline int
 virStoragePoolObjIsActive(virStoragePoolObjPtr pool)
@@ -570,9 +580,10 @@ VIR_ENUM_DECL(virStoragePartedFsType)
                  VIR_CONNECT_LIST_STORAGE_POOLS_FILTERS_AUTOSTART  | \
                  VIR_CONNECT_LIST_STORAGE_POOLS_FILTERS_POOL_TYPE)
 
-int virStoragePoolList(virConnectPtr conn,
-                       virStoragePoolObjList poolobjs,
-                       virStoragePoolPtr **pools,
-                       unsigned int flags);
+int virStoragePoolObjListExport(virConnectPtr conn,
+                                virStoragePoolObjList poolobjs,
+                                virStoragePoolPtr **pools,
+                                virStoragePoolObjListFilter filter,
+                                unsigned int flags);
 
 #endif /* __VIR_STORAGE_CONF_H__ */

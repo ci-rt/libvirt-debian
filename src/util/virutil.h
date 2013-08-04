@@ -46,8 +46,9 @@ int virSetCloseExec(int fd) ATTRIBUTE_RETURN_CHECK;
 int virPipeReadUntilEOF(int outfd, int errfd,
                         char **outbuf, char **errbuf);
 
-int virSetUIDGID(uid_t uid, gid_t gid);
-int virSetUIDGIDWithCaps(uid_t uid, gid_t gid, unsigned long long capBits,
+int virSetUIDGID(uid_t uid, gid_t gid, gid_t *groups, int ngroups);
+int virSetUIDGIDWithCaps(uid_t uid, gid_t gid, gid_t *groups, int ngroups,
+                         unsigned long long capBits,
                          bool clearExistingCaps);
 
 int virScaleInteger(unsigned long long *value, const char *suffix,
@@ -115,6 +116,8 @@ char *virGetUserCacheDirectory(void);
 char *virGetUserRuntimeDirectory(void);
 char *virGetUserName(uid_t uid);
 char *virGetGroupName(gid_t gid);
+int virGetGroupList(uid_t uid, gid_t group, gid_t **groups)
+    ATTRIBUTE_NONNULL(3);
 int virGetUserID(const char *name,
                  uid_t *uid) ATTRIBUTE_RETURN_CHECK;
 int virGetGroupID(const char *name,
@@ -165,5 +168,7 @@ char *virGetFCHostNameByWWN(const char *sysfs_prefix,
 char *virFindFCHostCapableVport(const char *sysfs_prefix);
 
 int virCompareLimitUlong(unsigned long long a, unsigned long b);
+
+int virParseOwnershipIds(const char *label, uid_t *uidPtr, gid_t *gidPtr);
 
 #endif /* __VIR_UTIL_H__ */

@@ -540,6 +540,18 @@
     &lt;initarg&gt;emergency.service&lt;/initarg&gt;
   &lt;/os&gt;
     </pre>
+        <p>
+      If you want to enable user namespace,set the <code>idmap</code> element.
+      the <code>uid</code> and <code>gid</code> elements have three attributes:
+    </p>
+        <dl><dt><code>start</code></dt><dd>First user id in container.</dd><dt><code>target</code></dt><dd>The first user id in container will be mapped to this target user
+          id in host.</dd><dt><code>count</code></dt><dd>How many users in container being allowed to map to host's user.</dd></dl>
+        <pre xml:space="preserve">
+  &lt;idmap&gt;
+    &lt;uid start='0' target='1000' count='10'/&gt;
+    &lt;gid start='0' target='1000' count='10'/&gt;
+  &lt;/idmap&gt;
+    </pre>
         <h3>
           <a name="elementsSysinfo" shape="rect" id="elementsSysinfo">SMBIOS System Information</a>
         </h3>
@@ -1008,11 +1020,15 @@
           copying host CPU definition from capabilities XML into domain XML.
           Since the CPU definition is copied just before starting a domain,
           exactly the same XML can be used on different hosts while still
-          providing the best guest CPU each host supports. Neither
-          <code>match</code> attribute nor any <code>feature</code> elements
-          can be used in this mode. Specifying CPU model is not supported
-          either, but <code>model</code>'s <code>fallback</code> attribute may
-          still be used. Libvirt does not model every aspect of each CPU so
+          providing the best guest CPU each host supports. The
+          <code>match</code> attribute can't be used in this mode. Specifying
+          CPU model is not supported either, but <code>model</code>'s
+          <code>fallback</code> attribute may still be used. Using the
+          <code>feature</code> element, specific flags may be enabled or
+          disabled specifically in addition to the host model. This may be
+          used to fine tune features that can be emulated.
+          <span class="since">(Since 1.1.1)</span>.
+          Libvirt does not model every aspect of each CPU so
           the guest CPU will not match the host CPU exactly. On the other
           hand, the ABI provided to the guest is reproducible. During
           migration, complete CPU model definition is transferred to the
@@ -1306,8 +1322,10 @@
         </p>
         <dl><dt><code>name</code></dt><dd>
             The <code>name</code> attribute selects which timer is
-            being modified, and can be one of "platform", "hpet",
-            "kvmclock", "pit", "rtc", or "tsc".
+            being modified, and can be one of
+            "platform" (currently unsupported),
+            "hpet" (libxl, xen, qemu), "kvmclock" (qemu),
+            "pit" (qemu), "rtc" (qemu), or "tsc" (libxl).
           </dd><dt><code>track</code></dt><dd>
             The <code>track</code> attribute specifies what the timer
             tracks, and can be "boot", "guest", or "wall".
@@ -1533,7 +1551,16 @@
         <code>pool</code> and <code>volume</code>. Attribute <code>pool</code>
         specifies the name of storage pool (managed by libvirt) where the disk
         source resides, and attribute <code>volume</code> specifies the name of
-        storage volume (managed by libvirt) used as the disk source.
+        storage volume (managed by libvirt) used as the disk source. For a
+        "volume" type disk, if the underlying storage pool is "iscsi", attribute
+        <code>mode</code> (<span class="since">since 1.1.1</span>) can be used
+        to indicate how to represent the LUN as the disk source. The value
+        "host" indicates to use the LUN's path as it shows up on host, e.g.
+        /dev/disk/by-path/ip-10.11.12.9:3260-iscsi-iqn.2013-06.fc:iscsi.iscsi0-lun-1).
+        The value "direct" indicates to use the storage pool's
+        <code>source</code> element <code>host</code> attribute as the
+        disk source for the libiscsi URI, e.g.
+        file=iscsi://demo.org:6000/iqn.1992-01.com.example/1.
         <span class="since">Since 0.0.3; <code>type='dir'</code> since
         0.7.5; <code>type='network'</code> since
         0.8.7; <code>protocol='iscsi'</code> since 1.0.4;
@@ -3121,7 +3148,9 @@ qemu-kvm -net nic,model=? /dev/null
       <code>peak</code> speed. Accepted values for attributes are integer
       numbers. The units for <code>average</code> and <code>peak</code> attributes
       are kilobytes per second, and for the <code>burst</code> just kilobytes.
-      <span class="since">Since 0.9.4</span> The <code>inbound</code> can
+      Note the limitation of implementation: the <code>peak</code> attribute in
+      <code>outbound</code> element is ignored (as linux ingress filters don't
+      know it yet). <span class="since">Since 0.9.4</span> The <code>inbound</code> can
       optionally have <code>floor</code> attribute. This is there for
       guaranteeing minimal throughput for shaped interfaces. This, however,
       requires that all traffic goes through one point where QoS decisions can
@@ -3130,12 +3159,12 @@ qemu-kvm -net nic,model=? /dev/null
       forward type of route, nat, or no forward at all). Moreover, the
       virtual network the interface is connected to is required to have at least
       inbound QoS set (<code>average</code> at least). Moreover, with
-      <code>floor<code> attribute users don't need to specify
+      <code>floor</code> attribute users don't need to specify
       <code>average</code>. However, <code>peak</code> and <code>burst</code>
       attributes still require <code>average</code>. Currently, linux kernel
       doesn't allow ingress qdiscs to have any classes therefore
       <code>floor</code> can be applied only on <code>inbound</code> and not
-      </code>outbound</code>. <span class="since">Since 1.0.1</span>
+      <code>outbound</code>. <span class="since">Since 1.0.1</span>
     </p>
         <h5>
           <a name="elementVlanTag" shape="rect" id="elementVlanTag">Setting VLAN tag (on supported network types only)</a>
@@ -4112,6 +4141,7 @@ qemu-kvm -net nic,model=? /dev/null
   &lt;devices&gt;
     &lt;memballoon model='virtio'&gt;
       &lt;address type='pci' domain='0x0000' bus='0x00' slot='0x02' function='0x0'/&gt;
+      &lt;stats period='10'/&gt;
     &lt;/memballoon&gt;
   &lt;/devices&gt;
 &lt;/domain&gt;</pre>
@@ -4122,6 +4152,22 @@ qemu-kvm -net nic,model=? /dev/null
           the virtualization platform
         </p>
         <ul><li>'virtio' — default with QEMU/KVM</li><li>'xen' — default with Xen</li></ul>
+      </dd><dt><code>period</code></dt><dd>
+        <p>
+          The optional <code>period</code> allows the QEMU virtio memory
+          balloon driver to provide statistics through the <code>virsh
+          dommemstat [domain]</code> command. By default, collection is
+          not enabled. In order to enable, use the <code>virsh dommemstat
+          [domain] --period [number]</code> command or <code>virsh edit</code>
+          command to add the option to the XML definition.
+          The <code>virsh dommemstat</code> will accept the options
+          <code>--live</code>, <code>--current</code>, or <code>--config</code>.
+          If an option is not provided, the change for a running domain will
+          only be made to the active guest.
+          If the QEMU driver is not at the right
+          revision, the attempt to set the period will fail.
+          <span class="since">Since 1.1.1, requires QEMU 1.5</span>
+        </p>
       </dd></dl>
         <h4>
           <a name="elementsRng" shape="rect" id="elementsRng">Random number generator device</a>

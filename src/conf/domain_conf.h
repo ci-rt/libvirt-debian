@@ -120,6 +120,12 @@ typedef virDomainSnapshotObjList *virDomainSnapshotObjListPtr;
 typedef struct _virDomainRNGDef virDomainRNGDef;
 typedef virDomainRNGDef *virDomainRNGDefPtr;
 
+typedef struct _virDomainIdMapEntry virDomainIdMapEntry;
+typedef virDomainIdMapEntry *virDomainIdMapEntryPtr;
+
+typedef struct _virDomainIdMapDef virDomainIdMapDef;
+typedef virDomainIdMapDef *virDomainIdMapDefPtr;
+
 /* Flags for the 'type' field in virDomainDeviceDef */
 typedef enum {
     VIR_DOMAIN_DEVICE_NONE = 0,
@@ -646,11 +652,33 @@ struct _virDomainBlockIoTuneInfo {
 };
 typedef virDomainBlockIoTuneInfo *virDomainBlockIoTuneInfoPtr;
 
+/*
+ * Used for volume "type" disk to indicate how to represent
+ * the disk source if the specified "pool" is of iscsi type.
+ */
+enum virDomainDiskSourcePoolMode {
+    VIR_DOMAIN_DISK_SOURCE_POOL_MODE_DEFAULT = 0,
+
+    /* Use the path as it shows up on host, e.g.
+     * /dev/disk/by-path/ip-$ip-iscsi-$iqn:iscsi.iscsi-pool0-lun-1
+     */
+    VIR_DOMAIN_DISK_SOURCE_POOL_MODE_HOST,
+
+    /* Use the URI from the storage pool source element host attribute. E.g.
+     * file=iscsi://demo.org:6000/iqn.1992-01.com.example/1.
+     */
+    VIR_DOMAIN_DISK_SOURCE_POOL_MODE_DIRECT,
+
+    VIR_DOMAIN_DISK_SOURCE_POOL_MODE_LAST
+};
+
 typedef struct _virDomainDiskSourcePoolDef virDomainDiskSourcePoolDef;
 struct _virDomainDiskSourcePoolDef {
     char *pool; /* pool name */
     char *volume; /* volume name */
     int voltype; /* enum virStorageVolType, internal only */
+    int pooltype; /* enum virStoragePoolType, internal only */
+    int mode; /* enum virDomainDiskSourcePoolMode */
 };
 typedef virDomainDiskSourcePoolDef *virDomainDiskSourcePoolDefPtr;
 
@@ -738,12 +766,12 @@ enum virDomainControllerType {
 };
 
 
-enum virDomainControllerModelPCI {
+typedef enum {
     VIR_DOMAIN_CONTROLLER_MODEL_PCI_ROOT,
     VIR_DOMAIN_CONTROLLER_MODEL_PCI_BRIDGE,
 
     VIR_DOMAIN_CONTROLLER_MODEL_PCI_LAST
-};
+} virDomainControllerModelPCI;
 
 enum virDomainControllerModelSCSI {
     VIR_DOMAIN_CONTROLLER_MODEL_SCSI_AUTO,
@@ -784,7 +812,7 @@ struct _virDomainVirtioSerialOpts {
 /* Stores the virtual disk controller configuration */
 struct _virDomainControllerDef {
     int type;
-    int idx;
+    unsigned int idx;
     int model; /* -1 == undef */
     unsigned int queues;
     union {
@@ -1527,6 +1555,7 @@ enum {
 struct _virDomainMemballoonDef {
     int model;
     virDomainDeviceInfo info;
+    unsigned int period; /* seconds between collections */
 };
 
 struct _virDomainNVRAMDef {
@@ -1845,6 +1874,21 @@ struct _virDomainRNGDef {
     virDomainDeviceInfo info;
 };
 
+struct _virDomainIdMapEntry {
+    unsigned int start;
+    unsigned int target;
+    unsigned int count;
+};
+
+struct _virDomainIdMapDef {
+    size_t nuidmap;
+    virDomainIdMapEntryPtr uidmap;
+
+    size_t ngidmap;
+    virDomainIdMapEntryPtr gidmap;
+};
+
+
 void virBlkioDeviceWeightArrayClear(virBlkioDeviceWeightPtr deviceWeights,
                                     int ndevices);
 
@@ -1907,6 +1951,7 @@ struct _virDomainDef {
 
     virNumaTuneDef numatune;
     virDomainResourceDefPtr resource;
+    virDomainIdMapDef idmap;
 
     /* These 3 are based on virDomainLifeCycleAction enum flags */
     int onReboot;
@@ -2050,6 +2095,9 @@ struct _virDomainObj {
 
 typedef struct _virDomainObjList virDomainObjList;
 typedef virDomainObjList *virDomainObjListPtr;
+
+typedef bool (*virDomainObjListFilter)(virConnectPtr conn,
+                                       virDomainDefPtr def);
 
 
 /* This structure holds various callbacks and data needed
@@ -2235,6 +2283,8 @@ virDomainDefPtr virDomainObjCopyPersistentDef(virDomainObjPtr dom,
 
 void virDomainObjListRemove(virDomainObjListPtr doms,
                             virDomainObjPtr dom);
+void virDomainObjListRemoveLocked(virDomainObjListPtr doms,
+                                  virDomainObjPtr dom);
 
 virDomainDeviceDefPtr virDomainDeviceDefParse(const char *xmlStr,
                                               virDomainDefPtr def,
@@ -2315,22 +2365,22 @@ virDomainHostdevRemove(virDomainDefPtr def, size_t i);
 int virDomainHostdevFind(virDomainDefPtr def, virDomainHostdevDefPtr match,
                          virDomainHostdevDefPtr *found);
 
-int virDomainGraphicsListenGetType(virDomainGraphicsDefPtr def, size_t ii)
+int virDomainGraphicsListenGetType(virDomainGraphicsDefPtr def, size_t i)
             ATTRIBUTE_NONNULL(1);
-int virDomainGraphicsListenSetType(virDomainGraphicsDefPtr def, size_t ii, int val)
+int virDomainGraphicsListenSetType(virDomainGraphicsDefPtr def, size_t i, int val)
             ATTRIBUTE_NONNULL(1);
 const char *virDomainGraphicsListenGetAddress(virDomainGraphicsDefPtr def,
-                                              size_t ii)
+                                              size_t i)
             ATTRIBUTE_NONNULL(1);
 int virDomainGraphicsListenSetAddress(virDomainGraphicsDefPtr def,
-                                      size_t ii, const char *address,
+                                      size_t i, const char *address,
                                       int len, bool setType)
             ATTRIBUTE_NONNULL(1);
 const char *virDomainGraphicsListenGetNetwork(virDomainGraphicsDefPtr def,
-                                              size_t ii)
+                                              size_t i)
             ATTRIBUTE_NONNULL(1);
 int virDomainGraphicsListenSetNetwork(virDomainGraphicsDefPtr def,
-                                      size_t ii, const char *network, int len)
+                                      size_t i, const char *network, int len)
             ATTRIBUTE_NONNULL(1);
 
 int virDomainNetGetActualType(virDomainNetDefPtr iface);
@@ -2363,6 +2413,24 @@ virDomainLeaseRemoveAt(virDomainDefPtr def, size_t i);
 virDomainLeaseDefPtr
 virDomainLeaseRemove(virDomainDefPtr def,
                      virDomainLeaseDefPtr lease);
+
+void
+virDomainChrGetDomainPtrs(virDomainDefPtr vmdef,
+                          virDomainChrDefPtr chr,
+                          virDomainChrDefPtr ***arrPtr,
+                          size_t **cntPtr);
+virDomainChrDefPtr
+virDomainChrFind(virDomainDefPtr def,
+                 virDomainChrDefPtr target);
+bool
+virDomainChrEquals(virDomainChrDefPtr src,
+                   virDomainChrDefPtr tgt);
+int
+virDomainChrInsert(virDomainDefPtr vmdef,
+                   virDomainChrDefPtr chr);
+virDomainChrDefPtr
+virDomainChrRemove(virDomainDefPtr vmdef,
+                   virDomainChrDefPtr chr);
 
 int virDomainSaveXML(const char *configDir,
                      virDomainDefPtr def,
@@ -2404,14 +2472,21 @@ int virDomainFSIndexByName(virDomainDefPtr def, const char *name);
 int virDomainVideoDefaultType(virDomainDefPtr def);
 int virDomainVideoDefaultRAM(virDomainDefPtr def, int type);
 
-int virDomainObjListNumOfDomains(virDomainObjListPtr doms, int active);
+int virDomainObjListNumOfDomains(virDomainObjListPtr doms,
+                                 bool active,
+                                 virDomainObjListFilter filter,
+                                 virConnectPtr conn);
 
 int virDomainObjListGetActiveIDs(virDomainObjListPtr doms,
                                  int *ids,
-                                 int maxids);
+                                 int maxids,
+                                 virDomainObjListFilter filter,
+                                 virConnectPtr conn);
 int virDomainObjListGetInactiveNames(virDomainObjListPtr doms,
                                      char **const names,
-                                     int maxnames);
+                                     int maxnames,
+                                     virDomainObjListFilter filter,
+                                     virConnectPtr conn);
 
 typedef int (*virDomainObjListIterator)(virDomainObjPtr dom,
                                         void *opaque);
@@ -2501,6 +2576,7 @@ VIR_ENUM_DECL(virDomainDiskSecretType)
 VIR_ENUM_DECL(virDomainDeviceSGIO)
 VIR_ENUM_DECL(virDomainDiskTray)
 VIR_ENUM_DECL(virDomainDiskDiscard)
+VIR_ENUM_DECL(virDomainDiskSourcePoolMode)
 VIR_ENUM_DECL(virDomainIoEventFd)
 VIR_ENUM_DECL(virDomainVirtioEventIdx)
 VIR_ENUM_DECL(virDomainDiskCopyOnRead)
@@ -2621,6 +2697,7 @@ VIR_ENUM_DECL(virDomainStartupPolicy)
 int virDomainObjListExport(virDomainObjListPtr doms,
                            virConnectPtr conn,
                            virDomainPtr **domains,
+                           virDomainObjListFilter filter,
                            unsigned int flags);
 
 virDomainVcpuPinDefPtr virDomainLookupVcpuPin(virDomainDefPtr def,
@@ -2633,5 +2710,13 @@ virDomainDefMaybeAddController(virDomainDefPtr def,
                                int model);
 
 char *virDomainDefGetDefaultEmulator(virDomainDefPtr def, virCapsPtr caps);
+
+int virDomainDefFindDevice(virDomainDefPtr def,
+                           const char *devAlias,
+                           virDomainDeviceDefPtr dev,
+                           bool reportError);
+
+bool virDomainDiskSourceIsBlockType(virDomainDiskDefPtr def)
+    ATTRIBUTE_NONNULL(1);
 
 #endif /* __DOMAIN_CONF_H */

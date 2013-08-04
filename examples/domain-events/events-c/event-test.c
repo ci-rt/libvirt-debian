@@ -93,6 +93,9 @@ const char *eventToString(int event) {
         case VIR_DOMAIN_EVENT_PMSUSPENDED:
             ret = "PMSuspended";
             break;
+        case VIR_DOMAIN_EVENT_CRASHED:
+            ret = "Crashed";
+            break;
     }
     return ret;
 }
@@ -209,6 +212,13 @@ static const char *eventDetailToString(int event, int detail) {
                 break;
             }
             break;
+        case VIR_DOMAIN_EVENT_CRASHED:
+           switch ((virDomainEventCrashedDetailType) detail) {
+           case VIR_DOMAIN_EVENT_CRASHED_PANICKED:
+               ret = "Panicked";
+               break;
+           }
+           break;
     }
     return ret;
 }
@@ -252,16 +262,9 @@ static int myDomainEventRTCChangeCallback(virConnectPtr conn ATTRIBUTE_UNUSED,
                                           long long offset,
                                           void *opaque ATTRIBUTE_UNUSED)
 {
-    char *str = NULL;
-    /* HACK: use asprintf since we have gnulib's wrapper for %lld on Win32
-     * but don't have a printf() replacement with %lld */
-    if (asprintf(&str, "%s EVENT: Domain %s(%d) rtc change %lld\n",
-                 __func__, virDomainGetName(dom),
-                 virDomainGetID(dom), offset) < 0)
-        return 0;
-
-    printf("%s", str);
-    free(str);
+    printf("%s EVENT: Domain %s(%d) rtc change %" PRIdMAX "\n",
+           __func__, virDomainGetName(dom), virDomainGetID(dom),
+           (intmax_t)offset);
 
     return 0;
 }
@@ -310,7 +313,7 @@ static int myDomainEventGraphicsCallback(virConnectPtr conn ATTRIBUTE_UNUSED,
                                          virDomainEventGraphicsSubjectPtr subject,
                                          void *opaque ATTRIBUTE_UNUSED)
 {
-    int i;
+    size_t i;
     printf("%s EVENT: Domain %s(%d) graphics ", __func__, virDomainGetName(dom),
            virDomainGetID(dom));
 
@@ -418,6 +421,17 @@ static int myDomainEventPMSuspendDiskCallback(virConnectPtr conn ATTRIBUTE_UNUSE
     return 0;
 }
 
+static int
+myDomainEventDeviceRemovedCallback(virConnectPtr conn ATTRIBUTE_UNUSED,
+                                   virDomainPtr dom,
+                                   const char *devAlias,
+                                   void *opaque ATTRIBUTE_UNUSED)
+{
+    printf("%s EVENT: Domain %s(%d) device removed: %s\n",
+           __func__, virDomainGetName(dom), virDomainGetID(dom), devAlias);
+    return 0;
+}
+
 static void myFreeFunc(void *opaque)
 {
     char *str = opaque;
@@ -457,6 +471,7 @@ int main(int argc, char **argv)
     int callback12ret = -1;
     int callback13ret = -1;
     int callback14ret = -1;
+    int callback15ret = -1;
     struct sigaction action_stop;
 
     memset(&action_stop, 0, sizeof(action_stop));
@@ -565,6 +580,12 @@ int main(int argc, char **argv)
                                                      VIR_DOMAIN_EVENT_ID_PMSUSPEND_DISK,
                                                      VIR_DOMAIN_EVENT_CALLBACK(myDomainEventPMSuspendDiskCallback),
                                                      strdup("pmsuspend-disk"), myFreeFunc);
+    callback15ret = virConnectDomainEventRegisterAny(dconn,
+                                                     NULL,
+                                                     VIR_DOMAIN_EVENT_ID_DEVICE_REMOVED,
+                                                     VIR_DOMAIN_EVENT_CALLBACK(myDomainEventDeviceRemovedCallback),
+                                                     strdup("device removed"), myFreeFunc);
+
     if ((callback1ret != -1) &&
         (callback2ret != -1) &&
         (callback3ret != -1) &&
@@ -577,7 +598,8 @@ int main(int argc, char **argv)
         (callback11ret != -1) &&
         (callback12ret != -1) &&
         (callback13ret != -1) &&
-        (callback14ret != -1)) {
+        (callback14ret != -1) &&
+        (callback15ret != -1)) {
         if (virConnectSetKeepAlive(dconn, 5, 3) < 0) {
             virErrorPtr err = virGetLastError();
             fprintf(stderr, "Failed to start keepalive protocol: %s\n",
@@ -606,6 +628,8 @@ int main(int argc, char **argv)
         virConnectDomainEventDeregisterAny(dconn, callback11ret);
         virConnectDomainEventDeregisterAny(dconn, callback12ret);
         virConnectDomainEventDeregisterAny(dconn, callback13ret);
+        virConnectDomainEventDeregisterAny(dconn, callback14ret);
+        virConnectDomainEventDeregisterAny(dconn, callback15ret);
         if (callback8ret != -1)
             virConnectDomainEventDeregisterAny(dconn, callback8ret);
     }

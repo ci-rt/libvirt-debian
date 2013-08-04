@@ -25,6 +25,8 @@
 
 #include "viralloc.h"
 
+#define VIR_FROM_THIS VIR_FROM_NONE
+
 struct virThreadLocalData {
     DWORD key;
     virThreadLocalCleanup cleanup;
@@ -33,7 +35,7 @@ typedef struct virThreadLocalData virThreadLocalData;
 typedef virThreadLocalData *virThreadLocalDataPtr;
 
 virMutex virThreadLocalLock;
-unsigned int virThreadLocalCount = 0;
+size_t virThreadLocalCount = 0;
 virThreadLocalDataPtr virThreadLocalList = NULL;
 DWORD selfkey;
 
@@ -54,7 +56,7 @@ int virThreadInitialize(void)
 
 void virThreadOnExit(void)
 {
-    unsigned int i;
+    size_t i;
     virMutexLock(&virThreadLocalLock);
     for (i = 0; i < virThreadLocalCount; i++) {
         if (virThreadLocalList[i].cleanup) {
@@ -219,7 +221,7 @@ void virCondBroadcast(virCondPtr c)
     virMutexLock(&c->lock);
 
     if (c->nwaiters) {
-        unsigned int i;
+        size_t i;
         for (i = 0; i < c->nwaiters; i++) {
             HANDLE event = c->waiters[i];
             SetEvent(event);

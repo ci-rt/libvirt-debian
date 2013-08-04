@@ -35,7 +35,9 @@
   git checkout -t origin -b workbranch
   Hack, committing any changes along the way
 </pre>
-        <p>Then, when you want to post your patches:</p>
+        <p>More hints on compiling can be
+        found <a href="compiling.html">here</a>.  When you want to
+        post your patches:</p>
 <pre>
   git pull --rebase
   (fix any conflicts)
@@ -211,7 +213,7 @@
            not suppress real leaks, but it should be generic enough to
            cover multiple code paths. The format of the entry can be
            found in the documentation found at the
-           <a href="http://valgrind.org/">Valgrind home page.</a>
+           <a href="http://valgrind.org/">Valgrind home page</a>.
            The following trace was added to <code>tests/.valgrind.supp</code>
            in order to suppress the warning:
         </p>
@@ -236,7 +238,7 @@
       There is more on this subject, including lots of links to background
       reading on the subject, on
       <a href="http://et.redhat.com/~rjones/how-to-supply-code-to-open-source-projects/">
-        Richard Jones' guide to working with open source projects</a>
+        Richard Jones' guide to working with open source projects</a>.
     </p>
 
 
@@ -661,10 +663,8 @@
 <pre>
   virDomainPtr domain;
 
-  if (VIR_ALLOC(domain) &lt; 0) {
-      virReportOOMError();
+  if (VIR_ALLOC(domain) &lt; 0)
       return NULL;
-  }
 </pre>
       </li>
 
@@ -673,10 +673,8 @@
   virDomainPtr domains;
   size_t ndomains = 10;
 
-  if (VIR_ALLOC_N(domains, ndomains) &lt; 0) {
-      virReportOOMError();
+  if (VIR_ALLOC_N(domains, ndomains) &lt; 0)
       return NULL;
-  }
 </pre>
       </li>
 
@@ -685,10 +683,8 @@
   virDomainPtr *domains;
   size_t ndomains = 10;
 
-  if (VIR_ALLOC_N(domains, ndomains) &lt; 0) {
-      virReportOOMError();
+  if (VIR_ALLOC_N(domains, ndomains) &lt; 0)
       return NULL;
-  }
 </pre>
       </li>
 
@@ -700,10 +696,8 @@
   virDomainPtr domains;
   size_t ndomains = 0;
 
-  if (VIR_EXPAND_N(domains, ndomains, 1) &lt; 0) {
-      virReportOOMError();
+  if (VIR_EXPAND_N(domains, ndomains, 1) &lt; 0)
       return NULL;
-  }
   domains[ndomains - 1] = domain;
 </pre></li>
 
@@ -716,10 +710,8 @@
   size_t ndomains = 0;
   size_t ndomains_max = 0;
 
-  if (VIR_RESIZE_N(domains, ndomains_max, ndomains, 1) &lt; 0) {
-      virReportOOMError();
+  if (VIR_RESIZE_N(domains, ndomains_max, ndomains, 1) &lt; 0)
       return NULL;
-  }
   domains[ndomains++] = domain;
 </pre>
       </li>

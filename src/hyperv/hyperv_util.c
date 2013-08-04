@@ -39,17 +39,15 @@ int
 hypervParseUri(hypervParsedUri **parsedUri, virURIPtr uri)
 {
     int result = -1;
-    int i;
+    size_t i;
 
     if (parsedUri == NULL || *parsedUri != NULL) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("Invalid argument"));
         return -1;
     }
 
-    if (VIR_ALLOC(*parsedUri) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC(*parsedUri) < 0)
         return -1;
-    }
 
     for (i = 0; i < uri->paramsCount; i++) {
         virURIParamPtr queryParam = &uri->params[i];

@@ -223,7 +223,7 @@ int virNetSocketNewListenTCP(const char *nodename,
     struct addrinfo *ai = NULL;
     struct addrinfo hints;
     int fd = -1;
-    int i;
+    size_t i;
     int addrInUse = false;
 
     *retsocks = NULL;
@@ -297,10 +297,8 @@ int virNetSocketNewListenTCP(const char *nodename,
 
         VIR_DEBUG("%p f=%d f=%d", &addr, runp->ai_family, addr.data.sa.sa_family);
 
-        if (VIR_EXPAND_N(socks, nsocks, 1) < 0) {
-            virReportOOMError();
+        if (VIR_EXPAND_N(socks, nsocks, 1) < 0)
             goto error;
-        }
 
         if (!(socks[nsocks-1] = virNetSocketNew(&addr, NULL, false, fd, -1, 0)))
             goto error;
@@ -742,13 +740,13 @@ int
 virNetSocketNewConnectLibSSH2(const char *host,
                               const char *port,
                               const char *username,
-                              const char *password,
                               const char *privkey,
                               const char *knownHosts,
                               const char *knownHostsVerify,
                               const char *authMethods,
                               const char *command,
                               virConnectAuthPtr auth,
+                              virURIPtr uri,
                               virNetSocketPtr *retsock)
 {
     virNetSocketPtr sock = NULL;
@@ -810,8 +808,8 @@ virNetSocketNewConnectLibSSH2(const char *host,
             ret = virNetSSHSessionAuthAddKeyboardAuth(sess, username, -1);
         else if (STRCASEEQ(authMethod, "password"))
             ret = virNetSSHSessionAuthAddPasswordAuth(sess,
-                                                      username,
-                                                      password);
+                                                      uri,
+                                                      username);
         else if (STRCASEEQ(authMethod, "privkey"))
             ret = virNetSSHSessionAuthAddPrivKeyAuth(sess,
                                                      username,
@@ -856,13 +854,13 @@ int
 virNetSocketNewConnectLibSSH2(const char *host ATTRIBUTE_UNUSED,
                               const char *port ATTRIBUTE_UNUSED,
                               const char *username ATTRIBUTE_UNUSED,
-                              const char *password ATTRIBUTE_UNUSED,
                               const char *privkey ATTRIBUTE_UNUSED,
                               const char *knownHosts ATTRIBUTE_UNUSED,
                               const char *knownHostsVerify ATTRIBUTE_UNUSED,
                               const char *authMethods ATTRIBUTE_UNUSED,
                               const char *command ATTRIBUTE_UNUSED,
                               virConnectAuthPtr auth ATTRIBUTE_UNUSED,
+                              virURIPtr uri ATTRIBUTE_UNUSED,
                               virNetSocketPtr *retsock ATTRIBUTE_UNUSED)
 {
     virReportSystemError(ENOSYS, "%s",
@@ -1435,10 +1433,8 @@ static ssize_t virNetSocketReadSASL(virNetSocketPtr sock, char *buf, size_t len)
     if (sock->saslDecoded == NULL) {
         ssize_t encodedLen = virNetSASLSessionGetMaxBufSize(sock->saslSession);
         char *encoded;
-        if (VIR_ALLOC_N(encoded, encodedLen) < 0) {
-            virReportOOMError();
+        if (VIR_ALLOC_N(encoded, encodedLen) < 0)
             return -1;
-        }
         encodedLen = virNetSocketReadWire(sock, encoded, encodedLen);
 
         if (encodedLen <= 0) {

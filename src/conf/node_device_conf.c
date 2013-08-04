@@ -88,7 +88,7 @@ virNodeDeviceObjPtr
 virNodeDeviceFindBySysfsPath(const virNodeDeviceObjListPtr devs,
                              const char *sysfs_path)
 {
-    unsigned int i;
+    size_t i;
 
     for (i = 0; i < devs->count; i++) {
         virNodeDeviceObjLock(devs->objs[i]);
@@ -106,7 +106,7 @@ virNodeDeviceFindBySysfsPath(const virNodeDeviceObjListPtr devs,
 virNodeDeviceObjPtr virNodeDeviceFindByName(const virNodeDeviceObjListPtr devs,
                                             const char *name)
 {
-    unsigned int i;
+    size_t i;
 
     for (i = 0; i < devs->count; i++) {
         virNodeDeviceObjLock(devs->objs[i]);
@@ -158,7 +158,7 @@ void virNodeDeviceObjFree(virNodeDeviceObjPtr dev)
 
 void virNodeDeviceObjListFree(virNodeDeviceObjListPtr devs)
 {
-    unsigned int i;
+    size_t i;
     for (i = 0; i < devs->count; i++)
         virNodeDeviceObjFree(devs->objs[i]);
     VIR_FREE(devs->objs);
@@ -176,10 +176,8 @@ virNodeDeviceObjPtr virNodeDeviceAssignDef(virNodeDeviceObjListPtr devs,
         return device;
     }
 
-    if (VIR_ALLOC(device) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC(device) < 0)
         return NULL;
-    }
 
     if (virMutexInit(&device->lock) < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
@@ -194,7 +192,6 @@ virNodeDeviceObjPtr virNodeDeviceAssignDef(virNodeDeviceObjListPtr devs,
         device->def = NULL;
         virNodeDeviceObjUnlock(device);
         virNodeDeviceObjFree(device);
-        virReportOOMError();
         return NULL;
     }
     devs->objs[devs->count++] = device;
@@ -206,7 +203,7 @@ virNodeDeviceObjPtr virNodeDeviceAssignDef(virNodeDeviceObjListPtr devs,
 void virNodeDeviceObjRemove(virNodeDeviceObjListPtr devs,
                             const virNodeDeviceObjPtr dev)
 {
-    unsigned int i;
+    size_t i;
 
     virNodeDeviceObjUnlock(dev);
 
@@ -235,7 +232,7 @@ char *virNodeDeviceDefFormat(const virNodeDeviceDefPtr def)
 {
     virBuffer buf = VIR_BUFFER_INITIALIZER;
     virNodeDevCapsDefPtr caps;
-    unsigned int i = 0;
+    size_t i = 0;
 
     virBufferAddLit(&buf, "<device>\n");
     virBufferEscapeString(&buf, "  <name>%s</name>\n", def->name);
@@ -569,7 +566,8 @@ virNodeDevCapStorageParseXML(xmlXPathContextPtr ctxt,
                              union _virNodeDevCapData *data)
 {
     xmlNodePtr orignode, *nodes = NULL;
-    int i, n, ret = -1;
+    size_t i;
+    int n, ret = -1;
     unsigned long long val;
 
     orignode = ctxt->node;
@@ -738,7 +736,8 @@ virNodeDevCapScsiHostParseXML(xmlXPathContextPtr ctxt,
                               const char *virt_type)
 {
     xmlNodePtr orignode, *nodes = NULL;
-    int ret = -1, n = 0, i;
+    int ret = -1, n = 0;
+    size_t i;
     char *type = NULL;
 
     orignode = ctxt->node;
@@ -989,7 +988,8 @@ virNodeDevCapPciDevIommuGroupParseXML(xmlXPathContextPtr ctxt,
     xmlNodePtr origNode = ctxt->node;
     xmlNodePtr *addrNodes = NULL;
     char *numberStr = NULL;
-    int nAddrNodes, ii, ret = -1;
+    int nAddrNodes, ret = -1;
+    size_t i;
     virPCIDeviceAddressPtr pciAddr = NULL;
 
     ctxt->node = iommuGroupNode;
@@ -1011,24 +1011,20 @@ virNodeDevCapPciDevIommuGroupParseXML(xmlXPathContextPtr ctxt,
     if ((nAddrNodes = virXPathNodeSet("./address", ctxt, &addrNodes)) < 0)
         goto cleanup;
 
-    for (ii = 0; ii < nAddrNodes; ii++) {
+    for (i = 0; i < nAddrNodes; i++) {
         virDevicePCIAddress addr = { 0, 0, 0, 0, 0 };
-        if (virDevicePCIAddressParseXML(addrNodes[ii], &addr) < 0)
+        if (virDevicePCIAddressParseXML(addrNodes[i], &addr) < 0)
             goto cleanup;
-        if (VIR_ALLOC(pciAddr) < 0) {
-            virReportOOMError();
+        if (VIR_ALLOC(pciAddr) < 0)
             goto cleanup;
-        }
         pciAddr->domain = addr.domain;
         pciAddr->bus = addr.bus;
         pciAddr->slot = addr.slot;
         pciAddr->function = addr.function;
         if (VIR_APPEND_ELEMENT(data->pci_dev.iommuGroupDevices,
                                data->pci_dev.nIommuGroupDevices,
-                               pciAddr) < 0) {
-            virReportOOMError();
+                               pciAddr) < 0)
             goto cleanup;
-        }
     }
 
     ret = 0;
@@ -1159,10 +1155,8 @@ virNodeDevCapsDefParseXML(xmlXPathContextPtr ctxt,
     char *tmp;
     int val, ret;
 
-    if (VIR_ALLOC(caps) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC(caps) < 0)
         return NULL;
-    }
 
     tmp = virXMLPropString(node, "type");
     if (!tmp) {
@@ -1236,12 +1230,11 @@ virNodeDeviceDefParseXML(xmlXPathContextPtr ctxt,
     virNodeDeviceDefPtr def;
     virNodeDevCapsDefPtr *next_cap;
     xmlNodePtr *nodes;
-    int n, i;
+    int n;
+    size_t i;
 
-    if (VIR_ALLOC(def) < 0) {
-        virReportOOMError();
+    if (VIR_ALLOC(def) < 0)
         return NULL;
-    }
 
     /* Extract device name */
     if (create == EXISTING_DEVICE) {
@@ -1447,7 +1440,7 @@ out:
 
 void virNodeDevCapsDefFree(virNodeDevCapsDefPtr caps)
 {
-    int i = 0;
+    size_t i = 0;
     union _virNodeDevCapData *data = &caps->data;
 
     switch (caps->type) {
@@ -1594,28 +1587,26 @@ virNodeDeviceMatch(virNodeDeviceObjPtr devobj,
 #undef MATCH
 
 int
-virNodeDeviceList(virConnectPtr conn,
-                  virNodeDeviceObjList devobjs,
-                  virNodeDevicePtr **devices,
-                  unsigned int flags)
+virNodeDeviceObjListExport(virConnectPtr conn,
+                           virNodeDeviceObjList devobjs,
+                           virNodeDevicePtr **devices,
+                           virNodeDeviceObjListFilter filter,
+                           unsigned int flags)
 {
     virNodeDevicePtr *tmp_devices = NULL;
     virNodeDevicePtr device = NULL;
     int ndevices = 0;
     int ret = -1;
-    int i;
+    size_t i;
 
-    if (devices) {
-        if (VIR_ALLOC_N(tmp_devices, devobjs.count + 1) < 0) {
-            virReportOOMError();
-            goto cleanup;
-        }
-    }
+    if (devices && VIR_ALLOC_N(tmp_devices, devobjs.count + 1) < 0)
+        goto cleanup;
 
     for (i = 0; i < devobjs.count; i++) {
         virNodeDeviceObjPtr devobj = devobjs.objs[i];
         virNodeDeviceObjLock(devobj);
-        if (virNodeDeviceMatch(devobj, flags)) {
+        if ((!filter || filter(conn, devobj->def)) &&
+            virNodeDeviceMatch(devobj, flags)) {
             if (devices) {
                 if (!(device = virGetNodeDevice(conn,
                                                 devobj->def->name))) {
