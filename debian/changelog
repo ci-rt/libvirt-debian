@@ -1,3 +1,20 @@
+libvirt (1.1.1-1) unstable; urgency=low
+
+  * [58c2a29] New upstream version 1.1.1 (Closes: #15510, #715320)
+  * [0a06224] Move directory creation form dh_auto_build to dh_auto_install
+    since this isn't part of the building but the installing process.
+  * [a1c747a] Update symbols
+  * [90a1881] Update patches.
+    Dropped patches fixed upstream
+        CVE-2013-4153-qemu-Fix-double-free-of-returned-JSON-.patch
+        CVE-2013-4154-qemu-Prevent-crash-of-libvirtd-without.patch
+        Create-directory-for-lease-files-if-it-s-missing.patch
+        Fix-crash-when-multiple-event-callbacks-were-registe.patch
+  * [1308542] virGetGroupList: always include the primary group
+    otherwise we're lacking the group to access /dev/kvm
+
+ -- Guido Günther <agx@sigxcpu.org>  Mon, 05 Aug 2013 11:31:05 +0200
+
 libvirt (1.1.0-4) unstable; urgency=low
 
   * [22913a0] Skip tests on all architectures except for i386 and amd64 as we
