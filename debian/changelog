@@ -1,3 +1,15 @@
+libvirt (0.9.12-11+deb7u2) wheezy-proposed-updates; urgency=low
+
+  [ Guido Günther ]
+  * [5bc00df] Make sure qemu.conf isn't world readable by default
+    since the user might add passwords to it. (Closes: #710537)
+
+  [ Ferenc Wagner ]
+  * [ce7ef48] Fix libvirtd crash when destroying a domain with attached console
+    (Closes: #710517)
+
+ -- Guido Günther <agx@sigxcpu.org>  Tue, 20 Aug 2013 10:37:16 +0200
+
 libvirt (0.9.12-11+deb7u1) wheezy-proposed-updates; urgency=low
 
   [ Guido Günther ]
