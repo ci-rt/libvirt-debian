@@ -1,3 +1,11 @@
+libvirt (0.9.12-11+deb7u3) wheezy-proposed-updates; urgency=low
+
+  * [9c12e5a] Fix race condition when destroying guests.
+    Closes: #717893
+    Thanks to Ferenc Wágner for sorting this out.
+
+ -- Guido Günther <agx@sigxcpu.org>  Wed, 21 Aug 2013 19:30:54 +0200
+
 libvirt (0.9.12-11+deb7u2) wheezy-proposed-updates; urgency=low
 
   [ Guido Günther ]
