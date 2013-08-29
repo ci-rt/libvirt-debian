@@ -1,3 +1,15 @@
+libvirt (1.1.2~rc1-1) experimental; urgency=low
+
+  * [a3b140a] New upstream version 1.1.2~rc1 (Closes: #719533)
+  * [6c162e3] Update patches:
+    Drop virGetGroupList-always-include-the-primary-group.patch applied
+    upstream.
+  * [e6c12ec] Update symbols
+  * [a3548ee] Drop versioned libaudit-dev dependency (Closes: #721172)
+  * [1562bb3] Fix "make check" not finding finding the libvirtd lense
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 29 Aug 2013 20:22:10 +0200
+
 libvirt (1.1.1-1) unstable; urgency=low
 
   * [58c2a29] New upstream version 1.1.1 (Closes: #15510, #715320)
