@@ -1,0 +1,37 @@
+From: =?UTF-8?q?Guido=20G=C3=BCnther?= <agx@sigxcpu.org>
+Date: Thu, 29 Aug 2013 19:54:05 +0200
+Subject: Fix "make check" not finding finding the libvirtd lense
+
+---
+ src/Makefile.am | 3 ++-
+ src/Makefile.in | 3 ++-
+ 2 files changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/src/Makefile.am b/src/Makefile.am
+index 755e07a..79328a9 100644
+--- a/src/Makefile.am
++++ b/src/Makefile.am
+@@ -1675,7 +1675,8 @@ check-augeas-lockd: test_libvirt_lockd.aug
+ 
+ check-augeas-virtlockd: test_virtlockd.aug
+ 	$(AM_V_GEN)if test -x '$(AUGPARSE)'; then \
+-	    '$(AUGPARSE)' -I $(srcdir)/locking test_virtlockd.aug; \
++	    '$(AUGPARSE)' -I $(top_srcdir)/daemon/ \
++	                  -I $(srcdir)/locking test_virtlockd.aug; \
+ 	fi
+ 
+ #
+diff --git a/src/Makefile.in b/src/Makefile.in
+index 99ab81f..a983a3e 100644
+--- a/src/Makefile.in
++++ b/src/Makefile.in
+@@ -8017,7 +8017,8 @@ check-augeas-lockd: test_libvirt_lockd.aug
+ 
+ check-augeas-virtlockd: test_virtlockd.aug
+ 	$(AM_V_GEN)if test -x '$(AUGPARSE)'; then \
+-	    '$(AUGPARSE)' -I $(srcdir)/locking test_virtlockd.aug; \
++	    '$(AUGPARSE)' -I $(top_srcdir)/daemon/ \
++	                  -I $(srcdir)/locking test_virtlockd.aug; \
+ 	fi
+ 
+ libvirt.syms: libvirt_public.syms $(USED_SYM_FILES) \
