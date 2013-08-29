@@ -163,10 +163,9 @@ vshPrettyCapacity(unsigned long long val, const char **unit)
 }
 
 /*
- * Convert the strings separated by ',' into array. The caller
- * must free the first array element and the returned array after
- * use (all other array elements belong to the memory allocated
- * for the first array element).
+ * Convert the strings separated by ',' into array. The returned
+ * array is a NULL terminated string list. The caller has to free
+ * the array using virStringFreeList or a similar method.
  *
  * Returns the length of the filled array on success, or -1
  * on error.
@@ -196,7 +195,8 @@ vshStringToArray(const char *str,
         str_tok++;
     }
 
-    if (VIR_ALLOC_N(arr, nstr_tokens) < 0) {
+    /* reserve the NULL element at the end */
+    if (VIR_ALLOC_N(arr, nstr_tokens + 1) < 0) {
         VIR_FREE(str_copied);
         return -1;
     }
@@ -212,12 +212,13 @@ vshStringToArray(const char *str,
             continue;
         }
         *tmp++ = '\0';
-        arr[nstr_tokens++] = str_tok;
+        arr[nstr_tokens++] = vshStrdup(NULL, str_tok);
         str_tok = tmp;
     }
-    arr[nstr_tokens++] = str_tok;
+    arr[nstr_tokens++] = vshStrdup(NULL, str_tok);
 
     *array = arr;
+    VIR_FREE(str_copied);
     return nstr_tokens;
 }
 
@@ -2293,15 +2294,12 @@ vshEventLoop(void *opaque)
 
 
 /*
- * Initialize connection.
+ * Initialize debug settings.
  */
-static bool
-vshInit(vshControl *ctl)
+static void
+vshInitDebug(vshControl *ctl)
 {
     char *debugEnv;
-
-    if (ctl->conn)
-        return false;
 
     if (ctl->debug == VSH_DEBUG_DEFAULT) {
         /* log level not set from commandline, check env variable */
@@ -2323,10 +2321,23 @@ vshInit(vshControl *ctl)
         debugEnv = getenv("VIRSH_LOG_FILE");
         if (debugEnv && *debugEnv) {
             ctl->logfile = vshStrdup(ctl, debugEnv);
+            vshOpenLogFile(ctl);
         }
     }
+}
 
-    vshOpenLogFile(ctl);
+/*
+ * Initialize connection.
+ */
+static bool
+vshInit(vshControl *ctl)
+{
+    /* Since we have the commandline arguments parsed, we need to
+     * re-initialize all the debugging to make it work properly */
+    vshInitDebug(ctl);
+
+    if (ctl->conn)
+        return false;
 
     /* set up the library error handler */
     virSetErrorFunc(NULL, virshErrorHandler);
@@ -2468,6 +2479,7 @@ vshOutputLogFile(vshControl *ctl, int log_level, const char *msg_format,
     if (safewrite(ctl->log_fd, str, len) < 0)
         goto error;
 
+    VIR_FREE(str);
     return;
 
 error:
@@ -3016,6 +3028,7 @@ vshParseArgv(vshControl *ctl, int argc, char **argv)
             ctl->timing = true;
             break;
         case 'c':
+            VIR_FREE(ctl->name);
             ctl->name = vshStrdup(ctl, optarg);
             break;
         case 'v':
@@ -3031,7 +3044,9 @@ vshParseArgv(vshControl *ctl, int argc, char **argv)
             ctl->readonly = true;
             break;
         case 'l':
+            vshCloseLogFile(ctl);
             ctl->logfile = vshStrdup(ctl, optarg);
+            vshOpenLogFile(ctl);
             break;
         case 'e':
             len = strlen(optarg);
@@ -3191,12 +3206,10 @@ main(int argc, char **argv)
         ctl->name = vshStrdup(ctl, defaultConn);
     }
 
-    if (!vshInit(ctl)) {
-        vshDeinit(ctl);
-        exit(EXIT_FAILURE);
-    }
+    vshInitDebug(ctl);
 
-    if (!vshParseArgv(ctl, argc, argv)) {
+    if (!vshParseArgv(ctl, argc, argv) ||
+        !vshInit(ctl)) {
         vshDeinit(ctl);
         exit(EXIT_FAILURE);
     }

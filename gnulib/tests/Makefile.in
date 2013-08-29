@@ -105,96 +105,6 @@ DIST_COMMON = $(srcdir)/gnulib.mk $(srcdir)/Makefile.in \
 	$(srcdir)/Makefile.am $(top_srcdir)/build-aux/mkinstalldirs \
 	$(top_srcdir)/build-aux/depcomp $(noinst_HEADERS) \
 	$(top_srcdir)/build-aux/test-driver
-TESTS = test-accept$(EXEEXT) test-alloca-opt$(EXEEXT) \
-	test-areadlink$(EXEEXT) test-arpa_inet$(EXEEXT) \
-	test-base64$(EXEEXT) test-binary-io.sh test-bind$(EXEEXT) \
-	test-bitrotate$(EXEEXT) test-btowc1.sh test-btowc2.sh \
-	test-byteswap$(EXEEXT) test-c-ctype$(EXEEXT) test-c-strcase.sh \
-	test-c-strcasestr$(EXEEXT) test-canonicalize-lgpl$(EXEEXT) \
-	test-chown$(EXEEXT) test-cloexec$(EXEEXT) test-close$(EXEEXT) \
-	test-connect$(EXEEXT) test-count-one-bits$(EXEEXT) \
-	test-md5$(EXEEXT) test-dup$(EXEEXT) test-dup2$(EXEEXT) \
-	test-environ$(EXEEXT) test-errno$(EXEEXT) test-fclose$(EXEEXT) \
-	test-fcntl-h$(EXEEXT) test-fcntl$(EXEEXT) \
-	test-fdatasync$(EXEEXT) test-fdopen$(EXEEXT) \
-	test-fflush$(EXEEXT) test-fflush2.sh test-ffs$(EXEEXT) \
-	test-ffsl$(EXEEXT) test-fgetc$(EXEEXT) test-float$(EXEEXT) \
-	test-fnmatch$(EXEEXT) test-fpurge$(EXEEXT) test-fputc$(EXEEXT) \
-	test-fread$(EXEEXT) test-freading$(EXEEXT) test-fseek.sh \
-	test-fseek2.sh test-fseeko.sh test-fseeko2.sh test-fseeko3.sh \
-	test-fseeko4.sh test-fstat$(EXEEXT) test-fsync$(EXEEXT) \
-	test-ftell.sh test-ftell2.sh test-ftell3$(EXEEXT) \
-	test-ftello.sh test-ftello2.sh test-ftello3$(EXEEXT) \
-	test-ftello4.sh test-ftruncate.sh test-func$(EXEEXT) \
-	test-fwrite$(EXEEXT) test-getaddrinfo$(EXEEXT) \
-	test-getcwd-lgpl$(EXEEXT) test-getdelim$(EXEEXT) \
-	test-getdtablesize$(EXEEXT) test-getgroups$(EXEEXT) \
-	test-gethostname$(EXEEXT) test-getline$(EXEEXT) \
-	test-getpeername$(EXEEXT) test-getsockname$(EXEEXT) \
-	test-getsockopt$(EXEEXT) test-gettimeofday$(EXEEXT) \
-	test-grantpt$(EXEEXT) test-ignore-value$(EXEEXT) \
-	test-inet_ntop$(EXEEXT) test-inet_pton$(EXEEXT) \
-	test-intprops$(EXEEXT) test-inttypes$(EXEEXT) \
-	test-ioctl$(EXEEXT) test-isatty$(EXEEXT) \
-	test-isnand-nolibm$(EXEEXT) test-isnanf-nolibm$(EXEEXT) \
-	test-isnanl-nolibm$(EXEEXT) test-langinfo$(EXEEXT) \
-	test-ldexp$(EXEEXT) test-listen$(EXEEXT) test-locale$(EXEEXT) \
-	test-localeconv$(EXEEXT) test-localename$(EXEEXT) \
-	test-lseek.sh test-lstat$(EXEEXT) test-malloc-gnu$(EXEEXT) \
-	test-malloca$(EXEEXT) test-math$(EXEEXT) test-mbrtowc1.sh \
-	test-mbrtowc2.sh test-mbrtowc3.sh test-mbrtowc4.sh \
-	test-mbrtowc-w32-1.sh test-mbrtowc-w32-2.sh \
-	test-mbrtowc-w32-3.sh test-mbrtowc-w32-4.sh \
-	test-mbrtowc-w32-5.sh test-mbsinit.sh test-mbsrtowcs1.sh \
-	test-mbsrtowcs2.sh test-mbsrtowcs3.sh test-mbsrtowcs4.sh \
-	test-memchr$(EXEEXT) test-nanosleep$(EXEEXT) \
-	test-net_if$(EXEEXT) test-netdb$(EXEEXT) \
-	test-netinet_in$(EXEEXT) test-nl_langinfo.sh \
-	test-nonblocking-pipe.sh test-nonblocking-socket.sh \
-	test-nonblocking$(EXEEXT) test-open$(EXEEXT) \
-	test-openpty$(EXEEXT) test-passfd$(EXEEXT) \
-	test-pathmax$(EXEEXT) test-perror.sh test-perror2$(EXEEXT) \
-	test-pipe$(EXEEXT) test-pipe2$(EXEEXT) test-poll-h$(EXEEXT) \
-	test-poll$(EXEEXT) test-posix_openpt$(EXEEXT) \
-	test-posix_spawn_file_actions_addclose$(EXEEXT) \
-	test-posix_spawn_file_actions_adddup2$(EXEEXT) \
-	test-posix_spawn_file_actions_addopen$(EXEEXT) $(am__EXEEXT_1) \
-	test-pthread_sigmask1$(EXEEXT) test-pthread_sigmask2$(EXEEXT) \
-	test-ptsname$(EXEEXT) test-ptsname_r$(EXEEXT) \
-	test-raise$(EXEEXT) test-random_r$(EXEEXT) \
-	test-rawmemchr$(EXEEXT) test-read$(EXEEXT) \
-	test-readlink$(EXEEXT) test-realloc-gnu$(EXEEXT) \
-	test-recv$(EXEEXT) test-regex$(EXEEXT) test-sched$(EXEEXT) \
-	test-select$(EXEEXT) test-select-in.sh test-select-out.sh \
-	test-send$(EXEEXT) test-setenv$(EXEEXT) test-setlocale1.sh \
-	test-setlocale2.sh test-setsockopt$(EXEEXT) \
-	test-sigaction$(EXEEXT) test-signal-h$(EXEEXT) \
-	test-signbit$(EXEEXT) test-sigpipe.sh \
-	test-sigprocmask$(EXEEXT) test-sleep$(EXEEXT) \
-	test-snprintf$(EXEEXT) test-sockets$(EXEEXT) \
-	test-spawn$(EXEEXT) test-stat$(EXEEXT) test-stat-time$(EXEEXT) \
-	test-stdalign$(EXEEXT) test-stdbool$(EXEEXT) \
-	test-stddef$(EXEEXT) test-stdint$(EXEEXT) test-stdio$(EXEEXT) \
-	test-stdlib$(EXEEXT) test-strchrnul$(EXEEXT) \
-	test-strerror$(EXEEXT) test-strerror_r$(EXEEXT) \
-	test-string$(EXEEXT) test-strings$(EXEEXT) \
-	test-strnlen$(EXEEXT) test-symlink$(EXEEXT) \
-	test-sys_ioctl$(EXEEXT) test-sys_select$(EXEEXT) \
-	test-sys_socket$(EXEEXT) test-sys_stat$(EXEEXT) \
-	test-sys_time$(EXEEXT) test-sys_types$(EXEEXT) \
-	test-sys_uio$(EXEEXT) test-sys_utsname$(EXEEXT) \
-	test-sys_wait$(EXEEXT) test-termios$(EXEEXT) test-init.sh \
-	test-thread_self$(EXEEXT) test-thread_create$(EXEEXT) \
-	test-time$(EXEEXT) test-ttyname_r$(EXEEXT) test-uname$(EXEEXT) \
-	test-unistd$(EXEEXT) test-unlockpt$(EXEEXT) \
-	test-unsetenv$(EXEEXT) test-usleep$(EXEEXT) \
-	test-vasnprintf$(EXEEXT) test-vasprintf$(EXEEXT) \
-	test-vc-list-files-git.sh test-vc-list-files-cvs.sh \
-	test-verify$(EXEEXT) test-verify.sh test-vsnprintf$(EXEEXT) \
-	test-wchar$(EXEEXT) test-wcrtomb.sh test-wcrtomb-w32-1.sh \
-	test-wcrtomb-w32-2.sh test-wcrtomb-w32-3.sh \
-	test-wcrtomb-w32-4.sh test-wcrtomb-w32-5.sh \
-	test-wctype-h$(EXEEXT) test-write$(EXEEXT) test-xalloc-die.sh
 XFAIL_TESTS =
 noinst_PROGRAMS =
 check_PROGRAMS = test-accept$(EXEEXT) test-alloca-opt$(EXEEXT) \
@@ -296,6 +206,7 @@ check_PROGRAMS = test-accept$(EXEEXT) test-alloca-opt$(EXEEXT) \
 @POSIX_SPAWN_PORTED_TRUE@	test-posix_spawn1.sh-t \
 @POSIX_SPAWN_PORTED_TRUE@	test-posix_spawn2.sh \
 @POSIX_SPAWN_PORTED_TRUE@	test-posix_spawn2.sh-t
+@WITH_EXPENSIVE_TESTS_TRUE@TESTS = $(am__EXEEXT_2)
 subdir = gnulib/tests
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
@@ -543,6 +454,7 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/virt-curl.m4 $(top_srcdir)/m4/virt-dbus.m4 \
 	$(top_srcdir)/m4/virt-fuse.m4 $(top_srcdir)/m4/virt-hal.m4 \
 	$(top_srcdir)/m4/virt-lib.m4 \
+	$(top_srcdir)/m4/virt-linker-no-indirect.m4 \
 	$(top_srcdir)/m4/virt-linker-relro.m4 \
 	$(top_srcdir)/m4/virt-netcf.m4 \
 	$(top_srcdir)/m4/virt-numactl.m4 \
@@ -1862,6 +1774,96 @@ am__set_TESTS_bases = \
   bases=`for i in $$bases; do echo $$i; done | sed 's/\.log$$//'`; \
   bases=`echo $$bases`
 RECHECK_LOGS = $(TEST_LOGS)
+am__EXEEXT_2 = test-accept$(EXEEXT) test-alloca-opt$(EXEEXT) \
+	test-areadlink$(EXEEXT) test-arpa_inet$(EXEEXT) \
+	test-base64$(EXEEXT) test-binary-io.sh test-bind$(EXEEXT) \
+	test-bitrotate$(EXEEXT) test-btowc1.sh test-btowc2.sh \
+	test-byteswap$(EXEEXT) test-c-ctype$(EXEEXT) test-c-strcase.sh \
+	test-c-strcasestr$(EXEEXT) test-canonicalize-lgpl$(EXEEXT) \
+	test-chown$(EXEEXT) test-cloexec$(EXEEXT) test-close$(EXEEXT) \
+	test-connect$(EXEEXT) test-count-one-bits$(EXEEXT) \
+	test-md5$(EXEEXT) test-dup$(EXEEXT) test-dup2$(EXEEXT) \
+	test-environ$(EXEEXT) test-errno$(EXEEXT) test-fclose$(EXEEXT) \
+	test-fcntl-h$(EXEEXT) test-fcntl$(EXEEXT) \
+	test-fdatasync$(EXEEXT) test-fdopen$(EXEEXT) \
+	test-fflush$(EXEEXT) test-fflush2.sh test-ffs$(EXEEXT) \
+	test-ffsl$(EXEEXT) test-fgetc$(EXEEXT) test-float$(EXEEXT) \
+	test-fnmatch$(EXEEXT) test-fpurge$(EXEEXT) test-fputc$(EXEEXT) \
+	test-fread$(EXEEXT) test-freading$(EXEEXT) test-fseek.sh \
+	test-fseek2.sh test-fseeko.sh test-fseeko2.sh test-fseeko3.sh \
+	test-fseeko4.sh test-fstat$(EXEEXT) test-fsync$(EXEEXT) \
+	test-ftell.sh test-ftell2.sh test-ftell3$(EXEEXT) \
+	test-ftello.sh test-ftello2.sh test-ftello3$(EXEEXT) \
+	test-ftello4.sh test-ftruncate.sh test-func$(EXEEXT) \
+	test-fwrite$(EXEEXT) test-getaddrinfo$(EXEEXT) \
+	test-getcwd-lgpl$(EXEEXT) test-getdelim$(EXEEXT) \
+	test-getdtablesize$(EXEEXT) test-getgroups$(EXEEXT) \
+	test-gethostname$(EXEEXT) test-getline$(EXEEXT) \
+	test-getpeername$(EXEEXT) test-getsockname$(EXEEXT) \
+	test-getsockopt$(EXEEXT) test-gettimeofday$(EXEEXT) \
+	test-grantpt$(EXEEXT) test-ignore-value$(EXEEXT) \
+	test-inet_ntop$(EXEEXT) test-inet_pton$(EXEEXT) \
+	test-intprops$(EXEEXT) test-inttypes$(EXEEXT) \
+	test-ioctl$(EXEEXT) test-isatty$(EXEEXT) \
+	test-isnand-nolibm$(EXEEXT) test-isnanf-nolibm$(EXEEXT) \
+	test-isnanl-nolibm$(EXEEXT) test-langinfo$(EXEEXT) \
+	test-ldexp$(EXEEXT) test-listen$(EXEEXT) test-locale$(EXEEXT) \
+	test-localeconv$(EXEEXT) test-localename$(EXEEXT) \
+	test-lseek.sh test-lstat$(EXEEXT) test-malloc-gnu$(EXEEXT) \
+	test-malloca$(EXEEXT) test-math$(EXEEXT) test-mbrtowc1.sh \
+	test-mbrtowc2.sh test-mbrtowc3.sh test-mbrtowc4.sh \
+	test-mbrtowc-w32-1.sh test-mbrtowc-w32-2.sh \
+	test-mbrtowc-w32-3.sh test-mbrtowc-w32-4.sh \
+	test-mbrtowc-w32-5.sh test-mbsinit.sh test-mbsrtowcs1.sh \
+	test-mbsrtowcs2.sh test-mbsrtowcs3.sh test-mbsrtowcs4.sh \
+	test-memchr$(EXEEXT) test-nanosleep$(EXEEXT) \
+	test-net_if$(EXEEXT) test-netdb$(EXEEXT) \
+	test-netinet_in$(EXEEXT) test-nl_langinfo.sh \
+	test-nonblocking-pipe.sh test-nonblocking-socket.sh \
+	test-nonblocking$(EXEEXT) test-open$(EXEEXT) \
+	test-openpty$(EXEEXT) test-passfd$(EXEEXT) \
+	test-pathmax$(EXEEXT) test-perror.sh test-perror2$(EXEEXT) \
+	test-pipe$(EXEEXT) test-pipe2$(EXEEXT) test-poll-h$(EXEEXT) \
+	test-poll$(EXEEXT) test-posix_openpt$(EXEEXT) \
+	test-posix_spawn_file_actions_addclose$(EXEEXT) \
+	test-posix_spawn_file_actions_adddup2$(EXEEXT) \
+	test-posix_spawn_file_actions_addopen$(EXEEXT) $(am__EXEEXT_1) \
+	test-pthread_sigmask1$(EXEEXT) test-pthread_sigmask2$(EXEEXT) \
+	test-ptsname$(EXEEXT) test-ptsname_r$(EXEEXT) \
+	test-raise$(EXEEXT) test-random_r$(EXEEXT) \
+	test-rawmemchr$(EXEEXT) test-read$(EXEEXT) \
+	test-readlink$(EXEEXT) test-realloc-gnu$(EXEEXT) \
+	test-recv$(EXEEXT) test-regex$(EXEEXT) test-sched$(EXEEXT) \
+	test-select$(EXEEXT) test-select-in.sh test-select-out.sh \
+	test-send$(EXEEXT) test-setenv$(EXEEXT) test-setlocale1.sh \
+	test-setlocale2.sh test-setsockopt$(EXEEXT) \
+	test-sigaction$(EXEEXT) test-signal-h$(EXEEXT) \
+	test-signbit$(EXEEXT) test-sigpipe.sh \
+	test-sigprocmask$(EXEEXT) test-sleep$(EXEEXT) \
+	test-snprintf$(EXEEXT) test-sockets$(EXEEXT) \
+	test-spawn$(EXEEXT) test-stat$(EXEEXT) test-stat-time$(EXEEXT) \
+	test-stdalign$(EXEEXT) test-stdbool$(EXEEXT) \
+	test-stddef$(EXEEXT) test-stdint$(EXEEXT) test-stdio$(EXEEXT) \
+	test-stdlib$(EXEEXT) test-strchrnul$(EXEEXT) \
+	test-strerror$(EXEEXT) test-strerror_r$(EXEEXT) \
+	test-string$(EXEEXT) test-strings$(EXEEXT) \
+	test-strnlen$(EXEEXT) test-symlink$(EXEEXT) \
+	test-sys_ioctl$(EXEEXT) test-sys_select$(EXEEXT) \
+	test-sys_socket$(EXEEXT) test-sys_stat$(EXEEXT) \
+	test-sys_time$(EXEEXT) test-sys_types$(EXEEXT) \
+	test-sys_uio$(EXEEXT) test-sys_utsname$(EXEEXT) \
+	test-sys_wait$(EXEEXT) test-termios$(EXEEXT) test-init.sh \
+	test-thread_self$(EXEEXT) test-thread_create$(EXEEXT) \
+	test-time$(EXEEXT) test-ttyname_r$(EXEEXT) test-uname$(EXEEXT) \
+	test-unistd$(EXEEXT) test-unlockpt$(EXEEXT) \
+	test-unsetenv$(EXEEXT) test-usleep$(EXEEXT) \
+	test-vasnprintf$(EXEEXT) test-vasprintf$(EXEEXT) \
+	test-vc-list-files-git.sh test-vc-list-files-cvs.sh \
+	test-verify$(EXEEXT) test-verify.sh test-vsnprintf$(EXEEXT) \
+	test-wchar$(EXEEXT) test-wcrtomb.sh test-wcrtomb-w32-1.sh \
+	test-wcrtomb-w32-2.sh test-wcrtomb-w32-3.sh \
+	test-wcrtomb-w32-4.sh test-wcrtomb-w32-5.sh \
+	test-wctype-h$(EXEEXT) test-write$(EXEEXT) test-xalloc-die.sh
 TEST_SUITE_LOG = test-suite.log
 TEST_EXTENSIONS = @EXEEXT@ .test
 LOG_DRIVER = $(SHELL) $(top_srcdir)/build-aux/test-driver
@@ -2754,6 +2756,7 @@ HAVE__BOOL = @HAVE__BOOL@
 HAVE__EXIT = @HAVE__EXIT@
 HOSTENT_LIB = @HOSTENT_LIB@
 HTML_DIR = @HTML_DIR@
+IFCONFIG_PATH = @IFCONFIG_PATH@
 INCLUDE_NEXT = @INCLUDE_NEXT@
 INCLUDE_NEXT_AS_FIRST_DIRECTIVE = @INCLUDE_NEXT_AS_FIRST_DIRECTIVE@
 INET_NTOP_LIB = @INET_NTOP_LIB@
@@ -2935,6 +2938,7 @@ NEXT_WCHAR_H = @NEXT_WCHAR_H@
 NEXT_WCTYPE_H = @NEXT_WCTYPE_H@
 NM = @NM@
 NMEDIT = @NMEDIT@
+NO_INDIRECT_LDFLAGS = @NO_INDIRECT_LDFLAGS@
 NUMACTL_CFLAGS = @NUMACTL_CFLAGS@
 NUMACTL_LIBS = @NUMACTL_LIBS@
 NUMAD = @NUMAD@
@@ -3249,6 +3253,7 @@ VGREMOVE = @VGREMOVE@
 VGS = @VGS@
 VGSCAN = @VGSCAN@
 VIRSH_LIBS = @VIRSH_LIBS@
+VIR_TEST_EXPENSIVE_DEFAULT = @VIR_TEST_EXPENSIVE_DEFAULT@
 WARN_CFLAGS = @WARN_CFLAGS@
 WARN_PYTHON_CFLAGS = @WARN_PYTHON_CFLAGS@
 WCHAR_T_SUFFIX = @WCHAR_T_SUFFIX@
@@ -3334,6 +3339,64 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 AUTOMAKE_OPTIONS = 1.9.6 foreign subdir-objects
 SUBDIRS = .
+GNULIB_TESTS = test-accept test-alloca-opt test-areadlink \
+	test-arpa_inet test-base64 test-binary-io.sh test-bind \
+	test-bitrotate test-btowc1.sh test-btowc2.sh test-byteswap \
+	test-c-ctype test-c-strcase.sh test-c-strcasestr \
+	test-canonicalize-lgpl test-chown test-cloexec test-close \
+	test-connect test-count-one-bits test-md5 test-dup test-dup2 \
+	test-environ test-errno test-fclose test-fcntl-h test-fcntl \
+	test-fdatasync test-fdopen test-fflush test-fflush2.sh \
+	test-ffs test-ffsl test-fgetc test-float test-fnmatch \
+	test-fpurge test-fputc test-fread test-freading test-fseek.sh \
+	test-fseek2.sh test-fseeko.sh test-fseeko2.sh test-fseeko3.sh \
+	test-fseeko4.sh test-fstat test-fsync test-ftell.sh \
+	test-ftell2.sh test-ftell3 test-ftello.sh test-ftello2.sh \
+	test-ftello3 test-ftello4.sh test-ftruncate.sh test-func \
+	test-fwrite test-getaddrinfo test-getcwd-lgpl test-getdelim \
+	test-getdtablesize test-getgroups test-gethostname \
+	test-getline test-getpeername test-getsockname test-getsockopt \
+	test-gettimeofday test-grantpt test-ignore-value \
+	test-inet_ntop test-inet_pton test-intprops test-inttypes \
+	test-ioctl test-isatty test-isnand-nolibm test-isnanf-nolibm \
+	test-isnanl-nolibm test-langinfo test-ldexp test-listen \
+	test-locale test-localeconv test-localename test-lseek.sh \
+	test-lstat test-malloc-gnu test-malloca test-math \
+	test-mbrtowc1.sh test-mbrtowc2.sh test-mbrtowc3.sh \
+	test-mbrtowc4.sh test-mbrtowc-w32-1.sh test-mbrtowc-w32-2.sh \
+	test-mbrtowc-w32-3.sh test-mbrtowc-w32-4.sh \
+	test-mbrtowc-w32-5.sh test-mbsinit.sh test-mbsrtowcs1.sh \
+	test-mbsrtowcs2.sh test-mbsrtowcs3.sh test-mbsrtowcs4.sh \
+	test-memchr test-nanosleep test-net_if test-netdb \
+	test-netinet_in test-nl_langinfo.sh test-nonblocking-pipe.sh \
+	test-nonblocking-socket.sh test-nonblocking test-open \
+	test-openpty test-passfd test-pathmax test-perror.sh \
+	test-perror2 test-pipe test-pipe2 test-poll-h test-poll \
+	test-posix_openpt test-posix_spawn_file_actions_addclose \
+	test-posix_spawn_file_actions_adddup2 \
+	test-posix_spawn_file_actions_addopen $(am__append_1) \
+	test-pthread_sigmask1 test-pthread_sigmask2 test-ptsname \
+	test-ptsname_r test-raise test-random_r test-rawmemchr \
+	test-read test-readlink test-realloc-gnu test-recv test-regex \
+	test-sched test-select test-select-in.sh test-select-out.sh \
+	test-send test-setenv test-setlocale1.sh test-setlocale2.sh \
+	test-setsockopt test-sigaction test-signal-h test-signbit \
+	test-sigpipe.sh test-sigprocmask test-sleep test-snprintf \
+	test-sockets test-spawn test-stat test-stat-time test-stdalign \
+	test-stdbool test-stddef test-stdint test-stdio test-stdlib \
+	test-strchrnul test-strerror test-strerror_r test-string \
+	test-strings test-strnlen test-symlink test-sys_ioctl \
+	test-sys_select test-sys_socket test-sys_stat test-sys_time \
+	test-sys_types test-sys_uio test-sys_utsname test-sys_wait \
+	test-termios test-init.sh test-thread_self test-thread_create \
+	test-time test-ttyname_r test-uname test-unistd test-unlockpt \
+	test-unsetenv test-usleep test-vasnprintf test-vasprintf \
+	test-vc-list-files-git.sh test-vc-list-files-cvs.sh \
+	test-verify test-verify.sh test-vsnprintf test-wchar \
+	test-wcrtomb.sh test-wcrtomb-w32-1.sh test-wcrtomb-w32-2.sh \
+	test-wcrtomb-w32-3.sh test-wcrtomb-w32-4.sh \
+	test-wcrtomb-w32-5.sh test-wctype-h test-write \
+	test-xalloc-die.sh
 TESTS_ENVIRONMENT = EXEEXT='@EXEEXT@' srcdir='$(srcdir)' \
 	LOCALE_FR='@LOCALE_FR@' LOCALE_FR_UTF8='@LOCALE_FR_UTF8@' \
 	LOCALE_FR='@LOCALE_FR@' LOCALE_TR_UTF8='@LOCALE_TR_UTF8@' \
@@ -3603,6 +3666,8 @@ test_thread_create_LDADD = $(LDADD) @LIBMULTITHREAD@
 test_uname_LDADD = $(LDADD) @GETHOSTNAME_LIB@
 test_xalloc_die_LDADD = $(LDADD) @LIBINTL@
 INCLUDES = $(GETTEXT_CPPFLAGS)
+GNULIB_TESTS0 = 
+GNULIB_TESTS1 = $(GNULIB_TESTS)
 all: $(BUILT_SOURCES)
 	$(MAKE) $(AM_MAKEFLAGS) all-recursive
 
@@ -7078,6 +7143,8 @@ mostlyclean-local: mostlyclean-generic
 	  fi; \
 	done; \
 	:
+VIR_TEST_EXPENSIVE ?= $(VIR_TEST_EXPENSIVE_DEFAULT)
+$(eval TESTS=$(GNULIB_TESTS$(VIR_TEST_EXPENSIVE)))
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

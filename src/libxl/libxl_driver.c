@@ -301,13 +301,13 @@ libxlTimeoutRegisterEventHook(void *priv,
     gettimeofday(&now, NULL);
     timersub(&abs_t, &now, &res);
     /* Ensure timeout is not overflowed */
-    if (timercmp(&res, &zero, <)) {
+    if (timercmp(&res, &zero, <))
         timeout = 0;
-    } else if (res.tv_sec > INT_MAX / 1000) {
+    else if (res.tv_sec > INT_MAX / 1000)
         timeout = INT_MAX;
-    } else {
+    else
         timeout = res.tv_sec * 1000 + (res.tv_usec + 999) / 1000;
-    }
+
     info->id = virEventAddTimeout(timeout, libxlTimerCallback,
                                   info, libxlEventHookInfoFree);
     if (info->id < 0) {
@@ -398,6 +398,51 @@ static const libxl_osevent_hooks libxl_event_callbacks = {
     .timeout_deregister = libxlTimeoutDeregisterEventHook,
 };
 
+static int
+libxlDomainObjPrivateInitCtx(virDomainObjPtr vm)
+{
+    libxlDomainObjPrivatePtr priv = vm->privateData;
+    char *log_file;
+    int ret = -1;
+
+    if (priv->ctx)
+        return 0;
+
+    if (virAsprintf(&log_file, "%s/%s.log", LIBXL_LOG_DIR, vm->def->name) < 0)
+        return -1;
+
+    if ((priv->logger_file = fopen(log_file, "a")) == NULL)  {
+        virReportSystemError(errno,
+                             _("failed to open logfile %s"),
+                             log_file);
+        goto cleanup;
+    }
+
+    priv->logger =
+        (xentoollog_logger *)xtl_createlogger_stdiostream(priv->logger_file,
+                                                          XTL_DEBUG, 0);
+    if (!priv->logger) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("cannot create libxenlight logger for domain %s"),
+                       vm->def->name);
+        goto cleanup;
+    }
+
+    if (libxl_ctx_alloc(&priv->ctx, LIBXL_VERSION, 0, priv->logger)) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Failed libxl context initialization"));
+        goto cleanup;
+    }
+
+    libxl_osevent_register_hooks(priv->ctx, &libxl_event_callbacks, priv);
+
+    ret = 0;
+
+cleanup:
+    VIR_FREE(log_file);
+    return ret;
+}
+
 static void *
 libxlDomainObjPrivateAlloc(void)
 {
@@ -409,13 +454,10 @@ libxlDomainObjPrivateAlloc(void)
     if (!(priv = virObjectLockableNew(libxlDomainObjPrivateClass)))
         return NULL;
 
-    if (libxl_ctx_alloc(&priv->ctx, LIBXL_VERSION, 0, libxl_driver->logger)) {
-        VIR_ERROR(_("Failed libxl context initialization"));
+    if (!(priv->devs = virChrdevAlloc())) {
         virObjectUnref(priv);
         return NULL;
     }
-
-    libxl_osevent_register_hooks(priv->ctx, &libxl_event_callbacks, priv);
 
     return priv;
 }
@@ -427,6 +469,12 @@ libxlDomainObjPrivateDispose(void *obj)
 
     if (priv->deathW)
         libxl_evdisable_domain_death(priv->ctx, priv->deathW);
+
+    virChrdevFree(priv->devs);
+
+    xtl_logger_destroy(priv->logger);
+    if (priv->logger_file)
+        VIR_FORCE_FCLOSE(priv->logger_file);
 
     libxl_ctx_free(priv->ctx);
 }
@@ -925,6 +973,9 @@ libxlVmStart(libxlDriverPrivatePtr driver, virDomainObjPtr vm,
     int managed_save_fd = -1;
     libxlDomainObjPrivatePtr priv = vm->privateData;
 
+    if (libxlDomainObjPrivateInitCtx(vm) < 0)
+        goto error;
+
     /* If there is a managed saved state restore it instead of starting
      * from scratch. The old state is removed once the restoring succeeded. */
     if (restore_fd < 0) {
@@ -957,10 +1008,10 @@ libxlVmStart(libxlDriverPrivatePtr driver, virDomainObjPtr vm,
             virDomainObjAssignDef(vm, def, true, NULL);
             def = NULL;
 
-            if (unlink(managed_save_path) < 0) {
+            if (unlink(managed_save_path) < 0)
                 VIR_WARN("Failed to remove the managed state %s",
                          managed_save_path);
-            }
+
             vm->hasManagedSave = false;
         }
         VIR_FREE(managed_save_path);
@@ -1067,6 +1118,7 @@ libxlReconnectDomain(virDomainObjPtr vm,
                      void *opaque)
 {
     libxlDriverPrivatePtr driver = opaque;
+    libxlDomainObjPrivatePtr priv = vm->privateData;
     int rc;
     libxl_dominfo d_info;
     int len;
@@ -1074,8 +1126,9 @@ libxlReconnectDomain(virDomainObjPtr vm,
 
     virObjectLock(vm);
 
+    libxlDomainObjPrivateInitCtx(vm);
     /* Does domain still exist? */
-    rc = libxl_domain_info(driver->ctx, &d_info, vm->def->id);
+    rc = libxl_domain_info(priv->ctx, &d_info, vm->def->id);
     if (rc == ERROR_INVAL) {
         goto out;
     } else if (rc != 0) {
@@ -1085,7 +1138,7 @@ libxlReconnectDomain(virDomainObjPtr vm,
     }
 
     /* Is this a domain that was under libvirt control? */
-    if (libxl_userdata_retrieve(driver->ctx, vm->def->id,
+    if (libxl_userdata_retrieve(priv->ctx, vm->def->id,
                                 "libvirt-xml", &data, &len)) {
         VIR_DEBUG("libxl_userdata_retrieve failed, ignoring domain %d", vm->def->id);
         goto out;
@@ -1263,7 +1316,7 @@ libxlStateInitialize(bool privileged,
         goto error;
     }
 
-    if (virAsprintf(&log_file, "%s/libxl.log", libxl_driver->logDir) < 0)
+    if (virAsprintf(&log_file, "%s/libxl-driver.log", libxl_driver->logDir) < 0)
         goto error;
 
     if ((libxl_driver->logger_file = fopen(log_file, "a")) == NULL)  {
@@ -1283,7 +1336,7 @@ libxlStateInitialize(bool privileged,
         goto error;
 
     libxl_driver->logger =
-            (xentoollog_logger *)xtl_createlogger_stdiostream(libxl_driver->logger_file, XTL_DEBUG,  0);
+            (xentoollog_logger *)xtl_createlogger_stdiostream(libxl_driver->logger_file, XTL_DEBUG, 0);
     if (!libxl_driver->logger) {
         VIR_INFO("cannot create logger for libxenlight, disabling driver");
         goto fail;
@@ -1292,7 +1345,8 @@ libxlStateInitialize(bool privileged,
     if (libxl_ctx_alloc(&libxl_driver->ctx,
                        LIBXL_VERSION, 0,
                        libxl_driver->logger)) {
-        VIR_INFO("cannot initialize libxenlight context, probably not running in a Xen Dom0, disabling driver");
+        VIR_INFO("cannot initialize libxenlight context, probably not running "
+                 "in a Xen Dom0, disabling driver");
         goto fail;
     }
 
@@ -4103,23 +4157,23 @@ libxlNodeGetCellsFreeMemory(virConnectPtr conn,
     if (virNodeGetCellsFreeMemoryEnsureACL(conn) < 0)
         return -1;
 
-    /* Early failure is probably worth just a warning */
     numa_info = libxl_get_numainfo(driver->ctx, &nr_nodes);
     if (numa_info == NULL || nr_nodes == 0) {
-        VIR_WARN("libxl_get_numainfo failed to retrieve NUMA data");
-        return 0;
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("libxl_get_numainfo failed"));
+        goto cleanup;
     }
 
     /* Check/sanitize the cell range */
-    if (startCell > nr_nodes) {
+    if (startCell >= nr_nodes) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("start cell %d out of range (0-%d)"),
-                       startCell, nr_nodes);
+                       startCell, nr_nodes - 1);
         goto cleanup;
     }
     lastCell = startCell + maxCells - 1;
-    if (lastCell > nr_nodes)
-        lastCell = nr_nodes;
+    if (lastCell >= nr_nodes)
+        lastCell = nr_nodes - 1;
 
     for (numCells = 0, n = startCell; n <= lastCell; n++) {
         if (numa_info[n].size == LIBXL_NUMAINFO_INVALID_ENTRY)
@@ -4127,6 +4181,7 @@ libxlNodeGetCellsFreeMemory(virConnectPtr conn,
         else
             freeMems[numCells++] = numa_info[n].free;
     }
+
     ret = numCells;
 
 cleanup:
@@ -4480,11 +4535,10 @@ libxlDomainSetSchedulerParametersFlags(virDomainPtr dom,
     for (i = 0; i < nparams; ++i) {
         virTypedParameterPtr param = &params[i];
 
-        if (STREQ(param->field, VIR_DOMAIN_SCHEDULER_WEIGHT)) {
+        if (STREQ(param->field, VIR_DOMAIN_SCHEDULER_WEIGHT))
             sc_info.weight = params[i].value.ui;
-        } else if (STREQ(param->field, VIR_DOMAIN_SCHEDULER_CAP)) {
+        else if (STREQ(param->field, VIR_DOMAIN_SCHEDULER_CAP))
             sc_info.cap = params[i].value.ui;
-        }
     }
 
     if (libxl_domain_sched_params_set(priv->ctx, dom->id, &sc_info) != 0) {
@@ -4497,6 +4551,94 @@ libxlDomainSetSchedulerParametersFlags(virDomainPtr dom,
     ret = 0;
 
 cleanup:
+    if (vm)
+        virObjectUnlock(vm);
+    return ret;
+}
+
+
+static int
+libxlDomainOpenConsole(virDomainPtr dom,
+                       const char *dev_name,
+                       virStreamPtr st,
+                       unsigned int flags)
+{
+    libxlDriverPrivatePtr driver = dom->conn->privateData;
+    virDomainObjPtr vm = NULL;
+    int ret = -1;
+    virDomainChrDefPtr chr = NULL;
+    libxlDomainObjPrivatePtr priv;
+    char *console = NULL;
+
+    virCheckFlags(VIR_DOMAIN_CONSOLE_FORCE, -1);
+
+    if (dev_name) {
+        /* XXX support device aliases in future */
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("Named device aliases are not supported"));
+        goto cleanup;
+    }
+
+    libxlDriverLock(driver);
+    vm = virDomainObjListFindByUUID(driver->domains, dom->uuid);
+    libxlDriverUnlock(driver);
+    if (!vm) {
+        char uuidstr[VIR_UUID_STRING_BUFLEN];
+        virUUIDFormat(dom->uuid, uuidstr);
+        virReportError(VIR_ERR_NO_DOMAIN,
+                       _("No domain with matching uuid '%s'"), uuidstr);
+        goto cleanup;
+    }
+
+    if (virDomainOpenConsoleEnsureACL(dom->conn, vm->def) < 0)
+        goto cleanup;
+
+    if (!virDomainObjIsActive(vm)) {
+        virReportError(VIR_ERR_OPERATION_INVALID,
+                       "%s", _("domain is not running"));
+        goto cleanup;
+    }
+
+    priv = vm->privateData;
+
+    if (vm->def->nserials)
+        chr = vm->def->serials[0];
+
+    if (!chr) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("cannot find character device %s"),
+                       NULLSTR(dev_name));
+        goto cleanup;
+    }
+
+    if (chr->source.type != VIR_DOMAIN_CHR_TYPE_PTY) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("character device %s is not using a PTY"),
+                       NULLSTR(dev_name));
+        goto cleanup;
+    }
+
+    ret = libxl_primary_console_get_tty(priv->ctx, vm->def->id, &console);
+    if (ret)
+        goto cleanup;
+
+    if (VIR_STRDUP(chr->source.data.file.path, console) < 0)
+        goto cleanup;
+
+    /* handle mutually exclusive access to console devices */
+    ret = virChrdevOpen(priv->devs,
+                        &chr->source,
+                        st,
+                        (flags & VIR_DOMAIN_CONSOLE_FORCE) != 0);
+
+    if (ret == 1) {
+        virReportError(VIR_ERR_OPERATION_FAILED, "%s",
+                       _("Active console session exists for this domain"));
+        ret = -1;
+    }
+
+cleanup:
+    VIR_FREE(console);
     if (vm)
         virObjectUnlock(vm);
     return ret;
@@ -4884,6 +5026,7 @@ static virDriver libxlDriver = {
     .domainManagedSave = libxlDomainManagedSave, /* 0.9.2 */
     .domainHasManagedSaveImage = libxlDomainHasManagedSaveImage, /* 0.9.2 */
     .domainManagedSaveRemove = libxlDomainManagedSaveRemove, /* 0.9.2 */
+    .domainOpenConsole = libxlDomainOpenConsole, /* 1.1.2 */
     .domainIsActive = libxlDomainIsActive, /* 0.9.0 */
     .domainIsPersistent = libxlDomainIsPersistent, /* 0.9.0 */
     .domainIsUpdated = libxlDomainIsUpdated, /* 0.9.0 */

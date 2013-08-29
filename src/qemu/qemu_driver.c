@@ -3982,6 +3982,7 @@ static int qemuDomainHotplugVcpus(virQEMUDriverPtr driver,
                        _("got wrong number of vCPU pids from QEMU monitor. "
                          "got %d, wanted %d"),
                        ncpupids, vcpus);
+        vcpus = oldvcpus;
         ret = -1;
         goto cleanup;
     }
@@ -4090,68 +4091,6 @@ unsupported:
 
 
 static int
-qemuDomainPrepareAgentVCPUs(unsigned int nvcpus,
-                            qemuAgentCPUInfoPtr cpuinfo,
-                            int ncpuinfo)
-{
-    size_t i;
-    int nonline = 0;
-    int nofflinable = 0;
-
-    /* count the active and offlinable cpus */
-    for (i = 0; i < ncpuinfo; i++) {
-        if (cpuinfo[i].online)
-            nonline++;
-
-        if (cpuinfo[i].offlinable && cpuinfo[i].online)
-            nofflinable++;
-
-        /* This shouldn't happen, but we can't trust the guest agent */
-        if (!cpuinfo[i].online && !cpuinfo[i].offlinable) {
-            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                           _("Invalid data provided by guest agent"));
-            return -1;
-        }
-    }
-
-    /* the guest agent reported less cpus than requested */
-    if (nvcpus > ncpuinfo) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       _("guest agent reports less cpu than requested"));
-        return -1;
-    }
-
-    /* not enough offlinable CPUs to support the request */
-    if (nvcpus < nonline - nofflinable) {
-        virReportError(VIR_ERR_INVALID_ARG, "%s",
-                       _("Cannot offline enough CPUs"));
-        return -1;
-    }
-
-    for (i = 0; i < ncpuinfo; i++) {
-        if (nvcpus < nonline) {
-            /* unplug */
-            if (cpuinfo[i].offlinable && cpuinfo[i].online) {
-                cpuinfo[i].online = false;
-                nonline--;
-            }
-        } else if (nvcpus > nonline) {
-            /* plug */
-            if (!cpuinfo[i].online) {
-                cpuinfo[i].online = true;
-                nonline++;
-            }
-        } else {
-            /* done */
-            break;
-        }
-    }
-
-    return 0;
-}
-
-
-static int
 qemuDomainSetVcpusFlags(virDomainPtr dom, unsigned int nvcpus,
                         unsigned int flags)
 {
@@ -4243,7 +4182,7 @@ qemuDomainSetVcpusFlags(virDomainPtr dom, unsigned int nvcpus,
         if (ncpuinfo < 0)
             goto endjob;
 
-        if (qemuDomainPrepareAgentVCPUs(nvcpus, cpuinfo, ncpuinfo) < 0)
+        if (qemuAgentUpdateCPUInfo(nvcpus, cpuinfo, ncpuinfo) < 0)
             goto endjob;
 
         qemuDomainObjEnterAgent(vm);
@@ -6332,120 +6271,6 @@ qemuDomainUndefine(virDomainPtr dom)
 }
 
 static int
-qemuDomainAttachDeviceDiskLive(virConnectPtr conn,
-                               virQEMUDriverPtr driver,
-                               virDomainObjPtr vm,
-                               virDomainDeviceDefPtr dev)
-{
-    virDomainDiskDefPtr disk = dev->data.disk;
-    virDomainDiskDefPtr orig_disk = NULL;
-    virDomainDeviceDefPtr dev_copy = NULL;
-    virDomainDiskDefPtr tmp = NULL;
-    virCgroupPtr cgroup = NULL;
-    virCapsPtr caps = NULL;
-    int ret = -1;
-
-    if (disk->driverName != NULL && !STREQ(disk->driverName, "qemu")) {
-        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                       _("unsupported driver name '%s' for disk '%s'"),
-                       disk->driverName, disk->src);
-        goto end;
-    }
-
-    if (qemuTranslateDiskSourcePool(conn, disk) < 0)
-        goto end;
-
-    if (qemuAddSharedDevice(driver, dev, vm->def->name) < 0)
-        goto end;
-
-    if (qemuSetUnprivSGIO(dev) < 0)
-        goto end;
-
-    if (qemuDomainDetermineDiskChain(driver, disk, false) < 0)
-        goto end;
-
-    if (qemuSetupDiskCgroup(vm, disk) < 0)
-        goto end;
-
-    switch (disk->device)  {
-    case VIR_DOMAIN_DISK_DEVICE_CDROM:
-    case VIR_DOMAIN_DISK_DEVICE_FLOPPY:
-        if (!(orig_disk = virDomainDiskFindByBusAndDst(vm->def,
-                                                       disk->bus, disk->dst))) {
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("No device with bus '%s' and target '%s'"),
-                           virDomainDiskBusTypeToString(disk->bus),
-                           disk->dst);
-            goto end;
-        }
-
-        if (!(caps = virQEMUDriverGetCapabilities(driver, false)))
-            goto end;
-
-        tmp = dev->data.disk;
-        dev->data.disk = orig_disk;
-
-        if (!(dev_copy = virDomainDeviceDefCopy(dev, vm->def,
-                                                caps, driver->xmlopt))) {
-            dev->data.disk = tmp;
-            goto end;
-        }
-        dev->data.disk = tmp;
-
-        ret = qemuDomainChangeEjectableMedia(driver, vm, disk, orig_disk, false);
-        /* 'disk' must not be accessed now - it has been free'd.
-         * 'orig_disk' now points to the new disk, while 'dev_copy'
-         * now points to the old disk */
-
-        /* Need to remove the shared disk entry for the original disk src
-         * if the operation is either ejecting or updating.
-         */
-        if (ret == 0)
-            ignore_value(qemuRemoveSharedDevice(driver, dev_copy,
-                                                vm->def->name));
-        break;
-    case VIR_DOMAIN_DISK_DEVICE_DISK:
-    case VIR_DOMAIN_DISK_DEVICE_LUN:
-        if (disk->bus == VIR_DOMAIN_DISK_BUS_USB) {
-            if (disk->device == VIR_DOMAIN_DISK_DEVICE_LUN) {
-                virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                               _("disk device='lun' is not supported for usb bus"));
-                break;
-            }
-            ret = qemuDomainAttachUsbMassstorageDevice(conn, driver, vm,
-                                                       disk);
-        } else if (disk->bus == VIR_DOMAIN_DISK_BUS_VIRTIO) {
-            ret = qemuDomainAttachVirtioDiskDevice(conn, driver, vm, disk);
-        } else if (disk->bus == VIR_DOMAIN_DISK_BUS_SCSI) {
-            ret = qemuDomainAttachSCSIDisk(conn, driver, vm, disk);
-        } else {
-            virReportError(VIR_ERR_OPERATION_UNSUPPORTED,
-                           _("disk bus '%s' cannot be hotplugged."),
-                           virDomainDiskBusTypeToString(disk->bus));
-        }
-        break;
-    default:
-        virReportError(VIR_ERR_OPERATION_UNSUPPORTED,
-                       _("disk device type '%s' cannot be hotplugged"),
-                       virDomainDiskDeviceTypeToString(disk->device));
-        break;
-    }
-
-    if (ret != 0 && cgroup) {
-        if (qemuTeardownDiskCgroup(vm, disk) < 0)
-            VIR_WARN("Failed to teardown cgroup for disk path %s",
-                     NULLSTR(disk->src));
-    }
-
-end:
-    if (ret != 0)
-        ignore_value(qemuRemoveSharedDevice(driver, dev, vm->def->name));
-    virObjectUnref(caps);
-    virDomainDeviceDefFree(dev_copy);
-    return ret;
-}
-
-static int
 qemuDomainAttachDeviceControllerLive(virQEMUDriverPtr driver,
                                      virDomainObjPtr vm,
                                      virDomainDeviceDefPtr dev)
@@ -6533,58 +6358,6 @@ qemuDomainAttachDeviceLive(virDomainObjPtr vm,
 
     if (ret == 0)
         qemuDomainUpdateDeviceList(driver, vm);
-
-    return ret;
-}
-
-static int
-qemuFindDisk(virDomainDefPtr def, const char *dst)
-{
-    size_t i;
-
-    for (i = 0; i < def->ndisks; i++) {
-        if (STREQ(def->disks[i]->dst, dst)) {
-            return i;
-        }
-    }
-
-    return -1;
-}
-
-static int
-qemuDomainDetachDeviceDiskLive(virQEMUDriverPtr driver,
-                               virDomainObjPtr vm,
-                               virDomainDeviceDefPtr dev)
-{
-    virDomainDiskDefPtr disk;
-    int ret = -1;
-    int idx;
-
-    if ((idx = qemuFindDisk(vm->def, dev->data.disk->dst)) < 0) {
-        virReportError(VIR_ERR_OPERATION_FAILED,
-                       _("disk %s not found"), dev->data.disk->dst);
-        return -1;
-    }
-    disk = vm->def->disks[idx];
-
-    switch (disk->device) {
-    case VIR_DOMAIN_DISK_DEVICE_DISK:
-    case VIR_DOMAIN_DISK_DEVICE_LUN:
-        if (disk->bus == VIR_DOMAIN_DISK_BUS_VIRTIO)
-            ret = qemuDomainDetachVirtioDiskDevice(driver, vm, disk);
-        else if (disk->bus == VIR_DOMAIN_DISK_BUS_SCSI ||
-                 disk->bus == VIR_DOMAIN_DISK_BUS_USB)
-            ret = qemuDomainDetachDiskDevice(driver, vm, disk);
-        else
-            virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
-                           _("This type of disk cannot be hot unplugged"));
-        break;
-    default:
-        virReportError(VIR_ERR_OPERATION_UNSUPPORTED,
-                       _("disk device type '%s' cannot be detached"),
-                       virDomainDiskDeviceTypeToString(disk->device));
-        break;
-    }
 
     return ret;
 }
@@ -8419,8 +8192,6 @@ qemuDomainSetNumaParameters(virDomainPtr dom,
             if (virBitmapParse(params[i].value.s,
                                0, &nodeset,
                                VIR_DOMAIN_CPUMASK_LEN) < 0) {
-                virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                               _("Failed to parse nodeset"));
                 ret = -1;
                 continue;
             }
@@ -11118,12 +10889,12 @@ qemuConnectBaselineCPU(virConnectPtr conn ATTRIBUTE_UNUSED,
 {
     char *cpu = NULL;
 
-    virCheckFlags(0, NULL);
+    virCheckFlags(VIR_CONNECT_BASELINE_CPU_EXPAND_FEATURES, NULL);
 
     if (virConnectBaselineCPUEnsureACL(conn) < 0)
         goto cleanup;
 
-    cpu = cpuBaselineXML(xmlCPUs, ncpus, NULL, 0);
+    cpu = cpuBaselineXML(xmlCPUs, ncpus, NULL, 0, flags);
 
 cleanup:
     return cpu;
@@ -14840,6 +14611,10 @@ qemuDomainOpenGraphics(virDomainPtr dom,
                        virDomainGraphicsTypeToString(vm->def->graphics[idx]->type));
         goto cleanup;
     }
+
+    if (virSecurityManagerSetImageFDLabel(driver->securityManager, vm->def,
+                                          fd) < 0)
+        goto cleanup;
 
     if (qemuDomainObjBeginJob(driver, vm, QEMU_JOB_MODIFY) < 0)
         goto cleanup;

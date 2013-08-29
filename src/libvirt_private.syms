@@ -123,6 +123,7 @@ virDomainChrInsert;
 virDomainChrRemove;
 virDomainChrSerialTargetTypeFromString;
 virDomainChrSerialTargetTypeToString;
+virDomainChrSourceDefClear;
 virDomainChrSourceDefCopy;
 virDomainChrSourceDefFree;
 virDomainChrSpicevmcTypeFromString;
@@ -502,6 +503,7 @@ virNetworkDefGetIpByIndex;
 virNetworkDefParseFile;
 virNetworkDefParseNode;
 virNetworkDefParseString;
+virNetworkDefUpdateSection;
 virNetworkDeleteConfig;
 virNetworkFindByName;
 virNetworkFindByUUID;
@@ -1293,6 +1295,7 @@ virConfWriteMem;
 virDBusCallMethod;
 virDBusGetSessionBus;
 virDBusGetSystemBus;
+virDBusHasSystemBus;
 virDBusMessageDecode;
 virDBusMessageEncode;
 virDBusMessageRead;
@@ -1882,6 +1885,7 @@ virSocketAddrSetPort;
 
 
 # util/virstoragefile.h
+virStorageFileChainGetBroken;
 virStorageFileChainLookup;
 virStorageFileFeatureTypeFromString;
 virStorageFileFeatureTypeToString;
@@ -1935,6 +1939,8 @@ virSysinfoSetup;
 
 # util/virsystemd.h
 virSystemdCreateMachine;
+virSystemdMakeScopeName;
+virSystemdMakeSliceName;
 
 
 # util/virthread.h
@@ -2044,6 +2050,7 @@ virGetUnprivSGIOSysfsPath;
 virGetUserCacheDirectory;
 virGetUserConfigDirectory;
 virGetUserDirectory;
+virGetUserDirectoryByUID;
 virGetUserID;
 virGetUserName;
 virGetUserRuntimeDirectory;

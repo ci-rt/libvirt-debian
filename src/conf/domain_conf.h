@@ -343,7 +343,8 @@ typedef virSecurityDeviceLabelDef *virSecurityDeviceLabelDefPtr;
 struct _virSecurityDeviceLabelDef {
     char *model;
     char *label;        /* image label string */
-    bool norelabel;
+    bool norelabel;     /* true to skip label attempts */
+    bool labelskip;     /* live-only; true if skipping failed label attempt */
 };
 
 
@@ -539,6 +540,8 @@ enum virDomainDiskProtocol {
     VIR_DOMAIN_DISK_PROTOCOL_SHEEPDOG,
     VIR_DOMAIN_DISK_PROTOCOL_GLUSTER,
     VIR_DOMAIN_DISK_PROTOCOL_ISCSI,
+    VIR_DOMAIN_DISK_PROTOCOL_HTTP,
+    VIR_DOMAIN_DISK_PROTOCOL_FTP,
 
     VIR_DOMAIN_DISK_PROTOCOL_LAST
 };
@@ -768,7 +771,9 @@ enum virDomainControllerType {
 
 typedef enum {
     VIR_DOMAIN_CONTROLLER_MODEL_PCI_ROOT,
+    VIR_DOMAIN_CONTROLLER_MODEL_PCIE_ROOT,
     VIR_DOMAIN_CONTROLLER_MODEL_PCI_BRIDGE,
+    VIR_DOMAIN_CONTROLLER_MODEL_DMI_TO_PCI_BRIDGE,
 
     VIR_DOMAIN_CONTROLLER_MODEL_PCI_LAST
 } virDomainControllerModelPCI;
@@ -809,6 +814,13 @@ struct _virDomainVirtioSerialOpts {
     int vectors; /* -1 == undef */
 };
 
+typedef struct _virDomainPciControllerOpts virDomainPciControllerOpts;
+typedef virDomainPciControllerOpts *virDomainPciControllerOptsPtr;
+struct _virDomainPciControllerOpts {
+    bool pcihole64;
+    unsigned long pcihole64size;
+};
+
 /* Stores the virtual disk controller configuration */
 struct _virDomainControllerDef {
     int type;
@@ -817,6 +829,7 @@ struct _virDomainControllerDef {
     unsigned int queues;
     union {
         virDomainVirtioSerialOpts vioserial;
+        virDomainPciControllerOpts pciopts;
     } opts;
     virDomainDeviceInfo info;
 };
@@ -2718,5 +2731,7 @@ int virDomainDefFindDevice(virDomainDefPtr def,
 
 bool virDomainDiskSourceIsBlockType(virDomainDiskDefPtr def)
     ATTRIBUTE_NONNULL(1);
+
+void virDomainChrSourceDefClear(virDomainChrSourceDefPtr def);
 
 #endif /* __DOMAIN_CONF_H */

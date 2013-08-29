@@ -1,4 +1,6 @@
 /*
+ * virbitmaptest.c: Test the bitmap code
+ *
  * Copyright (C) 2013 Red Hat, Inc.
  * Copyright (C) 2012 Fujitsu.
  *
@@ -24,7 +26,8 @@
 
 #include "virbitmap.h"
 
-static int test1(const void *data ATTRIBUTE_UNUSED)
+static int
+test1(const void *data ATTRIBUTE_UNUSED)
 {
     virBitmapPtr bitmap;
     int size;
@@ -78,7 +81,8 @@ testBit(virBitmapPtr bitmap,
     return -1;
 }
 
-static int test2(const void *data ATTRIBUTE_UNUSED)
+static int
+test2(const void *data ATTRIBUTE_UNUSED)
 {
     const char *bitsString1 = "1-32,50,88-99,1021-1023";
     char *bitsString2 = NULL;
@@ -140,7 +144,8 @@ error:
     return ret;
 }
 
-static int test3(const void *data ATTRIBUTE_UNUSED)
+static int
+test3(const void *data ATTRIBUTE_UNUSED)
 {
     virBitmapPtr bitmap = NULL;
     int ret = -1;
@@ -167,7 +172,8 @@ error:
 }
 
 /* test for virBitmapNextSetBit, virBitmapNextClearBit */
-static int test4(const void *data ATTRIBUTE_UNUSED)
+static int
+test4(const void *data ATTRIBUTE_UNUSED)
 {
     const char *bitsString = "0, 2-4, 6-10, 12, 14-18, 20, 22, 25";
     int size = 40;
@@ -261,7 +267,8 @@ error:
 }
 
 /* test for virBitmapNewData/ToData */
-static int test5(const void *v ATTRIBUTE_UNUSED)
+static int
+test5(const void *v ATTRIBUTE_UNUSED)
 {
     char data[] = {0x01, 0x02, 0x00, 0x00, 0x04};
     unsigned char *data2 = NULL;
@@ -309,7 +316,8 @@ error:
 
 
 /* test for virBitmapFormat */
-static int test6(const void *v ATTRIBUTE_UNUSED)
+static int
+test6(const void *v ATTRIBUTE_UNUSED)
 {
     virBitmapPtr bitmap = NULL;
     char *str = NULL;
@@ -390,7 +398,8 @@ error:
     return ret;
 }
 
-static int test7(const void *v ATTRIBUTE_UNUSED)
+static int
+test7(const void *v ATTRIBUTE_UNUSED)
 {
     virBitmapPtr bitmap;
     size_t i;
@@ -429,7 +438,8 @@ error:
     return -1;
 }
 
-static int test8(const void *v ATTRIBUTE_UNUSED)
+static int
+test8(const void *v ATTRIBUTE_UNUSED)
 {
     virBitmapPtr bitmap = NULL;
     char data[108] = {0x00,};
@@ -454,6 +464,39 @@ cleanup:
     return ret;
 }
 
+
+/* test out of bounds conditions on virBitmapParse */
+static int
+test9(const void *opaque ATTRIBUTE_UNUSED)
+{
+    int ret = -1;
+    virBitmapPtr bitmap = NULL;
+
+    if (virBitmapParse("100000000", 0, &bitmap, 20) != -1)
+        goto cleanup;
+
+    if (bitmap)
+        goto cleanup;
+
+    if (virBitmapParse("1-1000000000", 0, &bitmap, 20) != -1)
+        goto cleanup;
+
+    if (bitmap)
+        goto cleanup;
+
+    if (virBitmapParse("1-10^10000000000", 0, &bitmap, 20) != -1)
+        goto cleanup;
+
+    if (bitmap)
+        goto cleanup;
+
+    ret = 0;
+cleanup:
+    virBitmapFree(bitmap);
+    return ret;
+
+}
+
 static int
 mymain(void)
 {
@@ -474,6 +517,8 @@ mymain(void)
     if (virtTestRun("test7", 1, test7, NULL) < 0)
         ret = -1;
     if (virtTestRun("test8", 1, test8, NULL) < 0)
+        ret = -1;
+    if (virtTestRun("test9", 1, test9, NULL) < 0)
         ret = -1;
 
     return ret;

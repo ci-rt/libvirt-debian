@@ -87,6 +87,7 @@ Alex Jia <ajia@redhat.com>
 Alex Williamson <alex.williamson@redhat.com>
 Alexander Larsson <alexl@redhat.com>
 Alexander Todorov <atodorov@otb.bg>
+Aline Manera <alinefm@br.ibm.com>
 Alon Levy <alevy@redhat.com>
 Alvaro Polo <apoloval@gmail.com>
 Amy Griffis <amy.griffis@hp.com>
@@ -147,6 +148,7 @@ Diego Elio Pettenò <flameeyes@gmail.com>
 Dipankar Sarma <dipankar@in.ibm.com>
 Dirk Herrendoerfer <d.herrendoerfer@herrendoerfer.name>
 Dmitry Guryanov <dguryanov@parallels.com>
+Don Dugger <n0ano@n0ano.com>
 Doug Goldstein <cardoe@cardoe.com>
 Douglas Schilling Landgraf <dougsland@redhat.com>
 Duncan Rance <libvirt@dunquino.com>
@@ -159,6 +161,7 @@ Eduardo Otubo <otubo@linux.vnet.ibm.com>
 Eiichi Tsukata <eiichi.tsukata.xh@hitachi.com>
 Eli Qiao <taget@linux.vnet.ibm.com>
 Eric Blake <eblake@redhat.com>
+Eric Farman <farman@linux.vnet.ibm.com>
 Ersek Laszlo <lacos@caesar.elte.hu>
 Eugen Feller <eugen.feller@inria.fr>
 Federico Simoncelli <fsimonce@redhat.com>
@@ -173,6 +176,7 @@ Geoff Hickey <ghickey@datagravity.com>
 Gerd Hoffmann <kraxel@redhat.com>
 Gerd v. Egidy <gerd@egidy.de>
 Gerhard Stenzel <gerhard.stenzel@de.ibm.com>
+Giuseppe Scrivano <gscrivan@redhat.com>
 Guannan Ren <gren@redhat.com>
 Gui Jianfeng <guijianfeng@cn.fujitsu.com>
 Guido Günther <agx@sigxcpu.org>
@@ -254,9 +258,11 @@ Michał Łomnicki <michal.lomnicki@gmail.com>
 Milos Vyletel <milos.vyletel@sde.cz>
 Miloslav Trmač <mitr@redhat.com>
 Minoru Usui <usui@mxm.nes.nec.co.jp>
+Mooli Tayer <mtayer@redhat.com>
 Nan Zhang <nzhang@redhat.com>
 Naoya Horiguchi <n-horiguchi@ah.jp.nec.com>
 Natanael Copa <ncopa@alpinelinux.org>
+Nehal J Wani <nehaljw.kkd1@gmail.com>
 Neil Wilson <neil@aldur.co.uk>
 Nguyen Anh Quynh <aquynh@gmail.com>
 Niels de Vos <ndevos@redhat.com>
@@ -336,6 +342,7 @@ Thomas Treutner <thomas@scripty.at>
 Thomas Woerner <twoerner@redhat.com>
 Tiziano Mueller <dev-zero@gentoo.org>
 Tom Vijlbrief <tom.vijlbrief@xs4all.nl>
+Tomas Meszaros <exo@tty.sk>
 Tyler Coumbes <coumbes@gmail.com>
 Viktor Mihajlovski <mihajlov@linux.vnet.ibm.com>
 Vladislav Bogdanov <bubble@hoster-ok.com>
@@ -346,6 +353,7 @@ Wieland Hoffmann <themineo@googlemail.com>
 William Jon McCann <william.jon.mccann@gmail.com>
 Wolfgang Mauerer <wolfgang.mauerer@siemens.com>
 Xu He Jie <xuhj@linux.vnet.ibm.com>
+Xuesong Zhang <xuzhang@redhat.com>
 Yanbing Du <ydu@redhat.com>
 Yufang Zhang <yufang521247@gmail.com>
 Yufang Zhang <yuzhang@redhat.com>

@@ -22,6 +22,11 @@ INCLUDES = \
 	-I$(top_srcdir)						\
 	$(GETTEXT_CPPFLAGS)
 
+AM_LDFLAGS = \
+	$(RELRO_LDFLAGS)					\
+	$(NO_INDIRECT_LDFLAGS)					\
+	$(NULL)
+
 POD2MAN = pod2man -c "Virtualization Support" -r "$(PACKAGE)-$(VERSION)"
 
 ICON_FILES = \
@@ -33,10 +38,12 @@ ICON_FILES = \
 
 EXTRA_DIST = \
 	$(ICON_FILES)					\
+	$(conf_DATA)					\
 	virt-xml-validate.in				\
 	virt-pki-validate.in				\
 	virt-sanlock-cleanup.in				\
 	virt-sanlock-cleanup.8				\
+	virt-login-shell.pod				\
 	virsh.pod					\
 	libvirt-guests.sysconf				\
 	virsh-edit.c					\
@@ -52,8 +59,11 @@ EXTRA_DIST = \
 
 DISTCLEANFILES =
 
+confdir = $(sysconfdir)/libvirt
+conf_DATA = virt-login-shell.conf
+
 bin_SCRIPTS = virt-xml-validate virt-pki-validate
-bin_PROGRAMS = virsh virt-host-validate
+bin_PROGRAMS = virsh virt-host-validate virt-login-shell
 libexec_SCRIPTS = libvirt-guests.sh
 
 if WITH_SANLOCK
@@ -65,14 +75,16 @@ dist_man1_MANS = \
 		virt-host-validate.1 \
 		virt-pki-validate.1 \
 		virt-xml-validate.1 \
+		virt-login-shell.1 \
 		virsh.1
 if WITH_SANLOCK
 dist_man8_MANS = virt-sanlock-cleanup.8
 endif
 
 virt-xml-validate: virt-xml-validate.in Makefile
-	$(AM_V_GEN)sed -e 's|[@]schemadir@|$(pkgdatadir)/schemas|' < $< > $@ \
-	    || (rm $@ && exit 1) && chmod +x $@
+	$(AM_V_GEN)sed -e 's|[@]schemadir@|$(pkgdatadir)/schemas|g' \
+		       -e 's|[@]VERSION@|$(VERSION)|g' \
+	  < $< > $@ || (rm $@ && exit 1) && chmod +x $@
 
 virt-xml-validate.1: virt-xml-validate.in $(top_srcdir)/configure.ac
 	$(AM_V_GEN)$(POD2MAN) --name VIRT-XML-VALIDATE $< $(srcdir)/$@ \
@@ -80,8 +92,9 @@ virt-xml-validate.1: virt-xml-validate.in $(top_srcdir)/configure.ac
 		rm $(srcdir)/$@; exit 1; fi
 
 virt-pki-validate: virt-pki-validate.in Makefile
-	$(AM_V_GEN)sed -e 's|[@]sysconfdir@|$(sysconfdir)|' < $< > $@ \
-	    || (rm $@ && exit 1) && chmod +x $@
+	$(AM_V_GEN)sed -e 's|[@]sysconfdir@|$(sysconfdir)|g' \
+		       -e 's|[@]VERSION@|$(VERSION)|g' \
+	  < $< > $@ || (rm $@ && exit 1) && chmod +x $@
 
 virt-pki-validate.1: virt-pki-validate.in $(top_srcdir)/configure.ac
 	$(AM_V_GEN)$(POD2MAN) --name VIRT-PKI-VALIDATE $< $(srcdir)/$@ \
@@ -112,8 +125,8 @@ virt_host_validate_SOURCES = \
 		$(NULL)
 
 virt_host_validate_LDFLAGS = \
+		$(AM_LDFLAGS) \
 		$(PIE_LDFLAGS) \
-		$(RELRO_LDFLAGS) \
 		$(COVERAGE_LDFLAGS) \
 		$(NULL)
 
@@ -127,6 +140,25 @@ virt_host_validate_CFLAGS = \
 		$(PIE_CFLAGS)					\
 		$(COVERAGE_CFLAGS)				\
 		$(NULL)
+
+virt_login_shell_SOURCES =					\
+		virt-login-shell.c
+
+virt_login_shell_LDFLAGS = \
+		$(AM_LDFLAGS) 					\
+		$(COVERAGE_LDFLAGS)				\
+		$(NULL)
+virt_login_shell_LDADD =					\
+		$(STATIC_BINARIES)				\
+		$(PIE_LDFLAGS)					\
+		../src/libvirt.la				\
+		../src/libvirt-lxc.la				\
+		../gnulib/lib/libgnu.la
+
+virt_login_shell_CFLAGS =					\
+		$(WARN_CFLAGS)					\
+		$(PIE_CFLAGS)					\
+		$(COVERAGE_CFLAGS)
 
 virsh_SOURCES =							\
 		console.c console.h				\
@@ -144,11 +176,13 @@ virsh_SOURCES =							\
 		virsh-volume.c virsh-volume.h			\
 		$(NULL)
 
-virsh_LDFLAGS = $(COVERAGE_LDFLAGS)
+virsh_LDFLAGS = \
+		$(AM_LDFLAGS) 					\
+		$(COVERAGE_LDFLAGS)				\
+		$(NULL)
 virsh_LDADD =							\
 		$(STATIC_BINARIES)				\
 		$(PIE_LDFLAGS)					\
-		$(RELRO_LDFLAGS) \
 		../src/libvirt.la				\
 		../src/libvirt-lxc.la				\
 		../src/libvirt-qemu.la				\
@@ -188,6 +222,11 @@ virsh_win_icon.$(OBJEXT): virsh_win_icon.rc
 	  --input-format rc --input $< \
 	  --output-format coff --output $@
 endif
+
+virt-login-shell.1: virt-login-shell.pod $(top_srcdir)/configure.ac
+	$(AM_V_GEN)$(POD2MAN) $< $(srcdir)/$@ \
+	    && if grep 'POD ERROR' $(srcdir)/$@ ; then \
+		rm $(srcdir)/$@; exit 1; fi
 
 virsh.1: virsh.pod $(top_srcdir)/configure.ac
 	$(AM_V_GEN)$(POD2MAN) $< $(srcdir)/$@ \

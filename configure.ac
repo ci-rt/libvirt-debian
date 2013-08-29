@@ -16,7 +16,7 @@ dnl You should have received a copy of the GNU Lesser General Public
 dnl License along with this library.  If not, see
 dnl <http://www.gnu.org/licenses/>.
 
-AC_INIT([libvirt], [1.1.1], [libvir-list@redhat.com], [], [http://libvirt.org])
+AC_INIT([libvirt], [1.1.2], [libvir-list@redhat.com], [], [http://libvirt.org])
 AC_CONFIG_SRCDIR([src/libvirt.c])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
@@ -160,6 +160,7 @@ AC_MSG_RESULT([$VERSION_SCRIPT_FLAGS])
 LIBVIRT_COMPILE_WARNINGS
 LIBVIRT_COMPILE_PIE
 LIBVIRT_LINKER_RELRO
+LIBVIRT_LINKER_NO_INDIRECT
 
 LIBVIRT_CHECK_APPARMOR
 LIBVIRT_CHECK_ATTR
@@ -207,7 +208,8 @@ dnl Availability of various common functions (non-fatal if missing),
 dnl and various less common threadsafe functions
 AC_CHECK_FUNCS_ONCE([cfmakeraw geteuid getgid getgrnam_r getmntent_r \
   getpwuid_r getuid kill mmap newlocale posix_fallocate posix_memalign \
-  prlimit regexec sched_getaffinity setgroups setns setrlimit symlink])
+  prlimit regexec sched_getaffinity setgroups setns setrlimit symlink \
+  sysctlbyname])
 
 dnl Availability of pthread functions (if missing, win32 threading is
 dnl assumed).  Because of $LIB_PTHREAD, we cannot use AC_CHECK_FUNCS_ONCE.
@@ -220,8 +222,8 @@ LIBS=$old_libs
 dnl Availability of various common headers (non-fatal if missing).
 AC_CHECK_HEADERS([pwd.h paths.h regex.h sys/un.h \
   sys/poll.h syslog.h mntent.h net/ethernet.h linux/magic.h \
-  sys/un.h sys/syscall.h netinet/tcp.h ifaddrs.h libtasn1.h \
-  sys/ucred.h sys/mount.h])
+  sys/un.h sys/syscall.h sys/sysctl.h netinet/tcp.h ifaddrs.h \
+  libtasn1.h sys/ucred.h sys/mount.h])
 dnl Check whether endian provides handy macros.
 AC_CHECK_DECLS([htole64], [], [], [[#include <endian.h>]])
 
@@ -386,6 +388,10 @@ if test "$prefix" = "/usr" && test "$sysconfdir" = '${prefix}/etc' ; then
     sysconfdir='/etc'
 fi
 
+dnl Specify if we rely on ifconfig instead of iproute2 (e.g. in case
+dnl we're working on BSD)
+want_ifconfig=no
+
 dnl Make some notes about which OS we're compiling for, as the lxc and qemu
 dnl drivers require linux headers, and storage_mpath, dtrace, and nwfilter
 dnl are also linux specific.  The "network" and storage_fs drivers are known
@@ -408,6 +414,8 @@ if test $with_linux = no; then
 fi
 
 if test $with_freebsd = yes; then
+   want_ifconfig=yes
+
    with_firewalld=no
 fi
 
@@ -997,7 +1005,17 @@ if test "$with_linux" = "yes"; then
   if test "$with_qemu" = "yes" || test "$with_lxc" = "yes" ; then
     AC_CHECK_HEADERS([linux/param.h linux/sockios.h linux/if_bridge.h linux/if_tun.h],,
       [AC_MSG_ERROR([You must install kernel-headers in order to compile libvirt with QEMU or LXC support])],
-      [[#include <netinet/in.h>
+      [[/* The kernel folks broke their headers when used with particular
+         * glibc versions; although the structs are ABI compatible, the
+         * C type system doesn't like struct redefinitions.  We work around
+         * the problem here in the same manner as in virnetdevbridge.c.  */
+        #include <netinet/in.h>
+        #define in6_addr in6_addr_
+        #define sockaddr_in6 sockaddr_in6_
+        #define ipv6_mreq ipv6_mreq_
+        #define in6addr_any in6addr_any_
+        #define in6addr_loopback in6addr_loopback_
+        #include <linux/in6.h>
       ]])
   fi
 fi
@@ -1076,12 +1094,26 @@ if test "x$with_gnutls" != "xno"; then
   LIBS="$LIBS $GNUTLS_LIBS"
 
   GNUTLS_FOUND=no
+  GNUTLS_GCRYPT=unknown
   if test -x "$PKG_CONFIG" ; then
+    dnl Triple probe: gnutls < 2.12 only used gcrypt, gnutls >= 3.0 uses
+    dnl only nettle, and versions in between had a configure option.
+    dnl Our goal is to avoid gcrypt if we can prove gnutls uses nettle,
+    dnl but it is a safe fallback to use gcrypt if we can't prove anything.
+    if $PKG_CONFIG --exists 'gnutls >= 3.0'; then
+      GNUTLS_GCRYPT=no
+    elif $PKG_CONFIG --exists 'gnutls >= 2.12'; then
+      GNUTLS_GCRYPT=probe
+    else
+      GNUTLS_GCRYPT=yes
+    fi
     PKG_CHECK_MODULES(GNUTLS, gnutls >= $GNUTLS_REQUIRED,
       [GNUTLS_FOUND=yes], [GNUTLS_FOUND=no])
   fi
   if test "$GNUTLS_FOUND" = "no"; then
+    dnl pkg-config couldn't help us, assume gcrypt is necessary
     fail=0
+    GNUTLS_GCRYPT=yes
     AC_CHECK_HEADER([gnutls/gnutls.h], [], [fail=1])
     AC_CHECK_LIB([gnutls], [gnutls_handshake],[], [fail=1], [-lgcrypt])
 
@@ -1098,13 +1130,22 @@ if test "x$with_gnutls" != "xno"; then
       AC_MSG_ERROR([You must install the GnuTLS library in order to compile and run libvirt])
     fi
   else
-    dnl Not all versions of gnutls include -lgcrypt, and so we add
-    dnl it explicitly for the calls to gcry_control/check_version
-    GNUTLS_LIBS="$GNUTLS_LIBS -lgcrypt"
-
-    dnl We're not using gcrypt deprecated features so define
-    dnl GCRYPT_NO_DEPRECATED to avoid deprecated warnings
-    GNUTLS_CFLAGS="$GNUTLS_CFLAGS -DGCRYPT_NO_DEPRECATED"
+    dnl See comments above about when to use gcrypt.
+    if test "$GNUTLS_GCRYPT" = probe; then
+      case `$PKG_CONFIG --libs --static gnutls` in
+        *gcrypt*) GNUTLS_GCRYPT=yes     ;;
+        *nettle*) GNUTLS_GCRYPT=no      ;;
+        *)        GNUTLS_GCRYPT=unknown ;;
+      esac
+    fi
+    if test "$GNUTLS_GCRYPT" = yes || test "$GNUTLS_GCRYPT" = unknown; then
+      GNUTLS_LIBS="$GNUTLS_LIBS -lgcrypt"
+      dnl We're not using gcrypt deprecated features so define
+      dnl GCRYPT_NO_DEPRECATED to avoid deprecated warnings
+      GNUTLS_CFLAGS="$GNUTLS_CFLAGS -DGCRYPT_NO_DEPRECATED"
+      AC_DEFINE_UNQUOTED([WITH_GNUTLS_GCRYPT], 1,
+        [set to 1 if it is known or assumed that GNUTLS uses gcrypt])
+    fi
 
     dnl gnutls 3.x moved some declarations to a new header
     AC_CHECK_HEADERS([gnutls/crypto.h], [], [], [[
@@ -1987,6 +2028,27 @@ fi
 AC_MSG_RESULT([$withval])
 AM_CONDITIONAL([WITH_TESTS], [test "$withval" = "yes"])
 
+AC_ARG_ENABLE([expensive-tests],
+  [AC_HELP_STRING([--enable-expensive-tests],
+    [set the default for enabling expensive tests (gnulib and long timeouts) ]
+    [@<:@default=check@:>@; use VIR_TEST_EXPENSIVE to override during make])],
+  [case $enableval in
+    0|no) VIR_TEST_EXPENSIVE_DEFAULT=0 ;;
+    1|yes) VIR_TEST_EXPENSIVE_DEFAULT=1 ;;
+    check) ;;
+    *) AC_MSG_ERROR([bad value ${enableval} for enable-expensive-tests option])
+      ;;
+  esac], [enableval=check])
+if test "$enableval" = check; then
+  if test -d $srcdir/.git ; then
+    VIR_TEST_EXPENSIVE_DEFAULT=0
+  else
+    VIR_TEST_EXPENSIVE_DEFAULT=1
+  fi
+fi
+AC_SUBST([VIR_TEST_EXPENSIVE_DEFAULT])
+AM_CONDITIONAL([WITH_EXPENSIVE_TESTS], [test $VIR_TEST_EXPENSIVE_DEFAULT = 1])
+
 AC_ARG_ENABLE([test-coverage],
   AC_HELP_STRING([--enable-test-coverage], [turn on code coverage instrumentation @<:@default=no@:>@]),
 [case "${enableval}" in
@@ -2418,6 +2480,15 @@ AC_CHECK_DECLS([BRDGSFD, BRDGADD, BRDGDEL],
                 #include <net/if_bridgevar.h>
                ])
 
+# Check if we need to look for ifconfig
+if test "$want_ifconfig" = "yes"; then
+     AC_PATH_PROG([IFCONFIG_PATH], [ifconfig])
+     if test -z "$IFCONFIG_PATH"; then
+         AC_MSG_ERROR([Failed to find ifconfig.])
+     fi
+     AC_DEFINE_UNQUOTED([IFCONFIG_PATH], "$IFCONFIG_PATH", [path to ifconfig binary])
+fi
+
 # Detect when running under the clang static analyzer's scan-build driver
 # or Coverity-prevent's cov-build.  Define STATIC_ANALYSIS accordingly.
 AC_CACHE_CHECK([whether this build is done by a static analysis tool],
@@ -2440,26 +2511,28 @@ AC_DEFINE_UNQUOTED([base64_encode_alloc],[libvirt_gl_base64_encode_alloc],[Hack 
 
 AC_CONFIG_FILES([run],
                 [chmod +x,-w run])
-AC_OUTPUT(Makefile src/Makefile include/Makefile docs/Makefile \
-	  docs/schemas/Makefile \
-	  gnulib/lib/Makefile \
-	  gnulib/tests/Makefile \
-          libvirt.pc libvirt.spec mingw-libvirt.spec \
-          po/Makefile.in \
-	  include/libvirt/Makefile include/libvirt/libvirt.h \
-	  python/Makefile python/tests/Makefile \
-          daemon/Makefile \
-          tools/Makefile \
-          tests/Makefile \
-          examples/apparmor/Makefile \
-          examples/domain-events/events-c/Makefile \
-          examples/domsuspend/Makefile \
-          examples/dominfo/Makefile \
-          examples/openauth/Makefile \
-          examples/python/Makefile \
-          examples/hellolibvirt/Makefile \
-          examples/systemtap/Makefile \
-          examples/xml/nwfilter/Makefile)
+AC_CONFIG_FILES([\
+        Makefile src/Makefile include/Makefile docs/Makefile \
+        docs/schemas/Makefile \
+        gnulib/lib/Makefile \
+        gnulib/tests/Makefile \
+        libvirt.pc libvirt.spec mingw-libvirt.spec \
+        po/Makefile.in \
+        include/libvirt/Makefile include/libvirt/libvirt.h \
+        python/Makefile \
+        daemon/Makefile \
+        tools/Makefile \
+        tests/Makefile \
+        examples/apparmor/Makefile \
+        examples/domain-events/events-c/Makefile \
+        examples/domsuspend/Makefile \
+        examples/dominfo/Makefile \
+        examples/openauth/Makefile \
+        examples/python/Makefile \
+        examples/hellolibvirt/Makefile \
+        examples/systemtap/Makefile \
+        examples/xml/nwfilter/Makefile])
+AC_OUTPUT
 
 AC_MSG_NOTICE([])
 AC_MSG_NOTICE([Configuration summary])

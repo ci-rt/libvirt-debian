@@ -152,34 +152,35 @@
   <define name="devSeclabel">
     <element name="seclabel">
       <!-- A per-device seclabel override is more limited, either
-           relabel=no or a <label> must be present.  -->
+           relabel=no or a <label> must be present on input;
+           output also can include labelskip=yes.  -->
+      <optional>
+        <attribute name='model'>
+          <text/>
+        </attribute>
+      </optional>
       <choice>
         <group>
-          <optional>
-            <attribute name='model'>
-              <text/>
-            </attribute>
-          </optional>
           <attribute name='relabel'>
             <value>no</value>
           </attribute>
         </group>
         <group>
-          <optional>
-            <attribute name='model'>
-              <text/>
-            </attribute>
-          </optional>
+          <attribute name='labelskip'>
+            <value>yes</value>
+          </attribute>
+        </group>
+        <group>
           <optional>
             <attribute name='relabel'>
               <value>yes</value>
             </attribute>
           </optional>
-          <zeroOrMore>
+          <oneOrMore>
             <element name='label'>
               <text/>
             </element>
-          </zeroOrMore>
+          </oneOrMore>
         </group>
       </choice>
     </element>
@@ -1124,6 +1125,9 @@
                   <ref name="absFilePath"/>
                 </attribute>
                 <optional>
+                  <ref name="startupPolicy"/>
+                </optional>
+                <optional>
                   <ref name='devSeclabel'/>
                 </optional>
               </element>
@@ -1141,6 +1145,9 @@
                 <attribute name="dir">
                   <ref name="absFilePath"/>
                 </attribute>
+                <optional>
+                  <ref name="startupPolicy"/>
+                </optional>
                 <empty/>
               </element>
             </optional>
@@ -1204,6 +1211,8 @@
         <value>sheepdog</value>
         <value>gluster</value>
         <value>iscsi</value>
+        <value>http</value>
+        <value>ftp</value>
       </choice>
     </attribute>
     <optional>
@@ -1535,12 +1544,30 @@
             <attribute name="type">
               <value>pci</value>
             </attribute>
-            <attribute name="model">
-              <choice>
-                <value>pci-root</value>
-                <value>pci-bridge</value>
-              </choice>
-            </attribute>
+            <!-- *-root controllers have an optional element "pcihole64"-->
+            <choice>
+              <group>
+                <attribute name="model">
+                  <choice>
+                    <value>pci-root</value>
+                    <value>pcie-root</value>
+                  </choice>
+                </attribute>
+                <optional>
+                  <element name="pcihole64">
+                    <ref name="scaledInteger"/>
+                  </element>
+                </optional>
+              </group>
+              <group>
+                <attribute name="model">
+                  <choice>
+                    <value>pci-bridge</value>
+                    <value>dmi-to-pci-bridge</value>
+                  </choice>
+                </attribute>
+              </group>
+            </choice>
           </group>
           <!-- virtio-serial has optional "ports" and "vectors" -->
           <group>
@@ -4293,7 +4320,7 @@
   </define>
   <define name='aliasName'>
     <data type="string">
-      <param name="pattern">[a-zA-Z0-9_\-]+</param>
+      <param name="pattern">[a-zA-Z0-9_\-.]+</param>
     </data>
   </define>
   <define name='alias'>

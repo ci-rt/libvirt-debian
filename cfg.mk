@@ -546,15 +546,21 @@ sc_avoid_attribute_unused_in_header:
 	  $(_sc_search_regexp)
 
 sc_prohibit_int_ijk:
-	@prohibit='\<(int|unsigned) ([^(]* )*(i|j|k)(\s|,|;)'			\
+	@prohibit='\<(int|unsigned) ([^(]* )*(i|j|k)(\s|,|;)'		\
 	halt='use size_t, not int/unsigned int for loop vars i, j, k'	\
 	  $(_sc_search_regexp)
 
 sc_prohibit_loop_iijjkk:
-	@prohibit='\<(int|unsigned) ([^=]+ )*(ii|jj|kk)(\s|,|;)'				\
-	halt='use i, j, k for loop iterators, not ii, jj, kk' 			\
+	@prohibit='\<(int|unsigned) ([^=]+ )*(ii|jj|kk)(\s|,|;)'	\
+	halt='use i, j, k for loop iterators, not ii, jj, kk' 		\
 	  $(_sc_search_regexp)
 
+# RHEL 5 gcc can't grok "for (int i..."
+sc_prohibit_loop_var_decl:
+	@prohibit='\<for *\(\w+[ *]+\w+'				\
+	in_vc_files='\.[ch]$$'						\
+	halt='declare loop iterators outside the for statement'		\
+	  $(_sc_search_regexp)
 
 # Many of the function names below came from this filter:
 # git grep -B2 '\<_('|grep -E '\.c- *[[:alpha:]_][[:alnum:]_]* ?\(.*[,;]$' \
@@ -899,7 +905,7 @@ $(srcdir)/src/remote/remote_client_bodies.h: $(srcdir)/src/remote/remote_protoco
 exclude_file_name_regexp--sc_avoid_strcase = ^tools/virsh\.h$$
 
 _src1=libvirt|fdstream|qemu/qemu_monitor|util/(vircommand|virfile)|xen/xend_internal|rpc/virnetsocket|lxc/lxc_controller|locking/lock_daemon
-_test1=shunloadtest|virnettlscontexttest|vircgroupmock
+_test1=shunloadtest|virnettlscontexttest|virnettlssessiontest|vircgroupmock
 exclude_file_name_regexp--sc_avoid_write = \
   ^(src/($(_src1))|daemon/libvirtd|tools/console|tests/($(_test1)))\.c$$
 

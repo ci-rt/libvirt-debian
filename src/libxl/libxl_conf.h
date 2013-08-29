@@ -34,6 +34,7 @@
 # include "configmake.h"
 # include "virportallocator.h"
 # include "virobject.h"
+# include "virchrdev.h"
 
 
 # define LIBXL_VNC_PORT_MIN  5900
@@ -56,6 +57,7 @@ struct _libxlDriverPrivate {
     virDomainXMLOptionPtr xmlopt;
     unsigned int version;
 
+    /* log stream for driver-wide libxl ctx */
     FILE *logger_file;
     xentoollog_logger *logger;
     /* libxl ctx for driver wide ops; getVersion, getNodeInfo, ... */
@@ -92,8 +94,13 @@ typedef libxlDomainObjPrivate *libxlDomainObjPrivatePtr;
 struct _libxlDomainObjPrivate {
     virObjectLockable parent;
 
+    /* per domain log stream for libxl messages */
+    FILE *logger_file;
+    xentoollog_logger *logger;
     /* per domain libxl ctx */
     libxl_ctx *ctx;
+    /* console */
+    virChrdevsPtr devs;
     libxl_evgen_domain_death *deathW;
 
     /* list of libxl timeout registrations */

@@ -428,8 +428,8 @@ qemuSetupMemoryCgroup(virDomainObjPtr vm)
         }
     }
 
-    if (virCgroupSetMemoryHardLimit(priv->cgroup,
-                                    qemuDomainMemoryLimit(vm->def)) < 0)
+    if (vm->def->mem.hard_limit != 0 &&
+        virCgroupSetMemoryHardLimit(priv->cgroup, vm->def->mem.hard_limit) < 0)
         return -1;
 
     if (vm->def->mem.soft_limit != 0 &&
@@ -707,6 +707,9 @@ qemuConnectCgroup(virQEMUDriverPtr driver,
     if (virCgroupNewDetectMachine(vm->def->name,
                                   "qemu",
                                   vm->pid,
+                                  vm->def->resource ?
+                                  vm->def->resource->partition :
+                                  NULL,
                                   cfg->cgroupControllers,
                                   &priv->cgroup) < 0)
         goto cleanup;

@@ -33,7 +33,10 @@ AM_CFLAGS =	$(LIBXML_CFLAGS)				\
 		$(WIN32_EXTRA_CFLAGS)				\
 		$(COVERAGE_CFLAGS)
 AM_LDFLAGS =	$(DRIVER_MODULE_LDFLAGS)			\
-		$(COVERAGE_LDFLAGS)
+		$(COVERAGE_LDFLAGS)				\
+		$(RELRO_LDFLAGS)				\
+		$(NO_INDIRECT_LDFLAGS)				\
+		$(NULL)
 
 EXTRA_DIST = $(conf_DATA) util/keymaps.csv
 
@@ -633,8 +636,10 @@ QEMU_DRIVER_SOURCES =							\
 		qemu/qemu_cgroup.c qemu/qemu_cgroup.h			\
 		qemu/qemu_hostdev.c qemu/qemu_hostdev.h			\
 		qemu/qemu_hotplug.c qemu/qemu_hotplug.h			\
+		qemu/qemu_hotplugpriv.h					\
 		qemu/qemu_conf.c qemu/qemu_conf.h			\
 		qemu/qemu_process.c qemu/qemu_process.h			\
+		qemu/qemu_processpriv.h					\
 		qemu/qemu_migration.c qemu/qemu_migration.h		\
 		qemu/qemu_monitor.c qemu/qemu_monitor.h			\
 		qemu/qemu_monitor_text.c				\
@@ -728,7 +733,11 @@ PARALLELS_DRIVER_SOURCES =					\
 		parallels/parallels_network.c
 
 NETWORK_DRIVER_SOURCES =					\
-		network/bridge_driver.h network/bridge_driver.c
+		network/bridge_driver.h network/bridge_driver.c \
+		network/bridge_driver_platform.h 		\
+		network/bridge_driver_platform.c		\
+		$(NULL)
+EXTRA_DIST += network/bridge_driver_linux.c network/bridge_driver_nop.c
 
 INTERFACE_DRIVER_SOURCES =
 
@@ -825,6 +834,11 @@ ACCESS_DRIVER_SYM_FILES = \
 		libvirt_access.syms \
 		libvirt_access_qemu.syms \
 		libvirt_access_lxc.syms
+
+ACCESS_DRIVER_API_FILES = \
+		libvirt_access.xml \
+		libvirt_access_qemu.xml \
+		libvirt_access_lxc.xml
 
 ACCESS_DRIVER_SOURCES = \
 		access/viraccessperm.h access/viraccessperm.c \
@@ -1110,7 +1124,9 @@ libvirt_driver_qemu_impl_la_CFLAGS = \
 libvirt_driver_qemu_impl_la_LDFLAGS = $(AM_LDFLAGS)
 libvirt_driver_qemu_impl_la_LIBADD = $(CAPNG_LIBS) \
                                 $(GNUTLS_LIBS) \
-				$(LIBNL_LIBS)
+				$(LIBNL_LIBS) \
+				$(LIBXML_LIBS) \
+				$(NULL)
 libvirt_driver_qemu_impl_la_SOURCES = $(QEMU_DRIVER_SOURCES)
 
 conf_DATA += qemu/qemu.conf
@@ -1271,6 +1287,7 @@ libvirt_driver_network_impl_la_CFLAGS = \
 		-I$(top_srcdir)/src/conf \
 		$(AM_CFLAGS)
 libvirt_driver_network_impl_la_SOURCES = $(NETWORK_DRIVER_SOURCES)
+libvirt_driver_network_impl_la_LIBADD  = $(DBUS_LIBS)
 endif
 EXTRA_DIST += network/default.xml
 
@@ -1492,8 +1509,8 @@ EXTRA_DIST += $(ACCESS_DRIVER_POLKIT_SOURCES)
 endif
 
 
-BUILT_SOURCES += $(ACCESS_DRIVER_GENERATED)
-CLEANFILES += $(ACCESS_DRIVER_GENERATED)
+BUILT_SOURCES += $(ACCESS_DRIVER_GENERATED) $(ACCESS_DRIVER_API_FILES)
+CLEANFILES += $(ACCESS_DRIVER_GENERATED) $(ACCESS_DRIVER_API_FILES)
 
 libvirt_access.syms: $(srcdir)/rpc/gendispatch.pl \
 			$(REMOTE_PROTOCOL) Makefile.am
@@ -1506,6 +1523,19 @@ libvirt_access_qemu.syms: $(srcdir)/rpc/gendispatch.pl \
 libvirt_access_lxc.syms: $(srcdir)/rpc/gendispatch.pl \
 			$(LXC_PROTOCOL) Makefile.am
 	$(AM_V_GEN)$(PERL) -w $(srcdir)/rpc/gendispatch.pl --mode=aclsym \
+	  lxc LXC $(LXC_PROTOCOL) > $@
+
+libvirt_access.xml: $(srcdir)/rpc/gendispatch.pl \
+			$(REMOTE_PROTOCOL) Makefile.am
+	$(AM_V_GEN)$(PERL) -w $(srcdir)/rpc/gendispatch.pl --mode=aclapi \
+	  remote REMOTE $(REMOTE_PROTOCOL) > $@
+libvirt_access_qemu.xml: $(srcdir)/rpc/gendispatch.pl \
+			$(QEMU_PROTOCOL) Makefile.am
+	$(AM_V_GEN)$(PERL) -w $(srcdir)/rpc/gendispatch.pl --mode=aclapi \
+	  qemu QEMU $(QEMU_PROTOCOL) > $@
+libvirt_access_lxc.xml: $(srcdir)/rpc/gendispatch.pl \
+			$(LXC_PROTOCOL) Makefile.am
+	$(AM_V_GEN)$(PERL) -w $(srcdir)/rpc/gendispatch.pl --mode=aclapi \
 	  lxc LXC $(LXC_PROTOCOL) > $@
 
 $(srcdir)/access/viraccessapicheck.h: $(srcdir)/rpc/gendispatch.pl \
@@ -1586,7 +1616,7 @@ check-local: check-augeas
 	$(NULL)
 
 check-augeas: check-augeas-qemu check-augeas-lxc check-augeas-sanlock \
-	check-augeas-lockd
+	check-augeas-lockd check-augeas-virtlockd
 
 AUG_GENTEST = $(PERL) $(top_srcdir)/build-aux/augeas-gentest.pl
 EXTRA_DIST += $(top_srcdir)/build-aux/augeas-gentest.pl
@@ -1634,9 +1664,18 @@ test_libvirt_lockd.aug: locking/test_libvirt_lockd.aug.in \
 		locking/qemu-lockd.conf $(AUG_GENTEST)
 	$(AM_V_GEN)$(AUG_GENTEST) locking/qemu-lockd.conf $< $@
 
+test_virtlockd.aug: locking/test_virtlockd.aug.in \
+		locking/virtlockd.conf $(AUG_GENTEST)
+	$(AM_V_GEN)$(AUG_GENTEST) $(srcdir)/locking/virtlockd.conf $< $@
+
 check-augeas-lockd: test_libvirt_lockd.aug
 	$(AM_V_GEN)if test -x '$(AUGPARSE)'; then \
 	    '$(AUGPARSE)' -I $(srcdir)/locking test_libvirt_lockd.aug; \
+	fi
+
+check-augeas-virtlockd: test_virtlockd.aug
+	$(AM_V_GEN)if test -x '$(AUGPARSE)'; then \
+	    '$(AUGPARSE)' -I $(srcdir)/locking test_virtlockd.aug; \
 	fi
 
 #
@@ -1778,7 +1817,6 @@ libvirt_la_LDFLAGS = \
 		-version-info $(LIBVIRT_VERSION_INFO) \
 		$(LIBVIRT_NODELETE) \
 		$(AM_LDFLAGS) \
-		$(RELRO_LDFLAGS) \
 		$(CYGWIN_EXTRA_LDFLAGS) \
 		$(MINGW_EXTRA_LDFLAGS) \
 		$(NULL)
@@ -1862,7 +1900,6 @@ libvirt_qemu_la_LDFLAGS = \
 		$(VERSION_SCRIPT_FLAGS)$(LIBVIRT_QEMU_SYMBOL_FILE) \
 		-version-info $(LIBVIRT_VERSION_INFO) \
 		$(AM_LDFLAGS) \
-		$(RELRO_LDFLAGS) \
 		$(CYGWIN_EXTRA_LDFLAGS) \
 		$(MINGW_EXTRA_LDFLAGS) \
 		$(NULL)
@@ -1874,7 +1911,6 @@ libvirt_lxc_la_LDFLAGS = \
 		$(VERSION_SCRIPT_FLAGS)$(LIBVIRT_LXC_SYMBOL_FILE) \
 		-version-info $(LIBVIRT_VERSION_INFO) \
 		$(AM_LDFLAGS) \
-		$(RELRO_LDFLAGS) \
 		$(CYGWIN_EXTRA_LDFLAGS) \
 		$(MINGW_EXTRA_LDFLAGS) \
 		$(NULL)
@@ -1930,7 +1966,6 @@ virtlockd_CFLAGS = \
 virtlockd_LDFLAGS = \
 		$(AM_LDFLAGS) \
 		$(PIE_LDFLAGS) \
-		$(RELRO_LDFLAGS) \
 		$(CYGWIN_EXTRA_LDFLAGS) \
 		$(MINGW_EXTRA_LDFLAGS) \
 		$(NULL)
@@ -1997,9 +2032,40 @@ virtlockd.init: locking/virtlockd.init.in $(top_builddir)/config.status
 	    chmod a+x $@-t &&					\
 	    mv $@-t $@
 
+POD2MAN = pod2man -c "Virtualization Support" \
+			-r "$(PACKAGE)-$(VERSION)" -s 8
 
+$(srcdir)/virtlockd.8.in: locking/virtlockd.pod.in $(top_srcdir)/configure.ac
+	$(AM_V_GEN)$(POD2MAN) --name VIRTLOCKD $< $@ \
+	    && if grep 'POD ERROR' $@ ; then rm $@; exit 1; fi
 
-EXTRA_DIST += locking/virtlockd.service.in locking/virtlockd.socket.in
+virtlockd.8: $(srcdir)/virtlockd.8.in
+	$(AM_V_GEN)sed \
+	    -e 's|[@]sysconfdir[@]|$(sysconfdir)|g' \
+	    -e 's|[@]localstatedir[@]|$(localstatedir)|g' \
+	    < $< > $@-t && \
+	mv $@-t $@
+
+man8_MANS = virtlockd.8
+
+conf_DATA += locking/virtlockd.conf
+
+augeas_DATA += locking/virtlockd.aug
+augeastest_DATA += test_virtlockd.aug
+
+CLEANFILES += test_virtlockd.aug
+MAINTAINERCLEANFILES += $(srcdir)/virtlockd.8.in
+
+EXTRA_DIST += \
+        locking/virtlockd.service.in \
+        locking/virtlockd.socket.in \
+        locking/virtlockd.pod.in \
+        virtlockd.8.in \
+        locking/virtlockd.aug \
+        locking/virtlockd.conf \
+        locking/test_virtlockd.aug.in \
+        $(NULL)
+
 
 if WITH_LIBVIRTD
 if LIBVIRT_INIT_SCRIPT_SYSTEMD
@@ -2178,7 +2244,6 @@ libvirt_iohelper_SOURCES = $(UTIL_IO_HELPER_SOURCES)
 libvirt_iohelper_LDFLAGS = \
 		$(AM_LDFLAGS) \
 		$(PIE_LDFLAGS) \
-		$(RELRO_LDFLAGS) \
 		$(NULL)
 libvirt_iohelper_LDADD =		\
 		libvirt_util.la		\
@@ -2201,7 +2266,6 @@ libvirt_parthelper_SOURCES = $(STORAGE_HELPER_DISK_SOURCES)
 libvirt_parthelper_LDFLAGS = \
 		$(AM_LDFLAGS) \
 		$(PIE_LDFLAGS) \
-		$(RELRO_LDFLAGS) \
 		$(NULL)
 libvirt_parthelper_LDADD =		\
 		$(LIBPARTED_LIBS)	\
@@ -2233,7 +2297,6 @@ libvirt_sanlock_helper_CFLAGS = \
 libvirt_sanlock_helper_LDFLAGS = \
 		$(AM_LDFLAGS) \
 		$(PIE_LDFLAGS) \
-		$(RELRO_LDFLAGS) \
 		$(NULL)
 libvirt_sanlock_helper_LDADD = libvirt.la
 endif
@@ -2249,7 +2312,6 @@ libvirt_lxc_SOURCES =						\
 libvirt_lxc_LDFLAGS = \
 		$(AM_LDFLAGS) \
 		$(PIE_LDFLAGS) \
-		$(RELRO_LDFLAGS) \
 		$(NULL)
 libvirt_lxc_LDADD =			\
 		$(FUSE_LIBS) \
@@ -2293,7 +2355,6 @@ virt_aa_helper_SOURCES = $(SECURITY_DRIVER_APPARMOR_HELPER_SOURCES)
 virt_aa_helper_LDFLAGS = \
 		$(AM_LDFLAGS) \
 		$(PIE_LDFLAGS) \
-		$(RELRO_LDFLAGS) \
 		$(NULL)
 virt_aa_helper_LDADD =						\
 		libvirt_conf.la					\

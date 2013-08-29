@@ -70,6 +70,7 @@ src/lxc/lxc_process.c
 src/libxl/libxl_driver.c
 src/libxl/libxl_conf.c
 src/network/bridge_driver.c
+src/network/bridge_driver_linux.c
 src/node_device/node_device_driver.c
 src/node_device/node_device_hal.c
 src/node_device/node_device_linux_sysfs.c
@@ -146,6 +147,7 @@ src/util/viralloc.c
 src/util/viraudit.c
 src/util/virauth.c
 src/util/virauthconfig.c
+src/util/virbitmap.c
 src/util/vircgroup.c
 src/util/virclosecallbacks.c
 src/util/vircommand.c
@@ -231,3 +233,4 @@ tools/virt-host-validate-common.c
 tools/virt-host-validate-lxc.c
 tools/virt-host-validate-qemu.c
 tools/virt-host-validate.c
+tools/virt-login-shell.c

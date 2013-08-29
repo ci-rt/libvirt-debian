@@ -9,7 +9,7 @@
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
     <link rel="stylesheet" type="text/css" href="main.css" />
     <link rel="SHORTCUT ICON" href="32favicon.png" />
-    <title>libvirt: Authentication &amp; access control</title>
+    <title>libvirt: Connection authentication</title>
     <meta name="description" content="libvirt, virtualization, virtualization API" />
   </head>
   <body>
@@ -61,6 +61,10 @@
                       </li><li>
                         <div>
                           <span class="active">Authentication</span>
+                        </div>
+                      </li><li>
+                        <div>
+                          <a title="Configure access control libvirt APIs" class="inactive" href="acl.html">Access control</a>
                         </div>
                       </li><li>
                         <div>
@@ -157,12 +161,14 @@
           </li></ul>
       </div>
       <div id="content">
-        <h1>Authentication &amp; access control</h1>
+        <h1>Connection authentication</h1>
         <p>
       When connecting to libvirt, some connections may require client
       authentication before allowing use of the APIs. The set of possible
       authentication mechanisms is administrator controlled, independent
-      of applications using libvirt.
+      of applications using libvirt. Once authenticated, libvirt can apply
+      fine grained <a href="acl.html" shape="rect">access control</a> to the operations
+      performed by a client.
     </p>
         <ul><li>
             <a href="#Auth_client_config">Client configuration</a>
