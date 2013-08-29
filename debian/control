@@ -36,7 +36,7 @@ Build-Depends:
  radvd [linux-any],
  libnetcf-dev (>= 1:0.2.3-3~) [linux-any],
  libsanlock-dev [linux-any],
- libaudit-dev (<= 1:2.2.2) [linux-any],
+ libaudit-dev [linux-any],
  systemtap-sdt-dev [amd64 armel armhf i386 ia64 powerpc s390],
 # for --with-storage-sheepdog
  sheepdog [linux-any],
