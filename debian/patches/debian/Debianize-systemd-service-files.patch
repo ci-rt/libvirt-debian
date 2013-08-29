@@ -3,9 +3,10 @@ Date: Tue, 26 Jun 2012 09:30:39 +0200
 Subject: Debianize systemd service files
 
 ---
- daemon/libvirtd.service.in      | 4 ++--
- tools/libvirt-guests.service.in | 2 +-
- 2 files changed, 3 insertions(+), 3 deletions(-)
+ daemon/libvirtd.service.in       | 4 ++--
+ src/locking/virtlockd.service.in | 1 -
+ tools/libvirt-guests.service.in  | 4 ++--
+ 3 files changed, 4 insertions(+), 5 deletions(-)
 
 diff --git a/daemon/libvirtd.service.in b/daemon/libvirtd.service.in
 index 25979ef..ae7bf8e 100644
@@ -22,12 +23,27 @@ index 25979ef..ae7bf8e 100644
  ExecReload=/bin/kill -HUP $MAINPID
  KillMode=process
  Restart=on-failure
+diff --git a/src/locking/virtlockd.service.in b/src/locking/virtlockd.service.in
+index a9f9f93..0ef9923 100644
+--- a/src/locking/virtlockd.service.in
++++ b/src/locking/virtlockd.service.in
+@@ -1,7 +1,6 @@
+ [Unit]
+ Description=Virtual machine lock manager
+ Requires=virtlockd.socket
+-After=syslog.target
+ 
+ [Service]
+ EnvironmentFile=-/etc/sysconfig/virtlockd
 diff --git a/tools/libvirt-guests.service.in b/tools/libvirt-guests.service.in
-index d41bf2b..35c9959 100644
+index d41bf2b..64e97e2 100644
 --- a/tools/libvirt-guests.service.in
 +++ b/tools/libvirt-guests.service.in
-@@ -3,7 +3,7 @@ Description=Suspend Active Libvirt Guests
- After=syslog.target network.target
+@@ -1,9 +1,9 @@
+ [Unit]
+ Description=Suspend Active Libvirt Guests
+-After=syslog.target network.target
++After=network.target
  
  [Service]
 -EnvironmentFile=-/etc/sysconfig/libvirt-guests
