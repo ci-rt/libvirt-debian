@@ -571,6 +571,7 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/virt-curl.m4 $(top_srcdir)/m4/virt-dbus.m4 \
 	$(top_srcdir)/m4/virt-fuse.m4 $(top_srcdir)/m4/virt-hal.m4 \
 	$(top_srcdir)/m4/virt-lib.m4 \
+	$(top_srcdir)/m4/virt-linker-no-indirect.m4 \
 	$(top_srcdir)/m4/virt-linker-relro.m4 \
 	$(top_srcdir)/m4/virt-netcf.m4 \
 	$(top_srcdir)/m4/virt-numactl.m4 \
@@ -617,10 +618,11 @@ am__uninstall_files_from_dir = { \
   }
 am__installdirs = "$(DESTDIR)$(libdir)" "$(DESTDIR)$(lockdriverdir)" \
 	"$(DESTDIR)$(moddir)" "$(DESTDIR)$(libexecdir)" \
-	"$(DESTDIR)$(sbindir)" "$(DESTDIR)$(augeasdir)" \
-	"$(DESTDIR)$(augeastestdir)" "$(DESTDIR)$(confdir)" \
-	"$(DESTDIR)$(confdir)" "$(DESTDIR)$(pkgdatadir)" \
-	"$(DESTDIR)$(polkitactiondir)" "$(DESTDIR)$(tapsetdir)"
+	"$(DESTDIR)$(sbindir)" "$(DESTDIR)$(man8dir)" \
+	"$(DESTDIR)$(augeasdir)" "$(DESTDIR)$(augeastestdir)" \
+	"$(DESTDIR)$(confdir)" "$(DESTDIR)$(confdir)" \
+	"$(DESTDIR)$(pkgdatadir)" "$(DESTDIR)$(polkitactiondir)" \
+	"$(DESTDIR)$(tapsetdir)"
 LTLIBRARIES = $(lib_LTLIBRARIES) $(lockdriver_LTLIBRARIES) \
 	$(mod_LTLIBRARIES) $(noinst_LTLIBRARIES)
 am__DEPENDENCIES_1 =
@@ -975,10 +977,14 @@ libvirt_driver_network_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 @WITH_DRIVER_MODULES_FALSE@@WITH_NETWORK_TRUE@am_libvirt_driver_network_la_rpath =
 @WITH_DRIVER_MODULES_TRUE@@WITH_NETWORK_TRUE@am_libvirt_driver_network_la_rpath =  \
 @WITH_DRIVER_MODULES_TRUE@@WITH_NETWORK_TRUE@	-rpath $(moddir)
-libvirt_driver_network_impl_la_LIBADD =
+@WITH_NETWORK_TRUE@libvirt_driver_network_impl_la_DEPENDENCIES =  \
+@WITH_NETWORK_TRUE@	$(am__DEPENDENCIES_1)
 am__libvirt_driver_network_impl_la_SOURCES_DIST =  \
-	network/bridge_driver.h network/bridge_driver.c
-am__objects_37 = libvirt_driver_network_impl_la-bridge_driver.lo
+	network/bridge_driver.h network/bridge_driver.c \
+	network/bridge_driver_platform.h \
+	network/bridge_driver_platform.c
+am__objects_37 = libvirt_driver_network_impl_la-bridge_driver.lo \
+	libvirt_driver_network_impl_la-bridge_driver_platform.lo
 @WITH_NETWORK_TRUE@am_libvirt_driver_network_impl_la_OBJECTS =  \
 @WITH_NETWORK_TRUE@	$(am__objects_37)
 libvirt_driver_network_impl_la_OBJECTS =  \
@@ -1112,15 +1118,16 @@ libvirt_driver_qemu_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 @WITH_DRIVER_MODULES_TRUE@@WITH_QEMU_TRUE@	-rpath $(moddir)
 @WITH_QEMU_TRUE@libvirt_driver_qemu_impl_la_DEPENDENCIES =  \
 @WITH_QEMU_TRUE@	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
-@WITH_QEMU_TRUE@	$(am__DEPENDENCIES_1)
+@WITH_QEMU_TRUE@	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1)
 am__libvirt_driver_qemu_impl_la_SOURCES_DIST = qemu/qemu_agent.c \
 	qemu/qemu_agent.h qemu/qemu_capabilities.c \
 	qemu/qemu_capabilities.h qemu/qemu_command.c \
 	qemu/qemu_command.h qemu/qemu_domain.c qemu/qemu_domain.h \
 	qemu/qemu_cgroup.c qemu/qemu_cgroup.h qemu/qemu_hostdev.c \
 	qemu/qemu_hostdev.h qemu/qemu_hotplug.c qemu/qemu_hotplug.h \
-	qemu/qemu_conf.c qemu/qemu_conf.h qemu/qemu_process.c \
-	qemu/qemu_process.h qemu/qemu_migration.c \
+	qemu/qemu_hotplugpriv.h qemu/qemu_conf.c qemu/qemu_conf.h \
+	qemu/qemu_process.c qemu/qemu_process.h \
+	qemu/qemu_processpriv.h qemu/qemu_migration.c \
 	qemu/qemu_migration.h qemu/qemu_monitor.c qemu/qemu_monitor.h \
 	qemu/qemu_monitor_text.c qemu/qemu_monitor_text.h \
 	qemu/qemu_monitor_json.c qemu/qemu_monitor_json.h \
@@ -1782,6 +1789,9 @@ am__can_run_installinfo = \
     n|no|NO) false;; \
     *) (install-info --version) >/dev/null 2>&1;; \
   esac
+man8dir = $(mandir)/man8
+NROFF = nroff
+MANS = $(man8_MANS)
 DATA = $(augeas_DATA) $(augeastest_DATA) $(conf_DATA) \
 	$(nodist_conf_DATA) $(pkgdata_DATA) $(polkitaction_DATA) \
 	$(tapset_DATA)
@@ -2650,6 +2660,7 @@ HAVE__BOOL = @HAVE__BOOL@
 HAVE__EXIT = @HAVE__EXIT@
 HOSTENT_LIB = @HOSTENT_LIB@
 HTML_DIR = @HTML_DIR@
+IFCONFIG_PATH = @IFCONFIG_PATH@
 INCLUDE_NEXT = @INCLUDE_NEXT@
 INCLUDE_NEXT_AS_FIRST_DIRECTIVE = @INCLUDE_NEXT_AS_FIRST_DIRECTIVE@
 INET_NTOP_LIB = @INET_NTOP_LIB@
@@ -2831,6 +2842,7 @@ NEXT_WCHAR_H = @NEXT_WCHAR_H@
 NEXT_WCTYPE_H = @NEXT_WCTYPE_H@
 NM = @NM@
 NMEDIT = @NMEDIT@
+NO_INDIRECT_LDFLAGS = @NO_INDIRECT_LDFLAGS@
 NUMACTL_CFLAGS = @NUMACTL_CFLAGS@
 NUMACTL_LIBS = @NUMACTL_LIBS@
 NUMAD = @NUMAD@
@@ -3145,6 +3157,7 @@ VGREMOVE = @VGREMOVE@
 VGS = @VGS@
 VGSCAN = @VGSCAN@
 VIRSH_LIBS = @VIRSH_LIBS@
+VIR_TEST_EXPENSIVE_DEFAULT = @VIR_TEST_EXPENSIVE_DEFAULT@
 WARN_CFLAGS = @WARN_CFLAGS@
 WARN_PYTHON_CFLAGS = @WARN_PYTHON_CFLAGS@
 WCHAR_T_SUFFIX = @WCHAR_T_SUFFIX@
@@ -3247,7 +3260,10 @@ AM_CFLAGS = $(LIBXML_CFLAGS)				\
 		$(COVERAGE_CFLAGS)
 
 AM_LDFLAGS = $(DRIVER_MODULE_LDFLAGS)			\
-		$(COVERAGE_LDFLAGS)
+		$(COVERAGE_LDFLAGS)				\
+		$(RELRO_LDFLAGS)				\
+		$(NO_INDIRECT_LDFLAGS)				\
+		$(NULL)
 
 
 # Add all conditional sources just in case...
@@ -3259,6 +3275,7 @@ EXTRA_DIST = $(conf_DATA) util/keymaps.csv $(srcdir)/util/virkeymaps.h \
 	check-symfile.pl check-symsorting.pl $(PROTOCOL_STRUCTS) \
 	check-drivername.pl check-driverimpls.pl check-aclrules.pl \
 	$(LXC_MONITOR_PROTOCOL) $(LXC_GENERATED) $(NULL) \
+	network/bridge_driver_linux.c network/bridge_driver_nop.c \
 	$(pkgdata_DATA) qemu/qemu.conf qemu/libvirtd_qemu.aug \
 	qemu/test_libvirtd_qemu.aug.in qemu/THREADS.txt lxc/lxc.conf \
 	lxc/libvirtd_lxc.aug lxc/test_libvirtd_lxc.aug.in \
@@ -3291,7 +3308,9 @@ EXTRA_DIST = $(conf_DATA) util/keymaps.csv $(srcdir)/util/virkeymaps.h \
 	locking/virtlockd.sysconf locking/lockd.conf \
 	locking/libvirt_lockd.aug locking/test_libvirt_lockd.aug.in \
 	locking/virtlockd.init.in locking/virtlockd.service.in \
-	locking/virtlockd.socket.in $(am__append_166) \
+	locking/virtlockd.socket.in locking/virtlockd.pod.in \
+	virtlockd.8.in locking/virtlockd.aug locking/virtlockd.conf \
+	locking/test_virtlockd.aug.in $(NULL) $(am__append_166) \
 	locking/sanlock.conf locking/libvirt_sanlock.aug \
 	locking/test_libvirt_sanlock.aug.in dtrace2systemtap.pl \
 	rpc/gendispatch.pl rpc/genprotocol.pl rpc/gensystemtap.pl \
@@ -3303,20 +3322,22 @@ BUILT_SOURCES = $(srcdir)/util/virkeymaps.h $(LOCK_PROTOCOL_GENERATED) \
 	$(LOCK_DAEMON_GENERATED) $(LXC_GENERATED) $(am__append_15) \
 	$(ESX_DRIVER_GENERATED) $(HYPERV_DRIVER_GENERATED) \
 	$(am__append_115) $(ACCESS_DRIVER_GENERATED) \
-	$(GENERATED_SYM_FILES) $(am__append_141) $(am__append_143) \
-	$(am__append_151) $(am__append_155) $(am__append_157) \
-	$(am__append_164) $(VIR_NET_RPC_GENERATED)
+	$(ACCESS_DRIVER_API_FILES) $(GENERATED_SYM_FILES) \
+	$(am__append_141) $(am__append_143) $(am__append_151) \
+	$(am__append_155) $(am__append_157) $(am__append_164) \
+	$(VIR_NET_RPC_GENERATED)
 CLEANFILES = $(LXC_GENERATED) $(am__append_43) $(am__append_53) \
-	$(am__append_114) $(ACCESS_DRIVER_GENERATED) $(am__append_144) \
-	$(am__append_148) $(am__append_162) *.gcov .libs/*.gcda \
+	$(am__append_114) $(ACCESS_DRIVER_GENERATED) \
+	$(ACCESS_DRIVER_API_FILES) $(am__append_144) $(am__append_148) \
+	test_virtlockd.aug $(am__append_162) *.gcov .libs/*.gcda \
 	.libs/*.gcno *.gcno *.gcda *.i *.s
 DISTCLEANFILES = $(am__append_152) $(am__append_156) $(am__append_158) \
 	$(am__append_165) $(GENERATED_SYM_FILES)
 MAINTAINERCLEANFILES = $(LOCK_PROTOCOL_GENERATED) \
 	$(LOCK_DAEMON_GENERATED) $(ESX_DRIVER_GENERATED) \
 	$(ESX_GENERATED_STAMP) $(HYPERV_DRIVER_GENERATED) \
-	$(HYPERV_GENERATED_STAMP) $(REMOTE_DRIVER_GENERATED) \
-	$(VIR_NET_RPC_GENERATED)
+	$(HYPERV_GENERATED_STAMP) $(srcdir)/virtlockd.8.in \
+	$(REMOTE_DRIVER_GENERATED) $(VIR_NET_RPC_GENERATED)
 nodist_conf_DATA = $(am__append_150) $(am__append_163)
 THREAD_LIBS = $(LIB_PTHREAD) $(LTLIBMULTITHREAD)
 SECDRIVER_LIBS = $(am__append_1) $(am__append_2)
@@ -3328,13 +3349,14 @@ mod_LTLIBRARIES = $(am__append_17) $(am__append_27) $(am__append_33) \
 	$(am__append_65) $(am__append_68) $(am__append_76) \
 	$(am__append_81) $(am__append_95) $(am__append_105)
 confdir = $(sysconfdir)/libvirt
-conf_DATA = libvirt.conf $(am__append_40) $(am__append_50)
+conf_DATA = libvirt.conf $(am__append_40) $(am__append_50) \
+	locking/virtlockd.conf
 augeasdir = $(datadir)/augeas/lenses
 augeas_DATA = $(am__append_41) $(am__append_51) $(am__append_146) \
-	$(am__append_160)
+	locking/virtlockd.aug $(am__append_160)
 augeastestdir = $(datadir)/augeas/lenses/tests
 augeastest_DATA = $(am__append_42) $(am__append_52) $(am__append_147) \
-	$(am__append_161)
+	test_virtlockd.aug $(am__append_161)
 
 # These files are not related to driver APIs. Simply generic
 # helper APIs for various purposes
@@ -3776,8 +3798,10 @@ QEMU_DRIVER_SOURCES = \
 		qemu/qemu_cgroup.c qemu/qemu_cgroup.h			\
 		qemu/qemu_hostdev.c qemu/qemu_hostdev.h			\
 		qemu/qemu_hotplug.c qemu/qemu_hotplug.h			\
+		qemu/qemu_hotplugpriv.h					\
 		qemu/qemu_conf.c qemu/qemu_conf.h			\
 		qemu/qemu_process.c qemu/qemu_process.h			\
+		qemu/qemu_processpriv.h					\
 		qemu/qemu_migration.c qemu/qemu_migration.h		\
 		qemu/qemu_monitor.c qemu/qemu_monitor.h			\
 		qemu/qemu_monitor_text.c				\
@@ -3871,7 +3895,10 @@ PARALLELS_DRIVER_SOURCES = \
 		parallels/parallels_network.c
 
 NETWORK_DRIVER_SOURCES = \
-		network/bridge_driver.h network/bridge_driver.c
+		network/bridge_driver.h network/bridge_driver.c \
+		network/bridge_driver_platform.h 		\
+		network/bridge_driver_platform.c		\
+		$(NULL)
 
 INTERFACE_DRIVER_SOURCES = $(am__append_4) $(am__append_5) \
 	$(am__append_6)
@@ -3955,6 +3982,11 @@ ACCESS_DRIVER_SYM_FILES = \
 		libvirt_access.syms \
 		libvirt_access_qemu.syms \
 		libvirt_access_lxc.syms
+
+ACCESS_DRIVER_API_FILES = \
+		libvirt_access.xml \
+		libvirt_access_qemu.xml \
+		libvirt_access_lxc.xml
 
 ACCESS_DRIVER_SOURCES = \
 		access/viraccessperm.h access/viraccessperm.c \
@@ -4183,7 +4215,9 @@ GENERATED_SYM_FILES = \
 @WITH_QEMU_TRUE@libvirt_driver_qemu_impl_la_LDFLAGS = $(AM_LDFLAGS)
 @WITH_QEMU_TRUE@libvirt_driver_qemu_impl_la_LIBADD = $(CAPNG_LIBS) \
 @WITH_QEMU_TRUE@                                $(GNUTLS_LIBS) \
-@WITH_QEMU_TRUE@				$(LIBNL_LIBS)
+@WITH_QEMU_TRUE@				$(LIBNL_LIBS) \
+@WITH_QEMU_TRUE@				$(LIBXML_LIBS) \
+@WITH_QEMU_TRUE@				$(NULL)
 
 @WITH_QEMU_TRUE@libvirt_driver_qemu_impl_la_SOURCES = $(QEMU_DRIVER_SOURCES)
 @WITH_LXC_TRUE@libvirt_driver_lxc_la_SOURCES = 
@@ -4248,6 +4282,7 @@ HYPERV_GENERATED_STAMP = .hyperv_wmi_generator.stamp
 @WITH_NETWORK_TRUE@		$(AM_CFLAGS)
 
 @WITH_NETWORK_TRUE@libvirt_driver_network_impl_la_SOURCES = $(NETWORK_DRIVER_SOURCES)
+@WITH_NETWORK_TRUE@libvirt_driver_network_impl_la_LIBADD = $(DBUS_LIBS)
 # Stateful, so linked to daemon instead
 #libvirt_la_BUILT_LIBADD += libvirt_driver_interface.la
 @WITH_INTERFACE_TRUE@libvirt_driver_interface_la_CFLAGS =  \
@@ -4341,7 +4376,6 @@ libvirt_la_LDFLAGS = \
 		-version-info $(LIBVIRT_VERSION_INFO) \
 		$(LIBVIRT_NODELETE) \
 		$(AM_LDFLAGS) \
-		$(RELRO_LDFLAGS) \
 		$(CYGWIN_EXTRA_LDFLAGS) \
 		$(MINGW_EXTRA_LDFLAGS) \
 		$(NULL)
@@ -4373,7 +4407,6 @@ libvirt_qemu_la_LDFLAGS = \
 		$(VERSION_SCRIPT_FLAGS)$(LIBVIRT_QEMU_SYMBOL_FILE) \
 		-version-info $(LIBVIRT_VERSION_INFO) \
 		$(AM_LDFLAGS) \
-		$(RELRO_LDFLAGS) \
 		$(CYGWIN_EXTRA_LDFLAGS) \
 		$(MINGW_EXTRA_LDFLAGS) \
 		$(NULL)
@@ -4385,7 +4418,6 @@ libvirt_lxc_la_LDFLAGS = \
 		$(VERSION_SCRIPT_FLAGS)$(LIBVIRT_LXC_SYMBOL_FILE) \
 		-version-info $(LIBVIRT_VERSION_INFO) \
 		$(AM_LDFLAGS) \
-		$(RELRO_LDFLAGS) \
 		$(CYGWIN_EXTRA_LDFLAGS) \
 		$(MINGW_EXTRA_LDFLAGS) \
 		$(NULL)
@@ -4423,7 +4455,6 @@ lockdriver_LTLIBRARIES = $(am__append_145) $(am__append_159)
 @WITH_LIBVIRTD_TRUE@virtlockd_LDFLAGS = \
 @WITH_LIBVIRTD_TRUE@		$(AM_LDFLAGS) \
 @WITH_LIBVIRTD_TRUE@		$(PIE_LDFLAGS) \
-@WITH_LIBVIRTD_TRUE@		$(RELRO_LDFLAGS) \
 @WITH_LIBVIRTD_TRUE@		$(CYGWIN_EXTRA_LDFLAGS) \
 @WITH_LIBVIRTD_TRUE@		$(MINGW_EXTRA_LDFLAGS) \
 @WITH_LIBVIRTD_TRUE@		$(NULL)
@@ -4433,6 +4464,10 @@ lockdriver_LTLIBRARIES = $(am__append_145) $(am__append_159)
 @WITH_LIBVIRTD_TRUE@	../gnulib/lib/libgnu.la \
 @WITH_LIBVIRTD_TRUE@	$(CYGWIN_EXTRA_LIBADD) $(NULL) \
 @WITH_LIBVIRTD_TRUE@	$(am__append_153)
+POD2MAN = pod2man -c "Virtualization Support" \
+			-r "$(PACKAGE)-$(VERSION)" -s 8
+
+man8_MANS = virtlockd.8
 @LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@@WITH_LIBVIRTD_TRUE@SYSTEMD_UNIT_DIR = /lib/systemd/system
 @WITH_SANLOCK_TRUE@sanlock_la_SOURCES = $(LOCK_DRIVER_SANLOCK_SOURCES)
 @WITH_SANLOCK_TRUE@sanlock_la_CFLAGS = -I$(top_srcdir)/src/conf $(AM_CFLAGS)
@@ -4516,7 +4551,6 @@ libvirt_net_rpc_client_la_LIBADD = \
 @WITH_LIBVIRTD_TRUE@libvirt_iohelper_LDFLAGS = \
 @WITH_LIBVIRTD_TRUE@		$(AM_LDFLAGS) \
 @WITH_LIBVIRTD_TRUE@		$(PIE_LDFLAGS) \
-@WITH_LIBVIRTD_TRUE@		$(RELRO_LDFLAGS) \
 @WITH_LIBVIRTD_TRUE@		$(NULL)
 
 @WITH_LIBVIRTD_TRUE@libvirt_iohelper_LDADD = libvirt_util.la \
@@ -4530,7 +4564,6 @@ libvirt_net_rpc_client_la_LIBADD = \
 @WITH_LIBVIRTD_TRUE@@WITH_STORAGE_DISK_TRUE@libvirt_parthelper_LDFLAGS = \
 @WITH_LIBVIRTD_TRUE@@WITH_STORAGE_DISK_TRUE@		$(AM_LDFLAGS) \
 @WITH_LIBVIRTD_TRUE@@WITH_STORAGE_DISK_TRUE@		$(PIE_LDFLAGS) \
-@WITH_LIBVIRTD_TRUE@@WITH_STORAGE_DISK_TRUE@		$(RELRO_LDFLAGS) \
 @WITH_LIBVIRTD_TRUE@@WITH_STORAGE_DISK_TRUE@		$(NULL)
 
 @WITH_LIBVIRTD_TRUE@@WITH_STORAGE_DISK_TRUE@libvirt_parthelper_LDADD =  \
@@ -4554,7 +4587,6 @@ libvirt_net_rpc_client_la_LIBADD = \
 @WITH_SANLOCK_TRUE@libvirt_sanlock_helper_LDFLAGS = \
 @WITH_SANLOCK_TRUE@		$(AM_LDFLAGS) \
 @WITH_SANLOCK_TRUE@		$(PIE_LDFLAGS) \
-@WITH_SANLOCK_TRUE@		$(RELRO_LDFLAGS) \
 @WITH_SANLOCK_TRUE@		$(NULL)
 
 @WITH_SANLOCK_TRUE@libvirt_sanlock_helper_LDADD = libvirt.la
@@ -4566,7 +4598,6 @@ libvirt_net_rpc_client_la_LIBADD = \
 @WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@libvirt_lxc_LDFLAGS = \
 @WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@		$(AM_LDFLAGS) \
 @WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@		$(PIE_LDFLAGS) \
-@WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@		$(RELRO_LDFLAGS) \
 @WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@		$(NULL)
 
 @WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@libvirt_lxc_LDADD = $(FUSE_LIBS) \
@@ -4591,7 +4622,6 @@ libvirt_net_rpc_client_la_LIBADD = \
 @WITH_LIBVIRTD_TRUE@@WITH_SECDRIVER_APPARMOR_TRUE@virt_aa_helper_LDFLAGS = \
 @WITH_LIBVIRTD_TRUE@@WITH_SECDRIVER_APPARMOR_TRUE@		$(AM_LDFLAGS) \
 @WITH_LIBVIRTD_TRUE@@WITH_SECDRIVER_APPARMOR_TRUE@		$(PIE_LDFLAGS) \
-@WITH_LIBVIRTD_TRUE@@WITH_SECDRIVER_APPARMOR_TRUE@		$(RELRO_LDFLAGS) \
 @WITH_LIBVIRTD_TRUE@@WITH_SECDRIVER_APPARMOR_TRUE@		$(NULL)
 
 @WITH_LIBVIRTD_TRUE@@WITH_SECDRIVER_APPARMOR_TRUE@virt_aa_helper_LDADD = libvirt_conf.la \
@@ -5103,6 +5133,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_driver_lxc_impl_la-lxc_monitor_protocol.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_driver_lxc_impl_la-lxc_process.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_driver_network_impl_la-bridge_driver.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_driver_network_impl_la-bridge_driver_platform.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_driver_nodedev_la-node_device_driver.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_driver_nodedev_la-node_device_hal.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_driver_nodedev_la-node_device_linux_sysfs.Plo@am__quote@
@@ -6017,6 +6048,13 @@ libvirt_driver_network_impl_la-bridge_driver.lo: network/bridge_driver.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='network/bridge_driver.c' object='libvirt_driver_network_impl_la-bridge_driver.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_driver_network_impl_la_CFLAGS) $(CFLAGS) -c -o libvirt_driver_network_impl_la-bridge_driver.lo `test -f 'network/bridge_driver.c' || echo '$(srcdir)/'`network/bridge_driver.c
+
+libvirt_driver_network_impl_la-bridge_driver_platform.lo: network/bridge_driver_platform.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_driver_network_impl_la_CFLAGS) $(CFLAGS) -MT libvirt_driver_network_impl_la-bridge_driver_platform.lo -MD -MP -MF $(DEPDIR)/libvirt_driver_network_impl_la-bridge_driver_platform.Tpo -c -o libvirt_driver_network_impl_la-bridge_driver_platform.lo `test -f 'network/bridge_driver_platform.c' || echo '$(srcdir)/'`network/bridge_driver_platform.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libvirt_driver_network_impl_la-bridge_driver_platform.Tpo $(DEPDIR)/libvirt_driver_network_impl_la-bridge_driver_platform.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='network/bridge_driver_platform.c' object='libvirt_driver_network_impl_la-bridge_driver_platform.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_driver_network_impl_la_CFLAGS) $(CFLAGS) -c -o libvirt_driver_network_impl_la-bridge_driver_platform.lo `test -f 'network/bridge_driver_platform.c' || echo '$(srcdir)/'`network/bridge_driver_platform.c
 
 libvirt_driver_nodedev_la-node_device_driver.lo: node_device/node_device_driver.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_driver_nodedev_la_CFLAGS) $(CFLAGS) -MT libvirt_driver_nodedev_la-node_device_driver.lo -MD -MP -MF $(DEPDIR)/libvirt_driver_nodedev_la-node_device_driver.Tpo -c -o libvirt_driver_nodedev_la-node_device_driver.lo `test -f 'node_device/node_device_driver.c' || echo '$(srcdir)/'`node_device/node_device_driver.c
@@ -7325,6 +7363,47 @@ mostlyclean-libtool:
 
 clean-libtool:
 	-rm -rf .libs _libs
+install-man8: $(man8_MANS)
+	@$(NORMAL_INSTALL)
+	@list1='$(man8_MANS)'; \
+	list2=''; \
+	test -n "$(man8dir)" \
+	  && test -n "`echo $$list1$$list2`" \
+	  || exit 0; \
+	echo " $(MKDIR_P) '$(DESTDIR)$(man8dir)'"; \
+	$(MKDIR_P) "$(DESTDIR)$(man8dir)" || exit 1; \
+	{ for i in $$list1; do echo "$$i"; done;  \
+	if test -n "$$list2"; then \
+	  for i in $$list2; do echo "$$i"; done \
+	    | sed -n '/\.8[a-z]*$$/p'; \
+	fi; \
+	} | while read p; do \
+	  if test -f $$p; then d=; else d="$(srcdir)/"; fi; \
+	  echo "$$d$$p"; echo "$$p"; \
+	done | \
+	sed -e 'n;s,.*/,,;p;h;s,.*\.,,;s,^[^8][0-9a-z]*$$,8,;x' \
+	      -e 's,\.[0-9a-z]*$$,,;$(transform);G;s,\n,.,' | \
+	sed 'N;N;s,\n, ,g' | { \
+	list=; while read file base inst; do \
+	  if test "$$base" = "$$inst"; then list="$$list $$file"; else \
+	    echo " $(INSTALL_DATA) '$$file' '$(DESTDIR)$(man8dir)/$$inst'"; \
+	    $(INSTALL_DATA) "$$file" "$(DESTDIR)$(man8dir)/$$inst" || exit $$?; \
+	  fi; \
+	done; \
+	for i in $$list; do echo "$$i"; done | $(am__base_list) | \
+	while read files; do \
+	  test -z "$$files" || { \
+	    echo " $(INSTALL_DATA) $$files '$(DESTDIR)$(man8dir)'"; \
+	    $(INSTALL_DATA) $$files "$(DESTDIR)$(man8dir)" || exit $$?; }; \
+	done; }
+
+uninstall-man8:
+	@$(NORMAL_UNINSTALL)
+	@list='$(man8_MANS)'; test -n "$(man8dir)" || exit 0; \
+	files=`{ for i in $$list; do echo "$$i"; done; \
+	} | sed -e 's,.*/,,;h;s,.*\.,,;s,^[^8][0-9a-z]*$$,8,;x' \
+	      -e 's,\.[0-9a-z]*$$,,;$(transform);G;s,\n,.,'`; \
+	dir='$(DESTDIR)$(man8dir)'; $(am__uninstall_files_from_dir)
 install-augeasDATA: $(augeas_DATA)
 	@$(NORMAL_INSTALL)
 	@list='$(augeas_DATA)'; test -n "$(augeasdir)" || list=; \
@@ -7559,9 +7638,9 @@ check-am: all-am
 	$(MAKE) $(AM_MAKEFLAGS) check-local
 check: $(BUILT_SOURCES)
 	$(MAKE) $(AM_MAKEFLAGS) check-am
-all-am: Makefile $(LTLIBRARIES) $(PROGRAMS) $(DATA)
+all-am: Makefile $(LTLIBRARIES) $(PROGRAMS) $(MANS) $(DATA)
 installdirs:
-	for dir in "$(DESTDIR)$(libdir)" "$(DESTDIR)$(lockdriverdir)" "$(DESTDIR)$(moddir)" "$(DESTDIR)$(libexecdir)" "$(DESTDIR)$(sbindir)" "$(DESTDIR)$(augeasdir)" "$(DESTDIR)$(augeastestdir)" "$(DESTDIR)$(confdir)" "$(DESTDIR)$(confdir)" "$(DESTDIR)$(pkgdatadir)" "$(DESTDIR)$(polkitactiondir)" "$(DESTDIR)$(tapsetdir)"; do \
+	for dir in "$(DESTDIR)$(libdir)" "$(DESTDIR)$(lockdriverdir)" "$(DESTDIR)$(moddir)" "$(DESTDIR)$(libexecdir)" "$(DESTDIR)$(sbindir)" "$(DESTDIR)$(man8dir)" "$(DESTDIR)$(augeasdir)" "$(DESTDIR)$(augeastestdir)" "$(DESTDIR)$(confdir)" "$(DESTDIR)$(confdir)" "$(DESTDIR)$(pkgdatadir)" "$(DESTDIR)$(polkitactiondir)" "$(DESTDIR)$(tapsetdir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
 install: $(BUILT_SOURCES)
@@ -7625,9 +7704,10 @@ info-am:
 
 install-data-am: install-augeasDATA install-augeastestDATA \
 	install-confDATA install-data-local \
-	install-lockdriverLTLIBRARIES install-modLTLIBRARIES \
-	install-nodist_confDATA install-pkgdataDATA \
-	install-polkitactionDATA install-tapsetDATA
+	install-lockdriverLTLIBRARIES install-man \
+	install-modLTLIBRARIES install-nodist_confDATA \
+	install-pkgdataDATA install-polkitactionDATA \
+	install-tapsetDATA
 
 install-dvi: install-dvi-am
 
@@ -7644,7 +7724,7 @@ install-info: install-info-am
 
 install-info-am:
 
-install-man:
+install-man: install-man8
 
 install-pdf: install-pdf-am
 
@@ -7677,10 +7757,12 @@ ps-am:
 uninstall-am: uninstall-augeasDATA uninstall-augeastestDATA \
 	uninstall-confDATA uninstall-libLTLIBRARIES \
 	uninstall-libexecPROGRAMS uninstall-local \
-	uninstall-lockdriverLTLIBRARIES uninstall-modLTLIBRARIES \
-	uninstall-nodist_confDATA uninstall-pkgdataDATA \
-	uninstall-polkitactionDATA uninstall-sbinPROGRAMS \
-	uninstall-tapsetDATA
+	uninstall-lockdriverLTLIBRARIES uninstall-man \
+	uninstall-modLTLIBRARIES uninstall-nodist_confDATA \
+	uninstall-pkgdataDATA uninstall-polkitactionDATA \
+	uninstall-sbinPROGRAMS uninstall-tapsetDATA
+
+uninstall-man: uninstall-man8
 
 .MAKE: all check check-am install install-am install-strip
 
@@ -7696,17 +7778,18 @@ uninstall-am: uninstall-augeasDATA uninstall-augeastestDATA \
 	install-exec install-exec-am install-html install-html-am \
 	install-info install-info-am install-libLTLIBRARIES \
 	install-libexecPROGRAMS install-lockdriverLTLIBRARIES \
-	install-man install-modLTLIBRARIES install-nodist_confDATA \
-	install-pdf install-pdf-am install-pkgdataDATA \
-	install-polkitactionDATA install-ps install-ps-am \
-	install-sbinPROGRAMS install-strip install-tapsetDATA \
-	installcheck installcheck-am installdirs maintainer-clean \
-	maintainer-clean-generic mostlyclean mostlyclean-compile \
-	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
-	tags tags-am uninstall uninstall-am uninstall-augeasDATA \
-	uninstall-augeastestDATA uninstall-confDATA \
-	uninstall-libLTLIBRARIES uninstall-libexecPROGRAMS \
-	uninstall-local uninstall-lockdriverLTLIBRARIES \
+	install-man install-man8 install-modLTLIBRARIES \
+	install-nodist_confDATA install-pdf install-pdf-am \
+	install-pkgdataDATA install-polkitactionDATA install-ps \
+	install-ps-am install-sbinPROGRAMS install-strip \
+	install-tapsetDATA installcheck installcheck-am installdirs \
+	maintainer-clean maintainer-clean-generic mostlyclean \
+	mostlyclean-compile mostlyclean-generic mostlyclean-libtool \
+	pdf pdf-am ps ps-am tags tags-am uninstall uninstall-am \
+	uninstall-augeasDATA uninstall-augeastestDATA \
+	uninstall-confDATA uninstall-libLTLIBRARIES \
+	uninstall-libexecPROGRAMS uninstall-local \
+	uninstall-lockdriverLTLIBRARIES uninstall-man uninstall-man8 \
 	uninstall-modLTLIBRARIES uninstall-nodist_confDATA \
 	uninstall-pkgdataDATA uninstall-polkitactionDATA \
 	uninstall-sbinPROGRAMS uninstall-tapsetDATA
@@ -7837,6 +7920,19 @@ libvirt_access_lxc.syms: $(srcdir)/rpc/gendispatch.pl \
 	$(AM_V_GEN)$(PERL) -w $(srcdir)/rpc/gendispatch.pl --mode=aclsym \
 	  lxc LXC $(LXC_PROTOCOL) > $@
 
+libvirt_access.xml: $(srcdir)/rpc/gendispatch.pl \
+			$(REMOTE_PROTOCOL) Makefile.am
+	$(AM_V_GEN)$(PERL) -w $(srcdir)/rpc/gendispatch.pl --mode=aclapi \
+	  remote REMOTE $(REMOTE_PROTOCOL) > $@
+libvirt_access_qemu.xml: $(srcdir)/rpc/gendispatch.pl \
+			$(QEMU_PROTOCOL) Makefile.am
+	$(AM_V_GEN)$(PERL) -w $(srcdir)/rpc/gendispatch.pl --mode=aclapi \
+	  qemu QEMU $(QEMU_PROTOCOL) > $@
+libvirt_access_lxc.xml: $(srcdir)/rpc/gendispatch.pl \
+			$(LXC_PROTOCOL) Makefile.am
+	$(AM_V_GEN)$(PERL) -w $(srcdir)/rpc/gendispatch.pl --mode=aclapi \
+	  lxc LXC $(LXC_PROTOCOL) > $@
+
 $(srcdir)/access/viraccessapicheck.h: $(srcdir)/rpc/gendispatch.pl \
 			$(REMOTE_PROTOCOL) Makefile.am
 	$(AM_V_GEN)$(PERL) -w $(srcdir)/rpc/gendispatch.pl --mode=aclheader \
@@ -7874,7 +7970,7 @@ check-local: check-augeas
 	$(NULL)
 
 check-augeas: check-augeas-qemu check-augeas-lxc check-augeas-sanlock \
-	check-augeas-lockd
+	check-augeas-lockd check-augeas-virtlockd
 
 @WITH_QEMU_TRUE@test_libvirtd_qemu.aug: qemu/test_libvirtd_qemu.aug.in \
 @WITH_QEMU_TRUE@		$(srcdir)/qemu/qemu.conf $(AUG_GENTEST)
@@ -7910,9 +8006,18 @@ test_libvirt_lockd.aug: locking/test_libvirt_lockd.aug.in \
 		locking/qemu-lockd.conf $(AUG_GENTEST)
 	$(AM_V_GEN)$(AUG_GENTEST) locking/qemu-lockd.conf $< $@
 
+test_virtlockd.aug: locking/test_virtlockd.aug.in \
+		locking/virtlockd.conf $(AUG_GENTEST)
+	$(AM_V_GEN)$(AUG_GENTEST) $(srcdir)/locking/virtlockd.conf $< $@
+
 check-augeas-lockd: test_libvirt_lockd.aug
 	$(AM_V_GEN)if test -x '$(AUGPARSE)'; then \
 	    '$(AUGPARSE)' -I $(srcdir)/locking test_libvirt_lockd.aug; \
+	fi
+
+check-augeas-virtlockd: test_virtlockd.aug
+	$(AM_V_GEN)if test -x '$(AUGPARSE)'; then \
+	    '$(AUGPARSE)' -I $(srcdir)/locking test_virtlockd.aug; \
 	fi
 
 libvirt.syms: libvirt_public.syms $(USED_SYM_FILES) \
@@ -8011,6 +8116,17 @@ virtlockd.init: locking/virtlockd.init.in $(top_builddir)/config.status
 	    < $< > $@-t &&					\
 	    chmod a+x $@-t &&					\
 	    mv $@-t $@
+
+$(srcdir)/virtlockd.8.in: locking/virtlockd.pod.in $(top_srcdir)/configure.ac
+	$(AM_V_GEN)$(POD2MAN) --name VIRTLOCKD $< $@ \
+	    && if grep 'POD ERROR' $@ ; then rm $@; exit 1; fi
+
+virtlockd.8: $(srcdir)/virtlockd.8.in
+	$(AM_V_GEN)sed \
+	    -e 's|[@]sysconfdir[@]|$(sysconfdir)|g' \
+	    -e 's|[@]localstatedir[@]|$(localstatedir)|g' \
+	    < $< > $@-t && \
+	mv $@-t $@
 
 @LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@@WITH_LIBVIRTD_TRUE@install-systemd: virtlockd.service virtlockd.socket install-sysconfig
 @LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@@WITH_LIBVIRTD_TRUE@	$(MKDIR_P) $(DESTDIR)$(SYSTEMD_UNIT_DIR)

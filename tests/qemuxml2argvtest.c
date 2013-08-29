@@ -443,6 +443,10 @@ mymain(void)
     DO_TEST("hugepages", QEMU_CAPS_MEM_PATH);
     DO_TEST("nosharepages", QEMU_CAPS_MACHINE_OPT, QEMU_CAPS_MEM_MERGE);
     DO_TEST("disk-cdrom", NONE);
+    DO_TEST("disk-cdrom-network-http", QEMU_CAPS_KVM, QEMU_CAPS_DEVICE,
+            QEMU_CAPS_DRIVE);
+    DO_TEST("disk-cdrom-network-ftp", QEMU_CAPS_KVM, QEMU_CAPS_DEVICE,
+            QEMU_CAPS_DRIVE);
     DO_TEST("disk-cdrom-empty", QEMU_CAPS_DRIVE);
     DO_TEST("disk-cdrom-tray",
             QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE, QEMU_CAPS_VIRTIO_TX_ALG);
@@ -923,8 +927,10 @@ mymain(void)
     DO_TEST("seclabel-dynamic", QEMU_CAPS_NAME);
     DO_TEST("seclabel-dynamic-baselabel", QEMU_CAPS_NAME);
     DO_TEST("seclabel-dynamic-override", QEMU_CAPS_NAME);
+    DO_TEST("seclabel-dynamic-labelskip", QEMU_CAPS_NAME);
     DO_TEST("seclabel-static", QEMU_CAPS_NAME);
     DO_TEST("seclabel-static-relabel", QEMU_CAPS_NAME);
+    DO_TEST("seclabel-static-labelskip", QEMU_CAPS_NAME);
     DO_TEST("seclabel-none", QEMU_CAPS_NAME);
 
     DO_TEST("pseries-basic",
@@ -994,6 +1000,16 @@ mymain(void)
     DO_TEST("pci-autoadd-idx", QEMU_CAPS_DEVICE, QEMU_CAPS_DEVICE_PCI_BRIDGE);
     DO_TEST("pci-bridge-many-disks",
             QEMU_CAPS_DEVICE, QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE_PCI_BRIDGE);
+    DO_TEST("pcie-root",
+            QEMU_CAPS_ICH9_AHCI,
+            QEMU_CAPS_DEVICE, QEMU_CAPS_DEVICE_PCI_BRIDGE,
+            QEMU_CAPS_DEVICE_DMI_TO_PCI_BRIDGE);
+    DO_TEST("q35",
+            QEMU_CAPS_DEVICE, QEMU_CAPS_DEVICE_PCI_BRIDGE,
+            QEMU_CAPS_DEVICE_DMI_TO_PCI_BRIDGE,
+            QEMU_CAPS_DRIVE, QEMU_CAPS_ICH9_AHCI,
+            QEMU_CAPS_VGA, QEMU_CAPS_DEVICE_VIDEO_PRIMARY,
+            QEMU_CAPS_VGA, QEMU_CAPS_VGA_QXL, QEMU_CAPS_DEVICE_QXL);
 
     DO_TEST("hostdev-scsi-lsi", QEMU_CAPS_DRIVE,
             QEMU_CAPS_DEVICE, QEMU_CAPS_DRIVE,
@@ -1026,6 +1042,20 @@ mymain(void)
                         QEMU_CAPS_DEVICE, QEMU_CAPS_DEVICE_PCI_BRIDGE);
     DO_TEST_PARSE_ERROR("pci-root-address",
                         QEMU_CAPS_DEVICE, QEMU_CAPS_DEVICE_PCI_BRIDGE);
+
+    DO_TEST("hotplug-base",
+            QEMU_CAPS_KVM, QEMU_CAPS_DEVICE, QEMU_CAPS_DRIVE,
+            QEMU_CAPS_VIRTIO_SCSI);
+
+    DO_TEST("pcihole64", QEMU_CAPS_DEVICE, QEMU_CAPS_I440FX_PCI_HOLE64_SIZE);
+    DO_TEST_FAILURE("pcihole64-none", QEMU_CAPS_DEVICE);
+    DO_TEST("pcihole64-q35",
+            QEMU_CAPS_DEVICE, QEMU_CAPS_DEVICE_PCI_BRIDGE,
+            QEMU_CAPS_DEVICE_DMI_TO_PCI_BRIDGE,
+            QEMU_CAPS_DRIVE, QEMU_CAPS_ICH9_AHCI,
+            QEMU_CAPS_VGA, QEMU_CAPS_DEVICE_VIDEO_PRIMARY,
+            QEMU_CAPS_VGA_QXL, QEMU_CAPS_DEVICE_QXL,
+            QEMU_CAPS_Q35_PCI_HOLE64_SIZE);
 
     virObjectUnref(driver.config);
     virObjectUnref(driver.caps);

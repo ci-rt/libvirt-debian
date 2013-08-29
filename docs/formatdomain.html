@@ -838,7 +838,12 @@
         KiB.  <span class="since"><code>unit</code>
         since 0.9.11</span></dd><dt><code>hard_limit</code></dt><dd> The optional <code>hard_limit</code> element is the maximum memory
         the guest can use. The units for this value are kibibytes (i.e. blocks
-        of 1024 bytes)</dd><dt><code>soft_limit</code></dt><dd> The optional <code>soft_limit</code> element is the memory limit to
+        of 1024 bytes). <strong>However, users of QEMU and KVM are strongly
+        advised not to set this limit as domain may get killed by the kernel
+        if the guess is too low. To determine the memory needed for a process
+        to run is an
+        <a href="http://en.wikipedia.org/wiki/Undecidable_problem" shape="rect">
+        undecidable problem</a>.</strong></dd><dt><code>soft_limit</code></dt><dd> The optional <code>soft_limit</code> element is the memory limit to
         enforce during memory contention. The units for this value are
         kibibytes (i.e. blocks of 1024 bytes)</dd><dt><code>swap_hard_limit</code></dt><dd> The optional <code>swap_hard_limit</code> element is the maximum
         memory plus swap the guest can use. The units for this value are
@@ -1092,7 +1097,7 @@
         attribute can be omitted and will default to <code>require</code>.
       </dd></dl>
         <p>
-      Guest NUMA topology can be specifed using the <code>numa</code> element.
+      Guest NUMA topology can be specified using the <code>numa</code> element.
       <span class="since">Since 0.9.8</span>
     </p>
         <pre xml:space="preserve">
@@ -1219,7 +1224,7 @@
     &lt;hyperv&gt;
       &lt;relaxed state='on'/&gt;
       &lt;vapic state='on'/&gt;
-      &lt;spinlocks state='on' retries='4096'&lt;/spinlocks&gt;
+      &lt;spinlocks state='on' retries='4096'/&gt;
     &lt;/hyperv&gt;
 
   &lt;/features&gt;
@@ -1451,6 +1456,22 @@
       &lt;target dev='hdc' bus='ide' tray='open'/&gt;
       &lt;readonly/&gt;
     &lt;/disk&gt;
+    &lt;disk type='network' device='cdrom'&gt;
+      &lt;driver name='qemu' type='raw'/&gt;
+      &lt;source protocol="http" name="url_path"&gt;
+        &lt;host name="hostname" port="80"/&gt;
+      &lt;/source&gt;
+      &lt;target dev='hdc' bus='ide' tray='open'/&gt;
+      &lt;readonly/&gt;
+    &lt;/disk&gt;
+    &lt;disk type='network' device='cdrom'&gt;
+      &lt;driver name='qemu' type='raw'/&gt;
+      &lt;source protocol="ftp" name="url_path"&gt;
+        &lt;host name="hostname" port="21"/&gt;
+      &lt;/source&gt;
+      &lt;target dev='hdc' bus='ide' tray='open'/&gt;
+      &lt;readonly/&gt;
+    &lt;/disk&gt;
     &lt;disk type='block' device='lun'&gt;
       &lt;driver name='qemu' type='raw'/&gt;
       &lt;source dev='/dev/sda'/&gt;
@@ -1469,111 +1490,193 @@
       &lt;source pool='blk-pool0' volume='blk-pool0-vol0'/&gt;
       &lt;target dev='hda' bus='ide'/&gt;
     &lt;/disk&gt;
+    &lt;disk type='network' device='disk'&gt;
+      &lt;driver name='qemu' type='raw'/&gt;
+      &lt;source protocol='iscsi' name='iqn.2013-07.com.example:iscsi-nopool/2'&gt;
+        &lt;host name='example.com' port='3260'/&gt;
+      &lt;/source&gt;
+      &lt;auth username='myuser'&gt;
+        &lt;secret type='chap' usage='libvirtiscsi'/&gt;
+      &lt;/auth&gt;
+      &lt;target dev='vda' bus='virtio'/&gt;
+    &lt;/disk&gt;
+    &lt;disk type='network' device='lun'&gt;
+      &lt;driver name='qemu' type='raw'/&gt;
+      &lt;source protocol='iscsi' name='iqn.2013-07.com.example:iscsi-nopool/1'&gt;
+       iqn.2013-07.com.example:iscsi-pool
+        &lt;host name='example.com' port='3260'/&gt;
+      &lt;/source&gt;
+      &lt;auth username='myuser'&gt;
+        &lt;secret type='chap' usage='libvirtiscsi'/&gt;
+      &lt;/auth&gt;
+      &lt;target dev='sda' bus='scsi'/&gt;
+    &lt;/disk&gt;
+    &lt;disk type='volume' device='disk'&gt;
+      &lt;driver name='qemu' type='raw'/&gt;
+      &lt;source pool='iscsi-pool' volume='unit:0:0:1' mode='host'/&gt;
+      &lt;auth username='myuser'&gt;
+        &lt;secret type='chap' usage='libvirtiscsi'/&gt;
+      &lt;/auth&gt;
+      &lt;target dev='vda' bus='virtio'/&gt;
+    &lt;/disk&gt;
+    &lt;disk type='volume' device='disk'&gt;
+      &lt;driver name='qemu' type='raw'/&gt;
+      &lt;source pool='iscsi-pool' volume='unit:0:0:2' mode='direct'/&gt;
+      &lt;auth username='myuser'&gt;
+        &lt;secret type='chap' usage='libvirtiscsi'/&gt;
+      &lt;/auth&gt;
+      &lt;target dev='vda' bus='virtio'/&gt;
+    &lt;/disk&gt;
   &lt;/devices&gt;
   ...</pre>
         <dl><dt><code>disk</code></dt><dd>The <code>disk</code> element is the main container for describing
-        disks. The <code>type</code> attribute is either "file",
-        "block", "dir", or "network"
-        and refers to the underlying source for the disk. The optional
-        <code>device</code> attribute indicates how the disk is to be exposed
-        to the guest OS. Possible values for this attribute are
-        "floppy", "disk", "cdrom", and "lun", defaulting to
-        "disk". "lun" (<span class="since">since 0.9.10</span>) is only
-        valid when type is "block" and the target element's "bus"
-        attribute is "virtio", and behaves identically to "disk",
-        except that generic SCSI commands from the guest are accepted
-        and passed through to the physical device
-        - also note that device='lun' will only be recognized for
-        actual raw devices, never for individual partitions or LVM
-        partitions (in those cases, the kernel will reject the generic
-        SCSI commands, making it identical to device='disk').
-        The optional <code>rawio</code> attribute
-        (<span class="since">since 0.9.10</span>) indicates whether
-        the disk is needs rawio capability; valid settings are "yes"
-        or "no" (default is "no"). If any one disk in a domain has
-        rawio='yes', rawio capability will be enabled for all disks in
-        the domain (because, in the case of QEMU, this capability can
-        only be set on a per-process basis). This attribute is only
-        valid when device is "lun". NB, <code>rawio</code> intends to
-        confine the capability per-device, however, current QEMU
-        implementation gives the domain process broader capability
-        than that (per-process basis, affects all the domain disks).
-        To confine the capability as much as possible for QEMU driver
-        as this stage, <code>sgio</code> is recommended, it's more
-        secure than <code>rawio</code>.
-        The optional <code>sgio</code> (<span class="since">since 1.0.2</span>)
-        attribute indicates whether the kernel will filter unprivileged
-        SG_IO commands for the disk, valid settings are "filtered" or
-        "unfiltered". Defaults to "filtered". Similar to <code>rawio</code>,
-        <code>sgio</code> is only valid for device 'lun'.
-        The optional <code>snapshot</code> attribute indicates the default
-        behavior of the disk during disk snapshots: "internal"
-        requires a file format such as qcow2 that can store both the
-        snapshot and the data changes since the snapshot;
-        "external" will separate the snapshot from the live data; and
-        "no" means the disk will not participate in snapshots.
-        Read-only disks default to "no", while the default for other
-        disks depends on the hypervisor's capabilities.  Some
-        hypervisors allow a per-snapshot choice as well,
-        during <a href="formatsnapshot.html" shape="rect">domain snapshot
-        creation</a>.  Not all snapshot modes are supported;
-        for example, <code>snapshot='yes'</code> with a transient disk
-        generally does not make sense.  <span class="since">Since 0.0.3;
-        "device" attribute since 0.1.4;
-        "network" attribute since 0.8.7; "snapshot" since
-        0.9.5</span></dd><dt><code>source</code></dt><dd>If the disk <code>type</code> is "file", then
-        the <code>file</code> attribute specifies the fully-qualified
-        path to the file holding the disk. If the disk
-        <code>type</code> is "block", then the <code>dev</code>
-        attribute specifies the path to the host device to serve as
-        the disk. With "file", "block", and "volume", one or more optional
+      disks (<span class="since">since 0.0.3</span>).
+        <dl><dt><code>type</code> attribute
+          <span class="since">since 0.0.3</span></dt><dd>
+            Valid values are "file", "block",
+            "dir" (<span class="since">since 0.7.5</span>),
+            "network" (<span class="since">since 0.8.7</span>), or
+            "volume" (<span class="since">since 1.0.5</span>)
+            and refer to the underlying source for the disk.
+            </dd><dt><code>device</code> attribute
+          <span class="since">since 0.1.4</span></dt><dd>
+            Indicates how the disk is to be exposed to the guest OS. Possible
+            values for this attribute are "floppy", "disk", "cdrom", and "lun",
+            defaulting to "disk".
+            <p>
+            Using "lun" (<span class="since">since 0.9.10</span>) is only
+            valid when type is "block" and the target element's "bus"
+            attribute is "virtio", and behaves identically to "disk",
+            except that generic SCSI commands from the guest are accepted
+            and passed through to the physical device. Also note that
+            device='lun' will only be recognized for actual raw devices,
+            but never for individual partitions or LVM partitions (in those
+            cases, the kernel will reject the generic SCSI commands, making
+            it identical to device='disk').
+            </p>
+            </dd><dt><code>rawio</code> attribute
+          <span class="since">since 0.9.10</span></dt><dd>
+            Indicates whether the disk is needs rawio capability; valid
+            settings are "yes" or "no" (default is "no"). If any one disk
+            in a domain has rawio='yes', rawio capability will be enabled
+            for all disks in the domain (because, in the case of QEMU, this
+            capability can only be set on a per-process basis). This attribute
+            is only valid when device is "lun". NB, <code>rawio</code> intends
+            to confine the capability per-device, however, current QEMU
+            implementation gives the domain process broader capability
+            than that (per-process basis, affects all the domain disks).
+            To confine the capability as much as possible for QEMU driver
+            as this stage, <code>sgio</code> is recommended, it's more
+            secure than <code>rawio</code>.
+            </dd><dt><code>sgio</code> attribute
+          <span class="since">since 1.0.2</span></dt><dd>
+            Indicates whether the kernel will filter unprivileged
+            SG_IO commands for the disk, valid settings are "filtered" or
+            "unfiltered". Defaults to "filtered". Similar to <code>rawio</code>,
+            <code>sgio</code> is only valid for device 'lun'.
+            </dd><dt><code>snapshot</code> attribute
+          <span class="since">since 0.9.5</span></dt><dd>
+            Indicates the default behavior of the disk during disk snapshots:
+            "internal" requires a file format such as qcow2 that can store
+            both the snapshot and the data changes since the snapshot;
+            "external" will separate the snapshot from the live data; and
+            "no" means the disk will not participate in snapshots. Read-only
+            disks default to "no", while the default for other disks depends
+            on the hypervisor's capabilities.  Some hypervisors allow a
+            per-snapshot choice as well, during
+            <a href="formatsnapshot.html" shape="rect">domain snapshot creation</a>.
+            Not all snapshot modes are supported; for example,
+            <code>snapshot='yes'</code> with a transient disk generally
+            does not make sense.
+            </dd></dl>
+      </dd><dt><code>source</code></dt><dd>Representation of the disk <code>source</code> depends on the
+      disk <code>type</code> attribute value as follows:
+          <dl><dt><code>type='file'</code>
+            <span class="since">since 0.0.3</span></dt><dd>
+              The <code>file</code> attribute specifies the fully-qualified
+              path to the file holding the disk.
+              </dd><dt><code>type='block'</code>
+            <span class="since">since 0.0.3</span></dt><dd>
+              The <code>dev</code> attribute specifies the path to the
+              host device to serve as the disk.
+              </dd><dt><code>type='dir'</code>
+            <span class="since">since 0.7.5</span></dt><dd>
+              The <code>dir</code> attribute specifies the fully-qualified path
+              to the directory to use as the disk.
+              </dd><dt><code>type='network'</code>
+            <span class="since">since 0.8.7</span></dt><dd>
+              The <code>protocol</code> attribute specifies the protocol to
+              access to the requested image. Possible values are "nbd",
+              "iscsi", "rbd", "sheepdog" or "gluster".  If the
+              <code>protocol</code> attribute is "rbd", "sheepdog" or
+              "gluster", an additional attribute <code>name</code> is
+              mandatory to specify which volume/image will be used. For "nbd",
+              the <code>name</code> attribute is optional. For "iscsi"
+              (<span class="since">since 1.0.4</span>), the <code>name</code>
+              attribute may include a logical unit number, separated from the
+              target's name by a slash (e.g.,
+              <code>iqn.2013-07.com.example:iscsi-pool/1</code>). If not
+              specified, the default LUN is zero.
+              </dd><dt><code>type='volume'</code>
+            <span class="since">since 1.0.5</span></dt><dd>
+              The underlying disk source is represented by attributes
+              <code>pool</code> and <code>volume</code>. Attribute
+              <code>pool</code> specifies the name of the
+              <a href="formatstorage.html" shape="rect">storage pool</a> (managed
+              by libvirt) where the disk source resides. Attribute
+              <code>volume</code> specifies the name of storage volume (managed
+              by libvirt) used as the disk source. The value for the
+              <code>volume</code> attribute will be the output from the "Name"
+              column of a <code>virsh vol-list [pool-name]</code> command.
+              <p>
+              Use the attribute <code>mode</code>
+              (<span class="since">since 1.1.1</span>) to indicate how to
+              represent the LUN as the disk source. Valid values are
+              "direct" and "host". If <code>mode</code> is not specified,
+              the default is to use "host".
+
+              Using "direct" as the <code>mode</code> value indicates to use
+              the <a href="formatstorage.html" shape="rect">storage pool's</a>
+              <code>source</code> element <code>host</code> attribute as
+              the disk source to generate the libiscsi URI (e.g.
+              'file=iscsi://example.com:3260/iqn.2013-07.com.example:iscsi-pool/1').
+
+              Using "host" as the <code>mode</code> value indicates to use the
+              LUN's path as it shows up on host (e.g.
+              'file=/dev/disk/by-path/ip-example.com:3260-iscsi-iqn.2013-07.com.example:iscsi-pool-lun-1').
+              </p>
+              </dd></dl>
+        With "file", "block", and "volume", one or more optional
         sub-elements <code>seclabel</code>, <a href="#seclabel" shape="rect">described
         below</a> (and <span class="since">since 0.9.9</span>), can be
         used to override the domain security labeling policy for just
         that source file. (NB, for "volume" type disk, <code>seclabel</code>
         is only valid when the specified storage volume is of 'file' or
-        'block' type).  If the disk <code>type</code> is "dir", then the
-        <code>dir</code> attribute specifies the fully-qualified path
-        to the directory to use as the disk. If the disk <code>type</code>
-        is "network", then the <code>protocol</code> attribute specifies
-        the protocol to access to the requested image; possible values
-        are "nbd", "iscsi", "rbd", "sheepdog" or "gluster".  If the
-        <code>protocol</code> attribute is "rbd", "sheepdog" or "gluster", an
-        additional attribute <code>name</code> is mandatory to specify which
-        volume/image will be used; for "nbd" it is optional.  For "iscsi",
-        the <code>name</code> attribute may include a logical unit number,
-        separated from the target's name by a slash (for example,
-        <code>iqn.1992-01.com.example/1</code>); the default LUN is zero.
+        'block' type).
+        <p>
         When the disk <code>type</code> is "network", the <code>source</code>
         may have zero or more <code>host</code> sub-elements used to
-        specify the hosts to connect.  If the disk <code>type</code> is
-        "volume", the underlying disk source is represented by attributes
-        <code>pool</code> and <code>volume</code>. Attribute <code>pool</code>
-        specifies the name of storage pool (managed by libvirt) where the disk
-        source resides, and attribute <code>volume</code> specifies the name of
-        storage volume (managed by libvirt) used as the disk source. For a
-        "volume" type disk, if the underlying storage pool is "iscsi", attribute
-        <code>mode</code> (<span class="since">since 1.1.1</span>) can be used
-        to indicate how to represent the LUN as the disk source. The value
-        "host" indicates to use the LUN's path as it shows up on host, e.g.
-        /dev/disk/by-path/ip-10.11.12.9:3260-iscsi-iqn.2013-06.fc:iscsi.iscsi0-lun-1).
-        The value "direct" indicates to use the storage pool's
-        <code>source</code> element <code>host</code> attribute as the
-        disk source for the libiscsi URI, e.g.
-        file=iscsi://demo.org:6000/iqn.1992-01.com.example/1.
-        <span class="since">Since 0.0.3; <code>type='dir'</code> since
-        0.7.5; <code>type='network'</code> since
-        0.8.7; <code>protocol='iscsi'</code> since 1.0.4;
-        <code>type='volume'</code> since 1.0.5;</span><br />
+        specify the hosts to connect.
+        </p>
+        <p>
         For a "file" or "volume" disk type which represents a cdrom or floppy
         (the <code>device</code> attribute), it is possible to define
         policy what to do with the disk if the source file is not accessible.
         (NB, <code>startupPolicy</code> is not valid for "volume" disk unless
          the specified storage volume is of "file" type). This is done by the
-        <code>startupPolicy</code> attribute, accepting these values:
+        <code>startupPolicy</code> attribute
+        (<span class="since">since 0.9.7</span>),
+        accepting these values:
+        </p>
         <table class="top_table"><tr><td rowspan="1" colspan="1"> mandatory </td><td rowspan="1" colspan="1"> fail if missing for any reason (the default) </td></tr><tr><td rowspan="1" colspan="1"> requisite </td><td rowspan="1" colspan="1"> fail if missing on boot up,
                  drop if missing on migrate/restore/revert </td></tr><tr><td rowspan="1" colspan="1"> optional </td><td rowspan="1" colspan="1"> drop if missing at any start attempt </td></tr></table>
-        <span class="since">Since 0.9.7</span>
+        <p>
+        <span class="since">Since 1.1.2</span> the <code>startupPolicy</code>
+        is extended to support hard disks besides cdrom and floppy. On guest
+        cold bootup, if a certain disk is not accessible or its disk chain is
+        broken, with startupPolicy 'optional' the guest will drop this disk.
+        This feature doesn't support migration currently.
+        </p>
         </dd><dt><code>mirror</code></dt><dd>
         This element is present if the hypervisor has started a block
         copy operation (via the <code>virDomainBlockCopy</code> API),
@@ -2097,10 +2200,20 @@
   ...</pre>
         <p>
       PCI controllers have an optional <code>model</code> attribute with
-      possible values <code>pci-root</code> or <code>pci-bridge</code>.
-      For machine types which provide an implicit pci bus, the pci-root
+      possible values <code>pci-root</code>, <code>pcie-root</code>,
+      <code>pci-bridge</code>, or <code>dmi-to-pci-bridge</code>.
+      The root controllers (<code>pci-root</code> and <code>pcie-root</code>)
+      have an optional <code>pcihole64</code> element specifying how big
+      (in kilobytes, or in the unit specified by <code>pcihole64</code>'s
+      <code>unit</code> attribute) the 64-bit PCI hole should be. Some guests (like
+      Windows XP or Windows Server 2003) might crash when QEMU and Seabios
+      are recent enough to support 64-bit PCI holes, unless this is disabled
+      (set to 0). <span class="since">Since 1.1.2 (QEMU only)</span>
+    </p>
+        <p>
+      For machine types which provide an implicit PCI bus, the pci-root
       controller with index=0 is auto-added and required to use PCI devices.
-      PCI root has no address.
+      pci-root has no address.
       PCI bridges are auto-added if there are too many devices to fit on
       the one bus provided by pci-root, or a PCI bus number greater than zero
       was specified.
@@ -2108,14 +2221,45 @@
       only refer to PCI buses provided by already specified PCI controllers.
       Leaving gaps in the PCI controller indexes might lead to an invalid
       configuration.
-      (<span class="since">since 1.0.5</span>)
+      (pci-root and pci-bridge <span class="since">since 1.0.5</span>)
     </p>
         <pre xml:space="preserve">
   ...
   &lt;devices&gt;
     &lt;controller type='pci' index='0' model='pci-root'/&gt;
     &lt;controller type='pci' index='1' model='pci-bridge'&gt;
-      &lt;address type='pci' domain='0' bus='0' slot='5' function='0' multifunction=off'/&gt;
+      &lt;address type='pci' domain='0' bus='0' slot='5' function='0' multifunction='off'/&gt;
+    &lt;/controller&gt;
+  &lt;/devices&gt;
+  ...</pre>
+        <p>
+      For machine types which provide an implicit PCI Express (PCIe)
+      bus (for example, the machine types based on the Q35 chipset),
+      the pcie-root controller with index=0 is auto-added to the
+      domain's configuration. pcie-root has also no address, provides
+      31 slots (numbered 1-31) and can only be used to attach PCIe
+      devices. In order to connect standard PCI devices on a system
+      which has a pcie-root controller, a pci controller
+      with <code>model='dmi-to-pci-bridge'</code> is automatically
+      added. A dmi-to-pci-bridge controller plugs into a PCIe slot (as
+      provided by pcie-root), and itself provides 31 standard PCI
+      slots (which are not hot-pluggable). In order to have
+      hot-pluggable PCI slots in the guest system, a pci-bridge
+      controller will also be automatically created and connected to
+      one of the slots of the auto-created dmi-to-pci-bridge
+      controller; all guest devices with PCI addresses that are
+      auto-determined by libvirt will be placed on this pci-bridge
+      device.  (<span class="since">since 1.1.2</span>).
+    </p>
+        <pre xml:space="preserve">
+  ...
+  &lt;devices&gt;
+    &lt;controller type='pci' index='0' model='pcie-root'/&gt;
+    &lt;controller type='pci' index='1' model='dmi-to-pci-bridge'&gt;
+      &lt;address type='pci' domain='0' bus='0' slot='0xe' function='0'/&gt;
+    &lt;/controller&gt;
+    &lt;controller type='pci' index='2' model='pci-bridge'&gt;
+      &lt;address type='pci' domain='0' bus='1' slot='1' function='0'/&gt;
     &lt;/controller&gt;
   &lt;/devices&gt;
   ...</pre>
@@ -2707,7 +2851,7 @@
         </h5>
         <p>
       Provides direct attachment of the virtual machine's NIC to the given
-      physial interface of the host.
+      physical interface of the host.
       <span class="since">Since 0.7.7 (QEMU and KVM only)</span><br />
       This setup requires the Linux macvtap
       driver to be available. <span class="since">(Since Linux 2.6.34.)</span>
@@ -3060,7 +3204,7 @@ qemu-kvm -net nic,model=? /dev/null
         <p>
       If no target is specified, certain hypervisors will
       automatically generate a name for the created tun device. This
-      name can be manually specifed, however the name <i>must not
+      name can be manually specified, however the name <i>must not
       start with either 'vnet' or 'vif'</i>, which are prefixes
       reserved by libvirt and certain hypervisors. Manually specified
       targets using these prefixes will be ignored.
@@ -4413,7 +4557,11 @@ qemu-kvm -net nic,model=? /dev/null
       a <code>seclabel</code> element is attached to a specific path
       rather than the top-level domain assignment, only the
       attribute <code>relabel</code> or the
-      sub-element <code>label</code> are supported.
+      sub-element <code>label</code> are supported.  Additionally,
+      <span class="since">since 1.1.2</span>, an output-only
+      element <code>labelskip</code> will be present for active
+      domains on disks where labeling was skipped due to the image
+      being on a file system that lacks security labeling.
     </p>
         <h2>
           <a name="examples" shape="rect" id="examples">Example configs</a>

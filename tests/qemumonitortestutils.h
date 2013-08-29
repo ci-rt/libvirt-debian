@@ -21,22 +21,59 @@
 # define __VIR_QEMU_MONITOR_TEST_UTILS_H__
 
 # include "domain_conf.h"
+# include "qemu/qemu_conf.h"
 # include "qemu/qemu_monitor.h"
+# include "qemu/qemu_agent.h"
 
 typedef struct _qemuMonitorTest qemuMonitorTest;
 typedef qemuMonitorTest *qemuMonitorTestPtr;
 
-int
-qemuMonitorTestAddItem(qemuMonitorTestPtr test,
-                       const char *command_name,
-                       const char *response);
+typedef struct _qemuMonitorTestItem qemuMonitorTestItem;
+typedef qemuMonitorTestItem *qemuMonitorTestItemPtr;
+typedef int (*qemuMonitorTestResponseCallback)(qemuMonitorTestPtr test,
+                                               qemuMonitorTestItemPtr item,
+                                               const char *message);
+
+int qemuMonitorTestAddHandler(qemuMonitorTestPtr test,
+                              qemuMonitorTestResponseCallback cb,
+                              void *opaque,
+                              virFreeCallback freecb);
+
+int qemuMonitorTestAddReponse(qemuMonitorTestPtr test,
+                              const char *response);
+
+int qemuMonitorTestAddUnexpectedErrorResponse(qemuMonitorTestPtr test);
+
+void *qemuMonitorTestItemGetPrivateData(qemuMonitorTestItemPtr item);
+
+int qemuMonitorReportError(qemuMonitorTestPtr test, const char *errmsg, ...);
+
+int qemuMonitorTestAddItem(qemuMonitorTestPtr test,
+                           const char *command_name,
+                           const char *response);
+
+int qemuMonitorTestAddAgentSyncResponse(qemuMonitorTestPtr test);
+
+int qemuMonitorTestAddItemParams(qemuMonitorTestPtr test,
+                                 const char *cmdname,
+                                 const char *response,
+                                 ...)
+    ATTRIBUTE_SENTINEL;
+
+# define qemuMonitorTestNewSimple(json, xmlopt) \
+    qemuMonitorTestNew(json, xmlopt, NULL, NULL)
 
 qemuMonitorTestPtr qemuMonitorTestNew(bool json,
-                                      virDomainXMLOptionPtr xmlopt);
+                                      virDomainXMLOptionPtr xmlopt,
+                                      virDomainObjPtr vm,
+                                      virQEMUDriverPtr driver);
+
+qemuMonitorTestPtr qemuMonitorTestNewAgent(virDomainXMLOptionPtr xmlopt);
 
 
 void qemuMonitorTestFree(qemuMonitorTestPtr test);
 
 qemuMonitorPtr qemuMonitorTestGetMonitor(qemuMonitorTestPtr test);
+qemuAgentPtr qemuMonitorTestGetAgent(qemuMonitorTestPtr test);
 
 #endif /* __VIR_QEMU_MONITOR_TEST_UTILS_H__ */

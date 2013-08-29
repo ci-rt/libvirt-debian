@@ -964,6 +964,7 @@ cmdPoolList(vshControl *ctl, const vshCmd *cmd ATTRIBUTE_UNUSED)
     const char *type = NULL;
     bool details = vshCommandOptBool(cmd, "details");
     bool inactive, all;
+    char *outputStr = NULL;
 
     inactive = vshCommandOptBool(cmd, "inactive");
     all = vshCommandOptBool(cmd, "all");
@@ -995,12 +996,13 @@ cmdPoolList(vshControl *ctl, const vshCmd *cmd ATTRIBUTE_UNUSED)
         char **poolTypes = NULL;
         int npoolTypes = 0;
 
-        npoolTypes = vshStringToArray(type, &poolTypes);
+        if ((npoolTypes = vshStringToArray(type, &poolTypes)) < 0)
+            return false;
 
         for (i = 0; i < npoolTypes; i++) {
             if ((poolType = virStoragePoolTypeFromString(poolTypes[i])) < 0) {
-                vshError(ctl, "%s", _("Invalid pool type"));
-                VIR_FREE(poolTypes);
+                vshError(ctl, _("Invalid pool type '%s'"), poolTypes[i]);
+                virStringFreeList(poolTypes);
                 return false;
             }
 
@@ -1036,10 +1038,7 @@ cmdPoolList(vshControl *ctl, const vshCmd *cmd ATTRIBUTE_UNUSED)
                 break;
             }
         }
-        if (poolTypes) {
-            VIR_FREE(*poolTypes);
-            VIR_FREE(poolTypes);
-        }
+        virStringFreeList(poolTypes);
     }
 
     if (!(list = vshStoragePoolListCollect(ctl, flags)))
@@ -1266,7 +1265,6 @@ cmdPoolList(vshControl *ctl, const vshCmd *cmd ATTRIBUTE_UNUSED)
     /* Create the output template.  Each column is sized according to
      * the longest string.
      */
-    char *outputStr;
     ret = virAsprintf(&outputStr,
               "%%-%lus  %%-%lus  %%-%lus  %%-%lus  %%%lus  %%%lus  %%%lus\n",
               (unsigned long) nameStrLength,
@@ -1321,6 +1319,7 @@ asprintf_failure:
     functionReturn = false;
 
 cleanup:
+    VIR_FREE(outputStr);
     if (list && list->npools) {
         for (i = 0; i < list->npools; i++) {
             VIR_FREE(poolInfoTexts[i].state);

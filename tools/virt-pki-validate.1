@@ -133,7 +133,7 @@
 .\" ========================================================================
 .\"
 .IX Title "VIRT-PKI-VALIDATE 1"
-.TH VIRT-PKI-VALIDATE 1 "2013-05-27" "libvirt-1.1.1" "Virtualization Support"
+.TH VIRT-PKI-VALIDATE 1 "2013-08-28" "libvirt-1.1.2" "Virtualization Support"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -145,7 +145,7 @@
 .SH "SYNOPSIS"
 .IX Header "SYNOPSIS"
 .Vb 1
-\&  virt\-pki\-validate
+\&  virt\-pki\-validate [OPTION]
 .Ve
 .SH "DESCRIPTION"
 .IX Header "DESCRIPTION"
@@ -153,6 +153,14 @@ This tool validates that the necessary \s-1PKI\s0 files are configured for
 a secure libvirt server or client using the \s-1TLS\s0 encryption protocol.
 It will report any missing certificate or key files on the host. It
 should be run as root to ensure it can read all the necessary files
+.SH "OPTIONS"
+.IX Header "OPTIONS"
+.IP "\fB\-h, \-\-help\fR" 4
+.IX Item "-h, --help"
+Display command line help usage then exit.
+.IP "\fB\-V, \-\-version\fR" 4
+.IX Item "-V, --version"
+Display version information then exit.
 .SH "EXIT STATUS"
 .IX Header "EXIT STATUS"
 Upon successful validation, an exit status of 0 will be set. Upon

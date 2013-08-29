@@ -1616,6 +1616,9 @@
 /* Define to 1 if you have the `sysctl' function. */
 #undef HAVE_SYSCTL
 
+/* Define to 1 if you have the 'sysctlbyname' function. */
+#undef HAVE_SYSCTLBYNAME
+
 /* Define to 1 if you have the <syslog.h> header file. */
 #undef HAVE_SYSLOG_H
 
@@ -1887,6 +1890,9 @@
 
 /* Define HOST_NAME_MAX when <limits.h> does not define it. */
 #undef HOST_NAME_MAX
+
+/* path to ifconfig binary */
+#undef IFCONFIG_PATH
 
 /* path to ip6tables binary */
 #undef IP6TABLES_PATH
@@ -2301,6 +2307,9 @@
 
 /* whether GNUTLS is available for encryption */
 #undef WITH_GNUTLS
+
+/* set to 1 if it is known or assumed that GNUTLS uses gcrypt */
+#undef WITH_GNUTLS_GCRYPT
 
 /* whether hal >= 0.5.0 is available */
 #undef WITH_HAL

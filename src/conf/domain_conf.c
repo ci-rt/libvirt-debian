@@ -261,7 +261,9 @@ VIR_ENUM_IMPL(virDomainDiskProtocol, VIR_DOMAIN_DISK_PROTOCOL_LAST,
               "rbd",
               "sheepdog",
               "gluster",
-              "iscsi")
+              "iscsi",
+              "http",
+              "ftp")
 
 VIR_ENUM_IMPL(virDomainDiskProtocolTransport, VIR_DOMAIN_DISK_PROTO_TRANS_LAST,
               "tcp",
@@ -310,7 +312,9 @@ VIR_ENUM_IMPL(virDomainController, VIR_DOMAIN_CONTROLLER_TYPE_LAST,
 
 VIR_ENUM_IMPL(virDomainControllerModelPCI, VIR_DOMAIN_CONTROLLER_MODEL_PCI_LAST,
               "pci-root",
-              "pci-bridge")
+              "pcie-root",
+              "pci-bridge",
+              "dmi-to-pci-bridge")
 
 VIR_ENUM_IMPL(virDomainControllerModelSCSI, VIR_DOMAIN_CONTROLLER_MODEL_SCSI_LAST,
               "auto",
@@ -1332,7 +1336,7 @@ void virDomainNetDefFree(virDomainNetDefPtr def)
     VIR_FREE(def);
 }
 
-static void ATTRIBUTE_NONNULL(1)
+void ATTRIBUTE_NONNULL(1)
 virDomainChrSourceDefClear(virDomainChrSourceDefPtr def)
 {
     switch (def->type) {
@@ -2601,7 +2605,7 @@ virDomainDeviceInfoIterateInternal(virDomainDefPtr def,
     }
 
     /* This switch statement is here to trigger compiler warning when adding
-     * a new device type. When you are adding a new field to the swtich you
+     * a new device type. When you are adding a new field to the switch you
      * also have to add a iteration statement above. Otherwise the switch
      * statement has no real function here and should be optimized out by the
      * compiler. */
@@ -4482,7 +4486,8 @@ static int
 virSecurityDeviceLabelDefParseXML(virSecurityDeviceLabelDefPtr **seclabels_rtn,
                                   size_t *nseclabels_rtn,
                                   virSecurityLabelDefPtr *vmSeclabels,
-                                  int nvmSeclabels, xmlXPathContextPtr ctxt)
+                                  int nvmSeclabels, xmlXPathContextPtr ctxt,
+                                  unsigned int flags)
 {
     virSecurityDeviceLabelDefPtr *seclabels;
     size_t nseclabels = 0;
@@ -4490,7 +4495,7 @@ virSecurityDeviceLabelDefParseXML(virSecurityDeviceLabelDefPtr **seclabels_rtn,
     size_t i, j;
     xmlNodePtr *list = NULL;
     virSecurityLabelDefPtr vmDef = NULL;
-    char *model, *relabel, *label;
+    char *model, *relabel, *label, *labelskip;
 
     if ((n = virXPathNodeSet("./seclabel", ctxt, &list)) < 0)
         goto error;
@@ -4544,6 +4549,13 @@ virSecurityDeviceLabelDefParseXML(virSecurityDeviceLabelDefPtr **seclabels_rtn,
         } else {
             seclabels[i]->norelabel = false;
         }
+
+        /* labelskip is only parsed on live images */
+        labelskip = virXMLPropString(list[i], "labelskip");
+        seclabels[i]->labelskip = false;
+        if (labelskip && !(flags & VIR_DOMAIN_XML_INACTIVE))
+            seclabels[i]->labelskip = STREQ(labelskip, "yes");
+        VIR_FREE(labelskip);
 
         ctxt->node = list[i];
         label = virXPathStringLimit("string(./label)",
@@ -4794,7 +4806,6 @@ virDomainDiskDefParseXML(virDomainXMLOptionPtr xmlopt,
                 switch (def->type) {
                 case VIR_DOMAIN_DISK_TYPE_FILE:
                     source = virXMLPropString(cur, "file");
-                    startupPolicy = virXMLPropString(cur, "startupPolicy");
                     break;
                 case VIR_DOMAIN_DISK_TYPE_BLOCK:
                     source = virXMLPropString(cur, "dev");
@@ -4881,7 +4892,6 @@ virDomainDiskDefParseXML(virDomainXMLOptionPtr xmlopt,
                 case VIR_DOMAIN_DISK_TYPE_VOLUME:
                     if (virDomainDiskSourcePoolDefParse(cur, def) < 0)
                         goto error;
-                    startupPolicy = virXMLPropString(cur, "startupPolicy");
                     break;
                 default:
                     virReportError(VIR_ERR_INTERNAL_ERROR,
@@ -4889,6 +4899,8 @@ virDomainDiskDefParseXML(virDomainXMLOptionPtr xmlopt,
                                    virDomainDiskTypeToString(def->type));
                     goto error;
                 }
+
+                startupPolicy = virXMLPropString(cur, "startupPolicy");
 
                 /* People sometimes pass a bogus '' source path
                    when they mean to omit the source element
@@ -5206,7 +5218,8 @@ virDomainDiskDefParseXML(virDomainXMLOptionPtr xmlopt,
                                               &def->nseclabels,
                                               vmSeclabels,
                                               nvmSeclabels,
-                                              ctxt) < 0)
+                                              ctxt,
+                                              flags) < 0)
             goto error;
         ctxt->node = saved_node;
     }
@@ -5462,12 +5475,20 @@ virDomainDiskDefParseXML(virDomainXMLOptionPtr xmlopt,
             goto error;
         }
 
-        if (def->device != VIR_DOMAIN_DISK_DEVICE_CDROM &&
-            def->device != VIR_DOMAIN_DISK_DEVICE_FLOPPY) {
-            virReportError(VIR_ERR_INVALID_ARG,
-                           _("Setting disk %s is allowed only for "
-                             "cdrom or floppy"),
+        if (def->type == VIR_DOMAIN_DISK_TYPE_NETWORK) {
+            virReportError(VIR_ERR_XML_ERROR,
+                           _("Setting disk %s is not allowed for "
+                             "disk of network type"),
                            startupPolicy);
+            goto error;
+        }
+
+        if (def->device != VIR_DOMAIN_DISK_DEVICE_CDROM &&
+            def->device != VIR_DOMAIN_DISK_DEVICE_FLOPPY &&
+            val == VIR_DOMAIN_STARTUP_POLICY_REQUISITE) {
+            virReportError(VIR_ERR_XML_ERROR, "%s",
+                           _("Setting disk 'requisite' is allowed only for "
+                             "cdrom or floppy"));
             goto error;
         }
         def->startupPolicy = val;
@@ -5577,6 +5598,59 @@ error:
 }
 
 
+/* Parse a value located at XPATH within CTXT, and store the
+ * result into val.  If REQUIRED, then the value must exist;
+ * otherwise, the value is optional.  The value is in bytes.
+ * Return 1 on success, 0 if the value was not present and
+ * is not REQUIRED, -1 on failure after issuing error. */
+static int
+virDomainParseScaledValue(const char *xpath,
+                          xmlXPathContextPtr ctxt,
+                          unsigned long long *val,
+                          unsigned long long scale,
+                          unsigned long long max,
+                          bool required)
+{
+    char *xpath_full = NULL;
+    char *unit = NULL;
+    int ret = -1;
+    unsigned long long bytes;
+
+    *val = 0;
+    if (virAsprintf(&xpath_full, "string(%s)", xpath) < 0)
+        goto cleanup;
+    ret = virXPathULongLong(xpath_full, ctxt, &bytes);
+    if (ret < 0) {
+        if (ret == -2)
+            virReportError(VIR_ERR_XML_ERROR,
+                           _("could not parse element %s"),
+                           xpath);
+        else if (required)
+            virReportError(VIR_ERR_XML_ERROR,
+                           _("missing element %s"),
+                           xpath);
+        else
+            ret = 0;
+        goto cleanup;
+    }
+    VIR_FREE(xpath_full);
+
+    if (virAsprintf(&xpath_full, "string(%s/@unit)", xpath) < 0)
+        goto cleanup;
+    unit = virXPathString(xpath_full, ctxt);
+
+    if (virScaleInteger(&bytes, unit, scale, max) < 0)
+        goto cleanup;
+
+    *val = bytes;
+    ret = 1;
+cleanup:
+    VIR_FREE(xpath_full);
+    VIR_FREE(unit);
+    return ret;
+}
+
+
 static int
 virDomainControllerModelTypeFromString(const virDomainControllerDefPtr def,
                                        const char *model)
@@ -5596,6 +5670,7 @@ virDomainControllerModelTypeFromString(const virDomainControllerDefPtr def,
  */
 static virDomainControllerDefPtr
 virDomainControllerDefParseXML(xmlNodePtr node,
+                               xmlXPathContextPtr ctxt,
                                unsigned int flags)
 {
     virDomainControllerDefPtr def;
@@ -5604,6 +5679,10 @@ virDomainControllerDefParseXML(xmlNodePtr node,
     char *idx = NULL;
     char *model = NULL;
     char *queues = NULL;
+    xmlNodePtr saved = ctxt->node;
+    int rc;
+
+    ctxt->node = node;
 
     if (VIR_ALLOC(def) < 0)
         return NULL;
@@ -5714,19 +5793,29 @@ virDomainControllerDefParseXML(xmlNodePtr node,
     case VIR_DOMAIN_CONTROLLER_TYPE_PCI:
         switch (def->model) {
         case VIR_DOMAIN_CONTROLLER_MODEL_PCI_ROOT:
+        case VIR_DOMAIN_CONTROLLER_MODEL_PCIE_ROOT: {
+            unsigned long long bytes;
             if (def->info.type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_NONE) {
                 virReportError(VIR_ERR_XML_ERROR, "%s",
-                               _("pci-root controller should not "
+                               _("pci-root and pcie-root controllers should not "
                                  "have an address"));
                 goto error;
             }
             if (def->idx != 0) {
                 virReportError(VIR_ERR_XML_ERROR, "%s",
-                               _("pci-root controller should have "
-                                 "index 0"));
+                               _("pci-root and pcie-root controllers "
+                                 "should have index 0"));
                 goto error;
             }
+            if ((rc = virDomainParseScaledValue("./pcihole64", ctxt,
+                                                &bytes, 1024,
+                                                1024ULL * ULONG_MAX, false)) < 0)
+                goto error;
 
+            if (rc == 1)
+                def->opts.pciopts.pcihole64 = true;
+            def->opts.pciopts.pcihole64size = VIR_DIV_UP(bytes, 1024);
+        }
         }
 
     default:
@@ -5744,6 +5833,7 @@ virDomainControllerDefParseXML(xmlNodePtr node,
     }
 
 cleanup:
+    ctxt->node = saved;
     VIR_FREE(type);
     VIR_FREE(idx);
     VIR_FREE(model);
@@ -5763,58 +5853,6 @@ virDomainNetGenerateMAC(virDomainXMLOptionPtr xmlopt,
                         virMacAddrPtr mac)
 {
     virMacAddrGenerate(xmlopt->config.macPrefix, mac);
-}
-
-
-/* Parse a value located at XPATH within CTXT, and store the
- * result into val.  If REQUIRED, then the value must exist;
- * otherwise, the value is optional.  The value is in bytes.
- * Return 0 on success, -1 on failure after issuing error. */
-static int
-virDomainParseScaledValue(const char *xpath,
-                          xmlXPathContextPtr ctxt,
-                          unsigned long long *val,
-                          unsigned long long scale,
-                          unsigned long long max,
-                          bool required)
-{
-    char *xpath_full = NULL;
-    char *unit = NULL;
-    int ret = -1;
-    unsigned long long bytes;
-
-    *val = 0;
-    if (virAsprintf(&xpath_full, "string(%s)", xpath) < 0)
-        goto cleanup;
-    ret = virXPathULongLong(xpath_full, ctxt, &bytes);
-    if (ret < 0) {
-        if (ret == -2)
-            virReportError(VIR_ERR_XML_ERROR,
-                           _("could not parse element %s"),
-                           xpath);
-        else if (required)
-            virReportError(VIR_ERR_XML_ERROR,
-                           _("missing element %s"),
-                           xpath);
-        else
-            ret = 0;
-        goto cleanup;
-    }
-    VIR_FREE(xpath_full);
-
-    if (virAsprintf(&xpath_full, "string(%s/@unit)", xpath) < 0)
-        goto cleanup;
-    unit = virXPathString(xpath_full, ctxt);
-
-    if (virScaleInteger(&bytes, unit, scale, max) < 0)
-        goto cleanup;
-
-    *val = bytes;
-    ret = 0;
-cleanup:
-    VIR_FREE(xpath_full);
-    VIR_FREE(unit);
-    return ret;
 }
 
 
@@ -6873,7 +6911,8 @@ virDomainChrSourceDefParseXML(virDomainChrSourceDefPtr def,
                                                           &chr_def->nseclabels,
                                                           vmSeclabels,
                                                           nvmSeclabels,
-                                                          ctxt) < 0) {
+                                                          ctxt,
+                                                          flags) < 0) {
                         ctxt->node = saved_node;
                         goto error;
                     }
@@ -9467,7 +9506,8 @@ virDomainDeviceDefParse(const char *xmlStr,
             goto error;
         break;
     case VIR_DOMAIN_DEVICE_CONTROLLER:
-        if (!(dev->data.controller = virDomainControllerDefParseXML(node, flags)))
+        if (!(dev->data.controller = virDomainControllerDefParseXML(node, ctxt,
+                                                                    flags)))
             goto error;
         break;
     case VIR_DOMAIN_DEVICE_GRAPHICS:
@@ -10960,11 +11000,8 @@ virDomainDefParseXML(xmlDocPtr xml,
         tmp = virXPathString("string(./vcpu[1]/@cpuset)", ctxt);
         if (tmp) {
             if (virBitmapParse(tmp, 0, &def->cpumask,
-                               VIR_DOMAIN_CPUMASK_LEN) < 0) {
-                virReportError(VIR_ERR_XML_ERROR,
-                               "%s", _("topology cpuset syntax error"));
+                               VIR_DOMAIN_CPUMASK_LEN) < 0)
                 goto error;
-            }
             VIR_FREE(tmp);
         }
     }
@@ -11678,6 +11715,7 @@ virDomainDefParseXML(xmlDocPtr xml,
 
     for (i = 0; i < n; i++) {
         virDomainControllerDefPtr controller = virDomainControllerDefParseXML(nodes[i],
+                                                                              ctxt,
                                                                               flags);
         if (!controller)
             goto error;
@@ -11717,12 +11755,6 @@ virDomainDefParseXML(xmlDocPtr xml,
                        _("No master USB controller specified"));
         goto error;
     }
-
-    if (def->virtType == VIR_DOMAIN_VIRT_QEMU ||
-        def->virtType == VIR_DOMAIN_VIRT_KQEMU ||
-        def->virtType == VIR_DOMAIN_VIRT_KVM)
-        if (virDomainDefMaybeAddController(def, VIR_DOMAIN_CONTROLLER_TYPE_USB, 0, -1) < 0)
-            goto error;
 
     /* analysis of the resource leases */
     if ((n = virXPathNodeSet("./devices/lease", ctxt, &nodes)) < 0) {
@@ -14013,14 +14045,23 @@ virSecurityLabelDefFormat(virBufferPtr buf, virSecurityLabelDefPtr def)
 
 static void
 virSecurityDeviceLabelDefFormat(virBufferPtr buf,
-                                virSecurityDeviceLabelDefPtr def)
+                                virSecurityDeviceLabelDefPtr def,
+                                unsigned int flags)
 {
+    /* For offline output, skip elements that allow labels but have no
+     * label specified (possible if labelskip was ignored on input).  */
+    if ((flags & VIR_DOMAIN_XML_INACTIVE) && !def->label && !def->norelabel)
+        return;
+
     virBufferAddLit(buf, "<seclabel");
 
     if (def->model)
         virBufferAsprintf(buf, " model='%s'", def->model);
 
-    virBufferAsprintf(buf, " relabel='%s'", def->norelabel ? "no" : "yes");
+    if (def->labelskip)
+        virBufferAddLit(buf, " labelskip='yes'");
+    else
+        virBufferAsprintf(buf, " relabel='%s'", def->norelabel ? "no" : "yes");
 
     if (def->label) {
         virBufferAddLit(buf, ">\n");
@@ -14095,7 +14136,8 @@ virDomainDiskBlockIoDefFormat(virBufferPtr buf,
 
 static int
 virDomainDiskSourceDefFormat(virBufferPtr buf,
-                             virDomainDiskDefPtr def)
+                             virDomainDiskDefPtr def,
+                             unsigned int flags)
 {
     int n;
     const char *startupPolicy = virDomainStartupPolicyTypeToString(def->startupPolicy);
@@ -14114,7 +14156,8 @@ virDomainDiskSourceDefFormat(virBufferPtr buf,
                 virBufferAddLit(buf, ">\n");
                 virBufferAdjustIndent(buf, 8);
                 for (n = 0; n < def->nseclabels; n++)
-                    virSecurityDeviceLabelDefFormat(buf, def->seclabels[n]);
+                    virSecurityDeviceLabelDefFormat(buf, def->seclabels[n],
+                                                    flags);
                 virBufferAdjustIndent(buf, -8);
                 virBufferAddLit(buf, "      </source>\n");
             } else {
@@ -14124,11 +14167,15 @@ virDomainDiskSourceDefFormat(virBufferPtr buf,
         case VIR_DOMAIN_DISK_TYPE_BLOCK:
             virBufferEscapeString(buf, "      <source dev='%s'",
                                   def->src);
+            if (def->startupPolicy)
+                virBufferEscapeString(buf, " startupPolicy='%s'",
+                                      startupPolicy);
             if (def->nseclabels) {
                 virBufferAddLit(buf, ">\n");
                 virBufferAdjustIndent(buf, 8);
                 for (n = 0; n < def->nseclabels; n++)
-                    virSecurityDeviceLabelDefFormat(buf, def->seclabels[n]);
+                    virSecurityDeviceLabelDefFormat(buf, def->seclabels[n],
+                                                    flags);
                 virBufferAdjustIndent(buf, -8);
                 virBufferAddLit(buf, "      </source>\n");
             } else {
@@ -14136,8 +14183,12 @@ virDomainDiskSourceDefFormat(virBufferPtr buf,
             }
             break;
         case VIR_DOMAIN_DISK_TYPE_DIR:
-            virBufferEscapeString(buf, "      <source dir='%s'/>\n",
+            virBufferEscapeString(buf, "      <source dir='%s'",
                                   def->src);
+            if (def->startupPolicy)
+                virBufferEscapeString(buf, " startupPolicy='%s'",
+                                      startupPolicy);
+            virBufferAddLit(buf, "/>\n");
             break;
         case VIR_DOMAIN_DISK_TYPE_NETWORK:
             virBufferAsprintf(buf, "      <source protocol='%s'",
@@ -14189,7 +14240,8 @@ virDomainDiskSourceDefFormat(virBufferPtr buf,
                 virBufferAddLit(buf, ">\n");
                 virBufferAdjustIndent(buf, 8);
                 for (n = 0; n < def->nseclabels; n++)
-                    virSecurityDeviceLabelDefFormat(buf, def->seclabels[n]);
+                    virSecurityDeviceLabelDefFormat(buf, def->seclabels[n],
+                                                    flags);
                 virBufferAdjustIndent(buf, -8);
                 virBufferAddLit(buf, "      </source>\n");
             } else {
@@ -14325,7 +14377,7 @@ virDomainDiskDefFormat(virBufferPtr buf,
         virBufferAddLit(buf, "      </auth>\n");
     }
 
-    if (virDomainDiskSourceDefFormat(buf, def) < 0)
+    if (virDomainDiskSourceDefFormat(buf, def, flags) < 0)
         return -1;
     virDomainDiskGeometryDefFormat(buf, def);
     virDomainDiskBlockIoDefFormat(buf, def);
@@ -14442,6 +14494,7 @@ virDomainControllerDefFormat(virBufferPtr buf,
 {
     const char *type = virDomainControllerTypeToString(def->type);
     const char *model = NULL;
+    bool pcihole64 = false;
 
     if (!type) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
@@ -14479,11 +14532,17 @@ virDomainControllerDefFormat(virBufferPtr buf,
         }
         break;
 
+    case VIR_DOMAIN_CONTROLLER_TYPE_PCI:
+        if (def->opts.pciopts.pcihole64)
+            pcihole64 = true;
+        break;
+
     default:
         break;
     }
 
-    if (def->queues || virDomainDeviceInfoIsSet(&def->info, flags)) {
+    if (def->queues || virDomainDeviceInfoIsSet(&def->info, flags) ||
+        pcihole64) {
         virBufferAddLit(buf, ">\n");
 
         if (def->queues)
@@ -14492,6 +14551,11 @@ virDomainControllerDefFormat(virBufferPtr buf,
         if (virDomainDeviceInfoIsSet(&def->info, flags) &&
             virDomainDeviceInfoFormat(buf, &def->info, flags) < 0)
             return -1;
+
+        if (pcihole64) {
+            virBufferAsprintf(buf, "      <pcihole64 unit='KiB'>%lu</"
+                              "pcihole64>\n", def->opts.pciopts.pcihole64size);
+        }
 
         virBufferAddLit(buf, "    </controller>\n");
     } else {
@@ -15177,7 +15241,7 @@ virDomainChrDefFormat(virBufferPtr buf,
     if (def->seclabels && def->nseclabels > 0) {
         virBufferAdjustIndent(buf, 2);
         for (n = 0; n < def->nseclabels; n++)
-            virSecurityDeviceLabelDefFormat(buf, def->seclabels[n]);
+            virSecurityDeviceLabelDefFormat(buf, def->seclabels[n], flags);
         virBufferAdjustIndent(buf, -2);
     }
 

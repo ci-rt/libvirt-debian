@@ -423,7 +423,7 @@ vshNetworkListFree(vshNetworkListPtr list)
 {
     size_t i;
 
-    if (list && list->nnets) {
+    if (list && list->nets) {
         for (i = 0; i < list->nnets; i++) {
             if (list->nets[i])
                 virNetworkFree(list->nets[i]);
@@ -918,7 +918,7 @@ cmdNetworkUpdate(vshControl *ctl, const vshCmd *cmd)
     const char *affected;
 
     if (!(network = vshCommandOptNetwork(ctl, cmd, NULL)))
-        goto cleanup;
+        return false;
 
     if (vshCommandOptStringReq(ctl, cmd, "command", &commandStr) < 0)
         goto cleanup;

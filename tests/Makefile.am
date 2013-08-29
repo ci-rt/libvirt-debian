@@ -50,6 +50,7 @@ endif
 
 LDADDS = \
         $(WARN_CFLAGS) \
+	$(NO_INDIRECT_LDFLAGS) \
 	$(PROBES_O) \
 	../src/libvirt.la \
 	../gnulib/lib/libgnu.la
@@ -72,6 +73,8 @@ EXTRA_DIST =		\
 	networkxml2xmlin \
 	networkxml2xmlout \
 	networkxml2confdata \
+	networkxml2xmlupdatein \
+	networkxml2xmlupdateout \
 	nodedevschemadata \
 	nodedevschematest \
 	nodeinfodata     \
@@ -98,6 +101,7 @@ EXTRA_DIST =		\
 	storagevolxml2xmlout \
 	sysinfodata \
 	test-lib.sh	\
+	virsh-uriprecedence \
 	vmx2xmldata \
 	xencapsdata \
 	xmconfigdata \
@@ -134,13 +138,13 @@ test_programs += virdbustest \
 endif
 
 if WITH_GNUTLS
-test_programs += virnettlscontexttest
+test_programs += virnettlscontexttest virnettlssessiontest
 endif
 
 if WITH_SECDRIVER_SELINUX
+if WITH_ATTR
 test_programs += securityselinuxtest
 if WITH_QEMU
-if WITH_ATTR
 test_programs += securityselinuxlabeltest
 endif
 endif
@@ -161,7 +165,8 @@ endif
 if WITH_QEMU
 test_programs += qemuxml2argvtest qemuxml2xmltest qemuxmlnstest \
 	qemuargv2xmltest qemuhelptest domainsnapshotxml2xmltest \
-	qemumonitortest qemumonitorjsontest qemuhotplugtest
+	qemumonitortest qemumonitorjsontest qemuhotplugtest \
+	qemuagenttest
 endif
 
 if WITH_LXC
@@ -188,7 +193,7 @@ if WITH_YAJL
 test_programs += jsontest
 endif
 
-test_programs += networkxml2xmltest
+test_programs += networkxml2xmltest networkxml2xmlupdatetest
 
 if WITH_NETWORK
 test_programs += networkxml2conftest
@@ -234,6 +239,7 @@ test_scripts +=				\
 	read-bufsiz			\
 	read-non-seekable		\
 	start				\
+	virsh-uriprecedence		\
 	vcpupin				\
 	virsh-all			\
 	virsh-optparse			\
@@ -306,6 +312,7 @@ lv_abs_top_builddir=`cd '$(top_builddir)'; pwd`
 path_add = $(subst :,$(PATH_SEPARATOR),\
 	$(subst !,$(lv_abs_top_builddir)/,!daemon:!tools:!tests))
 
+VIR_TEST_EXPENSIVE ?= $(VIR_TEST_EXPENSIVE_DEFAULT)
 TESTS_ENVIRONMENT =				\
   abs_top_builddir=$(lv_abs_top_builddir)	\
   abs_top_srcdir=`cd '$(top_srcdir)'; pwd`	\
@@ -317,6 +324,7 @@ TESTS_ENVIRONMENT =				\
   LIBVIRT_DRIVER_DIR="$(abs_top_builddir)/src/.libs" \
   LIBVIRT_AUTOSTART=0				\
   LC_ALL=C					\
+  VIR_TEST_EXPENSIVE=$(VIR_TEST_EXPENSIVE)	\
   $(VG)
 
 
@@ -388,7 +396,7 @@ qemu_LDADDS += $(LDADDS)
 qemuxml2argvtest_SOURCES = \
 	qemuxml2argvtest.c testutilsqemu.c testutilsqemu.h \
 	testutils.c testutils.h
-qemuxml2argvtest_LDADD = $(qemu_LDADDS)
+qemuxml2argvtest_LDADD = $(qemu_LDADDS) $(LIBXML_LIBS)
 
 qemuxml2xmltest_SOURCES = \
 	qemuxml2xmltest.c testutilsqemu.c testutilsqemu.h \
@@ -416,14 +424,21 @@ qemumonitorjsontest_SOURCES = \
 	testutils.c testutils.h \
 	testutilsqemu.c testutilsqemu.h \
 	$(NULL)
-qemumonitorjsontest_LDADD = $(qemu_LDADDS) libqemumonitortestutils.la
+qemumonitorjsontest_LDADD = libqemumonitortestutils.la $(qemu_LDADDS)
+
+qemuagenttest_SOURCES = \
+	qemuagenttest.c \
+	testutils.c testutils.h \
+	testutilsqemu.c testutilsqemu.h \
+	$(NULL)
+qemuagenttest_LDADD = libqemumonitortestutils.la $(qemu_LDADDS)
 
 qemuhotplugtest_SOURCES = \
 	qemuhotplugtest.c \
 	testutils.c testutils.h \
 	testutilsqemu.c testutilsqemu.h \
 	$(NULL)
-qemuhotplugtest_LDADD = $(qemu_LDADDS) libqemumonitortestutils.la
+qemuhotplugtest_LDADD = libqemumonitortestutils.la $(qemu_LDADDS)
 
 domainsnapshotxml2xmltest_SOURCES = \
 	domainsnapshotxml2xmltest.c testutilsqemu.c testutilsqemu.h \
@@ -434,6 +449,7 @@ EXTRA_DIST += qemuxml2argvtest.c qemuxml2xmltest.c qemuargv2xmltest.c \
 	qemuxmlnstest.c qemuhelptest.c domainsnapshotxml2xmltest.c \
 	qemumonitortest.c testutilsqemu.c testutilsqemu.h \
 	qemumonitorjsontest.c qemuhotplugtest.c \
+	qemuagenttest.c \
 	$(QEMUMONITORTESTUTILS_SOURCES)
 endif
 
@@ -490,6 +506,11 @@ networkxml2xmltest_SOURCES = \
 	networkxml2xmltest.c \
 	testutils.c testutils.h
 networkxml2xmltest_LDADD = $(LDADDS)
+
+networkxml2xmlupdatetest_SOURCES = \
+	networkxml2xmlupdatetest.c \
+	testutils.c testutils.h
+networkxml2xmlupdatetest_LDADD = $(LDADDS)
 
 if WITH_NETWORK
 networkxml2conftest_SOURCES = \
@@ -548,7 +569,7 @@ interfacexml2xmltest_LDADD = $(LDADDS)
 cputest_SOURCES = \
 	cputest.c \
 	testutils.c testutils.h
-cputest_LDADD = $(LDADDS)
+cputest_LDADD = $(LDADDS) $(LIBXML_LIBS)
 
 virshtest_SOURCES = \
 	virshtest.c \
@@ -592,17 +613,28 @@ virnetsockettest_LDADD = $(LDADDS)
 
 if WITH_GNUTLS
 virnettlscontexttest_SOURCES = \
-	virnettlscontexttest.c testutils.h testutils.c
-virnettlscontexttest_LDADD = $(LDADDS)
+	virnettlscontexttest.c \
+	virnettlshelpers.h virnettlshelpers.c \
+	testutils.h testutils.c
+virnettlscontexttest_LDADD = $(LDADDS) $(GNUTLS_LIBS)
+virnettlssessiontest_SOURCES = \
+	virnettlssessiontest.c \
+	virnettlshelpers.h virnettlshelpers.c \
+	testutils.h testutils.c
+virnettlssessiontest_LDADD = $(LDADDS) $(GNUTLS_LIBS)
 if HAVE_LIBTASN1
 virnettlscontexttest_SOURCES += pkix_asn1_tab.c
 virnettlscontexttest_LDADD += -ltasn1
+virnettlssessiontest_SOURCES += pkix_asn1_tab.c
+virnettlssessiontest_LDADD += -ltasn1
 else
 EXTRA_DIST += pkix_asn1_tab.c
 endif
 else
 EXTRA_DIST += \
-	virnettlscontexttest.c testutils.h testutils.c pkix_asn1_tab.c
+	virnettlscontexttest.c virnettlssessiontest.c \
+	virnettlshelpers.h virnettlshelpers.c \
+	testutils.h testutils.c pkix_asn1_tab.c
 endif
 
 virtimetest_SOURCES = \
@@ -653,7 +685,7 @@ if WITH_DBUS
 virdbustest_SOURCES = \
 	virdbustest.c testutils.h testutils.c
 virdbustest_CFLAGS = $(AM_CFLAGS) $(DBUS_CFLAGS)
-virdbustest_LDADD = $(LDADDS)
+virdbustest_LDADD = $(LDADDS) $(DBUS_LIBS)
 
 virsystemdtest_SOURCES = \
 	virsystemdtest.c testutils.h testutils.c
@@ -687,6 +719,7 @@ seclabeltest_SOURCES = \
 seclabeltest_LDADD = $(LDADDS)
 
 if WITH_SECDRIVER_SELINUX
+if WITH_ATTR
 if WITH_TESTS
 noinst_LTLIBRARIES += libsecurityselinuxhelper.la
 else
@@ -700,16 +733,15 @@ libsecurityselinuxhelper_la_LDFLAGS = -module -avoid-version \
 
 securityselinuxtest_SOURCES = \
 	securityselinuxtest.c testutils.h testutils.c
-securityselinuxtest_LDADD = $(LDADDS)
+securityselinuxtest_LDADD = $(LDADDS) $(SELINUX_LIBS)
 securityselinuxtest_DEPENDENCIES = libsecurityselinuxhelper.la \
 	../src/libvirt.la
 
 if WITH_QEMU
-if WITH_ATTR
 securityselinuxlabeltest_SOURCES = \
 	securityselinuxlabeltest.c testutils.h testutils.c \
         testutilsqemu.h testutilsqemu.c
-securityselinuxlabeltest_LDADD = $(qemu_LDADDS)
+securityselinuxlabeltest_LDADD = $(qemu_LDADDS) $(SELINUX_LIBS)
 securityselinuxlabeltest_DEPENDENCIES = libsecurityselinuxhelper.la \
 	../src/libvirt.la
 endif

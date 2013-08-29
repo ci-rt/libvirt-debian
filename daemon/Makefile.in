@@ -347,6 +347,7 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/virt-curl.m4 $(top_srcdir)/m4/virt-dbus.m4 \
 	$(top_srcdir)/m4/virt-fuse.m4 $(top_srcdir)/m4/virt-hal.m4 \
 	$(top_srcdir)/m4/virt-lib.m4 \
+	$(top_srcdir)/m4/virt-linker-no-indirect.m4 \
 	$(top_srcdir)/m4/virt-linker-relro.m4 \
 	$(top_srcdir)/m4/virt-netcf.m4 \
 	$(top_srcdir)/m4/virt-numactl.m4 \
@@ -1342,6 +1343,7 @@ HAVE__BOOL = @HAVE__BOOL@
 HAVE__EXIT = @HAVE__EXIT@
 HOSTENT_LIB = @HOSTENT_LIB@
 HTML_DIR = @HTML_DIR@
+IFCONFIG_PATH = @IFCONFIG_PATH@
 INCLUDE_NEXT = @INCLUDE_NEXT@
 INCLUDE_NEXT_AS_FIRST_DIRECTIVE = @INCLUDE_NEXT_AS_FIRST_DIRECTIVE@
 INET_NTOP_LIB = @INET_NTOP_LIB@
@@ -1523,6 +1525,7 @@ NEXT_WCHAR_H = @NEXT_WCHAR_H@
 NEXT_WCTYPE_H = @NEXT_WCTYPE_H@
 NM = @NM@
 NMEDIT = @NMEDIT@
+NO_INDIRECT_LDFLAGS = @NO_INDIRECT_LDFLAGS@
 NUMACTL_CFLAGS = @NUMACTL_CFLAGS@
 NUMACTL_LIBS = @NUMACTL_LIBS@
 NUMAD = @NUMAD@
@@ -1837,6 +1840,7 @@ VGREMOVE = @VGREMOVE@
 VGS = @VGS@
 VGSCAN = @VGSCAN@
 VIRSH_LIBS = @VIRSH_LIBS@
+VIR_TEST_EXPENSIVE_DEFAULT = @VIR_TEST_EXPENSIVE_DEFAULT@
 WARN_CFLAGS = @WARN_CFLAGS@
 WARN_PYTHON_CFLAGS = @WARN_PYTHON_CFLAGS@
 WCHAR_T_SUFFIX = @WCHAR_T_SUFFIX@
@@ -1995,9 +1999,12 @@ QEMU_PROTOCOL = $(top_srcdir)/src/remote/qemu_protocol.x
 @WITH_LIBVIRTD_TRUE@	-DQEMUD_PID_FILE="\"$(QEMUD_PID_FILE)\""
 
 @WITH_LIBVIRTD_TRUE@libvirtd_LDFLAGS = \
+@WITH_LIBVIRTD_TRUE@	$(RELRO_LDFLAGS)				\
 @WITH_LIBVIRTD_TRUE@	$(PIE_LDFLAGS)					\
 @WITH_LIBVIRTD_TRUE@	$(RELRO_LDFLAGS)				\
-@WITH_LIBVIRTD_TRUE@	$(COVERAGE_LDFLAGS)
+@WITH_LIBVIRTD_TRUE@	$(COVERAGE_LDFLAGS)				\
+@WITH_LIBVIRTD_TRUE@	$(NO_INDIRECT_LDFLAGS)				\
+@WITH_LIBVIRTD_TRUE@	$(NULL)
 
 
 # This must be added last, since functions it provides/replaces

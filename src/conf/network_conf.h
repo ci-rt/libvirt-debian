@@ -115,6 +115,7 @@ struct _virNetworkDNSHostDef {
 typedef struct _virNetworkDNSDef virNetworkDNSDef;
 typedef virNetworkDNSDef *virNetworkDNSDefPtr;
 struct _virNetworkDNSDef {
+    bool forwardPlainNames;
     size_t ntxts;
     virNetworkDNSTxtDefPtr txts;
     size_t nhosts;
@@ -426,5 +427,14 @@ int virNetworkObjListExport(virConnectPtr conn,
                             virNetworkPtr **nets,
                             virNetworkObjListFilter filter,
                             unsigned int flags);
+
+/* for testing */
+int
+virNetworkDefUpdateSection(virNetworkDefPtr def,
+                           unsigned int command, /* virNetworkUpdateCommand */
+                           unsigned int section, /* virNetworkUpdateSection */
+                           int parentIndex,
+                           const char *xml,
+                           unsigned int flags);  /* virNetworkUpdateFlags */
 
 #endif /* __NETWORK_CONF_H__ */

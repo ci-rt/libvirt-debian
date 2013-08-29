@@ -64,126 +64,171 @@ static const char *xen_cap_re = "(xen|hvm)-[[:digit:]]+\\.[[:digit:]]+-(x86_32|x
 static regex_t xen_cap_rec;
 
 
-static virCapsPtr
-libxlBuildCapabilities(virArch hostarch,
-                       int host_pae,
-                       struct guest_arch *guest_archs,
-                       int nr_guest_archs)
+static int
+libxlCapsInitHost(libxl_ctx *ctx, virCapsPtr caps)
 {
-    virCapsPtr caps;
-    size_t i;
+    int err;
+    libxl_physinfo phy_info;
+    int host_pae;
 
-    if ((caps = virCapabilitiesNew(hostarch, 1, 1)) == NULL)
-        goto no_memory;
-
-    if (host_pae &&
-        virCapabilitiesAddHostFeature(caps, "pae") < 0)
-        goto no_memory;
-
-    for (i = 0; i < nr_guest_archs; ++i) {
-        virCapsGuestPtr guest;
-        char const *const xen_machines[] = {guest_archs[i].hvm ? "xenfv" : "xenpv"};
-        virCapsGuestMachinePtr *machines;
-
-        if ((machines = virCapabilitiesAllocMachines(xen_machines, 1)) == NULL)
-            goto no_memory;
-
-        if ((guest = virCapabilitiesAddGuest(caps,
-                                             guest_archs[i].hvm ? "hvm" : "xen",
-                                             guest_archs[i].arch,
-                                             ((hostarch == VIR_ARCH_X86_64) ?
-                                              "/usr/lib64/xen/bin/qemu-dm" :
-                                              "/usr/lib/xen/bin/qemu-dm"),
-                                             (guest_archs[i].hvm ?
-                                              "/usr/lib/xen/boot/hvmloader" :
-                                              NULL),
-                                             1,
-                                             machines)) == NULL) {
-            virCapabilitiesFreeMachines(machines, 1);
-            goto no_memory;
-        }
-        machines = NULL;
-
-        if (virCapabilitiesAddGuestDomain(guest,
-                                          "xen",
-                                          NULL,
-                                          NULL,
-                                          0,
-                                          NULL) == NULL)
-            goto no_memory;
-
-        if (guest_archs[i].pae &&
-            virCapabilitiesAddGuestFeature(guest,
-                                           "pae",
-                                           1,
-                                           0) == NULL)
-            goto no_memory;
-
-        if (guest_archs[i].nonpae &&
-            virCapabilitiesAddGuestFeature(guest,
-                                           "nonpae",
-                                           1,
-                                           0) == NULL)
-            goto no_memory;
-
-        if (guest_archs[i].ia64_be &&
-            virCapabilitiesAddGuestFeature(guest,
-                                           "ia64_be",
-                                           1,
-                                           0) == NULL)
-            goto no_memory;
-
-        if (guest_archs[i].hvm) {
-            if (virCapabilitiesAddGuestFeature(guest,
-                                               "acpi",
-                                               1,
-                                               1) == NULL)
-                goto no_memory;
-
-            if (virCapabilitiesAddGuestFeature(guest, "apic",
-                                               1,
-                                               0) == NULL)
-                goto no_memory;
-
-            if (virCapabilitiesAddGuestFeature(guest,
-                                               "hap",
-                                               0,
-                                               1) == NULL)
-                goto no_memory;
-        }
+    err = regcomp(&xen_cap_rec, xen_cap_re, REG_EXTENDED);
+    if (err != 0) {
+        char error[100];
+        regerror(err, &xen_cap_rec, error, sizeof(error));
+        regfree(&xen_cap_rec);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Failed to compile regex %s"), error);
+        return -1;
     }
 
-    return caps;
-
- no_memory:
-    virObjectUnref(caps);
-    return NULL;
-}
-
-static virCapsPtr
-libxlMakeCapabilitiesInternal(virArch hostarch,
-                              libxl_physinfo *phy_info,
-                              char *capabilities)
-{
-    char *str, *token;
-    regmatch_t subs[4];
-    char *saveptr = NULL;
-    size_t i;
-
-    int host_pae = 0;
-    struct guest_arch guest_archs[32];
-    int nr_guest_archs = 0;
-    virCapsPtr caps = NULL;
-
-    memset(guest_archs, 0, sizeof(guest_archs));
+    if (libxl_get_physinfo(ctx, &phy_info) != 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Failed to get node physical info from libxenlight"));
+        return -1;
+    }
 
     /* hw_caps is an array of 32-bit words whose meaning is listed in
      * xen-unstable.hg/xen/include/asm-x86/cpufeature.h.  Each feature
      * is defined in the form X*32+Y, corresponding to the Y'th bit in
      * the X'th 32-bit word of hw_cap.
      */
-    host_pae = phy_info->hw_cap[0] & LIBXL_X86_FEATURE_PAE_MASK;
+    host_pae = phy_info.hw_cap[0] & LIBXL_X86_FEATURE_PAE_MASK;
+    if (host_pae &&
+        virCapabilitiesAddHostFeature(caps, "pae") < 0)
+        return -1;
 
+    return 0;
+}
+
+static int
+libxlCapsInitNuma(libxl_ctx *ctx, virCapsPtr caps)
+{
+    libxl_numainfo *numa_info = NULL;
+    libxl_cputopology *cpu_topo = NULL;
+    int nr_nodes = 0, nr_cpus = 0;
+    virCapsHostNUMACellCPUPtr *cpus = NULL;
+    int *nr_cpus_node = NULL;
+    size_t i;
+    int ret = -1;
+
+    /* Let's try to fetch all the topology information */
+    numa_info = libxl_get_numainfo(ctx, &nr_nodes);
+    if (numa_info == NULL || nr_nodes == 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("libxl_get_numainfo failed"));
+        goto cleanup;
+    } else {
+        cpu_topo = libxl_get_cpu_topology(ctx, &nr_cpus);
+        if (cpu_topo == NULL || nr_cpus == 0) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("libxl_get_cpu_topology failed"));
+            goto cleanup;
+        }
+    }
+
+    if (VIR_ALLOC_N(cpus, nr_nodes) < 0)
+        goto cleanup;
+
+    if (VIR_ALLOC_N(nr_cpus_node, nr_nodes) < 0)
+        goto cleanup;
+
+    /* For each node, prepare a list of CPUs belonging to that node */
+    for (i = 0; i < nr_cpus; i++) {
+        int node = cpu_topo[i].node;
+
+        if (cpu_topo[i].core == LIBXL_CPUTOPOLOGY_INVALID_ENTRY)
+            continue;
+
+        nr_cpus_node[node]++;
+
+        if (nr_cpus_node[node] == 1) {
+            if (VIR_ALLOC(cpus[node]) < 0)
+                goto cleanup;
+        } else {
+            if (VIR_REALLOC_N(cpus[node], nr_cpus_node[node]) < 0)
+                goto cleanup;
+        }
+
+        /* Mapping between what libxl tells and what libvirt wants */
+        cpus[node][nr_cpus_node[node]-1].id = i;
+        cpus[node][nr_cpus_node[node]-1].socket_id = cpu_topo[i].socket;
+        cpus[node][nr_cpus_node[node]-1].core_id = cpu_topo[i].core;
+        /* Allocate the siblings maps. We will be filling them later */
+        cpus[node][nr_cpus_node[node]-1].siblings = virBitmapNew(nr_cpus);
+        if (!cpus[node][nr_cpus_node[node]-1].siblings) {
+            virReportOOMError();
+            goto cleanup;
+        }
+    }
+
+    /* Let's now populate the siblings bitmaps */
+    for (i = 0; i < nr_cpus; i++) {
+        int node = cpu_topo[i].node;
+        size_t j;
+
+        if (cpu_topo[i].core == LIBXL_CPUTOPOLOGY_INVALID_ENTRY)
+            continue;
+
+        for (j = 0; j < nr_cpus_node[node]; j++) {
+            if (cpus[node][j].socket_id == cpu_topo[i].socket &&
+                cpus[node][j].core_id == cpu_topo[i].core)
+                ignore_value(virBitmapSetBit(cpus[node][j].siblings, i));
+        }
+    }
+
+    for (i = 0; i < nr_nodes; i++) {
+        if (numa_info[i].size == LIBXL_NUMAINFO_INVALID_ENTRY)
+            continue;
+
+        if (virCapabilitiesAddHostNUMACell(caps, i, nr_cpus_node[i],
+                                           numa_info[i].size / 1024,
+                                           cpus[i]) < 0) {
+            virCapabilitiesClearHostNUMACellCPUTopology(cpus[i],
+                                                        nr_cpus_node[i]);
+            goto cleanup;
+        }
+
+        /* This is safe, as the CPU list is now stored in the NUMA cell */
+        cpus[i] = NULL;
+    }
+
+    ret = 0;
+
+ cleanup:
+    if (ret != 0) {
+        for (i = 0; cpus && i < nr_nodes; i++)
+            VIR_FREE(cpus[i]);
+        virCapabilitiesFreeNUMAInfo(caps);
+    }
+
+    VIR_FREE(cpus);
+    VIR_FREE(nr_cpus_node);
+    libxl_cputopology_list_free(cpu_topo, nr_cpus);
+    libxl_numainfo_list_free(numa_info, nr_nodes);
+
+    return ret;
+}
+
+static int
+libxlCapsInitGuests(libxl_ctx *ctx, virCapsPtr caps)
+{
+    const libxl_version_info *ver_info;
+    char *str, *token;
+    regmatch_t subs[4];
+    char *saveptr = NULL;
+    size_t i;
+    virArch hostarch = caps->host.arch;
+
+    struct guest_arch guest_archs[32];
+    int nr_guest_archs = 0;
+
+    memset(guest_archs, 0, sizeof(guest_archs));
+
+    if ((ver_info = libxl_get_version_info(ctx)) == NULL) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Failed to get version info from libxenlight"));
+        return -1;
+    }
     /* Format of capabilities string is documented in the code in
      * xen-unstable.hg/xen/arch/.../setup.c.
      *
@@ -209,7 +254,7 @@ libxlMakeCapabilitiesInternal(virArch hostarch,
     /* Split capabilities string into tokens. strtok_r is OK here because
      * we "own" the buffer.  Parse out the features from each token.
      */
-    for (str = capabilities, nr_guest_archs = 0;
+    for (str = ver_info->capabilities, nr_guest_archs = 0;
          nr_guest_archs < sizeof(guest_archs) / sizeof(guest_archs[0])
                  && (token = strtok_r(str, " ", &saveptr)) != NULL;
          str = NULL) {
@@ -246,9 +291,8 @@ libxlMakeCapabilitiesInternal(virArch hostarch,
             /* Search for existing matching (model,hvm) tuple */
             for (i = 0; i < nr_guest_archs; i++) {
                 if ((guest_archs[i].arch == arch) &&
-                    guest_archs[i].hvm == hvm) {
+                    guest_archs[i].hvm == hvm)
                     break;
-                }
             }
 
             /* Too many arch flavours - highly unlikely ! */
@@ -274,17 +318,80 @@ libxlMakeCapabilitiesInternal(virArch hostarch,
         }
     }
 
-    if ((caps = libxlBuildCapabilities(hostarch,
-                                       host_pae,
-                                       guest_archs,
-                                       nr_guest_archs)) == NULL)
-        goto error;
+    for (i = 0; i < nr_guest_archs; ++i) {
+        virCapsGuestPtr guest;
+        char const *const xen_machines[] = {guest_archs[i].hvm ? "xenfv" : "xenpv"};
+        virCapsGuestMachinePtr *machines;
 
-    return caps;
+        if ((machines = virCapabilitiesAllocMachines(xen_machines, 1)) == NULL)
+            return -1;
 
- error:
-    virObjectUnref(caps);
-    return NULL;
+        if ((guest = virCapabilitiesAddGuest(caps,
+                                             guest_archs[i].hvm ? "hvm" : "xen",
+                                             guest_archs[i].arch,
+                                             ((hostarch == VIR_ARCH_X86_64) ?
+                                              "/usr/lib64/xen/bin/qemu-dm" :
+                                              "/usr/lib/xen/bin/qemu-dm"),
+                                             (guest_archs[i].hvm ?
+                                              "/usr/lib/xen/boot/hvmloader" :
+                                              NULL),
+                                             1,
+                                             machines)) == NULL) {
+            virCapabilitiesFreeMachines(machines, 1);
+            return -1;
+        }
+        machines = NULL;
+
+        if (virCapabilitiesAddGuestDomain(guest,
+                                          "xen",
+                                          NULL,
+                                          NULL,
+                                          0,
+                                          NULL) == NULL)
+            return -1;
+
+        if (guest_archs[i].pae &&
+            virCapabilitiesAddGuestFeature(guest,
+                                           "pae",
+                                           1,
+                                           0) == NULL)
+            return -1;
+
+        if (guest_archs[i].nonpae &&
+            virCapabilitiesAddGuestFeature(guest,
+                                           "nonpae",
+                                           1,
+                                           0) == NULL)
+            return -1;
+
+        if (guest_archs[i].ia64_be &&
+            virCapabilitiesAddGuestFeature(guest,
+                                           "ia64_be",
+                                           1,
+                                           0) == NULL)
+            return -1;
+
+        if (guest_archs[i].hvm) {
+            if (virCapabilitiesAddGuestFeature(guest,
+                                               "acpi",
+                                               1,
+                                               1) == NULL)
+                return -1;
+
+            if (virCapabilitiesAddGuestFeature(guest, "apic",
+                                               1,
+                                               0) == NULL)
+                return -1;
+
+            if (virCapabilitiesAddGuestFeature(guest,
+                                               "hap",
+                                               0,
+                                               1) == NULL)
+                return -1;
+        }
+    }
+
+    return 0;
 }
 
 static int
@@ -328,6 +435,92 @@ libxlMakeDomCreateInfo(libxlDriverPrivatePtr driver,
 error:
     libxl_domain_create_info_dispose(c_info);
     return -1;
+}
+
+static int
+libxlMakeChrdevStr(virDomainChrDefPtr def, char **buf)
+{
+    virDomainChrSourceDef srcdef = def->source;
+    const char *type = virDomainChrTypeToString(srcdef.type);
+
+    if (!type) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                       "%s", _("unknown chrdev type"));
+        return -1;
+    }
+
+    switch (srcdef.type) {
+    case VIR_DOMAIN_CHR_TYPE_NULL:
+    case VIR_DOMAIN_CHR_TYPE_STDIO:
+    case VIR_DOMAIN_CHR_TYPE_VC:
+    case VIR_DOMAIN_CHR_TYPE_PTY:
+        if (VIR_STRDUP(*buf, type) < 0)
+            return -1;
+        break;
+
+    case VIR_DOMAIN_CHR_TYPE_FILE:
+    case VIR_DOMAIN_CHR_TYPE_PIPE:
+        if (virAsprintf(buf, "%s:%s", type, srcdef.data.file.path) < 0)
+            return -1;
+        break;
+
+    case VIR_DOMAIN_CHR_TYPE_DEV:
+        if (VIR_STRDUP(*buf, srcdef.data.file.path) < 0)
+            return -1;
+        break;
+
+    case VIR_DOMAIN_CHR_TYPE_UDP: {
+        const char *connectHost = srcdef.data.udp.connectHost;
+        const char *bindHost = srcdef.data.udp.bindHost;
+        const char *bindService  = srcdef.data.udp.bindService;
+
+        if (connectHost == NULL)
+            connectHost = "";
+        if (bindHost == NULL)
+            bindHost = "";
+        if (bindService == NULL)
+            bindService = "0";
+
+        if (virAsprintf(buf, "udp:%s:%s@%s:%s",
+                        connectHost,
+                        srcdef.data.udp.connectService,
+                        bindHost,
+                        bindService) < 0)
+            return -1;
+        break;
+    }
+
+    case VIR_DOMAIN_CHR_TYPE_TCP: {
+        const char *prefix;
+
+        if (srcdef.data.tcp.protocol == VIR_DOMAIN_CHR_TCP_PROTOCOL_TELNET)
+            prefix = "telnet";
+        else
+            prefix = "tcp";
+
+        if (virAsprintf(buf, "%s:%s:%s%s",
+                        prefix,
+                        srcdef.data.tcp.host,
+                        srcdef.data.tcp.service,
+                        srcdef.data.tcp.listen ? ",server,nowait" : "") < 0)
+            return -1;
+        break;
+    }
+
+    case VIR_DOMAIN_CHR_TYPE_UNIX:
+        if (virAsprintf(buf, "unix:%s%s",
+                        srcdef.data.nix.path,
+                        srcdef.data.nix.listen ? ",server,nowait" : "") < 0)
+            return -1;
+        break;
+
+    default:
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                       _("unsupported chardev '%s'"), type);
+        return -1;
+    }
+
+    return 0;
 }
 
 static int
@@ -410,6 +603,24 @@ libxlMakeDomBuildInfo(virDomainObjPtr vm, libxl_domain_config *d_config)
         }
         if (VIR_STRDUP(b_info->u.hvm.boot, bootorder) < 0)
             goto error;
+
+        if (def->nserials) {
+            if (def->nserials > 1) {
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                               "%s",
+                               _("Only one serial device is supported by libxl"));
+                goto error;
+            }
+            if (libxlMakeChrdevStr(def->serials[0], &b_info->u.hvm.serial) < 0)
+                goto error;
+        }
+
+        if (def->nparallels) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           "%s",
+                           _("Parallel devices are not supported by libxl"));
+            goto error;
+        }
 
         /*
          * The following comment and calculation were taken directly from
@@ -770,35 +981,25 @@ error:
 virCapsPtr
 libxlMakeCapabilities(libxl_ctx *ctx)
 {
-    int err;
-    libxl_physinfo phy_info;
-    const libxl_version_info *ver_info;
+    virCapsPtr caps;
 
-    err = regcomp(&xen_cap_rec, xen_cap_re, REG_EXTENDED);
-    if (err != 0) {
-        char error[100];
-        regerror(err, &xen_cap_rec, error, sizeof(error));
-        regfree(&xen_cap_rec);
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("Failed to compile regex %s"), error);
+    if ((caps = virCapabilitiesNew(virArchFromHost(), 1, 1)) == NULL)
         return NULL;
-    }
 
-    if (libxl_get_physinfo(ctx, &phy_info) != 0) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       _("Failed to get node physical info from libxenlight"));
-        return NULL;
-    }
+    if (libxlCapsInitHost(ctx, caps) < 0)
+        goto error;
 
-    if ((ver_info = libxl_get_version_info(ctx)) == NULL) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       _("Failed to get version info from libxenlight"));
-        return NULL;
-    }
+    if (libxlCapsInitNuma(ctx, caps) < 0)
+        goto error;
 
-    return libxlMakeCapabilitiesInternal(virArchFromHost(),
-                                         &phy_info,
-                                         ver_info->capabilities);
+    if (libxlCapsInitGuests(ctx, caps) < 0)
+        goto error;
+
+    return caps;
+
+error:
+    virObjectUnref(caps);
+    return NULL;
 }
 
 int
@@ -812,21 +1013,17 @@ libxlBuildDomainConfig(libxlDriverPrivatePtr driver,
     if (libxlMakeDomCreateInfo(driver, def, &d_config->c_info) < 0)
         return -1;
 
-    if (libxlMakeDomBuildInfo(vm, d_config) < 0) {
+    if (libxlMakeDomBuildInfo(vm, d_config) < 0)
         return -1;
-    }
 
-    if (libxlMakeDiskList(def, d_config) < 0) {
+    if (libxlMakeDiskList(def, d_config) < 0)
         return -1;
-    }
 
-    if (libxlMakeNicList(def, d_config) < 0) {
+    if (libxlMakeNicList(def, d_config) < 0)
         return -1;
-    }
 
-    if (libxlMakeVfbList(driver, def, d_config) < 0) {
+    if (libxlMakeVfbList(driver, def, d_config) < 0)
         return -1;
-    }
 
     d_config->on_reboot = def->onReboot;
     d_config->on_poweroff = def->onPoweroff;

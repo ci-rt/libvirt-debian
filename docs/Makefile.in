@@ -326,6 +326,7 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/virt-curl.m4 $(top_srcdir)/m4/virt-dbus.m4 \
 	$(top_srcdir)/m4/virt-fuse.m4 $(top_srcdir)/m4/virt-hal.m4 \
 	$(top_srcdir)/m4/virt-lib.m4 \
+	$(top_srcdir)/m4/virt-linker-no-indirect.m4 \
 	$(top_srcdir)/m4/virt-linker-relro.m4 \
 	$(top_srcdir)/m4/virt-netcf.m4 \
 	$(top_srcdir)/m4/virt-numactl.m4 \
@@ -1298,6 +1299,7 @@ HAVE__BOOL = @HAVE__BOOL@
 HAVE__EXIT = @HAVE__EXIT@
 HOSTENT_LIB = @HOSTENT_LIB@
 HTML_DIR = @HTML_DIR@
+IFCONFIG_PATH = @IFCONFIG_PATH@
 INCLUDE_NEXT = @INCLUDE_NEXT@
 INCLUDE_NEXT_AS_FIRST_DIRECTIVE = @INCLUDE_NEXT_AS_FIRST_DIRECTIVE@
 INET_NTOP_LIB = @INET_NTOP_LIB@
@@ -1479,6 +1481,7 @@ NEXT_WCHAR_H = @NEXT_WCHAR_H@
 NEXT_WCTYPE_H = @NEXT_WCTYPE_H@
 NM = @NM@
 NMEDIT = @NMEDIT@
+NO_INDIRECT_LDFLAGS = @NO_INDIRECT_LDFLAGS@
 NUMACTL_CFLAGS = @NUMACTL_CFLAGS@
 NUMACTL_LIBS = @NUMACTL_LIBS@
 NUMAD = @NUMAD@
@@ -1793,6 +1796,7 @@ VGREMOVE = @VGREMOVE@
 VGS = @VGS@
 VGSCAN = @VGSCAN@
 VIRSH_LIBS = @VIRSH_LIBS@
+VIR_TEST_EXPENSIVE_DEFAULT = @VIR_TEST_EXPENSIVE_DEFAULT@
 WARN_CFLAGS = @WARN_CFLAGS@
 WARN_PYTHON_CFLAGS = @WARN_PYTHON_CFLAGS@
 WCHAR_T_SUFFIX = @WCHAR_T_SUFFIX@
@@ -1881,7 +1885,7 @@ SUBDIRS = schemas
 # The directory containing the source code (if it contains documentation).
 DOC_SOURCE_DIR = ../src
 DEVHELP_DIR = $(datadir)/gtk-doc/html/libvirt
-BUILT_SOURCES = hvsupport.html.in
+BUILT_SOURCES = hvsupport.html.in aclperms.htmlinc
 apihtml = \
   html/index.html		\
   html/libvirt-libvirt.html	\
@@ -1976,14 +1980,15 @@ fig = \
   migration-tunnel.fig \
   migration-unmanaged-direct.fig
 
-EXTRA_DIST = apibuild.py site.xsl newapi.xsl news.xsl page.xsl \
-	hacking1.xsl hacking2.xsl wrapstring.xsl $(dot_html) \
+EXTRA_DIST = apibuild.py genaclperms.pl site.xsl newapi.xsl news.xsl \
+	page.xsl hacking1.xsl hacking2.xsl wrapstring.xsl $(dot_html) \
 	$(dot_html_in) $(gif) $(apihtml) $(apipng) $(devhelphtml) \
 	$(devhelppng) $(devhelpcss) $(devhelpxsl) $(xml) $(qemu_xml) \
 	$(lxc_xml) $(fig) $(png) $(css) $(patches) $(dot_php_in) \
 	$(dot_php_code_in) $(dot_php) $(internals_html_in) \
 	$(internals_html) sitemap.html.in todo.pl hvsupport.pl \
 	todo.cfg-example $(APIBUILD_STAMP)
+CLEANFILES = $(srcdir)/aclperms.htmlinc
 MAINTAINERCLEANFILES = \
   $(addprefix $(srcdir)/,$(dot_html)) \
   $(addprefix $(srcdir)/,$(apihtml)) \
@@ -2255,6 +2260,7 @@ install-strip:
 mostlyclean-generic:
 
 clean-generic:
+	-test -z "$(CLEANFILES)" || rm -f $(CLEANFILES)
 
 distclean-generic:
 	-test -z "$(CONFIG_CLEAN_FILES)" || rm -f $(CONFIG_CLEAN_FILES)
@@ -2351,6 +2357,12 @@ uninstall-am: uninstall-apiDATA uninstall-local
 	tags tags-am uninstall uninstall-am uninstall-apiDATA \
 	uninstall-local
 
+
+acl.html:: $(srcdir)/aclperms.htmlinc
+
+$(srcdir)/aclperms.htmlinc: $(top_srcdir)/src/access/viraccessperm.h \
+        $(srcdir)/genaclperms.pl Makefile.am
+	$(PERL) $(srcdir)/genaclperms.pl $< > $@
 
 all-am: web
 

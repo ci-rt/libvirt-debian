@@ -2,6 +2,7 @@
 <apirefs name='libvirt'>
   <references>
     <reference name='LIBVIR_VERSION_NUMBER' href='html/libvirt-libvirt.html#LIBVIR_VERSION_NUMBER'/>
+    <reference name='VIR_CONNECT_BASELINE_CPU_EXPAND_FEATURES' href='html/libvirt-libvirt.html#VIR_CONNECT_BASELINE_CPU_EXPAND_FEATURES'/>
     <reference name='VIR_CONNECT_CLOSE_REASON_CLIENT' href='html/libvirt-libvirt.html#VIR_CONNECT_CLOSE_REASON_CLIENT'/>
     <reference name='VIR_CONNECT_CLOSE_REASON_EOF' href='html/libvirt-libvirt.html#VIR_CONNECT_CLOSE_REASON_EOF'/>
     <reference name='VIR_CONNECT_CLOSE_REASON_ERROR' href='html/libvirt-libvirt.html#VIR_CONNECT_CLOSE_REASON_ERROR'/>
@@ -174,6 +175,7 @@
     <reference name='VIR_DOMAIN_EVENT_DEFINED_UPDATED' href='html/libvirt-libvirt.html#VIR_DOMAIN_EVENT_DEFINED_UPDATED'/>
     <reference name='VIR_DOMAIN_EVENT_DISK_CHANGE_LAST' href='html/libvirt-libvirt.html#VIR_DOMAIN_EVENT_DISK_CHANGE_LAST'/>
     <reference name='VIR_DOMAIN_EVENT_DISK_CHANGE_MISSING_ON_START' href='html/libvirt-libvirt.html#VIR_DOMAIN_EVENT_DISK_CHANGE_MISSING_ON_START'/>
+    <reference name='VIR_DOMAIN_EVENT_DISK_DROP_MISSING_ON_START' href='html/libvirt-libvirt.html#VIR_DOMAIN_EVENT_DISK_DROP_MISSING_ON_START'/>
     <reference name='VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_IPV4' href='html/libvirt-libvirt.html#VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_IPV4'/>
     <reference name='VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_IPV6' href='html/libvirt-libvirt.html#VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_IPV6'/>
     <reference name='VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_LAST' href='html/libvirt-libvirt.html#VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_LAST'/>
@@ -847,6 +849,7 @@
     <reference name='virConnectAuthPtr' href='html/libvirt-libvirt.html#virConnectAuthPtr'/>
     <reference name='virConnectAuthPtrDefault' href='html/libvirt-libvirt.html#virConnectAuthPtrDefault'/>
     <reference name='virConnectBaselineCPU' href='html/libvirt-libvirt.html#virConnectBaselineCPU'/>
+    <reference name='virConnectBaselineCPUFlags' href='html/libvirt-libvirt.html#virConnectBaselineCPUFlags'/>
     <reference name='virConnectClose' href='html/libvirt-libvirt.html#virConnectClose'/>
     <reference name='virConnectCloseFunc' href='html/libvirt-libvirt.html#virConnectCloseFunc'/>
     <reference name='virConnectCloseReason' href='html/libvirt-libvirt.html#virConnectCloseReason'/>
@@ -1443,6 +1446,7 @@
       <ref name='LIBVIR_VERSION_NUMBER'/>
     </letter>
     <letter name='V'>
+      <ref name='VIR_CONNECT_BASELINE_CPU_EXPAND_FEATURES'/>
       <ref name='VIR_CONNECT_CLOSE_REASON_CLIENT'/>
       <ref name='VIR_CONNECT_CLOSE_REASON_EOF'/>
       <ref name='VIR_CONNECT_CLOSE_REASON_ERROR'/>
@@ -1615,6 +1619,7 @@
       <ref name='VIR_DOMAIN_EVENT_DEFINED_UPDATED'/>
       <ref name='VIR_DOMAIN_EVENT_DISK_CHANGE_LAST'/>
       <ref name='VIR_DOMAIN_EVENT_DISK_CHANGE_MISSING_ON_START'/>
+      <ref name='VIR_DOMAIN_EVENT_DISK_DROP_MISSING_ON_START'/>
       <ref name='VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_IPV4'/>
       <ref name='VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_IPV6'/>
       <ref name='VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_LAST'/>
@@ -2292,6 +2297,7 @@
       <ref name='virConnectAuthPtr'/>
       <ref name='virConnectAuthPtrDefault'/>
       <ref name='virConnectBaselineCPU'/>
+      <ref name='virConnectBaselineCPUFlags'/>
       <ref name='virConnectClose'/>
       <ref name='virConnectCloseFunc'/>
       <ref name='virConnectCloseReason'/>
@@ -3965,6 +3971,7 @@
   <files>
     <file name='libvirt'>
       <ref name='LIBVIR_VERSION_NUMBER'/>
+      <ref name='VIR_CONNECT_BASELINE_CPU_EXPAND_FEATURES'/>
       <ref name='VIR_CONNECT_CLOSE_REASON_CLIENT'/>
       <ref name='VIR_CONNECT_CLOSE_REASON_EOF'/>
       <ref name='VIR_CONNECT_CLOSE_REASON_ERROR'/>
@@ -4137,6 +4144,7 @@
       <ref name='VIR_DOMAIN_EVENT_DEFINED_UPDATED'/>
       <ref name='VIR_DOMAIN_EVENT_DISK_CHANGE_LAST'/>
       <ref name='VIR_DOMAIN_EVENT_DISK_CHANGE_MISSING_ON_START'/>
+      <ref name='VIR_DOMAIN_EVENT_DISK_DROP_MISSING_ON_START'/>
       <ref name='VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_IPV4'/>
       <ref name='VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_IPV6'/>
       <ref name='VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_LAST'/>
@@ -4654,6 +4662,7 @@
       <ref name='virConnectAuthPtr'/>
       <ref name='virConnectAuthPtrDefault'/>
       <ref name='virConnectBaselineCPU'/>
+      <ref name='virConnectBaselineCPUFlags'/>
       <ref name='virConnectClose'/>
       <ref name='virConnectCloseFunc'/>
       <ref name='virConnectCloseReason'/>
@@ -6932,6 +6941,9 @@
       <letter name='V'>
         <word name='VFIO'>
           <ref name='virNodeDeviceDettach'/>
+        </word>
+        <word name='VIR_CONNECT_BASELINE_CPU_EXPAND_FEATURES'>
+          <ref name='virConnectBaselineCPU'/>
         </word>
         <word name='VIR_CONNECT_LIST_DOMAINS_ACTIVE'>
           <ref name='virConnectListAllDomains'/>
@@ -11197,6 +11209,7 @@
           <ref name='virDomainSnapshotNumChildren'/>
         </word>
         <word name='explicitly'>
+          <ref name='virConnectBaselineCPU'/>
           <ref name='virConnectClose'/>
           <ref name='virDomainDefineXML'/>
           <ref name='virInterfaceDefineXML'/>
@@ -11308,6 +11321,7 @@
           <ref name='virConnectBaselineCPU'/>
         </word>
         <word name='features'>
+          <ref name='virConnectBaselineCPU'/>
           <ref name='virDomainMigrate'/>
           <ref name='virDomainMigrate2'/>
           <ref name='virDomainMigrateToURI'/>
@@ -13184,6 +13198,7 @@
           <ref name='virNodeGetMemoryStats'/>
         </word>
         <word name='listed'>
+          <ref name='virConnectBaselineCPU'/>
           <ref name='virConnectListDefinedDomains'/>
           <ref name='virConnectListDefinedInterfaces'/>
           <ref name='virConnectListDefinedNetworks'/>
@@ -13787,6 +13802,7 @@
         <word name='model'>
           <ref name='VIR_SECURITY_MODEL_BUFLEN'/>
           <ref name='_virNodeInfo'/>
+          <ref name='virConnectBaselineCPU'/>
           <ref name='virDomainGetSecurityLabel'/>
           <ref name='virDomainGetSecurityLabelList'/>
           <ref name='virNodeGetSecurityModel'/>
@@ -14719,6 +14735,7 @@
         </word>
         <word name='part'>
           <ref name='_virError'/>
+          <ref name='virConnectBaselineCPU'/>
           <ref name='virDomainGetCPUStats'/>
           <ref name='virDomainRestoreFlags'/>
           <ref name='virDomainSaveFlags'/>
@@ -18614,6 +18631,9 @@
           <ref name='virConnectNumOfSecrets'/>
           <ref name='virSecretDefineXML'/>
         </word>
+        <word name='virConnectBaselineCPUFlags'>
+          <ref name='virConnectBaselineCPU'/>
+        </word>
         <word name='virConnectClose'>
           <ref name='virConnectClose'/>
           <ref name='virConnectRef'/>
@@ -19860,6 +19880,7 @@
         </word>
         <word name='without'>
           <ref name='VIR_DOMAIN_JOB_MEMORY_NORMAL'/>
+          <ref name='virConnectBaselineCPU'/>
           <ref name='virConnectSetKeepAlive'/>
           <ref name='virDomainBlockCommit'/>
           <ref name='virDomainDestroyFlags'/>

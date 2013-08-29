@@ -1454,7 +1454,7 @@ VIR_EXPORT_VAR virConnectAuthPtr virConnectAuthPtrDefault;
  * version * 1,000,000 + minor * 1000 + micro
  */
 
-#define LIBVIR_VERSION_NUMBER 1001001
+#define LIBVIR_VERSION_NUMBER 1001002
 
 int                     virGetVersion           (unsigned long *libVer,
                                                  const char *type,
@@ -4008,6 +4008,15 @@ int virConnectCompareCPU(virConnectPtr conn,
 
 
 /**
+ * virConnectBaselineCPUFlags
+ *
+ * Flags when getting XML description of a computed CPU
+ */
+typedef enum {
+    VIR_CONNECT_BASELINE_CPU_EXPAND_FEATURES  = (1 << 0),  /* show all features */
+} virConnectBaselineCPUFlags;
+
+/**
  * virConnectBaselineCPU:
  *
  * @conn: virConnect connection
@@ -4727,6 +4736,7 @@ typedef void (*virConnectDomainEventBlockJobCallback)(virConnectPtr conn,
  */
 typedef enum {
     VIR_DOMAIN_EVENT_DISK_CHANGE_MISSING_ON_START = 0, /* oldSrcPath is set */
+    VIR_DOMAIN_EVENT_DISK_DROP_MISSING_ON_START = 1,
 
 #ifdef VIR_ENUM_SENTINELS
     VIR_DOMAIN_EVENT_DISK_CHANGE_LAST

@@ -347,6 +347,9 @@ bool qemuDomainJobAllowed(qemuDomainObjPrivatePtr priv,
 int qemuDomainCheckDiskPresence(virQEMUDriverPtr driver,
                                 virDomainObjPtr vm,
                                 bool start_with_state);
+
+int qemuDiskChainCheckBroken(virDomainDiskDefPtr disk);
+
 int qemuDomainDetermineDiskChain(virQEMUDriverPtr driver,
                                  virDomainDiskDefPtr disk,
                                  bool force);
@@ -361,8 +364,6 @@ void qemuDomainCleanupRun(virQEMUDriverPtr driver,
 extern virDomainXMLPrivateDataCallbacks virQEMUDriverPrivateDataCallbacks;
 extern virDomainXMLNamespace virQEMUDriverDomainXMLNamespace;
 extern virDomainDefParserConfig virQEMUDriverDomainDefParserConfig;
-
-unsigned long long qemuDomainMemoryLimit(virDomainDefPtr def);
 
 int qemuDomainUpdateDeviceList(virQEMUDriverPtr driver,
                                virDomainObjPtr vm);

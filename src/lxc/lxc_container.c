@@ -770,6 +770,8 @@ static int lxcContainerMountBasicFS(void)
         { "/proc/sys", "/proc/sys", NULL, NULL, MS_BIND|MS_REMOUNT|MS_RDONLY },
         { "sysfs", "/sys", "sysfs", NULL, MS_NOSUID|MS_NOEXEC|MS_NODEV },
         { "sysfs", "/sys", "sysfs", NULL, MS_BIND|MS_REMOUNT|MS_RDONLY },
+        { "securityfs", "/sys/kernel/security", "securityfs", NULL, MS_NOSUID|MS_NOEXEC|MS_NODEV },
+        { "securityfs", "/sys/kernel/security", "securityfs", NULL, MS_BIND|MS_REMOUNT|MS_RDONLY },
 #if WITH_SELINUX
         { SELINUX_MOUNT, SELINUX_MOUNT, "selinuxfs", NULL, MS_NOSUID|MS_NOEXEC|MS_NODEV },
         { SELINUX_MOUNT, SELINUX_MOUNT, NULL, NULL, MS_BIND|MS_REMOUNT|MS_RDONLY },
@@ -866,7 +868,7 @@ static int lxcContainerMountProcFuse(virDomainDefPtr def ATTRIBUTE_UNUSED,
 static int lxcContainerMountFSDev(virDomainDefPtr def,
                                   const char *stateDir)
 {
-    int ret;
+    int ret = -1;
     char *path = NULL;
 
     VIR_DEBUG("Mount /dev/ stateDir=%s", stateDir);
@@ -875,14 +877,24 @@ static int lxcContainerMountFSDev(virDomainDefPtr def,
                            stateDir, def->name)) < 0)
         return ret;
 
-    VIR_DEBUG("Tring to move %s to /dev", path);
+    if (virFileMakePath("/dev") < 0) {
+        virReportSystemError(errno, "%s",
+                             _("Cannot create /dev"));
+        goto cleanup;
+    }
 
-    if ((ret = mount(path, "/dev", NULL, MS_MOVE, NULL)) < 0) {
+    VIR_DEBUG("Trying to move %s to /dev", path);
+
+    if (mount(path, "/dev", NULL, MS_MOVE, NULL) < 0) {
         virReportSystemError(errno,
                              _("Failed to mount %s on /dev"),
                              path);
+        goto cleanup;
     }
 
+    ret = 0;
+
+cleanup:
     VIR_FREE(path);
     return ret;
 }
@@ -1142,7 +1154,8 @@ lxcContainerMountDetectFilesystem(const char *src ATTRIBUTE_UNUSED,
  */
 static int lxcContainerMountFSBlockAuto(virDomainFSDefPtr fs,
                                         int fsflags,
-                                        const char *src)
+                                        const char *src,
+                                        const char *srcprefix)
 {
     FILE *fp = NULL;
     int ret = -1;
@@ -1152,11 +1165,11 @@ static int lxcContainerMountFSBlockAuto(virDomainFSDefPtr fs,
     char *line = NULL;
     const char *type;
 
-    VIR_DEBUG("src=%s dst=%s", src, fs->dst);
+    VIR_DEBUG("src=%s dst=%s srcprefix=%s", src, fs->dst, srcprefix);
 
     /* First time around we use /etc/filesystems */
 retry:
-    if (virAsprintf(&fslist, "/.oldroot%s",
+    if (virAsprintf(&fslist, "%s%s", srcprefix,
                     tryProc ? "/proc/filesystems" : "/etc/filesystems") < 0)
         goto cleanup;
 
@@ -1268,7 +1281,8 @@ cleanup:
  * probing for filesystem type
  */
 static int lxcContainerMountFSBlockHelper(virDomainFSDefPtr fs,
-                                          const char *src)
+                                          const char *src,
+                                          const char *srcprefix)
 {
     int fsflags = 0;
     int ret = -1;
@@ -1298,7 +1312,7 @@ static int lxcContainerMountFSBlockHelper(virDomainFSDefPtr fs,
         }
         ret = 0;
     } else {
-        ret = lxcContainerMountFSBlockAuto(fs, fsflags, src);
+        ret = lxcContainerMountFSBlockAuto(fs, fsflags, src, srcprefix);
     }
 
 cleanup:
@@ -1316,7 +1330,7 @@ static int lxcContainerMountFSBlock(virDomainFSDefPtr fs,
     if (virAsprintf(&src, "%s%s", srcprefix, fs->src) < 0)
         goto cleanup;
 
-    ret = lxcContainerMountFSBlockHelper(fs, src);
+    ret = lxcContainerMountFSBlockHelper(fs, src, srcprefix);
 
     VIR_DEBUG("Done mounting filesystem ret=%d", ret);
 

@@ -161,10 +161,7 @@ cmdNodeDeviceDestroy(vshControl *ctl, const vshCmd *cmd)
 
     ret = true;
 cleanup:
-    if (arr) {
-        VIR_FREE(*arr);
-        VIR_FREE(arr);
-    }
+    virStringFreeList(arr);
     virNodeDeviceFree(dev);
     return ret;
 }
@@ -210,7 +207,7 @@ vshNodeDeviceListFree(vshNodeDeviceListPtr list)
 {
     size_t i;
 
-    if (list && list->ndevices) {
+    if (list && list->devices) {
         for (i = 0; i < list->ndevices; i++) {
             if (list->devices[i])
                 virNodeDeviceFree(list->devices[i]);
@@ -409,14 +406,15 @@ cmdNodeListDevices(vshControl *ctl, const vshCmd *cmd ATTRIBUTE_UNUSED)
             vshError(ctl, "%s", _("Options --tree and --cap are incompatible"));
             return false;
         }
-        ncaps = vshStringToArray(cap_str, &caps);
+        if ((ncaps = vshStringToArray(cap_str, &caps)) < 0)
+            return false;
     }
 
     for (i = 0; i < ncaps; i++) {
         if ((cap_type = virNodeDevCapTypeFromString(caps[i])) < 0) {
             vshError(ctl, "%s", _("Invalid capability type"));
-            VIR_FREE(caps);
-            return false;
+            ret = false;
+            goto cleanup;
         }
 
         switch (cap_type) {
@@ -503,10 +501,7 @@ cmdNodeListDevices(vshControl *ctl, const vshCmd *cmd ATTRIBUTE_UNUSED)
     }
 
 cleanup:
-    if (caps) {
-        VIR_FREE(*caps);
-        VIR_FREE(caps);
-    }
+    virStringFreeList(caps);
     vshNodeDeviceListFree(list);
     return ret;
 }
@@ -574,10 +569,7 @@ cmdNodeDeviceDumpXML(vshControl *ctl, const vshCmd *cmd)
 
     ret = true;
 cleanup:
-    if (arr) {
-        VIR_FREE(*arr);
-        VIR_FREE(arr);
-    }
+    virStringFreeList(arr);
     VIR_FREE(xml);
     virNodeDeviceFree(device);
     return ret;

@@ -55,7 +55,9 @@
 #include "intprops.h"
 #include "virconf.h"
 #if WITH_GNUTLS
-# include <gcrypt.h>
+# if WITH_GNUTLS_GCRYPT
+#  include <gcrypt.h>
+# endif
 # include "rpc/virnettlscontext.h"
 #endif
 #include "vircommand.h"
@@ -270,7 +272,7 @@ winsock_init(void)
 #endif
 
 
-#ifdef WITH_GNUTLS
+#ifdef WITH_GNUTLS_GCRYPT
 static int virTLSMutexInit(void **priv)
 {
     virMutexPtr lock = NULL;
@@ -323,7 +325,7 @@ static struct gcry_thread_cbs virTLSThreadImpl = {
     virTLSMutexUnlock,
     NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
 };
-#endif
+#endif /* WITH_GNUTLS_GCRYPT */
 
 /* Helper macros to implement VIR_DOMAIN_DEBUG using just C99.  This
  * assumes you pass fewer than 15 arguments to VIR_DOMAIN_DEBUG, but
@@ -407,7 +409,7 @@ virGlobalInit(void)
         virErrorInitialize() < 0)
         goto error;
 
-#ifdef WITH_GNUTLS
+#ifdef WITH_GNUTLS_GCRYPT
     /*
      * This sequence of API calls it copied exactly from
      * gnutls 2.12.23 source lib/gcrypt/init.c, with
@@ -18522,10 +18524,15 @@ error:
  * @conn: virConnect connection
  * @xmlCPUs: array of XML descriptions of host CPUs
  * @ncpus: number of CPUs in xmlCPUs
- * @flags: extra flags; not used yet, so callers should always pass 0
+ * @flags: bitwise-OR of virConnectBaselineCPUFlags
  *
  * Computes the most feature-rich CPU which is compatible with all given
  * host CPUs.
+ *
+ * If @flags includes VIR_CONNECT_BASELINE_CPU_EXPAND_FEATURES then libvirt
+ * will explicitly list all CPU features that are part of the host CPU,
+ * without this flag features that are part of the CPU model will not be
+ * listed.
  *
  * Returns XML description of the computed CPU or NULL on error.
  */

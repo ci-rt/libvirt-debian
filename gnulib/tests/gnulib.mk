@@ -25,7 +25,7 @@
 AUTOMAKE_OPTIONS = 1.9.6 foreign subdir-objects
 
 SUBDIRS = .
-TESTS =
+GNULIB_TESTS =
 XFAIL_TESTS =
 TESTS_ENVIRONMENT =
 noinst_PROGRAMS =
@@ -60,7 +60,7 @@ TESTS_ENVIRONMENT += EXEEXT='@EXEEXT@' srcdir='$(srcdir)'
 
 ## begin gnulib module accept-tests
 
-TESTS += test-accept
+GNULIB_TESTS += test-accept
 check_PROGRAMS += test-accept
 test_accept_LDADD = $(LDADD) @LIBSOCKET@
 EXTRA_DIST += test-accept.c signature.h macros.h
@@ -69,7 +69,7 @@ EXTRA_DIST += test-accept.c signature.h macros.h
 
 ## begin gnulib module alloca-opt-tests
 
-TESTS += test-alloca-opt
+GNULIB_TESTS += test-alloca-opt
 check_PROGRAMS += test-alloca-opt
 
 EXTRA_DIST += test-alloca-opt.c
@@ -78,7 +78,7 @@ EXTRA_DIST += test-alloca-opt.c
 
 ## begin gnulib module areadlink-tests
 
-TESTS += test-areadlink
+GNULIB_TESTS += test-areadlink
 check_PROGRAMS += test-areadlink
 EXTRA_DIST += test-areadlink.h test-areadlink.c macros.h
 
@@ -86,7 +86,7 @@ EXTRA_DIST += test-areadlink.h test-areadlink.c macros.h
 
 ## begin gnulib module arpa_inet-tests
 
-TESTS += test-arpa_inet
+GNULIB_TESTS += test-arpa_inet
 check_PROGRAMS += test-arpa_inet
 EXTRA_DIST += test-arpa_inet.c
 
@@ -94,7 +94,7 @@ EXTRA_DIST += test-arpa_inet.c
 
 ## begin gnulib module base64-tests
 
-TESTS += test-base64
+GNULIB_TESTS += test-base64
 check_PROGRAMS += test-base64
 EXTRA_DIST += test-base64.c macros.h
 
@@ -102,7 +102,7 @@ EXTRA_DIST += test-base64.c macros.h
 
 ## begin gnulib module binary-io-tests
 
-TESTS += test-binary-io.sh
+GNULIB_TESTS += test-binary-io.sh
 check_PROGRAMS += test-binary-io
 
 EXTRA_DIST += test-binary-io.sh test-binary-io.c macros.h
@@ -111,7 +111,7 @@ EXTRA_DIST += test-binary-io.sh test-binary-io.c macros.h
 
 ## begin gnulib module bind-tests
 
-TESTS += test-bind
+GNULIB_TESTS += test-bind
 check_PROGRAMS += test-bind
 test_bind_LDADD = $(LDADD) @LIBSOCKET@ $(INET_PTON_LIB)
 EXTRA_DIST += test-bind.c signature.h macros.h
@@ -120,7 +120,7 @@ EXTRA_DIST += test-bind.c signature.h macros.h
 
 ## begin gnulib module bitrotate-tests
 
-TESTS += test-bitrotate
+GNULIB_TESTS += test-bitrotate
 check_PROGRAMS += test-bitrotate
 EXTRA_DIST += test-bitrotate.c macros.h
 
@@ -128,7 +128,7 @@ EXTRA_DIST += test-bitrotate.c macros.h
 
 ## begin gnulib module btowc-tests
 
-TESTS += test-btowc1.sh test-btowc2.sh
+GNULIB_TESTS += test-btowc1.sh test-btowc2.sh
 TESTS_ENVIRONMENT += LOCALE_FR='@LOCALE_FR@' LOCALE_FR_UTF8='@LOCALE_FR_UTF8@'
 check_PROGRAMS += test-btowc
 
@@ -138,7 +138,7 @@ EXTRA_DIST += test-btowc1.sh test-btowc2.sh test-btowc.c signature.h macros.h
 
 ## begin gnulib module byteswap-tests
 
-TESTS += test-byteswap
+GNULIB_TESTS += test-byteswap
 check_PROGRAMS += test-byteswap
 EXTRA_DIST += test-byteswap.c macros.h
 
@@ -146,7 +146,7 @@ EXTRA_DIST += test-byteswap.c macros.h
 
 ## begin gnulib module c-ctype-tests
 
-TESTS += test-c-ctype
+GNULIB_TESTS += test-c-ctype
 check_PROGRAMS += test-c-ctype
 
 EXTRA_DIST += test-c-ctype.c macros.h
@@ -155,7 +155,7 @@ EXTRA_DIST += test-c-ctype.c macros.h
 
 ## begin gnulib module c-strcase-tests
 
-TESTS += test-c-strcase.sh
+GNULIB_TESTS += test-c-strcase.sh
 TESTS_ENVIRONMENT += LOCALE_FR='@LOCALE_FR@' LOCALE_TR_UTF8='@LOCALE_TR_UTF8@'
 check_PROGRAMS += test-c-strcasecmp test-c-strncasecmp
 EXTRA_DIST += test-c-strcase.sh test-c-strcasecmp.c test-c-strncasecmp.c macros.h
@@ -164,7 +164,7 @@ EXTRA_DIST += test-c-strcase.sh test-c-strcasecmp.c test-c-strncasecmp.c macros.
 
 ## begin gnulib module c-strcasestr-tests
 
-TESTS += test-c-strcasestr
+GNULIB_TESTS += test-c-strcasestr
 check_PROGRAMS += test-c-strcasestr
 
 EXTRA_DIST += test-c-strcasestr.c macros.h
@@ -173,7 +173,7 @@ EXTRA_DIST += test-c-strcasestr.c macros.h
 
 ## begin gnulib module canonicalize-lgpl-tests
 
-TESTS += test-canonicalize-lgpl
+GNULIB_TESTS += test-canonicalize-lgpl
 check_PROGRAMS += test-canonicalize-lgpl
 EXTRA_DIST += test-canonicalize-lgpl.c signature.h macros.h
 
@@ -181,7 +181,7 @@ EXTRA_DIST += test-canonicalize-lgpl.c signature.h macros.h
 
 ## begin gnulib module chown-tests
 
-TESTS += test-chown
+GNULIB_TESTS += test-chown
 check_PROGRAMS += test-chown
 test_chown_LDADD = $(LDADD) $(LIB_NANOSLEEP)
 EXTRA_DIST += nap.h test-chown.h test-chown.c signature.h macros.h
@@ -190,7 +190,7 @@ EXTRA_DIST += nap.h test-chown.h test-chown.c signature.h macros.h
 
 ## begin gnulib module cloexec-tests
 
-TESTS += test-cloexec
+GNULIB_TESTS += test-cloexec
 check_PROGRAMS += test-cloexec
 EXTRA_DIST += test-cloexec.c macros.h
 
@@ -198,7 +198,7 @@ EXTRA_DIST += test-cloexec.c macros.h
 
 ## begin gnulib module close-tests
 
-TESTS += test-close
+GNULIB_TESTS += test-close
 check_PROGRAMS += test-close
 EXTRA_DIST += test-close.c signature.h macros.h
 
@@ -206,7 +206,7 @@ EXTRA_DIST += test-close.c signature.h macros.h
 
 ## begin gnulib module connect-tests
 
-TESTS += test-connect
+GNULIB_TESTS += test-connect
 check_PROGRAMS += test-connect
 test_connect_LDADD = $(LDADD) @LIBSOCKET@ $(INET_PTON_LIB)
 EXTRA_DIST += test-connect.c signature.h macros.h
@@ -215,7 +215,7 @@ EXTRA_DIST += test-connect.c signature.h macros.h
 
 ## begin gnulib module count-one-bits-tests
 
-TESTS += test-count-one-bits
+GNULIB_TESTS += test-count-one-bits
 check_PROGRAMS += test-count-one-bits
 EXTRA_DIST += test-count-one-bits.c macros.h
 
@@ -223,7 +223,7 @@ EXTRA_DIST += test-count-one-bits.c macros.h
 
 ## begin gnulib module crypto/md5-tests
 
-TESTS += test-md5
+GNULIB_TESTS += test-md5
 check_PROGRAMS += test-md5
 EXTRA_DIST += test-md5.c
 
@@ -240,7 +240,7 @@ EXTRA_libtests_a_SOURCES += dup.c
 
 ## begin gnulib module dup-tests
 
-TESTS += test-dup
+GNULIB_TESTS += test-dup
 check_PROGRAMS += test-dup
 EXTRA_DIST += test-dup.c signature.h macros.h
 
@@ -248,7 +248,7 @@ EXTRA_DIST += test-dup.c signature.h macros.h
 
 ## begin gnulib module dup2-tests
 
-TESTS += test-dup2
+GNULIB_TESTS += test-dup2
 check_PROGRAMS += test-dup2
 EXTRA_DIST += test-dup2.c signature.h macros.h
 
@@ -256,7 +256,7 @@ EXTRA_DIST += test-dup2.c signature.h macros.h
 
 ## begin gnulib module environ-tests
 
-TESTS += test-environ
+GNULIB_TESTS += test-environ
 check_PROGRAMS += test-environ
 
 EXTRA_DIST += test-environ.c
@@ -265,7 +265,7 @@ EXTRA_DIST += test-environ.c
 
 ## begin gnulib module errno-tests
 
-TESTS += test-errno
+GNULIB_TESTS += test-errno
 check_PROGRAMS += test-errno
 
 EXTRA_DIST += test-errno.c
@@ -297,7 +297,7 @@ libtests_a_SOURCES += fatal-signal.h fatal-signal.c
 
 ## begin gnulib module fclose-tests
 
-TESTS += test-fclose
+GNULIB_TESTS += test-fclose
 check_PROGRAMS += test-fclose
 EXTRA_DIST += test-fclose.c
 
@@ -305,7 +305,7 @@ EXTRA_DIST += test-fclose.c
 
 ## begin gnulib module fcntl-h-tests
 
-TESTS += test-fcntl-h
+GNULIB_TESTS += test-fcntl-h
 check_PROGRAMS += test-fcntl-h
 EXTRA_DIST += test-fcntl-h.c
 
@@ -313,7 +313,7 @@ EXTRA_DIST += test-fcntl-h.c
 
 ## begin gnulib module fcntl-tests
 
-TESTS += test-fcntl
+GNULIB_TESTS += test-fcntl
 check_PROGRAMS += test-fcntl
 EXTRA_DIST += test-fcntl.c signature.h macros.h
 
@@ -321,7 +321,7 @@ EXTRA_DIST += test-fcntl.c signature.h macros.h
 
 ## begin gnulib module fdatasync-tests
 
-TESTS += test-fdatasync
+GNULIB_TESTS += test-fdatasync
 check_PROGRAMS += test-fdatasync
 test_fdatasync_LDADD = $(LDADD) $(LIB_FDATASYNC)
 EXTRA_DIST += test-fdatasync.c signature.h macros.h
@@ -339,7 +339,7 @@ EXTRA_libtests_a_SOURCES += fdopen.c
 
 ## begin gnulib module fdopen-tests
 
-TESTS += test-fdopen
+GNULIB_TESTS += test-fdopen
 check_PROGRAMS += test-fdopen
 EXTRA_DIST += test-fdopen.c signature.h macros.h
 
@@ -347,7 +347,7 @@ EXTRA_DIST += test-fdopen.c signature.h macros.h
 
 ## begin gnulib module fflush-tests
 
-TESTS += test-fflush test-fflush2.sh
+GNULIB_TESTS += test-fflush test-fflush2.sh
 check_PROGRAMS += test-fflush test-fflush2
 MOSTLYCLEANFILES += test-fflush.txt
 EXTRA_DIST += test-fflush.c test-fflush2.sh test-fflush2.c signature.h macros.h
@@ -356,7 +356,7 @@ EXTRA_DIST += test-fflush.c test-fflush2.sh test-fflush2.c signature.h macros.h
 
 ## begin gnulib module ffs-tests
 
-TESTS += test-ffs
+GNULIB_TESTS += test-ffs
 check_PROGRAMS += test-ffs
 EXTRA_DIST += test-ffs.c macros.h signature.h
 
@@ -364,7 +364,7 @@ EXTRA_DIST += test-ffs.c macros.h signature.h
 
 ## begin gnulib module ffsl-tests
 
-TESTS += test-ffsl
+GNULIB_TESTS += test-ffsl
 check_PROGRAMS += test-ffsl
 EXTRA_DIST += test-ffsl.c macros.h signature.h
 
@@ -372,7 +372,7 @@ EXTRA_DIST += test-ffsl.c macros.h signature.h
 
 ## begin gnulib module fgetc-tests
 
-TESTS += test-fgetc
+GNULIB_TESTS += test-fgetc
 check_PROGRAMS += test-fgetc
 EXTRA_DIST += test-fgetc.c signature.h macros.h
 
@@ -380,7 +380,7 @@ EXTRA_DIST += test-fgetc.c signature.h macros.h
 
 ## begin gnulib module float-tests
 
-TESTS += test-float
+GNULIB_TESTS += test-float
 check_PROGRAMS += test-float
 EXTRA_DIST += test-float.c macros.h
 
@@ -388,7 +388,7 @@ EXTRA_DIST += test-float.c macros.h
 
 ## begin gnulib module fnmatch-tests
 
-TESTS += test-fnmatch
+GNULIB_TESTS += test-fnmatch
 check_PROGRAMS += test-fnmatch
 EXTRA_DIST += test-fnmatch.c signature.h macros.h
 
@@ -403,7 +403,7 @@ EXTRA_DIST += fpucw.h
 
 ## begin gnulib module fpurge-tests
 
-TESTS += test-fpurge
+GNULIB_TESTS += test-fpurge
 check_PROGRAMS += test-fpurge
 MOSTLYCLEANFILES += t-fpurge.tmp
 EXTRA_DIST += test-fpurge.c macros.h
@@ -412,7 +412,7 @@ EXTRA_DIST += test-fpurge.c macros.h
 
 ## begin gnulib module fputc-tests
 
-TESTS += test-fputc
+GNULIB_TESTS += test-fputc
 check_PROGRAMS += test-fputc
 EXTRA_DIST += test-fputc.c signature.h macros.h
 
@@ -420,7 +420,7 @@ EXTRA_DIST += test-fputc.c signature.h macros.h
 
 ## begin gnulib module fread-tests
 
-TESTS += test-fread
+GNULIB_TESTS += test-fread
 check_PROGRAMS += test-fread
 EXTRA_DIST += test-fread.c signature.h macros.h
 
@@ -428,7 +428,7 @@ EXTRA_DIST += test-fread.c signature.h macros.h
 
 ## begin gnulib module freading-tests
 
-TESTS += test-freading
+GNULIB_TESTS += test-freading
 check_PROGRAMS += test-freading
 MOSTLYCLEANFILES += t-freading.tmp
 EXTRA_DIST += test-freading.c macros.h
@@ -437,7 +437,7 @@ EXTRA_DIST += test-freading.c macros.h
 
 ## begin gnulib module fseek-tests
 
-TESTS += test-fseek.sh test-fseek2.sh
+GNULIB_TESTS += test-fseek.sh test-fseek2.sh
 check_PROGRAMS += test-fseek
 EXTRA_DIST += test-fseek.c test-fseek.sh test-fseek2.sh signature.h macros.h
 
@@ -445,7 +445,7 @@ EXTRA_DIST += test-fseek.c test-fseek.sh test-fseek2.sh signature.h macros.h
 
 ## begin gnulib module fseeko-tests
 
-TESTS += test-fseeko.sh test-fseeko2.sh test-fseeko3.sh test-fseeko4.sh
+GNULIB_TESTS += test-fseeko.sh test-fseeko2.sh test-fseeko3.sh test-fseeko4.sh
 check_PROGRAMS += test-fseeko test-fseeko3 test-fseeko4
 EXTRA_DIST += test-fseeko.c test-fseeko.sh test-fseeko2.sh test-fseeko3.c test-fseeko3.sh test-fseeko4.c test-fseeko4.sh signature.h macros.h
 
@@ -453,7 +453,7 @@ EXTRA_DIST += test-fseeko.c test-fseeko.sh test-fseeko2.sh test-fseeko3.c test-f
 
 ## begin gnulib module fstat-tests
 
-TESTS += test-fstat
+GNULIB_TESTS += test-fstat
 check_PROGRAMS += test-fstat
 EXTRA_DIST += test-fstat.c signature.h macros.h
 
@@ -461,7 +461,7 @@ EXTRA_DIST += test-fstat.c signature.h macros.h
 
 ## begin gnulib module fsync-tests
 
-TESTS += test-fsync
+GNULIB_TESTS += test-fsync
 check_PROGRAMS += test-fsync
 EXTRA_DIST += test-fsync.c signature.h macros.h
 
@@ -469,7 +469,7 @@ EXTRA_DIST += test-fsync.c signature.h macros.h
 
 ## begin gnulib module ftell-tests
 
-TESTS += test-ftell.sh test-ftell2.sh test-ftell3
+GNULIB_TESTS += test-ftell.sh test-ftell2.sh test-ftell3
 check_PROGRAMS += test-ftell test-ftell3
 MOSTLYCLEANFILES += t-ftell3.tmp
 EXTRA_DIST += test-ftell.c test-ftell.sh test-ftell2.sh test-ftell3.c signature.h macros.h
@@ -478,7 +478,7 @@ EXTRA_DIST += test-ftell.c test-ftell.sh test-ftell2.sh test-ftell3.c signature.
 
 ## begin gnulib module ftello-tests
 
-TESTS += test-ftello.sh test-ftello2.sh test-ftello3 test-ftello4.sh
+GNULIB_TESTS += test-ftello.sh test-ftello2.sh test-ftello3 test-ftello4.sh
 check_PROGRAMS += test-ftello test-ftello3 test-ftello4
 MOSTLYCLEANFILES += t-ftello3.tmp
 EXTRA_DIST += test-ftello.c test-ftello.sh test-ftello2.sh test-ftello3.c test-ftello4.c test-ftello4.sh signature.h macros.h
@@ -496,7 +496,7 @@ EXTRA_libtests_a_SOURCES += ftruncate.c
 
 ## begin gnulib module ftruncate-tests
 
-TESTS += test-ftruncate.sh
+GNULIB_TESTS += test-ftruncate.sh
 check_PROGRAMS += test-ftruncate
 EXTRA_DIST += test-ftruncate.c test-ftruncate.sh signature.h macros.h
 
@@ -504,7 +504,7 @@ EXTRA_DIST += test-ftruncate.c test-ftruncate.sh signature.h macros.h
 
 ## begin gnulib module func-tests
 
-TESTS += test-func
+GNULIB_TESTS += test-func
 check_PROGRAMS += test-func
 EXTRA_DIST += test-func.c macros.h
 
@@ -512,7 +512,7 @@ EXTRA_DIST += test-func.c macros.h
 
 ## begin gnulib module fwrite-tests
 
-TESTS += test-fwrite
+GNULIB_TESTS += test-fwrite
 check_PROGRAMS += test-fwrite
 EXTRA_DIST += test-fwrite.c signature.h macros.h
 
@@ -520,7 +520,7 @@ EXTRA_DIST += test-fwrite.c signature.h macros.h
 
 ## begin gnulib module getaddrinfo-tests
 
-TESTS += test-getaddrinfo
+GNULIB_TESTS += test-getaddrinfo
 check_PROGRAMS += test-getaddrinfo
 test_getaddrinfo_LDADD = $(LDADD) @GETADDRINFO_LIB@ @LIBINTL@
 EXTRA_DIST += signature.h test-getaddrinfo.c
@@ -529,7 +529,7 @@ EXTRA_DIST += signature.h test-getaddrinfo.c
 
 ## begin gnulib module getcwd-lgpl-tests
 
-TESTS += test-getcwd-lgpl
+GNULIB_TESTS += test-getcwd-lgpl
 check_PROGRAMS += test-getcwd-lgpl
 test_getcwd_lgpl_LDADD = $(LDADD) $(LIBINTL)
 EXTRA_DIST += test-getcwd-lgpl.c signature.h macros.h
@@ -538,7 +538,7 @@ EXTRA_DIST += test-getcwd-lgpl.c signature.h macros.h
 
 ## begin gnulib module getdelim-tests
 
-TESTS += test-getdelim
+GNULIB_TESTS += test-getdelim
 check_PROGRAMS += test-getdelim
 MOSTLYCLEANFILES += test-getdelim.txt
 EXTRA_DIST += test-getdelim.c signature.h macros.h
@@ -547,7 +547,7 @@ EXTRA_DIST += test-getdelim.c signature.h macros.h
 
 ## begin gnulib module getdtablesize-tests
 
-TESTS += test-getdtablesize
+GNULIB_TESTS += test-getdtablesize
 check_PROGRAMS += test-getdtablesize
 EXTRA_DIST += test-getdtablesize.c signature.h macros.h
 
@@ -555,7 +555,7 @@ EXTRA_DIST += test-getdtablesize.c signature.h macros.h
 
 ## begin gnulib module getgroups-tests
 
-TESTS += test-getgroups
+GNULIB_TESTS += test-getgroups
 check_PROGRAMS += test-getgroups
 EXTRA_DIST += test-getgroups.c signature.h macros.h
 
@@ -563,7 +563,7 @@ EXTRA_DIST += test-getgroups.c signature.h macros.h
 
 ## begin gnulib module gethostname-tests
 
-TESTS += test-gethostname
+GNULIB_TESTS += test-gethostname
 check_PROGRAMS += test-gethostname
 test_gethostname_LDADD = $(LDADD) @GETHOSTNAME_LIB@
 EXTRA_DIST += signature.h test-gethostname.c
@@ -572,7 +572,7 @@ EXTRA_DIST += signature.h test-gethostname.c
 
 ## begin gnulib module getline-tests
 
-TESTS += test-getline
+GNULIB_TESTS += test-getline
 check_PROGRAMS += test-getline
 MOSTLYCLEANFILES += test-getline.txt
 EXTRA_DIST += test-getline.c signature.h macros.h
@@ -590,7 +590,7 @@ EXTRA_libtests_a_SOURCES += getpagesize.c
 
 ## begin gnulib module getpeername-tests
 
-TESTS += test-getpeername
+GNULIB_TESTS += test-getpeername
 check_PROGRAMS += test-getpeername
 test_getpeername_LDADD = $(LDADD) @LIBSOCKET@
 EXTRA_DIST += test-getpeername.c signature.h macros.h
@@ -599,7 +599,7 @@ EXTRA_DIST += test-getpeername.c signature.h macros.h
 
 ## begin gnulib module getsockname-tests
 
-TESTS += test-getsockname
+GNULIB_TESTS += test-getsockname
 check_PROGRAMS += test-getsockname
 test_getsockname_LDADD = $(LDADD) @LIBSOCKET@
 EXTRA_DIST += test-getsockname.c signature.h macros.h
@@ -617,7 +617,7 @@ EXTRA_libtests_a_SOURCES += getsockopt.c
 
 ## begin gnulib module getsockopt-tests
 
-TESTS += test-getsockopt
+GNULIB_TESTS += test-getsockopt
 check_PROGRAMS += test-getsockopt
 test_getsockopt_LDADD = $(LDADD) @LIBSOCKET@
 EXTRA_DIST += test-getsockopt.c signature.h macros.h
@@ -626,7 +626,7 @@ EXTRA_DIST += test-getsockopt.c signature.h macros.h
 
 ## begin gnulib module gettimeofday-tests
 
-TESTS += test-gettimeofday
+GNULIB_TESTS += test-gettimeofday
 check_PROGRAMS += test-gettimeofday
 
 EXTRA_DIST += signature.h test-gettimeofday.c
@@ -644,7 +644,7 @@ EXTRA_libtests_a_SOURCES += grantpt.c
 
 ## begin gnulib module grantpt-tests
 
-TESTS += test-grantpt
+GNULIB_TESTS += test-grantpt
 check_PROGRAMS += test-grantpt
 EXTRA_DIST += test-grantpt.c signature.h macros.h
 
@@ -652,7 +652,7 @@ EXTRA_DIST += test-grantpt.c signature.h macros.h
 
 ## begin gnulib module ignore-value-tests
 
-TESTS += test-ignore-value
+GNULIB_TESTS += test-ignore-value
 check_PROGRAMS += test-ignore-value
 EXTRA_DIST += test-ignore-value.c
 
@@ -660,7 +660,7 @@ EXTRA_DIST += test-ignore-value.c
 
 ## begin gnulib module inet_ntop-tests
 
-TESTS += test-inet_ntop
+GNULIB_TESTS += test-inet_ntop
 check_PROGRAMS += test-inet_ntop
 test_inet_ntop_LDADD = $(LDADD) @INET_NTOP_LIB@
 EXTRA_DIST += test-inet_ntop.c signature.h macros.h
@@ -669,7 +669,7 @@ EXTRA_DIST += test-inet_ntop.c signature.h macros.h
 
 ## begin gnulib module inet_pton-tests
 
-TESTS += test-inet_pton
+GNULIB_TESTS += test-inet_pton
 check_PROGRAMS += test-inet_pton
 test_inet_pton_LDADD = $(LDADD) @INET_PTON_LIB@
 EXTRA_DIST += test-inet_pton.c signature.h macros.h
@@ -678,7 +678,7 @@ EXTRA_DIST += test-inet_pton.c signature.h macros.h
 
 ## begin gnulib module intprops-tests
 
-TESTS += test-intprops
+GNULIB_TESTS += test-intprops
 check_PROGRAMS += test-intprops
 EXTRA_DIST += test-intprops.c macros.h
 
@@ -730,7 +730,7 @@ EXTRA_DIST += inttypes.in.h
 
 ## begin gnulib module inttypes-tests
 
-TESTS += test-inttypes
+GNULIB_TESTS += test-inttypes
 check_PROGRAMS += test-inttypes
 EXTRA_DIST += test-inttypes.c
 
@@ -738,7 +738,7 @@ EXTRA_DIST += test-inttypes.c
 
 ## begin gnulib module ioctl-tests
 
-TESTS += test-ioctl
+GNULIB_TESTS += test-ioctl
 check_PROGRAMS += test-ioctl
 EXTRA_DIST += test-ioctl.c signature.h macros.h
 
@@ -746,7 +746,7 @@ EXTRA_DIST += test-ioctl.c signature.h macros.h
 
 ## begin gnulib module isatty-tests
 
-TESTS += test-isatty
+GNULIB_TESTS += test-isatty
 check_PROGRAMS += test-isatty
 EXTRA_DIST += test-isatty.c signature.h macros.h
 
@@ -763,7 +763,7 @@ EXTRA_libtests_a_SOURCES += isnan.c isnand.c
 
 ## begin gnulib module isnand-nolibm-tests
 
-TESTS += test-isnand-nolibm
+GNULIB_TESTS += test-isnand-nolibm
 check_PROGRAMS += test-isnand-nolibm
 
 EXTRA_DIST += test-isnand-nolibm.c test-isnand.h minus-zero.h infinity.h nan.h macros.h
@@ -781,7 +781,7 @@ EXTRA_libtests_a_SOURCES += isnan.c isnanf.c
 
 ## begin gnulib module isnanf-nolibm-tests
 
-TESTS += test-isnanf-nolibm
+GNULIB_TESTS += test-isnanf-nolibm
 check_PROGRAMS += test-isnanf-nolibm
 
 EXTRA_DIST += test-isnanf-nolibm.c test-isnanf.h minus-zero.h infinity.h nan.h macros.h
@@ -799,7 +799,7 @@ EXTRA_libtests_a_SOURCES += isnan.c isnanl.c
 
 ## begin gnulib module isnanl-nolibm-tests
 
-TESTS += test-isnanl-nolibm
+GNULIB_TESTS += test-isnanl-nolibm
 check_PROGRAMS += test-isnanl-nolibm
 
 EXTRA_DIST += test-isnanl-nolibm.c test-isnanl.h minus-zero.h infinity.h nan.h macros.h
@@ -808,7 +808,7 @@ EXTRA_DIST += test-isnanl-nolibm.c test-isnanl.h minus-zero.h infinity.h nan.h m
 
 ## begin gnulib module langinfo-tests
 
-TESTS += test-langinfo
+GNULIB_TESTS += test-langinfo
 check_PROGRAMS += test-langinfo
 EXTRA_DIST += test-langinfo.c
 
@@ -816,7 +816,7 @@ EXTRA_DIST += test-langinfo.c
 
 ## begin gnulib module ldexp-tests
 
-TESTS += test-ldexp
+GNULIB_TESTS += test-ldexp
 check_PROGRAMS += test-ldexp
 test_ldexp_SOURCES = test-ldexp.c randomd.c
 test_ldexp_LDADD = $(LDADD) @LDEXP_LIBM@
@@ -826,7 +826,7 @@ EXTRA_DIST += test-ldexp.c test-ldexp.h minus-zero.h infinity.h nan.h signature.
 
 ## begin gnulib module listen-tests
 
-TESTS += test-listen
+GNULIB_TESTS += test-listen
 check_PROGRAMS += test-listen
 test_listen_LDADD = $(LDADD) @LIBSOCKET@
 EXTRA_DIST += test-listen.c signature.h macros.h
@@ -835,7 +835,7 @@ EXTRA_DIST += test-listen.c signature.h macros.h
 
 ## begin gnulib module locale-tests
 
-TESTS += test-locale
+GNULIB_TESTS += test-locale
 check_PROGRAMS += test-locale
 EXTRA_DIST += test-locale.c
 
@@ -843,7 +843,7 @@ EXTRA_DIST += test-locale.c
 
 ## begin gnulib module localeconv-tests
 
-TESTS += test-localeconv
+GNULIB_TESTS += test-localeconv
 check_PROGRAMS += test-localeconv
 EXTRA_DIST += test-localeconv.c signature.h macros.h
 
@@ -859,7 +859,7 @@ EXTRA_DIST += localename.h
 
 ## begin gnulib module localename-tests
 
-TESTS += test-localename
+GNULIB_TESTS += test-localename
 check_PROGRAMS += test-localename
 test_localename_LDADD = $(LDADD) @INTL_MACOSX_LIBS@ $(LIBTHREAD)
 
@@ -869,7 +869,7 @@ EXTRA_DIST += test-localename.c macros.h
 
 ## begin gnulib module lseek-tests
 
-TESTS += test-lseek.sh
+GNULIB_TESTS += test-lseek.sh
 check_PROGRAMS += test-lseek
 EXTRA_DIST += test-lseek.c test-lseek.sh signature.h macros.h
 
@@ -877,7 +877,7 @@ EXTRA_DIST += test-lseek.c test-lseek.sh signature.h macros.h
 
 ## begin gnulib module lstat-tests
 
-TESTS += test-lstat
+GNULIB_TESTS += test-lstat
 check_PROGRAMS += test-lstat
 EXTRA_DIST += test-lstat.h test-lstat.c signature.h macros.h
 
@@ -885,7 +885,7 @@ EXTRA_DIST += test-lstat.h test-lstat.c signature.h macros.h
 
 ## begin gnulib module malloc-gnu-tests
 
-TESTS += test-malloc-gnu
+GNULIB_TESTS += test-malloc-gnu
 check_PROGRAMS += test-malloc-gnu
 EXTRA_DIST += test-malloc-gnu.c
 
@@ -893,7 +893,7 @@ EXTRA_DIST += test-malloc-gnu.c
 
 ## begin gnulib module malloca-tests
 
-TESTS += test-malloca
+GNULIB_TESTS += test-malloca
 check_PROGRAMS += test-malloca
 
 EXTRA_DIST += test-malloca.c
@@ -1186,7 +1186,7 @@ EXTRA_DIST += math.in.h
 
 ## begin gnulib module math-tests
 
-TESTS += test-math
+GNULIB_TESTS += test-math
 check_PROGRAMS += test-math
 EXTRA_DIST += test-math.c macros.h
 
@@ -1194,7 +1194,7 @@ EXTRA_DIST += test-math.c macros.h
 
 ## begin gnulib module mbrtowc-tests
 
-TESTS += \
+GNULIB_TESTS += \
   test-mbrtowc1.sh test-mbrtowc2.sh test-mbrtowc3.sh test-mbrtowc4.sh \
   test-mbrtowc-w32-1.sh test-mbrtowc-w32-2.sh test-mbrtowc-w32-3.sh \
   test-mbrtowc-w32-4.sh test-mbrtowc-w32-5.sh
@@ -1211,7 +1211,7 @@ EXTRA_DIST += test-mbrtowc1.sh test-mbrtowc2.sh test-mbrtowc3.sh test-mbrtowc4.s
 
 ## begin gnulib module mbsinit-tests
 
-TESTS += test-mbsinit.sh
+GNULIB_TESTS += test-mbsinit.sh
 TESTS_ENVIRONMENT += LOCALE_FR_UTF8='@LOCALE_FR_UTF8@'
 check_PROGRAMS += test-mbsinit
 
@@ -1221,7 +1221,7 @@ EXTRA_DIST += test-mbsinit.sh test-mbsinit.c signature.h macros.h
 
 ## begin gnulib module mbsrtowcs-tests
 
-TESTS += test-mbsrtowcs1.sh test-mbsrtowcs2.sh test-mbsrtowcs3.sh test-mbsrtowcs4.sh
+GNULIB_TESTS += test-mbsrtowcs1.sh test-mbsrtowcs2.sh test-mbsrtowcs3.sh test-mbsrtowcs4.sh
 TESTS_ENVIRONMENT += \
   LOCALE_FR='@LOCALE_FR@' \
   LOCALE_FR_UTF8='@LOCALE_FR_UTF8@' \
@@ -1235,7 +1235,7 @@ EXTRA_DIST += test-mbsrtowcs1.sh test-mbsrtowcs2.sh test-mbsrtowcs3.sh test-mbsr
 
 ## begin gnulib module memchr-tests
 
-TESTS += test-memchr
+GNULIB_TESTS += test-memchr
 check_PROGRAMS += test-memchr
 EXTRA_DIST += test-memchr.c zerosize-ptr.h signature.h macros.h
 
@@ -1252,7 +1252,7 @@ EXTRA_libtests_a_SOURCES += nanosleep.c
 
 ## begin gnulib module nanosleep-tests
 
-TESTS += test-nanosleep
+GNULIB_TESTS += test-nanosleep
 check_PROGRAMS += test-nanosleep
 test_nanosleep_LDADD = $(LDADD) $(LIB_NANOSLEEP)
 EXTRA_DIST += test-nanosleep.c signature.h macros.h
@@ -1261,7 +1261,7 @@ EXTRA_DIST += test-nanosleep.c signature.h macros.h
 
 ## begin gnulib module net_if-tests
 
-TESTS += test-net_if
+GNULIB_TESTS += test-net_if
 check_PROGRAMS += test-net_if
 test_net_if_LDADD = $(LDADD) @NET_IF_LIB@
 EXTRA_DIST += test-net_if.c signature.h
@@ -1270,7 +1270,7 @@ EXTRA_DIST += test-net_if.c signature.h
 
 ## begin gnulib module netdb-tests
 
-TESTS += test-netdb
+GNULIB_TESTS += test-netdb
 check_PROGRAMS += test-netdb
 EXTRA_DIST += test-netdb.c
 
@@ -1278,7 +1278,7 @@ EXTRA_DIST += test-netdb.c
 
 ## begin gnulib module netinet_in-tests
 
-TESTS += test-netinet_in
+GNULIB_TESTS += test-netinet_in
 check_PROGRAMS += test-netinet_in
 EXTRA_DIST += test-netinet_in.c
 
@@ -1286,7 +1286,7 @@ EXTRA_DIST += test-netinet_in.c
 
 ## begin gnulib module nl_langinfo-tests
 
-TESTS += test-nl_langinfo.sh
+GNULIB_TESTS += test-nl_langinfo.sh
 TESTS_ENVIRONMENT += LOCALE_FR='@LOCALE_FR@' LOCALE_FR_UTF8='@LOCALE_FR_UTF8@'
 check_PROGRAMS += test-nl_langinfo
 EXTRA_DIST += test-nl_langinfo.sh test-nl_langinfo.c signature.h macros.h
@@ -1295,7 +1295,7 @@ EXTRA_DIST += test-nl_langinfo.sh test-nl_langinfo.c signature.h macros.h
 
 ## begin gnulib module nonblocking-pipe-tests
 
-TESTS += test-nonblocking-pipe.sh
+GNULIB_TESTS += test-nonblocking-pipe.sh
 check_PROGRAMS += test-nonblocking-pipe-main test-nonblocking-pipe-child
 test_nonblocking_pipe_main_LDADD = $(LDADD) @LIBINTL@
 EXTRA_DIST += test-nonblocking-pipe.sh test-nonblocking-pipe-main.c test-nonblocking-pipe-child.c test-nonblocking-pipe.h test-nonblocking-writer.h test-nonblocking-reader.h test-nonblocking-misc.h macros.h
@@ -1304,7 +1304,7 @@ EXTRA_DIST += test-nonblocking-pipe.sh test-nonblocking-pipe-main.c test-nonbloc
 
 ## begin gnulib module nonblocking-socket-tests
 
-TESTS += test-nonblocking-socket.sh
+GNULIB_TESTS += test-nonblocking-socket.sh
 check_PROGRAMS += test-nonblocking-socket-main test-nonblocking-socket-child
 test_nonblocking_socket_main_LDADD = $(LDADD) $(LIBSOCKET) @LIBINTL@
 test_nonblocking_socket_child_LDADD = $(LDADD) $(LIBSOCKET)
@@ -1314,7 +1314,7 @@ EXTRA_DIST += test-nonblocking-socket.sh test-nonblocking-socket-main.c test-non
 
 ## begin gnulib module nonblocking-tests
 
-TESTS += test-nonblocking
+GNULIB_TESTS += test-nonblocking
 check_PROGRAMS += test-nonblocking
 test_nonblocking_LDADD = $(LDADD) $(LIBSOCKET)
 EXTRA_DIST += test-nonblocking.c macros.h
@@ -1323,7 +1323,7 @@ EXTRA_DIST += test-nonblocking.c macros.h
 
 ## begin gnulib module open-tests
 
-TESTS += test-open
+GNULIB_TESTS += test-open
 check_PROGRAMS += test-open
 EXTRA_DIST += test-open.h test-open.c signature.h macros.h
 
@@ -1331,7 +1331,7 @@ EXTRA_DIST += test-open.h test-open.c signature.h macros.h
 
 ## begin gnulib module openpty-tests
 
-TESTS += test-openpty
+GNULIB_TESTS += test-openpty
 check_PROGRAMS += test-openpty
 test_openpty_LDADD = $(LDADD) @PTY_LIB@
 EXTRA_DIST += test-openpty.c signature.h
@@ -1340,7 +1340,7 @@ EXTRA_DIST += test-openpty.c signature.h
 
 ## begin gnulib module passfd-tests
 
-TESTS += test-passfd
+GNULIB_TESTS += test-passfd
 check_PROGRAMS += test-passfd
 test_passfd_LDADD = $(LDADD) @LIBSOCKET@
 EXTRA_DIST += test-passfd.c macros.h
@@ -1349,7 +1349,7 @@ EXTRA_DIST += test-passfd.c macros.h
 
 ## begin gnulib module pathmax-tests
 
-TESTS += test-pathmax
+GNULIB_TESTS += test-pathmax
 check_PROGRAMS += test-pathmax
 EXTRA_DIST += test-pathmax.c
 
@@ -1357,7 +1357,7 @@ EXTRA_DIST += test-pathmax.c
 
 ## begin gnulib module perror-tests
 
-TESTS += test-perror.sh test-perror2
+GNULIB_TESTS += test-perror.sh test-perror2
 check_PROGRAMS += test-perror test-perror2
 EXTRA_DIST += macros.h signature.h test-perror.c test-perror2.c test-perror.sh
 
@@ -1365,7 +1365,7 @@ EXTRA_DIST += macros.h signature.h test-perror.c test-perror2.c test-perror.sh
 
 ## begin gnulib module pipe-posix-tests
 
-TESTS += test-pipe
+GNULIB_TESTS += test-pipe
 check_PROGRAMS += test-pipe
 EXTRA_DIST += test-pipe.c signature.h macros.h
 
@@ -1373,7 +1373,7 @@ EXTRA_DIST += test-pipe.c signature.h macros.h
 
 ## begin gnulib module pipe2-tests
 
-TESTS += test-pipe2
+GNULIB_TESTS += test-pipe2
 check_PROGRAMS += test-pipe2
 test_pipe2_LDADD = $(LDADD) $(LIBSOCKET)
 EXTRA_DIST += test-pipe2.c signature.h macros.h
@@ -1382,7 +1382,7 @@ EXTRA_DIST += test-pipe2.c signature.h macros.h
 
 ## begin gnulib module poll-h-tests
 
-TESTS += test-poll-h
+GNULIB_TESTS += test-poll-h
 check_PROGRAMS += test-poll-h
 EXTRA_DIST += test-poll-h.c
 
@@ -1390,7 +1390,7 @@ EXTRA_DIST += test-poll-h.c
 
 ## begin gnulib module poll-tests
 
-TESTS += test-poll
+GNULIB_TESTS += test-poll
 check_PROGRAMS += test-poll
 test_poll_LDADD = $(LDADD) $(LIB_POLL) @LIBSOCKET@ $(INET_PTON_LIB)
 EXTRA_DIST += test-poll.c signature.h macros.h
@@ -1399,7 +1399,7 @@ EXTRA_DIST += test-poll.c signature.h macros.h
 
 ## begin gnulib module posix_openpt-tests
 
-TESTS += test-posix_openpt
+GNULIB_TESTS += test-posix_openpt
 check_PROGRAMS += test-posix_openpt
 EXTRA_DIST += test-posix_openpt.c signature.h macros.h
 
@@ -1425,7 +1425,7 @@ EXTRA_libtests_a_SOURCES += spawn_faction_addclose.c
 
 ## begin gnulib module posix_spawn_file_actions_addclose-tests
 
-TESTS += test-posix_spawn_file_actions_addclose
+GNULIB_TESTS += test-posix_spawn_file_actions_addclose
 check_PROGRAMS += test-posix_spawn_file_actions_addclose
 EXTRA_DIST += test-posix_spawn_file_actions_addclose.c signature.h macros.h
 
@@ -1442,7 +1442,7 @@ EXTRA_libtests_a_SOURCES += spawn_faction_adddup2.c
 
 ## begin gnulib module posix_spawn_file_actions_adddup2-tests
 
-TESTS += test-posix_spawn_file_actions_adddup2
+GNULIB_TESTS += test-posix_spawn_file_actions_adddup2
 check_PROGRAMS += test-posix_spawn_file_actions_adddup2
 EXTRA_DIST += test-posix_spawn_file_actions_adddup2.c signature.h macros.h
 
@@ -1459,7 +1459,7 @@ EXTRA_libtests_a_SOURCES += spawn_faction_addopen.c
 
 ## begin gnulib module posix_spawn_file_actions_addopen-tests
 
-TESTS += test-posix_spawn_file_actions_addopen
+GNULIB_TESTS += test-posix_spawn_file_actions_addopen
 check_PROGRAMS += test-posix_spawn_file_actions_addopen
 EXTRA_DIST += test-posix_spawn_file_actions_addopen.c signature.h macros.h
 
@@ -1531,7 +1531,7 @@ EXTRA_libtests_a_SOURCES += spawnp.c
 ## begin gnulib module posix_spawnp-tests
 
 if POSIX_SPAWN_PORTED
-TESTS += test-posix_spawn1 test-posix_spawn2
+GNULIB_TESTS += test-posix_spawn1 test-posix_spawn2
 check_PROGRAMS += test-posix_spawn1 test-posix_spawn2
 
 BUILT_SOURCES += test-posix_spawn1.sh
@@ -1560,7 +1560,7 @@ libtests_a_SOURCES += progname.h progname.c
 
 ## begin gnulib module pthread_sigmask-tests
 
-TESTS += test-pthread_sigmask1 test-pthread_sigmask2
+GNULIB_TESTS += test-pthread_sigmask1 test-pthread_sigmask2
 check_PROGRAMS += test-pthread_sigmask1 test-pthread_sigmask2
 test_pthread_sigmask1_LDADD = $(LDADD) @LIB_PTHREAD_SIGMASK@
 test_pthread_sigmask2_LDADD = $(LDADD) @LIB_PTHREAD_SIGMASK@ @LIBMULTITHREAD@
@@ -1579,7 +1579,7 @@ EXTRA_libtests_a_SOURCES += ptsname.c
 
 ## begin gnulib module ptsname-tests
 
-TESTS += test-ptsname
+GNULIB_TESTS += test-ptsname
 check_PROGRAMS += test-ptsname
 EXTRA_DIST += test-ptsname.c signature.h macros.h
 
@@ -1596,7 +1596,7 @@ EXTRA_libtests_a_SOURCES += ptsname_r.c
 
 ## begin gnulib module ptsname_r-tests
 
-TESTS += test-ptsname_r
+GNULIB_TESTS += test-ptsname_r
 check_PROGRAMS += test-ptsname_r
 EXTRA_DIST += test-ptsname_r.c signature.h macros.h
 
@@ -1613,7 +1613,7 @@ EXTRA_libtests_a_SOURCES += putenv.c
 
 ## begin gnulib module raise-tests
 
-TESTS += test-raise
+GNULIB_TESTS += test-raise
 check_PROGRAMS += test-raise
 EXTRA_DIST += test-raise.c signature.h macros.h
 
@@ -1621,7 +1621,7 @@ EXTRA_DIST += test-raise.c signature.h macros.h
 
 ## begin gnulib module random_r-tests
 
-TESTS += test-random_r
+GNULIB_TESTS += test-random_r
 check_PROGRAMS += test-random_r
 EXTRA_DIST += test-random_r.c signature.h macros.h
 
@@ -1629,7 +1629,7 @@ EXTRA_DIST += test-random_r.c signature.h macros.h
 
 ## begin gnulib module rawmemchr-tests
 
-TESTS += test-rawmemchr
+GNULIB_TESTS += test-rawmemchr
 check_PROGRAMS += test-rawmemchr
 EXTRA_DIST += test-rawmemchr.c zerosize-ptr.h signature.h macros.h
 
@@ -1646,7 +1646,7 @@ EXTRA_libtests_a_SOURCES += read.c
 
 ## begin gnulib module read-tests
 
-TESTS += test-read
+GNULIB_TESTS += test-read
 check_PROGRAMS += test-read
 EXTRA_DIST += test-read.c signature.h macros.h
 
@@ -1654,7 +1654,7 @@ EXTRA_DIST += test-read.c signature.h macros.h
 
 ## begin gnulib module readlink-tests
 
-TESTS += test-readlink
+GNULIB_TESTS += test-readlink
 check_PROGRAMS += test-readlink
 EXTRA_DIST += test-readlink.h test-readlink.c signature.h macros.h
 
@@ -1662,7 +1662,7 @@ EXTRA_DIST += test-readlink.h test-readlink.c signature.h macros.h
 
 ## begin gnulib module realloc-gnu-tests
 
-TESTS += test-realloc-gnu
+GNULIB_TESTS += test-realloc-gnu
 check_PROGRAMS += test-realloc-gnu
 EXTRA_DIST += test-realloc-gnu.c
 
@@ -1670,7 +1670,7 @@ EXTRA_DIST += test-realloc-gnu.c
 
 ## begin gnulib module recv-tests
 
-TESTS += test-recv
+GNULIB_TESTS += test-recv
 check_PROGRAMS += test-recv
 test_recv_LDADD = $(LDADD) @LIBSOCKET@
 EXTRA_DIST += test-recv.c signature.h macros.h
@@ -1679,7 +1679,7 @@ EXTRA_DIST += test-recv.c signature.h macros.h
 
 ## begin gnulib module regex-tests
 
-TESTS += test-regex
+GNULIB_TESTS += test-regex
 check_PROGRAMS += test-regex
 test_regex_LDADD = $(LDADD) @LIBINTL@
 EXTRA_DIST += test-regex.c macros.h
@@ -1695,7 +1695,7 @@ EXTRA_DIST += same-inode.h
 
 ## begin gnulib module sched-tests
 
-TESTS += test-sched
+GNULIB_TESTS += test-sched
 check_PROGRAMS += test-sched
 EXTRA_DIST += test-sched.c
 
@@ -1703,7 +1703,7 @@ EXTRA_DIST += test-sched.c
 
 ## begin gnulib module select-tests
 
-TESTS += test-select test-select-in.sh test-select-out.sh
+GNULIB_TESTS += test-select test-select-in.sh test-select-out.sh
 # test-select-stdin has to be run by hand.
 check_PROGRAMS += test-select test-select-fd test-select-stdin
 test_select_LDADD = $(LDADD) @LIB_SELECT@ @LIBSOCKET@ $(INET_PTON_LIB)
@@ -1715,7 +1715,7 @@ EXTRA_DIST += macros.h signature.h test-select.c test-select.h test-select-fd.c 
 
 ## begin gnulib module send-tests
 
-TESTS += test-send
+GNULIB_TESTS += test-send
 check_PROGRAMS += test-send
 test_send_LDADD = $(LDADD) @LIBSOCKET@
 EXTRA_DIST += test-send.c signature.h macros.h
@@ -1724,7 +1724,7 @@ EXTRA_DIST += test-send.c signature.h macros.h
 
 ## begin gnulib module setenv-tests
 
-TESTS += test-setenv
+GNULIB_TESTS += test-setenv
 check_PROGRAMS += test-setenv
 EXTRA_DIST += test-setenv.c signature.h macros.h
 
@@ -1741,7 +1741,7 @@ EXTRA_libtests_a_SOURCES += setlocale.c
 
 ## begin gnulib module setlocale-tests
 
-TESTS += test-setlocale1.sh test-setlocale2.sh
+GNULIB_TESTS += test-setlocale1.sh test-setlocale2.sh
 TESTS_ENVIRONMENT += \
   LOCALE_FR='@LOCALE_FR@' \
   LOCALE_FR_UTF8='@LOCALE_FR_UTF8@' \
@@ -1754,7 +1754,7 @@ EXTRA_DIST += test-setlocale1.sh test-setlocale1.c test-setlocale2.sh test-setlo
 
 ## begin gnulib module setsockopt-tests
 
-TESTS += test-setsockopt
+GNULIB_TESTS += test-setsockopt
 check_PROGRAMS += test-setsockopt
 test_setsockopt_LDADD = $(LDADD) @LIBSOCKET@
 EXTRA_DIST += test-setsockopt.c signature.h macros.h
@@ -1763,7 +1763,7 @@ EXTRA_DIST += test-setsockopt.c signature.h macros.h
 
 ## begin gnulib module sigaction-tests
 
-TESTS += test-sigaction
+GNULIB_TESTS += test-sigaction
 check_PROGRAMS += test-sigaction
 EXTRA_DIST += test-sigaction.c signature.h macros.h
 
@@ -1771,7 +1771,7 @@ EXTRA_DIST += test-sigaction.c signature.h macros.h
 
 ## begin gnulib module signal-h-tests
 
-TESTS += test-signal-h
+GNULIB_TESTS += test-signal-h
 check_PROGRAMS += test-signal-h
 EXTRA_DIST += test-signal-h.c
 
@@ -1788,7 +1788,7 @@ EXTRA_libtests_a_SOURCES += signbitd.c signbitf.c signbitl.c
 
 ## begin gnulib module signbit-tests
 
-TESTS += test-signbit
+GNULIB_TESTS += test-signbit
 check_PROGRAMS += test-signbit
 
 EXTRA_DIST += test-signbit.c minus-zero.h infinity.h macros.h
@@ -1797,7 +1797,7 @@ EXTRA_DIST += test-signbit.c minus-zero.h infinity.h macros.h
 
 ## begin gnulib module sigpipe-tests
 
-TESTS += test-sigpipe.sh
+GNULIB_TESTS += test-sigpipe.sh
 check_PROGRAMS += test-sigpipe
 
 EXTRA_DIST += test-sigpipe.c test-sigpipe.sh
@@ -1806,7 +1806,7 @@ EXTRA_DIST += test-sigpipe.c test-sigpipe.sh
 
 ## begin gnulib module sigprocmask-tests
 
-TESTS += test-sigprocmask
+GNULIB_TESTS += test-sigprocmask
 check_PROGRAMS += test-sigprocmask
 EXTRA_DIST += test-sigprocmask.c signature.h macros.h
 
@@ -1814,7 +1814,7 @@ EXTRA_DIST += test-sigprocmask.c signature.h macros.h
 
 ## begin gnulib module sleep-tests
 
-TESTS += test-sleep
+GNULIB_TESTS += test-sleep
 check_PROGRAMS += test-sleep
 EXTRA_DIST += test-sleep.c signature.h macros.h
 
@@ -1928,7 +1928,7 @@ EXTRA_DIST += $(top_srcdir)/build-aux/snippet/warn-on-use.h
 
 ## begin gnulib module snprintf-tests
 
-TESTS += test-snprintf
+GNULIB_TESTS += test-snprintf
 check_PROGRAMS += test-snprintf
 
 EXTRA_DIST += test-snprintf.c signature.h macros.h
@@ -1937,7 +1937,7 @@ EXTRA_DIST += test-snprintf.c signature.h macros.h
 
 ## begin gnulib module sockets-tests
 
-TESTS += test-sockets
+GNULIB_TESTS += test-sockets
 check_PROGRAMS += test-sockets
 test_sockets_LDADD = $(LDADD) @LIBSOCKET@
 EXTRA_DIST += test-sockets.c
@@ -2001,7 +2001,7 @@ EXTRA_DIST += spawn.in.h
 
 ## begin gnulib module spawn-tests
 
-TESTS += test-spawn
+GNULIB_TESTS += test-spawn
 check_PROGRAMS += test-spawn
 EXTRA_DIST += test-spawn.c
 
@@ -2009,7 +2009,7 @@ EXTRA_DIST += test-spawn.c
 
 ## begin gnulib module stat-tests
 
-TESTS += test-stat
+GNULIB_TESTS += test-stat
 check_PROGRAMS += test-stat
 test_stat_LDADD = $(LDADD) $(LIBINTL)
 EXTRA_DIST += test-stat.h test-stat.c signature.h macros.h
@@ -2018,7 +2018,7 @@ EXTRA_DIST += test-stat.h test-stat.c signature.h macros.h
 
 ## begin gnulib module stat-time-tests
 
-TESTS += test-stat-time
+GNULIB_TESTS += test-stat-time
 check_PROGRAMS += test-stat-time
 test_stat_time_LDADD = $(LDADD) $(LIB_NANOSLEEP)
 EXTRA_DIST += test-stat-time.c macros.h nap.h
@@ -2027,7 +2027,7 @@ EXTRA_DIST += test-stat-time.c macros.h nap.h
 
 ## begin gnulib module stdalign-tests
 
-TESTS += test-stdalign
+GNULIB_TESTS += test-stdalign
 check_PROGRAMS += test-stdalign
 EXTRA_DIST += test-stdalign.c macros.h
 
@@ -2035,7 +2035,7 @@ EXTRA_DIST += test-stdalign.c macros.h
 
 ## begin gnulib module stdbool-tests
 
-TESTS += test-stdbool
+GNULIB_TESTS += test-stdbool
 check_PROGRAMS += test-stdbool
 EXTRA_DIST += test-stdbool.c
 
@@ -2043,7 +2043,7 @@ EXTRA_DIST += test-stdbool.c
 
 ## begin gnulib module stddef-tests
 
-TESTS += test-stddef
+GNULIB_TESTS += test-stddef
 check_PROGRAMS += test-stddef
 EXTRA_DIST += test-stddef.c
 
@@ -2051,7 +2051,7 @@ EXTRA_DIST += test-stddef.c
 
 ## begin gnulib module stdint-tests
 
-TESTS += test-stdint
+GNULIB_TESTS += test-stdint
 check_PROGRAMS += test-stdint
 EXTRA_DIST += test-stdint.c
 
@@ -2059,7 +2059,7 @@ EXTRA_DIST += test-stdint.c
 
 ## begin gnulib module stdio-tests
 
-TESTS += test-stdio
+GNULIB_TESTS += test-stdio
 check_PROGRAMS += test-stdio
 EXTRA_DIST += test-stdio.c
 
@@ -2067,7 +2067,7 @@ EXTRA_DIST += test-stdio.c
 
 ## begin gnulib module stdlib-tests
 
-TESTS += test-stdlib
+GNULIB_TESTS += test-stdlib
 check_PROGRAMS += test-stdlib
 EXTRA_DIST += test-stdlib.c test-sys_wait.h
 
@@ -2075,7 +2075,7 @@ EXTRA_DIST += test-stdlib.c test-sys_wait.h
 
 ## begin gnulib module strchrnul-tests
 
-TESTS += test-strchrnul
+GNULIB_TESTS += test-strchrnul
 check_PROGRAMS += test-strchrnul
 EXTRA_DIST += test-strchrnul.c signature.h macros.h
 
@@ -2083,7 +2083,7 @@ EXTRA_DIST += test-strchrnul.c signature.h macros.h
 
 ## begin gnulib module strerror-tests
 
-TESTS += test-strerror
+GNULIB_TESTS += test-strerror
 check_PROGRAMS += test-strerror
 EXTRA_DIST += test-strerror.c signature.h macros.h
 
@@ -2091,7 +2091,7 @@ EXTRA_DIST += test-strerror.c signature.h macros.h
 
 ## begin gnulib module strerror_r-posix-tests
 
-TESTS += test-strerror_r
+GNULIB_TESTS += test-strerror_r
 check_PROGRAMS += test-strerror_r
 EXTRA_DIST += test-strerror_r.c signature.h macros.h
 
@@ -2099,7 +2099,7 @@ EXTRA_DIST += test-strerror_r.c signature.h macros.h
 
 ## begin gnulib module string-tests
 
-TESTS += test-string
+GNULIB_TESTS += test-string
 check_PROGRAMS += test-string
 EXTRA_DIST += test-string.c
 
@@ -2107,7 +2107,7 @@ EXTRA_DIST += test-string.c
 
 ## begin gnulib module strings-tests
 
-TESTS += test-strings
+GNULIB_TESTS += test-strings
 check_PROGRAMS += test-strings
 EXTRA_DIST += test-strings.c
 
@@ -2115,7 +2115,7 @@ EXTRA_DIST += test-strings.c
 
 ## begin gnulib module strnlen-tests
 
-TESTS += test-strnlen
+GNULIB_TESTS += test-strnlen
 check_PROGRAMS += test-strnlen
 EXTRA_DIST += test-strnlen.c zerosize-ptr.h signature.h macros.h
 
@@ -2132,7 +2132,7 @@ EXTRA_libtests_a_SOURCES += symlink.c
 
 ## begin gnulib module symlink-tests
 
-TESTS += test-symlink
+GNULIB_TESTS += test-symlink
 check_PROGRAMS += test-symlink
 EXTRA_DIST += test-symlink.h test-symlink.c signature.h macros.h
 
@@ -2140,7 +2140,7 @@ EXTRA_DIST += test-symlink.h test-symlink.c signature.h macros.h
 
 ## begin gnulib module sys_ioctl-tests
 
-TESTS += test-sys_ioctl
+GNULIB_TESTS += test-sys_ioctl
 check_PROGRAMS += test-sys_ioctl
 EXTRA_DIST += test-sys_ioctl.c
 
@@ -2148,7 +2148,7 @@ EXTRA_DIST += test-sys_ioctl.c
 
 ## begin gnulib module sys_select-tests
 
-TESTS += test-sys_select
+GNULIB_TESTS += test-sys_select
 check_PROGRAMS += test-sys_select
 EXTRA_DIST += test-sys_select.c signature.h
 
@@ -2156,7 +2156,7 @@ EXTRA_DIST += test-sys_select.c signature.h
 
 ## begin gnulib module sys_socket-tests
 
-TESTS += test-sys_socket
+GNULIB_TESTS += test-sys_socket
 check_PROGRAMS += test-sys_socket
 EXTRA_DIST += test-sys_socket.c
 
@@ -2164,7 +2164,7 @@ EXTRA_DIST += test-sys_socket.c
 
 ## begin gnulib module sys_stat-tests
 
-TESTS += test-sys_stat
+GNULIB_TESTS += test-sys_stat
 check_PROGRAMS += test-sys_stat
 EXTRA_DIST += test-sys_stat.c
 
@@ -2172,7 +2172,7 @@ EXTRA_DIST += test-sys_stat.c
 
 ## begin gnulib module sys_time-tests
 
-TESTS += test-sys_time
+GNULIB_TESTS += test-sys_time
 check_PROGRAMS += test-sys_time
 EXTRA_DIST += test-sys_time.c
 
@@ -2180,7 +2180,7 @@ EXTRA_DIST += test-sys_time.c
 
 ## begin gnulib module sys_types-tests
 
-TESTS += test-sys_types
+GNULIB_TESTS += test-sys_types
 check_PROGRAMS += test-sys_types
 EXTRA_DIST += test-sys_types.c
 
@@ -2188,7 +2188,7 @@ EXTRA_DIST += test-sys_types.c
 
 ## begin gnulib module sys_uio-tests
 
-TESTS += test-sys_uio
+GNULIB_TESTS += test-sys_uio
 check_PROGRAMS += test-sys_uio
 EXTRA_DIST += test-sys_uio.c
 
@@ -2196,7 +2196,7 @@ EXTRA_DIST += test-sys_uio.c
 
 ## begin gnulib module sys_utsname-tests
 
-TESTS += test-sys_utsname
+GNULIB_TESTS += test-sys_utsname
 check_PROGRAMS += test-sys_utsname
 EXTRA_DIST += test-sys_utsname.c
 
@@ -2204,7 +2204,7 @@ EXTRA_DIST += test-sys_utsname.c
 
 ## begin gnulib module sys_wait-tests
 
-TESTS += test-sys_wait
+GNULIB_TESTS += test-sys_wait
 check_PROGRAMS += test-sys_wait
 EXTRA_DIST += test-sys_wait.c test-sys_wait.h
 
@@ -2212,7 +2212,7 @@ EXTRA_DIST += test-sys_wait.c test-sys_wait.h
 
 ## begin gnulib module termios-tests
 
-TESTS += test-termios
+GNULIB_TESTS += test-termios
 check_PROGRAMS += test-termios
 EXTRA_DIST += test-termios.c
 
@@ -2220,7 +2220,7 @@ EXTRA_DIST += test-termios.c
 
 ## begin gnulib module test-framework-sh-tests
 
-TESTS += test-init.sh
+GNULIB_TESTS += test-init.sh
 EXTRA_DIST += init.sh
 EXTRA_DIST += test-init.sh
 
@@ -2234,7 +2234,7 @@ libtests_a_SOURCES += glthread/thread.h glthread/thread.c
 
 ## begin gnulib module thread-tests
 
-TESTS += test-thread_self test-thread_create
+GNULIB_TESTS += test-thread_self test-thread_create
 check_PROGRAMS += test-thread_self test-thread_create
 test_thread_self_LDADD = $(LDADD) @LIBTHREAD@
 test_thread_create_LDADD = $(LDADD) @LIBMULTITHREAD@
@@ -2244,7 +2244,7 @@ EXTRA_DIST += test-thread_self.c test-thread_create.c macros.h
 
 ## begin gnulib module time-tests
 
-TESTS += test-time
+GNULIB_TESTS += test-time
 check_PROGRAMS += test-time
 EXTRA_DIST += test-time.c
 
@@ -2252,7 +2252,7 @@ EXTRA_DIST += test-time.c
 
 ## begin gnulib module ttyname_r-tests
 
-TESTS += test-ttyname_r
+GNULIB_TESTS += test-ttyname_r
 check_PROGRAMS += test-ttyname_r
 EXTRA_DIST += test-ttyname_r.c signature.h macros.h
 
@@ -2260,7 +2260,7 @@ EXTRA_DIST += test-ttyname_r.c signature.h macros.h
 
 ## begin gnulib module uname-tests
 
-TESTS += test-uname
+GNULIB_TESTS += test-uname
 check_PROGRAMS += test-uname
 test_uname_LDADD = $(LDADD) @GETHOSTNAME_LIB@
 EXTRA_DIST += test-uname.c signature.h macros.h
@@ -2269,7 +2269,7 @@ EXTRA_DIST += test-uname.c signature.h macros.h
 
 ## begin gnulib module unistd-tests
 
-TESTS += test-unistd
+GNULIB_TESTS += test-unistd
 check_PROGRAMS += test-unistd
 EXTRA_DIST += test-unistd.c
 
@@ -2286,7 +2286,7 @@ EXTRA_libtests_a_SOURCES += unlockpt.c
 
 ## begin gnulib module unlockpt-tests
 
-TESTS += test-unlockpt
+GNULIB_TESTS += test-unlockpt
 check_PROGRAMS += test-unlockpt
 EXTRA_DIST += test-unlockpt.c signature.h macros.h
 
@@ -2303,7 +2303,7 @@ EXTRA_libtests_a_SOURCES += unsetenv.c
 
 ## begin gnulib module unsetenv-tests
 
-TESTS += test-unsetenv
+GNULIB_TESTS += test-unsetenv
 check_PROGRAMS += test-unsetenv
 EXTRA_DIST += test-unsetenv.c signature.h macros.h
 
@@ -2311,7 +2311,7 @@ EXTRA_DIST += test-unsetenv.c signature.h macros.h
 
 ## begin gnulib module usleep-tests
 
-TESTS += test-usleep
+GNULIB_TESTS += test-usleep
 check_PROGRAMS += test-usleep
 EXTRA_DIST += test-usleep.c signature.h macros.h
 
@@ -2319,7 +2319,7 @@ EXTRA_DIST += test-usleep.c signature.h macros.h
 
 ## begin gnulib module vasnprintf-tests
 
-TESTS += test-vasnprintf
+GNULIB_TESTS += test-vasnprintf
 check_PROGRAMS += test-vasnprintf
 
 EXTRA_DIST += test-vasnprintf.c macros.h
@@ -2328,7 +2328,7 @@ EXTRA_DIST += test-vasnprintf.c macros.h
 
 ## begin gnulib module vasprintf-tests
 
-TESTS += test-vasprintf
+GNULIB_TESTS += test-vasprintf
 check_PROGRAMS += test-vasprintf
 
 EXTRA_DIST += test-vasprintf.c signature.h macros.h
@@ -2337,8 +2337,8 @@ EXTRA_DIST += test-vasprintf.c signature.h macros.h
 
 ## begin gnulib module vc-list-files-tests
 
-TESTS += test-vc-list-files-git.sh
-TESTS += test-vc-list-files-cvs.sh
+GNULIB_TESTS += test-vc-list-files-git.sh
+GNULIB_TESTS += test-vc-list-files-cvs.sh
 TESTS_ENVIRONMENT += abs_aux_dir='$(abs_aux_dir)'
 EXTRA_DIST += test-vc-list-files-git.sh test-vc-list-files-cvs.sh
 
@@ -2347,7 +2347,7 @@ EXTRA_DIST += test-vc-list-files-git.sh test-vc-list-files-cvs.sh
 ## begin gnulib module verify-tests
 
 TESTS_ENVIRONMENT += MAKE='$(MAKE)'
-TESTS += test-verify test-verify.sh
+GNULIB_TESTS += test-verify test-verify.sh
 check_PROGRAMS += test-verify
 EXTRA_DIST += test-verify.c test-verify.sh
 
@@ -2355,7 +2355,7 @@ EXTRA_DIST += test-verify.c test-verify.sh
 
 ## begin gnulib module vsnprintf-tests
 
-TESTS += test-vsnprintf
+GNULIB_TESTS += test-vsnprintf
 check_PROGRAMS += test-vsnprintf
 
 EXTRA_DIST += test-vsnprintf.c signature.h macros.h
@@ -2370,7 +2370,7 @@ libtests_a_SOURCES += wait-process.h wait-process.c
 
 ## begin gnulib module wchar-tests
 
-TESTS += test-wchar
+GNULIB_TESTS += test-wchar
 check_PROGRAMS += test-wchar
 EXTRA_DIST += test-wchar.c
 
@@ -2378,7 +2378,7 @@ EXTRA_DIST += test-wchar.c
 
 ## begin gnulib module wcrtomb-tests
 
-TESTS += \
+GNULIB_TESTS += \
   test-wcrtomb.sh \
   test-wcrtomb-w32-1.sh test-wcrtomb-w32-2.sh test-wcrtomb-w32-3.sh \
   test-wcrtomb-w32-4.sh test-wcrtomb-w32-5.sh
@@ -2413,7 +2413,7 @@ EXTRA_libtests_a_SOURCES += wctomb.c
 
 ## begin gnulib module wctype-h-tests
 
-TESTS += test-wctype-h
+GNULIB_TESTS += test-wctype-h
 check_PROGRAMS += test-wctype-h
 EXTRA_DIST += test-wctype-h.c macros.h
 
@@ -2430,7 +2430,7 @@ EXTRA_libtests_a_SOURCES += write.c
 
 ## begin gnulib module write-tests
 
-TESTS += test-write
+GNULIB_TESTS += test-write
 check_PROGRAMS += test-write
 EXTRA_DIST += test-write.c signature.h macros.h
 
@@ -2452,7 +2452,7 @@ libtests_a_SOURCES += xalloc-die.c
 
 ## begin gnulib module xalloc-die-tests
 
-TESTS += test-xalloc-die.sh
+GNULIB_TESTS += test-xalloc-die.sh
 check_PROGRAMS += test-xalloc-die
 test_xalloc_die_LDADD = $(LDADD) @LIBINTL@
 EXTRA_DIST += test-xalloc-die.c test-xalloc-die.sh

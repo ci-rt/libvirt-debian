@@ -133,7 +133,7 @@
 .\" ========================================================================
 .\"
 .IX Title "LIBVIRTD 8"
-.TH LIBVIRTD 8 "2012-08-15" "libvirt-1.1.1" "Virtualization Support"
+.TH LIBVIRTD 8 "2013-08-28" "libvirt-1.1.2" "Virtualization Support"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -170,6 +170,9 @@ defined.  Any guests whose \s-1XML\s0 configuration has not been defined will be
 from the configuration.
 .SH "OPTIONS"
 .IX Header "OPTIONS"
+.IP "\fB\-h, \-\-help\fR" 4
+.IX Item "-h, --help"
+Display command line help usage then exit.
 .IP "\fB\-d, \-\-daemon\fR" 4
 .IX Item "-d, --daemon"
 Run as a daemon & write \s-1PID\s0 file.
