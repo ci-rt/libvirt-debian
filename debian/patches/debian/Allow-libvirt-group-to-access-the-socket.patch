@@ -8,7 +8,7 @@ Subject: Allow libvirt group to access the socket
  2 files changed, 4 insertions(+), 8 deletions(-)
 
 diff --git a/daemon/libvirtd.conf b/daemon/libvirtd.conf
-index af4493e..61d08e3 100644
+index 5353927..6632dde 100644
 --- a/daemon/libvirtd.conf
 +++ b/daemon/libvirtd.conf
 @@ -78,7 +78,7 @@
@@ -48,7 +48,7 @@ index af4493e..61d08e3 100644
  # Change the authentication scheme for TCP sockets.
  #
 diff --git a/daemon/test_libvirtd.aug.in b/daemon/test_libvirtd.aug.in
-index 4e3b878..e213f63 100644
+index a7e8515..acd0667 100644
 --- a/daemon/test_libvirtd.aug.in
 +++ b/daemon/test_libvirtd.aug.in
 @@ -9,12 +9,8 @@ module Test_libvirtd =
