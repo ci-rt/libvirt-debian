@@ -1,3 +1,12 @@
+libvirt (1.1.2~rc2-1) experimental; urgency=low
+
+  * [4db5aa3] Remove unneeded systemd targets.
+    While it's nice to have them upstream for backward compat we can drop
+    them in Debian already.
+  * [b4a9eaf] New upstream version 1.1.2~rc2 (Closes: #721325)
+
+ -- Guido Günther <agx@sigxcpu.org>  Fri, 30 Aug 2013 17:46:54 +0200
+
 libvirt (1.1.2~rc1-1) experimental; urgency=low
 
   * [a3b140a] New upstream version 1.1.2~rc1 (Closes: #719533)
