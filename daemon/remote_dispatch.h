@@ -1097,9 +1097,9 @@ static int remoteDispatchConnectListDefinedDomains(
         goto cleanup;
     }
 
-    if (args->maxnames > REMOTE_DOMAIN_NAME_LIST_MAX) {
+    if (args->maxnames > REMOTE_DOMAIN_LIST_MAX) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
-                       "%s", _("maxnames > REMOTE_DOMAIN_NAME_LIST_MAX"));
+                       "%s", _("maxnames > REMOTE_DOMAIN_LIST_MAX"));
         goto cleanup;
     }
 
@@ -1159,9 +1159,9 @@ static int remoteDispatchConnectListDefinedInterfaces(
         goto cleanup;
     }
 
-    if (args->maxnames > REMOTE_DEFINED_INTERFACE_NAME_LIST_MAX) {
+    if (args->maxnames > REMOTE_INTERFACE_LIST_MAX) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
-                       "%s", _("maxnames > REMOTE_DEFINED_INTERFACE_NAME_LIST_MAX"));
+                       "%s", _("maxnames > REMOTE_INTERFACE_LIST_MAX"));
         goto cleanup;
     }
 
@@ -1221,9 +1221,9 @@ static int remoteDispatchConnectListDefinedNetworks(
         goto cleanup;
     }
 
-    if (args->maxnames > REMOTE_NETWORK_NAME_LIST_MAX) {
+    if (args->maxnames > REMOTE_NETWORK_LIST_MAX) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
-                       "%s", _("maxnames > REMOTE_NETWORK_NAME_LIST_MAX"));
+                       "%s", _("maxnames > REMOTE_NETWORK_LIST_MAX"));
         goto cleanup;
     }
 
@@ -1283,9 +1283,9 @@ static int remoteDispatchConnectListDefinedStoragePools(
         goto cleanup;
     }
 
-    if (args->maxnames > REMOTE_STORAGE_POOL_NAME_LIST_MAX) {
+    if (args->maxnames > REMOTE_STORAGE_POOL_LIST_MAX) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
-                       "%s", _("maxnames > REMOTE_STORAGE_POOL_NAME_LIST_MAX"));
+                       "%s", _("maxnames > REMOTE_STORAGE_POOL_LIST_MAX"));
         goto cleanup;
     }
 
@@ -1345,9 +1345,9 @@ static int remoteDispatchConnectListDomains(
         goto cleanup;
     }
 
-    if (args->maxids > REMOTE_DOMAIN_ID_LIST_MAX) {
+    if (args->maxids > REMOTE_DOMAIN_LIST_MAX) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
-                       "%s", _("maxids > REMOTE_DOMAIN_ID_LIST_MAX"));
+                       "%s", _("maxids > REMOTE_DOMAIN_LIST_MAX"));
         goto cleanup;
     }
 
@@ -1407,9 +1407,9 @@ static int remoteDispatchConnectListInterfaces(
         goto cleanup;
     }
 
-    if (args->maxnames > REMOTE_INTERFACE_NAME_LIST_MAX) {
+    if (args->maxnames > REMOTE_INTERFACE_LIST_MAX) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
-                       "%s", _("maxnames > REMOTE_INTERFACE_NAME_LIST_MAX"));
+                       "%s", _("maxnames > REMOTE_INTERFACE_LIST_MAX"));
         goto cleanup;
     }
 
@@ -1469,9 +1469,9 @@ static int remoteDispatchConnectListNetworks(
         goto cleanup;
     }
 
-    if (args->maxnames > REMOTE_NETWORK_NAME_LIST_MAX) {
+    if (args->maxnames > REMOTE_NETWORK_LIST_MAX) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
-                       "%s", _("maxnames > REMOTE_NETWORK_NAME_LIST_MAX"));
+                       "%s", _("maxnames > REMOTE_NETWORK_LIST_MAX"));
         goto cleanup;
     }
 
@@ -1531,9 +1531,9 @@ static int remoteDispatchConnectListNWFilters(
         goto cleanup;
     }
 
-    if (args->maxnames > REMOTE_NWFILTER_NAME_LIST_MAX) {
+    if (args->maxnames > REMOTE_NWFILTER_LIST_MAX) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
-                       "%s", _("maxnames > REMOTE_NWFILTER_NAME_LIST_MAX"));
+                       "%s", _("maxnames > REMOTE_NWFILTER_LIST_MAX"));
         goto cleanup;
     }
 
@@ -1593,9 +1593,9 @@ static int remoteDispatchConnectListSecrets(
         goto cleanup;
     }
 
-    if (args->maxuuids > REMOTE_SECRET_UUID_LIST_MAX) {
+    if (args->maxuuids > REMOTE_SECRET_LIST_MAX) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
-                       "%s", _("maxuuids > REMOTE_SECRET_UUID_LIST_MAX"));
+                       "%s", _("maxuuids > REMOTE_SECRET_LIST_MAX"));
         goto cleanup;
     }
 
@@ -1655,9 +1655,9 @@ static int remoteDispatchConnectListStoragePools(
         goto cleanup;
     }
 
-    if (args->maxnames > REMOTE_STORAGE_POOL_NAME_LIST_MAX) {
+    if (args->maxnames > REMOTE_STORAGE_POOL_LIST_MAX) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
-                       "%s", _("maxnames > REMOTE_STORAGE_POOL_NAME_LIST_MAX"));
+                       "%s", _("maxnames > REMOTE_STORAGE_POOL_LIST_MAX"));
         goto cleanup;
     }
 
@@ -8598,9 +8598,9 @@ static int remoteDispatchDomainSnapshotListChildrenNames(
         goto cleanup;
     }
 
-    if (args->maxnames > REMOTE_DOMAIN_SNAPSHOT_LIST_NAMES_MAX) {
+    if (args->maxnames > REMOTE_DOMAIN_SNAPSHOT_LIST_MAX) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
-                       "%s", _("maxnames > REMOTE_DOMAIN_SNAPSHOT_LIST_NAMES_MAX"));
+                       "%s", _("maxnames > REMOTE_DOMAIN_SNAPSHOT_LIST_MAX"));
         goto cleanup;
     }
 
@@ -8671,9 +8671,9 @@ static int remoteDispatchDomainSnapshotListNames(
         goto cleanup;
     }
 
-    if (args->maxnames > REMOTE_DOMAIN_SNAPSHOT_LIST_NAMES_MAX) {
+    if (args->maxnames > REMOTE_DOMAIN_SNAPSHOT_LIST_MAX) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
-                       "%s", _("maxnames > REMOTE_DOMAIN_SNAPSHOT_LIST_NAMES_MAX"));
+                       "%s", _("maxnames > REMOTE_DOMAIN_SNAPSHOT_LIST_MAX"));
         goto cleanup;
     }
 
@@ -11328,9 +11328,9 @@ static int remoteDispatchNodeListDevices(
         goto cleanup;
     }
 
-    if (args->maxnames > REMOTE_NODE_DEVICE_NAME_LIST_MAX) {
+    if (args->maxnames > REMOTE_NODE_DEVICE_LIST_MAX) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
-                       "%s", _("maxnames > REMOTE_NODE_DEVICE_NAME_LIST_MAX"));
+                       "%s", _("maxnames > REMOTE_NODE_DEVICE_LIST_MAX"));
         goto cleanup;
     }
 
@@ -12766,9 +12766,9 @@ static int remoteDispatchStoragePoolListVolumes(
         goto cleanup;
     }
 
-    if (args->maxnames > REMOTE_STORAGE_VOL_NAME_LIST_MAX) {
+    if (args->maxnames > REMOTE_STORAGE_VOL_LIST_MAX) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
-                       "%s", _("maxnames > REMOTE_STORAGE_VOL_NAME_LIST_MAX"));
+                       "%s", _("maxnames > REMOTE_STORAGE_VOL_LIST_MAX"));
         goto cleanup;
     }
 

@@ -24,7 +24,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libvirt\n"
 "Report-Msgid-Bugs-To: libvir-list@redhat.com\n"
-"POT-Creation-Date: 2013-08-28 23:52+0800\n"
+"POT-Creation-Date: 2013-08-30 15:12+0800\n"
 "PO-Revision-Date: 2013-07-25 09:16+0000\n"
 "Last-Translator: Ani Peter <apeter@redhat.com>\n"
 "Language-Team: Malayalam <discuss@lists.smc.org.in>\n"
@@ -298,27 +298,27 @@ msgid "unable to create rundir %s: %s"
 msgstr "rundir %s ഉണ്ടാക്കുവാന്‍ സാധ്യമായില്ല: %s"
 
 #: daemon/qemu_dispatch.h:38 daemon/qemu_dispatch.h:102 daemon/remote.c:799
-#: daemon/remote.c:994 daemon/remote.c:1044 daemon/remote.c:1097
-#: daemon/remote.c:1150 daemon/remote.c:1210 daemon/remote.c:1265
-#: daemon/remote.c:1328 daemon/remote.c:1379 daemon/remote.c:1425
-#: daemon/remote.c:1482 daemon/remote.c:1524 daemon/remote.c:1587
-#: daemon/remote.c:1627 daemon/remote.c:1679 daemon/remote.c:1761
-#: daemon/remote.c:1816 daemon/remote.c:1865 daemon/remote.c:1928
-#: daemon/remote.c:1991 daemon/remote.c:2055 daemon/remote.c:2127
-#: daemon/remote.c:2196 daemon/remote.c:2238 daemon/remote.c:3011
-#: daemon/remote.c:3061 daemon/remote.c:3102 daemon/remote.c:3180
-#: daemon/remote.c:3217 daemon/remote.c:3250 daemon/remote.c:3299
-#: daemon/remote.c:3345 daemon/remote.c:3386 daemon/remote.c:3437
-#: daemon/remote.c:3495 daemon/remote.c:3549 daemon/remote.c:3598
-#: daemon/remote.c:3645 daemon/remote.c:3685 daemon/remote.c:3730
-#: daemon/remote.c:3792 daemon/remote.c:3864 daemon/remote.c:3925
-#: daemon/remote.c:3984 daemon/remote.c:4046 daemon/remote.c:4099
-#: daemon/remote.c:4156 daemon/remote.c:4208 daemon/remote.c:4260
-#: daemon/remote.c:4312 daemon/remote.c:4364 daemon/remote.c:4417
-#: daemon/remote.c:4475 daemon/remote.c:4521 daemon/remote.c:4571
-#: daemon/remote.c:4619 daemon/remote.c:4670 daemon/remote.c:4725
-#: daemon/remote.c:4789 daemon/remote.c:4844 daemon/remote.c:4896
-#: daemon/remote.c:4943 daemon/remote.c:4993 daemon/remote_dispatch.h:143
+#: daemon/remote.c:994 daemon/remote.c:1044 daemon/remote.c:1104
+#: daemon/remote.c:1157 daemon/remote.c:1217 daemon/remote.c:1272
+#: daemon/remote.c:1335 daemon/remote.c:1386 daemon/remote.c:1432
+#: daemon/remote.c:1489 daemon/remote.c:1531 daemon/remote.c:1594
+#: daemon/remote.c:1634 daemon/remote.c:1686 daemon/remote.c:1768
+#: daemon/remote.c:1823 daemon/remote.c:1872 daemon/remote.c:1935
+#: daemon/remote.c:1998 daemon/remote.c:2062 daemon/remote.c:2134
+#: daemon/remote.c:2203 daemon/remote.c:2245 daemon/remote.c:3018
+#: daemon/remote.c:3068 daemon/remote.c:3109 daemon/remote.c:3187
+#: daemon/remote.c:3224 daemon/remote.c:3257 daemon/remote.c:3306
+#: daemon/remote.c:3352 daemon/remote.c:3393 daemon/remote.c:3444
+#: daemon/remote.c:3502 daemon/remote.c:3556 daemon/remote.c:3605
+#: daemon/remote.c:3652 daemon/remote.c:3692 daemon/remote.c:3737
+#: daemon/remote.c:3799 daemon/remote.c:3871 daemon/remote.c:3932
+#: daemon/remote.c:3998 daemon/remote.c:4067 daemon/remote.c:4127
+#: daemon/remote.c:4191 daemon/remote.c:4250 daemon/remote.c:4309
+#: daemon/remote.c:4368 daemon/remote.c:4427 daemon/remote.c:4487
+#: daemon/remote.c:4545 daemon/remote.c:4591 daemon/remote.c:4641
+#: daemon/remote.c:4696 daemon/remote.c:4754 daemon/remote.c:4816
+#: daemon/remote.c:4887 daemon/remote.c:4949 daemon/remote.c:5008
+#: daemon/remote.c:5062 daemon/remote.c:5112 daemon/remote_dispatch.h:143
 #: daemon/remote_dispatch.h:213 daemon/remote_dispatch.h:347
 #: daemon/remote_dispatch.h:397 daemon/remote_dispatch.h:448
 #: daemon/remote_dispatch.h:498 daemon/remote_dispatch.h:546
@@ -453,188 +453,253 @@ msgstr "കണക്ഷന്‍ നിലവില്‍ ലഭ്യമാണ�
 msgid "keepalive support is required to connect"
 msgstr "കണക്റ്റ് ചെയ്യാന്‍ കീപ്‌എലൈവ് പിന്തുണ ആവശ്യമാണ്‌"
 
-#: daemon/remote.c:877 daemon/remote.c:962 src/remote/remote_driver.c:1530
-#: src/remote/remote_driver.c:1615
+#: daemon/remote.c:877 daemon/remote.c:962 src/remote/remote_driver.c:1537
+#: src/remote/remote_driver.c:1622
 #, c-format
 msgid "unknown parameter type: %d"
 msgstr "അപരിചിതമായ പരാമീറ്റര്‍ തരം: %d"
 
-#: daemon/remote.c:913 daemon/remote.c:999 daemon/remote.c:1102
-#: daemon/remote.c:1274 daemon/remote.c:1872 daemon/remote.c:1935
-#: daemon/remote.c:1998 daemon/remote.c:2062 daemon/remote.c:2134
-#: daemon/remote.c:2243 daemon/remote.c:3737 daemon/remote.c:3797
-#: daemon/remote.c:4424
+#: daemon/remote.c:913 daemon/remote.c:999 daemon/remote.c:1109
+#: daemon/remote.c:1281 daemon/remote.c:1879 daemon/remote.c:1942
+#: daemon/remote.c:2005 daemon/remote.c:2069 daemon/remote.c:2141
+#: daemon/remote.c:2250 daemon/remote.c:3744 daemon/remote.c:3804
+#: daemon/remote.c:4494
 msgid "nparams too large"
 msgstr "nparams വളരെ വലുതു്"
 
-#: daemon/remote.c:926 src/remote/remote_driver.c:1578
+#: daemon/remote.c:926 src/remote/remote_driver.c:1585
 #, c-format
 msgid "Parameter %s too big for destination"
 msgstr "പരാമീറ്റര്‍ %s വളരെ വലുതാണു്"
 
-#: daemon/remote.c:1156
+#: daemon/remote.c:1055 src/remote/remote_driver.c:1375
+#: src/remote/remote_driver.c:1389 src/remote/remote_driver.c:1438
+#, fuzzy, c-format
+msgid "Too many domains '%d' for limit '%d'"
+msgstr "അനവധി റിമോട്ട് ഡൊമെയിന്‍ ഐഡികള്‍: %d > %d"
+
+#: daemon/remote.c:1163
 msgid "maxStats > REMOTE_DOMAIN_MEMORY_STATS_MAX"
 msgstr "maxStats > REMOTE_DOMAIN_MEMORY_STATS_MAX"
 
-#: daemon/remote.c:1223 daemon/remote.c:1340
+#: daemon/remote.c:1230 daemon/remote.c:1347
 msgid "size > maximum buffer size"
 msgstr "വലിപ്പും > ഏറ്റവും കൂടിയ ബഫര്‍ വലിപ്പം"
 
-#: daemon/remote.c:1449
+#: daemon/remote.c:1456
 msgid "failed to copy security label"
 msgstr "സുരക്ഷ ലേബല്‍ പകര്‍ത്തുന്നതില്‍ പരാജയപ്പെട്ടു"
 
-#: daemon/remote.c:1532
+#: daemon/remote.c:1539
 msgid "ncpumaps > REMOTE_VCPUINFO_MAX"
 msgstr "ncpumaps > REMOTE_VCPUINFO_MAX"
 
-#: daemon/remote.c:1538 daemon/remote.c:1693
+#: daemon/remote.c:1545 daemon/remote.c:1700
 msgid "maxinfo * maplen > REMOTE_CPUMAPS_MAX"
 msgstr "maxinfo * maplen > REMOTE_CPUMAPS_MAX"
 
-#: daemon/remote.c:1687
+#: daemon/remote.c:1694
 msgid "maxinfo > REMOTE_VCPUINFO_MAX"
 msgstr "maxinfo > REMOTE_VCPUINFO_MAX"
 
-#: daemon/remote.c:2371
+#: daemon/remote.c:2378
 msgid "client tried invalid SASL init request"
 msgstr "തെറ്റായ SASL init ആവശ്യം ക്ലയന്റ് ശ്രമിച്ചു"
 
-#: daemon/remote.c:2419 daemon/remote.c:2568 daemon/remote.c:2666
-#: daemon/remote.c:2682 daemon/remote.c:2696 daemon/remote.c:2710
-#: daemon/remote.c:2811 daemon/remote.c:2956 daemon/remote.c:2985
+#: daemon/remote.c:2426 daemon/remote.c:2575 daemon/remote.c:2673
+#: daemon/remote.c:2689 daemon/remote.c:2703 daemon/remote.c:2717
+#: daemon/remote.c:2818 daemon/remote.c:2963 daemon/remote.c:2992
 #: src/util/virerror.c:985
 msgid "authentication failed"
 msgstr "തിരിച്ചറിയല്‍ പരാജയപ്പെട്ടു"
 
-#: daemon/remote.c:2446
+#: daemon/remote.c:2453
 #, c-format
 msgid "negotiated SSF %d was not strong enough"
 msgstr "ചോദ്യം ചെയ്ത SSF %d മതിയാകുന്നതല്ല"
 
-#: daemon/remote.c:2499 daemon/remote.c:2597
+#: daemon/remote.c:2506 daemon/remote.c:2604
 msgid "client tried invalid SASL start request"
 msgstr "തെറ്റായ SASL ആരംഭിയ്ക്കുന്നതിനുള്ള ആവശ്യം ക്ലയന്റ് ശ്രമിച്ചു"
 
-#: daemon/remote.c:2517
+#: daemon/remote.c:2524
 #, c-format
 msgid "sasl start reply data too long %d"
 msgstr "sasl ആരംഭ മറുപടി ഡേറ്റാ വളരെ വലുതു് %d"
 
-#: daemon/remote.c:2614
+#: daemon/remote.c:2621
 #, c-format
 msgid "sasl step reply data too long %d"
 msgstr "sasl നടപടി മറുപടി ഡേറ്റാ വളരെ വലുതു് %d"
 
-#: daemon/remote.c:2750 daemon/remote.c:2863
+#: daemon/remote.c:2757 daemon/remote.c:2870
 msgid "client tried invalid PolicyKit init request"
 msgstr "ക്ലയന്റ് തെറ്റായ PolicyKit init ആവശ്യത്തിനായി ശ്രമിച്ചു"
 
-#: daemon/remote.c:2780
+#: daemon/remote.c:2787
 #, c-format
 msgid "Policy kit denied action %s from pid %lld, uid %d: %s"
 msgstr "പോളിസി കിറ്റ് %s പ്രവര്‍ത്തി നിഷേധിച്ചിരിയ്ക്കുന്നുസ pid %lld-ല്‍ നിന്നും, uid %d: %s"
 
-#: daemon/remote.c:2807
+#: daemon/remote.c:2814
 msgid "authentication cancelled by user"
 msgstr "ഉപയോക്താവു് ആധികാരികത ഉറപ്പാക്കല്‍ റദ്ദാക്കിയിരിയ്ക്കുന്നു"
 
-#: daemon/remote.c:2809
+#: daemon/remote.c:2816
 #, c-format
 msgid "polkit: %s"
 msgstr "polkit: %s"
 
-#: daemon/remote.c:2869
+#: daemon/remote.c:2876
 msgid "cannot get peer socket identity"
 msgstr "പിയര്‍ സോക്കറ്റ് തിരിച്ചറിയല്‍ ലഭ്യമാക്കുവാന്‍ സാധ്യമായില്ല"
 
-#: daemon/remote.c:2885
+#: daemon/remote.c:2892
 #, c-format
 msgid "Failed to lookup policy kit caller: %s"
 msgstr "പോളിസി കിറ്റ് കോളറിനെ തെരയുന്നതില്‍ പരാജയപ്പെട്ടു: %s"
 
-#: daemon/remote.c:2892
+#: daemon/remote.c:2899
 #, c-format
 msgid "Failed to create polkit action %s"
 msgstr "polkit പ്രവര്‍ത്തി %s തയ്യാറാക്കുന്നതില്‍ പരാജയം"
 
-#: daemon/remote.c:2902
+#: daemon/remote.c:2909
 #, c-format
 msgid "Failed to create polkit context %s"
 msgstr "പോള്‍കിറ്റ് കോണ്ടെക്സ്റ്റ് %s തയ്യാറാക്കുന്നതില്‍ പരാജയപ്പെട്ടു"
 
-#: daemon/remote.c:2920
+#: daemon/remote.c:2927
 #, c-format
 msgid "Policy kit failed to check authorization %d %s"
 msgstr "പോളിസി കിറ്റ് ആധികാരികത ഉറപ്പാക്കല്‍ %d %s പരിശോധനയില്‍ പരാജയപ്പെട്ടു"
 
-#: daemon/remote.c:2934
+#: daemon/remote.c:2941
 #, c-format
 msgid "Policy kit denied action %s from pid %lld, uid %d, result: %s"
 msgstr ""
 "പോളിസി കിറ്റ് %s പ്രവര്‍ത്തി നിഷേധിച്ചിരിയ്ക്കുന്നുസ pid %lld-ല്‍ നിന്നും, uid %d, ഫലം: %s"
 
-#: daemon/remote.c:2983
+#: daemon/remote.c:2990
 msgid "client tried unsupported PolicyKit init request"
 msgstr "പിന്തുണയില്ലാത്ത  PolicyKit ആവശ്യം ക്ലയന്റ് ശ്രമിച്ചു"
 
-#: daemon/remote.c:3068 daemon/remote.c:3263
+#: daemon/remote.c:3075 daemon/remote.c:3270
 #, c-format
 msgid "domain event %d already registered"
 msgstr "ഡൊമെയിന്‍ ഇവന്റ് %d നിലവില്‍ രജിസ്ടര്‍ ചെയ്തിരിയ്ക്കുന്നു"
 
-#: daemon/remote.c:3109 daemon/remote.c:3313
+#: daemon/remote.c:3116 daemon/remote.c:3320
 #, c-format
 msgid "domain event %d not registered"
 msgstr "ഡൊമെയിന്‍ ഇവന്റ് %d രജിസ്ടര്‍ ചെയ്തിട്ടില്ല"
 
-#: daemon/remote.c:3258 daemon/remote.c:3307
+#: daemon/remote.c:3265 daemon/remote.c:3314
 #, c-format
 msgid "unsupported event ID %d"
 msgstr "പിന്തുണയില്ലാത്ത ഇവന്റ് ഐഡി %d"
 
-#: daemon/remote.c:3801
+#: daemon/remote.c:3808
 msgid "ncpus too large"
 msgstr "ncpus വളരെ വലുതു്"
 
-#: daemon/remote.c:3873
+#: daemon/remote.c:3880
 msgid "maxerrors too large"
 msgstr "maxerrors വളരെ വലുതു്"
 
+#: daemon/remote.c:3946 daemon/remote.c:4015 src/remote/remote_driver.c:5821
+#: src/remote/remote_driver.c:5888
+#, fuzzy, c-format
+msgid "Too many domain snapshots '%d' for limit '%d'"
+msgstr "ഡൊമെയിനു് അനവധി ഡിസ്ക് സ്നാപ്പ്ഷോട്ട് ആവശ്യങ്ങള്‍"
+
+#: daemon/remote.c:4078 src/remote/remote_driver.c:3316
+#, fuzzy, c-format
+msgid "Too many storage pools '%d' for limit '%d'"
+msgstr "വസ്തുവിന് %d വളരെയധികം ഉറവിടങ്ങള്‍"
+
+#: daemon/remote.c:4141 src/remote/remote_driver.c:3383
+#, fuzzy, c-format
+msgid "Too many storage volumes '%d' for limit '%d'"
+msgstr "വസ്തുവിന് %d വളരെയധികം ഉറവിടങ്ങള്‍"
+
+#: daemon/remote.c:4202 src/remote/remote_driver.c:2848
+#, fuzzy, c-format
+msgid "Too many networks '%d' for limit '%d'"
+msgstr "വസ്തുവിന് %d വളരെയധികം ഉറവിടങ്ങള്‍"
+
+#: daemon/remote.c:4261 src/remote/remote_driver.c:2914
+#, fuzzy, c-format
+msgid "Too many interfaces '%d' for limit '%d'"
+msgstr "വസ്തുവിന് %d വളരെയധികം ഉറവിടങ്ങള്‍"
+
+#: daemon/remote.c:4320 src/remote/remote_driver.c:2980
+#, fuzzy, c-format
+msgid "Too many node devices '%d' for limit '%d'"
+msgstr "നിഷ്കര്‍ഷിയ്ക്കാത്ത അനവധി റിമോട്ട്: %d > %d"
+
+#: daemon/remote.c:4379 src/remote/remote_driver.c:3046
+#, fuzzy, c-format
+msgid "Too many network filters '%d' for limit '%d'"
+msgstr "വസ്തുവിന് %d വളരെയധികം ഉറവിടങ്ങള്‍"
+
+#: daemon/remote.c:4438 src/remote/remote_driver.c:3112
+#, fuzzy, c-format
+msgid "Too many secrets '%d' for limit '%d'"
+msgstr "വസ്തുവിന് %d വളരെയധികം ഉറവിടങ്ങള്‍"
+
+#: daemon/remote.c:4654 src/remote/remote_driver.c:6075
+#, c-format
+msgid "Too many job stats '%d' for limit '%d'"
+msgstr ""
+
+#: daemon/remote.c:4702 daemon/remote.c:4760 daemon/remote.c:4822
+#: daemon/remote.c:4893 daemon/remote.c:4955 daemon/remote.c:5014
+#: src/remote/remote_driver.c:6122 src/remote/remote_driver.c:6188
+#: src/remote/remote_driver.c:6270 src/remote/remote_driver.c:6356
+#: src/remote/remote_driver.c:6428 src/remote/remote_driver.c:6500
+#, c-format
+msgid "Too many migration parameters '%d' for limit '%d'"
+msgstr ""
+
 #: daemon/remote_dispatch.h:1102
-msgid "maxnames > REMOTE_DOMAIN_NAME_LIST_MAX"
+#, fuzzy
+msgid "maxnames > REMOTE_DOMAIN_LIST_MAX"
 msgstr "maxnames > REMOTE_DOMAIN_NAME_LIST_MAX"
 
-#: daemon/remote_dispatch.h:1164
-msgid "maxnames > REMOTE_DEFINED_INTERFACE_NAME_LIST_MAX"
-msgstr "maxnames > REMOTE_DEFINED_INTERFACE_NAME_LIST_MAX"
+#: daemon/remote_dispatch.h:1164 daemon/remote_dispatch.h:1412
+#, fuzzy
+msgid "maxnames > REMOTE_INTERFACE_LIST_MAX"
+msgstr "maxnames > REMOTE_INTERFACE_NAME_LIST_MAX"
 
 #: daemon/remote_dispatch.h:1226 daemon/remote_dispatch.h:1474
-msgid "maxnames > REMOTE_NETWORK_NAME_LIST_MAX"
+#, fuzzy
+msgid "maxnames > REMOTE_NETWORK_LIST_MAX"
 msgstr "maxnames > REMOTE_NETWORK_NAME_LIST_MAX"
 
 #: daemon/remote_dispatch.h:1288 daemon/remote_dispatch.h:1660
-msgid "maxnames > REMOTE_STORAGE_POOL_NAME_LIST_MAX"
+#, fuzzy
+msgid "maxnames > REMOTE_STORAGE_POOL_LIST_MAX"
 msgstr "maxnames > REMOTE_STORAGE_POOL_NAME_LIST_MAX"
 
 #: daemon/remote_dispatch.h:1350
-msgid "maxids > REMOTE_DOMAIN_ID_LIST_MAX"
+#, fuzzy
+msgid "maxids > REMOTE_DOMAIN_LIST_MAX"
 msgstr "maxids > REMOTE_DOMAIN_ID_LIST_MAX"
 
-#: daemon/remote_dispatch.h:1412
-msgid "maxnames > REMOTE_INTERFACE_NAME_LIST_MAX"
-msgstr "maxnames > REMOTE_INTERFACE_NAME_LIST_MAX"
-
 #: daemon/remote_dispatch.h:1536
-msgid "maxnames > REMOTE_NWFILTER_NAME_LIST_MAX"
+#, fuzzy
+msgid "maxnames > REMOTE_NWFILTER_LIST_MAX"
 msgstr "maxnames > REMOTE_NWFILTER_NAME_LIST_MAX"
 
 #: daemon/remote_dispatch.h:1598
-msgid "maxuuids > REMOTE_SECRET_UUID_LIST_MAX"
+#, fuzzy
+msgid "maxuuids > REMOTE_SECRET_LIST_MAX"
 msgstr "maxuuids > REMOTE_SECRET_UUID_LIST_MAX"
 
 #: daemon/remote_dispatch.h:8603 daemon/remote_dispatch.h:8676
-msgid "maxnames > REMOTE_DOMAIN_SNAPSHOT_LIST_NAMES_MAX"
+#, fuzzy
+msgid "maxnames > REMOTE_DOMAIN_SNAPSHOT_LIST_MAX"
 msgstr "maxnames > REMOTE_DOMAIN_SNAPSHOT_LIST_NAMES_MAX"
 
 #: daemon/remote_dispatch.h:10727
@@ -646,11 +711,13 @@ msgid "maxcells > REMOTE_NODE_MAX_CELLS"
 msgstr "maxcells > REMOTE_NODE_MAX_CELLS"
 
 #: daemon/remote_dispatch.h:11333
-msgid "maxnames > REMOTE_NODE_DEVICE_NAME_LIST_MAX"
+#, fuzzy
+msgid "maxnames > REMOTE_NODE_DEVICE_LIST_MAX"
 msgstr "maxnames > REMOTE_NODE_DEVICE_NAME_LIST_MAX"
 
 #: daemon/remote_dispatch.h:12771
-msgid "maxnames > REMOTE_STORAGE_VOL_NAME_LIST_MAX"
+#, fuzzy
+msgid "maxnames > REMOTE_STORAGE_VOL_LIST_MAX"
 msgstr "maxnames > REMOTE_STORAGE_VOL_NAME_LIST_MAX"
 
 #: daemon/stream.c:233
@@ -872,7 +939,7 @@ msgstr "സിപിയു വ്യക്തമാക്കുന്നതി�
 msgid "Missing CPU architecture"
 msgstr "അറിയാത്ത സി.പി.യു മോഡല്‍"
 
-#: src/conf/cpu_conf.c:269 src/conf/domain_conf.c:11589
+#: src/conf/cpu_conf.c:269 src/conf/domain_conf.c:11599
 #, c-format
 msgid "Unknown architecture %s"
 msgstr "അപരിചിതമായ ആര്‍ക്കിറ്റക്ചര്‍ %s"
@@ -1498,7 +1565,7 @@ msgstr "%s ട്രാന്‍സ്പോര്‍ട്ട് സോക്�
 msgid "missing name for host"
 msgstr "ഹോസ്റ്റിനുള്ള നാമം ലഭ്യമല്ല"
 
-#: src/conf/domain_conf.c:4898 src/conf/domain_conf.c:14253
+#: src/conf/domain_conf.c:4898 src/conf/domain_conf.c:14263
 #, c-format
 msgid "unexpected disk type %s"
 msgstr "അപ്രതീക്ഷിതമായ ഡിസ്ക് തരം %s"
@@ -2530,423 +2597,423 @@ msgstr "(device_definition)"
 msgid "unknown device type '%s'"
 msgstr "അപരിചിതമായ ഡിവൈസ് തരം '%s'"
 
-#: src/conf/domain_conf.c:10315
+#: src/conf/domain_conf.c:10325
 msgid "unknown virt type"
 msgstr "അപരിചിതമായ virt രീതി"
 
-#: src/conf/domain_conf.c:10326
+#: src/conf/domain_conf.c:10336
 #, c-format
 msgid "no emulator for domain %s os type %s on architecture %s"
 msgstr "ഡൊമെയിന്‍ %s ഒഎസ് തരം %s ആര്‍ക്കിടക്ചര്‍ %s-ല്‍ എമ്യുലേറ്റര്‍ ലഭ്യമല്ല"
 
-#: src/conf/domain_conf.c:10352
+#: src/conf/domain_conf.c:10362
 msgid "cannot count boot devices"
 msgstr "ബൂട്ട് ഡിവൈസുകള്‍ എണ്ണുവാന്‍ സാധ്യമല്ല"
 
-#: src/conf/domain_conf.c:10363
+#: src/conf/domain_conf.c:10373
 msgid "per-device boot elements cannot be used together with os/boot elements"
 msgstr "ഓരോ ഡിവൈസിനുള്ള ബൂട്ട് എലമെന്റുകള്‍ ഒഎസ്/ബൂട്ട് എലമെന്റുകള്‍ക്കൊപ്പം ഉപയോഗിയ്ക്കുവാന്‍ സാധ്യമല്ല"
 
-#: src/conf/domain_conf.c:10373
+#: src/conf/domain_conf.c:10383
 msgid "missing boot device"
 msgstr "ബൂട്ട് ഡിവൈസ് ലഭ്യമല്ല"
 
-#: src/conf/domain_conf.c:10378
+#: src/conf/domain_conf.c:10388
 #, c-format
 msgid "unknown boot device '%s'"
 msgstr "അപരിചിതമായ ബൂട്ട് ഡിവൈസ് '%s'"
 
-#: src/conf/domain_conf.c:10411
+#: src/conf/domain_conf.c:10421
 msgid "need at least one serial port for useserial"
 msgstr "useserial-നു് കുറഞ്ഞതു് ഒരു സീരിയല്‍ പോര്‍ട്ടെങ്കിലും ആവശ്യമുണ്ടു്"
 
-#: src/conf/domain_conf.c:10429
+#: src/conf/domain_conf.c:10439
 msgid "invalid value for rebootTimeout, must be in range [-1,65535]"
 msgstr "rebootTimeout-നു് തെറ്റായ മൂല്ല്യം, [-1,65535] പരിധിയിലായിരിയ്ക്കണം"
 
-#: src/conf/domain_conf.c:10493
+#: src/conf/domain_conf.c:10503
 msgid "You must map the root user of container"
 msgstr "കണ്ടെയിനറിന്റെ റൂട്ട് ഉപയോക്താവു് മാപ്പ് ചെയ്യണം"
 
-#: src/conf/domain_conf.c:10538
+#: src/conf/domain_conf.c:10548
 msgid "vcpu id must be an unsigned integer or -1"
 msgstr "vcpu id ഒരു അണ്‍സൈന്‍ഡ് ഇന്റിജര്‍ അല്ലെങ്കില്‍ -1 ആയിരിയ്ക്കണം"
 
-#: src/conf/domain_conf.c:10542
+#: src/conf/domain_conf.c:10552
 msgid "vcpu id value -1 is not allowed for vcpupin"
 msgstr "vcpu id മൂല്ല്യം -1, vcpupin-ല്‍ അനുവദിയ്ക്കുന്നില്ല"
 
-#: src/conf/domain_conf.c:10549
+#: src/conf/domain_conf.c:10559
 msgid "vcpu id must be less than maxvcpus"
 msgstr "vcpu id, maxvcpus-നേക്കാള്‍ കുറഞ്ഞതായിരിയ്ക്കണം"
 
-#: src/conf/domain_conf.c:10567
+#: src/conf/domain_conf.c:10577
 msgid "missing cpuset for vcpupin"
 msgstr "vcpupin-നുള്ള cpuset ലഭ്യമല്ല"
 
-#: src/conf/domain_conf.c:10682
+#: src/conf/domain_conf.c:10692
 msgid "missing resource partition attribute"
 msgstr "റിസോഴ്സ് പാര്‍ട്ടീഷന്‍ വിശേഷത ലഭ്യമല്ല"
 
-#: src/conf/domain_conf.c:10758
+#: src/conf/domain_conf.c:10768
 msgid "missing domain type attribute"
 msgstr "ലഭ്യമല്ലാത്ത തരത്തിലുള്ള ഡൊമെയില്‍ വിശേഷത"
 
-#: src/conf/domain_conf.c:10764
+#: src/conf/domain_conf.c:10774
 #, c-format
 msgid "invalid domain type %s"
 msgstr "തെറ്റായ തരത്തിലുള്ള ഡൊമെയിന്‍ %s"
 
-#: src/conf/domain_conf.c:10772
+#: src/conf/domain_conf.c:10782
 #, c-format
 msgid "unexpected domain type %s, expecting %s"
 msgstr "അപ്രതീക്ഷിതമായ ഡൊമെയിന്‍ %s, expecting %s"
 
-#: src/conf/domain_conf.c:10797
+#: src/conf/domain_conf.c:10807
 #, c-format
 msgid "unexpected domain type %s, expecting one of these: %s"
 msgstr "അപ്രതീക്ഷിതമായ ഡൊമെയിന്‍ തരം %s, ഇവയിലൊന്നു് പ്രതീക്ഷിയ്ക്കുന്നു: %s"
 
-#: src/conf/domain_conf.c:10821 src/conf/network_conf.c:1941
+#: src/conf/domain_conf.c:10831 src/conf/network_conf.c:1941
 #: src/conf/secret_conf.c:190 src/openvz/openvz_conf.c:1076
 #: src/xenxs/xen_xm.c:216
 msgid "Failed to generate UUID"
 msgstr "UUID ലഭ്യമാക്കുന്നതില്‍ പരാജയം"
 
-#: src/conf/domain_conf.c:10828 src/conf/network_conf.c:1948
+#: src/conf/domain_conf.c:10838 src/conf/network_conf.c:1948
 #: src/conf/nwfilter_conf.c:2562 src/conf/secret_conf.c:196
 #: src/conf/storage_conf.c:889
 msgid "malformed uuid element"
 msgstr "തെറ്റായ uuid എലമെന്റ്"
 
-#: src/conf/domain_conf.c:10838
+#: src/conf/domain_conf.c:10848
 msgid "Domain title can't contain newlines"
 msgstr "ഡൊമെയിന്‍ തലക്കെട്ടില്‍ പുതിയവരികള്‍ പാടില്ല"
 
-#: src/conf/domain_conf.c:10863
+#: src/conf/domain_conf.c:10873
 #, c-format
 msgid "Invalid memory core dump attribute value '%s'"
 msgstr "തെറ്റായ മെമ്മറി കോര്‍ ഡംപ് വിശേഷത മൂല്ല്യം '%s'"
 
-#: src/conf/domain_conf.c:10875
+#: src/conf/domain_conf.c:10885
 #, c-format
 msgid "current memory '%lluk' exceeds maximum '%lluk'"
 msgstr "നിലവിലുള്ള മെമ്മറി '%lluk', ഏറ്റവും കൂടുതലായ '%lluk'-ലും കൂടുന്നു"
 
-#: src/conf/domain_conf.c:10904
+#: src/conf/domain_conf.c:10914
 msgid "cannot extract blkiotune nodes"
 msgstr "blkiotune നോഡുകള്‍ ലഭ്യമാക്കുവാന്‍ സാധ്യമല്ല"
 
-#: src/conf/domain_conf.c:10920
+#: src/conf/domain_conf.c:10930
 #, c-format
 msgid "duplicate device weight path '%s'"
 msgstr "ആവര്‍ത്തിച്ചുള്ള ഡിവൈസ് ഭാരത്തിനുള്ള പാഥ് '%s'"
 
-#: src/conf/domain_conf.c:10948
+#: src/conf/domain_conf.c:10958
 msgid "maximum vcpus must be an integer"
 msgstr "ഏറ്റവും കൂടിയ vcpus ഒരു ഇന്റിജര്‍ ആയിരിയ്ക്കണം"
 
-#: src/conf/domain_conf.c:10956
+#: src/conf/domain_conf.c:10966
 #, c-format
 msgid "invalid maximum number of vCPUs '%lu'"
 msgstr "vCPUs '%lu'-ന്റെ ഏറ്റവും കൂടിയ തെറ്റായ എണ്ണം"
 
-#: src/conf/domain_conf.c:10964
+#: src/conf/domain_conf.c:10974
 msgid "current vcpus must be an integer"
 msgstr "നിലവിലുള്ള vcpus ഒരു ഇന്റിജര്‍ ആയിരിയ്ക്കണം"
 
-#: src/conf/domain_conf.c:10972
+#: src/conf/domain_conf.c:10982
 #, c-format
 msgid "invalid current number of vCPUs '%lu'"
 msgstr "vCPUs '%lu'-ന്റെ നിലവിലുള്ള തെറ്റായ നംബര്‍"
 
-#: src/conf/domain_conf.c:10978
+#: src/conf/domain_conf.c:10988
 #, c-format
 msgid "maxvcpus must not be less than current vcpus (%d < %lu)"
 msgstr "maxvcpus, നിലവിലുള്ള vcpus-നേക്കാള്‍ കുറവാകുവാന്‍ പാടില്ല (%d < %lu)"
 
-#: src/conf/domain_conf.c:10990
+#: src/conf/domain_conf.c:11000
 #, c-format
 msgid "Unsupported CPU placement mode '%s'"
 msgstr "പിന്തുണയ്ക്കാത്ത സിപിയു പ്ലെയിസ്മെന്റ് മോഡ് '%s'"
 
-#: src/conf/domain_conf.c:11013
+#: src/conf/domain_conf.c:11023
 msgid "can't parse cputune shares value"
 msgstr "cputune ഷെയര്‍ മൂല്ല്യം പാഴ്സ് ചെയ്യുവാന്‍ സാധ്യമല്ല"
 
-#: src/conf/domain_conf.c:11020
+#: src/conf/domain_conf.c:11030
 msgid "can't parse cputune period value"
 msgstr "cputune പീരിയഡ് മൂല്ല്യം പാഴ്സ് ചെയ്യുവാന്‍ സാധ്യമല്ല"
 
-#: src/conf/domain_conf.c:11027
+#: src/conf/domain_conf.c:11037
 msgid "Value of cputune period must be in range [1000, 1000000]"
 msgstr "cputune പീരിയഡിന്റെ മൂല്ല്യം [1000, 1000000] പരധിയിലായിരിയ്ക്കണം"
 
-#: src/conf/domain_conf.c:11035
+#: src/conf/domain_conf.c:11045
 msgid "can't parse cputune quota value"
 msgstr "cputune കോട്ടാ മൂല്ല്യം പാഴ്സ് ചെയ്യുവാന്‍ സാധ്യമല്ല"
 
-#: src/conf/domain_conf.c:11043
+#: src/conf/domain_conf.c:11053
 msgid "Value of cputune quota must be in range [1000, 18446744073709551]"
 msgstr "cputune കോട്ടയുടെ മൂല്ല്യം [1000, 1000000] പരിധി ആയിരിയ്ക്കണം"
 
-#: src/conf/domain_conf.c:11051
+#: src/conf/domain_conf.c:11061
 msgid "can't parse cputune emulator period value"
 msgstr "cputune എമുലേറ്റര്‍ പീരിയഡ് മൂല്ല്യം പാഴ്സ് ചെയ്യുവാന്‍ സാധ്യമല്ല"
 
-#: src/conf/domain_conf.c:11059
+#: src/conf/domain_conf.c:11069
 msgid "Value of cputune emulator_period must be in range [1000, 1000000]"
 msgstr "cputune emulator_period-ന്റെ മൂല്ല്യം [1000, 1000000] പരിധി ആയിരിയ്ക്കണം"
 
-#: src/conf/domain_conf.c:11067
+#: src/conf/domain_conf.c:11077
 msgid "can't parse cputune emulator quota value"
 msgstr "cputune എമുലേറ്റര്‍ കോട്ടാ മൂല്ല്യം പാഴ്സ് ചെയ്യുവാന്‍ സാധ്യമല്ല"
 
-#: src/conf/domain_conf.c:11075
+#: src/conf/domain_conf.c:11085
 msgid ""
 "Value of cputune emulator_quota must be in range [1000, 18446744073709551]"
 msgstr ""
 "cputune emulator_quota-യുടെ മൂല്ല്യം [1000, 18446744073709551] പരിധി ആയിരിയ്ക്കണം"
 
-#: src/conf/domain_conf.c:11088
+#: src/conf/domain_conf.c:11098
 msgid "vcpupin nodes must be less than maxvcpus"
 msgstr "vcpupin നോഡുകള്‍, maxvcpus-നേക്കാള്‍ കുറഞ്ഞതായിരിയ്ക്കണം"
 
-#: src/conf/domain_conf.c:11103
+#: src/conf/domain_conf.c:11113
 msgid "duplicate vcpupin for same vcpu"
 msgstr "ഒരേ vcpu-നുള്ള ആവര്‍ത്തിച്ച vcpupin"
 
-#: src/conf/domain_conf.c:11147
+#: src/conf/domain_conf.c:11157
 msgid "cannot extract emulatorpin nodes"
 msgstr "emulatorpin നോഡുകള്‍ ലഭ്യമാക്കുവാന്‍ സാധ്യമല്ല"
 
-#: src/conf/domain_conf.c:11159
+#: src/conf/domain_conf.c:11169
 msgid "only one emulatorpin is supported"
 msgstr "ഒരു emulatorpin മാത്രം പിന്തുണയ്ക്കുന്നു"
 
-#: src/conf/domain_conf.c:11178
+#: src/conf/domain_conf.c:11188
 msgid "cannot extract numatune nodes"
 msgstr "numatune നോഡുകള്‍ ലഭ്യമാക്കുവാന്‍ സാധ്യമല്ല"
 
-#: src/conf/domain_conf.c:11184
+#: src/conf/domain_conf.c:11194
 msgid "only one numatune is supported"
 msgstr "ഒരു numatune മാത്രം പിന്തുണയ്ക്കുന്നു"
 
-#: src/conf/domain_conf.c:11203
+#: src/conf/domain_conf.c:11213
 #, c-format
 msgid "Unsupported NUMA memory tuning mode '%s'"
 msgstr "പിന്തുണയ്ക്കാത്ത ന്യൂമാ മെമ്മറി ട്യൂണിങ് മോഡ് '%s'"
 
-#: src/conf/domain_conf.c:11232
+#: src/conf/domain_conf.c:11242
 #, c-format
 msgid "Unsupported memory placement mode '%s'"
 msgstr "പിന്തുണയ്ക്കാത്ത മെമ്മറി പ്ലയിസ്മെന്റ് മോഡ് '%s'"
 
-#: src/conf/domain_conf.c:11254
+#: src/conf/domain_conf.c:11264
 msgid "nodeset for NUMA memory tuning must be set if 'placement' is 'static'"
 msgstr "'placement' - 'static' ആണെങ്കില്‍ ന്യൂമാ മെമ്മറി ട്യൂണിങിനുള്ള നോഡസെറ്റ് സജ്ജമാക്കണം"
 
-#: src/conf/domain_conf.c:11273
+#: src/conf/domain_conf.c:11283
 #, c-format
 msgid "unsupported XML element %s"
 msgstr "പിന്തുണയ്ക്കാത്ത എക്സ്എംഎല്‍ എലമെന്റ് %s"
 
-#: src/conf/domain_conf.c:11293
+#: src/conf/domain_conf.c:11303
 msgid "cannot extract resource nodes"
 msgstr "റിസോഴ്സ് മോഡുകള്‍ ലഭ്യാക്കുവാന്‍ സാധ്യമല്ല"
 
-#: src/conf/domain_conf.c:11299
+#: src/conf/domain_conf.c:11309
 msgid "only one resource element is supported"
 msgstr "ഒറ്റ റിസോഴ്സ് എലമെന്റ് മാത്രം പിന്തുണയ്ക്കുന്നുള്ളൂ"
 
-#: src/conf/domain_conf.c:11315
+#: src/conf/domain_conf.c:11325
 #, c-format
 msgid "unexpected feature %s"
 msgstr "അപ്രതീക്ഷിതമായ വിശേഷത %s"
 
-#: src/conf/domain_conf.c:11326
+#: src/conf/domain_conf.c:11336
 #, c-format
 msgid "unknown value for attribute eoi: %s"
 msgstr "eoi വിശേഷതയ്ക്കുള്ള അപരിചിത മൂല്ല്യം: %s"
 
-#: src/conf/domain_conf.c:11348
+#: src/conf/domain_conf.c:11358
 #, c-format
 msgid "unsupported HyperV Enlightenment feature: %s"
 msgstr "പിന്തുണയ്ക്കാത്ത HyperV എന്‍ലൈറ്റ്മെന്റ് വിശേഷത: %s"
 
-#: src/conf/domain_conf.c:11360 src/conf/domain_conf.c:11381
+#: src/conf/domain_conf.c:11370 src/conf/domain_conf.c:11391
 #, c-format
 msgid "missing 'state' attribute for HyperV Enlightenment feature '%s'"
 msgstr "HyperV എന്‍ലൈറ്റ്മെന്റ് വിശേഷത '%s'-നുള്ള 'അവസ്ഥ' ലഭ്യമല്ല"
 
-#: src/conf/domain_conf.c:11368 src/conf/domain_conf.c:11389
+#: src/conf/domain_conf.c:11378 src/conf/domain_conf.c:11399
 #, c-format
 msgid "invalid value of state argument for HyperV Enlightenment feature '%s'"
 msgstr "HyperV Enlightenment വിശേഷത '%s'-നുള്ള ആര്‍ഗ്യുമെന്റിനുള്ള തെറ്റായ അവസ്ഥ"
 
-#: src/conf/domain_conf.c:11400
+#: src/conf/domain_conf.c:11410
 msgid "invalid HyperV spinlock retry count"
 msgstr "തെറ്റായ HyperV സ്പിന്‍ലോക്ക് റീട്രൈ കൌണ്ട്"
 
-#: src/conf/domain_conf.c:11406
+#: src/conf/domain_conf.c:11416
 msgid "HyperV spinlock retry count must be at least 4095"
 msgstr "HyperV spinlock retry എണ്ണം കുറഞ്ഞതു് 4095 ആയിരിയ്ക്കണം"
 
-#: src/conf/domain_conf.c:11463
+#: src/conf/domain_conf.c:11473
 #, c-format
 msgid "unknown clock offset '%s'"
 msgstr "അപരിചിതമായ ക്ലോക്ക് ഓഫ്‌സെറ്റ്'%s'"
 
-#: src/conf/domain_conf.c:11479
+#: src/conf/domain_conf.c:11489
 #, c-format
 msgid "unknown clock adjustment '%s'"
 msgstr "അപരിചിതമായ ക്ലോക്ക് '%s'"
 
-#: src/conf/domain_conf.c:11507
+#: src/conf/domain_conf.c:11517
 #, c-format
 msgid "unknown clock basis '%s'"
 msgstr "അപരിചിതമായ ക്ലോക്ക് ബേസിസ് '%s'"
 
-#: src/conf/domain_conf.c:11520
+#: src/conf/domain_conf.c:11530
 msgid "missing 'timezone' attribute for clock with offset='timezone'"
 msgstr "offset='timezone' എന്നുള്ള ക്ലോക്കിനു് 'timezone' വിശേഷത ലഭ്യമല്ല"
 
-#: src/conf/domain_conf.c:11531
+#: src/conf/domain_conf.c:11541
 msgid "invalid basedate"
 msgstr "തെറ്റായ basedate"
 
-#: src/conf/domain_conf.c:11562
+#: src/conf/domain_conf.c:11572
 msgid "no OS type"
 msgstr "ഒഎസ് രീതി ലഭ്യമല്ല"
 
-#: src/conf/domain_conf.c:11597
+#: src/conf/domain_conf.c:11607
 #, c-format
 msgid "No guest options available for arch '%s'"
 msgstr "'%s' ആര്‍ക്കിനു് ഗസ്റ്റ് ഐച്ഛികങ്ങള്‍ ലഭ്യമല്ല"
 
-#: src/conf/domain_conf.c:11606
+#: src/conf/domain_conf.c:11616
 #, c-format
 msgid "No os type '%s' available for arch '%s'"
 msgstr "ഒരു '%s' ഒസ് രീതിയും ആര്‍ക്ക് '%s'-ല്‍ ലഭ്യമല്ല"
 
-#: src/conf/domain_conf.c:11617 src/xenxs/xen_xm.c:293
+#: src/conf/domain_conf.c:11627 src/xenxs/xen_xm.c:293
 #, c-format
 msgid "no supported architecture for os type '%s'"
 msgstr "ഒഎസ് തരം '%s'-നു് പിന്തുണയുള്ള ആര്‍ക്കിടക്ചര്‍ ലഭ്യമല്ല"
 
-#: src/conf/domain_conf.c:11656
+#: src/conf/domain_conf.c:11666
 msgid "No data supplied for <initarg> element"
 msgstr "<initarg> എലമെന്റിനു് ഡേറ്റാ നല്‍കിയിട്ടില്ല"
 
-#: src/conf/domain_conf.c:11729 src/conf/domain_conf.c:11738
+#: src/conf/domain_conf.c:11739 src/conf/domain_conf.c:11748
 msgid "Can't add another USB controller: USB is disabled for this domain"
 msgstr "മറ്റൊരു യുഎസ്ബി കണ്ട്രോളര്‍ ചേര്‍ക്കുവാന്‍ പാടില്ല: ഈ ഡൊമെയിനു് യുഎസ്ബി പ്രവര്‍ത്തന രഹിതം"
 
-#: src/conf/domain_conf.c:11755
+#: src/conf/domain_conf.c:11765
 msgid "No master USB controller specified"
 msgstr "മാസ്റ്റര്‍ യുഎസ്ബി കണ്ട്രോളര്‍ നല്‍കിയിട്ടില്ല"
 
-#: src/conf/domain_conf.c:11762
+#: src/conf/domain_conf.c:11772
 msgid "cannot extract device leases"
 msgstr "ഡിവൈസ് ലീസുകള്‍ ലഭ്യമാക്കുവാന്‍ സാധ്യമല്ല"
 
-#: src/conf/domain_conf.c:11895
+#: src/conf/domain_conf.c:11905
 msgid "cannot extract console devices"
 msgstr "കണ്‍സോള്‍ ഡിവൈസുകള്‍ ലഭ്യമാക്കുവാന്‍ സാധ്യമ്ല"
 
-#: src/conf/domain_conf.c:11973
+#: src/conf/domain_conf.c:11983
 msgid "Can't add USB input device. USB bus is disabled"
 msgstr "യുഎസ്ബി ഇന്‍പുട്ട് ഡിവൈസ് ചേര്‍ക്കുവാന്‍ സാധ്യമല്ല. യുഎസ്ബി ബസ് പ്രവര്‍ത്തന രഹിതം"
 
-#: src/conf/domain_conf.c:12071
+#: src/conf/domain_conf.c:12081
 msgid "Only one primary video device is supported"
 msgstr "ഒറ്റ പ്രൈമറി വീഡിയോ ഡിവൈസ് മാത്രമേ പിന്തുണയ്ക്കുന്നുള്ളൂ"
 
-#: src/conf/domain_conf.c:12097
+#: src/conf/domain_conf.c:12107
 msgid "cannot determine default video type"
 msgstr "സ്വതവേയുള്ള വീഡിയോ തരം കണ്ടുപിടിക്കുവാന്‍ സാധ്യമല്ല"
 
-#: src/conf/domain_conf.c:12127
+#: src/conf/domain_conf.c:12137
 msgid "Can't add host USB device: USB is disabled in this host"
 msgstr "ഹോസ്റ്റ് യുഎസ്ബി ഡിവൈസ് ചേര്‍ക്കുവാന്‍ സാധ്യമല്ല: ഈ ഹോസ്റ്റില്‍ യുഎസ്ബി പ്രവര്‍ത്തന രഹിതം"
 
-#: src/conf/domain_conf.c:12146
+#: src/conf/domain_conf.c:12156
 msgid "only a single watchdog device is supported"
 msgstr "ഒറ്റ വാച്ച്ഡോഗ് ഡിവൈസ് മാത്രമേ പിന്തുണയ്ക്കുന്നുള്ളൂ"
 
-#: src/conf/domain_conf.c:12166
+#: src/conf/domain_conf.c:12176
 msgid "only a single memory balloon device is supported"
 msgstr "ഒരു മെമ്മറി ബലൂണ്‍ ഡിവൈസ് മാത്രമേ പിന്തുണയ്ക്കുന്നുള്ളൂ"
 
-#: src/conf/domain_conf.c:12198
+#: src/conf/domain_conf.c:12208
 msgid "only a single RNG device is supported"
 msgstr "ഒറ്റ ആര്‍എന്‍ജി ഡിവൈസ് മാത്രമേ പിന്തുണയ്ക്കുന്നുള്ളൂ"
 
-#: src/conf/domain_conf.c:12215
+#: src/conf/domain_conf.c:12225
 msgid "only a single TPM device is supported"
 msgstr "ഒറ്റ ടിപിഎം ഡിവൈസ് മാത്രമേ പിന്തുണയ്ക്കുന്നുള്ളൂ"
 
-#: src/conf/domain_conf.c:12231
+#: src/conf/domain_conf.c:12241
 msgid "only a single nvram device is supported"
 msgstr "ഒറ്റ nvram ഡിവൈസ് മാത്രമേ പിന്തുണയ്ക്കുന്നുള്ളൂ"
 
-#: src/conf/domain_conf.c:12256
+#: src/conf/domain_conf.c:12266
 msgid "Can't add USB hub: USB is disabled for this domain"
 msgstr "യുഎസ്ബി ഹബ് ചേര്‍ക്കുവാന്‍ പാടില്ല: ഈ ഡൊമെയിനു് യുഎസ്ബി പ്രവര്‍ത്തന രഹിതം"
 
-#: src/conf/domain_conf.c:12280
+#: src/conf/domain_conf.c:12290
 msgid "Can't add redirected USB device: USB is disabled for this domain"
 msgstr "തിരിച്ചുവിട്ട യുഎസ്ബി ഡിവൈസ് ചേര്‍ക്കുവാന്‍ പാടില്ല: ഈ ഡൊമെയിനു് യുഎസ്ബി പ്രവര്‍ത്തന രഹിതം"
 
-#: src/conf/domain_conf.c:12295
+#: src/conf/domain_conf.c:12305
 msgid "only one set of redirection filter rule is supported"
 msgstr "ഒരു തിരിച്ചുവിടല്‍ ഫില്‍റ്റര്‍ നിയമം മാത്രമേ പിന്തുണയ്ക്കുന്നുള്ളൂ"
 
-#: src/conf/domain_conf.c:12337
+#: src/conf/domain_conf.c:12347
 msgid "uid and gid should be mapped both"
 msgstr "uid, gid രണ്ടും മാപ്പ് ചെയ്യണം"
 
-#: src/conf/domain_conf.c:12355
+#: src/conf/domain_conf.c:12365
 msgid "Maximum CPUs greater than topology limit"
 msgstr "ഏറ്റവും കൂടുതല്‍ സിപിയുകള്‍ പരിധിയിയേക്കാള്‍ വലുതായിരിയ്ക്കണം"
 
-#: src/conf/domain_conf.c:12361
+#: src/conf/domain_conf.c:12371
 msgid "Number of CPUs in <numa> exceeds the <vcpu> count"
 msgstr "<numa>-ലുള്ള സിപിയുകളുടെ എണ്ണം <vcpu> കൌണ്ടിനേക്കാള്‍ കൂടുതലാകുന്നു"
 
-#: src/conf/domain_conf.c:12383
+#: src/conf/domain_conf.c:12393
 #, c-format
 msgid "unknown smbios mode '%s'"
 msgstr "അപരിചിതമായ smbios മോഡ് '%s'"
 
-#: src/conf/domain_conf.c:12448
+#: src/conf/domain_conf.c:12458
 msgid "no domain config"
 msgstr "ഡൊമെയിന്‍ ക്രമീകരണം ലഭ്യമല്ല"
 
-#: src/conf/domain_conf.c:12462
+#: src/conf/domain_conf.c:12472
 msgid "missing domain state"
 msgstr "ഡൊമെയിന്‍ അവസ്ഥ ലഭ്യമല്ല"
 
-#: src/conf/domain_conf.c:12467
+#: src/conf/domain_conf.c:12477
 #, c-format
 msgid "invalid domain state '%s'"
 msgstr "തെറ്റായ തരത്തിലുള്ള ഡൊമെയിന്‍ അവസ്ഥ '%s'"
 
-#: src/conf/domain_conf.c:12476
+#: src/conf/domain_conf.c:12486
 #, c-format
 msgid "invalid domain state reason '%s'"
 msgstr "തെറ്റായ ഡൊമെയിന്‍ അവസ്ഥാ കാരണം '%s'"
 
-#: src/conf/domain_conf.c:12487
+#: src/conf/domain_conf.c:12497
 msgid "invalid pid"
 msgstr "അസാധുവായ pid"
 
-#: src/conf/domain_conf.c:12501
+#: src/conf/domain_conf.c:12511
 #, c-format
 msgid "Unknown taint flag %s"
 msgstr "അപരിചിതമായ ടെയിന്റ് ഫ്ലാഗ് %s"
 
-#: src/conf/domain_conf.c:12536 src/security/virt-aa-helper.c:654
+#: src/conf/domain_conf.c:12546 src/security/virt-aa-helper.c:654
 #: tools/virsh-domain-monitor.c:98 tools/virsh-domain-monitor.c:531
 #: tools/virsh-domain-monitor.c:638 tools/virsh-domain-monitor.c:760
 #: tools/virsh-domain.c:2394 tools/virsh-domain.c:3038
@@ -2956,42 +3023,42 @@ msgstr "അപരിചിതമായ ടെയിന്റ് ഫ്ലാഗ�
 msgid "(domain_definition)"
 msgstr "(domain_definition)"
 
-#: src/conf/domain_conf.c:12582
+#: src/conf/domain_conf.c:12592
 #, c-format
 msgid "unexpected root element <%s>, expecting <domain>"
 msgstr "അപ്രതീക്ഷിതമായ റൂട്ട് എലമെന്റ് <%s>, പ്രതീക്ഷിച്ചതു് <domain>"
 
-#: src/conf/domain_conf.c:12617
+#: src/conf/domain_conf.c:12627
 #, c-format
 msgid "unexpected root element <%s>, expecting <domstatus>"
 msgstr "പ്രതീക്ഷിക്കാത്ത റൂട്ട് എലമെന്റ് <%s>, <domstatus> പ്രതീക്ഷിക്കുന്നു"
 
-#: src/conf/domain_conf.c:12666
+#: src/conf/domain_conf.c:12676
 #, c-format
 msgid "Target timer %s does not match source %s"
 msgstr "ലക്ഷ്യമായ ടൈമര്‍ %s ഉറവിടം %s-ഉമായി യോജിക്കുന്നില്ല"
 
-#: src/conf/domain_conf.c:12674
+#: src/conf/domain_conf.c:12684
 #, c-format
 msgid "Target timer presence %d does not match source %d"
 msgstr "ലക്ഷ്യമായ ടൈമര്‍ പ്രെസെന്‍സ് %d ഉറവിടം %d-ഉമായി യോജിക്കുന്നില്ല"
 
-#: src/conf/domain_conf.c:12682
+#: src/conf/domain_conf.c:12692
 #, c-format
 msgid "Target TSC frequency %lu does not match source %lu"
 msgstr "ലക്ഷ്യമായ ടി.എസ്.സി. ഫ്രിക്വന്‍സി %lu ഉറവിടം %lu-ഉമായി യോജിക്കുന്നില്ല"
 
-#: src/conf/domain_conf.c:12689
+#: src/conf/domain_conf.c:12699
 #, c-format
 msgid "Target TSC mode %s does not match source %s"
 msgstr "ലക്ഷ്യമായ ടി.എസ്.സി. മോഡ് %s ഉറവിടം %s-ഉമായി യോജിക്കുന്നില്ല"
 
-#: src/conf/domain_conf.c:12706
+#: src/conf/domain_conf.c:12716
 #, c-format
 msgid "Target device address type %s does not match source %s"
 msgstr "ലക്ഷ്യമായ ഡിവൈസ് തരം %s ഉറവിടം %s-ഉമായി യോജിക്കുന്നില്ല"
 
-#: src/conf/domain_conf.c:12719
+#: src/conf/domain_conf.c:12729
 #, c-format
 msgid ""
 "Target device PCI address %04x:%02x:%02x.%02x does not match source %04x:"
@@ -3000,12 +3067,12 @@ msgstr ""
 "ലക്ഷ്യമായ ഡിവൈസ് പി.സി.ഐ. വിലാസം %04x:%02x:%02x.%02x ഉറവിടം %04x:%02x:%02x.%02x-"
 "ഉമായി യോജിക്കുന്നില്ല"
 
-#: src/conf/domain_conf.c:12734
+#: src/conf/domain_conf.c:12744
 #, c-format
 msgid "Target device drive address %d:%d:%d does not match source %d:%d:%d"
 msgstr "ലക്ഷ്യമായ ഡിവൈസ് ഡ്രൈവ് വിലാസം %d:%d:%d ഉറവിടം %d:%d:%d-ഉമായി യോജിക്കുന്നില്ല"
 
-#: src/conf/domain_conf.c:12749
+#: src/conf/domain_conf.c:12759
 #, c-format
 msgid ""
 "Target device virtio serial address %d:%d:%d does not match source %d:%d:%d"
@@ -3013,634 +3080,634 @@ msgstr ""
 "ലക്ഷ്യമായ ഡിവൈസ് വെര്‍ട്ടൈയോ (virtio) സീരിയല വിലാസം %d:%d:%d ഉറവിടം %d:%d:%d-ഉമായി "
 "യോജിക്കുന്നില്ല"
 
-#: src/conf/domain_conf.c:12763
+#: src/conf/domain_conf.c:12773
 #, c-format
 msgid "Target device ccid address %d:%d does not match source %d:%d"
 msgstr "ലക്ഷ്യമായ ഡിവൈസ് സി.സി.ഐ.ഡി. വിലാസം %d:%d ഉറവിടം %d:%d-ഉമായി യോജിക്കുന്നില്ല"
 
-#: src/conf/domain_conf.c:12784
+#: src/conf/domain_conf.c:12794
 #, c-format
 msgid "Target disk device %s does not match source %s"
 msgstr "ലക്ഷ്യമായ ഡിസ്ക് ഡിവൈസ് %s ഉറവിടം %s-ഉമായി യോജിക്കുന്നില്ല"
 
-#: src/conf/domain_conf.c:12792
+#: src/conf/domain_conf.c:12802
 #, c-format
 msgid "Target disk bus %s does not match source %s"
 msgstr "ലക്ഷ്യമായ ഡിസ്ക് ബസ്‌ %s ഉറവിടം %s-ഉമായി യോജിക്കുന്നില്ല"
 
-#: src/conf/domain_conf.c:12800
+#: src/conf/domain_conf.c:12810
 #, c-format
 msgid "Target disk %s does not match source %s"
 msgstr "ലക്ഷ്യമായ ഡിസ്ക് %s ഉറവിടം %s-ഉമായി യോജിക്കുന്നില്ല"
 
-#: src/conf/domain_conf.c:12807
+#: src/conf/domain_conf.c:12817
 #, c-format
 msgid "Target disk serial %s does not match source %s"
 msgstr "ലക്ഷ്യമായ ഡിസ്ക് സീരിയല %s ഉറവിടം %s-ഉമായി യോജിക്കുന്നില്ല"
 
-#: src/conf/domain_conf.c:12814
+#: src/conf/domain_conf.c:12824
 msgid "Target disk access mode does not match source"
 msgstr "ലക്ഷ്യമായ ഡിസ്ക് ആക്സസ് മോഡ് ഉറവിവുമായി യോജിക്കുന്നില്ല"
 
-#: src/conf/domain_conf.c:12831
+#: src/conf/domain_conf.c:12841
 #, c-format
 msgid "Target controller type %s does not match source %s"
 msgstr "ലക്ഷ്യമായ കണ്ട്രോള്ളര്‍ %s ഉറവിടം %s-ഉമായി യോജിക്കുന്നില്ല"
 
-#: src/conf/domain_conf.c:12839
+#: src/conf/domain_conf.c:12849
 #, c-format
 msgid "Target controller index %d does not match source %d"
 msgstr "ലക്ഷ്യമായ കണ്ട്രോള്ളര്‍ ഇന്‍ഡെക്സ് %d ഉറവിടം %d-ഉമായി യോജിക്കുന്നില്ല"
 
-#: src/conf/domain_conf.c:12846
+#: src/conf/domain_conf.c:12856
 #, c-format
 msgid "Target controller model %d does not match source %d"
 msgstr "ലക്ഷ്യമായ കണ്ട്രോള്ളര്‍ മോഡല്‍ %d ഉറവിടം %d-ഉമായി യോജിക്കുന്നില്ല"
 
-#: src/conf/domain_conf.c:12854
+#: src/conf/domain_conf.c:12864
 #, c-format
 msgid "Target controller ports %d does not match source %d"
 msgstr "ലക്ഷ്യമായ കണ്ട്രോള്ളര്‍ പോര്‍ട്ട്‌സ് %d ഉറവിടം %d-ഉമായി യോജിക്കുന്നില്ല"
 
-#: src/conf/domain_conf.c:12861
+#: src/conf/domain_conf.c:12871
 #, c-format
 msgid "Target controller vectors %d does not match source %d"
 msgstr "ലക്ഷ്യമായ കണ്ട്രോള്ളര്‍ വെക്റെഴ്സ് %d ഉറവിടം %d-ഉമായി യോജിക്കുന്നില്ല"
 
-#: src/conf/domain_conf.c:12880
+#: src/conf/domain_conf.c:12890
 #, c-format
 msgid "Target filesystem guest target %s does not match source %s"
 msgstr "ലക്ഷ്യമായ ഫയല്‍സിസ്റ്റം ഗെസ്റ്റ്‌ ടാര്‍ഗെറ്റ്‌ %s ഉറവിടം %s-ഉമായി യോജിക്കുന്നില്ല"
 
-#: src/conf/domain_conf.c:12887
+#: src/conf/domain_conf.c:12897
 msgid "Target filesystem access mode does not match source"
 msgstr "ലക്ഷ്യമായ ഫയല്‍സിസ്റ്റം ആക്സസ് മോഡ് ഉറവിടവുമായി യോജിക്കുന്നില്ല"
 
-#: src/conf/domain_conf.c:12907
+#: src/conf/domain_conf.c:12917
 #, c-format
 msgid "Target network card mac %s does not match source %s"
 msgstr "ടാര്‍ഗറ്റ് നെറ്റ്‌വര്‍ക്ക് കാര്‍ഡ് മാക് %s ശ്രോതസ്സ് %s-മായി ചേരുന്നില്ല"
 
-#: src/conf/domain_conf.c:12916
+#: src/conf/domain_conf.c:12926
 #, c-format
 msgid "Target network card model %s does not match source %s"
 msgstr "ലക്ഷ്യമായ നെറ്റ്‌വര്‍ക്ക് കാര്‍ഡ്‌ മോഡല്‍ %s ഉറവിടം %s-ഉമായി യോജിക്കുന്നില്ല"
 
-#: src/conf/domain_conf.c:12934
+#: src/conf/domain_conf.c:12944
 #, c-format
 msgid "Target input device type %s does not match source %s"
 msgstr "ലക്ഷ്യമായ ഇന്‍പുട്ട് ടിവൈസ് തരം %s ഉറവിടം %s-ഉമായി യോജിക്കുന്നില്ല"
 
-#: src/conf/domain_conf.c:12942
+#: src/conf/domain_conf.c:12952
 #, c-format
 msgid "Target input device bus %s does not match source %s"
 msgstr "ലക്ഷ്യമായ ഇന്‍പുട്ട് ടിവൈസ് ബസ്‌ %s ഉറവിടം %s-ഉമായി യോജിക്കുന്നില്ല"
 
-#: src/conf/domain_conf.c:12961
+#: src/conf/domain_conf.c:12971
 #, c-format
 msgid "Target sound card model %s does not match source %s"
 msgstr "ലക്ഷ്യമായ സൗണ്ട് കാര്‍ഡ്‌ മോഡല്‍ %s ഉറവിടം %s-ഉമായി യോജിക്കുന്നില്ല"
 
-#: src/conf/domain_conf.c:12980
+#: src/conf/domain_conf.c:12990
 #, c-format
 msgid "Target video card model %s does not match source %s"
 msgstr "ലക്ഷ്യമായ വീഡിയോ കാര്‍ഡ്‌ മോഡല്‍ %s ഉറവിടം %s-ഉമായി യോജിക്കുന്നില്ല"
 
-#: src/conf/domain_conf.c:12988
+#: src/conf/domain_conf.c:12998
 #, c-format
 msgid "Target video card vram %u does not match source %u"
 msgstr "ലക്ഷ്യമായ വീഡിയോ കാര്‍ഡ്‌ വി-റാം(vram) %u ഉറവിടം %u-ഉമായി യോജിക്കുന്നില്ല"
 
-#: src/conf/domain_conf.c:12995
+#: src/conf/domain_conf.c:13005
 #, c-format
 msgid "Target video card heads %u does not match source %u"
 msgstr "ലക്ഷ്യമായ വീഡിയോ കാര്‍ഡ്‌ ഹെട്സ് %u ഉറവിടം %u-ഉമായി യോജിക്കുന്നില്ല"
 
-#: src/conf/domain_conf.c:13003
+#: src/conf/domain_conf.c:13013
 msgid "Target video card acceleration does not match source"
 msgstr "ലക്ഷ്യമായ വീഡിയോ കാര്‍ഡ്‌ ആക്സലറേഷന്‍ ഉറവിടവുമായി യോജിക്കുന്നില്ല"
 
-#: src/conf/domain_conf.c:13010
+#: src/conf/domain_conf.c:13020
 #, c-format
 msgid "Target video card 2d accel %u does not match source %u"
 msgstr "ലക്ഷ്യമായ വീഡിയോ കാര്‍ഡ്‌ 2ഡി ആക്സെല്‍ %u ഉറവിടം %u-ഉമായി യോജിക്കുന്നില്ല"
 
-#: src/conf/domain_conf.c:13017
+#: src/conf/domain_conf.c:13027
 #, c-format
 msgid "Target video card 3d accel %u does not match source %u"
 msgstr "ലക്ഷ്യമായ വീഡിയോ കാര്‍ഡ്‌ 3ഡി ആക്സെല്‍ %u ഉറവിടം %u-ഉമായി യോജിക്കുന്നില്ല"
 
-#: src/conf/domain_conf.c:13036
+#: src/conf/domain_conf.c:13046
 #, c-format
 msgid "Target host device mode %s does not match source %s"
 msgstr "ലക്ഷ്യമായ ഹോസ്റ്റ് ഡിവൈസ് മോഡ് %s ഉറവിടം %s-ഉമായി യോജിക്കുന്നില്ല"
 
-#: src/conf/domain_conf.c:13045
+#: src/conf/domain_conf.c:13055
 #, c-format
 msgid "Target host device subsystem %s does not match source %s"
 msgstr "ലക്ഷ്യമായ ഹോസ്റ്റ് ഡിവൈസ് സബ്‌സിസ്റ്റം %s ഉറവിടം %s-ഉമായി യോജിക്കുന്നില്ല"
 
-#: src/conf/domain_conf.c:13075
+#: src/conf/domain_conf.c:13085
 #, c-format
 msgid "Target serial port %d does not match source %d"
 msgstr "ലക്ഷ്യമായ സീരിയല പോര്‍ട്ട്‌ %d ഉറവിടം %d-ഉമായി യോജിക്കുന്നില്ല"
 
-#: src/conf/domain_conf.c:13093
+#: src/conf/domain_conf.c:13103
 #, c-format
 msgid "Target parallel port %d does not match source %d"
 msgstr "ലക്ഷ്യം പാരലല്‍ പോര്‍ട്ട് %d, ശ്രോതസ്സ് %d-മായി ചേരുന്നില്ല"
 
-#: src/conf/domain_conf.c:13111
+#: src/conf/domain_conf.c:13121
 #, c-format
 msgid "Target channel type %s does not match source %s"
 msgstr "ലക്ഷ്യമായ ചാനല്‍ തരം %s ഉറവിടം %s-ഉമായി യോജിക്കുന്നില്ല"
 
-#: src/conf/domain_conf.c:13121
+#: src/conf/domain_conf.c:13131
 #, c-format
 msgid "Target channel name %s does not match source %s"
 msgstr "ലക്ഷ്യമായ ചാനല്‍ നാമം %s ഉറവിടം %s-ഉമായി യോജിക്കുന്നില്ല"
 
-#: src/conf/domain_conf.c:13130
+#: src/conf/domain_conf.c:13140
 msgid ""
 "Changing device type to/from spicevmc would change default target channel "
 "name"
 msgstr "spicevmc എന്ന ഡിവൈസ് തരം മാറ്റുന്നതു് സ്വതവേയുള്ള ലക്ഷ്യ ചാനല്‍ നാമം മാറ്റുന്നു"
 
-#: src/conf/domain_conf.c:13141
+#: src/conf/domain_conf.c:13151
 #, c-format
 msgid "Target channel addr %s does not match source %s"
 msgstr "ലക്ഷ്യമായ ചാനല്‍ addr %s ഉറവിടം %s-ഉമായി യോജിക്കുന്നില്ല"
 
-#: src/conf/domain_conf.c:13163
+#: src/conf/domain_conf.c:13173
 #, c-format
 msgid "Target console type %s does not match source %s"
 msgstr "ലക്ഷ്യമായ ചാനല്‍ കണ്‍സോള്‍ തരം %s ഉറവിടം %s-ഉമായി യോജിക്കുന്നില്ല"
 
-#: src/conf/domain_conf.c:13182
+#: src/conf/domain_conf.c:13192
 #, c-format
 msgid "Target watchdog model %s does not match source %s"
 msgstr "ലക്ഷ്യമായ വാച്ച്ഡോഗ് മോഡല്‍ %s ഉറവിടം %s-ഉമായി യോജിക്കുന്നില്ല"
 
-#: src/conf/domain_conf.c:13201
+#: src/conf/domain_conf.c:13211
 #, c-format
 msgid "Target balloon model %s does not match source %s"
 msgstr "ലക്ഷ്യമായ ബലൂണ്‍ തരം %s ഉറവിടം %s-ഉമായി യോജിക്കുന്നില്ല"
 
-#: src/conf/domain_conf.c:13223
+#: src/conf/domain_conf.c:13233
 #, c-format
 msgid "Target domain RNG device count '%d' does not match source count '%d'"
 msgstr ""
 "ലക്ഷ്യത്തിലുള്ള ഡൊമെയിന്‍ RNG ഡിവൈസ് എണ്ണം '%d', സോഴ്സ് എണ്ണം '%d'-മായി പൊരുത്തപ്പെടുന്നില്ല"
 
-#: src/conf/domain_conf.c:13231
+#: src/conf/domain_conf.c:13241
 #, c-format
 msgid "Target RNG model '%s' does not match source '%s'"
 msgstr "ലക്ഷ്യസ്ഥാനത്തുള്ള RNG മോഡല്‍ '%s', സോഴ്സ് '%s'-മായി പൊരുത്തപ്പെടുന്നില്ല"
 
-#: src/conf/domain_conf.c:13250
+#: src/conf/domain_conf.c:13260
 #, c-format
 msgid "Target hub device type %s does not match source %s"
 msgstr "ലക്ഷ്യമായ ഹബ് ഡിവൈസ് തരം %s ഉറവിടം %s-ഉമായി യോജിക്കുന്നില്ല"
 
-#: src/conf/domain_conf.c:13270
+#: src/conf/domain_conf.c:13280
 #, c-format
 msgid "Target USB redirection filter rule count %zu does not match source %zu"
 msgstr "ലക്ഷ്യമായ യു.എസ.ബി. റീദയറക്ഷന്‍ ഫില്‍റ്റര്‍ എണ്ണം %zu ഉറവിടം %zu-ഉമായി യോജിക്കുന്നില്ല"
 
-#: src/conf/domain_conf.c:13281
+#: src/conf/domain_conf.c:13291
 msgid "Target USB Class code does not match source"
 msgstr "ലക്ഷ്യമായ യു.എസ.ബി. ക്ലാസ്സ്‌ കോഡ്‌ ഉറവിടവുമായി യോജിക്കുന്നില്ല"
 
-#: src/conf/domain_conf.c:13287
+#: src/conf/domain_conf.c:13297
 msgid "Target USB vendor ID does not match source"
 msgstr "ലക്ഷ്യമായ യു.എസ.ബി. വെന്റര്‍ ഐ.ഡി. ഉറവിടവുമായി യോജിക്കുന്നില്ല"
 
-#: src/conf/domain_conf.c:13293
+#: src/conf/domain_conf.c:13303
 msgid "Target USB product ID does not match source"
 msgstr "ലക്ഷ്യമായ യു.എസ.ബി. പ്രോഡക്റ്റ് ഐ.ഡി. ഉറവിടവുമായി യോജിക്കുന്നില്ല"
 
-#: src/conf/domain_conf.c:13299
+#: src/conf/domain_conf.c:13309
 msgid "Target USB version does not match source"
 msgstr "ലക്ഷ്യമായ യു.എസ.ബി. വെര്‍ഷന്‍ ഉറവിടവുമായി യോജിക്കുന്നില്ല"
 
-#: src/conf/domain_conf.c:13305
+#: src/conf/domain_conf.c:13315
 #, c-format
 msgid "Target USB allow '%s' does not match source '%s'"
 msgstr "ലക്ഷ്യമായ യു.എസ.ബി. എലവ് '%s' ഉറവിടം '%s'-ഉമായി യോജിക്കുന്നില്ല"
 
-#: src/conf/domain_conf.c:13327
+#: src/conf/domain_conf.c:13337
 #, c-format
 msgid "Target domain virt type %s does not match source %s"
 msgstr "ലക്ഷ്യമായ ഡൊമൈന്‍ വര്‍ട്ട് തരം %s ഉറവിടം %s-ഉമായി യോജിക്കുന്നില്ല"
 
-#: src/conf/domain_conf.c:13339
+#: src/conf/domain_conf.c:13349
 #, c-format
 msgid "Target domain uuid %s does not match source %s"
 msgstr "ലക്ഷ്യമായ ഡൊമൈന്‍ യു.യു.ഐ.ഡി. %s ഉറവിടം %s-ഉമായി യോജിക്കുന്നില്ല"
 
-#: src/conf/domain_conf.c:13350
+#: src/conf/domain_conf.c:13360
 #, c-format
 msgid "Target domain name '%s' does not match source '%s'"
 msgstr "ലക്ഷ്യ ഡൊമെയിന്‍ നാമം '%s', '%s'-മായി പൊരുത്തപ്പെടുന്നില്ല"
 
-#: src/conf/domain_conf.c:13357
+#: src/conf/domain_conf.c:13367
 #, c-format
 msgid "Target domain max memory %lld does not match source %lld"
 msgstr "ലക്ഷ്യമായ മാക്സ് മെമ്മറി %lld ഉറവിടം %lld-ഉമായി യോജിക്കുന്നില്ല"
 
-#: src/conf/domain_conf.c:13363
+#: src/conf/domain_conf.c:13373
 #, c-format
 msgid "Target domain current memory %lld does not match source %lld"
 msgstr "ലക്ഷ്യ ഡൊമെയിനില്‍ നിലവിലുള്ള %lld മെമ്മറി %lld ശ്രോതസ്സുമായി ചേരുന്നില്ല"
 
-#: src/conf/domain_conf.c:13369
+#: src/conf/domain_conf.c:13379
 #, c-format
 msgid "Target domain huge page backing %d does not match source %d"
 msgstr "ലക്ഷ്യ ഡൊമെയിന്‍ ഹ്യൂജ് പേജ് ബാക്കിങ് %d, %d ശ്രോതസ്സുമായി ചേരുന്നില്ല"
 
-#: src/conf/domain_conf.c:13377
+#: src/conf/domain_conf.c:13387
 #, c-format
 msgid "Target domain vCPU count %d does not match source %d"
 msgstr "ലക്ഷ്യ ഡൊമെയിന്‍ vCPU എണ്ണം %d, ശ്രോതസ്സ് %d-മായി പൊരുത്തപ്പെടുന്നില്ല"
 
-#: src/conf/domain_conf.c:13383
+#: src/conf/domain_conf.c:13393
 #, c-format
 msgid "Target domain vCPU max %d does not match source %d"
 msgstr "ലക്ഷ്യ ഡൊമെയിന്‍ vCPU max %d, ശ്രോതസ്സ് %d-മായി പൊരുത്തപ്പെടുന്നില്ല"
 
-#: src/conf/domain_conf.c:13390 src/conf/domain_conf.c:13403
+#: src/conf/domain_conf.c:13400 src/conf/domain_conf.c:13413
 #, c-format
 msgid "Target domain OS type %s does not match source %s"
 msgstr "ലക്ഷ്യ ഡൊമെയിന്‍ ഒഎസ് തരം %s , %s ശ്രോതസ്സുമായി ചേരുന്നില്ല"
 
-#: src/conf/domain_conf.c:13396
+#: src/conf/domain_conf.c:13406
 #, c-format
 msgid "Target domain architecture %s does not match source %s"
 msgstr "ലക്ഷ്യ ഡൊമെയിന്‍ ആര്‍ക്കിറ്റക്ടചര്‍ %s , %s ശ്രോതസ്സുമായി ചേരുന്നില്ല"
 
-#: src/conf/domain_conf.c:13410
+#: src/conf/domain_conf.c:13420
 #, c-format
 msgid "Target domain SMBIOS mode %s does not match source %s"
 msgstr "ലക്ഷ്യ ഡൊമെയിന്‍ SMBIOS മോഡ് %s , %s ശ്രോതസ്സുമായി ചേരുന്നില്ല"
 
-#: src/conf/domain_conf.c:13418
+#: src/conf/domain_conf.c:13428
 #, c-format
 msgid "Target domain features %d does not match source %d"
 msgstr "ലക്ഷ്യ ഡൊമെയിന്‍ വിശേഷതകള്‍ %d , %d ശ്രോതസ്സുമായി ചേരുന്നില്ല"
 
-#: src/conf/domain_conf.c:13425
+#: src/conf/domain_conf.c:13435
 msgid "Target domain timers do not match source"
 msgstr "ടാര്‍ഗറ്റ് ഡൊമെയിന്‍ ടൈമറുകള്‍ ശ്രോതസ്സുമായി ചേരുന്നില്ല"
 
-#: src/conf/domain_conf.c:13443
+#: src/conf/domain_conf.c:13453
 #, c-format
 msgid "Target domain disk count %zu does not match source %zu"
 msgstr "ടാര്‍ഗറ്റ് ഡൊമെയിന്‍ ഡിസ്ക് എണ്ണം %zu-നു് %zu ശ്രോതസ്സുമായി പൊരുത്തമില്ല"
 
-#: src/conf/domain_conf.c:13454
+#: src/conf/domain_conf.c:13464
 #, c-format
 msgid "Target domain controller count %zu does not match source %zu"
 msgstr "ലക്ഷ്യ ഡൊമെയിന്‍ കണ്ട്രോളര്‍ എണ്ണം %zu, ശ്രോതസ്സ് %zu-മായി പൊരുത്തപ്പെടുന്നില്ല"
 
-#: src/conf/domain_conf.c:13467
+#: src/conf/domain_conf.c:13477
 #, c-format
 msgid "Target domain filesystem count %zu does not match source %zu"
 msgstr ""
 "ടാര്‍ഗറ്റ് ഡൊമെയിന്‍ ഫയല്‍സിസ്റ്റത്തിന്റെ എണ്ണം %zu-നു്  %zu ശ്രോതസ്സുമായി പൊരുത്തപ്പെടുന്നില്ല"
 
-#: src/conf/domain_conf.c:13479
+#: src/conf/domain_conf.c:13489
 #, c-format
 msgid "Target domain net card count %zu does not match source %zu"
 msgstr "ടാര്‍ഗറ്റ് ഡൊമെയിന്‍ നെറ്റ് കാര്‍ഡിന്റെ എണ്ണം %zu,  %zu ശ്രോതസ്സുമായി പൊരുത്തപ്പെടുന്നില്ല"
 
-#: src/conf/domain_conf.c:13491
+#: src/conf/domain_conf.c:13501
 #, c-format
 msgid "Target domain input device count %zu does not match source %zu"
 msgstr ""
 "ടാര്‍ഗറ്റ് ഡൊമെയിന്‍ ഇന്‍പുട്ട് ഡിവൈസിന്റെ എണ്ണം %zu,  %zu ശ്രോതസ്സുമായി പൊരുത്തപ്പെടുന്നില്ല"
 
-#: src/conf/domain_conf.c:13503
+#: src/conf/domain_conf.c:13513
 #, c-format
 msgid "Target domain sound card count %zu does not match source %zu"
 msgstr "ടാര്‍ഗറ്റ് ഡൊമെയിന്‍ ശബ്ദത്തിനുള്ള എണ്ണം %zu-നു്,  %zu ശ്രോതസ്സുമായി പൊരുത്തപ്പെടുന്നില്ല"
 
-#: src/conf/domain_conf.c:13515
+#: src/conf/domain_conf.c:13525
 #, c-format
 msgid "Target domain video card count %zu does not match source %zu"
 msgstr ""
 "ടാര്‍ഗറ്റ് ഡൊമെയിന്‍ വീജിയോ കാര്‍ഡിന്റെ എണ്ണം %zu-നു്, %zu ശ്രോതസ്സുമായി പൊരുത്തപ്പെടുന്നില്ല"
 
-#: src/conf/domain_conf.c:13527
+#: src/conf/domain_conf.c:13537
 #, c-format
 msgid "Target domain host device count %zu does not match source %zu"
 msgstr ""
 "ടാര്‍ഗറ്റ് ഡൊമെയിന്‍ ഹോസ്റ്റ് ഡിവൈസിന്റെ എണ്ണം  %zu-നു്,  %zu ശ്രോതസ്സുമായി പൊരുത്തപ്പെടുന്നില്ല"
 
-#: src/conf/domain_conf.c:13540
+#: src/conf/domain_conf.c:13550
 #, c-format
 msgid "Target domain smartcard count %zu does not match source %zu"
 msgstr ""
 "ടാര്‍ഗറ്റ് ഡൊമെയിന്‍ സ്മാര്‍ട്ട്കാര്‍ഡിന്റെ എണ്ണം %zu-നു്,  %zu ശ്രോതസ്സുമായി പൊരുത്തപ്പെടുന്നില്ല"
 
-#: src/conf/domain_conf.c:13553
+#: src/conf/domain_conf.c:13563
 #, c-format
 msgid "Target domain serial port count %zu does not match source %zu"
 msgstr ""
 "ടാര്‍ഗറ്റ് ഡൊമെയിന്‍ സീരിയല്‍ പോര്‍ട്ടിന്റെ എണ്ണം %zu-നു്, %zu ശ്രോതസ്സുമായി പൊരുത്തപ്പെടുന്നില്ല."
 
-#: src/conf/domain_conf.c:13566
+#: src/conf/domain_conf.c:13576
 #, c-format
 msgid "Target domain parallel port count %zu does not match source %zu"
 msgstr ""
 "ടാര്‍ഗറ്റ് ഡൊമെയിന്‍ പാരലല്‍ പോര്‍ട്ടിന്റെ എണ്ണം %zu-നു്,  %zu ശ്രോതസ്സൂമായി പൊരുത്തപ്പെടുന്നില്ല."
 
-#: src/conf/domain_conf.c:13579
+#: src/conf/domain_conf.c:13589
 #, c-format
 msgid "Target domain channel count %zu does not match source %zu"
 msgstr "ടാര്‍ഗറ്റ് ഡൊമെയിന്‍ ചാനലിന്റെ എണ്ണം %zu-നു്,  %zu ശ്രോതസ്സൂമായി പൊരുത്തപ്പെടുന്നില്ല."
 
-#: src/conf/domain_conf.c:13592
+#: src/conf/domain_conf.c:13602
 #, c-format
 msgid "Target domain console count %zu does not match source %zu"
 msgstr "ടാര്‍ഗറ്റ് ഡൊമെയിന്‍ കണ്‍സോളിന്റെ എണ്ണം %zu-നു്,  %zu ശ്രോതസ്സൂമായി പൊരുത്തപ്പെടുന്നില്ല."
 
-#: src/conf/domain_conf.c:13605
+#: src/conf/domain_conf.c:13615
 #, c-format
 msgid "Target domain hub device count %zu does not match source %zu"
 msgstr ""
 "ടാര്‍ഗറ്റ് ഡൊമെയിന്‍ ഹബ് ഡിവൈസിന്റെ എണ്ണം %zu-നു്,  %zu ശ്രോതസ്സൂമായി പൊരുത്തപ്പെടുന്നില്ല."
 
-#: src/conf/domain_conf.c:13618
+#: src/conf/domain_conf.c:13628
 #, c-format
 msgid "Target domain USB redirection filter count %d does not match source %d"
 msgstr "ലക്ഷ്യ ഡൊമെയിന്‍ യുഎസ്ബി റീഡയറക്ഷന്‍ ഫില്‍റ്റര്‍ എണ്ണം %d , %d ശ്രോതസ്സുമായി ചേരുന്നില്ല"
 
-#: src/conf/domain_conf.c:13632
+#: src/conf/domain_conf.c:13642
 #, c-format
 msgid "Target domain watchdog count %d does not match source %d"
 msgstr "ലക്ഷ്യ ഡൊമെയിന്‍ വാച്ച്ഡോഗിന്റെ എണ്ണം %d , %d ശ്രോതസ്സുമായി ചേരുന്നില്ല"
 
-#: src/conf/domain_conf.c:13645
+#: src/conf/domain_conf.c:13655
 #, c-format
 msgid "Target domain memory balloon count %d does not match source %d"
 msgstr "ലക്ഷ്യ ഡൊമെയിന്‍ മെമ്മറി ബലൂണിന്റെ എണ്ണം %d , %d ശ്രോതസ്സുമായി ചേരുന്നില്ല"
 
-#: src/conf/domain_conf.c:13987
+#: src/conf/domain_conf.c:13997
 #, c-format
 msgid "unexpected %s action: %d"
 msgstr "അപ്രതീക്ഷിതമായ %s പ്രവര്‍ത്തി: %d"
 
-#: src/conf/domain_conf.c:14284
+#: src/conf/domain_conf.c:14294
 #, c-format
 msgid "unexpected disk type %d"
 msgstr "അപ്രതീക്ഷിതമായ ഡിസ്ക് രീതി %d"
 
-#: src/conf/domain_conf.c:14289
+#: src/conf/domain_conf.c:14299
 #, c-format
 msgid "unexpected disk device %d"
 msgstr "അപ്രതീക്ഷിതമായ ഡിസ്ക് ഡിവൈസ് %d"
 
-#: src/conf/domain_conf.c:14294
+#: src/conf/domain_conf.c:14304
 #, c-format
 msgid "unexpected disk bus %d"
 msgstr "അപ്രതീക്ഷിതമായ ഡിസ്ക് ബസ് %d"
 
-#: src/conf/domain_conf.c:14299
+#: src/conf/domain_conf.c:14309
 #, c-format
 msgid "unexpected disk cache mode %d"
 msgstr "അപ്രതീക്ഷിതമായ ഡിസ്ക് കാഷ് മോഡ് %d"
 
-#: src/conf/domain_conf.c:14304
+#: src/conf/domain_conf.c:14314
 #, c-format
 msgid "unexpected disk io mode %d"
 msgstr "അപ്രതീക്ഷിതമായ ഡിസ്ക് ഐഒ മോഡ് %d"
 
-#: src/conf/domain_conf.c:14309
+#: src/conf/domain_conf.c:14319
 #, c-format
 msgid "Unexpected disk sgio mode '%d'"
 msgstr "അപ്രതീക്ഷിതമായ ഡിസ്ക് sgio മോഡ് '%d'"
 
-#: src/conf/domain_conf.c:14501
+#: src/conf/domain_conf.c:14511
 #, c-format
 msgid "unexpected controller type %d"
 msgstr "അപ്രതീക്ഷിതമായ കണ്ട്രോളര്‍ തരം %d"
 
-#: src/conf/domain_conf.c:14510
+#: src/conf/domain_conf.c:14520
 #, c-format
 msgid "unexpected model type %d"
 msgstr "അപ്രതീക്ഷിതമായ മോഡല്‍ തരം %d"
 
-#: src/conf/domain_conf.c:14596
+#: src/conf/domain_conf.c:14606
 #, c-format
 msgid "unexpected filesystem type %d"
 msgstr "അപ്രതീക്ഷിതമായ ഫയല്‍സിസ്റ്റം രീതി %d"
 
-#: src/conf/domain_conf.c:14602
+#: src/conf/domain_conf.c:14612
 #, c-format
 msgid "unexpected accessmode %d"
 msgstr "അപ്രതീക്ഷിതമായ accessmode %d"
 
-#: src/conf/domain_conf.c:14687
+#: src/conf/domain_conf.c:14697
 #, c-format
 msgid "unexpected pci hostdev driver name type %d"
 msgstr "അപ്രതീക്ഷിതമായ pci hostdev ഡ്രൈവര്‍ പേരിന്റെ തരം %d"
 
-#: src/conf/domain_conf.c:14733
+#: src/conf/domain_conf.c:14743
 msgid "PCI address Formatting failed"
 msgstr "പിസിഐ വിലാസം ഫോര്‍മാറ്റ് ചെയ്യുന്നതു് പരാജയപ്പെട്ടു"
 
-#: src/conf/domain_conf.c:14760 src/conf/domain_conf.c:14793
-#: src/conf/domain_conf.c:16027 src/conf/domain_conf.c:16036
-#: src/qemu/qemu_hotplug.c:3258
+#: src/conf/domain_conf.c:14770 src/conf/domain_conf.c:14803
+#: src/conf/domain_conf.c:16037 src/conf/domain_conf.c:16046
+#: src/qemu/qemu_hotplug.c:3263
 #, c-format
 msgid "unexpected hostdev type %d"
 msgstr "അപ്രതീക്ഷിതമായ hostdev രീതി %d"
 
-#: src/conf/domain_conf.c:14817 src/conf/domain_conf.c:14890
-#: src/conf/domain_conf.c:15811
+#: src/conf/domain_conf.c:14827 src/conf/domain_conf.c:14900
+#: src/conf/domain_conf.c:15821
 #, c-format
 msgid "unexpected net type %d"
 msgstr "അപ്രതീക്ഷിതമായ നെറ്റ് രീതി %d"
 
-#: src/conf/domain_conf.c:14844
+#: src/conf/domain_conf.c:14854
 #, c-format
 msgid "unexpected source mode %d"
 msgstr "അപ്രതീക്ഷിതമായ സോഴ്സ് മോഡ് %d"
 
-#: src/conf/domain_conf.c:14864
+#: src/conf/domain_conf.c:14874
 #, c-format
 msgid "unexpected net type %s"
 msgstr "അപ്രതീക്ഷിതമായ നെറ്റ് തരം %s"
 
-#: src/conf/domain_conf.c:15055
+#: src/conf/domain_conf.c:15065
 #, c-format
 msgid "unexpected char type %d"
 msgstr "അപ്രതീക്ഷിതമായ char രീതി %d"
 
-#: src/conf/domain_conf.c:15157
+#: src/conf/domain_conf.c:15167
 #, c-format
 msgid "unexpected char device type %d"
 msgstr "അപ്രതീക്ഷിതമായ ക്യാരക്ടര്‍ ഡിവൈസ് തരം %d"
 
-#: src/conf/domain_conf.c:15176
+#: src/conf/domain_conf.c:15186
 msgid "Could not format channel target type"
 msgstr "ചാനല്‍ ലക്ഷ്യ തരം ഫോര്‍മാറ്റ് ചെയ്യുവാന്‍ സാധ്യമല്ല"
 
-#: src/conf/domain_conf.c:15186
+#: src/conf/domain_conf.c:15196
 msgid "Unable to format guestfwd port"
 msgstr "guestfwd പോര്‍ട്ട് ഫോര്‍മാറ്റ് ചെയ്യുവാന്‍ സാധ്യമല്ല"
 
-#: src/conf/domain_conf.c:15263 src/conf/domain_conf.c:15294
+#: src/conf/domain_conf.c:15273 src/conf/domain_conf.c:15304
 #: src/qemu/qemu_command.c:8468
 #, c-format
 msgid "unexpected smartcard type %d"
 msgstr "അപ്രതീക്ഷിതമായ സ്മാര്‍ട്ട്കാര്‍ഡ് തരം %d"
 
-#: src/conf/domain_conf.c:15311
+#: src/conf/domain_conf.c:15321
 #, c-format
 msgid "unexpected codec type %d"
 msgstr "അപ്രതീക്ഷിതമായ codec തരം %d"
 
-#: src/conf/domain_conf.c:15364 src/xenxs/xen_sxpr.c:2111
+#: src/conf/domain_conf.c:15374 src/xenxs/xen_sxpr.c:2111
 #, c-format
 msgid "unexpected sound model %d"
 msgstr "അപ്രതീക്ഷിതമായ ശബ്ദ മാതൃക %d"
 
-#: src/conf/domain_conf.c:15407
+#: src/conf/domain_conf.c:15417
 #, c-format
 msgid "unexpected memballoon model %d"
 msgstr "അപ്രതീക്ഷിതമായ memballoon മോഡല്‍ %d"
 
-#: src/conf/domain_conf.c:15472
+#: src/conf/domain_conf.c:15482
 #, c-format
 msgid "unexpected watchdog model %d"
 msgstr "അപ്രതീക്ഷിതമായ വാച്ച്ഡോഗ് മാതൃക %d"
 
-#: src/conf/domain_conf.c:15478
+#: src/conf/domain_conf.c:15488
 #, c-format
 msgid "unexpected watchdog action %d"
 msgstr "അപ്രതീക്ഷിതമായ വാച്ച്ഡോഗ് ആക്ഷന്‍ %d"
 
-#: src/conf/domain_conf.c:15583
+#: src/conf/domain_conf.c:15593
 #, c-format
 msgid "unexpected video model %d"
 msgstr "അപ്രതീക്ഷിതമായ വീഡിയോ മാതൃക %d"
 
-#: src/conf/domain_conf.c:15624 src/xenxs/xen_sxpr.c:2148
+#: src/conf/domain_conf.c:15634 src/xenxs/xen_sxpr.c:2148
 #, c-format
 msgid "unexpected input type %d"
 msgstr "അപ്രതീക്ഷിതമായ ഇന്‍പുട്ട് രീതി %d"
 
-#: src/conf/domain_conf.c:15629
+#: src/conf/domain_conf.c:15639
 #, c-format
 msgid "unexpected input bus type %d"
 msgstr "അപ്രതീക്ഷിതമായ ഇന്‍പുട്ട് ബസ് രീതി %d"
 
-#: src/conf/domain_conf.c:15657
+#: src/conf/domain_conf.c:15667
 #, c-format
 msgid "unexpected timer name %d"
 msgstr "അപ്രതീക്ഷിതമായ ടൈമര്‍ നാമം %d"
 
-#: src/conf/domain_conf.c:15673
+#: src/conf/domain_conf.c:15683
 #, c-format
 msgid "unexpected timer tickpolicy %d"
 msgstr "അപ്രതീക്ഷിതമായ ടൈമര്‍ tickpolicy %d"
 
-#: src/conf/domain_conf.c:15687
+#: src/conf/domain_conf.c:15697
 #, c-format
 msgid "unexpected timer track %d"
 msgstr "അപ്രതീക്ഷിതമായ ടൈമര്‍ ട്രാക്ക് %d"
 
-#: src/conf/domain_conf.c:15705
+#: src/conf/domain_conf.c:15715
 #, c-format
 msgid "unexpected timer mode %d"
 msgstr "അപ്രതീക്ഷിതമായ ടൈമര്‍ മോഡ് %d"
 
-#: src/conf/domain_conf.c:16018 src/conf/domain_conf.c:16043
+#: src/conf/domain_conf.c:16028 src/conf/domain_conf.c:16053
 #, c-format
 msgid "unexpected hostdev mode %d"
 msgstr "അപ്രതീക്ഷിതമായ hostdev മാതൃക %d"
 
-#: src/conf/domain_conf.c:16151
+#: src/conf/domain_conf.c:16161
 #, c-format
 msgid "unexpected hub type %d"
 msgstr "അപ്രതീക്ഷിതമായ hub തരം %d"
 
-#: src/conf/domain_conf.c:16243
+#: src/conf/domain_conf.c:16253
 #, c-format
 msgid "unexpected domain type %d"
 msgstr "അപ്രതീക്ഷിതമായ ഡൊമെയിന്‍ രീതി %d"
 
-#: src/conf/domain_conf.c:16424
+#: src/conf/domain_conf.c:16434
 msgid "failed to format cpuset for vcpupin"
 msgstr "vcpupin-നു് cpuset ഫോര്‍മാറ്റ് ചെയ്യുന്നതില്‍ പരാജയം"
 
-#: src/conf/domain_conf.c:16438
+#: src/conf/domain_conf.c:16448
 msgid "failed to format cpuset for emulator"
 msgstr "എമുലേറ്ററിനു് cpuset ഫോര്‍മാറ്റ് ചെയ്യുന്നതില്‍ പാരജയം"
 
-#: src/conf/domain_conf.c:16467
+#: src/conf/domain_conf.c:16477
 msgid "failed to format nodeset for NUMA memory tuning"
 msgstr "ന്യൂമാ മെമ്മറി ട്യൂണിങിനു് നോഡ്സെറ്റ് ഫോര്‍മാറ്റ് ചെയ്യുന്നതില്‍ പരാജയം"
 
-#: src/conf/domain_conf.c:16536
+#: src/conf/domain_conf.c:16546
 #, c-format
 msgid "unexpected boot device type %d"
 msgstr "അപ്രതീക്ഷിതമായ ബൂട്ട് ഡിവൈസ് രീതി %d"
 
-#: src/conf/domain_conf.c:16570
+#: src/conf/domain_conf.c:16580
 #, c-format
 msgid "unexpected smbios mode %d"
 msgstr "അപ്രതീക്ഷിതമായ smbios മോഡ് %d"
 
-#: src/conf/domain_conf.c:16606
+#: src/conf/domain_conf.c:16616
 #, c-format
 msgid "unexpected feature %zu"
 msgstr "അപ്രതീക്ഷിത വിശേഷത %zu"
 
-#: src/conf/domain_conf.c:16990
+#: src/conf/domain_conf.c:17000
 msgid "Device configuration is not compatible: Domain has no USB bus support"
 msgstr "ഡിവൈസ് ക്രമീകരണം പൊരുത്തപ്പെടുന്നില്ല: ഡൊമെയിനു് യുഎസ്ബി പിന്തുണ ലഭ്യമല്ല"
 
-#: src/conf/domain_conf.c:17012 src/conf/network_conf.c:2795
+#: src/conf/domain_conf.c:17022 src/conf/network_conf.c:2795
 #: src/conf/nwfilter_conf.c:2713 src/util/virdnsmasq.c:547
 #, c-format
 msgid "cannot create config directory '%s'"
 msgstr "ക്രമീകരണ ഡയറക്ടറി '%s' ഉണ്ടാക്കുവാന്‍ സാധ്യമല്ല"
 
-#: src/conf/domain_conf.c:17151
+#: src/conf/domain_conf.c:17161
 #, c-format
 msgid "unexpected domain %s already exists"
 msgstr "അപ്രതീക്ഷിതമായ ഡൊമെയിന്‍ %s നിലവിലുണ്ടു്"
 
-#: src/conf/domain_conf.c:17191 src/conf/network_conf.c:3013
+#: src/conf/domain_conf.c:17201 src/conf/network_conf.c:3013
 #: src/conf/network_conf.c:3046 src/conf/nwfilter_conf.c:3097
 #: src/conf/storage_conf.c:1826 src/util/virpci.c:2410
 #, c-format
 msgid "Failed to open dir '%s'"
 msgstr "ഡയറക്ടറി '%s' തുറക്കുന്നതില്‍ പരാജയം"
 
-#: src/conf/domain_conf.c:17261
+#: src/conf/domain_conf.c:17271
 #, c-format
 msgid "cannot remove config %s"
 msgstr "കോണ്‍ഫിഗ് %s നീക്കം ചെയ്യുവാന്‍ സാധ്യമല്ല"
 
-#: src/conf/domain_conf.c:17614
+#: src/conf/domain_conf.c:17624
 #, c-format
 msgid "unable to visit backing chain file %s"
 msgstr "ബാക്കിങ് ചെയിന്‍ ഫയല്‍ %s-ലേക്കു് പോകുവാന്‍ സാധ്യമല്ല"
 
-#: src/conf/domain_conf.c:17715
+#: src/conf/domain_conf.c:17725
 #, c-format
 msgid "invalid domain state: %d"
 msgstr "തെറ്റായ ഡൊമെയിന്‍ അവസ്ഥ: %d"
 
-#: src/conf/domain_conf.c:18161
+#: src/conf/domain_conf.c:18171
 #, c-format
 msgid "Copying definition of '%d' type is not implemented yet."
 msgstr "'%d' തരത്തിന്റെ നിര്‍വചനം പകര്‍ത്തുന്നതു് ഇതു് വരെ ലഭ്യമാക്കിയിട്ടില്ല."
 
-#: src/conf/domain_conf.c:18443
+#: src/conf/domain_conf.c:18453
 #, c-format
 msgid "no device found with alias %s"
 msgstr "%s എന്നു് വിളിപ്പേരുള്ളൊരു ഡിവൈസും ലഭ്യമായില്ല"
@@ -7653,8 +7720,8 @@ msgstr "തെറ്റായ ഡേറ്റാ രീതി"
 msgid "System is not available"
 msgstr "സിസ്റ്റം ലഭ്യമല്ല"
 
-#: src/hyperv/hyperv_wmi.c:380 tools/virsh.c:2191 tools/virsh.c:2236
-#: tools/virsh.c:2658 tools/virsh.c:2664 tools/virsh-domain.c:4564
+#: src/hyperv/hyperv_wmi.c:380 tools/virsh.c:2161 tools/virsh.c:2206
+#: tools/virsh.c:2628 tools/virsh.c:2634 tools/virsh-domain.c:4564
 #: tools/virsh-domain.c:6250 tools/virsh-pool.c:1313 tools/virsh-pool.c:1407
 #: tools/virsh-snapshot.c:447 tools/virsh-volume.c:1538
 msgid "Out of memory"
@@ -9635,7 +9702,7 @@ msgid "Failed to create symlink '%s to '%s'"
 msgstr "'%s -> '%s' സിംലിങ്ക് ഉണ്ടാക്കുന്നതില്‍ പരാജയം"
 
 #: src/lxc/lxc_driver.c:2275 src/libxl/libxl_driver.c:4316
-#: src/network/bridge_driver.c:2978 src/qemu/qemu_driver.c:7308
+#: src/network/bridge_driver.c:2964 src/qemu/qemu_driver.c:7308
 #: src/storage/storage_driver.c:1171 src/uml/uml_driver.c:2442
 #, c-format
 msgid "Failed to delete symlink '%s'"
@@ -9707,7 +9774,7 @@ msgstr "ഉപകരണത്തിന്റെ സ്ഥിരമായ ചേ�
 
 #: src/lxc/lxc_driver.c:2858 src/lxc/lxc_driver.c:2914
 #: src/lxc/lxc_driver.c:3706 src/qemu/qemu_driver.c:6669
-#: src/qemu/qemu_hotplug.c:3288
+#: src/qemu/qemu_hotplug.c:3293
 #, c-format
 msgid "multiple devices matching mac address %s found"
 msgstr "മാക് വിലാസം %s-മായി പൊരുത്തപ്പെടുന്ന അനവധി ഡിവൈസുകള്‍ ലഭ്യമായി"
@@ -9728,8 +9795,8 @@ msgid "no target device %s"
 msgstr "ലക്ഷ്യ ഡിവൈസ് %s ലഭ്യമല്ല"
 
 #: src/lxc/lxc_driver.c:2931 src/qemu/qemu_driver.c:6685
-#: src/qemu/qemu_driver.c:6709 src/qemu/qemu_hotplug.c:1340
-#: src/qemu/qemu_hotplug.c:3514
+#: src/qemu/qemu_driver.c:6709 src/qemu/qemu_hotplug.c:1342
+#: src/qemu/qemu_hotplug.c:3519
 msgid "device not present in domain configuration"
 msgstr "ഡൊമെയിന്‍ ക്രമീകരണത്തില്‍ ഡിവൈസ് ലഭ്യമല്ല"
 
@@ -9769,7 +9836,7 @@ msgid "No bridge name specified"
 msgstr "ബ്രിഡ്ജ് നാമം നല്‍കിയിട്ടില്ല"
 
 #: src/lxc/lxc_driver.c:3132 src/lxc/lxc_process.c:395
-#: src/qemu/qemu_command.c:312 src/qemu/qemu_hotplug.c:1641
+#: src/qemu/qemu_command.c:312 src/qemu/qemu_hotplug.c:1643
 #, c-format
 msgid "Network '%s' is not active."
 msgstr "നെറ്റ്‌വര്‍ക്ക് '%s' സജീവമല്ല."
@@ -9817,7 +9884,7 @@ msgid "device type '%s' cannot be attached"
 msgstr "ഡിവൈസ് രീതി '%s' ചേര്‍ക്കുവാന്‍ സാധ്യമല്ല"
 
 #: src/lxc/lxc_driver.c:3654 src/libxl/libxl_driver.c:3590
-#: src/qemu/qemu_hotplug.c:2910 src/uml/uml_driver.c:2268
+#: src/qemu/qemu_hotplug.c:2915 src/uml/uml_driver.c:2268
 #, c-format
 msgid "disk %s not found"
 msgstr "ഡിസ്ക് %s ലഭ്യമല്ല"
@@ -9828,7 +9895,7 @@ msgstr "ഡിസ്ക് %s ലഭ്യമല്ല"
 msgid "Unable to remove device %s"
 msgstr "%s ഡിവൈസ് നീക്കം ചെയ്യുവാന്‍ സാധ്യമല്ല"
 
-#: src/lxc/lxc_driver.c:3711 src/qemu/qemu_hotplug.c:3294
+#: src/lxc/lxc_driver.c:3711 src/qemu/qemu_hotplug.c:3299
 #, c-format
 msgid "network device %s not found"
 msgstr "നെറ്റ്‌വര്‍ക്ക് ഡിവൈസ് %s ലഭ്യമല്ല"
@@ -9876,7 +9943,7 @@ msgstr "ലൈവ് ഡിവൈസുകളില്‍ മാറ്റം വ
 msgid "Host SMBIOS information is not available"
 msgstr "ഹോസ്റ്റ് SMBIOS വിവരങ്ങള്‍ ലഭ്യമല്ല"
 
-#: src/lxc/lxc_process.c:272 src/network/bridge_driver.c:1833
+#: src/lxc/lxc_process.c:272 src/network/bridge_driver.c:1854
 #: src/qemu/qemu_command.c:393 src/qemu/qemu_driver.c:9352
 #: src/util/virnetdevmacvlan.c:938
 #, c-format
@@ -10007,7 +10074,7 @@ msgstr "libxl കോണ്‍ടെക്സ്റ്റ് ഇനീഷ്യ�
 #: src/qemu/qemu_driver.c:293 src/qemu/qemu_hostdev.c:1048
 #: src/qemu/qemu_hostdev.c:1072 src/qemu/qemu_hostdev.c:1126
 #: src/secret/secret_driver.c:498 src/uml/uml_driver.c:196
-#: src/util/virerror.c:257 src/xenapi/xenapi_utils.c:265 tools/virsh.c:281
+#: src/util/virerror.c:257 src/xenapi/xenapi_utils.c:265 tools/virsh.c:282
 #: tools/virsh-domain-monitor.c:57
 msgid "unknown error"
 msgstr "അപരിചിതമായ പിശക്"
@@ -10578,7 +10645,12 @@ msgstr "libxenlight നെറ്റ്‌വര്‍ക്ക് ഡിവൈ�
 msgid "Unable to find an unused VNC port"
 msgstr "ഉപയോഗത്തിലില്ലാത്ത ഒരു VNC പോര്‍ട്ട് കണ്ടെത്താന്‍ കഴിഞ്ഞില്ല"
 
-#: src/network/bridge_driver.c:752
+#: src/network/bridge_driver.c:129
+#, fuzzy, c-format
+msgid "no network with matching uuid '%s' (%s)"
+msgstr "പൊരുത്തപ്പെടുന്ന uuid '%s' (%s) ഉള്ള ഡൊമെയിന്‍ ലഭ്യമല്ല"
+
+#: src/network/bridge_driver.c:773
 #, c-format
 msgid ""
 "Publicly routable address %s is prohibited. The version of dnsmasq on this "
@@ -10595,11 +10667,11 @@ msgstr ""
 "നെറ്റ്‌വര്‍ക്കിനു് ഒരു സ്വകാര്യ/ലോക്കല്‍ സബ്നെറ്റ് പരിധി ഉപയോഗിയ്ക്കുക (RFC1918/RFC3484/RFC4193-"
 "ല്‍ വിവരിച്ചിരിയ്ക്കുന്നതു് പോലെ)."
 
-#: src/network/bridge_driver.c:827
+#: src/network/bridge_driver.c:848
 msgid "For IPv4, multiple DHCP definitions cannot be specified."
 msgstr "IPv4-നു്, അനവധി ഡിഎച്‌സിപി വിവരണങ്ങള്‍ നിഷ്കര്‍ഷിയ്ക്കുവാന്‍ സാധ്യമല്ല"
 
-#: src/network/bridge_driver.c:840
+#: src/network/bridge_driver.c:861
 #, c-format
 msgid ""
 "The version of dnsmasq on this host (%d.%d) doesn't adequately support IPv6 "
@@ -10608,97 +10680,96 @@ msgstr ""
 "ഈ ഹോസ്റ്റിലുള്ള (%d.%d) dnsmasq ആവശ്യമനുസരിച്ചു് IPv6 dhcp പരിധി അല്ലെങ്കില്‍ dhcp ഹോസ്റ്റ് "
 "വിവരണം പിന്തുണയ്ക്കുന്നില്ല. %d.%d പതിപ്പു് അല്ലെങ്കില്‍ പിന്നീടുള്ളതു് ആവശ്യമാണു്."
 
-#: src/network/bridge_driver.c:853
+#: src/network/bridge_driver.c:874
 msgid "For IPv6, multiple DHCP definitions cannot be specified."
 msgstr "IPv6-നു്, അനവധി ഡിഎച്‌സിപി വിവരണങ്ങള്‍ നിഷ്കര്‍ഷിയ്ക്കുവാന്‍ സാധ്യമല്ല"
 
-#: src/network/bridge_driver.c:1025
+#: src/network/bridge_driver.c:1046
 #, c-format
 msgid "couldn't write dnsmasq config file '%s'"
 msgstr "dnsmasq ക്രമീകരണ ഫയല്‍ '%s' സൂക്ഷിയ്ക്കുവാനായില്ല"
 
-#: src/network/bridge_driver.c:1055 src/network/bridge_driver.c:1061
-#: src/network/bridge_driver.c:1072 src/network/bridge_driver.c:1371
-#: src/network/bridge_driver.c:1377
+#: src/network/bridge_driver.c:1076 src/network/bridge_driver.c:1082
+#: src/network/bridge_driver.c:1093 src/network/bridge_driver.c:1392
+#: src/network/bridge_driver.c:1398
 #, c-format
 msgid "cannot create directory %s"
 msgstr "ഡയറക്ടറി %s ഉണ്ടാക്കുവാന്‍ സാധ്യമല്ല"
 
-#: src/network/bridge_driver.c:1264
+#: src/network/bridge_driver.c:1285
 #, c-format
 msgid "bridge '%s' has an invalid prefix"
 msgstr "ബ്രിഡ്ജ് '%s'-നു് തെറ്റായ പ്രിഫിക്സ്"
 
-#: src/network/bridge_driver.c:1325
+#: src/network/bridge_driver.c:1346
 #, c-format
 msgid "couldn't write radvd config file '%s'"
 msgstr "radvd ക്രമീകരണ ഫയല്‍ '%s' സൂക്ഷിയ്ക്കുവാന്‍ സാധ്യമല്ല"
 
-#: src/network/bridge_driver.c:1363
+#: src/network/bridge_driver.c:1384
 #, c-format
 msgid "Cannot find %s - Possibly the package isn't installed"
 msgstr "%s കണ്ടെത്താന്‍ കഴിഞ്ഞില്ല - പൊതിക്കെട്ട് ഇന്‍സ്റ്റോള്‍ ചെയ്തുകാണില്ല"
 
-#: src/network/bridge_driver.c:1593
+#: src/network/bridge_driver.c:1614
 #, c-format
 msgid "cannot write to %s to disable IPv6 on bridge %s"
 msgstr "ബ്രിഡ്ജ് %s-ല്‍ IPv6 പ്രവര്‍ത്തനരഹിതമാക്കാന്‍ %s-ല്‍ എഴുതാന്‍ സാധിക്കുന്നില്ല"
 
-#: src/network/bridge_driver.c:1613 src/network/bridge_driver.c:1627
+#: src/network/bridge_driver.c:1634 src/network/bridge_driver.c:1648
 #, c-format
 msgid "cannot disable %s"
 msgstr "%s പ്രവര്‍ത്തന രഹിതമാക്കുവാന്‍ സാധ്യമല്ല"
 
-#: src/network/bridge_driver.c:1646
+#: src/network/bridge_driver.c:1667
 #, c-format
 msgid "bridge '%s' has an invalid netmask or IP address"
 msgstr "ബ്രിഡ്ജ് '%s'ന് അസാധുവായ നെറ്റ്മാസ്കോ ഐ.പി. വിലാസമോ ഉണ്ട്"
 
-#: src/network/bridge_driver.c:1689
+#: src/network/bridge_driver.c:1710
 #, c-format
 msgid "network '%s' has an invalid netmask or IP address in route definition"
 msgstr "നെറ്റ്‍വര്‍ക്ക് '%s'-നു് റൂട്ട് നിഷ്കര്‍ഷണത്തില്‍ തെറ്റായ നെറ്റ്‌മാസ്ക് അല്ലെങ്കില്‍ ഐപി വിലാസം"
 
-#: src/network/bridge_driver.c:1807
+#: src/network/bridge_driver.c:1828
 msgid "failed to enable IP forwarding"
 msgstr "IP ഫോര്‍വേര്‍ഡിങ് സജ്ജമാക്കുന്നതില്‍ പരാജയം"
 
-#: src/network/bridge_driver.c:1965
+#: src/network/bridge_driver.c:1986
 msgid "network is already active"
 msgstr "നെറ്റ്‌വര്‍ക്കു് നിലിവില്‍ പ്രവര്‍ത്തനത്തിലാണ്"
 
-#: src/network/bridge_driver.c:2070 src/network/bridge_driver.c:2572
-#: src/network/bridge_driver.c:2636 src/network/bridge_driver.c:2774
-#: src/network/bridge_driver.c:2800 src/network/bridge_driver.c:2848
-#: src/network/bridge_driver.c:2912 src/network/bridge_driver.c:2940
+#: src/network/bridge_driver.c:2091 src/network/bridge_driver.c:2581
+#: src/network/bridge_driver.c:2645 src/network/bridge_driver.c:2783
+#: src/network/bridge_driver.c:2809 src/network/bridge_driver.c:2926
 #: src/parallels/parallels_network.c:477 src/parallels/parallels_network.c:528
 #: src/parallels/parallels_network.c:594 src/test/test_driver.c:3297
 msgid "no network with matching uuid"
 msgstr "ചേരുന്ന uuid-യുള്ള നെറ്റ്‌വര്‍ക്ക് ലഭ്യമല്ല"
 
-#: src/network/bridge_driver.c:2096 src/network/bridge_driver.c:3153
-#: src/network/bridge_driver.c:3544 src/network/bridge_driver.c:3722
-#: src/network/bridge_driver.c:3875 src/parallels/parallels_network.c:501
+#: src/network/bridge_driver.c:2117 src/network/bridge_driver.c:3139
+#: src/network/bridge_driver.c:3530 src/network/bridge_driver.c:3708
+#: src/network/bridge_driver.c:3861 src/parallels/parallels_network.c:501
 #, c-format
 msgid "no network with matching name '%s'"
 msgstr "'%s' എന്ന പേരുള്ള നെറ്റ്‌വര്‍ക്ക് ലഭ്യമല്ല"
 
-#: src/network/bridge_driver.c:2344
+#: src/network/bridge_driver.c:2353
 #, c-format
 msgid "Unsupported <ip> element in network %s with forward mode='%s'"
 msgstr "പിന്തുണയ്ക്കാത്ത <ip> എലമെന്റ് %s നെറ്റ്‌വര്‍ക്കില്‍, ഫോര്‍വേഡ് മോഡ്='%s'"
 
-#: src/network/bridge_driver.c:2352
+#: src/network/bridge_driver.c:2361
 #, c-format
 msgid "Unsupported <dns> element in network %s with forward mode='%s'"
 msgstr "പിന്തുണയ്ക്കാത്ത <dns> എലമെന്റ് %s നെറ്റ്‌വര്‍ക്കില്‍, ഫോര്‍വേഡ് മോഡ്='%s'"
 
-#: src/network/bridge_driver.c:2360
+#: src/network/bridge_driver.c:2369
 #, c-format
 msgid "Unsupported <domain> element in network %s with forward mode='%s'"
 msgstr "പിന്തുണയ്ക്കാത്ത <domain> എലമെന്റ് %s നെറ്റ്‌വര്‍ക്കില്‍, ഫോര്‍വേഡ് മോഡ്='%s'"
 
-#: src/network/bridge_driver.c:2378
+#: src/network/bridge_driver.c:2387
 msgid ""
 "Multiple IPv4 dhcp sections found -- dhcp is supported only for a single "
 "IPv4 address on each network"
@@ -10706,7 +10777,7 @@ msgstr ""
 "അനവധി IPv4 dhcp വിഭാഗങ്ങള്‍ ലഭ്യമായി -- ഓരോ നെറ്റ്‌വര്‍ക്കിലും ഒറ്റ IPv4 വിലാസത്തിനു് മാത്രം "
 "dhcp പിന്തുണയ്ക്കുന്നു"
 
-#: src/network/bridge_driver.c:2391
+#: src/network/bridge_driver.c:2400
 msgid ""
 "Multiple IPv6 dhcp sections found -- dhcp is supported only for a single "
 "IPv6 address on each network"
@@ -10714,7 +10785,7 @@ msgstr ""
 "അനവധി IPv6 dhcp വിഭാഗങ്ങള്‍ ലഭ്യമായി -- ഓരോ നെറ്റ്‌വര്‍ക്കിലും ഒറ്റ IPv6 വിലാസത്തിനു് മാത്രം "
 "dhcp പിന്തുണയ്ക്കുന്നു"
 
-#: src/network/bridge_driver.c:2435
+#: src/network/bridge_driver.c:2444
 #, c-format
 msgid ""
 "network '%s' has multiple default <portgroup> elements (%s and %s), but only "
@@ -10723,7 +10794,7 @@ msgstr ""
 "നെറ്റ്‌വര്‍ക്ക് '%s'-നുള്ള സ്വതവേയുള്ള അനവധി <portgroup> എലമെന്റുകളുകള്‍ ലഭ്യമാണു് (%s, %s), "
 "പക്ഷേ സ്വതവേ ഒന്നു് മാത്രമേ അനുവദിയ്ക്കുന്നുള്ളൂ"
 
-#: src/network/bridge_driver.c:2453
+#: src/network/bridge_driver.c:2462
 #, c-format
 msgid ""
 "<vlan> element specified for network %s, whose type doesn't support vlan "
@@ -10731,48 +10802,44 @@ msgid ""
 msgstr ""
 "<vlan> നെറ്റ്‌വര്‍ക്ക് %sല്‍ വ്യക്തമാക്കിയ ഘടകത്തിന്റെ തരം vlan ക്രമീകരണം പിന്തുണക്കുന്നില്ല"
 
-#: src/network/bridge_driver.c:2809
+#: src/network/bridge_driver.c:2818
 msgid "network is not active"
 msgstr "നെറ്റ്‌വര്‍ക്ക് ‌സജീവമല്ല"
 
-#: src/network/bridge_driver.c:2879
-msgid "no network with matching id"
-msgstr "ചേരുന്ന id-യുള്ള നെറ്റ്‌വര്‍ക്ക് ലഭ്യമല്ല"
-
-#: src/network/bridge_driver.c:2888 src/test/test_driver.c:3427
+#: src/network/bridge_driver.c:2881 src/test/test_driver.c:3427
 #, c-format
 msgid "network '%s' does not have a bridge name."
 msgstr "നെറ്റ്‌വര്‍ക്ക് '%s'-നു് ഒരു ബ്രിഡ്ജ് നാമം ലഭ്യമല്ല."
 
-#: src/network/bridge_driver.c:2949
+#: src/network/bridge_driver.c:2935
 msgid "cannot set autostart for transient network"
 msgstr "ട്രാന്‍സിയന്റ് നെറ്റ്‌വര്‍ക്കിനു് autostart സജ്ജമാക്കുവാന്‍ സാധ്യമല്ല"
 
-#: src/network/bridge_driver.c:2964
+#: src/network/bridge_driver.c:2950
 #, c-format
 msgid "cannot create autostart directory '%s'"
 msgstr "ഓട്ടോസ്റ്റാര്‍ട്ട് ഡയറക്ടറി '%s' ഉണ്ടാക്കുവാന്‍ സാധ്യമായില്ല"
 
-#: src/network/bridge_driver.c:2971 src/storage/storage_driver.c:1163
+#: src/network/bridge_driver.c:2957 src/storage/storage_driver.c:1163
 #, c-format
 msgid "Failed to create symlink '%s' to '%s'"
 msgstr "സിംലിങ്ക് '%s' -> '%s' ഉണ്ടാക്കുന്നതില്‍ പരാജയം"
 
-#: src/network/bridge_driver.c:3063
+#: src/network/bridge_driver.c:3049
 #, c-format
 msgid "Could not get Virtual functions on %s"
 msgstr "വിര്‍ച്വല്‍ ധര്‍മം %s ലഭ്യമല്ല"
 
-#: src/network/bridge_driver.c:3070
+#: src/network/bridge_driver.c:3056
 #, c-format
 msgid "No Vf's present on SRIOV PF %s"
 msgstr "SRIOV PF %sല്‍ ഒരു Vf പോലും ലഭ്യമല്ല"
 
-#: src/network/bridge_driver.c:3091
+#: src/network/bridge_driver.c:3077
 msgid "Direct mode types require interface names"
 msgstr "നേരിട്ടുള രീതിക്ക് ഇന്റര്‍ഫേസ് നാമം ആവശ്യമാണ്"
 
-#: src/network/bridge_driver.c:3244
+#: src/network/bridge_driver.c:3230
 #, c-format
 msgid ""
 "<virtualport type='%s'> not supported for network '%s' which uses a bridge "
@@ -10780,19 +10847,19 @@ msgid ""
 msgstr ""
 "ബ്രിഡ്ജ് ഉപകരണമുപയോഗിക്കുന്ന നെറ്റ്‌വര്‍ക്ക്‌ '%s'നെ <വിര്‍ച്വല്‍ പോര്‍ട്ട് രീതി='%s'> പിന്തുണക്കുന്നില്ല"
 
-#: src/network/bridge_driver.c:3275 src/network/bridge_driver.c:3435
+#: src/network/bridge_driver.c:3261 src/network/bridge_driver.c:3421
 #, c-format
 msgid ""
 "network '%s' requires exclusive access to interfaces, but none are available"
 msgstr ""
 "നെറ്റ്‌വര്‍ക്ക് '%s'ന് ഇന്റര്‍ഫേസില്‍ മറ്റാര്‍ക്കുമില്ലാത്ത പ്രവേശനം ആവശ്യമാണ്, പക്ഷേ ഒന്നും ലഭ്യമല്ല"
 
-#: src/network/bridge_driver.c:3301
+#: src/network/bridge_driver.c:3287
 #, c-format
 msgid "unrecognized driver name value %d  in network '%s'"
 msgstr "അപരിചിതമായ ഡ്രൈവര്‍ നാമത്തിന്റെ മൂല്ല്യം %d, '%s' നെറ്റ്‌വര്‍ക്കില്‍"
 
-#: src/network/bridge_driver.c:3325
+#: src/network/bridge_driver.c:3311
 #, c-format
 msgid ""
 "<virtualport type='%s'> not supported for network '%s' which uses an SR-IOV "
@@ -10801,7 +10868,7 @@ msgstr ""
 "PCI passthrough വഴി SR-IOV വിര്‍ച്വല്‍ ധര്‍മ്മമുപയോഗിക്കുന്ന നെറ്റ്‌വര്‍ക്ക്‌ '%s'നെ <വിര്‍ച്വല്‍ "
 "പോര്‍ട്ട് രീതി='%s'> പിന്തുണക്കുന്നില്ല"
 
-#: src/network/bridge_driver.c:3380
+#: src/network/bridge_driver.c:3366
 #, c-format
 msgid ""
 "<virtualport type='%s'> not supported for network '%s' which uses a macvtap "
@@ -10809,7 +10876,7 @@ msgid ""
 msgstr ""
 "macvtap ഉപകരണമുപയോഗിക്കുന്ന നെറ്റ്‌വര്‍ക്ക്‌ '%s'നെ <വിര്‍ച്വല്‍ പോര്‍ട്ട് രീതി='%s'> പിന്തുണക്കുന്നില്ല"
 
-#: src/network/bridge_driver.c:3393
+#: src/network/bridge_driver.c:3379
 #, c-format
 msgid ""
 "network '%s' uses a direct mode, but has no forward dev and no interface pool"
@@ -10817,7 +10884,7 @@ msgstr ""
 "നെറ്റ്‌വര്‍ക്ക് '%s' നേരിട്ടുള്ള രീതിയാണുപയോഗിക്കുന്നത്, പക്ഷേ ഫോര്‍വേഡ് ഉപകരണമോ ഇന്റര്‍ഫേസ് സഞ്ചയമോ "
 "ഇല്ല"
 
-#: src/network/bridge_driver.c:3466
+#: src/network/bridge_driver.c:3452
 #, c-format
 msgid ""
 "an interface connecting to network '%s' is requesting a vlan tag, but that "
@@ -10826,7 +10893,7 @@ msgstr ""
 "നെറ്റ്‌വര്‍ക്ക് '%s'ലേക്ക് ബന്ധം സ്ഥാപിക്കുന്ന ഒരു ഇന്റര്‍ഫേസ് ഒരു vlan ടാഗ് ആവശ്യപ്പെടുന്നു, പക്ഷേ അത് "
 "ഇത്തരം നെറ്റ്‌വര്‍ക്കില്‍ പിന്തുണക്കുന്നില്ല"
 
-#: src/network/bridge_driver.c:3472
+#: src/network/bridge_driver.c:3458
 #, c-format
 msgid ""
 "an interface of type '%s' is requesting a vlan tag, but that is not "
@@ -10835,7 +10902,7 @@ msgstr ""
 "നെറ്റ്‌വര്‍ക്ക് '%s'ലേക്ക് ബന്ധം സ്ഥാപിക്കുന്ന ഒരു ഇന്റര്‍ഫേസ് ഒരു vlan ടാഗ് ആവശ്യപ്പെടുന്നു, പക്ഷേ അത് "
 "ഇത്തരം ബന്ധത്തെ പിന്തുണക്കുന്നില്ല"
 
-#: src/network/bridge_driver.c:3563
+#: src/network/bridge_driver.c:3549
 #, c-format
 msgid ""
 "network '%s' uses a direct or hostdev mode, but has no forward dev and no "
@@ -10844,32 +10911,32 @@ msgstr ""
 "നെറ്റ്‌വര്‍ക്ക് '%s' നേരിട്ടുള്ള രീതിയോ hostdev രീതിയോ ആണുപയോഗിക്കുന്നത്, പക്ഷേ ഫോര്‍വേഡ് "
 "ഉപകരണമോ ഇന്റര്‍ഫേസ് സഞ്ചയമോ ഇല്ല"
 
-#: src/network/bridge_driver.c:3575 src/network/bridge_driver.c:3755
+#: src/network/bridge_driver.c:3561 src/network/bridge_driver.c:3741
 msgid "the interface uses a direct mode, but has no source dev"
 msgstr "ഇന്റര്‍ഫേസ് നേരിട്ടുള്ള ഒരു രീതിയാണുപയോഗിക്കുന്നത്, പക്ഷേ ഉറവിട ഉപകരണം ലഭ്യമല്ല"
 
-#: src/network/bridge_driver.c:3592 src/network/bridge_driver.c:3771
+#: src/network/bridge_driver.c:3578 src/network/bridge_driver.c:3757
 #, c-format
 msgid "network '%s' doesn't have dev='%s' in use by domain"
 msgstr "ഡൊമെയിന്‍ ഉപയോഗത്തിലുള്ള ഉപകരണം ='%s' നെറ്റ്‌വര്‍ക്ക് '%s'-നില്ല"
 
-#: src/network/bridge_driver.c:3609
+#: src/network/bridge_driver.c:3595
 #, c-format
 msgid "network '%s' claims dev='%s' is already in use by a different domain"
 msgstr ""
 "നെറ്റ്‌വര്‍ക്ക് '%s' അവകാശവാദമുന്നയിക്കുന്ന ഉപകരണം='%s' നിലവില്‍ വേറൊരു ഡൊമെയിന്‍ ഉപയോഗിക്കുന്നുണ്ട്"
 
-#: src/network/bridge_driver.c:3626 src/network/bridge_driver.c:3787
+#: src/network/bridge_driver.c:3612 src/network/bridge_driver.c:3773
 msgid "the interface uses a hostdev mode, but has no hostdev"
 msgstr "ഈ ഇന്റര്‍ഫേസ് ഒരു hostdev രീതി ഉപയോഗിക്കുന്നു, പക്ഷേ ഒരു hostdev പോലും ലഭ്യമല്ല"
 
-#: src/network/bridge_driver.c:3644 src/network/bridge_driver.c:3803
+#: src/network/bridge_driver.c:3630 src/network/bridge_driver.c:3789
 #, c-format
 msgid "network '%s' doesn't have PCI device %04x:%02x:%02x.%x in use by domain"
 msgstr ""
 "നെറ്റ്‌വര്‍ക്ക് '%s'-ല്‍  ഡൊമെയിന്‍ ഉപയോഗിക്കുന്ന PCI ഉപകരണം %04x:%02x:%02x.%x ലഭ്യമല്ല"
 
-#: src/network/bridge_driver.c:3661
+#: src/network/bridge_driver.c:3647
 #, c-format
 msgid ""
 "network '%s' claims the PCI device at domain=%d bus=%d slot=%d function=%d "
@@ -10878,7 +10945,7 @@ msgstr ""
 "നെറ്റ്‌വര്‍ക്ക് '%s' ഡൊമെയിന്‍=%d ബസ്=%d സ്ലോട്ട്=%d ധര്‍മം=%d-യിലുള്ള PCI ഉപകരണത്തിന് "
 "അവകാശവാദമുന്നയിക്കുന്നു, പക്ഷേ നിലവില്‍ മറ്റൊരു ഡൊമെയിന്റെ ഉപയോഗത്തിലാണുള്ളത്"
 
-#: src/network/bridge_driver.c:3743
+#: src/network/bridge_driver.c:3729
 #, c-format
 msgid ""
 "network '%s' uses a direct/hostdev mode, but has no forward dev and no "
@@ -10887,17 +10954,17 @@ msgstr ""
 "നെറ്റ്‌വര്‍ക്ക് '%s' നേരിട്ടുള്ള രീതിയോ hostdev രീതിയോ ആണുപയോഗിക്കുന്നത്, പക്ഷേ ഫോര്‍വേഡ് "
 "ഉപകരണമോ ഇന്റര്‍ഫേസ് സഞ്ചയമോ ഇല്ല"
 
-#: src/network/bridge_driver.c:3889
+#: src/network/bridge_driver.c:3875
 #, c-format
 msgid "network '%s' doesn't have an IPv4 address"
 msgstr "നെറ്റ്‌വര്‍ക്ക് '%s'-നു് ഒരു IPv4 വിലാസമില്ല"
 
-#: src/network/bridge_driver.c:3911
+#: src/network/bridge_driver.c:3897
 #, c-format
 msgid "network '%s' has no associated interface or bridge"
 msgstr "നെറ്റ്‌വര്‍ക്ക് '%s'ന് അനുബന്ധമായി ഒരു ഇന്റര്‍ഫേസോ ബ്രിഡ്ജോ ഇല്ല"
 
-#: src/network/bridge_driver.c:3965
+#: src/network/bridge_driver.c:3951
 #, c-format
 msgid ""
 "Invalid use of 'floor' on interface with MAC address %s - network '%s' has "
@@ -10906,7 +10973,7 @@ msgstr ""
 "MAC വിലാസം %s-ല്‍ 'floor'-ന്റെ തെറ്റായ ഉപയോഗം - നെറ്റ്‌വര്‍ക്ക് '%s'-ല്‍ ഇന്‍ബൌണ്ട് QoS സെറ്റ് "
 "ലഭ്യമല്ല"
 
-#: src/network/bridge_driver.c:3985
+#: src/network/bridge_driver.c:3971
 #, c-format
 msgid ""
 "Cannot plug '%s' interface into '%s' because it would overcommit 'peak' on "
@@ -10915,7 +10982,7 @@ msgstr ""
 "'%s' ഇന്റര്‍ഫെയിസ് '%s'-ലേക്കു് പ്ലഗ് ചെയ്യുവാന്‍ സാധ്യമല്ല, കാരണം ഇതു് '%s' നെറ്റ്‌വര്‍ക്കിലേക്കു് "
 "'peak' ഓവര്‍കമ്മിറ്റ് ചെയ്യുന്നു"
 
-#: src/network/bridge_driver.c:3996
+#: src/network/bridge_driver.c:3982
 #, c-format
 msgid ""
 "Cannot plug '%s' interface into '%s' because it would overcommit 'average' "
@@ -10924,12 +10991,12 @@ msgstr ""
 "'%s' ഇന്റര്‍ഫെയിസ് '%s'-ലേക്കു് പ്ലഗ് ചെയ്യുവാന്‍ സാധ്യമല്ല, കാരണം ഇതു് '%s' നെറ്റ്‌വര്‍ക്കിലേക്കു് "
 "'average' ഓവര്‍കമ്മിറ്റ് ചെയ്യുന്നു"
 
-#: src/network/bridge_driver.c:4062
+#: src/network/bridge_driver.c:4048
 #, c-format
 msgid "Cannot set bandwidth on interface '%s' of type %d"
 msgstr "ഇന്റര്‍ഫെയിസ് '%s'-ല്‍ ബാന്‍ഡ്‌വിഡ്ത് സജ്ജമാക്കുവാന്‍ സാധ്യമല്ല, തരം %d"
 
-#: src/network/bridge_driver.c:4070
+#: src/network/bridge_driver.c:4056
 msgid "Could not generate next class ID"
 msgstr "അടുത്ത ക്ലാസ്സ് ഐഡി തയ്യാറാക്കുവാന്‍ സാധ്യമായില്ല"
 
@@ -13904,7 +13971,7 @@ msgstr "%s QEMU ബൈനറി smbios സജ്ജീകരണം  പിന്
 msgid "Domain '%s' sysinfo are not available"
 msgstr "ഡൊമൈന്‍ '%s' ന്റെ സിസിന്‍ഫോ ലഭ്യമല്ല "
 
-#: src/qemu/qemu_command.c:7622 src/qemu/qemu_hotplug.c:1363
+#: src/qemu/qemu_command.c:7622 src/qemu/qemu_hotplug.c:1365
 msgid "qemu does not support -device"
 msgstr "qemu -device പിന്തുണയ്ക്കുന്നില്ല"
 
@@ -14101,7 +14168,7 @@ msgid ""
 msgstr ""
 "ലഭ്യമാക്കിയ എസ്‌സിഎസ്ഐ ഡിവൈസുകളില്‍ നിന്നും ബൂട്ട് ചെയ്യന്നതു് qemu-ന്റെ ഈ പതിപ്പു് പിന്തുണയ്ക്കുന്നില്ല"
 
-#: src/qemu/qemu_command.c:9087 src/qemu/qemu_hotplug.c:1150
+#: src/qemu/qemu_command.c:9087 src/qemu/qemu_hotplug.c:1152
 msgid "VFIO PCI device assignment is not supported by this version of qemu"
 msgstr "VFIO പിസിഐ ഡിവൈസ് നല്‍കുന്നതു് qemu-ന്റെ ഈ പതിപ്പു് പിന്തുണയ്ക്കുന്നില്ല"
 
@@ -14109,7 +14176,7 @@ msgstr "VFIO പിസിഐ ഡിവൈസ് നല്‍കുന്നത�
 msgid "PCI device assignment is not supported by this version of qemu"
 msgstr "പിസിഐ ഡിവൈസ് അസൈന്‍മെന്റിനു് ഈ qemu പതിപ്പില്‍ പിന്തുണ ലഭ്യമല്ല"
 
-#: src/qemu/qemu_command.c:9154 src/qemu/qemu_hotplug.c:1479
+#: src/qemu/qemu_command.c:9154 src/qemu/qemu_hotplug.c:1481
 msgid "SCSI passthrough is not supported by this version of qemu"
 msgstr "qemu-ന്റെ ഈ പതിപ്പു് എസ്‌സിഎസ്ഐ പിന്തുണയ്ക്കുന്നില്ല"
 
@@ -15228,7 +15295,7 @@ msgstr "ലക്ഷ്യസ്ഥാനത്തുള്ള ഫയല്‍ �
 msgid "persistent attach of device '%s' is not supported"
 msgstr "ഡിവൈസ് '%s' സ്ഥിരമായ ചേര്‍ത്തുവയ്ക്കലിനുള്ള പിന്തുണ ലഭ്യമല്ല"
 
-#: src/qemu/qemu_driver.c:6697 src/qemu/qemu_hotplug.c:3488
+#: src/qemu/qemu_driver.c:6697 src/qemu/qemu_hotplug.c:3493
 #, c-format
 msgid "Lease %s in lockspace %s does not exist"
 msgstr "ലീസ് %s, ലോക്ക്സ്പെയിസ് %s-ല്‍ നിലവിവില്ല"
@@ -15953,67 +16020,67 @@ msgstr "ഡിവൈസിന്റെ മറ്റൊരുപേരു ലഭ�
 msgid "setting of link state not supported: Link is up"
 msgstr "കണ്ണിയുടെ അവസ്ഥ സജ്ജമാക്കുന്നതു് പിന്തുണയ്ക്കുന്നില്ല: കണ്ണി സജീവം"
 
-#: src/qemu/qemu_hotplug.c:1185
+#: src/qemu/qemu_hotplug.c:1187
 msgid "guest unexpectedly quit during hotplug"
 msgstr "ഹോട്ട്പ്ലഗ് സമയത്തു് ഗസ്റ്റ് അപ്രതീക്ഷിതമായ പുറത്തു് കടന്നു"
 
-#: src/qemu/qemu_hotplug.c:1284
+#: src/qemu/qemu_hotplug.c:1286
 msgid "attaching serial console is not supported"
 msgstr "സീരിയല്‍ കണ്‍സോള്‍ ചേര്‍ക്കുന്നതു് പിന്തുണയ്ക്കുന്നില്ല"
 
-#: src/qemu/qemu_hotplug.c:1290
+#: src/qemu/qemu_hotplug.c:1292
 msgid "chardev already exists"
 msgstr "chardev നിലവിലുണ്ടു്"
 
-#: src/qemu/qemu_hotplug.c:1326
+#: src/qemu/qemu_hotplug.c:1328
 msgid "detaching serial console is not supported"
 msgstr "സീരിയല്‍ കണ്‍സോള്‍ വേര്‍പെടുത്തുന്നതു് പിന്തുണയ്ക്കുന്നില്ല"
 
-#: src/qemu/qemu_hotplug.c:1486
+#: src/qemu/qemu_hotplug.c:1488
 #, c-format
 msgid "Unable to prepare scsi hostdev: %s:%d:%d:%d"
 msgstr "scsi hostdev തയ്യാറാക്കുവാന്‍ സാധ്യമല്ല: %s:%d:%d:%d"
 
-#: src/qemu/qemu_hotplug.c:1544 src/qemu/qemu_hotplug.c:3224
+#: src/qemu/qemu_hotplug.c:1546 src/qemu/qemu_hotplug.c:3229
 #, c-format
 msgid "hostdev mode '%s' not supported"
 msgstr "hostdev മോഡ് '%s' പിന്തുണയ്ക്കുന്നില്ല"
 
-#: src/qemu/qemu_hotplug.c:1577 src/qemu/qemu_hotplug.c:3197
+#: src/qemu/qemu_hotplug.c:1579 src/qemu/qemu_hotplug.c:3202
 #, c-format
 msgid "hostdev subsys type '%s' not supported"
 msgstr "hostdev subsys രീതി '%s' പിന്തുണയ്ക്കുന്നില്ല"
 
-#: src/qemu/qemu_hotplug.c:1618
+#: src/qemu/qemu_hotplug.c:1620
 msgid "interface is missing bridge name"
 msgstr "ഇന്റര്‍ഫെയിസില്‍ ബ്രിഡ്ജ് നാമം ലഭ്യമല്ല"
 
-#: src/qemu/qemu_hotplug.c:1631
+#: src/qemu/qemu_hotplug.c:1633
 #, c-format
 msgid "Couldn't find network '%s'"
 msgstr "'%s' നെറ്റ്‌വര്‍ക്ക് ലഭ്യമാക്കുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_hotplug.c:1653
+#: src/qemu/qemu_hotplug.c:1655
 #, c-format
 msgid "Interface type %d has no bridge name"
 msgstr "ഇന്റിജര്‍ തരം %d-ല്‍ ബ്രിഡ്ജ് നാമം ലഭ്യമല്ല"
 
-#: src/qemu/qemu_hotplug.c:1681
+#: src/qemu/qemu_hotplug.c:1683
 #, c-format
 msgid "bridge %s doesn't exist"
 msgstr "ബ്രിഡ്ജ് %s നിലവിലില്ല"
 
-#: src/qemu/qemu_hotplug.c:1705
+#: src/qemu/qemu_hotplug.c:1707
 #, c-format
 msgid "unable to recover former state by adding port to bridge %s"
 msgstr "ബ്രിഡ്ജ് %s-ലേക്കു് പോര്‍ട്ട് ചേര്‍ത്തു് മുമ്പുള്ള അവസ്ഥ വീണ്ടെടുക്കുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_hotplug.c:1732
+#: src/qemu/qemu_hotplug.c:1734
 #, c-format
 msgid "filters not supported on interfaces of type %s"
 msgstr "%s തരത്തിലുള്ള ഇന്റര്‍ഫെയിസുകളില്‍ ഫില്‍റ്ററുകള്‍ പിന്തുണയ്ക്കുന്നില്ല"
 
-#: src/qemu/qemu_hotplug.c:1743
+#: src/qemu/qemu_hotplug.c:1745
 #, c-format
 msgid ""
 "failed to add new filter rules to '%s' - attempting to restore old rules"
@@ -16021,234 +16088,234 @@ msgstr ""
 "'%s'-ലേക്കു് പുതിയ ഫില്‍റ്റര്‍ നിയമങ്ങള്‍ ചേര്‍ക്കുന്നതില്‍ പരാജയപ്പെട്ടു - പഴയ നിയമങ്ങള്‍ "
 "വീണ്ടെടുക്കുന്നതിനു് ശ്രമിയ്ക്കുന്നു"
 
-#: src/qemu/qemu_hotplug.c:1767
+#: src/qemu/qemu_hotplug.c:1769
 msgid "can't change link state: device alias not found"
 msgstr "കണ്ണിയുടെ അവസ്ഥ മാറ്റുവാന്‍ സാധ്യമല്ല: ഡിവൈസിന്റെ വിളിപ്പേരു് ലഭ്യമല്ല"
 
-#: src/qemu/qemu_hotplug.c:1805
+#: src/qemu/qemu_hotplug.c:1807
 msgid "cannot find existing network device to modify"
 msgstr "മാറ്റം വരുത്തുന്നതിനായി നിലവിലുള്ളൊരു നെറ്റ്‌വര്‍ത്ത് ഡിവൈസ് കണ്ടുപിടിയ്ക്കുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_hotplug.c:1813
+#: src/qemu/qemu_hotplug.c:1815
 #, c-format
 msgid "cannot change config of '%s' network type"
 msgstr "'%s' നെറ്റ്‌വര്‍ക്ക് തരത്തിന്റെ ക്രമീകരണം മാറ്റുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_hotplug.c:1836
+#: src/qemu/qemu_hotplug.c:1838
 #, c-format
 msgid "cannot change network interface mac address from %s to %s"
 msgstr ""
 "%s-ല്‍ നിന്നും %s-ലേക്കുള്ള നെറ്റ്‌വര്‍ക്ക് ഇന്റര്‍ഫെയിസ് മാക് വിലാസത്തില്‍ മാറ്റം വരുത്തുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_hotplug.c:1845
+#: src/qemu/qemu_hotplug.c:1847
 #, c-format
 msgid "cannot modify network device model from %s to %s"
 msgstr "%s-ല്‍ നിന്നും %s-ലേക്കുള്ള നെറ്റ്‌വര്‍ക്ക് ഡിവൈസ് മോഡലില്‍ മാറ്റം വരുത്തുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_hotplug.c:1857
+#: src/qemu/qemu_hotplug.c:1859
 msgid "cannot modify virtio network device driver attributes"
 msgstr "virtio നെറ്റ്‌വര്‍ക്ക് ഡിവൈസ് ഡ്രൈവര്‍ വിശേഷതകളില്‍ മാറ്റം വരുത്തുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_hotplug.c:1871
+#: src/qemu/qemu_hotplug.c:1873
 msgid "cannot modify network device script attribute"
 msgstr "നെറ്റ്‌വര്‍ക്ക് ഡിവൈസ് സ്ക്രിപ്റ്റ് വിശേഷതയില്‍ മാറ്റും വരുത്തുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_hotplug.c:1880
+#: src/qemu/qemu_hotplug.c:1882
 msgid "cannot modify network device tap name"
 msgstr "നെറ്റ്‌വര്‍ക്ക് ഡിവൈസ് റ്റാപ്പ് നാമത്തില്‍ മാറ്റം വരുത്തുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_hotplug.c:1898
+#: src/qemu/qemu_hotplug.c:1900
 msgid "cannot modify network device guest PCI address"
 msgstr "നെറ്റ്‌വര്‍ക്ക് ഡിവൈസ് ഗസ്റ്റ് പിസിഐ വിലാസത്തില്‍ മാറ്റം വരുത്തുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_hotplug.c:1907
+#: src/qemu/qemu_hotplug.c:1909
 msgid "cannot modify network device alias"
 msgstr "നെറ്റ്‌വര്‍ക്ക് ഡിവൈസിന്റെ വിളിപ്പേരു് മാറ്റുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_hotplug.c:1912
+#: src/qemu/qemu_hotplug.c:1914
 msgid "cannot modify network device rom bar setting"
 msgstr "നെറ്റ്‌വര്‍ക്ക് ഡിവൈസ് rom ബാര്‍ സജ്ജീകരണത്തില്‍ മാറ്റം വരുത്തുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_hotplug.c:1917
+#: src/qemu/qemu_hotplug.c:1919
 msgid "cannot modify network rom file"
 msgstr "നെറ്റ്‌വര്‍ക്ക് rom ഫയലില്‍ മാറ്റം വരുത്തുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_hotplug.c:1922
+#: src/qemu/qemu_hotplug.c:1924
 msgid "cannot modify network device boot index setting"
 msgstr "നെറ്റ്‌വര്‍ക്ക് ഡിവൈസ് ബൂട്ട് സൂചിക സജ്ജീകരണത്തില്‍ മാറ്റം വരുത്തുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_hotplug.c:1949
+#: src/qemu/qemu_hotplug.c:1951
 #, c-format
 msgid "cannot change network interface type to '%s'"
 msgstr "നെറ്റ്‌വര്‍ക്ക് ഇന്റര്‍ഫെയിസ് തരം '%s'-ലേക്കു് മാറ്റുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_hotplug.c:2007 src/qemu/qemu_hotplug.c:2078
+#: src/qemu/qemu_hotplug.c:2009 src/qemu/qemu_hotplug.c:2080
 #, c-format
 msgid "unable to change config on '%s' network type"
 msgstr "'%s' നെറ്റ്‌വര്‍ക്ക് തരത്തില്‍ ക്രമീകരണത്തില്‍ മാറ്റം വരുത്തുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_hotplug.c:2175
+#: src/qemu/qemu_hotplug.c:2180
 msgid "cannot find existing graphics device to modify"
 msgstr "മാറ്റം വരുത്തുന്നതിനായി നിലവിലുള്ളൊരു ഗ്രാഫിക്സ് ഡിവൈസും ലഭ്യമല്ല"
 
-#: src/qemu/qemu_hotplug.c:2181
+#: src/qemu/qemu_hotplug.c:2186
 msgid "cannot change the number of listen addresses"
 msgstr "listen വിലാസങ്ങളുടെ എണ്ണം മാറ്റുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_hotplug.c:2191
+#: src/qemu/qemu_hotplug.c:2196
 msgid "cannot change the type of listen address"
 msgstr "listen വിലാസങ്ങളുടെ തരം മാറ്റുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_hotplug.c:2200
+#: src/qemu/qemu_hotplug.c:2205
 msgid "cannot change listen address setting on vnc graphics"
 msgstr "വിഎന്‍സി ഗ്രാഫിക്സില്‍ ലഭ്യമാകുന്ന വിലാസ സജ്ജീകരണം മാറ്റുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_hotplug.c:2201
+#: src/qemu/qemu_hotplug.c:2206
 msgid "cannot change listen address setting on spice graphics"
 msgstr "സ്പയിസ് ഗ്രാഫിക്സില്‍ ലഭ്യമാകുന്ന വിലാസ സജ്ജീകരണം മാറ്റുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_hotplug.c:2210
+#: src/qemu/qemu_hotplug.c:2215
 msgid "cannot change listen network setting on vnc graphics"
 msgstr "വിഎന്‍സി ഗ്രാഫിക്സില്‍ ലഭ്യമാകുന്ന നെറ്റ്‌വര്‍ക്ക് സജ്ജീകരണം മാറ്റുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_hotplug.c:2211
+#: src/qemu/qemu_hotplug.c:2216
 msgid "cannot change listen network setting on spice graphics"
 msgstr "സ്പയിസ് ഗ്രാഫിക്സില്‍ ലഭ്യമാകുന്ന നെറ്റ്‌വര്‍ക്ക് സജ്ജീകരണം മാറ്റുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_hotplug.c:2229
+#: src/qemu/qemu_hotplug.c:2234
 msgid "cannot change port settings on vnc graphics"
 msgstr "വിഎന്‍സി ഗ്രാഫിക്സില്‍ പോര്‍ട്ട് സജ്ജീകരണങ്ങള്‍ മാറ്റുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_hotplug.c:2234
+#: src/qemu/qemu_hotplug.c:2239
 msgid "cannot change keymap setting on vnc graphics"
 msgstr "വിഎന്‍സി ഗ്രാഫിക്സില്‍ കീമാപ്പ് സജ്ജീകരണങ്ങള്‍ മാറ്റുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_hotplug.c:2274
+#: src/qemu/qemu_hotplug.c:2279
 msgid "cannot change port settings on spice graphics"
 msgstr "സ്പയിസ് ഗ്രാഫിക്സില്‍ പോര്‍ട്ട് സജ്ജീകരണങ്ങള്‍ മാറ്റുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_hotplug.c:2280
+#: src/qemu/qemu_hotplug.c:2285
 msgid "cannot change keymap setting on spice graphics"
 msgstr "സ്പയിസ് ഗ്രാഫിക്സില്‍ കീമാപ്പ് സജ്ജീകരണങ്ങള്‍ മാറ്റുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_hotplug.c:2321
+#: src/qemu/qemu_hotplug.c:2326
 #, c-format
 msgid "unable to change config on '%s' graphics type"
 msgstr "'%s' ഗ്രാഫിക്സ് തരത്തില്‍ ക്രമീകരണത്തില്‍ മാറ്റം വരുത്തുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_hotplug.c:2476
+#: src/qemu/qemu_hotplug.c:2481
 #, c-format
 msgid "failed to remove ebtables rule on '%s'"
 msgstr "'%s'-ലുള്ള ebtables നിയമം നീക്കം ചെയ്യുന്നതില്‍ പരാജയപ്പെട്ടു"
 
-#: src/qemu/qemu_hotplug.c:2686
+#: src/qemu/qemu_hotplug.c:2691
 #, c-format
 msgid "don't know how to remove a %s device"
 msgstr "ഒരു %s ഡിവൈസ് എങ്ങനെ നീക്കം ചെയ്യണമെന്നറിയില്ല"
 
-#: src/qemu/qemu_hotplug.c:2738
+#: src/qemu/qemu_hotplug.c:2743
 msgid "Unable to wait on unplug condition"
 msgstr "അണ്‍പ്ലഗ് അവസ്ഥയ്ക്കു് കാത്തിരിയ്ക്കുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_hotplug.c:2771 src/qemu/qemu_hotplug.c:3017
+#: src/qemu/qemu_hotplug.c:2776 src/qemu/qemu_hotplug.c:3022
 #, c-format
 msgid "cannot hot unplug multifunction PCI device: %s"
 msgstr "അനവധി പ്രവര്‍ത്തനങ്ങള്‍ക്കുള്ള പിസിഐ ഡിവൈസ് ഹോട്ട് അണ്‍പ്ലഗ് ചെയ്യുവാന്‍ സാധ്യമല്ല: %s"
 
-#: src/qemu/qemu_hotplug.c:2781
+#: src/qemu/qemu_hotplug.c:2786
 msgid "device cannot be detached without a valid CCW address"
 msgstr "ശരിയായൊരു സിസിഡബ്യു വിലാസമില്ലാതെ ഡിവൈസ് വേര്‍പെടുത്തുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_hotplug.c:2788
+#: src/qemu/qemu_hotplug.c:2793
 msgid "device cannot be detached without a valid PCI address"
 msgstr "ശരിയായൊരു പിസിഐ വിലാസമില്ലാതെ ഡിവൈസ് വേര്‍പെടുത്തുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_hotplug.c:2843
+#: src/qemu/qemu_hotplug.c:2848
 #, c-format
 msgid "Underlying qemu does not support %s disk removal"
 msgstr "ഇതിലുള്ള qemu %s ഡിസ്ക് നീക്കം ചെയ്യല്‍ പിന്തുണയ്ക്കുന്നില്ല"
 
-#: src/qemu/qemu_hotplug.c:2850
+#: src/qemu/qemu_hotplug.c:2855
 #, c-format
 msgid "disk '%s' is in an active block copy job"
 msgstr "ഡിസ്ക് '%s'  സജീവമായൊരു ബ്ലോക്ക് പകര്‍പ്പ് ജോലിയിലാണു്"
 
-#: src/qemu/qemu_hotplug.c:2925 src/uml/uml_driver.c:2331
+#: src/qemu/qemu_hotplug.c:2930 src/uml/uml_driver.c:2331
 msgid "This type of disk cannot be hot unplugged"
 msgstr "ഈ തരത്തിലുള്ള ഡിസ്ക് ഹോട്ട് അണ്‍പ്ലഗ്ഗ് ചെയ്യുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_hotplug.c:2929
+#: src/qemu/qemu_hotplug.c:2934
 #, c-format
 msgid "disk device type '%s' cannot be detached"
 msgstr "ഡിസ്ക് ഡിവൈസ് തരം '%s' വേര്‍പെടുത്തുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_hotplug.c:3000
+#: src/qemu/qemu_hotplug.c:3005
 #, c-format
 msgid "controller %s:%d not found"
 msgstr "കണ്ട്രോളര്‍ %s:%d ലഭ്യമല്ല"
 
-#: src/qemu/qemu_hotplug.c:3011 src/qemu/qemu_hotplug.c:3080
-#: src/qemu/qemu_hotplug.c:3318
+#: src/qemu/qemu_hotplug.c:3016 src/qemu/qemu_hotplug.c:3085
+#: src/qemu/qemu_hotplug.c:3323
 msgid "device cannot be detached without a PCI address"
 msgstr "ഒരു പിസിഐ വിലാസമില്ലാതെ ഡിവൈസ് വേര്‍പെടുത്തുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_hotplug.c:3024
+#: src/qemu/qemu_hotplug.c:3029
 msgid "device cannot be detached: device is busy"
 msgstr "ഡിസ്ക് വേര്‍പെടുത്തുവാന്‍ സാധ്യമല്ല: ഡിവൈസ് തിരക്കിലാണു്"
 
-#: src/qemu/qemu_hotplug.c:3071
+#: src/qemu/qemu_hotplug.c:3076
 #, c-format
 msgid "cannot hot unplug multifunction PCI device: %.4x:%.2x:%.2x.%.1x"
 msgstr ""
 "അനവധി പ്രവര്‍ത്തനങ്ങളിലുള്ള പിസിഐ ഡിവൈസ് ഹോട്ട് അണ്‍പ്ലഗ് ചെയ്യുവാന്‍ സാധ്യമല്ല: %.4x:%.2x:%.2x."
 "%.1x"
 
-#: src/qemu/qemu_hotplug.c:3107 src/qemu/qemu_hotplug.c:3138
+#: src/qemu/qemu_hotplug.c:3112 src/qemu/qemu_hotplug.c:3143
 msgid "device cannot be detached without a device alias"
 msgstr "ഒരു ഡിവൈസ് നാമമില്ലാതെ ഡിവൈസ് വേര്‍പെടുത്തുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_hotplug.c:3113 src/qemu/qemu_hotplug.c:3144
+#: src/qemu/qemu_hotplug.c:3118 src/qemu/qemu_hotplug.c:3149
 msgid "device cannot be detached with this QEMU version"
 msgstr "QEMU പതിപ്പില്ലാതെ ഡിവൈസിനെ വേര്‍പെടുത്തുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_hotplug.c:3235
+#: src/qemu/qemu_hotplug.c:3240
 #, c-format
 msgid "host pci device %.4x:%.2x:%.2x.%.1x not found"
 msgstr "ഹോസ്റ്റ് pci ഡിവൈസ് %.4x:%.2x:%.2x.%.1x ലഭ്യമല്ല"
 
-#: src/qemu/qemu_hotplug.c:3242
+#: src/qemu/qemu_hotplug.c:3247
 #, c-format
 msgid "host usb device %03d.%03d not found"
 msgstr "ഹോസ്റ്റ് യുഎസ്ബി %03d.%03d ലഭ്യമല്ല"
 
-#: src/qemu/qemu_hotplug.c:3246
+#: src/qemu/qemu_hotplug.c:3251
 #, c-format
 msgid "host usb device vendor=0x%.4x product=0x%.4x not found"
 msgstr "ഹോസ്റ്റ് യുഎസ്ബി ഡിവൈസ് കച്ചവടക്കാരന്‍=0x%.4x പ്രൊഡക്ട്=0x%.4x ലഭ്യമായില്ല"
 
-#: src/qemu/qemu_hotplug.c:3252
+#: src/qemu/qemu_hotplug.c:3257
 #, c-format
 msgid "host scsi device %s:%d:%d.%d not found"
 msgstr "ഹോസ്റ്റ് scsi ഡിവൈസ് %s:%d:%d.%d ലഭ്യമല്ല"
 
-#: src/qemu/qemu_hotplug.c:3311
+#: src/qemu/qemu_hotplug.c:3316
 msgid "device cannot be detached without a CCW address"
 msgstr "ഒരു സിസിവി വിലാസമില്ലാതെ ഡിവൈസ് വേര്‍പെടുത്തുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_hotplug.c:3324
+#: src/qemu/qemu_hotplug.c:3329
 #, c-format
 msgid "cannot hot unplug multifunction PCI device :%s"
 msgstr "അനവധി പ്രവര്‍ത്തനങ്ങളിലുള്ള പിസിഐ ഡിവൈസ് ഹോട്ട് അണ്‍പ്ലഗ് ചെയ്യുവാന്‍ സാധ്യമല്ല:%s"
 
-#: src/qemu/qemu_hotplug.c:3332
+#: src/qemu/qemu_hotplug.c:3337
 msgid "unable to determine original VLAN"
 msgstr "യഥാര്‍ത്ഥ VLAN കണ്ടുപിടിയ്ക്കുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_hotplug.c:3415
+#: src/qemu/qemu_hotplug.c:3420
 msgid "Graphics password only supported for VNC"
 msgstr "ഗ്രാഫിക്സ് രഹസ്യവാക്ക് വിഎന്‍സി മാത്രമേ പിന്തുണയ്ക്കുന്നുള്ളൂ"
 
-#: src/qemu/qemu_hotplug.c:3441
+#: src/qemu/qemu_hotplug.c:3446
 msgid "Expiry of passwords is not supported"
 msgstr "രഹസ്യവാക്കുകളുടെ കാലാവധി പിന്തുണയ്ക്കുന്നില്ല"
 
@@ -17776,7 +17843,7 @@ msgstr "സ്പയിസ് ടിഎല്‍എസിനുള്ള ഉപ�
 msgid "Maximum CPUs greater than specified machine type limit"
 msgstr "പറഞ്ഞിരിയ്ക്കുന്ന സിസ്റ്റത്തിന്റെ തരത്തിലുള്ള പരിധിയേക്കാള്‍ ഏറ്റവും കൂടിയ സിപിയു വലുതാണു്"
 
-#: src/qemu/qemu_process.c:3505 src/qemu/qemu_process.c:4361
+#: src/qemu/qemu_process.c:3505 src/qemu/qemu_process.c:4363
 #: src/uml/uml_driver.c:1036
 msgid "VM is already active"
 msgstr "വിഎം നിലിവില്‍ പ്രവര്‍ത്തനത്തിലാണ്"
@@ -17785,7 +17852,7 @@ msgstr "വിഎം നിലിവില്‍ പ്രവര്‍ത്ത�
 msgid "Unable to set huge path in security driver"
 msgstr "സുരക്ഷ ഡ്രൈവറില്‍ ഹ്യൂജ് പാഥ് സജ്ജമാക്കുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_process.c:3617 src/qemu/qemu_process.c:4384
+#: src/qemu/qemu_process.c:3617 src/qemu/qemu_process.c:4386
 #: src/uml/uml_driver.c:1058
 #, c-format
 msgid "cannot create log directory %s"
@@ -17839,7 +17906,7 @@ msgstr "'%s'-ല്‍ മാക് വിലാസം അനുവദിയ്�
 #: src/remote/remote_client_bodies.h:2723
 #: src/remote/remote_client_bodies.h:2757
 #: src/remote/remote_client_bodies.h:3145
-#: src/remote/remote_client_bodies.h:5556 src/remote/remote_driver.c:1960
+#: src/remote/remote_client_bodies.h:5556 src/remote/remote_driver.c:1967
 #, c-format
 msgid "%s length greater than maximum: %d > %d"
 msgstr "%s വ്യാപ്തി ഏറ്റവും കൂടിയതിനേക്കാള്‍ കൂടുതല്‍: %d > %d"
@@ -17939,172 +18006,167 @@ msgstr "remoteNodeGetMemoryStats: തിരികെ ലഭ്യമായ സ�
 msgid "too many NUMA cells: %d > %d"
 msgstr "ഒരുപാടു് NUMA സെല്ലുകള്‍: %d > %d"
 
-#: src/remote/remote_driver.c:1375 src/remote/remote_driver.c:1389
-#, c-format
-msgid "too many remote domain IDs: %d > %d"
-msgstr "അനവധി റിമോട്ട് ഡൊമെയിന്‍ ഐഡികള്‍: %d > %d"
-
-#: src/remote/remote_driver.c:1561
+#: src/remote/remote_driver.c:1568
 msgid "returned number of parameters exceeds limit"
 msgstr "തിരിച്ചുള്ള പരാമീറ്ററുകളുടെ എണ്ണം പരിധിയില്‍ കൂടുതല്‍"
 
-#: src/remote/remote_driver.c:1647
+#: src/remote/remote_driver.c:1654
 msgid "returned number of disk errors exceeds limit"
 msgstr "തിരികെ നല്‍കിയ ഡിസ്ക് പിശകുകള്‍ പരിധിയില്‍ കൂടുതല്‍"
 
-#: src/remote/remote_driver.c:1695
+#: src/remote/remote_driver.c:1702
 msgid "remoteDomainBlockStatsFlags: returned number of stats exceeds limit"
 msgstr ""
 "remoteDomainBlockStatsFlags: തിരികെ ലഭ്യമായ സ്റ്റാറ്റ്സ് എണ്ണം പരിധിയേക്കാള്‍ കൂടുതല്‍"
 
-#: src/remote/remote_driver.c:1890 src/remote/remote_driver.c:2060
+#: src/remote/remote_driver.c:1897 src/remote/remote_driver.c:2067
 #, c-format
 msgid "vCPU count exceeds maximum: %d > %d"
 msgstr "vCPU എണ്ണം ഏറ്റവും കൂടുതലിനേക്കാള്‍ കൂടിയതു്: %d > %d"
 
-#: src/remote/remote_driver.c:1898 src/remote/remote_driver.c:2002
-#: src/remote/remote_driver.c:2067
+#: src/remote/remote_driver.c:1905 src/remote/remote_driver.c:2009
+#: src/remote/remote_driver.c:2074
 #, c-format
 msgid "vCPU map buffer length exceeds maximum: %d > %d"
 msgstr "vCPU മാപ്പ് ബഫര്‍ ഏറ്റവും കൂടിയതിനേക്കാള്‍ കൂടുതലാണു്: %d > %d"
 
-#: src/remote/remote_driver.c:1919 src/remote/remote_driver.c:2084
+#: src/remote/remote_driver.c:1926 src/remote/remote_driver.c:2091
 #, c-format
 msgid "host reports too many vCPUs: %d > %d"
 msgstr "ഒരുപാടു് vCPUs എന്നു് ഹോസ്റ്റ് രേഖപ്പെടുത്തുന്നു: %d > %d"
 
-#: src/remote/remote_driver.c:1926 src/remote/remote_driver.c:2022
-#: src/remote/remote_driver.c:2090
+#: src/remote/remote_driver.c:1933 src/remote/remote_driver.c:2029
+#: src/remote/remote_driver.c:2097
 #, c-format
 msgid "host reports map buffer length exceeds maximum: %d > %d"
 msgstr "ഹോസ്റ്റ് രേഖയുടെ മാപ്പ് ബഫര്‍ ഏറ്റവും കൂടിയതിനേക്കാള്‍ കൂടുതലാണു്: %d > %d"
 
-#: src/remote/remote_driver.c:2140
+#: src/remote/remote_driver.c:2147
 #, c-format
 msgid "security label exceeds maximum: %zu"
 msgstr "സുരക്ഷ ലേബല്‍ ഏറ്റവും കൂടിയതിനേക്കാള്‍ കൂടുതല്‍: %zu"
 
-#: src/remote/remote_driver.c:2185
+#: src/remote/remote_driver.c:2192
 #, c-format
 msgid "security label exceeds maximum: %zd"
 msgstr "സുരക്ഷ ലേബല്‍ ഏറ്റവും കൂടിയതിനേക്കാള്‍ കൂടുതല്‍: %zd"
 
-#: src/remote/remote_driver.c:2257
+#: src/remote/remote_driver.c:2264
 #, c-format
 msgid "security model exceeds maximum: %zu"
 msgstr "സുരക്ഷ മോഡല്‍ ഏറ്റവും കൂടിയതിനേക്കാള്‍ കൂടുതല്‍: %zu"
 
-#: src/remote/remote_driver.c:2266
+#: src/remote/remote_driver.c:2273
 #, c-format
 msgid "security doi exceeds maximum: %zu"
 msgstr "സുരക്ഷ doi ഏറ്റവും കൂടിയതിനേക്കാള്‍ കൂടുതല്‍: %zu"
 
-#: src/remote/remote_driver.c:2353
+#: src/remote/remote_driver.c:2360
 msgid "caller ignores cookie or cookielen"
 msgstr "കോളര്‍ cookie അല്ലെങ്കില്‍ cookielen ഉപേക്ഷിയ്ക്കുന്നു"
 
-#: src/remote/remote_driver.c:2362 src/remote/remote_driver.c:5238
-#: src/remote/remote_driver.c:6130
+#: src/remote/remote_driver.c:2369 src/remote/remote_driver.c:5294
+#: src/remote/remote_driver.c:6224
 msgid "caller ignores uri_out"
 msgstr "കോളര്‍ uri_out ഉപേക്ഷിച്ചിരിയ്ക്കുന്നു"
 
-#: src/remote/remote_driver.c:2495
+#: src/remote/remote_driver.c:2502
 #, c-format
 msgid "too many memory stats requested: %d > %d"
 msgstr "അനവധി മെമ്മറി സ്റ്റാറ്റ്സ് ആവശ്യപ്പെട്ടിരിയ്ക്കുന്നു: %d > %d"
 
-#: src/remote/remote_driver.c:2539
+#: src/remote/remote_driver.c:2546
 #, c-format
 msgid "block peek request too large for remote protocol, %zi > %d"
 msgstr "റിമോട്ട് പ്രോട്ടോക്കോളിനുള്ള ബ്ലോക്ക് പീക്ക് ആവശ്യം വളരെ വലുതു്, %zi > %d"
 
-#: src/remote/remote_driver.c:2560 src/remote/remote_driver.c:2611
+#: src/remote/remote_driver.c:2567 src/remote/remote_driver.c:2618
 msgid "returned buffer is not same size as requested"
 msgstr "തിരികെ ലഭിച്ച ബഫറിന്റെ വ്യാപ്തി ആവശ്യപ്പെട്ടതിനു് തുല്ല്യമല്ല"
 
-#: src/remote/remote_driver.c:2591
+#: src/remote/remote_driver.c:2598
 #, c-format
 msgid "memory peek request too large for remote protocol, %zi > %d"
 msgstr "വിദൂര സമ്പ്രദായത്തിനുള്ള മെമ്മറി ആവശ്യം വളെര കൂടുതല്‍, %zi > %d"
 
-#: src/remote/remote_driver.c:2736
+#: src/remote/remote_driver.c:2743
 #, c-format
 msgid "nparams count exceeds maximum: %u > %u"
 msgstr "nparams എണ്ണം പരിധിയില്‍ കൂടുതല്‍: %u > %u"
 
-#: src/remote/remote_driver.c:2742
+#: src/remote/remote_driver.c:2749
 #, c-format
 msgid "ncpus count exceeds maximum: %u > %u"
 msgstr "ncpus എണ്ണം പരിധിയില്‍ കൂടുതല്‍: %u > %u"
 
-#: src/remote/remote_driver.c:2767
+#: src/remote/remote_driver.c:2774
 msgid "remoteDomainGetCPUStats: returned number of stats exceeds limit"
 msgstr "remoteDomainGetCPUStats: തിരികെ ലഭ്യമായ സ്റ്റാറ്റ്സ്  പരിധിയില്‍ കൂടുതല്‍"
 
-#: src/remote/remote_driver.c:3537
+#: src/remote/remote_driver.c:3593
 #, c-format
 msgid "unknown authentication type %s"
 msgstr "അപരിചിതമായ ഓഥന്റിക്കേഷന്‍ തരം %s"
 
-#: src/remote/remote_driver.c:3546
+#: src/remote/remote_driver.c:3602
 #, c-format
 msgid "requested authentication type %s rejected"
 msgstr "ആവശ്യപ്പെട്ട ഓഥന്റിക്കേഷന്‍ തരം %s നിഷേധിച്ചു"
 
-#: src/remote/remote_driver.c:3585
+#: src/remote/remote_driver.c:3641
 #, c-format
 msgid "unsupported authentication type %d"
 msgstr "പിന്തുണയില്ലാത്ത ഓഥന്റിക്കേഷന്‍ തരം %d"
 
-#: src/remote/remote_driver.c:3873
+#: src/remote/remote_driver.c:3929
 msgid "Failed to make auth credentials"
 msgstr "auth-നുള്ള ആധികാരികത വിവരങ്ങള്‍ തയ്യാറാക്കുന്നതില്‍ പരാജയം"
 
-#: src/remote/remote_driver.c:3884
+#: src/remote/remote_driver.c:3940
 msgid "No authentication callback available"
 msgstr "ഓഥന്റിക്കേഷന്‍ കോള്‍ബാക്ക് ലഭ്യമല്ല"
 
-#: src/remote/remote_driver.c:3890 src/remote/remote_driver.c:4201
+#: src/remote/remote_driver.c:3946 src/remote/remote_driver.c:4257
 msgid "Failed to collect auth credentials"
 msgstr "auth-നുള്ള ആധികാരികത വിവരങ്ങള്‍ ശേഖരിയ്ക്കുന്നതില്‍ പരാജയം"
 
-#: src/remote/remote_driver.c:3994
+#: src/remote/remote_driver.c:4050
 #, c-format
 msgid "SASL mechanism %s not supported by server"
 msgstr "സര്‍വര്‍, എസ്എഎസ്എല്‍ സംവിധാനം %s പിന്തുണയ്ക്കുന്നില്ല"
 
-#: src/remote/remote_driver.c:4024
+#: src/remote/remote_driver.c:4080
 #, c-format
 msgid "SASL negotiation data too long: %zu bytes"
 msgstr "എസ്എഎസ്എല്‍ ഇടപാടു് ഡേറ്റാ വളരെ വലുത്: %zu bytes"
 
-#: src/remote/remote_driver.c:4119
+#: src/remote/remote_driver.c:4175
 #, c-format
 msgid "negotiation SSF %d was not strong enough"
 msgstr "ചോദ്യോത്തര എസ്എസ്എഫ് %d ശക്തമല്ല"
 
-#: src/remote/remote_driver.c:4241 src/remote/remote_driver.c:5029
+#: src/remote/remote_driver.c:4297 src/remote/remote_driver.c:5085
 msgid "adding cb to list"
 msgstr "പട്ടികയിലേക്ക് cb ചേര്‍ക്കുന്നു"
 
-#: src/remote/remote_driver.c:4745
+#: src/remote/remote_driver.c:4801
 msgid "no internalFlags support"
 msgstr "internalFlags-ക്കുള്ള പിന്തുണ ലഭ്യമല്ല"
 
-#: src/remote/remote_driver.c:5070 src/remote/remote_driver.c:5077
+#: src/remote/remote_driver.c:5126 src/remote/remote_driver.c:5133
 #, c-format
 msgid "unable to find callback ID %d"
 msgstr "കോള്‍ബാക്ക് ഐഡി %d കണ്ടുപിടിയ്ക്കുവാന്‍ സാധ്യമല്ല"
 
-#: src/remote/remote_driver.c:5170 src/remote/remote_driver.c:5229
-#: src/remote/remote_driver.c:5312 src/remote/remote_driver.c:5373
-#: src/remote/remote_driver.c:5432 src/remote/remote_driver.c:6058
-#: src/remote/remote_driver.c:6121 src/remote/remote_driver.c:6212
-#: src/remote/remote_driver.c:6277 src/remote/remote_driver.c:6343
+#: src/remote/remote_driver.c:5226 src/remote/remote_driver.c:5285
+#: src/remote/remote_driver.c:5368 src/remote/remote_driver.c:5429
+#: src/remote/remote_driver.c:5488 src/remote/remote_driver.c:6145
+#: src/remote/remote_driver.c:6215 src/remote/remote_driver.c:6313
+#: src/remote/remote_driver.c:6385 src/remote/remote_driver.c:6458
 msgid "caller ignores cookieout or cookieoutlen"
 msgstr "cookieout അല്ലെങ്കില്‍ cookieoutlen കോളര്‍ ഉപേക്ഷിയ്ക്കുന്നു"
 
-#: src/remote/remote_driver.c:5531
+#: src/remote/remote_driver.c:5587
 msgid ""
 "the caller doesn't support keepalive protocol; perhaps it's missing event "
 "loop implementation"
@@ -19528,45 +19590,45 @@ msgstr "അപരിചിതമായ വസ്തുവിനു് ഡിഎ�
 msgid "DAC seclabel couldn't be determined for domain '%s'"
 msgstr "'%s'-നുള്ള ഡിഎസി seclabel കണ്ടുപിടിയ്ക്കുവാന്‍ സാധ്യമല്ല"
 
-#: src/security/security_dac.c:183
+#: src/security/security_dac.c:179
 msgid "Failed to determine default DAC imagelabel for an unknown object"
 msgstr "അപരിചിതമായ വസ്തുവിനു് സ്വതവേയുള്ള ഡിഎസി imagelabel കണ്ടുപിടിയ്ക്കുവാന്‍ സാധ്യമല്ല"
 
-#: src/security/security_dac.c:193
+#: src/security/security_dac.c:189
 #, c-format
 msgid "DAC imagelabel couldn't be determined for domain '%s'"
 msgstr "DAC imagelabel ‍ഡൊമെയിന്‍ '%s'-നു് കണ്ടുപിടിയ്ക്കുവാന്‍ സാധ്യമല്ല"
 
-#: src/security/security_dac.c:287
+#: src/security/security_dac.c:283
 #, c-format
 msgid "unable to set user and group to '%ld:%ld' on '%s'"
 msgstr "'%ld:%ld'-നു് '%s'-ല്‍, ഉപയോക്താവും ഗ്രൂപ്പും സജ്ജമാക്കുവാന്‍ സാധ്യമല്ല"
 
-#: src/security/security_dac.c:307
+#: src/security/security_dac.c:303
 #, c-format
 msgid "cannot resolve symlink %s"
 msgstr "സിംലിങ്ക് %s റിസോള്‍വ് ചെയ്യുവാന്‍ സാധ്യമല്ല"
 
-#: src/security/security_dac.c:1043 src/security/security_selinux.c:603
+#: src/security/security_dac.c:1039 src/security/security_selinux.c:603
 msgid "security image label already defined for VM"
 msgstr "വിഎമിനുള്ള സുരക്ഷ ചിത്ര ലേബല്‍ നിലവില്‍ നിഷ്കര്‍ഷിച്ചിരിയ്ക്കുന്നു"
 
-#: src/security/security_dac.c:1051 src/security/security_selinux.c:610
+#: src/security/security_dac.c:1047 src/security/security_selinux.c:610
 #, c-format
 msgid "security label model %s is not supported with selinux"
 msgstr "സുരക്ഷ ലേബല്‍ മോഡല്‍ %s, selinux-നു് പിന്തുണയ്ക്കുന്നില്ല"
 
-#: src/security/security_dac.c:1061
+#: src/security/security_dac.c:1057
 #, c-format
 msgid "missing label for static security driver in domain %s"
 msgstr "ഡൊമെയിന്‍ %s-ല്‍ സ്റ്റാറ്റിക് സുരക്ഷ ഡ്രൈവറിനുള്ള ലേബല്‍ ലഭ്യമല്ല"
 
-#: src/security/security_dac.c:1073
+#: src/security/security_dac.c:1069
 #, c-format
 msgid "cannot generate dac user and group id for domain %s"
 msgstr "ഡൊമെയിന്‍ %s-നുള്ള ഡാക് ഉപയോക്താവും ഗ്രൂപ്പ് ഐഡിയും തയ്യാറാക്കുവാന്‍ സാധ്യമല്ല"
 
-#: src/security/security_dac.c:1083 src/security/security_selinux.c:681
+#: src/security/security_dac.c:1079 src/security/security_selinux.c:681
 #, c-format
 msgid "unexpected security label type '%s'"
 msgstr "അപ്രതീക്ഷിതമായ സുരക്ഷ ലേബല്‍ തരം '%s'"
@@ -23718,7 +23780,7 @@ msgstr "ആന്തരിക പിശക് %s"
 msgid "internal error"
 msgstr "ആന്തരിക പിശക് "
 
-#: src/util/virerror.c:738 tools/virsh.c:676
+#: src/util/virerror.c:738 tools/virsh.c:677
 msgid "out of memory"
 msgstr "മെമ്മറി ലഭ്യമല്ല"
 
@@ -27071,93 +27133,93 @@ msgstr ""
 "ഉപയോഗിയ്ക്കേണ്ട വിധം: $program_name {start|stop|status|restart|condrestart|try-"
 "restart|reload|force-reload|gueststatus|shutdown}"
 
-#: tools/virsh.c:101 tools/virsh.c:115
+#: tools/virsh.c:102 tools/virsh.c:116
 #, c-format
 msgid "%s: %d: failed to allocate %d bytes"
 msgstr "%s: %d: %d ബൈറ്റുകള്‍ ലഭ്യമാക്കുന്നതില്‍ പരാജയം"
 
-#: tools/virsh.c:127
+#: tools/virsh.c:128
 #, c-format
 msgid "%s: %d: failed to allocate %lu bytes"
 msgstr "%s: %d: %lu ബൈറ്റുകള്‍ അനുവദിക്കുന്നതില്‍ പരാജയം"
 
-#: tools/virsh.c:330 tools/virsh.c:396 tools/virsh.c:2756
+#: tools/virsh.c:331 tools/virsh.c:397 tools/virsh.c:2726
 msgid "Failed to disconnect from the hypervisor"
 msgstr "ഹൈപ്പര്‍വൈസറില്‍ നിന്നും വിഛേദിയ്ക്കുന്നതില്‍ പരാജയം"
 
-#: tools/virsh.c:332 tools/virsh.c:398 tools/virsh.c:2758
+#: tools/virsh.c:333 tools/virsh.c:399 tools/virsh.c:2728
 msgid "One or more references were leaked after disconnect from the hypervisor"
 msgstr "ഹൈപ്പര്‍വൈസറില്‍ നിന്നും വിഛേദിയ്ക്കുന്നതിനു് ശേഷം ഒന്നോ അതില്‍ കൂടുതല്‍ സൂചനകള്‍ പുറത്തു് പോയി"
 
-#: tools/virsh.c:341
+#: tools/virsh.c:342
 msgid "Failed to reconnect to the hypervisor"
 msgstr "ഹൈപ്പര്‍വൈസറിലേക്കു് വീണ്ടും കണക്ട് ചെയ്യുവാന്‍ സാധ്യമല്ല"
 
-#: tools/virsh.c:343
+#: tools/virsh.c:344
 msgid "failed to connect to the hypervisor"
 msgstr "ഹൈപ്പര്‍‍വൈസറിലേക്ക് കണക്ട് ചെയ്യുന്നതില്‍ പരാജയം"
 
-#: tools/virsh.c:347 tools/virsh.c:423
+#: tools/virsh.c:348 tools/virsh.c:424
 msgid "Unable to register disconnect callback"
 msgstr "വിഘടിപ്പിക്കാനുള്ള കോള്‍ബാക്ക് രേഖപ്പെടുത്താനായില്ല"
 
-#: tools/virsh.c:349
+#: tools/virsh.c:350
 msgid "Reconnected to the hypervisor"
 msgstr "ഹൈപ്പര്‍വൈസറിലേക്കു് വീണ്ടും കണക്ട് ചെയ്യുന്നു"
 
-#: tools/virsh.c:362
+#: tools/virsh.c:363
 msgid "(re)connect to hypervisor"
 msgstr "വീണ്ടും ഹൈപ്പര്‍‍വൈസറിലേക്ക് കണക്ട് ചെയ്യുക"
 
-#: tools/virsh.c:365
+#: tools/virsh.c:366
 msgid ""
 "Connect to local hypervisor. This is built-in command after shell start up."
 msgstr ""
 "ലോക്കല്‍ ഹൈപ്പര്‍‍വൈസറിലേക്ക് കണക്ട് ചെയ്യുക. ഷെല്‍ ആരംഭിച്ച ശേഷമുളള ബിള്‍ട്ട്-ഇന്‍ കമാന്‍ഡ് ആണിത്."
 
-#: tools/virsh.c:375
+#: tools/virsh.c:376
 msgid "hypervisor connection URI"
 msgstr "ഹൈപ്പര്‍വൈസര്‍ കണക്ഷനുളള യുഐര്‍ഐ"
 
-#: tools/virsh.c:379
+#: tools/virsh.c:380
 msgid "read-only connection"
 msgstr "റീഡ്-ഒണ്‍ലി കണക്ഷന്‍"
 
-#: tools/virsh.c:417
+#: tools/virsh.c:418
 msgid "Failed to connect to the hypervisor"
 msgstr "ഹൈപ്പര്‍വൈസറിലേക്കു് കണക്ട് ചെയ്യുന്നതില്‍ പരാജയം"
 
 #. TRANSLATORS: For now, we aren't using LC_MESSAGES, and the user
 #. * choices really are limited to just 'y', 'n', 'f' and '?'
-#: tools/virsh.c:473
+#: tools/virsh.c:474
 msgid "Try again? [y,n,f,?]:"
 msgstr "വീണ്ടും ശ്രമിയ്ക്കണമോ? [y,n,f,?]:"
 
-#: tools/virsh.c:479
+#: tools/virsh.c:480
 msgid "y - yes, start editor again"
 msgstr "y - ഉവ്വു്, എഡിറ്റര്‍ വീണ്ടും ആരംഭിയ്ക്കുക"
 
-#: tools/virsh.c:480
+#: tools/virsh.c:481
 msgid "n - no, throw away my changes"
 msgstr "n - ആവശ്യമില്ല, എന്റെ മാറ്റങ്ങള്‍ ആവശ്യമില്ല"
 
-#: tools/virsh.c:481
+#: tools/virsh.c:482
 msgid "f - force, try to redefine again"
 msgstr "f - നിര്‍ബന്ധിയ്ക്കുക, വീണ്ടും നിഷ്കര്‍ഷിയ്ക്കുവാന്‍ സാധ്യമല്ല"
 
-#: tools/virsh.c:482
+#: tools/virsh.c:483
 msgid "? - print this help"
 msgstr "? - ഈ സഹായം പ്രിന്റ് ചെയ്യുക"
 
-#: tools/virsh.c:499
+#: tools/virsh.c:500
 msgid "This function is not supported on WIN32 platform"
 msgstr "WIN32 പ്ലാറ്റ്ഫോമില്‍ ഈ ഫംഗ്ഷന്‍ പിന്തുണയ്ക്കുന്നില്ല"
 
-#: tools/virsh.c:523
+#: tools/virsh.c:524
 msgid "print help"
 msgstr "സഹായം പ്രിന്‍റ് ചെയ്യുക"
 
-#: tools/virsh.c:526
+#: tools/virsh.c:527
 msgid ""
 "Prints global help, command specific help, or help for a\n"
 "    group of related commands"
@@ -27165,7 +27227,7 @@ msgstr ""
 "ഗ്ലോബല്‍ സഹായം, സഹായത്തിനുള്ള നിര്‍ദ്ദേശം, അല്ലെങ്കില്‍ അനുബന്ധിച്ചുള്ള\n"
 "   നിര്‍ദ്ദേശങ്ങളുടെ കൂട്ടം  പ്രിന്റ് ചെയ്യുക."
 
-#: tools/virsh.c:535
+#: tools/virsh.c:536
 msgid ""
 "Prints global help, command specific help, or help for a group of related "
 "commands"
@@ -27173,7 +27235,7 @@ msgstr ""
 "ഗ്ലോബല്‍ സഹായം, സഹായത്തിനുള്ള നിര്‍ദ്ദേശം, അല്ലെങ്കില്‍ അനുബന്ധിച്ചുള്ള നിര്‍ദ്ദേശങ്ങളുടെ കൂട്ടം  "
 "പ്രിന്റ് ചെയ്യുക."
 
-#: tools/virsh.c:549
+#: tools/virsh.c:550
 msgid ""
 "Grouped commands:\n"
 "\n"
@@ -27181,37 +27243,37 @@ msgstr ""
 "ഗ്രൂപ്പ് ചെയ്ത കമാന്‍ഡുകള്‍:\n"
 "\n"
 
-#: tools/virsh.c:552 tools/virsh.c:1171
+#: tools/virsh.c:553 tools/virsh.c:1172
 #, c-format
 msgid " %s (help keyword '%s'):\n"
 msgstr " %s (സഹായത്തിനുള്ള കീബേര്‍ഡ് '%s'):\n"
 
-#: tools/virsh.c:573
+#: tools/virsh.c:574
 #, c-format
 msgid "command or command group '%s' doesn't exist"
 msgstr "കമാന്‍ഡ് അല്ലെങ്കില്‍ '%s' കമാന്‍ഡ് ഗ്രൂപ്പ് നിലവിലില്ല"
 
-#: tools/virsh.c:659
+#: tools/virsh.c:660
 msgid "Failed to complete tree listing"
 msgstr "ട്രീ പട്ടിക പൂര്‍ത്തിയാക്കുന്നതില്‍ പരാജയം"
 
-#: tools/virsh.c:681
+#: tools/virsh.c:682
 #, c-format
 msgid "mkostemps: failed to create temporary file: %s"
 msgstr "mkostemps: താല്‍ക്കാലിക ഫയല്‍ തയ്യാറാക്കുന്നതില്‍ പരാജയപ്പെട്ടു: %s"
 
-#: tools/virsh.c:688
+#: tools/virsh.c:689
 #, c-format
 msgid "write: %s: failed to write to temporary file: %s"
 msgstr "write: %s: താല്‍ക്കാലിക ഫയലിലേക്ക് write ചെയ്യുന്നതില്‍ പരാജയം: %s"
 
-#: tools/virsh.c:696
+#: tools/virsh.c:697
 #, c-format
 msgid "close: %s: failed to write or close temporary file: %s"
 msgstr ""
 "close: %s: താല്‍ക്കാലിക ഫയലിലേക്ക് write അല്ലെങ്കില്‍ close ചെയ്യുന്നതില്‍ പരാജയം: %s"
 
-#: tools/virsh.c:737
+#: tools/virsh.c:738
 #, c-format
 msgid ""
 "%s: temporary filename contains shell meta or other unacceptable characters "
@@ -27220,124 +27282,124 @@ msgstr ""
 "%s: താല്‍ക്കാലിക ഫയല്‍നാമത്തില്‍ ഷെല്‍ ഡേറ്റാ അല്ലെങ്കില്‍ സ്വീകാര്യമല്ലാത്ത മറ്റു് അക്ഷരങ്ങളുണ്ടു് "
 "($TMPDIR തെറ്റാണോ?)"
 
-#: tools/virsh.c:771
+#: tools/virsh.c:772
 #, c-format
 msgid "%s: failed to read temporary file: %s"
 msgstr "%s: താല്‍ക്കാലിക ഫയല്‍ ലഭ്യമാക്കുന്നതില്‍ പരാജയം: %s"
 
-#: tools/virsh.c:784
+#: tools/virsh.c:785
 msgid "change the current directory"
 msgstr "നിലവിലുള്ള ഡയറക്ടറി മാറ്റുക"
 
-#: tools/virsh.c:787
+#: tools/virsh.c:788
 msgid "Change the current directory."
 msgstr "നിലവിലുള്ള ഡയറക്ടറി മാറ്റുക."
 
-#: tools/virsh.c:795
+#: tools/virsh.c:796
 msgid "directory to switch to (default: home or else root)"
 msgstr "ഏതു് ഡയറക്ടറിയിലേക്ക് മാറ്റണം (സ്വതവേ: home അല്ലെങ്കില്‍ root)"
 
-#: tools/virsh.c:809
+#: tools/virsh.c:810
 msgid "cd: command valid only in interactive mode"
 msgstr "cd: ഇന്ററാക്ടീവ് മോഡില്‍ മാത്രം കമാന്‍ഡ് പ്രവര്‍ത്തിക്കുന്നു"
 
-#: tools/virsh.c:820
+#: tools/virsh.c:821
 #, c-format
 msgid "cd: %s: %s"
 msgstr "cd: %s: %s"
 
-#: tools/virsh.c:834
+#: tools/virsh.c:835
 msgid "print the current directory"
 msgstr "നിലവിലുള്ള ഡയറക്ടറി പ്രിന്റ് ചെയ്യുക"
 
-#: tools/virsh.c:837
+#: tools/virsh.c:838
 msgid "Print the current directory."
 msgstr "നിലവിലുള്ള ഡയറക്ടറി പ്രിന്റ് ചെയ്യുക."
 
-#: tools/virsh.c:851
+#: tools/virsh.c:852
 #, c-format
 msgid "pwd: cannot get current directory: %s"
 msgstr "pwd: നിലവിലുള്ള ഡയറക്ടറി മാറ്റുവാന്‍ സാധ്യമല്ല: %s "
 
-#: tools/virsh.c:855 tools/virsh-domain.c:6383
+#: tools/virsh.c:856 tools/virsh-domain.c:6383
 #, c-format
 msgid "%s\n"
 msgstr "%s\n"
 
-#: tools/virsh.c:867
+#: tools/virsh.c:868
 msgid "echo arguments"
 msgstr "ഇക്കോ ആര്‍ഗ്യുമെന്റുകള്‍"
 
-#: tools/virsh.c:870
+#: tools/virsh.c:871
 msgid "Echo back arguments, possibly with quoting."
 msgstr "ആര്‍ഗുമെന്റുകള്‍ തിരികെ പ്രദര്‍ശിപ്പിക്കുക, കഴിയുമെങ്കില്‍ ഉദ്ധരണി സഹിതം"
 
-#: tools/virsh.c:878
+#: tools/virsh.c:879
 msgid "escape for shell use"
 msgstr "ഷെല്‍ ഉപയോഗത്തിനായി പുറത്തു് കടക്കുക"
 
-#: tools/virsh.c:882
+#: tools/virsh.c:883
 msgid "escape for XML use"
 msgstr "എക്സ്എംഎല്‍ ഉപയോഗത്തിനായി പുറത്തു് കടക്കുക"
 
-#: tools/virsh.c:890
+#: tools/virsh.c:891
 msgid "arguments to echo"
 msgstr "ഇക്കോയ്ക്കുള്ള ആര്‍ഗ്യുമെന്റുകള്‍"
 
-#: tools/virsh.c:925 tools/virsh.c:942 tools/virsh-domain.c:663
+#: tools/virsh.c:926 tools/virsh.c:943 tools/virsh-domain.c:663
 #: tools/virsh-domain.c:922 tools/virsh-pool.c:279 tools/virsh-volume.c:281
 #: tools/virsh-volume.c:558
 msgid "Failed to allocate XML buffer"
 msgstr "XML ബഫര്‍ അനുവദിക്കുന്നതില്‍ പരാജയം"
 
-#: tools/virsh.c:957
+#: tools/virsh.c:958
 msgid "quit this interactive terminal"
 msgstr "ഈ ഇന്‍ററാക്റ്റീവ് ടെര്‍മിനലില്‍ നിന്നും പുറത്ത് കടക്കുക"
 
-#: tools/virsh.c:1048
+#: tools/virsh.c:1049
 msgid "print help for this function"
 msgstr "ഈ ഫംഗ്ഷനുള്ള സഹായം പ്രിന്റ് ചെയ്യുക"
 
-#: tools/virsh.c:1069
+#: tools/virsh.c:1070
 #, c-format
 msgid "option --%s already seen"
 msgstr "--%s ഐച്ഛികം നിലവില്‍ ലഭ്യമായിരിയ്ക്കുന്നു"
 
-#: tools/virsh.c:1079
+#: tools/virsh.c:1080
 #, c-format
 msgid "command '%s' doesn't support option --%s"
 msgstr "കമാന്‍ഡ് '%s' ഉപാധി --%s-നെ പിന്തുണയ്ക്കുന്നില്ല"
 
-#: tools/virsh.c:1124
+#: tools/virsh.c:1125
 #, c-format
 msgid "command '%s' requires <%s> option"
 msgstr "കമാന്‍ഡ് '%s'-ന് ഉപാധി <%s> ആവശ്യമുണ്ട്"
 
-#: tools/virsh.c:1125
+#: tools/virsh.c:1126
 #, c-format
 msgid "command '%s' requires --%s option"
 msgstr "കമാന്‍ഡ് '%s'-ന് ഉപാധി --%s ആവശ്യമുണ്ട്"
 
-#: tools/virsh.c:1168
+#: tools/virsh.c:1169
 #, c-format
 msgid "command group '%s' doesn't exist"
 msgstr "കമാന്‍ഡ് ഗ്രൂപ്പ് '%s' നിലവിലില്ല"
 
-#: tools/virsh.c:1191
+#: tools/virsh.c:1192
 #, c-format
 msgid "command '%s' doesn't exist"
 msgstr "കമാന്‍ഡ് '%s' നിലവിലില്ല"
 
-#: tools/virsh.c:1203 tools/virsh.c:1861
+#: tools/virsh.c:1204 tools/virsh.c:1831
 #, c-format
 msgid "internal error: bad options in command: '%s'"
 msgstr "ആന്തരിക പിശക്: കമാന്‍ഡില്‍ തെറ്റായ ഐച്ഛികങ്ങള്‍: '%s'"
 
-#: tools/virsh.c:1208
+#: tools/virsh.c:1209
 msgid "  NAME\n"
 msgstr "  പേര്\n"
 
-#: tools/virsh.c:1211
+#: tools/virsh.c:1212
 msgid ""
 "\n"
 "  SYNOPSIS\n"
@@ -27345,37 +27407,37 @@ msgstr ""
 "\n"
 "  SYNOPSIS\n"
 
-#: tools/virsh.c:1224
+#: tools/virsh.c:1225
 #, c-format
 msgid "[--%s <number>]"
 msgstr "[--%s <number>]"
 
-#: tools/virsh.c:1230
+#: tools/virsh.c:1231
 #, c-format
 msgid "[--%s <string>]"
 msgstr "[--%s <string>]"
 
-#: tools/virsh.c:1243
+#: tools/virsh.c:1244
 #, c-format
 msgid "{[--%s] <string>}..."
 msgstr "{[--%s] <string>}..."
 
-#: tools/virsh.c:1244
+#: tools/virsh.c:1245
 #, c-format
 msgid "[[--%s] <string>]..."
 msgstr "[[--%s] <string>]..."
 
-#: tools/virsh.c:1246
+#: tools/virsh.c:1247
 #, c-format
 msgid "<%s>..."
 msgstr "<%s>..."
 
-#: tools/virsh.c:1247
+#: tools/virsh.c:1248
 #, c-format
 msgid "[<%s>]..."
 msgstr "[<%s>]..."
 
-#: tools/virsh.c:1262
+#: tools/virsh.c:1263
 msgid ""
 "\n"
 "  DESCRIPTION\n"
@@ -27383,7 +27445,7 @@ msgstr ""
 "\n"
 "  വിവരണം\n"
 
-#: tools/virsh.c:1268
+#: tools/virsh.c:1269
 msgid ""
 "\n"
 "  OPTIONS\n"
@@ -27391,62 +27453,54 @@ msgstr ""
 "\n"
 "  ഉപാധികള്‍\n"
 
-#: tools/virsh.c:1276
+#: tools/virsh.c:1277
 #, c-format
 msgid "[--%s] <number>"
 msgstr "[--%s] <number>"
 
-#: tools/virsh.c:1277
+#: tools/virsh.c:1278
 #, c-format
 msgid "--%s <number>"
 msgstr "--%s <number>"
 
-#: tools/virsh.c:1281
+#: tools/virsh.c:1282
 #, c-format
 msgid "--%s <string>"
 msgstr "--%s <string>"
 
-#: tools/virsh.c:1284 tools/virsh.c:1289
+#: tools/virsh.c:1285 tools/virsh.c:1290
 #, c-format
 msgid "[--%s] <string>"
 msgstr "[--%s] <string>"
 
-#: tools/virsh.c:1289
+#: tools/virsh.c:1290
 #, c-format
 msgid "<%s>"
 msgstr "<%s>"
 
-#: tools/virsh.c:1537
+#: tools/virsh.c:1524
 msgid "Mandatory option not present"
 msgstr "നിര്‍ബന്ധമായ ഐച്ഛികം ലഭ്യമല്ല"
 
-#: tools/virsh.c:1540
-msgid "Programming error: Invalid option name"
-msgstr "പ്രോഗ്രാമിങ് പിശക്: തെറ്റായ ഐച്ഛിക നാമം"
-
-#: tools/virsh.c:1543
-msgid "Programming error: Requested option is a boolean"
-msgstr "പ്രോഗ്രാമിങ് പിശക്: ആവശ്യപ്പെട്ട ഐച്ഛികം ബൂളിയനാണു്."
-
-#: tools/virsh.c:1546
+#: tools/virsh.c:1526
 msgid "Option argument is empty"
 msgstr "ആര്‍ഗ്യുമെന്റ് കാലിയാണു്"
 
-#: tools/virsh.c:1549
+#: tools/virsh.c:1529
 #, c-format
 msgid "Failed to get option '%s': %s"
 msgstr "'%s' ലഭ്യമാക്കുന്നതില്‍ പരാജയപ്പെട്ടു: %s"
 
-#: tools/virsh.c:1709
+#: tools/virsh.c:1679
 #, c-format
 msgid "internal error: virsh %s: no %s VSH_OT_DATA option"
 msgstr "ആന്തരിക പിശക്: virsh %s: %s VSH_OT_DATA ഉപാധി ലഭ്യമല്ല"
 
-#: tools/virsh.c:1719
+#: tools/virsh.c:1689
 msgid "no valid connection"
 msgstr "ശരിയായ കണക്ഷന്‍ ലഭ്യമല്ല"
 
-#: tools/virsh.c:1784
+#: tools/virsh.c:1754
 #, c-format
 msgid ""
 "\n"
@@ -27457,55 +27511,55 @@ msgstr ""
 "(സമയം: %.3f ms)\n"
 "\n"
 
-#: tools/virsh.c:1855
+#: tools/virsh.c:1825
 #, c-format
 msgid "unknown command: '%s'"
 msgstr "അപരിചിതമായ കമാന്‍ഡ്: '%s'"
 
-#: tools/virsh.c:1897
+#: tools/virsh.c:1867
 #, c-format
 msgid "expected syntax: --%s <%s>"
 msgstr "ശരിയായ സിന്‍റ്റാക്സ്: --%s <%s>"
 
-#: tools/virsh.c:1900
+#: tools/virsh.c:1870
 msgid "number"
 msgstr "നംബര്‍"
 
-#: tools/virsh.c:1900
+#: tools/virsh.c:1870
 msgid "string"
 msgstr "സ്ട്രിങ്"
 
-#: tools/virsh.c:1908
+#: tools/virsh.c:1878
 #, c-format
 msgid "invalid '=' after option --%s"
 msgstr "--%s ഐച്ഛികത്തിനു് ശേഷം തെറ്റായ '='"
 
-#: tools/virsh.c:1924
+#: tools/virsh.c:1894
 #, c-format
 msgid "unexpected data '%s'"
 msgstr "അപ്രതീക്ഷിതമായ ഡേറ്റാ '%s'"
 
-#: tools/virsh.c:1946
+#: tools/virsh.c:1916
 msgid "optdata"
 msgstr "optdata"
 
-#: tools/virsh.c:1946
+#: tools/virsh.c:1916
 msgid "bool"
 msgstr "ബൂള്‍"
 
-#: tools/virsh.c:1947
+#: tools/virsh.c:1917
 msgid "(none)"
 msgstr "(ഒന്നുമില്ല)"
 
-#: tools/virsh.c:2082
+#: tools/virsh.c:2052
 msgid "dangling \\"
 msgstr "ഡാംഗ്ലിങ്ങ് \\"
 
-#: tools/virsh.c:2095
+#: tools/virsh.c:2065
 msgid "missing \""
 msgstr "\" ലഭ്യമല്ല"
 
-#: tools/virsh.c:2179 tools/virsh-domain-monitor.c:1276
+#: tools/virsh.c:2149 tools/virsh-domain-monitor.c:1276
 #: tools/virsh-domain-monitor.c:1289 tools/virsh-network.c:377
 #: tools/virsh-network.c:383 tools/virsh-network.c:388
 #: tools/virsh-network.c:705 tools/virsh-network.c:711 tools/virsh-pool.c:1058
@@ -27514,7 +27568,7 @@ msgstr "\" ലഭ്യമല്ല"
 msgid "yes"
 msgstr "ഉവ്വ്"
 
-#: tools/virsh.c:2179 tools/virsh-domain-monitor.c:1276
+#: tools/virsh.c:2149 tools/virsh-domain-monitor.c:1276
 #: tools/virsh-domain-monitor.c:1289 tools/virsh-network.c:377
 #: tools/virsh-network.c:383 tools/virsh-network.c:388
 #: tools/virsh-network.c:705 tools/virsh-network.c:711 tools/virsh-pool.c:1058
@@ -27523,50 +27577,50 @@ msgstr "ഉവ്വ്"
 msgid "no"
 msgstr "ഇല്ല"
 
-#: tools/virsh.c:2187
+#: tools/virsh.c:2157
 #, c-format
 msgid "unimplemented parameter type %d"
 msgstr "ലഭ്യമാക്കിയിട്ടില്ലാത്ത പരാമീറ്റര്‍ തരം %d"
 
-#: tools/virsh.c:2262
+#: tools/virsh.c:2232
 msgid "error: "
 msgstr "പിശക്: "
 
-#: tools/virsh.c:2312
+#: tools/virsh.c:2282
 msgid "VIRSH_DEBUG not set with a valid numeric value"
 msgstr "VIRSH_DEBUG ഒരു സാധുവായ അക്കം ഉപയോഗിച്ച് തയ്യാറാക്കിയിട്ടില്ല"
 
-#: tools/virsh.c:2391
+#: tools/virsh.c:2361
 msgid "failed to get the log file information"
 msgstr "ലോഗ് ഫയലിന്‍റെ വിവരം ലഭ്യമാക്കുന്നതില്‍ പരാജയം"
 
-#: tools/virsh.c:2396
+#: tools/virsh.c:2366
 msgid "the log path is not a file"
 msgstr "ലോഗ് പാഥ് ഒരു ഫയല്‍ അല്ല"
 
-#: tools/virsh.c:2404
+#: tools/virsh.c:2374
 msgid "failed to open the log file. check the log file path"
 msgstr "ലോഗ് ഫയല്‍ തുറക്കുന്നതില്‍ പരാജയം. ലോഗ് ഫയലിന്‍റെ പാഥ് പരിശോധിക്കുക"
 
-#: tools/virsh.c:2487
+#: tools/virsh.c:2457
 msgid "failed to write the log file"
 msgstr "ലോഗ് ഫയല്‍ എഴുതുന്നതില്‍ പരാജയം"
 
-#: tools/virsh.c:2504
+#: tools/virsh.c:2474
 #, c-format
 msgid "%s: failed to write log file: %s"
 msgstr "%s: ലോഗ് ഫയല്‍ എഴുതുന്നതില്‍ പരാജയം: %s"
 
-#: tools/virsh.c:2653
+#: tools/virsh.c:2623
 msgid "Could not determine home directory"
 msgstr "ആസ്ഥാന ഡയറക്ടറി കണ്ടുപിടിയ്ക്കുവാന്‍ സാധ്യമല്ല"
 
-#: tools/virsh.c:2683
+#: tools/virsh.c:2653
 #, c-format
 msgid "Failed to create '%s': %s"
 msgstr "'%s' ഉണ്ടാക്കുന്നതില്‍ പരാജയപ്പെട്ടു: %s"
 
-#: tools/virsh.c:2794
+#: tools/virsh.c:2764
 #, c-format
 msgid ""
 "\n"
@@ -27609,12 +27663,12 @@ msgstr ""
 "  commands (non interactive mode):\n"
 "\n"
 
-#: tools/virsh.c:2811
+#: tools/virsh.c:2781
 #, c-format
 msgid " %s (help keyword '%s')\n"
 msgstr " %s (സഹായത്തിനുള്ള കീവേര്‍ഡ് '%s')\n"
 
-#: tools/virsh.c:2824
+#: tools/virsh.c:2794
 msgid ""
 "\n"
 "  (specify help <group> for details about the commands in the group)\n"
@@ -27622,7 +27676,7 @@ msgstr ""
 "\n"
 "  (കൂട്ടത്തിലുള്ള കല്പ്പന വിശദാംശങ്ങളെക്കുറിച്ചുള്ള സഹായസംഹിത <group> എടുത്തു പറയുക)\n"
 
-#: tools/virsh.c:2826
+#: tools/virsh.c:2796
 msgid ""
 "\n"
 "  (specify help <command> for details about the command)\n"
@@ -27632,12 +27686,12 @@ msgstr ""
 "  (കമാന്‍ഡ് സംബന്ധിച്ചുളള വിശദവിവരങ്ങള്‍ക്ക് help <command> എന്ന് നല്‍കുക)\n"
 "\n"
 
-#: tools/virsh.c:2837
+#: tools/virsh.c:2807
 #, c-format
 msgid "Virsh command line tool of libvirt %s\n"
 msgstr "libvirt %s-നുള്ള Virsh കമാന്‍ഡ് ലൈന്‍ പ്രയോഗം\n"
 
-#: tools/virsh.c:2838
+#: tools/virsh.c:2808
 #, c-format
 msgid ""
 "See web site at %s\n"
@@ -27646,74 +27700,74 @@ msgstr ""
 "%s-ല്‍ വെബ്സൈറ്റ് കാണുക\n"
 "\n"
 
-#: tools/virsh.c:2840
+#: tools/virsh.c:2810
 msgid "Compiled with support for:\n"
 msgstr "ഇതിനുള്ള പിന്തുണയുമായി കമ്പൈല്‍ ചെയ്തിരിയ്ക്കുന്നു:\n"
 
-#: tools/virsh.c:2841
+#: tools/virsh.c:2811
 msgid " Hypervisors:"
 msgstr " ഹൈപ്പര്‍വൈസറുകള്‍:"
 
-#: tools/virsh.c:2883
+#: tools/virsh.c:2853
 msgid " Networking:"
 msgstr "നെറ്റ്‌വര്‍ക്കിങ്ങ്:"
 
-#: tools/virsh.c:2909
+#: tools/virsh.c:2879
 msgid " Storage:"
 msgstr "ശേഖരണം:"
 
-#: tools/virsh.c:2939
+#: tools/virsh.c:2909
 msgid " Miscellaneous:"
 msgstr "പലവക:"
 
-#: tools/virsh.c:3010
+#: tools/virsh.c:2980
 #, c-format
 msgid "option %s takes a numeric argument"
 msgstr "%s ഐച്ഛികത്തിനു് ഒരു ന്യൂമറിക് ആര്‍ഗ്യുമെന്റ്"
 
-#: tools/virsh.c:3015
+#: tools/virsh.c:2985
 #, c-format
 msgid "ignoring debug level %d out of range [%d-%d]"
 msgstr "അവഗണിക്കേണ്ടുന്ന ഡീബഗ് തലം %d പരിധിക്കു പുറത്താണ് [%d-%d]"
 
-#: tools/virsh.c:3059
+#: tools/virsh.c:3029
 #, c-format
 msgid "Invalid string '%s' for escape sequence"
 msgstr "എസ്കേപ്പ് സീക്വന്‍സിനുള്ള തെറ്റായ സ്ട്രിങ് '%s' "
 
-#: tools/virsh.c:3070
+#: tools/virsh.c:3040
 #, c-format
 msgid "option '-%c'/'--%s' requires an argument"
 msgstr "'-%c'/'--%s' ഐച്ഛികത്തിനു് ആര്‍ഗ്യുമെന്റ് ആവശ്യമുണ്ടു്"
 
-#: tools/virsh.c:3073
+#: tools/virsh.c:3043
 #, c-format
 msgid "option '-%c' requires an argument"
 msgstr "ഐച്ഛികം '-%c'-യ്ക്കു് ഒരു ആര്‍ഗ്യുമെന്റ് ആവശ്യമുണ്ടു്"
 
-#: tools/virsh.c:3077
+#: tools/virsh.c:3047
 #, c-format
 msgid "unsupported option '-%c'. See --help."
 msgstr "പിന്തുണയില്ലാത്ത ഉപാധി '-%c'. --help കാണുക."
 
-#: tools/virsh.c:3079
+#: tools/virsh.c:3049
 #, c-format
 msgid "unsupported option '%s'. See --help."
 msgstr "പിന്തുണയ്ക്കാത്ത ഐച്ഛികം '%s'. --help കാണുക."
 
-#: tools/virsh.c:3082
+#: tools/virsh.c:3052
 msgid "unknown option"
 msgstr "അപരിചിതമായ ഐച്ഛികം"
 
-#: tools/virsh.c:3191
+#: tools/virsh.c:3161
 msgid "Failed to initialize mutex"
 msgstr "mutex തയ്യാറാക്കുന്നതില്‍ പരാജയം"
 
-#: tools/virsh.c:3196
+#: tools/virsh.c:3166
 msgid "Failed to initialize libvirt"
 msgstr "libvirt ആരംഭിയ്ക്കുന്നതില്‍ പരാജയം"
 
-#: tools/virsh.c:3223
+#: tools/virsh.c:3193
 #, c-format
 msgid ""
 "Welcome to %s, the virtualization interactive terminal.\n"
@@ -27722,7 +27776,7 @@ msgstr ""
 "വിര്‍ച്ച്വലൈസേഷന്‍ ഇന്‍ററാക്റ്റീവ് ടെര്‍മിനല്‍ ആയ %s-ലേക്ക് സ്വാഗതം.\n"
 "\n"
 
-#: tools/virsh.c:3226
+#: tools/virsh.c:3196
 msgid ""
 "Type:  'help' for help with commands\n"
 "       'quit' to quit\n"
@@ -27732,7 +27786,7 @@ msgstr ""
 "       പുറത്ത് കടക്കുന്നതിനായി 'quit'\n"
 "\n"
 
-#: tools/virsh.h:396
+#: tools/virsh.h:393
 #, c-format
 msgid "Options --%s and --%s are mutually exclusive"
 msgstr "--%s, --%s ഐച്ഛികങ്ങള്‍ പരസ്പര വിരുദ്ധമാകുന്നു"
@@ -34317,6 +34371,9 @@ msgstr "%s അടയ്ക്കാന്‍ സാധിച്ചില്ല"
 #~ msgid "%s: internal error: unknown flag: %c"
 #~ msgstr "%s: ആന്തരികമായ പിശക് , അപരിചിതമായ ഫ്ലാഗ്: %c"
 
+#~ msgid "maxnames > REMOTE_DEFINED_INTERFACE_NAME_LIST_MAX"
+#~ msgstr "maxnames > REMOTE_DEFINED_INTERFACE_NAME_LIST_MAX"
+
 #~ msgid "topology cpuset syntax error"
 #~ msgstr "ടോപോളജിയുടെ cpuset-ല്‍ സിന്രാക്സില്‍ പിശക്"
 
@@ -34328,6 +34385,9 @@ msgstr "%s അടയ്ക്കാന്‍ സാധിച്ചില്ല"
 
 #~ msgid "%s: internal error: unknown flag: %c\n"
 #~ msgstr "%s: ആന്തരിക പിശക്: അപരിചിത ഫ്ലാഗ്: %c\n"
+
+#~ msgid "no network with matching id"
+#~ msgstr "ചേരുന്ന id-യുള്ള നെറ്റ്‌വര്‍ക്ക് ലഭ്യമല്ല"
 
 #~ msgid "Failed to parse thread siblings"
 #~ msgstr "ത്രെഡ് സിബ്ലിങുകള്‍ പാഴ്സ് ചെയ്യുന്നതില്‍ പരാജയപ്പെട്ടു"
@@ -34378,6 +34438,12 @@ msgstr "%s അടയ്ക്കാന്‍ സാധിച്ചില്ല"
 
 #~ msgid "invalid CPU mask %s"
 #~ msgstr "തെറ്റായ സിപിയു മാസ്ക് %s"
+
+#~ msgid "Programming error: Invalid option name"
+#~ msgstr "പ്രോഗ്രാമിങ് പിശക്: തെറ്റായ ഐച്ഛിക നാമം"
+
+#~ msgid "Programming error: Requested option is a boolean"
+#~ msgstr "പ്രോഗ്രാമിങ് പിശക്: ആവശ്യപ്പെട്ട ഐച്ഛികം ബൂളിയനാണു്."
 
 #~ msgid "Volume"
 #~ msgstr "വോള്യം"

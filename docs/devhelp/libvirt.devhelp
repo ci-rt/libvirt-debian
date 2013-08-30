@@ -111,6 +111,7 @@
     <function name="_virBlkioParameter" link="libvirt-libvirt.html#_virBlkioParameter"/>
     <function name="_virMemoryParameter" link="libvirt-libvirt.html#_virMemoryParameter"/>
     <function name="_virSchedParameter" link="libvirt-libvirt.html#_virSchedParameter"/>
+    <function name="VIR_CONNECT_BASELINE_CPU_EXPAND_FEATURES" link="libvirt-libvirt.html#VIR_CONNECT_BASELINE_CPU_EXPAND_FEATURES"/>
     <function name="VIR_CONNECT_CLOSE_REASON_CLIENT" link="libvirt-libvirt.html#VIR_CONNECT_CLOSE_REASON_CLIENT"/>
     <function name="VIR_CONNECT_CLOSE_REASON_EOF" link="libvirt-libvirt.html#VIR_CONNECT_CLOSE_REASON_EOF"/>
     <function name="VIR_CONNECT_CLOSE_REASON_ERROR" link="libvirt-libvirt.html#VIR_CONNECT_CLOSE_REASON_ERROR"/>
@@ -249,6 +250,7 @@
     <function name="VIR_DOMAIN_EVENT_DEFINED_UPDATED" link="libvirt-libvirt.html#VIR_DOMAIN_EVENT_DEFINED_UPDATED"/>
     <function name="VIR_DOMAIN_EVENT_DISK_CHANGE_LAST" link="libvirt-libvirt.html#VIR_DOMAIN_EVENT_DISK_CHANGE_LAST"/>
     <function name="VIR_DOMAIN_EVENT_DISK_CHANGE_MISSING_ON_START" link="libvirt-libvirt.html#VIR_DOMAIN_EVENT_DISK_CHANGE_MISSING_ON_START"/>
+    <function name="VIR_DOMAIN_EVENT_DISK_DROP_MISSING_ON_START" link="libvirt-libvirt.html#VIR_DOMAIN_EVENT_DISK_DROP_MISSING_ON_START"/>
     <function name="VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_IPV4" link="libvirt-libvirt.html#VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_IPV4"/>
     <function name="VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_IPV6" link="libvirt-libvirt.html#VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_IPV6"/>
     <function name="VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_LAST" link="libvirt-libvirt.html#VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_LAST"/>
@@ -819,6 +821,7 @@
     <function name="virBlkioParameterType" link="libvirt-libvirt.html#virBlkioParameterType"/>
     <function name="virCPUCompareResult" link="libvirt-libvirt.html#virCPUCompareResult"/>
     <function name="virConnectAuthPtr" link="libvirt-libvirt.html#virConnectAuthPtr"/>
+    <function name="virConnectBaselineCPUFlags" link="libvirt-libvirt.html#virConnectBaselineCPUFlags"/>
     <function name="virConnectCloseReason" link="libvirt-libvirt.html#virConnectCloseReason"/>
     <function name="virConnectCredentialPtr" link="libvirt-libvirt.html#virConnectCredentialPtr"/>
     <function name="virConnectCredentialType" link="libvirt-libvirt.html#virConnectCredentialType"/>

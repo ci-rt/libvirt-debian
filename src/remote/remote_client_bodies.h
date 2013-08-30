@@ -287,10 +287,10 @@ remoteConnectListDefinedDomains(virConnectPtr conn, char **const names, int maxn
 
     remoteDriverLock(priv);
 
-    if (maxnames > REMOTE_DOMAIN_NAME_LIST_MAX) {
+    if (maxnames > REMOTE_DOMAIN_LIST_MAX) {
         virReportError(VIR_ERR_RPC,
                        _("too many remote undefineds: %d > %d"),
-                       maxnames, REMOTE_DOMAIN_NAME_LIST_MAX);
+                       maxnames, REMOTE_DOMAIN_LIST_MAX);
         goto done;
     }
 
@@ -347,10 +347,10 @@ remoteConnectListDefinedInterfaces(virConnectPtr conn, char **const names, int m
 
     remoteDriverLock(priv);
 
-    if (maxnames > REMOTE_DEFINED_INTERFACE_NAME_LIST_MAX) {
+    if (maxnames > REMOTE_INTERFACE_LIST_MAX) {
         virReportError(VIR_ERR_RPC,
                        _("too many remote undefineds: %d > %d"),
-                       maxnames, REMOTE_DEFINED_INTERFACE_NAME_LIST_MAX);
+                       maxnames, REMOTE_INTERFACE_LIST_MAX);
         goto done;
     }
 
@@ -407,10 +407,10 @@ remoteConnectListDefinedNetworks(virConnectPtr conn, char **const names, int max
 
     remoteDriverLock(priv);
 
-    if (maxnames > REMOTE_NETWORK_NAME_LIST_MAX) {
+    if (maxnames > REMOTE_NETWORK_LIST_MAX) {
         virReportError(VIR_ERR_RPC,
                        _("too many remote undefineds: %d > %d"),
-                       maxnames, REMOTE_NETWORK_NAME_LIST_MAX);
+                       maxnames, REMOTE_NETWORK_LIST_MAX);
         goto done;
     }
 
@@ -467,10 +467,10 @@ remoteConnectListDefinedStoragePools(virConnectPtr conn, char **const names, int
 
     remoteDriverLock(priv);
 
-    if (maxnames > REMOTE_STORAGE_POOL_NAME_LIST_MAX) {
+    if (maxnames > REMOTE_STORAGE_POOL_LIST_MAX) {
         virReportError(VIR_ERR_RPC,
                        _("too many remote undefineds: %d > %d"),
-                       maxnames, REMOTE_STORAGE_POOL_NAME_LIST_MAX);
+                       maxnames, REMOTE_STORAGE_POOL_LIST_MAX);
         goto done;
     }
 
@@ -527,10 +527,10 @@ remoteConnectListInterfaces(virConnectPtr conn, char **const names, int maxnames
 
     remoteDriverLock(priv);
 
-    if (maxnames > REMOTE_INTERFACE_NAME_LIST_MAX) {
+    if (maxnames > REMOTE_INTERFACE_LIST_MAX) {
         virReportError(VIR_ERR_RPC,
                        _("too many remote undefineds: %d > %d"),
-                       maxnames, REMOTE_INTERFACE_NAME_LIST_MAX);
+                       maxnames, REMOTE_INTERFACE_LIST_MAX);
         goto done;
     }
 
@@ -587,10 +587,10 @@ remoteConnectListNetworks(virConnectPtr conn, char **const names, int maxnames)
 
     remoteDriverLock(priv);
 
-    if (maxnames > REMOTE_NETWORK_NAME_LIST_MAX) {
+    if (maxnames > REMOTE_NETWORK_LIST_MAX) {
         virReportError(VIR_ERR_RPC,
                        _("too many remote undefineds: %d > %d"),
-                       maxnames, REMOTE_NETWORK_NAME_LIST_MAX);
+                       maxnames, REMOTE_NETWORK_LIST_MAX);
         goto done;
     }
 
@@ -647,10 +647,10 @@ remoteConnectListNWFilters(virConnectPtr conn, char **const names, int maxnames)
 
     remoteDriverLock(priv);
 
-    if (maxnames > REMOTE_NWFILTER_NAME_LIST_MAX) {
+    if (maxnames > REMOTE_NWFILTER_LIST_MAX) {
         virReportError(VIR_ERR_RPC,
                        _("too many remote undefineds: %d > %d"),
-                       maxnames, REMOTE_NWFILTER_NAME_LIST_MAX);
+                       maxnames, REMOTE_NWFILTER_LIST_MAX);
         goto done;
     }
 
@@ -707,10 +707,10 @@ remoteConnectListSecrets(virConnectPtr conn, char **const uuids, int maxuuids)
 
     remoteDriverLock(priv);
 
-    if (maxuuids > REMOTE_SECRET_UUID_LIST_MAX) {
+    if (maxuuids > REMOTE_SECRET_LIST_MAX) {
         virReportError(VIR_ERR_RPC,
                        _("too many remote undefineds: %d > %d"),
-                       maxuuids, REMOTE_SECRET_UUID_LIST_MAX);
+                       maxuuids, REMOTE_SECRET_LIST_MAX);
         goto done;
     }
 
@@ -767,10 +767,10 @@ remoteConnectListStoragePools(virConnectPtr conn, char **const names, int maxnam
 
     remoteDriverLock(priv);
 
-    if (maxnames > REMOTE_STORAGE_POOL_NAME_LIST_MAX) {
+    if (maxnames > REMOTE_STORAGE_POOL_LIST_MAX) {
         virReportError(VIR_ERR_RPC,
                        _("too many remote undefineds: %d > %d"),
-                       maxnames, REMOTE_STORAGE_POOL_NAME_LIST_MAX);
+                       maxnames, REMOTE_STORAGE_POOL_LIST_MAX);
         goto done;
     }
 
@@ -3876,10 +3876,10 @@ remoteDomainSnapshotListChildrenNames(virDomainSnapshotPtr snap, char **const na
 
     remoteDriverLock(priv);
 
-    if (maxnames > REMOTE_DOMAIN_SNAPSHOT_LIST_NAMES_MAX) {
+    if (maxnames > REMOTE_DOMAIN_SNAPSHOT_LIST_MAX) {
         virReportError(VIR_ERR_RPC,
                        _("too many remote undefineds: %d > %d"),
-                       maxnames, REMOTE_DOMAIN_SNAPSHOT_LIST_NAMES_MAX);
+                       maxnames, REMOTE_DOMAIN_SNAPSHOT_LIST_MAX);
         goto done;
     }
 
@@ -3938,10 +3938,10 @@ remoteDomainSnapshotListNames(virDomainPtr dom, char **const names, int maxnames
 
     remoteDriverLock(priv);
 
-    if (maxnames > REMOTE_DOMAIN_SNAPSHOT_LIST_NAMES_MAX) {
+    if (maxnames > REMOTE_DOMAIN_SNAPSHOT_LIST_MAX) {
         virReportError(VIR_ERR_RPC,
                        _("too many remote undefineds: %d > %d"),
-                       maxnames, REMOTE_DOMAIN_SNAPSHOT_LIST_NAMES_MAX);
+                       maxnames, REMOTE_DOMAIN_SNAPSHOT_LIST_MAX);
         goto done;
     }
 
@@ -5157,10 +5157,10 @@ remoteNodeListDevices(virConnectPtr conn, const char *cap, char **const names, i
 
     remoteDriverLock(priv);
 
-    if (maxnames > REMOTE_NODE_DEVICE_NAME_LIST_MAX) {
+    if (maxnames > REMOTE_NODE_DEVICE_LIST_MAX) {
         virReportError(VIR_ERR_RPC,
                        _("too many remote undefineds: %d > %d"),
-                       maxnames, REMOTE_NODE_DEVICE_NAME_LIST_MAX);
+                       maxnames, REMOTE_NODE_DEVICE_LIST_MAX);
         goto done;
     }
 
@@ -5909,10 +5909,10 @@ remoteStoragePoolListVolumes(virStoragePoolPtr pool, char **const names, int max
 
     remoteDriverLock(priv);
 
-    if (maxnames > REMOTE_STORAGE_VOL_NAME_LIST_MAX) {
+    if (maxnames > REMOTE_STORAGE_VOL_LIST_MAX) {
         virReportError(VIR_ERR_RPC,
                        _("too many remote undefineds: %d > %d"),
-                       maxnames, REMOTE_STORAGE_VOL_NAME_LIST_MAX);
+                       maxnames, REMOTE_STORAGE_VOL_LIST_MAX);
         goto done;
     }
 

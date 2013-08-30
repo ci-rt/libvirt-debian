@@ -1050,6 +1050,13 @@ remoteDispatchConnectListAllDomains(virNetServerPtr server ATTRIBUTE_UNUSED,
                                              args->flags)) < 0)
         goto cleanup;
 
+    if (ndomains > REMOTE_DOMAIN_LIST_MAX) {
+        virReportError(VIR_ERR_RPC,
+                       _("Too many domains '%d' for limit '%d'"),
+                       ndomains, REMOTE_DOMAIN_LIST_MAX);
+        goto cleanup;
+    }
+
     if (doms && ndomains) {
         if (VIR_ALLOC_N(ret->domains.domains_val, ndomains) < 0)
             goto cleanup;
@@ -3934,6 +3941,13 @@ remoteDispatchDomainListAllSnapshots(virNetServerPtr server ATTRIBUTE_UNUSED,
                                             args->flags)) < 0)
         goto cleanup;
 
+    if (nsnaps > REMOTE_DOMAIN_SNAPSHOT_LIST_MAX) {
+        virReportError(VIR_ERR_RPC,
+                       _("Too many domain snapshots '%d' for limit '%d'"),
+                       nsnaps, REMOTE_DOMAIN_SNAPSHOT_LIST_MAX);
+        goto cleanup;
+    }
+
     if (snaps && nsnaps) {
         if (VIR_ALLOC_N(ret->snapshots.snapshots_val, nsnaps) < 0)
             goto cleanup;
@@ -3996,6 +4010,13 @@ remoteDispatchDomainSnapshotListAllChildren(virNetServerPtr server ATTRIBUTE_UNU
                                                    args->flags)) < 0)
         goto cleanup;
 
+    if (nsnaps > REMOTE_DOMAIN_SNAPSHOT_LIST_MAX) {
+        virReportError(VIR_ERR_RPC,
+                       _("Too many domain snapshots '%d' for limit '%d'"),
+                       nsnaps, REMOTE_DOMAIN_SNAPSHOT_LIST_MAX);
+        goto cleanup;
+    }
+
     if (snaps && nsnaps) {
         if (VIR_ALLOC_N(ret->snapshots.snapshots_val, nsnaps) < 0)
             goto cleanup;
@@ -4051,6 +4072,13 @@ remoteDispatchConnectListAllStoragePools(virNetServerPtr server ATTRIBUTE_UNUSED
                                                 args->need_results ? &pools : NULL,
                                                 args->flags)) < 0)
         goto cleanup;
+
+    if (npools > REMOTE_STORAGE_POOL_LIST_MAX) {
+        virReportError(VIR_ERR_RPC,
+                       _("Too many storage pools '%d' for limit '%d'"),
+                       npools, REMOTE_STORAGE_POOL_LIST_MAX);
+        goto cleanup;
+    }
 
     if (pools && npools) {
         if (VIR_ALLOC_N(ret->pools.pools_val, npools) < 0)
@@ -4108,6 +4136,13 @@ remoteDispatchStoragePoolListAllVolumes(virNetServerPtr server ATTRIBUTE_UNUSED,
                                               args->flags)) < 0)
         goto cleanup;
 
+    if (nvols > REMOTE_STORAGE_VOL_LIST_MAX) {
+        virReportError(VIR_ERR_RPC,
+                       _("Too many storage volumes '%d' for limit '%d'"),
+                       nvols, REMOTE_STORAGE_VOL_LIST_MAX);
+        goto cleanup;
+    }
+
     if (vols && nvols) {
         if (VIR_ALLOC_N(ret->vols.vols_val, nvols) < 0)
             goto cleanup;
@@ -4162,6 +4197,13 @@ remoteDispatchConnectListAllNetworks(virNetServerPtr server ATTRIBUTE_UNUSED,
                                            args->flags)) < 0)
         goto cleanup;
 
+    if (nnets > REMOTE_NETWORK_LIST_MAX) {
+        virReportError(VIR_ERR_RPC,
+                       _("Too many networks '%d' for limit '%d'"),
+                       nnets, REMOTE_NETWORK_LIST_MAX);
+        goto cleanup;
+    }
+
     if (nets && nnets) {
         if (VIR_ALLOC_N(ret->nets.nets_val, nnets) < 0)
             goto cleanup;
@@ -4213,6 +4255,13 @@ remoteDispatchConnectListAllInterfaces(virNetServerPtr server ATTRIBUTE_UNUSED,
                                                args->need_results ? &ifaces : NULL,
                                                args->flags)) < 0)
         goto cleanup;
+
+    if (nifaces > REMOTE_INTERFACE_LIST_MAX) {
+        virReportError(VIR_ERR_RPC,
+                       _("Too many interfaces '%d' for limit '%d'"),
+                       nifaces, REMOTE_INTERFACE_LIST_MAX);
+        goto cleanup;
+    }
 
     if (ifaces && nifaces) {
         if (VIR_ALLOC_N(ret->ifaces.ifaces_val, nifaces) < 0)
@@ -4266,6 +4315,13 @@ remoteDispatchConnectListAllNodeDevices(virNetServerPtr server ATTRIBUTE_UNUSED,
                                                  args->flags)) < 0)
         goto cleanup;
 
+    if (ndevices > REMOTE_NODE_DEVICE_LIST_MAX) {
+        virReportError(VIR_ERR_RPC,
+                       _("Too many node devices '%d' for limit '%d'"),
+                       ndevices, REMOTE_NODE_DEVICE_LIST_MAX);
+        goto cleanup;
+    }
+
     if (devices && ndevices) {
         if (VIR_ALLOC_N(ret->devices.devices_val, ndevices) < 0)
             goto cleanup;
@@ -4318,6 +4374,13 @@ remoteDispatchConnectListAllNWFilters(virNetServerPtr server ATTRIBUTE_UNUSED,
                                                args->flags)) < 0)
         goto cleanup;
 
+    if (nfilters > REMOTE_NWFILTER_LIST_MAX) {
+        virReportError(VIR_ERR_RPC,
+                       _("Too many network filters '%d' for limit '%d'"),
+                       nfilters, REMOTE_NWFILTER_LIST_MAX);
+        goto cleanup;
+    }
+
     if (filters && nfilters) {
         if (VIR_ALLOC_N(ret->filters.filters_val, nfilters) < 0)
             goto cleanup;
@@ -4369,6 +4432,13 @@ remoteDispatchConnectListAllSecrets(virNetServerPtr server ATTRIBUTE_UNUSED,
                                              args->need_results ? &secrets : NULL,
                                              args->flags)) < 0)
         goto cleanup;
+
+    if (nsecrets > REMOTE_SECRET_LIST_MAX) {
+        virReportError(VIR_ERR_RPC,
+                       _("Too many secrets '%d' for limit '%d'"),
+                       nsecrets, REMOTE_SECRET_LIST_MAX);
+        goto cleanup;
+    }
 
     if (secrets && nsecrets) {
         if (VIR_ALLOC_N(ret->secrets.secrets_val, nsecrets) < 0)
@@ -4579,6 +4649,13 @@ remoteDispatchDomainGetJobStats(virNetServerPtr server ATTRIBUTE_UNUSED,
                              &nparams, args->flags) < 0)
         goto cleanup;
 
+    if (nparams > REMOTE_DOMAIN_JOB_STATS_MAX) {
+        virReportError(VIR_ERR_RPC,
+                       _("Too many job stats '%d' for limit '%d'"),
+                       nparams, REMOTE_DOMAIN_JOB_STATS_MAX);
+        goto cleanup;
+    }
+
     if (remoteSerializeTypedParameters(params, nparams,
                                        &ret->params.params_val,
                                        &ret->params.params_len,
@@ -4617,6 +4694,13 @@ remoteDispatchDomainMigrateBegin3Params(
 
     if (!priv->conn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (args->params.params_len > REMOTE_DOMAIN_MIGRATE_PARAM_LIST_MAX) {
+        virReportError(VIR_ERR_RPC,
+                       _("Too many migration parameters '%d' for limit '%d'"),
+                       args->params.params_len, REMOTE_DOMAIN_MIGRATE_PARAM_LIST_MAX);
         goto cleanup;
     }
 
@@ -4668,6 +4752,13 @@ remoteDispatchDomainMigratePrepare3Params(
 
     if (!priv->conn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (args->params.params_len > REMOTE_DOMAIN_MIGRATE_PARAM_LIST_MAX) {
+        virReportError(VIR_ERR_RPC,
+                       _("Too many migration parameters '%d' for limit '%d'"),
+                       args->params.params_len, REMOTE_DOMAIN_MIGRATE_PARAM_LIST_MAX);
         goto cleanup;
     }
 
@@ -4723,6 +4814,13 @@ remoteDispatchDomainMigratePrepareTunnel3Params(
 
     if (!priv->conn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (args->params.params_len > REMOTE_DOMAIN_MIGRATE_PARAM_LIST_MAX) {
+        virReportError(VIR_ERR_RPC,
+                       _("Too many migration parameters '%d' for limit '%d'"),
+                       args->params.params_len, REMOTE_DOMAIN_MIGRATE_PARAM_LIST_MAX);
         goto cleanup;
     }
 
@@ -4790,6 +4888,13 @@ remoteDispatchDomainMigratePerform3Params(
         goto cleanup;
     }
 
+    if (args->params.params_len > REMOTE_DOMAIN_MIGRATE_PARAM_LIST_MAX) {
+        virReportError(VIR_ERR_RPC,
+                       _("Too many migration parameters '%d' for limit '%d'"),
+                       args->params.params_len, REMOTE_DOMAIN_MIGRATE_PARAM_LIST_MAX);
+        goto cleanup;
+    }
+
     if (!(dom = get_nonnull_domain(priv->conn, args->dom)))
         goto cleanup;
 
@@ -4845,6 +4950,13 @@ remoteDispatchDomainMigrateFinish3Params(
         goto cleanup;
     }
 
+    if (args->params.params_len > REMOTE_DOMAIN_MIGRATE_PARAM_LIST_MAX) {
+        virReportError(VIR_ERR_RPC,
+                       _("Too many migration parameters '%d' for limit '%d'"),
+                       args->params.params_len, REMOTE_DOMAIN_MIGRATE_PARAM_LIST_MAX);
+        goto cleanup;
+    }
+
     if (!(params = remoteDeserializeTypedParameters(args->params.params_val,
                                                     args->params.params_len,
                                                     0, &nparams)))
@@ -4894,6 +5006,13 @@ remoteDispatchDomainMigrateConfirm3Params(
 
     if (!priv->conn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (args->params.params_len > REMOTE_DOMAIN_MIGRATE_PARAM_LIST_MAX) {
+        virReportError(VIR_ERR_RPC,
+                       _("Too many migration parameters '%d' for limit '%d'"),
+                       args->params.params_len, REMOTE_DOMAIN_MIGRATE_PARAM_LIST_MAX);
         goto cleanup;
     }
 

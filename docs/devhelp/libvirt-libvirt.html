@@ -149,6 +149,7 @@ typedef enum <a href="#virCPUCompareResult">virCPUCompareResult</a>;
 typedef struct _virConnect <a href="#virConnect">virConnect</a>;
 typedef struct _virConnectAuth <a href="#virConnectAuth">virConnectAuth</a>;
 typedef <a href="libvirt-libvirt.html#virConnectAuth">virConnectAuth</a> * <a href="#virConnectAuthPtr">virConnectAuthPtr</a>;
+typedef enum <a href="#virConnectBaselineCPUFlags">virConnectBaselineCPUFlags</a>;
 typedef enum <a href="#virConnectCloseReason">virConnectCloseReason</a>;
 typedef struct _virConnectCredential <a href="#virConnectCredential">virConnectCredential</a>;
 typedef <a href="libvirt-libvirt.html#virConnectCredential">virConnectCredential</a> * <a href="#virConnectCredentialPtr">virConnectCredentialPtr</a>;
@@ -1202,6 +1203,12 @@ The content of this structure is not made public by the API.
 </pre><p/>
 </div>
         <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectBaselineCPUFlags">Enum </a>virConnectBaselineCPUFlags</h3><pre class="programlisting">enum <a href="#virConnectBaselineCPUFlags">virConnectBaselineCPUFlags</a> {
+    <a name="VIR_CONNECT_BASELINE_CPU_EXPAND_FEATURES">VIR_CONNECT_BASELINE_CPU_EXPAND_FEATURES</a> = 1 /* show all features */
+};
+</pre><p/>
+</div>
+        <hr/>
         <div class="refsect2" lang="en"><h3><a name="virConnectCloseReason">Enum </a>virConnectCloseReason</h3><pre class="programlisting">enum <a href="#virConnectCloseReason">virConnectCloseReason</a> {
     <a name="VIR_CONNECT_CLOSE_REASON_ERROR">VIR_CONNECT_CLOSE_REASON_ERROR</a> = 0 /* Misc I/O error */
     <a name="VIR_CONNECT_CLOSE_REASON_EOF">VIR_CONNECT_CLOSE_REASON_EOF</a> = 1 /* End-of-file from server */
@@ -1254,7 +1261,8 @@ The content of this structure is not made public by the API.
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virConnectDomainEventDiskChangeReason">Enum </a>virConnectDomainEventDiskChangeReason</h3><pre class="programlisting">enum <a href="#virConnectDomainEventDiskChangeReason">virConnectDomainEventDiskChangeReason</a> {
     <a name="VIR_DOMAIN_EVENT_DISK_CHANGE_MISSING_ON_START">VIR_DOMAIN_EVENT_DISK_CHANGE_MISSING_ON_START</a> = 0 /* oldSrcPath is set */
-    <a name="VIR_DOMAIN_EVENT_DISK_CHANGE_LAST">VIR_DOMAIN_EVENT_DISK_CHANGE_LAST</a> = 1
+    <a name="VIR_DOMAIN_EVENT_DISK_DROP_MISSING_ON_START">VIR_DOMAIN_EVENT_DISK_DROP_MISSING_ON_START</a> = 1
+    <a name="VIR_DOMAIN_EVENT_DISK_CHANGE_LAST">VIR_DOMAIN_EVENT_DISK_CHANGE_LAST</a> = 2
 };
 </pre><p/>
 </div>
@@ -2856,8 +2864,13 @@ of -1 at any time will abort the send operation</p>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virConnectBaselineCPU"/>virConnectBaselineCPU ()</h3><pre class="programlisting">char *	virConnectBaselineCPU		(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char ** xmlCPUs, <br/>					 unsigned int ncpus, <br/>					 unsigned int flags)<br/>
 </pre><p>Computes the most feature-rich CPU which is compatible with all given
-host CPUs.</p>
-<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td><a href="libvirt-libvirt.html#virConnect">virConnect</a> connection</td></tr><tr><td><span class="term"><i><tt>xmlCPUs</tt></i>:</span></td><td>array of XML descriptions of host CPUs</td></tr><tr><td><span class="term"><i><tt>ncpus</tt></i>:</span></td><td>number of CPUs in xmlCPUs</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>extra flags; not used yet, so callers should always pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>XML description of the computed CPU or NULL on error.</td></tr></tbody></table></div></div>
+host CPUs.
+
+If @flags includes <a href="libvirt-libvirt.html#VIR_CONNECT_BASELINE_CPU_EXPAND_FEATURES">VIR_CONNECT_BASELINE_CPU_EXPAND_FEATURES</a> then libvirt
+will explicitly list all CPU features that are part of the host CPU,
+without this flag features that are part of the CPU model will not be
+listed.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td><a href="libvirt-libvirt.html#virConnect">virConnect</a> connection</td></tr><tr><td><span class="term"><i><tt>xmlCPUs</tt></i>:</span></td><td>array of XML descriptions of host CPUs</td></tr><tr><td><span class="term"><i><tt>ncpus</tt></i>:</span></td><td>number of CPUs in xmlCPUs</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt.html#virConnectBaselineCPUFlags">virConnectBaselineCPUFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>XML description of the computed CPU or NULL on error.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virConnectClose"/>virConnectClose ()</h3><pre class="programlisting">int	virConnectClose			(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn)<br/>
 </pre><p>This function closes the connection to the Hypervisor. This should
