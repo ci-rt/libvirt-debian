@@ -814,7 +814,7 @@ int qemuDomainAttachNetDevice(virConnectPtr conn,
     size_t i;
 
     /* preallocate new slot for device */
-    if (VIR_REALLOC_N(vm->def->nets, vm->def->nnets+1) < 0)
+    if (VIR_REALLOC_N(vm->def->nets, vm->def->nnets + 1) < 0)
         goto cleanup;
 
     /* If appropriate, grab a physical device from the configured
@@ -1066,6 +1066,8 @@ cleanup:
                                virDomainNetGetActualBridgeName(net), net->ifname));
         }
 
+        virDomainNetRemoveHostdev(vm->def, net);
+
         networkReleaseActualDevice(net);
     }
 
@@ -1134,7 +1136,7 @@ int qemuDomainAttachHostPciDevice(virQEMUDriverPtr driver,
     char *configfd_name = NULL;
     bool releaseaddr = false;
 
-    if (VIR_REALLOC_N(vm->def->hostdevs, vm->def->nhostdevs+1) < 0)
+    if (VIR_REALLOC_N(vm->def->hostdevs, vm->def->nhostdevs + 1) < 0)
         return -1;
 
     if (qemuPrepareHostdevPCIDevices(driver, vm->def->name, vm->def->uuid,
@@ -2107,6 +2109,9 @@ qemuDomainChangeNet(virQEMUDriverPtr driver,
         /* the changes above warrant replacing olddev with newdev in
          * the domain's nets list.
          */
+
+        /* this function doesn't work with HOSTDEV networks yet, thus
+         * no need to change the pointer in the hostdev structure */
         networkReleaseActualDevice(olddev);
         virDomainNetDefFree(olddev);
         /* move newdev into the nets list, and NULL it out from the

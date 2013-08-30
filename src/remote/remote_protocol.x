@@ -73,13 +73,8 @@ typedef string remote_nonnull_string<REMOTE_STRING_MAX>;
 /* A long string, which may be NULL. */
 typedef remote_nonnull_string *remote_string;
 
-/* This just places an upper limit on the length of lists of
- * domain IDs which may be sent via the protocol.
- */
-const REMOTE_DOMAIN_ID_LIST_MAX = 16384;
-
-/* Upper limit on lists of domain names. */
-const REMOTE_DOMAIN_NAME_LIST_MAX = 16384;
+/* Upper limit on lists of domains. */
+const REMOTE_DOMAIN_LIST_MAX = 16384;
 
 /* Upper limit on cpumap (bytes) passed to virDomainPinVcpu. */
 const REMOTE_CPUMAP_MAX = 2048;
@@ -93,29 +88,26 @@ const REMOTE_CPUMAPS_MAX = 8388608;
 /* Upper limit on migrate cookie. */
 const REMOTE_MIGRATE_COOKIE_MAX = 16384;
 
-/* Upper limit on lists of network names. */
-const REMOTE_NETWORK_NAME_LIST_MAX = 16384;
+/* Upper limit on lists of networks. */
+const REMOTE_NETWORK_LIST_MAX = 16384;
 
-/* Upper limit on lists of interface names. */
-const REMOTE_INTERFACE_NAME_LIST_MAX = 16384;
+/* Upper limit on lists of interfaces. */
+const REMOTE_INTERFACE_LIST_MAX = 16384;
 
-/* Upper limit on lists of defined interface names. */
-const REMOTE_DEFINED_INTERFACE_NAME_LIST_MAX = 16384;
+/* Upper limit on lists of storage pools. */
+const REMOTE_STORAGE_POOL_LIST_MAX = 4096;
 
-/* Upper limit on lists of storage pool names. */
-const REMOTE_STORAGE_POOL_NAME_LIST_MAX = 4096;
+/* Upper limit on lists of storage vols. */
+const REMOTE_STORAGE_VOL_LIST_MAX = 16384;
 
-/* Upper limit on lists of storage vol names. */
-const REMOTE_STORAGE_VOL_NAME_LIST_MAX = 16384;
-
-/* Upper limit on lists of node device names. */
-const REMOTE_NODE_DEVICE_NAME_LIST_MAX = 16384;
+/* Upper limit on lists of node devices. */
+const REMOTE_NODE_DEVICE_LIST_MAX = 16384;
 
 /* Upper limit on lists of node device capabilities. */
 const REMOTE_NODE_DEVICE_CAPS_LIST_MAX = 65536;
 
-/* Upper limit on lists of network filter names. */
-const REMOTE_NWFILTER_NAME_LIST_MAX = 1024;
+/* Upper limit on lists of network filters. */
+const REMOTE_NWFILTER_LIST_MAX = 1024;
 
 /* Upper limit on list of scheduler parameters. */
 const REMOTE_DOMAIN_SCHEDULER_PARAMETERS_MAX = 16;
@@ -154,7 +146,7 @@ const REMOTE_AUTH_TYPE_LIST_MAX = 20;
 const REMOTE_DOMAIN_MEMORY_STATS_MAX = 1024;
 
 /* Upper limit on lists of domain snapshots. */
-const REMOTE_DOMAIN_SNAPSHOT_LIST_NAMES_MAX = 1024;
+const REMOTE_DOMAIN_SNAPSHOT_LIST_MAX = 1024;
 
 /* Maximum length of a block peek buffer message.
  * Note applications need to be aware of this limit and issue multiple
@@ -196,7 +188,7 @@ const REMOTE_SECRET_VALUE_MAX = 65536;
 /*
  * Upper limit on list of secrets.
  */
-const REMOTE_SECRET_UUID_LIST_MAX = 16384;
+const REMOTE_SECRET_LIST_MAX = 16384;
 
 /*
  * Upper limit on list of CPUs accepted when computing a baseline CPU.
@@ -233,6 +225,12 @@ const REMOTE_DOMAIN_DISK_ERRORS_MAX = 256;
  * Upper limit on number of memory parameters
  */
 const REMOTE_NODE_MEMORY_PARAMETERS_MAX = 64;
+
+/* Upper limit on migrate parameters */
+const REMOTE_DOMAIN_MIGRATE_PARAM_LIST_MAX = 64;
+
+/* Upper limit on number of job stats */
+const REMOTE_DOMAIN_JOB_STATS_MAX = 16;
 
 /* UUID.  VIR_UUID_BUFLEN definition comes from libvirt.h */
 typedef opaque remote_uuid[VIR_UUID_BUFLEN];
@@ -718,7 +716,7 @@ struct remote_connect_list_domains_args {
 };
 
 struct remote_connect_list_domains_ret {
-    int ids<REMOTE_DOMAIN_ID_LIST_MAX>; /* insert@1 */
+    int ids<REMOTE_DOMAIN_LIST_MAX>; /* insert@1 */
 };
 
 struct remote_connect_num_of_domains_ret {
@@ -984,7 +982,7 @@ struct remote_connect_list_defined_domains_args {
 };
 
 struct remote_connect_list_defined_domains_ret {
-    remote_nonnull_string names<REMOTE_DOMAIN_NAME_LIST_MAX>; /* insert@1 */
+    remote_nonnull_string names<REMOTE_DOMAIN_LIST_MAX>; /* insert@1 */
 };
 
 struct remote_connect_num_of_defined_domains_ret {
@@ -1316,7 +1314,7 @@ struct remote_connect_list_networks_args {
 };
 
 struct remote_connect_list_networks_ret {
-    remote_nonnull_string names<REMOTE_NETWORK_NAME_LIST_MAX>; /* insert@1 */
+    remote_nonnull_string names<REMOTE_NETWORK_LIST_MAX>; /* insert@1 */
 };
 
 struct remote_connect_num_of_defined_networks_ret {
@@ -1328,7 +1326,7 @@ struct remote_connect_list_defined_networks_args {
 };
 
 struct remote_connect_list_defined_networks_ret {
-    remote_nonnull_string names<REMOTE_NETWORK_NAME_LIST_MAX>; /* insert@1 */
+    remote_nonnull_string names<REMOTE_NETWORK_LIST_MAX>; /* insert@1 */
 };
 
 struct remote_network_lookup_by_uuid_args {
@@ -1425,7 +1423,7 @@ struct remote_connect_list_nwfilters_args {
 };
 
 struct remote_connect_list_nwfilters_ret {
-    remote_nonnull_string names<REMOTE_NWFILTER_NAME_LIST_MAX>; /* insert@1 */
+    remote_nonnull_string names<REMOTE_NWFILTER_LIST_MAX>; /* insert@1 */
 };
 
 struct remote_nwfilter_lookup_by_uuid_args {
@@ -1477,7 +1475,7 @@ struct remote_connect_list_interfaces_args {
 };
 
 struct remote_connect_list_interfaces_ret {
-    remote_nonnull_string names<REMOTE_INTERFACE_NAME_LIST_MAX>; /* insert@1 */
+    remote_nonnull_string names<REMOTE_INTERFACE_LIST_MAX>; /* insert@1 */
 };
 
 struct remote_connect_num_of_defined_interfaces_ret {
@@ -1489,7 +1487,7 @@ struct remote_connect_list_defined_interfaces_args {
 };
 
 struct remote_connect_list_defined_interfaces_ret {
-    remote_nonnull_string names<REMOTE_DEFINED_INTERFACE_NAME_LIST_MAX>; /* insert@1 */
+    remote_nonnull_string names<REMOTE_INTERFACE_LIST_MAX>; /* insert@1 */
 };
 
 struct remote_interface_lookup_by_name_args {
@@ -1603,7 +1601,7 @@ struct remote_connect_list_storage_pools_args {
 };
 
 struct remote_connect_list_storage_pools_ret {
-    remote_nonnull_string names<REMOTE_STORAGE_POOL_NAME_LIST_MAX>; /* insert@1 */
+    remote_nonnull_string names<REMOTE_STORAGE_POOL_LIST_MAX>; /* insert@1 */
 };
 
 struct remote_connect_num_of_defined_storage_pools_ret {
@@ -1615,7 +1613,7 @@ struct remote_connect_list_defined_storage_pools_args {
 };
 
 struct remote_connect_list_defined_storage_pools_ret {
-    remote_nonnull_string names<REMOTE_STORAGE_POOL_NAME_LIST_MAX>; /* insert@1 */
+    remote_nonnull_string names<REMOTE_STORAGE_POOL_LIST_MAX>; /* insert@1 */
 };
 
 struct remote_connect_find_storage_pool_sources_args {
@@ -1745,7 +1743,7 @@ struct remote_storage_pool_list_volumes_args {
 };
 
 struct remote_storage_pool_list_volumes_ret {
-    remote_nonnull_string names<REMOTE_STORAGE_VOL_NAME_LIST_MAX>; /* insert@1 */
+    remote_nonnull_string names<REMOTE_STORAGE_VOL_LIST_MAX>; /* insert@1 */
 };
 
 
@@ -1865,7 +1863,7 @@ struct remote_node_list_devices_args {
 };
 
 struct remote_node_list_devices_ret {
-    remote_nonnull_string names<REMOTE_NODE_DEVICE_NAME_LIST_MAX>; /* insert@2 */
+    remote_nonnull_string names<REMOTE_NODE_DEVICE_LIST_MAX>; /* insert@2 */
 };
 
 struct remote_node_device_lookup_by_name_args {
@@ -2004,7 +2002,7 @@ struct remote_connect_list_secrets_args {
 };
 
 struct remote_connect_list_secrets_ret {
-    remote_nonnull_string uuids<REMOTE_SECRET_UUID_LIST_MAX>; /* insert@1 */
+    remote_nonnull_string uuids<REMOTE_SECRET_LIST_MAX>; /* insert@1 */
 };
 
 struct remote_secret_lookup_by_uuid_args {
@@ -2193,7 +2191,7 @@ struct remote_domain_get_job_stats_args {
 
 struct remote_domain_get_job_stats_ret {
     int type;
-    remote_typed_param params<>;
+    remote_typed_param params<REMOTE_DOMAIN_JOB_STATS_MAX>;
 };
 
 
@@ -2390,7 +2388,7 @@ struct remote_domain_snapshot_list_names_args {
 };
 
 struct remote_domain_snapshot_list_names_ret {
-    remote_nonnull_string names<REMOTE_DOMAIN_SNAPSHOT_LIST_NAMES_MAX>; /* insert@1 */
+    remote_nonnull_string names<REMOTE_DOMAIN_SNAPSHOT_LIST_MAX>; /* insert@1 */
 };
 
 struct remote_domain_list_all_snapshots_args {
@@ -2400,7 +2398,7 @@ struct remote_domain_list_all_snapshots_args {
 };
 
 struct remote_domain_list_all_snapshots_ret {
-    remote_nonnull_domain_snapshot snapshots<>;
+    remote_nonnull_domain_snapshot snapshots<REMOTE_DOMAIN_SNAPSHOT_LIST_MAX>;
     int ret;
 };
 
@@ -2420,7 +2418,7 @@ struct remote_domain_snapshot_list_children_names_args {
 };
 
 struct remote_domain_snapshot_list_children_names_ret {
-    remote_nonnull_string names<REMOTE_DOMAIN_SNAPSHOT_LIST_NAMES_MAX>; /* insert@1 */
+    remote_nonnull_string names<REMOTE_DOMAIN_SNAPSHOT_LIST_MAX>; /* insert@1 */
 };
 
 struct remote_domain_snapshot_list_all_children_args {
@@ -2430,7 +2428,7 @@ struct remote_domain_snapshot_list_all_children_args {
 };
 
 struct remote_domain_snapshot_list_all_children_ret {
-    remote_nonnull_domain_snapshot snapshots<>;
+    remote_nonnull_domain_snapshot snapshots<REMOTE_DOMAIN_SNAPSHOT_LIST_MAX>;
     int ret;
 };
 
@@ -2659,7 +2657,7 @@ struct remote_connect_list_all_domains_args {
 };
 
 struct remote_connect_list_all_domains_ret {
-    remote_nonnull_domain domains<>;
+    remote_nonnull_domain domains<REMOTE_DOMAIN_LIST_MAX>;
     unsigned int ret;
 };
 
@@ -2669,7 +2667,7 @@ struct remote_connect_list_all_storage_pools_args {
 };
 
 struct remote_connect_list_all_storage_pools_ret {
-    remote_nonnull_storage_pool pools<>;
+    remote_nonnull_storage_pool pools<REMOTE_STORAGE_POOL_LIST_MAX>;
     unsigned int ret;
 };
 
@@ -2680,7 +2678,7 @@ struct remote_storage_pool_list_all_volumes_args {
 };
 
 struct remote_storage_pool_list_all_volumes_ret {
-    remote_nonnull_storage_vol vols<>;
+    remote_nonnull_storage_vol vols<REMOTE_STORAGE_VOL_LIST_MAX>;
     unsigned int ret;
 };
 
@@ -2690,7 +2688,7 @@ struct remote_connect_list_all_networks_args {
 };
 
 struct remote_connect_list_all_networks_ret {
-    remote_nonnull_network nets<>;
+    remote_nonnull_network nets<REMOTE_NETWORK_LIST_MAX>;
     unsigned int ret;
 };
 
@@ -2700,7 +2698,7 @@ struct remote_connect_list_all_interfaces_args {
 };
 
 struct remote_connect_list_all_interfaces_ret {
-    remote_nonnull_interface ifaces<>;
+    remote_nonnull_interface ifaces<REMOTE_INTERFACE_LIST_MAX>;
     unsigned int ret;
 };
 
@@ -2710,7 +2708,7 @@ struct remote_connect_list_all_node_devices_args {
 };
 
 struct remote_connect_list_all_node_devices_ret {
-    remote_nonnull_node_device devices<>;
+    remote_nonnull_node_device devices<REMOTE_NODE_DEVICE_LIST_MAX>;
     unsigned int ret;
 };
 
@@ -2720,7 +2718,7 @@ struct remote_connect_list_all_nwfilters_args {
 };
 
 struct remote_connect_list_all_nwfilters_ret {
-    remote_nonnull_nwfilter filters<>;
+    remote_nonnull_nwfilter filters<REMOTE_NWFILTER_LIST_MAX>;
     unsigned int ret;
 };
 
@@ -2730,7 +2728,7 @@ struct remote_connect_list_all_secrets_args {
 };
 
 struct remote_connect_list_all_secrets_ret {
-    remote_nonnull_secret secrets<>;
+    remote_nonnull_secret secrets<REMOTE_SECRET_LIST_MAX>;
     unsigned int ret;
 };
 
@@ -2770,7 +2768,7 @@ struct remote_domain_fstrim_args {
 
 struct remote_domain_migrate_begin3_params_args {
     remote_nonnull_domain dom;
-    remote_typed_param params<>;
+    remote_typed_param params<REMOTE_DOMAIN_MIGRATE_PARAM_LIST_MAX>;
     unsigned int flags;
 };
 
@@ -2780,7 +2778,7 @@ struct remote_domain_migrate_begin3_params_ret {
 };
 
 struct remote_domain_migrate_prepare3_params_args {
-    remote_typed_param params<>;
+    remote_typed_param params<REMOTE_DOMAIN_MIGRATE_PARAM_LIST_MAX>;
     opaque cookie_in<REMOTE_MIGRATE_COOKIE_MAX>;
     unsigned int flags;
 };
@@ -2791,7 +2789,7 @@ struct remote_domain_migrate_prepare3_params_ret {
 };
 
 struct remote_domain_migrate_prepare_tunnel3_params_args {
-    remote_typed_param params<>;
+    remote_typed_param params<REMOTE_DOMAIN_MIGRATE_PARAM_LIST_MAX>;
     opaque cookie_in<REMOTE_MIGRATE_COOKIE_MAX>;
     unsigned int flags;
 };
@@ -2803,7 +2801,7 @@ struct remote_domain_migrate_prepare_tunnel3_params_ret {
 struct remote_domain_migrate_perform3_params_args {
     remote_nonnull_domain dom;
     remote_string dconnuri;
-    remote_typed_param params<>;
+    remote_typed_param params<REMOTE_DOMAIN_MIGRATE_PARAM_LIST_MAX>;
     opaque cookie_in<REMOTE_MIGRATE_COOKIE_MAX>;
     unsigned int flags;
 };
@@ -2813,7 +2811,7 @@ struct remote_domain_migrate_perform3_params_ret {
 };
 
 struct remote_domain_migrate_finish3_params_args {
-    remote_typed_param params<>;
+    remote_typed_param params<REMOTE_DOMAIN_MIGRATE_PARAM_LIST_MAX>;
     opaque cookie_in<REMOTE_MIGRATE_COOKIE_MAX>;
     unsigned int flags;
     int cancelled;
@@ -2826,7 +2824,7 @@ struct remote_domain_migrate_finish3_params_ret {
 
 struct remote_domain_migrate_confirm3_params_args {
     remote_nonnull_domain dom;
-    remote_typed_param params<>;
+    remote_typed_param params<REMOTE_DOMAIN_MIGRATE_PARAM_LIST_MAX>;
     opaque cookie_in<REMOTE_MIGRATE_COOKIE_MAX>;
     unsigned int flags;
     int cancelled;

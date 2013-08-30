@@ -15,7 +15,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libvirt\n"
 "Report-Msgid-Bugs-To: libvir-list@redhat.com\n"
-"POT-Creation-Date: 2013-08-28 23:52+0800\n"
+"POT-Creation-Date: 2013-08-30 15:12+0800\n"
 "PO-Revision-Date: 2013-07-25 04:53+0000\n"
 "Last-Translator: Daniel <veillard@redhat.com>\n"
 "Language-Team: Tamil <tamil-users@lists.fedoraproject.org>\n"
@@ -291,27 +291,27 @@ msgid "unable to create rundir %s: %s"
 msgstr "rundir %sஐ உருவாக்க முடியவில்லை: %s"
 
 #: daemon/qemu_dispatch.h:38 daemon/qemu_dispatch.h:102 daemon/remote.c:799
-#: daemon/remote.c:994 daemon/remote.c:1044 daemon/remote.c:1097
-#: daemon/remote.c:1150 daemon/remote.c:1210 daemon/remote.c:1265
-#: daemon/remote.c:1328 daemon/remote.c:1379 daemon/remote.c:1425
-#: daemon/remote.c:1482 daemon/remote.c:1524 daemon/remote.c:1587
-#: daemon/remote.c:1627 daemon/remote.c:1679 daemon/remote.c:1761
-#: daemon/remote.c:1816 daemon/remote.c:1865 daemon/remote.c:1928
-#: daemon/remote.c:1991 daemon/remote.c:2055 daemon/remote.c:2127
-#: daemon/remote.c:2196 daemon/remote.c:2238 daemon/remote.c:3011
-#: daemon/remote.c:3061 daemon/remote.c:3102 daemon/remote.c:3180
-#: daemon/remote.c:3217 daemon/remote.c:3250 daemon/remote.c:3299
-#: daemon/remote.c:3345 daemon/remote.c:3386 daemon/remote.c:3437
-#: daemon/remote.c:3495 daemon/remote.c:3549 daemon/remote.c:3598
-#: daemon/remote.c:3645 daemon/remote.c:3685 daemon/remote.c:3730
-#: daemon/remote.c:3792 daemon/remote.c:3864 daemon/remote.c:3925
-#: daemon/remote.c:3984 daemon/remote.c:4046 daemon/remote.c:4099
-#: daemon/remote.c:4156 daemon/remote.c:4208 daemon/remote.c:4260
-#: daemon/remote.c:4312 daemon/remote.c:4364 daemon/remote.c:4417
-#: daemon/remote.c:4475 daemon/remote.c:4521 daemon/remote.c:4571
-#: daemon/remote.c:4619 daemon/remote.c:4670 daemon/remote.c:4725
-#: daemon/remote.c:4789 daemon/remote.c:4844 daemon/remote.c:4896
-#: daemon/remote.c:4943 daemon/remote.c:4993 daemon/remote_dispatch.h:143
+#: daemon/remote.c:994 daemon/remote.c:1044 daemon/remote.c:1104
+#: daemon/remote.c:1157 daemon/remote.c:1217 daemon/remote.c:1272
+#: daemon/remote.c:1335 daemon/remote.c:1386 daemon/remote.c:1432
+#: daemon/remote.c:1489 daemon/remote.c:1531 daemon/remote.c:1594
+#: daemon/remote.c:1634 daemon/remote.c:1686 daemon/remote.c:1768
+#: daemon/remote.c:1823 daemon/remote.c:1872 daemon/remote.c:1935
+#: daemon/remote.c:1998 daemon/remote.c:2062 daemon/remote.c:2134
+#: daemon/remote.c:2203 daemon/remote.c:2245 daemon/remote.c:3018
+#: daemon/remote.c:3068 daemon/remote.c:3109 daemon/remote.c:3187
+#: daemon/remote.c:3224 daemon/remote.c:3257 daemon/remote.c:3306
+#: daemon/remote.c:3352 daemon/remote.c:3393 daemon/remote.c:3444
+#: daemon/remote.c:3502 daemon/remote.c:3556 daemon/remote.c:3605
+#: daemon/remote.c:3652 daemon/remote.c:3692 daemon/remote.c:3737
+#: daemon/remote.c:3799 daemon/remote.c:3871 daemon/remote.c:3932
+#: daemon/remote.c:3998 daemon/remote.c:4067 daemon/remote.c:4127
+#: daemon/remote.c:4191 daemon/remote.c:4250 daemon/remote.c:4309
+#: daemon/remote.c:4368 daemon/remote.c:4427 daemon/remote.c:4487
+#: daemon/remote.c:4545 daemon/remote.c:4591 daemon/remote.c:4641
+#: daemon/remote.c:4696 daemon/remote.c:4754 daemon/remote.c:4816
+#: daemon/remote.c:4887 daemon/remote.c:4949 daemon/remote.c:5008
+#: daemon/remote.c:5062 daemon/remote.c:5112 daemon/remote_dispatch.h:143
 #: daemon/remote_dispatch.h:213 daemon/remote_dispatch.h:347
 #: daemon/remote_dispatch.h:397 daemon/remote_dispatch.h:448
 #: daemon/remote_dispatch.h:498 daemon/remote_dispatch.h:546
@@ -446,187 +446,252 @@ msgstr "இணைப்பு ஏற்கனவே திறந்துள்�
 msgid "keepalive support is required to connect"
 msgstr "இணைப்பதற்கு கீப்பலைவ் ஆதரவு தேவை"
 
-#: daemon/remote.c:877 daemon/remote.c:962 src/remote/remote_driver.c:1530
-#: src/remote/remote_driver.c:1615
+#: daemon/remote.c:877 daemon/remote.c:962 src/remote/remote_driver.c:1537
+#: src/remote/remote_driver.c:1622
 #, c-format
 msgid "unknown parameter type: %d"
 msgstr "தெரியாத அளவுரு வகை: %d"
 
-#: daemon/remote.c:913 daemon/remote.c:999 daemon/remote.c:1102
-#: daemon/remote.c:1274 daemon/remote.c:1872 daemon/remote.c:1935
-#: daemon/remote.c:1998 daemon/remote.c:2062 daemon/remote.c:2134
-#: daemon/remote.c:2243 daemon/remote.c:3737 daemon/remote.c:3797
-#: daemon/remote.c:4424
+#: daemon/remote.c:913 daemon/remote.c:999 daemon/remote.c:1109
+#: daemon/remote.c:1281 daemon/remote.c:1879 daemon/remote.c:1942
+#: daemon/remote.c:2005 daemon/remote.c:2069 daemon/remote.c:2141
+#: daemon/remote.c:2250 daemon/remote.c:3744 daemon/remote.c:3804
+#: daemon/remote.c:4494
 msgid "nparams too large"
 msgstr "nparams மிகப்பெரியது"
 
-#: daemon/remote.c:926 src/remote/remote_driver.c:1578
+#: daemon/remote.c:926 src/remote/remote_driver.c:1585
 #, c-format
 msgid "Parameter %s too big for destination"
 msgstr "அளவுரு %s ஆனது இலக்கிற்கு மிகப்பெரிதாக உள்ளதுn"
 
-#: daemon/remote.c:1156
+#: daemon/remote.c:1055 src/remote/remote_driver.c:1375
+#: src/remote/remote_driver.c:1389 src/remote/remote_driver.c:1438
+#, fuzzy, c-format
+msgid "Too many domains '%d' for limit '%d'"
+msgstr "மிக அதிக தொலை செயற்கள IDகள்: %d > %d"
+
+#: daemon/remote.c:1163
 msgid "maxStats > REMOTE_DOMAIN_MEMORY_STATS_MAX"
 msgstr "maxStats > REMOTE_DOMAIN_MEMORY_STATS_MAX"
 
-#: daemon/remote.c:1223 daemon/remote.c:1340
+#: daemon/remote.c:1230 daemon/remote.c:1347
 msgid "size > maximum buffer size"
 msgstr "அளவு > அதிகபட்ச இடையக அளவு"
 
-#: daemon/remote.c:1449
+#: daemon/remote.c:1456
 msgid "failed to copy security label"
 msgstr "பாதுகாப்பு லேபிலை நகலெடுப்பதில் தோல்வி"
 
-#: daemon/remote.c:1532
+#: daemon/remote.c:1539
 msgid "ncpumaps > REMOTE_VCPUINFO_MAX"
 msgstr "ncpumaps > REMOTE_VCPUINFO_MAX"
 
-#: daemon/remote.c:1538 daemon/remote.c:1693
+#: daemon/remote.c:1545 daemon/remote.c:1700
 msgid "maxinfo * maplen > REMOTE_CPUMAPS_MAX"
 msgstr "maxinfo * maplen > REMOTE_CPUMAPS_MAX"
 
-#: daemon/remote.c:1687
+#: daemon/remote.c:1694
 msgid "maxinfo > REMOTE_VCPUINFO_MAX"
 msgstr "maxinfo > REMOTE_VCPUINFO_MAX"
 
-#: daemon/remote.c:2371
+#: daemon/remote.c:2378
 msgid "client tried invalid SASL init request"
 msgstr "தவறான SASL init கோரிக்கையை கிளையன் முயற்சித்தது"
 
-#: daemon/remote.c:2419 daemon/remote.c:2568 daemon/remote.c:2666
-#: daemon/remote.c:2682 daemon/remote.c:2696 daemon/remote.c:2710
-#: daemon/remote.c:2811 daemon/remote.c:2956 daemon/remote.c:2985
+#: daemon/remote.c:2426 daemon/remote.c:2575 daemon/remote.c:2673
+#: daemon/remote.c:2689 daemon/remote.c:2703 daemon/remote.c:2717
+#: daemon/remote.c:2818 daemon/remote.c:2963 daemon/remote.c:2992
 #: src/util/virerror.c:985
 msgid "authentication failed"
 msgstr "அங்கீகாரம் செயலிழக்கப்பட்டது"
 
-#: daemon/remote.c:2446
+#: daemon/remote.c:2453
 #, c-format
 msgid "negotiated SSF %d was not strong enough"
 msgstr "SSF %d போதிய பலமாக இல்லை"
 
-#: daemon/remote.c:2499 daemon/remote.c:2597
+#: daemon/remote.c:2506 daemon/remote.c:2604
 msgid "client tried invalid SASL start request"
 msgstr "தவறான SASL துவக்க கோரிக்கையை முயற்சிக்கிறது"
 
-#: daemon/remote.c:2517
+#: daemon/remote.c:2524
 #, c-format
 msgid "sasl start reply data too long %d"
 msgstr "sasl துவக்கம் தரவு மிக நீளம் %d"
 
-#: daemon/remote.c:2614
+#: daemon/remote.c:2621
 #, c-format
 msgid "sasl step reply data too long %d"
 msgstr "sasl படிநிலை பதில் தரவு மிக நீளம் %d"
 
-#: daemon/remote.c:2750 daemon/remote.c:2863
+#: daemon/remote.c:2757 daemon/remote.c:2870
 msgid "client tried invalid PolicyKit init request"
 msgstr "கிளையன் தவறான PolicyKit init கோரிக்கையை முயற்சித்தது"
 
-#: daemon/remote.c:2780
+#: daemon/remote.c:2787
 #, c-format
 msgid "Policy kit denied action %s from pid %lld, uid %d: %s"
 msgstr "பாலிசி கிட் செயல் %sஐ pid %lld, uid %d இலிருந்து மறுத்தது: %s"
 
-#: daemon/remote.c:2807
+#: daemon/remote.c:2814
 msgid "authentication cancelled by user"
 msgstr "பயனர் அங்கீகாரத்தை ரத்துசெய்தார்: %s"
 
-#: daemon/remote.c:2809
+#: daemon/remote.c:2816
 #, c-format
 msgid "polkit: %s"
 msgstr "polkit: %s"
 
-#: daemon/remote.c:2869
+#: daemon/remote.c:2876
 msgid "cannot get peer socket identity"
 msgstr "பியர் சாக்கெட் அடையாளத்தை பெற முடியவில்லை"
 
-#: daemon/remote.c:2885
+#: daemon/remote.c:2892
 #, c-format
 msgid "Failed to lookup policy kit caller: %s"
 msgstr "பாலிசி கிட் காலரை தேட முடியவில்லை: %s"
 
-#: daemon/remote.c:2892
+#: daemon/remote.c:2899
 #, c-format
 msgid "Failed to create polkit action %s"
 msgstr "polkit செயல் %sஐ உருவாக்க முடியவில்லை"
 
-#: daemon/remote.c:2902
+#: daemon/remote.c:2909
 #, c-format
 msgid "Failed to create polkit context %s"
 msgstr "polkit உரை %sஐ உருவாக்க முடியவில்லை"
 
-#: daemon/remote.c:2920
+#: daemon/remote.c:2927
 #, c-format
 msgid "Policy kit failed to check authorization %d %s"
 msgstr "பாலிசி கிட் அங்கீகாரம் %d %sஐ சரிபார்க்க முடியவில்லை"
 
-#: daemon/remote.c:2934
+#: daemon/remote.c:2941
 #, c-format
 msgid "Policy kit denied action %s from pid %lld, uid %d, result: %s"
 msgstr "பாலிசி கிட் செயல் %s ஐ pid %lld, uid %d இலிருந்து மறுத்தது, முடிவு: %s"
 
-#: daemon/remote.c:2983
+#: daemon/remote.c:2990
 msgid "client tried unsupported PolicyKit init request"
 msgstr "கிளையன் துணைபுரியாத PolicyKit init கோரிக்கை முயற்சித்தது"
 
-#: daemon/remote.c:3068 daemon/remote.c:3263
+#: daemon/remote.c:3075 daemon/remote.c:3270
 #, c-format
 msgid "domain event %d already registered"
 msgstr "கள நிகழ்வு %d ஏற்கனவே பதிவுசெய்யப்பட்டது"
 
-#: daemon/remote.c:3109 daemon/remote.c:3313
+#: daemon/remote.c:3116 daemon/remote.c:3320
 #, c-format
 msgid "domain event %d not registered"
 msgstr "கள நிகழ்வு %d பதிவு செய்யப்படவில்லை"
 
-#: daemon/remote.c:3258 daemon/remote.c:3307
+#: daemon/remote.c:3265 daemon/remote.c:3314
 #, c-format
 msgid "unsupported event ID %d"
 msgstr "ஆதரவில்லாத நிகழ்வு ஐடி %d"
 
-#: daemon/remote.c:3801
+#: daemon/remote.c:3808
 msgid "ncpus too large"
 msgstr "ncpus மிகப்பெரியது"
 
-#: daemon/remote.c:3873
+#: daemon/remote.c:3880
 msgid "maxerrors too large"
 msgstr "maxerrors மிகப்பெரியது"
 
+#: daemon/remote.c:3946 daemon/remote.c:4015 src/remote/remote_driver.c:5821
+#: src/remote/remote_driver.c:5888
+#, fuzzy, c-format
+msgid "Too many domain snapshots '%d' for limit '%d'"
+msgstr "டொமைனில் இருந்து மிக அதிக வட்டு ஸ்னாப்ஷாட்டு கோரிக்கைகள்"
+
+#: daemon/remote.c:4078 src/remote/remote_driver.c:3316
+#, fuzzy, c-format
+msgid "Too many storage pools '%d' for limit '%d'"
+msgstr "பொருளுக்கு மிக அதிக வளங்கள் %d"
+
+#: daemon/remote.c:4141 src/remote/remote_driver.c:3383
+#, fuzzy, c-format
+msgid "Too many storage volumes '%d' for limit '%d'"
+msgstr "பொருளுக்கு மிக அதிக வளங்கள் %d"
+
+#: daemon/remote.c:4202 src/remote/remote_driver.c:2848
+#, fuzzy, c-format
+msgid "Too many networks '%d' for limit '%d'"
+msgstr "பொருளுக்கு மிக அதிக வளங்கள் %d"
+
+#: daemon/remote.c:4261 src/remote/remote_driver.c:2914
+#, fuzzy, c-format
+msgid "Too many interfaces '%d' for limit '%d'"
+msgstr "பொருளுக்கு மிக அதிக வளங்கள் %d"
+
+#: daemon/remote.c:4320 src/remote/remote_driver.c:2980
+#, fuzzy, c-format
+msgid "Too many node devices '%d' for limit '%d'"
+msgstr "மிக அதிக தொலைநிலை undefineds: %d > %d"
+
+#: daemon/remote.c:4379 src/remote/remote_driver.c:3046
+#, fuzzy, c-format
+msgid "Too many network filters '%d' for limit '%d'"
+msgstr "பொருளுக்கு மிக அதிக வளங்கள் %d"
+
+#: daemon/remote.c:4438 src/remote/remote_driver.c:3112
+#, fuzzy, c-format
+msgid "Too many secrets '%d' for limit '%d'"
+msgstr "பொருளுக்கு மிக அதிக வளங்கள் %d"
+
+#: daemon/remote.c:4654 src/remote/remote_driver.c:6075
+#, c-format
+msgid "Too many job stats '%d' for limit '%d'"
+msgstr ""
+
+#: daemon/remote.c:4702 daemon/remote.c:4760 daemon/remote.c:4822
+#: daemon/remote.c:4893 daemon/remote.c:4955 daemon/remote.c:5014
+#: src/remote/remote_driver.c:6122 src/remote/remote_driver.c:6188
+#: src/remote/remote_driver.c:6270 src/remote/remote_driver.c:6356
+#: src/remote/remote_driver.c:6428 src/remote/remote_driver.c:6500
+#, c-format
+msgid "Too many migration parameters '%d' for limit '%d'"
+msgstr ""
+
 #: daemon/remote_dispatch.h:1102
-msgid "maxnames > REMOTE_DOMAIN_NAME_LIST_MAX"
+#, fuzzy
+msgid "maxnames > REMOTE_DOMAIN_LIST_MAX"
 msgstr "maxnames > REMOTE_DOMAIN_NAME_LIST_MAX"
 
-#: daemon/remote_dispatch.h:1164
-msgid "maxnames > REMOTE_DEFINED_INTERFACE_NAME_LIST_MAX"
-msgstr "maxnames > REMOTE_DEFINED_INTERFACE_NAME_LIST_MAX"
+#: daemon/remote_dispatch.h:1164 daemon/remote_dispatch.h:1412
+#, fuzzy
+msgid "maxnames > REMOTE_INTERFACE_LIST_MAX"
+msgstr "maxnames > REMOTE_INTERFACE_NAME_LIST_MAX"
 
 #: daemon/remote_dispatch.h:1226 daemon/remote_dispatch.h:1474
-msgid "maxnames > REMOTE_NETWORK_NAME_LIST_MAX"
+#, fuzzy
+msgid "maxnames > REMOTE_NETWORK_LIST_MAX"
 msgstr "maxnames > REMOTE_NETWORK_NAME_LIST_MAX"
 
 #: daemon/remote_dispatch.h:1288 daemon/remote_dispatch.h:1660
-msgid "maxnames > REMOTE_STORAGE_POOL_NAME_LIST_MAX"
+#, fuzzy
+msgid "maxnames > REMOTE_STORAGE_POOL_LIST_MAX"
 msgstr "maxnames > REMOTE_STORAGE_POOL_NAME_LIST_MAX"
 
 #: daemon/remote_dispatch.h:1350
-msgid "maxids > REMOTE_DOMAIN_ID_LIST_MAX"
+#, fuzzy
+msgid "maxids > REMOTE_DOMAIN_LIST_MAX"
 msgstr "maxids > REMOTE_DOMAIN_ID_LIST_MAX"
 
-#: daemon/remote_dispatch.h:1412
-msgid "maxnames > REMOTE_INTERFACE_NAME_LIST_MAX"
-msgstr "maxnames > REMOTE_INTERFACE_NAME_LIST_MAX"
-
 #: daemon/remote_dispatch.h:1536
-msgid "maxnames > REMOTE_NWFILTER_NAME_LIST_MAX"
+#, fuzzy
+msgid "maxnames > REMOTE_NWFILTER_LIST_MAX"
 msgstr "maxnames > REMOTE_NWFILTER_NAME_LIST_MAX"
 
 #: daemon/remote_dispatch.h:1598
-msgid "maxuuids > REMOTE_SECRET_UUID_LIST_MAX"
+#, fuzzy
+msgid "maxuuids > REMOTE_SECRET_LIST_MAX"
 msgstr "maxuuids > REMOTE_SECRET_UUID_LIST_MAX"
 
 #: daemon/remote_dispatch.h:8603 daemon/remote_dispatch.h:8676
-msgid "maxnames > REMOTE_DOMAIN_SNAPSHOT_LIST_NAMES_MAX"
+#, fuzzy
+msgid "maxnames > REMOTE_DOMAIN_SNAPSHOT_LIST_MAX"
 msgstr "maxnames > REMOTE_DOMAIN_SNAPSHOT_LIST_NAMES_MAX"
 
 #: daemon/remote_dispatch.h:10727
@@ -638,11 +703,13 @@ msgid "maxcells > REMOTE_NODE_MAX_CELLS"
 msgstr "maxcells > REMOTE_NODE_MAX_CELLS"
 
 #: daemon/remote_dispatch.h:11333
-msgid "maxnames > REMOTE_NODE_DEVICE_NAME_LIST_MAX"
+#, fuzzy
+msgid "maxnames > REMOTE_NODE_DEVICE_LIST_MAX"
 msgstr "maxnames > REMOTE_NODE_DEVICE_NAME_LIST_MAX"
 
 #: daemon/remote_dispatch.h:12771
-msgid "maxnames > REMOTE_STORAGE_VOL_NAME_LIST_MAX"
+#, fuzzy
+msgid "maxnames > REMOTE_STORAGE_VOL_LIST_MAX"
 msgstr "maxnames > REMOTE_STORAGE_VOL_NAME_LIST_MAX"
 
 #: daemon/stream.c:233
@@ -863,7 +930,7 @@ msgstr "CPU குறிப்பிடுதலுக்கான தவறா�
 msgid "Missing CPU architecture"
 msgstr "விடுபட்ட CPU கட்டிடக்கலை"
 
-#: src/conf/cpu_conf.c:269 src/conf/domain_conf.c:11589
+#: src/conf/cpu_conf.c:269 src/conf/domain_conf.c:11599
 #, c-format
 msgid "Unknown architecture %s"
 msgstr "தெரியாத கட்டமைப்பு %s"
@@ -1495,7 +1562,7 @@ msgstr "போக்குவரத்து %s ஆனது சாக்கெ�
 msgid "missing name for host"
 msgstr "வழங்கிக்குப் பெயர் இல்லை"
 
-#: src/conf/domain_conf.c:4898 src/conf/domain_conf.c:14253
+#: src/conf/domain_conf.c:4898 src/conf/domain_conf.c:14263
 #, c-format
 msgid "unexpected disk type %s"
 msgstr "எதிர்பார்க்காத வட்டி வகை %s"
@@ -2529,429 +2596,429 @@ msgstr "(சாதன வரையறை) (_d)"
 msgid "unknown device type '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:10315
+#: src/conf/domain_conf.c:10325
 msgid "unknown virt type"
 msgstr "தெரியாத virt வகை"
 
-#: src/conf/domain_conf.c:10326
+#: src/conf/domain_conf.c:10336
 #, c-format
 msgid "no emulator for domain %s os type %s on architecture %s"
 msgstr "செயற்களம் %sக்கு எலுமினேட்டர் இல்லை os வகை %s கணினி %sஇல்"
 
-#: src/conf/domain_conf.c:10352
+#: src/conf/domain_conf.c:10362
 msgid "cannot count boot devices"
 msgstr "பூட் சாதனங்களை எண்ண முடியவில்லை"
 
-#: src/conf/domain_conf.c:10363
+#: src/conf/domain_conf.c:10373
 msgid "per-device boot elements cannot be used together with os/boot elements"
 msgstr "பெர்-டிவைஸ் பூட் கூறுகளை os/பூட் கூறுகளுடன் சேர்த்துப் பயன்படுத்த முடியாது"
 
-#: src/conf/domain_conf.c:10373
+#: src/conf/domain_conf.c:10383
 msgid "missing boot device"
 msgstr "விடுபட்ட பூட் சாதனம்"
 
-#: src/conf/domain_conf.c:10378
+#: src/conf/domain_conf.c:10388
 #, c-format
 msgid "unknown boot device '%s'"
 msgstr "தெரியாத பூட் சாதனம் '%s'"
 
-#: src/conf/domain_conf.c:10411
+#: src/conf/domain_conf.c:10421
 msgid "need at least one serial port for useserial"
 msgstr "useserial க்கு குறைந்தது ஒரு தொடர் முனையம் அவசியம்"
 
-#: src/conf/domain_conf.c:10429
+#: src/conf/domain_conf.c:10439
 msgid "invalid value for rebootTimeout, must be in range [-1,65535]"
 msgstr "rebootTimeout க்கு தவறான மதிப்பு, [-1,65535] என்ற வரம்பிலேயே இருக்க வேண்டும்"
 
-#: src/conf/domain_conf.c:10493
+#: src/conf/domain_conf.c:10503
 msgid "You must map the root user of container"
 msgstr ""
 
-#: src/conf/domain_conf.c:10538
+#: src/conf/domain_conf.c:10548
 msgid "vcpu id must be an unsigned integer or -1"
 msgstr "vcpu ஐடியானது குறியில்லாத முழு எண்ணாகவோ அல்லது -1 ஆகவோ இருக்க வேண்டும்"
 
-#: src/conf/domain_conf.c:10542
+#: src/conf/domain_conf.c:10552
 msgid "vcpu id value -1 is not allowed for vcpupin"
 msgstr "vcpupin க்கு vcpu ஐடி மதிப்பு -1 அனுமதிக்கப்படாது"
 
-#: src/conf/domain_conf.c:10549
+#: src/conf/domain_conf.c:10559
 msgid "vcpu id must be less than maxvcpus"
 msgstr "vcpu ஐடியானது maxvcpus ஐ விடக் குறைவாகவே இருக்க வேண்டும்"
 
-#: src/conf/domain_conf.c:10567
+#: src/conf/domain_conf.c:10577
 msgid "missing cpuset for vcpupin"
 msgstr "vcpupin க்கான cpuset இல்லை"
 
-#: src/conf/domain_conf.c:10682
+#: src/conf/domain_conf.c:10692
 msgid "missing resource partition attribute"
 msgstr "வள பிரிவாக்க பண்புக்கூறு விடுபட்டுள்ளது"
 
-#: src/conf/domain_conf.c:10758
+#: src/conf/domain_conf.c:10768
 msgid "missing domain type attribute"
 msgstr "விடுபட்ட செயற்கள வகை மதிப்பு"
 
-#: src/conf/domain_conf.c:10764
+#: src/conf/domain_conf.c:10774
 #, c-format
 msgid "invalid domain type %s"
 msgstr "தவறான செயற்கள வகை %s"
 
-#: src/conf/domain_conf.c:10772
+#: src/conf/domain_conf.c:10782
 #, c-format
 msgid "unexpected domain type %s, expecting %s"
 msgstr "எதிர்பார்க்காத கள வகை %s, ஆனால் எதிர்பார்த்தது %s"
 
-#: src/conf/domain_conf.c:10797
+#: src/conf/domain_conf.c:10807
 #, c-format
 msgid "unexpected domain type %s, expecting one of these: %s"
 msgstr "எதிர்பார்க்காத கள வகை %s, இவற்றில் ஒன்று எதிர்பார்க்கப்படுகிறது: %s"
 
-#: src/conf/domain_conf.c:10821 src/conf/network_conf.c:1941
+#: src/conf/domain_conf.c:10831 src/conf/network_conf.c:1941
 #: src/conf/secret_conf.c:190 src/openvz/openvz_conf.c:1076
 #: src/xenxs/xen_xm.c:216
 msgid "Failed to generate UUID"
 msgstr "UUID ஐ உருவாக்க முடியவில்லை"
 
-#: src/conf/domain_conf.c:10828 src/conf/network_conf.c:1948
+#: src/conf/domain_conf.c:10838 src/conf/network_conf.c:1948
 #: src/conf/nwfilter_conf.c:2562 src/conf/secret_conf.c:196
 #: src/conf/storage_conf.c:889
 msgid "malformed uuid element"
 msgstr "தவறான uuid உருப்படி"
 
-#: src/conf/domain_conf.c:10838
+#: src/conf/domain_conf.c:10848
 msgid "Domain title can't contain newlines"
 msgstr "களத் தலைப்பில் நியூலைன் எழுத்துக்குறிகள் இருக்கக்கூடாது"
 
-#: src/conf/domain_conf.c:10863
+#: src/conf/domain_conf.c:10873
 #, c-format
 msgid "Invalid memory core dump attribute value '%s'"
 msgstr "செல்லுபடியாகாத நினைவக கோர் டம்ப் பண்புரு மதிப்பு '%s'"
 
-#: src/conf/domain_conf.c:10875
+#: src/conf/domain_conf.c:10885
 #, c-format
 msgid "current memory '%lluk' exceeds maximum '%lluk'"
 msgstr "தற்போதைய நினைவகம் '%lluk' ஆனது அதிகபட்சமான '%lluk' ஐ மீறுகிறது"
 
-#: src/conf/domain_conf.c:10904
+#: src/conf/domain_conf.c:10914
 msgid "cannot extract blkiotune nodes"
 msgstr "blkiotune கனுக்களைப் பிரித்தெடுக்க முடியவில்லை"
 
-#: src/conf/domain_conf.c:10920
+#: src/conf/domain_conf.c:10930
 #, c-format
 msgid "duplicate device weight path '%s'"
 msgstr "நகல் பிரதி சாதன எடைப் பாதை '%s'"
 
-#: src/conf/domain_conf.c:10948
+#: src/conf/domain_conf.c:10958
 msgid "maximum vcpus must be an integer"
 msgstr "அதிகபட்ச vcpus ஒரு முழு எண்ணாக இருக்க வேண்டும்"
 
-#: src/conf/domain_conf.c:10956
+#: src/conf/domain_conf.c:10966
 #, c-format
 msgid "invalid maximum number of vCPUs '%lu'"
 msgstr "vCPUs '%lu' இன் அதிகபட்ச எண்ணிக்கை செல்லுபடியாகாதது"
 
-#: src/conf/domain_conf.c:10964
+#: src/conf/domain_conf.c:10974
 msgid "current vcpus must be an integer"
 msgstr "தற்போதைய vcpus ஒரு முழு எண்ணாக இருக்க வேண்டும்"
 
-#: src/conf/domain_conf.c:10972
+#: src/conf/domain_conf.c:10982
 #, c-format
 msgid "invalid current number of vCPUs '%lu'"
 msgstr "தற்போதைய vCPUs '%lu' எண்ணிக்கை செல்லுபடியாகாதது"
 
-#: src/conf/domain_conf.c:10978
+#: src/conf/domain_conf.c:10988
 #, c-format
 msgid "maxvcpus must not be less than current vcpus (%d < %lu)"
 msgstr "maxvcpus ஆனது தற்போதைய vcpus (%d < %lu) ஐ விடக் குறைவாக இருக்கக்கூடாது"
 
-#: src/conf/domain_conf.c:10990
+#: src/conf/domain_conf.c:11000
 #, c-format
 msgid "Unsupported CPU placement mode '%s'"
 msgstr "ஆதரவில்லாத CPU பிளேஸ்மென்ட் பயன்முறை '%s'"
 
-#: src/conf/domain_conf.c:11013
+#: src/conf/domain_conf.c:11023
 msgid "can't parse cputune shares value"
 msgstr "cputune பகிர்வுகள் மதிப்பைப் பாகுபடுத்த முடியவில்லை"
 
-#: src/conf/domain_conf.c:11020
+#: src/conf/domain_conf.c:11030
 msgid "can't parse cputune period value"
 msgstr "cputune கால அளவு மதிப்பைப் பாகுபடுத்த முடியவில்லை"
 
-#: src/conf/domain_conf.c:11027
+#: src/conf/domain_conf.c:11037
 msgid "Value of cputune period must be in range [1000, 1000000]"
 msgstr "cputune காலத்தின் மதிப்பானது வரம்பில் இருக்க வேண்டும் [1000, 1000000]"
 
-#: src/conf/domain_conf.c:11035
+#: src/conf/domain_conf.c:11045
 msgid "can't parse cputune quota value"
 msgstr "cputune ஒதுக்கீடு மதிப்பைப் பாகுபடுத்த முடியவில்லை"
 
-#: src/conf/domain_conf.c:11043
+#: src/conf/domain_conf.c:11053
 msgid "Value of cputune quota must be in range [1000, 18446744073709551]"
 msgstr ""
 "cputune ஒதுக்கீட்டளவின் மதிப்பு வரம்பில் இருக்க வேண்டும் [1000, 18446744073709551]"
 
-#: src/conf/domain_conf.c:11051
+#: src/conf/domain_conf.c:11061
 msgid "can't parse cputune emulator period value"
 msgstr "cputune எமுலேட்டர் கால அளவு மதிப்பைப் பாகுபடுத்த முடியவில்லை"
 
-#: src/conf/domain_conf.c:11059
+#: src/conf/domain_conf.c:11069
 msgid "Value of cputune emulator_period must be in range [1000, 1000000]"
 msgstr ""
 "cputune emulator_period இன் மதிப்பானது வரம்பில் இருக்க வேண்டும் [1000, 1000000]"
 
-#: src/conf/domain_conf.c:11067
+#: src/conf/domain_conf.c:11077
 msgid "can't parse cputune emulator quota value"
 msgstr "cputune எமுலேட்டர் ஒதுக்கீடு மதிப்பைப் பாகுபடுத்த முடியவில்லை"
 
-#: src/conf/domain_conf.c:11075
+#: src/conf/domain_conf.c:11085
 msgid ""
 "Value of cputune emulator_quota must be in range [1000, 18446744073709551]"
 msgstr ""
 "cputune emulator_quota இன் மதிப்பு வரம்பில் இருக்க வேண்டும் [1000, "
 "18446744073709551]"
 
-#: src/conf/domain_conf.c:11088
+#: src/conf/domain_conf.c:11098
 msgid "vcpupin nodes must be less than maxvcpus"
 msgstr "vcpupin கனுக்கள் maxvcpus ஐ விடக் குறைவாகவே இருக்க வேண்டும்"
 
-#: src/conf/domain_conf.c:11103
+#: src/conf/domain_conf.c:11113
 msgid "duplicate vcpupin for same vcpu"
 msgstr "ஒரே vcpu க்கு நகல் பிரதி vcpupin"
 
-#: src/conf/domain_conf.c:11147
+#: src/conf/domain_conf.c:11157
 msgid "cannot extract emulatorpin nodes"
 msgstr "எமுலாட்டார்ப்பின் கனுக்களைப் பிரித்தெடுக்க முடியவில்லை"
 
-#: src/conf/domain_conf.c:11159
+#: src/conf/domain_conf.c:11169
 msgid "only one emulatorpin is supported"
 msgstr "ஒரே ஒரு எமுலாட்டார்ப்பினுக்கு மட்டுமே ஆதரவுண்டு"
 
-#: src/conf/domain_conf.c:11178
+#: src/conf/domain_conf.c:11188
 msgid "cannot extract numatune nodes"
 msgstr "numatune கனுக்களைப் பிரித்தெடுக்க முடியவில்லை"
 
-#: src/conf/domain_conf.c:11184
+#: src/conf/domain_conf.c:11194
 msgid "only one numatune is supported"
 msgstr "ஒரே ஒரு numatune க்கு மட்டுமே ஆதரவுண்டு"
 
-#: src/conf/domain_conf.c:11203
+#: src/conf/domain_conf.c:11213
 #, c-format
 msgid "Unsupported NUMA memory tuning mode '%s'"
 msgstr "ஆதரவில்லாத NUMA நினைவக டியூனிங் பயன்முறை '%s'"
 
-#: src/conf/domain_conf.c:11232
+#: src/conf/domain_conf.c:11242
 #, c-format
 msgid "Unsupported memory placement mode '%s'"
 msgstr "ஆதரவில்லாத  நினைவக பிளேஸ்மென்ட் பயன்முறை '%s'"
 
-#: src/conf/domain_conf.c:11254
+#: src/conf/domain_conf.c:11264
 msgid "nodeset for NUMA memory tuning must be set if 'placement' is 'static'"
 msgstr ""
 "'placement' ஆனது 'static' ஆக இருந்தால் NUMA நினைவகடியூனிங்குக்கான கனுத்தொகுதி "
 "அமைக்கப்பட வேண்டும்"
 
-#: src/conf/domain_conf.c:11273
+#: src/conf/domain_conf.c:11283
 #, c-format
 msgid "unsupported XML element %s"
 msgstr "ஆதரவில்லாத XML கூறு %s"
 
-#: src/conf/domain_conf.c:11293
+#: src/conf/domain_conf.c:11303
 msgid "cannot extract resource nodes"
 msgstr "வள கனுக்களைப் பிரிக்க முடியவில்லை"
 
-#: src/conf/domain_conf.c:11299
+#: src/conf/domain_conf.c:11309
 msgid "only one resource element is supported"
 msgstr "ஒரே ஒரு வள கூறு மட்டுமே ஆதரிக்கப்படும்"
 
-#: src/conf/domain_conf.c:11315
+#: src/conf/domain_conf.c:11325
 #, c-format
 msgid "unexpected feature %s"
 msgstr "எதிர்பாராத வசதி '%s'"
 
-#: src/conf/domain_conf.c:11326
+#: src/conf/domain_conf.c:11336
 #, c-format
 msgid "unknown value for attribute eoi: %s"
 msgstr "eoi பண்புருவுக்கு தெரியாத மதிப்பு: %s"
 
-#: src/conf/domain_conf.c:11348
+#: src/conf/domain_conf.c:11358
 #, c-format
 msgid "unsupported HyperV Enlightenment feature: %s"
 msgstr "ஆதரிக்கப்படாத HyperV என்லைட்மென்ட் அம்சம்: %s"
 
-#: src/conf/domain_conf.c:11360 src/conf/domain_conf.c:11381
+#: src/conf/domain_conf.c:11370 src/conf/domain_conf.c:11391
 #, c-format
 msgid "missing 'state' attribute for HyperV Enlightenment feature '%s'"
 msgstr "HyperV என்லைட்மென்ட் அம்சம் '%s' க்கான 'state' பண்புக்கூறு விடுபட்டுள்ளது"
 
-#: src/conf/domain_conf.c:11368 src/conf/domain_conf.c:11389
+#: src/conf/domain_conf.c:11378 src/conf/domain_conf.c:11399
 #, c-format
 msgid "invalid value of state argument for HyperV Enlightenment feature '%s'"
 msgstr "HyperV என்லைட்மென்ட் அம்சம் '%s' க்கு செல்லுபடியாகாத நிலை மதிப்புரு"
 
-#: src/conf/domain_conf.c:11400
+#: src/conf/domain_conf.c:11410
 msgid "invalid HyperV spinlock retry count"
 msgstr ""
 
-#: src/conf/domain_conf.c:11406
+#: src/conf/domain_conf.c:11416
 msgid "HyperV spinlock retry count must be at least 4095"
 msgstr "HyperV ஸ்பின்லாக் மறுமுயற்சி எண்ணிக்கை குறைந்தபட்சம் 4095 இருக்க வேண்டும்"
 
-#: src/conf/domain_conf.c:11463
+#: src/conf/domain_conf.c:11473
 #, c-format
 msgid "unknown clock offset '%s'"
 msgstr "தெரியாத கடிகார ஆஃப்செட் '%s'"
 
-#: src/conf/domain_conf.c:11479
+#: src/conf/domain_conf.c:11489
 #, c-format
 msgid "unknown clock adjustment '%s'"
 msgstr "தெரியாத கடிகார அட்ஜஸ்ட்மென்ட் '%s'"
 
-#: src/conf/domain_conf.c:11507
+#: src/conf/domain_conf.c:11517
 #, c-format
 msgid "unknown clock basis '%s'"
 msgstr "தெரியாத கடிகார பேசிஸ் '%s'"
 
-#: src/conf/domain_conf.c:11520
+#: src/conf/domain_conf.c:11530
 msgid "missing 'timezone' attribute for clock with offset='timezone'"
 msgstr "'timezone' பண்பானது offset='timezone'கான கடிகாரத்துடன் விடுபட்டுள்ளது"
 
-#: src/conf/domain_conf.c:11531
+#: src/conf/domain_conf.c:11541
 msgid "invalid basedate"
 msgstr "செல்லுபடியாகாத பேஸ் தேதி"
 
-#: src/conf/domain_conf.c:11562
+#: src/conf/domain_conf.c:11572
 msgid "no OS type"
 msgstr "OS வகை இல்லை"
 
-#: src/conf/domain_conf.c:11597
+#: src/conf/domain_conf.c:11607
 #, c-format
 msgid "No guest options available for arch '%s'"
 msgstr "'%s' என்ற ஆர்க்குக்கு விருந்தினர் விருப்பங்கள் இல்லை"
 
-#: src/conf/domain_conf.c:11606
+#: src/conf/domain_conf.c:11616
 #, c-format
 msgid "No os type '%s' available for arch '%s'"
 msgstr "ஆர்க் '%s' க்கு os வகை '%s' கிடைக்கவில்லை"
 
-#: src/conf/domain_conf.c:11617 src/xenxs/xen_xm.c:293
+#: src/conf/domain_conf.c:11627 src/xenxs/xen_xm.c:293
 #, c-format
 msgid "no supported architecture for os type '%s'"
 msgstr "os வகை '%s'க்கு வடிவமைப்பதில் துணை புரியவில்லை"
 
-#: src/conf/domain_conf.c:11656
+#: src/conf/domain_conf.c:11666
 msgid "No data supplied for <initarg> element"
 msgstr "<initarg> கூறுக்கு தரவு வழங்கப்படவில்லை"
 
-#: src/conf/domain_conf.c:11729 src/conf/domain_conf.c:11738
+#: src/conf/domain_conf.c:11739 src/conf/domain_conf.c:11748
 msgid "Can't add another USB controller: USB is disabled for this domain"
 msgstr "மற்றொரு USB கன்ட்ரோலரைச் சேர்க்க முடியாது: இந்த டொமைனுக்கு USB முடக்கப்பட்டுள்ளது"
 
-#: src/conf/domain_conf.c:11755
+#: src/conf/domain_conf.c:11765
 msgid "No master USB controller specified"
 msgstr "பிரதான USB கன்ட்ரோலர் குறிப்பிடப்படவில்லை"
 
-#: src/conf/domain_conf.c:11762
+#: src/conf/domain_conf.c:11772
 msgid "cannot extract device leases"
 msgstr "சாதன லீஸ்களைப் பிரித்தெடுக்க முடியவில்லை"
 
-#: src/conf/domain_conf.c:11895
+#: src/conf/domain_conf.c:11905
 msgid "cannot extract console devices"
 msgstr "கன்சோல் சாதனங்களைப் பிரித்தெடுக்க முடியவில்லை"
 
-#: src/conf/domain_conf.c:11973
+#: src/conf/domain_conf.c:11983
 msgid "Can't add USB input device. USB bus is disabled"
 msgstr "USB உள்லீடு சாதனத்தைச் சேர்க்க முடியாது. USB பஸ் முடக்கப்பட்டுள்ளது"
 
-#: src/conf/domain_conf.c:12071
+#: src/conf/domain_conf.c:12081
 msgid "Only one primary video device is supported"
 msgstr "ஒரு பிரதான வீடியோ சாதனம் மட்டுமே ஆதரிக்கப்படும்"
 
-#: src/conf/domain_conf.c:12097
+#: src/conf/domain_conf.c:12107
 msgid "cannot determine default video type"
 msgstr "முன்னிருப்பு வீடியோ வகையை வரையறுக்க முடியவில்லை"
 
-#: src/conf/domain_conf.c:12127
+#: src/conf/domain_conf.c:12137
 msgid "Can't add host USB device: USB is disabled in this host"
 msgstr "வழங்கி USB சாதனத்தைச் சேர்க்க முடியாது: இந்த வழங்கியில் USB முடக்கப்பட்டுள்ளது"
 
-#: src/conf/domain_conf.c:12146
+#: src/conf/domain_conf.c:12156
 msgid "only a single watchdog device is supported"
 msgstr "ஒரே ஒரு watchdog சாதனம் துணைபுரிகிறது"
 
-#: src/conf/domain_conf.c:12166
+#: src/conf/domain_conf.c:12176
 msgid "only a single memory balloon device is supported"
 msgstr "ஒற்றை நினைவக பலூன் சாதனம் மட்டுமே ஆதரிக்கப்படும்"
 
-#: src/conf/domain_conf.c:12198
+#: src/conf/domain_conf.c:12208
 msgid "only a single RNG device is supported"
 msgstr "ஒரே ஒரு RNG சாதனம் மட்டுமே ஆதரிக்கப்படும்"
 
-#: src/conf/domain_conf.c:12215
+#: src/conf/domain_conf.c:12225
 msgid "only a single TPM device is supported"
 msgstr "ஒரே ஒரு TPM சாதனம் மட்டுமே ஆதரிக்கப்படும்"
 
-#: src/conf/domain_conf.c:12231
+#: src/conf/domain_conf.c:12241
 msgid "only a single nvram device is supported"
 msgstr "ஒரே ஒரு nvram சாதனம் மட்டுமே ஆதரிக்கப்படும்"
 
-#: src/conf/domain_conf.c:12256
+#: src/conf/domain_conf.c:12266
 msgid "Can't add USB hub: USB is disabled for this domain"
 msgstr "USB ஹப்பைச் சேர்க்க முடியாது: இந்த டொமைனுக்கு USB முடக்கப்பட்டுள்ளது"
 
-#: src/conf/domain_conf.c:12280
+#: src/conf/domain_conf.c:12290
 msgid "Can't add redirected USB device: USB is disabled for this domain"
 msgstr ""
 "திருப்பிவிடப்பட்ட USB சாதனத்தைச் சேர்க்க முடியாது: இந்த டொமைனுக்கு USB முடக்கப்பட்டுள்ளது"
 
-#: src/conf/domain_conf.c:12295
+#: src/conf/domain_conf.c:12305
 msgid "only one set of redirection filter rule is supported"
 msgstr "திருப்பிவிடுதல் வடிப்பியின் விதிகளின் ஒரு தொகுப்பு மட்டுமே ஆதரிக்கப்படும்"
 
-#: src/conf/domain_conf.c:12337
+#: src/conf/domain_conf.c:12347
 msgid "uid and gid should be mapped both"
 msgstr ""
 
-#: src/conf/domain_conf.c:12355
+#: src/conf/domain_conf.c:12365
 msgid "Maximum CPUs greater than topology limit"
 msgstr "அதிகபட்ச CPUகள் டோபாலஜி வரம்பை விட அதிகமாக உள்ளது"
 
-#: src/conf/domain_conf.c:12361
+#: src/conf/domain_conf.c:12371
 msgid "Number of CPUs in <numa> exceeds the <vcpu> count"
 msgstr "<numa> இல் உள்ள CPUகளின் எண்ணிக்கை <vcpu> எண்ணிக்கையை மீறுகிறது"
 
-#: src/conf/domain_conf.c:12383
+#: src/conf/domain_conf.c:12393
 #, c-format
 msgid "unknown smbios mode '%s'"
 msgstr "தெரியாத smbios பயன்முறை '%s'"
 
-#: src/conf/domain_conf.c:12448
+#: src/conf/domain_conf.c:12458
 msgid "no domain config"
 msgstr "செயற்கள கட்டமைப்பு இல்லை"
 
-#: src/conf/domain_conf.c:12462
+#: src/conf/domain_conf.c:12472
 msgid "missing domain state"
 msgstr "விடுபட்ட செயற்கள நிலை"
 
-#: src/conf/domain_conf.c:12467
+#: src/conf/domain_conf.c:12477
 #, c-format
 msgid "invalid domain state '%s'"
 msgstr "தவறான செயற்கள நிலை '%s'"
 
-#: src/conf/domain_conf.c:12476
+#: src/conf/domain_conf.c:12486
 #, c-format
 msgid "invalid domain state reason '%s'"
 msgstr "தவறான கள நிலைக் காரணம் '%s'"
 
-#: src/conf/domain_conf.c:12487
+#: src/conf/domain_conf.c:12497
 msgid "invalid pid"
 msgstr "தவறான பாதை"
 
-#: src/conf/domain_conf.c:12501
+#: src/conf/domain_conf.c:12511
 #, c-format
 msgid "Unknown taint flag %s"
 msgstr "தெரியாத டெயின்ட் கொடி %s"
 
-#: src/conf/domain_conf.c:12536 src/security/virt-aa-helper.c:654
+#: src/conf/domain_conf.c:12546 src/security/virt-aa-helper.c:654
 #: tools/virsh-domain-monitor.c:98 tools/virsh-domain-monitor.c:531
 #: tools/virsh-domain-monitor.c:638 tools/virsh-domain-monitor.c:760
 #: tools/virsh-domain.c:2394 tools/virsh-domain.c:3038
@@ -2961,42 +3028,42 @@ msgstr "தெரியாத டெயின்ட் கொடி %s"
 msgid "(domain_definition)"
 msgstr "(கள வரையறை) (_d)"
 
-#: src/conf/domain_conf.c:12582
+#: src/conf/domain_conf.c:12592
 #, c-format
 msgid "unexpected root element <%s>, expecting <domain>"
 msgstr "எதிர்பார்க்காத மூல உறுப்பு <%s>, எதிர்பார்ப்பது <domain>"
 
-#: src/conf/domain_conf.c:12617
+#: src/conf/domain_conf.c:12627
 #, c-format
 msgid "unexpected root element <%s>, expecting <domstatus>"
 msgstr "எதிர்பார்க்காத மூல உறுப்பு <%s> எதிர்பார்ப்பது <domstatus>"
 
-#: src/conf/domain_conf.c:12666
+#: src/conf/domain_conf.c:12676
 #, c-format
 msgid "Target timer %s does not match source %s"
 msgstr "இலக்கு timer பயன்முறை %s ஆனது மூலம் %s உடன் பொருந்தவில்லை"
 
-#: src/conf/domain_conf.c:12674
+#: src/conf/domain_conf.c:12684
 #, c-format
 msgid "Target timer presence %d does not match source %d"
 msgstr "இலக்கு timer presence  %d ஆனது மூலம் %d உடன் பொருந்தவில்லை"
 
-#: src/conf/domain_conf.c:12682
+#: src/conf/domain_conf.c:12692
 #, c-format
 msgid "Target TSC frequency %lu does not match source %lu"
 msgstr "இலக்கு TSC frequency %lu மூலம் %lu உடன் பொருந்தவில்லை"
 
-#: src/conf/domain_conf.c:12689
+#: src/conf/domain_conf.c:12699
 #, c-format
 msgid "Target TSC mode %s does not match source %s"
 msgstr "இலக்கு TSC பயன்முறை %s ஆனது மூலம் %s உடன் பொருந்தவில்லை"
 
-#: src/conf/domain_conf.c:12706
+#: src/conf/domain_conf.c:12716
 #, c-format
 msgid "Target device address type %s does not match source %s"
 msgstr "இலக்கு சாதன முகவரி வகை %s ஆனது மூலம் %s உடன் பொருந்தவில்லை"
 
-#: src/conf/domain_conf.c:12719
+#: src/conf/domain_conf.c:12729
 #, c-format
 msgid ""
 "Target device PCI address %04x:%02x:%02x.%02x does not match source %04x:"
@@ -3005,166 +3072,166 @@ msgstr ""
 "இலக்கு சாதன PCI முகவரி %04x:%02x:%02x.%02x ஆனது மூலம் %04x:%02x:%02x.%02x உடன் "
 "பொருந்தவில்லை"
 
-#: src/conf/domain_conf.c:12734
+#: src/conf/domain_conf.c:12744
 #, c-format
 msgid "Target device drive address %d:%d:%d does not match source %d:%d:%d"
 msgstr "இலக்கு சாதன இயக்கி முகவரி  %d:%d:%d ஆனது மூலம் %d:%d:%d உடன் பொருந்தவில்லை"
 
-#: src/conf/domain_conf.c:12749
+#: src/conf/domain_conf.c:12759
 #, c-format
 msgid ""
 "Target device virtio serial address %d:%d:%d does not match source %d:%d:%d"
 msgstr ""
 "இலக்கு சாதன virtio சீரியல் முகவரி %d:%d:%d ஆனது மூலம் %d:%d:%d உடன் பொருந்தவில்லை"
 
-#: src/conf/domain_conf.c:12763
+#: src/conf/domain_conf.c:12773
 #, c-format
 msgid "Target device ccid address %d:%d does not match source %d:%d"
 msgstr "இலக்கு சாதன ccid முகவரி %d:%d ஆனது மூலம் %d:%d உடன் பொருந்தவில்லை"
 
-#: src/conf/domain_conf.c:12784
+#: src/conf/domain_conf.c:12794
 #, c-format
 msgid "Target disk device %s does not match source %s"
 msgstr "இலக்கு சாதனம் %s ஆனது மூலம் %s உடன் பொருந்தவில்லை"
 
-#: src/conf/domain_conf.c:12792
+#: src/conf/domain_conf.c:12802
 #, c-format
 msgid "Target disk bus %s does not match source %s"
 msgstr "இலக்கு வட்டு பஸ் %s ஆனது மூலம் %s உடன் பொருந்தவில்லை"
 
-#: src/conf/domain_conf.c:12800
+#: src/conf/domain_conf.c:12810
 #, c-format
 msgid "Target disk %s does not match source %s"
 msgstr "இலக்கு வட்டு %s ஆனது மூலம் %s உடன் பொருந்தவில்லை"
 
-#: src/conf/domain_conf.c:12807
+#: src/conf/domain_conf.c:12817
 #, c-format
 msgid "Target disk serial %s does not match source %s"
 msgstr "இலக்கு வட்டு சீரியல் %s ஆனது மூலம் %s உடன் பொருந்தவில்லை"
 
-#: src/conf/domain_conf.c:12814
+#: src/conf/domain_conf.c:12824
 msgid "Target disk access mode does not match source"
 msgstr "இலக்கு வட்டு அணுகல் பயன்முறை மூலத்துடன் பொருந்தவில்லை"
 
-#: src/conf/domain_conf.c:12831
+#: src/conf/domain_conf.c:12841
 #, c-format
 msgid "Target controller type %s does not match source %s"
 msgstr "இலக்கு கன்ட்ரோலர் வகை %s ஆனது மூலம் %s உடன் பொருந்தவில்லை"
 
-#: src/conf/domain_conf.c:12839
+#: src/conf/domain_conf.c:12849
 #, c-format
 msgid "Target controller index %d does not match source %d"
 msgstr "இலக்கு கன்ட்ரோலர் இன்டெக்ஸ் %d ஆனது மூலம் %d உடன் பொருந்தவில்லை"
 
-#: src/conf/domain_conf.c:12846
+#: src/conf/domain_conf.c:12856
 #, c-format
 msgid "Target controller model %d does not match source %d"
 msgstr "இலக்கு கன்ட்ரோலர் மாடல் %d ஆனது மூலம் %d உடன் பொருந்தவில்லை"
 
-#: src/conf/domain_conf.c:12854
+#: src/conf/domain_conf.c:12864
 #, c-format
 msgid "Target controller ports %d does not match source %d"
 msgstr "இலக்கு கன்ட்ரோலர் முனையங்கள் %d மூலம் %d உடன் பொருந்தவில்லை"
 
-#: src/conf/domain_conf.c:12861
+#: src/conf/domain_conf.c:12871
 #, c-format
 msgid "Target controller vectors %d does not match source %d"
 msgstr "இலக்கு கன்ட்ரோலர் வெக்டார்கள் %d மூலம் %d உடன் பொருந்தவில்லை"
 
-#: src/conf/domain_conf.c:12880
+#: src/conf/domain_conf.c:12890
 #, c-format
 msgid "Target filesystem guest target %s does not match source %s"
 msgstr "இலக்கு கோப்புமுறைமை விருந்தினர் இலக்கு %s ஆனது மூலம் %s உடன் பொருந்தவில்லை"
 
-#: src/conf/domain_conf.c:12887
+#: src/conf/domain_conf.c:12897
 msgid "Target filesystem access mode does not match source"
 msgstr "இலக்கு கோப்புமுறைமை அணுகல் பயன்முறை மூலத்துடன் பொருந்தவில்லை"
 
-#: src/conf/domain_conf.c:12907
+#: src/conf/domain_conf.c:12917
 #, c-format
 msgid "Target network card mac %s does not match source %s"
 msgstr "இலக்கு பிணைய கார்டு mac %s ஆனது மூலம் %s உடன் பொருந்தவில்லை"
 
-#: src/conf/domain_conf.c:12916
+#: src/conf/domain_conf.c:12926
 #, c-format
 msgid "Target network card model %s does not match source %s"
 msgstr "இலக்கு நெட்வொர்க் கார்டு மாடல் %s ஆனது மூலம் %s உடன் பொருந்தவில்லை"
 
-#: src/conf/domain_conf.c:12934
+#: src/conf/domain_conf.c:12944
 #, c-format
 msgid "Target input device type %s does not match source %s"
 msgstr "இலக்கு உள்ளீடு சாதன வகை %s ஆனது மூலம் %s உடன் பொருந்தவில்லை"
 
-#: src/conf/domain_conf.c:12942
+#: src/conf/domain_conf.c:12952
 #, c-format
 msgid "Target input device bus %s does not match source %s"
 msgstr "இலக்கு உள்ளீடு சாதன பஸ் %s ஆனது மூலம் %s உடன் பொருந்தவில்லை"
 
-#: src/conf/domain_conf.c:12961
+#: src/conf/domain_conf.c:12971
 #, c-format
 msgid "Target sound card model %s does not match source %s"
 msgstr "இலக்கு சவுன்ட் கார்டு மாடல் %s ஆனது மூலம் %s உடன் பொருந்தவில்லை"
 
-#: src/conf/domain_conf.c:12980
+#: src/conf/domain_conf.c:12990
 #, c-format
 msgid "Target video card model %s does not match source %s"
 msgstr "இலக்கு வீடியோ கார்டு மாடல் %s ஆனது மூலம் %s உடன் பொருந்தவில்லை"
 
-#: src/conf/domain_conf.c:12988
+#: src/conf/domain_conf.c:12998
 #, c-format
 msgid "Target video card vram %u does not match source %u"
 msgstr "இலக்கு வீடியோ கார்டு vram %u ஆனது மூலம் %u உடன் பொருந்தவில்லை"
 
-#: src/conf/domain_conf.c:12995
+#: src/conf/domain_conf.c:13005
 #, c-format
 msgid "Target video card heads %u does not match source %u"
 msgstr "இலக்கு வீடியோ கார்டு ஹெட்ஸ் %u ஆனது மூலம் %u உடன் பொருந்தவில்லை"
 
-#: src/conf/domain_conf.c:13003
+#: src/conf/domain_conf.c:13013
 msgid "Target video card acceleration does not match source"
 msgstr "இலக்கு வீடியோ கார்டு ஆksஅலரேஷன் மூலத்துடன் பொருந்தவில்லை"
 
-#: src/conf/domain_conf.c:13010
+#: src/conf/domain_conf.c:13020
 #, c-format
 msgid "Target video card 2d accel %u does not match source %u"
 msgstr "இலக்கு வீடியோ கார்டு 2d accel %u ஆனது மூலம் %u உடன் பொருந்தவில்லை"
 
-#: src/conf/domain_conf.c:13017
+#: src/conf/domain_conf.c:13027
 #, c-format
 msgid "Target video card 3d accel %u does not match source %u"
 msgstr "இலக்கு வீடியோ கார்டு 3d accel %u ஆனது மூலம் %u உடன் பொருந்தவில்லை"
 
-#: src/conf/domain_conf.c:13036
+#: src/conf/domain_conf.c:13046
 #, c-format
 msgid "Target host device mode %s does not match source %s"
 msgstr "இலக்கு வழங்கி சாதன பயன்முறை %s ஆனது மூலம் %s உடன் பொருந்தவில்லை"
 
-#: src/conf/domain_conf.c:13045
+#: src/conf/domain_conf.c:13055
 #, c-format
 msgid "Target host device subsystem %s does not match source %s"
 msgstr "இலக்கு வழங்கி சாதன உபமுறைமை %s ஆனது மூலம் %s உடன் பொருந்தவில்லை"
 
-#: src/conf/domain_conf.c:13075
+#: src/conf/domain_conf.c:13085
 #, c-format
 msgid "Target serial port %d does not match source %d"
 msgstr "இலக்கு சீரியல் முனையம் %d ஆனது மூலம் %d உடன் பொருந்தவில்லை"
 
-#: src/conf/domain_conf.c:13093
+#: src/conf/domain_conf.c:13103
 #, c-format
 msgid "Target parallel port %d does not match source %d"
 msgstr "இலக்கு இணை முனையம் %d ஆனது மூலம் %d உடன் பொருந்தவில்லை"
 
-#: src/conf/domain_conf.c:13111
+#: src/conf/domain_conf.c:13121
 #, c-format
 msgid "Target channel type %s does not match source %s"
 msgstr "இலக்கு சேனல் வகை %s ஆனது மூலம் %s உடன் பொருந்தவில்லை"
 
-#: src/conf/domain_conf.c:13121
+#: src/conf/domain_conf.c:13131
 #, c-format
 msgid "Target channel name %s does not match source %s"
 msgstr "இலக்கு சேனல் பெயர் %s ஆனது மூலம் %s உடன் பொருந்தவில்லை"
 
-#: src/conf/domain_conf.c:13130
+#: src/conf/domain_conf.c:13140
 msgid ""
 "Changing device type to/from spicevmc would change default target channel "
 "name"
@@ -3172,476 +3239,476 @@ msgstr ""
 "சாதன வகையை spicevmc இலிருந்து வேறொன்றுக்கோ அல்லது வேறொன்றிலிருந்து spicevmc க்கோ "
 "மாற்றினால், முன்னிருப்பு இலக்கு சேனல் பெயர் மாற்றப்படும்"
 
-#: src/conf/domain_conf.c:13141
+#: src/conf/domain_conf.c:13151
 #, c-format
 msgid "Target channel addr %s does not match source %s"
 msgstr "இலக்கு சேனல் addr %s ஆனது மூலம் %s உடன் பொருந்தவில்லை"
 
-#: src/conf/domain_conf.c:13163
+#: src/conf/domain_conf.c:13173
 #, c-format
 msgid "Target console type %s does not match source %s"
 msgstr "இலக்கு கன்சோல் வகை %s ஆனது மூலம் %s உடன் பொருந்தவில்லை"
 
-#: src/conf/domain_conf.c:13182
+#: src/conf/domain_conf.c:13192
 #, c-format
 msgid "Target watchdog model %s does not match source %s"
 msgstr "இலக்கு watchdog மாடல் %s ஆனது மூலம் %s உடன் பொருந்தவில்லை"
 
-#: src/conf/domain_conf.c:13201
+#: src/conf/domain_conf.c:13211
 #, c-format
 msgid "Target balloon model %s does not match source %s"
 msgstr "இலக்கு பலூன் மாடல் %s ஆனது மூலம் %s உடன் பொருந்தவில்லை"
 
-#: src/conf/domain_conf.c:13223
+#: src/conf/domain_conf.c:13233
 #, c-format
 msgid "Target domain RNG device count '%d' does not match source count '%d'"
 msgstr ""
 "இலக்கு டொமைன் RNG சாதன எண்ணிக்கை '%d' ஆனது மூல எண்ணிக்கை '%d' உடன் பொருந்தவில்லை"
 
-#: src/conf/domain_conf.c:13231
+#: src/conf/domain_conf.c:13241
 #, c-format
 msgid "Target RNG model '%s' does not match source '%s'"
 msgstr "இலக்கு RNG மாடல் '%s' ஆனது மூலம் '%s' உடன் பொருந்தவில்லை"
 
-#: src/conf/domain_conf.c:13250
+#: src/conf/domain_conf.c:13260
 #, c-format
 msgid "Target hub device type %s does not match source %s"
 msgstr "இலக்கு ஹப் சாதன வகை %s ஆனது மூலம் %s உடன் பொருந்தவில்லை"
 
-#: src/conf/domain_conf.c:13270
+#: src/conf/domain_conf.c:13280
 #, c-format
 msgid "Target USB redirection filter rule count %zu does not match source %zu"
 msgstr ""
 "இலக்கு USB திருப்பிவிடுதல் வடிப்பி விதி எண்ணிக்கை %zu ஆனது மூலம் %zu உடன் பொருந்தவில்லை"
 
-#: src/conf/domain_conf.c:13281
+#: src/conf/domain_conf.c:13291
 msgid "Target USB Class code does not match source"
 msgstr "இலக்கு USB வகை குறியீடு மூலத்துடன் பொருந்தவில்லை"
 
-#: src/conf/domain_conf.c:13287
+#: src/conf/domain_conf.c:13297
 msgid "Target USB vendor ID does not match source"
 msgstr "இலக்கு USB வென்டார் ஐடியானது மூலத்துடன் பொருந்தவில்லை"
 
-#: src/conf/domain_conf.c:13293
+#: src/conf/domain_conf.c:13303
 msgid "Target USB product ID does not match source"
 msgstr "இலக்கு USB தயாரிப்பு ஐடியானது மூலத்துடன் உடன் பொருந்தவில்லை"
 
-#: src/conf/domain_conf.c:13299
+#: src/conf/domain_conf.c:13309
 msgid "Target USB version does not match source"
 msgstr "இலக்கு USB பதிப்பு மூலத்துடன் பொருந்தவில்லை"
 
-#: src/conf/domain_conf.c:13305
+#: src/conf/domain_conf.c:13315
 #, c-format
 msgid "Target USB allow '%s' does not match source '%s'"
 msgstr "இலக்கு USB அனுமதி '%s' ஆனது மூலம் '%s' உடன் பொருந்தவில்லை"
 
-#: src/conf/domain_conf.c:13327
+#: src/conf/domain_conf.c:13337
 #, c-format
 msgid "Target domain virt type %s does not match source %s"
 msgstr "இலக்கு டொமைன் virt வகை %s ஆனது மூலம் %s உடன் பொருந்தவில்லை"
 
-#: src/conf/domain_conf.c:13339
+#: src/conf/domain_conf.c:13349
 #, c-format
 msgid "Target domain uuid %s does not match source %s"
 msgstr "இலக்கு வட்டு uuid %s ஆனது மூலம் %s உடன் பொருந்தவில்லை"
 
-#: src/conf/domain_conf.c:13350
+#: src/conf/domain_conf.c:13360
 #, c-format
 msgid "Target domain name '%s' does not match source '%s'"
 msgstr "இலக்கு டொமைன் பெயர் '%s' ஆனது மூலம் '%s' உடன் பொருந்தவில்லை"
 
-#: src/conf/domain_conf.c:13357
+#: src/conf/domain_conf.c:13367
 #, c-format
 msgid "Target domain max memory %lld does not match source %lld"
 msgstr "இலக்கு டொமைன் அதிகபட்ச நினைவகம் %lld ஆனது மூலம் %lld உடன் பொருந்தவில்லை"
 
-#: src/conf/domain_conf.c:13363
+#: src/conf/domain_conf.c:13373
 #, c-format
 msgid "Target domain current memory %lld does not match source %lld"
 msgstr "இலக்கு டொமைனின் தற்போதைய நினைவகம் %lld ஆனது மூலம் %lld உடன் பொருந்தவில்லை"
 
-#: src/conf/domain_conf.c:13369
+#: src/conf/domain_conf.c:13379
 #, c-format
 msgid "Target domain huge page backing %d does not match source %d"
 msgstr ""
 "%d ஐ பின்புலத்தில் ஆதரிக்கும் இலக்கு டொமைன் பெரிய பக்கம் மூலம் %d உடன் பொருந்தவில்லை"
 
-#: src/conf/domain_conf.c:13377
+#: src/conf/domain_conf.c:13387
 #, c-format
 msgid "Target domain vCPU count %d does not match source %d"
 msgstr "இலக்கு டொமைன் vCPU எண்ணிக்கை %d ஆனது மூலம் %d உடன் பொருந்தவில்லை"
 
-#: src/conf/domain_conf.c:13383
+#: src/conf/domain_conf.c:13393
 #, c-format
 msgid "Target domain vCPU max %d does not match source %d"
 msgstr "இலக்கு டொமைன் vCPU அதிகபட்ச எண்ணிக்கை %d ஆனது மூலம் %d உடன் பொருந்தவில்லை"
 
-#: src/conf/domain_conf.c:13390 src/conf/domain_conf.c:13403
+#: src/conf/domain_conf.c:13400 src/conf/domain_conf.c:13413
 #, c-format
 msgid "Target domain OS type %s does not match source %s"
 msgstr "இலக்கு டொமைன் OS வகை %s ஆனது மூலம் %s உடன் பொருந்தவில்லை"
 
-#: src/conf/domain_conf.c:13396
+#: src/conf/domain_conf.c:13406
 #, c-format
 msgid "Target domain architecture %s does not match source %s"
 msgstr "இலக்கு டொமைன் கட்டமைப்பு %s ஆனது மூலம் %s உடன் பொருந்தவில்லை"
 
-#: src/conf/domain_conf.c:13410
+#: src/conf/domain_conf.c:13420
 #, c-format
 msgid "Target domain SMBIOS mode %s does not match source %s"
 msgstr "இலக்கு டொமைன் SMBIOS பயன்முறை %s ஆனது மூலம் %s உடன் பொருந்தவில்லை"
 
-#: src/conf/domain_conf.c:13418
+#: src/conf/domain_conf.c:13428
 #, c-format
 msgid "Target domain features %d does not match source %d"
 msgstr "இலக்கு டொமைன் அம்சங்கள் %d மூலம் %d உடன் பொருந்தவில்லை"
 
-#: src/conf/domain_conf.c:13425
+#: src/conf/domain_conf.c:13435
 msgid "Target domain timers do not match source"
 msgstr "இலக்கு டொமைன் டைமர்கள் மூலத்துடன் பொருந்தவில்லை"
 
-#: src/conf/domain_conf.c:13443
+#: src/conf/domain_conf.c:13453
 #, c-format
 msgid "Target domain disk count %zu does not match source %zu"
 msgstr "இலக்கு டொமைன் வட்டு எண்ணிக்கை %zu ஆனது மூலம் %zu உடன் பொருந்தவில்லை"
 
-#: src/conf/domain_conf.c:13454
+#: src/conf/domain_conf.c:13464
 #, c-format
 msgid "Target domain controller count %zu does not match source %zu"
 msgstr "இலக்கு டொமைன் கன்ட்ரோலர் எண்ணிக்கை %zu ஆனது மூலம் %zu உடன் பொருந்தவில்லை"
 
-#: src/conf/domain_conf.c:13467
+#: src/conf/domain_conf.c:13477
 #, c-format
 msgid "Target domain filesystem count %zu does not match source %zu"
 msgstr "இலக்கு டொமைன் கோப்புமுறைமை எண்ணிக்கை %zu ஆனது மூலம் %zu உடன் பொருந்தவில்லை"
 
-#: src/conf/domain_conf.c:13479
+#: src/conf/domain_conf.c:13489
 #, c-format
 msgid "Target domain net card count %zu does not match source %zu"
 msgstr "இலக்கு டொமைன் நெட் கார்டு எண்ணிக்கை %zu ஆனது மூலம் %zu உடன் பொருந்தவில்லை"
 
-#: src/conf/domain_conf.c:13491
+#: src/conf/domain_conf.c:13501
 #, c-format
 msgid "Target domain input device count %zu does not match source %zu"
 msgstr "இலக்கு டொமைன் உள்ளீடு சாதன எண்ணிக்கை %zu மூலம் %zu உடன் பொருந்தவில்லை"
 
-#: src/conf/domain_conf.c:13503
+#: src/conf/domain_conf.c:13513
 #, c-format
 msgid "Target domain sound card count %zu does not match source %zu"
 msgstr "இலக்கு டொமைன் சவுன்ட் கார்டு எண்ணிக்கை %zu ஆனது மூலம் %zu உடன் பொருந்தவில்லை"
 
-#: src/conf/domain_conf.c:13515
+#: src/conf/domain_conf.c:13525
 #, c-format
 msgid "Target domain video card count %zu does not match source %zu"
 msgstr "இலக்கு டொமைன் வீடியோ கார்டு எண்ணிக்கை %zu ஆனது மூலம் %zu உடன் பொருந்தவில்லை"
 
-#: src/conf/domain_conf.c:13527
+#: src/conf/domain_conf.c:13537
 #, c-format
 msgid "Target domain host device count %zu does not match source %zu"
 msgstr "இலக்கு டொமைன் வழங்கி சாதன எண்ணிக்கை %zu ஆனது மூலம் %zu உடன் பொருந்தவில்லை"
 
-#: src/conf/domain_conf.c:13540
+#: src/conf/domain_conf.c:13550
 #, c-format
 msgid "Target domain smartcard count %zu does not match source %zu"
 msgstr "இலக்கு டொமைன் ஸ்மார்ட்கார்டு எண்ணிக்கை %zu ஆனது மூலம் %zu உடன் பொருந்தவில்லை"
 
-#: src/conf/domain_conf.c:13553
+#: src/conf/domain_conf.c:13563
 #, c-format
 msgid "Target domain serial port count %zu does not match source %zu"
 msgstr "இலக்கு டொமைன் சீரியல் முனைய எண்ணிக்கை %zu ஆனது மூலம் %zu உடன் பொருந்தவில்லை"
 
-#: src/conf/domain_conf.c:13566
+#: src/conf/domain_conf.c:13576
 #, c-format
 msgid "Target domain parallel port count %zu does not match source %zu"
 msgstr "இலக்கு டொமைன் இணை முனைய எண்ணிக்கை %zu ஆனது மூலம் %zu உடன் பொருந்தவில்லை"
 
-#: src/conf/domain_conf.c:13579
+#: src/conf/domain_conf.c:13589
 #, c-format
 msgid "Target domain channel count %zu does not match source %zu"
 msgstr "இலக்கு டொமைன் சேனல் எண்ணிக்கை %zu ஆனது மூலம் %zu உடன் பொருந்தவில்லை"
 
-#: src/conf/domain_conf.c:13592
+#: src/conf/domain_conf.c:13602
 #, c-format
 msgid "Target domain console count %zu does not match source %zu"
 msgstr "இலக்கு டொமைன் கன்சோல் எண்ணிக்கை %zu ஆனது மூலம் %zu உடன் பொருந்தவில்லை"
 
-#: src/conf/domain_conf.c:13605
+#: src/conf/domain_conf.c:13615
 #, c-format
 msgid "Target domain hub device count %zu does not match source %zu"
 msgstr "இலக்கு டொமைன் ஹப் சாதன எண்ணிக்கை %zu மூலம் %zu உடன் பொருந்தவில்லை"
 
-#: src/conf/domain_conf.c:13618
+#: src/conf/domain_conf.c:13628
 #, c-format
 msgid "Target domain USB redirection filter count %d does not match source %d"
 msgstr ""
 "இலக்கு டொமைன் USB திருப்பிவிடுதல் வடிப்பி எண்ணிக்கை %d ஆனது மூலம் %d உடன் பொருந்தவில்லை"
 
-#: src/conf/domain_conf.c:13632
+#: src/conf/domain_conf.c:13642
 #, c-format
 msgid "Target domain watchdog count %d does not match source %d"
 msgstr "இலக்கு டொமைன் வாட்ச்டாக் எண்ணிக்கை %d ஆனது மூலம் %d உடன் பொருந்தவில்லை"
 
-#: src/conf/domain_conf.c:13645
+#: src/conf/domain_conf.c:13655
 #, c-format
 msgid "Target domain memory balloon count %d does not match source %d"
 msgstr "இலக்கு டொமைன் நினைவக பலூன் எண்ணிக்கை %d ஆனது மூலம் %d உடன் பொருந்தவில்லை"
 
-#: src/conf/domain_conf.c:13987
+#: src/conf/domain_conf.c:13997
 #, c-format
 msgid "unexpected %s action: %d"
 msgstr "எதிர்பாராத %s செயல்பாடு: %d"
 
-#: src/conf/domain_conf.c:14284
+#: src/conf/domain_conf.c:14294
 #, c-format
 msgid "unexpected disk type %d"
 msgstr "எதிர்பார்க்காத வட்டி வகை %d"
 
-#: src/conf/domain_conf.c:14289
+#: src/conf/domain_conf.c:14299
 #, c-format
 msgid "unexpected disk device %d"
 msgstr "எதிர்பார்க்காத வட்டு சாதனம் %d"
 
-#: src/conf/domain_conf.c:14294
+#: src/conf/domain_conf.c:14304
 #, c-format
 msgid "unexpected disk bus %d"
 msgstr "எதிர்பார்க்காத செயற்கள பஸ் %d"
 
-#: src/conf/domain_conf.c:14299
+#: src/conf/domain_conf.c:14309
 #, c-format
 msgid "unexpected disk cache mode %d"
 msgstr "எதிர்பாராத வட்டு இடையக முறைமை %d"
 
-#: src/conf/domain_conf.c:14304
+#: src/conf/domain_conf.c:14314
 #, c-format
 msgid "unexpected disk io mode %d"
 msgstr "எதிர்பாராத வட்டு io பயன்முறை %d"
 
-#: src/conf/domain_conf.c:14309
+#: src/conf/domain_conf.c:14319
 #, c-format
 msgid "Unexpected disk sgio mode '%d'"
 msgstr "எதிர்பாராத வட்டு sgio பயன்முறை '%d'"
 
-#: src/conf/domain_conf.c:14501
+#: src/conf/domain_conf.c:14511
 #, c-format
 msgid "unexpected controller type %d"
 msgstr "எதிர்பார்க்காத கட்டுப்படுத்தி வகை %d"
 
-#: src/conf/domain_conf.c:14510
+#: src/conf/domain_conf.c:14520
 #, c-format
 msgid "unexpected model type %d"
 msgstr "எதிர்பார்க்காத மாடல் வகை %d"
 
-#: src/conf/domain_conf.c:14596
+#: src/conf/domain_conf.c:14606
 #, c-format
 msgid "unexpected filesystem type %d"
 msgstr "எதிர்பார்க்காத கோப்புமுறைமை வகை %d"
 
-#: src/conf/domain_conf.c:14602
+#: src/conf/domain_conf.c:14612
 #, c-format
 msgid "unexpected accessmode %d"
 msgstr "எதிர்பார்க்காத அணுகல்பயன்முறை %d"
 
-#: src/conf/domain_conf.c:14687
+#: src/conf/domain_conf.c:14697
 #, c-format
 msgid "unexpected pci hostdev driver name type %d"
 msgstr "எதிர்பார்க்காத pci hostdev இயக்கி பெயர் வகை %d"
 
-#: src/conf/domain_conf.c:14733
+#: src/conf/domain_conf.c:14743
 msgid "PCI address Formatting failed"
 msgstr "PCI முகவரி வடிவமைத்தல் தோல்வி"
 
-#: src/conf/domain_conf.c:14760 src/conf/domain_conf.c:14793
-#: src/conf/domain_conf.c:16027 src/conf/domain_conf.c:16036
-#: src/qemu/qemu_hotplug.c:3258
+#: src/conf/domain_conf.c:14770 src/conf/domain_conf.c:14803
+#: src/conf/domain_conf.c:16037 src/conf/domain_conf.c:16046
+#: src/qemu/qemu_hotplug.c:3263
 #, c-format
 msgid "unexpected hostdev type %d"
 msgstr "எதிர்பார்க்காத hostdev வகை%d"
 
-#: src/conf/domain_conf.c:14817 src/conf/domain_conf.c:14890
-#: src/conf/domain_conf.c:15811
+#: src/conf/domain_conf.c:14827 src/conf/domain_conf.c:14900
+#: src/conf/domain_conf.c:15821
 #, c-format
 msgid "unexpected net type %d"
 msgstr "எதிர்பார்க்காத இணைய வகை %d"
 
-#: src/conf/domain_conf.c:14844
+#: src/conf/domain_conf.c:14854
 #, c-format
 msgid "unexpected source mode %d"
 msgstr "எதிர்பார்க்காத மூலப் பயன்முறை %d"
 
-#: src/conf/domain_conf.c:14864
+#: src/conf/domain_conf.c:14874
 #, c-format
 msgid "unexpected net type %s"
 msgstr "எதிர்பார்க்காத நெட் வகை %s"
 
-#: src/conf/domain_conf.c:15055
+#: src/conf/domain_conf.c:15065
 #, c-format
 msgid "unexpected char type %d"
 msgstr "எதிர்பார்க்காத எழுத்து வகை %d"
 
-#: src/conf/domain_conf.c:15157
+#: src/conf/domain_conf.c:15167
 #, c-format
 msgid "unexpected char device type %d"
 msgstr "எதிர்பார்க்காத எழுத்துக்குறி சாதன வகை %d"
 
-#: src/conf/domain_conf.c:15176
+#: src/conf/domain_conf.c:15186
 msgid "Could not format channel target type"
 msgstr "சேனல் இலக்கு வகையை வடிவமைக்க முடியவில்லை"
 
-#: src/conf/domain_conf.c:15186
+#: src/conf/domain_conf.c:15196
 msgid "Unable to format guestfwd port"
 msgstr "guestfwd துறையை வடிவமைக்க முடியவில்லை"
 
-#: src/conf/domain_conf.c:15263 src/conf/domain_conf.c:15294
+#: src/conf/domain_conf.c:15273 src/conf/domain_conf.c:15304
 #: src/qemu/qemu_command.c:8468
 #, c-format
 msgid "unexpected smartcard type %d"
 msgstr "எதிர்பார்க்காத ஸ்மார்ட்கார்டு வகை %d"
 
-#: src/conf/domain_conf.c:15311
+#: src/conf/domain_conf.c:15321
 #, c-format
 msgid "unexpected codec type %d"
 msgstr "எதிர்பார்க்காத கோடெக் வகை %d"
 
-#: src/conf/domain_conf.c:15364 src/xenxs/xen_sxpr.c:2111
+#: src/conf/domain_conf.c:15374 src/xenxs/xen_sxpr.c:2111
 #, c-format
 msgid "unexpected sound model %d"
 msgstr "எதிர்பார்க்காத ஒலி வகை %d"
 
-#: src/conf/domain_conf.c:15407
+#: src/conf/domain_conf.c:15417
 #, c-format
 msgid "unexpected memballoon model %d"
 msgstr "எதிர்பார்க்காத மெம்பலூன் மாடல் %d"
 
-#: src/conf/domain_conf.c:15472
+#: src/conf/domain_conf.c:15482
 #, c-format
 msgid "unexpected watchdog model %d"
 msgstr "எதிர்பார்க்காத watchdog மாதிரி %d"
 
-#: src/conf/domain_conf.c:15478
+#: src/conf/domain_conf.c:15488
 #, c-format
 msgid "unexpected watchdog action %d"
 msgstr "எதிர்பாராத watchdog செயல்பாடு %d"
 
-#: src/conf/domain_conf.c:15583
+#: src/conf/domain_conf.c:15593
 #, c-format
 msgid "unexpected video model %d"
 msgstr "எதிர்பார்க்காத வீடியோ மாதிரி %d"
 
-#: src/conf/domain_conf.c:15624 src/xenxs/xen_sxpr.c:2148
+#: src/conf/domain_conf.c:15634 src/xenxs/xen_sxpr.c:2148
 #, c-format
 msgid "unexpected input type %d"
 msgstr "எதிர்பார்க்காத உள்வரும் வகை %d"
 
-#: src/conf/domain_conf.c:15629
+#: src/conf/domain_conf.c:15639
 #, c-format
 msgid "unexpected input bus type %d"
 msgstr "எதிர்பார்க்காத உள்ளீடு பஸ் வகை %d"
 
-#: src/conf/domain_conf.c:15657
+#: src/conf/domain_conf.c:15667
 #, c-format
 msgid "unexpected timer name %d"
 msgstr "எதிர்பார்க்காத டைமர் பெயர் %d"
 
-#: src/conf/domain_conf.c:15673
+#: src/conf/domain_conf.c:15683
 #, c-format
 msgid "unexpected timer tickpolicy %d"
 msgstr "தெரியாத டைமர் டிக்பாலிசி  %d"
 
-#: src/conf/domain_conf.c:15687
+#: src/conf/domain_conf.c:15697
 #, c-format
 msgid "unexpected timer track %d"
 msgstr "எதிர்பார்க்காத டைமர் ட்ராக் %d"
 
-#: src/conf/domain_conf.c:15705
+#: src/conf/domain_conf.c:15715
 #, c-format
 msgid "unexpected timer mode %d"
 msgstr "எதிர்பார்க்காத டைமர் பயன்முறை %d"
 
-#: src/conf/domain_conf.c:16018 src/conf/domain_conf.c:16043
+#: src/conf/domain_conf.c:16028 src/conf/domain_conf.c:16053
 #, c-format
 msgid "unexpected hostdev mode %d"
 msgstr "எதிர்பார்க்காத hostdev முறை %d"
 
-#: src/conf/domain_conf.c:16151
+#: src/conf/domain_conf.c:16161
 #, c-format
 msgid "unexpected hub type %d"
 msgstr "எதிர்பார்க்காத ஹப் வகை %d"
 
-#: src/conf/domain_conf.c:16243
+#: src/conf/domain_conf.c:16253
 #, c-format
 msgid "unexpected domain type %d"
 msgstr "எதிர்பார்க்காத செயற்கள வகை %d"
 
-#: src/conf/domain_conf.c:16424
+#: src/conf/domain_conf.c:16434
 msgid "failed to format cpuset for vcpupin"
 msgstr "cpuset ஐ vcpupin க்கு வடிவமைப்பதில் தோல்வி"
 
-#: src/conf/domain_conf.c:16438
+#: src/conf/domain_conf.c:16448
 msgid "failed to format cpuset for emulator"
 msgstr "cpuset ஐ emulator க்கு வடிவமைப்பதில் தோல்வி"
 
-#: src/conf/domain_conf.c:16467
+#: src/conf/domain_conf.c:16477
 msgid "failed to format nodeset for NUMA memory tuning"
 msgstr "nodeset ஐ NUMA நினைவக நுண்ணமைத்தலுக்கு வடிவமைத்தல் தோல்வி"
 
-#: src/conf/domain_conf.c:16536
+#: src/conf/domain_conf.c:16546
 #, c-format
 msgid "unexpected boot device type %d"
 msgstr "எதிர்பார்க்காத பூட் சாதன வகை %d"
 
-#: src/conf/domain_conf.c:16570
+#: src/conf/domain_conf.c:16580
 #, c-format
 msgid "unexpected smbios mode %d"
 msgstr "எதிர்பார்க்காத smbios பயன்முறை %d"
 
-#: src/conf/domain_conf.c:16606
+#: src/conf/domain_conf.c:16616
 #, c-format
 msgid "unexpected feature %zu"
 msgstr ""
 
-#: src/conf/domain_conf.c:16990
+#: src/conf/domain_conf.c:17000
 msgid "Device configuration is not compatible: Domain has no USB bus support"
 msgstr "சாதன அமைவாக்கம் இணக்கமாக இல்லை: டொமைனில் USB பஸ் ஆதரவு இல்லை"
 
-#: src/conf/domain_conf.c:17012 src/conf/network_conf.c:2795
+#: src/conf/domain_conf.c:17022 src/conf/network_conf.c:2795
 #: src/conf/nwfilter_conf.c:2713 src/util/virdnsmasq.c:547
 #, c-format
 msgid "cannot create config directory '%s'"
 msgstr "கட்டமை அடைவை '%s'ஐ உருவாக்க முடியவில்லை"
 
-#: src/conf/domain_conf.c:17151
+#: src/conf/domain_conf.c:17161
 #, c-format
 msgid "unexpected domain %s already exists"
 msgstr "எதிர்பார்க்காத செயற்கள %s ஏற்கனவை இருக்கிறது"
 
-#: src/conf/domain_conf.c:17191 src/conf/network_conf.c:3013
+#: src/conf/domain_conf.c:17201 src/conf/network_conf.c:3013
 #: src/conf/network_conf.c:3046 src/conf/nwfilter_conf.c:3097
 #: src/conf/storage_conf.c:1826 src/util/virpci.c:2410
 #, c-format
 msgid "Failed to open dir '%s'"
 msgstr "dir '%s'ஐ திறக்க முடியவில்லை"
 
-#: src/conf/domain_conf.c:17261
+#: src/conf/domain_conf.c:17271
 #, c-format
 msgid "cannot remove config %s"
 msgstr "%sக்கு கட்டமைப்பை நீக்க முடியவில்லை"
 
-#: src/conf/domain_conf.c:17614
+#: src/conf/domain_conf.c:17624
 #, c-format
 msgid "unable to visit backing chain file %s"
 msgstr "பேக்கிங் செயின் கோப்பு %s க்குச் செல்ல முடியவில்லை"
 
-#: src/conf/domain_conf.c:17715
+#: src/conf/domain_conf.c:17725
 #, c-format
 msgid "invalid domain state: %d"
 msgstr "தவறான டொமைன் நிலை: %d"
 
-#: src/conf/domain_conf.c:18161
+#: src/conf/domain_conf.c:18171
 #, c-format
 msgid "Copying definition of '%d' type is not implemented yet."
 msgstr "'%d' வகை வரையறையை நகலெடுக்கும் வசதி இன்னும் செயல்படுத்தப்படவில்லை."
 
-#: src/conf/domain_conf.c:18443
+#: src/conf/domain_conf.c:18453
 #, c-format
 msgid "no device found with alias %s"
 msgstr ""
@@ -7707,8 +7774,8 @@ msgstr "தவறான தரவு வகை"
 msgid "System is not available"
 msgstr "கணினி கிடைக்கவில்லை"
 
-#: src/hyperv/hyperv_wmi.c:380 tools/virsh.c:2191 tools/virsh.c:2236
-#: tools/virsh.c:2658 tools/virsh.c:2664 tools/virsh-domain.c:4564
+#: src/hyperv/hyperv_wmi.c:380 tools/virsh.c:2161 tools/virsh.c:2206
+#: tools/virsh.c:2628 tools/virsh.c:2634 tools/virsh-domain.c:4564
 #: tools/virsh-domain.c:6250 tools/virsh-pool.c:1313 tools/virsh-pool.c:1407
 #: tools/virsh-snapshot.c:447 tools/virsh-volume.c:1538
 msgid "Out of memory"
@@ -9697,7 +9764,7 @@ msgid "Failed to create symlink '%s to '%s'"
 msgstr "%s லிருந்து %s க்கு symlinkஐ உருவாக்க முடியவில்லை"
 
 #: src/lxc/lxc_driver.c:2275 src/libxl/libxl_driver.c:4316
-#: src/network/bridge_driver.c:2978 src/qemu/qemu_driver.c:7308
+#: src/network/bridge_driver.c:2964 src/qemu/qemu_driver.c:7308
 #: src/storage/storage_driver.c:1171 src/uml/uml_driver.c:2442
 #, c-format
 msgid "Failed to delete symlink '%s'"
@@ -9769,7 +9836,7 @@ msgstr "சாதனத்தை ஒரே நிலையாக இணைத்
 
 #: src/lxc/lxc_driver.c:2858 src/lxc/lxc_driver.c:2914
 #: src/lxc/lxc_driver.c:3706 src/qemu/qemu_driver.c:6669
-#: src/qemu/qemu_hotplug.c:3288
+#: src/qemu/qemu_hotplug.c:3293
 #, c-format
 msgid "multiple devices matching mac address %s found"
 msgstr "%s என்ற mac முகவரிக்கு பல சாதனங்கள் பொருந்துவதாகக் கண்டறியப்பட்டுள்ளது"
@@ -9790,8 +9857,8 @@ msgid "no target device %s"
 msgstr "இலக்கு சாதனம் %s இல்லை"
 
 #: src/lxc/lxc_driver.c:2931 src/qemu/qemu_driver.c:6685
-#: src/qemu/qemu_driver.c:6709 src/qemu/qemu_hotplug.c:1340
-#: src/qemu/qemu_hotplug.c:3514
+#: src/qemu/qemu_driver.c:6709 src/qemu/qemu_hotplug.c:1342
+#: src/qemu/qemu_hotplug.c:3519
 msgid "device not present in domain configuration"
 msgstr "டொமைன் அமைவாக்கத்தில் சாதனம் இல்லை"
 
@@ -9831,7 +9898,7 @@ msgid "No bridge name specified"
 msgstr "பிரிட்ஜ் பெயர் குறிப்பிடப்படவில்லை"
 
 #: src/lxc/lxc_driver.c:3132 src/lxc/lxc_process.c:395
-#: src/qemu/qemu_command.c:312 src/qemu/qemu_hotplug.c:1641
+#: src/qemu/qemu_command.c:312 src/qemu/qemu_hotplug.c:1643
 #, c-format
 msgid "Network '%s' is not active."
 msgstr "பிணையம் %s செயலில் இல்லை."
@@ -9879,7 +9946,7 @@ msgid "device type '%s' cannot be attached"
 msgstr "சாதன வகை '%s'ஐ இணைக்க முடியவில்லை"
 
 #: src/lxc/lxc_driver.c:3654 src/libxl/libxl_driver.c:3590
-#: src/qemu/qemu_hotplug.c:2910 src/uml/uml_driver.c:2268
+#: src/qemu/qemu_hotplug.c:2915 src/uml/uml_driver.c:2268
 #, c-format
 msgid "disk %s not found"
 msgstr "வட்டு %s காணப்படவில்லை"
@@ -9890,7 +9957,7 @@ msgstr "வட்டு %s காணப்படவில்லை"
 msgid "Unable to remove device %s"
 msgstr "சாதனம் %s ஐ நீக்க முடியவில்லை"
 
-#: src/lxc/lxc_driver.c:3711 src/qemu/qemu_hotplug.c:3294
+#: src/lxc/lxc_driver.c:3711 src/qemu/qemu_hotplug.c:3299
 #, c-format
 msgid "network device %s not found"
 msgstr "பிணைய சாதனம் %s காணப்படவில்லை"
@@ -9938,7 +10005,7 @@ msgstr "நிகழ்நேர சாதனங்களை மாற்றி�
 msgid "Host SMBIOS information is not available"
 msgstr "வழங்கி SMBIOS தகவல் கிடைக்கவில்லை"
 
-#: src/lxc/lxc_process.c:272 src/network/bridge_driver.c:1833
+#: src/lxc/lxc_process.c:272 src/network/bridge_driver.c:1854
 #: src/qemu/qemu_command.c:393 src/qemu/qemu_driver.c:9352
 #: src/util/virnetdevmacvlan.c:938
 #, c-format
@@ -10069,7 +10136,7 @@ msgstr "libxl சூழல் துவக்கம் தோல்வியட�
 #: src/qemu/qemu_driver.c:293 src/qemu/qemu_hostdev.c:1048
 #: src/qemu/qemu_hostdev.c:1072 src/qemu/qemu_hostdev.c:1126
 #: src/secret/secret_driver.c:498 src/uml/uml_driver.c:196
-#: src/util/virerror.c:257 src/xenapi/xenapi_utils.c:265 tools/virsh.c:281
+#: src/util/virerror.c:257 src/xenapi/xenapi_utils.c:265 tools/virsh.c:282
 #: tools/virsh-domain-monitor.c:57
 msgid "unknown error"
 msgstr "தெரியாத பிழை"
@@ -10632,7 +10699,12 @@ msgstr "libxenlight பிணைய சாதன வகை %s ஐ ஆதரி�
 msgid "Unable to find an unused VNC port"
 msgstr "பயன்படுத்தாத VNC துறையை தேட முடியவில்லை"
 
-#: src/network/bridge_driver.c:752
+#: src/network/bridge_driver.c:129
+#, fuzzy, c-format
+msgid "no network with matching uuid '%s' (%s)"
+msgstr "uuid '%s' க்கு பொருந்தும் டொமைன் இல்லை (%s)"
+
+#: src/network/bridge_driver.c:773
 #, c-format
 msgid ""
 "Publicly routable address %s is prohibited. The version of dnsmasq on this "
@@ -10649,11 +10721,11 @@ msgstr ""
 "பார்க்கவும்). நீங்கள் dnsmasq ஐ மேம்படுத்த வேண்டும் அல்லது இந்த பிணையத்திற்கு ஒரு தனிப்பட்ட/"
 "அக சப்நெட் வரம்பைப் பயன்படுத்த வேண்டும்  (RFC1918/RFC3484/RFC4193 இல் விவரிக்கப்பட்டபடி)."
 
-#: src/network/bridge_driver.c:827
+#: src/network/bridge_driver.c:848
 msgid "For IPv4, multiple DHCP definitions cannot be specified."
 msgstr "IPv4 க்கு, பல DHCP வரையறைகளைக் குறிப்பிட முடியாது."
 
-#: src/network/bridge_driver.c:840
+#: src/network/bridge_driver.c:861
 #, c-format
 msgid ""
 "The version of dnsmasq on this host (%d.%d) doesn't adequately support IPv6 "
@@ -10662,99 +10734,98 @@ msgstr ""
 "இந்த வழங்கியில் (%d.%d) உள்ள dnsmasq இன் பதிப்பு IPv6 dhcp வரம்பு அல்லது dhcp வழங்கி "
 "விவரக்குறிப்பை போதிய அளவு ஆதரிக்கவில்லை. பதிப்பு %d.%d அல்லது சமீபத்தியது தேவை."
 
-#: src/network/bridge_driver.c:853
+#: src/network/bridge_driver.c:874
 msgid "For IPv6, multiple DHCP definitions cannot be specified."
 msgstr "IPv6 க்கு, பல DHCP வரையறைகளைக் குறிப்பிட முடியாது."
 
-#: src/network/bridge_driver.c:1025
+#: src/network/bridge_driver.c:1046
 #, c-format
 msgid "couldn't write dnsmasq config file '%s'"
 msgstr "Dnsmasq அமைவாக்கக் கோப்பு '%s' இல் எழுத முடியவில்லை"
 
-#: src/network/bridge_driver.c:1055 src/network/bridge_driver.c:1061
-#: src/network/bridge_driver.c:1072 src/network/bridge_driver.c:1371
-#: src/network/bridge_driver.c:1377
+#: src/network/bridge_driver.c:1076 src/network/bridge_driver.c:1082
+#: src/network/bridge_driver.c:1093 src/network/bridge_driver.c:1392
+#: src/network/bridge_driver.c:1398
 #, c-format
 msgid "cannot create directory %s"
 msgstr "அடைவை %sஐ உருவாக்க முடியவில்லை"
 
-#: src/network/bridge_driver.c:1264
+#: src/network/bridge_driver.c:1285
 #, c-format
 msgid "bridge '%s' has an invalid prefix"
 msgstr "பிரிட்ஜ் '%s' இல் தவறான முன்னொட்டு உள்ளது"
 
-#: src/network/bridge_driver.c:1325
+#: src/network/bridge_driver.c:1346
 #, c-format
 msgid "couldn't write radvd config file '%s'"
 msgstr "radvd அமைவாக்கக் கோப்பு '%s' ஐ எழுத முடியவில்லை"
 
-#: src/network/bridge_driver.c:1363
+#: src/network/bridge_driver.c:1384
 #, c-format
 msgid "Cannot find %s - Possibly the package isn't installed"
 msgstr "%s ஐக் கண்டறிய முடியவில்லை -தொகுப்பு நிறுவப்படாமல் இருக்கலாம்"
 
-#: src/network/bridge_driver.c:1593
+#: src/network/bridge_driver.c:1614
 #, c-format
 msgid "cannot write to %s to disable IPv6 on bridge %s"
 msgstr "%s பிரிட்ஜில் IPv6 ஐ முடக்குவதற்காக %s இல் எழுத முடியவில்லை"
 
-#: src/network/bridge_driver.c:1613 src/network/bridge_driver.c:1627
+#: src/network/bridge_driver.c:1634 src/network/bridge_driver.c:1648
 #, c-format
 msgid "cannot disable %s"
 msgstr "%sஐ செயல்நீக்க முடியவில்லை"
 
-#: src/network/bridge_driver.c:1646
+#: src/network/bridge_driver.c:1667
 #, c-format
 msgid "bridge '%s' has an invalid netmask or IP address"
 msgstr "பிரிட்ஜ் '%s' இல் தவறான நெட்மாஸ்க் அல்லது IP முகவரி உள்ளது"
 
-#: src/network/bridge_driver.c:1689
+#: src/network/bridge_driver.c:1710
 #, c-format
 msgid "network '%s' has an invalid netmask or IP address in route definition"
 msgstr ""
 "பிணையம் '%s' இல் தட வரையறையில் செல்லுபடியாகாத நெட்மாஸ்க் அல்லது IP முகவரி உள்ளது"
 
-#: src/network/bridge_driver.c:1807
+#: src/network/bridge_driver.c:1828
 msgid "failed to enable IP forwarding"
 msgstr "IP முன்னனுப்புதலை செயல்படுத்த முடியவில்லை"
 
-#: src/network/bridge_driver.c:1965
+#: src/network/bridge_driver.c:1986
 msgid "network is already active"
 msgstr "பிணையம் ஏற்கனவே செயலில் உள்ளது"
 
-#: src/network/bridge_driver.c:2070 src/network/bridge_driver.c:2572
-#: src/network/bridge_driver.c:2636 src/network/bridge_driver.c:2774
-#: src/network/bridge_driver.c:2800 src/network/bridge_driver.c:2848
-#: src/network/bridge_driver.c:2912 src/network/bridge_driver.c:2940
+#: src/network/bridge_driver.c:2091 src/network/bridge_driver.c:2581
+#: src/network/bridge_driver.c:2645 src/network/bridge_driver.c:2783
+#: src/network/bridge_driver.c:2809 src/network/bridge_driver.c:2926
 #: src/parallels/parallels_network.c:477 src/parallels/parallels_network.c:528
 #: src/parallels/parallels_network.c:594 src/test/test_driver.c:3297
 msgid "no network with matching uuid"
 msgstr "uuidஉடன் பிணைய பொருத்தம் இல்லை"
 
-#: src/network/bridge_driver.c:2096 src/network/bridge_driver.c:3153
-#: src/network/bridge_driver.c:3544 src/network/bridge_driver.c:3722
-#: src/network/bridge_driver.c:3875 src/parallels/parallels_network.c:501
+#: src/network/bridge_driver.c:2117 src/network/bridge_driver.c:3139
+#: src/network/bridge_driver.c:3530 src/network/bridge_driver.c:3708
+#: src/network/bridge_driver.c:3861 src/parallels/parallels_network.c:501
 #, c-format
 msgid "no network with matching name '%s'"
 msgstr "பொருந்தும் பெயர் '%s'உடன் பிணையம் இல்லை"
 
-#: src/network/bridge_driver.c:2344
+#: src/network/bridge_driver.c:2353
 #, c-format
 msgid "Unsupported <ip> element in network %s with forward mode='%s'"
 msgstr "முன்னோக்குப் பயன்முறை='%s' என அமைந்துள்ள பிணையம் %s இல் ஆதரிக்கப்படாத <ip> கூறு"
 
-#: src/network/bridge_driver.c:2352
+#: src/network/bridge_driver.c:2361
 #, c-format
 msgid "Unsupported <dns> element in network %s with forward mode='%s'"
 msgstr "முன்னோக்குப் பயன்முறை='%s' என அமைந்துள்ள பிணையம் %s இல் ஆதரிக்கப்படாத <dns> கூறு"
 
-#: src/network/bridge_driver.c:2360
+#: src/network/bridge_driver.c:2369
 #, c-format
 msgid "Unsupported <domain> element in network %s with forward mode='%s'"
 msgstr ""
 "முன்னோக்குப் பயன்முறை='%s' என அமைந்துள்ள பிணையம் %s இல் ஆதரிக்கப்படாத <domain> கூறு"
 
-#: src/network/bridge_driver.c:2378
+#: src/network/bridge_driver.c:2387
 msgid ""
 "Multiple IPv4 dhcp sections found -- dhcp is supported only for a single "
 "IPv4 address on each network"
@@ -10762,7 +10833,7 @@ msgstr ""
 "பல IPv4 dhcp பிரிவுகள் கண்டறியப்பட்டுள்ளன -- ஒவ்வொரு பிணையத்திலும் ஒற்றை IPv4 "
 "முகவரிக்கு மட்டுமே  dhcp ஆதரிக்கப்படும்"
 
-#: src/network/bridge_driver.c:2391
+#: src/network/bridge_driver.c:2400
 msgid ""
 "Multiple IPv6 dhcp sections found -- dhcp is supported only for a single "
 "IPv6 address on each network"
@@ -10770,7 +10841,7 @@ msgstr ""
 "பல IPv6 dhcp பிரிவுகள் கண்டறியப்பட்டுள்ளன -- ஒவ்வொரு பிணையத்திலும் ஒற்றை IPv6 "
 "முகவரிக்கு மட்டுமே dhcp ஆதரிக்கப்படும்"
 
-#: src/network/bridge_driver.c:2435
+#: src/network/bridge_driver.c:2444
 #, c-format
 msgid ""
 "network '%s' has multiple default <portgroup> elements (%s and %s), but only "
@@ -10779,7 +10850,7 @@ msgstr ""
 "பிணையம் '%s' க்கு பல முன்னிருப்பு <portgroup> கூறுகள் (%s மற்றும் %s) உள்ளன, ஆனால் "
 "ஒரு முன்னிருப்பு மதிப்பு மட்டுமே அனுமதிக்கப்படும்"
 
-#: src/network/bridge_driver.c:2453
+#: src/network/bridge_driver.c:2462
 #, c-format
 msgid ""
 "<vlan> element specified for network %s, whose type doesn't support vlan "
@@ -10788,48 +10859,44 @@ msgstr ""
 "பிணையம் %s க்கு <vlan> கூறு குறிப்பிடப்பட்டுள்ளது, அதன் வகை vlan அமைவாக்கத்தை "
 "ஆதரிக்காது"
 
-#: src/network/bridge_driver.c:2809
+#: src/network/bridge_driver.c:2818
 msgid "network is not active"
 msgstr "பிணையம் செயலில் இல்லை"
 
-#: src/network/bridge_driver.c:2879
-msgid "no network with matching id"
-msgstr "பொருந்தும் idஉடன் பிணையம் இல்லை"
-
-#: src/network/bridge_driver.c:2888 src/test/test_driver.c:3427
+#: src/network/bridge_driver.c:2881 src/test/test_driver.c:3427
 #, c-format
 msgid "network '%s' does not have a bridge name."
 msgstr "பிணையம் '%s' ஒரு பாலம் பெயர் இல்லை."
 
-#: src/network/bridge_driver.c:2949
+#: src/network/bridge_driver.c:2935
 msgid "cannot set autostart for transient network"
 msgstr "transient பிணையத்திற்கு தானியக்க துவக்கத்தை அமைக்க முடியவில்லை"
 
-#: src/network/bridge_driver.c:2964
+#: src/network/bridge_driver.c:2950
 #, c-format
 msgid "cannot create autostart directory '%s'"
 msgstr "%s தானியக்கி துவக்க அடைவினை உருவாக்க முடியாது"
 
-#: src/network/bridge_driver.c:2971 src/storage/storage_driver.c:1163
+#: src/network/bridge_driver.c:2957 src/storage/storage_driver.c:1163
 #, c-format
 msgid "Failed to create symlink '%s' to '%s'"
 msgstr "%s லிருந்து %s க்கு symlinkஐ உருவாக்க முடியவில்லை"
 
-#: src/network/bridge_driver.c:3063
+#: src/network/bridge_driver.c:3049
 #, c-format
 msgid "Could not get Virtual functions on %s"
 msgstr "%s இல் மெய்நிகர் செயல்தொகுதிகளைப் பெற முடியவில்லை"
 
-#: src/network/bridge_driver.c:3070
+#: src/network/bridge_driver.c:3056
 #, c-format
 msgid "No Vf's present on SRIOV PF %s"
 msgstr "SRIOV PF %s இல் Vf's உள்ளது"
 
-#: src/network/bridge_driver.c:3091
+#: src/network/bridge_driver.c:3077
 msgid "Direct mode types require interface names"
 msgstr "நேரடி பயன்முறை வகைகளுக்கு இடைமுகப் பெயர்கள் அவசியம்"
 
-#: src/network/bridge_driver.c:3244
+#: src/network/bridge_driver.c:3230
 #, c-format
 msgid ""
 "<virtualport type='%s'> not supported for network '%s' which uses a bridge "
@@ -10838,18 +10905,18 @@ msgstr ""
 "பிரிட்ஜ் சாதனத்தைப் பயன்படுத்துகின்ற பிணையம் '%s' க்கு <virtualport type='%s'> "
 "ஆதரிக்கப்படாது"
 
-#: src/network/bridge_driver.c:3275 src/network/bridge_driver.c:3435
+#: src/network/bridge_driver.c:3261 src/network/bridge_driver.c:3421
 #, c-format
 msgid ""
 "network '%s' requires exclusive access to interfaces, but none are available"
 msgstr "பிணையம் '%s' க்கு இடைமுகங்களுக்கான பிரத்யேக அணுகல் தேவை ஆனால் கிடைக்கவில்லை"
 
-#: src/network/bridge_driver.c:3301
+#: src/network/bridge_driver.c:3287
 #, c-format
 msgid "unrecognized driver name value %d  in network '%s'"
 msgstr "பிணையம் '%2$s' இல் '%1$d' என்ற அடையாளம் காணப்படாத இயக்கி பெயர் மதிப்பு உள்ளது"
 
-#: src/network/bridge_driver.c:3325
+#: src/network/bridge_driver.c:3311
 #, c-format
 msgid ""
 "<virtualport type='%s'> not supported for network '%s' which uses an SR-IOV "
@@ -10858,7 +10925,7 @@ msgstr ""
 "PCI பாஸ்த்ரூ மூலமாக மெய்நிகர் SR-IOV செயல்தொகுதியைப் பயன்படுத்துகின்ற பிணையம் '%s' க்கு "
 "<virtualport type='%s'> ஆதரிக்கப்படாது"
 
-#: src/network/bridge_driver.c:3380
+#: src/network/bridge_driver.c:3366
 #, c-format
 msgid ""
 "<virtualport type='%s'> not supported for network '%s' which uses a macvtap "
@@ -10867,7 +10934,7 @@ msgstr ""
 "macvtap சாதனத்தைப் பயன்படுத்துகின்ற பிணையம் '%s' க்கு <virtualport type='%s'> "
 "ஆதரிக்கப்படாது"
 
-#: src/network/bridge_driver.c:3393
+#: src/network/bridge_driver.c:3379
 #, c-format
 msgid ""
 "network '%s' uses a direct mode, but has no forward dev and no interface pool"
@@ -10875,7 +10942,7 @@ msgstr ""
 "பிணையம் '%s' ஒரு நேரடி பயன்முறையைப் பயன்படுத்துகிறது, ஆனால் அதில் முன்னோக்கு dev இல்லை "
 "மற்றும் இடைமுக தொகுப்பகம் இல்லை"
 
-#: src/network/bridge_driver.c:3466
+#: src/network/bridge_driver.c:3452
 #, c-format
 msgid ""
 "an interface connecting to network '%s' is requesting a vlan tag, but that "
@@ -10884,7 +10951,7 @@ msgstr ""
 "பிணையம் '%s' க்கு இணைக்கும் ஒரு இடைமுகமானது vlan குறிச்சொலைக் கோருகிறது, ஆனால் "
 "இவ்வகை பிணையத்திற்கு அது ஆதரிக்கப்படாது"
 
-#: src/network/bridge_driver.c:3472
+#: src/network/bridge_driver.c:3458
 #, c-format
 msgid ""
 "an interface of type '%s' is requesting a vlan tag, but that is not "
@@ -10893,7 +10960,7 @@ msgstr ""
 "'%s' வகை இடைமுகம் ஒன்று vlan குறிச்சொல்லைக் கோருகிறது, ஆனால் இவ்வகை இணைப்புக்கு அது "
 "ஆதரிக்கப்படாது"
 
-#: src/network/bridge_driver.c:3563
+#: src/network/bridge_driver.c:3549
 #, c-format
 msgid ""
 "network '%s' uses a direct or hostdev mode, but has no forward dev and no "
@@ -10902,32 +10969,32 @@ msgstr ""
 "பிணையம் '%s' ஒரு நேரடி பயன்முறை அல்லது hostdev பயன்முறையைப் பயன்படுத்துகிறது, ஆனால் "
 "அதில் முன்னோக்கு dev இல்லை மற்றும் இடைமுக தொகுப்பகம் இல்லை"
 
-#: src/network/bridge_driver.c:3575 src/network/bridge_driver.c:3755
+#: src/network/bridge_driver.c:3561 src/network/bridge_driver.c:3741
 msgid "the interface uses a direct mode, but has no source dev"
 msgstr "பிணையம் ஒரு நேரடி பயன்முறையைப் பயன்படுத்துகிறது, ஆனால் அதில் மூல dev இல்லை"
 
-#: src/network/bridge_driver.c:3592 src/network/bridge_driver.c:3771
+#: src/network/bridge_driver.c:3578 src/network/bridge_driver.c:3757
 #, c-format
 msgid "network '%s' doesn't have dev='%s' in use by domain"
 msgstr "பிணையம் '%s' இல் டொமைன் dev='%s' ஐ பயன்படுத்திக் கொண்டு இல்லை"
 
-#: src/network/bridge_driver.c:3609
+#: src/network/bridge_driver.c:3595
 #, c-format
 msgid "network '%s' claims dev='%s' is already in use by a different domain"
 msgstr ""
 "பிணையம் '%s' ஆனது வேறொரு டொமைன் dev='%s' ஐ ஏற்கனவே பயன்படுத்திக் கொண்டுள்ளது என்கிறது"
 
-#: src/network/bridge_driver.c:3626 src/network/bridge_driver.c:3787
+#: src/network/bridge_driver.c:3612 src/network/bridge_driver.c:3773
 msgid "the interface uses a hostdev mode, but has no hostdev"
 msgstr "பிணையம் ஒரு hostdev பயன்முறையைப் பயன்படுத்துகிறது, ஆனால் அதில் hostdev இல்லை"
 
-#: src/network/bridge_driver.c:3644 src/network/bridge_driver.c:3803
+#: src/network/bridge_driver.c:3630 src/network/bridge_driver.c:3789
 #, c-format
 msgid "network '%s' doesn't have PCI device %04x:%02x:%02x.%x in use by domain"
 msgstr ""
 "பிணையம் '%s' இல் PCI சாதனம் %04x:%02x:%02x இல்லை.%x ஐ டொமைன் பயன்படுத்திக் கொண்டுள்ளது"
 
-#: src/network/bridge_driver.c:3661
+#: src/network/bridge_driver.c:3647
 #, c-format
 msgid ""
 "network '%s' claims the PCI device at domain=%d bus=%d slot=%d function=%d "
@@ -10936,7 +11003,7 @@ msgstr ""
 "பிணையம் '%s' ஆனது டொமைன்=%d bus=%d slot=%d function=%d இ உள்ள PCI சாதனத்தை "
 "ஏற்கனவே வேறொரு டொமைன் பயன்படுத்திக் கொண்டுள்ளது என்கிறது"
 
-#: src/network/bridge_driver.c:3743
+#: src/network/bridge_driver.c:3729
 #, c-format
 msgid ""
 "network '%s' uses a direct/hostdev mode, but has no forward dev and no "
@@ -10945,17 +11012,17 @@ msgstr ""
 "பிணையம் '%s' ஒரு நேரடி பயன்முறை/hostdev பயன்முறையைப் பயன்படுத்துகிறது, ஆனால் அதில் "
 "முன்னோக்கு dev இல்லை மற்றும் இடைமுக தொகுப்பகம் இல்லை"
 
-#: src/network/bridge_driver.c:3889
+#: src/network/bridge_driver.c:3875
 #, c-format
 msgid "network '%s' doesn't have an IPv4 address"
 msgstr "பிணையம் '%s' இல் IPv4 முகவரி இல்லை"
 
-#: src/network/bridge_driver.c:3911
+#: src/network/bridge_driver.c:3897
 #, c-format
 msgid "network '%s' has no associated interface or bridge"
 msgstr "பிணையம் '%s' இல் இணைந்த இடைமுகம் அல்லது பிரிட்ஜ் இல்லை"
 
-#: src/network/bridge_driver.c:3965
+#: src/network/bridge_driver.c:3951
 #, c-format
 msgid ""
 "Invalid use of 'floor' on interface with MAC address %s - network '%s' has "
@@ -10964,7 +11031,7 @@ msgstr ""
 "%s என்ற MAC முகவரி கொண்ட இடைமுகத்தில் செல்லாதவகையில் 'floor' பயன்படுத்தப்பட்டுள்ளது - "
 "பிணையம் '%s' இல் அக QoS தொகுப்பு இல்லை"
 
-#: src/network/bridge_driver.c:3985
+#: src/network/bridge_driver.c:3971
 #, c-format
 msgid ""
 "Cannot plug '%s' interface into '%s' because it would overcommit 'peak' on "
@@ -10973,7 +11040,7 @@ msgstr ""
 "'%s' இடைமுகத்தை '%s' இல் செருக முடியாது, ஏனெனில் அது பிணையம் '%s' இல் 'peak' ஐ "
 "ஓவர்கமிட் செய்துவிடும்"
 
-#: src/network/bridge_driver.c:3996
+#: src/network/bridge_driver.c:3982
 #, c-format
 msgid ""
 "Cannot plug '%s' interface into '%s' because it would overcommit 'average' "
@@ -10982,12 +11049,12 @@ msgstr ""
 "'%s' இடைமுகத்தை '%s' இல் செருக முடியாது, ஏனெனில் அது பிணையம் '%s' இல் 'average' ஐ "
 "ஓவர்கமிட் செய்துவிடும்"
 
-#: src/network/bridge_driver.c:4062
+#: src/network/bridge_driver.c:4048
 #, c-format
 msgid "Cannot set bandwidth on interface '%s' of type %d"
 msgstr "%2$d வகை இடைமுகம் '%1$s' இல் பட்டையகலத்தை அமைக்க முடியாது"
 
-#: src/network/bridge_driver.c:4070
+#: src/network/bridge_driver.c:4056
 msgid "Could not generate next class ID"
 msgstr "அடுத்த கிளாஸ் ID ஐ உருவாக்க முடியவில்லை"
 
@@ -13962,7 +14029,7 @@ msgstr "QEMU பைனரி %s ஆனது smbios அமைப்புகள�
 msgid "Domain '%s' sysinfo are not available"
 msgstr "டொமைன் '%s' சிஸின்ஃபோ கிடைக்கவில்லை"
 
-#: src/qemu/qemu_command.c:7622 src/qemu/qemu_hotplug.c:1363
+#: src/qemu/qemu_command.c:7622 src/qemu/qemu_hotplug.c:1365
 msgid "qemu does not support -device"
 msgstr "qemu ஆனது -device ஐ ஆதரிக்காது"
 
@@ -14160,7 +14227,7 @@ msgstr ""
 "qemu இன் இந்தப் பதிப்பில் நிர்ணயிக்கப்பட்ட SCSI சாதனங்களில் இருந்து பூட் செய்வதாற்கு "
 "ஆதரவில்லை"
 
-#: src/qemu/qemu_command.c:9087 src/qemu/qemu_hotplug.c:1150
+#: src/qemu/qemu_command.c:9087 src/qemu/qemu_hotplug.c:1152
 msgid "VFIO PCI device assignment is not supported by this version of qemu"
 msgstr "qemu இன் இந்தப் பதிப்பில் VFIO PCI சாதன ஒதுக்கீடுக்கு ஆதரவில்லை"
 
@@ -14168,7 +14235,7 @@ msgstr "qemu இன் இந்தப் பதிப்பில் VFIO PCI �
 msgid "PCI device assignment is not supported by this version of qemu"
 msgstr "PCI சாதன ஒதுக்கீடு இந்த பதிப்பு qemuக்கு துணைபுரியவில்லை"
 
-#: src/qemu/qemu_command.c:9154 src/qemu/qemu_hotplug.c:1479
+#: src/qemu/qemu_command.c:9154 src/qemu/qemu_hotplug.c:1481
 msgid "SCSI passthrough is not supported by this version of qemu"
 msgstr "QEMU இன் இந்தப் பதிப்பில் SCSI ஊடுசெல்லலுக்கு (பாஸ்த்ரூ) ஆதரவில்லை"
 
@@ -15299,7 +15366,7 @@ msgstr "இலக்கு ஏற்கனவே உள்ளது"
 msgid "persistent attach of device '%s' is not supported"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:6697 src/qemu/qemu_hotplug.c:3488
+#: src/qemu/qemu_driver.c:6697 src/qemu/qemu_hotplug.c:3493
 #, c-format
 msgid "Lease %s in lockspace %s does not exist"
 msgstr "லாக்ஸ்பேஸ் %s இல் லீஸ் %s இல்லை"
@@ -16027,67 +16094,67 @@ msgstr "சாதன மாற்றுப் பெயர் இல்லை: �
 msgid "setting of link state not supported: Link is up"
 msgstr "இணைப்பின் நிலையை அமைக்க ஆதரவில்லை: இணைப்பு செயலில் உள்ளது"
 
-#: src/qemu/qemu_hotplug.c:1185
+#: src/qemu/qemu_hotplug.c:1187
 msgid "guest unexpectedly quit during hotplug"
 msgstr "விருந்தினர் ஹாட்பிளக்கின் போது எதிர்பாராவிதமாக வெளியேறிவிட்டது"
 
-#: src/qemu/qemu_hotplug.c:1284
+#: src/qemu/qemu_hotplug.c:1286
 msgid "attaching serial console is not supported"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:1290
+#: src/qemu/qemu_hotplug.c:1292
 msgid "chardev already exists"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:1326
+#: src/qemu/qemu_hotplug.c:1328
 msgid "detaching serial console is not supported"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:1486
+#: src/qemu/qemu_hotplug.c:1488
 #, c-format
 msgid "Unable to prepare scsi hostdev: %s:%d:%d:%d"
 msgstr "scsi hostdev ஐத் தயார்ப்படுத்த முடியவில்லை: %s:%d:%d:%d"
 
-#: src/qemu/qemu_hotplug.c:1544 src/qemu/qemu_hotplug.c:3224
+#: src/qemu/qemu_hotplug.c:1546 src/qemu/qemu_hotplug.c:3229
 #, c-format
 msgid "hostdev mode '%s' not supported"
 msgstr "hostdev mode '%s' துணைபுரியவில்லை"
 
-#: src/qemu/qemu_hotplug.c:1577 src/qemu/qemu_hotplug.c:3197
+#: src/qemu/qemu_hotplug.c:1579 src/qemu/qemu_hotplug.c:3202
 #, c-format
 msgid "hostdev subsys type '%s' not supported"
 msgstr "hostdev subsys வகை '%s' துணைபுரியவில்லை"
 
-#: src/qemu/qemu_hotplug.c:1618
+#: src/qemu/qemu_hotplug.c:1620
 msgid "interface is missing bridge name"
 msgstr "இடைமுகத்தில் பிரிட்ஜ் பெயர் விடுபட்டுள்ளது"
 
-#: src/qemu/qemu_hotplug.c:1631
+#: src/qemu/qemu_hotplug.c:1633
 #, c-format
 msgid "Couldn't find network '%s'"
 msgstr "பிணையம் '%s' ஐக் கண்டறிய முடியவில்லை"
 
-#: src/qemu/qemu_hotplug.c:1653
+#: src/qemu/qemu_hotplug.c:1655
 #, c-format
 msgid "Interface type %d has no bridge name"
 msgstr "இடைமுக வகை %d இல் பிரிட்ஜ் பெயர் இல்லை"
 
-#: src/qemu/qemu_hotplug.c:1681
+#: src/qemu/qemu_hotplug.c:1683
 #, c-format
 msgid "bridge %s doesn't exist"
 msgstr "பிரிட்ஜ் %s இல்லை"
 
-#: src/qemu/qemu_hotplug.c:1705
+#: src/qemu/qemu_hotplug.c:1707
 #, c-format
 msgid "unable to recover former state by adding port to bridge %s"
 msgstr "bridge %s க்கு முனையத்தைச் சேர்ப்பதன் மூலம் பழைய நிலையை மீட்டெடுக்க முடியவில்லை"
 
-#: src/qemu/qemu_hotplug.c:1732
+#: src/qemu/qemu_hotplug.c:1734
 #, c-format
 msgid "filters not supported on interfaces of type %s"
 msgstr "%s வகை இடைமுகங்களில் வடிப்பிகளுக்கு ஆதரவில்லை"
 
-#: src/qemu/qemu_hotplug.c:1743
+#: src/qemu/qemu_hotplug.c:1745
 #, c-format
 msgid ""
 "failed to add new filter rules to '%s' - attempting to restore old rules"
@@ -16095,231 +16162,231 @@ msgstr ""
 "'%s' இல் புதிய வடிப்பி விதிகளைச் சேர்ப்பது தோல்வியடைந்தது - பழைய விதிகளை மீட்டெடுக்க "
 "முயற்சிக்கிறது"
 
-#: src/qemu/qemu_hotplug.c:1767
+#: src/qemu/qemu_hotplug.c:1769
 msgid "can't change link state: device alias not found"
 msgstr "இணைப்பு நிலையை மாற்ற முடியாது: சாதன மாற்றுப் பெயர் இல்லை"
 
-#: src/qemu/qemu_hotplug.c:1805
+#: src/qemu/qemu_hotplug.c:1807
 msgid "cannot find existing network device to modify"
 msgstr "மாற்றியமைக்க்க நடப்பு பிணைய சாதனத்தைக் கண்டறிய முடியவில்லை"
 
-#: src/qemu/qemu_hotplug.c:1813
+#: src/qemu/qemu_hotplug.c:1815
 #, c-format
 msgid "cannot change config of '%s' network type"
 msgstr "'%s' பிணைய வகையின் அமைவாக்கத்தை மாற்ற முடியாது"
 
-#: src/qemu/qemu_hotplug.c:1836
+#: src/qemu/qemu_hotplug.c:1838
 #, c-format
 msgid "cannot change network interface mac address from %s to %s"
 msgstr "பிணைய இடைமுக mac முகவரியை %s இலிருந்து %s ஆக மாற்ற முடியாது"
 
-#: src/qemu/qemu_hotplug.c:1845
+#: src/qemu/qemu_hotplug.c:1847
 #, c-format
 msgid "cannot modify network device model from %s to %s"
 msgstr "பிணைய சாதன மாடலை %s இலிருந்து %s ஆக மாற்ற முடியாது"
 
-#: src/qemu/qemu_hotplug.c:1857
+#: src/qemu/qemu_hotplug.c:1859
 msgid "cannot modify virtio network device driver attributes"
 msgstr "virtio பிணைய சாதன இயக்கி பண்புக்கூறுகளை மாற்றியமைக்க முடியாது"
 
-#: src/qemu/qemu_hotplug.c:1871
+#: src/qemu/qemu_hotplug.c:1873
 msgid "cannot modify network device script attribute"
 msgstr "பிணைய சாதன ஸ்கிரிப்ட் பண்புக்கூறை மாற்றியமைக்க முடியாது"
 
-#: src/qemu/qemu_hotplug.c:1880
+#: src/qemu/qemu_hotplug.c:1882
 msgid "cannot modify network device tap name"
 msgstr "பிணைய சாதன டேப் பெயரை மாற்றியமைக்க முடியாது"
 
-#: src/qemu/qemu_hotplug.c:1898
+#: src/qemu/qemu_hotplug.c:1900
 msgid "cannot modify network device guest PCI address"
 msgstr "பிணைய சாதன விருந்தினர் PCI முகவரியை மாற்றியமைக்க முடியாது"
 
-#: src/qemu/qemu_hotplug.c:1907
+#: src/qemu/qemu_hotplug.c:1909
 msgid "cannot modify network device alias"
 msgstr "பிணைய சாதன மாற்றுப் பெயரை மாற்றியமைக்க முடியாது"
 
-#: src/qemu/qemu_hotplug.c:1912
+#: src/qemu/qemu_hotplug.c:1914
 msgid "cannot modify network device rom bar setting"
 msgstr "பிணைய சாதன rom பட்டி அமைப்பை மாற்றியமைக்க முடியாது"
 
-#: src/qemu/qemu_hotplug.c:1917
+#: src/qemu/qemu_hotplug.c:1919
 msgid "cannot modify network rom file"
 msgstr "பிணைய rom கோப்பை மாற்றியமைக்க முடியாது"
 
-#: src/qemu/qemu_hotplug.c:1922
+#: src/qemu/qemu_hotplug.c:1924
 msgid "cannot modify network device boot index setting"
 msgstr "பிணைய சாதன பூட் அட்டவணை அமைப்பை மாற்றியமைக்க முடியாது"
 
-#: src/qemu/qemu_hotplug.c:1949
+#: src/qemu/qemu_hotplug.c:1951
 #, c-format
 msgid "cannot change network interface type to '%s'"
 msgstr "பிணைய இடைமுக வகையை '%s' என மாற்ற முடியாது"
 
-#: src/qemu/qemu_hotplug.c:2007 src/qemu/qemu_hotplug.c:2078
+#: src/qemu/qemu_hotplug.c:2009 src/qemu/qemu_hotplug.c:2080
 #, c-format
 msgid "unable to change config on '%s' network type"
 msgstr "'%s' பிணைய வகையில் உள்ள அமைவாக்கத்தை மாற்ற முடியவில்லை"
 
-#: src/qemu/qemu_hotplug.c:2175
+#: src/qemu/qemu_hotplug.c:2180
 msgid "cannot find existing graphics device to modify"
 msgstr "மாற்றியமைக்க்க நடப்பு கிராஃபிக்ஸ் சாதனத்தைக் கண்டறிய முடியவில்லை"
 
-#: src/qemu/qemu_hotplug.c:2181
+#: src/qemu/qemu_hotplug.c:2186
 msgid "cannot change the number of listen addresses"
 msgstr "கவனிப்பு முகவரிகளின் எண்ணிக்கையை மாற்ற முடியாது"
 
-#: src/qemu/qemu_hotplug.c:2191
+#: src/qemu/qemu_hotplug.c:2196
 msgid "cannot change the type of listen address"
 msgstr "கவனிப்பு முகவரி வகையை மாற்ற முடியாது"
 
-#: src/qemu/qemu_hotplug.c:2200
+#: src/qemu/qemu_hotplug.c:2205
 msgid "cannot change listen address setting on vnc graphics"
 msgstr "vnc கிராஃபிக்ஸில் கவனிப்பு முகவரி அமைப்பை மாற்ற முடியாது"
 
-#: src/qemu/qemu_hotplug.c:2201
+#: src/qemu/qemu_hotplug.c:2206
 msgid "cannot change listen address setting on spice graphics"
 msgstr "ஸ்பைஸ் கிராஃபிக்ஸில் கவனிப்பு முகவரி அமைப்பை மாற்ற முடியாது"
 
-#: src/qemu/qemu_hotplug.c:2210
+#: src/qemu/qemu_hotplug.c:2215
 msgid "cannot change listen network setting on vnc graphics"
 msgstr "vnc கிராஃபிக்ஸில் கவனிப்பு பிணைய அமைப்பை மாற்ற முடியாது"
 
-#: src/qemu/qemu_hotplug.c:2211
+#: src/qemu/qemu_hotplug.c:2216
 msgid "cannot change listen network setting on spice graphics"
 msgstr "ஸ்பைஸ் கிராஃபிக்ஸில் கவனிப்பு பிணைய அமைப்பை மாற்ற முடியாது"
 
-#: src/qemu/qemu_hotplug.c:2229
+#: src/qemu/qemu_hotplug.c:2234
 msgid "cannot change port settings on vnc graphics"
 msgstr "vnc கிராஃபிக்ஸில் முனைய அமைப்புகளை மாற்ற முடியவில்லை"
 
-#: src/qemu/qemu_hotplug.c:2234
+#: src/qemu/qemu_hotplug.c:2239
 msgid "cannot change keymap setting on vnc graphics"
 msgstr "vnc கிராஃபிக்ஸில் கீமேப் அமைப்பை மாற்ற முடியாது"
 
-#: src/qemu/qemu_hotplug.c:2274
+#: src/qemu/qemu_hotplug.c:2279
 msgid "cannot change port settings on spice graphics"
 msgstr "ஸ்பைஸ் கிராஃபிக்ஸில் முனைய அமைப்புகளை மாற்ற முடியவில்லை"
 
-#: src/qemu/qemu_hotplug.c:2280
+#: src/qemu/qemu_hotplug.c:2285
 msgid "cannot change keymap setting on spice graphics"
 msgstr "ஸ்பைஸ் கிராஃபிக்ஸில் கீமேப் அமைப்பை மாற்ற முடியாது"
 
-#: src/qemu/qemu_hotplug.c:2321
+#: src/qemu/qemu_hotplug.c:2326
 #, c-format
 msgid "unable to change config on '%s' graphics type"
 msgstr "'%s' கிராஃபிக்ஸ் வகையில் உள்ள அமைவாக்கத்தை மாற்ற முடியவில்லை"
 
-#: src/qemu/qemu_hotplug.c:2476
+#: src/qemu/qemu_hotplug.c:2481
 #, c-format
 msgid "failed to remove ebtables rule on '%s'"
 msgstr "'%s' இல் ebtables விதியை நீக்க முடியவில்லை"
 
-#: src/qemu/qemu_hotplug.c:2686
+#: src/qemu/qemu_hotplug.c:2691
 #, c-format
 msgid "don't know how to remove a %s device"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:2738
+#: src/qemu/qemu_hotplug.c:2743
 msgid "Unable to wait on unplug condition"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:2771 src/qemu/qemu_hotplug.c:3017
+#: src/qemu/qemu_hotplug.c:2776 src/qemu/qemu_hotplug.c:3022
 #, c-format
 msgid "cannot hot unplug multifunction PCI device: %s"
 msgstr "மல்டிஃபங்ஷன் PCI சாதனத்தை ஹாட் அன்பிளக் செய்ய முடியாது: %s"
 
-#: src/qemu/qemu_hotplug.c:2781
+#: src/qemu/qemu_hotplug.c:2786
 msgid "device cannot be detached without a valid CCW address"
 msgstr "ஒரு செல்லுபடியான CCW முகவரி இல்லாமல் சாதனத்தை பிரித்தெடுக்க முடியாது"
 
-#: src/qemu/qemu_hotplug.c:2788
+#: src/qemu/qemu_hotplug.c:2793
 msgid "device cannot be detached without a valid PCI address"
 msgstr "ஒரு செல்லுபடியான PCI முகவரி இல்லாமல் சாதனத்தை பிரித்தெடுக்க முடியாது"
 
-#: src/qemu/qemu_hotplug.c:2843
+#: src/qemu/qemu_hotplug.c:2848
 #, c-format
 msgid "Underlying qemu does not support %s disk removal"
 msgstr "அடிப்படையாக அமைந்துள்ள qemu ஆனது %s வட்டு நீக்குதலை ஆதரிக்கவில்லை"
 
-#: src/qemu/qemu_hotplug.c:2850
+#: src/qemu/qemu_hotplug.c:2855
 #, c-format
 msgid "disk '%s' is in an active block copy job"
 msgstr "வட்டு '%s' தொகுப்பு நகலெடுப்பு பணியில் உள்ளது"
 
-#: src/qemu/qemu_hotplug.c:2925 src/uml/uml_driver.c:2331
+#: src/qemu/qemu_hotplug.c:2930 src/uml/uml_driver.c:2331
 msgid "This type of disk cannot be hot unplugged"
 msgstr "இந்த வகையான வட்டை ஹாட் அன்ப்ளக் செய்ய முடியாது"
 
-#: src/qemu/qemu_hotplug.c:2929
+#: src/qemu/qemu_hotplug.c:2934
 #, c-format
 msgid "disk device type '%s' cannot be detached"
 msgstr "வட்டு சாதன வகை '%s' ஐ பிரிக்க முடியாது"
 
-#: src/qemu/qemu_hotplug.c:3000
+#: src/qemu/qemu_hotplug.c:3005
 #, c-format
 msgid "controller %s:%d not found"
 msgstr "கன்ட்ரோலர் %s:%d காணப்படவில்லை"
 
-#: src/qemu/qemu_hotplug.c:3011 src/qemu/qemu_hotplug.c:3080
-#: src/qemu/qemu_hotplug.c:3318
+#: src/qemu/qemu_hotplug.c:3016 src/qemu/qemu_hotplug.c:3085
+#: src/qemu/qemu_hotplug.c:3323
 msgid "device cannot be detached without a PCI address"
 msgstr "ஒரு PCI முகவரி இல்லாமல் சாதனத்தை பிரித்தெடுக்க முடியவில்லை"
 
-#: src/qemu/qemu_hotplug.c:3024
+#: src/qemu/qemu_hotplug.c:3029
 msgid "device cannot be detached: device is busy"
 msgstr "சாதனத்தை பிரித்தெடுக்க முடியாது: சாதனம் பணிமிகுதியாக உள்ளது"
 
-#: src/qemu/qemu_hotplug.c:3071
+#: src/qemu/qemu_hotplug.c:3076
 #, c-format
 msgid "cannot hot unplug multifunction PCI device: %.4x:%.2x:%.2x.%.1x"
 msgstr "மல்டிஃபங்ஷன் PCI சாதனத்தை ஹாட் அன்பிளக் செய்ய முடியாது: %.4x:%.2x:%.2x.%.1x"
 
-#: src/qemu/qemu_hotplug.c:3107 src/qemu/qemu_hotplug.c:3138
+#: src/qemu/qemu_hotplug.c:3112 src/qemu/qemu_hotplug.c:3143
 msgid "device cannot be detached without a device alias"
 msgstr "ஒரு சாதனத்திற்கான புனைப்பெயர் இல்லாமல் சாதனத்தை பிரித்தெடுக்க முடியாது"
 
-#: src/qemu/qemu_hotplug.c:3113 src/qemu/qemu_hotplug.c:3144
+#: src/qemu/qemu_hotplug.c:3118 src/qemu/qemu_hotplug.c:3149
 msgid "device cannot be detached with this QEMU version"
 msgstr "இந்த QEMU பதிப்பு இல்லாமல் சாதனத்தை பிரித்தெடுக்க முடியாது"
 
-#: src/qemu/qemu_hotplug.c:3235
+#: src/qemu/qemu_hotplug.c:3240
 #, c-format
 msgid "host pci device %.4x:%.2x:%.2x.%.1x not found"
 msgstr "புரவலன் pci சாதனம் %.4x:%.2x:%.2x.%.1x காணப்படவில்லை"
 
-#: src/qemu/qemu_hotplug.c:3242
+#: src/qemu/qemu_hotplug.c:3247
 #, c-format
 msgid "host usb device %03d.%03d not found"
 msgstr "புரவல usb சாதனம்%03d.%03d காணப்படவில்லை"
 
-#: src/qemu/qemu_hotplug.c:3246
+#: src/qemu/qemu_hotplug.c:3251
 #, c-format
 msgid "host usb device vendor=0x%.4x product=0x%.4x not found"
 msgstr "வழங்கி usb சாதன வென்டார்=0x%.4x தயாரிப்பு=0x%.4x இல்லை"
 
-#: src/qemu/qemu_hotplug.c:3252
+#: src/qemu/qemu_hotplug.c:3257
 #, c-format
 msgid "host scsi device %s:%d:%d.%d not found"
 msgstr "புரவல scsi சாதனம்%s:%d:%d.%d காணப்படவில்லை"
 
-#: src/qemu/qemu_hotplug.c:3311
+#: src/qemu/qemu_hotplug.c:3316
 msgid "device cannot be detached without a CCW address"
 msgstr "CCW முகவரி இல்லாமல் சாதனத்தை பிரித்தெடுக்க முடியாது"
 
-#: src/qemu/qemu_hotplug.c:3324
+#: src/qemu/qemu_hotplug.c:3329
 #, c-format
 msgid "cannot hot unplug multifunction PCI device :%s"
 msgstr "மல்டிஃபங்ஷன் PCI சாதனத்தை ஹாட் அன்பிளக் செய்ய முடியாது: %s"
 
-#: src/qemu/qemu_hotplug.c:3332
+#: src/qemu/qemu_hotplug.c:3337
 msgid "unable to determine original VLAN"
 msgstr "அசல் VLANஐ வரையறுக்க முடியவில்லை"
 
-#: src/qemu/qemu_hotplug.c:3415
+#: src/qemu/qemu_hotplug.c:3420
 msgid "Graphics password only supported for VNC"
 msgstr "VNC க்கு கிரஃபிக்ஸ் கடவுச்சொல் மட்டுமேஎ ஆதரிக்கப்படும்"
 
-#: src/qemu/qemu_hotplug.c:3441
+#: src/qemu/qemu_hotplug.c:3446
 msgid "Expiry of passwords is not supported"
 msgstr "கடவுச்சொல் காலாவதி அம்சத்திற்கு ஆதரவில்லை"
 
@@ -17847,7 +17914,7 @@ msgstr "SPICE TLS க்கான பயன்படுத்தாத முன
 msgid "Maximum CPUs greater than specified machine type limit"
 msgstr ""
 
-#: src/qemu/qemu_process.c:3505 src/qemu/qemu_process.c:4361
+#: src/qemu/qemu_process.c:3505 src/qemu/qemu_process.c:4363
 #: src/uml/uml_driver.c:1036
 msgid "VM is already active"
 msgstr "VM ஏற்கனவே செயலிலுள்ளது"
@@ -17856,7 +17923,7 @@ msgstr "VM ஏற்கனவே செயலிலுள்ளது"
 msgid "Unable to set huge path in security driver"
 msgstr "பாதுகாப்பு இயக்கியில் பெரிய பாதையை அமைக்க முடியவில்லை"
 
-#: src/qemu/qemu_process.c:3617 src/qemu/qemu_process.c:4384
+#: src/qemu/qemu_process.c:3617 src/qemu/qemu_process.c:4386
 #: src/uml/uml_driver.c:1058
 #, c-format
 msgid "cannot create log directory %s"
@@ -17911,7 +17978,7 @@ msgstr "'%s' இல் MAC முகவரியை அனுமதிக்க 
 #: src/remote/remote_client_bodies.h:2723
 #: src/remote/remote_client_bodies.h:2757
 #: src/remote/remote_client_bodies.h:3145
-#: src/remote/remote_client_bodies.h:5556 src/remote/remote_driver.c:1960
+#: src/remote/remote_client_bodies.h:5556 src/remote/remote_driver.c:1967
 #, c-format
 msgid "%s length greater than maximum: %d > %d"
 msgstr "அதிகபட்ச நீளத்தை விட %s அதிக நீளம்: %d > %d"
@@ -18010,171 +18077,166 @@ msgstr "remoteNodeGetMemoryStats: வழங்கப்பட்ட ஸ்டே
 msgid "too many NUMA cells: %d > %d"
 msgstr "மிக அதிக NUMA அறைகள்: %d > %d"
 
-#: src/remote/remote_driver.c:1375 src/remote/remote_driver.c:1389
-#, c-format
-msgid "too many remote domain IDs: %d > %d"
-msgstr "மிக அதிக தொலை செயற்கள IDகள்: %d > %d"
-
-#: src/remote/remote_driver.c:1561
+#: src/remote/remote_driver.c:1568
 msgid "returned number of parameters exceeds limit"
 msgstr "வழங்கிய அளவுருக்களின் எண்ணிக்கை வரம்பை மீறுகிறது"
 
-#: src/remote/remote_driver.c:1647
+#: src/remote/remote_driver.c:1654
 msgid "returned number of disk errors exceeds limit"
 msgstr "வழங்கிய வட்டு பிழைகளின் எண்ணிக்கை வரம்பை தாண்டுகிறது"
 
-#: src/remote/remote_driver.c:1695
+#: src/remote/remote_driver.c:1702
 msgid "remoteDomainBlockStatsFlags: returned number of stats exceeds limit"
 msgstr "remoteDomainBlockStatsFlags: வழங்கப்பட்ட ஸ்டேட்களின் எண்ணிக்கை வரம்பை மீறுகிறது"
 
-#: src/remote/remote_driver.c:1890 src/remote/remote_driver.c:2060
+#: src/remote/remote_driver.c:1897 src/remote/remote_driver.c:2067
 #, c-format
 msgid "vCPU count exceeds maximum: %d > %d"
 msgstr "vCPU எண்ணிக்கை அதிகபட்சத்தை விட மிஞ்சியது: %d > %d"
 
-#: src/remote/remote_driver.c:1898 src/remote/remote_driver.c:2002
-#: src/remote/remote_driver.c:2067
+#: src/remote/remote_driver.c:1905 src/remote/remote_driver.c:2009
+#: src/remote/remote_driver.c:2074
 #, c-format
 msgid "vCPU map buffer length exceeds maximum: %d > %d"
 msgstr "vCPU மேபு இடையக நீளத்தை விட அதிகபட்சத்தை மிஞ்சியது: %d > %d"
 
-#: src/remote/remote_driver.c:1919 src/remote/remote_driver.c:2084
+#: src/remote/remote_driver.c:1926 src/remote/remote_driver.c:2091
 #, c-format
 msgid "host reports too many vCPUs: %d > %d"
 msgstr "புரவலன் அதிக vCPUsஐ அறிக்கையிடுகிறது: %d > %d"
 
-#: src/remote/remote_driver.c:1926 src/remote/remote_driver.c:2022
-#: src/remote/remote_driver.c:2090
+#: src/remote/remote_driver.c:1933 src/remote/remote_driver.c:2029
+#: src/remote/remote_driver.c:2097
 #, c-format
 msgid "host reports map buffer length exceeds maximum: %d > %d"
 msgstr "புரவலன் அதிகபட்சத்தை விட அதிக நீளத்தை அறிக்கையிடுகிறது: %d > %d"
 
-#: src/remote/remote_driver.c:2140
+#: src/remote/remote_driver.c:2147
 #, c-format
 msgid "security label exceeds maximum: %zu"
 msgstr "பாதுகாப்பு லேபிள் அதிகபட்சத்தை விட மிஞ்சியது: %zu"
 
-#: src/remote/remote_driver.c:2185
+#: src/remote/remote_driver.c:2192
 #, c-format
 msgid "security label exceeds maximum: %zd"
 msgstr "பாதுகாப்பு லேபிள் அதிகபட்சத்தை விட மிஞ்சியது: %zd"
 
-#: src/remote/remote_driver.c:2257
+#: src/remote/remote_driver.c:2264
 #, c-format
 msgid "security model exceeds maximum: %zu"
 msgstr "பாதுகாப்பு மாதிரி அதிகபட்சத்தை விட மிஞ்சியது: %zu"
 
-#: src/remote/remote_driver.c:2266
+#: src/remote/remote_driver.c:2273
 #, c-format
 msgid "security doi exceeds maximum: %zu"
 msgstr "பாதுகாப்பு doi அதிகபட்சத்தை விட மிஞ்சியது: %zu"
 
-#: src/remote/remote_driver.c:2353
+#: src/remote/remote_driver.c:2360
 msgid "caller ignores cookie or cookielen"
 msgstr "காலர் குக்கி அல்லது குக்கிலனைப் புறக்கணிக்கிறது"
 
-#: src/remote/remote_driver.c:2362 src/remote/remote_driver.c:5238
-#: src/remote/remote_driver.c:6130
+#: src/remote/remote_driver.c:2369 src/remote/remote_driver.c:5294
+#: src/remote/remote_driver.c:6224
 msgid "caller ignores uri_out"
 msgstr "காலர் uri_out ஐப் புறக்கணிக்கிறது"
 
-#: src/remote/remote_driver.c:2495
+#: src/remote/remote_driver.c:2502
 #, c-format
 msgid "too many memory stats requested: %d > %d"
 msgstr "மிக அதிக நினைவக துவக்கங்கள் கோரப்பட்டது: %d > %d"
 
-#: src/remote/remote_driver.c:2539
+#: src/remote/remote_driver.c:2546
 #, c-format
 msgid "block peek request too large for remote protocol, %zi > %d"
 msgstr "தொலை நெறிமுறையில் நீளமாக உள்ளது, %zi > %d"
 
-#: src/remote/remote_driver.c:2560 src/remote/remote_driver.c:2611
+#: src/remote/remote_driver.c:2567 src/remote/remote_driver.c:2618
 msgid "returned buffer is not same size as requested"
 msgstr "கோரப்பட்டதை விட அதே அளவு அல்ல"
 
-#: src/remote/remote_driver.c:2591
+#: src/remote/remote_driver.c:2598
 #, c-format
 msgid "memory peek request too large for remote protocol, %zi > %d"
 msgstr "தொலை நெறிமுறைக்கு நீளமாக உள்ளது, %zi > %d"
 
-#: src/remote/remote_driver.c:2736
+#: src/remote/remote_driver.c:2743
 #, c-format
 msgid "nparams count exceeds maximum: %u > %u"
 msgstr "nparams எண்ணிக்கை அதிகபட்சத்தை விட மிஞ்சியது: %u > %u"
 
-#: src/remote/remote_driver.c:2742
+#: src/remote/remote_driver.c:2749
 #, c-format
 msgid "ncpus count exceeds maximum: %u > %u"
 msgstr "ncpus எண்ணிக்கை அதிகபட்சத்தை விட மிஞ்சியது: %u > %u"
 
-#: src/remote/remote_driver.c:2767
+#: src/remote/remote_driver.c:2774
 msgid "remoteDomainGetCPUStats: returned number of stats exceeds limit"
 msgstr "remoteDomainGetCPUStats: வழங்கிய ஸ்டேட்ஸின் எண்ணிக்கை வரம்பை மீறுகிறது"
 
-#: src/remote/remote_driver.c:3537
+#: src/remote/remote_driver.c:3593
 #, c-format
 msgid "unknown authentication type %s"
 msgstr "தெரியாத அங்கீகார வகை %s"
 
-#: src/remote/remote_driver.c:3546
+#: src/remote/remote_driver.c:3602
 #, c-format
 msgid "requested authentication type %s rejected"
 msgstr "கோரப்பட்ட அங்கீகார வகை %s மறுக்கப்பட்டது"
 
-#: src/remote/remote_driver.c:3585
+#: src/remote/remote_driver.c:3641
 #, c-format
 msgid "unsupported authentication type %d"
 msgstr "துணைபுரியாத அங்கீகார வகை %d"
 
-#: src/remote/remote_driver.c:3873
+#: src/remote/remote_driver.c:3929
 msgid "Failed to make auth credentials"
 msgstr "auth credentialsஐ உருவாக்க முடியவில்லை"
 
-#: src/remote/remote_driver.c:3884
+#: src/remote/remote_driver.c:3940
 msgid "No authentication callback available"
 msgstr "அங்கீகரிப்பு கால்பேக் கிடைக்கவில்லை"
 
-#: src/remote/remote_driver.c:3890 src/remote/remote_driver.c:4201
+#: src/remote/remote_driver.c:3946 src/remote/remote_driver.c:4257
 msgid "Failed to collect auth credentials"
 msgstr "auth நன்றிகளை சேகரிக்க முடியவில்லை"
 
-#: src/remote/remote_driver.c:3994
+#: src/remote/remote_driver.c:4050
 #, c-format
 msgid "SASL mechanism %s not supported by server"
 msgstr "SASL நுட்பம் %s சேவையகத்தால் துணைபுரியவில்லை"
 
-#: src/remote/remote_driver.c:4024
+#: src/remote/remote_driver.c:4080
 #, c-format
 msgid "SASL negotiation data too long: %zu bytes"
 msgstr "SASL நெகோஷியேஷன் தரவு மிக நீளமாக உள்ளது: %zu பைட்கள்"
 
-#: src/remote/remote_driver.c:4119
+#: src/remote/remote_driver.c:4175
 #, c-format
 msgid "negotiation SSF %d was not strong enough"
 msgstr "SSF %d போதிய பலமாக இல்லை"
 
-#: src/remote/remote_driver.c:4241 src/remote/remote_driver.c:5029
+#: src/remote/remote_driver.c:4297 src/remote/remote_driver.c:5085
 msgid "adding cb to list"
 msgstr "cbஐ பட்டியலுக்கு சேர்க்கிறது"
 
-#: src/remote/remote_driver.c:4745
+#: src/remote/remote_driver.c:4801
 msgid "no internalFlags support"
 msgstr "internalFlags ஆதரவு இல்லை"
 
-#: src/remote/remote_driver.c:5070 src/remote/remote_driver.c:5077
+#: src/remote/remote_driver.c:5126 src/remote/remote_driver.c:5133
 #, c-format
 msgid "unable to find callback ID %d"
 msgstr "கால்பேக் ID %d ஐக் கண்டறிய முடியவில்லை"
 
-#: src/remote/remote_driver.c:5170 src/remote/remote_driver.c:5229
-#: src/remote/remote_driver.c:5312 src/remote/remote_driver.c:5373
-#: src/remote/remote_driver.c:5432 src/remote/remote_driver.c:6058
-#: src/remote/remote_driver.c:6121 src/remote/remote_driver.c:6212
-#: src/remote/remote_driver.c:6277 src/remote/remote_driver.c:6343
+#: src/remote/remote_driver.c:5226 src/remote/remote_driver.c:5285
+#: src/remote/remote_driver.c:5368 src/remote/remote_driver.c:5429
+#: src/remote/remote_driver.c:5488 src/remote/remote_driver.c:6145
+#: src/remote/remote_driver.c:6215 src/remote/remote_driver.c:6313
+#: src/remote/remote_driver.c:6385 src/remote/remote_driver.c:6458
 msgid "caller ignores cookieout or cookieoutlen"
 msgstr "காலர் குக்கி அவுட் அல்லது குக்கி அவுட்லென்னைப் புறக்கணிக்கிறது"
 
-#: src/remote/remote_driver.c:5531
+#: src/remote/remote_driver.c:5587
 msgid ""
 "the caller doesn't support keepalive protocol; perhaps it's missing event "
 "loop implementation"
@@ -19610,45 +19672,45 @@ msgstr "தெரியாத ஒரு பொருளுக்கு முன
 msgid "DAC seclabel couldn't be determined for domain '%s'"
 msgstr "டொமைன் '%s' க்கு DAC seclabel ஐ நிர்ணயிக்க முடியவில்லை"
 
-#: src/security/security_dac.c:183
+#: src/security/security_dac.c:179
 msgid "Failed to determine default DAC imagelabel for an unknown object"
 msgstr "தெரியாத ஒரு பொருளுக்கு முன்னிருப்பு DAC imagelabel ஐ நிர்ணயிப்பதில் தோல்வி"
 
-#: src/security/security_dac.c:193
+#: src/security/security_dac.c:189
 #, c-format
 msgid "DAC imagelabel couldn't be determined for domain '%s'"
 msgstr "டொமைன் '%s' க்கு DAC imagelabel ஐ நிர்ணயிக்க முடியவில்லை"
 
-#: src/security/security_dac.c:287
+#: src/security/security_dac.c:283
 #, c-format
 msgid "unable to set user and group to '%ld:%ld' on '%s'"
 msgstr "'%3$s' இல் பயனர் மற்றும் குழுவை '%1$ld:%2$ld' என அமைக்க முடியவில்லை"
 
-#: src/security/security_dac.c:307
+#: src/security/security_dac.c:303
 #, c-format
 msgid "cannot resolve symlink %s"
 msgstr "symlink %sஐ ுதீர்வு செய்ய முடியவில்லை"
 
-#: src/security/security_dac.c:1043 src/security/security_selinux.c:603
+#: src/security/security_dac.c:1039 src/security/security_selinux.c:603
 msgid "security image label already defined for VM"
 msgstr "VM காக ஏற்கனவே பட லேபில் வரையறுக்கப்படுள்ளது"
 
-#: src/security/security_dac.c:1051 src/security/security_selinux.c:610
+#: src/security/security_dac.c:1047 src/security/security_selinux.c:610
 #, c-format
 msgid "security label model %s is not supported with selinux"
 msgstr "selinux இல் பாதுகாப்பு லேபிள் மாதிரி %s க்கு ஆதரவில்லை"
 
-#: src/security/security_dac.c:1061
+#: src/security/security_dac.c:1057
 #, c-format
 msgid "missing label for static security driver in domain %s"
 msgstr "டொமைன் %s இல் நிலையான பாதுகாப்பு இயக்கிக்கான லேபிள் இல்லை"
 
-#: src/security/security_dac.c:1073
+#: src/security/security_dac.c:1069
 #, c-format
 msgid "cannot generate dac user and group id for domain %s"
 msgstr "டொமைன் %s க்கு dac பயனர் மற்றும் குழு ஐடியை உருவாக்க முடியாது"
 
-#: src/security/security_dac.c:1083 src/security/security_selinux.c:681
+#: src/security/security_dac.c:1079 src/security/security_selinux.c:681
 #, c-format
 msgid "unexpected security label type '%s'"
 msgstr "எதிர்பார்க்காத பாதுகாப்பு லேபிள் வகை '%s'"
@@ -23802,7 +23864,7 @@ msgstr "உள்ளார்ந்த பிழை %s"
 msgid "internal error"
 msgstr "உள்ளார்ந்த பிழை"
 
-#: src/util/virerror.c:738 tools/virsh.c:676
+#: src/util/virerror.c:738 tools/virsh.c:677
 msgid "out of memory"
 msgstr "நினைவகம் போதவில்லை"
 
@@ -27172,93 +27234,93 @@ msgstr ""
 "பயன்பாடு: $program_name {start|stop|status|restart|condrestart|try-restart|"
 "reload|force-reload|gueststatus|shutdown}"
 
-#: tools/virsh.c:101 tools/virsh.c:115
+#: tools/virsh.c:102 tools/virsh.c:116
 #, c-format
 msgid "%s: %d: failed to allocate %d bytes"
 msgstr "%s: %d: %d பைட்டுகளை ஒதுக்க முடியவில்லை"
 
-#: tools/virsh.c:127
+#: tools/virsh.c:128
 #, c-format
 msgid "%s: %d: failed to allocate %lu bytes"
 msgstr "%s: %d: %lu பைட்டுகளை ஒதுக்க முடியவில்லை"
 
-#: tools/virsh.c:330 tools/virsh.c:396 tools/virsh.c:2756
+#: tools/virsh.c:331 tools/virsh.c:397 tools/virsh.c:2726
 msgid "Failed to disconnect from the hypervisor"
 msgstr "hypervisor இலிருந்து துண்டிக்க முடியவில்லை"
 
-#: tools/virsh.c:332 tools/virsh.c:398 tools/virsh.c:2758
+#: tools/virsh.c:333 tools/virsh.c:399 tools/virsh.c:2728
 msgid "One or more references were leaked after disconnect from the hypervisor"
 msgstr "hypervisor இலிருந்து துண்டித்த பிறகு ஒன்று அல்லது மேற்பட்ட குறிப்புகள் கசிந்தன"
 
-#: tools/virsh.c:341
+#: tools/virsh.c:342
 msgid "Failed to reconnect to the hypervisor"
 msgstr "ஹைபர்வைசருடன் மீண்டும்இணைக்க முடியவில்லை"
 
-#: tools/virsh.c:343
+#: tools/virsh.c:344
 msgid "failed to connect to the hypervisor"
 msgstr "hypervisor உடன் இணைக்க முடியவில்லை"
 
-#: tools/virsh.c:347 tools/virsh.c:423
+#: tools/virsh.c:348 tools/virsh.c:424
 msgid "Unable to register disconnect callback"
 msgstr "இணைப்பு துண்டிப்பு கால்பேக்கைப் பதிவு செய்ய முடியவில்லை"
 
-#: tools/virsh.c:349
+#: tools/virsh.c:350
 msgid "Reconnected to the hypervisor"
 msgstr "ஹைபர்வைசருக்கு மீண்டும்இணைக்கப்படுகிறது"
 
-#: tools/virsh.c:362
+#: tools/virsh.c:363
 msgid "(re)connect to hypervisor"
 msgstr "hypervisor உடன் (மறு)இணைப்பு செய்யப்படுகிறது"
 
-#: tools/virsh.c:365
+#: tools/virsh.c:366
 msgid ""
 "Connect to local hypervisor. This is built-in command after shell start up."
 msgstr ""
 "உள்ளமை hypervisor உடன் இணைக்கிறது. இது ஷெல் துவக்கத்தில் உள் கட்டப்பட்ட கட்டளையாகும்."
 
-#: tools/virsh.c:375
+#: tools/virsh.c:376
 msgid "hypervisor connection URI"
 msgstr "hypervisor இணைப்பு URI"
 
-#: tools/virsh.c:379
+#: tools/virsh.c:380
 msgid "read-only connection"
 msgstr "வாசிப்பு மட்டும் இணைப்புகள்"
 
-#: tools/virsh.c:417
+#: tools/virsh.c:418
 msgid "Failed to connect to the hypervisor"
 msgstr "hypervisor உடன் இணைக்க முடியவில்லை"
 
 #. TRANSLATORS: For now, we aren't using LC_MESSAGES, and the user
 #. * choices really are limited to just 'y', 'n', 'f' and '?'
-#: tools/virsh.c:473
+#: tools/virsh.c:474
 msgid "Try again? [y,n,f,?]:"
 msgstr "மீண்டும் முயற்சிக்க வேண்டுமா? [y,n,f,?]:"
 
-#: tools/virsh.c:479
+#: tools/virsh.c:480
 msgid "y - yes, start editor again"
 msgstr "y - ஆம், மீண்டும் திருத்தியைத் தொடங்கு"
 
-#: tools/virsh.c:480
+#: tools/virsh.c:481
 msgid "n - no, throw away my changes"
 msgstr "n - வேண்டாம், என் மாற்றங்களைக் கைவிட்டுவிடு"
 
-#: tools/virsh.c:481
+#: tools/virsh.c:482
 msgid "f - force, try to redefine again"
 msgstr "f - நிர்ப்பந்தி, மீண்டும் வரையறுக்க முயற்சி செய்"
 
-#: tools/virsh.c:482
+#: tools/virsh.c:483
 msgid "? - print this help"
 msgstr "? - இந்த உதவியை அச்சிடு"
 
-#: tools/virsh.c:499
+#: tools/virsh.c:500
 msgid "This function is not supported on WIN32 platform"
 msgstr "WIN32 இயங்கு தளத்தில் இந்த செயலம்சத்திற்கு ஆதரவில்லை"
 
-#: tools/virsh.c:523
+#: tools/virsh.c:524
 msgid "print help"
 msgstr "அச்சு உதவி"
 
-#: tools/virsh.c:526
+#: tools/virsh.c:527
 msgid ""
 "Prints global help, command specific help, or help for a\n"
 "    group of related commands"
@@ -27266,7 +27328,7 @@ msgstr ""
 "முழு உதவி, கட்டளைக்குரிய உதவி அல்லது தொடர்புடைய கட்டளைகளின் தொகுப்புக்கான \n"
 "உதவியை அச்சிடும்"
 
-#: tools/virsh.c:535
+#: tools/virsh.c:536
 msgid ""
 "Prints global help, command specific help, or help for a group of related "
 "commands"
@@ -27274,7 +27336,7 @@ msgstr ""
 "முழு உதவி, கட்டளைக்குரிய உதவி அல்லது தொடர்புடைய கட்டளைகளின் தொகுப்புக்கான உதவியை "
 "அச்சிடும்"
 
-#: tools/virsh.c:549
+#: tools/virsh.c:550
 msgid ""
 "Grouped commands:\n"
 "\n"
@@ -27282,36 +27344,36 @@ msgstr ""
 "குழுப்படுத்திய கட்டளைகள்:\n"
 "\n"
 
-#: tools/virsh.c:552 tools/virsh.c:1171
+#: tools/virsh.c:553 tools/virsh.c:1172
 #, c-format
 msgid " %s (help keyword '%s'):\n"
 msgstr " %s (உதவி திறவுச்சொல் '%s'):\n"
 
-#: tools/virsh.c:573
+#: tools/virsh.c:574
 #, c-format
 msgid "command or command group '%s' doesn't exist"
 msgstr "கட்டளை அல்லது கட்டளைத் தொகுப்பு '%s' இல்லை"
 
-#: tools/virsh.c:659
+#: tools/virsh.c:660
 msgid "Failed to complete tree listing"
 msgstr "கிளையமைப்பு பட்டியலிடுதலை முடிக்க முடியவில்லை"
 
-#: tools/virsh.c:681
+#: tools/virsh.c:682
 #, c-format
 msgid "mkostemps: failed to create temporary file: %s"
 msgstr "mkostemps: தற்காலிகக் கோப்பை உருவாக்குவதில் தோல்வி: %s"
 
-#: tools/virsh.c:688
+#: tools/virsh.c:689
 #, c-format
 msgid "write: %s: failed to write to temporary file: %s"
 msgstr "எழுது: %s: தற்காலிகமாக கோப்பினை எழுத முடியவில்லை: %s"
 
-#: tools/virsh.c:696
+#: tools/virsh.c:697
 #, c-format
 msgid "close: %s: failed to write or close temporary file: %s"
 msgstr "மூடவும்: %s: கோப்பினை எழுதி அல்லது மூடுவதில் தோல்வி: %s"
 
-#: tools/virsh.c:737
+#: tools/virsh.c:738
 #, c-format
 msgid ""
 "%s: temporary filename contains shell meta or other unacceptable characters "
@@ -27319,124 +27381,124 @@ msgid ""
 msgstr ""
 "%s: தற்காலிக கோப்பு ஷெல் மேடா அல்லது ஏற்றுக்கொள்ளப்படாத எண்கள் (இந்த $TMPDIR தவறா?)"
 
-#: tools/virsh.c:771
+#: tools/virsh.c:772
 #, c-format
 msgid "%s: failed to read temporary file: %s"
 msgstr "%s: தற்காலிகமாக கோப்பினை வாசிக்க முடியவில்லை: %s"
 
-#: tools/virsh.c:784
+#: tools/virsh.c:785
 msgid "change the current directory"
 msgstr "நடப்பு அடைவை மாற்றவும்"
 
-#: tools/virsh.c:787
+#: tools/virsh.c:788
 msgid "Change the current directory."
 msgstr "இந்த நடப்பு அடைவை மாற்றவும்"
 
-#: tools/virsh.c:795
+#: tools/virsh.c:796
 msgid "directory to switch to (default: home or else root)"
 msgstr "மாற்ற வேண்டிய அடைவு (முன்னிருப்புt: இல்லம் அல்லது ரூட்)"
 
-#: tools/virsh.c:809
+#: tools/virsh.c:810
 msgid "cd: command valid only in interactive mode"
 msgstr "cd: கட்டளை ஊடாடல் முறைமையில் மட்டுமே செல்லுபடியாகும்"
 
-#: tools/virsh.c:820
+#: tools/virsh.c:821
 #, c-format
 msgid "cd: %s: %s"
 msgstr "cd: %s: %s"
 
-#: tools/virsh.c:834
+#: tools/virsh.c:835
 msgid "print the current directory"
 msgstr "நடப்பு அடைவை அச்சிடவும்"
 
-#: tools/virsh.c:837
+#: tools/virsh.c:838
 msgid "Print the current directory."
 msgstr "இந்த நடப்பு அடைவை அச்சிடவும்."
 
-#: tools/virsh.c:851
+#: tools/virsh.c:852
 #, c-format
 msgid "pwd: cannot get current directory: %s"
 msgstr "pwd: நடப்பு அடைவை பெற முடியவில்லை: %s"
 
-#: tools/virsh.c:855 tools/virsh-domain.c:6383
+#: tools/virsh.c:856 tools/virsh-domain.c:6383
 #, c-format
 msgid "%s\n"
 msgstr "%s\n"
 
-#: tools/virsh.c:867
+#: tools/virsh.c:868
 msgid "echo arguments"
 msgstr "echo மதிப்புருக்கள்"
 
-#: tools/virsh.c:870
+#: tools/virsh.c:871
 msgid "Echo back arguments, possibly with quoting."
 msgstr "மதிப்புருக்களை Echo back செய், முடிந்தால் மேற்கோளுடன்."
 
-#: tools/virsh.c:878
+#: tools/virsh.c:879
 msgid "escape for shell use"
 msgstr "ஷெல் பயன்பாட்டுக்கு எஸ்கேப் செய்"
 
-#: tools/virsh.c:882
+#: tools/virsh.c:883
 msgid "escape for XML use"
 msgstr "XML பயன்பாட்டுக்கு எஸ்கேப் செய்"
 
-#: tools/virsh.c:890
+#: tools/virsh.c:891
 msgid "arguments to echo"
 msgstr "echo செய்ய வேண்டிய மதிப்புருக்கள்"
 
-#: tools/virsh.c:925 tools/virsh.c:942 tools/virsh-domain.c:663
+#: tools/virsh.c:926 tools/virsh.c:943 tools/virsh-domain.c:663
 #: tools/virsh-domain.c:922 tools/virsh-pool.c:279 tools/virsh-volume.c:281
 #: tools/virsh-volume.c:558
 msgid "Failed to allocate XML buffer"
 msgstr "XML இடையகத்தை ஒதுக்க முடியவில்லை"
 
-#: tools/virsh.c:957
+#: tools/virsh.c:958
 msgid "quit this interactive terminal"
 msgstr "இந்த இடைச்செயல் முனையத்தை விட்டு வெளயேறவும்"
 
-#: tools/virsh.c:1048
+#: tools/virsh.c:1049
 msgid "print help for this function"
 msgstr "இந்த செயலம்சத்திற்கான உதவியை அச்சிடு"
 
-#: tools/virsh.c:1069
+#: tools/virsh.c:1070
 #, c-format
 msgid "option --%s already seen"
 msgstr "விருப்பம்--%s ஏற்கனவே பார்க்கப்பட்டது"
 
-#: tools/virsh.c:1079
+#: tools/virsh.c:1080
 #, c-format
 msgid "command '%s' doesn't support option --%s"
 msgstr "கட்டளை '%s'  --%sவிருப்பத்திற்கு துணை புரியாது"
 
-#: tools/virsh.c:1124
+#: tools/virsh.c:1125
 #, c-format
 msgid "command '%s' requires <%s> option"
 msgstr "கட்டளை '%s' க்கு <%s> விருப்பம் தேவைப்படுகிறது"
 
-#: tools/virsh.c:1125
+#: tools/virsh.c:1126
 #, c-format
 msgid "command '%s' requires --%s option"
 msgstr "கட்டளை '%s' க்கு --%s விருப்பம் தேவைப்படுகிறது"
 
-#: tools/virsh.c:1168
+#: tools/virsh.c:1169
 #, c-format
 msgid "command group '%s' doesn't exist"
 msgstr "கட்டளைத் தொகுப்பு '%s' இல்லை"
 
-#: tools/virsh.c:1191
+#: tools/virsh.c:1192
 #, c-format
 msgid "command '%s' doesn't exist"
 msgstr "கட்டளை '%s' இல்லை"
 
-#: tools/virsh.c:1203 tools/virsh.c:1861
+#: tools/virsh.c:1204 tools/virsh.c:1831
 #, c-format
 msgid "internal error: bad options in command: '%s'"
 msgstr "உள் பிழை: கட்டளையில் தவறான விருப்பங்கள்: '%s'"
 
-#: tools/virsh.c:1208
+#: tools/virsh.c:1209
 msgid "  NAME\n"
 msgstr "  பெயர்\n"
 
-#: tools/virsh.c:1211
+#: tools/virsh.c:1212
 msgid ""
 "\n"
 "  SYNOPSIS\n"
@@ -27444,37 +27506,37 @@ msgstr ""
 "\n"
 "  SYNOPSIS\n"
 
-#: tools/virsh.c:1224
+#: tools/virsh.c:1225
 #, c-format
 msgid "[--%s <number>]"
 msgstr "[--%s <number>]"
 
-#: tools/virsh.c:1230
+#: tools/virsh.c:1231
 #, c-format
 msgid "[--%s <string>]"
 msgstr "[--%s <string>]"
 
-#: tools/virsh.c:1243
+#: tools/virsh.c:1244
 #, c-format
 msgid "{[--%s] <string>}..."
 msgstr "{[--%s] <string>}..."
 
-#: tools/virsh.c:1244
+#: tools/virsh.c:1245
 #, c-format
 msgid "[[--%s] <string>]..."
 msgstr "[[--%s] <string>]..."
 
-#: tools/virsh.c:1246
+#: tools/virsh.c:1247
 #, c-format
 msgid "<%s>..."
 msgstr "<%s>..."
 
-#: tools/virsh.c:1247
+#: tools/virsh.c:1248
 #, c-format
 msgid "[<%s>]..."
 msgstr "[<%s>]..."
 
-#: tools/virsh.c:1262
+#: tools/virsh.c:1263
 msgid ""
 "\n"
 "  DESCRIPTION\n"
@@ -27482,7 +27544,7 @@ msgstr ""
 "\n"
 "  DESCRIPTION\n"
 
-#: tools/virsh.c:1268
+#: tools/virsh.c:1269
 msgid ""
 "\n"
 "  OPTIONS\n"
@@ -27490,62 +27552,54 @@ msgstr ""
 "\n"
 "  OPTIONS\n"
 
-#: tools/virsh.c:1276
+#: tools/virsh.c:1277
 #, c-format
 msgid "[--%s] <number>"
 msgstr "[--%s] <number>"
 
-#: tools/virsh.c:1277
+#: tools/virsh.c:1278
 #, c-format
 msgid "--%s <number>"
 msgstr "--%s <number>"
 
-#: tools/virsh.c:1281
+#: tools/virsh.c:1282
 #, c-format
 msgid "--%s <string>"
 msgstr "--%s <string>"
 
-#: tools/virsh.c:1284 tools/virsh.c:1289
+#: tools/virsh.c:1285 tools/virsh.c:1290
 #, c-format
 msgid "[--%s] <string>"
 msgstr "[--%s] <string>"
 
-#: tools/virsh.c:1289
+#: tools/virsh.c:1290
 #, c-format
 msgid "<%s>"
 msgstr "<%s>"
 
-#: tools/virsh.c:1537
+#: tools/virsh.c:1524
 msgid "Mandatory option not present"
 msgstr "அவசியமான விருப்பம் இருக்கவில்லை"
 
-#: tools/virsh.c:1540
-msgid "Programming error: Invalid option name"
-msgstr "நிரலாக்கப் பிழை: செல்லுபடியாகாத விருப்பப் பெயர்"
-
-#: tools/virsh.c:1543
-msgid "Programming error: Requested option is a boolean"
-msgstr "நிரலாக்கப் பிழை: கோரப்பட்ட விருப்பம் ஒரு பூலியன்"
-
-#: tools/virsh.c:1546
+#: tools/virsh.c:1526
 msgid "Option argument is empty"
 msgstr "விருப்பம் மதிப்புரு காலியாக உள்ளது"
 
-#: tools/virsh.c:1549
+#: tools/virsh.c:1529
 #, c-format
 msgid "Failed to get option '%s': %s"
 msgstr "'%s' விருப்பத்தைப் பெறுவதில் தோல்வியடைந்தது: %s"
 
-#: tools/virsh.c:1709
+#: tools/virsh.c:1679
 #, c-format
 msgid "internal error: virsh %s: no %s VSH_OT_DATA option"
 msgstr "உள்ளார்ந்த பிழை: virsh %s: %s VSH_OT_DATA விருப்பம் இல்லை"
 
-#: tools/virsh.c:1719
+#: tools/virsh.c:1689
 msgid "no valid connection"
 msgstr "சரியான இணைப்பு இல்லை"
 
-#: tools/virsh.c:1784
+#: tools/virsh.c:1754
 #, c-format
 msgid ""
 "\n"
@@ -27556,55 +27610,55 @@ msgstr ""
 "(நேரம்: %.3f ms)\n"
 "\n"
 
-#: tools/virsh.c:1855
+#: tools/virsh.c:1825
 #, c-format
 msgid "unknown command: '%s'"
 msgstr "தெரியாத கட்டளை: '%s'"
 
-#: tools/virsh.c:1897
+#: tools/virsh.c:1867
 #, c-format
 msgid "expected syntax: --%s <%s>"
 msgstr "எதிர்பார்த்த இலக்கணம்: --%s <%s>"
 
-#: tools/virsh.c:1900
+#: tools/virsh.c:1870
 msgid "number"
 msgstr "எண்"
 
-#: tools/virsh.c:1900
+#: tools/virsh.c:1870
 msgid "string"
 msgstr "சரம்"
 
-#: tools/virsh.c:1908
+#: tools/virsh.c:1878
 #, c-format
 msgid "invalid '=' after option --%s"
 msgstr "விருப்பம் --%s க்கு அடுத்ததாக தவறான '=' உள்ளது"
 
-#: tools/virsh.c:1924
+#: tools/virsh.c:1894
 #, c-format
 msgid "unexpected data '%s'"
 msgstr "எதிர்பாராத தரவு '%s'"
 
-#: tools/virsh.c:1946
+#: tools/virsh.c:1916
 msgid "optdata"
 msgstr "optdata"
 
-#: tools/virsh.c:1946
+#: tools/virsh.c:1916
 msgid "bool"
 msgstr "bool"
 
-#: tools/virsh.c:1947
+#: tools/virsh.c:1917
 msgid "(none)"
 msgstr "(எதுவுமில்லை)"
 
-#: tools/virsh.c:2082
+#: tools/virsh.c:2052
 msgid "dangling \\"
 msgstr "டேங்லிங் \\"
 
-#: tools/virsh.c:2095
+#: tools/virsh.c:2065
 msgid "missing \""
 msgstr "விடுபட்ட \""
 
-#: tools/virsh.c:2179 tools/virsh-domain-monitor.c:1276
+#: tools/virsh.c:2149 tools/virsh-domain-monitor.c:1276
 #: tools/virsh-domain-monitor.c:1289 tools/virsh-network.c:377
 #: tools/virsh-network.c:383 tools/virsh-network.c:388
 #: tools/virsh-network.c:705 tools/virsh-network.c:711 tools/virsh-pool.c:1058
@@ -27613,7 +27667,7 @@ msgstr "விடுபட்ட \""
 msgid "yes"
 msgstr "ஆம்"
 
-#: tools/virsh.c:2179 tools/virsh-domain-monitor.c:1276
+#: tools/virsh.c:2149 tools/virsh-domain-monitor.c:1276
 #: tools/virsh-domain-monitor.c:1289 tools/virsh-network.c:377
 #: tools/virsh-network.c:383 tools/virsh-network.c:388
 #: tools/virsh-network.c:705 tools/virsh-network.c:711 tools/virsh-pool.c:1058
@@ -27622,50 +27676,50 @@ msgstr "ஆம்"
 msgid "no"
 msgstr "இல்லை"
 
-#: tools/virsh.c:2187
+#: tools/virsh.c:2157
 #, c-format
 msgid "unimplemented parameter type %d"
 msgstr "செயல்படுத்தப்படாத அளவுரு வகை %d"
 
-#: tools/virsh.c:2262
+#: tools/virsh.c:2232
 msgid "error: "
 msgstr "பிழை: "
 
-#: tools/virsh.c:2312
+#: tools/virsh.c:2282
 msgid "VIRSH_DEBUG not set with a valid numeric value"
 msgstr "VIRSH_DEBUG ஆனது சரியான எண் மதிப்புடன் அமைக்கப்படவில்லை"
 
-#: tools/virsh.c:2391
+#: tools/virsh.c:2361
 msgid "failed to get the log file information"
 msgstr "பதிவுக் கோப்பு தகவலை பெற முடியவில்லை"
 
-#: tools/virsh.c:2396
+#: tools/virsh.c:2366
 msgid "the log path is not a file"
 msgstr "பதிவு பாதை ஒரு கோப்பில்லை"
 
-#: tools/virsh.c:2404
+#: tools/virsh.c:2374
 msgid "failed to open the log file. check the log file path"
 msgstr "பதிவு கோப்பினை திறக்க முடியவில்லை. பதிவு கோப்பு பாதையை சரி பார்க்கவும்"
 
-#: tools/virsh.c:2487
+#: tools/virsh.c:2457
 msgid "failed to write the log file"
 msgstr "பதிவு கோப்பினை எழுத முடியவில்லை"
 
-#: tools/virsh.c:2504
+#: tools/virsh.c:2474
 #, c-format
 msgid "%s: failed to write log file: %s"
 msgstr "%s: பதிவு கோப்பினை எழுத முடியவில்லை: %s"
 
-#: tools/virsh.c:2653
+#: tools/virsh.c:2623
 msgid "Could not determine home directory"
 msgstr "இல்லக் கோப்பகத்தைத் தீர்மானிக்க முடியவில்லை"
 
-#: tools/virsh.c:2683
+#: tools/virsh.c:2653
 #, c-format
 msgid "Failed to create '%s': %s"
 msgstr "'%s'ஐ உருவாக்க முடியவில்லை: %s"
 
-#: tools/virsh.c:2794
+#: tools/virsh.c:2764
 #, c-format
 msgid ""
 "\n"
@@ -27709,12 +27763,12 @@ msgstr ""
 "  கட்டளைகள் (தொடர்புத்திறனல்லாத பயன்முறை):\n"
 "\n"
 
-#: tools/virsh.c:2811
+#: tools/virsh.c:2781
 #, c-format
 msgid " %s (help keyword '%s')\n"
 msgstr " %s (உதவி திறவுச்சொல் '%s')\n"
 
-#: tools/virsh.c:2824
+#: tools/virsh.c:2794
 msgid ""
 "\n"
 "  (specify help <group> for details about the commands in the group)\n"
@@ -27723,7 +27777,7 @@ msgstr ""
 "  (ஒரு தொகுதியில் உள்ள கட்டளைகளைப் பற்றிய விவரங்களுக்கு உதவி <group> ஐக் "
 "குறிப்பிடவும்)\n"
 
-#: tools/virsh.c:2826
+#: tools/virsh.c:2796
 msgid ""
 "\n"
 "  (specify help <command> for details about the command)\n"
@@ -27733,12 +27787,12 @@ msgstr ""
 "  (specify help <command> for details about the command)\n"
 "\n"
 
-#: tools/virsh.c:2837
+#: tools/virsh.c:2807
 #, c-format
 msgid "Virsh command line tool of libvirt %s\n"
 msgstr "லிப்விர்ட்டின் Virsh கட்டளை வரிக் கருவி %s\n"
 
-#: tools/virsh.c:2838
+#: tools/virsh.c:2808
 #, c-format
 msgid ""
 "See web site at %s\n"
@@ -27747,75 +27801,75 @@ msgstr ""
 "%s என்ற முகவரியில் வலைத்தளத்தைப் பார்வையிடவும்\n"
 "\n"
 
-#: tools/virsh.c:2840
+#: tools/virsh.c:2810
 msgid "Compiled with support for:\n"
 msgstr "இதற்கான ஆதரவுடன் கம்பைல் செய்யப்பட்டது:\n"
 
-#: tools/virsh.c:2841
+#: tools/virsh.c:2811
 msgid " Hypervisors:"
 msgstr " ஹைப்பர்வைசர்கள்:"
 
-#: tools/virsh.c:2883
+#: tools/virsh.c:2853
 msgid " Networking:"
 msgstr " நெட்வொர்க்கிங்:"
 
-#: tools/virsh.c:2909
+#: tools/virsh.c:2879
 msgid " Storage:"
 msgstr " சேமிப்பகம்:"
 
-#: tools/virsh.c:2939
+#: tools/virsh.c:2909
 msgid " Miscellaneous:"
 msgstr " மற்றவை:"
 
-#: tools/virsh.c:3010
+#: tools/virsh.c:2980
 #, c-format
 msgid "option %s takes a numeric argument"
 msgstr "விருப்பம் %s ஆனது எண் மதிப்புருக்களைப் பெறும்"
 
-#: tools/virsh.c:3015
+#: tools/virsh.c:2985
 #, c-format
 msgid "ignoring debug level %d out of range [%d-%d]"
 msgstr ""
 "வழுநீக்கல் நிலை %d ஆனது வரம்புக்கு வெளியே [%d-%d] இருப்பதால் அதைப் புறக்கணிக்கிறது"
 
-#: tools/virsh.c:3059
+#: tools/virsh.c:3029
 #, c-format
 msgid "Invalid string '%s' for escape sequence"
 msgstr "எஸ்கேப் வரிசைக்கு தவறான சரம் '%s'"
 
-#: tools/virsh.c:3070
+#: tools/virsh.c:3040
 #, c-format
 msgid "option '-%c'/'--%s' requires an argument"
 msgstr "'-%c'/'--%s' விருப்பத்திற்கு ஒரு அளவுரு தேவைப்படுகிறது"
 
-#: tools/virsh.c:3073
+#: tools/virsh.c:3043
 #, c-format
 msgid "option '-%c' requires an argument"
 msgstr "'-%c' விருப்பத்திற்கு ஒரு மதிப்புரு தேவைப்படுகிறது"
 
-#: tools/virsh.c:3077
+#: tools/virsh.c:3047
 #, c-format
 msgid "unsupported option '-%c'. See --help."
 msgstr "துணையில்லாத விருப்பம் '-%c'. --help ஐ பார்க்கவும்."
 
-#: tools/virsh.c:3079
+#: tools/virsh.c:3049
 #, c-format
 msgid "unsupported option '%s'. See --help."
 msgstr "ஆதரிக்கப்படாத விருப்பம் '%s'. --help ஐப் பார்க்கவும்."
 
-#: tools/virsh.c:3082
+#: tools/virsh.c:3052
 msgid "unknown option"
 msgstr "தெரியாத விருப்பம்"
 
-#: tools/virsh.c:3191
+#: tools/virsh.c:3161
 msgid "Failed to initialize mutex"
 msgstr "மியூட்டெக்ஸைத் துவக்குவதில் தோல்வி"
 
-#: tools/virsh.c:3196
+#: tools/virsh.c:3166
 msgid "Failed to initialize libvirt"
 msgstr "லிப்விர்ட்டைத் துவக்க முடியவில்லை"
 
-#: tools/virsh.c:3223
+#: tools/virsh.c:3193
 #, c-format
 msgid ""
 "Welcome to %s, the virtualization interactive terminal.\n"
@@ -27824,7 +27878,7 @@ msgstr ""
 "%sக்கு வரவேற்கப்படுகிறீர்கள், மெய்நிகராக்க இடைச்செயல் முனையம்.\n"
 "\n"
 
-#: tools/virsh.c:3226
+#: tools/virsh.c:3196
 msgid ""
 "Type:  'help' for help with commands\n"
 "       'quit' to quit\n"
@@ -27834,7 +27888,7 @@ msgstr ""
 "       'quit' வெளியேறுதல்\n"
 "\n"
 
-#: tools/virsh.h:396
+#: tools/virsh.h:393
 #, c-format
 msgid "Options --%s and --%s are mutually exclusive"
 msgstr "--%s மற்றும் --%s ஆகிய விருப்பங்கள் ஒன்றுக்கொன்று பிரத்யேகமானவை"
@@ -34476,6 +34530,9 @@ msgstr "%s ஐ மூட முடியவில்லை"
 #~ msgid "%s: internal error: unknown flag: %c"
 #~ msgstr "%s: அகப் பிழை: தெரியாத கொடி: %c"
 
+#~ msgid "maxnames > REMOTE_DEFINED_INTERFACE_NAME_LIST_MAX"
+#~ msgstr "maxnames > REMOTE_DEFINED_INTERFACE_NAME_LIST_MAX"
+
 #~ msgid "topology cpuset syntax error"
 #~ msgstr "topology cpuset இலக்கண பிழை"
 
@@ -34487,6 +34544,9 @@ msgstr "%s ஐ மூட முடியவில்லை"
 
 #~ msgid "%s: internal error: unknown flag: %c\n"
 #~ msgstr "%s: அகப் பிழை: தெரியாத கொடி: %c\n"
+
+#~ msgid "no network with matching id"
+#~ msgstr "பொருந்தும் idஉடன் பிணையம் இல்லை"
 
 #~ msgid "Failed to parse thread siblings"
 #~ msgstr "தொடரிழை உடன்கிளைகளைப் பாகுபடுத்துவது தோல்வியடைந்தது"
@@ -34534,6 +34594,12 @@ msgstr "%s ஐ மூட முடியவில்லை"
 
 #~ msgid "invalid CPU mask %s"
 #~ msgstr "தவறானd CPUமாஸ்க்k %s"
+
+#~ msgid "Programming error: Invalid option name"
+#~ msgstr "நிரலாக்கப் பிழை: செல்லுபடியாகாத விருப்பப் பெயர்"
+
+#~ msgid "Programming error: Requested option is a boolean"
+#~ msgstr "நிரலாக்கப் பிழை: கோரப்பட்ட விருப்பம் ஒரு பூலியன்"
 
 #~ msgid "Volume"
 #~ msgstr "ஒலி அளவு"
