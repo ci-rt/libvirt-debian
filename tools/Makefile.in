@@ -80,11 +80,14 @@ POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
 bin_PROGRAMS = virsh$(EXEEXT) virt-host-validate$(EXEEXT) \
-	virt-login-shell$(EXEEXT)
+	$(am__EXEEXT_1)
 @WITH_SANLOCK_TRUE@am__append_1 = virt-sanlock-cleanup
-@WITH_WIN_ICON_TRUE@am__append_2 = virsh_win_icon.$(OBJEXT)
-@LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@am__append_3 = libvirt-guests.init
-@LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@am__append_4 = libvirt-guests.service
+@WITH_LXC_TRUE@am__append_2 = virt-login-shell.conf
+@WITH_LXC_TRUE@am__append_3 = virt-login-shell
+@WITH_LXC_TRUE@am__append_4 = virt-login-shell.1
+@WITH_WIN_ICON_TRUE@am__append_5 = virsh_win_icon.$(OBJEXT)
+@LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@am__append_6 = libvirt-guests.init
+@LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@am__append_7 = libvirt-guests.service
 subdir = tools
 DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/Makefile.am \
 	$(top_srcdir)/build-aux/mkinstalldirs \
@@ -354,6 +357,7 @@ mkinstalldirs = $(SHELL) $(top_srcdir)/build-aux/mkinstalldirs
 CONFIG_HEADER = $(top_builddir)/config.h
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
+@WITH_LXC_TRUE@am__EXEEXT_1 = virt-login-shell$(EXEEXT)
 am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(bindir)" \
 	"$(DESTDIR)$(libexecdir)" "$(DESTDIR)$(sbindir)" \
 	"$(DESTDIR)$(man1dir)" "$(DESTDIR)$(man8dir)" \
@@ -372,7 +376,7 @@ am__DEPENDENCIES_1 =
 virsh_DEPENDENCIES = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
 	../src/libvirt.la ../src/libvirt-lxc.la ../src/libvirt-qemu.la \
 	../gnulib/lib/libgnu.la $(am__DEPENDENCIES_1) \
-	$(am__DEPENDENCIES_1) $(am__append_2)
+	$(am__DEPENDENCIES_1) $(am__append_5)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
@@ -1956,17 +1960,12 @@ EXTRA_DIST = $(ICON_FILES) $(conf_DATA) virt-xml-validate.in \
 	libvirt-guests.service.in
 DISTCLEANFILES = $(am__append_1) $(BUILT_SOURCES)
 confdir = $(sysconfdir)/libvirt
-conf_DATA = virt-login-shell.conf
+conf_DATA = $(am__append_2)
 bin_SCRIPTS = virt-xml-validate virt-pki-validate
 libexec_SCRIPTS = libvirt-guests.sh
 @WITH_SANLOCK_TRUE@sbin_SCRIPTS = virt-sanlock-cleanup
-dist_man1_MANS = \
-		virt-host-validate.1 \
-		virt-pki-validate.1 \
-		virt-xml-validate.1 \
-		virt-login-shell.1 \
-		virsh.1
-
+dist_man1_MANS = virt-host-validate.1 virt-pki-validate.1 \
+	virt-xml-validate.1 virsh.1 $(am__append_4)
 @WITH_SANLOCK_TRUE@dist_man8_MANS = virt-sanlock-cleanup.8
 virt_host_validate_SOURCES = \
 		virt-host-validate.c \
@@ -2036,7 +2035,7 @@ virsh_LDFLAGS = \
 virsh_LDADD = $(STATIC_BINARIES) $(PIE_LDFLAGS) ../src/libvirt.la \
 	../src/libvirt-lxc.la ../src/libvirt-qemu.la \
 	../gnulib/lib/libgnu.la $(LIBXML_LIBS) $(VIRSH_LIBS) \
-	$(am__append_2)
+	$(am__append_5)
 virsh_CFLAGS = \
 		$(WARN_CFLAGS)					\
 		$(PIE_CFLAGS)					\
@@ -2044,7 +2043,7 @@ virsh_CFLAGS = \
 		$(LIBXML_CFLAGS)				\
 		$(READLINE_CFLAGS)
 
-BUILT_SOURCES = $(am__append_3) libvirt-guests.sh $(am__append_4)
+BUILT_SOURCES = $(am__append_6) libvirt-guests.sh $(am__append_7)
 SYSTEMD_UNIT_DIR = /lib/systemd/system
 CLEANFILES = $(bin_SCRIPTS) *.gcov .libs/*.gcda .libs/*.gcno *.gcno \
 	*.gcda *.i *.s

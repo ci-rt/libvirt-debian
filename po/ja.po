@@ -17,9 +17,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libvirt\n"
 "Report-Msgid-Bugs-To: libvir-list@redhat.com\n"
-"POT-Creation-Date: 2013-08-30 15:12+0800\n"
-"PO-Revision-Date: 2013-07-25 04:53+0000\n"
-"Last-Translator: Daniel <veillard@redhat.com>\n"
+"POT-Creation-Date: 2013-09-02 09:24+0800\n"
+"PO-Revision-Date: 2013-09-02 01:10+0000\n"
+"Last-Translator: Tomoyuki KATO <tomo@dream.daynight.jp>\n"
 "Language-Team: Japanese <trans-ja@lists.fedoraproject.org>\n"
 "Language: ja\n"
 "MIME-Version: 1.0\n"
@@ -91,7 +91,7 @@ msgid "Unable to migrate %s to %s"
 msgstr "%s を %s にマイグレーションできません"
 
 #: daemon/libvirtd.c:1036
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "\n"
 "Usage:\n"
@@ -109,20 +109,6 @@ msgid ""
 "\n"
 "libvirt management daemon:\n"
 msgstr ""
-"\n"
-"使用方法:\n"
-"  %s [options]\n"
-"\n"
-"オプション:\n"
-"  -v | --verbose         冗長なメッセージ\n"
-"  -d | --daemon          デーモン実行 & PID ファイルの書き込み\n"
-"  -l | --listen          TCP/IP 接続のリッスン\n"
-"  -t | --timeout <secs>  タイムアウト時間後の終了\n"
-"  -f | --config <file>   設定ファイル\n"
-"     | --version         バージョン情報の表示\n"
-"  -p | --pid-file <file> プロセス ID ファイルの名前の変更\n"
-"\n"
-"libvirt 管理デーモン:\n"
 
 #: daemon/libvirtd.c:1055
 #, c-format
@@ -762,7 +748,7 @@ msgstr "ホスト名と関連づけられたアドレスがありません"
 
 #: gnulib/lib/gai_strerror.c:64
 msgid "Name or service not known"
-msgstr "未知の名前またはサービス"
+msgstr "不明な名前またはサービス"
 
 #: gnulib/lib/gai_strerror.c:65
 msgid "Servname not supported for ai_socktype"
@@ -808,7 +794,7 @@ msgstr "正しくエンコードされていないパラメーター文字列"
 #: src/hyperv/hyperv_wmi.c:323 src/rpc/virnetclientprogram.c:184
 #: src/rpc/virnetclientstream.c:197
 msgid "Unknown error"
-msgstr "未知のエラー"
+msgstr "不明なエラー"
 
 #: gnulib/lib/regcomp.c:131
 msgid "Success"
@@ -904,7 +890,7 @@ msgstr "セキュリティドライバー '%s' を見つけられません"
 #: src/conf/capabilities.c:952
 #, c-format
 msgid "Cpu '%u' in node '%zu' is out of range of the provided bitmap"
-msgstr ""
+msgstr "CPU '%u' (ノード '%zu') が提供されたビットマップの範囲外です"
 
 #: src/conf/cpu_conf.c:191
 msgid "XML does not contain expected 'cpu' element"
@@ -1432,7 +1418,7 @@ msgstr "sgio は SCSI ホストデバイスのみに対してサポートされ�
 #: src/conf/domain_conf.c:4056
 #, c-format
 msgid "unknown sgio mode '%s'"
-msgstr "未知の sgio モード '%s'"
+msgstr "不明な sgio モード '%s'"
 
 #: src/conf/domain_conf.c:4071
 #, c-format
@@ -1758,7 +1744,7 @@ msgstr "不明なディスク copy_on_read モード '%s'"
 #: src/conf/domain_conf.c:5448
 #, c-format
 msgid "unknown disk discard mode '%s'"
-msgstr "未知のディスク破棄モード '%s'"
+msgstr "不明なディスク破棄モード '%s'"
 
 #: src/conf/domain_conf.c:5473
 #, c-format
@@ -1766,14 +1752,13 @@ msgid "unknown startupPolicy value '%s'"
 msgstr "不明な startupPolicy 値 '%s'"
 
 #: src/conf/domain_conf.c:5480
-#, fuzzy, c-format
+#, c-format
 msgid "Setting disk %s is not allowed for disk of network type"
-msgstr "ディスク %s の設定は CD-ROM またはフロッピーに対してのみ許可されます"
+msgstr ""
 
 #: src/conf/domain_conf.c:5490
-#, fuzzy
 msgid "Setting disk 'requisite' is allowed only for cdrom or floppy"
-msgstr "ディスク %s の設定は CD-ROM またはフロッピーに対してのみ許可されます"
+msgstr ""
 
 #: src/conf/domain_conf.c:5527 src/conf/domain_conf.c:5962
 #, c-format
@@ -1826,14 +1811,12 @@ msgid "Invalid vectors: %s"
 msgstr "無効なベクター: %s"
 
 #: src/conf/domain_conf.c:5800
-#, fuzzy
 msgid "pci-root and pcie-root controllers should not have an address"
-msgstr "pci-root コントローラーがアドレスを持つべきではありません"
+msgstr ""
 
 #: src/conf/domain_conf.c:5806
-#, fuzzy
 msgid "pci-root and pcie-root controllers should have index 0"
-msgstr "pci-root コントローラーがアドレスを持つべきではありません"
+msgstr ""
 
 #: src/conf/domain_conf.c:5831
 msgid "Controllers must use the 'pci' address type"
@@ -1916,7 +1899,7 @@ msgstr "<virtualport> 要素は <interface type='%s'> に対してサポート�
 msgid "Invalid specification of multiple <filterref>s in a single <interface>"
 msgstr "単一の <interface> における複数の <filterref> の無効な指定"
 
-#: src/conf/domain_conf.c:6353 src/qemu/qemu_command.c:10211
+#: src/conf/domain_conf.c:6353 src/qemu/qemu_command.c:10213
 #, c-format
 msgid "unable to parse mac address '%s'"
 msgstr "MAC アドレス '%s' を構文解析できません"
@@ -2083,7 +2066,7 @@ msgstr "不明なキャラクターデバイスの形式: %s"
 msgid "spicevmc device type only supports virtio"
 msgstr "spicevmc デバイス形式は virtio のみをサポートします"
 
-#: src/conf/domain_conf.c:7184 src/qemu/qemu_command.c:9379
+#: src/conf/domain_conf.c:7184 src/qemu/qemu_command.c:9381
 msgid "usb-serial requires address of usb type"
 msgstr "usb-serial は USB 形式のアドレスが必要です"
 
@@ -2288,10 +2271,10 @@ msgstr "vnc port %s を構文解析できません"
 msgid "cannot parse vnc WebSocket port %s"
 msgstr "VNC WebSocket ポート %s を構文解析できません"
 
-#: src/conf/domain_conf.c:7989 src/qemu/qemu_command.c:11001
+#: src/conf/domain_conf.c:7989 src/qemu/qemu_command.c:11003
 #, c-format
 msgid "unknown vnc display sharing policy '%s'"
-msgstr "未知の VNC ディスプレイ共有ポリシー '%s'"
+msgstr "不明な VNC ディスプレイ共有ポリシー '%s'"
 
 #: src/conf/domain_conf.c:8014 src/conf/domain_conf.c:8081
 #, c-format
@@ -2472,7 +2455,7 @@ msgstr "不明なメモリーバルーンモデル '%s'"
 
 #: src/conf/domain_conf.c:8658
 msgid "invalid statistics collection period"
-msgstr ""
+msgstr "無効な統計情報収集間隔"
 
 #: src/conf/domain_conf.c:8708
 msgid "XML does not contain expected 'sysinfo' element"
@@ -2609,7 +2592,7 @@ msgstr "(デバイス定義)"
 #: src/conf/domain_conf.c:9459
 #, c-format
 msgid "unknown device type '%s'"
-msgstr ""
+msgstr "不明なデバイス形式 '%s'"
 
 #: src/conf/domain_conf.c:10325
 msgid "unknown virt type"
@@ -2874,7 +2857,7 @@ msgstr "Hyper-V エンライト機能 '%s' に無効な値の state 引数があ
 
 #: src/conf/domain_conf.c:11410
 msgid "invalid HyperV spinlock retry count"
-msgstr ""
+msgstr "無効な HyperV spinlock 再試行回数"
 
 #: src/conf/domain_conf.c:11416
 msgid "HyperV spinlock retry count must be at least 4095"
@@ -3554,7 +3537,7 @@ msgstr "PCI アドレスの初期化に失敗しました"
 
 #: src/conf/domain_conf.c:14770 src/conf/domain_conf.c:14803
 #: src/conf/domain_conf.c:16037 src/conf/domain_conf.c:16046
-#: src/qemu/qemu_hotplug.c:3263
+#: src/qemu/qemu_hotplug.c:3262
 #, c-format
 msgid "unexpected hostdev type %d"
 msgstr "予期しない hostdev タイプ %d"
@@ -3594,7 +3577,7 @@ msgid "Unable to format guestfwd port"
 msgstr "guestfwd ポートをフォーマットできません"
 
 #: src/conf/domain_conf.c:15273 src/conf/domain_conf.c:15304
-#: src/qemu/qemu_command.c:8468
+#: src/qemu/qemu_command.c:8470
 #, c-format
 msgid "unexpected smartcard type %d"
 msgstr "予期しないスマートカード種別 %d"
@@ -3699,7 +3682,7 @@ msgstr "サポートされない smbios モード %d です"
 #: src/conf/domain_conf.c:16616
 #, c-format
 msgid "unexpected feature %zu"
-msgstr ""
+msgstr "予期しない機能 %zu"
 
 #: src/conf/domain_conf.c:17000
 msgid "Device configuration is not compatible: Domain has no USB bus support"
@@ -3747,7 +3730,7 @@ msgstr "'%d' 形式の定義のコピーはまだ実装されていません。"
 #: src/conf/domain_conf.c:18453
 #, c-format
 msgid "no device found with alias %s"
-msgstr ""
+msgstr "エイリアス %s を持つディスクが見つかりません"
 
 #: src/conf/domain_event.c:200 src/conf/domain_event.c:250
 msgid "could not find event callback for removal"
@@ -4210,10 +4193,9 @@ msgid "Missing ip and hostname in network '%s' DNS HOST record"
 msgstr "ネットワーク '%s' の DNS HOST レコードに IP およびホスト名がありません"
 
 #: src/conf/network_conf.c:918
-#, fuzzy, c-format
+#, c-format
 msgid "Missing required service attribute in DNS SRV record of network %s"
 msgstr ""
-"ネットワーク %s の DNS SRV レコードにおいて必須の service 属性がありません"
 
 #: src/conf/network_conf.c:924
 #, c-format
@@ -4228,10 +4210,9 @@ msgstr ""
 "DNS SRV レコード '%s' (ネットワーク %s) に必要な protocol 属性がありません"
 
 #: src/conf/network_conf.c:941
-#, fuzzy, c-format
+#, c-format
 msgid "Invalid protocol attribute value '%s' in DNS SRV record of network %s"
 msgstr ""
-"無効な protocol 属性値 '%s' がネットワーク %s の DNS SRV レコードにあります"
 
 #: src/conf/network_conf.c:956
 #, c-format
@@ -4285,9 +4266,9 @@ msgstr ""
 "せん"
 
 #: src/conf/network_conf.c:1054
-#, fuzzy, c-format
+#, c-format
 msgid "Invalid dns forwardPlainNames setting '%s' in network '%s'"
-msgstr "無効な IPv6 設定 '%s' がネットワーク '%s' にあります"
+msgstr ""
 
 #: src/conf/network_conf.c:1064
 #, c-format
@@ -4647,7 +4628,7 @@ msgstr "不明な転送タイプ '%s'"
 #: src/conf/network_conf.c:1720
 #, c-format
 msgid "Unknown forward <driver name='%s'/> in network %s"
-msgstr "未知の転送 <driver name='%s'/> がネットワーク %s にあります"
+msgstr "不明な転送 <driver name='%s'/> がネットワーク %s にあります"
 
 #: src/conf/network_conf.c:1732
 #, c-format
@@ -5995,7 +5976,7 @@ msgstr "デバイス '%s' 向けロックファイルをパス '%s' に書き込
 
 #: src/conf/virchrdev.c:274
 msgid "Unable to init device stream mutex"
-msgstr ""
+msgstr "デバイスストリームミューテックスを初期化できません"
 
 #: src/conf/virchrdev.c:358 src/conf/virchrdev.c:420 src/vmx/vmx.c:2081
 #: src/vmx/vmx.c:2262
@@ -6190,7 +6171,7 @@ msgstr "CPU 機能 %s がすでに定義されています"
 #: src/cpu/cpu_x86.c:715
 #, c-format
 msgid "Invalid cpuid[%zu] in %s feature"
-msgstr ""
+msgstr "無効な cpuid[%zu] が %s 機能にあります"
 
 #: src/cpu/cpu_x86.c:848 src/cpu/cpu_x86.c:886 src/cpu/cpu_x86.c:1834
 #, c-format
@@ -6240,9 +6221,9 @@ msgid "Host CPU does not strictly match guest CPU: Extra features"
 msgstr "ホスト CPU がゲスト CPU と厳密に一致しません: 追加機能"
 
 #: src/cpu/cpu_x86.c:1337
-#, fuzzy, c-format
+#, c-format
 msgid "%s not a known CPU model"
-msgstr "不明な CPU モデル %s"
+msgstr ""
 
 #: src/cpu/cpu_x86.c:1436
 msgid "Cannot find suitable CPU model for given data"
@@ -7201,7 +7182,7 @@ msgid ""
 "HTTP response code %d for call to '%s'. Fault is unknown, XPath evaluation "
 "failed"
 msgstr ""
-"HTTP 応答コード %d が '%s' への呼び出しに対してありました。未知の原因により、"
+"HTTP 応答コード %d が '%s' への呼び出しに対してありました。不明な原因により、"
 "Xpath 評価が失敗しました"
 
 #: src/esx/esx_vi.c:1293
@@ -7210,7 +7191,7 @@ msgid ""
 "HTTP response code %d for call to '%s'. Fault is unknown, deserialization "
 "failed"
 msgstr ""
-"HTTP 応答コード %d が '%s' への呼び出しに対してありました。未知の原因により、"
+"HTTP 応答コード %d が '%s' への呼び出しに対してありました。不明な原因により、"
 "シリアライズ解除が失敗しました"
 
 #: src/esx/esx_vi.c:1300
@@ -8197,7 +8178,7 @@ msgstr "%s 状態ドライバーの初期化に失敗しました: %s"
 
 #: src/libvirt.c:840
 msgid "Unknown problem"
-msgstr "未知の問題"
+msgstr "不明な問題"
 
 #: src/libvirt.c:1021
 msgid "Expected a list for 'uri_aliases' config parameter"
@@ -8355,7 +8336,7 @@ msgstr "peer2peer フラグを使用せずにトンネルマイグレーショ�
 
 #: src/libvirt.c:5967
 msgid "use virDomainMigrateToURI3 for peer-to-peer migration"
-msgstr "ピアツーピアの移行に virDomainMigrateToURI3 を使用する"
+msgstr "ピアツーピアの移行に virDomainMigrateToURI3 を使用します"
 
 #: src/libvirt.c:6018 src/qemu/qemu_migration.c:3927
 msgid ""
@@ -8633,7 +8614,7 @@ msgid "Unable to restart self"
 msgstr "自分自身を再起動できません"
 
 #: src/locking/lock_daemon.c:1094
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "\n"
 "Usage:\n"
@@ -8649,18 +8630,6 @@ msgid ""
 "\n"
 "libvirt lock management daemon:\n"
 msgstr ""
-"\n"
-"使用法:\n"
-"  %s [options]\n"
-"\n"
-"オプション:\n"
-"  -v | --verbose         冗長なメッセージ\n"
-"  -d | --daemon          デーモンとして実行 & PID ファイルへの書き込み\n"
-"  -f | --config <file>   設定ファイル\n"
-"     | --version         バージョン情報の表示\n"
-"  -p | --pid-file <file> PID ファイルの名前の変更\n"
-"\n"
-"libvirt ロック管理デーモン:\n"
 
 #: src/locking/lock_daemon.c:1110
 #, c-format
@@ -8798,7 +8767,7 @@ msgstr "SHA-256 チェックサムを計算できません"
 
 #: src/locking/lock_driver_lockd.c:558
 msgid "Unexpected parameters for disk resource"
-msgstr "未知のディスクリソース向けのパラメーター"
+msgstr "不明なディスクリソース向けのパラメーター"
 
 #: src/locking/lock_driver_lockd.c:629
 msgid "Offset must be zero for this lock manager"
@@ -9197,11 +9166,11 @@ msgstr ""
 
 #: src/lxc/lxc_container.c:335 src/util/vircommand.c:528
 msgid "sysconf(_SC_OPEN_MAX) failed"
-msgstr ""
+msgstr "sysconf(_SC_OPEN_MAX) に失敗しました"
 
 #: src/lxc/lxc_container.c:427
 msgid "setuid or setgid failed"
-msgstr ""
+msgstr "setuid または setgid に失敗しました"
 
 #: src/lxc/lxc_container.c:530
 msgid "Failed to read /proc/mounts"
@@ -9279,14 +9248,13 @@ msgid "Failed to mount %s on /proc/meminfo"
 msgstr "%s を /proc/meminfo にマウントできませんでした"
 
 #: src/lxc/lxc_container.c:882
-#, fuzzy
 msgid "Cannot create /dev"
-msgstr "/dev/pts を作成できません"
+msgstr ""
 
 #: src/lxc/lxc_container.c:890
 #, c-format
 msgid "Failed to mount %s on /dev"
-msgstr ""
+msgstr "%s の /dev へのマウントに失敗しました"
 
 #: src/lxc/lxc_container.c:918
 msgid "Cannot create /dev/pts"
@@ -9559,7 +9527,7 @@ msgstr "ホストコンソール PTY を監視できません"
 #: src/lxc/lxc_controller.c:1161
 #, c-format
 msgid "unable write to %s"
-msgstr ""
+msgstr "%s に書き込みできません"
 
 #: src/lxc/lxc_controller.c:1233 src/lxc/lxc_controller.c:1927
 #, c-format
@@ -9614,7 +9582,7 @@ msgstr "ストレージソース %s はブロックデバイスである必要�
 #: src/lxc/lxc_controller.c:1440 src/lxc/lxc_controller.c:1519
 #, c-format
 msgid "Failed to create directory for device %s"
-msgstr ""
+msgstr "デバイス %s 用のディレクトリの作成に失敗しました"
 
 #: src/lxc/lxc_controller.c:1512
 #, c-format
@@ -9700,7 +9668,7 @@ msgstr "セッションリーダーになれません"
 
 #: src/lxc/lxc_controller.c:2439
 msgid "Unknown failure in libvirt_lxc startup"
-msgstr "libvirt_lxc の起動において未知の失敗"
+msgstr "libvirt_lxc の起動において不明な失敗"
 
 #: src/lxc/lxc_driver.c:133 src/qemu/qemu_driver.c:221
 #, c-format
@@ -9930,7 +9898,7 @@ msgstr "デバイスの永続的な接続はサポートされません"
 
 #: src/lxc/lxc_driver.c:2858 src/lxc/lxc_driver.c:2914
 #: src/lxc/lxc_driver.c:3706 src/qemu/qemu_driver.c:6669
-#: src/qemu/qemu_hotplug.c:3293
+#: src/qemu/qemu_hotplug.c:3292
 #, c-format
 msgid "multiple devices matching mac address %s found"
 msgstr "MAC アドレス %s を一致するデバイスが複数見つかりました"
@@ -9951,8 +9919,8 @@ msgid "no target device %s"
 msgstr "ターゲットデバイス %s がありません"
 
 #: src/lxc/lxc_driver.c:2931 src/qemu/qemu_driver.c:6685
-#: src/qemu/qemu_driver.c:6709 src/qemu/qemu_hotplug.c:1342
-#: src/qemu/qemu_hotplug.c:3519
+#: src/qemu/qemu_driver.c:6709 src/qemu/qemu_hotplug.c:1341
+#: src/qemu/qemu_hotplug.c:3518
 msgid "device not present in domain configuration"
 msgstr "デバイスはドメインの設定にありません"
 
@@ -9992,7 +9960,7 @@ msgid "No bridge name specified"
 msgstr "ブリッジ名が指定されていません"
 
 #: src/lxc/lxc_driver.c:3132 src/lxc/lxc_process.c:395
-#: src/qemu/qemu_command.c:312 src/qemu/qemu_hotplug.c:1643
+#: src/qemu/qemu_command.c:312 src/qemu/qemu_hotplug.c:1642
 #, c-format
 msgid "Network '%s' is not active."
 msgstr "ネットワーク '%s' が起動中ではありません"
@@ -10019,9 +9987,9 @@ msgid "Hostdev source %s must be a block device"
 msgstr "ホストデバイスソース %s はブロックデバイスである必要があります"
 
 #: src/lxc/lxc_driver.c:3366 src/lxc/lxc_driver.c:3474
-#, fuzzy, c-format
+#, c-format
 msgid "Unable to create directory for device %s"
-msgstr "ディレクトリー %s を作成できません"
+msgstr ""
 
 #: src/lxc/lxc_driver.c:3539 src/lxc/lxc_driver.c:3560
 #: src/lxc/lxc_driver.c:3960 src/lxc/lxc_driver.c:3980
@@ -10040,7 +10008,7 @@ msgid "device type '%s' cannot be attached"
 msgstr "デバイスタイプ '%s' は添付できません"
 
 #: src/lxc/lxc_driver.c:3654 src/libxl/libxl_driver.c:3590
-#: src/qemu/qemu_hotplug.c:2915 src/uml/uml_driver.c:2268
+#: src/qemu/qemu_hotplug.c:2914 src/uml/uml_driver.c:2268
 #, c-format
 msgid "disk %s not found"
 msgstr "ディスク %s が見つかりません"
@@ -10051,7 +10019,7 @@ msgstr "ディスク %s が見つかりません"
 msgid "Unable to remove device %s"
 msgstr "デバイス %s を削除できません"
 
-#: src/lxc/lxc_driver.c:3711 src/qemu/qemu_hotplug.c:3299
+#: src/lxc/lxc_driver.c:3711 src/qemu/qemu_hotplug.c:3298
 #, c-format
 msgid "network device %s not found"
 msgstr "ネットワークデバイス %s が見つかりませんでした"
@@ -10094,7 +10062,7 @@ msgid "Unable to modify live devices"
 msgstr "稼働中のデバイスを変更できません"
 
 #: src/lxc/lxc_driver.c:4465 src/libxl/libxl_driver.c:1560
-#: src/qemu/qemu_command.c:7567 src/qemu/qemu_driver.c:1201
+#: src/qemu/qemu_command.c:7569 src/qemu/qemu_driver.c:1201
 #: src/xen/xen_driver.c:624
 msgid "Host SMBIOS information is not available"
 msgstr "ホスト SMBIOS 情報が利用可能ではありません"
@@ -10131,7 +10099,7 @@ msgstr "コンテナーに対する無効な PID %d です"
 
 #: src/lxc/lxc_process.c:701
 msgid "Some processes refused to die"
-msgstr ""
+msgstr "いくつかのプロセスが die を拒否しました"
 
 #: src/lxc/lxc_process.c:830
 msgid "Failure while reading log output"
@@ -10198,9 +10166,9 @@ msgid "Failed to read pid file %s/%s.pid"
 msgstr "pid ファイル %s/%s.pid の読み込みに失敗"
 
 #: src/lxc/lxc_process.c:1215 src/lxc/lxc_process.c:1426
-#, fuzzy, c-format
+#, c-format
 msgid "No valid cgroup for machine %s"
-msgstr "ドメインの説明がありません: %s"
+msgstr "マシン %s の有効な cgroup がありません"
 
 #: src/lxc/lxc_process.c:1282
 msgid "could not close logfile"
@@ -10213,14 +10181,14 @@ msgid "Failed to autostart VM '%s': %s"
 msgstr "仮想マシン '%s' の自動起動に失敗しました: %s"
 
 #: src/libxl/libxl_driver.c:416
-#, fuzzy, c-format
+#, c-format
 msgid "failed to open logfile %s"
-msgstr "ファイルを開くのに失敗しました"
+msgstr ""
 
 #: src/libxl/libxl_driver.c:426
-#, fuzzy, c-format
+#, c-format
 msgid "cannot create libxenlight logger for domain %s"
-msgstr "ドメイン %d 用の cputime を読み込めません"
+msgstr ""
 
 #: src/libxl/libxl_driver.c:433
 msgid "Failed libxl context initialization"
@@ -10233,7 +10201,7 @@ msgstr "libxl コンテキストの初期化に失敗しました"
 #: src/util/virerror.c:257 src/xenapi/xenapi_utils.c:265 tools/virsh.c:282
 #: tools/virsh-domain-monitor.c:57
 msgid "unknown error"
-msgstr "未知のエラー"
+msgstr "不明なエラー"
 
 #: src/libxl/libxl_driver.c:565 src/libxl/libxl_driver.c:4133
 msgid "libxl_get_physinfo_info failed"
@@ -10585,7 +10553,7 @@ msgid "Refusing to undefine while domain managed save image exists"
 msgstr "ドメインの管理保存イメージが存在する間は定義解除が拒否されます"
 
 #: src/libxl/libxl_driver.c:3478 src/qemu/qemu_driver.c:6454
-#: src/qemu/qemu_hotplug.c:718
+#: src/qemu/qemu_hotplug.c:717
 #, c-format
 msgid "No device with bus '%s' and target '%s'"
 msgstr "バス '%s' とターゲット '%s' を持つデバイスはありません"
@@ -10610,13 +10578,13 @@ msgstr "ディスクソースパスがありません"
 msgid "libxenlight failed to attach disk '%s'"
 msgstr "libxenlight がディスク '%s' の接続に失敗しました"
 
-#: src/libxl/libxl_driver.c:3558 src/qemu/qemu_hotplug.c:765
+#: src/libxl/libxl_driver.c:3558 src/qemu/qemu_hotplug.c:764
 #: src/uml/uml_driver.c:2213
 #, c-format
 msgid "disk bus '%s' cannot be hotplugged."
 msgstr "ディスクバス '%s' はホットプラグができません"
 
-#: src/libxl/libxl_driver.c:3564 src/qemu/qemu_hotplug.c:771
+#: src/libxl/libxl_driver.c:3564 src/qemu/qemu_hotplug.c:770
 #, c-format
 msgid "disk device type '%s' cannot be hotplugged"
 msgstr "ディスクデバイスタイプ '%s' はホットプラグができません"
@@ -10657,9 +10625,8 @@ msgid "this disk doesn't support update"
 msgstr "このディスクは更新をサポートしません"
 
 #: src/libxl/libxl_driver.c:4163 src/libxl/libxl_conf.c:118
-#, fuzzy
 msgid "libxl_get_numainfo failed"
-msgstr "libxl_get_version_info に失敗しました"
+msgstr "libxl_get_numainfo に失敗しました"
 
 #: src/libxl/libxl_driver.c:4170 src/nodeinfo.c:1492 src/nodeinfo.c:1676
 #, c-format
@@ -10716,12 +10683,12 @@ msgstr "使用中のコンソールセッションがこのドメインに対し
 
 #: src/libxl/libxl_driver.c:4745
 msgid "unable to get numa affinity"
-msgstr ""
+msgstr "NUMA アフィニティを取得できません"
 
 #: src/libxl/libxl_driver.c:4755
 #, c-format
 msgid "Node %zu out of range"
-msgstr ""
+msgstr "ノード %zu が範囲外です"
 
 #: src/libxl/libxl_conf.c:80 src/storage/storage_backend.c:1581
 #: src/storage/storage_backend_logical.c:200
@@ -10734,9 +10701,8 @@ msgid "Failed to get node physical info from libxenlight"
 msgstr "libxenlight からノードの物理情報の取得に失敗しました"
 
 #: src/libxl/libxl_conf.c:124
-#, fuzzy
 msgid "libxl_get_cpu_topology failed"
-msgstr "libxl_get_physinfo_info に失敗しました"
+msgstr "libxl_get_cpu_topology に失敗しました"
 
 #: src/libxl/libxl_conf.c:229
 msgid "Failed to get version info from libxenlight"
@@ -10753,24 +10719,21 @@ msgid "libxenlight failed to parse UUID '%s'"
 msgstr "libxenlight が UUID '%s' の構文解析に失敗しました"
 
 #: src/libxl/libxl_conf.c:448
-#, fuzzy
 msgid "unknown chrdev type"
-msgstr "不明なキャラクターデバイス形式 '%s'"
+msgstr "不明なキャラクターデバイス形式"
 
-#: src/libxl/libxl_conf.c:519 src/qemu/qemu_command.c:5720
+#: src/libxl/libxl_conf.c:519 src/qemu/qemu_command.c:5722
 #, c-format
 msgid "unsupported chardev '%s'"
 msgstr "サポートされないキャラクターデバイス '%s' です"
 
 #: src/libxl/libxl_conf.c:611
-#, fuzzy
 msgid "Only one serial device is supported by libxl"
-msgstr "主ビデオデバイスが一つのみサポートされます"
+msgstr ""
 
 #: src/libxl/libxl_conf.c:621
-#, fuzzy
 msgid "Parallel devices are not supported by libxl"
-msgstr "名前付きデバイスのエイリアスはサポートされません"
+msgstr ""
 
 #: src/libxl/libxl_conf.c:705 src/libxl/libxl_conf.c:730
 #: src/libxl/libxl_conf.c:740 src/libxl/libxl_conf.c:752
@@ -11763,7 +11726,7 @@ msgstr "リースファイルの書き込みに失敗しました"
 #: src/nwfilter/nwfilter_dhcpsnoop.c:1886
 #, c-format
 msgid "mkdir(\"%s\")"
-msgstr ""
+msgstr "mkdir(\"%s\")"
 
 #: src/nwfilter/nwfilter_dhcpsnoop.c:1891
 #, c-format
@@ -11953,9 +11916,9 @@ msgid "Could not determine kernel version from string %s"
 msgstr "文字列 %s からカーネルバージョンを決定できませんでした"
 
 #: src/nwfilter/nwfilter_ebiptables_driver.c:4368
-#, fuzzy, c-format
+#, c-format
 msgid "Could not determine iptables version from string %s"
-msgstr "文字列 %s からカーネルバージョンを決定できませんでした"
+msgstr ""
 
 #: src/nwfilter/nwfilter_ebiptables_driver.c:4412
 msgid "essential tools to support ip(6)tables firewalls could not be located"
@@ -13136,7 +13099,7 @@ msgstr "ゲストエージェントのタイムアウト '%d' は最小の '%d' 
 
 #: src/qemu/qemu_agent.c:1477
 msgid "guest-get-vcpus reply was missing return data"
-msgstr "guest-get-vcpus からの応答に返りデータがありませんでした"
+msgstr "guest-get-vcpus からの応答に返り値がありませんでした"
 
 #: src/qemu/qemu_agent.c:1483
 msgid "guest-get-vcpus return information was not an array"
@@ -13278,20 +13241,20 @@ msgid "failed to add ebtables rule to allow MAC address on '%s'"
 msgstr ""
 "'%s' において MAC アドレスを許可する ebtables ルールの追加に失敗しました"
 
-#: src/qemu/qemu_command.c:458
+#: src/qemu/qemu_command.c:460
 msgid "vhost-net is not supported with this QEMU binary"
 msgstr "vhost-net はこの QEMU バイナリーにサポートされていません"
 
-#: src/qemu/qemu_command.c:470
+#: src/qemu/qemu_command.c:472
 msgid "vhost-net is only supported for virtio network interfaces"
 msgstr ""
 "vhost-net は virtio ネットワークインターフェースに対してのみサポートされます"
 
-#: src/qemu/qemu_command.c:488
+#: src/qemu/qemu_command.c:490
 msgid "vhost-net was requested for an interface, but is unavailable"
 msgstr "vhost-net がインターフェースに要求されましたが、利用可能ではありません"
 
-#: src/qemu/qemu_command.c:539
+#: src/qemu/qemu_command.c:541
 #, c-format
 msgid ""
 "PCI device %04x:%02x:%02x.%x allocated from network %s is already in use by "
@@ -13300,668 +13263,662 @@ msgstr ""
 "PCI デバイス %04x:%02x:%02x.%x (ネットワーク %s から割り当て) はすでにドメイ"
 "ン %s により使用されています"
 
-#: src/qemu/qemu_command.c:620
+#: src/qemu/qemu_command.c:622
 #, c-format
 msgid "cannot convert disk '%s' to bus/device index"
 msgstr "ディスク '%s' をバス/デバイス指数に変換できません"
 
-#: src/qemu/qemu_command.c:649
+#: src/qemu/qemu_command.c:651
 #, c-format
 msgid "Unsupported disk name mapping for bus '%s'"
 msgstr "バス '%s' 用にはディスク名マッピングのサポートがありません"
 
-#: src/qemu/qemu_command.c:672
+#: src/qemu/qemu_command.c:674
 msgid "This QEMU doesn't support the LSI 53C895A SCSI controller"
 msgstr "この QEMU は LSI 53C895A SCSI コントローラーをサポートしません"
 
-#: src/qemu/qemu_command.c:680
+#: src/qemu/qemu_command.c:682
 msgid "This QEMU doesn't support virtio scsi controller"
 msgstr "この QEMU は virtio scsi コントローラーをサポートしません"
 
-#: src/qemu/qemu_command.c:691
+#: src/qemu/qemu_command.c:693
 msgid "This QEMU doesn't support the LSI SAS1078 controller"
 msgstr "この QEMU は LSI SAS1078 コントローラーをサポートしません"
 
-#: src/qemu/qemu_command.c:698 src/qemu/qemu_command.c:4623
+#: src/qemu/qemu_command.c:700 src/qemu/qemu_command.c:4625
 #, c-format
 msgid "Unsupported controller model: %s"
 msgstr "サポートされないコントローラーモデル: %s"
 
-#: src/qemu/qemu_command.c:712
+#: src/qemu/qemu_command.c:714
 msgid "Unable to determine model for scsi controller"
 msgstr "SCSI コントローラーのモデルを識別できません"
 
-#: src/qemu/qemu_command.c:795
+#: src/qemu/qemu_command.c:797
 msgid "Unable to determine device index for network device"
 msgstr "ネットワークデバイスのデバイスインデックスを決定できません"
 
-#: src/qemu/qemu_command.c:819
+#: src/qemu/qemu_command.c:821
 msgid "Unable to determine device index for hostdev device"
 msgstr "hostdev デバイスのデバイスインデックスを決定できません"
 
-#: src/qemu/qemu_command.c:844
+#: src/qemu/qemu_command.c:846
 msgid "Unable to determine device index for redirected device"
 msgstr "redirected デバイスのデバイスインデックスを決定できません"
 
-#: src/qemu/qemu_command.c:899
+#: src/qemu/qemu_command.c:901
 msgid "Unable to determine device index for character device"
 msgstr ""
 
-#: src/qemu/qemu_command.c:1096
+#: src/qemu/qemu_command.c:1098
 #, c-format
 msgid "The CCW devno '%s' is in use already "
 msgstr "CCW デバイス番号 '%s' がすでに使用中です"
 
-#: src/qemu/qemu_command.c:1107
+#: src/qemu/qemu_command.c:1109
 msgid "There are no more free CCW devnos."
 msgstr "空き CCW デバイス番号がありません。"
 
-#: src/qemu/qemu_command.c:1346
+#: src/qemu/qemu_command.c:1348
 #, c-format
 msgid "spapr-vio address %#llx already in use"
 msgstr "spapr-vio アドレス %#llx はすでに使用中です"
 
-#: src/qemu/qemu_command.c:1465
+#: src/qemu/qemu_command.c:1467
 #, c-format
 msgid ""
 "PCI bus is not compatible with the device at %s. Device requires a standard "
 "PCI slot, which is not provided by bus %.4x:%.2x"
 msgstr ""
 
-#: src/qemu/qemu_command.c:1471
+#: src/qemu/qemu_command.c:1473
 #, c-format
 msgid ""
 "PCI bus is not compatible with the device at %s. Device requires a PCI "
 "Express slot, which is not provided by bus %.4x:%.2x"
 msgstr ""
 
-#: src/qemu/qemu_command.c:1480
+#: src/qemu/qemu_command.c:1482
 #, c-format
 msgid "The device information for %s has no PCI connection types listed"
 msgstr ""
 
-#: src/qemu/qemu_command.c:1490
+#: src/qemu/qemu_command.c:1492
 #, c-format
 msgid ""
 "PCI bus is not compatible with the device at %s. Device requires hot-plug "
 "capability, which is not provided by bus %.4x:%.2x"
 msgstr ""
 
-#: src/qemu/qemu_command.c:1517 src/qemu/qemu_command.c:2132
+#: src/qemu/qemu_command.c:1519 src/qemu/qemu_command.c:2134
 msgid "No PCI buses available"
 msgstr "利用可能な PCI バスがありません"
 
-#: src/qemu/qemu_command.c:1522
-#, fuzzy, c-format
+#: src/qemu/qemu_command.c:1524
+#, c-format
 msgid "Invalid PCI address %s. Only PCI domain 0 is available"
-msgstr "PCI ドメイン 0 のみ利用可能です"
+msgstr "無効な PCI アドレス %s。PCI ドメイン 0 のみ利用可能です。"
 
-#: src/qemu/qemu_command.c:1529
-#, fuzzy, c-format
+#: src/qemu/qemu_command.c:1531
+#, c-format
 msgid "Invalid PCI address %s. Only PCI buses up to %zu are available"
-msgstr "PCI バスは %zu まで利用可能です"
+msgstr "無効な PCI アドレス %s。PCI バスは %zu まで利用可能です。"
 
-#: src/qemu/qemu_command.c:1547
-#, fuzzy, c-format
+#: src/qemu/qemu_command.c:1549
+#, c-format
 msgid "Invalid PCI address %s. slot must be >= %zu"
-msgstr "無効な PCI アドレス: スロットが < %u である必要があります"
+msgstr "無効な PCI アドレス %s。スロットが >= %zu である必要があります。"
 
-#: src/qemu/qemu_command.c:1553
-#, fuzzy, c-format
+#: src/qemu/qemu_command.c:1555
+#, c-format
 msgid "Invalid PCI address %s. slot must be <= %zu"
-msgstr "無効な PCI アドレス: スロットが < %u である必要があります"
+msgstr "無効な PCI アドレス %s。スロットが <= %zu である必要があります"
 
-#: src/qemu/qemu_command.c:1559
-#, fuzzy, c-format
+#: src/qemu/qemu_command.c:1561
+#, c-format
 msgid "Invalid PCI address %s. function must be <= %u"
-msgstr "無効な PCI アドレス: ファンクションが < %u である必要があります"
+msgstr "無効な PCI アドレス %s。ファンクションは <= %u である必要があります"
 
-#: src/qemu/qemu_command.c:1594
-#, fuzzy, c-format
+#: src/qemu/qemu_command.c:1596
+#, c-format
 msgid "Invalid PCI controller model %d"
-msgstr "サポートされないコントローラーモデル: %s"
+msgstr "無効な PCI コントローラーモデル %d"
 
-#: src/qemu/qemu_command.c:1629
+#: src/qemu/qemu_command.c:1631
 msgid ""
 "Cannot automatically add a new PCI bus for a device requiring a slot other "
 "than standard PCI."
 msgstr ""
+"標準の PCI 以外のスロットを要求するデバイスに対して、新しい PCI バスを自動的"
+"に追加できません。"
 
-#: src/qemu/qemu_command.c:1753
-#, fuzzy
+#: src/qemu/qemu_command.c:1755
 msgid "Bus 0 must be PCI for integrated PIIX3 USB or IDE controllers"
-msgstr "IDE コントローラーのバスは 0 である必要があります"
+msgstr ""
 
-#: src/qemu/qemu_command.c:1831
+#: src/qemu/qemu_command.c:1833
 msgid "PCI bridges are not supported by this QEMU binary"
 msgstr "PCI ブリッジはこの QEMU バイナリーでサポートされません"
 
-#: src/qemu/qemu_command.c:1922
+#: src/qemu/qemu_command.c:1924
 #, c-format
 msgid "Inappropriate new pci controller index %zu not found in addrs"
 msgstr ""
+"新しい PCI コントローラーの不適切なインデックス %zu がアドレスに見つかりませ"
+"んでした"
 
-#: src/qemu/qemu_command.c:1991
-#, fuzzy, c-format
+#: src/qemu/qemu_command.c:1993
+#, c-format
 msgid ""
 "Attempted double use of PCI slot %s (may need \"multifunction='on'\" for "
 "device on function 0)"
 msgstr ""
-"PCI アドレス '%s' の二重使用が試行されました (ファンクション 0 にあるデバイス"
-"に対して \"multifunction='on'\" にする必要があるかもしれません)"
 
-#: src/qemu/qemu_command.c:2002
-#, fuzzy, c-format
+#: src/qemu/qemu_command.c:2004
+#, c-format
 msgid "Attempted double use of PCI Address %s"
-msgstr "PCI アドレス '%s' の二重使用が試行されました"
+msgstr ""
 
-#: src/qemu/qemu_command.c:2006
-#, fuzzy, c-format
+#: src/qemu/qemu_command.c:2008
+#, c-format
 msgid ""
 "Attempted double use of PCI Address %s (may need \"multifunction='on'\" for "
 "device on function 0)"
 msgstr ""
-"PCI アドレス '%s' の二重使用が試行されました (ファンクション 0 にあるデバイス"
-"に対して \"multifunction='on'\" にする必要があるかもしれません)"
 
-#: src/qemu/qemu_command.c:2053
+#: src/qemu/qemu_command.c:2055
 msgid "Only PCI device addresses with function=0 are supported"
 msgstr "function=0 を持つ PCI デバイスアドレスのみがサポートされます"
 
-#: src/qemu/qemu_command.c:2188
-#, fuzzy
+#: src/qemu/qemu_command.c:2190
 msgid "No more available PCI slots"
-msgstr "利用可能な PCI アドレスがありません"
+msgstr ""
 
-#: src/qemu/qemu_command.c:2281
+#: src/qemu/qemu_command.c:2283
 msgid "Primary IDE controller must have PCI address 0:0:1.1"
 msgstr ""
 "プライマリー IDE コントローラーは PCI アドレス 0:0:1.1 を持たなければいけませ"
 "ん"
 
-#: src/qemu/qemu_command.c:2301
+#: src/qemu/qemu_command.c:2303
 msgid "PIIX3 USB controller must have PCI address 0:0:1.2"
 msgstr ""
 "PIIX3 USB コントローラーは PCI アドレス 0:0:1.2 を持たなければいけません"
 
-#: src/qemu/qemu_command.c:2355
+#: src/qemu/qemu_command.c:2357
 msgid "PCI address 0:0:2.0 is in use, QEMU needs it for primary video"
 msgstr ""
 "PCI アドレス 0:0:2.0 が使用中です、QEMU はプライマリービデオのためにそれが必"
 "要です"
 
-#: src/qemu/qemu_command.c:2368
+#: src/qemu/qemu_command.c:2370
 msgid "Primary video card must have PCI address 0:0:2.0"
 msgstr ""
 "プライマリービデオカードは PCI アドレス 0:0:2.0 を持たなければいけません"
 
-#: src/qemu/qemu_command.c:2437
-#, fuzzy
+#: src/qemu/qemu_command.c:2439
 msgid "Primary SATA controller must have PCI address 0:0:1f.2"
 msgstr ""
-"プライマリー IDE コントローラーは PCI アドレス 0:0:1.1 を持たなければいけませ"
-"ん"
+"プライマリー SATA コントローラーは PCI アドレス 0:0:1f.2 を持たなければいけま"
+"せん"
 
-#: src/qemu/qemu_command.c:2501
-#, fuzzy
+#: src/qemu/qemu_command.c:2503
 msgid "PCI address 0:0:1.0 is in use, QEMU needs it for primary video"
 msgstr ""
-"PCI アドレス 0:0:2.0 が使用中です、QEMU はプライマリービデオのためにそれが必"
-"要です"
+"PCI アドレス 0:0:1.0 が使用中です。QEMU がプライマリービデオ用に必要としま"
+"す。"
 
-#: src/qemu/qemu_command.c:2514
-#, fuzzy
+#: src/qemu/qemu_command.c:2516
 msgid "Primary video card must have PCI address 0:0:1.0"
 msgstr ""
-"プライマリービデオカードは PCI アドレス 0:0:2.0 を持たなければいけません"
+"プライマリービデオカードは PCI アドレス 0:0:1.0 を持たなければいけません"
 
-#: src/qemu/qemu_command.c:2770
+#: src/qemu/qemu_command.c:2772
 msgid "virtio only support device address type 'PCI'"
 msgstr "virtio はデバイスアドレスの種類 'PCI' のみをサポートします"
 
-#: src/qemu/qemu_command.c:2825 src/qemu/qemu_command.c:5197
+#: src/qemu/qemu_command.c:2827 src/qemu/qemu_command.c:5199
 msgid "non-primary video device must be type of 'qxl'"
 msgstr "非プライマリービデオデバイスは 'qxl' の種類である必要があります"
 
-#: src/qemu/qemu_command.c:2888
+#: src/qemu/qemu_command.c:2890
 #, c-format
 msgid ""
 "Device alias was not set for PCI controller with index %u required for "
 "device at address %s"
 msgstr ""
 
-#: src/qemu/qemu_command.c:2899
+#: src/qemu/qemu_command.c:2901
 #, c-format
 msgid ""
 "Could not find PCI controller with index %u required for device at address %s"
 msgstr ""
 
-#: src/qemu/qemu_command.c:2909
+#: src/qemu/qemu_command.c:2911
 msgid ""
 "Only PCI device addresses with function=0 are supported with this QEMU binary"
 msgstr ""
 "function=0 を持つ PCI デバイスアドレスのみがこの QEMU バイナリーでサポートさ"
 "れます。"
 
-#: src/qemu/qemu_command.c:2915
+#: src/qemu/qemu_command.c:2917
 msgid "'multifunction=on' is not supported with this QEMU binary"
 msgstr "'multifunction=on' はこの QEMU バイナリーにサポートされていません"
 
-#: src/qemu/qemu_command.c:2934
+#: src/qemu/qemu_command.c:2936
 msgid "Multiple PCI buses are not supported with this QEMU binary"
 msgstr "複数の PCI バスはこの QEMU バイナリーでサポートされません"
 
-#: src/qemu/qemu_command.c:2981
+#: src/qemu/qemu_command.c:2983
 msgid "rombar and romfile are supported only for PCI devices"
 msgstr "rombar と romfile は PCI デバイスのみがサポートされます"
 
-#: src/qemu/qemu_command.c:2986
+#: src/qemu/qemu_command.c:2988
 msgid "rombar and romfile not supported in this QEMU binary"
 msgstr "rombar と romfile はこの QEMU バイナリーにおいてサポートされません"
 
-#: src/qemu/qemu_command.c:3025
+#: src/qemu/qemu_command.c:3027
 #, c-format
 msgid "driver serial '%s' contains unsafe characters"
 msgstr "ドライバーのシリアル '%s' が安全ではない文字を含んでいます"
 
-#: src/qemu/qemu_command.c:3059
-#, fuzzy, c-format
+#: src/qemu/qemu_command.c:3061
+#, c-format
 msgid "%s no secret matches uuid '%s'"
-msgstr "UUID '%s' と一致するシークレットがありません"
+msgstr ""
 
-#: src/qemu/qemu_command.c:3063
-#, fuzzy, c-format
+#: src/qemu/qemu_command.c:3065
+#, c-format
 msgid "%s no secret matches usage value '%s'"
-msgstr "使用法 '%s' と一致する"
+msgstr ""
 
-#: src/qemu/qemu_command.c:3074
-#, fuzzy, c-format
+#: src/qemu/qemu_command.c:3076
+#, c-format
 msgid "could not get value of the secret for username '%s' using uuid '%s'"
-msgstr "ユーザー名 %s のシークレット値を取得できませんでした"
+msgstr ""
 
-#: src/qemu/qemu_command.c:3079
-#, fuzzy, c-format
+#: src/qemu/qemu_command.c:3081
+#, c-format
 msgid ""
 "could not get value of the secret for username '%s' using usage value '%s'"
-msgstr "ユーザー名 %s のシークレット値を取得できませんでした"
+msgstr ""
 
-#: src/qemu/qemu_command.c:3114
+#: src/qemu/qemu_command.c:3116
 #, c-format
 msgid "':' not allowed in RBD source volume name '%s'"
 msgstr "':' が RBD ソースボリューム名 '%s' において許可されません"
 
-#: src/qemu/qemu_command.c:3305
+#: src/qemu/qemu_command.c:3307
 #, c-format
 msgid "Invalid transport/scheme '%s'"
 msgstr "無効な転送/スキーマ '%s'"
 
-#: src/qemu/qemu_command.c:3315
+#: src/qemu/qemu_command.c:3317
 #, c-format
 msgid "Invalid %s transport type '%s'"
 msgstr "無効な %s 転送形式 '%s'"
 
-#: src/qemu/qemu_command.c:3337
+#: src/qemu/qemu_command.c:3339
 #, c-format
 msgid "Invalid query parameter '%s'"
 msgstr "無効な問い合わせパラメーター '%s'"
 
-#: src/qemu/qemu_command.c:3403
+#: src/qemu/qemu_command.c:3405
 #, c-format
 msgid "invalid name '%s' for iSCSI disk"
 msgstr "iSCSI ディスクの無効な名前 '%s'"
 
-#: src/qemu/qemu_command.c:3442
+#: src/qemu/qemu_command.c:3444
 #, c-format
 msgid "cannot parse nbd filename '%s'"
 msgstr "nbd filename '%s' を構文解析できません"
 
-#: src/qemu/qemu_command.c:3498
+#: src/qemu/qemu_command.c:3500
 #, c-format
 msgid "%s accepts only one host"
 msgstr "%s は一つのホストのみを"
 
-#: src/qemu/qemu_command.c:3583
+#: src/qemu/qemu_command.c:3585
 msgid "nbd accepts only one host"
 msgstr "nbd は一つのホストのみを受け付けます"
 
-#: src/qemu/qemu_command.c:3608
+#: src/qemu/qemu_command.c:3610
 msgid "socket attribute required for unix transport"
 msgstr "socket 属性が UNIX 転送に対して必要です"
 
-#: src/qemu/qemu_command.c:3616
+#: src/qemu/qemu_command.c:3618
 #, c-format
 msgid "nbd does not support transport '%s'"
 msgstr "nbd は '%s' 転送をサポートしません"
 
-#: src/qemu/qemu_command.c:3637 src/qemu/qemu_command.c:3796
-#: src/qemu/qemu_command.c:8282
+#: src/qemu/qemu_command.c:3639 src/qemu/qemu_command.c:3798
+#: src/qemu/qemu_command.c:8284
 msgid "cannot create virtual FAT disks in read-write mode"
 msgstr "読み書きモードで仮想 FAT ディスクを作成できません"
 
-#: src/qemu/qemu_command.c:3648
+#: src/qemu/qemu_command.c:3650
 msgid "tray status 'open' is invalid for block type volume"
 msgstr "トレイ状態 'open' がブロック形式のボリュームに対して無効です"
 
-#: src/qemu/qemu_command.c:3703 src/qemu/qemu_command.c:4095
-#: src/qemu/qemu_command.c:8267 src/uml/uml_conf.c:408
+#: src/qemu/qemu_command.c:3705 src/qemu/qemu_command.c:4097
+#: src/qemu/qemu_command.c:8269 src/uml/uml_conf.c:408
 #, c-format
 msgid "unsupported disk type '%s'"
 msgstr "サポートのないディスクタイプ '%s'"
 
-#: src/qemu/qemu_command.c:3711
+#: src/qemu/qemu_command.c:3713
 msgid "unexpected address type for scsi disk"
 msgstr "予期しない SCSI ディスクのアドレス形式です"
 
-#: src/qemu/qemu_command.c:3720
+#: src/qemu/qemu_command.c:3722
 msgid "SCSI controller only supports 1 bus"
 msgstr "SCSI コントローラーはバスを 1 つのみサポートします"
 
-#: src/qemu/qemu_command.c:3730
+#: src/qemu/qemu_command.c:3732
 msgid "unexpected address type for ide disk"
 msgstr "予期しない IDE ディスクのアドレス形式です"
 
-#: src/qemu/qemu_command.c:3736 src/qemu/qemu_command.c:3752
+#: src/qemu/qemu_command.c:3738 src/qemu/qemu_command.c:3754
 #, c-format
 msgid "Only 1 %s controller is supported"
 msgstr "1 つの %s コントローラーのみがサポートされます"
 
-#: src/qemu/qemu_command.c:3746
+#: src/qemu/qemu_command.c:3748
 msgid "unexpected address type for fdc disk"
 msgstr "fdc ディスクに対する予期しないアドレス形式です"
 
-#: src/qemu/qemu_command.c:3758
+#: src/qemu/qemu_command.c:3760
 #, c-format
 msgid "Only 1 %s bus is supported"
 msgstr "1 つの %s バスのみがサポートされます"
 
-#: src/qemu/qemu_command.c:3763
+#: src/qemu/qemu_command.c:3765
 msgid "target must be 0 for controller fdc"
 msgstr "ターゲットはコントローラー fdc に対して 0 でなければいけません"
 
-#: src/qemu/qemu_command.c:3790 src/qemu/qemu_command.c:8276
+#: src/qemu/qemu_command.c:3792 src/qemu/qemu_command.c:8278
 #, c-format
 msgid "unsupported disk driver type for '%s'"
 msgstr "'%s' に対するサポートされないディスクドライバー形式です"
 
-#: src/qemu/qemu_command.c:3861 src/qemu/qemu_command.c:8236
+#: src/qemu/qemu_command.c:3863 src/qemu/qemu_command.c:8238
 msgid "tray status 'open' is invalid for block type disk"
 msgstr "トレイ状態 'open' はブロック形式ディスクに対して無効です"
 
-#: src/qemu/qemu_command.c:3909 src/xenxs/xen_sxpr.c:1828
+#: src/qemu/qemu_command.c:3911 src/xenxs/xen_sxpr.c:1828
 #: src/xenxs/xen_xm.c:1236
 msgid "transient disks not supported yet"
 msgstr "一時的なディスクはまだサポートされていません"
 
-#: src/qemu/qemu_command.c:3948
+#: src/qemu/qemu_command.c:3950
 msgid "disk cache mode 'directsync' is not supported by this QEMU"
 msgstr ""
 "ディスクキャッシュモード 'directsync' はこの QEMU によりサポートされていませ"
 "ん"
 
-#: src/qemu/qemu_command.c:3954
+#: src/qemu/qemu_command.c:3956
 msgid "disk cache mode 'unsafe' is not supported by this QEMU"
 msgstr "ディスクキャッシュモード 'unsafe' はこの QEMU によりサポートされません"
 
-#: src/qemu/qemu_command.c:3973
+#: src/qemu/qemu_command.c:3975
 msgid "copy_on_read is not supported by this QEMU binary"
 msgstr "copy_on_read はこの QEMU バイナリーによりサポートされていません"
 
-#: src/qemu/qemu_command.c:3984
+#: src/qemu/qemu_command.c:3986
 msgid "discard is not supported by this QEMU binary"
 msgstr "破棄はこの QEMU バイナリーによりサポートされません"
 
-#: src/qemu/qemu_command.c:4020
+#: src/qemu/qemu_command.c:4022
 msgid "disk aio mode not supported with this QEMU binary"
 msgstr "ディスク aio モードはこの QEMU バイナリーでサポートされません"
 
-#: src/qemu/qemu_command.c:4035 src/qemu/qemu_driver.c:14753
+#: src/qemu/qemu_command.c:4037 src/qemu/qemu_driver.c:14753
 msgid "block I/O throttling not supported with this QEMU binary"
 msgstr "ブロック I/O スロットリングはこの QEMU バイナリーでサポートされません"
 
-#: src/qemu/qemu_command.c:4103
+#: src/qemu/qemu_command.c:4105
 msgid "Only ide and scsi disk support wwn"
 msgstr "IDE および SCSI ディスクのみが WWN をサポートします"
 
-#: src/qemu/qemu_command.c:4111
+#: src/qemu/qemu_command.c:4113
 msgid "Only scsi disk supports vendor and product"
 msgstr "SCSI ディスクのみがベンダーと製品名をサポートします"
 
-#: src/qemu/qemu_command.c:4122
+#: src/qemu/qemu_command.c:4124
 #, c-format
 msgid "disk device='lun' is not supported for bus='%s'"
 msgstr "disk device='lun' は bus='%s' に対してサポートされません"
 
-#: src/qemu/qemu_command.c:4129
+#: src/qemu/qemu_command.c:4131
 #, c-format
 msgid "disk device='lun' is not supported for protocol='%s'"
 msgstr "disk device='lun' は protocol='%s' に対してサポートされません"
 
-#: src/qemu/qemu_command.c:4135
+#: src/qemu/qemu_command.c:4137
 msgid "disk device='lun' is only valid for block type disk source"
 msgstr "disk device='lun' はブロック形式のディスクソースのみに対して有効です"
 
-#: src/qemu/qemu_command.c:4140
+#: src/qemu/qemu_command.c:4142
 msgid "disk device='lun' is not supported by this QEMU"
 msgstr "disk device='lun' はこの QEMU によりサポートされていません"
 
-#: src/qemu/qemu_command.c:4145
+#: src/qemu/qemu_command.c:4147
 msgid "Setting wwn is not supported for lun device"
 msgstr "WWN の設定は LUN デバイスに対してサポートされません"
 
-#: src/qemu/qemu_command.c:4150
+#: src/qemu/qemu_command.c:4152
 msgid "Setting vendor or product is not supported for lun device"
 msgstr "ベンダーまたは製品名の設定は LUN デバイスに対してサポートされません"
 
-#: src/qemu/qemu_command.c:4160 src/qemu/qemu_command.c:4291
+#: src/qemu/qemu_command.c:4162 src/qemu/qemu_command.c:4293
 msgid "target must be 0 for ide controller"
 msgstr "IDE コントローラーに対するターゲットは 0 である必要があります"
 
-#: src/qemu/qemu_command.c:4167
+#: src/qemu/qemu_command.c:4169
 msgid "Setting wwn for ide disk is not supported by this QEMU"
 msgstr "IDE ディスクに対する WWN の設定はこの QEMU によりサポートされません"
 
-#: src/qemu/qemu_command.c:4189
+#: src/qemu/qemu_command.c:4191
 msgid "This QEMU doesn't support scsi-block for lun passthrough"
 msgstr "この QEMU は LUN パススルーに対する SCSI ブロックをサポートしません"
 
-#: src/qemu/qemu_command.c:4198
+#: src/qemu/qemu_command.c:4200
 msgid "Setting wwn for scsi disk is not supported by this QEMU"
 msgstr "SCSI ディスクに対する WWN の設定はこの QEMU によりサポートされません"
 
-#: src/qemu/qemu_command.c:4209
+#: src/qemu/qemu_command.c:4211
 msgid "Setting vendor or product for scsi disk is not supported by this QEMU"
 msgstr ""
 "SCSI ディスクに対するベンダーまたは製品名の設定がこの QEMU によりサポートされ"
 "ません"
 
-#: src/qemu/qemu_command.c:4223
+#: src/qemu/qemu_command.c:4225
 msgid "target must be 0 for controller model 'lsilogic'"
 msgstr ""
 "コントローラーモデル 'lsilogic' に対するターゲットは 0 である必要があります"
 
-#: src/qemu/qemu_command.c:4249
+#: src/qemu/qemu_command.c:4251
 msgid "This QEMU doesn't support target greater than 7"
 msgstr "この QEMU は 7 より大きなターゲットをサポートしません"
 
-#: src/qemu/qemu_command.c:4257
+#: src/qemu/qemu_command.c:4259
 msgid "This QEMU only supports both bus and unit equal to 0"
 msgstr "この QEMU はバスおよびユニットが 0 のみをサポートします"
 
-#: src/qemu/qemu_command.c:4286
+#: src/qemu/qemu_command.c:4288
 msgid "bus must be 0 for ide controller"
 msgstr "IDE コントローラーのバスは 0 である必要があります"
 
-#: src/qemu/qemu_command.c:4359
+#: src/qemu/qemu_command.c:4361
 #, c-format
 msgid "unsupported disk bus '%s' with device setup"
 msgstr "デバイスの構築でサポートされないディスクバス '%s'"
 
-#: src/qemu/qemu_command.c:4410
+#: src/qemu/qemu_command.c:4412
 msgid "only supports mount filesystem type"
 msgstr "マウントするファイルシステム形式のみをサポートします"
 
-#: src/qemu/qemu_command.c:4416
+#: src/qemu/qemu_command.c:4418
 msgid "Filesystem driver type not supported"
 msgstr "ファイルシステムドライバー形式はサポートされません"
 
-#: src/qemu/qemu_command.c:4435
+#: src/qemu/qemu_command.c:4437
 msgid "only supports passthrough accessmode"
 msgstr "パススルーアクセスモードのみサポートします"
 
-#: src/qemu/qemu_command.c:4445
+#: src/qemu/qemu_command.c:4447
 msgid "filesystem writeout not supported"
 msgstr "ファイルシステムの書き込みはサポートされません"
 
-#: src/qemu/qemu_command.c:4458
+#: src/qemu/qemu_command.c:4460
 msgid "readonly filesystem is not supported by this QEMU binary"
 msgstr ""
 "読み込み専用ファイルシステムはこの QEMU バイナリーによりサポートされていませ"
 "ん"
 
-#: src/qemu/qemu_command.c:4486
+#: src/qemu/qemu_command.c:4488
 msgid "can only passthrough directories"
 msgstr "パススルーのディレクトリーのみできます"
 
-#: src/qemu/qemu_command.c:4561 src/qemu/qemu_command.c:5163
+#: src/qemu/qemu_command.c:4563 src/qemu/qemu_command.c:5165
 #, c-format
 msgid "%s not supported in this QEMU binary"
 msgstr "%s はこの QEMU ライブラリーにおいてサポートされていません"
 
-#: src/qemu/qemu_command.c:4592
+#: src/qemu/qemu_command.c:4594
 msgid "'queues' is only supported by virtio-scsi controller"
 msgstr "'queues' は virtio-scsi のみによりサポートされます"
 
-#: src/qemu/qemu_command.c:4675
+#: src/qemu/qemu_command.c:4677
 msgid "PCI bridge index should be > 0"
 msgstr "PCI ブリッジのインデックスは > 0 である必要があります"
 
-#: src/qemu/qemu_command.c:4684
-#, fuzzy
+#: src/qemu/qemu_command.c:4686
 msgid ""
 "The dmi-to-pci-bridge (i82801b11-bridge) controller is not supported in this "
 "QEMU binary"
-msgstr "TCP の移行はこの QEMU バイナリーではサポートしていません"
+msgstr ""
+"dmi-to-pci-bridge (i82801b11-bridge) コントローラーはこの QEMU バイナリにおい"
+"てサポートされません"
 
-#: src/qemu/qemu_command.c:4690
-#, fuzzy
+#: src/qemu/qemu_command.c:4692
 msgid "dmi-to-pci-bridge index should be > 0"
-msgstr "PCI ブリッジのインデックスは > 0 である必要があります"
+msgstr "dmi-to-pci-bridge のインデックスは > 0 である必要があります"
 
-#: src/qemu/qemu_command.c:4698
-#, fuzzy
+#: src/qemu/qemu_command.c:4700
 msgid "wrong function called for pci-root/pcie-root"
-msgstr "不正なファンクションが pci-root に対して"
+msgstr ""
 
-#: src/qemu/qemu_command.c:4707
+#: src/qemu/qemu_command.c:4709
 #, c-format
 msgid "Unknown controller type: %s"
 msgstr "不明なコントローラー形式: %s"
 
-#: src/qemu/qemu_command.c:4793
+#: src/qemu/qemu_command.c:4795
 msgid "unrecognized virtio-net-pci 'tx' option"
 msgstr "認識されない virtio-net-pci 'tx' オプション"
 
-#: src/qemu/qemu_command.c:4798
+#: src/qemu/qemu_command.c:4800
 msgid "virtio-net-pci 'tx' option not supported in this QEMU binary"
 msgstr ""
 "virtio-net-pci 'tx' オプションはこの QEMU バイナリーにおいてサポートされませ"
 "ん"
 
-#: src/qemu/qemu_command.c:4857 src/xenxs/xen_sxpr.c:1878
+#: src/qemu/qemu_command.c:4859 src/xenxs/xen_sxpr.c:1878
 #, c-format
 msgid "scripts are not supported on interfaces of type %s"
 msgstr "スクリプトは形式 %s のインターフェースにおいてサポートされません"
 
-#: src/qemu/qemu_command.c:4983 src/qemu/qemu_command.c:8962
+#: src/qemu/qemu_command.c:4985 src/qemu/qemu_command.c:8964
 msgid "missing watchdog model"
 msgstr "watchdog モデルがありません"
 
-#: src/qemu/qemu_command.c:5020
+#: src/qemu/qemu_command.c:5022
 #, c-format
 msgid "memballoon unsupported with address type '%s'"
 msgstr "メモリーバルーンはアドレス形式 '%s' でサポートされません"
 
-#: src/qemu/qemu_command.c:5052
+#: src/qemu/qemu_command.c:5054
 msgid "nvram address type must be spaprvio"
 msgstr "nvram アドレス形式は spaprvio である必要があります"
 
-#: src/qemu/qemu_command.c:5105 src/qemu/qemu_command.c:8924
+#: src/qemu/qemu_command.c:5107 src/qemu/qemu_command.c:8926
 msgid "invalid sound model"
 msgstr "無効なサウンドモデル"
 
-#: src/qemu/qemu_command.c:5190 src/qemu/qemu_command.c:8759
+#: src/qemu/qemu_command.c:5192 src/qemu/qemu_command.c:8761
 #, c-format
 msgid "video type %s is not supported with QEMU"
 msgstr "ビデオ形式 %s は QEMU でサポートされません"
 
-#: src/qemu/qemu_command.c:5203 src/qemu/qemu_command.c:8821
-#: src/qemu/qemu_command.c:8850
+#: src/qemu/qemu_command.c:5205 src/qemu/qemu_command.c:8823
+#: src/qemu/qemu_command.c:8852
 msgid "only one video card is currently supported"
 msgstr "現在ビデオカードは一つのみサポートされます"
 
-#: src/qemu/qemu_command.c:5215 src/qemu/qemu_command.c:8776
+#: src/qemu/qemu_command.c:5217 src/qemu/qemu_command.c:8778
 #, c-format
 msgid "value for 'vram' must be less than '%u'"
 msgstr "'vram' の値は '%u' よりも少なくなければいけません"
 
-#: src/qemu/qemu_command.c:5221 src/qemu/qemu_command.c:8782
+#: src/qemu/qemu_command.c:5223 src/qemu/qemu_command.c:8784
 #, c-format
 msgid "value for 'ram' must be less than '%u'"
 msgstr "'ram' の値は '%u' よりも小さくなければいけません"
 
-#: src/qemu/qemu_command.c:5265
+#: src/qemu/qemu_command.c:5267
 #, c-format
 msgid "Failed opening %s"
 msgstr "%s のオープンに失敗しました"
 
-#: src/qemu/qemu_command.c:5337
+#: src/qemu/qemu_command.c:5339
 #, c-format
 msgid "Redirection bus %s is not supported by QEMU"
 msgstr "リダイレクトバス %s は QEMU によりサポートされません"
 
-#: src/qemu/qemu_command.c:5344
+#: src/qemu/qemu_command.c:5346
 msgid "USB redirection is not supported by this version of QEMU"
 msgstr "USB リダイレクトはこのバージョンの QEMU によりサポートされません"
 
-#: src/qemu/qemu_command.c:5356
+#: src/qemu/qemu_command.c:5358
 msgid "USB redirection filter is not supported by this version of QEMU"
 msgstr ""
 "USB リダイレクションフィルターはこのバージョンの QEMU によりサポートされませ"
 "ん"
 
-#: src/qemu/qemu_command.c:5394
+#: src/qemu/qemu_command.c:5396
 msgid "USB redirection booting is not supported by this version of QEMU"
 msgstr "USB リダイレクトブートはこのバージョンの QEMU によりサポートされません"
 
-#: src/qemu/qemu_command.c:5427 src/qemu/qemu_command.c:5509
+#: src/qemu/qemu_command.c:5429 src/qemu/qemu_command.c:5511
 msgid "USB host device is missing bus/device information"
 msgstr "USB ホストデバイスにバス/デバイス情報がありません"
 
-#: src/qemu/qemu_command.c:5466
+#: src/qemu/qemu_command.c:5468
 #, c-format
 msgid "hub type %s not supported"
 msgstr "ハブの形式 %s はサポートされません"
 
-#: src/qemu/qemu_command.c:5473
+#: src/qemu/qemu_command.c:5475
 msgid "usb-hub not supported by QEMU binary"
 msgstr "USB ハブが QEMU バイナリーによりサポートされません"
 
-#: src/qemu/qemu_command.c:5502
+#: src/qemu/qemu_command.c:5504
 msgid "This QEMU doesn't not support missing USB devices"
 msgstr "この QEMU は USB デバイスなしをサポートしません"
 
-#: src/qemu/qemu_command.c:5544
+#: src/qemu/qemu_command.c:5546
 msgid "this qemu doesn't support 'readonly' for -drive"
 msgstr "この QEMU は -drive に対して 'readonly' をサポートしません"
 
-#: src/qemu/qemu_command.c:5580
+#: src/qemu/qemu_command.c:5582
 msgid ""
 "target must be 0 for scsi host device if its controller model is 'lsilogic'"
 msgstr ""
 "SCSI ホストデバイスのコントローラーモデルが 'lsilogic' ならば、ターゲットは "
 "0 である必要があります"
 
-#: src/qemu/qemu_command.c:5587
+#: src/qemu/qemu_command.c:5589
 msgid ""
 "unit must be not more than 7 for scsi host device if its controller model is "
 "'lsilogic'"
@@ -13969,116 +13926,115 @@ msgstr ""
 "SCSI ホストデバイスのコントローラーモデルが 'lsilogic' ならば、ユニットは 7 "
 "より大きくできません"
 
-#: src/qemu/qemu_command.c:5711
+#: src/qemu/qemu_command.c:5713
 msgid "spicevmc not supported in this QEMU binary"
 msgstr "spicevmc はこの QEMU バイナリーにおいてサポートされません"
 
-#: src/qemu/qemu_command.c:5848
+#: src/qemu/qemu_command.c:5850
 msgid "Cannot use virtio serial for parallel/serial devices"
 msgstr "パラレル/シリアルデバイスに対して virtio serial を使用できません"
 
-#: src/qemu/qemu_command.c:5860
+#: src/qemu/qemu_command.c:5862
 msgid "virtio serial device has invalid address type"
 msgstr "virtio シリアルデバイスが無効なアドレス形式を持ちます"
 
-#: src/qemu/qemu_command.c:5877
+#: src/qemu/qemu_command.c:5879
 #, c-format
 msgid "Unsupported spicevmc target name '%s'"
 msgstr "サポートされない spicevmc ターゲット名 '%s'"
 
-#: src/qemu/qemu_command.c:5921
+#: src/qemu/qemu_command.c:5923
 msgid "Cannot use slcp with devices other than console"
 msgstr "コンソール以外のデバイスを持つ slcp を使用できません"
 
-#: src/qemu/qemu_command.c:5952
-#, fuzzy
+#: src/qemu/qemu_command.c:5954
 msgid "this qemu doesn't support the rng-random backend"
 msgstr "この QEMU は rng-random バックエンドをサポートしません"
 
-#: src/qemu/qemu_command.c:5969
+#: src/qemu/qemu_command.c:5971
 msgid "this qemu doesn't support the rng-egd backend"
 msgstr "この QEMU は rng-egd バックエンドをサポートしません"
 
-#: src/qemu/qemu_command.c:6010
+#: src/qemu/qemu_command.c:6012
 #, c-format
 msgid "this qemu doesn't support RNG device type '%s'"
 msgstr "この QEMU  RNG デバイス種別 '%s' をサポートしません"
 
-#: src/qemu/qemu_command.c:6085
+#: src/qemu/qemu_command.c:6087
 #, c-format
 msgid "The QEMU executable %s does not support TPM backend type %s"
 msgstr "QEMU 実行可能形式 %s が TPM バックエンド形式 %s をサポートしません"
 
-#: src/qemu/qemu_command.c:6105
+#: src/qemu/qemu_command.c:6107
 #, c-format
 msgid "The QEMU executable %s does not support TPM model %s"
 msgstr "QEMU 実行可能形式 %s が TPM モデル %s をサポートしません"
 
-#: src/qemu/qemu_command.c:6230
+#: src/qemu/qemu_command.c:6232
 #, c-format
 msgid "unsupported clock basis '%s'"
 msgstr "サポートされないクロック基準 '%s'"
 
-#: src/qemu/qemu_command.c:6251 src/qemu/qemu_command.c:7687
+#: src/qemu/qemu_command.c:6253 src/qemu/qemu_command.c:7689
 #, c-format
 msgid "unsupported clock offset '%s'"
 msgstr "サポートされないクロックオフセット '%s'"
 
-#: src/qemu/qemu_command.c:6265
+#: src/qemu/qemu_command.c:6267
 #, c-format
 msgid "unsupported rtc timer track '%s'"
 msgstr "サポートされない rtc timer track '%s'"
 
-#: src/qemu/qemu_command.c:6289
+#: src/qemu/qemu_command.c:6291
 #, c-format
 msgid "unsupported rtc timer tickpolicy '%s'"
 msgstr "サポートされない rtc timer tickpolicy '%s'"
 
-#: src/qemu/qemu_command.c:6356
+#: src/qemu/qemu_command.c:6358
 msgid "CPU specification not supported by hypervisor"
 msgstr "CPU 仕様はハイパーバイザーによりサポートされません"
 
-#: src/qemu/qemu_command.c:6373
+#: src/qemu/qemu_command.c:6375
 #, c-format
 msgid "guest and host CPU are not compatible: %s"
 msgstr "ゲスト CPU とホスト CPU に互換性がありません: %s"
 
-#: src/qemu/qemu_command.c:6377
+#: src/qemu/qemu_command.c:6379
 msgid "guest CPU is not compatible with host CPU"
 msgstr "ゲスト CPU がホスト CPU と互換性がありません"
 
-#: src/qemu/qemu_command.c:6399
+#: src/qemu/qemu_command.c:6401
 #, c-format
 msgid "CPU mode '%s' is not supported by QEMU binary"
 msgstr "CPU モード '%s' は QEMU バイナリーによりサポートされません"
 
-#: src/qemu/qemu_command.c:6405
+#: src/qemu/qemu_command.c:6407
 #, c-format
 msgid "CPU mode '%s' is only supported with kvm"
 msgstr "CPU モード '%s' は KVM のみでサポートされます"
 
-#: src/qemu/qemu_command.c:6564
+#: src/qemu/qemu_command.c:6566
 msgid "the QEMU binary does not support kqemu"
 msgstr "この QEMU バイナリーが kqemu をサポートしません"
 
-#: src/qemu/qemu_command.c:6577
+#: src/qemu/qemu_command.c:6579
 msgid "the QEMU binary does not support kvm"
 msgstr "この QEMU バイナリーが kvm をサポートしません"
 
-#: src/qemu/qemu_command.c:6588
+#: src/qemu/qemu_command.c:6590
 #, c-format
 msgid "the QEMU binary does not support %s"
 msgstr "この QEMU バイナリーが %s をサポートしません"
 
-#: src/qemu/qemu_command.c:6626 src/qemu/qemu_command.c:6661
+#: src/qemu/qemu_command.c:6628 src/qemu/qemu_command.c:6663
 msgid "dump-guest-core is not available with this QEMU binary"
 msgstr "dump-guest-core がこの QEMU バイナリーで利用できません"
 
-#: src/qemu/qemu_command.c:6633 src/qemu/qemu_command.c:6676
+#: src/qemu/qemu_command.c:6635 src/qemu/qemu_command.c:6678
 msgid "disable shared memory is not available with this QEMU binary"
 msgstr "共有メモリーの無効化はこの QEMU バイナリーで利用できません"
 
-#: src/qemu/qemu_command.c:6720
+#: src/qemu/qemu_command.c:6722
 msgid ""
 "setting current vcpu count less than maximum is not supported with this QEMU "
 "binary"
@@ -14086,52 +14042,52 @@ msgstr ""
 "カレント仮想 CPU 数を最大数よりも小さく設定することは、この QEMU バイナリーで"
 "サポートされません"
 
-#: src/qemu/qemu_command.c:6757
+#: src/qemu/qemu_command.c:6759
 msgid "disjoint NUMA cpu ranges are not supported with this QEMU"
 msgstr "NUMA の CPU 範囲の分解はこの QEMU でサポートされません"
 
-#: src/qemu/qemu_command.c:6799
+#: src/qemu/qemu_command.c:6801
 msgid "vnc graphics are not supported with this QEMU"
 msgstr "VNC グラフィックスはこの QEMU でサポートされません"
 
-#: src/qemu/qemu_command.c:6824 src/qemu/qemu_command.c:6978
+#: src/qemu/qemu_command.c:6826 src/qemu/qemu_command.c:6980
 msgid "network-based listen not possible, network driver not present"
 msgstr ""
 "ネットワークによるリッスンは利用できません、ネットワークドライバーがありませ"
 "ん"
 
-#: src/qemu/qemu_command.c:6830 src/qemu/qemu_command.c:6984
+#: src/qemu/qemu_command.c:6832 src/qemu/qemu_command.c:6986
 #, c-format
 msgid "listen network '%s' had no usable address"
 msgstr "リッスンネットワーク '%s' に使用可能なアドレスがありません"
 
-#: src/qemu/qemu_command.c:6865
+#: src/qemu/qemu_command.c:6867
 msgid "VNC WebSockets are not supported with this QEMU binary"
 msgstr "VNC WebSockets はこの QEMU バイナリーでサポートされません"
 
-#: src/qemu/qemu_command.c:6875
+#: src/qemu/qemu_command.c:6877
 msgid "vnc display sharing policy is not supported with this QEMU"
 msgstr "VNC ディスプレイ共有ポリシーはこの QEMU でサポートされません"
 
-#: src/qemu/qemu_command.c:6947
+#: src/qemu/qemu_command.c:6949
 msgid "spice graphics are not supported with this QEMU"
 msgstr "spice グラフィックはこの QEMU でサポートされません"
 
-#: src/qemu/qemu_command.c:6957
+#: src/qemu/qemu_command.c:6959
 msgid ""
 "spice TLS port set in XML configuration, but TLS is disabled in qemu.conf"
 msgstr ""
 "spice TLS ポートが XML 設定において設定されていますが、TLS が qemu.conf にお"
 "いて無効化されています"
 
-#: src/qemu/qemu_command.c:7044
+#: src/qemu/qemu_command.c:7046
 msgid ""
 "spice secure channels set in XML configuration, but TLS port is not provided"
 msgstr ""
 "XML 設定において SPICE セキュアチャネルが設定されていますが、TLS ポートが提供"
 "されていません"
 
-#: src/qemu/qemu_command.c:7055
+#: src/qemu/qemu_command.c:7057
 msgid ""
 "spice insecure channels set in XML configuration, but plain port is not "
 "provided"
@@ -14139,7 +14095,7 @@ msgstr ""
 "XML 設定において SPICE 非セキュアチャネルが設定されていますが、平文のポートが"
 "提供されていません"
 
-#: src/qemu/qemu_command.c:7068
+#: src/qemu/qemu_command.c:7070
 msgid ""
 "spice defaultMode secure requested in XML configuration but TLS port not "
 "provided"
@@ -14147,7 +14103,7 @@ msgstr ""
 "SPICE defaultMode セキュアが XML 設定において要求されましたが、TLS ポートが提"
 "供されていません"
 
-#: src/qemu/qemu_command.c:7077
+#: src/qemu/qemu_command.c:7079
 msgid ""
 "spice defaultMode insecure requested in XML configuration but plain port not "
 "provided"
@@ -14155,227 +14111,226 @@ msgstr ""
 "SPICE defaultMode 非セキュアが XML 設定において要求されましたが、平文のポート"
 "が提供されていません"
 
-#: src/qemu/qemu_command.c:7146
+#: src/qemu/qemu_command.c:7148
 #, c-format
 msgid "sdl not supported by '%s'"
 msgstr "sdl は '%s' によりサポートされていません"
 
-#: src/qemu/qemu_command.c:7182
+#: src/qemu/qemu_command.c:7184
 #, c-format
 msgid "unsupported graphics type '%s'"
 msgstr "サポートされないグラフィック形式 '%s'"
 
-#: src/qemu/qemu_command.c:7227 src/qemu/qemu_hotplug.c:851
+#: src/qemu/qemu_command.c:7229 src/qemu/qemu_hotplug.c:850
 #, c-format
 msgid "Multiqueue network is not supported for: %s"
 msgstr "マルチキューネットワークは次に対してサポートされません: %s"
 
-#: src/qemu/qemu_command.c:7491
+#: src/qemu/qemu_command.c:7493
 msgid "hugetlbfs filesystem is not mounted"
 msgstr "hugetlbfs ファイルシステムはマウントされていません"
 
-#: src/qemu/qemu_command.c:7496
+#: src/qemu/qemu_command.c:7498
 msgid "hugepages are disabled by administrator config"
 msgstr "hugepage は 管理者の設定で無効にされています"
 
-#: src/qemu/qemu_command.c:7501
+#: src/qemu/qemu_command.c:7503
 #, c-format
 msgid "hugepage backing not supported by '%s'"
 msgstr "hugepage バッキングは '%s' によりサポートされません"
 
-#: src/qemu/qemu_command.c:7511
+#: src/qemu/qemu_command.c:7513
 msgid "memory locking not supported by QEMU binary"
 msgstr "メモリーロックはこの QEMU バイナリーによりサポートされません"
 
-#: src/qemu/qemu_command.c:7545
+#: src/qemu/qemu_command.c:7547
 #, c-format
 msgid "qemu emulator '%s' does not support xen"
 msgstr "QEMU エミュレーター '%s' が Xen をサポートしません"
 
-#: src/qemu/qemu_command.c:7558
+#: src/qemu/qemu_command.c:7560
 #, c-format
 msgid "the QEMU binary %s does not support smbios settings"
 msgstr "QEMU バイナリー %s は smbios の設定をサポートしていません"
 
-#: src/qemu/qemu_command.c:7576
+#: src/qemu/qemu_command.c:7578
 #, c-format
 msgid "Domain '%s' sysinfo are not available"
 msgstr "ドメイン '%s' のシステム情報が利用可能ではありません"
 
-#: src/qemu/qemu_command.c:7622 src/qemu/qemu_hotplug.c:1365
+#: src/qemu/qemu_command.c:7624 src/qemu/qemu_hotplug.c:1364
 msgid "qemu does not support -device"
 msgstr "QEMU は -device をサポートしません"
 
-#: src/qemu/qemu_command.c:7627
+#: src/qemu/qemu_command.c:7629
 msgid "qemu does not support SGA"
 msgstr "QEMU は SGA をサポートしません"
 
-#: src/qemu/qemu_command.c:7632
+#: src/qemu/qemu_command.c:7634
 msgid "need at least one serial port to use SGA"
 msgstr "SGA を使用するには少なくとも一つのシリアルポートが必要です"
 
-#: src/qemu/qemu_command.c:7703
+#: src/qemu/qemu_command.c:7705
 #, c-format
 msgid "unsupported timer type (name) '%s'"
 msgstr "サポートされないタイマー形式 (名前) '%s'"
 
-#: src/qemu/qemu_command.c:7727 src/qemu/qemu_command.c:7738
+#: src/qemu/qemu_command.c:7729 src/qemu/qemu_command.c:7740
 #, c-format
 msgid "unsupported rtc tickpolicy '%s'"
 msgstr "サポートされない rtc tickpolicy '%s'"
 
-#: src/qemu/qemu_command.c:7762 src/qemu/qemu_command.c:7771
+#: src/qemu/qemu_command.c:7764 src/qemu/qemu_command.c:7773
 #, c-format
 msgid "unsupported pit tickpolicy '%s'"
 msgstr "サポートされない pit tickpolicy '%s'"
 
-#: src/qemu/qemu_command.c:7793
+#: src/qemu/qemu_command.c:7795
 msgid "pit timer is not supported"
 msgstr "pit タイマーはサポートされません"
 
-#: src/qemu/qemu_command.c:7827
+#: src/qemu/qemu_command.c:7829
 msgid "setting ACPI S3 not supported"
 msgstr "ACPI S3 の設定はサポートされません"
 
-#: src/qemu/qemu_command.c:7838
+#: src/qemu/qemu_command.c:7840
 msgid "setting ACPI S4 not supported"
 msgstr "ACPI S4 の設定はサポートされません"
 
-#: src/qemu/qemu_command.c:7860
+#: src/qemu/qemu_command.c:7862
 msgid "hypervisor lacks deviceboot feature"
 msgstr "ハイパーバイザーがデバイスブートの機能はありません"
 
-#: src/qemu/qemu_command.c:7918
+#: src/qemu/qemu_command.c:7920
 msgid "reboot timeout is not supported by this QEMU binary"
 msgstr "再起動のタイムアウトはこの QEMU バイナリーによりサポートされません"
 
-#: src/qemu/qemu_command.c:7958
+#: src/qemu/qemu_command.c:7960
 msgid "dtb is not supported with this QEMU binary"
 msgstr "dtb がこの QEMU バイナリーでサポートされません"
 
-#: src/qemu/qemu_command.c:7989
+#: src/qemu/qemu_command.c:7991
 msgid "64-bit PCI hole setting is only for root PCI controllers"
 msgstr ""
 
-#: src/qemu/qemu_command.c:7996
-#, fuzzy, c-format
+#: src/qemu/qemu_command.c:7998
+#, c-format
 msgid "Setting the 64-bit PCI hole size is not supported for machine '%s'"
-msgstr "送信バッファー容量の設定がサポートされません"
+msgstr ""
 
-#: src/qemu/qemu_command.c:8002
-#, fuzzy
+#: src/qemu/qemu_command.c:8004
 msgid "64-bit PCI hole size setting is not supported with this QEMU binary"
-msgstr "vhost-net はこの QEMU バイナリーにサポートされていません"
+msgstr ""
 
-#: src/qemu/qemu_command.c:8019 src/qemu/qemu_hotplug.c:692
+#: src/qemu/qemu_command.c:8021 src/qemu/qemu_hotplug.c:691
 #, c-format
 msgid "unsupported driver name '%s' for disk '%s'"
 msgstr "ディスク '%s' 用のドライバー名 '%s' にはサポートがありません"
 
-#: src/qemu/qemu_command.c:8051
+#: src/qemu/qemu_command.c:8053
 msgid "SATA is not supported with this QEMU binary"
 msgstr "SATA はこの QEMU バイナリーでサポートされません"
 
-#: src/qemu/qemu_command.c:8075
+#: src/qemu/qemu_command.c:8077
 msgid "Multiple legacy USB controllers are not supported"
 msgstr "複数のレガシー USB コントローラーはサポートされません"
 
-#: src/qemu/qemu_command.c:8147 src/qemu/qemu_command.c:8247
+#: src/qemu/qemu_command.c:8149 src/qemu/qemu_command.c:8249
 #, c-format
 msgid "unsupported usb disk type for '%s'"
 msgstr "'%s' 用のサポートのない usb ディスクタイプ "
 
-#: src/qemu/qemu_command.c:8294
+#: src/qemu/qemu_command.c:8296
 msgid "network disks are only supported with -drive"
 msgstr "ネットワークディスクは -drive と合わせてのみサポートされます"
 
-#: src/qemu/qemu_command.c:8332
+#: src/qemu/qemu_command.c:8334
 msgid "filesystem passthrough not supported by this QEMU"
 msgstr "ファイルシステムパススルーはこの QEMU によりサポートされません"
 
-#: src/qemu/qemu_command.c:8388
+#: src/qemu/qemu_command.c:8390
 msgid "this QEMU binary lacks multiple smartcard support"
 msgstr "この QEMU バイナリーは複数のスマートカードをサポートしません"
 
-#: src/qemu/qemu_command.c:8399 src/qemu/qemu_command.c:8411
+#: src/qemu/qemu_command.c:8401 src/qemu/qemu_command.c:8413
 msgid "this QEMU binary lacks smartcard host mode support"
 msgstr "この QEMU バイナリーはスマートカードのホストモードをサポートしません"
 
-#: src/qemu/qemu_command.c:8421
+#: src/qemu/qemu_command.c:8423
 #, c-format
 msgid "invalid certificate name: %s"
 msgstr "無効な証明書名: %s"
 
-#: src/qemu/qemu_command.c:8432
+#: src/qemu/qemu_command.c:8434
 #, c-format
 msgid "invalid database name: %s"
 msgstr "無効なデータベース名: %s"
 
-#: src/qemu/qemu_command.c:8447
+#: src/qemu/qemu_command.c:8449
 msgid "this QEMU binary lacks smartcard passthrough mode support"
 msgstr ""
 "この QEMU バイナリーはスマートカードのパススルーモードをサポートしません"
 
-#: src/qemu/qemu_command.c:8551
+#: src/qemu/qemu_command.c:8553
 msgid "guestfwd requires QEMU to support -chardev & -device"
 msgstr "guestfwd は QEMU が -chardev & -device をサポートする必要があります"
 
-#: src/qemu/qemu_command.c:8572 src/qemu/qemu_command.c:8632
+#: src/qemu/qemu_command.c:8574 src/qemu/qemu_command.c:8634
 msgid "virtio channel requires QEMU to support -device"
 msgstr "virtio チャネルは QEMU が -device をサポートする必要があります"
 
-#: src/qemu/qemu_command.c:8608
+#: src/qemu/qemu_command.c:8610
 msgid "sclp console requires QEMU to support -device"
 msgstr "sclp コンソールは QEMU が -device をサポートする必要があります"
 
-#: src/qemu/qemu_command.c:8613
+#: src/qemu/qemu_command.c:8615
 msgid "sclp console requires QEMU to support s390-sclp"
 msgstr "sclp コンソールは QEMU が s390-sclp をサポートする必要があります"
 
-#: src/qemu/qemu_command.c:8653
+#: src/qemu/qemu_command.c:8655
 #, c-format
 msgid "unsupported console target type %s"
 msgstr "サポートされないコンソールターゲット形式 %s"
 
-#: src/qemu/qemu_command.c:8709
+#: src/qemu/qemu_command.c:8711
 msgid "only 1 graphics device is supported"
 msgstr "グラフィックデバイスは1つのみサポートされます"
 
-#: src/qemu/qemu_command.c:8714
+#: src/qemu/qemu_command.c:8716
 msgid "only 1 graphics device of each type (sdl, vnc, spice) is supported"
 msgstr ""
 "各形式 (sdl, vnc, spice) のグラフィックデバイスは一つのみサポートされます"
 
-#: src/qemu/qemu_command.c:8752
+#: src/qemu/qemu_command.c:8754
 msgid "This QEMU does not support QXL graphics adapters"
 msgstr "この QEMU は QXL グラフィックアダプターをサポートしません"
 
-#: src/qemu/qemu_command.c:8806
+#: src/qemu/qemu_command.c:8808
 #, c-format
 msgid "video type %s is only valid as primary video card"
 msgstr "ビデオ形式 %s はプライマリのビデオ形式としてのみ有効です"
 
-#: src/qemu/qemu_command.c:8843
+#: src/qemu/qemu_command.c:8845
 #, c-format
 msgid "video type %s is not supported with this QEMU"
 msgstr "ビデオ形式 %s はこの QEMU でサポートされません"
 
-#: src/qemu/qemu_command.c:8931
+#: src/qemu/qemu_command.c:8933
 msgid "this QEMU binary lacks hda support"
 msgstr "このQEMU バイナリーは hda サポートがありません"
 
-#: src/qemu/qemu_command.c:8978
+#: src/qemu/qemu_command.c:8980
 msgid "invalid watchdog action"
 msgstr "無効な watchdog アクション"
 
-#: src/qemu/qemu_command.c:9021
+#: src/qemu/qemu_command.c:9023
 msgid ""
 "booting from assigned devices is only supported for PCI, USB and SCSI devices"
 msgstr ""
 "予約済みデバイスからのブートは PCI、USB および SCSI デバイスに対してのみサ"
 "ポートされます"
 
-#: src/qemu/qemu_command.c:9030
+#: src/qemu/qemu_command.c:9032
 msgid ""
 "booting from PCI devices assigned with VFIO is not supported with this "
 "version of qemu"
@@ -14383,65 +14338,65 @@ msgstr ""
 "VFIO で割り当てられた PCI デバイスからのブートはこのバージョンの QEMU でサ"
 "ポートされません"
 
-#: src/qemu/qemu_command.c:9037
+#: src/qemu/qemu_command.c:9039
 msgid ""
 "booting from assigned PCI devices is not supported with this version of qemu"
 msgstr ""
 "予約済み PCI デバイスからのブートはこのバージョンの QEMU ではサポートされませ"
 "ん"
 
-#: src/qemu/qemu_command.c:9046
+#: src/qemu/qemu_command.c:9048
 msgid ""
 "booting from assigned USB devices is not supported with this version of qemu"
 msgstr ""
 "予約済み USB デバイスからのブートはこのバージョンの QEMU ではサポートされませ"
 "ん"
 
-#: src/qemu/qemu_command.c:9053
+#: src/qemu/qemu_command.c:9055
 msgid ""
 "booting from assigned SCSI devices is not supported with this version of qemu"
 msgstr ""
 "予約済み SCCI デバイスからのブートはこのバージョンの QEMU ではサポートされま"
 "せん"
 
-#: src/qemu/qemu_command.c:9087 src/qemu/qemu_hotplug.c:1152
+#: src/qemu/qemu_command.c:9089 src/qemu/qemu_hotplug.c:1151
 msgid "VFIO PCI device assignment is not supported by this version of qemu"
 msgstr ""
 "VFIO PCI デバイス割り当てはこのバージョンの QEMU によりサポートされません"
 
-#: src/qemu/qemu_command.c:9128 src/qemu/qemu_monitor_text.c:1829
+#: src/qemu/qemu_command.c:9130 src/qemu/qemu_monitor_text.c:1829
 msgid "PCI device assignment is not supported by this version of qemu"
 msgstr "PCI デバイス予約はこのバージョンの QEMU ではサポートされません"
 
-#: src/qemu/qemu_command.c:9154 src/qemu/qemu_hotplug.c:1481
+#: src/qemu/qemu_command.c:9156 src/qemu/qemu_hotplug.c:1480
 msgid "SCSI passthrough is not supported by this version of qemu"
 msgstr "SCSI パススルーはこのバージョンの QEMU によりサポートされません"
 
-#: src/qemu/qemu_command.c:9168
+#: src/qemu/qemu_command.c:9170
 msgid "TCP migration is not supported with this QEMU binary"
 msgstr "TCP の移行はこの QEMU バイナリーではサポートしていません"
 
-#: src/qemu/qemu_command.c:9185
+#: src/qemu/qemu_command.c:9187
 msgid "STDIO migration is not supported with this QEMU binary"
 msgstr "STDIO の移行はこの QEMU バイナリーではサポートがありません"
 
-#: src/qemu/qemu_command.c:9192
+#: src/qemu/qemu_command.c:9194
 msgid "EXEC migration is not supported with this QEMU binary"
 msgstr "EXEC マイグレーションはこの QEMU バイナリーではサポートされません"
 
-#: src/qemu/qemu_command.c:9200
+#: src/qemu/qemu_command.c:9202
 msgid "FD migration is not supported with this QEMU binary"
 msgstr "FD マイグレーションはこの QEMU バイナリーではサポートされません"
 
-#: src/qemu/qemu_command.c:9209
+#: src/qemu/qemu_command.c:9211
 msgid "UNIX migration is not supported with this QEMU binary"
 msgstr "UNIX マイグレーションはこの QEMU バイナリーではサポートされません"
 
-#: src/qemu/qemu_command.c:9216
+#: src/qemu/qemu_command.c:9218
 msgid "unknown migration protocol"
 msgstr "不明なマイグレーションプロトコル"
 
-#: src/qemu/qemu_command.c:9235
+#: src/qemu/qemu_command.c:9237
 #, c-format
 msgid ""
 "Memory balloon device type '%s' is not supported by this version of qemu"
@@ -14449,285 +14404,285 @@ msgstr ""
 "メモリーバルーンデバイス形式 '%s' はこのバージョンの QEMU ではサポートされま"
 "せん"
 
-#: src/qemu/qemu_command.c:9268
+#: src/qemu/qemu_command.c:9270
 msgid "nvram device is not supported by this QEMU binary"
 msgstr "nvram デバイスは、この QEMU バイナリーにおいてサポートされません"
 
-#: src/qemu/qemu_command.c:9283
+#: src/qemu/qemu_command.c:9285
 msgid "nvram device is only supported for PPC64"
 msgstr "PPC64 では一つの nvram デバイスのみがサポートされます"
 
-#: src/qemu/qemu_command.c:9309
+#: src/qemu/qemu_command.c:9311
 msgid "QEMU does not support seccomp sandboxes"
 msgstr "QEMU は seccomp サンドボックスをサポートしません"
 
-#: src/qemu/qemu_command.c:9372
+#: src/qemu/qemu_command.c:9374
 msgid "usb-serial is not supported in this QEMU binary"
 msgstr "usb-serial はこの QEMU バイナリーにおいてサポートされません"
 
-#: src/qemu/qemu_command.c:9695
+#: src/qemu/qemu_command.c:9697
 #, c-format
 msgid "malformed keyword arguments in '%s'"
 msgstr "不正な形式のキーワード引数が '%s' にあります"
 
-#: src/qemu/qemu_command.c:9844 src/qemu/qemu_command.c:11122
+#: src/qemu/qemu_command.c:9846 src/qemu/qemu_command.c:11124
 #, c-format
 msgid "cannot parse sheepdog filename '%s'"
 msgstr "sheepdog filename '%s' を構文解析できません"
 
-#: src/qemu/qemu_command.c:9917
+#: src/qemu/qemu_command.c:9919
 #, c-format
 msgid "cannot parse drive index '%s'"
 msgstr "drive index '%s' を構文解析できません"
 
-#: src/qemu/qemu_command.c:9923
+#: src/qemu/qemu_command.c:9925
 #, c-format
 msgid "cannot parse drive bus '%s'"
 msgstr "drive bus '%s' を構文解析できません"
 
-#: src/qemu/qemu_command.c:9929
+#: src/qemu/qemu_command.c:9931
 #, c-format
 msgid "cannot parse drive unit '%s'"
 msgstr "drive unit '%s' を構文解析できません"
 
-#: src/qemu/qemu_command.c:9938
+#: src/qemu/qemu_command.c:9940
 #, c-format
 msgid "cannot parse io mode '%s'"
 msgstr "io mode '%s' を構文解析できません"
 
-#: src/qemu/qemu_command.c:9946
+#: src/qemu/qemu_command.c:9948
 #, c-format
 msgid "cannot parse cylinders value'%s'"
 msgstr "シリンダー値 '%s' を構文解析できません"
 
-#: src/qemu/qemu_command.c:9955
+#: src/qemu/qemu_command.c:9957
 #, c-format
 msgid "cannot parse heads value'%s'"
 msgstr "ヘッド値 '%s' を構文解析できません"
 
-#: src/qemu/qemu_command.c:9964
+#: src/qemu/qemu_command.c:9966
 #, c-format
 msgid "cannot parse sectors value'%s'"
 msgstr "セクター値 '%s' を構文解析できません"
 
-#: src/qemu/qemu_command.c:9975
+#: src/qemu/qemu_command.c:9977
 #, c-format
 msgid "cannot parse translation value'%s'"
 msgstr "変換値 '%s' を構文解析できません"
 
-#: src/qemu/qemu_command.c:9988
+#: src/qemu/qemu_command.c:9990
 #, c-format
 msgid "missing file parameter in drive '%s'"
 msgstr "ドライブ '%s' にファイルパラメーターがありません"
 
-#: src/qemu/qemu_command.c:9999
+#: src/qemu/qemu_command.c:10001
 #, c-format
 msgid "missing index/unit/bus parameter in drive '%s'"
 msgstr "ドライブ '%s' においてインデックス/ユニット/バスがありません"
 
-#: src/qemu/qemu_command.c:10043
+#: src/qemu/qemu_command.c:10045
 #, c-format
 msgid "invalid device name '%s'"
 msgstr "無効なデバイス名 '%s'"
 
-#: src/qemu/qemu_command.c:10084
+#: src/qemu/qemu_command.c:10086
 #, c-format
 msgid "cannot parse NIC vlan in '%s'"
 msgstr "'%s' において NIC vlan を構文解析できません"
 
-#: src/qemu/qemu_command.c:10096
+#: src/qemu/qemu_command.c:10098
 #, c-format
 msgid "cannot find NIC definition for vlan %d"
 msgstr "vlan %d 用の NIC 定義が見付かりません"
 
-#: src/qemu/qemu_command.c:10151
+#: src/qemu/qemu_command.c:10153
 #, c-format
 msgid "cannot parse vlan in '%s'"
 msgstr "'%s' において vlan を構文解析できません"
 
-#: src/qemu/qemu_command.c:10181
+#: src/qemu/qemu_command.c:10183
 #, c-format
 msgid "cannot parse NIC definition '%s'"
 msgstr "NIC 定義 '%s' を構文解析できません"
 
-#: src/qemu/qemu_command.c:10229
+#: src/qemu/qemu_command.c:10231
 #, c-format
 msgid "cannot parse sndbuf size in '%s'"
 msgstr "'%s' において sndbuf size を構文解析できません"
 
-#: src/qemu/qemu_command.c:10268
+#: src/qemu/qemu_command.c:10270
 #, c-format
 msgid "unknown PCI device syntax '%s'"
 msgstr "不明な PCI デバイス構文 '%s'"
 
-#: src/qemu/qemu_command.c:10275
+#: src/qemu/qemu_command.c:10277
 #, c-format
 msgid "cannot extract PCI device bus '%s'"
 msgstr "PCI デバイスのバス '%s' を抽出できません"
 
-#: src/qemu/qemu_command.c:10281
+#: src/qemu/qemu_command.c:10283
 #, c-format
 msgid "cannot extract PCI device slot '%s'"
 msgstr "PCI デバイスのスロット '%s' を抽出できません"
 
-#: src/qemu/qemu_command.c:10287
+#: src/qemu/qemu_command.c:10289
 #, c-format
 msgid "cannot extract PCI device function '%s'"
 msgstr "PCI デバイスのファンクション '%s' を抽出できません"
 
-#: src/qemu/qemu_command.c:10321
+#: src/qemu/qemu_command.c:10323
 #, c-format
 msgid "unknown USB device syntax '%s'"
 msgstr "不明な USB デバイス構文 '%s'"
 
-#: src/qemu/qemu_command.c:10329
+#: src/qemu/qemu_command.c:10331
 #, c-format
 msgid "cannot extract USB device vendor '%s'"
 msgstr "USB デバイスのベンダー '%s' を抽出できません"
 
-#: src/qemu/qemu_command.c:10335
+#: src/qemu/qemu_command.c:10337
 #, c-format
 msgid "cannot extract USB device product '%s'"
 msgstr "USB デバイスのプロダクト '%s' を抽出できません"
 
-#: src/qemu/qemu_command.c:10341
+#: src/qemu/qemu_command.c:10343
 #, c-format
 msgid "cannot extract USB device bus '%s'"
 msgstr "USB デバイスのバス '%s' を抽出できません"
 
-#: src/qemu/qemu_command.c:10347
+#: src/qemu/qemu_command.c:10349
 #, c-format
 msgid "cannot extract USB device address '%s'"
 msgstr "USB デバイスのアドレス '%s' を抽出できません"
 
-#: src/qemu/qemu_command.c:10439
+#: src/qemu/qemu_command.c:10441
 #, c-format
 msgid "cannot find port number in character device %s"
 msgstr "キャラクターデバイス %s にポート番号が見つかりません"
 
-#: src/qemu/qemu_command.c:10465
+#: src/qemu/qemu_command.c:10467
 #, c-format
 msgid "unknown character device syntax %s"
 msgstr "不明なキャラクターデバイスの構文 %s"
 
-#: src/qemu/qemu_command.c:10559
+#: src/qemu/qemu_command.c:10561
 msgid "conflicting occurrences of kvmclock feature"
 msgstr "kvmclock 機能の発生が競合しています"
 
-#: src/qemu/qemu_command.c:10600
+#: src/qemu/qemu_command.c:10602
 #, c-format
 msgid "unsupported HyperV Enlightenment feature '%s'"
 msgstr "サポートされない Hyper-V エンライト機能 '%s'"
 
-#: src/qemu/qemu_command.c:10610
+#: src/qemu/qemu_command.c:10612
 #, c-format
 msgid "HyperV feature '%s' should not have a value"
 msgstr "HyperV の機能 '%s' には値を持たせないでください"
 
-#: src/qemu/qemu_command.c:10621
+#: src/qemu/qemu_command.c:10623
 msgid "missing HyperV spinlock retry count"
 msgstr "HyperV spinlock 再試行回数がありません"
 
-#: src/qemu/qemu_command.c:10627
+#: src/qemu/qemu_command.c:10629
 msgid "cannot parse HyperV spinlock retry count"
 msgstr "HyperV spinlock retry count を構文解析できません"
 
-#: src/qemu/qemu_command.c:10672
+#: src/qemu/qemu_command.c:10674
 #, c-format
 msgid "unknown CPU syntax '%s'"
 msgstr "不明な CPU 構文 '%s'"
 
-#: src/qemu/qemu_command.c:10746
+#: src/qemu/qemu_command.c:10748
 #, c-format
 msgid "cannot parse CPU topology '%s'"
 msgstr "CPU topology '%s' を構文解析できません"
 
-#: src/qemu/qemu_command.c:10808
+#: src/qemu/qemu_command.c:10810
 msgid "no emulator path found"
 msgstr "エミュレーターのパスが見つかりません"
 
-#: src/qemu/qemu_command.c:10821
+#: src/qemu/qemu_command.c:10823
 msgid "failed to generate uuid"
 msgstr "UUID の生成に失敗しました"
 
-#: src/qemu/qemu_command.c:10873
+#: src/qemu/qemu_command.c:10875
 #, c-format
 msgid "missing value for %s argument"
 msgstr "%s 引数の値がありません"
 
-#: src/qemu/qemu_command.c:10933
+#: src/qemu/qemu_command.c:10935
 #, c-format
 msgid "missing VNC port number in '%s'"
 msgstr "'%s' に VNC ポート番号がありません"
 
-#: src/qemu/qemu_command.c:10941
+#: src/qemu/qemu_command.c:10943
 #, c-format
 msgid "cannot parse VNC port '%s'"
 msgstr "VNC port '%s' を構文解析できません"
 
-#: src/qemu/qemu_command.c:10979
+#: src/qemu/qemu_command.c:10981
 #, c-format
 msgid "cannot parse VNC WebSocket port '%s'"
 msgstr "VNC WebSocket ポート '%s' を構文解析できません"
 
-#: src/qemu/qemu_command.c:11011
+#: src/qemu/qemu_command.c:11013
 msgid "missing vnc sharing policy"
 msgstr "VNC 共有ポリシーがありません"
 
-#: src/qemu/qemu_command.c:11036
+#: src/qemu/qemu_command.c:11038
 #, c-format
 msgid "cannot parse memory level '%s'"
 msgstr "memory level '%s' を構文解析できません"
 
-#: src/qemu/qemu_command.c:11048
+#: src/qemu/qemu_command.c:11050
 #, c-format
 msgid "cannot parse UUID '%s'"
 msgstr "UUID '%s' を構文解析できません"
 
-#: src/qemu/qemu_command.c:11151
+#: src/qemu/qemu_command.c:11153
 #, c-format
 msgid "Cannot assign address for device name '%s'"
 msgstr "デバイス名 '%s' のアドレスを割り当てられません"
 
-#: src/qemu/qemu_command.c:11215
+#: src/qemu/qemu_command.c:11217
 msgid "cannot parse reboot-timeout value"
 msgstr "reboot-timeout 値を構文解析できません"
 
-#: src/qemu/qemu_command.c:11460
+#: src/qemu/qemu_command.c:11462
 #, c-format
 msgid "unknown video adapter type '%s'"
 msgstr "不明なビデオアダプター形式 '%s' "
 
-#: src/qemu/qemu_command.c:11516
+#: src/qemu/qemu_command.c:11518
 #, c-format
 msgid "invalid value for disable_s3 parameter: '%s'"
 msgstr "無効な disable_s3 パラメーターの値: '%s'"
 
-#: src/qemu/qemu_command.c:11533
+#: src/qemu/qemu_command.c:11535
 #, c-format
 msgid "invalid value for disable_s4 parameter: '%s'"
 msgstr "無効な disable_s4 パラメーターの値: '%s'"
 
-#: src/qemu/qemu_command.c:11552
+#: src/qemu/qemu_command.c:11554
 #, c-format
 msgid "cannot parse nvram's address '%s'"
 msgstr "nvram のアドレス '%s' を構文解析できません"
 
-#: src/qemu/qemu_command.c:11585
+#: src/qemu/qemu_command.c:11587
 msgid "CEPH_ARGS was set without an rbd disk"
 msgstr "CEPH_ARGS が rbd ディスクなしで設定されました"
 
-#: src/qemu/qemu_command.c:11592
+#: src/qemu/qemu_command.c:11594
 #, c-format
 msgid "could not parse CEPH_ARGS '%s'"
 msgstr "CEPH_ARGS '%s' を構文解析できません"
 
-#: src/qemu/qemu_command.c:11628
+#: src/qemu/qemu_command.c:11630
 #, c-format
 msgid "found no rbd hosts in CEPH_ARGS '%s'"
 msgstr "CEPH_ARGS '%s' に rbd ホストがありません"
 
-#: src/qemu/qemu_command.c:11844
+#: src/qemu/qemu_command.c:11846
 #, c-format
 msgid "Unable to resolve %s for pid %u"
 msgstr "%s を PID %u に対して解決できません"
@@ -14831,7 +14786,7 @@ msgstr "ストレージプールに対してちょうど一つのホストが期
 #: src/qemu/qemu_conf.c:1163
 #, c-format
 msgid "unexpected iscsi volume name '%s'"
-msgstr ""
+msgstr "予期しない iSCSI ボリューム名 '%s'"
 
 #: src/qemu/qemu_conf.c:1271
 msgid "'startupPolicy' is only valid for 'file' type volume"
@@ -14986,14 +14941,14 @@ msgid "Disk device '%s' does not support snapshotting"
 msgstr "ディスクデバイス '%s' がスナップショットをサポートしません"
 
 #: src/qemu/qemu_domain.c:2099
-#, fuzzy, c-format
+#, c-format
 msgid "no source device %s"
-msgstr "ターゲットデバイス %s がありません"
+msgstr "ソースデバイス %s がありません"
 
 #: src/qemu/qemu_domain.c:2268
 #, c-format
 msgid "Backing file '%s' of image '%s' is missing."
-msgstr ""
+msgstr "バッキングファイル '%s' (イメージ '%s') がありません"
 
 #: src/qemu/qemu_driver.c:248
 #, c-format
@@ -15245,7 +15200,7 @@ msgstr "%s を書き込みできません"
 #: src/qemu/qemu_driver.c:11658 src/qemu/qemu_driver.c:12155
 #: src/qemu/qemu_driver.c:13183 src/qemu/qemu_driver.c:13235
 #: src/qemu/qemu_driver.c:13899 src/qemu/qemu_hotplug.c:449
-#: src/qemu/qemu_hotplug.c:980 src/qemu/qemu_migration.c:3194
+#: src/qemu/qemu_hotplug.c:979 src/qemu/qemu_migration.c:3194
 #: src/qemu/qemu_migration.c:3512 src/qemu/qemu_migration.c:3942
 #: src/qemu/qemu_migration.c:4346 src/qemu/qemu_process.c:562
 #: src/qemu/qemu_process.c:575
@@ -15333,7 +15288,7 @@ msgstr ""
 #: src/qemu/qemu_driver.c:4002
 #, c-format
 msgid "unable to add vcpu %zu task %d to cgroup"
-msgstr ""
+msgstr "仮想 CPU %zu タスク %d を cgroup に追加できません"
 
 #: src/qemu/qemu_driver.c:4033
 #, c-format
@@ -15510,27 +15465,27 @@ msgstr "%d 個のスナップショットを持つ停止状態のドメインを
 #: src/qemu/qemu_driver.c:6287
 #, c-format
 msgid "'%s' controller cannot be hot plugged."
-msgstr ""
+msgstr "'%s' コントローラーがホットプラグできません"
 
 #: src/qemu/qemu_driver.c:6354
 #, c-format
 msgid "live attach of device '%s' is not supported"
-msgstr ""
+msgstr "デバイス '%s' の動的接続はサポートされません"
 
 #: src/qemu/qemu_driver.c:6379
 #, c-format
 msgid "'%s' controller cannot be hot unplugged."
-msgstr ""
+msgstr "'%s' コントローラーはホットプラグで抜けません。"
 
 #: src/qemu/qemu_driver.c:6414
 #, c-format
 msgid "live detach of device '%s' is not supported"
-msgstr ""
+msgstr "デバイス '%s' の動的切断はサポートされません"
 
 #: src/qemu/qemu_driver.c:6531
 #, c-format
 msgid "live update of device '%s' is not supported"
-msgstr ""
+msgstr "デバイス '%s' の動的更新はサポートされません"
 
 #: src/qemu/qemu_driver.c:6596
 #, c-format
@@ -15544,9 +15499,9 @@ msgstr "ターゲットがすでに存在します"
 #: src/qemu/qemu_driver.c:6632
 #, c-format
 msgid "persistent attach of device '%s' is not supported"
-msgstr ""
+msgstr "デバイス '%s' の永続的な接続はサポートされません"
 
-#: src/qemu/qemu_driver.c:6697 src/qemu/qemu_hotplug.c:3493
+#: src/qemu/qemu_driver.c:6697 src/qemu/qemu_hotplug.c:3492
 #, c-format
 msgid "Lease %s in lockspace %s does not exist"
 msgstr "リース %s がロック空間 %s が存在しません"
@@ -15554,7 +15509,7 @@ msgstr "リース %s がロック空間 %s が存在しません"
 #: src/qemu/qemu_driver.c:6728
 #, c-format
 msgid "persistent detach of device '%s' is not supported"
-msgstr ""
+msgstr "デバイス '%s' の永続的な切断はサポートされません"
 
 #: src/qemu/qemu_driver.c:6786 src/qemu/qemu_driver.c:6792
 #, c-format
@@ -15564,7 +15519,7 @@ msgstr "MAC アドレス %s と一致するデバイスを見つけられませ�
 #: src/qemu/qemu_driver.c:6808
 #, c-format
 msgid "persistent update of device '%s' is not supported"
-msgstr ""
+msgstr "デバイス '%s' の永続的な更新はサポートされません"
 
 #: src/qemu/qemu_driver.c:7485
 #, c-format
@@ -16275,93 +16230,93 @@ msgstr "予期しないディスクアドレス形式 %s です"
 msgid "SCSI controller %d was missing its PCI address"
 msgstr "SCSI コントローラー %d は PCI アドレスがありません"
 
-#: src/qemu/qemu_hotplug.c:754
+#: src/qemu/qemu_hotplug.c:753
 msgid "disk device='lun' is not supported for usb bus"
 msgstr "disk device='lun' は USB バスに対してサポートされません"
 
-#: src/qemu/qemu_hotplug.c:842
+#: src/qemu/qemu_hotplug.c:841
 msgid "installed qemu version does not support host_net_add"
 msgstr ""
 "インストールされている QEMU のバージョンは host_net_add をサポートしません"
 
-#: src/qemu/qemu_hotplug.c:903
+#: src/qemu/qemu_hotplug.c:902
 msgid "virtio-s390 net device cannot be hotplugged."
 msgstr "virtio-s390 ネットワークデバイスはホットプラグできません"
 
-#: src/qemu/qemu_hotplug.c:918
+#: src/qemu/qemu_hotplug.c:917
 msgid "Unable to attach network devices without vlan"
 msgstr "VLAN なしでネットワークデバイスを接続できません"
 
-#: src/qemu/qemu_hotplug.c:1019
+#: src/qemu/qemu_hotplug.c:1018
 msgid "device alias not found: cannot set link state to down"
 msgstr ""
 "デバイスのエイリアスが見つかりません: リンクステートをダウンに設定できません"
 
-#: src/qemu/qemu_hotplug.c:1031
+#: src/qemu/qemu_hotplug.c:1030
 msgid "setting of link state not supported: Link is up"
 msgstr "リンクステートの設定はサポートされません: リンクはアップしています"
 
-#: src/qemu/qemu_hotplug.c:1187
+#: src/qemu/qemu_hotplug.c:1186
 msgid "guest unexpectedly quit during hotplug"
 msgstr "ゲストが活性挿入中に予期せず終了しました"
 
-#: src/qemu/qemu_hotplug.c:1286
+#: src/qemu/qemu_hotplug.c:1285
 msgid "attaching serial console is not supported"
-msgstr ""
+msgstr "シリアルコンソールの接続はサポートされません"
 
-#: src/qemu/qemu_hotplug.c:1292
+#: src/qemu/qemu_hotplug.c:1291
 msgid "chardev already exists"
-msgstr ""
+msgstr "キャラクターデバイスがすでに存在します"
 
-#: src/qemu/qemu_hotplug.c:1328
+#: src/qemu/qemu_hotplug.c:1327
 msgid "detaching serial console is not supported"
-msgstr ""
+msgstr "シリアルコンソールの切断はサポートされません"
 
-#: src/qemu/qemu_hotplug.c:1488
+#: src/qemu/qemu_hotplug.c:1487
 #, c-format
 msgid "Unable to prepare scsi hostdev: %s:%d:%d:%d"
 msgstr "SCSI ホストデバイスを準備できません: %s:%d:%d:%d"
 
-#: src/qemu/qemu_hotplug.c:1546 src/qemu/qemu_hotplug.c:3229
+#: src/qemu/qemu_hotplug.c:1545 src/qemu/qemu_hotplug.c:3228
 #, c-format
 msgid "hostdev mode '%s' not supported"
 msgstr "hostdev モード '%s' はサポートされません"
 
-#: src/qemu/qemu_hotplug.c:1579 src/qemu/qemu_hotplug.c:3202
+#: src/qemu/qemu_hotplug.c:1578 src/qemu/qemu_hotplug.c:3201
 #, c-format
 msgid "hostdev subsys type '%s' not supported"
 msgstr "hostdev subsys モード '%s' はサポートされません"
 
-#: src/qemu/qemu_hotplug.c:1620
+#: src/qemu/qemu_hotplug.c:1619
 msgid "interface is missing bridge name"
 msgstr "インターフェースにブリッジ名がありません"
 
-#: src/qemu/qemu_hotplug.c:1633
+#: src/qemu/qemu_hotplug.c:1632
 #, c-format
 msgid "Couldn't find network '%s'"
 msgstr "ネットワーク '%s' を見つけられませんでした"
 
-#: src/qemu/qemu_hotplug.c:1655
+#: src/qemu/qemu_hotplug.c:1654
 #, c-format
 msgid "Interface type %d has no bridge name"
 msgstr "インターフェース形式 %d にブリッジ名がありません"
 
-#: src/qemu/qemu_hotplug.c:1683
+#: src/qemu/qemu_hotplug.c:1682
 #, c-format
 msgid "bridge %s doesn't exist"
 msgstr "ブリッジ %s が存在しません"
 
-#: src/qemu/qemu_hotplug.c:1707
+#: src/qemu/qemu_hotplug.c:1706
 #, c-format
 msgid "unable to recover former state by adding port to bridge %s"
 msgstr "ブリッジ %s にポートを追加することにより、以前の状態を復元できません"
 
-#: src/qemu/qemu_hotplug.c:1734
+#: src/qemu/qemu_hotplug.c:1733
 #, c-format
 msgid "filters not supported on interfaces of type %s"
 msgstr "フィルターは %s 形式のインターフェースにおいてサポートされません"
 
-#: src/qemu/qemu_hotplug.c:1745
+#: src/qemu/qemu_hotplug.c:1744
 #, c-format
 msgid ""
 "failed to add new filter rules to '%s' - attempting to restore old rules"
@@ -16369,237 +16324,237 @@ msgstr ""
 "新しいフィルタールールを '%s' に追加することに失敗しました - 古いルールを復元"
 "しています"
 
-#: src/qemu/qemu_hotplug.c:1769
+#: src/qemu/qemu_hotplug.c:1768
 msgid "can't change link state: device alias not found"
 msgstr ""
 "リンクステートを変更できません: デバイスのエイリアスが見つかりませんでした"
 
-#: src/qemu/qemu_hotplug.c:1807
+#: src/qemu/qemu_hotplug.c:1806
 msgid "cannot find existing network device to modify"
 msgstr "変更する既存のネットワークデバイスが見つかりません"
 
-#: src/qemu/qemu_hotplug.c:1815
+#: src/qemu/qemu_hotplug.c:1814
 #, c-format
 msgid "cannot change config of '%s' network type"
 msgstr "'%s' ネットワーク形式の設定を変更できません"
 
-#: src/qemu/qemu_hotplug.c:1838
+#: src/qemu/qemu_hotplug.c:1837
 #, c-format
 msgid "cannot change network interface mac address from %s to %s"
 msgstr ""
 "ネットワークインターフェースの MAC アドレスを %s から %s に変更できません"
 
-#: src/qemu/qemu_hotplug.c:1847
+#: src/qemu/qemu_hotplug.c:1846
 #, c-format
 msgid "cannot modify network device model from %s to %s"
 msgstr "ネットワークデバイスのモデルを %s から %s に変更できません"
 
-#: src/qemu/qemu_hotplug.c:1859
+#: src/qemu/qemu_hotplug.c:1858
 msgid "cannot modify virtio network device driver attributes"
 msgstr "virtio ネットワークデバイスのドライバー属性を変更できません"
 
-#: src/qemu/qemu_hotplug.c:1873
+#: src/qemu/qemu_hotplug.c:1872
 msgid "cannot modify network device script attribute"
 msgstr "ネットワークデバイスのスクリプト属性を変更できません"
 
-#: src/qemu/qemu_hotplug.c:1882
+#: src/qemu/qemu_hotplug.c:1881
 msgid "cannot modify network device tap name"
 msgstr "ネットワークデバイスのタップ名を変更できません"
 
-#: src/qemu/qemu_hotplug.c:1900
+#: src/qemu/qemu_hotplug.c:1899
 msgid "cannot modify network device guest PCI address"
 msgstr "ネットワークデバイスのゲスト PCI アドレスを変更できません"
 
-#: src/qemu/qemu_hotplug.c:1909
+#: src/qemu/qemu_hotplug.c:1908
 msgid "cannot modify network device alias"
 msgstr "ネットワークデバイスのエイリアスを変更できません"
 
-#: src/qemu/qemu_hotplug.c:1914
+#: src/qemu/qemu_hotplug.c:1913
 msgid "cannot modify network device rom bar setting"
 msgstr "ネットワークデバイスの rom bar 設定を変更できません"
 
-#: src/qemu/qemu_hotplug.c:1919
+#: src/qemu/qemu_hotplug.c:1918
 msgid "cannot modify network rom file"
 msgstr "ネットワーク ROM ファイルを変更できません"
 
-#: src/qemu/qemu_hotplug.c:1924
+#: src/qemu/qemu_hotplug.c:1923
 msgid "cannot modify network device boot index setting"
 msgstr "ネットワークデバイスのブートインデックスの設定を変更できません"
 
-#: src/qemu/qemu_hotplug.c:1951
+#: src/qemu/qemu_hotplug.c:1950
 #, c-format
 msgid "cannot change network interface type to '%s'"
 msgstr "ネットワークインターフェースの形式を '%s' に変更できません"
 
-#: src/qemu/qemu_hotplug.c:2009 src/qemu/qemu_hotplug.c:2080
+#: src/qemu/qemu_hotplug.c:2008 src/qemu/qemu_hotplug.c:2079
 #, c-format
 msgid "unable to change config on '%s' network type"
 msgstr "'%s' ネットワーク形式において設定を変更できません"
 
-#: src/qemu/qemu_hotplug.c:2180
+#: src/qemu/qemu_hotplug.c:2179
 msgid "cannot find existing graphics device to modify"
 msgstr "変更するための既存のグラフィックデバイスを見つけられません"
 
-#: src/qemu/qemu_hotplug.c:2186
+#: src/qemu/qemu_hotplug.c:2185
 msgid "cannot change the number of listen addresses"
 msgstr "リッスンアドレス番号を変更できません"
 
-#: src/qemu/qemu_hotplug.c:2196
+#: src/qemu/qemu_hotplug.c:2195
 msgid "cannot change the type of listen address"
 msgstr "リッスンアドレスの種類を変更できません"
 
-#: src/qemu/qemu_hotplug.c:2205
+#: src/qemu/qemu_hotplug.c:2204
 msgid "cannot change listen address setting on vnc graphics"
 msgstr "VNC グラフィックにおいて設定されているリッスンアドレスを変更できません"
 
-#: src/qemu/qemu_hotplug.c:2206
+#: src/qemu/qemu_hotplug.c:2205
 msgid "cannot change listen address setting on spice graphics"
 msgstr ""
 "SPICE グラフィックにおいて設定されているリッスンアドレスを変更できません"
 
-#: src/qemu/qemu_hotplug.c:2215
+#: src/qemu/qemu_hotplug.c:2214
 msgid "cannot change listen network setting on vnc graphics"
 msgstr "VNC グラフィックスのリッスンネットワーク設定を変更できません"
 
-#: src/qemu/qemu_hotplug.c:2216
+#: src/qemu/qemu_hotplug.c:2215
 msgid "cannot change listen network setting on spice graphics"
 msgstr ""
 "SPICE グラフィックにおいてリッスンするネットワークの設定を変更できません"
 
-#: src/qemu/qemu_hotplug.c:2234
+#: src/qemu/qemu_hotplug.c:2233
 msgid "cannot change port settings on vnc graphics"
 msgstr "VNC グラフィックにおいて設定されているポートを変更できません"
 
-#: src/qemu/qemu_hotplug.c:2239
+#: src/qemu/qemu_hotplug.c:2238
 msgid "cannot change keymap setting on vnc graphics"
 msgstr "VNC グラフィックにおいて設定されているキーマップを変更できません"
 
-#: src/qemu/qemu_hotplug.c:2279
+#: src/qemu/qemu_hotplug.c:2278
 msgid "cannot change port settings on spice graphics"
 msgstr "SPICE グラフィックにおいて設定されているポートを変更できません"
 
-#: src/qemu/qemu_hotplug.c:2285
+#: src/qemu/qemu_hotplug.c:2284
 msgid "cannot change keymap setting on spice graphics"
 msgstr "spice グラフィックスにおいてキーマップ設定を変更できません"
 
-#: src/qemu/qemu_hotplug.c:2326
+#: src/qemu/qemu_hotplug.c:2325
 #, c-format
 msgid "unable to change config on '%s' graphics type"
 msgstr "'%s' グラフィックス形式において設定を変更できません"
 
-#: src/qemu/qemu_hotplug.c:2481
+#: src/qemu/qemu_hotplug.c:2480
 #, c-format
 msgid "failed to remove ebtables rule on '%s'"
 msgstr "'%s' において ebtables ルールの削除に失敗しました"
 
-#: src/qemu/qemu_hotplug.c:2691
+#: src/qemu/qemu_hotplug.c:2690
 #, c-format
 msgid "don't know how to remove a %s device"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:2743
+#: src/qemu/qemu_hotplug.c:2742
 msgid "Unable to wait on unplug condition"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:2776 src/qemu/qemu_hotplug.c:3022
+#: src/qemu/qemu_hotplug.c:2775 src/qemu/qemu_hotplug.c:3021
 #, c-format
 msgid "cannot hot unplug multifunction PCI device: %s"
 msgstr "マルチファンクション PCI デバイスを活性抜線できません: %s"
 
-#: src/qemu/qemu_hotplug.c:2786
+#: src/qemu/qemu_hotplug.c:2785
 msgid "device cannot be detached without a valid CCW address"
 msgstr "有効な CCW アドレスを持たないデバイスを切断できません"
 
-#: src/qemu/qemu_hotplug.c:2793
+#: src/qemu/qemu_hotplug.c:2792
 msgid "device cannot be detached without a valid PCI address"
 msgstr "有効な PCI アドレスを持たないデバイスを切断できません"
 
-#: src/qemu/qemu_hotplug.c:2848
+#: src/qemu/qemu_hotplug.c:2847
 #, c-format
 msgid "Underlying qemu does not support %s disk removal"
 msgstr "下にある QEMU が %s ディスクの削除をサポートしません"
 
-#: src/qemu/qemu_hotplug.c:2855
+#: src/qemu/qemu_hotplug.c:2854
 #, c-format
 msgid "disk '%s' is in an active block copy job"
 msgstr "ディスク '%s' は稼働中のブロックコピージョブがあります"
 
-#: src/qemu/qemu_hotplug.c:2930 src/uml/uml_driver.c:2331
+#: src/qemu/qemu_hotplug.c:2929 src/uml/uml_driver.c:2331
 msgid "This type of disk cannot be hot unplugged"
 msgstr "この形式のディスクはホットプラグで抜けません"
 
-#: src/qemu/qemu_hotplug.c:2934
+#: src/qemu/qemu_hotplug.c:2933
 #, c-format
 msgid "disk device type '%s' cannot be detached"
 msgstr "ディスクデバイス形式 '%s' は切断できません"
 
-#: src/qemu/qemu_hotplug.c:3005
+#: src/qemu/qemu_hotplug.c:3004
 #, c-format
 msgid "controller %s:%d not found"
 msgstr "コントローラー %s:%d が見つかりません"
 
-#: src/qemu/qemu_hotplug.c:3016 src/qemu/qemu_hotplug.c:3085
-#: src/qemu/qemu_hotplug.c:3323
+#: src/qemu/qemu_hotplug.c:3015 src/qemu/qemu_hotplug.c:3084
+#: src/qemu/qemu_hotplug.c:3322
 msgid "device cannot be detached without a PCI address"
 msgstr "PCI アドレスのないデバイスを切断できません"
 
-#: src/qemu/qemu_hotplug.c:3029
+#: src/qemu/qemu_hotplug.c:3028
 msgid "device cannot be detached: device is busy"
 msgstr "デバイスを切断できませんでした: デバイスがビジーです"
 
-#: src/qemu/qemu_hotplug.c:3076
+#: src/qemu/qemu_hotplug.c:3075
 #, c-format
 msgid "cannot hot unplug multifunction PCI device: %.4x:%.2x:%.2x.%.1x"
 msgstr ""
 "マルチファンクション PCI デバイスを活性抜線できません: %.4x:%.2x:%.2x.%.1x"
 
-#: src/qemu/qemu_hotplug.c:3112 src/qemu/qemu_hotplug.c:3143
+#: src/qemu/qemu_hotplug.c:3111 src/qemu/qemu_hotplug.c:3142
 msgid "device cannot be detached without a device alias"
 msgstr "デバイスエイリアスのないデバイスを切断できません"
 
-#: src/qemu/qemu_hotplug.c:3118 src/qemu/qemu_hotplug.c:3149
+#: src/qemu/qemu_hotplug.c:3117 src/qemu/qemu_hotplug.c:3148
 msgid "device cannot be detached with this QEMU version"
 msgstr "デバイスはこの QEMU のバージョンを用いて切断できません"
 
-#: src/qemu/qemu_hotplug.c:3240
+#: src/qemu/qemu_hotplug.c:3239
 #, c-format
 msgid "host pci device %.4x:%.2x:%.2x.%.1x not found"
 msgstr "ホスト pci デバイス %.4x:%.2x:%.2x.%.1x は見付かりません"
 
-#: src/qemu/qemu_hotplug.c:3247
+#: src/qemu/qemu_hotplug.c:3246
 #, c-format
 msgid "host usb device %03d.%03d not found"
 msgstr "ホスト USB デバイス %03d.%03d が見つかりません"
 
-#: src/qemu/qemu_hotplug.c:3251
+#: src/qemu/qemu_hotplug.c:3250
 #, c-format
 msgid "host usb device vendor=0x%.4x product=0x%.4x not found"
 msgstr ""
 "ホスト USB デバイス vendor=0x%.4x product=0x%.4x が見つかりませんでした"
 
-#: src/qemu/qemu_hotplug.c:3257
+#: src/qemu/qemu_hotplug.c:3256
 #, c-format
 msgid "host scsi device %s:%d:%d.%d not found"
 msgstr "ホスト SCSI デバイス %s:%d:%d.%d が見つかりません"
 
-#: src/qemu/qemu_hotplug.c:3316
+#: src/qemu/qemu_hotplug.c:3315
 msgid "device cannot be detached without a CCW address"
 msgstr "CCW アドレスを持たないデバイスを切断できません"
 
-#: src/qemu/qemu_hotplug.c:3329
+#: src/qemu/qemu_hotplug.c:3328
 #, c-format
 msgid "cannot hot unplug multifunction PCI device :%s"
 msgstr "マルチファンクション PCI デバイスを活性抜線できません: %s"
 
-#: src/qemu/qemu_hotplug.c:3337
+#: src/qemu/qemu_hotplug.c:3336
 msgid "unable to determine original VLAN"
 msgstr "元々の VLAN を決定できません"
 
-#: src/qemu/qemu_hotplug.c:3420
+#: src/qemu/qemu_hotplug.c:3419
 msgid "Graphics password only supported for VNC"
 msgstr "グラフィックスパスワードは VNC に対してのみサポートされます"
 
-#: src/qemu/qemu_hotplug.c:3446
+#: src/qemu/qemu_hotplug.c:3445
 msgid "Expiry of passwords is not supported"
 msgstr "パスワードの期限切れはサポートされません"
 
@@ -17218,7 +17173,7 @@ msgstr "human monitor command に return data がありませんでした"
 
 #: src/qemu/qemu_monitor_json.c:1096
 msgid "query-status reply was missing return data"
-msgstr "query-status reply に return data がありませんでした"
+msgstr "query-status の応答に返り値がありませんでした"
 
 #: src/qemu/qemu_monitor_json.c:1102
 msgid "query-status reply was missing running state"
@@ -17226,7 +17181,7 @@ msgstr "query-status reply に running state がありませんでした"
 
 #: src/qemu/qemu_monitor_json.c:1199
 msgid "cpu reply was missing return data"
-msgstr "cpu reply に return data がありませんでした"
+msgstr "cpu の応答に返り値がありませんでした"
 
 #: src/qemu/qemu_monitor_json.c:1205
 msgid "cpu information was not an array"
@@ -17242,7 +17197,7 @@ msgstr "キャラクターデバイスの情報に配列要素がありません
 
 #: src/qemu/qemu_monitor_json.c:1298
 msgid "info kvm reply was missing return data"
-msgstr "info kvm reply は返り値がありませんでした"
+msgstr "info kvm の応答に返り値がありませんでした"
 
 #: src/qemu/qemu_monitor_json.c:1305
 msgid "info kvm reply missing 'running' field"
@@ -17250,16 +17205,16 @@ msgstr "info kvm reply は 'running' 項目がありません"
 
 #: src/qemu/qemu_monitor_json.c:1355
 msgid "info balloon reply was missing return data"
-msgstr "info balloon reply に return data がありませんでした"
+msgstr "info balloon の応答に返り値がありませんでした"
 
 #: src/qemu/qemu_monitor_json.c:1362
 msgid "info balloon reply was missing balloon data"
-msgstr "info balloon reply に balloon data がありませんでした"
+msgstr "info balloon の応答に balloon データがありませんでした"
 
 #: src/qemu/qemu_monitor_json.c:1455 src/qemu/qemu_monitor_json.c:4661
 #: src/qemu/qemu_monitor_json.c:4704
 msgid "qom-get reply was missing return data"
-msgstr ""
+msgstr "qom-get の応答に返り値がありませんでした"
 
 #: src/qemu/qemu_monitor_json.c:1539
 msgid "block info reply was missing device list"
@@ -17314,7 +17269,7 @@ msgstr "query-migrate-cache-size 応答に 'return' データがありません�
 
 #: src/qemu/qemu_monitor_json.c:2364
 msgid "info migration reply was missing return data"
-msgstr "info migration reply に return data がありませんでした"
+msgstr "info migration の応答に返り値がありませんでした"
 
 #: src/qemu/qemu_monitor_json.c:2370
 msgid "info migration reply was missing return status"
@@ -17407,7 +17362,7 @@ msgstr "不完全な返り情報"
 
 #: src/qemu/qemu_monitor_json.c:2961
 msgid "character device reply was missing return data"
-msgstr "キャラクターデバイスの応答に戻りデータがありませんでした"
+msgstr "キャラクターデバイスの応答に返り値がありませんでした"
 
 #: src/qemu/qemu_monitor_json.c:2967
 msgid "character device information was not an array"
@@ -17436,7 +17391,7 @@ msgstr ""
 #: src/qemu/qemu_monitor_json.c:3427 src/qemu/qemu_monitor_text.c:2880
 #, c-format
 msgid "keycode %zu is invalid: 0x%X"
-msgstr ""
+msgstr "キーコード %zu が無効です: 0x%X"
 
 #: src/qemu/qemu_monitor_json.c:3508
 msgid "entry was missing 'device'"
@@ -17460,7 +17415,7 @@ msgstr "エントリーに 'len' がありませんでした"
 
 #: src/qemu/qemu_monitor_json.c:3567
 msgid "reply was missing return data"
-msgstr "reply に return data がありません"
+msgstr "応答に返り値がありませんでした"
 
 #: src/qemu/qemu_monitor_json.c:3573
 msgid "unrecognized format of block job information"
@@ -17580,7 +17535,7 @@ msgstr "query-machines の応答データに不正な形式の 'alias' があり
 
 #: src/qemu/qemu_monitor_json.c:4055
 msgid "query-machines reply has malformed 'cpu-max' data"
-msgstr ""
+msgstr "query-machines の応答に不正な形式の 'cpu-max' データがあります"
 
 #: src/qemu/qemu_monitor_json.c:4115
 msgid "query-cpu-definitions reply was missing return data"
@@ -17616,7 +17571,7 @@ msgstr "query-events の応答データが配列ではありませんでした"
 
 #: src/qemu/qemu_monitor_json.c:4276
 msgid "query-events reply data was missing 'name'"
-msgstr "query-events の応答データに 'name' がありません"
+msgstr "query-events の応答データに 'name' がありませんでした"
 
 #: src/qemu/qemu_monitor_json.c:4333
 msgid "query-command-line-options reply was missing return data"
@@ -17662,19 +17617,19 @@ msgstr "qom-list-types の応答データに 'name' がありませんでした"
 
 #: src/qemu/qemu_monitor_json.c:4564
 msgid "qom-list reply was missing return data"
-msgstr ""
+msgstr "qom-list の応答に返り値がありませんでした"
 
 #: src/qemu/qemu_monitor_json.c:4570
 msgid "qom-list reply data was not an array"
-msgstr ""
+msgstr "qom-list の応答データが配列ではありませんでした"
 
 #: src/qemu/qemu_monitor_json.c:4590
 msgid "qom-list reply data was missing 'name'"
-msgstr ""
+msgstr "qom-list の応答データに 'name' がありませんでした"
 
 #: src/qemu/qemu_monitor_json.c:4600
 msgid "qom-list reply has malformed 'type' data"
-msgstr ""
+msgstr "qom-list の応答データに不正な形式の 'type' データがありました"
 
 #: src/qemu/qemu_monitor_json.c:4696
 #, c-format
@@ -17704,7 +17659,7 @@ msgstr "query-target の応答に返り値がありませんでした"
 
 #: src/qemu/qemu_monitor_json.c:4884
 msgid "query-target reply was missing arch data"
-msgstr "query-target reply にアーキテクチャーデータがありませんでした"
+msgstr "query-target の応答にアーキテクチャーデータがありませんでした"
 
 #: src/qemu/qemu_monitor_json.c:4927
 msgid "missing migration capabilities"
@@ -17740,11 +17695,11 @@ msgstr ""
 
 #: src/qemu/qemu_monitor_json.c:5374
 msgid "chardev-add reply was missing return data"
-msgstr ""
+msgstr "chardev-add の応答に返り値がありませんでした"
 
 #: src/qemu/qemu_monitor_json.c:5380
 msgid "chardev-add reply was missing pty path"
-msgstr ""
+msgstr "chardev-add の応答に pty パスがありませんでした"
 
 #: src/qemu/qemu_monitor_text.c:178
 msgid "Password request seen, but no handler available"
@@ -18139,7 +18094,7 @@ msgstr "SPICE TLS の未使用ポートが見つかりません"
 
 #: src/qemu/qemu_process.c:3445
 msgid "Maximum CPUs greater than specified machine type limit"
-msgstr ""
+msgstr "最大 CPU が指定されたマシン形式の制限値より大きいです"
 
 #: src/qemu/qemu_process.c:3505 src/qemu/qemu_process.c:4363
 #: src/uml/uml_driver.c:1036
@@ -19281,7 +19236,7 @@ msgstr "SSH ホスト鍵の検証に失敗しました: %s"
 
 #: src/rpc/virnetsshsession.c:502
 msgid "Unknown error value"
-msgstr "未知のエラー値"
+msgstr "不明なエラー値"
 
 #: src/rpc/virnetsshsession.c:526
 msgid "Failed to connect to ssh agent"
@@ -19335,7 +19290,7 @@ msgstr ""
 
 #: src/rpc/virnetsshsession.c:718
 msgid "failed to retrieve password"
-msgstr ""
+msgstr "パスワードの取得に失敗しました"
 
 #: src/rpc/virnetsshsession.c:740 src/util/virerror.c:987
 #, c-format
@@ -19631,9 +19586,9 @@ msgid "Unable to import client certificate %s"
 msgstr "クライアント証明書  %s をインポートできません"
 
 #: src/rpc/virnettlscontext.c:566
-#, fuzzy, c-format
+#, c-format
 msgid "Unable to import CA certificate list %s"
-msgstr "サーバー証明書 %s をインポートできません"
+msgstr "CA 証明書一覧 %s をインポートできません"
 
 #: src/rpc/virnettlscontext.c:644
 #, c-format
@@ -20082,7 +20037,7 @@ msgstr "ソケットのセキュリティコンテキスト '%s' を割り当て
 
 #: src/security/security_selinux.c:627
 msgid "unable to get selinux context range"
-msgstr ""
+msgstr "SELinux コンテキストの範囲を取得できません"
 
 #: src/security/security_selinux.c:763
 #, c-format
@@ -20156,7 +20111,7 @@ msgstr "タップのファイル記述子 %d 向けの標準 SELinux ラベル�
 #: src/security/security_selinux.c:2391
 #, c-format
 msgid "unable to create selinux context for: %s"
-msgstr ""
+msgstr "SELinux コンテキストを作成できません: %s"
 
 #: src/security/virt-aa-helper.c:103
 #, c-format
@@ -20969,27 +20924,28 @@ msgid "iscsi 'chap' authentication not supported for autostarted pools"
 msgstr ""
 
 #: src/storage/storage_backend_iscsi.c:737
-#, fuzzy, c-format
+#, c-format
 msgid "could not get the value of the secret for username %s using uuid '%s'"
-msgstr "ユーザー名 %s のシークレット値を取得できませんでした"
+msgstr ""
+"ユーザー名 %s のシークレット値を UUID '%s' を使用して取得できませんでした"
 
 #: src/storage/storage_backend_iscsi.c:742
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "could not get the value of the secret for username %s using usage value '%s'"
-msgstr "ユーザー名 %s のシークレット値を取得できませんでした"
+msgstr ""
 
 #: src/storage/storage_backend_iscsi.c:751
 #: src/storage/storage_backend_rbd.c:96
-#, fuzzy, c-format
+#, c-format
 msgid "no secret matches uuid '%s'"
 msgstr "UUID '%s' と一致するシークレットがありません"
 
 #: src/storage/storage_backend_iscsi.c:755
 #: src/storage/storage_backend_rbd.c:100
-#, fuzzy, c-format
+#, c-format
 msgid "no secret matches usage value '%s'"
-msgstr "使用法 '%s' と一致する"
+msgstr ""
 
 #: src/storage/storage_backend_logical.c:146
 msgid "malformed volume extent stripes value"
@@ -21068,16 +21024,16 @@ msgid "'ceph' authentication not supported for autostarted pools"
 msgstr ""
 
 #: src/storage/storage_backend_rbd.c:112
-#, fuzzy, c-format
+#, c-format
 msgid "could not get the value of the secret for username '%s' using uuid '%s'"
-msgstr "ユーザー名 %s のシークレット値を取得できませんでした"
+msgstr ""
 
 #: src/storage/storage_backend_rbd.c:118
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "could not get the value of the secret for username '%s' using usage value "
 "'%s'"
-msgstr "ユーザー名 %s のシークレット値を取得できませんでした"
+msgstr ""
 
 #: src/storage/storage_backend_rbd.c:132
 msgid "failed to decode the RADOS key"
@@ -21392,9 +21348,9 @@ msgid "Exceeded max iface limit %d"
 msgstr "iface の最大限度 %d を超過しました"
 
 #: src/test/test_driver.c:703
-#, fuzzy, c-format
+#, c-format
 msgid "resolving %s filename"
-msgstr "プールのファイル名を解決しています"
+msgstr "%s のファイル名を解決しています"
 
 #: src/test/test_driver.c:739
 msgid "invalid node cpu nodes value"
@@ -21435,7 +21391,7 @@ msgstr "Root エレメントは 'node' ではありません"
 
 #: src/test/test_driver.c:1207
 msgid "testOpen: supply a path or use test:///default"
-msgstr "testOpen: パスを指定するか、test:を使用する///省略値"
+msgstr "testOpen: パスを指定します、または test:///default を使用します"
 
 #: src/test/test_driver.c:1568
 #, c-format
@@ -21836,7 +21792,7 @@ msgstr "%s: 不正な形式のファイル長 %s"
 #: src/util/iohelper.c:317
 #, c-format
 msgid "%s: unknown failure with %s\n"
-msgstr "%s: %s で未知のエラー\n"
+msgstr "%s: %s で不明なエラー\n"
 
 #: src/util/viralloc.c:417
 #, c-format
@@ -21874,17 +21830,17 @@ msgstr ""
 "グループ 'credentials-%s' がグループ '%s' ('%s') から参照されていません"
 
 #: src/util/virbitmap.c:386
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to parse bitmap '%s'"
-msgstr "モード '%s' の構文解析に失敗しました"
+msgstr ""
 
 #: src/util/vircgroup.c:130
 msgid "Cannot open /proc/cgroups"
-msgstr ""
+msgstr "/proc/cgroups を開けません"
 
 #: src/util/vircgroup.c:165
 msgid "Error while reading /proc/cgroups"
-msgstr ""
+msgstr "/proc/cgroups の読み込み中にエラー"
 
 #: src/util/vircgroup.c:303
 msgid "Unable to open /proc/mounts"
@@ -21922,17 +21878,17 @@ msgstr "コントローラー %s (%s) の配置を見つけられません"
 #: src/util/vircgroup.c:670
 #, c-format
 msgid "Unable to write to '%s'"
-msgstr ""
+msgstr "'%s' に書き込みできません"
 
 #: src/util/vircgroup.c:700
 #, c-format
 msgid "Unable to read from '%s'"
-msgstr ""
+msgstr "'%s' から読み込みできません"
 
 #: src/util/vircgroup.c:770 src/util/vircgroup.c:797
 #, c-format
 msgid "Unable to parse '%s' as an integer"
-msgstr ""
+msgstr "'%s' を整数として構文解析できません"
 
 #: src/util/vircgroup.c:918
 #, c-format
@@ -21942,31 +21898,31 @@ msgstr ""
 #: src/util/vircgroup.c:1061
 #, c-format
 msgid "Controller %d out of range"
-msgstr ""
+msgstr "コントローラー %d が範囲外です"
 
 #: src/util/vircgroup.c:1067
 #, c-format
 msgid "Controller '%s' not mounted"
-msgstr ""
+msgstr "コントローラー '%s' がマウントされていません"
 
 #: src/util/vircgroup.c:1094
 #, c-format
 msgid "Cannot parse '%s' as an integer"
-msgstr ""
+msgstr "'%s' を整数として構文解析できません"
 
 #: src/util/vircgroup.c:1243
 #, c-format
 msgid "Partition path '%s' must start with '/'"
-msgstr ""
+msgstr "パーティションのパス '%s' は '/' から始まらなければいけません"
 
 #: src/util/vircgroup.c:1748
 msgid "No controllers are mounted"
-msgstr ""
+msgstr "コントローラーがマウントされていません"
 
 #: src/util/vircgroup.c:1754
 #, c-format
 msgid "Controller '%s' is not mounted"
-msgstr ""
+msgstr "コントローラー '%s' がマウントされていません"
 
 #: src/util/vircgroup.c:1761
 #, c-format
@@ -21976,34 +21932,34 @@ msgstr ""
 #: src/util/vircgroup.c:1789 src/util/vircgroup.c:1846
 #, c-format
 msgid "weight '%u' must be in range (100, 1000)"
-msgstr ""
+msgstr "ウェイト値 '%u' は (100, 1000) の範囲にある必要があります"
 
 #: src/util/vircgroup.c:1853 src/util/vircgroup.c:2287
 #: src/util/vircgroup.c:2385
 #, c-format
 msgid "Path '%s' is not accessible"
-msgstr ""
+msgstr "パス '%s' にアクセスできません"
 
 #: src/util/vircgroup.c:1860
 #, c-format
 msgid "Path '%s' must be a block device"
-msgstr ""
+msgstr "パス '%s' はブロックデバイスである必要があります"
 
 #: src/util/vircgroup.c:1894 src/util/vircgroup.c:1986
 #: src/util/vircgroup.c:2041
 #, c-format
 msgid "Memory '%llu' must be less than %llu"
-msgstr ""
+msgstr "メモリ '%llu' は %llu より小さくなければいけません"
 
 #: src/util/vircgroup.c:2435
 #, c-format
 msgid "cfs_period '%llu' must be in range (1000, 1000000)"
-msgstr ""
+msgstr "cfs_period '%llu' は (1000, 1000000) の範囲にある必要があります"
 
 #: src/util/vircgroup.c:2480
 #, c-format
 msgid "cfs_quota '%lld' must be in range (1000, %llu)"
-msgstr ""
+msgstr "cfs_quota '%lld' は (1000, %llu) の範囲にある必要があります"
 
 #: src/util/vircgroup.c:2511
 #, c-format
@@ -22023,12 +21979,12 @@ msgstr "%s (%d) を削除できません"
 #: src/util/vircgroup.c:2630 src/util/vircgroup.c:2640
 #, c-format
 msgid "Failed to read %s"
-msgstr ""
+msgstr "%s の読み込みに失敗しました"
 
 #: src/util/vircgroup.c:2652
 #, c-format
 msgid "Failed to kill process %lu"
-msgstr ""
+msgstr "プロセス %lu のキルに失敗しました"
 
 #: src/util/vircgroup.c:2860
 #, c-format
@@ -22042,16 +21998,16 @@ msgstr "マウントされたコントローラーを何も見つけられませ
 #: src/util/vircgroup.c:2920
 #, c-format
 msgid "Cannot parse user stat '%s'"
-msgstr ""
+msgstr "user 統計情報 '%s' を構文解析できません"
 
 #: src/util/vircgroup.c:2927
 #, c-format
 msgid "Cannot parse sys stat '%s'"
-msgstr ""
+msgstr "sys 統計情報 '%s' を構文解析できません"
 
 #: src/util/vircgroup.c:2938
 msgid "Cannot determine system clock HZ"
-msgstr ""
+msgstr "システムのクロック周波数がわかりません"
 
 #: src/util/vircgroup.c:2987 src/util/vircgroup.c:3019
 #, c-format
@@ -22101,7 +22057,7 @@ msgstr "ディレクトリー %s を %s にシンボリックリンクできま�
 #: src/util/vircgroup.c:3620 src/util/vircgroup.c:3630
 #: src/util/vircgroup.c:3641
 msgid "Control groups not supported on this platform"
-msgstr ""
+msgstr "Control groups がこのプラットフォームにおいてサポートされません"
 
 #: src/util/virclosecallbacks.c:123
 #, c-format
@@ -22401,7 +22357,7 @@ msgstr "DBus セッションのバス接続を取得できません: %s"
 #: src/util/virdbus.c:292 src/util/virdbus.c:313 src/util/virdbus.c:340
 #, c-format
 msgid "Signature '%s' too deeply nested"
-msgstr ""
+msgstr "シグネチャー '%s' の入れ子が深すぎます"
 
 #: src/util/virdbus.c:350
 #, c-format
@@ -22420,11 +22376,11 @@ msgstr ""
 
 #: src/util/virdbus.c:414
 msgid "DBus type too deeply nested"
-msgstr ""
+msgstr "DBus タイプの入れ子が深すぎます"
 
 #: src/util/virdbus.c:439
 msgid "DBus type stack is empty"
-msgstr ""
+msgstr "DBus タイプスタックが空です"
 
 #: src/util/virdbus.c:473
 #, c-format
@@ -23792,7 +23748,7 @@ msgstr "プロセス ID ファイル '%s' に書き込めません"
 #: src/util/virportallocator.c:114
 #, c-format
 msgid "Failed to query port %zu"
-msgstr ""
+msgstr "ポート %zu の問い合わせに失敗しました"
 
 #: src/util/virportallocator.c:127
 msgid "Unable to open test socket"
@@ -23805,12 +23761,12 @@ msgstr "ソケットの再利用アドレスフラグを設定できません"
 #: src/util/virportallocator.c:140
 #, c-format
 msgid "Unable to bind to port %zu"
-msgstr ""
+msgstr "ポート %zu をバインドできません"
 
 #: src/util/virportallocator.c:150
 #, c-format
 msgid "Failed to reserve port %zu"
-msgstr ""
+msgstr "ポート %zu の予約に失敗しました"
 
 #: src/util/virportallocator.c:184
 #, c-format
@@ -23935,11 +23891,11 @@ msgstr "開始時間 %s (%s) を構文解析できません"
 msgid "Unable to query process ID start time"
 msgstr "プロセス ID の開始時間を問い合わせできません"
 
-#: src/util/virrandom.c:160
+#: src/util/virrandom.c:171
 msgid "argument virt_type must not be NULL"
 msgstr "引数 virt_type は NULL ではいけません"
 
-#: src/util/virrandom.c:177
+#: src/util/virrandom.c:188
 msgid "Unsupported virt type"
 msgstr "サポートされない仮想化形式"
 
@@ -24003,9 +23959,9 @@ msgid "name too long: '%s'"
 msgstr "名前が長すぎます: '%s'"
 
 #: src/util/virstoragefile.c:577
-#, fuzzy, c-format
+#, c-format
 msgid "Cannot access backing file '%s'"
-msgstr "ファイル '%s' にアクセスできません"
+msgstr "バッキングファイル '%s' にアクセスできません"
 
 #: src/util/virstoragefile.c:584
 #, c-format
@@ -24126,9 +24082,9 @@ msgid "No error message provided"
 msgstr "エラーメッセージはありませんでした"
 
 #: src/util/virerror.c:733
-#, fuzzy, c-format
+#, c-format
 msgid "internal error: %s"
-msgstr "内部エラー %s"
+msgstr "内部エラー: %s"
 
 #: src/util/virerror.c:735
 msgid "internal error"
@@ -24873,12 +24829,12 @@ msgstr "アクセスが拒否されました: %s"
 
 #: src/util/virerror.c:1249
 msgid "error from service"
-msgstr ""
+msgstr "サービスからのエラー"
 
 #: src/util/virerror.c:1251
 #, c-format
 msgid "error from service: %s"
-msgstr ""
+msgstr "サービスからのエラー: %s"
 
 #: src/util/virerror.h:80
 #, c-format
@@ -25101,7 +25057,7 @@ msgstr "グループ '%s' の構文解析に失敗しました"
 #: src/util/virutil.c:1008
 #, c-format
 msgid "cannot get group list for '%s'"
-msgstr ""
+msgstr "'%s' のグループ一覧を取得できません"
 
 #: src/util/virutil.c:1045
 #, c-format
@@ -25110,7 +25066,7 @@ msgstr "'%u' グループに変更できません"
 
 #: src/util/virutil.c:1053
 msgid "cannot set supplemental groups"
-msgstr ""
+msgstr "補助グループを設定できません"
 
 #: src/util/virutil.c:1060
 #, c-format
@@ -25209,9 +25165,9 @@ msgid "Write of '%s' to '%s' during vport create/delete failed"
 msgstr "vport の作成/削除の間に'%s' の '%s' への書き込みに失敗です"
 
 #: src/util/virutil.c:2092
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to parse uid and gid from '%s'"
-msgstr "グループ '%s' の構文解析に失敗しました"
+msgstr "'%s' から uid と gid を構文解析できませんでした"
 
 #: src/util/virxml.c:79
 msgid "Invalid parameter to virXPathString()"
@@ -25990,7 +25946,7 @@ msgstr "FDC ユニットのインデックス %d が [0..1] の範囲にあり�
 #: src/vmx/vmx.c:1044
 #, c-format
 msgid "Unsupported bus type '%s'"
-msgstr "未知のバス形式 '%s' です。"
+msgstr "不明な形式 '%s' です。"
 
 #: src/vmx/vmx.c:1077
 #, c-format
@@ -26141,10 +26097,10 @@ msgstr ""
 "見つかりました"
 
 #: src/vmx/vmx.c:2187 src/vmx/vmx.c:2225 src/vmx/vmx.c:2255
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Invalid or not yet handled value '%s' for VMX entry '%s' for device type '%s'"
-msgstr "無効または未処理の値 '%s' が VMX エントリー '%s' にあります"
+msgstr ""
 
 #: src/vmx/vmx.c:2198
 #, c-format
@@ -28350,7 +28306,7 @@ msgstr "失敗"
 
 #: tools/virsh-domain-monitor.c:274
 msgid "panicked"
-msgstr ""
+msgstr "パニック"
 
 #: tools/virsh-domain-monitor.c:301
 msgid "get memory statistics for a domain"
@@ -28447,16 +28403,16 @@ msgstr "カレントドメインに有効になります"
 
 #: tools/virsh-domain-monitor.c:371
 msgid "Unable to parse integer parameter."
-msgstr ""
+msgstr "整数値のパラメーターを構文解析できません。"
 
 #: tools/virsh-domain-monitor.c:376
 #, c-format
 msgid "Invalid collection period value '%d'"
-msgstr ""
+msgstr "無効な統計情報収集間隔 '%d'"
 
 #: tools/virsh-domain-monitor.c:382
 msgid "Unable to change balloon collection period."
-msgstr ""
+msgstr "バルーン収集間隔を変更できません。"
 
 #: tools/virsh-domain-monitor.c:391
 #, c-format
@@ -28960,7 +28916,7 @@ msgstr "XML ファイル"
 #: tools/virsh-domain.c:9381 tools/virsh-domain.c:9482
 #: tools/virsh-domain.c:9588 tools/virsh-domain.c:9985
 msgid "make live change persistent"
-msgstr "稼働中の変更を永続化させる"
+msgstr "実行時設定の変更を永続化させます"
 
 #: tools/virsh-domain.c:241
 #, c-format
@@ -29176,7 +29132,7 @@ msgstr "ドメイン %s の自動起動設定が解除されました\n"
 
 #: tools/virsh-domain.c:1009
 msgid "Set or query a block device I/O tuning parameters."
-msgstr "ブロックデバイスの I/O チューニングパラメーターの設定または取得"
+msgstr "ブロックデバイスの I/O チューニングパラメーターの設定・取得"
 
 #: tools/virsh-domain.c:1012
 msgid "Set or query disk I/O parameters such as block throttling."
@@ -29299,7 +29255,7 @@ msgstr "そこにコミットするベースファイルのパス (初期値は�
 
 #: tools/virsh-domain.c:1525
 msgid "use backing file of top as base"
-msgstr "ベースとして最上部のバッキングファイルを使用する"
+msgstr "ベースとして最上部のバッキングファイルを使用します"
 
 #: tools/virsh-domain.c:1529
 msgid "path of top file to commit from (default top of chain)"
@@ -29311,7 +29267,7 @@ msgstr "正常にコミットされたファイルの削除"
 
 #: tools/virsh-domain.c:1537
 msgid "wait for job to complete"
-msgstr "ジョブの完了を待つ"
+msgstr "ジョブの完了を待ちます"
 
 #: tools/virsh-domain.c:1541 tools/virsh-domain.c:1717
 #: tools/virsh-domain.c:2008
@@ -29459,7 +29415,7 @@ msgstr "指定したディスクにおけるアクティブなジョブの中止
 
 #: tools/virsh-domain.c:1902
 msgid "don't wait for --abort to complete"
-msgstr "--abort が完了するのを待たない"
+msgstr "--abort が完了するのを待ちません"
 
 #: tools/virsh-domain.c:1906
 msgid "conclude and pivot a copy job"
@@ -29647,7 +29603,7 @@ msgstr "仮想インターフェースのパラメーターの取得・設定"
 
 #: tools/virsh-domain.c:2505
 msgid "Get/set parameters of a domain's virtual interface."
-msgstr "ドメインの仮想インターフェースのパラメーターを取得・設定します。"
+msgstr "ドメインの仮想インターフェースのパラメーターを取得または設定します。"
 
 #: tools/virsh-domain.c:2642
 msgid "Unable to get number of interface parameters"
@@ -29862,7 +29818,7 @@ msgstr "停止状態のドメイン名"
 
 #: tools/virsh-domain.c:3246 tools/virsh-domain.c:6468
 msgid "attach to console after creation"
-msgstr "起動後にコンソールへ接続する"
+msgstr "起動後にコンソールに接続します"
 
 #: tools/virsh-domain.c:3251 tools/virsh-domain.c:6473
 msgid "leave the guest paused after creation"
@@ -29887,16 +29843,16 @@ msgstr ""
 #: tools/virsh-domain.c:3291
 #, c-format
 msgid "Unable to split FD list '%s'"
-msgstr ""
+msgstr "ファイル記述子の一覧 '%s' を分割できません"
 
 #: tools/virsh-domain.c:3298
 #, c-format
 msgid "Unable to parse FD number '%s'"
-msgstr ""
+msgstr "ファイル記述子の番号 '%s' を構文解析できません"
 
 #: tools/virsh-domain.c:3302
 msgid "Unable to allocate FD list"
-msgstr ""
+msgstr "ファイル記述子の一覧を割り当てられません"
 
 #: tools/virsh-domain.c:3338
 msgid "Domain is already active"
@@ -30597,7 +30553,7 @@ msgstr "CPU 時間"
 
 #: tools/virsh-domain.c:5517
 msgid "control or query domain vcpu affinity"
-msgstr "ドメインの仮想 CPU アフィニティーの制御または表示"
+msgstr "ドメインの仮想 CPU アフィニティーの制御・表示"
 
 #: tools/virsh-domain.c:5520
 msgid "Pin domain VCPUs to host physical CPUs."
@@ -30638,7 +30594,7 @@ msgstr "CPU アフィニティー"
 
 #: tools/virsh-domain.c:5804
 msgid "control or query domain emulator affinity"
-msgstr "ドメインのエミュレーターアフィニティの制御または確認"
+msgstr "ドメインのエミュレーターアフィニティの制御・確認"
 
 #: tools/virsh-domain.c:5807
 msgid "Pin domain emulator threads to host physical CPUs."
@@ -30873,7 +30829,7 @@ msgstr "ドメイン %s の強制停止に失敗しました"
 
 #: tools/virsh-domain.c:6648
 msgid "show or set domain's description or title"
-msgstr "ドメインの説明またはタイトルの表示または設定"
+msgstr "ドメインの説明・タイトルの表示・設定"
 
 #: tools/virsh-domain.c:6651
 msgid "Allows to show or modify description or title of a domain."
@@ -32097,7 +32053,7 @@ msgid ""
 "\n"
 "    virsh # node-memory-tune"
 msgstr ""
-"ノードのメモリーパラメーターを取得または設定します\n"
+"ノードのメモリーパラメーターを取得または設定します。\n"
 "    メモリーパラメーターを取得するには、以下のコマンドを使用します: \n"
 "\n"
 "    virsh # node-memory-tune"
@@ -33516,9 +33472,9 @@ msgid "display extended details for pools"
 msgstr "プールの拡張詳細の表示"
 
 #: tools/virsh-pool.c:1004
-#, fuzzy, c-format
+#, c-format
 msgid "Invalid pool type '%s'"
-msgstr "無効なプールの種類"
+msgstr "無効なプールの種類 '%s'"
 
 #: tools/virsh-pool.c:1080
 msgid "Could not retrieve pool information"
@@ -34778,9 +34734,8 @@ msgid "%s: unsupported hypervisor name %s\n"
 msgstr "%s: サポートされないハイパーバイザーの名前 %s\n"
 
 #: tools/virt-login-shell.c:80 tools/virt-login-shell.c:135
-#, fuzzy
 msgid "shell must be a list of strings"
-msgstr "security_driver は文字列の一覧である必要があります"
+msgstr "shell は文字列の一覧である必要があります"
 
 #: tools/virt-login-shell.c:110
 #, c-format
@@ -34800,126 +34755,54 @@ msgid ""
 "\n"
 "libvirt login shell\n"
 msgstr ""
+"\n"
+"使用法:\n"
+"  %s [options]\n"
+"\n"
+"Options:\n"
+"  -h | --help            ヘルプ表示:\n"
+"  -V | --version         バージョン表示:\n"
+"\n"
+"libvirt ログインシェル\n"
 
 #: tools/virt-login-shell.c:211
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to initialize libvirt Error Handling"
-msgstr "libvirt の初期化に失敗しました"
+msgstr ""
 
 #: tools/virt-login-shell.c:250
-#, fuzzy, c-format
+#, c-format
 msgid "%s takes no options"
-msgstr "不明なオプション"
+msgstr ""
 
 #: tools/virt-login-shell.c:255
 #, c-format
 msgid "%s must be run by non root users"
-msgstr ""
+msgstr "%s は root 以外のユーザーで実行する必要があります"
 
 #: tools/virt-login-shell.c:293
-#, fuzzy, c-format
+#, c-format
 msgid "Can't create %s container: %s"
-msgstr "ハードディスクのない仮想マシン '%s' を作成できません"
+msgstr "%s コンテナーを作成できません: %s"
 
 #: tools/virt-login-shell.c:348
-#, fuzzy, c-format
+#, c-format
 msgid "Unable to chdir(%s)"
-msgstr "%s を作成できません"
+msgstr "chdir(%s) できません"
 
 #: tools/virt-login-shell.c:352
-#, fuzzy, c-format
+#, c-format
 msgid "Unable to exec shell %s"
-msgstr "%s を閉じられません"
-
-#~ msgid "%s: internal error: unknown flag: %c"
-#~ msgstr "%s: 内部エラー: 不明なフラグ: %c"
+msgstr "シェル %s を実行できません"
 
 #~ msgid "maxnames > REMOTE_DEFINED_INTERFACE_NAME_LIST_MAX"
 #~ msgstr "maxnames > REMOTE_DEFINED_INTERFACE_NAME_LIST_MAX"
 
-#~ msgid "topology cpuset syntax error"
-#~ msgstr "トポロジー cpuset 構文エラー"
-
-#~ msgid "Malformed 'class_id' attribute: %s"
-#~ msgstr "不正な形式の 'class_id' 属性: %s"
-
-#~ msgid "Could not serach in datastore '%s': %s"
-#~ msgstr "データストア '%s' において検索できませんでした: %s"
-
-#~ msgid "%s: internal error: unknown flag: %c\n"
-#~ msgstr "%s: 内部エラー: 不明なフラグ: %c\n"
-
 #~ msgid "no network with matching id"
 #~ msgstr "一致する id を持つネットワークはありません"
-
-#~ msgid "Failed to parse thread siblings"
-#~ msgstr "thread siblings の構文解析に失敗しました"
-
-#~ msgid ""
-#~ "Attempted double use of PCI Address on slot '%s' (need "
-#~ "\"multifunction='off'\" for device on function 0)"
-#~ msgstr ""
-#~ "スロット '%s' において PCI アドレスの二重使用が試行されました (ファンク"
-#~ "ション 0 にあるデバイスに対して \"multifunction='off'\" が必要です)"
-
-#, fuzzy
-#~ msgid "unable to reserve PCI address %s already in use"
-#~ msgstr "PCI アドレス %s を予約できません"
-
-#~ msgid "unable to reserve PCI slot %s"
-#~ msgstr "PCI スロット %s を予約できません"
-
-#~ msgid "%s username '%s' specified but secret not found"
-#~ msgstr ""
-#~ "%s ユーザー名 '%s' が指定されましたが、シークレットが見つかりませんでした"
-
-#~ msgid "Failed to parse nodeset"
-#~ msgstr "nodeset の構文解析に失敗しました"
-
-#~ msgid "NBD in tunnelled migration is currently not supported"
-#~ msgstr "トンネルマイグレーションにおける NBD は現在サポートされません"
-
-#~ msgid "failed to find the secret"
-#~ msgstr "シークレットの検索に失敗しました"
-
-#~ msgid "resolving volume filename"
-#~ msgstr "ボリュームファイル名の解決中"
-
-#~ msgid "resolving domain filename"
-#~ msgstr "ドメインファイル名を解決中"
-
-#~ msgid "resolving network filename"
-#~ msgstr "ネットワークファイル名を解決中"
-
-#~ msgid "resolving interface filename"
-#~ msgstr "インターフェースのファイル名を解決しています"
-
-#~ msgid "resolving device filename"
-#~ msgstr "デバイスのファイル名を解決しています"
-
-#~ msgid "invalid CPU mask %s"
-#~ msgstr "無効な CPU マスク %s"
 
 #~ msgid "Programming error: Invalid option name"
 #~ msgstr "プログラミング・エラー: 無効なオプション名"
 
 #~ msgid "Programming error: Requested option is a boolean"
 #~ msgstr "プログラミング・エラー: 要求されたオプションが論理値です"
-
-#~ msgid "Volume"
-#~ msgstr "ボリューム"
-
-#~ msgid "Slot 0 is unusable on PCI bridges"
-#~ msgstr "スロット 0 が PCI ブリッジにおいて利用できません"
-
-#~ msgid "Slot 0 on bus 0 is reserved for the host bridge"
-#~ msgstr "バス 0 のスロット 0 がホストブリッジ向けに予約されています"
-
-#~ msgid "%s: failed to open"
-#~ msgstr "%s: 開くのに失敗"
-
-#~ msgid "failed to open path '%s'"
-#~ msgstr "パス '%s' のオープンに失敗しました"
-
-#~ msgid "Missing separator ':' in DAC label \"%s\""
-#~ msgstr "DAC ラベル \"%s\" に区切り文字 ':' がありません"

@@ -14,8 +14,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libvirt\n"
 "Report-Msgid-Bugs-To: libvir-list@redhat.com\n"
-"POT-Creation-Date: 2013-08-30 15:12+0800\n"
-"PO-Revision-Date: 2013-07-26 08:33+0000\n"
+"POT-Creation-Date: 2013-09-02 09:24+0800\n"
+"PO-Revision-Date: 2013-08-29 11:46+0000\n"
 "Last-Translator: ngoswami <ngoswami@redhat.com>\n"
 "Language-Team: Assamese (http://www.transifex.com/projects/p/fedora/language/"
 "as/)\n"
@@ -87,7 +87,7 @@ msgid "Unable to migrate %s to %s"
 msgstr "%s ক %s লে প্ৰব্ৰজন কৰিবলে অক্ষম"
 
 #: daemon/libvirtd.c:1036
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "\n"
 "Usage:\n"
@@ -109,14 +109,15 @@ msgstr ""
 "ব্যৱহাৰ:\n"
 "  %s [options]\n"
 "\n"
-"বিকল্পসমূহ:\n"
-"  -v | --verbose         ভাৰভৌছ বাৰ্তাসমূহ\n"
-"  -d | --daemon          এটা ডিমন হিচাপে চলাওক & PID ফাইল লিখক।\n"
-"  -l | --listen         TCP/IP সংযোগসমূহ শুনক।\n"
-"  -t | --timeout <secs>  সময়অন্তৰ পিছত প্ৰস্থান কৰক।\n"
-"  -f | --config <file>   সংৰূপ ফাইল।\n"
-"     | --version         সংস্কৰণ তথ্য প্ৰদৰ্শন কৰক।\n"
-"  -p | --pid-file <file> PID ফাইলত নাম সলনি কৰক।\n"
+"Options:\n"
+"  -h | --help            Display program help:\n"
+"  -v | --verbose         Verbose messages.\n"
+"  -d | --daemon          Run as a daemon & write PID file.\n"
+"  -l | --listen          Listen for TCP/IP connections.\n"
+"  -t | --timeout <secs>  Exit after timeout period.\n"
+"  -f | --config <file>   Configuration file.\n"
+"  -V | --version         Display version information.\n"
+"  -p | --pid-file <file> Change name of PID file.\n"
 "\n"
 "libvirt ব্যৱস্থাপনা ডিমন:\n"
 
@@ -1758,14 +1759,13 @@ msgid "unknown startupPolicy value '%s'"
 msgstr "অজ্ঞাত startupPolicy মান '%s'"
 
 #: src/conf/domain_conf.c:5480
-#, fuzzy, c-format
+#, c-format
 msgid "Setting disk %s is not allowed for disk of network type"
-msgstr "ডিস্ক %s সংহতি কৰাটো কেৱল cdrom অথবা ফ্লপিৰ বাবে অনুমোদিত"
+msgstr "নেটৱাৰ্ক ধৰণৰ ডিস্কৰ বাবে ডিস্ক %s সংহতি কৰাটো অনুমোদিত নহয়"
 
 #: src/conf/domain_conf.c:5490
-#, fuzzy
 msgid "Setting disk 'requisite' is allowed only for cdrom or floppy"
-msgstr "ডিস্ক %s সংহতি কৰাটো কেৱল cdrom অথবা ফ্লপিৰ বাবে অনুমোদিত"
+msgstr "ডিস্ক 'requisite' সংহতি কৰাটো কেৱল cdrom অথবা floppy ৰ বাবে অনুমোদিত"
 
 #: src/conf/domain_conf.c:5527 src/conf/domain_conf.c:5962
 #, c-format
@@ -1818,14 +1818,12 @@ msgid "Invalid vectors: %s"
 msgstr "অবৈধ ভেক্টৰ: %s"
 
 #: src/conf/domain_conf.c:5800
-#, fuzzy
 msgid "pci-root and pcie-root controllers should not have an address"
-msgstr "pci-root নিয়ন্ত্ৰকৰ এটা ঠিকনা থাকিব লাগিব"
+msgstr "pci-root আৰু pcie-root নিয়ন্ত্ৰকসমূহৰ এটা ঠিকনা থাকিব নোৱাৰিব"
 
 #: src/conf/domain_conf.c:5806
-#, fuzzy
 msgid "pci-root and pcie-root controllers should have index 0"
-msgstr "pci-root নিয়ন্ত্ৰকৰ সূচী 0 থাকিব লাগিব"
+msgstr "pci-root আৰু pcie-root নিয়ন্ত্ৰকসমূহৰ এটা সূচী 0 থাকিব লাগিব"
 
 #: src/conf/domain_conf.c:5831
 msgid "Controllers must use the 'pci' address type"
@@ -1906,7 +1904,7 @@ msgstr "<interface type='%s'> ৰ বাবে <virtualport> উপাদান 
 msgid "Invalid specification of multiple <filterref>s in a single <interface>"
 msgstr "এটা <interface> ত একাধিক <filterref> ৰ অবৈধ ধাৰ্য্যকৰণ"
 
-#: src/conf/domain_conf.c:6353 src/qemu/qemu_command.c:10211
+#: src/conf/domain_conf.c:6353 src/qemu/qemu_command.c:10213
 #, c-format
 msgid "unable to parse mac address '%s'"
 msgstr "MAC ঠিকনা '%s' বিশ্লেষণ কৰিবলৈ ব্যৰ্থ"
@@ -2060,7 +2058,7 @@ msgstr "অজ্ঞাত আখৰ ডিভাইচ ধৰণ: %s"
 msgid "spicevmc device type only supports virtio"
 msgstr "spicevmc ডিভাইচ ধৰণে কেৱল virtio সমৰ্থন কৰে"
 
-#: src/conf/domain_conf.c:7184 src/qemu/qemu_command.c:9379
+#: src/conf/domain_conf.c:7184 src/qemu/qemu_command.c:9381
 msgid "usb-serial requires address of usb type"
 msgstr "usb-serial ৰ usb ধৰণৰ ঠিকনাৰ প্ৰয়োজন"
 
@@ -2262,7 +2260,7 @@ msgstr "vnc প'ৰ্ট %s বিশ্লেষণ কৰিব নোৱা�
 msgid "cannot parse vnc WebSocket port %s"
 msgstr "vnc WebSocket পোৰ্ট %s বিশ্লেষণ কৰিব নোৱাৰি"
 
-#: src/conf/domain_conf.c:7989 src/qemu/qemu_command.c:11001
+#: src/conf/domain_conf.c:7989 src/qemu/qemu_command.c:11003
 #, c-format
 msgid "unknown vnc display sharing policy '%s'"
 msgstr "অজ্ঞাত vnc প্ৰদৰ্শন অংশীদাৰী নীতি '%s'"
@@ -3499,7 +3497,7 @@ msgstr "PCI ঠিকনা ফৰমেটিং ব্যৰ্থ হল"
 
 #: src/conf/domain_conf.c:14770 src/conf/domain_conf.c:14803
 #: src/conf/domain_conf.c:16037 src/conf/domain_conf.c:16046
-#: src/qemu/qemu_hotplug.c:3263
+#: src/qemu/qemu_hotplug.c:3262
 #, c-format
 msgid "unexpected hostdev type %d"
 msgstr "অপ্ৰত্যাশিত hostdev ধৰণ %d"
@@ -3539,7 +3537,7 @@ msgid "Unable to format guestfwd port"
 msgstr "guestfwd পোৰ্টৰ বিন্যাস নিৰ্ধাৰণ কৰিবলৈ ব্যৰ্থ কৰোঁতে ব্যৰ্থ"
 
 #: src/conf/domain_conf.c:15273 src/conf/domain_conf.c:15304
-#: src/qemu/qemu_command.c:8468
+#: src/qemu/qemu_command.c:8470
 #, c-format
 msgid "unexpected smartcard type %d"
 msgstr "অপ্ৰত্যাশিত স্মাৰ্টকাৰ্ড ধৰণ %d"
@@ -4145,9 +4143,9 @@ msgid "Missing ip and hostname in network '%s' DNS HOST record"
 msgstr "নেটৱাৰ্ক '%s' DNS HOST ৰেকৰ্ডত ip আৰু হস্টনাম নাই"
 
 #: src/conf/network_conf.c:918
-#, fuzzy, c-format
+#, c-format
 msgid "Missing required service attribute in DNS SRV record of network %s"
-msgstr "নেটৱাৰ্ক %s ৰ DNS SRV ৰেকৰ্ডত প্ৰয়োজনীয় সেৱা বৈশিষ্ট্য নাই"
+msgstr "নেটৱাৰ্ক %s ৰ DNS SRV ৰেকৰ্ডত প্ৰয়োজনীয় সেৱা বৈশিষ্ট্য সন্ধানহিন"
 
 #: src/conf/network_conf.c:924
 #, c-format
@@ -4161,9 +4159,9 @@ msgid ""
 msgstr "নেটৱাৰ্ক %s ৰ dns srv ৰেকৰ্ড '%s' ত প্ৰয়োজনীয় প্ৰটোকল বৈশিষ্ট্য নাই"
 
 #: src/conf/network_conf.c:941
-#, fuzzy, c-format
+#, c-format
 msgid "Invalid protocol attribute value '%s' in DNS SRV record of network %s"
-msgstr "নেটৱাৰ্ক %s ৰ DNS SRV ৰেকৰ্ডত অবৈধ প্ৰটোকল বৈশিষ্ট্য মান '%s'"
+msgstr "নেটৱাৰ্ক %s ৰ DNS SRV ত অবৈধ প্ৰটোকল বৈশিষ্ট্য মান '%s'"
 
 #: src/conf/network_conf.c:956
 #, c-format
@@ -4209,9 +4207,9 @@ msgid "Missing required name or value in DNS TXT record of network %s"
 msgstr "নেটৱাৰ্ক %s ৰ DNS TXT ৰেকৰ্ডত প্ৰয়োজনীয় নাম অথবা মান নাই"
 
 #: src/conf/network_conf.c:1054
-#, fuzzy, c-format
+#, c-format
 msgid "Invalid dns forwardPlainNames setting '%s' in network '%s'"
-msgstr "নেটৱাৰ্ক '%s' ত অবৈধ ipv6 সংহতি '%s'"
+msgstr "নেটৱাৰ্ক '%s' ত অবৈধ dns forwardPlainNames সংহতি '%s'"
 
 #: src/conf/network_conf.c:1064
 #, c-format
@@ -6089,9 +6087,9 @@ msgid "Host CPU does not strictly match guest CPU: Extra features"
 msgstr "হস্ট CPU কঠোৰভাৱে অতিথি CPU ৰ সৈতে মিল নাখায়: অতিৰিক্ত বৈশিষ্ট"
 
 #: src/cpu/cpu_x86.c:1337
-#, fuzzy, c-format
+#, c-format
 msgid "%s not a known CPU model"
-msgstr "অজ্ঞাত CPU ৰ মডেল %s"
+msgstr "%s এটা জ্ঞাত CPU আৰ্হি নহয়"
 
 #: src/cpu/cpu_x86.c:1436
 msgid "Cannot find suitable CPU model for given data"
@@ -8413,7 +8411,7 @@ msgid "Unable to restart self"
 msgstr "স্বচালিতক পুনাৰম্ভ কৰিবলে অক্ষম"
 
 #: src/locking/lock_daemon.c:1094
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "\n"
 "Usage:\n"
@@ -8430,17 +8428,18 @@ msgid ""
 "libvirt lock management daemon:\n"
 msgstr ""
 "\n"
-"Usage:\n"
+"ব্যৱহাৰ:\n"
 "  %s [options]\n"
 "\n"
 "Options:\n"
+"  -h | --help            Display program help:\n"
 "  -v | --verbose         Verbose messages.\n"
 "  -d | --daemon          Run as a daemon & write PID file.\n"
 "  -f | --config <file>   Configuration file.\n"
-"     | --version         Display version information.\n"
+"  -V | --version         Display version information.\n"
 "  -p | --pid-file <file> Change name of PID file.\n"
 "\n"
-"libvirt lock management daemon:\n"
+"libvirt লক ব্যৱস্থাপনা ডিমন:\n"
 
 #: src/locking/lock_daemon.c:1110
 #, c-format
@@ -9055,9 +9054,8 @@ msgid "Failed to mount %s on /proc/meminfo"
 msgstr "%s ক /proc/meminfo ত মাউন্ট কৰিবলে ব্যৰ্থ"
 
 #: src/lxc/lxc_container.c:882
-#, fuzzy
 msgid "Cannot create /dev"
-msgstr "/dev/pts নিৰ্মাণ কৰিবলৈ ব্যৰ্থযৰ্থ: %s"
+msgstr "/dev সৃষ্টি কৰিব নোৱাৰি"
 
 #: src/lxc/lxc_container.c:890
 #, c-format
@@ -9706,7 +9704,7 @@ msgstr "ডিভাইচৰ স্থায়ী সংলগ্ন সমৰ্
 
 #: src/lxc/lxc_driver.c:2858 src/lxc/lxc_driver.c:2914
 #: src/lxc/lxc_driver.c:3706 src/qemu/qemu_driver.c:6669
-#: src/qemu/qemu_hotplug.c:3293
+#: src/qemu/qemu_hotplug.c:3292
 #, c-format
 msgid "multiple devices matching mac address %s found"
 msgstr "mac ঠিকনা %s ৰ সৈতে মিল খোৱা একাধিক ডিভাইচ পোৱা গল"
@@ -9727,8 +9725,8 @@ msgid "no target device %s"
 msgstr "কোনো লক্ষ্য ডিভাইচ %s নাই"
 
 #: src/lxc/lxc_driver.c:2931 src/qemu/qemu_driver.c:6685
-#: src/qemu/qemu_driver.c:6709 src/qemu/qemu_hotplug.c:1342
-#: src/qemu/qemu_hotplug.c:3519
+#: src/qemu/qemu_driver.c:6709 src/qemu/qemu_hotplug.c:1341
+#: src/qemu/qemu_hotplug.c:3518
 msgid "device not present in domain configuration"
 msgstr "ডমেইন সংৰূপত ডিভাইচ উপস্থিত নাই"
 
@@ -9768,7 +9766,7 @@ msgid "No bridge name specified"
 msgstr "কোনো ব্ৰিজ নাম ধাৰ্য্য কৰা হোৱা নাই"
 
 #: src/lxc/lxc_driver.c:3132 src/lxc/lxc_process.c:395
-#: src/qemu/qemu_command.c:312 src/qemu/qemu_hotplug.c:1643
+#: src/qemu/qemu_command.c:312 src/qemu/qemu_hotplug.c:1642
 #, c-format
 msgid "Network '%s' is not active."
 msgstr "নে'টৱৰ্ক '%s' সক্ৰিয় নহয়"
@@ -9795,9 +9793,9 @@ msgid "Hostdev source %s must be a block device"
 msgstr "Hostdev উৎস %s এটা খণ্ড ডিভাইচ হব লাগিব"
 
 #: src/lxc/lxc_driver.c:3366 src/lxc/lxc_driver.c:3474
-#, fuzzy, c-format
+#, c-format
 msgid "Unable to create directory for device %s"
-msgstr "ডিভাইচ %s ৰ বাবে ডাইৰেকটৰি সৃষ্টি কৰিবলে অক্ষম"
+msgstr "ডিভাইচ %s ৰ বাবে ডাইৰেকটৰি সৃষ্টি কৰিবলৈ অক্ষম"
 
 #: src/lxc/lxc_driver.c:3539 src/lxc/lxc_driver.c:3560
 #: src/lxc/lxc_driver.c:3960 src/lxc/lxc_driver.c:3980
@@ -9816,7 +9814,7 @@ msgid "device type '%s' cannot be attached"
 msgstr "ডিভাইচৰ ধৰণ '%s' সংযুক্ত কৰিব নোৱাৰি"
 
 #: src/lxc/lxc_driver.c:3654 src/libxl/libxl_driver.c:3590
-#: src/qemu/qemu_hotplug.c:2915 src/uml/uml_driver.c:2268
+#: src/qemu/qemu_hotplug.c:2914 src/uml/uml_driver.c:2268
 #, c-format
 msgid "disk %s not found"
 msgstr "%s ডিষ্ক পোৱা ন'গ'ল"
@@ -9827,7 +9825,7 @@ msgstr "%s ডিষ্ক পোৱা ন'গ'ল"
 msgid "Unable to remove device %s"
 msgstr "ডিভাইচ %s আতৰাবলে অক্ষম"
 
-#: src/lxc/lxc_driver.c:3711 src/qemu/qemu_hotplug.c:3299
+#: src/lxc/lxc_driver.c:3711 src/qemu/qemu_hotplug.c:3298
 #, c-format
 msgid "network device %s not found"
 msgstr "নেটৱাৰ্ক ডিভাইচ %s পোৱা নগল"
@@ -9870,7 +9868,7 @@ msgid "Unable to modify live devices"
 msgstr "জীৱন্ত ডিভাইচসমূহ পৰিবৰ্তন কৰিবলে অক্ষম"
 
 #: src/lxc/lxc_driver.c:4465 src/libxl/libxl_driver.c:1560
-#: src/qemu/qemu_command.c:7567 src/qemu/qemu_driver.c:1201
+#: src/qemu/qemu_command.c:7569 src/qemu/qemu_driver.c:1201
 #: src/xen/xen_driver.c:624
 msgid "Host SMBIOS information is not available"
 msgstr "হস্ট SMBIOS তথ্য উপলব্ধ নহয়"
@@ -9974,9 +9972,9 @@ msgid "Failed to read pid file %s/%s.pid"
 msgstr "pid ফাইল '%s' খোলোঁতে ব্যৰ্থ : %s"
 
 #: src/lxc/lxc_process.c:1215 src/lxc/lxc_process.c:1426
-#, fuzzy, c-format
+#, c-format
 msgid "No valid cgroup for machine %s"
-msgstr "ডমেইনৰ বাবে কোনো বিৱৰণ নাই: %s"
+msgstr "মেচিন %s ৰ বাবে কোনো বৈধ cgroup নাই"
 
 #: src/lxc/lxc_process.c:1282
 msgid "could not close logfile"
@@ -9989,14 +9987,14 @@ msgid "Failed to autostart VM '%s': %s"
 msgstr "VM '%s' autostart কৰিবলৈ ব্যৰ্থ: %s"
 
 #: src/libxl/libxl_driver.c:416
-#, fuzzy, c-format
+#, c-format
 msgid "failed to open logfile %s"
-msgstr "ফাইল খোলোঁতে ব্যৰ্থ"
+msgstr "লগফাইল %s খোলিবলৈ ব্যৰ্থ"
 
 #: src/libxl/libxl_driver.c:426
-#, fuzzy, c-format
+#, c-format
 msgid "cannot create libxenlight logger for domain %s"
-msgstr "cputime পঢ়িব নোৱাৰি ডোমেইন %d"
+msgstr "ডমেইন %s ৰ বাবে libxenlight লগাৰ সৃষ্টি কৰিব নোৱাৰি"
 
 #: src/libxl/libxl_driver.c:433
 msgid "Failed libxl context initialization"
@@ -10359,7 +10357,7 @@ msgstr ""
 "ডমেইন ব্যৱস্থাপিত সংৰক্ষণ ছবি অস্তিত্ববান থকা অৱস্থাত অবিৱৰণ কৰিবলে নাকচ কৰিছে"
 
 #: src/libxl/libxl_driver.c:3478 src/qemu/qemu_driver.c:6454
-#: src/qemu/qemu_hotplug.c:718
+#: src/qemu/qemu_hotplug.c:717
 #, c-format
 msgid "No device with bus '%s' and target '%s'"
 msgstr "bus '%s' আৰু লক্ষ্য '%s' থকা ডিভাইচ নাই"
@@ -10384,13 +10382,13 @@ msgstr "ডিস্কৰ উৎসৰ পথ অনুপস্থিত"
 msgid "libxenlight failed to attach disk '%s'"
 msgstr "libxenlight এ ডিস্ক '%s' সংলগ্ন কৰিবলে ব্যৰ্থ হল"
 
-#: src/libxl/libxl_driver.c:3558 src/qemu/qemu_hotplug.c:765
+#: src/libxl/libxl_driver.c:3558 src/qemu/qemu_hotplug.c:764
 #: src/uml/uml_driver.c:2213
 #, c-format
 msgid "disk bus '%s' cannot be hotplugged."
 msgstr "ডিষ্ক bus '%s' ক hotplug কৰিব নোৱাৰি।"
 
-#: src/libxl/libxl_driver.c:3564 src/qemu/qemu_hotplug.c:771
+#: src/libxl/libxl_driver.c:3564 src/qemu/qemu_hotplug.c:770
 #, c-format
 msgid "disk device type '%s' cannot be hotplugged"
 msgstr "ডিষ্ক ডিভাইচৰ ধৰণ '%s' ক hotplug কৰিব নোৱাৰি।"
@@ -10431,9 +10429,8 @@ msgid "this disk doesn't support update"
 msgstr "এই ডিস্কে আপডেইট সমৰ্থন নকৰে"
 
 #: src/libxl/libxl_driver.c:4163 src/libxl/libxl_conf.c:118
-#, fuzzy
 msgid "libxl_get_numainfo failed"
-msgstr "libxl_get_version_info ব্যৰ্থ হল"
+msgstr "libxl_get_numainfo ব্যৰ্থ হল"
 
 #: src/libxl/libxl_driver.c:4170 src/nodeinfo.c:1492 src/nodeinfo.c:1676
 #, c-format
@@ -10503,9 +10500,8 @@ msgid "Failed to get node physical info from libxenlight"
 msgstr "libxenlight ৰ পৰা ন'ড ভৌতিক তথ্য প্ৰাপ্ত কৰিবলে ব্যৰ্থ"
 
 #: src/libxl/libxl_conf.c:124
-#, fuzzy
 msgid "libxl_get_cpu_topology failed"
-msgstr "libxl_get_physinfo_info ব্যৰ্থ হল"
+msgstr "libxl_get_cpu_topology ব্যৰ্থ হল"
 
 #: src/libxl/libxl_conf.c:229
 msgid "Failed to get version info from libxenlight"
@@ -10522,24 +10518,21 @@ msgid "libxenlight failed to parse UUID '%s'"
 msgstr "libxenlight এ UUID '%s' বিশ্লেষণ কৰিবলে ব্যৰ্থ হল"
 
 #: src/libxl/libxl_conf.c:448
-#, fuzzy
 msgid "unknown chrdev type"
-msgstr "অজ্ঞাত chr ডিভাইচ ধৰণ '%s'"
+msgstr "অজ্ঞাত chrdev ধৰণ"
 
-#: src/libxl/libxl_conf.c:519 src/qemu/qemu_command.c:5720
+#: src/libxl/libxl_conf.c:519 src/qemu/qemu_command.c:5722
 #, c-format
 msgid "unsupported chardev '%s'"
 msgstr "অসমৰ্থিত chardev '%s'"
 
 #: src/libxl/libxl_conf.c:611
-#, fuzzy
 msgid "Only one serial device is supported by libxl"
-msgstr "কেৱল এটা প্ৰাথমিক ভিডিঅ' ডিভাইচ সমৰ্থিত"
+msgstr "libxl দ্বাৰা কেৱল এটা ক্ৰমিক ডিভাইচ সমৰ্থিত"
 
 #: src/libxl/libxl_conf.c:621
-#, fuzzy
 msgid "Parallel devices are not supported by libxl"
-msgstr "নাম থকা ডিভাইচ এলিয়াচসমূহ সমৰ্থিত নহয়"
+msgstr "libxl দ্বাৰা সমান্তৰাল ডিভাইচসমূহ সমৰ্থিত নহয়"
 
 #: src/libxl/libxl_conf.c:705 src/libxl/libxl_conf.c:730
 #: src/libxl/libxl_conf.c:740 src/libxl/libxl_conf.c:752
@@ -11674,9 +11667,9 @@ msgid "Could not determine kernel version from string %s"
 msgstr "স্ট্ৰিং %s ৰ পৰা কাৰনেল সংস্কৰণ নিৰ্ধাৰণ কৰিব নোৱাৰি"
 
 #: src/nwfilter/nwfilter_ebiptables_driver.c:4368
-#, fuzzy, c-format
+#, c-format
 msgid "Could not determine iptables version from string %s"
-msgstr "স্ট্ৰিং %s ৰ পৰা কাৰনেল সংস্কৰণ নিৰ্ধাৰণ কৰিব নোৱাৰি"
+msgstr "স্ট্ৰিং %s ৰ পৰা iptables সংস্কৰণ নিৰ্ধাৰণ কৰিব পৰা নগল"
 
 #: src/nwfilter/nwfilter_ebiptables_driver.c:4412
 msgid "essential tools to support ip(6)tables firewalls could not be located"
@@ -12981,838 +12974,843 @@ msgstr "%d প্ৰকৃতিৰ নে'টৱৰ্ক সমৰ্থিত
 msgid "failed to add ebtables rule to allow MAC address on '%s'"
 msgstr "'%s' ত MAC ঠিকনাৰ অনুমতি দিয়বলে ebtables নিয়ম যোগ কৰিবলে ব্যৰ্থ"
 
-#: src/qemu/qemu_command.c:458
+#: src/qemu/qemu_command.c:460
 msgid "vhost-net is not supported with this QEMU binary"
 msgstr "vhost-net এই QEMU বাইনাৰিৰ সৈতে সমৰ্থিত নহয়"
 
-#: src/qemu/qemu_command.c:470
+#: src/qemu/qemu_command.c:472
 msgid "vhost-net is only supported for virtio network interfaces"
 msgstr "vhost-net কেৱল virtio নেটৱাৰ্ক আন্তঃপৃষ্ঠসমূহৰ বাবে সমৰ্থিত"
 
-#: src/qemu/qemu_command.c:488
+#: src/qemu/qemu_command.c:490
 msgid "vhost-net was requested for an interface, but is unavailable"
 msgstr "vhost-net এটা আন্তঃপৃষ্ঠৰ বাবে প্ৰয়োজন আছিল, কিন্তু উপলব্ধ নহয়"
 
-#: src/qemu/qemu_command.c:539
+#: src/qemu/qemu_command.c:541
 #, c-format
 msgid ""
 "PCI device %04x:%02x:%02x.%x allocated from network %s is already in use by "
 "domain %s"
 msgstr "PCI ডিভাইচ %04x:%02x:%02x.%x আবন্টিত নেটৱাৰ্ক %s ইতিমধ্যে ব্যৱহৃত  ডমেইন %s"
 
-#: src/qemu/qemu_command.c:620
+#: src/qemu/qemu_command.c:622
 #, c-format
 msgid "cannot convert disk '%s' to bus/device index"
 msgstr "ডিষ্ক '%s' ক bus/device index লৈ সলনি কৰিব নোৱাৰি"
 
-#: src/qemu/qemu_command.c:649
+#: src/qemu/qemu_command.c:651
 #, c-format
 msgid "Unsupported disk name mapping for bus '%s'"
 msgstr "'%s' ধৰণৰ ডিস্ক সমৰ্থিত নহয়"
 
-#: src/qemu/qemu_command.c:672
+#: src/qemu/qemu_command.c:674
 msgid "This QEMU doesn't support the LSI 53C895A SCSI controller"
 msgstr "এই QEMU এ LSI 53C895A SCSI নিয়ন্ত্ৰক সমৰ্থন নকৰে"
 
-#: src/qemu/qemu_command.c:680
+#: src/qemu/qemu_command.c:682
 msgid "This QEMU doesn't support virtio scsi controller"
 msgstr "এই QEMU এ virtio scsi নিয়ন্ত্ৰক সমৰ্থন নকৰে"
 
-#: src/qemu/qemu_command.c:691
+#: src/qemu/qemu_command.c:693
 msgid "This QEMU doesn't support the LSI SAS1078 controller"
 msgstr "এই QEMU এ LSI SAS1078 নিয়ন্ত্ৰক সমৰ্থন নকৰে"
 
-#: src/qemu/qemu_command.c:698 src/qemu/qemu_command.c:4623
+#: src/qemu/qemu_command.c:700 src/qemu/qemu_command.c:4625
 #, c-format
 msgid "Unsupported controller model: %s"
 msgstr "অসমৰ্থিত নিয়ন্ত্ৰক আৰ্হি: %s"
 
-#: src/qemu/qemu_command.c:712
+#: src/qemu/qemu_command.c:714
 msgid "Unable to determine model for scsi controller"
 msgstr "scsi নিয়ন্ত্ৰকৰ বাবে আৰ্হি নিৰ্ধাৰণ কৰিবলে অক্ষম"
 
-#: src/qemu/qemu_command.c:795
+#: src/qemu/qemu_command.c:797
 msgid "Unable to determine device index for network device"
 msgstr "নে'টৱৰ্ক ডিভাইচৰ বাবে ডিভাইচ ইন্ডেক্স নিৰ্ধাৰণ কৰিবলৈ ব্যৰ্থ"
 
-#: src/qemu/qemu_command.c:819
+#: src/qemu/qemu_command.c:821
 msgid "Unable to determine device index for hostdev device"
 msgstr "hostdev ডিভাইচৰ বাবে ডিভাইচ সূচী নিৰ্ধাৰণ কৰিবলে অক্ষম"
 
-#: src/qemu/qemu_command.c:844
+#: src/qemu/qemu_command.c:846
 msgid "Unable to determine device index for redirected device"
 msgstr "পুনৰনিৰ্দেশ কৰা ডিভাইচৰ বাবে ডিভাইচ সূচী নিৰ্ধাৰণ কৰিবলে অক্ষম"
 
-#: src/qemu/qemu_command.c:899
+#: src/qemu/qemu_command.c:901
 msgid "Unable to determine device index for character device"
 msgstr "আখৰ ডিভাইচৰ বাবে ডিভাইচ সূচী নিৰ্ধাৰণ কৰিবলে অক্ষম"
 
-#: src/qemu/qemu_command.c:1096
+#: src/qemu/qemu_command.c:1098
 #, c-format
 msgid "The CCW devno '%s' is in use already "
 msgstr "CCW devno '%s' ইতিমধ্যে ব্যৱহৃত"
 
-#: src/qemu/qemu_command.c:1107
+#: src/qemu/qemu_command.c:1109
 msgid "There are no more free CCW devnos."
 msgstr "আৰু মুক্ত CCW devnos উপলব্ধ নাই।"
 
-#: src/qemu/qemu_command.c:1346
+#: src/qemu/qemu_command.c:1348
 #, c-format
 msgid "spapr-vio address %#llx already in use"
 msgstr "spapr-vio ঠিকনা %#llx ইতিমধ্যে ব্যৱহৃত"
 
-#: src/qemu/qemu_command.c:1465
+#: src/qemu/qemu_command.c:1467
 #, c-format
 msgid ""
 "PCI bus is not compatible with the device at %s. Device requires a standard "
 "PCI slot, which is not provided by bus %.4x:%.2x"
 msgstr ""
+"PCI বাচ %s ত থকা ডিভাইচৰ সৈতে সংগত নহয়। ডিভাইচৰ এটা প্ৰামাণিক PCI স্লটৰ "
+"প্ৰয়োজন, যি বাচ %.4x:%.2x দ্বাৰা প্ৰদান কৰা নহয়"
 
-#: src/qemu/qemu_command.c:1471
+#: src/qemu/qemu_command.c:1473
 #, c-format
 msgid ""
 "PCI bus is not compatible with the device at %s. Device requires a PCI "
 "Express slot, which is not provided by bus %.4x:%.2x"
 msgstr ""
+"PCI বাচ %s ত থকা ডিভাইচৰ সৈতে সংগত নহয়। ডিভাইচৰ এটা PCI এক্সপ্ৰেচ স্লটৰ প্ৰয়োজন, "
+"যি বাচ %.4x:%.2x দ্বাৰা প্ৰদান কৰা নহয়"
 
-#: src/qemu/qemu_command.c:1480
+#: src/qemu/qemu_command.c:1482
 #, c-format
 msgid "The device information for %s has no PCI connection types listed"
-msgstr ""
+msgstr "%s ৰ বাবে ডিভাইচ তথ্যৰ কোনো PCI সংযোগ ধৰণ তালিকাভুক্ত নাই"
 
-#: src/qemu/qemu_command.c:1490
+#: src/qemu/qemu_command.c:1492
 #, c-format
 msgid ""
 "PCI bus is not compatible with the device at %s. Device requires hot-plug "
 "capability, which is not provided by bus %.4x:%.2x"
 msgstr ""
+"PCI বাচ %s ত থকা ডিভাইচৰ সৈতে সংগত নহয়। ডিভাইচৰ হট-প্লাগ ক্ষমতাৰ প্ৰয়োজন, যি "
+"বাচ %.4x:%.2x দ্বাৰা প্ৰদান কৰা নহয়"
 
-#: src/qemu/qemu_command.c:1517 src/qemu/qemu_command.c:2132
+#: src/qemu/qemu_command.c:1519 src/qemu/qemu_command.c:2134
 msgid "No PCI buses available"
 msgstr "কোনো PCI বাচ উপলব্ধ নাই"
 
-#: src/qemu/qemu_command.c:1522
-#, fuzzy, c-format
+#: src/qemu/qemu_command.c:1524
+#, c-format
 msgid "Invalid PCI address %s. Only PCI domain 0 is available"
-msgstr "কেৱল PCI ডমেইন 0 উপলব্ধ"
+msgstr "অবৈধ PCI ঠিকনা %s। কেৱল PCI ডমেইন 0 উপলব্ধ"
 
-#: src/qemu/qemu_command.c:1529
-#, fuzzy, c-format
+#: src/qemu/qemu_command.c:1531
+#, c-format
 msgid "Invalid PCI address %s. Only PCI buses up to %zu are available"
-msgstr "কেৱল %zu লৈকে PCI বাচ উপলব্ধ"
+msgstr "অবৈধ PCI ঠিকনা %s। কেৱল %zu লৈকে PCI বাচসমূহ উপলব্ধ"
 
-#: src/qemu/qemu_command.c:1547
-#, fuzzy, c-format
+#: src/qemu/qemu_command.c:1549
+#, c-format
 msgid "Invalid PCI address %s. slot must be >= %zu"
-msgstr "অবৈধ PCI ঠিকনা: স্লট হব লাগিব < %u"
+msgstr "অবৈধ PCI ঠিকনা %s। স্লট >= %zu হব লাগিব"
 
-#: src/qemu/qemu_command.c:1553
-#, fuzzy, c-format
+#: src/qemu/qemu_command.c:1555
+#, c-format
 msgid "Invalid PCI address %s. slot must be <= %zu"
-msgstr "অবৈধ PCI ঠিকনা: স্লট হব লাগিব < %u"
+msgstr "অবৈধ PCI ঠিকনা %s। স্লট <= %zu হব লাগিব"
 
-#: src/qemu/qemu_command.c:1559
-#, fuzzy, c-format
+#: src/qemu/qemu_command.c:1561
+#, c-format
 msgid "Invalid PCI address %s. function must be <= %u"
-msgstr "অবৈধ PCI ঠিকনা: ফলন হব লাগিব < %u"
+msgstr "অবৈধ PCI ঠিকনা %s। ফলন <= %u হব লাগিব"
 
-#: src/qemu/qemu_command.c:1594
-#, fuzzy, c-format
+#: src/qemu/qemu_command.c:1596
+#, c-format
 msgid "Invalid PCI controller model %d"
-msgstr "অসমৰ্থিত নিয়ন্ত্ৰক আৰ্হি: %s"
+msgstr "অবৈধ PCI নিয়ন্ত্ৰক আৰ্হি %d"
 
-#: src/qemu/qemu_command.c:1629
+#: src/qemu/qemu_command.c:1631
 msgid ""
 "Cannot automatically add a new PCI bus for a device requiring a slot other "
 "than standard PCI."
 msgstr ""
+"প্ৰামাণিক PCI ৰ বাহিৰে এটা স্লটৰ প্ৰয়োজনীয়তা হোৱা এটা ডিভাইচৰ বাবে এটা নতুন PCI "
+"বাচ স্বচালিতভাৱে যোগ কৰিব নোৱাৰি।"
 
-#: src/qemu/qemu_command.c:1753
-#, fuzzy
+#: src/qemu/qemu_command.c:1755
 msgid "Bus 0 must be PCI for integrated PIIX3 USB or IDE controllers"
-msgstr "ide নিয়ন্ত্ৰকৰ বাবে বাচ 0 হব লাগিব"
+msgstr "বাচ 0 অনুকুলিত PIIX3 USB অথবা IDE নিয়ন্ত্ৰকসমূহৰ বাবে PCI হব লাগিব"
 
-#: src/qemu/qemu_command.c:1831
+#: src/qemu/qemu_command.c:1833
 msgid "PCI bridges are not supported by this QEMU binary"
 msgstr "PCI ব্ৰিজসমূহ এই QEMU বাইনাৰি দ্বাৰা সমৰ্থিত নহয়"
 
-#: src/qemu/qemu_command.c:1922
+#: src/qemu/qemu_command.c:1924
 #, c-format
 msgid "Inappropriate new pci controller index %zu not found in addrs"
-msgstr ""
+msgstr "addrs ত অবিহিত নতুন pci নিয়ন্ত্ৰক সূচী %zu পোৱা নগল"
 
-#: src/qemu/qemu_command.c:1991
-#, fuzzy, c-format
+#: src/qemu/qemu_command.c:1993
+#, c-format
 msgid ""
 "Attempted double use of PCI slot %s (may need \"multifunction='on'\" for "
 "device on function 0)"
 msgstr ""
-"PCI ঠিকনা '%s' ৰ দুবাৰ ব্যৱহাৰৰ চেষ্টা (ফলন 0 ত ডিভাইচৰ বাবে "
+"PCI স্লট '%s' ৰ দুবাৰ ব্যৱহাৰৰ চেষ্টা (ফলন 0 ত ডিভাইচৰ বাবে "
 "\"multifunction='on'\" ৰ প্ৰয়োজন হব পাৰে)"
 
-#: src/qemu/qemu_command.c:2002
-#, fuzzy, c-format
+#: src/qemu/qemu_command.c:2004
+#, c-format
 msgid "Attempted double use of PCI Address %s"
-msgstr "PCI ঠিকনা '%s' ৰ চেষ্টা কৰা দুবাৰ ব্যৱহাৰ"
+msgstr "PCI ঠিকনা %s ৰ প্ৰচেষ্টিত দ্বৈত ব্যৱহাৰ"
 
-#: src/qemu/qemu_command.c:2006
-#, fuzzy, c-format
+#: src/qemu/qemu_command.c:2008
+#, c-format
 msgid ""
 "Attempted double use of PCI Address %s (may need \"multifunction='on'\" for "
 "device on function 0)"
 msgstr ""
-"PCI ঠিকনা '%s' ৰ দুবাৰ ব্যৱহাৰৰ চেষ্টা (ফলন 0 ত ডিভাইচৰ বাবে "
+"PCI ঠিকনা %s ৰ দুবাৰ ব্যৱহাৰৰ চেষ্টা (ফলন 0 ত ডিভাইচৰ বাবে "
 "\"multifunction='on'\" ৰ প্ৰয়োজন হব পাৰে)"
 
-#: src/qemu/qemu_command.c:2053
+#: src/qemu/qemu_command.c:2055
 msgid "Only PCI device addresses with function=0 are supported"
 msgstr "অকল function=0 সহ PCI ডিভাইচসমূহ সমৰ্থিত হ'ব"
 
-#: src/qemu/qemu_command.c:2188
-#, fuzzy
+#: src/qemu/qemu_command.c:2190
 msgid "No more available PCI slots"
-msgstr "উপলব্ধ PCI ডিভাইচ অৱশিষ্ট নাই"
+msgstr "আৰু উপলব্ধ PCI স্লট নাই"
 
-#: src/qemu/qemu_command.c:2281
+#: src/qemu/qemu_command.c:2283
 msgid "Primary IDE controller must have PCI address 0:0:1.1"
 msgstr "প্ৰধান IDE নিয়ন্ত্ৰকৰ ক্ষেত্ৰত PCI ঠিকনা 0:0:1.1 ব্যৱহাৰ কৰা আৱশ্যক"
 
-#: src/qemu/qemu_command.c:2301
+#: src/qemu/qemu_command.c:2303
 msgid "PIIX3 USB controller must have PCI address 0:0:1.2"
 msgstr "PIIX3 USB নিয়ন্ত্ৰকৰ PCI ঠিকনা 0:0:1.2 থাকিব লাগিব"
 
-#: src/qemu/qemu_command.c:2355
+#: src/qemu/qemu_command.c:2357
 msgid "PCI address 0:0:2.0 is in use, QEMU needs it for primary video"
 msgstr "PCI ঠিকনা 0:0:2.0 ব্যৱহৃত, QEMU ৰ ইয়াক প্ৰাথমিক ভিডিঅ'ৰ বাবে প্ৰয়োজন"
 
-#: src/qemu/qemu_command.c:2368
+#: src/qemu/qemu_command.c:2370
 msgid "Primary video card must have PCI address 0:0:2.0"
 msgstr "প্ৰধান ভিডিও কাৰ্ডৰ ক্ষেত্ৰত PCI ঠিকনা 0:0:2.0 ব্যৱহাৰ কৰা আৱশ্যক"
 
-#: src/qemu/qemu_command.c:2437
-#, fuzzy
+#: src/qemu/qemu_command.c:2439
 msgid "Primary SATA controller must have PCI address 0:0:1f.2"
-msgstr "প্ৰধান IDE নিয়ন্ত্ৰকৰ ক্ষেত্ৰত PCI ঠিকনা 0:0:1.1 ব্যৱহাৰ কৰা আৱশ্যক"
+msgstr "প্ৰাথমিক SATA নিয়ন্ত্ৰকৰ PCI ঠিকনা 0:0:1f.2 হব লাগিব"
 
-#: src/qemu/qemu_command.c:2501
-#, fuzzy
+#: src/qemu/qemu_command.c:2503
 msgid "PCI address 0:0:1.0 is in use, QEMU needs it for primary video"
-msgstr "PCI ঠিকনা 0:0:2.0 ব্যৱহৃত, QEMU ৰ ইয়াক প্ৰাথমিক ভিডিঅ'ৰ বাবে প্ৰয়োজন"
+msgstr "PCI ঠিকনা 0:0:1.0 ব্যৱহৃত, QEMU ৰ ইয়াক প্ৰাথমিক ভিডিঅ'ৰ বাবে প্ৰয়োজন"
 
-#: src/qemu/qemu_command.c:2514
-#, fuzzy
+#: src/qemu/qemu_command.c:2516
 msgid "Primary video card must have PCI address 0:0:1.0"
-msgstr "প্ৰধান ভিডিও কাৰ্ডৰ ক্ষেত্ৰত PCI ঠিকনা 0:0:2.0 ব্যৱহাৰ কৰা আৱশ্যক"
+msgstr "প্ৰাথমিক ভিডিঅ' কাৰ্ডৰ PCI ঠিকনা 0:0:1.0 হব লাগিব"
 
-#: src/qemu/qemu_command.c:2770
+#: src/qemu/qemu_command.c:2772
 msgid "virtio only support device address type 'PCI'"
 msgstr "virtio এ কেৱল ডিভাইচ ঠিকনা ধৰণ 'PCI' সমৰ্থন কৰে"
 
-#: src/qemu/qemu_command.c:2825 src/qemu/qemu_command.c:5197
+#: src/qemu/qemu_command.c:2827 src/qemu/qemu_command.c:5199
 msgid "non-primary video device must be type of 'qxl'"
 msgstr "অ-প্ৰাথমিক ভিডিঅ' ডিভাইচ ধৰণ 'qxl' ৰ হব লাগিব"
 
-#: src/qemu/qemu_command.c:2888
+#: src/qemu/qemu_command.c:2890
 #, c-format
 msgid ""
 "Device alias was not set for PCI controller with index %u required for "
 "device at address %s"
 msgstr ""
+"ডিভাইচৰ বাবে প্ৰয়োজনীয় সূচী %u ৰ সৈতে PCI নিয়ন্ত্ৰকৰ বাবে ডিভাইচ এলিয়াচ সংহতি "
+"কৰা হোৱা নাছিল, ঠিকনা %s"
 
-#: src/qemu/qemu_command.c:2899
+#: src/qemu/qemu_command.c:2901
 #, c-format
 msgid ""
 "Could not find PCI controller with index %u required for device at address %s"
-msgstr ""
+msgstr "ডিভাইচৰ বাবে প্ৰয়োজনীয় সূচী %u ৰ সৈতে PCI নিয়ন্ত্ৰক পোৱা নগল, ঠিকনা %s"
 
-#: src/qemu/qemu_command.c:2909
+#: src/qemu/qemu_command.c:2911
 msgid ""
 "Only PCI device addresses with function=0 are supported with this QEMU binary"
 msgstr "এই QEMU বাইনাৰিৰৰ সৈতে কেৱল ফলন=0 ৰ সৈতে PCI ডিভাইচ ঠিকনাসমূহ সমৰ্থিত"
 
-#: src/qemu/qemu_command.c:2915
+#: src/qemu/qemu_command.c:2917
 msgid "'multifunction=on' is not supported with this QEMU binary"
 msgstr "এই QEMU লাইব্ৰেৰীৰ সৈতে 'multifunction=on' সমৰ্থিত নহয়"
 
-#: src/qemu/qemu_command.c:2934
+#: src/qemu/qemu_command.c:2936
 msgid "Multiple PCI buses are not supported with this QEMU binary"
 msgstr "এই QEMU বাইনাৰিৰ সৈতে একাধিক PCI বাচ সমৰ্থিত নহয়"
 
-#: src/qemu/qemu_command.c:2981
+#: src/qemu/qemu_command.c:2983
 msgid "rombar and romfile are supported only for PCI devices"
 msgstr "rombar আৰু romfile কেৱল PCI ডিভাইচসমূহৰ বাবে সমৰ্থিত"
 
-#: src/qemu/qemu_command.c:2986
+#: src/qemu/qemu_command.c:2988
 msgid "rombar and romfile not supported in this QEMU binary"
 msgstr "এই QEMU বাইনাৰিত rombar আৰু romfile সমৰ্থিত নহয়"
 
-#: src/qemu/qemu_command.c:3025
+#: src/qemu/qemu_command.c:3027
 #, c-format
 msgid "driver serial '%s' contains unsafe characters"
 msgstr "চালকৰ ক্ৰমিক সংখ্যা '%s' ত উপস্থিত কিছু অক্ষৰ নিৰাপদ নহয়"
 
-#: src/qemu/qemu_command.c:3059
-#, fuzzy, c-format
+#: src/qemu/qemu_command.c:3061
+#, c-format
 msgid "%s no secret matches uuid '%s'"
-msgstr "uuid '%s' ৰ সৈতে সুসংগত গোপনীয় তথ্য অনুপস্থিতুপস্থিত"
+msgstr "%s গোপনে uuid '%s' ৰ সৈতে মিল নাখায়"
 
-#: src/qemu/qemu_command.c:3063
-#, fuzzy, c-format
+#: src/qemu/qemu_command.c:3065
+#, c-format
 msgid "%s no secret matches usage value '%s'"
-msgstr "'%s' ব্যৱহাৰৰ সৈতে সুসংগত গোপনীয় তথ্য অনুপস্থিতনুপস্থিত"
+msgstr "%s এ গোপন ব্যৱহাৰ মান '%s' ৰ সৈতে মিল নাখায়"
 
-#: src/qemu/qemu_command.c:3074
-#, fuzzy, c-format
+#: src/qemu/qemu_command.c:3076
+#, c-format
 msgid "could not get value of the secret for username '%s' using uuid '%s'"
-msgstr "ব্যৱহাৰকাৰী %s ৰ বাবে গোপনৰ মান প্ৰাপ্ত কৰিব পৰা নগল"
+msgstr ""
+"uuid '%s' ব্যৱহাৰ কৰা ব্যৱহাৰকাৰীনাম '%s' ৰ বাবে গোপনৰ নাম প্ৰাপ্ত কৰিব পৰা নগল"
 
-#: src/qemu/qemu_command.c:3079
-#, fuzzy, c-format
+#: src/qemu/qemu_command.c:3081
+#, c-format
 msgid ""
 "could not get value of the secret for username '%s' using usage value '%s'"
-msgstr "ব্যৱহাৰকাৰী %s ৰ বাবে গোপনৰ মান প্ৰাপ্ত কৰিব পৰা নগল"
+msgstr ""
+"ব্যৱহাৰ মান '%s' ব্যৱহাৰ কৰা ব্যৱহাৰকাৰীনাম '%s' ৰ বাবে গোপনৰ মান প্ৰাপ্ত কৰিব "
+"পৰা নগল"
 
-#: src/qemu/qemu_command.c:3114
+#: src/qemu/qemu_command.c:3116
 #, c-format
 msgid "':' not allowed in RBD source volume name '%s'"
 msgstr "RBD উৎস ভলিউম নাম '%s' ত ':' ৰ অনুমতি নাই"
 
-#: src/qemu/qemu_command.c:3305
+#: src/qemu/qemu_command.c:3307
 #, c-format
 msgid "Invalid transport/scheme '%s'"
 msgstr "অবৈধ পৰিবহন/আঁচনি '%s'"
 
-#: src/qemu/qemu_command.c:3315
+#: src/qemu/qemu_command.c:3317
 #, c-format
 msgid "Invalid %s transport type '%s'"
 msgstr "অবৈধ %s পৰিবহন ধৰণ '%s'"
 
-#: src/qemu/qemu_command.c:3337
+#: src/qemu/qemu_command.c:3339
 #, c-format
 msgid "Invalid query parameter '%s'"
 msgstr "অবৈধ প্ৰশ্ন প্ৰাচল '%s'"
 
-#: src/qemu/qemu_command.c:3403
+#: src/qemu/qemu_command.c:3405
 #, c-format
 msgid "invalid name '%s' for iSCSI disk"
 msgstr "iSCSI ডিস্কৰ বাবে অবৈধ নাম '%s'"
 
-#: src/qemu/qemu_command.c:3442
+#: src/qemu/qemu_command.c:3444
 #, c-format
 msgid "cannot parse nbd filename '%s'"
 msgstr "nbd ফাইলনাম '%s' বিশ্লেষণ কৰিব নোৱাৰি"
 
-#: src/qemu/qemu_command.c:3498
+#: src/qemu/qemu_command.c:3500
 #, c-format
 msgid "%s accepts only one host"
 msgstr "%s এ কেৱল এটা হস্ট গ্ৰহণ কৰে"
 
-#: src/qemu/qemu_command.c:3583
+#: src/qemu/qemu_command.c:3585
 msgid "nbd accepts only one host"
 msgstr "nbd এ কেৱল এটা হস্ট গ্ৰহণ কৰে"
 
-#: src/qemu/qemu_command.c:3608
+#: src/qemu/qemu_command.c:3610
 msgid "socket attribute required for unix transport"
 msgstr "unix পৰিবহনৰ বাবে চকেট বৈশিষ্ট্যৰ প্ৰয়োজন"
 
-#: src/qemu/qemu_command.c:3616
+#: src/qemu/qemu_command.c:3618
 #, c-format
 msgid "nbd does not support transport '%s'"
 msgstr "nbd এ পৰিবহন '%s' সমৰ্থন নকৰে"
 
-#: src/qemu/qemu_command.c:3637 src/qemu/qemu_command.c:3796
-#: src/qemu/qemu_command.c:8282
+#: src/qemu/qemu_command.c:3639 src/qemu/qemu_command.c:3798
+#: src/qemu/qemu_command.c:8284
 msgid "cannot create virtual FAT disks in read-write mode"
 msgstr "পঢ়া-লিখাৰ মোডত ভাৰ্চুৱেল FAT ডিস্ক নিৰ্মাণ কৰা সম্ভৱ নহয়"
 
-#: src/qemu/qemu_command.c:3648
+#: src/qemu/qemu_command.c:3650
 msgid "tray status 'open' is invalid for block type volume"
 msgstr "ট্ৰে অৱস্থা 'open' খণ্ড ধৰণ ভলিউমৰ বাবে অবৈধ"
 
-#: src/qemu/qemu_command.c:3703 src/qemu/qemu_command.c:4095
-#: src/qemu/qemu_command.c:8267 src/uml/uml_conf.c:408
+#: src/qemu/qemu_command.c:3705 src/qemu/qemu_command.c:4097
+#: src/qemu/qemu_command.c:8269 src/uml/uml_conf.c:408
 #, c-format
 msgid "unsupported disk type '%s'"
 msgstr "'%s' ধৰণৰ ডিস্ক সমৰ্থিত নহয়"
 
-#: src/qemu/qemu_command.c:3711
+#: src/qemu/qemu_command.c:3713
 msgid "unexpected address type for scsi disk"
 msgstr "scsi ডিস্কৰ বাবে অপ্ৰত্যাশিত ধৰণৰ ঠিকনা"
 
-#: src/qemu/qemu_command.c:3720
+#: src/qemu/qemu_command.c:3722
 msgid "SCSI controller only supports 1 bus"
 msgstr "SCSI নিয়ন্ত্ৰক দ্বাৰা অকল 1 বাচ সমৰ্থিত হ'ব"
 
-#: src/qemu/qemu_command.c:3730
+#: src/qemu/qemu_command.c:3732
 msgid "unexpected address type for ide disk"
 msgstr "ide ডিস্কৰ বাবে অপ্ৰত্যাশিত ধৰণৰ ঠিকনা"
 
-#: src/qemu/qemu_command.c:3736 src/qemu/qemu_command.c:3752
+#: src/qemu/qemu_command.c:3738 src/qemu/qemu_command.c:3754
 #, c-format
 msgid "Only 1 %s controller is supported"
 msgstr "অকল ১ %s নিয়ন্ত্ৰক সমৰ্থিত হ'ব"
 
-#: src/qemu/qemu_command.c:3746
+#: src/qemu/qemu_command.c:3748
 msgid "unexpected address type for fdc disk"
 msgstr "fdc ডিস্কৰ বাবে অপ্ৰত্যাশিত ধৰণৰ ঠিকনা"
 
-#: src/qemu/qemu_command.c:3758
+#: src/qemu/qemu_command.c:3760
 #, c-format
 msgid "Only 1 %s bus is supported"
 msgstr "অকল ১ %s বাচ সমৰ্থিত হ'বস"
 
-#: src/qemu/qemu_command.c:3763
+#: src/qemu/qemu_command.c:3765
 msgid "target must be 0 for controller fdc"
 msgstr "নিয়ন্ত্ৰক fdc ৰ বাবে লক্ষ্য 0 হব লাগিব"
 
-#: src/qemu/qemu_command.c:3790 src/qemu/qemu_command.c:8276
+#: src/qemu/qemu_command.c:3792 src/qemu/qemu_command.c:8278
 #, c-format
 msgid "unsupported disk driver type for '%s'"
 msgstr "'%s' ৰ বাবে অসমৰ্থিত ধৰণৰ ডিস্ক চালক"
 
-#: src/qemu/qemu_command.c:3861 src/qemu/qemu_command.c:8236
+#: src/qemu/qemu_command.c:3863 src/qemu/qemu_command.c:8238
 msgid "tray status 'open' is invalid for block type disk"
 msgstr "খণ্ড ধৰণ ডিস্কৰ বাবে ট্ৰে অৱস্থা 'open' অবৈধ"
 
-#: src/qemu/qemu_command.c:3909 src/xenxs/xen_sxpr.c:1828
+#: src/qemu/qemu_command.c:3911 src/xenxs/xen_sxpr.c:1828
 #: src/xenxs/xen_xm.c:1236
 msgid "transient disks not supported yet"
 msgstr "পৰিবৰ্তনশীল ডিস্কসমূহ এতিয়াও সমৰ্থিত নহয়"
 
-#: src/qemu/qemu_command.c:3948
+#: src/qemu/qemu_command.c:3950
 msgid "disk cache mode 'directsync' is not supported by this QEMU"
 msgstr "ডিস্ক ক্যাশ অৱস্থা 'directsync' এই QEMU দ্বাৰা সমৰ্থিত নহয় "
 
-#: src/qemu/qemu_command.c:3954
+#: src/qemu/qemu_command.c:3956
 msgid "disk cache mode 'unsafe' is not supported by this QEMU"
 msgstr "ডিস্ক ক্যাশ অৱস্থা 'unsafe' এই QEMU দ্বাৰা সমৰ্থিত নহয়"
 
-#: src/qemu/qemu_command.c:3973
+#: src/qemu/qemu_command.c:3975
 msgid "copy_on_read is not supported by this QEMU binary"
 msgstr "copy_on_read এই QEMU বাইনাৰি দ্বাৰা সমৰ্থিত নহয়"
 
-#: src/qemu/qemu_command.c:3984
+#: src/qemu/qemu_command.c:3986
 msgid "discard is not supported by this QEMU binary"
 msgstr "এই QEMU বাইনাৰি দ্বাৰা ডিস্কাৰ্ড সমৰ্থিত নহয়"
 
-#: src/qemu/qemu_command.c:4020
+#: src/qemu/qemu_command.c:4022
 msgid "disk aio mode not supported with this QEMU binary"
 msgstr "ডিস্ক aio অৱস্থা এই QEMU বাইনাৰিৰ সৈতে সমৰ্থিত নহয়"
 
-#: src/qemu/qemu_command.c:4035 src/qemu/qemu_driver.c:14753
+#: src/qemu/qemu_command.c:4037 src/qemu/qemu_driver.c:14753
 msgid "block I/O throttling not supported with this QEMU binary"
 msgstr "এই QEMU বাইনাৰিৰ সৈতে খণ্ড I/O থ্ৰটলিং সমৰ্থিত নহয়"
 
-#: src/qemu/qemu_command.c:4103
+#: src/qemu/qemu_command.c:4105
 msgid "Only ide and scsi disk support wwn"
 msgstr "কেৱল ide আৰু scsi ডিস্ক সমৰ্থন wwn"
 
-#: src/qemu/qemu_command.c:4111
+#: src/qemu/qemu_command.c:4113
 msgid "Only scsi disk supports vendor and product"
 msgstr "কেৱল scsi ডিস্কে বিক্ৰেতা আৰু উৎপাদন সমৰ্থন কৰে"
 
-#: src/qemu/qemu_command.c:4122
+#: src/qemu/qemu_command.c:4124
 #, c-format
 msgid "disk device='lun' is not supported for bus='%s'"
 msgstr "বাচ='%s' ৰ বাবে ডিস্ক ডিভাইচ='lun' সমৰ্থিত নহয় "
 
-#: src/qemu/qemu_command.c:4129
+#: src/qemu/qemu_command.c:4131
 #, c-format
 msgid "disk device='lun' is not supported for protocol='%s'"
 msgstr "প্ৰটোকল='%s' ৰ বাবে ডিস্ক ডিভাইচ='lun' সমৰ্থিত নহয়"
 
-#: src/qemu/qemu_command.c:4135
+#: src/qemu/qemu_command.c:4137
 msgid "disk device='lun' is only valid for block type disk source"
 msgstr "disk device='lun' কেৱল খণ্ড ধৰণ ডিস্ক উৎসৰ বাবে বৈধ"
 
-#: src/qemu/qemu_command.c:4140
+#: src/qemu/qemu_command.c:4142
 msgid "disk device='lun' is not supported by this QEMU"
 msgstr "এই QEMU দ্বাৰা ডিস্ক device='lun' সমৰ্থিত নহয়"
 
-#: src/qemu/qemu_command.c:4145
+#: src/qemu/qemu_command.c:4147
 msgid "Setting wwn is not supported for lun device"
 msgstr "lun ডিভাইচৰ বাবে wwn সংহতি কৰাটো সমৰ্থিত নহয়"
 
-#: src/qemu/qemu_command.c:4150
+#: src/qemu/qemu_command.c:4152
 msgid "Setting vendor or product is not supported for lun device"
 msgstr "lun ডিভাইচৰ বাবে বিক্ৰেতা অথবা উৎপাদন সংহতি কৰাটো সমৰ্থিত নহয়"
 
-#: src/qemu/qemu_command.c:4160 src/qemu/qemu_command.c:4291
+#: src/qemu/qemu_command.c:4162 src/qemu/qemu_command.c:4293
 msgid "target must be 0 for ide controller"
 msgstr "ide নিয়ন্ত্ৰকৰ বাবে লক্ষ্য 0 হব লাগিব"
 
-#: src/qemu/qemu_command.c:4167
+#: src/qemu/qemu_command.c:4169
 msgid "Setting wwn for ide disk is not supported by this QEMU"
 msgstr "এই QEMU দ্বাৰা ide ডিস্কৰ বাবে wwn সংহতি কৰাটো সমৰ্থিত নহয়"
 
-#: src/qemu/qemu_command.c:4189
+#: src/qemu/qemu_command.c:4191
 msgid "This QEMU doesn't support scsi-block for lun passthrough"
 msgstr "এই QEMU এ lun পাছথ্ৰুৰ বাবে scsi-block সমৰ্থন নকৰে"
 
-#: src/qemu/qemu_command.c:4198
+#: src/qemu/qemu_command.c:4200
 msgid "Setting wwn for scsi disk is not supported by this QEMU"
 msgstr "এই QEMU দ্বাৰা scsi ডিস্কৰ বাবে wwn সংহতি কৰাটো সমৰ্থিত নহয়"
 
-#: src/qemu/qemu_command.c:4209
+#: src/qemu/qemu_command.c:4211
 msgid "Setting vendor or product for scsi disk is not supported by this QEMU"
 msgstr ""
 "এই QEMU দ্বাৰা scsi ডিস্কৰ বাবে বিক্ৰেতা অথবা উৎপাদন সংহতি কৰাটো সমৰ্থিত নহয়"
 
-#: src/qemu/qemu_command.c:4223
+#: src/qemu/qemu_command.c:4225
 msgid "target must be 0 for controller model 'lsilogic'"
 msgstr "নিয়ন্ত্ৰক আৰ্হি 'lsilogic' ৰ বাবে লক্ষ্য 0 হব লাগিব"
 
-#: src/qemu/qemu_command.c:4249
+#: src/qemu/qemu_command.c:4251
 msgid "This QEMU doesn't support target greater than 7"
 msgstr "এই QEMU এ 7 কে ডাঙৰ লক্ষ্য সমৰ্থন নকৰে"
 
-#: src/qemu/qemu_command.c:4257
+#: src/qemu/qemu_command.c:4259
 msgid "This QEMU only supports both bus and unit equal to 0"
 msgstr "এই QEMU এ কেৱল দুয়োটা বাচ আৰু 0 ৰ সমান একক সমৰ্থন কৰে"
 
-#: src/qemu/qemu_command.c:4286
+#: src/qemu/qemu_command.c:4288
 msgid "bus must be 0 for ide controller"
 msgstr "ide নিয়ন্ত্ৰকৰ বাবে বাচ 0 হব লাগিব"
 
-#: src/qemu/qemu_command.c:4359
+#: src/qemu/qemu_command.c:4361
 #, c-format
 msgid "unsupported disk bus '%s' with device setup"
 msgstr "ডিভাইচ প্ৰস্তুতিৰ সৈতে অসমৰ্থিত ডিস্ক বাচ '%s'"
 
-#: src/qemu/qemu_command.c:4410
+#: src/qemu/qemu_command.c:4412
 msgid "only supports mount filesystem type"
 msgstr "কেৱল মাউন্ট ফাইলচিস্টেম ধৰণ সমৰ্থন কৰে"
 
-#: src/qemu/qemu_command.c:4416
+#: src/qemu/qemu_command.c:4418
 msgid "Filesystem driver type not supported"
 msgstr "ফাইলচিস্টেম ড্ৰাইভাৰ ধৰণ সমৰ্থিত নহয়"
 
-#: src/qemu/qemu_command.c:4435
+#: src/qemu/qemu_command.c:4437
 msgid "only supports passthrough accessmode"
 msgstr "কেৱল পাছথ্ৰু অভিগমঅৱস্থা সমৰ্থন কৰে"
 
-#: src/qemu/qemu_command.c:4445
+#: src/qemu/qemu_command.c:4447
 msgid "filesystem writeout not supported"
 msgstr "ফাইলচিস্টেম writeout সমৰ্থিত নহয়"
 
-#: src/qemu/qemu_command.c:4458
+#: src/qemu/qemu_command.c:4460
 msgid "readonly filesystem is not supported by this QEMU binary"
 msgstr "এই QEMU বাইনাৰি দ্বাৰা কেৱলপঢ়িব পৰা ফাইলচিস্টেম সমৰ্থিত নহয়"
 
-#: src/qemu/qemu_command.c:4486
+#: src/qemu/qemu_command.c:4488
 msgid "can only passthrough directories"
 msgstr "কেৱল ডাইৰেকটৰিসমূহ পাছথ্ৰু কৰিব পাৰি"
 
-#: src/qemu/qemu_command.c:4561 src/qemu/qemu_command.c:5163
+#: src/qemu/qemu_command.c:4563 src/qemu/qemu_command.c:5165
 #, c-format
 msgid "%s not supported in this QEMU binary"
 msgstr "এই QEMU লাইব্ৰেৰীত %s সমৰ্থিত নহয়"
 
-#: src/qemu/qemu_command.c:4592
+#: src/qemu/qemu_command.c:4594
 msgid "'queues' is only supported by virtio-scsi controller"
 msgstr "'queues' কেৱল virtio-scsi নিয়ন্ত্ৰক দ্বাৰা সমৰ্থিত"
 
-#: src/qemu/qemu_command.c:4675
+#: src/qemu/qemu_command.c:4677
 msgid "PCI bridge index should be > 0"
 msgstr "PCI ব্ৰিজ সূচী > 0 হব লাগিব"
 
-#: src/qemu/qemu_command.c:4684
-#, fuzzy
+#: src/qemu/qemu_command.c:4686
 msgid ""
 "The dmi-to-pci-bridge (i82801b11-bridge) controller is not supported in this "
 "QEMU binary"
-msgstr "hypervisor ৰ দ্বাৰা এই আপেক্ষকৰ বাবে কোনো সমৰ্থন নাই"
+msgstr ""
+"dmi-to-pci-bridge (i82801b11-bridge) নিয়ন্ত্ৰক এই QEMU বাইনাৰিত সমৰ্থিত নহয়"
 
-#: src/qemu/qemu_command.c:4690
-#, fuzzy
+#: src/qemu/qemu_command.c:4692
 msgid "dmi-to-pci-bridge index should be > 0"
-msgstr "PCI ব্ৰিজ সূচী > 0 হব লাগিব"
+msgstr "dmi-to-pci-bridge সূচী > 0 হব লাগিব"
 
-#: src/qemu/qemu_command.c:4698
-#, fuzzy
+#: src/qemu/qemu_command.c:4700
 msgid "wrong function called for pci-root/pcie-root"
-msgstr "pci-root ৰ বাবে ভুল ফলন কল কৰা হৈছে"
+msgstr "pci-root/pcie-root ৰ বাবে ভুল ফলন কল কৰা হৈছে"
 
-#: src/qemu/qemu_command.c:4707
+#: src/qemu/qemu_command.c:4709
 #, c-format
 msgid "Unknown controller type: %s"
 msgstr "অজ্ঞাত নিয়ন্ত্ৰক ধৰণ: %s"
 
-#: src/qemu/qemu_command.c:4793
+#: src/qemu/qemu_command.c:4795
 msgid "unrecognized virtio-net-pci 'tx' option"
 msgstr "অপৰিচিত virtio-net-pci 'tx' বিকল্প"
 
-#: src/qemu/qemu_command.c:4798
+#: src/qemu/qemu_command.c:4800
 msgid "virtio-net-pci 'tx' option not supported in this QEMU binary"
 msgstr "এই QEMU বাইনাৰিত virtio-net-pci 'tx' বিকল্প সমৰ্থিত নহয়"
 
-#: src/qemu/qemu_command.c:4857 src/xenxs/xen_sxpr.c:1878
+#: src/qemu/qemu_command.c:4859 src/xenxs/xen_sxpr.c:1878
 #, c-format
 msgid "scripts are not supported on interfaces of type %s"
 msgstr "ধৰণ %s ৰ আন্তঃপৃষ্ঠসমূহৰ বাবে স্ক্ৰিপ্টসমূহ সমৰ্থিত নহয়"
 
-#: src/qemu/qemu_command.c:4983 src/qemu/qemu_command.c:8962
+#: src/qemu/qemu_command.c:4985 src/qemu/qemu_command.c:8964
 msgid "missing watchdog model"
 msgstr "watchdog মডেল অনুপস্থিত"
 
-#: src/qemu/qemu_command.c:5020
+#: src/qemu/qemu_command.c:5022
 #, c-format
 msgid "memballoon unsupported with address type '%s'"
 msgstr "ঠিকনা ধৰণ '%s' ৰ সৈতে memballoon অসমৰ্থিত"
 
-#: src/qemu/qemu_command.c:5052
+#: src/qemu/qemu_command.c:5054
 msgid "nvram address type must be spaprvio"
 msgstr "nvram ঠিকনা ধৰণ spaprvio হব লাগিব"
 
-#: src/qemu/qemu_command.c:5105 src/qemu/qemu_command.c:8924
+#: src/qemu/qemu_command.c:5107 src/qemu/qemu_command.c:8926
 msgid "invalid sound model"
 msgstr "ধ্বনি মডেল বৈধ নহয়"
 
-#: src/qemu/qemu_command.c:5190 src/qemu/qemu_command.c:8759
+#: src/qemu/qemu_command.c:5192 src/qemu/qemu_command.c:8761
 #, c-format
 msgid "video type %s is not supported with QEMU"
 msgstr "QEMU ৰ সৈতে %s ধৰণৰ ভিডিও সমৰ্থিত নহয়"
 
-#: src/qemu/qemu_command.c:5203 src/qemu/qemu_command.c:8821
-#: src/qemu/qemu_command.c:8850
+#: src/qemu/qemu_command.c:5205 src/qemu/qemu_command.c:8823
+#: src/qemu/qemu_command.c:8852
 msgid "only one video card is currently supported"
 msgstr "বৰ্তমানে অকল এটা ভিডিও কাৰ্ড সমৰ্থিত হ'ব"
 
-#: src/qemu/qemu_command.c:5215 src/qemu/qemu_command.c:8776
+#: src/qemu/qemu_command.c:5217 src/qemu/qemu_command.c:8778
 #, c-format
 msgid "value for 'vram' must be less than '%u'"
 msgstr "'vram' ৰ বাবে মান '%u' কে কম হব লাগিব"
 
-#: src/qemu/qemu_command.c:5221 src/qemu/qemu_command.c:8782
+#: src/qemu/qemu_command.c:5223 src/qemu/qemu_command.c:8784
 #, c-format
 msgid "value for 'ram' must be less than '%u'"
 msgstr "'ram' ৰ বাবে মান '%u' ৰ কম হব লাগিব"
 
-#: src/qemu/qemu_command.c:5265
+#: src/qemu/qemu_command.c:5267
 #, c-format
 msgid "Failed opening %s"
 msgstr "%s খোলিবলে ব্যৰ্থ"
 
-#: src/qemu/qemu_command.c:5337
+#: src/qemu/qemu_command.c:5339
 #, c-format
 msgid "Redirection bus %s is not supported by QEMU"
 msgstr "QEMU দ্বাৰা পুনৰনিৰ্দেশ বাচ %s সমৰ্থিত নহয়"
 
-#: src/qemu/qemu_command.c:5344
+#: src/qemu/qemu_command.c:5346
 msgid "USB redirection is not supported by this version of QEMU"
 msgstr "QEMU ৰ এই সংস্কৰণ দ্বাৰা USB পুনৰনিৰ্দেশ সমৰ্থিত নহয়"
 
-#: src/qemu/qemu_command.c:5356
+#: src/qemu/qemu_command.c:5358
 msgid "USB redirection filter is not supported by this version of QEMU"
 msgstr "USB পুনৰনিৰ্দেশ ফিল্টাৰ QEMU ৰ এই সংস্কৰণ দ্বাৰা সমৰ্থিত নহয়"
 
-#: src/qemu/qemu_command.c:5394
+#: src/qemu/qemu_command.c:5396
 msgid "USB redirection booting is not supported by this version of QEMU"
 msgstr "QEMU ৰ এই সংস্কৰণ দ্বাৰা USB পুনৰনিৰ্দেশ বুটিং সমৰ্থিত নহয়"
 
-#: src/qemu/qemu_command.c:5427 src/qemu/qemu_command.c:5509
+#: src/qemu/qemu_command.c:5429 src/qemu/qemu_command.c:5511
 msgid "USB host device is missing bus/device information"
 msgstr "USB হোস্ট ডিভাইচত বাচ/ডিভাইচ সংক্ৰান্ত তথ্য অনুপস্থিত"
 
-#: src/qemu/qemu_command.c:5466
+#: src/qemu/qemu_command.c:5468
 #, c-format
 msgid "hub type %s not supported"
 msgstr "হাব ধৰণ %s সমৰ্থিত নহয়"
 
-#: src/qemu/qemu_command.c:5473
+#: src/qemu/qemu_command.c:5475
 msgid "usb-hub not supported by QEMU binary"
 msgstr "QEMU বাইনাৰি দ্বাৰা usb-hub সমৰ্থিত নহয়"
 
-#: src/qemu/qemu_command.c:5502
+#: src/qemu/qemu_command.c:5504
 msgid "This QEMU doesn't not support missing USB devices"
 msgstr "QEMU এ সন্ধানহিন USB ডিভাইচসমূহ সমৰ্থন নকৰে"
 
-#: src/qemu/qemu_command.c:5544
+#: src/qemu/qemu_command.c:5546
 msgid "this qemu doesn't support 'readonly' for -drive"
 msgstr "এই qemu এ -drive ৰ বাবে 'readonly' সমৰ্থন নকৰে "
 
-#: src/qemu/qemu_command.c:5580
+#: src/qemu/qemu_command.c:5582
 msgid ""
 "target must be 0 for scsi host device if its controller model is 'lsilogic'"
 msgstr "যদি নিয়ন্ত্ৰক আৰ্হি 'lsilogic' হয় লক্ষ্য scsi হস্ট ডিভাইচৰ বাবে 0  হব লাগিব "
 
-#: src/qemu/qemu_command.c:5587
+#: src/qemu/qemu_command.c:5589
 msgid ""
 "unit must be not more than 7 for scsi host device if its controller model is "
 "'lsilogic'"
 msgstr ""
 "যদি নিয়ন্ত্ৰক আৰ্হি 'lsilogic' হয় scsi হস্ট ডিভাইচৰ বাবে একক 7 ৰ অধিক হব নালাগিব "
 
-#: src/qemu/qemu_command.c:5711
+#: src/qemu/qemu_command.c:5713
 msgid "spicevmc not supported in this QEMU binary"
 msgstr "এই QEMU বাইনাৰিত spicevmc সমৰ্থিত নহয়"
 
-#: src/qemu/qemu_command.c:5848
+#: src/qemu/qemu_command.c:5850
 msgid "Cannot use virtio serial for parallel/serial devices"
 msgstr "সমান্তৰাল/ক্ৰমিক ডিভাইচসমূহৰ বাবে virtio ক্ৰমিক ব্যৱহাৰ কৰিব নোৱাৰি"
 
-#: src/qemu/qemu_command.c:5860
+#: src/qemu/qemu_command.c:5862
 msgid "virtio serial device has invalid address type"
 msgstr "virtio ছিৰিয়েল ডিভাইচৰ ক্ষেত্ৰত অবৈধ ধৰণৰ ঠিকনা আছে"
 
-#: src/qemu/qemu_command.c:5877
+#: src/qemu/qemu_command.c:5879
 #, c-format
 msgid "Unsupported spicevmc target name '%s'"
 msgstr "অসমৰ্থিত spicevmc লক্ষ্য নাম '%s'"
 
-#: src/qemu/qemu_command.c:5921
+#: src/qemu/qemu_command.c:5923
 msgid "Cannot use slcp with devices other than console"
 msgstr "slcp ক কনচৌলৰ বাহিৰে অন্য ডিভাইচসমূহৰ সৈতে ব্যৱহাৰ কৰিব নোৱাৰি"
 
-#: src/qemu/qemu_command.c:5952
-#, fuzzy
+#: src/qemu/qemu_command.c:5954
 msgid "this qemu doesn't support the rng-random backend"
-msgstr "এই qemu এ rng-random  বেকএণ্ড সমৰ্থন নকৰে"
+msgstr "এই qemu এ rng-random বেকএণ্ড সমৰ্থন নকৰে"
 
-#: src/qemu/qemu_command.c:5969
+#: src/qemu/qemu_command.c:5971
 msgid "this qemu doesn't support the rng-egd backend"
 msgstr "এই qemu এ rng-egd  বেকএণ্ড সমৰ্থন নকৰে"
 
-#: src/qemu/qemu_command.c:6010
+#: src/qemu/qemu_command.c:6012
 #, c-format
 msgid "this qemu doesn't support RNG device type '%s'"
 msgstr "এই qemu এ RNG ডিভাইচ ধৰণ '%s' সমৰ্থন নকৰে"
 
-#: src/qemu/qemu_command.c:6085
+#: src/qemu/qemu_command.c:6087
 #, c-format
 msgid "The QEMU executable %s does not support TPM backend type %s"
 msgstr "QEMU এক্সিকিউটেবুল %s এ TPM বেকএণ্ড ধৰণ %s সমৰ্থন নকৰে"
 
-#: src/qemu/qemu_command.c:6105
+#: src/qemu/qemu_command.c:6107
 #, c-format
 msgid "The QEMU executable %s does not support TPM model %s"
 msgstr "QEMU এক্সিকিউটেবুল %s এ TPM আৰ্হি %s সমৰ্থন নকৰে"
 
-#: src/qemu/qemu_command.c:6230
+#: src/qemu/qemu_command.c:6232
 #, c-format
 msgid "unsupported clock basis '%s'"
 msgstr "অসমৰ্থিত ঘড়ী ভিত্তি '%s'"
 
-#: src/qemu/qemu_command.c:6251 src/qemu/qemu_command.c:7687
+#: src/qemu/qemu_command.c:6253 src/qemu/qemu_command.c:7689
 #, c-format
 msgid "unsupported clock offset '%s'"
 msgstr "ঘড়িৰ offset '%s' সমৰ্থিত নহয়"
 
-#: src/qemu/qemu_command.c:6265
+#: src/qemu/qemu_command.c:6267
 #, c-format
 msgid "unsupported rtc timer track '%s'"
 msgstr "অসমৰ্থিত rtc টাইমাৰ ট্ৰেক '%s'"
 
-#: src/qemu/qemu_command.c:6289
+#: src/qemu/qemu_command.c:6291
 #, c-format
 msgid "unsupported rtc timer tickpolicy '%s'"
 msgstr "অসমৰ্থিত rtc টাইমাৰ tickpolicy '%s'"
 
-#: src/qemu/qemu_command.c:6356
+#: src/qemu/qemu_command.c:6358
 msgid "CPU specification not supported by hypervisor"
 msgstr "CPU ধাৰ্য্যকৰণ হাইপাৰভাইজৰ দ্বাৰা সমৰ্থিত নহয়"
 
-#: src/qemu/qemu_command.c:6373
+#: src/qemu/qemu_command.c:6375
 #, c-format
 msgid "guest and host CPU are not compatible: %s"
 msgstr "অতিথি আৰু হস্ট CPU সংগত নহয়: %s"
 
-#: src/qemu/qemu_command.c:6377
+#: src/qemu/qemu_command.c:6379
 msgid "guest CPU is not compatible with host CPU"
 msgstr "গেস্ট CPU আৰু হোস্ট CPU সুসংগত নহয়"
 
-#: src/qemu/qemu_command.c:6399
+#: src/qemu/qemu_command.c:6401
 #, c-format
 msgid "CPU mode '%s' is not supported by QEMU binary"
 msgstr "QEMU বাইনাৰি দ্বাৰা CPU অৱস্থা '%s' সমৰ্থিত নহয়"
 
-#: src/qemu/qemu_command.c:6405
+#: src/qemu/qemu_command.c:6407
 #, c-format
 msgid "CPU mode '%s' is only supported with kvm"
 msgstr "CPU অৱস্থা '%s' কেৱল kvm ৰ সৈতে সমৰ্থিত"
 
-#: src/qemu/qemu_command.c:6564
+#: src/qemu/qemu_command.c:6566
 msgid "the QEMU binary does not support kqemu"
 msgstr "এই QEMU বাইনাৰিয়ে kqemu সমৰ্থন নকৰে"
 
-#: src/qemu/qemu_command.c:6577
+#: src/qemu/qemu_command.c:6579
 msgid "the QEMU binary does not support kvm"
 msgstr "এই QEMU বাইনাৰিয়ে kvm সমৰ্থন নকৰে"
 
-#: src/qemu/qemu_command.c:6588
+#: src/qemu/qemu_command.c:6590
 #, c-format
 msgid "the QEMU binary does not support %s"
 msgstr "QEMU বাইনৰিয়ে %s সমৰ্থন নকৰে"
 
-#: src/qemu/qemu_command.c:6626 src/qemu/qemu_command.c:6661
+#: src/qemu/qemu_command.c:6628 src/qemu/qemu_command.c:6663
 msgid "dump-guest-core is not available with this QEMU binary"
 msgstr "dump-guest-core এই QEMU বাইনাৰিৰ সৈতে উপলব্ধ নহয়"
 
-#: src/qemu/qemu_command.c:6633 src/qemu/qemu_command.c:6676
+#: src/qemu/qemu_command.c:6635 src/qemu/qemu_command.c:6678
 msgid "disable shared memory is not available with this QEMU binary"
 msgstr "এই QEMU বাইনাৰিৰ সৈতে অসামৰ্থবান অংশীদাৰী মেমৰি উপলব্ধ নহয়"
 
-#: src/qemu/qemu_command.c:6720
+#: src/qemu/qemu_command.c:6722
 msgid ""
 "setting current vcpu count less than maximum is not supported with this QEMU "
 "binary"
 msgstr "এই QEMU বাইনাৰিৰ সৈতে সৰ্বাধিকতকে কম vcpu গণনা সংহতি কৰাটো সমৰ্থিত নহয়"
 
-#: src/qemu/qemu_command.c:6757
+#: src/qemu/qemu_command.c:6759
 msgid "disjoint NUMA cpu ranges are not supported with this QEMU"
 msgstr "অসংলগ্ন NUMA cpu বিস্তাৰসমূহ এই QEMU ৰ সৈতে সমৰ্থিত নহয়"
 
-#: src/qemu/qemu_command.c:6799
+#: src/qemu/qemu_command.c:6801
 msgid "vnc graphics are not supported with this QEMU"
 msgstr "vnc গ্ৰাফিক্সসমূহ এই QEMU ৰ সৈতে সমৰ্থিত নহয়"
 
-#: src/qemu/qemu_command.c:6824 src/qemu/qemu_command.c:6978
+#: src/qemu/qemu_command.c:6826 src/qemu/qemu_command.c:6980
 msgid "network-based listen not possible, network driver not present"
 msgstr "নেটৱাৰ্ক-ভিত্তিয় শুনা সম্ভব নহয়, নেটৱাৰ্ক ড্ৰাইভাৰ উপস্থিত নহয়"
 
-#: src/qemu/qemu_command.c:6830 src/qemu/qemu_command.c:6984
+#: src/qemu/qemu_command.c:6832 src/qemu/qemu_command.c:6986
 #, c-format
 msgid "listen network '%s' had no usable address"
 msgstr "নেটৱাৰ্ক '%s' শুনাৰ কোনো ব্যৱহাৰযোগ্য ঠিকনা নাই"
 
-#: src/qemu/qemu_command.c:6865
+#: src/qemu/qemu_command.c:6867
 msgid "VNC WebSockets are not supported with this QEMU binary"
 msgstr "এই QEMU বাইনাৰিৰ সৈতে VNC WebSockets সমৰ্থিত নহয়"
 
-#: src/qemu/qemu_command.c:6875
+#: src/qemu/qemu_command.c:6877
 msgid "vnc display sharing policy is not supported with this QEMU"
 msgstr "এই QEMU ৰ সৈতে vnc প্ৰদৰ্শন অংশীদাৰী নীতি সমৰ্থিত নহয়"
 
-#: src/qemu/qemu_command.c:6947
+#: src/qemu/qemu_command.c:6949
 msgid "spice graphics are not supported with this QEMU"
 msgstr "এই QEMU দ্বাৰা spice গ্ৰাফিক্স সমৰ্থিত নহয়"
 
-#: src/qemu/qemu_command.c:6957
+#: src/qemu/qemu_command.c:6959
 msgid ""
 "spice TLS port set in XML configuration, but TLS is disabled in qemu.conf"
 msgstr "XML সংৰূপত spice TLS পোৰ্ট সংহিত, কিন্তু TLS qemu.conf ত অসামৰ্থবান"
 
-#: src/qemu/qemu_command.c:7044
+#: src/qemu/qemu_command.c:7046
 msgid ""
 "spice secure channels set in XML configuration, but TLS port is not provided"
 msgstr ""
 "spice সুৰক্ষিত চেনেলসমূহ XML সংৰূপত সংহিত, কিন্তু TLS পোৰ্ট প্ৰদান কৰা হোৱা নাই"
 
-#: src/qemu/qemu_command.c:7055
+#: src/qemu/qemu_command.c:7057
 msgid ""
 "spice insecure channels set in XML configuration, but plain port is not "
 "provided"
 msgstr ""
 "spice অসুৰক্ষিত চেনেলসমূহ XML সংৰূপত সংহিত, কিন্তু প্লেইন পোৰ্ট প্ৰদান কৰা হোৱা নাই"
 
-#: src/qemu/qemu_command.c:7068
+#: src/qemu/qemu_command.c:7070
 msgid ""
 "spice defaultMode secure requested in XML configuration but TLS port not "
 "provided"
 msgstr ""
 "spice defaultMode সুৰক্ষিত XML সংৰূপত অনুৰোধিত কিন্তু TLS পোৰ্ট প্ৰদান কৰা হোৱা নাই"
 
-#: src/qemu/qemu_command.c:7077
+#: src/qemu/qemu_command.c:7079
 msgid ""
 "spice defaultMode insecure requested in XML configuration but plain port not "
 "provided"
@@ -13820,224 +13818,223 @@ msgstr ""
 "spice defaultMode অসুৰক্ষিত XML সংৰূপত অনুৰোধিত কিন্তু প্লেইন পোৰ্ট প্ৰদান কৰা হোৱা "
 "নাই"
 
-#: src/qemu/qemu_command.c:7146
+#: src/qemu/qemu_command.c:7148
 #, c-format
 msgid "sdl not supported by '%s'"
 msgstr "sdl '%s' দ্বাৰা সমৰ্থিত নহয়"
 
-#: src/qemu/qemu_command.c:7182
+#: src/qemu/qemu_command.c:7184
 #, c-format
 msgid "unsupported graphics type '%s'"
 msgstr "অসমৰ্থিত গ্ৰাফিক্স ধৰণ '%s'"
 
-#: src/qemu/qemu_command.c:7227 src/qemu/qemu_hotplug.c:851
+#: src/qemu/qemu_command.c:7229 src/qemu/qemu_hotplug.c:850
 #, c-format
 msgid "Multiqueue network is not supported for: %s"
 msgstr "বহুশাৰী নেটৱাৰ্ক সমৰ্থিত নহয়: %s"
 
-#: src/qemu/qemu_command.c:7491
+#: src/qemu/qemu_command.c:7493
 msgid "hugetlbfs filesystem is not mounted"
 msgstr "hugetlbfs ফাইল-সিস্টেম মাউন্ট কৰা নহয়"
 
-#: src/qemu/qemu_command.c:7496
+#: src/qemu/qemu_command.c:7498
 msgid "hugepages are disabled by administrator config"
 msgstr "এমিনিস্ট্ৰেটৰৰ বিন্যাস দ্বাৰা hugepages নিষ্ক্ৰিয় কৰা হৈছে"
 
-#: src/qemu/qemu_command.c:7501
+#: src/qemu/qemu_command.c:7503
 #, c-format
 msgid "hugepage backing not supported by '%s'"
 msgstr "'%s' দ্বাৰা hugepage বেকিং সমৰ্থিত নহয়"
 
-#: src/qemu/qemu_command.c:7511
+#: src/qemu/qemu_command.c:7513
 msgid "memory locking not supported by QEMU binary"
 msgstr "QEMU বাইনাৰি দ্বাৰা মেমৰি লকিং সমৰ্থিত নহয়"
 
-#: src/qemu/qemu_command.c:7545
+#: src/qemu/qemu_command.c:7547
 #, c-format
 msgid "qemu emulator '%s' does not support xen"
 msgstr "'%s' qemu এমুলেটৰ দ্বাৰা xen সমৰ্থিত নহয়নহয়"
 
-#: src/qemu/qemu_command.c:7558
+#: src/qemu/qemu_command.c:7560
 #, c-format
 msgid "the QEMU binary %s does not support smbios settings"
 msgstr "QEMU বাইনাৰি %s এ smbios সংহতি সমৰ্থন নকৰে"
 
-#: src/qemu/qemu_command.c:7576
+#: src/qemu/qemu_command.c:7578
 #, c-format
 msgid "Domain '%s' sysinfo are not available"
 msgstr "ডমেইন '%s' sysinfo উপলব্ধ নহয়"
 
-#: src/qemu/qemu_command.c:7622 src/qemu/qemu_hotplug.c:1365
+#: src/qemu/qemu_command.c:7624 src/qemu/qemu_hotplug.c:1364
 msgid "qemu does not support -device"
 msgstr "qemu এ -device সমৰ্থন নকৰে"
 
-#: src/qemu/qemu_command.c:7627
+#: src/qemu/qemu_command.c:7629
 msgid "qemu does not support SGA"
 msgstr "qemu এ SGA সমৰ্থন নকৰে"
 
-#: src/qemu/qemu_command.c:7632
+#: src/qemu/qemu_command.c:7634
 msgid "need at least one serial port to use SGA"
 msgstr "SGA ব্যৱহাৰ কৰিবলে অন্তত এটা ক্ৰমিক পোৰ্টৰ প্ৰয়োজন"
 
-#: src/qemu/qemu_command.c:7703
+#: src/qemu/qemu_command.c:7705
 #, c-format
 msgid "unsupported timer type (name) '%s'"
 msgstr "অসমৰ্থিত টাইমাৰ ধৰণ (নাম) '%s'"
 
-#: src/qemu/qemu_command.c:7727 src/qemu/qemu_command.c:7738
+#: src/qemu/qemu_command.c:7729 src/qemu/qemu_command.c:7740
 #, c-format
 msgid "unsupported rtc tickpolicy '%s'"
 msgstr "অসমৰ্থিত rtc tickpolicy '%s'"
 
-#: src/qemu/qemu_command.c:7762 src/qemu/qemu_command.c:7771
+#: src/qemu/qemu_command.c:7764 src/qemu/qemu_command.c:7773
 #, c-format
 msgid "unsupported pit tickpolicy '%s'"
 msgstr "অসমৰ্থিত pit tickpolicy '%s'"
 
-#: src/qemu/qemu_command.c:7793
+#: src/qemu/qemu_command.c:7795
 msgid "pit timer is not supported"
 msgstr "pit টাইমাৰ সমৰ্থিত নহয়"
 
-#: src/qemu/qemu_command.c:7827
+#: src/qemu/qemu_command.c:7829
 msgid "setting ACPI S3 not supported"
 msgstr "ACPI S3 সংহতি কৰাটো সমৰ্থিত নহয়"
 
-#: src/qemu/qemu_command.c:7838
+#: src/qemu/qemu_command.c:7840
 msgid "setting ACPI S4 not supported"
 msgstr "ACPI S3 সংহতি কৰাটো সমৰ্থিত নহয়"
 
-#: src/qemu/qemu_command.c:7860
+#: src/qemu/qemu_command.c:7862
 msgid "hypervisor lacks deviceboot feature"
 msgstr "হাইপাৰজৰত ডিভাইচবুট বৈশিষ্ট্য নাই"
 
-#: src/qemu/qemu_command.c:7918
+#: src/qemu/qemu_command.c:7920
 msgid "reboot timeout is not supported by this QEMU binary"
 msgstr "এই QEMU বাইনাৰি দ্বাৰা পুনাৰম্ভ সময়অন্ত সমৰ্থিত নহয়"
 
-#: src/qemu/qemu_command.c:7958
+#: src/qemu/qemu_command.c:7960
 msgid "dtb is not supported with this QEMU binary"
 msgstr "dtb এই QEMU বাইনাৰিৰ সৈতে সমৰ্থিত নহয়"
 
-#: src/qemu/qemu_command.c:7989
+#: src/qemu/qemu_command.c:7991
 msgid "64-bit PCI hole setting is only for root PCI controllers"
-msgstr ""
+msgstr "64-bit PCI হৌল সংহতি কেৱল ৰুট PCI নিয়ন্ত্ৰকসমূহৰ বাবে"
 
-#: src/qemu/qemu_command.c:7996
-#, fuzzy, c-format
+#: src/qemu/qemu_command.c:7998
+#, c-format
 msgid "Setting the 64-bit PCI hole size is not supported for machine '%s'"
-msgstr "প্ৰেৰণ বাফাৰ আকাৰ সংহতি কৰাটো সমৰ্থিত নহয়"
+msgstr "64-bit PCI হৌল আকাৰ সংহতি কৰাটো মেচিন '%s' ৰ বাবে সমৰ্থিত নহয়"
 
-#: src/qemu/qemu_command.c:8002
-#, fuzzy
+#: src/qemu/qemu_command.c:8004
 msgid "64-bit PCI hole size setting is not supported with this QEMU binary"
-msgstr "vhost-net এই QEMU বাইনাৰিৰ সৈতে সমৰ্থিত নহয়"
+msgstr "64-bit PCI হৌল আকাৰ সংহতি কৰাটো এই QEMU বাইনাৰিৰ সৈতে সমৰ্থিত নহয়"
 
-#: src/qemu/qemu_command.c:8019 src/qemu/qemu_hotplug.c:692
+#: src/qemu/qemu_command.c:8021 src/qemu/qemu_hotplug.c:691
 #, c-format
 msgid "unsupported driver name '%s' for disk '%s'"
 msgstr "ডিস্ক '%s' ৰ কাৰণে অসমৰ্থিত '%s' চালকৰ নাম"
 
-#: src/qemu/qemu_command.c:8051
+#: src/qemu/qemu_command.c:8053
 msgid "SATA is not supported with this QEMU binary"
 msgstr "এই QEMU বাইনাৰি দ্বাৰা SATA সমৰ্থিত হয়"
 
-#: src/qemu/qemu_command.c:8075
+#: src/qemu/qemu_command.c:8077
 msgid "Multiple legacy USB controllers are not supported"
 msgstr "একাধিক কিম্বদন্তি USB নিয়ন্ত্ৰকসমূহ সমৰ্থিত নহয়"
 
-#: src/qemu/qemu_command.c:8147 src/qemu/qemu_command.c:8247
+#: src/qemu/qemu_command.c:8149 src/qemu/qemu_command.c:8249
 #, c-format
 msgid "unsupported usb disk type for '%s'"
 msgstr "'%s' ধৰণৰ ডিস্ক সমৰ্থিত নহয়"
 
-#: src/qemu/qemu_command.c:8294
+#: src/qemu/qemu_command.c:8296
 msgid "network disks are only supported with -drive"
 msgstr "নেটৱাৰ্ক ডিস্কসমূহ কেৱল -drive ৰ সৈতে সমৰ্থিত"
 
-#: src/qemu/qemu_command.c:8332
+#: src/qemu/qemu_command.c:8334
 msgid "filesystem passthrough not supported by this QEMU"
 msgstr "এই QEMU দ্বাৰা ফাইলচিস্টেম পাছথ্ৰু সমৰ্থিত নহয়"
 
-#: src/qemu/qemu_command.c:8388
+#: src/qemu/qemu_command.c:8390
 msgid "this QEMU binary lacks multiple smartcard support"
 msgstr "এই QEMU বাইনাৰিত একাধিক স্মাৰ্টকাৰ্ড সমৰ্থন নাই"
 
-#: src/qemu/qemu_command.c:8399 src/qemu/qemu_command.c:8411
+#: src/qemu/qemu_command.c:8401 src/qemu/qemu_command.c:8413
 msgid "this QEMU binary lacks smartcard host mode support"
 msgstr "এই QEMU বাইনাৰিত স্মাৰ্টকাৰ্ড হস্ট অৱস্থা সমৰ্থন নাই"
 
-#: src/qemu/qemu_command.c:8421
+#: src/qemu/qemu_command.c:8423
 #, c-format
 msgid "invalid certificate name: %s"
 msgstr "অবৈধ প্ৰমাণপত্ৰ নাম: %s"
 
-#: src/qemu/qemu_command.c:8432
+#: src/qemu/qemu_command.c:8434
 #, c-format
 msgid "invalid database name: %s"
 msgstr "অবৈধ ডাটাবেইচ নাম: %s"
 
-#: src/qemu/qemu_command.c:8447
+#: src/qemu/qemu_command.c:8449
 msgid "this QEMU binary lacks smartcard passthrough mode support"
 msgstr "এই QEMU বাইনাৰিত স্মাৰ্টকাৰ্ড পাছথ্ৰু অৱস্থা সমৰ্থন নাই"
 
-#: src/qemu/qemu_command.c:8551
+#: src/qemu/qemu_command.c:8553
 msgid "guestfwd requires QEMU to support -chardev & -device"
 msgstr "guestfwd ৰ ক্ষেত্ৰত QEMU দ্বাৰা -chardev আৰু -device সমৰ্থন কৰা আৱশ্যক"
 
-#: src/qemu/qemu_command.c:8572 src/qemu/qemu_command.c:8632
+#: src/qemu/qemu_command.c:8574 src/qemu/qemu_command.c:8634
 msgid "virtio channel requires QEMU to support -device"
 msgstr "virio চেনেলৰ ক্ষেত্ৰত QEMU দ্বাৰা -device সমৰ্থন কৰা আৱশ্যক"
 
-#: src/qemu/qemu_command.c:8608
+#: src/qemu/qemu_command.c:8610
 msgid "sclp console requires QEMU to support -device"
 msgstr "sclp কনচৌলৰ -device সমৰ্থন কৰিবলে QEMU ৰ প্ৰয়োজন"
 
-#: src/qemu/qemu_command.c:8613
+#: src/qemu/qemu_command.c:8615
 msgid "sclp console requires QEMU to support s390-sclp"
 msgstr "sclp কনচৌলৰ s390-sclp সমৰ্থন কৰিবলে QEMU ৰ প্ৰয়োজন"
 
-#: src/qemu/qemu_command.c:8653
+#: src/qemu/qemu_command.c:8655
 #, c-format
 msgid "unsupported console target type %s"
 msgstr "অসমৰ্থিত কনচৌল লক্ষ্য ধৰণ %s"
 
-#: src/qemu/qemu_command.c:8709
+#: src/qemu/qemu_command.c:8711
 msgid "only 1 graphics device is supported"
 msgstr "কেৱল ১টা গ্ৰাফিক্স ডিভাইচ সমৰ্থিত"
 
-#: src/qemu/qemu_command.c:8714
+#: src/qemu/qemu_command.c:8716
 msgid "only 1 graphics device of each type (sdl, vnc, spice) is supported"
 msgstr "ধৰণ (sdl, vnc, spice) ৰ কেৱল ১টা গ্ৰাফিক্স ডিভাইচ সমৰ্থিত"
 
-#: src/qemu/qemu_command.c:8752
+#: src/qemu/qemu_command.c:8754
 msgid "This QEMU does not support QXL graphics adapters"
 msgstr "এই QEMU এ QXL গ্ৰাফিক্স এডাপ্টাৰসমূহ সমৰ্থন নকৰে"
 
-#: src/qemu/qemu_command.c:8806
+#: src/qemu/qemu_command.c:8808
 #, c-format
 msgid "video type %s is only valid as primary video card"
 msgstr "ভিডিঅ ধৰণ %s কেৱল প্ৰাথমিক ভিডিঅ' কাৰ্ড হিচাপে বৈধ"
 
-#: src/qemu/qemu_command.c:8843
+#: src/qemu/qemu_command.c:8845
 #, c-format
 msgid "video type %s is not supported with this QEMU"
 msgstr "এই QEMU ৰ সৈতে ভিডিঅ' ধৰণ %s সমৰ্থিত নহয়"
 
-#: src/qemu/qemu_command.c:8931
+#: src/qemu/qemu_command.c:8933
 msgid "this QEMU binary lacks hda support"
 msgstr "এই QEMU বাইনাৰিত hda সমৰ্থন নাই"
 
-#: src/qemu/qemu_command.c:8978
+#: src/qemu/qemu_command.c:8980
 msgid "invalid watchdog action"
 msgstr "watchdog ৰ কৰ্ম বৈধ নহয়"
 
-#: src/qemu/qemu_command.c:9021
+#: src/qemu/qemu_command.c:9023
 msgid ""
 "booting from assigned devices is only supported for PCI, USB and SCSI devices"
 msgstr ""
 "ধাৰ্য্যত ডিভাইচসমূহৰ পৰা বুটিং কেৱল PCI, USB আৰু SCSI ডিভাইচসমূহৰ বাবে সমৰ্থিত"
 
-#: src/qemu/qemu_command.c:9030
+#: src/qemu/qemu_command.c:9032
 msgid ""
 "booting from PCI devices assigned with VFIO is not supported with this "
 "version of qemu"
@@ -14045,342 +14042,342 @@ msgstr ""
 "VFIO ৰ সৈতে ধাৰ্য্যত PCI ডিভাইচসমূহৰ পৰা বুট কৰাটো qemu ৰ এই সংস্কৰণৰ সৈতে সমৰ্থিত "
 "নহয়"
 
-#: src/qemu/qemu_command.c:9037
+#: src/qemu/qemu_command.c:9039
 msgid ""
 "booting from assigned PCI devices is not supported with this version of qemu"
 msgstr "qemu ৰ এই সংস্কৰণৰ সৈতে ধাৰ্য্যত PCI ডিভাইচসমূহৰ পৰা বুট কৰাটো সমৰ্থিত নহয়"
 
-#: src/qemu/qemu_command.c:9046
+#: src/qemu/qemu_command.c:9048
 msgid ""
 "booting from assigned USB devices is not supported with this version of qemu"
 msgstr "qemu ৰ এই সংস্কৰণৰ সৈতে ধাৰ্য্যত USB ডিভাইচসমূহৰ পৰা বুট কৰাটো সমৰ্থিত নহয়"
 
-#: src/qemu/qemu_command.c:9053
+#: src/qemu/qemu_command.c:9055
 msgid ""
 "booting from assigned SCSI devices is not supported with this version of qemu"
 msgstr "qemu ৰ এই সংস্কৰণৰ সৈতে ধাৰ্য্যত SCSI ডিভাইচসমূহৰ পৰা বুট কৰাটো সমৰ্থিত নহয়"
 
-#: src/qemu/qemu_command.c:9087 src/qemu/qemu_hotplug.c:1152
+#: src/qemu/qemu_command.c:9089 src/qemu/qemu_hotplug.c:1151
 msgid "VFIO PCI device assignment is not supported by this version of qemu"
 msgstr "VFIO PCI ডিভাইচ ধাৰ্য্যকৰণ qemu ৰ এই সংস্কৰণ দ্বাৰা সমৰ্থিত নহয়"
 
-#: src/qemu/qemu_command.c:9128 src/qemu/qemu_monitor_text.c:1829
+#: src/qemu/qemu_command.c:9130 src/qemu/qemu_monitor_text.c:1829
 msgid "PCI device assignment is not supported by this version of qemu"
 msgstr "qemu ৰ এই সংস্কৰণ দ্বাৰা PCI ডিভাইচ ধাৰ্য্যকৰণ সমৰ্থিত নহয়"
 
-#: src/qemu/qemu_command.c:9154 src/qemu/qemu_hotplug.c:1481
+#: src/qemu/qemu_command.c:9156 src/qemu/qemu_hotplug.c:1480
 msgid "SCSI passthrough is not supported by this version of qemu"
 msgstr "qemu ৰ এই সংস্কৰণ দ্বাৰা SCSI পাছথ্ৰু সমৰ্থিত নহয়"
 
-#: src/qemu/qemu_command.c:9168
+#: src/qemu/qemu_command.c:9170
 msgid "TCP migration is not supported with this QEMU binary"
 msgstr "hypervisor ৰ দ্বাৰা এই আপেক্ষকৰ বাবে কোনো সমৰ্থন নাই"
 
-#: src/qemu/qemu_command.c:9185
+#: src/qemu/qemu_command.c:9187
 msgid "STDIO migration is not supported with this QEMU binary"
 msgstr "এই QEMU binary ৰ লগত STDIO প্ৰব্ৰজন অসমৰ্থিত"
 
-#: src/qemu/qemu_command.c:9192
+#: src/qemu/qemu_command.c:9194
 msgid "EXEC migration is not supported with this QEMU binary"
 msgstr "এই QEMU বাইনাৰিৰ সৈতে EXEC প্ৰব্ৰজন সমৰ্থিত নহয়"
 
-#: src/qemu/qemu_command.c:9200
+#: src/qemu/qemu_command.c:9202
 msgid "FD migration is not supported with this QEMU binary"
 msgstr "এই QEMU বাইনাৰিৰ সৈতে FD প্ৰব্ৰজন সমৰ্থিত নহয়"
 
-#: src/qemu/qemu_command.c:9209
+#: src/qemu/qemu_command.c:9211
 msgid "UNIX migration is not supported with this QEMU binary"
 msgstr "এই QEMU বাইনাৰিৰ সৈতে UNIX প্ৰব্ৰজন সমৰ্থিত নহয়"
 
-#: src/qemu/qemu_command.c:9216
+#: src/qemu/qemu_command.c:9218
 msgid "unknown migration protocol"
 msgstr "অজ্ঞাত প্ৰব্ৰজন পুল"
 
-#: src/qemu/qemu_command.c:9235
+#: src/qemu/qemu_command.c:9237
 #, c-format
 msgid ""
 "Memory balloon device type '%s' is not supported by this version of qemu"
 msgstr "মেমৰি বেলুন ডিভাইচ ধৰণ '%s' qemu ৰ এই সংস্কৰণ দ্বাৰা সমৰ্থিত নহয়"
 
-#: src/qemu/qemu_command.c:9268
+#: src/qemu/qemu_command.c:9270
 msgid "nvram device is not supported by this QEMU binary"
 msgstr "nvram ডিভাইচ এই QEMU বাইনাৰি দ্বাৰা সমৰ্থিত নহয়"
 
-#: src/qemu/qemu_command.c:9283
+#: src/qemu/qemu_command.c:9285
 msgid "nvram device is only supported for PPC64"
 msgstr "nvram ডিভাইচ কেৱল PPC64 ৰ বাবে সমৰ্থিত"
 
-#: src/qemu/qemu_command.c:9309
+#: src/qemu/qemu_command.c:9311
 msgid "QEMU does not support seccomp sandboxes"
 msgstr "QEMU এ seccomp sandboxes সমৰ্থন নকৰে"
 
-#: src/qemu/qemu_command.c:9372
+#: src/qemu/qemu_command.c:9374
 msgid "usb-serial is not supported in this QEMU binary"
 msgstr "usb-serial এই QEMU বাইনাৰিত সমৰ্থিত নহয়"
 
-#: src/qemu/qemu_command.c:9695
+#: src/qemu/qemu_command.c:9697
 #, c-format
 msgid "malformed keyword arguments in '%s'"
 msgstr "'%s' ত ভুল মূলশব্দৰ তৰ্ক"
 
-#: src/qemu/qemu_command.c:9844 src/qemu/qemu_command.c:11122
+#: src/qemu/qemu_command.c:9846 src/qemu/qemu_command.c:11124
 #, c-format
 msgid "cannot parse sheepdog filename '%s'"
 msgstr "sheepdog ফাইলনাম '%s' বিশ্লেষণ কৰিব নোৱাৰি"
 
-#: src/qemu/qemu_command.c:9917
+#: src/qemu/qemu_command.c:9919
 #, c-format
 msgid "cannot parse drive index '%s'"
 msgstr "ড্ৰাইভ সূচী '%s' বিশ্লেষণ কৰিব নোৱাৰি"
 
-#: src/qemu/qemu_command.c:9923
+#: src/qemu/qemu_command.c:9925
 #, c-format
 msgid "cannot parse drive bus '%s'"
 msgstr "ড্ৰাইভ বাচ '%s' বিশ্লেষণ কৰিবলৈ ব্যৰ্থ"
 
-#: src/qemu/qemu_command.c:9929
+#: src/qemu/qemu_command.c:9931
 #, c-format
 msgid "cannot parse drive unit '%s'"
 msgstr "ড্ৰাইভ ইউনিট '%s' বিশ্লেষণ কৰিবলৈ ব্যৰ্থ"
 
-#: src/qemu/qemu_command.c:9938
+#: src/qemu/qemu_command.c:9940
 #, c-format
 msgid "cannot parse io mode '%s'"
 msgstr "io অৱস্থা '%s' বিশ্লেষণ কৰিব নোৱাৰি"
 
-#: src/qemu/qemu_command.c:9946
+#: src/qemu/qemu_command.c:9948
 #, c-format
 msgid "cannot parse cylinders value'%s'"
 msgstr "চিলিণ্ডাৰসমূহ মান '%s' বিশ্লেষণ কৰিব নোৱাৰি"
 
-#: src/qemu/qemu_command.c:9955
+#: src/qemu/qemu_command.c:9957
 #, c-format
 msgid "cannot parse heads value'%s'"
 msgstr "হেডসমূহ মান '%s' বিশ্লেষণ কৰিব নোৱাৰি"
 
-#: src/qemu/qemu_command.c:9964
+#: src/qemu/qemu_command.c:9966
 #, c-format
 msgid "cannot parse sectors value'%s'"
 msgstr "অংশসমূহ মান '%s' বিশ্লেষণ কৰিব নোৱাৰি"
 
-#: src/qemu/qemu_command.c:9975
+#: src/qemu/qemu_command.c:9977
 #, c-format
 msgid "cannot parse translation value'%s'"
 msgstr "লেন দেন মান '%s' বিশ্লেষণ কৰিব নোৱাৰি"
 
-#: src/qemu/qemu_command.c:9988
+#: src/qemu/qemu_command.c:9990
 #, c-format
 msgid "missing file parameter in drive '%s'"
 msgstr "'%s' ড্ৰাইভত হৰুৱা ফাইলৰ স্থিতিমাপ"
 
-#: src/qemu/qemu_command.c:9999
+#: src/qemu/qemu_command.c:10001
 #, c-format
 msgid "missing index/unit/bus parameter in drive '%s'"
 msgstr "ড্ৰাইভ '%s' ত ইন্ডেক্স/ইউনিট/বাচ স্থিতিমাপ অনুপস্থিত"
 
-#: src/qemu/qemu_command.c:10043
+#: src/qemu/qemu_command.c:10045
 #, c-format
 msgid "invalid device name '%s'"
 msgstr "অবৈধ ডিভাইচ নাম '%s'"
 
-#: src/qemu/qemu_command.c:10084
+#: src/qemu/qemu_command.c:10086
 #, c-format
 msgid "cannot parse NIC vlan in '%s'"
 msgstr "'%s' ত NIC vlan বিশ্লেষণ কৰিব নোৱাৰি"
 
-#: src/qemu/qemu_command.c:10096
+#: src/qemu/qemu_command.c:10098
 #, c-format
 msgid "cannot find NIC definition for vlan %d"
 msgstr "vlan %d ৰ  কাৰণে NIC সংজ্ঞা পোৱা নাযায়"
 
-#: src/qemu/qemu_command.c:10151
+#: src/qemu/qemu_command.c:10153
 #, c-format
 msgid "cannot parse vlan in '%s'"
 msgstr "'%s' ত vlan বিশ্লেষণ কৰিব নোৱাৰি"
 
-#: src/qemu/qemu_command.c:10181
+#: src/qemu/qemu_command.c:10183
 #, c-format
 msgid "cannot parse NIC definition '%s'"
 msgstr "'%s' ৰ  কাৰণে NIC সংজ্ঞা পোৱা নাযায়"
 
-#: src/qemu/qemu_command.c:10229
+#: src/qemu/qemu_command.c:10231
 #, c-format
 msgid "cannot parse sndbuf size in '%s'"
 msgstr "'%s' f sndbuf আকাৰ বিশ্লেষণ কৰিব নোৱাৰি"
 
-#: src/qemu/qemu_command.c:10268
+#: src/qemu/qemu_command.c:10270
 #, c-format
 msgid "unknown PCI device syntax '%s'"
 msgstr "অজ্ঞাত PCI device syntax '%s'"
 
-#: src/qemu/qemu_command.c:10275
+#: src/qemu/qemu_command.c:10277
 #, c-format
 msgid "cannot extract PCI device bus '%s'"
 msgstr "PCI device bus '%s' উদ্ঘাটন কৰিব নোৱাৰি"
 
-#: src/qemu/qemu_command.c:10281
+#: src/qemu/qemu_command.c:10283
 #, c-format
 msgid "cannot extract PCI device slot '%s'"
 msgstr "PCI device slot '%s' উদ্ঘাটন কৰিব নোৱাৰি"
 
-#: src/qemu/qemu_command.c:10287
+#: src/qemu/qemu_command.c:10289
 #, c-format
 msgid "cannot extract PCI device function '%s'"
 msgstr "PCI device function '%s' উদ্ঘাটন কৰিব নোৱাৰি"
 
-#: src/qemu/qemu_command.c:10321
+#: src/qemu/qemu_command.c:10323
 #, c-format
 msgid "unknown USB device syntax '%s'"
 msgstr "USB ডিভাইচৰ অজ্ঞাত শব্দবিন্যাস '%s'"
 
-#: src/qemu/qemu_command.c:10329
+#: src/qemu/qemu_command.c:10331
 #, c-format
 msgid "cannot extract USB device vendor '%s'"
 msgstr "USB device vendor '%s' উদ্ঘাটন কৰিব নোৱাৰি"
 
-#: src/qemu/qemu_command.c:10335
+#: src/qemu/qemu_command.c:10337
 #, c-format
 msgid "cannot extract USB device product '%s'"
 msgstr "USB ডিভাইচ উৎপাদন '%s' উদ্ধাৰ কৰিবলৈ ব্যৰ্থ"
 
-#: src/qemu/qemu_command.c:10341
+#: src/qemu/qemu_command.c:10343
 #, c-format
 msgid "cannot extract USB device bus '%s'"
 msgstr "USB ডিভাইচ বাচ '%s' উদ্ধাৰ কৰিবলৈ ব্যৰ্থ"
 
-#: src/qemu/qemu_command.c:10347
+#: src/qemu/qemu_command.c:10349
 #, c-format
 msgid "cannot extract USB device address '%s'"
 msgstr "USB ডিভাইচ ঠিকনা '%s' উদ্ধাৰ কৰিবলৈ ব্যৰ্থ"
 
-#: src/qemu/qemu_command.c:10439
+#: src/qemu/qemu_command.c:10441
 #, c-format
 msgid "cannot find port number in character device %s"
 msgstr "কেৰেক্টাৰ ডিভাইচ '%s' ত প'ৰ্ট সংখ্যা বিচাৰিবলৈ ব্যৰ্থ"
 
-#: src/qemu/qemu_command.c:10465
+#: src/qemu/qemu_command.c:10467
 #, c-format
 msgid "unknown character device syntax %s"
 msgstr "অজ্ঞাত character device syntax %s"
 
-#: src/qemu/qemu_command.c:10559
+#: src/qemu/qemu_command.c:10561
 msgid "conflicting occurrences of kvmclock feature"
 msgstr "kvmclock বৈশিষ্ট্যৰ দ্বন্দপূৰ্ণ উপস্থিতি"
 
-#: src/qemu/qemu_command.c:10600
+#: src/qemu/qemu_command.c:10602
 #, c-format
 msgid "unsupported HyperV Enlightenment feature '%s'"
 msgstr "অসমৰ্থিত HyperV উদ্বোধ বৈশিষ্ট্য '%s'"
 
-#: src/qemu/qemu_command.c:10610
+#: src/qemu/qemu_command.c:10612
 #, c-format
 msgid "HyperV feature '%s' should not have a value"
 msgstr "HyperV বৈশিষ্ট্য '%s' ত এটা মান থাকিব নালাগিব"
 
-#: src/qemu/qemu_command.c:10621
+#: src/qemu/qemu_command.c:10623
 msgid "missing HyperV spinlock retry count"
 msgstr "সন্ধানহিন HyperV spinlock পুনৰচেষ্টা গণনা"
 
-#: src/qemu/qemu_command.c:10627
+#: src/qemu/qemu_command.c:10629
 msgid "cannot parse HyperV spinlock retry count"
 msgstr "HyperV spinlock পুনৰচেষ্টা গণনা বিশ্লেষণ কৰিব নোৱাৰি"
 
-#: src/qemu/qemu_command.c:10672
+#: src/qemu/qemu_command.c:10674
 #, c-format
 msgid "unknown CPU syntax '%s'"
 msgstr "CPU ৰ অজ্ঞাত শব্দবিন্যাস '%s'"
 
-#: src/qemu/qemu_command.c:10746
+#: src/qemu/qemu_command.c:10748
 #, c-format
 msgid "cannot parse CPU topology '%s'"
 msgstr "CPU ৰ টোপোলজি '%s' বিশ্লেষণ কৰিবলৈ ব্যৰ্থ"
 
-#: src/qemu/qemu_command.c:10808
+#: src/qemu/qemu_command.c:10810
 msgid "no emulator path found"
 msgstr "emulator ৰ পথ পোৱা ন'গ'ল"
 
-#: src/qemu/qemu_command.c:10821
+#: src/qemu/qemu_command.c:10823
 msgid "failed to generate uuid"
 msgstr "uuid নিৰ্মাণ কৰোঁতে ব্যৰ্থ"
 
-#: src/qemu/qemu_command.c:10873
+#: src/qemu/qemu_command.c:10875
 #, c-format
 msgid "missing value for %s argument"
 msgstr "%s তৰ্কৰ পৰা হৰুৱা মান"
 
-#: src/qemu/qemu_command.c:10933
+#: src/qemu/qemu_command.c:10935
 #, c-format
 msgid "missing VNC port number in '%s'"
 msgstr "'%s' f সন্ধানহিন VNC পোৰ্ট সংখ্যা"
 
-#: src/qemu/qemu_command.c:10941
+#: src/qemu/qemu_command.c:10943
 #, c-format
 msgid "cannot parse VNC port '%s'"
 msgstr "VNC port '%s' বিশ্লেষণ কৰিব নোৱাৰি"
 
-#: src/qemu/qemu_command.c:10979
+#: src/qemu/qemu_command.c:10981
 #, c-format
 msgid "cannot parse VNC WebSocket port '%s'"
 msgstr "VNC WebSocket পোৰ্ট '%s' বিশ্লেষণ কৰিব নোৱাৰি"
 
-#: src/qemu/qemu_command.c:11011
+#: src/qemu/qemu_command.c:11013
 msgid "missing vnc sharing policy"
 msgstr "সন্ধানহিন vnc অংশীদাৰী নীতি"
 
-#: src/qemu/qemu_command.c:11036
+#: src/qemu/qemu_command.c:11038
 #, c-format
 msgid "cannot parse memory level '%s'"
 msgstr "মেমৰিৰ স্তৰ '%s' বিশ্লেষণ কৰিব নোৱাৰি"
 
-#: src/qemu/qemu_command.c:11048
+#: src/qemu/qemu_command.c:11050
 #, c-format
 msgid "cannot parse UUID '%s'"
 msgstr "UUID '%s' বিশ্লেষণ কৰিব নোৱাৰি"
 
-#: src/qemu/qemu_command.c:11151
+#: src/qemu/qemu_command.c:11153
 #, c-format
 msgid "Cannot assign address for device name '%s'"
 msgstr "ডিভাইচ নাম '%s' ৰ বাবে ঠিকনা ধাৰ্য্য কৰিব নোৱাৰি"
 
-#: src/qemu/qemu_command.c:11215
+#: src/qemu/qemu_command.c:11217
 msgid "cannot parse reboot-timeout value"
 msgstr "reboot-timeout man বিশ্লেষণ কৰিব নোৱাৰি"
 
-#: src/qemu/qemu_command.c:11460
+#: src/qemu/qemu_command.c:11462
 #, c-format
 msgid "unknown video adapter type '%s'"
 msgstr "অজ্ঞাত ধৰণৰ ভিডিও এডাপ্টাৰ '%s'"
 
-#: src/qemu/qemu_command.c:11516
+#: src/qemu/qemu_command.c:11518
 #, c-format
 msgid "invalid value for disable_s3 parameter: '%s'"
 msgstr "disable_s3 প্ৰাচলৰ বাবে অবৈধ মান: '%s'"
 
-#: src/qemu/qemu_command.c:11533
+#: src/qemu/qemu_command.c:11535
 #, c-format
 msgid "invalid value for disable_s4 parameter: '%s'"
 msgstr "disable_s4 প্ৰাচলৰ বাবে অবৈধ মান: '%s'"
 
-#: src/qemu/qemu_command.c:11552
+#: src/qemu/qemu_command.c:11554
 #, c-format
 msgid "cannot parse nvram's address '%s'"
 msgstr "nvram ৰ ঠিকনা '%s' বিশ্লেষণ কৰিব নোৱাৰি"
 
-#: src/qemu/qemu_command.c:11585
+#: src/qemu/qemu_command.c:11587
 msgid "CEPH_ARGS was set without an rbd disk"
 msgstr "CEPH_ARGS ক এটা rbd ডিস্ক নহোৱাকৈ সংহতি কৰা হৈছিল"
 
-#: src/qemu/qemu_command.c:11592
+#: src/qemu/qemu_command.c:11594
 #, c-format
 msgid "could not parse CEPH_ARGS '%s'"
 msgstr "CEPH_ARGS '%s' বিশ্লেষণ কৰিব পৰা নগল"
 
-#: src/qemu/qemu_command.c:11628
+#: src/qemu/qemu_command.c:11630
 #, c-format
 msgid "found no rbd hosts in CEPH_ARGS '%s'"
 msgstr "CEPH_ARGS '%s' ত কোনো rbd হস্ট পোৱা নগল"
 
-#: src/qemu/qemu_command.c:11844
+#: src/qemu/qemu_command.c:11846
 #, c-format
 msgid "Unable to resolve %s for pid %u"
 msgstr "%s সমাধান কৰিবলে অক্ষম pid %u"
@@ -14633,14 +14630,14 @@ msgid "Disk device '%s' does not support snapshotting"
 msgstr "ডিস্ক ডিভাইচ '%s' এ স্নেপশ্বট লোৱাটো সমৰ্থন নকৰে"
 
 #: src/qemu/qemu_domain.c:2099
-#, fuzzy, c-format
+#, c-format
 msgid "no source device %s"
-msgstr "কোনো লক্ষ্য ডিভাইচ %s নাই"
+msgstr "কোনো উৎস ডিভাইচ %s নাই"
 
 #: src/qemu/qemu_domain.c:2268
 #, c-format
 msgid "Backing file '%s' of image '%s' is missing."
-msgstr ""
+msgstr "ছবি '%s' ৰ বেকিং ফাইল '%s' নাই"
 
 #: src/qemu/qemu_driver.c:248
 #, c-format
@@ -14888,7 +14885,7 @@ msgstr "%s লিখিবলে ব্যৰ্থ"
 #: src/qemu/qemu_driver.c:11658 src/qemu/qemu_driver.c:12155
 #: src/qemu/qemu_driver.c:13183 src/qemu/qemu_driver.c:13235
 #: src/qemu/qemu_driver.c:13899 src/qemu/qemu_hotplug.c:449
-#: src/qemu/qemu_hotplug.c:980 src/qemu/qemu_migration.c:3194
+#: src/qemu/qemu_hotplug.c:979 src/qemu/qemu_migration.c:3194
 #: src/qemu/qemu_migration.c:3512 src/qemu/qemu_migration.c:3942
 #: src/qemu/qemu_migration.c:4346 src/qemu/qemu_process.c:562
 #: src/qemu/qemu_process.c:575
@@ -15183,7 +15180,7 @@ msgstr "লক্ষ্য ইতিমধ্যে অস্তিত্বব�
 msgid "persistent attach of device '%s' is not supported"
 msgstr "ডিভাইচ '%s' ৰ স্থায়ী সংলগ্ন সমৰ্থিত নহয়"
 
-#: src/qemu/qemu_driver.c:6697 src/qemu/qemu_hotplug.c:3493
+#: src/qemu/qemu_driver.c:6697 src/qemu/qemu_hotplug.c:3492
 #, c-format
 msgid "Lease %s in lockspace %s does not exist"
 msgstr "লকস্পেইচ %s ত ইজাৰ %s অস্তিত্ববান নহয়"
@@ -15875,91 +15872,91 @@ msgstr "অপ্ৰত্যাশিত প্ৰকৃতিৰ ডিস্�
 msgid "SCSI controller %d was missing its PCI address"
 msgstr "SCSI নিয়ন্ত্ৰক %d ৰ বাবে PCI ঠিকনা অনুপস্থিত"
 
-#: src/qemu/qemu_hotplug.c:754
+#: src/qemu/qemu_hotplug.c:753
 msgid "disk device='lun' is not supported for usb bus"
 msgstr "ডিস্ক device='lun' usb বাচৰ বাবে সমৰ্থিত নহয়"
 
-#: src/qemu/qemu_hotplug.c:842
+#: src/qemu/qemu_hotplug.c:841
 msgid "installed qemu version does not support host_net_add"
 msgstr "ইনস্টল কৰা qemu সংস্কৰণ দ্বাৰা host_net_add সমৰ্থন কৰা নহয়"
 
-#: src/qemu/qemu_hotplug.c:903
+#: src/qemu/qemu_hotplug.c:902
 msgid "virtio-s390 net device cannot be hotplugged."
 msgstr "virtio-s390 নেট ডিভাইচক হটপ্লাগ কৰিব নোৱাৰি।"
 
-#: src/qemu/qemu_hotplug.c:918
+#: src/qemu/qemu_hotplug.c:917
 msgid "Unable to attach network devices without vlan"
 msgstr "vlan নোহোৱা নে'টৱৰ্ক ডিভাইচ সংযুক্ত কৰিবলৈ ব্যৰ্থ"
 
-#: src/qemu/qemu_hotplug.c:1019
+#: src/qemu/qemu_hotplug.c:1018
 msgid "device alias not found: cannot set link state to down"
 msgstr "ডিভাইচৰ এলিয়াচ পোৱা নগল: সংযোগ অৱস্থাক down লে সংহতি কৰিব নোৱাৰি"
 
-#: src/qemu/qemu_hotplug.c:1031
+#: src/qemu/qemu_hotplug.c:1030
 msgid "setting of link state not supported: Link is up"
 msgstr "সংযোগৰ অৱস্থা সংহতি কৰাটো সমৰ্থিত নহয়: সংযোগৰ অৱস্থা up"
 
-#: src/qemu/qemu_hotplug.c:1187
+#: src/qemu/qemu_hotplug.c:1186
 msgid "guest unexpectedly quit during hotplug"
 msgstr "হটপ্লাগৰ সময়ত অতিথি অপ্ৰত্যাশিতভাৱে প্ৰস্থান কৰিলে"
 
-#: src/qemu/qemu_hotplug.c:1286
+#: src/qemu/qemu_hotplug.c:1285
 msgid "attaching serial console is not supported"
 msgstr "ক্ৰমিক কনচৌল সংলগ্ন কৰাটো সমৰ্থিত নহয়"
 
-#: src/qemu/qemu_hotplug.c:1292
+#: src/qemu/qemu_hotplug.c:1291
 msgid "chardev already exists"
 msgstr "chardev ইতিমধ্যে অস্তিত্ববান"
 
-#: src/qemu/qemu_hotplug.c:1328
+#: src/qemu/qemu_hotplug.c:1327
 msgid "detaching serial console is not supported"
 msgstr "ক্ৰমিক কনচৌল অসংলগ্ন কৰাটো সমৰ্থিত নহয়"
 
-#: src/qemu/qemu_hotplug.c:1488
+#: src/qemu/qemu_hotplug.c:1487
 #, c-format
 msgid "Unable to prepare scsi hostdev: %s:%d:%d:%d"
 msgstr "scsi hostdev প্ৰস্তুত কৰিবলে অক্ষম: %s:%d:%d:%d"
 
-#: src/qemu/qemu_hotplug.c:1546 src/qemu/qemu_hotplug.c:3229
+#: src/qemu/qemu_hotplug.c:1545 src/qemu/qemu_hotplug.c:3228
 #, c-format
 msgid "hostdev mode '%s' not supported"
 msgstr "hostdev মোড '%s' সমৰ্থিত নহয়"
 
-#: src/qemu/qemu_hotplug.c:1579 src/qemu/qemu_hotplug.c:3202
+#: src/qemu/qemu_hotplug.c:1578 src/qemu/qemu_hotplug.c:3201
 #, c-format
 msgid "hostdev subsys type '%s' not supported"
 msgstr "hostdev subsys ৰ ধৰণ '%s' সমৰ্থিত নহয়"
 
-#: src/qemu/qemu_hotplug.c:1620
+#: src/qemu/qemu_hotplug.c:1619
 msgid "interface is missing bridge name"
 msgstr "আন্তঃপৃষ্ঠত ব্ৰিজৰ নাম নাই"
 
-#: src/qemu/qemu_hotplug.c:1633
+#: src/qemu/qemu_hotplug.c:1632
 #, c-format
 msgid "Couldn't find network '%s'"
 msgstr "নেটৱাৰ্ক '%s' বিচাৰি পোৱা নাযায়"
 
-#: src/qemu/qemu_hotplug.c:1655
+#: src/qemu/qemu_hotplug.c:1654
 #, c-format
 msgid "Interface type %d has no bridge name"
 msgstr "আন্তঃপৃষ্ঠ ধৰণ %d ৰ কোনো ব্ৰিজ নাম নাই"
 
-#: src/qemu/qemu_hotplug.c:1683
+#: src/qemu/qemu_hotplug.c:1682
 #, c-format
 msgid "bridge %s doesn't exist"
 msgstr "ব্ৰিজ %s অস্তিত্ববান নহয়"
 
-#: src/qemu/qemu_hotplug.c:1707
+#: src/qemu/qemu_hotplug.c:1706
 #, c-format
 msgid "unable to recover former state by adding port to bridge %s"
 msgstr "পোৰ্টক ব্ৰিজ %s লে যোগ কৰি আগৰ অৱস্থা উদ্ধাৰ কৰিবলে অক্ষম"
 
-#: src/qemu/qemu_hotplug.c:1734
+#: src/qemu/qemu_hotplug.c:1733
 #, c-format
 msgid "filters not supported on interfaces of type %s"
 msgstr "ধৰণ %s ৰ আন্তঃপৃষ্ঠসমূহৰ বাবে ফিল্টাৰসমূহ সমৰ্থিত নহয়"
 
-#: src/qemu/qemu_hotplug.c:1745
+#: src/qemu/qemu_hotplug.c:1744
 #, c-format
 msgid ""
 "failed to add new filter rules to '%s' - attempting to restore old rules"
@@ -15967,231 +15964,231 @@ msgstr ""
 "'%s' লে নতুন ফিল্টাৰ নিয়মসমূহ যোগ কৰিবলে ব্যৰ্থ - পুৰনি নিয়মসমূহ পুনৰুদ্ধাৰ কৰাৰ চেষ্টা "
 "কৰা হৈছে"
 
-#: src/qemu/qemu_hotplug.c:1769
+#: src/qemu/qemu_hotplug.c:1768
 msgid "can't change link state: device alias not found"
 msgstr "সংযোগ অৱস্থা পৰিবৰ্তন কৰিব নোৱাৰি: ডিভাইচ এলিয়াচ পোৱা নগল"
 
-#: src/qemu/qemu_hotplug.c:1807
+#: src/qemu/qemu_hotplug.c:1806
 msgid "cannot find existing network device to modify"
 msgstr "পৰিবৰ্তন কৰিবলে স্থায়ী নেটৱাৰ্ক ডিভাইচ পোৱা নগল"
 
-#: src/qemu/qemu_hotplug.c:1815
+#: src/qemu/qemu_hotplug.c:1814
 #, c-format
 msgid "cannot change config of '%s' network type"
 msgstr "'%s' নেটৱাৰ্ক ধৰণৰ সংৰূপ পৰিবৰ্তন কৰিব নোৱাৰি"
 
-#: src/qemu/qemu_hotplug.c:1838
+#: src/qemu/qemu_hotplug.c:1837
 #, c-format
 msgid "cannot change network interface mac address from %s to %s"
 msgstr "নেটৱাৰ্ক আন্তঃপৃষ্ঠ mac ঠিকনাক %s ৰ পৰা %s লে পৰিবৰ্তন কৰিব নোৱাৰি"
 
-#: src/qemu/qemu_hotplug.c:1847
+#: src/qemu/qemu_hotplug.c:1846
 #, c-format
 msgid "cannot modify network device model from %s to %s"
 msgstr "নেটৱাৰ্ক ডিভাইচ আৰ্হিক %s ৰ পৰা %s লে পৰিবৰ্তন কৰিব নোৱাৰি"
 
-#: src/qemu/qemu_hotplug.c:1859
+#: src/qemu/qemu_hotplug.c:1858
 msgid "cannot modify virtio network device driver attributes"
 msgstr "virtio নেটৱাৰ্ক ডিভাইচ ড্ৰাইভাৰ বৈশিষ্ট্যসমূহক পৰিবৰ্তন কৰিব নোৱাৰি"
 
-#: src/qemu/qemu_hotplug.c:1873
+#: src/qemu/qemu_hotplug.c:1872
 msgid "cannot modify network device script attribute"
 msgstr "নেটৱাৰ্ক ডিভাইচ স্ক্ৰিপ্ট বৈশিষ্ট্য পৰিবৰ্তন কৰিব নোৱাৰি"
 
-#: src/qemu/qemu_hotplug.c:1882
+#: src/qemu/qemu_hotplug.c:1881
 msgid "cannot modify network device tap name"
 msgstr "নেটৱাৰ্ক ডিভাইচ টেপ নাম পৰিবৰ্তন কৰিব নোৱাৰি"
 
-#: src/qemu/qemu_hotplug.c:1900
+#: src/qemu/qemu_hotplug.c:1899
 msgid "cannot modify network device guest PCI address"
 msgstr "নেটৱাৰ্ক ডিভাইচ অতিথি PCI ঠিকনা পৰিবৰ্তন কৰিব নোৱাৰি"
 
-#: src/qemu/qemu_hotplug.c:1909
+#: src/qemu/qemu_hotplug.c:1908
 msgid "cannot modify network device alias"
 msgstr "নেটৱাৰ্ক ডিভাইচ এলিয়াচ পৰিবৰ্তন কৰিব নোৱাৰি"
 
-#: src/qemu/qemu_hotplug.c:1914
+#: src/qemu/qemu_hotplug.c:1913
 msgid "cannot modify network device rom bar setting"
 msgstr "নেটৱাৰ্ক ডিভাইচ rom বাৰ সংহতি পৰিবৰ্তন কৰিব নোৱাৰি"
 
-#: src/qemu/qemu_hotplug.c:1919
+#: src/qemu/qemu_hotplug.c:1918
 msgid "cannot modify network rom file"
 msgstr "নেটৱাৰ্ক rom ফাইল পৰিবৰ্তন কৰিব নোৱাৰি"
 
-#: src/qemu/qemu_hotplug.c:1924
+#: src/qemu/qemu_hotplug.c:1923
 msgid "cannot modify network device boot index setting"
 msgstr "নেটৱাৰ্ক ডিভাইচ বুট সূচী সংহতি পৰিবৰ্তন কৰিব নোৱাৰি"
 
-#: src/qemu/qemu_hotplug.c:1951
+#: src/qemu/qemu_hotplug.c:1950
 #, c-format
 msgid "cannot change network interface type to '%s'"
 msgstr "নেটৱাৰ্ক আন্তঃপৃষ্ঠ ধৰণক '%s' লে পৰিবৰ্তন কৰিব নোৱাৰি"
 
-#: src/qemu/qemu_hotplug.c:2009 src/qemu/qemu_hotplug.c:2080
+#: src/qemu/qemu_hotplug.c:2008 src/qemu/qemu_hotplug.c:2079
 #, c-format
 msgid "unable to change config on '%s' network type"
 msgstr "'%s' নেটৱাৰ্ক ধৰণত সংৰূপ পৰিবৰ্তন কৰিবলে অক্ষম"
 
-#: src/qemu/qemu_hotplug.c:2180
+#: src/qemu/qemu_hotplug.c:2179
 msgid "cannot find existing graphics device to modify"
 msgstr "পৰিবৰ্তন কৰিবলে স্থায়ী গ্ৰাফিক্স ডিভাইচ পোৱা নাযায়"
 
-#: src/qemu/qemu_hotplug.c:2186
+#: src/qemu/qemu_hotplug.c:2185
 msgid "cannot change the number of listen addresses"
 msgstr "শুনা ঠিকনাৰ সংখ্যা পৰিবৰ্তন কৰিব নোৱাৰি"
 
-#: src/qemu/qemu_hotplug.c:2196
+#: src/qemu/qemu_hotplug.c:2195
 msgid "cannot change the type of listen address"
 msgstr "শুনা ঠিকনাৰ ধৰণ পৰিবৰ্তন কৰিব নোৱাৰি"
 
-#: src/qemu/qemu_hotplug.c:2205
+#: src/qemu/qemu_hotplug.c:2204
 msgid "cannot change listen address setting on vnc graphics"
 msgstr "vnc গ্ৰাফিক্সত শুনা ঠিকনা সংহতি পৰিবৰ্তন কৰিব নোৱাৰি"
 
-#: src/qemu/qemu_hotplug.c:2206
+#: src/qemu/qemu_hotplug.c:2205
 msgid "cannot change listen address setting on spice graphics"
 msgstr "spice গ্ৰাফিক্সত শুনা ঠিকনা সংহতি পৰিবৰ্তন কৰিব নোৱাৰি"
 
-#: src/qemu/qemu_hotplug.c:2215
+#: src/qemu/qemu_hotplug.c:2214
 msgid "cannot change listen network setting on vnc graphics"
 msgstr "vnc গ্ৰাফিক্সত শুনা নেটৱাৰ্ক সংহতি পৰিবৰ্তন কৰিব নোৱাৰি"
 
-#: src/qemu/qemu_hotplug.c:2216
+#: src/qemu/qemu_hotplug.c:2215
 msgid "cannot change listen network setting on spice graphics"
 msgstr "spice গ্ৰাফিক্সত শুনা নেটৱাৰ্ক সংহতি পৰিবৰ্তন কৰিব নোৱাৰি"
 
-#: src/qemu/qemu_hotplug.c:2234
+#: src/qemu/qemu_hotplug.c:2233
 msgid "cannot change port settings on vnc graphics"
 msgstr "vnc গ্ৰাফিক্সত পোৰ্ট সংহতিসমূহ পৰিবৰ্তন কৰিব নোৱাৰি"
 
-#: src/qemu/qemu_hotplug.c:2239
+#: src/qemu/qemu_hotplug.c:2238
 msgid "cannot change keymap setting on vnc graphics"
 msgstr "vnc গ্ৰাফিক্সত কি'মেপ সংহতি পৰিবৰ্তন কৰিব নোৱাৰি"
 
-#: src/qemu/qemu_hotplug.c:2279
+#: src/qemu/qemu_hotplug.c:2278
 msgid "cannot change port settings on spice graphics"
 msgstr "spice গ্ৰাফিক্সত পোৰ্ট সংহতিসমূহ পৰিবৰ্তন কৰিব নোৱাৰি"
 
-#: src/qemu/qemu_hotplug.c:2285
+#: src/qemu/qemu_hotplug.c:2284
 msgid "cannot change keymap setting on spice graphics"
 msgstr "spice গ্ৰাফিক্সত কি'মেপ সংহতি পৰিবৰ্তন কৰিব নোৱাৰি"
 
-#: src/qemu/qemu_hotplug.c:2326
+#: src/qemu/qemu_hotplug.c:2325
 #, c-format
 msgid "unable to change config on '%s' graphics type"
 msgstr "'%s' গ্ৰাফিক্স ধৰণত সংৰূপ পৰিবৰ্তন কৰিবলে অক্ষম"
 
-#: src/qemu/qemu_hotplug.c:2481
+#: src/qemu/qemu_hotplug.c:2480
 #, c-format
 msgid "failed to remove ebtables rule on '%s'"
 msgstr "'%s' ত ebtables নিয়ম আতৰাবলে ব্যৰ্থ"
 
-#: src/qemu/qemu_hotplug.c:2691
+#: src/qemu/qemu_hotplug.c:2690
 #, c-format
 msgid "don't know how to remove a %s device"
 msgstr "নাজানো এটা %s ডিভাইচ কেনেকৈ আতৰোৱা হ'ব"
 
-#: src/qemu/qemu_hotplug.c:2743
+#: src/qemu/qemu_hotplug.c:2742
 msgid "Unable to wait on unplug condition"
 msgstr "আনপ্লাগ অৱস্থাত অপেক্ষা কৰিবলে অক্ষম"
 
-#: src/qemu/qemu_hotplug.c:2776 src/qemu/qemu_hotplug.c:3022
+#: src/qemu/qemu_hotplug.c:2775 src/qemu/qemu_hotplug.c:3021
 #, c-format
 msgid "cannot hot unplug multifunction PCI device: %s"
 msgstr "বহুকাৰ্য্য PCI ডিভাইচক হট আনপ্লাগ কৰিব নোৱাৰি: %s"
 
-#: src/qemu/qemu_hotplug.c:2786
+#: src/qemu/qemu_hotplug.c:2785
 msgid "device cannot be detached without a valid CCW address"
 msgstr "ডিভাইচক এটা বৈধ CCW ঠিকনা নহোৱাকৈ অসংলগ্ন কৰিব নোৱাৰি"
 
-#: src/qemu/qemu_hotplug.c:2793
+#: src/qemu/qemu_hotplug.c:2792
 msgid "device cannot be detached without a valid PCI address"
 msgstr "ডিভাইচক এটা বৈধ PCI ঠিকনা নহোৱাকৈ অসংলগ্ন কৰিব নোৱাৰি"
 
-#: src/qemu/qemu_hotplug.c:2848
+#: src/qemu/qemu_hotplug.c:2847
 #, c-format
 msgid "Underlying qemu does not support %s disk removal"
 msgstr "নিম্নৰেখিত qemu এ %s ডিস্ক আতৰোৱা সমৰ্থন নকৰে"
 
-#: src/qemu/qemu_hotplug.c:2855
+#: src/qemu/qemu_hotplug.c:2854
 #, c-format
 msgid "disk '%s' is in an active block copy job"
 msgstr "ডিস্ক '%s' এটা সক্ৰিয় খণ্ড কপি কাৰ্য্যত আছে"
 
-#: src/qemu/qemu_hotplug.c:2930 src/uml/uml_driver.c:2331
+#: src/qemu/qemu_hotplug.c:2929 src/uml/uml_driver.c:2331
 msgid "This type of disk cannot be hot unplugged"
 msgstr "এই ধৰণৰ ডিস্ক হট আনপ্লাগ কৰিব নোৱাৰি"
 
-#: src/qemu/qemu_hotplug.c:2934
+#: src/qemu/qemu_hotplug.c:2933
 #, c-format
 msgid "disk device type '%s' cannot be detached"
 msgstr "ডিস্ক ডিভাইচ '%s' অসংলগ্ন কৰিব নোৱাৰি"
 
-#: src/qemu/qemu_hotplug.c:3005
+#: src/qemu/qemu_hotplug.c:3004
 #, c-format
 msgid "controller %s:%d not found"
 msgstr "নিয়ন্ত্ৰক %s:%d পোৱা নগল"
 
-#: src/qemu/qemu_hotplug.c:3016 src/qemu/qemu_hotplug.c:3085
-#: src/qemu/qemu_hotplug.c:3323
+#: src/qemu/qemu_hotplug.c:3015 src/qemu/qemu_hotplug.c:3084
+#: src/qemu/qemu_hotplug.c:3322
 msgid "device cannot be detached without a PCI address"
 msgstr "PCI ঠিকনা নোহোৱা ডিভাইচ বিচ্ছিন্ন কৰা সম্ভৱ নহয়"
 
-#: src/qemu/qemu_hotplug.c:3029
+#: src/qemu/qemu_hotplug.c:3028
 msgid "device cannot be detached: device is busy"
 msgstr "ডিভাইচ অসংলগ্ন কৰিব নোৱাৰি: ডিভাইচ ব্যস্ত"
 
-#: src/qemu/qemu_hotplug.c:3076
+#: src/qemu/qemu_hotplug.c:3075
 #, c-format
 msgid "cannot hot unplug multifunction PCI device: %.4x:%.2x:%.2x.%.1x"
 msgstr "বহুকাৰ্য্য PCI ডিভাইচক হট আনপ্লাগ কৰিব নোৱাৰি: %.4x:%.2x:%.2x.%.1x"
 
-#: src/qemu/qemu_hotplug.c:3112 src/qemu/qemu_hotplug.c:3143
+#: src/qemu/qemu_hotplug.c:3111 src/qemu/qemu_hotplug.c:3142
 msgid "device cannot be detached without a device alias"
 msgstr "ডিভাইচৰ এলায়েচ নোহোৱা ডিভাইচ বিচ্ছিন্ন কৰা সম্ভৱ নহয়"
 
-#: src/qemu/qemu_hotplug.c:3118 src/qemu/qemu_hotplug.c:3149
+#: src/qemu/qemu_hotplug.c:3117 src/qemu/qemu_hotplug.c:3148
 msgid "device cannot be detached with this QEMU version"
 msgstr "এই QEMU সংস্কৰণ সহযোগে ডিভাইচ বিচ্ছিন্ন কৰা সম্ভৱ নহয়"
 
-#: src/qemu/qemu_hotplug.c:3240
+#: src/qemu/qemu_hotplug.c:3239
 #, c-format
 msgid "host pci device %.4x:%.2x:%.2x.%.1x not found"
 msgstr "হোস্ট pci ডিভাইচ %.4x:%.2x:%.2x.%.1x পোৱা নাযায়"
 
-#: src/qemu/qemu_hotplug.c:3247
+#: src/qemu/qemu_hotplug.c:3246
 #, c-format
 msgid "host usb device %03d.%03d not found"
 msgstr "হোস্ট usb ডিভাইচ %03d.%03d পোৱা নাযায়"
 
-#: src/qemu/qemu_hotplug.c:3251
+#: src/qemu/qemu_hotplug.c:3250
 #, c-format
 msgid "host usb device vendor=0x%.4x product=0x%.4x not found"
 msgstr "হস্ট usb ডিভাইচ vendor=0x%.4x product=0x%.4x পোৱা নগল"
 
-#: src/qemu/qemu_hotplug.c:3257
+#: src/qemu/qemu_hotplug.c:3256
 #, c-format
 msgid "host scsi device %s:%d:%d.%d not found"
 msgstr "হস্ট scsi ডিভাইচ %s:%d:%d.%d পোৱা নগল"
 
-#: src/qemu/qemu_hotplug.c:3316
+#: src/qemu/qemu_hotplug.c:3315
 msgid "device cannot be detached without a CCW address"
 msgstr "ডিভাইচক এটা CCW ঠিকনা নহোৱাকৈ অসংলগ্ন কৰিব নোৱাৰি"
 
-#: src/qemu/qemu_hotplug.c:3329
+#: src/qemu/qemu_hotplug.c:3328
 #, c-format
 msgid "cannot hot unplug multifunction PCI device :%s"
 msgstr "বহুগুণী PCI ডিভাইচ হট আনপ্লাগ কৰিব নোৱাৰি:%s"
 
-#: src/qemu/qemu_hotplug.c:3337
+#: src/qemu/qemu_hotplug.c:3336
 msgid "unable to determine original VLAN"
 msgstr "মূল VLAN নিৰ্ধাৰণ কৰিবলৈ ব্যৰ্থ"
 
-#: src/qemu/qemu_hotplug.c:3420
+#: src/qemu/qemu_hotplug.c:3419
 msgid "Graphics password only supported for VNC"
 msgstr "গ্ৰাফিক্স পাছৱাৰ্ড কেৱল VNC ৰ বাবে সমৰ্থিত"
 
-#: src/qemu/qemu_hotplug.c:3446
+#: src/qemu/qemu_hotplug.c:3445
 msgid "Expiry of passwords is not supported"
 msgstr "পাছৱাৰ্ডসমূহৰ অৱসান সমৰ্থিত নহয়"
 
@@ -19187,9 +19184,9 @@ msgid "Unable to import client certificate %s"
 msgstr "ক্লাএন্ট প্ৰমাণপত্ৰ %s ইমপোৰ্ট কৰিবলে অক্ষম"
 
 #: src/rpc/virnettlscontext.c:566
-#, fuzzy, c-format
+#, c-format
 msgid "Unable to import CA certificate list %s"
-msgstr "চাৰ্ভাৰ প্ৰমাণপত্ৰ %s ইমপোৰ্ট কৰিবলে অক্ষম"
+msgstr "CA প্ৰমাণপত্ৰ তালিকা %s ইমপোৰ্ট কৰিবলৈ অক্ষম"
 
 #: src/rpc/virnettlscontext.c:644
 #, c-format
@@ -20507,27 +20504,30 @@ msgid "iscsi 'chap' authentication not supported for autostarted pools"
 msgstr "iscsi 'chap' প্ৰমাণীকৰণ স্বআৰম্ভ পুলসমূহৰ বাবে সমৰ্থিত নহয়"
 
 #: src/storage/storage_backend_iscsi.c:737
-#, fuzzy, c-format
+#, c-format
 msgid "could not get the value of the secret for username %s using uuid '%s'"
-msgstr "ব্যৱহাৰকাৰীনাম %s ৰ বাবে গোপনৰ মান প্ৰাপ্ত কৰিব নোৱাৰি"
+msgstr ""
+"uuid '%s' ব্যৱহাৰ কৰা ব্যৱহাৰকাৰীনাম %s ৰ বাবে গোপনৰ মান প্ৰাপ্ত কৰিব পৰা নগল"
 
 #: src/storage/storage_backend_iscsi.c:742
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "could not get the value of the secret for username %s using usage value '%s'"
-msgstr "ব্যৱহাৰকাৰীনাম %s ৰ বাবে গোপনৰ মান প্ৰাপ্ত কৰিব নোৱাৰি"
+msgstr ""
+"ব্যৱহাৰ মান '%s' ব্যৱহাৰ কৰা ব্যৱহাৰকাৰীনাম %s ৰ বাবে গোপনৰ মান প্ৰাপ্ত কৰিব পৰা "
+"নগল"
 
 #: src/storage/storage_backend_iscsi.c:751
 #: src/storage/storage_backend_rbd.c:96
-#, fuzzy, c-format
+#, c-format
 msgid "no secret matches uuid '%s'"
-msgstr "uuid '%s' ৰ সৈতে সুসংগত গোপনীয় তথ্য অনুপস্থিতুপস্থিত"
+msgstr "কোনো গোপন মিল uuid '%s' নাই"
 
 #: src/storage/storage_backend_iscsi.c:755
 #: src/storage/storage_backend_rbd.c:100
-#, fuzzy, c-format
+#, c-format
 msgid "no secret matches usage value '%s'"
-msgstr "'%s' ব্যৱহাৰৰ সৈতে সুসংগত গোপনীয় তথ্য অনুপস্থিতনুপস্থিত"
+msgstr "কোনো গোপন মিল ব্যৱহাৰ মান '%s'"
 
 #: src/storage/storage_backend_logical.c:146
 msgid "malformed volume extent stripes value"
@@ -20606,16 +20606,19 @@ msgid "'ceph' authentication not supported for autostarted pools"
 msgstr "'ceph' প্ৰমাণীকৰণ স্বআৰম্ভ পুলসমূহৰ বাবে সমৰ্থিত নহয়"
 
 #: src/storage/storage_backend_rbd.c:112
-#, fuzzy, c-format
+#, c-format
 msgid "could not get the value of the secret for username '%s' using uuid '%s'"
-msgstr "ব্যৱহাৰকাৰীনাম %s ৰ বাবে গোপনৰ মান প্ৰাপ্ত কৰিব নোৱাৰি"
+msgstr ""
+"uuid '%s' ব্যৱহাৰ কৰা ব্যৱহাৰকাৰীনাম '%s' ৰ বাবে গোপনৰ মান প্ৰাপ্ত কৰিব পৰা নগল"
 
 #: src/storage/storage_backend_rbd.c:118
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "could not get the value of the secret for username '%s' using usage value "
 "'%s'"
-msgstr "ব্যৱহাৰকাৰীনাম %s ৰ বাবে গোপনৰ মান প্ৰাপ্ত কৰিব নোৱাৰি"
+msgstr ""
+"ব্যৱহাৰ মান '%s' ব্যৱহাৰ কৰা ব্যৱহাৰকাৰীনাম '%s' ৰ বাবে গোপনৰ মান প্ৰাপ্ত কৰিব "
+"পৰা নগল"
 
 #: src/storage/storage_backend_rbd.c:132
 msgid "failed to decode the RADOS key"
@@ -20926,9 +20929,9 @@ msgid "Exceeded max iface limit %d"
 msgstr "সৰ্বাধিক iface সীমা %d অতিক্ৰান্ত হৈছে"
 
 #: src/test/test_driver.c:703
-#, fuzzy, c-format
+#, c-format
 msgid "resolving %s filename"
-msgstr "ডোমেইন ফাইলৰ নাম সংসাধন কৰা হৈছে"
+msgstr "%s ফাইলনাম সমাধান কৰা হৈছে"
 
 #: src/test/test_driver.c:739
 msgid "invalid node cpu nodes value"
@@ -21408,9 +21411,9 @@ msgid "Missing group 'credentials-%s' referenced from group '%s' in '%s'"
 msgstr "'%s' ত দল '%s' ৰ পৰা প্ৰসংগ কৰা দল 'credentials-%s' সন্ধানহিন "
 
 #: src/util/virbitmap.c:386
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to parse bitmap '%s'"
-msgstr "'%s' ধৰণ বিশ্লষণ কৰোঁতে ব্যৰ্থ"
+msgstr "বিটমেপ '%s' বিশ্লেষণ কৰিবলৈ ব্যৰ্থ"
 
 #: src/util/vircgroup.c:130
 msgid "Cannot open /proc/cgroups"
@@ -23447,11 +23450,11 @@ msgstr "%s ত আৰম্ভণি সময় %s বিশ্লেষণ ক�
 msgid "Unable to query process ID start time"
 msgstr "প্ৰক্ৰিয়া ID আৰম্ভণি সময়ক প্ৰশ্ন কৰিবলে অক্ষম"
 
-#: src/util/virrandom.c:160
+#: src/util/virrandom.c:171
 msgid "argument virt_type must not be NULL"
 msgstr "তৰ্ক virt_type NULL হব নোৱাৰিব"
 
-#: src/util/virrandom.c:177
+#: src/util/virrandom.c:188
 msgid "Unsupported virt type"
 msgstr "অসমৰ্থিত virt ধৰণ"
 
@@ -23515,9 +23518,9 @@ msgid "name too long: '%s'"
 msgstr "নাম অত্যাধিক দীঘল: '%s'"
 
 #: src/util/virstoragefile.c:577
-#, fuzzy, c-format
+#, c-format
 msgid "Cannot access backing file '%s'"
-msgstr "ফাইল '%s' অভিগম কৰিব নোৱাৰি"
+msgstr "বেকিং ফাইল '%s' অভিগম কৰিব নোৱাৰি"
 
 #: src/util/virstoragefile.c:584
 #, c-format
@@ -23637,9 +23640,9 @@ msgid "No error message provided"
 msgstr "কোনো ভুলৰ সম্বাদ দিয়া হোৱা নাই"
 
 #: src/util/virerror.c:733
-#, fuzzy, c-format
+#, c-format
 msgid "internal error: %s"
-msgstr "ভিতৰুৱা ভুল %s"
+msgstr "অভ্যন্তৰীক ত্ৰুটি: %s"
 
 #: src/util/virerror.c:735
 msgid "internal error"
@@ -24716,9 +24719,9 @@ msgid "Write of '%s' to '%s' during vport create/delete failed"
 msgstr "vport নিৰ্মাণ/অপসাৰণৰ সময় '%s' ক '%s' লৈ লিখিবলৈ ব্যৰ্থ"
 
 #: src/util/virutil.c:2092
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to parse uid and gid from '%s'"
-msgstr "দল '%s' বিশ্লেষণ কৰিবলে ব্যৰ্থ"
+msgstr "'%s' ৰ পৰা uid আৰু gid বিশ্লেষণ কৰিবলে ব্যৰ্থ"
 
 #: src/util/virxml.c:79
 msgid "Invalid parameter to virXPathString()"
@@ -25626,10 +25629,12 @@ msgstr ""
 "হল '%s'"
 
 #: src/vmx/vmx.c:2187 src/vmx/vmx.c:2225 src/vmx/vmx.c:2255
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Invalid or not yet handled value '%s' for VMX entry '%s' for device type '%s'"
-msgstr "VMX প্ৰবিষ্টি '%s' ৰ বাবে অবৈধ অথবা অব্যৱস্থাপিত মান '%s'"
+msgstr ""
+"ডিভাইচ ধৰণ '%s' ৰ বাবে VMX প্ৰৱিষ্টি '%s' ৰ বাবে অবৈধ অথবা এতিয়াও অনিয়ন্ত্ৰিত "
+"মান '%s'"
 
 #: src/vmx/vmx.c:2198
 #, c-format
@@ -30172,7 +30177,7 @@ msgstr "XML CPU ৰ বিৱৰণ ধাৰণকৰ্তা এটা ফা
 
 #: tools/virsh-domain.c:6158
 msgid "Show features that are part of the CPU model type"
-msgstr ""
+msgstr "CPU আৰ্হি ধৰণৰ অংশ হোৱা বৈশিষ্ট্যসমূহ দেখুৱাওক"
 
 #: tools/virsh-domain.c:6207
 #, c-format
@@ -32931,9 +32936,9 @@ msgid "display extended details for pools"
 msgstr "পুলসমূহৰ প্ৰসাৰিত বিৱৰণ প্ৰদৰ্শন কৰক"
 
 #: tools/virsh-pool.c:1004
-#, fuzzy, c-format
+#, c-format
 msgid "Invalid pool type '%s'"
-msgstr "অবৈধ পুল ধৰণ"
+msgstr "অবৈধ পুল ধৰণ '%s'"
 
 #: tools/virsh-pool.c:1080
 msgid "Could not retrieve pool information"
@@ -34191,14 +34196,13 @@ msgid "%s: unsupported hypervisor name %s\n"
 msgstr "%s: অসমৰ্থিত হাইপাৰভাইছৰ নাম %s\n"
 
 #: tools/virt-login-shell.c:80 tools/virt-login-shell.c:135
-#, fuzzy
 msgid "shell must be a list of strings"
-msgstr "security_driver স্ট্ৰিংসমূহৰ এটা তালিকা হব লাগিব"
+msgstr "শ্বেল স্ট্ৰিংসমূহৰ এটা তালিকা হব লাগিব"
 
 #: tools/virt-login-shell.c:110
 #, c-format
 msgid "%s not matched against 'allowed_users' in %s"
-msgstr ""
+msgstr "%s ক %s ত 'allowed_users' ৰ বাবে মিলোৱা নহয়"
 
 #: tools/virt-login-shell.c:162
 #, c-format
@@ -34213,134 +34217,54 @@ msgid ""
 "\n"
 "libvirt login shell\n"
 msgstr ""
+"\n"
+"ব্যৱহাৰ:\n"
+"  %s [options]\n"
+"\n"
+"Options:\n"
+"  -h | --help            Display program help:\n"
+"  -V | --version         Display program version:\n"
+"\n"
+"libvirt লগিন শ্বেল\n"
 
 #: tools/virt-login-shell.c:211
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to initialize libvirt Error Handling"
-msgstr "libvirt আৰম্ভ কৰিবলে ব্যৰ্থ"
+msgstr "libvirt ত্ৰুটি নিয়ন্ত্ৰণ আৰম্ভ কৰিবলৈ ব্যৰ্থ"
 
 #: tools/virt-login-shell.c:250
-#, fuzzy, c-format
+#, c-format
 msgid "%s takes no options"
-msgstr "অজ্ঞাত বিকল্প"
+msgstr "%s এ কোনো বিকল্প নলয়"
 
 #: tools/virt-login-shell.c:255
 #, c-format
 msgid "%s must be run by non root users"
-msgstr ""
+msgstr "%s কেৱল নন ৰুট ব্যৱহাৰকাৰী দ্বাৰা চলাব লাগিব"
 
 #: tools/virt-login-shell.c:293
-#, fuzzy, c-format
+#, c-format
 msgid "Can't create %s container: %s"
-msgstr "হাৰ্ড ডিস্কসমূহ নহোৱাকৈ VM '%s' সৃষ্টি কৰিব নোৱাৰি"
+msgstr "%s বৈয়াম সৃষ্টি কৰিব নোৱাৰি: %s"
 
 #: tools/virt-login-shell.c:348
-#, fuzzy, c-format
+#, c-format
 msgid "Unable to chdir(%s)"
-msgstr "%s সৃষ্টি কৰিবলে অক্ষম"
+msgstr "chdir(%s) কৰিবলৈ অক্ষম"
 
 #: tools/virt-login-shell.c:352
-#, fuzzy, c-format
+#, c-format
 msgid "Unable to exec shell %s"
-msgstr "%s বন্ধ কৰিবলে অক্ষম"
-
-#~ msgid "%s: internal error: unknown flag: %c"
-#~ msgstr "%s: অভ্যান্তৰীক ত্ৰুটি: অজ্ঞাত ফ্লেগ: %c"
+msgstr "শ্বেল %s exec কৰিবলৈ অক্ষম"
 
 #~ msgid "maxnames > REMOTE_DEFINED_INTERFACE_NAME_LIST_MAX"
 #~ msgstr "maxnames > REMOTE_DEFINED_INTERFACE_NAME_LIST_MAX"
 
-#~ msgid "topology cpuset syntax error"
-#~ msgstr "topology cpuset syntax ভুল"
-
-#~ msgid "Malformed 'class_id' attribute: %s"
-#~ msgstr "ক্ষতিগ্ৰস্থ 'class_id' বৈশিষ্ট্য: %s"
-
-#~ msgid "Could not serach in datastore '%s': %s"
-#~ msgstr "তথ্যসংগ্ৰহ '%s' ত সন্ধান কৰিব পৰা নগল: %s"
-
-#~ msgid "%s: internal error: unknown flag: %c\n"
-#~ msgstr "%s: অভ্যন্তৰীক ত্ৰুটি: অজ্ঞাত ফ্লেগ: %c\n"
-
 #~ msgid "no network with matching id"
 #~ msgstr "id ৰ সৈতে সুসংগত নে'টৱৰ্ক অনুপস্থিত"
-
-#~ msgid "Failed to parse thread siblings"
-#~ msgstr "থ্ৰেড চিবলিংসমূহ বিশ্লেষণ কৰিবলে ব্যৰ্থ"
-
-#~ msgid ""
-#~ "Attempted double use of PCI Address on slot '%s' (need "
-#~ "\"multifunction='off'\" for device on function 0)"
-#~ msgstr ""
-#~ "স্লট  '%s' ত PCI ঠিকনাৰ দুবাৰ ব্যৱহাৰৰ চেষ্টা (ফলন 0 ত ডিভাইচৰ বাবে "
-#~ "\"multifunction='off''\" ৰ প্ৰয়োজন)"
-
-#, fuzzy
-#~ msgid "unable to reserve PCI address %s already in use"
-#~ msgstr "PCI ঠিকনা %s সংৰক্ষণ কৰিবলৈ ব্যৰ্থ"
-
-#~ msgid "unable to reserve PCI slot %s"
-#~ msgstr "PCI স্লট %s সংৰক্ষণ কৰিবলে অক্ষম"
-
-#~ msgid "%s username '%s' specified but secret not found"
-#~ msgstr "%s ব্যৱহাৰকাৰী '%s' ধাৰ্য্যত কিন্তু গোপন পোৱা নগল"
-
-#~ msgid "Failed to parse nodeset"
-#~ msgstr "ন'ডছেট বিশ্লেষণ কৰিবলে ব্যৰ্থ"
-
-#~ msgid "NBD in tunnelled migration is currently not supported"
-#~ msgstr "টানেল্ড প্ৰব্ৰজনত MBD বৰ্তমানে সমৰ্থিত নহয়"
-
-#~ msgid "username '%s' specified but secret not found"
-#~ msgstr "ব্যৱহাৰকাৰী '%s' ধাৰ্য্যত কিন্তু গোপন পোৱা নগল"
-
-#~ msgid "failed to find the secret"
-#~ msgstr "গোপন তথ্য সন্ধান কৰিবলে ব্যৰ্থ"
-
-#~ msgid "resolving volume filename"
-#~ msgstr "ভলিউমৰ ফাইলৰ নাম মীমাংসা কৰা হৈছে"
-
-#~ msgid "resolving domain filename"
-#~ msgstr "ডোমেইন ফাইলৰ নাম সংসাধন কৰা হৈছে"
-
-#~ msgid "resolving network filename"
-#~ msgstr "নে'টৱৰ্ক ফাইলৰ নাম বিশ্লেষণ কৰা হৈছে"
-
-#~ msgid "resolving interface filename"
-#~ msgstr "সংযোগমাধ্যমৰ ফাইলৰ নাম মীমাংসা কৰা হৈছে"
-
-#~ msgid "resolving device filename"
-#~ msgstr "ডিভাইচ ফাইলৰ নাম মীমাংসা কৰা হৈছো কৰা হৈছে"
-
-#~ msgid "invalid CPU mask %s"
-#~ msgstr "অবৈধ MAC ঠিকনা: %s"
 
 #~ msgid "Programming error: Invalid option name"
 #~ msgstr "প্ৰগ্ৰামিং ত্ৰুটি: অবৈধ বিকল্প নাম"
 
 #~ msgid "Programming error: Requested option is a boolean"
 #~ msgstr "প্ৰগ্ৰামিং ত্ৰুটি: অনুৰোধ কৰা বিকল্প এটা বুলিয়ান হয়"
-
-#~ msgid "Volume"
-#~ msgstr "সমষ্টি"
-
-#~ msgid "Cgroup name is not valid for machine %s"
-#~ msgstr "Cgroup নাম মেচিন %s ৰ বাবে বৈধ নহয়"
-
-#~ msgid "Slot 0 is unusable on PCI bridges"
-#~ msgstr "স্লট 0 PCI ব্ৰিজসমূহত ব্যৱহাৰযোগ্য নহয়"
-
-#~ msgid "Slot 0 on bus 0 is reserved for the host bridge"
-#~ msgstr "বাচ 0 ত স্লট 0 হস্ট ব্ৰিজৰ বাবে সংৰক্ষিত"
-
-#~ msgid "%s: failed to open"
-#~ msgstr "%s: খুলিবলৈ ব্যৰ্থ"
-
-#~ msgid "failed to open path '%s'"
-#~ msgstr "পথ '%s' খোলিবলে ব্যৰ্থ"
-
-#~ msgid "Missing separator ':' in DAC label \"%s\""
-#~ msgstr "DAC লেবেল \"%s\" ত বিভাজক ':' নাই"
-
-#~ msgid "guest panicked"
-#~ msgstr "অতিথি ভয় খালে"
