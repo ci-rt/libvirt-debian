@@ -1,3 +1,12 @@
+libvirt (1.1.2-1) unstable; urgency=low
+
+  * [1fb0a76] Parse AM_LDFLAGS to driver modules too got get a RO got
+    Thanks again lintian and lintian-maintainers!
+  * [921150d] Bump standards version to 0.9.4
+  * [7b8d517] New upstream version 1.1.2
+
+ -- Guido Günther <agx@sigxcpu.org>  Mon, 02 Sep 2013 10:04:33 +0200
+
 libvirt (1.1.2~rc2-1) experimental; urgency=low
 
   * [4db5aa3] Remove unneeded systemd targets.
