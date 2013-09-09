@@ -1,3 +1,10 @@
+libvirt (0.9.12-11+deb7u4) stable-security; urgency=low
+
+  * [e91a86a] CVE-2013-4296: Fix crash in remoteDispatchDomainMemoryStats.
+    Thanks to "Daniel P. Berrange"
+
+ -- Guido Günther <agx@sigxcpu.org>  Mon, 09 Sep 2013 13:12:45 +0200
+
 libvirt (0.9.12-11+deb7u3) wheezy-proposed-updates; urgency=low
 
   * [9c12e5a] Fix race condition when destroying guests.
