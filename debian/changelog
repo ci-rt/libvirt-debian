@@ -1,3 +1,11 @@
+libvirt (1.1.2-2) unstable; urgency=low
+
+  * [f5f3818] virFileNBDDeviceAssociate: Avoid use of uninitialized variable.
+    This fixes CVE-2013-4297.
+    Thanks to Michal Privoznik
+
+ -- Guido Günther <agx@sigxcpu.org>  Mon, 09 Sep 2013 09:22:20 +0200
+
 libvirt (1.1.2-1) unstable; urgency=low
 
   * [1fb0a76] Parse AM_LDFLAGS to driver modules too got get a RO got
