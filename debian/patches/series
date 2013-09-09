@@ -12,3 +12,4 @@ debian/Debianize-systemd-service-files.patch
 Allow-xen-toolstack-to-find-it-s-binaries.patch
 Fix-make-check-not-finding-finding-the-libvirtd-lens.patch
 Parse-AM_LDFLAGS-to-driver-modules-too.patch
+virFileNBDDeviceAssociate-Avoid-use-of-uninitialized.patch
