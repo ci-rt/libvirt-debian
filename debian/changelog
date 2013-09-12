@@ -1,3 +1,14 @@
+libvirt (1.1.2-3) unstable; urgency=low
+
+  * [d7b6d7a] Cherry-pick cgroup related fixes from upstream trunk.
+    (a48838ad2e36c124229b6faaf6e24284810e3802 and
+    f0b6d8d472de3c1bf3ade24e07df7c6d02075b77).
+    Thanks to Laurent Biognville for chasing this and Daniel P. Berrange for
+    the actual fixes.
+    (Closes: #721979)
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 12 Sep 2013 16:15:31 +0200
+
 libvirt (1.1.2-2) unstable; urgency=low
 
   * [f5f3818] virFileNBDDeviceAssociate: Avoid use of uninitialized variable.
