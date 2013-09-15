@@ -57,6 +57,8 @@ add_statoverrides()
     QEMU_DIRS="\
          /var/lib/libvirt/qemu/   \
          /var/cache/libvirt/qemu/ \
+         /var/lib/libvirt/qemu/channel/ \
+         /var/lib/libvirt/qemu/channel/target/ \
     "
 
     SANLOCK_DIR="/var/lib/libvirt/sanlock"
