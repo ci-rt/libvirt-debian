@@ -72,7 +72,7 @@ add_statoverrides()
 
     for dir in ${QEMU_DIRS}; do
         if ! dpkg-statoverride --list "${dir}" >/dev/null 2>&1; then
-            chown libvirt-qemu:kvm "${dir}"
+            chown libvirt-qemu:libvirt-qemu "${dir}"
             chmod 0750 "${dir}"
         fi
     done
