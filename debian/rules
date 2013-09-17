@@ -77,6 +77,7 @@ DEB_CONFIGURE_EXTRA_ARGS :=      \
 	$(WITH_STORAGE_LVM)	 \
 	$(WITH_STORAGE_ISCSI)	 \
 	$(WITH_STORAGE_DISK)	 \
+	$(WITH_STORAGE_SHEEPDOG) \
 	$(WITH_INIT_SCRIPT)      \
 	$(WITH_NUMA)             \
 	--without-selinux        \
