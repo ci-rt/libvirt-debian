@@ -17,7 +17,6 @@ ifneq (,$(findstring $(DEB_HOST_ARCH_OS), linux))
   WITH_UDEV           = --with-udev --without-hal
   WITH_CAPNG          = --with-capng
   WITH_POLKIT         = --with-polkit
-  WITH_MACVTAP        = --with-macvtap
   WITH_NETWORK        = --with-network
   WITH_QEMU           = --with-qemu
   WITH_OPENVZ         = --with-openvz
@@ -47,7 +46,6 @@ else
   WITH_UDEV           = --without-udev --with-hal
   WITH_CAPNG          = --without-capng
   WITH_POLKIT         = --without-polkit
-  WITH_MACVTAP        = --without-macvtap
   WITH_NETWORK        = --without-network
   WITH_QEMU           = --without-qemu
   WITH_LXC            = --without-lxc
