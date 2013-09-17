@@ -1,3 +1,12 @@
+libvirt (1.1.2-3~bpo70+1) wheezy-backports; urgency=low
+
+  * Rebuild for wheezy-backports.
+  * [b46b754] Drop sheepdog support not available in Wheezy
+  * [31a2113] Use libnl1 since libnetcf1 is linked against libnl1 in Wheezy.
+    Also make sure we don't pickup up libnetcf-dev using libnl3.
+
+ -- Guido Günther <agx@sigxcpu.org>  Tue, 17 Sep 2013 19:05:57 +0200
+
 libvirt (1.1.2-3) unstable; urgency=low
 
   * [d7b6d7a] Cherry-pick cgroup related fixes from upstream trunk.
