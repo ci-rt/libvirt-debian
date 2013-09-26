@@ -1,3 +1,29 @@
+libvirt (1.1.3~rc1-1) experimental; urgency=low
+
+  * [1894ff0] Use libvirt-qemu as group for qemu-kvm related directories since
+    this is the group we run the process with.
+  * [adf14d0] Make sure qemu guest agent related directories are
+    readable/writeable by the kvm process (Closes: #717406)
+  * [b7c1b69] Explicitly enable sheepdog support we already set the configure
+    params but didn't pass them on. Sheepdog support was enabled anyway due to
+    ./configure autoprobing.
+  * [85436a4] No need for gawk.  Awk isn't used in libvirt anymore and
+    virt-pki-validate can cope with mawk. (Closes: #703380)
+  * [20cacff] New upstream version 1.1.3~rc1
+  * [fe3ccca] Drop patches fixed upstream.
+        Fix-cgroups-when-all-are-mounted-on-sys-fs-cgroup.patch
+        Fix-launching-of-VMs-on-when-only-logind-part-of-sys.patch
+        Fix-make-check-not-finding-finding-the-libvirtd-lens.patch
+        Parse-AM_LDFLAGS-to-driver-modules-too.patch
+        virFileNBDDeviceAssociate-Avoid-use-of-uninitialized.patch
+  * [da60777] Rediff patches
+  * [d5e311a] Update symbols file
+  * [634a67a] Depend on newer polkit. We want a pkcheck that supports the uid
+    arg to address CVE-2013-4311
+  * [7c5e09d] Add check-aclperms.pl missing from the dist tarball
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 26 Sep 2013 14:08:44 +0200
+
 libvirt (1.1.2-3) unstable; urgency=low
 
   * [d7b6d7a] Cherry-pick cgroup related fixes from upstream trunk.
