@@ -210,6 +210,26 @@ int virConnectGetCapabilitiesEnsureACL(virConnectPtr conn)
 }
 
 /* Returns: -1 on error/denied, 0 on allowed */
+int virConnectGetCPUModelNamesEnsureACL(virConnectPtr conn)
+{
+    virAccessManagerPtr mgr;
+    int rv;
+
+    if (!(mgr = virAccessManagerGetDefault())) {
+        return -1;
+    }
+
+    if ((rv = virAccessManagerCheckConnect(mgr, conn->driver->name, VIR_ACCESS_PERM_CONNECT_READ)) <= 0) {
+        virObjectUnref(mgr);
+        if (rv == 0)
+            virReportError(VIR_ERR_ACCESS_DENIED, NULL);
+        return -1;
+    }
+    virObjectUnref(mgr);
+    return 0;
+}
+
+/* Returns: -1 on error/denied, 0 on allowed */
 int virConnectGetHostnameEnsureACL(virConnectPtr conn)
 {
     virAccessManagerPtr mgr;
@@ -5334,7 +5354,7 @@ int virNodeDeviceDetachFlagsEnsureACL(virConnectPtr conn, virNodeDeviceDefPtr de
         return -1;
     }
 
-    if ((rv = virAccessManagerCheckNodeDevice(mgr, conn->driver->name, device, VIR_ACCESS_PERM_NODE_DEVICE_DETTACH)) <= 0) {
+    if ((rv = virAccessManagerCheckNodeDevice(mgr, conn->driver->name, device, VIR_ACCESS_PERM_NODE_DEVICE_DETACH)) <= 0) {
         virObjectUnref(mgr);
         if (rv == 0)
             virReportError(VIR_ERR_ACCESS_DENIED, NULL);
@@ -5354,7 +5374,7 @@ int virNodeDeviceDettachEnsureACL(virConnectPtr conn, virNodeDeviceDefPtr device
         return -1;
     }
 
-    if ((rv = virAccessManagerCheckNodeDevice(mgr, conn->driver->name, device, VIR_ACCESS_PERM_NODE_DEVICE_DETTACH)) <= 0) {
+    if ((rv = virAccessManagerCheckNodeDevice(mgr, conn->driver->name, device, VIR_ACCESS_PERM_NODE_DEVICE_DETACH)) <= 0) {
         virObjectUnref(mgr);
         if (rv == 0)
             virReportError(VIR_ERR_ACCESS_DENIED, NULL);
@@ -5494,7 +5514,7 @@ int virNodeDeviceReAttachEnsureACL(virConnectPtr conn, virNodeDeviceDefPtr devic
         return -1;
     }
 
-    if ((rv = virAccessManagerCheckNodeDevice(mgr, conn->driver->name, device, VIR_ACCESS_PERM_NODE_DEVICE_DETTACH)) <= 0) {
+    if ((rv = virAccessManagerCheckNodeDevice(mgr, conn->driver->name, device, VIR_ACCESS_PERM_NODE_DEVICE_DETACH)) <= 0) {
         virObjectUnref(mgr);
         if (rv == 0)
             virReportError(VIR_ERR_ACCESS_DENIED, NULL);
@@ -5514,7 +5534,7 @@ int virNodeDeviceResetEnsureACL(virConnectPtr conn, virNodeDeviceDefPtr device)
         return -1;
     }
 
-    if ((rv = virAccessManagerCheckNodeDevice(mgr, conn->driver->name, device, VIR_ACCESS_PERM_NODE_DEVICE_DETTACH)) <= 0) {
+    if ((rv = virAccessManagerCheckNodeDevice(mgr, conn->driver->name, device, VIR_ACCESS_PERM_NODE_DEVICE_DETACH)) <= 0) {
         virObjectUnref(mgr);
         if (rv == 0)
             virReportError(VIR_ERR_ACCESS_DENIED, NULL);

@@ -57,7 +57,6 @@
 #include "virerror.h"
 #include "base64.h"
 #include "virbuffer.h"
-#include "console.h"
 #include "viralloc.h"
 #include "virxml.h"
 #include <libvirt/libvirt-qemu.h>
@@ -73,6 +72,7 @@
 #include "virtypedparam.h"
 #include "virstring.h"
 
+#include "virsh-console.h"
 #include "virsh-domain.h"
 #include "virsh-domain-monitor.h"
 #include "virsh-host.h"
@@ -458,14 +458,13 @@ int
 vshAskReedit(vshControl *ctl, const char *msg)
 {
     int c = -1;
-    struct termios ttyattr;
 
     if (!isatty(STDIN_FILENO))
         return -1;
 
     vshReportError(ctl);
 
-    if (vshMakeStdinRaw(&ttyattr, false) < 0)
+    if (vshTTYMakeRaw(ctl, false) < 0)
         return -1;
 
     while (true) {
@@ -488,7 +487,7 @@ vshAskReedit(vshControl *ctl, const char *msg)
         }
     }
 
-    tcsetattr(STDIN_FILENO, TCSAFLUSH, &ttyattr);
+    vshTTYRestore(ctl);
 
     vshPrint(ctl, "\r\n");
     return c;
@@ -922,7 +921,7 @@ cmdEcho(vshControl *ctl, const vshCmd *cmd)
 
         if (xml) {
             virBufferEscapeString(&xmlbuf, "%s", arg);
-            if (virBufferError(&buf)) {
+            if (virBufferError(&xmlbuf)) {
                 vshPrint(ctl, "%s", _("Failed to allocate XML buffer"));
                 return false;
             }
@@ -2213,6 +2212,105 @@ vshPrintExtra(vshControl *ctl, const char *format, ...)
 }
 
 
+bool
+vshTTYIsInterruptCharacter(vshControl *ctl ATTRIBUTE_UNUSED,
+                           const char chr ATTRIBUTE_UNUSED)
+{
+#ifndef WIN32
+    if (ctl->istty &&
+        ctl->termattr.c_cc[VINTR] == chr)
+        return true;
+#endif
+
+    return false;
+}
+
+
+int
+vshTTYDisableInterrupt(vshControl *ctl ATTRIBUTE_UNUSED)
+{
+#ifndef WIN32
+    struct termios termset = ctl->termattr;
+
+    if (!ctl->istty)
+        return -1;
+
+    /* check if we need to set the terminal */
+    if (termset.c_cc[VINTR] == _POSIX_VDISABLE)
+        return 0;
+
+    termset.c_cc[VINTR] = _POSIX_VDISABLE;
+    termset.c_lflag &= ~ICANON;
+
+    if (tcsetattr(STDIN_FILENO, TCSANOW, &termset) < 0)
+        return -1;
+#endif
+
+    return 0;
+}
+
+
+int
+vshTTYRestore(vshControl *ctl ATTRIBUTE_UNUSED)
+{
+#ifndef WIN32
+    if (!ctl->istty)
+        return 0;
+
+    if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &ctl->termattr) < 0)
+        return -1;
+#endif
+
+    return 0;
+}
+
+
+#if !defined(WIN32) && !defined(HAVE_CFMAKERAW)
+/* provide fallback in case cfmakeraw isn't available */
+static void
+cfmakeraw(struct termios *attr)
+{
+    attr->c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP
+                         | INLCR | IGNCR | ICRNL | IXON);
+    attr->c_oflag &= ~OPOST;
+    attr->c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG | IEXTEN);
+    attr->c_cflag &= ~(CSIZE | PARENB);
+    attr->c_cflag |= CS8;
+}
+#endif /* !WIN32 && !HAVE_CFMAKERAW */
+
+
+int
+vshTTYMakeRaw(vshControl *ctl ATTRIBUTE_UNUSED,
+              bool report_errors ATTRIBUTE_UNUSED)
+{
+#ifndef WIN32
+    struct termios rawattr = ctl->termattr;
+    char ebuf[1024];
+
+    if (!ctl->istty) {
+        if (report_errors) {
+            vshError(ctl, "%s",
+                     _("unable to make terminal raw: console isn't a tty"));
+        }
+
+        return -1;
+    }
+
+    cfmakeraw(&rawattr);
+
+    if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &rawattr) < 0) {
+        if (report_errors)
+            vshError(ctl, _("unable to set tty attributes: %s"),
+                     virStrerror(errno, ebuf, sizeof(ebuf)));
+        return -1;
+    }
+#endif
+
+    return 0;
+}
+
+
 void
 vshError(vshControl *ctl, const char *format, ...)
 {
@@ -3155,6 +3253,15 @@ main(int argc, char **argv)
     if (!textdomain(PACKAGE)) {
         perror("textdomain");
         return EXIT_FAILURE;
+    }
+
+    if (isatty(STDIN_FILENO)) {
+        ctl->istty = true;
+
+#ifndef WIN32
+        if (tcgetattr(STDIN_FILENO, &ctl->termattr) < 0)
+            ctl->istty = false;
+#endif
     }
 
     if (virMutexInit(&ctl->lock) < 0) {

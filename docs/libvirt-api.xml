@@ -890,6 +890,7 @@
      <exports symbol='virConnectDomainXMLFromNative' type='function'/>
      <exports symbol='virConnectDomainXMLToNative' type='function'/>
      <exports symbol='virConnectFindStoragePoolSources' type='function'/>
+     <exports symbol='virConnectGetCPUModelNames' type='function'/>
      <exports symbol='virConnectGetCapabilities' type='function'/>
      <exports symbol='virConnectGetHostname' type='function'/>
      <exports symbol='virConnectGetLibVersion' type='function'/>
@@ -3391,15 +3392,24 @@ local storage resources only)]]></info>
       <arg name='srcSpec' type='const char *' info='XML document specifying discovery source'/>
       <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
+    <function name='virConnectGetCPUModelNames' file='libvirt' module='libvirt'>
+      <info><![CDATA[Get the list of supported CPU models for a specific architecture.]]></info>
+      <return type='int' info='-1 on error, number of elements in @models on success.'/>
+      <arg name='conn' type='virConnectPtr' info='virConnect connection'/>
+      <arg name='arch' type='const char *' info='Architecture'/>
+      <arg name='models' type='char ** *' info='Pointer to a variable to store the NULL-terminated array of the CPU models supported for the specified architecture.  Each element and the array itself must be freed by the caller with free.  Pass NULL if only the list length is needed.'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0.'/>
+    </function>
     <function name='virConnectGetCapabilities' file='libvirt' module='libvirt'>
       <info><![CDATA[Provides capabilities of the hypervisor / driver.]]></info>
       <return type='char *' info='NULL in case of error, or an XML string defining the capabilities. The client must free the returned string after use.'/>
       <arg name='conn' type='virConnectPtr' info='pointer to the hypervisor connection'/>
     </function>
     <function name='virConnectGetHostname' file='libvirt' module='libvirt'>
-      <info><![CDATA[This returns the system hostname on which the hypervisor is
-running (the result of the gethostname system call).  If
-we are connected to a remote system, then this returns the
+      <info><![CDATA[This returns a system hostname on which the hypervisor is
+running (based on the result of the gethostname system call, but
+possibly expanded to a fully-qualified domain name via getaddrinfo).
+If we are connected to a remote system, then this returns the
 hostname of the remote system.]]></info>
       <return type='char *' info='the hostname which must be freed by the caller, or NULL if there was an error.'/>
       <arg name='conn' type='virConnectPtr' info='pointer to a hypervisor connection'/>
@@ -3429,7 +3439,11 @@ available only for hypervisors running with root privileges.]]></info>
       <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
     <function name='virConnectGetType' file='libvirt' module='libvirt'>
-      <info><![CDATA[Get the name of the Hypervisor software used.]]></info>
+      <info><![CDATA[Get the name of the Hypervisor driver used. This is merely the driver
+name; for example, both KVM and QEMU guests are serviced by the
+driver for the qemu:// URI, so a return of "QEMU" does not indicate
+whether KVM acceleration is present.  For more details about the
+hypervisor, use virConnectGetCapabilities().]]></info>
       <return type='const char *' info='NULL in case of error, a static zero terminated string otherwise.  See also: http://www.redhat.com/archives/libvir-list/2007-February/msg00096.html'/>
       <arg name='conn' type='virConnectPtr' info='pointer to the hypervisor connection'/>
     </function>
@@ -4461,7 +4475,7 @@ block attempts at migration, save-to-file, or snapshots.]]></info>
       <info><![CDATA[Define a domain, but does not start it.
 This definition is persistent, until explicitly undefined with
 virDomainUndefine(). A previous definition for this domain would be
-overriden if it already exists.
+overridden if it already exists.
 
 Some hypervisors may prevent this operation if there is a current
 block copy operation on a transient domain with the same id as the
@@ -6891,7 +6905,7 @@ reconfiguring the NIC device backend connectivity, etc.]]></info>
     </functype>
     <function name='virEventAddHandle' file='libvirt' module='virevent'>
       <info><![CDATA[Register a callback for monitoring file handle events.]]></info>
-      <return type='int' info='-1 if the file handle cannot be registered, 0 upon success'/>
+      <return type='int' info='-1 if the file handle cannot be registered, otherwise a handle watch number to be used for updating and unregistering for events'/>
       <arg name='fd' type='int' info='file handle to monitor for events'/>
       <arg name='events' type='int' info='bitset of events to watch from virEventHandleType constants'/>
       <arg name='cb' type='virEventHandleCallback' info='callback to invoke when an event occurs'/>
@@ -6908,7 +6922,7 @@ is unregistered, then a 2nd callback can be supplied for
 this purpose. This callback needs to be invoked from a clean stack.
 If 'ff' callbacks are invoked directly from the virEventRemoveHandleFunc
 they will likely deadlock in libvirt.]]></info>
-      <return type='int' info='a handle watch number to be used for updating and unregistering for events'/>
+      <return type='int' info='-1 if the file handle cannot be registered, otherwise a handle watch number to be used for updating and unregistering for events'/>
       <arg name='fd' type='int' info='file descriptor to listen on'/>
       <arg name='event' type='int' info='bitset of events on which to fire the callback'/>
       <arg name='cb' type='virEventHandleCallback' info='the callback to be called when an event occurrs'/>

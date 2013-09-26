@@ -1,7 +1,7 @@
 /*
- * console.c: A dumb serial console client
+ * virsh-console.c: A dumb serial console client
  *
- * Copyright (C) 2007-2008, 2010-2012 Red Hat, Inc.
+ * Copyright (C) 2007-2008, 2010-2013 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -17,7 +17,8 @@
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
- * Daniel Berrange <berrange@redhat.com>
+ * Authors:
+ *     Daniel Berrange <berrange@redhat.com>
  */
 
 #include <config.h>
@@ -37,7 +38,8 @@
 # include <c-ctype.h>
 
 # include "internal.h"
-# include "console.h"
+# include "virsh.h"
+# include "virsh-console.h"
 # include "virlog.h"
 # include "virfile.h"
 # include "viralloc.h"
@@ -58,6 +60,7 @@ struct virConsoleBuffer {
     char *data;
 };
 
+
 typedef struct virConsole virConsole;
 typedef virConsole *virConsolePtr;
 struct virConsole {
@@ -75,23 +78,14 @@ struct virConsole {
     char escapeChar;
 };
 
+
 static int got_signal = 0;
-static void do_signal(int sig ATTRIBUTE_UNUSED) {
+static void
+virConsoleHandleSignal(int sig ATTRIBUTE_UNUSED)
+{
     got_signal = 1;
 }
 
-# ifndef HAVE_CFMAKERAW
-static void
-cfmakeraw(struct termios *attr)
-{
-    attr->c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP
-                         | INLCR | IGNCR | ICRNL | IXON);
-    attr->c_oflag &= ~OPOST;
-    attr->c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG | IEXTEN);
-    attr->c_cflag &= ~(CSIZE | PARENB);
-    attr->c_cflag |= CS8;
-}
-# endif /* !HAVE_CFMAKERAW */
 
 static void
 virConsoleShutdown(virConsolePtr con)
@@ -113,6 +107,21 @@ virConsoleShutdown(virConsolePtr con)
     con->quit = true;
     virCondSignal(&con->cond);
 }
+
+
+static void
+virConsoleFree(virConsolePtr con)
+{
+    if (!con)
+        return;
+
+    if (con->st)
+        virStreamFree(con->st);
+    virMutexDestroy(&con->lock);
+    virCondDestroy(&con->cond);
+    VIR_FREE(con);
+}
+
 
 static void
 virConsoleEventOnStream(virStreamPtr st,
@@ -171,9 +180,8 @@ virConsoleEventOnStream(virStreamPtr st,
 
         avail = con->terminalToStream.length - con->terminalToStream.offset;
         if (avail > 1024) {
-            if (VIR_REALLOC_N(con->terminalToStream.data,
-                              con->terminalToStream.offset + 1024) < 0)
-            {}
+            ignore_value(VIR_REALLOC_N(con->terminalToStream.data,
+                                       con->terminalToStream.offset + 1024));
             con->terminalToStream.length = con->terminalToStream.offset + 1024;
         }
     }
@@ -186,6 +194,7 @@ virConsoleEventOnStream(virStreamPtr st,
         virConsoleShutdown(con);
     }
 }
+
 
 static void
 virConsoleEventOnStdin(int watch ATTRIBUTE_UNUSED,
@@ -242,6 +251,7 @@ virConsoleEventOnStdin(int watch ATTRIBUTE_UNUSED,
     }
 }
 
+
 static void
 virConsoleEventOnStdout(int watch ATTRIBUTE_UNUSED,
                         int fd,
@@ -270,9 +280,8 @@ virConsoleEventOnStdout(int watch ATTRIBUTE_UNUSED,
 
         avail = con->streamToTerminal.length - con->streamToTerminal.offset;
         if (avail > 1024) {
-            if (VIR_REALLOC_N(con->streamToTerminal.data,
-                              con->streamToTerminal.offset + 1024) < 0)
-            {}
+            ignore_value(VIR_REALLOC_N(con->streamToTerminal.data,
+                                       con->streamToTerminal.offset + 1024));
             con->streamToTerminal.length = con->streamToTerminal.offset + 1024;
         }
     }
@@ -296,69 +305,46 @@ vshGetEscapeChar(const char *s)
     return *s;
 }
 
+
 int
-vshMakeStdinRaw(struct termios *ttyattr, bool report_errors)
+vshRunConsole(vshControl *ctl,
+              virDomainPtr dom,
+              const char *dev_name,
+              unsigned int flags)
 {
-    struct termios rawattr;
-    char ebuf[1024];
-
-    if (tcgetattr(STDIN_FILENO, ttyattr) < 0) {
-        if (report_errors)
-            VIR_ERROR(_("unable to get tty attributes: %s"),
-                      virStrerror(errno, ebuf, sizeof(ebuf)));
-        return -1;
-    }
-
-    rawattr = *ttyattr;
-    cfmakeraw(&rawattr);
-
-    if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &rawattr) < 0) {
-        if (report_errors)
-            VIR_ERROR(_("unable to set tty attributes: %s"),
-                      virStrerror(errno, ebuf, sizeof(ebuf)));
-        return -1;
-    }
-
-    return 0;
-}
-
-int vshRunConsole(virDomainPtr dom,
-                  const char *dev_name,
-                  const char *escape_seq,
-                  unsigned int flags)
-{
-    int ret = -1;
-    struct termios ttyattr;
-    void (*old_sigquit)(int);
-    void (*old_sigterm)(int);
-    void (*old_sigint)(int);
-    void (*old_sighup)(int);
-    void (*old_sigpipe)(int);
     virConsolePtr con = NULL;
+    int ret = -1;
 
-    /* Put STDIN into raw mode so that stuff typed
-       does not echo to the screen (the TTY reads will
-       result in it being echoed back already), and
-       also ensure Ctrl-C, etc is blocked, and misc
-       other bits */
-    if (vshMakeStdinRaw(&ttyattr, true) < 0)
+    struct sigaction old_sigquit;
+    struct sigaction old_sigterm;
+    struct sigaction old_sigint;
+    struct sigaction old_sighup;
+    struct sigaction old_sigpipe;
+    struct sigaction sighandler = {.sa_handler = virConsoleHandleSignal,
+                                   .sa_flags = SA_SIGINFO };
+
+    sigemptyset(&sighandler.sa_mask);
+
+    /* Put STDIN into raw mode so that stuff typed does not echo to the screen
+     * (the TTY reads will result in it being echoed back already), and also
+     * ensure Ctrl-C, etc is blocked, and misc other bits */
+    if (vshTTYMakeRaw(ctl, true) < 0)
         goto resettty;
 
-    /* Trap all common signals so that we can safely restore
-       the original terminal settings on STDIN before the
-       process exits - people don't like being left with a
-       messed up terminal ! */
-    old_sigquit = signal(SIGQUIT, do_signal);
-    old_sigterm = signal(SIGTERM, do_signal);
-    old_sigint = signal(SIGINT, do_signal);
-    old_sighup = signal(SIGHUP, do_signal);
-    old_sigpipe = signal(SIGPIPE, do_signal);
+    /* Trap all common signals so that we can safely restore the original
+     * terminal settings on STDIN before the process exits - people don't like
+     * being left with a messed up terminal ! */
     got_signal = 0;
+    sigaction(SIGQUIT, &sighandler, &old_sigquit);
+    sigaction(SIGTERM, &sighandler, &old_sigterm);
+    sigaction(SIGINT,  &sighandler, &old_sigint);
+    sigaction(SIGHUP,  &sighandler, &old_sighup);
+    sigaction(SIGPIPE, &sighandler, &old_sigpipe);
 
     if (VIR_ALLOC(con) < 0)
         goto cleanup;
 
-    con->escapeChar = vshGetEscapeChar(escape_seq);
+    con->escapeChar = vshGetEscapeChar(ctl->escapeChar);
     con->st = virStreamNew(virDomainGetConnect(dom),
                            VIR_STREAM_NONBLOCK);
     if (!con->st)
@@ -396,27 +382,20 @@ int vshRunConsole(virDomainPtr dom,
 
     ret = 0;
 
- cleanup:
-
-    if (con) {
-        if (con->st)
-            virStreamFree(con->st);
-        virMutexDestroy(&con->lock);
-        virCondDestroy(&con->cond);
-        VIR_FREE(con);
-    }
+cleanup:
+    virConsoleFree(con);
 
     /* Restore original signal handlers */
-    signal(SIGPIPE, old_sigpipe);
-    signal(SIGHUP, old_sighup);
-    signal(SIGINT, old_sigint);
-    signal(SIGTERM, old_sigterm);
-    signal(SIGQUIT, old_sigquit);
+    sigaction(SIGQUIT, &old_sigquit, NULL);
+    sigaction(SIGTERM, &old_sigterm, NULL);
+    sigaction(SIGINT,  &old_sigint,  NULL);
+    sigaction(SIGHUP,  &old_sighup,  NULL);
+    sigaction(SIGPIPE, &old_sigpipe, NULL);
 
 resettty:
     /* Put STDIN back into the (sane?) state we found
        it in before starting */
-    tcsetattr(STDIN_FILENO, TCSAFLUSH, &ttyattr);
+    vshTTYRestore(ctl);
 
     return ret;
 }

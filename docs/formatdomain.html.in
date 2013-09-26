@@ -254,7 +254,7 @@
         to the (optional) ramdisk image in the host OS.</dd>
       <dt><code>cmdline</code></dt>
       <dd>The contents of this element specify arguments to be passed to
-        the kernel (or installer) at boottime. This is often used to
+        the kernel (or installer) at boot time. This is often used to
         specify an alternate primary console (eg serial port), or the
         installation media source / kickstart file</dd>
       <dt><code>dtb</code></dt>
@@ -263,7 +263,7 @@
         <span class="since">Since 1.0.4</span></dd>
     </dl>
 
-    <h4><a name="eleemntsOSContainer">Container boot</a></h4>
+    <h4><a name="elementsOSContainer">Container boot</a></h4>
 
     <p>
       When booting a domain using container based virtualization, instead
@@ -426,7 +426,7 @@
         process and virtual CPUs can be specified separately by
         <code>cputune</code>. If attribute <code>emulatorpin</code>
         of <code>cputune</code> is specified, <code>cpuset</code>
-        specified by <code>vcpu</code> here will be ingored; Similarly,
+        specified by <code>vcpu</code> here will be ignored; Similarly,
         For virtual CPUs which has <code>vcpupin</code> specified,
         <code>cpuset</code> specified by <code>cpuset</code> here
         will be ignored; For virtual CPUs which doesn't have
@@ -1235,7 +1235,7 @@
         </tr>
         <tr>
           <td>relaxed</td>
-          <td>Relax contstraints on timers</td>
+          <td>Relax constraints on timers</td>
           <td> on, off</td>
           <td><span class="since">1.0.0 (QEMU only)</span></td>
         </tr>
@@ -1358,7 +1358,7 @@
           <dd>
             <p>
             The <code>tickpolicy</code> attribute determines what
-            happens whens QEMU misses a deadline for injecting a
+            happens when QEMU misses a deadline for injecting a
             tick to the guest:
             </p>
             <dl>
@@ -1511,8 +1511,32 @@
     &lt;/disk&gt;
     &lt;disk type='network' device='cdrom'&gt;
       &lt;driver name='qemu' type='raw'/&gt;
+      &lt;source protocol="https" name="url_path"&gt;
+        &lt;host name="hostname" port="443"/&gt;
+      &lt;/source&gt;
+      &lt;target dev='hdc' bus='ide' tray='open'/&gt;
+      &lt;readonly/&gt;
+    &lt;/disk&gt;
+    &lt;disk type='network' device='cdrom'&gt;
+      &lt;driver name='qemu' type='raw'/&gt;
       &lt;source protocol="ftp" name="url_path"&gt;
         &lt;host name="hostname" port="21"/&gt;
+      &lt;/source&gt;
+      &lt;target dev='hdc' bus='ide' tray='open'/&gt;
+      &lt;readonly/&gt;
+    &lt;/disk&gt;
+    &lt;disk type='network' device='cdrom'&gt;
+      &lt;driver name='qemu' type='raw'/&gt;
+      &lt;source protocol="ftps" name="url_path"&gt;
+        &lt;host name="hostname" port="990"/&gt;
+      &lt;/source&gt;
+      &lt;target dev='hdc' bus='ide' tray='open'/&gt;
+      &lt;readonly/&gt;
+    &lt;/disk&gt;
+    &lt;disk type='network' device='cdrom'&gt;
+      &lt;driver name='qemu' type='raw'/&gt;
+      &lt;source protocol="tftp" name="url_path"&gt;
+        &lt;host name="hostname" port="69"/&gt;
       &lt;/source&gt;
       &lt;target dev='hdc' bus='ide' tray='open'/&gt;
       &lt;readonly/&gt;
@@ -1597,8 +1621,7 @@
             defaulting to "disk".
             <p>
             Using "lun" (<span class="since">since 0.9.10</span>) is only
-            valid when type is "block" and the target element's "bus"
-            attribute is "virtio", and behaves identically to "disk",
+            valid when type is "block", and behaves identically to "disk",
             except that generic SCSI commands from the guest are accepted
             and passed through to the physical device. Also note that
             device='lun' will only be recognized for actual raw devices,
@@ -1785,16 +1808,21 @@
         as a device ordering hint.  The optional <code>bus</code>
         attribute specifies the type of disk device to emulate;
         possible values are driver specific, with typical values being
-        "ide", "scsi", "virtio", "xen", "usb" or "sata". If omitted, the bus
+        "ide", "scsi", "virtio", "xen", "usb", "sata", or
+        "sd" <span class="since">"sd" since 1.1.2</span>. If omitted, the bus
         type is inferred from the style of the device name (e.g. a device named
         'sda' will typically be exported using a SCSI bus). The optional
         attribute <code>tray</code> indicates the tray status of the
         removable disks (i.e. CDROM or Floppy disk), the value can be either
         "open" or "closed", defaults to "closed". NB, the value of
         <code>tray</code> could be updated while the domain is running.
-        <span class="since">Since 0.0.3; <code>bus</code> attribute since 0.4.3;
+        The optional attribute <code>removable</code> sets the
+        removable flag for USB disks, and its value can be either "on"
+        or "off", defaulting to "off". <span class="since">Since
+        0.0.3; <code>bus</code> attribute since 0.4.3;
         <code>tray</code> attribute since 0.9.11; "usb" attribute value since
-        after 0.4.4; "sata" attribute value since 0.9.7</span>
+        after 0.4.4; "sata" attribute value since 0.9.7; "removable" attribute
+        value since 1.1.3</span>
       </dd>
       <dt><code>iotune</code></dt>
       <dd>The optional <code>iotune</code> element provides the
@@ -2264,7 +2292,7 @@
 
       <dt><code>readonly</code></dt>
       <dd>
-        Enables exporting filesytem as a readonly mount for guest, by
+        Enables exporting filesystem as a readonly mount for guest, by
         default read-write access is given (currently only works for
         QEMU/KVM driver).
       </dd>
@@ -2381,7 +2409,7 @@
     <h4><a name="elementsControllers">Controllers</a></h4>
 
     <p>
-      Depending on the guest architecture, some device busses can
+      Depending on the guest architecture, some device buses can
       appear more than once, with a group of virtual devices tied to a
       virtual controller.  Normally, libvirt can automatically infer such
       controllers without requiring explicit XML markup, but sometimes
@@ -3769,7 +3797,7 @@ qemu-kvm -net nic,model=? /dev/null
       <span class="since">Since 1.1.0.</span> This uses the optional
       <code>nativeMode</code> attribute on the <code>&lt;tag&gt;</code>
       element: <code>nativeMode</code> may be set to 'tagged' or
-      'untagged'. The id atribute of the element sets the native vlan.
+      'untagged'. The id attribute of the element sets the native vlan.
     </p>
 
     <h5><a name="elementLink">Modifying virtual link state</a></h5>
@@ -4130,7 +4158,7 @@ qemu-kvm -net nic,model=? /dev/null
         "9216", and <code>heads</code> with value "1". By default, the first
         video device in domain xml is the primary one, but the optional
         attribute <code>primary</code> (<span class="since">since 1.0.2</span>)
-        with value 'yes' can be used to mark the primary in cases of mutiple
+        with value 'yes' can be used to mark the primary in cases of multiple
         video device. The non-primary must be type of "qxl". The optional
         attribute <code>ram</code> (<span class="since">since
         1.0.2</span>) is allowed for "qxl" type only and specifies
@@ -4875,8 +4903,8 @@ qemu-kvm -net nic,model=? /dev/null
       &lt;backend model='random'&gt;/dev/random&lt;/backend&gt;
       &lt;!-- OR --&gt;
       &lt;backend model='egd' type='udp'&gt;
-        &lt;source mode='bind' service='1234'&gt;
-        &lt;source mode='connect' host='1.2.3.4' service='1234'&gt;
+        &lt;source mode='bind' service='1234'/&gt;
+        &lt;source mode='connect' host='1.2.3.4' service='1234'/&gt;
       &lt;/backend&gt;
     &lt;/rng&gt;
   &lt;/devices&gt;

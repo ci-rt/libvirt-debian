@@ -1,7 +1,7 @@
 /*
- * console.c: A dumb serial console client
+ * virsh-console.h: A dumb serial console client
  *
- * Copyright (C) 2007, 2010, 2012 Red Hat, Inc.
+ * Copyright (C) 2007, 2010, 2012-2013 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -17,7 +17,8 @@
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
- * Daniel Berrange <berrange@redhat.com>
+ * Authors:
+ *     Daniel Berrange <berrange@redhat.com>
  */
 
 #ifndef __VIR_CONSOLE_H__
@@ -25,14 +26,12 @@
 
 # ifndef WIN32
 
-#  include <termios.h>
+#  include <virsh.h>
 
-int vshRunConsole(virDomainPtr dom,
+int vshRunConsole(vshControl *ctl,
+                  virDomainPtr dom,
                   const char *dev_name,
-                  const char *escape_seq,
                   unsigned int flags);
-
-int vshMakeStdinRaw(struct termios *ttyattr, bool report_errors);
 
 # endif /* !WIN32 */
 

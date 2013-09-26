@@ -1042,6 +1042,7 @@
     <function name="virConnectDomainXMLFromNative ()" link="libvirt-libvirt.html#virConnectDomainXMLFromNative"/>
     <function name="virConnectDomainXMLToNative ()" link="libvirt-libvirt.html#virConnectDomainXMLToNative"/>
     <function name="virConnectFindStoragePoolSources ()" link="libvirt-libvirt.html#virConnectFindStoragePoolSources"/>
+    <function name="virConnectGetCPUModelNames ()" link="libvirt-libvirt.html#virConnectGetCPUModelNames"/>
     <function name="virConnectGetCapabilities ()" link="libvirt-libvirt.html#virConnectGetCapabilities"/>
     <function name="virConnectGetHostname ()" link="libvirt-libvirt.html#virConnectGetHostname"/>
     <function name="virConnectGetLibVersion ()" link="libvirt-libvirt.html#virConnectGetLibVersion"/>

@@ -40,30 +40,33 @@
 #include "virstring.h"
 
 /* Get a domain id from a S-expression string */
-int xenGetDomIdFromSxprString(const char *sexpr, int xendConfigVersion)
+int xenGetDomIdFromSxprString(const char *sexpr, int xendConfigVersion, int *id)
 {
     struct sexpr *root = string2sexpr(sexpr);
+    int ret;
+
+    *id = -1;
 
     if (!root)
         return -1;
 
-    int id = xenGetDomIdFromSxpr(root, xendConfigVersion);
+    ret = xenGetDomIdFromSxpr(root, xendConfigVersion, id);
     sexpr_free(root);
-    return id;
+    return ret;
 }
 
 /* Get a domain id from a S-expression */
-int xenGetDomIdFromSxpr(const struct sexpr *root, int xendConfigVersion)
+int xenGetDomIdFromSxpr(const struct sexpr *root, int xendConfigVersion, int *id)
 {
-    int id = -1;
     const char * tmp = sexpr_node(root, "domain/domid");
     if (tmp == NULL && xendConfigVersion < XEND_CONFIG_VERSION_3_0_4) { /* domid was mandatory */
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        "%s", _("domain information incomplete, missing id"));
+        return -1;
     } else {
-      id = tmp ? sexpr_int(root, "domain/domid") : -1;
+        *id = tmp ? sexpr_int(root, "domain/domid") : -1;
+        return 0;
     }
-    return id;
 }
 
 /*****************************************************************
@@ -1052,10 +1055,8 @@ xenParseSxprPCI(virDomainDefPtr def,
         dev->source.subsys.u.pci.addr.slot = slotID;
         dev->source.subsys.u.pci.addr.function = funcID;
 
-        if (VIR_REALLOC_N(def->hostdevs, def->nhostdevs+1) < 0) {
-            virDomainHostdevDefFree(dev);
+        if (VIR_REALLOC_N(def->hostdevs, def->nhostdevs+1) < 0)
             goto error;
-        }
 
         def->hostdevs[def->nhostdevs++] = dev;
     }
@@ -1439,9 +1440,9 @@ xenParseSxpr(const struct sexpr *root,
             def->parallels[def->nparallels++] = chr;
         }
     } else if (def->id != 0) {
-        def->nconsoles = 1;
         if (VIR_ALLOC_N(def->consoles, 1) < 0)
             goto error;
+        def->nconsoles = 1;
         /* Fake a paravirt console, since that's not in the sexpr */
         if (!(def->consoles[0] = xenParseSxprChar("pty", tty)))
             goto error;

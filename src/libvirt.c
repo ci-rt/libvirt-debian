@@ -1581,7 +1581,11 @@ virConnectSupportsFeature(virConnectPtr conn, int feature)
  * virConnectGetType:
  * @conn: pointer to the hypervisor connection
  *
- * Get the name of the Hypervisor software used.
+ * Get the name of the Hypervisor driver used. This is merely the driver
+ * name; for example, both KVM and QEMU guests are serviced by the
+ * driver for the qemu:// URI, so a return of "QEMU" does not indicate
+ * whether KVM acceleration is present.  For more details about the
+ * hypervisor, use virConnectGetCapabilities().
  *
  * Returns NULL in case of error, a static zero terminated string otherwise.
  *
@@ -1697,9 +1701,10 @@ error:
  * virConnectGetHostname:
  * @conn: pointer to a hypervisor connection
  *
- * This returns the system hostname on which the hypervisor is
- * running (the result of the gethostname system call).  If
- * we are connected to a remote system, then this returns the
+ * This returns a system hostname on which the hypervisor is
+ * running (based on the result of the gethostname system call, but
+ * possibly expanded to a fully-qualified domain name via getaddrinfo).
+ * If we are connected to a remote system, then this returns the
  * hostname of the remote system.
  *
  * Returns the hostname which must be freed by the caller, or
@@ -9058,7 +9063,7 @@ error:
  * Define a domain, but does not start it.
  * This definition is persistent, until explicitly undefined with
  * virDomainUndefine(). A previous definition for this domain would be
- * overriden if it already exists.
+ * overridden if it already exists.
  *
  * Some hypervisors may prevent this operation if there is a current
  * block copy operation on a transient domain with the same id as the
@@ -10734,7 +10739,8 @@ virDomainSetMetadata(virDomainPtr domain,
         break;
     case VIR_DOMAIN_METADATA_ELEMENT:
         virCheckNonNullArgGoto(uri, error);
-        virCheckNonNullArgGoto(key, error);
+        if (metadata)
+            virCheckNonNullArgGoto(key, error);
         break;
     default:
         /* For future expansion */
@@ -18515,6 +18521,57 @@ virConnectCompareCPU(virConnectPtr conn,
 error:
     virDispatchError(conn);
     return VIR_CPU_COMPARE_ERROR;
+}
+
+
+/**
+ * virConnectGetCPUModelNames:
+ *
+ * @conn: virConnect connection
+ * @arch: Architecture
+ * @models: Pointer to a variable to store the NULL-terminated array of the
+ *          CPU models supported for the specified architecture.  Each element
+ *          and the array itself must be freed by the caller with free.  Pass
+ *          NULL if only the list length is needed.
+ * @flags: extra flags; not used yet, so callers should always pass 0.
+ *
+ * Get the list of supported CPU models for a specific architecture.
+ *
+ * Returns -1 on error, number of elements in @models on success.
+ */
+int
+virConnectGetCPUModelNames(virConnectPtr conn, const char *arch, char ***models,
+                           unsigned int flags)
+{
+    VIR_DEBUG("conn=%p, arch=%s, models=%p, flags=%x",
+              conn, arch, models, flags);
+    virResetLastError();
+
+    if (models)
+        *models = NULL;
+
+    if (!VIR_IS_CONNECT(conn)) {
+        virLibConnError(VIR_ERR_INVALID_CONN, __FUNCTION__);
+        virDispatchError(NULL);
+        return -1;
+    }
+    virCheckNonNullArgReturn(arch, -1);
+
+    if (conn->driver->connectGetCPUModelNames) {
+        int ret;
+
+        ret = conn->driver->connectGetCPUModelNames(conn, arch, models, flags);
+        if (ret < 0)
+            goto error;
+
+        return ret;
+    }
+
+    virLibConnError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    virDispatchError(conn);
+    return -1;
 }
 
 

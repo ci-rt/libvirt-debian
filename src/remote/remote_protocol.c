@@ -5920,6 +5920,32 @@ xdr_remote_domain_event_device_removed_msg (XDR *xdrs, remote_domain_event_devic
 }
 
 bool_t
+xdr_remote_connect_get_cpu_model_names_args (XDR *xdrs, remote_connect_get_cpu_model_names_args *objp)
+{
+
+         if (!xdr_remote_nonnull_string (xdrs, &objp->arch))
+                 return FALSE;
+         if (!xdr_int (xdrs, &objp->need_results))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->flags))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_connect_get_cpu_model_names_ret (XDR *xdrs, remote_connect_get_cpu_model_names_ret *objp)
+{
+        char **objp_cpp0 = (char **) (void *) &objp->models.models_val;
+
+         if (!xdr_array (xdrs, objp_cpp0, (u_int *) &objp->models.models_len, REMOTE_CONNECT_CPU_MODELS_MAX,
+                sizeof (remote_nonnull_string), (xdrproc_t) xdr_remote_nonnull_string))
+                 return FALSE;
+         if (!xdr_int (xdrs, &objp->ret))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
 xdr_remote_procedure (XDR *xdrs, remote_procedure *objp)
 {
 

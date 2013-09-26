@@ -15,8 +15,9 @@
 
 # A client only build will create a libvirt.so only containing
 # the generic RPC driver, and test driver and no libvirtd
-# Default to a full server + client build
-%define client_only        0
+# Default to a full server + client build, but with the possibility
+# of a command-line or ~/.rpmmacros override for client-only.
+%{!?client_only:%define client_only 0}
 
 # Now turn off server build in certain cases
 
@@ -50,6 +51,7 @@
 %define with_lxc           0%{!?_without_lxc:%{server_drivers}}
 %define with_uml           0%{!?_without_uml:%{server_drivers}}
 %define with_libxl         0%{!?_without_libxl:%{server_drivers}}
+%define with_vbox          0%{!?_without_vbox:%{server_drivers}}
 
 %define with_qemu_tcg      %{with_qemu}
 # Change if we ever provide qemu-kvm binaries on non-x86 hosts
@@ -71,7 +73,6 @@
 
 # Then the hypervisor drivers that run outside libvirtd, in libvirt.so
 %define with_openvz        0%{!?_without_openvz:1}
-%define with_vbox          0%{!?_without_vbox:1}
 %define with_vmware        0%{!?_without_vmware:1}
 %define with_phyp          0%{!?_without_phyp:1}
 %define with_esx           0%{!?_without_esx:1}
@@ -365,8 +366,8 @@
 
 Summary: Library providing a simple virtualization API
 Name: libvirt
-Version: 1.1.2
-Release: 1%{?dist}%{?extra_release}
+Version: 1.1.3
+Release: 0rc1%{?dist}%{?extra_release}
 License: LGPLv2+
 Group: Development/Libraries
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
@@ -375,7 +376,7 @@ URL: http://libvirt.org/
 %if %(echo %{version} | grep -o \\. | wc -l) == 3
     %define mainturl stable_updates/
 %endif
-Source: http://libvirt.org/sources/%{?mainturl}libvirt-%{version}.tar.gz
+Source: http://libvirt.org/sources/%{?mainturl}libvirt-%{version}-rc1.tar.gz
 
 %if %{with_libvirtd}
 Requires: libvirt-daemon = %{version}-%{release}
@@ -508,8 +509,7 @@ BuildRequires: cyrus-sasl-devel
 %endif
 %if %{with_polkit}
     %if 0%{?fedora} >= 12 || 0%{?rhel} >= 6
-# Only need the binary, not -devel
-BuildRequires: polkit >= 0.93
+BuildRequires: polkit-devel >= 0.93
     %else
 BuildRequires: PolicyKit-devel >= 0.6
     %endif
@@ -1723,6 +1723,8 @@ fi
 
 %files docs
 %defattr(-, root, root)
+%doc AUTHORS ChangeLog.gz NEWS README TODO
+
 # Website
 %dir %{_datadir}/doc/libvirt-docs-%{version}
 %dir %{_datadir}/doc/libvirt-docs-%{version}/html
@@ -1739,7 +1741,6 @@ fi
 %files daemon
 %defattr(-, root, root)
 
-%doc AUTHORS ChangeLog.gz NEWS README COPYING COPYING.LESSER TODO
 %dir %attr(0700, root, root) %{_sysconfdir}/libvirt/
 
     %if %{with_network}
@@ -2011,20 +2012,26 @@ fi
 
 %files client -f %{name}.lang
 %defattr(-, root, root)
-%doc AUTHORS ChangeLog.gz NEWS README COPYING COPYING.LESSER TODO
+%doc COPYING COPYING.LESSER
 
 %config(noreplace) %{_sysconfdir}/libvirt/libvirt.conf
+%if %{with_lxc}
 %config(noreplace) %{_sysconfdir}/libvirt/virt-login-shell.conf
+%endif
 %{_mandir}/man1/virsh.1*
 %{_mandir}/man1/virt-xml-validate.1*
 %{_mandir}/man1/virt-pki-validate.1*
 %{_mandir}/man1/virt-host-validate.1*
+%if %{with_lxc}
 %{_mandir}/man1/virt-login-shell.1*
+%endif
 %{_bindir}/virsh
 %{_bindir}/virt-xml-validate
 %{_bindir}/virt-pki-validate
 %{_bindir}/virt-host-validate
+%if %{with_lxc}
 %attr(4755, root, root) %{_bindir}/virt-login-shell
+%endif
 %{_libdir}/lib*.so.*
 
 %if %{with_dtrace}
@@ -2095,7 +2102,6 @@ fi
 %files python
 %defattr(-, root, root)
 
-%doc AUTHORS NEWS README COPYING COPYING.LESSER
 %{_libdir}/python*/site-packages/libvirt.py*
 %{_libdir}/python*/site-packages/libvirt_qemu.py*
 %{_libdir}/python*/site-packages/libvirt_lxc.py*

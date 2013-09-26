@@ -91,7 +91,10 @@ virCgroupAvailable(void)
         return false;
 
     while (getmntent_r(mounts, &entry, buf, sizeof(buf)) != NULL) {
-        if (STREQ(entry.mnt_type, "cgroup")) {
+        /* We're looking for at least one 'cgroup' fs mount,
+         * which is *not* a named mount. */
+        if (STREQ(entry.mnt_type, "cgroup") &&
+            !strstr(entry.mnt_opts, "name=")) {
             ret = true;
             break;
         }
@@ -342,10 +345,11 @@ virCgroupDetectMounts(virCgroupPtr group)
                                        entry.mnt_dir);
                         goto error;
                     }
-                    *tmp2 = '\0';
+
                     /* If it is a co-mount it has a filename like "cpu,cpuacct"
                      * and we must identify the symlink path */
                     if (strchr(tmp2 + 1, ',')) {
+                        *tmp2 = '\0';
                         if (virAsprintf(&linksrc, "%s/%s",
                                         entry.mnt_dir, typestr) < 0)
                             goto error;
@@ -901,7 +905,7 @@ virCgroupMakeGroup(virCgroupPtr parent,
         sa_assert(group->controllers[i].mountPoint);
 
         VIR_DEBUG("Make controller %s", path);
-        if (access(path, F_OK) != 0) {
+        if (!virFileExists(path)) {
             if (!create ||
                 mkdir(path, 0755) < 0) {
                 /* With a kernel that doesn't support multi-level directory
@@ -3057,6 +3061,36 @@ cleanup:
 }
 
 
+/**
+ * virCgroupSupportsCpuBW():
+ * Check whether the host supports CFS bandwidth.
+ *
+ * Return true when CFS bandwidth is supported,
+ * false when CFS bandwidth is not supported.
+ */
+bool
+virCgroupSupportsCpuBW(virCgroupPtr cgroup)
+{
+    char *path = NULL;
+    int ret = false;
+
+    if (!cgroup)
+        return false;
+
+    if (virCgroupPathOfController(cgroup, VIR_CGROUP_CONTROLLER_CPU,
+                                  "cpu.cfs_period_us", &path) < 0) {
+        virResetLastError();
+        goto cleanup;
+    }
+
+    ret = virFileExists(path);
+
+cleanup:
+    VIR_FREE(path);
+    return ret;
+}
+
+
 #else /* !VIR_CGROUP_SUPPORTED */
 
 bool
@@ -3640,6 +3674,14 @@ virCgroupIsolateMount(virCgroupPtr group ATTRIBUTE_UNUSED,
     virReportSystemError(ENOSYS, "%s",
                          _("Control groups not supported on this platform"));
     return -1;
+}
+
+
+bool
+virCgroupSupportsCpuBW(virCgroupPtr cgroup ATTRIBUTE_UNUSED)
+{
+    VIR_DEBUG("Control groups not supported on this platform");
+    return false;
 }
 
 #endif /* !VIR_CGROUP_SUPPORTED */

@@ -30,6 +30,7 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <libxml/xmlsave.h>
+#include <libxml/xpathInternals.h>
 
 
 #include "virerror.h"
@@ -54,6 +55,7 @@
 #include "virtypedparam.h"
 #include "virrandom.h"
 #include "virstring.h"
+#include "cpu/cpu.h"
 
 #define VIR_FROM_THIS VIR_FROM_TEST
 
@@ -151,13 +153,81 @@ static void testDomainObjPrivateFree(void *data)
     VIR_FREE(priv);
 }
 
+#define TEST_NAMESPACE_HREF "http://libvirt.org/schemas/domain/test/1.0"
+
+typedef struct _testDomainNamespaceDef testDomainNamespaceDef;
+typedef testDomainNamespaceDef *testDomainNamespaceDefPtr;
+struct _testDomainNamespaceDef {
+    int runstate;
+};
+
+static void
+testDomainDefNamespaceFree(void *data)
+{
+    testDomainNamespaceDefPtr nsdata = data;
+    VIR_FREE(nsdata);
+}
+
+static int
+testDomainDefNamespaceParse(xmlDocPtr xml ATTRIBUTE_UNUSED,
+                            xmlNodePtr root ATTRIBUTE_UNUSED,
+                            xmlXPathContextPtr ctxt,
+                            void **data)
+{
+    testDomainNamespaceDefPtr nsdata = NULL;
+    int tmp;
+    unsigned int tmpuint;
+
+    if (xmlXPathRegisterNs(ctxt, BAD_CAST "test",
+                           BAD_CAST TEST_NAMESPACE_HREF) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Failed to register xml namespace '%s'"),
+                       TEST_NAMESPACE_HREF);
+        return -1;
+    }
+
+    if (VIR_ALLOC(nsdata) < 0)
+        return -1;
+
+    tmp = virXPathUInt("string(./test:runstate)", ctxt, &tmpuint);
+    if (tmp == 0) {
+        if (tmpuint >= VIR_DOMAIN_LAST) {
+            virReportError(VIR_ERR_XML_ERROR,
+                           _("runstate '%d' out of range'"), tmpuint);
+            goto error;
+        }
+        nsdata->runstate = tmpuint;
+    } else if (tmp == -1) {
+        nsdata->runstate = VIR_DOMAIN_RUNNING;
+    } else if (tmp == -2) {
+        virReportError(VIR_ERR_XML_ERROR, "%s",
+                       _("invalid runstate"));
+        goto error;
+    }
+
+    *data = nsdata;
+    return 0;
+
+error:
+    testDomainDefNamespaceFree(nsdata);
+    return -1;
+}
 
 static virDomainXMLOptionPtr
 testBuildXMLConfig(void)
 {
-    virDomainXMLPrivateDataCallbacks priv = { .alloc = testDomainObjPrivateAlloc,
-                                              .free = testDomainObjPrivateFree };
-    return virDomainXMLOptionNew(NULL, &priv, NULL);
+    virDomainXMLPrivateDataCallbacks priv = {
+        .alloc = testDomainObjPrivateAlloc,
+        .free = testDomainObjPrivateFree
+    };
+
+    /* All our XML extensions are input only, so we only need to parse */
+    virDomainXMLNamespace ns = {
+        .parse = testDomainDefNamespaceParse,
+        .free = testDomainDefNamespaceFree,
+    };
+
+    return virDomainXMLOptionNew(NULL, &priv, &ns);
 }
 
 
@@ -830,6 +900,7 @@ testParseDomains(testConnPtr privconn,
 
     for (i = 0; i < num; i++) {
         virDomainDefPtr def;
+        testDomainNamespaceDefPtr nsdata;
         xmlNodePtr node = testParseXMLDocFromFile(nodes[i], file, "domain");
         if (!node)
             goto error;
@@ -850,12 +921,19 @@ testParseDomains(testConnPtr privconn,
             goto error;
         }
 
+        nsdata = def->namespaceData;
         obj->persistent = 1;
-        if (testDomainStartState(privconn, obj,
-                                 VIR_DOMAIN_RUNNING_BOOTED) < 0) {
-            virObjectUnlock(obj);
-            goto error;
+
+        if (nsdata->runstate != VIR_DOMAIN_SHUTOFF) {
+            if (testDomainStartState(privconn, obj,
+                                     VIR_DOMAIN_RUNNING_BOOTED) < 0) {
+                virObjectUnlock(obj);
+                goto error;
+            }
+        } else {
+            testDomainShutdownState(NULL, obj, 0);
         }
+        virDomainObjSetState(obj, nsdata->runstate, 0);
 
         virObjectUnlock(obj);
     }
@@ -1989,7 +2067,7 @@ testDomainRestoreFlags(virConnectPtr conn,
         goto cleanup;
     if (saferead(fd, xml, len) != len) {
         virReportSystemError(errno,
-                             _("incomplete metdata in '%s'"), path);
+                             _("incomplete metadata in '%s'"), path);
         goto cleanup;
     }
     xml[len] = '\0';
@@ -2584,6 +2662,72 @@ cleanup:
     testDriverUnlock(privconn);
     return ret;
 }
+
+static char *testDomainGetMetadata(virDomainPtr dom,
+                                   int type,
+                                   const char *uri,
+                                   unsigned int flags)
+{
+    testConnPtr privconn = dom->conn->privateData;
+    virDomainObjPtr privdom;
+    char *ret = NULL;
+
+    virCheckFlags(VIR_DOMAIN_AFFECT_LIVE |
+                  VIR_DOMAIN_AFFECT_CONFIG, NULL);
+
+    testDriverLock(privconn);
+    privdom = virDomainObjListFindByName(privconn->domains,
+                                         dom->name);
+    testDriverUnlock(privconn);
+
+    if (privdom == NULL) {
+        virReportError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        goto cleanup;
+    }
+
+    ret = virDomainObjGetMetadata(privdom, type, uri, privconn->caps,
+                                  privconn->xmlopt, flags);
+
+cleanup:
+    if (privdom)
+        virObjectUnlock(privdom);
+    return ret;
+}
+
+static int testDomainSetMetadata(virDomainPtr dom,
+                                 int type,
+                                 const char *metadata,
+                                 const char *key,
+                                 const char *uri,
+                                 unsigned int flags)
+{
+    testConnPtr privconn = dom->conn->privateData;
+    virDomainObjPtr privdom;
+    int ret = -1;
+
+    virCheckFlags(VIR_DOMAIN_AFFECT_LIVE |
+                  VIR_DOMAIN_AFFECT_CONFIG, -1);
+
+    testDriverLock(privconn);
+    privdom = virDomainObjListFindByName(privconn->domains,
+                                         dom->name);
+    testDriverUnlock(privconn);
+
+    if (privdom == NULL) {
+        virReportError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        goto cleanup;
+    }
+
+    ret = virDomainObjSetMetadata(privdom, type, metadata, key, uri,
+                                  privconn->caps, privconn->xmlopt,
+                                  NULL, flags);
+
+cleanup:
+    if (privdom)
+        virObjectUnlock(privdom);
+    return ret;
+}
+
 
 static int testNodeGetCellsFreeMemory(virConnectPtr conn,
                                       unsigned long long *freemems,
@@ -5795,12 +5939,21 @@ testDomainScreenshot(virDomainPtr dom ATTRIBUTE_UNUSED,
     if (VIR_STRDUP(ret, "image/png") < 0)
         return NULL;
 
-    if (virFDStreamOpenFile(st, PKGDATADIR "/libvirtLogo.png", 0, 0, O_RDONLY < 0))
+    if (virFDStreamOpenFile(st, PKGDATADIR "/libvirtLogo.png", 0, 0, O_RDONLY) < 0)
         VIR_FREE(ret);
 
     return ret;
 }
 
+static int
+testConnectGetCPUModelNames(virConnectPtr conn ATTRIBUTE_UNUSED,
+                            const char *arch,
+                            char ***models,
+                            unsigned int flags)
+{
+    virCheckFlags(0, -1);
+    return cpuGetModels(arch, models);
+}
 
 static virDriver testDriver = {
     .no = VIR_DRV_TEST,
@@ -5872,6 +6025,9 @@ static virDriver testDriver = {
     .connectIsAlive = testConnectIsAlive, /* 0.9.8 */
     .nodeGetCPUMap = testNodeGetCPUMap, /* 1.0.0 */
     .domainScreenshot = testDomainScreenshot, /* 1.0.5 */
+    .domainGetMetadata = testDomainGetMetadata, /* 1.1.3 */
+    .domainSetMetadata = testDomainSetMetadata, /* 1.1.3 */
+    .connectGetCPUModelNames = testConnectGetCPUModelNames, /* 1.1.3 */
 };
 
 static virNetworkDriver testNetworkDriver = {

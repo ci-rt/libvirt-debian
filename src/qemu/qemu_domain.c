@@ -535,21 +535,8 @@ static void
 qemuDomainDefNamespaceFree(void *nsdata)
 {
     qemuDomainCmdlineDefPtr cmd = nsdata;
-    size_t i;
 
-    if (!cmd)
-        return;
-
-    for (i = 0; i < cmd->num_args; i++)
-        VIR_FREE(cmd->args[i]);
-    for (i = 0; i < cmd->num_env; i++) {
-        VIR_FREE(cmd->env_name[i]);
-        VIR_FREE(cmd->env_value[i]);
-    }
-    VIR_FREE(cmd->args);
-    VIR_FREE(cmd->env_name);
-    VIR_FREE(cmd->env_value);
-    VIR_FREE(cmd);
+    qemuDomainCmdlineDefFree(cmd);
 }
 
 static int
@@ -703,6 +690,7 @@ qemuDomainDefPostParse(virDomainDefPtr def,
     bool addImplicitSATA = false;
     bool addPCIRoot = false;
     bool addPCIeRoot = false;
+    bool addDefaultMemballoon = true;
 
     /* check for emulator and create a default one if needed */
     if (!def->emulator &&
@@ -737,6 +725,7 @@ qemuDomainDefPostParse(virDomainDefPtr def,
 
     case VIR_ARCH_ARMV7L:
        addDefaultUSB = false;
+       addDefaultMemballoon = false;
        break;
 
     case VIR_ARCH_ALPHA:
@@ -784,9 +773,36 @@ qemuDomainDefPostParse(virDomainDefPtr def,
         return -1;
         }
     }
+
+    if (addDefaultMemballoon && !def->memballoon) {
+        virDomainMemballoonDefPtr memballoon;
+        if (VIR_ALLOC(memballoon) < 0)
+            return -1;
+
+        memballoon->model = VIR_DOMAIN_MEMBALLOON_MODEL_VIRTIO;
+        def->memballoon = memballoon;
+    }
+
     return 0;
 }
 
+static const char *
+qemuDomainDefaultNetModel(virDomainDefPtr def) {
+    if (def->os.arch == VIR_ARCH_S390 ||
+        def->os.arch == VIR_ARCH_S390X)
+        return "virtio";
+
+    if (def->os.arch == VIR_ARCH_ARMV7L) {
+        if (STREQ(def->os.machine, "versatilepb"))
+            return "smc91c111";
+
+        /* Incomplete. vexpress (and a few others) use this, but not all
+         * arm boards */
+        return "lan9118";
+    }
+
+    return "rtl8139";
+}
 
 static int
 qemuDomainDeviceDefPostParse(virDomainDeviceDefPtr dev,
@@ -802,8 +818,7 @@ qemuDomainDeviceDefPostParse(virDomainDeviceDefPtr dev,
         dev->data.net->type != VIR_DOMAIN_NET_TYPE_HOSTDEV &&
         !dev->data.net->model) {
         if (VIR_STRDUP(dev->data.net->model,
-                       def->os.arch == VIR_ARCH_S390 ||
-                       def->os.arch == VIR_ARCH_S390X ? "virtio" : "rtl8139") < 0)
+                       qemuDomainDefaultNetModel(def)) < 0)
             goto cleanup;
     }
 
@@ -1355,7 +1370,7 @@ qemuDomainDefCopy(virQEMUDriverPtr driver,
     virBuffer buf = VIR_BUFFER_INITIALIZER;
     virDomainDefPtr ret = NULL;
     virCapsPtr caps = NULL;
-    const char *xml = NULL;
+    char *xml = NULL;
 
     if (qemuDomainDefFormatBuf(driver, src, flags, &buf) < 0)
         goto cleanup;

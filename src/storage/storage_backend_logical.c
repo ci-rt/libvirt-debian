@@ -195,7 +195,6 @@ virStorageBackendLogicalMakeVol(virStoragePoolObjPtr pool,
     if (err != 0) {
         char error[100];
         regerror(err, reg, error, sizeof(error));
-        regfree(reg);
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("Failed to compile regex %s"),
                        error);
@@ -454,7 +453,7 @@ virStorageBackendLogicalCheckPool(virConnectPtr conn ATTRIBUTE_UNUSED,
                                   virStoragePoolObjPtr pool,
                                   bool *isActive)
 {
-    *isActive = (access(pool->def->target.path, F_OK) == 0);
+    *isActive = virFileExists(pool->def->target.path);
     return 0;
 }
 

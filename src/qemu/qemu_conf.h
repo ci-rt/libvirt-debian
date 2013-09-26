@@ -128,6 +128,7 @@ struct _virQEMUDriverConfig {
 
     bool relaxedACS;
     bool vncAllowHostAudio;
+    bool nogfxAllowHostAudio;
     bool clearEmulatorCapabilities;
     bool allowDiskFormatProbing;
     bool setProcessName;
@@ -245,6 +246,8 @@ struct _qemuDomainCmdlineDef {
 # define QEMUD_MIGRATION_FIRST_PORT 49152
 # define QEMUD_MIGRATION_NUM_PORTS 64
 
+
+void qemuDomainCmdlineDefFree(qemuDomainCmdlineDefPtr def);
 
 virQEMUDriverConfigPtr virQEMUDriverConfigNew(bool privileged);
 

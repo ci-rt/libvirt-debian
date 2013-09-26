@@ -1782,6 +1782,7 @@ program_transform_name = @program_transform_name@
 psdir = @psdir@
 pyexecdir = @pyexecdir@
 pythondir = @pythondir@
+runstatedir = @runstatedir@
 sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 srcdir = @srcdir@
@@ -1922,6 +1923,8 @@ distclean-generic:
 maintainer-clean-generic:
 	@echo "This command is intended for maintainers to use"
 	@echo "it deletes files that may require special tools to rebuild."
+@WITH_NWFILTER_FALSE@uninstall-local:
+@WITH_NWFILTER_FALSE@install-data-local:
 clean: clean-am
 
 clean-am: clean-generic clean-libtool mostlyclean-am
@@ -2004,17 +2007,17 @@ uninstall-am: uninstall-local
 	uninstall-am uninstall-local
 
 
-install-data-local:
-	$(MKDIR_P) "$(NWFILTER_DIR)"
-	for f in $(FILTERS); do \
-		$(INSTALL_DATA) $(srcdir)/$$f "$(NWFILTER_DIR)"; \
-	done
+@WITH_NWFILTER_TRUE@install-data-local:
+@WITH_NWFILTER_TRUE@	$(MKDIR_P) "$(NWFILTER_DIR)"
+@WITH_NWFILTER_TRUE@	for f in $(FILTERS); do \
+@WITH_NWFILTER_TRUE@		$(INSTALL_DATA) $(srcdir)/$$f "$(NWFILTER_DIR)"; \
+@WITH_NWFILTER_TRUE@	done
 
-uninstall-local::
-	for f in $(FILTERS); do \
-		rm -f "$(NWFILTER_DIR)/$$f"; \
-	done
-	-test -z $(shell ls $(NWFILTER_DIR)) || rmdir $(NWFILTER_DIR)
+@WITH_NWFILTER_TRUE@uninstall-local::
+@WITH_NWFILTER_TRUE@	for f in $(FILTERS); do \
+@WITH_NWFILTER_TRUE@		rm -f "$(NWFILTER_DIR)/$$f"; \
+@WITH_NWFILTER_TRUE@	done
+@WITH_NWFILTER_TRUE@	-test -z $(shell ls $(NWFILTER_DIR)) || rmdir $(NWFILTER_DIR)
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

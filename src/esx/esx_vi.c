@@ -51,8 +51,14 @@
     int                                                                       \
     esxVI_##_type##_Alloc(esxVI_##_type **ptrptr)                             \
     {                                                                         \
-        return esxVI_Alloc((void **)ptrptr, sizeof(esxVI_##_type),            \
-                           __FILE__, __FUNCTION__, __LINE__);                 \
+        if (ptrptr == NULL || *ptrptr != NULL) {                              \
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("Invalid argument")); \
+            return -1;                                                  \
+        }                                                               \
+                                                                        \
+        if (VIR_ALLOC(*ptrptr) < 0)                                     \
+            return -1;                                                  \
+        return 0;                                                       \
     }
 
 
@@ -1734,21 +1740,6 @@ esxVI_List_Deserialize(xmlNodePtr node, esxVI_List **list,
  *  - 'lookup' functions query the ESX or vCenter for information
  *  - 'get' functions get information from a local object
  */
-
-int
-esxVI_Alloc(void **ptrptr, size_t size, const char *file,
-            const char *function, size_t linenr)
-{
-    if (ptrptr == NULL || *ptrptr != NULL) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("Invalid argument"));
-        return -1;
-    }
-
-    return virAllocN(ptrptr, size, 1, true, VIR_FROM_THIS,
-                     file, function, linenr);
-}
-
-
 
 int
 esxVI_BuildSelectSet(esxVI_SelectionSpec **selectSet,
@@ -3524,6 +3515,7 @@ esxVI_LookupFileInfoByDatastorePath(esxVI_Context *ctx,
                esxVI_FileQuery_DynamicCast(folderFileQuery)) < 0) {
             goto cleanup;
         }
+        folderFileQuery = NULL;
     } else {
         if (esxVI_VmDiskFileQuery_Alloc(&vmDiskFileQuery) < 0 ||
             esxVI_VmDiskFileQueryFlags_Alloc(&vmDiskFileQuery->details) < 0 ||
@@ -3538,6 +3530,7 @@ esxVI_LookupFileInfoByDatastorePath(esxVI_Context *ctx,
         vmDiskFileQuery->details->hardwareVersion = esxVI_Boolean_False;
         vmDiskFileQuery->details->controllerType = esxVI_Boolean_True;
         vmDiskFileQuery->details->diskExtents = esxVI_Boolean_False;
+        vmDiskFileQuery = NULL;
 
         if (esxVI_IsoImageFileQuery_Alloc(&isoImageFileQuery) < 0 ||
             esxVI_FileQuery_AppendToList
@@ -3545,6 +3538,7 @@ esxVI_LookupFileInfoByDatastorePath(esxVI_Context *ctx,
                esxVI_FileQuery_DynamicCast(isoImageFileQuery)) < 0) {
             goto cleanup;
         }
+        isoImageFileQuery = NULL;
 
         if (esxVI_FloppyImageFileQuery_Alloc(&floppyImageFileQuery) < 0 ||
             esxVI_FileQuery_AppendToList
@@ -3552,6 +3546,7 @@ esxVI_LookupFileInfoByDatastorePath(esxVI_Context *ctx,
                esxVI_FileQuery_DynamicCast(floppyImageFileQuery)) < 0) {
             goto cleanup;
         }
+        floppyImageFileQuery = NULL;
     }
 
     if (esxVI_String_Alloc(&searchSpec->matchPattern) < 0) {
@@ -3621,6 +3616,10 @@ esxVI_LookupFileInfoByDatastorePath(esxVI_Context *ctx,
     VIR_FREE(taskInfoErrorMessage);
     esxVI_TaskInfo_Free(&taskInfo);
     esxVI_HostDatastoreBrowserSearchResults_Free(&searchResults);
+    esxVI_FolderFileQuery_Free(&folderFileQuery);
+    esxVI_VmDiskFileQuery_Free(&vmDiskFileQuery);
+    esxVI_IsoImageFileQuery_Free(&isoImageFileQuery);
+    esxVI_FloppyImageFileQuery_Free(&floppyImageFileQuery);
 
     return result;
 }
@@ -3685,6 +3684,7 @@ esxVI_LookupDatastoreContentByDatastoreName
     vmDiskFileQuery->details->hardwareVersion = esxVI_Boolean_False;
     vmDiskFileQuery->details->controllerType = esxVI_Boolean_True;
     vmDiskFileQuery->details->diskExtents = esxVI_Boolean_False;
+    vmDiskFileQuery = NULL;
 
     if (esxVI_IsoImageFileQuery_Alloc(&isoImageFileQuery) < 0 ||
         esxVI_FileQuery_AppendToList
@@ -3692,6 +3692,7 @@ esxVI_LookupDatastoreContentByDatastoreName
            esxVI_FileQuery_DynamicCast(isoImageFileQuery)) < 0) {
         goto cleanup;
     }
+    isoImageFileQuery = NULL;
 
     if (esxVI_FloppyImageFileQuery_Alloc(&floppyImageFileQuery) < 0 ||
         esxVI_FileQuery_AppendToList
@@ -3699,6 +3700,7 @@ esxVI_LookupDatastoreContentByDatastoreName
            esxVI_FileQuery_DynamicCast(floppyImageFileQuery)) < 0) {
         goto cleanup;
     }
+    floppyImageFileQuery = NULL;
 
     /* Search datastore for files */
     if (virAsprintf(&datastorePath, "[%s]", datastoreName) < 0)
@@ -3737,6 +3739,9 @@ esxVI_LookupDatastoreContentByDatastoreName
     esxVI_ManagedObjectReference_Free(&task);
     VIR_FREE(taskInfoErrorMessage);
     esxVI_TaskInfo_Free(&taskInfo);
+    esxVI_VmDiskFileQuery_Free(&vmDiskFileQuery);
+    esxVI_IsoImageFileQuery_Free(&isoImageFileQuery);
+    esxVI_FloppyImageFileQuery_Free(&floppyImageFileQuery);
 
     return result;
 }

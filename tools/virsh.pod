@@ -163,6 +163,7 @@ group as an option.  For example:
 
   Host and Hypervisor (help keyword 'host'):
      capabilities                   capabilities
+     cpu-models                     show the CPU models for an architecture
      connect                        (re)connect to hypervisor
      freecell                       NUMA free memory
      hostname                       print the hypervisor hostname
@@ -357,6 +358,10 @@ The State field lists 8 states for a domain, and which ones the
 current domain is in.
 
 =over 4
+
+=item B<cpu-models> I<arch>
+
+Print the list of CPU models known for the specified architecture.
 
 =item B<running>
 
@@ -737,7 +742,7 @@ I<domif-setlink>) will accept the MAC address printed by this command.
 
 =item B<blockcommit> I<domain> I<path> [I<bandwidth>]
 {[I<base>] | [I<--shallow>]} [I<top>] [I<--delete>]
-[I<--wait> [I<--verbose>] [I<--timeout> B<seconds>]]
+[I<--wait> [I<--verbose>] [I<--timeout> B<seconds>] [I<--async>]]
 
 Reduce the length of a backing image chain, by committing changes at the
 top of the chain (snapshot or delta files) into backing images.  By
@@ -756,7 +761,10 @@ operation can be checked with B<blockjob>.  However, if I<--wait> is
 specified, then this command will block until the operation completes,
 or cancel the operation if the optional I<timeout> in seconds elapses
 or SIGINT is sent (usually with C<Ctrl-C>).  Using I<--verbose> along
-with I<--wait> will produce periodic status updates.
+with I<--wait> will produce periodic status updates.  If job cancellation
+is triggered, I<--async> will return control to the user as fast as
+possible, otherwise the command may continue to block a little while
+longer until the job is done cleaning up.
 
 I<path> specifies fully-qualified path of the disk; it corresponds
 to a unique target name (<target dev='name'/>) or source file (<source

@@ -133,7 +133,7 @@
 .\" ========================================================================
 .\"
 .IX Title "VIRT-XML-VALIDATE 1"
-.TH VIRT-XML-VALIDATE 1 "2013-08-28" "libvirt-1.1.2" "Virtualization Support"
+.TH VIRT-XML-VALIDATE 1 "2013-09-18" "libvirt-1.1.3" "Virtualization Support"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -157,6 +157,10 @@ to validate against. If omitted, the schema name will be inferred
 from the name of the root element in the \s-1XML\s0 document.
 .PP
 Valid schema names currently include
+.ie n .IP """domainsnapshot""" 4
+.el .IP "\f(CWdomainsnapshot\fR" 4
+.IX Item "domainsnapshot"
+The schema for the \s-1XML\s0 format used by domain snapshot configuration
 .ie n .IP """domain""" 4
 .el .IP "\f(CWdomain\fR" 4
 .IX Item "domain"
@@ -181,6 +185,18 @@ The schema for the \s-1XML\s0 format used by node device descriptions
 .el .IP "\f(CWcapability\fR" 4
 .IX Item "capability"
 The schema for the \s-1XML\s0 format used to declare driver capabilities
+.ie n .IP """nwfilter""" 4
+.el .IP "\f(CWnwfilter\fR" 4
+.IX Item "nwfilter"
+The schema for the \s-1XML\s0 format used by network traffic filters
+.ie n .IP """secret""" 4
+.el .IP "\f(CWsecret\fR" 4
+.IX Item "secret"
+The schema for the \s-1XML\s0 format used by secrets descriptions
+.ie n .IP """interface""" 4
+.el .IP "\f(CWinterface\fR" 4
+.IX Item "interface"
+The schema for the \s-1XML\s0 format used by physical host interfaces
 .SH "OPTIONS"
 .IX Header "OPTIONS"
 .IP "\fB\-h, \-\-help\fR" 4

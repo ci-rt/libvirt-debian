@@ -33,6 +33,7 @@
 #include "domain_audit.h"
 #include "virscsi.h"
 #include "virstring.h"
+#include "virfile.h"
 
 #define VIR_FROM_THIS VIR_FROM_QEMU
 
@@ -488,7 +489,7 @@ qemuSetupDevicesCgroup(virQEMUDriverPtr driver,
                 defaultDeviceACL;
 
     if (vm->def->nsounds &&
-        (!vm->def->ngraphics ||
+        ((!vm->def->ngraphics && cfg->nogfxAllowHostAudio) ||
          ((vm->def->graphics[0]->type == VIR_DOMAIN_GRAPHICS_TYPE_VNC &&
            cfg->vncAllowHostAudio) ||
            (vm->def->graphics[0]->type == VIR_DOMAIN_GRAPHICS_TYPE_SDL)))) {
@@ -501,9 +502,8 @@ qemuSetupDevicesCgroup(virQEMUDriverPtr driver,
     }
 
     for (i = 0; deviceACL[i] != NULL; i++) {
-        if (access(deviceACL[i], F_OK) < 0) {
-            VIR_DEBUG("Ignoring non-existant device %s",
-                      deviceACL[i]);
+        if (!virFileExists(deviceACL[i])) {
+            VIR_DEBUG("Ignoring non-existant device %s", deviceACL[i]);
             continue;
         }
 
