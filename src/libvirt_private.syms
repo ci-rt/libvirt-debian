@@ -309,6 +309,7 @@ virDomainNostateReasonTypeFromString;
 virDomainNostateReasonTypeToString;
 virDomainObjAssignDef;
 virDomainObjCopyPersistentDef;
+virDomainObjGetMetadata;
 virDomainObjGetPersistentDef;
 virDomainObjGetState;
 virDomainObjListAdd;
@@ -326,6 +327,7 @@ virDomainObjListRemove;
 virDomainObjListRemoveLocked;
 virDomainObjNew;
 virDomainObjSetDefTransient;
+virDomainObjSetMetadata;
 virDomainObjSetState;
 virDomainObjTaint;
 virDomainPausedReasonTypeFromString;
@@ -719,6 +721,7 @@ cpuCompareXML;
 cpuDataFree;
 cpuDecode;
 cpuEncode;
+cpuGetModels;
 cpuGuestData;
 cpuHasFeature;
 cpuMapOverride;
@@ -1008,6 +1011,7 @@ virNetSocketLocalAddrString;
 virNetSocketNewConnectCommand;
 virNetSocketNewConnectExternal;
 virNetSocketNewConnectLibSSH2;
+virNetSocketNewConnectSockFD;
 virNetSocketNewConnectSSH;
 virNetSocketNewConnectTCP;
 virNetSocketNewConnectUNIX;
@@ -1217,6 +1221,7 @@ virCgroupSetMemory;
 virCgroupSetMemoryHardLimit;
 virCgroupSetMemorySoftLimit;
 virCgroupSetMemSwapHardLimit;
+virCgroupSupportsCpuBW;
 
 
 # util/virclosecallbacks.h
@@ -1443,6 +1448,7 @@ virInitctlSetRunLevel;
 
 
 # util/viriptables.h
+iptablesAddDontMasquerade;
 iptablesAddForwardAllowCross;
 iptablesAddForwardAllowIn;
 iptablesAddForwardAllowOut;
@@ -1453,6 +1459,7 @@ iptablesAddForwardRejectOut;
 iptablesAddOutputFixUdpChecksum;
 iptablesAddTcpInput;
 iptablesAddUdpInput;
+iptablesRemoveDontMasquerade;
 iptablesRemoveForwardAllowCross;
 iptablesRemoveForwardAllowIn;
 iptablesRemoveForwardAllowOut;
@@ -2089,6 +2096,8 @@ virUUIDParse;
 
 # util/virxml.h
 virXMLChildElementCount;
+virXMLExtractNamespaceXML;
+virXMLNodeToString;
 virXMLParseHelper;
 virXMLPickShellSafeComment;
 virXMLPropString;

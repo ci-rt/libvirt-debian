@@ -2369,9 +2369,7 @@ virNWFilterRuleParse(xmlNodePtr node)
                     if (virNWFilterRuleDetailsParse(cur,
                                                     ret,
                                                     virAttr[i].att) < 0) {
-                        /* we ignore malformed rules
-                           goto err_exit;
-                        */
+                        goto err_exit;
                     }
                     break;
                 }
@@ -2432,7 +2430,8 @@ static const char *
 virNWFilterIsAllowedChain(const char *chainname)
 {
     enum virNWFilterChainSuffixType i;
-    const char *name, *msg;
+    const char *name;
+    char *msg;
     virBuffer buf = VIR_BUFFER_INITIALIZER;
     bool printed = false;
 
@@ -2572,11 +2571,13 @@ virNWFilterDefParseXML(xmlXPathContextPtr ctxt) {
             if (VIR_ALLOC(entry) < 0)
                 goto cleanup;
 
-            /* ignore malformed rule and include elements */
-            if (xmlStrEqual(curr->name, BAD_CAST "rule"))
-                entry->rule = virNWFilterRuleParse(curr);
-            else if (xmlStrEqual(curr->name, BAD_CAST "filterref"))
-                entry->include = virNWFilterIncludeParse(curr);
+            if (xmlStrEqual(curr->name, BAD_CAST "rule")) {
+                if (!(entry->rule = virNWFilterRuleParse(curr)))
+                    goto cleanup;
+            } else if (xmlStrEqual(curr->name, BAD_CAST "filterref")) {
+                if (!(entry->include = virNWFilterIncludeParse(curr)))
+                    goto cleanup;
+            }
 
             if (entry->rule || entry->include) {
                 if (VIR_REALLOC_N(ret->filterEntries, ret->nentries+1) < 0) {

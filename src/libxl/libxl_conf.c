@@ -1,6 +1,8 @@
-/*---------------------------------------------------------------------------*/
-/* Copyright (C) 2012 Red Hat, Inc.
- * Copyright (c) 2011 SUSE LINUX Products GmbH, Nuernberg, Germany.
+/*
+ * libxl_conf.c: libxl configuration management
+ *
+ * Copyright (C) 2012 Red Hat, Inc.
+ * Copyright (c) 2011-2013 SUSE LINUX Products GmbH, Nuernberg, Germany.
  * Copyright (C) 2011 Univention GmbH.
  *
  * This library is free software; you can redistribute it and/or
@@ -21,7 +23,6 @@
  *     Jim Fehlig <jfehlig@novell.com>
  *     Markus Groß <gross@univention.de>
  */
-/*---------------------------------------------------------------------------*/
 
 #include <config.h>
 
@@ -39,7 +40,7 @@
 #include "viralloc.h"
 #include "viruuid.h"
 #include "capabilities.h"
-#include "libxl_driver.h"
+#include "libxl_domain.h"
 #include "libxl_conf.h"
 #include "libxl_utils.h"
 #include "virstoragefile.h"
@@ -60,26 +61,49 @@ struct guest_arch {
     int ia64_be;
 };
 
-static const char *xen_cap_re = "(xen|hvm)-[[:digit:]]+\\.[[:digit:]]+-(x86_32|x86_64|ia64|powerpc64)(p|be)?";
-static regex_t xen_cap_rec;
+#define XEN_CAP_REGEX "(xen|hvm)-[[:digit:]]+\\.[[:digit:]]+-(x86_32|x86_64|ia64|powerpc64)(p|be)?"
 
+
+static virClassPtr libxlDriverConfigClass;
+static void libxlDriverConfigDispose(void *obj);
+
+static int libxlConfigOnceInit(void)
+{
+    if (!(libxlDriverConfigClass = virClassNew(virClassForObject(),
+                                               "libxlDriverConfig",
+                                               sizeof(libxlDriverConfig),
+                                               libxlDriverConfigDispose)))
+        return -1;
+
+    return 0;
+}
+
+VIR_ONCE_GLOBAL_INIT(libxlConfig)
+
+static void
+libxlDriverConfigDispose(void *obj)
+{
+    libxlDriverConfigPtr cfg = obj;
+
+    virObjectUnref(cfg->caps);
+    libxl_ctx_free(cfg->ctx);
+    xtl_logger_destroy(cfg->logger);
+    if (cfg->logger_file)
+        VIR_FORCE_FCLOSE(cfg->logger_file);
+
+    VIR_FREE(cfg->configDir);
+    VIR_FREE(cfg->autostartDir);
+    VIR_FREE(cfg->logDir);
+    VIR_FREE(cfg->stateDir);
+    VIR_FREE(cfg->libDir);
+    VIR_FREE(cfg->saveDir);
+}
 
 static int
 libxlCapsInitHost(libxl_ctx *ctx, virCapsPtr caps)
 {
-    int err;
     libxl_physinfo phy_info;
     int host_pae;
-
-    err = regcomp(&xen_cap_rec, xen_cap_re, REG_EXTENDED);
-    if (err != 0) {
-        char error[100];
-        regerror(err, &xen_cap_rec, error, sizeof(error));
-        regfree(&xen_cap_rec);
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("Failed to compile regex %s"), error);
-        return -1;
-    }
 
     if (libxl_get_physinfo(ctx, &phy_info) != 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
@@ -213,6 +237,8 @@ static int
 libxlCapsInitGuests(libxl_ctx *ctx, virCapsPtr caps)
 {
     const libxl_version_info *ver_info;
+    int err;
+    regex_t regex;
     char *str, *token;
     regmatch_t subs[4];
     char *saveptr = NULL;
@@ -229,6 +255,16 @@ libxlCapsInitGuests(libxl_ctx *ctx, virCapsPtr caps)
                        _("Failed to get version info from libxenlight"));
         return -1;
     }
+
+    err = regcomp(&regex, XEN_CAP_REGEX, REG_EXTENDED);
+    if (err != 0) {
+        char error[100];
+        regerror(err, &regex, error, sizeof(error));
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Failed to compile regex %s"), error);
+        return -1;
+    }
+
     /* Format of capabilities string is documented in the code in
      * xen-unstable.hg/xen/arch/.../setup.c.
      *
@@ -258,7 +294,7 @@ libxlCapsInitGuests(libxl_ctx *ctx, virCapsPtr caps)
          nr_guest_archs < sizeof(guest_archs) / sizeof(guest_archs[0])
                  && (token = strtok_r(str, " ", &saveptr)) != NULL;
          str = NULL) {
-        if (regexec(&xen_cap_rec, token, sizeof(subs) / sizeof(subs[0]),
+        if (regexec(&regex, token, sizeof(subs) / sizeof(subs[0]),
                     subs, 0) == 0) {
             int hvm = STRPREFIX(&token[subs[1].rm_so], "hvm");
             virArch arch;
@@ -317,6 +353,7 @@ libxlCapsInitGuests(libxl_ctx *ctx, virCapsPtr caps)
                 guest_archs[i].ia64_be = ia64_be;
         }
     }
+    regfree(&regex);
 
     for (i = 0; i < nr_guest_archs; ++i) {
         virCapsGuestPtr guest;
@@ -395,7 +432,7 @@ libxlCapsInitGuests(libxl_ctx *ctx, virCapsPtr caps)
 }
 
 static int
-libxlMakeDomCreateInfo(libxlDriverPrivatePtr driver,
+libxlMakeDomCreateInfo(libxl_ctx *ctx,
                        virDomainDefPtr def,
                        libxl_domain_create_info *c_info)
 {
@@ -413,7 +450,7 @@ libxlMakeDomCreateInfo(libxlDriverPrivatePtr driver,
 
     if (def->nseclabels &&
         def->seclabels[0]->type == VIR_DOMAIN_SECLABEL_STATIC) {
-        if (libxl_flask_context_to_sid(driver->ctx,
+        if (libxl_flask_context_to_sid(ctx,
                                        def->seclabels[0]->label,
                                        strlen(def->seclabels[0]->label),
                                        &c_info->ssidref)) {
@@ -978,6 +1015,119 @@ error:
     return -1;
 }
 
+static int
+libxlGetAutoballoonConf(libxlDriverConfigPtr cfg, bool *autoballoon)
+{
+    regex_t regex;
+    int res;
+
+    if ((res = regcomp(&regex,
+                      "(^| )dom0_mem=((|min:|max:)[0-9]+[bBkKmMgG]?,?)+($| )",
+                       REG_NOSUB | REG_EXTENDED)) != 0) {
+        char error[100];
+        regerror(res, &regex, error, sizeof(error));
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Failed to compile regex %s"),
+                       error);
+
+        return -1;
+    }
+
+    res = regexec(&regex, cfg->verInfo->commandline, 0, NULL, 0);
+    regfree(&regex);
+    *autoballoon = res == REG_NOMATCH;
+    return 0;
+}
+
+libxlDriverConfigPtr
+libxlDriverConfigNew(void)
+{
+    libxlDriverConfigPtr cfg;
+    char *log_file = NULL;
+    char ebuf[1024];
+    unsigned int free_mem;
+
+    if (libxlConfigInitialize() < 0)
+        return NULL;
+
+    if (!(cfg = virObjectNew(libxlDriverConfigClass)))
+        return NULL;
+
+    if (VIR_STRDUP(cfg->configDir, LIBXL_CONFIG_DIR) < 0)
+        goto error;
+    if (VIR_STRDUP(cfg->autostartDir, LIBXL_AUTOSTART_DIR) < 0)
+        goto error;
+    if (VIR_STRDUP(cfg->logDir, LIBXL_LOG_DIR) < 0)
+        goto error;
+    if (VIR_STRDUP(cfg->stateDir, LIBXL_STATE_DIR) < 0)
+        goto error;
+    if (VIR_STRDUP(cfg->libDir, LIBXL_LIB_DIR) < 0)
+        goto error;
+    if (VIR_STRDUP(cfg->saveDir, LIBXL_SAVE_DIR) < 0)
+        goto error;
+
+    if (virAsprintf(&log_file, "%s/libxl-driver.log", cfg->logDir) < 0)
+        goto error;
+
+    if ((cfg->logger_file = fopen(log_file, "a")) == NULL)  {
+        VIR_ERROR(_("Failed to create log file '%s': %s"),
+                  log_file, virStrerror(errno, ebuf, sizeof(ebuf)));
+        goto error;
+    }
+    VIR_FREE(log_file);
+
+    cfg->logger =
+        (xentoollog_logger *)xtl_createlogger_stdiostream(cfg->logger_file,
+                                                          XTL_DEBUG, 0);
+    if (!cfg->logger) {
+        VIR_ERROR(_("cannot create logger for libxenlight, disabling driver"));
+        goto error;
+    }
+
+    if (libxl_ctx_alloc(&cfg->ctx, LIBXL_VERSION, 0, cfg->logger)) {
+        VIR_ERROR(_("cannot initialize libxenlight context, probably not "
+                    "running in a Xen Dom0, disabling driver"));
+        goto error;
+    }
+
+    if ((cfg->verInfo = libxl_get_version_info(cfg->ctx)) == NULL) {
+        VIR_ERROR(_("cannot version information from libxenlight, "
+                    "disabling driver"));
+        goto error;
+    }
+    cfg->version = (cfg->verInfo->xen_version_major * 1000000) +
+        (cfg->verInfo->xen_version_minor * 1000);
+
+    /* This will fill xenstore info about free and dom0 memory if missing,
+     * should be called before starting first domain */
+    if (libxl_get_free_memory(cfg->ctx, &free_mem)) {
+        VIR_ERROR(_("Unable to configure libxl's memory management parameters"));
+        goto error;
+    }
+
+    /* setup autoballoon */
+    if (libxlGetAutoballoonConf(cfg, &cfg->autoballoon) < 0)
+        goto error;
+
+    return cfg;
+
+error:
+    VIR_FREE(log_file);
+    virObjectUnref(cfg);
+    return NULL;
+}
+
+libxlDriverConfigPtr
+libxlDriverConfigGet(libxlDriverPrivatePtr driver)
+{
+    libxlDriverConfigPtr cfg;
+
+    libxlDriverLock(driver);
+    cfg = virObjectRef(driver->config);
+    libxlDriverUnlock(driver);
+    return cfg;
+}
+
 virCapsPtr
 libxlMakeCapabilities(libxl_ctx *ctx)
 {
@@ -1007,10 +1157,11 @@ libxlBuildDomainConfig(libxlDriverPrivatePtr driver,
                        virDomainObjPtr vm, libxl_domain_config *d_config)
 {
     virDomainDefPtr def = vm->def;
+    libxlDomainObjPrivatePtr priv = vm->privateData;
 
     libxl_domain_config_init(d_config);
 
-    if (libxlMakeDomCreateInfo(driver, def, &d_config->c_info) < 0)
+    if (libxlMakeDomCreateInfo(priv->ctx, def, &d_config->c_info) < 0)
         return -1;
 
     if (libxlMakeDomBuildInfo(vm, d_config) < 0)

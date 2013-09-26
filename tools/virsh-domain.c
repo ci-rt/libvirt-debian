@@ -41,7 +41,6 @@
 #include "virbuffer.h"
 #include "c-ctype.h"
 #include "conf/domain_conf.h"
-#include "console.h"
 #include "viralloc.h"
 #include "vircommand.h"
 #include "virfile.h"
@@ -50,6 +49,7 @@
 #include "virmacaddr.h"
 #include "virprocess.h"
 #include "virstring.h"
+#include "virsh-console.h"
 #include "virsh-domain-monitor.h"
 #include "virerror.h"
 #include "virtypedparam.h"
@@ -1544,6 +1544,10 @@ static const vshCmdOptDef opts_block_commit[] = {
      .type = VSH_OT_INT,
      .help = N_("with --wait, abort if copy exceeds timeout (in seconds)")
     },
+    {.name = "async",
+     .type = VSH_OT_BOOL,
+     .help = N_("with --wait, don't wait for cancel to finish")
+    },
     {.name = NULL}
 };
 
@@ -2263,7 +2267,7 @@ cmdRunConsole(vshControl *ctl, virDomainPtr dom,
     vshPrintExtra(ctl, _("Connected to domain %s\n"), virDomainGetName(dom));
     vshPrintExtra(ctl, _("Escape character is %s\n"), ctl->escapeChar);
     fflush(stdout);
-    if (vshRunConsole(dom, name, ctl->escapeChar, flags) == 0)
+    if (vshRunConsole(ctl, dom, name, flags) == 0)
         ret = true;
 
  cleanup:
@@ -2346,8 +2350,8 @@ cmdDomIfSetLink(vshControl *ctl, const vshCmd *cmd)
     virDomainPtr dom;
     const char *iface;
     const char *state;
-    const char *value;
-    const char *desc;
+    char *value;
+    char *desc;
     virMacAddr macaddr;
     const char *element;
     const char *attr;
@@ -2359,7 +2363,7 @@ cmdDomIfSetLink(vshControl *ctl, const vshCmd *cmd)
     xmlXPathContextPtr ctxt = NULL;
     xmlXPathObjectPtr obj = NULL;
     xmlNodePtr cur = NULL;
-    xmlBufferPtr xml_buf = NULL;
+    char *xml_buf = NULL;
 
     if (!(dom = vshCommandOptDomain(ctl, cmd, NULL)))
         return false;
@@ -2464,18 +2468,13 @@ hit:
             goto cleanup;
     }
 
-    xml_buf = xmlBufferCreate();
-    if (!xml_buf) {
-        vshError(ctl, _("Failed to allocate memory"));
-        goto cleanup;
-    }
-
-    if (xmlNodeDump(xml_buf, xml, obj->nodesetval->nodeTab[i], 0, 0) < 0) {
+    if (!(xml_buf = virXMLNodeToString(xml, obj->nodesetval->nodeTab[i]))) {
+        vshSaveLibvirtError();
         vshError(ctl, _("Failed to create XML"));
         goto cleanup;
     }
 
-    if (virDomainUpdateDeviceFlags(dom, (char *)xmlBufferContent(xml_buf), flags) < 0) {
+    if (virDomainUpdateDeviceFlags(dom, xml_buf, flags) < 0) {
         vshError(ctl, _("Failed to update interface link state"));
         goto cleanup;
     } else {
@@ -2487,10 +2486,8 @@ cleanup:
     xmlXPathFreeObject(obj);
     xmlXPathFreeContext(ctxt);
     xmlFreeDoc(xml);
-    xmlBufferFree(xml_buf);
-
-    if (dom)
-        virDomainFree(dom);
+    VIR_FREE(xml_buf);
+    virDomainFree(dom);
 
     return ret;
 }
@@ -3522,13 +3519,15 @@ vshWatchJob(vshControl *ctl,
 {
     struct sigaction sig_action;
     struct sigaction old_sig_action;
-    struct pollfd pollfd;
+    struct pollfd pollfd[2] = {{.fd = pipe_fd, .events = POLLIN, .revents = 0},
+                               {.fd = STDIN_FILENO, .events = POLLIN, .revents = 0}};
     struct timeval start, curr;
     virDomainJobInfo jobinfo;
     int ret = -1;
     char retchar;
     bool functionReturn = false;
     sigset_t sigmask, oldsigmask;
+    bool jobStarted = false;
 
     sigemptyset(&sigmask);
     sigaddset(&sigmask, SIGINT);
@@ -3539,16 +3538,21 @@ vshWatchJob(vshControl *ctl,
     sigemptyset(&sig_action.sa_mask);
     sigaction(SIGINT, &sig_action, &old_sig_action);
 
-    pollfd.fd = pipe_fd;
-    pollfd.events = POLLIN;
-    pollfd.revents = 0;
-
     GETTIMEOFDAY(&start);
     while (1) {
-repoll:
-        ret = poll(&pollfd, 1, 500);
+        ret = poll((struct pollfd *)&pollfd, 2, 500);
         if (ret > 0) {
-            if (pollfd.revents & POLLIN &&
+            if (pollfd[1].revents & POLLIN &&
+                saferead(STDIN_FILENO, &retchar, sizeof(retchar)) > 0) {
+                if (vshTTYIsInterruptCharacter(ctl, retchar)) {
+                    virDomainAbortJob(dom);
+                    goto cleanup;
+                } else {
+                    continue;
+                }
+            }
+
+            if (pollfd[0].revents & POLLIN &&
                 saferead(pipe_fd, &retchar, sizeof(retchar)) > 0 &&
                 retchar == '0') {
                 if (verbose) {
@@ -3566,7 +3570,7 @@ repoll:
                     virDomainAbortJob(dom);
                     intCaught = 0;
                 } else {
-                    goto repoll;
+                    continue;
                 }
             }
             goto cleanup;
@@ -3583,13 +3587,24 @@ repoll:
             timeout = 0;
         }
 
-        if (verbose) {
+        if (verbose || !jobStarted) {
             pthread_sigmask(SIG_BLOCK, &sigmask, &oldsigmask);
             ret = virDomainGetJobInfo(dom, &jobinfo);
             pthread_sigmask(SIG_SETMASK, &oldsigmask, NULL);
-            if (ret == 0)
-                vshPrintJobProgress(label, jobinfo.dataRemaining,
-                                    jobinfo.dataTotal);
+            if (ret == 0) {
+                if (verbose)
+                    vshPrintJobProgress(label, jobinfo.dataRemaining,
+                                        jobinfo.dataTotal);
+
+                if (!jobStarted &&
+                    (jobinfo.type == VIR_DOMAIN_JOB_BOUNDED ||
+                     jobinfo.type == VIR_DOMAIN_JOB_UNBOUNDED)) {
+                    vshTTYDisableInterrupt(ctl);
+                    jobStarted = true;
+                }
+            } else {
+                vshResetLibvirtError();
+            }
         }
     }
 
@@ -3597,6 +3612,7 @@ repoll:
 
 cleanup:
     sigaction(SIGINT, &old_sig_action, NULL);
+    vshTTYRestore(ctl);
     return functionReturn;
 }
 
@@ -4594,7 +4610,8 @@ cmdScreenshot(vshControl *ctl, const vshCmd *cmd)
     if (!(dom = vshCommandOptDomain(ctl, cmd, &name)))
         return false;
 
-    st = virStreamNew(ctl->conn, 0);
+    if (!(st = virStreamNew(ctl->conn, 0)))
+        goto cleanup;
 
     mime = virDomainScreenshot(dom, st, screen, flags);
     if (!mime) {
@@ -4603,8 +4620,8 @@ cmdScreenshot(vshControl *ctl, const vshCmd *cmd)
     }
 
     if (!file) {
-        if (!(file=vshGenFileName(ctl, dom, mime)))
-            return false;
+        if (!(file = vshGenFileName(ctl, dom, mime)))
+            goto cleanup;
         generated = true;
     }
 
@@ -4999,6 +5016,7 @@ cmdDomjobinfo(vshControl *ctl, const vshCmd *cmd)
     case VIR_DOMAIN_JOB_NONE:
     default:
         vshPrint(ctl, "%-12s\n", _("None"));
+        ret = true;
         goto cleanup;
     }
 
@@ -5150,44 +5168,6 @@ cmdDomjobabort(vshControl *ctl, const vshCmd *cmd)
 
     virDomainFree(dom);
     return ret;
-}
-
-/*
- * "maxvcpus" command
- */
-static const vshCmdInfo info_maxvcpus[] = {
-    {.name = "help",
-     .data = N_("connection vcpu maximum")
-    },
-    {.name = "desc",
-     .data = N_("Show maximum number of virtual CPUs for guests on this connection.")
-    },
-    {.name = NULL}
-};
-
-static const vshCmdOptDef opts_maxvcpus[] = {
-    {.name = "type",
-     .type = VSH_OT_STRING,
-     .help = N_("domain type")
-    },
-    {.name = NULL}
-};
-
-static bool
-cmdMaxvcpus(vshControl *ctl, const vshCmd *cmd)
-{
-    const char *type = NULL;
-    int vcpus;
-
-    if (vshCommandOptStringReq(ctl, cmd, "type", &type) < 0)
-        return false;
-
-    if ((vcpus = virConnectGetMaxVcpus(ctl->conn, type)) < 0)
-        return false;
-
-    vshPrint(ctl, "%d\n", vcpus);
-
-    return true;
 }
 
 /*
@@ -6061,11 +6041,10 @@ cmdCPUCompare(vshControl *ctl, const vshCmd *cmd)
     bool ret = false;
     char *buffer;
     int result;
-    const char *snippet;
+    char *snippet = NULL;
 
     xmlDocPtr xml = NULL;
     xmlXPathContextPtr ctxt = NULL;
-    xmlBufferPtr xml_buf = NULL;
     xmlNodePtr node;
 
     if (vshCommandOptStringReq(ctl, cmd, "file", &from) < 0)
@@ -6081,17 +6060,10 @@ cmdCPUCompare(vshControl *ctl, const vshCmd *cmd)
     if ((node = virXPathNode("/cpu|"
                              "/domain/cpu|"
                               "/capabilities/host/cpu", ctxt))) {
-        if (!(xml_buf = xmlBufferCreate())) {
-            vshError(ctl, _("Can't create XML buffer to extract CPU element."));
+        if (!(snippet = virXMLNodeToString(xml, node))) {
+            vshSaveLibvirtError();
             goto cleanup;
         }
-
-        if (xmlNodeDump(xml_buf, xml, node, 0, 0) < 0) {
-            vshError(ctl, _("Failed to extract CPU element snippet from domain XML."));
-            goto cleanup;
-        }
-
-        snippet = (const char *) xmlBufferContent(xml_buf);
     } else {
         vshError(ctl, _("File '%s' does not contain a <cpu> element or is not "
                         "a valid domain or capabilities XML"), from);
@@ -6127,7 +6099,7 @@ cmdCPUCompare(vshControl *ctl, const vshCmd *cmd)
 
 cleanup:
     VIR_FREE(buffer);
-    xmlBufferFree(xml_buf);
+    VIR_FREE(snippet);
     xmlXPathFreeContext(ctxt);
     xmlFreeDoc(xml);
 
@@ -6167,14 +6139,13 @@ cmdCPUBaseline(vshControl *ctl, const vshCmd *cmd)
     bool ret = false;
     char *buffer;
     char *result = NULL;
-    const char **list = NULL;
+    char **list = NULL;
     unsigned int flags = 0;
     int count = 0;
 
     xmlDocPtr xml = NULL;
     xmlNodePtr *node_list = NULL;
     xmlXPathContextPtr ctxt = NULL;
-    xmlBufferPtr xml_buf = NULL;
     virBuffer buf = VIR_BUFFER_INITIALIZER;
     size_t i;
 
@@ -6210,21 +6181,15 @@ cmdCPUBaseline(vshControl *ctl, const vshCmd *cmd)
 
     list = vshCalloc(ctl, count, sizeof(const char *));
 
-    if (!(xml_buf = xmlBufferCreate()))
-        goto no_memory;
-
     for (i = 0; i < count; i++) {
-        xmlBufferEmpty(xml_buf);
-
-        if (xmlNodeDump(xml_buf, xml,  node_list[i], 0, 0) < 0) {
-            vshError(ctl, _("Failed to extract <cpu> element"));
+        if (!(list[i] = virXMLNodeToString(xml, node_list[i]))) {
+            vshSaveLibvirtError();
             goto cleanup;
         }
-
-        list[i] = vshStrdup(ctl, (const char *)xmlBufferContent(xml_buf));
     }
 
-    result = virConnectBaselineCPU(ctl->conn, list, count, flags);
+    result = virConnectBaselineCPU(ctl->conn,
+                                   (const char **)list, count, flags);
 
     if (result) {
         vshPrint(ctl, "%s", result);
@@ -6234,7 +6199,6 @@ cmdCPUBaseline(vshControl *ctl, const vshCmd *cmd)
 cleanup:
     xmlXPathFreeContext(ctxt);
     xmlFreeDoc(xml);
-    xmlBufferFree(xml_buf);
     VIR_FREE(result);
     if (list != NULL && count > 0) {
         for (i = 0; i < count; i++)
@@ -6379,7 +6343,7 @@ cmdCPUStats(vshControl *ctl, const vshCmd *cmd)
                              params[pos].value.ul / 1000000000,
                              params[pos].value.ul % 1000000000);
                 } else {
-                    const char *s = vshGetTypedParamValue(ctl, &params[pos]);
+                    char *s = vshGetTypedParamValue(ctl, &params[pos]);
                     vshPrint(ctl, _("%s\n"), s);
                     VIR_FREE(s);
                 }
@@ -6687,7 +6651,7 @@ static const vshCmdOptDef opts_desc[] = {
 };
 
 static bool
-cmdDesc(vshControl *ctl, const vshCmd *cmd ATTRIBUTE_UNUSED)
+cmdDesc(vshControl *ctl, const vshCmd *cmd)
 {
     virDomainPtr dom;
     bool config = vshCommandOptBool(cmd, "config");
@@ -6813,6 +6777,161 @@ cleanup:
         virDomainFree(dom);
     return ret;
 }
+
+
+static const vshCmdInfo info_metadata[] = {
+    {.name = "help",
+     .data = N_("show or set domain's custom XML metadata")
+    },
+    {.name = "desc",
+     .data = N_("Shows or modifies the XML metadata of a domain.")
+    },
+    {.name = NULL}
+};
+
+static const vshCmdOptDef opts_metadata[] = {
+    {.name = "domain",
+     .type = VSH_OT_DATA,
+     .flags = VSH_OFLAG_REQ,
+     .help = N_("domain name, id or uuid")
+    },
+    {.name = "live",
+     .type = VSH_OT_BOOL,
+     .help = N_("modify/get running state")
+    },
+    {.name = "config",
+     .type = VSH_OT_BOOL,
+     .help = N_("modify/get persistent configuration")
+    },
+    {.name = "current",
+     .type = VSH_OT_BOOL,
+     .help = N_("modify/get current state configuration")
+    },
+    {.name = "edit",
+     .type = VSH_OT_BOOL,
+     .help = N_("use an editor to change the metadata")
+    },
+    {.name = "uri",
+     .type = VSH_OT_DATA,
+     .flags = VSH_OFLAG_REQ,
+     .help = N_("URI of the namespace")
+    },
+    {.name = "key",
+     .type = VSH_OT_DATA,
+     .help = N_("key to be used as a namespace identifier"),
+    },
+    {.name = "set",
+     .type = VSH_OT_DATA,
+     .help = N_("new metadata to set"),
+    },
+    {.name = "remove",
+     .type = VSH_OT_BOOL,
+     .help = N_("remove the metadata corresponding to an uri")
+    },
+    {.name = NULL}
+};
+
+
+/* helper to add new metadata using the --edit option */
+static char *
+vshDomainGetEditMetadata(vshControl *ctl,
+                         virDomainPtr dom,
+                         const char *uri,
+                         unsigned int flags)
+{
+    char *ret;
+
+    if (!(ret = virDomainGetMetadata(dom, VIR_DOMAIN_METADATA_ELEMENT,
+                                     uri, flags))) {
+        vshResetLibvirtError();
+        ret = vshStrdup(ctl, "\n");
+    }
+
+    return ret;
+}
+
+
+static bool
+cmdMetadata(vshControl *ctl, const vshCmd *cmd)
+{
+    virDomainPtr dom;
+    bool config = vshCommandOptBool(cmd, "config");
+    bool live = vshCommandOptBool(cmd, "live");
+    bool current = vshCommandOptBool(cmd, "current");
+    bool edit = vshCommandOptBool(cmd, "edit");
+    bool rem = vshCommandOptBool(cmd, "remove");
+    const char *set = NULL;
+    const char *uri = NULL;
+    const char *key = NULL;
+    unsigned int flags = VIR_DOMAIN_AFFECT_CURRENT;
+    bool ret = false;
+
+    VSH_EXCLUSIVE_OPTIONS_VAR(current, live);
+    VSH_EXCLUSIVE_OPTIONS_VAR(current, config);
+    VSH_EXCLUSIVE_OPTIONS("edit", "set");
+    VSH_EXCLUSIVE_OPTIONS("remove", "set");
+    VSH_EXCLUSIVE_OPTIONS("remove", "edit");
+
+    if (config)
+        flags |= VIR_DOMAIN_AFFECT_CONFIG;
+    if (live)
+        flags |= VIR_DOMAIN_AFFECT_LIVE;
+
+    if (!(dom = vshCommandOptDomain(ctl, cmd, NULL)))
+        return false;
+
+    if (vshCommandOptStringReq(ctl, cmd, "uri", &uri) < 0 ||
+        vshCommandOptStringReq(ctl, cmd, "key", &key) < 0 ||
+        vshCommandOptStringReq(ctl, cmd, "set", &set) < 0)
+        goto cleanup;
+
+    if ((set || edit) && !key) {
+        vshError(ctl, "%s",
+                 _("namespace key is required when modifying metadata"));
+        goto cleanup;
+    }
+
+    if (set || rem) {
+        if (virDomainSetMetadata(dom, VIR_DOMAIN_METADATA_ELEMENT,
+                                 set, key, uri, flags))
+            goto cleanup;
+
+        if (rem)
+            vshPrint("%s\n", _("Metadata removed"));
+        else
+            vshPrint("%s\n", _("Metadata modified"));
+    } else if (edit) {
+#define EDIT_GET_XML \
+        vshDomainGetEditMetadata(ctl, dom, uri, flags)
+#define EDIT_NOT_CHANGED                                    \
+        vshPrint(ctl, "%s", _("Metadata not changed"));     \
+        ret = true;                                         \
+        goto edit_cleanup;
+#define EDIT_DEFINE                                                         \
+        (virDomainSetMetadata(dom, VIR_DOMAIN_METADATA_ELEMENT, doc_edited, \
+                              key, uri, flags) == 0)
+#define EDIT_FREE /* nothing */
+#include "virsh-edit.c"
+
+        vshPrint("%s\n", _("Metadata modified"));
+    } else {
+        char *data;
+        /* get */
+        if (!(data = virDomainGetMetadata(dom, VIR_DOMAIN_METADATA_ELEMENT,
+                                          uri, flags)))
+            goto cleanup;
+
+        vshPrint(ctl, "%s\n", data);
+        VIR_FREE(data);
+    }
+
+    ret = true;
+
+cleanup:
+    virDomainFree(dom);
+    return ret;
+}
+
 
 /*
  * "inject-nmi" command
@@ -6989,19 +7108,19 @@ static const vshCmdOptDef opts_send_process_signal[] = {
 VIR_ENUM_DECL(virDomainProcessSignal)
 VIR_ENUM_IMPL(virDomainProcessSignal,
               VIR_DOMAIN_PROCESS_SIGNAL_LAST,
-              "nop", "hup", "int", "quit", "ill", /* 0-4 */
-              "trap", "abrt", "bus", "fpe", "kill", /* 5-9 */
-              "usr1", "segv", "usr2", "pipe", "alrm", /* 10-14 */
-              "term", "stkflt", "chld", "cont", "stop", /* 15-19 */
-              "tstp", "ttin", "ttou", "urg", "xcpu", /* 20-24 */
+               "nop",    "hup",  "int",  "quit",  "ill", /* 0-4 */
+              "trap",   "abrt",  "bus",   "fpe", "kill", /* 5-9 */
+              "usr1",   "segv", "usr2",  "pipe", "alrm", /* 10-14 */
+              "term", "stkflt", "chld",  "cont", "stop", /* 15-19 */
+              "tstp",   "ttin", "ttou",   "urg", "xcpu", /* 20-24 */
               "xfsz", "vtalrm", "prof", "winch", "poll", /* 25-29 */
-              "pwr", "sys", "rt0","rt1", "rt2",  /* 30-34 */
-              "rt3", "rt4", "rt5", "rt6", "rt7",  /* 35-39 */
-              "rt8", "rt9", "rt10", "rt11", "rt12",  /* 40-44 */
-              "rt13", "rt14", "rt15", "rt16", "rt17",  /* 45-49 */
-              "rt18", "rt19", "rt20", "rt21", "rt22",  /* 50-54 */
-              "rt23", "rt24", "rt25", "rt26", "rt27",  /* 55-59 */
-              "rt28", "rt29", "rt30", "rt31", "rt32")  /* 60-64 */
+               "pwr",    "sys",  "rt0",   "rt1",  "rt2", /* 30-34 */
+               "rt3",    "rt4",  "rt5",   "rt6",  "rt7", /* 35-39 */
+               "rt8",    "rt9", "rt10",  "rt11", "rt12", /* 40-44 */
+              "rt13",   "rt14", "rt15",  "rt16", "rt17", /* 45-49 */
+              "rt18",   "rt19", "rt20",  "rt21", "rt22", /* 50-54 */
+              "rt23",   "rt24", "rt25",  "rt26", "rt27", /* 55-59 */
+              "rt28",   "rt29", "rt30",  "rt31", "rt32") /* 60-64 */
 
 static int getSignalNumber(vshControl *ctl, const char *signame)
 {
@@ -9610,7 +9729,7 @@ cmdDetachInterface(vshControl *ctl, const vshCmd *cmd)
     xmlXPathObjectPtr obj=NULL;
     xmlXPathContextPtr ctxt = NULL;
     xmlNodePtr cur = NULL, matchNode = NULL;
-    xmlBufferPtr xml_buf = NULL;
+    char *detach_xml = NULL;
     const char *mac =NULL, *type = NULL;
     char *doc = NULL;
     char buf[64];
@@ -9703,25 +9822,16 @@ cmdDetachInterface(vshControl *ctl, const vshCmd *cmd)
         goto cleanup;
     }
 
- hit:
-    xml_buf = xmlBufferCreate();
-    if (!xml_buf) {
-        vshError(ctl, "%s", _("Failed to allocate memory"));
+hit:
+    if (!(detach_xml = virXMLNodeToString(xml, matchNode))) {
+        vshSaveLibvirtError();
         goto cleanup;
     }
 
-    if (xmlNodeDump(xml_buf, xml, matchNode, 0, 0) < 0) {
-        vshError(ctl, "%s", _("Failed to create XML"));
-        goto cleanup;
-    }
-
-    if (flags != 0) {
-        ret = virDomainDetachDeviceFlags(dom,
-                                         (char *)xmlBufferContent(xml_buf),
-                                         flags);
-    } else {
-        ret = virDomainDetachDevice(dom, (char *)xmlBufferContent(xml_buf));
-    }
+    if (flags != 0)
+        ret = virDomainDetachDeviceFlags(dom, detach_xml, flags);
+    else
+        ret = virDomainDetachDevice(dom, detach_xml);
 
     if (ret != 0) {
         vshError(ctl, "%s", _("Failed to detach interface"));
@@ -9730,13 +9840,13 @@ cmdDetachInterface(vshControl *ctl, const vshCmd *cmd)
         functionReturn = true;
     }
 
- cleanup:
+cleanup:
     VIR_FREE(doc);
+    VIR_FREE(detach_xml);
     virDomainFree(dom);
     xmlXPathFreeObject(obj);
     xmlXPathFreeContext(ctxt);
     xmlFreeDoc(xml);
-    xmlBufferFree(xml_buf);
     return functionReturn;
 }
 
@@ -9854,7 +9964,6 @@ vshPrepareDiskXML(xmlNodePtr disk_node,
                   int type)
 {
     xmlNodePtr cur = NULL;
-    xmlBufferPtr xml_buf = NULL;
     const char *disk_type = NULL;
     const char *device_type = NULL;
     xmlNodePtr new_node = NULL;
@@ -9862,12 +9971,6 @@ vshPrepareDiskXML(xmlNodePtr disk_node,
 
     if (!disk_node)
         return NULL;
-
-    xml_buf = xmlBufferCreate();
-    if (!xml_buf) {
-        vshError(NULL, "%s", _("Failed to allocate memory"));
-        return NULL;
-    }
 
     device_type = virXMLPropString(disk_node, "device");
 
@@ -9890,7 +9993,7 @@ vshPrepareDiskXML(xmlNodePtr disk_node,
             if (type == VSH_PREPARE_DISK_XML_EJECT) {
                 vshError(NULL, _("The disk device '%s' doesn't have media"),
                          path);
-                goto error;
+                goto cleanup;
             }
 
             if (source) {
@@ -9902,10 +10005,10 @@ vshPrepareDiskXML(xmlNodePtr disk_node,
                 xmlAddChild(disk_node, new_node);
             } else if (type == VSH_PREPARE_DISK_XML_INSERT) {
                 vshError(NULL, _("No source is specified for inserting media"));
-                goto error;
+                goto cleanup;
             } else if (type == VSH_PREPARE_DISK_XML_UPDATE) {
                 vshError(NULL, _("No source is specified for updating media"));
-                goto error;
+                goto cleanup;
             }
         }
 
@@ -9913,7 +10016,7 @@ vshPrepareDiskXML(xmlNodePtr disk_node,
             if (type == VSH_PREPARE_DISK_XML_INSERT) {
                 vshError(NULL, _("The disk device '%s' already has media"),
                          path);
-                goto error;
+                goto cleanup;
             }
 
             /* Remove the source if it tends to eject/update media. */
@@ -9929,30 +10032,15 @@ vshPrepareDiskXML(xmlNodePtr disk_node,
         }
     }
 
-    if (xmlNodeDump(xml_buf, NULL, disk_node, 0, 0) < 0) {
-        vshError(NULL, "%s", _("Failed to create XML"));
-        goto error;
+    if (!(ret = virXMLNodeToString(NULL, disk_node))) {
+        vshSaveLibvirtError();
+        goto cleanup;
     }
-
-    goto cleanup;
 
 cleanup:
     VIR_FREE(device_type);
     VIR_FREE(disk_type);
-    if (xml_buf) {
-        int len = xmlBufferLength(xml_buf);
-        if (VIR_ALLOC_N(ret, len + 1) < 0)
-            return NULL;
-        memcpy(ret, (char *)xmlBufferContent(xml_buf), len);
-        ret[len] = '\0';
-        xmlBufferFree(xml_buf);
-    }
     return ret;
-
-error:
-    xmlBufferFree(xml_buf);
-    xml_buf = NULL;
-    goto cleanup;
 }
 
 
@@ -10192,9 +10280,9 @@ cmdChangeMedia(vshControl *ctl, const vshCmd *cmd)
     virDomainPtr dom = NULL;
     const char *source = NULL;
     const char *path = NULL;
-    const char *doc = NULL;
+    char *doc = NULL;
     xmlNodePtr disk_node = NULL;
-    const char *disk_xml = NULL;
+    char *disk_xml = NULL;
     bool ret = false;
     int prepare_type = 0;
     const char *action = NULL;
@@ -10618,16 +10706,16 @@ const vshCmdDef domManagementCmds[] = {
      .info = info_managedsaveremove,
      .flags = 0
     },
-    {.name = "maxvcpus",
-     .handler = cmdMaxvcpus,
-     .opts = opts_maxvcpus,
-     .info = info_maxvcpus,
-     .flags = 0
-    },
     {.name = "memtune",
      .handler = cmdMemtune,
      .opts = opts_memtune,
      .info = info_memtune,
+     .flags = 0
+    },
+    {.name = "metadata",
+     .handler = cmdMetadata,
+     .opts = opts_metadata,
+     .info = info_metadata,
      .flags = 0
     },
     {.name = "migrate",

@@ -35,6 +35,10 @@
 #include "vmware_conf.h"
 #include "virstring.h"
 
+VIR_ENUM_IMPL(vmwareDriver, VMWARE_DRIVER_LAST,
+              "player",
+              "ws");
+
 /* Free all memory associated with a vmware_driver structure */
 void
 vmwareFreeDriver(struct vmware_driver *driver)
@@ -46,6 +50,7 @@ vmwareFreeDriver(struct vmware_driver *driver)
     virObjectUnref(driver->domains);
     virObjectUnref(driver->caps);
     virObjectUnref(driver->xmlopt);
+    VIR_FREE(driver->vmrun);
     VIR_FREE(driver);
 }
 
@@ -140,8 +145,8 @@ vmwareLoadDomains(struct vmware_driver *driver)
 
     ctx.parseFileName = vmwareCopyVMXFileName;
 
-    cmd = virCommandNewArgList(VMRUN, "-T",
-                               driver->type == TYPE_PLAYER ? "player" : "ws",
+    cmd = virCommandNewArgList(driver->vmrun, "-T",
+                               vmwareDriverTypeToString(driver->type),
                                "list", NULL);
     virCommandSetOutputBuffer(cmd, &outbuf);
     if (virCommandRun(cmd, NULL) < 0)
@@ -214,16 +219,48 @@ vmwareSetSentinal(const char **prog, const char *key)
 }
 
 int
+vmwareParseVersionStr(int type, const char *verbuf, unsigned long *version)
+{
+    const char *pattern;
+    const char *tmp;
+
+    switch (type) {
+        case VMWARE_DRIVER_PLAYER:
+            pattern = "VMware Player ";
+            break;
+        case VMWARE_DRIVER_WORKSTATION:
+            pattern = "VMware Workstation ";
+            break;
+        default:
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Invalid driver type: %d"), type);
+            return -1;
+    }
+
+    if ((tmp = STRSKIP(verbuf, pattern)) == NULL) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("failed to parse %sversion"), pattern);
+        return -1;
+    }
+
+    if (virParseVersionString(tmp, version, false) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("version parsing error"));
+        return -1;
+    }
+
+    return 0;
+}
+
+int
 vmwareExtractVersion(struct vmware_driver *driver)
 {
     unsigned long version = 0;
-    char *tmp;
     int ret = -1;
     virCommandPtr cmd;
     char * outbuf = NULL;
-    const char * bin = (driver->type == TYPE_PLAYER) ? "vmplayer" : "vmware";
-    const char * pattern = (driver->type == TYPE_PLAYER) ?
-                "VMware Player " : "VMware Workstation ";
+    const char * bin = (driver->type == VMWARE_DRIVER_PLAYER) ?
+                 "vmplayer" : "vmware";
 
     cmd = virCommandNewArgList(bin, "-v", NULL);
     virCommandSetOutputBuffer(cmd, &outbuf);
@@ -231,19 +268,9 @@ vmwareExtractVersion(struct vmware_driver *driver)
     if (virCommandRun(cmd, NULL) < 0)
         goto cleanup;
 
-    if ((tmp = STRSKIP(outbuf, pattern)) == NULL) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("failed to parse %s version"), bin);
+    if (vmwareParseVersionStr(driver->type, outbuf, &version) < 0)
         goto cleanup;
-    }
 
-    if (virParseVersionString(tmp, &version, false) < 0) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       _("version parsing error"));
-        goto cleanup;
-    }
-
-    driver->version = version;
     ret = 0;
 
 cleanup:

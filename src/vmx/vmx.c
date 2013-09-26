@@ -517,7 +517,6 @@ VIR_ENUM_IMPL(virVMXControllerModelSCSI, VIR_DOMAIN_CONTROLLER_MODEL_SCSI_LAST,
               "UNUSED lsisas1078");
 
 
-
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * Helpers
  */
@@ -1937,12 +1936,16 @@ virVMXParseDisk(virVMXContext *ctx, virDomainXMLOptionPtr xmlopt, virConfPtr con
                 virDomainDiskDefPtr *def)
 {
     /*
-     *          device = {VIR_DOMAIN_DISK_DEVICE_DISK, VIR_DOMAIN_DISK_DEVICE_CDROM}
+     *          device = {VIR_DOMAIN_DISK_DEVICE_DISK,
+     *                    VIR_DOMAIN_DISK_DEVICE_CDROM,
+     *                    VIR_DOMAIN_DISK_DEVICE_LUN}
      *         busType = VIR_DOMAIN_DISK_BUS_SCSI
      * controllerOrBus = [0..3] -> controller
      *            unit = [0..6,8..15]
      *
-     *          device = {VIR_DOMAIN_DISK_DEVICE_DISK, VIR_DOMAIN_DISK_DEVICE_CDROM}
+     *          device = {VIR_DOMAIN_DISK_DEVICE_DISK,
+     *                    VIR_DOMAIN_DISK_DEVICE_CDROM,
+     *                    VIR_DOMAIN_DISK_DEVICE_LUN}
      *         busType = VIR_DOMAIN_DISK_BUS_IDE
      * controllerOrBus = [0..1] -> bus
      *            unit = [0..1]
@@ -2174,12 +2177,13 @@ virVMXParseDisk(virVMXContext *ctx, virDomainXMLOptionPtr xmlopt, virConfPtr con
                 goto cleanup;
             }
         } else if (virFileHasSuffix(fileName, ".iso") ||
-                   STRCASEEQ(deviceType, "atapi-cdrom")) {
+                   STRCASEEQ(deviceType, "atapi-cdrom") ||
+                   STRCASEEQ(deviceType, "cdrom-raw")) {
             /*
              * This function was called in order to parse a harddisk device,
-             * but .iso files and 'atapi-cdrom' devices are for CDROM devices
-             * only. Just ignore it, another call to this function to parse a
-             * CDROM device may handle it.
+             * but .iso files, 'atapi-cdrom', and 'cdrom-raw' devices are for
+             * CDROM devices only. Just ignore it, another call to this
+             * function to parse a CDROM device may handle it.
              */
             goto ignore;
         } else {
@@ -2217,9 +2221,26 @@ virVMXParseDisk(virVMXContext *ctx, virDomainXMLOptionPtr xmlopt, virConfPtr con
             goto ignore;
         } else if (STRCASEEQ(deviceType, "atapi-cdrom")) {
             (*def)->type = VIR_DOMAIN_DISK_TYPE_BLOCK;
-            (*def)->src = fileName;
 
-            fileName = NULL;
+            if (STRCASEEQ(fileName, "auto detect")) {
+                (*def)->src = NULL;
+                (*def)->startupPolicy = VIR_DOMAIN_STARTUP_POLICY_OPTIONAL;
+            } else {
+                (*def)->src = fileName;
+                fileName = NULL;
+            }
+        } else if (STRCASEEQ(deviceType, "cdrom-raw")) {
+            /* Raw access CD-ROMs actually are device='lun' */
+            (*def)->device = VIR_DOMAIN_DISK_DEVICE_LUN;
+            (*def)->type = VIR_DOMAIN_DISK_TYPE_BLOCK;
+
+            if (STRCASEEQ(fileName, "auto detect")) {
+                (*def)->src = NULL;
+                (*def)->startupPolicy = VIR_DOMAIN_STARTUP_POLICY_OPTIONAL;
+            } else {
+                (*def)->src = fileName;
+                fileName = NULL;
+            }
         } else {
             virReportError(VIR_ERR_INTERNAL_ERROR,
                            _("Invalid or not yet handled value '%s' "
@@ -2697,7 +2718,7 @@ virVMXParseSerial(virVMXContext *ctx, virConfPtr conf, int port,
 
     /* vmx:fileName -> def:data.file.path */
     if (virVMXGetConfigString(conf, fileName_name, &fileName, false) < 0) {
-        goto cleanup;
+        goto ignore;
     }
 
     /* vmx:network.endPoint -> def:data.tcp.listen */
@@ -3075,7 +3096,8 @@ virVMXFormatConfig(virVMXContext *ctx, virDomainXMLOptionPtr xmlopt, virDomainDe
 
     /* def:description -> vmx:annotation */
     if (def->description != NULL) {
-        annotation = virVMXEscapeHexPipe(def->description);
+        if (!(annotation = virVMXEscapeHexPipe(def->description)))
+            goto cleanup;
 
         virBufferAsprintf(&buffer, "annotation = \"%s\"\n", annotation);
     }
@@ -3213,14 +3235,9 @@ virVMXFormatConfig(virVMXContext *ctx, virDomainXMLOptionPtr xmlopt, virDomainDe
     for (i = 0; i < def->ndisks; ++i) {
         switch (def->disks[i]->device) {
           case VIR_DOMAIN_DISK_DEVICE_DISK:
-            if (virVMXFormatHardDisk(ctx, def->disks[i], &buffer) < 0) {
-                goto cleanup;
-            }
-
-            break;
-
           case VIR_DOMAIN_DISK_DEVICE_CDROM:
-            if (virVMXFormatCDROM(ctx, def->disks[i], &buffer) < 0) {
+          case VIR_DOMAIN_DISK_DEVICE_LUN:
+            if (virVMXFormatDisk(ctx, def->disks[i], &buffer) < 0) {
                 goto cleanup;
             }
 
@@ -3369,67 +3386,93 @@ virVMXFormatVNC(virDomainGraphicsDefPtr def, virBufferPtr buffer)
     return 0;
 }
 
-
-
 int
-virVMXFormatHardDisk(virVMXContext *ctx, virDomainDiskDefPtr def,
+virVMXFormatDisk(virVMXContext *ctx, virDomainDiskDefPtr def,
                      virBufferPtr buffer)
 {
     int controllerOrBus, unit;
-    const char *busName = NULL;
-    const char *entryPrefix = NULL;
-    const char *deviceTypePrefix = NULL;
+    const char *vmxDeviceType = NULL;
     char *fileName = NULL;
 
-    if (def->device != VIR_DOMAIN_DISK_DEVICE_DISK) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("Invalid argument"));
+    /* Convert a handful of types to their string values */
+    const char *busType = virDomainDiskBusTypeToString(def->bus);
+    const char *deviceType = virDomainDeviceTypeToString(def->device);
+    const char *diskType = virDomainDeviceTypeToString(def->type);
+
+    /* If we are dealing with a disk its a .vmdk, otherwise it must be
+     * an ISO.
+     */
+    const char *fileExt = (def->device == VIR_DOMAIN_DISK_DEVICE_DISK) ?
+                            ".vmdk" : ".iso";
+
+    /* Check that we got a valid device type */
+    if (def->device != VIR_DOMAIN_DISK_DEVICE_DISK &&
+        def->device != VIR_DOMAIN_DISK_DEVICE_CDROM &&
+        def->device != VIR_DOMAIN_DISK_DEVICE_LUN) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Invalid device type supplied: %s"), deviceType);
+        return -1;
+    }
+
+    /* We only support type='file' and type='block' */
+    if (def->type != VIR_DOMAIN_DISK_TYPE_FILE &&
+        def->type != VIR_DOMAIN_DISK_TYPE_BLOCK) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                       _("%s %s '%s' has unsupported type '%s', expecting "
+                         "'%s' or '%s'"), busType, deviceType, def->dst,
+                       diskType,
+                       virDomainDiskTypeToString(VIR_DOMAIN_DISK_TYPE_FILE),
+                       virDomainDiskTypeToString(VIR_DOMAIN_DISK_TYPE_BLOCK));
         return -1;
     }
 
     if (def->bus == VIR_DOMAIN_DISK_BUS_SCSI) {
-        busName = "SCSI";
-        entryPrefix = "scsi";
-        deviceTypePrefix = "scsi";
-
         if (virVMXSCSIDiskNameToControllerAndUnit(def->dst, &controllerOrBus,
                                                   &unit) < 0) {
             return -1;
         }
     } else if (def->bus == VIR_DOMAIN_DISK_BUS_IDE) {
-        busName = "IDE";
-        entryPrefix = "ide";
-        deviceTypePrefix = "ata";
-
         if (virVMXIDEDiskNameToBusAndUnit(def->dst, &controllerOrBus,
-                                           &unit) < 0) {
+                                          &unit) < 0) {
             return -1;
         }
     } else {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                       _("Unsupported bus type '%s' for harddisk"),
-                       virDomainDiskBusTypeToString(def->bus));
+                       _("Unsupported bus type '%s' for %s"),
+                       busType, deviceType);
         return -1;
     }
 
-    if (def->type != VIR_DOMAIN_DISK_TYPE_FILE) {
+    if (def->device == VIR_DOMAIN_DISK_DEVICE_DISK &&
+        def->type == VIR_DOMAIN_DISK_TYPE_FILE) {
+        vmxDeviceType = (def->bus == VIR_DOMAIN_DISK_BUS_SCSI) ?
+            "scsi-hardDisk" : "ata-hardDisk";
+    } else if (def->device == VIR_DOMAIN_DISK_DEVICE_CDROM) {
+        if (def->type == VIR_DOMAIN_DISK_TYPE_FILE)
+            vmxDeviceType = "cdrom-image";
+        else
+            vmxDeviceType = "atapi-cdrom";
+    } else if (def->device == VIR_DOMAIN_DISK_DEVICE_LUN) {
+        vmxDeviceType = "cdrom-raw";
+    } else {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                       _("%s harddisk '%s' has unsupported type '%s', expecting '%s'"),
-                       busName, def->dst, virDomainDiskTypeToString(def->type),
-                       virDomainDiskTypeToString(VIR_DOMAIN_DISK_TYPE_FILE));
+                       _("%s %s '%s' has an unsupported type '%s'"),
+                       busType, deviceType, def->dst, diskType);
         return -1;
     }
 
     virBufferAsprintf(buffer, "%s%d:%d.present = \"true\"\n",
-                      entryPrefix, controllerOrBus, unit);
-    virBufferAsprintf(buffer, "%s%d:%d.deviceType = \"%s-hardDisk\"\n",
-                      entryPrefix, controllerOrBus, unit, deviceTypePrefix);
+                      busType, controllerOrBus, unit);
+    virBufferAsprintf(buffer, "%s%d:%d.deviceType = \"%s\"\n",
+                      busType, controllerOrBus, unit, vmxDeviceType);
 
-    if (def->src != NULL) {
-        if (! virFileHasSuffix(def->src, ".vmdk")) {
+    if (def->type == VIR_DOMAIN_DISK_TYPE_FILE) {
+        if (def->src != NULL && ! virFileHasSuffix(def->src, fileExt)) {
             virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("Image file for %s harddisk '%s' has unsupported suffix, "
-                             "expecting '.vmdk'"), busName, def->dst);
-            return -1;
+                           _("Image file for %s %s '%s' has "
+                             "unsupported suffix, expecting '%s'"),
+                           busType, deviceType, def->dst, fileExt);
+                return -1;
         }
 
         fileName = ctx->formatFileName(def->src, ctx->opaque);
@@ -3439,19 +3482,30 @@ virVMXFormatHardDisk(virVMXContext *ctx, virDomainDiskDefPtr def,
         }
 
         virBufferAsprintf(buffer, "%s%d:%d.fileName = \"%s\"\n",
-                          entryPrefix, controllerOrBus, unit, fileName);
+                          busType, controllerOrBus, unit, fileName);
 
         VIR_FREE(fileName);
+    } else if (def->type == VIR_DOMAIN_DISK_TYPE_BLOCK) {
+        if (!def->src &&
+            def->startupPolicy == VIR_DOMAIN_STARTUP_POLICY_OPTIONAL) {
+            virBufferAsprintf(buffer, "%s%d:%d.autodetect = \"true\"\n",
+                              busType, controllerOrBus, unit);
+            virBufferAsprintf(buffer, "%s%d:%d.fileName = \"auto detect\"\n",
+                              busType, controllerOrBus, unit);
+        } else {
+            virBufferAsprintf(buffer, "%s%d:%d.fileName = \"%s\"\n",
+                              busType, controllerOrBus, unit, def->src);
+        }
     }
 
     if (def->bus == VIR_DOMAIN_DISK_BUS_SCSI) {
         if (def->cachemode == VIR_DOMAIN_DISK_CACHE_WRITETHRU) {
             virBufferAsprintf(buffer, "%s%d:%d.writeThrough = \"true\"\n",
-                              entryPrefix, controllerOrBus, unit);
+                              busType, controllerOrBus, unit);
         } else if (def->cachemode != VIR_DOMAIN_DISK_CACHE_DEFAULT) {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                            _("%s harddisk '%s' has unsupported cache mode '%s'"),
-                           busName, def->dst,
+                           busType, def->dst,
                            virDomainDiskCacheTypeToString(def->cachemode));
             return -1;
         }
@@ -3459,94 +3513,6 @@ virVMXFormatHardDisk(virVMXContext *ctx, virDomainDiskDefPtr def,
 
     return 0;
 }
-
-
-
-int
-virVMXFormatCDROM(virVMXContext *ctx, virDomainDiskDefPtr def,
-                  virBufferPtr buffer)
-{
-    int controllerOrBus, unit;
-    const char *busName = NULL;
-    const char *entryPrefix = NULL;
-    char *fileName = NULL;
-
-    if (def->device != VIR_DOMAIN_DISK_DEVICE_CDROM) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("Invalid argument"));
-        return -1;
-    }
-
-    if (def->bus == VIR_DOMAIN_DISK_BUS_SCSI) {
-        busName = "SCSI";
-        entryPrefix = "scsi";
-
-        if (virVMXSCSIDiskNameToControllerAndUnit(def->dst, &controllerOrBus,
-                                                  &unit) < 0) {
-            return -1;
-        }
-    } else if (def->bus == VIR_DOMAIN_DISK_BUS_IDE) {
-        busName = "IDE";
-        entryPrefix = "ide";
-
-        if (virVMXIDEDiskNameToBusAndUnit(def->dst, &controllerOrBus,
-                                          &unit) < 0) {
-            return -1;
-        }
-    } else {
-        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                       _("Unsupported bus type '%s' for cdrom"),
-                       virDomainDiskBusTypeToString(def->bus));
-        return -1;
-    }
-
-    virBufferAsprintf(buffer, "%s%d:%d.present = \"true\"\n",
-                      entryPrefix, controllerOrBus, unit);
-
-    if (def->type == VIR_DOMAIN_DISK_TYPE_FILE) {
-        virBufferAsprintf(buffer, "%s%d:%d.deviceType = \"cdrom-image\"\n",
-                          entryPrefix, controllerOrBus, unit);
-
-        if (def->src != NULL) {
-            if (! virFileHasSuffix(def->src, ".iso")) {
-                virReportError(VIR_ERR_INTERNAL_ERROR,
-                               _("Image file for %s cdrom '%s' has unsupported "
-                                 "suffix, expecting '.iso'"), busName, def->dst);
-                return -1;
-            }
-
-            fileName = ctx->formatFileName(def->src, ctx->opaque);
-
-            if (fileName == NULL) {
-                return -1;
-            }
-
-            virBufferAsprintf(buffer, "%s%d:%d.fileName = \"%s\"\n",
-                              entryPrefix, controllerOrBus, unit, fileName);
-
-            VIR_FREE(fileName);
-        }
-    } else if (def->type == VIR_DOMAIN_DISK_TYPE_BLOCK) {
-        virBufferAsprintf(buffer, "%s%d:%d.deviceType = \"atapi-cdrom\"\n",
-                          entryPrefix, controllerOrBus, unit);
-
-        if (def->src != NULL) {
-            virBufferAsprintf(buffer, "%s%d:%d.fileName = \"%s\"\n",
-                              entryPrefix, controllerOrBus, unit, def->src);
-        }
-    } else {
-        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                       _("%s cdrom '%s' has unsupported type '%s', expecting '%s' "
-                         "or '%s'"), busName, def->dst,
-                       virDomainDiskTypeToString(def->type),
-                       virDomainDiskTypeToString(VIR_DOMAIN_DISK_TYPE_FILE),
-                       virDomainDiskTypeToString(VIR_DOMAIN_DISK_TYPE_BLOCK));
-        return -1;
-    }
-
-    return 0;
-}
-
-
 
 int
 virVMXFormatFloppy(virVMXContext *ctx, virDomainDiskDefPtr def,

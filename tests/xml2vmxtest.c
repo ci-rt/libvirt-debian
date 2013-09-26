@@ -253,8 +253,12 @@ mymain(void)
 
     DO_TEST("cdrom-scsi-file", "cdrom-scsi-file", 4);
     DO_TEST("cdrom-scsi-device", "cdrom-scsi-device", 4);
+    DO_TEST("cdrom-scsi-raw-device", "cdrom-scsi-raw-device", 4);
+    DO_TEST("cdrom-scsi-raw-auto-detect", "cdrom-scsi-raw-auto-detect", 4);
     DO_TEST("cdrom-ide-file", "cdrom-ide-file", 4);
     DO_TEST("cdrom-ide-device", "cdrom-ide-device", 4);
+    DO_TEST("cdrom-ide-raw-device", "cdrom-ide-raw-device", 4);
+    DO_TEST("cdrom-ide-raw-auto-detect", "cdrom-ide-raw-auto-detect", 4);
 
     DO_TEST("floppy-file", "floppy-file", 4);
     DO_TEST("floppy-device", "floppy-device", 4);
@@ -296,6 +300,8 @@ mymain(void)
 
     DO_TEST("ws-in-the-wild-1", "ws-in-the-wild-1", 8);
     DO_TEST("ws-in-the-wild-2", "ws-in-the-wild-2", 8);
+
+    DO_TEST("fusion-in-the-wild-1", "fusion-in-the-wild-1", 9);
 
     DO_TEST("annotation", "annotation", 4);
 

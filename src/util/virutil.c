@@ -692,10 +692,15 @@ virGetUserEnt(uid_t uid, char **name, gid_t *group, char **dir)
         if (VIR_RESIZE_N(strbuf, strbuflen, strbuflen, strbuflen) < 0)
             goto cleanup;
     }
-    if (rc != 0 || pw == NULL) {
+    if (rc != 0) {
         virReportSystemError(rc,
                              _("Failed to find user record for uid '%u'"),
                              (unsigned int) uid);
+        goto cleanup;
+    } else if (pw == NULL) {
+        virReportError(VIR_ERR_SYSTEM_ERROR,
+                       _("Failed to find user record for uid '%u'"),
+                       (unsigned int) uid);
         goto cleanup;
     }
 
@@ -746,9 +751,16 @@ static char *virGetGroupEnt(gid_t gid)
         }
     }
     if (rc != 0 || gr == NULL) {
-        virReportSystemError(rc,
-                             _("Failed to find group record for gid '%u'"),
-                             (unsigned int) gid);
+        if (rc != 0) {
+            virReportSystemError(rc,
+                                 _("Failed to find group record for gid '%u'"),
+                                 (unsigned int) gid);
+        } else {
+            virReportError(VIR_ERR_SYSTEM_ERROR,
+                           _("Failed to find group record for gid '%u'"),
+                           (unsigned int) gid);
+        }
+
         VIR_FREE(strbuf);
         return NULL;
     }
@@ -1699,7 +1711,7 @@ virIsCapableFCHost(const char *sysfs_prefix,
                     host) < 0)
         return false;
 
-    if (access(sysfs_path, F_OK) == 0)
+    if (virFileExists(sysfs_path))
         ret = true;
 
     VIR_FREE(sysfs_path);
@@ -1728,8 +1740,8 @@ virIsCapableVport(const char *sysfs_prefix,
                     "vport_create") < 0)
         goto cleanup;
 
-    if ((access(fc_host_path, F_OK) == 0) ||
-        (access(scsi_host_path, F_OK) == 0))
+    if (virFileExists(fc_host_path) ||
+        virFileExists(scsi_host_path))
         ret = true;
 
 cleanup:

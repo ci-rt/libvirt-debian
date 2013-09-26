@@ -35,6 +35,7 @@
 #include "virthread.h"
 #include "virutil.h"
 #include "virstring.h"
+#include "virprocess.h"
 
 #define VIR_FROM_THIS VIR_FROM_IDENTITY
 
@@ -133,21 +134,37 @@ int virIdentitySetCurrent(virIdentityPtr ident)
 virIdentityPtr virIdentityGetSystem(void)
 {
     char *username = NULL;
+    char *userid = NULL;
     char *groupname = NULL;
+    char *groupid = NULL;
     char *seccontext = NULL;
     virIdentityPtr ret = NULL;
 #if WITH_SELINUX
     security_context_t con;
 #endif
     char *processid = NULL;
+    unsigned long long timestamp;
+    char *processtime = NULL;
 
     if (virAsprintf(&processid, "%llu",
                     (unsigned long long)getpid()) < 0)
         goto cleanup;
 
+    if (virProcessGetStartTime(getpid(), &timestamp) < 0)
+        goto cleanup;
+
+    if (timestamp != 0 &&
+        virAsprintf(&processtime, "%llu", timestamp) < 0)
+        goto cleanup;
+
     if (!(username = virGetUserName(getuid())))
         goto cleanup;
+    if (virAsprintf(&userid, "%d", (int)getuid()) < 0)
+        goto cleanup;
+
     if (!(groupname = virGetGroupName(getgid())))
+        goto cleanup;
+    if (virAsprintf(&groupid, "%d", (int)getgid()) < 0)
         goto cleanup;
 
 #if WITH_SELINUX
@@ -166,15 +183,21 @@ virIdentityPtr virIdentityGetSystem(void)
     if (!(ret = virIdentityNew()))
         goto cleanup;
 
-    if (username &&
-        virIdentitySetAttr(ret,
+    if (virIdentitySetAttr(ret,
                            VIR_IDENTITY_ATTR_UNIX_USER_NAME,
                            username) < 0)
         goto error;
-    if (groupname &&
-        virIdentitySetAttr(ret,
+    if (virIdentitySetAttr(ret,
+                           VIR_IDENTITY_ATTR_UNIX_USER_ID,
+                           userid) < 0)
+        goto error;
+    if (virIdentitySetAttr(ret,
                            VIR_IDENTITY_ATTR_UNIX_GROUP_NAME,
                            groupname) < 0)
+        goto error;
+    if (virIdentitySetAttr(ret,
+                           VIR_IDENTITY_ATTR_UNIX_GROUP_ID,
+                           groupid) < 0)
         goto error;
     if (seccontext &&
         virIdentitySetAttr(ret,
@@ -185,12 +208,20 @@ virIdentityPtr virIdentityGetSystem(void)
                            VIR_IDENTITY_ATTR_UNIX_PROCESS_ID,
                            processid) < 0)
         goto error;
+    if (processtime &&
+        virIdentitySetAttr(ret,
+                           VIR_IDENTITY_ATTR_UNIX_PROCESS_TIME,
+                           processtime) < 0)
+        goto error;
 
 cleanup:
     VIR_FREE(username);
+    VIR_FREE(userid);
     VIR_FREE(groupname);
+    VIR_FREE(groupid);
     VIR_FREE(seccontext);
     VIR_FREE(processid);
+    VIR_FREE(processtime);
     return ret;
 
 error:

@@ -445,7 +445,13 @@ mymain(void)
     DO_TEST("disk-cdrom", NONE);
     DO_TEST("disk-cdrom-network-http", QEMU_CAPS_KVM, QEMU_CAPS_DEVICE,
             QEMU_CAPS_DRIVE);
+    DO_TEST("disk-cdrom-network-https", QEMU_CAPS_KVM, QEMU_CAPS_DEVICE,
+            QEMU_CAPS_DRIVE);
     DO_TEST("disk-cdrom-network-ftp", QEMU_CAPS_KVM, QEMU_CAPS_DEVICE,
+            QEMU_CAPS_DRIVE);
+    DO_TEST("disk-cdrom-network-ftps", QEMU_CAPS_KVM, QEMU_CAPS_DEVICE,
+            QEMU_CAPS_DRIVE);
+    DO_TEST("disk-cdrom-network-tftp", QEMU_CAPS_KVM, QEMU_CAPS_DEVICE,
             QEMU_CAPS_DRIVE);
     DO_TEST("disk-cdrom-empty", QEMU_CAPS_DRIVE);
     DO_TEST("disk-cdrom-tray",
@@ -544,7 +550,11 @@ mymain(void)
             QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE, QEMU_CAPS_BOOTINDEX);
     DO_TEST("disk-usb",  NONE);
     DO_TEST("disk-usb-device",
-            QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG);
+            QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE, QEMU_CAPS_DEVICE_USB_STORAGE,
+            QEMU_CAPS_NODEFCONFIG);
+    DO_TEST("disk-usb-device-removable",
+            QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE, QEMU_CAPS_DEVICE_USB_STORAGE,
+            QEMU_CAPS_USB_STORAGE_REMOVABLE, QEMU_CAPS_NODEFCONFIG);
     DO_TEST("disk-scsi-device",
             QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG,
             QEMU_CAPS_SCSI_LSI);
@@ -845,7 +855,8 @@ mymain(void)
     DO_TEST("sound", NONE);
     DO_TEST("sound-device",
             QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG,
-            QEMU_CAPS_HDA_DUPLEX, QEMU_CAPS_HDA_MICRO);
+            QEMU_CAPS_HDA_DUPLEX, QEMU_CAPS_HDA_MICRO,
+            QEMU_CAPS_DEVICE_ICH9_INTEL_HDA);
     DO_TEST("fs9p",
             QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG, QEMU_CAPS_FSDEV,
             QEMU_CAPS_FSDEV_WRITEOUT);
@@ -906,6 +917,7 @@ mymain(void)
     DO_TEST("blkiotune-device", QEMU_CAPS_NAME);
     DO_TEST("cputune", QEMU_CAPS_NAME);
     DO_TEST("numatune-memory", NONE);
+    DO_TEST("numatune-auto-nodeset-invalid", NONE);
     DO_TEST("numad", NONE);
     DO_TEST("numad-auto-vcpu-static-numatune", NONE);
     DO_TEST("numad-auto-memory-vcpu-cpuset", NONE);
@@ -950,6 +962,7 @@ mymain(void)
     DO_TEST_ERROR("pseries-vio-address-clash", QEMU_CAPS_DRIVE,
             QEMU_CAPS_CHARDEV, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG);
     DO_TEST("pseries-nvram", QEMU_CAPS_DEVICE_NVRAM);
+    DO_TEST_FAILURE("pseries-cpu-exact", QEMU_CAPS_CHARDEV, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG);
     DO_TEST("disk-ide-drive-split",
             QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG,
             QEMU_CAPS_IDE_CD);
@@ -1056,6 +1069,16 @@ mymain(void)
             QEMU_CAPS_VGA, QEMU_CAPS_DEVICE_VIDEO_PRIMARY,
             QEMU_CAPS_VGA_QXL, QEMU_CAPS_DEVICE_QXL,
             QEMU_CAPS_Q35_PCI_HOLE64_SIZE);
+
+    DO_TEST("arm-vexpressa9-nodevs",
+            QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG, QEMU_CAPS_DTB);
+    DO_TEST("arm-vexpressa9-basic",
+            QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG, QEMU_CAPS_DTB,
+            QEMU_CAPS_DRIVE);
+    DO_TEST("arm-vexpressa9-virtio",
+            QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG, QEMU_CAPS_DTB,
+            QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE_VIRTIO_MMIO,
+            QEMU_CAPS_DEVICE_VIRTIO_RNG, QEMU_CAPS_OBJECT_RNG_RANDOM);
 
     virObjectUnref(driver.config);
     virObjectUnref(driver.caps);

@@ -304,6 +304,7 @@
           <ref name="hvmppc"/>
           <ref name="hvmppc64"/>
           <ref name="hvms390"/>
+          <ref name="hvmarm"/>
         </choice>
       </optional>
       <value>hvm</value>
@@ -409,6 +410,24 @@
             <value>s390-ccw</value>
             <value>s390-ccw-virtio</value>
           </choice>
+        </attribute>
+      </optional>
+    </group>
+  </define>
+  <define name="hvmarm">
+    <group>
+      <optional>
+        <attribute name="arch">
+          <choice>
+            <value>armv7l</value>
+          </choice>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name="machine">
+          <data type="string">
+            <param name="pattern">[a-zA-Z0-9_\.\-]+</param>
+          </data>
         </attribute>
       </optional>
     </group>
@@ -1121,9 +1140,11 @@
           <interleave>
             <optional>
               <element name="source">
-                <attribute name="dev">
-                  <ref name="absFilePath"/>
-                </attribute>
+                <optional>
+                  <attribute name="dev">
+                    <ref name="absFilePath"/>
+                  </attribute>
+                </optional>
                 <optional>
                   <ref name="startupPolicy"/>
                 </optional>
@@ -1212,7 +1233,10 @@
         <value>gluster</value>
         <value>iscsi</value>
         <value>http</value>
+        <value>https</value>
         <value>ftp</value>
+        <value>ftps</value>
+        <value>tftp</value>
       </choice>
     </attribute>
     <optional>
@@ -1276,6 +1300,7 @@
             <value>usb</value>
             <value>uml</value>
             <value>sata</value>
+            <value>sd</value>
           </choice>
         </attribute>
       </optional>
@@ -1284,6 +1309,14 @@
           <choice>
             <value>open</value>
             <value>closed</value>
+          </choice>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name="removable">
+          <choice>
+            <value>on</value>
+            <value>off</value>
           </choice>
         </attribute>
       </optional>
@@ -2914,6 +2947,7 @@
           <value>pcspk</value>
           <value>ac97</value>
           <value>ich6</value>
+          <value>ich9</value>
         </choice>
       </attribute>
       <interleave>

@@ -1454,7 +1454,7 @@ VIR_EXPORT_VAR virConnectAuthPtr virConnectAuthPtrDefault;
  * version * 1,000,000 + minor * 1000 + micro
  */
 
-#define LIBVIR_VERSION_NUMBER 1001002
+#define LIBVIR_VERSION_NUMBER 1001003
 
 int                     virGetVersion           (unsigned long *libVer,
                                                  const char *type,
@@ -3643,8 +3643,8 @@ typedef void (*virEventHandleCallback)(int watch, int fd, int events, void *opaq
  * If 'ff' callbacks are invoked directly from the virEventRemoveHandleFunc
  * they will likely deadlock in libvirt.
  *
- * Returns a handle watch number to be used for updating
- * and unregistering for events
+ * Returns -1 if the file handle cannot be registered, otherwise a handle
+ * watch number to be used for updating and unregistering for events
  */
 typedef int (*virEventAddHandleFunc)(int fd, int event,
                                      virEventHandleCallback cb,
@@ -4006,6 +4006,10 @@ int virConnectCompareCPU(virConnectPtr conn,
                          const char *xmlDesc,
                          unsigned int flags);
 
+int virConnectGetCPUModelNames(virConnectPtr conn,
+                               const char *arch,
+                               char ***models,
+                               unsigned int flags);
 
 /**
  * virConnectBaselineCPUFlags

@@ -478,12 +478,19 @@ int virtTestDifferenceBin(FILE *stream,
     return 0;
 }
 
-#if TEST_OOM
 static void
 virtTestErrorFuncQuiet(void *data ATTRIBUTE_UNUSED,
                        virErrorPtr err ATTRIBUTE_UNUSED)
 { }
-#endif
+
+
+/* register an error handler in tests when using connections */
+void
+virtTestQuiesceLibvirtErrors(bool always)
+{
+    if (always || !virTestGetVerbose())
+        virSetErrorFunc(NULL, virtTestErrorFuncQuiet);
+}
 
 struct virtTestLogData {
     virBuffer buf;
@@ -698,7 +705,7 @@ int virtTestMain(int argc,
     if (testOOM) {
         /* Makes next test runs quiet... */
         testOOM++;
-        virSetErrorFunc(NULL, virtTestErrorFuncQuiet);
+        virtTestQuiesceLibvirtErrors(true);
 
         virAllocTestInit();
 
@@ -710,9 +717,9 @@ int virtTestMain(int argc,
         approxAlloc = virAllocTestCount();
         testCounter++;
         if (virTestGetDebug())
-            fprintf(stderr, "%d) OOM...\n", testCounter);
+            fprintf(stderr, "%zu) OOM...\n", testCounter);
         else
-            fprintf(stderr, "%d) OOM of %d allocs ", testCounter, approxAlloc);
+            fprintf(stderr, "%zu) OOM of %d allocs ", testCounter, approxAlloc);
 
         if (mp) {
             size_t i;

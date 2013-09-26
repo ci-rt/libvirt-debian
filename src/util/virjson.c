@@ -862,7 +862,6 @@ static int virJSONParserHandleStartMap(void *ctx)
 
     if (VIR_REALLOC_N(parser->state,
                       parser->nstate + 1) < 0) {
-        virJSONValueFree(value);
         return 0;
     }
 
@@ -1015,6 +1014,7 @@ cleanup:
         for (i = 0; i < parser.nstate; i++) {
             VIR_FREE(parser.state[i].key);
         }
+        VIR_FREE(parser.state);
     }
 
     VIR_DEBUG("result=%p", parser.head);

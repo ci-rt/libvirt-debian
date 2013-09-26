@@ -78,6 +78,7 @@ typedef remote_nonnull_string *remote_string;
 #define REMOTE_NODE_MEMORY_PARAMETERS_MAX 64
 #define REMOTE_DOMAIN_MIGRATE_PARAM_LIST_MAX 64
 #define REMOTE_DOMAIN_JOB_STATS_MAX 16
+#define REMOTE_CONNECT_CPU_MODELS_MAX 8192
 
 typedef char remote_uuid[VIR_UUID_BUFLEN];
 
@@ -3391,6 +3392,22 @@ struct remote_domain_event_device_removed_msg {
         remote_nonnull_string devAlias;
 };
 typedef struct remote_domain_event_device_removed_msg remote_domain_event_device_removed_msg;
+
+struct remote_connect_get_cpu_model_names_args {
+        remote_nonnull_string arch;
+        int need_results;
+        u_int flags;
+};
+typedef struct remote_connect_get_cpu_model_names_args remote_connect_get_cpu_model_names_args;
+
+struct remote_connect_get_cpu_model_names_ret {
+        struct {
+                u_int models_len;
+                remote_nonnull_string *models_val;
+        } models;
+        int ret;
+};
+typedef struct remote_connect_get_cpu_model_names_ret remote_connect_get_cpu_model_names_ret;
 #define REMOTE_PROGRAM 0x20008086
 #define REMOTE_PROTOCOL_VERSION 1
 
@@ -3706,6 +3723,7 @@ enum remote_procedure {
         REMOTE_PROC_DOMAIN_CREATE_XML_WITH_FILES = 309,
         REMOTE_PROC_DOMAIN_CREATE_WITH_FILES = 310,
         REMOTE_PROC_DOMAIN_EVENT_DEVICE_REMOVED = 311,
+        REMOTE_PROC_CONNECT_GET_CPU_MODEL_NAMES = 312,
 };
 typedef enum remote_procedure remote_procedure;
 
@@ -4216,6 +4234,8 @@ extern  bool_t xdr_remote_domain_migrate_finish3_params_args (XDR *, remote_doma
 extern  bool_t xdr_remote_domain_migrate_finish3_params_ret (XDR *, remote_domain_migrate_finish3_params_ret*);
 extern  bool_t xdr_remote_domain_migrate_confirm3_params_args (XDR *, remote_domain_migrate_confirm3_params_args*);
 extern  bool_t xdr_remote_domain_event_device_removed_msg (XDR *, remote_domain_event_device_removed_msg*);
+extern  bool_t xdr_remote_connect_get_cpu_model_names_args (XDR *, remote_connect_get_cpu_model_names_args*);
+extern  bool_t xdr_remote_connect_get_cpu_model_names_ret (XDR *, remote_connect_get_cpu_model_names_ret*);
 extern  bool_t xdr_remote_procedure (XDR *, remote_procedure*);
 
 #else /* K&R C */
@@ -4723,6 +4743,8 @@ extern bool_t xdr_remote_domain_migrate_finish3_params_args ();
 extern bool_t xdr_remote_domain_migrate_finish3_params_ret ();
 extern bool_t xdr_remote_domain_migrate_confirm3_params_args ();
 extern bool_t xdr_remote_domain_event_device_removed_msg ();
+extern bool_t xdr_remote_connect_get_cpu_model_names_args ();
+extern bool_t xdr_remote_connect_get_cpu_model_names_ret ();
 extern bool_t xdr_remote_procedure ();
 
 #endif /* K&R C */

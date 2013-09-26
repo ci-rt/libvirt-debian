@@ -32,6 +32,7 @@
 # include <unistd.h>
 # include <sys/stat.h>
 # include <inttypes.h>
+# include <termios.h>
 
 # include "internal.h"
 # include "virerror.h"
@@ -147,6 +148,8 @@ typedef struct _vshCmdOptDef vshCmdOptDef;
 typedef struct _vshControl vshControl;
 typedef struct _vshCtrlData vshCtrlData;
 
+typedef char **(*vshCompleter)(unsigned int flags);
+
 /*
  * vshCmdInfo -- name/value pair for information about command
  *
@@ -168,6 +171,8 @@ struct _vshCmdOptDef {
     unsigned int flags;         /* flags */
     const char *help;           /* non-NULL help string; or for VSH_OT_ALIAS
                                  * the name of a later public option */
+    vshCompleter completer;         /* option completer */
+    unsigned int completer_flags;   /* option completer flags */
 };
 
 /*
@@ -240,6 +245,11 @@ struct _vshControl {
 
     const char *escapeChar;     /* String representation of
                                    console escape character */
+
+# ifndef WIN32
+    struct termios termattr;    /* settings of the tty terminal */
+# endif
+    bool istty;                 /* is the terminal a tty */
 };
 
 struct _vshCmdGrp {
@@ -349,6 +359,12 @@ extern virErrorPtr last_error;
 void vshReportError(vshControl *ctl);
 void vshResetLibvirtError(void);
 void vshSaveLibvirtError(void);
+
+/* terminal modifications */
+bool vshTTYIsInterruptCharacter(vshControl *ctl, const char chr);
+int vshTTYDisableInterrupt(vshControl *ctl);
+int vshTTYRestore(vshControl *ctl);
+int vshTTYMakeRaw(vshControl *ctl, bool report_errors);
 
 /* allocation wrappers */
 void *_vshMalloc(vshControl *ctl, size_t sz, const char *filename, int line);

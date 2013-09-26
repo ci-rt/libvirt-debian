@@ -1782,6 +1782,7 @@ program_transform_name = @program_transform_name@
 psdir = @psdir@
 pyexecdir = @pyexecdir@
 pythondir = @pythondir@
+runstatedir = @runstatedir@
 sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 srcdir = @srcdir@
@@ -1793,6 +1794,7 @@ top_srcdir = @top_srcdir@
 EXTRA_DIST = \
 	README						\
 	consolecallback.py				\
+	topology.py					\
 	dominfo.py domrestore.py domsave.py domstart.py esxlist.py
 
 all: all-am

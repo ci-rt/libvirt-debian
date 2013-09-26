@@ -1056,26 +1056,26 @@ daemonUsage(const char *argv0, bool privileged)
                   "  Default paths:\n"
                   "\n"
                   "    Configuration file (unless overridden by -f):\n"
-                  "      %s/libvirt/libvirtd.conf\n"
+                  "      %s\n"
                   "\n"
                   "    Sockets:\n"
-                  "      %s/run/libvirt/libvirt-sock\n"
-                  "      %s/run/libvirt/libvirt-sock-ro\n"
+                  "      %s\n"
+                  "      %s\n"
                   "\n"
                   "    TLS:\n"
-                  "      CA certificate:     %s/pki/CA/caert.pem\n"
-                  "      Server certificate: %s/pki/libvirt/servercert.pem\n"
-                  "      Server private key: %s/pki/libvirt/private/serverkey.pem\n"
+                  "      CA certificate:     %s\n"
+                  "      Server certificate: %s\n"
+                  "      Server private key: %s\n"
                   "\n"
                   "    PID file (unless overridden by -p):\n"
                   "      %s/run/libvirtd.pid\n"
                   "\n"),
-                SYSCONFDIR,
-                LOCALSTATEDIR,
-                LOCALSTATEDIR,
-                SYSCONFDIR,
-                SYSCONFDIR,
-                SYSCONFDIR,
+                LIBVIRTD_CONFIGURATION_FILE,
+                LIBVIRTD_PRIV_UNIX_SOCKET,
+                LIBVIRTD_PRIV_UNIX_SOCKET_RO,
+                LIBVIRT_CACERT,
+                LIBVIRT_SERVERCERT,
+                LIBVIRT_SERVERKEY,
                 LOCALSTATEDIR);
     } else {
         fprintf(stderr, "%s",

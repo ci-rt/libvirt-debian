@@ -15,6 +15,7 @@
 @SET_MAKE@
 
 
+
 VPATH = @srcdir@
 am__is_gnu_make = test -n '$(MAKEFILE_LIST)' && test -n '$(MAKELEVEL)'
 am__make_running_with_option = \
@@ -365,44 +366,54 @@ mkinstalldirs = $(SHELL) $(top_srcdir)/build-aux/mkinstalldirs
 CONFIG_HEADER = $(top_builddir)/config.h
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
+LTLIBRARIES = $(noinst_LTLIBRARIES)
+am__DEPENDENCIES_1 =
+@WITH_LIBVIRTD_TRUE@libvirtd_conf_la_DEPENDENCIES =  \
+@WITH_LIBVIRTD_TRUE@	$(am__DEPENDENCIES_1)
+am__libvirtd_conf_la_SOURCES_DIST = libvirtd-config.c \
+	libvirtd-config.h
+am__objects_1 = libvirtd_conf_la-libvirtd-config.lo
+@WITH_LIBVIRTD_TRUE@am_libvirtd_conf_la_OBJECTS = $(am__objects_1)
+libvirtd_conf_la_OBJECTS = $(am_libvirtd_conf_la_OBJECTS)
+AM_V_lt = $(am__v_lt_@AM_V@)
+am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
+am__v_lt_0 = --silent
+am__v_lt_1 = 
+libvirtd_conf_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
+	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
+	$(libvirtd_conf_la_CFLAGS) $(CFLAGS) \
+	$(libvirtd_conf_la_LDFLAGS) $(LDFLAGS) -o $@
+@WITH_LIBVIRTD_TRUE@am_libvirtd_conf_la_rpath =
 am__installdirs = "$(DESTDIR)$(sbindir)" "$(DESTDIR)$(man8dir)" \
 	"$(DESTDIR)$(augeasdir)" "$(DESTDIR)$(augeastestsdir)" \
 	"$(DESTDIR)$(confdir)"
 PROGRAMS = $(sbin_PROGRAMS)
-am__libvirtd_SOURCES_DIST = libvirtd.c libvirtd.h libvirtd-config.c \
-	libvirtd-config.h remote.c remote.h stream.c stream.h \
-	../src/remote/remote_protocol.c ../src/remote/lxc_protocol.c \
-	../src/remote/qemu_protocol.c $(srcdir)/remote_dispatch.h \
-	$(srcdir)/lxc_dispatch.h $(srcdir)/qemu_dispatch.h
-am__objects_1 =
-am__objects_2 = libvirtd-libvirtd.$(OBJEXT) \
-	libvirtd-libvirtd-config.$(OBJEXT) libvirtd-remote.$(OBJEXT) \
-	libvirtd-stream.$(OBJEXT) libvirtd-remote_protocol.$(OBJEXT) \
-	libvirtd-lxc_protocol.$(OBJEXT) \
-	libvirtd-qemu_protocol.$(OBJEXT) $(am__objects_1)
-@WITH_LIBVIRTD_TRUE@am_libvirtd_OBJECTS = $(am__objects_2)
+am__libvirtd_SOURCES_DIST = libvirtd.c libvirtd.h remote.c remote.h \
+	stream.c stream.h remote_dispatch.h lxc_dispatch.h \
+	qemu_dispatch.h
+am__objects_2 =
+am__objects_3 = libvirtd-libvirtd.$(OBJEXT) libvirtd-remote.$(OBJEXT) \
+	libvirtd-stream.$(OBJEXT) $(am__objects_2)
+@WITH_LIBVIRTD_TRUE@am_libvirtd_OBJECTS = $(am__objects_3)
 libvirtd_OBJECTS = $(am_libvirtd_OBJECTS)
-am__DEPENDENCIES_1 =
 @WITH_LIBVIRTD_TRUE@libvirtd_DEPENDENCIES = $(am__DEPENDENCIES_1) \
 @WITH_LIBVIRTD_TRUE@	$(am__DEPENDENCIES_1) \
 @WITH_LIBVIRTD_TRUE@	$(am__DEPENDENCIES_1) \
 @WITH_LIBVIRTD_TRUE@	$(am__DEPENDENCIES_1) \
 @WITH_LIBVIRTD_TRUE@	$(am__DEPENDENCIES_1) \
 @WITH_LIBVIRTD_TRUE@	$(am__DEPENDENCIES_1) $(am__append_2) \
-@WITH_LIBVIRTD_TRUE@	../src/libvirt-lxc.la \
-@WITH_LIBVIRTD_TRUE@	../src/libvirt-qemu.la $(am__append_3) \
-@WITH_LIBVIRTD_TRUE@	$(am__append_4) $(am__append_5) \
-@WITH_LIBVIRTD_TRUE@	$(am__append_6) $(am__append_7) \
-@WITH_LIBVIRTD_TRUE@	$(am__append_8) $(am__append_9) \
-@WITH_LIBVIRTD_TRUE@	$(am__append_10) $(am__append_11) \
-@WITH_LIBVIRTD_TRUE@	$(am__append_12) $(am__append_13) \
-@WITH_LIBVIRTD_TRUE@	$(am__append_14) $(am__append_15) \
-@WITH_LIBVIRTD_TRUE@	../src/libvirt.la ../gnulib/lib/libgnu.la \
+@WITH_LIBVIRTD_TRUE@	libvirtd_conf.la ../src/libvirt-lxc.la \
+@WITH_LIBVIRTD_TRUE@	../src/libvirt-qemu.la \
+@WITH_LIBVIRTD_TRUE@	../src/libvirt_driver_remote.la \
+@WITH_LIBVIRTD_TRUE@	$(am__append_3) $(am__append_4) \
+@WITH_LIBVIRTD_TRUE@	$(am__append_5) $(am__append_6) \
+@WITH_LIBVIRTD_TRUE@	$(am__append_7) $(am__append_8) \
+@WITH_LIBVIRTD_TRUE@	$(am__append_9) $(am__append_10) \
+@WITH_LIBVIRTD_TRUE@	$(am__append_11) $(am__append_12) \
+@WITH_LIBVIRTD_TRUE@	$(am__append_13) $(am__append_14) \
+@WITH_LIBVIRTD_TRUE@	$(am__append_15) ../src/libvirt.la \
+@WITH_LIBVIRTD_TRUE@	../gnulib/lib/libgnu.la \
 @WITH_LIBVIRTD_TRUE@	$(am__DEPENDENCIES_1)
-AM_V_lt = $(am__v_lt_@AM_V@)
-am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
-am__v_lt_0 = --silent
-am__v_lt_1 = 
 libvirtd_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(libvirtd_CFLAGS) \
 	$(CFLAGS) $(libvirtd_LDFLAGS) $(LDFLAGS) -o $@
@@ -440,8 +451,9 @@ AM_V_CCLD = $(am__v_CCLD_@AM_V@)
 am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
-SOURCES = $(libvirtd_SOURCES)
-DIST_SOURCES = $(am__libvirtd_SOURCES_DIST)
+SOURCES = $(libvirtd_conf_la_SOURCES) $(libvirtd_SOURCES)
+DIST_SOURCES = $(am__libvirtd_conf_la_SOURCES_DIST) \
+	$(am__libvirtd_SOURCES_DIST)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -1916,6 +1928,7 @@ program_transform_name = @program_transform_name@
 psdir = @psdir@
 pyexecdir = @pyexecdir@
 pythondir = @pythondir@
+runstatedir = @runstatedir@
 sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 srcdir = @srcdir@
@@ -1938,21 +1951,18 @@ INCLUDES = \
 CLEANFILES = $(am__append_1) $(BUILT_SOURCES) $(man8_MANS) *.cov \
 	*.gcov .libs/*.gcda .libs/*.gcno *.gcno *.gcda
 DAEMON_GENERATED = \
-		$(srcdir)/remote_dispatch.h		\
-		$(srcdir)/lxc_dispatch.h		\
-		$(srcdir)/qemu_dispatch.h		\
+		remote_dispatch.h	\
+		lxc_dispatch.h		\
+		qemu_dispatch.h		\
 		$(NULL)
 
 DAEMON_SOURCES = \
 		libvirtd.c libvirtd.h			\
-		libvirtd-config.c libvirtd-config.h	\
 		remote.c remote.h			\
 		stream.c stream.h			\
-		../src/remote/remote_protocol.c		\
-		../src/remote/lxc_protocol.c		\
-		../src/remote/qemu_protocol.c		\
 		$(DAEMON_GENERATED)
 
+LIBVIRTD_CONF_SOURCES = libvirtd-config.c libvirtd-config.h
 DISTCLEANFILES = 
 EXTRA_DIST = \
 	remote_dispatch.h				\
@@ -1975,12 +1985,32 @@ EXTRA_DIST = \
 	THREADS.txt					\
 	libvirtd.pod.in					\
 	libvirtd.8.in					\
-	$(DAEMON_SOURCES)
+	$(DAEMON_SOURCES)				\
+	$(LIBVIRTD_CONF_SOURCES)			\
+	$(NULL)
 
 BUILT_SOURCES = $(am__append_16) $(am__append_17) $(am__append_18)
 REMOTE_PROTOCOL = $(top_srcdir)/src/remote/remote_protocol.x
 LXC_PROTOCOL = $(top_srcdir)/src/remote/lxc_protocol.x
 QEMU_PROTOCOL = $(top_srcdir)/src/remote/qemu_protocol.x
+
+# Build a convenience library, for reuse in tests/libvirtdconftest
+@WITH_LIBVIRTD_TRUE@noinst_LTLIBRARIES = libvirtd_conf.la
+@WITH_LIBVIRTD_TRUE@libvirtd_conf_la_SOURCES = $(LIBVIRTD_CONF_SOURCES)
+@WITH_LIBVIRTD_TRUE@libvirtd_conf_la_CFLAGS = \
+@WITH_LIBVIRTD_TRUE@	$(LIBXML_CFLAGS) \
+@WITH_LIBVIRTD_TRUE@	$(WARN_CFLAGS) $(PIE_CFLAGS) \
+@WITH_LIBVIRTD_TRUE@	$(COVERAGE_CFLAGS) \
+@WITH_LIBVIRTD_TRUE@	$(NULL)
+
+@WITH_LIBVIRTD_TRUE@libvirtd_conf_la_LDFLAGS = \
+@WITH_LIBVIRTD_TRUE@	$(RELRO_LDFLAGS)				\
+@WITH_LIBVIRTD_TRUE@	$(PIE_LDFLAGS)					\
+@WITH_LIBVIRTD_TRUE@	$(COVERAGE_LDFLAGS)				\
+@WITH_LIBVIRTD_TRUE@	$(NO_INDIRECT_LDFLAGS)				\
+@WITH_LIBVIRTD_TRUE@	$(NULL)
+
+@WITH_LIBVIRTD_TRUE@libvirtd_conf_la_LIBADD = $(LIBXML_LIBS)
 @WITH_LIBVIRTD_TRUE@man8_MANS = libvirtd.8
 @WITH_LIBVIRTD_TRUE@confdir = $(sysconfdir)/libvirt/
 @WITH_LIBVIRTD_TRUE@conf_DATA = libvirtd.conf
@@ -2001,7 +2031,6 @@ QEMU_PROTOCOL = $(top_srcdir)/src/remote/qemu_protocol.x
 @WITH_LIBVIRTD_TRUE@libvirtd_LDFLAGS = \
 @WITH_LIBVIRTD_TRUE@	$(RELRO_LDFLAGS)				\
 @WITH_LIBVIRTD_TRUE@	$(PIE_LDFLAGS)					\
-@WITH_LIBVIRTD_TRUE@	$(RELRO_LDFLAGS)				\
 @WITH_LIBVIRTD_TRUE@	$(COVERAGE_LDFLAGS)				\
 @WITH_LIBVIRTD_TRUE@	$(NO_INDIRECT_LDFLAGS)				\
 @WITH_LIBVIRTD_TRUE@	$(NULL)
@@ -2012,16 +2041,17 @@ QEMU_PROTOCOL = $(top_srcdir)/src/remote/qemu_protocol.x
 @WITH_LIBVIRTD_TRUE@libvirtd_LDADD = $(LIBXML_LIBS) $(GNUTLS_LIBS) \
 @WITH_LIBVIRTD_TRUE@	$(SASL_LIBS) $(DBUS_LIBS) $(POLKIT_LIBS) \
 @WITH_LIBVIRTD_TRUE@	$(LIBNL_LIBS) $(am__append_2) \
-@WITH_LIBVIRTD_TRUE@	../src/libvirt-lxc.la \
-@WITH_LIBVIRTD_TRUE@	../src/libvirt-qemu.la $(am__append_3) \
-@WITH_LIBVIRTD_TRUE@	$(am__append_4) $(am__append_5) \
-@WITH_LIBVIRTD_TRUE@	$(am__append_6) $(am__append_7) \
-@WITH_LIBVIRTD_TRUE@	$(am__append_8) $(am__append_9) \
-@WITH_LIBVIRTD_TRUE@	$(am__append_10) $(am__append_11) \
-@WITH_LIBVIRTD_TRUE@	$(am__append_12) $(am__append_13) \
-@WITH_LIBVIRTD_TRUE@	$(am__append_14) $(am__append_15) \
-@WITH_LIBVIRTD_TRUE@	../src/libvirt.la ../gnulib/lib/libgnu.la \
-@WITH_LIBVIRTD_TRUE@	$(LIBSOCKET)
+@WITH_LIBVIRTD_TRUE@	libvirtd_conf.la ../src/libvirt-lxc.la \
+@WITH_LIBVIRTD_TRUE@	../src/libvirt-qemu.la \
+@WITH_LIBVIRTD_TRUE@	../src/libvirt_driver_remote.la $(NULL) \
+@WITH_LIBVIRTD_TRUE@	$(am__append_3) $(am__append_4) \
+@WITH_LIBVIRTD_TRUE@	$(am__append_5) $(am__append_6) \
+@WITH_LIBVIRTD_TRUE@	$(am__append_7) $(am__append_8) \
+@WITH_LIBVIRTD_TRUE@	$(am__append_9) $(am__append_10) \
+@WITH_LIBVIRTD_TRUE@	$(am__append_11) $(am__append_12) \
+@WITH_LIBVIRTD_TRUE@	$(am__append_13) $(am__append_14) \
+@WITH_LIBVIRTD_TRUE@	$(am__append_15) ../src/libvirt.la \
+@WITH_LIBVIRTD_TRUE@	../gnulib/lib/libgnu.la $(LIBSOCKET)
 @WITH_LIBVIRTD_TRUE@@WITH_POLKIT0_FALSE@@WITH_POLKIT_TRUE@policydir = $(datadir)/polkit-1/actions
 @WITH_LIBVIRTD_TRUE@@WITH_POLKIT0_TRUE@@WITH_POLKIT_TRUE@policydir = $(datadir)/PolicyKit/policy
 @WITH_LIBVIRTD_TRUE@@WITH_POLKIT0_FALSE@@WITH_POLKIT_TRUE@policyauth = auth_admin_keep
@@ -2070,6 +2100,20 @@ $(top_srcdir)/configure: @MAINTAINER_MODE_TRUE@ $(am__configure_deps)
 $(ACLOCAL_M4): @MAINTAINER_MODE_TRUE@ $(am__aclocal_m4_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
 $(am__aclocal_m4_deps):
+
+clean-noinstLTLIBRARIES:
+	-test -z "$(noinst_LTLIBRARIES)" || rm -f $(noinst_LTLIBRARIES)
+	@list='$(noinst_LTLIBRARIES)'; \
+	locs=`for p in $$list; do echo $$p; done | \
+	      sed 's|^[^/]*$$|.|; s|/[^/]*$$||; s|$$|/so_locations|' | \
+	      sort -u`; \
+	test -z "$$locs" || { \
+	  echo rm -f $${locs}; \
+	  rm -f $${locs}; \
+	}
+
+libvirtd_conf.la: $(libvirtd_conf_la_OBJECTS) $(libvirtd_conf_la_DEPENDENCIES) $(EXTRA_libvirtd_conf_la_DEPENDENCIES) 
+	$(AM_V_CCLD)$(libvirtd_conf_la_LINK) $(am_libvirtd_conf_la_rpath) $(libvirtd_conf_la_OBJECTS) $(libvirtd_conf_la_LIBADD) $(LIBS)
 install-sbinPROGRAMS: $(sbin_PROGRAMS)
 	@$(NORMAL_INSTALL)
 	@list='$(sbin_PROGRAMS)'; test -n "$(sbindir)" || list=; \
@@ -2130,34 +2174,41 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirtd-libvirtd-config.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirtd-libvirtd.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirtd-lxc_protocol.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirtd-qemu_protocol.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirtd-remote.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirtd-remote_protocol.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirtd-stream.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirtd_conf_la-libvirtd-config.Plo@am__quote@
 
 .c.o:
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Po
+@am__fastdepCC_TRUE@	$(AM_V_CC)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.o$$||'`;\
+@am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $$depbase.Tpo -c -o $@ $< &&\
+@am__fastdepCC_TRUE@	$(am__mv) $$depbase.Tpo $$depbase.Po
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(COMPILE) -c $<
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(COMPILE) -c -o $@ $<
 
 .c.obj:
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ `$(CYGPATH_W) '$<'`
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Po
+@am__fastdepCC_TRUE@	$(AM_V_CC)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.obj$$||'`;\
+@am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $$depbase.Tpo -c -o $@ `$(CYGPATH_W) '$<'` &&\
+@am__fastdepCC_TRUE@	$(am__mv) $$depbase.Tpo $$depbase.Po
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(COMPILE) -c `$(CYGPATH_W) '$<'`
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(COMPILE) -c -o $@ `$(CYGPATH_W) '$<'`
 
 .c.lo:
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LTCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Plo
+@am__fastdepCC_TRUE@	$(AM_V_CC)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.lo$$||'`;\
+@am__fastdepCC_TRUE@	$(LTCOMPILE) -MT $@ -MD -MP -MF $$depbase.Tpo -c -o $@ $< &&\
+@am__fastdepCC_TRUE@	$(am__mv) $$depbase.Tpo $$depbase.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$<' object='$@' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LTCOMPILE) -c -o $@ $<
+
+libvirtd_conf_la-libvirtd-config.lo: libvirtd-config.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_conf_la_CFLAGS) $(CFLAGS) -MT libvirtd_conf_la-libvirtd-config.lo -MD -MP -MF $(DEPDIR)/libvirtd_conf_la-libvirtd-config.Tpo -c -o libvirtd_conf_la-libvirtd-config.lo `test -f 'libvirtd-config.c' || echo '$(srcdir)/'`libvirtd-config.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libvirtd_conf_la-libvirtd-config.Tpo $(DEPDIR)/libvirtd_conf_la-libvirtd-config.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='libvirtd-config.c' object='libvirtd_conf_la-libvirtd-config.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_conf_la_CFLAGS) $(CFLAGS) -c -o libvirtd_conf_la-libvirtd-config.lo `test -f 'libvirtd-config.c' || echo '$(srcdir)/'`libvirtd-config.c
 
 libvirtd-libvirtd.o: libvirtd.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -MT libvirtd-libvirtd.o -MD -MP -MF $(DEPDIR)/libvirtd-libvirtd.Tpo -c -o libvirtd-libvirtd.o `test -f 'libvirtd.c' || echo '$(srcdir)/'`libvirtd.c
@@ -2172,20 +2223,6 @@ libvirtd-libvirtd.obj: libvirtd.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='libvirtd.c' object='libvirtd-libvirtd.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -c -o libvirtd-libvirtd.obj `if test -f 'libvirtd.c'; then $(CYGPATH_W) 'libvirtd.c'; else $(CYGPATH_W) '$(srcdir)/libvirtd.c'; fi`
-
-libvirtd-libvirtd-config.o: libvirtd-config.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -MT libvirtd-libvirtd-config.o -MD -MP -MF $(DEPDIR)/libvirtd-libvirtd-config.Tpo -c -o libvirtd-libvirtd-config.o `test -f 'libvirtd-config.c' || echo '$(srcdir)/'`libvirtd-config.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libvirtd-libvirtd-config.Tpo $(DEPDIR)/libvirtd-libvirtd-config.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='libvirtd-config.c' object='libvirtd-libvirtd-config.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -c -o libvirtd-libvirtd-config.o `test -f 'libvirtd-config.c' || echo '$(srcdir)/'`libvirtd-config.c
-
-libvirtd-libvirtd-config.obj: libvirtd-config.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -MT libvirtd-libvirtd-config.obj -MD -MP -MF $(DEPDIR)/libvirtd-libvirtd-config.Tpo -c -o libvirtd-libvirtd-config.obj `if test -f 'libvirtd-config.c'; then $(CYGPATH_W) 'libvirtd-config.c'; else $(CYGPATH_W) '$(srcdir)/libvirtd-config.c'; fi`
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libvirtd-libvirtd-config.Tpo $(DEPDIR)/libvirtd-libvirtd-config.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='libvirtd-config.c' object='libvirtd-libvirtd-config.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -c -o libvirtd-libvirtd-config.obj `if test -f 'libvirtd-config.c'; then $(CYGPATH_W) 'libvirtd-config.c'; else $(CYGPATH_W) '$(srcdir)/libvirtd-config.c'; fi`
 
 libvirtd-remote.o: remote.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -MT libvirtd-remote.o -MD -MP -MF $(DEPDIR)/libvirtd-remote.Tpo -c -o libvirtd-remote.o `test -f 'remote.c' || echo '$(srcdir)/'`remote.c
@@ -2214,48 +2251,6 @@ libvirtd-stream.obj: stream.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='stream.c' object='libvirtd-stream.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -c -o libvirtd-stream.obj `if test -f 'stream.c'; then $(CYGPATH_W) 'stream.c'; else $(CYGPATH_W) '$(srcdir)/stream.c'; fi`
-
-libvirtd-remote_protocol.o: ../src/remote/remote_protocol.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -MT libvirtd-remote_protocol.o -MD -MP -MF $(DEPDIR)/libvirtd-remote_protocol.Tpo -c -o libvirtd-remote_protocol.o `test -f '../src/remote/remote_protocol.c' || echo '$(srcdir)/'`../src/remote/remote_protocol.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libvirtd-remote_protocol.Tpo $(DEPDIR)/libvirtd-remote_protocol.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='../src/remote/remote_protocol.c' object='libvirtd-remote_protocol.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -c -o libvirtd-remote_protocol.o `test -f '../src/remote/remote_protocol.c' || echo '$(srcdir)/'`../src/remote/remote_protocol.c
-
-libvirtd-remote_protocol.obj: ../src/remote/remote_protocol.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -MT libvirtd-remote_protocol.obj -MD -MP -MF $(DEPDIR)/libvirtd-remote_protocol.Tpo -c -o libvirtd-remote_protocol.obj `if test -f '../src/remote/remote_protocol.c'; then $(CYGPATH_W) '../src/remote/remote_protocol.c'; else $(CYGPATH_W) '$(srcdir)/../src/remote/remote_protocol.c'; fi`
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libvirtd-remote_protocol.Tpo $(DEPDIR)/libvirtd-remote_protocol.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='../src/remote/remote_protocol.c' object='libvirtd-remote_protocol.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -c -o libvirtd-remote_protocol.obj `if test -f '../src/remote/remote_protocol.c'; then $(CYGPATH_W) '../src/remote/remote_protocol.c'; else $(CYGPATH_W) '$(srcdir)/../src/remote/remote_protocol.c'; fi`
-
-libvirtd-lxc_protocol.o: ../src/remote/lxc_protocol.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -MT libvirtd-lxc_protocol.o -MD -MP -MF $(DEPDIR)/libvirtd-lxc_protocol.Tpo -c -o libvirtd-lxc_protocol.o `test -f '../src/remote/lxc_protocol.c' || echo '$(srcdir)/'`../src/remote/lxc_protocol.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libvirtd-lxc_protocol.Tpo $(DEPDIR)/libvirtd-lxc_protocol.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='../src/remote/lxc_protocol.c' object='libvirtd-lxc_protocol.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -c -o libvirtd-lxc_protocol.o `test -f '../src/remote/lxc_protocol.c' || echo '$(srcdir)/'`../src/remote/lxc_protocol.c
-
-libvirtd-lxc_protocol.obj: ../src/remote/lxc_protocol.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -MT libvirtd-lxc_protocol.obj -MD -MP -MF $(DEPDIR)/libvirtd-lxc_protocol.Tpo -c -o libvirtd-lxc_protocol.obj `if test -f '../src/remote/lxc_protocol.c'; then $(CYGPATH_W) '../src/remote/lxc_protocol.c'; else $(CYGPATH_W) '$(srcdir)/../src/remote/lxc_protocol.c'; fi`
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libvirtd-lxc_protocol.Tpo $(DEPDIR)/libvirtd-lxc_protocol.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='../src/remote/lxc_protocol.c' object='libvirtd-lxc_protocol.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -c -o libvirtd-lxc_protocol.obj `if test -f '../src/remote/lxc_protocol.c'; then $(CYGPATH_W) '../src/remote/lxc_protocol.c'; else $(CYGPATH_W) '$(srcdir)/../src/remote/lxc_protocol.c'; fi`
-
-libvirtd-qemu_protocol.o: ../src/remote/qemu_protocol.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -MT libvirtd-qemu_protocol.o -MD -MP -MF $(DEPDIR)/libvirtd-qemu_protocol.Tpo -c -o libvirtd-qemu_protocol.o `test -f '../src/remote/qemu_protocol.c' || echo '$(srcdir)/'`../src/remote/qemu_protocol.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libvirtd-qemu_protocol.Tpo $(DEPDIR)/libvirtd-qemu_protocol.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='../src/remote/qemu_protocol.c' object='libvirtd-qemu_protocol.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -c -o libvirtd-qemu_protocol.o `test -f '../src/remote/qemu_protocol.c' || echo '$(srcdir)/'`../src/remote/qemu_protocol.c
-
-libvirtd-qemu_protocol.obj: ../src/remote/qemu_protocol.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -MT libvirtd-qemu_protocol.obj -MD -MP -MF $(DEPDIR)/libvirtd-qemu_protocol.Tpo -c -o libvirtd-qemu_protocol.obj `if test -f '../src/remote/qemu_protocol.c'; then $(CYGPATH_W) '../src/remote/qemu_protocol.c'; else $(CYGPATH_W) '$(srcdir)/../src/remote/qemu_protocol.c'; fi`
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libvirtd-qemu_protocol.Tpo $(DEPDIR)/libvirtd-qemu_protocol.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='../src/remote/qemu_protocol.c' object='libvirtd-qemu_protocol.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -c -o libvirtd-qemu_protocol.obj `if test -f '../src/remote/qemu_protocol.c'; then $(CYGPATH_W) '../src/remote/qemu_protocol.c'; else $(CYGPATH_W) '$(srcdir)/../src/remote/qemu_protocol.c'; fi`
 
 mostlyclean-libtool:
 	-rm -f *.lo
@@ -2454,7 +2449,7 @@ check-am: all-am
 	$(MAKE) $(AM_MAKEFLAGS) check-local
 check: $(BUILT_SOURCES)
 	$(MAKE) $(AM_MAKEFLAGS) check-am
-all-am: Makefile $(PROGRAMS) $(MANS) $(DATA)
+all-am: Makefile $(LTLIBRARIES) $(PROGRAMS) $(MANS) $(DATA)
 installdirs:
 	for dir in "$(DESTDIR)$(sbindir)" "$(DESTDIR)$(man8dir)" "$(DESTDIR)$(augeasdir)" "$(DESTDIR)$(augeastestsdir)" "$(DESTDIR)$(confdir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
@@ -2496,8 +2491,8 @@ maintainer-clean-generic:
 	-test -z "$(MAINTAINERCLEANFILES)" || rm -f $(MAINTAINERCLEANFILES)
 clean: clean-am
 
-clean-am: clean-generic clean-libtool clean-sbinPROGRAMS \
-	mostlyclean-am
+clean-am: clean-generic clean-libtool clean-noinstLTLIBRARIES \
+	clean-sbinPROGRAMS mostlyclean-am
 
 distclean: distclean-am
 	-rm -rf ./$(DEPDIR)
@@ -2573,38 +2568,42 @@ uninstall-man: uninstall-man8
 .MAKE: all check check-am install install-am install-strip
 
 .PHONY: CTAGS GTAGS TAGS all all-am check check-am check-local clean \
-	clean-generic clean-libtool clean-sbinPROGRAMS cscopelist-am \
-	ctags ctags-am distclean distclean-compile distclean-generic \
-	distclean-libtool distclean-tags distdir dvi dvi-am html \
-	html-am info info-am install install-am install-augeasDATA \
-	install-augeastestsDATA install-confDATA install-data \
-	install-data-am install-data-local install-dvi install-dvi-am \
-	install-exec install-exec-am install-html install-html-am \
-	install-info install-info-am install-man install-man8 \
-	install-pdf install-pdf-am install-ps install-ps-am \
-	install-sbinPROGRAMS install-strip installcheck \
-	installcheck-am installdirs maintainer-clean \
-	maintainer-clean-generic mostlyclean mostlyclean-compile \
-	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
-	tags tags-am uninstall uninstall-am uninstall-augeasDATA \
-	uninstall-augeastestsDATA uninstall-confDATA uninstall-local \
-	uninstall-man uninstall-man8 uninstall-sbinPROGRAMS
+	clean-generic clean-libtool clean-noinstLTLIBRARIES \
+	clean-sbinPROGRAMS cscopelist-am ctags ctags-am distclean \
+	distclean-compile distclean-generic distclean-libtool \
+	distclean-tags distdir dvi dvi-am html html-am info info-am \
+	install install-am install-augeasDATA install-augeastestsDATA \
+	install-confDATA install-data install-data-am \
+	install-data-local install-dvi install-dvi-am install-exec \
+	install-exec-am install-html install-html-am install-info \
+	install-info-am install-man install-man8 install-pdf \
+	install-pdf-am install-ps install-ps-am install-sbinPROGRAMS \
+	install-strip installcheck installcheck-am installdirs \
+	maintainer-clean maintainer-clean-generic mostlyclean \
+	mostlyclean-compile mostlyclean-generic mostlyclean-libtool \
+	pdf pdf-am ps ps-am tags tags-am uninstall uninstall-am \
+	uninstall-augeasDATA uninstall-augeastestsDATA \
+	uninstall-confDATA uninstall-local uninstall-man \
+	uninstall-man8 uninstall-sbinPROGRAMS
 
 
-$(srcdir)/remote_dispatch.h: $(srcdir)/../src/rpc/gendispatch.pl \
+remote_dispatch.h: $(srcdir)/../src/rpc/gendispatch.pl \
 		$(REMOTE_PROTOCOL)
 	$(AM_V_GEN)$(PERL) -w $(srcdir)/../src/rpc/gendispatch.pl \
-	  --mode=server remote REMOTE $(REMOTE_PROTOCOL) > $@
+	  --mode=server remote REMOTE $(REMOTE_PROTOCOL) \
+	  > $(srcdir)/remote_dispatch.h
 
-$(srcdir)/lxc_dispatch.h: $(srcdir)/../src/rpc/gendispatch.pl \
+lxc_dispatch.h: $(srcdir)/../src/rpc/gendispatch.pl \
 		$(LXC_PROTOCOL)
 	$(AM_V_GEN)$(PERL) -w $(srcdir)/../src/rpc/gendispatch.pl \
-	  --mode=server lxc LXC $(LXC_PROTOCOL) > $@
+	  --mode=server lxc LXC $(LXC_PROTOCOL) \
+	  > $(srcdir)/lxc_dispatch.h
 
-$(srcdir)/qemu_dispatch.h: $(srcdir)/../src/rpc/gendispatch.pl \
+qemu_dispatch.h: $(srcdir)/../src/rpc/gendispatch.pl \
 		$(QEMU_PROTOCOL)
 	$(AM_V_GEN)$(PERL) -w $(srcdir)/../src/rpc/gendispatch.pl \
-	  --mode=server qemu QEMU $(QEMU_PROTOCOL) > $@
+	  --mode=server qemu QEMU $(QEMU_PROTOCOL) \
+	  > $(srcdir)/qemu_dispatch.h
 
 @WITH_LIBVIRTD_TRUE@libvirtd.8: $(srcdir)/libvirtd.8.in
 @WITH_LIBVIRTD_TRUE@	$(AM_V_GEN)sed \

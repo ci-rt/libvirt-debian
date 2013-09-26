@@ -793,6 +793,7 @@ qemuMonitorCommonTestNew(virDomainXMLOptionPtr xmlopt,
     src->type = VIR_DOMAIN_CHR_TYPE_UNIX;
     src->data.nix.path = (char *)path;
     src->data.nix.listen = false;
+    path = NULL;
 
     if (virNetSocketListen(test->server, 1) < 0)
         goto error;
@@ -801,6 +802,7 @@ cleanup:
     return test;
 
 error:
+    VIR_FREE(path);
     VIR_FREE(tmpdir_template);
     qemuMonitorTestFree(test);
     test = NULL;
@@ -847,7 +849,6 @@ qemuMonitorCommonTestInit(qemuMonitorTestPtr test)
     return 0;
 
 error:
-    qemuMonitorTestFree(test);
     return -1;
 }
 
@@ -876,6 +877,8 @@ qemuMonitorTestNew(bool json,
 {
     qemuMonitorTestPtr test = NULL;
     virDomainChrSourceDef src;
+
+    memset(&src, 0, sizeof(src));
 
     if (!(test = qemuMonitorCommonTestNew(xmlopt, vm, &src)))
         goto error;
@@ -913,6 +916,8 @@ qemuMonitorTestNewAgent(virDomainXMLOptionPtr xmlopt)
 {
     qemuMonitorTestPtr test = NULL;
     virDomainChrSourceDef src;
+
+    memset(&src, 0, sizeof(src));
 
     if (!(test = qemuMonitorCommonTestNew(xmlopt, NULL, &src)))
         goto error;

@@ -193,6 +193,10 @@ enum virQEMUCapsFlags {
     QEMU_CAPS_DEVICE_DMI_TO_PCI_BRIDGE  = 152, /* -device i82801b11-bridge */
     QEMU_CAPS_I440FX_PCI_HOLE64_SIZE = 153, /* i440FX-pcihost.pci-hole64-size */
     QEMU_CAPS_Q35_PCI_HOLE64_SIZE = 154, /* q35-pcihost.pci-hole64-size */
+    QEMU_CAPS_DEVICE_USB_STORAGE = 155, /* -device usb-storage */
+    QEMU_CAPS_USB_STORAGE_REMOVABLE = 156, /* usb-storage.removable */
+    QEMU_CAPS_DEVICE_VIRTIO_MMIO = 157, /* -device virtio-mmio */
+    QEMU_CAPS_DEVICE_ICH9_INTEL_HDA = 158, /* -device ich9-intel-hda */
 
     QEMU_CAPS_LAST,                   /* this must always be the last item */
 };
@@ -275,4 +279,8 @@ int virQEMUCapsParseDeviceStr(virQEMUCapsPtr qemuCaps, const char *str);
 VIR_ENUM_DECL(virQEMUCaps);
 
 bool virQEMUCapsUsedQMP(virQEMUCapsPtr qemuCaps);
+bool virQEMUCapsSupportsChardev(virDomainDefPtr def,
+                                virQEMUCapsPtr qemuCaps,
+                                virDomainChrDefPtr chr);
+
 #endif /* __QEMU_CAPABILITIES_H__*/

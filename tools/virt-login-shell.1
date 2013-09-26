@@ -133,7 +133,7 @@
 .\" ========================================================================
 .\"
 .IX Title "VIRT-LOGIN-SHELL 1"
-.TH VIRT-LOGIN-SHELL 1 "2013-08-28" "libvirt-1.1.2" "Virtualization Support"
+.TH VIRT-LOGIN-SHELL 1 "2013-09-12" "libvirt-1.1.3" "Virtualization Support"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -148,7 +148,7 @@ virt\-login\-shell \- tool to execute a shell within a container matching the us
 The \fBvirt-login-shell\fR program is a setuid shell that is used to join
 an \s-1LXC\s0 container that matches the user's name.  If the container is not
 running, virt-login-shell will attempt to start the container.
-virt-sandbox-shell is not allowed to be run by root.  Normal users will get
+virt-login-shell is not allowed to be run by root.  Normal users will get
 added to a container that matches their username, if it exists, and they are
 configured in /etc/libvirt/virt\-login\-shell.conf.
 .PP

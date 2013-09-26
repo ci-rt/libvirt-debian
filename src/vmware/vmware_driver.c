@@ -35,7 +35,12 @@
 #include "vmware_driver.h"
 #include "virstring.h"
 
-static const char *vmw_types[] = { "player", "ws" };
+/* Various places we may find the "vmrun" binary,
+ * without a leading / it will be searched in PATH
+ */
+static const char * const vmrun_candidates[] = {
+    "vmrun",
+};
 
 static void
 vmwareDriverLock(struct vmware_driver *driver)
@@ -87,7 +92,7 @@ vmwareConnectOpen(virConnectPtr conn,
                   unsigned int flags)
 {
     struct vmware_driver *driver;
-    char * vmrun = NULL;
+    size_t i;
 
     virCheckFlags(VIR_CONNECT_RO, VIR_DRV_OPEN_ERROR);
 
@@ -116,24 +121,31 @@ vmwareConnectOpen(virConnectPtr conn,
     /* We now know the URI is definitely for this driver, so beyond
      * here, don't return DECLINED, always use ERROR */
 
-    vmrun = virFindFileInPath(VMRUN);
-
-    if (vmrun == NULL) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("%s utility is missing"), VMRUN);
-        return VIR_DRV_OPEN_ERROR;
-    } else {
-        VIR_FREE(vmrun);
-    }
-
     if (VIR_ALLOC(driver) < 0)
         return VIR_DRV_OPEN_ERROR;
+
+    /* Find vmrun, which is what this driver uses to communicate to
+     * the VMware hypervisor. We look this up first since we use it
+     * for auto detection of the backend
+     */
+    for (i = 0; i < ARRAY_CARDINALITY(vmrun_candidates); i++) {
+        driver->vmrun = virFindFileInPath(vmrun_candidates[i]);
+        /* If we found one, we can stop looking */
+        if (driver->vmrun)
+            break;
+    }
+
+    if (driver->vmrun == NULL) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("vmrun utility is missing"));
+        goto cleanup;
+    }
 
     if (virMutexInit(&driver->lock) < 0)
         goto cleanup;
 
     driver->type = STRNEQ(conn->uri->scheme, "vmwareplayer") ?
-      TYPE_WORKSTATION : TYPE_PLAYER;
+      VMWARE_DRIVER_WORKSTATION : VMWARE_DRIVER_PLAYER;
 
     if (!(driver->domains = virDomainObjListNew()))
         goto cleanup;
@@ -202,7 +214,8 @@ vmwareUpdateVMStatus(struct vmware_driver *driver, virDomainObjPtr vm)
     int newState;
     int ret = -1;
 
-    cmd = virCommandNewArgList(VMRUN, "-T", vmw_types[driver->type],
+    cmd = virCommandNewArgList(driver->vmrun, "-T",
+                               vmwareDriverTypeToString(driver->type),
                                "list", NULL);
     virCommandSetOutputBuffer(cmd, &outbuf);
     if (virCommandRun(cmd, NULL) < 0)
@@ -252,11 +265,11 @@ vmwareStopVM(struct vmware_driver *driver,
              virDomainShutoffReason reason)
 {
     const char *cmd[] = {
-        VMRUN, "-T", PROGRAM_SENTINEL, "stop",
+        driver->vmrun, "-T", PROGRAM_SENTINEL, "stop",
         PROGRAM_SENTINEL, "soft", NULL
     };
 
-    vmwareSetSentinal(cmd, vmw_types[driver->type]);
+    vmwareSetSentinal(cmd, vmwareDriverTypeToString(driver->type));
     vmwareSetSentinal(cmd, ((vmwareDomainPtr) vm->privateData)->vmxPath);
 
     if (virRun(cmd, NULL) < 0) {
@@ -273,7 +286,7 @@ static int
 vmwareStartVM(struct vmware_driver *driver, virDomainObjPtr vm)
 {
     const char *cmd[] = {
-        VMRUN, "-T", PROGRAM_SENTINEL, "start",
+        driver->vmrun, "-T", PROGRAM_SENTINEL, "start",
         PROGRAM_SENTINEL, PROGRAM_SENTINEL, NULL
     };
     const char *vmxPath = ((vmwareDomainPtr) vm->privateData)->vmxPath;
@@ -284,7 +297,7 @@ vmwareStartVM(struct vmware_driver *driver, virDomainObjPtr vm)
         return -1;
     }
 
-    vmwareSetSentinal(cmd, vmw_types[driver->type]);
+    vmwareSetSentinal(cmd, vmwareDriverTypeToString(driver->type));
     vmwareSetSentinal(cmd, vmxPath);
     if (!((vmwareDomainPtr) vm->privateData)->gui)
         vmwareSetSentinal(cmd, NOGUI);
@@ -446,12 +459,12 @@ vmwareDomainSuspend(virDomainPtr dom)
 
     virDomainObjPtr vm;
     const char *cmd[] = {
-      VMRUN, "-T", PROGRAM_SENTINEL, "pause",
+      driver->vmrun, "-T", PROGRAM_SENTINEL, "pause",
       PROGRAM_SENTINEL, NULL
     };
     int ret = -1;
 
-    if (driver->type == TYPE_PLAYER) {
+    if (driver->type == VMWARE_DRIVER_PLAYER) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                        _("vmplayer does not support libvirt suspend/resume"
                          " (vmware pause/unpause) operation "));
@@ -468,7 +481,7 @@ vmwareDomainSuspend(virDomainPtr dom)
         goto cleanup;
     }
 
-    vmwareSetSentinal(cmd, vmw_types[driver->type]);
+    vmwareSetSentinal(cmd, vmwareDriverTypeToString(driver->type));
     vmwareSetSentinal(cmd, ((vmwareDomainPtr) vm->privateData)->vmxPath);
     if (virDomainObjGetState(vm, NULL) != VIR_DOMAIN_RUNNING) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
@@ -495,12 +508,12 @@ vmwareDomainResume(virDomainPtr dom)
 
     virDomainObjPtr vm;
     const char *cmd[] = {
-        VMRUN, "-T", PROGRAM_SENTINEL, "unpause", PROGRAM_SENTINEL,
+        driver->vmrun, "-T", PROGRAM_SENTINEL, "unpause", PROGRAM_SENTINEL,
         NULL
     };
     int ret = -1;
 
-    if (driver->type == TYPE_PLAYER) {
+    if (driver->type == VMWARE_DRIVER_PLAYER) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                        _("vmplayer does not support libvirt suspend/resume "
                          "(vmware pause/unpause) operation "));
@@ -517,7 +530,7 @@ vmwareDomainResume(virDomainPtr dom)
         goto cleanup;
     }
 
-    vmwareSetSentinal(cmd, vmw_types[driver->type]);
+    vmwareSetSentinal(cmd, vmwareDriverTypeToString(driver->type));
     vmwareSetSentinal(cmd, ((vmwareDomainPtr) vm->privateData)->vmxPath);
     if (virDomainObjGetState(vm, NULL) != VIR_DOMAIN_PAUSED) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
@@ -544,7 +557,7 @@ vmwareDomainReboot(virDomainPtr dom, unsigned int flags)
     const char * vmxPath = NULL;
     virDomainObjPtr vm;
     const char *cmd[] = {
-        VMRUN, "-T", PROGRAM_SENTINEL,
+        driver->vmrun, "-T", PROGRAM_SENTINEL,
         "reset", PROGRAM_SENTINEL, "soft", NULL
     };
     int ret = -1;
@@ -562,7 +575,7 @@ vmwareDomainReboot(virDomainPtr dom, unsigned int flags)
     }
 
     vmxPath = ((vmwareDomainPtr) vm->privateData)->vmxPath;
-    vmwareSetSentinal(cmd, vmw_types[driver->type]);
+    vmwareSetSentinal(cmd, vmwareDriverTypeToString(driver->type));
     vmwareSetSentinal(cmd, vmxPath);
 
     if (vmwareUpdateVMStatus(driver, vm) < 0)

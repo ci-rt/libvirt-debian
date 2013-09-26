@@ -237,6 +237,11 @@ VIR_ENUM_IMPL(virQEMUCaps, QEMU_CAPS_LAST,
               "dmi-to-pci-bridge",
               "i440fx-pci-hole64-size",
               "q35-pci-hole64-size",
+
+              "usb-storage", /* 155 */
+              "usb-storage.removable",
+              "virtio-mmio",
+              "ich9-intel-hda",
     );
 
 struct _virQEMUCaps {
@@ -727,13 +732,13 @@ virQEMUCapsInitGuest(virCapsPtr caps,
     if (!binary)
         return 0;
 
-    if (access("/dev/kvm", F_OK) == 0 &&
+    if (virFileExists("/dev/kvm") &&
         (virQEMUCapsGet(qemubinCaps, QEMU_CAPS_KVM) ||
          virQEMUCapsGet(qemubinCaps, QEMU_CAPS_ENABLE_KVM) ||
          kvmbin))
         haskvm = true;
 
-    if (access("/dev/kqemu", F_OK) == 0 &&
+    if (virFileExists("/dev/kqemu") &&
         virQEMUCapsGet(qemubinCaps, QEMU_CAPS_KQEMU))
         haskqemu = true;
 
@@ -1385,6 +1390,9 @@ struct virQEMUCapsStringFlags virQEMUCapsObjectTypes[] = {
     { "vfio-pci", QEMU_CAPS_DEVICE_VFIO_PCI },
     { "scsi-generic", QEMU_CAPS_DEVICE_SCSI_GENERIC },
     { "i82801b11-bridge", QEMU_CAPS_DEVICE_DMI_TO_PCI_BRIDGE },
+    { "usb-storage", QEMU_CAPS_DEVICE_USB_STORAGE },
+    { "virtio-mmio", QEMU_CAPS_DEVICE_VIRTIO_MMIO },
+    { "ich9-intel-hda", QEMU_CAPS_DEVICE_ICH9_INTEL_HDA },
 };
 
 static struct virQEMUCapsStringFlags virQEMUCapsObjectPropsVirtioBlk[] = {
@@ -1446,6 +1454,10 @@ static struct virQEMUCapsStringFlags virQEMUCapsObjectPropsQ35PciHost[] = {
     { "pci-hole64-size", QEMU_CAPS_Q35_PCI_HOLE64_SIZE },
 };
 
+static struct virQEMUCapsStringFlags virQEMUCapsObjectPropsUsbStorage[] = {
+    { "removable", QEMU_CAPS_USB_STORAGE_REMOVABLE },
+};
+
 struct virQEMUCapsObjectTypeProps {
     const char *type;
     struct virQEMUCapsStringFlags *props;
@@ -1487,6 +1499,8 @@ static struct virQEMUCapsObjectTypeProps virQEMUCapsObjectProps[] = {
       ARRAY_CARDINALITY(virQEMUCapsObjectPropsI440FXPciHost) },
     { "q35-pcihost", virQEMUCapsObjectPropsQ35PciHost,
       ARRAY_CARDINALITY(virQEMUCapsObjectPropsQ35PciHost) },
+    { "usb-storage", virQEMUCapsObjectPropsUsbStorage,
+      ARRAY_CARDINALITY(virQEMUCapsObjectPropsUsbStorage) },
 };
 
 
@@ -1677,6 +1691,7 @@ virQEMUCapsExtractDeviceStr(const char *qemu,
                          "-device", "ide-drive,?",
                          "-device", "usb-host,?",
                          "-device", "scsi-generic,?",
+                         "-device", "usb-storage,?",
                          NULL);
     /* qemu -help goes to stdout, but qemu -device ? goes to stderr.  */
     virCommandSetErrorBuffer(cmd, &output);
@@ -2826,4 +2841,24 @@ bool
 virQEMUCapsUsedQMP(virQEMUCapsPtr qemuCaps)
 {
     return qemuCaps->usedQMP;
+}
+
+bool
+virQEMUCapsSupportsChardev(virDomainDefPtr def,
+                           virQEMUCapsPtr qemuCaps,
+                           virDomainChrDefPtr chr)
+{
+    if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_CHARDEV) ||
+        !virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE))
+        return false;
+
+    if (def->os.arch != VIR_ARCH_ARMV7L)
+        return true;
+
+    /* This may not be true for all ARM machine types, but at least
+     * the only supported non-virtio serial devices of vexpress and versatile
+     * don't have the -chardev property wired up. */
+    return (chr->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_VIRTIO_MMIO ||
+            (chr->deviceType == VIR_DOMAIN_CHR_DEVICE_TYPE_CONSOLE &&
+             chr->targetType == VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_VIRTIO));
 }
