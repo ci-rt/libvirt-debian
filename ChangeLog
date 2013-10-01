@@ -1,6 +1,165 @@
-2013-09-27  Guido Günther  <agx@sigxcpu.org>
+2013-10-01  Guido Günther  <agx@sigxcpu.org>
 
-	Prepare 0.9.12.1
+	Prepare for 0.9.12.2
+
+	Distribute viratomic.h
+	Since cbcb1983afbd76f0503185e4183afa10af88af47 we need viratomic.h in
+	the distributed tarball as well. This fixes "make distcheck".
+
+2013-09-19  Daniel P. Berrange  <berrange@redhat.com>
+
+	Fix crash in remoteDispatchDomainMemoryStats (CVE-2013-4296)
+	The 'stats' variable was not initialized to NULL, so if some
+	early validation of the RPC call fails, it is possible to jump
+	to the 'cleanup' label and VIR_FREE an uninitialized pointer.
+	This is a security flaw, since the API can be called from a
+	readonly connection which can trigger the validation checks.
+
+	This was introduced in release v0.9.1 onwards by
+
+	  commit 158ba8730e44b7dd07a21ab90499996c5dec080a
+	  Author: Daniel P. Berrange <berrange@redhat.com>
+	  Date:   Wed Apr 13 16:21:35 2011 +0100
+
+	    Merge all returns paths from dispatcher into single path
+
+	(cherry picked from commit e7f400a110e2e3673b96518170bfea0855dd82c0)
+
+	Conflicts:
+		daemon/remote.c - context
+
+2013-09-19  Daniel P. Berrange  <berrange@redhat.com>
+
+	Add support for using 3-arg pkcheck syntax for process (CVE-2013-4311)
+	With the existing pkcheck (pid, start time) tuple for identifying
+	the process, there is a race condition, where a process can make
+	a libvirt RPC call and in another thread exec a setuid application,
+	causing it to change to effective UID 0. This in turn causes polkit
+	to do its permission check based on the wrong UID.
+
+	To address this, libvirt must get the UID the caller had at time
+	of connect() (from SO_PEERCRED) and pass a (pid, start time, uid)
+	triple to the pkcheck program.
+
+	This fix requires that libvirt is re-built against a version of
+	polkit that has the fix for its CVE-2013-4288, so that libvirt
+	can see 'pkg-config --variable pkcheck_supports_uid polkit-gobject-1'
+
+	(cherry picked from commit 922b7fda77b094dbf022d625238262ea05335666)
+
+	Conflicts:
+		configure.ac - context
+		libvirt.spec.in - context of indentation
+		src/access/viraccessdriverpolkit.c - not present on this branch
+
+2013-09-19  Daniel P. Berrange  <berrange@redhat.com>
+
+	Include process start time when doing polkit checks
+	Since PIDs can be reused, polkit prefers to be given
+	a (PID,start time) pair. If given a PID on its own,
+	it will attempt to lookup the start time in /proc/pid/stat,
+	though this is subject to races.
+
+	It is safer if the client app resolves the PID start
+	time itself, because as long as the app has the client
+	socket open, the client PID won't be reused.
+
+	(cherry picked from commit 979e9c56a7aadf2dcfbddd1abfbad594b78b4468)
+
+	Conflicts:
+		src/libvirt_private.syms - not backported
+		src/locking/lock_daemon.c - not backported
+		src/rpc/virnetserverclient.c
+		src/rpc/virnetsocket.c
+		src/rpc/virnetsocket.h
+		src/util/viridentity.h - not backported
+		src/util/virprocess.c
+		src/util/virprocess.h
+		src/util/virstring.c
+		src/util/virstring.h
+
+	Most conflicts were contextual (this patch adds new functions,
+	but upstream intermediate patches not backported here also added
+	new features, and the resolution was picking out just the portions
+	needed by this commit).  virnetsocket.c also had slightly
+	different locking semantics.
+
+2013-09-19  Daniel P. Berrange  <berrange@redhat.com>
+
+	Move virProcess{Kill, Abort, TranslateStatus} into virprocess.{c, h}
+	Continue consolidation of process functions by moving some
+	helpers out of command.{c,h} into virprocess.{c,h}
+
+	(cherry picked from commit 9467ab6074d02bd90248b5710b1c83856fefe9b4)
+
+	Conflicts:
+		src/lxc/lxc_controller.c
+		src/util/command.c
+		src/util/virprocess.c
+		tests/testutils.c
+
+2013-09-19  Daniel P. Berrange  <berrange@redhat.com>
+
+	Move virProcessKill into virprocess.{h, c}
+	There are a number of process related functions spread
+	across multiple files. Start to consolidate them by
+	creating a virprocess.{c,h} file
+
+	(cherry picked from commit e5e2b65cf86ea49eba76b3c274e3b9d2177485bc)
+
+	Conflicts:
+		src/qemu/qemu_monitor.c
+		src/util/util.h
+
+2013-09-19  Daniel P. Berrange  <berrange@redhat.com>
+
+	Rename virCommandTranslateStatus to virProcessTranslateStatus
+	The virCommand prefix was inappropriate because the API
+	does not use any virCommandPtr object instance. This
+	API closely related to waitpid/exit, so use virProcess
+	as the prefix
+
+	(cherry picked from commit 49ecf8b41fd1c606703d01792701ce46352b7669)
+
+	Conflicts:
+		src/util/command.c
+
+2013-09-19  Daniel P. Berrange  <berrange@redhat.com>
+
+	Rename virPid{Abort, Wait} to virProcess{Abort, Wait}
+	Change "Pid" to "Process" to align with the virProcessKill
+	API naming prefix
+
+	(cherry picked from commit 0fb58ef5cd477cf9a0efdd966a22440ef087a2af)
+
+	Conflicts:
+		src/util/util.c
+		src/lxc/lxc_container.c
+		src/lxc/lxc_controller.c
+
+2013-09-19  Daniel P. Berrange  <berrange@redhat.com>
+
+	Rename virKillProcess to virProcessKill
+	Changing naming to follow the convention of "object" followed
+	by "action"
+
+	(cherry picked from commit cf470068a114fc7aab5e5de37d3f4fe3545bdc81)
+
+2013-09-19  Daniel P. Berrange  <berrange@redhat.com>
+
+	Introduce APIs for splitting/joining strings
+	This introduces a few new APIs for dealing with strings.
+	One to split a char * into a char **, another to join a
+	char ** into a char *, and finally one to free a char **
+
+	There is a simple test suite to validate the edge cases
+	too. No more need to use the horrible strtok_r() API,
+	or hand-written code for splitting strings.
+
+	(cherry picked from commit 76c1fd33c8093d6a7173a85486e1e6f51a832135)
+
+	Conflicts:
+		tests/Makefile.am - several intermediate tests not backported
 
 2013-09-19  Daniel P. Berrange  <berrange@redhat.com>
 

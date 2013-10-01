@@ -1838,6 +1838,9 @@
 /* Location of pkcheck program */
 #undef PKCHECK_PATH
 
+/* Pass uid to pkcheck */
+#undef PKCHECK_SUPPORTS_UID
+
 /* Location of polkit-auth program */
 #undef POLKIT_AUTH
 

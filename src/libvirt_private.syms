@@ -140,12 +140,9 @@ virCommandSetPreExecHook;
 virCommandSetWorkingDirectory;
 virCommandToString;
 virCommandTransferFD;
-virCommandTranslateStatus;
 virCommandWait;
 virCommandWriteArgLog;
 virFork;
-virPidAbort;
-virPidWait;
 virRun;
 
 
@@ -1453,6 +1450,13 @@ virPidFileDelete;
 virPidFileDeletePath;
 
 
+# virprocess.h
+virProcessAbort;
+virProcessKill;
+virProcessTranslateStatus;
+virProcessWait;
+
+
 # virrandom.h
 virRandomBits;
 virRandomGenerateWWN;
@@ -1488,6 +1492,12 @@ virReportSystemErrorFull;
 virSetError;
 virSetErrorLogPriorityFunc;
 virStrerror;
+
+
+# virstring.h
+virStringSplit;
+virStringJoin;
+virStringFreeList;
 
 
 # virtime.h

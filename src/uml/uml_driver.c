@@ -63,6 +63,7 @@
 #include "configmake.h"
 #include "virnetdevtap.h"
 #include "virnodesuspend.h"
+#include "virprocess.h"
 #include "viruri.h"
 
 #define VIR_FROM_THIS VIR_FROM_UML
@@ -1101,7 +1102,7 @@ static void umlShutdownVMDaemon(struct uml_driver *driver,
     if (!virDomainObjIsActive(vm))
         return;
 
-    virKillProcess(vm->pid, SIGTERM);
+    virProcessKill(vm->pid, SIGTERM);
 
     VIR_FORCE_CLOSE(priv->monitor);
 

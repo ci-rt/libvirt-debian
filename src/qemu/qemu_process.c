@@ -61,6 +61,7 @@
 #include "locking/domain_lock.h"
 #include "network/bridge_driver.h"
 #include "uuid.h"
+#include "virprocess.h"
 #include "virtime.h"
 #include "virnetdevtap.h"
 
@@ -3817,7 +3818,7 @@ qemuProcessKill(struct qemud_driver *driver,
             signum = 0; /* Just check for existence */
         }
 
-        if (virKillProcess(vm->pid, signum) < 0) {
+        if (virProcessKill(vm->pid, signum) < 0) {
             if (errno != ESRCH) {
                 char ebuf[1024];
                 VIR_WARN("Failed to terminate process %d with SIG%s: %s",

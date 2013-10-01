@@ -1160,12 +1160,12 @@ am__objects_64 = libvirt_util_la-bitmap.lo libvirt_util_la-buf.lo \
 	libvirt_util_la-util.lo libvirt_util_la-viraudit.lo \
 	libvirt_util_la-virauth.lo libvirt_util_la-virauthconfig.lo \
 	libvirt_util_la-virfile.lo libvirt_util_la-virnodesuspend.lo \
-	libvirt_util_la-virpidfile.lo libvirt_util_la-virtypedparam.lo \
-	libvirt_util_la-xml.lo libvirt_util_la-virterror.lo \
-	libvirt_util_la-virdbus.lo libvirt_util_la-virhash.lo \
-	libvirt_util_la-virhashcode.lo libvirt_util_la-virkeycode.lo \
-	libvirt_util_la-virkeyfile.lo libvirt_util_la-virmacaddr.lo \
-	libvirt_util_la-virnetdev.lo \
+	libvirt_util_la-virpidfile.lo libvirt_util_la-virprocess.lo \
+	libvirt_util_la-virtypedparam.lo libvirt_util_la-xml.lo \
+	libvirt_util_la-virterror.lo libvirt_util_la-virdbus.lo \
+	libvirt_util_la-virhash.lo libvirt_util_la-virhashcode.lo \
+	libvirt_util_la-virkeycode.lo libvirt_util_la-virkeyfile.lo \
+	libvirt_util_la-virmacaddr.lo libvirt_util_la-virnetdev.lo \
 	libvirt_util_la-virnetdevbandwidth.lo \
 	libvirt_util_la-virnetdevbridge.lo \
 	libvirt_util_la-virnetdevmacvlan.lo \
@@ -1174,8 +1174,8 @@ am__objects_64 = libvirt_util_la-bitmap.lo libvirt_util_la-buf.lo \
 	libvirt_util_la-virnetdevveth.lo \
 	libvirt_util_la-virnetdevvportprofile.lo \
 	libvirt_util_la-virnetlink.lo libvirt_util_la-virrandom.lo \
-	libvirt_util_la-virsocketaddr.lo libvirt_util_la-virtime.lo \
-	libvirt_util_la-viruri.lo
+	libvirt_util_la-virsocketaddr.lo libvirt_util_la-virstring.lo \
+	libvirt_util_la-virtime.lo libvirt_util_la-viruri.lo
 am_libvirt_util_la_OBJECTS = $(am__objects_64)
 libvirt_util_la_OBJECTS = $(am_libvirt_util_la_OBJECTS)
 libvirt_util_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
@@ -1232,11 +1232,11 @@ libvirt_iohelper_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 	$(libvirt_iohelper_LDFLAGS) $(LDFLAGS) -o $@
 am__libvirt_lxc_SOURCES_DIST = lxc/lxc_conf.c lxc/lxc_conf.h \
 	lxc/lxc_container.c lxc/lxc_container.h lxc/lxc_controller.c \
-	util/bitmap.c util/bitmap.h util/buf.c util/buf.h \
-	util/command.c util/command.h util/conf.c util/conf.h \
-	util/cgroup.c util/cgroup.h util/event.c util/event.h \
-	util/event_poll.c util/event_poll.h util/hooks.c util/hooks.h \
-	util/iptables.c util/iptables.h util/ebtables.c \
+	util/viratomic.h util/bitmap.c util/bitmap.h util/buf.c \
+	util/buf.h util/command.c util/command.h util/conf.c \
+	util/conf.h util/cgroup.c util/cgroup.h util/event.c \
+	util/event.h util/event_poll.c util/event_poll.h util/hooks.c \
+	util/hooks.h util/iptables.c util/iptables.h util/ebtables.c \
 	util/ebtables.h util/dnsmasq.c util/dnsmasq.h util/json.c \
 	util/json.h util/logging.c util/logging.h util/memory.c \
 	util/memory.h util/pci.c util/pci.h util/processinfo.c \
@@ -1250,13 +1250,14 @@ am__libvirt_lxc_SOURCES_DIST = lxc/lxc_conf.c lxc/lxc_conf.h \
 	util/virauth.h util/virauthconfig.c util/virauthconfig.h \
 	util/virfile.c util/virfile.h util/virnodesuspend.c \
 	util/virnodesuspend.h util/virpidfile.c util/virpidfile.h \
-	util/virtypedparam.c util/virtypedparam.h util/xml.c \
-	util/xml.h util/virterror.c util/virterror_internal.h \
-	util/virdbus.c util/virdbus.h util/virhash.c util/virhash.h \
-	util/virhashcode.c util/virhashcode.h util/virkeycode.c \
-	util/virkeycode.h util/virkeyfile.c util/virkeyfile.h \
-	util/virkeymaps.h util/virmacaddr.h util/virmacaddr.c \
-	util/virnetdev.h util/virnetdev.c util/virnetdevbandwidth.h \
+	util/virprocess.c util/virprocess.h util/virtypedparam.c \
+	util/virtypedparam.h util/xml.c util/xml.h util/virterror.c \
+	util/virterror_internal.h util/virdbus.c util/virdbus.h \
+	util/virhash.c util/virhash.h util/virhashcode.c \
+	util/virhashcode.h util/virkeycode.c util/virkeycode.h \
+	util/virkeyfile.c util/virkeyfile.h util/virkeymaps.h \
+	util/virmacaddr.h util/virmacaddr.c util/virnetdev.h \
+	util/virnetdev.c util/virnetdevbandwidth.h \
 	util/virnetdevbandwidth.c util/virnetdevbridge.h \
 	util/virnetdevbridge.c util/virnetdevmacvlan.c \
 	util/virnetdevmacvlan.h util/virnetdevopenvswitch.h \
@@ -1265,8 +1266,9 @@ am__libvirt_lxc_SOURCES_DIST = lxc/lxc_conf.c lxc/lxc_conf.h \
 	util/virnetdevvportprofile.h util/virnetdevvportprofile.c \
 	util/virnetlink.c util/virnetlink.h util/virrandom.h \
 	util/virrandom.c util/virsocketaddr.h util/virsocketaddr.c \
-	util/virtime.h util/virtime.c util/viruri.h util/viruri.c \
-	nodeinfo.h nodeinfo.c conf/storage_encryption_conf.c \
+	util/virstring.h util/virstring.c util/virtime.h \
+	util/virtime.c util/viruri.h util/viruri.c nodeinfo.h \
+	nodeinfo.c conf/storage_encryption_conf.c \
 	conf/storage_encryption_conf.h conf/netdev_bandwidth_conf.h \
 	conf/netdev_bandwidth_conf.c conf/netdev_vport_profile_conf.h \
 	conf/netdev_vport_profile_conf.c conf/capabilities.c \
@@ -1305,6 +1307,7 @@ am__objects_70 = libvirt_lxc-bitmap.$(OBJEXT) \
 	libvirt_lxc-virfile.$(OBJEXT) \
 	libvirt_lxc-virnodesuspend.$(OBJEXT) \
 	libvirt_lxc-virpidfile.$(OBJEXT) \
+	libvirt_lxc-virprocess.$(OBJEXT) \
 	libvirt_lxc-virtypedparam.$(OBJEXT) libvirt_lxc-xml.$(OBJEXT) \
 	libvirt_lxc-virterror.$(OBJEXT) libvirt_lxc-virdbus.$(OBJEXT) \
 	libvirt_lxc-virhash.$(OBJEXT) \
@@ -1323,7 +1326,8 @@ am__objects_70 = libvirt_lxc-bitmap.$(OBJEXT) \
 	libvirt_lxc-virnetlink.$(OBJEXT) \
 	libvirt_lxc-virrandom.$(OBJEXT) \
 	libvirt_lxc-virsocketaddr.$(OBJEXT) \
-	libvirt_lxc-virtime.$(OBJEXT) libvirt_lxc-viruri.$(OBJEXT)
+	libvirt_lxc-virstring.$(OBJEXT) libvirt_lxc-virtime.$(OBJEXT) \
+	libvirt_lxc-viruri.$(OBJEXT)
 am__objects_71 = libvirt_lxc-nodeinfo.$(OBJEXT)
 am__objects_72 = libvirt_lxc-storage_encryption_conf.$(OBJEXT)
 am__objects_73 = libvirt_lxc-netdev_bandwidth_conf.$(OBJEXT) \
@@ -2739,6 +2743,7 @@ augeastest_DATA = $(am__append_48) $(am__append_56) $(am__append_130)
 # These files are not related to driver APIs. Simply generic
 # helper APIs for various purposes
 UTIL_SOURCES = \
+		util/viratomic.h				\
 		util/bitmap.c util/bitmap.h			\
 		util/buf.c util/buf.h				\
 		util/command.c util/command.h			\
@@ -2772,6 +2777,7 @@ UTIL_SOURCES = \
 		util/virfile.c util/virfile.h			\
 		util/virnodesuspend.c util/virnodesuspend.h	\
 		util/virpidfile.c util/virpidfile.h		\
+		util/virprocess.c util/virprocess.h		\
 		util/virtypedparam.c util/virtypedparam.h	\
 		util/xml.c util/xml.h				\
 		util/virterror.c util/virterror_internal.h	\
@@ -2793,6 +2799,7 @@ UTIL_SOURCES = \
 		util/virnetlink.c util/virnetlink.h		\
 		util/virrandom.h util/virrandom.c		\
 		util/virsocketaddr.h util/virsocketaddr.c \
+		util/virstring.h util/virstring.c \
 		util/virtime.h util/virtime.c \
 		util/viruri.h util/viruri.c
 
@@ -4125,8 +4132,10 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_lxc-virnetlink.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_lxc-virnodesuspend.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_lxc-virpidfile.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_lxc-virprocess.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_lxc-virrandom.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_lxc-virsocketaddr.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_lxc-virstring.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_lxc-virterror.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_lxc-virtime.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_lxc-virtypedparam.Po@am__quote@
@@ -4195,8 +4204,10 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_util_la-virnetlink.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_util_la-virnodesuspend.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_util_la-virpidfile.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_util_la-virprocess.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_util_la-virrandom.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_util_la-virsocketaddr.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_util_la-virstring.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_util_la-virterror.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_util_la-virtime.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_util_la-virtypedparam.Plo@am__quote@
@@ -5433,6 +5444,13 @@ libvirt_util_la-virpidfile.lo: util/virpidfile.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_util_la_CFLAGS) $(CFLAGS) -c -o libvirt_util_la-virpidfile.lo `test -f 'util/virpidfile.c' || echo '$(srcdir)/'`util/virpidfile.c
 
+libvirt_util_la-virprocess.lo: util/virprocess.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_util_la_CFLAGS) $(CFLAGS) -MT libvirt_util_la-virprocess.lo -MD -MP -MF $(DEPDIR)/libvirt_util_la-virprocess.Tpo -c -o libvirt_util_la-virprocess.lo `test -f 'util/virprocess.c' || echo '$(srcdir)/'`util/virprocess.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libvirt_util_la-virprocess.Tpo $(DEPDIR)/libvirt_util_la-virprocess.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='util/virprocess.c' object='libvirt_util_la-virprocess.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_util_la_CFLAGS) $(CFLAGS) -c -o libvirt_util_la-virprocess.lo `test -f 'util/virprocess.c' || echo '$(srcdir)/'`util/virprocess.c
+
 libvirt_util_la-virtypedparam.lo: util/virtypedparam.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_util_la_CFLAGS) $(CFLAGS) -MT libvirt_util_la-virtypedparam.lo -MD -MP -MF $(DEPDIR)/libvirt_util_la-virtypedparam.Tpo -c -o libvirt_util_la-virtypedparam.lo `test -f 'util/virtypedparam.c' || echo '$(srcdir)/'`util/virtypedparam.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libvirt_util_la-virtypedparam.Tpo $(DEPDIR)/libvirt_util_la-virtypedparam.Plo
@@ -5572,6 +5590,13 @@ libvirt_util_la-virsocketaddr.lo: util/virsocketaddr.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='util/virsocketaddr.c' object='libvirt_util_la-virsocketaddr.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_util_la_CFLAGS) $(CFLAGS) -c -o libvirt_util_la-virsocketaddr.lo `test -f 'util/virsocketaddr.c' || echo '$(srcdir)/'`util/virsocketaddr.c
+
+libvirt_util_la-virstring.lo: util/virstring.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_util_la_CFLAGS) $(CFLAGS) -MT libvirt_util_la-virstring.lo -MD -MP -MF $(DEPDIR)/libvirt_util_la-virstring.Tpo -c -o libvirt_util_la-virstring.lo `test -f 'util/virstring.c' || echo '$(srcdir)/'`util/virstring.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libvirt_util_la-virstring.Tpo $(DEPDIR)/libvirt_util_la-virstring.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='util/virstring.c' object='libvirt_util_la-virstring.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_util_la_CFLAGS) $(CFLAGS) -c -o libvirt_util_la-virstring.lo `test -f 'util/virstring.c' || echo '$(srcdir)/'`util/virstring.c
 
 libvirt_util_la-virtime.lo: util/virtime.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_util_la_CFLAGS) $(CFLAGS) -MT libvirt_util_la-virtime.lo -MD -MP -MF $(DEPDIR)/libvirt_util_la-virtime.Tpo -c -o libvirt_util_la-virtime.lo `test -f 'util/virtime.c' || echo '$(srcdir)/'`util/virtime.c
@@ -6105,6 +6130,20 @@ libvirt_lxc-virpidfile.obj: util/virpidfile.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_lxc_CFLAGS) $(CFLAGS) -c -o libvirt_lxc-virpidfile.obj `if test -f 'util/virpidfile.c'; then $(CYGPATH_W) 'util/virpidfile.c'; else $(CYGPATH_W) '$(srcdir)/util/virpidfile.c'; fi`
 
+libvirt_lxc-virprocess.o: util/virprocess.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_lxc_CFLAGS) $(CFLAGS) -MT libvirt_lxc-virprocess.o -MD -MP -MF $(DEPDIR)/libvirt_lxc-virprocess.Tpo -c -o libvirt_lxc-virprocess.o `test -f 'util/virprocess.c' || echo '$(srcdir)/'`util/virprocess.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libvirt_lxc-virprocess.Tpo $(DEPDIR)/libvirt_lxc-virprocess.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='util/virprocess.c' object='libvirt_lxc-virprocess.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_lxc_CFLAGS) $(CFLAGS) -c -o libvirt_lxc-virprocess.o `test -f 'util/virprocess.c' || echo '$(srcdir)/'`util/virprocess.c
+
+libvirt_lxc-virprocess.obj: util/virprocess.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_lxc_CFLAGS) $(CFLAGS) -MT libvirt_lxc-virprocess.obj -MD -MP -MF $(DEPDIR)/libvirt_lxc-virprocess.Tpo -c -o libvirt_lxc-virprocess.obj `if test -f 'util/virprocess.c'; then $(CYGPATH_W) 'util/virprocess.c'; else $(CYGPATH_W) '$(srcdir)/util/virprocess.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libvirt_lxc-virprocess.Tpo $(DEPDIR)/libvirt_lxc-virprocess.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='util/virprocess.c' object='libvirt_lxc-virprocess.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_lxc_CFLAGS) $(CFLAGS) -c -o libvirt_lxc-virprocess.obj `if test -f 'util/virprocess.c'; then $(CYGPATH_W) 'util/virprocess.c'; else $(CYGPATH_W) '$(srcdir)/util/virprocess.c'; fi`
+
 libvirt_lxc-virtypedparam.o: util/virtypedparam.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_lxc_CFLAGS) $(CFLAGS) -MT libvirt_lxc-virtypedparam.o -MD -MP -MF $(DEPDIR)/libvirt_lxc-virtypedparam.Tpo -c -o libvirt_lxc-virtypedparam.o `test -f 'util/virtypedparam.c' || echo '$(srcdir)/'`util/virtypedparam.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libvirt_lxc-virtypedparam.Tpo $(DEPDIR)/libvirt_lxc-virtypedparam.Po
@@ -6384,6 +6423,20 @@ libvirt_lxc-virsocketaddr.obj: util/virsocketaddr.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='util/virsocketaddr.c' object='libvirt_lxc-virsocketaddr.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_lxc_CFLAGS) $(CFLAGS) -c -o libvirt_lxc-virsocketaddr.obj `if test -f 'util/virsocketaddr.c'; then $(CYGPATH_W) 'util/virsocketaddr.c'; else $(CYGPATH_W) '$(srcdir)/util/virsocketaddr.c'; fi`
+
+libvirt_lxc-virstring.o: util/virstring.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_lxc_CFLAGS) $(CFLAGS) -MT libvirt_lxc-virstring.o -MD -MP -MF $(DEPDIR)/libvirt_lxc-virstring.Tpo -c -o libvirt_lxc-virstring.o `test -f 'util/virstring.c' || echo '$(srcdir)/'`util/virstring.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libvirt_lxc-virstring.Tpo $(DEPDIR)/libvirt_lxc-virstring.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='util/virstring.c' object='libvirt_lxc-virstring.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_lxc_CFLAGS) $(CFLAGS) -c -o libvirt_lxc-virstring.o `test -f 'util/virstring.c' || echo '$(srcdir)/'`util/virstring.c
+
+libvirt_lxc-virstring.obj: util/virstring.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_lxc_CFLAGS) $(CFLAGS) -MT libvirt_lxc-virstring.obj -MD -MP -MF $(DEPDIR)/libvirt_lxc-virstring.Tpo -c -o libvirt_lxc-virstring.obj `if test -f 'util/virstring.c'; then $(CYGPATH_W) 'util/virstring.c'; else $(CYGPATH_W) '$(srcdir)/util/virstring.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libvirt_lxc-virstring.Tpo $(DEPDIR)/libvirt_lxc-virstring.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='util/virstring.c' object='libvirt_lxc-virstring.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_lxc_CFLAGS) $(CFLAGS) -c -o libvirt_lxc-virstring.obj `if test -f 'util/virstring.c'; then $(CYGPATH_W) 'util/virstring.c'; else $(CYGPATH_W) '$(srcdir)/util/virstring.c'; fi`
 
 libvirt_lxc-virtime.o: util/virtime.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_lxc_CFLAGS) $(CFLAGS) -MT libvirt_lxc-virtime.o -MD -MP -MF $(DEPDIR)/libvirt_lxc-virtime.Tpo -c -o libvirt_lxc-virtime.o `test -f 'util/virtime.c' || echo '$(srcdir)/'`util/virtime.c

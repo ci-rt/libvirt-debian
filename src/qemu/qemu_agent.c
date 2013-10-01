@@ -39,6 +39,7 @@
 #include "virterror_internal.h"
 #include "json.h"
 #include "virfile.h"
+#include "virprocess.h"
 #include "virtime.h"
 
 #define VIR_FROM_THIS VIR_FROM_QEMU
@@ -224,7 +225,7 @@ qemuAgentOpenUnix(const char *monitor, pid_t cpid, bool *inProgress)
             break;
 
         if ((errno == ENOENT || errno == ECONNREFUSED) &&
-            virKillProcess(cpid, 0) == 0) {
+            virProcessKill(cpid, 0) == 0) {
             /* ENOENT       : Socket may not have shown up yet
              * ECONNREFUSED : Leftover socket hasn't been removed yet */
             continue;
