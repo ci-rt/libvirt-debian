@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: te\n"
 "Report-Msgid-Bugs-To: libvir-list@redhat.com\n"
-"POT-Creation-Date: 2013-10-01 13:17+0000\n"
+"POT-Creation-Date: 2013-10-01 19:07+0000\n"
 "PO-Revision-Date: 2010-04-06 19:23+0530\n"
 "Last-Translator: Krishna Babu K <kkrothap@redhat.com>\n"
 "Language-Team: Telugu <te@li.org>\n"
@@ -43,37 +43,37 @@ msgstr "remoteReadConfigFile: %s: %s: విలువకాని రకము: 
 msgid "remoteReadConfigFile: %s: %s: unsupported auth %s"
 msgstr "remoteReadConfigFile: %s: %s: మద్దతీయని auth %s"
 
-#: daemon/libvirtd.c:212
+#: daemon/libvirtd.c:213
 #, fuzzy, c-format
 msgid "%s: error: unable to determine if daemon is running: %s\n"
 msgstr "డొమైన్ %s కొరకు పరికరాలను తిరస్కరించలేక పోయింది"
 
-#: daemon/libvirtd.c:218
+#: daemon/libvirtd.c:219
 #, c-format
 msgid ""
 "%s: error: %s. Check /var/log/messages or run without --daemon for more "
 "info.\n"
 msgstr ""
 
-#: daemon/libvirtd.c:414 daemon/libvirtd.c:419
+#: daemon/libvirtd.c:415 daemon/libvirtd.c:420
 #, c-format
 msgid "Failed to parse mode '%s'"
 msgstr "రీతి '%s'ను పార్శ్‍ చేయుటలో విఫలమైంది"
 
-#: daemon/libvirtd.c:645
+#: daemon/libvirtd.c:646
 msgid "additional privileges are required"
 msgstr "అదనపు అనుమతులు అవసరమైనవి"
 
-#: daemon/libvirtd.c:651
+#: daemon/libvirtd.c:652
 msgid "failed to set reduced privileges"
 msgstr "తగ్గించిన అనుమతులు అమర్చుటకు విఫలమైంది"
 
-#: daemon/libvirtd.c:702
+#: daemon/libvirtd.c:703
 #, fuzzy
 msgid "Driver state initialization failed"
 msgstr "ధృవీకరణ విఫలమైంది"
 
-#: daemon/libvirtd.c:730
+#: daemon/libvirtd.c:731
 #, c-format
 msgid ""
 "\n"
@@ -92,7 +92,7 @@ msgid ""
 "libvirt management daemon:\n"
 msgstr ""
 
-#: daemon/libvirtd.c:747
+#: daemon/libvirtd.c:748
 #, c-format
 msgid ""
 "\n"
@@ -115,7 +115,7 @@ msgid ""
 "\n"
 msgstr ""
 
-#: daemon/libvirtd.c:774
+#: daemon/libvirtd.c:775
 msgid ""
 "\n"
 "  Default paths:\n"
@@ -136,100 +136,100 @@ msgid ""
 "\n"
 msgstr ""
 
-#: daemon/libvirtd.c:834 src/lxc/lxc_controller.c:1667
+#: daemon/libvirtd.c:835 src/lxc/lxc_controller.c:1668
 #: src/security/virt-aa-helper.c:1169 src/storage/parthelper.c:75
 #: src/util/iohelper.c:228 src/util/iohelper.c:235
 #, fuzzy, c-format
 msgid "%s: initialization failed\n"
 msgstr "ధృవీకరణము విఫలమైంది"
 
-#: daemon/libvirtd.c:871
+#: daemon/libvirtd.c:872
 #, fuzzy
 msgid "Invalid value for timeout"
 msgstr "బరువు యొక్క సరికాని విలువ"
 
-#: daemon/libvirtd.c:879 daemon/libvirtd.c:887
+#: daemon/libvirtd.c:880 daemon/libvirtd.c:888
 #, fuzzy
 msgid "Can't allocate memory"
 msgstr "మెమొరీ కేటాయించటంలో విఫలమైంది"
 
-#: daemon/libvirtd.c:901
+#: daemon/libvirtd.c:902
 #, fuzzy, c-format
 msgid "%s: internal error: unknown flag: %c"
 msgstr "అంతర్గత దోషం %s"
 
-#: daemon/libvirtd.c:908
+#: daemon/libvirtd.c:909
 #, fuzzy
 msgid "Can't create initial configuration"
 msgstr "ప్రాధమిక ఆకృతీకరణను సృష్టించుటలో దోషము"
 
-#: daemon/libvirtd.c:917
+#: daemon/libvirtd.c:918
 #, fuzzy
 msgid "Can't determine config path"
 msgstr "డొమైన్ ఆకృతీకరణ లేదు"
 
-#: daemon/libvirtd.c:927
+#: daemon/libvirtd.c:928
 #, fuzzy, c-format
 msgid "Can't load config file: %s: %s"
 msgstr "ఆకృతీకరణ ఫైలును భద్రపరచలేదు %s"
 
-#: daemon/libvirtd.c:930
+#: daemon/libvirtd.c:931
 #, fuzzy, c-format
 msgid "Can't load config file: %s"
 msgstr "ఆకృతీకరణ ఫైలును భద్రపరచలేదు %s"
 
-#: daemon/libvirtd.c:936
+#: daemon/libvirtd.c:937
 #, fuzzy, c-format
 msgid "invalid host UUID: %s"
 msgstr "సరికాని పాత్: %s"
 
-#: daemon/libvirtd.c:941
+#: daemon/libvirtd.c:942
 #, fuzzy
 msgid "Can't initialize logging"
 msgstr "inotify సిద్దీకరించలేదు"
 
-#: daemon/libvirtd.c:948
+#: daemon/libvirtd.c:949
 #, fuzzy
 msgid "Can't determine pid file path."
 msgstr "అప్రమేయ వీడియో రకమును నిర్ణయించలేదు"
 
-#: daemon/libvirtd.c:956
+#: daemon/libvirtd.c:957
 msgid "Can't determine socket paths"
 msgstr ""
 
-#: daemon/libvirtd.c:964
+#: daemon/libvirtd.c:965
 #, c-format
 msgid "cannot change to root directory: %s"
 msgstr "root డైరెక్టరీకు మారలేదు: %s"
 
-#: daemon/libvirtd.c:970
+#: daemon/libvirtd.c:971
 #, c-format
 msgid "Failed to fork as daemon: %s"
 msgstr "డెమోన్‌లా ఫోర్కు చేయుటలో విఫలమైంది: %s"
 
-#: daemon/libvirtd.c:983
+#: daemon/libvirtd.c:984
 #, fuzzy
 msgid "Can't determine user directory"
 msgstr "డైరెక్టరీ %sను తెరువలేక పోయింది"
 
-#: daemon/libvirtd.c:997
+#: daemon/libvirtd.c:998
 #, c-format
 msgid "unable to create rundir %s: %s"
 msgstr "rundir %sను సృష్టించలేక పోయింది: %s"
 
-#: daemon/qemu_dispatch.h:36 daemon/remote.c:750 daemon/remote.c:959
-#: daemon/remote.c:1014 daemon/remote.c:1070 daemon/remote.c:1134
-#: daemon/remote.c:1191 daemon/remote.c:1256 daemon/remote.c:1309
-#: daemon/remote.c:1356 daemon/remote.c:1402 daemon/remote.c:1473
-#: daemon/remote.c:1559 daemon/remote.c:1616 daemon/remote.c:1667
-#: daemon/remote.c:1732 daemon/remote.c:1797 daemon/remote.c:1863
-#: daemon/remote.c:1941 daemon/remote.c:2016 daemon/remote.c:2058
-#: daemon/remote.c:2835 daemon/remote.c:2888 daemon/remote.c:2929
-#: daemon/remote.c:3007 daemon/remote.c:3044 daemon/remote.c:3077
-#: daemon/remote.c:3126 daemon/remote.c:3172 daemon/remote.c:3213
-#: daemon/remote.c:3264 daemon/remote.c:3324 daemon/remote.c:3378
-#: daemon/remote.c:3427 daemon/remote.c:3475 daemon/remote.c:3515
-#: daemon/remote.c:3560 daemon/remote.c:3624 daemon/remote.c:3699
+#: daemon/qemu_dispatch.h:36 daemon/remote.c:751 daemon/remote.c:960
+#: daemon/remote.c:1015 daemon/remote.c:1071 daemon/remote.c:1135
+#: daemon/remote.c:1192 daemon/remote.c:1257 daemon/remote.c:1310
+#: daemon/remote.c:1357 daemon/remote.c:1403 daemon/remote.c:1474
+#: daemon/remote.c:1560 daemon/remote.c:1617 daemon/remote.c:1668
+#: daemon/remote.c:1733 daemon/remote.c:1798 daemon/remote.c:1864
+#: daemon/remote.c:1942 daemon/remote.c:2017 daemon/remote.c:2059
+#: daemon/remote.c:2858 daemon/remote.c:2911 daemon/remote.c:2952
+#: daemon/remote.c:3030 daemon/remote.c:3067 daemon/remote.c:3100
+#: daemon/remote.c:3149 daemon/remote.c:3195 daemon/remote.c:3236
+#: daemon/remote.c:3287 daemon/remote.c:3347 daemon/remote.c:3401
+#: daemon/remote.c:3450 daemon/remote.c:3498 daemon/remote.c:3538
+#: daemon/remote.c:3583 daemon/remote.c:3647 daemon/remote.c:3722
 #: daemon/remote_dispatch.h:163 daemon/remote_dispatch.h:213
 #: daemon/remote_dispatch.h:261 daemon/remote_dispatch.h:313
 #: daemon/remote_dispatch.h:365 daemon/remote_dispatch.h:417
@@ -340,156 +340,156 @@ msgstr "rundir %sను సృష్టించలేక పోయింది:
 msgid "connection not open"
 msgstr "అనుసంధానము తెరిచిలేదు"
 
-#: daemon/remote.c:64 src/remote/remote_driver.c:58
+#: daemon/remote.c:65 src/remote/remote_driver.c:58
 #, fuzzy, c-format
 msgid "conversion from hyper to %s overflowed"
 msgstr "sexpr2string విఫలమైంది"
 
-#: daemon/remote.c:686
+#: daemon/remote.c:687
 msgid "connection already open"
 msgstr "అనుసంధానము యిప్పటికే తెరిచివుంది"
 
-#: daemon/remote.c:692
+#: daemon/remote.c:693
 msgid "keepalive support is required to connect"
 msgstr ""
 
-#: daemon/remote.c:837 daemon/remote.c:927 src/remote/remote_driver.c:1339
+#: daemon/remote.c:838 daemon/remote.c:928 src/remote/remote_driver.c:1339
 #: src/remote/remote_driver.c:1418
 #, fuzzy, c-format
 msgid "unknown parameter type: %d"
 msgstr "తెలియని పారామితి రకము"
 
-#: daemon/remote.c:873 daemon/remote.c:964 daemon/remote.c:1019
-#: daemon/remote.c:1200 daemon/remote.c:1674 daemon/remote.c:1739
-#: daemon/remote.c:1804 daemon/remote.c:1870 daemon/remote.c:1948
-#: daemon/remote.c:2063 daemon/remote.c:3567 daemon/remote.c:3629
+#: daemon/remote.c:874 daemon/remote.c:965 daemon/remote.c:1020
+#: daemon/remote.c:1201 daemon/remote.c:1675 daemon/remote.c:1740
+#: daemon/remote.c:1805 daemon/remote.c:1871 daemon/remote.c:1949
+#: daemon/remote.c:2064 daemon/remote.c:3590 daemon/remote.c:3652
 msgid "nparams too large"
 msgstr "nparams మరీ పెద్దవి"
 
-#: daemon/remote.c:888 src/remote/remote_driver.c:1379
+#: daemon/remote.c:889 src/remote/remote_driver.c:1379
 #, c-format
 msgid "Parameter %s too big for destination"
 msgstr "గమ్యమునకు పారామితి %s మరీ పెద్దది"
 
-#: daemon/remote.c:1076
+#: daemon/remote.c:1077
 msgid "maxStats > REMOTE_DOMAIN_MEMORY_STATS_MAX"
 msgstr "maxStats > REMOTE_DOMAIN_MEMORY_STATS_MAX"
 
-#: daemon/remote.c:1147 daemon/remote.c:1268
+#: daemon/remote.c:1148 daemon/remote.c:1269
 msgid "size > maximum buffer size"
 msgstr "పరిమాణము > గరిష్ట బఫర్ పరిమాణం"
 
-#: daemon/remote.c:1410
+#: daemon/remote.c:1411
 #, fuzzy
 msgid "ncpumaps > REMOTE_VCPUINFO_MAX"
 msgstr "maxinfo > REMOTE_VCPUINFO_MAX"
 
-#: daemon/remote.c:1416 daemon/remote.c:1487
+#: daemon/remote.c:1417 daemon/remote.c:1488
 msgid "maxinfo * maplen > REMOTE_CPUMAPS_MAX"
 msgstr "maxinfo * maplen > REMOTE_CPUMAPS_MAX"
 
-#: daemon/remote.c:1481
+#: daemon/remote.c:1482
 msgid "maxinfo > REMOTE_VCPUINFO_MAX"
 msgstr "maxinfo > REMOTE_VCPUINFO_MAX"
 
-#: daemon/remote.c:2198
+#: daemon/remote.c:2200
 msgid "client tried invalid SASL init request"
 msgstr "కక్షిదారి చెల్లని SASL init అభ్యర్ధనను ప్రయత్నించాడు"
 
-#: daemon/remote.c:2244 daemon/remote.c:2395 daemon/remote.c:2493
-#: daemon/remote.c:2509 daemon/remote.c:2523 daemon/remote.c:2537
-#: daemon/remote.c:2634 daemon/remote.c:2780 daemon/remote.c:2809
+#: daemon/remote.c:2246 daemon/remote.c:2397 daemon/remote.c:2495
+#: daemon/remote.c:2511 daemon/remote.c:2525 daemon/remote.c:2539
+#: daemon/remote.c:2657 daemon/remote.c:2803 daemon/remote.c:2832
 #: src/util/virterror.c:1030
 msgid "authentication failed"
 msgstr "ధృవీకరణ విఫలమైంది"
 
-#: daemon/remote.c:2271
+#: daemon/remote.c:2273
 #, c-format
 msgid "negotiated SSF %d was not strong enough"
 msgstr "లెక్కకురాని SSF %d కావలిసినంత బలమైనదికాదు"
 
-#: daemon/remote.c:2326 daemon/remote.c:2424
+#: daemon/remote.c:2328 daemon/remote.c:2426
 msgid "client tried invalid SASL start request"
 msgstr "కక్షిదారి సరికాని SASL ప్రారంభ అభ్యర్ధనను ప్రయత్నించాడు"
 
-#: daemon/remote.c:2344
+#: daemon/remote.c:2346
 #, c-format
 msgid "sasl start reply data too long %d"
 msgstr "sasl ప్రారంభ ప్రత్యుత్తరం డాటా మరీ పొడవైనది %d"
 
-#: daemon/remote.c:2441
+#: daemon/remote.c:2443
 #, c-format
 msgid "sasl step reply data too long %d"
 msgstr "sasl అంచె ప్రత్యుత్తరము డాటా మరీపొడవైనది %d"
 
-#: daemon/remote.c:2576 daemon/remote.c:2685
+#: daemon/remote.c:2581 daemon/remote.c:2708
 msgid "client tried invalid PolicyKit init request"
 msgstr "కక్షిదారి చెల్లని PolicyKit init అభ్యర్ధనను ప్రయత్నించింది"
 
-#: daemon/remote.c:2604
+#: daemon/remote.c:2627
 #, fuzzy, c-format
 msgid "Policy kit denied action %s from pid %lld, uid %d: %s"
 msgstr "పాలసి కిట్ చర్య %sను pid %d, uid %dనుండి తిరస్కరిస్తోంది ఫలితం: %s"
 
-#: daemon/remote.c:2631
+#: daemon/remote.c:2654
 #, fuzzy
 msgid "authentication cancelled by user"
 msgstr "ధృవీకరణ విఫలమైంది: %s"
 
-#: daemon/remote.c:2691
+#: daemon/remote.c:2714
 msgid "cannot get peer socket identity"
 msgstr "పీర్ సాకెట్ గుర్తింపును పొందలేకపోయింది"
 
-#: daemon/remote.c:2709
+#: daemon/remote.c:2732
 #, c-format
 msgid "Failed to lookup policy kit caller: %s"
 msgstr "policy kit కాలర్‌ను చూసుకొనుటలో విఫలమైంది: %s"
 
-#: daemon/remote.c:2716
+#: daemon/remote.c:2739
 #, c-format
 msgid "Failed to create polkit action %s"
 msgstr "polkit చర్యను %s సృష్టించుటలో విఫమైంది"
 
-#: daemon/remote.c:2726
+#: daemon/remote.c:2749
 #, c-format
 msgid "Failed to create polkit context %s"
 msgstr "polkit సందర్భమును %s సృష్టించుటలో విఫలమైంది"
 
-#: daemon/remote.c:2744
+#: daemon/remote.c:2767
 #, c-format
 msgid "Policy kit failed to check authorization %d %s"
 msgstr "పాలసి కిట్ దృవీకరణమును పరిశీలించుటలో విఫలమైంది %d %s"
 
-#: daemon/remote.c:2758
+#: daemon/remote.c:2781
 #, fuzzy, c-format
 msgid "Policy kit denied action %s from pid %lld, uid %d, result: %s"
 msgstr "పాలసి కిట్ చర్య %sను pid %d, uid %dనుండి తిరస్కరిస్తోంది ఫలితం: %s"
 
-#: daemon/remote.c:2807
+#: daemon/remote.c:2830
 msgid "client tried unsupported PolicyKit init request"
 msgstr "కక్షిదారి మద్దతీయని PolicyKit init అభ్యర్ధనను ప్రయత్నించింది"
 
-#: daemon/remote.c:2895 daemon/remote.c:3090
+#: daemon/remote.c:2918 daemon/remote.c:3113
 #, fuzzy, c-format
 msgid "domain event %d already registered"
 msgstr "టార్గెట్ %s:%d యిప్పటికే వుంది"
 
-#: daemon/remote.c:2936 daemon/remote.c:3140
+#: daemon/remote.c:2959 daemon/remote.c:3163
 #, fuzzy, c-format
 msgid "domain event %d not registered"
 msgstr "చాలా డ్రైవర్లు నమోదయ్యాయి"
 
-#: daemon/remote.c:3085 daemon/remote.c:3134
+#: daemon/remote.c:3108 daemon/remote.c:3157
 #, fuzzy, c-format
 msgid "unsupported event ID %d"
 msgstr "మద్దతీయని ఇన్‌పుట్ బస్ %s"
 
-#: daemon/remote.c:3633
+#: daemon/remote.c:3656
 #, fuzzy
 msgid "ncpus too large"
 msgstr "nparams మరీ పెద్దవి"
 
-#: daemon/remote.c:3708
+#: daemon/remote.c:3731
 #, fuzzy
 msgid "maxerrors too large"
 msgstr "nparams మరీ పెద్దవి"
@@ -954,7 +954,7 @@ msgstr "మ్యూటెక్సును సిద్దము చేయల�
 #: src/qemu/qemu_driver.c:12288 src/qemu/qemu_driver.c:12660
 #: src/qemu/qemu_driver.c:12733 src/qemu/qemu_driver.c:12763
 #: src/qemu/qemu_driver.c:12809 src/qemu/qemu_migration.c:2615
-#: src/uml/uml_driver.c:2399 src/xen/xen_driver.c:2131
+#: src/uml/uml_driver.c:2400 src/xen/xen_driver.c:2131
 #: src/xen/xen_hypervisor.c:1177 src/xen/xen_hypervisor.c:1258
 #: src/xen/xen_hypervisor.c:1377 src/xen/xm_internal.c:715
 msgid "domain is not running"
@@ -5736,7 +5736,7 @@ msgstr "%s నుండీ క్షేత్రం తిరిగి స్ట
 msgid "cannot read from stream"
 msgstr "%s నుండి చదువలేదు"
 
-#: src/fdstream.c:493 src/rpc/virnetsocket.c:139 src/util/event_poll.c:671
+#: src/fdstream.c:493 src/rpc/virnetsocket.c:140 src/util/event_poll.c:671
 #, fuzzy
 msgid "Unable to initialize mutex"
 msgstr "TLS కక్షిదారిని సిద్దముచేయలేక పోయింది: %s"
@@ -6570,239 +6570,239 @@ msgstr ""
 msgid "this platform is missing dlopen"
 msgstr ""
 
-#: src/lxc/lxc_container.c:157
+#: src/lxc/lxc_container.c:158
 msgid "setsid failed"
 msgstr "setsid విఫలమైంది"
 
-#: src/lxc/lxc_container.c:163
+#: src/lxc/lxc_container.c:164
 msgid "ioctl(TIOCSTTY) failed"
 msgstr "ioctl(TIOCSTTY) విఫలమైంది"
 
-#: src/lxc/lxc_container.c:178
+#: src/lxc/lxc_container.c:179
 msgid "dup2(stdin) failed"
 msgstr "dup2(stdin) విఫలమైంది"
 
-#: src/lxc/lxc_container.c:184
+#: src/lxc/lxc_container.c:185
 msgid "dup2(stdout) failed"
 msgstr "dup2(stdout) విఫలమైంది"
 
-#: src/lxc/lxc_container.c:190
+#: src/lxc/lxc_container.c:191
 msgid "dup2(stderr) failed"
 msgstr "dup2(stderr) విఫలమైంది"
 
-#: src/lxc/lxc_container.c:344
+#: src/lxc/lxc_container.c:345
 msgid "Failed to make root private"
 msgstr "root వ్యక్తిగతము చేయుటలో విఫలమైంది"
 
-#: src/lxc/lxc_container.c:355 src/lxc/lxc_container.c:377
-#: src/lxc/lxc_container.c:690 src/lxc/lxc_container.c:951
+#: src/lxc/lxc_container.c:356 src/lxc/lxc_container.c:378
+#: src/lxc/lxc_container.c:691 src/lxc/lxc_container.c:952
 #, c-format
 msgid "Failed to create %s"
 msgstr "%s సృష్టించుటకు విఫలమైంది"
 
-#: src/lxc/lxc_container.c:364
+#: src/lxc/lxc_container.c:365
 #, c-format
 msgid "Failed to mount empty tmpfs at %s"
 msgstr "%sవద్ద ఖాళీ tmpfs మరల్పు చేయుటలో విఫలమైంది"
 
-#: src/lxc/lxc_container.c:385
+#: src/lxc/lxc_container.c:386
 #, c-format
 msgid "Failed to bind new root %s into tmpfs"
 msgstr "కొత్త root %sను tmpfs లోనికి బందనంచేయుటకు విఫలమైంది"
 
-#: src/lxc/lxc_container.c:393
+#: src/lxc/lxc_container.c:394
 #, fuzzy, c-format
 msgid "Failed to make new root %s readonly"
 msgstr "root వ్యక్తిగతము చేయుటలో విఫలమైంది"
 
-#: src/lxc/lxc_container.c:403
+#: src/lxc/lxc_container.c:404
 #, c-format
 msgid "Failed to chroot into %s"
 msgstr "%sకు chroot అగుటకు విఫలమైంది"
 
-#: src/lxc/lxc_container.c:411
+#: src/lxc/lxc_container.c:412
 msgid "Failed to pivot root"
 msgstr "pivot root విఫలమైంది"
 
-#: src/lxc/lxc_container.c:472
+#: src/lxc/lxc_container.c:473
 #, c-format
 msgid "Failed to mkdir %s"
 msgstr "mkdir %sకు విఫలమైంది"
 
-#: src/lxc/lxc_container.c:499 src/lxc/lxc_container.c:538
+#: src/lxc/lxc_container.c:500 src/lxc/lxc_container.c:539
 #, fuzzy, c-format
 msgid "Failed to mount %s on %s type %s"
 msgstr "%sను %sపై మరల్పు చేయుటలో విఫలమైంది"
 
-#: src/lxc/lxc_container.c:511
+#: src/lxc/lxc_container.c:512
 #, fuzzy
 msgid "Failed to query file context on /"
 msgstr "%s నిర్వచించబడని నెట్వర్కుకు విఫలమైంది"
 
-#: src/lxc/lxc_container.c:565
+#: src/lxc/lxc_container.c:566
 msgid "Cannot create /dev/pts"
 msgstr "/dev/pts సృష్టించలేము"
 
-#: src/lxc/lxc_container.c:572
+#: src/lxc/lxc_container.c:573
 msgid "Failed to mount /dev/pts in container"
 msgstr "/dev/ptsను కంటైనర్‌ నందు మరల్పు చేయుటలో విఫలమైంది"
 
-#: src/lxc/lxc_container.c:615
+#: src/lxc/lxc_container.c:616
 #, c-format
 msgid "Failed to make device %s"
 msgstr "పరికరము %s తయారీలో విఫలమైంది"
 
-#: src/lxc/lxc_container.c:624
+#: src/lxc/lxc_container.c:625
 #, fuzzy, c-format
 msgid "Failed to symlink device %s to %s"
 msgstr "సిమ్‌లింకు  %s నుండి ' %s'కు సృష్టించుటలో విఫలమైంది"
 
-#: src/lxc/lxc_container.c:637
+#: src/lxc/lxc_container.c:638
 #, fuzzy
 msgid "Failed to bind /dev/pts/ptmx on to /dev/ptmx"
 msgstr "/dev/ptmx నుండి /dev/pts/ptmx కు symlink చేయుటలో విఫలమైంది"
 
-#: src/lxc/lxc_container.c:646
+#: src/lxc/lxc_container.c:647
 msgid "Failed to make device /dev/ptmx"
 msgstr "పరికరము /dev/ptmx చేయుటలో విఫలమైంది"
 
-#: src/lxc/lxc_container.c:660
+#: src/lxc/lxc_container.c:661
 #, fuzzy, c-format
 msgid "Failed to symlink %s to %s"
 msgstr "సిమ్‌లింకు  %s నుండి ' %s'కు సృష్టించుటలో విఫలమైంది"
 
-#: src/lxc/lxc_container.c:668
+#: src/lxc/lxc_container.c:669
 #, fuzzy, c-format
 msgid "Failed to symlink %s to /dev/console"
 msgstr "/dev/pts/0 ను /dev/tty1 కు సిమ్‌లింక్ చేయుట విఫలమైంది"
 
-#: src/lxc/lxc_container.c:697
+#: src/lxc/lxc_container.c:698
 #, fuzzy, c-format
 msgid "Failed to bind mount directory %s to %s"
 msgstr "మానిటర్ డైరెక్టరీ %s సృష్టించుటకు విఫలమైంది: %s"
 
-#: src/lxc/lxc_container.c:706
+#: src/lxc/lxc_container.c:707
 #, fuzzy, c-format
 msgid "Failed to make directory %s readonly"
 msgstr "డైరెక్టరీ '%s' సృష్టించుటకు విఫలమైంది"
 
-#: src/lxc/lxc_container.c:733
+#: src/lxc/lxc_container.c:734
 #, fuzzy, c-format
 msgid "Unable to open filesystem %s"
 msgstr "%sను తెరువలేక పోయింది"
 
-#: src/lxc/lxc_container.c:739
+#: src/lxc/lxc_container.c:740
 #, fuzzy
 msgid "Unable to create blkid library handle"
 msgstr "%sకు మైగ్రేషన్ ప్రారంభించలేక పోతోంది"
 
-#: src/lxc/lxc_container.c:744
+#: src/lxc/lxc_container.c:745
 #, fuzzy, c-format
 msgid "Unable to associate device %s with blkid library"
 msgstr "vlan లేకుండా నెట్వర్కు పరికరములను అనుభందించలేదు"
 
-#: src/lxc/lxc_container.c:760
+#: src/lxc/lxc_container.c:761
 #, fuzzy, c-format
 msgid "Too many filesystems detected for %s"
 msgstr "%s నుండీ క్షేత్రం తిరిగి స్టోరు చేయబడింది\n"
 
-#: src/lxc/lxc_container.c:764
+#: src/lxc/lxc_container.c:765
 #, fuzzy, c-format
 msgid "Unable to detect filesystem for %s"
 msgstr "పరికరము %sను %s కొరకు అనుమతించలేక పోయింది"
 
-#: src/lxc/lxc_container.c:772
+#: src/lxc/lxc_container.c:773
 #, fuzzy, c-format
 msgid "Unable to find filesystem type for %s"
 msgstr "అనుకోని దస్త్రవ్యవస్థ రకము %d"
 
-#: src/lxc/lxc_container.c:845 src/util/iohelper.c:152
+#: src/lxc/lxc_container.c:846 src/util/iohelper.c:152
 #, fuzzy, c-format
 msgid "Unable to read %s"
 msgstr "%sను తెరువలేక పోయింది"
 
-#: src/lxc/lxc_container.c:875
+#: src/lxc/lxc_container.c:876
 #, fuzzy, c-format
 msgid "%s has unexpected '*' before last line"
 msgstr "స్ట్రీమ్ అనుకోని ముగింపును కలిగివుంది"
 
-#: src/lxc/lxc_container.c:898
+#: src/lxc/lxc_container.c:899
 #, fuzzy, c-format
 msgid "Failed to mount device %s to %s"
 msgstr "%s పై devpts మరల్పు చేయుటకు విఫలమైంది"
 
-#: src/lxc/lxc_container.c:921
+#: src/lxc/lxc_container.c:922
 #, fuzzy, c-format
 msgid "Failed to mount device %s to %s, unable to detect filesystem"
 msgstr "లక్ష్యము జాబితా పొందుటకు %s నడుపుటలో విఫలమైంది"
 
-#: src/lxc/lxc_container.c:963
+#: src/lxc/lxc_container.c:964
 #, fuzzy, c-format
 msgid "Failed to mount device %s to %s as %s"
 msgstr "%sను %sపై మరల్పు చేయుటలో విఫలమైంది"
 
-#: src/lxc/lxc_container.c:1012
+#: src/lxc/lxc_container.c:1013
 #, fuzzy, c-format
 msgid "Unexpected filesystem type %s"
 msgstr "అనుకోని దస్త్రవ్యవస్థ రకము %d"
 
-#: src/lxc/lxc_container.c:1017
+#: src/lxc/lxc_container.c:1018
 #, fuzzy, c-format
 msgid "Cannot mount filesystem type %s"
 msgstr "తెలియని దస్త్రవ్యవస్థ రకము '%s'"
 
-#: src/lxc/lxc_container.c:1061
+#: src/lxc/lxc_container.c:1062
 msgid "Failed to read /proc/mounts"
 msgstr "/proc/mounts చదువుటకు విఫలమైంది"
 
-#: src/lxc/lxc_container.c:1101
+#: src/lxc/lxc_container.c:1102
 #, fuzzy, c-format
 msgid "Failed to unmount '%s' and could not detach old root '%s'"
 msgstr "%sను %sపై మరల్పు చేయుటలో విఫలమైంది"
 
-#: src/lxc/lxc_container.c:1108
+#: src/lxc/lxc_container.c:1109
 #, fuzzy, c-format
 msgid "Failed to unmount '%s' and could not unmount old root '%s'"
 msgstr "%sను %sపై మరల్పు చేయుటలో విఫలమైంది"
 
-#: src/lxc/lxc_container.c:1175
+#: src/lxc/lxc_container.c:1176
 msgid "Failed to make / slave"
 msgstr " / స్లేవ్ చేయుటకు విఫలమైంది"
 
-#: src/lxc/lxc_container.c:1248
+#: src/lxc/lxc_container.c:1249
 #, c-format
 msgid "Failed to remove capabilities: %d"
 msgstr "సామర్ధ్యాలను తీసివేయుటకు విఫలమైంది: %d"
 
-#: src/lxc/lxc_container.c:1254
+#: src/lxc/lxc_container.c:1255
 #, c-format
 msgid "Failed to apply capabilities: %d"
 msgstr "సామర్ధ్యములను ఆపాదించుటలో విఫలమైంది: %d"
 
-#: src/lxc/lxc_container.c:1295
+#: src/lxc/lxc_container.c:1296
 msgid "lxcChild() passed invalid vm definition"
 msgstr "lxcChild() అనునది సరికాని vm నిర్వచనంను పంపినది"
 
-#: src/lxc/lxc_container.c:1328
+#: src/lxc/lxc_container.c:1329
 #, c-format
 msgid "Failed to open tty %s"
 msgstr "tty %s తెరుచుటకు విఫలమైంది"
 
-#: src/lxc/lxc_container.c:1338
+#: src/lxc/lxc_container.c:1339
 #, c-format
 msgid "cannot find init path '%s' relative to container root"
 msgstr ""
 
-#: src/lxc/lxc_container.c:1346
+#: src/lxc/lxc_container.c:1347
 msgid "Failed to read the container continue message"
 msgstr "కంటైనర్ కొనసాగింపు సందేశమును చదువుటకు విఫలమైంది"
 
-#: src/lxc/lxc_container.c:1365
+#: src/lxc/lxc_container.c:1366
 #, fuzzy
 msgid "failed to send continue signal to controller"
 msgstr "మానిటర్ సాకెట్‌నకు అనుసంధానించుటకు విఫలమైంది"
 
-#: src/lxc/lxc_container.c:1481
+#: src/lxc/lxc_container.c:1482
 msgid "Failed to run clone container"
 msgstr "క్లోన్ కంటైనర్ నడుపుటకు విఫలమైంది"
 
@@ -6811,318 +6811,318 @@ msgstr "క్లోన్ కంటైనర్ నడుపుటకు వి
 msgid "cannot get the host uuid"
 msgstr "రోజు యొక్క సమయాన్ని పొందలేదు"
 
-#: src/lxc/lxc_controller.c:96
+#: src/lxc/lxc_controller.c:97
 #, fuzzy
 msgid "Unable to read /dev"
 msgstr "%sను తెరువలేక పోయింది"
 
-#: src/lxc/lxc_controller.c:112 src/lxc/lxc_controller.c:165
+#: src/lxc/lxc_controller.c:113 src/lxc/lxc_controller.c:166
 #: src/qemu/qemu_driver.c:1008 src/util/iohelper.c:58
 #, c-format
 msgid "Unable to open %s"
 msgstr "%sను తెరువలేక పోయింది"
 
-#: src/lxc/lxc_controller.c:123
+#: src/lxc/lxc_controller.c:124
 #, fuzzy, c-format
 msgid "Unable to get loop status on %s"
 msgstr "డొమైన్ స్థితిని పొందలేక పోయింది"
 
-#: src/lxc/lxc_controller.c:134
+#: src/lxc/lxc_controller.c:135
 #, fuzzy
 msgid "Unable to find a free loop device in /dev"
 msgstr "పరికరము %sను అనుమతించలేక పోయింది"
 
-#: src/lxc/lxc_controller.c:171
+#: src/lxc/lxc_controller.c:172
 #, fuzzy, c-format
 msgid "Unable to attach %s to loop device"
 msgstr "పరికరము %sను అనుమతించలేక పోయింది"
 
-#: src/lxc/lxc_controller.c:178
+#: src/lxc/lxc_controller.c:179
 #, fuzzy
 msgid "Unable to mark loop device as autoclear"
 msgstr "పరికరము %sను %s కొరకు అనుమతించలేక పోయింది"
 
-#: src/lxc/lxc_controller.c:255 src/qemu/qemu_process.c:1684
+#: src/lxc/lxc_controller.c:256 src/qemu/qemu_process.c:1685
 msgid "Host kernel is not aware of NUMA."
 msgstr ""
 
-#: src/lxc/lxc_controller.c:267 src/qemu/qemu_process.c:1695
+#: src/lxc/lxc_controller.c:268 src/qemu/qemu_process.c:1696
 #, c-format
 msgid "Host cannot support NUMA node %d"
 msgstr ""
 
-#: src/lxc/lxc_controller.c:296 src/qemu/qemu_process.c:1724
+#: src/lxc/lxc_controller.c:297 src/qemu/qemu_process.c:1725
 msgid "NUMA memory tuning in 'preferred' mode only supports single node"
 msgstr ""
 
-#: src/lxc/lxc_controller.c:307
+#: src/lxc/lxc_controller.c:308
 #, fuzzy, c-format
 msgid "Unable to set NUMA policy %s"
 msgstr "దస్త్రము %sను దాయలేక పోయింది"
 
-#: src/lxc/lxc_controller.c:322
+#: src/lxc/lxc_controller.c:323
 #, fuzzy
 msgid "NUMA policy is not available on this platform"
 msgstr "ఈ ప్లాట్‌ఫాంపై NUMA మెమొరీ సమాచారము అందుబాటులో లేదు"
 
-#: src/lxc/lxc_controller.c:395 src/qemu/qemu_cgroup.c:384
+#: src/lxc/lxc_controller.c:396 src/qemu/qemu_cgroup.c:384
 #, fuzzy, c-format
 msgid "Unable to set io cpu shares for domain %s"
 msgstr "డొమైన్ %s కొరకు మెమొరీ పరిమితిని అమర్చలేక పోయింది"
 
-#: src/lxc/lxc_controller.c:404
+#: src/lxc/lxc_controller.c:405
 #, fuzzy, c-format
 msgid "Unable to set io cpu quota for domain %s"
 msgstr "డొమైన్ %s కొరకు మెమొరీ పరిమితిని అమర్చలేక పోయింది"
 
-#: src/lxc/lxc_controller.c:413
+#: src/lxc/lxc_controller.c:414
 #, fuzzy, c-format
 msgid "Unable to set io cpu period for domain %s"
 msgstr "డొమైన్ %s కొరకు మెమొరీ పరిమితిని అమర్చలేక పోయింది"
 
-#: src/lxc/lxc_controller.c:432
+#: src/lxc/lxc_controller.c:433
 #, fuzzy, c-format
 msgid "Unable to set Blkio weight for domain %s"
 msgstr "డొమైన్ %s కొరకు మెమొరీ పరిమితిని అమర్చలేక పోయింది"
 
-#: src/lxc/lxc_controller.c:452
+#: src/lxc/lxc_controller.c:453
 #, c-format
 msgid "Unable to set memory limit for domain %s"
 msgstr "డొమైన్ %s కొరకు మెమొరీ పరిమితిని అమర్చలేక పోయింది"
 
-#: src/lxc/lxc_controller.c:461 src/qemu/qemu_cgroup.c:349
+#: src/lxc/lxc_controller.c:462 src/qemu/qemu_cgroup.c:349
 #, fuzzy, c-format
 msgid "Unable to set memory hard limit for domain %s"
 msgstr "డొమైన్ %s కొరకు మెమొరీ పరిమితిని అమర్చలేక పోయింది"
 
-#: src/lxc/lxc_controller.c:471 src/qemu/qemu_cgroup.c:358
+#: src/lxc/lxc_controller.c:472 src/qemu/qemu_cgroup.c:358
 #, fuzzy, c-format
 msgid "Unable to set memory soft limit for domain %s"
 msgstr "డొమైన్ %s కొరకు మెమొరీ పరిమితిని అమర్చలేక పోయింది"
 
-#: src/lxc/lxc_controller.c:481 src/qemu/qemu_cgroup.c:368
+#: src/lxc/lxc_controller.c:482 src/qemu/qemu_cgroup.c:368
 #, fuzzy, c-format
 msgid "Unable to set swap hard limit for domain %s"
 msgstr "డొమైన్ %s కొరకు మెమొరీ పరిమితిని అమర్చలేక పోయింది"
 
-#: src/lxc/lxc_controller.c:511
+#: src/lxc/lxc_controller.c:512
 #, c-format
 msgid "Unable to deny devices for domain %s"
 msgstr "డొమైన్ %s కొరకు పరికరాలను తిరస్కరించలేక పోయింది"
 
-#: src/lxc/lxc_controller.c:525
+#: src/lxc/lxc_controller.c:526
 #, c-format
 msgid "Unable to allow device %c:%d:%d for domain %s"
 msgstr "పరికరము %c:%d:%d డొమైన్ %s కొరకు అనుమతించలేక పోయింది"
 
-#: src/lxc/lxc_controller.c:542
+#: src/lxc/lxc_controller.c:543
 #, fuzzy, c-format
 msgid "Unable to allow device %s for domain %s"
 msgstr "డొమైన్ %s కొరకు PYT పరికరాలను అనుమతించలేక పోయింది"
 
-#: src/lxc/lxc_controller.c:552
+#: src/lxc/lxc_controller.c:553
 #, fuzzy, c-format
 msgid "Unable to allow PTY devices for domain %s"
 msgstr "డొమైన్ %s కొరకు PYT పరికరాలను అనుమతించలేక పోయింది"
 
-#: src/lxc/lxc_controller.c:591
+#: src/lxc/lxc_controller.c:592
 msgid "Unable to get cgroup for driver"
 msgstr "డ్రైవర్ కొరకు cgroup పొందలేక పోయింది"
 
-#: src/lxc/lxc_controller.c:598
+#: src/lxc/lxc_controller.c:599
 #, c-format
 msgid "Unable to create cgroup for domain %s"
 msgstr "డొమైన్ %s కొరకు cgroup సృష్టించలేక పోయింది"
 
-#: src/lxc/lxc_controller.c:618
+#: src/lxc/lxc_controller.c:619
 #, c-format
 msgid "Unable to add task %d to cgroup for domain %s"
 msgstr "కర్తవ్యం %dను cgroupకు డొమైన్ %s కొరకు జతపరచలేక పోయింది"
 
-#: src/lxc/lxc_controller.c:646
+#: src/lxc/lxc_controller.c:647
 #, c-format
 msgid "failed to create server socket '%s'"
 msgstr "సేవిక సాకెట్ '%s'ను సృష్టించుటలో విఫలమైంది"
 
-#: src/lxc/lxc_controller.c:656
+#: src/lxc/lxc_controller.c:657
 #, c-format
 msgid "Socket path %s too long for destination"
 msgstr "గమ్యము కొరకు సాకెట్ పాత్ %s మరీ పెద్దది"
 
-#: src/lxc/lxc_controller.c:662
+#: src/lxc/lxc_controller.c:663
 #, c-format
 msgid "failed to bind server socket '%s'"
 msgstr "సేవిక సాకెట్ '%s' బదనంచేయుటకు విఫలమైంది"
 
-#: src/lxc/lxc_controller.c:668
+#: src/lxc/lxc_controller.c:669
 #, c-format
 msgid "failed to listen server socket %s"
 msgstr "సేవిక సాకెట్ %s వినుటలో విఫలమైంది"
 
-#: src/lxc/lxc_controller.c:690
+#: src/lxc/lxc_controller.c:691
 #, c-format
 msgid "failed to apply capabilities: %d"
 msgstr "సామర్ధ్యములను ఆపాదించుటలో విఫలమైంది: %d"
 
-#: src/lxc/lxc_controller.c:789
+#: src/lxc/lxc_controller.c:790
 #, fuzzy
 msgid "Unable to read from monitor client"
 msgstr "Xen డెమోనునుండీ చదవటంలో విఫలమైంది"
 
-#: src/lxc/lxc_controller.c:818
+#: src/lxc/lxc_controller.c:819
 #, fuzzy
 msgid "Unable to accept monitor client"
 msgstr "pipe ను సృష్టించ లేక పోతోంది"
 
-#: src/lxc/lxc_controller.c:835 src/lxc/lxc_controller.c:1159
+#: src/lxc/lxc_controller.c:836 src/lxc/lxc_controller.c:1160
 #, fuzzy
 msgid "Unable to watch client socket"
 msgstr "కక్షిదారి సాకెట్ సృష్టించుటకు విఫలమైంది"
 
-#: src/lxc/lxc_controller.c:885 src/lxc/lxc_controller.c:921
+#: src/lxc/lxc_controller.c:886 src/lxc/lxc_controller.c:922
 #, fuzzy
 msgid "Unable to add epoll fd"
 msgstr "%sను తెరువలేక పోయింది"
 
-#: src/lxc/lxc_controller.c:896 src/lxc/lxc_controller.c:933
+#: src/lxc/lxc_controller.c:897 src/lxc/lxc_controller.c:934
 #, fuzzy
 msgid "Unable to remove epoll fd"
 msgstr "pipe ను సృష్టించ లేక పోతోంది"
 
-#: src/lxc/lxc_controller.c:963
+#: src/lxc/lxc_controller.c:964
 #, fuzzy
 msgid "Unable to wait on epoll"
 msgstr "'%s'ను చదివే ప్రోసెస్ కొరకు వేచివుండుటలో విఫలమైంది"
 
-#: src/lxc/lxc_controller.c:1021
+#: src/lxc/lxc_controller.c:1022
 #, fuzzy
 msgid "Unable to read container pty"
 msgstr "Xen డెమోనునుండీ చదవటంలో విఫలమైంది"
 
-#: src/lxc/lxc_controller.c:1049
+#: src/lxc/lxc_controller.c:1050
 #, fuzzy
 msgid "Unable to write to container pty"
 msgstr "pipeనకు వ్రాయలేక పోతోంది"
 
-#: src/lxc/lxc_controller.c:1118
+#: src/lxc/lxc_controller.c:1119
 #, fuzzy
 msgid "Cannot create signal pipe"
 msgstr "pipe ను సృష్టించ లేక పోతోంది"
 
-#: src/lxc/lxc_controller.c:1128
+#: src/lxc/lxc_controller.c:1129
 #, fuzzy
 msgid "Unable to watch signal pipe"
 msgstr "pipe ను సృష్టించ లేక పోతోంది"
 
-#: src/lxc/lxc_controller.c:1134
+#: src/lxc/lxc_controller.c:1135
 #, fuzzy
 msgid "Cannot install signal handler"
 msgstr "మరల్పు నేమ్‌స్పేస్‌ను భాగస్వామ్యపరచకుండా వుంచలేదు"
 
-#: src/lxc/lxc_controller.c:1148
+#: src/lxc/lxc_controller.c:1149
 #, fuzzy
 msgid "Unable to watch monitor socket"
 msgstr "%sను తెరువలేక పోయింది"
 
-#: src/lxc/lxc_controller.c:1181
+#: src/lxc/lxc_controller.c:1182
 #, fuzzy
 msgid "Unable to create epoll fd"
 msgstr "pipe ను సృష్టించ లేక పోతోంది"
 
-#: src/lxc/lxc_controller.c:1191
+#: src/lxc/lxc_controller.c:1192
 #, fuzzy
 msgid "Unable to watch epoll FD"
 msgstr "'%s'ను చదివే ప్రోసెస్ కొరకు వేచివుండుటలో విఫలమైంది"
 
-#: src/lxc/lxc_controller.c:1201 src/lxc/lxc_controller.c:1211
+#: src/lxc/lxc_controller.c:1202 src/lxc/lxc_controller.c:1212
 #, fuzzy
 msgid "Unable to watch host console PTY"
 msgstr "USB డిస్కు %sను జతచేయలేక పోతోంది: %s"
 
-#: src/lxc/lxc_controller.c:1305
+#: src/lxc/lxc_controller.c:1306
 #, fuzzy, c-format
 msgid "Unable to request personality for %s on %s"
 msgstr "డొమైన్ %s కొరకు మెమొరీ పరిమితిని అమర్చలేక పోయింది"
 
-#: src/lxc/lxc_controller.c:1400
+#: src/lxc/lxc_controller.c:1401
 msgid "sockpair failed"
 msgstr "sockpair విఫలమైంది"
 
-#: src/lxc/lxc_controller.c:1406
+#: src/lxc/lxc_controller.c:1407
 #, fuzzy
 msgid "socketpair failed"
 msgstr "sockpair విఫలమైంది"
 
-#: src/lxc/lxc_controller.c:1449
+#: src/lxc/lxc_controller.c:1450
 #, fuzzy, c-format
 msgid "root source %s does not exist"
 msgstr "ఇంటర్ఫేస్ %s లేదు"
 
-#: src/lxc/lxc_controller.c:1456
+#: src/lxc/lxc_controller.c:1457
 msgid "Cannot unshare mount namespace"
 msgstr "మరల్పు నేమ్‌స్పేస్‌ను భాగస్వామ్యపరచకుండా వుంచలేదు"
 
-#: src/lxc/lxc_controller.c:1462
+#: src/lxc/lxc_controller.c:1463
 msgid "Failed to switch root mount into slave mode"
 msgstr "root మరల్పును స్లేవ్ రీతినకు మార్చుటలో విఫలమైంది"
 
-#: src/lxc/lxc_controller.c:1474
+#: src/lxc/lxc_controller.c:1475
 #, c-format
 msgid "Failed to make path %s"
 msgstr "పాత్ %s చేయుటలో విఫలమైంది"
 
-#: src/lxc/lxc_controller.c:1483
+#: src/lxc/lxc_controller.c:1484
 #, fuzzy, c-format
 msgid "Failed to query file context on %s"
 msgstr "%s నిర్వచించబడని నెట్వర్కుకు విఫలమైంది"
 
-#: src/lxc/lxc_controller.c:1503
+#: src/lxc/lxc_controller.c:1504
 #, c-format
 msgid "Failed to mount devpts on %s"
 msgstr "%s పై devpts మరల్పు చేయుటకు విఫలమైంది"
 
-#: src/lxc/lxc_controller.c:1516
+#: src/lxc/lxc_controller.c:1517
 #, c-format
 msgid "Expected exactly one TTY fd, but got %zu"
 msgstr ""
 
-#: src/lxc/lxc_controller.c:1528 src/lxc/lxc_controller.c:1537
+#: src/lxc/lxc_controller.c:1529 src/lxc/lxc_controller.c:1538
 #: src/lxc/lxc_driver.c:1848
 msgid "Failed to allocate tty"
 msgstr "tty కేటాయించుటలో విఫలమైంది"
 
-#: src/lxc/lxc_controller.c:1563
+#: src/lxc/lxc_controller.c:1564
 msgid "Unable to send container continue message"
 msgstr "కంటైనర్ కొనసాగింపు సందేశమును పంపలేక పోయింది"
 
-#: src/lxc/lxc_controller.c:1569
+#: src/lxc/lxc_controller.c:1570
 #, fuzzy
 msgid "error receiving signal from container"
 msgstr "నెట్‌లింక్ సాకెట్‌నుండి స్వీకరించుటలో దోషము"
 
-#: src/lxc/lxc_controller.c:1586
+#: src/lxc/lxc_controller.c:1587
 msgid "error sending continue signal to parent"
 msgstr ""
 
-#: src/lxc/lxc_controller.c:1594 src/lxc/lxc_controller.c:1601
+#: src/lxc/lxc_controller.c:1595 src/lxc/lxc_controller.c:1602
 #, fuzzy
 msgid "Unable to set file descriptor non-blocking"
 msgstr "మానిటర్‌ను నాన్-బ్లాకింగ్ రీతినందు వుంచలేదు"
 
-#: src/lxc/lxc_controller.c:1815
+#: src/lxc/lxc_controller.c:1816
 #, c-format
 msgid "Unable to write pid file '%s/%s.pid'"
 msgstr "pid దస్త్రము '%s/%s.pid' వ్రాయలేక పోయింది"
 
-#: src/lxc/lxc_controller.c:1829
+#: src/lxc/lxc_controller.c:1830
 msgid "Unable to change to root dir"
 msgstr "root dirకు మార్చలేక పోయింది"
 
-#: src/lxc/lxc_controller.c:1835
+#: src/lxc/lxc_controller.c:1836
 msgid "Unable to become session leader"
 msgstr "విభాగపు లీడర్ కాలేక పోయింది"
 
-#: src/lxc/lxc_controller.c:1843
+#: src/lxc/lxc_controller.c:1844
 msgid "Failed to accept a connection from driver"
 msgstr "డ్రైవర్ నుండి అనుసంధానము ఆమోదించుటకు విఫలమైంది"
 
@@ -7285,12 +7285,12 @@ msgstr "ఏ కెర్నల్ తెలుపలేదు"
 msgid "Unsupported network type %s"
 msgstr "మద్దతీయని నెట్వర్కు రకము %d"
 
-#: src/lxc/lxc_driver.c:1422 src/qemu/qemu_process.c:1169
+#: src/lxc/lxc_driver.c:1422 src/qemu/qemu_process.c:1170
 #, fuzzy, c-format
 msgid "Failed to set security context for monitor for %s"
 msgstr "%s కొరకు మానిటర్‌కు అనుసంధానము అవుటలో విఫలమైంది"
 
-#: src/lxc/lxc_driver.c:1430 src/qemu/qemu_process.c:1202
+#: src/lxc/lxc_driver.c:1430 src/qemu/qemu_process.c:1203
 #, fuzzy, c-format
 msgid "Failed to clear security context for monitor for %s"
 msgstr "%s కొరకు మానిటర్‌కు అనుసంధానము అవుటలో విఫలమైంది"
@@ -7441,10 +7441,10 @@ msgstr "డొమైన్ యిప్పటికే నడుచుచున�
 #: src/qemu/qemu_driver.c:12146 src/qemu/qemu_driver.c:12277
 #: src/qemu/qemu_driver.c:12362 src/qemu/qemu_driver.c:12462
 #: src/qemu/qemu_driver.c:12725 src/qemu/qemu_driver.c:12800
-#: src/test/test_driver.c:2129 src/uml/uml_driver.c:1641
-#: src/uml/uml_driver.c:1666 src/uml/uml_driver.c:1699
-#: src/uml/uml_driver.c:2042 src/uml/uml_driver.c:2160
-#: src/uml/uml_driver.c:2393 src/vmware/vmware_driver.c:638
+#: src/test/test_driver.c:2129 src/uml/uml_driver.c:1642
+#: src/uml/uml_driver.c:1667 src/uml/uml_driver.c:1700
+#: src/uml/uml_driver.c:2043 src/uml/uml_driver.c:2161
+#: src/uml/uml_driver.c:2394 src/vmware/vmware_driver.c:638
 #, c-format
 msgid "no domain with matching uuid '%s'"
 msgstr "సరిపోలు uuid '%s'తో యెటువంటి డొమైన్ లేదు"
@@ -7470,7 +7470,7 @@ msgid "security DOI string exceeds max %d bytes"
 msgstr "రక్షణ DOI స్ట్రింగ్ గరిష్ట %d బైట్లను మించుతుంది"
 
 #: src/lxc/lxc_driver.c:2452 src/libxl/libxl_driver.c:148
-#: src/qemu/qemu_driver.c:175 src/uml/uml_driver.c:168
+#: src/qemu/qemu_driver.c:175 src/uml/uml_driver.c:169
 #, c-format
 msgid "Failed to autostart VM '%s': %s"
 msgstr "VM '%s' స్వయంచాలకప్రారంభమునకు విఫలమైంది: %s"
@@ -7581,14 +7581,14 @@ msgid "Cannot create autostart directory %s"
 msgstr "స్వయంచాలకప్రారంభ డైరెక్టరీ %sను సృష్టించలేదు"
 
 #: src/lxc/lxc_driver.c:3519 src/libxl/libxl_driver.c:3476
-#: src/qemu/qemu_driver.c:5939 src/uml/uml_driver.c:2279
+#: src/qemu/qemu_driver.c:5939 src/uml/uml_driver.c:2280
 #, c-format
 msgid "Failed to create symlink '%s to '%s'"
 msgstr "సిమ్‌లింకు  %s నుండి ' %s'కు సృష్టించుటలో విఫలమైంది"
 
 #: src/lxc/lxc_driver.c:3526 src/libxl/libxl_driver.c:3483
 #: src/network/bridge_driver.c:2660 src/qemu/qemu_driver.c:5946
-#: src/storage/storage_driver.c:1063 src/uml/uml_driver.c:2286
+#: src/storage/storage_driver.c:1063 src/uml/uml_driver.c:2287
 #, c-format
 msgid "Failed to delete symlink '%s'"
 msgstr "సిమ్‌లింకు '%s' తొలగించుటలో విఫలమైంది"
@@ -7601,17 +7601,17 @@ msgstr "సస్పెండ్ ఆపరేషన్ విఫలమైంద�
 msgid "Resume operation failed"
 msgstr "తిరిగికొనసాగింపు ఆపరేషన్ విఫలమైంది"
 
-#: src/lxc/lxc_driver.c:3800 src/uml/uml_driver.c:2420
+#: src/lxc/lxc_driver.c:3800 src/uml/uml_driver.c:2421
 #, fuzzy, c-format
 msgid "cannot find console device '%s'"
 msgstr "పరికరము '%s'ను మూయలేము"
 
-#: src/lxc/lxc_driver.c:3801 src/uml/uml_driver.c:2421
+#: src/lxc/lxc_driver.c:3801 src/uml/uml_driver.c:2422
 msgid "default"
 msgstr ""
 
 #: src/lxc/lxc_driver.c:3807 src/qemu/qemu_driver.c:11643
-#: src/uml/uml_driver.c:2427 src/xen/xen_driver.c:2159
+#: src/uml/uml_driver.c:2428 src/xen/xen_driver.c:2159
 #, fuzzy, c-format
 msgid "character device %s is not using a PTY"
 msgstr "కారెక్టర్ పరికర సమాచారము యెరే కాదు"
@@ -7619,7 +7619,7 @@ msgstr "కారెక్టర్ పరికర సమాచారము య
 #: src/libxl/libxl_driver.c:150 src/qemu/qemu_driver.c:169
 #: src/qemu/qemu_driver.c:177 src/qemu/qemu_hostdev.c:747
 #: src/qemu/qemu_hostdev.c:766 src/qemu/qemu_hostdev.c:815
-#: src/secret/secret_driver.c:505 src/uml/uml_driver.c:169
+#: src/secret/secret_driver.c:505 src/uml/uml_driver.c:170
 #: src/xenapi/xenapi_utils.c:266 tools/virsh.c:569 tools/virsh.c:17243
 msgid "unknown error"
 msgstr "తెలియని దోషము"
@@ -7722,7 +7722,7 @@ msgid "Failed to create save dir '%s': %s"
 msgstr "స్థితి dir '%s' సృష్టించుటకు విఫలమైంది: %s"
 
 #: src/libxl/libxl_driver.c:923 src/qemu/qemu_domain.c:1463
-#: src/uml/uml_driver.c:1016
+#: src/uml/uml_driver.c:1017
 #, c-format
 msgid "failed to create logfile %s"
 msgstr "లాగ్‌పైలు %sను సృష్టించుటకు విఫలమైంది"
@@ -7780,11 +7780,11 @@ msgstr "క్షేత్రాన్ని నాశనం చేయటంల�
 #: src/openvz/openvz_driver.c:559 src/openvz/openvz_driver.c:610
 #: src/openvz/openvz_driver.c:1087 src/openvz/openvz_driver.c:1136
 #: src/openvz/openvz_driver.c:1166 src/openvz/openvz_driver.c:1259
-#: src/uml/uml_driver.c:1611 src/uml/uml_driver.c:1736
-#: src/uml/uml_driver.c:1782 src/uml/uml_driver.c:1811
-#: src/uml/uml_driver.c:1863 src/uml/uml_driver.c:1942
-#: src/uml/uml_driver.c:2225 src/uml/uml_driver.c:2251
-#: src/uml/uml_driver.c:2326 src/vbox/vbox_tmpl.c:2035
+#: src/uml/uml_driver.c:1612 src/uml/uml_driver.c:1737
+#: src/uml/uml_driver.c:1783 src/uml/uml_driver.c:1812
+#: src/uml/uml_driver.c:1864 src/uml/uml_driver.c:1943
+#: src/uml/uml_driver.c:2226 src/uml/uml_driver.c:2252
+#: src/uml/uml_driver.c:2327 src/vbox/vbox_tmpl.c:2035
 #: src/vbox/vbox_tmpl.c:2095 src/vbox/vbox_tmpl.c:5265
 #: src/vbox/vbox_tmpl.c:5362 src/vbox/vbox_tmpl.c:5599
 #: src/vbox/vbox_tmpl.c:8631 src/vbox/vbox_tmpl.c:8996
@@ -7806,7 +7806,7 @@ msgid "Failed to set maximum memory for domain '%d' with libxenlight"
 msgstr "క్షేత్రాన్ని పునఃప్రారంభించటంలో వైఫల్యం %s"
 
 #: src/libxl/libxl_driver.c:1695 src/qemu/qemu_driver.c:2009
-#: src/uml/uml_driver.c:1711
+#: src/uml/uml_driver.c:1712
 msgid "cannot set memory higher than max memory"
 msgstr "గరిష్ట మెమొరీకన్నా యెక్కువగా మెమొరీని అమర్చలేము"
 
@@ -7945,7 +7945,7 @@ msgid "parsing xm config failed"
 msgstr "పూల్ ఆకృతీకరణ ఫైలును కలిగిలేదు"
 
 #: src/libxl/libxl_driver.c:2783 src/qemu/qemu_driver.c:5068
-#: src/uml/uml_driver.c:1948 src/vmware/vmware_driver.c:644
+#: src/uml/uml_driver.c:1949 src/vmware/vmware_driver.c:644
 msgid "cannot undefine transient domain"
 msgstr "ట్రాన్సియన్టు డొమైన్‌ను అనిర్వచనీయము చేయలేము"
 
@@ -7977,13 +7977,13 @@ msgstr "చతనం గాని డొమైన్ %s ని సృష్ట�
 
 #: src/libxl/libxl_driver.c:2910 src/qemu/qemu_hotplug.c:214
 #: src/qemu/qemu_hotplug.c:444 src/qemu/qemu_hotplug.c:567
-#: src/uml/uml_driver.c:1988
+#: src/uml/uml_driver.c:1989
 #, c-format
 msgid "target %s already exists"
 msgstr "లక్ష్యము %s యిప్పటికే వుంది"
 
 #: src/libxl/libxl_driver.c:2916 src/qemu/qemu_hotplug.c:585
-#: src/uml/uml_driver.c:1995
+#: src/uml/uml_driver.c:1996
 msgid "disk source path is missing"
 msgstr "డిస్కు మూలము పాత్ తప్పిపోయింది"
 
@@ -7993,7 +7993,7 @@ msgid "libxenlight failed to attach disk '%s'"
 msgstr "చతనం గాని డొమైన్ %s ని సృష్టించుటలో విఫలం\n"
 
 #: src/libxl/libxl_driver.c:2940 src/qemu/qemu_driver.c:5191
-#: src/uml/uml_driver.c:2065
+#: src/uml/uml_driver.c:2066
 #, c-format
 msgid "disk bus '%s' cannot be hotplugged."
 msgstr "డిస్కు బస్ '%s' హాట్‌ప్లగ్ కాలేదు"
@@ -8004,7 +8004,7 @@ msgid "disk device type '%s' cannot be hotplugged"
 msgstr "డిస్కు పరికరము '%s' హాట్‌ప్లగ్ కాలేదు"
 
 #: src/libxl/libxl_driver.c:2973 src/qemu/qemu_hotplug.c:1643
-#: src/qemu/qemu_hotplug.c:1747 src/uml/uml_driver.c:2119
+#: src/qemu/qemu_hotplug.c:1747 src/uml/uml_driver.c:2120
 #, c-format
 msgid "disk %s not found"
 msgstr "డిస్కు %s కనబడలేదు"
@@ -8025,7 +8025,7 @@ msgid "device type '%s' cannot hot unplugged"
 msgstr "డిస్కు పరికరము '%s' హాట్‌ప్లగ్ కాలేదు"
 
 #: src/libxl/libxl_driver.c:3025 src/qemu/qemu_driver.c:5287
-#: src/uml/uml_driver.c:2070
+#: src/uml/uml_driver.c:2071
 #, c-format
 msgid "device type '%s' cannot be attached"
 msgstr "పరికరము రకము '%s' అనుభందిచలేక పోయింది"
@@ -8092,12 +8092,12 @@ msgid "unknown domain modify action %d"
 msgstr "తెలియని జీవితచక్ర చర్య %s"
 
 #: src/libxl/libxl_driver.c:3454 src/qemu/qemu_driver.c:5917
-#: src/uml/uml_driver.c:2257
+#: src/uml/uml_driver.c:2258
 msgid "cannot set autostart for transient domain"
 msgstr "ట్రాన్సియంట్ డొమైన్ కొరకు స్వయంచాలక డొమైన్‌ను అమర్చలేదు"
 
 #: src/libxl/libxl_driver.c:3469 src/qemu/qemu_driver.c:5932
-#: src/storage/storage_driver.c:1048 src/uml/uml_driver.c:2272
+#: src/storage/storage_driver.c:1048 src/uml/uml_driver.c:2273
 #, c-format
 msgid "cannot create autostart directory %s"
 msgstr "%s కొరకు స్వయంచాలక డైరెక్టరీను సృష్టించలేదు"
@@ -8148,7 +8148,7 @@ msgstr "xen బస్ అనునది %s ఇన్‌పుట్ పరి�
 msgid "scripts are not supported on interfaces of type %s"
 msgstr "ఈథర్నెట్ యింటర్ఫేస్ కొరకు లిపి నిర్వర్తనము మద్దతించబడదు"
 
-#: src/libxl/libxl_conf.c:701 src/qemu/qemu_process.c:3384
+#: src/libxl/libxl_conf.c:701 src/qemu/qemu_process.c:3385
 msgid "Unable to find an unused VNC port"
 msgstr "ఉపయోగించని VNC పోర్టును కనుగొనలేక పోయింది"
 
@@ -8609,7 +8609,7 @@ msgid "udev_monitor_new_from_netlink returned NULL"
 msgstr ""
 
 #: src/nodeinfo.c:109 src/nodeinfo.c:155 src/nodeinfo.c:634 src/nodeinfo.c:677
-#: src/nodeinfo.c:741 src/uml/uml_driver.c:2348 src/util/command.c:358
+#: src/nodeinfo.c:741 src/uml/uml_driver.c:2349 src/util/command.c:359
 #: src/util/pci.c:1633
 #, c-format
 msgid "cannot open %s"
@@ -9440,169 +9440,169 @@ msgid ""
 "support to enable this feature."
 msgstr ""
 
-#: src/qemu/qemu_agent.c:196 src/qemu/qemu_monitor.c:278
+#: src/qemu/qemu_agent.c:197 src/qemu/qemu_monitor.c:279
 msgid "failed to create socket"
 msgstr "సాకెట్ సృష్టించుటలో విఫలమైంది"
 
-#: src/qemu/qemu_agent.c:202 src/qemu/qemu_monitor.c:753
+#: src/qemu/qemu_agent.c:203 src/qemu/qemu_monitor.c:754
 msgid "Unable to put monitor into non-blocking mode"
 msgstr "మానిటర్‌ను నాన్-బ్లాకింగ్ రీతినందు వుంచలేదు"
 
-#: src/qemu/qemu_agent.c:208 src/qemu/qemu_agent.c:273
-#: src/qemu/qemu_monitor.c:748
+#: src/qemu/qemu_agent.c:209 src/qemu/qemu_agent.c:274
+#: src/qemu/qemu_monitor.c:749
 msgid "Unable to set monitor close-on-exec flag"
 msgstr "మానిటర్‌కు close-on-exec ఫ్లాగ్‌ను అమర్చలేక పోయింది"
 
-#: src/qemu/qemu_agent.c:216
+#: src/qemu/qemu_agent.c:217
 #, fuzzy, c-format
 msgid "Agent path %s too big for destination"
 msgstr "గమ్యమునకు సాకెట్ పాత్ %s మరీ పెద్దది"
 
-#: src/qemu/qemu_agent.c:242 src/qemu/qemu_monitor.c:304
+#: src/qemu/qemu_agent.c:243 src/qemu/qemu_monitor.c:305
 msgid "failed to connect to monitor socket"
 msgstr "మానిటర్ సాకెట్‌నకు అనుసంధానించుటకు విఫలమైంది"
 
-#: src/qemu/qemu_agent.c:249 src/qemu/qemu_monitor.c:311
+#: src/qemu/qemu_agent.c:250 src/qemu/qemu_monitor.c:312
 msgid "monitor socket did not show up."
 msgstr "మానిటర్ సాకెట్ చూపించబడుట లేదు."
 
-#: src/qemu/qemu_agent.c:267 src/qemu/qemu_monitor.c:329
+#: src/qemu/qemu_agent.c:268 src/qemu/qemu_monitor.c:330
 #, c-format
 msgid "Unable to open monitor path %s"
 msgstr "మానిటర్ పాత్ %sను తెరువలేక పోయింది"
 
-#: src/qemu/qemu_agent.c:329 src/qemu/qemu_monitor_json.c:146
+#: src/qemu/qemu_agent.c:330 src/qemu/qemu_monitor_json.c:146
 #, c-format
 msgid "Parsed JSON reply '%s' isn't an object"
 msgstr ""
 
-#: src/qemu/qemu_agent.c:360 src/qemu/qemu_monitor_json.c:167
+#: src/qemu/qemu_agent.c:361 src/qemu/qemu_monitor_json.c:167
 #, fuzzy, c-format
 msgid "Unexpected JSON reply '%s'"
 msgstr "అనుకోని CPU సౌలభ్యపు విధానము %d"
 
-#: src/qemu/qemu_agent.c:364 src/qemu/qemu_monitor_json.c:171
+#: src/qemu/qemu_agent.c:365 src/qemu/qemu_monitor_json.c:171
 #, fuzzy, c-format
 msgid "Unknown JSON reply '%s'"
 msgstr "తెలియని రకము '%s'"
 
-#: src/qemu/qemu_agent.c:429
+#: src/qemu/qemu_agent.c:430
 #, c-format
 msgid "Process %zu %p %p [[[%s]]][[[%s]]]"
 msgstr ""
 
-#: src/qemu/qemu_agent.c:476
+#: src/qemu/qemu_agent.c:477
 #, fuzzy
 msgid "Cannot check socket connection status"
 msgstr "చిరునామా %dను పరిష్కరించలేదు: %s"
 
-#: src/qemu/qemu_agent.c:482
+#: src/qemu/qemu_agent.c:483
 #, fuzzy
 msgid "Cannot connect to agent socket"
 msgstr "నెట్‌లింక్ సాకెట్‌నకు పంపలేదు"
 
-#: src/qemu/qemu_agent.c:512 src/qemu/qemu_monitor.c:482
+#: src/qemu/qemu_agent.c:513 src/qemu/qemu_monitor.c:483
 #, fuzzy
 msgid "Unable to write to monitor"
 msgstr "pipeనకు వ్రాయలేక పోతోంది"
 
-#: src/qemu/qemu_agent.c:552 src/qemu/qemu_monitor.c:522
+#: src/qemu/qemu_agent.c:553 src/qemu/qemu_monitor.c:523
 #, fuzzy
 msgid "Unable to read from monitor"
 msgstr "Xen డెమోనునుండీ చదవటంలో విఫలమైంది"
 
-#: src/qemu/qemu_agent.c:607 src/qemu/qemu_monitor.c:577
+#: src/qemu/qemu_agent.c:608 src/qemu/qemu_monitor.c:578
 #, fuzzy, c-format
 msgid "event from unexpected fd %d!=%d / watch %d!=%d"
 msgstr "అనుకోని pid %d != %d పొందింది"
 
-#: src/qemu/qemu_agent.c:647 src/qemu/qemu_monitor.c:612
+#: src/qemu/qemu_agent.c:648 src/qemu/qemu_monitor.c:613
 msgid "End of file from monitor"
 msgstr ""
 
-#: src/qemu/qemu_agent.c:655 src/qemu/qemu_monitor.c:620
+#: src/qemu/qemu_agent.c:656 src/qemu/qemu_monitor.c:621
 msgid "Invalid file descriptor while waiting for monitor"
 msgstr ""
 
-#: src/qemu/qemu_agent.c:661 src/qemu/qemu_monitor.c:626
+#: src/qemu/qemu_agent.c:662 src/qemu/qemu_monitor.c:627
 #, fuzzy, c-format
 msgid "Unhandled event %d for monitor fd %d"
 msgstr "మానిటర్ fd %2$d కొరకు సంభాలించని fd ఘటన %1$d"
 
-#: src/qemu/qemu_agent.c:675 src/qemu/qemu_monitor.c:640
+#: src/qemu/qemu_agent.c:676 src/qemu/qemu_monitor.c:641
 #, fuzzy
 msgid "Error while processing monitor IO"
 msgstr "%s చిరునామా సమాచారము పొందుటలో దోషము"
 
-#: src/qemu/qemu_agent.c:732 src/qemu/qemu_monitor.c:698
+#: src/qemu/qemu_agent.c:733 src/qemu/qemu_monitor.c:699
 msgid "EOF notify callback must be supplied"
 msgstr "EOF నోటిఫై కాల్‌బ్యాక్ తప్పక అందివ్వబడాలి"
 
-#: src/qemu/qemu_agent.c:743 src/qemu/qemu_monitor.c:709
+#: src/qemu/qemu_agent.c:744 src/qemu/qemu_monitor.c:710
 msgid "cannot initialize monitor mutex"
 msgstr "మానిటర్ మ్యూటెక్సును సిద్ధీకరించలేము"
 
-#: src/qemu/qemu_agent.c:749 src/qemu/qemu_monitor.c:715
+#: src/qemu/qemu_agent.c:750 src/qemu/qemu_monitor.c:716
 msgid "cannot initialize monitor condition"
 msgstr "మానిటర్ స్థితిని సిద్ధీకరించలేదు"
 
-#: src/qemu/qemu_agent.c:772 src/qemu/qemu_monitor.c:739
+#: src/qemu/qemu_agent.c:773 src/qemu/qemu_monitor.c:740
 #, c-format
 msgid "unable to handle monitor type: %s"
 msgstr "మానిటర్ రకమును సంభాలించలేక పోయింది: %s"
 
-#: src/qemu/qemu_agent.c:790 src/qemu/qemu_monitor.c:765
+#: src/qemu/qemu_agent.c:791 src/qemu/qemu_monitor.c:766
 msgid "unable to register monitor events"
 msgstr "మానిటర్ ఘటనలను నమోదుచేయలేక పోయింది"
 
-#: src/qemu/qemu_agent.c:877
+#: src/qemu/qemu_agent.c:878
 #, fuzzy
 msgid "Guest agent not available for now"
 msgstr "cpu ఎఫినిటి అందుబాటులో లేదు"
 
-#: src/qemu/qemu_agent.c:881 src/qemu/qemu_monitor.c:866
+#: src/qemu/qemu_agent.c:882 src/qemu/qemu_monitor.c:867
 #, fuzzy
 msgid "Unable to wait on monitor condition"
 msgstr "నియమముపై వేచివుండుటకు విఫలమైంది"
 
-#: src/qemu/qemu_agent.c:950 src/qemu/qemu_agent.c:1014
+#: src/qemu/qemu_agent.c:951 src/qemu/qemu_agent.c:1015
 #: src/qemu/qemu_monitor_json.c:263
 #, fuzzy
 msgid "Missing monitor reply object"
 msgstr "మానిటర్ ఆదేశము '%s'ను పంపలేదు"
 
-#: src/qemu/qemu_agent.c:957
+#: src/qemu/qemu_agent.c:958
 #, fuzzy
 msgid "Malformed return value"
 msgstr "తప్పుగాపార్మైన వాల్యూమ్ పొడిగింపు పరిమాణము విలువ"
 
-#: src/qemu/qemu_agent.c:964
+#: src/qemu/qemu_agent.c:965
 #, c-format
 msgid "Guest agent returned ID: %llu instead of %llu"
 msgstr ""
 
-#: src/qemu/qemu_agent.c:1112 src/qemu/qemu_agent.c:1130
+#: src/qemu/qemu_agent.c:1113 src/qemu/qemu_agent.c:1131
 #: src/qemu/qemu_monitor_json.c:336 src/qemu/qemu_monitor_json.c:354
 #, c-format
 msgid "unable to execute QEMU command '%s'"
 msgstr "QEMU ఆదేశం '%s'ను నిర్వర్తించలేదు"
 
-#: src/qemu/qemu_agent.c:1116 src/qemu/qemu_monitor_json.c:340
+#: src/qemu/qemu_agent.c:1117 src/qemu/qemu_monitor_json.c:340
 #, c-format
 msgid "unable to execute QEMU command '%s': %s"
 msgstr "QEMU ఆదేశము '%s' నిర్వర్తించలేదు: %s"
 
-#: src/qemu/qemu_agent.c:1162 src/qemu/qemu_monitor_json.c:414
+#: src/qemu/qemu_agent.c:1163 src/qemu/qemu_monitor_json.c:414
 #, c-format
 msgid "argument key '%s' is too short, missing type prefix"
 msgstr "ఆర్గుమెంట్ కీ '%s' మరీ చిన్నది, తప్పిపోయిన టైప్ ప్రిఫిక్స్"
 
-#: src/qemu/qemu_agent.c:1216 src/qemu/qemu_monitor_json.c:477
+#: src/qemu/qemu_agent.c:1217 src/qemu/qemu_monitor_json.c:477
 #, c-format
 msgid "unsupported data type '%c' for arg '%s'"
 msgstr "మద్దతీయని డాటా రకము '%c'  arg '%s' కొరకు"
 
-#: src/qemu/qemu_agent.c:1297 src/qemu/qemu_agent.c:1334
+#: src/qemu/qemu_agent.c:1298 src/qemu/qemu_agent.c:1335
 #, fuzzy
 msgid "malformed return value"
 msgstr "తప్పుగాపార్మైన వాల్యూమ్ పొడిగింపు పరిమాణము విలువ"
@@ -10956,8 +10956,8 @@ msgstr "అనుకోని QEMU URI పాత్ '%s',  qemu:///system ప్
 msgid "unexpected QEMU URI path '%s', try qemu:///session"
 msgstr "అనుకోని QEMU URI పాత్ '%s', qemu:///session ప్రయత్నించుము"
 
-#: src/qemu/qemu_driver.c:1177 src/uml/uml_driver.c:1528
-#: src/uml/uml_driver.c:1569 src/vbox/vbox_tmpl.c:1229
+#: src/qemu/qemu_driver.c:1177 src/uml/uml_driver.c:1529
+#: src/uml/uml_driver.c:1570 src/vbox/vbox_tmpl.c:1229
 #: src/vbox/vbox_tmpl.c:1516 src/vbox/vbox_tmpl.c:1568
 #: src/vbox/vbox_tmpl.c:1622 src/vbox/vbox_tmpl.c:1680
 #: src/vbox/vbox_tmpl.c:1731 src/vbox/vbox_tmpl.c:1807
@@ -10973,8 +10973,8 @@ msgid "no domain with matching name '%s'"
 msgstr "సరిపోలు నామము '%s'తో ఏ డొమైన్ లేదు"
 
 #: src/qemu/qemu_driver.c:1546 src/qemu/qemu_migration.c:3006
-#: src/qemu/qemu_migration.c:3133 src/qemu/qemu_process.c:574
-#: src/qemu/qemu_process.c:3737
+#: src/qemu/qemu_migration.c:3133 src/qemu/qemu_process.c:575
+#: src/qemu/qemu_process.c:3738
 msgid "resume operation failed"
 msgstr "ఆపరేషన్ తిరిగికొనసాగింపు విఫలమైంది"
 
@@ -11009,7 +11009,7 @@ msgstr ""
 msgid "cannot resize the maximum memory on an active domain"
 msgstr "క్రియాశీల డొమైన్‌యొక్క మెమొరీని అమర్చలేము"
 
-#: src/qemu/qemu_driver.c:2026 src/uml/uml_driver.c:1705
+#: src/qemu/qemu_driver.c:2026 src/uml/uml_driver.c:1706
 msgid "cannot set memory of an active domain"
 msgstr "క్రియాశీల డొమైన్‌యొక్క మెమొరీని అమర్చలేము"
 
@@ -11018,7 +11018,7 @@ msgstr "క్రియాశీల డొమైన్‌యొక్క మె�
 msgid "cannot translate keycode %u of %s codeset to rfb keycode"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:2209 src/uml/uml_driver.c:1747
+#: src/qemu/qemu_driver.c:2209 src/uml/uml_driver.c:1748
 msgid "cannot read cputime for domain"
 msgstr "డొమైన్ కొరకు cputime చదువలేము"
 
@@ -11064,7 +11064,7 @@ msgstr "డొమైన్ %s స్వయంచాలకప్రారంభ�
 #: src/qemu/qemu_hotplug.c:419 src/qemu/qemu_hotplug.c:788
 #: src/qemu/qemu_migration.c:1927 src/qemu/qemu_migration.c:2228
 #: src/qemu/qemu_migration.c:2552 src/qemu/qemu_migration.c:2937
-#: src/qemu/qemu_process.c:552 src/qemu/qemu_process.c:565
+#: src/qemu/qemu_process.c:553 src/qemu/qemu_process.c:566
 #, fuzzy
 msgid "guest unexpectedly quit"
 msgstr "మైగ్రేషన్ అనుకోకుండా విఫలమైంది"
@@ -11149,7 +11149,7 @@ msgstr "popen విఫలమైంది"
 msgid "Resuming after dump failed"
 msgstr "డంపు తర్వాత కొనసాగించుట విఫలమైంది"
 
-#: src/qemu/qemu_driver.c:3401 src/qemu/qemu_process.c:1636
+#: src/qemu/qemu_driver.c:3401 src/qemu/qemu_process.c:1637
 #, c-format
 msgid "got wrong number of vCPU pids from QEMU monitor. got %d, wanted %d"
 msgstr "QEMU మానిటర్ నుండి సరికాని సంఖ్యలో vCPU pidలు పొందినది. %d పొందినది, కోరుకున్నది %d"
@@ -11174,7 +11174,7 @@ msgstr "క్రియాశీల డొమైన్‌ను తొలగి�
 msgid "vcpu number out of range %d > %d"
 msgstr "vcpu సంఖ్య స్థాయిని దాటివుంది %d > %d"
 
-#: src/qemu/qemu_driver.c:3608 src/qemu/qemu_process.c:1932
+#: src/qemu/qemu_driver.c:3608 src/qemu/qemu_process.c:1933
 msgid "cpu affinity is not supported"
 msgstr "cpu ఎఫినిటి మద్దతీయుటలేదు"
 
@@ -11277,7 +11277,7 @@ msgstr "మద్దతీయని డిస్కురకము '%s'"
 msgid "disk controller bus '%s' cannot be hotplugged."
 msgstr "డిస్కు నియంత్రణి బస్ '%s' హాట్‌ప్లగ్ చేయబడలేదు."
 
-#: src/qemu/qemu_driver.c:5314 src/uml/uml_driver.c:2181
+#: src/qemu/qemu_driver.c:5314 src/uml/uml_driver.c:2182
 #, fuzzy
 msgid "This type of disk cannot be hot unplugged"
 msgstr "ఈ రకమైన పరికరము హాట్ అన్‌ప్లగ్ కాలేదు"
@@ -11292,7 +11292,7 @@ msgstr "పరికరము రకము '%s' అనుభందిచలే�
 msgid "disk controller bus '%s' cannot be hotunplugged."
 msgstr "డిస్కు నియంత్రణి బస్ '%s' హాట్అన్‌ప్లగ్ కాలేదు"
 
-#: src/qemu/qemu_driver.c:5371 src/uml/uml_driver.c:2185
+#: src/qemu/qemu_driver.c:5371 src/uml/uml_driver.c:2186
 msgid "This type of device cannot be hot unplugged"
 msgstr "ఈ రకమైన పరికరము హాట్ అన్‌ప్లగ్ కాలేదు"
 
@@ -11431,11 +11431,11 @@ msgid "cannot get RSS for domain"
 msgstr "డొమైన్ కొరకు cputime చదువలేము"
 
 #: src/qemu/qemu_driver.c:8282 src/qemu/qemu_driver.c:8447
-#: src/uml/uml_driver.c:2332
+#: src/uml/uml_driver.c:2333
 msgid "NULL or empty path"
 msgstr "NULL లేదా ఖాళీ పాత్"
 
-#: src/qemu/qemu_driver.c:8289 src/uml/uml_driver.c:2339
+#: src/qemu/qemu_driver.c:8289 src/uml/uml_driver.c:2340
 #, fuzzy, c-format
 msgid "invalid path '%s'"
 msgstr "సరికాని పాత్: %s"
@@ -12436,118 +12436,118 @@ msgstr "డొమైన్ వలసపంప బడలేదు"
 msgid "domain '%s' is not being migrated"
 msgstr "డొమైన్ వలసపంప బడలేదు"
 
-#: src/qemu/qemu_monitor.c:286
+#: src/qemu/qemu_monitor.c:287
 #, c-format
 msgid "Monitor path %s too big for destination"
 msgstr "గమ్యమునకు మానిటర్ పాత్ %s మరీ పెద్దది"
 
-#: src/qemu/qemu_monitor.c:356
+#: src/qemu/qemu_monitor.c:357
 #, c-format
 msgid "Process %d %p %p [[[[%s]]][[[%s]]]"
 msgstr ""
 
-#: src/qemu/qemu_monitor.c:451
+#: src/qemu/qemu_monitor.c:452
 #, fuzzy
 msgid "Monitor does not support sending of file descriptors"
 msgstr "qemu ఫైల్ సంభాలికలను పంపుట మద్దతించదు: %s"
 
-#: src/qemu/qemu_monitor.c:813
+#: src/qemu/qemu_monitor.c:814
 msgid "Qemu monitor was closed"
 msgstr ""
 
-#: src/qemu/qemu_monitor.c:902
+#: src/qemu/qemu_monitor.c:903
 #, fuzzy
 msgid "Unable to unescape command"
 msgstr "డొమైన్ %s కొరకు cgroup సృష్టించలేక పోయింది"
 
-#: src/qemu/qemu_monitor.c:1095 src/qemu/qemu_monitor.c:1139
-#: src/qemu/qemu_monitor.c:1159 src/qemu/qemu_monitor.c:1200
-#: src/qemu/qemu_monitor.c:1219 src/qemu/qemu_monitor.c:1239
-#: src/qemu/qemu_monitor.c:1278 src/qemu/qemu_monitor.c:1298
-#: src/qemu/qemu_monitor.c:1319 src/qemu/qemu_monitor.c:1366
-#: src/qemu/qemu_monitor.c:1420 src/qemu/qemu_monitor.c:1456
-#: src/qemu/qemu_monitor.c:1509 src/qemu/qemu_monitor.c:1555
-#: src/qemu/qemu_monitor.c:1587 src/qemu/qemu_monitor.c:1609
-#: src/qemu/qemu_monitor.c:1628 src/qemu/qemu_monitor.c:1649
-#: src/qemu/qemu_monitor.c:1672 src/qemu/qemu_monitor.c:1695
-#: src/qemu/qemu_monitor.c:1717 src/qemu/qemu_monitor.c:1737
-#: src/qemu/qemu_monitor.c:1757 src/qemu/qemu_monitor.c:1780
-#: src/qemu/qemu_monitor.c:1808 src/qemu/qemu_monitor.c:1841
-#: src/qemu/qemu_monitor.c:1873 src/qemu/qemu_monitor.c:1915
-#: src/qemu/qemu_monitor.c:1980 src/qemu/qemu_monitor.c:2005
-#: src/qemu/qemu_monitor.c:2055 src/qemu/qemu_monitor.c:2076
-#: src/qemu/qemu_monitor.c:2097 src/qemu/qemu_monitor.c:2120
-#: src/qemu/qemu_monitor.c:2143 src/qemu/qemu_monitor.c:2164
-#: src/qemu/qemu_monitor.c:2186 src/qemu/qemu_monitor.c:2208
-#: src/qemu/qemu_monitor.c:2246 src/qemu/qemu_monitor.c:2277
-#: src/qemu/qemu_monitor.c:2316 src/qemu/qemu_monitor.c:2341
-#: src/qemu/qemu_monitor.c:2378 src/qemu/qemu_monitor.c:2399
-#: src/qemu/qemu_monitor.c:2420 src/qemu/qemu_monitor.c:2446
-#: src/qemu/qemu_monitor.c:2466 src/qemu/qemu_monitor.c:2485
-#: src/qemu/qemu_monitor.c:2504 src/qemu/qemu_monitor.c:2527
-#: src/qemu/qemu_monitor.c:2561 src/qemu/qemu_monitor.c:2582
-#: src/qemu/qemu_monitor.c:2601 src/qemu/qemu_monitor.c:2620
-#: src/qemu/qemu_monitor.c:2639 src/qemu/qemu_monitor.c:2665
-#: src/qemu/qemu_monitor.c:2755 src/qemu/qemu_monitor.c:2896
-#: src/qemu/qemu_monitor.c:2922
+#: src/qemu/qemu_monitor.c:1096 src/qemu/qemu_monitor.c:1140
+#: src/qemu/qemu_monitor.c:1160 src/qemu/qemu_monitor.c:1201
+#: src/qemu/qemu_monitor.c:1220 src/qemu/qemu_monitor.c:1240
+#: src/qemu/qemu_monitor.c:1279 src/qemu/qemu_monitor.c:1299
+#: src/qemu/qemu_monitor.c:1320 src/qemu/qemu_monitor.c:1367
+#: src/qemu/qemu_monitor.c:1421 src/qemu/qemu_monitor.c:1457
+#: src/qemu/qemu_monitor.c:1510 src/qemu/qemu_monitor.c:1556
+#: src/qemu/qemu_monitor.c:1588 src/qemu/qemu_monitor.c:1610
+#: src/qemu/qemu_monitor.c:1629 src/qemu/qemu_monitor.c:1650
+#: src/qemu/qemu_monitor.c:1673 src/qemu/qemu_monitor.c:1696
+#: src/qemu/qemu_monitor.c:1718 src/qemu/qemu_monitor.c:1738
+#: src/qemu/qemu_monitor.c:1758 src/qemu/qemu_monitor.c:1781
+#: src/qemu/qemu_monitor.c:1809 src/qemu/qemu_monitor.c:1842
+#: src/qemu/qemu_monitor.c:1874 src/qemu/qemu_monitor.c:1916
+#: src/qemu/qemu_monitor.c:1981 src/qemu/qemu_monitor.c:2006
+#: src/qemu/qemu_monitor.c:2056 src/qemu/qemu_monitor.c:2077
+#: src/qemu/qemu_monitor.c:2098 src/qemu/qemu_monitor.c:2121
+#: src/qemu/qemu_monitor.c:2144 src/qemu/qemu_monitor.c:2165
+#: src/qemu/qemu_monitor.c:2187 src/qemu/qemu_monitor.c:2209
+#: src/qemu/qemu_monitor.c:2247 src/qemu/qemu_monitor.c:2278
+#: src/qemu/qemu_monitor.c:2317 src/qemu/qemu_monitor.c:2342
+#: src/qemu/qemu_monitor.c:2379 src/qemu/qemu_monitor.c:2400
+#: src/qemu/qemu_monitor.c:2421 src/qemu/qemu_monitor.c:2447
+#: src/qemu/qemu_monitor.c:2467 src/qemu/qemu_monitor.c:2486
+#: src/qemu/qemu_monitor.c:2505 src/qemu/qemu_monitor.c:2528
+#: src/qemu/qemu_monitor.c:2562 src/qemu/qemu_monitor.c:2583
+#: src/qemu/qemu_monitor.c:2602 src/qemu/qemu_monitor.c:2621
+#: src/qemu/qemu_monitor.c:2640 src/qemu/qemu_monitor.c:2666
+#: src/qemu/qemu_monitor.c:2756 src/qemu/qemu_monitor.c:2897
+#: src/qemu/qemu_monitor.c:2923
 msgid "monitor must not be NULL"
 msgstr ""
 
-#: src/qemu/qemu_monitor.c:1181
+#: src/qemu/qemu_monitor.c:1182
 msgid "both monitor and running must not be NULL"
 msgstr ""
 
-#: src/qemu/qemu_monitor.c:1259
+#: src/qemu/qemu_monitor.c:1260
 msgid "monitor || name must not be NULL"
 msgstr ""
 
-#: src/qemu/qemu_monitor.c:1337
+#: src/qemu/qemu_monitor.c:1338
 #, fuzzy, c-format
 msgid "unknown block IO status: %s"
 msgstr "తెలియని క్లాక్ ఆఫ్‌సెట్ '%s'"
 
-#: src/qemu/qemu_monitor.c:1396
+#: src/qemu/qemu_monitor.c:1397
 #, fuzzy, c-format
 msgid "cannot find info for device '%s'"
 msgstr "పరికరము '%s' కొరకు గణాంకాలను కనుగొనలేము"
 
-#: src/qemu/qemu_monitor.c:1532
+#: src/qemu/qemu_monitor.c:1533
 #, fuzzy, c-format
 msgid "unsupported protocol type %s"
 msgstr "మద్దతీయని నిభందన రకము '%s'"
 
-#: src/qemu/qemu_monitor.c:1921
+#: src/qemu/qemu_monitor.c:1922
 #, c-format
 msgid "file offset must be a multiple of %llu"
 msgstr ""
 
-#: src/qemu/qemu_monitor.c:2214
+#: src/qemu/qemu_monitor.c:2215
 msgid "fd must be valid"
 msgstr ""
 
-#: src/qemu/qemu_monitor.c:2220
+#: src/qemu/qemu_monitor.c:2221
 #, c-format
 msgid "qemu is not using a unix socket monitor, cannot send fd %s"
 msgstr ""
 
-#: src/qemu/qemu_monitor.c:2675
+#: src/qemu/qemu_monitor.c:2676
 msgid "text monitor lacks several snapshot features"
 msgstr ""
 
-#: src/qemu/qemu_monitor.c:2695
+#: src/qemu/qemu_monitor.c:2696
 msgid "transaction requires JSON monitor"
 msgstr ""
 
-#: src/qemu/qemu_monitor.c:2785
+#: src/qemu/qemu_monitor.c:2786
 #, c-format
 msgid "bandwidth must be less than %llu"
 msgstr ""
 
-#: src/qemu/qemu_monitor.c:2796
+#: src/qemu/qemu_monitor.c:2797
 msgid "block jobs require JSON monitor"
 msgstr ""
 
-#: src/qemu/qemu_monitor.c:2928
+#: src/qemu/qemu_monitor.c:2929
 msgid "JSON monitor is required"
 msgstr ""
 
@@ -13443,220 +13443,220 @@ msgstr "మానిటర్ ఆదేశము '%s'ను పంపలేద�
 msgid "No info for device '%s'"
 msgstr "పరికరము %s కొరకు యెటువంటి గణాంకాలు కనబడలేదు"
 
-#: src/qemu/qemu_process.c:219
+#: src/qemu/qemu_process.c:220
 #, fuzzy, c-format
 msgid "Failed to set security context for agent for %s"
 msgstr "%s కొరకు మానిటర్‌కు అనుసంధానము అవుటలో విఫలమైంది"
 
-#: src/qemu/qemu_process.c:242
+#: src/qemu/qemu_process.c:243
 #, fuzzy, c-format
 msgid "Failed to clear security context for agent for %s"
 msgstr "%s కొరకు మానిటర్‌కు అనుసంధానము అవుటలో విఫలమైంది"
 
-#: src/qemu/qemu_process.c:370
+#: src/qemu/qemu_process.c:371
 #, c-format
 msgid "no disk found with path %s"
 msgstr "పాత్ %s తో యే డిస్కు కనుగొనబడలేదు"
 
-#: src/qemu/qemu_process.c:393
+#: src/qemu/qemu_process.c:394
 #, fuzzy, c-format
 msgid "no disk found with alias %s"
 msgstr "పాత్ %s తో యే డిస్కు కనుగొనబడలేదు"
 
-#: src/qemu/qemu_process.c:413
+#: src/qemu/qemu_process.c:414
 #, c-format
 msgid "disk %s does not have any encryption information"
 msgstr "డిస్కు %s యెటువంటి యెన్క్రిప్షన్ సమాచారమును కలిగిలేదు"
 
-#: src/qemu/qemu_process.c:421
+#: src/qemu/qemu_process.c:422
 msgid "cannot find secrets without a connection"
 msgstr "అనుసంధానము లేకుండా రహస్యాలను కనుగొనలేదు"
 
-#: src/qemu/qemu_process.c:429 src/storage/storage_backend.c:458
+#: src/qemu/qemu_process.c:430 src/storage/storage_backend.c:458
 msgid "secret storage not supported"
 msgstr "రహస్య నిల్వ మద్దతునీయదు"
 
-#: src/qemu/qemu_process.c:438
+#: src/qemu/qemu_process.c:439
 #, c-format
 msgid "invalid <encryption> for volume %s"
 msgstr "వాల్యూమ్ %s కొరకు చెల్లని <encryption>"
 
-#: src/qemu/qemu_process.c:456
+#: src/qemu/qemu_process.c:457
 #, c-format
 msgid "format='qcow' passphrase for %s must not contain a '\\0'"
 msgstr "%s కొరకు format='qcow' సంకేతపదము '\\0' కలిగివుండదు"
 
-#: src/qemu/qemu_process.c:617
+#: src/qemu/qemu_process.c:618
 #, fuzzy
 msgid "Failed to create reboot thread, killing domain"
 msgstr "చతనం గాని డొమైన్ %s ని సృష్టించుటలో విఫలం\n"
 
-#: src/qemu/qemu_process.c:1268
+#: src/qemu/qemu_process.c:1269
 #, c-format
 msgid "Failure while reading %s log output"
 msgstr "%s లాగ్ అవుట్పుట్‌ను చదువుచున్నప్పుడు దోషము"
 
-#: src/qemu/qemu_process.c:1290
+#: src/qemu/qemu_process.c:1291
 #, c-format
 msgid "Out of space while reading %s log output: %s"
 msgstr "%s లాగ్ అవుట్పుట్‌ను చదువుచున్నప్పుడు జాగా అయిపోయింది: %s"
 
-#: src/qemu/qemu_process.c:1297
+#: src/qemu/qemu_process.c:1298
 #, c-format
 msgid "Process exited while reading %s log output: %s"
 msgstr "%s లాగ్ అవుట్పుట్‌ను చదువుచున్నప్పుడు ప్రోసెస్ నిష్క్రమించినది: %s"
 
-#: src/qemu/qemu_process.c:1312
+#: src/qemu/qemu_process.c:1313
 #, c-format
 msgid "Timed out while reading %s log output: %s"
 msgstr "%s లాగ్ అవుట్పుట్‌ను చదువుచున్నప్పుడు సమయం ముగిసినది: %s"
 
-#: src/qemu/qemu_process.c:1399
+#: src/qemu/qemu_process.c:1400
 #, c-format
 msgid "no assigned pty for device %s"
 msgstr "పరికరము %s కొరకు యెటువంటి pty కనబడలేదు"
 
-#: src/qemu/qemu_process.c:1591
+#: src/qemu/qemu_process.c:1592
 #, fuzzy, c-format
 msgid "process exited while connecting to monitor: %s"
 msgstr "%s లాగ్ అవుట్పుట్‌ను చదువుచున్నప్పుడు ప్రోసెస్ నిష్క్రమించినది: %s"
 
-#: src/qemu/qemu_process.c:1738
+#: src/qemu/qemu_process.c:1739
 #, fuzzy
 msgid "Invalid mode for memory NUMA tuning."
 msgstr "మెమొరీ పరిమాణంకు %d యొక్క సరికాని విలువ"
 
-#: src/qemu/qemu_process.c:1754
+#: src/qemu/qemu_process.c:1755
 msgid "libvirt is compiled without NUMA tuning support"
 msgstr ""
 
-#: src/qemu/qemu_process.c:1778
+#: src/qemu/qemu_process.c:1779
 #, fuzzy
 msgid "Failed to query numad for the advisory nodeset"
 msgstr "NUMA ఫ్రీ మెమొరీని క్వరీచేయుటకు విఫలమైంది"
 
-#: src/qemu/qemu_process.c:1789
+#: src/qemu/qemu_process.c:1790
 #, fuzzy
 msgid "numad is not available on this host"
 msgstr "ఈ ప్లాట్‌ఫాంపై NUMA మెమొరీ సమాచారము అందుబాటులో లేదు"
 
-#: src/qemu/qemu_process.c:1891
+#: src/qemu/qemu_process.c:1892
 #, fuzzy
 msgid "Setting of link state is not supported by this qemu"
 msgstr "'info blockstats' అనునది ఈ qemuచేత మద్దతివ్వబడుటలేదు"
 
-#: src/qemu/qemu_process.c:1900
+#: src/qemu/qemu_process.c:1901
 #, fuzzy, c-format
 msgid "Couldn't set link state on interface: %s"
 msgstr "ఇంటర్ఫేస్ MAC చిరునామాను యింటర్ఫేస్ నామమునకు మార్చుము"
 
-#: src/qemu/qemu_process.c:2301
+#: src/qemu/qemu_process.c:2302
 #, c-format
 msgid "cannot find PCI address for VirtIO disk %s"
 msgstr "VirtIO డిస్కు %s కొరకు PCI చిరునామా కనుగొనలేము"
 
-#: src/qemu/qemu_process.c:2315
+#: src/qemu/qemu_process.c:2316
 #, c-format
 msgid "cannot find PCI address for %s NIC"
 msgstr "%s NIC కొరకు PCI చిరునామాను కనుగొనలేము"
 
-#: src/qemu/qemu_process.c:2329
+#: src/qemu/qemu_process.c:2330
 #, c-format
 msgid "cannot find PCI address for controller %s"
 msgstr "నియంత్రణి %s కొరకు PCI చిరునామాను కనుగొనలేము"
 
-#: src/qemu/qemu_process.c:2343
+#: src/qemu/qemu_process.c:2344
 #, c-format
 msgid "cannot find PCI address for video adapter %s"
 msgstr "వీడియో యెడాప్టర్ %s కొరకు PCI చిరునామాను కనుగొనలేము"
 
-#: src/qemu/qemu_process.c:2357
+#: src/qemu/qemu_process.c:2358
 #, c-format
 msgid "cannot find PCI address for sound adapter %s"
 msgstr "సౌండ్ యెడాప్టర్ %s కొరకు PCI చిరునామాను కనుగొనలేము"
 
-#: src/qemu/qemu_process.c:2370
+#: src/qemu/qemu_process.c:2371
 #, c-format
 msgid "cannot find PCI address for watchdog %s"
 msgstr "వాచ్‌డాగ్ %s కొరకు PCI చిరునామాను కనుగొనలేము"
 
-#: src/qemu/qemu_process.c:2382
+#: src/qemu/qemu_process.c:2383
 #, fuzzy, c-format
 msgid "cannot find PCI address for balloon %s"
 msgstr "వాచ్‌డాగ్ %s కొరకు PCI చిరునామాను కనుగొనలేము"
 
-#: src/qemu/qemu_process.c:2501
+#: src/qemu/qemu_process.c:2502
 #, fuzzy, c-format
 msgid "Unable to pre-create chardev file '%s'"
 msgstr "ఫైలు '%s' సృష్టించుటలో విఫలమైంది"
 
-#: src/qemu/qemu_process.c:2521
+#: src/qemu/qemu_process.c:2522
 #, fuzzy, c-format
 msgid "cannot limit number of processes to %d"
 msgstr "కార్యక్రమము %d యొక్క CPU అనుభందిత్వాన్ని పొందలేము"
 
-#: src/qemu/qemu_process.c:2533
+#: src/qemu/qemu_process.c:2534
 #, fuzzy, c-format
 msgid "cannot set max opened files to %d"
 msgstr "'%s' యొక్క రీతిని %04o కు అమర్చలేము"
 
-#: src/qemu/qemu_process.c:3246
+#: src/qemu/qemu_process.c:3247
 msgid "Could not create thread. QEMU initialization might be incomplete"
 msgstr ""
 
-#: src/qemu/qemu_process.c:3318 src/qemu/qemu_process.c:4106
-#: src/uml/uml_driver.c:980
+#: src/qemu/qemu_process.c:3319 src/qemu/qemu_process.c:4107
+#: src/uml/uml_driver.c:981
 msgid "VM is already active"
 msgstr "VM యిప్పటికే క్రియాశీల పర్చబడింది"
 
-#: src/qemu/qemu_process.c:3396
+#: src/qemu/qemu_process.c:3397
 #, fuzzy
 msgid "Unable to find an unused SPICE port"
 msgstr "ఉపయోగించని VNC పోర్టును కనుగొనలేక పోయింది"
 
-#: src/qemu/qemu_process.c:3410
+#: src/qemu/qemu_process.c:3411
 #, fuzzy
 msgid "Unable to find an unused SPICE TLS port"
 msgstr "ఉపయోగించని VNC పోర్టును కనుగొనలేక పోయింది"
 
-#: src/qemu/qemu_process.c:3422 src/qemu/qemu_process.c:4122
-#: src/uml/uml_driver.c:1002
+#: src/qemu/qemu_process.c:3423 src/qemu/qemu_process.c:4123
+#: src/uml/uml_driver.c:1003
 #, c-format
 msgid "cannot create log directory %s"
 msgstr "లాగ్ డైరెక్టరీ %sను సృష్టించలేక పోయింది"
 
-#: src/qemu/qemu_process.c:3435
+#: src/qemu/qemu_process.c:3436
 msgid ""
 "Domain requires KVM, but it is not available. Check that virtualization is "
 "enabled in the host BIOS, and host configuration is setup to load the kvm "
 "modules."
 msgstr ""
 
-#: src/qemu/qemu_process.c:3483
+#: src/qemu/qemu_process.c:3484
 msgid "Failed to build pidfile path."
 msgstr "pidfile పాత్‌ను నిర్మించుటలో విఫలమైంది."
 
-#: src/qemu/qemu_process.c:3490
+#: src/qemu/qemu_process.c:3491
 #, fuzzy, c-format
 msgid "Cannot remove stale PID file %s"
 msgstr "%s కొరకు స్టేల్ PID ఫైలును తొలగించలేదు"
 
-#: src/qemu/qemu_process.c:3592
+#: src/qemu/qemu_process.c:3593
 #, fuzzy, c-format
 msgid "Domain %s didn't show up"
 msgstr "డొమైన్ %s చూపబడలేదు\n"
 
-#: src/qemu/qemu_process.c:3639
+#: src/qemu/qemu_process.c:3640
 #, fuzzy, c-format
 msgid "cannot stat fd %d"
 msgstr "ప్రారంభిచలేదు: %s"
 
-#: src/qemu/qemu_process.c:3718
+#: src/qemu/qemu_process.c:3719
 #, fuzzy, c-format
 msgid "unable to set balloon to %lld"
 msgstr "%lldకు %s నందు వెళ్ళలేదు"
 
-#: src/qemu/qemu_process.c:3937
+#: src/qemu/qemu_process.c:3938
 #, c-format
 msgid "failed to remove ebtables rule to allow MAC address on  '%s'"
 msgstr "'%s'  పై MAC చిరునామాను అనుమతించుటకు ebtables నియమాన్ని తీసివేయుటలో విఫలమైంది"
@@ -14223,175 +14223,175 @@ msgstr "SASL డాటా ఎన్కోడుకు విఫలమైంద�
 msgid "failed to decode SASL data: %d (%s)"
 msgstr "SASL డాటా డీకోడ్ చేయుటకు విఫలమైంది: %s"
 
-#: src/rpc/virnetsocket.c:123
+#: src/rpc/virnetsocket.c:124
 #, fuzzy
 msgid "Unable to set close-on-exec flag"
 msgstr "మానిటర్‌కు close-on-exec ఫ్లాగ్‌ను అమర్చలేక పోయింది"
 
-#: src/rpc/virnetsocket.c:128
+#: src/rpc/virnetsocket.c:129
 #, fuzzy
 msgid "Unable to enable non-blocking flag"
 msgstr "సాకెట్‌ను బ్లాక్-కాకుండునట్లు చేయలేక పోయింది"
 
-#: src/rpc/virnetsocket.c:160
+#: src/rpc/virnetsocket.c:161
 #, fuzzy
 msgid "Unable to disable nagle algorithm"
 msgstr "మానిటర్‌కు close-on-exec ఫ్లాగ్‌ను అమర్చలేక పోయింది"
 
-#: src/rpc/virnetsocket.c:213 src/rpc/virnetsocket.c:410
+#: src/rpc/virnetsocket.c:214 src/rpc/virnetsocket.c:411
 #, fuzzy, c-format
 msgid "Unable to resolve address '%s' service '%s': %s"
 msgstr "PCI పరికరము %sను తిరిగివుంచలేక పోయింది: %s"
 
-#: src/rpc/virnetsocket.c:226 src/rpc/virnetsocket.c:421
+#: src/rpc/virnetsocket.c:227 src/rpc/virnetsocket.c:422
 #, fuzzy
 msgid "Unable to create socket"
 msgstr "సాకెట్‌ను సృష్టించ లేకపోయింది"
 
-#: src/rpc/virnetsocket.c:232
+#: src/rpc/virnetsocket.c:233
 #, fuzzy
 msgid "Unable to enable port reuse"
 msgstr "pipe ను సృష్టించ లేక పోతోంది"
 
-#: src/rpc/virnetsocket.c:249
+#: src/rpc/virnetsocket.c:250
 #, fuzzy
 msgid "Unable to force bind to IPv6 only"
 msgstr "%s కొరకు cgroup పొందలేక పోయింది"
 
-#: src/rpc/virnetsocket.c:257 src/rpc/virnetsocket.c:287
+#: src/rpc/virnetsocket.c:258 src/rpc/virnetsocket.c:288
 #, fuzzy
 msgid "Unable to bind to port"
 msgstr "%s కొరకు cgroup కనుగొనలేక పోయింది \n"
 
-#: src/rpc/virnetsocket.c:268 src/rpc/virnetsocket.c:444
-#: src/rpc/virnetsocket.c:523 src/rpc/virnetsocket.c:1275
+#: src/rpc/virnetsocket.c:269 src/rpc/virnetsocket.c:445
+#: src/rpc/virnetsocket.c:524 src/rpc/virnetsocket.c:1285
 #, fuzzy
 msgid "Unable to get local socket name"
 msgstr "స్థానిక హోస్టునామము పొందుటకు విఫలమైంది"
 
-#: src/rpc/virnetsocket.c:325 src/rpc/virnetsocket.c:491
+#: src/rpc/virnetsocket.c:326 src/rpc/virnetsocket.c:492
 #, fuzzy
 msgid "Failed to create socket"
 msgstr "సాకెట్ సృష్టించుటలో విఫలమైంది"
 
-#: src/rpc/virnetsocket.c:332 src/rpc/virnetsocket.c:497
+#: src/rpc/virnetsocket.c:333 src/rpc/virnetsocket.c:498
 #, c-format
 msgid "Path %s too long for unix socket"
 msgstr "unix సాకెట్ కొరకు పాత్ %s మరీ పొడవైనది"
 
-#: src/rpc/virnetsocket.c:345
+#: src/rpc/virnetsocket.c:346
 #, fuzzy, c-format
 msgid "Failed to bind socket to '%s'"
 msgstr "సాకెట్‌ను '%s'కు బందనం చేయుటలో విఫలమైంది: %s"
 
-#: src/rpc/virnetsocket.c:356
+#: src/rpc/virnetsocket.c:357
 #, fuzzy, c-format
 msgid "Failed to change ownership of '%s' to %d:%d"
 msgstr "'%s' యొక్క యజమానిత్వమును %dకు అమర్చలేక పోయింది: %d"
 
-#: src/rpc/virnetsocket.c:380 src/rpc/virnetsocket.c:543
+#: src/rpc/virnetsocket.c:381 src/rpc/virnetsocket.c:544
 #, fuzzy
 msgid "UNIX sockets are not supported on this platform"
 msgstr "CPU ఎఫినిటి ప్రోసెస్ ఈ ప్లాట్‌ఫాంపై మద్దతించబడదు"
 
-#: src/rpc/virnetsocket.c:437
+#: src/rpc/virnetsocket.c:438
 #, fuzzy, c-format
 msgid "unable to connect to server at '%s:%s'"
 msgstr "'%s:%s'కు అనుసంధామవ్వలేదు"
 
-#: src/rpc/virnetsocket.c:450
+#: src/rpc/virnetsocket.c:451
 #, fuzzy
 msgid "Unable to get remote socket name"
 msgstr "స్లాట్ సంఖ్య '%s'ను పార్సు చేయలేక పోయింది"
 
-#: src/rpc/virnetsocket.c:486
+#: src/rpc/virnetsocket.c:487
 msgid "Auto-spawn of daemon requested, but no binary specified"
 msgstr ""
 
-#: src/rpc/virnetsocket.c:516
+#: src/rpc/virnetsocket.c:517
 #, fuzzy, c-format
 msgid "Failed to connect socket to '%s'"
 msgstr "%sకు అనుసంధానించబడుటకు విఫలమైంది"
 
-#: src/rpc/virnetsocket.c:565 src/rpc/virnetsocket.c:571
+#: src/rpc/virnetsocket.c:566 src/rpc/virnetsocket.c:572
 msgid "unable to create socket pair"
 msgstr "సాకెట్ జంట సృష్టించుట లేదు"
 
-#: src/rpc/virnetsocket.c:609
+#: src/rpc/virnetsocket.c:610
 #, fuzzy
 msgid "Tunnelling sockets not supported on this platform"
 msgstr "CPU ఎఫినిటి ప్రోసెస్ ఈ ప్లాట్‌ఫాంపై మద్దతించబడదు"
 
-#: src/rpc/virnetsocket.c:787
+#: src/rpc/virnetsocket.c:788
 #, fuzzy
 msgid "Unable to copy socket file handle"
 msgstr "ఆకృతీకరణ ఫైలు సంభాలికను నిల్వచేయలేక పోయింది"
 
-#: src/rpc/virnetsocket.c:838
+#: src/rpc/virnetsocket.c:842
 #, fuzzy
 msgid "Failed to get client socket identity"
 msgstr "కక్షిదారి సాకెట్ సృష్టించుటకు విఫలమైంది"
 
-#: src/rpc/virnetsocket.c:858
+#: src/rpc/virnetsocket.c:868
 #, fuzzy
 msgid "Client socket identity not available"
 msgstr "cpu ఎఫినిటి అందుబాటులో లేదు"
 
-#: src/rpc/virnetsocket.c:988
+#: src/rpc/virnetsocket.c:998
 #, fuzzy, c-format
 msgid "Cannot recv data: %s"
 msgstr "డాటాను స్వీకరించలేదు: %s"
 
-#: src/rpc/virnetsocket.c:991
+#: src/rpc/virnetsocket.c:1001
 #, fuzzy
 msgid "Cannot recv data"
 msgstr "డాటాను స్వీకరించలేదు: %s"
 
-#: src/rpc/virnetsocket.c:996
+#: src/rpc/virnetsocket.c:1006
 #, fuzzy, c-format
 msgid "End of file while reading data: %s"
 msgstr "%s లాగ్ అవుట్పుట్‌ను చదువుచున్నప్పుడు జాగా అయిపోయింది: %s"
 
-#: src/rpc/virnetsocket.c:999
+#: src/rpc/virnetsocket.c:1009
 #, fuzzy
 msgid "End of file while reading data"
 msgstr "డ్రైవర్లను రీలోడు చేస్తున్నప్పుడు దోషము"
 
-#: src/rpc/virnetsocket.c:1026
+#: src/rpc/virnetsocket.c:1036
 #, fuzzy
 msgid "Cannot write data"
 msgstr "డాటాను స్వీకరించలేదు: %s"
 
-#: src/rpc/virnetsocket.c:1031
+#: src/rpc/virnetsocket.c:1041
 msgid "End of file while writing data"
 msgstr ""
 
-#: src/rpc/virnetsocket.c:1177
+#: src/rpc/virnetsocket.c:1187
 #, fuzzy
 msgid "Sending file descriptors is not supported on this socket"
 msgstr "'info blockstats' అనునది ఈ qemuచేత మద్దతివ్వబడుటలేదు"
 
-#: src/rpc/virnetsocket.c:1188
+#: src/rpc/virnetsocket.c:1198
 #, fuzzy, c-format
 msgid "Failed to send file descriptor %d"
 msgstr "non-blocking ఫైలు డిస్క్రిప్టారు ఫ్లాగ్ అమర్చుటలో దోషము"
 
-#: src/rpc/virnetsocket.c:1211
+#: src/rpc/virnetsocket.c:1221
 #, fuzzy
 msgid "Receiving file descriptors is not supported on this socket"
 msgstr "'info blockstats' అనునది ఈ qemuచేత మద్దతివ్వబడుటలేదు"
 
-#: src/rpc/virnetsocket.c:1221
+#: src/rpc/virnetsocket.c:1231
 #, fuzzy
 msgid "Failed to recv file descriptor"
 msgstr "డొమైన్ వివరణను పార్శ్‍ చేయుటకు విఫలమైంది"
 
-#: src/rpc/virnetsocket.c:1238
+#: src/rpc/virnetsocket.c:1248
 #, fuzzy
 msgid "Unable to listen on socket"
 msgstr "%sను తెరువలేక పోయింది"
 
-#: src/rpc/virnetsocket.c:1269
+#: src/rpc/virnetsocket.c:1279
 #, fuzzy
 msgid "Unable to accept client"
 msgstr "pipe ను సృష్టించ లేక పోతోంది"
@@ -14425,7 +14425,7 @@ msgstr "సంకేతపు పైప్‌నుండి చదువుట�
 msgid "Failed to register shutdown timeout"
 msgstr "మూసివేత కాలముగింపును నమోదుచేయుటకు విఫలమైంది"
 
-#: src/rpc/virnetserverclient.c:788 src/rpc/virnetserverclient.c:950
+#: src/rpc/virnetserverclient.c:792 src/rpc/virnetserverclient.c:954
 #, fuzzy, c-format
 msgid "unexpected zero/negative length request %lld"
 msgstr "అనుకోని ఋణ పొడవుగల అభ్యర్ధన %lld"
@@ -15421,19 +15421,19 @@ msgstr "దస్త్రము '%s'ను మూయలేదు"
 msgid "cannot create path '%s'"
 msgstr "పాత్ '%s'ను సృష్టించలేక పోయింది"
 
-#: src/storage/storage_backend.c:267 src/util/util.c:782 src/util/util.c:1085
-#: src/util/util.c:1175
+#: src/storage/storage_backend.c:267 src/util/util.c:783 src/util/util.c:1086
+#: src/util/util.c:1176
 #, c-format
 msgid "stat of '%s' failed"
 msgstr "'%s' గణాంకం విఫలమైంది"
 
-#: src/storage/storage_backend.c:276 src/util/util.c:793 src/util/util.c:1091
+#: src/storage/storage_backend.c:276 src/util/util.c:794 src/util/util.c:1092
 #, c-format
 msgid "cannot chown '%s' to (%u, %u)"
 msgstr "'%s'ను (%u, %u)కు chown చేయలేము"
 
 #: src/storage/storage_backend.c:282 src/storage/storage_backend.c:594
-#: src/util/util.c:804 src/util/util.c:1099 src/util/util.c:1188
+#: src/util/util.c:805 src/util/util.c:1100 src/util/util.c:1189
 #, c-format
 msgid "cannot set mode of '%s' to %04o"
 msgstr "'%s' యొక్క రీతిని %04o కు అమర్చలేము"
@@ -16460,117 +16460,117 @@ msgstr "ఫైలు'%s'ను తెరువుటకు విఫలమైం
 msgid "unsupported chr device type %d"
 msgstr "మద్దతీయని chr పరికరము రకము %d"
 
-#: src/uml/uml_driver.c:468
+#: src/uml/uml_driver.c:469
 msgid "cannot initialize inotify"
 msgstr "inotify సిద్దీకరించలేదు"
 
-#: src/uml/uml_driver.c:474
+#: src/uml/uml_driver.c:475
 #, c-format
 msgid "Failed to create monitor directory %s: %s"
 msgstr "మానిటర్ డైరెక్టరీ %s సృష్టించుటకు విఫలమైంది: %s"
 
-#: src/uml/uml_driver.c:511
+#: src/uml/uml_driver.c:512
 msgid "umlStartup: out of memory"
 msgstr "umlStartup: మెమొరీ దాటినది"
 
-#: src/uml/uml_driver.c:773
+#: src/uml/uml_driver.c:774
 #, c-format
 msgid "failed to read pid: %s"
 msgstr "pid చదువుటకు విఫలమైంది: %s"
 
-#: src/uml/uml_driver.c:795
+#: src/uml/uml_driver.c:796
 #, c-format
 msgid "Unix path %s too long for destination"
 msgstr "గమ్యమునకు Unix పాత్ %s మరీ పొడవైనది"
 
-#: src/uml/uml_driver.c:825
+#: src/uml/uml_driver.c:826
 msgid "cannot open socket"
 msgstr "సాకెట్ తెరువలేము"
 
-#: src/uml/uml_driver.c:835
+#: src/uml/uml_driver.c:836
 msgid "cannot bind socket"
 msgstr "సాకెట్ బందనం కాలేము"
 
-#: src/uml/uml_driver.c:889
+#: src/uml/uml_driver.c:890
 #, c-format
 msgid "cannot send too long command %s (%d bytes)"
 msgstr "మరీ పొడవైన ఆదేశము %s (%d బైట్లు) పంపలేము"
 
-#: src/uml/uml_driver.c:895
+#: src/uml/uml_driver.c:896
 #, c-format
 msgid "Command %s too long for destination"
 msgstr "గమ్యమునకు ఆదేశము %s మరీ పొడవైనది"
 
-#: src/uml/uml_driver.c:902
+#: src/uml/uml_driver.c:903
 #, c-format
 msgid "cannot send command %s"
 msgstr "మరీ పొడవైన ఆదేశము %s పంపలేము"
 
-#: src/uml/uml_driver.c:915
+#: src/uml/uml_driver.c:916
 #, c-format
 msgid "cannot read reply %s"
 msgstr "ప్రత్యుత్తరము %sను చదువలేము"
 
-#: src/uml/uml_driver.c:921
+#: src/uml/uml_driver.c:922
 #, c-format
 msgid "incomplete reply %s"
 msgstr "అంసపూర్తి ప్రత్యుత్తరము %s"
 
-#: src/uml/uml_driver.c:986
+#: src/uml/uml_driver.c:987
 msgid "no kernel specified"
 msgstr "ఏ కెర్నల్ తెలుపలేదు"
 
-#: src/uml/uml_driver.c:995
+#: src/uml/uml_driver.c:996
 #, c-format
 msgid "Cannot find UML kernel %s"
 msgstr "UML కెర్నల్ %sను కనుగొనలేదు"
 
-#: src/uml/uml_driver.c:1025
+#: src/uml/uml_driver.c:1026
 msgid "Unable to set VM logfile close-on-exec flag"
 msgstr "VM లాగ్‌ఫైలు close-on-exec ఫ్లాగ్‌ను అమర్చలేక పోయింది"
 
-#: src/uml/uml_driver.c:1161
+#: src/uml/uml_driver.c:1162
 #, c-format
 msgid "unexpected UML URI path '%s', try uml:///system"
 msgstr "అనుకోని UML URI పాత్ '%s', uml:///system ప్రయత్నించుము"
 
-#: src/uml/uml_driver.c:1168
+#: src/uml/uml_driver.c:1169
 #, c-format
 msgid "unexpected UML URI path '%s', try uml:///session"
 msgstr "అనుకోని UML URI పాత్ '%s', uml:///session ప్రయత్నించుము"
 
-#: src/uml/uml_driver.c:1177
+#: src/uml/uml_driver.c:1178
 msgid "uml state driver is not active"
 msgstr "uml స్థితి డ్రైవర్ క్రియాశీలముగా లేదు"
 
-#: src/uml/uml_driver.c:1429
+#: src/uml/uml_driver.c:1430
 #, c-format
 msgid "cannot parse version %s"
 msgstr "వర్షన్ %s పార్శ్ చేయలేదు"
 
-#: src/uml/uml_driver.c:1535
+#: src/uml/uml_driver.c:1536
 msgid "shutdown operation failed"
 msgstr "మూసివేత ఆపరేషన్ విఫలమైంది"
 
-#: src/uml/uml_driver.c:1672
+#: src/uml/uml_driver.c:1673
 msgid "cannot set max memory lower than current memory"
 msgstr "ప్రస్తుత మెమొరీకన్నా తక్కువగా గరిష్ట మెమొరీని పెట్టలేరు"
 
-#: src/uml/uml_driver.c:2048
+#: src/uml/uml_driver.c:2049
 msgid "cannot attach device on inactive domain"
 msgstr "క్రియాహీన డొమైన్‌నందు పరికరాన్ని అనుభందించలేము"
 
-#: src/uml/uml_driver.c:2094 src/uml/uml_driver.c:2206
+#: src/uml/uml_driver.c:2095 src/uml/uml_driver.c:2207
 #: src/vbox/vbox_tmpl.c:5545 src/vbox/vbox_tmpl.c:5560
 #: src/vbox/vbox_tmpl.c:5716
 msgid "cannot modify the persistent configuration of a domain"
 msgstr "డొమైన్ యొక్క స్థిరమైన ఆకృతీకరణను సవరించలేము"
 
-#: src/uml/uml_driver.c:2166
+#: src/uml/uml_driver.c:2167
 msgid "cannot detach device on inactive domain"
 msgstr "క్రియాహీన డొమైన్‌నందు పరికరాన్ని విడదీయలేము"
 
-#: src/uml/uml_driver.c:2359 tools/virsh.c:11913
+#: src/uml/uml_driver.c:2360 tools/virsh.c:11913
 #, c-format
 msgid "cannot read %s"
 msgstr "%sను చదువలేదు"
@@ -16635,259 +16635,234 @@ msgstr "'%s' నుండి చదువుటకు విఫలమైంద�
 msgid "Unable to remove %s (%d)"
 msgstr "%sను తెరువలేక పోయింది"
 
-#: src/util/command.c:179
+#: src/util/command.c:180
 #, fuzzy, c-format
 msgid "cannot clear process capabilities %d"
 msgstr "హోస్టు CPU సామర్ధ్యాలను పొందలేక పోయింది"
 
-#: src/util/command.c:206
+#: src/util/command.c:207
 #, fuzzy, c-format
 msgid "cannot apply process capabilities %d"
 msgstr "హోస్టు CPU సామర్ధ్యాలను పొందలేక పోయింది"
 
-#: src/util/command.c:260
+#: src/util/command.c:261
 msgid "cannot block signals"
 msgstr "సంకేతములను బ్లాక్ చేయలేదు"
 
-#: src/util/command.c:279 src/util/command.c:590
+#: src/util/command.c:280 src/util/command.c:591
 msgid "cannot fork child process"
 msgstr "చెల్డు కార్యక్రమమును ఫోర్కు చేయలేదు"
 
-#: src/util/command.c:291 src/util/command.c:336
+#: src/util/command.c:292 src/util/command.c:337
 msgid "cannot unblock signals"
 msgstr "సంకేతములను అన్‌బ్లాక్ చేయలేదు"
 
-#: src/util/command.c:423
+#: src/util/command.c:424
 #, fuzzy, c-format
 msgid "Cannot find '%s' in path"
 msgstr "సెషన్‌ను కనుగొనలేము"
 
-#: src/util/command.c:441
+#: src/util/command.c:442
 msgid "cannot create pipe"
 msgstr "pipeను సృష్టించలేదు"
 
-#: src/util/command.c:448 src/util/command.c:475
+#: src/util/command.c:449 src/util/command.c:476
 msgid "Failed to set non-blocking file descriptor flag"
 msgstr "non-blocking ఫైలు డిస్క్రిప్టారు ఫ్లాగ్ అమర్చుటలో దోషము"
 
-#: src/util/command.c:468
+#: src/util/command.c:469
 msgid "Failed to create pipe"
 msgstr "pipe ను సృష్టించుటకు విఫలమైంది"
 
-#: src/util/command.c:535
+#: src/util/command.c:536
 #, fuzzy, c-format
 msgid "failed to preserve fd %d"
 msgstr "%sను తెరువలేక పోయింది"
 
-#: src/util/command.c:542
+#: src/util/command.c:543
 msgid "failed to setup stdin file handle"
 msgstr "stdin దస్త్రము సంభాలిక అమర్చుటకు విఫలమైంది"
 
-#: src/util/command.c:547
+#: src/util/command.c:548
 msgid "failed to setup stdout file handle"
 msgstr "stdout దస్త్రము సంభాలిక అమర్చుటకు విఫలమైంది"
 
-#: src/util/command.c:552
+#: src/util/command.c:553
 msgid "failed to setup stderr file handle"
 msgstr "stderr దస్త్రము సంభాలిక అమర్చుటకు విఫలమైంది"
 
-#: src/util/command.c:577
+#: src/util/command.c:578
 msgid "cannot become session leader"
 msgstr "సెషన్ లీడర్ అవ్వలేదు"
 
-#: src/util/command.c:583
+#: src/util/command.c:584
 #, fuzzy
 msgid "cannot change to root directory"
 msgstr "root డైరెక్టరీకు మారలేదు: %s"
 
-#: src/util/command.c:600
+#: src/util/command.c:601
 #, c-format
 msgid "could not write pidfile %s for %d"
 msgstr "pidfile %sను %d కొరకు వ్రాయలేక పోతోంది"
 
-#: src/util/command.c:621
+#: src/util/command.c:622
 #, fuzzy
 msgid "Could not disable SIGPIPE"
 msgstr "UUIDను అమర్చలేక పోయింది"
 
-#: src/util/command.c:632
+#: src/util/command.c:633
 #, fuzzy
 msgid "Could not re-enable SIGPIPE"
 msgstr "veth నామమును నిష్పాదించలేక పోయింది"
 
-#: src/util/command.c:652
+#: src/util/command.c:653
 #, c-format
 msgid "cannot execute binary %s"
 msgstr "బైనరీ %s నిర్వర్తించలేక పోయింది"
 
-#: src/util/command.c:713
+#: src/util/command.c:714
 #, fuzzy
 msgid "virRun is not implemented for WIN32"
 msgstr "%s అనునది Win32 పైన మెరుగుపరచలేదు"
 
-#: src/util/command.c:737
+#: src/util/command.c:738
 #, fuzzy
 msgid "virExec is not implemented for WIN32"
 msgstr "%s అనునది Win32 పైన మెరుగుపరచలేదు"
 
-#: src/util/command.c:1626 src/util/command.c:1850 src/util/command.c:1898
-#: src/util/command.c:2133 src/util/command.c:2281 src/util/command.c:2470
-#: src/util/command.c:2529
+#: src/util/command.c:1627 src/util/command.c:1826 src/util/command.c:1874
+#: src/util/command.c:2109 src/util/command.c:2208 src/util/command.c:2333
+#: src/util/command.c:2392
 #, fuzzy
 msgid "invalid use of command API"
 msgstr "ఆదేశం యొక్క నామము"
 
-#: src/util/command.c:1663
-#, c-format
-msgid "exit status %d"
-msgstr ""
-
-#: src/util/command.c:1666
-#, c-format
-msgid "fatal signal %d"
-msgstr ""
-
-#: src/util/command.c:1669
-#, fuzzy, c-format
-msgid "invalid value %d"
-msgstr "కాప్ యొక్క సరికాని విలువ"
-
-#: src/util/command.c:1746
+#: src/util/command.c:1722
 #, fuzzy
 msgid "unable to poll on child"
 msgstr "%sను తెరువలేక పోయింది"
 
-#: src/util/command.c:1773
+#: src/util/command.c:1749
 #, fuzzy
 msgid "unable to read child stdout"
 msgstr "pipeనకు వ్రాయలేక పోతోంది"
 
-#: src/util/command.c:1774
+#: src/util/command.c:1750
 #, fuzzy
 msgid "unable to read child stderr"
 msgstr "pipeనకు వ్రాయలేక పోతోంది"
 
-#: src/util/command.c:1805
+#: src/util/command.c:1781
 #, fuzzy
 msgid "unable to write to child input"
 msgstr "pipeనకు వ్రాయలేక పోతోంది"
 
-#: src/util/command.c:1864
+#: src/util/command.c:1840
 #, fuzzy
 msgid "Executing new processes is not supported on Win32 platform"
 msgstr "CPU ఎఫినిటి ప్రోసెస్ ఈ ప్లాట్‌ఫాంపై మద్దతించబడదు"
 
-#: src/util/command.c:1920
+#: src/util/command.c:1896
 #, fuzzy
 msgid "cannot mix caller fds with blocking execution"
 msgstr "అనుసంధానము లేకుండా రహస్యాలను కనుగొనలేదు"
 
-#: src/util/command.c:1926
+#: src/util/command.c:1902
 #, fuzzy
 msgid "cannot mix string I/O with daemon"
 msgstr "ఆకృతీకరణ ఫైలు %sను రాయలేదు"
 
-#: src/util/command.c:1936
+#: src/util/command.c:1912
 #, fuzzy
 msgid "unable to open pipe"
 msgstr "pipe చేయలేక పోయింది"
 
-#: src/util/command.c:2050
+#: src/util/command.c:2026
 #, fuzzy, c-format
 msgid "Unable to change to %s"
 msgstr "root dirకు మార్చలేక పోయింది"
 
-#: src/util/command.c:2058
+#: src/util/command.c:2034
 #, fuzzy
 msgid "Unable to notify parent process"
 msgstr "/proc/mounts చదువుటకు విఫలమైంది"
 
-#: src/util/command.c:2068
+#: src/util/command.c:2044
 msgid "Unknown failure during hook execution"
 msgstr ""
 
-#: src/util/command.c:2071
+#: src/util/command.c:2047
 #, fuzzy
 msgid "Unable to send error to parent process"
 msgstr "devaddr పారామితి '%s'ను పార్శ్ చేయలేక పోయింది"
 
-#: src/util/command.c:2080
+#: src/util/command.c:2056
 #, fuzzy
 msgid "Unable to wait on parent process"
 msgstr "'%s'ను చదివే ప్రోసెస్ కొరకు వేచివుండుటలో విఫలమైంది"
 
-#: src/util/command.c:2082
+#: src/util/command.c:2058
 msgid "libvirtd quit during handshake"
 msgstr ""
 
-#: src/util/command.c:2086
+#: src/util/command.c:2062
 #, c-format
 msgid "Unexpected confirm code '%c' from parent process"
 msgstr ""
 
-#: src/util/command.c:2145
+#: src/util/command.c:2121
 msgid "cannot mix string I/O with asynchronous command"
 msgstr ""
 
-#: src/util/command.c:2151
+#: src/util/command.c:2127
 #, fuzzy, c-format
 msgid "command is already running as pid %lld"
 msgstr "డొమైన్ యిప్పటికే నడుచుచున్నది"
 
-#: src/util/command.c:2158
+#: src/util/command.c:2134
 #, fuzzy
 msgid "daemonized command cannot use virCommandRunAsync"
 msgstr "పనిచేయు డైరెక్టరీను పొందలేక పోయింది"
 
-#: src/util/command.c:2163
+#: src/util/command.c:2139
 #, fuzzy, c-format
 msgid "daemonized command cannot set working directory %s"
 msgstr "పనిచేయు డైరెక్టరీను పొందలేక పోయింది"
 
-#: src/util/command.c:2169
+#: src/util/command.c:2145
 msgid "creation of pid file requires daemonized command"
 msgstr ""
 
-#: src/util/command.c:2227 src/util/command.c:2237
-#, fuzzy, c-format
-msgid "unable to wait for process %lld"
-msgstr "'%s'ను చదివే ప్రోసెస్ కొరకు వేచివుండుటలో విఫలమైంది"
-
-#: src/util/command.c:2246
-#, fuzzy, c-format
-msgid "Child process (%lld) status unexpected: %s"
-msgstr "మద్యంతర డెమోన్ ప్రోసెస్ %d స్థితితో నిష్క్రమించినది."
-
-#: src/util/command.c:2287
+#: src/util/command.c:2214
 #, fuzzy
 msgid "command is not yet running"
 msgstr "డొమైన్ నడుచుట లేదు"
 
-#: src/util/command.c:2305
+#: src/util/command.c:2234
 #, fuzzy, c-format
-msgid "Child process (%s) status unexpected: %s"
+msgid "Child process (%s) unexpected %s%s%s"
 msgstr "మద్యంతర డెమోన్ ప్రోసెస్ %d స్థితితో నిష్క్రమించినది."
 
-#: src/util/command.c:2476 src/util/command.c:2535
+#: src/util/command.c:2339 src/util/command.c:2398
 #, fuzzy
 msgid "Handshake is already complete"
 msgstr "క్షేత్రం ఇప్పటికే ‌క్రియాసహితంగా ఉంది"
 
-#: src/util/command.c:2483
+#: src/util/command.c:2346
 #, fuzzy
 msgid "Unable to wait for child process"
 msgstr "'%s'ను చదివే ప్రోసెస్ కొరకు వేచివుండుటలో విఫలమైంది"
 
-#: src/util/command.c:2485
+#: src/util/command.c:2348
 msgid "Child process quit during startup handshake"
 msgstr ""
 
-#: src/util/command.c:2500
+#: src/util/command.c:2363
 #, fuzzy
 msgid "No error message from child failure"
 msgstr "ఏ దోష సమాచారమూ సమకూర్చబడలేదు"
 
-#: src/util/command.c:2541
+#: src/util/command.c:2404
 #, fuzzy
 msgid "Unable to notify child process"
 msgstr "చెల్డు కార్యక్రమమును ఫోర్కు చేయలేదు"
@@ -17418,174 +17393,174 @@ msgstr ""
 msgid "Target sysinfo %s %s does not match source %s"
 msgstr ""
 
-#: src/util/util.c:329
+#: src/util/util.c:330
 msgid "Unknown poll response."
 msgstr "తెలియని పోల్ స్పందన."
 
-#: src/util/util.c:363
+#: src/util/util.c:364
 msgid "poll error"
 msgstr "పోల్ దోషం"
 
-#: src/util/util.c:452
+#: src/util/util.c:453
 #, c-format
 msgid "Failed to open file '%s'"
 msgstr "ఫైలు'%s'ను తెరువుటకు విఫలమైంది"
 
-#: src/util/util.c:459
+#: src/util/util.c:460
 #, c-format
 msgid "Failed to read file '%s'"
 msgstr "'%s' ఫైలును చదువుటకు విఫలమైంది"
 
-#: src/util/util.c:834
+#: src/util/util.c:835
 #, fuzzy, c-format
 msgid "failed to create socket needed for '%s'"
 msgstr "%s నుండి నోడ్ పరికరము సృష్టించుటకు విఫలమైంది"
 
-#: src/util/util.c:864
+#: src/util/util.c:865
 #, fuzzy, c-format
 msgid "child process failed to create file '%s'"
 msgstr "ఫైలు '%s' సృష్టించుటలో చైల్డు విఫలమైంది"
 
-#: src/util/util.c:881
+#: src/util/util.c:882
 #, fuzzy
 msgid "child process failed to send fd to parent"
 msgstr "పైప్‌నకు వ్రాయుటలో చైల్డు విఫలమైంది"
 
-#: src/util/util.c:923 src/util/util.c:1135
+#: src/util/util.c:924 src/util/util.c:1136
 #, c-format
 msgid "failed to wait for child creating '%s'"
 msgstr "చెల్డు సృష్టీకరణ '%s' కొరకు వేచివుండుటలో విఫలమైంది"
 
-#: src/util/util.c:1033
+#: src/util/util.c:1034
 #, fuzzy, c-format
 msgid "couldn't determine fs type of mount containing '%s'"
 msgstr "డొమైన్‌కొరకు గరిష్ట vcpusను నిర్ణయించలేక పోయింది"
 
-#: src/util/util.c:1059
+#: src/util/util.c:1060
 #, c-format
 msgid "failed to create file '%s'"
 msgstr "ఫైలు '%s' సృష్టించుటలో విఫలమైంది"
 
-#: src/util/util.c:1060
+#: src/util/util.c:1061
 #, fuzzy, c-format
 msgid "failed to open file '%s'"
 msgstr "ఫైలు'%s'ను తెరువుటకు విఫలమైంది"
 
-#: src/util/util.c:1078
+#: src/util/util.c:1079
 #, c-format
 msgid "failed to create directory '%s'"
 msgstr "డైరెక్టరీ '%s' సృష్టించుటకు విఫలమైంది"
 
-#: src/util/util.c:1165
+#: src/util/util.c:1166
 #, c-format
 msgid "child failed to create directory '%s'"
 msgstr "డైరెక్టరీ '%s' సృష్టించుటకు చెల్డు వైఫల్యం చెందింది"
 
-#: src/util/util.c:1181
+#: src/util/util.c:1182
 #, c-format
 msgid "cannot chown '%s' to group %u"
 msgstr "'%s'ను సమూహం %uకు chown చేయలేము"
 
-#: src/util/util.c:1219
+#: src/util/util.c:1220
 #, fuzzy
 msgid "virFileOpenAs is not implemented for WIN32"
 msgstr "%s అనునది Win32 పైన మెరుగుపరచలేదు"
 
-#: src/util/util.c:1231
+#: src/util/util.c:1232
 #, fuzzy
 msgid "virDirCreate is not implemented for WIN32"
 msgstr "%s అనునది Win32 పైన మెరుగుపరచలేదు"
 
-#: src/util/util.c:1655
+#: src/util/util.c:1656
 #, fuzzy, c-format
 msgid "invalid scale %llu"
 msgstr "కాప్ యొక్క సరికాని విలువ"
 
-#: src/util/util.c:1671 src/util/util.c:1696
+#: src/util/util.c:1672 src/util/util.c:1697
 #, fuzzy, c-format
 msgid "unknown suffix '%s'"
 msgstr "తెలియని పరిమాణపు యానిట్లు '%s'"
 
-#: src/util/util.c:1702
+#: src/util/util.c:1703
 #, fuzzy, c-format
 msgid "value too large: %llu%s"
 msgstr "%sను తెరువలేక పోయింది"
 
-#: src/util/util.c:2026
+#: src/util/util.c:2027
 #, c-format
 msgid "Disk index %d is negative"
 msgstr "డిస్కు విషయసూచిక %d నెగిటివ్"
 
-#: src/util/util.c:2082
+#: src/util/util.c:2083
 msgid "failed to determine host name"
 msgstr "అతిధేయ నామమును పొందుటలో విఫలం"
 
-#: src/util/util.c:2234
+#: src/util/util.c:2178
 #, fuzzy, c-format
 msgid "Failed to find user record for uid '%u'"
 msgstr "uid '%d' కొరకు  వినియోగదారి రికార్డు కనుగొనుటకు విఫలమైంది"
 
-#: src/util/util.c:2287
+#: src/util/util.c:2231
 #, fuzzy, c-format
 msgid "Failed to find group record for gid '%u'"
 msgstr "నామము '%s' కొరకు సమూహ రికార్డును కనుగొనుటకు విఫలమైంది"
 
-#: src/util/util.c:2353
+#: src/util/util.c:2297
 #, c-format
 msgid "Failed to find user record for name '%s'"
 msgstr "నామము '%s' కొరకు వినియోగదారి రికార్డు కనుగొనుటకు విఫలమైంది"
 
-#: src/util/util.c:2402
+#: src/util/util.c:2346
 #, c-format
 msgid "Failed to find group record for name '%s'"
 msgstr "నామము '%s' కొరకు సమూహ రికార్డును కనుగొనుటకు విఫలమైంది"
 
-#: src/util/util.c:2429
+#: src/util/util.c:2373
 #, c-format
 msgid "cannot change to '%d' group"
 msgstr "'%d' సమూహమునకు మార్చలేదు"
 
-#: src/util/util.c:2461
+#: src/util/util.c:2405
 #, fuzzy, c-format
 msgid "cannot getpwuid_r(%d)"
 msgstr "uid(%d)ను '%s' చదువుటకు అమర్చలేదు"
 
-#: src/util/util.c:2468
+#: src/util/util.c:2412
 #, fuzzy, c-format
 msgid "cannot initgroups(\"%s\", %d)"
 msgstr "uid(%d)ను '%s' చదువుటకు అమర్చలేదు"
 
-#: src/util/util.c:2477
+#: src/util/util.c:2421
 #, fuzzy, c-format
 msgid "cannot change to uid to '%d'"
 msgstr "'%d' వినియోగదారికి మార్చలేదు"
 
-#: src/util/util.c:2495
+#: src/util/util.c:2439
 #, fuzzy
 msgid "virGetUserDirectory is not available"
 msgstr "cpu ఎఫినిటి అందుబాటులో లేదు"
 
-#: src/util/util.c:2504
+#: src/util/util.c:2448
 #, fuzzy
 msgid "virGetUserName is not available"
 msgstr "cpu ఎఫినిటి అందుబాటులో లేదు"
 
-#: src/util/util.c:2513
+#: src/util/util.c:2457
 #, fuzzy
 msgid "virGetUserID is not available"
 msgstr "cpu ఎఫినిటి అందుబాటులో లేదు"
 
-#: src/util/util.c:2523
+#: src/util/util.c:2467
 #, fuzzy
 msgid "virGetGroupID is not available"
 msgstr "cpu ఎఫినిటి అందుబాటులో లేదు"
 
-#: src/util/util.c:2533
+#: src/util/util.c:2477
 #, fuzzy
 msgid "virSetUIDGID is not available"
 msgstr "cpu ఎఫినిటి అందుబాటులో లేదు"
 
-#: src/util/util.c:2541
+#: src/util/util.c:2485
 #, fuzzy
 msgid "virGetGroupName is not available"
 msgstr "cpu ఎఫినిటి అందుబాటులో లేదు"
@@ -18287,6 +18262,47 @@ msgstr "'%s' ఫైలును చదువుటకు విఫలమైం�
 #, fuzzy, c-format
 msgid "Failed to write to pid file '%s'"
 msgstr "pid ఫైలు '%s'కు వ్రాయుటలో విఫలమైంది : %s"
+
+#: src/util/virprocess.c:62
+#, c-format
+msgid "exit status %d"
+msgstr ""
+
+#: src/util/virprocess.c:65
+#, c-format
+msgid "fatal signal %d"
+msgstr ""
+
+#: src/util/virprocess.c:68
+#, fuzzy, c-format
+msgid "invalid value %d"
+msgstr "కాప్ యొక్క సరికాని విలువ"
+
+#: src/util/virprocess.c:163 src/util/virprocess.c:173
+#, fuzzy, c-format
+msgid "unable to wait for process %lld"
+msgstr "'%s'ను చదివే ప్రోసెస్ కొరకు వేచివుండుటలో విఫలమైంది"
+
+#: src/util/virprocess.c:182
+#, fuzzy, c-format
+msgid "Child process (%lld) unexpected %s"
+msgstr "మద్యంతర డెమోన్ ప్రోసెస్ %d స్థితితో నిష్క్రమించినది."
+
+#: src/util/virprocess.c:283 src/util/virprocess.c:290
+#: src/util/virprocess.c:299
+#, fuzzy, c-format
+msgid "Cannot find start time in %s"
+msgstr "UML కెర్నల్ %sను కనుగొనలేదు"
+
+#: src/util/virprocess.c:309
+#, fuzzy, c-format
+msgid "Cannot parse start time %s in %s"
+msgstr "చిరునామా %dను పరిష్కరించలేదు: %s"
+
+#: src/util/virprocess.c:337
+#, fuzzy
+msgid "Unable to query process ID start time"
+msgstr "%sను తెరువలేక పోయింది"
 
 #: src/util/virrandom.c:104
 #, fuzzy
@@ -27880,18 +27896,6 @@ msgstr ""
 #, fuzzy, c-format
 msgid "%s: unsupported hypervisor name %s\n"
 msgstr "మద్దతీయని డిస్కురకము '%s'"
-
-#, fuzzy
-#~ msgid "Cannot find start time in %s"
-#~ msgstr "UML కెర్నల్ %sను కనుగొనలేదు"
-
-#, fuzzy
-#~ msgid "Cannot parse start time %s in %s"
-#~ msgstr "చిరునామా %dను పరిష్కరించలేదు: %s"
-
-#, fuzzy
-#~ msgid "Unable to query process ID start time"
-#~ msgstr "%sను తెరువలేక పోయింది"
 
 #, fuzzy
 #~ msgid "dbus_bus_get failed"

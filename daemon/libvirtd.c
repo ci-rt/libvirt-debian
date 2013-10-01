@@ -36,6 +36,7 @@
 #include "virterror_internal.h"
 #include "virfile.h"
 #include "virpidfile.h"
+#include "virprocess.h"
 
 #define VIR_FROM_THIS VIR_FROM_QEMU
 
@@ -192,7 +193,7 @@ static int daemonForkIntoBackground(const char *argv0)
             VIR_FORCE_CLOSE(statuspipe[1]);
 
             /* We wait to make sure the first child forked successfully */
-            if (virPidWait(pid, NULL) < 0)
+            if (virProcessWait(pid, NULL) < 0)
                 goto error;
 
             /* If we get here, then the grandchild was spawned, so we

@@ -64,6 +64,7 @@
 #include "virfile.h"
 #include "command.h"
 #include "virnetdev.h"
+#include "virprocess.h"
 
 #define VIR_FROM_THIS VIR_FROM_LXC
 
@@ -1519,7 +1520,7 @@ int lxcContainerAvailable(int features)
         VIR_DEBUG("clone call returned %s, container support is not enabled",
                   virStrerror(errno, ebuf, sizeof(ebuf)));
         return -1;
-    } else if (virPidWait(cpid, NULL) < 0) {
+    } else if (virProcessWait(cpid, NULL) < 0) {
         return -1;
     }
 

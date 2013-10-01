@@ -272,7 +272,7 @@
 
 Summary: Library providing a simple virtualization API
 Name: libvirt
-Version: 0.9.12.1
+Version: 0.9.12.2
 Release: 1%{?dist}%{?extra_release}
 License: LGPLv2+
 Group: Development/Libraries
@@ -364,8 +364,7 @@ BuildRequires: cyrus-sasl-devel
 %endif
 %if %{with_polkit}
 %if 0%{?fedora} >= 12 || 0%{?rhel} >= 6
-# Only need the binary, not -devel
-BuildRequires: polkit >= 0.93
+BuildRequires: polkit-devel >= 0.93
 %else
 BuildRequires: PolicyKit-devel >= 0.6
 %endif

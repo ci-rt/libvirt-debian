@@ -137,9 +137,6 @@ void virCommandWriteArgLog(virCommandPtr cmd,
 
 char *virCommandToString(virCommandPtr cmd) ATTRIBUTE_RETURN_CHECK;
 
-
-char *virCommandTranslateStatus(int exitstatus) ATTRIBUTE_RETURN_CHECK;
-
 int virCommandExec(virCommandPtr cmd) ATTRIBUTE_RETURN_CHECK;
 
 int virCommandRun(virCommandPtr cmd,
@@ -147,9 +144,6 @@ int virCommandRun(virCommandPtr cmd,
 
 int virCommandRunAsync(virCommandPtr cmd,
                        pid_t *pid) ATTRIBUTE_RETURN_CHECK;
-
-int virPidWait(pid_t pid,
-               int *exitstatus) ATTRIBUTE_RETURN_CHECK;
 
 int virCommandWait(virCommandPtr cmd,
                    int *exitstatus) ATTRIBUTE_RETURN_CHECK;
@@ -161,8 +155,6 @@ int virCommandHandshakeWait(virCommandPtr cmd)
 
 int virCommandHandshakeNotify(virCommandPtr cmd)
     ATTRIBUTE_RETURN_CHECK;
-
-void virPidAbort(pid_t pid);
 
 void virCommandAbort(virCommandPtr cmd);
 

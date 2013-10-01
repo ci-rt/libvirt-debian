@@ -15,7 +15,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libvirt\n"
 "Report-Msgid-Bugs-To: libvir-list@redhat.com\n"
-"POT-Creation-Date: 2013-10-01 13:17+0000\n"
+"POT-Creation-Date: 2013-10-01 19:07+0000\n"
 "PO-Revision-Date: 2012-05-03 10:31+0000\n"
 "Last-Translator: Daniel <veillard@redhat.com>\n"
 "Language-Team: Hindi (http://www.transifex.net/projects/p/libvirt/language/"
@@ -51,12 +51,12 @@ msgstr "दूरस्थ पठन विन्यास फाइल: %s: %s:
 msgid "remoteReadConfigFile: %s: %s: unsupported auth %s"
 msgstr "remoteReadConfigFile: %s: %s: असमर्थित auth %s"
 
-#: daemon/libvirtd.c:212
+#: daemon/libvirtd.c:213
 #, c-format
 msgid "%s: error: unable to determine if daemon is running: %s\n"
 msgstr "%s: त्रुटि: निर्धारित करने में असमर्थ यदि डेमॉन चल रहा है: %s\n"
 
-#: daemon/libvirtd.c:218
+#: daemon/libvirtd.c:219
 #, c-format
 msgid ""
 "%s: error: %s. Check /var/log/messages or run without --daemon for more "
@@ -65,24 +65,24 @@ msgstr ""
 "%s: त्रुटि: %s. जांचें /var/log/messages या  के बिना चले -- अधिक जानकारी के लिए "
 "डेमॉन.\n"
 
-#: daemon/libvirtd.c:414 daemon/libvirtd.c:419
+#: daemon/libvirtd.c:415 daemon/libvirtd.c:420
 #, c-format
 msgid "Failed to parse mode '%s'"
 msgstr "मोड '%s' विश्लेषण में विफल"
 
-#: daemon/libvirtd.c:645
+#: daemon/libvirtd.c:646
 msgid "additional privileges are required"
 msgstr "अतिरिक्त अधिकार जरूरी है"
 
-#: daemon/libvirtd.c:651
+#: daemon/libvirtd.c:652
 msgid "failed to set reduced privileges"
 msgstr "घटा अधिकार सेट करने में विफल"
 
-#: daemon/libvirtd.c:702
+#: daemon/libvirtd.c:703
 msgid "Driver state initialization failed"
 msgstr "चालक स्थिति आरंभीकरण विफल"
 
-#: daemon/libvirtd.c:730
+#: daemon/libvirtd.c:731
 #, c-format
 msgid ""
 "\n"
@@ -115,7 +115,7 @@ msgstr ""
 "\n"
 "libvirt प्रबंधन डेमॉन:\n"
 
-#: daemon/libvirtd.c:747
+#: daemon/libvirtd.c:748
 #, c-format
 msgid ""
 "\n"
@@ -156,7 +156,7 @@ msgstr ""
 "      %s/run/libvirtd.pid\n"
 "\n"
 
-#: daemon/libvirtd.c:774
+#: daemon/libvirtd.c:775
 msgid ""
 "\n"
 "  Default paths:\n"
@@ -194,93 +194,93 @@ msgstr ""
 "      $HOME/.libvirt/libvirtd.pid\n"
 "\n"
 
-#: daemon/libvirtd.c:834 src/lxc/lxc_controller.c:1667
+#: daemon/libvirtd.c:835 src/lxc/lxc_controller.c:1668
 #: src/security/virt-aa-helper.c:1169 src/storage/parthelper.c:75
 #: src/util/iohelper.c:228 src/util/iohelper.c:235
 #, c-format
 msgid "%s: initialization failed\n"
 msgstr "%s: इनिशियलाइजेशन असफल\n"
 
-#: daemon/libvirtd.c:871
+#: daemon/libvirtd.c:872
 msgid "Invalid value for timeout"
 msgstr "मध्यांतर के लिए अवैध मान"
 
-#: daemon/libvirtd.c:879 daemon/libvirtd.c:887
+#: daemon/libvirtd.c:880 daemon/libvirtd.c:888
 msgid "Can't allocate memory"
 msgstr "स्मृति आवंटित नहीं कर सकते है"
 
-#: daemon/libvirtd.c:901
+#: daemon/libvirtd.c:902
 #, c-format
 msgid "%s: internal error: unknown flag: %c"
 msgstr "%s: आंतरिक त्रुटि: अज्ञात ध्वज: %c"
 
-#: daemon/libvirtd.c:908
+#: daemon/libvirtd.c:909
 msgid "Can't create initial configuration"
 msgstr "प्रारंभिक विन्यास का निर्माण नहीं कर सकते है"
 
-#: daemon/libvirtd.c:917
+#: daemon/libvirtd.c:918
 msgid "Can't determine config path"
 msgstr "विन्यास पथ का निर्धारण नहीं कर सकते है "
 
-#: daemon/libvirtd.c:927
+#: daemon/libvirtd.c:928
 #, c-format
 msgid "Can't load config file: %s: %s"
 msgstr ""
 
-#: daemon/libvirtd.c:930
+#: daemon/libvirtd.c:931
 #, c-format
 msgid "Can't load config file: %s"
 msgstr ""
 
-#: daemon/libvirtd.c:936
+#: daemon/libvirtd.c:937
 #, c-format
 msgid "invalid host UUID: %s"
 msgstr "अवैध मेजबान UUID: %s"
 
-#: daemon/libvirtd.c:941
+#: daemon/libvirtd.c:942
 msgid "Can't initialize logging"
 msgstr "आरंभीकृत लॉगिंग नहीं कर सकते है "
 
-#: daemon/libvirtd.c:948
+#: daemon/libvirtd.c:949
 msgid "Can't determine pid file path."
 msgstr "पीआईडी फ़ाइल पथ निर्धारित नहीं कर सकते है. "
 
-#: daemon/libvirtd.c:956
+#: daemon/libvirtd.c:957
 msgid "Can't determine socket paths"
 msgstr "सॉकेट पथ का निर्धारण नहीं कर सकते हैं"
 
-#: daemon/libvirtd.c:964
+#: daemon/libvirtd.c:965
 #, c-format
 msgid "cannot change to root directory: %s"
 msgstr "रूट निर्देशिका में नहीं बदल सकता है: %s"
 
-#: daemon/libvirtd.c:970
+#: daemon/libvirtd.c:971
 #, c-format
 msgid "Failed to fork as daemon: %s"
 msgstr "डेमान के रूप में बांटने में विफल: %s"
 
-#: daemon/libvirtd.c:983
+#: daemon/libvirtd.c:984
 msgid "Can't determine user directory"
 msgstr "उपयोगकर्ता निर्देशिका निर्धारित नहीं कर सकते है"
 
-#: daemon/libvirtd.c:997
+#: daemon/libvirtd.c:998
 #, c-format
 msgid "unable to create rundir %s: %s"
 msgstr "rundir %s उत्पन्न करने में असमर्थ: %s"
 
-#: daemon/qemu_dispatch.h:36 daemon/remote.c:750 daemon/remote.c:959
-#: daemon/remote.c:1014 daemon/remote.c:1070 daemon/remote.c:1134
-#: daemon/remote.c:1191 daemon/remote.c:1256 daemon/remote.c:1309
-#: daemon/remote.c:1356 daemon/remote.c:1402 daemon/remote.c:1473
-#: daemon/remote.c:1559 daemon/remote.c:1616 daemon/remote.c:1667
-#: daemon/remote.c:1732 daemon/remote.c:1797 daemon/remote.c:1863
-#: daemon/remote.c:1941 daemon/remote.c:2016 daemon/remote.c:2058
-#: daemon/remote.c:2835 daemon/remote.c:2888 daemon/remote.c:2929
-#: daemon/remote.c:3007 daemon/remote.c:3044 daemon/remote.c:3077
-#: daemon/remote.c:3126 daemon/remote.c:3172 daemon/remote.c:3213
-#: daemon/remote.c:3264 daemon/remote.c:3324 daemon/remote.c:3378
-#: daemon/remote.c:3427 daemon/remote.c:3475 daemon/remote.c:3515
-#: daemon/remote.c:3560 daemon/remote.c:3624 daemon/remote.c:3699
+#: daemon/qemu_dispatch.h:36 daemon/remote.c:751 daemon/remote.c:960
+#: daemon/remote.c:1015 daemon/remote.c:1071 daemon/remote.c:1135
+#: daemon/remote.c:1192 daemon/remote.c:1257 daemon/remote.c:1310
+#: daemon/remote.c:1357 daemon/remote.c:1403 daemon/remote.c:1474
+#: daemon/remote.c:1560 daemon/remote.c:1617 daemon/remote.c:1668
+#: daemon/remote.c:1733 daemon/remote.c:1798 daemon/remote.c:1864
+#: daemon/remote.c:1942 daemon/remote.c:2017 daemon/remote.c:2059
+#: daemon/remote.c:2858 daemon/remote.c:2911 daemon/remote.c:2952
+#: daemon/remote.c:3030 daemon/remote.c:3067 daemon/remote.c:3100
+#: daemon/remote.c:3149 daemon/remote.c:3195 daemon/remote.c:3236
+#: daemon/remote.c:3287 daemon/remote.c:3347 daemon/remote.c:3401
+#: daemon/remote.c:3450 daemon/remote.c:3498 daemon/remote.c:3538
+#: daemon/remote.c:3583 daemon/remote.c:3647 daemon/remote.c:3722
 #: daemon/remote_dispatch.h:163 daemon/remote_dispatch.h:213
 #: daemon/remote_dispatch.h:261 daemon/remote_dispatch.h:313
 #: daemon/remote_dispatch.h:365 daemon/remote_dispatch.h:417
@@ -391,153 +391,153 @@ msgstr "rundir %s उत्पन्न करने में असमर्�
 msgid "connection not open"
 msgstr "कनेक्शन नहीं खुला"
 
-#: daemon/remote.c:64 src/remote/remote_driver.c:58
+#: daemon/remote.c:65 src/remote/remote_driver.c:58
 #, c-format
 msgid "conversion from hyper to %s overflowed"
 msgstr "हाईपर से %s में परिवर्तन ओवरफ्लो कर गया है"
 
-#: daemon/remote.c:686
+#: daemon/remote.c:687
 msgid "connection already open"
 msgstr "कनेक्शन पहले से खुला"
 
-#: daemon/remote.c:692
+#: daemon/remote.c:693
 msgid "keepalive support is required to connect"
 msgstr "keepalive समर्थन से कंनेक्ट करने की आवश्यकता है "
 
-#: daemon/remote.c:837 daemon/remote.c:927 src/remote/remote_driver.c:1339
+#: daemon/remote.c:838 daemon/remote.c:928 src/remote/remote_driver.c:1339
 #: src/remote/remote_driver.c:1418
 #, c-format
 msgid "unknown parameter type: %d"
 msgstr "अज्ञात पैरामीटर प्रकार: %d"
 
-#: daemon/remote.c:873 daemon/remote.c:964 daemon/remote.c:1019
-#: daemon/remote.c:1200 daemon/remote.c:1674 daemon/remote.c:1739
-#: daemon/remote.c:1804 daemon/remote.c:1870 daemon/remote.c:1948
-#: daemon/remote.c:2063 daemon/remote.c:3567 daemon/remote.c:3629
+#: daemon/remote.c:874 daemon/remote.c:965 daemon/remote.c:1020
+#: daemon/remote.c:1201 daemon/remote.c:1675 daemon/remote.c:1740
+#: daemon/remote.c:1805 daemon/remote.c:1871 daemon/remote.c:1949
+#: daemon/remote.c:2064 daemon/remote.c:3590 daemon/remote.c:3652
 msgid "nparams too large"
 msgstr "nparams काफी बड़ा"
 
-#: daemon/remote.c:888 src/remote/remote_driver.c:1379
+#: daemon/remote.c:889 src/remote/remote_driver.c:1379
 #, c-format
 msgid "Parameter %s too big for destination"
 msgstr "पैरामीटर %s गंतव्य के लिए काफी बड़ा है"
 
-#: daemon/remote.c:1076
+#: daemon/remote.c:1077
 msgid "maxStats > REMOTE_DOMAIN_MEMORY_STATS_MAX"
 msgstr "maxStats > REMOTE_DOMAIN_MEMORY_STATS_MAX"
 
-#: daemon/remote.c:1147 daemon/remote.c:1268
+#: daemon/remote.c:1148 daemon/remote.c:1269
 msgid "size > maximum buffer size"
 msgstr "size > maximum buffer size"
 
-#: daemon/remote.c:1410
+#: daemon/remote.c:1411
 msgid "ncpumaps > REMOTE_VCPUINFO_MAX"
 msgstr "ncpumaps > REMOTE_VCPUINFO_MAX"
 
-#: daemon/remote.c:1416 daemon/remote.c:1487
+#: daemon/remote.c:1417 daemon/remote.c:1488
 msgid "maxinfo * maplen > REMOTE_CPUMAPS_MAX"
 msgstr "maxinfo * maplen > REMOTE_CPUMAPS_MAX"
 
-#: daemon/remote.c:1481
+#: daemon/remote.c:1482
 msgid "maxinfo > REMOTE_VCPUINFO_MAX"
 msgstr "maxinfo > REMOTE_VCPUINFO_MAX"
 
-#: daemon/remote.c:2198
+#: daemon/remote.c:2200
 msgid "client tried invalid SASL init request"
 msgstr "अवैध SASL init आग्रह को क्लाइंट ने कोशिश किया"
 
-#: daemon/remote.c:2244 daemon/remote.c:2395 daemon/remote.c:2493
-#: daemon/remote.c:2509 daemon/remote.c:2523 daemon/remote.c:2537
-#: daemon/remote.c:2634 daemon/remote.c:2780 daemon/remote.c:2809
+#: daemon/remote.c:2246 daemon/remote.c:2397 daemon/remote.c:2495
+#: daemon/remote.c:2511 daemon/remote.c:2525 daemon/remote.c:2539
+#: daemon/remote.c:2657 daemon/remote.c:2803 daemon/remote.c:2832
 #: src/util/virterror.c:1030
 msgid "authentication failed"
 msgstr "सत्यापन विफल"
 
-#: daemon/remote.c:2271
+#: daemon/remote.c:2273
 #, c-format
 msgid "negotiated SSF %d was not strong enough"
 msgstr "SSF %d का निगोशियेशन काफी मजबूत नहीं था"
 
-#: daemon/remote.c:2326 daemon/remote.c:2424
+#: daemon/remote.c:2328 daemon/remote.c:2426
 msgid "client tried invalid SASL start request"
 msgstr "क्लाइंट ने अवैध SASL आरंभ आग्रह के लिए कोशिश की"
 
-#: daemon/remote.c:2344
+#: daemon/remote.c:2346
 #, c-format
 msgid "sasl start reply data too long %d"
 msgstr "sasl आरंभ जवाब आंकड़ा काफी लंबा %d"
 
-#: daemon/remote.c:2441
+#: daemon/remote.c:2443
 #, c-format
 msgid "sasl step reply data too long %d"
 msgstr "sasl चरण जवाब आंकड़ा काफी लंबा %d"
 
-#: daemon/remote.c:2576 daemon/remote.c:2685
+#: daemon/remote.c:2581 daemon/remote.c:2708
 msgid "client tried invalid PolicyKit init request"
 msgstr "क्लाइंट ने असमर्थित पोलिसीकिट init आग्रह के लिए कोशिश की"
 
-#: daemon/remote.c:2604
+#: daemon/remote.c:2627
 #, c-format
 msgid "Policy kit denied action %s from pid %lld, uid %d: %s"
 msgstr "पॉलिसी किट %s कार्रवाई को pid %lld, uid %d से मना किया गया: %s"
 
-#: daemon/remote.c:2631
+#: daemon/remote.c:2654
 msgid "authentication cancelled by user"
 msgstr "उपयोगकर्ता द्वारा सत्यापन रद्द किया गया"
 
-#: daemon/remote.c:2691
+#: daemon/remote.c:2714
 msgid "cannot get peer socket identity"
 msgstr "पीयर सॉकेट पहचान नहीं पा सकता है"
 
-#: daemon/remote.c:2709
+#: daemon/remote.c:2732
 #, c-format
 msgid "Failed to lookup policy kit caller: %s"
 msgstr "पॉलिसीकिट कॉलर के लुकअप में विफल: %s"
 
-#: daemon/remote.c:2716
+#: daemon/remote.c:2739
 #, c-format
 msgid "Failed to create polkit action %s"
 msgstr "पोलकिट क्रिया %s बनाने में विफल"
 
-#: daemon/remote.c:2726
+#: daemon/remote.c:2749
 #, c-format
 msgid "Failed to create polkit context %s"
 msgstr "पोलकिट संदर्भ %s बनाने में विफल"
 
-#: daemon/remote.c:2744
+#: daemon/remote.c:2767
 #, c-format
 msgid "Policy kit failed to check authorization %d %s"
 msgstr "पॉलिसी किट सत्यापन %d %s जाँचने में विफल रहा"
 
-#: daemon/remote.c:2758
+#: daemon/remote.c:2781
 #, c-format
 msgid "Policy kit denied action %s from pid %lld, uid %d, result: %s"
 msgstr "पॉलिसी किट %s कार्रवाई को pid %lld, uid %d से मना किया गया, परिणाम: %s"
 
-#: daemon/remote.c:2807
+#: daemon/remote.c:2830
 msgid "client tried unsupported PolicyKit init request"
 msgstr "क्लाइंट ने असमर्थित PolicyKit init आग्रह के लिए कोशिश की"
 
-#: daemon/remote.c:2895 daemon/remote.c:3090
+#: daemon/remote.c:2918 daemon/remote.c:3113
 #, c-format
 msgid "domain event %d already registered"
 msgstr "डोमेन इवेंट %d पहले से ही पंजीकृत है"
 
-#: daemon/remote.c:2936 daemon/remote.c:3140
+#: daemon/remote.c:2959 daemon/remote.c:3163
 #, c-format
 msgid "domain event %d not registered"
 msgstr "डोमेन इवेंट %d पंजीकृत नहीं है"
 
-#: daemon/remote.c:3085 daemon/remote.c:3134
+#: daemon/remote.c:3108 daemon/remote.c:3157
 #, c-format
 msgid "unsupported event ID %d"
 msgstr "असमर्थित घटना आईडी %d"
 
-#: daemon/remote.c:3633
+#: daemon/remote.c:3656
 msgid "ncpus too large"
 msgstr "ncpus काफी बड़ा"
 
-#: daemon/remote.c:3708
+#: daemon/remote.c:3731
 msgid "maxerrors too large"
 msgstr "maxerrors काफी बड़ा"
 
@@ -976,7 +976,7 @@ msgstr "म्यूटेक्स आरंभ नहीं कर सकत�
 #: src/qemu/qemu_driver.c:12288 src/qemu/qemu_driver.c:12660
 #: src/qemu/qemu_driver.c:12733 src/qemu/qemu_driver.c:12763
 #: src/qemu/qemu_driver.c:12809 src/qemu/qemu_migration.c:2615
-#: src/uml/uml_driver.c:2399 src/xen/xen_driver.c:2131
+#: src/uml/uml_driver.c:2400 src/xen/xen_driver.c:2131
 #: src/xen/xen_hypervisor.c:1177 src/xen/xen_hypervisor.c:1258
 #: src/xen/xen_hypervisor.c:1377 src/xen/xm_internal.c:715
 msgid "domain is not running"
@@ -5646,7 +5646,7 @@ msgstr "स्ट्रीम से कई बाइट्स पढ़ सकत�
 msgid "cannot read from stream"
 msgstr "स्ट्रीम से पढ़ नहीं सका"
 
-#: src/fdstream.c:493 src/rpc/virnetsocket.c:139 src/util/event_poll.c:671
+#: src/fdstream.c:493 src/rpc/virnetsocket.c:140 src/util/event_poll.c:671
 msgid "Unable to initialize mutex"
 msgstr "mutex आरंभ करने में विफल"
 
@@ -6432,235 +6432,235 @@ msgstr "गुम प्लगिन आरंभीकरण प्रतीक
 msgid "this platform is missing dlopen"
 msgstr "इस मंच से dlopen गुम है"
 
-#: src/lxc/lxc_container.c:157
+#: src/lxc/lxc_container.c:158
 msgid "setsid failed"
 msgstr "setsid विफल"
 
-#: src/lxc/lxc_container.c:163
+#: src/lxc/lxc_container.c:164
 msgid "ioctl(TIOCSTTY) failed"
 msgstr "ioctl(TIOCSTTY) विफल"
 
-#: src/lxc/lxc_container.c:178
+#: src/lxc/lxc_container.c:179
 msgid "dup2(stdin) failed"
 msgstr "dup2(stdin) विफल"
 
-#: src/lxc/lxc_container.c:184
+#: src/lxc/lxc_container.c:185
 msgid "dup2(stdout) failed"
 msgstr "dup2(stdout) विफल"
 
-#: src/lxc/lxc_container.c:190
+#: src/lxc/lxc_container.c:191
 msgid "dup2(stderr) failed"
 msgstr "dup2(stderr) विफल"
 
-#: src/lxc/lxc_container.c:344
+#: src/lxc/lxc_container.c:345
 msgid "Failed to make root private"
 msgstr "रूट को निजी बनाने में विफल"
 
-#: src/lxc/lxc_container.c:355 src/lxc/lxc_container.c:377
-#: src/lxc/lxc_container.c:690 src/lxc/lxc_container.c:951
+#: src/lxc/lxc_container.c:356 src/lxc/lxc_container.c:378
+#: src/lxc/lxc_container.c:691 src/lxc/lxc_container.c:952
 #, c-format
 msgid "Failed to create %s"
 msgstr "%s बनाने में विफल"
 
-#: src/lxc/lxc_container.c:364
+#: src/lxc/lxc_container.c:365
 #, c-format
 msgid "Failed to mount empty tmpfs at %s"
 msgstr "रिक्त tmpfs को %s पर आरोहित करने में विफल"
 
-#: src/lxc/lxc_container.c:385
+#: src/lxc/lxc_container.c:386
 #, c-format
 msgid "Failed to bind new root %s into tmpfs"
 msgstr "नया रूट %s को tmpfs में बाइंड करने में विफल"
 
-#: src/lxc/lxc_container.c:393
+#: src/lxc/lxc_container.c:394
 #, c-format
 msgid "Failed to make new root %s readonly"
 msgstr "नया रूट  %s readonly बनाने में विफल"
 
-#: src/lxc/lxc_container.c:403
+#: src/lxc/lxc_container.c:404
 #, c-format
 msgid "Failed to chroot into %s"
 msgstr "%s में chroot करने में विफल"
 
-#: src/lxc/lxc_container.c:411
+#: src/lxc/lxc_container.c:412
 msgid "Failed to pivot root"
 msgstr "pivot बूट करने में विफल"
 
-#: src/lxc/lxc_container.c:472
+#: src/lxc/lxc_container.c:473
 #, c-format
 msgid "Failed to mkdir %s"
 msgstr "%s को mkdir करने में विफल"
 
-#: src/lxc/lxc_container.c:499 src/lxc/lxc_container.c:538
+#: src/lxc/lxc_container.c:500 src/lxc/lxc_container.c:539
 #, c-format
 msgid "Failed to mount %s on %s type %s"
 msgstr "%s प्रकार %s पर %s को माउंट करने में विफल  "
 
-#: src/lxc/lxc_container.c:511
+#: src/lxc/lxc_container.c:512
 msgid "Failed to query file context on /"
 msgstr "फाइल संदर्भ क्वेरी करने में विफल / पर "
 
-#: src/lxc/lxc_container.c:565
+#: src/lxc/lxc_container.c:566
 msgid "Cannot create /dev/pts"
 msgstr "/dev/pts बना नहीं सकता है"
 
-#: src/lxc/lxc_container.c:572
+#: src/lxc/lxc_container.c:573
 msgid "Failed to mount /dev/pts in container"
 msgstr "/dev/pts में कंटेंनर में आरोहित करने में विफल"
 
-#: src/lxc/lxc_container.c:615
+#: src/lxc/lxc_container.c:616
 #, c-format
 msgid "Failed to make device %s"
 msgstr "युक्ति %s बनाने में विफल"
 
-#: src/lxc/lxc_container.c:624
+#: src/lxc/lxc_container.c:625
 #, c-format
 msgid "Failed to symlink device %s to %s"
 msgstr ""
 
-#: src/lxc/lxc_container.c:637
+#: src/lxc/lxc_container.c:638
 msgid "Failed to bind /dev/pts/ptmx on to /dev/ptmx"
 msgstr "/dev/pts/ptmx पर /dev/ptmx को बाइंड करने में"
 
-#: src/lxc/lxc_container.c:646
+#: src/lxc/lxc_container.c:647
 msgid "Failed to make device /dev/ptmx"
 msgstr "/dev/ptmx युक्ति बनाने में विफल"
 
-#: src/lxc/lxc_container.c:660
+#: src/lxc/lxc_container.c:661
 #, c-format
 msgid "Failed to symlink %s to %s"
 msgstr "%s को symlink %s बनाने में विफल"
 
-#: src/lxc/lxc_container.c:668
+#: src/lxc/lxc_container.c:669
 #, c-format
 msgid "Failed to symlink %s to /dev/console"
 msgstr "/dev/console को symlink %s बनाने में विफल"
 
-#: src/lxc/lxc_container.c:697
+#: src/lxc/lxc_container.c:698
 #, c-format
 msgid "Failed to bind mount directory %s to %s"
 msgstr "%s को माउंट निर्देशिका %s बाइंड करने में विफल"
 
-#: src/lxc/lxc_container.c:706
+#: src/lxc/lxc_container.c:707
 #, c-format
 msgid "Failed to make directory %s readonly"
 msgstr "निर्देशिका %s readonly बनाने में विफल"
 
-#: src/lxc/lxc_container.c:733
+#: src/lxc/lxc_container.c:734
 #, c-format
 msgid "Unable to open filesystem %s"
 msgstr " filesystem %s खोलने में विफल"
 
-#: src/lxc/lxc_container.c:739
+#: src/lxc/lxc_container.c:740
 msgid "Unable to create blkid library handle"
 msgstr "blkid लाइब्रेरी हैंडल बनाने में असमर्थ"
 
-#: src/lxc/lxc_container.c:744
+#: src/lxc/lxc_container.c:745
 #, c-format
 msgid "Unable to associate device %s with blkid library"
 msgstr "blkid लाइब्रेरी के साथ युक्ति %s जोड़ने में असमर्थ"
 
-#: src/lxc/lxc_container.c:760
+#: src/lxc/lxc_container.c:761
 #, c-format
 msgid "Too many filesystems detected for %s"
 msgstr "कई filesystems जाँच किये गए %s के लिए"
 
-#: src/lxc/lxc_container.c:764
+#: src/lxc/lxc_container.c:765
 #, c-format
 msgid "Unable to detect filesystem for %s"
 msgstr "%s के लिए filesystem जांचने में विफल "
 
-#: src/lxc/lxc_container.c:772
+#: src/lxc/lxc_container.c:773
 #, c-format
 msgid "Unable to find filesystem type for %s"
 msgstr "%s के लिए filesystem प्रकार ढूढने में विफल "
 
-#: src/lxc/lxc_container.c:845 src/util/iohelper.c:152
+#: src/lxc/lxc_container.c:846 src/util/iohelper.c:152
 #, c-format
 msgid "Unable to read %s"
 msgstr "%s पढ़ने में अक्षम"
 
-#: src/lxc/lxc_container.c:875
+#: src/lxc/lxc_container.c:876
 #, c-format
 msgid "%s has unexpected '*' before last line"
 msgstr "%s का अप्रत्याशित '*' आखरी रेखा के पहले "
 
-#: src/lxc/lxc_container.c:898
+#: src/lxc/lxc_container.c:899
 #, c-format
 msgid "Failed to mount device %s to %s"
 msgstr "युक्ति %s को %s में माउंट करने में विफल"
 
-#: src/lxc/lxc_container.c:921
+#: src/lxc/lxc_container.c:922
 #, c-format
 msgid "Failed to mount device %s to %s, unable to detect filesystem"
 msgstr "युक्ति %s को %s में माउंट करने में विफल, filesystem जांचने में असफल "
 
-#: src/lxc/lxc_container.c:963
+#: src/lxc/lxc_container.c:964
 #, c-format
 msgid "Failed to mount device %s to %s as %s"
 msgstr "युक्ति %s को %s के रूप %s में माउंट करने में विफल"
 
-#: src/lxc/lxc_container.c:1012
+#: src/lxc/lxc_container.c:1013
 #, c-format
 msgid "Unexpected filesystem type %s"
 msgstr "अप्रत्याशित filesystem प्रकार %s"
 
-#: src/lxc/lxc_container.c:1017
+#: src/lxc/lxc_container.c:1018
 #, c-format
 msgid "Cannot mount filesystem type %s"
 msgstr "filesystem प्रकार %s माउंट नहीं कर सका "
 
-#: src/lxc/lxc_container.c:1061
+#: src/lxc/lxc_container.c:1062
 msgid "Failed to read /proc/mounts"
 msgstr "/proc/mounts पढ़ने में विफल"
 
-#: src/lxc/lxc_container.c:1101
+#: src/lxc/lxc_container.c:1102
 #, c-format
 msgid "Failed to unmount '%s' and could not detach old root '%s'"
 msgstr "'%s' अनमाउंट करने में विफल और पुराने रूट '%s' अलग नहीं कर सका "
 
-#: src/lxc/lxc_container.c:1108
+#: src/lxc/lxc_container.c:1109
 #, c-format
 msgid "Failed to unmount '%s' and could not unmount old root '%s'"
 msgstr "'%s' अनमाउंट करने में विफलऔर पुराने रूट '%s' अनमाउन्ट नहीं कर सका"
 
-#: src/lxc/lxc_container.c:1175
+#: src/lxc/lxc_container.c:1176
 msgid "Failed to make / slave"
 msgstr "/ को स्लेव बनाने में विफल"
 
-#: src/lxc/lxc_container.c:1248
+#: src/lxc/lxc_container.c:1249
 #, c-format
 msgid "Failed to remove capabilities: %d"
 msgstr "क्षमता हटाने में विफल: %d"
 
-#: src/lxc/lxc_container.c:1254
+#: src/lxc/lxc_container.c:1255
 #, c-format
 msgid "Failed to apply capabilities: %d"
 msgstr "क्षमता लागू करने में विफल: %d"
 
-#: src/lxc/lxc_container.c:1295
+#: src/lxc/lxc_container.c:1296
 msgid "lxcChild() passed invalid vm definition"
 msgstr "lxcChild() ने अवैध vm परिभाषा पास किया"
 
-#: src/lxc/lxc_container.c:1328
+#: src/lxc/lxc_container.c:1329
 #, c-format
 msgid "Failed to open tty %s"
 msgstr "tty %s खोलने में विफल"
 
-#: src/lxc/lxc_container.c:1338
+#: src/lxc/lxc_container.c:1339
 #, c-format
 msgid "cannot find init path '%s' relative to container root"
 msgstr "कंटेनर रूट के सापेक्ष init पथ '% s' नहीं ढूँढ सकता"
 
-#: src/lxc/lxc_container.c:1346
+#: src/lxc/lxc_container.c:1347
 msgid "Failed to read the container continue message"
 msgstr "कंटेनर जारी संदेश पढ़ने में असमर्थ"
 
-#: src/lxc/lxc_container.c:1365
+#: src/lxc/lxc_container.c:1366
 msgid "failed to send continue signal to controller"
 msgstr "नियंत्रक को निरंतर संकेत भेजने में विफल"
 
-#: src/lxc/lxc_container.c:1481
+#: src/lxc/lxc_container.c:1482
 msgid "Failed to run clone container"
 msgstr "क्लोन कंटेनर चलाने में विफल"
 
@@ -6668,296 +6668,296 @@ msgstr "क्लोन कंटेनर चलाने में विफ�
 msgid "cannot get the host uuid"
 msgstr "होस्ट uuid नहीं मिल पाया "
 
-#: src/lxc/lxc_controller.c:96
+#: src/lxc/lxc_controller.c:97
 msgid "Unable to read /dev"
 msgstr "/dev पढ़ने में अक्षम"
 
-#: src/lxc/lxc_controller.c:112 src/lxc/lxc_controller.c:165
+#: src/lxc/lxc_controller.c:113 src/lxc/lxc_controller.c:166
 #: src/qemu/qemu_driver.c:1008 src/util/iohelper.c:58
 #, c-format
 msgid "Unable to open %s"
 msgstr "%s को खोलने में विफल"
 
-#: src/lxc/lxc_controller.c:123
+#: src/lxc/lxc_controller.c:124
 #, c-format
 msgid "Unable to get loop status on %s"
 msgstr "लूप स्थिति पाने में विफल %s पर "
 
-#: src/lxc/lxc_controller.c:134
+#: src/lxc/lxc_controller.c:135
 msgid "Unable to find a free loop device in /dev"
 msgstr "मुक्त लूप युक्ति पाने में विफल  /dev में"
 
-#: src/lxc/lxc_controller.c:171
+#: src/lxc/lxc_controller.c:172
 #, c-format
 msgid "Unable to attach %s to loop device"
 msgstr "%s जोड़ने में असमर्थ लूप युक्ति को "
 
-#: src/lxc/lxc_controller.c:178
+#: src/lxc/lxc_controller.c:179
 msgid "Unable to mark loop device as autoclear"
 msgstr "लूप युक्ति को autoclear के रूप में चिह्नित करने में असमर्थ"
 
-#: src/lxc/lxc_controller.c:255 src/qemu/qemu_process.c:1684
+#: src/lxc/lxc_controller.c:256 src/qemu/qemu_process.c:1685
 msgid "Host kernel is not aware of NUMA."
 msgstr "होस्ट कर्नेल NUMA के बारे में पता नहीं है।"
 
-#: src/lxc/lxc_controller.c:267 src/qemu/qemu_process.c:1695
+#: src/lxc/lxc_controller.c:268 src/qemu/qemu_process.c:1696
 #, c-format
 msgid "Host cannot support NUMA node %d"
 msgstr "होस्ट NUMA नोड %d का समर्थन नहीं कर सकता"
 
-#: src/lxc/lxc_controller.c:296 src/qemu/qemu_process.c:1724
+#: src/lxc/lxc_controller.c:297 src/qemu/qemu_process.c:1725
 msgid "NUMA memory tuning in 'preferred' mode only supports single node"
 msgstr "'preferred' मोड में NUMA स्मृति ट्यूनिंग केवल एकल नोड का समर्थन करता है"
 
-#: src/lxc/lxc_controller.c:307
+#: src/lxc/lxc_controller.c:308
 #, c-format
 msgid "Unable to set NUMA policy %s"
 msgstr "NUMA पॉलिसी %s सेट करने में असमर्थ"
 
-#: src/lxc/lxc_controller.c:322
+#: src/lxc/lxc_controller.c:323
 msgid "NUMA policy is not available on this platform"
 msgstr "NUMA पॉलिसी इस प्लैटफॉर्म पर उपलब्ध नहीं"
 
-#: src/lxc/lxc_controller.c:395 src/qemu/qemu_cgroup.c:384
+#: src/lxc/lxc_controller.c:396 src/qemu/qemu_cgroup.c:384
 #, c-format
 msgid "Unable to set io cpu shares for domain %s"
 msgstr "डोमेन %s के लिए  io cpu साझा सेट करने में असमर्थ"
 
-#: src/lxc/lxc_controller.c:404
+#: src/lxc/lxc_controller.c:405
 #, c-format
 msgid "Unable to set io cpu quota for domain %s"
 msgstr "डोमेन %s के लिए  io cpu कोटा सेट करने में असमर्थ"
 
-#: src/lxc/lxc_controller.c:413
+#: src/lxc/lxc_controller.c:414
 #, c-format
 msgid "Unable to set io cpu period for domain %s"
 msgstr "डोमेन %s के लिए  io cpu अवधि सेट करने में असमर्थ"
 
-#: src/lxc/lxc_controller.c:432
+#: src/lxc/lxc_controller.c:433
 #, c-format
 msgid "Unable to set Blkio weight for domain %s"
 msgstr "डोमेन %s के लिए Blkio परिमाण सेट करने में असमर्थ"
 
-#: src/lxc/lxc_controller.c:452
+#: src/lxc/lxc_controller.c:453
 #, c-format
 msgid "Unable to set memory limit for domain %s"
 msgstr "डोमेन %s के लिए स्मृति सीमा सेट करने में असमर्थ"
 
-#: src/lxc/lxc_controller.c:461 src/qemu/qemu_cgroup.c:349
+#: src/lxc/lxc_controller.c:462 src/qemu/qemu_cgroup.c:349
 #, c-format
 msgid "Unable to set memory hard limit for domain %s"
 msgstr "डोमेन %s के लिए स्मृति हार्ड सीमा सेट करने में असमर्थ"
 
-#: src/lxc/lxc_controller.c:471 src/qemu/qemu_cgroup.c:358
+#: src/lxc/lxc_controller.c:472 src/qemu/qemu_cgroup.c:358
 #, c-format
 msgid "Unable to set memory soft limit for domain %s"
 msgstr "डोमेन %s के लिए स्मृति सॉफ्ट सीमा सेट करने में असमर्थ"
 
-#: src/lxc/lxc_controller.c:481 src/qemu/qemu_cgroup.c:368
+#: src/lxc/lxc_controller.c:482 src/qemu/qemu_cgroup.c:368
 #, c-format
 msgid "Unable to set swap hard limit for domain %s"
 msgstr "डोमेन %s के लिए स्वैप हार्ड सीमा सेट करने में असमर्थ"
 
-#: src/lxc/lxc_controller.c:511
+#: src/lxc/lxc_controller.c:512
 #, c-format
 msgid "Unable to deny devices for domain %s"
 msgstr "डोमेन %s के लिए युक्ति मना करने में असमर्थ"
 
-#: src/lxc/lxc_controller.c:525
+#: src/lxc/lxc_controller.c:526
 #, c-format
 msgid "Unable to allow device %c:%d:%d for domain %s"
 msgstr "%c:%d:%d युक्ति को %s डोमेन के लिए अनुमति देने में असमर्थ"
 
-#: src/lxc/lxc_controller.c:542
+#: src/lxc/lxc_controller.c:543
 #, c-format
 msgid "Unable to allow device %s for domain %s"
 msgstr "डोमेन %s के लिए युक्ति %s को अनुमति देने में असमर्थ"
 
-#: src/lxc/lxc_controller.c:552
+#: src/lxc/lxc_controller.c:553
 #, c-format
 msgid "Unable to allow PTY devices for domain %s"
 msgstr "डोमेन %s के लिए PTY युक्ति को अनुमति देने में असमर्थ"
 
-#: src/lxc/lxc_controller.c:591
+#: src/lxc/lxc_controller.c:592
 msgid "Unable to get cgroup for driver"
 msgstr "cgroup को ड्राइवर के लिए पाने में असमर्थ"
 
-#: src/lxc/lxc_controller.c:598
+#: src/lxc/lxc_controller.c:599
 #, c-format
 msgid "Unable to create cgroup for domain %s"
 msgstr "cgroup को %s डोमेन के लिए बनाने में असमर्थ"
 
-#: src/lxc/lxc_controller.c:618
+#: src/lxc/lxc_controller.c:619
 #, c-format
 msgid "Unable to add task %d to cgroup for domain %s"
 msgstr "कार्य %d को cgroup में डोमेन %s के लिए जोड़ने में असमर्थ"
 
-#: src/lxc/lxc_controller.c:646
+#: src/lxc/lxc_controller.c:647
 #, c-format
 msgid "failed to create server socket '%s'"
 msgstr "सर्वर सॉकेट '%s' बनाने में विफल"
 
-#: src/lxc/lxc_controller.c:656
+#: src/lxc/lxc_controller.c:657
 #, c-format
 msgid "Socket path %s too long for destination"
 msgstr "सॉकेट पथ %s गंतव्य के लिए काफी लंबा है"
 
-#: src/lxc/lxc_controller.c:662
+#: src/lxc/lxc_controller.c:663
 #, c-format
 msgid "failed to bind server socket '%s'"
 msgstr "सर्वर सॉकेट '%s' बाइंड करने में विफल"
 
-#: src/lxc/lxc_controller.c:668
+#: src/lxc/lxc_controller.c:669
 #, c-format
 msgid "failed to listen server socket %s"
 msgstr "सर्वर सॉकेट %s सुनने में विफल"
 
-#: src/lxc/lxc_controller.c:690
+#: src/lxc/lxc_controller.c:691
 #, c-format
 msgid "failed to apply capabilities: %d"
 msgstr "क्षमता लागू करने में विफल: %d"
 
-#: src/lxc/lxc_controller.c:789
+#: src/lxc/lxc_controller.c:790
 msgid "Unable to read from monitor client"
 msgstr "मोनिटर क्लाइंट से पढने में असमर्थ"
 
-#: src/lxc/lxc_controller.c:818
+#: src/lxc/lxc_controller.c:819
 msgid "Unable to accept monitor client"
 msgstr "मोनिटर क्लाइंट को स्वीकार करने में असमर्थ"
 
-#: src/lxc/lxc_controller.c:835 src/lxc/lxc_controller.c:1159
+#: src/lxc/lxc_controller.c:836 src/lxc/lxc_controller.c:1160
 msgid "Unable to watch client socket"
 msgstr "क्लाइंट सोकेट देखने में असमर्थ "
 
-#: src/lxc/lxc_controller.c:885 src/lxc/lxc_controller.c:921
+#: src/lxc/lxc_controller.c:886 src/lxc/lxc_controller.c:922
 msgid "Unable to add epoll fd"
 msgstr "epoll fd जोड़ने में विफल"
 
-#: src/lxc/lxc_controller.c:896 src/lxc/lxc_controller.c:933
+#: src/lxc/lxc_controller.c:897 src/lxc/lxc_controller.c:934
 msgid "Unable to remove epoll fd"
 msgstr "epoll fd हटाने में असमर्थ"
 
-#: src/lxc/lxc_controller.c:963
+#: src/lxc/lxc_controller.c:964
 msgid "Unable to wait on epoll"
 msgstr "epoll पर प्रतीक्षा करने में असमर्थ "
 
-#: src/lxc/lxc_controller.c:1021
+#: src/lxc/lxc_controller.c:1022
 msgid "Unable to read container pty"
 msgstr "संग्राहक pty पढ़ने में अक्षम"
 
-#: src/lxc/lxc_controller.c:1049
+#: src/lxc/lxc_controller.c:1050
 msgid "Unable to write to container pty"
 msgstr "संग्राहक pty लिखने में असमर्थ"
 
-#: src/lxc/lxc_controller.c:1118
+#: src/lxc/lxc_controller.c:1119
 msgid "Cannot create signal pipe"
 msgstr "संकेत पाइप नहीं बना सकता है"
 
-#: src/lxc/lxc_controller.c:1128
+#: src/lxc/lxc_controller.c:1129
 msgid "Unable to watch signal pipe"
 msgstr "संकेत पाइप देखने में असमर्थ"
 
-#: src/lxc/lxc_controller.c:1134
+#: src/lxc/lxc_controller.c:1135
 msgid "Cannot install signal handler"
 msgstr "संकेतक हैंडलर संस्थापित नहीं कर सकता"
 
-#: src/lxc/lxc_controller.c:1148
+#: src/lxc/lxc_controller.c:1149
 msgid "Unable to watch monitor socket"
 msgstr "मॉनिटर सॉकेट देखने में असमर्थ"
 
-#: src/lxc/lxc_controller.c:1181
+#: src/lxc/lxc_controller.c:1182
 msgid "Unable to create epoll fd"
 msgstr "epoll fd बनाने में विफल"
 
-#: src/lxc/lxc_controller.c:1191
+#: src/lxc/lxc_controller.c:1192
 msgid "Unable to watch epoll FD"
 msgstr "epoll FD देखने में असमर्थ"
 
-#: src/lxc/lxc_controller.c:1201 src/lxc/lxc_controller.c:1211
+#: src/lxc/lxc_controller.c:1202 src/lxc/lxc_controller.c:1212
 msgid "Unable to watch host console PTY"
 msgstr "होस्ट कंसोल PTY देखने में असमर्थ"
 
-#: src/lxc/lxc_controller.c:1305
+#: src/lxc/lxc_controller.c:1306
 #, c-format
 msgid "Unable to request personality for %s on %s"
 msgstr "%s पर %s के लिए व्यक्तित्व का अनुरोध करने में असमर्थ"
 
-#: src/lxc/lxc_controller.c:1400
+#: src/lxc/lxc_controller.c:1401
 msgid "sockpair failed"
 msgstr "sockpair विफल"
 
-#: src/lxc/lxc_controller.c:1406
+#: src/lxc/lxc_controller.c:1407
 msgid "socketpair failed"
 msgstr "socketpair विफल"
 
-#: src/lxc/lxc_controller.c:1449
+#: src/lxc/lxc_controller.c:1450
 #, c-format
 msgid "root source %s does not exist"
 msgstr "रूट स्रोत %s मौजूद नहीं है"
 
-#: src/lxc/lxc_controller.c:1456
+#: src/lxc/lxc_controller.c:1457
 msgid "Cannot unshare mount namespace"
 msgstr "आरोह नेमस्पेस को गैर साझाकृत नहीं कर सकता है"
 
-#: src/lxc/lxc_controller.c:1462
+#: src/lxc/lxc_controller.c:1463
 msgid "Failed to switch root mount into slave mode"
 msgstr "स्लेव मोड में रूट माउंट बदलने में विफल"
 
-#: src/lxc/lxc_controller.c:1474
+#: src/lxc/lxc_controller.c:1475
 #, c-format
 msgid "Failed to make path %s"
 msgstr "पथ %s बनाने में विफल"
 
-#: src/lxc/lxc_controller.c:1483
+#: src/lxc/lxc_controller.c:1484
 #, c-format
 msgid "Failed to query file context on %s"
 msgstr "फाइल संदर्भ क्वेरी करने में विफल %s पर "
 
-#: src/lxc/lxc_controller.c:1503
+#: src/lxc/lxc_controller.c:1504
 #, c-format
 msgid "Failed to mount devpts on %s"
 msgstr "devpts को %s पर माउंट करने में विफल"
 
-#: src/lxc/lxc_controller.c:1516
+#: src/lxc/lxc_controller.c:1517
 #, c-format
 msgid "Expected exactly one TTY fd, but got %zu"
 msgstr "अपेक्षित वास्तव में एक TTY fd, लेकिन %zu मिला"
 
-#: src/lxc/lxc_controller.c:1528 src/lxc/lxc_controller.c:1537
+#: src/lxc/lxc_controller.c:1529 src/lxc/lxc_controller.c:1538
 #: src/lxc/lxc_driver.c:1848
 msgid "Failed to allocate tty"
 msgstr "tty आबंटित करने में विफल"
 
-#: src/lxc/lxc_controller.c:1563
+#: src/lxc/lxc_controller.c:1564
 msgid "Unable to send container continue message"
 msgstr "कंटेनर जारी संदेश भेजने में असमर्थ"
 
-#: src/lxc/lxc_controller.c:1569
+#: src/lxc/lxc_controller.c:1570
 msgid "error receiving signal from container"
 msgstr "संग्राहक से संकेत पाने में त्रुटि"
 
-#: src/lxc/lxc_controller.c:1586
+#: src/lxc/lxc_controller.c:1587
 msgid "error sending continue signal to parent"
 msgstr "जनक को शुरूआती संकेत भेजने में त्रुटि"
 
-#: src/lxc/lxc_controller.c:1594 src/lxc/lxc_controller.c:1601
+#: src/lxc/lxc_controller.c:1595 src/lxc/lxc_controller.c:1602
 msgid "Unable to set file descriptor non-blocking"
 msgstr ""
 
-#: src/lxc/lxc_controller.c:1815
+#: src/lxc/lxc_controller.c:1816
 #, c-format
 msgid "Unable to write pid file '%s/%s.pid'"
 msgstr "pid फाइल '%s/%s.pid' लिखने में असमर्थ"
 
-#: src/lxc/lxc_controller.c:1829
+#: src/lxc/lxc_controller.c:1830
 msgid "Unable to change to root dir"
 msgstr "रूट निर्देशिका बदलने में असमर्थ"
 
-#: src/lxc/lxc_controller.c:1835
+#: src/lxc/lxc_controller.c:1836
 msgid "Unable to become session leader"
 msgstr "सत्र लीडर बनने में असमर्थ"
 
-#: src/lxc/lxc_controller.c:1843
+#: src/lxc/lxc_controller.c:1844
 msgid "Failed to accept a connection from driver"
 msgstr "ड्राइवर से कनेक्शन स्वीकारने में विफल"
 
@@ -7111,12 +7111,12 @@ msgstr "कोई ब्रिज नाम निर्दिष्ट नह�
 msgid "Unsupported network type %s"
 msgstr "असमर्थित संजाल प्रकार %s"
 
-#: src/lxc/lxc_driver.c:1422 src/qemu/qemu_process.c:1169
+#: src/lxc/lxc_driver.c:1422 src/qemu/qemu_process.c:1170
 #, c-format
 msgid "Failed to set security context for monitor for %s"
 msgstr "सुरक्षा संदर्भ सेट करने में असमर्थ मोनिटर को %s के लिए "
 
-#: src/lxc/lxc_driver.c:1430 src/qemu/qemu_process.c:1202
+#: src/lxc/lxc_driver.c:1430 src/qemu/qemu_process.c:1203
 #, c-format
 msgid "Failed to clear security context for monitor for %s"
 msgstr "मोनिटर को %s के लिए सुरक्षा संदर्भ खाली करने में असमर्थ"
@@ -7258,10 +7258,10 @@ msgstr "डोमेन पहले से चल रहा है"
 #: src/qemu/qemu_driver.c:12146 src/qemu/qemu_driver.c:12277
 #: src/qemu/qemu_driver.c:12362 src/qemu/qemu_driver.c:12462
 #: src/qemu/qemu_driver.c:12725 src/qemu/qemu_driver.c:12800
-#: src/test/test_driver.c:2129 src/uml/uml_driver.c:1641
-#: src/uml/uml_driver.c:1666 src/uml/uml_driver.c:1699
-#: src/uml/uml_driver.c:2042 src/uml/uml_driver.c:2160
-#: src/uml/uml_driver.c:2393 src/vmware/vmware_driver.c:638
+#: src/test/test_driver.c:2129 src/uml/uml_driver.c:1642
+#: src/uml/uml_driver.c:1667 src/uml/uml_driver.c:1700
+#: src/uml/uml_driver.c:2043 src/uml/uml_driver.c:2161
+#: src/uml/uml_driver.c:2394 src/vmware/vmware_driver.c:638
 #, c-format
 msgid "no domain with matching uuid '%s'"
 msgstr "मेल खाते uuid '%s' के साथ कोई डोमेन नहीं"
@@ -7287,7 +7287,7 @@ msgid "security DOI string exceeds max %d bytes"
 msgstr "सुरक्षा DOI स्ट्रिंग अधिकतम %d बाइट से अधिक हो गई"
 
 #: src/lxc/lxc_driver.c:2452 src/libxl/libxl_driver.c:148
-#: src/qemu/qemu_driver.c:175 src/uml/uml_driver.c:168
+#: src/qemu/qemu_driver.c:175 src/uml/uml_driver.c:169
 #, c-format
 msgid "Failed to autostart VM '%s': %s"
 msgstr "VM '%s' ऑटोस्टार्ट में विफल: %s"
@@ -7389,14 +7389,14 @@ msgid "Cannot create autostart directory %s"
 msgstr "ऑटोस्टार्ट निर्देशिका %s नहीं बना सकता है"
 
 #: src/lxc/lxc_driver.c:3519 src/libxl/libxl_driver.c:3476
-#: src/qemu/qemu_driver.c:5939 src/uml/uml_driver.c:2279
+#: src/qemu/qemu_driver.c:5939 src/uml/uml_driver.c:2280
 #, c-format
 msgid "Failed to create symlink '%s to '%s'"
 msgstr "सांकेतिक लिंक '%s' को '%s' में बनाने में विफल"
 
 #: src/lxc/lxc_driver.c:3526 src/libxl/libxl_driver.c:3483
 #: src/network/bridge_driver.c:2660 src/qemu/qemu_driver.c:5946
-#: src/storage/storage_driver.c:1063 src/uml/uml_driver.c:2286
+#: src/storage/storage_driver.c:1063 src/uml/uml_driver.c:2287
 #, c-format
 msgid "Failed to delete symlink '%s'"
 msgstr "सिमलिंक '%s' मिटाने में विफल"
@@ -7409,17 +7409,17 @@ msgstr "स्थगन ऑपरेशन विफल"
 msgid "Resume operation failed"
 msgstr "विफल ऑपरेशन फिर बहाल करें"
 
-#: src/lxc/lxc_driver.c:3800 src/uml/uml_driver.c:2420
+#: src/lxc/lxc_driver.c:3800 src/uml/uml_driver.c:2421
 #, c-format
 msgid "cannot find console device '%s'"
 msgstr "कंसोल युक्ति '%s' ढूँढ़ नहीं सकता है"
 
-#: src/lxc/lxc_driver.c:3801 src/uml/uml_driver.c:2421
+#: src/lxc/lxc_driver.c:3801 src/uml/uml_driver.c:2422
 msgid "default"
 msgstr "डिफ़ॉल्ट"
 
 #: src/lxc/lxc_driver.c:3807 src/qemu/qemu_driver.c:11643
-#: src/uml/uml_driver.c:2427 src/xen/xen_driver.c:2159
+#: src/uml/uml_driver.c:2428 src/xen/xen_driver.c:2159
 #, c-format
 msgid "character device %s is not using a PTY"
 msgstr "वर्ण युक्ति %s PTY का प्रयोग नहीं है "
@@ -7427,7 +7427,7 @@ msgstr "वर्ण युक्ति %s PTY का प्रयोग नह�
 #: src/libxl/libxl_driver.c:150 src/qemu/qemu_driver.c:169
 #: src/qemu/qemu_driver.c:177 src/qemu/qemu_hostdev.c:747
 #: src/qemu/qemu_hostdev.c:766 src/qemu/qemu_hostdev.c:815
-#: src/secret/secret_driver.c:505 src/uml/uml_driver.c:169
+#: src/secret/secret_driver.c:505 src/uml/uml_driver.c:170
 #: src/xenapi/xenapi_utils.c:266 tools/virsh.c:569 tools/virsh.c:17243
 msgid "unknown error"
 msgstr "अज्ञात त्रुटि"
@@ -7531,7 +7531,7 @@ msgid "Failed to create save dir '%s': %s"
 msgstr "सहेज dir '%s' बनाने में विफल: %s"
 
 #: src/libxl/libxl_driver.c:923 src/qemu/qemu_domain.c:1463
-#: src/uml/uml_driver.c:1016
+#: src/uml/uml_driver.c:1017
 #, c-format
 msgid "failed to create logfile %s"
 msgstr "लॉग फाइल %s बनाने में विफल"
@@ -7587,11 +7587,11 @@ msgstr "डोमेन '%d' तोड़ने में विफल"
 #: src/openvz/openvz_driver.c:559 src/openvz/openvz_driver.c:610
 #: src/openvz/openvz_driver.c:1087 src/openvz/openvz_driver.c:1136
 #: src/openvz/openvz_driver.c:1166 src/openvz/openvz_driver.c:1259
-#: src/uml/uml_driver.c:1611 src/uml/uml_driver.c:1736
-#: src/uml/uml_driver.c:1782 src/uml/uml_driver.c:1811
-#: src/uml/uml_driver.c:1863 src/uml/uml_driver.c:1942
-#: src/uml/uml_driver.c:2225 src/uml/uml_driver.c:2251
-#: src/uml/uml_driver.c:2326 src/vbox/vbox_tmpl.c:2035
+#: src/uml/uml_driver.c:1612 src/uml/uml_driver.c:1737
+#: src/uml/uml_driver.c:1783 src/uml/uml_driver.c:1812
+#: src/uml/uml_driver.c:1864 src/uml/uml_driver.c:1943
+#: src/uml/uml_driver.c:2226 src/uml/uml_driver.c:2252
+#: src/uml/uml_driver.c:2327 src/vbox/vbox_tmpl.c:2035
 #: src/vbox/vbox_tmpl.c:2095 src/vbox/vbox_tmpl.c:5265
 #: src/vbox/vbox_tmpl.c:5362 src/vbox/vbox_tmpl.c:5599
 #: src/vbox/vbox_tmpl.c:8631 src/vbox/vbox_tmpl.c:8996
@@ -7612,7 +7612,7 @@ msgid "Failed to set maximum memory for domain '%d' with libxenlight"
 msgstr "ibxenlight के साथ डोमेन '%d' के लिए अधिकतम स्मृति सेट करने में विफल "
 
 #: src/libxl/libxl_driver.c:1695 src/qemu/qemu_driver.c:2009
-#: src/uml/uml_driver.c:1711
+#: src/uml/uml_driver.c:1712
 msgid "cannot set memory higher than max memory"
 msgstr "अधिकतम स्मृति से अधिक स्मृति सेट नहीं कर सकता है"
 
@@ -7742,7 +7742,7 @@ msgid "parsing xm config failed"
 msgstr " xm config का विश्लेषण विफल"
 
 #: src/libxl/libxl_driver.c:2783 src/qemu/qemu_driver.c:5068
-#: src/uml/uml_driver.c:1948 src/vmware/vmware_driver.c:644
+#: src/uml/uml_driver.c:1949 src/vmware/vmware_driver.c:644
 msgid "cannot undefine transient domain"
 msgstr "अस्थायी डोमेन गैर परिभाषित नहीं कर सकता है"
 
@@ -7772,13 +7772,13 @@ msgstr "डिस्क '%s' के लिए libxenlight मीडिया ब
 
 #: src/libxl/libxl_driver.c:2910 src/qemu/qemu_hotplug.c:214
 #: src/qemu/qemu_hotplug.c:444 src/qemu/qemu_hotplug.c:567
-#: src/uml/uml_driver.c:1988
+#: src/uml/uml_driver.c:1989
 #, c-format
 msgid "target %s already exists"
 msgstr "लक्ष्य %s पहले से मौजूद है"
 
 #: src/libxl/libxl_driver.c:2916 src/qemu/qemu_hotplug.c:585
-#: src/uml/uml_driver.c:1995
+#: src/uml/uml_driver.c:1996
 msgid "disk source path is missing"
 msgstr "डिस्क स्रोत पथ गुम है"
 
@@ -7788,7 +7788,7 @@ msgid "libxenlight failed to attach disk '%s'"
 msgstr "libxenlight डिस्क '%s' जोड़ने में विफल"
 
 #: src/libxl/libxl_driver.c:2940 src/qemu/qemu_driver.c:5191
-#: src/uml/uml_driver.c:2065
+#: src/uml/uml_driver.c:2066
 #, c-format
 msgid "disk bus '%s' cannot be hotplugged."
 msgstr "डिस्क बस '%s' को हॉटप्लग नहीं किया जा सकता है."
@@ -7799,7 +7799,7 @@ msgid "disk device type '%s' cannot be hotplugged"
 msgstr "डिस्क युक्ति प्रकार '%s' को हॉट प्लग नहीं किया जा सकता है"
 
 #: src/libxl/libxl_driver.c:2973 src/qemu/qemu_hotplug.c:1643
-#: src/qemu/qemu_hotplug.c:1747 src/uml/uml_driver.c:2119
+#: src/qemu/qemu_hotplug.c:1747 src/uml/uml_driver.c:2120
 #, c-format
 msgid "disk %s not found"
 msgstr "डिस्क %s नहीं मिला"
@@ -7820,7 +7820,7 @@ msgid "device type '%s' cannot hot unplugged"
 msgstr "युक्ति प्रकार '%s' को हॉट प्लग नहीं किया जा सकता है"
 
 #: src/libxl/libxl_driver.c:3025 src/qemu/qemu_driver.c:5287
-#: src/uml/uml_driver.c:2070
+#: src/uml/uml_driver.c:2071
 #, c-format
 msgid "device type '%s' cannot be attached"
 msgstr "'%s' युक्ति प्रकार को संलग्न नहीं किया जा सकता है"
@@ -7882,12 +7882,12 @@ msgid "unknown domain modify action %d"
 msgstr "अज्ञात डोमेन संशोधित क्रिया %d"
 
 #: src/libxl/libxl_driver.c:3454 src/qemu/qemu_driver.c:5917
-#: src/uml/uml_driver.c:2257
+#: src/uml/uml_driver.c:2258
 msgid "cannot set autostart for transient domain"
 msgstr "अस्थायी डोमेन के लिए स्वतः आरंभ सेट नहीं कर सकता है"
 
 #: src/libxl/libxl_driver.c:3469 src/qemu/qemu_driver.c:5932
-#: src/storage/storage_driver.c:1048 src/uml/uml_driver.c:2272
+#: src/storage/storage_driver.c:1048 src/uml/uml_driver.c:2273
 #, c-format
 msgid "cannot create autostart directory %s"
 msgstr "ऑटोस्टार्ट निर्देशिका %s नहीं बना सकता है"
@@ -7936,7 +7936,7 @@ msgstr "libxenlight अस्थायी डिस्क का समर्थ
 msgid "scripts are not supported on interfaces of type %s"
 msgstr "लिपियों प्रकार %s के अंतराफलक पर समर्थित नहीं है"
 
-#: src/libxl/libxl_conf.c:701 src/qemu/qemu_process.c:3384
+#: src/libxl/libxl_conf.c:701 src/qemu/qemu_process.c:3385
 msgid "Unable to find an unused VNC port"
 msgstr "किसी अप्रयुक्त VNC पोर्ट ढ़ूँढ़ने में असमर्थ"
 
@@ -8395,7 +8395,7 @@ msgid "udev_monitor_new_from_netlink returned NULL"
 msgstr "udev_monitor_new_from_netlink नल लौटाया"
 
 #: src/nodeinfo.c:109 src/nodeinfo.c:155 src/nodeinfo.c:634 src/nodeinfo.c:677
-#: src/nodeinfo.c:741 src/uml/uml_driver.c:2348 src/util/command.c:358
+#: src/nodeinfo.c:741 src/uml/uml_driver.c:2349 src/util/command.c:359
 #: src/util/pci.c:1633
 #, c-format
 msgid "cannot open %s"
@@ -9192,160 +9192,160 @@ msgstr ""
 "संभवतः आप IBM उपकरण आपके LPAR में स्थापित नहीं है.इस सुविधा को सक्षम करने के लिए आपके "
 "समर्थन के लिए संपर्क करे."
 
-#: src/qemu/qemu_agent.c:196 src/qemu/qemu_monitor.c:278
+#: src/qemu/qemu_agent.c:197 src/qemu/qemu_monitor.c:279
 msgid "failed to create socket"
 msgstr "सॉकेट बनाने में विफल"
 
-#: src/qemu/qemu_agent.c:202 src/qemu/qemu_monitor.c:753
+#: src/qemu/qemu_agent.c:203 src/qemu/qemu_monitor.c:754
 msgid "Unable to put monitor into non-blocking mode"
 msgstr "मॉनिटर को non-blocking मोड में रखने में असमर्थ"
 
-#: src/qemu/qemu_agent.c:208 src/qemu/qemu_agent.c:273
-#: src/qemu/qemu_monitor.c:748
+#: src/qemu/qemu_agent.c:209 src/qemu/qemu_agent.c:274
+#: src/qemu/qemu_monitor.c:749
 msgid "Unable to set monitor close-on-exec flag"
 msgstr "close-on-exec फ्लैग के लिए मॉनिटर सेट करने में असमर्थ"
 
-#: src/qemu/qemu_agent.c:216
+#: src/qemu/qemu_agent.c:217
 #, c-format
 msgid "Agent path %s too big for destination"
 msgstr "प्रतिनिधि पथ %s गंतव्य के लिए काफी बड़ी है"
 
-#: src/qemu/qemu_agent.c:242 src/qemu/qemu_monitor.c:304
+#: src/qemu/qemu_agent.c:243 src/qemu/qemu_monitor.c:305
 msgid "failed to connect to monitor socket"
 msgstr "मॉनिटर सॉकेट से जुड़ने में विफल"
 
-#: src/qemu/qemu_agent.c:249 src/qemu/qemu_monitor.c:311
+#: src/qemu/qemu_agent.c:250 src/qemu/qemu_monitor.c:312
 msgid "monitor socket did not show up."
 msgstr "मॉनिटर सॉकेट नहीं दिखा."
 
-#: src/qemu/qemu_agent.c:267 src/qemu/qemu_monitor.c:329
+#: src/qemu/qemu_agent.c:268 src/qemu/qemu_monitor.c:330
 #, c-format
 msgid "Unable to open monitor path %s"
 msgstr "मॉनिटर पथ %s खोलने में असमर्थ"
 
-#: src/qemu/qemu_agent.c:329 src/qemu/qemu_monitor_json.c:146
+#: src/qemu/qemu_agent.c:330 src/qemu/qemu_monitor_json.c:146
 #, c-format
 msgid "Parsed JSON reply '%s' isn't an object"
 msgstr "विश्लेषित JSON जवाब '%s' कोई वस्तु नहीं है"
 
-#: src/qemu/qemu_agent.c:360 src/qemu/qemu_monitor_json.c:167
+#: src/qemu/qemu_agent.c:361 src/qemu/qemu_monitor_json.c:167
 #, c-format
 msgid "Unexpected JSON reply '%s'"
 msgstr "अप्रत्याशित JSON जवाब '%s'"
 
-#: src/qemu/qemu_agent.c:364 src/qemu/qemu_monitor_json.c:171
+#: src/qemu/qemu_agent.c:365 src/qemu/qemu_monitor_json.c:171
 #, c-format
 msgid "Unknown JSON reply '%s'"
 msgstr "अज्ञात JSON जवाब '%s'"
 
-#: src/qemu/qemu_agent.c:429
+#: src/qemu/qemu_agent.c:430
 #, c-format
 msgid "Process %zu %p %p [[[%s]]][[[%s]]]"
 msgstr "प्रक्रिया %zu %p %p [[[%s]]][[[%s]]]"
 
-#: src/qemu/qemu_agent.c:476
+#: src/qemu/qemu_agent.c:477
 msgid "Cannot check socket connection status"
 msgstr "सोकेट कनेक्शन स्थिति की जाँच नहीं कर सकता"
 
-#: src/qemu/qemu_agent.c:482
+#: src/qemu/qemu_agent.c:483
 msgid "Cannot connect to agent socket"
 msgstr "प्रतिनिधि सॉकेट कनेक्ट नहीं हो सकता"
 
-#: src/qemu/qemu_agent.c:512 src/qemu/qemu_monitor.c:482
+#: src/qemu/qemu_agent.c:513 src/qemu/qemu_monitor.c:483
 msgid "Unable to write to monitor"
 msgstr "मोनिटर लिखने में असमर्थ"
 
-#: src/qemu/qemu_agent.c:552 src/qemu/qemu_monitor.c:522
+#: src/qemu/qemu_agent.c:553 src/qemu/qemu_monitor.c:523
 msgid "Unable to read from monitor"
 msgstr "मोनिटर पढने में असमर्थ"
 
-#: src/qemu/qemu_agent.c:607 src/qemu/qemu_monitor.c:577
+#: src/qemu/qemu_agent.c:608 src/qemu/qemu_monitor.c:578
 #, c-format
 msgid "event from unexpected fd %d!=%d / watch %d!=%d"
 msgstr "तत्व अनपेक्षित fd %d!=%d / देखे %d!=%d  से"
 
-#: src/qemu/qemu_agent.c:647 src/qemu/qemu_monitor.c:612
+#: src/qemu/qemu_agent.c:648 src/qemu/qemu_monitor.c:613
 msgid "End of file from monitor"
 msgstr "मॉनीटर से फ़ाइल का अंत"
 
-#: src/qemu/qemu_agent.c:655 src/qemu/qemu_monitor.c:620
+#: src/qemu/qemu_agent.c:656 src/qemu/qemu_monitor.c:621
 msgid "Invalid file descriptor while waiting for monitor"
 msgstr "अमान्य फाइल विवरणक मॉनीटर के लिए इंतज़ार करते समय"
 
-#: src/qemu/qemu_agent.c:661 src/qemu/qemu_monitor.c:626
+#: src/qemu/qemu_agent.c:662 src/qemu/qemu_monitor.c:627
 #, c-format
 msgid "Unhandled event %d for monitor fd %d"
 msgstr "Unhandled इवेंट %d मॉनिटर fd %d"
 
-#: src/qemu/qemu_agent.c:675 src/qemu/qemu_monitor.c:640
+#: src/qemu/qemu_agent.c:676 src/qemu/qemu_monitor.c:641
 msgid "Error while processing monitor IO"
 msgstr "मॉनिटर IO को संसाधित करते समय त्रुटि"
 
-#: src/qemu/qemu_agent.c:732 src/qemu/qemu_monitor.c:698
+#: src/qemu/qemu_agent.c:733 src/qemu/qemu_monitor.c:699
 msgid "EOF notify callback must be supplied"
 msgstr "EOF अधिसूचना कॉसबैक को जरूर आपूर्ति किया जाना चाहिए"
 
-#: src/qemu/qemu_agent.c:743 src/qemu/qemu_monitor.c:709
+#: src/qemu/qemu_agent.c:744 src/qemu/qemu_monitor.c:710
 msgid "cannot initialize monitor mutex"
 msgstr "मॉनिटर म्यूटेक्स आरंभ नहीं कर सकता है"
 
-#: src/qemu/qemu_agent.c:749 src/qemu/qemu_monitor.c:715
+#: src/qemu/qemu_agent.c:750 src/qemu/qemu_monitor.c:716
 msgid "cannot initialize monitor condition"
 msgstr "मॉनिटर स्थिति आरंभीकृत नहीं कर सकता है"
 
-#: src/qemu/qemu_agent.c:772 src/qemu/qemu_monitor.c:739
+#: src/qemu/qemu_agent.c:773 src/qemu/qemu_monitor.c:740
 #, c-format
 msgid "unable to handle monitor type: %s"
 msgstr "मॉनिटर प्रकार नियंत्रित करने में असमर्थ: %s"
 
-#: src/qemu/qemu_agent.c:790 src/qemu/qemu_monitor.c:765
+#: src/qemu/qemu_agent.c:791 src/qemu/qemu_monitor.c:766
 msgid "unable to register monitor events"
 msgstr "मॉनिटर घटना पंजीकृत करने में असमर्थ"
 
-#: src/qemu/qemu_agent.c:877
+#: src/qemu/qemu_agent.c:878
 msgid "Guest agent not available for now"
 msgstr ""
 
-#: src/qemu/qemu_agent.c:881 src/qemu/qemu_monitor.c:866
+#: src/qemu/qemu_agent.c:882 src/qemu/qemu_monitor.c:867
 msgid "Unable to wait on monitor condition"
 msgstr "मॉनिटर स्थिति पर प्रतीक्षा करने में असमर्थ"
 
-#: src/qemu/qemu_agent.c:950 src/qemu/qemu_agent.c:1014
+#: src/qemu/qemu_agent.c:951 src/qemu/qemu_agent.c:1015
 #: src/qemu/qemu_monitor_json.c:263
 msgid "Missing monitor reply object"
 msgstr "गायब मॉनिटर जबाब वस्तु"
 
-#: src/qemu/qemu_agent.c:957
+#: src/qemu/qemu_agent.c:958
 msgid "Malformed return value"
 msgstr ""
 
-#: src/qemu/qemu_agent.c:964
+#: src/qemu/qemu_agent.c:965
 #, c-format
 msgid "Guest agent returned ID: %llu instead of %llu"
 msgstr ""
 
-#: src/qemu/qemu_agent.c:1112 src/qemu/qemu_agent.c:1130
+#: src/qemu/qemu_agent.c:1113 src/qemu/qemu_agent.c:1131
 #: src/qemu/qemu_monitor_json.c:336 src/qemu/qemu_monitor_json.c:354
 #, c-format
 msgid "unable to execute QEMU command '%s'"
 msgstr "QEMU कमांड '%s' के निष्पादन में असमर्थ"
 
-#: src/qemu/qemu_agent.c:1116 src/qemu/qemu_monitor_json.c:340
+#: src/qemu/qemu_agent.c:1117 src/qemu/qemu_monitor_json.c:340
 #, c-format
 msgid "unable to execute QEMU command '%s': %s"
 msgstr "QEMU कमांड '%s' के निष्पादन में असमर्थ: %s"
 
-#: src/qemu/qemu_agent.c:1162 src/qemu/qemu_monitor_json.c:414
+#: src/qemu/qemu_agent.c:1163 src/qemu/qemu_monitor_json.c:414
 #, c-format
 msgid "argument key '%s' is too short, missing type prefix"
 msgstr "वितर्क कुंजी '%s' काफी छोटा है, अनुपस्थित प्रकार के उपसर्ग"
 
-#: src/qemu/qemu_agent.c:1216 src/qemu/qemu_monitor_json.c:477
+#: src/qemu/qemu_agent.c:1217 src/qemu/qemu_monitor_json.c:477
 #, c-format
 msgid "unsupported data type '%c' for arg '%s'"
 msgstr "असमर्थित डेटा प्रकार '%c' तर्क '%s' के लिए"
 
-#: src/qemu/qemu_agent.c:1297 src/qemu/qemu_agent.c:1334
+#: src/qemu/qemu_agent.c:1298 src/qemu/qemu_agent.c:1335
 msgid "malformed return value"
 msgstr "विरूपित रिटर्न मूल्य"
 
@@ -10642,8 +10642,8 @@ msgstr "अप्रत्याशित QEMU URI पथ '%s', qemu:///system �
 msgid "unexpected QEMU URI path '%s', try qemu:///session"
 msgstr "अप्रत्याशित QEMU URI पथ '%s', qemu:///session आजमाएँ"
 
-#: src/qemu/qemu_driver.c:1177 src/uml/uml_driver.c:1528
-#: src/uml/uml_driver.c:1569 src/vbox/vbox_tmpl.c:1229
+#: src/qemu/qemu_driver.c:1177 src/uml/uml_driver.c:1529
+#: src/uml/uml_driver.c:1570 src/vbox/vbox_tmpl.c:1229
 #: src/vbox/vbox_tmpl.c:1516 src/vbox/vbox_tmpl.c:1568
 #: src/vbox/vbox_tmpl.c:1622 src/vbox/vbox_tmpl.c:1680
 #: src/vbox/vbox_tmpl.c:1731 src/vbox/vbox_tmpl.c:1807
@@ -10659,8 +10659,8 @@ msgid "no domain with matching name '%s'"
 msgstr "'%s' जैसे नाम के साथ कोई डोमेन नहीं"
 
 #: src/qemu/qemu_driver.c:1546 src/qemu/qemu_migration.c:3006
-#: src/qemu/qemu_migration.c:3133 src/qemu/qemu_process.c:574
-#: src/qemu/qemu_process.c:3737
+#: src/qemu/qemu_migration.c:3133 src/qemu/qemu_process.c:575
+#: src/qemu/qemu_process.c:3738
 msgid "resume operation failed"
 msgstr "विफल ऑपरेशन फिर बहाल करें"
 
@@ -10692,7 +10692,7 @@ msgstr " qemu प्रक्रिया मारने में विफल
 msgid "cannot resize the maximum memory on an active domain"
 msgstr "एक सक्रिय डोमेन पर अधिकतम स्मृति का resize नहीं कर सकते हैं"
 
-#: src/qemu/qemu_driver.c:2026 src/uml/uml_driver.c:1705
+#: src/qemu/qemu_driver.c:2026 src/uml/uml_driver.c:1706
 msgid "cannot set memory of an active domain"
 msgstr "एक सक्रिय डोमेन की स्मृति सेट नहीं कर सकता है"
 
@@ -10701,7 +10701,7 @@ msgstr "एक सक्रिय डोमेन की स्मृति स�
 msgid "cannot translate keycode %u of %s codeset to rfb keycode"
 msgstr "कुंजीकोड %u rfb कुंजीकोड को  %s निरपेक्ष से अनुवाद नहीं कर सकता है "
 
-#: src/qemu/qemu_driver.c:2209 src/uml/uml_driver.c:1747
+#: src/qemu/qemu_driver.c:2209 src/uml/uml_driver.c:1748
 msgid "cannot read cputime for domain"
 msgstr "डोमेन के लिए cputime नहीं पढ़ सकता है"
 
@@ -10746,7 +10746,7 @@ msgstr "स्वत:नष्ट के लिए डोमेन को चि
 #: src/qemu/qemu_hotplug.c:419 src/qemu/qemu_hotplug.c:788
 #: src/qemu/qemu_migration.c:1927 src/qemu/qemu_migration.c:2228
 #: src/qemu/qemu_migration.c:2552 src/qemu/qemu_migration.c:2937
-#: src/qemu/qemu_process.c:552 src/qemu/qemu_process.c:565
+#: src/qemu/qemu_process.c:553 src/qemu/qemu_process.c:566
 msgid "guest unexpectedly quit"
 msgstr "अतिथि अनपेक्षित रूप से बंद"
 
@@ -10827,7 +10827,7 @@ msgstr "डंप विफल"
 msgid "Resuming after dump failed"
 msgstr "डंप विफल होने के बाद वापस कर रहा है"
 
-#: src/qemu/qemu_driver.c:3401 src/qemu/qemu_process.c:1636
+#: src/qemu/qemu_driver.c:3401 src/qemu/qemu_process.c:1637
 #, c-format
 msgid "got wrong number of vCPU pids from QEMU monitor. got %d, wanted %d"
 msgstr "vCPU pids की गलत संख्या QEMU मॉनिटर से पाई. %d पाया, %d चाहा था"
@@ -10851,7 +10851,7 @@ msgstr "डोमेन चलाने पर अधिकतम समाय�
 msgid "vcpu number out of range %d > %d"
 msgstr "vcpu संख्या %d परिसर से बाहर > %d"
 
-#: src/qemu/qemu_driver.c:3608 src/qemu/qemu_process.c:1932
+#: src/qemu/qemu_driver.c:3608 src/qemu/qemu_process.c:1933
 msgid "cpu affinity is not supported"
 msgstr "cpu लगाव समर्थित नहीं है"
 
@@ -10947,7 +10947,7 @@ msgstr ""
 msgid "disk controller bus '%s' cannot be hotplugged."
 msgstr "डिस्क नियंत्रक बस '%s' को हॉटप्लग नहीं किया जा सकता है."
 
-#: src/qemu/qemu_driver.c:5314 src/uml/uml_driver.c:2181
+#: src/qemu/qemu_driver.c:5314 src/uml/uml_driver.c:2182
 msgid "This type of disk cannot be hot unplugged"
 msgstr "इस प्रकार की डिस्क को हॉट प्लग नहीं किया जा सकता है"
 
@@ -10961,7 +10961,7 @@ msgstr "डिस्क युक्ति प्रकार '%s' अलग न
 msgid "disk controller bus '%s' cannot be hotunplugged."
 msgstr "डिस्क नियंत्रक बस '%s' को हॉटप्लग नहीं किया जा सकता है."
 
-#: src/qemu/qemu_driver.c:5371 src/uml/uml_driver.c:2185
+#: src/qemu/qemu_driver.c:5371 src/uml/uml_driver.c:2186
 msgid "This type of device cannot be hot unplugged"
 msgstr "युक्ति प्रकार को हॉट प्लग नहीं किया जा सकता है"
 
@@ -11089,11 +11089,11 @@ msgid "cannot get RSS for domain"
 msgstr "डोमेन के लिए RSS नहीं पा सकता है"
 
 #: src/qemu/qemu_driver.c:8282 src/qemu/qemu_driver.c:8447
-#: src/uml/uml_driver.c:2332
+#: src/uml/uml_driver.c:2333
 msgid "NULL or empty path"
 msgstr "रिक्त या खाली पथ"
 
-#: src/qemu/qemu_driver.c:8289 src/uml/uml_driver.c:2339
+#: src/qemu/qemu_driver.c:8289 src/uml/uml_driver.c:2340
 #, c-format
 msgid "invalid path '%s'"
 msgstr "अवैध पथ %s"
@@ -12027,116 +12027,116 @@ msgstr "डोमेन '%s' इनकमिंग उत्प्रवास�
 msgid "domain '%s' is not being migrated"
 msgstr "डोमेन '%s' उत्प्रवासित नहीं किया गया है"
 
-#: src/qemu/qemu_monitor.c:286
+#: src/qemu/qemu_monitor.c:287
 #, c-format
 msgid "Monitor path %s too big for destination"
 msgstr "मॉनिटर पथ %s गंतव्य के लिए काफी बड़ा है"
 
-#: src/qemu/qemu_monitor.c:356
+#: src/qemu/qemu_monitor.c:357
 #, c-format
 msgid "Process %d %p %p [[[[%s]]][[[%s]]]"
 msgstr "प्रक्रिया %d %p %p [[[[%s]]][[[%s]]]"
 
-#: src/qemu/qemu_monitor.c:451
+#: src/qemu/qemu_monitor.c:452
 msgid "Monitor does not support sending of file descriptors"
 msgstr "मॉनिटर फाइल विवरक को भेजने का समर्थन नहीं करता है "
 
-#: src/qemu/qemu_monitor.c:813
+#: src/qemu/qemu_monitor.c:814
 msgid "Qemu monitor was closed"
 msgstr "Qemu मॉनिटर बंद कर दी गई"
 
-#: src/qemu/qemu_monitor.c:902
+#: src/qemu/qemu_monitor.c:903
 msgid "Unable to unescape command"
 msgstr ""
 
-#: src/qemu/qemu_monitor.c:1095 src/qemu/qemu_monitor.c:1139
-#: src/qemu/qemu_monitor.c:1159 src/qemu/qemu_monitor.c:1200
-#: src/qemu/qemu_monitor.c:1219 src/qemu/qemu_monitor.c:1239
-#: src/qemu/qemu_monitor.c:1278 src/qemu/qemu_monitor.c:1298
-#: src/qemu/qemu_monitor.c:1319 src/qemu/qemu_monitor.c:1366
-#: src/qemu/qemu_monitor.c:1420 src/qemu/qemu_monitor.c:1456
-#: src/qemu/qemu_monitor.c:1509 src/qemu/qemu_monitor.c:1555
-#: src/qemu/qemu_monitor.c:1587 src/qemu/qemu_monitor.c:1609
-#: src/qemu/qemu_monitor.c:1628 src/qemu/qemu_monitor.c:1649
-#: src/qemu/qemu_monitor.c:1672 src/qemu/qemu_monitor.c:1695
-#: src/qemu/qemu_monitor.c:1717 src/qemu/qemu_monitor.c:1737
-#: src/qemu/qemu_monitor.c:1757 src/qemu/qemu_monitor.c:1780
-#: src/qemu/qemu_monitor.c:1808 src/qemu/qemu_monitor.c:1841
-#: src/qemu/qemu_monitor.c:1873 src/qemu/qemu_monitor.c:1915
-#: src/qemu/qemu_monitor.c:1980 src/qemu/qemu_monitor.c:2005
-#: src/qemu/qemu_monitor.c:2055 src/qemu/qemu_monitor.c:2076
-#: src/qemu/qemu_monitor.c:2097 src/qemu/qemu_monitor.c:2120
-#: src/qemu/qemu_monitor.c:2143 src/qemu/qemu_monitor.c:2164
-#: src/qemu/qemu_monitor.c:2186 src/qemu/qemu_monitor.c:2208
-#: src/qemu/qemu_monitor.c:2246 src/qemu/qemu_monitor.c:2277
-#: src/qemu/qemu_monitor.c:2316 src/qemu/qemu_monitor.c:2341
-#: src/qemu/qemu_monitor.c:2378 src/qemu/qemu_monitor.c:2399
-#: src/qemu/qemu_monitor.c:2420 src/qemu/qemu_monitor.c:2446
-#: src/qemu/qemu_monitor.c:2466 src/qemu/qemu_monitor.c:2485
-#: src/qemu/qemu_monitor.c:2504 src/qemu/qemu_monitor.c:2527
-#: src/qemu/qemu_monitor.c:2561 src/qemu/qemu_monitor.c:2582
-#: src/qemu/qemu_monitor.c:2601 src/qemu/qemu_monitor.c:2620
-#: src/qemu/qemu_monitor.c:2639 src/qemu/qemu_monitor.c:2665
-#: src/qemu/qemu_monitor.c:2755 src/qemu/qemu_monitor.c:2896
-#: src/qemu/qemu_monitor.c:2922
+#: src/qemu/qemu_monitor.c:1096 src/qemu/qemu_monitor.c:1140
+#: src/qemu/qemu_monitor.c:1160 src/qemu/qemu_monitor.c:1201
+#: src/qemu/qemu_monitor.c:1220 src/qemu/qemu_monitor.c:1240
+#: src/qemu/qemu_monitor.c:1279 src/qemu/qemu_monitor.c:1299
+#: src/qemu/qemu_monitor.c:1320 src/qemu/qemu_monitor.c:1367
+#: src/qemu/qemu_monitor.c:1421 src/qemu/qemu_monitor.c:1457
+#: src/qemu/qemu_monitor.c:1510 src/qemu/qemu_monitor.c:1556
+#: src/qemu/qemu_monitor.c:1588 src/qemu/qemu_monitor.c:1610
+#: src/qemu/qemu_monitor.c:1629 src/qemu/qemu_monitor.c:1650
+#: src/qemu/qemu_monitor.c:1673 src/qemu/qemu_monitor.c:1696
+#: src/qemu/qemu_monitor.c:1718 src/qemu/qemu_monitor.c:1738
+#: src/qemu/qemu_monitor.c:1758 src/qemu/qemu_monitor.c:1781
+#: src/qemu/qemu_monitor.c:1809 src/qemu/qemu_monitor.c:1842
+#: src/qemu/qemu_monitor.c:1874 src/qemu/qemu_monitor.c:1916
+#: src/qemu/qemu_monitor.c:1981 src/qemu/qemu_monitor.c:2006
+#: src/qemu/qemu_monitor.c:2056 src/qemu/qemu_monitor.c:2077
+#: src/qemu/qemu_monitor.c:2098 src/qemu/qemu_monitor.c:2121
+#: src/qemu/qemu_monitor.c:2144 src/qemu/qemu_monitor.c:2165
+#: src/qemu/qemu_monitor.c:2187 src/qemu/qemu_monitor.c:2209
+#: src/qemu/qemu_monitor.c:2247 src/qemu/qemu_monitor.c:2278
+#: src/qemu/qemu_monitor.c:2317 src/qemu/qemu_monitor.c:2342
+#: src/qemu/qemu_monitor.c:2379 src/qemu/qemu_monitor.c:2400
+#: src/qemu/qemu_monitor.c:2421 src/qemu/qemu_monitor.c:2447
+#: src/qemu/qemu_monitor.c:2467 src/qemu/qemu_monitor.c:2486
+#: src/qemu/qemu_monitor.c:2505 src/qemu/qemu_monitor.c:2528
+#: src/qemu/qemu_monitor.c:2562 src/qemu/qemu_monitor.c:2583
+#: src/qemu/qemu_monitor.c:2602 src/qemu/qemu_monitor.c:2621
+#: src/qemu/qemu_monitor.c:2640 src/qemu/qemu_monitor.c:2666
+#: src/qemu/qemu_monitor.c:2756 src/qemu/qemu_monitor.c:2897
+#: src/qemu/qemu_monitor.c:2923
 msgid "monitor must not be NULL"
 msgstr "मॉनिटर रिक्त नहीं होना चाहिए"
 
-#: src/qemu/qemu_monitor.c:1181
+#: src/qemu/qemu_monitor.c:1182
 msgid "both monitor and running must not be NULL"
 msgstr "मॉनिटर और गतिशीलता दोनों रिक्त नहीं होना चाहिए"
 
-#: src/qemu/qemu_monitor.c:1259
+#: src/qemu/qemu_monitor.c:1260
 msgid "monitor || name must not be NULL"
 msgstr "मॉनिटर || नाम रिक्त नहीं होना चाहिए"
 
-#: src/qemu/qemu_monitor.c:1337
+#: src/qemu/qemu_monitor.c:1338
 #, c-format
 msgid "unknown block IO status: %s"
 msgstr "अज्ञात खंड IO स्थिति: %s"
 
-#: src/qemu/qemu_monitor.c:1396
+#: src/qemu/qemu_monitor.c:1397
 #, c-format
 msgid "cannot find info for device '%s'"
 msgstr "जानकारी के लिए '% s' डिवाइस नहीं ढूँढ सकता है"
 
-#: src/qemu/qemu_monitor.c:1532
+#: src/qemu/qemu_monitor.c:1533
 #, c-format
 msgid "unsupported protocol type %s"
 msgstr "असमर्थित प्रोटोकॉल प्रकार %s"
 
-#: src/qemu/qemu_monitor.c:1921
+#: src/qemu/qemu_monitor.c:1922
 #, c-format
 msgid "file offset must be a multiple of %llu"
 msgstr "फ़ाइल ऑफ़सेट % llu की एक बहु होना चाहिए"
 
-#: src/qemu/qemu_monitor.c:2214
+#: src/qemu/qemu_monitor.c:2215
 msgid "fd must be valid"
 msgstr "fd मान्य किया जाना चाहिए"
 
-#: src/qemu/qemu_monitor.c:2220
+#: src/qemu/qemu_monitor.c:2221
 #, c-format
 msgid "qemu is not using a unix socket monitor, cannot send fd %s"
 msgstr "qemu एक unix गर्तिका मॉनिटर का उपयोग नहीं है, एफडी %s नहीं भेज सकते"
 
-#: src/qemu/qemu_monitor.c:2675
+#: src/qemu/qemu_monitor.c:2676
 msgid "text monitor lacks several snapshot features"
 msgstr ""
 
-#: src/qemu/qemu_monitor.c:2695
+#: src/qemu/qemu_monitor.c:2696
 msgid "transaction requires JSON monitor"
 msgstr ""
 
-#: src/qemu/qemu_monitor.c:2785
+#: src/qemu/qemu_monitor.c:2786
 #, c-format
 msgid "bandwidth must be less than %llu"
 msgstr ""
 
-#: src/qemu/qemu_monitor.c:2796
+#: src/qemu/qemu_monitor.c:2797
 msgid "block jobs require JSON monitor"
 msgstr ""
 
-#: src/qemu/qemu_monitor.c:2928
+#: src/qemu/qemu_monitor.c:2929
 msgid "JSON monitor is required"
 msgstr ""
 
@@ -12975,213 +12975,213 @@ msgstr "monitor कमांड नहीं चला सकता है"
 msgid "No info for device '%s'"
 msgstr ""
 
-#: src/qemu/qemu_process.c:219
+#: src/qemu/qemu_process.c:220
 #, c-format
 msgid "Failed to set security context for agent for %s"
 msgstr "सुरक्षा संदर्भ सेट करने में असमर्थ %s के एजेंट के लिए "
 
-#: src/qemu/qemu_process.c:242
+#: src/qemu/qemu_process.c:243
 #, c-format
 msgid "Failed to clear security context for agent for %s"
 msgstr "%s के एजेंट के लिए सुरक्षा संदर्भ साफ करने में असमर्थ "
 
-#: src/qemu/qemu_process.c:370
+#: src/qemu/qemu_process.c:371
 #, c-format
 msgid "no disk found with path %s"
 msgstr "पथ %s के साथ कोई डिस्क नहीं मिला"
 
-#: src/qemu/qemu_process.c:393
+#: src/qemu/qemu_process.c:394
 #, c-format
 msgid "no disk found with alias %s"
 msgstr "%s उपनाम के साथ कोई डिस्क नहीं मिला"
 
-#: src/qemu/qemu_process.c:413
+#: src/qemu/qemu_process.c:414
 #, c-format
 msgid "disk %s does not have any encryption information"
 msgstr "डिस्क %s के पास कोई गोपन सूचना नहीं है"
 
-#: src/qemu/qemu_process.c:421
+#: src/qemu/qemu_process.c:422
 msgid "cannot find secrets without a connection"
 msgstr "बिना कनेक्शन के लिए गुप्त नहीं ढूँढ़ सकता है"
 
-#: src/qemu/qemu_process.c:429 src/storage/storage_backend.c:458
+#: src/qemu/qemu_process.c:430 src/storage/storage_backend.c:458
 msgid "secret storage not supported"
 msgstr "गुप्त भंडार समर्थित नहीं है"
 
-#: src/qemu/qemu_process.c:438
+#: src/qemu/qemu_process.c:439
 #, c-format
 msgid "invalid <encryption> for volume %s"
 msgstr "अवैध <encryption> आयतन %s के लिए"
 
-#: src/qemu/qemu_process.c:456
+#: src/qemu/qemu_process.c:457
 #, c-format
 msgid "format='qcow' passphrase for %s must not contain a '\\0'"
 msgstr "format='qcow' कूटशब्द %s के लिए जरूर किसी '\\0' को समाहित रखना चाहिए"
 
-#: src/qemu/qemu_process.c:617
+#: src/qemu/qemu_process.c:618
 msgid "Failed to create reboot thread, killing domain"
 msgstr ""
 
-#: src/qemu/qemu_process.c:1268
+#: src/qemu/qemu_process.c:1269
 #, c-format
 msgid "Failure while reading %s log output"
 msgstr "%s लॉग आउटपुट को पढ़ने के दौरान विफलता"
 
-#: src/qemu/qemu_process.c:1290
+#: src/qemu/qemu_process.c:1291
 #, c-format
 msgid "Out of space while reading %s log output: %s"
 msgstr "%s लॉग आउटपुट को पढ़ने के दौरान जगह की कमी: %s"
 
-#: src/qemu/qemu_process.c:1297
+#: src/qemu/qemu_process.c:1298
 #, c-format
 msgid "Process exited while reading %s log output: %s"
 msgstr "%s लॉग आउटपुट पढ़ने के दौरान प्रक्रिया बाहर निकल गई: %s"
 
-#: src/qemu/qemu_process.c:1312
+#: src/qemu/qemu_process.c:1313
 #, c-format
 msgid "Timed out while reading %s log output: %s"
 msgstr "%s लॉग आउटपुट पढ़ने के दौरान समय समाप्त: %s"
 
-#: src/qemu/qemu_process.c:1399
+#: src/qemu/qemu_process.c:1400
 #, c-format
 msgid "no assigned pty for device %s"
 msgstr "%s युक्ति के लिए कोई नियत pty नहीं"
 
-#: src/qemu/qemu_process.c:1591
+#: src/qemu/qemu_process.c:1592
 #, c-format
 msgid "process exited while connecting to monitor: %s"
 msgstr ""
 
-#: src/qemu/qemu_process.c:1738
+#: src/qemu/qemu_process.c:1739
 msgid "Invalid mode for memory NUMA tuning."
 msgstr ""
 
-#: src/qemu/qemu_process.c:1754
+#: src/qemu/qemu_process.c:1755
 msgid "libvirt is compiled without NUMA tuning support"
 msgstr ""
 
-#: src/qemu/qemu_process.c:1778
+#: src/qemu/qemu_process.c:1779
 msgid "Failed to query numad for the advisory nodeset"
 msgstr ""
 
-#: src/qemu/qemu_process.c:1789
+#: src/qemu/qemu_process.c:1790
 msgid "numad is not available on this host"
 msgstr ""
 
-#: src/qemu/qemu_process.c:1891
+#: src/qemu/qemu_process.c:1892
 msgid "Setting of link state is not supported by this qemu"
 msgstr ""
 
-#: src/qemu/qemu_process.c:1900
+#: src/qemu/qemu_process.c:1901
 #, c-format
 msgid "Couldn't set link state on interface: %s"
 msgstr ""
 
-#: src/qemu/qemu_process.c:2301
+#: src/qemu/qemu_process.c:2302
 #, c-format
 msgid "cannot find PCI address for VirtIO disk %s"
 msgstr "VirtIO डिस्क %s के लिए PCI पता नहीं ढूँढ़ सकता है"
 
-#: src/qemu/qemu_process.c:2315
+#: src/qemu/qemu_process.c:2316
 #, c-format
 msgid "cannot find PCI address for %s NIC"
 msgstr "PCI पता को %s के लिए नहीं ढूँढ़ सकता है"
 
-#: src/qemu/qemu_process.c:2329
+#: src/qemu/qemu_process.c:2330
 #, c-format
 msgid "cannot find PCI address for controller %s"
 msgstr "नियंत्रक %s के लिए कोई PCI पता नहीं ढूँढ़ सकता है"
 
-#: src/qemu/qemu_process.c:2343
+#: src/qemu/qemu_process.c:2344
 #, c-format
 msgid "cannot find PCI address for video adapter %s"
 msgstr "PCI पता को %s वीडियो एडाप्टर के लिए नहीं ढूँढ़ सकता है"
 
-#: src/qemu/qemu_process.c:2357
+#: src/qemu/qemu_process.c:2358
 #, c-format
 msgid "cannot find PCI address for sound adapter %s"
 msgstr "%s ध्वनि एडाप्टर के लिए PCI पता नहीं ढूँढ़ सकता है"
 
-#: src/qemu/qemu_process.c:2370
+#: src/qemu/qemu_process.c:2371
 #, c-format
 msgid "cannot find PCI address for watchdog %s"
 msgstr "वाचडॉग %s के लिए pCI पता नहीं ढूँढ़ सकता है"
 
-#: src/qemu/qemu_process.c:2382
+#: src/qemu/qemu_process.c:2383
 #, c-format
 msgid "cannot find PCI address for balloon %s"
 msgstr "PCI पता को बलून %s के लिए नहीं ढूँढ़ सकता है"
 
-#: src/qemu/qemu_process.c:2501
+#: src/qemu/qemu_process.c:2502
 #, c-format
 msgid "Unable to pre-create chardev file '%s'"
 msgstr ""
 
-#: src/qemu/qemu_process.c:2521
+#: src/qemu/qemu_process.c:2522
 #, c-format
 msgid "cannot limit number of processes to %d"
 msgstr ""
 
-#: src/qemu/qemu_process.c:2533
+#: src/qemu/qemu_process.c:2534
 #, c-format
 msgid "cannot set max opened files to %d"
 msgstr ""
 
-#: src/qemu/qemu_process.c:3246
+#: src/qemu/qemu_process.c:3247
 msgid "Could not create thread. QEMU initialization might be incomplete"
 msgstr ""
 
-#: src/qemu/qemu_process.c:3318 src/qemu/qemu_process.c:4106
-#: src/uml/uml_driver.c:980
+#: src/qemu/qemu_process.c:3319 src/qemu/qemu_process.c:4107
+#: src/uml/uml_driver.c:981
 msgid "VM is already active"
 msgstr "VM पहले से सक्रिय है"
 
-#: src/qemu/qemu_process.c:3396
+#: src/qemu/qemu_process.c:3397
 msgid "Unable to find an unused SPICE port"
 msgstr "किसी अप्रयुक्त SPICE पोर्ट ढ़ूँढ़ने में असमर्थ"
 
-#: src/qemu/qemu_process.c:3410
+#: src/qemu/qemu_process.c:3411
 msgid "Unable to find an unused SPICE TLS port"
 msgstr "किसी अप्रयुक्त SPICE टीएलएस पोर्ट ढ़ूँढ़ने में असमर्थ"
 
-#: src/qemu/qemu_process.c:3422 src/qemu/qemu_process.c:4122
-#: src/uml/uml_driver.c:1002
+#: src/qemu/qemu_process.c:3423 src/qemu/qemu_process.c:4123
+#: src/uml/uml_driver.c:1003
 #, c-format
 msgid "cannot create log directory %s"
 msgstr "लॉग निर्देशिका %s नहीं बना सकता है"
 
-#: src/qemu/qemu_process.c:3435
+#: src/qemu/qemu_process.c:3436
 msgid ""
 "Domain requires KVM, but it is not available. Check that virtualization is "
 "enabled in the host BIOS, and host configuration is setup to load the kvm "
 "modules."
 msgstr ""
 
-#: src/qemu/qemu_process.c:3483
+#: src/qemu/qemu_process.c:3484
 msgid "Failed to build pidfile path."
 msgstr "pidfile पथ बिल्ड करने में विफल."
 
-#: src/qemu/qemu_process.c:3490
+#: src/qemu/qemu_process.c:3491
 #, c-format
 msgid "Cannot remove stale PID file %s"
 msgstr "स्टेल PID फाइल %s के लिए हटा नहीं सकता है"
 
-#: src/qemu/qemu_process.c:3592
+#: src/qemu/qemu_process.c:3593
 #, c-format
 msgid "Domain %s didn't show up"
 msgstr "डोमेन %s को नहीं दिखा सका"
 
-#: src/qemu/qemu_process.c:3639
+#: src/qemu/qemu_process.c:3640
 #, c-format
 msgid "cannot stat fd %d"
 msgstr "fd %d स्टेट नहीं कर सकता है"
 
-#: src/qemu/qemu_process.c:3718
+#: src/qemu/qemu_process.c:3719
 #, c-format
 msgid "unable to set balloon to %lld"
 msgstr ""
 
-#: src/qemu/qemu_process.c:3937
+#: src/qemu/qemu_process.c:3938
 #, c-format
 msgid "failed to remove ebtables rule to allow MAC address on  '%s'"
 msgstr "ebtables नियम को '%s' पर मैक पता पर स्वीकार करने में विफल"
@@ -13722,153 +13722,153 @@ msgstr "SASL आंकड़ा एन्कोड करने में वि
 msgid "failed to decode SASL data: %d (%s)"
 msgstr "SASL आंकड़ा डिकोड करने में विफल: %d (%s)"
 
-#: src/rpc/virnetsocket.c:123
+#: src/rpc/virnetsocket.c:124
 msgid "Unable to set close-on-exec flag"
 msgstr "close-on-exec फ्लैग के लिए सेट करने में असमर्थ"
 
-#: src/rpc/virnetsocket.c:128
+#: src/rpc/virnetsocket.c:129
 msgid "Unable to enable non-blocking flag"
 msgstr ""
 
-#: src/rpc/virnetsocket.c:160
+#: src/rpc/virnetsocket.c:161
 msgid "Unable to disable nagle algorithm"
 msgstr ""
 
-#: src/rpc/virnetsocket.c:213 src/rpc/virnetsocket.c:410
+#: src/rpc/virnetsocket.c:214 src/rpc/virnetsocket.c:411
 #, c-format
 msgid "Unable to resolve address '%s' service '%s': %s"
 msgstr ""
 
-#: src/rpc/virnetsocket.c:226 src/rpc/virnetsocket.c:421
+#: src/rpc/virnetsocket.c:227 src/rpc/virnetsocket.c:422
 msgid "Unable to create socket"
 msgstr "सॉकेट बनाने में असमर्थ"
 
-#: src/rpc/virnetsocket.c:232
+#: src/rpc/virnetsocket.c:233
 msgid "Unable to enable port reuse"
 msgstr ""
 
-#: src/rpc/virnetsocket.c:249
+#: src/rpc/virnetsocket.c:250
 msgid "Unable to force bind to IPv6 only"
 msgstr ""
 
-#: src/rpc/virnetsocket.c:257 src/rpc/virnetsocket.c:287
+#: src/rpc/virnetsocket.c:258 src/rpc/virnetsocket.c:288
 msgid "Unable to bind to port"
 msgstr ""
 
-#: src/rpc/virnetsocket.c:268 src/rpc/virnetsocket.c:444
-#: src/rpc/virnetsocket.c:523 src/rpc/virnetsocket.c:1275
+#: src/rpc/virnetsocket.c:269 src/rpc/virnetsocket.c:445
+#: src/rpc/virnetsocket.c:524 src/rpc/virnetsocket.c:1285
 msgid "Unable to get local socket name"
 msgstr ""
 
-#: src/rpc/virnetsocket.c:325 src/rpc/virnetsocket.c:491
+#: src/rpc/virnetsocket.c:326 src/rpc/virnetsocket.c:492
 msgid "Failed to create socket"
 msgstr "सॉकेट बनाने में विफल"
 
-#: src/rpc/virnetsocket.c:332 src/rpc/virnetsocket.c:497
+#: src/rpc/virnetsocket.c:333 src/rpc/virnetsocket.c:498
 #, c-format
 msgid "Path %s too long for unix socket"
 msgstr "पथ %s unix सॉकेट के लिए काफी लंबी है"
 
-#: src/rpc/virnetsocket.c:345
+#: src/rpc/virnetsocket.c:346
 #, c-format
 msgid "Failed to bind socket to '%s'"
 msgstr "सॉकेट को '%s' में बांधने में विफल"
 
-#: src/rpc/virnetsocket.c:356
+#: src/rpc/virnetsocket.c:357
 #, c-format
 msgid "Failed to change ownership of '%s' to %d:%d"
 msgstr "'%s' का स्वामित्व %d:%d में बदलने में विफल"
 
-#: src/rpc/virnetsocket.c:380 src/rpc/virnetsocket.c:543
+#: src/rpc/virnetsocket.c:381 src/rpc/virnetsocket.c:544
 msgid "UNIX sockets are not supported on this platform"
 msgstr "UNIX सॉकेट इस प्लैटफॉर्म पर समर्थित नहीं है "
 
-#: src/rpc/virnetsocket.c:437
+#: src/rpc/virnetsocket.c:438
 #, c-format
 msgid "unable to connect to server at '%s:%s'"
 msgstr "'%s:%s' सर्वर से जुड़ने में असमर्थ"
 
-#: src/rpc/virnetsocket.c:450
+#: src/rpc/virnetsocket.c:451
 msgid "Unable to get remote socket name"
 msgstr "दूरस्थ सॉकेट नाम पाने में असमर्थ"
 
-#: src/rpc/virnetsocket.c:486
+#: src/rpc/virnetsocket.c:487
 msgid "Auto-spawn of daemon requested, but no binary specified"
 msgstr ""
 
-#: src/rpc/virnetsocket.c:516
+#: src/rpc/virnetsocket.c:517
 #, c-format
 msgid "Failed to connect socket to '%s'"
 msgstr "सॉकेट '%s' में कनेक्ट करने में विफल'"
 
-#: src/rpc/virnetsocket.c:565 src/rpc/virnetsocket.c:571
+#: src/rpc/virnetsocket.c:566 src/rpc/virnetsocket.c:572
 msgid "unable to create socket pair"
 msgstr "सॉकेट युग्म बनाने में विफल"
 
-#: src/rpc/virnetsocket.c:609
+#: src/rpc/virnetsocket.c:610
 msgid "Tunnelling sockets not supported on this platform"
 msgstr "इस प्लैटफॉर्म पर टनलिंद सॉकेट समर्थित नहीं"
 
-#: src/rpc/virnetsocket.c:787
+#: src/rpc/virnetsocket.c:788
 msgid "Unable to copy socket file handle"
 msgstr "सॉकेट फ़ाइल नियंत्रण नकल करने में असमर्थ"
 
-#: src/rpc/virnetsocket.c:838
+#: src/rpc/virnetsocket.c:842
 msgid "Failed to get client socket identity"
 msgstr "क्लाइंट सॉकेट पहचान पाने में विफल"
 
-#: src/rpc/virnetsocket.c:858
+#: src/rpc/virnetsocket.c:868
 msgid "Client socket identity not available"
 msgstr "क्लाइंट सॉकेट पहचान उपलब्ध नहीं"
 
-#: src/rpc/virnetsocket.c:988
+#: src/rpc/virnetsocket.c:998
 #, c-format
 msgid "Cannot recv data: %s"
 msgstr "आंकड़ा पा नहीं सकता है: %s"
 
-#: src/rpc/virnetsocket.c:991
+#: src/rpc/virnetsocket.c:1001
 msgid "Cannot recv data"
 msgstr "आंकड़ा पा नहीं सकता है"
 
-#: src/rpc/virnetsocket.c:996
+#: src/rpc/virnetsocket.c:1006
 #, c-format
 msgid "End of file while reading data: %s"
 msgstr "आँकड़ा पढ़ने के दौरान फ़ाइल का अंत: %s"
 
-#: src/rpc/virnetsocket.c:999
+#: src/rpc/virnetsocket.c:1009
 msgid "End of file while reading data"
 msgstr "आँकड़ा पढ़ने के दौरान फ़ाइल का अंत"
 
-#: src/rpc/virnetsocket.c:1026
+#: src/rpc/virnetsocket.c:1036
 msgid "Cannot write data"
 msgstr "आँकड़ा नहीं लिख सकता"
 
-#: src/rpc/virnetsocket.c:1031
+#: src/rpc/virnetsocket.c:1041
 msgid "End of file while writing data"
 msgstr "आँकड़ा लिखने के दौरान फ़ाइल का अंत"
 
-#: src/rpc/virnetsocket.c:1177
+#: src/rpc/virnetsocket.c:1187
 msgid "Sending file descriptors is not supported on this socket"
 msgstr ""
 
-#: src/rpc/virnetsocket.c:1188
+#: src/rpc/virnetsocket.c:1198
 #, c-format
 msgid "Failed to send file descriptor %d"
 msgstr ""
 
-#: src/rpc/virnetsocket.c:1211
+#: src/rpc/virnetsocket.c:1221
 msgid "Receiving file descriptors is not supported on this socket"
 msgstr ""
 
-#: src/rpc/virnetsocket.c:1221
+#: src/rpc/virnetsocket.c:1231
 msgid "Failed to recv file descriptor"
 msgstr ""
 
-#: src/rpc/virnetsocket.c:1238
+#: src/rpc/virnetsocket.c:1248
 msgid "Unable to listen on socket"
 msgstr "सॉकेट लिखने में असफल"
 
-#: src/rpc/virnetsocket.c:1269
+#: src/rpc/virnetsocket.c:1279
 msgid "Unable to accept client"
 msgstr "क्लाइंट स्वीकार करने में असमर्थ"
 
@@ -13898,7 +13898,7 @@ msgstr ""
 msgid "Failed to register shutdown timeout"
 msgstr "शटडाउन टाइमआउट पंजीकृत करने में विफल"
 
-#: src/rpc/virnetserverclient.c:788 src/rpc/virnetserverclient.c:950
+#: src/rpc/virnetserverclient.c:792 src/rpc/virnetserverclient.c:954
 #, c-format
 msgid "unexpected zero/negative length request %lld"
 msgstr "अप्रत्याशित शून्य/ऋणात्मक लंबाई आग्रह %lld"
@@ -14836,19 +14836,19 @@ msgstr "फाइल '%s' बंद नहीं कर सकता है"
 msgid "cannot create path '%s'"
 msgstr "पथ '%s' नहीं बना सकता है"
 
-#: src/storage/storage_backend.c:267 src/util/util.c:782 src/util/util.c:1085
-#: src/util/util.c:1175
+#: src/storage/storage_backend.c:267 src/util/util.c:783 src/util/util.c:1086
+#: src/util/util.c:1176
 #, c-format
 msgid "stat of '%s' failed"
 msgstr "'%s' का स्टैट्स उत्प्रवासन"
 
-#: src/storage/storage_backend.c:276 src/util/util.c:793 src/util/util.c:1091
+#: src/storage/storage_backend.c:276 src/util/util.c:794 src/util/util.c:1092
 #, c-format
 msgid "cannot chown '%s' to (%u, %u)"
 msgstr "chown '%s' को (%u, %u) में नहीं कर सकता है"
 
 #: src/storage/storage_backend.c:282 src/storage/storage_backend.c:594
-#: src/util/util.c:804 src/util/util.c:1099 src/util/util.c:1188
+#: src/util/util.c:805 src/util/util.c:1100 src/util/util.c:1189
 #, c-format
 msgid "cannot set mode of '%s' to %04o"
 msgstr "'%s' मोड को %04o में सेट नहीं कर सकता है"
@@ -15852,117 +15852,117 @@ msgstr ""
 msgid "unsupported chr device type %d"
 msgstr "असमर्थित चार युक्ति प्रकार %d"
 
-#: src/uml/uml_driver.c:468
+#: src/uml/uml_driver.c:469
 msgid "cannot initialize inotify"
 msgstr "inotify आरंभ नहीं कर सकता है"
 
-#: src/uml/uml_driver.c:474
+#: src/uml/uml_driver.c:475
 #, c-format
 msgid "Failed to create monitor directory %s: %s"
 msgstr "%s मॉनिटर निर्देशिका बनाने में विफल : %s"
 
-#: src/uml/uml_driver.c:511
+#: src/uml/uml_driver.c:512
 msgid "umlStartup: out of memory"
 msgstr "umlStartup: स्मृति कम"
 
-#: src/uml/uml_driver.c:773
+#: src/uml/uml_driver.c:774
 #, c-format
 msgid "failed to read pid: %s"
 msgstr "pid पढ़ने में विफल: %s"
 
-#: src/uml/uml_driver.c:795
+#: src/uml/uml_driver.c:796
 #, c-format
 msgid "Unix path %s too long for destination"
 msgstr "यूनिक्स पथ %s गंतव्य के लिए काफी बड़ा है"
 
-#: src/uml/uml_driver.c:825
+#: src/uml/uml_driver.c:826
 msgid "cannot open socket"
 msgstr "सॉकेट खोल नहीं सकता है"
 
-#: src/uml/uml_driver.c:835
+#: src/uml/uml_driver.c:836
 msgid "cannot bind socket"
 msgstr "सॉकेट बाइंड नहीं कर सकता है"
 
-#: src/uml/uml_driver.c:889
+#: src/uml/uml_driver.c:890
 #, c-format
 msgid "cannot send too long command %s (%d bytes)"
 msgstr "काफी लंबा कमांड %s (%d bytes) नहीं भेज सकता है"
 
-#: src/uml/uml_driver.c:895
+#: src/uml/uml_driver.c:896
 #, c-format
 msgid "Command %s too long for destination"
 msgstr "कमांड %s गंतव्य के लिए काफी बड़ा है"
 
-#: src/uml/uml_driver.c:902
+#: src/uml/uml_driver.c:903
 #, c-format
 msgid "cannot send command %s"
 msgstr "कमांड %s नहीं भेज सकता है"
 
-#: src/uml/uml_driver.c:915
+#: src/uml/uml_driver.c:916
 #, c-format
 msgid "cannot read reply %s"
 msgstr "जवाब %s पढ़ नहीं सकता है"
 
-#: src/uml/uml_driver.c:921
+#: src/uml/uml_driver.c:922
 #, c-format
 msgid "incomplete reply %s"
 msgstr "अपूर्ण जवाब %s"
 
-#: src/uml/uml_driver.c:986
+#: src/uml/uml_driver.c:987
 msgid "no kernel specified"
 msgstr "कोई कर्नेल निर्दिष्ट नहीं"
 
-#: src/uml/uml_driver.c:995
+#: src/uml/uml_driver.c:996
 #, c-format
 msgid "Cannot find UML kernel %s"
 msgstr "UML कर्नेल %s नहीं ढूंढ़ सकता है"
 
-#: src/uml/uml_driver.c:1025
+#: src/uml/uml_driver.c:1026
 msgid "Unable to set VM logfile close-on-exec flag"
 msgstr "VM लॉगफाइल को close-on-exec फ्लैग सेट करने में असमर्थ"
 
-#: src/uml/uml_driver.c:1161
+#: src/uml/uml_driver.c:1162
 #, c-format
 msgid "unexpected UML URI path '%s', try uml:///system"
 msgstr "अप्रत्याशित UML URI path '%s', try uml:///system"
 
-#: src/uml/uml_driver.c:1168
+#: src/uml/uml_driver.c:1169
 #, c-format
 msgid "unexpected UML URI path '%s', try uml:///session"
 msgstr "अप्रत्याशित UML URI path '%s', try uml:///session"
 
-#: src/uml/uml_driver.c:1177
+#: src/uml/uml_driver.c:1178
 msgid "uml state driver is not active"
 msgstr "uml स्थिति ड्राइवर सक्रिय नहीं है"
 
-#: src/uml/uml_driver.c:1429
+#: src/uml/uml_driver.c:1430
 #, c-format
 msgid "cannot parse version %s"
 msgstr "संस्करण %s का विश्लेषण नहीं कर सकता है"
 
-#: src/uml/uml_driver.c:1535
+#: src/uml/uml_driver.c:1536
 msgid "shutdown operation failed"
 msgstr "शटडाउन ऑपरेशन विफल"
 
-#: src/uml/uml_driver.c:1672
+#: src/uml/uml_driver.c:1673
 msgid "cannot set max memory lower than current memory"
 msgstr "मौजूदा स्मृति के साथ अधिकतम स्मृति नहीं सेट कर सकता है"
 
-#: src/uml/uml_driver.c:2048
+#: src/uml/uml_driver.c:2049
 msgid "cannot attach device on inactive domain"
 msgstr "निष्क्रिय डोमेन पर युक्ति संलग्न नहीं कर सकता है"
 
-#: src/uml/uml_driver.c:2094 src/uml/uml_driver.c:2206
+#: src/uml/uml_driver.c:2095 src/uml/uml_driver.c:2207
 #: src/vbox/vbox_tmpl.c:5545 src/vbox/vbox_tmpl.c:5560
 #: src/vbox/vbox_tmpl.c:5716
 msgid "cannot modify the persistent configuration of a domain"
 msgstr "डोमेन के स्थिर विन्यास को बदला नहीं जा सकता है"
 
-#: src/uml/uml_driver.c:2166
+#: src/uml/uml_driver.c:2167
 msgid "cannot detach device on inactive domain"
 msgstr "निष्क्रिय डोमेन पर युक्ति अलग नहीं कर सकता है"
 
-#: src/uml/uml_driver.c:2359 tools/virsh.c:11913
+#: src/uml/uml_driver.c:2360 tools/virsh.c:11913
 #, c-format
 msgid "cannot read %s"
 msgstr "%s पढ़ नहीं सकता है"
@@ -16025,237 +16025,212 @@ msgstr ""
 msgid "Unable to remove %s (%d)"
 msgstr ""
 
-#: src/util/command.c:179
+#: src/util/command.c:180
 #, c-format
 msgid "cannot clear process capabilities %d"
 msgstr ""
 
-#: src/util/command.c:206
+#: src/util/command.c:207
 #, c-format
 msgid "cannot apply process capabilities %d"
 msgstr ""
 
-#: src/util/command.c:260
+#: src/util/command.c:261
 msgid "cannot block signals"
 msgstr "संकेत रोक नहीं सकता है"
 
-#: src/util/command.c:279 src/util/command.c:590
+#: src/util/command.c:280 src/util/command.c:591
 msgid "cannot fork child process"
 msgstr "संतति प्रक्रिया बांट नहीं सकता है"
 
-#: src/util/command.c:291 src/util/command.c:336
+#: src/util/command.c:292 src/util/command.c:337
 msgid "cannot unblock signals"
 msgstr "संकेत गैर अवरोधित नहीं कर सकता है"
 
-#: src/util/command.c:423
+#: src/util/command.c:424
 #, c-format
 msgid "Cannot find '%s' in path"
 msgstr ""
 
-#: src/util/command.c:441
+#: src/util/command.c:442
 msgid "cannot create pipe"
 msgstr "पाइप नहीं बना सकता है"
 
-#: src/util/command.c:448 src/util/command.c:475
+#: src/util/command.c:449 src/util/command.c:476
 msgid "Failed to set non-blocking file descriptor flag"
 msgstr "गैर ब्लॉकिंग फाइल विवरणकर्ता फ्लैग सेट करने में विफल"
 
-#: src/util/command.c:468
+#: src/util/command.c:469
 msgid "Failed to create pipe"
 msgstr "पाइप बनाने में विफल"
 
-#: src/util/command.c:535
+#: src/util/command.c:536
 #, c-format
 msgid "failed to preserve fd %d"
 msgstr ""
 
-#: src/util/command.c:542
+#: src/util/command.c:543
 msgid "failed to setup stdin file handle"
 msgstr "stdin फाइल नियंत्रण सेट करने में विफल"
 
-#: src/util/command.c:547
+#: src/util/command.c:548
 msgid "failed to setup stdout file handle"
 msgstr "stdout फाइल नियंत्रण सेटअप करने में विफल"
 
-#: src/util/command.c:552
+#: src/util/command.c:553
 msgid "failed to setup stderr file handle"
 msgstr "stderr फाइल नियंत्रण सेट करने में विफल"
 
-#: src/util/command.c:577
+#: src/util/command.c:578
 msgid "cannot become session leader"
 msgstr "सत्र नेता नहीं बन सकता है"
 
-#: src/util/command.c:583
+#: src/util/command.c:584
 msgid "cannot change to root directory"
 msgstr ""
 
-#: src/util/command.c:600
+#: src/util/command.c:601
 #, c-format
 msgid "could not write pidfile %s for %d"
 msgstr "pidfile %s को %d के लिए नहीं लिख सकता है"
 
-#: src/util/command.c:621
+#: src/util/command.c:622
 msgid "Could not disable SIGPIPE"
 msgstr ""
 
-#: src/util/command.c:632
+#: src/util/command.c:633
 msgid "Could not re-enable SIGPIPE"
 msgstr ""
 
-#: src/util/command.c:652
+#: src/util/command.c:653
 #, c-format
 msgid "cannot execute binary %s"
 msgstr "द्विपदीय %s निस्पादित सेट नहीं कर सकता है"
 
-#: src/util/command.c:713
+#: src/util/command.c:714
 msgid "virRun is not implemented for WIN32"
 msgstr ""
 
-#: src/util/command.c:737
+#: src/util/command.c:738
 msgid "virExec is not implemented for WIN32"
 msgstr ""
 
-#: src/util/command.c:1626 src/util/command.c:1850 src/util/command.c:1898
-#: src/util/command.c:2133 src/util/command.c:2281 src/util/command.c:2470
-#: src/util/command.c:2529
+#: src/util/command.c:1627 src/util/command.c:1826 src/util/command.c:1874
+#: src/util/command.c:2109 src/util/command.c:2208 src/util/command.c:2333
+#: src/util/command.c:2392
 msgid "invalid use of command API"
 msgstr ""
 
-#: src/util/command.c:1663
-#, c-format
-msgid "exit status %d"
-msgstr ""
-
-#: src/util/command.c:1666
-#, c-format
-msgid "fatal signal %d"
-msgstr ""
-
-#: src/util/command.c:1669
-#, c-format
-msgid "invalid value %d"
-msgstr ""
-
-#: src/util/command.c:1746
+#: src/util/command.c:1722
 msgid "unable to poll on child"
 msgstr ""
 
-#: src/util/command.c:1773
+#: src/util/command.c:1749
 msgid "unable to read child stdout"
 msgstr ""
 
-#: src/util/command.c:1774
+#: src/util/command.c:1750
 msgid "unable to read child stderr"
 msgstr ""
 
-#: src/util/command.c:1805
+#: src/util/command.c:1781
 msgid "unable to write to child input"
 msgstr ""
 
-#: src/util/command.c:1864
+#: src/util/command.c:1840
 msgid "Executing new processes is not supported on Win32 platform"
 msgstr ""
 
-#: src/util/command.c:1920
+#: src/util/command.c:1896
 msgid "cannot mix caller fds with blocking execution"
 msgstr ""
 
-#: src/util/command.c:1926
+#: src/util/command.c:1902
 msgid "cannot mix string I/O with daemon"
 msgstr ""
 
-#: src/util/command.c:1936
+#: src/util/command.c:1912
 msgid "unable to open pipe"
 msgstr ""
 
-#: src/util/command.c:2050
+#: src/util/command.c:2026
 #, c-format
 msgid "Unable to change to %s"
 msgstr ""
 
-#: src/util/command.c:2058
+#: src/util/command.c:2034
 msgid "Unable to notify parent process"
 msgstr ""
 
-#: src/util/command.c:2068
+#: src/util/command.c:2044
 msgid "Unknown failure during hook execution"
 msgstr ""
 
-#: src/util/command.c:2071
+#: src/util/command.c:2047
 msgid "Unable to send error to parent process"
 msgstr ""
 
-#: src/util/command.c:2080
+#: src/util/command.c:2056
 msgid "Unable to wait on parent process"
 msgstr ""
 
-#: src/util/command.c:2082
+#: src/util/command.c:2058
 msgid "libvirtd quit during handshake"
 msgstr ""
 
-#: src/util/command.c:2086
+#: src/util/command.c:2062
 #, c-format
 msgid "Unexpected confirm code '%c' from parent process"
 msgstr ""
 
-#: src/util/command.c:2145
+#: src/util/command.c:2121
 msgid "cannot mix string I/O with asynchronous command"
 msgstr ""
 
-#: src/util/command.c:2151
+#: src/util/command.c:2127
 #, c-format
 msgid "command is already running as pid %lld"
 msgstr ""
 
-#: src/util/command.c:2158
+#: src/util/command.c:2134
 msgid "daemonized command cannot use virCommandRunAsync"
 msgstr ""
 
-#: src/util/command.c:2163
+#: src/util/command.c:2139
 #, c-format
 msgid "daemonized command cannot set working directory %s"
 msgstr ""
 
-#: src/util/command.c:2169
+#: src/util/command.c:2145
 msgid "creation of pid file requires daemonized command"
 msgstr ""
 
-#: src/util/command.c:2227 src/util/command.c:2237
-#, c-format
-msgid "unable to wait for process %lld"
-msgstr ""
-
-#: src/util/command.c:2246
-#, c-format
-msgid "Child process (%lld) status unexpected: %s"
-msgstr ""
-
-#: src/util/command.c:2287
+#: src/util/command.c:2214
 msgid "command is not yet running"
 msgstr ""
 
-#: src/util/command.c:2305
+#: src/util/command.c:2234
 #, c-format
-msgid "Child process (%s) status unexpected: %s"
+msgid "Child process (%s) unexpected %s%s%s"
 msgstr ""
 
-#: src/util/command.c:2476 src/util/command.c:2535
+#: src/util/command.c:2339 src/util/command.c:2398
 msgid "Handshake is already complete"
 msgstr ""
 
-#: src/util/command.c:2483
+#: src/util/command.c:2346
 msgid "Unable to wait for child process"
 msgstr ""
 
-#: src/util/command.c:2485
+#: src/util/command.c:2348
 msgid "Child process quit during startup handshake"
 msgstr ""
 
-#: src/util/command.c:2500
+#: src/util/command.c:2363
 msgid "No error message from child failure"
 msgstr ""
 
-#: src/util/command.c:2541
+#: src/util/command.c:2404
 msgid "Unable to notify child process"
 msgstr ""
 
@@ -16776,166 +16751,166 @@ msgstr ""
 msgid "Target sysinfo %s %s does not match source %s"
 msgstr ""
 
-#: src/util/util.c:329
+#: src/util/util.c:330
 msgid "Unknown poll response."
 msgstr "अज्ञात पोल अनुक्रिया."
 
-#: src/util/util.c:363
+#: src/util/util.c:364
 msgid "poll error"
 msgstr "पोल त्रुटि"
 
-#: src/util/util.c:452
+#: src/util/util.c:453
 #, c-format
 msgid "Failed to open file '%s'"
 msgstr "फाइल '%s' खोलने में विफल"
 
-#: src/util/util.c:459
+#: src/util/util.c:460
 #, c-format
 msgid "Failed to read file '%s'"
 msgstr "'%s' फ़ाइल खोलने में विफल"
 
-#: src/util/util.c:834
+#: src/util/util.c:835
 #, c-format
 msgid "failed to create socket needed for '%s'"
 msgstr ""
 
-#: src/util/util.c:864
+#: src/util/util.c:865
 #, c-format
 msgid "child process failed to create file '%s'"
 msgstr ""
 
-#: src/util/util.c:881
+#: src/util/util.c:882
 msgid "child process failed to send fd to parent"
 msgstr ""
 
-#: src/util/util.c:923 src/util/util.c:1135
+#: src/util/util.c:924 src/util/util.c:1136
 #, c-format
 msgid "failed to wait for child creating '%s'"
 msgstr "संतति के लिए '%s' के निर्माण में प्रतीक्षा के लिए विफल"
 
-#: src/util/util.c:1033
+#: src/util/util.c:1034
 #, c-format
 msgid "couldn't determine fs type of mount containing '%s'"
 msgstr ""
 
-#: src/util/util.c:1059
+#: src/util/util.c:1060
 #, c-format
 msgid "failed to create file '%s'"
 msgstr "'%s' फाइल बनाने में विफल"
 
-#: src/util/util.c:1060
+#: src/util/util.c:1061
 #, c-format
 msgid "failed to open file '%s'"
 msgstr "फाइल '%s' खोलने में विफल"
 
-#: src/util/util.c:1078
+#: src/util/util.c:1079
 #, c-format
 msgid "failed to create directory '%s'"
 msgstr "निर्देशिका '%s' को बनाने में विफल"
 
-#: src/util/util.c:1165
+#: src/util/util.c:1166
 #, c-format
 msgid "child failed to create directory '%s'"
 msgstr "'%s' निर्देशिका बनाने में संतति विफल"
 
-#: src/util/util.c:1181
+#: src/util/util.c:1182
 #, c-format
 msgid "cannot chown '%s' to group %u"
 msgstr "'%s' को समूह %u में chown नहीं कर सकता है"
 
-#: src/util/util.c:1219
+#: src/util/util.c:1220
 msgid "virFileOpenAs is not implemented for WIN32"
 msgstr ""
 
-#: src/util/util.c:1231
+#: src/util/util.c:1232
 msgid "virDirCreate is not implemented for WIN32"
 msgstr ""
 
-#: src/util/util.c:1655
+#: src/util/util.c:1656
 #, c-format
 msgid "invalid scale %llu"
 msgstr ""
 
-#: src/util/util.c:1671 src/util/util.c:1696
+#: src/util/util.c:1672 src/util/util.c:1697
 #, c-format
 msgid "unknown suffix '%s'"
 msgstr ""
 
-#: src/util/util.c:1702
+#: src/util/util.c:1703
 #, c-format
 msgid "value too large: %llu%s"
 msgstr ""
 
-#: src/util/util.c:2026
+#: src/util/util.c:2027
 #, c-format
 msgid "Disk index %d is negative"
 msgstr "डिस्क सूची %d ऋणात्मक है"
 
-#: src/util/util.c:2082
+#: src/util/util.c:2083
 msgid "failed to determine host name"
 msgstr "होस्टनेम निर्धारित करने में विफल"
 
-#: src/util/util.c:2234
+#: src/util/util.c:2178
 #, c-format
 msgid "Failed to find user record for uid '%u'"
 msgstr ""
 
-#: src/util/util.c:2287
+#: src/util/util.c:2231
 #, c-format
 msgid "Failed to find group record for gid '%u'"
 msgstr ""
 
-#: src/util/util.c:2353
+#: src/util/util.c:2297
 #, c-format
 msgid "Failed to find user record for name '%s'"
 msgstr "'%s' नाम के लिए उपयोक्ता रिकार्ड ढूँढ़ने में विफल"
 
-#: src/util/util.c:2402
+#: src/util/util.c:2346
 #, c-format
 msgid "Failed to find group record for name '%s'"
 msgstr "'%s' नाम के लिए समूह रिकार्ड ढूँढ़ने में विफल"
 
-#: src/util/util.c:2429
+#: src/util/util.c:2373
 #, c-format
 msgid "cannot change to '%d' group"
 msgstr "'%d' समूह को बदल नहीं सकता है"
 
-#: src/util/util.c:2461
+#: src/util/util.c:2405
 #, c-format
 msgid "cannot getpwuid_r(%d)"
 msgstr ""
 
-#: src/util/util.c:2468
+#: src/util/util.c:2412
 #, c-format
 msgid "cannot initgroups(\"%s\", %d)"
 msgstr ""
 
-#: src/util/util.c:2477
+#: src/util/util.c:2421
 #, c-format
 msgid "cannot change to uid to '%d'"
 msgstr ""
 
-#: src/util/util.c:2495
+#: src/util/util.c:2439
 msgid "virGetUserDirectory is not available"
 msgstr ""
 
-#: src/util/util.c:2504
+#: src/util/util.c:2448
 msgid "virGetUserName is not available"
 msgstr ""
 
-#: src/util/util.c:2513
+#: src/util/util.c:2457
 msgid "virGetUserID is not available"
 msgstr ""
 
-#: src/util/util.c:2523
+#: src/util/util.c:2467
 msgid "virGetGroupID is not available"
 msgstr ""
 
-#: src/util/util.c:2533
+#: src/util/util.c:2477
 msgid "virSetUIDGID is not available"
 msgstr ""
 
-#: src/util/util.c:2541
+#: src/util/util.c:2485
 msgid "virGetGroupName is not available"
 msgstr ""
 
@@ -17586,6 +17561,47 @@ msgstr ""
 #, c-format
 msgid "Failed to write to pid file '%s'"
 msgstr ""
+
+#: src/util/virprocess.c:62
+#, c-format
+msgid "exit status %d"
+msgstr ""
+
+#: src/util/virprocess.c:65
+#, c-format
+msgid "fatal signal %d"
+msgstr ""
+
+#: src/util/virprocess.c:68
+#, c-format
+msgid "invalid value %d"
+msgstr ""
+
+#: src/util/virprocess.c:163 src/util/virprocess.c:173
+#, c-format
+msgid "unable to wait for process %lld"
+msgstr ""
+
+#: src/util/virprocess.c:182
+#, c-format
+msgid "Child process (%lld) unexpected %s"
+msgstr ""
+
+#: src/util/virprocess.c:283 src/util/virprocess.c:290
+#: src/util/virprocess.c:299
+#, fuzzy, c-format
+msgid "Cannot find start time in %s"
+msgstr "UML कर्नेल %s नहीं ढूंढ़ सकता है"
+
+#: src/util/virprocess.c:309
+#, fuzzy, c-format
+msgid "Cannot parse start time %s in %s"
+msgstr "संस्करण %s का विश्लेषण नहीं कर सकता है"
+
+#: src/util/virprocess.c:337
+#, fuzzy
+msgid "Unable to query process ID start time"
+msgstr "सेक्टर आकार %s क्वेरी करने में अक्षम"
 
 #: src/util/virrandom.c:104
 msgid "argument virt_type must not be NULL"
@@ -26726,18 +26742,6 @@ msgstr ""
 #, c-format
 msgid "%s: unsupported hypervisor name %s\n"
 msgstr ""
-
-#, fuzzy
-#~ msgid "Cannot find start time in %s"
-#~ msgstr "UML कर्नेल %s नहीं ढूंढ़ सकता है"
-
-#, fuzzy
-#~ msgid "Cannot parse start time %s in %s"
-#~ msgstr "संस्करण %s का विश्लेषण नहीं कर सकता है"
-
-#, fuzzy
-#~ msgid "Unable to query process ID start time"
-#~ msgstr "सेक्टर आकार %s क्वेरी करने में अक्षम"
 
 #~ msgid "Error creating command for container"
 #~ msgstr "कंटेनर के लिए कमांड बनाने में त्रुटि"

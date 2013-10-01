@@ -3,7 +3,7 @@ dnl Process this file with autoconf to produce a configure script.
 dnl Copyright (C) 2005-2012 Red Hat, Inc.
 dnl See COPYING.LIB for the License of this software
 
-AC_INIT([libvirt], [0.9.12.1], [libvir-list@redhat.com], [], [http://libvirt.org])
+AC_INIT([libvirt], [0.9.12.2], [libvir-list@redhat.com], [], [http://libvirt.org])
 AC_CONFIG_SRCDIR([src/libvirt.c])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
@@ -1160,6 +1160,14 @@ if test "x$with_polkit" = "xyes" || test "x$with_polkit" = "xcheck"; then
   AC_PATH_PROG([PKCHECK_PATH],[pkcheck], [], [/usr/sbin:$PATH])
   if test "x$PKCHECK_PATH" != "x" ; then
     AC_DEFINE_UNQUOTED([PKCHECK_PATH],["$PKCHECK_PATH"],[Location of pkcheck program])
+    AC_MSG_CHECKING([whether pkcheck supports uid value])
+    pkcheck_supports_uid=`$PKG_CONFIG --variable pkcheck_supports_uid polkit-gobject-1`
+    if test "x$pkcheck_supports_uid" = "xtrue"; then
+      AC_MSG_RESULT([yes])
+      AC_DEFINE_UNQUOTED([PKCHECK_SUPPORTS_UID], 1, [Pass uid to pkcheck])
+    else
+      AC_MSG_RESULT([no])
+    fi
     AC_DEFINE_UNQUOTED([HAVE_POLKIT], 1,
         [use PolicyKit for UNIX socket access checks])
     AC_DEFINE_UNQUOTED([HAVE_POLKIT1], 1,
