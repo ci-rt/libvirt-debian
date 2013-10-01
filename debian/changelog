@@ -1,4 +1,4 @@
-libvirt (0.9.12.2-1) wheezy-propsed-updates; urgency=low
+libvirt (0.9.12.2-1) wheezy-proposed-updates; urgency=low
 
   * [77a7135] Adjust gbp.conf for Wheezy point releases
   * [b457e3f] New upstream version 0.9.12.1
