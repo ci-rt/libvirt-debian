@@ -272,7 +272,7 @@
 
 Summary: Library providing a simple virtualization API
 Name: libvirt
-Version: 0.9.12
+Version: 0.9.12.1
 Release: 1%{?dist}%{?extra_release}
 License: LGPLv2+
 Group: Development/Libraries

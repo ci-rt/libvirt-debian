@@ -124,7 +124,7 @@
 .\" ========================================================================
 .\"
 .IX Title "VIRSH 1"
-.TH VIRSH 1 "2012-04-24" "libvirt-0.9.12" "Virtualization Support"
+.TH VIRSH 1 "2013-09-19" "libvirt-0.9.12.1" "Virtualization Support"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -702,7 +702,7 @@ virtual interfaces that will be used on the next boot, rather than those
 currently in use by a running domain. Other contexts that require a \s-1MAC\s0
 address of virtual interface (such as \fIdetach-interface\fR or
 \&\fIdomif-setlink\fR) will accept the \s-1MAC\s0 address printed by this command.
-.IP "\fBblockcopy\fR \fIdomain\fR \fIpath\fR \fIdest\fR [\fIbandwidth\fR] [\fI\-\-shallow\fR] [\fI\-\-reuse\-external\fR] [\fI\-\-raw\fR] [\fI\-\-wait\fR [\fI\-\-verbose] [{\fI\-\-pivot\fI | \fI\-\-finish\fI}] [\fI\-\-timeout\fI \f(BIseconds\fI] [\fI\-\-async\fI]]\fR" 4
+.IP "\fBblockcopy\fR \fIdomain\fR \fIpath\fR \fIdest\fR [\fIbandwidth\fR] [\fI\-\-shallow\fR] [\fI\-\-reuse\-external\fR] [\fI\-\-raw\fR] [\fI\-\-wait\fR [\fI\-\-verbose\fR] [{\fI\-\-pivot\fR | \fI\-\-finish\fR}] [\fI\-\-timeout\fR \fBseconds\fR] [\fI\-\-async\fR]]" 4
 .IX Item "blockcopy domain path dest [bandwidth] [--shallow] [--reuse-external] [--raw] [--wait [--verbose] [{--pivot | --finish}] [--timeout seconds] [--async]]"
 Copy a disk backing image chain to \fIdest\fR. By default, this command
 flattens the entire chain; but if \fI\-\-shallow\fR is specified, the copy
@@ -740,7 +740,7 @@ is done cleaning up.
 .Sp
 \&\fIpath\fR specifies fully-qualified path of the disk.
 \&\fIbandwidth\fR specifies copying bandwidth limit in Mbps.
-.IP "\fBblockpull\fR \fIdomain\fR \fIpath\fR [\fIbandwidth\fR] [\fIbase\fR] [\fI\-\-wait\fR [\fI\-\-verbose\fR] [\fI\-\-timeout\fR \fBseconds\fR] [\fI\-\-async]]\fR" 4
+.IP "\fBblockpull\fR \fIdomain\fR \fIpath\fR [\fIbandwidth\fR] [\fIbase\fR] [\fI\-\-wait\fR [\fI\-\-verbose\fR] [\fI\-\-timeout\fR \fBseconds\fR] [\fI\-\-async\fR]]" 4
 .IX Item "blockpull domain path [bandwidth] [base] [--wait [--verbose] [--timeout seconds] [--async]]"
 Populate a disk from its backing image chain. By default, this command
 flattens the entire chain; but if \fIbase\fR is specified, containing the
@@ -2593,12 +2593,3 @@ is \s-1NO\s0 warranty; not even for \s-1MERCHANTABILITY\s0 or \s-1FITNESS\s0 \s-
 .IX Header "SEE ALSO"
 \&\fIvirt\-install\fR\|(1), \fIvirt\-xml\-validate\fR\|(1), \fIvirt\-top\fR\|(1), \fIvirt\-df\fR\|(1),
 <http://www.libvirt.org/>
-.SH "POD ERRORS"
-.IX Header "POD ERRORS"
-Hey! \fBThe above document had some coding errors, which are explained below:\fR
-.IP "Around line 644:" 4
-.IX Item "Around line 644:"
-Unterminated I<...> sequence
-.IP "Around line 685:" 4
-.IX Item "Around line 685:"
-Unterminated I<...> sequence

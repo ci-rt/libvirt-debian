@@ -290,6 +290,18 @@ error:
 }
 
 /**
+ * Helper to clear stream callbacks when freeing the hash
+ */
+static void virConsoleFreeClearCallbacks(void *payload,
+                                         const void *name ATTRIBUTE_UNUSED,
+                                         void *data ATTRIBUTE_UNUSED)
+{
+    virStreamPtr st = payload;
+
+    virFDStreamSetInternalCloseCb(st, NULL, NULL, NULL);
+}
+
+/**
  * Free structures for handling open console streams.
  *
  * @cons Pointer to the private structure.
@@ -300,6 +312,7 @@ void virConsoleFree(virConsolesPtr cons)
         return;
 
     virMutexLock(&cons->lock);
+    virHashForEach(cons->hash, virConsoleFreeClearCallbacks, NULL);
     virHashFree(cons->hash);
     virMutexUnlock(&cons->lock);
     virMutexDestroy(&cons->lock);
