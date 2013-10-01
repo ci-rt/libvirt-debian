@@ -2991,7 +2991,7 @@ lxcDomainAttachDeviceDiskLive(virLXCDriverPtr driver,
     created = true;
 
     /* Labelling normally operates on src, but we need
-     * to actally label the dst here, so hack the config */
+     * to actually label the dst here, so hack the config */
     def->src = dst;
     if (virSecurityManagerSetImageLabel(driver->securityManager,
                                         vm->def, def) < 0)
@@ -3023,6 +3023,7 @@ cleanup:
     virDomainAuditDisk(vm, NULL, def->src, "attach", ret == 0);
     if (dst && created && ret < 0)
         unlink(dst);
+    VIR_FREE(dst);
     return ret;
 }
 

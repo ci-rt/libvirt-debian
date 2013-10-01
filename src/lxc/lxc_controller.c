@@ -1696,7 +1696,7 @@ static int virLXCControllerSetupDisk(virLXCControllerPtr ctrl,
         goto cleanup;
 
     /* Labelling normally operates on src, but we need
-     * to actally label the dst here, so hack the config */
+     * to actually label the dst here, so hack the config */
     def->src = dst;
     if (virSecurityManagerSetImageLabel(securityDriver, ctrl->def, def) < 0)
         goto cleanup;
@@ -2011,7 +2011,7 @@ virLXCControllerEventSend(virLXCControllerPtr ctrl,
     virNetMessagePtr msg;
 
     if (!ctrl->client) {
-        VIR_WARN("Dropping event %d becuase libvirtd is not connected", procnr);
+        VIR_WARN("Dropping event %d because libvirtd is not connected", procnr);
         return;
     }
 

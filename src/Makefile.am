@@ -196,7 +196,7 @@ BUILT_SOURCES += $(LOCK_PROTOCOL_GENERATED)
 MAINTAINERCLEANFILES += $(LOCK_PROTOCOL_GENERATED)
 
 LOCK_DAEMON_GENERATED = \
-		$(srcdir)/locking/lock_daemon_dispatch_stubs.h
+		locking/lock_daemon_dispatch_stubs.h
 		$(NULL)
 
 BUILT_SOURCES += $(LOCK_DAEMON_GENERATED)
@@ -533,7 +533,7 @@ check-aclperms:
 		$(srcdir)/access/viraccessperm.h \
 		$(srcdir)/access/viraccessperm.c
 
-EXTRA_DIST += check-driverimpls.pl check-aclrules.pl
+EXTRA_DIST += check-driverimpls.pl check-aclrules.pl check-aclperms.pl
 
 check-local: check-protocol check-symfile check-symsorting \
 	check-drivername check-driverimpls check-aclrules \
@@ -1519,6 +1519,10 @@ libvirt_driver_access_la_LIBADD =
 
 EXTRA_DIST += access/genpolkit.pl
 
+$(ACCESS_DRIVER_POLKIT_POLICY): $(srcdir)/access/viraccessperm.h \
+    $(srcdir)/access/genpolkit.pl Makefile.am
+	$(AM_V_GEN)$(PERL) $(srcdir)/access/genpolkit.pl < $< > $@ || rm -f $@
+
 if WITH_POLKIT1
 libvirt_driver_access_la_SOURCES += $(ACCESS_DRIVER_POLKIT_SOURCES)
 
@@ -1526,10 +1530,6 @@ polkitactiondir = $(datadir)/polkit-1/actions
 if WITH_LIBVIRTD
 polkitaction_DATA = $(ACCESS_DRIVER_POLKIT_POLICY)
 endif WITH_LIBVIRTD
-
-$(ACCESS_DRIVER_POLKIT_POLICY): $(srcdir)/access/viraccessperm.h \
-    $(srcdir)/access/genpolkit.pl Makefile.am
-	$(AM_V_GEN)$(PERL) $(srcdir)/access/genpolkit.pl < $< > $@ || rm -f $@
 
 CLEANFILES += $(ACCESS_DRIVER_POLKIT_POLICY)
 BUILT_SOURCES += $(ACCESS_DRIVER_POLKIT_POLICY)
@@ -2194,19 +2194,18 @@ EXTRA_DIST += \
 	rpc/virkeepaliveprotocol.x
 
 VIR_NET_RPC_GENERATED = \
-	$(srcdir)/rpc/virnetprotocol.h \
-	$(srcdir)/rpc/virnetprotocol.c \
-	$(srcdir)/rpc/virkeepaliveprotocol.h \
-	$(srcdir)/rpc/virkeepaliveprotocol.c
+	rpc/virnetprotocol.h \
+	rpc/virnetprotocol.c \
+	rpc/virkeepaliveprotocol.h \
+	rpc/virkeepaliveprotocol.c
 
 BUILT_SOURCES += $(VIR_NET_RPC_GENERATED)
 
 libvirt_net_rpc_la_SOURCES = \
 	rpc/virnetmessage.h rpc/virnetmessage.c \
-	rpc/virnetprotocol.h rpc/virnetprotocol.c \
 	rpc/virnetsocket.h rpc/virnetsocket.c \
-	rpc/virkeepaliveprotocol.h rpc/virkeepaliveprotocol.c \
-	rpc/virkeepalive.h rpc/virkeepalive.c
+	rpc/virkeepalive.h rpc/virkeepalive.c \
+	$(VIR_NET_RPC_GENERATED)
 if WITH_SSH2
 libvirt_net_rpc_la_SOURCES += \
 	rpc/virnetsshsession.h rpc/virnetsshsession.c

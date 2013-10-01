@@ -37,7 +37,8 @@
 
 VIR_ENUM_IMPL(vmwareDriver, VMWARE_DRIVER_LAST,
               "player",
-              "ws");
+              "ws",
+              "fusion");
 
 /* Free all memory associated with a vmware_driver structure */
 void
@@ -231,6 +232,9 @@ vmwareParseVersionStr(int type, const char *verbuf, unsigned long *version)
         case VMWARE_DRIVER_WORKSTATION:
             pattern = "VMware Workstation ";
             break;
+        case VMWARE_DRIVER_FUSION:
+            pattern = "\nVMware Fusion Information:\nVMware Fusion ";
+            break;
         default:
             virReportError(VIR_ERR_INTERNAL_ERROR,
                            _("Invalid driver type: %d"), type);
@@ -257,10 +261,35 @@ vmwareExtractVersion(struct vmware_driver *driver)
 {
     unsigned long version = 0;
     int ret = -1;
-    virCommandPtr cmd;
+    virCommandPtr cmd = NULL;
     char * outbuf = NULL;
-    const char * bin = (driver->type == VMWARE_DRIVER_PLAYER) ?
-                 "vmplayer" : "vmware";
+    char *bin = NULL;
+    char *vmwarePath = NULL;
+
+    if ((vmwarePath = mdir_name(driver->vmrun)) == NULL)
+        goto cleanup;
+
+    switch (driver->type) {
+        case VMWARE_DRIVER_PLAYER:
+            if (virAsprintf(&bin, "%s/%s", vmwarePath, "vmplayer"))
+                goto cleanup;
+            break;
+
+        case VMWARE_DRIVER_WORKSTATION:
+            if (virAsprintf(&bin, "%s/%s", vmwarePath, "vmware"))
+                goto cleanup;
+            break;
+
+        case VMWARE_DRIVER_FUSION:
+            if (virAsprintf(&bin, "%s/%s", vmwarePath, "vmware-vmx"))
+                goto cleanup;
+            break;
+
+        default:
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("invalid driver type for version detection"));
+            goto cleanup;
+    }
 
     cmd = virCommandNewArgList(bin, "-v", NULL);
     virCommandSetOutputBuffer(cmd, &outbuf);
@@ -276,6 +305,8 @@ vmwareExtractVersion(struct vmware_driver *driver)
 cleanup:
     virCommandFree(cmd);
     VIR_FREE(outbuf);
+    VIR_FREE(bin);
+    VIR_FREE(vmwarePath);
     return ret;
 }
 
