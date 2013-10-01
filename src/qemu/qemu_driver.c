@@ -986,12 +986,14 @@ qemuStateCleanup(void) {
     virObjectUnref(qemu_driver->activePciHostdevs);
     virObjectUnref(qemu_driver->inactivePciHostdevs);
     virObjectUnref(qemu_driver->activeUsbHostdevs);
+    virObjectUnref(qemu_driver->activeScsiHostdevs);
     virHashFree(qemu_driver->sharedDevices);
     virObjectUnref(qemu_driver->caps);
     virQEMUCapsCacheFree(qemu_driver->qemuCapsCache);
 
     virObjectUnref(qemu_driver->domains);
     virObjectUnref(qemu_driver->remotePorts);
+    virObjectUnref(qemu_driver->webSocketPorts);
 
     virObjectUnref(qemu_driver->xmlopt);
 
@@ -6626,7 +6628,7 @@ qemuDomainAttachDeviceConfig(virQEMUCapsPtr qemuCaps,
     case VIR_DOMAIN_DEVICE_CONTROLLER:
         controller = dev->data.controller;
         if (virDomainControllerFind(vmdef, controller->type,
-                                    controller->idx) > 0) {
+                                    controller->idx) >= 0) {
             virReportError(VIR_ERR_OPERATION_INVALID, "%s",
                            _("Target already exists"));
             return -1;

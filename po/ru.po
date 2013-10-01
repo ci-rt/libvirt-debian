@@ -15,7 +15,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libvirt\n"
 "Report-Msgid-Bugs-To: libvir-list@redhat.com\n"
-"POT-Creation-Date: 2013-09-26 11:22+0800\n"
+"POT-Creation-Date: 2013-10-01 14:40+0800\n"
 "PO-Revision-Date: 2013-08-28 16:47+0000\n"
 "Last-Translator: Daniel <veillard@redhat.com>\n"
 "Language-Team: Russian <trans-ru@lists.fedoraproject.org>\n"
@@ -243,28 +243,28 @@ msgstr ""
 msgid "unable to create rundir %s: %s"
 msgstr "не удалось создать rundir %s: %s"
 
-#: daemon/qemu_dispatch.h:38 daemon/qemu_dispatch.h:102 daemon/remote.c:799
-#: daemon/remote.c:994 daemon/remote.c:1044 daemon/remote.c:1104
-#: daemon/remote.c:1157 daemon/remote.c:1217 daemon/remote.c:1272
-#: daemon/remote.c:1335 daemon/remote.c:1386 daemon/remote.c:1432
-#: daemon/remote.c:1489 daemon/remote.c:1531 daemon/remote.c:1594
-#: daemon/remote.c:1634 daemon/remote.c:1686 daemon/remote.c:1768
-#: daemon/remote.c:1823 daemon/remote.c:1872 daemon/remote.c:1935
-#: daemon/remote.c:1998 daemon/remote.c:2062 daemon/remote.c:2134
-#: daemon/remote.c:2203 daemon/remote.c:2245 daemon/remote.c:3037
-#: daemon/remote.c:3087 daemon/remote.c:3128 daemon/remote.c:3206
-#: daemon/remote.c:3243 daemon/remote.c:3276 daemon/remote.c:3325
-#: daemon/remote.c:3371 daemon/remote.c:3412 daemon/remote.c:3463
-#: daemon/remote.c:3521 daemon/remote.c:3575 daemon/remote.c:3624
-#: daemon/remote.c:3671 daemon/remote.c:3711 daemon/remote.c:3756
-#: daemon/remote.c:3818 daemon/remote.c:3890 daemon/remote.c:3951
-#: daemon/remote.c:4017 daemon/remote.c:4086 daemon/remote.c:4146
-#: daemon/remote.c:4210 daemon/remote.c:4269 daemon/remote.c:4328
-#: daemon/remote.c:4387 daemon/remote.c:4446 daemon/remote.c:4506
-#: daemon/remote.c:4564 daemon/remote.c:4610 daemon/remote.c:4660
-#: daemon/remote.c:4714 daemon/remote.c:4771 daemon/remote.c:4832
-#: daemon/remote.c:4902 daemon/remote.c:4963 daemon/remote.c:5021
-#: daemon/remote.c:5072 daemon/remote.c:5127 daemon/remote.c:5176
+#: daemon/qemu_dispatch.h:38 daemon/qemu_dispatch.h:102 daemon/remote.c:805
+#: daemon/remote.c:1000 daemon/remote.c:1050 daemon/remote.c:1110
+#: daemon/remote.c:1163 daemon/remote.c:1223 daemon/remote.c:1278
+#: daemon/remote.c:1341 daemon/remote.c:1392 daemon/remote.c:1438
+#: daemon/remote.c:1495 daemon/remote.c:1537 daemon/remote.c:1600
+#: daemon/remote.c:1640 daemon/remote.c:1692 daemon/remote.c:1774
+#: daemon/remote.c:1829 daemon/remote.c:1878 daemon/remote.c:1941
+#: daemon/remote.c:2004 daemon/remote.c:2068 daemon/remote.c:2140
+#: daemon/remote.c:2209 daemon/remote.c:2251 daemon/remote.c:3043
+#: daemon/remote.c:3093 daemon/remote.c:3134 daemon/remote.c:3212
+#: daemon/remote.c:3249 daemon/remote.c:3282 daemon/remote.c:3331
+#: daemon/remote.c:3377 daemon/remote.c:3418 daemon/remote.c:3469
+#: daemon/remote.c:3527 daemon/remote.c:3581 daemon/remote.c:3630
+#: daemon/remote.c:3677 daemon/remote.c:3717 daemon/remote.c:3762
+#: daemon/remote.c:3824 daemon/remote.c:3896 daemon/remote.c:3957
+#: daemon/remote.c:4023 daemon/remote.c:4092 daemon/remote.c:4152
+#: daemon/remote.c:4216 daemon/remote.c:4275 daemon/remote.c:4334
+#: daemon/remote.c:4393 daemon/remote.c:4452 daemon/remote.c:4512
+#: daemon/remote.c:4570 daemon/remote.c:4616 daemon/remote.c:4666
+#: daemon/remote.c:4720 daemon/remote.c:4777 daemon/remote.c:4838
+#: daemon/remote.c:4908 daemon/remote.c:4969 daemon/remote.c:5027
+#: daemon/remote.c:5078 daemon/remote.c:5133 daemon/remote.c:5182
 #: daemon/remote_dispatch.h:143 daemon/remote_dispatch.h:213
 #: daemon/remote_dispatch.h:347 daemon/remote_dispatch.h:397
 #: daemon/remote_dispatch.h:448 daemon/remote_dispatch.h:498
@@ -387,220 +387,220 @@ msgstr "соединение не открыто"
 msgid "conversion from hyper to %s overflowed"
 msgstr ""
 
-#: daemon/remote.c:706 src/locking/lock_daemon.c:784
+#: daemon/remote.c:712 src/locking/lock_daemon.c:784
 #: src/util/virnetdevmacvlan.c:80
 msgid "unable to init mutex"
 msgstr "Не удалось инициализировать мьютекс"
 
-#: daemon/remote.c:735
+#: daemon/remote.c:741
 msgid "connection already open"
 msgstr "соединение уже открыто"
 
-#: daemon/remote.c:741
+#: daemon/remote.c:747
 msgid "keepalive support is required to connect"
 msgstr ""
 
-#: daemon/remote.c:877 daemon/remote.c:962 src/remote/remote_driver.c:1537
+#: daemon/remote.c:883 daemon/remote.c:968 src/remote/remote_driver.c:1537
 #: src/remote/remote_driver.c:1622
 #, c-format
 msgid "unknown parameter type: %d"
 msgstr "неизвестный тип параметра: %d"
 
-#: daemon/remote.c:913 daemon/remote.c:999 daemon/remote.c:1109
-#: daemon/remote.c:1281 daemon/remote.c:1879 daemon/remote.c:1942
-#: daemon/remote.c:2005 daemon/remote.c:2069 daemon/remote.c:2141
-#: daemon/remote.c:2250 daemon/remote.c:3763 daemon/remote.c:3823
-#: daemon/remote.c:4513
+#: daemon/remote.c:919 daemon/remote.c:1005 daemon/remote.c:1115
+#: daemon/remote.c:1287 daemon/remote.c:1885 daemon/remote.c:1948
+#: daemon/remote.c:2011 daemon/remote.c:2075 daemon/remote.c:2147
+#: daemon/remote.c:2256 daemon/remote.c:3769 daemon/remote.c:3829
+#: daemon/remote.c:4519
 msgid "nparams too large"
 msgstr "слишком большое значение nparams"
 
-#: daemon/remote.c:926 src/remote/remote_driver.c:1585
+#: daemon/remote.c:932 src/remote/remote_driver.c:1585
 #, c-format
 msgid "Parameter %s too big for destination"
 msgstr "Слишком большой параметр %s для цели"
 
-#: daemon/remote.c:1055 src/remote/remote_driver.c:1375
+#: daemon/remote.c:1061 src/remote/remote_driver.c:1375
 #: src/remote/remote_driver.c:1389 src/remote/remote_driver.c:1438
 #, fuzzy, c-format
 msgid "Too many domains '%d' for limit '%d'"
 msgstr "слишком много идентификаторов удалённых доменов: %d > %d"
 
-#: daemon/remote.c:1163
+#: daemon/remote.c:1169
 msgid "maxStats > REMOTE_DOMAIN_MEMORY_STATS_MAX"
 msgstr "maxStats > REMOTE_DOMAIN_MEMORY_STATS_MAX"
 
-#: daemon/remote.c:1230 daemon/remote.c:1347
+#: daemon/remote.c:1236 daemon/remote.c:1353
 msgid "size > maximum buffer size"
 msgstr "размер > максимальный размер буфера"
 
-#: daemon/remote.c:1456
+#: daemon/remote.c:1462
 msgid "failed to copy security label"
 msgstr "не удалось скопировать метку безопасности"
 
-#: daemon/remote.c:1539
+#: daemon/remote.c:1545
 msgid "ncpumaps > REMOTE_VCPUINFO_MAX"
 msgstr "ncpumaps > REMOTE_VCPUINFO_MAX"
 
-#: daemon/remote.c:1545 daemon/remote.c:1700
+#: daemon/remote.c:1551 daemon/remote.c:1706
 msgid "maxinfo * maplen > REMOTE_CPUMAPS_MAX"
 msgstr "maxinfo * maplen > REMOTE_CPUMAPS_MAX"
 
-#: daemon/remote.c:1694
+#: daemon/remote.c:1700
 msgid "maxinfo > REMOTE_VCPUINFO_MAX"
 msgstr "maxinfo > REMOTE_VCPUINFO_MAX"
 
-#: daemon/remote.c:2378
+#: daemon/remote.c:2384
 msgid "client tried invalid SASL init request"
 msgstr "клиент пытался выполнить недопустимый запрос инициализации SASL"
 
-#: daemon/remote.c:2426 daemon/remote.c:2575 daemon/remote.c:2673
-#: daemon/remote.c:2689 daemon/remote.c:2703 daemon/remote.c:2717
-#: daemon/remote.c:2837 daemon/remote.c:2982 daemon/remote.c:3011
+#: daemon/remote.c:2432 daemon/remote.c:2581 daemon/remote.c:2679
+#: daemon/remote.c:2695 daemon/remote.c:2709 daemon/remote.c:2723
+#: daemon/remote.c:2843 daemon/remote.c:2988 daemon/remote.c:3017
 #: src/util/virerror.c:985
 msgid "authentication failed"
 msgstr "сбой аутентификации"
 
-#: daemon/remote.c:2453
+#: daemon/remote.c:2459
 #, c-format
 msgid "negotiated SSF %d was not strong enough"
 msgstr "согласованный SSF %d был недостаточно устойчивым"
 
-#: daemon/remote.c:2506 daemon/remote.c:2604
+#: daemon/remote.c:2512 daemon/remote.c:2610
 msgid "client tried invalid SASL start request"
 msgstr "клиент пытался выполнить недопустимый запрос запуска SASL"
 
-#: daemon/remote.c:2524
+#: daemon/remote.c:2530
 #, c-format
 msgid "sasl start reply data too long %d"
 msgstr "слишком длинный ответ запуска SASL %d"
 
-#: daemon/remote.c:2621
+#: daemon/remote.c:2627
 #, c-format
 msgid "sasl step reply data too long %d"
 msgstr "слишком длинный ответ перехода SASL %d"
 
-#: daemon/remote.c:2760 daemon/remote.c:2889
+#: daemon/remote.c:2766 daemon/remote.c:2895
 msgid "client tried invalid PolicyKit init request"
 msgstr "клиент пытался выполнить недопустимый запрос инициализации PolicyKit"
 
-#: daemon/remote.c:2806
+#: daemon/remote.c:2812
 #, c-format
 msgid "Policy kit denied action %s from pid %lld, uid %d: %s"
 msgstr ""
 
-#: daemon/remote.c:2833
+#: daemon/remote.c:2839
 msgid "authentication cancelled by user"
 msgstr ""
 
-#: daemon/remote.c:2835
+#: daemon/remote.c:2841
 #, c-format
 msgid "polkit: %s"
 msgstr "polkit: %s"
 
-#: daemon/remote.c:2895
+#: daemon/remote.c:2901
 msgid "cannot get peer socket identity"
 msgstr "не удалось получить идентификационные данные сокета узла"
 
-#: daemon/remote.c:2911
+#: daemon/remote.c:2917
 #, c-format
 msgid "Failed to lookup policy kit caller: %s"
 msgstr "Не удалось найти источник вызова PolicyKit: %s"
 
-#: daemon/remote.c:2918
+#: daemon/remote.c:2924
 #, c-format
 msgid "Failed to create polkit action %s"
 msgstr "Не удалось создать действие polkit %s"
 
-#: daemon/remote.c:2928
+#: daemon/remote.c:2934
 #, c-format
 msgid "Failed to create polkit context %s"
 msgstr "Не удалось создать контекст polkit %s"
 
-#: daemon/remote.c:2946
+#: daemon/remote.c:2952
 #, c-format
 msgid "Policy kit failed to check authorization %d %s"
 msgstr "PolicyKit не удалось проверить авторизацию %d %s"
 
-#: daemon/remote.c:2960
+#: daemon/remote.c:2966
 #, c-format
 msgid "Policy kit denied action %s from pid %lld, uid %d, result: %s"
 msgstr ""
 
-#: daemon/remote.c:3009
+#: daemon/remote.c:3015
 msgid "client tried unsupported PolicyKit init request"
 msgstr "клиент пытался выполнить недопустимый запрос инициализации PolicyKit"
 
-#: daemon/remote.c:3094 daemon/remote.c:3289
+#: daemon/remote.c:3100 daemon/remote.c:3295
 #, c-format
 msgid "domain event %d already registered"
 msgstr "событие домена %d уже зарегистрировано"
 
-#: daemon/remote.c:3135 daemon/remote.c:3339
+#: daemon/remote.c:3141 daemon/remote.c:3345
 #, c-format
 msgid "domain event %d not registered"
 msgstr "событие домена %d не зарегистрировано"
 
-#: daemon/remote.c:3284 daemon/remote.c:3333
+#: daemon/remote.c:3290 daemon/remote.c:3339
 #, c-format
 msgid "unsupported event ID %d"
 msgstr "Идентификатор события %d не поддерживается"
 
-#: daemon/remote.c:3827
+#: daemon/remote.c:3833
 msgid "ncpus too large"
 msgstr ""
 
-#: daemon/remote.c:3899
+#: daemon/remote.c:3905
 msgid "maxerrors too large"
 msgstr ""
 
-#: daemon/remote.c:3965 daemon/remote.c:4034 src/remote/remote_driver.c:5883
+#: daemon/remote.c:3971 daemon/remote.c:4040 src/remote/remote_driver.c:5883
 #: src/remote/remote_driver.c:5950
 #, fuzzy, c-format
 msgid "Too many domain snapshots '%d' for limit '%d'"
 msgstr "Слишком много запросов снимков для домена"
 
-#: daemon/remote.c:4097 src/remote/remote_driver.c:3316
+#: daemon/remote.c:4103 src/remote/remote_driver.c:3316
 #, fuzzy, c-format
 msgid "Too many storage pools '%d' for limit '%d'"
 msgstr "Слишком большое число ресурсов %d для объекта"
 
-#: daemon/remote.c:4160 src/remote/remote_driver.c:3383
+#: daemon/remote.c:4166 src/remote/remote_driver.c:3383
 #, fuzzy, c-format
 msgid "Too many storage volumes '%d' for limit '%d'"
 msgstr "Слишком большое число ресурсов %d для объекта"
 
-#: daemon/remote.c:4221 src/remote/remote_driver.c:2848
+#: daemon/remote.c:4227 src/remote/remote_driver.c:2848
 #, fuzzy, c-format
 msgid "Too many networks '%d' for limit '%d'"
 msgstr "Слишком большое число ресурсов %d для объекта"
 
-#: daemon/remote.c:4280 src/remote/remote_driver.c:2914
+#: daemon/remote.c:4286 src/remote/remote_driver.c:2914
 #, fuzzy, c-format
 msgid "Too many interfaces '%d' for limit '%d'"
 msgstr "Слишком большое число ресурсов %d для объекта"
 
-#: daemon/remote.c:4339 src/remote/remote_driver.c:2980
+#: daemon/remote.c:4345 src/remote/remote_driver.c:2980
 #, fuzzy, c-format
 msgid "Too many node devices '%d' for limit '%d'"
 msgstr "Слишком большое число ресурсов %d для объекта"
 
-#: daemon/remote.c:4398 src/remote/remote_driver.c:3046
+#: daemon/remote.c:4404 src/remote/remote_driver.c:3046
 #, fuzzy, c-format
 msgid "Too many network filters '%d' for limit '%d'"
 msgstr "Слишком большое число ресурсов %d для объекта"
 
-#: daemon/remote.c:4457 src/remote/remote_driver.c:3112
+#: daemon/remote.c:4463 src/remote/remote_driver.c:3112
 #, fuzzy, c-format
 msgid "Too many secrets '%d' for limit '%d'"
 msgstr "Слишком большое число ресурсов %d для объекта"
 
-#: daemon/remote.c:4673 src/remote/remote_driver.c:6137
+#: daemon/remote.c:4679 src/remote/remote_driver.c:6137
 #, c-format
 msgid "Too many job stats '%d' for limit '%d'"
 msgstr ""
 
-#: daemon/remote.c:4720 daemon/remote.c:4777 daemon/remote.c:4838
-#: daemon/remote.c:4908 daemon/remote.c:4969 daemon/remote.c:5027
+#: daemon/remote.c:4726 daemon/remote.c:4783 daemon/remote.c:4844
+#: daemon/remote.c:4914 daemon/remote.c:4975 daemon/remote.c:5033
 #: src/remote/remote_driver.c:6184 src/remote/remote_driver.c:6250
 #: src/remote/remote_driver.c:6332 src/remote/remote_driver.c:6418
 #: src/remote/remote_driver.c:6490 src/remote/remote_driver.c:6562
@@ -608,7 +608,7 @@ msgstr ""
 msgid "Too many migration parameters '%d' for limit '%d'"
 msgstr ""
 
-#: daemon/remote.c:5084
+#: daemon/remote.c:5090
 #, fuzzy, c-format
 msgid "Too many CPU models '%d' for limit '%d'"
 msgstr "слишком много идентификаторов удалённых доменов: %d > %d"
@@ -900,7 +900,7 @@ msgstr "Недопустимый атрибут соответствия для 
 msgid "Missing CPU architecture"
 msgstr "Отсутствует архитектура процессора"
 
-#: src/conf/cpu_conf.c:269 src/conf/domain_conf.c:11653
+#: src/conf/cpu_conf.c:269 src/conf/domain_conf.c:11655
 #, c-format
 msgid "Unknown architecture %s"
 msgstr "Неизвестная архитектура %s"
@@ -1110,35 +1110,35 @@ msgstr "домен «%s» уже существует (UUID: %s)"
 
 #: src/conf/domain_conf.c:2313 src/lxc/lxc_driver.c:2454
 #: src/lxc/lxc_driver.c:2528 src/libxl/libxl_driver.c:3860
-#: src/openvz/openvz_driver.c:1981 src/qemu/qemu_driver.c:1677
-#: src/qemu/qemu_driver.c:1689 src/qemu/qemu_driver.c:1761
-#: src/qemu/qemu_driver.c:1862 src/qemu/qemu_driver.c:1977
-#: src/qemu/qemu_driver.c:2026 src/qemu/qemu_driver.c:2113
-#: src/qemu/qemu_driver.c:2378 src/qemu/qemu_driver.c:2389
-#: src/qemu/qemu_driver.c:2453 src/qemu/qemu_driver.c:2596
-#: src/qemu/qemu_driver.c:3196 src/qemu/qemu_driver.c:3252
-#: src/qemu/qemu_driver.c:3512 src/qemu/qemu_driver.c:3620
-#: src/qemu/qemu_driver.c:3705 src/qemu/qemu_driver.c:3770
-#: src/qemu/qemu_driver.c:3847 src/qemu/qemu_driver.c:4910
-#: src/qemu/qemu_driver.c:5676 src/qemu/qemu_driver.c:8870
-#: src/qemu/qemu_driver.c:8929 src/qemu/qemu_driver.c:8952
-#: src/qemu/qemu_driver.c:9013 src/qemu/qemu_driver.c:9166
-#: src/qemu/qemu_driver.c:9513 src/qemu/qemu_driver.c:9635
-#: src/qemu/qemu_driver.c:10926 src/qemu/qemu_driver.c:10965
-#: src/qemu/qemu_driver.c:11099 src/qemu/qemu_driver.c:11156
-#: src/qemu/qemu_driver.c:11206 src/qemu/qemu_driver.c:11261
-#: src/qemu/qemu_driver.c:11320 src/qemu/qemu_driver.c:11632
-#: src/qemu/qemu_driver.c:11994 src/qemu/qemu_driver.c:13520
-#: src/qemu/qemu_driver.c:13529 src/qemu/qemu_driver.c:13677
-#: src/qemu/qemu_driver.c:13758 src/qemu/qemu_driver.c:13867
-#: src/qemu/qemu_driver.c:14007 src/qemu/qemu_driver.c:14055
-#: src/qemu/qemu_driver.c:14125 src/qemu/qemu_driver.c:14233
-#: src/qemu/qemu_driver.c:14270 src/qemu/qemu_driver.c:14460
-#: src/qemu/qemu_driver.c:14587 src/qemu/qemu_driver.c:14975
-#: src/qemu/qemu_driver.c:15326 src/qemu/qemu_driver.c:15385
-#: src/qemu/qemu_driver.c:15433 src/qemu/qemu_driver.c:15473
-#: src/qemu/qemu_driver.c:15544 src/qemu/qemu_driver.c:15566
-#: src/qemu/qemu_driver.c:15616 src/qemu/qemu_driver.c:15638
+#: src/openvz/openvz_driver.c:1981 src/qemu/qemu_driver.c:1679
+#: src/qemu/qemu_driver.c:1691 src/qemu/qemu_driver.c:1763
+#: src/qemu/qemu_driver.c:1864 src/qemu/qemu_driver.c:1979
+#: src/qemu/qemu_driver.c:2028 src/qemu/qemu_driver.c:2115
+#: src/qemu/qemu_driver.c:2380 src/qemu/qemu_driver.c:2391
+#: src/qemu/qemu_driver.c:2455 src/qemu/qemu_driver.c:2598
+#: src/qemu/qemu_driver.c:3198 src/qemu/qemu_driver.c:3254
+#: src/qemu/qemu_driver.c:3514 src/qemu/qemu_driver.c:3622
+#: src/qemu/qemu_driver.c:3707 src/qemu/qemu_driver.c:3772
+#: src/qemu/qemu_driver.c:3849 src/qemu/qemu_driver.c:4912
+#: src/qemu/qemu_driver.c:5678 src/qemu/qemu_driver.c:8872
+#: src/qemu/qemu_driver.c:8931 src/qemu/qemu_driver.c:8954
+#: src/qemu/qemu_driver.c:9015 src/qemu/qemu_driver.c:9168
+#: src/qemu/qemu_driver.c:9515 src/qemu/qemu_driver.c:9637
+#: src/qemu/qemu_driver.c:10928 src/qemu/qemu_driver.c:10967
+#: src/qemu/qemu_driver.c:11101 src/qemu/qemu_driver.c:11158
+#: src/qemu/qemu_driver.c:11208 src/qemu/qemu_driver.c:11263
+#: src/qemu/qemu_driver.c:11322 src/qemu/qemu_driver.c:11634
+#: src/qemu/qemu_driver.c:11996 src/qemu/qemu_driver.c:13522
+#: src/qemu/qemu_driver.c:13531 src/qemu/qemu_driver.c:13679
+#: src/qemu/qemu_driver.c:13760 src/qemu/qemu_driver.c:13869
+#: src/qemu/qemu_driver.c:14009 src/qemu/qemu_driver.c:14057
+#: src/qemu/qemu_driver.c:14127 src/qemu/qemu_driver.c:14235
+#: src/qemu/qemu_driver.c:14272 src/qemu/qemu_driver.c:14462
+#: src/qemu/qemu_driver.c:14589 src/qemu/qemu_driver.c:14977
+#: src/qemu/qemu_driver.c:15328 src/qemu/qemu_driver.c:15387
+#: src/qemu/qemu_driver.c:15435 src/qemu/qemu_driver.c:15475
+#: src/qemu/qemu_driver.c:15546 src/qemu/qemu_driver.c:15568
+#: src/qemu/qemu_driver.c:15618 src/qemu/qemu_driver.c:15640
 #: src/qemu/qemu_migration.c:2082 src/qemu/qemu_migration.c:4017
 #: src/uml/uml_driver.c:2561 src/xen/xen_driver.c:2624
 #: src/xen/xm_internal.c:675
@@ -1533,7 +1533,7 @@ msgstr ""
 msgid "missing name for host"
 msgstr "отсутствует имя узла"
 
-#: src/conf/domain_conf.c:4918 src/conf/domain_conf.c:14366
+#: src/conf/domain_conf.c:4918 src/conf/domain_conf.c:14368
 #, c-format
 msgid "unexpected disk type %s"
 msgstr "непредвиденный тип диска %s"
@@ -2011,1709 +2011,1709 @@ msgstr "Канал guestfwd не определяет целевой порт"
 msgid "Invalid port number: %s"
 msgstr "Недопустимый номер порта: %s"
 
-#: src/conf/domain_conf.c:6941
+#: src/conf/domain_conf.c:6939
 #, c-format
 msgid "Unknown source mode '%s'"
 msgstr "Неизвестный режим источника «%s»"
 
-#: src/conf/domain_conf.c:6990 src/conf/domain_conf.c:7075
+#: src/conf/domain_conf.c:6995 src/conf/domain_conf.c:7077
 msgid "Missing source path attribute for char device"
 msgstr "Отсутствует атрибут пути источника для символьного устройства"
 
-#: src/conf/domain_conf.c:7008 src/conf/domain_conf.c:7025
+#: src/conf/domain_conf.c:7007 src/conf/domain_conf.c:7025
 msgid "Missing source host attribute for char device"
 msgstr "Отсутствует атрибут исходного узла для символьного устройства"
 
-#: src/conf/domain_conf.c:7013 src/conf/domain_conf.c:7030
-#: src/conf/domain_conf.c:7055
+#: src/conf/domain_conf.c:7013 src/conf/domain_conf.c:7031
+#: src/conf/domain_conf.c:7056
 msgid "Missing source service attribute for char device"
 msgstr "Отсутствует атрибут исходной службы для символьного устройства"
 
-#: src/conf/domain_conf.c:7046
+#: src/conf/domain_conf.c:7047
 #, c-format
 msgid "Unknown protocol '%s'"
 msgstr "Неизвестный протокол «%s»"
 
-#: src/conf/domain_conf.c:7176 src/conf/domain_conf.c:7326
+#: src/conf/domain_conf.c:7178 src/conf/domain_conf.c:7328
 #, c-format
 msgid "unknown type presented to host for character device: %s"
 msgstr "неизвестный тип хоста для символьного устройства: %s"
 
-#: src/conf/domain_conf.c:7184
+#: src/conf/domain_conf.c:7186
 #, c-format
 msgid "unknown character device type: %s"
 msgstr "неизвестный тип символьного устройства: %s"
 
-#: src/conf/domain_conf.c:7212
+#: src/conf/domain_conf.c:7214
 msgid "spicevmc device type only supports virtio"
 msgstr "Тип устройств spicevmc поддерживает только virtio"
 
-#: src/conf/domain_conf.c:7228 src/qemu/qemu_command.c:9603
+#: src/conf/domain_conf.c:7230 src/qemu/qemu_command.c:9603
 msgid "usb-serial requires address of usb type"
 msgstr ""
 
-#: src/conf/domain_conf.c:7259
+#: src/conf/domain_conf.c:7261
 msgid "missing smartcard device mode"
 msgstr "не задан режим смарт-карты"
 
-#: src/conf/domain_conf.c:7264
+#: src/conf/domain_conf.c:7266
 #, c-format
 msgid "unknown smartcard device mode: %s"
 msgstr "неизвестный режим устройств смарт-карт: %s"
 
-#: src/conf/domain_conf.c:7281 src/conf/domain_conf.c:7310
+#: src/conf/domain_conf.c:7283 src/conf/domain_conf.c:7312
 msgid "host-certificates mode needs exactly three certificates"
 msgstr "для режима хост-сертификатов необходимо именно три сертификата"
 
-#: src/conf/domain_conf.c:7301
+#: src/conf/domain_conf.c:7303
 #, c-format
 msgid "expecting absolute path: %s"
 msgstr "ожидается абсолютный путь: %s"
 
-#: src/conf/domain_conf.c:7320
+#: src/conf/domain_conf.c:7322
 msgid "passthrough mode requires a character device type attribute"
 msgstr ""
 "для сквозного режима необходимо определить атрибут типа символьного "
 "устройства"
 
-#: src/conf/domain_conf.c:7345
+#: src/conf/domain_conf.c:7347
 msgid "unknown smartcard mode"
 msgstr "неизвестный режим смарт-карт"
 
-#: src/conf/domain_conf.c:7354
+#: src/conf/domain_conf.c:7356
 msgid "Controllers must use the 'ccid' address type"
 msgstr "Контроллеры должны использовать адреса «ccid»"
 
-#: src/conf/domain_conf.c:7402
+#: src/conf/domain_conf.c:7404
 #, c-format
 msgid "Unknown TPM frontend model '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:7415
+#: src/conf/domain_conf.c:7417
 msgid "only one TPM backend is supported"
 msgstr ""
 
-#: src/conf/domain_conf.c:7421
+#: src/conf/domain_conf.c:7423
 msgid "missing TPM device backend"
 msgstr ""
 
-#: src/conf/domain_conf.c:7427
+#: src/conf/domain_conf.c:7429
 msgid "missing TPM device backend type"
 msgstr ""
 
-#: src/conf/domain_conf.c:7433
+#: src/conf/domain_conf.c:7435
 #, c-format
 msgid "Unknown TPM backend type '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:7487
+#: src/conf/domain_conf.c:7489
 msgid "missing input device type"
 msgstr "отсутствует тип устройства ввода"
 
-#: src/conf/domain_conf.c:7493
+#: src/conf/domain_conf.c:7495
 #, c-format
 msgid "unknown input device type '%s'"
 msgstr "неизвестный тип устройства ввода «%s»"
 
-#: src/conf/domain_conf.c:7500
+#: src/conf/domain_conf.c:7502
 #, c-format
 msgid "unknown input bus type '%s'"
 msgstr "неизвестный тип шины ввода «%s»"
 
-#: src/conf/domain_conf.c:7508
+#: src/conf/domain_conf.c:7510
 #, c-format
 msgid "ps2 bus does not support %s input device"
 msgstr "шина ps2 не поддерживает устройство ввода %s"
 
-#: src/conf/domain_conf.c:7514 src/conf/domain_conf.c:7521
+#: src/conf/domain_conf.c:7516 src/conf/domain_conf.c:7523
 #, c-format
 msgid "unsupported input bus %s"
 msgstr "шина ввода %s не поддерживается"
 
-#: src/conf/domain_conf.c:7526
+#: src/conf/domain_conf.c:7528
 #, c-format
 msgid "xen bus does not support %s input device"
 msgstr "шина xen не поддерживает устройство ввода %s"
 
-#: src/conf/domain_conf.c:7549 src/conf/domain_conf.c:9220
+#: src/conf/domain_conf.c:7551 src/conf/domain_conf.c:9222
 msgid "Invalid address for a USB device"
 msgstr "Недопустимый адрес устройства USB"
 
-#: src/conf/domain_conf.c:7580
+#: src/conf/domain_conf.c:7582
 msgid "missing hub device type"
 msgstr ""
 
-#: src/conf/domain_conf.c:7586
+#: src/conf/domain_conf.c:7588
 #, c-format
 msgid "unknown hub device type '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:7629
+#: src/conf/domain_conf.c:7631
 msgid "missing timer name"
 msgstr "Отсутствует имя таймера"
 
-#: src/conf/domain_conf.c:7634
+#: src/conf/domain_conf.c:7636
 #, c-format
 msgid "unknown timer name '%s'"
 msgstr "неизвестное имя таймера «%s»"
 
-#: src/conf/domain_conf.c:7646
+#: src/conf/domain_conf.c:7648
 #, c-format
 msgid "unknown timer present value '%s'"
 msgstr "неизвестное значение таймера «%s»"
 
-#: src/conf/domain_conf.c:7656
+#: src/conf/domain_conf.c:7658
 #, c-format
 msgid "unknown timer tickpolicy '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:7666
+#: src/conf/domain_conf.c:7668
 #, c-format
 msgid "unknown timer track '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:7676
+#: src/conf/domain_conf.c:7678
 msgid "invalid timer frequency"
 msgstr "Недопустимая частота таймера"
 
-#: src/conf/domain_conf.c:7685
+#: src/conf/domain_conf.c:7687
 #, c-format
 msgid "unknown timer mode '%s'"
 msgstr "неизвестный режим таймера: «%s»"
 
-#: src/conf/domain_conf.c:7698
+#: src/conf/domain_conf.c:7700
 msgid "invalid catchup threshold"
 msgstr "недопустимое значение «threshold» в строке «catchup»"
 
-#: src/conf/domain_conf.c:7707
+#: src/conf/domain_conf.c:7709
 msgid "invalid catchup slew"
 msgstr "недопустимое значение «slew» в строке «catchup»"
 
-#: src/conf/domain_conf.c:7716
+#: src/conf/domain_conf.c:7718
 msgid "invalid catchup limit"
 msgstr "недопустимое значение «limit» в строке «catchup»"
 
-#: src/conf/domain_conf.c:7769
+#: src/conf/domain_conf.c:7771
 #, c-format
 msgid "cannot parse password validity time '%s', expect YYYY-MM-DDTHH:MM:SS"
 msgstr ""
 "Не удалось разобрать срок действия пароля «%s». Допустимый формат: ГГГГ-ММ-"
 "ДДВЧЧ:ММ:СС"
 
-#: src/conf/domain_conf.c:7788
+#: src/conf/domain_conf.c:7790
 #, c-format
 msgid "unknown connected value %s"
 msgstr "неизвестное значение connected %s"
 
-#: src/conf/domain_conf.c:7799
+#: src/conf/domain_conf.c:7801
 msgid "VNC supports connected='keep' only"
 msgstr ""
 
-#: src/conf/domain_conf.c:7823
+#: src/conf/domain_conf.c:7825
 msgid "graphics listen type must be specified"
 msgstr ""
 
-#: src/conf/domain_conf.c:7829
+#: src/conf/domain_conf.c:7831
 #, c-format
 msgid "unknown graphics listen type '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:7849
+#: src/conf/domain_conf.c:7851
 msgid "network attribute not allowed when listen type is not network"
 msgstr ""
 
-#: src/conf/domain_conf.c:7860
+#: src/conf/domain_conf.c:7862
 #, c-format
 msgid "Invalid fromConfig value: %s"
 msgstr "Недопустимое значение fromConfig: %s"
 
-#: src/conf/domain_conf.c:7901
+#: src/conf/domain_conf.c:7903
 msgid "missing graphics device type"
 msgstr "отсутствует тип графического устройства"
 
-#: src/conf/domain_conf.c:7907
+#: src/conf/domain_conf.c:7909
 #, c-format
 msgid "unknown graphics device type '%s'"
 msgstr "неизвестный тип графического устройства «%s»"
 
-#: src/conf/domain_conf.c:7972
+#: src/conf/domain_conf.c:7974
 #, c-format
 msgid ""
 "graphics listen attribute %s must match address attribute of first listen "
 "element (found %s)"
 msgstr ""
 
-#: src/conf/domain_conf.c:7990
+#: src/conf/domain_conf.c:7992
 #, c-format
 msgid "cannot parse vnc port %s"
 msgstr "не удалось разобрать vnc-порт %s"
 
-#: src/conf/domain_conf.c:8020
+#: src/conf/domain_conf.c:8022
 #, c-format
 msgid "cannot parse vnc WebSocket port %s"
 msgstr "не удалось выполнить разбор порта VNC WebSocket %s"
 
-#: src/conf/domain_conf.c:8033 src/qemu/qemu_command.c:11242
+#: src/conf/domain_conf.c:8035 src/qemu/qemu_command.c:11242
 #, c-format
 msgid "unknown vnc display sharing policy '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:8058 src/conf/domain_conf.c:8125
+#: src/conf/domain_conf.c:8060 src/conf/domain_conf.c:8127
 #, c-format
 msgid "unknown fullscreen value '%s'"
 msgstr "неизвестный параметр полноэкранного режима «%s»"
 
-#: src/conf/domain_conf.c:8077
+#: src/conf/domain_conf.c:8079
 #, c-format
 msgid "cannot parse rdp port %s"
 msgstr "не удалось разобрать rdp-порт %s"
 
-#: src/conf/domain_conf.c:8146
+#: src/conf/domain_conf.c:8148
 #, c-format
 msgid "cannot parse spice port %s"
 msgstr "не удалось разобрать порт SPICE %s"
 
-#: src/conf/domain_conf.c:8159
+#: src/conf/domain_conf.c:8161
 #, c-format
 msgid "cannot parse spice tlsPort %s"
 msgstr "не удалось выполнить разбор «tlsPort» SPICE %s"
 
-#: src/conf/domain_conf.c:8179
+#: src/conf/domain_conf.c:8181
 #, c-format
 msgid "unknown default spice channel mode %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:8215
+#: src/conf/domain_conf.c:8217
 msgid "spice channel missing name/mode"
 msgstr "отсутствует имя или режим канала spice"
 
-#: src/conf/domain_conf.c:8223
+#: src/conf/domain_conf.c:8225
 #, c-format
 msgid "unknown spice channel name %s"
 msgstr "неизвестное имя канала spice «%s»"
 
-#: src/conf/domain_conf.c:8231
+#: src/conf/domain_conf.c:8233
 #, c-format
 msgid "unknown spice channel mode %s"
 msgstr "неизвестный режим канала spice %s"
 
-#: src/conf/domain_conf.c:8247
+#: src/conf/domain_conf.c:8249
 msgid "spice image missing compression"
 msgstr ""
 
-#: src/conf/domain_conf.c:8254
+#: src/conf/domain_conf.c:8256
 #, c-format
 msgid "unknown spice image compression %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:8268
+#: src/conf/domain_conf.c:8270
 msgid "spice jpeg missing compression"
 msgstr ""
 
-#: src/conf/domain_conf.c:8275
+#: src/conf/domain_conf.c:8277
 #, c-format
 msgid "unknown spice jpeg compression %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:8289
+#: src/conf/domain_conf.c:8291
 msgid "spice zlib missing compression"
 msgstr ""
 
-#: src/conf/domain_conf.c:8296
+#: src/conf/domain_conf.c:8298
 #, c-format
 msgid "unknown spice zlib compression %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:8310
+#: src/conf/domain_conf.c:8312
 msgid "spice playback missing compression"
 msgstr ""
 
-#: src/conf/domain_conf.c:8317
+#: src/conf/domain_conf.c:8319
 msgid "unknown spice playback compression"
 msgstr ""
 
-#: src/conf/domain_conf.c:8331
+#: src/conf/domain_conf.c:8333
 msgid "spice streaming missing mode"
 msgstr ""
 
-#: src/conf/domain_conf.c:8337
+#: src/conf/domain_conf.c:8339
 msgid "unknown spice streaming mode"
 msgstr ""
 
-#: src/conf/domain_conf.c:8351
+#: src/conf/domain_conf.c:8353
 msgid "spice clipboard missing copypaste"
 msgstr ""
 
-#: src/conf/domain_conf.c:8358
+#: src/conf/domain_conf.c:8360
 #, c-format
 msgid "unknown copypaste value '%s'"
 msgstr "неизвестное значение копирования и вставки: «%s»"
 
-#: src/conf/domain_conf.c:8371
+#: src/conf/domain_conf.c:8373
 msgid "spice mouse missing mode"
 msgstr ""
 
-#: src/conf/domain_conf.c:8377
+#: src/conf/domain_conf.c:8379
 #, c-format
 msgid "unknown mouse mode value '%s'"
 msgstr "неизвестный режим мыши: «%s»"
 
-#: src/conf/domain_conf.c:8418
+#: src/conf/domain_conf.c:8420
 #, c-format
 msgid "unknown codec type '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:8451
+#: src/conf/domain_conf.c:8453
 #, c-format
 msgid "unknown sound model '%s'"
 msgstr "неизвестная модель звукового устройства «%s»"
 
-#: src/conf/domain_conf.c:8518
+#: src/conf/domain_conf.c:8520
 msgid "watchdog must contain model name"
 msgstr "watchdog должен включать имя модели"
 
-#: src/conf/domain_conf.c:8524
+#: src/conf/domain_conf.c:8526
 #, c-format
 msgid "unknown watchdog model '%s'"
 msgstr "неизвестная модель watchdog «%s»"
 
-#: src/conf/domain_conf.c:8535
+#: src/conf/domain_conf.c:8537
 #, c-format
 msgid "unknown watchdog action '%s'"
 msgstr "неизвестное действие watchdog «%s»"
 
-#: src/conf/domain_conf.c:8573
+#: src/conf/domain_conf.c:8575
 msgid "missing RNG device model"
 msgstr "неизвестная модель устройства RNG"
 
-#: src/conf/domain_conf.c:8578
+#: src/conf/domain_conf.c:8580
 #, c-format
 msgid "unknown RNG model '%s'"
 msgstr "неизвестная модель RNG: «%s»"
 
-#: src/conf/domain_conf.c:8586
+#: src/conf/domain_conf.c:8588
 msgid "invalid RNG rate bytes value"
 msgstr "Недопустимое значение bytes в строке скорости RNG"
 
-#: src/conf/domain_conf.c:8593
+#: src/conf/domain_conf.c:8595
 msgid "invalid RNG rate period value"
 msgstr "Недопустимое значение period в строке скорости RNG"
 
-#: src/conf/domain_conf.c:8602
+#: src/conf/domain_conf.c:8604
 msgid "only one RNG backend is supported"
 msgstr ""
 
-#: src/conf/domain_conf.c:8608
+#: src/conf/domain_conf.c:8610
 msgid "missing RNG device backend model"
 msgstr ""
 
-#: src/conf/domain_conf.c:8614
+#: src/conf/domain_conf.c:8616
 #, c-format
 msgid "unknown RNG backend model '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:8625
+#: src/conf/domain_conf.c:8627
 #, c-format
 msgid "file '%s' is not a supported random source"
 msgstr ""
 
-#: src/conf/domain_conf.c:8634
+#: src/conf/domain_conf.c:8636
 msgid "missing EGD backend type"
 msgstr ""
 
-#: src/conf/domain_conf.c:8644
+#: src/conf/domain_conf.c:8646
 #, c-format
 msgid "unknown backend type '%s' for egd"
 msgstr ""
 
-#: src/conf/domain_conf.c:8692
+#: src/conf/domain_conf.c:8694
 msgid "balloon memory must contain model name"
 msgstr ""
 
-#: src/conf/domain_conf.c:8698
+#: src/conf/domain_conf.c:8700
 #, c-format
 msgid "unknown memory balloon model '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:8705
+#: src/conf/domain_conf.c:8707
 msgid "invalid statistics collection period"
 msgstr ""
 
-#: src/conf/domain_conf.c:8755
+#: src/conf/domain_conf.c:8757
 msgid "XML does not contain expected 'sysinfo' element"
 msgstr "XML не содержит элемент «sysinfo»"
 
-#: src/conf/domain_conf.c:8765
+#: src/conf/domain_conf.c:8767
 msgid "sysinfo must contain a type attribute"
 msgstr "sysinfo должен содержать атрибут типа"
 
-#: src/conf/domain_conf.c:8770
+#: src/conf/domain_conf.c:8772
 #, c-format
 msgid "unknown sysinfo type '%s'"
 msgstr "неизвестный тип sysinfo: «%s»"
 
-#: src/conf/domain_conf.c:8801
+#: src/conf/domain_conf.c:8803
 msgid "Invalid BIOS 'date' format"
 msgstr "Недопустимый формат «date» в BIOS"
 
-#: src/conf/domain_conf.c:8823
+#: src/conf/domain_conf.c:8825
 msgid "malformed <sysinfo> uuid element"
 msgstr "неверно сформированный элемент UUID <sysinfo>"
 
-#: src/conf/domain_conf.c:8830
+#: src/conf/domain_conf.c:8832
 msgid "UUID mismatch between <uuid> and <sysinfo>"
 msgstr "Несоответствие UUID между <uuid> и <sysinfo>"
 
-#: src/conf/domain_conf.c:9005
+#: src/conf/domain_conf.c:9007
 #, c-format
 msgid "unknown video model '%s'"
 msgstr "неизвестная модель видеоустройства «%s»"
 
-#: src/conf/domain_conf.c:9011
+#: src/conf/domain_conf.c:9013
 msgid "missing video model and cannot determine default"
 msgstr ""
 "отсутствует модель видеоустройства и не удалось определить стандартную модель"
 
-#: src/conf/domain_conf.c:9019
+#: src/conf/domain_conf.c:9021
 msgid "ram attribute only supported for type of qxl"
 msgstr ""
 
-#: src/conf/domain_conf.c:9024 src/conf/domain_conf.c:9034
+#: src/conf/domain_conf.c:9026 src/conf/domain_conf.c:9036
 #, c-format
 msgid "cannot parse video ram '%s'"
 msgstr "не удалось разобрать видеопамять «%s»"
 
-#: src/conf/domain_conf.c:9044
+#: src/conf/domain_conf.c:9046
 #, c-format
 msgid "cannot parse video heads '%s'"
 msgstr "не удалось разобрать видеоголовки «%s»"
 
-#: src/conf/domain_conf.c:9091
+#: src/conf/domain_conf.c:9093
 #, c-format
 msgid "unknown hostdev mode '%s'"
 msgstr "неизвестный режим hostdev «%s»"
 
-#: src/conf/domain_conf.c:9111
+#: src/conf/domain_conf.c:9113
 #, c-format
 msgid "Unexpected hostdev mode %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:9128
+#: src/conf/domain_conf.c:9130
 msgid "PCI host devices must use 'pci' address type"
 msgstr "Адрес PCI-устройств узла должен иметь тип «pci»"
 
-#: src/conf/domain_conf.c:9137
+#: src/conf/domain_conf.c:9139
 msgid "SCSI host devices must have address specified"
 msgstr ""
 
-#: src/conf/domain_conf.c:9179
+#: src/conf/domain_conf.c:9181
 #, c-format
 msgid "unknown redirdev bus '%s'"
 msgstr "неизвестная шина redirdev «%s»"
 
-#: src/conf/domain_conf.c:9190
+#: src/conf/domain_conf.c:9192
 #, c-format
 msgid "unknown redirdev character device type '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:9195
+#: src/conf/domain_conf.c:9197
 msgid "missing type in redirdev"
 msgstr ""
 
-#: src/conf/domain_conf.c:9271
+#: src/conf/domain_conf.c:9273
 #, c-format
 msgid "Incorrect USB version format %s"
 msgstr "Недопустимый формат версии USB %s"
 
-#: src/conf/domain_conf.c:9281
+#: src/conf/domain_conf.c:9283
 #, c-format
 msgid "Cannot parse USB version %s"
 msgstr "Не удалось выполнить разбор USB %s"
 
-#: src/conf/domain_conf.c:9314
+#: src/conf/domain_conf.c:9316
 #, c-format
 msgid "Cannot parse USB Class code %s"
 msgstr "Не удалось выполнить разбор кода класса USB %s"
 
-#: src/conf/domain_conf.c:9320
+#: src/conf/domain_conf.c:9322
 #, c-format
 msgid "Invalid USB Class code %s"
 msgstr "Недопустимый код класса USB %s"
 
-#: src/conf/domain_conf.c:9331
+#: src/conf/domain_conf.c:9333
 #, c-format
 msgid "Cannot parse USB vendor ID %s"
 msgstr "Не удалось выполнить разбор ID производителя USB %s"
 
-#: src/conf/domain_conf.c:9342
+#: src/conf/domain_conf.c:9344
 #, c-format
 msgid "Cannot parse USB product ID %s"
 msgstr "Не удалось выполнить разбор ID продукта USB %s"
 
-#: src/conf/domain_conf.c:9367
+#: src/conf/domain_conf.c:9369
 msgid "Invalid allow value, either 'yes' or 'no'"
 msgstr "Недопустимое значение «allow» (должно быть «yes» или «no»)"
 
-#: src/conf/domain_conf.c:9372
+#: src/conf/domain_conf.c:9374
 msgid "Missing allow attribute for USB redirection filter"
 msgstr ""
 
-#: src/conf/domain_conf.c:9445
+#: src/conf/domain_conf.c:9447
 #, c-format
 msgid "unknown %s action: %s"
 msgstr "неизвестное действие %s: %s"
 
-#: src/conf/domain_conf.c:9465
+#: src/conf/domain_conf.c:9467
 #, c-format
 msgid "unknown PM state value %s"
 msgstr "неизвестный статус управления питанием: «%s»"
 
-#: src/conf/domain_conf.c:9488
+#: src/conf/domain_conf.c:9490
 msgid "(device_definition)"
 msgstr "(определение_устройства)"
 
-#: src/conf/domain_conf.c:9506
+#: src/conf/domain_conf.c:9508
 #, c-format
 msgid "unknown device type '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:10372
+#: src/conf/domain_conf.c:10374
 msgid "unknown virt type"
 msgstr "неизвестный тип виртуализации"
 
-#: src/conf/domain_conf.c:10383
+#: src/conf/domain_conf.c:10385
 #, c-format
 msgid "no emulator for domain %s os type %s on architecture %s"
 msgstr "нет эмулятора для домена %s, ОС: %s, архитектура: %s"
 
-#: src/conf/domain_conf.c:10409
+#: src/conf/domain_conf.c:10411
 msgid "cannot count boot devices"
 msgstr "не удалось получить число загрузочных устройств"
 
-#: src/conf/domain_conf.c:10420
+#: src/conf/domain_conf.c:10422
 msgid "per-device boot elements cannot be used together with os/boot elements"
 msgstr ""
 
-#: src/conf/domain_conf.c:10430
+#: src/conf/domain_conf.c:10432
 msgid "missing boot device"
 msgstr "отсутствует загрузочное устройство"
 
-#: src/conf/domain_conf.c:10435
+#: src/conf/domain_conf.c:10437
 #, c-format
 msgid "unknown boot device '%s'"
 msgstr "неизвестное загрузочное устройство «%s»"
 
-#: src/conf/domain_conf.c:10468
+#: src/conf/domain_conf.c:10470
 msgid "need at least one serial port for useserial"
 msgstr ""
 
-#: src/conf/domain_conf.c:10486
+#: src/conf/domain_conf.c:10488
 msgid "invalid value for rebootTimeout, must be in range [-1,65535]"
 msgstr ""
 "Недопустимое значение rebootTimeout: должно лежать в диапазоне [-1,65535]"
 
-#: src/conf/domain_conf.c:10550
+#: src/conf/domain_conf.c:10552
 msgid "You must map the root user of container"
 msgstr ""
 
-#: src/conf/domain_conf.c:10595
+#: src/conf/domain_conf.c:10597
 msgid "vcpu id must be an unsigned integer or -1"
 msgstr ""
 
-#: src/conf/domain_conf.c:10599
+#: src/conf/domain_conf.c:10601
 msgid "vcpu id value -1 is not allowed for vcpupin"
 msgstr ""
 
-#: src/conf/domain_conf.c:10606
+#: src/conf/domain_conf.c:10608
 msgid "vcpu id must be less than maxvcpus"
 msgstr ""
 
-#: src/conf/domain_conf.c:10626
+#: src/conf/domain_conf.c:10628
 msgid "missing cpuset for vcpupin"
 msgstr ""
 
-#: src/conf/domain_conf.c:10741
+#: src/conf/domain_conf.c:10743
 msgid "missing resource partition attribute"
 msgstr ""
 
-#: src/conf/domain_conf.c:10817
+#: src/conf/domain_conf.c:10819
 msgid "missing domain type attribute"
 msgstr "отсутствует атрибут типа домена"
 
-#: src/conf/domain_conf.c:10823
+#: src/conf/domain_conf.c:10825
 #, c-format
 msgid "invalid domain type %s"
 msgstr "недопустимый тип домена %s"
 
-#: src/conf/domain_conf.c:10831
+#: src/conf/domain_conf.c:10833
 #, c-format
 msgid "unexpected domain type %s, expecting %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:10856
+#: src/conf/domain_conf.c:10858
 #, c-format
 msgid "unexpected domain type %s, expecting one of these: %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:10880 src/conf/network_conf.c:1972
+#: src/conf/domain_conf.c:10882 src/conf/network_conf.c:1972
 #: src/conf/secret_conf.c:190 src/openvz/openvz_conf.c:1076
 #: src/xenxs/xen_xm.c:216
 msgid "Failed to generate UUID"
 msgstr "Не удалось создать UUID"
 
-#: src/conf/domain_conf.c:10887 src/conf/network_conf.c:1979
+#: src/conf/domain_conf.c:10889 src/conf/network_conf.c:1979
 #: src/conf/nwfilter_conf.c:2561 src/conf/secret_conf.c:196
 #: src/conf/storage_conf.c:889
 msgid "malformed uuid element"
 msgstr "неверно сформированный элемент UUID"
 
-#: src/conf/domain_conf.c:10897
+#: src/conf/domain_conf.c:10899
 msgid "Domain title can't contain newlines"
 msgstr ""
 
-#: src/conf/domain_conf.c:10922
+#: src/conf/domain_conf.c:10924
 #, c-format
 msgid "Invalid memory core dump attribute value '%s'"
 msgstr "Недопустимое значение атрибута дампа памяти: «%s»"
 
-#: src/conf/domain_conf.c:10934
+#: src/conf/domain_conf.c:10936
 #, c-format
 msgid "current memory '%lluk' exceeds maximum '%lluk'"
 msgstr ""
 
-#: src/conf/domain_conf.c:10963
+#: src/conf/domain_conf.c:10965
 msgid "cannot extract blkiotune nodes"
 msgstr "не удалось извлечь узлы blkiotune"
 
-#: src/conf/domain_conf.c:10979
+#: src/conf/domain_conf.c:10981
 #, c-format
 msgid "duplicate device weight path '%s'"
 msgstr "дублирование пути веса устройства «%s»"
 
-#: src/conf/domain_conf.c:11007
+#: src/conf/domain_conf.c:11009
 msgid "maximum vcpus must be an integer"
 msgstr "максимальное число vcpu должно быть целым числом"
 
-#: src/conf/domain_conf.c:11015
+#: src/conf/domain_conf.c:11017
 #, c-format
 msgid "invalid maximum number of vCPUs '%lu'"
 msgstr "Недопустимое максимальное число виртуальных процессоров: «%lu»"
 
-#: src/conf/domain_conf.c:11023
+#: src/conf/domain_conf.c:11025
 msgid "current vcpus must be an integer"
 msgstr "текущее число vcpu должно быть целым числом"
 
-#: src/conf/domain_conf.c:11031
+#: src/conf/domain_conf.c:11033
 #, c-format
 msgid "invalid current number of vCPUs '%lu'"
 msgstr "Недопустимое текущее число виртуальных процессоров: «%lu»"
 
-#: src/conf/domain_conf.c:11037
+#: src/conf/domain_conf.c:11039
 #, c-format
 msgid "maxvcpus must not be less than current vcpus (%d < %lu)"
 msgstr ""
 "значение maxvcpus не должно быть меньше текущего количества виртуальных "
 "процессоров (%d < %lu)"
 
-#: src/conf/domain_conf.c:11049
+#: src/conf/domain_conf.c:11051
 #, c-format
 msgid "Unsupported CPU placement mode '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:11072
+#: src/conf/domain_conf.c:11074
 msgid "can't parse cputune shares value"
 msgstr ""
 
-#: src/conf/domain_conf.c:11079
+#: src/conf/domain_conf.c:11081
 msgid "can't parse cputune period value"
 msgstr ""
 
-#: src/conf/domain_conf.c:11086
+#: src/conf/domain_conf.c:11088
 msgid "Value of cputune period must be in range [1000, 1000000]"
 msgstr ""
 
-#: src/conf/domain_conf.c:11094
+#: src/conf/domain_conf.c:11096
 msgid "can't parse cputune quota value"
 msgstr ""
 
-#: src/conf/domain_conf.c:11102
+#: src/conf/domain_conf.c:11104
 msgid "Value of cputune quota must be in range [1000, 18446744073709551]"
 msgstr ""
 
-#: src/conf/domain_conf.c:11110
+#: src/conf/domain_conf.c:11112
 msgid "can't parse cputune emulator period value"
 msgstr ""
 
-#: src/conf/domain_conf.c:11118
+#: src/conf/domain_conf.c:11120
 msgid "Value of cputune emulator_period must be in range [1000, 1000000]"
 msgstr ""
 
-#: src/conf/domain_conf.c:11126
+#: src/conf/domain_conf.c:11128
 msgid "can't parse cputune emulator quota value"
 msgstr ""
 
-#: src/conf/domain_conf.c:11134
+#: src/conf/domain_conf.c:11136
 msgid ""
 "Value of cputune emulator_quota must be in range [1000, 18446744073709551]"
 msgstr ""
 
-#: src/conf/domain_conf.c:11147
+#: src/conf/domain_conf.c:11149
 msgid "vcpupin nodes must be less than maxvcpus"
 msgstr ""
 
-#: src/conf/domain_conf.c:11162
+#: src/conf/domain_conf.c:11164
 msgid "duplicate vcpupin for same vcpu"
 msgstr "дублирование vcpupin для того же виртуального процессора"
 
-#: src/conf/domain_conf.c:11209
+#: src/conf/domain_conf.c:11211
 msgid "cannot extract emulatorpin nodes"
 msgstr ""
 
-#: src/conf/domain_conf.c:11221
+#: src/conf/domain_conf.c:11223
 msgid "only one emulatorpin is supported"
 msgstr ""
 
-#: src/conf/domain_conf.c:11240
+#: src/conf/domain_conf.c:11242
 msgid "cannot extract numatune nodes"
 msgstr "не удалось извлечь узлы numatune"
 
-#: src/conf/domain_conf.c:11246
+#: src/conf/domain_conf.c:11248
 msgid "only one numatune is supported"
 msgstr ""
 
-#: src/conf/domain_conf.c:11265
+#: src/conf/domain_conf.c:11267
 #, c-format
 msgid "Unsupported NUMA memory tuning mode '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:11294
+#: src/conf/domain_conf.c:11296
 #, c-format
 msgid "Unsupported memory placement mode '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:11316
+#: src/conf/domain_conf.c:11318
 msgid "nodeset for NUMA memory tuning must be set if 'placement' is 'static'"
 msgstr ""
 
-#: src/conf/domain_conf.c:11337
+#: src/conf/domain_conf.c:11339
 #, c-format
 msgid "unsupported XML element %s"
 msgstr "Элемент XML %s не поддерживается"
 
-#: src/conf/domain_conf.c:11357
+#: src/conf/domain_conf.c:11359
 msgid "cannot extract resource nodes"
 msgstr ""
 
-#: src/conf/domain_conf.c:11363
+#: src/conf/domain_conf.c:11365
 msgid "only one resource element is supported"
 msgstr ""
 
-#: src/conf/domain_conf.c:11379
+#: src/conf/domain_conf.c:11381
 #, c-format
 msgid "unexpected feature %s"
 msgstr "непредвиденное свойство %s"
 
-#: src/conf/domain_conf.c:11390
+#: src/conf/domain_conf.c:11392
 #, c-format
 msgid "unknown value for attribute eoi: %s"
 msgstr "неизвестное значение атрибута eoi: %s"
 
-#: src/conf/domain_conf.c:11412
+#: src/conf/domain_conf.c:11414
 #, c-format
 msgid "unsupported HyperV Enlightenment feature: %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:11424 src/conf/domain_conf.c:11445
+#: src/conf/domain_conf.c:11426 src/conf/domain_conf.c:11447
 #, c-format
 msgid "missing 'state' attribute for HyperV Enlightenment feature '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:11432 src/conf/domain_conf.c:11453
+#: src/conf/domain_conf.c:11434 src/conf/domain_conf.c:11455
 #, c-format
 msgid "invalid value of state argument for HyperV Enlightenment feature '%s'"
 msgstr ""
 "Недопустимое значение аргумента state функций HyperV Enlightenment: «%s»"
 
-#: src/conf/domain_conf.c:11464
+#: src/conf/domain_conf.c:11466
 msgid "invalid HyperV spinlock retry count"
 msgstr ""
 
-#: src/conf/domain_conf.c:11470
+#: src/conf/domain_conf.c:11472
 msgid "HyperV spinlock retry count must be at least 4095"
 msgstr ""
 
-#: src/conf/domain_conf.c:11527
+#: src/conf/domain_conf.c:11529
 #, c-format
 msgid "unknown clock offset '%s'"
 msgstr "неизвестное значение смещения часов «%s»"
 
-#: src/conf/domain_conf.c:11543
+#: src/conf/domain_conf.c:11545
 #, c-format
 msgid "unknown clock adjustment '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:11571
+#: src/conf/domain_conf.c:11573
 #, c-format
 msgid "unknown clock basis '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:11584
+#: src/conf/domain_conf.c:11586
 msgid "missing 'timezone' attribute for clock with offset='timezone'"
 msgstr "отсутствует атрибут «timezone» (в offset='timezone')"
 
-#: src/conf/domain_conf.c:11595
+#: src/conf/domain_conf.c:11597
 msgid "invalid basedate"
 msgstr "недопустимое значение basedate"
 
-#: src/conf/domain_conf.c:11626
+#: src/conf/domain_conf.c:11628
 msgid "no OS type"
 msgstr "отсутствует тип ОС"
 
-#: src/conf/domain_conf.c:11661
+#: src/conf/domain_conf.c:11663
 #, c-format
 msgid "No guest options available for arch '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:11670
+#: src/conf/domain_conf.c:11672
 #, c-format
 msgid "No os type '%s' available for arch '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:11681 src/xenxs/xen_xm.c:293
+#: src/conf/domain_conf.c:11683 src/xenxs/xen_xm.c:293
 #, c-format
 msgid "no supported architecture for os type '%s'"
 msgstr "нет поддерживаемой архитектуры для типа «%s»"
 
-#: src/conf/domain_conf.c:11720
+#: src/conf/domain_conf.c:11722
 msgid "No data supplied for <initarg> element"
 msgstr ""
 
-#: src/conf/domain_conf.c:11793 src/conf/domain_conf.c:11802
+#: src/conf/domain_conf.c:11795 src/conf/domain_conf.c:11804
 msgid "Can't add another USB controller: USB is disabled for this domain"
 msgstr ""
 "Не удалось добавить другой контроллер USB: функции USB для этого домена "
 "отключены"
 
-#: src/conf/domain_conf.c:11819
+#: src/conf/domain_conf.c:11821
 msgid "No master USB controller specified"
 msgstr ""
 
-#: src/conf/domain_conf.c:11826
+#: src/conf/domain_conf.c:11828
 msgid "cannot extract device leases"
 msgstr "не удалось получить данные об аренде для устройства"
 
-#: src/conf/domain_conf.c:11959
+#: src/conf/domain_conf.c:11961
 msgid "cannot extract console devices"
 msgstr "не удалось извлечь консольные устройства"
 
-#: src/conf/domain_conf.c:12037
+#: src/conf/domain_conf.c:12039
 msgid "Can't add USB input device. USB bus is disabled"
 msgstr "Не удалось добавить устройство ввода USB. Шина USB отключена."
 
-#: src/conf/domain_conf.c:12135
+#: src/conf/domain_conf.c:12137
 msgid "Only one primary video device is supported"
 msgstr ""
 
-#: src/conf/domain_conf.c:12161
+#: src/conf/domain_conf.c:12163
 msgid "cannot determine default video type"
 msgstr "не удалось определить стандартный тип видеоустройства"
 
-#: src/conf/domain_conf.c:12191
+#: src/conf/domain_conf.c:12193
 msgid "Can't add host USB device: USB is disabled in this host"
 msgstr ""
 
-#: src/conf/domain_conf.c:12210
+#: src/conf/domain_conf.c:12212
 msgid "only a single watchdog device is supported"
 msgstr "поддерживается только одно устройство watchdog"
 
-#: src/conf/domain_conf.c:12230
+#: src/conf/domain_conf.c:12232
 msgid "only a single memory balloon device is supported"
 msgstr ""
 
-#: src/conf/domain_conf.c:12249
+#: src/conf/domain_conf.c:12251
 msgid "only a single RNG device is supported"
 msgstr ""
 
-#: src/conf/domain_conf.c:12266
+#: src/conf/domain_conf.c:12268
 msgid "only a single TPM device is supported"
 msgstr ""
 
-#: src/conf/domain_conf.c:12282
+#: src/conf/domain_conf.c:12284
 msgid "only a single nvram device is supported"
 msgstr ""
 
-#: src/conf/domain_conf.c:12307
+#: src/conf/domain_conf.c:12309
 msgid "Can't add USB hub: USB is disabled for this domain"
 msgstr ""
 
-#: src/conf/domain_conf.c:12331
+#: src/conf/domain_conf.c:12333
 msgid "Can't add redirected USB device: USB is disabled for this domain"
 msgstr ""
 
-#: src/conf/domain_conf.c:12346
+#: src/conf/domain_conf.c:12348
 msgid "only one set of redirection filter rule is supported"
 msgstr ""
 
-#: src/conf/domain_conf.c:12388
+#: src/conf/domain_conf.c:12390
 msgid "uid and gid should be mapped both"
 msgstr ""
 
-#: src/conf/domain_conf.c:12406
+#: src/conf/domain_conf.c:12408
 msgid "Maximum CPUs greater than topology limit"
 msgstr "Максимальное число процессоров превышает разрешенное топологией"
 
-#: src/conf/domain_conf.c:12412
+#: src/conf/domain_conf.c:12414
 msgid "Number of CPUs in <numa> exceeds the <vcpu> count"
 msgstr "Число процессоров в <numa>  превышает число <vcpu>"
 
-#: src/conf/domain_conf.c:12434
+#: src/conf/domain_conf.c:12436
 #, c-format
 msgid "unknown smbios mode '%s'"
 msgstr "неизвестный режим smbios: «%s»"
 
-#: src/conf/domain_conf.c:12499
+#: src/conf/domain_conf.c:12501
 msgid "no domain config"
 msgstr "нет конфигурации домена"
 
-#: src/conf/domain_conf.c:12513
+#: src/conf/domain_conf.c:12515
 msgid "missing domain state"
 msgstr "отсутствует состояние домена"
 
-#: src/conf/domain_conf.c:12518
+#: src/conf/domain_conf.c:12520
 #, c-format
 msgid "invalid domain state '%s'"
 msgstr "недопустимое состояние домена «%s»"
 
-#: src/conf/domain_conf.c:12527
+#: src/conf/domain_conf.c:12529
 #, c-format
 msgid "invalid domain state reason '%s'"
 msgstr "недопустимая причина изменения состояния домена: «%s»"
 
-#: src/conf/domain_conf.c:12538
+#: src/conf/domain_conf.c:12540
 msgid "invalid pid"
 msgstr "недопустимый pid"
 
-#: src/conf/domain_conf.c:12552
+#: src/conf/domain_conf.c:12554
 #, c-format
 msgid "Unknown taint flag %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:12587 src/security/virt-aa-helper.c:654
+#: src/conf/domain_conf.c:12589 src/security/virt-aa-helper.c:654
 #: tools/virsh-domain-monitor.c:98 tools/virsh-domain-monitor.c:531
 #: tools/virsh-domain-monitor.c:638 tools/virsh-domain-monitor.c:760
 #: tools/virsh-domain.c:2398 tools/virsh-domain.c:3035
 #: tools/virsh-domain.c:5282 tools/virsh-domain.c:9061
-#: tools/virsh-domain.c:9223 tools/virsh-domain.c:9290
-#: tools/virsh-domain.c:9772 tools/virsh-domain.c:9875
+#: tools/virsh-domain.c:9227 tools/virsh-domain.c:9294
+#: tools/virsh-domain.c:9776 tools/virsh-domain.c:9879
 msgid "(domain_definition)"
 msgstr "(определение_домена)"
 
-#: src/conf/domain_conf.c:12633
+#: src/conf/domain_conf.c:12635
 #, c-format
 msgid "unexpected root element <%s>, expecting <domain>"
 msgstr "недопустимый корневой элемент <%s> (ожидается <domain>)"
 
-#: src/conf/domain_conf.c:12668
+#: src/conf/domain_conf.c:12670
 #, c-format
 msgid "unexpected root element <%s>, expecting <domstatus>"
 msgstr "недопустимый корневой элемент <%s> (ожидается <domstatus>)"
 
-#: src/conf/domain_conf.c:12717
+#: src/conf/domain_conf.c:12719
 #, c-format
 msgid "Target timer %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:12725
+#: src/conf/domain_conf.c:12727
 #, c-format
 msgid "Target timer presence %d does not match source %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:12733
+#: src/conf/domain_conf.c:12735
 #, c-format
 msgid "Target TSC frequency %lu does not match source %lu"
 msgstr ""
 
-#: src/conf/domain_conf.c:12740
+#: src/conf/domain_conf.c:12742
 #, c-format
 msgid "Target TSC mode %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:12757
+#: src/conf/domain_conf.c:12759
 #, c-format
 msgid "Target device address type %s does not match source %s"
 msgstr "Тип адреса целевого устройства %s не соответствует источнику (%s)"
 
-#: src/conf/domain_conf.c:12770
+#: src/conf/domain_conf.c:12772
 #, c-format
 msgid ""
 "Target device PCI address %04x:%02x:%02x.%02x does not match source %04x:"
 "%02x:%02x.%02x"
 msgstr ""
 
-#: src/conf/domain_conf.c:12785
+#: src/conf/domain_conf.c:12787
 #, c-format
 msgid "Target device drive address %d:%d:%d does not match source %d:%d:%d"
 msgstr "Адрес целевого диска %d:%d:%d не соответствует источнику (%d:%d:%d)"
 
-#: src/conf/domain_conf.c:12800
+#: src/conf/domain_conf.c:12802
 #, c-format
 msgid ""
 "Target device virtio serial address %d:%d:%d does not match source %d:%d:%d"
 msgstr ""
 
-#: src/conf/domain_conf.c:12814
+#: src/conf/domain_conf.c:12816
 #, c-format
 msgid "Target device ccid address %d:%d does not match source %d:%d"
 msgstr ""
 
-#: src/conf/domain_conf.c:12835
+#: src/conf/domain_conf.c:12837
 #, c-format
 msgid "Target disk device %s does not match source %s"
 msgstr "Целевой диск %s не соответствует источнику %s"
 
-#: src/conf/domain_conf.c:12843
+#: src/conf/domain_conf.c:12845
 #, c-format
 msgid "Target disk bus %s does not match source %s"
 msgstr "Шина диска назначения %s не соответствует шине исходного диска (%s)"
 
-#: src/conf/domain_conf.c:12851
+#: src/conf/domain_conf.c:12853
 #, c-format
 msgid "Target disk %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:12858
+#: src/conf/domain_conf.c:12860
 #, c-format
 msgid "Target disk serial %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:12865
+#: src/conf/domain_conf.c:12867
 msgid "Target disk access mode does not match source"
 msgstr ""
 "Режим доступа к диску назначения не соответствует режиму исходного диска"
 
-#: src/conf/domain_conf.c:12882
+#: src/conf/domain_conf.c:12884
 #, c-format
 msgid "Target controller type %s does not match source %s"
 msgstr "Тип целевого контроллера %s не соответствует источнику (%s)"
 
-#: src/conf/domain_conf.c:12890
+#: src/conf/domain_conf.c:12892
 #, c-format
 msgid "Target controller index %d does not match source %d"
 msgstr "Индекс целевого контроллера %d не соответствует источнику (%d)"
 
-#: src/conf/domain_conf.c:12897
+#: src/conf/domain_conf.c:12899
 #, c-format
 msgid "Target controller model %d does not match source %d"
 msgstr "Модель целевого контроллера %d не соответствует источнику (%d)"
 
-#: src/conf/domain_conf.c:12905
+#: src/conf/domain_conf.c:12907
 #, c-format
 msgid "Target controller ports %d does not match source %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:12912
+#: src/conf/domain_conf.c:12914
 #, c-format
 msgid "Target controller vectors %d does not match source %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:12931
+#: src/conf/domain_conf.c:12933
 #, c-format
 msgid "Target filesystem guest target %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:12938
+#: src/conf/domain_conf.c:12940
 msgid "Target filesystem access mode does not match source"
 msgstr ""
 "Режим доступа к файловой системе назначения не соответствует режиму источника"
 
-#: src/conf/domain_conf.c:12958
+#: src/conf/domain_conf.c:12960
 #, c-format
 msgid "Target network card mac %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:12967
+#: src/conf/domain_conf.c:12969
 #, c-format
 msgid "Target network card model %s does not match source %s"
 msgstr "Модель целевой сетевой карты %s не соответствует исходной (%s)"
 
-#: src/conf/domain_conf.c:12985
+#: src/conf/domain_conf.c:12987
 #, c-format
 msgid "Target input device type %s does not match source %s"
 msgstr "Тип целевого устройства ввода %s не соответствует источнику (%s)"
 
-#: src/conf/domain_conf.c:12993
+#: src/conf/domain_conf.c:12995
 #, c-format
 msgid "Target input device bus %s does not match source %s"
 msgstr ""
 "Шина целевого устройства ввода %s не соответствует шине исходного устройства "
 "(%s)"
 
-#: src/conf/domain_conf.c:13012
+#: src/conf/domain_conf.c:13014
 #, c-format
 msgid "Target sound card model %s does not match source %s"
 msgstr "Модель целевой звуковой карты %s не соответствует источнику (%s)"
 
-#: src/conf/domain_conf.c:13031
+#: src/conf/domain_conf.c:13033
 #, c-format
 msgid "Target video card model %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:13039
+#: src/conf/domain_conf.c:13041
 #, c-format
 msgid "Target video card vram %u does not match source %u"
 msgstr ""
 
-#: src/conf/domain_conf.c:13046
+#: src/conf/domain_conf.c:13048
 #, c-format
 msgid "Target video card heads %u does not match source %u"
 msgstr ""
 
-#: src/conf/domain_conf.c:13054
+#: src/conf/domain_conf.c:13056
 msgid "Target video card acceleration does not match source"
 msgstr ""
 
-#: src/conf/domain_conf.c:13061
+#: src/conf/domain_conf.c:13063
 #, c-format
 msgid "Target video card 2d accel %u does not match source %u"
 msgstr ""
 
-#: src/conf/domain_conf.c:13068
+#: src/conf/domain_conf.c:13070
 #, c-format
 msgid "Target video card 3d accel %u does not match source %u"
 msgstr ""
 
-#: src/conf/domain_conf.c:13087
+#: src/conf/domain_conf.c:13089
 #, c-format
 msgid "Target host device mode %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:13096
+#: src/conf/domain_conf.c:13098
 #, c-format
 msgid "Target host device subsystem %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:13126
+#: src/conf/domain_conf.c:13128
 #, c-format
 msgid "Target serial port %d does not match source %d"
 msgstr "Целевой последовательный порт %d не соответствует источнику (%d)"
 
-#: src/conf/domain_conf.c:13144
+#: src/conf/domain_conf.c:13146
 #, c-format
 msgid "Target parallel port %d does not match source %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:13162
+#: src/conf/domain_conf.c:13164
 #, c-format
 msgid "Target channel type %s does not match source %s"
 msgstr "Тип целевого канала %s не соответствует источнику (%s)"
 
-#: src/conf/domain_conf.c:13172
+#: src/conf/domain_conf.c:13174
 #, c-format
 msgid "Target channel name %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:13181
+#: src/conf/domain_conf.c:13183
 msgid ""
 "Changing device type to/from spicevmc would change default target channel "
 "name"
 msgstr ""
 
-#: src/conf/domain_conf.c:13192
+#: src/conf/domain_conf.c:13194
 #, c-format
 msgid "Target channel addr %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:13214
+#: src/conf/domain_conf.c:13216
 #, c-format
 msgid "Target console type %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:13233
+#: src/conf/domain_conf.c:13235
 #, c-format
 msgid "Target watchdog model %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:13252
+#: src/conf/domain_conf.c:13254
 #, c-format
 msgid "Target balloon model %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:13274
+#: src/conf/domain_conf.c:13276
 #, c-format
 msgid "Target domain RNG device count '%d' does not match source count '%d'"
 msgstr ""
 
-#: src/conf/domain_conf.c:13282
+#: src/conf/domain_conf.c:13284
 #, c-format
 msgid "Target RNG model '%s' does not match source '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:13301
+#: src/conf/domain_conf.c:13303
 #, c-format
 msgid "Target hub device type %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:13321
+#: src/conf/domain_conf.c:13323
 #, c-format
 msgid "Target USB redirection filter rule count %zu does not match source %zu"
 msgstr ""
 
-#: src/conf/domain_conf.c:13332
+#: src/conf/domain_conf.c:13334
 msgid "Target USB Class code does not match source"
 msgstr ""
 
-#: src/conf/domain_conf.c:13338
+#: src/conf/domain_conf.c:13340
 msgid "Target USB vendor ID does not match source"
 msgstr ""
 
-#: src/conf/domain_conf.c:13344
+#: src/conf/domain_conf.c:13346
 msgid "Target USB product ID does not match source"
 msgstr ""
 
-#: src/conf/domain_conf.c:13350
+#: src/conf/domain_conf.c:13352
 msgid "Target USB version does not match source"
 msgstr ""
 
-#: src/conf/domain_conf.c:13356
+#: src/conf/domain_conf.c:13358
 #, c-format
 msgid "Target USB allow '%s' does not match source '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:13376
+#: src/conf/domain_conf.c:13378
 #, c-format
 msgid "Target domain features %d does not match source %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:13384
+#: src/conf/domain_conf.c:13386
 #, c-format
 msgid "State of APIC EOI differs: source: '%s', destination: '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:13399
+#: src/conf/domain_conf.c:13401
 #, c-format
 msgid ""
 "State of HyperV enlightenment feature '%s' differs: source: '%s', "
 "destination: '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:13414
+#: src/conf/domain_conf.c:13416
 #, c-format
 msgid "HyperV spinlock retry count differs: source: '%u', destination: '%u'"
 msgstr ""
 
-#: src/conf/domain_conf.c:13444
+#: src/conf/domain_conf.c:13446
 #, c-format
 msgid "Target domain virt type %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:13456
+#: src/conf/domain_conf.c:13458
 #, c-format
 msgid "Target domain uuid %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:13467
+#: src/conf/domain_conf.c:13469
 #, c-format
 msgid "Target domain name '%s' does not match source '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:13474
+#: src/conf/domain_conf.c:13476
 #, c-format
 msgid "Target domain max memory %lld does not match source %lld"
 msgstr ""
 
-#: src/conf/domain_conf.c:13480
+#: src/conf/domain_conf.c:13482
 #, c-format
 msgid "Target domain current memory %lld does not match source %lld"
 msgstr ""
 
-#: src/conf/domain_conf.c:13486
+#: src/conf/domain_conf.c:13488
 #, c-format
 msgid "Target domain huge page backing %d does not match source %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:13494
+#: src/conf/domain_conf.c:13496
 #, c-format
 msgid "Target domain vCPU count %d does not match source %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:13500
+#: src/conf/domain_conf.c:13502
 #, c-format
 msgid "Target domain vCPU max %d does not match source %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:13507 src/conf/domain_conf.c:13520
+#: src/conf/domain_conf.c:13509 src/conf/domain_conf.c:13522
 #, c-format
 msgid "Target domain OS type %s does not match source %s"
 msgstr "Тип ОС целевого домена %s не соответствует источнику (%s)"
 
-#: src/conf/domain_conf.c:13513
+#: src/conf/domain_conf.c:13515
 #, c-format
 msgid "Target domain architecture %s does not match source %s"
 msgstr "Архитектура целевого домена %s не соответствует источнику (%s)"
 
-#: src/conf/domain_conf.c:13527
+#: src/conf/domain_conf.c:13529
 #, c-format
 msgid "Target domain SMBIOS mode %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:13538
+#: src/conf/domain_conf.c:13540
 msgid "Target domain timers do not match source"
 msgstr "Таймеры домена назначения не соответствуют источнику"
 
-#: src/conf/domain_conf.c:13556
+#: src/conf/domain_conf.c:13558
 #, c-format
 msgid "Target domain disk count %zu does not match source %zu"
 msgstr ""
 
-#: src/conf/domain_conf.c:13567
+#: src/conf/domain_conf.c:13569
 #, c-format
 msgid "Target domain controller count %zu does not match source %zu"
 msgstr ""
 
-#: src/conf/domain_conf.c:13580
+#: src/conf/domain_conf.c:13582
 #, c-format
 msgid "Target domain filesystem count %zu does not match source %zu"
 msgstr ""
 
-#: src/conf/domain_conf.c:13592
+#: src/conf/domain_conf.c:13594
 #, c-format
 msgid "Target domain net card count %zu does not match source %zu"
 msgstr ""
 
-#: src/conf/domain_conf.c:13604
+#: src/conf/domain_conf.c:13606
 #, c-format
 msgid "Target domain input device count %zu does not match source %zu"
 msgstr ""
 
-#: src/conf/domain_conf.c:13616
+#: src/conf/domain_conf.c:13618
 #, c-format
 msgid "Target domain sound card count %zu does not match source %zu"
 msgstr ""
 
-#: src/conf/domain_conf.c:13628
+#: src/conf/domain_conf.c:13630
 #, c-format
 msgid "Target domain video card count %zu does not match source %zu"
 msgstr ""
 
-#: src/conf/domain_conf.c:13640
+#: src/conf/domain_conf.c:13642
 #, c-format
 msgid "Target domain host device count %zu does not match source %zu"
 msgstr ""
 
-#: src/conf/domain_conf.c:13653
+#: src/conf/domain_conf.c:13655
 #, c-format
 msgid "Target domain smartcard count %zu does not match source %zu"
 msgstr ""
 
-#: src/conf/domain_conf.c:13666
+#: src/conf/domain_conf.c:13668
 #, c-format
 msgid "Target domain serial port count %zu does not match source %zu"
 msgstr ""
 
-#: src/conf/domain_conf.c:13679
+#: src/conf/domain_conf.c:13681
 #, c-format
 msgid "Target domain parallel port count %zu does not match source %zu"
 msgstr ""
 
-#: src/conf/domain_conf.c:13692
+#: src/conf/domain_conf.c:13694
 #, c-format
 msgid "Target domain channel count %zu does not match source %zu"
 msgstr ""
 
-#: src/conf/domain_conf.c:13705
+#: src/conf/domain_conf.c:13707
 #, c-format
 msgid "Target domain console count %zu does not match source %zu"
 msgstr ""
 
-#: src/conf/domain_conf.c:13718
+#: src/conf/domain_conf.c:13720
 #, c-format
 msgid "Target domain hub device count %zu does not match source %zu"
 msgstr ""
 
-#: src/conf/domain_conf.c:13731
+#: src/conf/domain_conf.c:13733
 #, c-format
 msgid "Target domain USB redirection filter count %d does not match source %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:13745
+#: src/conf/domain_conf.c:13747
 #, c-format
 msgid "Target domain watchdog count %d does not match source %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:13758
+#: src/conf/domain_conf.c:13760
 #, c-format
 msgid "Target domain memory balloon count %d does not match source %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:14100
+#: src/conf/domain_conf.c:14102
 #, c-format
 msgid "unexpected %s action: %d"
 msgstr "непредвиденное действие %s: %d"
 
-#: src/conf/domain_conf.c:14397
+#: src/conf/domain_conf.c:14399
 #, c-format
 msgid "unexpected disk type %d"
 msgstr "непредвиденный тип диска %d"
 
-#: src/conf/domain_conf.c:14402
+#: src/conf/domain_conf.c:14404
 #, c-format
 msgid "unexpected disk device %d"
 msgstr "непредвиденное дисковое устройство %d"
 
-#: src/conf/domain_conf.c:14407
+#: src/conf/domain_conf.c:14409
 #, c-format
 msgid "unexpected disk bus %d"
 msgstr "непредвиденная шина диска %d"
 
-#: src/conf/domain_conf.c:14412
+#: src/conf/domain_conf.c:14414
 #, c-format
 msgid "unexpected disk cache mode %d"
 msgstr "непредвиденный режим кэша диска %d"
 
-#: src/conf/domain_conf.c:14417
+#: src/conf/domain_conf.c:14419
 #, c-format
 msgid "unexpected disk io mode %d"
 msgstr "недопустимый режим дискового ввода-вывода %d"
 
-#: src/conf/domain_conf.c:14422
+#: src/conf/domain_conf.c:14424
 #, c-format
 msgid "Unexpected disk sgio mode '%d'"
 msgstr "Недопустимый режим sgio: «%d»"
 
-#: src/conf/domain_conf.c:14618
+#: src/conf/domain_conf.c:14620
 #, c-format
 msgid "unexpected controller type %d"
 msgstr "непредвиденный тип контроллера %d"
 
-#: src/conf/domain_conf.c:14627
+#: src/conf/domain_conf.c:14629
 #, c-format
 msgid "unexpected model type %d"
 msgstr "непредвиденный тип модели %d"
 
-#: src/conf/domain_conf.c:14713
+#: src/conf/domain_conf.c:14715
 #, c-format
 msgid "unexpected filesystem type %d"
 msgstr "непредвиденный тип файловой системы %d"
 
-#: src/conf/domain_conf.c:14719
+#: src/conf/domain_conf.c:14721
 #, c-format
 msgid "unexpected accessmode %d"
 msgstr "непредвиденный режим доступа %d"
 
-#: src/conf/domain_conf.c:14804
+#: src/conf/domain_conf.c:14806
 #, c-format
 msgid "unexpected pci hostdev driver name type %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:14850
+#: src/conf/domain_conf.c:14852
 msgid "PCI address Formatting failed"
 msgstr "Не удалось отформатировать адрес PCI"
 
-#: src/conf/domain_conf.c:14877 src/conf/domain_conf.c:14910
-#: src/conf/domain_conf.c:16144 src/conf/domain_conf.c:16153
+#: src/conf/domain_conf.c:14879 src/conf/domain_conf.c:14912
+#: src/conf/domain_conf.c:16146 src/conf/domain_conf.c:16155
 #: src/qemu/qemu_hotplug.c:3262
 #, c-format
 msgid "unexpected hostdev type %d"
 msgstr "непредвиденный тип hostdev %d"
 
-#: src/conf/domain_conf.c:14934 src/conf/domain_conf.c:15007
-#: src/conf/domain_conf.c:15928
+#: src/conf/domain_conf.c:14936 src/conf/domain_conf.c:15009
+#: src/conf/domain_conf.c:15930
 #, c-format
 msgid "unexpected net type %d"
 msgstr "непредвиденный тип сети %d"
 
-#: src/conf/domain_conf.c:14961
+#: src/conf/domain_conf.c:14963
 #, c-format
 msgid "unexpected source mode %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:14981
+#: src/conf/domain_conf.c:14983
 #, c-format
 msgid "unexpected net type %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:15172
+#: src/conf/domain_conf.c:15174
 #, c-format
 msgid "unexpected char type %d"
 msgstr "непредвиденный символьный тип %d"
 
-#: src/conf/domain_conf.c:15274
+#: src/conf/domain_conf.c:15276
 #, c-format
 msgid "unexpected char device type %d"
 msgstr "недопустимый тип символьного устройства: %d"
 
-#: src/conf/domain_conf.c:15293
+#: src/conf/domain_conf.c:15295
 msgid "Could not format channel target type"
 msgstr ""
 
-#: src/conf/domain_conf.c:15303
+#: src/conf/domain_conf.c:15305
 msgid "Unable to format guestfwd port"
 msgstr "Ошибка форматирования порта guestfwd"
 
-#: src/conf/domain_conf.c:15380 src/conf/domain_conf.c:15411
+#: src/conf/domain_conf.c:15382 src/conf/domain_conf.c:15413
 #: src/qemu/qemu_command.c:8692
 #, c-format
 msgid "unexpected smartcard type %d"
 msgstr "недопустимый тип смарт-карты: %d"
 
-#: src/conf/domain_conf.c:15428
+#: src/conf/domain_conf.c:15430
 #, c-format
 msgid "unexpected codec type %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:15481 src/xenxs/xen_sxpr.c:2112
+#: src/conf/domain_conf.c:15483 src/xenxs/xen_sxpr.c:2112
 #, c-format
 msgid "unexpected sound model %d"
 msgstr "непредвиденная модель звукового устройства %d"
 
-#: src/conf/domain_conf.c:15524
+#: src/conf/domain_conf.c:15526
 #, c-format
 msgid "unexpected memballoon model %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:15589
+#: src/conf/domain_conf.c:15591
 #, c-format
 msgid "unexpected watchdog model %d"
 msgstr "непредвиденная модель watchdog %d"
 
-#: src/conf/domain_conf.c:15595
+#: src/conf/domain_conf.c:15597
 #, c-format
 msgid "unexpected watchdog action %d"
 msgstr "непредвиденное действие watchdog %d"
 
-#: src/conf/domain_conf.c:15700
+#: src/conf/domain_conf.c:15702
 #, c-format
 msgid "unexpected video model %d"
 msgstr "непредвиденная модель видеоустройства %d"
 
-#: src/conf/domain_conf.c:15741 src/xenxs/xen_sxpr.c:2149
+#: src/conf/domain_conf.c:15743 src/xenxs/xen_sxpr.c:2149
 #, c-format
 msgid "unexpected input type %d"
 msgstr "непредвиденный тип устройства ввода %d"
 
-#: src/conf/domain_conf.c:15746
+#: src/conf/domain_conf.c:15748
 #, c-format
 msgid "unexpected input bus type %d"
 msgstr "непредвиденный тип входной шины %d"
 
-#: src/conf/domain_conf.c:15774
+#: src/conf/domain_conf.c:15776
 #, c-format
 msgid "unexpected timer name %d"
 msgstr "непредвиденное имя таймера: %d"
 
-#: src/conf/domain_conf.c:15790
+#: src/conf/domain_conf.c:15792
 #, c-format
 msgid "unexpected timer tickpolicy %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:15804
+#: src/conf/domain_conf.c:15806
 #, c-format
 msgid "unexpected timer track %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:15822
+#: src/conf/domain_conf.c:15824
 #, c-format
 msgid "unexpected timer mode %d"
 msgstr "недопустимый режим таймера %d"
 
-#: src/conf/domain_conf.c:16135 src/conf/domain_conf.c:16160
+#: src/conf/domain_conf.c:16137 src/conf/domain_conf.c:16162
 #, c-format
 msgid "unexpected hostdev mode %d"
 msgstr "непредвиденный режим hostdev %d"
 
-#: src/conf/domain_conf.c:16268
+#: src/conf/domain_conf.c:16270
 #, c-format
 msgid "unexpected hub type %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:16360
+#: src/conf/domain_conf.c:16362
 #, c-format
 msgid "unexpected domain type %d"
 msgstr "непредвиденный тип домена %d"
 
-#: src/conf/domain_conf.c:16541
+#: src/conf/domain_conf.c:16543
 msgid "failed to format cpuset for vcpupin"
 msgstr ""
 
-#: src/conf/domain_conf.c:16555
+#: src/conf/domain_conf.c:16557
 msgid "failed to format cpuset for emulator"
 msgstr ""
 
-#: src/conf/domain_conf.c:16584
+#: src/conf/domain_conf.c:16586
 msgid "failed to format nodeset for NUMA memory tuning"
 msgstr ""
 
-#: src/conf/domain_conf.c:16653
+#: src/conf/domain_conf.c:16655
 #, c-format
 msgid "unexpected boot device type %d"
 msgstr "непредвиденный тип загрузочного устройства %d"
 
-#: src/conf/domain_conf.c:16687
+#: src/conf/domain_conf.c:16689
 #, c-format
 msgid "unexpected smbios mode %d"
 msgstr "непредвиденный режим smbios %d"
 
-#: src/conf/domain_conf.c:16723
+#: src/conf/domain_conf.c:16725
 #, c-format
 msgid "unexpected feature %zu"
 msgstr ""
 
-#: src/conf/domain_conf.c:17105
+#: src/conf/domain_conf.c:17107
 msgid "Device configuration is not compatible: Domain has no USB bus support"
 msgstr "Несовместимая конфигурация устройства: домен не поддерживает шину USB"
 
-#: src/conf/domain_conf.c:17127 src/conf/network_conf.c:2832
+#: src/conf/domain_conf.c:17129 src/conf/network_conf.c:2832
 #: src/conf/nwfilter_conf.c:2714 src/util/virdnsmasq.c:547
 #, c-format
 msgid "cannot create config directory '%s'"
 msgstr "не удалось создать каталог конфигурации «%s»"
 
-#: src/conf/domain_conf.c:17266
+#: src/conf/domain_conf.c:17268
 #, c-format
 msgid "unexpected domain %s already exists"
 msgstr "непредвиденный домен %s уже существует"
 
-#: src/conf/domain_conf.c:17306 src/conf/network_conf.c:3050
+#: src/conf/domain_conf.c:17308 src/conf/network_conf.c:3050
 #: src/conf/network_conf.c:3083 src/conf/nwfilter_conf.c:3098
 #: src/conf/storage_conf.c:1826 src/util/virpci.c:2410
 #, c-format
 msgid "Failed to open dir '%s'"
 msgstr "Не удалось открыть каталог «%s»"
 
-#: src/conf/domain_conf.c:17376
+#: src/conf/domain_conf.c:17378
 #, c-format
 msgid "cannot remove config %s"
 msgstr "не удалось удалить конфигурацию %s"
 
-#: src/conf/domain_conf.c:17730
+#: src/conf/domain_conf.c:17732
 #, c-format
 msgid "unable to visit backing chain file %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:17831
+#: src/conf/domain_conf.c:17833
 #, c-format
 msgid "invalid domain state: %d"
 msgstr "Недопустимое состояние домена: %d"
 
-#: src/conf/domain_conf.c:18278
+#: src/conf/domain_conf.c:18280
 #, c-format
 msgid "Copying definition of '%d' type is not implemented yet."
 msgstr ""
 
-#: src/conf/domain_conf.c:18560
+#: src/conf/domain_conf.c:18562
 #, c-format
 msgid "no device found with alias %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:18652 src/conf/domain_conf.c:18734
+#: src/conf/domain_conf.c:18654 src/conf/domain_conf.c:18736
 msgid "unknown metadata type"
 msgstr "неизвестный тип метаданных"
 
-#: src/conf/domain_conf.c:18659
+#: src/conf/domain_conf.c:18661
 msgid "Requested metadata element is not present"
 msgstr ""
 
-#: src/conf/domain_conf.c:18699
+#: src/conf/domain_conf.c:18701
 #, fuzzy
 msgid "(metadata_xml)"
 msgstr "Метаданные:"
@@ -6396,7 +6396,7 @@ msgid "Could not set number of virtual CPUs to %d: %s"
 msgstr "Не удалось изменить число виртуальных процессоров на %d: %s"
 
 #: src/esx/esx_driver.c:2786 src/esx/esx_driver.c:2829
-#: src/vmware/vmware_driver.c:962
+#: src/vmware/vmware_driver.c:985
 #, c-format
 msgid "Unsupported config format '%s'"
 msgstr "Формат конфигурации %s не поддерживается"
@@ -6411,7 +6411,7 @@ msgid "Domain already exists, editing existing domains is not supported yet"
 msgstr ""
 "Домен уже существует. Изменение существующих доменов не поддерживается."
 
-#: src/esx/esx_driver.c:3117 src/vmware/vmware_conf.c:369
+#: src/esx/esx_driver.c:3117 src/vmware/vmware_conf.c:400
 msgid ""
 "Domain XML doesn't contain any disks, cannot deduce datastore and path for "
 "VMX file"
@@ -6419,7 +6419,7 @@ msgstr ""
 "В определении XML домена отсутствуют диски. Не удалось получить сведения о "
 "накопителе или путь к файлу VMX."
 
-#: src/esx/esx_driver.c:3132 src/vmware/vmware_conf.c:384
+#: src/esx/esx_driver.c:3132 src/vmware/vmware_conf.c:415
 msgid ""
 "Domain XML doesn't contain any file-based harddisks, cannot deduce datastore "
 "and path for VMX file"
@@ -6427,7 +6427,7 @@ msgstr ""
 "XML домена не содержит файловые определения дисков. Не удалось получить "
 "сведения о хранилище и путь к файлу VMX."
 
-#: src/esx/esx_driver.c:3139 src/vmware/vmware_conf.c:391
+#: src/esx/esx_driver.c:3139 src/vmware/vmware_conf.c:422
 msgid ""
 "First file-based harddisk has no source, cannot deduce datastore and path "
 "for VMX file"
@@ -6435,7 +6435,7 @@ msgstr ""
 "Для первого диска нет источника. Не удалось получить сведения о хранилище и "
 "путь к файлу VMX."
 
-#: src/esx/esx_driver.c:3151 src/vmware/vmware_conf.c:402
+#: src/esx/esx_driver.c:3151 src/vmware/vmware_conf.c:433
 #, c-format
 msgid "Expecting source '%s' of first file-based harddisk to be a VMDK image"
 msgstr ""
@@ -6535,7 +6535,7 @@ msgstr "Снимок «%s» уже существует"
 msgid "Could not create snapshot: %s"
 msgstr "Не удалось создать снимок: %s"
 
-#: src/esx/esx_driver.c:4612 src/qemu/qemu_driver.c:12865
+#: src/esx/esx_driver.c:4612 src/qemu/qemu_driver.c:12867
 #: src/vbox/vbox_tmpl.c:6356
 #, c-format
 msgid "snapshot '%s' does not have a parent"
@@ -7435,7 +7435,7 @@ msgstr "ошибка чтения потока"
 
 #: src/fdstream.c:501 src/locking/lock_daemon.c:140
 #: src/locking/lock_daemon.c:183 src/qemu/qemu_capabilities.c:2758
-#: src/util/vireventpoll.c:679 src/util/virnodesuspend.c:66
+#: src/util/vireventpoll.c:682 src/util/virnodesuspend.c:66
 #: src/util/virobject.c:221
 msgid "Unable to initialize mutex"
 msgstr "Не удалось инициализировать мьютекс"
@@ -7468,7 +7468,7 @@ msgstr ""
 msgid "%s: Cannot request read and write flags together"
 msgstr ""
 
-#: src/fdstream.c:643 src/lxc/lxc_process.c:1131
+#: src/fdstream.c:643 src/lxc/lxc_process.c:1139
 msgid "Unable to create pipe"
 msgstr "Не удалось создать канал"
 
@@ -7664,7 +7664,7 @@ msgstr "Система недоступна"
 #: src/hyperv/hyperv_wmi.c:380 tools/virsh.c:2160 tools/virsh.c:2205
 #: tools/virsh.c:2726 tools/virsh.c:2732 tools/virsh-domain.c:4580
 #: tools/virsh-domain.c:6214 tools/virsh-pool.c:1313 tools/virsh-pool.c:1407
-#: tools/virsh-snapshot.c:447 tools/virsh-volume.c:1538
+#: tools/virsh-snapshot.c:447 tools/virsh-volume.c:1546
 msgid "Out of memory"
 msgstr "Недостаточно памяти"
 
@@ -8603,7 +8603,7 @@ msgstr ""
 
 #: src/locking/lock_driver_sanlock.c:257 src/locking/lock_driver_sanlock.c:312
 #: src/locking/lock_driver_sanlock.c:680 src/storage/storage_backend.c:288
-#: src/util/virfile.c:1620 src/util/virfile.c:1914
+#: src/util/virfile.c:1628 src/util/virfile.c:1922
 #, c-format
 msgid "cannot chown '%s' to (%u, %u)"
 msgstr "не удалось изменить владельца «%s» на (%u, %u)"
@@ -9171,63 +9171,63 @@ msgstr "Не удалось смонтировать %s в %s как %s"
 msgid "Failed to mount directory %s as tmpfs"
 msgstr "Не удалось смонтировать %s как tmpfs"
 
-#: src/lxc/lxc_container.c:1490
+#: src/lxc/lxc_container.c:1491
 #, c-format
 msgid "Unexpected filesystem type %s"
 msgstr "Непредвиденный тип файловой системы %s"
 
-#: src/lxc/lxc_container.c:1495
+#: src/lxc/lxc_container.c:1496
 #, c-format
 msgid "Cannot mount filesystem type %s"
 msgstr ""
 
-#: src/lxc/lxc_container.c:1539
+#: src/lxc/lxc_container.c:1540
 #, c-format
 msgid "Failed to create directory for '%s' dev '%s'"
 msgstr ""
 
-#: src/lxc/lxc_container.c:1753
+#: src/lxc/lxc_container.c:1754
 #, c-format
 msgid "Failed to remove capabilities: %d"
 msgstr "Не удалось удалить возможности: %d"
 
-#: src/lxc/lxc_container.c:1759
+#: src/lxc/lxc_container.c:1760
 #, c-format
 msgid "Failed to apply capabilities: %d"
 msgstr "Не удалось применить возможности: %d"
 
-#: src/lxc/lxc_container.c:1805
+#: src/lxc/lxc_container.c:1806
 msgid "lxcChild() passed invalid vm definition"
 msgstr "lxcChild() передал недопустимое определение виртуальной машины"
 
-#: src/lxc/lxc_container.c:1814
+#: src/lxc/lxc_container.c:1815
 msgid "Failed to read the container continue message"
 msgstr "Ошибка чтения сообщения продолжения контейнера"
 
-#: src/lxc/lxc_container.c:1846
+#: src/lxc/lxc_container.c:1847
 #, c-format
 msgid "Failed to open tty %s"
 msgstr "Не удалось открыть tty %s"
 
-#: src/lxc/lxc_container.c:1862
+#: src/lxc/lxc_container.c:1863
 #, c-format
 msgid "cannot find init path '%s' relative to container root"
 msgstr ""
 
-#: src/lxc/lxc_container.c:1881
+#: src/lxc/lxc_container.c:1882
 #, fuzzy
 msgid "Failed to send continue signal to controller"
 msgstr "не удалось отправить сигнал продолжения контроллеру"
 
-#: src/lxc/lxc_container.c:2013
+#: src/lxc/lxc_container.c:2014
 msgid "Kernel doesn't support user namespace"
 msgstr ""
 
-#: src/lxc/lxc_container.c:2030
+#: src/lxc/lxc_container.c:2031
 msgid "Failed to run clone container"
 msgstr "Не удалось выполнить дублирование контейнера"
 
-#: src/lxc/lxc_container.c:2092
+#: src/lxc/lxc_container.c:2093
 #, c-format
 msgid "Failed to change owner of %s to %u:%u"
 msgstr ""
@@ -9342,26 +9342,26 @@ msgstr "Ошибка создания устройства %s"
 
 #: src/lxc/lxc_controller.c:1348 src/lxc/lxc_controller.c:1426
 #: src/lxc/lxc_controller.c:1505 src/lxc/lxc_controller.c:1662
-#: src/lxc/lxc_driver.c:2948 src/lxc/lxc_driver.c:3213
-#: src/lxc/lxc_driver.c:3298 src/lxc/lxc_driver.c:3406
+#: src/lxc/lxc_driver.c:2948 src/lxc/lxc_driver.c:3214
+#: src/lxc/lxc_driver.c:3299 src/lxc/lxc_driver.c:3407
 #, c-format
 msgid "Unable to access %s"
 msgstr "Нет доступа к %s"
 
-#: src/lxc/lxc_controller.c:1354 src/lxc/lxc_driver.c:3219
+#: src/lxc/lxc_controller.c:1354 src/lxc/lxc_driver.c:3220
 #, c-format
 msgid "USB source %s was not a character device"
 msgstr ""
 
-#: src/lxc/lxc_controller.c:1363 src/lxc/lxc_driver.c:3228
+#: src/lxc/lxc_controller.c:1363 src/lxc/lxc_driver.c:3229
 #, c-format
 msgid "Unable to create %s"
 msgstr "Не удалось сохранить %s"
 
 #: src/lxc/lxc_controller.c:1371 src/lxc/lxc_controller.c:1451
 #: src/lxc/lxc_controller.c:1530 src/lxc/lxc_controller.c:1690
-#: src/lxc/lxc_driver.c:2983 src/lxc/lxc_driver.c:3236
-#: src/lxc/lxc_driver.c:3336 src/lxc/lxc_driver.c:3444
+#: src/lxc/lxc_driver.c:2983 src/lxc/lxc_driver.c:3237
+#: src/lxc/lxc_driver.c:3337 src/lxc/lxc_driver.c:3445
 #, c-format
 msgid "Unable to create device %s"
 msgstr ""
@@ -9386,8 +9386,8 @@ msgid "Storage source %s must be a character device"
 msgstr ""
 
 #: src/lxc/lxc_controller.c:1564 src/lxc/lxc_controller.c:1592
-#: src/lxc/lxc_controller.c:1624 src/lxc/lxc_driver.c:3547
-#: src/lxc/lxc_driver.c:3968
+#: src/lxc/lxc_controller.c:1624 src/lxc/lxc_driver.c:3548
+#: src/lxc/lxc_driver.c:3969
 #, c-format
 msgid "Unsupported host device mode %s"
 msgstr ""
@@ -9427,7 +9427,7 @@ msgstr "Ошибка монтирования devpts в %s"
 msgid "Kernel does not support private devpts"
 msgstr ""
 
-#: src/lxc/lxc_controller.c:1987 src/lxc/lxc_process.c:1102
+#: src/lxc/lxc_controller.c:1987 src/lxc/lxc_process.c:1110
 msgid "Failed to allocate tty"
 msgstr "Ошибка выделения tty"
 
@@ -9484,7 +9484,7 @@ msgstr "драйвер состояния lxc не активен"
 msgid "No domain with matching id %d"
 msgstr "Нет домена с ID %d"
 
-#: src/lxc/lxc_driver.c:280 src/vmware/vmware_driver.c:691
+#: src/lxc/lxc_driver.c:280 src/vmware/vmware_driver.c:714
 #, c-format
 msgid "No domain with matching uuid '%s'"
 msgstr "Нет домена с совпадающим UUID «%s»"
@@ -9517,7 +9517,7 @@ msgstr "Объём памяти не может превышать максим�
 #: src/lxc/lxc_driver.c:722 src/lxc/lxc_driver.c:1286
 #: src/lxc/lxc_driver.c:2124 src/lxc/lxc_driver.c:2353
 #: src/lxc/lxc_driver.c:2402 src/lxc/lxc_driver.c:2613
-#: src/lxc/lxc_driver.c:2693 src/lxc/lxc_driver.c:4390
+#: src/lxc/lxc_driver.c:2693 src/lxc/lxc_driver.c:4391
 #: src/libxl/libxl_driver.c:1298 src/libxl/libxl_driver.c:1350
 #: src/libxl/libxl_driver.c:1402 src/libxl/libxl_driver.c:1449
 #: src/libxl/libxl_driver.c:1487 src/libxl/libxl_driver.c:1854
@@ -9528,7 +9528,7 @@ msgstr "Объём памяти не может превышать максим�
 #: src/libxl/libxl_driver.c:3708 src/libxl/libxl_driver.c:3785
 #: src/libxl/libxl_driver.c:3954 src/openvz/openvz_driver.c:598
 #: src/openvz/openvz_driver.c:636 tools/virsh-domain.c:9051
-#: tools/virsh-domain.c:9216
+#: tools/virsh-domain.c:9220
 msgid "Domain is not running"
 msgstr "Домен не выполняется"
 
@@ -9537,32 +9537,32 @@ msgid "Failed to set memory for domain"
 msgstr "Не удалось задать память для домена"
 
 #: src/lxc/lxc_driver.c:926 src/libxl/libxl_driver.c:2629
-#: src/vmware/vmware_driver.c:700
+#: src/vmware/vmware_driver.c:723
 msgid "Domain is already running"
 msgstr "Домен уже работает"
 
-#: src/lxc/lxc_driver.c:1089 src/qemu/qemu_driver.c:4975
-#: src/qemu/qemu_driver.c:5027
+#: src/lxc/lxc_driver.c:1089 src/qemu/qemu_driver.c:4977
+#: src/qemu/qemu_driver.c:5029
 #, c-format
 msgid "unknown virt type in domain definition '%d'"
 msgstr "неизвестный тип виртуализации в определении домена «%d»"
 
 #: src/lxc/lxc_driver.c:1113 src/lxc/lxc_driver.c:2547
-#: src/lxc/lxc_driver.c:4396
+#: src/lxc/lxc_driver.c:4397
 msgid "Init pid is not yet available"
 msgstr ""
 
-#: src/lxc/lxc_driver.c:1120 src/qemu/qemu_driver.c:4998
-#: src/qemu/qemu_driver.c:5061
+#: src/lxc/lxc_driver.c:1120 src/qemu/qemu_driver.c:5000
+#: src/qemu/qemu_driver.c:5063
 msgid "Failed to get security label"
 msgstr "Не удалось получить метку безопасности"
 
-#: src/lxc/lxc_driver.c:1156 src/qemu/qemu_driver.c:5102
+#: src/lxc/lxc_driver.c:1156 src/qemu/qemu_driver.c:5104
 #, c-format
 msgid "security model string exceeds max %d bytes"
 msgstr "Длина строки модели безопасности превышает %d байт"
 
-#: src/lxc/lxc_driver.c:1165 src/qemu/qemu_driver.c:5112
+#: src/lxc/lxc_driver.c:1165 src/qemu/qemu_driver.c:5114
 #, c-format
 msgid "security DOI string exceeds max %d bytes"
 msgstr "Длина строки DOI превышает %d байт"
@@ -9577,18 +9577,18 @@ msgid "Unknown release: %s"
 msgstr "Неизвестный выпуск: %s"
 
 #: src/lxc/lxc_driver.c:1602 src/lxc/lxc_driver.c:1727
-#: src/lxc/lxc_driver.c:1859 src/qemu/qemu_driver.c:7372
-#: src/qemu/qemu_driver.c:8479 src/qemu/qemu_driver.c:8737
+#: src/lxc/lxc_driver.c:1859 src/qemu/qemu_driver.c:7374
+#: src/qemu/qemu_driver.c:8481 src/qemu/qemu_driver.c:8739
 msgid "cgroup CPU controller is not mounted"
 msgstr ""
 
 #: src/lxc/lxc_driver.c:1956 src/lxc/lxc_driver.c:2051
-#: src/qemu/qemu_driver.c:7556 src/qemu/qemu_driver.c:7703
+#: src/qemu/qemu_driver.c:7558 src/qemu/qemu_driver.c:7705
 msgid "blkio cgroup isn't mounted"
 msgstr "cgroup blkio не смонтирована"
 
 #: src/lxc/lxc_driver.c:1966 src/lxc/lxc_driver.c:1985
-#: src/qemu/qemu_driver.c:7569 src/qemu/qemu_driver.c:7617
+#: src/qemu/qemu_driver.c:7571 src/qemu/qemu_driver.c:7619
 msgid "out of blkio weight range."
 msgstr "за пределами допустимого диапазона веса blkio"
 
@@ -9607,13 +9607,13 @@ msgid "Cannot create autostart directory %s"
 msgstr "Не удалось создать каталог автозапуска %s"
 
 #: src/lxc/lxc_driver.c:2226 src/libxl/libxl_driver.c:3602
-#: src/qemu/qemu_driver.c:7320 src/uml/uml_driver.c:2435
+#: src/qemu/qemu_driver.c:7322 src/uml/uml_driver.c:2435
 #, c-format
 msgid "Failed to create symlink '%s to '%s'"
 msgstr "Не удалось создать символьную ссылку «%s» к «%s»"
 
 #: src/lxc/lxc_driver.c:2233 src/libxl/libxl_driver.c:3609
-#: src/network/bridge_driver.c:2972 src/qemu/qemu_driver.c:7327
+#: src/network/bridge_driver.c:2972 src/qemu/qemu_driver.c:7329
 #: src/storage/storage_driver.c:1171 src/uml/uml_driver.c:2442
 #, c-format
 msgid "Failed to delete symlink '%s'"
@@ -9637,7 +9637,7 @@ msgid "default"
 msgstr "по умолчанию"
 
 #: src/lxc/lxc_driver.c:2482 src/libxl/libxl_driver.c:3878
-#: src/qemu/qemu_driver.c:13713 src/uml/uml_driver.c:2589
+#: src/qemu/qemu_driver.c:13715 src/uml/uml_driver.c:2589
 #: src/xen/xen_driver.c:2652
 #, c-format
 msgid "character device %s is not using a PTY"
@@ -9675,7 +9675,7 @@ msgstr ""
 msgid "target %s already exists."
 msgstr "цель %s уже существует"
 
-#: src/lxc/lxc_driver.c:2781 src/qemu/qemu_driver.c:6601
+#: src/lxc/lxc_driver.c:2781 src/qemu/qemu_driver.c:6603
 msgid "device is already in the domain configuration"
 msgstr "конфигурация домена уже содержит это устройство"
 
@@ -9684,14 +9684,14 @@ msgid "persistent attach of device is not supported"
 msgstr ""
 
 #: src/lxc/lxc_driver.c:2816 src/lxc/lxc_driver.c:2872
-#: src/lxc/lxc_driver.c:3664 src/qemu/qemu_driver.c:6688
+#: src/lxc/lxc_driver.c:3665 src/qemu/qemu_driver.c:6690
 #: src/qemu/qemu_hotplug.c:3292
 #, c-format
 msgid "multiple devices matching mac address %s found"
 msgstr ""
 
 #: src/lxc/lxc_driver.c:2821 src/lxc/lxc_driver.c:2877
-#: src/qemu/qemu_driver.c:6693
+#: src/qemu/qemu_driver.c:6695
 msgid "no matching network device was found"
 msgstr ""
 
@@ -9700,13 +9700,13 @@ msgid "persistent update of device is not supported"
 msgstr ""
 
 #: src/lxc/lxc_driver.c:2860 src/libxl/libxl_driver.c:3034
-#: src/qemu/qemu_driver.c:6677
+#: src/qemu/qemu_driver.c:6679
 #, c-format
 msgid "no target device %s"
 msgstr ""
 
-#: src/lxc/lxc_driver.c:2889 src/qemu/qemu_driver.c:6704
-#: src/qemu/qemu_driver.c:6728 src/qemu/qemu_hotplug.c:1341
+#: src/lxc/lxc_driver.c:2889 src/qemu/qemu_driver.c:6706
+#: src/qemu/qemu_driver.c:6730 src/qemu/qemu_hotplug.c:1341
 #: src/qemu/qemu_hotplug.c:3518
 msgid "device not present in domain configuration"
 msgstr ""
@@ -9715,253 +9715,253 @@ msgstr ""
 msgid "persistent detach of device is not supported"
 msgstr ""
 
-#: src/lxc/lxc_driver.c:2925 src/lxc/lxc_driver.c:3043
-#: src/lxc/lxc_driver.c:3604 src/lxc/lxc_driver.c:3801
-#: src/lxc/lxc_driver.c:3860
+#: src/lxc/lxc_driver.c:2925 src/lxc/lxc_driver.c:3044
+#: src/lxc/lxc_driver.c:3605 src/lxc/lxc_driver.c:3802
+#: src/lxc/lxc_driver.c:3861
 msgid "Cannot attach disk until init PID is known"
 msgstr ""
 
 #: src/lxc/lxc_driver.c:2942 src/libxl/libxl_driver.c:2855
-#: src/qemu/qemu_driver.c:6574 src/qemu/qemu_hotplug.c:251
+#: src/qemu/qemu_driver.c:6576 src/qemu/qemu_hotplug.c:251
 #: src/qemu/qemu_hotplug.c:476 src/qemu/qemu_hotplug.c:599
 #: src/uml/uml_driver.c:2137
 #, c-format
 msgid "target %s already exists"
 msgstr "цель %s уже существует"
 
-#: src/lxc/lxc_driver.c:3002 src/lxc/lxc_driver.c:3203
-#: src/lxc/lxc_driver.c:3351 src/lxc/lxc_driver.c:3459
-#: src/lxc/lxc_driver.c:3624 src/lxc/lxc_driver.c:3750
-#: src/lxc/lxc_driver.c:3821 src/lxc/lxc_driver.c:3880
+#: src/lxc/lxc_driver.c:3002 src/lxc/lxc_driver.c:3204
+#: src/lxc/lxc_driver.c:3352 src/lxc/lxc_driver.c:3460
+#: src/lxc/lxc_driver.c:3625 src/lxc/lxc_driver.c:3751
+#: src/lxc/lxc_driver.c:3822 src/lxc/lxc_driver.c:3881
 msgid "devices cgroup isn't mounted"
 msgstr ""
 
-#: src/lxc/lxc_driver.c:3012 src/lxc/lxc_driver.c:3359
-#: src/lxc/lxc_driver.c:3467
+#: src/lxc/lxc_driver.c:3012 src/lxc/lxc_driver.c:3360
+#: src/lxc/lxc_driver.c:3468
 #, c-format
 msgid "cannot allow device %s for domain %s"
 msgstr ""
 
-#: src/lxc/lxc_driver.c:3065 src/lxc/lxc_process.c:428
+#: src/lxc/lxc_driver.c:3066 src/lxc/lxc_process.c:436
 msgid "No bridge name specified"
 msgstr "Имя моста не определено."
 
-#: src/lxc/lxc_driver.c:3090 src/lxc/lxc_process.c:395
+#: src/lxc/lxc_driver.c:3091 src/lxc/lxc_process.c:403
 #: src/qemu/qemu_command.c:314 src/qemu/qemu_hotplug.c:1642
 #, c-format
 msgid "Network '%s' is not active."
 msgstr "сеть «%s» не активна"
 
-#: src/lxc/lxc_driver.c:3126
+#: src/lxc/lxc_driver.c:3127
 msgid "Network device type is not supported"
 msgstr ""
 
-#: src/lxc/lxc_driver.c:3178
+#: src/lxc/lxc_driver.c:3179
 msgid "host USB device already exists"
 msgstr ""
 
-#: src/lxc/lxc_driver.c:3286 src/lxc/lxc_driver.c:3394
+#: src/lxc/lxc_driver.c:3287 src/lxc/lxc_driver.c:3395
 msgid "Missing storage block path"
 msgstr ""
 
-#: src/lxc/lxc_driver.c:3292 src/lxc/lxc_driver.c:3400
+#: src/lxc/lxc_driver.c:3293 src/lxc/lxc_driver.c:3401
 msgid "host device already exists"
 msgstr ""
 
-#: src/lxc/lxc_driver.c:3305 src/lxc/lxc_driver.c:3413
+#: src/lxc/lxc_driver.c:3306 src/lxc/lxc_driver.c:3414
 #, c-format
 msgid "Hostdev source %s must be a block device"
 msgstr ""
 
-#: src/lxc/lxc_driver.c:3324 src/lxc/lxc_driver.c:3432
+#: src/lxc/lxc_driver.c:3325 src/lxc/lxc_driver.c:3433
 #, c-format
 msgid "Unable to create directory for device %s"
 msgstr ""
 
-#: src/lxc/lxc_driver.c:3497 src/lxc/lxc_driver.c:3518
-#: src/lxc/lxc_driver.c:3919 src/lxc/lxc_driver.c:3939
+#: src/lxc/lxc_driver.c:3498 src/lxc/lxc_driver.c:3519
+#: src/lxc/lxc_driver.c:3920 src/lxc/lxc_driver.c:3940
 #, c-format
 msgid "Unsupported host device type %s"
 msgstr ""
 
-#: src/lxc/lxc_driver.c:3534 src/lxc/lxc_driver.c:3955
+#: src/lxc/lxc_driver.c:3535 src/lxc/lxc_driver.c:3956
 msgid "Cannot attach hostdev until init PID is known"
 msgstr ""
 
-#: src/lxc/lxc_driver.c:3584 src/libxl/libxl_driver.c:2967
+#: src/lxc/lxc_driver.c:3585 src/libxl/libxl_driver.c:2967
 #: src/uml/uml_driver.c:2218
 #, c-format
 msgid "device type '%s' cannot be attached"
 msgstr "тип устройства «%s» не может быть подключен"
 
-#: src/lxc/lxc_driver.c:3612 src/libxl/libxl_driver.c:2915
+#: src/lxc/lxc_driver.c:3613 src/libxl/libxl_driver.c:2915
 #: src/qemu/qemu_hotplug.c:2914 src/uml/uml_driver.c:2268
 #, c-format
 msgid "disk %s not found"
 msgstr "диск %s не найден"
 
-#: src/lxc/lxc_driver.c:3632 src/lxc/lxc_driver.c:3762
-#: src/lxc/lxc_driver.c:3829 src/lxc/lxc_driver.c:3888
+#: src/lxc/lxc_driver.c:3633 src/lxc/lxc_driver.c:3763
+#: src/lxc/lxc_driver.c:3830 src/lxc/lxc_driver.c:3889
 #, c-format
 msgid "Unable to remove device %s"
 msgstr "Не удалось удалить устройство %s"
 
-#: src/lxc/lxc_driver.c:3669 src/qemu/qemu_hotplug.c:3298
+#: src/lxc/lxc_driver.c:3670 src/qemu/qemu_hotplug.c:3298
 #, c-format
 msgid "network device %s not found"
 msgstr ""
 
-#: src/lxc/lxc_driver.c:3694
+#: src/lxc/lxc_driver.c:3695
 msgid "Only bridged veth devices can be detached"
 msgstr ""
 
-#: src/lxc/lxc_driver.c:3734
+#: src/lxc/lxc_driver.c:3735
 msgid "usb device not found"
 msgstr "Устройство USB не найдено"
 
-#: src/lxc/lxc_driver.c:3809 src/lxc/lxc_driver.c:3868
+#: src/lxc/lxc_driver.c:3810 src/lxc/lxc_driver.c:3869
 #, c-format
 msgid "hostdev %s not found"
 msgstr ""
 
-#: src/lxc/lxc_driver.c:3997 src/libxl/libxl_driver.c:3015
+#: src/lxc/lxc_driver.c:3998 src/libxl/libxl_driver.c:3015
 #: src/xen/xm_internal.c:1381
 #, c-format
 msgid "device type '%s' cannot be detached"
 msgstr "устройство «%s» не может быть отсоединено"
 
-#: src/lxc/lxc_driver.c:4039 src/lxc/lxc_driver.c:4165
-#: src/lxc/lxc_driver.c:4275 src/qemu/qemu_driver.c:6879
-#: src/qemu/qemu_driver.c:7026 src/qemu/qemu_driver.c:7161
+#: src/lxc/lxc_driver.c:4040 src/lxc/lxc_driver.c:4166
+#: src/lxc/lxc_driver.c:4276 src/qemu/qemu_driver.c:6881
+#: src/qemu/qemu_driver.c:7028 src/qemu/qemu_driver.c:7163
 msgid "cannot do live update a device on inactive domain"
 msgstr ""
 
-#: src/lxc/lxc_driver.c:4050 src/lxc/lxc_driver.c:4173
-#: src/lxc/lxc_driver.c:4283 src/libxl/libxl_driver.c:3166
+#: src/lxc/lxc_driver.c:4051 src/lxc/lxc_driver.c:4174
+#: src/lxc/lxc_driver.c:4284 src/libxl/libxl_driver.c:3166
 #: src/libxl/libxl_driver.c:3270 src/libxl/libxl_driver.c:3374
-#: src/qemu/qemu_driver.c:6887 src/qemu/qemu_driver.c:7034
-#: src/qemu/qemu_driver.c:7169
+#: src/qemu/qemu_driver.c:6889 src/qemu/qemu_driver.c:7036
+#: src/qemu/qemu_driver.c:7171
 msgid "cannot modify device on transient domain"
 msgstr ""
 
-#: src/lxc/lxc_driver.c:4215
+#: src/lxc/lxc_driver.c:4216
 msgid "Unable to modify live devices"
 msgstr ""
 
-#: src/lxc/lxc_driver.c:4424 src/libxl/libxl_driver.c:1066
-#: src/qemu/qemu_command.c:7780 src/qemu/qemu_driver.c:1201
+#: src/lxc/lxc_driver.c:4425 src/libxl/libxl_driver.c:1066
+#: src/qemu/qemu_command.c:7780 src/qemu/qemu_driver.c:1203
 #: src/xen/xen_driver.c:633
 msgid "Host SMBIOS information is not available"
 msgstr ""
 
-#: src/lxc/lxc_process.c:272 src/network/bridge_driver.c:1862
-#: src/qemu/qemu_command.c:395 src/qemu/qemu_driver.c:9330
+#: src/lxc/lxc_process.c:280 src/network/bridge_driver.c:1862
+#: src/qemu/qemu_command.c:395 src/qemu/qemu_driver.c:9332
 #: src/util/virnetdevmacvlan.c:938
 #, c-format
 msgid "cannot set bandwidth limits on %s"
 msgstr ""
 
-#: src/lxc/lxc_process.c:307
+#: src/lxc/lxc_process.c:315
 msgid "Unable to set network bandwidth on direct interfaces"
 msgstr ""
 
-#: src/lxc/lxc_process.c:321
+#: src/lxc/lxc_process.c:329
 msgid "Unable to set port profile on direct interfaces"
 msgstr ""
 
-#: src/lxc/lxc_process.c:453
+#: src/lxc/lxc_process.c:461
 #, c-format
 msgid "Unsupported network type %s"
 msgstr "Тип сети %s не поддерживается"
 
-#: src/lxc/lxc_process.c:577
+#: src/lxc/lxc_process.c:585
 #, c-format
 msgid "Unable to stat %s"
 msgstr ""
 
-#: src/lxc/lxc_process.c:680
+#: src/lxc/lxc_process.c:688
 #, c-format
 msgid "Invalid PID %d for container"
 msgstr "Недопустимый PID %d для контейнера"
 
-#: src/lxc/lxc_process.c:701
+#: src/lxc/lxc_process.c:709
 msgid "Some processes refused to die"
 msgstr ""
 
-#: src/lxc/lxc_process.c:830
+#: src/lxc/lxc_process.c:838
 msgid "Failure while reading log output"
 msgstr "Не удалось прочитать вывод журнала"
 
-#: src/lxc/lxc_process.c:851
+#: src/lxc/lxc_process.c:859
 #, c-format
 msgid "Out of space while reading log output: %s"
 msgstr ""
 
-#: src/lxc/lxc_process.c:866
+#: src/lxc/lxc_process.c:874
 #, c-format
 msgid "Timed out while reading log output: %s"
 msgstr ""
 
-#: src/lxc/lxc_process.c:886
+#: src/lxc/lxc_process.c:894
 #, c-format
 msgid "Unable to open log file %s"
 msgstr "Не удалось открыть файл %s"
 
-#: src/lxc/lxc_process.c:893
+#: src/lxc/lxc_process.c:901
 #, c-format
 msgid "Unable to seek log file %s to %llu"
 msgstr ""
 
-#: src/lxc/lxc_process.c:984
+#: src/lxc/lxc_process.c:992
 msgid "Unable to find 'cpuacct' cgroups controller mount"
 msgstr ""
 
-#: src/lxc/lxc_process.c:991
+#: src/lxc/lxc_process.c:999
 msgid "Unable to find 'devices' cgroups controller mount"
 msgstr ""
 
-#: src/lxc/lxc_process.c:998
+#: src/lxc/lxc_process.c:1006
 msgid "Unable to find 'memory' cgroups controller mount"
 msgstr ""
 
-#: src/lxc/lxc_process.c:1005
+#: src/lxc/lxc_process.c:1013
 #, c-format
 msgid "Cannot create log directory '%s'"
 msgstr "Не удалось создать каталог журналирования «%s»"
 
-#: src/lxc/lxc_process.c:1096
+#: src/lxc/lxc_process.c:1104
 msgid "Only PTY console types are supported"
 msgstr ""
 
-#: src/lxc/lxc_process.c:1124
+#: src/lxc/lxc_process.c:1132
 #, c-format
 msgid "Failed to open '%s'"
 msgstr "Не удалось открыть «%s»"
 
-#: src/lxc/lxc_process.c:1182
+#: src/lxc/lxc_process.c:1190
 msgid "could not close handshake fd"
 msgstr ""
 
-#: src/lxc/lxc_process.c:1198 src/lxc/lxc_process.c:1234
+#: src/lxc/lxc_process.c:1206 src/lxc/lxc_process.c:1242
 #, c-format
 msgid "guest failed to start: %s"
 msgstr "не удалось запустить гостевую систему: %s"
 
-#: src/lxc/lxc_process.c:1201
+#: src/lxc/lxc_process.c:1209
 #, c-format
 msgid "Failed to read pid file %s/%s.pid"
 msgstr "Ошибка чтения файла «%s/%s.pid»"
 
-#: src/lxc/lxc_process.c:1215 src/lxc/lxc_process.c:1426
+#: src/lxc/lxc_process.c:1223 src/lxc/lxc_process.c:1434
 #, c-format
 msgid "No valid cgroup for machine %s"
 msgstr ""
 
-#: src/lxc/lxc_process.c:1282
+#: src/lxc/lxc_process.c:1290
 msgid "could not close logfile"
 msgstr "не удалось закрыть журнал"
 
-#: src/lxc/lxc_process.c:1355 src/libxl/libxl_driver.c:122
+#: src/lxc/lxc_process.c:1363 src/libxl/libxl_driver.c:122
 #: src/qemu/qemu_driver.c:291 src/uml/uml_driver.c:195
 #, c-format
 msgid "Failed to autostart VM '%s': %s"
@@ -10008,21 +10008,21 @@ msgstr ""
 msgid "failed to read libxl header"
 msgstr "ошибка чтения заголовка libxl"
 
-#: src/libxl/libxl_driver.c:209 src/qemu/qemu_driver.c:5181
+#: src/libxl/libxl_driver.c:209 src/qemu/qemu_driver.c:5183
 msgid "image magic is incorrect"
 msgstr "недопустимое действие образа"
 
-#: src/libxl/libxl_driver.c:215 src/qemu/qemu_driver.c:5207
+#: src/libxl/libxl_driver.c:215 src/qemu/qemu_driver.c:5209
 #, c-format
 msgid "image version is not supported (%d > %d)"
 msgstr "версия образа не поддерживается (%d > %d)"
 
-#: src/libxl/libxl_driver.c:222 src/qemu/qemu_driver.c:5214
+#: src/libxl/libxl_driver.c:222 src/qemu/qemu_driver.c:5216
 #, c-format
 msgid "invalid XML length: %d"
 msgstr "недопустимая длина XML: %d"
 
-#: src/libxl/libxl_driver.c:230 src/qemu/qemu_driver.c:5223
+#: src/libxl/libxl_driver.c:230 src/qemu/qemu_driver.c:5225
 msgid "failed to read XML"
 msgstr "ошибка чтения XML"
 
@@ -10036,7 +10036,7 @@ msgstr "Не удалось очистить домен %d"
 msgid "Failed to pin vcpu '%d' with libxenlight"
 msgstr "Не удалось закрепить виртуальный процессор «%d» с помощью libxenlight"
 
-#: src/libxl/libxl_driver.c:584 src/qemu/qemu_driver.c:5620
+#: src/libxl/libxl_driver.c:584 src/qemu/qemu_driver.c:5622
 #, c-format
 msgid ""
 "cannot restore domain '%s' uuid %s from a file which belongs to domain '%s' "
@@ -10138,7 +10138,7 @@ msgstr ""
 "Не удалось задать максимальный размер памяти для домена «%d» при помощи "
 "libxenlight"
 
-#: src/libxl/libxl_driver.c:1645 src/qemu/qemu_driver.c:2243
+#: src/libxl/libxl_driver.c:1645 src/qemu/qemu_driver.c:2245
 #: src/uml/uml_driver.c:1837
 msgid "cannot set memory higher than max memory"
 msgstr "объём памяти не может превышать максимальный объём"
@@ -10204,7 +10204,7 @@ msgstr ""
 "Не удалось возобновить работу домена «%d» при помощи libxenlight после "
 "создания дампа"
 
-#: src/libxl/libxl_driver.c:2050 src/qemu/qemu_driver.c:3257
+#: src/libxl/libxl_driver.c:2050 src/qemu/qemu_driver.c:3259
 msgid "cannot do managed save for transient domain"
 msgstr ""
 
@@ -10228,7 +10228,7 @@ msgid "could not determine max vcpus for the domain"
 msgstr ""
 "не удалось определить максимальное число виртуальных процессоров для домена"
 
-#: src/libxl/libxl_driver.c:2217 src/qemu/qemu_driver.c:4151
+#: src/libxl/libxl_driver.c:2217 src/qemu/qemu_driver.c:4153
 #: src/xen/xend_internal.c:1812 src/xen/xm_internal.c:699
 #, c-format
 msgid ""
@@ -10264,7 +10264,7 @@ msgstr ""
 "помощи libxenlight"
 
 #: src/libxl/libxl_driver.c:2509 src/libxl/libxl_driver.c:2553
-#: src/qemu/qemu_driver.c:5726 src/qemu/qemu_driver.c:5774
+#: src/qemu/qemu_driver.c:5728 src/qemu/qemu_driver.c:5776
 #: src/xen/xen_driver.c:1596 src/xen/xen_driver.c:1649
 #, c-format
 msgid "unsupported config type %s"
@@ -10274,21 +10274,21 @@ msgstr "тип конфигурации %s не поддерживается"
 msgid "parsing xm config failed"
 msgstr "Не удалось выполнить разбор конфигурации xm"
 
-#: src/libxl/libxl_driver.c:2730 src/qemu/qemu_driver.c:6217
-#: src/uml/uml_driver.c:2097 src/vmware/vmware_driver.c:743
+#: src/libxl/libxl_driver.c:2730 src/qemu/qemu_driver.c:6219
+#: src/uml/uml_driver.c:2097 src/vmware/vmware_driver.c:766
 msgid "cannot undefine transient domain"
 msgstr "нельзя удалить определение промежуточного домена"
 
-#: src/libxl/libxl_driver.c:2742 src/qemu/qemu_driver.c:6242
+#: src/libxl/libxl_driver.c:2742 src/qemu/qemu_driver.c:6244
 msgid "Failed to remove domain managed save image"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:2747 src/qemu/qemu_driver.c:6248
+#: src/libxl/libxl_driver.c:2747 src/qemu/qemu_driver.c:6250
 #: tools/virsh-domain.c:3132
 msgid "Refusing to undefine while domain managed save image exists"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:2803 src/qemu/qemu_driver.c:6473
+#: src/libxl/libxl_driver.c:2803 src/qemu/qemu_driver.c:6475
 #: src/qemu/qemu_hotplug.c:717
 #, c-format
 msgid "No device with bus '%s' and target '%s'"
@@ -10340,7 +10340,7 @@ msgstr "шина диска «%s» не может быть автоматиче
 msgid "device type '%s' cannot hot unplugged"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:3067 src/qemu/qemu_driver.c:6512
+#: src/libxl/libxl_driver.c:3067 src/qemu/qemu_driver.c:6514
 #, c-format
 msgid "disk bus '%s' cannot be updated."
 msgstr "шина диска «%s» не может быть обновлена."
@@ -10351,12 +10351,12 @@ msgid "device type '%s' cannot be updated"
 msgstr "тип устройства «%s» не может быть обновлен"
 
 #: src/libxl/libxl_driver.c:3095 src/openvz/openvz_driver.c:2021
-#: src/qemu/qemu_driver.c:6771
+#: src/qemu/qemu_driver.c:6773
 #, c-format
 msgid "target %s doesn't exist."
 msgstr "цель %s не существует."
 
-#: src/libxl/libxl_driver.c:3101 src/qemu/qemu_driver.c:6778
+#: src/libxl/libxl_driver.c:3101 src/qemu/qemu_driver.c:6780
 msgid "this disk doesn't support update"
 msgstr "этот диск не поддерживает обновление"
 
@@ -10369,12 +10369,12 @@ msgstr ""
 msgid "start cell %d out of range (0-%d)"
 msgstr "начальная ячейка %d за пределами диапазона (0-%d)"
 
-#: src/libxl/libxl_driver.c:3580 src/qemu/qemu_driver.c:7298
+#: src/libxl/libxl_driver.c:3580 src/qemu/qemu_driver.c:7300
 #: src/uml/uml_driver.c:2413
 msgid "cannot set autostart for transient domain"
 msgstr "нельзя задать автозапуск для промежуточного домена"
 
-#: src/libxl/libxl_driver.c:3595 src/qemu/qemu_driver.c:7313
+#: src/libxl/libxl_driver.c:3595 src/qemu/qemu_driver.c:7315
 #: src/storage/storage_driver.c:1156 src/uml/uml_driver.c:2428
 #, c-format
 msgid "cannot create autostart directory %s"
@@ -10409,12 +10409,12 @@ msgstr ""
 msgid "Named device aliases are not supported"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:3871 src/qemu/qemu_driver.c:13706
+#: src/libxl/libxl_driver.c:3871 src/qemu/qemu_driver.c:13708
 #, c-format
 msgid "cannot find character device %s"
 msgstr "символьное устройство %s не найдено"
 
-#: src/libxl/libxl_driver.c:3898 src/qemu/qemu_driver.c:13726
+#: src/libxl/libxl_driver.c:3898 src/qemu/qemu_driver.c:13728
 msgid "Active console session exists for this domain"
 msgstr ""
 
@@ -11461,8 +11461,8 @@ msgstr "unlink(\"%s\")"
 msgid "open(\"%s\")"
 msgstr "open(\"%s\")"
 
-#: src/nwfilter/nwfilter_dhcpsnoop.c:1910 src/qemu/qemu_driver.c:2982
-#: src/qemu/qemu_driver.c:3000 src/qemu/qemu_driver.c:3652
+#: src/nwfilter/nwfilter_dhcpsnoop.c:1910 src/qemu/qemu_driver.c:2984
+#: src/qemu/qemu_driver.c:3002 src/qemu/qemu_driver.c:3654
 #: src/vbox/vbox_tmpl.c:9180
 #, c-format
 msgid "unable to close %s"
@@ -11874,10 +11874,10 @@ msgstr ""
 #: src/vbox/vbox_tmpl.c:2097 src/vbox/vbox_tmpl.c:2157
 #: src/vbox/vbox_tmpl.c:5302 src/vbox/vbox_tmpl.c:5391
 #: src/vbox/vbox_tmpl.c:5620 src/vbox/vbox_tmpl.c:8734
-#: src/vbox/vbox_tmpl.c:9106 src/vmware/vmware_driver.c:407
-#: src/vmware/vmware_driver.c:480 src/vmware/vmware_driver.c:529
-#: src/vmware/vmware_driver.c:573 src/vmware/vmware_driver.c:936
-#: src/vmware/vmware_driver.c:1064 src/vmware/vmware_driver.c:1102
+#: src/vbox/vbox_tmpl.c:9106 src/vmware/vmware_driver.c:430
+#: src/vmware/vmware_driver.c:503 src/vmware/vmware_driver.c:552
+#: src/vmware/vmware_driver.c:596 src/vmware/vmware_driver.c:959
+#: src/vmware/vmware_driver.c:1087 src/vmware/vmware_driver.c:1125
 msgid "no domain with matching uuid"
 msgstr "нет домена с соответствующим UUID"
 
@@ -11892,8 +11892,8 @@ msgid "cannot read cputime for domain %d"
 msgstr "не удалось прочитать cputime домена %d"
 
 #: src/openvz/openvz_driver.c:683 src/openvz/openvz_driver.c:746
-#: src/vmware/vmware_driver.c:416 src/vmware/vmware_driver.c:488
-#: src/vmware/vmware_driver.c:586
+#: src/vmware/vmware_driver.c:439 src/vmware/vmware_driver.c:511
+#: src/vmware/vmware_driver.c:609
 msgid "domain is not in running state"
 msgstr "домен не выполняется"
 
@@ -11956,7 +11956,7 @@ msgstr "Виртуальная машина OPENVZ с идентификатор
 msgid "no domain with matching id"
 msgstr "нет домена с совпадающим идентификатором"
 
-#: src/openvz/openvz_driver.c:1150 src/vmware/vmware_driver.c:296
+#: src/openvz/openvz_driver.c:1150 src/vmware/vmware_driver.c:319
 msgid "domain is not in shutoff state"
 msgstr "домен не выключен"
 
@@ -11964,7 +11964,7 @@ msgstr "домен не выключен"
 msgid "Could not read container config"
 msgstr "Ошибка чтения конфигурации контейнера"
 
-#: src/openvz/openvz_driver.c:1302 src/qemu/qemu_driver.c:1231
+#: src/openvz/openvz_driver.c:1302 src/qemu/qemu_driver.c:1233
 #, c-format
 msgid "unknown type '%s'"
 msgstr "неизвестный тип «%s»"
@@ -12024,16 +12024,16 @@ msgid "Failed to set %s for %s: %d"
 msgstr ""
 
 #: src/openvz/openvz_driver.c:1975 src/parallels/parallels_driver.c:67
-#: src/parallels/parallels_driver.c:1142 src/qemu/qemu_driver.c:1371
+#: src/parallels/parallels_driver.c:1142 src/qemu/qemu_driver.c:1373
 #: src/test/test_driver.c:2290 src/uml/uml_driver.c:1757
 #: src/uml/uml_driver.c:1786 src/uml/uml_driver.c:1822
 #: src/uml/uml_driver.c:2187 src/uml/uml_driver.c:2307
-#: src/uml/uml_driver.c:2552 src/vmware/vmware_driver.c:737
+#: src/uml/uml_driver.c:2552 src/vmware/vmware_driver.c:760
 #, c-format
 msgid "no domain with matching uuid '%s'"
 msgstr "нет домена с совпадающим UUID «%s»"
 
-#: src/openvz/openvz_driver.c:1998 src/qemu/qemu_driver.c:9183
+#: src/openvz/openvz_driver.c:1998 src/qemu/qemu_driver.c:9185
 #: src/test/test_driver.c:3092
 #, c-format
 msgid "invalid path, '%s' is not a known interface"
@@ -12066,9 +12066,9 @@ msgstr "Не удалось получить данные узла"
 msgid "Unexpected Parallels URI path '%s', try parallels:///system"
 msgstr ""
 
-#: src/parallels/parallels_driver.c:1169 src/qemu/qemu_driver.c:1397
-#: src/qemu/qemu_driver.c:10119 src/qemu/qemu_driver.c:10519
-#: src/qemu/qemu_driver.c:10562
+#: src/parallels/parallels_driver.c:1169 src/qemu/qemu_driver.c:1399
+#: src/qemu/qemu_driver.c:10121 src/qemu/qemu_driver.c:10521
+#: src/qemu/qemu_driver.c:10564
 #, c-format
 msgid "no domain with matching name '%s'"
 msgstr "нет домена с совпадающим именем «%s»"
@@ -13376,7 +13376,7 @@ msgstr "Этот QEMU не поддерживает возможность уд�
 msgid "disk aio mode not supported with this QEMU binary"
 msgstr "Этот QEMU не поддерживает режим асинхронного ввода-вывода"
 
-#: src/qemu/qemu_command.c:4193 src/qemu/qemu_driver.c:14748
+#: src/qemu/qemu_command.c:4193 src/qemu/qemu_driver.c:14750
 msgid "block I/O throttling not supported with this QEMU binary"
 msgstr "Этот QEMU не поддерживает регулирование блочного ввода-вывода."
 
@@ -14737,32 +14737,32 @@ msgstr "ошибка создания пути для очень больших 
 msgid "unable to set ownership on %s to %d:%d"
 msgstr "не удалось изменить владельца %s на %d:%d"
 
-#: src/qemu/qemu_driver.c:1055
+#: src/qemu/qemu_driver.c:1057
 msgid "qemu state driver is not active"
 msgstr "драйвер состояния QEMU неактивен"
 
-#: src/qemu/qemu_driver.c:1062
+#: src/qemu/qemu_driver.c:1064
 #, c-format
 msgid "no QEMU URI path given, try %s"
 msgstr "не указан URI-путь QEMU (попробуйте %s)"
 
-#: src/qemu/qemu_driver.c:1071
+#: src/qemu/qemu_driver.c:1073
 #, c-format
 msgid "unexpected QEMU URI path '%s', try qemu:///system"
 msgstr "Непредвиденный URI-путь QEMU: «%s» (попробуйте qemu:///system)"
 
-#: src/qemu/qemu_driver.c:1078
+#: src/qemu/qemu_driver.c:1080
 #, c-format
 msgid "unexpected QEMU URI path '%s', try qemu:///session"
 msgstr "Непредвиденный URI-путь QEMU: «%s» (попробуйте qemu:///session)"
 
-#: src/qemu/qemu_driver.c:1163 src/util/iohelper.c:59 src/util/virfile.c:570
+#: src/qemu/qemu_driver.c:1165 src/util/iohelper.c:59 src/util/virfile.c:570
 #: src/util/virfile.c:611 src/util/virfile.c:690 src/util/virnetdevtap.c:345
 #, c-format
 msgid "Unable to open %s"
 msgstr "Не удалось открыть %s"
 
-#: src/qemu/qemu_driver.c:1343 src/uml/uml_driver.c:1635
+#: src/qemu/qemu_driver.c:1345 src/uml/uml_driver.c:1635
 #: src/uml/uml_driver.c:1679 src/vbox/vbox_tmpl.c:1258
 #: src/vbox/vbox_tmpl.c:1582 src/vbox/vbox_tmpl.c:1634
 #: src/vbox/vbox_tmpl.c:1688 src/vbox/vbox_tmpl.c:1746
@@ -14772,127 +14772,127 @@ msgstr "Не удалось открыть %s"
 msgid "no domain with matching id %d"
 msgstr "нет домена с совпадающим идентификатором %d"
 
-#: src/qemu/qemu_driver.c:1707 src/qemu/qemu_driver.c:1768
+#: src/qemu/qemu_driver.c:1709 src/qemu/qemu_driver.c:1770
 msgid "domain is pmsuspended"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:1776 src/qemu/qemu_migration.c:2712
+#: src/qemu/qemu_driver.c:1778 src/qemu/qemu_migration.c:2712
 #: src/qemu/qemu_migration.c:4433 src/qemu/qemu_process.c:587
-#: src/qemu/qemu_process.c:4018
+#: src/qemu/qemu_process.c:4019
 msgid "resume operation failed"
 msgstr "сбой операции возобновления"
 
-#: src/qemu/qemu_driver.c:1839 src/qemu/qemu_driver.c:1945
-#: src/qemu/qemu_driver.c:4167 src/qemu/qemu_driver.c:4897
-#: src/qemu/qemu_driver.c:11442 src/qemu/qemu_driver.c:11469
-#: src/qemu/qemu_driver.c:15417 src/qemu/qemu_driver.c:15550
-#: src/qemu/qemu_driver.c:15628
+#: src/qemu/qemu_driver.c:1841 src/qemu/qemu_driver.c:1947
+#: src/qemu/qemu_driver.c:4169 src/qemu/qemu_driver.c:4899
+#: src/qemu/qemu_driver.c:11444 src/qemu/qemu_driver.c:11471
+#: src/qemu/qemu_driver.c:15419 src/qemu/qemu_driver.c:15552
+#: src/qemu/qemu_driver.c:15630
 msgid "QEMU guest agent is not available due to an error"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:1850 src/qemu/qemu_driver.c:1951
-#: src/qemu/qemu_driver.c:4174 src/qemu/qemu_driver.c:4904
-#: src/qemu/qemu_driver.c:11448 src/qemu/qemu_driver.c:11476
-#: src/qemu/qemu_driver.c:15424 src/qemu/qemu_driver.c:15557
-#: src/qemu/qemu_driver.c:15622
+#: src/qemu/qemu_driver.c:1852 src/qemu/qemu_driver.c:1953
+#: src/qemu/qemu_driver.c:4176 src/qemu/qemu_driver.c:4906
+#: src/qemu/qemu_driver.c:11450 src/qemu/qemu_driver.c:11478
+#: src/qemu/qemu_driver.c:15426 src/qemu/qemu_driver.c:15559
+#: src/qemu/qemu_driver.c:15624
 msgid "QEMU guest agent is not configured"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:1918
+#: src/qemu/qemu_driver.c:1920
 msgid "flags for acpi power button and guest agent are mutually exclusive"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:1959
+#: src/qemu/qemu_driver.c:1961
 msgid "Reboot is not supported with this QEMU binary"
 msgstr "Этот QEMU не поддерживает перезагрузку."
 
-#: src/qemu/qemu_driver.c:1965
+#: src/qemu/qemu_driver.c:1967
 msgid "Reboot is not supported without the JSON monitor"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:2223
+#: src/qemu/qemu_driver.c:2225
 msgid "cannot resize the maximum memory on an active domain"
 msgstr "Максимальный размер активного домена не может быть изменен"
 
-#: src/qemu/qemu_driver.c:2260
+#: src/qemu/qemu_driver.c:2262
 msgid ""
 "Unable to change memory of active domain without the balloon device and "
 "guest OS balloon driver"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:2338
+#: src/qemu/qemu_driver.c:2340
 msgid "unable to set balloon driver collection period"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:2431
+#: src/qemu/qemu_driver.c:2433
 #, c-format
 msgid "cannot translate keycode %u of %s codeset to rfb keycode"
 msgstr "не удалось преобразовать код %u из набора %s в код ключа rfb"
 
-#: src/qemu/qemu_driver.c:2493 src/uml/uml_driver.c:1876
+#: src/qemu/qemu_driver.c:2495 src/uml/uml_driver.c:1876
 msgid "cannot read cputime for domain"
 msgstr "не удалось прочитать время процессора для домена"
 
-#: src/qemu/qemu_driver.c:2695
+#: src/qemu/qemu_driver.c:2697
 #, c-format
 msgid "failed to write header to domain save file '%s'"
 msgstr "не удалось записать заголовок в файл «%s»"
 
-#: src/qemu/qemu_driver.c:2703 src/qemu/qemu_driver.c:5575
+#: src/qemu/qemu_driver.c:2705 src/qemu/qemu_driver.c:5577
 #, c-format
 msgid "failed to write xml to '%s'"
 msgstr "не удалось записать XML в «%s»"
 
-#: src/qemu/qemu_driver.c:2727
+#: src/qemu/qemu_driver.c:2729
 #, c-format
 msgid "Invalid compressed save format %d"
 msgstr "Недопустимый формат сжатия %d"
 
-#: src/qemu/qemu_driver.c:2843
+#: src/qemu/qemu_driver.c:2845
 #, c-format
 msgid "Failed to create file '%s': couldn't determine fs type"
 msgstr "Ошибка создания «%s»: не удалось определить тип файловой системы"
 
-#: src/qemu/qemu_driver.c:2845
+#: src/qemu/qemu_driver.c:2847
 #, c-format
 msgid "Failed to open file '%s': couldn't determine fs type"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:2863
+#: src/qemu/qemu_driver.c:2865
 #, c-format
 msgid "Error from child process creating '%s'"
 msgstr "Ошибка при создании дочерним процессом «%s»"
 
-#: src/qemu/qemu_driver.c:2864
+#: src/qemu/qemu_driver.c:2866
 #, c-format
 msgid "Error from child process opening '%s'"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:2885 src/storage/storage_backend.c:397
+#: src/qemu/qemu_driver.c:2887 src/storage/storage_backend.c:397
 #, c-format
 msgid "Failed to create file '%s'"
 msgstr "Не удалось создать файл «%s»"
 
-#: src/qemu/qemu_driver.c:2886 src/util/virfile.c:1255
+#: src/qemu/qemu_driver.c:2888 src/util/virfile.c:1263
 #: src/util/virstoragefile.c:977 src/util/virstoragefile.c:1036
 #, c-format
 msgid "Failed to open file '%s'"
 msgstr "Не удалось открыть файл «%s»"
 
-#: src/qemu/qemu_driver.c:2951 src/qemu/qemu_driver.c:3406
-#: src/qemu/qemu_driver.c:5149
+#: src/qemu/qemu_driver.c:2953 src/qemu/qemu_driver.c:3408
+#: src/qemu/qemu_driver.c:5151
 msgid "bypass cache unsupported by this system"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:2995
+#: src/qemu/qemu_driver.c:2997
 #, c-format
 msgid "unable to write %s"
 msgstr "ошибка записи в %s"
 
-#: src/qemu/qemu_driver.c:3056 src/qemu/qemu_driver.c:3530
-#: src/qemu/qemu_driver.c:11648 src/qemu/qemu_driver.c:12145
-#: src/qemu/qemu_driver.c:13179 src/qemu/qemu_driver.c:13231
-#: src/qemu/qemu_driver.c:13900 src/qemu/qemu_hotplug.c:449
+#: src/qemu/qemu_driver.c:3058 src/qemu/qemu_driver.c:3532
+#: src/qemu/qemu_driver.c:11650 src/qemu/qemu_driver.c:12147
+#: src/qemu/qemu_driver.c:13181 src/qemu/qemu_driver.c:13233
+#: src/qemu/qemu_driver.c:13902 src/qemu/qemu_hotplug.c:449
 #: src/qemu/qemu_hotplug.c:979 src/qemu/qemu_migration.c:3201
 #: src/qemu/qemu_migration.c:3519 src/qemu/qemu_migration.c:3949
 #: src/qemu/qemu_migration.c:4353 src/qemu/qemu_process.c:562
@@ -14900,42 +14900,42 @@ msgstr "ошибка записи в %s"
 msgid "guest unexpectedly quit"
 msgstr "неожиданное завершение работы гостя"
 
-#: src/qemu/qemu_driver.c:3089
+#: src/qemu/qemu_driver.c:3091
 msgid "failed to get domain xml"
 msgstr "не удалось получить XML домена"
 
-#: src/qemu/qemu_driver.c:3176
+#: src/qemu/qemu_driver.c:3178
 msgid "Invalid save image format specified in configuration file"
 msgstr "Недопустимый формат образа в файле конфигурации"
 
-#: src/qemu/qemu_driver.c:3182
+#: src/qemu/qemu_driver.c:3184
 msgid ""
 "Compression program for image format in configuration file isn't available"
 msgstr ""
 "Программа сжатия для указанного в файле конфигурации формата образа "
 "недоступна"
 
-#: src/qemu/qemu_driver.c:3346
+#: src/qemu/qemu_driver.c:3348
 #, c-format
 msgid "Failed to remove managed save file '%s'"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:3368
+#: src/qemu/qemu_driver.c:3370
 msgid "dump-guest-memory is not supported"
 msgstr "dump-guest-memory не поддерживается"
 
-#: src/qemu/qemu_driver.c:3434
+#: src/qemu/qemu_driver.c:3436
 #, c-format
 msgid "unable to close file %s"
 msgstr "не удалось закрыть файл %s"
 
-#: src/qemu/qemu_driver.c:3467
+#: src/qemu/qemu_driver.c:3469
 msgid "Invalid dump image format specified in configuration file, using raw"
 msgstr ""
 "Недопустимый формат образа дампа в файле конфигурации. Будет использоваться "
 "raw."
 
-#: src/qemu/qemu_driver.c:3473
+#: src/qemu/qemu_driver.c:3475
 msgid ""
 "Compression program for dump image format in configuration file isn't "
 "available, using raw"
@@ -14943,825 +14943,825 @@ msgstr ""
 "Программа сжатия для указанного в файле конфигурации формата образа дампа "
 "недоступна. Работа будет продолжена без сжатия."
 
-#: src/qemu/qemu_driver.c:3570
+#: src/qemu/qemu_driver.c:3572
 msgid "resuming after dump failed"
 msgstr "ошибка возобновления после дампа"
 
-#: src/qemu/qemu_driver.c:3628
+#: src/qemu/qemu_driver.c:3630
 msgid "currently is supported only taking screenshots of screen ID 0"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:3637 src/qemu/qemu_driver.c:9645
+#: src/qemu/qemu_driver.c:3639 src/qemu/qemu_driver.c:9647
 #: src/vbox/vbox_tmpl.c:9132
 #, c-format
 msgid "mkostemp(\"%s\") failed"
 msgstr "сбой mkostemp(\"%s\")"
 
-#: src/qemu/qemu_driver.c:3658 src/vbox/vbox_tmpl.c:9189
+#: src/qemu/qemu_driver.c:3660 src/vbox/vbox_tmpl.c:9189
 msgid "unable to open stream"
 msgstr "не удалось открыть поток"
 
-#: src/qemu/qemu_driver.c:3715 src/qemu/qemu_driver.c:3779
+#: src/qemu/qemu_driver.c:3717 src/qemu/qemu_driver.c:3781
 msgid "Dump failed"
 msgstr "Ошибка создания дампа"
 
-#: src/qemu/qemu_driver.c:3723
+#: src/qemu/qemu_driver.c:3725
 msgid "Resuming after dump failed"
 msgstr "Возобновление работы после неудачного создания дампа"
 
-#: src/qemu/qemu_driver.c:3974
+#: src/qemu/qemu_driver.c:3976
 msgid "qemu didn't unplug the vCPUs properly"
 msgstr "QEMU не смог корректно отключить виртуальные процессоры"
 
-#: src/qemu/qemu_driver.c:3982 src/qemu/qemu_process.c:1897
+#: src/qemu/qemu_driver.c:3984 src/qemu/qemu_process.c:1897
 #, c-format
 msgid "got wrong number of vCPU pids from QEMU monitor. got %d, wanted %d"
 msgstr ""
 "получено неверное число PID виртуальных процессоров от QEMU: %d. Ожидается %d"
 
-#: src/qemu/qemu_driver.c:4002
+#: src/qemu/qemu_driver.c:4004
 #, c-format
 msgid "unable to add vcpu %zu task %d to cgroup"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:4033
+#: src/qemu/qemu_driver.c:4035
 #, c-format
 msgid "failed to set cpuset.cpus in cgroup for vcpu %zu"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:4042
+#: src/qemu/qemu_driver.c:4044
 #, c-format
 msgid "failed to set cpu affinity for vcpu %zu"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:4088
+#: src/qemu/qemu_driver.c:4090
 msgid "cannot change vcpu count of this domain"
 msgstr "невозможно изменить число виртуальных процессоров для этого домена"
 
-#: src/qemu/qemu_driver.c:4115 src/test/test_driver.c:2340
+#: src/qemu/qemu_driver.c:4117 src/test/test_driver.c:2340
 #: src/xen/xen_driver.c:1371
 #, c-format
 msgid "argument out of range: %d"
 msgstr "аргумент выходит за пределы диапазона: %d"
 
-#: src/qemu/qemu_driver.c:4145
+#: src/qemu/qemu_driver.c:4147
 msgid "cannot adjust maximum on running domain"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:4160
+#: src/qemu/qemu_driver.c:4162
 msgid "changing of maximum vCPU count isn't supported via guest agent"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:4197
+#: src/qemu/qemu_driver.c:4199
 #, c-format
 msgid "failed to set state of cpu %d via guest agent"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:4286
+#: src/qemu/qemu_driver.c:4288
 #, c-format
 msgid "vcpu number out of range %d > %d"
 msgstr "число виртуальных процессоров превышает допустимый диапазон: %d > %d"
 
-#: src/qemu/qemu_driver.c:4297 src/qemu/qemu_driver.c:4571
+#: src/qemu/qemu_driver.c:4299 src/qemu/qemu_driver.c:4573
 msgid "Empty cpu list for pinning"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:4311 src/qemu/qemu_driver.c:4636
+#: src/qemu/qemu_driver.c:4313 src/qemu/qemu_driver.c:4638
 #: src/qemu/qemu_process.c:2061
 msgid "cpu affinity is not supported"
 msgstr "сопоставление процессоров не поддерживается"
 
-#: src/qemu/qemu_driver.c:4330 src/qemu/qemu_driver.c:4591
+#: src/qemu/qemu_driver.c:4332 src/qemu/qemu_driver.c:4593
 msgid "failed to update vcpupin"
 msgstr "Не удалось обновить vcpupin"
 
-#: src/qemu/qemu_driver.c:4341
+#: src/qemu/qemu_driver.c:4343
 #, c-format
 msgid "failed to set cpuset.cpus in cgroup for vcpu %d"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:4348
+#: src/qemu/qemu_driver.c:4350
 #, c-format
 msgid "failed to set cpu affinity for vcpu %d"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:4357
+#: src/qemu/qemu_driver.c:4359
 msgid "failed to delete vcpupin xml of a running domain"
 msgstr "не удалось удалить xml vcuppin работающего домена"
 
-#: src/qemu/qemu_driver.c:4382
+#: src/qemu/qemu_driver.c:4384
 msgid "failed to delete vcpupin xml of a persistent domain"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:4398
+#: src/qemu/qemu_driver.c:4400
 msgid "failed to update or add vcpupin xml of a persistent domain"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:4554
+#: src/qemu/qemu_driver.c:4556
 msgid ""
 "Changing affinity for emulator thread dynamically is not allowed when CPU "
 "placement is 'auto'"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:4606
+#: src/qemu/qemu_driver.c:4608
 msgid "failed to set cpuset.cpus in cgroup for emulator threads"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:4613
+#: src/qemu/qemu_driver.c:4615
 msgid "failed to set cpu affinity for emulator threads"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:4622
+#: src/qemu/qemu_driver.c:4624
 msgid "failed to delete emulatorpin xml of a running domain"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:4649
+#: src/qemu/qemu_driver.c:4651
 msgid "failed to delete emulatorpin xml of a persistent domain"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:4656
+#: src/qemu/qemu_driver.c:4658
 msgid "failed to update or add emulatorpin xml of a persistent domain"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:4775
+#: src/qemu/qemu_driver.c:4777
 msgid "cannot list vcpu pinning for an inactive domain"
 msgstr ""
 "невозможно просмотреть сопоставления виртуальных процессоров для неактивного "
 "домена"
 
-#: src/qemu/qemu_driver.c:4806
+#: src/qemu/qemu_driver.c:4808
 msgid "cannot get vCPU placement & pCPU time"
 msgstr ""
 "не удалось получить размещение виртуальных процессоров и время физических "
 "процессоров"
 
-#: src/qemu/qemu_driver.c:4834
+#: src/qemu/qemu_driver.c:4836
 msgid "cpu affinity is not available"
 msgstr "сопоставление процессоров недоступно"
 
-#: src/qemu/qemu_driver.c:4887
+#: src/qemu/qemu_driver.c:4889
 msgid ""
 "vCPU count provided by the guest agent can only be  requested for live "
 "domains"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:5169 src/qemu/qemu_driver.c:5189
+#: src/qemu/qemu_driver.c:5171 src/qemu/qemu_driver.c:5191
 #, c-format
 msgid "cannot remove corrupt file: %s"
 msgstr "не удалось удалить поврежденный файл: %s"
 
-#: src/qemu/qemu_driver.c:5176
+#: src/qemu/qemu_driver.c:5178
 msgid "failed to read qemu header"
 msgstr "ошибка чтения заголовка qemu"
 
-#: src/qemu/qemu_driver.c:5185
+#: src/qemu/qemu_driver.c:5187
 msgid "save image is incomplete"
 msgstr "сохранить образ как незавершенный"
 
-#: src/qemu/qemu_driver.c:5231 src/qemu/qemu_driver.c:5362
+#: src/qemu/qemu_driver.c:5233 src/qemu/qemu_driver.c:5364
 #, c-format
 msgid "cannot close file: %s"
 msgstr "не удалось закрыть файл: %s"
 
-#: src/qemu/qemu_driver.c:5386
+#: src/qemu/qemu_driver.c:5388
 msgid "failed to resume domain"
 msgstr "не удалось возобновить работу домена"
 
-#: src/qemu/qemu_driver.c:5562
+#: src/qemu/qemu_driver.c:5564
 msgid "new xml too large to fit in file"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:5569
+#: src/qemu/qemu_driver.c:5571
 #, c-format
 msgid "cannot seek in '%s'"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:6003
+#: src/qemu/qemu_driver.c:6005
 #, c-format
 msgid "cannot remove managed save file %s"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:6074
+#: src/qemu/qemu_driver.c:6076
 msgid "domain is already running"
 msgstr "домен уже выполняется"
 
-#: src/qemu/qemu_driver.c:6143 src/qemu/qemu_driver.c:12327
-#: src/qemu/qemu_driver.c:13053
+#: src/qemu/qemu_driver.c:6145 src/qemu/qemu_driver.c:12329
+#: src/qemu/qemu_driver.c:13055
 msgid "domain has active block copy job"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:6225
+#: src/qemu/qemu_driver.c:6227
 #, c-format
 msgid "cannot delete inactive domain with %d snapshots"
 msgstr "не удалось удалить неактивный домен со снимками (всего снимков: %d)"
 
-#: src/qemu/qemu_driver.c:6306
+#: src/qemu/qemu_driver.c:6308
 #, c-format
 msgid "'%s' controller cannot be hot plugged."
 msgstr ""
 
-#: src/qemu/qemu_driver.c:6373
+#: src/qemu/qemu_driver.c:6375
 #, c-format
 msgid "live attach of device '%s' is not supported"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:6398
+#: src/qemu/qemu_driver.c:6400
 #, c-format
 msgid "'%s' controller cannot be hot unplugged."
 msgstr ""
 
-#: src/qemu/qemu_driver.c:6433
+#: src/qemu/qemu_driver.c:6435
 #, c-format
 msgid "live detach of device '%s' is not supported"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:6550
+#: src/qemu/qemu_driver.c:6552
 #, c-format
 msgid "live update of device '%s' is not supported"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:6615
+#: src/qemu/qemu_driver.c:6617
 #, c-format
 msgid "Lease %s in lockspace %s already exists"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:6631
+#: src/qemu/qemu_driver.c:6633
 msgid "Target already exists"
 msgstr "Цель уже существует"
 
-#: src/qemu/qemu_driver.c:6651
+#: src/qemu/qemu_driver.c:6653
 #, c-format
 msgid "persistent attach of device '%s' is not supported"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:6716 src/qemu/qemu_hotplug.c:3492
+#: src/qemu/qemu_driver.c:6718 src/qemu/qemu_hotplug.c:3492
 #, c-format
 msgid "Lease %s in lockspace %s does not exist"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:6747
+#: src/qemu/qemu_driver.c:6749
 #, c-format
 msgid "persistent detach of device '%s' is not supported"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:6805 src/qemu/qemu_driver.c:6811
+#: src/qemu/qemu_driver.c:6807 src/qemu/qemu_driver.c:6813
 #, c-format
 msgid "couldn't find matching device with mac address %s"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:6827
+#: src/qemu/qemu_driver.c:6829
 #, c-format
 msgid "persistent update of device '%s' is not supported"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:7467
+#: src/qemu/qemu_driver.c:7469
 #, c-format
 msgid "unable to parse device weight '%s'"
 msgstr "не удалось обработать значение веса устройства «%s»"
 
-#: src/qemu/qemu_driver.c:7766 src/qemu/qemu_driver.c:7801
+#: src/qemu/qemu_driver.c:7768 src/qemu/qemu_driver.c:7803
 #: src/util/virtypedparam.c:187 src/util/virtypedparam.c:245
 #, c-format
 msgid "Field name '%s' too long"
 msgstr "Имя поля «%s» превышает допустимую длину"
 
-#: src/qemu/qemu_driver.c:7879 src/qemu/qemu_driver.c:8002
-#: src/qemu/qemu_driver.c:8294
+#: src/qemu/qemu_driver.c:7881 src/qemu/qemu_driver.c:8004
+#: src/qemu/qemu_driver.c:8296
 msgid "cgroup memory controller is not mounted"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:7911
+#: src/qemu/qemu_driver.c:7913
 msgid "memory hard_limit tunable value must be lower than swap_hard_limit"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:7921
+#: src/qemu/qemu_driver.c:7923
 #, c-format
 msgid "unable to set memory %s tunable"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:8149
+#: src/qemu/qemu_driver.c:8151
 msgid "cgroup cpuset controller is not mounted"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:8162
+#: src/qemu/qemu_driver.c:8164
 msgid "can't change numa mode for running domain"
 msgstr "Нельзя изменить режим numa работающего домена"
 
-#: src/qemu/qemu_driver.c:8185
+#: src/qemu/qemu_driver.c:8187
 msgid "change of nodeset for running domain requires strict numa mode"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:8195
+#: src/qemu/qemu_driver.c:8197
 msgid "Failed to format nodeset"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:8413
+#: src/qemu/qemu_driver.c:8415
 #, c-format
 msgid "value of '%s' is out of range [%lld, %lld]"
 msgstr "Значение «%s» выходит за пределы диапазона [%lld, %lld] "
 
-#: src/qemu/qemu_driver.c:8842
+#: src/qemu/qemu_driver.c:8844
 msgid "empty path"
 msgstr "пустой путь"
 
-#: src/qemu/qemu_driver.c:8850
+#: src/qemu/qemu_driver.c:8852
 #, c-format
 msgid "size must be less than %llu"
 msgstr "размер не может превышать %llu"
 
-#: src/qemu/qemu_driver.c:8876 src/qemu/qemu_driver.c:8935
-#: src/qemu/qemu_driver.c:9020 src/test/test_driver.c:3036
+#: src/qemu/qemu_driver.c:8878 src/qemu/qemu_driver.c:8937
+#: src/qemu/qemu_driver.c:9022 src/test/test_driver.c:3036
 #, c-format
 msgid "invalid path: %s"
 msgstr "недопустимый путь: %s"
 
-#: src/qemu/qemu_driver.c:8942 src/qemu/qemu_driver.c:9027
+#: src/qemu/qemu_driver.c:8944 src/qemu/qemu_driver.c:9029
 #: src/qemu/qemu_hotplug.c:75
 #, c-format
 msgid "missing disk device alias name for %s"
 msgstr "отсутствует имя дискового устройства для %s"
 
-#: src/qemu/qemu_driver.c:9197
+#: src/qemu/qemu_driver.c:9199
 msgid "interface stats not implemented on this platform"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:9256 src/qemu/qemu_driver.c:9264
-#: src/qemu/qemu_driver.c:9419
+#: src/qemu/qemu_driver.c:9258 src/qemu/qemu_driver.c:9266
+#: src/qemu/qemu_driver.c:9421
 #, c-format
 msgid "Can't find device %s"
 msgstr "Устройство %s не найдено"
 
-#: src/qemu/qemu_driver.c:9524
+#: src/qemu/qemu_driver.c:9526
 msgid "cannot get RSS for domain"
 msgstr "не удалось получить RSS домена"
 
-#: src/qemu/qemu_driver.c:9565 src/qemu/qemu_driver.c:9720
+#: src/qemu/qemu_driver.c:9567 src/qemu/qemu_driver.c:9722
 #: src/uml/uml_driver.c:2491
 msgid "NULL or empty path"
 msgstr "путь NULL или пустой"
 
-#: src/qemu/qemu_driver.c:9572 src/uml/uml_driver.c:2498
+#: src/qemu/qemu_driver.c:9574 src/uml/uml_driver.c:2498
 #, c-format
 msgid "invalid path '%s'"
 msgstr "недопустимый путь: %s"
 
-#: src/qemu/qemu_driver.c:9588
+#: src/qemu/qemu_driver.c:9590
 #, c-format
 msgid "%s: failed to seek or read"
 msgstr "%s: ошибка поиска или чтения"
 
-#: src/qemu/qemu_driver.c:9626
+#: src/qemu/qemu_driver.c:9628
 msgid "flags parameter must be VIR_MEMORY_VIRTUAL or VIR_MEMORY_PHYSICAL"
 msgstr ""
 "параметр flags должен быть установлен в VIR_MEMORY_VIRTUAL или "
 "VIR_MEMORY_PHYSICAL"
 
-#: src/qemu/qemu_driver.c:9669
+#: src/qemu/qemu_driver.c:9671
 #, c-format
 msgid "failed to read temporary file created with template %s"
 msgstr "ошибка чтения временного файла, созданного из шаблона %s"
 
-#: src/qemu/qemu_driver.c:9727
+#: src/qemu/qemu_driver.c:9729
 #, c-format
 msgid "invalid path %s not assigned to domain"
 msgstr "Недопустимый путь: %s не соответствует домену"
 
-#: src/qemu/qemu_driver.c:9733
+#: src/qemu/qemu_driver.c:9735
 #, c-format
 msgid "disk %s does not currently have a source assigned"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:9755
+#: src/qemu/qemu_driver.c:9757
 #, c-format
 msgid "no disk format for %s and probing is disabled"
 msgstr "для диска %s не указан формат, и автообнаружение отключено"
 
-#: src/qemu/qemu_driver.c:9767 src/storage/storage_backend.c:1134
+#: src/qemu/qemu_driver.c:9769 src/storage/storage_backend.c:1134
 #: src/storage/storage_backend.c:1162 src/storage/storage_backend.c:1282
 #: src/util/virstoragefile.c:777 src/util/virstoragefile.c:927
 #, c-format
 msgid "cannot stat file '%s'"
 msgstr "не удалось выполнить stat для «%s»"
 
-#: src/qemu/qemu_driver.c:9789
+#: src/qemu/qemu_driver.c:9791
 #, c-format
 msgid "failed to seek to end of %s"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:9961 src/qemu/qemu_driver.c:10337
-#: src/qemu/qemu_driver.c:10390
+#: src/qemu/qemu_driver.c:9963 src/qemu/qemu_driver.c:10339
+#: src/qemu/qemu_driver.c:10392
 msgid "PrepareTunnel called but no TUNNELLED flag set"
 msgstr "Вызван PrepareTunnel, но флаг TUNNELLED не установлен"
 
-#: src/qemu/qemu_driver.c:9967 src/qemu/qemu_driver.c:10022
-#: src/qemu/qemu_driver.c:10068
+#: src/qemu/qemu_driver.c:9969 src/qemu/qemu_driver.c:10024
+#: src/qemu/qemu_driver.c:10070
 #, c-format
 msgid "Cannot use migrate v2 protocol with lock manager %s"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:10015 src/qemu/qemu_driver.c:10230
-#: src/qemu/qemu_driver.c:10292
+#: src/qemu/qemu_driver.c:10017 src/qemu/qemu_driver.c:10232
+#: src/qemu/qemu_driver.c:10294
 msgid "Tunnelled migration requested but invalid RPC method called"
 msgstr "Запрошена туннельная миграция, но вызван неверный метод RPC"
 
-#: src/qemu/qemu_driver.c:10656 src/xen/xen_driver.c:2446
+#: src/qemu/qemu_driver.c:10658 src/xen/xen_driver.c:2446
 #, c-format
 msgid "device %s is not a PCI device"
 msgstr "%s не является PCI-устройством"
 
-#: src/qemu/qemu_driver.c:10705 src/xen/xen_driver.c:2480
+#: src/qemu/qemu_driver.c:10707 src/xen/xen_driver.c:2480
 #, c-format
 msgid "unknown driver name '%s'"
 msgstr "Неизвестное имя драйвера «%s»"
 
-#: src/qemu/qemu_driver.c:10771
+#: src/qemu/qemu_driver.c:10773
 #, c-format
 msgid "PCI device %s is still in use by domain %s"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:10775
+#: src/qemu/qemu_driver.c:10777
 #, c-format
 msgid "PCI device %s is still in use"
 msgstr "Устройство PCI %s занято"
 
-#: src/qemu/qemu_driver.c:11107
+#: src/qemu/qemu_driver.c:11109
 msgid "no job is active on the domain"
 msgstr "нет активных заданий домена"
 
-#: src/qemu/qemu_driver.c:11111
+#: src/qemu/qemu_driver.c:11113
 msgid "cannot abort incoming migration; use virDomainDestroy instead"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:11164
+#: src/qemu/qemu_driver.c:11166
 msgid "domain is not being migrated"
 msgstr "домен не переносится"
 
-#: src/qemu/qemu_driver.c:11219 src/qemu/qemu_driver.c:11274
+#: src/qemu/qemu_driver.c:11221 src/qemu/qemu_driver.c:11276
 msgid "Compressed migration is not supported by QEMU binary"
 msgstr "Этот QEMU не поддерживает миграцию со сжатием"
 
-#: src/qemu/qemu_driver.c:11552
+#: src/qemu/qemu_driver.c:11554
 #, c-format
 msgid "unknown image format of '%s' and format probing is disabled"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:11681 src/qemu/qemu_driver.c:12234
+#: src/qemu/qemu_driver.c:11683 src/qemu/qemu_driver.c:12236
 msgid "resuming after snapshot failed"
 msgstr "возобновление работы после сбоя снимка"
 
-#: src/qemu/qemu_driver.c:11716
+#: src/qemu/qemu_driver.c:11718
 msgid "reuse is not supported with this QEMU binary"
 msgstr "Этот QEMU не поддерживает повторное использование."
 
-#: src/qemu/qemu_driver.c:11735
+#: src/qemu/qemu_driver.c:11737
 #, c-format
 msgid "internal snapshot for disk %s unsupported for storage type %s"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:11744
+#: src/qemu/qemu_driver.c:11746
 #, c-format
 msgid ""
 "active qemu domains require external disk snapshots; disk %s requested "
 "internal"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:11758
+#: src/qemu/qemu_driver.c:11760
 #, c-format
 msgid "external snapshot format for disk %s is unsupported: %s"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:11767 src/qemu/qemu_driver.c:14289
+#: src/qemu/qemu_driver.c:11769 src/qemu/qemu_driver.c:14291
 #, c-format
 msgid "unable to stat for disk %s: %s"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:11772
+#: src/qemu/qemu_driver.c:11774
 #, c-format
 msgid "missing existing file for disk %s: %s"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:11778
+#: src/qemu/qemu_driver.c:11780
 #, c-format
 msgid ""
 "external snapshot file for disk %s already exists and is not a block device: "
 "%s"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:11792 src/qemu/qemu_driver.c:11868
+#: src/qemu/qemu_driver.c:11794 src/qemu/qemu_driver.c:11870
 msgid "unexpected code path"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:11801
+#: src/qemu/qemu_driver.c:11803
 msgid ""
 "internal checkpoints require at least one disk to be selected for snapshot"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:11809
+#: src/qemu/qemu_driver.c:11811
 msgid ""
 "disk-only snapshots require at least one disk to be selected for snapshot"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:11819
+#: src/qemu/qemu_driver.c:11821
 msgid "mixing internal and external snapshots is not supported yet"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:11834
+#: src/qemu/qemu_driver.c:11836
 msgid "atomic live snapshot of multiple disks is unsupported"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:12003
+#: src/qemu/qemu_driver.c:12005
 msgid "live disk snapshot not supported with this QEMU binary"
 msgstr "Этот QEMU не поддерживает создание снимка работающего диска"
 
-#: src/qemu/qemu_driver.c:12296
+#: src/qemu/qemu_driver.c:12298
 msgid "quiesce requires disk-only"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:12322 src/qemu/qemu_migration.c:1410
+#: src/qemu/qemu_driver.c:12324 src/qemu/qemu_migration.c:1410
 msgid "domain is marked for auto destroy"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:12333
+#: src/qemu/qemu_driver.c:12335
 msgid "cannot halt after transient domain snapshot"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:12350
+#: src/qemu/qemu_driver.c:12352
 #, c-format
 msgid "invalid snapshot name '%s': name can't contain '/'"
 msgstr "Недопустимое имя снимка: «%s». Имя не может содержать «/»."
 
-#: src/qemu/qemu_driver.c:12358
+#: src/qemu/qemu_driver.c:12360
 #, c-format
 msgid "invalid snapshot name '%s': name can't start with '.'"
 msgstr "Недопустимое имя снимка: «%s». Имя не может начинаться с «.»"
 
-#: src/qemu/qemu_driver.c:12371
+#: src/qemu/qemu_driver.c:12373
 msgid "live snapshot creation is supported only with external checkpoints"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:12381
+#: src/qemu/qemu_driver.c:12383
 #, c-format
 msgid "cannot set snapshot %s as its own parent"
 msgstr "снимок %s не может быть выступать в роли своего родителя"
 
-#: src/qemu/qemu_driver.c:12388
+#: src/qemu/qemu_driver.c:12390
 #, c-format
 msgid "parent %s for snapshot %s not found"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:12395
+#: src/qemu/qemu_driver.c:12397
 #, c-format
 msgid "parent %s would create cycle to %s"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:12413
+#: src/qemu/qemu_driver.c:12415
 #, c-format
 msgid "disk-only flag for snapshot %s requires disk-snapshot state"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:12423
+#: src/qemu/qemu_driver.c:12425
 #, c-format
 msgid "definition for snapshot %s must use uuid %s"
 msgstr "определение снимка %s должно содержать UUID %s"
 
-#: src/qemu/qemu_driver.c:12435
+#: src/qemu/qemu_driver.c:12437
 #, c-format
 msgid "cannot change between online and offline snapshot state in snapshot %s"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:12444
+#: src/qemu/qemu_driver.c:12446
 #, c-format
 msgid ""
 "cannot change between disk snapshot and system checkpoint in snapshot %s"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:12609
+#: src/qemu/qemu_driver.c:12611
 #, c-format
 msgid "unable to save metadata for snapshot %s"
 msgstr "Не удалось удалить метаданные снимка %s"
 
-#: src/qemu/qemu_driver.c:12894
+#: src/qemu/qemu_driver.c:12896
 msgid "the domain does not have a current snapshot"
 msgstr "У домена нет текущего снимка"
 
-#: src/qemu/qemu_driver.c:13066
+#: src/qemu/qemu_driver.c:13068
 msgid ""
 "transient domain needs to request run or pause to revert to inactive snapshot"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:13072
+#: src/qemu/qemu_driver.c:13074
 msgid "revert to external disk snapshot not supported yet"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:13079
+#: src/qemu/qemu_driver.c:13081
 #, c-format
 msgid "snapshot '%s' lacks domain '%s' rollback info"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:13089
+#: src/qemu/qemu_driver.c:13091
 msgid "must respawn qemu to start inactive snapshot"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:13429
+#: src/qemu/qemu_driver.c:13431
 #, c-format
 msgid "deletion of %d external disk snapshots not supported yet"
 msgstr "удаление снимков внешнего диска (%d) не поддерживается"
 
-#: src/qemu/qemu_driver.c:13456
+#: src/qemu/qemu_driver.c:13458
 #, c-format
 msgid "failed to set snapshot '%s' as current"
 msgstr "не удалось выбрать снимок «%s» как текущий"
 
-#: src/qemu/qemu_driver.c:13584
+#: src/qemu/qemu_driver.c:13586
 #, c-format
 msgid "No monitor connection for pid %u"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:13589
+#: src/qemu/qemu_driver.c:13591
 #, c-format
 msgid "Cannot connect to monitor connection of type '%s' for pid %u"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:13781
+#: src/qemu/qemu_driver.c:13783
 #, c-format
 msgid "cannot find channel %s"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:13788
+#: src/qemu/qemu_driver.c:13790
 #, c-format
 msgid "channel %s is not using a UNIX socket"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:13801
+#: src/qemu/qemu_driver.c:13803
 msgid "Active channel stream exists for this domain"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:13834
+#: src/qemu/qemu_driver.c:13836
 msgid "No device found for specified path"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:13877
+#: src/qemu/qemu_driver.c:13879
 #, c-format
 msgid "disk '%s' not ready for pivot yet"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:13982
+#: src/qemu/qemu_driver.c:13984
 msgid "resuming after drive-reopen failed"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:14016
+#: src/qemu/qemu_driver.c:14018
 msgid "block jobs not supported with this QEMU binary"
 msgstr "Этот QEMU не поддерживает задания обработки блоков."
 
-#: src/qemu/qemu_driver.c:14020
+#: src/qemu/qemu_driver.c:14022
 msgid "partial block pull not supported with this QEMU binary"
 msgstr "Этот QEMU не допускает частичное получение блоков."
 
-#: src/qemu/qemu_driver.c:14025
+#: src/qemu/qemu_driver.c:14027
 msgid ""
 "setting bandwidth at start of block pull not supported with this QEMU binary"
 msgstr ""
 "Этот QEMU не разрешает изменять полосу пропускания в начале получения блоков."
 
-#: src/qemu/qemu_driver.c:14037 src/qemu/qemu_driver.c:14244
+#: src/qemu/qemu_driver.c:14039 src/qemu/qemu_driver.c:14246
 #, c-format
 msgid "disk '%s' already in active block copy job"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:14045
+#: src/qemu/qemu_driver.c:14047
 #, c-format
 msgid "pivot of disk '%s' requires an active copy job"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:14252
+#: src/qemu/qemu_driver.c:14254
 msgid "block copy is not supported with this QEMU binary"
 msgstr "Этот QEMU не поддерживает блочное копирование."
 
-#: src/qemu/qemu_driver.c:14261
+#: src/qemu/qemu_driver.c:14263
 msgid "domain is not transient"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:14280
+#: src/qemu/qemu_driver.c:14282
 #, c-format
 msgid "disk '%s' has backing file, so raw shallow copy is not possible"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:14294
+#: src/qemu/qemu_driver.c:14296
 #, c-format
 msgid "missing destination file for disk %s: %s"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:14301
+#: src/qemu/qemu_driver.c:14303
 #, c-format
 msgid ""
 "external destination file for disk %s already exists and is not a block "
 "device: %s"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:14318
+#: src/qemu/qemu_driver.c:14320
 #, c-format
 msgid "unrecognized format '%s'"
 msgstr "неизвестный формат «%s»"
 
-#: src/qemu/qemu_driver.c:14465
+#: src/qemu/qemu_driver.c:14467
 msgid "online commit not supported with this QEMU binary"
 msgstr "Этот QEMU не поддерживает применение изменений в режиме онлайн"
 
-#: src/qemu/qemu_driver.c:14476
+#: src/qemu/qemu_driver.c:14478
 #, c-format
 msgid "disk %s has no source file to be committed"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:14491
+#: src/qemu/qemu_driver.c:14493
 #, c-format
 msgid "could not find top '%s' in chain for '%s'"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:14497
+#: src/qemu/qemu_driver.c:14499
 #, c-format
 msgid "top '%s' in chain for '%s' has no backing file"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:14506
+#: src/qemu/qemu_driver.c:14508
 #, c-format
 msgid "could not find base '%s' below '%s' in chain for '%s'"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:14517
+#: src/qemu/qemu_driver.c:14519
 #, c-format
 msgid "base '%s' is not immediately below '%s' in chain for '%s'"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:14595
+#: src/qemu/qemu_driver.c:14597
 #, c-format
 msgid "No graphics backend with index %d"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:14607
+#: src/qemu/qemu_driver.c:14609
 #, c-format
 msgid "Can only open VNC or SPICE graphics backends, not %s"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:14700
+#: src/qemu/qemu_driver.c:14702
 #, c-format
 msgid "block I/O throttle limit value must be less than %llu"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:14734
+#: src/qemu/qemu_driver.c:14736
 msgid "total and read/write of bytes_sec cannot be set at the same time"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:14741
+#: src/qemu/qemu_driver.c:14743
 msgid "total and read/write of iops_sec cannot be set at the same time"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:14792
+#: src/qemu/qemu_driver.c:14794
 msgid "Write to config file failed"
 msgstr "Ошибка записи в файл конфигурации"
 
-#: src/qemu/qemu_driver.c:15104 src/qemu/qemu_driver.c:15118
+#: src/qemu/qemu_driver.c:15106 src/qemu/qemu_driver.c:15120
 msgid "unable to get cpu account"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:15179 src/qemu/qemu_driver.c:15255
+#: src/qemu/qemu_driver.c:15181 src/qemu/qemu_driver.c:15257
 msgid "cpuacct parse error"
 msgstr "ошибка разбора cpuacct"
 
-#: src/qemu/qemu_driver.c:15232
+#: src/qemu/qemu_driver.c:15234
 #, c-format
 msgid "start_cpu %d larger than maximum of %d"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:15332
+#: src/qemu/qemu_driver.c:15334
 msgid "cgroup CPUACCT controller is not mounted"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:15362
+#: src/qemu/qemu_driver.c:15364
 msgid "Duration not supported. Use 0 for now"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:15370
+#: src/qemu/qemu_driver.c:15372
 #, c-format
 msgid "Unknown suspend target: %u"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:15393
+#: src/qemu/qemu_driver.c:15395
 msgid "Unable to suspend domain due to missing system_wakeup monitor command"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:15403
+#: src/qemu/qemu_driver.c:15405
 msgid "S3 state is disabled for this domain"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:15410
+#: src/qemu/qemu_driver.c:15412
 msgid "S4 state is disabled for this domain"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:15481
+#: src/qemu/qemu_driver.c:15483
 msgid "Unable to wake up domain due to missing system_wakeup monitor command"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:15601
+#: src/qemu/qemu_driver.c:15603
 msgid "Specifying mount point is not supported for now"
 msgstr ""
 
@@ -17709,57 +17709,57 @@ msgstr "Не удалось найти свободный порт для SPICE 
 msgid "Maximum CPUs greater than specified machine type limit"
 msgstr ""
 
-#: src/qemu/qemu_process.c:3529 src/qemu/qemu_process.c:4393
+#: src/qemu/qemu_process.c:3530 src/qemu/qemu_process.c:4394
 #: src/uml/uml_driver.c:1036
 msgid "VM is already active"
 msgstr "Виртуальная машина уже активна"
 
-#: src/qemu/qemu_process.c:3602
+#: src/qemu/qemu_process.c:3603
 msgid "Unable to set huge path in security driver"
 msgstr ""
 
-#: src/qemu/qemu_process.c:3641 src/qemu/qemu_process.c:4417
+#: src/qemu/qemu_process.c:3642 src/qemu/qemu_process.c:4418
 #: src/uml/uml_driver.c:1058
 #, c-format
 msgid "cannot create log directory %s"
 msgstr "не удалось создать каталог журналов %s"
 
-#: src/qemu/qemu_process.c:3654
+#: src/qemu/qemu_process.c:3655
 msgid ""
 "Domain requires KVM, but it is not available. Check that virtualization is "
 "enabled in the host BIOS, and host configuration is setup to load the kvm "
 "modules."
 msgstr ""
 
-#: src/qemu/qemu_process.c:3721
+#: src/qemu/qemu_process.c:3722
 msgid "Failed to build pidfile path."
 msgstr "Ошибка построения пути к файлу PID."
 
-#: src/qemu/qemu_process.c:3728
+#: src/qemu/qemu_process.c:3729
 #, c-format
 msgid "Cannot remove stale PID file %s"
 msgstr "не удалось удалить устаревший файл PID %s"
 
-#: src/qemu/qemu_process.c:3805
+#: src/qemu/qemu_process.c:3806
 msgid "Raw I/O is not supported on this platform"
 msgstr ""
 
-#: src/qemu/qemu_process.c:3843
+#: src/qemu/qemu_process.c:3844
 #, c-format
 msgid "Domain %s didn't show up"
 msgstr ""
 
-#: src/qemu/qemu_process.c:3906
+#: src/qemu/qemu_process.c:3907
 #, c-format
 msgid "cannot stat fd %d"
 msgstr ""
 
-#: src/qemu/qemu_process.c:3997
+#: src/qemu/qemu_process.c:3998
 #, c-format
 msgid "unable to set balloon to %lld"
 msgstr ""
 
-#: src/qemu/qemu_process.c:4183
+#: src/qemu/qemu_process.c:4184
 #, c-format
 msgid "failed to remove ebtables rule to allow MAC address on '%s'"
 msgstr "не удалось удалить правило ebtables для разрешения MAC-адресов на «%s»"
@@ -18378,7 +18378,7 @@ msgstr ""
 #: src/rpc/virnetsocket.c:294 src/rpc/virnetsocket.c:419
 #: src/rpc/virnetsocket.c:490 src/rpc/virnetsocket.c:573
 #: src/rpc/virnetsocket.c:894 src/rpc/virnetsocket.c:946
-#: src/rpc/virnetsocket.c:1678
+#: src/rpc/virnetsocket.c:1692
 msgid "Unable to get local socket name"
 msgstr "Не удалось получить имя локального сокета"
 
@@ -18495,62 +18495,72 @@ msgstr ""
 msgid "Failed to get client socket identity"
 msgstr ""
 
-#: src/rpc/virnetsocket.c:1185
+#: src/rpc/virnetsocket.c:1171
+#, fuzzy
+msgid "Failed to get valid client socket identity"
+msgstr "не удалось получить идентификационные данные сокета узла"
+
+#: src/rpc/virnetsocket.c:1177
+#, fuzzy
+msgid "Failed to get valid client socket identity groups"
+msgstr "Не удалось получить информацию о диске"
+
+#: src/rpc/virnetsocket.c:1199
 msgid "Client socket identity not available"
 msgstr ""
 
-#: src/rpc/virnetsocket.c:1206
+#: src/rpc/virnetsocket.c:1220
 msgid "Unable to query peer security context"
 msgstr ""
 
-#: src/rpc/virnetsocket.c:1384
+#: src/rpc/virnetsocket.c:1398
 #, c-format
 msgid "Cannot recv data: %s"
 msgstr ""
 
-#: src/rpc/virnetsocket.c:1387
+#: src/rpc/virnetsocket.c:1401
 msgid "Cannot recv data"
 msgstr ""
 
-#: src/rpc/virnetsocket.c:1392
+#: src/rpc/virnetsocket.c:1406
 #, c-format
 msgid "End of file while reading data: %s"
 msgstr "Достигнут конец файла при чтении данных: %s"
 
-#: src/rpc/virnetsocket.c:1395
+#: src/rpc/virnetsocket.c:1409
 msgid "End of file while reading data"
 msgstr "Достигнут конец файла при чтении данных"
 
-#: src/rpc/virnetsocket.c:1432
+#: src/rpc/virnetsocket.c:1446
 msgid "Cannot write data"
 msgstr "Ошибка записи данных"
 
-#: src/rpc/virnetsocket.c:1437
+#: src/rpc/virnetsocket.c:1451
 msgid "End of file while writing data"
 msgstr "Достигнут конец файла при записи данных"
 
-#: src/rpc/virnetsocket.c:1580
+#: src/rpc/virnetsocket.c:1594
 msgid "Sending file descriptors is not supported on this socket"
 msgstr ""
 
-#: src/rpc/virnetsocket.c:1591
+#: src/rpc/virnetsocket.c:1605
 #, c-format
 msgid "Failed to send file descriptor %d"
 msgstr "Не удалось отправить дескриптор %d"
 
-#: src/rpc/virnetsocket.c:1614
+#: src/rpc/virnetsocket.c:1628
 msgid "Receiving file descriptors is not supported on this socket"
 msgstr ""
 
-#: src/rpc/virnetsocket.c:1624
+#: src/rpc/virnetsocket.c:1638
 msgid "Failed to recv file descriptor"
 msgstr "Не удалось получить файловый дескриптор"
 
-#: src/rpc/virnetsocket.c:1641
+#: src/rpc/virnetsocket.c:1655
 msgid "Unable to listen on socket"
 msgstr ""
 
-#: src/rpc/virnetsocket.c:1672
+#: src/rpc/virnetsocket.c:1686
 msgid "Unable to accept client"
 msgstr ""
 
@@ -20015,14 +20025,14 @@ msgstr ""
 msgid "cannot create path '%s'"
 msgstr "не удалось создать путь «%s»"
 
-#: src/storage/storage_backend.c:279 src/util/virfile.c:1609
-#: src/util/virfile.c:1908 src/util/virfile.c:2015
+#: src/storage/storage_backend.c:279 src/util/virfile.c:1617
+#: src/util/virfile.c:1916 src/util/virfile.c:2023
 #, c-format
 msgid "stat of '%s' failed"
 msgstr "ошибка stat для «%s»"
 
 #: src/storage/storage_backend.c:295 src/storage/storage_backend.c:573
-#: src/util/virfile.c:1631 src/util/virfile.c:1922 src/util/virfile.c:2028
+#: src/util/virfile.c:1639 src/util/virfile.c:1930 src/util/virfile.c:2036
 #, c-format
 msgid "cannot set mode of '%s' to %04o"
 msgstr "не удалось определить режим файла «%s» как %04o"
@@ -22016,15 +22026,15 @@ msgstr "не удалось выполнить «%s --version»: %s"
 msgid "failed to run '%s --help': %s"
 msgstr " удалось выполнить «%s --help»: %s"
 
-#: src/util/vireventpoll.c:635
+#: src/util/vireventpoll.c:638
 msgid "Unable to poll on file handles"
 msgstr ""
 
-#: src/util/vireventpoll.c:685
+#: src/util/vireventpoll.c:688
 msgid "Unable to setup wakeup pipe"
 msgstr ""
 
-#: src/util/vireventpoll.c:693
+#: src/util/vireventpoll.c:696
 #, c-format
 msgid "Unable to add handle %d to event loop"
 msgstr ""
@@ -22187,54 +22197,54 @@ msgstr "Не удалось прочитать каталог «%s»"
 msgid "Cannot delete directory '%s'"
 msgstr "Не удалось удалить каталог «%s»"
 
-#: src/util/virfile.c:1262
+#: src/util/virfile.c:1270
 #, c-format
 msgid "Failed to read file '%s'"
 msgstr "Ошибка чтения файла «%s»"
 
-#: src/util/virfile.c:1667
+#: src/util/virfile.c:1675
 #, c-format
 msgid "failed to create socket needed for '%s'"
 msgstr "Не удалось создать обязательный для «%s» сокет"
 
-#: src/util/virfile.c:1698
+#: src/util/virfile.c:1706
 #, c-format
 msgid "child process failed to create file '%s'"
 msgstr ""
 
-#: src/util/virfile.c:1715
+#: src/util/virfile.c:1723
 msgid "child process failed to send fd to parent"
 msgstr ""
 
-#: src/util/virfile.c:1758 src/util/virfile.c:1975
+#: src/util/virfile.c:1766 src/util/virfile.c:1983
 #, c-format
 msgid "failed to wait for child creating '%s'"
 msgstr "ошибка при ожидании создания «%s»"
 
-#: src/util/virfile.c:1901
+#: src/util/virfile.c:1909
 #, c-format
 msgid "failed to create directory '%s'"
 msgstr "не удалось создать каталог «%s»"
 
-#: src/util/virfile.c:2005
+#: src/util/virfile.c:2013
 #, c-format
 msgid "child failed to create directory '%s'"
 msgstr "не удалось создать каталог «%s»"
 
-#: src/util/virfile.c:2021
+#: src/util/virfile.c:2029
 #, c-format
 msgid "cannot chown '%s' to group %u"
 msgstr "не удалось изменить владельца «%s» на группу %u"
 
-#: src/util/virfile.c:2060
+#: src/util/virfile.c:2068
 msgid "virFileOpenAs is not implemented for WIN32"
 msgstr ""
 
-#: src/util/virfile.c:2073
+#: src/util/virfile.c:2081
 msgid "virDirCreate is not implemented for WIN32"
 msgstr ""
 
-#: src/util/virfile.c:2428
+#: src/util/virfile.c:2436
 msgid "Could not write to stream"
 msgstr "Не удалось выполнить запись в поток"
 
@@ -23464,24 +23474,24 @@ msgstr "Этот тип виртуализации не поддерживает
 msgid "unknown s-expression kind %d"
 msgstr ""
 
-#: src/util/virscsi.c:95
+#: src/util/virscsi.c:96
 #, c-format
 msgid "Cannot parse adapter '%s'"
 msgstr "Не удалось выполнить разбор записи адаптера «%s»"
 
-#: src/util/virscsi.c:125 src/util/virscsi.c:168 src/util/virsysinfo.c:228
+#: src/util/virscsi.c:122 src/util/virscsi.c:165 src/util/virsysinfo.c:228
 #: src/util/virsysinfo.c:345 src/util/virsysinfo.c:473
 #: src/util/virsysinfo.c:488
 #, c-format
 msgid "Failed to open %s"
 msgstr "Не удалось открыть %s"
 
-#: src/util/virscsi.c:221
+#: src/util/virscsi.c:218
 #, c-format
 msgid "SCSI device '%s': could not access %s"
 msgstr "Устройство SCSI «%s»: нет доступа к %s"
 
-#: src/util/virscsi.c:357
+#: src/util/virscsi.c:354
 #, c-format
 msgid "Device %s already exists"
 msgstr "Устройство %s уже существует"
@@ -25296,73 +25306,88 @@ msgstr ""
 msgid "could not get snapshot count for listed domains"
 msgstr ""
 
-#: src/vmware/vmware_conf.c:236
+#: src/vmware/vmware_conf.c:240
 #, fuzzy, c-format
 msgid "Invalid driver type: %d"
 msgstr "недопустимый тип домена %s"
 
-#: src/vmware/vmware_conf.c:242
+#: src/vmware/vmware_conf.c:246
 #, fuzzy, c-format
 msgid "failed to parse %sversion"
 msgstr "не удалось разобрать версию %s"
 
-#: src/vmware/vmware_conf.c:248
+#: src/vmware/vmware_conf.c:252
 msgid "version parsing error"
 msgstr "ошибка разбора версии"
 
-#: src/vmware/vmware_conf.c:314
+#: src/vmware/vmware_conf.c:290
+#, fuzzy
+msgid "invalid driver type for version detection"
+msgstr "недопустимый размер шифра для сеанса TLS"
+
+#: src/vmware/vmware_conf.c:345
 #, c-format
 msgid "path '%s' doesn't reference a file"
 msgstr "«%s» не ссылается на файл"
 
-#: src/vmware/vmware_conf.c:425
+#: src/vmware/vmware_conf.c:456
 #, c-format
 msgid "file %s does not exist"
 msgstr "%s не существует"
 
-#: src/vmware/vmware_conf.c:437
+#: src/vmware/vmware_conf.c:468
 #, c-format
 msgid "failed to move file to %s "
 msgstr "не удалось перенести файл в %s"
 
-#: src/vmware/vmware_conf.c:474
+#: src/vmware/vmware_conf.c:505
 msgid "unable to read vmware log file"
 msgstr "не удалось открыть журнал vmware на чтение"
 
-#: src/vmware/vmware_conf.c:480
+#: src/vmware/vmware_conf.c:511
 msgid "cannot find pid in vmware log file"
 msgstr "PID не найден в журнале vmware"
 
-#: src/vmware/vmware_conf.c:490
+#: src/vmware/vmware_conf.c:521
 msgid "cannot parse pid in vmware log file"
 msgstr "не удалось выполнить разбор PID в журнале vmware"
 
-#: src/vmware/vmware_driver.c:115
-#, c-format
+#: src/vmware/vmware_driver.c:121
+#, fuzzy, c-format
 msgid ""
-"unexpected VMware URI path '%s', try vmwareplayer:///session or vmwarews:///"
-"session"
+"unexpected VMware URI path '%s', try vmwareplayer:///session, vmwarews:///"
+"session or vmwarefusion:///session"
 msgstr ""
 "непредвиденный путь VMWare «%s» (попробуйте vmwareplayer:///session или "
 "vmwarews:///session)"
 
-#: src/vmware/vmware_driver.c:140
+#: src/vmware/vmware_driver.c:146
 #, fuzzy
 msgid "vmrun utility is missing"
 msgstr "%s отсутствует"
 
-#: src/vmware/vmware_driver.c:354 src/vmware/vmware_driver.c:636
+#: src/vmware/vmware_driver.c:154
+#, fuzzy, c-format
+msgid "unable to parse URI scheme '%s'"
+msgstr "не удалось обработать URI %s"
+
+#: src/vmware/vmware_driver.c:168
+#, c-format
+msgid "unable to find valid requested VMware backend '%s'"
+msgstr ""
+
+#: src/vmware/vmware_driver.c:377 src/vmware/vmware_driver.c:659
 #, c-format
 msgid "Failed to write vmx file '%s'"
 msgstr "Не удалось записать файл VMX «%s»"
 
-#: src/vmware/vmware_driver.c:469 src/vmware/vmware_driver.c:518
+#: src/vmware/vmware_driver.c:492 src/vmware/vmware_driver.c:541
 msgid ""
 "vmplayer does not support libvirt suspend/resume (vmware pause/unpause) "
 "operation "
 msgstr ""
 
-#: src/vmware/vmware_driver.c:537
+#: src/vmware/vmware_driver.c:560
 msgid "domain is not in suspend state"
 msgstr "домен не находится в приостановленном состоянии"
 
@@ -27684,9 +27709,9 @@ msgstr ""
 #: tools/virsh-domain-monitor.c:1274 tools/virsh-domain-monitor.c:1286
 #: tools/virsh-network.c:381 tools/virsh-pool.c:1066 tools/virsh-pool.c:1081
 #: tools/virsh-pool.c:1083 tools/virsh-pool.c:1084 tools/virsh-pool.c:1085
-#: tools/virsh-pool.c:1550 tools/virsh-volume.c:996 tools/virsh-volume.c:1358
-#: tools/virsh-volume.c:1365 tools/virsh-volume.c:1366
-#: tools/virsh-volume.c:1367 tools/virsh-volume.c:1383
+#: tools/virsh-pool.c:1550 tools/virsh-volume.c:1004 tools/virsh-volume.c:1366
+#: tools/virsh-volume.c:1373 tools/virsh-volume.c:1374
+#: tools/virsh-volume.c:1375 tools/virsh-volume.c:1391
 msgid "unknown"
 msgstr "неизвестно"
 
@@ -27850,11 +27875,11 @@ msgstr "Получить статистику памяти для выполня
 #: tools/virsh-domain.c:8538 tools/virsh-domain.c:8805
 #: tools/virsh-domain.c:8859 tools/virsh-domain.c:8921
 #: tools/virsh-domain.c:8973 tools/virsh-domain.c:9017
-#: tools/virsh-domain.c:9195 tools/virsh-domain.c:9268
-#: tools/virsh-domain.c:9328 tools/virsh-domain.c:9491
-#: tools/virsh-domain.c:9592 tools/virsh-domain.c:9694
-#: tools/virsh-domain.c:10064 tools/virsh-domain.c:10174
-#: tools/virsh-domain.c:10234 tools/virsh-domain.c:10385
+#: tools/virsh-domain.c:9199 tools/virsh-domain.c:9272
+#: tools/virsh-domain.c:9332 tools/virsh-domain.c:9495
+#: tools/virsh-domain.c:9596 tools/virsh-domain.c:9698
+#: tools/virsh-domain.c:10068 tools/virsh-domain.c:10178
+#: tools/virsh-domain.c:10238 tools/virsh-domain.c:10389
 #: tools/virsh-snapshot.c:128 tools/virsh-snapshot.c:331
 #: tools/virsh-snapshot.c:523 tools/virsh-snapshot.c:645
 #: tools/virsh-snapshot.c:881 tools/virsh-snapshot.c:1438
@@ -27874,8 +27899,8 @@ msgstr ""
 #: tools/virsh-domain.c:5805 tools/virsh-domain.c:5928
 #: tools/virsh-domain.c:7221 tools/virsh-domain.c:7318
 #: tools/virsh-domain.c:7427 tools/virsh-domain.c:7618
-#: tools/virsh-domain.c:9504 tools/virsh-domain.c:9605
-#: tools/virsh-domain.c:9711 tools/virsh-domain.c:10077
+#: tools/virsh-domain.c:9508 tools/virsh-domain.c:9609
+#: tools/virsh-domain.c:9715 tools/virsh-domain.c:10081
 msgid "affect next boot"
 msgstr "применить при следующей загрузке"
 
@@ -27885,9 +27910,9 @@ msgstr "применить при следующей загрузке"
 #: tools/virsh-domain.c:5526 tools/virsh-domain.c:5809
 #: tools/virsh-domain.c:5932 tools/virsh-domain.c:7225
 #: tools/virsh-domain.c:7322 tools/virsh-domain.c:7431
-#: tools/virsh-domain.c:7622 tools/virsh-domain.c:9508
-#: tools/virsh-domain.c:9609 tools/virsh-domain.c:9715
-#: tools/virsh-domain.c:10081
+#: tools/virsh-domain.c:7622 tools/virsh-domain.c:9512
+#: tools/virsh-domain.c:9613 tools/virsh-domain.c:9719
+#: tools/virsh-domain.c:10085
 msgid "affect running domain"
 msgstr "применить к работающему домену"
 
@@ -27897,9 +27922,9 @@ msgstr "применить к работающему домену"
 #: tools/virsh-domain.c:5530 tools/virsh-domain.c:5813
 #: tools/virsh-domain.c:5936 tools/virsh-domain.c:7229
 #: tools/virsh-domain.c:7326 tools/virsh-domain.c:7435
-#: tools/virsh-domain.c:7626 tools/virsh-domain.c:9512
-#: tools/virsh-domain.c:9613 tools/virsh-domain.c:9719
-#: tools/virsh-domain.c:10085
+#: tools/virsh-domain.c:7626 tools/virsh-domain.c:9516
+#: tools/virsh-domain.c:9617 tools/virsh-domain.c:9723
+#: tools/virsh-domain.c:10089
 msgid "affect current domain"
 msgstr "применить к текущему домену"
 
@@ -27935,12 +27960,12 @@ msgid "block device"
 msgstr "блочное устройство"
 
 #: tools/virsh-domain-monitor.c:464 tools/virsh-pool.c:1563
-#: tools/virsh-volume.c:1000
+#: tools/virsh-volume.c:1008
 msgid "Capacity:"
 msgstr "Ёмкость:"
 
 #: tools/virsh-domain-monitor.c:465 tools/virsh-pool.c:1566
-#: tools/virsh-volume.c:1003
+#: tools/virsh-volume.c:1011
 msgid "Allocation:"
 msgstr "Выделение:"
 
@@ -27965,7 +27990,7 @@ msgid "additionally display the type and device value"
 msgstr ""
 
 #: tools/virsh-domain-monitor.c:540 tools/virsh-domain-monitor.c:646
-#: tools/virsh-volume.c:1470 tools/virsh-volume.c:1510
+#: tools/virsh-volume.c:1478 tools/virsh-volume.c:1518
 msgid "Type"
 msgstr "Тип"
 
@@ -28155,7 +28180,7 @@ msgid "Id:"
 msgstr "ID:"
 
 #: tools/virsh-domain-monitor.c:1231 tools/virsh-pool.c:1514
-#: tools/virsh-snapshot.c:920 tools/virsh-volume.c:973
+#: tools/virsh-snapshot.c:920 tools/virsh-volume.c:981
 msgid "Name:"
 msgstr "Имя:"
 
@@ -28370,8 +28395,8 @@ msgstr "ID"
 #: tools/virsh-network.c:692 tools/virsh-nwfilter.c:373
 #: tools/virsh-pool.c:1194 tools/virsh-pool.c:1215 tools/virsh-pool.c:1283
 #: tools/virsh-snapshot.c:1595 tools/virsh-snapshot.c:1599
-#: tools/virsh-volume.c:1445 tools/virsh-volume.c:1460
-#: tools/virsh-volume.c:1510
+#: tools/virsh-volume.c:1453 tools/virsh-volume.c:1468
+#: tools/virsh-volume.c:1518
 msgid "Name"
 msgstr "Имя"
 
@@ -28407,14 +28432,14 @@ msgstr "подключить устройство из файла XML"
 msgid "Attach device from an XML <file>."
 msgstr "Подключить устройство из XML <file>."
 
-#: tools/virsh-domain.c:173 tools/virsh-domain.c:9496
-#: tools/virsh-domain.c:9597
+#: tools/virsh-domain.c:173 tools/virsh-domain.c:9500
+#: tools/virsh-domain.c:9601
 msgid "XML file"
 msgstr "файл XML"
 
 #: tools/virsh-domain.c:177 tools/virsh-domain.c:336 tools/virsh-domain.c:749
-#: tools/virsh-domain.c:9500 tools/virsh-domain.c:9601
-#: tools/virsh-domain.c:9707 tools/virsh-domain.c:10073
+#: tools/virsh-domain.c:9504 tools/virsh-domain.c:9605
+#: tools/virsh-domain.c:9711 tools/virsh-domain.c:10077
 msgid "make live change persistent"
 msgstr ""
 
@@ -28439,7 +28464,7 @@ msgstr "Подключить новое дисковое устройство."
 msgid "source of disk device"
 msgstr "исходное устройство"
 
-#: tools/virsh-domain.c:280 tools/virsh-domain.c:10069
+#: tools/virsh-domain.c:280 tools/virsh-domain.c:10073
 msgid "target of disk device"
 msgstr "целевое устройство в домене"
 
@@ -28537,7 +28562,7 @@ msgstr "подключить сетевой интерфейс"
 msgid "Attach new network interface."
 msgstr "Подключить новый сетевой интерфейс."
 
-#: tools/virsh-domain.c:716 tools/virsh-domain.c:9699
+#: tools/virsh-domain.c:716 tools/virsh-domain.c:9703
 msgid "network interface type"
 msgstr "тип сетевого интерфейса"
 
@@ -28549,7 +28574,7 @@ msgstr "источник сетевого интерфейса"
 msgid "target network name"
 msgstr "имя целевой сети"
 
-#: tools/virsh-domain.c:729 tools/virsh-domain.c:9703
+#: tools/virsh-domain.c:729 tools/virsh-domain.c:9707
 msgid "MAC address"
 msgstr "MAC-адрес"
 
@@ -28980,7 +29005,7 @@ msgid "New size of the block device, as scaled integer (default KiB)"
 msgstr ""
 
 #: tools/virsh-domain.c:2185 tools/virsh-volume.c:647 tools/virsh-volume.c:652
-#: tools/virsh-volume.c:753 tools/virsh-volume.c:758
+#: tools/virsh-volume.c:757 tools/virsh-volume.c:762
 msgid "Unable to parse integer"
 msgstr "Не удалось выполнить разбор целого значения"
 
@@ -29072,7 +29097,7 @@ msgstr "Не удалось создать XML"
 msgid "Failed to update interface link state"
 msgstr "Не удалось обновить статус связи интерфейса"
 
-#: tools/virsh-domain.c:2481 tools/virsh-domain.c:9668
+#: tools/virsh-domain.c:2481 tools/virsh-domain.c:9672
 msgid "Device updated successfully\n"
 msgstr "Обновление успешно.\n"
 
@@ -29701,7 +29726,7 @@ msgstr "не удалось создать файл %s"
 msgid "could not receive data from domain %s"
 msgstr "не удалось получить данные из домена %s"
 
-#: tools/virsh-domain.c:4644 tools/virsh-volume.c:680 tools/virsh-volume.c:790
+#: tools/virsh-domain.c:4644 tools/virsh-volume.c:684 tools/virsh-volume.c:798
 #, c-format
 msgid "cannot close file %s"
 msgstr "не удалось закрыть файл «%s»"
@@ -30940,94 +30965,94 @@ msgstr ""
 msgid "includes the password into the connection URI if available"
 msgstr ""
 
-#: tools/virsh-domain.c:9153
+#: tools/virsh-domain.c:9157
 msgid "Failed to create display URI"
 msgstr ""
 
-#: tools/virsh-domain.c:9183
+#: tools/virsh-domain.c:9187
 msgid "vnc display"
 msgstr "дисплей VNC"
 
-#: tools/virsh-domain.c:9186
+#: tools/virsh-domain.c:9190
 msgid "Output the IP address and port number for the VNC display."
 msgstr "Вывести IP-адрес и номер порта на дисплей VNC."
 
-#: tools/virsh-domain.c:9229
+#: tools/virsh-domain.c:9233
 msgid "Failed to get VNC port. Is this domain using VNC?"
 msgstr ""
 
-#: tools/virsh-domain.c:9256
+#: tools/virsh-domain.c:9260
 msgid "tty console"
 msgstr "консоль TTY"
 
-#: tools/virsh-domain.c:9259
+#: tools/virsh-domain.c:9263
 msgid "Output the device for the TTY console."
 msgstr "Вывести устройство на консоль TTY."
 
-#: tools/virsh-domain.c:9316
+#: tools/virsh-domain.c:9320
 msgid "print the domain's hostname"
 msgstr ""
 
-#: tools/virsh-domain.c:9345 tools/virsh-host.c:627
+#: tools/virsh-domain.c:9349 tools/virsh-host.c:627
 msgid "failed to get hostname"
 msgstr "не удалось получить имя узла"
 
-#: tools/virsh-domain.c:9433 tools/virsh-domain.c:9446
+#: tools/virsh-domain.c:9437 tools/virsh-domain.c:9450
 msgid "Bad child elements counting."
 msgstr ""
 
-#: tools/virsh-domain.c:9479
+#: tools/virsh-domain.c:9483
 msgid "detach device from an XML file"
 msgstr "отключить устройство из файла XML"
 
-#: tools/virsh-domain.c:9482
+#: tools/virsh-domain.c:9486
 msgid "Detach device from an XML <file>"
 msgstr "Отключить устройство из XML <file>"
 
-#: tools/virsh-domain.c:9562
+#: tools/virsh-domain.c:9566
 #, c-format
 msgid "Failed to detach device from %s"
 msgstr "Не удалось отключить устройство из %s"
 
-#: tools/virsh-domain.c:9566
+#: tools/virsh-domain.c:9570
 msgid "Device detached successfully\n"
 msgstr "Устройство отключено успешно\n"
 
-#: tools/virsh-domain.c:9580
+#: tools/virsh-domain.c:9584
 msgid "update device from an XML file"
 msgstr "обновить устройство в соответствии с файлом XML"
 
-#: tools/virsh-domain.c:9583
+#: tools/virsh-domain.c:9587
 msgid "Update device from an XML <file>."
 msgstr "Обновить устройство в соответствии с XML <file>."
 
-#: tools/virsh-domain.c:9617
+#: tools/virsh-domain.c:9621
 msgid "force device update"
 msgstr "принудительное обновление устройства"
 
-#: tools/virsh-domain.c:9664
+#: tools/virsh-domain.c:9668
 #, c-format
 msgid "Failed to update device from %s"
 msgstr "Не удалось обновить устройство на основе %s"
 
-#: tools/virsh-domain.c:9682
+#: tools/virsh-domain.c:9686
 msgid "detach network interface"
 msgstr "отключить сетевой интерфейс"
 
-#: tools/virsh-domain.c:9685
+#: tools/virsh-domain.c:9689
 msgid "Detach network interface."
 msgstr "Отключить сетевой интерфейс."
 
-#: tools/virsh-domain.c:9773
+#: tools/virsh-domain.c:9777
 msgid "Failed to get interface information"
 msgstr "Не удалось получить информацию об интерфейсе"
 
-#: tools/virsh-domain.c:9781
+#: tools/virsh-domain.c:9785
 #, c-format
 msgid "No found interface whose type is %s"
 msgstr "Интерфейс этого типа не найден: %s"
 
-#: tools/virsh-domain.c:9786
+#: tools/virsh-domain.c:9790
 #, c-format
 msgid ""
 "Domain has %d interfaces. Please specify which one to detach using --mac"
@@ -31035,116 +31060,116 @@ msgstr ""
 "У домена есть несколько интерфейсов (%d). С помощью параметра «--mac» "
 "выберите интерфейс для отключения."
 
-#: tools/virsh-domain.c:9808
+#: tools/virsh-domain.c:9812
 #, c-format
 msgid ""
 "Domain has multiple interfaces matching MAC address %s. You must use detach-"
 "device and specify the device pci address to remove it."
 msgstr ""
 
-#: tools/virsh-domain.c:9821
+#: tools/virsh-domain.c:9825
 #, c-format
 msgid "No interface with MAC address %s was found"
 msgstr ""
 
-#: tools/virsh-domain.c:9837
+#: tools/virsh-domain.c:9841
 msgid "Failed to detach interface"
 msgstr "Не удалось отключить интерфейс"
 
-#: tools/virsh-domain.c:9839
+#: tools/virsh-domain.c:9843
 msgid "Interface detached successfully\n"
 msgstr "Интерфейс отключен успешно\n"
 
-#: tools/virsh-domain.c:9877 tools/virsh-domain.c:9886
+#: tools/virsh-domain.c:9881 tools/virsh-domain.c:9890
 msgid "Failed to get disk information"
 msgstr "Не удалось получить информацию о диске"
 
-#: tools/virsh-domain.c:9939
+#: tools/virsh-domain.c:9943
 #, c-format
 msgid "No found disk whose source path or target is %s"
 msgstr ""
 
-#: tools/virsh-domain.c:9994
+#: tools/virsh-domain.c:9998
 #, c-format
 msgid "The disk device '%s' doesn't have media"
 msgstr ""
 
-#: tools/virsh-domain.c:10007
+#: tools/virsh-domain.c:10011
 msgid "No source is specified for inserting media"
 msgstr ""
 
-#: tools/virsh-domain.c:10010
+#: tools/virsh-domain.c:10014
 msgid "No source is specified for updating media"
 msgstr ""
 
-#: tools/virsh-domain.c:10017
+#: tools/virsh-domain.c:10021
 #, c-format
 msgid "The disk device '%s' already has media"
 msgstr ""
 
-#: tools/virsh-domain.c:10052
+#: tools/virsh-domain.c:10056
 msgid "detach disk device"
 msgstr "отключить дисковое устройство"
 
-#: tools/virsh-domain.c:10055
+#: tools/virsh-domain.c:10059
 msgid "Detach disk device."
 msgstr "Отключить дисковое устройство."
 
-#: tools/virsh-domain.c:10142
+#: tools/virsh-domain.c:10146
 msgid "Failed to detach disk"
 msgstr "Не удалось отключить диск"
 
-#: tools/virsh-domain.c:10146
+#: tools/virsh-domain.c:10150
 msgid "Disk detached successfully\n"
 msgstr "Диск отключен успешно\n"
 
-#: tools/virsh-domain.c:10162
+#: tools/virsh-domain.c:10166
 msgid "edit XML configuration for a domain"
 msgstr "изменить XML-конфигурацию домена"
 
-#: tools/virsh-domain.c:10165
+#: tools/virsh-domain.c:10169
 msgid "Edit the XML configuration for a domain."
 msgstr "Изменить XML-конфигурацию домена."
 
-#: tools/virsh-domain.c:10193
+#: tools/virsh-domain.c:10197
 #, c-format
 msgid "Domain %s XML configuration not changed.\n"
 msgstr "XML-конфигурация домена %s не изменилась.\n"
 
-#: tools/virsh-domain.c:10203
+#: tools/virsh-domain.c:10207
 #, c-format
 msgid "Domain %s XML configuration edited.\n"
 msgstr "XML-конфигурация домена %s изменена.\n"
 
-#: tools/virsh-domain.c:10222
+#: tools/virsh-domain.c:10226
 msgid "Change media of CD or floppy drive"
 msgstr ""
 
-#: tools/virsh-domain.c:10225
+#: tools/virsh-domain.c:10229
 msgid "Change media of CD or floppy drive."
 msgstr ""
 
-#: tools/virsh-domain.c:10239
+#: tools/virsh-domain.c:10243
 msgid "Fully-qualified path or target of disk device"
 msgstr ""
 
-#: tools/virsh-domain.c:10243
+#: tools/virsh-domain.c:10247
 msgid "source of the media"
 msgstr ""
 
-#: tools/virsh-domain.c:10247
+#: tools/virsh-domain.c:10251
 msgid "Eject the media"
 msgstr "Извлечь носитель"
 
-#: tools/virsh-domain.c:10251
+#: tools/virsh-domain.c:10255
 msgid "Insert the media"
 msgstr "Вставить носитель"
 
-#: tools/virsh-domain.c:10255
+#: tools/virsh-domain.c:10259
 msgid "Update the media"
 msgstr "Обновить носитель"
 
-#: tools/virsh-domain.c:10259
+#: tools/virsh-domain.c:10263
 msgid ""
 "can be either or both of --live and --config, depends on implementation of "
 "hypervisor driver"
@@ -31152,49 +31177,49 @@ msgstr ""
 "может принимать значения «--live» и «--config» в зависимости от драйвера "
 "гипервизора"
 
-#: tools/virsh-domain.c:10264
+#: tools/virsh-domain.c:10268
 msgid "alter live configuration of running domain"
 msgstr ""
 
-#: tools/virsh-domain.c:10268
+#: tools/virsh-domain.c:10272
 msgid "alter persistent configuration, effect observed on next boot"
 msgstr ""
 
-#: tools/virsh-domain.c:10272
+#: tools/virsh-domain.c:10276
 msgid "force media changing"
 msgstr "принудительная смена носителя"
 
-#: tools/virsh-domain.c:10337
+#: tools/virsh-domain.c:10341
 msgid "No disk source specified for inserting"
-msgstr ""
-
-#: tools/virsh-domain.c:10355
-#, c-format
-msgid "Failed to complete action %s on media"
 msgstr ""
 
 #: tools/virsh-domain.c:10359
 #, c-format
+msgid "Failed to complete action %s on media"
+msgstr ""
+
+#: tools/virsh-domain.c:10363
+#, c-format
 msgid "succeeded to complete action %s on media\n"
 msgstr ""
 
-#: tools/virsh-domain.c:10373 tools/virsh-domain.c:10376
+#: tools/virsh-domain.c:10377 tools/virsh-domain.c:10380
 msgid "Invoke fstrim on domain's mounted filesystems."
 msgstr ""
 
-#: tools/virsh-domain.c:10389
+#: tools/virsh-domain.c:10393
 msgid "Just a hint to ignore contiguous free ranges smaller than this (Bytes)"
 msgstr ""
 
-#: tools/virsh-domain.c:10394
+#: tools/virsh-domain.c:10398
 msgid "which mount point to trim"
 msgstr ""
 
-#: tools/virsh-domain.c:10411
+#: tools/virsh-domain.c:10415
 msgid "Unable to parse integer parameter minimum"
 msgstr "Не удалось обработать минимальное значение целого параметра"
 
-#: tools/virsh-domain.c:10419
+#: tools/virsh-domain.c:10423
 msgid "Unable to invoke fstrim"
 msgstr "Не удалось запустить fstrim"
 
@@ -32652,10 +32677,10 @@ msgstr "Настроить автоматический запуск пула п
 #: tools/virsh-pool.c:547 tools/virsh-pool.c:590 tools/virsh-pool.c:633
 #: tools/virsh-pool.c:1496 tools/virsh-pool.c:1675 tools/virsh-pool.c:1759
 #: tools/virsh-volume.c:390 tools/virsh-volume.c:517 tools/virsh-volume.c:613
-#: tools/virsh-volume.c:727 tools/virsh-volume.c:834 tools/virsh-volume.c:882
-#: tools/virsh-volume.c:958 tools/virsh-volume.c:1038
-#: tools/virsh-volume.c:1136 tools/virsh-volume.c:1306
-#: tools/virsh-volume.c:1689 tools/virsh-volume.c:1728
+#: tools/virsh-volume.c:731 tools/virsh-volume.c:842 tools/virsh-volume.c:890
+#: tools/virsh-volume.c:966 tools/virsh-volume.c:1046
+#: tools/virsh-volume.c:1144 tools/virsh-volume.c:1314
+#: tools/virsh-volume.c:1697 tools/virsh-volume.c:1736
 msgid "pool name or uuid"
 msgstr "имя пула или UUID"
 
@@ -32968,12 +32993,12 @@ msgstr "нет доступа"
 msgid "-"
 msgstr "-"
 
-#: tools/virsh-pool.c:1235 tools/virsh-pool.c:1284 tools/virsh-volume.c:1475
+#: tools/virsh-pool.c:1235 tools/virsh-pool.c:1284 tools/virsh-volume.c:1483
 msgid "Capacity"
 msgstr ""
 
-#: tools/virsh-pool.c:1240 tools/virsh-pool.c:1284 tools/virsh-volume.c:1480
-#: tools/virsh-volume.c:1511
+#: tools/virsh-pool.c:1240 tools/virsh-pool.c:1284 tools/virsh-volume.c:1488
+#: tools/virsh-volume.c:1519
 msgid "Allocation"
 msgstr ""
 
@@ -32981,7 +33006,7 @@ msgstr ""
 msgid "Available"
 msgstr "Доступно"
 
-#: tools/virsh-pool.c:1317 tools/virsh-volume.c:1542
+#: tools/virsh-pool.c:1317 tools/virsh-volume.c:1550
 #, c-format
 msgid "virAsprintf failed (errno %d)"
 msgstr "сбой virAsprintf (errno %d)"
@@ -33763,7 +33788,7 @@ msgstr ""
 msgid "preallocate metadata (for qcow2 instead of full allocation)"
 msgstr ""
 
-#: tools/virsh-volume.c:190 tools/virsh-volume.c:196 tools/virsh-volume.c:1092
+#: tools/virsh-volume.c:190 tools/virsh-volume.c:196 tools/virsh-volume.c:1100
 #, c-format
 msgid "Malformed size %s"
 msgstr "Неверно сформированный размер %s"
@@ -33837,7 +33862,7 @@ msgstr "имя исходного тома или ключ"
 msgid "clone name"
 msgstr "имя дубликата"
 
-#: tools/virsh-volume.c:545 tools/virsh-volume.c:1647
+#: tools/virsh-volume.c:545 tools/virsh-volume.c:1655
 msgid "failed to get parent pool"
 msgstr "не удалось получить родительский пул"
 
@@ -33859,14 +33884,14 @@ msgstr ""
 msgid "Upload file contents to a volume"
 msgstr ""
 
-#: tools/virsh-volume.c:604 tools/virsh-volume.c:718 tools/virsh-volume.c:830
-#: tools/virsh-volume.c:878 tools/virsh-volume.c:954 tools/virsh-volume.c:1029
-#: tools/virsh-volume.c:1132
+#: tools/virsh-volume.c:604 tools/virsh-volume.c:722 tools/virsh-volume.c:838
+#: tools/virsh-volume.c:886 tools/virsh-volume.c:962 tools/virsh-volume.c:1037
+#: tools/virsh-volume.c:1140
 msgid "vol name, key or path"
 msgstr "имя тома, ключ или путь"
 
-#: tools/virsh-volume.c:609 tools/virsh-volume.c:723 tools/virsh-volume.c:980
-#: tools/virsh-volume.c:1374
+#: tools/virsh-volume.c:609 tools/virsh-volume.c:727 tools/virsh-volume.c:988
+#: tools/virsh-volume.c:1382
 msgid "file"
 msgstr "файл"
 
@@ -33878,234 +33903,239 @@ msgstr "отступ тома, куда будут загружаться дан
 msgid "amount of data to upload"
 msgstr ""
 
-#: tools/virsh-volume.c:670
+#: tools/virsh-volume.c:669 tools/virsh-volume.c:783
+#, fuzzy
+msgid "cannot create a new stream"
+msgstr "не удалось выполнить запись в поток"
+
+#: tools/virsh-volume.c:674
 #, c-format
 msgid "cannot upload to volume %s"
 msgstr ""
 
-#: tools/virsh-volume.c:675
+#: tools/virsh-volume.c:679
 #, c-format
 msgid "cannot send data to volume %s"
 msgstr "не удалось передать данные тому %s"
 
-#: tools/virsh-volume.c:686 tools/virsh-volume.c:796
+#: tools/virsh-volume.c:690 tools/virsh-volume.c:804
 #, c-format
 msgid "cannot close volume %s"
 msgstr "не удалось закрыть том %s"
 
-#: tools/virsh-volume.c:706
+#: tools/virsh-volume.c:710
 msgid "download volume contents to a file"
 msgstr "загрузить содержимое тома в файл"
 
-#: tools/virsh-volume.c:709
+#: tools/virsh-volume.c:713
 msgid "Download volume contents to a file"
 msgstr "Загрузить содержимое тома в файл"
 
-#: tools/virsh-volume.c:731
+#: tools/virsh-volume.c:735
 msgid "volume offset to download from"
 msgstr "отступ тома, откуда будут загружаться данные"
 
-#: tools/virsh-volume.c:735
+#: tools/virsh-volume.c:739
 msgid "amount of data to download"
 msgstr "размер загружаемых данных"
 
-#: tools/virsh-volume.c:771
+#: tools/virsh-volume.c:775
 #, c-format
 msgid "cannot create %s"
 msgstr "не удалось создать %s"
 
-#: tools/virsh-volume.c:780
+#: tools/virsh-volume.c:788
 #, c-format
 msgid "cannot download from volume %s"
 msgstr ""
 
-#: tools/virsh-volume.c:785
+#: tools/virsh-volume.c:793
 #, c-format
 msgid "cannot receive data from volume %s"
 msgstr ""
 
-#: tools/virsh-volume.c:818
+#: tools/virsh-volume.c:826
 msgid "delete a vol"
 msgstr "удалить том"
 
-#: tools/virsh-volume.c:821
+#: tools/virsh-volume.c:829
 msgid "Delete a given vol."
 msgstr "Удалить заданный том."
 
-#: tools/virsh-volume.c:851
+#: tools/virsh-volume.c:859
 #, c-format
 msgid "Vol %s deleted\n"
 msgstr "Том %s удалён\n"
 
-#: tools/virsh-volume.c:853
+#: tools/virsh-volume.c:861
 #, c-format
 msgid "Failed to delete vol %s"
 msgstr "Не удалось удалить том %s"
 
-#: tools/virsh-volume.c:866
+#: tools/virsh-volume.c:874
 msgid "wipe a vol"
 msgstr "очистить том"
 
-#: tools/virsh-volume.c:869
+#: tools/virsh-volume.c:877
 msgid "Ensure data previously on a volume is not accessible to future reads"
 msgstr ""
 
-#: tools/virsh-volume.c:886
+#: tools/virsh-volume.c:894
 msgid "perform selected wiping algorithm"
 msgstr ""
 
-#: tools/virsh-volume.c:915
+#: tools/virsh-volume.c:923
 #, c-format
 msgid "Unsupported algorithm '%s'"
 msgstr "Алгоритм «%s» не поддерживается."
 
-#: tools/virsh-volume.c:926
+#: tools/virsh-volume.c:934
 #, c-format
 msgid "Failed to wipe vol %s"
 msgstr "Не удалось очистить %s"
 
-#: tools/virsh-volume.c:930
+#: tools/virsh-volume.c:938
 #, c-format
 msgid "Vol %s wiped\n"
 msgstr ""
 "Том %s очищен\n"
 "\n"
 
-#: tools/virsh-volume.c:942
+#: tools/virsh-volume.c:950
 msgid "storage vol information"
 msgstr "информация о томе хранения"
 
-#: tools/virsh-volume.c:945
+#: tools/virsh-volume.c:953
 msgid "Returns basic information about the storage vol."
 msgstr "Возвращает общую информацию о томе хранения."
 
-#: tools/virsh-volume.c:980 tools/virsh-volume.c:984 tools/virsh-volume.c:988
-#: tools/virsh-volume.c:992 tools/virsh-volume.c:996
+#: tools/virsh-volume.c:988 tools/virsh-volume.c:992 tools/virsh-volume.c:996
+#: tools/virsh-volume.c:1000 tools/virsh-volume.c:1004
 msgid "Type:"
 msgstr "Тип:"
 
-#: tools/virsh-volume.c:984 tools/virsh-volume.c:1377
+#: tools/virsh-volume.c:992 tools/virsh-volume.c:1385
 msgid "block"
 msgstr "блок"
 
-#: tools/virsh-volume.c:988 tools/virsh-volume.c:1380
+#: tools/virsh-volume.c:996 tools/virsh-volume.c:1388
 msgid "dir"
 msgstr "каталог"
 
-#: tools/virsh-volume.c:992
+#: tools/virsh-volume.c:1000
 msgid "network"
 msgstr "сеть"
 
-#: tools/virsh-volume.c:1017
+#: tools/virsh-volume.c:1025
 msgid "resize a vol"
 msgstr "изменить размер тома"
 
-#: tools/virsh-volume.c:1020
+#: tools/virsh-volume.c:1028
 msgid "Resizes a storage volume."
 msgstr "Изменяет размер тома данных."
 
-#: tools/virsh-volume.c:1034
+#: tools/virsh-volume.c:1042
 msgid "new capacity for the vol, as scaled integer (default bytes)"
 msgstr ""
 
-#: tools/virsh-volume.c:1042
+#: tools/virsh-volume.c:1050
 msgid "allocate the new capacity, rather than leaving it sparse"
 msgstr ""
 
-#: tools/virsh-volume.c:1046
+#: tools/virsh-volume.c:1054
 msgid "use capacity as a delta to current size, rather than the new size"
 msgstr ""
 
-#: tools/virsh-volume.c:1050
+#: tools/virsh-volume.c:1058
 msgid "allow the resize to shrink the volume"
 msgstr "разрешить уменьшение размера тома"
 
-#: tools/virsh-volume.c:1087
+#: tools/virsh-volume.c:1095
 msgid "negative size requires --delta and --shrink"
 msgstr ""
 
-#: tools/virsh-volume.c:1098
+#: tools/virsh-volume.c:1106
 #, c-format
 msgid "Size of volume '%s' successfully changed by %s\n"
 msgstr ""
 
-#: tools/virsh-volume.c:1099
+#: tools/virsh-volume.c:1107
 #, c-format
 msgid "Size of volume '%s' successfully changed to %s\n"
 msgstr ""
 
-#: tools/virsh-volume.c:1104
+#: tools/virsh-volume.c:1112
 #, c-format
 msgid "Failed to change size of volume '%s' by %s\n"
 msgstr ""
 
-#: tools/virsh-volume.c:1105
+#: tools/virsh-volume.c:1113
 #, c-format
 msgid "Failed to change size of volume '%s' to %s\n"
 msgstr ""
 
-#: tools/virsh-volume.c:1120
+#: tools/virsh-volume.c:1128
 msgid "vol information in XML"
 msgstr "описание тома в XML"
 
-#: tools/virsh-volume.c:1123
+#: tools/virsh-volume.c:1131
 msgid "Output the vol information as an XML dump to stdout."
 msgstr "Вывести описание тома в виде XML в stdout."
 
-#: tools/virsh-volume.c:1227
+#: tools/virsh-volume.c:1235
 msgid "Failed to list volumes"
 msgstr "Не удалось получить список томов"
 
-#: tools/virsh-volume.c:1236 tools/virsh-volume.c:1248
+#: tools/virsh-volume.c:1244 tools/virsh-volume.c:1256
 msgid "Failed to list storage volumes"
 msgstr "Не удалось получить список томов данных"
 
-#: tools/virsh-volume.c:1294
+#: tools/virsh-volume.c:1302
 msgid "list vols"
 msgstr "список томов"
 
-#: tools/virsh-volume.c:1297
+#: tools/virsh-volume.c:1305
 msgid "Returns list of vols by pool."
 msgstr "Возвращает список томов в пуле."
 
-#: tools/virsh-volume.c:1310
+#: tools/virsh-volume.c:1318
 msgid "display extended details for volumes"
 msgstr "показать подробные данные томов"
 
-#: tools/virsh-volume.c:1445 tools/virsh-volume.c:1465
-#: tools/virsh-volume.c:1510
+#: tools/virsh-volume.c:1453 tools/virsh-volume.c:1473
+#: tools/virsh-volume.c:1518
 msgid "Path"
 msgstr "Путь"
 
-#: tools/virsh-volume.c:1574
+#: tools/virsh-volume.c:1582
 msgid "returns the volume name for a given volume key or path"
 msgstr "возвращает том для заданного ключа или пути."
 
-#: tools/virsh-volume.c:1586 tools/virsh-volume.c:1626
+#: tools/virsh-volume.c:1594 tools/virsh-volume.c:1634
 msgid "volume key or path"
 msgstr "путь или ключ тома"
 
-#: tools/virsh-volume.c:1610
+#: tools/virsh-volume.c:1618
 msgid "returns the storage pool for a given volume key or path"
 msgstr "возвращает пул носителей для заданного ключа тома или пути."
 
-#: tools/virsh-volume.c:1621
+#: tools/virsh-volume.c:1629
 msgid "return the pool uuid rather than pool name"
 msgstr "вернуть UUID пула вместо имени"
 
-#: tools/virsh-volume.c:1673
+#: tools/virsh-volume.c:1681
 msgid "returns the volume key for a given volume name or path"
 msgstr "возвращает ключ тома для заданного имени или пути"
 
-#: tools/virsh-volume.c:1685
+#: tools/virsh-volume.c:1693
 msgid "volume name or path"
 msgstr "путь или имя тома"
 
-#: tools/virsh-volume.c:1712
+#: tools/virsh-volume.c:1720
 msgid "returns the volume path for a given volume name or key"
 msgstr "возвращает путь к тому для заданного имени или ключа"
 
-#: tools/virsh-volume.c:1724
+#: tools/virsh-volume.c:1732
 msgid "volume name or key"
 msgstr "Ключ или имя тома"
 
