@@ -1,3 +1,23 @@
+libvirt (0.9.12.2-1) wheezy-propsed-updates; urgency=low
+
+  * [77a7135] Adjust gbp.conf for Wheezy point releases
+  * [b457e3f] New upstream version 0.9.12.1
+  * [ae6e265] New upstream version 0.9.12.2
+  * [2d07b5c] Drop patches fixed upstream.
+        Include-stdint.h-for-uint32_t.patch
+        Revert-rpc-Discard-non-blocking-calls-only-when-nece.patch
+        fix-leak-virStorageBackendLogicalMakeVol.patch
+        qemu-Add-support-for-no-user-config.patch
+        qemu-Fix-off-by-one-error-while-unescaping-monitor-s.patch
+        rpc-Fix-crash-on-error-paths-of-message-dispatching.patch
+        security/CVE-2012-3445.patch
+        security/Fix-crash-in-remoteDispatchDomainMemoryStats.patch
+        security/security-Fix-libvirtd-crash-possibility.patch
+        upstream/Fix-libvirtd-crash-when-destroying-a-domain-with-att.patch
+        upstream/Fix-race-condition-when-destroying-guests.patch
+
+ -- Guido Günther <agx@sigxcpu.org>  Tue, 01 Oct 2013 21:45:08 +0200
+
 libvirt (0.9.12-11+deb7u4) stable-security; urgency=low
 
   * [e91a86a] CVE-2013-4296: Fix crash in remoteDispatchDomainMemoryStats.
