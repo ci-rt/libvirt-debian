@@ -40,6 +40,9 @@ Build-Depends:
  systemtap-sdt-dev [amd64 armel armhf i386 ia64 powerpc s390],
 # for --with-storage-sheepdog
  sheepdog [linux-any],
+# for --with-storage-rados
+ librbd-dev [linux-any],
+ librados-dev [linux-any],
 # For "make check"
  augeas-tools,
  dwarves,
