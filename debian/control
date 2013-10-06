@@ -43,6 +43,8 @@ Build-Depends:
 # for --with-storage-rados
  librbd-dev [linux-any],
  librados-dev [linux-any],
+# for lxc fuse support
+ libfuse-dev [linux-any],
 # For "make check"
  augeas-tools,
  dwarves,
