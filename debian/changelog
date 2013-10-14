@@ -1,3 +1,14 @@
+libvirt (1.1.3-2) experimental; urgency=low
+
+  * [63167cd] Enable libxl (Closes: #698093)
+  * [c7747b0] Enable rados block device support
+  * [6aa2998] Build against fuse for lxc fuse support
+  * [a2a1a74] Don't fail chmod/chdir if a file doesn't exist.  We don't use -f
+    since we want to detect other errors (ro filesystem, etc.)
+    (Closes: #726203)
+
+ -- Guido Günther <agx@sigxcpu.org>  Mon, 14 Oct 2013 12:22:13 +0200
+
 libvirt (1.1.3-1) experimental; urgency=low
 
   * [6ec841f] New upstream version 1.1.3
