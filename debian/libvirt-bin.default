@@ -9,3 +9,7 @@ start_libvirtd="yes"
 
 # pass in location of kerberos keytab
 #export KRB5_KTNAME=/etc/libvirt/libvirt.keytab
+
+# Whether to mount a systemd like cgroup layout (only
+# useful when not running systemd)
+#mount_cgroups=yes
