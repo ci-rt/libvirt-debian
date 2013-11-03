@@ -83,7 +83,7 @@ static regex_t *virLogRegex = NULL;
 #define VIR_LOG_DATE_REGEX "[0-9]{4}-[0-9]{2}-[0-9]{2}"
 #define VIR_LOG_TIME_REGEX "[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}\\+[0-9]{4}"
 #define VIR_LOG_PID_REGEX "[0-9]+"
-#define VIR_LOG_LEVEL_REGEX "debug|info|warning|error"
+#define VIR_LOG_LEVEL_REGEX "(debug|info|warning|error)"
 
 #define VIR_LOG_REGEX \
     VIR_LOG_DATE_REGEX " " VIR_LOG_TIME_REGEX ": " \
@@ -547,6 +547,9 @@ virLogDefineFilter(const char *match,
 
     virCheckFlags(VIR_LOG_STACK_TRACE, -1);
 
+    if (virLogInitialize() < 0)
+        return -1;
+
     if ((match == NULL) || (priority < VIR_LOG_DEBUG) ||
         (priority > VIR_LOG_ERROR))
         return -1;
@@ -661,6 +664,9 @@ virLogDefineOutput(virLogOutputFunc f,
     char *ndup = NULL;
 
     virCheckFlags(0, -1);
+
+    if (virLogInitialize() < 0)
+        return -1;
 
     if (f == NULL)
         return -1;
@@ -1318,6 +1324,9 @@ int virLogPriorityFromSyslog(int priority ATTRIBUTE_UNUSED)
  * Multiple output can be defined in a single @output, they just need to be
  * separated by spaces.
  *
+ * If running in setuid mode, then only the 'stderr' output will
+ * be allowed
+ *
  * Returns the number of output parsed and installed or -1 in case of error
  */
 int
@@ -1329,6 +1338,7 @@ virLogParseOutputs(const char *outputs)
     virLogPriority prio;
     int ret = -1;
     int count = 0;
+    bool isSUID = virIsSUID();
 
     if (cur == NULL)
         return -1;
@@ -1348,6 +1358,8 @@ virLogParseOutputs(const char *outputs)
             if (virLogAddOutputToStderr(prio) == 0)
                 count++;
         } else if (STREQLEN(cur, "syslog", 6)) {
+            if (isSUID)
+                goto cleanup;
             cur += 6;
             if (*cur != ':')
                 goto cleanup;
@@ -1365,6 +1377,8 @@ virLogParseOutputs(const char *outputs)
             VIR_FREE(name);
 #endif /* HAVE_SYSLOG_H */
         } else if (STREQLEN(cur, "file", 4)) {
+            if (isSUID)
+                goto cleanup;
             cur += 4;
             if (*cur != ':')
                 goto cleanup;
@@ -1385,6 +1399,8 @@ virLogParseOutputs(const char *outputs)
             VIR_FREE(name);
             VIR_FREE(abspath);
         } else if (STREQLEN(cur, "journald", 8)) {
+            if (isSUID)
+                goto cleanup;
             cur += 8;
 #if USE_JOURNALD
             if (virLogAddOutputToJournald(prio) == 0)
@@ -1621,15 +1637,18 @@ virLogParseDefaultPriority(const char *priority)
 void
 virLogSetFromEnv(void)
 {
-    char *debugEnv;
+    const char *debugEnv;
 
-    debugEnv = getenv("LIBVIRT_DEBUG");
+    if (virLogInitialize() < 0)
+        return;
+
+    debugEnv = virGetEnvAllowSUID("LIBVIRT_DEBUG");
     if (debugEnv && *debugEnv)
         virLogParseDefaultPriority(debugEnv);
-    debugEnv = getenv("LIBVIRT_LOG_FILTERS");
+    debugEnv = virGetEnvAllowSUID("LIBVIRT_LOG_FILTERS");
     if (debugEnv && *debugEnv)
         virLogParseFilters(debugEnv);
-    debugEnv = getenv("LIBVIRT_LOG_OUTPUTS");
+    debugEnv = virGetEnvAllowSUID("LIBVIRT_LOG_OUTPUTS");
     if (debugEnv && *debugEnv)
         virLogParseOutputs(debugEnv);
 }

@@ -2493,95 +2493,15 @@ cleanup:
     return ret;
 }
 
-static int
-virQEMUCapsInitQMP(virQEMUCapsPtr qemuCaps,
-                   const char *libDir,
-                   uid_t runUid,
-                   gid_t runGid)
+int
+virQEMUCapsInitQMPMonitor(virQEMUCapsPtr qemuCaps,
+                          qemuMonitorPtr mon)
 {
     int ret = -1;
-    virCommandPtr cmd = NULL;
-    qemuMonitorPtr mon = NULL;
     int major, minor, micro;
     char *package = NULL;
-    int status = 0;
-    virDomainChrSourceDef config;
-    char *monarg = NULL;
-    char *monpath = NULL;
-    char *pidfile = NULL;
-    pid_t pid = 0;
-    virDomainObj vm;
 
-    /* the ".sock" sufix is important to avoid a possible clash with a qemu
-     * domain called "capabilities"
-     */
-    if (virAsprintf(&monpath, "%s/%s", libDir, "capabilities.monitor.sock") < 0)
-        goto cleanup;
-    if (virAsprintf(&monarg, "unix:%s,server,nowait", monpath) < 0)
-        goto cleanup;
-
-    /* ".pidfile" suffix is used rather than ".pid" to avoid a possible clash
-     * with a qemu domain called "capabilities"
-     * Normally we'd use runDir for pid files, but because we're using
-     * -daemonize we need QEMU to be allowed to create them, rather
-     * than libvirtd. So we're using libDir which QEMU can write to
-     */
-    if (virAsprintf(&pidfile, "%s/%s", libDir, "capabilities.pidfile") < 0)
-        goto cleanup;
-
-    memset(&config, 0, sizeof(config));
-    config.type = VIR_DOMAIN_CHR_TYPE_UNIX;
-    config.data.nix.path = monpath;
-    config.data.nix.listen = false;
-
-    VIR_DEBUG("Try to get caps via QMP qemuCaps=%p", qemuCaps);
-
-    /*
-     * We explicitly need to use -daemonize here, rather than
-     * virCommandDaemonize, because we need to synchronize
-     * with QEMU creating its monitor socket API. Using
-     * daemonize guarantees control won't return to libvirt
-     * until the socket is present.
-     */
-    cmd = virCommandNewArgList(qemuCaps->binary,
-                               "-S",
-                               "-no-user-config",
-                               "-nodefaults",
-                               "-nographic",
-                               "-M", "none",
-                               "-qmp", monarg,
-                               "-pidfile", pidfile,
-                               "-daemonize",
-                               NULL);
-    virCommandAddEnvPassCommon(cmd);
-    virCommandClearCaps(cmd);
-    virCommandSetGID(cmd, runGid);
-    virCommandSetUID(cmd, runUid);
-
-    if (virCommandRun(cmd, &status) < 0)
-        goto cleanup;
-
-    if (status != 0) {
-        ret = 0;
-        VIR_DEBUG("QEMU %s exited with status %d", qemuCaps->binary, status);
-        goto cleanup;
-    }
-
-    if (virPidFileReadPath(pidfile, &pid) < 0) {
-        VIR_DEBUG("Failed to read pidfile %s", pidfile);
-        ret = 0;
-        goto cleanup;
-    }
-
-    memset(&vm, 0, sizeof(vm));
-    vm.pid = pid;
-
-    if (!(mon = qemuMonitorOpen(&vm, &config, true, &callbacks, NULL))) {
-        ret = 0;
-        goto cleanup;
-    }
-
-    virObjectLock(mon);
+    /* @mon is supposed to be locked by callee */
 
     if (qemuMonitorSetCapabilities(mon) < 0) {
         virErrorPtr err = virGetLastError();
@@ -2647,6 +2567,107 @@ virQEMUCapsInitQMP(virQEMUCapsPtr qemuCaps,
         goto cleanup;
 
     ret = 0;
+cleanup:
+    VIR_FREE(package);
+    return ret;
+}
+
+static int
+virQEMUCapsInitQMP(virQEMUCapsPtr qemuCaps,
+                   const char *libDir,
+                   uid_t runUid,
+                   gid_t runGid)
+{
+    int ret = -1;
+    virCommandPtr cmd = NULL;
+    qemuMonitorPtr mon = NULL;
+    int status = 0;
+    virDomainChrSourceDef config;
+    char *monarg = NULL;
+    char *monpath = NULL;
+    char *pidfile = NULL;
+    pid_t pid = 0;
+    virDomainObjPtr vm = NULL;
+    virDomainXMLOptionPtr xmlopt = NULL;
+
+    /* the ".sock" sufix is important to avoid a possible clash with a qemu
+     * domain called "capabilities"
+     */
+    if (virAsprintf(&monpath, "%s/%s", libDir, "capabilities.monitor.sock") < 0)
+        goto cleanup;
+    if (virAsprintf(&monarg, "unix:%s,server,nowait", monpath) < 0)
+        goto cleanup;
+
+    /* ".pidfile" suffix is used rather than ".pid" to avoid a possible clash
+     * with a qemu domain called "capabilities"
+     * Normally we'd use runDir for pid files, but because we're using
+     * -daemonize we need QEMU to be allowed to create them, rather
+     * than libvirtd. So we're using libDir which QEMU can write to
+     */
+    if (virAsprintf(&pidfile, "%s/%s", libDir, "capabilities.pidfile") < 0)
+        goto cleanup;
+
+    memset(&config, 0, sizeof(config));
+    config.type = VIR_DOMAIN_CHR_TYPE_UNIX;
+    config.data.nix.path = monpath;
+    config.data.nix.listen = false;
+
+    VIR_DEBUG("Try to get caps via QMP qemuCaps=%p", qemuCaps);
+
+    /*
+     * We explicitly need to use -daemonize here, rather than
+     * virCommandDaemonize, because we need to synchronize
+     * with QEMU creating its monitor socket API. Using
+     * daemonize guarantees control won't return to libvirt
+     * until the socket is present.
+     */
+    cmd = virCommandNewArgList(qemuCaps->binary,
+                               "-S",
+                               "-no-user-config",
+                               "-nodefaults",
+                               "-nographic",
+                               "-M", "none",
+                               "-qmp", monarg,
+                               "-pidfile", pidfile,
+                               "-daemonize",
+                               NULL);
+    virCommandAddEnvPassCommon(cmd);
+    virCommandClearCaps(cmd);
+    virCommandSetGID(cmd, runGid);
+    virCommandSetUID(cmd, runUid);
+
+    if (virCommandRun(cmd, &status) < 0)
+        goto cleanup;
+
+    if (status != 0) {
+        ret = 0;
+        VIR_DEBUG("QEMU %s exited with status %d", qemuCaps->binary, status);
+        goto cleanup;
+    }
+
+    if (virPidFileReadPath(pidfile, &pid) < 0) {
+        VIR_DEBUG("Failed to read pidfile %s", pidfile);
+        ret = 0;
+        goto cleanup;
+    }
+
+    if (!(xmlopt = virDomainXMLOptionNew(NULL, NULL, NULL)) ||
+        !(vm = virDomainObjNew(xmlopt)))
+        goto cleanup;
+
+    vm->pid = pid;
+
+    if (!(mon = qemuMonitorOpen(vm, &config, true, &callbacks, NULL))) {
+        ret = 0;
+        goto cleanup;
+    }
+
+    virObjectLock(mon);
+
+    if (virQEMUCapsInitQMPMonitor(qemuCaps, mon) < 0)
+        goto cleanup;
+
+    ret = 0;
 
 cleanup:
     if (mon)
@@ -2656,7 +2677,8 @@ cleanup:
     virCommandFree(cmd);
     VIR_FREE(monarg);
     VIR_FREE(monpath);
-    VIR_FREE(package);
+    virObjectUnref(vm);
+    virObjectUnref(xmlopt);
 
     if (pid != 0) {
         char ebuf[1024];

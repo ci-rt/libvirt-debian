@@ -460,6 +460,7 @@ virSecuritySELinuxLXCInitialize(virSecurityManagerPtr mgr)
 error:
 # if HAVE_SELINUX_LABEL_H
     selabel_close(data->label_handle);
+    data->label_handle = NULL;
 # endif
     virConfFree(selinux_conf);
     VIR_FREE(data->domain_context);
@@ -547,6 +548,7 @@ virSecuritySELinuxQEMUInitialize(virSecurityManagerPtr mgr)
 error:
 #if HAVE_SELINUX_LABEL_H
     selabel_close(data->label_handle);
+    data->label_handle = NULL;
 #endif
     VIR_FREE(data->domain_context);
     VIR_FREE(data->alt_domain_context);
@@ -808,7 +810,8 @@ virSecuritySELinuxSecurityDriverClose(virSecurityManagerPtr mgr)
         return 0;
 
 #if HAVE_SELINUX_LABEL_H
-    selabel_close(data->label_handle);
+    if (data->label_handle)
+        selabel_close(data->label_handle);
 #endif
 
     virHashFree(data->mcs);
@@ -1195,7 +1198,7 @@ virSecuritySELinuxSetSecurityFileLabel(virDomainDiskDefPtr disk,
     int ret;
     virSecurityDeviceLabelDefPtr disk_seclabel;
     virSecuritySELinuxCallbackDataPtr cbdata = opaque;
-    const virSecurityLabelDefPtr secdef = cbdata->secdef;
+    virSecurityLabelDefPtr secdef = cbdata->secdef;
     virSecuritySELinuxDataPtr data = virSecurityManagerGetPrivateData(cbdata->manager);
 
     disk_seclabel = virDomainDiskDefGetSecurityLabelDef(disk,
@@ -1824,6 +1827,17 @@ virSecuritySELinuxRestoreSecuritySmartcardCallback(virDomainDefPtr def,
     }
 
     return 0;
+}
+
+
+static const char *
+virSecuritySELinuxGetBaseLabel(virSecurityManagerPtr mgr, int virtType)
+{
+    virSecuritySELinuxDataPtr priv = virSecurityManagerGetPrivateData(mgr);
+    if (virtType == VIR_DOMAIN_VIRT_QEMU && priv->alt_domain_context)
+        return priv->alt_domain_context;
+    else
+        return priv->domain_context;
 }
 
 
@@ -2474,4 +2488,5 @@ virSecurityDriver virSecurityDriverSELinux = {
     .domainSetSecurityTapFDLabel        = virSecuritySELinuxSetTapFDLabel,
 
     .domainGetSecurityMountOptions      = virSecuritySELinuxGetSecurityMountOptions,
+    .getBaseLabel                       = virSecuritySELinuxGetBaseLabel,
 };

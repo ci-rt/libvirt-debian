@@ -332,8 +332,6 @@ AC_DEFUN([gl_EARLY],
   # Code from module read-tests:
   # Code from module readlink:
   # Code from module readlink-tests:
-  # Code from module realloc-gnu:
-  # Code from module realloc-gnu-tests:
   # Code from module realloc-posix:
   # Code from module recv:
   # Code from module recv-tests:
@@ -508,7 +506,7 @@ AC_DEFUN([gl_INIT],
 [
   AM_CONDITIONAL([GL_COND_LIBTOOL], [true])
   gl_cond_libtool=true
-  gl_m4_base='gnulib/m4'
+  gl_m4_base='m4'
   m4_pushdef([AC_LIBOBJ], m4_defn([gl_LIBOBJ]))
   m4_pushdef([AC_REPLACE_FUNCS], m4_defn([gl_REPLACE_FUNCS]))
   m4_pushdef([AC_LIBSOURCES], m4_defn([gl_LIBSOURCES]))
@@ -697,7 +695,7 @@ AC_SUBST([LTALLOCA])
   fi
   gl_STDIO_MODULE_INDICATOR([getdelim])
   gl_FUNC_GETDTABLESIZE
-  if test $HAVE_GETDTABLESIZE = 0; then
+  if test $HAVE_GETDTABLESIZE = 0 || test $REPLACE_GETDTABLESIZE = 1; then
     AC_LIBOBJ([getdtablesize])
     gl_PREREQ_GETDTABLESIZE
   fi
@@ -985,11 +983,6 @@ AC_SUBST([LTALLOCA])
     gl_PREREQ_READLINK
   fi
   gl_UNISTD_MODULE_INDICATOR([readlink])
-  gl_FUNC_REALLOC_GNU
-  if test $REPLACE_REALLOC = 1; then
-    AC_LIBOBJ([realloc])
-  fi
-  gl_MODULE_INDICATOR([realloc-gnu])
   gl_FUNC_REALLOC_POSIX
   if test $REPLACE_REALLOC = 1; then
     AC_LIBOBJ([realloc])
@@ -2375,7 +2368,6 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-read.c
   tests/test-readlink.c
   tests/test-readlink.h
-  tests/test-realloc-gnu.c
   tests/test-recv.c
   tests/test-regex.c
   tests/test-sched.c

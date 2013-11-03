@@ -593,6 +593,7 @@
     <reference name='VIR_ERR_SSH' href='html/libvirt-virterror.html#VIR_ERR_SSH'/>
     <reference name='VIR_ERR_STORAGE_POOL_BUILT' href='html/libvirt-virterror.html#VIR_ERR_STORAGE_POOL_BUILT'/>
     <reference name='VIR_ERR_STORAGE_PROBE_FAILED' href='html/libvirt-virterror.html#VIR_ERR_STORAGE_PROBE_FAILED'/>
+    <reference name='VIR_ERR_STORAGE_VOL_EXIST' href='html/libvirt-virterror.html#VIR_ERR_STORAGE_VOL_EXIST'/>
     <reference name='VIR_ERR_SYSTEM_ERROR' href='html/libvirt-virterror.html#VIR_ERR_SYSTEM_ERROR'/>
     <reference name='VIR_ERR_UNKNOWN_HOST' href='html/libvirt-virterror.html#VIR_ERR_UNKNOWN_HOST'/>
     <reference name='VIR_ERR_WARNING' href='html/libvirt-virterror.html#VIR_ERR_WARNING'/>
@@ -687,6 +688,7 @@
     <reference name='VIR_MIGRATE_PARAM_DEST_NAME' href='html/libvirt-libvirt.html#VIR_MIGRATE_PARAM_DEST_NAME'/>
     <reference name='VIR_MIGRATE_PARAM_DEST_XML' href='html/libvirt-libvirt.html#VIR_MIGRATE_PARAM_DEST_XML'/>
     <reference name='VIR_MIGRATE_PARAM_GRAPHICS_URI' href='html/libvirt-libvirt.html#VIR_MIGRATE_PARAM_GRAPHICS_URI'/>
+    <reference name='VIR_MIGRATE_PARAM_LISTEN_ADDRESS' href='html/libvirt-libvirt.html#VIR_MIGRATE_PARAM_LISTEN_ADDRESS'/>
     <reference name='VIR_MIGRATE_PARAM_URI' href='html/libvirt-libvirt.html#VIR_MIGRATE_PARAM_URI'/>
     <reference name='VIR_MIGRATE_PAUSED' href='html/libvirt-libvirt.html#VIR_MIGRATE_PAUSED'/>
     <reference name='VIR_MIGRATE_PEER2PEER' href='html/libvirt-libvirt.html#VIR_MIGRATE_PEER2PEER'/>
@@ -2038,6 +2040,7 @@
       <ref name='VIR_ERR_SSH'/>
       <ref name='VIR_ERR_STORAGE_POOL_BUILT'/>
       <ref name='VIR_ERR_STORAGE_PROBE_FAILED'/>
+      <ref name='VIR_ERR_STORAGE_VOL_EXIST'/>
       <ref name='VIR_ERR_SYSTEM_ERROR'/>
       <ref name='VIR_ERR_UNKNOWN_HOST'/>
       <ref name='VIR_ERR_WARNING'/>
@@ -2132,6 +2135,7 @@
       <ref name='VIR_MIGRATE_PARAM_DEST_NAME'/>
       <ref name='VIR_MIGRATE_PARAM_DEST_XML'/>
       <ref name='VIR_MIGRATE_PARAM_GRAPHICS_URI'/>
+      <ref name='VIR_MIGRATE_PARAM_LISTEN_ADDRESS'/>
       <ref name='VIR_MIGRATE_PARAM_URI'/>
       <ref name='VIR_MIGRATE_PAUSED'/>
       <ref name='VIR_MIGRATE_PEER2PEER'/>
@@ -3027,10 +3031,10 @@
       <ref name='virSecretSetValue'/>
       <ref name='virStoragePoolLookupByUUID'/>
     </type>
-    <type name='const virDomainEventGraphicsAddressPtr'>
+    <type name='const virDomainEventGraphicsAddress *'>
       <ref name='virConnectDomainEventGraphicsCallback'/>
     </type>
-    <type name='const virDomainEventGraphicsSubjectPtr'>
+    <type name='const virDomainEventGraphicsSubject *'>
       <ref name='virConnectDomainEventGraphicsCallback'/>
     </type>
     <type name='double'>
@@ -4518,6 +4522,7 @@
       <ref name='VIR_MIGRATE_PARAM_DEST_NAME'/>
       <ref name='VIR_MIGRATE_PARAM_DEST_XML'/>
       <ref name='VIR_MIGRATE_PARAM_GRAPHICS_URI'/>
+      <ref name='VIR_MIGRATE_PARAM_LISTEN_ADDRESS'/>
       <ref name='VIR_MIGRATE_PARAM_URI'/>
       <ref name='VIR_MIGRATE_PAUSED'/>
       <ref name='VIR_MIGRATE_PEER2PEER'/>
@@ -5329,6 +5334,7 @@
       <ref name='VIR_ERR_SSH'/>
       <ref name='VIR_ERR_STORAGE_POOL_BUILT'/>
       <ref name='VIR_ERR_STORAGE_PROBE_FAILED'/>
+      <ref name='VIR_ERR_STORAGE_VOL_EXIST'/>
       <ref name='VIR_ERR_SYSTEM_ERROR'/>
       <ref name='VIR_ERR_UNKNOWN_HOST'/>
       <ref name='VIR_ERR_WARNING'/>
@@ -5564,6 +5570,7 @@
           <ref name='virDomainBlockPeek'/>
         </word>
         <word name='Both'>
+          <ref name='VIR_MIGRATE_PARAM_LISTEN_ADDRESS'/>
           <ref name='virDomainPinEmulator'/>
           <ref name='virDomainPinVcpuFlags'/>
           <ref name='virDomainSetMemoryFlags'/>
@@ -6036,6 +6043,12 @@
       <letter name='I'>
         <word name='IDs'>
           <ref name='virConnectListDomains'/>
+        </word>
+        <word name='IPv4'>
+          <ref name='VIR_MIGRATE_PARAM_LISTEN_ADDRESS'/>
+        </word>
+        <word name='IPv6'>
+          <ref name='VIR_MIGRATE_PARAM_LISTEN_ADDRESS'/>
         </word>
         <word name='Identity'>
           <ref name='_virDomainEventGraphicsSubjectIdentity'/>
@@ -6742,6 +6755,7 @@
         </word>
         <word name='Some'>
           <ref name='VIR_MIGRATE_PARAM_BANDWIDTH'/>
+          <ref name='VIR_MIGRATE_PARAM_LISTEN_ADDRESS'/>
           <ref name='virConnectListAllDomains'/>
           <ref name='virDomainBlockCommit'/>
           <ref name='virDomainBlockPull'/>
@@ -7962,6 +7976,9 @@
         <word name='acceleration'>
           <ref name='virConnectGetType'/>
         </word>
+        <word name='accepted'>
+          <ref name='VIR_MIGRATE_PARAM_LISTEN_ADDRESS'/>
+        </word>
         <word name='accepts'>
           <ref name='virStoragePoolBuild'/>
         </word>
@@ -8078,6 +8095,7 @@
           <ref name='virStreamRef'/>
         </word>
         <word name='address'>
+          <ref name='VIR_MIGRATE_PARAM_LISTEN_ADDRESS'/>
           <ref name='_virDomainEventGraphicsAddress'/>
           <ref name='virConnectDomainEventGraphicsCallback'/>
           <ref name='virDomainGetInterfaceParameters'/>
@@ -8086,6 +8104,7 @@
           <ref name='virInterfaceGetXMLDesc'/>
         </word>
         <word name='addresses'>
+          <ref name='VIR_MIGRATE_PARAM_LISTEN_ADDRESS'/>
           <ref name='virDomainMemoryPeek'/>
           <ref name='virDomainScreenshot'/>
         </word>
@@ -8840,6 +8859,9 @@
         <word name='bi-directional'>
           <ref name='virDomainOpenChannel'/>
           <ref name='virDomainOpenConsole'/>
+        </word>
+        <word name='bind'>
+          <ref name='VIR_MIGRATE_PARAM_LISTEN_ADDRESS'/>
         </word>
         <word name='binding'>
           <ref name='virNodeDeviceDetachFlags'/>
@@ -10661,6 +10683,7 @@
           <ref name='virStorageVolCreateXMLFrom'/>
         </word>
         <word name='done'>
+          <ref name='VIR_MIGRATE_PARAM_LISTEN_ADDRESS'/>
           <ref name='virConnectOpen'/>
           <ref name='virDomainBlockCommit'/>
           <ref name='virDomainLookupByID'/>
@@ -11340,6 +11363,7 @@
         </word>
         <word name='feature'>
           <ref name='VIR_MIGRATE_PARAM_BANDWIDTH'/>
+          <ref name='VIR_MIGRATE_PARAM_LISTEN_ADDRESS'/>
           <ref name='virDomainBlockCommit'/>
           <ref name='virDomainBlockPull'/>
           <ref name='virDomainBlockRebase'/>
@@ -11399,6 +11423,7 @@
           <ref name='VIR_MIGRATE_PARAM_DEST_NAME'/>
           <ref name='VIR_MIGRATE_PARAM_DEST_XML'/>
           <ref name='VIR_MIGRATE_PARAM_GRAPHICS_URI'/>
+          <ref name='VIR_MIGRATE_PARAM_LISTEN_ADDRESS'/>
           <ref name='VIR_MIGRATE_PARAM_URI'/>
         </word>
         <word name='fields'>
@@ -12139,6 +12164,9 @@
           <ref name='virDomainMigrate'/>
           <ref name='virDomainMigrate2'/>
         </word>
+        <word name='hostnames'>
+          <ref name='VIR_MIGRATE_PARAM_LISTEN_ADDRESS'/>
+        </word>
         <word name='hosts'>
           <ref name='VIR_MIGRATE_PARAM_GRAPHICS_URI'/>
           <ref name='virDomainMigrate'/>
@@ -12422,6 +12450,9 @@
         </word>
         <word name='incomaptible'>
           <ref name='virDomainRevertToSnapshot'/>
+        </word>
+        <word name='incoming'>
+          <ref name='VIR_MIGRATE_PARAM_LISTEN_ADDRESS'/>
         </word>
         <word name='incompatible'>
           <ref name='virDomainSetVcpusFlags'/>
@@ -13257,6 +13288,7 @@
           <ref name='virNodeDeviceListCaps'/>
         </word>
         <word name='listen'>
+          <ref name='VIR_MIGRATE_PARAM_LISTEN_ADDRESS'/>
           <ref name='virEventAddHandleFunc'/>
           <ref name='virEventUpdateHandleFunc'/>
         </word>
@@ -14756,6 +14788,7 @@
           <ref name='VIR_MIGRATE_PARAM_DEST_NAME'/>
           <ref name='VIR_MIGRATE_PARAM_DEST_XML'/>
           <ref name='VIR_MIGRATE_PARAM_GRAPHICS_URI'/>
+          <ref name='VIR_MIGRATE_PARAM_LISTEN_ADDRESS'/>
           <ref name='VIR_MIGRATE_PARAM_URI'/>
           <ref name='virDomainGetCPUStats'/>
           <ref name='virDomainGetMemoryParameters'/>
@@ -16212,6 +16245,9 @@
         <word name='resize'>
           <ref name='virStorageVolResize'/>
         </word>
+        <word name='resolving'>
+          <ref name='VIR_MIGRATE_PARAM_LISTEN_ADDRESS'/>
+        </word>
         <word name='resources'>
           <ref name='virConnectFindStoragePoolSources'/>
           <ref name='virDomainDestroy'/>
@@ -16847,6 +16883,7 @@
         </word>
         <word name='side'>
           <ref name='VIR_MIGRATE_PARAM_DEST_XML'/>
+          <ref name='VIR_MIGRATE_PARAM_LISTEN_ADDRESS'/>
           <ref name='virDomainMigrate'/>
           <ref name='virDomainMigrate2'/>
           <ref name='virDomainMigrateToURI'/>
@@ -19172,6 +19209,7 @@
           <ref name='VIR_MIGRATE_PARAM_DEST_NAME'/>
           <ref name='VIR_MIGRATE_PARAM_DEST_XML'/>
           <ref name='VIR_MIGRATE_PARAM_GRAPHICS_URI'/>
+          <ref name='VIR_MIGRATE_PARAM_LISTEN_ADDRESS'/>
           <ref name='VIR_MIGRATE_PARAM_URI'/>
           <ref name='virDomainMigrateToURI'/>
         </word>
@@ -19855,6 +19893,7 @@
           <ref name='VIR_DOMAIN_BLKIO_DEVICE_WEIGHT'/>
         </word>
         <word name='well'>
+          <ref name='VIR_MIGRATE_PARAM_LISTEN_ADDRESS'/>
           <ref name='virConnectClose'/>
           <ref name='virDomainRevertToSnapshot'/>
           <ref name='virDomainSetMetadata'/>

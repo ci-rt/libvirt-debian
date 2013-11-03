@@ -32,6 +32,7 @@
 #include "cpu_powerpc.h"
 #include "cpu_s390.h"
 #include "cpu_arm.h"
+#include "cpu_aarch64.h"
 #include "cpu_generic.h"
 #include "util/virstring.h"
 
@@ -44,6 +45,7 @@ static struct cpuArchDriver *drivers[] = {
     &cpuDriverPowerPC,
     &cpuDriverS390,
     &cpuDriverArm,
+    &cpuDriverAARCH64,
     /* generic driver must always be the last one */
     &cpuDriverGeneric
 };
@@ -132,7 +134,7 @@ cpuCompare(virCPUDefPtr host,
 
 int
 cpuDecode(virCPUDefPtr cpu,
-          const virCPUDataPtr data,
+          const virCPUData *data,
           const char **models,
           unsigned int nmodels,
           const char *preferred)
@@ -175,7 +177,7 @@ cpuDecode(virCPUDefPtr cpu,
 
 int
 cpuEncode(virArch arch,
-          const virCPUDefPtr cpu,
+          const virCPUDef *cpu,
           virCPUDataPtr *forced,
           virCPUDataPtr *required,
           virCPUDataPtr *optional,
@@ -402,7 +404,7 @@ cpuBaseline(virCPUDefPtr *cpus,
 
 int
 cpuUpdate(virCPUDefPtr guest,
-          const virCPUDefPtr host)
+          const virCPUDef *host)
 {
     struct cpuArchDriver *driver;
 
@@ -422,7 +424,7 @@ cpuUpdate(virCPUDefPtr guest,
 }
 
 int
-cpuHasFeature(const virCPUDataPtr data,
+cpuHasFeature(const virCPUData *data,
               const char *feature)
 {
     struct cpuArchDriver *driver;
@@ -440,6 +442,47 @@ cpuHasFeature(const virCPUDataPtr data,
     }
 
     return driver->hasFeature(data, feature);
+}
+
+char *
+cpuDataFormat(const virCPUData *data)
+{
+    struct cpuArchDriver *driver;
+
+    VIR_DEBUG("data=%p", data);
+
+    if (!(driver = cpuGetSubDriver(data->arch)))
+        return NULL;
+
+    if (!driver->dataFormat) {
+        virReportError(VIR_ERR_NO_SUPPORT,
+                       _("cannot format %s CPU data"),
+                       virArchToString(data->arch));
+        return NULL;
+    }
+
+    return driver->dataFormat(data);
+}
+
+virCPUDataPtr
+cpuDataParse(virArch arch,
+             const char *xmlStr)
+{
+    struct cpuArchDriver *driver;
+
+    VIR_DEBUG("arch=%s, xmlStr=%s", virArchToString(arch), xmlStr);
+
+    if (!(driver = cpuGetSubDriver(arch)))
+        return NULL;
+
+    if (!driver->dataParse) {
+        virReportError(VIR_ERR_NO_SUPPORT,
+                       _("cannot parse %s CPU data"),
+                       virArchToString(arch));
+        return NULL;
+    }
+
+    return driver->dataParse(xmlStr);
 }
 
 bool

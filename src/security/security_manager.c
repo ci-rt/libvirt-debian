@@ -146,8 +146,10 @@ virSecurityManagerPtr virSecurityManagerNewDAC(const char *virtDriver,
     if (!mgr)
         return NULL;
 
-    virSecurityDACSetUser(mgr, user);
-    virSecurityDACSetGroup(mgr, group);
+    if (virSecurityDACSetUserAndGroup(mgr, user, group) < 0) {
+        virSecurityManagerDispose(mgr);
+        return NULL;
+    }
     virSecurityDACSetDynamicOwnership(mgr, dynamicOwnership);
 
     return mgr;
@@ -270,6 +272,21 @@ virSecurityManagerGetModel(virSecurityManagerPtr mgr)
     }
 
     virReportError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
+    return NULL;
+}
+
+/* return NULL if a base label is not present */
+const char *
+virSecurityManagerGetBaseLabel(virSecurityManagerPtr mgr, int virtType)
+{
+    if (mgr->drv->getBaseLabel) {
+        const char *ret;
+        virObjectLock(mgr);
+        ret = mgr->drv->getBaseLabel(mgr, virtType);
+        virObjectUnlock(mgr);
+        return ret;
+    }
+
     return NULL;
 }
 

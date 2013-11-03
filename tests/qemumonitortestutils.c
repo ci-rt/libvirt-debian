@@ -51,6 +51,7 @@ struct _qemuMonitorTest {
     bool json;
     bool quit;
     bool running;
+    bool started;
 
     char *incoming;
     size_t incomingLength;
@@ -354,7 +355,7 @@ qemuMonitorTestFree(qemuMonitorTestPtr test)
 
     virObjectUnref(test->vm);
 
-    if (test->running)
+    if (test->started)
         virThreadJoin(&test->thread);
 
     if (timer != -1)
@@ -485,7 +486,7 @@ qemuMonitorTestProcessCommandDefault(qemuMonitorTestPtr test,
         *tmp = '\0';
     }
 
-    if (STRNEQ(data->command_name, cmdname))
+    if (data->command_name && STRNEQ(data->command_name, cmdname))
         ret = qemuMonitorTestAddUnexpectedErrorResponse(test);
     else
         ret = qemuMonitorTestAddReponse(test, data->response);
@@ -604,7 +605,8 @@ qemuMonitorTestProcessCommandWithArgs(qemuMonitorTestPtr test,
         goto cleanup;
     }
 
-    if (STRNEQ(data->command_name, cmdname)) {
+    if (data->command_name &&
+        STRNEQ(data->command_name, cmdname)) {
         ret = qemuMonitorTestAddUnexpectedErrorResponse(test);
         goto cleanup;
     }
@@ -612,7 +614,7 @@ qemuMonitorTestProcessCommandWithArgs(qemuMonitorTestPtr test,
     if (!(args = virJSONValueObjectGet(val, "arguments"))) {
         ret = qemuMonitorReportError(test,
                                      "Missing arguments section for command '%s'",
-                                     data->command_name);
+                                     NULLSTR(data->command_name));
         goto cleanup;
     }
 
@@ -622,7 +624,8 @@ qemuMonitorTestProcessCommandWithArgs(qemuMonitorTestPtr test,
         if (!(argobj = virJSONValueObjectGet(args, arg->argname))) {
             ret = qemuMonitorReportError(test,
                                          "Missing argument '%s' for command '%s'",
-                                         arg->argname, data->command_name);
+                                         arg->argname,
+                                         NULLSTR(data->command_name));
             goto cleanup;
         }
 
@@ -636,7 +639,8 @@ qemuMonitorTestProcessCommandWithArgs(qemuMonitorTestPtr test,
                                          "Invalid value of argument '%s' "
                                          "of command '%s': "
                                          "expected '%s' got '%s'",
-                                         arg->argname, data->command_name,
+                                         arg->argname,
+                                         NULLSTR(data->command_name),
                                          arg->argval, argstr);
             goto cleanup;
         }
@@ -785,7 +789,7 @@ qemuMonitorCommonTestNew(virDomainXMLOptionPtr xmlopt,
             goto error;
     }
 
-    if (virNetSocketNewListenUNIX(path, 0700, getuid(), getgid(),
+    if (virNetSocketNewListenUNIX(path, 0700, geteuid(), getegid(),
                                   &test->server) < 0)
         goto error;
 
@@ -843,7 +847,7 @@ qemuMonitorCommonTestInit(qemuMonitorTestPtr test)
         virMutexUnlock(&test->lock);
         goto error;
     }
-    test->running = true;
+    test->started = test->running = true;
     virMutexUnlock(&test->lock);
 
     return 0;
@@ -873,7 +877,8 @@ qemuMonitorTestPtr
 qemuMonitorTestNew(bool json,
                    virDomainXMLOptionPtr xmlopt,
                    virDomainObjPtr vm,
-                   virQEMUDriverPtr driver)
+                   virQEMUDriverPtr driver,
+                   const char *greeting)
 {
     qemuMonitorTestPtr test = NULL;
     virDomainChrSourceDef src;
@@ -893,9 +898,10 @@ qemuMonitorTestNew(bool json,
 
     virObjectLock(test->mon);
 
-    if (qemuMonitorTestAddReponse(test, json ?
-                                  QEMU_JSON_GREETING :
-                                  QEMU_TEXT_GREETING) < 0)
+    if (!greeting)
+        greeting = json ? QEMU_JSON_GREETING : QEMU_TEXT_GREETING;
+
+    if (qemuMonitorTestAddReponse(test, greeting) < 0)
         goto error;
 
     if (qemuMonitorCommonTestInit(test) < 0)

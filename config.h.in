@@ -175,10 +175,6 @@
 #undef GNULIB_PTHREAD
 
 /* Define to a C preprocessor expression that evaluates to 1 or 0, depending
-   whether the gnulib module realloc-gnu shall be considered present. */
-#undef GNULIB_REALLOC_GNU
-
-/* Define to a C preprocessor expression that evaluates to 1 or 0, depending
    whether the gnulib module scanf shall be considered present. */
 #undef GNULIB_SCANF
 
@@ -611,14 +607,14 @@
 /* Define to 1 if you have the 'catgets' function. */
 #undef HAVE_CATGETS
 
-/* Define to 1 if you have the MacOS X function CFLocaleCopyCurrent in the
+/* Define to 1 if you have the Mac OS X function CFLocaleCopyCurrent in the
    CoreFoundation framework. */
 #undef HAVE_CFLOCALECOPYCURRENT
 
 /* Define to 1 if you have the 'cfmakeraw' function. */
 #undef HAVE_CFMAKERAW
 
-/* Define to 1 if you have the MacOS X function CFPreferencesCopyAppValue in
+/* Define to 1 if you have the Mac OS X function CFPreferencesCopyAppValue in
    the CoreFoundation framework. */
 #undef HAVE_CFPREFERENCESCOPYAPPVALUE
 
@@ -906,6 +902,9 @@
 /* Define to 1 if you have the <execinfo.h> header file. */
 #undef HAVE_EXECINFO_H
 
+/* Define to 1 if you have the 'fallocate' function. */
+#undef HAVE_FALLOCATE
+
 /* Define to 1 if you have the 'fchown' function. */
 #undef HAVE_FCHOWN
 
@@ -1129,6 +1128,9 @@
 /* Define to 1 if you have the `portablexdr' library (-lportablexdr). */
 #undef HAVE_LIBPORTABLEXDR
 
+/* Define to 1 if you have the `readline' library (-lreadline). */
+#undef HAVE_LIBREADLINE
+
 /* Define to 1 if you have the `sanlock_client' library (-lsanlock_client). */
 #undef HAVE_LIBSANLOCK_CLIENT
 
@@ -1171,7 +1173,7 @@
 /* Define to 1 if you have the 'localtime_r' function. */
 #undef HAVE_LOCALTIME_R
 
-/* Define to 1 if the system has the type `long long int'. */
+/* Define to 1 if the system has the type 'long long int'. */
 #undef HAVE_LONG_LONG_INT
 
 /* Define to 1 if you have the 'lstat' function. */
@@ -1364,18 +1366,11 @@
 /* Define to 1 if you have the `rawmemchr' function. */
 #undef HAVE_RAWMEMCHR
 
-/* Define to 1 if you have the <readline/readline.h> header file. */
-#undef HAVE_READLINE_READLINE_H
-
 /* Define to 1 if you have the 'readlink' function. */
 #undef HAVE_READLINK
 
 /* Define to 1 if you have the 'readlinkat' function. */
 #undef HAVE_READLINKAT
-
-/* Define to 1 if your system has a GNU libc compatible 'realloc' function,
-   and to 0 otherwise. */
-#undef HAVE_REALLOC_GNU
 
 /* Define if the 'realloc' function is POSIX compliant. */
 #undef HAVE_REALLOC_POSIX
@@ -1433,6 +1428,9 @@
 
 /* Define to 1 if you have the 'sendmsg' function. */
 #undef HAVE_SENDMSG
+
+/* Define to 1 if you have the `setdtablesize' function. */
+#undef HAVE_SETDTABLESIZE
 
 /* Define to 1 if you have the `setegid' function. */
 #undef HAVE_SETEGID
@@ -1749,7 +1747,7 @@
 /* Define to 1 if you have the `unsetenv' function. */
 #undef HAVE_UNSETENV
 
-/* Define to 1 if the system has the type `unsigned long long int'. */
+/* Define to 1 if the system has the type 'unsigned long long int'. */
 #undef HAVE_UNSIGNED_LONG_LONG_INT
 
 /* Define to 1 if you have the `uselocale' function. */
@@ -1784,9 +1782,6 @@
 
 /* Define to 1 if you have the 'wcrtomb' function. */
 #undef HAVE_WCRTOMB
-
-/* Define to 1 if you have the 'wcscoll' function. */
-#undef HAVE_WCSCOLL
 
 /* Define to 1 if you have the `wcslen' function. */
 #undef HAVE_WCSLEN
@@ -2112,7 +2107,9 @@
 
 /* Define as the maximum value of type 'size_t', if the system doesn't define
    it. */
-#undef SIZE_MAX
+#ifndef SIZE_MAX
+# undef SIZE_MAX
+#endif
 
 /* Define to l, ll, u, ul, ull, etc., as suitable for constants of type
    'size_t'. */
@@ -2178,9 +2175,6 @@
    weak. */
 #undef USE_PTH_THREADS_WEAK
 
-/* whether virsh can use readline */
-#undef USE_READLINE
-
 /* Define if the old Solaris multithreading library can be used. */
 #undef USE_SOLARIS_THREADS
 
@@ -2219,9 +2213,6 @@
 # undef __EXTENSIONS__
 #endif
 
-
-/* Define if the Win32 multithreading API can be used. */
-#undef USE_WIN32_THREADS
 
 /* Define if the native Windows multithreading API can be used. */
 #undef USE_WINDOWS_THREADS
@@ -2384,6 +2375,9 @@
 
 /* whether QEMU driver is enabled */
 #undef WITH_QEMU
+
+/* whether libreadline is available */
+#undef WITH_READLINE
 
 /* whether Remote driver is enabled */
 #undef WITH_REMOTE
@@ -2598,7 +2592,7 @@
 # define _GL_EXTERN_INLINE_IN_USE
 #elif (2 < __GNUC__ + (7 <= __GNUC_MINOR__) && !defined __STRICT_ANSI__ \
        && !defined _GL_EXTERN_INLINE_APPLE_BUG)
-# if __GNUC_GNU_INLINE__
+# if defined __GNUC_GNU_INLINE__ && __GNUC_GNU_INLINE__
    /* __gnu_inline__ suppresses a GCC 4.2 diagnostic.  */
 #  define _GL_INLINE extern inline __attribute__ ((__gnu_inline__))
 # else
@@ -2800,3 +2794,5 @@
 
 /* Define as a macro for copying va_list variables. */
 #undef va_copy
+
+#include <config-post.h>

@@ -664,12 +664,20 @@ virCgroupSetValueStr(virCgroupPtr group,
 {
     int ret = -1;
     char *keypath = NULL;
+    char *tmp = NULL;
 
     if (virCgroupPathOfController(group, controller, key, &keypath) < 0)
         return -1;
 
     VIR_DEBUG("Set value '%s' to '%s'", keypath, value);
     if (virFileWriteStr(keypath, value, 0) < 0) {
+        if (errno == EINVAL &&
+            (tmp = strrchr(keypath, '/'))) {
+            virReportSystemError(errno,
+                                 _("Invalid value '%s' for '%s'"),
+                                 value, tmp + 1);
+            goto cleanup;
+        }
         virReportSystemError(errno,
                              _("Unable to write to '%s'"), keypath);
         goto cleanup;
@@ -1788,13 +1796,6 @@ virCgroupPathOfController(virCgroupPtr group,
 int
 virCgroupSetBlkioWeight(virCgroupPtr group, unsigned int weight)
 {
-    if (weight > 1000 || weight < 100) {
-        virReportError(VIR_ERR_INVALID_ARG,
-                       _("weight '%u' must be in range (100, 1000)"),
-                       weight);
-        return -1;
-    }
-
     return virCgroupSetValueU64(group,
                                 VIR_CGROUP_CONTROLLER_BLKIO,
                                 "blkio.weight",
@@ -1829,7 +1830,8 @@ virCgroupGetBlkioWeight(virCgroupPtr group, unsigned int *weight)
  *
  * @group: The cgroup to change io device weight device for
  * @path: The device with a weight to alter
- * @weight: The new device weight (100-1000), or 0 to clear
+ * @weight: The new device weight (100-1000),
+ * (10-1000) after kernel 2.6.39, or 0 to clear
  *
  * device_weight is treated as a write-only parameter, so
  * there isn't a getter counterpart.
@@ -1844,13 +1846,6 @@ virCgroupSetBlkioDeviceWeight(virCgroupPtr group,
     char *str;
     struct stat sb;
     int ret;
-
-    if (weight && (weight > 1000 || weight < 100)) {
-        virReportError(VIR_ERR_INVALID_ARG,
-                       _("weight '%u' must be in range (100, 1000)"),
-                       weight);
-        return -1;
-    }
 
     if (stat(path, &sb) < 0) {
         virReportSystemError(errno,
@@ -2431,7 +2426,7 @@ virCgroupGetCpuShares(virCgroupPtr group, unsigned long long *shares)
 int
 virCgroupSetCpuCfsPeriod(virCgroupPtr group, unsigned long long cfs_period)
 {
-    /* The cfs_period shoule be greater or equal than 1ms, and less or equal
+    /* The cfs_period should be greater or equal than 1ms, and less or equal
      * than 1s.
      */
     if (cfs_period < 1000 || cfs_period > 1000000) {

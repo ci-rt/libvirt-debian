@@ -420,9 +420,11 @@ static int lxcContainerSetID(virDomainDefPtr def)
      * for this container. And user namespace is only enabled
      * when nuidmap&ngidmap is not zero */
 
-    VIR_DEBUG("Set UID/GID to 0/0");
-    if (def->idmap.nuidmap &&
-        virSetUIDGID(0, 0, NULL, 0) < 0) {
+    if (!def->idmap.nuidmap)
+        return 0;
+
+    VIR_DEBUG("Setting UID/GID to 0/0");
+    if (virSetUIDGID(0, 0, NULL, 0) < 0) {
         virReportSystemError(errno, "%s",
                              _("setuid or setgid failed"));
         return -1;
@@ -1040,10 +1042,10 @@ static int lxcContainerSetupDevices(char **ttyPaths, size_t nttyPaths)
         if (virAsprintf(&tty, "/dev/tty%zu", i+1) < 0)
             return -1;
         if (symlink(ttyPaths[i], tty) < 0) {
-            VIR_FREE(tty);
             virReportSystemError(errno,
                                  _("Failed to symlink %s to %s"),
                                  ttyPaths[i], tty);
+            VIR_FREE(tty);
             return -1;
         }
         VIR_FREE(tty);
@@ -1428,7 +1430,7 @@ static int lxcContainerMountFSTmpfs(virDomainFSDefPtr fs,
     VIR_DEBUG("usage=%lld sec=%s", fs->usage, sec_mount_options);
 
     if (virAsprintf(&data,
-                    "size=%lldk%s", fs->usage, sec_mount_options) < 0)
+                    "size=%lld%s", fs->usage, sec_mount_options) < 0)
         goto cleanup;
 
     if (virFileMakePath(fs->dst) < 0) {
@@ -1697,7 +1699,6 @@ static int lxcContainerResolveSymlinks(virDomainDefPtr vmDef)
 {
     char *newroot;
     size_t i;
-    char ebuf[1024];
 
     VIR_DEBUG("Resolving symlinks");
 
@@ -1707,14 +1708,16 @@ static int lxcContainerResolveSymlinks(virDomainDefPtr vmDef)
             continue;
 
         if (access(fs->src, F_OK)) {
-            VIR_DEBUG("Failed to access '%s': %s", fs->src,
-                      virStrerror(errno, ebuf, sizeof(ebuf)));
+            virReportSystemError(errno,
+                                 _("Failed to access '%s'"), fs->src);
             return -1;
         }
 
         VIR_DEBUG("Resolving '%s'", fs->src);
         if (virFileResolveAllLinks(fs->src, &newroot) < 0) {
-            VIR_DEBUG("Failed to resolve symlink at %s", fs->src);
+            virReportSystemError(errno,
+                                 _("Failed to resolve symlink at %s"),
+                                 fs->src);
             return -1;
         }
 
@@ -1903,6 +1906,15 @@ cleanup:
     if (ret == 0) {
         /* this function will only return if an error occurred */
         ret = virCommandExec(cmd);
+    }
+
+    if (ret != 0) {
+        virErrorPtr err = virGetLastError();
+        if (err && err->message)
+            fprintf(stderr, "%s\n", err->message);
+        else
+            fprintf(stderr, "%s\n",
+                    _("Unknown failure in libvirt_lxc startup"));
     }
 
     virCommandFree(cmd);

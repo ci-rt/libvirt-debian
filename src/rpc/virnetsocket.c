@@ -127,9 +127,9 @@ static int virNetSocketForkDaemon(const char *binary)
                                              NULL);
 
     virCommandAddEnvPassCommon(cmd);
-    virCommandAddEnvPass(cmd, "XDG_CACHE_HOME");
-    virCommandAddEnvPass(cmd, "XDG_CONFIG_HOME");
-    virCommandAddEnvPass(cmd, "XDG_RUNTIME_DIR");
+    virCommandAddEnvPassBlockSUID(cmd, "XDG_CACHE_HOME", NULL);
+    virCommandAddEnvPassBlockSUID(cmd, "XDG_CONFIG_HOME", NULL);
+    virCommandAddEnvPassBlockSUID(cmd, "XDG_RUNTIME_DIR", NULL);
     virCommandClearCaps(cmd);
     virCommandDaemonize(cmd);
     ret = virCommandRun(cmd, NULL);
@@ -680,11 +680,11 @@ int virNetSocketNewConnectSSH(const char *nodename,
 
     cmd = virCommandNew(binary ? binary : "ssh");
     virCommandAddEnvPassCommon(cmd);
-    virCommandAddEnvPass(cmd, "KRB5CCNAME");
-    virCommandAddEnvPass(cmd, "SSH_AUTH_SOCK");
-    virCommandAddEnvPass(cmd, "SSH_ASKPASS");
-    virCommandAddEnvPass(cmd, "DISPLAY");
-    virCommandAddEnvPass(cmd, "XAUTHORITY");
+    virCommandAddEnvPassBlockSUID(cmd, "KRB5CCNAME", NULL);
+    virCommandAddEnvPassBlockSUID(cmd, "SSH_AUTH_SOCK", NULL);
+    virCommandAddEnvPassBlockSUID(cmd, "SSH_ASKPASS", NULL);
+    virCommandAddEnvPassBlockSUID(cmd, "DISPLAY", NULL);
+    virCommandAddEnvPassBlockSUID(cmd, "XAUTHORITY", NULL);
     virCommandClearCaps(cmd);
 
     if (service)
@@ -1149,6 +1149,23 @@ cleanup:
 }
 #elif defined(LOCAL_PEERCRED)
 
+/* VIR_SOL_PEERCRED - the value needed to let getsockopt() work with
+ * LOCAL_PEERCRED
+ */
+# ifdef __APPLE__
+#  ifdef SOL_LOCAL
+#   define VIR_SOL_PEERCRED SOL_LOCAL
+#  else
+/* Prior to Mac OS X 10.7, SOL_LOCAL was not defined and users were
+ * expected to supply 0 as the second value for getsockopt() when using
+ * LOCAL_PEERCRED
+ */
+#   define VIR_SOL_PEERCRED 0
+#  endif
+# else
+#  define VIR_SOL_PEERCRED SOL_SOCKET
+# endif
+
 int virNetSocketGetUNIXIdentity(virNetSocketPtr sock,
                                 uid_t *uid,
                                 gid_t *gid,
@@ -1157,35 +1174,64 @@ int virNetSocketGetUNIXIdentity(virNetSocketPtr sock,
 {
     struct xucred cr;
     socklen_t cr_len = sizeof(cr);
+    int ret = -1;
+
     virObjectLock(sock);
 
-    if (getsockopt(sock->fd, SOL_SOCKET, LOCAL_PEERCRED, &cr, &cr_len) < 0) {
+    cr.cr_ngroups = -1;
+    if (getsockopt(sock->fd, VIR_SOL_PEERCRED, LOCAL_PEERCRED, &cr, &cr_len) < 0) {
         virReportSystemError(errno, "%s",
                              _("Failed to get client socket identity"));
-        virObjectUnlock(sock);
-        return -1;
+        goto cleanup;
     }
 
     if (cr.cr_version != XUCRED_VERSION) {
         virReportError(VIR_ERR_SYSTEM_ERROR, "%s",
                        _("Failed to get valid client socket identity"));
-        return -1;
+        goto cleanup;
     }
 
-    if (cr.cr_ngroups == 0) {
+    if (cr.cr_ngroups <= 0 || cr.cr_ngroups > NGROUPS) {
         virReportError(VIR_ERR_SYSTEM_ERROR, "%s",
                        _("Failed to get valid client socket identity groups"));
-        return -1;
+        goto cleanup;
     }
 
-    /* PID and process creation time are not supported on BSDs */
+    /* PID and process creation time are not supported on BSDs by
+     * LOCAL_PEERCRED.
+     */
     *pid = -1;
     *timestamp = -1;
     *uid = cr.cr_uid;
     *gid = cr.cr_gid;
 
+# ifdef LOCAL_PEERPID
+    /* Exists on Mac OS X 10.8 for retrieving the peer's PID */
+    cr_len = sizeof(*pid);
+
+    if (getsockopt(sock->fd, VIR_SOL_PEERCRED, LOCAL_PEERPID, pid, &cr_len) < 0) {
+        /* Ensure this is set to something sane as there are no guarantees
+         * as to what its set to now.
+         */
+        *pid = -1;
+
+        /* If this was built on a system with LOCAL_PEERPID defined but
+         * the kernel doesn't support it we'll get back EOPNOTSUPP so
+         * treat all errors but EOPNOTSUPP as fatal
+         */
+        if (errno != EOPNOTSUPP) {
+            virReportSystemError(errno, "%s",
+                    _("Failed to get client socket PID"));
+            goto cleanup;
+        }
+    }
+# endif
+
+    ret = 0;
+
+cleanup:
     virObjectUnlock(sock);
-    return 0;
+    return ret;
 }
 #else
 int virNetSocketGetUNIXIdentity(virNetSocketPtr sock ATTRIBUTE_UNUSED,

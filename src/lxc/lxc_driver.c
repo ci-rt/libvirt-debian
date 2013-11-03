@@ -84,8 +84,7 @@ virLXCDriverPtr lxc_driver = NULL;
 
 /* callbacks for nwfilter */
 static int
-lxcVMFilterRebuild(virConnectPtr conn ATTRIBUTE_UNUSED,
-                   virDomainObjListIterator iter, void *data)
+lxcVMFilterRebuild(virDomainObjListIterator iter, void *data)
 {
     return virDomainObjListForEach(lxc_driver->domains, iter, data);
 }
@@ -888,7 +887,7 @@ cleanup:
 }
 
 /**
- * lxcDomainCreateWithFlags:
+ * lxcDomainCreateWithFiles:
  * @dom: domain to start
  * @flags: Must be 0 for now
  *
@@ -1363,14 +1362,14 @@ static int lxcStateInitialize(bool privileged,
                               void *opaque ATTRIBUTE_UNUSED)
 {
     virCapsPtr caps = NULL;
-    char *ld;
+    const char *ld;
     virLXCDriverConfigPtr cfg = NULL;
 
     /* Valgrind gets very annoyed when we clone containers, so
      * disable LXC when under valgrind
      * XXX remove this when valgrind is fixed
      */
-    ld = getenv("LD_PRELOAD");
+    ld = virGetEnvBlockSUID("LD_PRELOAD");
     if (ld && strstr(ld, "vgpreload")) {
         VIR_INFO("Running under valgrind, disabling driver");
         return 0;

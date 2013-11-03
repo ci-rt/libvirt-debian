@@ -38,6 +38,8 @@ module Libvirtd_qemu =
                  | bool_entry "spice_tls"
                  | str_entry  "spice_tls_x509_cert_dir"
                  | str_entry "spice_password"
+                 | bool_entry "spice_sasl"
+                 | str_entry "spice_sasl_dir"
 
    let nogfx_entry = bool_entry "nographics_allow_host_audio"
 
@@ -58,6 +60,7 @@ module Libvirtd_qemu =
 
    let save_entry =  str_entry "save_image_format"
                  | str_entry "dump_image_format"
+                 | str_entry "snapshot_image_format"
                  | str_entry "auto_dump_path"
                  | bool_entry "auto_dump_bypass_cache"
                  | bool_entry "auto_start_bypass_cache"
@@ -78,6 +81,10 @@ module Libvirtd_qemu =
                  | int_entry "keepalive_interval"
                  | int_entry "keepalive_count"
 
+   let network_entry = str_entry "migration_address"
+                 | int_entry "migration_port_min"
+                 | int_entry "migration_port_max"
+
    (* Each entry in the config is one of the following ... *)
    let entry = vnc_entry
              | spice_entry
@@ -88,6 +95,7 @@ module Libvirtd_qemu =
              | process_entry
              | device_entry
              | rpc_entry
+             | network_entry
 
    let comment = [ label "#comment" . del /#[ \t]*/ "# " .  store /([^ \t\n][^\n]*)?/ . del /\n/ "\n" ]
    let empty = [ label "#empty" . eol ]

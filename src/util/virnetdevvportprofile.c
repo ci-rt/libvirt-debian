@@ -29,6 +29,12 @@
 
 #define VIR_FROM_THIS VIR_FROM_NET
 
+VIR_ENUM_IMPL(virNetDevVPort, VIR_NETDEV_VPORT_PROFILE_LAST,
+              "none",
+              "802.1Qbg",
+              "802.1Qbh",
+              "openvswitch")
+
 VIR_ENUM_IMPL(virNetDevVPortProfileOp, VIR_NETDEV_VPORT_PROFILE_OP_LAST,
               "create",
               "save",
@@ -577,7 +583,7 @@ cleanup:
 static int
 virNetDevVPortProfileOpSetLink(const char *ifname, int ifindex,
                                bool nltarget_kernel,
-                               const virMacAddrPtr macaddr,
+                               const virMacAddr *macaddr,
                                int vlanid,
                                const char *profileId,
                                struct ifla_port_vsi *portVsi,
@@ -822,7 +828,7 @@ virNetDevVPortProfileGetNthParent(const char *ifname, int ifindex, unsigned int 
 static int
 virNetDevVPortProfileOpCommon(const char *ifname, int ifindex,
                               bool nltarget_kernel,
-                              const virMacAddrPtr macaddr,
+                              const virMacAddr *macaddr,
                               int vlanid,
                               const char *profileId,
                               struct ifla_port_vsi *portVsi,
@@ -936,9 +942,9 @@ virNetDevVPortProfileGetPhysdevAndVlan(const char *ifname, int *root_ifindex, ch
 /* Returns 0 on success, -1 on general failure, and -2 on timeout */
 static int
 virNetDevVPortProfileOp8021Qbg(const char *ifname,
-                               const virMacAddrPtr macaddr,
+                               const virMacAddr *macaddr,
                                int vf,
-                               const virNetDevVPortProfilePtr virtPort,
+                               const virNetDevVPortProfile *virtPort,
                                enum virNetDevVPortProfileLinkOp virtPortOp,
                                bool setlink_only)
 {
@@ -1004,9 +1010,9 @@ cleanup:
 /* Returns 0 on success, -1 on general failure, and -2 on timeout */
 static int
 virNetDevVPortProfileOp8021Qbh(const char *ifname,
-                               const virMacAddrPtr macaddr,
+                               const virMacAddr *macaddr,
                                int32_t vf,
-                               const virNetDevVPortProfilePtr virtPort,
+                               const virNetDevVPortProfile *virtPort,
                                const unsigned char *vm_uuid,
                                enum virNetDevVPortProfileLinkOp virtPortOp)
 {
@@ -1125,8 +1131,8 @@ cleanup:
  */
 int
 virNetDevVPortProfileAssociate(const char *macvtap_ifname,
-                               const virNetDevVPortProfilePtr virtPort,
-                               const virMacAddrPtr macvtap_macaddr,
+                               const virNetDevVPortProfile *virtPort,
+                               const virMacAddr *macvtap_macaddr,
                                const char *linkdev,
                                int vf,
                                const unsigned char *vmuuid,
@@ -1189,8 +1195,8 @@ virNetDevVPortProfileAssociate(const char *macvtap_ifname,
  */
 int
 virNetDevVPortProfileDisassociate(const char *macvtap_ifname,
-                                  const virNetDevVPortProfilePtr virtPort,
-                                  const virMacAddrPtr macvtap_macaddr,
+                                  const virNetDevVPortProfile *virtPort,
+                                  const virMacAddr *macvtap_macaddr,
                                   const char *linkdev,
                                   int vf,
                                   enum virNetDevVPortProfileOp vmOp)
@@ -1234,8 +1240,8 @@ virNetDevVPortProfileDisassociate(const char *macvtap_ifname,
 
 #else /* ! WITH_VIRTUALPORT */
 int virNetDevVPortProfileAssociate(const char *macvtap_ifname ATTRIBUTE_UNUSED,
-                               const virNetDevVPortProfilePtr virtPort ATTRIBUTE_UNUSED,
-                               const virMacAddrPtr macvtap_macaddr ATTRIBUTE_UNUSED,
+                               const virNetDevVPortProfile *virtPort ATTRIBUTE_UNUSED,
+                               const virMacAddr *macvtap_macaddr ATTRIBUTE_UNUSED,
                                const char *linkdev ATTRIBUTE_UNUSED,
                                int vf ATTRIBUTE_UNUSED,
                                const unsigned char *vmuuid ATTRIBUTE_UNUSED,
@@ -1248,8 +1254,8 @@ int virNetDevVPortProfileAssociate(const char *macvtap_ifname ATTRIBUTE_UNUSED,
 }
 
 int virNetDevVPortProfileDisassociate(const char *macvtap_ifname ATTRIBUTE_UNUSED,
-                                      const virNetDevVPortProfilePtr virtPort ATTRIBUTE_UNUSED,
-                                      const virMacAddrPtr macvtap_macaddr ATTRIBUTE_UNUSED,
+                                      const virNetDevVPortProfile *virtPort ATTRIBUTE_UNUSED,
+                                      const virMacAddr *macvtap_macaddr ATTRIBUTE_UNUSED,
                                       const char *linkdev ATTRIBUTE_UNUSED,
                                       int vf ATTRIBUTE_UNUSED,
                                       enum virNetDevVPortProfileOp vmOp ATTRIBUTE_UNUSED)
