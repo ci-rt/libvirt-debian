@@ -1,9 +1,8 @@
-From: =?UTF-8?q?Guido=20G=C3=BCnther?= <agx@sigxcpu.org>
+From: =?utf-8?q?Guido_G=C3=BCnther?= <agx@sigxcpu.org>
 Date: Thu, 26 Feb 2009 14:29:58 +0100
 Subject: fix Debian specific path to hvm loader
 
 Closes: #517059
-
 ---
  src/xen/xen_hypervisor.c               | 2 +-
  tests/xencapsdata/xen-i686-pae-hvm.xml | 2 +-
