@@ -295,6 +295,10 @@ static const vshCmdOptDef opts_attach_disk[] = {
      .type = VSH_OT_STRING,
      .help = N_("target device type")
     },
+    {.name = "shareable",
+     .type = VSH_OT_ALIAS,
+     .help = "mode=shareable"
+    },
     {.name = "mode",
      .type = VSH_OT_STRING,
      .help = N_("mode of device reading and writing")
@@ -310,10 +314,6 @@ static const vshCmdOptDef opts_attach_disk[] = {
     {.name = "wwn",
      .type = VSH_OT_STRING,
      .help = N_("wwn of disk device")
-    },
-    {.name = "shareable",
-     .type = VSH_OT_BOOL,
-     .help = N_("shareable between domains")
     },
     {.name = "rawio",
      .type = VSH_OT_BOOL,
@@ -528,13 +528,6 @@ cmdAttachDisk(vshControl *ctl, const vshCmd *cmd)
     if (live)
         flags |= VIR_DOMAIN_AFFECT_LIVE;
 
-    if (!(dom = vshCommandOptDomain(ctl, cmd, NULL)))
-        return false;
-
-    if (persistent &&
-        virDomainIsActive(dom) == 1)
-        flags |= VIR_DOMAIN_AFFECT_LIVE;
-
     if (vshCommandOptStringReq(ctl, cmd, "source", &source) < 0 ||
         vshCommandOptStringReq(ctl, cmd, "target", &target) < 0 ||
         vshCommandOptStringReq(ctl, cmd, "driver", &driver) < 0 ||
@@ -609,9 +602,6 @@ cmdAttachDisk(vshControl *ctl, const vshCmd *cmd)
     if (wwn)
         virBufferAsprintf(&buf, "  <wwn>%s</wwn>\n", wwn);
 
-    if (vshCommandOptBool(cmd, "shareable"))
-        virBufferAddLit(&buf, "  <shareable/>\n");
-
     if (straddr) {
         if (str2DiskAddress(straddr, &diskAddr) != 0) {
             vshError(ctl, _("Invalid address."));
@@ -672,6 +662,13 @@ cmdAttachDisk(vshControl *ctl, const vshCmd *cmd)
         goto cleanup;
     }
 
+    if (!(dom = vshCommandOptDomain(ctl, cmd, NULL)))
+        goto cleanup;
+
+    if (persistent &&
+        virDomainIsActive(dom) == 1)
+        flags |= VIR_DOMAIN_AFFECT_LIVE;
+
     if (flags)
         ret = virDomainAttachDeviceFlags(dom, xml, flags);
     else
@@ -686,7 +683,8 @@ cmdAttachDisk(vshControl *ctl, const vshCmd *cmd)
 
  cleanup:
     VIR_FREE(xml);
-    virDomainFree(dom);
+    if (dom)
+        virDomainFree(dom);
     virBufferFreeAndReset(&buf);
     return functionReturn;
 }
@@ -3036,7 +3034,7 @@ cmdUndefine(vshControl *ctl, const vshCmd *cmd)
                                           &ctxt)))
             goto error;
 
-        /* tokenize the string from user and save it's parts into an array */
+        /* tokenize the string from user and save its parts into an array */
         if (vol_string &&
             (nvol_list = vshStringToArray(vol_string, &vol_list)) < 0)
             goto error;
@@ -3528,6 +3526,7 @@ vshWatchJob(vshControl *ctl,
     bool functionReturn = false;
     sigset_t sigmask, oldsigmask;
     bool jobStarted = false;
+    nfds_t npollfd = 2;
 
     sigemptyset(&sigmask);
     sigaddset(&sigmask, SIGINT);
@@ -3538,9 +3537,13 @@ vshWatchJob(vshControl *ctl,
     sigemptyset(&sig_action.sa_mask);
     sigaction(SIGINT, &sig_action, &old_sig_action);
 
+    /* don't poll on STDIN if we are not using a terminal */
+    if (!vshTTYAvailable(ctl))
+        npollfd = 1;
+
     GETTIMEOFDAY(&start);
     while (1) {
-        ret = poll((struct pollfd *)&pollfd, 2, 500);
+        ret = poll((struct pollfd *)&pollfd, npollfd, 500);
         if (ret > 0) {
             if (pollfd[1].revents & POLLIN &&
                 saferead(STDIN_FILENO, &retchar, sizeof(retchar)) > 0) {
@@ -8550,6 +8553,10 @@ static const vshCmdOptDef opts_migrate[] = {
      .type = VSH_OT_DATA,
      .help = N_("graphics URI to be used for seamless graphics migration")
     },
+    {.name = "listen-address",
+     .type = VSH_OT_DATA,
+     .help = N_("listen address that destination should bind to for incoming migration")
+    },
     {.name = "dname",
      .type = VSH_OT_DATA,
      .help = N_("rename to new name during migration (if supported)")
@@ -8604,6 +8611,13 @@ doMigrate(void *opaque)
     if (opt &&
         virTypedParamsAddString(&params, &nparams, &maxparams,
                                 VIR_MIGRATE_PARAM_GRAPHICS_URI, opt) < 0)
+        goto save_error;
+
+    if (vshCommandOptStringReq(ctl, cmd, "listen-address", &opt) < 0)
+        goto out;
+    if (opt &&
+        virTypedParamsAddString(&params, &nparams, &maxparams,
+                                VIR_MIGRATE_PARAM_LISTEN_ADDRESS, opt) < 0)
         goto save_error;
 
     if (vshCommandOptStringReq(ctl, cmd, "dname", &opt) < 0)
@@ -9043,6 +9057,7 @@ cmdDomDisplay(vshControl *ctl, const vshCmd *cmd)
     int flags = 0;
     bool params = false;
     const char *xpath_fmt = "string(/domain/devices/graphics[@type='%s']/@%s)";
+    virSocketAddr addr;
 
     if (!(dom = vshCommandOptDomain(ctl, cmd, NULL)))
         return false;
@@ -9126,8 +9141,12 @@ cmdDomDisplay(vshControl *ctl, const vshCmd *cmd)
             virBufferAsprintf(&buf, ":%s@", passwd);
 
         /* Then host name or IP */
-        if (!listen_addr || STREQ((const char *)listen_addr, "0.0.0.0"))
+        if (!listen_addr ||
+            (virSocketAddrParse(&addr, listen_addr, AF_UNSPEC) > 0 &&
+             virSocketAddrIsWildcard(&addr)))
             virBufferAddLit(&buf, "localhost");
+        else if (strchr(listen_addr, ':'))
+            virBufferAsprintf(&buf, "[%s]", listen_addr);
         else
             virBufferAsprintf(&buf, "%s", listen_addr);
 

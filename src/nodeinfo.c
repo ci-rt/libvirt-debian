@@ -38,7 +38,7 @@
 # include <numa.h>
 #endif
 
-#ifdef __FreeBSD__
+#if defined(__FreeBSD__) || defined(__APPLE__)
 # include <sys/types.h>
 # include <sys/sysctl.h>
 #endif
@@ -58,9 +58,9 @@
 
 #define VIR_FROM_THIS VIR_FROM_NONE
 
-#ifdef __FreeBSD__
+#if defined(__FreeBSD__) || defined(__APPLE__)
 static int
-freebsdNodeGetCPUCount(void)
+appleFreebsdNodeGetCPUCount(void)
 {
     int ncpu_mib[2] = { CTL_HW, HW_NCPU };
     unsigned long ncpu;
@@ -72,6 +72,33 @@ freebsdNodeGetCPUCount(void)
     }
 
     return ncpu;
+}
+
+/* VIR_HW_PHYSMEM - the resulting value of HW_PHYSMEM of FreeBSD
+ * is 64 bits while that of Mac OS X is still 32 bits.
+ * Mac OS X provides HW_MEMSIZE for 64 bits version of HW_PHYSMEM
+ * since 10.6.8 (Snow Leopard) at least.
+ */
+# ifdef HW_MEMSIZE
+#  define VIR_HW_PHYSMEM HW_MEMSIZE
+# else
+#  define VIR_HW_PHYSMEM HW_PHYSMEM
+# endif
+static int
+appleFreebsdNodeGetMemorySize(unsigned long *memory)
+{
+    int mib[2] = { CTL_HW, VIR_HW_PHYSMEM };
+    unsigned long physmem;
+    size_t len = sizeof(physmem);
+
+    if (sysctl(mib, 2, &physmem, &len, NULL, 0) == -1) {
+        virReportSystemError(errno, "%s", _("cannot obtain memory size"));
+        return -1;
+    }
+
+    *memory = (unsigned long)(physmem / 1024);
+
+    return 0;
 }
 #endif
 
@@ -205,7 +232,8 @@ virNodeParseSocket(const char *dir, unsigned int cpu)
 # if defined(__powerpc__) || \
     defined(__powerpc64__) || \
     defined(__s390__) || \
-    defined(__s390x__)
+    defined(__s390x__) || \
+    defined(__aarch64__)
     /* ppc and s390(x) has -1 */
     if (ret < 0)
         ret = 0;
@@ -441,7 +469,7 @@ int linuxNodeInfoCPUPopulate(FILE *cpuinfo,
              * and parsed in next iteration, because it is not in expected
              * format and thus lead to error. */
         }
-# elif defined(__arm__)
+# elif defined(__arm__) || defined(__aarch64__)
         char *buf = line;
         if (STRPREFIX(buf, "BogoMIPS")) {
             char *p;
@@ -882,13 +910,13 @@ cleanup:
     VIR_FORCE_FCLOSE(cpuinfo);
     return ret;
     }
-#elif defined(__FreeBSD__)
+#elif defined(__FreeBSD__) || defined(__APPLE__)
     {
     nodeinfo->nodes = 1;
     nodeinfo->sockets = 1;
     nodeinfo->threads = 1;
 
-    nodeinfo->cpus = freebsdNodeGetCPUCount();
+    nodeinfo->cpus = appleFreebsdNodeGetCPUCount();
     if (nodeinfo->cpus == -1)
         return -1;
 
@@ -897,24 +925,24 @@ cleanup:
     unsigned long cpu_freq;
     size_t cpu_freq_len = sizeof(cpu_freq);
 
+# ifdef __FreeBSD__
     if (sysctlbyname("dev.cpu.0.freq", &cpu_freq, &cpu_freq_len, NULL, 0) < 0) {
         virReportSystemError(errno, "%s", _("cannot obtain CPU freq"));
         return -1;
     }
 
     nodeinfo->mhz = cpu_freq;
-
-    /* get memory information */
-    int mib[2] = { CTL_HW, HW_PHYSMEM };
-    unsigned long physmem;
-    size_t len = sizeof(physmem);
-
-    if (sysctl(mib, 2, &physmem, &len, NULL, 0) == -1) {
-        virReportSystemError(errno, "%s", _("cannot obtain memory size"));
+# else
+    if (sysctlbyname("hw.cpufrequency", &cpu_freq, &cpu_freq_len, NULL, 0) < 0) {
+        virReportSystemError(errno, "%s", _("cannot obtain CPU freq"));
         return -1;
     }
 
-    nodeinfo->memory = (unsigned long)(physmem / 1024);
+    nodeinfo->mhz = cpu_freq / 1000000;
+# endif
+
+    if (appleFreebsdNodeGetMemorySize(&nodeinfo->memory) < 0)
+        return -1;
 
     return 0;
     }
@@ -1047,8 +1075,8 @@ nodeGetCPUCount(void)
 
     VIR_FREE(cpupath);
     return ncpu;
-#elif defined(__FreeBSD__)
-    return freebsdNodeGetCPUCount();
+#elif defined(__FreeBSD__) || defined(__APPLE__)
+    return appleFreebsdNodeGetCPUCount();
 #else
     virReportError(VIR_ERR_NO_SUPPORT, "%s",
                    _("host cpu counting not implemented on this platform"));

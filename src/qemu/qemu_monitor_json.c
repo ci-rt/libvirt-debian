@@ -1300,7 +1300,7 @@ int qemuMonitorJSONGetVirtType(qemuMonitorPtr mon,
 
         if (virJSONValueObjectGetBoolean(data, "enabled", &val) < 0) {
             virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                           _("info kvm reply missing 'running' field"));
+                           _("info kvm reply missing 'enabled' field"));
             ret = -1;
             goto cleanup;
         }
@@ -3452,6 +3452,9 @@ int qemuMonitorJSONSendKey(qemuMonitorPtr mon,
     if (!cmd)
         goto cleanup;
 
+    /* @keys is part of @cmd now. Avoid double free */
+    keys = NULL;
+
     if ((ret = qemuMonitorJSONCommand(mon, cmd, &reply)) < 0)
         goto cleanup;
 
@@ -5234,7 +5237,7 @@ int qemuMonitorJSONGetTPMTypes(qemuMonitorPtr mon,
 
 static virJSONValuePtr
 qemuMonitorJSONAttachCharDevCommand(const char *chrID,
-                                    const virDomainChrSourceDefPtr chr)
+                                    const virDomainChrSourceDef *chr)
 {
     virJSONValuePtr ret;
     virJSONValuePtr backend;

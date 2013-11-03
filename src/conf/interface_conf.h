@@ -1,7 +1,7 @@
 /*
  * interface_conf.h: interface XML handling entry points
  *
- * Copyright (C) 2006-2009 Red Hat, Inc.
+ * Copyright (C) 2006-2009, 2013 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -164,7 +164,7 @@ typedef virInterfaceObj *virInterfaceObjPtr;
 struct _virInterfaceObj {
     virMutex lock;
 
-    unsigned int active:1;           /* 1 if interface is active (up) */
+    bool active;           /* true if interface is active (up) */
     virInterfaceDefPtr def; /* The interface definition */
 };
 
@@ -175,17 +175,16 @@ struct _virInterfaceObjList {
     virInterfaceObjPtr *objs;
 };
 
-static inline int
-virInterfaceObjIsActive(const virInterfaceObjPtr iface)
+static inline bool
+virInterfaceObjIsActive(const virInterfaceObj *iface)
 {
     return iface->active;
 }
 
-int virInterfaceFindByMACString(const virInterfaceObjListPtr interfaces,
+int virInterfaceFindByMACString(virInterfaceObjListPtr interfaces,
                                 const char *mac,
                                 virInterfaceObjPtr *matches, int maxmatches);
-virInterfaceObjPtr virInterfaceFindByName(const virInterfaceObjListPtr
-                                          interfaces,
+virInterfaceObjPtr virInterfaceFindByName(virInterfaceObjListPtr interfaces,
                                           const char *name);
 
 
@@ -197,16 +196,16 @@ int virInterfaceObjListClone(virInterfaceObjListPtr src,
 
 
 virInterfaceObjPtr virInterfaceAssignDef(virInterfaceObjListPtr interfaces,
-                                         const virInterfaceDefPtr def);
+                                         virInterfaceDefPtr def);
 void virInterfaceRemove(virInterfaceObjListPtr interfaces,
-                        const virInterfaceObjPtr iface);
+                        virInterfaceObjPtr iface);
 
 virInterfaceDefPtr virInterfaceDefParseString(const char *xmlStr);
 virInterfaceDefPtr virInterfaceDefParseFile(const char *filename);
 virInterfaceDefPtr virInterfaceDefParseNode(xmlDocPtr xml,
                                             xmlNodePtr root);
 
-char *virInterfaceDefFormat(const virInterfaceDefPtr def);
+char *virInterfaceDefFormat(const virInterfaceDef *def);
 
 void virInterfaceObjLock(virInterfaceObjPtr obj);
 void virInterfaceObjUnlock(virInterfaceObjPtr obj);

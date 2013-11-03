@@ -98,6 +98,7 @@ static int testCompareXMLToArgvFiles(const char *xml,
     virConnectPtr conn;
     char *log = NULL;
     virCommandPtr cmd = NULL;
+    size_t i;
 
     if (!(conn = virGetConnect()))
         goto out;
@@ -153,6 +154,16 @@ static int testCompareXMLToArgvFiles(const char *xml,
 
     if (qemuAssignDeviceAliases(vmdef, extraFlags) < 0)
         goto out;
+
+    for (i = 0; i < vmdef->nhostdevs; i++) {
+        virDomainHostdevDefPtr hostdev = vmdef->hostdevs[i];
+
+        if (hostdev->mode == VIR_DOMAIN_HOSTDEV_MODE_SUBSYS &&
+            hostdev->source.subsys.type == VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI &&
+            hostdev->source.subsys.u.pci.backend == VIR_DOMAIN_HOSTDEV_PCI_BACKEND_DEFAULT) {
+            hostdev->source.subsys.u.pci.backend = VIR_DOMAIN_HOSTDEV_PCI_BACKEND_KVM;
+        }
+    }
 
     if (!(cmd = qemuBuildCommandLine(conn, &driver, vmdef, &monitor_chr,
                                      (flags & FLAG_JSON), extraFlags,
@@ -332,7 +343,7 @@ mymain(void)
             return EXIT_FAILURE;                                        \
         virQEMUCapsSetList(info.extraFlags, __VA_ARGS__, QEMU_CAPS_LAST);\
         if (virtTestRun("QEMU XML-2-ARGV " name,                        \
-                        1, testCompareXMLToArgvHelper, &info) < 0)      \
+                        testCompareXMLToArgvHelper, &info) < 0)         \
             ret = -1;                                                   \
         virObjectUnref(info.extraFlags);                                \
     } while (0)
@@ -421,6 +432,8 @@ mymain(void)
     DO_TEST("clock-variable", QEMU_CAPS_RTC);
     */
     DO_TEST("clock-france", QEMU_CAPS_RTC);
+    DO_TEST("clock-hpet-off", QEMU_CAPS_RTC, QEMU_CAPS_NO_HPET,
+            QEMU_CAPS_NO_KVM_PIT);
     DO_TEST("cpu-kvmclock", QEMU_CAPS_ENABLE_KVM);
     DO_TEST("cpu-host-kvmclock", QEMU_CAPS_ENABLE_KVM, QEMU_CAPS_CPU_HOST);
     DO_TEST("kvmclock", QEMU_CAPS_KVM);
@@ -647,6 +660,14 @@ mymain(void)
             QEMU_CAPS_VGA, QEMU_CAPS_VGA_QXL,
             QEMU_CAPS_DEVICE, QEMU_CAPS_SPICE,
             QEMU_CAPS_DEVICE_QXL);
+    driver.config->spiceSASL = 1;
+    ignore_value(VIR_STRDUP(driver.config->spiceSASLdir, "/root/.sasl2"));
+    DO_TEST("graphics-spice-sasl",
+            QEMU_CAPS_VGA, QEMU_CAPS_VGA_QXL,
+            QEMU_CAPS_DEVICE, QEMU_CAPS_SPICE,
+            QEMU_CAPS_DEVICE_QXL);
+    VIR_FREE(driver.config->spiceSASLdir);
+    driver.config->spiceSASL = 0;
     DO_TEST("graphics-spice-agentmouse",
             QEMU_CAPS_VGA, QEMU_CAPS_VGA_QXL,
             QEMU_CAPS_DEVICE, QEMU_CAPS_SPICE,

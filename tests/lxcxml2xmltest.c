@@ -117,8 +117,8 @@ mymain(void)
 # define DO_TEST_FULL(name, is_different, inactive)                     \
     do {                                                                \
         const struct testInfo info = {name, is_different, inactive};    \
-        if (virtTestRun("LXC XML-2-XML " name,                         \
-                        1, testCompareXMLToXMLHelper, &info) < 0)       \
+        if (virtTestRun("LXC XML-2-XML " name,                          \
+                        testCompareXMLToXMLHelper, &info) < 0)          \
             ret = -1;                                                   \
     } while (0)
 
@@ -136,6 +136,7 @@ mymain(void)
     DO_TEST("systemd");
     DO_TEST("hostdev");
     DO_TEST("disk-formats");
+    DO_TEST_DIFFERENT("filesystem-ram");
 
     virObjectUnref(caps);
     virObjectUnref(xmlopt);

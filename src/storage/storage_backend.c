@@ -129,7 +129,7 @@ virStorageBackendCopyToFD(virStorageVolDefPtr vol,
                           virStorageVolDefPtr inputvol,
                           int fd,
                           unsigned long long *total,
-                          int is_dest_file)
+                          bool want_sparse)
 {
     int inputfd = -1;
     int amtread = -1;
@@ -191,7 +191,7 @@ virStorageBackendCopyToFD(virStorageVolDefPtr vol,
             interval = ((wbytes > amtleft) ? amtleft : wbytes);
             int offset = amtread - amtleft;
 
-            if (is_dest_file && memcmp(buf+offset, zerobuf, interval) == 0) {
+            if (want_sparse && memcmp(buf+offset, zerobuf, interval) == 0) {
                 if (lseek(fd, interval, SEEK_CUR) < 0) {
                     ret = -errno;
                     virReportSystemError(errno,
@@ -270,7 +270,7 @@ virStorageBackendCreateBlockFrom(virConnectPtr conn ATTRIBUTE_UNUSED,
 
     if (inputvol) {
         int res = virStorageBackendCopyToFD(vol, inputvol,
-                                            fd, &remain, 0);
+                                            fd, &remain, false);
         if (res < 0)
             goto cleanup;
     }
@@ -315,6 +315,7 @@ static int
 createRawFile(int fd, virStorageVolDefPtr vol,
               virStorageVolDefPtr inputvol)
 {
+    bool need_alloc = true;
     int ret = 0;
     unsigned long long remain;
 
@@ -328,17 +329,45 @@ createRawFile(int fd, virStorageVolDefPtr vol,
         goto cleanup;
     }
 
+/* Avoid issues with older kernel's <linux/fs.h> namespace pollution. */
+#if HAVE_FALLOCATE - 0
+    /* Try to preallocate all requested disk space, but fall back to
+     * other methods if this fails with ENOSYS or EOPNOTSUPP. If allocation
+     * is 0 (or less than 0), then fallocate will fail with EINVAL.
+     * NOTE: do not use posix_fallocate; posix_fallocate falls back
+     * to writing zeroes block by block in case fallocate isn't
+     * available, and since we're going to copy data from another
+     * file it doesn't make sense to write the file twice. */
+    if (vol->allocation) {
+        if (fallocate(fd, 0, 0, vol->allocation) == 0) {
+            need_alloc = false;
+        } else if (errno != ENOSYS && errno != EOPNOTSUPP) {
+            ret = -errno;
+            virReportSystemError(errno,
+                                 _("cannot allocate %llu bytes in file '%s'"),
+                                 vol->allocation, vol->target.path);
+            goto cleanup;
+        }
+    }
+#endif
+
     remain = vol->allocation;
 
     if (inputvol) {
-        ret = virStorageBackendCopyToFD(vol, inputvol, fd, &remain, 1);
+        /* allow zero blocks to be skipped if we've requested sparse
+         * allocation (allocation < capacity) or we have already
+         * been able to allocate the required space. */
+        bool want_sparse = !need_alloc ||
+                           (vol->allocation < inputvol->capacity);
+
+        ret = virStorageBackendCopyToFD(vol, inputvol, fd, &remain, want_sparse);
         if (ret < 0) {
             goto cleanup;
         }
     }
 
-    if (remain) {
-        if (safezero(fd, 0, remain) < 0) {
+    if (remain && need_alloc) {
+        if (safezero(fd, vol->allocation - remain, remain) < 0) {
             ret = -errno;
             virReportSystemError(errno, _("cannot fill file '%s'"),
                                  vol->target.path);
@@ -527,11 +556,11 @@ virStorageBackendCreateExecCommand(virStoragePoolObjPtr pool,
     bool filecreated = false;
 
     if ((pool->def->type == VIR_STORAGE_POOL_NETFS)
-        && (((getuid() == 0)
+        && (((geteuid() == 0)
              && (vol->target.perms.uid != (uid_t) -1)
              && (vol->target.perms.uid != 0))
             || ((vol->target.perms.gid != (gid_t) -1)
-                && (vol->target.perms.gid != getgid())))) {
+                && (vol->target.perms.gid != getegid())))) {
 
         virCommandSetUID(cmd, vol->target.perms.uid);
         virCommandSetGID(cmd, vol->target.perms.gid);

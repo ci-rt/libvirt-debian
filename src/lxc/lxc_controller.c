@@ -64,6 +64,7 @@
 #include "virrandom.h"
 #include "virprocess.h"
 #include "virnuma.h"
+#include "virdbus.h"
 #include "rpc/virnetserver.h"
 #include "virstring.h"
 
@@ -362,6 +363,8 @@ static int virLXCControllerSetupLoopDeviceFS(virDomainFSDefPtr fs)
     if ((lofd = virFileLoopDeviceAssociate(fs->src, &loname)) < 0)
         return -1;
 
+    VIR_DEBUG("Changing fs %s to use type=block for dev %s",
+              fs->src, loname);
     /*
      * We now change it into a block device type, so that
      * the rest of container setup 'just works'
@@ -382,6 +385,9 @@ static int virLXCControllerSetupLoopDeviceDisk(virDomainDiskDefPtr disk)
 
     if ((lofd = virFileLoopDeviceAssociate(disk->src, &loname)) < 0)
         return -1;
+
+    VIR_DEBUG("Changing disk %s to use type=block for dev %s",
+              disk->src, loname);
 
     /*
      * We now change it into a block device type, so that
@@ -412,11 +418,13 @@ static int virLXCControllerSetupNBDDeviceFS(virDomainFSDefPtr fs)
                                   &dev) < 0)
         return -1;
 
+    VIR_DEBUG("Changing fs %s to use type=block for dev %s",
+              fs->src, dev);
     /*
      * We now change it into a block device type, so that
      * the rest of container setup 'just works'
      */
-    fs->type = VIR_DOMAIN_DISK_TYPE_BLOCK;
+    fs->type = VIR_DOMAIN_FS_TYPE_BLOCK;
     VIR_FREE(fs->src);
     fs->src = dev;
 
@@ -440,6 +448,8 @@ static int virLXCControllerSetupNBDDeviceDisk(virDomainDiskDefPtr disk)
                                   &dev) < 0)
         return -1;
 
+    VIR_DEBUG("Changing disk %s to use type=block for dev %s",
+              disk->src, dev);
     /*
      * We now change it into a block device type, so that
      * the rest of container setup 'just works'
@@ -2200,6 +2210,12 @@ virLXCControllerRun(virLXCControllerPtr ctrl)
         if (virLXCControllerConsoleSetNonblocking(&(ctrl->consoles[i])) < 0)
             goto cleanup;
 
+    /* We must not hold open a dbus connection for life
+     * of LXC instance, since dbus-daemon is limited to
+     * only a few 100 connections by default
+     */
+    virDBusCloseSystemBus();
+
     rc = virLXCControllerMain(ctrl);
 
     virLXCControllerEventSendExit(ctrl, rc);
@@ -2223,7 +2239,7 @@ cleanup:
 int main(int argc, char *argv[])
 {
     pid_t pid;
-    int rc = 1;
+    int rc = -1;
     char *name = NULL;
     size_t nveths = 0;
     char **veths = NULL;
@@ -2250,7 +2266,9 @@ int main(int argc, char *argv[])
 
     if (setlocale(LC_ALL, "") == NULL ||
         bindtextdomain(PACKAGE, LOCALEDIR) == NULL ||
-        textdomain(PACKAGE) == NULL) {
+        textdomain(PACKAGE) == NULL ||
+        virThreadInitialize() < 0 ||
+        virErrorInitialize() < 0) {
         fprintf(stderr, _("%s: initialization failed\n"), argv[0]);
         exit(EXIT_FAILURE);
     }
@@ -2344,12 +2362,14 @@ int main(int argc, char *argv[])
         goto cleanup;
     }
 
-    if (getuid() != 0) {
+    if (geteuid() != 0) {
         fprintf(stderr, "%s: must be run as the 'root' user\n", argv[0]);
         goto cleanup;
     }
 
     virEventRegisterDefaultImpl();
+
+    virDBusSetSharedBus(false);
 
     if (!(ctrl = virLXCControllerNew(name)))
         goto cleanup;

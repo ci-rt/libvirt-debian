@@ -108,6 +108,10 @@ static inline int geteuid (void) { return 0; }
 static inline int getgid (void) { return 0; }
 # endif
 
+# ifndef HAVE_GETEGID
+static inline int getegid (void) { return 0; }
+# endif
+
 char *virGetHostname(void);
 
 char *virGetUserDirectory(void);
@@ -168,8 +172,12 @@ char *virGetFCHostNameByWWN(const char *sysfs_prefix,
 
 char *virFindFCHostCapableVport(const char *sysfs_prefix);
 
-int virCompareLimitUlong(unsigned long long a, unsigned long b);
+int virCompareLimitUlong(unsigned long long a, unsigned long long b);
 
 int virParseOwnershipIds(const char *label, uid_t *uidPtr, gid_t *gidPtr);
+
+const char *virGetEnvBlockSUID(const char *name);
+const char *virGetEnvAllowSUID(const char *name);
+bool virIsSUID(void);
 
 #endif /* __VIR_UTIL_H__ */

@@ -21,6 +21,7 @@
 # that actually use them. Also keep GETTEXT_CPPFLAGS at the end.
 INCLUDES =	-I../gnulib/lib					\
 		-I$(top_srcdir)/gnulib/lib			\
+		-I$(top_srcdir)					\
 		-I../include					\
 		-I$(top_srcdir)/include				\
 		-I$(top_srcdir)/src/util			\
@@ -48,11 +49,14 @@ nodist_conf_DATA =
 
 THREAD_LIBS = $(LIB_PTHREAD) $(LTLIBMULTITHREAD)
 
+SECDRIVER_CFLAGS =
 SECDRIVER_LIBS =
 if WITH_SECDRIVER_SELINUX
+SECDRIVER_CFLAGS += $(SELINUX_CFLAGS)
 SECDRIVER_LIBS += $(SELINUX_LIBS)
 endif WITH_SECDRIVER_SELINUX
 if WITH_SECDRIVER_APPARMOR
+SECDRIVER_CFLAGS += $(APPARMOR_CFLAGS)
 SECDRIVER_LIBS += $(APPARMOR_LIBS)
 endif WITH_SECDRIVER_APPARMOR
 
@@ -900,6 +904,7 @@ CPU_SOURCES =							\
 		cpu/cpu_x86.h cpu/cpu_x86.c cpu/cpu_x86_data.h	\
 		cpu/cpu_s390.h cpu/cpu_s390.c			\
 		cpu/cpu_arm.h cpu/cpu_arm.c			\
+		cpu/cpu_aarch64.h cpu/cpu_aarch64.c		\
 		cpu/cpu_map.h cpu/cpu_map.c cpu/cpu_powerpc.h	\
 		cpu/cpu_powerpc.c cpu/cpu_ppc_data.h
 
@@ -1756,6 +1761,12 @@ else ! WITH_LIBVIRTD
 SYM_FILES += $(srcdir)/libvirt_daemon.syms
 endif ! WITH_LIBVIRTD
 
+if WITH_REMOTE
+USED_SYM_FILES += $(srcdir)/libvirt_remote.syms
+else ! WITH_REMOTE
+SYM_FILES += $(srcdir)/libvirt_remote.syms
+endif ! WITH_REMOTE
+
 if WITH_OPENVZ
 USED_SYM_FILES += $(srcdir)/libvirt_openvz.syms
 else ! WITH_OPENVZ
@@ -1958,6 +1969,77 @@ libvirt_lxc_la_LDFLAGS = \
 		$(NULL)
 libvirt_lxc_la_CFLAGS = $(AM_CFLAGS)
 libvirt_lxc_la_LIBADD = libvirt.la $(CYGWIN_EXTRA_LIBADD)
+
+# Since virt-login-shell will be setuid, we must do everything
+# we can to avoid linking to other libraries. Many of them do
+# unsafe things in functions marked __atttribute__((constructor)).
+# This library is built to include the bare minimum required to
+# have a RPC client for local UNIX socket access only. We use
+# the ../config-post.h header to disable all external deps that
+# we don't want
+if WITH_LXC
+noinst_LTLIBRARIES += libvirt-setuid-rpc-client.la
+
+libvirt_setuid_rpc_client_la_SOURCES = 		\
+		util/viralloc.c			\
+		util/virbitmap.c		\
+		util/virbuffer.c		\
+		util/vircommand.c		\
+		util/virconf.c			\
+		util/virerror.c			\
+		util/virevent.c			\
+		util/vireventpoll.c		\
+		util/virfile.c			\
+		util/virhash.c			\
+		util/virhashcode.c		\
+		util/virjson.c			\
+		util/virlog.c			\
+		util/virobject.c		\
+		util/virpidfile.c		\
+		util/virprocess.c		\
+		util/virrandom.c		\
+		util/virsocketaddr.c		\
+		util/virstoragefile.c		\
+		util/virstring.c		\
+		util/virtime.c			\
+		util/virthread.c		\
+		util/virtypedparam.c		\
+		util/viruri.c			\
+		util/virutil.c			\
+		util/viruuid.c			\
+		conf/domain_event.c		\
+		rpc/virnetsocket.c		\
+		rpc/virnetsocket.h		\
+		rpc/virnetmessage.h		\
+		rpc/virnetmessage.c		\
+		rpc/virkeepalive.c		\
+		rpc/virkeepalive.h		\
+		rpc/virnetclient.c		\
+		rpc/virnetclientprogram.c	\
+		rpc/virnetclientstream.c	\
+		rpc/virnetprotocol.c		\
+		remote/remote_driver.c		\
+		remote/remote_protocol.c	\
+		remote/qemu_protocol.c		\
+		remote/lxc_protocol.c		\
+		datatypes.c			\
+		libvirt.c			\
+		libvirt-lxc.c			\
+		$(NULL)
+
+libvirt_setuid_rpc_client_la_LDFLAGS =		\
+		$(AM_LDFLAGS)			\
+		$(LIBXML_LIBS)			\
+		$(SECDRIVER_LIBS)		\
+		$(NULL)
+libvirt_setuid_rpc_client_la_CFLAGS =		\
+		-DLIBVIRT_SETUID_RPC_CLIENT	\
+		-I$(top_srcdir)/src/conf	\
+		-I$(top_srcdir)/src/rpc		\
+		$(AM_CFLAGS)			\
+		$(SECDRIVER_CFLAGS)		\
+		$(NULL)
+endif WITH_LXC
 
 lockdriverdir = $(libdir)/libvirt/lock-driver
 lockdriver_LTLIBRARIES =
@@ -2237,7 +2319,7 @@ libvirt_net_rpc_la_LDFLAGS = \
 			$(GNUTLS_LIBS) \
 			$(SASL_LIBS) \
 			$(SSH2_LIBS)\
-			$(SELINUX_LIBS) \
+			$(SECDRIVER_LIBS) \
 			$(AM_LDFLAGS) \
 			$(CYGWIN_EXTRA_LDFLAGS) \
 			$(MINGW_EXTRA_LDFLAGS)
@@ -2375,17 +2457,13 @@ libvirt_lxc_CFLAGS =				\
 		$(PIE_CFLAGS)			\
 		$(LIBNL_CFLAGS)			\
 		$(FUSE_CFLAGS)			\
+		$(DBUS_CFLAGS)			\
 		$(NULL)
 if WITH_BLKID
 libvirt_lxc_CFLAGS += $(BLKID_CFLAGS)
 libvirt_lxc_LDADD += $(BLKID_LIBS)
 endif WITH_BLKID
-if WITH_SECDRIVER_SELINUX
-libvirt_lxc_CFLAGS += $(SELINUX_CFLAGS)
-endif WITH_SECDRIVER_SELINUX
-if WITH_SECDRIVER_APPARMOR
-libvirt_lxc_CFLAGS += $(APPARMOR_CFLAGS)
-endif WITH_SECDRIVER_APPARMOR
+libvirt_lxc_CFLAGS += $(SECDRIVER_CFLAGS)
 endif WITH_LIBVIRTD
 endif WITH_LXC
 EXTRA_DIST += $(LXC_CONTROLLER_SOURCES)

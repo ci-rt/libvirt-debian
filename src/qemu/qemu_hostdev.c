@@ -23,6 +23,11 @@
 
 #include <config.h>
 
+#include <dirent.h>
+#include <fcntl.h>
+#include <sys/ioctl.h>
+#include <errno.h>
+
 #include "qemu_hostdev.h"
 #include "virlog.h"
 #include "virerror.h"
@@ -31,6 +36,7 @@
 #include "virusb.h"
 #include "virscsi.h"
 #include "virnetdev.h"
+#include "virfile.h"
 
 #define VIR_FROM_THIS VIR_FROM_QEMU
 
@@ -85,6 +91,7 @@ qemuGetPciHostDeviceList(virDomainHostdevDefPtr *hostdevs, int nhostdevs)
     return list;
 }
 
+
 /*
  * qemuGetActivePciHostDeviceList - make a new list with a *copy* of
  *   every virPCIDevice object that is found on the activePciHostdevs
@@ -128,8 +135,10 @@ qemuGetActivePciHostDeviceList(virQEMUDriverPtr driver,
     return list;
 }
 
-int qemuUpdateActivePciHostdevs(virQEMUDriverPtr driver,
-                                virDomainDefPtr def)
+
+int
+qemuUpdateActivePciHostdevs(virQEMUDriverPtr driver,
+                            virDomainDefPtr def)
 {
     virDomainHostdevDefPtr hostdev = NULL;
     virPCIDevicePtr dev = NULL;
@@ -187,6 +196,7 @@ cleanup:
     virObjectUnlock(driver->inactivePciHostdevs);
     return ret;
 }
+
 
 int
 qemuUpdateActiveUsbHostdevs(virQEMUDriverPtr driver,
@@ -274,8 +284,10 @@ cleanup:
     return ret;
 }
 
+
 static int
-qemuDomainHostdevPciSysfsPath(virDomainHostdevDefPtr hostdev, char **sysfs_path)
+qemuDomainHostdevPciSysfsPath(virDomainHostdevDefPtr hostdev,
+                              char **sysfs_path)
 {
     virPCIDeviceAddress config_address;
 
@@ -286,6 +298,7 @@ qemuDomainHostdevPciSysfsPath(virDomainHostdevDefPtr hostdev, char **sysfs_path)
 
     return virPCIDeviceAddressGetSysfsFile(&config_address, sysfs_path);
 }
+
 
 int
 qemuDomainHostdevIsVirtualFunction(virDomainHostdevDefPtr hostdev)
@@ -302,6 +315,7 @@ qemuDomainHostdevIsVirtualFunction(virDomainHostdevDefPtr hostdev)
 
     return ret;
 }
+
 
 static int
 qemuDomainHostdevNetDevice(virDomainHostdevDefPtr hostdev, char **linkdev,
@@ -331,10 +345,11 @@ cleanup:
     return ret;
 }
 
+
 static int
 qemuDomainHostdevNetConfigVirtPortProfile(const char *linkdev, int vf,
                                           virNetDevVPortProfilePtr virtPort,
-                                          const virMacAddrPtr macaddr,
+                                          const virMacAddr *macaddr,
                                           const unsigned char *uuid,
                                           bool associate)
 {
@@ -369,6 +384,7 @@ qemuDomainHostdevNetConfigVirtPortProfile(const char *linkdev, int vf,
 
     return ret;
 }
+
 
 int
 qemuDomainHostdevNetConfigReplace(virDomainHostdevDefPtr hostdev,
@@ -438,6 +454,7 @@ cleanup:
     return ret;
 }
 
+
 int
 qemuDomainHostdevNetConfigRestore(virDomainHostdevDefPtr hostdev,
                                   char *stateDir)
@@ -448,6 +465,15 @@ qemuDomainHostdevNetConfigRestore(virDomainHostdevDefPtr hostdev,
     int vf = -1;
     bool port_profile_associate = false;
     int isvf;
+
+    /* This is only needed for PCI devices that have been defined
+     * using <interface type='hostdev'>. For all others, it is a NOP.
+     */
+    if (hostdev->mode != VIR_DOMAIN_HOSTDEV_MODE_SUBSYS ||
+        hostdev->source.subsys.type != VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI ||
+        hostdev->parent.type != VIR_DOMAIN_DEVICE_NET ||
+        !hostdev->parent.data.net)
+       return 0;
 
     isvf = qemuDomainHostdevIsVirtualFunction(hostdev);
     if (isvf <= 0) {
@@ -474,17 +500,156 @@ qemuDomainHostdevNetConfigRestore(virDomainHostdevDefPtr hostdev,
     return ret;
 }
 
-int qemuPrepareHostdevPCIDevices(virQEMUDriverPtr driver,
-                                 const char *name,
-                                 const unsigned char *uuid,
-                                 virDomainHostdevDefPtr *hostdevs,
-                                 int nhostdevs)
+
+static bool
+qemuHostdevHostSupportsPassthroughVFIO(void)
 {
-    virPCIDeviceListPtr pcidevs;
+    DIR *iommuDir = NULL;
+    struct dirent *iommuGroup = NULL;
+    bool ret = false;
+
+    /* condition 1 - /sys/kernel/iommu_groups/ contains entries */
+    if (!(iommuDir = opendir("/sys/kernel/iommu_groups/")))
+        goto cleanup;
+
+    while ((iommuGroup = readdir(iommuDir))) {
+        /* skip ./ ../ */
+        if (STRPREFIX(iommuGroup->d_name, "."))
+            continue;
+
+        /* assume we found a group */
+        break;
+    }
+
+    if (!iommuGroup)
+        goto cleanup;
+    /* okay, iommu is on and recognizes groups */
+
+    /* condition 2 - /dev/vfio/vfio exists */
+    if (!virFileExists("/dev/vfio/vfio"))
+        goto cleanup;
+
+    ret = true;
+
+cleanup:
+    if (iommuDir)
+        closedir(iommuDir);
+
+    return ret;
+}
+
+
+#if HAVE_LINUX_KVM_H
+# include <linux/kvm.h>
+static bool
+qemuHostdevHostSupportsPassthroughLegacy(void)
+{
+    int kvmfd = -1;
+    bool ret = false;
+
+    if ((kvmfd = open("/dev/kvm", O_RDONLY)) < 0)
+        goto cleanup;
+
+# ifdef KVM_CAP_IOMMU
+    if ((ioctl(kvmfd, KVM_CHECK_EXTENSION, KVM_CAP_IOMMU)) <= 0)
+        goto cleanup;
+
+    ret = true;
+# endif
+
+cleanup:
+    VIR_FORCE_CLOSE(kvmfd);
+
+    return ret;
+}
+#else
+static bool
+qemuHostdevHostSupportsPassthroughLegacy(void)
+{
+    return false;
+}
+#endif
+
+
+static bool
+qemuPrepareHostdevPCICheckSupport(virDomainHostdevDefPtr *hostdevs,
+                                  size_t nhostdevs,
+                                  virQEMUCapsPtr qemuCaps)
+{
+    bool supportsPassthroughKVM = qemuHostdevHostSupportsPassthroughLegacy();
+    bool supportsPassthroughVFIO = qemuHostdevHostSupportsPassthroughVFIO();
+    size_t i;
+
+    /* assign defaults for hostdev passthrough */
+    for (i = 0; i < nhostdevs; i++) {
+        virDomainHostdevDefPtr hostdev = hostdevs[i];
+        int *backend = &hostdev->source.subsys.u.pci.backend;
+
+        if (hostdev->mode != VIR_DOMAIN_HOSTDEV_MODE_SUBSYS)
+            continue;
+        if (hostdev->source.subsys.type != VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI)
+            continue;
+
+        switch ((virDomainHostdevSubsysPciBackendType) *backend) {
+        case VIR_DOMAIN_HOSTDEV_PCI_BACKEND_DEFAULT:
+            if (supportsPassthroughVFIO &&
+                virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE_VFIO_PCI)) {
+                *backend = VIR_DOMAIN_HOSTDEV_PCI_BACKEND_VFIO;
+            } else if (supportsPassthroughKVM &&
+                       (virQEMUCapsGet(qemuCaps, QEMU_CAPS_PCIDEVICE) ||
+                        virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE))) {
+                *backend = VIR_DOMAIN_HOSTDEV_PCI_BACKEND_KVM;
+            } else {
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                               _("host doesn't support passthrough of "
+                                 "host PCI devices"));
+                return false;
+            }
+
+            break;
+
+        case VIR_DOMAIN_HOSTDEV_PCI_BACKEND_VFIO:
+            if (!supportsPassthroughVFIO) {
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                               _("host doesn't support VFIO PCI passthrough"));
+                return false;
+            }
+            break;
+
+        case VIR_DOMAIN_HOSTDEV_PCI_BACKEND_KVM:
+            if (!supportsPassthroughKVM) {
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                               _("host doesn't support legacy PCI passthrough"));
+                return false;
+            }
+
+            break;
+
+        case VIR_DOMAIN_HOSTDEV_PCI_BACKEND_TYPE_LAST:
+            break;
+        }
+    }
+
+    return true;
+}
+
+
+int
+qemuPrepareHostdevPCIDevices(virQEMUDriverPtr driver,
+                             const char *name,
+                             const unsigned char *uuid,
+                             virDomainHostdevDefPtr *hostdevs,
+                             int nhostdevs,
+                             virQEMUCapsPtr qemuCaps)
+{
+    virPCIDeviceListPtr pcidevs = NULL;
     int last_processed_hostdev_vf = -1;
     size_t i;
     int ret = -1;
     virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
+
+    if (!qemuPrepareHostdevPCICheckSupport(hostdevs, nhostdevs, qemuCaps))
+        goto cleanup;
 
     virObjectLock(driver->activePciHostdevs);
     virObjectLock(driver->inactivePciHostdevs);
@@ -643,14 +808,9 @@ inactivedevs:
     }
 
 resetvfnetconfig:
-    for (i = 0; last_processed_hostdev_vf != -1 &&
-                i < last_processed_hostdev_vf; i++) {
-         virDomainHostdevDefPtr hostdev = hostdevs[i];
-         if (hostdev->parent.type == VIR_DOMAIN_DEVICE_NET &&
-             hostdev->parent.data.net) {
-             qemuDomainHostdevNetConfigRestore(hostdev, cfg->stateDir);
-         }
-    }
+    for (i = 0;
+         last_processed_hostdev_vf != -1 && i < last_processed_hostdev_vf; i++)
+        qemuDomainHostdevNetConfigRestore(hostdevs[i], cfg->stateDir);
 
 reattachdevs:
     for (i = 0; i < virPCIDeviceListCount(pcidevs); i++) {
@@ -669,6 +829,7 @@ cleanup:
     virObjectUnref(cfg);
     return ret;
 }
+
 
 int
 qemuPrepareHostdevUSBDevices(virQEMUDriverPtr driver,
@@ -721,6 +882,7 @@ error:
     virObjectUnlock(driver->activeUsbHostdevs);
     return -1;
 }
+
 
 int
 qemuFindHostdevUSBDevice(virDomainHostdevDefPtr hostdev,
@@ -809,6 +971,7 @@ out:
     return 0;
 }
 
+
 static int
 qemuPrepareHostUSBDevices(virQEMUDriverPtr driver,
                           virDomainDefPtr def,
@@ -877,6 +1040,7 @@ cleanup:
     virObjectUnref(list);
     return ret;
 }
+
 
 int
 qemuPrepareHostdevSCSIDevices(virQEMUDriverPtr driver,
@@ -996,15 +1160,19 @@ cleanup:
     return -1;
 }
 
-int qemuPrepareHostDevices(virQEMUDriverPtr driver,
-                           virDomainDefPtr def,
-                           bool coldBoot)
+
+int
+qemuPrepareHostDevices(virQEMUDriverPtr driver,
+                       virDomainDefPtr def,
+                       virQEMUCapsPtr qemuCaps,
+                       bool coldBoot)
 {
     if (!def->nhostdevs)
         return 0;
 
     if (qemuPrepareHostdevPCIDevices(driver, def->name, def->uuid,
-                                     def->hostdevs, def->nhostdevs) < 0)
+                                     def->hostdevs, def->nhostdevs,
+                                     qemuCaps) < 0)
         return -1;
 
     if (qemuPrepareHostUSBDevices(driver, def, coldBoot) < 0)
@@ -1022,7 +1190,8 @@ int qemuPrepareHostDevices(virQEMUDriverPtr driver,
  * Pre-condition: driver->inactivePciHostdevs & driver->activePciHostdevs
  * are locked
  */
-void qemuReattachPciDevice(virPCIDevicePtr dev, virQEMUDriverPtr driver)
+void
+qemuReattachPciDevice(virPCIDevicePtr dev, virQEMUDriverPtr driver)
 {
     int retries = 100;
 
@@ -1052,10 +1221,11 @@ void qemuReattachPciDevice(virPCIDevicePtr dev, virQEMUDriverPtr driver)
 }
 
 
-void qemuDomainReAttachHostdevDevices(virQEMUDriverPtr driver,
-                                      const char *name,
-                                      virDomainHostdevDefPtr *hostdevs,
-                                      int nhostdevs)
+void
+qemuDomainReAttachHostdevDevices(virQEMUDriverPtr driver,
+                                 const char *name,
+                                 virDomainHostdevDefPtr *hostdevs,
+                                 int nhostdevs)
 {
     virPCIDeviceListPtr pcidevs;
     size_t i;
@@ -1104,17 +1274,8 @@ void qemuDomainReAttachHostdevDevices(virQEMUDriverPtr driver,
      * For SRIOV net host devices, unset mac and port profile before
      * reset and reattach device
      */
-    for (i = 0; i < nhostdevs; i++) {
-         virDomainHostdevDefPtr hostdev = hostdevs[i];
-         if (hostdev->mode != VIR_DOMAIN_HOSTDEV_MODE_SUBSYS)
-             continue;
-         if (hostdev->source.subsys.type != VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI)
-             continue;
-         if (hostdev->parent.type == VIR_DOMAIN_DEVICE_NET &&
-             hostdev->parent.data.net) {
-             qemuDomainHostdevNetConfigRestore(hostdev, cfg->stateDir);
-         }
-    }
+    for (i = 0; i < nhostdevs; i++)
+        qemuDomainHostdevNetConfigRestore(hostdevs[i], cfg->stateDir);
 
     for (i = 0; i < virPCIDeviceListCount(pcidevs); i++) {
         virPCIDevicePtr dev = virPCIDeviceListGet(pcidevs, i);
@@ -1139,6 +1300,7 @@ cleanup:
     virObjectUnlock(driver->inactivePciHostdevs);
     virObjectUnref(cfg);
 }
+
 
 static void
 qemuDomainReAttachHostUsbDevices(virQEMUDriverPtr driver,
@@ -1202,6 +1364,7 @@ qemuDomainReAttachHostUsbDevices(virQEMUDriverPtr driver,
     }
     virObjectUnlock(driver->activeUsbHostdevs);
 }
+
 
 void
 qemuDomainReAttachHostScsiDevices(virQEMUDriverPtr driver,
@@ -1272,8 +1435,9 @@ qemuDomainReAttachHostScsiDevices(virQEMUDriverPtr driver,
     virObjectUnlock(driver->activeScsiHostdevs);
 }
 
-void qemuDomainReAttachHostDevices(virQEMUDriverPtr driver,
-                                   virDomainDefPtr def)
+void
+qemuDomainReAttachHostDevices(virQEMUDriverPtr driver,
+                              virDomainDefPtr def)
 {
     if (!def->nhostdevs)
         return;

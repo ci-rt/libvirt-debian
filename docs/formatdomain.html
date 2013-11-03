@@ -530,7 +530,7 @@
       no arguments. To specify the initial argv, use the <code>initarg</code>
       element, repeated as many time as is required. The <code>cmdline</code>
       element, if set will be used to provide an equivalent to <code>/proc/cmdline</code>
-      but will not effect init argv.
+      but will not affect init argv.
     </p>
         <pre xml:space="preserve">
   &lt;os&gt;
@@ -915,7 +915,8 @@
         omitted, it defaults to the OS provided
         defaults. <span class="since">Since 0.8.8</span></dd><dt><code>weight</code></dt><dd> The optional <code>weight</code> element is the overall I/O
         weight of the guest. The value should be in the range [100,
-        1000].</dd><dt><code>device</code></dt><dd>The domain may have multiple <code>device</code> elements
+        1000]. After kernel 2.6.39, the value could be in the
+        range [10, 1000].</dd><dt><code>device</code></dt><dd>The domain may have multiple <code>device</code> elements
         that further tune the weights for each host block device in
         use by the domain.  Note that
         multiple <a href="#elementsDisks" shape="rect">guest disks</a> can share a
@@ -930,7 +931,8 @@
         mandatory sub-elements, <code>path</code> describing the
         absolute path of the device, and <code>weight</code> giving
         the relative weight of that device, in the range [100,
-        1000].  <span class="since">Since 0.9.8</span></dd></dl>
+        1000]. After kernel 2.6.39, the value could be in the
+        range [10, 1000].<span class="since">Since 0.9.8</span></dd></dl>
         <h3>
           <a name="resPartition" shape="rect" id="resPartition">Resource partitioning</a>
         </h3>
@@ -1041,7 +1043,16 @@
           model even if the destination host contains more capable CPUs for
           the running instance of the guest; but shutting down and restarting
           the guest may present different hardware to the guest according to
-          the capabilities of the new host.</dd><dt><code>host-passthrough</code></dt><dd>With this mode, the CPU visible to the guest should be exactly
+          the capabilities of the new host. <strong>Beware</strong>, due to the
+          way libvirt detects host CPU and due to the fact libvirt does not
+          talk to QEMU/KVM when creating the CPU model, CPU configuration
+          created using <code>host-model</code> may not work as expected. The
+          guest CPU may differ from the configuration and it may also confuse
+          guest OS by using a combination of CPU features and other parameters
+          (such as CPUID level) that don't work. Until these issues are fixed,
+          it's a good idea to avoid using <code>host-model</code> and use
+          <code>custom</code> mode with just the CPU model from host
+          capabilities XML.</dd><dt><code>host-passthrough</code></dt><dd>With this mode, the CPU visible to the guest should be exactly
           the same as the host CPU even in the aspects that libvirt does not
           understand. Though the downside of this mode is that the guest
           environment cannot be reproduced on different hardware. Thus, if you
@@ -2004,7 +2015,8 @@
         </dd><dt><code>type='ram'</code></dt><dd>
           An in-memory filesystem, using memory from the host OS.
           The source element has a single attribute <code>usage</code>
-          which gives the memory usage limit in kibibytes. Only used
+          which gives the memory usage limit in KiB, unless units
+          are specified by the <code>units</code> attribute. Only used
           by LXC driver.
           <span class="since"> (since 0.9.13)</span></dd><dt><code>type='bind'</code></dt><dd>
           A directory inside the guest will be bound to another
@@ -2052,7 +2064,8 @@
         <code>name</code> attribute must be used with
         <code>type='template'</code>, and the <code>dir</code> attribute must
         be used with <code>type='mount'</code>. The <code>usage</code> attribute
-        is used with <code>type='ram'</code> to set the memory limit in KB.
+        is used with <code>type='ram'</code> to set the memory limit in KiB,
+        unless units are specified by the <code>units</code> attribute.
       </dd><dt><code>target</code></dt><dd>
         Where the <code>source</code> can be accessed in the guest. For
         most drivers this is an automatic mount point, but for QEMU/KVM
@@ -2450,11 +2463,10 @@
         backend, which is compatible with UEFI SecureBoot) or "kvm"
         (for the legacy device assignment handled directly by the KVM
         kernel module)<span class="since">Since 1.0.5 (QEMU and KVM
-        only, requires kernel 3.6 or newer)</span>. Currently, "kvm"
-        is the default used by libvirt when not explicitly provided,
-        but since the two are functionally equivalent, this default
-        could be changed in the future with no impact to domains that
-        don't specify anything.
+        only, requires kernel 3.6 or newer)</span>. The default, when
+        the driver name is not explicitly specified, is to check wether
+        VFIO is available and use it if it's the case. If VFIO is not
+        available, the legacy "kvm" assignment is attempted.
       </dd><dt><code>readonly</code></dt><dd>Indicates that the device is readonly, only supported by SCSI host
         device now. <span class="since">Since 1.0.6 (QEMU and KVM only)</span>
       </dd><dt><code>shareable</code></dt><dd>If present, this indicates the device is expected to be shared
@@ -2804,7 +2816,7 @@
       parameters in its <code>&lt;parameters&gt;</code> element -
       an <code>interfaceid</code> which is a standard uuid used to
       uniquely identify this particular interface to Open vSwitch (if
-      you do no specify one, a random interfaceid will be generated
+      you do not specify one, a random interfaceid will be generated
       for you when you first define the interface), and an
       optional <code>profileid</code> which is sent to Open vSwitch as
       the interfaces "port-profile".

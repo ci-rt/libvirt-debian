@@ -30,7 +30,7 @@
 typedef struct _virSecurityStackData virSecurityStackData;
 typedef virSecurityStackData *virSecurityStackDataPtr;
 typedef struct _virSecurityStackItem virSecurityStackItem;
-typedef virSecurityStackItem* virSecurityStackItemPtr;
+typedef virSecurityStackItem *virSecurityStackItemPtr;
 
 struct _virSecurityStackItem {
     virSecurityManagerPtr securityManager;
@@ -555,6 +555,13 @@ virSecurityStackGetNested(virSecurityManagerPtr mgr)
     return list;
 }
 
+static const char *
+virSecurityStackGetBaseLabel(virSecurityManagerPtr mgr, int virtType)
+{
+    return virSecurityManagerGetBaseLabel(virSecurityStackGetPrimary(mgr),
+                                          virtType);
+}
+
 virSecurityDriver virSecurityDriverStack = {
     .privateDataLen                     = sizeof(virSecurityStackData),
     .name                               = "stack",
@@ -599,4 +606,6 @@ virSecurityDriver virSecurityDriverStack = {
     .domainGetSecurityMountOptions      = virSecurityStackGetMountOptions,
 
     .domainSetSecurityHugepages         = virSecurityStackSetHugepages,
+
+    .getBaseLabel                       = virSecurityStackGetBaseLabel,
 };

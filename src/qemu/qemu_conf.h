@@ -111,6 +111,8 @@ struct _virQEMUDriverConfig {
 
     bool spiceTLS;
     char *spiceTLSx509certdir;
+    bool spiceSASL;
+    char *spiceSASLdir;
     char *spiceListen;
     char *spicePassword;
 
@@ -144,6 +146,7 @@ struct _virQEMUDriverConfig {
 
     char *saveImageFormat;
     char *dumpImageFormat;
+    char *snapshotImageFormat;
 
     char *autoDumpPath;
     bool autoDumpBypassCache;
@@ -155,6 +158,11 @@ struct _virQEMUDriverConfig {
     unsigned int keepAliveCount;
 
     int seccompSandbox;
+
+    /* The default for -incoming */
+    char *migrationAddress;
+    int migrationPortMin;
+    int migrationPortMax;
 };
 
 /* Main driver state */
@@ -221,6 +229,9 @@ struct _virQEMUDriver {
     /* Immutable pointer, self-locking APIs */
     virPortAllocatorPtr webSocketPorts;
 
+    /* Immutable pointer, self-locking APIs */
+    virPortAllocatorPtr migrationPorts;
+
     /* Immutable pointer, lockless APIs*/
     virSysinfoDefPtr hostsysinfo;
 
@@ -242,9 +253,6 @@ struct _qemuDomainCmdlineDef {
     char **env_value;
 };
 
-/* Port numbers used for KVM migration. */
-# define QEMUD_MIGRATION_FIRST_PORT 49152
-# define QEMUD_MIGRATION_NUM_PORTS 64
 
 
 void qemuDomainCmdlineDefFree(qemuDomainCmdlineDefPtr def);

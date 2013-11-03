@@ -250,7 +250,7 @@ testQemuHotplug(const void *data)
 
     /* Now is the best time to feed the spoofed monitor with predefined
      * replies. */
-    if (!(test_mon = qemuMonitorTestNew(true, driver.xmlopt, vm, &driver)))
+    if (!(test_mon = qemuMonitorTestNew(true, driver.xmlopt, vm, &driver, NULL)))
         goto cleanup;
 
     tmp = test->mon;
@@ -372,7 +372,7 @@ mymain(void)
         data.mon = my_mon;                                                  \
         data.keep = kep;                                                    \
         data.deviceDeletedEvent = event;                                    \
-        if (virtTestRun(name, 1, testQemuHotplug, &data) < 0)               \
+        if (virtTestRun(name, testQemuHotplug, &data) < 0)                  \
             ret = -1;                                                       \
     } while (0)
 

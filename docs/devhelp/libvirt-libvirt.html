@@ -118,6 +118,7 @@
 #define <a href="#VIR_MIGRATE_PARAM_DEST_NAME">VIR_MIGRATE_PARAM_DEST_NAME</a>;
 #define <a href="#VIR_MIGRATE_PARAM_DEST_XML">VIR_MIGRATE_PARAM_DEST_XML</a>;
 #define <a href="#VIR_MIGRATE_PARAM_GRAPHICS_URI">VIR_MIGRATE_PARAM_GRAPHICS_URI</a>;
+#define <a href="#VIR_MIGRATE_PARAM_LISTEN_ADDRESS">VIR_MIGRATE_PARAM_LISTEN_ADDRESS</a>;
 #define <a href="#VIR_MIGRATE_PARAM_URI">VIR_MIGRATE_PARAM_URI</a>;
 #define <a href="#VIR_NODEINFO_MAXCPUS">VIR_NODEINFO_MAXCPUS</a>(nodeinfo);
 #define <a href="#VIR_NODE_CPU_STATS_FIELD_LENGTH">VIR_NODE_CPU_STATS_FIELD_LENGTH</a>;
@@ -330,7 +331,7 @@ int	<a href="#virConnectDomainEventDeregisterAny">virConnectDomainEventDeregiste
 typedef void <a href="#virConnectDomainEventDeviceRemovedCallback">virConnectDomainEventDeviceRemovedCallback</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>							 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>							 const char * devAlias, <br/>							 void * opaque);
 typedef void <a href="#virConnectDomainEventDiskChangeCallback">virConnectDomainEventDiskChangeCallback</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>						 const char * oldSrcPath, <br/>						 const char * newSrcPath, <br/>						 const char * devAlias, <br/>						 int reason, <br/>						 void * opaque);
 typedef void <a href="#virConnectDomainEventGenericCallback">virConnectDomainEventGenericCallback</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>						 void * opaque);
-typedef void <a href="#virConnectDomainEventGraphicsCallback">virConnectDomainEventGraphicsCallback</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>						 int phase, <br/>						 const <a href="libvirt-libvirt.html#virDomainEventGraphicsAddressPtr">virDomainEventGraphicsAddressPtr</a> local, <br/>						 const <a href="libvirt-libvirt.html#virDomainEventGraphicsAddressPtr">virDomainEventGraphicsAddressPtr</a> remote, <br/>						 const char * authScheme, <br/>						 const <a href="libvirt-libvirt.html#virDomainEventGraphicsSubjectPtr">virDomainEventGraphicsSubjectPtr</a> subject, <br/>						 void * opaque);
+typedef void <a href="#virConnectDomainEventGraphicsCallback">virConnectDomainEventGraphicsCallback</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>						 int phase, <br/>						 const <a href="libvirt-libvirt.html#virDomainEventGraphicsAddress">virDomainEventGraphicsAddress</a> * local, <br/>						 const <a href="libvirt-libvirt.html#virDomainEventGraphicsAddress">virDomainEventGraphicsAddress</a> * remote, <br/>						 const char * authScheme, <br/>						 const <a href="libvirt-libvirt.html#virDomainEventGraphicsSubject">virDomainEventGraphicsSubject</a> * subject, <br/>						 void * opaque);
 typedef void <a href="#virConnectDomainEventIOErrorCallback">virConnectDomainEventIOErrorCallback</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>						 const char * srcPath, <br/>						 const char * devAlias, <br/>						 int action, <br/>						 void * opaque);
 typedef void <a href="#virConnectDomainEventIOErrorReasonCallback">virConnectDomainEventIOErrorReasonCallback</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>							 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>							 const char * srcPath, <br/>							 const char * devAlias, <br/>							 int action, <br/>							 const char * reason, <br/>							 void * opaque);
 typedef void <a href="#virConnectDomainEventPMSuspendCallback">virConnectDomainEventPMSuspendCallback</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>						 int reason, <br/>						 void * opaque);
@@ -1054,6 +1055,10 @@ int	<a href="#virTypedParamsGetULLong">virTypedParamsGetULLong</a>		(<a href="li
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="VIR_MIGRATE_PARAM_GRAPHICS_URI">Macro </a>VIR_MIGRATE_PARAM_GRAPHICS_URI</h3><pre class="programlisting">#define <a href="#VIR_MIGRATE_PARAM_GRAPHICS_URI">VIR_MIGRATE_PARAM_GRAPHICS_URI</a>;
 </pre><p>virDomainMigrate* params field: URI to use for migrating client's connection to domain's graphical console as VIR_TYPED_PARAM_STRING. If specified, the client will be asked to automatically reconnect using these parameters instead of the automatically computed ones. This can be useful if, e.g., the client does not have a direct access to the network virtualization hosts are connected to and needs to connect through a proxy. The URI is formed as follows: protocol://hostname[:port]/[?parameters] where protocol is either "spice" or "vnc" and parameters is a list of protocol specific parameters separated by '&amp;'. Currently recognized parameters are "tlsPort" and "tlsSubject". For example, spice://target.host.com:1234/?tlsPort=4567</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_MIGRATE_PARAM_LISTEN_ADDRESS">Macro </a>VIR_MIGRATE_PARAM_LISTEN_ADDRESS</h3><pre class="programlisting">#define <a href="#VIR_MIGRATE_PARAM_LISTEN_ADDRESS">VIR_MIGRATE_PARAM_LISTEN_ADDRESS</a>;
+</pre><p>virDomainMigrate* params field: The listen address that hypervisor on the destination side should bind to for incoming migration. Both, IPv4 and IPv6 addresses are accepted as well as hostnames (the resolving is done on destination). Some hypervisors do not support this feature an will return an error if this field is used.</p>
 </div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="VIR_MIGRATE_PARAM_URI">Macro </a>VIR_MIGRATE_PARAM_URI</h3><pre class="programlisting">#define <a href="#VIR_MIGRATE_PARAM_URI">VIR_MIGRATE_PARAM_URI</a>;
@@ -2701,7 +2706,7 @@ VIR_DOMAIN_EVENT_ID_DISK_CHANGE with virConnectDomainEventRegisterAny()</p>
 have a customization with extra parameters</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>the connection pointer</td></tr><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>the domain pointer</td></tr><tr><td><span class="term"><i><tt>opaque</tt></i>:</span></td><td>application specified data</td></tr></tbody></table></div></div>
         <hr/>
-        <div class="refsect2" lang="en"><h3><a name="virConnectDomainEventGraphicsCallback"/>Function type virConnectDomainEventGraphicsCallback</h3><pre class="programlisting">void	virConnectDomainEventGraphicsCallback	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>						 int phase, <br/>						 const <a href="libvirt-libvirt.html#virDomainEventGraphicsAddressPtr">virDomainEventGraphicsAddressPtr</a> local, <br/>						 const <a href="libvirt-libvirt.html#virDomainEventGraphicsAddressPtr">virDomainEventGraphicsAddressPtr</a> remote, <br/>						 const char * authScheme, <br/>						 const <a href="libvirt-libvirt.html#virDomainEventGraphicsSubjectPtr">virDomainEventGraphicsSubjectPtr</a> subject, <br/>						 void * opaque)<br/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectDomainEventGraphicsCallback"/>Function type virConnectDomainEventGraphicsCallback</h3><pre class="programlisting">void	virConnectDomainEventGraphicsCallback	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>						 int phase, <br/>						 const <a href="libvirt-libvirt.html#virDomainEventGraphicsAddress">virDomainEventGraphicsAddress</a> * local, <br/>						 const <a href="libvirt-libvirt.html#virDomainEventGraphicsAddress">virDomainEventGraphicsAddress</a> * remote, <br/>						 const char * authScheme, <br/>						 const <a href="libvirt-libvirt.html#virDomainEventGraphicsSubject">virDomainEventGraphicsSubject</a> * subject, <br/>						 void * opaque)<br/>
 </pre><p>The callback signature to use when registering for an event of type
 VIR_DOMAIN_EVENT_ID_GRAPHICS with virConnectDomainEventRegisterAny()</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>connection object</td></tr><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>domain on which the event occurred</td></tr><tr><td><span class="term"><i><tt>phase</tt></i>:</span></td><td>the phase of the connection</td></tr><tr><td><span class="term"><i><tt>local</tt></i>:</span></td><td>the local server address</td></tr><tr><td><span class="term"><i><tt>remote</tt></i>:</span></td><td>the remote client address</td></tr><tr><td><span class="term"><i><tt>authScheme</tt></i>:</span></td><td>the authentication scheme activated</td></tr><tr><td><span class="term"><i><tt>subject</tt></i>:</span></td><td>the authenticated subject (user)</td></tr><tr><td><span class="term"><i><tt>opaque</tt></i>:</span></td><td>application specified data</td></tr></tbody></table></div></div>
@@ -4212,14 +4217,14 @@ again.
 
 Here is a sample code snippet:
 
-if ((virDomainGetMemoryParameters(dom, NULL, &amp;nparams, 0) == 0) &amp;&amp;
+ if ((virDomainGetMemoryParameters(dom, NULL, &amp;nparams, 0) == 0) &amp;&amp;
  (nparams != 0)) {
  if ((params = malloc(sizeof(*params) * nparams)) == NULL)
  goto error;
  memset(params, 0, sizeof(*params) * nparams);
  if (virDomainGetMemoryParameters(dom, params, &amp;nparams, 0))
  goto error;
-}
+ }
 
 This function may require privileged access to the hypervisor. This function
 expects the caller to allocate the @params.</p>
@@ -7117,7 +7122,7 @@ API looks like
  }
  if (virStreamFinish(st) &lt; 0)
  ... report an error ....
-done:
+ done:
  virStreamFree(st);
  close(fd);</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>stream</tt></i>:</span></td><td>pointer to the stream object</td></tr><tr><td><span class="term"><i><tt>data</tt></i>:</span></td><td>buffer to read into from stream</td></tr><tr><td><span class="term"><i><tt>nbytes</tt></i>:</span></td><td>size of @data buffer</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of bytes read, which may be less than requested. Returns 0 when the end of the stream is reached, at which time the caller should invoke virStreamFinish() to get confirmation of stream completion. Returns -1 upon error, at which time the stream will be marked as aborted, and the caller should now release the stream with virStreamFree. Returns -2 if there is no data pending to be read &amp; the stream is marked as non-blocking.</td></tr></tbody></table></div></div>
@@ -7202,7 +7207,7 @@ API looks like
  }
  if (virStreamFinish(st) &lt; 0)
  ... report an error ....
-done:
+ done:
  virStreamFree(st);
  close(fd);</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>stream</tt></i>:</span></td><td>pointer to the stream object</td></tr><tr><td><span class="term"><i><tt>data</tt></i>:</span></td><td>buffer to write to stream</td></tr><tr><td><span class="term"><i><tt>nbytes</tt></i>:</span></td><td>size of @data buffer</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of bytes written, which may be less than requested. Returns -1 upon error, at which time the stream will be marked as aborted, and the caller should now release the stream with virStreamFree. Returns -2 if the outgoing transmit buffers are full &amp; the stream is marked as non-blocking.</td></tr></tbody></table></div></div>

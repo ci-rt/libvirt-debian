@@ -990,7 +990,7 @@ static int virDomainObjListSearchID(const void *payload,
     return want;
 }
 
-virDomainObjPtr virDomainObjListFindByID(const virDomainObjListPtr doms,
+virDomainObjPtr virDomainObjListFindByID(virDomainObjListPtr doms,
                                          int id)
 {
     virDomainObjPtr obj;
@@ -1003,7 +1003,7 @@ virDomainObjPtr virDomainObjListFindByID(const virDomainObjListPtr doms,
 }
 
 
-virDomainObjPtr virDomainObjListFindByUUID(const virDomainObjListPtr doms,
+virDomainObjPtr virDomainObjListFindByUUID(virDomainObjListPtr doms,
                                            const unsigned char *uuid)
 {
     char uuidstr[VIR_UUID_STRING_BUFLEN];
@@ -1033,7 +1033,7 @@ static int virDomainObjListSearchName(const void *payload,
     return want;
 }
 
-virDomainObjPtr virDomainObjListFindByName(const virDomainObjListPtr doms,
+virDomainObjPtr virDomainObjListFindByName(virDomainObjListPtr doms,
                                            const char *name)
 {
     virDomainObjPtr obj;
@@ -2091,7 +2091,7 @@ virDomainDefPtr virDomainDefNew(const char *name,
 
 
 void virDomainObjAssignDef(virDomainObjPtr domain,
-                           const virDomainDefPtr def,
+                           virDomainDefPtr def,
                            bool live,
                            virDomainDefPtr *oldDef)
 {
@@ -2138,7 +2138,7 @@ void virDomainObjAssignDef(virDomainObjPtr domain,
  */
 static virDomainObjPtr
 virDomainObjListAddLocked(virDomainObjListPtr doms,
-                          const virDomainDefPtr def,
+                          virDomainDefPtr def,
                           virDomainXMLOptionPtr xmlopt,
                           unsigned int flags,
                           virDomainDefPtr *oldDef)
@@ -2209,7 +2209,7 @@ error:
 
 
 virDomainObjPtr virDomainObjListAdd(virDomainObjListPtr doms,
-                                    const virDomainDefPtr def,
+                                    virDomainDefPtr def,
                                     virDomainXMLOptionPtr xmlopt,
                                     unsigned int flags,
                                     virDomainDefPtr *oldDef)
@@ -2802,15 +2802,15 @@ virDomainDefPostParseInternal(virDomainDefPtr def,
 
 static int
 virDomainDeviceDefPostParseInternal(virDomainDeviceDefPtr dev,
-                                    virDomainDefPtr def,
+                                    const virDomainDef *def,
                                     virCapsPtr caps ATTRIBUTE_UNUSED)
 {
     if (dev->type == VIR_DOMAIN_DEVICE_CHR) {
         virDomainChrDefPtr chr = dev->data.chr;
-        virDomainChrDefPtr **arrPtr;
-        size_t i, *cnt;
+        const virDomainChrDef **arrPtr;
+        size_t i, cnt;
 
-        virDomainChrGetDomainPtrs(def, chr, &arrPtr, &cnt);
+        virDomainChrGetDomainPtrs(def, chr->deviceType, &arrPtr, &cnt);
 
         if (chr->deviceType == VIR_DOMAIN_CHR_DEVICE_TYPE_CONSOLE &&
             chr->targetType == VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_NONE)
@@ -2822,9 +2822,9 @@ virDomainDeviceDefPostParseInternal(virDomainDeviceDefPtr dev,
              chr->deviceType == VIR_DOMAIN_CHR_DEVICE_TYPE_CONSOLE)) {
             int maxport = -1;
 
-            for (i = 0; i < *cnt; i++) {
-                if ((*arrPtr)[i]->target.port > maxport)
-                    maxport = (*arrPtr)[i]->target.port;
+            for (i = 0; i < cnt; i++) {
+                if (arrPtr[i]->target.port > maxport)
+                    maxport = arrPtr[i]->target.port;
             }
 
             chr->target.port = maxport + 1;
@@ -2834,8 +2834,8 @@ virDomainDeviceDefPostParseInternal(virDomainDeviceDefPtr dev,
             chr->info.addr.vioserial.port == 0) {
             int maxport = 0;
 
-            for (i = 0; i < *cnt; i++) {
-                virDomainChrDefPtr thischr = (*arrPtr)[i];
+            for (i = 0; i < cnt; i++) {
+                const virDomainChrDef *thischr = arrPtr[i];
                 if (thischr->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_VIRTIO_SERIAL &&
                     thischr->info.addr.vioserial.controller == chr->info.addr.vioserial.controller &&
                     thischr->info.addr.vioserial.bus == chr->info.addr.vioserial.bus &&
@@ -2852,7 +2852,7 @@ virDomainDeviceDefPostParseInternal(virDomainDeviceDefPtr dev,
 
 static int
 virDomainDeviceDefPostParse(virDomainDeviceDefPtr dev,
-                            virDomainDefPtr def,
+                            const virDomainDef *def,
                             virCapsPtr caps,
                             virDomainXMLOptionPtr xmlopt)
 {
@@ -3548,7 +3548,7 @@ virDomainParseLegacyDeviceAddress(char *devaddr,
 }
 
 static int
-virDomainHostdevSubsysUsbDefParseXML(const xmlNodePtr node,
+virDomainHostdevSubsysUsbDefParseXML(xmlNodePtr node,
                                      virDomainHostdevDefPtr def)
 {
 
@@ -3698,7 +3698,7 @@ out:
  * </origstates>
  */
 static int
-virDomainHostdevSubsysPciOrigStatesDefParseXML(const xmlNodePtr node,
+virDomainHostdevSubsysPciOrigStatesDefParseXML(xmlNodePtr node,
                                                virDomainHostdevOrigStatesPtr def)
 {
     xmlNodePtr cur;
@@ -3726,7 +3726,7 @@ virDomainHostdevSubsysPciOrigStatesDefParseXML(const xmlNodePtr node,
 }
 
 static int
-virDomainHostdevSubsysPciDefParseXML(const xmlNodePtr node,
+virDomainHostdevSubsysPciDefParseXML(xmlNodePtr node,
                                      virDomainHostdevDefPtr def,
                                      unsigned int flags)
 {
@@ -3777,7 +3777,7 @@ out:
 }
 
 static int
-virDomainHostdevSubsysScsiDefParseXML(const xmlNodePtr node,
+virDomainHostdevSubsysScsiDefParseXML(xmlNodePtr node,
                                       virDomainHostdevDefPtr def)
 {
     int ret = -1;
@@ -3868,7 +3868,7 @@ cleanup:
  * taken by a disk or not.
  */
 static bool
-virDomainDriveAddressIsUsedByDisk(virDomainDefPtr def,
+virDomainDriveAddressIsUsedByDisk(const virDomainDef *def,
                                   enum virDomainDiskBus type,
                                   unsigned int controller,
                                   unsigned int unit)
@@ -3897,7 +3897,7 @@ virDomainDriveAddressIsUsedByDisk(virDomainDefPtr def,
  * taken by a host device or not.
  */
 static bool
-virDomainDriveAddressIsUsedByHostdev(virDomainDefPtr def,
+virDomainDriveAddressIsUsedByHostdev(const virDomainDef *def,
                                      enum virDomainHostdevSubsysType type,
                                      unsigned int controller,
                                      unsigned int unit)
@@ -3922,7 +3922,7 @@ virDomainDriveAddressIsUsedByHostdev(virDomainDefPtr def,
 }
 
 static bool
-virDomainSCSIDriveAddressIsUsed(virDomainDefPtr def,
+virDomainSCSIDriveAddressIsUsed(const virDomainDef *def,
                                 unsigned int controller,
                                 unsigned int unit)
 {
@@ -3943,7 +3943,7 @@ virDomainSCSIDriveAddressIsUsed(virDomainDefPtr def,
 
 /* Find out the next usable "unit" of a specific controller */
 static int
-virDomainControllerSCSINextUnit(virDomainDefPtr def,
+virDomainControllerSCSINextUnit(const virDomainDef *def,
                                 unsigned int max_unit,
                                 unsigned int controller)
 {
@@ -3962,7 +3962,7 @@ virDomainControllerSCSINextUnit(virDomainDefPtr def,
 
 static int
 virDomainHostdevAssignAddress(virDomainXMLOptionPtr xmlopt,
-                              virDomainDefPtr def,
+                              const virDomainDef *def,
                               virDomainHostdevDefPtr hostdev)
 {
     int next_unit = 0;
@@ -5694,7 +5694,7 @@ cleanup:
 
 
 static int
-virDomainControllerModelTypeFromString(const virDomainControllerDefPtr def,
+virDomainControllerModelTypeFromString(const virDomainControllerDef *def,
                                        const char *model)
 {
     if (def->type == VIR_DOMAIN_CONTROLLER_TYPE_SCSI)
@@ -5916,7 +5916,7 @@ virDomainFSDefParseXML(xmlNodePtr node,
     char *accessmode = NULL;
     char *wrpolicy = NULL;
     char *usage = NULL;
-    char *unit = NULL;
+    char *units = NULL;
 
     ctxt->node = node;
 
@@ -5972,7 +5972,7 @@ virDomainFSDefParseXML(xmlNodePtr node,
                     source = virXMLPropString(cur, "name");
                 else if (def->type == VIR_DOMAIN_FS_TYPE_RAM) {
                     usage = virXMLPropString(cur, "usage");
-                    unit = virXMLPropString(cur, "unit");
+                    units = virXMLPropString(cur, "units");
                 }
             } else if (!target &&
                        xmlStrEqual(cur->name, BAD_CAST "target")) {
@@ -6042,8 +6042,7 @@ virDomainFSDefParseXML(xmlNodePtr node,
                            usage);
             goto error;
         }
-        if (unit &&
-            virScaleInteger(&def->usage, unit,
+        if (virScaleInteger(&def->usage, units,
                             1024, ULLONG_MAX) < 0)
             goto error;
     }
@@ -6065,7 +6064,7 @@ cleanup:
     VIR_FREE(accessmode);
     VIR_FREE(wrpolicy);
     VIR_FREE(usage);
-    VIR_FREE(unit);
+    VIR_FREE(units);
     VIR_FREE(format);
 
     return def;
@@ -7381,7 +7380,7 @@ error:
  *
  */
 static virDomainTPMDefPtr
-virDomainTPMDefParseXML(const xmlNodePtr node,
+virDomainTPMDefParseXML(xmlNodePtr node,
                         xmlXPathContextPtr ctxt,
                         unsigned int flags)
 {
@@ -7606,7 +7605,7 @@ error:
 
 /* Parse the XML definition for a clock timer */
 static virDomainTimerDefPtr
-virDomainTimerDefParseXML(const xmlNodePtr node,
+virDomainTimerDefParseXML(xmlNodePtr node,
                           xmlXPathContextPtr ctxt)
 {
     char *name = NULL;
@@ -8406,7 +8405,7 @@ error:
 
 
 static virDomainSoundCodecDefPtr
-virDomainSoundCodecDefParseXML(const xmlNodePtr node)
+virDomainSoundCodecDefParseXML(xmlNodePtr node)
 {
     char *type;
     virDomainSoundCodecDefPtr def;
@@ -8434,7 +8433,7 @@ error:
 
 
 static virDomainSoundDefPtr
-virDomainSoundDefParseXML(const xmlNodePtr node,
+virDomainSoundDefParseXML(xmlNodePtr node,
                           xmlXPathContextPtr ctxt,
                           unsigned int flags)
 {
@@ -8503,7 +8502,7 @@ error:
 
 
 static virDomainWatchdogDefPtr
-virDomainWatchdogDefParseXML(const xmlNodePtr node,
+virDomainWatchdogDefParseXML(xmlNodePtr node,
                              unsigned int flags)
 {
 
@@ -8556,7 +8555,7 @@ error:
 
 
 static virDomainRNGDefPtr
-virDomainRNGDefParseXML(const xmlNodePtr node,
+virDomainRNGDefParseXML(xmlNodePtr node,
                         xmlXPathContextPtr ctxt,
                         unsigned int flags)
 {
@@ -8677,7 +8676,7 @@ error:
 
 
 static virDomainMemballoonDefPtr
-virDomainMemballoonDefParseXML(const xmlNodePtr node,
+virDomainMemballoonDefParseXML(xmlNodePtr node,
                                xmlXPathContextPtr ctxt,
                                unsigned int flags)
 {
@@ -8724,7 +8723,7 @@ error:
 }
 
 static virDomainNVRAMDefPtr
-virDomainNVRAMDefParseXML(const xmlNodePtr node,
+virDomainNVRAMDefParseXML(xmlNodePtr node,
                           unsigned int flags)
 {
    virDomainNVRAMDefPtr def;
@@ -8743,7 +8742,7 @@ error:
 }
 
 static virSysinfoDefPtr
-virSysinfoParseXML(const xmlNodePtr node,
+virSysinfoParseXML(xmlNodePtr node,
                   xmlXPathContextPtr ctxt,
                   unsigned char *domUUID,
                   bool uuid_generated)
@@ -8860,7 +8859,7 @@ error:
 }
 
 int
-virDomainVideoDefaultRAM(virDomainDefPtr def,
+virDomainVideoDefaultRAM(const virDomainDef *def,
                          int type)
 {
     switch (type) {
@@ -8891,7 +8890,7 @@ virDomainVideoDefaultRAM(virDomainDefPtr def,
 
 
 int
-virDomainVideoDefaultType(virDomainDefPtr def)
+virDomainVideoDefaultType(const virDomainDef *def)
 {
     switch (def->virtType) {
     case VIR_DOMAIN_VIRT_TEST:
@@ -8920,7 +8919,8 @@ virDomainVideoDefaultType(virDomainDefPtr def)
 }
 
 static virDomainVideoAccelDefPtr
-virDomainVideoAccelDefParseXML(const xmlNodePtr node) {
+virDomainVideoAccelDefParseXML(xmlNodePtr node)
+{
     xmlNodePtr cur;
     virDomainVideoAccelDefPtr def;
     char *support3d = NULL;
@@ -8964,8 +8964,8 @@ virDomainVideoAccelDefParseXML(const xmlNodePtr node) {
 }
 
 static virDomainVideoDefPtr
-virDomainVideoDefParseXML(const xmlNodePtr node,
-                          virDomainDefPtr dom,
+virDomainVideoDefParseXML(xmlNodePtr node,
+                          const virDomainDef *dom,
                           unsigned int flags)
 {
     virDomainVideoDefPtr def;
@@ -9071,8 +9071,8 @@ error:
 
 static virDomainHostdevDefPtr
 virDomainHostdevDefParseXML(virDomainXMLOptionPtr xmlopt,
-                            virDomainDefPtr vmdef,
-                            const xmlNodePtr node,
+                            const virDomainDef *vmdef,
+                            xmlNodePtr node,
                             xmlXPathContextPtr ctxt,
                             virHashTablePtr bootHash,
                             unsigned int flags)
@@ -9162,7 +9162,7 @@ error:
 
 
 static virDomainRedirdevDefPtr
-virDomainRedirdevDefParseXML(const xmlNodePtr node,
+virDomainRedirdevDefParseXML(xmlNodePtr node,
                              virHashTablePtr bootHash,
                              unsigned int flags)
 {
@@ -9299,7 +9299,7 @@ cleanup:
 }
 
 static virDomainRedirFilterUsbDevDefPtr
-virDomainRedirFilterUsbDevDefParseXML(const xmlNodePtr node)
+virDomainRedirFilterUsbDevDefParseXML(xmlNodePtr node)
 {
     char *class;
     char *vendor = NULL, *product = NULL;
@@ -9390,7 +9390,7 @@ error:
 }
 
 static virDomainRedirFilterDefPtr
-virDomainRedirFilterDefParseXML(const xmlNodePtr node,
+virDomainRedirFilterDefParseXML(xmlNodePtr node,
                                 xmlXPathContextPtr ctxt)
 {
     int n;
@@ -9477,7 +9477,7 @@ virDomainPMStateParseXML(xmlXPathContextPtr ctxt,
 
 virDomainDeviceDefPtr
 virDomainDeviceDefParse(const char *xmlStr,
-                        virDomainDefPtr def,
+                        const virDomainDef *def,
                         virCapsPtr caps,
                         virDomainXMLOptionPtr xmlopt,
                         unsigned int flags)
@@ -10278,26 +10278,31 @@ virDomainChrDefPtr
 virDomainChrFind(virDomainDefPtr def,
                  virDomainChrDefPtr target)
 {
-    virDomainChrDefPtr chr, **arrPtr;
-    size_t i, *cntPtr;
+    virDomainChrDefPtr chr;
+    const virDomainChrDef **arrPtr;
+    size_t i, cnt;
 
-    virDomainChrGetDomainPtrs(def, target, &arrPtr, &cntPtr);
+    virDomainChrGetDomainPtrs(def, target->deviceType, &arrPtr, &cnt);
 
-    for (i = 0; i < *cntPtr; i++) {
-        chr = (*arrPtr)[i];
+    for (i = 0; i < cnt; i++) {
+        /* Cast away const */
+        chr = (virDomainChrDefPtr) arrPtr[i];
         if (virDomainChrEquals(chr, target))
             return chr;
     }
     return NULL;
 }
 
-void
-virDomainChrGetDomainPtrs(virDomainDefPtr vmdef,
-                          virDomainChrDefPtr chr,
-                          virDomainChrDefPtr ***arrPtr,
-                          size_t **cntPtr)
+
+/* Return the address within vmdef to be modified when working with a
+ * chrdefptr of the given type.  */
+static void
+virDomainChrGetDomainPtrsInternal(virDomainDefPtr vmdef,
+                                  enum virDomainChrDeviceType type,
+                                  virDomainChrDefPtr ***arrPtr,
+                                  size_t **cntPtr)
 {
-    switch ((enum virDomainChrDeviceType) chr->deviceType) {
+    switch (type) {
     case VIR_DOMAIN_CHR_DEVICE_TYPE_PARALLEL:
         *arrPtr = &vmdef->parallels;
         *cntPtr = &vmdef->nparallels;
@@ -10325,14 +10330,39 @@ virDomainChrGetDomainPtrs(virDomainDefPtr vmdef,
     }
 }
 
+
+/* Return the array within vmdef that can contain a chrdefptr of the
+ * given type.  */
+void
+virDomainChrGetDomainPtrs(const virDomainDef *vmdef,
+                          enum virDomainChrDeviceType type,
+                          const virDomainChrDef ***arrPtr,
+                          size_t *cntPtr)
+{
+    virDomainChrDef ***arrVar = NULL;
+    size_t *cntVar = NULL;
+
+    /* Cast away const; we add it back in the final assignment.  */
+    virDomainChrGetDomainPtrsInternal((virDomainDefPtr) vmdef, type,
+                                      &arrVar, &cntVar);
+    if (arrVar) {
+        *arrPtr = (const virDomainChrDef **) *arrVar;
+        *cntPtr = *cntVar;
+    } else {
+        *arrPtr = NULL;
+        *cntPtr = 0;
+    }
+}
+
+
 int
 virDomainChrInsert(virDomainDefPtr vmdef,
                    virDomainChrDefPtr chr)
 {
-    virDomainChrDefPtr **arrPtr;
-    size_t *cntPtr;
+    virDomainChrDefPtr **arrPtr = NULL;
+    size_t *cntPtr = NULL;
 
-    virDomainChrGetDomainPtrs(vmdef, chr, &arrPtr, &cntPtr);
+    virDomainChrGetDomainPtrsInternal(vmdef, chr->deviceType, &arrPtr, &cntPtr);
 
     return VIR_APPEND_ELEMENT(*arrPtr, *cntPtr, chr);
 }
@@ -10341,10 +10371,10 @@ virDomainChrDefPtr
 virDomainChrRemove(virDomainDefPtr vmdef,
                    virDomainChrDefPtr chr)
 {
-    virDomainChrDefPtr ret, **arrPtr;
-    size_t i, *cntPtr;
+    virDomainChrDefPtr ret, **arrPtr = NULL;
+    size_t i, *cntPtr = NULL;
 
-    virDomainChrGetDomainPtrs(vmdef, chr, &arrPtr, &cntPtr);
+    virDomainChrGetDomainPtrsInternal(vmdef, chr->deviceType, &arrPtr, &cntPtr);
 
     for (i = 0; i < *cntPtr; i++) {
         ret = (*arrPtr)[i];
@@ -10503,8 +10533,8 @@ cleanup:
 
 static int virDomainIdMapEntrySort(const void *a, const void *b)
 {
-    const virDomainIdMapEntryPtr entrya = (const virDomainIdMapEntryPtr) a;
-    const virDomainIdMapEntryPtr entryb = (const virDomainIdMapEntryPtr) b;
+    const virDomainIdMapEntry *entrya = a;
+    const virDomainIdMapEntry *entryb = b;
 
     if (entrya->start > entryb->start)
         return 1;
@@ -10523,7 +10553,7 @@ static int virDomainIdMapEntrySort(const void *a, const void *b)
  */
 static virDomainIdMapEntryPtr
 virDomainIdmapDefParseXML(xmlXPathContextPtr ctxt,
-                          const xmlNodePtr *node,
+                          xmlNodePtr *node,
                           size_t num)
 {
     size_t i;
@@ -10574,7 +10604,7 @@ cleanup:
  * have to check the returned cpuid for validity.
  */
 static virDomainVcpuPinDefPtr
-virDomainVcpuPinDefParseXML(const xmlNodePtr node,
+virDomainVcpuPinDefParseXML(xmlNodePtr node,
                             xmlXPathContextPtr ctxt,
                             int maxvcpus,
                             int emulator)
@@ -11378,8 +11408,7 @@ virDomainDefParseXML(xmlDocPtr xml,
         int val = virDomainFeatureTypeFromString((const char *)nodes[i]->name);
         if (val < 0) {
             virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("unexpected feature %s"),
-                           nodes[i]->name);
+                           _("unexpected feature '%s'"), nodes[i]->name);
             goto error;
         }
         def->features |= (1 << val);
@@ -11389,7 +11418,7 @@ virDomainDefParseXML(xmlDocPtr xml,
                 int eoi;
                 if ((eoi = virDomainFeatureStateTypeFromString(tmp)) <= 0) {
                     virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                                   _("unknown value for attribute eoi: %s"),
+                                   _("unknown value for attribute eoi: '%s'"),
                                    tmp);
                     goto error;
                 }
@@ -13517,7 +13546,7 @@ virDomainDefCheckABIStability(virDomainDefPtr src,
                        virArchToString(src->os.arch));
         return false;
     }
-    if (STRNEQ(src->os.machine, dst->os.machine)) {
+    if (STRNEQ_NULLABLE(src->os.machine, dst->os.machine)) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                        _("Target domain OS type %s does not match source %s"),
                        dst->os.machine, src->os.machine);
@@ -17344,9 +17373,9 @@ virDomainObjListLoadAllConfigs(virDomainObjListPtr doms,
                                              notify,
                                              opaque);
         if (dom) {
-            virObjectUnlock(dom);
             if (!liveStatus)
                 dom->persistent = 1;
+            virObjectUnlock(dom);
         }
     }
 
@@ -17407,9 +17436,10 @@ char
  * @return 0 on success, -1 on failure
  */
 int
-virDiskNameToBusDeviceIndex(const virDomainDiskDefPtr disk,
+virDiskNameToBusDeviceIndex(virDomainDiskDefPtr disk,
                             int *busIdx,
-                            int *devIdx) {
+                            int *devIdx)
+{
 
     int idx = virDiskNameToIndex(disk->dst);
     if (idx < 0)
@@ -18215,7 +18245,7 @@ virDomainNetFind(virDomainDefPtr def, const char *device)
  */
 virDomainDeviceDefPtr
 virDomainDeviceDefCopy(virDomainDeviceDefPtr src,
-                       const virDomainDefPtr def,
+                       const virDomainDef *def,
                        virCapsPtr caps,
                        virDomainXMLOptionPtr xmlopt)
 {

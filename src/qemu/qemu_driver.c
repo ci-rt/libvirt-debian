@@ -177,8 +177,7 @@ static void
 qemuVMDriverUnlock(void) {}
 
 static int
-qemuVMFilterRebuild(virConnectPtr conn ATTRIBUTE_UNUSED,
-                    virDomainObjListIterator iter, void *data)
+qemuVMFilterRebuild(virDomainObjListIterator iter, void *data)
 {
     return virDomainObjListForEach(qemu_driver->domains, iter, data);
 }
@@ -688,6 +687,11 @@ qemuStateInitialize(bool privileged,
                              cfg->webSocketPortMax)) == NULL)
         goto error;
 
+    if ((qemu_driver->migrationPorts =
+         virPortAllocatorNew(cfg->migrationPortMin,
+                             cfg->migrationPortMax)) == NULL)
+        goto error;
+
     if (qemuSecurityInit(qemu_driver) < 0)
         goto error;
 
@@ -812,8 +816,6 @@ qemuStateInitialize(bool privileged,
 
     conn = virConnectOpen(cfg->uri);
 
-    qemuProcessReconnectAll(conn, qemu_driver);
-
     /* Then inactive persistent configs */
     if (virDomainObjListLoadAllConfigs(qemu_driver->domains,
                                        cfg->configDir,
@@ -824,6 +826,7 @@ qemuStateInitialize(bool privileged,
                                        NULL, NULL) < 0)
         goto error;
 
+    qemuProcessReconnectAll(conn, qemu_driver);
 
     virDomainObjListForEach(qemu_driver->domains,
                             qemuDomainSnapshotLoad,
@@ -994,6 +997,7 @@ qemuStateCleanup(void) {
     virObjectUnref(qemu_driver->domains);
     virObjectUnref(qemu_driver->remotePorts);
     virObjectUnref(qemu_driver->webSocketPorts);
+    virObjectUnref(qemu_driver->migrationPorts);
 
     virObjectUnref(qemu_driver->xmlopt);
 
@@ -2788,8 +2792,8 @@ qemuOpenFileAs(uid_t fallback_uid, gid_t fallback_gid,
     unsigned int vfoflags = 0;
     int fd = -1;
     int path_shared = virStorageFileIsSharedFS(path);
-    uid_t uid = getuid();
-    gid_t gid = getgid();
+    uid_t uid = geteuid();
+    gid_t gid = getegid();
 
     /* path might be a pre-existing block dev, in which case
      * we need to skip the create step, and also avoid unlink
@@ -2829,7 +2833,7 @@ qemuOpenFileAs(uid_t fallback_uid, gid_t fallback_gid,
                qemu user is non-root, just set a flag to
                bypass security driver shenanigans, and retry the operation
                after doing setuid to qemu user */
-            if ((fd != -EACCES && fd != -EPERM) || fallback_uid == getuid())
+            if ((fd != -EACCES && fd != -EPERM) || fallback_uid == geteuid())
                 goto error;
 
             /* On Linux we can also verify the FS-type of the directory. */
@@ -3078,7 +3082,7 @@ qemuDomainSaveInternal(virQEMUDriverPtr driver, virDomainPtr dom,
                                             VIR_DOMAIN_XML_INACTIVE))) {
             goto endjob;
         }
-        if (!virDomainDefCheckABIStability(vm->def, def)) {
+        if (!qemuDomainDefCheckABIStability(driver, vm->def, def)) {
             virDomainDefFree(def);
             goto endjob;
         }
@@ -3139,18 +3143,18 @@ cleanup:
 }
 
 /* Returns true if a compression program is available in PATH */
-static bool qemuCompressProgramAvailable(virQEMUSaveFormat compress)
+static bool
+qemuCompressProgramAvailable(virQEMUSaveFormat compress)
 {
-    const char *prog;
-    char *c;
+    char *path;
 
     if (compress == QEMU_SAVE_FORMAT_RAW)
         return true;
-    prog = qemuSaveCompressionTypeToString(compress);
-    c = virFindFileInPath(prog);
-    if (!c)
+
+    if (!(path = virFindFileInPath(qemuSaveCompressionTypeToString(compress))))
         return false;
-    VIR_FREE(c);
+
+    VIR_FREE(path);
     return true;
 }
 
@@ -3159,7 +3163,7 @@ qemuDomainSaveFlags(virDomainPtr dom, const char *path, const char *dxml,
                     unsigned int flags)
 {
     virQEMUDriverPtr driver = dom->conn->privateData;
-    int compressed;
+    int compressed = QEMU_SAVE_FORMAT_RAW;
     int ret = -1;
     virDomainObjPtr vm = NULL;
     virQEMUDriverConfigPtr cfg = NULL;
@@ -3169,20 +3173,18 @@ qemuDomainSaveFlags(virDomainPtr dom, const char *path, const char *dxml,
                   VIR_DOMAIN_SAVE_PAUSED, -1);
 
     cfg = virQEMUDriverGetConfig(driver);
-    if (cfg->saveImageFormat == NULL)
-        compressed = QEMU_SAVE_FORMAT_RAW;
-    else {
+    if (cfg->saveImageFormat) {
         compressed = qemuSaveCompressionTypeFromString(cfg->saveImageFormat);
         if (compressed < 0) {
-            virReportError(VIR_ERR_OPERATION_FAILED,
-                           "%s", _("Invalid save image format specified "
-                                   "in configuration file"));
+            virReportError(VIR_ERR_OPERATION_FAILED, "%s",
+                           _("Invalid save image format specified "
+                             "in configuration file"));
             goto cleanup;
         }
         if (!qemuCompressProgramAvailable(compressed)) {
-            virReportError(VIR_ERR_OPERATION_FAILED,
-                           "%s", _("Compression program for image format "
-                                   "in configuration file isn't available"));
+            virReportError(VIR_ERR_OPERATION_FAILED, "%s",
+                           _("Compression program for image format "
+                             "in configuration file isn't available"));
             goto cleanup;
         }
     }
@@ -3235,6 +3237,8 @@ static int
 qemuDomainManagedSave(virDomainPtr dom, unsigned int flags)
 {
     virQEMUDriverPtr driver = dom->conn->privateData;
+    virQEMUDriverConfigPtr cfg = NULL;
+    int compressed = QEMU_SAVE_FORMAT_RAW;
     virDomainObjPtr vm;
     char *name = NULL;
     int ret = -1;
@@ -3260,13 +3264,29 @@ qemuDomainManagedSave(virDomainPtr dom, unsigned int flags)
         goto cleanup;
     }
 
+    cfg = virQEMUDriverGetConfig(driver);
+    if (cfg->saveImageFormat) {
+        compressed = qemuSaveCompressionTypeFromString(cfg->saveImageFormat);
+        if (compressed < 0) {
+            virReportError(VIR_ERR_OPERATION_FAILED, "%s",
+                           _("Invalid save image format specified "
+                             "in configuration file"));
+            goto cleanup;
+        }
+        if (!qemuCompressProgramAvailable(compressed)) {
+            virReportError(VIR_ERR_OPERATION_FAILED, "%s",
+                           _("Compression program for image format "
+                             "in configuration file isn't available"));
+            goto cleanup;
+        }
+    }
+
     if (!(name = qemuDomainManagedSavePath(driver, vm)))
         goto cleanup;
 
     VIR_INFO("Saving state of domain '%s' to '%s'", vm->def->name, name);
 
-    if ((ret = qemuDomainSaveInternal(driver, dom, vm, name,
-                                      QEMU_SAVE_FORMAT_RAW,
+    if ((ret = qemuDomainSaveInternal(driver, dom, vm, name, compressed,
                                       NULL, flags)) == 0)
         vm->hasManagedSave = true;
 
@@ -3276,6 +3296,7 @@ cleanup:
     if (vm)
         virObjectUnlock(vm);
     VIR_FREE(name);
+    virObjectUnref(cfg);
 
     return ret;
 }
@@ -5307,7 +5328,7 @@ qemuDomainSaveImageStartVM(virConnectPtr conn,
                            virQEMUDriverPtr driver,
                            virDomainObjPtr vm,
                            int *fd,
-                           const virQEMUSaveHeaderPtr header,
+                           const virQEMUSaveHeader *header,
                            const char *path,
                            bool start_paused)
 {
@@ -10039,7 +10060,7 @@ qemuDomainMigratePrepare2(virConnectPtr dconn,
     ret = qemuMigrationPrepareDirect(driver, dconn,
                                      NULL, 0, NULL, NULL, /* No cookies */
                                      uri_in, uri_out,
-                                     &def, origname, flags);
+                                     &def, origname, NULL, flags);
 
 cleanup:
     VIR_FREE(origname);
@@ -10090,7 +10111,8 @@ qemuDomainMigratePerform(virDomainPtr dom,
      * Consume any cookie we were able to decode though
      */
     ret = qemuMigrationPerform(driver, dom->conn, vm,
-                               NULL, dconnuri, uri, NULL, cookie, cookielen,
+                               NULL, dconnuri, uri, NULL, NULL,
+                               cookie, cookielen,
                                NULL, NULL, /* No output cookies in v2 */
                                flags, dname, resource, false);
 
@@ -10244,7 +10266,7 @@ qemuDomainMigratePrepare3(virConnectPtr dconn,
                                      cookiein, cookieinlen,
                                      cookieout, cookieoutlen,
                                      uri_in, uri_out,
-                                     &def, origname, flags);
+                                     &def, origname, NULL, flags);
 
 cleanup:
     VIR_FREE(origname);
@@ -10264,16 +10286,18 @@ qemuDomainMigratePrepare3Params(virConnectPtr dconn,
                                 unsigned int flags)
 {
     virQEMUDriverPtr driver = dconn->privateData;
+    virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
     virDomainDefPtr def = NULL;
     const char *dom_xml = NULL;
     const char *dname = NULL;
     const char *uri_in = NULL;
+    const char *listenAddress = cfg->migrationAddress;
     char *origname = NULL;
     int ret = -1;
 
-    virCheckFlags(QEMU_MIGRATION_FLAGS, -1);
+    virCheckFlagsGoto(QEMU_MIGRATION_FLAGS, cleanup);
     if (virTypedParamsValidate(params, nparams, QEMU_MIGRATION_PARAMETERS) < 0)
-        return -1;
+        goto cleanup;
 
     if (virTypedParamsGetString(params, nparams,
                                 VIR_MIGRATE_PARAM_DEST_XML,
@@ -10283,8 +10307,11 @@ qemuDomainMigratePrepare3Params(virConnectPtr dconn,
                                 &dname) < 0 ||
         virTypedParamsGetString(params, nparams,
                                 VIR_MIGRATE_PARAM_URI,
-                                &uri_in) < 0)
-        return -1;
+                                &uri_in) < 0 ||
+        virTypedParamsGetString(params, nparams,
+                                VIR_MIGRATE_PARAM_LISTEN_ADDRESS,
+                                &listenAddress) < 0)
+        goto cleanup;
 
     if (flags & VIR_MIGRATE_TUNNELLED) {
         /* this is a logical error; we never should have gotten here with
@@ -10306,11 +10333,12 @@ qemuDomainMigratePrepare3Params(virConnectPtr dconn,
                                      cookiein, cookieinlen,
                                      cookieout, cookieoutlen,
                                      uri_in, uri_out,
-                                     &def, origname, flags);
+                                     &def, origname, listenAddress, flags);
 
 cleanup:
     VIR_FREE(origname);
     virDomainDefFree(def);
+    virObjectUnref(cfg);
     return ret;
 }
 
@@ -10438,7 +10466,8 @@ qemuDomainMigratePerform3(virDomainPtr dom,
     }
 
     return qemuMigrationPerform(driver, dom->conn, vm, xmlin,
-                                dconnuri, uri, NULL, cookiein, cookieinlen,
+                                dconnuri, uri, NULL, NULL,
+                                cookiein, cookieinlen,
                                 cookieout, cookieoutlen,
                                 flags, dname, resource, true);
 }
@@ -10460,6 +10489,7 @@ qemuDomainMigratePerform3Params(virDomainPtr dom,
     const char *dname = NULL;
     const char *uri = NULL;
     const char *graphicsuri = NULL;
+    const char *listenAddress = NULL;
     unsigned long long bandwidth = 0;
 
     virCheckFlags(QEMU_MIGRATION_FLAGS, -1);
@@ -10480,7 +10510,10 @@ qemuDomainMigratePerform3Params(virDomainPtr dom,
                                 &bandwidth) < 0 ||
         virTypedParamsGetString(params, nparams,
                                 VIR_MIGRATE_PARAM_GRAPHICS_URI,
-                                &graphicsuri) < 0)
+                                &graphicsuri) < 0 ||
+        virTypedParamsGetString(params, nparams,
+                                VIR_MIGRATE_PARAM_LISTEN_ADDRESS,
+                                &listenAddress) < 0)
         return -1;
 
     if (!(vm = qemuDomObjFromDomain(dom)))
@@ -10492,7 +10525,7 @@ qemuDomainMigratePerform3Params(virDomainPtr dom,
     }
 
     return qemuMigrationPerform(driver, dom->conn, vm, dom_xml,
-                                dconnuri, uri, graphicsuri,
+                                dconnuri, uri, graphicsuri, listenAddress,
                                 cookiein, cookieinlen, cookieout, cookieoutlen,
                                 flags, dname, bandwidth, true);
 }
@@ -12100,6 +12133,8 @@ qemuDomainSnapshotCreateActiveExternal(virConnectPtr conn,
     bool transaction = virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_TRANSACTION);
     int thaw = 0; /* 1 if freeze succeeded, -1 if freeze failed */
     bool pmsuspended = false;
+    virQEMUDriverConfigPtr cfg = NULL;
+    int compressed = QEMU_SAVE_FORMAT_RAW;
 
     if (qemuDomainObjBeginAsyncJob(driver, vm, QEMU_ASYNC_JOB_SNAPSHOT) < 0)
         goto cleanup;
@@ -12161,12 +12196,28 @@ qemuDomainSnapshotCreateActiveExternal(virConnectPtr conn,
                                      JOB_MASK(QEMU_JOB_SUSPEND) |
                                      JOB_MASK(QEMU_JOB_MIGRATION_OP));
 
+        cfg = virQEMUDriverGetConfig(driver);
+        if (cfg->snapshotImageFormat) {
+            compressed = qemuSaveCompressionTypeFromString(cfg->snapshotImageFormat);
+            if (compressed < 0) {
+                virReportError(VIR_ERR_OPERATION_FAILED, "%s",
+                               _("Invalid snapshot image format specified "
+                                 "in configuration file"));
+                goto cleanup;
+            }
+            if (!qemuCompressProgramAvailable(compressed)) {
+                virReportError(VIR_ERR_OPERATION_FAILED, "%s",
+                               _("Compression program for image format "
+                                 "in configuration file isn't available"));
+                goto cleanup;
+            }
+        }
+
         if (!(xml = qemuDomainDefFormatLive(driver, vm->def, true, true)))
             goto endjob;
 
         if ((ret = qemuDomainSaveMemory(driver, vm, snap->def->file,
-                                        xml, QEMU_SAVE_FORMAT_RAW,
-                                        resume, 0,
+                                        xml, compressed, resume, 0,
                                         QEMU_ASYNC_JOB_SNAPSHOT)) < 0)
             goto endjob;
 
@@ -12255,6 +12306,7 @@ endjob:
 
 cleanup:
     VIR_FREE(xml);
+    virObjectUnref(cfg);
     if (memory_unlink && ret < 0)
         unlink(snap->def->file);
 
@@ -12272,9 +12324,9 @@ qemuDomainSnapshotCreateXML(virDomainPtr domain,
     char *xml = NULL;
     virDomainSnapshotObjPtr snap = NULL;
     virDomainSnapshotPtr snapshot = NULL;
-    char uuidstr[VIR_UUID_STRING_BUFLEN];
     virDomainSnapshotDefPtr def = NULL;
     bool update_current = true;
+    bool redefine = flags & VIR_DOMAIN_SNAPSHOT_CREATE_REDEFINE;
     unsigned int parse_flags = VIR_DOMAIN_SNAPSHOT_PARSE_DISKS;
     virDomainSnapshotObjPtr other = NULL;
     int align_location = VIR_DOMAIN_SNAPSHOT_LOCATION_INTERNAL;
@@ -12299,14 +12351,11 @@ qemuDomainSnapshotCreateXML(virDomainPtr domain,
         return NULL;
     }
 
-    if (((flags & VIR_DOMAIN_SNAPSHOT_CREATE_REDEFINE) &&
-         !(flags & VIR_DOMAIN_SNAPSHOT_CREATE_CURRENT)) ||
+    if ((redefine && !(flags & VIR_DOMAIN_SNAPSHOT_CREATE_CURRENT)) ||
         (flags & VIR_DOMAIN_SNAPSHOT_CREATE_NO_METADATA))
         update_current = false;
-    if (flags & VIR_DOMAIN_SNAPSHOT_CREATE_REDEFINE)
+    if (redefine)
         parse_flags |= VIR_DOMAIN_SNAPSHOT_PARSE_REDEFINE;
-
-    virUUIDFormat(domain->uuid, uuidstr);
 
     if (!(vm = qemuDomObjFromDomain(domain)))
         goto cleanup;
@@ -12368,141 +12417,17 @@ qemuDomainSnapshotCreateXML(virDomainPtr domain,
     if (flags & VIR_DOMAIN_SNAPSHOT_CREATE_LIVE &&
         (!virDomainObjIsActive(vm) ||
          def->memory != VIR_DOMAIN_SNAPSHOT_LOCATION_EXTERNAL ||
-         flags & VIR_DOMAIN_SNAPSHOT_CREATE_REDEFINE)) {
+         redefine)) {
         virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
                        _("live snapshot creation is supported only "
                          "with external checkpoints"));
         goto cleanup;
     }
 
-    if (flags & VIR_DOMAIN_SNAPSHOT_CREATE_REDEFINE) {
-        /* Prevent circular chains */
-        if (def->parent) {
-            if (STREQ(def->name, def->parent)) {
-                virReportError(VIR_ERR_INVALID_ARG,
-                               _("cannot set snapshot %s as its own parent"),
-                               def->name);
-                goto cleanup;
-            }
-            other = virDomainSnapshotFindByName(vm->snapshots, def->parent);
-            if (!other) {
-                virReportError(VIR_ERR_INVALID_ARG,
-                               _("parent %s for snapshot %s not found"),
-                               def->parent, def->name);
-                goto cleanup;
-            }
-            while (other->def->parent) {
-                if (STREQ(other->def->parent, def->name)) {
-                    virReportError(VIR_ERR_INVALID_ARG,
-                                   _("parent %s would create cycle to %s"),
-                                   other->def->name, def->name);
-                    goto cleanup;
-                }
-                other = virDomainSnapshotFindByName(vm->snapshots,
-                                                    other->def->parent);
-                if (!other) {
-                    VIR_WARN("snapshots are inconsistent for %s",
-                             vm->def->name);
-                    break;
-                }
-            }
-        }
-
-        /* Check that any replacement is compatible */
-        if ((flags & VIR_DOMAIN_SNAPSHOT_CREATE_DISK_ONLY) &&
-            def->state != VIR_DOMAIN_DISK_SNAPSHOT) {
-            virReportError(VIR_ERR_INVALID_ARG,
-                           _("disk-only flag for snapshot %s requires "
-                             "disk-snapshot state"),
-                           def->name);
+    if (redefine) {
+        if (!virDomainSnapshotRedefinePrep(domain, vm, &def, &snap,
+                                           &update_current, flags) < 0)
             goto cleanup;
-
-        }
-
-        if (def->dom &&
-            memcmp(def->dom->uuid, domain->uuid, VIR_UUID_BUFLEN)) {
-            virReportError(VIR_ERR_INVALID_ARG,
-                           _("definition for snapshot %s must use uuid %s"),
-                           def->name, uuidstr);
-            goto cleanup;
-        }
-
-        other = virDomainSnapshotFindByName(vm->snapshots, def->name);
-        if (other) {
-            if ((other->def->state == VIR_DOMAIN_RUNNING ||
-                 other->def->state == VIR_DOMAIN_PAUSED) !=
-                (def->state == VIR_DOMAIN_RUNNING ||
-                 def->state == VIR_DOMAIN_PAUSED)) {
-                virReportError(VIR_ERR_INVALID_ARG,
-                               _("cannot change between online and offline "
-                                 "snapshot state in snapshot %s"),
-                               def->name);
-                goto cleanup;
-            }
-
-            if ((other->def->state == VIR_DOMAIN_DISK_SNAPSHOT) !=
-                (def->state == VIR_DOMAIN_DISK_SNAPSHOT)) {
-                virReportError(VIR_ERR_INVALID_ARG,
-                               _("cannot change between disk snapshot and "
-                                 "system checkpoint in snapshot %s"),
-                               def->name);
-                goto cleanup;
-            }
-
-            if (other->def->dom) {
-                if (def->dom) {
-                    if (!virDomainDefCheckABIStability(other->def->dom,
-                                                       def->dom))
-                        goto cleanup;
-                } else {
-                    /* Transfer the domain def */
-                    def->dom = other->def->dom;
-                    other->def->dom = NULL;
-                }
-            }
-
-            if (def->dom) {
-                if (def->state == VIR_DOMAIN_DISK_SNAPSHOT ||
-                    virDomainSnapshotDefIsExternal(def)) {
-                    align_location = VIR_DOMAIN_SNAPSHOT_LOCATION_EXTERNAL;
-                    align_match = false;
-                }
-
-                if (virDomainSnapshotAlignDisks(def, align_location,
-                                                align_match) < 0) {
-                    /* revert stealing of the snapshot domain definition */
-                    if (def->dom && !other->def->dom) {
-                        other->def->dom = def->dom;
-                        def->dom = NULL;
-                    }
-                    goto cleanup;
-                }
-            }
-
-            if (other == vm->current_snapshot) {
-                update_current = true;
-                vm->current_snapshot = NULL;
-            }
-
-            /* Drop and rebuild the parent relationship, but keep all
-             * child relations by reusing snap.  */
-            virDomainSnapshotDropParent(other);
-            virDomainSnapshotDefFree(other->def);
-            other->def = def;
-            def = NULL;
-            snap = other;
-        } else {
-            if (def->dom) {
-                if (def->state == VIR_DOMAIN_DISK_SNAPSHOT ||
-                    def->memory == VIR_DOMAIN_SNAPSHOT_LOCATION_EXTERNAL) {
-                    align_location = VIR_DOMAIN_SNAPSHOT_LOCATION_EXTERNAL;
-                    align_match = false;
-                }
-                if (virDomainSnapshotAlignDisks(def, align_location,
-                                                align_match) < 0)
-                    goto cleanup;
-            }
-        }
     } else {
         /* Easiest way to clone inactive portion of vm->def is via
          * conversion in and back out of xml.  */
@@ -12546,7 +12471,7 @@ qemuDomainSnapshotCreateXML(virDomainPtr domain,
     if (update_current)
         snap->def->current = true;
     if (vm->current_snapshot) {
-        if (!(flags & VIR_DOMAIN_SNAPSHOT_CREATE_REDEFINE) &&
+        if (!redefine &&
             VIR_STRDUP(snap->def->parent, vm->current_snapshot->def->name) < 0)
                 goto cleanup;
         if (update_current) {
@@ -12559,7 +12484,7 @@ qemuDomainSnapshotCreateXML(virDomainPtr domain,
     }
 
     /* actually do the snapshot */
-    if (flags & VIR_DOMAIN_SNAPSHOT_CREATE_REDEFINE) {
+    if (redefine) {
         /* XXX Should we validate that the redefined snapshot even
          * makes sense, such as checking that qemu-img recognizes the
          * snapshot name in at least one of the domain's disks?  */
@@ -13017,7 +12942,6 @@ static int qemuDomainRevertToSnapshot(virDomainSnapshotPtr snapshot,
     qemuDomainObjPrivatePtr priv;
     int rc;
     virDomainDefPtr config = NULL;
-    virDomainDefPtr migratableDef = NULL;
     virQEMUDriverConfigPtr cfg = NULL;
     virCapsPtr caps = NULL;
 
@@ -13134,11 +13058,7 @@ static int qemuDomainRevertToSnapshot(virDomainSnapshotPtr snapshot,
             /* Transitions 5, 6, 8, 9 */
             /* Check for ABI compatibility. We need to do this check against
              * the migratable XML or it will always fail otherwise */
-            if (!(migratableDef = qemuDomainDefCopy(driver, vm->def,
-                                                    VIR_DOMAIN_XML_MIGRATABLE)))
-                goto cleanup;
-
-            if (config && !virDomainDefCheckABIStability(migratableDef, config)) {
+            if (config && !qemuDomainDefCheckABIStability(driver, vm->def, config)) {
                 virErrorPtr err = virGetLastError();
 
                 if (!(flags & VIR_DOMAIN_SNAPSHOT_REVERT_FORCE)) {
@@ -13343,7 +13263,6 @@ cleanup:
     }
     if (vm)
         virObjectUnlock(vm);
-    virDomainDefFree(migratableDef);
     virObjectUnref(caps);
     virObjectUnref(cfg);
 

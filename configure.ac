@@ -16,15 +16,15 @@ dnl You should have received a copy of the GNU Lesser General Public
 dnl License along with this library.  If not, see
 dnl <http://www.gnu.org/licenses/>.
 
-AC_INIT([libvirt], [1.1.3], [libvir-list@redhat.com], [], [http://libvirt.org])
+AC_INIT([libvirt], [1.1.4], [libvir-list@redhat.com], [], [http://libvirt.org])
 AC_CONFIG_SRCDIR([src/libvirt.c])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
+AH_BOTTOM([#include <config-post.h>])
 AC_CONFIG_MACRO_DIR([m4])
 dnl Make automake keep quiet about wildcards & other GNUmake-isms; also keep
 dnl quiet about the fact that we intentionally cater to automake 1.9
 AM_INIT_AUTOMAKE([-Wno-portability -Wno-obsolete tar-ustar subdir-objects])
-AM_MAINTAINER_MODE([enable])
 
 # Maintainer note - comment this line out if you plan to rerun
 # GNULIB_POSIXCHECK testing to see if libvirt should be using more modules.
@@ -191,15 +191,25 @@ if test $with_freebsd = yes; then
    with_firewalld=no
 fi
 
-if test $with_osx = yes; then
-   with_qemu=no
-fi
-
 AM_CONDITIONAL([WITH_LINUX], [test "$with_linux" = "yes"])
 AM_CONDITIONAL([WITH_FREEBSD], [test "$with_freebsd" = "yes"])
 
+# The daemon requires remote support.  Likewise, if we are not using
+# RPC, we don't need several libraries.
+if test "$with_remote" = "no" ; then
+  with_libvirtd=no
+  with_gnutls=no
+  with_ssh2=no
+  with_sasl=no
+fi
+# Stateful drivers are useful only when building the daemon.
 if test "$with_libvirtd" = "no" ; then
   with_qemu=no
+  with_xen=no
+  with_lxc=no
+  with_libxl=no
+  with_uml=no
+  with_vbox=no
 fi
 
 # Check for compiler and library settings.
@@ -223,6 +233,7 @@ LIBVIRT_CHECK_NETCF
 LIBVIRT_CHECK_NUMACTL
 LIBVIRT_CHECK_OPENWSMAN
 LIBVIRT_CHECK_PCIACCESS
+LIBVIRT_CHECK_READLINE
 LIBVIRT_CHECK_SANLOCK
 LIBVIRT_CHECK_SASL
 LIBVIRT_CHECK_SELINUX
@@ -253,10 +264,10 @@ AC_CHECK_SIZEOF([long])
 
 dnl Availability of various common functions (non-fatal if missing),
 dnl and various less common threadsafe functions
-AC_CHECK_FUNCS_ONCE([cfmakeraw geteuid getgid getgrnam_r getmntent_r \
-  getpwuid_r getuid kill mmap newlocale posix_fallocate posix_memalign \
-  prlimit regexec sched_getaffinity setgroups setns setrlimit symlink \
-  sysctlbyname])
+AC_CHECK_FUNCS_ONCE([cfmakeraw fallocate geteuid getgid getgrnam_r \
+  getmntent_r getpwuid_r getuid kill mmap newlocale posix_fallocate \
+  posix_memalign prlimit regexec sched_getaffinity setgroups setns \
+  setrlimit symlink sysctlbyname])
 
 dnl Availability of pthread functions (if missing, win32 threading is
 dnl assumed).  Because of $LIB_PTHREAD, we cannot use AC_CHECK_FUNCS_ONCE.
@@ -1053,7 +1064,6 @@ dnl
 dnl check for kernel headers required by src/bridge.c
 dnl
 if test "$with_linux" = "yes"; then
-  if test "$with_qemu" = "yes" || test "$with_lxc" = "yes" ; then
     # Various kernel versions have headers that are not self-standing, but
     # yet are incompatible with the corresponding glibc headers.  In order
     # to guarantee compilation across a wide range of versions (from RHEL 5
@@ -1087,7 +1097,6 @@ if test "$with_linux" = "yes"; then
         #endif
         #include <linux/in6.h>
       ]])
-  fi
 fi
 
 
@@ -1553,45 +1562,7 @@ fi
 AM_CONDITIONAL([WITH_PHYP],[test "$with_phyp" = "yes"])
 
 dnl virsh libraries
-AC_CHECK_HEADERS([readline/readline.h])
-
-# Check for readline.
-AC_CHECK_LIB([readline], [readline],
-	[lv_use_readline=yes; VIRSH_LIBS="$VIRSH_LIBS -lreadline"],
-	[lv_use_readline=no])
-
-# If the above test failed, it may simply be that -lreadline requires
-# some termcap-related code, e.g., from one of the following libraries.
-# See if adding one of them to LIBS helps.
-if test $lv_use_readline = no; then
-    lv_saved_libs=$LIBS
-    LIBS=
-    AC_SEARCH_LIBS([tgetent], [ncurses curses termcap termlib])
-    case $LIBS in
-      no*) ;;  # handle "no" and "none required"
-      *) # anything else is a -lLIBRARY
-	# Now, check for -lreadline again, also using $LIBS.
-	# Note: this time we use a different function, so that
-	# we don't get a cached "no" result.
-	AC_CHECK_LIB([readline], [rl_initialize],
-		[lv_use_readline=yes
-		 VIRSH_LIBS="$VIRSH_LIBS -lreadline $LIBS"],,
-		[$LIBS])
-	;;
-    esac
-    test $lv_use_readline = no &&
-	AC_MSG_WARN([readline library not found])
-    LIBS=$lv_saved_libs
-fi
-
-if test $lv_use_readline = yes; then
-    AC_DEFINE_UNQUOTED([USE_READLINE], 1,
-		       [whether virsh can use readline])
-    READLINE_CFLAGS=-DUSE_READLINE
-else
-    READLINE_CFLAGS=
-fi
-AC_SUBST([READLINE_CFLAGS])
+VIRSH_LIBS="$VIRSH_LIBS $READLINE_LIBS"
 AC_SUBST([VIRSH_LIBS])
 
 dnl check if the network driver should be compiled
@@ -2418,7 +2389,7 @@ fi
 AM_CONDITIONAL([WITH_INTERFACE], [test "$with_interface" = "yes"])
 
 
-if test $with_freebsd = yes; then
+if test $with_freebsd = yes || test $with_osx = yes; then
   default_qemu_user=root
   default_qemu_group=wheel
 else
@@ -2726,6 +2697,7 @@ LIBVIRT_RESULT_NETCF
 LIBVIRT_RESULT_NUMACTL
 LIBVIRT_RESULT_OPENWSMAN
 LIBVIRT_RESULT_PCIACCESS
+LIBVIRT_RESULT_READLINE
 LIBVIRT_RESULT_SANLOCK
 LIBVIRT_RESULT_SASL
 LIBVIRT_RESULT_SELINUX
@@ -2806,7 +2778,6 @@ AC_MSG_NOTICE([])
 AC_MSG_NOTICE([            Debug: $enable_debug])
 AC_MSG_NOTICE([      Use -Werror: $set_werror])
 AC_MSG_NOTICE([    Warning Flags: $WARN_CFLAGS])
-AC_MSG_NOTICE([         Readline: $lv_use_readline])
 AC_MSG_NOTICE([           Python: $with_python])
 AC_MSG_NOTICE([           DTrace: $with_dtrace])
 AC_MSG_NOTICE([            numad: $with_numad])

@@ -3219,10 +3219,7 @@ error:
         if (!virDomainObjIsActive(obj)) {
             if (virObjectUnref(obj))
                 virObjectUnlock(obj);
-            return;
-        }
-
-        if (virObjectUnref(obj)) {
+        } else if (virObjectUnref(obj)) {
             /* We can't get the monitor back, so must kill the VM
              * to remove danger of it ending up running twice if
              * user tries to start it again later
@@ -3255,6 +3252,9 @@ qemuProcessReconnectHelper(virDomainObjPtr obj,
     virThread thread;
     struct qemuProcessReconnectData *src = opaque;
     struct qemuProcessReconnectData *data;
+
+    if (!obj->pid)
+        return 0;
 
     if (VIR_ALLOC(data) < 0)
         return -1;
@@ -3499,6 +3499,10 @@ int qemuProcessStart(virConnectPtr conn,
     virQEMUDriverConfigPtr cfg;
     virCapsPtr caps = NULL;
 
+    VIR_DEBUG("vm=%p name=%s id=%d pid=%llu",
+              vm, vm->def->name, vm->def->id,
+              (unsigned long long)vm->pid);
+
     /* Okay, these are just internal flags,
      * but doesn't hurt to check */
     virCheckFlags(VIR_QEMU_PROCESS_START_COLD |
@@ -3567,6 +3571,12 @@ int qemuProcessStart(virConnectPtr conn,
             goto cleanup;
     }
 
+    VIR_DEBUG("Determining emulator version");
+    virObjectUnref(priv->qemuCaps);
+    if (!(priv->qemuCaps = virQEMUCapsCacheLookupCopy(driver->qemuCapsCache,
+                                                      vm->def->emulator)))
+        goto cleanup;
+
     /* network devices must be "prepared" before hostdevs, because
      * setting up a network device might create a new hostdev that
      * will need to be setup.
@@ -3577,7 +3587,8 @@ int qemuProcessStart(virConnectPtr conn,
 
     /* Must be run before security labelling */
     VIR_DEBUG("Preparing host devices");
-    if (qemuPrepareHostDevices(driver, vm->def, !migrateFrom) < 0)
+    if (qemuPrepareHostDevices(driver, vm->def, priv->qemuCaps,
+                               !migrateFrom) < 0)
         goto cleanup;
 
     VIR_DEBUG("Preparing chr devices");
@@ -3659,12 +3670,6 @@ int qemuProcessStart(virConnectPtr conn,
         }
     }
 
-    VIR_DEBUG("Determining emulator version");
-    virObjectUnref(priv->qemuCaps);
-    if (!(priv->qemuCaps = virQEMUCapsCacheLookupCopy(driver->qemuCapsCache,
-                                                      vm->def->emulator)))
-        goto cleanup;
-
     if (!qemuValidateCpuMax(vm->def, priv->qemuCaps))
         goto cleanup;
 
@@ -3684,7 +3689,7 @@ int qemuProcessStart(virConnectPtr conn,
         (vm->def->numatune.memory.placement_mode ==
          VIR_NUMA_TUNE_MEM_PLACEMENT_MODE_AUTO)) {
         nodeset = virNumaGetAutoPlacementAdvice(vm->def->vcpus,
-                                                vm->def->mem.cur_balloon);
+                                                vm->def->mem.max_balloon);
         if (!nodeset)
             goto cleanup;
 
@@ -3844,23 +3849,11 @@ int qemuProcessStart(virConnectPtr conn,
                            _("Domain %s didn't show up"), vm->def->name);
             ret = -1;
         }
-#if 0
-    } else if (ret == -2) {
-        /*
-         * XXX this is bogus. It isn't safe to set vm->pid = child
-         * because the child no longer exists.
-         */
-
-        /* The virCommand process that launches the daemon failed. Pending on
-         * when it failed (we can't determine for sure), there may be
-         * extra info in the domain log (if the hook failed for example).
-         *
-         * Pretend like things succeeded, and let 'WaitForMonitor' report
-         * the log contents for us.
-         */
-        vm->pid = child;
-        ret = 0;
-#endif
+        VIR_DEBUG("QEMU vm=%p name=%s running with pid=%llu",
+                  vm, vm->def->name, (unsigned long long)vm->pid);
+    } else {
+        VIR_DEBUG("QEMU vm=%p name=%s failed to spawn",
+                  vm, vm->def->name);
     }
 
     VIR_DEBUG("Writing early domain status to disk");
@@ -4084,8 +4077,9 @@ qemuProcessKill(virDomainObjPtr vm, unsigned int flags)
 {
     int ret;
 
-    VIR_DEBUG("vm=%s pid=%d flags=%x",
-              vm->def->name, vm->pid, flags);
+    VIR_DEBUG("vm=%p name=%s pid=%llu flags=%x",
+              vm, vm->def->name,
+              (unsigned long long)vm->pid, flags);
 
     if (!(flags & VIR_QEMU_PROCESS_KILL_NOCHECK)) {
         if (!virDomainObjIsActive(vm)) {
@@ -4125,8 +4119,9 @@ void qemuProcessStop(virQEMUDriverPtr driver,
     char ebuf[1024];
     virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
 
-    VIR_DEBUG("Shutting down VM '%s' pid=%d flags=%x",
-              vm->def->name, vm->pid, flags);
+    VIR_DEBUG("Shutting down vm=%p name=%s id=%d pid=%llu flags=%x",
+              vm, vm->def->name, vm->def->id,
+              (unsigned long long)vm->pid, flags);
 
     if (!virDomainObjIsActive(vm)) {
         VIR_DEBUG("VM '%s' not active", vm->def->name);

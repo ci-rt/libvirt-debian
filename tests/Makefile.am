@@ -69,6 +69,7 @@ EXTRA_DIST =		\
 	fchostdata \
 	interfaceschemadata \
 	lxcxml2xmldata \
+	lxcxml2xmloutdata \
 	networkschematest \
 	networkxml2xmlin \
 	networkxml2xmlout \
@@ -82,6 +83,7 @@ EXTRA_DIST =		\
 	nwfilterxml2xmlin \
 	nwfilterxml2xmlout \
 	oomtrace.pl \
+	qemucapabilitiesdata \
 	qemuhelpdata \
 	qemuhotplugtestdata \
 	qemuxml2argvdata \
@@ -114,8 +116,8 @@ test_helpers = commandhelper ssh test_conf
 test_programs = virshtest sockettest \
 	nodeinfotest virbuftest \
 	commandtest seclabeltest \
-	virhashtest virnetmessagetest virnetsockettest \
-	viratomictest virnetserverclienttest \
+	virhashtest \
+	viratomictest \
 	utiltest shunloadtest \
 	virtimetest viruritest virkeyfiletest \
 	virauthconfigtest \
@@ -125,11 +127,23 @@ test_programs = virshtest sockettest \
 	viridentitytest \
 	virkeycodetest \
 	virlockspacetest \
+	virlogtest \
 	virstringtest \
         virportallocatortest \
 	sysinfotest \
 	virstoragetest \
 	$(NULL)
+
+if WITH_REMOTE
+test_programs += \
+	virnetmessagetest \
+	virnetsockettest \
+	virnetserverclienttest \
+	$(NULL)
+if WITH_GNUTLS
+test_programs += virnettlscontexttest virnettlssessiontest
+endif WITH_GNUTLS
+endif WITH_REMOTE
 
 if WITH_LINUX
 test_programs += fchosttest
@@ -143,10 +157,6 @@ if WITH_DBUS
 test_programs += virdbustest \
                  virsystemdtest
 endif WITH_DBUS
-
-if WITH_GNUTLS
-test_programs += virnettlscontexttest virnettlssessiontest
-endif WITH_GNUTLS
 
 if WITH_SECDRIVER_SELINUX
 if WITH_ATTR
@@ -173,7 +183,7 @@ if WITH_QEMU
 test_programs += qemuxml2argvtest qemuxml2xmltest qemuxmlnstest \
 	qemuargv2xmltest qemuhelptest domainsnapshotxml2xmltest \
 	qemumonitortest qemumonitorjsontest qemuhotplugtest \
-	qemuagenttest
+	qemuagenttest qemucapabilitiestest
 endif WITH_QEMU
 
 if WITH_LXC
@@ -335,7 +345,7 @@ TESTS_ENVIRONMENT =				\
   CONFIG_HEADER="`cd '$(top_builddir)'; pwd`/config.h"	\
   PATH="$(path_add)$(PATH_SEPARATOR)$$PATH"	\
   SHELL="$(SHELL)"				\
-  LIBVIRT_DRIVER_DIR="$(abs_top_builddir)/src/.libs" \
+  LIBVIRT_DRIVER_DIR="$(lv_abs_top_builddir)/src/.libs" \
   LIBVIRT_AUTOSTART=0				\
   LC_ALL=C					\
   VIR_TEST_EXPENSIVE=$(VIR_TEST_EXPENSIVE)	\
@@ -440,6 +450,13 @@ qemumonitorjsontest_SOURCES = \
 	$(NULL)
 qemumonitorjsontest_LDADD = libqemumonitortestutils.la $(qemu_LDADDS)
 
+qemucapabilitiestest_SOURCES = \
+	qemucapabilitiestest.c \
+	testutils.c testutils.h \
+	testutilsqemu.c testutilsqemu.h \
+	$(NULL)
+qemucapabilitiestest_LDADD = libqemumonitortestutils.la $(qemu_LDADDS)
+
 qemuagenttest_SOURCES = \
 	qemuagenttest.c \
 	testutils.c testutils.h \
@@ -463,7 +480,7 @@ EXTRA_DIST += qemuxml2argvtest.c qemuxml2xmltest.c qemuargv2xmltest.c \
 	qemuxmlnstest.c qemuhelptest.c domainsnapshotxml2xmltest.c \
 	qemumonitortest.c testutilsqemu.c testutilsqemu.h \
 	qemumonitorjsontest.c qemuhotplugtest.c \
-	qemuagenttest.c \
+	qemuagenttest.c qemucapabilitiestest.c \
 	$(QEMUMONITORTESTUTILS_SOURCES)
 endif ! WITH_QEMU
 
@@ -700,6 +717,10 @@ virkeycodetest_LDADD = $(LDADDS)
 virlockspacetest_SOURCES = \
 	virlockspacetest.c testutils.h testutils.c
 virlockspacetest_LDADD = $(LDADDS)
+
+virlogtest_SOURCES = \
+	virlogtest.c testutils.h testutils.c
+virlogtest_LDADD = $(LDADDS)
 
 virportallocatortest_SOURCES = \
 	virportallocatortest.c testutils.h testutils.c

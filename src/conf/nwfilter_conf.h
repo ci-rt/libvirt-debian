@@ -2,7 +2,7 @@
  * nwfilter_conf.h: network filter XML processing
  *                  (derived from storage_conf.h)
  *
- * Copyright (C) 2006-2010, 2012 Red Hat, Inc.
+ * Copyright (C) 2006-2010, 2012-2013 Red Hat, Inc.
  * Copyright (C) 2006-2008 Daniel P. Berrange
  *
  * Copyright (C) 2010 IBM Corporation
@@ -586,7 +586,7 @@ enum UpdateStep {
 };
 
 struct domUpdateCBStruct {
-    virConnectPtr conn;
+    void *opaque;
     enum UpdateStep step;
     virHashTablePtr skipInterfaces;
 };
@@ -625,10 +625,10 @@ typedef int (*virNWFilterRuleDisplayInstanceData)(void *_inst);
 typedef int (*virNWFilterCanApplyBasicRules)(void);
 
 typedef int (*virNWFilterApplyBasicRules)(const char *ifname,
-                                          const virMacAddrPtr macaddr);
+                                          const virMacAddr *macaddr);
 
 typedef int (*virNWFilterApplyDHCPOnlyRules)(const char *ifname,
-                                             const virMacAddrPtr macaddr,
+                                             const virMacAddr *macaddr,
                                              virNWFilterVarValuePtr dhcpsrvs,
                                              bool leaveTemporary);
 
@@ -687,17 +687,15 @@ int virNWFilterObjSaveDef(virNWFilterDriverStatePtr driver,
 
 int virNWFilterObjDeleteDef(virNWFilterObjPtr nwfilter);
 
-virNWFilterObjPtr virNWFilterObjAssignDef(virConnectPtr conn,
-                                          virNWFilterObjListPtr nwfilters,
+virNWFilterObjPtr virNWFilterObjAssignDef(virNWFilterObjListPtr nwfilters,
                                           virNWFilterDefPtr def);
 
-int virNWFilterTestUnassignDef(virConnectPtr conn,
-                               virNWFilterObjPtr nwfilter);
+int virNWFilterTestUnassignDef(virNWFilterObjPtr nwfilter);
 
 virNWFilterDefPtr virNWFilterDefParseNode(xmlDocPtr xml,
                                           xmlNodePtr root);
 
-char *virNWFilterDefFormat(virNWFilterDefPtr def);
+char *virNWFilterDefFormat(const virNWFilterDef *def);
 
 int virNWFilterSaveXML(const char *configDir,
                        virNWFilterDefPtr def,
@@ -706,17 +704,14 @@ int virNWFilterSaveXML(const char *configDir,
 int virNWFilterSaveConfig(const char *configDir,
                           virNWFilterDefPtr def);
 
-int virNWFilterLoadAllConfigs(virConnectPtr conn,
-                              virNWFilterObjListPtr nwfilters,
+int virNWFilterLoadAllConfigs(virNWFilterObjListPtr nwfilters,
                               const char *configDir);
 
 char *virNWFilterConfigFile(const char *dir,
                             const char *name);
 
-virNWFilterDefPtr virNWFilterDefParseString(virConnectPtr conn,
-                                            const char *xml);
-virNWFilterDefPtr virNWFilterDefParseFile(virConnectPtr conn,
-                                          const char *filename);
+virNWFilterDefPtr virNWFilterDefParseString(const char *xml);
+virNWFilterDefPtr virNWFilterDefParseFile(const char *filename);
 
 void virNWFilterObjLock(virNWFilterObjPtr obj);
 void virNWFilterObjUnlock(virNWFilterObjPtr obj);
@@ -724,14 +719,13 @@ void virNWFilterObjUnlock(virNWFilterObjPtr obj);
 void virNWFilterLockFilterUpdates(void);
 void virNWFilterUnlockFilterUpdates(void);
 
-int virNWFilterConfLayerInit(virDomainObjListIterator domUpdateCB);
+int virNWFilterConfLayerInit(virDomainObjListIterator domUpdateCB, void *opaque);
 void virNWFilterConfLayerShutdown(void);
 
-int virNWFilterInstFiltersOnAllVMs(virConnectPtr conn);
+int virNWFilterInstFiltersOnAllVMs(void);
 
 
-typedef int (*virNWFilterRebuild)(virConnectPtr conn,
-                                  virDomainObjListIterator domUpdateCB,
+typedef int (*virNWFilterRebuild)(virDomainObjListIterator domUpdateCB,
                                   void *data);
 typedef void (*virNWFilterVoidCall)(void);
 

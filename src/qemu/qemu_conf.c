@@ -225,6 +225,9 @@ virQEMUDriverConfigPtr virQEMUDriverConfigNew(bool privileged)
     cfg->webSocketPortMin = QEMU_WEBSOCKET_PORT_MIN;
     cfg->webSocketPortMax = QEMU_WEBSOCKET_PORT_MAX;
 
+    cfg->migrationPortMin = QEMU_MIGRATION_PORT_MIN;
+    cfg->migrationPortMax = QEMU_MIGRATION_PORT_MAX;
+
 #if defined HAVE_MNTENT_H && defined HAVE_GETMNTENT_R
     /* For privileged driver, try and find hugepage mount automatically.
      * Non-privileged driver requires admin to create a dir for the
@@ -284,6 +287,7 @@ static void virQEMUDriverConfigDispose(void *obj)
     VIR_FREE(cfg->spiceTLSx509certdir);
     VIR_FREE(cfg->spiceListen);
     VIR_FREE(cfg->spicePassword);
+    VIR_FREE(cfg->spiceSASLdir);
 
     VIR_FREE(cfg->hugetlbfsMount);
     VIR_FREE(cfg->hugepagePath);
@@ -397,6 +401,8 @@ int virQEMUDriverConfigLoadFile(virQEMUDriverConfigPtr cfg,
 
     GET_VALUE_BOOL("spice_tls", cfg->spiceTLS);
     GET_VALUE_STR("spice_tls_x509_cert_dir", cfg->spiceTLSx509certdir);
+    GET_VALUE_BOOL("spice_sasl", cfg->spiceSASL);
+    GET_VALUE_STR("spice_sasl_dir", cfg->spiceSASLdir);
     GET_VALUE_STR("spice_listen", cfg->spiceListen);
     GET_VALUE_STR("spice_password", cfg->spicePassword);
 
@@ -456,6 +462,24 @@ int virQEMUDriverConfigLoadFile(virQEMUDriverConfigPtr cfg,
         virReportError(VIR_ERR_INTERNAL_ERROR,
                         _("%s: remote_display_port_min: min port must not be "
                           "greater than max port"), filename);
+        goto cleanup;
+    }
+
+    GET_VALUE_LONG("migration_port_min", cfg->migrationPortMin);
+    if (cfg->migrationPortMin <= 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("%s: migration_port_min: port must be greater than 0"),
+                        filename);
+        goto cleanup;
+    }
+
+    GET_VALUE_LONG("migration_port_max", cfg->migrationPortMax);
+    if (cfg->migrationPortMax > 65535 ||
+        cfg->migrationPortMax < cfg->migrationPortMin) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                        _("%s: migration_port_max: port must be between "
+                          "the minimal port %d and 65535"),
+                       filename, cfg->migrationPortMin);
         goto cleanup;
     }
 
@@ -521,6 +545,8 @@ int virQEMUDriverConfigLoadFile(virQEMUDriverConfigPtr cfg,
 
     GET_VALUE_STR("save_image_format", cfg->saveImageFormat);
     GET_VALUE_STR("dump_image_format", cfg->dumpImageFormat);
+    GET_VALUE_STR("snapshot_image_format", cfg->snapshotImageFormat);
+
     GET_VALUE_STR("auto_dump_path", cfg->autoDumpPath);
     GET_VALUE_BOOL("auto_dump_bypass_cache", cfg->autoDumpBypassCache);
     GET_VALUE_BOOL("auto_start_bypass_cache", cfg->autoStartBypassCache);
@@ -545,6 +571,8 @@ int virQEMUDriverConfigLoadFile(virQEMUDriverConfigPtr cfg,
     GET_VALUE_LONG("keepalive_count", cfg->keepAliveCount);
 
     GET_VALUE_LONG("seccomp_sandbox", cfg->seccompSandbox);
+
+    GET_VALUE_STR("migration_address", cfg->migrationAddress);
 
     ret = 0;
 
@@ -577,12 +605,14 @@ virQEMUDriverCreateXMLConf(virQEMUDriverPtr driver)
 
 virCapsPtr virQEMUDriverCreateCapabilities(virQEMUDriverPtr driver)
 {
-    size_t i;
+    size_t i, j;
     virCapsPtr caps;
     virSecurityManagerPtr *sec_managers = NULL;
     /* Security driver data */
-    const char *doi, *model;
+    const char *doi, *model, *lbl, *type;
     virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
+    const int virtTypes[] = {VIR_DOMAIN_VIRT_KVM,
+                             VIR_DOMAIN_VIRT_QEMU,};
 
     /* Basic host arch / guest machine capabilities */
     if (!(caps = virQEMUCapsInit(driver->qemuCapsCache)))
@@ -607,11 +637,21 @@ virCapsPtr virQEMUDriverCreateCapabilities(virQEMUDriverPtr driver)
         goto error;
 
     for (i = 0; sec_managers[i]; i++) {
+        virCapsHostSecModelPtr sm = &caps->host.secModels[i];
         doi = virSecurityManagerGetDOI(sec_managers[i]);
         model = virSecurityManagerGetModel(sec_managers[i]);
-        if (VIR_STRDUP(caps->host.secModels[i].model, model) < 0 ||
-            VIR_STRDUP(caps->host.secModels[i].doi, doi) < 0)
+        if (VIR_STRDUP(sm->model, model) < 0 ||
+            VIR_STRDUP(sm->doi, doi) < 0)
             goto error;
+
+        for (j = 0; j < ARRAY_CARDINALITY(virtTypes); j++) {
+            lbl = virSecurityManagerGetBaseLabel(sec_managers[i], virtTypes[j]);
+            type = virDomainVirtTypeToString(virtTypes[j]);
+            if (lbl &&
+                virCapabilitiesHostSecModelAddBaseLabel(sm, type, lbl) < 0)
+                goto error;
+        }
+
         VIR_DEBUG("Initialized caps for security driver \"%s\" with "
                   "DOI \"%s\"", model, doi);
     }
@@ -833,7 +873,7 @@ qemuSharedDeviceEntryFree(void *payload, const void *name ATTRIBUTE_UNUSED)
 }
 
 static qemuSharedDeviceEntryPtr
-qemuSharedDeviceEntryCopy(const qemuSharedDeviceEntryPtr entry)
+qemuSharedDeviceEntryCopy(const qemuSharedDeviceEntry *entry)
 {
     qemuSharedDeviceEntryPtr ret = NULL;
     size_t i;

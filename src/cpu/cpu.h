@@ -37,7 +37,7 @@ typedef virCPUData *virCPUDataPtr;
 struct _virCPUData {
     virArch arch;
     union {
-        struct cpuX86Data *x86;
+        virCPUx86Data *x86;
         struct cpuPPCData ppc;
         /* generic driver needs no data */
     } data;
@@ -50,7 +50,7 @@ typedef virCPUCompareResult
 
 typedef int
 (*cpuArchDecode)    (virCPUDefPtr cpu,
-                     const virCPUDataPtr data,
+                     const virCPUData *data,
                      const char **models,
                      unsigned int nmodels,
                      const char *preferred,
@@ -58,7 +58,7 @@ typedef int
 
 typedef int
 (*cpuArchEncode)    (virArch arch,
-                     const virCPUDefPtr cpu,
+                     const virCPUDef *cpu,
                      virCPUDataPtr *forced,
                      virCPUDataPtr *required,
                      virCPUDataPtr *optional,
@@ -87,12 +87,17 @@ typedef virCPUDefPtr
 
 typedef int
 (*cpuArchUpdate)    (virCPUDefPtr guest,
-                     const virCPUDefPtr host);
+                     const virCPUDef *host);
 
 typedef int
-(*cpuArchHasFeature) (const virCPUDataPtr data,
+(*cpuArchHasFeature) (const virCPUData *data,
                       const char *feature);
 
+typedef char *
+(*cpuArchDataFormat)(const virCPUData *data);
+
+typedef virCPUDataPtr
+(*cpuArchDataParse) (const char *xmlStr);
 
 struct cpuArchDriver {
     const char *name;
@@ -107,6 +112,8 @@ struct cpuArchDriver {
     cpuArchBaseline     baseline;
     cpuArchUpdate       update;
     cpuArchHasFeature    hasFeature;
+    cpuArchDataFormat   dataFormat;
+    cpuArchDataParse    dataParse;
 };
 
 
@@ -120,14 +127,14 @@ cpuCompare  (virCPUDefPtr host,
 
 extern int
 cpuDecode   (virCPUDefPtr cpu,
-             const virCPUDataPtr data,
+             const virCPUData *data,
              const char **models,
              unsigned int nmodels,
              const char *preferred);
 
 extern int
 cpuEncode   (virArch arch,
-             const virCPUDefPtr cpu,
+             const virCPUDef *cpu,
              virCPUDataPtr *forced,
              virCPUDataPtr *required,
              virCPUDataPtr *optional,
@@ -163,10 +170,10 @@ cpuBaseline (virCPUDefPtr *cpus,
 
 extern int
 cpuUpdate   (virCPUDefPtr guest,
-             const virCPUDefPtr host);
+             const virCPUDef *host);
 
 extern int
-cpuHasFeature(const virCPUDataPtr data,
+cpuHasFeature(const virCPUData *data,
               const char *feature);
 
 
@@ -177,5 +184,12 @@ cpuModelIsAllowed(const char *model,
 
 extern int
 cpuGetModels(const char *arch, char ***models);
+
+/* cpuDataFormat and cpuDataParse are implemented for unit tests only and
+ * have no real-life usage
+ */
+char *cpuDataFormat(const virCPUData *data);
+virCPUDataPtr cpuDataParse(virArch arch,
+                           const char *xmlStr);
 
 #endif /* __VIR_CPU_H__ */

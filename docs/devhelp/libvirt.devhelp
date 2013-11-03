@@ -87,6 +87,7 @@
     <function name="VIR_MIGRATE_PARAM_DEST_NAME" link="libvirt-libvirt.html#VIR_MIGRATE_PARAM_DEST_NAME"/>
     <function name="VIR_MIGRATE_PARAM_DEST_XML" link="libvirt-libvirt.html#VIR_MIGRATE_PARAM_DEST_XML"/>
     <function name="VIR_MIGRATE_PARAM_GRAPHICS_URI" link="libvirt-libvirt.html#VIR_MIGRATE_PARAM_GRAPHICS_URI"/>
+    <function name="VIR_MIGRATE_PARAM_LISTEN_ADDRESS" link="libvirt-libvirt.html#VIR_MIGRATE_PARAM_LISTEN_ADDRESS"/>
     <function name="VIR_MIGRATE_PARAM_URI" link="libvirt-libvirt.html#VIR_MIGRATE_PARAM_URI"/>
     <function name="VIR_NODEINFO_MAXCPUS" link="libvirt-libvirt.html#VIR_NODEINFO_MAXCPUS"/>
     <function name="VIR_NODE_CPU_STATS_FIELD_LENGTH" link="libvirt-libvirt.html#VIR_NODE_CPU_STATS_FIELD_LENGTH"/>
@@ -628,6 +629,7 @@
     <function name="VIR_ERR_SSH" link="libvirt-virterror.html#VIR_ERR_SSH"/>
     <function name="VIR_ERR_STORAGE_POOL_BUILT" link="libvirt-virterror.html#VIR_ERR_STORAGE_POOL_BUILT"/>
     <function name="VIR_ERR_STORAGE_PROBE_FAILED" link="libvirt-virterror.html#VIR_ERR_STORAGE_PROBE_FAILED"/>
+    <function name="VIR_ERR_STORAGE_VOL_EXIST" link="libvirt-virterror.html#VIR_ERR_STORAGE_VOL_EXIST"/>
     <function name="VIR_ERR_SYSTEM_ERROR" link="libvirt-virterror.html#VIR_ERR_SYSTEM_ERROR"/>
     <function name="VIR_ERR_UNKNOWN_HOST" link="libvirt-virterror.html#VIR_ERR_UNKNOWN_HOST"/>
     <function name="VIR_ERR_WARNING" link="libvirt-virterror.html#VIR_ERR_WARNING"/>

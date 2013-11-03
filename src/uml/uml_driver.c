@@ -141,15 +141,14 @@ static void umlShutdownVMDaemon(struct uml_driver *driver,
 
 
 static int umlMonitorCommand(const struct uml_driver *driver,
-                             const virDomainObjPtr vm,
+                             const virDomainObj *vm,
                              const char *cmd,
                              char **reply);
 
 static struct uml_driver *uml_driver = NULL;
 
 static int
-umlVMFilterRebuild(virConnectPtr conn ATTRIBUTE_UNUSED,
-                   virDomainObjListIterator iter, void *data)
+umlVMFilterRebuild(virDomainObjListIterator iter, void *data)
 {
     return virDomainObjListForEach(uml_driver->domains, iter, data);
 }
@@ -420,9 +419,9 @@ cleanup:
 
 static int
 umlDomainDeviceDefPostParse(virDomainDeviceDefPtr dev,
-                             virDomainDefPtr def ATTRIBUTE_UNUSED,
-                             virCapsPtr caps ATTRIBUTE_UNUSED,
-                             void *opaque ATTRIBUTE_UNUSED)
+                            const virDomainDef *def ATTRIBUTE_UNUSED,
+                            virCapsPtr caps ATTRIBUTE_UNUSED,
+                            void *opaque ATTRIBUTE_UNUSED)
 {
     if (dev->type == VIR_DOMAIN_DEVICE_CHR &&
         dev->data.chr->deviceType == VIR_DOMAIN_CHR_DEVICE_TYPE_CONSOLE &&
@@ -837,8 +836,9 @@ reopen:
 }
 
 static int umlMonitorAddress(const struct uml_driver *driver,
-                             virDomainObjPtr vm,
-                             struct sockaddr_un *addr) {
+                             const virDomainObj *vm,
+                             struct sockaddr_un *addr)
+{
     char *sockname;
     int retval = 0;
 
@@ -919,7 +919,7 @@ struct monitor_response {
 
 
 static int umlMonitorCommand(const struct uml_driver *driver,
-                             const virDomainObjPtr vm,
+                             const virDomainObj *vm,
                              const char *cmd,
                              char **reply)
 {

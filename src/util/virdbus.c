@@ -32,6 +32,7 @@
 
 #ifdef WITH_DBUS
 
+static bool sharedBus = true;
 static DBusConnection *systembus = NULL;
 static DBusConnection *sessionbus = NULL;
 static virOnceControl systemonce = VIR_ONCE_CONTROL_INITIALIZER;
@@ -43,6 +44,11 @@ static dbus_bool_t virDBusAddWatch(DBusWatch *watch, void *data);
 static void virDBusRemoveWatch(DBusWatch *watch, void *data);
 static void virDBusToggleWatch(DBusWatch *watch, void *data);
 
+void virDBusSetSharedBus(bool shared)
+{
+    sharedBus = shared;
+}
+
 static DBusConnection *virDBusBusInit(DBusBusType type, DBusError *dbuserr)
 {
     DBusConnection *bus;
@@ -52,7 +58,10 @@ static DBusConnection *virDBusBusInit(DBusBusType type, DBusError *dbuserr)
     dbus_threads_init_default();
 
     dbus_error_init(dbuserr);
-    if (!(bus = dbus_bus_get(type, dbuserr)))
+    bus = sharedBus ?
+        dbus_bus_get(type, dbuserr) :
+        dbus_bus_get_private(type, dbuserr);
+    if (!bus)
         return NULL;
 
     dbus_connection_set_exit_on_disconnect(bus, FALSE);
@@ -102,16 +111,39 @@ virDBusGetSystemBus(void)
 }
 
 
+/**
+ * virDBusHasSystemBus:
+ *
+ * Check if dbus system bus is running. This does not
+ * imply that we have a connection. DBus might be running
+ * and refusing connections due to its client limit. The
+ * latter must be treated as a fatal error.
+ *
+ * Return false if dbus is not available, true if probably available.
+ */
 bool
 virDBusHasSystemBus(void)
 {
     if (virDBusGetSystemBusInternal())
         return true;
 
-    VIR_DEBUG("System DBus not available: %s", NULLSTR(systemdbuserr.message));
-    return false;
+    if (systemdbuserr.name &&
+        (STREQ(systemdbuserr.name, "org.freedesktop.DBus.Error.FileNotFound") ||
+         STREQ(systemdbuserr.name, "org.freedesktop.DBus.Error.NoServer"))) {
+        VIR_DEBUG("System DBus not available: %s", NULLSTR(systemdbuserr.message));
+        return false;
+    }
+    return true;
 }
 
+
+void virDBusCloseSystemBus(void)
+{
+    if (systembus && !sharedBus) {
+        dbus_connection_close(systembus);
+        systembus = NULL;
+    }
+}
 
 static void virDBusSessionBusInit(void)
 {
@@ -1240,7 +1272,8 @@ int virDBusIsServiceEnabled(const char *name)
     if (!virDBusHasSystemBus())
         return -2;
 
-    conn = virDBusGetSystemBus();
+    if (!(conn = virDBusGetSystemBus()))
+        return -1;
 
     if (virDBusCallMethod(conn,
                           &reply,
@@ -1281,6 +1314,11 @@ int virDBusIsServiceEnabled(const char *name)
 
 
 #else /* ! WITH_DBUS */
+void virDBusSetSharedBus(bool shared ATTRIBUTE_UNUSED)
+{
+    /* nothing */
+}
+
 DBusConnection *virDBusGetSystemBus(void)
 {
     virReportError(VIR_ERR_INTERNAL_ERROR,
@@ -1296,6 +1334,10 @@ virDBusHasSystemBus(void)
     return false;
 }
 
+void virDBusCloseSystemBus(void)
+{
+    /* nothing */
+}
 
 DBusConnection *virDBusGetSessionBus(void)
 {
