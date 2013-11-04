@@ -14,9 +14,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libvirt\n"
 "Report-Msgid-Bugs-To: libvir-list@redhat.com\n"
-"POT-Creation-Date: 2013-11-01 11:07+0800\n"
-"PO-Revision-Date: 2013-09-26 14:22+0000\n"
-"Last-Translator: ngoswami <ngoswami@redhat.com>\n"
+"POT-Creation-Date: 2013-11-04 11:30+0800\n"
+"PO-Revision-Date: 2013-11-01 03:36+0000\n"
+"Last-Translator: Daniel <veillard@redhat.com>\n"
 "Language-Team: Assamese (http://www.transifex.com/projects/p/fedora/language/"
 "as/)\n"
 "Language: as\n"
@@ -936,7 +936,7 @@ msgstr "CPU ৰ মান নিৰ্ধাৰণকৰ্তা মিলৰ �
 msgid "Missing CPU architecture"
 msgstr "CPU স্থাপত্য অনুপস্থিত"
 
-#: src/conf/cpu_conf.c:269 src/conf/domain_conf.c:11684
+#: src/conf/cpu_conf.c:269 src/conf/domain_conf.c:11690
 #, c-format
 msgid "Unknown architecture %s"
 msgstr "অজ্ঞাত স্থাপত্য %s"
@@ -1098,12 +1098,12 @@ msgstr "লক্ষ্য CPU বৈশিষ্ট নীতি %s উৎস %
 msgid "Cannot parse <address> 'domain' attribute"
 msgstr "<address> 'domain' গুণ বিশ্লেষণ কৰিবলৈ ব্যৰ্থ"
 
-#: src/conf/device_conf.c:75 src/conf/domain_conf.c:3084
-#: src/conf/domain_conf.c:3138 src/conf/domain_conf.c:3279
+#: src/conf/device_conf.c:75 src/conf/domain_conf.c:3090
+#: src/conf/domain_conf.c:3144 src/conf/domain_conf.c:3285
 msgid "Cannot parse <address> 'bus' attribute"
 msgstr "<address> 'bus' গুণ বিশ্লেষণ কৰিবলৈ ব্যৰ্থ"
 
-#: src/conf/device_conf.c:82 src/conf/domain_conf.c:3238
+#: src/conf/device_conf.c:82 src/conf/domain_conf.c:3244
 msgid "Cannot parse <address> 'slot' attribute"
 msgstr "<address> 'slot' গুণ বিশ্লেষণ কৰিবলৈ ব্যৰ্থ"
 
@@ -1135,17 +1135,22 @@ msgid "domain '%s' is already defined with uuid %s"
 msgstr "ডোমেইন '%s' ৰ সৈতে uuid %s ইতিমধ্যে সংজ্ঞা দিয়া হৈছে"
 
 #: src/conf/domain_conf.c:2170
-#, c-format
-msgid "domain is already active as '%s'"
-msgstr "'%s' হিচাপে ডোমেইন বৰ্তমানে সক্ৰিয়"
+#, fuzzy, c-format
+msgid "domain '%s' is already active"
+msgstr "ডোমেইন বৰ্তমানে সক্ৰিয়"
 
-#: src/conf/domain_conf.c:2186
+#: src/conf/domain_conf.c:2176
+#, fuzzy, c-format
+msgid "domain '%s' is already being started"
+msgstr "ডোমেইন '%s' বৰ্তমানে চলমান"
+
+#: src/conf/domain_conf.c:2192
 #, c-format
 msgid "domain '%s' already exists with uuid %s"
 msgstr "'%s' ডোমেইন uuid %s সহ পূৰ্বেই নিৰ্ধাৰিত হৈছে্ঞা দিয়া হৈছে"
 
-#: src/conf/domain_conf.c:2313 src/lxc/lxc_driver.c:2453
-#: src/lxc/lxc_driver.c:2527 src/libxl/libxl_driver.c:3862
+#: src/conf/domain_conf.c:2319 src/lxc/lxc_driver.c:2453
+#: src/lxc/lxc_driver.c:2527 src/libxl/libxl_driver.c:3871
 #: src/openvz/openvz_driver.c:1981 src/qemu/qemu_driver.c:1683
 #: src/qemu/qemu_driver.c:1695 src/qemu/qemu_driver.c:1767
 #: src/qemu/qemu_driver.c:1868 src/qemu/qemu_driver.c:1983
@@ -1181,715 +1186,715 @@ msgstr "'%s' ডোমেইন uuid %s সহ পূৰ্বেই নিৰ�
 msgid "domain is not running"
 msgstr "ডোমেইন বৰ্তমানে সক্ৰিয় নহয়"
 
-#: src/conf/domain_conf.c:2320
+#: src/conf/domain_conf.c:2326
 msgid "transient domains do not have any persistent config"
 msgstr "পৰিবৰ্তনশীল ডমেইনসমূহৰ কোনো স্থায়ী সংৰূপ নাই"
 
-#: src/conf/domain_conf.c:2326
+#: src/conf/domain_conf.c:2332
 msgid "Get persistent config failed"
 msgstr "স্থায়ী সংৰূপ প্ৰাপ্ত কৰক ব্যৰ্থ হল"
 
-#: src/conf/domain_conf.c:2694
+#: src/conf/domain_conf.c:2700
 #, c-format
 msgid "Multiple '%s' controllers with index '%d'"
 msgstr "একাধিক '%s' নিয়ন্ত্ৰকসমূহ সূচী '%d'"
 
-#: src/conf/domain_conf.c:2718
+#: src/conf/domain_conf.c:2724
 msgid "hypervisor type must be specified"
 msgstr "হাইপাৰভাইছৰ ধৰণ ধাৰ্য্য কৰিব লাগিব"
 
-#: src/conf/domain_conf.c:2725
+#: src/conf/domain_conf.c:2731
 msgid "init binary must be specified"
 msgstr "init বাইনাৰি ধাৰ্য্য কৰিব লাগিব"
 
-#: src/conf/domain_conf.c:2752
+#: src/conf/domain_conf.c:2758
 msgid "Only the first console can be a serial port"
 msgstr "কেৱল প্ৰথম কনচৌল এটা ক্ৰমিক পোৰ্ট হব পাৰিব"
 
-#: src/conf/domain_conf.c:2975
+#: src/conf/domain_conf.c:2981
 #, c-format
 msgid "unexpected rom bar value %d"
 msgstr "অপ্ৰত্যাশিত rom বাৰ মান %d"
 
-#: src/conf/domain_conf.c:3051
+#: src/conf/domain_conf.c:3057
 #, c-format
 msgid "unknown address type '%d'"
 msgstr "অজ্ঞাত ধৰণৰ ঠিকনা '%d'"
 
-#: src/conf/domain_conf.c:3077 src/conf/domain_conf.c:3131
-#: src/conf/domain_conf.c:3231
+#: src/conf/domain_conf.c:3083 src/conf/domain_conf.c:3137
+#: src/conf/domain_conf.c:3237
 msgid "Cannot parse <address> 'controller' attribute"
 msgstr "<address> 'controller' গুণ বিশ্লেষণ কৰিবলৈ ব্যৰ্থ"
 
-#: src/conf/domain_conf.c:3091
+#: src/conf/domain_conf.c:3097
 msgid "Cannot parse <address> 'target' attribute"
 msgstr "<address> 'target' বৈশিষ্ট্য বিশ্লেষণ কৰিব নোৱাৰি"
 
-#: src/conf/domain_conf.c:3098
+#: src/conf/domain_conf.c:3104
 msgid "Cannot parse <address> 'unit' attribute"
 msgstr "<address> 'unit' গুণ বিশ্লেষণ কৰিবলৈ ব্যৰ্থ"
 
-#: src/conf/domain_conf.c:3145 src/conf/domain_conf.c:3269
+#: src/conf/domain_conf.c:3151 src/conf/domain_conf.c:3275
 msgid "Cannot parse <address> 'port' attribute"
 msgstr "<address> 'port' বৈশিষ্ট বিশ্লেষণ কৰিব নোৱাৰি"
 
-#: src/conf/domain_conf.c:3177
+#: src/conf/domain_conf.c:3183
 msgid "Cannot parse <address> 'cssid' attribute"
 msgstr "<address> 'cssid'  বৈশিষ্ট্য বিশ্লেষণ কৰিব নোৱাৰি"
 
-#: src/conf/domain_conf.c:3183
+#: src/conf/domain_conf.c:3189
 msgid "Cannot parse <address> 'ssid' attribute"
 msgstr "<address> 'ssid' বৈশিষ্ট বিশ্লেষণ কৰিব নোৱাৰি"
 
-#: src/conf/domain_conf.c:3189
+#: src/conf/domain_conf.c:3195
 msgid "Cannot parse <address> 'devno' attribute"
 msgstr "<address> 'devno' বৈশিষ্ট বিশ্লেষণ কৰিব নোৱাৰি"
 
-#: src/conf/domain_conf.c:3194
+#: src/conf/domain_conf.c:3200
 #, c-format
 msgid ""
 "Invalid specification for virtio ccw address: cssid='%s' ssid='%s' devno='%s'"
 msgstr "virtio ccw ঠিকনাৰ বাবে অবৈধ ধাৰ্য্যকৰণ: cssid='%s' ssid='%s' devno='%s'"
 
-#: src/conf/domain_conf.c:3202
+#: src/conf/domain_conf.c:3208
 msgid "Invalid partial specification for virtio ccw address"
 msgstr "virtio ccw ঠিকনাৰ বাবে অবৈধ আংশিক ধাৰ্য্যকৰণ"
 
-#: src/conf/domain_conf.c:3304
+#: src/conf/domain_conf.c:3310
 msgid "Cannot parse <address> 'reg' attribute"
 msgstr "<address> 'reg' বৈশিষ্ট বিশ্লেষণ কৰিব নোৱাৰি"
 
-#: src/conf/domain_conf.c:3332
+#: src/conf/domain_conf.c:3338
 msgid "Cannot parse <master> 'startport' attribute"
 msgstr "<master> 'startport' বৈশিষ্ট বিশ্লেষণ কৰিব নোৱাৰি"
 
-#: src/conf/domain_conf.c:3355
+#: src/conf/domain_conf.c:3361
 msgid "missing boot order attribute"
 msgstr "সন্ধানহিন বুট ক্ৰম বৈশিষ্ট"
 
-#: src/conf/domain_conf.c:3360
+#: src/conf/domain_conf.c:3366
 #, c-format
 msgid "incorrect boot order '%s', expecting positive integer"
 msgstr "ভুল বুট ক্ৰম '%s', ধনাত্মক পূৰ্ণসংখ্যা প্ৰত্যাশিত"
 
-#: src/conf/domain_conf.c:3368
+#: src/conf/domain_conf.c:3374
 #, c-format
 msgid "boot order '%s' used for more than one device"
 msgstr "এটাৰ অধিক ডিভাইচৰ বাবে ব্যৱহৃত বুট ক্ৰম '%s'"
 
-#: src/conf/domain_conf.c:3450
+#: src/conf/domain_conf.c:3456
 #, c-format
 msgid "unknown rom bar value '%s'"
 msgstr "অজ্ঞাত rom বাৰ মান '%s'"
 
-#: src/conf/domain_conf.c:3466
+#: src/conf/domain_conf.c:3472
 #, c-format
 msgid "unknown address type '%s'"
 msgstr "অজ্ঞাত ধৰণৰ ঠিকনা '%s'"
 
-#: src/conf/domain_conf.c:3471
+#: src/conf/domain_conf.c:3477
 msgid "No type specified for device address"
 msgstr "ডিভাইচৰ ঠিকনাৰ বাবে কোনো ধৰণ নিৰ্ধাৰণ কৰা নহয়"
 
-#: src/conf/domain_conf.c:3519
+#: src/conf/domain_conf.c:3525
 msgid "Unknown device address type"
 msgstr "অজ্ঞাত প্ৰকৃতিৰ ডিভাইচৰ ঠিকনা"
 
-#: src/conf/domain_conf.c:3566
+#: src/conf/domain_conf.c:3572
 #, c-format
 msgid "Unknown startup policy '%s'"
 msgstr "অজ্ঞাত আৰম্ভ নীতি '%s'"
 
-#: src/conf/domain_conf.c:3596
+#: src/conf/domain_conf.c:3602
 #, c-format
 msgid "cannot parse vendor id %s"
 msgstr "vendor id %s বিশ্লেষণ কৰিব নোৱাৰি"
 
-#: src/conf/domain_conf.c:3603
+#: src/conf/domain_conf.c:3609
 msgid "usb vendor needs id"
 msgstr "usb vendor ক id ৰ প্ৰয়োজন"
 
-#: src/conf/domain_conf.c:3614
+#: src/conf/domain_conf.c:3620
 #, c-format
 msgid "cannot parse product %s"
 msgstr "উৎপাদন %s বিশ্লেষণ কৰিব নোৱাৰি"
 
-#: src/conf/domain_conf.c:3622
+#: src/conf/domain_conf.c:3628
 msgid "usb product needs id"
 msgstr "usb উৎপাদনক id ৰ প্ৰয়োজন"
 
-#: src/conf/domain_conf.c:3633
+#: src/conf/domain_conf.c:3639
 #, c-format
 msgid "cannot parse bus %s"
 msgstr "bus %s বিশ্লেষণ কৰিব নোৱাৰি"
 
-#: src/conf/domain_conf.c:3640
+#: src/conf/domain_conf.c:3646
 msgid "usb address needs bus id"
 msgstr "usb ঠিকনাক bus id ৰ প্ৰয়োজন"
 
-#: src/conf/domain_conf.c:3649
+#: src/conf/domain_conf.c:3655
 #, c-format
 msgid "cannot parse device %s"
 msgstr "ডিভাইচ %s বিশ্লেষণ কৰিব নোৱাৰি"
 
-#: src/conf/domain_conf.c:3657
+#: src/conf/domain_conf.c:3663
 msgid "usb address needs device id"
 msgstr "usb ঠিকনাক ডিভাইচৰ id ৰ প্ৰয়োজন"
 
-#: src/conf/domain_conf.c:3662
+#: src/conf/domain_conf.c:3668
 #, c-format
 msgid "unknown usb source type '%s'"
 msgstr "অজ্ঞাত usb উৎসৰ ধৰণ '%s'"
 
-#: src/conf/domain_conf.c:3672
+#: src/conf/domain_conf.c:3678
 msgid "vendor cannot be 0."
 msgstr "বিক্ৰতাৰ মান 0 নিৰ্ধাৰণ কৰা সম্ভৱ নহয়।"
 
-#: src/conf/domain_conf.c:3678
+#: src/conf/domain_conf.c:3684
 msgid "missing vendor"
 msgstr "অনুপস্থিত vendor"
 
-#: src/conf/domain_conf.c:3683
+#: src/conf/domain_conf.c:3689
 msgid "missing product"
 msgstr "হৰুৱা উৎপাদন"
 
-#: src/conf/domain_conf.c:3717
+#: src/conf/domain_conf.c:3723
 #, c-format
 msgid "unsupported element '%s' of 'origstates'"
 msgstr "'origstates' ৰ অসমৰ্থিত উপাদান '%s'"
 
-#: src/conf/domain_conf.c:3753 src/conf/domain_conf.c:5498
-#: src/conf/domain_conf.c:6413
+#: src/conf/domain_conf.c:3759 src/conf/domain_conf.c:5504
+#: src/conf/domain_conf.c:6419
 #, c-format
 msgid "Unable to parse devaddr parameter '%s'"
 msgstr "devaddr স্থিতিমাপ '%s' বিশ্লেষণ কৰিবলৈ ব্যৰ্থ"
 
-#: src/conf/domain_conf.c:3766
+#: src/conf/domain_conf.c:3772
 #, c-format
 msgid "unknown pci source type '%s'"
 msgstr "অজ্ঞাত pci উৎসৰ ধৰণ '%s'"
 
-#: src/conf/domain_conf.c:3794
+#: src/conf/domain_conf.c:3800
 msgid "more than one source addresses is specified for scsi hostdev"
 msgstr "scsi hostdev  ৰ বাবে এটাতকৈ অধিক উৎস ঠিকনা ধাৰ্য্য কৰা হৈছে"
 
-#: src/conf/domain_conf.c:3803
+#: src/conf/domain_conf.c:3809
 msgid ""
 "'bus', 'target', and 'unit' must be specified for scsi hostdev source address"
 msgstr ""
 "scsi hostdev উৎস ঠিকনাৰ বাবে 'bus', 'target', আৰু 'unit' ধাৰ্য্য কৰিব লাগিব"
 
-#: src/conf/domain_conf.c:3810
+#: src/conf/domain_conf.c:3816
 #, c-format
 msgid "cannot parse bus '%s'"
 msgstr "বাচ '%s' বিশ্লেষণ কৰিব নোৱাৰি"
 
-#: src/conf/domain_conf.c:3816
+#: src/conf/domain_conf.c:3822
 #, c-format
 msgid "cannot parse target '%s'"
 msgstr "লক্ষ্য '%s' বিশ্লেষণ কৰিব নোৱাৰি"
 
-#: src/conf/domain_conf.c:3822
+#: src/conf/domain_conf.c:3828
 #, c-format
 msgid "cannot parse unit '%s'"
 msgstr "একক '%s' বিশ্লেষণ কৰিব নোৱাৰি"
 
-#: src/conf/domain_conf.c:3830
+#: src/conf/domain_conf.c:3836
 msgid "more than one adapters is specified for scsi hostdev source"
 msgstr "scsi hostdev উৎসৰ বাবে এটাতকৈ অধিক এডাপ্টাৰ ধাৰ্য্য কৰা হৈছে"
 
-#: src/conf/domain_conf.c:3837
+#: src/conf/domain_conf.c:3843
 msgid "'adapter' must be specified for scsi hostdev source"
 msgstr "scsi hostdev উৎসৰ বাবে 'adapter' ধাৰ্য্য কৰিব লাগিব"
 
-#: src/conf/domain_conf.c:3844
+#: src/conf/domain_conf.c:3850
 #, c-format
 msgid "unsupported element '%s' of scsi hostdev source"
 msgstr "scsi hostdev উৎসৰ অসমৰ্থিত উপাদান '%s'"
 
-#: src/conf/domain_conf.c:3854
+#: src/conf/domain_conf.c:3860
 msgid "'adapter' and 'address' must be specified for scsi hostdev source"
 msgstr "scsi hostdev উৎসৰ বাবে 'adapter' আৰু 'address' ধাৰ্য্য কৰিব লাগিব"
 
-#: src/conf/domain_conf.c:4040 src/conf/domain_conf.c:4144
+#: src/conf/domain_conf.c:4046 src/conf/domain_conf.c:4150
 #, c-format
 msgid "unknown host device source address type '%s'"
 msgstr "অজ্ঞাত হস্ট ডিভাইচ উৎস ঠিকনা ধৰণ '%s'"
 
-#: src/conf/domain_conf.c:4046 src/conf/domain_conf.c:4150
+#: src/conf/domain_conf.c:4052 src/conf/domain_conf.c:4156
 msgid "missing source address type"
 msgstr "সন্ধানহিন উৎস ঠিকনা ধৰণ"
 
-#: src/conf/domain_conf.c:4052 src/conf/domain_conf.c:4156
+#: src/conf/domain_conf.c:4058 src/conf/domain_conf.c:4162
 msgid "Missing <source> element in hostdev device"
 msgstr "hostdev ডিভাইচত সন্ধানহিন <source> উপাদান"
 
-#: src/conf/domain_conf.c:4059
+#: src/conf/domain_conf.c:4065
 msgid "Setting startupPolicy is only allowed for USB devices"
 msgstr "startupPolicy সংহতি কৰাটো কেৱল USB ডিভাইচসমূহৰ বাবে অনুমোদিত"
 
-#: src/conf/domain_conf.c:4068
+#: src/conf/domain_conf.c:4074
 msgid "sgio is only supported for scsi host device"
 msgstr "sgio কেৱল scsi হস্ট ডিভাইচৰ বাবে সমৰ্থিত"
 
-#: src/conf/domain_conf.c:4075
+#: src/conf/domain_conf.c:4081
 #, c-format
 msgid "unknown sgio mode '%s'"
 msgstr "অজ্ঞাত sgio অৱস্থা '%s'"
 
-#: src/conf/domain_conf.c:4090
+#: src/conf/domain_conf.c:4096
 #, c-format
 msgid "Unknown PCI device <driver name='%s'/> has been specified"
 msgstr "অজ্ঞাত PCI ডিভাইচ <driver name='%s'/> ধাৰ্য্য কৰা হৈছে"
 
-#: src/conf/domain_conf.c:4110 src/conf/domain_conf.c:4187
+#: src/conf/domain_conf.c:4116 src/conf/domain_conf.c:4193
 #, c-format
 msgid "address type='%s' not supported in hostdev interfaces"
 msgstr "hostdev আন্তঃপৃষ্ঠসমূহত address type='%s' সমৰ্থিত নহয়"
 
-#: src/conf/domain_conf.c:4165
+#: src/conf/domain_conf.c:4171
 msgid "Missing <block> element in hostdev storage device"
 msgstr "hostdev সংৰক্ষণ ডিভাইচত সন্ধানহিন <block> উপাদান"
 
-#: src/conf/domain_conf.c:4173
+#: src/conf/domain_conf.c:4179
 msgid "Missing <char> element in hostdev character device"
 msgstr "hostdev আখৰ ডিভাইচত সন্ধানহিন <char> উপাদান"
 
-#: src/conf/domain_conf.c:4181
+#: src/conf/domain_conf.c:4187
 msgid "Missing <interface> element in hostdev net device"
 msgstr "hostdev নেট ডিভাইচত <interface> উপাদান নাই"
 
-#: src/conf/domain_conf.c:4240
+#: src/conf/domain_conf.c:4246
 #, c-format
 msgid "Unknown disk name '%s' and no address specified"
 msgstr "অজ্ঞাত ডিস্কৰ নাম '%s' আৰু কোনো ঠিকনা ধাৰ্য্য কৰা হোৱা নাই"
 
-#: src/conf/domain_conf.c:4327
+#: src/conf/domain_conf.c:4333
 msgid "invalid security type"
 msgstr "অবৈধ সুৰক্ষাৰ ধৰণ"
 
-#: src/conf/domain_conf.c:4341 src/conf/domain_conf.c:4562
+#: src/conf/domain_conf.c:4347 src/conf/domain_conf.c:4568
 #, c-format
 msgid "invalid security relabel value %s"
 msgstr "অবৈধ সুৰক্ষা পুনৰলেবেল মান %s"
 
-#: src/conf/domain_conf.c:4349
+#: src/conf/domain_conf.c:4355
 msgid "dynamic label type must use resource relabeling"
 msgstr "চলমান লেবেল ধৰণে সম্পদ পুনৰলেবেলিং ব্যৱহাৰ কৰিব লাগিব"
 
-#: src/conf/domain_conf.c:4355
+#: src/conf/domain_conf.c:4361
 msgid "resource relabeling is not compatible with 'none' label type"
 msgstr "সম্পদ লেবেলিং 'none' লেবেল ধৰণৰ সৈতে সুসংগত নহয়"
 
-#: src/conf/domain_conf.c:4376
+#: src/conf/domain_conf.c:4382
 msgid "security label is missing"
 msgstr "সুৰক্ষাৰ লেবেল নাই"
 
-#: src/conf/domain_conf.c:4391
+#: src/conf/domain_conf.c:4397
 msgid "security imagelabel is missing"
 msgstr "সুৰক্ষাৰ imagelabel নাই"
 
-#: src/conf/domain_conf.c:4473
+#: src/conf/domain_conf.c:4479
 msgid "missing security model in domain seclabel"
 msgstr "ডমেইন seclabel ত সন্ধানহিন সুৰক্ষা আৰ্হি"
 
-#: src/conf/domain_conf.c:4483
+#: src/conf/domain_conf.c:4489
 msgid "missing security model when using multiple labels"
 msgstr "একাধিক লেবেল ব্যৱহাৰ কৰোতে সন্ধানহিন সুৰক্ষা আৰ্হি"
 
-#: src/conf/domain_conf.c:4549
+#: src/conf/domain_conf.c:4555
 msgid "label overrides require relabeling to be enabled at the domain level"
 msgstr "লেবেল অভাৰৰাইঢসমূহৰ বাবে পুনৰলেবেলিং ডমেইন স্তৰত সামৰ্থবান কৰিব লাগিব"
 
-#: src/conf/domain_conf.c:4586
+#: src/conf/domain_conf.c:4592
 #, c-format
 msgid "Cannot specify a label if relabelling is turned off. model=%s"
 msgstr "এটা লেবেল ধাৰ্য্য কৰিব নোৱাৰি যদি পুনৰলেবেলিং বন্ধ কৰা থাকে। model=%s"
 
-#: src/conf/domain_conf.c:4643
+#: src/conf/domain_conf.c:4649
 msgid "Missing 'key' element for lease"
 msgstr "লিছৰ বাবে সন্ধানহিন 'key' উপাদান"
 
-#: src/conf/domain_conf.c:4648
+#: src/conf/domain_conf.c:4654
 msgid "Missing 'target' element for lease"
 msgstr "ইজাৰৰ বাবে সন্ধানহিন 'target' উপাদান"
 
-#: src/conf/domain_conf.c:4655
+#: src/conf/domain_conf.c:4661
 #, c-format
 msgid "Malformed lease target offset %s"
 msgstr "স্খলিত ইজাৰ লক্ষ্য অফচেট %s "
 
-#: src/conf/domain_conf.c:4697
+#: src/conf/domain_conf.c:4703
 msgid "'pool' and 'volume' must be specified together for 'pool' type source"
 msgstr "'pool' ধৰণ উৎসৰ বাবে  'pool' আৰু 'volume' একেলগে ধাৰ্য্য কৰিব লাগিব"
 
-#: src/conf/domain_conf.c:4708
+#: src/conf/domain_conf.c:4714
 #, c-format
 msgid "unknown source mode '%s' for volume type disk"
 msgstr "ভলিউম ধৰণ ডিস্কৰ বাবে অজ্ঞাত উৎস অৱস্থা '%s'"
 
-#: src/conf/domain_conf.c:4807
+#: src/conf/domain_conf.c:4813
 #, c-format
 msgid "unknown disk type '%s'"
 msgstr "অজ্ঞাত ডিষ্ক ধৰণ '%s'"
 
-#: src/conf/domain_conf.c:4840
+#: src/conf/domain_conf.c:4846
 msgid "missing protocol type"
 msgstr "সন্ধানহিন প্ৰটোকল ধৰণ"
 
-#: src/conf/domain_conf.c:4846
+#: src/conf/domain_conf.c:4852
 #, c-format
 msgid "unknown protocol type '%s'"
 msgstr "অজ্ঞাত প্ৰটোকল ধৰণ '%s'"
 
-#: src/conf/domain_conf.c:4858
+#: src/conf/domain_conf.c:4864
 msgid "missing name for disk source"
 msgstr "ডিস্ক উৎসৰ বাবে সন্ধানহিন নাম"
 
-#: src/conf/domain_conf.c:4879
+#: src/conf/domain_conf.c:4885
 #, c-format
 msgid "unknown protocol transport type '%s'"
 msgstr "অজ্ঞাত প্ৰটোকল পৰিবহন ধৰণ '%s'"
 
-#: src/conf/domain_conf.c:4888
+#: src/conf/domain_conf.c:4894
 msgid "missing socket for unix transport"
 msgstr "unix পৰিবহনৰ বাবে চকেট সন্ধানহিন"
 
-#: src/conf/domain_conf.c:4894
+#: src/conf/domain_conf.c:4900
 #, c-format
 msgid "transport %s does not support socket attribute"
 msgstr "পৰিবহন %s এ চকেট বৈশিষ্ট্য সমৰ্থন নকৰে"
 
-#: src/conf/domain_conf.c:4903
+#: src/conf/domain_conf.c:4909
 msgid "missing name for host"
 msgstr "হস্টৰ বাবে সন্ধানহিন নাম"
 
-#: src/conf/domain_conf.c:4918 src/conf/domain_conf.c:14397
+#: src/conf/domain_conf.c:4924 src/conf/domain_conf.c:14403
 #, c-format
 msgid "unexpected disk type %s"
 msgstr "অপ্ৰত্যাশিত প্ৰকৃতিৰ ডিস্ক %s"
 
-#: src/conf/domain_conf.c:4948
+#: src/conf/domain_conf.c:4954
 msgid "invalid geometry settings (cyls)"
 msgstr "অবৈধ জ্যামিতি সংহতিসমূহ (cyls)"
 
-#: src/conf/domain_conf.c:4954
+#: src/conf/domain_conf.c:4960
 msgid "invalid geometry settings (heads)"
 msgstr "অবৈধ জ্যামিতি সংহতিসমূহ (heads)"
 
-#: src/conf/domain_conf.c:4960
+#: src/conf/domain_conf.c:4966
 msgid "invalid geometry settings (secs)"
 msgstr "অবৈধ জ্যামিতি সংহতিসমূহ (secs)"
 
-#: src/conf/domain_conf.c:4968
+#: src/conf/domain_conf.c:4974
 #, c-format
 msgid "invalid translation value '%s'"
 msgstr "অবৈধ অনুবাদ মান '%s'"
 
-#: src/conf/domain_conf.c:4980
+#: src/conf/domain_conf.c:4986
 #, c-format
 msgid "invalid logical block size '%s'"
 msgstr "অবৈধ যৌক্তিক খণ্ড আকাৰ '%s'"
 
-#: src/conf/domain_conf.c:4990
+#: src/conf/domain_conf.c:4996
 #, c-format
 msgid "invalid physical block size '%s'"
 msgstr "অবৈধ ভৌতিক খণ্ড আকাৰ '%s'"
 
-#: src/conf/domain_conf.c:5018
+#: src/conf/domain_conf.c:5024
 msgid "mirror requires file name"
 msgstr "মিৰৰ'ৰ ফাইল নামৰ প্ৰয়োজন"
 
-#: src/conf/domain_conf.c:5031
+#: src/conf/domain_conf.c:5037
 msgid "missing username for auth"
 msgstr "auth ৰ বাবে সন্ধানহিন ব্যৱহাৰকাৰীনাম"
 
-#: src/conf/domain_conf.c:5043
+#: src/conf/domain_conf.c:5049
 msgid "missing type for secret"
 msgstr "গোপণৰ বাবে সন্ধানহিন ধৰণ"
 
-#: src/conf/domain_conf.c:5050
+#: src/conf/domain_conf.c:5056
 #, c-format
 msgid "invalid secret type %s"
 msgstr "অবৈধ গোপণ ধৰণ %s"
 
-#: src/conf/domain_conf.c:5060
+#: src/conf/domain_conf.c:5066
 msgid "only one of uuid and usage can be specified"
 msgstr "uuid আৰু ব্যৱহাৰৰ কেৱল এটাহে ধাৰ্য্য কৰিব পাৰি"
 
-#: src/conf/domain_conf.c:5066
+#: src/conf/domain_conf.c:5072
 msgid "either uuid or usage should be specified for a secret"
 msgstr "এটা গোপনৰ বাবে uuid অথবা ব্যৱহাৰ ধাৰ্য্য কৰিব লাগিব"
 
-#: src/conf/domain_conf.c:5076
+#: src/conf/domain_conf.c:5082
 #, c-format
 msgid "malformed uuid %s"
 msgstr "স্খলিত uuid %s"
 
-#: src/conf/domain_conf.c:5130
+#: src/conf/domain_conf.c:5136
 msgid "total and read/write bytes_sec cannot be set at the same time"
 msgstr "সৰ্বমুঠ পঢ়া/লিখা bytes_sec একে সময়তে সংহতি কৰিব নোৱাৰি"
 
-#: src/conf/domain_conf.c:5140
+#: src/conf/domain_conf.c:5146
 msgid "total and read/write iops_sec cannot be set at the same time"
 msgstr "সৰ্বমুঠ পঢ়া/লিখা iops_sec একে সময়তে সংহতি কৰিব নোৱাৰি"
 
-#: src/conf/domain_conf.c:5175
+#: src/conf/domain_conf.c:5181
 msgid "disk vendor is more than 8 characters"
 msgstr "ডিস্ক বিক্ৰেতা ৮ আখৰৰ অধিক"
 
-#: src/conf/domain_conf.c:5181
+#: src/conf/domain_conf.c:5187
 msgid "disk vendor is not printable string"
 msgstr "ডিস্ক বিক্ৰেতা এটা প্ৰিন্ট কৰিব পৰা স্ট্ৰিং নহয়"
 
-#: src/conf/domain_conf.c:5190
+#: src/conf/domain_conf.c:5196
 msgid "disk product is more than 16 characters"
 msgstr "ডিক্স উৎপাদন ১৬ আখৰৰ অধিক"
 
-#: src/conf/domain_conf.c:5196
+#: src/conf/domain_conf.c:5202
 msgid "disk product is not printable string"
 msgstr "ডিস্ক উৎপাদন প্ৰিন্ট কৰিব পৰা স্ট্ৰিং নহয়"
 
-#: src/conf/domain_conf.c:5208
+#: src/conf/domain_conf.c:5214
 #, c-format
 msgid "invalid secret type '%s'"
 msgstr "অবৈধ গোপণ ধৰণ '%s'"
 
-#: src/conf/domain_conf.c:5217
+#: src/conf/domain_conf.c:5223
 #, c-format
 msgid "unknown disk device '%s'"
 msgstr "অজ্ঞাত ডিষ্ক ডিভাইচ '%s'"
 
-#: src/conf/domain_conf.c:5268
+#: src/conf/domain_conf.c:5274
 #, c-format
 msgid "Invalid floppy device name: %s"
 msgstr "ফ্ল'পি ডিভাইচৰ নাম বৈধ নহয়: %s"
 
-#: src/conf/domain_conf.c:5284
+#: src/conf/domain_conf.c:5290
 #, c-format
 msgid "Invalid harddisk device name: %s"
 msgstr "হাৰ্ড ডিস্ক ডিভাইচৰ নাম বৈধ নহয়: %s"
 
-#: src/conf/domain_conf.c:5292 src/conf/snapshot_conf.c:125
+#: src/conf/domain_conf.c:5298 src/conf/snapshot_conf.c:125
 #, c-format
 msgid "unknown disk snapshot setting '%s'"
 msgstr "অজ্ঞাত ডিস্ক স্নেপশ্বট সংহতি '%s'"
 
-#: src/conf/domain_conf.c:5303
+#: src/conf/domain_conf.c:5309
 msgid "rawio or sgio can be used only with device='lun'"
 msgstr "rawio অথবা sgio ক কেৱল ডিভাইচ='lun' ৰ সৈতে ব্যৱহাৰ কৰিব পাৰি"
 
-#: src/conf/domain_conf.c:5316
+#: src/conf/domain_conf.c:5322
 #, c-format
 msgid "unknown disk rawio setting '%s'"
 msgstr "অজ্ঞাত ডিস্ক rawio সংহতি '%s'"
 
-#: src/conf/domain_conf.c:5325
+#: src/conf/domain_conf.c:5331
 #, c-format
 msgid "unknown disk sgio mode '%s'"
 msgstr "অজ্ঞাত ডিস্ক sgio অৱস্থা '%s' "
 
-#: src/conf/domain_conf.c:5333
+#: src/conf/domain_conf.c:5339
 #, c-format
 msgid "unknown disk bus type '%s'"
 msgstr "অজ্ঞাত ডিষ্ক bus ধৰণ '%s'"
 
-#: src/conf/domain_conf.c:5358
+#: src/conf/domain_conf.c:5364
 #, c-format
 msgid "unknown disk tray status '%s'"
 msgstr "অজ্ঞাত ডিস্ক ট্ৰে অৱস্থা '%s'"
 
-#: src/conf/domain_conf.c:5365
+#: src/conf/domain_conf.c:5371
 msgid "tray is only valid for cdrom and floppy"
 msgstr "ট্ৰে কেৱল cdrom আৰু ফ্লপিৰ বাবে বৈধ"
 
-#: src/conf/domain_conf.c:5377
+#: src/conf/domain_conf.c:5383
 #, c-format
 msgid "unknown disk removable status '%s'"
 msgstr "অজ্ঞাত ডিস্ক আতৰাব পৰা অৱস্থা '%s'"
 
-#: src/conf/domain_conf.c:5383
+#: src/conf/domain_conf.c:5389
 msgid "removable is only valid for usb disks"
 msgstr "আতৰাব পৰা কেৱল usb ডিস্কসমূহৰ বাবে বৈধ"
 
-#: src/conf/domain_conf.c:5395
+#: src/conf/domain_conf.c:5401
 #, c-format
 msgid "Invalid bus type '%s' for floppy disk"
 msgstr "ফ্ল'পি ডিস্কৰ বাবে '%s' বাছৰ ধৰণ বৈধ নহয়"
 
-#: src/conf/domain_conf.c:5401
+#: src/conf/domain_conf.c:5407
 #, c-format
 msgid "Invalid bus type '%s' for disk"
 msgstr "ডিস্কৰ বাবে '%s' বাছৰ ধৰণ বৈধ নহয়"
 
-#: src/conf/domain_conf.c:5408
+#: src/conf/domain_conf.c:5414
 #, c-format
 msgid "unknown disk cache mode '%s'"
 msgstr "অজ্ঞাত ডিষ্ক কেছে ধৰণ '%s'"
 
-#: src/conf/domain_conf.c:5415
+#: src/conf/domain_conf.c:5421
 #, c-format
 msgid "unknown disk error policy '%s'"
 msgstr "অজ্ঞাত ডিস্ক ত্ৰুটি নীতি '%s'"
 
-#: src/conf/domain_conf.c:5424
+#: src/conf/domain_conf.c:5430
 #, c-format
 msgid "unknown disk read error policy '%s'"
 msgstr "অজ্ঞাত ডিস্ক পঢ়া ত্ৰুটি নীতি '%s'"
 
-#: src/conf/domain_conf.c:5433
+#: src/conf/domain_conf.c:5439
 #, c-format
 msgid "unknown disk io mode '%s'"
 msgstr "অজ্ঞাত ডিস্ক io অৱস্থা '%s'"
 
-#: src/conf/domain_conf.c:5443
+#: src/conf/domain_conf.c:5449
 msgid "disk ioeventfd mode supported only for virtio bus"
 msgstr "ডিস্ক ioeventfd অৱস্থা কেৱল virtio বাচৰ বাবে সমৰ্থিত"
 
-#: src/conf/domain_conf.c:5450
+#: src/conf/domain_conf.c:5456
 #, c-format
 msgid "unknown disk ioeventfd mode '%s'"
 msgstr "অজ্ঞাত ডিস্ক ioeventfd অৱস্থা '%s'"
 
-#: src/conf/domain_conf.c:5460
+#: src/conf/domain_conf.c:5466
 msgid "disk event_idx mode supported only for virtio bus"
 msgstr "ডিস্ক event_idx কেৱল virtio বাচৰ বাবে সমৰ্থিত"
 
-#: src/conf/domain_conf.c:5468
+#: src/conf/domain_conf.c:5474
 #, c-format
 msgid "unknown disk event_idx mode '%s'"
 msgstr "অজ্ঞাত ডিস্ক event_idx অৱস্থা '%s'"
 
-#: src/conf/domain_conf.c:5479
+#: src/conf/domain_conf.c:5485
 #, c-format
 msgid "unknown disk copy_on_read mode '%s'"
 msgstr "অজ্ঞাত ডিস্ক copy_on_read অৱস্থা '%s'"
 
-#: src/conf/domain_conf.c:5489
+#: src/conf/domain_conf.c:5495
 #, c-format
 msgid "unknown disk discard mode '%s'"
 msgstr "অজ্ঞাত ডিস্ক ডিস্কাৰ্ড অৱস্থা '%s'"
 
-#: src/conf/domain_conf.c:5514
+#: src/conf/domain_conf.c:5520
 #, c-format
 msgid "unknown startupPolicy value '%s'"
 msgstr "অজ্ঞাত startupPolicy মান '%s'"
 
-#: src/conf/domain_conf.c:5521
+#: src/conf/domain_conf.c:5527
 #, c-format
 msgid "Setting disk %s is not allowed for disk of network type"
 msgstr "নেটৱাৰ্ক ধৰণৰ ডিস্কৰ বাবে ডিস্ক %s সংহতি কৰাটো অনুমোদিত নহয়"
 
-#: src/conf/domain_conf.c:5531
+#: src/conf/domain_conf.c:5537
 msgid "Setting disk 'requisite' is allowed only for cdrom or floppy"
 msgstr "ডিস্ক 'requisite' সংহতি কৰাটো কেৱল cdrom অথবা floppy ৰ বাবে অনুমোদিত"
 
-#: src/conf/domain_conf.c:5568 src/conf/domain_conf.c:6005
+#: src/conf/domain_conf.c:5574 src/conf/domain_conf.c:6011
 #, c-format
 msgid "unknown driver format value '%s'"
 msgstr "অজ্ঞাত ড্ৰাইভাৰ বিন্যাস মান '%s'"
 
-#: src/conf/domain_conf.c:5578
+#: src/conf/domain_conf.c:5584
 #, c-format
 msgid "unknown mirror format value '%s'"
 msgstr "অজ্ঞাত মিৰৰ বিন্যাস মান '%s'"
 
-#: src/conf/domain_conf.c:5668
+#: src/conf/domain_conf.c:5674
 #, c-format
 msgid "could not parse element %s"
 msgstr "উপাদন %s বিশ্লেষণ কৰিব নোৱাৰি"
 
-#: src/conf/domain_conf.c:5672
+#: src/conf/domain_conf.c:5678
 #, c-format
 msgid "missing element %s"
 msgstr "সন্ধানহিন উপাদান %s"
 
-#: src/conf/domain_conf.c:5736
+#: src/conf/domain_conf.c:5742
 #, c-format
 msgid "Unknown controller type '%s'"
 msgstr "অজ্ঞাত ধৰণৰ নিয়ন্ত্ৰক '%s'"
 
-#: src/conf/domain_conf.c:5746
+#: src/conf/domain_conf.c:5752
 #, c-format
 msgid "Cannot parse controller index %s"
 msgstr "নিয়ন্ত্ৰকৰ ইন্ডেক্স %s বিশ্লেষণ কৰিবলৈ ব্যৰ্থ"
 
-#: src/conf/domain_conf.c:5755
+#: src/conf/domain_conf.c:5761
 #, c-format
 msgid "Unknown model type '%s'"
 msgstr "অজ্ঞাত আৰ্হি ধৰণ '%s'"
 
-#: src/conf/domain_conf.c:5773
+#: src/conf/domain_conf.c:5779
 #, c-format
 msgid "Malformed 'queues' value '%s'"
 msgstr "ক্ষতিগ্ৰস্থ 'queues' মান '%s'"
 
-#: src/conf/domain_conf.c:5788
+#: src/conf/domain_conf.c:5794
 #, c-format
 msgid "Invalid ports: %s"
 msgstr "অবৈধ পোৰ্ট: %s"
 
-#: src/conf/domain_conf.c:5803
+#: src/conf/domain_conf.c:5809
 #, c-format
 msgid "Invalid vectors: %s"
 msgstr "অবৈধ ভেক্টৰ: %s"
 
-#: src/conf/domain_conf.c:5842
+#: src/conf/domain_conf.c:5848
 msgid "pci-root and pcie-root controllers should not have an address"
 msgstr "pci-root আৰু pcie-root নিয়ন্ত্ৰকসমূহৰ এটা ঠিকনা থাকিব নোৱাৰিব"
 
-#: src/conf/domain_conf.c:5848
+#: src/conf/domain_conf.c:5854
 msgid "pci-root and pcie-root controllers should have index 0"
 msgstr "pci-root আৰু pcie-root নিয়ন্ত্ৰকসমূহৰ এটা সূচী 0 থাকিব লাগিব"
 
-#: src/conf/domain_conf.c:5874
+#: src/conf/domain_conf.c:5880
 msgid "Controllers must use the 'pci' address type"
 msgstr "নিয়ন্ত্ৰকৰ ক্ষেত্ৰত 'pci' ধৰণৰ ঠিকনা ব্যৱহাৰ কৰা আৱশ্যক"
 
-#: src/conf/domain_conf.c:5930
+#: src/conf/domain_conf.c:5936
 #, c-format
 msgid "unknown filesystem type '%s'"
 msgstr "অজ্ঞাত ফাইলপ্ৰণালীৰ ধৰণ '%s'"
 
-#: src/conf/domain_conf.c:5941
+#: src/conf/domain_conf.c:5947
 #, c-format
 msgid "unknown accessmode '%s'"
 msgstr "অজ্ঞাত accessmode '%s'"
 
-#: src/conf/domain_conf.c:5997
+#: src/conf/domain_conf.c:6003
 #, c-format
 msgid "unknown fs driver type '%s'"
 msgstr "অজ্ঞাত fs ড্ৰাইভাৰ ধৰণ '%s'"
 
-#: src/conf/domain_conf.c:6013
+#: src/conf/domain_conf.c:6019
 #, c-format
 msgid "unknown filesystem write policy '%s'"
 msgstr "অজ্ঞাত ফাইলপ্ৰণালী লিখা নীতি '%s'"
 
-#: src/conf/domain_conf.c:6036
+#: src/conf/domain_conf.c:6042
 msgid "missing 'usage' attribute for RAM filesystem"
 msgstr "RAM ফাইলচিস্টেমৰ বাবে সন্ধানহিন 'usage' বৈশিষ্ট্য"
 
-#: src/conf/domain_conf.c:6041
+#: src/conf/domain_conf.c:6047
 #, c-format
 msgid "cannot parse usage '%s' for RAM filesystem"
 msgstr "RAM ফাইলচিস্টেমৰ বাবে ব্যৱহাৰ '%s' বিশ্লেষণ কৰিব নোৱাৰি"
 
-#: src/conf/domain_conf.c:6103
+#: src/conf/domain_conf.c:6109
 msgid "missing type attribute in interface's <actual> element"
 msgstr "আন্তঃপৃষ্ঠৰ <actual> উপাদানত সন্ধানহিন ধৰণ বৈশিষ্ট"
 
-#: src/conf/domain_conf.c:6108
+#: src/conf/domain_conf.c:6114
 #, c-format
 msgid "unknown type '%s' in interface's <actual> element"
 msgstr "আন্তঃপৃষ্ঠৰ <actual> উপাদানত অজ্ঞাত ধৰণ '%s'"
 
-#: src/conf/domain_conf.c:6116
+#: src/conf/domain_conf.c:6122
 #, c-format
 msgid "unsupported type '%s' in interface's <actual> element"
 msgstr "আন্তঃপৃষ্ঠৰ <actual> উপাদানত অসমৰ্থিত ধৰণ '%s'"
 
-#: src/conf/domain_conf.c:6137
+#: src/conf/domain_conf.c:6143
 #, c-format
 msgid ""
 "<virtualport> element unsupported for type='%s' in interface's <actual> "
@@ -1897,1129 +1902,1129 @@ msgid ""
 msgstr ""
 "<virtualport> আন্তঃপৃষ্ঠৰ <actual> উপাদানত type='%s' ৰ বাবে উপাদান অসমৰ্থিত"
 
-#: src/conf/domain_conf.c:6151
+#: src/conf/domain_conf.c:6157
 #, c-format
 msgid "Unknown mode '%s' in interface <actual> element"
 msgstr "আন্তঃপৃষ্ঠ <actual> উপাদানত অজ্ঞাত অৱস্থা '%s'"
 
-#: src/conf/domain_conf.c:6182
+#: src/conf/domain_conf.c:6188
 #, c-format
 msgid "Unable to parse class id '%s'"
 msgstr "ক্লাচ আইডি '%s' বিশ্লেষণ কৰিবলে অক্ষম"
 
-#: src/conf/domain_conf.c:6266
+#: src/conf/domain_conf.c:6272
 #, c-format
 msgid "unknown interface type '%s'"
 msgstr "অজ্ঞাত সংযোগমাধ্যমৰ ধৰণ '%s'"
 
-#: src/conf/domain_conf.c:6317
+#: src/conf/domain_conf.c:6323
 #, c-format
 msgid "<virtualport> element unsupported for <interface type='%s'>"
 msgstr "<interface type='%s'> ৰ বাবে <virtualport> উপাদান অসমৰ্থিত"
 
-#: src/conf/domain_conf.c:6359
+#: src/conf/domain_conf.c:6365
 msgid "Invalid specification of multiple <filterref>s in a single <interface>"
 msgstr "এটা <interface> ত একাধিক <filterref> ৰ অবৈধ ধাৰ্য্যকৰণ"
 
-#: src/conf/domain_conf.c:6395 src/qemu/qemu_command.c:10472
+#: src/conf/domain_conf.c:6401 src/qemu/qemu_command.c:10472
 #, c-format
 msgid "unable to parse mac address '%s'"
 msgstr "MAC ঠিকনা '%s' বিশ্লেষণ কৰিবলৈ ব্যৰ্থ"
 
-#: src/conf/domain_conf.c:6401
+#: src/conf/domain_conf.c:6407
 #, c-format
 msgid "expected unicast mac address, found multicast '%s'"
 msgstr "unicast mac ঠিকনা প্ৰত্যাশিত, multicast '%s' পোৱা গল"
 
-#: src/conf/domain_conf.c:6434
+#: src/conf/domain_conf.c:6440
 msgid "Network interfaces must use 'pci' address type"
 msgstr "নে'টৱৰ্ক সংযোগমাধ্যমৰ ক্ষেত্ৰত 'pci' ধৰণৰ ঠিকনা ব্যৱহাৰ কৰা আৱশ্যক"
 
-#: src/conf/domain_conf.c:6442
+#: src/conf/domain_conf.c:6448
 msgid ""
 "No <source> 'network' attribute specified with <interface type='network'/>"
 msgstr "<interface type='network'/> ৰ সৈতে <source> 'network' গুণ উল্লেখিত নহয়।"
 
-#: src/conf/domain_conf.c:6468
+#: src/conf/domain_conf.c:6474
 msgid ""
 "No <source> 'bridge' attribute specified with <interface type='bridge'/>"
 msgstr "<interface type='bridge'/> ৰ সৈতে <source> 'bridge' গুণ উল্লিখিত নহয়।"
 
-#: src/conf/domain_conf.c:6485
+#: src/conf/domain_conf.c:6491
 msgid "No <source> 'port' attribute specified with socket interface"
 msgstr "ছকেট সংযোগমাধ্যমৰ সৈতে <source> 'port' গুণ উল্লেখিত নহয়।"
 
-#: src/conf/domain_conf.c:6491
+#: src/conf/domain_conf.c:6497
 msgid "Cannot parse <source> 'port' attribute with socket interface"
 msgstr "ছকেট সংযোগমাধ্যমৰ সৈতে উল্লেখিত <source> 'port' গুণ বিশ্লষণ কৰা নাযায়"
 
-#: src/conf/domain_conf.c:6500
+#: src/conf/domain_conf.c:6506
 msgid "No <source> 'address' attribute specified with socket interface"
 msgstr "ছকেট সংযোগমাধ্যমৰ সৈতে <source> 'address' গুণ উল্লেখিত নহয়।"
 
-#: src/conf/domain_conf.c:6513
+#: src/conf/domain_conf.c:6519
 msgid ""
 "No <source> 'name' attribute specified with <interface type='internal'/>"
 msgstr ""
 "কোনো <source> 'name' গুণ <interface type='internal'/> ৰ সৈতে নিৰ্ধাৰণ কৰা হোৱা "
 "নাই"
 
-#: src/conf/domain_conf.c:6524
+#: src/conf/domain_conf.c:6530
 msgid "No <source> 'dev' attribute specified with <interface type='direct'/>"
 msgstr "<interface type='direct'/> ৰ সৈতে <source> 'dev' গুণ উল্লিখিত নহয়।"
 
-#: src/conf/domain_conf.c:6533
+#: src/conf/domain_conf.c:6539
 msgid "Unknown mode has been specified"
 msgstr "অজ্ঞাত অৱস্থা ধাৰ্য্য কৰা হৈছে"
 
-#: src/conf/domain_conf.c:6593
+#: src/conf/domain_conf.c:6599
 msgid "Model name contains invalid characters"
 msgstr "মডেলৰ নামত অবৈধ অক্ষৰ আছে"
 
-#: src/conf/domain_conf.c:6606
+#: src/conf/domain_conf.c:6612
 #, c-format
 msgid "Unknown interface <driver name='%s'> has been specified"
 msgstr "অজ্ঞাত আন্তঃপৃষ্ঠ <driver name='%s'> ধাৰ্য্য কৰা হৈছে"
 
-#: src/conf/domain_conf.c:6618
+#: src/conf/domain_conf.c:6624
 #, c-format
 msgid "Unknown interface <driver txmode='%s'> has been specified"
 msgstr "অজ্ঞাত আন্তঃপৃষ্ঠ <driver txmode='%s'> ধাৰ্য্য কৰা হৈছে"
 
-#: src/conf/domain_conf.c:6629
+#: src/conf/domain_conf.c:6635
 #, c-format
 msgid "unknown interface ioeventfd mode '%s'"
 msgstr "অজ্ঞাত আন্তঃপৃষ্ঠ ioeventfd অৱস্থা '%s'"
 
-#: src/conf/domain_conf.c:6639
+#: src/conf/domain_conf.c:6645
 #, c-format
 msgid "unknown interface event_idx mode '%s'"
 msgstr "অজ্ঞাত আন্তঃপৃষ্ঠ event_idx অৱস্থা '%s'"
 
-#: src/conf/domain_conf.c:6649
+#: src/conf/domain_conf.c:6655
 #, c-format
 msgid "'queues' attribute must be positive number: %s"
 msgstr "'queues' বৈশিষ্ট্য ধনাত্মক সংখ্যা হব লাগিব: %s"
 
-#: src/conf/domain_conf.c:6661
+#: src/conf/domain_conf.c:6667
 #, c-format
 msgid "unknown interface link state '%s'"
 msgstr "অজ্ঞাত আন্তঃপৃষ্ঠ লিঙ্ক অৱস্থা '%s'"
 
-#: src/conf/domain_conf.c:6687
+#: src/conf/domain_conf.c:6693
 msgid "sndbuf must be a positive integer"
 msgstr "sndbuf এটা ধনাত্মক পূৰ্ণসংখ্যা হব লাগিব"
 
-#: src/conf/domain_conf.c:6731
+#: src/conf/domain_conf.c:6737
 #, c-format
 msgid "target type must be specified for %s device"
 msgstr "%s ডিভাইচৰ বাবে লক্ষ্য ধৰণ ধাৰ্য্য কৰিব লাগিব"
 
-#: src/conf/domain_conf.c:6799
+#: src/conf/domain_conf.c:6805
 #, c-format
 msgid "unknown target type '%s' specified for character device"
 msgstr "আখৰ ডিভাইচৰ বাবে অজ্ঞাত লক্ষ্য ধৰণ '%s' ধাৰ্য্যত"
 
-#: src/conf/domain_conf.c:6816
+#: src/conf/domain_conf.c:6822
 msgid "guestfwd channel does not define a target address"
 msgstr "guestfwd চেনেল দ্বাৰা কোনো টাৰ্গেট ঠিকনা নিৰ্ধাৰণ কৰা নহয়"
 
-#: src/conf/domain_conf.c:6826
+#: src/conf/domain_conf.c:6832
 msgid "guestfwd channel only supports IPv4 addresses"
 msgstr "guestfwd চেনেল দ্বাৰা অকল IPv4 ঠিকনা সমৰ্থিত হয়"
 
-#: src/conf/domain_conf.c:6833
+#: src/conf/domain_conf.c:6839
 msgid "guestfwd channel does not define a target port"
 msgstr "guestfwd চেনেল দ্বাৰা টাৰ্গেট পোৰ্ট চিহ্নিত কৰা নহয়"
 
-#: src/conf/domain_conf.c:6840 src/conf/domain_conf.c:6864
+#: src/conf/domain_conf.c:6846 src/conf/domain_conf.c:6870
 #: src/conf/storage_conf.c:616
 #, c-format
 msgid "Invalid port number: %s"
 msgstr "অবৈধ পোৰ্ট সংখ্যা: %s"
 
-#: src/conf/domain_conf.c:6938
+#: src/conf/domain_conf.c:6944
 #, c-format
 msgid "Unknown source mode '%s'"
 msgstr "অজ্ঞাত ধৰণৰ সোৰ্স মোড '%s'"
 
-#: src/conf/domain_conf.c:6994 src/conf/domain_conf.c:7076
+#: src/conf/domain_conf.c:7000 src/conf/domain_conf.c:7082
 msgid "Missing source path attribute for char device"
 msgstr "কেৰেক্টাৰ ডিভাইচৰ ক্ষেত্ৰত উৎস পথ গুণ অনুপস্থিত"
 
-#: src/conf/domain_conf.c:7006 src/conf/domain_conf.c:7024
+#: src/conf/domain_conf.c:7012 src/conf/domain_conf.c:7030
 msgid "Missing source host attribute for char device"
 msgstr "কেৰেক্টাৰ ডিভাইচৰ ক্ষেত্ৰত উৎস গৃহস্থ গুণ অনুপস্থিত"
 
-#: src/conf/domain_conf.c:7012 src/conf/domain_conf.c:7030
-#: src/conf/domain_conf.c:7055
+#: src/conf/domain_conf.c:7018 src/conf/domain_conf.c:7036
+#: src/conf/domain_conf.c:7061
 msgid "Missing source service attribute for char device"
 msgstr "কেৰেক্টাৰ ডিভাইচৰ ক্ষেত্ৰত উৎস সেৱা গুণ অনুপস্থিত"
 
-#: src/conf/domain_conf.c:7046
+#: src/conf/domain_conf.c:7052
 #, c-format
 msgid "Unknown protocol '%s'"
 msgstr "অজ্ঞাত প্ৰোটোকল '%s'"
 
-#: src/conf/domain_conf.c:7177 src/conf/domain_conf.c:7327
+#: src/conf/domain_conf.c:7183 src/conf/domain_conf.c:7333
 #, c-format
 msgid "unknown type presented to host for character device: %s"
 msgstr "আখৰ ডিভাইচ হস্ট কৰিবলে অজ্ঞাত ধৰণ প্ৰস্তুত কৰা হৈছে: %s"
 
-#: src/conf/domain_conf.c:7185
+#: src/conf/domain_conf.c:7191
 #, c-format
 msgid "unknown character device type: %s"
 msgstr "অজ্ঞাত আখৰ ডিভাইচ ধৰণ: %s"
 
-#: src/conf/domain_conf.c:7213
+#: src/conf/domain_conf.c:7219
 msgid "spicevmc device type only supports virtio"
 msgstr "spicevmc ডিভাইচ ধৰণে কেৱল virtio সমৰ্থন কৰে"
 
-#: src/conf/domain_conf.c:7229 src/qemu/qemu_command.c:9628
+#: src/conf/domain_conf.c:7235 src/qemu/qemu_command.c:9628
 msgid "usb-serial requires address of usb type"
 msgstr "usb-serial ৰ usb ধৰণৰ ঠিকনাৰ প্ৰয়োজন"
 
-#: src/conf/domain_conf.c:7260
+#: src/conf/domain_conf.c:7266
 msgid "missing smartcard device mode"
 msgstr "সন্ধানহিন স্মাৰ্টকাৰ্ড ডিভাইচ অৱস্থা"
 
-#: src/conf/domain_conf.c:7265
+#: src/conf/domain_conf.c:7271
 #, c-format
 msgid "unknown smartcard device mode: %s"
 msgstr "অজ্ঞাত স্মাৰ্টকাৰ্ড ডিভাইচ অৱস্থা: %s"
 
-#: src/conf/domain_conf.c:7282 src/conf/domain_conf.c:7311
+#: src/conf/domain_conf.c:7288 src/conf/domain_conf.c:7317
 msgid "host-certificates mode needs exactly three certificates"
 msgstr "হস্ট-প্ৰমাণপত্ৰসমূহৰ তিনিটা প্ৰমাণপত্ৰৰ প্ৰয়োজন"
 
-#: src/conf/domain_conf.c:7302
+#: src/conf/domain_conf.c:7308
 #, c-format
 msgid "expecting absolute path: %s"
 msgstr "প্ৰকৃত পথ আশা কৰা হৈছে: %s"
 
-#: src/conf/domain_conf.c:7321
+#: src/conf/domain_conf.c:7327
 msgid "passthrough mode requires a character device type attribute"
 msgstr "passthrough অৱস্থাৰ এটা আখৰ ডিভাইচ ধৰণ বৈশিষ্টৰ প্ৰয়োজন"
 
-#: src/conf/domain_conf.c:7346
+#: src/conf/domain_conf.c:7352
 msgid "unknown smartcard mode"
 msgstr "অজ্ঞাত স্মাৰ্টকাৰ্ড অৱস্থা"
 
-#: src/conf/domain_conf.c:7355
+#: src/conf/domain_conf.c:7361
 msgid "Controllers must use the 'ccid' address type"
 msgstr "নিয়ন্ত্ৰকসমূহে 'ccid' ঠিকনা ধৰণ ব্যৱহাৰ কৰিব লাগিব"
 
-#: src/conf/domain_conf.c:7403
+#: src/conf/domain_conf.c:7409
 #, c-format
 msgid "Unknown TPM frontend model '%s'"
 msgstr "অজ্ঞাত TPM ফ্ৰন্টএণ্ড আৰ্হি '%s'"
 
-#: src/conf/domain_conf.c:7416
+#: src/conf/domain_conf.c:7422
 msgid "only one TPM backend is supported"
 msgstr "কেৱল এটা TPM বেকএণ্ড সমৰ্থিত"
 
-#: src/conf/domain_conf.c:7422
+#: src/conf/domain_conf.c:7428
 msgid "missing TPM device backend"
 msgstr "সন্ধানহিন TPM ডিভাইচ বেকএণ্ড"
 
-#: src/conf/domain_conf.c:7428
+#: src/conf/domain_conf.c:7434
 msgid "missing TPM device backend type"
 msgstr "সন্ধানহিন TPM ডিভাইচ বেকএণ্ড ধৰণ"
 
-#: src/conf/domain_conf.c:7434
+#: src/conf/domain_conf.c:7440
 #, c-format
 msgid "Unknown TPM backend type '%s'"
 msgstr "অঝ্ঞাত TPM বেকএণ্ড ধৰণ '%s'"
 
-#: src/conf/domain_conf.c:7488
+#: src/conf/domain_conf.c:7494
 msgid "missing input device type"
 msgstr "নিবেশ ডিভাইচৰ প্ৰকৃতি অনুপস্থিত"
 
-#: src/conf/domain_conf.c:7494
+#: src/conf/domain_conf.c:7500
 #, c-format
 msgid "unknown input device type '%s'"
 msgstr "অজ্ঞাত নিবেশ ডিভাইচৰ ধৰণ '%s'"
 
-#: src/conf/domain_conf.c:7501
+#: src/conf/domain_conf.c:7507
 #, c-format
 msgid "unknown input bus type '%s'"
 msgstr "অজ্ঞাত নিবেশ bus ধৰণ '%s'"
 
-#: src/conf/domain_conf.c:7509
+#: src/conf/domain_conf.c:7515
 #, c-format
 msgid "ps2 bus does not support %s input device"
 msgstr "ps2 bus দ্বাৰা %s নিবেশ ডিভাইচ সমৰ্থিত নহয়"
 
-#: src/conf/domain_conf.c:7515 src/conf/domain_conf.c:7522
+#: src/conf/domain_conf.c:7521 src/conf/domain_conf.c:7528
 #, c-format
 msgid "unsupported input bus %s"
 msgstr "অসমৰ্থিত নিবেশ বাছ %s"
 
-#: src/conf/domain_conf.c:7527
+#: src/conf/domain_conf.c:7533
 #, c-format
 msgid "xen bus does not support %s input device"
 msgstr "xen bus দ্বাৰা %s নিবেশ ডিভাইচ সমৰ্থিত নহয়"
 
-#: src/conf/domain_conf.c:7550 src/conf/domain_conf.c:9222
+#: src/conf/domain_conf.c:7556 src/conf/domain_conf.c:9228
 msgid "Invalid address for a USB device"
 msgstr "এটা USB ঠিকনাৰ বাবে অবৈধ ঠিকনা"
 
-#: src/conf/domain_conf.c:7581
+#: src/conf/domain_conf.c:7587
 msgid "missing hub device type"
 msgstr "সন্ধানহিন হাব ডিভাইচ ধৰণ"
 
-#: src/conf/domain_conf.c:7587
+#: src/conf/domain_conf.c:7593
 #, c-format
 msgid "unknown hub device type '%s'"
 msgstr "অজ্ঞাত হাব ডিভাইচ ধৰণ '%s'"
 
-#: src/conf/domain_conf.c:7630
+#: src/conf/domain_conf.c:7636
 msgid "missing timer name"
 msgstr "সন্ধানহিন টাইমাৰ নাম"
 
-#: src/conf/domain_conf.c:7635
+#: src/conf/domain_conf.c:7641
 #, c-format
 msgid "unknown timer name '%s'"
 msgstr "অজ্ঞাত টাইমাৰ নাম '%s'"
 
-#: src/conf/domain_conf.c:7647
+#: src/conf/domain_conf.c:7653
 #, c-format
 msgid "unknown timer present value '%s'"
 msgstr "অজ্ঞাত টাইমাৰ বৰ্তমান মান '%s'"
 
-#: src/conf/domain_conf.c:7657
+#: src/conf/domain_conf.c:7663
 #, c-format
 msgid "unknown timer tickpolicy '%s'"
 msgstr "অজ্ঞাত টাইমাৰ tickpolicy '%s' "
 
-#: src/conf/domain_conf.c:7667
+#: src/conf/domain_conf.c:7673
 #, c-format
 msgid "unknown timer track '%s'"
 msgstr "অজ্ঞাত টাইমাৰ ট্ৰেক '%s'"
 
-#: src/conf/domain_conf.c:7677
+#: src/conf/domain_conf.c:7683
 msgid "invalid timer frequency"
 msgstr "অবৈধ টাইমাৰ কম্পনাংক"
 
-#: src/conf/domain_conf.c:7686
+#: src/conf/domain_conf.c:7692
 #, c-format
 msgid "unknown timer mode '%s'"
 msgstr "অজ্ঞাত টাইমাৰ অৱস্থা '%s'"
 
-#: src/conf/domain_conf.c:7699
+#: src/conf/domain_conf.c:7705
 msgid "invalid catchup threshold"
 msgstr "অবৈধ catchup ডেউৰী"
 
-#: src/conf/domain_conf.c:7708
+#: src/conf/domain_conf.c:7714
 msgid "invalid catchup slew"
 msgstr "অবৈধ catchup slew"
 
-#: src/conf/domain_conf.c:7717
+#: src/conf/domain_conf.c:7723
 msgid "invalid catchup limit"
 msgstr "অবৈধ catchup সীমা"
 
-#: src/conf/domain_conf.c:7770
+#: src/conf/domain_conf.c:7776
 #, c-format
 msgid "cannot parse password validity time '%s', expect YYYY-MM-DDTHH:MM:SS"
 msgstr ""
 "পাছৱাৰ্ড বৈধতা সময় '%s' বিশ্লেষণ কৰিব নোৱাৰি, YYYY-MM-DDTHH:MM:SS প্ৰত্যাশা কৰক"
 
-#: src/conf/domain_conf.c:7789
+#: src/conf/domain_conf.c:7795
 #, c-format
 msgid "unknown connected value %s"
 msgstr "অজ্ঞাত সংযোগিত মান %s"
 
-#: src/conf/domain_conf.c:7800
+#: src/conf/domain_conf.c:7806
 msgid "VNC supports connected='keep' only"
 msgstr "VNC এ কেৱল connected='keep' সমৰ্থণ কৰে"
 
-#: src/conf/domain_conf.c:7824
+#: src/conf/domain_conf.c:7830
 msgid "graphics listen type must be specified"
 msgstr "গ্ৰাফিক্স শুনা ধৰণ ধাৰ্য্য কৰিব লাগিব"
 
-#: src/conf/domain_conf.c:7830
+#: src/conf/domain_conf.c:7836
 #, c-format
 msgid "unknown graphics listen type '%s'"
 msgstr "অজ্ঞাত গ্ৰাফিক্স শুনা ধৰণ '%s'"
 
-#: src/conf/domain_conf.c:7850
+#: src/conf/domain_conf.c:7856
 msgid "network attribute not allowed when listen type is not network"
 msgstr "যেতিয়া শুনা ধৰণ নেটৱাৰ্ক নহয় নেটৱাৰ্ক বৈশিষ্ঠ অনুমোদিত নহয়"
 
-#: src/conf/domain_conf.c:7861
+#: src/conf/domain_conf.c:7867
 #, c-format
 msgid "Invalid fromConfig value: %s"
 msgstr "অবৈধ fromConfig মান: %s"
 
-#: src/conf/domain_conf.c:7902
+#: src/conf/domain_conf.c:7908
 msgid "missing graphics device type"
 msgstr "চিত্ৰাঙ্কিত ডিভাইচৰ ধৰণ অনুপস্থিত"
 
-#: src/conf/domain_conf.c:7908
+#: src/conf/domain_conf.c:7914
 #, c-format
 msgid "unknown graphics device type '%s'"
 msgstr "অজ্ঞাত চিত্ৰাঙ্কিত ডিভাইচৰ ধৰণ '%s'"
 
-#: src/conf/domain_conf.c:7973
+#: src/conf/domain_conf.c:7979
 #, c-format
 msgid ""
 "graphics listen attribute %s must match address attribute of first listen "
 "element (found %s)"
 msgstr "গ্ৰাফিক্স শুনা বৈশিষ্ট %s প্ৰথম শুনা উপাদানৰ সৈতে মিল খাব লাগিব (%s পোৱা গল)"
 
-#: src/conf/domain_conf.c:7991
+#: src/conf/domain_conf.c:7997
 #, c-format
 msgid "cannot parse vnc port %s"
 msgstr "vnc প'ৰ্ট %s বিশ্লেষণ কৰিব নোৱাৰি"
 
-#: src/conf/domain_conf.c:8021
+#: src/conf/domain_conf.c:8027
 #, c-format
 msgid "cannot parse vnc WebSocket port %s"
 msgstr "vnc WebSocket পোৰ্ট %s বিশ্লেষণ কৰিব নোৱাৰি"
 
-#: src/conf/domain_conf.c:8034 src/qemu/qemu_command.c:11267
+#: src/conf/domain_conf.c:8040 src/qemu/qemu_command.c:11267
 #, c-format
 msgid "unknown vnc display sharing policy '%s'"
 msgstr "অজ্ঞাত vnc প্ৰদৰ্শন অংশীদাৰী নীতি '%s'"
 
-#: src/conf/domain_conf.c:8059 src/conf/domain_conf.c:8126
+#: src/conf/domain_conf.c:8065 src/conf/domain_conf.c:8132
 #, c-format
 msgid "unknown fullscreen value '%s'"
 msgstr "অজ্ঞাত সম্পূৰ্ণপৰ্দ্দাৰ মান '%s'"
 
-#: src/conf/domain_conf.c:8078
+#: src/conf/domain_conf.c:8084
 #, c-format
 msgid "cannot parse rdp port %s"
 msgstr "rdp প'ৰ্ট %s বিশ্লেষণ কৰিব নোৱাৰি"
 
-#: src/conf/domain_conf.c:8147
+#: src/conf/domain_conf.c:8153
 #, c-format
 msgid "cannot parse spice port %s"
 msgstr "spice পোৰ্ট %s বিশ্লেষণ কৰিব নোৱাৰি"
 
-#: src/conf/domain_conf.c:8160
+#: src/conf/domain_conf.c:8166
 #, c-format
 msgid "cannot parse spice tlsPort %s"
 msgstr "spice tlsPort %s বিশ্লেষণ কৰিব নোৱাৰি"
 
-#: src/conf/domain_conf.c:8180
+#: src/conf/domain_conf.c:8186
 #, c-format
 msgid "unknown default spice channel mode %s"
 msgstr "অজ্ঞাত অবিকল্পিত spice চেনেল অৱস্থা %s"
 
-#: src/conf/domain_conf.c:8216
+#: src/conf/domain_conf.c:8222
 msgid "spice channel missing name/mode"
 msgstr "spice চেনেলে নাম/অৱস্থা হেৰাইছে"
 
-#: src/conf/domain_conf.c:8224
+#: src/conf/domain_conf.c:8230
 #, c-format
 msgid "unknown spice channel name %s"
 msgstr "অজ্ঞাত spice চেনেল নাম %s"
 
-#: src/conf/domain_conf.c:8232
+#: src/conf/domain_conf.c:8238
 #, c-format
 msgid "unknown spice channel mode %s"
 msgstr "অজ্ঞাত spice চেনেল অৱস্থা %s"
 
-#: src/conf/domain_conf.c:8248
+#: src/conf/domain_conf.c:8254
 msgid "spice image missing compression"
 msgstr "spice ছবিয়ে সংকোচন হেৰাইছে"
 
-#: src/conf/domain_conf.c:8255
+#: src/conf/domain_conf.c:8261
 #, c-format
 msgid "unknown spice image compression %s"
 msgstr "অজ্ঞাত spice ছবি সংকোচন %s"
 
-#: src/conf/domain_conf.c:8269
+#: src/conf/domain_conf.c:8275
 msgid "spice jpeg missing compression"
 msgstr "spice jpeg এ সংকোচন হেৰাইছে"
 
-#: src/conf/domain_conf.c:8276
+#: src/conf/domain_conf.c:8282
 #, c-format
 msgid "unknown spice jpeg compression %s"
 msgstr "অজ্ঞাত spice jpeg সংকোচন %s"
 
-#: src/conf/domain_conf.c:8290
+#: src/conf/domain_conf.c:8296
 msgid "spice zlib missing compression"
 msgstr "spice zlib এ সংকোচন হেৰাইছে"
 
-#: src/conf/domain_conf.c:8297
+#: src/conf/domain_conf.c:8303
 #, c-format
 msgid "unknown spice zlib compression %s"
 msgstr "অজ্ঞাত spice zlib সংকোচন %s"
 
-#: src/conf/domain_conf.c:8311
+#: src/conf/domain_conf.c:8317
 msgid "spice playback missing compression"
 msgstr "spice প্লেবেকে সংকোচন হেৰাইছে"
 
-#: src/conf/domain_conf.c:8318
+#: src/conf/domain_conf.c:8324
 msgid "unknown spice playback compression"
 msgstr "অজ্ঞাত spice প্লেবেক সংকোচন"
 
-#: src/conf/domain_conf.c:8332
+#: src/conf/domain_conf.c:8338
 msgid "spice streaming missing mode"
 msgstr "spice স্ট্ৰিমিং সন্ধানহিন অৱস্থা"
 
-#: src/conf/domain_conf.c:8338
+#: src/conf/domain_conf.c:8344
 msgid "unknown spice streaming mode"
 msgstr "অজ্ঞাত spice স্ট্ৰিমিং অৱস্থা"
 
-#: src/conf/domain_conf.c:8352
+#: src/conf/domain_conf.c:8358
 msgid "spice clipboard missing copypaste"
 msgstr "spice ক্লিপবৰ্ডে কপিপেইস্ট হেৰাইছে"
 
-#: src/conf/domain_conf.c:8359
+#: src/conf/domain_conf.c:8365
 #, c-format
 msgid "unknown copypaste value '%s'"
 msgstr "অজ্ঞাত কপিপেইস্ট মান '%s'"
 
-#: src/conf/domain_conf.c:8372
+#: src/conf/domain_conf.c:8378
 msgid "spice mouse missing mode"
 msgstr "spice মাউছ সন্ধানহিন অৱস্থা"
 
-#: src/conf/domain_conf.c:8378
+#: src/conf/domain_conf.c:8384
 #, c-format
 msgid "unknown mouse mode value '%s'"
 msgstr "অজ্ঞাত মাউছ অৱস্থা মান '%s'"
 
-#: src/conf/domain_conf.c:8419
+#: src/conf/domain_conf.c:8425
 #, c-format
 msgid "unknown codec type '%s'"
 msgstr "অজ্ঞাত কডেক ধৰণ '%s'"
 
-#: src/conf/domain_conf.c:8452
+#: src/conf/domain_conf.c:8458
 #, c-format
 msgid "unknown sound model '%s'"
 msgstr "অজ্ঞাত ধ্বনিৰ মডেল '%s'"
 
-#: src/conf/domain_conf.c:8519
+#: src/conf/domain_conf.c:8525
 msgid "watchdog must contain model name"
 msgstr "watchdog ত মডেলৰ নাম অন্তৰ্ভুক্ত থাকা আৱশ্যক"
 
-#: src/conf/domain_conf.c:8525
+#: src/conf/domain_conf.c:8531
 #, c-format
 msgid "unknown watchdog model '%s'"
 msgstr "অজ্ঞাত ধৰণৰ watchdog মডেল '%s'"
 
-#: src/conf/domain_conf.c:8536
+#: src/conf/domain_conf.c:8542
 #, c-format
 msgid "unknown watchdog action '%s'"
 msgstr "watchdog ৰ অজ্ঞাত কৰ্ম '%s'"
 
-#: src/conf/domain_conf.c:8574
+#: src/conf/domain_conf.c:8580
 msgid "missing RNG device model"
 msgstr "সন্ধানহিন RNG ডিভাইচ আৰ্হি"
 
-#: src/conf/domain_conf.c:8579
+#: src/conf/domain_conf.c:8585
 #, c-format
 msgid "unknown RNG model '%s'"
 msgstr "অজ্ঞাত RNG আৰ্হি '%s'"
 
-#: src/conf/domain_conf.c:8587
+#: src/conf/domain_conf.c:8593
 msgid "invalid RNG rate bytes value"
 msgstr "অবৈধ RNG হাৰ বাইটৰ মান"
 
-#: src/conf/domain_conf.c:8594
+#: src/conf/domain_conf.c:8600
 msgid "invalid RNG rate period value"
 msgstr "অবৈধ RNG হাৰ অৱধি মান"
 
-#: src/conf/domain_conf.c:8603
+#: src/conf/domain_conf.c:8609
 msgid "only one RNG backend is supported"
 msgstr "কেৱল এটা RNG বেকএণ্ড সমৰ্থিত"
 
-#: src/conf/domain_conf.c:8609
+#: src/conf/domain_conf.c:8615
 msgid "missing RNG device backend model"
 msgstr "সন্ধানহিন RNG ডিভাইচ বেকএণ্ড আৰ্হি"
 
-#: src/conf/domain_conf.c:8615
+#: src/conf/domain_conf.c:8621
 #, c-format
 msgid "unknown RNG backend model '%s'"
 msgstr "অজ্ঞাত RNG বেকএণ্ড আৰ্হি '%s'"
 
-#: src/conf/domain_conf.c:8626
+#: src/conf/domain_conf.c:8632
 #, c-format
 msgid "file '%s' is not a supported random source"
 msgstr "ফাইল '%s' এটা সমৰ্থিত যাদৃচ্ছিক উৎস নহয়"
 
-#: src/conf/domain_conf.c:8635
+#: src/conf/domain_conf.c:8641
 msgid "missing EGD backend type"
 msgstr "সন্ধানহিন EGD বেকএণ্ড ধৰণ"
 
-#: src/conf/domain_conf.c:8645
+#: src/conf/domain_conf.c:8651
 #, c-format
 msgid "unknown backend type '%s' for egd"
 msgstr "egd ৰ বাবে অজ্ঞাত বেকএণ্ড '%s'"
 
-#: src/conf/domain_conf.c:8693
+#: src/conf/domain_conf.c:8699
 msgid "balloon memory must contain model name"
 msgstr "বেলুন মেমৰিয়ে আৰ্হি নাম অন্তৰ্ভুক্ত কৰিব লাগিব"
 
-#: src/conf/domain_conf.c:8699
+#: src/conf/domain_conf.c:8705
 #, c-format
 msgid "unknown memory balloon model '%s'"
 msgstr "অজ্ঞাত মেমৰি বেলুন আৰ্হি '%s'"
 
-#: src/conf/domain_conf.c:8706
+#: src/conf/domain_conf.c:8712
 msgid "invalid statistics collection period"
 msgstr "অবৈধ পৰিসংখ্যা সংগ্ৰহ ক্ৰম"
 
-#: src/conf/domain_conf.c:8756
+#: src/conf/domain_conf.c:8762
 msgid "XML does not contain expected 'sysinfo' element"
 msgstr "XML এ প্ৰত্যাশিত 'sysinfo' উপাদান অন্তৰ্ভুক্ত নকৰে"
 
-#: src/conf/domain_conf.c:8766
+#: src/conf/domain_conf.c:8772
 msgid "sysinfo must contain a type attribute"
 msgstr "sysinfo এ এটা ধৰণ বৈশিষ্ট অন্তৰ্ভুক্ত কৰিব লাগিব"
 
-#: src/conf/domain_conf.c:8771
+#: src/conf/domain_conf.c:8777
 #, c-format
 msgid "unknown sysinfo type '%s'"
 msgstr "অজ্ঞাত sysinfo ধৰণ '%s'"
 
-#: src/conf/domain_conf.c:8802
+#: src/conf/domain_conf.c:8808
 msgid "Invalid BIOS 'date' format"
 msgstr "অবৈধ BIOS 'date' বিন্যাস"
 
-#: src/conf/domain_conf.c:8824
+#: src/conf/domain_conf.c:8830
 msgid "malformed <sysinfo> uuid element"
 msgstr "ক্ষতিগ্ৰস্থ <sysinfo> uuid উপাদান"
 
-#: src/conf/domain_conf.c:8831
+#: src/conf/domain_conf.c:8837
 msgid "UUID mismatch between <uuid> and <sysinfo>"
 msgstr "<uuid> আৰু <sysinfo> ৰ মাজত UUID অমিল"
 
-#: src/conf/domain_conf.c:9007
+#: src/conf/domain_conf.c:9013
 #, c-format
 msgid "unknown video model '%s'"
 msgstr "অজ্ঞাত ধৰণৰ ভিডিও মডেল '%s'"
 
-#: src/conf/domain_conf.c:9013
+#: src/conf/domain_conf.c:9019
 msgid "missing video model and cannot determine default"
 msgstr "ভিডিও মডেল অনুপস্থিত আৰু ডিফল্ট মান নিৰ্ধাৰণ কৰিবলৈ ব্যৰ্থ"
 
-#: src/conf/domain_conf.c:9021
+#: src/conf/domain_conf.c:9027
 msgid "ram attribute only supported for type of qxl"
 msgstr "ram ৰ বৈশিষ্ট্য কেৱল qxl ৰ ধৰণৰ বাবে সমৰ্থিত"
 
-#: src/conf/domain_conf.c:9026 src/conf/domain_conf.c:9036
+#: src/conf/domain_conf.c:9032 src/conf/domain_conf.c:9042
 #, c-format
 msgid "cannot parse video ram '%s'"
 msgstr "ভিডিও ram '%s' বিশ্লেষণ কৰিবলৈ ব্যৰ্থ"
 
-#: src/conf/domain_conf.c:9046
+#: src/conf/domain_conf.c:9052
 #, c-format
 msgid "cannot parse video heads '%s'"
 msgstr "ভিডিও হেড '%s' বিশ্লেষণ কৰিবলৈ ব্যৰ্থ"
 
-#: src/conf/domain_conf.c:9093
+#: src/conf/domain_conf.c:9099
 #, c-format
 msgid "unknown hostdev mode '%s'"
 msgstr "অজ্ঞাত hostdev ধৰণ '%s'"
 
-#: src/conf/domain_conf.c:9113
+#: src/conf/domain_conf.c:9119
 #, c-format
 msgid "Unexpected hostdev mode %d"
 msgstr "অপ্ৰত্যাশিত hostdev অৱস্থা %d"
 
-#: src/conf/domain_conf.c:9130
+#: src/conf/domain_conf.c:9136
 msgid "PCI host devices must use 'pci' address type"
 msgstr "PCI হোস্ট ডিভাইচৰ ক্ষেত্ৰত 'pci' ধৰণৰ ঠিকনা ব্যৱহাৰ কৰা আৱশ্যক"
 
-#: src/conf/domain_conf.c:9139
+#: src/conf/domain_conf.c:9145
 msgid "SCSI host devices must have address specified"
 msgstr "SCSI হস্ট ডিভাইচসমূহৰ ঠিকনা ধাৰ্য্যত থাকিব লাগিব"
 
-#: src/conf/domain_conf.c:9181
+#: src/conf/domain_conf.c:9187
 #, c-format
 msgid "unknown redirdev bus '%s'"
 msgstr "অজ্ঞাত redirdev বাচ '%s'"
 
-#: src/conf/domain_conf.c:9192
+#: src/conf/domain_conf.c:9198
 #, c-format
 msgid "unknown redirdev character device type '%s'"
 msgstr "অজ্ঞাত redirdev আখৰ ডিভাইচ ধৰণ '%s'"
 
-#: src/conf/domain_conf.c:9197
+#: src/conf/domain_conf.c:9203
 msgid "missing type in redirdev"
 msgstr "redirdev ত সন্ধানহিন ধৰণ"
 
-#: src/conf/domain_conf.c:9273
+#: src/conf/domain_conf.c:9279
 #, c-format
 msgid "Incorrect USB version format %s"
 msgstr "অজ্ঞাত USB সংস্কৰণ বিন্যাস %s"
 
-#: src/conf/domain_conf.c:9283
+#: src/conf/domain_conf.c:9289
 #, c-format
 msgid "Cannot parse USB version %s"
 msgstr "USB সংস্কৰণ %s বিশ্লেষণ কৰিব নোৱাৰি"
 
-#: src/conf/domain_conf.c:9316
+#: src/conf/domain_conf.c:9322
 #, c-format
 msgid "Cannot parse USB Class code %s"
 msgstr "USB ক্লাচ ক'ড %s বিশ্লেষণ কৰিব নোৱাৰি"
 
-#: src/conf/domain_conf.c:9322
+#: src/conf/domain_conf.c:9328
 #, c-format
 msgid "Invalid USB Class code %s"
 msgstr "অবৈধ USB ক্লাচ ক'ড %s"
 
-#: src/conf/domain_conf.c:9333
+#: src/conf/domain_conf.c:9339
 #, c-format
 msgid "Cannot parse USB vendor ID %s"
 msgstr "USB বিক্ৰেতা ID %s বিশ্লেষণ কৰিব নোৱাৰি"
 
-#: src/conf/domain_conf.c:9344
+#: src/conf/domain_conf.c:9350
 #, c-format
 msgid "Cannot parse USB product ID %s"
 msgstr "USB উৎপাদন ID %s বিশ্লেষণ কৰিব নোৱাৰি"
 
-#: src/conf/domain_conf.c:9369
+#: src/conf/domain_conf.c:9375
 msgid "Invalid allow value, either 'yes' or 'no'"
 msgstr "অবৈধ অনুমতি মান, হয় 'yes' অথবা 'no'"
 
-#: src/conf/domain_conf.c:9374
+#: src/conf/domain_conf.c:9380
 msgid "Missing allow attribute for USB redirection filter"
 msgstr "USB পুনৰনিৰ্দেশ ফিল্টাৰৰ বাবে সন্ধানহিন অনুমতি বৈশিষ্ট্য"
 
-#: src/conf/domain_conf.c:9447
+#: src/conf/domain_conf.c:9453
 #, c-format
 msgid "unknown %s action: %s"
 msgstr "অজ্ঞাত %s কাৰ্য্য: %s"
 
-#: src/conf/domain_conf.c:9467
+#: src/conf/domain_conf.c:9473
 #, c-format
 msgid "unknown PM state value %s"
 msgstr "অজ্ঞাত PM অৱস্থা মান %s"
 
-#: src/conf/domain_conf.c:9490
+#: src/conf/domain_conf.c:9496
 msgid "(device_definition)"
 msgstr "(device_definition)"
 
-#: src/conf/domain_conf.c:9508
+#: src/conf/domain_conf.c:9514
 #, c-format
 msgid "unknown device type '%s'"
 msgstr "অজ্ঞাত ডিভাইচ ধৰণ '%s'"
 
-#: src/conf/domain_conf.c:10404
+#: src/conf/domain_conf.c:10410
 msgid "unknown virt type"
 msgstr "virt ৰ প্ৰকৃতি অজ্ঞাত"
 
-#: src/conf/domain_conf.c:10415
+#: src/conf/domain_conf.c:10421
 #, c-format
 msgid "no emulator for domain %s os type %s on architecture %s"
 msgstr "ডোমেইন %s os ধৰণ %s স্থাপত্য %s ত কোনো এমুলেটৰ নাই"
 
-#: src/conf/domain_conf.c:10441
+#: src/conf/domain_conf.c:10447
 msgid "cannot count boot devices"
 msgstr "বুট ডিভাইচসমূহ গণনা কৰিব নোৱাৰি"
 
-#: src/conf/domain_conf.c:10452
+#: src/conf/domain_conf.c:10458
 msgid "per-device boot elements cannot be used together with os/boot elements"
 msgstr ""
 "প্ৰতি-ডিভাইচ বুট উপাদানসমূহ os/বুট উপাদানসমূহৰ সৈতে একেলগে ব্যৱহাৰ কৰিব নোৱাৰি"
 
-#: src/conf/domain_conf.c:10462
+#: src/conf/domain_conf.c:10468
 msgid "missing boot device"
 msgstr "হৰুৱা উৎসৰ ডিভাইচ"
 
-#: src/conf/domain_conf.c:10467
+#: src/conf/domain_conf.c:10473
 #, c-format
 msgid "unknown boot device '%s'"
 msgstr "অজ্ঞাত বুট ডিভাইচ: '%s'"
 
-#: src/conf/domain_conf.c:10500
+#: src/conf/domain_conf.c:10506
 msgid "need at least one serial port for useserial"
 msgstr "useserial ৰ বাবে অন্তত এটা ক্ৰমিক পোৰ্টৰ প্ৰয়োজন"
 
-#: src/conf/domain_conf.c:10518
+#: src/conf/domain_conf.c:10524
 msgid "invalid value for rebootTimeout, must be in range [-1,65535]"
 msgstr "rebootTimeout ৰ বাবে অবৈধ মান, বিস্তাৰ [-1,65535] ত হব লাগিব"
 
-#: src/conf/domain_conf.c:10582
+#: src/conf/domain_conf.c:10588
 msgid "You must map the root user of container"
 msgstr "আপুনি বৈয়ামৰ ৰুট ব্যৱহাৰকাৰীক মেপ কৰিব লাগিব"
 
-#: src/conf/domain_conf.c:10627
+#: src/conf/domain_conf.c:10633
 msgid "vcpu id must be an unsigned integer or -1"
 msgstr "vcpu id এটা অস্বাক্ষৰিত পূৰ্ণসংখ্যা অথবা -1 হব লাগিব"
 
-#: src/conf/domain_conf.c:10631
+#: src/conf/domain_conf.c:10637
 msgid "vcpu id value -1 is not allowed for vcpupin"
 msgstr "vcpu id মান -1 vcpupin ৰ বাবে অনুমোদিত নহয়"
 
-#: src/conf/domain_conf.c:10638
+#: src/conf/domain_conf.c:10644
 msgid "vcpu id must be less than maxvcpus"
 msgstr "vcpu আইডি maxvcpus কে কম হব লাগিব"
 
-#: src/conf/domain_conf.c:10658
+#: src/conf/domain_conf.c:10664
 msgid "missing cpuset for vcpupin"
 msgstr "vcpupin ৰ বাবে সন্ধানহিন cpuset"
 
-#: src/conf/domain_conf.c:10773
+#: src/conf/domain_conf.c:10779
 msgid "missing resource partition attribute"
 msgstr "সন্ধানহিন সম্পদ বিভাজন বৈশিষ্ট্য"
 
-#: src/conf/domain_conf.c:10849
+#: src/conf/domain_conf.c:10855
 msgid "missing domain type attribute"
 msgstr "ডোমেইনৰ ধৰণৰ গুণ অনুপস্থিত"
 
-#: src/conf/domain_conf.c:10855
+#: src/conf/domain_conf.c:10861
 #, c-format
 msgid "invalid domain type %s"
 msgstr "অবৈধ ডোমেইন ধৰণ %s"
 
-#: src/conf/domain_conf.c:10863
+#: src/conf/domain_conf.c:10869
 #, c-format
 msgid "unexpected domain type %s, expecting %s"
 msgstr "অপ্ৰত্যাশিত ডমেইন ধৰণ %s, প্ৰত্যাশিত %s"
 
-#: src/conf/domain_conf.c:10888
+#: src/conf/domain_conf.c:10894
 #, c-format
 msgid "unexpected domain type %s, expecting one of these: %s"
 msgstr "অপ্ৰত্যাশিত ডমেইন ধৰণ %s, ইয়াৰ এটা প্ৰত্যাশা কৰা হৈছে: %s"
 
-#: src/conf/domain_conf.c:10912 src/conf/network_conf.c:1972
+#: src/conf/domain_conf.c:10918 src/conf/network_conf.c:1972
 #: src/conf/secret_conf.c:190 src/openvz/openvz_conf.c:1076
 #: src/xenxs/xen_xm.c:216
 msgid "Failed to generate UUID"
 msgstr "UUID নিৰ্মাণ কৰোঁতে ব্যৰ্থ"
 
-#: src/conf/domain_conf.c:10919 src/conf/network_conf.c:1979
+#: src/conf/domain_conf.c:10925 src/conf/network_conf.c:1979
 #: src/conf/nwfilter_conf.c:2561 src/conf/secret_conf.c:196
 #: src/conf/storage_conf.c:889
 msgid "malformed uuid element"
 msgstr "uuid সামগ্ৰী ভুল"
 
-#: src/conf/domain_conf.c:10929
+#: src/conf/domain_conf.c:10935
 msgid "Domain title can't contain newlines"
 msgstr "ডমেইন শীৰ্ষক নতুনশাৰী অন্তৰ্ভুক্ত কৰিব নোৱাৰিব"
 
-#: src/conf/domain_conf.c:10954
+#: src/conf/domain_conf.c:10960
 #, c-format
 msgid "Invalid memory core dump attribute value '%s'"
 msgstr "অবৈধ মেমৰি কেন্দ্ৰ ডাম্প বৈশিষ্ট্য মান '%s'"
 
-#: src/conf/domain_conf.c:10966
+#: src/conf/domain_conf.c:10972
 #, c-format
 msgid "current memory '%lluk' exceeds maximum '%lluk'"
 msgstr "বৰ্তমান মেমৰি '%lluk' এ সৰ্বাধিক '%lluk' অতিক্ৰম কৰে"
 
-#: src/conf/domain_conf.c:10995
+#: src/conf/domain_conf.c:11001
 msgid "cannot extract blkiotune nodes"
 msgstr "blkiotune ন'ডসমূহ নিষ্কাশণ কৰিব নোৱাৰি"
 
-#: src/conf/domain_conf.c:11011
+#: src/conf/domain_conf.c:11017
 #, c-format
 msgid "duplicate device weight path '%s'"
 msgstr "প্ৰতিলিপিত ডিভাইচ উজন পথ '%s'"
 
-#: src/conf/domain_conf.c:11039
+#: src/conf/domain_conf.c:11045
 msgid "maximum vcpus must be an integer"
 msgstr "সৰ্বাধিক vcpus এটা পূৰ্ণসংখ্যা হব লাগিব"
 
-#: src/conf/domain_conf.c:11047
+#: src/conf/domain_conf.c:11053
 #, c-format
 msgid "invalid maximum number of vCPUs '%lu'"
 msgstr "vCPUs '%lu' ৰ অবৈধ সৰ্বাধিক সংখ্যা"
 
-#: src/conf/domain_conf.c:11055
+#: src/conf/domain_conf.c:11061
 msgid "current vcpus must be an integer"
 msgstr "বৰ্তমান vcpus এটা পূৰ্ণসংখ্যা হব লাগিব"
 
-#: src/conf/domain_conf.c:11063
+#: src/conf/domain_conf.c:11069
 #, c-format
 msgid "invalid current number of vCPUs '%lu'"
 msgstr "vCPUs '%lu' ৰ অবৈধ বৰ্তমান সংখ্যা"
 
-#: src/conf/domain_conf.c:11069
+#: src/conf/domain_conf.c:11075
 #, c-format
 msgid "maxvcpus must not be less than current vcpus (%d < %lu)"
 msgstr "maxvcpus বৰ্তমান vcpus (%d < %lu) কে কম হব নালাগিব"
 
-#: src/conf/domain_conf.c:11081
+#: src/conf/domain_conf.c:11087
 #, c-format
 msgid "Unsupported CPU placement mode '%s'"
 msgstr "অসমৰ্থিত CPU স্থাপন অৱস্থা '%s'"
 
-#: src/conf/domain_conf.c:11104
+#: src/conf/domain_conf.c:11110
 msgid "can't parse cputune shares value"
 msgstr "cputune অংশবোৰৰ মান বিশ্লেষণ কৰিব নোৱাৰি"
 
-#: src/conf/domain_conf.c:11111
+#: src/conf/domain_conf.c:11117
 msgid "can't parse cputune period value"
 msgstr "cputune অৱধিৰ মান বিশ্লেষণ কৰিব নোৱাৰি"
 
-#: src/conf/domain_conf.c:11118
+#: src/conf/domain_conf.c:11124
 msgid "Value of cputune period must be in range [1000, 1000000]"
 msgstr "cputune ক্ৰমৰ মান বিস্তাৰ [1000, 1000000] ত থাকিব লাগিব"
 
-#: src/conf/domain_conf.c:11126
+#: src/conf/domain_conf.c:11132
 msgid "can't parse cputune quota value"
 msgstr "cputune কুটা মান বিশ্লেষণ কৰিব নোৱাৰি"
 
-#: src/conf/domain_conf.c:11134
+#: src/conf/domain_conf.c:11140
 msgid "Value of cputune quota must be in range [1000, 18446744073709551]"
 msgstr "cputune কুটাৰ মান বিস্তাৰ [1000, 18446744073709551] ত থাকিব লাগিব"
 
-#: src/conf/domain_conf.c:11142
+#: src/conf/domain_conf.c:11148
 msgid "can't parse cputune emulator period value"
 msgstr "cputune ইমুলেটৰ অৱধিৰ মান বিশ্লেষণ কৰিব নোৱাৰি"
 
-#: src/conf/domain_conf.c:11150
+#: src/conf/domain_conf.c:11156
 msgid "Value of cputune emulator_period must be in range [1000, 1000000]"
 msgstr "cputune emulator_period ৰ মান বিস্তাৰ [1000, 1000000] ত থাকিব লাগিব"
 
-#: src/conf/domain_conf.c:11158
+#: src/conf/domain_conf.c:11164
 msgid "can't parse cputune emulator quota value"
 msgstr "cputune ইমুলেটৰ কুটা মান বিশ্লেষণ কৰিব নোৱাৰি"
 
-#: src/conf/domain_conf.c:11166
+#: src/conf/domain_conf.c:11172
 msgid ""
 "Value of cputune emulator_quota must be in range [1000, 18446744073709551]"
 msgstr ""
 "cputune emulator_quota ৰ মান বিস্তাৰ [1000, 18446744073709551] ত থাকিব লাগিব"
 
-#: src/conf/domain_conf.c:11179
+#: src/conf/domain_conf.c:11185
 msgid "vcpupin nodes must be less than maxvcpus"
 msgstr "vcpupin ন'ডসমূহ maxvcpus কে কম হব লাগিব"
 
-#: src/conf/domain_conf.c:11194
+#: src/conf/domain_conf.c:11200
 msgid "duplicate vcpupin for same vcpu"
 msgstr "একেটা vcpu ৰ বাবে প্ৰতিলিপিত vcpupin"
 
-#: src/conf/domain_conf.c:11241
+#: src/conf/domain_conf.c:11247
 msgid "cannot extract emulatorpin nodes"
 msgstr "emulatorpin ন'ডসমূহ নিষ্কাষণ কৰিব নোৱাৰি"
 
-#: src/conf/domain_conf.c:11253
+#: src/conf/domain_conf.c:11259
 msgid "only one emulatorpin is supported"
 msgstr "কেৱল এটা emulatorpin সমৰ্থিত"
 
-#: src/conf/domain_conf.c:11272
+#: src/conf/domain_conf.c:11278
 msgid "cannot extract numatune nodes"
 msgstr "numatone ন'ডসমূহ নিষ্কাশণ কৰিব নোৱাৰি"
 
-#: src/conf/domain_conf.c:11278
+#: src/conf/domain_conf.c:11284
 msgid "only one numatune is supported"
 msgstr "কেৱল এটা numatune সমৰ্থিত"
 
-#: src/conf/domain_conf.c:11297
+#: src/conf/domain_conf.c:11303
 #, c-format
 msgid "Unsupported NUMA memory tuning mode '%s'"
 msgstr "অসমৰ্থিত NUMA মেমৰি টিউনিং অৱস্থা '%s'"
 
-#: src/conf/domain_conf.c:11326
+#: src/conf/domain_conf.c:11332
 #, c-format
 msgid "Unsupported memory placement mode '%s'"
 msgstr "অসমৰ্থিত মেমৰি স্থাপন অৱস্থা '%s'"
 
-#: src/conf/domain_conf.c:11348
+#: src/conf/domain_conf.c:11354
 msgid "nodeset for NUMA memory tuning must be set if 'placement' is 'static'"
 msgstr ""
 "NUMA মেমৰি টিউনিংৰ বাবে ন'ডচেট সংহতি কৰিব লাগিব যদি 'placement' 'static' হয়"
 
-#: src/conf/domain_conf.c:11369
+#: src/conf/domain_conf.c:11375
 #, c-format
 msgid "unsupported XML element %s"
 msgstr "অসমৰ্থতি XML উপাদান %s"
 
-#: src/conf/domain_conf.c:11389
+#: src/conf/domain_conf.c:11395
 msgid "cannot extract resource nodes"
 msgstr "সম্পদ ন'ডসমূহ নিষ্কাষণ কৰিব নোৱাৰি"
 
-#: src/conf/domain_conf.c:11395
+#: src/conf/domain_conf.c:11401
 msgid "only one resource element is supported"
 msgstr "কেৱল এটা সম্পদ উপাদান সমৰ্থিত"
 
-#: src/conf/domain_conf.c:11411
-#, fuzzy, c-format
+#: src/conf/domain_conf.c:11417
+#, c-format
 msgid "unexpected feature '%s'"
-msgstr "অপ্ৰত্যাশিত তথ্য '%s'"
+msgstr ""
 
-#: src/conf/domain_conf.c:11421
-#, fuzzy, c-format
+#: src/conf/domain_conf.c:11427
+#, c-format
 msgid "unknown value for attribute eoi: '%s'"
-msgstr "বৈশিষ্ট্য eoi ৰ বাবে অজ্ঞাত মান: %s"
+msgstr ""
 
-#: src/conf/domain_conf.c:11443
+#: src/conf/domain_conf.c:11449
 #, c-format
 msgid "unsupported HyperV Enlightenment feature: %s"
 msgstr "অসমৰ্থিত HyperV উদ্বোধ বৈশিষ্ট্য: %s"
 
-#: src/conf/domain_conf.c:11455 src/conf/domain_conf.c:11476
+#: src/conf/domain_conf.c:11461 src/conf/domain_conf.c:11482
 #, c-format
 msgid "missing 'state' attribute for HyperV Enlightenment feature '%s'"
 msgstr "HyperV উদ্বোধ বৈশিষ্ট্য '%s' ৰ বাবে 'state' বৈশিষ্ট্য সন্ধানহিন"
 
-#: src/conf/domain_conf.c:11463 src/conf/domain_conf.c:11484
+#: src/conf/domain_conf.c:11469 src/conf/domain_conf.c:11490
 #, c-format
 msgid "invalid value of state argument for HyperV Enlightenment feature '%s'"
 msgstr "HyperV উদ্বোধ বৈশিষ্ট্য '%s' ৰ বাবে অৱস্থা তৰ্কৰ অবৈধ মান"
 
-#: src/conf/domain_conf.c:11495
+#: src/conf/domain_conf.c:11501
 msgid "invalid HyperV spinlock retry count"
 msgstr "অবৈধ HyperV spinlock পুনৰচেষ্টা গণনা"
 
-#: src/conf/domain_conf.c:11501
+#: src/conf/domain_conf.c:11507
 msgid "HyperV spinlock retry count must be at least 4095"
 msgstr "HyperV spinlock পুনৰ চেষ্টা গণনা অন্তত 4095 হ'ব লাগিব"
 
-#: src/conf/domain_conf.c:11558
+#: src/conf/domain_conf.c:11564
 #, c-format
 msgid "unknown clock offset '%s'"
 msgstr "ঘড়িৰ অজ্ঞাত অফ-ছেট '%s'"
 
-#: src/conf/domain_conf.c:11574
+#: src/conf/domain_conf.c:11580
 #, c-format
 msgid "unknown clock adjustment '%s'"
 msgstr "অজ্ঞাত ঘড়ী সজোৱা '%s'"
 
-#: src/conf/domain_conf.c:11602
+#: src/conf/domain_conf.c:11608
 #, c-format
 msgid "unknown clock basis '%s'"
 msgstr "অজ্ঞাত ঘড়ী ভিত্তি '%s'"
 
-#: src/conf/domain_conf.c:11615
+#: src/conf/domain_conf.c:11621
 msgid "missing 'timezone' attribute for clock with offset='timezone'"
 msgstr "offset='timezone' সহ ঘড়িৰ ক্ষেত্ৰত 'timezone' গুণ অনুপস্থিত"
 
-#: src/conf/domain_conf.c:11626
+#: src/conf/domain_conf.c:11632
 msgid "invalid basedate"
 msgstr "অবৈধ ভিত্তিতাৰিখ"
 
-#: src/conf/domain_conf.c:11657
+#: src/conf/domain_conf.c:11663
 msgid "no OS type"
 msgstr "OS ৰ প্ৰকৃতি অনুপস্থিত"
 
-#: src/conf/domain_conf.c:11692
+#: src/conf/domain_conf.c:11698
 #, c-format
 msgid "No guest options available for arch '%s'"
 msgstr "স্থাপত্য '%s' ৰ বাবে কোনো অতিথি বিকল্প নাই"
 
-#: src/conf/domain_conf.c:11701
+#: src/conf/domain_conf.c:11707
 #, c-format
 msgid "No os type '%s' available for arch '%s'"
 msgstr "স্থাপত্য '%s' ৰ বাবে কোনো os ধৰণ '%s' নাই"
 
-#: src/conf/domain_conf.c:11712 src/xenxs/xen_xm.c:293
+#: src/conf/domain_conf.c:11718 src/xenxs/xen_xm.c:293
 #, c-format
 msgid "no supported architecture for os type '%s'"
 msgstr "os ধৰণ '%s' ৰ কাৰণে অসমৰ্থিত স্থাপত্য"
 
-#: src/conf/domain_conf.c:11751
+#: src/conf/domain_conf.c:11757
 msgid "No data supplied for <initarg> element"
 msgstr "<initarg> উপাদানৰ বাবে কোনো তথ্য প্ৰদান কৰা হোৱা নাই"
 
-#: src/conf/domain_conf.c:11824 src/conf/domain_conf.c:11833
+#: src/conf/domain_conf.c:11830 src/conf/domain_conf.c:11839
 msgid "Can't add another USB controller: USB is disabled for this domain"
 msgstr "অন্য USB নিয়ন্ত্ৰক যোগ কৰিব নোৱাৰি: USB এই ডমেইনৰ বাবে অসামৰ্থবান কৰা আছে"
 
-#: src/conf/domain_conf.c:11850
+#: src/conf/domain_conf.c:11856
 msgid "No master USB controller specified"
 msgstr "কোনো মাস্টাৰ USB নিয়ন্ত্ৰক ধাৰ্য্য কৰা হোৱা নাই"
 
-#: src/conf/domain_conf.c:11857
+#: src/conf/domain_conf.c:11863
 msgid "cannot extract device leases"
 msgstr "ডিভাইচ ইজাৰসমূহ নিষ্কাশণ কৰিব নোৱাৰি"
 
-#: src/conf/domain_conf.c:11990
+#: src/conf/domain_conf.c:11996
 msgid "cannot extract console devices"
 msgstr "কনচৌল ডিভাইচসমূহ নিষ্কাশণ কৰিব নোৱাৰি"
 
-#: src/conf/domain_conf.c:12068
+#: src/conf/domain_conf.c:12074
 msgid "Can't add USB input device. USB bus is disabled"
 msgstr "USB ইনপুট ডিভাইচ যোগ কৰিব নোৱাৰি। USB ডিভাইচ অসামৰ্থবান"
 
-#: src/conf/domain_conf.c:12166
+#: src/conf/domain_conf.c:12172
 msgid "Only one primary video device is supported"
 msgstr "কেৱল এটা প্ৰাথমিক ভিডিঅ' ডিভাইচ সমৰ্থিত"
 
-#: src/conf/domain_conf.c:12192
+#: src/conf/domain_conf.c:12198
 msgid "cannot determine default video type"
 msgstr "ভিডিওৰ ডিফল্ট ধৰণ নিৰ্ধাৰণ কৰিবলৈ ব্যৰ্থ"
 
-#: src/conf/domain_conf.c:12222
+#: src/conf/domain_conf.c:12228
 msgid "Can't add host USB device: USB is disabled in this host"
 msgstr "হস্ট USB ডিভাইচ যোগ কৰিব নোৱাৰি: USB এই হস্টত অসামৰ্থবান কৰা আছে"
 
-#: src/conf/domain_conf.c:12241
+#: src/conf/domain_conf.c:12247
 msgid "only a single watchdog device is supported"
 msgstr "অকল এটা watchdog ডিভাইচ সমৰ্থিত হ'ব"
 
-#: src/conf/domain_conf.c:12261
+#: src/conf/domain_conf.c:12267
 msgid "only a single memory balloon device is supported"
 msgstr "কেৱল এটা মেমৰি বেলুন ডিভাইচ সমৰ্থিত"
 
-#: src/conf/domain_conf.c:12280
+#: src/conf/domain_conf.c:12286
 msgid "only a single RNG device is supported"
 msgstr "কেৱল এটা RNG ডিভাইচ সমৰ্থিত"
 
-#: src/conf/domain_conf.c:12297
+#: src/conf/domain_conf.c:12303
 msgid "only a single TPM device is supported"
 msgstr "কেৱল এটা TPM ডিভাইচ সমৰ্থিত"
 
-#: src/conf/domain_conf.c:12313
+#: src/conf/domain_conf.c:12319
 msgid "only a single nvram device is supported"
 msgstr "কেৱল এটা nvram ডিভাইচ সমৰ্থিত"
 
-#: src/conf/domain_conf.c:12338
+#: src/conf/domain_conf.c:12344
 msgid "Can't add USB hub: USB is disabled for this domain"
 msgstr "USB হাব যোগ কৰিব নোৱাৰি: USB এই ডমেইনৰ বাবে অসামৰ্থবান কৰা আছে"
 
-#: src/conf/domain_conf.c:12362
+#: src/conf/domain_conf.c:12368
 msgid "Can't add redirected USB device: USB is disabled for this domain"
 msgstr ""
 "পুনৰনিৰ্দেশ USB ডিভাইচ যোগ কৰিব নোৱাৰি: USB এই ডমেইনৰ বাবে অসামৰ্থবান কৰা আছে"
 
-#: src/conf/domain_conf.c:12377
+#: src/conf/domain_conf.c:12383
 msgid "only one set of redirection filter rule is supported"
 msgstr "পুনৰনিৰ্দেশ ফিল্টাৰ নিয়মৰ কেৱল এটা সংহতিহে সমৰ্থিত"
 
-#: src/conf/domain_conf.c:12419
+#: src/conf/domain_conf.c:12425
 msgid "uid and gid should be mapped both"
 msgstr "uid আৰু gid দুয়োটা মেপ কৰিব লাগিব"
 
-#: src/conf/domain_conf.c:12437
+#: src/conf/domain_conf.c:12443
 msgid "Maximum CPUs greater than topology limit"
 msgstr "সৰ্বাধিক CPUসমূহ টপোলজী সীমাতকে অধিক"
 
-#: src/conf/domain_conf.c:12443
+#: src/conf/domain_conf.c:12449
 msgid "Number of CPUs in <numa> exceeds the <vcpu> count"
 msgstr "<numa> ত CPUসমূহৰ সংখ্যা <vcpu> গণনা অতিক্ৰম কৰে"
 
-#: src/conf/domain_conf.c:12465
+#: src/conf/domain_conf.c:12471
 #, c-format
 msgid "unknown smbios mode '%s'"
 msgstr "অজ্ঞাত smbios অৱস্থা '%s'"
 
-#: src/conf/domain_conf.c:12530
+#: src/conf/domain_conf.c:12536
 msgid "no domain config"
 msgstr "নোডৰ ডোমেইন তালিকা"
 
-#: src/conf/domain_conf.c:12544
+#: src/conf/domain_conf.c:12550
 msgid "missing domain state"
 msgstr "ডোমেইনৰ অৱস্থা অনুপস্থিত"
 
-#: src/conf/domain_conf.c:12549
+#: src/conf/domain_conf.c:12555
 #, c-format
 msgid "invalid domain state '%s'"
 msgstr "ডোমেইন অৱস্থা '%s' বৈধ নহয়"
 
-#: src/conf/domain_conf.c:12558
+#: src/conf/domain_conf.c:12564
 #, c-format
 msgid "invalid domain state reason '%s'"
 msgstr "অবৈধ ডমেইন অৱস্থা কাৰণ '%s'"
 
-#: src/conf/domain_conf.c:12569
+#: src/conf/domain_conf.c:12575
 msgid "invalid pid"
 msgstr "অবৈধ পথ"
 
-#: src/conf/domain_conf.c:12583
+#: src/conf/domain_conf.c:12589
 #, c-format
 msgid "Unknown taint flag %s"
 msgstr "অজ্ঞাত দাগ ফ্লেগ %s"
 
-#: src/conf/domain_conf.c:12618 src/security/virt-aa-helper.c:654
+#: src/conf/domain_conf.c:12624 src/security/virt-aa-helper.c:654
 #: tools/virsh-domain-monitor.c:98 tools/virsh-domain-monitor.c:531
 #: tools/virsh-domain-monitor.c:638 tools/virsh-domain-monitor.c:760
 #: tools/virsh-domain.c:2396 tools/virsh-domain.c:3033
@@ -3029,42 +3034,42 @@ msgstr "অজ্ঞাত দাগ ফ্লেগ %s"
 msgid "(domain_definition)"
 msgstr "(domain_definition)"
 
-#: src/conf/domain_conf.c:12664
+#: src/conf/domain_conf.c:12670
 #, c-format
 msgid "unexpected root element <%s>, expecting <domain>"
 msgstr "অপ্ৰত্যাশিত ৰুট উপাদান <%s>, প্ৰত্যাশিত <domain>"
 
-#: src/conf/domain_conf.c:12699
+#: src/conf/domain_conf.c:12705
 #, c-format
 msgid "unexpected root element <%s>, expecting <domstatus>"
 msgstr "অপ্ৰত্যাশিত ৰুট উপাদান <%s>, প্ৰত্যাশিত <domstatus>"
 
-#: src/conf/domain_conf.c:12748
+#: src/conf/domain_conf.c:12754
 #, c-format
 msgid "Target timer %s does not match source %s"
 msgstr "লক্ষ্য টাইমাৰ %s এ উৎস %s ৰ সৈতে মিল নাখায়"
 
-#: src/conf/domain_conf.c:12756
+#: src/conf/domain_conf.c:12762
 #, c-format
 msgid "Target timer presence %d does not match source %d"
 msgstr "লক্ষ্য টাইমাৰ উপস্থিতি %d উৎস %d ৰ সৈতে মিল নাখায়"
 
-#: src/conf/domain_conf.c:12764
+#: src/conf/domain_conf.c:12770
 #, c-format
 msgid "Target TSC frequency %lu does not match source %lu"
 msgstr "লক্ষ্য TSC কম্পনাংক %lu উৎস %lu ৰ সৈতে মিল নাখায়"
 
-#: src/conf/domain_conf.c:12771
+#: src/conf/domain_conf.c:12777
 #, c-format
 msgid "Target TSC mode %s does not match source %s"
 msgstr "লক্ষ্য TSC অৱস্থা %s উৎস %s ৰ সৈতে মিল নাখায়"
 
-#: src/conf/domain_conf.c:12788
+#: src/conf/domain_conf.c:12794
 #, c-format
 msgid "Target device address type %s does not match source %s"
 msgstr "লক্ষ্য ডিভাইচ ঠিকনা ধৰণ %s উৎস %s ৰ সৈতে মিল নাখায়"
 
-#: src/conf/domain_conf.c:12801
+#: src/conf/domain_conf.c:12807
 #, c-format
 msgid ""
 "Target device PCI address %04x:%02x:%02x.%02x does not match source %04x:"
@@ -3073,667 +3078,667 @@ msgstr ""
 "লক্ষ্য ডিভাইচ PCI ঠিকনা %04x:%02x:%02x.%02x উৎস %04x:%02x:%02x.%02x ৰ সৈতে মিল "
 "নাখায়"
 
-#: src/conf/domain_conf.c:12816
+#: src/conf/domain_conf.c:12822
 #, c-format
 msgid "Target device drive address %d:%d:%d does not match source %d:%d:%d"
 msgstr "লক্ষ্য ডিভাইচ ড্ৰাইভ ঠিকনা %d:%d:%d উৎস %d:%d:%d ৰ সৈতে মিল নাখায়"
 
-#: src/conf/domain_conf.c:12831
+#: src/conf/domain_conf.c:12837
 #, c-format
 msgid ""
 "Target device virtio serial address %d:%d:%d does not match source %d:%d:%d"
 msgstr "লক্ষ্য ডিভাইচ virtio ক্ৰমিক ঠিকনা %d:%d:%d উৎস %d:%d:%d ৰ সৈতে মিল নাখায়"
 
-#: src/conf/domain_conf.c:12845
+#: src/conf/domain_conf.c:12851
 #, c-format
 msgid "Target device ccid address %d:%d does not match source %d:%d"
 msgstr "লক্ষ্য ডিভাইচ ccid ঠিকনা %d:%d উৎস %d:%d ৰ সৈতে মিল নাখায়"
 
-#: src/conf/domain_conf.c:12866
+#: src/conf/domain_conf.c:12872
 #, c-format
 msgid "Target disk device %s does not match source %s"
 msgstr "লক্ষ্য ডিস্ক ডিভাইচ %s উৎস %s ৰ সৈতে মিল নাখায়"
 
-#: src/conf/domain_conf.c:12874
+#: src/conf/domain_conf.c:12880
 #, c-format
 msgid "Target disk bus %s does not match source %s"
 msgstr "লক্ষ্য ডিস্ক বাচ %s উৎস %s ৰ সৈতে মিল নাখায়"
 
-#: src/conf/domain_conf.c:12882
+#: src/conf/domain_conf.c:12888
 #, c-format
 msgid "Target disk %s does not match source %s"
 msgstr "লক্ষ্য ডিস্ক %s উৎস %s ৰ সৈতে মিল নাখায়"
 
-#: src/conf/domain_conf.c:12889
+#: src/conf/domain_conf.c:12895
 #, c-format
 msgid "Target disk serial %s does not match source %s"
 msgstr "লক্ষ্য ডিস্ক ক্ৰমিক %s উৎস %s ৰ সৈতে মিল নাখায়"
 
-#: src/conf/domain_conf.c:12896
+#: src/conf/domain_conf.c:12902
 msgid "Target disk access mode does not match source"
 msgstr "লক্ষ্য ডিস্ক অভিগম অৱস্থা উৎসৰ সৈতে মিল নাখায়"
 
-#: src/conf/domain_conf.c:12913
+#: src/conf/domain_conf.c:12919
 #, c-format
 msgid "Target controller type %s does not match source %s"
 msgstr "লক্ষ্য নিয়ন্ত্ৰক ধৰণ %s উৎস %s ৰ সৈতে মিল নাখায়"
 
-#: src/conf/domain_conf.c:12921
+#: src/conf/domain_conf.c:12927
 #, c-format
 msgid "Target controller index %d does not match source %d"
 msgstr "লক্ষ্য নিয়ন্ত্ৰক সূচী %d উৎস %d ৰ সৈতে মিল নাখায়"
 
-#: src/conf/domain_conf.c:12928
+#: src/conf/domain_conf.c:12934
 #, c-format
 msgid "Target controller model %d does not match source %d"
 msgstr "লক্ষ্য নিয়ন্ত্ৰক আৰ্হি %d উৎস %d ৰ সৈতে মিল নাখায়"
 
-#: src/conf/domain_conf.c:12936
+#: src/conf/domain_conf.c:12942
 #, c-format
 msgid "Target controller ports %d does not match source %d"
 msgstr "লক্ষ্য নিয়ন্ত্ৰক পোৰ্টসমূহ %d উৎস %d ৰ সৈতে মিল নাখায়"
 
-#: src/conf/domain_conf.c:12943
+#: src/conf/domain_conf.c:12949
 #, c-format
 msgid "Target controller vectors %d does not match source %d"
 msgstr "লক্ষ্য নিয়ন্ত্ৰক সদিশসমূহ %d উৎস %d ৰ সৈতে মিল নাখায়"
 
-#: src/conf/domain_conf.c:12962
+#: src/conf/domain_conf.c:12968
 #, c-format
 msgid "Target filesystem guest target %s does not match source %s"
 msgstr "লক্ষ্য ফাইলপ্ৰণালী অতিথি লক্ষ্য %s উৎস %s ৰ সৈতে মিল নাখায়"
 
-#: src/conf/domain_conf.c:12969
+#: src/conf/domain_conf.c:12975
 msgid "Target filesystem access mode does not match source"
 msgstr "লক্ষ্য ফাইলপ্ৰণালী অভিগম অৱস্থা উৎসৰ সৈতে মিল নাখায়"
 
-#: src/conf/domain_conf.c:12989
+#: src/conf/domain_conf.c:12995
 #, c-format
 msgid "Target network card mac %s does not match source %s"
 msgstr "লক্ষ্য নেটৱাৰ্ক কাৰ্ড mac %s এ উৎস %s ৰ সৈতে মিল নাখায়"
 
-#: src/conf/domain_conf.c:12998
+#: src/conf/domain_conf.c:13004
 #, c-format
 msgid "Target network card model %s does not match source %s"
 msgstr "লক্ষ্য নেটৱাৰ্ক কাৰ্ড আৰ্হি %s উৎস %s ৰ সৈতে মিল নাখায়"
 
-#: src/conf/domain_conf.c:13016
+#: src/conf/domain_conf.c:13022
 #, c-format
 msgid "Target input device type %s does not match source %s"
 msgstr "লক্ষ্য ইনপুট ডিভাইচ ধৰণ %s উৎস %s ৰ সৈতে মিল নাখায়"
 
-#: src/conf/domain_conf.c:13024
+#: src/conf/domain_conf.c:13030
 #, c-format
 msgid "Target input device bus %s does not match source %s"
 msgstr "লক্ষ্য ইনপুট ডিভাইচ বাচ %s উৎস %s ৰ সৈতে মিল নাখায়"
 
-#: src/conf/domain_conf.c:13043
+#: src/conf/domain_conf.c:13049
 #, c-format
 msgid "Target sound card model %s does not match source %s"
 msgstr "লক্ষ্য শব্দ কাৰ্ড আৰ্হি %s উৎস %s ৰ সৈতে মিল নাখায়"
 
-#: src/conf/domain_conf.c:13062
+#: src/conf/domain_conf.c:13068
 #, c-format
 msgid "Target video card model %s does not match source %s"
 msgstr "লক্ষ্য ভিডিঅ' কাৰ্ড আৰ্হি %s উৎস %s ৰ সৈতে মিল নাখায়"
 
-#: src/conf/domain_conf.c:13070
+#: src/conf/domain_conf.c:13076
 #, c-format
 msgid "Target video card vram %u does not match source %u"
 msgstr "লক্ষ্য ভিডিঅ' কাৰ্ড vram %u উৎস %u ৰ সৈতে মিল নাখায়"
 
-#: src/conf/domain_conf.c:13077
+#: src/conf/domain_conf.c:13083
 #, c-format
 msgid "Target video card heads %u does not match source %u"
 msgstr "লক্ষ্য ভিডিঅ' কাৰ্ড হেডসমূহ %u উৎস %u ৰ সৈতে মিল নাখায়"
 
-#: src/conf/domain_conf.c:13085
+#: src/conf/domain_conf.c:13091
 msgid "Target video card acceleration does not match source"
 msgstr "লক্ষ্য ভিডিঅ' কাৰ্ড ত্বৰণ উৎসৰ সৈতে মিল নাখায়"
 
-#: src/conf/domain_conf.c:13092
+#: src/conf/domain_conf.c:13098
 #, c-format
 msgid "Target video card 2d accel %u does not match source %u"
 msgstr "লক্ষ্য ভিডিঅ' কাৰ্ড 2d accel %u উৎস %u ৰ সৈতে মিল নাখায়"
 
-#: src/conf/domain_conf.c:13099
+#: src/conf/domain_conf.c:13105
 #, c-format
 msgid "Target video card 3d accel %u does not match source %u"
 msgstr "লক্ষ্য ভিডিঅ' কাৰ্ড 3d accel %u উৎস %u ৰ সৈতে মিল নাখায়"
 
-#: src/conf/domain_conf.c:13118
+#: src/conf/domain_conf.c:13124
 #, c-format
 msgid "Target host device mode %s does not match source %s"
 msgstr "লক্ষ্য হস্ট ডিভাইচ অৱস্থা %s উৎস %s ৰ সৈতে মিল নাখায়"
 
-#: src/conf/domain_conf.c:13127
+#: src/conf/domain_conf.c:13133
 #, c-format
 msgid "Target host device subsystem %s does not match source %s"
 msgstr "লক্ষ্য হস্ট ডিভাইচ উপচিস্টেম %s উৎস %s ৰ সৈতে মিল নাখায়"
 
-#: src/conf/domain_conf.c:13157
+#: src/conf/domain_conf.c:13163
 #, c-format
 msgid "Target serial port %d does not match source %d"
 msgstr "লক্ষ্য ক্ৰমিক পোৰ্ট %d উৎস %d ৰ সৈতে মিল নাখায়"
 
-#: src/conf/domain_conf.c:13175
+#: src/conf/domain_conf.c:13181
 #, c-format
 msgid "Target parallel port %d does not match source %d"
 msgstr "লক্ষ্য সমান্তৰাল পোৰ্ট %d এ উৎস %d ৰ সৈতে মিল নাখায়"
 
-#: src/conf/domain_conf.c:13193
+#: src/conf/domain_conf.c:13199
 #, c-format
 msgid "Target channel type %s does not match source %s"
 msgstr "লক্ষ্য চেনেল ধৰণ %s উৎস %s ৰ সৈতে মিল নাখায়"
 
-#: src/conf/domain_conf.c:13203
+#: src/conf/domain_conf.c:13209
 #, c-format
 msgid "Target channel name %s does not match source %s"
 msgstr "লক্ষ্য চেনেল নাম %s উৎস %s ৰ সৈতে মিল নাখায়"
 
-#: src/conf/domain_conf.c:13212
+#: src/conf/domain_conf.c:13218
 msgid ""
 "Changing device type to/from spicevmc would change default target channel "
 "name"
 msgstr ""
 "ডিভাইচ ধৰণক spicevmc ৰ পৰা/লৈ সলনি কৰিলে অবিকল্পিত লক্ষ্য চেনেল নাম সলনি হব"
 
-#: src/conf/domain_conf.c:13223
+#: src/conf/domain_conf.c:13229
 #, c-format
 msgid "Target channel addr %s does not match source %s"
 msgstr "লক্ষ্য চেনেল addr %s উৎস %s ৰ সৈতে মিল নাখায়"
 
-#: src/conf/domain_conf.c:13245
+#: src/conf/domain_conf.c:13251
 #, c-format
 msgid "Target console type %s does not match source %s"
 msgstr "লক্ষ্য কনচৌল ধৰণ %s উৎস %s ৰ সৈতে মিল নাখায়"
 
-#: src/conf/domain_conf.c:13264
+#: src/conf/domain_conf.c:13270
 #, c-format
 msgid "Target watchdog model %s does not match source %s"
 msgstr "লক্ষ্য watchdog আৰ্হি %s উৎস %s ৰ সৈতে মিল নাখায়"
 
-#: src/conf/domain_conf.c:13283
+#: src/conf/domain_conf.c:13289
 #, c-format
 msgid "Target balloon model %s does not match source %s"
 msgstr "লক্ষ্য বেলুন আৰ্হি %s উৎস %s ৰ সৈতে মিল নাখায়"
 
-#: src/conf/domain_conf.c:13305
+#: src/conf/domain_conf.c:13311
 #, c-format
 msgid "Target domain RNG device count '%d' does not match source count '%d'"
 msgstr "লক্ষ্য ডিভাইচ RNG ডিভাইচ গণনা '%d' এ উৎস গণনা '%d' ৰ সৈতে মিল নাখায়"
 
-#: src/conf/domain_conf.c:13313
+#: src/conf/domain_conf.c:13319
 #, c-format
 msgid "Target RNG model '%s' does not match source '%s'"
 msgstr "লক্ষ্য RNG আৰ্হি '%s' এ উৎস '%s' ৰ সৈতে মিল নাখায়"
 
-#: src/conf/domain_conf.c:13332
+#: src/conf/domain_conf.c:13338
 #, c-format
 msgid "Target hub device type %s does not match source %s"
 msgstr "লক্ষ্য হাব ডিভাইচ ধৰণ %s উৎস %s ৰ সৈতে মিল নাখায়"
 
-#: src/conf/domain_conf.c:13352
+#: src/conf/domain_conf.c:13358
 #, c-format
 msgid "Target USB redirection filter rule count %zu does not match source %zu"
 msgstr "লক্ষ্য USB পুনৰনিৰ্দেশ ফিল্টাৰ নিয়ম গণনা %zu উৎস %zu ৰ সৈতে মিল নাখায়"
 
-#: src/conf/domain_conf.c:13363
+#: src/conf/domain_conf.c:13369
 msgid "Target USB Class code does not match source"
 msgstr "লক্ষ্য USB ক্লাচ ক'ড উৎসৰ সৈতে মিল নাখায়"
 
-#: src/conf/domain_conf.c:13369
+#: src/conf/domain_conf.c:13375
 msgid "Target USB vendor ID does not match source"
 msgstr "লক্ষ্য USB বিক্ৰেতা ID উৎসৰ সৈতে মিল নাখায়"
 
-#: src/conf/domain_conf.c:13375
+#: src/conf/domain_conf.c:13381
 msgid "Target USB product ID does not match source"
 msgstr "লক্ষ্য USB উৎপাদন ID উৎসৰ সৈতে মিল নাখায়"
 
-#: src/conf/domain_conf.c:13381
+#: src/conf/domain_conf.c:13387
 msgid "Target USB version does not match source"
 msgstr "লক্ষ্য USB সংস্কৰণ উৎসৰ সৈতে মিল নাখায়"
 
-#: src/conf/domain_conf.c:13387
+#: src/conf/domain_conf.c:13393
 #, c-format
 msgid "Target USB allow '%s' does not match source '%s'"
 msgstr "লক্ষ্য USB অনুমতি '%s' উৎস '%s' ৰ সৈতে মিল নাখায়"
 
-#: src/conf/domain_conf.c:13407
+#: src/conf/domain_conf.c:13413
 #, c-format
 msgid "Target domain features %d does not match source %d"
 msgstr "লক্ষ্য ডমেইন বৈশিষ্ট্যসমূহ %d উৎস %d ৰ সৈতে মিল নাখায়"
 
-#: src/conf/domain_conf.c:13415
+#: src/conf/domain_conf.c:13421
 #, c-format
 msgid "State of APIC EOI differs: source: '%s', destination: '%s'"
 msgstr "APIC EOI ৰ অৱস্থা পৃথক: উৎস: '%s', গন্তব্য: '%s'"
 
-#: src/conf/domain_conf.c:13430
+#: src/conf/domain_conf.c:13436
 #, c-format
 msgid ""
 "State of HyperV enlightenment feature '%s' differs: source: '%s', "
 "destination: '%s'"
 msgstr "HyperV এনলাইটমেন্ট বৈশিষ্ট্য '%s' ৰ অৱস্থা পৃথক: উৎস: '%s', গন্তব্য: '%s'"
 
-#: src/conf/domain_conf.c:13445
+#: src/conf/domain_conf.c:13451
 #, c-format
 msgid "HyperV spinlock retry count differs: source: '%u', destination: '%u'"
 msgstr "HyperV spinlock পুনৰ চেষ্টা গণনা পৃথক: উৎস: '%u', গন্তব্য: '%u'"
 
-#: src/conf/domain_conf.c:13475
+#: src/conf/domain_conf.c:13481
 #, c-format
 msgid "Target domain virt type %s does not match source %s"
 msgstr "লক্ষ্য ডমেইন virt ধৰণ %s উৎস %s ৰ সৈতে মিল নাখায়"
 
-#: src/conf/domain_conf.c:13487
+#: src/conf/domain_conf.c:13493
 #, c-format
 msgid "Target domain uuid %s does not match source %s"
 msgstr "লক্ষ্য ডমেইন uuid %s উৎস %s ৰ সৈতে মিল নাখায়"
 
-#: src/conf/domain_conf.c:13498
+#: src/conf/domain_conf.c:13504
 #, c-format
 msgid "Target domain name '%s' does not match source '%s'"
 msgstr "লক্ষ্য ডমেইন নাম '%s' এ উৎস '%s' ৰ সৈতে মিল নাখায়"
 
-#: src/conf/domain_conf.c:13505
+#: src/conf/domain_conf.c:13511
 #, c-format
 msgid "Target domain max memory %lld does not match source %lld"
 msgstr "লক্ষ্য ডমেইন সৰ্বাধিক মেমৰি %lld উৎস %lld ৰ সৈতে মিল নাখায়"
 
-#: src/conf/domain_conf.c:13511
+#: src/conf/domain_conf.c:13517
 #, c-format
 msgid "Target domain current memory %lld does not match source %lld"
 msgstr "লক্ষ্য ডমেইন বৰ্তমান ডাইৰেকটৰি %lld উৎস %lld ৰ সৈতে মিল নাখায়"
 
-#: src/conf/domain_conf.c:13517
+#: src/conf/domain_conf.c:13523
 #, c-format
 msgid "Target domain huge page backing %d does not match source %d"
 msgstr "লক্ষ্য ডমেইন বৃহত পৃষ্ঠা বেকিং %d উৎস %d ৰ সৈতে মিল নাখায়"
 
-#: src/conf/domain_conf.c:13525
+#: src/conf/domain_conf.c:13531
 #, c-format
 msgid "Target domain vCPU count %d does not match source %d"
 msgstr "লক্ষ্য ডমেইন vCPU গণনা %d উৎস %d ৰ সৈতে মিল নাখায়"
 
-#: src/conf/domain_conf.c:13531
+#: src/conf/domain_conf.c:13537
 #, c-format
 msgid "Target domain vCPU max %d does not match source %d"
 msgstr "লক্ষ্য ডমেইন vCPU max %d উৎস %d ৰ সৈতে মিল নাখায়"
 
-#: src/conf/domain_conf.c:13538 src/conf/domain_conf.c:13551
+#: src/conf/domain_conf.c:13544 src/conf/domain_conf.c:13557
 #, c-format
 msgid "Target domain OS type %s does not match source %s"
 msgstr "লক্ষ্য ডমেইন OS ধৰণ %s উৎস %s ৰ সৈতে মিল নাখায়"
 
-#: src/conf/domain_conf.c:13544
+#: src/conf/domain_conf.c:13550
 #, c-format
 msgid "Target domain architecture %s does not match source %s"
 msgstr "লক্ষ্য ডমেইন স্থাপত্য %s উৎস %s ৰ সৈতে মিল নাখায়"
 
-#: src/conf/domain_conf.c:13558
+#: src/conf/domain_conf.c:13564
 #, c-format
 msgid "Target domain SMBIOS mode %s does not match source %s"
 msgstr "লক্ষ্য ডমেইন SMBIOS অৱস্থা %s উৎস %s ৰ সৈতে মিল নাখায়"
 
-#: src/conf/domain_conf.c:13569
+#: src/conf/domain_conf.c:13575
 msgid "Target domain timers do not match source"
 msgstr "লক্ষ্য ডমেইন টাইমাৰসমূহ উৎসৰ সৈতে মিল নাখায়"
 
-#: src/conf/domain_conf.c:13587
+#: src/conf/domain_conf.c:13593
 #, c-format
 msgid "Target domain disk count %zu does not match source %zu"
 msgstr "লক্ষ্য ডমেইন ডিস্ক গণনা %zu উৎস %zu ৰ সৈতে মিল নাখায়"
 
-#: src/conf/domain_conf.c:13598
+#: src/conf/domain_conf.c:13604
 #, c-format
 msgid "Target domain controller count %zu does not match source %zu"
 msgstr "লক্ষ্য ডমেইন নিয়ন্ত্ৰক গণনা %zu উৎস %zu ৰ সৈতে মিল নাখায়"
 
-#: src/conf/domain_conf.c:13611
+#: src/conf/domain_conf.c:13617
 #, c-format
 msgid "Target domain filesystem count %zu does not match source %zu"
 msgstr "লক্ষ্য ডমেইন ফাইলচিস্টেম গণনা %zu উৎস %zu ৰ সৈতে মিল নাখায়"
 
-#: src/conf/domain_conf.c:13623
+#: src/conf/domain_conf.c:13629
 #, c-format
 msgid "Target domain net card count %zu does not match source %zu"
 msgstr "লক্ষ্য ডমেইন নেট কাৰ্ড গণনা %zu উৎস %zu ৰ সৈতে মিল নাখায়"
 
-#: src/conf/domain_conf.c:13635
+#: src/conf/domain_conf.c:13641
 #, c-format
 msgid "Target domain input device count %zu does not match source %zu"
 msgstr "লক্ষ্য ডমেইন ইনপুট ডিভাইচ গণনা %zu উৎস %zu ৰ সৈতে মিল নাখায়"
 
-#: src/conf/domain_conf.c:13647
+#: src/conf/domain_conf.c:13653
 #, c-format
 msgid "Target domain sound card count %zu does not match source %zu"
 msgstr "লক্ষ্য ডমেইন শব্দ কাৰ্ড গণনা %zu উৎস %zu ৰ সৈতে মিল নাখায়"
 
-#: src/conf/domain_conf.c:13659
+#: src/conf/domain_conf.c:13665
 #, c-format
 msgid "Target domain video card count %zu does not match source %zu"
 msgstr "লক্ষ্য ডমেইন ভিডিঅ' কাৰ্ড গণনা %zu উৎস %zu ৰ সৈতে মিল নাখায়"
 
-#: src/conf/domain_conf.c:13671
+#: src/conf/domain_conf.c:13677
 #, c-format
 msgid "Target domain host device count %zu does not match source %zu"
 msgstr "লক্ষ্য ডমেইন হস্ট ডিভাইচ গণনা %zu উৎস %zu ৰ সৈতে মিল নাখায়"
 
-#: src/conf/domain_conf.c:13684
+#: src/conf/domain_conf.c:13690
 #, c-format
 msgid "Target domain smartcard count %zu does not match source %zu"
 msgstr "লক্ষ্য ডমেইন smartcard গণনা %zu উৎস %zu ৰ সৈতে মিল নাখায়"
 
-#: src/conf/domain_conf.c:13697
+#: src/conf/domain_conf.c:13703
 #, c-format
 msgid "Target domain serial port count %zu does not match source %zu"
 msgstr "লক্ষ্য ডমেইন ক্ৰমিক পৰ্ট গণনা %zu উৎস %zu ৰ সৈতে মিল নাখায়"
 
-#: src/conf/domain_conf.c:13710
+#: src/conf/domain_conf.c:13716
 #, c-format
 msgid "Target domain parallel port count %zu does not match source %zu"
 msgstr "লক্ষ্য ডমেইন সমান্তৰাল পৰ্ট গণনা %zu উৎস %zu ৰ সৈতে মিল নাখায়"
 
-#: src/conf/domain_conf.c:13723
+#: src/conf/domain_conf.c:13729
 #, c-format
 msgid "Target domain channel count %zu does not match source %zu"
 msgstr "লক্ষ্য ডমেইন চেনেল গণনা %zu উৎস %zu ৰ সৈতে মিল নাখায়"
 
-#: src/conf/domain_conf.c:13736
+#: src/conf/domain_conf.c:13742
 #, c-format
 msgid "Target domain console count %zu does not match source %zu"
 msgstr "লক্ষ্য ডমেইন কনচৌল গণনা %zu উৎস %zu ৰ সৈতে মিল নাখায়"
 
-#: src/conf/domain_conf.c:13749
+#: src/conf/domain_conf.c:13755
 #, c-format
 msgid "Target domain hub device count %zu does not match source %zu"
 msgstr "লক্ষ্য ডমেইন হাব ডিভাইচ গণনা %zu উৎস %zu ৰ সৈতে মিল নাখায়"
 
-#: src/conf/domain_conf.c:13762
+#: src/conf/domain_conf.c:13768
 #, c-format
 msgid "Target domain USB redirection filter count %d does not match source %d"
 msgstr "লক্ষ্য ডমেইন USB পুনৰনিৰ্দেশ ফিল্টাৰ নিয়ম গণনা %d উৎস %d ৰ সৈতে মিল নাখায়"
 
-#: src/conf/domain_conf.c:13776
+#: src/conf/domain_conf.c:13782
 #, c-format
 msgid "Target domain watchdog count %d does not match source %d"
 msgstr "লক্ষ্য ডমেইন watchdog গণনা %d উৎস %d ৰ সৈতে মিল নাখায়"
 
-#: src/conf/domain_conf.c:13789
+#: src/conf/domain_conf.c:13795
 #, c-format
 msgid "Target domain memory balloon count %d does not match source %d"
 msgstr "লক্ষ্য ডমেইন মেমৰি বেলুন গণনা %d উৎস %d ৰ সৈতে মিল নাখায়"
 
-#: src/conf/domain_conf.c:14131
+#: src/conf/domain_conf.c:14137
 #, c-format
 msgid "unexpected %s action: %d"
 msgstr "অপ্ৰত্যাশিত %s কাৰ্য্য: %d"
 
-#: src/conf/domain_conf.c:14428
+#: src/conf/domain_conf.c:14434
 #, c-format
 msgid "unexpected disk type %d"
 msgstr "অপ্ৰত্যাশিত ডিষ্ক প্ৰকৃতি %d"
 
-#: src/conf/domain_conf.c:14433
+#: src/conf/domain_conf.c:14439
 #, c-format
 msgid "unexpected disk device %d"
 msgstr "অপ্ৰত্যাশিত ডিষ্ক ডিভাইচ %d"
 
-#: src/conf/domain_conf.c:14438
+#: src/conf/domain_conf.c:14444
 #, c-format
 msgid "unexpected disk bus %d"
 msgstr "অপ্ৰত্যাশিত ডিষ্ক bus %d"
 
-#: src/conf/domain_conf.c:14443
+#: src/conf/domain_conf.c:14449
 #, c-format
 msgid "unexpected disk cache mode %d"
 msgstr "অপ্ৰত্যাশিত ডিষ্ক কেছে মোড %d"
 
-#: src/conf/domain_conf.c:14448
+#: src/conf/domain_conf.c:14454
 #, c-format
 msgid "unexpected disk io mode %d"
 msgstr "অপ্ৰত্যাশিত ডিস্ক io অৱস্থা %d"
 
-#: src/conf/domain_conf.c:14453
+#: src/conf/domain_conf.c:14459
 #, c-format
 msgid "Unexpected disk sgio mode '%d'"
 msgstr "অপ্ৰত্যাশিত ডিস্ক sgio অৱস্থা '%d'"
 
-#: src/conf/domain_conf.c:14649
+#: src/conf/domain_conf.c:14655
 #, c-format
 msgid "unexpected controller type %d"
 msgstr "অপ্ৰত্যাশিত প্ৰকৃতিৰ নিয়ন্ত্ৰক %d"
 
-#: src/conf/domain_conf.c:14658
+#: src/conf/domain_conf.c:14664
 #, c-format
 msgid "unexpected model type %d"
 msgstr "অপ্ৰত্যাশিত আৰ্হি ধৰণ %d"
 
-#: src/conf/domain_conf.c:14744
+#: src/conf/domain_conf.c:14750
 #, c-format
 msgid "unexpected filesystem type %d"
 msgstr "অপ্ৰত্যাশিত ফাইলপ্ৰণালীৰ প্ৰকৃতি %d"
 
-#: src/conf/domain_conf.c:14750
+#: src/conf/domain_conf.c:14756
 #, c-format
 msgid "unexpected accessmode %d"
 msgstr "অপ্ৰত্যাশিত অভিগম অৱস্থা %d"
 
-#: src/conf/domain_conf.c:14835
+#: src/conf/domain_conf.c:14841
 #, c-format
 msgid "unexpected pci hostdev driver name type %d"
 msgstr "অপ্ৰত্যাশিত pci hostdev ড্ৰাইভাৰ নাম ধৰণ %d"
 
-#: src/conf/domain_conf.c:14881
+#: src/conf/domain_conf.c:14887
 msgid "PCI address Formatting failed"
 msgstr "PCI ঠিকনা ফৰমেটিং ব্যৰ্থ হল"
 
-#: src/conf/domain_conf.c:14908 src/conf/domain_conf.c:14941
-#: src/conf/domain_conf.c:16175 src/conf/domain_conf.c:16184
+#: src/conf/domain_conf.c:14914 src/conf/domain_conf.c:14947
+#: src/conf/domain_conf.c:16181 src/conf/domain_conf.c:16190
 #: src/qemu/qemu_hotplug.c:3283
 #, c-format
 msgid "unexpected hostdev type %d"
 msgstr "অপ্ৰত্যাশিত hostdev ধৰণ %d"
 
-#: src/conf/domain_conf.c:14965 src/conf/domain_conf.c:15038
-#: src/conf/domain_conf.c:15959
+#: src/conf/domain_conf.c:14971 src/conf/domain_conf.c:15044
+#: src/conf/domain_conf.c:15965
 #, c-format
 msgid "unexpected net type %d"
 msgstr "অপ্ৰত্যাশিত নে'টৰ প্ৰকৃতি %d"
 
-#: src/conf/domain_conf.c:14992
+#: src/conf/domain_conf.c:14998
 #, c-format
 msgid "unexpected source mode %d"
 msgstr "অপ্ৰত্যাশিত উৎস অৱস্থা %d"
 
-#: src/conf/domain_conf.c:15012
+#: src/conf/domain_conf.c:15018
 #, c-format
 msgid "unexpected net type %s"
 msgstr "অপ্ৰত্যাশিত নেট ধৰণ %s"
 
-#: src/conf/domain_conf.c:15203
+#: src/conf/domain_conf.c:15209
 #, c-format
 msgid "unexpected char type %d"
 msgstr "অপ্ৰত্যাশিত আখৰৰ প্ৰকৃতি %d"
 
-#: src/conf/domain_conf.c:15305
+#: src/conf/domain_conf.c:15311
 #, c-format
 msgid "unexpected char device type %d"
 msgstr "অপ্ৰত্যাশিত char ডিভাইচ ধৰণ %d"
 
-#: src/conf/domain_conf.c:15324
+#: src/conf/domain_conf.c:15330
 msgid "Could not format channel target type"
 msgstr "চেনেল লক্ষ্য ধৰণ ফৰমেট কৰিব পৰা নগল"
 
-#: src/conf/domain_conf.c:15334
+#: src/conf/domain_conf.c:15340
 msgid "Unable to format guestfwd port"
 msgstr "guestfwd পোৰ্টৰ বিন্যাস নিৰ্ধাৰণ কৰিবলৈ ব্যৰ্থ কৰোঁতে ব্যৰ্থ"
 
-#: src/conf/domain_conf.c:15411 src/conf/domain_conf.c:15442
+#: src/conf/domain_conf.c:15417 src/conf/domain_conf.c:15448
 #: src/qemu/qemu_command.c:8719
 #, c-format
 msgid "unexpected smartcard type %d"
 msgstr "অপ্ৰত্যাশিত স্মাৰ্টকাৰ্ড ধৰণ %d"
 
-#: src/conf/domain_conf.c:15459
+#: src/conf/domain_conf.c:15465
 #, c-format
 msgid "unexpected codec type %d"
 msgstr "অপ্ৰত্যাশিত কডেক ধৰণ %d"
 
-#: src/conf/domain_conf.c:15512 src/xenxs/xen_sxpr.c:2112
+#: src/conf/domain_conf.c:15518 src/xenxs/xen_sxpr.c:2112
 #, c-format
 msgid "unexpected sound model %d"
 msgstr "অপ্ৰত্যাশিত ধ্বনিৰ প্ৰকৃতি %d"
 
-#: src/conf/domain_conf.c:15555
+#: src/conf/domain_conf.c:15561
 #, c-format
 msgid "unexpected memballoon model %d"
 msgstr "অপ্ৰত্যাশিত মেমবেলুন আৰ্হি %d"
 
-#: src/conf/domain_conf.c:15620
+#: src/conf/domain_conf.c:15626
 #, c-format
 msgid "unexpected watchdog model %d"
 msgstr "অপ্ৰত্যাশিত watchdog মডেল %d"
 
-#: src/conf/domain_conf.c:15626
+#: src/conf/domain_conf.c:15632
 #, c-format
 msgid "unexpected watchdog action %d"
 msgstr "অপ্ৰত্যাশিত watchdog কৰ্ম %d"
 
-#: src/conf/domain_conf.c:15731
+#: src/conf/domain_conf.c:15737
 #, c-format
 msgid "unexpected video model %d"
 msgstr "অপ্ৰত্যাশিত ভিডিও মডেল %d"
 
-#: src/conf/domain_conf.c:15772 src/xenxs/xen_sxpr.c:2149
+#: src/conf/domain_conf.c:15778 src/xenxs/xen_sxpr.c:2149
 #, c-format
 msgid "unexpected input type %d"
 msgstr "অপ্ৰত্যাশিত নিবেশ প্ৰকৃতি %d"
 
-#: src/conf/domain_conf.c:15777
+#: src/conf/domain_conf.c:15783
 #, c-format
 msgid "unexpected input bus type %d"
 msgstr "অপ্ৰত্যাশিত নিবেশ bus প্ৰকৃতি %d"
 
-#: src/conf/domain_conf.c:15805
+#: src/conf/domain_conf.c:15811
 #, c-format
 msgid "unexpected timer name %d"
 msgstr "অপ্ৰত্যাশিত টাইমাৰ নাম %d"
 
-#: src/conf/domain_conf.c:15821
+#: src/conf/domain_conf.c:15827
 #, c-format
 msgid "unexpected timer tickpolicy %d"
 msgstr "অপ্ৰত্যাশিত টাইমাৰ tickpolicy %d"
 
-#: src/conf/domain_conf.c:15835
+#: src/conf/domain_conf.c:15841
 #, c-format
 msgid "unexpected timer track %d"
 msgstr "অপ্ৰত্যাশিত টাইমাৰ ট্ৰেক %d"
 
-#: src/conf/domain_conf.c:15853
+#: src/conf/domain_conf.c:15859
 #, c-format
 msgid "unexpected timer mode %d"
 msgstr "অপ্ৰত্যাশিত টাইমাৰ অৱস্থা %d"
 
-#: src/conf/domain_conf.c:16166 src/conf/domain_conf.c:16191
+#: src/conf/domain_conf.c:16172 src/conf/domain_conf.c:16197
 #, c-format
 msgid "unexpected hostdev mode %d"
 msgstr "অপ্ৰত্যাশিত hostdev ধৰণ %d"
 
-#: src/conf/domain_conf.c:16299
+#: src/conf/domain_conf.c:16305
 #, c-format
 msgid "unexpected hub type %d"
 msgstr "অপ্ৰত্যাশিত হাব ধৰণ %d"
 
-#: src/conf/domain_conf.c:16391
+#: src/conf/domain_conf.c:16397
 #, c-format
 msgid "unexpected domain type %d"
 msgstr "অপ্ৰত্যাশিত ডোমেইনৰ প্ৰকৃতি %d"
 
-#: src/conf/domain_conf.c:16572
+#: src/conf/domain_conf.c:16578
 msgid "failed to format cpuset for vcpupin"
 msgstr "vcpupin ৰ বাবে cpuset ফৰমেট কৰিবলে ব্যৰ্থ"
 
-#: src/conf/domain_conf.c:16586
+#: src/conf/domain_conf.c:16592
 msgid "failed to format cpuset for emulator"
 msgstr "ইমুলেটৰৰ বাবে cpuset ফৰমেট কৰিবলে ব্যৰ্থ"
 
-#: src/conf/domain_conf.c:16615
+#: src/conf/domain_conf.c:16621
 msgid "failed to format nodeset for NUMA memory tuning"
 msgstr "NUMA মেমৰি টিউনিংৰ বাবে nodeset ফৰমেট কৰিবলে ব্যৰ্থ"
 
-#: src/conf/domain_conf.c:16684
+#: src/conf/domain_conf.c:16690
 #, c-format
 msgid "unexpected boot device type %d"
 msgstr "অপ্ৰত্যাশিত বুট ডিভাইচৰ ধৰণ %d"
 
-#: src/conf/domain_conf.c:16718
+#: src/conf/domain_conf.c:16724
 #, c-format
 msgid "unexpected smbios mode %d"
 msgstr "অপ্ৰত্যাশিত smbios অৱস্থা %d"
 
-#: src/conf/domain_conf.c:16754
+#: src/conf/domain_conf.c:16760
 #, c-format
 msgid "unexpected feature %zu"
 msgstr "অপ্ৰত্যাশিত বৈশিষ্ট্য %zu"
 
-#: src/conf/domain_conf.c:17136
+#: src/conf/domain_conf.c:17142
 msgid "Device configuration is not compatible: Domain has no USB bus support"
 msgstr "ডিভাইচ সংৰূপ সংগত নহয়: ডমেইনৰ কোনো USB বাচ সমৰ্থন নাই"
 
-#: src/conf/domain_conf.c:17158 src/conf/network_conf.c:2832
+#: src/conf/domain_conf.c:17164 src/conf/network_conf.c:2832
 #: src/conf/nwfilter_conf.c:2711 src/util/virdnsmasq.c:547
 #, c-format
 msgid "cannot create config directory '%s'"
 msgstr "বিন্যাস পঞ্জিকা '%s' নিৰ্মাণ কৰোঁতে ব্যৰ্থ"
 
-#: src/conf/domain_conf.c:17297
+#: src/conf/domain_conf.c:17303
 #, c-format
 msgid "unexpected domain %s already exists"
 msgstr "অপ্ৰত্যাশিত ডোমেইন %s বৰ্তমানে আছে"
 
-#: src/conf/domain_conf.c:17337 src/conf/network_conf.c:3050
+#: src/conf/domain_conf.c:17343 src/conf/network_conf.c:3050
 #: src/conf/network_conf.c:3083 src/conf/nwfilter_conf.c:3085
 #: src/conf/storage_conf.c:1826 src/util/virpci.c:2410
 #, c-format
 msgid "Failed to open dir '%s'"
 msgstr "'%s' পঞ্জিকা খোলোঁতে ব্যৰ্থ"
 
-#: src/conf/domain_conf.c:17407
+#: src/conf/domain_conf.c:17413
 #, c-format
 msgid "cannot remove config %s"
 msgstr "%s ৰ বিন্যাস আঁতৰাওঁতে ব্যৰ্থ"
 
-#: src/conf/domain_conf.c:17762
+#: src/conf/domain_conf.c:17768
 #, c-format
 msgid "unable to visit backing chain file %s"
 msgstr "বেকিং শৃংখল ফাইল %s ভ্ৰমণ কৰিবলে অক্ষম"
 
-#: src/conf/domain_conf.c:17863
+#: src/conf/domain_conf.c:17869
 #, c-format
 msgid "invalid domain state: %d"
 msgstr "অবৈধ ডমেইন অৱস্থা: %d"
 
-#: src/conf/domain_conf.c:18310
+#: src/conf/domain_conf.c:18316
 #, c-format
 msgid "Copying definition of '%d' type is not implemented yet."
 msgstr "'%d' ৰ বিৱৰণ কপি কৰাটো এতিয়াও প্ৰণয়ন কৰা হোৱা নাই।"
 
-#: src/conf/domain_conf.c:18592
+#: src/conf/domain_conf.c:18598
 #, c-format
 msgid "no device found with alias %s"
 msgstr "এলিয়াচ %s ৰ সৈতে কোনো ডিভাইচ পোৱা নগল"
 
-#: src/conf/domain_conf.c:18684 src/conf/domain_conf.c:18766
+#: src/conf/domain_conf.c:18690 src/conf/domain_conf.c:18772
 msgid "unknown metadata type"
 msgstr "অজ্ঞাত মেটাডাটা ধৰণ"
 
-#: src/conf/domain_conf.c:18691
+#: src/conf/domain_conf.c:18697
 msgid "Requested metadata element is not present"
 msgstr "অনুৰোধ কৰা মেটাডাটা উপাদান উপস্থিত নাই"
 
-#: src/conf/domain_conf.c:18731
+#: src/conf/domain_conf.c:18737
 msgid "(metadata_xml)"
 msgstr "(metadata_xml)"
 
@@ -3903,7 +3908,7 @@ msgstr "অপ্ৰত্যাশিত প্ৰকৃতিৰ সংযো�
 
 #: src/conf/interface_conf.c:1264 src/conf/network_conf.c:360
 #: src/conf/node_device_conf.c:184 src/conf/nwfilter_conf.c:3019
-#: src/conf/storage_conf.c:1751 src/libxl/libxl_driver.c:830
+#: src/conf/storage_conf.c:1751 src/libxl/libxl_driver.c:839
 #: src/parallels/parallels_driver.c:894 src/qemu/qemu_driver.c:585
 #: src/remote/remote_driver.c:929 src/test/test_driver.c:685
 #: src/test/test_driver.c:1340 src/xen/xen_driver.c:451
@@ -6020,14 +6025,14 @@ msgid "cannot check guest CPU data for %s architecture"
 msgstr "%s স্থাপত্যৰ বাবে অতিথি CPU তথ্য নীৰিক্ষণ কৰিব নোৱাৰি"
 
 #: src/cpu/cpu.c:459
-#, fuzzy, c-format
+#, c-format
 msgid "cannot format %s CPU data"
-msgstr "%s সৃষ্টি কৰিব নোৱাৰি"
+msgstr ""
 
 #: src/cpu/cpu.c:480
-#, fuzzy, c-format
+#, c-format
 msgid "cannot parse %s CPU data"
-msgstr "bus %s বিশ্লেষণ কৰিব নোৱাৰি"
+msgstr ""
 
 #: src/cpu/cpu.c:554
 #, c-format
@@ -6198,24 +6203,21 @@ msgid "Feature %s required by CPU model %s not found"
 msgstr "%s গুণ CPU মডেল %s ৰ ক্ষেত্ৰত আৱশ্যক, কিন্তু ইয়াক পোৱা নাযায়"
 
 #: src/cpu/cpu_x86.c:1183
-#, fuzzy
 msgid "CPU data"
-msgstr "CPU সময়"
+msgstr ""
 
 #: src/cpu/cpu_x86.c:1185
-#, fuzzy
 msgid "cannot parse CPU data"
-msgstr "CPU মেপ ফাইল বিশ্লেষণ কৰিবলৈ ব্যৰ্থ: %s"
+msgstr ""
 
 #: src/cpu/cpu_x86.c:1193
-#, fuzzy
 msgid "no x86 CPU data found"
-msgstr "কোনো CPU পোৱা নগল"
+msgstr ""
 
 #: src/cpu/cpu_x86.c:1201
-#, fuzzy, c-format
+#, c-format
 msgid "failed to parse cpuid[%zu]"
-msgstr "%s বিশ্লেষণ কৰিবলে ব্যৰ্থ"
+msgstr ""
 
 #: src/cpu/cpu_x86.c:1315
 msgid "Host CPU provides forbidden features"
@@ -9364,14 +9366,14 @@ msgid "Failed to create directory for '%s' dev '%s'"
 msgstr "'%s' dev '%s' ৰ বাবে ডাইৰেকটৰি সৃষ্টি কৰিবলে ব্যৰ্থ"
 
 #: src/lxc/lxc_container.c:1712
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to access '%s'"
-msgstr "'%s' খুলিবলৈ ব্যৰ্থ"
+msgstr ""
 
 #: src/lxc/lxc_container.c:1719
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to resolve symlink at %s"
-msgstr "symlink '%s' আঁতৰাওঁতে ব্যৰ্থ"
+msgstr ""
 
 #: src/lxc/lxc_container.c:1757
 #, c-format
@@ -9708,15 +9710,15 @@ msgstr ""
 #: src/lxc/lxc_driver.c:2123 src/lxc/lxc_driver.c:2352
 #: src/lxc/lxc_driver.c:2401 src/lxc/lxc_driver.c:2612
 #: src/lxc/lxc_driver.c:2692 src/lxc/lxc_driver.c:4390
-#: src/libxl/libxl_driver.c:1300 src/libxl/libxl_driver.c:1352
-#: src/libxl/libxl_driver.c:1404 src/libxl/libxl_driver.c:1451
-#: src/libxl/libxl_driver.c:1489 src/libxl/libxl_driver.c:1856
-#: src/libxl/libxl_driver.c:1968 src/libxl/libxl_driver.c:2047
-#: src/libxl/libxl_driver.c:2326 src/libxl/libxl_driver.c:2427
-#: src/libxl/libxl_driver.c:3161 src/libxl/libxl_driver.c:3265
-#: src/libxl/libxl_driver.c:3369 src/libxl/libxl_driver.c:3646
-#: src/libxl/libxl_driver.c:3710 src/libxl/libxl_driver.c:3787
-#: src/libxl/libxl_driver.c:3956 src/openvz/openvz_driver.c:598
+#: src/libxl/libxl_driver.c:1309 src/libxl/libxl_driver.c:1361
+#: src/libxl/libxl_driver.c:1413 src/libxl/libxl_driver.c:1460
+#: src/libxl/libxl_driver.c:1498 src/libxl/libxl_driver.c:1865
+#: src/libxl/libxl_driver.c:1977 src/libxl/libxl_driver.c:2056
+#: src/libxl/libxl_driver.c:2335 src/libxl/libxl_driver.c:2436
+#: src/libxl/libxl_driver.c:3170 src/libxl/libxl_driver.c:3274
+#: src/libxl/libxl_driver.c:3378 src/libxl/libxl_driver.c:3655
+#: src/libxl/libxl_driver.c:3719 src/libxl/libxl_driver.c:3796
+#: src/libxl/libxl_driver.c:3965 src/openvz/openvz_driver.c:598
 #: src/openvz/openvz_driver.c:636 tools/virsh-domain.c:9066
 #: tools/virsh-domain.c:9239
 msgid "Domain is not running"
@@ -9726,7 +9728,7 @@ msgstr "ডোমেইন বৰ্তমানে সক্ৰিয় নহয়
 msgid "Failed to set memory for domain"
 msgstr "ডোমেইনৰ বাবে মেমৰি নিৰ্ধাৰণ কৰিবলৈ ব্যৰ্থৰ্ধাৰণ কৰিবলৈ ব্যৰ্থ"
 
-#: src/lxc/lxc_driver.c:925 src/libxl/libxl_driver.c:2631
+#: src/lxc/lxc_driver.c:925 src/libxl/libxl_driver.c:2640
 #: src/vmware/vmware_driver.c:719
 msgid "Domain is already running"
 msgstr "ডমেইন ইতিমধ্যে চলি আছে"
@@ -9797,13 +9799,13 @@ msgstr ""
 msgid "Cannot create autostart directory %s"
 msgstr "autostart পঞ্জিকা %s নিৰ্মাণ কৰিবলৈ ব্যৰ্থ"
 
-#: src/lxc/lxc_driver.c:2225 src/libxl/libxl_driver.c:3604
+#: src/lxc/lxc_driver.c:2225 src/libxl/libxl_driver.c:3613
 #: src/qemu/qemu_driver.c:7343 src/uml/uml_driver.c:2435
 #, c-format
 msgid "Failed to create symlink '%s to '%s'"
 msgstr "'%s' symlink ক '%s' লৈ নিৰ্মাণ কৰোঁতে ব্যৰ্থ"
 
-#: src/lxc/lxc_driver.c:2232 src/libxl/libxl_driver.c:3611
+#: src/lxc/lxc_driver.c:2232 src/libxl/libxl_driver.c:3620
 #: src/network/bridge_driver.c:2973 src/qemu/qemu_driver.c:7350
 #: src/storage/storage_driver.c:1171 src/uml/uml_driver.c:2442
 #, c-format
@@ -9827,7 +9829,7 @@ msgstr "কনচৌল ডিভাইচ '%s' পোৱা নগল"
 msgid "default"
 msgstr "অবিকল্পিত"
 
-#: src/lxc/lxc_driver.c:2481 src/libxl/libxl_driver.c:3880
+#: src/lxc/lxc_driver.c:2481 src/libxl/libxl_driver.c:3889
 #: src/qemu/qemu_driver.c:13634 src/uml/uml_driver.c:2589
 #: src/xen/xen_driver.c:2662
 #, c-format
@@ -9861,7 +9863,7 @@ msgstr "বৈয়ামে এটা initctl pipe প্ৰদান নকৰ�
 msgid "Unable to send SIGTERM to init pid %llu"
 msgstr "init pid %llu লে SIGTERM পঠাবলে অক্ষম"
 
-#: src/lxc/lxc_driver.c:2758 src/libxl/libxl_driver.c:2987
+#: src/lxc/lxc_driver.c:2758 src/libxl/libxl_driver.c:2996
 #, c-format
 msgid "target %s already exists."
 msgstr "লক্ষ্য %s ইতিমধ্যে অস্তিত্ববান।"
@@ -9870,7 +9872,7 @@ msgstr "লক্ষ্য %s ইতিমধ্যে অস্তিত্ব�
 msgid "device is already in the domain configuration"
 msgstr "ডিভাইচ ইতিমধ্যে ডমেইন সংৰূপত আছে"
 
-#: src/lxc/lxc_driver.c:2791 src/libxl/libxl_driver.c:2998
+#: src/lxc/lxc_driver.c:2791 src/libxl/libxl_driver.c:3007
 msgid "persistent attach of device is not supported"
 msgstr "ডিভাইচৰ স্থায়ী সংলগ্ন সমৰ্থিত নহয়"
 
@@ -9886,11 +9888,11 @@ msgstr "mac ঠিকনা %s ৰ সৈতে মিল খোৱা একা
 msgid "no matching network device was found"
 msgstr "কোনো মিল থকা নেটৱাৰ্ক ডিভাইচ পোৱা নগল"
 
-#: src/lxc/lxc_driver.c:2834 src/libxl/libxl_driver.c:3120
+#: src/lxc/lxc_driver.c:2834 src/libxl/libxl_driver.c:3129
 msgid "persistent update of device is not supported"
 msgstr "ডিভাইচৰ স্থায়ী আপডেইট সমৰ্থিত নহয়"
 
-#: src/lxc/lxc_driver.c:2859 src/libxl/libxl_driver.c:3036
+#: src/lxc/lxc_driver.c:2859 src/libxl/libxl_driver.c:3045
 #: src/qemu/qemu_driver.c:6700
 #, c-format
 msgid "no target device %s"
@@ -9902,7 +9904,7 @@ msgstr "কোনো লক্ষ্য ডিভাইচ %s নাই"
 msgid "device not present in domain configuration"
 msgstr "ডমেইন সংৰূপত ডিভাইচ উপস্থিত নাই"
 
-#: src/lxc/lxc_driver.c:2899 src/libxl/libxl_driver.c:3044
+#: src/lxc/lxc_driver.c:2899 src/libxl/libxl_driver.c:3053
 msgid "persistent detach of device is not supported"
 msgstr "ডিভাইচৰ স্থায়ী অসংলগ্ন সমৰ্থিত নহয়"
 
@@ -9912,7 +9914,7 @@ msgstr "ডিভাইচৰ স্থায়ী অসংলগ্ন সমৰ
 msgid "Cannot attach disk until init PID is known"
 msgstr "যেতিয়ালৈকে init PID জ্ঞাত নহয় ডিস্ক সংলগ্ন কৰিব নোৱাৰি"
 
-#: src/lxc/lxc_driver.c:2941 src/libxl/libxl_driver.c:2857
+#: src/lxc/lxc_driver.c:2941 src/libxl/libxl_driver.c:2866
 #: src/qemu/qemu_driver.c:6597 src/qemu/qemu_hotplug.c:251
 #: src/qemu/qemu_hotplug.c:476 src/qemu/qemu_hotplug.c:599
 #: src/uml/uml_driver.c:2137
@@ -9979,13 +9981,13 @@ msgstr "অসমৰ্থিত হস্ট ডিভাইচ ধৰণ %s"
 msgid "Cannot attach hostdev until init PID is known"
 msgstr "যেতিয়ালৈকে init PID জ্ঞাত নহয় hostdev সংলগ্ন কৰিব নোৱাৰি"
 
-#: src/lxc/lxc_driver.c:3584 src/libxl/libxl_driver.c:2969
+#: src/lxc/lxc_driver.c:3584 src/libxl/libxl_driver.c:2978
 #: src/uml/uml_driver.c:2218
 #, c-format
 msgid "device type '%s' cannot be attached"
 msgstr "ডিভাইচৰ ধৰণ '%s' সংযুক্ত কৰিব নোৱাৰি"
 
-#: src/lxc/lxc_driver.c:3612 src/libxl/libxl_driver.c:2917
+#: src/lxc/lxc_driver.c:3612 src/libxl/libxl_driver.c:2926
 #: src/qemu/qemu_hotplug.c:2935 src/uml/uml_driver.c:2268
 #, c-format
 msgid "disk %s not found"
@@ -10015,7 +10017,7 @@ msgstr "usb ডিভাইচ পোৱা নগল"
 msgid "hostdev %s not found"
 msgstr "hostdev %s পোৱা নগল"
 
-#: src/lxc/lxc_driver.c:3997 src/libxl/libxl_driver.c:3017
+#: src/lxc/lxc_driver.c:3997 src/libxl/libxl_driver.c:3026
 #: src/xen/xm_internal.c:1381
 #, c-format
 msgid "device type '%s' cannot be detached"
@@ -10028,8 +10030,8 @@ msgid "cannot do live update a device on inactive domain"
 msgstr "নিষ্ক্ৰিয় ডমেইনত এটা ডিভাইচ জীৱন্ত আপডেইট কৰিব নোৱাৰি"
 
 #: src/lxc/lxc_driver.c:4050 src/lxc/lxc_driver.c:4173
-#: src/lxc/lxc_driver.c:4283 src/libxl/libxl_driver.c:3168
-#: src/libxl/libxl_driver.c:3272 src/libxl/libxl_driver.c:3376
+#: src/lxc/lxc_driver.c:4283 src/libxl/libxl_driver.c:3177
+#: src/libxl/libxl_driver.c:3281 src/libxl/libxl_driver.c:3385
 #: src/qemu/qemu_driver.c:6910 src/qemu/qemu_driver.c:7057
 #: src/qemu/qemu_driver.c:7192
 msgid "cannot modify device on transient domain"
@@ -10039,7 +10041,7 @@ msgstr "পৰিবৰ্তনশীল ডমেইনত ডিভাইচ 
 msgid "Unable to modify live devices"
 msgstr "জীৱন্ত ডিভাইচসমূহ পৰিবৰ্তন কৰিবলে অক্ষম"
 
-#: src/lxc/lxc_driver.c:4424 src/libxl/libxl_driver.c:1068
+#: src/lxc/lxc_driver.c:4424 src/libxl/libxl_driver.c:1077
 #: src/qemu/qemu_command.c:7807 src/qemu/qemu_driver.c:1207
 #: src/xen/xen_driver.c:643
 msgid "Host SMBIOS information is not available"
@@ -10182,7 +10184,7 @@ msgstr "libxl পৰিপ্ৰেক্ষতিত আৰম্ভণি ক�
 msgid "unknown error"
 msgstr "অজ্ঞাত সমস্যা"
 
-#: src/libxl/libxl_driver.c:144 src/libxl/libxl_driver.c:3449
+#: src/libxl/libxl_driver.c:144 src/libxl/libxl_driver.c:3458
 msgid "libxl_get_physinfo_info failed"
 msgstr "libxl_get_physinfo_info ব্যৰ্থ হল"
 
@@ -10223,12 +10225,12 @@ msgstr "XML পঢ়োঁতে ব্যৰ্থ"
 msgid "Unable to cleanup domain %d"
 msgstr "ডমেইন %d পৰিষ্কাৰ কৰিবলে অক্ষম"
 
-#: src/libxl/libxl_driver.c:485 src/libxl/libxl_driver.c:2376
+#: src/libxl/libxl_driver.c:485 src/libxl/libxl_driver.c:2385
 #, c-format
 msgid "Failed to pin vcpu '%d' with libxenlight"
 msgstr "libxenlight ৰ সৈতে vcpu '%d' pin কৰিবলে ব্যৰ্থ"
 
-#: src/libxl/libxl_driver.c:586 src/qemu/qemu_driver.c:5643
+#: src/libxl/libxl_driver.c:589 src/qemu/qemu_driver.c:5643
 #, c-format
 msgid ""
 "cannot restore domain '%s' uuid %s from a file which belongs to domain '%s' "
@@ -10236,186 +10238,186 @@ msgid ""
 msgstr ""
 "ডমেইন '%s' uuid %s ৰ এটা ফাইলৰ পৰা ডমেইন '%s' uuid %s পুনৰুদ্ধাৰ কৰিব নোৱাৰি"
 
-#: src/libxl/libxl_driver.c:611
+#: src/libxl/libxl_driver.c:614
 #, c-format
 msgid "libxenlight failed to get free memory for domain '%s'"
 msgstr "libxenlight এ ডমেইন '%s' ৰ বাবে মুক্ত মেমৰি প্ৰাপ্ত কৰিবলে ব্যৰ্থ হল"
 
-#: src/libxl/libxl_driver.c:628
+#: src/libxl/libxl_driver.c:637
 #, c-format
 msgid "libxenlight failed to create new domain '%s'"
 msgstr "libxenlight এ নতুন ডমেইন '%s' সৃষ্টি কৰিবলে ব্যৰ্থ হল"
 
-#: src/libxl/libxl_driver.c:632
+#: src/libxl/libxl_driver.c:641
 #, c-format
 msgid "libxenlight failed to restore domain '%s'"
 msgstr "libxenlight এ ডমেইন '%s' পুনৰুদ্ধাৰ কৰিবলে ব্যৰ্থ হল"
 
-#: src/libxl/libxl_driver.c:644
+#: src/libxl/libxl_driver.c:653
 msgid "libxenlight failed to store userdata"
 msgstr "libxenlight এ ব্যৱহাৰকাৰীতথ্য সংৰক্ষণ কৰিবলে ব্যৰ্থ হল"
 
-#: src/libxl/libxl_driver.c:850
+#: src/libxl/libxl_driver.c:859
 #, c-format
 msgid "failed to create log dir '%s': %s"
 msgstr "লগ ডাইৰেকটৰি '%s' সৃষ্টি কৰিবলৈ ব্যৰ্থ: %s "
 
-#: src/libxl/libxl_driver.c:857
+#: src/libxl/libxl_driver.c:866
 #, c-format
 msgid "failed to create state dir '%s': %s"
 msgstr "অৱস্থা ডাইৰেকটৰি '%s' সৃষ্টি কৰিবলে ব্যৰ্থ: %s"
 
-#: src/libxl/libxl_driver.c:864
+#: src/libxl/libxl_driver.c:873
 #, c-format
 msgid "failed to create lib dir '%s': %s"
 msgstr "lib dir '%s' নিৰ্মাণ কৰিবলৈ ব্যৰ্থ: %s"
 
-#: src/libxl/libxl_driver.c:871
+#: src/libxl/libxl_driver.c:880
 #, c-format
 msgid "failed to create save dir '%s': %s"
 msgstr "সংৰক্ষণ ডাইৰেকটৰি '%s' সৃষ্টি কৰিবলে ব্যৰ্থ: %s"
 
-#: src/libxl/libxl_driver.c:886
+#: src/libxl/libxl_driver.c:895
 msgid "cannot create capabilities for libxenlight"
 msgstr "libxenlight ৰ ক্ষমতাসমূহ সৃষ্টি কৰিব নোৱাৰি"
 
-#: src/libxl/libxl_driver.c:991
+#: src/libxl/libxl_driver.c:1000
 msgid "libxenlight state driver is not active"
 msgstr "libxenlight অৱস্থা ড্ৰাইভাৰ সক্ৰিয় নহয়"
 
-#: src/libxl/libxl_driver.c:1001 src/xen/xen_driver.c:425
+#: src/libxl/libxl_driver.c:1010 src/xen/xen_driver.c:425
 #, c-format
 msgid "unexpected Xen URI path '%s', try xen:///"
 msgstr "অপ্ৰত্যাশিত Xen URI পথ '%s', xen:/// প্ৰচেষ্টা কৰক"
 
-#: src/libxl/libxl_driver.c:1309
+#: src/libxl/libxl_driver.c:1318
 #, c-format
 msgid "Failed to suspend domain '%d' with libxenlight"
 msgstr "libxenlight ৰ সৈতে ডমেইন '%d' স্থগিত কৰিবলে ব্যৰ্থ"
 
-#: src/libxl/libxl_driver.c:1361
+#: src/libxl/libxl_driver.c:1370
 #, c-format
 msgid "Failed to resume domain '%d' with libxenlight"
 msgstr "libxenlight ৰ সৈতে ডমেইন '%d' অব্যাহত ৰাখিবলে ব্যৰ্থ"
 
-#: src/libxl/libxl_driver.c:1411
+#: src/libxl/libxl_driver.c:1420
 #, c-format
 msgid "Failed to shutdown domain '%d' with libxenlight"
 msgstr "libxenlight ৰ সৈতে ডমেইন '%d' বন্ধ কৰিবলে ব্যৰ্থ"
 
-#: src/libxl/libxl_driver.c:1458
+#: src/libxl/libxl_driver.c:1467
 #, c-format
 msgid "Failed to reboot domain '%d' with libxenlight"
 msgstr "libxenlight ৰ সৈতে ডমেইন '%d' পুনৰাম্ভ কৰিবলে ব্যৰ্থ"
 
-#: src/libxl/libxl_driver.c:1498 src/libxl/libxl_driver.c:1818
-#: src/libxl/libxl_driver.c:1997
+#: src/libxl/libxl_driver.c:1507 src/libxl/libxl_driver.c:1827
+#: src/libxl/libxl_driver.c:2006
 #, c-format
 msgid "Failed to destroy domain '%d'"
 msgstr "ডমেইন '%d' ধ্বংস কৰিবলে ব্যৰ্থ"
 
-#: src/libxl/libxl_driver.c:1603
+#: src/libxl/libxl_driver.c:1612
 msgid "cannot set memory on an inactive domain"
 msgstr "এটা নিষ্ক্ৰিয় ডমেইনত মেমৰি সংহতি কৰিব নোৱাৰি"
 
-#: src/libxl/libxl_driver.c:1610 src/libxl/libxl_driver.c:2203
+#: src/libxl/libxl_driver.c:1619 src/libxl/libxl_driver.c:2212
 msgid "cannot change persistent config of a transient domain"
 msgstr "এটা সাময়িক ডমেইনৰ স্থায়ী সংৰূপ পৰিৱৰ্তন কৰিব নোৱাৰি"
 
-#: src/libxl/libxl_driver.c:1626
+#: src/libxl/libxl_driver.c:1635
 #, c-format
 msgid "Failed to set maximum memory for domain '%d' with libxenlight"
 msgstr "libxenlight ৰ সৈতে ডমেইন '%d' ৰ বাবে সৰ্বাধিক মেমৰি সংহতি কৰিবলে ব্যৰ্থ"
 
-#: src/libxl/libxl_driver.c:1647 src/qemu/qemu_driver.c:2249
+#: src/libxl/libxl_driver.c:1656 src/qemu/qemu_driver.c:2249
 #: src/uml/uml_driver.c:1837
 msgid "cannot set memory higher than max memory"
 msgstr "সৰ্বাধিক মেমৰিতকৈ অধিক পৰিমাণৰ মেমৰি নিৰ্ধাৰণ কৰা নাযাব"
 
-#: src/libxl/libxl_driver.c:1656
+#: src/libxl/libxl_driver.c:1665
 #, c-format
 msgid "Failed to set memory for domain '%d' with libxenlight"
 msgstr "libxenlight ৰ সৈতে ডমেইন '%d' ৰ বাবে মেমৰি সংহতি কৰিবলে ব্যৰ্থ"
 
-#: src/libxl/libxl_driver.c:1713
+#: src/libxl/libxl_driver.c:1722
 #, c-format
 msgid "libxl_domain_info failed for domain '%d'"
 msgstr "ডমেইন '%d' ৰ বাবে libxl_domain_info ব্যৰ্থ হল"
 
-#: src/libxl/libxl_driver.c:1773
+#: src/libxl/libxl_driver.c:1782
 #, c-format
 msgid "Domain '%d' has to be running because libxenlight will suspend it"
 msgstr "ডমেইন '%d' চলি থকািব লাগিব কাৰণ libxenlight এ ইয়াক নিলম্বিত কৰিব"
 
-#: src/libxl/libxl_driver.c:1781
+#: src/libxl/libxl_driver.c:1790
 #, c-format
 msgid "Failed to create domain save file '%s'"
 msgstr "ডোমেইন সংৰক্ষণৰ ফাইল '%s' নিৰ্মাণ কৰিবলৈ ব্যৰ্থ"
 
-#: src/libxl/libxl_driver.c:1796
+#: src/libxl/libxl_driver.c:1805
 msgid "Failed to write save file header"
 msgstr "সংৰক্ষণ ফাইল হেডাৰ লিখিবলে ব্যৰ্থ"
 
-#: src/libxl/libxl_driver.c:1802
+#: src/libxl/libxl_driver.c:1811
 msgid "Failed to write xml description"
 msgstr "xml বিৱৰণ লিখিবলে ব্যৰ্থ"
 
-#: src/libxl/libxl_driver.c:1808
+#: src/libxl/libxl_driver.c:1817
 #, c-format
 msgid "Failed to save domain '%d' with libxenlight"
 msgstr "libxenlight ৰ সৈতে ডমেইন '%d' সংৰক্ষণ কৰিবলে ব্যৰ্থ"
 
-#: src/libxl/libxl_driver.c:1828 src/libxl/libxl_driver.c:1931
+#: src/libxl/libxl_driver.c:1837 src/libxl/libxl_driver.c:1940
 msgid "cannot close file"
 msgstr "ফাইল বন্ধ কৰিব নোৱাৰি"
 
-#: src/libxl/libxl_driver.c:1845 src/libxl/libxl_driver.c:1897
+#: src/libxl/libxl_driver.c:1854 src/libxl/libxl_driver.c:1906
 #: src/test/test_driver.c:2065 src/test/test_driver.c:2178
 #: src/xen/xen_driver.c:1201 src/xen/xen_driver.c:1324
 msgid "xml modification unsupported"
 msgstr "xml পৰিবৰ্তন অসমৰ্থিত"
 
-#: src/libxl/libxl_driver.c:1978
+#: src/libxl/libxl_driver.c:1987
 #, c-format
 msgid "Before dumping core, failed to suspend domain '%d' with libxenlight"
 msgstr "কেন্দ্ৰ ডাম্প কৰাৰ আগত, libxenlight ৰ সৈতে ডমেইন '%d' স্থগিত কৰিবলে ব্যৰ্থ"
 
-#: src/libxl/libxl_driver.c:1989
+#: src/libxl/libxl_driver.c:1998
 #, c-format
 msgid "Failed to dump core of domain '%d' with libxenlight"
 msgstr "libxenlight ৰ সৈতে ডমেইন '%d' ৰ কেন্দ্ৰ ডাম্প কৰিবলে ব্যৰ্থ"
 
-#: src/libxl/libxl_driver.c:2015
+#: src/libxl/libxl_driver.c:2024
 #, c-format
 msgid "After dumping core, failed to resume domain '%d' with libxenlight"
 msgstr ""
 "কেন্দ্ৰ ডাম্প কৰাৰ পিছত, libxenlight ৰ সৈতে ডমেইন '%d' অব্যাহত ৰাখিবলে ব্যৰ্থ"
 
-#: src/libxl/libxl_driver.c:2052 src/qemu/qemu_driver.c:3263
+#: src/libxl/libxl_driver.c:2061 src/qemu/qemu_driver.c:3263
 #: src/test/test_driver.c:6163
 msgid "cannot do managed save for transient domain"
 msgstr "পৰিবৰ্তনশীল ডমেইনৰ বাবে ব্যৱস্থাপিত সংৰক্ষণ কৰিব নোৱাৰি"
 
-#: src/libxl/libxl_driver.c:2180 src/libxl/libxl_driver.c:2319
+#: src/libxl/libxl_driver.c:2189 src/libxl/libxl_driver.c:2328
 #: src/test/test_driver.c:2481 src/xen/xen_driver.c:1376
 #, c-format
 msgid "invalid flag combination: (0x%x)"
 msgstr "অবৈধ ফ্লেগ সংযুক্তি: (0x%x)"
 
-#: src/libxl/libxl_driver.c:2185
+#: src/libxl/libxl_driver.c:2194
 msgid "nvcpus is zero"
 msgstr "nvcpus শূন্য"
 
-#: src/libxl/libxl_driver.c:2197
+#: src/libxl/libxl_driver.c:2206
 msgid "cannot set vcpus on an inactive domain"
 msgstr "এটা নিষ্ক্ৰিয় ডমেইনত vcpus সংহতি কৰিব নোৱাৰি"
 
-#: src/libxl/libxl_driver.c:2209 src/xen/xend_internal.c:1807
+#: src/libxl/libxl_driver.c:2218 src/xen/xend_internal.c:1807
 #: src/xen/xm_internal.c:690
 msgid "could not determine max vcpus for the domain"
 msgstr "ডোমেইনৰ ক্ষেত্ৰত প্ৰযোজ্য সৰ্বাধিক vcpu নিৰ্ধাৰণ কৰা নাযায়"
 
-#: src/libxl/libxl_driver.c:2219 src/qemu/qemu_driver.c:4174
+#: src/libxl/libxl_driver.c:2228 src/qemu/qemu_driver.c:4174
 #: src/xen/xend_internal.c:1812 src/xen/xm_internal.c:699
 #, c-format
 msgid ""
@@ -10423,183 +10425,183 @@ msgid ""
 msgstr ""
 "ডোমেইনৰ বাবে নিৰ্ধাৰিত সৰ্বাধিক vcpu ৰ পৰা অনুৰোধ কৰা vcpu ৰ সংখ্যা অধিক: %d > %d"
 
-#: src/libxl/libxl_driver.c:2255 src/libxl/libxl_driver.c:2264
+#: src/libxl/libxl_driver.c:2264 src/libxl/libxl_driver.c:2273
 #, c-format
 msgid "Failed to set vcpus for domain '%d' with libxenlight"
 msgstr "libxenlight ৰ সৈতে ডমেইন '%d' ৰ বাবে vcpus সংহতি কৰিবলে ব্যৰ্থ"
 
-#: src/libxl/libxl_driver.c:2333
+#: src/libxl/libxl_driver.c:2342
 msgid "domain is transient"
 msgstr "ডমেইন পৰিবৰ্তনশীল"
 
-#: src/libxl/libxl_driver.c:2366 src/test/test_driver.c:2673
+#: src/libxl/libxl_driver.c:2375 src/test/test_driver.c:2673
 msgid "cannot pin vcpus on an inactive domain"
 msgstr "নিষ্ক্ৰিয় ডোমেইনত vcpu pin কৰা সম্ভৱ নহয়"
 
-#: src/libxl/libxl_driver.c:2391
+#: src/libxl/libxl_driver.c:2400
 msgid "failed to update or add vcpupin xml"
 msgstr "vcpupin xml আপডেইট অথবা যোগ কৰিবলে ব্যৰ্থ"
 
-#: src/libxl/libxl_driver.c:2435
+#: src/libxl/libxl_driver.c:2444
 #, c-format
 msgid "Failed to list vcpus for domain '%d' with libxenlight"
 msgstr "libxenlight ৰ সৈতে ডমেইন '%d' ৰ বাবে vcpus তালিকাভুক্ত কৰিবলে ব্যৰ্থ"
 
-#: src/libxl/libxl_driver.c:2511 src/libxl/libxl_driver.c:2555
+#: src/libxl/libxl_driver.c:2520 src/libxl/libxl_driver.c:2564
 #: src/qemu/qemu_driver.c:5749 src/qemu/qemu_driver.c:5797
 #: src/xen/xen_driver.c:1606 src/xen/xen_driver.c:1659
 #, c-format
 msgid "unsupported config type %s"
 msgstr "অসমৰ্থিত বিন্যাসৰ ধৰণ %s"
 
-#: src/libxl/libxl_driver.c:2521
+#: src/libxl/libxl_driver.c:2530
 msgid "parsing xm config failed"
 msgstr "xm সংৰূপ বিশ্লেষণ কৰিবলে ব্যৰ্থ"
 
-#: src/libxl/libxl_driver.c:2732 src/qemu/qemu_driver.c:6240
+#: src/libxl/libxl_driver.c:2741 src/qemu/qemu_driver.c:6240
 #: src/uml/uml_driver.c:2097 src/vmware/vmware_driver.c:762
 msgid "cannot undefine transient domain"
 msgstr "সক্ৰিয় ডোমেইন আঁতৰুৱা সম্ভৱ নহয়"
 
-#: src/libxl/libxl_driver.c:2744 src/qemu/qemu_driver.c:6265
+#: src/libxl/libxl_driver.c:2753 src/qemu/qemu_driver.c:6265
 msgid "Failed to remove domain managed save image"
 msgstr "ডমেইন ব্যৱস্থাপিত সংৰক্ষণ ছবি আতৰাবলে ব্যৰ্থ"
 
-#: src/libxl/libxl_driver.c:2749 src/qemu/qemu_driver.c:6271
+#: src/libxl/libxl_driver.c:2758 src/qemu/qemu_driver.c:6271
 #: src/test/test_driver.c:2976 tools/virsh-domain.c:3130
 msgid "Refusing to undefine while domain managed save image exists"
 msgstr ""
 "ডমেইন ব্যৱস্থাপিত সংৰক্ষণ ছবি অস্তিত্ববান থকা অৱস্থাত অবিৱৰণ কৰিবলে নাকচ কৰিছে"
 
-#: src/libxl/libxl_driver.c:2805 src/qemu/qemu_driver.c:6496
+#: src/libxl/libxl_driver.c:2814 src/qemu/qemu_driver.c:6496
 #: src/qemu/qemu_hotplug.c:717
 #, c-format
 msgid "No device with bus '%s' and target '%s'"
 msgstr "bus '%s' আৰু লক্ষ্য '%s' থকা ডিভাইচ নাই"
 
-#: src/libxl/libxl_driver.c:2812 src/qemu/qemu_hotplug.c:82
+#: src/libxl/libxl_driver.c:2821 src/qemu/qemu_hotplug.c:82
 #, c-format
 msgid "Removable media not supported for %s device"
 msgstr "%s ডিভাইচৰ বাবে অপসাৰণযোগ্য মিডিয়া সমৰ্থিত নহয়"
 
-#: src/libxl/libxl_driver.c:2822
+#: src/libxl/libxl_driver.c:2831
 #, c-format
 msgid "libxenlight failed to change media for disk '%s'"
 msgstr "libxenlight এ ডিস্ক '%s' ৰ বাবে মাধ্যম পৰিবৰ্তন কৰিবলে ব্যৰ্থ হল"
 
-#: src/libxl/libxl_driver.c:2863 src/qemu/qemu_hotplug.c:618
+#: src/libxl/libxl_driver.c:2872 src/qemu/qemu_hotplug.c:618
 #: src/uml/uml_driver.c:2144
 msgid "disk source path is missing"
 msgstr "ডিস্কৰ উৎসৰ পথ অনুপস্থিত"
 
-#: src/libxl/libxl_driver.c:2876
+#: src/libxl/libxl_driver.c:2885
 #, c-format
 msgid "libxenlight failed to attach disk '%s'"
 msgstr "libxenlight এ ডিস্ক '%s' সংলগ্ন কৰিবলে ব্যৰ্থ হল"
 
-#: src/libxl/libxl_driver.c:2885 src/qemu/qemu_hotplug.c:764
+#: src/libxl/libxl_driver.c:2894 src/qemu/qemu_hotplug.c:764
 #: src/uml/uml_driver.c:2213
 #, c-format
 msgid "disk bus '%s' cannot be hotplugged."
 msgstr "ডিষ্ক bus '%s' ক hotplug কৰিব নোৱাৰি।"
 
-#: src/libxl/libxl_driver.c:2891 src/qemu/qemu_hotplug.c:770
+#: src/libxl/libxl_driver.c:2900 src/qemu/qemu_hotplug.c:770
 #, c-format
 msgid "disk device type '%s' cannot be hotplugged"
 msgstr "ডিষ্ক ডিভাইচৰ ধৰণ '%s' ক hotplug কৰিব নোৱাৰি।"
 
-#: src/libxl/libxl_driver.c:2929
+#: src/libxl/libxl_driver.c:2938
 #, c-format
 msgid "libxenlight failed to detach disk '%s'"
 msgstr "libxenlight এ ডিস্ক '%s' সংলগ্ন কৰিবলে ব্যৰ্থ হল"
 
-#: src/libxl/libxl_driver.c:2939
+#: src/libxl/libxl_driver.c:2948
 #, c-format
 msgid "disk bus '%s' cannot be hot unplugged."
 msgstr "ডিস্ক বাচ '%s' হট আনপ্লাগ কৰিব নোৱাৰি।"
 
-#: src/libxl/libxl_driver.c:2945
+#: src/libxl/libxl_driver.c:2954
 #, c-format
 msgid "device type '%s' cannot hot unplugged"
 msgstr "ডিভাইচ ধৰণ '%s' হট আনপ্লাগ কৰিব নোৱাৰি"
 
-#: src/libxl/libxl_driver.c:3069 src/qemu/qemu_driver.c:6535
+#: src/libxl/libxl_driver.c:3078 src/qemu/qemu_driver.c:6535
 #, c-format
 msgid "disk bus '%s' cannot be updated."
 msgstr "ডিস্ক বাচ '%s' আপডেইট কৰিব নোৱাৰি।"
 
-#: src/libxl/libxl_driver.c:3076
+#: src/libxl/libxl_driver.c:3085
 #, c-format
 msgid "device type '%s' cannot be updated"
 msgstr "ডিভাইচ ধৰণ '%s' আপডেইট কৰিব নোৱাৰি"
 
-#: src/libxl/libxl_driver.c:3097 src/openvz/openvz_driver.c:2021
+#: src/libxl/libxl_driver.c:3106 src/openvz/openvz_driver.c:2021
 #: src/qemu/qemu_driver.c:6794
 #, c-format
 msgid "target %s doesn't exist."
 msgstr "লক্ষ্য %s অস্তিত্ববান নহয়।"
 
-#: src/libxl/libxl_driver.c:3103 src/qemu/qemu_driver.c:6801
+#: src/libxl/libxl_driver.c:3112 src/qemu/qemu_driver.c:6801
 msgid "this disk doesn't support update"
 msgstr "এই ডিস্কে আপডেইট সমৰ্থন নকৰে"
 
-#: src/libxl/libxl_driver.c:3478 src/libxl/libxl_conf.c:142
+#: src/libxl/libxl_driver.c:3487 src/libxl/libxl_conf.c:142
 msgid "libxl_get_numainfo failed"
 msgstr "libxl_get_numainfo ব্যৰ্থ হল"
 
-#: src/libxl/libxl_driver.c:3485 src/nodeinfo.c:1520 src/nodeinfo.c:1704
+#: src/libxl/libxl_driver.c:3494 src/nodeinfo.c:1520 src/nodeinfo.c:1704
 #, c-format
 msgid "start cell %d out of range (0-%d)"
 msgstr "start cell %d সীমাৰ বাহিৰত (0-%d)"
 
-#: src/libxl/libxl_driver.c:3582 src/qemu/qemu_driver.c:7321
+#: src/libxl/libxl_driver.c:3591 src/qemu/qemu_driver.c:7321
 #: src/uml/uml_driver.c:2413
 msgid "cannot set autostart for transient domain"
 msgstr "সক্ৰিয় ডোমেইনৰ মেমৰি নিৰ্ধাৰণ কৰা নাযাব"
 
-#: src/libxl/libxl_driver.c:3597 src/qemu/qemu_driver.c:7336
+#: src/libxl/libxl_driver.c:3606 src/qemu/qemu_driver.c:7336
 #: src/storage/storage_driver.c:1156 src/uml/uml_driver.c:2428
 #, c-format
 msgid "cannot create autostart directory %s"
 msgstr "autostart পঞ্জিকা %s নিৰ্মাণ কৰোঁতে ব্যৰ্থ"
 
-#: src/libxl/libxl_driver.c:3672
+#: src/libxl/libxl_driver.c:3681
 #, c-format
 msgid "Failed to get scheduler id for domain '%d' with libxenlight"
 msgstr "libxenlight ৰ সৈতে ডমেইন '%d' ৰ বাবে সূচক আইডি প্ৰাপ্ত কৰিবলে অক্ষম"
 
-#: src/libxl/libxl_driver.c:3720 src/libxl/libxl_driver.c:3797
+#: src/libxl/libxl_driver.c:3729 src/libxl/libxl_driver.c:3806
 msgid "Only 'credit' scheduler is supported"
 msgstr "কেৱল 'credit' সূচক সমৰ্থিত"
 
-#: src/libxl/libxl_driver.c:3726 src/libxl/libxl_driver.c:3803
+#: src/libxl/libxl_driver.c:3735 src/libxl/libxl_driver.c:3812
 #, c-format
 msgid "Failed to get scheduler parameters for domain '%d' with libxenlight"
 msgstr "libxenlight ৰ সৈতে ডমেইন '%d' ৰ বাবে সূচক প্ৰাচলসমূহ প্ৰাপ্ত কৰিবলে ব্যৰ্থ"
 
-#: src/libxl/libxl_driver.c:3819
+#: src/libxl/libxl_driver.c:3828
 #, c-format
 msgid "Failed to set scheduler parameters for domain '%d' with libxenlight"
 msgstr "libxenlight ৰ সৈতে ডমেইন '%d' ৰ বাবে সূচক প্ৰাচলসমূহ সংহতি কৰিবলে ব্যৰ্থ"
 
-#: src/libxl/libxl_driver.c:3850 src/xen/xen_driver.c:2641
+#: src/libxl/libxl_driver.c:3859 src/xen/xen_driver.c:2641
 msgid "Named device aliases are not supported"
 msgstr "নাম থকা ডিভাইচ এলিয়াচসমূহ সমৰ্থিত নহয়"
 
-#: src/libxl/libxl_driver.c:3873 src/qemu/qemu_driver.c:13627
+#: src/libxl/libxl_driver.c:3882 src/qemu/qemu_driver.c:13627
 #, c-format
 msgid "cannot find character device %s"
 msgstr "আখৰ ডিভাইচ %s সন্ধান কৰিব নোৱাৰি"
 
-#: src/libxl/libxl_driver.c:3900 src/qemu/qemu_driver.c:13647
+#: src/libxl/libxl_driver.c:3909 src/qemu/qemu_driver.c:13647
 msgid "Active console session exists for this domain"
 msgstr "এই ডমেইনৰ বাবে সক্ৰিয় কনচৌল অধিবেশন অস্তিত্ববান"
 
-#: src/libxl/libxl_driver.c:4001
+#: src/libxl/libxl_driver.c:4010
 msgid "unable to get numa affinity"
 msgstr "numa প্ৰবনতা প্ৰাপ্ত কৰিবলে অক্ষম"
 
-#: src/libxl/libxl_driver.c:4011
+#: src/libxl/libxl_driver.c:4020
 #, c-format
 msgid "Node %zu out of range"
 msgstr "ন'ড %zu বিস্তাৰৰ বাহিৰ"
@@ -13801,9 +13803,9 @@ msgid "Failed opening %s"
 msgstr "%s খোলিবলে ব্যৰ্থ"
 
 #: src/qemu/qemu_command.c:5506
-#, fuzzy, c-format
+#, c-format
 msgid "invalid PCI passthrough type '%s'"
-msgstr "অবৈধ গোপণ ধৰণ '%s'"
+msgstr ""
 
 #: src/qemu/qemu_command.c:5560
 #, c-format
@@ -14643,15 +14645,15 @@ msgstr ""
 "%s: remote_display_port_min: নূন্যতম পোৰ্ট সৰ্বাধিক পোৰ্টতকে ডাঙৰ হব নোৱাৰিব"
 
 #: src/qemu/qemu_conf.c:471
-#, fuzzy, c-format
+#, c-format
 msgid "%s: migration_port_min: port must be greater than 0"
-msgstr "%s: remote_display_port_min: পোৰ্ট %d কে ডাঙৰ অথবা সমান হব লাগিব"
+msgstr ""
 
 #: src/qemu/qemu_conf.c:480
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "%s: migration_port_max: port must be between the minimal port %d and 65535"
-msgstr "%s: remote_display_port_max: পোৰ্ট নূন্যতম পোৰ্ট আৰু %d ৰ মাজত হব লাগিব"
+msgstr ""
 
 #: src/qemu/qemu_conf.c:509
 msgid "cgroup_controllers must be a list of strings"
@@ -15714,9 +15716,8 @@ msgid "live disk snapshot not supported with this QEMU binary"
 msgstr "জীৱন্ত ডিস্ক স্নেপশ্বট এই QEMU বাইনাৰিৰ সৈতে সমৰ্থিত নহয়"
 
 #: src/qemu/qemu_driver.c:12204
-#, fuzzy
 msgid "Invalid snapshot image format specified in configuration file"
-msgstr "বিন্যাস ফাইলত ইমেজ সংৰক্ষণৰ অবৈধ বিন্যাস চিহ্নিত হৈছে"
+msgstr ""
 
 #: src/qemu/qemu_driver.c:12350
 msgid "quiesce requires disk-only"
@@ -16008,19 +16009,16 @@ msgid "vlan can only be set for SR-IOV VFs, but %s is not a VF"
 msgstr "vlan কেৱল SR-IOV VFs ৰ বাবে সংহতি কৰিব পাৰি, কিন্তু %s এটা VF নহয়"
 
 #: src/qemu/qemu_hostdev.c:604
-#, fuzzy
 msgid "host doesn't support passthrough of host PCI devices"
-msgstr "এই QEMU এ USB সংৰক্ষণ ডিভাইচসমূহৰ আতৰাব পৰা ফ্লেগ সংহতি কৰাটো সমৰ্থন নকৰে"
+msgstr ""
 
 #: src/qemu/qemu_hostdev.c:614
-#, fuzzy
 msgid "host doesn't support VFIO PCI passthrough"
-msgstr "এই QEMU এ lun পাছথ্ৰুৰ বাবে scsi-block সমৰ্থন নকৰে"
+msgstr ""
 
 #: src/qemu/qemu_hostdev.c:622
-#, fuzzy
 msgid "host doesn't support legacy PCI passthrough"
-msgstr "এই QEMU এ lun পাছথ্ৰুৰ বাবে scsi-block সমৰ্থন নকৰে"
+msgstr ""
 
 #: src/qemu/qemu_hostdev.c:678
 #, c-format
@@ -17068,9 +17066,8 @@ msgid "info kvm reply was missing return data"
 msgstr "তথ্য kvm উত্তৰত return তথ্য নাছিল"
 
 #: src/qemu/qemu_monitor_json.c:1303
-#, fuzzy
 msgid "info kvm reply missing 'enabled' field"
-msgstr "info kvm উত্তৰত 'running' ফিল্ড সন্ধানহিন"
+msgstr ""
 
 #: src/qemu/qemu_monitor_json.c:1353
 msgid "info balloon reply was missing return data"
@@ -18632,7 +18629,7 @@ msgstr "পোৰ্টলে বান্ধীবলে অক্ষম"
 #: src/rpc/virnetsocket.c:294 src/rpc/virnetsocket.c:419
 #: src/rpc/virnetsocket.c:490 src/rpc/virnetsocket.c:573
 #: src/rpc/virnetsocket.c:894 src/rpc/virnetsocket.c:946
-#: src/rpc/virnetsocket.c:1738
+#: src/rpc/virnetsocket.c:1737
 msgid "Unable to get local socket name"
 msgstr "স্থানীয় চকেট নাম প্ৰাপ্ত কৰিবলে অক্ষম"
 
@@ -18745,81 +18742,78 @@ msgstr "pipe %d ত close-on-exec ফ্লেগ অসামৰ্থবান
 msgid "Unable to copy socket file handle"
 msgstr "চকেট ফাইল হেণ্ডেল কপি কৰিবলে অক্ষম"
 
-#: src/rpc/virnetsocket.c:1133 src/rpc/virnetsocket.c:1184
+#: src/rpc/virnetsocket.c:1133 src/rpc/virnetsocket.c:1183
 msgid "Failed to get client socket identity"
 msgstr "ক্লাএন্ট চকেট পৰিচয় প্ৰাপ্ত কৰিবলে ব্যৰ্থ"
 
-#: src/rpc/virnetsocket.c:1190
-#, fuzzy
+#: src/rpc/virnetsocket.c:1189
 msgid "Failed to get valid client socket identity"
-msgstr "ক্লাএন্ট চকেট পৰিচয় প্ৰাপ্ত কৰিবলে ব্যৰ্থ"
+msgstr "বৈধ ক্লাএন্ট চকেট পৰিচয় প্ৰাপ্ত কৰিবলৈ ব্যৰ্থ"
 
-#: src/rpc/virnetsocket.c:1196
-#, fuzzy
+#: src/rpc/virnetsocket.c:1195
 msgid "Failed to get valid client socket identity groups"
-msgstr "ক্লাএন্ট চকেট পৰিচয় প্ৰাপ্ত কৰিবলে ব্যৰ্থ"
+msgstr "বৈধ ক্লাএন্ট চকেট পৰিচয় দলসমূহ প্ৰাপ্ত কৰিবলৈ ব্যৰ্থ"
 
-#: src/rpc/virnetsocket.c:1224
-#, fuzzy
+#: src/rpc/virnetsocket.c:1223
 msgid "Failed to get client socket PID"
-msgstr "ক্লাএন্ট চকেট পৰিচয় প্ৰাপ্ত কৰিবলে ব্যৰ্থ"
+msgstr ""
 
-#: src/rpc/virnetsocket.c:1245
+#: src/rpc/virnetsocket.c:1244
 msgid "Client socket identity not available"
 msgstr "ক্লাএন্ট চকেট পৰিচয় উপলব্ধ নাই"
 
-#: src/rpc/virnetsocket.c:1266
+#: src/rpc/virnetsocket.c:1265
 msgid "Unable to query peer security context"
 msgstr "সমনিয়া সুৰক্ষা পৰিপ্ৰেক্ষতিত প্ৰশ্ন কৰিবলে অক্ষম"
 
-#: src/rpc/virnetsocket.c:1444
+#: src/rpc/virnetsocket.c:1443
 #, c-format
 msgid "Cannot recv data: %s"
 msgstr "তথ্য গ্ৰহণ কৰিব নোৱাৰি: %s"
 
-#: src/rpc/virnetsocket.c:1447
+#: src/rpc/virnetsocket.c:1446
 msgid "Cannot recv data"
 msgstr "তথ্য গ্ৰহণ কৰিব নোৱাৰি"
 
-#: src/rpc/virnetsocket.c:1452
+#: src/rpc/virnetsocket.c:1451
 #, c-format
 msgid "End of file while reading data: %s"
 msgstr "তথ্য পঢ়োতে ফাইলৰ অন্ত: %s"
 
-#: src/rpc/virnetsocket.c:1455
+#: src/rpc/virnetsocket.c:1454
 msgid "End of file while reading data"
 msgstr "তথ্য পঢ়োতে ফাইলৰ অন্ত"
 
-#: src/rpc/virnetsocket.c:1492
+#: src/rpc/virnetsocket.c:1491
 msgid "Cannot write data"
 msgstr "তথ্য লিখিব নোৱাৰি"
 
-#: src/rpc/virnetsocket.c:1497
+#: src/rpc/virnetsocket.c:1496
 msgid "End of file while writing data"
 msgstr "তথ্য লিখোতে ফাইলৰ অন্ত"
 
-#: src/rpc/virnetsocket.c:1640
+#: src/rpc/virnetsocket.c:1639
 msgid "Sending file descriptors is not supported on this socket"
 msgstr "এই চকেটত ফাইল বিৱৰকসমূহ পঠোৱা সমৰ্থিত নহয়"
 
-#: src/rpc/virnetsocket.c:1651
+#: src/rpc/virnetsocket.c:1650
 #, c-format
 msgid "Failed to send file descriptor %d"
 msgstr "ফাইল বিৱৰক %d পঠাবলে ব্যৰ্থ"
 
-#: src/rpc/virnetsocket.c:1674
+#: src/rpc/virnetsocket.c:1673
 msgid "Receiving file descriptors is not supported on this socket"
 msgstr "ফাইল বিৱৰকসমূহ গ্ৰহণ কৰাটো এই চকেটত সমৰ্থিত নহয়"
 
-#: src/rpc/virnetsocket.c:1684
+#: src/rpc/virnetsocket.c:1683
 msgid "Failed to recv file descriptor"
 msgstr "ফাইল বিৱৰক গ্ৰহণ কৰিবলে ব্যৰ্থ"
 
-#: src/rpc/virnetsocket.c:1701
+#: src/rpc/virnetsocket.c:1700
 msgid "Unable to listen on socket"
 msgstr "চকেটত শুনিবলে অক্ষম"
 
-#: src/rpc/virnetsocket.c:1732
+#: src/rpc/virnetsocket.c:1731
 msgid "Unable to accept client"
 msgstr "ক্লাএন্টক গ্ৰহণ কৰিবলে অক্ষম"
 
@@ -20314,9 +20308,9 @@ msgid "cannot set mode of '%s' to %04o"
 msgstr "'%s' ৰ মোড %04o ৰূপে ধাৰ্য কৰা সম্ভৱ নহয়"
 
 #: src/storage/storage_backend.c:347
-#, fuzzy, c-format
+#, c-format
 msgid "cannot allocate %llu bytes in file '%s'"
-msgstr "ফাইল '%s' সৃষ্টি কৰিব নোৱাৰি"
+msgstr ""
 
 #: src/storage/storage_backend.c:372
 #, c-format
@@ -21197,14 +21191,12 @@ msgid "storage pool does not support vol deletion"
 msgstr "ভঁৰালৰ পুলে সমষ্টি আঁতৰুৱাৰ সমৰ্থন নকৰে"
 
 #: src/test/test_driver.c:230
-#, fuzzy
 msgid "invalid transient"
-msgstr "অবৈধ সময়অন্ত"
+msgstr ""
 
 #: src/test/test_driver.c:237
-#, fuzzy
 msgid "invalid hasmanagedsave"
-msgstr "অবৈধ ভিত্তিতাৰিখ"
+msgstr ""
 
 #: src/test/test_driver.c:246
 #, c-format
@@ -21216,9 +21208,8 @@ msgid "invalid runstate"
 msgstr "অবৈধ চলনঅৱস্থা"
 
 #: src/test/test_driver.c:260
-#, fuzzy
 msgid "transient domain cannot have runstate 'shutoff'"
-msgstr "পৰিবৰ্তনশীল ডমেইনসমূহৰ কোনো স্থায়ী সংৰূপ নাই"
+msgstr ""
 
 #: src/test/test_driver.c:265
 msgid "domain with managedsave data can only have runstate 'shutoff'"
@@ -21268,9 +21259,8 @@ msgid "invalid node memory value"
 msgstr "অবৈধ ন'ড মেমৰি মান"
 
 #: src/test/test_driver.c:1006
-#, fuzzy
 msgid "more than one snapshot claims to be active"
-msgstr "সকলো ডমেইন স্নেপশ্বট মেটাডাটা আতৰাওক, যদি নিষ্ক্ৰিয়"
+msgstr ""
 
 #: src/test/test_driver.c:1363
 msgid "Root element is not 'node'"
@@ -21417,9 +21407,8 @@ msgid "storage pool is not active"
 msgstr "ভঁৰালৰ পুল সক্ৰিয় নহয়"
 
 #: src/test/test_driver.c:6933
-#, fuzzy
 msgid "must respawn guest to start inactive snapshot"
-msgstr "নিষ্ক্ৰিয় স্নেপশ্বট আৰম্ভ কৰিবলে qemu respawn কৰিব লাগিব"
+msgstr ""
 
 #: src/uml/uml_conf.c:178
 msgid "IP address not supported for ethernet interface"
@@ -21768,9 +21757,9 @@ msgid "Could not find placement for controller %s at %s"
 msgstr "%s ত নিয়ন্ত্ৰক %s ৰ বাবে স্থাপনা বিচাৰি পোৱা নগল"
 
 #: src/util/vircgroup.c:677
-#, fuzzy, c-format
+#, c-format
 msgid "Invalid value '%s' for '%s'"
-msgstr "VMX প্ৰবিষ্টি '%s' ৰ বাবে অবৈধ মান '%s'"
+msgstr ""
 
 #: src/util/vircgroup.c:682
 #, c-format
@@ -23175,19 +23164,18 @@ msgstr ""
 "সংৰক্ষিত মান 0xFE - '%s' -  ৰ সৈতে আৰম্ভ হোৱা MAC ঠিকনা ব্যৱহাৰ কৰিবলে অক্ষম"
 
 #: src/util/virnetdevveth.c:78
-#, fuzzy
 msgid "No free veth devices available"
-msgstr "কোনো মুক্ত NBD ডিভাইচ নাই"
+msgstr ""
 
 #: src/util/virnetdevveth.c:178
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to allocate free veth pair after %d attempts"
-msgstr "পথৰ বাবে মেমৰি আবন্টন কৰিবলে ব্যৰ্থ"
+msgstr ""
 
 #: src/util/virnetdevveth.c:215
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to delete veth device %s"
-msgstr "ডিভাইচ %s অসংলগ্ন কৰা হল"
+msgstr ""
 
 #: src/util/virnetdevvportprofile.c:193
 #, c-format
@@ -24363,14 +24351,13 @@ msgid "Storage volume not found: %s"
 msgstr "ভঁৰালৰ সমষ্টি পোৱা ন'গ'ল: %s"
 
 #: src/util/virerror.c:1009
-#, fuzzy
 msgid "this storage volume exists already"
-msgstr "এই নে'টৱৰ্ক ইতিমধ্যে আছে"
+msgstr ""
 
 #: src/util/virerror.c:1011
-#, fuzzy, c-format
+#, c-format
 msgid "storage volume %s exists already"
-msgstr "%s নে'টৱৰ্ক ইতিমধ্যে আছে"
+msgstr ""
 
 #: src/util/virerror.c:1015
 msgid "Storage pool probe failed"
@@ -25654,9 +25641,8 @@ msgid "version parsing error"
 msgstr "সংস্কৰণ বিশ্লেষণ কৰোতে ত্ৰুটি"
 
 #: src/vmware/vmware_conf.c:290
-#, fuzzy
 msgid "invalid driver type for version detection"
-msgstr "অবৈধ ড্ৰাইভাৰ ধৰণ: %d"
+msgstr "সংস্কৰণ চিনাক্তকৰণৰ বাবে অবৈধ ড্ৰাইভাৰ ধৰণ"
 
 #: src/vmware/vmware_conf.c:345
 #, c-format
@@ -25686,27 +25672,27 @@ msgid "cannot parse pid in vmware log file"
 msgstr "vmware লগ ফাইলত uid বিশ্লেষণ কৰিব নোৱাৰি"
 
 #: src/vmware/vmware_driver.c:122
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "unexpected VMware URI path '%s', try vmwareplayer:///session, vmwarews:///"
 "session or vmwarefusion:///session"
 msgstr ""
-"অপ্ৰত্যাশিত VMware URI পথ '%s', vmwareplayer:///session অথবা vmwarews:///"
-"session চেষ্টা কৰি চাওক"
+"অপ্ৰত্যাশিত VMware URI পথ '%s', vmwareplayer:///session, vmwarews:///session "
+"অথবা vmwarefusion:///session চেষ্টা কৰক"
 
 #: src/vmware/vmware_driver.c:147
 msgid "vmrun utility is missing"
 msgstr "vmrun সঁজুলি সন্ধানহিন"
 
 #: src/vmware/vmware_driver.c:155
-#, fuzzy, c-format
+#, c-format
 msgid "unable to parse URI scheme '%s'"
-msgstr "URl বিশ্লেষণ কৰিবলে অক্ষম: %s"
+msgstr "URl আঁচনি '%s' বিশ্লেষণ কৰিবলৈ অক্ষম"
 
 #: src/vmware/vmware_driver.c:164
 #, c-format
 msgid "unable to find valid requested VMware backend '%s'"
-msgstr ""
+msgstr "বৈধ অনুৰোধ কৰা VMware বেকএণ্ড '%s' সন্ধান কৰিবলৈ অক্ষম"
 
 #: src/vmware/vmware_driver.c:373 src/vmware/vmware_driver.c:655
 #, c-format
@@ -34289,9 +34275,8 @@ msgid "amount of data to upload"
 msgstr "আপল'ড কৰিবলে তথ্যৰ পৰিমাণ"
 
 #: tools/virsh-volume.c:669 tools/virsh-volume.c:783
-#, fuzzy
 msgid "cannot create a new stream"
-msgstr "স্ট্ৰিমে লিখা সম্ভৱ নহয়"
+msgstr "এটা নতুন স্ট্ৰিম সৃষ্টি কৰিব নোৱাৰি"
 
 #: tools/virsh-volume.c:674
 #, c-format
@@ -34679,20 +34664,5 @@ msgstr "chdir(%s) কৰিবলৈ অক্ষম"
 msgid "Unable to exec shell %s"
 msgstr "শ্বেল %s exec কৰিবলৈ অক্ষম"
 
-#~ msgid "Attempt to close netcf state driver already closed"
-#~ msgstr "ইতিমধ্যে বন্ধ netcf অৱস্থা ড্ৰাইভাৰ বন্ধ কৰাৰ চেষ্টা"
-
-#~ msgid "storage vol '%s' already exists"
-#~ msgstr "সংৰক্ষণ ভলিউম '%s' ইতিমধ্যে অস্তিত্ববান"
-
-#~ msgid "weight '%u' must be in range (100, 1000)"
-#~ msgstr "উজন '%u' বিস্তাৰ (100, 1000) ত হ'ব লাগিব"
-
-#~ msgid "Expecting VMX entry '%s' to be 'file' but found '%s'"
-#~ msgstr "VMX প্ৰৱিষ্টি '%s' ক 'file' হবলে আশা কৰা হৈছিল কিন্তু প্ৰাপ্ত হল '%s'"
-
-#~ msgid "Image file for floppy '%s' has unsupported suffix, expecting '.flp'"
-#~ msgstr "ফ্লপি '%s' ৰ বাবে ছবি ফাইলৰ অনুসৰ্গ অসমৰ্থিত, আশা কৰা হৈছে '.flp'"
-
-#~ msgid "shareable between domains"
-#~ msgstr "ডমেইনসমূহৰ মাজত অংশীদাৰী কৰিব পাৰি"
+#~ msgid "domain is already active as '%s'"
+#~ msgstr "'%s' হিচাপে ডোমেইন বৰ্তমানে সক্ৰিয়"
