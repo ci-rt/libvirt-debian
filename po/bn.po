@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libvirt\n"
 "Report-Msgid-Bugs-To: libvir-list@redhat.com\n"
-"POT-Creation-Date: 2013-11-01 11:07+0800\n"
+"POT-Creation-Date: 2013-11-04 11:30+0800\n"
 "PO-Revision-Date: 2013-01-28 14:11+0000\n"
 "Last-Translator: Daniel <veillard@redhat.com>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -874,7 +874,7 @@ msgstr ""
 msgid "Missing CPU architecture"
 msgstr ""
 
-#: src/conf/cpu_conf.c:269 src/conf/domain_conf.c:11684
+#: src/conf/cpu_conf.c:269 src/conf/domain_conf.c:11690
 #, c-format
 msgid "Unknown architecture %s"
 msgstr ""
@@ -1036,12 +1036,12 @@ msgstr ""
 msgid "Cannot parse <address> 'domain' attribute"
 msgstr ""
 
-#: src/conf/device_conf.c:75 src/conf/domain_conf.c:3084
-#: src/conf/domain_conf.c:3138 src/conf/domain_conf.c:3279
+#: src/conf/device_conf.c:75 src/conf/domain_conf.c:3090
+#: src/conf/domain_conf.c:3144 src/conf/domain_conf.c:3285
 msgid "Cannot parse <address> 'bus' attribute"
 msgstr ""
 
-#: src/conf/device_conf.c:82 src/conf/domain_conf.c:3238
+#: src/conf/device_conf.c:82 src/conf/domain_conf.c:3244
 msgid "Cannot parse <address> 'slot' attribute"
 msgstr ""
 
@@ -1073,17 +1073,22 @@ msgid "domain '%s' is already defined with uuid %s"
 msgstr ""
 
 #: src/conf/domain_conf.c:2170
-#, c-format
-msgid "domain is already active as '%s'"
-msgstr ""
+#, fuzzy, c-format
+msgid "domain '%s' is already active"
+msgstr "Domain is already active"
 
-#: src/conf/domain_conf.c:2186
+#: src/conf/domain_conf.c:2176
+#, fuzzy, c-format
+msgid "domain '%s' is already being started"
+msgstr "Domain is already active"
+
+#: src/conf/domain_conf.c:2192
 #, c-format
 msgid "domain '%s' already exists with uuid %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:2313 src/lxc/lxc_driver.c:2453
-#: src/lxc/lxc_driver.c:2527 src/libxl/libxl_driver.c:3862
+#: src/conf/domain_conf.c:2319 src/lxc/lxc_driver.c:2453
+#: src/lxc/lxc_driver.c:2527 src/libxl/libxl_driver.c:3871
 #: src/openvz/openvz_driver.c:1981 src/qemu/qemu_driver.c:1683
 #: src/qemu/qemu_driver.c:1695 src/qemu/qemu_driver.c:1767
 #: src/qemu/qemu_driver.c:1868 src/qemu/qemu_driver.c:1983
@@ -1119,1843 +1124,1843 @@ msgstr ""
 msgid "domain is not running"
 msgstr ""
 
-#: src/conf/domain_conf.c:2320
+#: src/conf/domain_conf.c:2326
 msgid "transient domains do not have any persistent config"
 msgstr ""
 
-#: src/conf/domain_conf.c:2326
+#: src/conf/domain_conf.c:2332
 msgid "Get persistent config failed"
 msgstr ""
 
-#: src/conf/domain_conf.c:2694
+#: src/conf/domain_conf.c:2700
 #, c-format
 msgid "Multiple '%s' controllers with index '%d'"
 msgstr ""
 
-#: src/conf/domain_conf.c:2718
+#: src/conf/domain_conf.c:2724
 msgid "hypervisor type must be specified"
 msgstr ""
 
-#: src/conf/domain_conf.c:2725
+#: src/conf/domain_conf.c:2731
 msgid "init binary must be specified"
 msgstr ""
 
-#: src/conf/domain_conf.c:2752
+#: src/conf/domain_conf.c:2758
 msgid "Only the first console can be a serial port"
 msgstr ""
 
-#: src/conf/domain_conf.c:2975
+#: src/conf/domain_conf.c:2981
 #, c-format
 msgid "unexpected rom bar value %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:3051
+#: src/conf/domain_conf.c:3057
 #, c-format
 msgid "unknown address type '%d'"
 msgstr ""
 
-#: src/conf/domain_conf.c:3077 src/conf/domain_conf.c:3131
-#: src/conf/domain_conf.c:3231
+#: src/conf/domain_conf.c:3083 src/conf/domain_conf.c:3137
+#: src/conf/domain_conf.c:3237
 msgid "Cannot parse <address> 'controller' attribute"
 msgstr ""
 
-#: src/conf/domain_conf.c:3091
+#: src/conf/domain_conf.c:3097
 msgid "Cannot parse <address> 'target' attribute"
 msgstr ""
 
-#: src/conf/domain_conf.c:3098
+#: src/conf/domain_conf.c:3104
 msgid "Cannot parse <address> 'unit' attribute"
 msgstr ""
 
-#: src/conf/domain_conf.c:3145 src/conf/domain_conf.c:3269
+#: src/conf/domain_conf.c:3151 src/conf/domain_conf.c:3275
 msgid "Cannot parse <address> 'port' attribute"
 msgstr ""
 
-#: src/conf/domain_conf.c:3177
+#: src/conf/domain_conf.c:3183
 msgid "Cannot parse <address> 'cssid' attribute"
 msgstr ""
 
-#: src/conf/domain_conf.c:3183
+#: src/conf/domain_conf.c:3189
 msgid "Cannot parse <address> 'ssid' attribute"
 msgstr ""
 
-#: src/conf/domain_conf.c:3189
+#: src/conf/domain_conf.c:3195
 msgid "Cannot parse <address> 'devno' attribute"
 msgstr ""
 
-#: src/conf/domain_conf.c:3194
+#: src/conf/domain_conf.c:3200
 #, c-format
 msgid ""
 "Invalid specification for virtio ccw address: cssid='%s' ssid='%s' devno='%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:3202
+#: src/conf/domain_conf.c:3208
 msgid "Invalid partial specification for virtio ccw address"
 msgstr ""
 
-#: src/conf/domain_conf.c:3304
+#: src/conf/domain_conf.c:3310
 msgid "Cannot parse <address> 'reg' attribute"
 msgstr ""
 
-#: src/conf/domain_conf.c:3332
+#: src/conf/domain_conf.c:3338
 msgid "Cannot parse <master> 'startport' attribute"
 msgstr ""
 
-#: src/conf/domain_conf.c:3355
+#: src/conf/domain_conf.c:3361
 msgid "missing boot order attribute"
 msgstr ""
 
-#: src/conf/domain_conf.c:3360
+#: src/conf/domain_conf.c:3366
 #, c-format
 msgid "incorrect boot order '%s', expecting positive integer"
 msgstr ""
 
-#: src/conf/domain_conf.c:3368
+#: src/conf/domain_conf.c:3374
 #, c-format
 msgid "boot order '%s' used for more than one device"
 msgstr ""
 
-#: src/conf/domain_conf.c:3450
+#: src/conf/domain_conf.c:3456
 #, c-format
 msgid "unknown rom bar value '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:3466
+#: src/conf/domain_conf.c:3472
 #, c-format
 msgid "unknown address type '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:3471
+#: src/conf/domain_conf.c:3477
 msgid "No type specified for device address"
 msgstr ""
 
-#: src/conf/domain_conf.c:3519
+#: src/conf/domain_conf.c:3525
 msgid "Unknown device address type"
 msgstr ""
 
-#: src/conf/domain_conf.c:3566
+#: src/conf/domain_conf.c:3572
 #, c-format
 msgid "Unknown startup policy '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:3596
+#: src/conf/domain_conf.c:3602
 #, c-format
 msgid "cannot parse vendor id %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:3603
+#: src/conf/domain_conf.c:3609
 msgid "usb vendor needs id"
 msgstr ""
 
-#: src/conf/domain_conf.c:3614
+#: src/conf/domain_conf.c:3620
 #, c-format
 msgid "cannot parse product %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:3622
+#: src/conf/domain_conf.c:3628
 msgid "usb product needs id"
 msgstr ""
 
-#: src/conf/domain_conf.c:3633
+#: src/conf/domain_conf.c:3639
 #, c-format
 msgid "cannot parse bus %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:3640
+#: src/conf/domain_conf.c:3646
 msgid "usb address needs bus id"
 msgstr ""
 
-#: src/conf/domain_conf.c:3649
+#: src/conf/domain_conf.c:3655
 #, c-format
 msgid "cannot parse device %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:3657
+#: src/conf/domain_conf.c:3663
 msgid "usb address needs device id"
 msgstr ""
 
-#: src/conf/domain_conf.c:3662
+#: src/conf/domain_conf.c:3668
 #, c-format
 msgid "unknown usb source type '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:3672
+#: src/conf/domain_conf.c:3678
 msgid "vendor cannot be 0."
 msgstr ""
 
-#: src/conf/domain_conf.c:3678
+#: src/conf/domain_conf.c:3684
 msgid "missing vendor"
 msgstr ""
 
-#: src/conf/domain_conf.c:3683
+#: src/conf/domain_conf.c:3689
 msgid "missing product"
 msgstr ""
 
-#: src/conf/domain_conf.c:3717
+#: src/conf/domain_conf.c:3723
 #, c-format
 msgid "unsupported element '%s' of 'origstates'"
 msgstr ""
 
-#: src/conf/domain_conf.c:3753 src/conf/domain_conf.c:5498
-#: src/conf/domain_conf.c:6413
+#: src/conf/domain_conf.c:3759 src/conf/domain_conf.c:5504
+#: src/conf/domain_conf.c:6419
 #, c-format
 msgid "Unable to parse devaddr parameter '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:3766
+#: src/conf/domain_conf.c:3772
 #, c-format
 msgid "unknown pci source type '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:3794
+#: src/conf/domain_conf.c:3800
 msgid "more than one source addresses is specified for scsi hostdev"
 msgstr ""
 
-#: src/conf/domain_conf.c:3803
+#: src/conf/domain_conf.c:3809
 msgid ""
 "'bus', 'target', and 'unit' must be specified for scsi hostdev source address"
 msgstr ""
 
-#: src/conf/domain_conf.c:3810
+#: src/conf/domain_conf.c:3816
 #, c-format
 msgid "cannot parse bus '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:3816
+#: src/conf/domain_conf.c:3822
 #, c-format
 msgid "cannot parse target '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:3822
+#: src/conf/domain_conf.c:3828
 #, c-format
 msgid "cannot parse unit '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:3830
+#: src/conf/domain_conf.c:3836
 msgid "more than one adapters is specified for scsi hostdev source"
 msgstr ""
 
-#: src/conf/domain_conf.c:3837
+#: src/conf/domain_conf.c:3843
 msgid "'adapter' must be specified for scsi hostdev source"
 msgstr ""
 
-#: src/conf/domain_conf.c:3844
+#: src/conf/domain_conf.c:3850
 #, c-format
 msgid "unsupported element '%s' of scsi hostdev source"
 msgstr ""
 
-#: src/conf/domain_conf.c:3854
+#: src/conf/domain_conf.c:3860
 msgid "'adapter' and 'address' must be specified for scsi hostdev source"
 msgstr ""
 
-#: src/conf/domain_conf.c:4040 src/conf/domain_conf.c:4144
+#: src/conf/domain_conf.c:4046 src/conf/domain_conf.c:4150
 #, c-format
 msgid "unknown host device source address type '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:4046 src/conf/domain_conf.c:4150
+#: src/conf/domain_conf.c:4052 src/conf/domain_conf.c:4156
 msgid "missing source address type"
 msgstr ""
 
-#: src/conf/domain_conf.c:4052 src/conf/domain_conf.c:4156
+#: src/conf/domain_conf.c:4058 src/conf/domain_conf.c:4162
 msgid "Missing <source> element in hostdev device"
 msgstr ""
 
-#: src/conf/domain_conf.c:4059
+#: src/conf/domain_conf.c:4065
 msgid "Setting startupPolicy is only allowed for USB devices"
 msgstr ""
 
-#: src/conf/domain_conf.c:4068
+#: src/conf/domain_conf.c:4074
 msgid "sgio is only supported for scsi host device"
 msgstr ""
 
-#: src/conf/domain_conf.c:4075
+#: src/conf/domain_conf.c:4081
 #, fuzzy, c-format
 msgid "unknown sgio mode '%s'"
 msgstr "unknown command: '%s'"
 
-#: src/conf/domain_conf.c:4090
+#: src/conf/domain_conf.c:4096
 #, c-format
 msgid "Unknown PCI device <driver name='%s'/> has been specified"
 msgstr ""
 
-#: src/conf/domain_conf.c:4110 src/conf/domain_conf.c:4187
+#: src/conf/domain_conf.c:4116 src/conf/domain_conf.c:4193
 #, c-format
 msgid "address type='%s' not supported in hostdev interfaces"
 msgstr ""
 
-#: src/conf/domain_conf.c:4165
+#: src/conf/domain_conf.c:4171
 msgid "Missing <block> element in hostdev storage device"
 msgstr ""
 
-#: src/conf/domain_conf.c:4173
+#: src/conf/domain_conf.c:4179
 msgid "Missing <char> element in hostdev character device"
 msgstr ""
 
-#: src/conf/domain_conf.c:4181
+#: src/conf/domain_conf.c:4187
 msgid "Missing <interface> element in hostdev net device"
 msgstr ""
 
-#: src/conf/domain_conf.c:4240
+#: src/conf/domain_conf.c:4246
 #, c-format
 msgid "Unknown disk name '%s' and no address specified"
 msgstr ""
 
-#: src/conf/domain_conf.c:4327
+#: src/conf/domain_conf.c:4333
 msgid "invalid security type"
 msgstr ""
 
-#: src/conf/domain_conf.c:4341 src/conf/domain_conf.c:4562
+#: src/conf/domain_conf.c:4347 src/conf/domain_conf.c:4568
 #, c-format
 msgid "invalid security relabel value %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:4349
+#: src/conf/domain_conf.c:4355
 msgid "dynamic label type must use resource relabeling"
 msgstr ""
 
-#: src/conf/domain_conf.c:4355
+#: src/conf/domain_conf.c:4361
 msgid "resource relabeling is not compatible with 'none' label type"
 msgstr ""
 
-#: src/conf/domain_conf.c:4376
+#: src/conf/domain_conf.c:4382
 msgid "security label is missing"
 msgstr ""
 
-#: src/conf/domain_conf.c:4391
+#: src/conf/domain_conf.c:4397
 msgid "security imagelabel is missing"
 msgstr ""
 
-#: src/conf/domain_conf.c:4473
+#: src/conf/domain_conf.c:4479
 msgid "missing security model in domain seclabel"
 msgstr ""
 
-#: src/conf/domain_conf.c:4483
+#: src/conf/domain_conf.c:4489
 msgid "missing security model when using multiple labels"
 msgstr ""
 
-#: src/conf/domain_conf.c:4549
+#: src/conf/domain_conf.c:4555
 msgid "label overrides require relabeling to be enabled at the domain level"
 msgstr ""
 
-#: src/conf/domain_conf.c:4586
+#: src/conf/domain_conf.c:4592
 #, c-format
 msgid "Cannot specify a label if relabelling is turned off. model=%s"
 msgstr ""
 
-#: src/conf/domain_conf.c:4643
+#: src/conf/domain_conf.c:4649
 msgid "Missing 'key' element for lease"
 msgstr ""
 
-#: src/conf/domain_conf.c:4648
+#: src/conf/domain_conf.c:4654
 msgid "Missing 'target' element for lease"
 msgstr ""
 
-#: src/conf/domain_conf.c:4655
+#: src/conf/domain_conf.c:4661
 #, c-format
 msgid "Malformed lease target offset %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:4697
+#: src/conf/domain_conf.c:4703
 msgid "'pool' and 'volume' must be specified together for 'pool' type source"
 msgstr ""
 
-#: src/conf/domain_conf.c:4708
+#: src/conf/domain_conf.c:4714
 #, fuzzy, c-format
 msgid "unknown source mode '%s' for volume type disk"
 msgstr "unknown OS type %s"
 
-#: src/conf/domain_conf.c:4807
+#: src/conf/domain_conf.c:4813
 #, c-format
 msgid "unknown disk type '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:4840
+#: src/conf/domain_conf.c:4846
 msgid "missing protocol type"
 msgstr ""
 
-#: src/conf/domain_conf.c:4846
+#: src/conf/domain_conf.c:4852
 #, c-format
 msgid "unknown protocol type '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:4858
+#: src/conf/domain_conf.c:4864
 msgid "missing name for disk source"
 msgstr ""
 
-#: src/conf/domain_conf.c:4879
+#: src/conf/domain_conf.c:4885
 #, c-format
 msgid "unknown protocol transport type '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:4888
+#: src/conf/domain_conf.c:4894
 msgid "missing socket for unix transport"
 msgstr ""
 
-#: src/conf/domain_conf.c:4894
+#: src/conf/domain_conf.c:4900
 #, c-format
 msgid "transport %s does not support socket attribute"
 msgstr ""
 
-#: src/conf/domain_conf.c:4903
+#: src/conf/domain_conf.c:4909
 msgid "missing name for host"
 msgstr ""
 
-#: src/conf/domain_conf.c:4918 src/conf/domain_conf.c:14397
+#: src/conf/domain_conf.c:4924 src/conf/domain_conf.c:14403
 #, c-format
 msgid "unexpected disk type %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:4948
+#: src/conf/domain_conf.c:4954
 msgid "invalid geometry settings (cyls)"
 msgstr ""
 
-#: src/conf/domain_conf.c:4954
+#: src/conf/domain_conf.c:4960
 msgid "invalid geometry settings (heads)"
 msgstr ""
 
-#: src/conf/domain_conf.c:4960
+#: src/conf/domain_conf.c:4966
 msgid "invalid geometry settings (secs)"
 msgstr ""
 
-#: src/conf/domain_conf.c:4968
+#: src/conf/domain_conf.c:4974
 #, c-format
 msgid "invalid translation value '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:4980
+#: src/conf/domain_conf.c:4986
 #, c-format
 msgid "invalid logical block size '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:4990
+#: src/conf/domain_conf.c:4996
 #, c-format
 msgid "invalid physical block size '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:5018
+#: src/conf/domain_conf.c:5024
 msgid "mirror requires file name"
 msgstr ""
 
-#: src/conf/domain_conf.c:5031
+#: src/conf/domain_conf.c:5037
 msgid "missing username for auth"
 msgstr ""
 
-#: src/conf/domain_conf.c:5043
+#: src/conf/domain_conf.c:5049
 msgid "missing type for secret"
 msgstr ""
 
-#: src/conf/domain_conf.c:5050
+#: src/conf/domain_conf.c:5056
 #, c-format
 msgid "invalid secret type %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:5060
+#: src/conf/domain_conf.c:5066
 msgid "only one of uuid and usage can be specified"
 msgstr ""
 
-#: src/conf/domain_conf.c:5066
+#: src/conf/domain_conf.c:5072
 msgid "either uuid or usage should be specified for a secret"
 msgstr ""
 
-#: src/conf/domain_conf.c:5076
+#: src/conf/domain_conf.c:5082
 #, c-format
 msgid "malformed uuid %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:5130
+#: src/conf/domain_conf.c:5136
 msgid "total and read/write bytes_sec cannot be set at the same time"
 msgstr ""
 
-#: src/conf/domain_conf.c:5140
+#: src/conf/domain_conf.c:5146
 msgid "total and read/write iops_sec cannot be set at the same time"
 msgstr ""
 
-#: src/conf/domain_conf.c:5175
+#: src/conf/domain_conf.c:5181
 msgid "disk vendor is more than 8 characters"
 msgstr ""
 
-#: src/conf/domain_conf.c:5181
+#: src/conf/domain_conf.c:5187
 msgid "disk vendor is not printable string"
 msgstr ""
 
-#: src/conf/domain_conf.c:5190
+#: src/conf/domain_conf.c:5196
 msgid "disk product is more than 16 characters"
 msgstr ""
 
-#: src/conf/domain_conf.c:5196
+#: src/conf/domain_conf.c:5202
 msgid "disk product is not printable string"
 msgstr ""
 
-#: src/conf/domain_conf.c:5208
+#: src/conf/domain_conf.c:5214
 #, fuzzy, c-format
 msgid "invalid secret type '%s'"
 msgstr "invalid connection pointer in %s"
 
-#: src/conf/domain_conf.c:5217
+#: src/conf/domain_conf.c:5223
 #, c-format
 msgid "unknown disk device '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:5268
+#: src/conf/domain_conf.c:5274
 #, c-format
 msgid "Invalid floppy device name: %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:5284
+#: src/conf/domain_conf.c:5290
 #, c-format
 msgid "Invalid harddisk device name: %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:5292 src/conf/snapshot_conf.c:125
+#: src/conf/domain_conf.c:5298 src/conf/snapshot_conf.c:125
 #, c-format
 msgid "unknown disk snapshot setting '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:5303
+#: src/conf/domain_conf.c:5309
 msgid "rawio or sgio can be used only with device='lun'"
 msgstr ""
 
-#: src/conf/domain_conf.c:5316
+#: src/conf/domain_conf.c:5322
 #, c-format
 msgid "unknown disk rawio setting '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:5325
+#: src/conf/domain_conf.c:5331
 #, c-format
 msgid "unknown disk sgio mode '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:5333
+#: src/conf/domain_conf.c:5339
 #, c-format
 msgid "unknown disk bus type '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:5358
+#: src/conf/domain_conf.c:5364
 #, c-format
 msgid "unknown disk tray status '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:5365
+#: src/conf/domain_conf.c:5371
 msgid "tray is only valid for cdrom and floppy"
 msgstr ""
 
-#: src/conf/domain_conf.c:5377
+#: src/conf/domain_conf.c:5383
 #, fuzzy, c-format
 msgid "unknown disk removable status '%s'"
 msgstr "unknown command: '%s'"
 
-#: src/conf/domain_conf.c:5383
+#: src/conf/domain_conf.c:5389
 msgid "removable is only valid for usb disks"
-msgstr ""
-
-#: src/conf/domain_conf.c:5395
-#, c-format
-msgid "Invalid bus type '%s' for floppy disk"
 msgstr ""
 
 #: src/conf/domain_conf.c:5401
 #, c-format
+msgid "Invalid bus type '%s' for floppy disk"
+msgstr ""
+
+#: src/conf/domain_conf.c:5407
+#, c-format
 msgid "Invalid bus type '%s' for disk"
 msgstr ""
 
-#: src/conf/domain_conf.c:5408
+#: src/conf/domain_conf.c:5414
 #, c-format
 msgid "unknown disk cache mode '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:5415
+#: src/conf/domain_conf.c:5421
 #, c-format
 msgid "unknown disk error policy '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:5424
+#: src/conf/domain_conf.c:5430
 #, c-format
 msgid "unknown disk read error policy '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:5433
+#: src/conf/domain_conf.c:5439
 #, c-format
 msgid "unknown disk io mode '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:5443
+#: src/conf/domain_conf.c:5449
 msgid "disk ioeventfd mode supported only for virtio bus"
 msgstr ""
 
-#: src/conf/domain_conf.c:5450
+#: src/conf/domain_conf.c:5456
 #, c-format
 msgid "unknown disk ioeventfd mode '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:5460
+#: src/conf/domain_conf.c:5466
 msgid "disk event_idx mode supported only for virtio bus"
 msgstr ""
 
-#: src/conf/domain_conf.c:5468
+#: src/conf/domain_conf.c:5474
 #, c-format
 msgid "unknown disk event_idx mode '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:5479
+#: src/conf/domain_conf.c:5485
 #, c-format
 msgid "unknown disk copy_on_read mode '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:5489
+#: src/conf/domain_conf.c:5495
 #, fuzzy, c-format
 msgid "unknown disk discard mode '%s'"
 msgstr "unknown command: '%s'"
 
-#: src/conf/domain_conf.c:5514
+#: src/conf/domain_conf.c:5520
 #, c-format
 msgid "unknown startupPolicy value '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:5521
+#: src/conf/domain_conf.c:5527
 #, c-format
 msgid "Setting disk %s is not allowed for disk of network type"
 msgstr ""
 
-#: src/conf/domain_conf.c:5531
+#: src/conf/domain_conf.c:5537
 msgid "Setting disk 'requisite' is allowed only for cdrom or floppy"
 msgstr ""
 
-#: src/conf/domain_conf.c:5568 src/conf/domain_conf.c:6005
+#: src/conf/domain_conf.c:5574 src/conf/domain_conf.c:6011
 #, c-format
 msgid "unknown driver format value '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:5578
+#: src/conf/domain_conf.c:5584
 #, c-format
 msgid "unknown mirror format value '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:5668
+#: src/conf/domain_conf.c:5674
 #, c-format
 msgid "could not parse element %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:5672
+#: src/conf/domain_conf.c:5678
 #, c-format
 msgid "missing element %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:5736
+#: src/conf/domain_conf.c:5742
 #, c-format
 msgid "Unknown controller type '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:5746
+#: src/conf/domain_conf.c:5752
 #, c-format
 msgid "Cannot parse controller index %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:5755
+#: src/conf/domain_conf.c:5761
 #, c-format
 msgid "Unknown model type '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:5773
+#: src/conf/domain_conf.c:5779
 #, c-format
 msgid "Malformed 'queues' value '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:5788
+#: src/conf/domain_conf.c:5794
 #, c-format
 msgid "Invalid ports: %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:5803
+#: src/conf/domain_conf.c:5809
 #, c-format
 msgid "Invalid vectors: %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:5842
+#: src/conf/domain_conf.c:5848
 msgid "pci-root and pcie-root controllers should not have an address"
 msgstr ""
 
-#: src/conf/domain_conf.c:5848
+#: src/conf/domain_conf.c:5854
 msgid "pci-root and pcie-root controllers should have index 0"
 msgstr ""
 
-#: src/conf/domain_conf.c:5874
+#: src/conf/domain_conf.c:5880
 msgid "Controllers must use the 'pci' address type"
 msgstr ""
 
-#: src/conf/domain_conf.c:5930
+#: src/conf/domain_conf.c:5936
 #, c-format
 msgid "unknown filesystem type '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:5941
+#: src/conf/domain_conf.c:5947
 #, c-format
 msgid "unknown accessmode '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:5997
+#: src/conf/domain_conf.c:6003
 #, c-format
 msgid "unknown fs driver type '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:6013
+#: src/conf/domain_conf.c:6019
 #, c-format
 msgid "unknown filesystem write policy '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:6036
+#: src/conf/domain_conf.c:6042
 msgid "missing 'usage' attribute for RAM filesystem"
 msgstr ""
 
-#: src/conf/domain_conf.c:6041
+#: src/conf/domain_conf.c:6047
 #, c-format
 msgid "cannot parse usage '%s' for RAM filesystem"
 msgstr ""
 
-#: src/conf/domain_conf.c:6103
+#: src/conf/domain_conf.c:6109
 msgid "missing type attribute in interface's <actual> element"
 msgstr ""
 
-#: src/conf/domain_conf.c:6108
+#: src/conf/domain_conf.c:6114
 #, c-format
 msgid "unknown type '%s' in interface's <actual> element"
 msgstr ""
 
-#: src/conf/domain_conf.c:6116
+#: src/conf/domain_conf.c:6122
 #, c-format
 msgid "unsupported type '%s' in interface's <actual> element"
 msgstr ""
 
-#: src/conf/domain_conf.c:6137
+#: src/conf/domain_conf.c:6143
 #, c-format
 msgid ""
 "<virtualport> element unsupported for type='%s' in interface's <actual> "
 "element"
 msgstr ""
 
-#: src/conf/domain_conf.c:6151
+#: src/conf/domain_conf.c:6157
 #, c-format
 msgid "Unknown mode '%s' in interface <actual> element"
 msgstr ""
 
-#: src/conf/domain_conf.c:6182
+#: src/conf/domain_conf.c:6188
 #, c-format
 msgid "Unable to parse class id '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:6266
+#: src/conf/domain_conf.c:6272
 #, c-format
 msgid "unknown interface type '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:6317
+#: src/conf/domain_conf.c:6323
 #, c-format
 msgid "<virtualport> element unsupported for <interface type='%s'>"
 msgstr ""
 
-#: src/conf/domain_conf.c:6359
+#: src/conf/domain_conf.c:6365
 msgid "Invalid specification of multiple <filterref>s in a single <interface>"
 msgstr ""
 
-#: src/conf/domain_conf.c:6395 src/qemu/qemu_command.c:10472
+#: src/conf/domain_conf.c:6401 src/qemu/qemu_command.c:10472
 #, c-format
 msgid "unable to parse mac address '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:6401
+#: src/conf/domain_conf.c:6407
 #, c-format
 msgid "expected unicast mac address, found multicast '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:6434
+#: src/conf/domain_conf.c:6440
 msgid "Network interfaces must use 'pci' address type"
 msgstr ""
 
-#: src/conf/domain_conf.c:6442
+#: src/conf/domain_conf.c:6448
 msgid ""
 "No <source> 'network' attribute specified with <interface type='network'/>"
 msgstr ""
 
-#: src/conf/domain_conf.c:6468
+#: src/conf/domain_conf.c:6474
 msgid ""
 "No <source> 'bridge' attribute specified with <interface type='bridge'/>"
 msgstr ""
 
-#: src/conf/domain_conf.c:6485
+#: src/conf/domain_conf.c:6491
 msgid "No <source> 'port' attribute specified with socket interface"
 msgstr ""
 
-#: src/conf/domain_conf.c:6491
+#: src/conf/domain_conf.c:6497
 msgid "Cannot parse <source> 'port' attribute with socket interface"
 msgstr ""
 
-#: src/conf/domain_conf.c:6500
+#: src/conf/domain_conf.c:6506
 msgid "No <source> 'address' attribute specified with socket interface"
 msgstr ""
 
-#: src/conf/domain_conf.c:6513
+#: src/conf/domain_conf.c:6519
 msgid ""
 "No <source> 'name' attribute specified with <interface type='internal'/>"
 msgstr ""
 
-#: src/conf/domain_conf.c:6524
+#: src/conf/domain_conf.c:6530
 msgid "No <source> 'dev' attribute specified with <interface type='direct'/>"
 msgstr ""
 
-#: src/conf/domain_conf.c:6533
+#: src/conf/domain_conf.c:6539
 msgid "Unknown mode has been specified"
 msgstr ""
 
-#: src/conf/domain_conf.c:6593
+#: src/conf/domain_conf.c:6599
 msgid "Model name contains invalid characters"
 msgstr ""
 
-#: src/conf/domain_conf.c:6606
+#: src/conf/domain_conf.c:6612
 #, c-format
 msgid "Unknown interface <driver name='%s'> has been specified"
 msgstr ""
 
-#: src/conf/domain_conf.c:6618
+#: src/conf/domain_conf.c:6624
 #, c-format
 msgid "Unknown interface <driver txmode='%s'> has been specified"
 msgstr ""
 
-#: src/conf/domain_conf.c:6629
+#: src/conf/domain_conf.c:6635
 #, c-format
 msgid "unknown interface ioeventfd mode '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:6639
+#: src/conf/domain_conf.c:6645
 #, c-format
 msgid "unknown interface event_idx mode '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:6649
+#: src/conf/domain_conf.c:6655
 #, c-format
 msgid "'queues' attribute must be positive number: %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:6661
+#: src/conf/domain_conf.c:6667
 #, c-format
 msgid "unknown interface link state '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:6687
+#: src/conf/domain_conf.c:6693
 msgid "sndbuf must be a positive integer"
 msgstr ""
 
-#: src/conf/domain_conf.c:6731
+#: src/conf/domain_conf.c:6737
 #, c-format
 msgid "target type must be specified for %s device"
 msgstr ""
 
-#: src/conf/domain_conf.c:6799
+#: src/conf/domain_conf.c:6805
 #, c-format
 msgid "unknown target type '%s' specified for character device"
 msgstr ""
 
-#: src/conf/domain_conf.c:6816
+#: src/conf/domain_conf.c:6822
 msgid "guestfwd channel does not define a target address"
 msgstr ""
 
-#: src/conf/domain_conf.c:6826
+#: src/conf/domain_conf.c:6832
 msgid "guestfwd channel only supports IPv4 addresses"
 msgstr ""
 
-#: src/conf/domain_conf.c:6833
+#: src/conf/domain_conf.c:6839
 msgid "guestfwd channel does not define a target port"
 msgstr ""
 
-#: src/conf/domain_conf.c:6840 src/conf/domain_conf.c:6864
+#: src/conf/domain_conf.c:6846 src/conf/domain_conf.c:6870
 #: src/conf/storage_conf.c:616
 #, c-format
 msgid "Invalid port number: %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:6938
+#: src/conf/domain_conf.c:6944
 #, c-format
 msgid "Unknown source mode '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:6994 src/conf/domain_conf.c:7076
+#: src/conf/domain_conf.c:7000 src/conf/domain_conf.c:7082
 msgid "Missing source path attribute for char device"
 msgstr ""
 
-#: src/conf/domain_conf.c:7006 src/conf/domain_conf.c:7024
+#: src/conf/domain_conf.c:7012 src/conf/domain_conf.c:7030
 msgid "Missing source host attribute for char device"
 msgstr ""
 
-#: src/conf/domain_conf.c:7012 src/conf/domain_conf.c:7030
-#: src/conf/domain_conf.c:7055
+#: src/conf/domain_conf.c:7018 src/conf/domain_conf.c:7036
+#: src/conf/domain_conf.c:7061
 msgid "Missing source service attribute for char device"
 msgstr ""
 
-#: src/conf/domain_conf.c:7046
+#: src/conf/domain_conf.c:7052
 #, c-format
 msgid "Unknown protocol '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:7177 src/conf/domain_conf.c:7327
+#: src/conf/domain_conf.c:7183 src/conf/domain_conf.c:7333
 #, c-format
 msgid "unknown type presented to host for character device: %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:7185
+#: src/conf/domain_conf.c:7191
 #, c-format
 msgid "unknown character device type: %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:7213
+#: src/conf/domain_conf.c:7219
 msgid "spicevmc device type only supports virtio"
 msgstr ""
 
-#: src/conf/domain_conf.c:7229 src/qemu/qemu_command.c:9628
+#: src/conf/domain_conf.c:7235 src/qemu/qemu_command.c:9628
 msgid "usb-serial requires address of usb type"
 msgstr ""
 
-#: src/conf/domain_conf.c:7260
+#: src/conf/domain_conf.c:7266
 msgid "missing smartcard device mode"
 msgstr ""
 
-#: src/conf/domain_conf.c:7265
+#: src/conf/domain_conf.c:7271
 #, c-format
 msgid "unknown smartcard device mode: %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:7282 src/conf/domain_conf.c:7311
+#: src/conf/domain_conf.c:7288 src/conf/domain_conf.c:7317
 msgid "host-certificates mode needs exactly three certificates"
 msgstr ""
 
-#: src/conf/domain_conf.c:7302
+#: src/conf/domain_conf.c:7308
 #, c-format
 msgid "expecting absolute path: %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:7321
+#: src/conf/domain_conf.c:7327
 msgid "passthrough mode requires a character device type attribute"
 msgstr ""
 
-#: src/conf/domain_conf.c:7346
+#: src/conf/domain_conf.c:7352
 msgid "unknown smartcard mode"
 msgstr ""
 
-#: src/conf/domain_conf.c:7355
+#: src/conf/domain_conf.c:7361
 msgid "Controllers must use the 'ccid' address type"
 msgstr ""
 
-#: src/conf/domain_conf.c:7403
+#: src/conf/domain_conf.c:7409
 #, fuzzy, c-format
 msgid "Unknown TPM frontend model '%s'"
 msgstr "unknown command: '%s'"
 
-#: src/conf/domain_conf.c:7416
+#: src/conf/domain_conf.c:7422
 msgid "only one TPM backend is supported"
 msgstr ""
 
-#: src/conf/domain_conf.c:7422
+#: src/conf/domain_conf.c:7428
 #, fuzzy
 msgid "missing TPM device backend"
 msgstr "missing devices information"
 
-#: src/conf/domain_conf.c:7428
+#: src/conf/domain_conf.c:7434
 #, fuzzy
 msgid "missing TPM device backend type"
 msgstr "missing devices information"
 
-#: src/conf/domain_conf.c:7434
+#: src/conf/domain_conf.c:7440
 #, fuzzy, c-format
 msgid "Unknown TPM backend type '%s'"
 msgstr "unknown OS type %s"
 
-#: src/conf/domain_conf.c:7488
+#: src/conf/domain_conf.c:7494
 msgid "missing input device type"
 msgstr ""
 
-#: src/conf/domain_conf.c:7494
+#: src/conf/domain_conf.c:7500
 #, c-format
 msgid "unknown input device type '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:7501
+#: src/conf/domain_conf.c:7507
 #, c-format
 msgid "unknown input bus type '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:7509
+#: src/conf/domain_conf.c:7515
 #, c-format
 msgid "ps2 bus does not support %s input device"
 msgstr ""
 
-#: src/conf/domain_conf.c:7515 src/conf/domain_conf.c:7522
+#: src/conf/domain_conf.c:7521 src/conf/domain_conf.c:7528
 #, c-format
 msgid "unsupported input bus %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:7527
+#: src/conf/domain_conf.c:7533
 #, c-format
 msgid "xen bus does not support %s input device"
 msgstr ""
 
-#: src/conf/domain_conf.c:7550 src/conf/domain_conf.c:9222
+#: src/conf/domain_conf.c:7556 src/conf/domain_conf.c:9228
 msgid "Invalid address for a USB device"
 msgstr ""
 
-#: src/conf/domain_conf.c:7581
+#: src/conf/domain_conf.c:7587
 msgid "missing hub device type"
 msgstr ""
 
-#: src/conf/domain_conf.c:7587
+#: src/conf/domain_conf.c:7593
 #, c-format
 msgid "unknown hub device type '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:7630
+#: src/conf/domain_conf.c:7636
 msgid "missing timer name"
 msgstr ""
 
-#: src/conf/domain_conf.c:7635
+#: src/conf/domain_conf.c:7641
 #, c-format
 msgid "unknown timer name '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:7647
+#: src/conf/domain_conf.c:7653
 #, c-format
 msgid "unknown timer present value '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:7657
+#: src/conf/domain_conf.c:7663
 #, c-format
 msgid "unknown timer tickpolicy '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:7667
+#: src/conf/domain_conf.c:7673
 #, c-format
 msgid "unknown timer track '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:7677
+#: src/conf/domain_conf.c:7683
 msgid "invalid timer frequency"
 msgstr ""
 
-#: src/conf/domain_conf.c:7686
+#: src/conf/domain_conf.c:7692
 #, c-format
 msgid "unknown timer mode '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:7699
+#: src/conf/domain_conf.c:7705
 msgid "invalid catchup threshold"
 msgstr ""
 
-#: src/conf/domain_conf.c:7708
+#: src/conf/domain_conf.c:7714
 msgid "invalid catchup slew"
 msgstr ""
 
-#: src/conf/domain_conf.c:7717
+#: src/conf/domain_conf.c:7723
 msgid "invalid catchup limit"
 msgstr ""
 
-#: src/conf/domain_conf.c:7770
+#: src/conf/domain_conf.c:7776
 #, c-format
 msgid "cannot parse password validity time '%s', expect YYYY-MM-DDTHH:MM:SS"
 msgstr ""
 
-#: src/conf/domain_conf.c:7789
+#: src/conf/domain_conf.c:7795
 #, c-format
 msgid "unknown connected value %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:7800
+#: src/conf/domain_conf.c:7806
 msgid "VNC supports connected='keep' only"
 msgstr ""
 
-#: src/conf/domain_conf.c:7824
+#: src/conf/domain_conf.c:7830
 msgid "graphics listen type must be specified"
 msgstr ""
 
-#: src/conf/domain_conf.c:7830
+#: src/conf/domain_conf.c:7836
 #, c-format
 msgid "unknown graphics listen type '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:7850
+#: src/conf/domain_conf.c:7856
 msgid "network attribute not allowed when listen type is not network"
 msgstr ""
 
-#: src/conf/domain_conf.c:7861
+#: src/conf/domain_conf.c:7867
 #, c-format
 msgid "Invalid fromConfig value: %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:7902
+#: src/conf/domain_conf.c:7908
 msgid "missing graphics device type"
 msgstr ""
 
-#: src/conf/domain_conf.c:7908
+#: src/conf/domain_conf.c:7914
 #, c-format
 msgid "unknown graphics device type '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:7973
+#: src/conf/domain_conf.c:7979
 #, c-format
 msgid ""
 "graphics listen attribute %s must match address attribute of first listen "
 "element (found %s)"
 msgstr ""
 
-#: src/conf/domain_conf.c:7991
+#: src/conf/domain_conf.c:7997
 #, c-format
 msgid "cannot parse vnc port %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:8021
+#: src/conf/domain_conf.c:8027
 #, c-format
 msgid "cannot parse vnc WebSocket port %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:8034 src/qemu/qemu_command.c:11267
+#: src/conf/domain_conf.c:8040 src/qemu/qemu_command.c:11267
 #, c-format
 msgid "unknown vnc display sharing policy '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:8059 src/conf/domain_conf.c:8126
+#: src/conf/domain_conf.c:8065 src/conf/domain_conf.c:8132
 #, c-format
 msgid "unknown fullscreen value '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:8078
+#: src/conf/domain_conf.c:8084
 #, c-format
 msgid "cannot parse rdp port %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:8147
+#: src/conf/domain_conf.c:8153
 #, c-format
 msgid "cannot parse spice port %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:8160
+#: src/conf/domain_conf.c:8166
 #, c-format
 msgid "cannot parse spice tlsPort %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:8180
+#: src/conf/domain_conf.c:8186
 #, c-format
 msgid "unknown default spice channel mode %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:8216
+#: src/conf/domain_conf.c:8222
 msgid "spice channel missing name/mode"
 msgstr ""
 
-#: src/conf/domain_conf.c:8224
+#: src/conf/domain_conf.c:8230
 #, c-format
 msgid "unknown spice channel name %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:8232
+#: src/conf/domain_conf.c:8238
 #, c-format
 msgid "unknown spice channel mode %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:8248
+#: src/conf/domain_conf.c:8254
 msgid "spice image missing compression"
 msgstr ""
 
-#: src/conf/domain_conf.c:8255
+#: src/conf/domain_conf.c:8261
 #, c-format
 msgid "unknown spice image compression %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:8269
+#: src/conf/domain_conf.c:8275
 msgid "spice jpeg missing compression"
 msgstr ""
 
-#: src/conf/domain_conf.c:8276
+#: src/conf/domain_conf.c:8282
 #, c-format
 msgid "unknown spice jpeg compression %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:8290
+#: src/conf/domain_conf.c:8296
 msgid "spice zlib missing compression"
 msgstr ""
 
-#: src/conf/domain_conf.c:8297
+#: src/conf/domain_conf.c:8303
 #, c-format
 msgid "unknown spice zlib compression %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:8311
+#: src/conf/domain_conf.c:8317
 msgid "spice playback missing compression"
 msgstr ""
 
-#: src/conf/domain_conf.c:8318
+#: src/conf/domain_conf.c:8324
 msgid "unknown spice playback compression"
 msgstr ""
 
-#: src/conf/domain_conf.c:8332
+#: src/conf/domain_conf.c:8338
 msgid "spice streaming missing mode"
 msgstr ""
 
-#: src/conf/domain_conf.c:8338
+#: src/conf/domain_conf.c:8344
 msgid "unknown spice streaming mode"
 msgstr ""
 
-#: src/conf/domain_conf.c:8352
+#: src/conf/domain_conf.c:8358
 msgid "spice clipboard missing copypaste"
 msgstr ""
 
-#: src/conf/domain_conf.c:8359
+#: src/conf/domain_conf.c:8365
 #, c-format
 msgid "unknown copypaste value '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:8372
+#: src/conf/domain_conf.c:8378
 msgid "spice mouse missing mode"
 msgstr ""
 
-#: src/conf/domain_conf.c:8378
+#: src/conf/domain_conf.c:8384
 #, c-format
 msgid "unknown mouse mode value '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:8419
+#: src/conf/domain_conf.c:8425
 #, c-format
 msgid "unknown codec type '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:8452
+#: src/conf/domain_conf.c:8458
 #, c-format
 msgid "unknown sound model '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:8519
+#: src/conf/domain_conf.c:8525
 msgid "watchdog must contain model name"
 msgstr ""
 
-#: src/conf/domain_conf.c:8525
+#: src/conf/domain_conf.c:8531
 #, c-format
 msgid "unknown watchdog model '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:8536
+#: src/conf/domain_conf.c:8542
 #, c-format
 msgid "unknown watchdog action '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:8574
+#: src/conf/domain_conf.c:8580
 #, fuzzy
 msgid "missing RNG device model"
 msgstr "missing devices information"
 
-#: src/conf/domain_conf.c:8579
+#: src/conf/domain_conf.c:8585
 #, fuzzy, c-format
 msgid "unknown RNG model '%s'"
 msgstr "unknown command: '%s'"
 
-#: src/conf/domain_conf.c:8587
+#: src/conf/domain_conf.c:8593
 msgid "invalid RNG rate bytes value"
 msgstr ""
 
-#: src/conf/domain_conf.c:8594
+#: src/conf/domain_conf.c:8600
 msgid "invalid RNG rate period value"
 msgstr ""
 
-#: src/conf/domain_conf.c:8603
+#: src/conf/domain_conf.c:8609
 msgid "only one RNG backend is supported"
 msgstr ""
 
-#: src/conf/domain_conf.c:8609
+#: src/conf/domain_conf.c:8615
 #, fuzzy
 msgid "missing RNG device backend model"
 msgstr "missing devices information"
 
-#: src/conf/domain_conf.c:8615
+#: src/conf/domain_conf.c:8621
 #, fuzzy, c-format
 msgid "unknown RNG backend model '%s'"
 msgstr "unknown command: '%s'"
 
-#: src/conf/domain_conf.c:8626
+#: src/conf/domain_conf.c:8632
 #, c-format
 msgid "file '%s' is not a supported random source"
 msgstr ""
 
-#: src/conf/domain_conf.c:8635
+#: src/conf/domain_conf.c:8641
 msgid "missing EGD backend type"
 msgstr ""
 
-#: src/conf/domain_conf.c:8645
+#: src/conf/domain_conf.c:8651
 #, fuzzy, c-format
 msgid "unknown backend type '%s' for egd"
 msgstr "unknown OS type %s"
 
-#: src/conf/domain_conf.c:8693
+#: src/conf/domain_conf.c:8699
 msgid "balloon memory must contain model name"
 msgstr ""
 
-#: src/conf/domain_conf.c:8699
+#: src/conf/domain_conf.c:8705
 #, c-format
 msgid "unknown memory balloon model '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:8706
+#: src/conf/domain_conf.c:8712
 #, fuzzy
 msgid "invalid statistics collection period"
 msgstr "invalid connection pointer in"
 
-#: src/conf/domain_conf.c:8756
+#: src/conf/domain_conf.c:8762
 msgid "XML does not contain expected 'sysinfo' element"
 msgstr ""
 
-#: src/conf/domain_conf.c:8766
+#: src/conf/domain_conf.c:8772
 msgid "sysinfo must contain a type attribute"
 msgstr ""
 
-#: src/conf/domain_conf.c:8771
+#: src/conf/domain_conf.c:8777
 #, c-format
 msgid "unknown sysinfo type '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:8802
+#: src/conf/domain_conf.c:8808
 msgid "Invalid BIOS 'date' format"
 msgstr ""
 
-#: src/conf/domain_conf.c:8824
+#: src/conf/domain_conf.c:8830
 msgid "malformed <sysinfo> uuid element"
 msgstr ""
 
-#: src/conf/domain_conf.c:8831
+#: src/conf/domain_conf.c:8837
 msgid "UUID mismatch between <uuid> and <sysinfo>"
 msgstr ""
 
-#: src/conf/domain_conf.c:9007
+#: src/conf/domain_conf.c:9013
 #, c-format
 msgid "unknown video model '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:9013
+#: src/conf/domain_conf.c:9019
 msgid "missing video model and cannot determine default"
 msgstr ""
 
-#: src/conf/domain_conf.c:9021
+#: src/conf/domain_conf.c:9027
 msgid "ram attribute only supported for type of qxl"
 msgstr ""
 
-#: src/conf/domain_conf.c:9026 src/conf/domain_conf.c:9036
+#: src/conf/domain_conf.c:9032 src/conf/domain_conf.c:9042
 #, c-format
 msgid "cannot parse video ram '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:9046
+#: src/conf/domain_conf.c:9052
 #, c-format
 msgid "cannot parse video heads '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:9093
+#: src/conf/domain_conf.c:9099
 #, c-format
 msgid "unknown hostdev mode '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:9113
+#: src/conf/domain_conf.c:9119
 #, c-format
 msgid "Unexpected hostdev mode %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:9130
+#: src/conf/domain_conf.c:9136
 msgid "PCI host devices must use 'pci' address type"
 msgstr ""
 
-#: src/conf/domain_conf.c:9139
+#: src/conf/domain_conf.c:9145
 msgid "SCSI host devices must have address specified"
 msgstr ""
 
-#: src/conf/domain_conf.c:9181
+#: src/conf/domain_conf.c:9187
 #, c-format
 msgid "unknown redirdev bus '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:9192
+#: src/conf/domain_conf.c:9198
 #, c-format
 msgid "unknown redirdev character device type '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:9197
+#: src/conf/domain_conf.c:9203
 msgid "missing type in redirdev"
 msgstr ""
 
-#: src/conf/domain_conf.c:9273
+#: src/conf/domain_conf.c:9279
 #, c-format
 msgid "Incorrect USB version format %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:9283
+#: src/conf/domain_conf.c:9289
 #, c-format
 msgid "Cannot parse USB version %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:9316
+#: src/conf/domain_conf.c:9322
 #, c-format
 msgid "Cannot parse USB Class code %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:9322
+#: src/conf/domain_conf.c:9328
 #, c-format
 msgid "Invalid USB Class code %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:9333
+#: src/conf/domain_conf.c:9339
 #, c-format
 msgid "Cannot parse USB vendor ID %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:9344
+#: src/conf/domain_conf.c:9350
 #, c-format
 msgid "Cannot parse USB product ID %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:9369
+#: src/conf/domain_conf.c:9375
 msgid "Invalid allow value, either 'yes' or 'no'"
 msgstr ""
 
-#: src/conf/domain_conf.c:9374
+#: src/conf/domain_conf.c:9380
 msgid "Missing allow attribute for USB redirection filter"
 msgstr ""
 
-#: src/conf/domain_conf.c:9447
+#: src/conf/domain_conf.c:9453
 #, c-format
 msgid "unknown %s action: %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:9467
+#: src/conf/domain_conf.c:9473
 #, c-format
 msgid "unknown PM state value %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:9490
+#: src/conf/domain_conf.c:9496
 msgid "(device_definition)"
 msgstr ""
 
-#: src/conf/domain_conf.c:9508
+#: src/conf/domain_conf.c:9514
 #, fuzzy, c-format
 msgid "unknown device type '%s'"
 msgstr "unknown OS type %s"
 
-#: src/conf/domain_conf.c:10404
+#: src/conf/domain_conf.c:10410
 msgid "unknown virt type"
 msgstr ""
 
-#: src/conf/domain_conf.c:10415
+#: src/conf/domain_conf.c:10421
 #, c-format
 msgid "no emulator for domain %s os type %s on architecture %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:10441
+#: src/conf/domain_conf.c:10447
 msgid "cannot count boot devices"
 msgstr ""
 
-#: src/conf/domain_conf.c:10452
+#: src/conf/domain_conf.c:10458
 msgid "per-device boot elements cannot be used together with os/boot elements"
 msgstr ""
 
-#: src/conf/domain_conf.c:10462
+#: src/conf/domain_conf.c:10468
 msgid "missing boot device"
 msgstr ""
 
-#: src/conf/domain_conf.c:10467
+#: src/conf/domain_conf.c:10473
 #, c-format
 msgid "unknown boot device '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:10500
+#: src/conf/domain_conf.c:10506
 msgid "need at least one serial port for useserial"
 msgstr ""
 
-#: src/conf/domain_conf.c:10518
+#: src/conf/domain_conf.c:10524
 msgid "invalid value for rebootTimeout, must be in range [-1,65535]"
 msgstr ""
 
-#: src/conf/domain_conf.c:10582
+#: src/conf/domain_conf.c:10588
 msgid "You must map the root user of container"
 msgstr ""
 
-#: src/conf/domain_conf.c:10627
+#: src/conf/domain_conf.c:10633
 msgid "vcpu id must be an unsigned integer or -1"
 msgstr ""
 
-#: src/conf/domain_conf.c:10631
+#: src/conf/domain_conf.c:10637
 msgid "vcpu id value -1 is not allowed for vcpupin"
 msgstr ""
 
-#: src/conf/domain_conf.c:10638
+#: src/conf/domain_conf.c:10644
 msgid "vcpu id must be less than maxvcpus"
 msgstr ""
 
-#: src/conf/domain_conf.c:10658
+#: src/conf/domain_conf.c:10664
 msgid "missing cpuset for vcpupin"
 msgstr ""
 
-#: src/conf/domain_conf.c:10773
+#: src/conf/domain_conf.c:10779
 #, fuzzy
 msgid "missing resource partition attribute"
 msgstr "missing source information for device"
 
-#: src/conf/domain_conf.c:10849
+#: src/conf/domain_conf.c:10855
 msgid "missing domain type attribute"
 msgstr ""
 
-#: src/conf/domain_conf.c:10855
+#: src/conf/domain_conf.c:10861
 #, c-format
 msgid "invalid domain type %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:10863
+#: src/conf/domain_conf.c:10869
 #, c-format
 msgid "unexpected domain type %s, expecting %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:10888
+#: src/conf/domain_conf.c:10894
 #, c-format
 msgid "unexpected domain type %s, expecting one of these: %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:10912 src/conf/network_conf.c:1972
+#: src/conf/domain_conf.c:10918 src/conf/network_conf.c:1972
 #: src/conf/secret_conf.c:190 src/openvz/openvz_conf.c:1076
 #: src/xenxs/xen_xm.c:216
 msgid "Failed to generate UUID"
 msgstr ""
 
-#: src/conf/domain_conf.c:10919 src/conf/network_conf.c:1979
+#: src/conf/domain_conf.c:10925 src/conf/network_conf.c:1979
 #: src/conf/nwfilter_conf.c:2561 src/conf/secret_conf.c:196
 #: src/conf/storage_conf.c:889
 msgid "malformed uuid element"
 msgstr ""
 
-#: src/conf/domain_conf.c:10929
+#: src/conf/domain_conf.c:10935
 msgid "Domain title can't contain newlines"
 msgstr ""
 
-#: src/conf/domain_conf.c:10954
+#: src/conf/domain_conf.c:10960
 #, c-format
 msgid "Invalid memory core dump attribute value '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:10966
+#: src/conf/domain_conf.c:10972
 #, c-format
 msgid "current memory '%lluk' exceeds maximum '%lluk'"
 msgstr ""
 
-#: src/conf/domain_conf.c:10995
+#: src/conf/domain_conf.c:11001
 msgid "cannot extract blkiotune nodes"
 msgstr ""
 
-#: src/conf/domain_conf.c:11011
+#: src/conf/domain_conf.c:11017
 #, c-format
 msgid "duplicate device weight path '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:11039
+#: src/conf/domain_conf.c:11045
 msgid "maximum vcpus must be an integer"
 msgstr ""
 
-#: src/conf/domain_conf.c:11047
+#: src/conf/domain_conf.c:11053
 #, c-format
 msgid "invalid maximum number of vCPUs '%lu'"
 msgstr ""
 
-#: src/conf/domain_conf.c:11055
+#: src/conf/domain_conf.c:11061
 msgid "current vcpus must be an integer"
-msgstr ""
-
-#: src/conf/domain_conf.c:11063
-#, c-format
-msgid "invalid current number of vCPUs '%lu'"
 msgstr ""
 
 #: src/conf/domain_conf.c:11069
 #, c-format
+msgid "invalid current number of vCPUs '%lu'"
+msgstr ""
+
+#: src/conf/domain_conf.c:11075
+#, c-format
 msgid "maxvcpus must not be less than current vcpus (%d < %lu)"
 msgstr ""
 
-#: src/conf/domain_conf.c:11081
+#: src/conf/domain_conf.c:11087
 #, c-format
 msgid "Unsupported CPU placement mode '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:11104
+#: src/conf/domain_conf.c:11110
 msgid "can't parse cputune shares value"
 msgstr ""
 
-#: src/conf/domain_conf.c:11111
+#: src/conf/domain_conf.c:11117
 msgid "can't parse cputune period value"
 msgstr ""
 
-#: src/conf/domain_conf.c:11118
+#: src/conf/domain_conf.c:11124
 msgid "Value of cputune period must be in range [1000, 1000000]"
 msgstr ""
 
-#: src/conf/domain_conf.c:11126
+#: src/conf/domain_conf.c:11132
 msgid "can't parse cputune quota value"
 msgstr ""
 
-#: src/conf/domain_conf.c:11134
+#: src/conf/domain_conf.c:11140
 msgid "Value of cputune quota must be in range [1000, 18446744073709551]"
 msgstr ""
 
-#: src/conf/domain_conf.c:11142
+#: src/conf/domain_conf.c:11148
 msgid "can't parse cputune emulator period value"
 msgstr ""
 
-#: src/conf/domain_conf.c:11150
+#: src/conf/domain_conf.c:11156
 msgid "Value of cputune emulator_period must be in range [1000, 1000000]"
 msgstr ""
 
-#: src/conf/domain_conf.c:11158
+#: src/conf/domain_conf.c:11164
 msgid "can't parse cputune emulator quota value"
 msgstr ""
 
-#: src/conf/domain_conf.c:11166
+#: src/conf/domain_conf.c:11172
 msgid ""
 "Value of cputune emulator_quota must be in range [1000, 18446744073709551]"
 msgstr ""
 
-#: src/conf/domain_conf.c:11179
+#: src/conf/domain_conf.c:11185
 msgid "vcpupin nodes must be less than maxvcpus"
 msgstr ""
 
-#: src/conf/domain_conf.c:11194
+#: src/conf/domain_conf.c:11200
 msgid "duplicate vcpupin for same vcpu"
 msgstr ""
 
-#: src/conf/domain_conf.c:11241
+#: src/conf/domain_conf.c:11247
 msgid "cannot extract emulatorpin nodes"
 msgstr ""
 
-#: src/conf/domain_conf.c:11253
+#: src/conf/domain_conf.c:11259
 msgid "only one emulatorpin is supported"
 msgstr ""
 
-#: src/conf/domain_conf.c:11272
+#: src/conf/domain_conf.c:11278
 msgid "cannot extract numatune nodes"
 msgstr ""
 
-#: src/conf/domain_conf.c:11278
+#: src/conf/domain_conf.c:11284
 msgid "only one numatune is supported"
 msgstr ""
 
-#: src/conf/domain_conf.c:11297
+#: src/conf/domain_conf.c:11303
 #, c-format
 msgid "Unsupported NUMA memory tuning mode '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:11326
+#: src/conf/domain_conf.c:11332
 #, c-format
 msgid "Unsupported memory placement mode '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:11348
+#: src/conf/domain_conf.c:11354
 msgid "nodeset for NUMA memory tuning must be set if 'placement' is 'static'"
 msgstr ""
 
-#: src/conf/domain_conf.c:11369
+#: src/conf/domain_conf.c:11375
 #, c-format
 msgid "unsupported XML element %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:11389
+#: src/conf/domain_conf.c:11395
 msgid "cannot extract resource nodes"
 msgstr ""
 
-#: src/conf/domain_conf.c:11395
+#: src/conf/domain_conf.c:11401
 msgid "only one resource element is supported"
 msgstr ""
 
-#: src/conf/domain_conf.c:11411
+#: src/conf/domain_conf.c:11417
 #, fuzzy, c-format
 msgid "unexpected feature '%s'"
 msgstr "unexpected data '%s'"
 
-#: src/conf/domain_conf.c:11421
+#: src/conf/domain_conf.c:11427
 #, fuzzy, c-format
 msgid "unknown value for attribute eoi: '%s'"
 msgstr "unknown command: '%s'"
 
-#: src/conf/domain_conf.c:11443
+#: src/conf/domain_conf.c:11449
 #, c-format
 msgid "unsupported HyperV Enlightenment feature: %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:11455 src/conf/domain_conf.c:11476
+#: src/conf/domain_conf.c:11461 src/conf/domain_conf.c:11482
 #, c-format
 msgid "missing 'state' attribute for HyperV Enlightenment feature '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:11463 src/conf/domain_conf.c:11484
+#: src/conf/domain_conf.c:11469 src/conf/domain_conf.c:11490
 #, c-format
 msgid "invalid value of state argument for HyperV Enlightenment feature '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:11495
+#: src/conf/domain_conf.c:11501
 msgid "invalid HyperV spinlock retry count"
 msgstr ""
 
-#: src/conf/domain_conf.c:11501
+#: src/conf/domain_conf.c:11507
 msgid "HyperV spinlock retry count must be at least 4095"
 msgstr ""
 
-#: src/conf/domain_conf.c:11558
+#: src/conf/domain_conf.c:11564
 #, c-format
 msgid "unknown clock offset '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:11574
+#: src/conf/domain_conf.c:11580
 #, c-format
 msgid "unknown clock adjustment '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:11602
+#: src/conf/domain_conf.c:11608
 #, c-format
 msgid "unknown clock basis '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:11615
+#: src/conf/domain_conf.c:11621
 msgid "missing 'timezone' attribute for clock with offset='timezone'"
 msgstr ""
 
-#: src/conf/domain_conf.c:11626
+#: src/conf/domain_conf.c:11632
 #, fuzzy
 msgid "invalid basedate"
 msgstr "invalid connection pointer in %s"
 
-#: src/conf/domain_conf.c:11657
+#: src/conf/domain_conf.c:11663
 msgid "no OS type"
 msgstr ""
 
-#: src/conf/domain_conf.c:11692
+#: src/conf/domain_conf.c:11698
 #, c-format
 msgid "No guest options available for arch '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:11701
+#: src/conf/domain_conf.c:11707
 #, c-format
 msgid "No os type '%s' available for arch '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:11712 src/xenxs/xen_xm.c:293
+#: src/conf/domain_conf.c:11718 src/xenxs/xen_xm.c:293
 #, c-format
 msgid "no supported architecture for os type '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:11751
+#: src/conf/domain_conf.c:11757
 msgid "No data supplied for <initarg> element"
 msgstr ""
 
-#: src/conf/domain_conf.c:11824 src/conf/domain_conf.c:11833
+#: src/conf/domain_conf.c:11830 src/conf/domain_conf.c:11839
 msgid "Can't add another USB controller: USB is disabled for this domain"
 msgstr ""
 
-#: src/conf/domain_conf.c:11850
+#: src/conf/domain_conf.c:11856
 msgid "No master USB controller specified"
 msgstr ""
 
-#: src/conf/domain_conf.c:11857
+#: src/conf/domain_conf.c:11863
 msgid "cannot extract device leases"
 msgstr ""
 
-#: src/conf/domain_conf.c:11990
+#: src/conf/domain_conf.c:11996
 msgid "cannot extract console devices"
 msgstr ""
 
-#: src/conf/domain_conf.c:12068
+#: src/conf/domain_conf.c:12074
 msgid "Can't add USB input device. USB bus is disabled"
 msgstr ""
 
-#: src/conf/domain_conf.c:12166
+#: src/conf/domain_conf.c:12172
 msgid "Only one primary video device is supported"
 msgstr ""
 
-#: src/conf/domain_conf.c:12192
+#: src/conf/domain_conf.c:12198
 msgid "cannot determine default video type"
 msgstr ""
 
-#: src/conf/domain_conf.c:12222
+#: src/conf/domain_conf.c:12228
 msgid "Can't add host USB device: USB is disabled in this host"
 msgstr ""
 
-#: src/conf/domain_conf.c:12241
+#: src/conf/domain_conf.c:12247
 msgid "only a single watchdog device is supported"
 msgstr ""
 
-#: src/conf/domain_conf.c:12261
+#: src/conf/domain_conf.c:12267
 msgid "only a single memory balloon device is supported"
 msgstr ""
 
-#: src/conf/domain_conf.c:12280
+#: src/conf/domain_conf.c:12286
 msgid "only a single RNG device is supported"
 msgstr ""
 
-#: src/conf/domain_conf.c:12297
+#: src/conf/domain_conf.c:12303
 msgid "only a single TPM device is supported"
 msgstr ""
 
-#: src/conf/domain_conf.c:12313
+#: src/conf/domain_conf.c:12319
 msgid "only a single nvram device is supported"
 msgstr ""
 
-#: src/conf/domain_conf.c:12338
+#: src/conf/domain_conf.c:12344
 msgid "Can't add USB hub: USB is disabled for this domain"
 msgstr ""
 
-#: src/conf/domain_conf.c:12362
+#: src/conf/domain_conf.c:12368
 msgid "Can't add redirected USB device: USB is disabled for this domain"
 msgstr ""
 
-#: src/conf/domain_conf.c:12377
+#: src/conf/domain_conf.c:12383
 msgid "only one set of redirection filter rule is supported"
 msgstr ""
 
-#: src/conf/domain_conf.c:12419
+#: src/conf/domain_conf.c:12425
 msgid "uid and gid should be mapped both"
 msgstr ""
 
-#: src/conf/domain_conf.c:12437
+#: src/conf/domain_conf.c:12443
 msgid "Maximum CPUs greater than topology limit"
 msgstr ""
 
-#: src/conf/domain_conf.c:12443
+#: src/conf/domain_conf.c:12449
 msgid "Number of CPUs in <numa> exceeds the <vcpu> count"
 msgstr ""
 
-#: src/conf/domain_conf.c:12465
+#: src/conf/domain_conf.c:12471
 #, c-format
 msgid "unknown smbios mode '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:12530
+#: src/conf/domain_conf.c:12536
 msgid "no domain config"
 msgstr ""
 
-#: src/conf/domain_conf.c:12544
+#: src/conf/domain_conf.c:12550
 msgid "missing domain state"
 msgstr ""
 
-#: src/conf/domain_conf.c:12549
+#: src/conf/domain_conf.c:12555
 #, c-format
 msgid "invalid domain state '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:12558
+#: src/conf/domain_conf.c:12564
 #, c-format
 msgid "invalid domain state reason '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:12569
+#: src/conf/domain_conf.c:12575
 msgid "invalid pid"
 msgstr ""
 
-#: src/conf/domain_conf.c:12583
+#: src/conf/domain_conf.c:12589
 #, c-format
 msgid "Unknown taint flag %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:12618 src/security/virt-aa-helper.c:654
+#: src/conf/domain_conf.c:12624 src/security/virt-aa-helper.c:654
 #: tools/virsh-domain-monitor.c:98 tools/virsh-domain-monitor.c:531
 #: tools/virsh-domain-monitor.c:638 tools/virsh-domain-monitor.c:760
 #: tools/virsh-domain.c:2396 tools/virsh-domain.c:3033
@@ -2965,708 +2970,708 @@ msgstr ""
 msgid "(domain_definition)"
 msgstr ""
 
-#: src/conf/domain_conf.c:12664
+#: src/conf/domain_conf.c:12670
 #, c-format
 msgid "unexpected root element <%s>, expecting <domain>"
 msgstr ""
 
-#: src/conf/domain_conf.c:12699
+#: src/conf/domain_conf.c:12705
 #, c-format
 msgid "unexpected root element <%s>, expecting <domstatus>"
 msgstr ""
 
-#: src/conf/domain_conf.c:12748
+#: src/conf/domain_conf.c:12754
 #, c-format
 msgid "Target timer %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:12756
+#: src/conf/domain_conf.c:12762
 #, c-format
 msgid "Target timer presence %d does not match source %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:12764
+#: src/conf/domain_conf.c:12770
 #, c-format
 msgid "Target TSC frequency %lu does not match source %lu"
 msgstr ""
 
-#: src/conf/domain_conf.c:12771
+#: src/conf/domain_conf.c:12777
 #, c-format
 msgid "Target TSC mode %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:12788
+#: src/conf/domain_conf.c:12794
 #, c-format
 msgid "Target device address type %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:12801
+#: src/conf/domain_conf.c:12807
 #, c-format
 msgid ""
 "Target device PCI address %04x:%02x:%02x.%02x does not match source %04x:"
 "%02x:%02x.%02x"
 msgstr ""
 
-#: src/conf/domain_conf.c:12816
+#: src/conf/domain_conf.c:12822
 #, c-format
 msgid "Target device drive address %d:%d:%d does not match source %d:%d:%d"
 msgstr ""
 
-#: src/conf/domain_conf.c:12831
+#: src/conf/domain_conf.c:12837
 #, c-format
 msgid ""
 "Target device virtio serial address %d:%d:%d does not match source %d:%d:%d"
 msgstr ""
 
-#: src/conf/domain_conf.c:12845
+#: src/conf/domain_conf.c:12851
 #, c-format
 msgid "Target device ccid address %d:%d does not match source %d:%d"
 msgstr ""
 
-#: src/conf/domain_conf.c:12866
+#: src/conf/domain_conf.c:12872
 #, c-format
 msgid "Target disk device %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:12874
+#: src/conf/domain_conf.c:12880
 #, c-format
 msgid "Target disk bus %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:12882
+#: src/conf/domain_conf.c:12888
 #, c-format
 msgid "Target disk %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:12889
+#: src/conf/domain_conf.c:12895
 #, c-format
 msgid "Target disk serial %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:12896
+#: src/conf/domain_conf.c:12902
 msgid "Target disk access mode does not match source"
 msgstr ""
 
-#: src/conf/domain_conf.c:12913
+#: src/conf/domain_conf.c:12919
 #, c-format
 msgid "Target controller type %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:12921
+#: src/conf/domain_conf.c:12927
 #, c-format
 msgid "Target controller index %d does not match source %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:12928
+#: src/conf/domain_conf.c:12934
 #, c-format
 msgid "Target controller model %d does not match source %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:12936
+#: src/conf/domain_conf.c:12942
 #, c-format
 msgid "Target controller ports %d does not match source %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:12943
+#: src/conf/domain_conf.c:12949
 #, c-format
 msgid "Target controller vectors %d does not match source %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:12962
+#: src/conf/domain_conf.c:12968
 #, c-format
 msgid "Target filesystem guest target %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:12969
+#: src/conf/domain_conf.c:12975
 msgid "Target filesystem access mode does not match source"
 msgstr ""
 
-#: src/conf/domain_conf.c:12989
+#: src/conf/domain_conf.c:12995
 #, c-format
 msgid "Target network card mac %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:12998
+#: src/conf/domain_conf.c:13004
 #, c-format
 msgid "Target network card model %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:13016
+#: src/conf/domain_conf.c:13022
 #, c-format
 msgid "Target input device type %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:13024
+#: src/conf/domain_conf.c:13030
 #, c-format
 msgid "Target input device bus %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:13043
+#: src/conf/domain_conf.c:13049
 #, c-format
 msgid "Target sound card model %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:13062
+#: src/conf/domain_conf.c:13068
 #, c-format
 msgid "Target video card model %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:13070
+#: src/conf/domain_conf.c:13076
 #, c-format
 msgid "Target video card vram %u does not match source %u"
 msgstr ""
 
-#: src/conf/domain_conf.c:13077
+#: src/conf/domain_conf.c:13083
 #, c-format
 msgid "Target video card heads %u does not match source %u"
 msgstr ""
 
-#: src/conf/domain_conf.c:13085
+#: src/conf/domain_conf.c:13091
 msgid "Target video card acceleration does not match source"
 msgstr ""
 
-#: src/conf/domain_conf.c:13092
+#: src/conf/domain_conf.c:13098
 #, c-format
 msgid "Target video card 2d accel %u does not match source %u"
 msgstr ""
 
-#: src/conf/domain_conf.c:13099
+#: src/conf/domain_conf.c:13105
 #, c-format
 msgid "Target video card 3d accel %u does not match source %u"
 msgstr ""
 
-#: src/conf/domain_conf.c:13118
+#: src/conf/domain_conf.c:13124
 #, c-format
 msgid "Target host device mode %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:13127
+#: src/conf/domain_conf.c:13133
 #, c-format
 msgid "Target host device subsystem %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:13157
+#: src/conf/domain_conf.c:13163
 #, c-format
 msgid "Target serial port %d does not match source %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:13175
+#: src/conf/domain_conf.c:13181
 #, c-format
 msgid "Target parallel port %d does not match source %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:13193
+#: src/conf/domain_conf.c:13199
 #, c-format
 msgid "Target channel type %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:13203
+#: src/conf/domain_conf.c:13209
 #, c-format
 msgid "Target channel name %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:13212
+#: src/conf/domain_conf.c:13218
 msgid ""
 "Changing device type to/from spicevmc would change default target channel "
 "name"
 msgstr ""
 
-#: src/conf/domain_conf.c:13223
+#: src/conf/domain_conf.c:13229
 #, c-format
 msgid "Target channel addr %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:13245
+#: src/conf/domain_conf.c:13251
 #, c-format
 msgid "Target console type %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:13264
+#: src/conf/domain_conf.c:13270
 #, c-format
 msgid "Target watchdog model %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:13283
+#: src/conf/domain_conf.c:13289
 #, c-format
 msgid "Target balloon model %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:13305
+#: src/conf/domain_conf.c:13311
 #, c-format
 msgid "Target domain RNG device count '%d' does not match source count '%d'"
 msgstr ""
 
-#: src/conf/domain_conf.c:13313
+#: src/conf/domain_conf.c:13319
 #, c-format
 msgid "Target RNG model '%s' does not match source '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:13332
+#: src/conf/domain_conf.c:13338
 #, c-format
 msgid "Target hub device type %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:13352
+#: src/conf/domain_conf.c:13358
 #, c-format
 msgid "Target USB redirection filter rule count %zu does not match source %zu"
 msgstr ""
 
-#: src/conf/domain_conf.c:13363
+#: src/conf/domain_conf.c:13369
 msgid "Target USB Class code does not match source"
 msgstr ""
 
-#: src/conf/domain_conf.c:13369
+#: src/conf/domain_conf.c:13375
 msgid "Target USB vendor ID does not match source"
 msgstr ""
 
-#: src/conf/domain_conf.c:13375
+#: src/conf/domain_conf.c:13381
 msgid "Target USB product ID does not match source"
 msgstr ""
 
-#: src/conf/domain_conf.c:13381
+#: src/conf/domain_conf.c:13387
 msgid "Target USB version does not match source"
 msgstr ""
 
-#: src/conf/domain_conf.c:13387
+#: src/conf/domain_conf.c:13393
 #, c-format
 msgid "Target USB allow '%s' does not match source '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:13407
+#: src/conf/domain_conf.c:13413
 #, c-format
 msgid "Target domain features %d does not match source %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:13415
+#: src/conf/domain_conf.c:13421
 #, c-format
 msgid "State of APIC EOI differs: source: '%s', destination: '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:13430
+#: src/conf/domain_conf.c:13436
 #, c-format
 msgid ""
 "State of HyperV enlightenment feature '%s' differs: source: '%s', "
 "destination: '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:13445
+#: src/conf/domain_conf.c:13451
 #, c-format
 msgid "HyperV spinlock retry count differs: source: '%u', destination: '%u'"
 msgstr ""
 
-#: src/conf/domain_conf.c:13475
+#: src/conf/domain_conf.c:13481
 #, c-format
 msgid "Target domain virt type %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:13487
+#: src/conf/domain_conf.c:13493
 #, c-format
 msgid "Target domain uuid %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:13498
+#: src/conf/domain_conf.c:13504
 #, c-format
 msgid "Target domain name '%s' does not match source '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:13505
+#: src/conf/domain_conf.c:13511
 #, c-format
 msgid "Target domain max memory %lld does not match source %lld"
 msgstr ""
 
-#: src/conf/domain_conf.c:13511
+#: src/conf/domain_conf.c:13517
 #, c-format
 msgid "Target domain current memory %lld does not match source %lld"
 msgstr ""
 
-#: src/conf/domain_conf.c:13517
+#: src/conf/domain_conf.c:13523
 #, c-format
 msgid "Target domain huge page backing %d does not match source %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:13525
+#: src/conf/domain_conf.c:13531
 #, c-format
 msgid "Target domain vCPU count %d does not match source %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:13531
+#: src/conf/domain_conf.c:13537
 #, c-format
 msgid "Target domain vCPU max %d does not match source %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:13538 src/conf/domain_conf.c:13551
+#: src/conf/domain_conf.c:13544 src/conf/domain_conf.c:13557
 #, c-format
 msgid "Target domain OS type %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:13544
+#: src/conf/domain_conf.c:13550
 #, c-format
 msgid "Target domain architecture %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:13558
+#: src/conf/domain_conf.c:13564
 #, c-format
 msgid "Target domain SMBIOS mode %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:13569
+#: src/conf/domain_conf.c:13575
 msgid "Target domain timers do not match source"
 msgstr ""
 
-#: src/conf/domain_conf.c:13587
+#: src/conf/domain_conf.c:13593
 #, c-format
 msgid "Target domain disk count %zu does not match source %zu"
 msgstr ""
 
-#: src/conf/domain_conf.c:13598
+#: src/conf/domain_conf.c:13604
 #, c-format
 msgid "Target domain controller count %zu does not match source %zu"
 msgstr ""
 
-#: src/conf/domain_conf.c:13611
+#: src/conf/domain_conf.c:13617
 #, c-format
 msgid "Target domain filesystem count %zu does not match source %zu"
 msgstr ""
 
-#: src/conf/domain_conf.c:13623
+#: src/conf/domain_conf.c:13629
 #, c-format
 msgid "Target domain net card count %zu does not match source %zu"
 msgstr ""
 
-#: src/conf/domain_conf.c:13635
+#: src/conf/domain_conf.c:13641
 #, c-format
 msgid "Target domain input device count %zu does not match source %zu"
 msgstr ""
 
-#: src/conf/domain_conf.c:13647
+#: src/conf/domain_conf.c:13653
 #, c-format
 msgid "Target domain sound card count %zu does not match source %zu"
 msgstr ""
 
-#: src/conf/domain_conf.c:13659
+#: src/conf/domain_conf.c:13665
 #, c-format
 msgid "Target domain video card count %zu does not match source %zu"
 msgstr ""
 
-#: src/conf/domain_conf.c:13671
+#: src/conf/domain_conf.c:13677
 #, c-format
 msgid "Target domain host device count %zu does not match source %zu"
 msgstr ""
 
-#: src/conf/domain_conf.c:13684
+#: src/conf/domain_conf.c:13690
 #, c-format
 msgid "Target domain smartcard count %zu does not match source %zu"
 msgstr ""
 
-#: src/conf/domain_conf.c:13697
+#: src/conf/domain_conf.c:13703
 #, c-format
 msgid "Target domain serial port count %zu does not match source %zu"
 msgstr ""
 
-#: src/conf/domain_conf.c:13710
+#: src/conf/domain_conf.c:13716
 #, c-format
 msgid "Target domain parallel port count %zu does not match source %zu"
 msgstr ""
 
-#: src/conf/domain_conf.c:13723
+#: src/conf/domain_conf.c:13729
 #, c-format
 msgid "Target domain channel count %zu does not match source %zu"
 msgstr ""
 
-#: src/conf/domain_conf.c:13736
+#: src/conf/domain_conf.c:13742
 #, c-format
 msgid "Target domain console count %zu does not match source %zu"
 msgstr ""
 
-#: src/conf/domain_conf.c:13749
+#: src/conf/domain_conf.c:13755
 #, c-format
 msgid "Target domain hub device count %zu does not match source %zu"
 msgstr ""
 
-#: src/conf/domain_conf.c:13762
+#: src/conf/domain_conf.c:13768
 #, c-format
 msgid "Target domain USB redirection filter count %d does not match source %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:13776
+#: src/conf/domain_conf.c:13782
 #, c-format
 msgid "Target domain watchdog count %d does not match source %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:13789
+#: src/conf/domain_conf.c:13795
 #, c-format
 msgid "Target domain memory balloon count %d does not match source %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:14131
+#: src/conf/domain_conf.c:14137
 #, c-format
 msgid "unexpected %s action: %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:14428
+#: src/conf/domain_conf.c:14434
 #, c-format
 msgid "unexpected disk type %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:14433
+#: src/conf/domain_conf.c:14439
 #, c-format
 msgid "unexpected disk device %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:14438
+#: src/conf/domain_conf.c:14444
 #, c-format
 msgid "unexpected disk bus %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:14443
+#: src/conf/domain_conf.c:14449
 #, c-format
 msgid "unexpected disk cache mode %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:14448
+#: src/conf/domain_conf.c:14454
 #, c-format
 msgid "unexpected disk io mode %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:14453
+#: src/conf/domain_conf.c:14459
 #, c-format
 msgid "Unexpected disk sgio mode '%d'"
 msgstr ""
 
-#: src/conf/domain_conf.c:14649
+#: src/conf/domain_conf.c:14655
 #, c-format
 msgid "unexpected controller type %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:14658
+#: src/conf/domain_conf.c:14664
 #, c-format
 msgid "unexpected model type %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:14744
+#: src/conf/domain_conf.c:14750
 #, c-format
 msgid "unexpected filesystem type %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:14750
+#: src/conf/domain_conf.c:14756
 #, c-format
 msgid "unexpected accessmode %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:14835
+#: src/conf/domain_conf.c:14841
 #, c-format
 msgid "unexpected pci hostdev driver name type %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:14881
+#: src/conf/domain_conf.c:14887
 msgid "PCI address Formatting failed"
 msgstr ""
 
-#: src/conf/domain_conf.c:14908 src/conf/domain_conf.c:14941
-#: src/conf/domain_conf.c:16175 src/conf/domain_conf.c:16184
+#: src/conf/domain_conf.c:14914 src/conf/domain_conf.c:14947
+#: src/conf/domain_conf.c:16181 src/conf/domain_conf.c:16190
 #: src/qemu/qemu_hotplug.c:3283
 #, c-format
 msgid "unexpected hostdev type %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:14965 src/conf/domain_conf.c:15038
-#: src/conf/domain_conf.c:15959
+#: src/conf/domain_conf.c:14971 src/conf/domain_conf.c:15044
+#: src/conf/domain_conf.c:15965
 #, c-format
 msgid "unexpected net type %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:14992
+#: src/conf/domain_conf.c:14998
 #, c-format
 msgid "unexpected source mode %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:15012
+#: src/conf/domain_conf.c:15018
 #, c-format
 msgid "unexpected net type %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:15203
+#: src/conf/domain_conf.c:15209
 #, c-format
 msgid "unexpected char type %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:15305
+#: src/conf/domain_conf.c:15311
 #, c-format
 msgid "unexpected char device type %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:15324
+#: src/conf/domain_conf.c:15330
 msgid "Could not format channel target type"
 msgstr ""
 
-#: src/conf/domain_conf.c:15334
+#: src/conf/domain_conf.c:15340
 msgid "Unable to format guestfwd port"
 msgstr ""
 
-#: src/conf/domain_conf.c:15411 src/conf/domain_conf.c:15442
+#: src/conf/domain_conf.c:15417 src/conf/domain_conf.c:15448
 #: src/qemu/qemu_command.c:8719
 #, c-format
 msgid "unexpected smartcard type %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:15459
+#: src/conf/domain_conf.c:15465
 #, c-format
 msgid "unexpected codec type %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:15512 src/xenxs/xen_sxpr.c:2112
+#: src/conf/domain_conf.c:15518 src/xenxs/xen_sxpr.c:2112
 #, c-format
 msgid "unexpected sound model %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:15555
+#: src/conf/domain_conf.c:15561
 #, c-format
 msgid "unexpected memballoon model %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:15620
+#: src/conf/domain_conf.c:15626
 #, c-format
 msgid "unexpected watchdog model %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:15626
+#: src/conf/domain_conf.c:15632
 #, c-format
 msgid "unexpected watchdog action %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:15731
+#: src/conf/domain_conf.c:15737
 #, c-format
 msgid "unexpected video model %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:15772 src/xenxs/xen_sxpr.c:2149
+#: src/conf/domain_conf.c:15778 src/xenxs/xen_sxpr.c:2149
 #, c-format
 msgid "unexpected input type %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:15777
+#: src/conf/domain_conf.c:15783
 #, c-format
 msgid "unexpected input bus type %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:15805
+#: src/conf/domain_conf.c:15811
 #, c-format
 msgid "unexpected timer name %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:15821
+#: src/conf/domain_conf.c:15827
 #, c-format
 msgid "unexpected timer tickpolicy %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:15835
+#: src/conf/domain_conf.c:15841
 #, c-format
 msgid "unexpected timer track %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:15853
+#: src/conf/domain_conf.c:15859
 #, c-format
 msgid "unexpected timer mode %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:16166 src/conf/domain_conf.c:16191
+#: src/conf/domain_conf.c:16172 src/conf/domain_conf.c:16197
 #, c-format
 msgid "unexpected hostdev mode %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:16299
+#: src/conf/domain_conf.c:16305
 #, c-format
 msgid "unexpected hub type %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:16391
+#: src/conf/domain_conf.c:16397
 #, c-format
 msgid "unexpected domain type %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:16572
+#: src/conf/domain_conf.c:16578
 msgid "failed to format cpuset for vcpupin"
 msgstr ""
 
-#: src/conf/domain_conf.c:16586
+#: src/conf/domain_conf.c:16592
 msgid "failed to format cpuset for emulator"
 msgstr ""
 
-#: src/conf/domain_conf.c:16615
+#: src/conf/domain_conf.c:16621
 msgid "failed to format nodeset for NUMA memory tuning"
 msgstr ""
 
-#: src/conf/domain_conf.c:16684
+#: src/conf/domain_conf.c:16690
 #, c-format
 msgid "unexpected boot device type %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:16718
+#: src/conf/domain_conf.c:16724
 #, c-format
 msgid "unexpected smbios mode %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:16754
+#: src/conf/domain_conf.c:16760
 #, fuzzy, c-format
 msgid "unexpected feature %zu"
 msgstr "unexpected data '%s'"
 
-#: src/conf/domain_conf.c:17136
+#: src/conf/domain_conf.c:17142
 msgid "Device configuration is not compatible: Domain has no USB bus support"
 msgstr ""
 
-#: src/conf/domain_conf.c:17158 src/conf/network_conf.c:2832
+#: src/conf/domain_conf.c:17164 src/conf/network_conf.c:2832
 #: src/conf/nwfilter_conf.c:2711 src/util/virdnsmasq.c:547
 #, c-format
 msgid "cannot create config directory '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:17297
+#: src/conf/domain_conf.c:17303
 #, c-format
 msgid "unexpected domain %s already exists"
 msgstr ""
 
-#: src/conf/domain_conf.c:17337 src/conf/network_conf.c:3050
+#: src/conf/domain_conf.c:17343 src/conf/network_conf.c:3050
 #: src/conf/network_conf.c:3083 src/conf/nwfilter_conf.c:3085
 #: src/conf/storage_conf.c:1826 src/util/virpci.c:2410
 #, c-format
 msgid "Failed to open dir '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:17407
+#: src/conf/domain_conf.c:17413
 #, c-format
 msgid "cannot remove config %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:17762
+#: src/conf/domain_conf.c:17768
 #, c-format
 msgid "unable to visit backing chain file %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:17863
+#: src/conf/domain_conf.c:17869
 #, c-format
 msgid "invalid domain state: %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:18310
+#: src/conf/domain_conf.c:18316
 #, c-format
 msgid "Copying definition of '%d' type is not implemented yet."
 msgstr ""
 
-#: src/conf/domain_conf.c:18592
+#: src/conf/domain_conf.c:18598
 #, c-format
 msgid "no device found with alias %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:18684 src/conf/domain_conf.c:18766
+#: src/conf/domain_conf.c:18690 src/conf/domain_conf.c:18772
 msgid "unknown metadata type"
 msgstr ""
 
-#: src/conf/domain_conf.c:18691
+#: src/conf/domain_conf.c:18697
 msgid "Requested metadata element is not present"
 msgstr ""
 
-#: src/conf/domain_conf.c:18731
+#: src/conf/domain_conf.c:18737
 msgid "(metadata_xml)"
 msgstr ""
 
@@ -3835,7 +3840,7 @@ msgstr ""
 
 #: src/conf/interface_conf.c:1264 src/conf/network_conf.c:360
 #: src/conf/node_device_conf.c:184 src/conf/nwfilter_conf.c:3019
-#: src/conf/storage_conf.c:1751 src/libxl/libxl_driver.c:830
+#: src/conf/storage_conf.c:1751 src/libxl/libxl_driver.c:839
 #: src/parallels/parallels_driver.c:894 src/qemu/qemu_driver.c:585
 #: src/remote/remote_driver.c:929 src/test/test_driver.c:685
 #: src/test/test_driver.c:1340 src/xen/xen_driver.c:451
@@ -9492,15 +9497,15 @@ msgstr ""
 #: src/lxc/lxc_driver.c:2123 src/lxc/lxc_driver.c:2352
 #: src/lxc/lxc_driver.c:2401 src/lxc/lxc_driver.c:2612
 #: src/lxc/lxc_driver.c:2692 src/lxc/lxc_driver.c:4390
-#: src/libxl/libxl_driver.c:1300 src/libxl/libxl_driver.c:1352
-#: src/libxl/libxl_driver.c:1404 src/libxl/libxl_driver.c:1451
-#: src/libxl/libxl_driver.c:1489 src/libxl/libxl_driver.c:1856
-#: src/libxl/libxl_driver.c:1968 src/libxl/libxl_driver.c:2047
-#: src/libxl/libxl_driver.c:2326 src/libxl/libxl_driver.c:2427
-#: src/libxl/libxl_driver.c:3161 src/libxl/libxl_driver.c:3265
-#: src/libxl/libxl_driver.c:3369 src/libxl/libxl_driver.c:3646
-#: src/libxl/libxl_driver.c:3710 src/libxl/libxl_driver.c:3787
-#: src/libxl/libxl_driver.c:3956 src/openvz/openvz_driver.c:598
+#: src/libxl/libxl_driver.c:1309 src/libxl/libxl_driver.c:1361
+#: src/libxl/libxl_driver.c:1413 src/libxl/libxl_driver.c:1460
+#: src/libxl/libxl_driver.c:1498 src/libxl/libxl_driver.c:1865
+#: src/libxl/libxl_driver.c:1977 src/libxl/libxl_driver.c:2056
+#: src/libxl/libxl_driver.c:2335 src/libxl/libxl_driver.c:2436
+#: src/libxl/libxl_driver.c:3170 src/libxl/libxl_driver.c:3274
+#: src/libxl/libxl_driver.c:3378 src/libxl/libxl_driver.c:3655
+#: src/libxl/libxl_driver.c:3719 src/libxl/libxl_driver.c:3796
+#: src/libxl/libxl_driver.c:3965 src/openvz/openvz_driver.c:598
 #: src/openvz/openvz_driver.c:636 tools/virsh-domain.c:9066
 #: tools/virsh-domain.c:9239
 msgid "Domain is not running"
@@ -9510,7 +9515,7 @@ msgstr ""
 msgid "Failed to set memory for domain"
 msgstr ""
 
-#: src/lxc/lxc_driver.c:925 src/libxl/libxl_driver.c:2631
+#: src/lxc/lxc_driver.c:925 src/libxl/libxl_driver.c:2640
 #: src/vmware/vmware_driver.c:719
 msgid "Domain is already running"
 msgstr ""
@@ -9580,13 +9585,13 @@ msgstr ""
 msgid "Cannot create autostart directory %s"
 msgstr ""
 
-#: src/lxc/lxc_driver.c:2225 src/libxl/libxl_driver.c:3604
+#: src/lxc/lxc_driver.c:2225 src/libxl/libxl_driver.c:3613
 #: src/qemu/qemu_driver.c:7343 src/uml/uml_driver.c:2435
 #, c-format
 msgid "Failed to create symlink '%s to '%s'"
 msgstr ""
 
-#: src/lxc/lxc_driver.c:2232 src/libxl/libxl_driver.c:3611
+#: src/lxc/lxc_driver.c:2232 src/libxl/libxl_driver.c:3620
 #: src/network/bridge_driver.c:2973 src/qemu/qemu_driver.c:7350
 #: src/storage/storage_driver.c:1171 src/uml/uml_driver.c:2442
 #, c-format
@@ -9610,7 +9615,7 @@ msgstr ""
 msgid "default"
 msgstr ""
 
-#: src/lxc/lxc_driver.c:2481 src/libxl/libxl_driver.c:3880
+#: src/lxc/lxc_driver.c:2481 src/libxl/libxl_driver.c:3889
 #: src/qemu/qemu_driver.c:13634 src/uml/uml_driver.c:2589
 #: src/xen/xen_driver.c:2662
 #, c-format
@@ -9644,7 +9649,7 @@ msgstr ""
 msgid "Unable to send SIGTERM to init pid %llu"
 msgstr ""
 
-#: src/lxc/lxc_driver.c:2758 src/libxl/libxl_driver.c:2987
+#: src/lxc/lxc_driver.c:2758 src/libxl/libxl_driver.c:2996
 #, c-format
 msgid "target %s already exists."
 msgstr ""
@@ -9653,7 +9658,7 @@ msgstr ""
 msgid "device is already in the domain configuration"
 msgstr ""
 
-#: src/lxc/lxc_driver.c:2791 src/libxl/libxl_driver.c:2998
+#: src/lxc/lxc_driver.c:2791 src/libxl/libxl_driver.c:3007
 msgid "persistent attach of device is not supported"
 msgstr ""
 
@@ -9669,11 +9674,11 @@ msgstr ""
 msgid "no matching network device was found"
 msgstr ""
 
-#: src/lxc/lxc_driver.c:2834 src/libxl/libxl_driver.c:3120
+#: src/lxc/lxc_driver.c:2834 src/libxl/libxl_driver.c:3129
 msgid "persistent update of device is not supported"
 msgstr ""
 
-#: src/lxc/lxc_driver.c:2859 src/libxl/libxl_driver.c:3036
+#: src/lxc/lxc_driver.c:2859 src/libxl/libxl_driver.c:3045
 #: src/qemu/qemu_driver.c:6700
 #, c-format
 msgid "no target device %s"
@@ -9685,7 +9690,7 @@ msgstr ""
 msgid "device not present in domain configuration"
 msgstr ""
 
-#: src/lxc/lxc_driver.c:2899 src/libxl/libxl_driver.c:3044
+#: src/lxc/lxc_driver.c:2899 src/libxl/libxl_driver.c:3053
 msgid "persistent detach of device is not supported"
 msgstr ""
 
@@ -9695,7 +9700,7 @@ msgstr ""
 msgid "Cannot attach disk until init PID is known"
 msgstr ""
 
-#: src/lxc/lxc_driver.c:2941 src/libxl/libxl_driver.c:2857
+#: src/lxc/lxc_driver.c:2941 src/libxl/libxl_driver.c:2866
 #: src/qemu/qemu_driver.c:6597 src/qemu/qemu_hotplug.c:251
 #: src/qemu/qemu_hotplug.c:476 src/qemu/qemu_hotplug.c:599
 #: src/uml/uml_driver.c:2137
@@ -9762,13 +9767,13 @@ msgstr ""
 msgid "Cannot attach hostdev until init PID is known"
 msgstr ""
 
-#: src/lxc/lxc_driver.c:3584 src/libxl/libxl_driver.c:2969
+#: src/lxc/lxc_driver.c:3584 src/libxl/libxl_driver.c:2978
 #: src/uml/uml_driver.c:2218
 #, c-format
 msgid "device type '%s' cannot be attached"
 msgstr ""
 
-#: src/lxc/lxc_driver.c:3612 src/libxl/libxl_driver.c:2917
+#: src/lxc/lxc_driver.c:3612 src/libxl/libxl_driver.c:2926
 #: src/qemu/qemu_hotplug.c:2935 src/uml/uml_driver.c:2268
 #, c-format
 msgid "disk %s not found"
@@ -9798,7 +9803,7 @@ msgstr ""
 msgid "hostdev %s not found"
 msgstr ""
 
-#: src/lxc/lxc_driver.c:3997 src/libxl/libxl_driver.c:3017
+#: src/lxc/lxc_driver.c:3997 src/libxl/libxl_driver.c:3026
 #: src/xen/xm_internal.c:1381
 #, c-format
 msgid "device type '%s' cannot be detached"
@@ -9811,8 +9816,8 @@ msgid "cannot do live update a device on inactive domain"
 msgstr ""
 
 #: src/lxc/lxc_driver.c:4050 src/lxc/lxc_driver.c:4173
-#: src/lxc/lxc_driver.c:4283 src/libxl/libxl_driver.c:3168
-#: src/libxl/libxl_driver.c:3272 src/libxl/libxl_driver.c:3376
+#: src/lxc/lxc_driver.c:4283 src/libxl/libxl_driver.c:3177
+#: src/libxl/libxl_driver.c:3281 src/libxl/libxl_driver.c:3385
 #: src/qemu/qemu_driver.c:6910 src/qemu/qemu_driver.c:7057
 #: src/qemu/qemu_driver.c:7192
 msgid "cannot modify device on transient domain"
@@ -9823,7 +9828,7 @@ msgstr ""
 msgid "Unable to modify live devices"
 msgstr "failed to open file"
 
-#: src/lxc/lxc_driver.c:4424 src/libxl/libxl_driver.c:1068
+#: src/lxc/lxc_driver.c:4424 src/libxl/libxl_driver.c:1077
 #: src/qemu/qemu_command.c:7807 src/qemu/qemu_driver.c:1207
 #: src/xen/xen_driver.c:643
 msgid "Host SMBIOS information is not available"
@@ -9966,7 +9971,7 @@ msgstr ""
 msgid "unknown error"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:144 src/libxl/libxl_driver.c:3449
+#: src/libxl/libxl_driver.c:144 src/libxl/libxl_driver.c:3458
 msgid "libxl_get_physinfo_info failed"
 msgstr ""
 
@@ -10007,379 +10012,379 @@ msgstr ""
 msgid "Unable to cleanup domain %d"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:485 src/libxl/libxl_driver.c:2376
+#: src/libxl/libxl_driver.c:485 src/libxl/libxl_driver.c:2385
 #, c-format
 msgid "Failed to pin vcpu '%d' with libxenlight"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:586 src/qemu/qemu_driver.c:5643
+#: src/libxl/libxl_driver.c:589 src/qemu/qemu_driver.c:5643
 #, c-format
 msgid ""
 "cannot restore domain '%s' uuid %s from a file which belongs to domain '%s' "
 "uuid %s"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:611
+#: src/libxl/libxl_driver.c:614
 #, c-format
 msgid "libxenlight failed to get free memory for domain '%s'"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:628
+#: src/libxl/libxl_driver.c:637
 #, c-format
 msgid "libxenlight failed to create new domain '%s'"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:632
+#: src/libxl/libxl_driver.c:641
 #, c-format
 msgid "libxenlight failed to restore domain '%s'"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:644
+#: src/libxl/libxl_driver.c:653
 msgid "libxenlight failed to store userdata"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:850
+#: src/libxl/libxl_driver.c:859
 #, fuzzy, c-format
 msgid "failed to create log dir '%s': %s"
 msgstr "failed to get domain '%s'"
 
-#: src/libxl/libxl_driver.c:857
+#: src/libxl/libxl_driver.c:866
 #, fuzzy, c-format
 msgid "failed to create state dir '%s': %s"
 msgstr "failed to get domain '%s'"
 
-#: src/libxl/libxl_driver.c:864
+#: src/libxl/libxl_driver.c:873
 #, fuzzy, c-format
 msgid "failed to create lib dir '%s': %s"
 msgstr "failed to get domain '%s'"
 
-#: src/libxl/libxl_driver.c:871
+#: src/libxl/libxl_driver.c:880
 #, fuzzy, c-format
 msgid "failed to create save dir '%s': %s"
 msgstr "failed to get domain '%s'"
 
-#: src/libxl/libxl_driver.c:886
+#: src/libxl/libxl_driver.c:895
 msgid "cannot create capabilities for libxenlight"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:991
+#: src/libxl/libxl_driver.c:1000
 msgid "libxenlight state driver is not active"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:1001 src/xen/xen_driver.c:425
+#: src/libxl/libxl_driver.c:1010 src/xen/xen_driver.c:425
 #, c-format
 msgid "unexpected Xen URI path '%s', try xen:///"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:1309
+#: src/libxl/libxl_driver.c:1318
 #, c-format
 msgid "Failed to suspend domain '%d' with libxenlight"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:1361
+#: src/libxl/libxl_driver.c:1370
 #, c-format
 msgid "Failed to resume domain '%d' with libxenlight"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:1411
+#: src/libxl/libxl_driver.c:1420
 #, c-format
 msgid "Failed to shutdown domain '%d' with libxenlight"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:1458
+#: src/libxl/libxl_driver.c:1467
 #, c-format
 msgid "Failed to reboot domain '%d' with libxenlight"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:1498 src/libxl/libxl_driver.c:1818
-#: src/libxl/libxl_driver.c:1997
+#: src/libxl/libxl_driver.c:1507 src/libxl/libxl_driver.c:1827
+#: src/libxl/libxl_driver.c:2006
 #, c-format
 msgid "Failed to destroy domain '%d'"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:1603
+#: src/libxl/libxl_driver.c:1612
 msgid "cannot set memory on an inactive domain"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:1610 src/libxl/libxl_driver.c:2203
+#: src/libxl/libxl_driver.c:1619 src/libxl/libxl_driver.c:2212
 msgid "cannot change persistent config of a transient domain"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:1626
+#: src/libxl/libxl_driver.c:1635
 #, c-format
 msgid "Failed to set maximum memory for domain '%d' with libxenlight"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:1647 src/qemu/qemu_driver.c:2249
+#: src/libxl/libxl_driver.c:1656 src/qemu/qemu_driver.c:2249
 #: src/uml/uml_driver.c:1837
 msgid "cannot set memory higher than max memory"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:1656
+#: src/libxl/libxl_driver.c:1665
 #, c-format
 msgid "Failed to set memory for domain '%d' with libxenlight"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:1713
+#: src/libxl/libxl_driver.c:1722
 #, c-format
 msgid "libxl_domain_info failed for domain '%d'"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:1773
+#: src/libxl/libxl_driver.c:1782
 #, c-format
 msgid "Domain '%d' has to be running because libxenlight will suspend it"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:1781
+#: src/libxl/libxl_driver.c:1790
 #, c-format
 msgid "Failed to create domain save file '%s'"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:1796
+#: src/libxl/libxl_driver.c:1805
 msgid "Failed to write save file header"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:1802
+#: src/libxl/libxl_driver.c:1811
 msgid "Failed to write xml description"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:1808
+#: src/libxl/libxl_driver.c:1817
 #, c-format
 msgid "Failed to save domain '%d' with libxenlight"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:1828 src/libxl/libxl_driver.c:1931
+#: src/libxl/libxl_driver.c:1837 src/libxl/libxl_driver.c:1940
 msgid "cannot close file"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:1845 src/libxl/libxl_driver.c:1897
+#: src/libxl/libxl_driver.c:1854 src/libxl/libxl_driver.c:1906
 #: src/test/test_driver.c:2065 src/test/test_driver.c:2178
 #: src/xen/xen_driver.c:1201 src/xen/xen_driver.c:1324
 msgid "xml modification unsupported"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:1978
+#: src/libxl/libxl_driver.c:1987
 #, c-format
 msgid "Before dumping core, failed to suspend domain '%d' with libxenlight"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:1989
+#: src/libxl/libxl_driver.c:1998
 #, c-format
 msgid "Failed to dump core of domain '%d' with libxenlight"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:2015
+#: src/libxl/libxl_driver.c:2024
 #, c-format
 msgid "After dumping core, failed to resume domain '%d' with libxenlight"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:2052 src/qemu/qemu_driver.c:3263
+#: src/libxl/libxl_driver.c:2061 src/qemu/qemu_driver.c:3263
 #: src/test/test_driver.c:6163
 msgid "cannot do managed save for transient domain"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:2180 src/libxl/libxl_driver.c:2319
+#: src/libxl/libxl_driver.c:2189 src/libxl/libxl_driver.c:2328
 #: src/test/test_driver.c:2481 src/xen/xen_driver.c:1376
 #, c-format
 msgid "invalid flag combination: (0x%x)"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:2185
+#: src/libxl/libxl_driver.c:2194
 msgid "nvcpus is zero"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:2197
+#: src/libxl/libxl_driver.c:2206
 msgid "cannot set vcpus on an inactive domain"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:2209 src/xen/xend_internal.c:1807
+#: src/libxl/libxl_driver.c:2218 src/xen/xend_internal.c:1807
 #: src/xen/xm_internal.c:690
 msgid "could not determine max vcpus for the domain"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:2219 src/qemu/qemu_driver.c:4174
+#: src/libxl/libxl_driver.c:2228 src/qemu/qemu_driver.c:4174
 #: src/xen/xend_internal.c:1812 src/xen/xm_internal.c:699
 #, c-format
 msgid ""
 "requested vcpus is greater than max allowable vcpus for the domain: %d > %d"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:2255 src/libxl/libxl_driver.c:2264
+#: src/libxl/libxl_driver.c:2264 src/libxl/libxl_driver.c:2273
 #, c-format
 msgid "Failed to set vcpus for domain '%d' with libxenlight"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:2333
+#: src/libxl/libxl_driver.c:2342
 msgid "domain is transient"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:2366 src/test/test_driver.c:2673
+#: src/libxl/libxl_driver.c:2375 src/test/test_driver.c:2673
 msgid "cannot pin vcpus on an inactive domain"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:2391
+#: src/libxl/libxl_driver.c:2400
 msgid "failed to update or add vcpupin xml"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:2435
+#: src/libxl/libxl_driver.c:2444
 #, c-format
 msgid "Failed to list vcpus for domain '%d' with libxenlight"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:2511 src/libxl/libxl_driver.c:2555
+#: src/libxl/libxl_driver.c:2520 src/libxl/libxl_driver.c:2564
 #: src/qemu/qemu_driver.c:5749 src/qemu/qemu_driver.c:5797
 #: src/xen/xen_driver.c:1606 src/xen/xen_driver.c:1659
 #, c-format
 msgid "unsupported config type %s"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:2521
+#: src/libxl/libxl_driver.c:2530
 msgid "parsing xm config failed"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:2732 src/qemu/qemu_driver.c:6240
+#: src/libxl/libxl_driver.c:2741 src/qemu/qemu_driver.c:6240
 #: src/uml/uml_driver.c:2097 src/vmware/vmware_driver.c:762
 msgid "cannot undefine transient domain"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:2744 src/qemu/qemu_driver.c:6265
+#: src/libxl/libxl_driver.c:2753 src/qemu/qemu_driver.c:6265
 msgid "Failed to remove domain managed save image"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:2749 src/qemu/qemu_driver.c:6271
+#: src/libxl/libxl_driver.c:2758 src/qemu/qemu_driver.c:6271
 #: src/test/test_driver.c:2976 tools/virsh-domain.c:3130
 msgid "Refusing to undefine while domain managed save image exists"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:2805 src/qemu/qemu_driver.c:6496
+#: src/libxl/libxl_driver.c:2814 src/qemu/qemu_driver.c:6496
 #: src/qemu/qemu_hotplug.c:717
 #, c-format
 msgid "No device with bus '%s' and target '%s'"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:2812 src/qemu/qemu_hotplug.c:82
+#: src/libxl/libxl_driver.c:2821 src/qemu/qemu_hotplug.c:82
 #, c-format
 msgid "Removable media not supported for %s device"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:2822
+#: src/libxl/libxl_driver.c:2831
 #, c-format
 msgid "libxenlight failed to change media for disk '%s'"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:2863 src/qemu/qemu_hotplug.c:618
+#: src/libxl/libxl_driver.c:2872 src/qemu/qemu_hotplug.c:618
 #: src/uml/uml_driver.c:2144
 msgid "disk source path is missing"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:2876
+#: src/libxl/libxl_driver.c:2885
 #, c-format
 msgid "libxenlight failed to attach disk '%s'"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:2885 src/qemu/qemu_hotplug.c:764
+#: src/libxl/libxl_driver.c:2894 src/qemu/qemu_hotplug.c:764
 #: src/uml/uml_driver.c:2213
 #, c-format
 msgid "disk bus '%s' cannot be hotplugged."
 msgstr ""
 
-#: src/libxl/libxl_driver.c:2891 src/qemu/qemu_hotplug.c:770
+#: src/libxl/libxl_driver.c:2900 src/qemu/qemu_hotplug.c:770
 #, c-format
 msgid "disk device type '%s' cannot be hotplugged"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:2929
+#: src/libxl/libxl_driver.c:2938
 #, c-format
 msgid "libxenlight failed to detach disk '%s'"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:2939
+#: src/libxl/libxl_driver.c:2948
 #, c-format
 msgid "disk bus '%s' cannot be hot unplugged."
 msgstr ""
 
-#: src/libxl/libxl_driver.c:2945
+#: src/libxl/libxl_driver.c:2954
 #, c-format
 msgid "device type '%s' cannot hot unplugged"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:3069 src/qemu/qemu_driver.c:6535
+#: src/libxl/libxl_driver.c:3078 src/qemu/qemu_driver.c:6535
 #, c-format
 msgid "disk bus '%s' cannot be updated."
 msgstr ""
 
-#: src/libxl/libxl_driver.c:3076
+#: src/libxl/libxl_driver.c:3085
 #, c-format
 msgid "device type '%s' cannot be updated"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:3097 src/openvz/openvz_driver.c:2021
+#: src/libxl/libxl_driver.c:3106 src/openvz/openvz_driver.c:2021
 #: src/qemu/qemu_driver.c:6794
 #, c-format
 msgid "target %s doesn't exist."
 msgstr ""
 
-#: src/libxl/libxl_driver.c:3103 src/qemu/qemu_driver.c:6801
+#: src/libxl/libxl_driver.c:3112 src/qemu/qemu_driver.c:6801
 msgid "this disk doesn't support update"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:3478 src/libxl/libxl_conf.c:142
+#: src/libxl/libxl_driver.c:3487 src/libxl/libxl_conf.c:142
 msgid "libxl_get_numainfo failed"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:3485 src/nodeinfo.c:1520 src/nodeinfo.c:1704
+#: src/libxl/libxl_driver.c:3494 src/nodeinfo.c:1520 src/nodeinfo.c:1704
 #, c-format
 msgid "start cell %d out of range (0-%d)"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:3582 src/qemu/qemu_driver.c:7321
+#: src/libxl/libxl_driver.c:3591 src/qemu/qemu_driver.c:7321
 #: src/uml/uml_driver.c:2413
 msgid "cannot set autostart for transient domain"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:3597 src/qemu/qemu_driver.c:7336
+#: src/libxl/libxl_driver.c:3606 src/qemu/qemu_driver.c:7336
 #: src/storage/storage_driver.c:1156 src/uml/uml_driver.c:2428
 #, c-format
 msgid "cannot create autostart directory %s"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:3672
+#: src/libxl/libxl_driver.c:3681
 #, c-format
 msgid "Failed to get scheduler id for domain '%d' with libxenlight"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:3720 src/libxl/libxl_driver.c:3797
+#: src/libxl/libxl_driver.c:3729 src/libxl/libxl_driver.c:3806
 msgid "Only 'credit' scheduler is supported"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:3726 src/libxl/libxl_driver.c:3803
+#: src/libxl/libxl_driver.c:3735 src/libxl/libxl_driver.c:3812
 #, c-format
 msgid "Failed to get scheduler parameters for domain '%d' with libxenlight"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:3819
+#: src/libxl/libxl_driver.c:3828
 #, c-format
 msgid "Failed to set scheduler parameters for domain '%d' with libxenlight"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:3850 src/xen/xen_driver.c:2641
+#: src/libxl/libxl_driver.c:3859 src/xen/xen_driver.c:2641
 msgid "Named device aliases are not supported"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:3873 src/qemu/qemu_driver.c:13627
+#: src/libxl/libxl_driver.c:3882 src/qemu/qemu_driver.c:13627
 #, c-format
 msgid "cannot find character device %s"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:3900 src/qemu/qemu_driver.c:13647
+#: src/libxl/libxl_driver.c:3909 src/qemu/qemu_driver.c:13647
 msgid "Active console session exists for this domain"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:4001
+#: src/libxl/libxl_driver.c:4010
 msgid "unable to get numa affinity"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:4011
+#: src/libxl/libxl_driver.c:4020
 #, c-format
 msgid "Node %zu out of range"
 msgstr ""
@@ -18269,7 +18274,7 @@ msgstr ""
 #: src/rpc/virnetsocket.c:294 src/rpc/virnetsocket.c:419
 #: src/rpc/virnetsocket.c:490 src/rpc/virnetsocket.c:573
 #: src/rpc/virnetsocket.c:894 src/rpc/virnetsocket.c:946
-#: src/rpc/virnetsocket.c:1738
+#: src/rpc/virnetsocket.c:1737
 msgid "Unable to get local socket name"
 msgstr ""
 
@@ -18382,80 +18387,80 @@ msgstr ""
 msgid "Unable to copy socket file handle"
 msgstr ""
 
-#: src/rpc/virnetsocket.c:1133 src/rpc/virnetsocket.c:1184
+#: src/rpc/virnetsocket.c:1133 src/rpc/virnetsocket.c:1183
 msgid "Failed to get client socket identity"
 msgstr ""
 
-#: src/rpc/virnetsocket.c:1190
+#: src/rpc/virnetsocket.c:1189
 msgid "Failed to get valid client socket identity"
 msgstr ""
 
-#: src/rpc/virnetsocket.c:1196
+#: src/rpc/virnetsocket.c:1195
 #, fuzzy
 msgid "Failed to get valid client socket identity groups"
 msgstr "Failed to create domain from %s"
 
-#: src/rpc/virnetsocket.c:1224
+#: src/rpc/virnetsocket.c:1223
 #, fuzzy
 msgid "Failed to get client socket PID"
 msgstr "Failed to create domain from %s"
 
-#: src/rpc/virnetsocket.c:1245
+#: src/rpc/virnetsocket.c:1244
 msgid "Client socket identity not available"
 msgstr ""
 
-#: src/rpc/virnetsocket.c:1266
+#: src/rpc/virnetsocket.c:1265
 msgid "Unable to query peer security context"
 msgstr ""
 
-#: src/rpc/virnetsocket.c:1444
+#: src/rpc/virnetsocket.c:1443
 #, c-format
 msgid "Cannot recv data: %s"
 msgstr ""
 
-#: src/rpc/virnetsocket.c:1447
+#: src/rpc/virnetsocket.c:1446
 msgid "Cannot recv data"
 msgstr ""
 
-#: src/rpc/virnetsocket.c:1452
+#: src/rpc/virnetsocket.c:1451
 #, c-format
 msgid "End of file while reading data: %s"
 msgstr ""
 
-#: src/rpc/virnetsocket.c:1455
+#: src/rpc/virnetsocket.c:1454
 msgid "End of file while reading data"
 msgstr ""
 
-#: src/rpc/virnetsocket.c:1492
+#: src/rpc/virnetsocket.c:1491
 msgid "Cannot write data"
 msgstr ""
 
-#: src/rpc/virnetsocket.c:1497
+#: src/rpc/virnetsocket.c:1496
 msgid "End of file while writing data"
 msgstr ""
 
-#: src/rpc/virnetsocket.c:1640
+#: src/rpc/virnetsocket.c:1639
 msgid "Sending file descriptors is not supported on this socket"
 msgstr ""
 
-#: src/rpc/virnetsocket.c:1651
+#: src/rpc/virnetsocket.c:1650
 #, c-format
 msgid "Failed to send file descriptor %d"
 msgstr ""
 
-#: src/rpc/virnetsocket.c:1674
+#: src/rpc/virnetsocket.c:1673
 msgid "Receiving file descriptors is not supported on this socket"
 msgstr ""
 
-#: src/rpc/virnetsocket.c:1684
+#: src/rpc/virnetsocket.c:1683
 msgid "Failed to recv file descriptor"
 msgstr ""
 
-#: src/rpc/virnetsocket.c:1701
+#: src/rpc/virnetsocket.c:1700
 msgid "Unable to listen on socket"
 msgstr ""
 
-#: src/rpc/virnetsocket.c:1732
+#: src/rpc/virnetsocket.c:1731
 msgid "Unable to accept client"
 msgstr ""
 

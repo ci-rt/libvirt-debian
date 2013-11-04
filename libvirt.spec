@@ -367,7 +367,7 @@
 Summary: Library providing a simple virtualization API
 Name: libvirt
 Version: 1.1.4
-Release: 0rc2%{?dist}%{?extra_release}
+Release: 1%{?dist}%{?extra_release}
 License: LGPLv2+
 Group: Development/Libraries
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
@@ -376,7 +376,7 @@ URL: http://libvirt.org/
 %if %(echo %{version} | grep -o \\. | wc -l) == 3
     %define mainturl stable_updates/
 %endif
-Source: http://libvirt.org/sources/%{?mainturl}libvirt-%{version}-rc2.tar.gz
+Source: http://libvirt.org/sources/%{?mainturl}libvirt-%{version}.tar.gz
 
 %if %{with_libvirtd}
 Requires: libvirt-daemon = %{version}-%{release}
@@ -2118,6 +2118,12 @@ fi
 %endif
 
 %changelog
+* Mon Nov  4 2013 Daniel Veillard <veillard@redhat.com> - 1.1.4-1
+- Add support for AArch64 architecture
+- Various improvements on test code and test driver
+- 4 security bug fixes
+- a lot of bug fixes and various improvements
+
 * Tue Oct  1 2013 Daniel Veillard <veillard@redhat.com> - 1.1.3-1
 - VMware: Initial VMware Fusion support and various improvements
 - libvirt: add new public API virConnectGetCPUModelNames
