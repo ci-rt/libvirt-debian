@@ -76,6 +76,7 @@ DEB_CONFIGURE_EXTRA_ARGS :=      \
 	--with-avahi             \
 	--with-sasl              \
 	--with-yajl              \
+	--with-ssh2		 \
 	$(WITH_POLKIT)		 \
 	$(WITH_UDEV)		 \
 	--with-storage-fs        \
@@ -88,7 +89,7 @@ DEB_CONFIGURE_EXTRA_ARGS :=      \
 	$(WITH_NUMA)             \
 	--without-selinux        \
 	--without-esx		 \
-	--without-libssh2	 \
+	--without-phyp           \
 	$(WITH_CAPNG)		 \
 	--enable-debug		 \
 	$(WITH_MACVTAP)		 \

@@ -45,6 +45,8 @@ Build-Depends:
  librados-dev [linux-any],
 # for lxc fuse support
  libfuse-dev [linux-any],
+# for libssh2 connection URIs
+ libssh2-1-dev,
 # For "make check"
  augeas-tools,
  dwarves,
