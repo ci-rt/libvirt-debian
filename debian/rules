@@ -68,6 +68,7 @@ else
 endif
 
 DEB_CONFIGURE_EXTRA_ARGS :=      \
+	--disable-silent-rules   \
 	--disable-rpath          \
 	$(WITH_QEMU)		 \
 	--with-qemu-user=libvirt-qemu  \
