@@ -78,13 +78,13 @@ add_statoverrides()
     done
 
     if ! dpkg-statoverride --list "${SANLOCK_DIR}" >/dev/null 2>&1; then
-        [ ! -e "${dir}" ] || chown root:root "${SANLOCK_DIR}"
-        [ ! -e "${dir}" ] || chmod 0700 "${SANLOCK_DIR}"
+        [ ! -e "${SANLOCK_DIR}" ] || chown root:root "${SANLOCK_DIR}"
+        [ ! -e "${SANLOCK_DIR}" ] || chmod 0700 "${SANLOCK_DIR}"
     fi
 
     if ! dpkg-statoverride --list "${QEMU_CONF}" >/dev/null 2>&1; then
-        [ ! -e "${dir}" ] || chown root:root "${QEMU_CONF}"
-        [ ! -e "${dir}" ] || chmod 0600 "${QEMU_CONF}"
+        [ ! -e "${QEMU_CONF}" ] || chown root:root "${QEMU_CONF}"
+        [ ! -e "${QEMU_CONF}" ] || chmod 0600 "${QEMU_CONF}"
     fi
 }
 
