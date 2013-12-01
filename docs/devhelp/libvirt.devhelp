@@ -7,6 +7,7 @@
     </sub>
   </chapters>
   <functions>
+    <function name="LIBVIR_CHECK_VERSION" link="libvirt-libvirt.html#LIBVIR_CHECK_VERSION"/>
     <function name="LIBVIR_VERSION_NUMBER" link="libvirt-libvirt.html#LIBVIR_VERSION_NUMBER"/>
     <function name="VIR_COPY_CPUMAP" link="libvirt-libvirt.html#VIR_COPY_CPUMAP"/>
     <function name="VIR_CPU_MAPLEN" link="libvirt-libvirt.html#VIR_CPU_MAPLEN"/>
@@ -780,6 +781,7 @@
     <function name="VIR_STORAGE_VOL_DIR" link="libvirt-libvirt.html#VIR_STORAGE_VOL_DIR"/>
     <function name="VIR_STORAGE_VOL_FILE" link="libvirt-libvirt.html#VIR_STORAGE_VOL_FILE"/>
     <function name="VIR_STORAGE_VOL_LAST" link="libvirt-libvirt.html#VIR_STORAGE_VOL_LAST"/>
+    <function name="VIR_STORAGE_VOL_NETDIR" link="libvirt-libvirt.html#VIR_STORAGE_VOL_NETDIR"/>
     <function name="VIR_STORAGE_VOL_NETWORK" link="libvirt-libvirt.html#VIR_STORAGE_VOL_NETWORK"/>
     <function name="VIR_STORAGE_VOL_RESIZE_ALLOCATE" link="libvirt-libvirt.html#VIR_STORAGE_VOL_RESIZE_ALLOCATE"/>
     <function name="VIR_STORAGE_VOL_RESIZE_DELTA" link="libvirt-libvirt.html#VIR_STORAGE_VOL_RESIZE_DELTA"/>

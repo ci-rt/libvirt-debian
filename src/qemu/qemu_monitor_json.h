@@ -29,6 +29,7 @@
 
 # include "qemu_monitor.h"
 # include "virbitmap.h"
+# include "cpu/cpu.h"
 
 int qemuMonitorJSONIOProcess(qemuMonitorPtr mon,
                              const char *data,
@@ -426,4 +427,7 @@ int qemuMonitorJSONDetachCharDev(qemuMonitorPtr mon,
 int qemuMonitorJSONGetDeviceAliases(qemuMonitorPtr mon,
                                     char ***aliases);
 
+int qemuMonitorJSONGetGuestCPU(qemuMonitorPtr mon,
+                               virArch arch,
+                               virCPUDataPtr *data);
 #endif /* QEMU_MONITOR_JSON_H */

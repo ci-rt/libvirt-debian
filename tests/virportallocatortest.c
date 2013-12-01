@@ -63,7 +63,7 @@ int bind(int sockfd ATTRIBUTE_UNUSED,
 
 static int testAllocAll(const void *args ATTRIBUTE_UNUSED)
 {
-    virPortAllocatorPtr alloc = virPortAllocatorNew(5900, 5909);
+    virPortAllocatorPtr alloc = virPortAllocatorNew("test", 5900, 5909);
     int ret = -1;
     unsigned short p1, p2, p3, p4, p5, p6, p7;
 
@@ -118,11 +118,9 @@ static int testAllocAll(const void *args ATTRIBUTE_UNUSED)
         goto cleanup;
     }
 
-    if (virPortAllocatorAcquire(alloc, &p7) < 0)
-        goto cleanup;
-    if (p7 != 0) {
+    if (virPortAllocatorAcquire(alloc, &p7) == 0) {
         if (virTestGetDebug())
-            fprintf(stderr, "Expected 0, got %d", p7);
+            fprintf(stderr, "Expected error, got %d", p7);
         goto cleanup;
     }
 
@@ -136,7 +134,7 @@ cleanup:
 
 static int testAllocReuse(const void *args ATTRIBUTE_UNUSED)
 {
-    virPortAllocatorPtr alloc = virPortAllocatorNew(5900, 5910);
+    virPortAllocatorPtr alloc = virPortAllocatorNew("test", 5900, 5910);
     int ret = -1;
     unsigned short p1, p2, p3, p4;
 

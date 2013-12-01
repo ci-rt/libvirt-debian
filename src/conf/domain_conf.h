@@ -1619,6 +1619,7 @@ enum virDomainFeature {
     VIR_DOMAIN_FEATURE_VIRIDIAN,
     VIR_DOMAIN_FEATURE_PRIVNET,
     VIR_DOMAIN_FEATURE_HYPERV,
+    VIR_DOMAIN_FEATURE_PVSPINLOCK,
 
     VIR_DOMAIN_FEATURE_LAST
 };
@@ -1988,7 +1989,7 @@ struct _virDomainDef {
 
     virDomainOSDef os;
     char *emulator;
-    int features;
+    int features[VIR_DOMAIN_FEATURE_LAST];
     /* enum virDomainFeatureState */
     int apic_eoi;
     /* These options are of type virDomainFeatureState */
@@ -2208,7 +2209,7 @@ void virDomainGraphicsDefFree(virDomainGraphicsDefPtr def);
 void virDomainInputDefFree(virDomainInputDefPtr def);
 void virDomainDiskDefFree(virDomainDiskDefPtr def);
 void virDomainLeaseDefFree(virDomainLeaseDefPtr def);
-void virDomainDiskHostDefFree(virDomainDiskHostDefPtr def);
+void virDomainDiskHostDefClear(virDomainDiskHostDefPtr def);
 int virDomainDeviceFindControllerModel(virDomainDefPtr def,
                                        virDomainDeviceInfoPtr info,
                                        int controllerType);

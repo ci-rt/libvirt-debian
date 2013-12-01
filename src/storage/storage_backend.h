@@ -1,7 +1,7 @@
 /*
  * storage_backend.h: internal storage driver backend contract
  *
- * Copyright (C) 2007-2010, 2012 Red Hat, Inc.
+ * Copyright (C) 2007-2010, 2012-2013 Red Hat, Inc.
  * Copyright (C) 2007-2008 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -23,6 +23,8 @@
 
 #ifndef __VIR_STORAGE_BACKEND_H__
 # define __VIR_STORAGE_BACKEND_H__
+
+# include <sys/stat.h>
 
 # include "internal.h"
 # include "storage_conf.h"
@@ -68,6 +70,8 @@ virStorageBackendFSImageToolTypeToFunc(int tool_type);
 typedef struct _virStorageBackend virStorageBackend;
 typedef virStorageBackend *virStorageBackendPtr;
 
+/* Callbacks are optional unless documented otherwise; but adding more
+ * callbacks provides better pool support.  */
 struct _virStorageBackend {
     int type;
 
@@ -75,7 +79,7 @@ struct _virStorageBackend {
     virStorageBackendCheckPool checkPool;
     virStorageBackendStartPool startPool;
     virStorageBackendBuildPool buildPool;
-    virStorageBackendRefreshPool refreshPool;
+    virStorageBackendRefreshPool refreshPool; /* Must be non-NULL */
     virStorageBackendStopPool stopPool;
     virStorageBackendDeletePool deletePool;
 
@@ -108,9 +112,10 @@ enum {
                                        VIR_STORAGE_VOL_OPEN_CHAR     |\
                                        VIR_STORAGE_VOL_OPEN_BLOCK)
 
-int virStorageBackendVolOpenCheckMode(const char *path, unsigned int flags)
-ATTRIBUTE_RETURN_CHECK
-ATTRIBUTE_NONNULL(1);
+int virStorageBackendVolOpenCheckMode(const char *path, struct stat *sb,
+                                      unsigned int flags)
+    ATTRIBUTE_RETURN_CHECK
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
 
 int virStorageBackendUpdateVolInfo(virStorageVolDefPtr vol,
                                    int withCapacity);
@@ -124,6 +129,7 @@ int virStorageBackendUpdateVolTargetInfo(virStorageVolTargetPtr target,
                                          unsigned int openflags);
 int virStorageBackendUpdateVolTargetInfoFD(virStorageVolTargetPtr target,
                                            int fd,
+                                           struct stat *sb,
                                            unsigned long long *allocation,
                                            unsigned long long *capacity);
 int

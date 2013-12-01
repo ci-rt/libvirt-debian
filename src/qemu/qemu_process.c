@@ -44,6 +44,7 @@
 #include "qemu_bridge_filter.h"
 #include "qemu_migration.h"
 
+#include "cpu/cpu.h"
 #include "datatypes.h"
 #include "virlog.h"
 #include "virerror.h"
@@ -1095,14 +1096,6 @@ error:
     return -1;
 }
 
-
-static void qemuProcessHandleMonitorDestroy(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
-                                            virDomainObjPtr vm,
-                                            void *opaque ATTRIBUTE_UNUSED)
-{
-    virObjectUnref(vm);
-}
-
 static int
 qemuProcessHandleTrayChange(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
                             virDomainObjPtr vm,
@@ -1366,7 +1359,6 @@ cleanup:
 
 
 static qemuMonitorCallbacks monitorCallbacks = {
-    .destroy = qemuProcessHandleMonitorDestroy,
     .eofNotify = qemuProcessHandleMonitorEOF,
     .errorNotify = qemuProcessHandleMonitorError,
     .diskSecretLookup = qemuProcessFindVolumeQcowPassphrase,
@@ -1403,7 +1395,7 @@ qemuConnectMonitor(virQEMUDriverPtr driver, virDomainObjPtr vm, int logfd)
     }
 
     /* Hold an extra reference because we can't allow 'vm' to be
-     * deleted while the monitor is active */
+     * deleted unitl the monitor gets its own reference. */
     virObjectRef(vm);
 
     ignore_value(virTimeMillisNow(&priv->monStart));
@@ -1419,11 +1411,10 @@ qemuConnectMonitor(virQEMUDriverPtr driver, virDomainObjPtr vm, int logfd)
         ignore_value(qemuMonitorSetDomainLog(mon, logfd));
 
     virObjectLock(vm);
+    virObjectUnref(vm);
     priv->monStart = 0;
 
-    if (mon == NULL) {
-        virObjectUnref(vm);
-    } else if (!virDomainObjIsActive(vm)) {
+    if (!virDomainObjIsActive(vm)) {
         qemuMonitorClose(mon);
         mon = NULL;
     }
@@ -3290,7 +3281,7 @@ qemuProcessReconnectHelper(virDomainObjPtr obj,
      */
     virConnectRef(data->conn);
 
-    if (virThreadCreate(&thread, true, qemuProcessReconnect, data) < 0) {
+    if (virThreadCreate(&thread, false, qemuProcessReconnect, data) < 0) {
 
         virConnectClose(data->conn);
 
@@ -3406,12 +3397,6 @@ qemuProcessSPICEAllocatePorts(virQEMUDriverPtr driver,
         if (virPortAllocatorAcquire(driver->remotePorts, &port) < 0)
             goto error;
 
-        if (port == 0) {
-            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                           _("Unable to find an unused port for SPICE"));
-            goto error;
-        }
-
         graphics->data.spice.port = port;
     }
 
@@ -3437,12 +3422,6 @@ qemuProcessSPICEAllocatePorts(virQEMUDriverPtr driver,
             if (virPortAllocatorAcquire(driver->remotePorts, &tlsPort) < 0)
                 goto error;
 
-            if (tlsPort == 0) {
-                virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                               _("Unable to find an unused port for SPICE TLS"));
-                virPortAllocatorRelease(driver->remotePorts, port);
-                goto error;
-            }
             graphics->data.spice.tlsPort = tlsPort;
         }
     }
@@ -3472,6 +3451,52 @@ qemuValidateCpuMax(virDomainDefPtr def, virQEMUCapsPtr qemuCaps)
 
     return true;
 }
+
+
+static bool
+qemuProcessVerifyGuestCPU(virQEMUDriverPtr driver, virDomainObjPtr vm)
+{
+    virDomainDefPtr def = vm->def;
+    virArch arch = def->os.arch;
+    virCPUDataPtr guestcpu = NULL;
+    qemuDomainObjPrivatePtr priv = vm->privateData;
+    int rc;
+    bool ret = false;
+
+    switch (arch) {
+    case VIR_ARCH_I686:
+    case VIR_ARCH_X86_64:
+        qemuDomainObjEnterMonitor(driver, vm);
+        rc = qemuMonitorGetGuestCPU(priv->mon, arch, &guestcpu);
+        qemuDomainObjExitMonitor(driver, vm);
+
+        if (rc < 0) {
+            if (rc == -2)
+                break;
+
+            goto cleanup;
+        }
+
+        if (def->features[VIR_DOMAIN_FEATURE_PVSPINLOCK] == VIR_DOMAIN_FEATURE_STATE_ON) {
+            if (!cpuHasFeature(guestcpu, VIR_CPU_x86_KVM_PV_UNHALT)) {
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                               _("host doesn't support paravirtual spinlocks"));
+                goto cleanup;
+            }
+        }
+        break;
+
+    default:
+        break;
+    }
+
+    ret = true;
+
+cleanup:
+    cpuDataFree(guestcpu);
+    return ret;
+}
+
 
 int qemuProcessStart(virConnectPtr conn,
                      virQEMUDriverPtr driver,
@@ -3931,6 +3956,10 @@ int qemuProcessStart(virConnectPtr conn,
         virResetLastError();
         priv->agentError = true;
     }
+
+    VIR_DEBUG("Detecting if required emulator features are present");
+    if (!qemuProcessVerifyGuestCPU(driver, vm))
+        goto cleanup;
 
     VIR_DEBUG("Detecting VCPU PIDs");
     if (qemuProcessDetectVcpuPIDs(driver, vm) < 0)

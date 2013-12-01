@@ -1,7 +1,7 @@
 /*
  * storage_backend_fs.c: storage backend for FS and directory handling
  *
- * Copyright (C) 2007-2012 Red Hat, Inc.
+ * Copyright (C) 2007-2013 Red Hat, Inc.
  * Copyright (C) 2007-2008 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -70,37 +70,53 @@ virStorageBackendProbeTarget(virStorageVolTargetPtr target,
     int fd = -1;
     int ret = -1;
     virStorageFileMetadata *meta = NULL;
+    struct stat sb;
+    char *header = NULL;
+    ssize_t len = VIR_STORAGE_MAX_HEADER;
 
     *backingStore = NULL;
     *backingStoreFormat = VIR_STORAGE_FILE_AUTO;
     if (encryption)
         *encryption = NULL;
 
-    if ((ret = virStorageBackendVolOpenCheckMode(target->path,
+    if ((ret = virStorageBackendVolOpenCheckMode(target->path, &sb,
                                         VIR_STORAGE_VOL_FS_REFRESH_FLAGS)) < 0)
         goto error; /* Take care to propagate ret, it is not always -1 */
     fd = ret;
 
-    if ((ret = virStorageBackendUpdateVolTargetInfoFD(target, fd,
+    if ((ret = virStorageBackendUpdateVolTargetInfoFD(target, fd, &sb,
                                                       allocation,
                                                       capacity)) < 0) {
         goto error;
     }
 
-    if ((target->format = virStorageFileProbeFormatFromFD(target->path, fd)) < 0) {
-        ret = -1;
-        goto error;
-    }
+    if (S_ISDIR(sb.st_mode)) {
+        target->format = VIR_STORAGE_FILE_DIR;
+    } else {
+        if ((len = virFileReadHeaderFD(fd, len, &header)) < 0) {
+            virReportSystemError(errno, _("cannot read header '%s'"),
+                                 target->path);
+            goto error;
+        }
 
-    if (!(meta = virStorageFileGetMetadataFromFD(target->path, fd,
-                                                 target->format))) {
-        ret = -1;
-        goto error;
+        target->format = virStorageFileProbeFormatFromBuf(target->path,
+                                                          header, len);
+        if (target->format < 0) {
+            ret = -1;
+            goto error;
+        }
+
+        if (!(meta = virStorageFileGetMetadataFromBuf(target->path,
+                                                      header, len,
+                                                      target->format))) {
+            ret = -1;
+            goto error;
+        }
     }
 
     VIR_FORCE_CLOSE(fd);
 
-    if (meta->backingStore) {
+    if (meta && meta->backingStore) {
         *backingStore = meta->backingStore;
         meta->backingStore = NULL;
         if (meta->backingStoreFormat == VIR_STORAGE_FILE_AUTO &&
@@ -125,10 +141,10 @@ virStorageBackendProbeTarget(virStorageVolTargetPtr target,
         ret = 0;
     }
 
-    if (capacity && meta->capacity)
+    if (capacity && meta && meta->capacity)
         *capacity = meta->capacity;
 
-    if (encryption != NULL && meta->encrypted) {
+    if (encryption && meta && meta->encrypted) {
         if (VIR_ALLOC(*encryption) < 0)
             goto cleanup;
 
@@ -149,24 +165,25 @@ virStorageBackendProbeTarget(virStorageVolTargetPtr target,
     }
 
     virBitmapFree(target->features);
-    target->features = meta->features;
-    meta->features = NULL;
+    if (meta) {
+        target->features = meta->features;
+        meta->features = NULL;
+    }
 
-    if (meta->compat) {
+    if (meta && meta->compat) {
         VIR_FREE(target->compat);
         target->compat = meta->compat;
         meta->compat = NULL;
     }
 
-    virStorageFileFreeMetadata(meta);
-
-    return ret;
+    goto cleanup;
 
 error:
     VIR_FORCE_CLOSE(fd);
 
 cleanup:
     virStorageFileFreeMetadata(meta);
+    VIR_FREE(header);
     return ret;
 
 }
@@ -1120,7 +1137,7 @@ virStorageBackendFileSystemVolDelete(virConnectPtr conn ATTRIBUTE_UNUSED,
 {
     virCheckFlags(0, -1);
 
-    switch (vol->type) {
+    switch ((virStorageVolType) vol->type) {
     case VIR_STORAGE_VOL_FILE:
         if (unlink(vol->target.path) < 0) {
             /* Silently ignore failures where the vol has already gone away */
@@ -1142,7 +1159,8 @@ virStorageBackendFileSystemVolDelete(virConnectPtr conn ATTRIBUTE_UNUSED,
         break;
     case VIR_STORAGE_VOL_BLOCK:
     case VIR_STORAGE_VOL_NETWORK:
-    default:
+    case VIR_STORAGE_VOL_NETDIR:
+    case VIR_STORAGE_VOL_LAST:
         virReportError(VIR_ERR_NO_SUPPORT,
                        _("removing block or network volumes is not supported: %s"),
                        vol->target.path);

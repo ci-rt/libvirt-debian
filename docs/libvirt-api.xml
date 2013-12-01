@@ -5,6 +5,7 @@
      <summary>core interfaces for the libvirt library</summary>
      <description>Provides the interfaces of the libvirt library to handle virtualized domains  Copyright (C) 2005-2006, 2010-2013 Red Hat, Inc.  This library is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation; either version 2.1 of the License, or (at your option) any later version.  This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more details.  You should have received a copy of the GNU Lesser General Public License along with this library.  If not, see &lt;http://www.gnu.org/licenses/&gt;. </description>
      <author>Daniel Veillard &lt;veillard@redhat.com&gt; </author>
+     <exports symbol='LIBVIR_CHECK_VERSION' type='macro'/>
      <exports symbol='LIBVIR_VERSION_NUMBER' type='macro'/>
      <exports symbol='VIR_COPY_CPUMAP' type='macro'/>
      <exports symbol='VIR_CPU_MAPLEN' type='macro'/>
@@ -632,6 +633,7 @@
      <exports symbol='VIR_STORAGE_VOL_DIR' type='enum'/>
      <exports symbol='VIR_STORAGE_VOL_FILE' type='enum'/>
      <exports symbol='VIR_STORAGE_VOL_LAST' type='enum'/>
+     <exports symbol='VIR_STORAGE_VOL_NETDIR' type='enum'/>
      <exports symbol='VIR_STORAGE_VOL_NETWORK' type='enum'/>
      <exports symbol='VIR_STORAGE_VOL_RESIZE_ALLOCATE' type='enum'/>
      <exports symbol='VIR_STORAGE_VOL_RESIZE_DELTA' type='enum'/>
@@ -1455,6 +1457,12 @@
     </file>
   </files>
   <symbols>
+    <macro name='LIBVIR_CHECK_VERSION' file='libvirt'>
+      <info><![CDATA[Macro for developers to easily check what version of the library their code is compiling against. e.g. #if LIBVIR_CHECK_VERSION(1,1,3) // some code that only works in 1.1.3 and newer #endif]]></info>
+      <arg name='major' info='major component of the version number'/>
+      <arg name='minor' info='minor component of the version number'/>
+      <arg name='micro' info='micro component of the version number'/>
+    </macro>
     <macro name='LIBVIR_VERSION_NUMBER' file='libvirt'>
       <info><![CDATA[Macro providing the version of the library as version * 1,000,000 + minor * 1000 + micro]]></info>
     </macro>
@@ -1509,22 +1517,22 @@
       <info><![CDATA[Macro for the Blkio tunable weight: it represents the io weight the guest can use, as a uint.]]></info>
     </macro>
     <macro name='VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC' file='libvirt'>
-      <info><![CDATA[Macro for the BlockIoTune tunable weight: it repersents the read bytes per second permitted through a block device, as a ullong.]]></info>
+      <info><![CDATA[Macro for the BlockIoTune tunable weight: it represents the read bytes per second permitted through a block device, as a ullong.]]></info>
     </macro>
     <macro name='VIR_DOMAIN_BLOCK_IOTUNE_READ_IOPS_SEC' file='libvirt'>
-      <info><![CDATA[Macro for the BlockIoTune tunable weight: it repersents the read I/O operations per second permitted through a block device, as a ullong.]]></info>
+      <info><![CDATA[Macro for the BlockIoTune tunable weight: it represents the read I/O operations per second permitted through a block device, as a ullong.]]></info>
     </macro>
     <macro name='VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_BYTES_SEC' file='libvirt'>
       <info><![CDATA[Macro for the BlockIoTune tunable weight: it represents the total bytes per second permitted through a block device, as a ullong.]]></info>
     </macro>
     <macro name='VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_IOPS_SEC' file='libvirt'>
-      <info><![CDATA[Macro for the BlockIoTune tunable weight: it repersents the total I/O operations per second permitted through a block device, as a ullong.]]></info>
+      <info><![CDATA[Macro for the BlockIoTune tunable weight: it represents the total I/O operations per second permitted through a block device, as a ullong.]]></info>
     </macro>
     <macro name='VIR_DOMAIN_BLOCK_IOTUNE_WRITE_BYTES_SEC' file='libvirt'>
-      <info><![CDATA[Macro for the BlockIoTune tunable weight: it repersents the write bytes per second permitted through a block device, as a ullong.]]></info>
+      <info><![CDATA[Macro for the BlockIoTune tunable weight: it represents the write bytes per second permitted through a block device, as a ullong.]]></info>
     </macro>
     <macro name='VIR_DOMAIN_BLOCK_IOTUNE_WRITE_IOPS_SEC' file='libvirt'>
-      <info><![CDATA[Macro for the BlockIoTune tunable weight: it repersents the write I/O operations per second permitted through a block device, as a ullong.]]></info>
+      <info><![CDATA[Macro for the BlockIoTune tunable weight: it represents the write I/O operations per second permitted through a block device, as a ullong.]]></info>
     </macro>
     <macro name='VIR_DOMAIN_BLOCK_STATS_ERRS' file='libvirt'>
       <info><![CDATA[In Xen this returns the mysterious 'oo_req', as an llong.]]></info>
@@ -1710,7 +1718,7 @@
       <info><![CDATA[virDomainMigrate* params field: URI to use for migrating client's connection to domain's graphical console as VIR_TYPED_PARAM_STRING. If specified, the client will be asked to automatically reconnect using these parameters instead of the automatically computed ones. This can be useful if, e.g., the client does not have a direct access to the network virtualization hosts are connected to and needs to connect through a proxy. The URI is formed as follows:  protocol://hostname[:port]/[?parameters]  where protocol is either "spice" or "vnc" and parameters is a list of protocol specific parameters separated by '&'. Currently recognized parameters are "tlsPort" and "tlsSubject". For example,  spice://target.host.com:1234/?tlsPort=4567]]></info>
     </macro>
     <macro name='VIR_MIGRATE_PARAM_LISTEN_ADDRESS' file='libvirt'>
-      <info><![CDATA[virDomainMigrate* params field: The listen address that hypervisor on the destination side should bind to for incoming migration. Both, IPv4 and IPv6 addresses are accepted as well as hostnames (the resolving is done on destination). Some hypervisors do not support this feature an will return an error if this field is used.]]></info>
+      <info><![CDATA[virDomainMigrate* params field: The listen address that hypervisor on the destination side should bind to for incoming migration. Both IPv4 and IPv6 addresses are accepted as well as hostnames (the resolving is done on destination). Some hypervisors do not support this feature and will return an error if this field is used.]]></info>
     </macro>
     <macro name='VIR_MIGRATE_PARAM_URI' file='libvirt'>
       <info><![CDATA[virDomainMigrate* params field: URI to use for initiating domain migration as VIR_TYPED_PARAM_STRING. It takes a hypervisor specific format. The uri_transports element of the hypervisor capabilities XML includes details of the supported URI schemes. When omitted libvirt will auto-generate suitable default URI. It is typically only necessary to specify this URI if the destination host has multiple interfaces and a specific interface is required to transmit migration data.  This filed may not be used when VIR_MIGRATE_TUNNELLED flag is set.]]></info>
@@ -2547,7 +2555,9 @@ config if it&apos;s not active'/>
     <enum name='VIR_STORAGE_VOL_DELETE_ZEROED' file='libvirt' value='1' type='virStorageVolDeleteFlags' info='Clear all data to zeros (slow)'/>
     <enum name='VIR_STORAGE_VOL_DIR' file='libvirt' value='2' type='virStorageVolType' info='Directory-passthrough based volume'/>
     <enum name='VIR_STORAGE_VOL_FILE' file='libvirt' value='0' type='virStorageVolType' info='Regular file based volumes'/>
-    <enum name='VIR_STORAGE_VOL_LAST' file='libvirt' value='4' type='virStorageVolType'/>
+    <enum name='VIR_STORAGE_VOL_LAST' file='libvirt' value='5' type='virStorageVolType'/>
+    <enum name='VIR_STORAGE_VOL_NETDIR' file='libvirt' value='4' type='virStorageVolType' info='Network accessible directory that can
+ contain other network volumes'/>
     <enum name='VIR_STORAGE_VOL_NETWORK' file='libvirt' value='3' type='virStorageVolType' info='Network volumes like RBD (RADOS Block Device)'/>
     <enum name='VIR_STORAGE_VOL_RESIZE_ALLOCATE' file='libvirt' value='1' type='virStorageVolResizeFlags' info='force allocation of new size'/>
     <enum name='VIR_STORAGE_VOL_RESIZE_DELTA' file='libvirt' value='2' type='virStorageVolResizeFlags' info='size is relative to current'/>
@@ -2761,18 +2771,18 @@ and ERROR states)'/>
       <field name='tx_drop' type='long long' info=''/>
     </struct>
     <struct name='virDomainJobInfo' file='libvirt' type='struct _virDomainJobInfo'>
-      <field name='type' type='int' info='Time is measured in mill-seconds'/>
+      <field name='type' type='int' info='Time is measured in milliseconds'/>
       <field name='timeElapsed' type='unsigned long long' info='Always set'/>
       <field name='timeRemaining' type='unsigned long long' info='Only for VIR_DOMAIN_JOB_BOUNDED Data is measured in bytes unless otherwise specified
- and is measuring the job as a whole
+ and is measuring the job as a whole.
 
  For VIR_DOMAIN_JOB_UNBOUNDED, dataTotal may be less
  than the final sum of dataProcessed + dataRemaining
  in the event that the hypervisor has to repeat some
- data eg due to dirtied pages during migration
+ data, such as due to dirtied pages during migration.
 
  For VIR_DOMAIN_JOB_BOUNDED, dataTotal shall always
- equal sum of dataProcessed + dataRemaining'/>
+ equal the sum of dataProcessed + dataRemaining.'/>
       <field name='dataTotal' type='unsigned long long' info=''/>
       <field name='dataProcessed' type='unsigned long long' info=''/>
       <field name='dataRemaining' type='unsigned long long' info='As above, but only tracking guest memory progress'/>
@@ -4839,7 +4849,10 @@ expects the caller to allocate the @params.]]></info>
     </function>
     <function name='virDomainGetJobInfo' file='libvirt' module='libvirt'>
       <info><![CDATA[Extract information about progress of a background job on a domain.
-Will return an error if the domain is not active.]]></info>
+Will return an error if the domain is not active.
+
+This function returns a limited amount of information in comparison
+to virDomainGetJobStats().]]></info>
       <return type='int' info='0 in case of success and -1 in case of failure.'/>
       <arg name='domain' type='virDomainPtr' info='a domain object'/>
       <arg name='info' type='virDomainJobInfoPtr' info='pointer to a virDomainJobInfo structure allocated by the user'/>
@@ -5898,7 +5911,12 @@ in which the hypervisor tries each shutdown method is undefined,
 and a hypervisor is not required to support all methods.
 
 To use guest agent (VIR_DOMAIN_REBOOT_GUEST_AGENT) the domain XML
-must have <channel> configured.]]></info>
+must have <channel> configured.
+
+Due to implementation limitations in some drivers (the qemu driver,
+for instance) it is not advised to migrate or save a guest that is
+rebooting as a result of this API. Migrating such a guest can lead
+to a plain shutdown on the destination.]]></info>
       <return type='int' info='0 in case of success and -1 in case of failure.'/>
       <arg name='domain' type='virDomainPtr' info='a domain object'/>
       <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainRebootFlagValues'/>
@@ -5949,7 +5967,7 @@ device while the domain is stopped.
 If @flags includes VIR_DOMAIN_SAVE_BYPASS_CACHE, then libvirt will
 attempt to bypass the file system cache while restoring the file, or
 fail if it cannot do so for the given system; this can allow less
-pressure on file system cache, but also risks slowing saves to NFS.
+pressure on file system cache, but also risks slowing restores from NFS.
 
 Normally, the saved state file will remember whether the domain was
 running or paused, and restore defaults to the same state.
@@ -7178,8 +7196,7 @@ will be logged.]]></info>
 If there was an open network config transaction at the time this
 interface was defined (that is, if virInterfaceChangeBegin() had
 been called), the interface will be brought back down (and then
-undefined) if virInterfaceChangeRollback() is called.
-p *]]></info>
+undefined) if virInterfaceChangeRollback() is called.]]></info>
       <return type='int' info='0 in case of success, -1 in case of error'/>
       <arg name='iface' type='virInterfacePtr' info='pointer to a defined interface'/>
       <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>

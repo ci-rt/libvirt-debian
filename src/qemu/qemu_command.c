@@ -1149,7 +1149,7 @@ int qemuDomainCCWAddressAssign(virDomainDeviceInfoPtr dev,
         return 0;
     }
 
-    if (virHashAddEntry(addrs->defined,addr,addr) < 0)
+    if (virHashAddEntry(addrs->defined, addr, addr) < 0)
         goto cleanup;
     else
         addr = NULL; /* memory will be freed by hash table */
@@ -1179,7 +1179,7 @@ qemuDomainPrimeVirtioDeviceAddresses(virDomainDefPtr def,
     }
 
     for (i = 0; i < def->nnets; i++) {
-        if (STREQ(def->nets[i]->model,"virtio") &&
+        if (STREQ(def->nets[i]->model, "virtio") &&
             def->nets[i]->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_NONE) {
             def->nets[i]->info.type = type;
         }
@@ -1335,12 +1335,14 @@ cleanup:
 
     return ret;
 }
+
 static int
 qemuDomainAssignARMVirtioMMIOAddresses(virDomainDefPtr def,
                                        virQEMUCapsPtr qemuCaps)
 {
     if (def->os.arch == VIR_ARCH_ARMV7L &&
-        STRPREFIX(def->os.machine, "vexpress-") &&
+        (STRPREFIX(def->os.machine, "vexpress-") ||
+            STREQ(def->os.machine, "virt")) &&
         virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE_VIRTIO_MMIO)) {
         qemuDomainPrimeVirtioDeviceAddresses(
             def, VIR_DOMAIN_DEVICE_ADDRESS_TYPE_VIRTIO_MMIO);
@@ -2959,6 +2961,14 @@ qemuAssignDevicePCISlots(virDomainDefPtr def,
             goto error;
     }
 
+    /* Assign a PCI slot to the primary video card if there is not an
+     * assigned address. */
+    if (def->nvideos > 0 &&
+        def->videos[0]->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_NONE) {
+        if (qemuDomainPCIAddressReserveNextSlot(addrs, &def->videos[0]->info,
+                                                flags) < 0)
+            goto error;
+    }
     /* Further non-primary video cards which have to be qxl type */
     for (i = 1; i < def->nvideos; i++) {
         if (def->videos[i]->type != VIR_DOMAIN_VIDEO_TYPE_QXL) {
@@ -3509,7 +3519,7 @@ cleanup:
     return ret;
 
 error:
-    virDomainDiskHostDefFree(def->hosts);
+    virDomainDiskHostDefClear(def->hosts);
     VIR_FREE(def->hosts);
     goto cleanup;
 }
@@ -3611,7 +3621,7 @@ qemuParseNBDString(virDomainDiskDefPtr disk)
     return 0;
 
 error:
-    virDomainDiskHostDefFree(h);
+    virDomainDiskHostDefClear(h);
     VIR_FREE(h);
     return -1;
 }
@@ -3772,7 +3782,7 @@ qemuBuildVolumeString(virConnectPtr conn,
 {
     int ret = -1;
 
-    switch (disk->srcpool->voltype) {
+    switch ((virStorageVolType) disk->srcpool->voltype) {
     case VIR_STORAGE_VOL_DIR:
         if (!disk->readonly) {
             virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
@@ -3815,10 +3825,12 @@ qemuBuildVolumeString(virConnectPtr conn,
         }
         break;
     case VIR_STORAGE_VOL_NETWORK:
-        /* Keep the compiler quite, qemuTranslateDiskSourcePool already
+    case VIR_STORAGE_VOL_NETDIR:
+    case VIR_STORAGE_VOL_LAST:
+        /* Keep the compiler quiet, qemuTranslateDiskSourcePool already
          * reported the unsupported error.
          */
-        break;
+        goto cleanup;
     }
 
     ret = 0;
@@ -6718,7 +6730,20 @@ qemuBuildCpuArgStr(virQEMUDriverPtr driver,
         have_cpu = true;
     }
 
-    if (def->features & (1 << VIR_DOMAIN_FEATURE_HYPERV)) {
+    if (def->features[VIR_DOMAIN_FEATURE_PVSPINLOCK]) {
+        char sign;
+        if (def->features[VIR_DOMAIN_FEATURE_PVSPINLOCK] == VIR_DOMAIN_FEATURE_STATE_ON)
+            sign = '+';
+        else
+            sign = '-';
+
+        virBufferAsprintf(&buf, "%s,%ckvm_pv_unhalt",
+                          have_cpu ? "" : default_model,
+                          sign);
+        have_cpu = true;
+    }
+
+    if (def->features[VIR_DOMAIN_FEATURE_HYPERV] == VIR_DOMAIN_FEATURE_STATE_ON) {
         if (!have_cpu) {
             virBufferAdd(&buf, default_model, -1);
             have_cpu = true;
@@ -7993,11 +8018,15 @@ qemuBuildCommandLine(virConnectPtr conn,
             case VIR_DOMAIN_TIMER_TICKPOLICY_DELAY:
                 /* delay is the default if we don't have kernel
                    (-no-kvm-pit), otherwise, the default is catchup. */
-                if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_NO_KVM_PIT))
+                if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_KVM_PIT_TICK_POLICY))
+                    virCommandAddArgList(cmd, "-global",
+                                         "kvm-pit.lost_tick_policy=discard", NULL);
+                else if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_NO_KVM_PIT))
                     virCommandAddArg(cmd, "-no-kvm-pit-reinjection");
                 break;
             case VIR_DOMAIN_TIMER_TICKPOLICY_CATCHUP:
-                if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_NO_KVM_PIT)) {
+                if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_NO_KVM_PIT) ||
+                    virQEMUCapsGet(qemuCaps, QEMU_CAPS_KVM_PIT_TICK_POLICY)) {
                     /* do nothing - this is default for kvm-pit */
                 } else if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_TDF)) {
                     /* -tdf switches to 'catchup' with userspace pit. */
@@ -8063,7 +8092,7 @@ qemuBuildCommandLine(virConnectPtr conn,
     }
 
     if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_NO_ACPI)) {
-        if (!(def->features & (1 << VIR_DOMAIN_FEATURE_ACPI)))
+        if (def->features[VIR_DOMAIN_FEATURE_ACPI] != VIR_DOMAIN_FEATURE_STATE_ON)
             virCommandAddArg(cmd, "-no-acpi");
     }
 
@@ -10005,6 +10034,7 @@ error:
 static virDomainDiskDefPtr
 qemuParseCommandLineDisk(virDomainXMLOptionPtr xmlopt,
                          const char *val,
+                         virDomainDefPtr dom,
                          int nvirtiodisk,
                          bool old_style_ceph_args)
 {
@@ -10028,7 +10058,11 @@ qemuParseCommandLineDisk(virDomainXMLOptionPtr xmlopt,
     if (VIR_ALLOC(def) < 0)
         goto cleanup;
 
-    def->bus = VIR_DOMAIN_DISK_BUS_IDE;
+    if (((dom->os.arch == VIR_ARCH_PPC64) &&
+        dom->os.machine && STREQ(dom->os.machine, "pseries")))
+        def->bus = VIR_DOMAIN_DISK_BUS_SCSI;
+    else
+       def->bus = VIR_DOMAIN_DISK_BUS_IDE;
     def->device = VIR_DOMAIN_DISK_DEVICE_DISK;
     def->type = VIR_DOMAIN_DISK_TYPE_FILE;
 
@@ -10113,9 +10147,15 @@ qemuParseCommandLineDisk(virDomainXMLOptionPtr xmlopt,
                 def->type = VIR_DOMAIN_DISK_TYPE_FILE;
             }
         } else if (STREQ(keywords[i], "if")) {
-            if (STREQ(values[i], "ide"))
+            if (STREQ(values[i], "ide")) {
                 def->bus = VIR_DOMAIN_DISK_BUS_IDE;
-            else if (STREQ(values[i], "scsi"))
+                if (((dom->os.arch == VIR_ARCH_PPC64) &&
+                     dom->os.machine && STREQ(dom->os.machine, "pseries"))) {
+                    virReportError(VIR_ERR_INTERNAL_ERROR,
+                                   _("pseries systems do not support ide devices '%s'"), val);
+                    goto error;
+                }
+            } else if (STREQ(values[i], "scsi"))
                 def->bus = VIR_DOMAIN_DISK_BUS_SCSI;
             else if (STREQ(values[i], "virtio"))
                 def->bus = VIR_DOMAIN_DISK_BUS_VIRTIO;
@@ -10862,7 +10902,7 @@ qemuParseCommandLineCPU(virDomainDefPtr dom,
             if (*feature == '\0')
                 goto syntax;
 
-            dom->features |= (1 << VIR_DOMAIN_FEATURE_HYPERV);
+            dom->features[VIR_DOMAIN_FEATURE_HYPERV] = VIR_DOMAIN_FEATURE_STATE_ON;
 
             if ((f = virDomainHypervTypeFromString(feature)) < 0) {
                 virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
@@ -11116,7 +11156,7 @@ qemuParseCommandLine(virCapsPtr qemuCaps,
             goto error;
         if (strstr(path, "kvm")) {
             def->virtType = VIR_DOMAIN_VIRT_KVM;
-            def->features |= (1 << VIR_DOMAIN_FEATURE_PAE);
+            def->features[VIR_DOMAIN_FEATURE_PAE] = VIR_DOMAIN_FEATURE_STATE_ON;
         }
     }
 
@@ -11129,8 +11169,7 @@ qemuParseCommandLine(virCapsPtr qemuCaps,
 
     if ((def->os.arch == VIR_ARCH_I686) ||
         (def->os.arch == VIR_ARCH_X86_64))
-        def->features |= (1 << VIR_DOMAIN_FEATURE_ACPI)
-        /*| (1 << VIR_DOMAIN_FEATURE_APIC)*/;
+        def->features[VIR_DOMAIN_FEATURE_ACPI] = VIR_DOMAIN_FEATURE_STATE_ON;
 
 #define WANT_VALUE()                                                   \
     const char *val = progargv[++i];                                   \
@@ -11342,6 +11381,9 @@ qemuParseCommandLine(virCapsPtr qemuCaps,
                 disk->type = VIR_DOMAIN_DISK_TYPE_FILE;
             if (STREQ(arg, "-cdrom")) {
                 disk->device = VIR_DOMAIN_DISK_DEVICE_CDROM;
+                if (((def->os.arch == VIR_ARCH_PPC64) &&
+                    def->os.machine && STREQ(def->os.machine, "pseries")))
+                    disk->bus = VIR_DOMAIN_DISK_BUS_SCSI;
                 if (VIR_STRDUP(disk->dst, "hdc") < 0)
                     goto error;
                 disk->readonly = true;
@@ -11355,6 +11397,9 @@ qemuParseCommandLine(virCapsPtr qemuCaps,
                         disk->bus = VIR_DOMAIN_DISK_BUS_IDE;
                     else
                         disk->bus = VIR_DOMAIN_DISK_BUS_SCSI;
+                   if (((def->os.arch == VIR_ARCH_PPC64) &&
+                       def->os.machine && STREQ(def->os.machine, "pseries")))
+                       disk->bus = VIR_DOMAIN_DISK_BUS_SCSI;
                 }
                 if (VIR_STRDUP(disk->dst, arg + 1) < 0)
                     goto error;
@@ -11424,7 +11469,7 @@ qemuParseCommandLine(virCapsPtr qemuCaps,
             def->disks[def->ndisks++] = disk;
             disk = NULL;
         } else if (STREQ(arg, "-no-acpi")) {
-            def->features &= ~(1 << VIR_DOMAIN_FEATURE_ACPI);
+            def->features[VIR_DOMAIN_FEATURE_ACPI] = VIR_DOMAIN_FEATURE_STATE_DEFAULT;
         } else if (STREQ(arg, "-no-reboot")) {
             def->onReboot = VIR_DOMAIN_LIFECYCLE_DESTROY;
         } else if (STREQ(arg, "-no-kvm")) {
@@ -11543,7 +11588,7 @@ qemuParseCommandLine(virCapsPtr qemuCaps,
                     def->mem.nosharepages = true;
                 } else if (STRPREFIX(param, "accel=kvm")) {
                     def->virtType = VIR_DOMAIN_VIRT_KVM;
-                    def->features |= (1 << VIR_DOMAIN_FEATURE_PAE);
+                    def->features[VIR_DOMAIN_FEATURE_PAE] = VIR_DOMAIN_FEATURE_STATE_ON;
                 }
             }
             virStringFreeList(list);
@@ -11646,7 +11691,7 @@ qemuParseCommandLine(virCapsPtr qemuCaps,
             }
         } else if (STREQ(arg, "-drive")) {
             WANT_VALUE();
-            if (!(disk = qemuParseCommandLineDisk(xmlopt, val,
+            if (!(disk = qemuParseCommandLineDisk(xmlopt, val, def,
                                                   nvirtiodisk,
                                                   ceph_args != NULL)))
                 goto error;

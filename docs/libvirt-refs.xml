@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
 <apirefs name='libvirt'>
   <references>
+    <reference name='LIBVIR_CHECK_VERSION' href='html/libvirt-libvirt.html#LIBVIR_CHECK_VERSION'/>
     <reference name='LIBVIR_VERSION_NUMBER' href='html/libvirt-libvirt.html#LIBVIR_VERSION_NUMBER'/>
     <reference name='VIR_CONNECT_BASELINE_CPU_EXPAND_FEATURES' href='html/libvirt-libvirt.html#VIR_CONNECT_BASELINE_CPU_EXPAND_FEATURES'/>
     <reference name='VIR_CONNECT_CLOSE_REASON_CLIENT' href='html/libvirt-libvirt.html#VIR_CONNECT_CLOSE_REASON_CLIENT'/>
@@ -766,6 +767,7 @@
     <reference name='VIR_STORAGE_VOL_DIR' href='html/libvirt-libvirt.html#VIR_STORAGE_VOL_DIR'/>
     <reference name='VIR_STORAGE_VOL_FILE' href='html/libvirt-libvirt.html#VIR_STORAGE_VOL_FILE'/>
     <reference name='VIR_STORAGE_VOL_LAST' href='html/libvirt-libvirt.html#VIR_STORAGE_VOL_LAST'/>
+    <reference name='VIR_STORAGE_VOL_NETDIR' href='html/libvirt-libvirt.html#VIR_STORAGE_VOL_NETDIR'/>
     <reference name='VIR_STORAGE_VOL_NETWORK' href='html/libvirt-libvirt.html#VIR_STORAGE_VOL_NETWORK'/>
     <reference name='VIR_STORAGE_VOL_RESIZE_ALLOCATE' href='html/libvirt-libvirt.html#VIR_STORAGE_VOL_RESIZE_ALLOCATE'/>
     <reference name='VIR_STORAGE_VOL_RESIZE_DELTA' href='html/libvirt-libvirt.html#VIR_STORAGE_VOL_RESIZE_DELTA'/>
@@ -1446,6 +1448,7 @@
   </references>
   <alpha>
     <letter name='L'>
+      <ref name='LIBVIR_CHECK_VERSION'/>
       <ref name='LIBVIR_VERSION_NUMBER'/>
     </letter>
     <letter name='V'>
@@ -2213,6 +2216,7 @@
       <ref name='VIR_STORAGE_VOL_DIR'/>
       <ref name='VIR_STORAGE_VOL_FILE'/>
       <ref name='VIR_STORAGE_VOL_LAST'/>
+      <ref name='VIR_STORAGE_VOL_NETDIR'/>
       <ref name='VIR_STORAGE_VOL_NETWORK'/>
       <ref name='VIR_STORAGE_VOL_RESIZE_ALLOCATE'/>
       <ref name='VIR_STORAGE_VOL_RESIZE_DELTA'/>
@@ -3981,6 +3985,7 @@
   </functions>
   <files>
     <file name='libvirt'>
+      <ref name='LIBVIR_CHECK_VERSION'/>
       <ref name='LIBVIR_VERSION_NUMBER'/>
       <ref name='VIR_CONNECT_BASELINE_CPU_EXPAND_FEATURES'/>
       <ref name='VIR_CONNECT_CLOSE_REASON_CLIENT'/>
@@ -4600,6 +4605,7 @@
       <ref name='VIR_STORAGE_VOL_DIR'/>
       <ref name='VIR_STORAGE_VOL_FILE'/>
       <ref name='VIR_STORAGE_VOL_LAST'/>
+      <ref name='VIR_STORAGE_VOL_NETDIR'/>
       <ref name='VIR_STORAGE_VOL_NETWORK'/>
       <ref name='VIR_STORAGE_VOL_RESIZE_ALLOCATE'/>
       <ref name='VIR_STORAGE_VOL_RESIZE_DELTA'/>
@@ -5838,6 +5844,9 @@
         <word name='Drops'>
           <ref name='virNodeDeviceFree'/>
         </word>
+        <word name='Due'>
+          <ref name='virDomainReboot'/>
+        </word>
         <word name='Dynamically'>
           <ref name='virDomainPinEmulator'/>
           <ref name='virDomainPinVcpu'/>
@@ -6120,6 +6129,9 @@
         <word name='LIBVIRT_DEFAULT_URI'>
           <ref name='virConnectOpen'/>
         </word>
+        <word name='LIBVIR_CHECK_VERSION'>
+          <ref name='LIBVIR_CHECK_VERSION'/>
+        </word>
         <word name='LIVE'>
           <ref name='virDomainAttachDeviceFlags'/>
           <ref name='virDomainDetachDeviceFlags'/>
@@ -6214,6 +6226,9 @@
           <ref name='virDomainMigrateToURI'/>
           <ref name='virDomainMigrateToURI2'/>
           <ref name='virDomainMigrateToURI3'/>
+        </word>
+        <word name='Migrating'>
+          <ref name='virDomainReboot'/>
         </word>
         <word name='Migration'>
           <ref name='virDomainMigrate'/>
@@ -8116,6 +8131,9 @@
           <ref name='virDomainSaveFlags'/>
           <ref name='virDomainSaveImageDefineXML'/>
         </word>
+        <word name='advised'>
+          <ref name='virDomainReboot'/>
+        </word>
         <word name='affect'>
           <ref name='virDomainSetVcpusFlags'/>
           <ref name='virNodeDeviceReset'/>
@@ -8153,6 +8171,7 @@
           <ref name='virNodeGetMemoryStats'/>
         </word>
         <word name='against'>
+          <ref name='LIBVIR_CHECK_VERSION'/>
           <ref name='virConnCopyLastError'/>
           <ref name='virConnGetLastError'/>
           <ref name='virDomainBlockCommit'/>
@@ -8342,6 +8361,7 @@
           <ref name='virDomainSnapshotCreateXML'/>
         </word>
         <word name='amount'>
+          <ref name='virDomainGetJobInfo'/>
           <ref name='virDomainGetMaxMemory'/>
           <ref name='virDomainMemoryStats'/>
           <ref name='virDomainSetMaxMemory'/>
@@ -9334,6 +9354,7 @@
           <ref name='VIR_DOMAIN_CPU_STATS_USERTIME'/>
         </word>
         <word name='check'>
+          <ref name='LIBVIR_CHECK_VERSION'/>
           <ref name='_virNodeInfo'/>
           <ref name='virDomainDetachDeviceFlags'/>
           <ref name='virDomainReboot'/>
@@ -9467,6 +9488,7 @@
           <ref name='virConnectSetKeepAlive'/>
         </word>
         <word name='code'>
+          <ref name='LIBVIR_CHECK_VERSION'/>
           <ref name='_virError'/>
           <ref name='virConnCopyLastError'/>
           <ref name='virCopyLastError'/>
@@ -9549,6 +9571,7 @@
         </word>
         <word name='comparison'>
           <ref name='virConnectCompareCPU'/>
+          <ref name='virDomainGetJobInfo'/>
         </word>
         <word name='compatibility'>
           <ref name='VIR_DOMAIN_BLKIO_FIELD_LENGTH'/>
@@ -9564,6 +9587,9 @@
         </word>
         <word name='compatible'>
           <ref name='virConnectBaselineCPU'/>
+        </word>
+        <word name='compiling'>
+          <ref name='LIBVIR_CHECK_VERSION'/>
         </word>
         <word name='complete'>
           <ref name='VIR_CPU_MAPLEN'/>
@@ -9592,6 +9618,11 @@
         </word>
         <word name='comply'>
           <ref name='virDomainDestroy'/>
+        </word>
+        <word name='component'>
+          <ref name='major'/>
+          <ref name='micro'/>
+          <ref name='minor'/>
         </word>
         <word name='compressed'>
           <ref name='VIR_DOMAIN_JOB_COMPRESSION_BYTES'/>
@@ -10503,6 +10534,9 @@
           <ref name='virDomainGetBlockJobInfo'/>
           <ref name='virDomainSetBlockIoTune'/>
         </word>
+        <word name='developers'>
+          <ref name='LIBVIR_CHECK_VERSION'/>
+        </word>
         <word name='dhcp'>
           <ref name='virNetworkUpdate'/>
         </word>
@@ -10735,6 +10769,7 @@
           <ref name='virConnectOpenAuth'/>
           <ref name='virConnectOpenReadOnly'/>
           <ref name='virConnectRegisterCloseCallback'/>
+          <ref name='virDomainReboot'/>
           <ref name='virNodeDeviceDetachFlags'/>
           <ref name='virNodeDeviceDettach'/>
         </word>
@@ -10808,6 +10843,7 @@
           <ref name='virStoragePoolListAllVolumes'/>
         </word>
         <word name='easily'>
+          <ref name='LIBVIR_CHECK_VERSION'/>
           <ref name='virDomainSnapshotCreateXML'/>
         </word>
         <word name='eavesdropping'>
@@ -10915,6 +10951,9 @@
         </word>
         <word name='ended'>
           <ref name='virDomainBlockJobAbort'/>
+        </word>
+        <word name='endif'>
+          <ref name='LIBVIR_CHECK_VERSION'/>
         </word>
         <word name='ends'>
           <ref name='virDomainBlockRebase'/>
@@ -12359,6 +12398,7 @@
           <ref name='virConnectSetKeepAlive'/>
         </word>
         <word name='implementation'>
+          <ref name='virDomainReboot'/>
           <ref name='virEventRegisterDefaultImpl'/>
           <ref name='virEventRegisterImpl'/>
           <ref name='virFreeCallback'/>
@@ -12661,6 +12701,7 @@
           <ref name='virDomainDetachDeviceFlags'/>
           <ref name='virDomainFree'/>
           <ref name='virDomainGetXMLDesc'/>
+          <ref name='virDomainReboot'/>
           <ref name='virDomainRevertToSnapshot'/>
           <ref name='virDomainSaveImageGetXMLDesc'/>
           <ref name='virDomainSnapshotGetXMLDesc'/>
@@ -13114,6 +13155,7 @@
           <ref name='virDomainSnapshotCreateXML'/>
         </word>
         <word name='lead'>
+          <ref name='virDomainReboot'/>
           <ref name='virFreeCallback'/>
         </word>
         <word name='leaf'>
@@ -13187,6 +13229,7 @@
           <ref name='virEventRegisterImpl'/>
         </word>
         <word name='library'>
+          <ref name='LIBVIR_CHECK_VERSION'/>
           <ref name='LIBVIR_VERSION_NUMBER'/>
           <ref name='_virError'/>
           <ref name='virConnSetErrorFunc'/>
@@ -13252,9 +13295,11 @@
           <ref name='virDomainMigrateToURI'/>
           <ref name='virDomainMigrateToURI2'/>
           <ref name='virDomainMigrateToURI3'/>
+          <ref name='virDomainReboot'/>
         </word>
         <word name='limited'>
           <ref name='virDomainGetInfo'/>
+          <ref name='virDomainGetJobInfo'/>
           <ref name='virDomainSetVcpus'/>
           <ref name='virDomainSetVcpusFlags'/>
           <ref name='virDomainSnapshotCreateXML'/>
@@ -13537,6 +13582,7 @@
           <ref name='virConnectRegisterCloseCallback'/>
         </word>
         <word name='major'>
+          <ref name='major'/>
           <ref name='virConnectGetLibVersion'/>
           <ref name='virConnectGetVersion'/>
           <ref name='virGetVersion'/>
@@ -13778,6 +13824,7 @@
         </word>
         <word name='micro'>
           <ref name='LIBVIR_VERSION_NUMBER'/>
+          <ref name='micro'/>
         </word>
         <word name='microseconds'>
           <ref name='VIR_DOMAIN_SCHEDULER_EMULATOR_PERIOD'/>
@@ -13814,6 +13861,7 @@
           <ref name='virDomainMigrateToURI'/>
           <ref name='virDomainMigrateToURI2'/>
           <ref name='virDomainMigrateToURI3'/>
+          <ref name='virDomainReboot'/>
         </word>
         <word name='migrated'>
           <ref name='virDomainMigrateGetMaxSpeed'/>
@@ -13827,10 +13875,8 @@
           <ref name='virDomainMigrateToURI'/>
           <ref name='virDomainMigrateToURI2'/>
         </word>
-        <word name='mill-seconds'>
-          <ref name='_virDomainJobInfo'/>
-        </word>
         <word name='milliseconds'>
+          <ref name='_virDomainJobInfo'/>
           <ref name='virDomainMigrateSetMaxDowntime'/>
           <ref name='virDomainSendKey'/>
           <ref name='virEventAddTimeout'/>
@@ -13849,6 +13895,7 @@
         </word>
         <word name='minor'>
           <ref name='LIBVIR_VERSION_NUMBER'/>
+          <ref name='minor'/>
           <ref name='virConnectGetLibVersion'/>
           <ref name='virConnectGetVersion'/>
           <ref name='virGetVersion'/>
@@ -14199,6 +14246,7 @@
           <ref name='virConnectListAllSecrets'/>
         </word>
         <word name='newer'>
+          <ref name='LIBVIR_CHECK_VERSION'/>
           <ref name='virDomainGetJobStats'/>
           <ref name='virNodeDeviceDettach'/>
         </word>
@@ -15043,6 +15091,9 @@
         <word name='place'>
           <ref name='virDomainBlockCommit'/>
         </word>
+        <word name='plain'>
+          <ref name='virDomainReboot'/>
+        </word>
         <word name='plus'>
           <ref name='VIR_DOMAIN_MEMORY_SWAP_HARD_LIMIT'/>
         </word>
@@ -15534,6 +15585,7 @@
         </word>
         <word name='qemu'>
           <ref name='virDomainOpenChannel'/>
+          <ref name='virDomainReboot'/>
         </word>
         <word name='qemu:'>
           <ref name='virConnectGetType'/>
@@ -16128,13 +16180,6 @@
           <ref name='virDomainMigrateGetCompressionCache'/>
           <ref name='virDomainMigrateSetCompressionCache'/>
         </word>
-        <word name='repersents'>
-          <ref name='VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC'/>
-          <ref name='VIR_DOMAIN_BLOCK_IOTUNE_READ_IOPS_SEC'/>
-          <ref name='VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_IOPS_SEC'/>
-          <ref name='VIR_DOMAIN_BLOCK_IOTUNE_WRITE_BYTES_SEC'/>
-          <ref name='VIR_DOMAIN_BLOCK_IOTUNE_WRITE_IOPS_SEC'/>
-        </word>
         <word name='replaces'>
           <ref name='virSecretDefineXML'/>
         </word>
@@ -16314,6 +16359,9 @@
         <word name='restored'>
           <ref name='virInterfaceUndefine'/>
         </word>
+        <word name='restores'>
+          <ref name='virDomainRestoreFlags'/>
+        </word>
         <word name='restoring'>
           <ref name='virDomainCreate'/>
           <ref name='virDomainCreateWithFiles'/>
@@ -16346,6 +16394,7 @@
           <ref name='virCopyLastError'/>
           <ref name='virDomainManagedSave'/>
           <ref name='virDomainPMSuspendForDuration'/>
+          <ref name='virDomainReboot'/>
           <ref name='virEventRegisterDefaultImpl'/>
         </word>
         <word name='resulting'>
@@ -16529,6 +16578,7 @@
           <ref name='virDomainHasManagedSaveImage'/>
           <ref name='virDomainManagedSave'/>
           <ref name='virDomainManagedSaveRemove'/>
+          <ref name='virDomainReboot'/>
           <ref name='virDomainSave'/>
           <ref name='virDomainSaveFlags'/>
           <ref name='virDomainUndefine'/>
@@ -16552,7 +16602,6 @@
         <word name='saves'>
           <ref name='virDomainCoreDump'/>
           <ref name='virDomainManagedSave'/>
-          <ref name='virDomainRestoreFlags'/>
           <ref name='virDomainSaveFlags'/>
         </word>
         <word name='saving'>
@@ -17074,11 +17123,13 @@
           <ref name='virDomainSnapshotListAllChildren'/>
         </word>
         <word name='some'>
+          <ref name='LIBVIR_CHECK_VERSION'/>
           <ref name='VIR_DOMAIN_JOB_DATA_TOTAL'/>
           <ref name='_virDomainJobInfo'/>
           <ref name='virConnectClose'/>
           <ref name='virConnectFindStoragePoolSources'/>
           <ref name='virDomainDestroyFlags'/>
+          <ref name='virDomainReboot'/>
           <ref name='virDomainResume'/>
           <ref name='virDomainScreenshot'/>
           <ref name='virDomainSnapshotCreateXML'/>
@@ -17754,6 +17805,7 @@
           <ref name='virDomainSnapshotCreateXML'/>
         </word>
         <word name='their'>
+          <ref name='LIBVIR_CHECK_VERSION'/>
           <ref name='virConnectListDefinedInterfaces'/>
           <ref name='virConnectListDomains'/>
           <ref name='virConnectListInterfaces'/>
@@ -18681,7 +18733,11 @@
           <ref name='virDomainGetDiskErrors'/>
         </word>
         <word name='version'>
+          <ref name='LIBVIR_CHECK_VERSION'/>
           <ref name='LIBVIR_VERSION_NUMBER'/>
+          <ref name='major'/>
+          <ref name='micro'/>
+          <ref name='minor'/>
           <ref name='virConnectGetLibVersion'/>
           <ref name='virConnectGetVersion'/>
           <ref name='virDomainBlockPeek'/>
@@ -19092,6 +19148,7 @@
           <ref name='VIR_DOMAIN_JOB_MEMORY_TOTAL'/>
           <ref name='VIR_DOMAIN_JOB_TIME_ELAPSED'/>
           <ref name='VIR_DOMAIN_JOB_TIME_REMAINING'/>
+          <ref name='virDomainGetJobInfo'/>
           <ref name='virDomainMigrateSetCompressionCache'/>
         </word>
         <word name='virDomainGetMemoryParameters'>
@@ -19932,6 +19989,7 @@
           <ref name='virNodeGetMemoryParameters'/>
         </word>
         <word name='what'>
+          <ref name='LIBVIR_CHECK_VERSION'/>
           <ref name='virDomainListAllSnapshots'/>
           <ref name='virDomainMemoryPeek'/>
           <ref name='virDomainSaveFlags'/>
@@ -20020,6 +20078,7 @@
           <ref name='virDomainMemoryPeek'/>
         </word>
         <word name='works'>
+          <ref name='LIBVIR_CHECK_VERSION'/>
           <ref name='virDomainManagedSave'/>
           <ref name='virInterfaceChangeBegin'/>
         </word>

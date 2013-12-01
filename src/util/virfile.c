@@ -1225,6 +1225,27 @@ saferead_lim(int fd, size_t max_len, size_t *length)
     return NULL;
 }
 
+
+/* A wrapper around saferead_lim that merely stops reading at the
+ * specified maximum size.  */
+int
+virFileReadHeaderFD(int fd, int maxlen, char **buf)
+{
+    size_t len;
+    char *s;
+
+    if (maxlen <= 0) {
+        errno = EINVAL;
+        return -1;
+    }
+    s = saferead_lim(fd, maxlen, &len);
+    if (s == NULL)
+        return -1;
+    *buf = s;
+    return len;
+}
+
+
 /* A wrapper around saferead_lim that maps a failure due to
    exceeding the maximum size limitation to EOVERFLOW.  */
 int
@@ -1516,6 +1537,58 @@ virFileIsExecutable(const char *file)
         return true;
     errno = S_ISDIR(sb.st_mode) ? EISDIR : EACCES;
     return false;
+}
+
+
+/*
+ * Check that a file refers to a mount point. Trick is that for
+ * a mount point, the st_dev field will differ from the parent
+ * directory.
+ *
+ * Note that this will not detect bind mounts of dirs/files,
+ * only true filesystem mounts.
+ */
+int virFileIsMountPoint(const char *file)
+{
+    char *parent = NULL;
+    int ret = -1;
+    struct stat sb1, sb2;
+
+    if (!(parent = mdir_name(file))) {
+        virReportOOMError();
+        goto cleanup;
+    }
+
+    VIR_DEBUG("Comparing '%s' to '%s'", file, parent);
+
+    if (stat(file, &sb1) < 0) {
+        if (errno == ENOENT)
+            ret = 0;
+        else
+            virReportSystemError(errno,
+                                 _("Cannot stat '%s'"),
+                                 file);
+        goto cleanup;
+    }
+
+    if (stat(parent, &sb2) < 0) {
+        virReportSystemError(errno,
+                             _("Cannot stat '%s'"),
+                             parent);
+        goto cleanup;
+    }
+
+    if (!S_ISDIR(sb1.st_mode)) {
+        ret = 0;
+        goto cleanup;
+    }
+
+    ret = sb1.st_dev != sb2.st_dev;
+    VIR_DEBUG("Is mount %d", ret);
+
+ cleanup:
+    VIR_FREE(parent);
+    return ret;
 }
 
 #ifndef WIN32

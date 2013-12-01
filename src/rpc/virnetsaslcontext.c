@@ -44,6 +44,7 @@ struct _virNetSASLSession {
 
     sasl_conn_t *conn;
     size_t maxbufsize;
+    sasl_callback_t *callbacks;
 };
 
 
@@ -167,7 +168,7 @@ virNetSASLSessionPtr virNetSASLSessionNewClient(virNetSASLContextPtr ctxt ATTRIB
                                                 const char *hostname,
                                                 const char *localAddr,
                                                 const char *remoteAddr,
-                                                const sasl_callback_t *cbs)
+                                                sasl_callback_t *cbs)
 {
     virNetSASLSessionPtr sasl = NULL;
     int err;
@@ -191,6 +192,7 @@ virNetSASLSessionPtr virNetSASLSessionNewClient(virNetSASLContextPtr ctxt ATTRIB
                        err, sasl_errstring(err, NULL, NULL));
         goto cleanup;
     }
+    sasl->callbacks = cbs;
 
     return sasl;
 
@@ -455,7 +457,7 @@ int virNetSASLSessionClientStep(virNetSASLSessionPtr sasl,
     int err;
     int ret = -1;
 
-    VIR_DEBUG("sasl=%p serverin=%s serverinlen=%zu prompt_need=%p clientout=%p clientoutlen=%p",
+    VIR_DEBUG("sasl=%p serverin=%p serverinlen=%zu prompt_need=%p clientout=%p clientoutlen=%p",
               sasl, serverin, serverinlen, prompt_need, clientout, clientoutlen);
 
     virObjectLock(sasl);
@@ -674,5 +676,5 @@ void virNetSASLSessionDispose(void *obj)
 
     if (sasl->conn)
         sasl_dispose(&sasl->conn);
-
+    VIR_FREE(sasl->callbacks);
 }

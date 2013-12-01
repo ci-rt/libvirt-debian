@@ -1193,6 +1193,7 @@
       &lt;vapic state='on'/&gt;
       &lt;spinlocks state='on' retries='4096'/&gt;
     &lt;/hyperv&gt;
+    &lt;pvspinlock/&gt;
 
   &lt;/features&gt;
   ...</pre>
@@ -1264,6 +1265,13 @@
         </tr>
       </table>
       </dd>
+      <dt><code>pvspinlock</code></dt>
+      <dd>Notify the guest that the host supports paravirtual spinlocks
+          for example by exposing the pvticketlocks mechanism. This feature
+          can be explicitly disabled by using <code>state='off'</code>
+          attribute.
+      </dd>
+
     </dl>
 
     <h3><a name="elementsTime">Time keeping</a></h3>
@@ -2769,7 +2777,7 @@
         (for the legacy device assignment handled directly by the KVM
         kernel module)<span class="since">Since 1.0.5 (QEMU and KVM
         only, requires kernel 3.6 or newer)</span>. The default, when
-        the driver name is not explicitly specified, is to check wether
+        the driver name is not explicitly specified, is to check whether
         VFIO is available and use it if it's the case. If VFIO is not
         available, the legacy "kvm" assignment is attempted.
       </dd>

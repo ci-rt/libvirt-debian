@@ -216,7 +216,8 @@ virQEMUDriverConfigPtr virQEMUDriverConfigNew(bool privileged)
     if (VIR_STRDUP(cfg->spiceListen, "127.0.0.1") < 0)
         goto error;
 
-    if (VIR_STRDUP(cfg->spiceTLSx509certdir , SYSCONFDIR "/pki/libvirt-spice") < 0)
+    if (VIR_STRDUP(cfg->spiceTLSx509certdir,
+                   SYSCONFDIR "/pki/libvirt-spice") < 0)
         goto error;
 
     cfg->remotePortMin = QEMU_REMOTE_PORT_MIN;
@@ -1331,7 +1332,7 @@ qemuTranslateDiskSourcePool(virConnectPtr conn,
         goto cleanup;
     }
 
-    switch (info.type) {
+    switch ((virStorageVolType) info.type) {
     case VIR_STORAGE_VOL_FILE:
     case VIR_STORAGE_VOL_DIR:
         if (!(def->src = virStorageVolGetPath(vol)))
@@ -1376,6 +1377,8 @@ qemuTranslateDiskSourcePool(virConnectPtr conn,
 
         break;
     case VIR_STORAGE_VOL_NETWORK:
+    case VIR_STORAGE_VOL_NETDIR:
+    case VIR_STORAGE_VOL_LAST:
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("Using network volume as disk source is not supported"));
         goto cleanup;
