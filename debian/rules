@@ -113,11 +113,9 @@ EXAMPLES_DIR = $(CURDIR)/debian/libvirt-doc/usr/share/doc/libvirt-doc/examples/
 
 override_dh_auto_configure:
 	dh_auto_configure -- $(DEB_CONFIGURE_EXTRA_ARGS)
-	DEB_BUILDDIR=$(DEB_BUILDDIR) make -f debian/python.mk configure
 
 override_dh_auto_install:
 	dh_auto_install
-	DEB_BUILDDIR=$(DEB_BUILDDIR) make -f debian/python.mk install
 	# Add empty dirs so dh_install doesn't fail on kFreebsd until we have
 	# Polkit/Systemd/systemtap support
 	mkdir -p debian/tmp/usr/share/polkit-1 \
@@ -165,10 +163,6 @@ override_dh_installdocs:
 
 override_dh_strip:
 	dh_strip --dbg-package=libvirt0-dbg
-
-override_dh_auto_build:
-	dh_auto_build -a -i
-	DEB_BUILDDIR=$(DEB_BUILDDIR) make -f debian/python.mk build
 
 override_dh_auto_clean:
 	[ ! -f Makefile ] || dh_auto_clean
