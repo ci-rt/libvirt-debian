@@ -1,3 +1,15 @@
+libvirt (1.1.4-2) unstable; urgency=low
+
+  * [78cadf5] Rados storage backend needs --with-storage-rbd not
+    --with-storage-rados
+  * [a384975] Explicitly disable phyp support so we can enable libssh2 uri
+    support.
+  * [9d8f3c5] Check correct dirs for existence (Closes: #729331)
+  * [1ede11d] Document new cgroup rrequirements (Closes: #707201)
+  * Acknowledge NMU, Thanks Julien Cristau (Closes: #730345)
+
+ -- Guido Günther <agx@sigxcpu.org>  Sun, 01 Dec 2013 19:56:25 +0100
+
 libvirt (1.1.4-1.1) unstable; urgency=high
 
   * Non-maintainer upload.
