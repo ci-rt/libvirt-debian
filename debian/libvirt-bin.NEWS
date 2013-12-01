@@ -1,3 +1,17 @@
+libvirt (1.1.4-2) unstable; urgency=low
+
+  If you're using cgroups make sure you're using a different mount per cgroup
+  controller (cpu, memory, ...) that is mounted to /sys/fs/cgroup/<controller>.
+  This can be achieved using mount_cgroups in /etc/default/libvirt-bin or by
+  using systemd. Using a single mount point /sys/fs/cgroup for all controllers
+  will no longer work and will prevent vms from starting. See
+
+  http://libvirt.org/cgroups.html
+
+  for more information. If you're not using cgroups nothing has to be changed.
+
+ -- Guido Günther <agx@sigxcpu.org>  Sun, 01 Dec 2013 19:33:56 +0100
+
 libvirt (1.0.2-3) experimental; urgency=low
 
   For qemu:///system KVM/QEMU processes now run as group libvirt-qemu. This
