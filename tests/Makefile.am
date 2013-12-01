@@ -29,6 +29,7 @@ INCLUDES = \
 
 AM_CFLAGS = \
 	-Dabs_builddir="\"`pwd`\"" \
+	-Dabs_srcdir="\"`cd '$(srcdir)'; pwd`\"" \
 	$(LIBXML_CFLAGS) \
 	$(GNUTLS_CFLAGS) \
 	$(SASL_CFLAGS) \
@@ -48,12 +49,15 @@ if WITH_DTRACE_PROBES
 PROBES_O += ../src/libvirt_probes.lo
 endif WITH_DTRACE_PROBES
 
+GNULIB_LIBS = \
+       ../gnulib/lib/libgnu.la
+
 LDADDS = \
         $(WARN_CFLAGS) \
 	$(NO_INDIRECT_LDFLAGS) \
 	$(PROBES_O) \
-	../src/libvirt.la \
-	../gnulib/lib/libgnu.la
+	$(GNULIB_LIBS) \
+	../src/libvirt.la
 
 EXTRA_DIST =		\
 	capabilityschemadata \
@@ -86,6 +90,7 @@ EXTRA_DIST =		\
 	qemucapabilitiesdata \
 	qemuhelpdata \
 	qemuhotplugtestdata \
+	qemumonitorjsondata \
 	qemuxml2argvdata \
 	qemuxml2xmloutdata \
 	qemuxmlnsdata \
@@ -104,6 +109,7 @@ EXTRA_DIST =		\
 	sysinfodata \
 	test-lib.sh	\
 	virsh-uriprecedence \
+	virpcitestdata \
 	vmx2xmldata \
 	xencapsdata \
 	xmconfigdata \
@@ -123,6 +129,7 @@ test_programs = virshtest sockettest \
 	virauthconfigtest \
 	virbitmaptest \
 	vircgrouptest \
+	virpcitest \
 	virendiantest \
 	viridentitytest \
 	virkeycodetest \
@@ -306,6 +313,7 @@ test_libraries = libshunload.la \
 		libvirportallocatormock.la \
 		virnetserverclientmock.la \
 		vircgroupmock.la \
+		virpcimock.la \
 		$(NULL)
 if WITH_QEMU
 test_libraries += libqemumonitortestutils.la
@@ -740,6 +748,18 @@ vircgroupmock_la_SOURCES = \
 	vircgroupmock.c
 vircgroupmock_la_CFLAGS = $(AM_CFLAGS)
 vircgroupmock_la_LDFLAGS = -module -avoid-version \
+        -rpath /evil/libtool/hack/to/force/shared/lib/creation
+
+virpcitest_SOURCES = \
+	virpcitest.c testutils.h testutils.c
+virpcitest_LDADD = $(LDADDS)
+
+virpcimock_la_SOURCES = \
+	virpcimock.c
+virpcimock_la_CFLAGS = $(AM_CFLAGS)
+virpcimock_la_LIBADD = $(GNULIB_LIBS) \
+					   ../src/libvirt.la
+virpcimock_la_LDFLAGS = -module -avoid-version \
         -rpath /evil/libtool/hack/to/force/shared/lib/creation
 
 if WITH_DBUS

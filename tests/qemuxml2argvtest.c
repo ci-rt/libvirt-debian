@@ -297,7 +297,7 @@ mymain(void)
 
     abs_top_srcdir = getenv("abs_top_srcdir");
     if (!abs_top_srcdir)
-        abs_top_srcdir = "..";
+        abs_top_srcdir = abs_srcdir "/..";
 
     driver.config = virQEMUDriverConfigNew(false);
     VIR_FREE(driver.config->spiceListen);
@@ -448,6 +448,8 @@ mymain(void)
             QEMU_CAPS_CHARDEV_SPICEVMC, QEMU_CAPS_SPICE, QEMU_CAPS_HDA_DUPLEX);
     DO_TEST("eoi-disabled", NONE);
     DO_TEST("eoi-enabled", NONE);
+    DO_TEST("pv-spinlock-disabled", NONE);
+    DO_TEST("pv-spinlock-enabled", NONE);
     DO_TEST("kvmclock+eoi-disabled", QEMU_CAPS_ENABLE_KVM);
 
     DO_TEST("hyperv", NONE);
@@ -961,6 +963,7 @@ mymain(void)
     DO_TEST("seclabel-dynamic-baselabel", QEMU_CAPS_NAME);
     DO_TEST("seclabel-dynamic-override", QEMU_CAPS_NAME);
     DO_TEST("seclabel-dynamic-labelskip", QEMU_CAPS_NAME);
+    DO_TEST("seclabel-dynamic-relabel", QEMU_CAPS_NAME);
     DO_TEST("seclabel-static", QEMU_CAPS_NAME);
     DO_TEST("seclabel-static-relabel", QEMU_CAPS_NAME);
     DO_TEST("seclabel-static-labelskip", QEMU_CAPS_NAME);
@@ -1102,6 +1105,15 @@ mymain(void)
             QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG, QEMU_CAPS_DTB,
             QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE_VIRTIO_MMIO,
             QEMU_CAPS_DEVICE_VIRTIO_RNG, QEMU_CAPS_OBJECT_RNG_RANDOM);
+    DO_TEST("arm-virt-virtio",
+            QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG, QEMU_CAPS_DTB,
+            QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE_VIRTIO_MMIO,
+            QEMU_CAPS_DEVICE_VIRTIO_RNG, QEMU_CAPS_OBJECT_RNG_RANDOM);
+
+    DO_TEST("kvm-pit-device", QEMU_CAPS_KVM_PIT_TICK_POLICY);
+    DO_TEST("kvm-pit-delay", QEMU_CAPS_NO_KVM_PIT);
+    DO_TEST("kvm-pit-device", QEMU_CAPS_NO_KVM_PIT,
+            QEMU_CAPS_KVM_PIT_TICK_POLICY);
 
     virObjectUnref(driver.config);
     virObjectUnref(driver.caps);

@@ -348,9 +348,9 @@ error:
 }
 
 
-int qemuDomainAttachPciControllerDevice(virQEMUDriverPtr driver,
-                                        virDomainObjPtr vm,
-                                        virDomainControllerDefPtr controller)
+int qemuDomainAttachControllerDevice(virQEMUDriverPtr driver,
+                                     virDomainObjPtr vm,
+                                     virDomainControllerDefPtr controller)
 {
     int ret = -1;
     const char* type = virDomainControllerTypeToString(controller->type);
@@ -366,8 +366,23 @@ int qemuDomainAttachPciControllerDevice(virQEMUDriverPtr driver,
     }
 
     if (virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE)) {
-        if (qemuDomainPCIAddressEnsureAddr(priv->pciaddrs, &controller->info) < 0)
-            goto cleanup;
+        if (controller->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_NONE) {
+            if (STRPREFIX(vm->def->os.machine, "s390-ccw") &&
+                virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_VIRTIO_CCW))
+                controller->info.type = VIR_DOMAIN_DEVICE_ADDRESS_TYPE_CCW;
+            else if (virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_VIRTIO_S390))
+                controller->info.type = VIR_DOMAIN_DEVICE_ADDRESS_TYPE_VIRTIO_S390;
+        }
+
+        if (controller->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_NONE ||
+            controller->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI) {
+            if (qemuDomainPCIAddressEnsureAddr(priv->pciaddrs, &controller->info) < 0)
+                goto cleanup;
+        } else if (controller->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_CCW) {
+            if (qemuDomainCCWAddressAssign(&controller->info, priv->ccwaddrs,
+                                           !controller->info.addr.ccw.assigned) < 0)
+                goto cleanup;
+        }
         releaseaddr = true;
         if (qemuAssignDeviceControllerAlias(controller) < 0)
             goto cleanup;
@@ -399,7 +414,8 @@ int qemuDomainAttachPciControllerDevice(virQEMUDriverPtr driver,
     qemuDomainObjExitMonitor(driver, vm);
 
     if (ret == 0) {
-        controller->info.type = VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI;
+        if (controller->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_NONE)
+            controller->info.type = VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI;
         virDomainControllerInsertPreAlloced(vm->def, controller);
     }
 
@@ -438,8 +454,8 @@ qemuDomainFindOrCreateSCSIDiskController(virQEMUDriverPtr driver,
     cont->model = -1;
 
     VIR_INFO("No SCSI controller present, hotplugging one");
-    if (qemuDomainAttachPciControllerDevice(driver,
-                                            vm, cont) < 0) {
+    if (qemuDomainAttachControllerDevice(driver,
+                                         vm, cont) < 0) {
         VIR_FREE(cont);
         return NULL;
     }
@@ -518,12 +534,6 @@ qemuDomainAttachSCSIDisk(virConnectPtr conn,
        and hence the above loop must iterate at least once.  */
     sa_assert(cont);
 
-    if (cont->info.type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("SCSI controller %d was missing its PCI address"), cont->idx);
-        goto error;
-    }
-
     if (VIR_REALLOC_N(vm->def->disks, vm->def->ndisks+1) < 0)
         goto error;
 
@@ -540,6 +550,13 @@ qemuDomainAttachSCSIDisk(virConnectPtr conn,
             }
         }
     } else {
+        if (cont->info.type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("SCSI controller %d was missing its PCI address"),
+                           cont->idx);
+            goto error;
+        }
+
         virDomainDeviceDriveAddress driveAddr;
         ret = qemuMonitorAttachDrive(priv->mon,
                                      drivestr,
@@ -1134,6 +1151,7 @@ int qemuDomainAttachHostPciDevice(virQEMUDriverPtr driver,
     int configfd = -1;
     char *configfd_name = NULL;
     bool releaseaddr = false;
+    bool teardowncgroup = false;
     int backend = hostdev->source.subsys.u.pci.backend;
 
     if (VIR_REALLOC_N(vm->def->hostdevs, vm->def->nhostdevs + 1) < 0)
@@ -1169,6 +1187,10 @@ int qemuDomainAttachHostPciDevice(virQEMUDriverPtr driver,
     case VIR_DOMAIN_HOSTDEV_PCI_BACKEND_TYPE_LAST:
         break;
     }
+
+    if (qemuSetupHostdevCGroup(vm, hostdev) < 0)
+        goto error;
+    teardowncgroup = true;
 
     if (virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE)) {
         if (qemuAssignDeviceHostdevAlias(vm->def, hostdev, -1) < 0)
@@ -1225,6 +1247,9 @@ int qemuDomainAttachHostPciDevice(virQEMUDriverPtr driver,
     return 0;
 
 error:
+    if (teardowncgroup && qemuTeardownHostdevCgroup(vm, hostdev) < 0)
+        VIR_WARN("Unable to remove host device cgroup ACL on hotplug fail");
+
     if (releaseaddr)
         qemuDomainReleaseDeviceAddress(vm, hostdev->info, NULL);
 
@@ -1417,6 +1442,7 @@ int qemuDomainAttachHostUsbDevice(virQEMUDriverPtr driver,
     virUSBDevicePtr usb = NULL;
     char *devstr = NULL;
     bool added = false;
+    bool teardowncgroup = false;
     int ret = -1;
 
     if (qemuFindHostdevUSBDevice(hostdev, true, &usb) < 0)
@@ -1433,6 +1459,10 @@ int qemuDomainAttachHostUsbDevice(virQEMUDriverPtr driver,
 
     added = true;
     virUSBDeviceListSteal(list, usb);
+
+    if (qemuSetupHostdevCGroup(vm, hostdev) < 0)
+        goto cleanup;
+    teardowncgroup = true;
 
     if (virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE)) {
         if (qemuAssignDeviceHostdevAlias(vm->def, hostdev, -1) < 0)
@@ -1460,6 +1490,10 @@ int qemuDomainAttachHostUsbDevice(virQEMUDriverPtr driver,
 
     ret = 0;
 cleanup:
+    if (ret < 0 &&
+        teardowncgroup &&
+        qemuTeardownHostdevCgroup(vm, hostdev) < 0)
+        VIR_WARN("Unable to remove host device cgroup ACL on hotplug fail");
     if (added)
         virUSBDeviceListSteal(driver->activeUsbHostdevs, usb);
     virUSBDeviceFree(usb);
@@ -1475,8 +1509,10 @@ qemuDomainAttachHostScsiDevice(virQEMUDriverPtr driver,
 {
     int ret = -1;
     qemuDomainObjPrivatePtr priv = vm->privateData;
+    virDomainControllerDefPtr cont = NULL;
     char *devstr = NULL;
     char *drvstr = NULL;
+    bool teardowncgroup = false;
 
     if (!virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_DRIVE) ||
         !virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE) ||
@@ -1485,6 +1521,10 @@ qemuDomainAttachHostScsiDevice(virQEMUDriverPtr driver,
                        _("SCSI passthrough is not supported by this version of qemu"));
         return -1;
     }
+
+    cont = qemuDomainFindOrCreateSCSIDiskController(driver, vm, hostdev->info->addr.drive.controller);
+    if (!cont)
+        return -1;
 
     if (qemuPrepareHostdevSCSIDevices(driver, vm->def->name,
                                       &hostdev, 1)) {
@@ -1496,6 +1536,10 @@ qemuDomainAttachHostScsiDevice(virQEMUDriverPtr driver,
                        hostdev->source.subsys.u.scsi.unit);
         return -1;
     }
+
+    if (qemuSetupHostdevCGroup(vm, hostdev) < 0)
+        goto cleanup;
+    teardowncgroup = true;
 
     if (qemuAssignDeviceHostdevAlias(vm->def, hostdev, -1) < 0)
         goto cleanup;
@@ -1534,8 +1578,11 @@ qemuDomainAttachHostScsiDevice(virQEMUDriverPtr driver,
 
     ret = 0;
 cleanup:
-    if (ret < 0)
+    if (ret < 0) {
         qemuDomainReAttachHostScsiDevices(driver, vm->def->name, &hostdev, 1);
+        if (teardowncgroup && qemuTeardownHostdevCgroup(vm, hostdev) < 0)
+            VIR_WARN("Unable to remove host device cgroup ACL on hotplug fail");
+    }
     VIR_FREE(drvstr);
     VIR_FREE(devstr);
     return ret;
@@ -1552,12 +1599,9 @@ int qemuDomainAttachHostDevice(virQEMUDriverPtr driver,
         return -1;
     }
 
-    if (qemuSetupHostdevCGroup(vm, hostdev) < 0)
-        return -1;
-
     if (virSecurityManagerSetHostdevLabel(driver->securityManager,
                                           vm->def, hostdev, NULL) < 0)
-        goto cleanup;
+        return -1;
 
     switch (hostdev->source.subsys.type) {
     case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI:
@@ -1591,10 +1635,6 @@ error:
     if (virSecurityManagerRestoreHostdevLabel(driver->securityManager,
                                               vm->def, hostdev, NULL) < 0)
         VIR_WARN("Unable to restore host device labelling on hotplug fail");
-
-cleanup:
-    if (qemuTeardownHostdevCgroup(vm, hostdev) < 0)
-        VIR_WARN("Unable to remove host device cgroup ACL on hotplug fail");
     return -1;
 }
 
@@ -3010,9 +3050,9 @@ static bool qemuDomainControllerIsBusy(virDomainObjPtr vm,
     }
 }
 
-int qemuDomainDetachPciControllerDevice(virQEMUDriverPtr driver,
-                                        virDomainObjPtr vm,
-                                        virDomainDeviceDefPtr dev)
+int qemuDomainDetachControllerDevice(virQEMUDriverPtr driver,
+                                     virDomainObjPtr vm,
+                                     virDomainDeviceDefPtr dev)
 {
     int idx, ret = -1;
     virDomainControllerDefPtr detach = NULL;
@@ -3030,14 +3070,24 @@ int qemuDomainDetachPciControllerDevice(virQEMUDriverPtr driver,
 
     detach = vm->def->controllers[idx];
 
-    if (!virDomainDeviceAddressIsValid(&detach->info,
-                                       VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI)) {
-        virReportError(VIR_ERR_OPERATION_FAILED, "%s",
-                       _("device cannot be detached without a PCI address"));
+    if (detach->info.type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI &&
+        detach->info.type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_CCW &&
+        detach->info.type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_VIRTIO_S390) {
+        virReportError(VIR_ERR_OPERATION_FAILED,
+                       _("device with '%s' address cannot be detached"),
+                       virDomainDeviceAddressTypeToString(detach->info.type));
         goto cleanup;
     }
 
-    if (qemuIsMultiFunctionDevice(vm->def, &detach->info)) {
+    if (!virDomainDeviceAddressIsValid(&detach->info, detach->info.type)) {
+        virReportError(VIR_ERR_OPERATION_FAILED,
+                       _("device with invalid '%s' address cannot be detached"),
+                       virDomainDeviceAddressTypeToString(detach->info.type));
+        goto cleanup;
+    }
+
+    if (detach->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI &&
+        qemuIsMultiFunctionDevice(vm->def, &detach->info)) {
         virReportError(VIR_ERR_OPERATION_FAILED,
                        _("cannot hot unplug multifunction PCI device: %s"),
                        dev->data.disk->dst);

@@ -102,23 +102,23 @@ struct FileTypeInfo {
                            * where to find encryption mode,
                            * -1 if encryption is not used */
     int (*getBackingStore)(char **res, int *format,
-                           const unsigned char *buf, size_t buf_size);
+                           const char *buf, size_t buf_size);
     int (*getFeatures)(virBitmapPtr *features, int format,
-                       unsigned char *buf, ssize_t len);
+                       char *buf, ssize_t len);
 };
 
 static int cowGetBackingStore(char **, int *,
-                              const unsigned char *, size_t);
+                              const char *, size_t);
 static int qcow1GetBackingStore(char **, int *,
-                                const unsigned char *, size_t);
+                                const char *, size_t);
 static int qcow2GetBackingStore(char **, int *,
-                                const unsigned char *, size_t);
+                                const char *, size_t);
 static int qcow2GetFeatures(virBitmapPtr *features, int format,
-                            unsigned char *buf, ssize_t len);
+                            char *buf, ssize_t len);
 static int vmdk4GetBackingStore(char **, int *,
-                                const unsigned char *, size_t);
+                                const char *, size_t);
 static int
-qedGetBackingStore(char **, int *, const unsigned char *, size_t);
+qedGetBackingStore(char **, int *, const char *, size_t);
 
 #define QCOWX_HDR_VERSION (4)
 #define QCOWX_HDR_BACKING_FILE_OFFSET (QCOWX_HDR_VERSION+4)
@@ -147,11 +147,6 @@ qedGetBackingStore(char **, int *, const unsigned char *, size_t);
 #define QED_HDR_BACKING_FILE_SIZE (QED_HDR_BACKING_FILE_OFFSET+4)
 #define QED_F_BACKING_FILE 0x01
 #define QED_F_BACKING_FORMAT_NO_PROBE 0x04
-
-/* VMDK needs at least 20*512 B to find backing store,
- * ISO has 5 Byte magic on offset 32769,
- * other formats need less */
-#define STORAGE_MAX_HEAD 32769+5
 
 
 static struct FileTypeInfo const fileTypeInfo[] = {
@@ -252,7 +247,7 @@ verify(ARRAY_CARDINALITY(qcow2CompatibleFeatureArray) ==
 static int
 cowGetBackingStore(char **res,
                    int *format,
-                   const unsigned char *buf,
+                   const char *buf,
                    size_t buf_size)
 {
 #define COW_FILENAME_MAXLEN 1024
@@ -274,7 +269,7 @@ cowGetBackingStore(char **res,
 
 static int
 qcow2GetBackingStoreFormat(int *format,
-                           const unsigned char *buf,
+                           const char *buf,
                            size_t buf_size,
                            size_t extension_start,
                            size_t extension_end)
@@ -329,7 +324,7 @@ done:
 static int
 qcowXGetBackingStore(char **res,
                      int *format,
-                     const unsigned char *buf,
+                     const char *buf,
                      size_t buf_size,
                      bool isQCow2)
 {
@@ -407,7 +402,7 @@ qcowXGetBackingStore(char **res,
 static int
 qcow1GetBackingStore(char **res,
                      int *format,
-                     const unsigned char *buf,
+                     const char *buf,
                      size_t buf_size)
 {
     int ret;
@@ -424,7 +419,7 @@ qcow1GetBackingStore(char **res,
 static int
 qcow2GetBackingStore(char **res,
                      int *format,
-                     const unsigned char *buf,
+                     const char *buf,
                      size_t buf_size)
 {
     return qcowXGetBackingStore(res, format, buf, buf_size, true);
@@ -434,7 +429,7 @@ qcow2GetBackingStore(char **res,
 static int
 vmdk4GetBackingStore(char **res,
                      int *format,
-                     const unsigned char *buf,
+                     const char *buf,
                      size_t buf_size)
 {
     static const char prefix[] = "parentFileNameHint=\"";
@@ -442,7 +437,7 @@ vmdk4GetBackingStore(char **res,
     size_t len;
     int ret = BACKING_STORE_ERROR;
 
-    if (VIR_ALLOC_N(desc, STORAGE_MAX_HEAD + 1) < 0)
+    if (VIR_ALLOC_N(desc, VIR_STORAGE_MAX_HEADER) < 0)
         goto cleanup;
 
     *res = NULL;
@@ -460,8 +455,8 @@ vmdk4GetBackingStore(char **res,
         goto cleanup;
     }
     len = buf_size - 0x200;
-    if (len > STORAGE_MAX_HEAD)
-        len = STORAGE_MAX_HEAD;
+    if (len > VIR_STORAGE_MAX_HEADER)
+        len = VIR_STORAGE_MAX_HEADER;
     memcpy(desc, buf + 0x200, len);
     desc[len] = '\0';
     start = strstr(desc, prefix);
@@ -495,7 +490,7 @@ cleanup:
 static int
 qedGetBackingStore(char **res,
                    int *format,
-                   const unsigned char *buf,
+                   const char *buf,
                    size_t buf_size)
 {
     unsigned long long flags;
@@ -596,7 +591,7 @@ cleanup:
 
 static bool
 virStorageFileMatchesMagic(int format,
-                           unsigned char *buf,
+                           char *buf,
                            size_t buflen)
 {
     int mlen;
@@ -634,7 +629,7 @@ virStorageFileMatchesExtension(int format,
 
 static bool
 virStorageFileMatchesVersion(int format,
-                             unsigned char *buf,
+                             char *buf,
                              size_t buflen)
 {
     int version;
@@ -671,21 +666,26 @@ virStorageFileMatchesVersion(int format,
 static bool
 virBackingStoreIsFile(const char *backing)
 {
-    /* Backing store is a network block device or Rados block device */
-    if (STRPREFIX(backing, "nbd:") || STRPREFIX(backing, "rbd:"))
+    char *colon = strchr(backing, ':');
+    char *slash = strchr(backing, '/');
+
+    /* Reject anything that looks like a protocol (such as nbd: or
+     * rbd:); if someone really does want a relative file name that
+     * includes ':', they can always prefix './'.  */
+    if (colon && (!slash || colon < slash))
         return false;
     return true;
 }
 
-static int
+int
 virStorageFileProbeFormatFromBuf(const char *path,
-                                 unsigned char *buf,
+                                 char *buf,
                                  size_t buflen)
 {
     int format = VIR_STORAGE_FILE_RAW;
     size_t i;
     int possibleFormat = VIR_STORAGE_FILE_RAW;
-    VIR_DEBUG("path=%s", path);
+    VIR_DEBUG("path=%s, buf=%p, buflen=%zu", path, buf, buflen);
 
     /* First check file magic */
     for (i = 0; i < VIR_STORAGE_FILE_LAST; i++) {
@@ -721,7 +721,7 @@ cleanup:
 static int
 qcow2GetFeatures(virBitmapPtr *features,
                  int format,
-                 unsigned char *buf,
+                 char *buf,
                  ssize_t len)
 {
     int version = -1;
@@ -752,49 +752,25 @@ qcow2GetFeatures(virBitmapPtr *features,
 }
 
 
-/* Given a file descriptor FD open on PATH, and optionally opened from
- * a given DIRECTORY, return metadata about that file, assuming it has
- * the given FORMAT. */
+/* Given a header in BUF with length LEN, as parsed from the file
+ * located at PATH, and optionally opened from a given DIRECTORY,
+ * return metadata about that file, assuming it has the given
+ * FORMAT. */
 static virStorageFileMetadataPtr
 virStorageFileGetMetadataInternal(const char *path,
-                                  int fd,
+                                  char *buf,
+                                  size_t len,
                                   const char *directory,
                                   int format)
 {
     virStorageFileMetadata *meta = NULL;
-    unsigned char *buf = NULL;
-    ssize_t len = STORAGE_MAX_HEAD;
     virStorageFileMetadata *ret = NULL;
-    struct stat sb;
 
-    VIR_DEBUG("path=%s, fd=%d, format=%d", path, fd, format);
+    VIR_DEBUG("path=%s, buf=%p, len=%zu, directory=%s, format=%d",
+              path, buf, len, NULLSTR(directory), format);
 
     if (VIR_ALLOC(meta) < 0)
         return NULL;
-
-    if (fstat(fd, &sb) < 0) {
-        virReportSystemError(errno,
-                             _("cannot stat file '%s'"),
-                             path);
-        goto cleanup;
-    }
-
-    /* No header to probe for directories, but also no backing file */
-    if (S_ISDIR(sb.st_mode))
-        return meta;
-
-    if (lseek(fd, 0, SEEK_SET) == (off_t)-1) {
-        virReportSystemError(errno, _("cannot seek to start of '%s'"), path);
-        goto cleanup;
-    }
-
-    if (VIR_ALLOC_N(buf, len) < 0)
-        goto cleanup;
-
-    if ((len = read(fd, buf, len)) < 0) {
-        virReportSystemError(errno, _("cannot read header '%s'"), path);
-        goto cleanup;
-    }
 
     if (format == VIR_STORAGE_FILE_AUTO)
         format = virStorageFileProbeFormatFromBuf(path, buf, len);
@@ -896,61 +872,6 @@ done:
 
 cleanup:
     virStorageFileFreeMetadata(meta);
-    VIR_FREE(buf);
-    return ret;
-}
-
-
-/**
- * virStorageFileProbeFormatFromFD:
- *
- * Probe for the format of 'fd' (which is an open file descriptor
- * pointing to 'path'), returning the detected disk format.
- *
- * Callers are advised never to trust the returned 'format'
- * unless it is listed as VIR_STORAGE_FILE_RAW, since a
- * malicious guest can turn a file into any other non-raw
- * format at will.
- *
- * Best option: Don't use this function
- */
-int
-virStorageFileProbeFormatFromFD(const char *path, int fd)
-{
-    unsigned char *head;
-    ssize_t len = STORAGE_MAX_HEAD;
-    int ret = -1;
-    struct stat sb;
-
-    if (fstat(fd, &sb) < 0) {
-        virReportSystemError(errno,
-                             _("cannot stat file '%s'"),
-                             path);
-        return -1;
-    }
-
-    /* No header to probe for directories */
-    if (S_ISDIR(sb.st_mode)) {
-        return VIR_STORAGE_FILE_DIR;
-    }
-
-    if (VIR_ALLOC_N(head, len) < 0)
-        return -1;
-
-    if (lseek(fd, 0, SEEK_SET) == (off_t)-1) {
-        virReportSystemError(errno, _("cannot set to start of '%s'"), path);
-        goto cleanup;
-    }
-
-    if ((len = read(fd, head, len)) < 0) {
-        virReportSystemError(errno, _("cannot read header '%s'"), path);
-        goto cleanup;
-    }
-
-    ret = virStorageFileProbeFormatFromBuf(path, head, len);
-
-cleanup:
-    VIR_FREE(head);
     return ret;
 }
 
@@ -971,19 +892,121 @@ cleanup:
 int
 virStorageFileProbeFormat(const char *path, uid_t uid, gid_t gid)
 {
-    int fd, ret;
+    int fd;
+    int ret = -1;
+    struct stat sb;
+    ssize_t len = VIR_STORAGE_MAX_HEADER;
+    char *header = NULL;
 
     if ((fd = virFileOpenAs(path, O_RDONLY, 0, uid, gid, 0)) < 0) {
         virReportSystemError(-fd, _("Failed to open file '%s'"), path);
         return -1;
     }
 
-    ret = virStorageFileProbeFormatFromFD(path, fd);
+    if (fstat(fd, &sb) < 0) {
+        virReportSystemError(errno, _("cannot stat file '%s'"), path);
+        goto cleanup;
+    }
 
+    /* No header to probe for directories */
+    if (S_ISDIR(sb.st_mode)) {
+        ret = VIR_STORAGE_FILE_DIR;
+        goto cleanup;
+    }
+
+    if (lseek(fd, 0, SEEK_SET) == (off_t)-1) {
+        virReportSystemError(errno, _("cannot set to start of '%s'"), path);
+        goto cleanup;
+    }
+
+    if ((len = virFileReadHeaderFD(fd, len, &header)) < 0) {
+        virReportSystemError(errno, _("cannot read header '%s'"), path);
+        goto cleanup;
+    }
+
+    ret = virStorageFileProbeFormatFromBuf(path, header, len);
+
+cleanup:
+    VIR_FREE(header);
     VIR_FORCE_CLOSE(fd);
 
     return ret;
 }
+
+
+/**
+ * virStorageFileGetMetadataFromBuf:
+ * @path: name of file, for error messages
+ * @buf: header bytes from @path
+ * @len: length of @buf
+ * @format: expected image format
+ *
+ * Extract metadata about the storage volume with the specified
+ * image format. If image format is VIR_STORAGE_FILE_AUTO, it
+ * will probe to automatically identify the format.  Does not recurse.
+ *
+ * Callers are advised never to use VIR_STORAGE_FILE_AUTO as a
+ * format, since a malicious guest can turn a raw file into any
+ * other non-raw format at will.
+ *
+ * If the returned meta.backingStoreFormat is VIR_STORAGE_FILE_AUTO
+ * it indicates the image didn't specify an explicit format for its
+ * backing store. Callers are advised against probing for the
+ * backing store format in this case.
+ *
+ * Caller MUST free the result after use via virStorageFileFreeMetadata.
+ */
+virStorageFileMetadataPtr
+virStorageFileGetMetadataFromBuf(const char *path,
+                                 char *buf,
+                                 size_t len,
+                                 int format)
+{
+    return virStorageFileGetMetadataInternal(path, buf, len, NULL, format);
+}
+
+
+/* Internal version that also supports a containing directory name.  */
+static virStorageFileMetadataPtr
+virStorageFileGetMetadataFromFDInternal(const char *path,
+                                        int fd,
+                                        const char *directory,
+                                        int format)
+{
+    char *buf = NULL;
+    ssize_t len = VIR_STORAGE_MAX_HEADER;
+    struct stat sb;
+    virStorageFileMetadataPtr ret = NULL;
+
+    if (fstat(fd, &sb) < 0) {
+        virReportSystemError(errno,
+                             _("cannot stat file '%s'"),
+                             path);
+        return NULL;
+    }
+
+    /* No header to probe for directories, but also no backing file */
+    if (S_ISDIR(sb.st_mode)) {
+        ignore_value(VIR_ALLOC(ret));
+        goto cleanup;
+    }
+
+    if (lseek(fd, 0, SEEK_SET) == (off_t)-1) {
+        virReportSystemError(errno, _("cannot seek to start of '%s'"), path);
+        goto cleanup;
+    }
+
+    if ((len = virFileReadHeaderFD(fd, len, &buf)) < 0) {
+        virReportSystemError(errno, _("cannot read header '%s'"), path);
+        goto cleanup;
+    }
+
+    ret = virStorageFileGetMetadataInternal(path, buf, len, directory, format);
+cleanup:
+    VIR_FREE(buf);
+    return ret;
+}
+
 
 /**
  * virStorageFileGetMetadataFromFD:
@@ -1008,8 +1031,9 @@ virStorageFileGetMetadataFromFD(const char *path,
                                 int fd,
                                 int format)
 {
-    return virStorageFileGetMetadataInternal(path, fd, NULL, format);
+    return virStorageFileGetMetadataFromFDInternal(path, fd, NULL, format);
 }
+
 
 /* Recursive workhorse for virStorageFileGetMetadata.  */
 static virStorageFileMetadataPtr
@@ -1037,7 +1061,7 @@ virStorageFileGetMetadataRecurse(const char *path, const char *directory,
         return NULL;
     }
 
-    ret = virStorageFileGetMetadataInternal(path, fd, directory, format);
+    ret = virStorageFileGetMetadataFromFDInternal(path, fd, directory, format);
 
     if (VIR_CLOSE(fd) < 0)
         VIR_WARN("could not close file %s", path);

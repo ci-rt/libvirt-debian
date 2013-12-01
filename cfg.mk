@@ -946,7 +946,7 @@ exclude_file_name_regexp--sc_bindtextdomain = ^(tests|examples)/
 exclude_file_name_regexp--sc_copyright_usage = \
   ^COPYING(|\.LESSER)$$
 
-exclude_file_name_regexp--sc_flags_usage = ^(docs/|src/util/virnetdevtap\.c$$|tests/vircgroupmock\.c$$)
+exclude_file_name_regexp--sc_flags_usage = ^(docs/|src/util/virnetdevtap\.c$$|tests/vir(cgroup|pci)mock\.c$$)
 
 exclude_file_name_regexp--sc_libvirt_unmarked_diagnostics = \
   ^(src/rpc/gendispatch\.pl$$|tests/)
@@ -958,20 +958,17 @@ exclude_file_name_regexp--sc_prohibit_VIR_ERR_NO_MEMORY = \
 
 exclude_file_name_regexp--sc_prohibit_access_xok = ^src/util/virutil\.c$$
 
-exclude_file_name_regexp--sc_prohibit_always_true_header_tests = \
-  ^python/(libvirt-(lxc-|qemu-)?override|typewrappers)\.c$$
-
 exclude_file_name_regexp--sc_prohibit_asprintf = \
   ^(bootstrap.conf$$|src/util/virstring\.[ch]$$|examples/domain-events/events-c/event-test\.c$$|tests/vircgroupmock\.c$$)
 
 exclude_file_name_regexp--sc_prohibit_strdup = \
-  ^(docs/|examples/|python/|src/util/virstring\.c|tests/virnetserverclientmock.c$$)
+  ^(docs/|examples/|src/util/virstring\.c|tests/virnetserverclientmock.c$$)
 
 exclude_file_name_regexp--sc_prohibit_close = \
-  (\.p[yl]$$|^docs/|^(src/util/virfile\.c|src/libvirt\.c|tests/vircgroupmock\.c)$$)
+  (\.p[yl]$$|^docs/|^(src/util/virfile\.c|src/libvirt\.c|tests/vir(cgroup|pci)mock\.c)$$)
 
 exclude_file_name_regexp--sc_prohibit_empty_lines_at_EOF = \
-  (^tests/(qemuhelp|nodeinfo)data/|\.(gif|ico|png|diff)$$)
+  (^tests/(qemuhelp|nodeinfo|virpcitest)data/|\.(gif|ico|png|diff)$$)
 
 _src2=src/(util/vircommand|libvirt|lxc/lxc_controller|locking/lock_daemon)
 exclude_file_name_regexp--sc_prohibit_fork_wrappers = \
@@ -1033,7 +1030,7 @@ exclude_file_name_regexp--sc_prohibit_include_public_headers_quote = \
   ^src/internal\.h$$
 
 exclude_file_name_regexp--sc_prohibit_include_public_headers_brackets = \
-  ^(python/|tools/|examples/|include/libvirt/(virterror|libvirt-(qemu|lxc))\.h$$)
+  ^(tools/|examples/|include/libvirt/(virterror|libvirt-(qemu|lxc))\.h$$)
 
 exclude_file_name_regexp--sc_prohibit_int_ijk = \
   ^(src/remote_protocol-structs|src/remote/remote_protocol.x|cfg.mk|include/)$

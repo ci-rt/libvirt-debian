@@ -1,7 +1,7 @@
 /*
  * test.c: A "mock" hypervisor for use by application unit tests
  *
- * Copyright (C) 2006-2012 Red Hat, Inc.
+ * Copyright (C) 2006-2013 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -306,7 +306,7 @@ testBuildCapabilities(virConnectPtr conn) {
 
     if (virCapabilitiesAddHostFeature(caps, "pae") < 0)
         goto error;
-    if (virCapabilitiesAddHostFeature(caps ,"nonpae") < 0)
+    if (virCapabilitiesAddHostFeature(caps, "nonpae") < 0)
         goto error;
 
     for (i = 0; i < privconn->numCells; i++) {
@@ -344,7 +344,7 @@ testBuildCapabilities(virConnectPtr conn) {
 
         if (virCapabilitiesAddGuestFeature(guest, "pae", 1, 1) == NULL)
             goto error;
-        if (virCapabilitiesAddGuestFeature(guest ,"nonpae", 1, 1) == NULL)
+        if (virCapabilitiesAddGuestFeature(guest, "nonpae", 1, 1) == NULL)
             goto error;
     }
 
@@ -1512,6 +1512,21 @@ static int testConnectGetMaxVcpus(virConnectPtr conn ATTRIBUTE_UNUSED,
     return 32;
 }
 
+static char *
+testConnectBaselineCPU(virConnectPtr conn ATTRIBUTE_UNUSED,
+                       const char **xmlCPUs,
+                       unsigned int ncpus,
+                       unsigned int flags)
+{
+    char *cpu;
+
+    virCheckFlags(VIR_CONNECT_BASELINE_CPU_EXPAND_FEATURES, NULL);
+
+    cpu = cpuBaselineXML(xmlCPUs, ncpus, NULL, 0, flags);
+
+    return cpu;
+}
+
 static int testNodeGetInfo(virConnectPtr conn,
                            virNodeInfoPtr info)
 {
@@ -1605,7 +1620,7 @@ testDomainCreateXML(virConnectPtr conn, const char *xml,
     virCheckFlags(0, NULL);
 
     testDriverLock(privconn);
-    if ((def = virDomainDefParseString(xml,privconn->caps, privconn->xmlopt,
+    if ((def = virDomainDefParseString(xml, privconn->caps, privconn->xmlopt,
                                        1 << VIR_DOMAIN_VIRT_TEST,
                                        VIR_DOMAIN_XML_INACTIVE)) == NULL)
         goto cleanup;
@@ -2583,7 +2598,7 @@ static int testDomainGetVcpus(virDomainPtr domain,
 
     if (!virDomainObjIsActive(privdom)) {
         virReportError(VIR_ERR_OPERATION_INVALID,
-                       "%s",_("cannot list vcpus for an inactive domain"));
+                       "%s", _("cannot list vcpus for an inactive domain"));
         goto cleanup;
     }
 
@@ -2670,7 +2685,7 @@ static int testDomainPinVcpu(virDomainPtr domain,
 
     if (!virDomainObjIsActive(privdom)) {
         virReportError(VIR_ERR_OPERATION_INVALID,
-                       "%s",_("cannot pin vcpus on an inactive domain"));
+                       "%s", _("cannot pin vcpus on an inactive domain"));
         goto cleanup;
     }
 
@@ -7177,6 +7192,8 @@ static virDriver testDriver = {
     .domainSnapshotCreateXML = testDomainSnapshotCreateXML, /* 1.1.4 */
     .domainRevertToSnapshot = testDomainRevertToSnapshot, /* 1.1.4 */
     .domainSnapshotDelete = testDomainSnapshotDelete, /* 1.1.4 */
+
+    .connectBaselineCPU = testConnectBaselineCPU, /* 1.2.0 */
 };
 
 static virNetworkDriver testNetworkDriver = {

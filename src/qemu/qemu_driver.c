@@ -678,17 +678,20 @@ qemuStateInitialize(bool privileged,
      * do this before the config is loaded properly, since the port
      * numbers are configurable now */
     if ((qemu_driver->remotePorts =
-         virPortAllocatorNew(cfg->remotePortMin,
+         virPortAllocatorNew(_("display"),
+                             cfg->remotePortMin,
                              cfg->remotePortMax)) == NULL)
         goto error;
 
     if ((qemu_driver->webSocketPorts =
-         virPortAllocatorNew(cfg->webSocketPortMin,
+         virPortAllocatorNew(_("webSocket"),
+                             cfg->webSocketPortMin,
                              cfg->webSocketPortMax)) == NULL)
         goto error;
 
     if ((qemu_driver->migrationPorts =
-         virPortAllocatorNew(cfg->migrationPortMin,
+         virPortAllocatorNew(_("migration"),
+                             cfg->migrationPortMin,
                              cfg->migrationPortMax)) == NULL)
         goto error;
 
@@ -1915,7 +1918,7 @@ qemuDomainReboot(virDomainPtr dom, unsigned int flags)
     int agentFlag = QEMU_AGENT_SHUTDOWN_REBOOT;
 
     virCheckFlags(VIR_DOMAIN_REBOOT_ACPI_POWER_BTN |
-                  VIR_DOMAIN_REBOOT_GUEST_AGENT , -1);
+                  VIR_DOMAIN_REBOOT_GUEST_AGENT, -1);
 
     /* At most one of these two flags should be set.  */
     if ((flags & VIR_DOMAIN_REBOOT_ACPI_POWER_BTN) &&
@@ -5818,6 +5821,7 @@ static char *qemuConnectDomainXMLToNative(virConnectPtr conn,
         virDomainNetDefPtr net = def->nets[i];
         int bootIndex = net->info.bootIndex;
         char *model = net->model;
+        virMacAddr mac = net->mac;
 
         if (net->type == VIR_DOMAIN_NET_TYPE_NETWORK) {
             int actualType = virDomainNetGetActualType(net);
@@ -5877,6 +5881,7 @@ static char *qemuConnectDomainXMLToNative(virConnectPtr conn,
         VIR_FREE(net->virtPortProfile);
         net->info.bootIndex = bootIndex;
         net->model = model;
+        net->mac = mac;
     }
 
     monitor_json = virQEMUCapsGet(qemuCaps, QEMU_CAPS_MONITOR_JSON);
@@ -6039,10 +6044,13 @@ qemuDomainObjStart(virConnectPtr conn,
                     vm->hasManagedSave = false;
             }
 
-            if (ret > 0)
+            if (ret > 0) {
                 VIR_WARN("Ignoring incomplete managed state %s", managed_save);
-            else
+            } else {
+                VIR_WARN("Unable to restore from managed state %s. "
+                         "Maybe the file is corrupted?", managed_save);
                 goto cleanup;
+            }
         }
     }
 
@@ -6322,7 +6330,7 @@ qemuDomainAttachDeviceControllerLive(virQEMUDriverPtr driver,
 
     switch (cont->type) {
     case VIR_DOMAIN_CONTROLLER_TYPE_SCSI:
-        ret = qemuDomainAttachPciControllerDevice(driver, vm, cont);
+        ret = qemuDomainAttachControllerDevice(driver, vm, cont);
         break;
     default:
         virReportError(VIR_ERR_OPERATION_UNSUPPORTED,
@@ -6414,7 +6422,7 @@ qemuDomainDetachDeviceControllerLive(virQEMUDriverPtr driver,
 
     switch (cont->type) {
     case VIR_DOMAIN_CONTROLLER_TYPE_SCSI:
-        ret = qemuDomainDetachPciControllerDevice(driver, vm, dev);
+        ret = qemuDomainDetachControllerDevice(driver, vm, dev);
         break;
     default :
         virReportError(VIR_ERR_OPERATION_UNSUPPORTED,

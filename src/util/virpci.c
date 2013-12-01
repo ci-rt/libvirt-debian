@@ -49,10 +49,6 @@
 #define PCI_ID_LEN 10   /* "XXXX XXXX" */
 #define PCI_ADDR_LEN 13 /* "XXXX:XX:XX.X" */
 
-#define SRIOV_FOUND 0
-#define SRIOV_NOT_FOUND 1
-#define SRIOV_ERROR -1
-
 struct _virPCIDevice {
     unsigned int  domain;
     unsigned int  bus;
@@ -378,7 +374,8 @@ virPCIDeviceWrite32(virPCIDevicePtr dev, int cfgfd, unsigned int pos, uint32_t v
     virPCIDeviceWrite(dev, cfgfd, pos, &buf[0], sizeof(buf));
 }
 
-typedef int (*virPCIDeviceIterPredicate)(virPCIDevicePtr , virPCIDevicePtr , void *);
+typedef int (*virPCIDeviceIterPredicate)(virPCIDevicePtr, virPCIDevicePtr,
+                                         void *);
 
 /* Iterate over available PCI devices calling @predicate
  * to compare each one to @dev.
@@ -1089,17 +1086,12 @@ virPCIDeviceBindToStub(virPCIDevicePtr dev,
 
     char *stubDriverPath = NULL;
     char *driverLink = NULL;
-    char *oldDriverPath = NULL;
-    char *oldDriverName = NULL;
     char *path = NULL; /* reused for different purposes */
     const char *newDriverName = NULL;
 
     if (virPCIDriverDir(&stubDriverPath, stubDriverName) < 0 ||
-        virPCIFile(&driverLink, dev->name, "driver") < 0 ||
-        virPCIDeviceGetDriverPathAndName(dev, &oldDriverPath,
-                                         &oldDriverName) < 0) {
+        virPCIFile(&driverLink, dev->name, "driver") < 0)
         goto cleanup;
-    }
 
     if (virFileExists(driverLink)) {
         if (virFileLinkPointsTo(driverLink, stubDriverPath)) {
@@ -1224,8 +1216,6 @@ remove_id:
 cleanup:
     VIR_FREE(stubDriverPath);
     VIR_FREE(driverLink);
-    VIR_FREE(oldDriverPath);
-    VIR_FREE(oldDriverName);
     VIR_FREE(path);
 
     if (newDriverName &&
@@ -2382,20 +2372,19 @@ virPCIGetPhysicalFunction(const char *vf_sysfs_path,
     return ret;
 }
 
+
 /*
  * Returns virtual functions of a physical function
  */
 int
 virPCIGetVirtualFunctions(const char *sysfs_path,
                           virPCIDeviceAddressPtr **virtual_functions,
-                          unsigned int *num_virtual_functions)
+                          size_t *num_virtual_functions)
 {
     int ret = -1;
     size_t i;
-    DIR *dir = NULL;
-    struct dirent *entry = NULL;
     char *device_link = NULL;
-    char errbuf[64];
+    virPCIDeviceAddress *config_addr = NULL;
 
     VIR_DEBUG("Attempting to get SR IOV virtual functions for device"
               "with sysfs path '%s'", sysfs_path);
@@ -2403,64 +2392,41 @@ virPCIGetVirtualFunctions(const char *sysfs_path,
     *virtual_functions = NULL;
     *num_virtual_functions = 0;
 
-    dir = opendir(sysfs_path);
-    if (dir == NULL) {
-        memset(errbuf, '\0', sizeof(errbuf));
-        virReportSystemError(errno,
-                             _("Failed to open dir '%s'"),
-                             sysfs_path);
-        return ret;
-    }
+    do {
+        /* look for virtfn%d links until one isn't found */
+        if (virAsprintf(&device_link, "%s/virtfn%zu", sysfs_path, *num_virtual_functions) < 0)
+            goto error;
 
-    while ((entry = readdir(dir))) {
-        if (STRPREFIX(entry->d_name, "virtfn")) {
-            virPCIDeviceAddress *config_addr = NULL;
+        if (!virFileExists(device_link))
+            break;
 
-            if (virBuildPath(&device_link, sysfs_path, entry->d_name) == -1) {
-                virReportOOMError();
-                goto error;
-            }
-
-            VIR_DEBUG("Number of virtual functions: %d",
-                      *num_virtual_functions);
-
-            if (virPCIGetDeviceAddressFromSysfsLink(device_link,
-                                                    &config_addr) !=
-                SRIOV_FOUND) {
-                VIR_WARN("Failed to get SRIOV function from device "
-                         "link '%s'", device_link);
-                VIR_FREE(device_link);
-                continue;
-            }
-
-            if (VIR_REALLOC_N(*virtual_functions,
-                              *num_virtual_functions + 1) < 0) {
-                VIR_FREE(config_addr);
-                goto error;
-            }
-
-            (*virtual_functions)[*num_virtual_functions] = config_addr;
-            (*num_virtual_functions)++;
-            VIR_FREE(device_link);
+        if (virPCIGetDeviceAddressFromSysfsLink(device_link, &config_addr) < 0) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Failed to get SRIOV function from device link '%s'"),
+                           device_link);
+            goto error;
         }
-    }
+
+        VIR_DEBUG("Found virtual function %zu", *num_virtual_functions);
+        if (VIR_APPEND_ELEMENT(*virtual_functions, *num_virtual_functions, config_addr) < 0)
+            goto error;
+        VIR_FREE(device_link);
+
+    } while (1);
 
     ret = 0;
-
 cleanup:
     VIR_FREE(device_link);
-    if (dir)
-        closedir(dir);
+    VIR_FREE(config_addr);
     return ret;
 
 error:
-    if (*virtual_functions) {
-        for (i = 0; i < *num_virtual_functions; i++)
-            VIR_FREE((*virtual_functions)[i]);
-        VIR_FREE(*virtual_functions);
-    }
+    for (i = 0; i < *num_virtual_functions; i++)
+        VIR_FREE((*virtual_functions)[i]);
+    VIR_FREE(*virtual_functions);
     goto cleanup;
 }
+
 
 /*
  * Returns 1 if vf device is a virtual function, 0 if not, -1 on error
@@ -2492,7 +2458,7 @@ virPCIGetVirtualFunctionIndex(const char *pf_sysfs_device_link,
 {
     int ret = -1;
     size_t i;
-    unsigned int num_virt_fns = 0;
+    size_t num_virt_fns = 0;
     virPCIDeviceAddressPtr vf_bdf = NULL;
     virPCIDeviceAddressPtr *virt_fns = NULL;
 
@@ -2637,7 +2603,7 @@ virPCIGetPhysicalFunction(const char *vf_sysfs_path ATTRIBUTE_UNUSED,
 int
 virPCIGetVirtualFunctions(const char *sysfs_path ATTRIBUTE_UNUSED,
                           virPCIDeviceAddressPtr **virtual_functions ATTRIBUTE_UNUSED,
-                          unsigned int *num_virtual_functions ATTRIBUTE_UNUSED)
+                          size_t *num_virtual_functions ATTRIBUTE_UNUSED)
 {
     virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _(unsupported));
     return -1;

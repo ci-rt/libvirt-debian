@@ -80,6 +80,9 @@
 #if WITH_STORAGE_SHEEPDOG
 # include "storage_backend_sheepdog.h"
 #endif
+#if WITH_STORAGE_GLUSTER
+# include "storage_backend_gluster.h"
+#endif
 
 #define VIR_FROM_THIS VIR_FROM_STORAGE
 
@@ -112,6 +115,9 @@ static virStorageBackendPtr backends[] = {
 #if WITH_STORAGE_SHEEPDOG
     &virStorageBackendSheepdog,
 #endif
+#if WITH_STORAGE_GLUSTER
+    &virStorageBackendGluster,
+#endif
     NULL
 };
 
@@ -135,7 +141,7 @@ virStorageBackendCopyToFD(virStorageVolDefPtr vol,
     int amtread = -1;
     int ret = 0;
     size_t rbytes = READ_BLOCK_SIZE_DEFAULT;
-    size_t wbytes = 0;
+    int wbytes = 0;
     int interval;
     char *zerobuf = NULL;
     char *buf = NULL;
@@ -1152,30 +1158,36 @@ virStorageBackendForType(int type)
  * volume is a dangling symbolic link.
  */
 int
-virStorageBackendVolOpenCheckMode(const char *path, unsigned int flags)
+virStorageBackendVolOpenCheckMode(const char *path, struct stat *sb,
+                                  unsigned int flags)
 {
     int fd, mode = 0;
-    struct stat sb;
     char *base = last_component(path);
 
-    if (lstat(path, &sb) < 0) {
+    if (lstat(path, sb) < 0) {
         virReportSystemError(errno,
                              _("cannot stat file '%s'"),
                              path);
         return -1;
     }
 
-    if (S_ISFIFO(sb.st_mode)) {
+    if (S_ISFIFO(sb->st_mode)) {
         VIR_WARN("ignoring FIFO '%s'", path);
         return -2;
-    } else if (S_ISSOCK(sb.st_mode)) {
+    } else if (S_ISSOCK(sb->st_mode)) {
         VIR_WARN("ignoring socket '%s'", path);
         return -2;
     }
 
+    /* O_NONBLOCK should only matter during open() for fifos and
+     * sockets, which we already filtered; but using it prevents a
+     * TOCTTOU race.  However, later on we will want to read() the
+     * header from this fd, and virFileRead* routines require a
+     * blocking fd, so fix it up after verifying we avoided a
+     * race.  */
     if ((fd = open(path, O_RDONLY|O_NONBLOCK|O_NOCTTY)) < 0) {
         if ((errno == ENOENT || errno == ELOOP) &&
-            S_ISLNK(sb.st_mode)) {
+            S_ISLNK(sb->st_mode)) {
             VIR_WARN("ignoring dangling symlink '%s'", path);
             return -2;
         }
@@ -1186,7 +1198,7 @@ virStorageBackendVolOpenCheckMode(const char *path, unsigned int flags)
         return -1;
     }
 
-    if (fstat(fd, &sb) < 0) {
+    if (fstat(fd, sb) < 0) {
         virReportSystemError(errno,
                              _("cannot stat file '%s'"),
                              path);
@@ -1194,13 +1206,13 @@ virStorageBackendVolOpenCheckMode(const char *path, unsigned int flags)
         return -1;
     }
 
-    if (S_ISREG(sb.st_mode))
+    if (S_ISREG(sb->st_mode)) {
         mode = VIR_STORAGE_VOL_OPEN_REG;
-    else if (S_ISCHR(sb.st_mode))
+    } else if (S_ISCHR(sb->st_mode)) {
         mode = VIR_STORAGE_VOL_OPEN_CHAR;
-    else if (S_ISBLK(sb.st_mode))
+    } else if (S_ISBLK(sb->st_mode)) {
         mode = VIR_STORAGE_VOL_OPEN_BLOCK;
-    else if (S_ISDIR(sb.st_mode)) {
+    } else if (S_ISDIR(sb->st_mode)) {
         mode = VIR_STORAGE_VOL_OPEN_DIR;
 
         if (STREQ(base, ".") ||
@@ -1209,6 +1221,17 @@ virStorageBackendVolOpenCheckMode(const char *path, unsigned int flags)
             VIR_INFO("Skipping special dir '%s'", base);
             return -2;
         }
+    } else {
+        VIR_WARN("ignoring unexpected type for file '%s'", path);
+        VIR_FORCE_CLOSE(fd);
+        return -2;
+    }
+
+    if (virSetBlocking(fd, true) < 0) {
+        virReportSystemError(errno, _("unable to set blocking mode for '%s'"),
+                             path);
+        VIR_FORCE_CLOSE(fd);
+        return -2;
     }
 
     if (!(mode & flags)) {
@@ -1229,7 +1252,8 @@ virStorageBackendVolOpenCheckMode(const char *path, unsigned int flags)
 
 int virStorageBackendVolOpen(const char *path)
 {
-    return virStorageBackendVolOpenCheckMode(path,
+    struct stat sb;
+    return virStorageBackendVolOpenCheckMode(path, &sb,
                                              VIR_STORAGE_VOL_OPEN_DEFAULT);
 }
 
@@ -1240,14 +1264,16 @@ virStorageBackendUpdateVolTargetInfo(virStorageVolTargetPtr target,
                                      unsigned int openflags)
 {
     int ret, fd;
+    struct stat sb;
 
-    if ((ret = virStorageBackendVolOpenCheckMode(target->path,
+    if ((ret = virStorageBackendVolOpenCheckMode(target->path, &sb,
                                                  openflags)) < 0)
         return ret;
 
     fd = ret;
     ret = virStorageBackendUpdateVolTargetInfoFD(target,
                                                  fd,
+                                                 &sb,
                                                  allocation,
                                                  capacity);
 
@@ -1287,9 +1313,9 @@ int virStorageBackendUpdateVolInfo(virStorageVolDefPtr vol,
 
 /*
  * virStorageBackendUpdateVolTargetInfoFD:
- * @conn: connection to report errors on
  * @target: target definition ptr of volume to update
- * @fd: fd of storage volume to update, via virStorageBackendOpenVol*
+ * @fd: fd of storage volume to update, via virStorageBackendOpenVol*, or -1
+ * @sb: details about file (must match @fd, if that is provided)
  * @allocation: If not NULL, updated allocation information will be stored
  * @capacity: If not NULL, updated capacity info will be stored
  *
@@ -1298,40 +1324,33 @@ int virStorageBackendUpdateVolInfo(virStorageVolDefPtr vol,
 int
 virStorageBackendUpdateVolTargetInfoFD(virStorageVolTargetPtr target,
                                        int fd,
+                                       struct stat *sb,
                                        unsigned long long *allocation,
                                        unsigned long long *capacity)
 {
-    struct stat sb;
 #if WITH_SELINUX
     security_context_t filecon = NULL;
 #endif
 
-    if (fstat(fd, &sb) < 0) {
-        virReportSystemError(errno,
-                             _("cannot stat file '%s'"),
-                             target->path);
-        return -1;
-    }
-
     if (allocation) {
-        if (S_ISREG(sb.st_mode)) {
+        if (S_ISREG(sb->st_mode)) {
 #ifndef WIN32
-            *allocation = (unsigned long long)sb.st_blocks *
+            *allocation = (unsigned long long)sb->st_blocks *
                           (unsigned long long)DEV_BSIZE;
 #else
-            *allocation = sb.st_size;
+            *allocation = sb->st_size;
 #endif
             /* Regular files may be sparse, so logical size (capacity) is not same
              * as actual allocation above
              */
             if (capacity)
-                *capacity = sb.st_size;
-        } else if (S_ISDIR(sb.st_mode)) {
+                *capacity = sb->st_size;
+        } else if (S_ISDIR(sb->st_mode)) {
             *allocation = 0;
             if (capacity)
                 *capacity = 0;
 
-        } else {
+        } else if (fd >= 0) {
             off_t end;
             /* XXX this is POSIX compliant, but doesn't work for CHAR files,
              * only BLOCK. There is a Linux specific ioctl() for getting
@@ -1351,39 +1370,37 @@ virStorageBackendUpdateVolTargetInfoFD(virStorageVolTargetPtr target,
         }
     }
 
-    target->perms.mode = sb.st_mode & S_IRWXUGO;
-    target->perms.uid = sb.st_uid;
-    target->perms.gid = sb.st_gid;
+    target->perms.mode = sb->st_mode & S_IRWXUGO;
+    target->perms.uid = sb->st_uid;
+    target->perms.gid = sb->st_gid;
 
     if (!target->timestamps && VIR_ALLOC(target->timestamps) < 0)
         return -1;
-    target->timestamps->atime = get_stat_atime(&sb);
-    target->timestamps->btime = get_stat_birthtime(&sb);
-    target->timestamps->ctime = get_stat_ctime(&sb);
-    target->timestamps->mtime = get_stat_mtime(&sb);
+    target->timestamps->atime = get_stat_atime(sb);
+    target->timestamps->btime = get_stat_birthtime(sb);
+    target->timestamps->ctime = get_stat_ctime(sb);
+    target->timestamps->mtime = get_stat_mtime(sb);
 
     VIR_FREE(target->perms.label);
 
 #if WITH_SELINUX
     /* XXX: make this a security driver call */
-    if (fgetfilecon_raw(fd, &filecon) == -1) {
-        if (errno != ENODATA && errno != ENOTSUP) {
-            virReportSystemError(errno,
-                                 _("cannot get file context of '%s'"),
-                                 target->path);
-            return -1;
+    if (fd >= 0) {
+        if (fgetfilecon_raw(fd, &filecon) == -1) {
+            if (errno != ENODATA && errno != ENOTSUP) {
+                virReportSystemError(errno,
+                                     _("cannot get file context of '%s'"),
+                                     target->path);
+                return -1;
+            }
         } else {
-            target->perms.label = NULL;
-        }
-    } else {
-        if (VIR_STRDUP(target->perms.label, filecon) < 0) {
+            if (VIR_STRDUP(target->perms.label, filecon) < 0) {
+                freecon(filecon);
+                return -1;
+            }
             freecon(filecon);
-            return -1;
         }
-        freecon(filecon);
     }
-#else
-    target->perms.label = NULL;
 #endif
 
     return 0;

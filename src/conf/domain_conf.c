@@ -142,7 +142,8 @@ VIR_ENUM_IMPL(virDomainFeature, VIR_DOMAIN_FEATURE_LAST,
               "hap",
               "viridian",
               "privnet",
-              "hyperv")
+              "hyperv",
+              "pvspinlock")
 
 VIR_ENUM_IMPL(virDomainFeatureState, VIR_DOMAIN_FEATURE_STATE_LAST,
               "default",
@@ -1216,13 +1217,13 @@ void virDomainDiskDefFree(virDomainDiskDefPtr def)
     }
 
     for (i = 0; i < def->nhosts; i++)
-        virDomainDiskHostDefFree(&def->hosts[i]);
+        virDomainDiskHostDefClear(&def->hosts[i]);
     VIR_FREE(def->hosts);
 
     VIR_FREE(def);
 }
 
-void virDomainDiskHostDefFree(virDomainDiskHostDefPtr def)
+void virDomainDiskHostDefClear(virDomainDiskHostDefPtr def)
 {
     if (!def)
         return;
@@ -4369,6 +4370,17 @@ virSecurityLabelDefParseXML(xmlXPathContextPtr ctxt,
             def->norelabel = false;
     }
 
+    /* Always parse model */
+    p = virXPathStringLimit("string(./@model)",
+                            VIR_SECURITY_MODEL_BUFLEN-1, ctxt);
+    def->model = p;
+
+    /* For the model 'none' none of the following labels is going to be
+     * present. Hence, return now. */
+
+    if (STREQ_NULLABLE(def->model, "none"))
+        return def;
+
     /* Only parse label, if using static labels, or
      * if the 'live' VM XML is requested
      */
@@ -4406,11 +4418,6 @@ virSecurityLabelDefParseXML(xmlXPathContextPtr ctxt,
                                 VIR_SECURITY_LABEL_BUFLEN-1, ctxt);
         def->baselabel = p;
     }
-
-    /* Always parse model */
-    p = virXPathStringLimit("string(./@model)",
-                            VIR_SECURITY_MODEL_BUFLEN-1, ctxt);
-    def->model = p;
 
     return def;
 
@@ -4683,52 +4690,180 @@ cleanup:
 
 static int
 virDomainDiskSourcePoolDefParse(xmlNodePtr node,
-                                virDomainDiskDefPtr def)
+                                virDomainDiskSourcePoolDefPtr *srcpool)
 {
-    char *pool = NULL;
-    char *volume = NULL;
     char *mode = NULL;
+    virDomainDiskSourcePoolDefPtr source;
     int ret = -1;
 
-    pool = virXMLPropString(node, "pool");
-    volume = virXMLPropString(node, "volume");
+    *srcpool = NULL;
+
+    if (VIR_ALLOC(source) < 0)
+        return -1;
+
+    source->pool = virXMLPropString(node, "pool");
+    source->volume = virXMLPropString(node, "volume");
     mode = virXMLPropString(node, "mode");
 
     /* CD-ROM and Floppy allows no source */
-    if (!pool && !volume)
-        return 0;
+    if (!source->pool && !source->volume) {
+        ret = 0;
+        goto cleanup;
+    }
 
-    if (!pool || !volume) {
+    if (!source->pool || !source->volume) {
         virReportError(VIR_ERR_XML_ERROR, "%s",
                        _("'pool' and 'volume' must be specified together "
                          "for 'pool' type source"));
         goto cleanup;
     }
 
-    if (VIR_ALLOC(def->srcpool) < 0)
-        goto cleanup;
-
-    if (mode && (def->srcpool->mode =
-                 virDomainDiskSourcePoolModeTypeFromString(mode)) <= 0) {
+    if (mode &&
+        (source->mode = virDomainDiskSourcePoolModeTypeFromString(mode)) <= 0) {
         virReportError(VIR_ERR_XML_ERROR,
                        _("unknown source mode '%s' for volume type disk"),
                        mode);
         goto cleanup;
     }
 
-    def->srcpool->pool = pool;
-    pool = NULL;
-    def->srcpool->volume = volume;
-    volume = NULL;
+    *srcpool = source;
+    source = NULL;
+    ret = 0;
+
+cleanup:
+    virDomainDiskSourcePoolDefFree(source);
+    VIR_FREE(mode);
+    return ret;
+}
+
+
+static int
+virDomainDiskSourceDefParse(xmlNodePtr node,
+                            int type,
+                            char **source,
+                            int *proto,
+                            size_t *nhosts,
+                            virDomainDiskHostDefPtr *hosts,
+                            virDomainDiskSourcePoolDefPtr *srcpool)
+{
+    char *protocol = NULL;
+    char *transport = NULL;
+    virDomainDiskHostDef host;
+    xmlNodePtr child;
+    int ret = -1;
+
+    memset(&host, 0, sizeof(host));
+
+    switch (type) {
+    case VIR_DOMAIN_DISK_TYPE_FILE:
+        *source = virXMLPropString(node, "file");
+        break;
+    case VIR_DOMAIN_DISK_TYPE_BLOCK:
+        *source = virXMLPropString(node, "dev");
+        break;
+    case VIR_DOMAIN_DISK_TYPE_DIR:
+        *source = virXMLPropString(node, "dir");
+        break;
+    case VIR_DOMAIN_DISK_TYPE_NETWORK:
+        if (!(protocol = virXMLPropString(node, "protocol"))) {
+            virReportError(VIR_ERR_XML_ERROR, "%s",
+                           _("missing network source protocol type"));
+            goto cleanup;
+        }
+
+        if ((*proto = virDomainDiskProtocolTypeFromString(protocol)) < 0){
+            virReportError(VIR_ERR_XML_ERROR,
+                           _("unknown protocol type '%s'"), protocol);
+            goto cleanup;
+        }
+
+        if (!(*source = virXMLPropString(node, "name")) &&
+            *proto != VIR_DOMAIN_DISK_PROTOCOL_NBD) {
+            virReportError(VIR_ERR_XML_ERROR, "%s",
+                           _("missing name for disk source"));
+            goto cleanup;
+        }
+
+        child = node->children;
+        while (child != NULL) {
+            if (child->type == XML_ELEMENT_NODE &&
+                xmlStrEqual(child->name, BAD_CAST "host")) {
+
+                host.transport = VIR_DOMAIN_DISK_PROTO_TRANS_TCP;
+
+                /* transport can be tcp (default), unix or rdma.  */
+                if ((transport = virXMLPropString(child, "transport"))) {
+                    host.transport = virDomainDiskProtocolTransportTypeFromString(transport);
+                    if (host.transport < 0) {
+                        virReportError(VIR_ERR_XML_ERROR,
+                                       _("unknown protocol transport type '%s'"),
+                                       transport);
+                        goto cleanup;
+                    }
+                }
+
+                host.socket = virXMLPropString(child, "socket");
+
+                if (host.transport == VIR_DOMAIN_DISK_PROTO_TRANS_UNIX &&
+                    host.socket == NULL) {
+                    virReportError(VIR_ERR_XML_ERROR, "%s",
+                                   _("missing socket for unix transport"));
+                    goto cleanup;
+                }
+
+                if (host.transport != VIR_DOMAIN_DISK_PROTO_TRANS_UNIX &&
+                    host.socket != NULL) {
+                    virReportError(VIR_ERR_XML_ERROR,
+                                   _("transport '%s' does not support "
+                                     "socket attribute"),
+                                   transport);
+                    goto cleanup;
+                }
+
+                VIR_FREE(transport);
+
+                if (host.transport != VIR_DOMAIN_DISK_PROTO_TRANS_UNIX) {
+                    if (!(host.name = virXMLPropString(child, "name"))) {
+                        virReportError(VIR_ERR_XML_ERROR, "%s",
+                                       _("missing name for host"));
+                        goto cleanup;
+                    }
+
+                    host.port = virXMLPropString(child, "port");
+                }
+
+                if (VIR_APPEND_ELEMENT(*hosts, *nhosts, host) < 0)
+                    goto cleanup;
+            }
+            child = child->next;
+        }
+        break;
+    case VIR_DOMAIN_DISK_TYPE_VOLUME:
+        if (virDomainDiskSourcePoolDefParse(node, srcpool) < 0)
+            goto cleanup;
+        break;
+    default:
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("unexpected disk type %s"),
+                       virDomainDiskTypeToString(type));
+        goto cleanup;
+    }
+
+    /* People sometimes pass a bogus '' source path when they mean to omit the
+     * source element completely (e.g. CDROM without media). This is just a
+     * little compatibility check to help those broken apps */
+    if (*source && STREQ(*source, ""))
+        VIR_FREE(*source);
 
     ret = 0;
 
 cleanup:
-    VIR_FREE(pool);
-    VIR_FREE(volume);
-    VIR_FREE(mode);
+    virDomainDiskHostDefClear(&host);
+    VIR_FREE(protocol);
+    VIR_FREE(transport);
     return ret;
 }
+
 
 #define VENDOR_LEN  8
 #define PRODUCT_LEN 16
@@ -4758,11 +4893,7 @@ virDomainDiskDefParseXML(virDomainXMLOptionPtr xmlopt,
     char *driverType = NULL;
     char *source = NULL;
     char *target = NULL;
-    char *protocol = NULL;
-    char *protocol_transport = NULL;
     char *trans = NULL;
-    virDomainDiskHostDefPtr hosts = NULL;
-    int nhosts = 0;
     char *bus = NULL;
     char *cachetag = NULL;
     char *error_policy = NULL;
@@ -4825,116 +4956,27 @@ virDomainDiskDefParseXML(virDomainXMLOptionPtr xmlopt,
     cur = node->children;
     while (cur != NULL) {
         if (cur->type == XML_ELEMENT_NODE) {
-            if (!source && !hosts && !def->srcpool &&
+            if (!source && !def->hosts && !def->srcpool &&
                 xmlStrEqual(cur->name, BAD_CAST "source")) {
                 sourceNode = cur;
 
-                switch (def->type) {
-                case VIR_DOMAIN_DISK_TYPE_FILE:
-                    source = virXMLPropString(cur, "file");
-                    break;
-                case VIR_DOMAIN_DISK_TYPE_BLOCK:
-                    source = virXMLPropString(cur, "dev");
-                    break;
-                case VIR_DOMAIN_DISK_TYPE_DIR:
-                    source = virXMLPropString(cur, "dir");
-                    break;
-                case VIR_DOMAIN_DISK_TYPE_NETWORK:
-                    protocol = virXMLPropString(cur, "protocol");
-                    if (protocol == NULL) {
-                        virReportError(VIR_ERR_INTERNAL_ERROR,
-                                       "%s", _("missing protocol type"));
-                        goto error;
-                    }
-                    def->protocol = virDomainDiskProtocolTypeFromString(protocol);
-                    if (def->protocol < 0) {
-                        virReportError(VIR_ERR_INTERNAL_ERROR,
-                                       _("unknown protocol type '%s'"),
-                                       protocol);
-                        goto error;
-                    }
-                    if (def->protocol == VIR_DOMAIN_DISK_PROTOCOL_ISCSI) {
-                        expected_secret_usage = VIR_SECRET_USAGE_TYPE_ISCSI;
-                    } else if (def->protocol == VIR_DOMAIN_DISK_PROTOCOL_RBD) {
-                        expected_secret_usage = VIR_SECRET_USAGE_TYPE_CEPH;
-                    }
-                    if (!(source = virXMLPropString(cur, "name")) &&
-                        def->protocol != VIR_DOMAIN_DISK_PROTOCOL_NBD) {
-                        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                                       _("missing name for disk source"));
-                        goto error;
-                    }
-                    child = cur->children;
-                    while (child != NULL) {
-                        if (child->type == XML_ELEMENT_NODE &&
-                            xmlStrEqual(child->name, BAD_CAST "host")) {
-                            if (VIR_REALLOC_N(hosts, nhosts + 1) < 0)
-                                goto error;
-                            hosts[nhosts].name = NULL;
-                            hosts[nhosts].port = NULL;
-                            hosts[nhosts].transport = VIR_DOMAIN_DISK_PROTO_TRANS_TCP;
-                            hosts[nhosts].socket = NULL;
-                            nhosts++;
-
-                            /* transport can be tcp (default), unix or rdma.  */
-                            protocol_transport = virXMLPropString(child, "transport");
-                            if (protocol_transport != NULL) {
-                                hosts[nhosts - 1].transport = virDomainDiskProtocolTransportTypeFromString(protocol_transport);
-                                if (hosts[nhosts - 1].transport < 0) {
-                                    virReportError(VIR_ERR_XML_ERROR,
-                                                   _("unknown protocol transport type '%s'"),
-                                                   protocol_transport);
-                                    goto error;
-                                }
-                            }
-                            hosts[nhosts - 1].socket = virXMLPropString(child, "socket");
-                            if (hosts[nhosts - 1].transport == VIR_DOMAIN_DISK_PROTO_TRANS_UNIX &&
-                                hosts[nhosts - 1].socket == NULL) {
-                                virReportError(VIR_ERR_XML_ERROR,
-                                               "%s", _("missing socket for unix transport"));
-                                goto error;
-                            }
-                            if (hosts[nhosts - 1].transport != VIR_DOMAIN_DISK_PROTO_TRANS_UNIX &&
-                                hosts[nhosts - 1].socket != NULL) {
-                                virReportError(VIR_ERR_XML_ERROR,
-                                               _("transport %s does not support socket attribute"),
-                                               protocol_transport);
-                                goto error;
-                            }
-                            VIR_FREE(protocol_transport);
-                            if (hosts[nhosts - 1].transport != VIR_DOMAIN_DISK_PROTO_TRANS_UNIX) {
-                                hosts[nhosts - 1].name = virXMLPropString(child, "name");
-                                if (!hosts[nhosts - 1].name) {
-                                    virReportError(VIR_ERR_XML_ERROR,
-                                                   "%s", _("missing name for host"));
-                                    goto error;
-                                }
-                                hosts[nhosts - 1].port = virXMLPropString(child, "port");
-                            }
-                        }
-                        child = child->next;
-                    }
-                    break;
-                case VIR_DOMAIN_DISK_TYPE_VOLUME:
-                    if (virDomainDiskSourcePoolDefParse(cur, def) < 0)
-                        goto error;
-                    break;
-                default:
-                    virReportError(VIR_ERR_INTERNAL_ERROR,
-                                   _("unexpected disk type %s"),
-                                   virDomainDiskTypeToString(def->type));
+                if (virDomainDiskSourceDefParse(cur, def->type,
+                                                &source,
+                                                &def->protocol,
+                                                &def->nhosts,
+                                                &def->hosts,
+                                                &def->srcpool) < 0)
                     goto error;
+
+                if (def->type == VIR_DOMAIN_DISK_TYPE_NETWORK) {
+                    if (def->protocol == VIR_DOMAIN_DISK_PROTOCOL_ISCSI)
+                        expected_secret_usage = VIR_SECRET_USAGE_TYPE_ISCSI;
+                    else if (def->protocol == VIR_DOMAIN_DISK_PROTOCOL_RBD)
+                        expected_secret_usage = VIR_SECRET_USAGE_TYPE_CEPH;
                 }
 
                 startupPolicy = virXMLPropString(cur, "startupPolicy");
 
-                /* People sometimes pass a bogus '' source path
-                   when they mean to omit the source element
-                   completely (e.g. CDROM without media). This is
-                   just a little compatibility check to help
-                   those broken apps */
-                if (source && STREQ(source, ""))
-                    VIR_FREE(source);
             } else if (!target &&
                        xmlStrEqual(cur->name, BAD_CAST "target")) {
                 target = virXMLPropString(cur, "dev");
@@ -5230,7 +5272,7 @@ virDomainDiskDefParseXML(virDomainXMLOptionPtr xmlopt,
     /* Only CDROM and Floppy devices are allowed missing source path
      * to indicate no media present. LUN is for raw access CD-ROMs
      * that are not attached to a physical device presently */
-    if (source == NULL && hosts == NULL && !def->srcpool &&
+    if (source == NULL && def->hosts == NULL && !def->srcpool &&
         def->device != VIR_DOMAIN_DISK_DEVICE_CDROM &&
         def->device != VIR_DOMAIN_DISK_DEVICE_LUN &&
         def->device != VIR_DOMAIN_DISK_DEVICE_FLOPPY) {
@@ -5545,10 +5587,6 @@ virDomainDiskDefParseXML(virDomainXMLOptionPtr xmlopt,
     source = NULL;
     def->dst = target;
     target = NULL;
-    def->hosts = hosts;
-    hosts = NULL;
-    def->nhosts = nhosts;
-    nhosts = 0;
     def->auth.username = authUsername;
     authUsername = NULL;
     def->driverName = driverName;
@@ -5602,13 +5640,6 @@ cleanup:
     VIR_FREE(tray);
     VIR_FREE(removable);
     VIR_FREE(trans);
-    while (nhosts > 0) {
-        virDomainDiskHostDefFree(&hosts[nhosts - 1]);
-        nhosts--;
-    }
-    VIR_FREE(hosts);
-    VIR_FREE(protocol);
-    VIR_FREE(protocol_transport);
     VIR_FREE(device);
     VIR_FREE(authUsername);
     VIR_FREE(usageType);
@@ -11417,10 +11448,10 @@ virDomainDefParseXML(xmlDocPtr xml,
                            _("unexpected feature '%s'"), nodes[i]->name);
             goto error;
         }
-        def->features |= (1 << val);
-        if (val == VIR_DOMAIN_FEATURE_APIC) {
-            tmp = virXPathString("string(./features/apic/@eoi)", ctxt);
-            if (tmp) {
+
+        switch ((enum virDomainFeature) val) {
+        case VIR_DOMAIN_FEATURE_APIC:
+            if ((tmp = virXPathString("string(./features/apic/@eoi)", ctxt))) {
                 int eoi;
                 if ((eoi = virDomainFeatureStateTypeFromString(tmp)) <= 0) {
                     virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
@@ -11431,11 +11462,39 @@ virDomainDefParseXML(xmlDocPtr xml,
                 def->apic_eoi = eoi;
                 VIR_FREE(tmp);
             }
+            /* fallthrough */
+        case VIR_DOMAIN_FEATURE_ACPI:
+        case VIR_DOMAIN_FEATURE_PAE:
+        case VIR_DOMAIN_FEATURE_HAP:
+        case VIR_DOMAIN_FEATURE_VIRIDIAN:
+        case VIR_DOMAIN_FEATURE_PRIVNET:
+        case VIR_DOMAIN_FEATURE_HYPERV:
+            def->features[val] = VIR_DOMAIN_FEATURE_STATE_ON;
+            break;
+
+        case VIR_DOMAIN_FEATURE_PVSPINLOCK:
+            node = ctxt->node;
+            ctxt->node = nodes[i];
+            if ((tmp = virXPathString("string(./@state)", ctxt))) {
+                if ((def->features[val] = virDomainFeatureStateTypeFromString(tmp)) == -1) {
+                    virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                                   _("unknown state attribute '%s' of feature '%s'"),
+                                   tmp, virDomainFeatureTypeToString(val));
+                    goto error;
+                }
+            } else {
+                def->features[val] = VIR_DOMAIN_FEATURE_STATE_ON;
+            }
+            ctxt->node = node;
+            break;
+
+        case VIR_DOMAIN_FEATURE_LAST:
+            break;
         }
     }
     VIR_FREE(nodes);
 
-    if (def->features & (1 << VIR_DOMAIN_FEATURE_HYPERV)) {
+    if (def->features[VIR_DOMAIN_FEATURE_HYPERV] == VIR_DOMAIN_FEATURE_STATE_ON) {
         int feature;
         int value;
         node = ctxt->node;
@@ -13407,12 +13466,16 @@ virDomainDefFeaturesCheckABIStability(virDomainDefPtr src,
 {
     size_t i;
 
-    /* basic check */
-    if (src->features != dst->features) {
-        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                       _("Target domain features %d does not match source %d"),
-                       dst->features, src->features);
-        return false;
+    for (i = 0; i < VIR_DOMAIN_FEATURE_LAST; i++) {
+        if (src->features[i] != dst->features[i]) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("State of feature '%s' differs: "
+                             "source: '%s', destination: '%s'"),
+                           virDomainFeatureTypeToString(i),
+                           virDomainFeatureStateTypeToString(src->features[i]),
+                           virDomainFeatureStateTypeToString(dst->features[i]));
+            return false;
+        }
     }
 
     /* APIC EOI */
@@ -13426,7 +13489,7 @@ virDomainDefFeaturesCheckABIStability(virDomainDefPtr src,
     }
 
     /* hyperv */
-    if (src->features & (1 << VIR_DOMAIN_FEATURE_HYPERV)) {
+    if (src->features[VIR_DOMAIN_FEATURE_HYPERV] == VIR_DOMAIN_FEATURE_STATE_ON) {
         for (i = 0; i < VIR_DOMAIN_HYPERV_LAST; i++) {
             switch ((enum virDomainHyperv) i) {
             case VIR_DOMAIN_HYPERV_RELAXED:
@@ -14145,7 +14208,9 @@ virDomainEventActionDefFormat(virBufferPtr buf,
 
 
 static void
-virSecurityLabelDefFormat(virBufferPtr buf, virSecurityLabelDefPtr def)
+virSecurityLabelDefFormat(virBufferPtr buf,
+                          virSecurityLabelDefPtr def,
+                          unsigned flags)
 {
     const char *sectype = virDomainSeclabelTypeToString(def->type);
 
@@ -14164,7 +14229,9 @@ virSecurityLabelDefFormat(virBufferPtr buf, virSecurityLabelDefPtr def)
     virBufferAsprintf(buf, "<seclabel type='%s'",
                       sectype);
 
-    if (def->model && STRNEQ(def->model, "none"))
+    /* When generating state XML do include the model */
+    if (flags & VIR_DOMAIN_XML_INTERNAL_STATUS ||
+        STRNEQ_NULLABLE(def->model, "none"))
         virBufferEscapeString(buf, " model='%s'", def->model);
 
     if (def->type == VIR_DOMAIN_SECLABEL_NONE) {
@@ -14269,7 +14336,7 @@ virDomainDiskBlockIoDefFormat(virBufferPtr buf,
 {
     if (def->blockio.logical_block_size > 0 ||
         def->blockio.physical_block_size > 0) {
-        virBufferAddLit(buf,"      <blockio");
+        virBufferAddLit(buf, "      <blockio");
         if (def->blockio.logical_block_size > 0) {
             virBufferAsprintf(buf,
                               " logical_block_size='%u'",
@@ -14296,7 +14363,7 @@ virDomainDiskSourceDefFormat(virBufferPtr buf,
         def->startupPolicy) {
         switch (def->type) {
         case VIR_DOMAIN_DISK_TYPE_FILE:
-            virBufferAddLit(buf,"      <source");
+            virBufferAddLit(buf, "      <source");
             if (def->src)
                 virBufferEscapeString(buf, " file='%s'", def->src);
             if (def->startupPolicy)
@@ -16749,58 +16816,116 @@ virDomainDefFormatInternal(virDomainDefPtr def,
         virBufferAddLit(buf, "  </idmap>\n");
     }
 
+    for (i = 0; i < VIR_DOMAIN_FEATURE_LAST; i++) {
+        if (def->features[i] != VIR_DOMAIN_FEATURE_STATE_DEFAULT)
+            break;
+    }
 
-    if (def->features) {
+    if (i != VIR_DOMAIN_FEATURE_LAST) {
         virBufferAddLit(buf, "  <features>\n");
-        for (i = 0; i < VIR_DOMAIN_FEATURE_LAST; i++) {
-            if (def->features & (1 << i) && i != VIR_DOMAIN_FEATURE_HYPERV) {
-                const char *name = virDomainFeatureTypeToString(i);
-                if (!name) {
-                    virReportError(VIR_ERR_INTERNAL_ERROR,
-                                   _("unexpected feature %zu"), i);
-                    goto error;
-                }
-                virBufferAsprintf(buf, "    <%s", name);
-                if (i == VIR_DOMAIN_FEATURE_APIC && def->apic_eoi) {
-                    virBufferAsprintf(buf,
-                                      " eoi='%s'",
-                                      virDomainFeatureStateTypeToString(def->apic_eoi));
-                }
-                virBufferAddLit(buf, "/>\n");
-            }
-        }
 
-        if (def->features & (1 << VIR_DOMAIN_FEATURE_HYPERV)) {
-            virBufferAddLit(buf, "    <hyperv>\n");
-            for (i = 0; i < VIR_DOMAIN_HYPERV_LAST; i++) {
-                switch ((enum virDomainHyperv) i) {
-                case VIR_DOMAIN_HYPERV_RELAXED:
-                case VIR_DOMAIN_HYPERV_VAPIC:
-                    if (def->hyperv_features[i])
-                        virBufferAsprintf(buf, "      <%s state='%s'/>\n",
-                                          virDomainHypervTypeToString(i),
-                                          virDomainFeatureStateTypeToString(
-                                              def->hyperv_features[i]));
+        for (i = 0; i < VIR_DOMAIN_FEATURE_LAST; i++) {
+            const char *name = virDomainFeatureTypeToString(i);
+            size_t j;
+
+            if (!name) {
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("unexpected feature %zu"), i);
+                goto error;
+            }
+
+            switch ((enum virDomainFeature) i) {
+            case VIR_DOMAIN_FEATURE_ACPI:
+            case VIR_DOMAIN_FEATURE_PAE:
+            case VIR_DOMAIN_FEATURE_HAP:
+            case VIR_DOMAIN_FEATURE_VIRIDIAN:
+            case VIR_DOMAIN_FEATURE_PRIVNET:
+                switch ((enum virDomainFeatureState) def->features[i]) {
+                case VIR_DOMAIN_FEATURE_STATE_DEFAULT:
                     break;
 
-                case VIR_DOMAIN_HYPERV_SPINLOCKS:
-                    if (def->hyperv_features[i] == 0)
+                case VIR_DOMAIN_FEATURE_STATE_ON:
+                   virBufferAsprintf(buf, "    <%s/>\n", name);
+                   break;
+
+                case VIR_DOMAIN_FEATURE_STATE_LAST:
+                case VIR_DOMAIN_FEATURE_STATE_OFF:
+                   virReportError(VIR_ERR_INTERNAL_ERROR,
+                                 _("Unexpected state of feature '%s'"), name);
+
+                   goto error;
+                   break;
+                }
+
+                break;
+
+            case VIR_DOMAIN_FEATURE_PVSPINLOCK:
+                switch ((enum virDomainFeatureState) def->features[i]) {
+                case VIR_DOMAIN_FEATURE_STATE_LAST:
+                case VIR_DOMAIN_FEATURE_STATE_DEFAULT:
+                    break;
+
+                case VIR_DOMAIN_FEATURE_STATE_ON:
+                   virBufferAsprintf(buf, "    <%s state='on'/>\n", name);
+                   break;
+
+                case VIR_DOMAIN_FEATURE_STATE_OFF:
+                   virBufferAsprintf(buf, "    <%s state='off'/>\n", name);
+                   break;
+                }
+
+                break;
+
+            case VIR_DOMAIN_FEATURE_APIC:
+                if (def->features[i] == VIR_DOMAIN_FEATURE_STATE_ON) {
+                    virBufferAddLit(buf, "    <apic");
+                    if (def->apic_eoi) {
+                        virBufferAsprintf(buf, " eoi='%s'",
+                                          virDomainFeatureStateTypeToString(def->apic_eoi));
+                    }
+                    virBufferAddLit(buf, "/>\n");
+                }
+                break;
+
+            case VIR_DOMAIN_FEATURE_HYPERV:
+                if (def->features[i] != VIR_DOMAIN_FEATURE_STATE_ON)
+                    break;
+
+                virBufferAddLit(buf, "    <hyperv>\n");
+                for (j = 0; j < VIR_DOMAIN_HYPERV_LAST; j++) {
+                    switch ((enum virDomainHyperv) j) {
+                    case VIR_DOMAIN_HYPERV_RELAXED:
+                    case VIR_DOMAIN_HYPERV_VAPIC:
+                        if (def->hyperv_features[j])
+                            virBufferAsprintf(buf, "      <%s state='%s'/>\n",
+                                              virDomainHypervTypeToString(j),
+                                              virDomainFeatureStateTypeToString(
+                                                  def->hyperv_features[j]));
                         break;
 
-                    virBufferAsprintf(buf, "      <spinlocks state='%s'",
-                                      virDomainFeatureStateTypeToString(
-                                          def->hyperv_features[i]));
-                    if (def->hyperv_features[i] == VIR_DOMAIN_FEATURE_STATE_ON)
-                        virBufferAsprintf(buf, " retries='%d'",
-                                          def->hyperv_spinlocks);
-                    virBufferAddLit(buf, "/>\n");
-                    break;
+                    case VIR_DOMAIN_HYPERV_SPINLOCKS:
+                        if (def->hyperv_features[j] == 0)
+                            break;
 
-                case VIR_DOMAIN_HYPERV_LAST:
-                    break;
+                        virBufferAsprintf(buf, "      <spinlocks state='%s'",
+                                          virDomainFeatureStateTypeToString(
+                                              def->hyperv_features[j]));
+                        if (def->hyperv_features[j] == VIR_DOMAIN_FEATURE_STATE_ON)
+                            virBufferAsprintf(buf, " retries='%d'",
+                                              def->hyperv_spinlocks);
+                        virBufferAddLit(buf, "/>\n");
+                        break;
+
+                    case VIR_DOMAIN_HYPERV_LAST:
+                        break;
+                    }
                 }
+                virBufferAddLit(buf, "    </hyperv>\n");
+                break;
+
+            case VIR_DOMAIN_FEATURE_LAST:
+                break;
             }
-            virBufferAddLit(buf, "    </hyperv>\n");
         }
 
         virBufferAddLit(buf, "  </features>\n");
@@ -17017,7 +17142,7 @@ virDomainDefFormatInternal(virDomainDefPtr def,
 
     virBufferAdjustIndent(buf, 2);
     for (n = 0; n < def->nseclabels; n++)
-        virSecurityLabelDefFormat(buf, def->seclabels[n]);
+        virSecurityLabelDefFormat(buf, def->seclabels[n], flags);
     virBufferAdjustIndent(buf, -2);
 
     if (def->namespaceData && def->ns.format) {

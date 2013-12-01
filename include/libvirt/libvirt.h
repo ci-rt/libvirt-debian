@@ -1274,10 +1274,10 @@ typedef enum {
  * VIR_MIGRATE_PARAM_LISTEN_ADDRESS:
  *
  * virDomainMigrate* params field: The listen address that hypervisor on the
- * destination side should bind to for incoming migration. Both, IPv4 and IPv6
+ * destination side should bind to for incoming migration. Both IPv4 and IPv6
  * addresses are accepted as well as hostnames (the resolving is done on
- * destination). Some hypervisors do not support this feature an will return an
- * error if this field is used.
+ * destination). Some hypervisors do not support this feature and will return
+ * an error if this field is used.
  */
 #define VIR_MIGRATE_PARAM_LISTEN_ADDRESS    "listen_address"
 
@@ -1464,7 +1464,23 @@ VIR_EXPORT_VAR virConnectAuthPtr virConnectAuthPtrDefault;
  * version * 1,000,000 + minor * 1000 + micro
  */
 
-#define LIBVIR_VERSION_NUMBER 1001004
+#define LIBVIR_VERSION_NUMBER 1002000
+
+/**
+ * LIBVIR_CHECK_VERSION:
+ * @major: major component of the version number
+ * @minor: minor component of the version number
+ * @micro: micro component of the version number
+ *
+ * Macro for developers to easily check what version of the library
+ * their code is compiling against.
+ * e.g.
+ *   #if LIBVIR_CHECK_VERSION(1,1,3)
+ *     // some code that only works in 1.1.3 and newer
+ *   #endif
+ */
+#define LIBVIR_CHECK_VERSION(major, minor, micro) \
+    ((major) * 1000000 + (minor) * 1000 + (micro) <= LIBVIR_VERSION_NUMBER)
 
 int                     virGetVersion           (unsigned long *libVer,
                                                  const char *type,
@@ -2503,7 +2519,7 @@ int virDomainBlockCommit(virDomainPtr dom, const char *disk, const char *base,
 /**
  * VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC:
  *
- * Macro for the BlockIoTune tunable weight: it repersents the read
+ * Macro for the BlockIoTune tunable weight: it represents the read
  * bytes per second permitted through a block device, as a ullong.
  */
 #define VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC "read_bytes_sec"
@@ -2511,7 +2527,7 @@ int virDomainBlockCommit(virDomainPtr dom, const char *disk, const char *base,
 /**
  * VIR_DOMAIN_BLOCK_IOTUNE_WRITE_BYTES_SEC:
  *
- * Macro for the BlockIoTune tunable weight: it repersents the write
+ * Macro for the BlockIoTune tunable weight: it represents the write
  * bytes per second permitted through a block device, as a ullong.
  */
 #define VIR_DOMAIN_BLOCK_IOTUNE_WRITE_BYTES_SEC "write_bytes_sec"
@@ -2519,7 +2535,7 @@ int virDomainBlockCommit(virDomainPtr dom, const char *disk, const char *base,
 /**
  * VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_IOPS_SEC:
  *
- * Macro for the BlockIoTune tunable weight: it repersents the total
+ * Macro for the BlockIoTune tunable weight: it represents the total
  * I/O operations per second permitted through a block device, as a ullong.
  */
 #define VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_IOPS_SEC "total_iops_sec"
@@ -2527,14 +2543,14 @@ int virDomainBlockCommit(virDomainPtr dom, const char *disk, const char *base,
 /**
  * VIR_DOMAIN_BLOCK_IOTUNE_READ_IOPS_SEC:
  *
- * Macro for the BlockIoTune tunable weight: it repersents the read
+ * Macro for the BlockIoTune tunable weight: it represents the read
  * I/O operations per second permitted through a block device, as a ullong.
  */
 #define VIR_DOMAIN_BLOCK_IOTUNE_READ_IOPS_SEC "read_iops_sec"
 
 /**
  * VIR_DOMAIN_BLOCK_IOTUNE_WRITE_IOPS_SEC:
- * Macro for the BlockIoTune tunable weight: it repersents the write
+ * Macro for the BlockIoTune tunable weight: it represents the write
  * I/O operations per second permitted through a block device, as a ullong.
  */
 #define VIR_DOMAIN_BLOCK_IOTUNE_WRITE_IOPS_SEC "write_iops_sec"
@@ -2935,6 +2951,8 @@ typedef enum {
     VIR_STORAGE_VOL_BLOCK = 1,    /* Block based volumes */
     VIR_STORAGE_VOL_DIR = 2,      /* Directory-passthrough based volume */
     VIR_STORAGE_VOL_NETWORK = 3,  /* Network volumes like RBD (RADOS Block Device) */
+    VIR_STORAGE_VOL_NETDIR = 4,   /* Network accessible directory that can
+                                   * contain other network volumes */
 
 #ifdef VIR_ENUM_SENTINELS
     VIR_STORAGE_VOL_LAST
@@ -4067,20 +4085,20 @@ struct _virDomainJobInfo {
     /* One of virDomainJobType */
     int type;
 
-    /* Time is measured in mill-seconds */
+    /* Time is measured in milliseconds */
     unsigned long long timeElapsed;    /* Always set */
     unsigned long long timeRemaining;  /* Only for VIR_DOMAIN_JOB_BOUNDED */
 
     /* Data is measured in bytes unless otherwise specified
-     * and is measuring the job as a whole
+     * and is measuring the job as a whole.
      *
      * For VIR_DOMAIN_JOB_UNBOUNDED, dataTotal may be less
      * than the final sum of dataProcessed + dataRemaining
      * in the event that the hypervisor has to repeat some
-     * data eg due to dirtied pages during migration
+     * data, such as due to dirtied pages during migration.
      *
      * For VIR_DOMAIN_JOB_BOUNDED, dataTotal shall always
-     * equal sum of dataProcessed + dataRemaining
+     * equal the sum of dataProcessed + dataRemaining.
      */
     unsigned long long dataTotal;
     unsigned long long dataProcessed;

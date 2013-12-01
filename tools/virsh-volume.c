@@ -1,7 +1,7 @@
 /*
  * virsh-volume.c: Commands to manage storage volume
  *
- * Copyright (C) 2005, 2007-2012 Red Hat, Inc.
+ * Copyright (C) 2005, 2007-2013 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -211,7 +211,7 @@ cmdVolCreateAs(vshControl *ctl, const vshCmd *cmd)
 
     if (format) {
         virBufferAddLit(&buf, "  <target>\n");
-        virBufferAsprintf(&buf, "    <format type='%s'/>\n",format);
+        virBufferAsprintf(&buf, "    <format type='%s'/>\n", format);
         virBufferAddLit(&buf, "  </target>\n");
     }
 
@@ -265,9 +265,10 @@ cmdVolCreateAs(vshControl *ctl, const vshCmd *cmd)
 
         /* Create XML for the backing store */
         virBufferAddLit(&buf, "  <backingStore>\n");
-        virBufferAsprintf(&buf, "    <path>%s</path>\n",snapshotStrVolPath);
+        virBufferAsprintf(&buf, "    <path>%s</path>\n", snapshotStrVolPath);
         if (snapshotStrFormat)
-            virBufferAsprintf(&buf, "    <format type='%s'/>\n",snapshotStrFormat);
+            virBufferAsprintf(&buf, "    <format type='%s'/>\n",
+                              snapshotStrFormat);
         virBufferAddLit(&buf, "  </backingStore>\n");
 
         /* Cleanup snapshot allocations */
@@ -942,6 +943,34 @@ out:
     return ret;
 }
 
+
+static const char *
+vshVolumeTypeToString(int type)
+{
+    switch ((virStorageVolType) type) {
+    case VIR_STORAGE_VOL_FILE:
+        return N_("file");
+
+    case VIR_STORAGE_VOL_BLOCK:
+        return N_("block");
+
+    case VIR_STORAGE_VOL_DIR:
+        return N_("dir");
+
+    case VIR_STORAGE_VOL_NETWORK:
+        return N_("network");
+
+    case VIR_STORAGE_VOL_NETDIR:
+        return N_("netdir");
+
+    case VIR_STORAGE_VOL_LAST:
+        break;
+    }
+
+    return N_("unknown");
+}
+
+
 /*
  * "vol-info" command
  */
@@ -983,26 +1012,9 @@ cmdVolInfo(vshControl *ctl, const vshCmd *cmd)
     if (virStorageVolGetInfo(vol, &info) == 0) {
         double val;
         const char *unit;
-        switch (info.type) {
-        case VIR_STORAGE_VOL_FILE:
-            vshPrint(ctl, "%-15s %s\n", _("Type:"), _("file"));
-            break;
 
-        case VIR_STORAGE_VOL_BLOCK:
-            vshPrint(ctl, "%-15s %s\n", _("Type:"), _("block"));
-            break;
-
-        case VIR_STORAGE_VOL_DIR:
-            vshPrint(ctl, "%-15s %s\n", _("Type:"), _("dir"));
-            break;
-
-        case VIR_STORAGE_VOL_NETWORK:
-            vshPrint(ctl, "%-15s %s\n", _("Type:"), _("network"));
-            break;
-
-        default:
-            vshPrint(ctl, "%-15s %s\n", _("Type:"), _("unknown"));
-        }
+        vshPrint(ctl, "%-15s %s\n", _("Type:"),
+                 _(vshVolumeTypeToString(info.type)));
 
         val = vshPrettyCapacity(info.capacity, &unit);
         vshPrint(ctl, "%-15s %2.2lf %s\n", _("Capacity:"), val, unit);
@@ -1377,19 +1389,8 @@ cmdVolList(vshControl *ctl, const vshCmd *cmd ATTRIBUTE_UNUSED)
                 /* Convert the returned volume info into output strings */
 
                 /* Volume type */
-                switch (volumeInfo.type) {
-                        case VIR_STORAGE_VOL_FILE:
-                            volInfoTexts[i].type = vshStrdup(ctl, _("file"));
-                            break;
-                        case VIR_STORAGE_VOL_BLOCK:
-                            volInfoTexts[i].type = vshStrdup(ctl, _("block"));
-                            break;
-                        case VIR_STORAGE_VOL_DIR:
-                            volInfoTexts[i].type = vshStrdup(ctl, _("dir"));
-                            break;
-                        default:
-                            volInfoTexts[i].type = vshStrdup(ctl, _("unknown"));
-                }
+                volInfoTexts[i].type = vshStrdup(ctl,
+                                                 _(vshVolumeTypeToString(volumeInfo.type)));
 
                 /* Create the capacity output string */
                 val = vshPrettyCapacity(volumeInfo.capacity, &unit);
@@ -1450,10 +1451,11 @@ cmdVolList(vshControl *ctl, const vshCmd *cmd ATTRIBUTE_UNUSED)
     /* Output basic info then return if --details option not selected */
     if (!details) {
         /* The old output format */
-        vshPrintExtra(ctl, "%-20s %-40s\n", _("Name"), _("Path"));
-        vshPrintExtra(ctl, "-----------------------------------------\n");
+        vshPrintExtra(ctl, " %-20s %-40s\n", _("Name"), _("Path"));
+        vshPrintExtra(ctl, "---------------------------------------"
+                           "---------------------------------------\n");
         for (i = 0; i < list->nvols; i++) {
-            vshPrint(ctl, "%-20s %-40s\n", virStorageVolGetName(list->vols[i]),
+            vshPrint(ctl, " %-20s %-40s\n", virStorageVolGetName(list->vols[i]),
                      volInfoTexts[i].path);
         }
 
@@ -1503,7 +1505,7 @@ cmdVolList(vshControl *ctl, const vshCmd *cmd ATTRIBUTE_UNUSED)
 
     /* Create the output template */
     ret = virAsprintf(&outputStr,
-                      "%%-%lus  %%-%lus  %%-%lus  %%%lus  %%%lus\n",
+                      " %%-%lus  %%-%lus  %%-%lus  %%%lus  %%%lus\n",
                       (unsigned long) nameStrLength,
                       (unsigned long) pathStrLength,
                       (unsigned long) typeStrLength,
@@ -1519,7 +1521,7 @@ cmdVolList(vshControl *ctl, const vshCmd *cmd ATTRIBUTE_UNUSED)
              ("Capacity"), _("Allocation"));
     for (i = nameStrLength + pathStrLength + typeStrLength
                            + capStrLength + allocStrLength
-                           + 8; i > 0; i--)
+                           + 10; i > 0; i--)
         vshPrintExtra(ctl, "-");
     vshPrintExtra(ctl, "\n");
 

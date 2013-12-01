@@ -98,6 +98,11 @@
 %else
     %define with_storage_sheepdog 0
 %endif
+%if 0%{?fedora} >= 19
+    %define with_storage_gluster 0%{!?_without_storage_gluster:%{server_drivers}}
+%else
+    %define with_storage_gluster 0
+%endif
 %define with_numactl          0%{!?_without_numactl:%{server_drivers}}
 %define with_selinux          0%{!?_without_selinux:%{server_drivers}}
 
@@ -126,7 +131,6 @@
 %define with_libssh2       0%{!?_without_libssh2:0}
 
 # Non-server/HV driver defaults which are always enabled
-%define with_python        0%{!?_without_python:1}
 %define with_sasl          0%{!?_without_sasl:1}
 
 
@@ -281,6 +285,7 @@
     %define with_storage_mpath 0
     %define with_storage_rbd 0
     %define with_storage_sheepdog 0
+    %define with_storage_gluster 0
     %define with_storage_disk 0
 %endif
 
@@ -367,7 +372,7 @@
 Summary: Library providing a simple virtualization API
 Name: libvirt
 Version: @VERSION@
-Release: 1%{?dist}%{?extra_release}
+Release: 0rc2%{?dist}%{?extra_release}
 License: LGPLv2+
 Group: Development/Libraries
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
@@ -376,7 +381,7 @@ URL: http://libvirt.org/
 %if %(echo %{version} | grep -o \\. | wc -l) == 3
     %define mainturl stable_updates/
 %endif
-Source: http://libvirt.org/sources/%{?mainturl}libvirt-%{version}.tar.gz
+Source: http://libvirt.org/sources/%{?mainturl}libvirt-%{version}-rc2.tar.gz
 
 %if %{with_libvirtd}
 Requires: libvirt-daemon = %{version}-%{release}
@@ -425,7 +430,7 @@ BuildRequires: gettext-devel
 BuildRequires: libtool
 BuildRequires: /usr/bin/pod2man
 %endif
-BuildRequires: python-devel
+BuildRequires: python
 %if %{with_systemd}
 BuildRequires: systemd-units
 %endif
@@ -554,6 +559,10 @@ BuildRequires: device-mapper-devel
     %if %{with_storage_rbd}
 BuildRequires: ceph-devel
     %endif
+%endif
+%if %{with_storage_gluster}
+BuildRequires: glusterfs-api-devel >= 3.4.1
+BuildRequires: glusterfs-devel >= 3.4.1
 %endif
 %if %{with_numactl}
 # For QEMU/LXC numa info
@@ -1145,19 +1154,6 @@ Includes the Sanlock lock manager plugin for the QEMU
 driver
 %endif
 
-%if %{with_python}
-%package python
-Summary: Python bindings for the libvirt library
-Group: Development/Libraries
-Requires: %{name}-client = %{version}-%{release}
-
-%description python
-The libvirt-python package contains a module that permits applications
-written in the Python programming language to use the interface
-supplied by the libvirt library to use the virtualization capabilities
-of recent versions of Linux (and other OSes).
-%endif
-
 %prep
 %setup -q
 
@@ -1222,10 +1218,6 @@ of recent versions of Linux (and other OSes).
     %define _without_polkit --without-polkit
 %endif
 
-%if ! %{with_python}
-    %define _without_python --without-python
-%endif
-
 %if ! %{with_libvirtd}
     %define _without_libvirtd --without-libvirtd
 %endif
@@ -1272,6 +1264,10 @@ of recent versions of Linux (and other OSes).
 
 %if ! %{with_storage_sheepdog}
     %define _without_storage_sheepdog --without-storage-sheepdog
+%endif
+
+%if ! %{with_storage_gluster}
+    %define _without_storage_gluster --without-storage-gluster
 %endif
 
 %if ! %{with_numactl}
@@ -1378,7 +1374,6 @@ of recent versions of Linux (and other OSes).
            %{?_without_sasl} \
            %{?_without_avahi} \
            %{?_without_polkit} \
-           %{?_without_python} \
            %{?_without_libvirtd} \
            %{?_without_uml} \
            %{?_without_phyp} \
@@ -1396,6 +1391,7 @@ of recent versions of Linux (and other OSes).
            %{?_without_storage_mpath} \
            %{?_without_storage_rbd} \
            %{?_without_storage_sheepdog} \
+           %{?_without_storage_gluster} \
            %{?_without_numactl} \
            %{?_without_numad} \
            %{?_without_capng} \
@@ -1432,14 +1428,12 @@ rm -fr %{buildroot}
 # on RHEL 5, thus we need to expand it here.
 make install DESTDIR=%{?buildroot} SYSTEMD_UNIT_DIR=%{_unitdir}
 
-for i in domain-events/events-c dominfo domsuspend hellolibvirt openauth python xml/nwfilter systemtap
+for i in domain-events/events-c dominfo domsuspend hellolibvirt openauth xml/nwfilter systemtap
 do
   (cd examples/$i ; make clean ; rm -rf .deps .libs Makefile Makefile.in)
 done
 rm -f $RPM_BUILD_ROOT%{_libdir}/*.la
 rm -f $RPM_BUILD_ROOT%{_libdir}/*.a
-rm -f $RPM_BUILD_ROOT%{_libdir}/python*/site-packages/*.la
-rm -f $RPM_BUILD_ROOT%{_libdir}/python*/site-packages/*.a
 rm -f $RPM_BUILD_ROOT%{_libdir}/libvirt/lock-driver/*.la
 rm -f $RPM_BUILD_ROOT%{_libdir}/libvirt/lock-driver/*.a
 %if %{with_driver_modules}
@@ -1491,8 +1485,8 @@ rm -rf $RPM_BUILD_ROOT%{_sysconfdir}/logrotate.d/libvirtd.lxc
 rm -rf $RPM_BUILD_ROOT%{_sysconfdir}/logrotate.d/libvirtd.uml
 %endif
 
-mv $RPM_BUILD_ROOT%{_datadir}/doc/libvirt-%{version} \
-   $RPM_BUILD_ROOT%{_datadir}/doc/libvirt-docs-%{version}
+# Copied into libvirt-docs subpackage eventually
+mv $RPM_BUILD_ROOT%{_datadir}/doc/libvirt-%{version} libvirt-docs
 
 %if %{with_dtrace}
     %ifarch %{power64} s390x x86_64 ia64 alpha sparc64
@@ -1706,7 +1700,7 @@ fi
 /sbin/ldconfig
 %if %{with_systemd}
     %if %{with_systemd_macros}
-        %systemd_postun_with_restart libvirt-guests.service
+        %systemd_postun libvirt-guests.service
     %endif
 %triggerun client -- libvirt < 0.9.4
 %{_bindir}/systemd-sysv-convert --save libvirt-guests >/dev/null 2>&1 ||:
@@ -1714,9 +1708,8 @@ fi
 # If the package is allowed to autostart:
 /bin/systemctl --no-reload enable libvirt-guests.service >/dev/null 2>&1 ||:
 
-# Run these because the SysV package being removed won't do them
+# Run this because the SysV package being removed won't do them
 /sbin/chkconfig --del libvirt-guests >/dev/null 2>&1 || :
-/bin/systemctl try-restart libvirt-guests.service >/dev/null 2>&1 || :
 %endif
 
 %if %{with_sanlock}
@@ -1727,17 +1720,18 @@ if getent group sanlock > /dev/null ; then
 fi
 %endif
 
+%if %{with_lxc}
+%pre login-shell
+getent group virtlogin >/dev/null || groupadd -r virtlogin
+exit 0
+%endif
+
 %files
 %defattr(-, root, root)
 
 %files docs
 %defattr(-, root, root)
-%doc AUTHORS ChangeLog.gz NEWS README TODO
-
-# Website
-%dir %{_datadir}/doc/libvirt-docs-%{version}
-%dir %{_datadir}/doc/libvirt-docs-%{version}/html
-%{_datadir}/doc/libvirt-docs-%{version}/html/*
+%doc AUTHORS ChangeLog.gz NEWS README TODO libvirt-docs/*
 
 # API docs
 %dir %{_datadir}/gtk-doc/html/libvirt/
@@ -2077,7 +2071,7 @@ fi
 
 %if %{with_lxc}
 %files login-shell
-%attr(4755, root, root) %{_bindir}/virt-login-shell
+%attr(4750, root, virtlogin) %{_bindir}/virt-login-shell
 %config(noreplace) %{_sysconfdir}/libvirt/virt-login-shell.conf
 %{_mandir}/man1/virt-login-shell.1*
 %endif
@@ -2104,18 +2098,6 @@ fi
 %doc examples/openauth
 %doc examples/xml
 %doc examples/systemtap
-
-%if %{with_python}
-%files python
-%defattr(-, root, root)
-
-%{_libdir}/python*/site-packages/libvirt.py*
-%{_libdir}/python*/site-packages/libvirt_qemu.py*
-%{_libdir}/python*/site-packages/libvirt_lxc.py*
-%{_libdir}/python*/site-packages/libvirtmod*
-%doc examples/python
-%doc examples/domain-events/events-python
-%endif
 
 %changelog
 * Mon Nov  4 2013 Daniel Veillard <veillard@redhat.com> - 1.1.4-1

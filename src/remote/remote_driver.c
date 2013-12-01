@@ -910,6 +910,10 @@ doRemoteOpen(virConnectPtr conn,
     virNetClientClose(priv->client);
     virObjectUnref(priv->client);
     priv->client = NULL;
+#ifdef WITH_GNUTLS
+    virObjectUnref(priv->tls);
+    priv->tls = NULL;
+#endif
 
     VIR_FREE(priv->hostname);
     goto cleanup;
@@ -4029,6 +4033,8 @@ remoteAuthSASL(virConnectPtr conn, struct private_data *priv,
                                             virNetClientRemoteAddrString(priv->client),
                                             saslcb)))
         goto cleanup;
+    /* saslcb is now owned by sasl */
+    saslcb = NULL;
 
 # ifdef WITH_GNUTLS
     /* Initialize some connection props we care about */
@@ -4121,11 +4127,15 @@ remoteAuthSASL(virConnectPtr conn, struct private_data *priv,
     VIR_DEBUG("Client step result complete: %d. Data %zu bytes %p",
               complete, serverinlen, serverin);
 
+    /* Previous server call showed completion & sasl_client_start() told us
+     * we are locally complete too */
+    if (complete && err == VIR_NET_SASL_COMPLETE)
+        goto done;
+
     /* Loop-the-loop...
      * Even if the server has completed, the client must *always* do at least one step
      * in this loop to verify the server isn't lying about something. Mutual auth */
     for (;;) {
-    restep:
         if ((err = virNetSASLSessionClientStep(sasl,
                                                serverin,
                                                serverinlen,
@@ -4140,7 +4150,7 @@ remoteAuthSASL(virConnectPtr conn, struct private_data *priv,
                 VIR_FREE(iret.mechlist);
                 goto cleanup;
             }
-            goto restep;
+            continue;
         }
 
         VIR_FREE(serverin);
@@ -4195,6 +4205,7 @@ remoteAuthSASL(virConnectPtr conn, struct private_data *priv,
         priv->is_secure = 1;
     }
 
+done:
     VIR_DEBUG("SASL authentication complete");
     virNetClientSetSASLSession(priv->client, sasl);
     ret = 0;
@@ -4484,7 +4495,7 @@ remoteDomainBuildEventIOErrorReason(virNetClientProgramPtr prog ATTRIBUTE_UNUSED
     virDomainPtr dom;
     virDomainEventPtr event = NULL;
 
-    dom = get_nonnull_domain(conn,msg->dom);
+    dom = get_nonnull_domain(conn, msg->dom);
     if (!dom)
         return;
 
