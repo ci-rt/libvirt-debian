@@ -1,3 +1,16 @@
+libvirt (1.2.0~rc2-1) experimental; urgency=low
+
+  * [8bfdc7f] New upstream version 1.2.0~rc2
+  * [56d17d0] Bump symbol versions
+  * [288778f] Drop atomic-pthread-link-fix.  Fixed upstream.
+  * [c8151f5] Rediff patches
+  * [dd5ae42] Drop python-libvirt.  Python bindings were split out of
+    libvirt's git into libvirt-python.
+  * [bafc3d6] Install API files into dev package.  These are needed by the
+    python bindings
+
+ -- Guido Günther <agx@sigxcpu.org>  Mon, 02 Dec 2013 21:31:31 +0100
+
 libvirt (1.1.4-2) unstable; urgency=low
 
   * [78cadf5] Rados storage backend needs --with-storage-rbd not
