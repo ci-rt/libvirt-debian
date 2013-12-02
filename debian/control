@@ -124,6 +124,7 @@ Package: libvirt-dev
 Architecture: any
 Section: libdevel
 Depends: ${misc:Depends}, libvirt0 (= ${binary:Version}), libxen-dev [i386 amd64]
+Replaces: libvirt-bin (<< 1.2.0~)
 Recommends: pkg-config
 Description: development files for the libvirt library
  Libvirt is a C toolkit to interact with the virtualization capabilities

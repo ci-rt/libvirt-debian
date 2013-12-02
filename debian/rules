@@ -145,6 +145,8 @@ override_dh_install:
 
 	# Don't ship any la files
 	rm debian/libvirt-bin/usr/lib/libvirt/connection-driver/*.la
+	# Don't ship api files in the daemon package
+	rm -r debian/libvirt-bin/usr/share/libvirt/api/
 
 override_dh_installinit:
 	dh_systemd_enable
