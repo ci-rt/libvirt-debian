@@ -61,8 +61,10 @@ else
   WITH_VBOX           = --without-vbox
 endif
 
+# Not available in wheezy
 WITH_STORAGE_SHEEPDOG = --without-storage-sheepdog
-WITH_STORAGE_RBD    = --without-storage-rbd
+WITH_STORAGE_RBD      = --without-storage-rbd
+WITH_LIBXL            = --without-libxl
 
 DEB_CONFIGURE_EXTRA_ARGS :=      \
 	--disable-silent-rules   \
