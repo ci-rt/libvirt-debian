@@ -272,7 +272,7 @@
   </thead>
   <tbody>
     <tr>
-      <td><a name="perm_node_device_dettach">dettach</a></td>
+      <td><a name="perm_node_device_detach">detach</a></td>
       <td>Detach node device</td>
     </tr>
     <tr>

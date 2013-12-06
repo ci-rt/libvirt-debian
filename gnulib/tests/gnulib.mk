@@ -712,6 +712,7 @@ inttypes.h: inttypes.in.h $(top_builddir)/config.status $(CXXDEFS_H) $(WARN_ON_U
 	      -e 's/@''HAVE_DECL_STRTOIMAX''@/$(HAVE_DECL_STRTOIMAX)/g' \
 	      -e 's/@''HAVE_DECL_STRTOUMAX''@/$(HAVE_DECL_STRTOUMAX)/g' \
 	      -e 's/@''REPLACE_STRTOIMAX''@/$(REPLACE_STRTOIMAX)/g' \
+	      -e 's/@''REPLACE_STRTOUMAX''@/$(REPLACE_STRTOUMAX)/g' \
 	      -e 's/@''INT32_MAX_LT_INTMAX_MAX''@/$(INT32_MAX_LT_INTMAX_MAX)/g' \
 	      -e 's/@''INT64_MAX_EQ_LONG_MAX''@/$(INT64_MAX_EQ_LONG_MAX)/g' \
 	      -e 's/@''UINT32_MAX_LT_UINTMAX_MAX''@/$(UINT32_MAX_LT_UINTMAX_MAX)/g' \
@@ -1660,14 +1661,6 @@ EXTRA_DIST += test-readlink.h test-readlink.c signature.h macros.h
 
 ## end   gnulib module readlink-tests
 
-## begin gnulib module realloc-gnu-tests
-
-GNULIB_TESTS += test-realloc-gnu
-check_PROGRAMS += test-realloc-gnu
-EXTRA_DIST += test-realloc-gnu.c
-
-## end   gnulib module realloc-gnu-tests
-
 ## begin gnulib module recv-tests
 
 GNULIB_TESTS += test-recv
@@ -1681,7 +1674,7 @@ EXTRA_DIST += test-recv.c signature.h macros.h
 
 GNULIB_TESTS += test-regex
 check_PROGRAMS += test-regex
-test_regex_LDADD = $(LDADD) @LIBINTL@
+test_regex_LDADD = $(LDADD) @LIBINTL@ $(LIBTHREAD) $(LIB_PTHREAD)
 EXTRA_DIST += test-regex.c macros.h
 
 ## end   gnulib module regex-tests

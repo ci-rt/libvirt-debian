@@ -66,7 +66,7 @@ VIR_ENUM_IMPL(virNetworkForwardDriverName,
               "kvm",
               "vfio")
 
-virNetworkObjPtr virNetworkFindByUUID(const virNetworkObjListPtr nets,
+virNetworkObjPtr virNetworkFindByUUID(virNetworkObjListPtr nets,
                                       const unsigned char *uuid)
 {
     size_t i;
@@ -81,7 +81,7 @@ virNetworkObjPtr virNetworkFindByUUID(const virNetworkObjListPtr nets,
     return NULL;
 }
 
-virNetworkObjPtr virNetworkFindByName(const virNetworkObjListPtr nets,
+virNetworkObjPtr virNetworkFindByName(virNetworkObjListPtr nets,
                                       const char *name)
 {
     size_t i;
@@ -175,6 +175,11 @@ virNetworkDNSSrvDefClear(virNetworkDNSSrvDefPtr def)
 static void
 virNetworkDNSDefClear(virNetworkDNSDefPtr def)
 {
+    if (def->forwarders) {
+        while (def->nfwds)
+            VIR_FREE(def->forwarders[--def->nfwds]);
+        VIR_FREE(def->forwarders);
+    }
     if (def->txts) {
         while (def->ntxts)
             virNetworkDNSTxtDefClear(&def->txts[--def->ntxts]);
@@ -286,7 +291,7 @@ void virNetworkObjListFree(virNetworkObjListPtr nets)
  */
 int
 virNetworkObjAssignDef(virNetworkObjPtr network,
-                       const virNetworkDefPtr def,
+                       virNetworkDefPtr def,
                        bool live)
 {
     if (virNetworkObjIsActive(network)) {
@@ -328,11 +333,11 @@ virNetworkObjAssignDef(virNetworkObjPtr network,
  * def. For an existing network, use "live" and current state of the
  * network to determine which to replace.
  *
- * Returns -1 on failure, 0 on success.
+ * Returns NULL on error, virNetworkObjPtr on success.
  */
 virNetworkObjPtr
 virNetworkAssignDef(virNetworkObjListPtr nets,
-                    const virNetworkDefPtr def,
+                    virNetworkDefPtr def,
                     bool live)
 {
     virNetworkObjPtr network;
@@ -538,7 +543,7 @@ cleanup:
 }
 
 void virNetworkRemoveInactive(virNetworkObjListPtr nets,
-                              const virNetworkObjPtr net)
+                              virNetworkObjPtr net)
 {
     size_t i;
 
@@ -566,7 +571,7 @@ void virNetworkRemoveInactive(virNetworkObjListPtr nets,
 
 /* return ips[index], or NULL if there aren't enough ips */
 virNetworkIpDefPtr
-virNetworkDefGetIpByIndex(const virNetworkDefPtr def,
+virNetworkDefGetIpByIndex(const virNetworkDef *def,
                           int family, size_t n)
 {
     size_t i;
@@ -592,7 +597,7 @@ virNetworkDefGetIpByIndex(const virNetworkDefPtr def,
 /* return number of 1 bits in netmask for the network's ipAddress,
  * or -1 on error
  */
-int virNetworkIpDefPrefix(const virNetworkIpDefPtr def)
+int virNetworkIpDefPrefix(const virNetworkIpDef *def)
 {
     return virSocketAddrGetIpPrefix(&def->address,
                                     &def->netmask,
@@ -603,7 +608,7 @@ int virNetworkIpDefPrefix(const virNetworkIpDefPtr def)
  * definition, based on either the definition's netmask, or its
  * prefix. Return -1 on error (and set the netmask family to AF_UNSPEC)
  */
-int virNetworkIpDefNetmask(const virNetworkIpDefPtr def,
+int virNetworkIpDefNetmask(const virNetworkIpDef *def,
                            virSocketAddrPtr netmask)
 {
     if (VIR_SOCKET_ADDR_IS_FAMILY(&def->netmask, AF_INET)) {
@@ -662,7 +667,7 @@ cleanup:
 
 static int
 virNetworkDHCPHostDefParseXML(const char *networkName,
-                              const virNetworkIpDefPtr def,
+                              virNetworkIpDefPtr def,
                               xmlNodePtr node,
                               virNetworkDHCPHostDefPtr host,
                               bool partialOkay)
@@ -1037,8 +1042,9 @@ virNetworkDNSDefParseXML(const char *networkName,
     xmlNodePtr *hostNodes = NULL;
     xmlNodePtr *srvNodes = NULL;
     xmlNodePtr *txtNodes = NULL;
+    xmlNodePtr *fwdNodes = NULL;
     char *forwardPlainNames = NULL;
-    int nhosts, nsrvs, ntxts;
+    int nhosts, nsrvs, ntxts, nfwds;
     size_t i;
     int ret = -1;
     xmlNodePtr save = ctxt->node;
@@ -1055,6 +1061,30 @@ virNetworkDNSDefParseXML(const char *networkName,
                              "in network '%s'"),
                            forwardPlainNames, networkName);
             goto cleanup;
+        }
+    }
+
+    nfwds = virXPathNodeSet("./forwarder", ctxt, &fwdNodes);
+    if (nfwds < 0) {
+        virReportError(VIR_ERR_XML_ERROR,
+                       _("invalid <forwarder> element found in <dns> of network %s"),
+                       networkName);
+        goto cleanup;
+    }
+    if (nfwds > 0) {
+        if (VIR_ALLOC_N(def->forwarders, nfwds) < 0)
+            goto cleanup;
+
+        for (i = 0; i < nfwds; i++) {
+            def->forwarders[i] = virXMLPropString(fwdNodes[i], "addr");
+            if (virSocketAddrParse(NULL, def->forwarders[i], AF_UNSPEC) < 0) {
+                virReportError(VIR_ERR_XML_ERROR,
+                           _("Invalid forwarder IP address '%s' "
+                             "in network '%s'"),
+                           def->forwarders[i], networkName);
+                goto cleanup;
+            }
+            def->nfwds++;
         }
     }
 
@@ -1121,6 +1151,7 @@ virNetworkDNSDefParseXML(const char *networkName,
     ret = 0;
 cleanup:
     VIR_FREE(forwardPlainNames);
+    VIR_FREE(fwdNodes);
     VIR_FREE(hostNodes);
     VIR_FREE(srvNodes);
     VIR_FREE(txtNodes);
@@ -2262,18 +2293,19 @@ cleanup:
 
 static int
 virNetworkDNSDefFormat(virBufferPtr buf,
-                       virNetworkDNSDefPtr def)
+                       const virNetworkDNSDef *def)
 {
     int result = 0;
     size_t i, j;
 
-    if (!(def->forwardPlainNames || def->nhosts || def->nsrvs || def->ntxts))
+    if (!(def->forwardPlainNames || def->forwarders || def->nhosts ||
+          def->nsrvs || def->ntxts))
         goto out;
 
     virBufferAddLit(buf, "<dns");
     if (def->forwardPlainNames) {
         virBufferAddLit(buf, " forwardPlainNames='yes'");
-        if (!(def->nhosts || def->nsrvs || def->ntxts)) {
+        if (!(def->forwarders || def->nhosts || def->nsrvs || def->ntxts)) {
             virBufferAddLit(buf, "/>\n");
             goto out;
         }
@@ -2281,6 +2313,11 @@ virNetworkDNSDefFormat(virBufferPtr buf,
 
     virBufferAddLit(buf, ">\n");
     virBufferAdjustIndent(buf, 2);
+
+    for (i = 0; i < def->nfwds; i++) {
+        virBufferAsprintf(buf, "<forwarder addr='%s'/>\n",
+                          def->forwarders[i]);
+    }
 
     for (i = 0; i < def->ntxts; i++) {
         virBufferAsprintf(buf, "<txt name='%s' value='%s'/>\n",
@@ -2332,7 +2369,7 @@ out:
 
 static int
 virNetworkIpDefFormat(virBufferPtr buf,
-                      const virNetworkIpDefPtr def)
+                      const virNetworkIpDef *def)
 {
     int result = -1;
 
@@ -2429,7 +2466,7 @@ error:
 
 static int
 virNetworkRouteDefFormat(virBufferPtr buf,
-                      const virNetworkRouteDefPtr def)
+                         const virNetworkRouteDef *def)
 {
     int result = -1;
 
@@ -2476,7 +2513,7 @@ error:
 
 static int
 virPortGroupDefFormat(virBufferPtr buf,
-                      const virPortGroupDefPtr def)
+                      const virPortGroupDef *def)
 {
     virBufferAsprintf(buf, "<portgroup name='%s'", def->name);
     if (def->isDefault) {
@@ -2496,7 +2533,7 @@ virPortGroupDefFormat(virBufferPtr buf,
 
 static int
 virNetworkForwardNatDefFormat(virBufferPtr buf,
-                              const virNetworkForwardDefPtr fwd)
+                              const virNetworkForwardDef *fwd)
 {
     char *addrStart = NULL;
     char *addrEnd = NULL;
@@ -2546,13 +2583,13 @@ cleanup:
 
 static int
 virNetworkDefFormatInternal(virBufferPtr buf,
-                            const virNetworkDefPtr def,
+                            const virNetworkDef *def,
                             unsigned int flags)
 {
-    unsigned char *uuid;
+    const unsigned char *uuid;
     char uuidstr[VIR_UUID_STRING_BUFLEN];
     size_t i;
-    int shortforward;
+    bool shortforward;
 
     virBufferAddLit(buf, "<network");
     if (!(flags & VIR_NETWORK_XML_INACTIVE) && (def->connections > 0)) {
@@ -2709,7 +2746,7 @@ error:
 }
 
 char *
-virNetworkDefFormat(virNetworkDefPtr def,
+virNetworkDefFormat(const virNetworkDef *def,
                     unsigned int flags)
 {
     virBuffer buf = VIR_BUFFER_INITIALIZER;
@@ -3112,7 +3149,7 @@ char *virNetworkConfigFile(const char *dir,
     return ret;
 }
 
-int virNetworkBridgeInUse(const virNetworkObjListPtr nets,
+int virNetworkBridgeInUse(virNetworkObjListPtr nets,
                           const char *bridge,
                           const char *skipname)
 {
@@ -3131,7 +3168,7 @@ int virNetworkBridgeInUse(const virNetworkObjListPtr nets,
     return ret;
 }
 
-char *virNetworkAllocateBridge(const virNetworkObjListPtr nets,
+char *virNetworkAllocateBridge(virNetworkObjListPtr nets,
                                const char *template)
 {
 
@@ -3158,10 +3195,10 @@ char *virNetworkAllocateBridge(const virNetworkObjListPtr nets,
     return NULL;
 }
 
-int virNetworkSetBridgeName(const virNetworkObjListPtr nets,
+int virNetworkSetBridgeName(virNetworkObjListPtr nets,
                             virNetworkDefPtr def,
-                            int check_collision) {
-
+                            int check_collision)
+{
     int ret = -1;
 
     if (def->bridge && !strstr(def->bridge, "%d")) {

@@ -528,7 +528,56 @@ int virFileUpdatePerm(const char *path,
 
 
 #if defined(__linux__) && HAVE_DECL_LO_FLAGS_AUTOCLEAR
-static int virFileLoopDeviceOpen(char **dev_name)
+
+# if HAVE_DECL_LOOP_CTL_GET_FREE
+
+/* virFileLoopDeviceOpenLoopCtl() returns -1 when a real failure has occured
+ * while in the process of allocating or opening the loop device.  On success
+ * we return 0 and modify the fd to the appropriate file descriptor.
+ * If /dev/loop-control does not exist, we return 0 and do not set fd. */
+
+static int virFileLoopDeviceOpenLoopCtl(char **dev_name, int *fd)
+{
+    int devnr;
+    int ctl_fd;
+    char *looppath = NULL;
+
+    VIR_DEBUG("Opening loop-control device");
+    if ((ctl_fd = open("/dev/loop-control", O_RDWR)) < 0) {
+        if (errno == ENOENT)
+            return 0;
+
+        virReportSystemError(errno, "%s",
+                             _("Unable to open /dev/loop-control"));
+        return -1;
+    }
+
+    if ((devnr = ioctl(ctl_fd, LOOP_CTL_GET_FREE)) < 0) {
+        virReportSystemError(errno, "%s",
+                             _("Unable to get free loop device via ioctl"));
+        close(ctl_fd);
+        return -1;
+    }
+    close(ctl_fd);
+
+    VIR_DEBUG("Found free loop device number %i", devnr);
+
+    if (virAsprintf(&looppath, "/dev/loop%i", devnr) < 0)
+        return -1;
+
+    if ((*fd = open(looppath, O_RDWR)) < 0) {
+        virReportSystemError(errno,
+                _("Unable to open %s"), looppath);
+        VIR_FREE(looppath);
+        return -1;
+    }
+
+    *dev_name = looppath;
+    return 0;
+}
+# endif /* HAVE_DECL_LOOP_CTL_GET_FREE */
+
+static int virFileLoopDeviceOpenSearch(char **dev_name)
 {
     int fd = -1;
     DIR *dh = NULL;
@@ -601,6 +650,25 @@ cleanup:
     return fd;
 }
 
+static int virFileLoopDeviceOpen(char **dev_name)
+{
+    int loop_fd = -1;
+
+# if HAVE_DECL_LOOP_CTL_GET_FREE
+    if (virFileLoopDeviceOpenLoopCtl(dev_name, &loop_fd) < 0)
+        return -1;
+
+    VIR_DEBUG("Return from loop-control got fd %d\n", loop_fd);
+
+    if (loop_fd >= 0)
+        return loop_fd;
+# endif /* HAVE_DECL_LOOP_CTL_GET_FREE */
+
+    /* Without the loop control device we just use the old technique. */
+    loop_fd = virFileLoopDeviceOpenSearch(dev_name);
+
+    return loop_fd;
+}
 
 int virFileLoopDeviceAssociate(const char *file,
                                char **dev)
@@ -667,7 +735,7 @@ virFileNBDDeviceIsBusy(const char *devname)
                     devname) < 0)
         return -1;
 
-    if (access(path, F_OK) < 0) {
+    if (!virFileExists(path)) {
         if (errno == ENOENT)
             ret = 0;
         else
@@ -732,7 +800,7 @@ int virFileNBDDeviceAssociate(const char *file,
                               char **dev)
 {
     char *nbddev;
-    char *qemunbd;
+    char *qemunbd = NULL;
     virCommandPtr cmd = NULL;
     int ret = -1;
     const char *fmtstr = NULL;
@@ -770,6 +838,8 @@ int virFileNBDDeviceAssociate(const char *file,
     if (virCommandRun(cmd, NULL) < 0)
         goto cleanup;
 
+    VIR_DEBUG("Associated NBD device %s with file %s and format %s",
+              nbddev, file, fmtstr);
     *dev = nbddev;
     nbddev = NULL;
     ret = 0;
@@ -964,14 +1034,23 @@ safezero(int fd, off_t offset, off_t len)
     errno = ret;
     return -1;
 }
+
 #else
 
-# ifdef HAVE_MMAP
 int
 safezero(int fd, off_t offset, off_t len)
 {
     int r;
     char *buf;
+    unsigned long long remain, bytes;
+# ifdef HAVE_MMAP
+    static long pagemask = 0;
+    off_t map_skip;
+
+    /* align offset and length, rounding offset down and length up */
+    if (pagemask == 0)
+        pagemask = ~(sysconf(_SC_PAGESIZE) - 1);
+    map_skip = offset - (offset & pagemask);
 
     /* memset wants the mmap'ed file to be present on disk so create a
      * sparse file
@@ -980,31 +1059,25 @@ safezero(int fd, off_t offset, off_t len)
     if (r < 0)
         return -1;
 
-    buf = mmap(NULL, len, PROT_READ | PROT_WRITE, MAP_SHARED, fd, offset);
-    if (buf == MAP_FAILED)
-        return -1;
+    buf = mmap(NULL, len + map_skip, PROT_READ | PROT_WRITE, MAP_SHARED,
+               fd, offset - map_skip);
+    if (buf != MAP_FAILED) {
+        memset(buf + map_skip, 0, len);
+        munmap(buf, len + map_skip);
 
-    memset(buf, 0, len);
-    munmap(buf, len);
+        return 0;
+    }
 
-    return 0;
-}
-
-# else /* HAVE_MMAP */
-
-int
-safezero(int fd, off_t offset, off_t len)
-{
-    int r;
-    char *buf;
-    unsigned long long remain, bytes;
+    /* fall back to writing zeroes using safewrite if mmap fails (for
+     * example because of virtual memory limits) */
+# endif /* HAVE_MMAP */
 
     if (lseek(fd, offset, SEEK_SET) < 0)
         return -1;
 
     /* Split up the write in small chunks so as not to allocate lots of RAM */
     remain = len;
-    bytes = 1024 * 1024;
+    bytes = MIN(1024 * 1024, len);
 
     r = VIR_ALLOC_N(buf, bytes);
     if (r < 0) {
@@ -1028,7 +1101,6 @@ safezero(int fd, off_t offset, off_t len)
     VIR_FREE(buf);
     return 0;
 }
-# endif /* HAVE_MMAP */
 #endif /* HAVE_POSIX_FALLOCATE */
 
 
@@ -1354,6 +1426,7 @@ virFileIsLink(const char *linkpath)
 char *
 virFindFileInPath(const char *file)
 {
+    const char *origpath = NULL;
     char *path = NULL;
     char *pathiter;
     char *pathseg;
@@ -1382,9 +1455,11 @@ virFindFileInPath(const char *file)
     }
 
     /* copy PATH env so we can tweak it */
-    path = getenv("PATH");
+    origpath = virGetEnvBlockSUID("PATH");
+    if (!origpath)
+        origpath = "/bin:/usr/bin";
 
-    if (VIR_STRDUP_QUIET(path, path) <= 0)
+    if (VIR_STRDUP_QUIET(path, origpath) <= 0)
         return NULL;
 
     /* for each path segment, append the file to search for and test for
@@ -1409,6 +1484,12 @@ virFileIsDir(const char *path)
     return (stat(path, &s) == 0) && S_ISDIR(s.st_mode);
 }
 
+/**
+ * virFileExists: Check for presence of file
+ * @path: Path of file to check
+ *
+ * Returns if the file exists. Preserves errno in case it does not exist.
+ */
 bool
 virFileExists(const char *path)
 {
@@ -1454,8 +1535,8 @@ virFileAccessibleAs(const char *path, int mode,
     gid_t *groups;
     int ngroups;
 
-    if (uid == getuid() &&
-        gid == getgid())
+    if (uid == geteuid() &&
+        gid == getegid())
         return access(path, mode);
 
     ngroups = virGetGroupList(uid, gid, &groups);
@@ -1747,9 +1828,9 @@ virFileOpenAs(const char *path, int openflags, mode_t mode,
 
     /* allow using -1 to mean "current value" */
     if (uid == (uid_t) -1)
-        uid = getuid();
+        uid = geteuid();
     if (gid == (gid_t) -1)
-        gid = getgid();
+        gid = getegid();
 
     /* treat absence of both flags as presence of both for simpler
      * calling. */
@@ -1757,7 +1838,7 @@ virFileOpenAs(const char *path, int openflags, mode_t mode,
         flags |= VIR_FILE_OPEN_NOFORK|VIR_FILE_OPEN_FORK;
 
     if ((flags & VIR_FILE_OPEN_NOFORK)
-        || (getuid() != 0)
+        || (geteuid() != 0)
         || ((uid == 0) && (gid == 0))) {
 
         if ((fd = open(path, openflags, mode)) < 0) {
@@ -1868,12 +1949,12 @@ virDirCreate(const char *path,
 
     /* allow using -1 to mean "current value" */
     if (uid == (uid_t) -1)
-        uid = getuid();
+        uid = geteuid();
     if (gid == (gid_t) -1)
-        gid = getgid();
+        gid = getegid();
 
     if ((!(flags & VIR_DIR_CREATE_AS_UID))
-        || (getuid() != 0)
+        || (geteuid() != 0)
         || ((uid == 0) && (gid == 0))
         || ((flags & VIR_DIR_CREATE_ALLOW_EXIST) && (stat(path, &st) >= 0))) {
         return virDirCreateNoFork(path, mode, uid, gid, flags);

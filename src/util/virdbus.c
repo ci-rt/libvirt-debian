@@ -32,6 +32,7 @@
 
 #ifdef WITH_DBUS
 
+static bool sharedBus = true;
 static DBusConnection *systembus = NULL;
 static DBusConnection *sessionbus = NULL;
 static virOnceControl systemonce = VIR_ONCE_CONTROL_INITIALIZER;
@@ -43,6 +44,11 @@ static dbus_bool_t virDBusAddWatch(DBusWatch *watch, void *data);
 static void virDBusRemoveWatch(DBusWatch *watch, void *data);
 static void virDBusToggleWatch(DBusWatch *watch, void *data);
 
+void virDBusSetSharedBus(bool shared)
+{
+    sharedBus = shared;
+}
+
 static DBusConnection *virDBusBusInit(DBusBusType type, DBusError *dbuserr)
 {
     DBusConnection *bus;
@@ -52,7 +58,10 @@ static DBusConnection *virDBusBusInit(DBusBusType type, DBusError *dbuserr)
     dbus_threads_init_default();
 
     dbus_error_init(dbuserr);
-    if (!(bus = dbus_bus_get(type, dbuserr)))
+    bus = sharedBus ?
+        dbus_bus_get(type, dbuserr) :
+        dbus_bus_get_private(type, dbuserr);
+    if (!bus)
         return NULL;
 
     dbus_connection_set_exit_on_disconnect(bus, FALSE);
@@ -102,16 +111,39 @@ virDBusGetSystemBus(void)
 }
 
 
+/**
+ * virDBusHasSystemBus:
+ *
+ * Check if dbus system bus is running. This does not
+ * imply that we have a connection. DBus might be running
+ * and refusing connections due to its client limit. The
+ * latter must be treated as a fatal error.
+ *
+ * Return false if dbus is not available, true if probably available.
+ */
 bool
 virDBusHasSystemBus(void)
 {
     if (virDBusGetSystemBusInternal())
         return true;
 
-    VIR_DEBUG("System DBus not available: %s", NULLSTR(systemdbuserr.message));
-    return false;
+    if (systemdbuserr.name &&
+        (STREQ(systemdbuserr.name, "org.freedesktop.DBus.Error.FileNotFound") ||
+         STREQ(systemdbuserr.name, "org.freedesktop.DBus.Error.NoServer"))) {
+        VIR_DEBUG("System DBus not available: %s", NULLSTR(systemdbuserr.message));
+        return false;
+    }
+    return true;
 }
 
+
+void virDBusCloseSystemBus(void)
+{
+    if (systembus && !sharedBus) {
+        dbus_connection_close(systembus);
+        systembus = NULL;
+    }
+}
 
 static void virDBusSessionBusInit(void)
 {
@@ -601,8 +633,10 @@ virDBusMessageIterEncode(DBusMessageIter *rootiter,
                 goto cleanup;
             if (virDBusTypeStackPush(&stack, &nstack,
                                      iter, types,
-                                     nstruct, narray) < 0)
+                                     nstruct, narray) < 0) {
+                VIR_FREE(newiter);
                 goto cleanup;
+            }
             VIR_FREE(contsig);
             iter = newiter;
             newiter = NULL;
@@ -625,8 +659,10 @@ virDBusMessageIterEncode(DBusMessageIter *rootiter,
                 goto cleanup;
             if (virDBusTypeStackPush(&stack, &nstack,
                                      iter, types,
-                                     nstruct, narray) < 0)
+                                     nstruct, narray) < 0) {
+                VIR_FREE(newiter);
                 goto cleanup;
+            }
             iter = newiter;
             newiter = NULL;
             types = vsig;
@@ -657,8 +693,10 @@ virDBusMessageIterEncode(DBusMessageIter *rootiter,
 
             if (virDBusTypeStackPush(&stack, &nstack,
                                      iter, types,
-                                     nstruct, narray) < 0)
+                                     nstruct, narray) < 0) {
+                VIR_FREE(newiter);
                 goto cleanup;
+            }
             VIR_FREE(contsig);
             iter = newiter;
             newiter = NULL;
@@ -678,6 +716,17 @@ virDBusMessageIterEncode(DBusMessageIter *rootiter,
     ret = 0;
 
 cleanup:
+    while (nstack > 0) {
+        DBusMessageIter *thisiter = iter;
+        VIR_DEBUG("Popping iter=%p", iter);
+        ignore_value(virDBusTypeStackPop(&stack, &nstack, &iter,
+                                         &types, &nstruct, &narray));
+        VIR_DEBUG("Popped iter=%p", iter);
+
+        if (thisiter != rootiter)
+            VIR_FREE(thisiter);
+    }
+
     virDBusTypeStackFree(&stack, &nstack);
     VIR_FREE(contsig);
     VIR_FREE(newiter);
@@ -1207,8 +1256,69 @@ int virDBusMessageRead(DBusMessage *msg,
     return ret;
 }
 
+/**
+ * virDBusIsServiceEnabled:
+ * @name: service name
+ *
+ * Retruns 0 if service is available, -1 on fatal error, or -2 if service is not available
+ */
+int virDBusIsServiceEnabled(const char *name)
+{
+    DBusConnection *conn;
+    DBusMessage *reply = NULL;
+    DBusMessageIter iter, sub;
+    int ret = -1;
+
+    if (!virDBusHasSystemBus())
+        return -2;
+
+    if (!(conn = virDBusGetSystemBus()))
+        return -1;
+
+    if (virDBusCallMethod(conn,
+                          &reply,
+                          "org.freedesktop.DBus",
+                          "/org/freedesktop/DBus",
+                          "org.freedesktop.DBus",
+                          "ListActivatableNames",
+                          DBUS_TYPE_INVALID) < 0)
+        return ret;
+
+    if (!dbus_message_iter_init(reply, &iter) ||
+        dbus_message_iter_get_arg_type(&iter) != DBUS_TYPE_ARRAY) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Reply message incorrect"));
+        goto cleanup;
+    }
+
+    ret = -2;
+    dbus_message_iter_recurse(&iter, &sub);
+    while (dbus_message_iter_get_arg_type(&sub) == DBUS_TYPE_STRING) {
+        const char *service = NULL;
+
+        dbus_message_iter_get_basic(&sub, &service);
+        dbus_message_iter_next(&sub);
+
+        if (STREQ(service, name)) {
+            ret = 0;
+            break;
+        }
+    }
+
+    VIR_DEBUG("Service %s is %s", name, ret ? "unavailable" : "available");
+
+ cleanup:
+    dbus_message_unref(reply);
+    return ret;
+}
+
 
 #else /* ! WITH_DBUS */
+void virDBusSetSharedBus(bool shared ATTRIBUTE_UNUSED)
+{
+    /* nothing */
+}
+
 DBusConnection *virDBusGetSystemBus(void)
 {
     virReportError(VIR_ERR_INTERNAL_ERROR,
@@ -1224,6 +1334,10 @@ virDBusHasSystemBus(void)
     return false;
 }
 
+void virDBusCloseSystemBus(void)
+{
+    /* nothing */
+}
 
 DBusConnection *virDBusGetSessionBus(void)
 {
@@ -1269,6 +1383,12 @@ int virDBusMessageDecode(DBusMessage* msg ATTRIBUTE_UNUSED,
     virReportError(VIR_ERR_INTERNAL_ERROR,
                    "%s", _("DBus support not compiled into this binary"));
     return -1;
+}
+
+int virDBusIsServiceEnabled(const char *name ATTRIBUTE_UNUSED)
+{
+    VIR_DEBUG("DBus support not compiled into this binary");
+    return -2;
 }
 
 #endif /* ! WITH_DBUS */

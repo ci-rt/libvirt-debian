@@ -85,6 +85,14 @@ virStorageBackendLogicalMakeVol(virStoragePoolObjPtr pool,
     if (attrs[4] != 'a')
         return 0;
 
+    /*
+     * Skip thin pools(t). These show up in normal lvs output
+     * but do not have a corresponding /dev/$vg/$lv device that
+     * is created by udev. This breaks assumptions in later code.
+     */
+    if (attrs[0] == 't')
+        return 0;
+
     /* See if we're only looking for a specific volume */
     if (data != NULL) {
         vol = data;
@@ -195,7 +203,6 @@ virStorageBackendLogicalMakeVol(virStoragePoolObjPtr pool,
     if (err != 0) {
         char error[100];
         regerror(err, reg, error, sizeof(error));
-        regfree(reg);
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("Failed to compile regex %s"),
                        error);
@@ -454,7 +461,7 @@ virStorageBackendLogicalCheckPool(virConnectPtr conn ATTRIBUTE_UNUSED,
                                   virStoragePoolObjPtr pool,
                                   bool *isActive)
 {
-    *isActive = (access(pool->def->target.path, F_OK) == 0);
+    *isActive = virFileExists(pool->def->target.path);
     return 0;
 }
 
@@ -719,7 +726,7 @@ virStorageBackendLogicalCreateVol(virConnectPtr conn,
         goto error;
 
     /* We can only chown/grp if root */
-    if (getuid() == 0) {
+    if (geteuid() == 0) {
         if (fchown(fd, vol->target.perms.uid, vol->target.perms.gid) < 0) {
             virReportSystemError(errno,
                                  _("cannot set file owner '%s'"),

@@ -79,18 +79,23 @@ testCompareXMLToXMLHelper(const void *data)
         goto cleanup;
 
     if (info->different) {
-        ret = testCompareXMLToXMLFiles(xml_in, xml_out, false);
+        if (testCompareXMLToXMLFiles(xml_in, xml_out, false) < 0)
+            goto cleanup;
     } else {
-        ret = testCompareXMLToXMLFiles(xml_in, xml_in, false);
+        if (testCompareXMLToXMLFiles(xml_in, xml_in, false) < 0)
+            goto cleanup;
     }
     if (!info->inactive_only) {
         if (info->different) {
-            ret = testCompareXMLToXMLFiles(xml_in, xml_out, true);
+            if (testCompareXMLToXMLFiles(xml_in, xml_out, true) < 0)
+                goto cleanup;
         } else {
-            ret = testCompareXMLToXMLFiles(xml_in, xml_in, true);
+            if (testCompareXMLToXMLFiles(xml_in, xml_in, true) < 0)
+                goto cleanup;
         }
     }
 
+    ret = 0;
 cleanup:
     VIR_FREE(xml_in);
     VIR_FREE(xml_out);
@@ -112,8 +117,8 @@ mymain(void)
 # define DO_TEST_FULL(name, is_different, inactive)                     \
     do {                                                                \
         const struct testInfo info = {name, is_different, inactive};    \
-        if (virtTestRun("LXC XML-2-XML " name,                         \
-                        1, testCompareXMLToXMLHelper, &info) < 0)       \
+        if (virtTestRun("LXC XML-2-XML " name,                          \
+                        testCompareXMLToXMLHelper, &info) < 0)          \
             ret = -1;                                                   \
     } while (0)
 
@@ -131,6 +136,7 @@ mymain(void)
     DO_TEST("systemd");
     DO_TEST("hostdev");
     DO_TEST("disk-formats");
+    DO_TEST_DIFFERENT("filesystem-ram");
 
     virObjectUnref(caps);
     virObjectUnref(xmlopt);

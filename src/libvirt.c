@@ -133,7 +133,7 @@ static int virConnectAuthGainPolkit(const char *privilege) {
     int status;
     int ret = -1;
 
-    if (getuid() == 0)
+    if (geteuid() == 0)
         return 0;
 
     cmd = virCommandNewArgList(POLKIT_AUTH, "--obtain", privilege, NULL);
@@ -409,6 +409,14 @@ virGlobalInit(void)
         virErrorInitialize() < 0)
         goto error;
 
+#ifndef IN_VIRT_LOGIN_SHELL
+    if (virIsSUID()) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("libvirt.so is not safe to use from setuid programs"));
+        goto error;
+    }
+#endif
+
 #ifdef WITH_GNUTLS_GCRYPT
     /*
      * This sequence of API calls it copied exactly from
@@ -446,40 +454,46 @@ virGlobalInit(void)
         goto error;
 
     /*
+     * Note we must avoid everything except 'remote' driver
+     * for virt-login-shell usage
+     */
+#ifndef LIBVIRT_SETUID_RPC_CLIENT
+    /*
      * Note that the order is important: the first ones have a higher
      * priority when calling virConnectOpen.
      */
-#ifdef WITH_TEST
+# ifdef WITH_TEST
     if (testRegister() == -1)
         goto error;
-#endif
-#ifdef WITH_OPENVZ
+# endif
+# ifdef WITH_OPENVZ
     if (openvzRegister() == -1)
         goto error;
-#endif
-#ifdef WITH_VMWARE
+# endif
+# ifdef WITH_VMWARE
     if (vmwareRegister() == -1)
         goto error;
-#endif
-#ifdef WITH_PHYP
+# endif
+# ifdef WITH_PHYP
     if (phypRegister() == -1)
         goto error;
-#endif
-#ifdef WITH_ESX
+# endif
+# ifdef WITH_ESX
     if (esxRegister() == -1)
         goto error;
-#endif
-#ifdef WITH_HYPERV
+# endif
+# ifdef WITH_HYPERV
     if (hypervRegister() == -1)
         goto error;
-#endif
-#ifdef WITH_XENAPI
+# endif
+# ifdef WITH_XENAPI
     if (xenapiRegister() == -1)
         goto error;
-#endif
-#ifdef WITH_PARALLELS
+# endif
+# ifdef WITH_PARALLELS
     if (parallelsRegister() == -1)
         goto error;
+# endif
 #endif
 #ifdef WITH_REMOTE
     if (remoteRegister() == -1)
@@ -1088,7 +1102,7 @@ virConnectGetDefaultURI(virConfPtr conf,
 {
     int ret = -1;
     virConfValuePtr value = NULL;
-    char *defname = getenv("LIBVIRT_DEFAULT_URI");
+    const char *defname = virGetEnvBlockSUID("LIBVIRT_DEFAULT_URI");
     if (defname && *defname) {
         VIR_DEBUG("Using LIBVIRT_DEFAULT_URI '%s'", defname);
         *name = defname;
@@ -1128,6 +1142,12 @@ do_open(const char *name,
 
     if (name && name[0] == '\0')
         name = NULL;
+
+    if (!name && virIsSUID()) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("An explicit URI must be provided when setuid"));
+        goto failed;
+    }
 
     /*
      *  If no URI is passed, then check for an environment string if not
@@ -1581,7 +1601,11 @@ virConnectSupportsFeature(virConnectPtr conn, int feature)
  * virConnectGetType:
  * @conn: pointer to the hypervisor connection
  *
- * Get the name of the Hypervisor software used.
+ * Get the name of the Hypervisor driver used. This is merely the driver
+ * name; for example, both KVM and QEMU guests are serviced by the
+ * driver for the qemu:// URI, so a return of "QEMU" does not indicate
+ * whether KVM acceleration is present.  For more details about the
+ * hypervisor, use virConnectGetCapabilities().
  *
  * Returns NULL in case of error, a static zero terminated string otherwise.
  *
@@ -1697,9 +1721,10 @@ error:
  * virConnectGetHostname:
  * @conn: pointer to a hypervisor connection
  *
- * This returns the system hostname on which the hypervisor is
- * running (the result of the gethostname system call).  If
- * we are connected to a remote system, then this returns the
+ * This returns a system hostname on which the hypervisor is
+ * running (based on the result of the gethostname system call, but
+ * possibly expanded to a fully-qualified domain name via getaddrinfo).
+ * If we are connected to a remote system, then this returns the
  * hostname of the remote system.
  *
  * Returns the hostname which must be freed by the caller, or
@@ -4052,14 +4077,14 @@ error:
  *
  * Here is a sample code snippet:
  *
- * if ((virDomainGetMemoryParameters(dom, NULL, &nparams, 0) == 0) &&
- *     (nparams != 0)) {
- *     if ((params = malloc(sizeof(*params) * nparams)) == NULL)
- *         goto error;
- *     memset(params, 0, sizeof(*params) * nparams);
- *     if (virDomainGetMemoryParameters(dom, params, &nparams, 0))
- *         goto error;
- * }
+ *   if ((virDomainGetMemoryParameters(dom, NULL, &nparams, 0) == 0) &&
+ *       (nparams != 0)) {
+ *       if ((params = malloc(sizeof(*params) * nparams)) == NULL)
+ *           goto error;
+ *       memset(params, 0, sizeof(*params) * nparams);
+ *       if (virDomainGetMemoryParameters(dom, params, &nparams, 0))
+ *           goto error;
+ *   }
  *
  * This function may require privileged access to the hypervisor. This function
  * expects the caller to allocate the @params.
@@ -4605,6 +4630,10 @@ char *virConnectDomainXMLFromNative(virConnectPtr conn,
         virLibConnError(VIR_ERR_INVALID_CONN, __FUNCTION__);
         virDispatchError(NULL);
         return NULL;
+    }
+    if (conn->flags & VIR_CONNECT_RO) {
+        virLibDomainError(VIR_ERR_OPERATION_DENIED, __FUNCTION__);
+        goto error;
     }
 
     virCheckNonNullArgGoto(nativeFormat, error);
@@ -9058,7 +9087,7 @@ error:
  * Define a domain, but does not start it.
  * This definition is persistent, until explicitly undefined with
  * virDomainUndefine(). A previous definition for this domain would be
- * overriden if it already exists.
+ * overridden if it already exists.
  *
  * Some hypervisors may prevent this operation if there is a current
  * block copy operation on a transient domain with the same id as the
@@ -10734,7 +10763,8 @@ virDomainSetMetadata(virDomainPtr domain,
         break;
     case VIR_DOMAIN_METADATA_ELEMENT:
         virCheckNonNullArgGoto(uri, error);
-        virCheckNonNullArgGoto(key, error);
+        if (metadata)
+            virCheckNonNullArgGoto(key, error);
         break;
     default:
         /* For future expansion */
@@ -16986,37 +17016,37 @@ virStreamRef(virStreamPtr stream)
  * An example using this with a hypothetical file upload
  * API looks like
  *
- *   virStreamPtr st = virStreamNew(conn, 0);
- *   int fd = open("demo.iso", O_RDONLY)
+ *     virStreamPtr st = virStreamNew(conn, 0);
+ *     int fd = open("demo.iso", O_RDONLY)
  *
- *   virConnectUploadFile(conn, "demo.iso", st);
+ *     virConnectUploadFile(conn, "demo.iso", st);
  *
- *   while (1) {
- *       char buf[1024];
- *       int got = read(fd, buf, 1024);
- *       if (got < 0) {
- *          virStreamAbort(st);
- *          break;
- *       }
- *       if (got == 0) {
- *          virStreamFinish(st);
- *          break;
- *       }
- *       int offset = 0;
- *       while (offset < got) {
- *          int sent = virStreamSend(st, buf+offset, got-offset)
- *          if (sent < 0) {
+ *     while (1) {
+ *          char buf[1024];
+ *          int got = read(fd, buf, 1024);
+ *          if (got < 0) {
  *             virStreamAbort(st);
- *             goto done;
+ *             break;
  *          }
- *          offset += sent;
- *       }
- *   }
- *   if (virStreamFinish(st) < 0)
- *      ... report an error ....
- * done:
- *   virStreamFree(st);
- *   close(fd);
+ *          if (got == 0) {
+ *             virStreamFinish(st);
+ *             break;
+ *          }
+ *          int offset = 0;
+ *          while (offset < got) {
+ *             int sent = virStreamSend(st, buf+offset, got-offset)
+ *             if (sent < 0) {
+ *                virStreamAbort(st);
+ *                goto done;
+ *             }
+ *             offset += sent;
+ *          }
+ *      }
+ *      if (virStreamFinish(st) < 0)
+ *         ... report an error ....
+ *    done:
+ *      virStreamFree(st);
+ *      close(fd);
  *
  * Returns the number of bytes written, which may be less
  * than requested.
@@ -17080,35 +17110,35 @@ error:
  * An example using this with a hypothetical file download
  * API looks like
  *
- *   virStreamPtr st = virStreamNew(conn, 0);
- *   int fd = open("demo.iso", O_WRONLY, 0600)
+ *     virStreamPtr st = virStreamNew(conn, 0);
+ *     int fd = open("demo.iso", O_WRONLY, 0600)
  *
- *   virConnectDownloadFile(conn, "demo.iso", st);
+ *     virConnectDownloadFile(conn, "demo.iso", st);
  *
- *   while (1) {
- *       char buf[1024];
- *       int got = virStreamRecv(st, buf, 1024);
- *       if (got < 0)
- *          break;
- *       if (got == 0) {
- *          virStreamFinish(st);
- *          break;
- *       }
- *       int offset = 0;
- *       while (offset < got) {
- *          int sent = write(fd, buf+offset, got-offset)
- *          if (sent < 0) {
- *             virStreamAbort(st);
- *             goto done;
- *          }
- *          offset += sent;
- *       }
- *   }
- *   if (virStreamFinish(st) < 0)
- *      ... report an error ....
- * done:
- *   virStreamFree(st);
- *   close(fd);
+ *     while (1) {
+ *         char buf[1024];
+ *         int got = virStreamRecv(st, buf, 1024);
+ *         if (got < 0)
+ *            break;
+ *         if (got == 0) {
+ *            virStreamFinish(st);
+ *            break;
+ *         }
+ *         int offset = 0;
+ *         while (offset < got) {
+ *            int sent = write(fd, buf+offset, got-offset)
+ *            if (sent < 0) {
+ *               virStreamAbort(st);
+ *               goto done;
+ *            }
+ *            offset += sent;
+ *         }
+ *     }
+ *     if (virStreamFinish(st) < 0)
+ *        ... report an error ....
+ *   done:
+ *     virStreamFree(st);
+ *     close(fd);
  *
  *
  * Returns the number of bytes read, which may be less
@@ -18515,6 +18545,57 @@ virConnectCompareCPU(virConnectPtr conn,
 error:
     virDispatchError(conn);
     return VIR_CPU_COMPARE_ERROR;
+}
+
+
+/**
+ * virConnectGetCPUModelNames:
+ *
+ * @conn: virConnect connection
+ * @arch: Architecture
+ * @models: Pointer to a variable to store the NULL-terminated array of the
+ *          CPU models supported for the specified architecture.  Each element
+ *          and the array itself must be freed by the caller with free.  Pass
+ *          NULL if only the list length is needed.
+ * @flags: extra flags; not used yet, so callers should always pass 0.
+ *
+ * Get the list of supported CPU models for a specific architecture.
+ *
+ * Returns -1 on error, number of elements in @models on success.
+ */
+int
+virConnectGetCPUModelNames(virConnectPtr conn, const char *arch, char ***models,
+                           unsigned int flags)
+{
+    VIR_DEBUG("conn=%p, arch=%s, models=%p, flags=%x",
+              conn, arch, models, flags);
+    virResetLastError();
+
+    if (models)
+        *models = NULL;
+
+    if (!VIR_IS_CONNECT(conn)) {
+        virLibConnError(VIR_ERR_INVALID_CONN, __FUNCTION__);
+        virDispatchError(NULL);
+        return -1;
+    }
+    virCheckNonNullArgReturn(arch, -1);
+
+    if (conn->driver->connectGetCPUModelNames) {
+        int ret;
+
+        ret = conn->driver->connectGetCPUModelNames(conn, arch, models, flags);
+        if (ret < 0)
+            goto error;
+
+        return ret;
+    }
+
+    virLibConnError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    virDispatchError(conn);
+    return -1;
 }
 
 

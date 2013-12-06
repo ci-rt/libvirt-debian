@@ -1,4 +1,4 @@
-From: =?UTF-8?q?Guido=20G=C3=BCnther?= <agx@sigxcpu.org>
+From: =?utf-8?q?Guido_G=C3=BCnther?= <agx@sigxcpu.org>
 Date: Mon, 4 Jun 2012 16:18:52 +0200
 Subject: Reduce udevadm settle timeout to 10 seconds
 
@@ -10,10 +10,10 @@ Closes: #663931
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/src/util/virutil.c b/src/util/virutil.c
-index 34f5998..d4c4c9c 100644
+index 87cc2e7..d258b52 100644
 --- a/src/util/virutil.c
 +++ b/src/util/virutil.c
-@@ -1432,7 +1432,7 @@ virSetUIDGIDWithCaps(uid_t uid, gid_t gid, gid_t *groups, int ngroups,
+@@ -1444,7 +1444,7 @@ virSetUIDGIDWithCaps(uid_t uid, gid_t gid, gid_t *groups, int ngroups,
  void virFileWaitForDevices(void)
  {
  # ifdef UDEVADM

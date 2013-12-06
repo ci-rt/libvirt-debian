@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2009-2012 Red Hat, Inc.
+ * Copyright (C) 2009-2013 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -287,7 +287,7 @@ virNetDevBandwidthClear(const char *ifname)
  */
 int
 virNetDevBandwidthCopy(virNetDevBandwidthPtr *dest,
-                       const virNetDevBandwidthPtr src)
+                       const virNetDevBandwidth *src)
 {
     int ret = -1;
 
@@ -335,16 +335,30 @@ virNetDevBandwidthEqual(virNetDevBandwidthPtr a,
         return false;
 
     /* in */
-    if (a->in->average != b->in->average ||
-        a->in->peak != b->in->peak ||
-        a->in->burst != b->in->burst)
+    if (a->in) {
+        if (!b->in)
+            return false;
+
+        if (a->in->average != b->in->average ||
+            a->in->peak != b->in->peak ||
+            a->in->burst != b->in->burst)
+            return false;
+    } else if (b->in) {
         return false;
+    }
 
     /*out*/
-    if (a->out->average != b->out->average ||
-        a->out->peak != b->out->peak ||
-        a->out->burst != b->out->burst)
+    if (a->out) {
+        if (!b->out)
+            return false;
+
+        if (a->out->average != b->out->average ||
+            a->out->peak != b->out->peak ||
+            a->out->burst != b->out->burst)
+            return false;
+    } else if (b->out) {
         return false;
+    }
 
     return true;
 }
@@ -372,7 +386,7 @@ virNetDevBandwidthEqual(virNetDevBandwidthPtr a,
 int
 virNetDevBandwidthPlug(const char *brname,
                        virNetDevBandwidthPtr net_bandwidth,
-                       const virMacAddrPtr ifmac_ptr,
+                       const virMacAddr *ifmac_ptr,
                        virNetDevBandwidthPtr bandwidth,
                        unsigned int id)
 {

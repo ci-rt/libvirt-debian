@@ -118,6 +118,7 @@
 #define <a href="#VIR_MIGRATE_PARAM_DEST_NAME">VIR_MIGRATE_PARAM_DEST_NAME</a>;
 #define <a href="#VIR_MIGRATE_PARAM_DEST_XML">VIR_MIGRATE_PARAM_DEST_XML</a>;
 #define <a href="#VIR_MIGRATE_PARAM_GRAPHICS_URI">VIR_MIGRATE_PARAM_GRAPHICS_URI</a>;
+#define <a href="#VIR_MIGRATE_PARAM_LISTEN_ADDRESS">VIR_MIGRATE_PARAM_LISTEN_ADDRESS</a>;
 #define <a href="#VIR_MIGRATE_PARAM_URI">VIR_MIGRATE_PARAM_URI</a>;
 #define <a href="#VIR_NODEINFO_MAXCPUS">VIR_NODEINFO_MAXCPUS</a>(nodeinfo);
 #define <a href="#VIR_NODE_CPU_STATS_FIELD_LENGTH">VIR_NODE_CPU_STATS_FIELD_LENGTH</a>;
@@ -330,7 +331,7 @@ int	<a href="#virConnectDomainEventDeregisterAny">virConnectDomainEventDeregiste
 typedef void <a href="#virConnectDomainEventDeviceRemovedCallback">virConnectDomainEventDeviceRemovedCallback</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>							 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>							 const char * devAlias, <br/>							 void * opaque);
 typedef void <a href="#virConnectDomainEventDiskChangeCallback">virConnectDomainEventDiskChangeCallback</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>						 const char * oldSrcPath, <br/>						 const char * newSrcPath, <br/>						 const char * devAlias, <br/>						 int reason, <br/>						 void * opaque);
 typedef void <a href="#virConnectDomainEventGenericCallback">virConnectDomainEventGenericCallback</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>						 void * opaque);
-typedef void <a href="#virConnectDomainEventGraphicsCallback">virConnectDomainEventGraphicsCallback</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>						 int phase, <br/>						 const <a href="libvirt-libvirt.html#virDomainEventGraphicsAddressPtr">virDomainEventGraphicsAddressPtr</a> local, <br/>						 const <a href="libvirt-libvirt.html#virDomainEventGraphicsAddressPtr">virDomainEventGraphicsAddressPtr</a> remote, <br/>						 const char * authScheme, <br/>						 const <a href="libvirt-libvirt.html#virDomainEventGraphicsSubjectPtr">virDomainEventGraphicsSubjectPtr</a> subject, <br/>						 void * opaque);
+typedef void <a href="#virConnectDomainEventGraphicsCallback">virConnectDomainEventGraphicsCallback</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>						 int phase, <br/>						 const <a href="libvirt-libvirt.html#virDomainEventGraphicsAddress">virDomainEventGraphicsAddress</a> * local, <br/>						 const <a href="libvirt-libvirt.html#virDomainEventGraphicsAddress">virDomainEventGraphicsAddress</a> * remote, <br/>						 const char * authScheme, <br/>						 const <a href="libvirt-libvirt.html#virDomainEventGraphicsSubject">virDomainEventGraphicsSubject</a> * subject, <br/>						 void * opaque);
 typedef void <a href="#virConnectDomainEventIOErrorCallback">virConnectDomainEventIOErrorCallback</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>						 const char * srcPath, <br/>						 const char * devAlias, <br/>						 int action, <br/>						 void * opaque);
 typedef void <a href="#virConnectDomainEventIOErrorReasonCallback">virConnectDomainEventIOErrorReasonCallback</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>							 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>							 const char * srcPath, <br/>							 const char * devAlias, <br/>							 int action, <br/>							 const char * reason, <br/>							 void * opaque);
 typedef void <a href="#virConnectDomainEventPMSuspendCallback">virConnectDomainEventPMSuspendCallback</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>						 int reason, <br/>						 void * opaque);
@@ -344,6 +345,7 @@ typedef void <a href="#virConnectDomainEventWatchdogCallback">virConnectDomainEv
 char *	<a href="#virConnectDomainXMLFromNative">virConnectDomainXMLFromNative</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char * nativeFormat, <br/>					 const char * nativeConfig, <br/>					 unsigned int flags);
 char *	<a href="#virConnectDomainXMLToNative">virConnectDomainXMLToNative</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char * nativeFormat, <br/>					 const char * domainXml, <br/>					 unsigned int flags);
 char *	<a href="#virConnectFindStoragePoolSources">virConnectFindStoragePoolSources</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 const char * type, <br/>						 const char * srcSpec, <br/>						 unsigned int flags);
+int	<a href="#virConnectGetCPUModelNames">virConnectGetCPUModelNames</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char * arch, <br/>					 char ** * models, <br/>					 unsigned int flags);
 char *	<a href="#virConnectGetCapabilities">virConnectGetCapabilities</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn);
 char *	<a href="#virConnectGetHostname">virConnectGetHostname</a>		(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn);
 int	<a href="#virConnectGetLibVersion">virConnectGetLibVersion</a>		(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 unsigned long * libVer);
@@ -1053,6 +1055,10 @@ int	<a href="#virTypedParamsGetULLong">virTypedParamsGetULLong</a>		(<a href="li
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="VIR_MIGRATE_PARAM_GRAPHICS_URI">Macro </a>VIR_MIGRATE_PARAM_GRAPHICS_URI</h3><pre class="programlisting">#define <a href="#VIR_MIGRATE_PARAM_GRAPHICS_URI">VIR_MIGRATE_PARAM_GRAPHICS_URI</a>;
 </pre><p>virDomainMigrate* params field: URI to use for migrating client's connection to domain's graphical console as VIR_TYPED_PARAM_STRING. If specified, the client will be asked to automatically reconnect using these parameters instead of the automatically computed ones. This can be useful if, e.g., the client does not have a direct access to the network virtualization hosts are connected to and needs to connect through a proxy. The URI is formed as follows: protocol://hostname[:port]/[?parameters] where protocol is either "spice" or "vnc" and parameters is a list of protocol specific parameters separated by '&amp;'. Currently recognized parameters are "tlsPort" and "tlsSubject". For example, spice://target.host.com:1234/?tlsPort=4567</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_MIGRATE_PARAM_LISTEN_ADDRESS">Macro </a>VIR_MIGRATE_PARAM_LISTEN_ADDRESS</h3><pre class="programlisting">#define <a href="#VIR_MIGRATE_PARAM_LISTEN_ADDRESS">VIR_MIGRATE_PARAM_LISTEN_ADDRESS</a>;
+</pre><p>virDomainMigrate* params field: The listen address that hypervisor on the destination side should bind to for incoming migration. Both, IPv4 and IPv6 addresses are accepted as well as hostnames (the resolving is done on destination). Some hypervisors do not support this feature an will return an error if this field is used.</p>
 </div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="VIR_MIGRATE_PARAM_URI">Macro </a>VIR_MIGRATE_PARAM_URI</h3><pre class="programlisting">#define <a href="#VIR_MIGRATE_PARAM_URI">VIR_MIGRATE_PARAM_URI</a>;
@@ -2700,7 +2706,7 @@ VIR_DOMAIN_EVENT_ID_DISK_CHANGE with virConnectDomainEventRegisterAny()</p>
 have a customization with extra parameters</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>the connection pointer</td></tr><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>the domain pointer</td></tr><tr><td><span class="term"><i><tt>opaque</tt></i>:</span></td><td>application specified data</td></tr></tbody></table></div></div>
         <hr/>
-        <div class="refsect2" lang="en"><h3><a name="virConnectDomainEventGraphicsCallback"/>Function type virConnectDomainEventGraphicsCallback</h3><pre class="programlisting">void	virConnectDomainEventGraphicsCallback	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>						 int phase, <br/>						 const <a href="libvirt-libvirt.html#virDomainEventGraphicsAddressPtr">virDomainEventGraphicsAddressPtr</a> local, <br/>						 const <a href="libvirt-libvirt.html#virDomainEventGraphicsAddressPtr">virDomainEventGraphicsAddressPtr</a> remote, <br/>						 const char * authScheme, <br/>						 const <a href="libvirt-libvirt.html#virDomainEventGraphicsSubjectPtr">virDomainEventGraphicsSubjectPtr</a> subject, <br/>						 void * opaque)<br/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectDomainEventGraphicsCallback"/>Function type virConnectDomainEventGraphicsCallback</h3><pre class="programlisting">void	virConnectDomainEventGraphicsCallback	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>						 int phase, <br/>						 const <a href="libvirt-libvirt.html#virDomainEventGraphicsAddress">virDomainEventGraphicsAddress</a> * local, <br/>						 const <a href="libvirt-libvirt.html#virDomainEventGraphicsAddress">virDomainEventGraphicsAddress</a> * remote, <br/>						 const char * authScheme, <br/>						 const <a href="libvirt-libvirt.html#virDomainEventGraphicsSubject">virDomainEventGraphicsSubject</a> * subject, <br/>						 void * opaque)<br/>
 </pre><p>The callback signature to use when registering for an event of type
 VIR_DOMAIN_EVENT_ID_GRAPHICS with virConnectDomainEventRegisterAny()</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>connection object</td></tr><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>domain on which the event occurred</td></tr><tr><td><span class="term"><i><tt>phase</tt></i>:</span></td><td>the phase of the connection</td></tr><tr><td><span class="term"><i><tt>local</tt></i>:</span></td><td>the local server address</td></tr><tr><td><span class="term"><i><tt>remote</tt></i>:</span></td><td>the remote client address</td></tr><tr><td><span class="term"><i><tt>authScheme</tt></i>:</span></td><td>the authentication scheme activated</td></tr><tr><td><span class="term"><i><tt>subject</tt></i>:</span></td><td>the authenticated subject (user)</td></tr><tr><td><span class="term"><i><tt>opaque</tt></i>:</span></td><td>application specified data</td></tr></tbody></table></div></div>
@@ -2763,7 +2769,7 @@ is unregistered, then a 2nd callback can be supplied for
 this purpose. This callback needs to be invoked from a clean stack.
 If 'ff' callbacks are invoked directly from the virEventRemoveHandleFunc
 they will likely deadlock in libvirt.</p>
-<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>fd</tt></i>:</span></td><td>file descriptor to listen on</td></tr><tr><td><span class="term"><i><tt>event</tt></i>:</span></td><td>bitset of events on which to fire the callback</td></tr><tr><td><span class="term"><i><tt>cb</tt></i>:</span></td><td>the callback to be called when an event occurrs</td></tr><tr><td><span class="term"><i><tt>opaque</tt></i>:</span></td><td>user data to pass to the callback</td></tr><tr><td><span class="term"><i><tt>ff</tt></i>:</span></td><td>the callback invoked to free opaque data blob</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a handle watch number to be used for updating and unregistering for events</td></tr></tbody></table></div></div>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>fd</tt></i>:</span></td><td>file descriptor to listen on</td></tr><tr><td><span class="term"><i><tt>event</tt></i>:</span></td><td>bitset of events on which to fire the callback</td></tr><tr><td><span class="term"><i><tt>cb</tt></i>:</span></td><td>the callback to be called when an event occurrs</td></tr><tr><td><span class="term"><i><tt>opaque</tt></i>:</span></td><td>user data to pass to the callback</td></tr><tr><td><span class="term"><i><tt>ff</tt></i>:</span></td><td>the callback invoked to free opaque data blob</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 if the file handle cannot be registered, otherwise a handle watch number to be used for updating and unregistering for events</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virEventAddTimeoutFunc"/>Function type virEventAddTimeoutFunc</h3><pre class="programlisting">int	virEventAddTimeoutFunc		(int timeout, <br/>					 <a href="libvirt-libvirt.html#virEventTimeoutCallback">virEventTimeoutCallback</a> cb, <br/>					 void * opaque, <br/>					 <a href="libvirt-libvirt.html#virFreeCallback">virFreeCallback</a> ff)<br/>
 </pre><p>Part of the EventImpl, this user-defined callback handles adding an
@@ -2969,14 +2975,19 @@ srcSpec is not required for some types (e.g., those querying
 local storage resources only)</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to hypervisor connection</td></tr><tr><td><span class="term"><i><tt>type</tt></i>:</span></td><td>type of storage pool sources to discover</td></tr><tr><td><span class="term"><i><tt>srcSpec</tt></i>:</span></td><td>XML document specifying discovery source</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>extra flags; not used yet, so callers should always pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>an xml document consisting of a SourceList element containing a source document appropriate to the given pool type for each discovered source.</td></tr></tbody></table></div></div>
         <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectGetCPUModelNames"/>virConnectGetCPUModelNames ()</h3><pre class="programlisting">int	virConnectGetCPUModelNames	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char * arch, <br/>					 char ** * models, <br/>					 unsigned int flags)<br/>
+</pre><p>Get the list of supported CPU models for a specific architecture.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td><a href="libvirt-libvirt.html#virConnect">virConnect</a> connection</td></tr><tr><td><span class="term"><i><tt>arch</tt></i>:</span></td><td>Architecture</td></tr><tr><td><span class="term"><i><tt>models</tt></i>:</span></td><td>Pointer to a variable to store the NULL-terminated array of the CPU models supported for the specified architecture. Each element and the array itself must be freed by the caller with free. Pass NULL if only the list length is needed.</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>extra flags; not used yet, so callers should always pass 0.</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 on error, number of elements in @models on success.</td></tr></tbody></table></div></div>
+        <hr/>
         <div class="refsect2" lang="en"><h3><a name="virConnectGetCapabilities"/>virConnectGetCapabilities ()</h3><pre class="programlisting">char *	virConnectGetCapabilities	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn)<br/>
 </pre><p>Provides capabilities of the hypervisor / driver.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>NULL in case of error, or an XML string defining the capabilities. The client must free the returned string after use.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virConnectGetHostname"/>virConnectGetHostname ()</h3><pre class="programlisting">char *	virConnectGetHostname		(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn)<br/>
-</pre><p>This returns the system hostname on which the hypervisor is
-running (the result of the gethostname system call). If
-we are connected to a remote system, then this returns the
+</pre><p>This returns a system hostname on which the hypervisor is
+running (based on the result of the gethostname system call, but
+possibly expanded to a fully-qualified domain name via getaddrinfo).
+If we are connected to a remote system, then this returns the
 hostname of the remote system.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to a hypervisor connection</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the hostname which must be freed by the caller, or NULL if there was an error.</td></tr></tbody></table></div></div>
         <hr/>
@@ -2999,7 +3010,11 @@ available only for hypervisors running with root privileges.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to a hypervisor connection</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>extra flags; not used yet, so callers should always pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the XML string which must be freed by the caller, or NULL if there was an error.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virConnectGetType"/>virConnectGetType ()</h3><pre class="programlisting">const char *	virConnectGetType	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn)<br/>
-</pre><p>Get the name of the Hypervisor software used.</p>
+</pre><p>Get the name of the Hypervisor driver used. This is merely the driver
+name; for example, both KVM and QEMU guests are serviced by the
+driver for the qemu:// URI, so a return of "QEMU" does not indicate
+whether KVM acceleration is present. For more details about the
+hypervisor, use virConnectGetCapabilities().</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>NULL in case of error, a static zero terminated string otherwise. See also: http://www.redhat.com/archives/libvir-list/2007-February/msg00096.html</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virConnectGetURI"/>virConnectGetURI ()</h3><pre class="programlisting">char *	virConnectGetURI		(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn)<br/>
@@ -3865,7 +3880,7 @@ block attempts at migration, save-to-file, or snapshots.</p>
 </pre><p>Define a domain, but does not start it.
 This definition is persistent, until explicitly undefined with
 virDomainUndefine(). A previous definition for this domain would be
-overriden if it already exists.
+overridden if it already exists.
 
 Some hypervisors may prevent this operation if there is a current
 block copy operation on a transient domain with the same id as the
@@ -4202,14 +4217,14 @@ again.
 
 Here is a sample code snippet:
 
-if ((virDomainGetMemoryParameters(dom, NULL, &amp;nparams, 0) == 0) &amp;&amp;
+ if ((virDomainGetMemoryParameters(dom, NULL, &amp;nparams, 0) == 0) &amp;&amp;
  (nparams != 0)) {
  if ((params = malloc(sizeof(*params) * nparams)) == NULL)
  goto error;
  memset(params, 0, sizeof(*params) * nparams);
  if (virDomainGetMemoryParameters(dom, params, &amp;nparams, 0))
  goto error;
-}
+ }
 
 This function may require privileged access to the hypervisor. This function
 expects the caller to allocate the @params.</p>
@@ -5910,7 +5925,7 @@ reconfiguring the NIC device backend connectivity, etc.</p>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virEventAddHandle"/>virEventAddHandle ()</h3><pre class="programlisting">int	virEventAddHandle		(int fd, <br/>					 int events, <br/>					 <a href="libvirt-libvirt.html#virEventHandleCallback">virEventHandleCallback</a> cb, <br/>					 void * opaque, <br/>					 <a href="libvirt-libvirt.html#virFreeCallback">virFreeCallback</a> ff)<br/>
 </pre><p>Register a callback for monitoring file handle events.</p>
-<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>fd</tt></i>:</span></td><td>file handle to monitor for events</td></tr><tr><td><span class="term"><i><tt>events</tt></i>:</span></td><td>bitset of events to watch from <a href="libvirt-libvirt.html#virEventHandleType">virEventHandleType</a> constants</td></tr><tr><td><span class="term"><i><tt>cb</tt></i>:</span></td><td>callback to invoke when an event occurs</td></tr><tr><td><span class="term"><i><tt>opaque</tt></i>:</span></td><td>user data to pass to callback</td></tr><tr><td><span class="term"><i><tt>ff</tt></i>:</span></td><td>callback to free opaque when handle is removed</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 if the file handle cannot be registered, 0 upon success</td></tr></tbody></table></div></div>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>fd</tt></i>:</span></td><td>file handle to monitor for events</td></tr><tr><td><span class="term"><i><tt>events</tt></i>:</span></td><td>bitset of events to watch from <a href="libvirt-libvirt.html#virEventHandleType">virEventHandleType</a> constants</td></tr><tr><td><span class="term"><i><tt>cb</tt></i>:</span></td><td>callback to invoke when an event occurs</td></tr><tr><td><span class="term"><i><tt>opaque</tt></i>:</span></td><td>user data to pass to callback</td></tr><tr><td><span class="term"><i><tt>ff</tt></i>:</span></td><td>callback to free opaque when handle is removed</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 if the file handle cannot be registered, otherwise a handle watch number to be used for updating and unregistering for events</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virEventAddTimeout"/>virEventAddTimeout ()</h3><pre class="programlisting">int	virEventAddTimeout		(int timeout, <br/>					 <a href="libvirt-libvirt.html#virEventTimeoutCallback">virEventTimeoutCallback</a> cb, <br/>					 void * opaque, <br/>					 <a href="libvirt-libvirt.html#virFreeCallback">virFreeCallback</a> ff)<br/>
 </pre><p>Register a callback for a timer event.
@@ -7107,7 +7122,7 @@ API looks like
  }
  if (virStreamFinish(st) &lt; 0)
  ... report an error ....
-done:
+ done:
  virStreamFree(st);
  close(fd);</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>stream</tt></i>:</span></td><td>pointer to the stream object</td></tr><tr><td><span class="term"><i><tt>data</tt></i>:</span></td><td>buffer to read into from stream</td></tr><tr><td><span class="term"><i><tt>nbytes</tt></i>:</span></td><td>size of @data buffer</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of bytes read, which may be less than requested. Returns 0 when the end of the stream is reached, at which time the caller should invoke virStreamFinish() to get confirmation of stream completion. Returns -1 upon error, at which time the stream will be marked as aborted, and the caller should now release the stream with virStreamFree. Returns -2 if there is no data pending to be read &amp; the stream is marked as non-blocking.</td></tr></tbody></table></div></div>
@@ -7192,7 +7207,7 @@ API looks like
  }
  if (virStreamFinish(st) &lt; 0)
  ... report an error ....
-done:
+ done:
  virStreamFree(st);
  close(fd);</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>stream</tt></i>:</span></td><td>pointer to the stream object</td></tr><tr><td><span class="term"><i><tt>data</tt></i>:</span></td><td>buffer to write to stream</td></tr><tr><td><span class="term"><i><tt>nbytes</tt></i>:</span></td><td>size of @data buffer</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of bytes written, which may be less than requested. Returns -1 upon error, at which time the stream will be marked as aborted, and the caller should now release the stream with virStreamFree. Returns -2 if the outgoing transmit buffers are full &amp; the stream is marked as non-blocking.</td></tr></tbody></table></div></div>

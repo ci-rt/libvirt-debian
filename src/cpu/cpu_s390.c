@@ -1,6 +1,7 @@
 /*
  * cpu_s390.c: CPU driver for s390(x) CPUs
  *
+ * Copyright (C) 2013 Red Hat, Inc.
  * Copyright IBM Corp. 2012
  *
  * This library is free software; you can redistribute it and/or
@@ -32,12 +33,14 @@
 static const virArch archs[] = { VIR_ARCH_S390, VIR_ARCH_S390X };
 
 static virCPUDataPtr
-s390NodeData(void)
+s390NodeData(virArch arch)
 {
     virCPUDataPtr data;
 
     if (VIR_ALLOC(data) < 0)
         return NULL;
+
+    data->arch = arch;
 
     return data;
 }
@@ -45,7 +48,7 @@ s390NodeData(void)
 
 static int
 s390Decode(virCPUDefPtr cpu ATTRIBUTE_UNUSED,
-           const virCPUDataPtr data ATTRIBUTE_UNUSED,
+           const virCPUData *data ATTRIBUTE_UNUSED,
            const char **models ATTRIBUTE_UNUSED,
            unsigned int nmodels ATTRIBUTE_UNUSED,
            const char *preferred ATTRIBUTE_UNUSED,

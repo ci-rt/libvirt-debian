@@ -130,7 +130,7 @@ mymain(void)
         info.name = xname;                                           \
         info.caps = xcaps;                                           \
         if (virtTestRun("Network XML-2-Conf " xname,                 \
-                        1, testCompareXMLToConfHelper, &info) < 0) { \
+                        testCompareXMLToConfHelper, &info) < 0) {    \
             ret = -1;                                                \
         }                                                            \
     } while (0)
@@ -145,6 +145,7 @@ mymain(void)
     DO_TEST("nat-network-dns-srv-record", full);
     DO_TEST("nat-network-dns-hosts", full);
     DO_TEST("nat-network-dns-forward-plain", full);
+    DO_TEST("nat-network-dns-forwarders", full);
     DO_TEST("dhcp6-network", dhcpv6);
     DO_TEST("dhcp6-nat-network", dhcpv6);
     DO_TEST("dhcp6host-routed-network", dhcpv6);

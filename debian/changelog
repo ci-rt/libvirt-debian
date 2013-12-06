@@ -1,3 +1,91 @@
+libvirt (1.1.4-2) unstable; urgency=low
+
+  * [78cadf5] Rados storage backend needs --with-storage-rbd not
+    --with-storage-rados
+  * [a384975] Explicitly disable phyp support so we can enable libssh2 uri
+    support.
+  * [9d8f3c5] Check correct dirs for existence (Closes: #729331)
+  * [1ede11d] Document new cgroup rrequirements (Closes: #707201)
+  * Acknowledge NMU, Thanks Julien Cristau (Closes: #730345)
+
+ -- Guido Günther <agx@sigxcpu.org>  Sun, 01 Dec 2013 19:56:25 +0100
+
+libvirt (1.1.4-1.1) unstable; urgency=high
+
+  * Non-maintainer upload.
+  * Fix linking when using pthread atomic ops, such as on armel.
+  * Disable silent build rules.
+
+ -- Julien Cristau <jcristau@debian.org>  Sun, 24 Nov 2013 12:27:18 +0100
+
+libvirt (1.1.4-1) unstable; urgency=low
+
+  * Upload to unstable
+  * [54c6758] New upstream version 1.1.4
+
+ -- Guido Günther <agx@sigxcpu.org>  Mon, 04 Nov 2013 07:05:45 +0100
+
+libvirt (1.1.4~rc2-1) experimental; urgency=low
+
+  * [b56f727] Add option to mount cgroups during daemon start.  The init
+    script can mount each control group to a different mount point during
+    prior to starting libvirt bin. This allows running qemu and lxc guests
+    together without using systemd.
+    Thanks to Manuel VIVES (Closes: #725261)
+  * [e044f56] New upstream version 1.1.4~rc2 (Closes: #727101)
+  * [d046906] Update symbols file
+  * [6a8cd2d] Update patches
+  * [ac24680] Lower policykit-1 build-dep since CVE-2013-4288 was fixed in
+    unstable by patching policykit instead of moving the new upstream version
+    from unstable.
+
+ -- Guido Günther <agx@sigxcpu.org>  Sun, 03 Nov 2013 11:44:18 +0100
+
+libvirt (1.1.3-2) experimental; urgency=low
+
+  * [63167cd] Enable libxl (Closes: #698093)
+  * [c7747b0] Enable rados block device support
+  * [6aa2998] Build against fuse for lxc fuse support
+  * [a2a1a74] Don't fail chmod/chdir if a file doesn't exist.  We don't use -f
+    since we want to detect other errors (ro filesystem, etc.)
+    (Closes: #726203)
+
+ -- Guido Günther <agx@sigxcpu.org>  Mon, 14 Oct 2013 12:22:13 +0200
+
+libvirt (1.1.3-1) experimental; urgency=low
+
+  * [6ec841f] New upstream version 1.1.3
+  * [3721380] Drop Add-check-aclperms.pl.patch applied upstream
+  * [acc5263] Refresh patches
+
+ -- Guido Günther <agx@sigxcpu.org>  Tue, 01 Oct 2013 13:22:11 +0200
+
+libvirt (1.1.3~rc1-1) experimental; urgency=low
+
+  * [1894ff0] Use libvirt-qemu as group for qemu-kvm related directories since
+    this is the group we run the process with.
+  * [adf14d0] Make sure qemu guest agent related directories are
+    readable/writeable by the kvm process (Closes: #717406)
+  * [b7c1b69] Explicitly enable sheepdog support we already set the configure
+    params but didn't pass them on. Sheepdog support was enabled anyway due to
+    ./configure autoprobing.
+  * [85436a4] No need for gawk.  Awk isn't used in libvirt anymore and
+    virt-pki-validate can cope with mawk. (Closes: #703380)
+  * [20cacff] New upstream version 1.1.3~rc1
+  * [fe3ccca] Drop patches fixed upstream.
+        Fix-cgroups-when-all-are-mounted-on-sys-fs-cgroup.patch
+        Fix-launching-of-VMs-on-when-only-logind-part-of-sys.patch
+        Fix-make-check-not-finding-finding-the-libvirtd-lens.patch
+        Parse-AM_LDFLAGS-to-driver-modules-too.patch
+        virFileNBDDeviceAssociate-Avoid-use-of-uninitialized.patch
+  * [da60777] Rediff patches
+  * [d5e311a] Update symbols file
+  * [634a67a] Depend on newer polkit. We want a pkcheck that supports the uid
+    arg to address CVE-2013-4311
+  * [7c5e09d] Add check-aclperms.pl missing from the dist tarball
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 26 Sep 2013 14:08:44 +0200
+
 libvirt (1.1.2-3~bpo70+1) wheezy-backports; urgency=low
 
   * Rebuild for wheezy-backports.

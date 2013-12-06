@@ -30,7 +30,7 @@ VIR_ENUM_IMPL(virAccessPermConnect,
               "search_storage_pools", "search_node_devices",
               "search_interfaces", "search_secrets",
               "search_nwfilters",
-              "detect_storage_pool", "pm_control",
+              "detect_storage_pools", "pm_control",
               "interface_transaction");
 
 VIR_ENUM_IMPL(virAccessPermDomain,
@@ -58,7 +58,7 @@ VIR_ENUM_IMPL(virAccessPermNodeDevice,
               VIR_ACCESS_PERM_NODE_DEVICE_LAST,
               "getattr", "read", "write",
               "start", "stop",
-              "dettach");
+              "detach");
 
 VIR_ENUM_IMPL(virAccessPermNWFilter,
               VIR_ACCESS_PERM_NWFILTER_LAST,

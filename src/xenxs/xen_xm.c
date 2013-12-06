@@ -1080,8 +1080,10 @@ xenParseXM(virConfPtr conf, int xendConfigVersion,
                 if (!(chr = xenParseSxprChar(port, NULL)))
                     goto cleanup;
 
-                if (VIR_REALLOC_N(def->serials, def->nserials+1) < 0)
+                if (VIR_REALLOC_N(def->serials, def->nserials+1) < 0) {
+                    virDomainChrDefFree(chr);
                     goto cleanup;
+                }
 
                 chr->deviceType = VIR_DOMAIN_CHR_DEVICE_TYPE_SERIAL;
                 chr->target.port = portnum;
@@ -1110,9 +1112,9 @@ xenParseXM(virConfPtr conf, int xendConfigVersion,
             }
         }
     } else {
-        def->nconsoles = 1;
         if (VIR_ALLOC_N(def->consoles, 1) < 0)
             goto cleanup;
+        def->nconsoles = 1;
         if (!(def->consoles[0] = xenParseSxprChar("pty", NULL)))
             goto cleanup;
         def->consoles[0]->deviceType = VIR_DOMAIN_CHR_DEVICE_TYPE_CONSOLE;
@@ -1599,7 +1601,7 @@ virConfPtr xenFormatXM(virConnectPtr conn,
             if (def->clock.timers[i]->name == VIR_DOMAIN_TIMER_NAME_HPET &&
                 def->clock.timers[i]->present != -1 &&
                 xenXMConfigSetInt(conf, "hpet", def->clock.timers[i]->present) < 0)
-                    break;
+                goto cleanup;
         }
 
         if (xendConfigVersion == XEND_CONFIG_VERSION_3_0_2) {
@@ -1957,8 +1959,10 @@ virConfPtr xenFormatXM(virConnectPtr conn,
                             break;
                         }
                     }
-                    if (xenFormatXMSerial(serialVal, chr) < 0)
+                    if (xenFormatXMSerial(serialVal, chr) < 0) {
+                        virConfFreeValue(serialVal);
                         goto cleanup;
+                    }
                 }
 
                 if (serialVal->list != NULL) {

@@ -50,7 +50,8 @@ testCompareFiles(const char *xml, const char *sexpr, int xendConfigVersion)
   if (virMutexInit(&priv.lock) < 0)
       goto fail;
 
-  id = xenGetDomIdFromSxprString(sexprData, xendConfigVersion);
+  if (xenGetDomIdFromSxprString(sexprData, xendConfigVersion, &id) < 0)
+      goto fail;
   xenUnifiedLock(&priv);
   tty = xenStoreDomainGetConsolePath(conn, id);
   vncport = xenStoreDomainGetVNCPort(conn, id);
@@ -122,7 +123,7 @@ mymain(void)
         struct testInfo info = { in, out, version };                   \
         virResetLastError();                                           \
         if (virtTestRun("Xen SEXPR-2-XML " in " -> " out,              \
-                        1, testCompareHelper, &info) < 0)              \
+                        testCompareHelper, &info) < 0)                 \
             ret = -1;                                                  \
     } while (0)
 

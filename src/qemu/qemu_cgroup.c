@@ -33,6 +33,7 @@
 #include "domain_audit.h"
 #include "virscsi.h"
 #include "virstring.h"
+#include "virfile.h"
 
 #define VIR_FROM_THIS VIR_FROM_QEMU
 
@@ -488,10 +489,11 @@ qemuSetupDevicesCgroup(virQEMUDriverPtr driver,
                 defaultDeviceACL;
 
     if (vm->def->nsounds &&
-        (!vm->def->ngraphics ||
-         ((vm->def->graphics[0]->type == VIR_DOMAIN_GRAPHICS_TYPE_VNC &&
+        ((!vm->def->ngraphics && cfg->nogfxAllowHostAudio) ||
+         (vm->def->graphics &&
+          ((vm->def->graphics[0]->type == VIR_DOMAIN_GRAPHICS_TYPE_VNC &&
            cfg->vncAllowHostAudio) ||
-           (vm->def->graphics[0]->type == VIR_DOMAIN_GRAPHICS_TYPE_SDL)))) {
+           (vm->def->graphics[0]->type == VIR_DOMAIN_GRAPHICS_TYPE_SDL))))) {
         rv = virCgroupAllowDeviceMajor(priv->cgroup, 'c', DEVICE_SND_MAJOR,
                                        VIR_CGROUP_DEVICE_RW);
         virDomainAuditCgroupMajor(vm, priv->cgroup, "allow", DEVICE_SND_MAJOR,
@@ -501,9 +503,8 @@ qemuSetupDevicesCgroup(virQEMUDriverPtr driver,
     }
 
     for (i = 0; deviceACL[i] != NULL; i++) {
-        if (access(deviceACL[i], F_OK) < 0) {
-            VIR_DEBUG("Ignoring non-existant device %s",
-                      deviceACL[i]);
+        if (!virFileExists(deviceACL[i])) {
+            VIR_DEBUG("Ignoring non-existant device %s", deviceACL[i]);
             continue;
         }
 

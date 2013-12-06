@@ -490,7 +490,7 @@
       <allow_active>no</allow_active>
     </defaults>
   </action>
-  <action id="org.libvirt.api.node-device.dettach">
+  <action id="org.libvirt.api.node-device.detach">
     <description>Detach node device</description>
     <message>Detaching node device driver requires authorization</message>
     <defaults>

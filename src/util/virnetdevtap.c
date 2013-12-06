@@ -435,7 +435,7 @@ int virNetDevTapDelete(const char *ifname ATTRIBUTE_UNUSED)
  */
 int virNetDevTapCreateInBridgePort(const char *brname,
                                    char **ifname,
-                                   const virMacAddrPtr macaddr,
+                                   const virMacAddr *macaddr,
                                    const unsigned char *vmuuid,
                                    int *tapfd,
                                    int tapfdSize,
@@ -445,6 +445,7 @@ int virNetDevTapCreateInBridgePort(const char *brname,
 {
     virMacAddr tapmac;
     char macaddrstr[VIR_MAC_STRING_BUFLEN];
+    size_t i;
 
     if (virNetDevTapCreate(ifname, tapfd, tapfdSize, flags) < 0)
         return -1;
@@ -498,8 +499,8 @@ int virNetDevTapCreateInBridgePort(const char *brname,
     return 0;
 
 error:
-    while (tapfdSize)
-        VIR_FORCE_CLOSE(tapfd[--tapfdSize]);
+    for (i = 0; i < tapfdSize && tapfd[i] >= 0; i++)
+        VIR_FORCE_CLOSE(tapfd[i]);
 
     return -1;
 }

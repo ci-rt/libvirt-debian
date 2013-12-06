@@ -1,4 +1,4 @@
-From: =?UTF-8?q?Guido=20G=C3=BCnther?= <agx@sigxcpu.org>
+From: =?utf-8?q?Guido_G=C3=BCnther?= <agx@sigxcpu.org>
 Date: Sat, 14 Jan 2012 18:09:01 +0100
 Subject: Don't fail if we can't setup avahi
 
@@ -7,7 +7,7 @@ Subject: Don't fail if we can't setup avahi
  1 file changed, 1 insertion(+), 2 deletions(-)
 
 diff --git a/src/rpc/virnetserver.c b/src/rpc/virnetserver.c
-index 2306e10..05ae649 100644
+index 8907768..7e8b17a 100644
 --- a/src/rpc/virnetserver.c
 +++ b/src/rpc/virnetserver.c
 @@ -1070,8 +1070,7 @@ void virNetServerRun(virNetServerPtr srv)
@@ -19,4 +19,4 @@ index 2306e10..05ae649 100644
 +    if (srv->mdns)
          goto cleanup;
  
-     srv->quit = 0;
+     srv->quit = false;

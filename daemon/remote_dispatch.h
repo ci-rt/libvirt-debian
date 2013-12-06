@@ -513,6 +513,28 @@ cleanup:
 
 
 
+static int remoteDispatchConnectGetCPUModelNames(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_connect_get_cpu_model_names_args *args,
+    remote_connect_get_cpu_model_names_ret *ret);
+static int remoteDispatchConnectGetCPUModelNamesHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchConnectGetCPUModelNames(server, client, msg, rerr, args, ret);
+}
+/* remoteDispatchConnectGetCPUModelNames body has to be implemented manually */
+
+
+
 static int remoteDispatchConnectGetHostname(
     virNetServerPtr server,
     virNetServerClientPtr client,
@@ -16779,6 +16801,15 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_void,
    0,
    (xdrproc_t)xdr_void,
+   true,
+   0
+},
+{ /* Method ConnectGetCPUModelNames => 312 */
+   remoteDispatchConnectGetCPUModelNamesHelper,
+   sizeof(remote_connect_get_cpu_model_names_args),
+   (xdrproc_t)xdr_remote_connect_get_cpu_model_names_args,
+   sizeof(remote_connect_get_cpu_model_names_ret),
+   (xdrproc_t)xdr_remote_connect_get_cpu_model_names_ret,
    true,
    0
 },

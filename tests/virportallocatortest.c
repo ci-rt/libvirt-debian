@@ -67,6 +67,9 @@ static int testAllocAll(const void *args ATTRIBUTE_UNUSED)
     int ret = -1;
     unsigned short p1, p2, p3, p4, p5, p6, p7;
 
+    if (!alloc)
+        return -1;
+
     if (virPortAllocatorAcquire(alloc, &p1) < 0)
         goto cleanup;
     if (p1 != 5901) {
@@ -137,6 +140,9 @@ static int testAllocReuse(const void *args ATTRIBUTE_UNUSED)
     int ret = -1;
     unsigned short p1, p2, p3, p4;
 
+    if (!alloc)
+        return -1;
+
     if (virPortAllocatorAcquire(alloc, &p1) < 0)
         goto cleanup;
     if (p1 != 5901) {
@@ -185,10 +191,10 @@ mymain(void)
 {
     int ret = 0;
 
-    if (virtTestRun("Test alloc all", 1, testAllocAll, NULL) < 0)
+    if (virtTestRun("Test alloc all", testAllocAll, NULL) < 0)
         ret = -1;
 
-    if (virtTestRun("Test alloc reuse", 1, testAllocReuse, NULL) < 0)
+    if (virtTestRun("Test alloc reuse", testAllocReuse, NULL) < 0)
         ret = -1;
 
     return ret==0 ? EXIT_SUCCESS : EXIT_FAILURE;

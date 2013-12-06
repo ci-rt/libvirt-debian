@@ -31,8 +31,11 @@
 # endif
 # include "internal.h"
 
+void virDBusSetSharedBus(bool shared);
+
 DBusConnection *virDBusGetSystemBus(void);
 bool virDBusHasSystemBus(void);
+void virDBusCloseSystemBus(void);
 DBusConnection *virDBusGetSessionBus(void);
 
 int virDBusCallMethod(DBusConnection *conn,
@@ -45,4 +48,5 @@ int virDBusCallMethod(DBusConnection *conn,
 int virDBusMessageRead(DBusMessage *msg,
                        const char *types, ...);
 
+int virDBusIsServiceEnabled(const char *name);
 #endif /* __VIR_DBUS_H__ */

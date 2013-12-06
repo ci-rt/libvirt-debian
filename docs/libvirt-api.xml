@@ -85,6 +85,7 @@
      <exports symbol='VIR_MIGRATE_PARAM_DEST_NAME' type='macro'/>
      <exports symbol='VIR_MIGRATE_PARAM_DEST_XML' type='macro'/>
      <exports symbol='VIR_MIGRATE_PARAM_GRAPHICS_URI' type='macro'/>
+     <exports symbol='VIR_MIGRATE_PARAM_LISTEN_ADDRESS' type='macro'/>
      <exports symbol='VIR_MIGRATE_PARAM_URI' type='macro'/>
      <exports symbol='VIR_NODEINFO_MAXCPUS' type='macro'/>
      <exports symbol='VIR_NODE_CPU_STATS_FIELD_LENGTH' type='macro'/>
@@ -890,6 +891,7 @@
      <exports symbol='virConnectDomainXMLFromNative' type='function'/>
      <exports symbol='virConnectDomainXMLToNative' type='function'/>
      <exports symbol='virConnectFindStoragePoolSources' type='function'/>
+     <exports symbol='virConnectGetCPUModelNames' type='function'/>
      <exports symbol='virConnectGetCapabilities' type='function'/>
      <exports symbol='virConnectGetHostname' type='function'/>
      <exports symbol='virConnectGetLibVersion' type='function'/>
@@ -1359,6 +1361,7 @@
      <exports symbol='VIR_ERR_SSH' type='enum'/>
      <exports symbol='VIR_ERR_STORAGE_POOL_BUILT' type='enum'/>
      <exports symbol='VIR_ERR_STORAGE_PROBE_FAILED' type='enum'/>
+     <exports symbol='VIR_ERR_STORAGE_VOL_EXIST' type='enum'/>
      <exports symbol='VIR_ERR_SYSTEM_ERROR' type='enum'/>
      <exports symbol='VIR_ERR_UNKNOWN_HOST' type='enum'/>
      <exports symbol='VIR_ERR_WARNING' type='enum'/>
@@ -1705,6 +1708,9 @@
     </macro>
     <macro name='VIR_MIGRATE_PARAM_GRAPHICS_URI' file='libvirt'>
       <info><![CDATA[virDomainMigrate* params field: URI to use for migrating client's connection to domain's graphical console as VIR_TYPED_PARAM_STRING. If specified, the client will be asked to automatically reconnect using these parameters instead of the automatically computed ones. This can be useful if, e.g., the client does not have a direct access to the network virtualization hosts are connected to and needs to connect through a proxy. The URI is formed as follows:  protocol://hostname[:port]/[?parameters]  where protocol is either "spice" or "vnc" and parameters is a list of protocol specific parameters separated by '&'. Currently recognized parameters are "tlsPort" and "tlsSubject". For example,  spice://target.host.com:1234/?tlsPort=4567]]></info>
+    </macro>
+    <macro name='VIR_MIGRATE_PARAM_LISTEN_ADDRESS' file='libvirt'>
+      <info><![CDATA[virDomainMigrate* params field: The listen address that hypervisor on the destination side should bind to for incoming migration. Both, IPv4 and IPv6 addresses are accepted as well as hostnames (the resolving is done on destination). Some hypervisors do not support this feature an will return an error if this field is used.]]></info>
     </macro>
     <macro name='VIR_MIGRATE_PARAM_URI' file='libvirt'>
       <info><![CDATA[virDomainMigrate* params field: URI to use for initiating domain migration as VIR_TYPED_PARAM_STRING. It takes a hypervisor specific format. The uri_transports element of the hypervisor capabilities XML includes details of the supported URI schemes. When omitted libvirt will auto-generate suitable default URI. It is typically only necessary to specify this URI if the destination host has multiple interfaces and a specific interface is required to transmit migration data.  This filed may not be used when VIR_MIGRATE_TUNNELLED flag is set.]]></info>
@@ -2380,6 +2386,7 @@ risky domain snapshot revert'/>
     <enum name='VIR_ERR_SSH' file='virterror' value='85' type='virErrorNumber' info='error in ssh transport driver'/>
     <enum name='VIR_ERR_STORAGE_POOL_BUILT' file='virterror' value='76' type='virErrorNumber' info='storage pool already built'/>
     <enum name='VIR_ERR_STORAGE_PROBE_FAILED' file='virterror' value='75' type='virErrorNumber' info='storage pool probe failed'/>
+    <enum name='VIR_ERR_STORAGE_VOL_EXIST' file='virterror' value='90' type='virErrorNumber' info='the storage vol already exists'/>
     <enum name='VIR_ERR_SYSTEM_ERROR' file='virterror' value='38' type='virErrorNumber' info='general system call failure'/>
     <enum name='VIR_ERR_UNKNOWN_HOST' file='virterror' value='4' type='virErrorNumber' info='could not resolve hostname'/>
     <enum name='VIR_ERR_WARNING' file='virterror' value='1' type='virErrorLevel' info='A simple warning'/>
@@ -3213,10 +3220,10 @@ VIR_DOMAIN_EVENT_ID_GRAPHICS with virConnectDomainEventRegisterAny()]]></info>
       <arg name='conn' type='virConnectPtr' info='connection object'/>
       <arg name='dom' type='virDomainPtr' info='domain on which the event occurred'/>
       <arg name='phase' type='int' info='the phase of the connection'/>
-      <arg name='local' type='const virDomainEventGraphicsAddressPtr' info='the local server address'/>
-      <arg name='remote' type='const virDomainEventGraphicsAddressPtr' info='the remote client address'/>
+      <arg name='local' type='const virDomainEventGraphicsAddress *' info='the local server address'/>
+      <arg name='remote' type='const virDomainEventGraphicsAddress *' info='the remote client address'/>
       <arg name='authScheme' type='const char *' info='the authentication scheme activated'/>
-      <arg name='subject' type='const virDomainEventGraphicsSubjectPtr' info='the authenticated subject (user)'/>
+      <arg name='subject' type='const virDomainEventGraphicsSubject *' info='the authenticated subject (user)'/>
       <arg name='opaque' type='void *' info='application specified data'/>
     </functype>
     <functype name='virConnectDomainEventIOErrorCallback' file='libvirt' module='libvirt'>
@@ -3391,15 +3398,24 @@ local storage resources only)]]></info>
       <arg name='srcSpec' type='const char *' info='XML document specifying discovery source'/>
       <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
+    <function name='virConnectGetCPUModelNames' file='libvirt' module='libvirt'>
+      <info><![CDATA[Get the list of supported CPU models for a specific architecture.]]></info>
+      <return type='int' info='-1 on error, number of elements in @models on success.'/>
+      <arg name='conn' type='virConnectPtr' info='virConnect connection'/>
+      <arg name='arch' type='const char *' info='Architecture'/>
+      <arg name='models' type='char ** *' info='Pointer to a variable to store the NULL-terminated array of the CPU models supported for the specified architecture.  Each element and the array itself must be freed by the caller with free.  Pass NULL if only the list length is needed.'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0.'/>
+    </function>
     <function name='virConnectGetCapabilities' file='libvirt' module='libvirt'>
       <info><![CDATA[Provides capabilities of the hypervisor / driver.]]></info>
       <return type='char *' info='NULL in case of error, or an XML string defining the capabilities. The client must free the returned string after use.'/>
       <arg name='conn' type='virConnectPtr' info='pointer to the hypervisor connection'/>
     </function>
     <function name='virConnectGetHostname' file='libvirt' module='libvirt'>
-      <info><![CDATA[This returns the system hostname on which the hypervisor is
-running (the result of the gethostname system call).  If
-we are connected to a remote system, then this returns the
+      <info><![CDATA[This returns a system hostname on which the hypervisor is
+running (based on the result of the gethostname system call, but
+possibly expanded to a fully-qualified domain name via getaddrinfo).
+If we are connected to a remote system, then this returns the
 hostname of the remote system.]]></info>
       <return type='char *' info='the hostname which must be freed by the caller, or NULL if there was an error.'/>
       <arg name='conn' type='virConnectPtr' info='pointer to a hypervisor connection'/>
@@ -3429,7 +3445,11 @@ available only for hypervisors running with root privileges.]]></info>
       <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
     <function name='virConnectGetType' file='libvirt' module='libvirt'>
-      <info><![CDATA[Get the name of the Hypervisor software used.]]></info>
+      <info><![CDATA[Get the name of the Hypervisor driver used. This is merely the driver
+name; for example, both KVM and QEMU guests are serviced by the
+driver for the qemu:// URI, so a return of "QEMU" does not indicate
+whether KVM acceleration is present.  For more details about the
+hypervisor, use virConnectGetCapabilities().]]></info>
       <return type='const char *' info='NULL in case of error, a static zero terminated string otherwise.  See also: http://www.redhat.com/archives/libvir-list/2007-February/msg00096.html'/>
       <arg name='conn' type='virConnectPtr' info='pointer to the hypervisor connection'/>
     </function>
@@ -4461,7 +4481,7 @@ block attempts at migration, save-to-file, or snapshots.]]></info>
       <info><![CDATA[Define a domain, but does not start it.
 This definition is persistent, until explicitly undefined with
 virDomainUndefine(). A previous definition for this domain would be
-overriden if it already exists.
+overridden if it already exists.
 
 Some hypervisors may prevent this operation if there is a current
 block copy operation on a transient domain with the same id as the
@@ -4869,14 +4889,14 @@ again.
 
 Here is a sample code snippet:
 
-if ((virDomainGetMemoryParameters(dom, NULL, &nparams, 0) == 0) &&
-    (nparams != 0)) {
-    if ((params = malloc(sizeof(*params) * nparams)) == NULL)
-        goto error;
-    memset(params, 0, sizeof(*params) * nparams);
-    if (virDomainGetMemoryParameters(dom, params, &nparams, 0))
-        goto error;
-}
+  if ((virDomainGetMemoryParameters(dom, NULL, &nparams, 0) == 0) &&
+      (nparams != 0)) {
+      if ((params = malloc(sizeof(*params) * nparams)) == NULL)
+          goto error;
+      memset(params, 0, sizeof(*params) * nparams);
+      if (virDomainGetMemoryParameters(dom, params, &nparams, 0))
+          goto error;
+  }
 
 This function may require privileged access to the hypervisor. This function
 expects the caller to allocate the @params.]]></info>
@@ -6891,7 +6911,7 @@ reconfiguring the NIC device backend connectivity, etc.]]></info>
     </functype>
     <function name='virEventAddHandle' file='libvirt' module='virevent'>
       <info><![CDATA[Register a callback for monitoring file handle events.]]></info>
-      <return type='int' info='-1 if the file handle cannot be registered, 0 upon success'/>
+      <return type='int' info='-1 if the file handle cannot be registered, otherwise a handle watch number to be used for updating and unregistering for events'/>
       <arg name='fd' type='int' info='file handle to monitor for events'/>
       <arg name='events' type='int' info='bitset of events to watch from virEventHandleType constants'/>
       <arg name='cb' type='virEventHandleCallback' info='callback to invoke when an event occurs'/>
@@ -6908,7 +6928,7 @@ is unregistered, then a 2nd callback can be supplied for
 this purpose. This callback needs to be invoked from a clean stack.
 If 'ff' callbacks are invoked directly from the virEventRemoveHandleFunc
 they will likely deadlock in libvirt.]]></info>
-      <return type='int' info='a handle watch number to be used for updating and unregistering for events'/>
+      <return type='int' info='-1 if the file handle cannot be registered, otherwise a handle watch number to be used for updating and unregistering for events'/>
       <arg name='fd' type='int' info='file descriptor to listen on'/>
       <arg name='event' type='int' info='bitset of events on which to fire the callback'/>
       <arg name='cb' type='virEventHandleCallback' info='the callback to be called when an event occurrs'/>
@@ -8510,35 +8530,35 @@ subsequent call.
 An example using this with a hypothetical file download
 API looks like
 
-  virStreamPtr st = virStreamNew(conn, 0);
-  int fd = open("demo.iso", O_WRONLY, 0600)
+    virStreamPtr st = virStreamNew(conn, 0);
+    int fd = open("demo.iso", O_WRONLY, 0600)
 
-  virConnectDownloadFile(conn, "demo.iso", st);
+    virConnectDownloadFile(conn, "demo.iso", st);
 
-  while (1) {
-      char buf[1024];
-      int got = virStreamRecv(st, buf, 1024);
-      if (got < 0)
-         break;
-      if (got == 0) {
-         virStreamFinish(st);
-         break;
-      }
-      int offset = 0;
-      while (offset < got) {
-         int sent = write(fd, buf+offset, got-offset)
-         if (sent < 0) {
-            virStreamAbort(st);
-            goto done;
-         }
-         offset += sent;
-      }
-  }
-  if (virStreamFinish(st) < 0)
-     ... report an error ....
-done:
-  virStreamFree(st);
-  close(fd);]]></info>
+    while (1) {
+        char buf[1024];
+        int got = virStreamRecv(st, buf, 1024);
+        if (got < 0)
+           break;
+        if (got == 0) {
+           virStreamFinish(st);
+           break;
+        }
+        int offset = 0;
+        while (offset < got) {
+           int sent = write(fd, buf+offset, got-offset)
+           if (sent < 0) {
+              virStreamAbort(st);
+              goto done;
+           }
+           offset += sent;
+        }
+    }
+    if (virStreamFinish(st) < 0)
+       ... report an error ....
+  done:
+    virStreamFree(st);
+    close(fd);]]></info>
       <return type='int' info='the number of bytes read, which may be less than requested.  Returns 0 when the end of the stream is reached, at which time the caller should invoke virStreamFinish() to get confirmation of stream completion.  Returns -1 upon error, at which time the stream will be marked as aborted, and the caller should now release the stream with virStreamFree.  Returns -2 if there is no data pending to be read &amp; the stream is marked as non-blocking.'/>
       <arg name='stream' type='virStreamPtr' info='pointer to the stream object'/>
       <arg name='data' type='char *' info='buffer to read into from stream'/>
@@ -8600,37 +8620,37 @@ subsequent call.
 An example using this with a hypothetical file upload
 API looks like
 
-  virStreamPtr st = virStreamNew(conn, 0);
-  int fd = open("demo.iso", O_RDONLY)
+    virStreamPtr st = virStreamNew(conn, 0);
+    int fd = open("demo.iso", O_RDONLY)
 
-  virConnectUploadFile(conn, "demo.iso", st);
+    virConnectUploadFile(conn, "demo.iso", st);
 
-  while (1) {
-      char buf[1024];
-      int got = read(fd, buf, 1024);
-      if (got < 0) {
-         virStreamAbort(st);
-         break;
-      }
-      if (got == 0) {
-         virStreamFinish(st);
-         break;
-      }
-      int offset = 0;
-      while (offset < got) {
-         int sent = virStreamSend(st, buf+offset, got-offset)
-         if (sent < 0) {
+    while (1) {
+         char buf[1024];
+         int got = read(fd, buf, 1024);
+         if (got < 0) {
             virStreamAbort(st);
-            goto done;
+            break;
          }
-         offset += sent;
-      }
-  }
-  if (virStreamFinish(st) < 0)
-     ... report an error ....
-done:
-  virStreamFree(st);
-  close(fd);]]></info>
+         if (got == 0) {
+            virStreamFinish(st);
+            break;
+         }
+         int offset = 0;
+         while (offset < got) {
+            int sent = virStreamSend(st, buf+offset, got-offset)
+            if (sent < 0) {
+               virStreamAbort(st);
+               goto done;
+            }
+            offset += sent;
+         }
+     }
+     if (virStreamFinish(st) < 0)
+        ... report an error ....
+   done:
+     virStreamFree(st);
+     close(fd);]]></info>
       <return type='int' info='the number of bytes written, which may be less than requested.  Returns -1 upon error, at which time the stream will be marked as aborted, and the caller should now release the stream with virStreamFree.  Returns -2 if the outgoing transmit buffers are full &amp; the stream is marked as non-blocking.'/>
       <arg name='stream' type='virStreamPtr' info='pointer to the stream object'/>
       <arg name='data' type='const char *' info='buffer to write to stream'/>

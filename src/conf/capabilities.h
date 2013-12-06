@@ -1,7 +1,7 @@
 /*
  * capabilities.h: hypervisor capabilities
  *
- * Copyright (C) 2006-2008, 2010, 2012 Red Hat, Inc.
+ * Copyright (C) 2006-2013 Red Hat, Inc.
  * Copyright (C) 2006-2008 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -104,11 +104,20 @@ struct _virCapsHostNUMACell {
     virCapsHostNUMACellCPUPtr cpus;
 };
 
+typedef struct _virCapsHostSecModelLabel virCapsHostSecModelLabel;
+typedef virCapsHostSecModelLabel *virCapsHostSecModelLabelPtr;
+struct _virCapsHostSecModelLabel {
+    char *type;
+    char *label;
+};
+
 typedef struct _virCapsHostSecModel virCapsHostSecModel;
 typedef virCapsHostSecModel *virCapsHostSecModelPtr;
 struct _virCapsHostSecModel {
     char *model;
     char *doi;
+    size_t nlabels;
+    virCapsHostSecModelLabelPtr labels;
 };
 
 typedef struct _virCapsHost virCapsHost;
@@ -153,7 +162,7 @@ struct _virDomainXMLNamespace {
 };
 
 typedef struct _virCaps virCaps;
-typedef virCaps* virCapsPtr;
+typedef virCaps *virCapsPtr;
 struct _virCaps {
     virObject parent;
 
@@ -223,6 +232,11 @@ virCapabilitiesAddGuestFeature(virCapsGuestPtr guest,
                                const char *name,
                                int defaultOn,
                                int toggle);
+
+extern int
+virCapabilitiesHostSecModelAddBaseLabel(virCapsHostSecModelPtr secmodel,
+                                        const char *type,
+                                        const char *label);
 
 extern int
 virCapabilitiesSupportsGuestArch(virCapsPtr caps,

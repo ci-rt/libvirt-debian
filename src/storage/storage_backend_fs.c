@@ -501,13 +501,12 @@ virStorageBackendFileSystemCheck(virConnectPtr conn ATTRIBUTE_UNUSED,
                                  virStoragePoolObjPtr pool,
                                  bool *isActive)
 {
-    *isActive = false;
     if (pool->def->type == VIR_STORAGE_POOL_DIR) {
-        if (access(pool->def->target.path, F_OK) == 0)
-            *isActive = true;
+        *isActive = virFileExists(pool->def->target.path);
 #if WITH_STORAGE_FS
     } else {
         int ret;
+        *isActive = false;
         if ((ret = virStorageBackendFileSystemIsMounted(pool)) != 0) {
             if (ret < 0)
                 return -1;
@@ -786,9 +785,9 @@ virStorageBackendFileSystemBuild(virConnectPtr conn ATTRIBUTE_UNUSED,
 
     /* Reflect the actual uid and gid to the config. */
     if (pool->def->target.perms.uid == (uid_t) -1)
-        pool->def->target.perms.uid = getuid();
+        pool->def->target.perms.uid = geteuid();
     if (pool->def->target.perms.gid == (gid_t) -1)
-        pool->def->target.perms.gid = getgid();
+        pool->def->target.perms.gid = getegid();
 
     if (flags != 0) {
         ret = virStorageBackendMakeFileSystem(pool, flags);

@@ -330,7 +330,7 @@ xenUnifiedXendProbe(void)
 
 static int
 xenDomainDeviceDefPostParse(virDomainDeviceDefPtr dev,
-                            virDomainDefPtr def,
+                            const virDomainDef *def,
                             virCapsPtr caps ATTRIBUTE_UNUSED,
                             void *opaque ATTRIBUTE_UNUSED)
 {
@@ -344,9 +344,28 @@ xenDomainDeviceDefPostParse(virDomainDeviceDefPtr dev,
 }
 
 
+static int
+xenDomainDefPostParse(virDomainDefPtr def,
+                      virCapsPtr caps ATTRIBUTE_UNUSED,
+                      void *opaque ATTRIBUTE_UNUSED)
+{
+    if (!def->memballoon) {
+        virDomainMemballoonDefPtr memballoon;
+        if (VIR_ALLOC(memballoon) < 0)
+            return -1;
+
+        memballoon->model = VIR_DOMAIN_MEMBALLOON_MODEL_XEN;
+        def->memballoon = memballoon;
+    }
+
+    return 0;
+}
+
+
 virDomainDefParserConfig xenDomainDefParserConfig = {
     .macPrefix = { 0x00, 0x16, 0x3e },
     .devicesPostParseCallback = xenDomainDeviceDefPostParse,
+    .domainPostParseCallback = xenDomainDefPostParse,
 };
 
 
@@ -1595,7 +1614,8 @@ xenUnifiedConnectDomainXMLFromNative(virConnectPtr conn,
 
         def = xenParseXM(conf, priv->xendConfigVersion, priv->caps);
     } else if (STREQ(format, XEN_CONFIG_FORMAT_SEXPR)) {
-        id = xenGetDomIdFromSxprString(config, priv->xendConfigVersion);
+        if (xenGetDomIdFromSxprString(config, priv->xendConfigVersion, &id) < 0)
+            goto cleanup;
         xenUnifiedLock(priv);
         tty = xenStoreDomainGetConsolePath(conn, id);
         vncport = xenStoreDomainGetVNCPort(conn, id);

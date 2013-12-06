@@ -51,6 +51,9 @@
 # define QEMU_WEBSOCKET_PORT_MIN  5700
 # define QEMU_WEBSOCKET_PORT_MAX  65535
 
+# define QEMU_MIGRATION_PORT_MIN 49152
+# define QEMU_MIGRATION_PORT_MAX 49215
+
 typedef struct _qemuBuildCommandLineCallbacks qemuBuildCommandLineCallbacks;
 typedef qemuBuildCommandLineCallbacks *qemuBuildCommandLineCallbacksPtr;
 struct _qemuBuildCommandLineCallbacks {
@@ -205,13 +208,6 @@ int qemuNetworkPrepareDevices(virDomainDefPtr def);
  * NB: def->name can be NULL upon return and the caller
  * *must* decide how to fill in a name in this case
  */
-virDomainDefPtr qemuParseCommandLine(virCapsPtr qemuCaps,
-                                     virDomainXMLOptionPtr xmlopt,
-                                     const char **progenv,
-                                     const char **progargv,
-                                     char **pidfile,
-                                     virDomainChrSourceDefPtr *monConfig,
-                                     bool *monJSON);
 virDomainDefPtr qemuParseCommandLineString(virCapsPtr qemuCaps,
                                            virDomainXMLOptionPtr xmlopt,
                                            const char *args,
@@ -246,6 +242,10 @@ typedef enum {
    /* PCI devices can connect to this bus */
    QEMU_PCI_CONNECT_TYPE_PCIE    = 1 << 3,
    /* PCI Express devices can connect to this bus */
+   QEMU_PCI_CONNECT_TYPE_EITHER_IF_CONFIG = 1 << 4,
+   /* PCI *and* PCIe devices allowed, if the address
+    * was specified in the config by the user
+    */
 } qemuDomainPCIConnectFlags;
 
 /* a combination of all bit that describe the type of connections
@@ -303,6 +303,7 @@ int
 qemuParseKeywords(const char *str,
                   char ***retkeywords,
                   char ***retvalues,
+                  int *retnkeywords,
                   int allowEmptyValue);
 
 #endif /* __QEMU_COMMAND_H__*/

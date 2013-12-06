@@ -345,16 +345,17 @@ int virNetMessageEncodePayload(virNetMessagePtr msg,
                   msg->bufferLength - msg->bufferOffset, XDR_ENCODE);
 
     /* Try to encode the payload. If the buffer is too small increase it. */
-    while (!(*filter)(&xdr, data)) {
-        if ((msg->bufferLength - VIR_NET_MESSAGE_LEN_MAX) * 4 > VIR_NET_MESSAGE_MAX) {
+    while (!(*filter)(&xdr, data, 0)) {
+        unsigned int newlen = (msg->bufferLength - VIR_NET_MESSAGE_LEN_MAX) * 4;
+
+        if (newlen > VIR_NET_MESSAGE_MAX) {
             virReportError(VIR_ERR_RPC, "%s", _("Unable to encode message payload"));
             goto error;
         }
 
         xdr_destroy(&xdr);
 
-        msg->bufferLength = (msg->bufferLength - VIR_NET_MESSAGE_LEN_MAX) * 4 +
-            VIR_NET_MESSAGE_LEN_MAX;
+        msg->bufferLength = newlen + VIR_NET_MESSAGE_LEN_MAX;
 
         if (VIR_REALLOC_N(msg->buffer, msg->bufferLength) < 0)
             goto error;
@@ -401,7 +402,7 @@ int virNetMessageDecodePayload(virNetMessagePtr msg,
     xdrmem_create(&xdr, msg->buffer + msg->bufferOffset,
                   msg->bufferLength - msg->bufferOffset, XDR_DECODE);
 
-    if (!(*filter)(&xdr, data)) {
+    if (!(*filter)(&xdr, data, 0)) {
         virReportError(VIR_ERR_RPC, "%s", _("Unable to decode message payload"));
         goto error;
     }
@@ -426,10 +427,15 @@ int virNetMessageEncodePayloadRaw(virNetMessagePtr msg,
 
     /* If the message buffer is too small for the payload increase it accordingly. */
     if ((msg->bufferLength - msg->bufferOffset) < len) {
-        if ((msg->bufferOffset + len) > VIR_NET_MESSAGE_MAX) {
+        if ((msg->bufferOffset + len) >
+            (VIR_NET_MESSAGE_MAX + VIR_NET_MESSAGE_LEN_MAX)) {
             virReportError(VIR_ERR_RPC,
-                           _("Stream data too long to send (%zu bytes needed, %zu bytes available)"),
-                           len, (VIR_NET_MESSAGE_MAX - msg->bufferOffset));
+                           _("Stream data too long to send "
+                             "(%zu bytes needed, %zu bytes available)"),
+                           len,
+                           VIR_NET_MESSAGE_MAX +
+                           VIR_NET_MESSAGE_LEN_MAX -
+                           msg->bufferOffset);
             return -1;
         }
 

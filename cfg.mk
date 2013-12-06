@@ -33,8 +33,9 @@ gnulib_dir = $(srcdir)/.gnulib
 # This is all gnulib files, as well as generated files for RPC code.
 generated_files = \
   $(srcdir)/daemon/*_dispatch.h \
+  $(srcdir)/src/*/*_dispatch.h \
   $(srcdir)/src/remote/*_client_bodies.h \
-  $(srcdir)/src/remote/*_protocol.[ch] \
+  $(srcdir)/src/*/*_protocol.[ch] \
   $(srcdir)/gnulib/lib/*.[ch]
 
 # We haven't converted all scripts to using gnulib's init.sh yet.
@@ -467,6 +468,18 @@ sc_correct_id_types:
 	halt="use pid_t for pid, uid_t for uid, gid_t for gid"		\
 	  $(_sc_search_regexp)
 
+# "const fooPtr a" is the same as "foo * const a", even though it is
+# usually desired to have "foo const *a".  It's easier to just prevent
+# the confusing mix of typedef vs. const placement.
+# Also requires that all 'fooPtr' typedefs are actually pointers.
+sc_forbid_const_pointer_typedef:
+	@prohibit='(^|[^"])const \w*Ptr'				\
+	halt='"const fooPtr var" does not declare what you meant'	\
+	  $(_sc_search_regexp)
+	@prohibit='typedef [^(]+ [^*]\w*Ptr\b'				\
+	halt='use correct style and type for Ptr typedefs'		\
+	  $(_sc_search_regexp)
+
 # Forbid sizeof foo or sizeof (foo), require sizeof(foo)
 sc_size_of_brackets:
 	@prohibit='sizeof\s'						\
@@ -546,12 +559,12 @@ sc_avoid_attribute_unused_in_header:
 	  $(_sc_search_regexp)
 
 sc_prohibit_int_ijk:
-	@prohibit='\<(int|unsigned) ([^(]* )*(i|j|k)(\s|,|;)'		\
+	@prohibit='\<(int|unsigned) ([^(]* )*(i|j|k)\>(\s|,|;)'		\
 	halt='use size_t, not int/unsigned int for loop vars i, j, k'	\
 	  $(_sc_search_regexp)
 
 sc_prohibit_loop_iijjkk:
-	@prohibit='\<(int|unsigned) ([^=]+ )*(ii|jj|kk)(\s|,|;)'	\
+	@prohibit='\<(int|unsigned) ([^=]+ )*(ii|jj|kk)\>(\s|,|;)'	\
 	halt='use i, j, k for loop iterators, not ii, jj, kk' 		\
 	  $(_sc_search_regexp)
 
@@ -691,6 +704,14 @@ sc_spec_indentation:
 	else								\
 	  echo '$(ME): skipping test $@: cppi not installed' 1>&2;	\
 	fi
+
+# Nested conditionals are easier to understand if we enforce that endifs
+# can be paired back to the if
+sc_makefile_conditionals:
+	@prohibit='(else|endif)($$| *#)'				\
+	in_vc_files='Makefile\.am'					\
+	halt='match "if FOO" with "endif FOO" in Makefiles'		\
+	  $(_sc_search_regexp)
 
 # Long lines can be harder to diff; too long, and git send-email chokes.
 # For now, only enforce line length on files where we have intentionally
@@ -842,6 +863,11 @@ sc_prohibit_unbounded_arrays_in_rpc:
 	halt='Arrays in XDR must have a upper limit set for <NNN>'	\
 	  $(_sc_search_regexp)
 
+sc_prohibit_getenv:
+	@prohibit='\b(secure_)?getenv *\('				\
+	exclude='exempt from syntax-check'				\
+	halt='Use virGetEnv{Allow,Block}SUID instead of getenv'		\
+	  $(_sc_search_regexp)
 
 # We don't use this feature of maint.mk.
 prev_version_file = /dev/null
@@ -913,7 +939,7 @@ exclude_file_name_regexp--sc_avoid_strcase = ^tools/virsh\.h$$
 _src1=libvirt|fdstream|qemu/qemu_monitor|util/(vircommand|virfile)|xen/xend_internal|rpc/virnetsocket|lxc/lxc_controller|locking/lock_daemon
 _test1=shunloadtest|virnettlscontexttest|virnettlssessiontest|vircgroupmock
 exclude_file_name_regexp--sc_avoid_write = \
-  ^(src/($(_src1))|daemon/libvirtd|tools/console|tests/($(_test1)))\.c$$
+  ^(src/($(_src1))|daemon/libvirtd|tools/virsh-console|tests/($(_test1)))\.c$$
 
 exclude_file_name_regexp--sc_bindtextdomain = ^(tests|examples)/
 
@@ -939,7 +965,7 @@ exclude_file_name_regexp--sc_prohibit_asprintf = \
   ^(bootstrap.conf$$|src/util/virstring\.[ch]$$|examples/domain-events/events-c/event-test\.c$$|tests/vircgroupmock\.c$$)
 
 exclude_file_name_regexp--sc_prohibit_strdup = \
-  ^(docs/|examples/|python/|src/util/virstring\.c$$)
+  ^(docs/|examples/|python/|src/util/virstring\.c|tests/virnetserverclientmock.c$$)
 
 exclude_file_name_regexp--sc_prohibit_close = \
   (\.p[yl]$$|^docs/|^(src/util/virfile\.c|src/libvirt\.c|tests/vircgroupmock\.c)$$)
@@ -1011,3 +1037,6 @@ exclude_file_name_regexp--sc_prohibit_include_public_headers_brackets = \
 
 exclude_file_name_regexp--sc_prohibit_int_ijk = \
   ^(src/remote_protocol-structs|src/remote/remote_protocol.x|cfg.mk|include/)$
+
+exclude_file_name_regexp--sc_prohibit_getenv = \
+  ^tests/.*\.[ch]$$

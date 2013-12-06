@@ -1,4 +1,4 @@
-From: =?UTF-8?q?Andreas=20Bie=C3=9Fmann?= <biessmann@corscience.de>
+From: =?utf-8?q?Andreas_Bie=C3=9Fmann?= <biessmann@corscience.de>
 Date: Thu, 18 Mar 2010 13:05:59 +0100
 Subject: patch qemuMonitorTextGetMigrationStatus to intercept unknown command
  'info migrate'

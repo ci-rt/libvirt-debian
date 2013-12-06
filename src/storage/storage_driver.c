@@ -1450,7 +1450,7 @@ storageVolLookupByPath(virConnectPtr conn,
         virStoragePoolObjLock(driver->pools.objs[i]);
         if (virStoragePoolObjIsActive(driver->pools.objs[i])) {
             virStorageVolDefPtr vol;
-            const char *stable_path;
+            char *stable_path;
 
             stable_path = virStorageBackendStablePath(driver->pools.objs[i],
                                                       cleanpath,
@@ -1538,8 +1538,8 @@ storageVolCreateXML(virStoragePoolPtr obj,
         goto cleanup;
 
     if (virStorageVolDefFindByName(pool, voldef->name)) {
-        virReportError(VIR_ERR_NO_STORAGE_VOL,
-                       _("storage vol '%s' already exists"), voldef->name);
+        virReportError(VIR_ERR_STORAGE_VOL_EXIST,
+                       _("'%s'"), voldef->name);
         goto cleanup;
     }
 

@@ -91,7 +91,10 @@ virCgroupAvailable(void)
         return false;
 
     while (getmntent_r(mounts, &entry, buf, sizeof(buf)) != NULL) {
-        if (STREQ(entry.mnt_type, "cgroup")) {
+        /* We're looking for at least one 'cgroup' fs mount,
+         * which is *not* a named mount. */
+        if (STREQ(entry.mnt_type, "cgroup") &&
+            !strstr(entry.mnt_opts, "name=")) {
             ret = true;
             break;
         }
@@ -342,10 +345,11 @@ virCgroupDetectMounts(virCgroupPtr group)
                                        entry.mnt_dir);
                         goto error;
                     }
-                    *tmp2 = '\0';
+
                     /* If it is a co-mount it has a filename like "cpu,cpuacct"
                      * and we must identify the symlink path */
                     if (strchr(tmp2 + 1, ',')) {
+                        *tmp2 = '\0';
                         if (virAsprintf(&linksrc, "%s/%s",
                                         entry.mnt_dir, typestr) < 0)
                             goto error;
@@ -660,12 +664,20 @@ virCgroupSetValueStr(virCgroupPtr group,
 {
     int ret = -1;
     char *keypath = NULL;
+    char *tmp = NULL;
 
     if (virCgroupPathOfController(group, controller, key, &keypath) < 0)
         return -1;
 
     VIR_DEBUG("Set value '%s' to '%s'", keypath, value);
     if (virFileWriteStr(keypath, value, 0) < 0) {
+        if (errno == EINVAL &&
+            (tmp = strrchr(keypath, '/'))) {
+            virReportSystemError(errno,
+                                 _("Invalid value '%s' for '%s'"),
+                                 value, tmp + 1);
+            goto cleanup;
+        }
         virReportSystemError(errno,
                              _("Unable to write to '%s'"), keypath);
         goto cleanup;
@@ -901,7 +913,7 @@ virCgroupMakeGroup(virCgroupPtr parent,
         sa_assert(group->controllers[i].mountPoint);
 
         VIR_DEBUG("Make controller %s", path);
-        if (access(path, F_OK) != 0) {
+        if (!virFileExists(path)) {
             if (!create ||
                 mkdir(path, 0755) < 0) {
                 /* With a kernel that doesn't support multi-level directory
@@ -1784,13 +1796,6 @@ virCgroupPathOfController(virCgroupPtr group,
 int
 virCgroupSetBlkioWeight(virCgroupPtr group, unsigned int weight)
 {
-    if (weight > 1000 || weight < 100) {
-        virReportError(VIR_ERR_INVALID_ARG,
-                       _("weight '%u' must be in range (100, 1000)"),
-                       weight);
-        return -1;
-    }
-
     return virCgroupSetValueU64(group,
                                 VIR_CGROUP_CONTROLLER_BLKIO,
                                 "blkio.weight",
@@ -1825,7 +1830,8 @@ virCgroupGetBlkioWeight(virCgroupPtr group, unsigned int *weight)
  *
  * @group: The cgroup to change io device weight device for
  * @path: The device with a weight to alter
- * @weight: The new device weight (100-1000), or 0 to clear
+ * @weight: The new device weight (100-1000),
+ * (10-1000) after kernel 2.6.39, or 0 to clear
  *
  * device_weight is treated as a write-only parameter, so
  * there isn't a getter counterpart.
@@ -1840,13 +1846,6 @@ virCgroupSetBlkioDeviceWeight(virCgroupPtr group,
     char *str;
     struct stat sb;
     int ret;
-
-    if (weight && (weight > 1000 || weight < 100)) {
-        virReportError(VIR_ERR_INVALID_ARG,
-                       _("weight '%u' must be in range (100, 1000)"),
-                       weight);
-        return -1;
-    }
 
     if (stat(path, &sb) < 0) {
         virReportSystemError(errno,
@@ -2427,7 +2426,7 @@ virCgroupGetCpuShares(virCgroupPtr group, unsigned long long *shares)
 int
 virCgroupSetCpuCfsPeriod(virCgroupPtr group, unsigned long long cfs_period)
 {
-    /* The cfs_period shoule be greater or equal than 1ms, and less or equal
+    /* The cfs_period should be greater or equal than 1ms, and less or equal
      * than 1s.
      */
     if (cfs_period < 1000 || cfs_period > 1000000) {
@@ -3057,6 +3056,36 @@ cleanup:
 }
 
 
+/**
+ * virCgroupSupportsCpuBW():
+ * Check whether the host supports CFS bandwidth.
+ *
+ * Return true when CFS bandwidth is supported,
+ * false when CFS bandwidth is not supported.
+ */
+bool
+virCgroupSupportsCpuBW(virCgroupPtr cgroup)
+{
+    char *path = NULL;
+    int ret = false;
+
+    if (!cgroup)
+        return false;
+
+    if (virCgroupPathOfController(cgroup, VIR_CGROUP_CONTROLLER_CPU,
+                                  "cpu.cfs_period_us", &path) < 0) {
+        virResetLastError();
+        goto cleanup;
+    }
+
+    ret = virFileExists(path);
+
+cleanup:
+    VIR_FREE(path);
+    return ret;
+}
+
+
 #else /* !VIR_CGROUP_SUPPORTED */
 
 bool
@@ -3640,6 +3669,14 @@ virCgroupIsolateMount(virCgroupPtr group ATTRIBUTE_UNUSED,
     virReportSystemError(ENOSYS, "%s",
                          _("Control groups not supported on this platform"));
     return -1;
+}
+
+
+bool
+virCgroupSupportsCpuBW(virCgroupPtr cgroup ATTRIBUTE_UNUSED)
+{
+    VIR_DEBUG("Control groups not supported on this platform");
+    return false;
 }
 
 #endif /* !VIR_CGROUP_SUPPORTED */

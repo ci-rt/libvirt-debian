@@ -108,6 +108,10 @@ static int testBufAutoIndent(const void *data ATTRIBUTE_UNUSED)
     }
     virBufferAdjustIndent(buf, 2);
     virBufferAddLit(buf, "1");
+    if (virBufferError(buf)) {
+        TEST_ERROR("Buffer had error");
+        return -1;
+    }
     if (STRNEQ(virBufferCurrentContent(buf), "  1")) {
         TEST_ERROR("Wrong content");
         ret = -1;
@@ -133,6 +137,11 @@ static int testBufAutoIndent(const void *data ATTRIBUTE_UNUSED)
     virBufferAddChar(buf, '\n');
     virBufferEscapeShell(buf, " 11");
     virBufferAddChar(buf, '\n');
+
+    if (virBufferError(buf)) {
+        TEST_ERROR("Buffer had error");
+        return -1;
+    }
 
     result = virBufferContentAndReset(buf);
     if (!result || STRNEQ(result, expected)) {
@@ -166,6 +175,11 @@ static int testBufTrim(const void *data ATTRIBUTE_UNUSED)
     virBufferTrim(buf, "b,,", 1);
     virBufferTrim(buf, ",", -1);
 
+    if (virBufferError(buf)) {
+        TEST_ERROR("Buffer had error");
+        return -1;
+    }
+
     result = virBufferContentAndReset(buf);
     if (!result || STRNEQ(result, expected)) {
         virtTestDifference(stderr, expected, result);
@@ -196,7 +210,7 @@ mymain(void)
 #define DO_TEST(msg, cb, data)                                         \
     do {                                                               \
         struct testInfo info = { data };                               \
-        if (virtTestRun("Buf: " msg, 1, cb, &info) < 0)                 \
+        if (virtTestRun("Buf: " msg, cb, &info) < 0)                   \
             ret = -1;                                                  \
     } while (0)
 

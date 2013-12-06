@@ -80,6 +80,7 @@ qemuHotplugCreateObjects(virDomainXMLOptionPtr xmlopt,
     virQEMUCapsSet(priv->qemuCaps, QEMU_CAPS_DEVICE);
     virQEMUCapsSet(priv->qemuCaps, QEMU_CAPS_NET_NAME);
     virQEMUCapsSet(priv->qemuCaps, QEMU_CAPS_VIRTIO_SCSI);
+    virQEMUCapsSet(priv->qemuCaps, QEMU_CAPS_DEVICE_USB_STORAGE);
     if (event)
         virQEMUCapsSet(priv->qemuCaps, QEMU_CAPS_DEVICE_DEL_EVENT);
 
@@ -249,7 +250,7 @@ testQemuHotplug(const void *data)
 
     /* Now is the best time to feed the spoofed monitor with predefined
      * replies. */
-    if (!(test_mon = qemuMonitorTestNew(true, driver.xmlopt, vm, &driver)))
+    if (!(test_mon = qemuMonitorTestNew(true, driver.xmlopt, vm, &driver, NULL)))
         goto cleanup;
 
     tmp = test->mon;
@@ -371,7 +372,7 @@ mymain(void)
         data.mon = my_mon;                                                  \
         data.keep = kep;                                                    \
         data.deviceDeletedEvent = event;                                    \
-        if (virtTestRun(name, 1, testQemuHotplug, &data) < 0)               \
+        if (virtTestRun(name, testQemuHotplug, &data) < 0)                  \
             ret = -1;                                                       \
     } while (0)
 

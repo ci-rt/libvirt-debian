@@ -187,7 +187,7 @@ remoteFindDaemonPath(void)
         NULL
     };
     size_t i;
-    const char *customDaemon = getenv("LIBVIRTD_PATH");
+    const char *customDaemon = virGetEnvBlockSUID("LIBVIRTD_PATH");
 
     if (customDaemon)
         return customDaemon;
@@ -431,7 +431,7 @@ doRemoteOpen(virConnectPtr conn,
         trans_tcp,
     } transport;
 #ifndef WIN32
-    const char *daemonPath;
+    const char *daemonPath = NULL;
 #endif
 
     /* We handle *ALL* URIs here. The caller has rejected any
@@ -486,6 +486,20 @@ doRemoteOpen(virConnectPtr conn,
     } else {
         /* No URI, then must be probing so use UNIX socket */
         transport = trans_unix;
+    }
+
+    /*
+     * We don't want to be executing external programs in setuid mode,
+     * so this rules out 'ext' and 'ssh' transports. Exclude libssh
+     * and tls too, since we're not confident the libraries are safe
+     * for setuid usage. Just allow UNIX sockets, since that does
+     * not require any external libraries or command execution
+     */
+    if (virIsSUID() &&
+        transport != trans_unix) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Only Unix socket URI transport is allowed in setuid mode"));
+        return VIR_DRV_OPEN_ERROR;
     }
 
     /* Local variables which we will initialize. These can
@@ -699,7 +713,8 @@ doRemoteOpen(virConnectPtr conn,
             VIR_DEBUG("Proceeding with sockname %s", sockname);
         }
 
-        if (!(daemonPath = remoteFindDaemonPath())) {
+        if ((flags & VIR_DRV_OPEN_REMOTE_AUTOSTART) &&
+            !(daemonPath = remoteFindDaemonPath())) {
             virReportError(VIR_ERR_INTERNAL_ERROR,
                            _("Unable to locate libvirtd daemon in %s "
                              "(to override, set $LIBVIRTD_PATH to the "
@@ -955,7 +970,7 @@ remoteConnectOpen(virConnectPtr conn,
 {
     struct private_data *priv;
     int ret, rflags = 0;
-    const char *autostart = getenv("LIBVIRT_AUTOSTART");
+    const char *autostart = virGetEnvBlockSUID("LIBVIRT_AUTOSTART");
 
     if (inside_daemon && (!conn->uri || (conn->uri && !conn->uri->server)))
         return VIR_DRV_OPEN_DECLINED;
@@ -980,11 +995,12 @@ remoteConnectOpen(virConnectPtr conn,
          (strstr(conn->uri->scheme, "+unix") != NULL)) &&
         (STREQ(conn->uri->path, "/session") ||
          STRPREFIX(conn->uri->scheme, "test+")) &&
-        getuid() > 0) {
+        geteuid() > 0) {
         VIR_DEBUG("Auto-spawn user daemon instance");
         rflags |= VIR_DRV_OPEN_REMOTE_USER;
-        if (!autostart ||
-            STRNEQ(autostart, "0"))
+        if (!virIsSUID() &&
+            (!autostart ||
+             STRNEQ(autostart, "0")))
             rflags |= VIR_DRV_OPEN_REMOTE_AUTOSTART;
     }
 
@@ -997,11 +1013,12 @@ remoteConnectOpen(virConnectPtr conn,
     if (!conn->uri) {
         VIR_DEBUG("Auto-probe remote URI");
 #ifndef __sun
-        if (getuid() > 0) {
+        if (geteuid() > 0) {
             VIR_DEBUG("Auto-spawn user daemon instance");
             rflags |= VIR_DRV_OPEN_REMOTE_USER;
-            if (!autostart ||
-                STRNEQ(autostart, "0"))
+            if (!virIsSUID() &&
+                (!autostart ||
+                 STRNEQ(autostart, "0")))
                 rflags |= VIR_DRV_OPEN_REMOTE_AUTOSTART;
         }
 #endif
@@ -3721,7 +3738,7 @@ static int remoteAuthCredSASL2Vir(int vircred)
  *
  * Build up the SASL callback structure. We register one callback for
  * each credential type that the libvirt client indicated they support.
- * We explicitly leav the callback function pointer at NULL though,
+ * We explicitly leave the callback function pointer at NULL though,
  * because we don't actually want to get SASL callbacks triggered.
  * Instead, we want the start/step functions to return SASL_INTERACT.
  * This lets us give the libvirt client a list of all required
@@ -5137,7 +5154,7 @@ static int remoteConnectDomainEventDeregisterAny(virConnectPtr conn,
     /* If that was the last callback for this eventID, we need to disable
      * events on the server */
     if (count == 0) {
-        args.eventID = callbackID;
+        args.eventID = eventID;
 
         if (call(conn, priv, 0, REMOTE_PROC_CONNECT_DOMAIN_EVENT_DEREGISTER_ANY,
                  (xdrproc_t) xdr_remote_connect_domain_event_deregister_any_args, (char *) &args,
@@ -5533,6 +5550,68 @@ remoteDomainMigrateConfirm3(virDomainPtr domain,
         goto done;
 
     rv = 0;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+
+static int
+remoteConnectGetCPUModelNames(virConnectPtr conn,
+                              const char *arch,
+                              char ***models,
+                              unsigned int flags)
+{
+    int rv = -1;
+    size_t i;
+    char **retmodels = NULL;
+    remote_connect_get_cpu_model_names_args args;
+    remote_connect_get_cpu_model_names_ret ret;
+
+    struct private_data *priv = conn->privateData;
+
+    remoteDriverLock(priv);
+
+    args.arch = (char *) arch;
+    args.need_results = !!models;
+    args.flags = flags;
+
+    memset(&ret, 0, sizeof(ret));
+    if (call(conn, priv, 0, REMOTE_PROC_CONNECT_GET_CPU_MODEL_NAMES,
+             (xdrproc_t) xdr_remote_connect_get_cpu_model_names_args,
+             (char *) &args,
+             (xdrproc_t) xdr_remote_connect_get_cpu_model_names_ret,
+             (char *) &ret) < 0)
+        goto done;
+
+    /* Check the length of the returned list carefully. */
+    if (ret.models.models_len > REMOTE_CONNECT_CPU_MODELS_MAX) {
+        virReportError(VIR_ERR_RPC,
+                       _("Too many model names '%d' for limit '%d'"),
+                       ret.models.models_len,
+                       REMOTE_CONNECT_CPU_MODELS_MAX);
+        goto cleanup;
+    }
+
+    if (models) {
+        if (VIR_ALLOC_N(retmodels, ret.models.models_len + 1) < 0)
+            goto cleanup;
+
+        for (i = 0; i < ret.models.models_len; i++) {
+            retmodels[i] = ret.models.models_val[i];
+            ret.models.models_val[i] = NULL;
+        }
+        *models = retmodels;
+        retmodels = NULL;
+    }
+
+    rv = ret.ret;
+
+cleanup:
+    virStringFreeList(retmodels);
+
+    xdr_free((xdrproc_t) xdr_remote_connect_get_cpu_model_names_ret, (char *) &ret);
 
 done:
     remoteDriverUnlock(priv);
@@ -6933,6 +7012,7 @@ static virDriver remote_driver = {
     .domainMigratePerform3Params = remoteDomainMigratePerform3Params, /* 1.1.0 */
     .domainMigrateFinish3Params = remoteDomainMigrateFinish3Params, /* 1.1.0 */
     .domainMigrateConfirm3Params = remoteDomainMigrateConfirm3Params, /* 1.1.0 */
+    .connectGetCPUModelNames = remoteConnectGetCPUModelNames, /* 1.1.3 */
 };
 
 static virNetworkDriver network_driver = {

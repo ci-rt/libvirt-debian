@@ -1,7 +1,7 @@
 /*
  * cpu.c: internal functions for CPU manipulation
  *
- * Copyright (C) 2009-2012 Red Hat, Inc.
+ * Copyright (C) 2009-2013 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -27,11 +27,14 @@
 #include "viralloc.h"
 #include "virxml.h"
 #include "cpu.h"
+#include "cpu_map.h"
 #include "cpu_x86.h"
 #include "cpu_powerpc.h"
 #include "cpu_s390.h"
 #include "cpu_arm.h"
+#include "cpu_aarch64.h"
 #include "cpu_generic.h"
+#include "util/virstring.h"
 
 
 #define NR_DRIVERS ARRAY_CARDINALITY(drivers)
@@ -42,6 +45,7 @@ static struct cpuArchDriver *drivers[] = {
     &cpuDriverPowerPC,
     &cpuDriverS390,
     &cpuDriverArm,
+    &cpuDriverAARCH64,
     /* generic driver must always be the last one */
     &cpuDriverGeneric
 };
@@ -130,7 +134,7 @@ cpuCompare(virCPUDefPtr host,
 
 int
 cpuDecode(virCPUDefPtr cpu,
-          const virCPUDataPtr data,
+          const virCPUData *data,
           const char **models,
           unsigned int nmodels,
           const char *preferred)
@@ -173,7 +177,7 @@ cpuDecode(virCPUDefPtr cpu,
 
 int
 cpuEncode(virArch arch,
-          const virCPUDefPtr cpu,
+          const virCPUDef *cpu,
           virCPUDataPtr *forced,
           virCPUDataPtr *required,
           virCPUDataPtr *optional,
@@ -244,7 +248,7 @@ cpuNodeData(virArch arch)
         return NULL;
     }
 
-    return driver->nodeData();
+    return driver->nodeData(arch);
 }
 
 
@@ -400,7 +404,7 @@ cpuBaseline(virCPUDefPtr *cpus,
 
 int
 cpuUpdate(virCPUDefPtr guest,
-          const virCPUDefPtr host)
+          const virCPUDef *host)
 {
     struct cpuArchDriver *driver;
 
@@ -420,7 +424,7 @@ cpuUpdate(virCPUDefPtr guest,
 }
 
 int
-cpuHasFeature(const virCPUDataPtr data,
+cpuHasFeature(const virCPUData *data,
               const char *feature)
 {
     struct cpuArchDriver *driver;
@@ -440,6 +444,47 @@ cpuHasFeature(const virCPUDataPtr data,
     return driver->hasFeature(data, feature);
 }
 
+char *
+cpuDataFormat(const virCPUData *data)
+{
+    struct cpuArchDriver *driver;
+
+    VIR_DEBUG("data=%p", data);
+
+    if (!(driver = cpuGetSubDriver(data->arch)))
+        return NULL;
+
+    if (!driver->dataFormat) {
+        virReportError(VIR_ERR_NO_SUPPORT,
+                       _("cannot format %s CPU data"),
+                       virArchToString(data->arch));
+        return NULL;
+    }
+
+    return driver->dataFormat(data);
+}
+
+virCPUDataPtr
+cpuDataParse(virArch arch,
+             const char *xmlStr)
+{
+    struct cpuArchDriver *driver;
+
+    VIR_DEBUG("arch=%s, xmlStr=%s", virArchToString(arch), xmlStr);
+
+    if (!(driver = cpuGetSubDriver(arch)))
+        return NULL;
+
+    if (!driver->dataParse) {
+        virReportError(VIR_ERR_NO_SUPPORT,
+                       _("cannot parse %s CPU data"),
+                       virArchToString(arch));
+        return NULL;
+    }
+
+    return driver->dataParse(xmlStr);
+}
+
 bool
 cpuModelIsAllowed(const char *model,
                   const char **models,
@@ -455,4 +500,82 @@ cpuModelIsAllowed(const char *model,
             return true;
     }
     return false;
+}
+
+struct cpuGetModelsData
+{
+    char **data;
+    size_t len;  /* It includes the last element of DATA, which is NULL. */
+};
+
+static int
+cpuGetArchModelsCb(enum cpuMapElement element,
+                   xmlXPathContextPtr ctxt,
+                   void *cbdata)
+{
+    char *name;
+    struct cpuGetModelsData *data = cbdata;
+    if (element != CPU_MAP_ELEMENT_MODEL)
+        return 0;
+
+    name = virXPathString("string(@name)", ctxt);
+    if (name == NULL)
+        return -1;
+
+    if (!data->data) {
+        VIR_FREE(name);
+        data->len++;
+        return 0;
+    }
+
+    return VIR_INSERT_ELEMENT(data->data, data->len - 1, data->len, name);
+}
+
+
+static int
+cpuGetArchModels(const char *arch, struct cpuGetModelsData *data)
+{
+    return cpuMapLoad(arch, cpuGetArchModelsCb, data);
+}
+
+
+int
+cpuGetModels(const char *archName, char ***models)
+{
+    struct cpuGetModelsData data;
+    virArch arch;
+    struct cpuArchDriver *driver;
+    data.data = NULL;
+    data.len = 1;
+
+    arch = virArchFromString(archName);
+    if (arch == VIR_ARCH_NONE) {
+        virReportError(VIR_ERR_INVALID_ARG,
+                       _("cannot find architecture %s"),
+                       archName);
+        goto error;
+    }
+
+    driver = cpuGetSubDriver(arch);
+    if (driver == NULL) {
+        virReportError(VIR_ERR_INVALID_ARG,
+                       _("cannot find a driver for the architecture %s"),
+                       archName);
+        goto error;
+    }
+
+    if (models && VIR_ALLOC_N(data.data, data.len) < 0)
+        goto error;
+
+    if (cpuGetArchModels(driver->name, &data) < 0)
+        goto error;
+
+    if (models)
+        *models = data.data;
+
+    return data.len - 1;
+
+error:
+    virStringFreeList(data.data);
+    return -1;
 }

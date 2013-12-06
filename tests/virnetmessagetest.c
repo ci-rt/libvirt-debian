@@ -327,11 +327,15 @@ static int testMessagePayloadDecode(const void *args ATTRIBUTE_UNUSED)
     };
     int ret = -1;
 
+    memset(&err, 0, sizeof(err));
+
+    if (!msg)
+        return -1;
+
     msg->bufferLength = 4;
     if (VIR_ALLOC_N(msg->buffer, msg->bufferLength) < 0)
         goto cleanup;
     memcpy(msg->buffer, input_buffer, msg->bufferLength);
-    memset(&err, 0, sizeof(err));
 
     if (virNetMessageDecodeLength(msg) < 0) {
         VIR_DEBUG("Failed to decode message header");
@@ -476,6 +480,9 @@ static int testMessagePayloadStreamEncode(const void *args ATTRIBUTE_UNUSED)
     };
     int ret = -1;
 
+    if (!msg)
+        return -1;
+
     msg->header.prog = 0x11223344;
     msg->header.vers = 0x01;
     msg->header.proc = 0x666;
@@ -520,19 +527,19 @@ mymain(void)
 
     signal(SIGPIPE, SIG_IGN);
 
-    if (virtTestRun("Message Header Encode", 1, testMessageHeaderEncode, NULL) < 0)
+    if (virtTestRun("Message Header Encode", testMessageHeaderEncode, NULL) < 0)
         ret = -1;
 
-    if (virtTestRun("Message Header Decode", 1, testMessageHeaderDecode, NULL) < 0)
+    if (virtTestRun("Message Header Decode", testMessageHeaderDecode, NULL) < 0)
         ret = -1;
 
-    if (virtTestRun("Message Payload Encode", 1, testMessagePayloadEncode, NULL) < 0)
+    if (virtTestRun("Message Payload Encode", testMessagePayloadEncode, NULL) < 0)
         ret = -1;
 
-    if (virtTestRun("Message Payload Decode", 1, testMessagePayloadDecode, NULL) < 0)
+    if (virtTestRun("Message Payload Decode", testMessagePayloadDecode, NULL) < 0)
         ret = -1;
 
-    if (virtTestRun("Message Payload Stream Encode", 1, testMessagePayloadStreamEncode, NULL) < 0)
+    if (virtTestRun("Message Payload Stream Encode", testMessagePayloadStreamEncode, NULL) < 0)
         ret = -1;
 
     return ret==0 ? EXIT_SUCCESS : EXIT_FAILURE;

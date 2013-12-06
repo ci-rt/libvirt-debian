@@ -37,25 +37,30 @@ static const struct virArchData {
     { "alpha",        64, VIR_ARCH_BIG_ENDIAN },
     { "armv6l",       32, VIR_ARCH_LITTLE_ENDIAN },
     { "armv7l",       32, VIR_ARCH_LITTLE_ENDIAN },
+    { "armv7b",       32, VIR_ARCH_BIG_ENDIAN },
+
+    { "aarch64",      64, VIR_ARCH_LITTLE_ENDIAN },
     { "cris",         32, VIR_ARCH_LITTLE_ENDIAN },
     { "i686",         32, VIR_ARCH_LITTLE_ENDIAN },
-
     { "ia64",         64, VIR_ARCH_LITTLE_ENDIAN },
     { "lm32",         32, VIR_ARCH_BIG_ENDIAN },
+
     { "m68k",         32, VIR_ARCH_BIG_ENDIAN },
     { "microblaze",   32, VIR_ARCH_BIG_ENDIAN },
     { "microblazeel", 32, VIR_ARCH_LITTLE_ENDIAN},
-
     { "mips",         32, VIR_ARCH_BIG_ENDIAN },
     { "mipsel",       32, VIR_ARCH_LITTLE_ENDIAN },
+
     { "mips64",       64, VIR_ARCH_BIG_ENDIAN },
     { "mips64el",     64, VIR_ARCH_LITTLE_ENDIAN },
     { "openrisc",     32, VIR_ARCH_BIG_ENDIAN },
-
     { "parisc",       32, VIR_ARCH_BIG_ENDIAN },
     { "parisc64",     64, VIR_ARCH_BIG_ENDIAN },
+
     { "ppc",          32, VIR_ARCH_BIG_ENDIAN },
+    { "ppcle",        32, VIR_ARCH_LITTLE_ENDIAN },
     { "ppc64",        64, VIR_ARCH_BIG_ENDIAN },
+    { "ppc64le",      64, VIR_ARCH_LITTLE_ENDIAN },
     { "ppcemb",       32, VIR_ARCH_BIG_ENDIAN },
 
     { "s390",         32, VIR_ARCH_BIG_ENDIAN },

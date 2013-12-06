@@ -405,6 +405,7 @@ virExec(virCommandPtr cmd)
     int childout = -1;
     int childerr = -1;
     int tmpfd;
+    char *binarystr = NULL;
     const char *binary = NULL;
     int forkRet, ret;
     struct sigaction waxon, waxoff;
@@ -412,7 +413,7 @@ virExec(virCommandPtr cmd)
     int ngroups;
 
     if (cmd->args[0][0] != '/') {
-        if (!(binary = virFindFileInPath(cmd->args[0]))) {
+        if (!(binary = binarystr = virFindFileInPath(cmd->args[0]))) {
             virReportSystemError(ENOENT,
                                  _("Cannot find '%s' in path"),
                                  cmd->args[0]);
@@ -506,8 +507,7 @@ virExec(virCommandPtr cmd)
 
         cmd->pid = pid;
 
-        if (binary != cmd->args[0])
-            VIR_FREE(binary);
+        VIR_FREE(binarystr);
         VIR_FREE(groups);
 
         return 0;
@@ -713,8 +713,7 @@ virExec(virCommandPtr cmd)
        should never jump here on error */
 
     VIR_FREE(groups);
-    if (binary != cmd->args[0])
-        VIR_FREE(binary);
+    VIR_FREE(binarystr);
 
     /* NB we don't virReportError() on any failures here
        because the code which jumped here already raised
@@ -1247,21 +1246,49 @@ virCommandAddEnvBuffer(virCommandPtr cmd, virBufferPtr buf)
 
 
 /**
- * virCommandAddEnvPass:
+ * virCommandAddEnvPassAllowSUID:
  * @cmd: the command to modify
  * @name: the name to look up in current environment
  *
  * Pass an environment variable to the child
  * using current process' value
+ *
+ * Allow to be passed even if setuid
  */
 void
-virCommandAddEnvPass(virCommandPtr cmd, const char *name)
+virCommandAddEnvPassAllowSUID(virCommandPtr cmd, const char *name)
 {
-    char *value;
+    const char *value;
     if (!cmd || cmd->has_error)
         return;
 
-    value = getenv(name);
+    value = virGetEnvAllowSUID(name);
+    if (value)
+        virCommandAddEnvPair(cmd, name, value);
+}
+
+
+/**
+ * virCommandAddEnvPassBlockSUID:
+ * @cmd: the command to modify
+ * @name: the name to look up in current environment
+ * @defvalue: value to return if running setuid, may be NULL
+ *
+ * Pass an environment variable to the child
+ * using current process' value.
+ *
+ * Do not pass if running setuid
+ */
+void
+virCommandAddEnvPassBlockSUID(virCommandPtr cmd, const char *name, const char *defvalue)
+{
+    const char *value;
+    if (!cmd || cmd->has_error)
+        return;
+
+    value = virGetEnvBlockSUID(name);
+    if (!value)
+        value = defvalue;
     if (value)
         virCommandAddEnvPair(cmd, name, value);
 }
@@ -1280,19 +1307,20 @@ virCommandAddEnvPassCommon(virCommandPtr cmd)
     if (!cmd || cmd->has_error)
         return;
 
-    /* Attempt to Pre-allocate; allocation failure will be detected
-     * later during virCommandAdd*.  */
-    ignore_value(VIR_RESIZE_N(cmd->env, cmd->maxenv, cmd->nenv, 9));
+    if (VIR_RESIZE_N(cmd->env, cmd->maxenv, cmd->nenv, 9) < 0) {
+        cmd->has_error = ENOMEM;
+        return;
+    }
 
     virCommandAddEnvPair(cmd, "LC_ALL", "C");
 
-    virCommandAddEnvPass(cmd, "LD_PRELOAD");
-    virCommandAddEnvPass(cmd, "LD_LIBRARY_PATH");
-    virCommandAddEnvPass(cmd, "PATH");
-    virCommandAddEnvPass(cmd, "HOME");
-    virCommandAddEnvPass(cmd, "USER");
-    virCommandAddEnvPass(cmd, "LOGNAME");
-    virCommandAddEnvPass(cmd, "TMPDIR");
+    virCommandAddEnvPassBlockSUID(cmd, "LD_PRELOAD", NULL);
+    virCommandAddEnvPassBlockSUID(cmd, "LD_LIBRARY_PATH", NULL);
+    virCommandAddEnvPassBlockSUID(cmd, "PATH", "/bin:/usr/bin");
+    virCommandAddEnvPassBlockSUID(cmd, "HOME", NULL);
+    virCommandAddEnvPassAllowSUID(cmd, "USER");
+    virCommandAddEnvPassAllowSUID(cmd, "LOGNAME");
+    virCommandAddEnvPassBlockSUID(cmd, "TMPDIR", NULL);
 }
 
 /**

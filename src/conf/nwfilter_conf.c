@@ -2,7 +2,7 @@
  * nwfilter_conf.c: network filter XML processing
  *                  (derived from storage_conf.c)
  *
- * Copyright (C) 2006-2012 Red Hat, Inc.
+ * Copyright (C) 2006-2013 Red Hat, Inc.
  * Copyright (C) 2006-2008 Daniel P. Berrange
  *
  * Copyright (C) 2010-2011 IBM Corporation
@@ -2369,9 +2369,7 @@ virNWFilterRuleParse(xmlNodePtr node)
                     if (virNWFilterRuleDetailsParse(cur,
                                                     ret,
                                                     virAttr[i].att) < 0) {
-                        /* we ignore malformed rules
-                           goto err_exit;
-                        */
+                        goto err_exit;
                     }
                     break;
                 }
@@ -2432,7 +2430,8 @@ static const char *
 virNWFilterIsAllowedChain(const char *chainname)
 {
     enum virNWFilterChainSuffixType i;
-    const char *name, *msg;
+    const char *name;
+    char *msg;
     virBuffer buf = VIR_BUFFER_INITIALIZER;
     bool printed = false;
 
@@ -2572,11 +2571,13 @@ virNWFilterDefParseXML(xmlXPathContextPtr ctxt) {
             if (VIR_ALLOC(entry) < 0)
                 goto cleanup;
 
-            /* ignore malformed rule and include elements */
-            if (xmlStrEqual(curr->name, BAD_CAST "rule"))
-                entry->rule = virNWFilterRuleParse(curr);
-            else if (xmlStrEqual(curr->name, BAD_CAST "filterref"))
-                entry->include = virNWFilterIncludeParse(curr);
+            if (xmlStrEqual(curr->name, BAD_CAST "rule")) {
+                if (!(entry->rule = virNWFilterRuleParse(curr)))
+                    goto cleanup;
+            } else if (xmlStrEqual(curr->name, BAD_CAST "filterref")) {
+                if (!(entry->include = virNWFilterIncludeParse(curr)))
+                    goto cleanup;
+            }
 
             if (entry->rule || entry->include) {
                 if (VIR_REALLOC_N(ret->filterEntries, ret->nentries+1) < 0) {
@@ -2633,8 +2634,7 @@ cleanup:
 
 
 static virNWFilterDefPtr
-virNWFilterDefParse(virConnectPtr conn ATTRIBUTE_UNUSED,
-                    const char *xmlStr,
+virNWFilterDefParse(const char *xmlStr,
                     const char *filename) {
     virNWFilterDefPtr def = NULL;
     xmlDocPtr xml;
@@ -2649,18 +2649,16 @@ virNWFilterDefParse(virConnectPtr conn ATTRIBUTE_UNUSED,
 
 
 virNWFilterDefPtr
-virNWFilterDefParseString(virConnectPtr conn,
-                          const char *xmlStr)
+virNWFilterDefParseString(const char *xmlStr)
 {
-    return virNWFilterDefParse(conn, xmlStr, NULL);
+    return virNWFilterDefParse(xmlStr, NULL);
 }
 
 
 virNWFilterDefPtr
-virNWFilterDefParseFile(virConnectPtr conn,
-                        const char *filename)
+virNWFilterDefParseFile(const char *filename)
 {
-    return virNWFilterDefParse(conn, NULL, filename);
+    return virNWFilterDefParse(NULL, filename);
 }
 
 
@@ -2746,8 +2744,7 @@ cleanup:
 
 
 static int
-_virNWFilterDefLoopDetect(virConnectPtr conn,
-                          virNWFilterObjListPtr nwfilters,
+_virNWFilterDefLoopDetect(virNWFilterObjListPtr nwfilters,
                           virNWFilterDefPtr def,
                           const char *filtername)
 {
@@ -2771,7 +2768,7 @@ _virNWFilterDefLoopDetect(virConnectPtr conn,
             obj = virNWFilterObjFindByName(nwfilters,
                                            entry->include->filterref);
             if (obj) {
-                rc = _virNWFilterDefLoopDetect(conn, nwfilters,
+                rc = _virNWFilterDefLoopDetect(nwfilters,
                                                obj->def, filtername);
 
                 virNWFilterObjUnlock(obj);
@@ -2787,7 +2784,6 @@ _virNWFilterDefLoopDetect(virConnectPtr conn,
 
 /*
  * virNWFilterDefLoopDetect:
- * @conn: pointer to virConnect object
  * @nwfilters : the nwfilters to search
  * @def : the filter definition that may add a loop and is to be tested
  *
@@ -2797,11 +2793,10 @@ _virNWFilterDefLoopDetect(virConnectPtr conn,
  * Returns 0 in case no loop was detected, -1 otherwise.
  */
 static int
-virNWFilterDefLoopDetect(virConnectPtr conn,
-                         virNWFilterObjListPtr nwfilters,
+virNWFilterDefLoopDetect(virNWFilterObjListPtr nwfilters,
                          virNWFilterDefPtr def)
 {
-    return _virNWFilterDefLoopDetect(conn, nwfilters, def, def->name);
+    return _virNWFilterDefLoopDetect(nwfilters, def, def->name);
 }
 
 int nCallbackDriver;
@@ -2852,6 +2847,7 @@ virNWFilterCallbackDriversUnlock(void)
 
 
 static virDomainObjListIterator virNWFilterDomainFWUpdateCB;
+static void *virNWFilterDomainFWUpdateOpaque;
 
 /**
  * virNWFilterInstFiltersOnAllVMs:
@@ -2859,30 +2855,29 @@ static virDomainObjListIterator virNWFilterDomainFWUpdateCB;
  * error. This should be called upon reloading of the driver.
  */
 int
-virNWFilterInstFiltersOnAllVMs(virConnectPtr conn)
+virNWFilterInstFiltersOnAllVMs(void)
 {
     size_t i;
     struct domUpdateCBStruct cb = {
-        .conn = conn,
+        .opaque = virNWFilterDomainFWUpdateOpaque,
         .step = STEP_APPLY_CURRENT,
         .skipInterfaces = NULL, /* not needed */
     };
 
     for (i = 0; i < nCallbackDriver; i++)
-        callbackDrvArray[i]->vmFilterRebuild(conn,
-                                             virNWFilterDomainFWUpdateCB,
+        callbackDrvArray[i]->vmFilterRebuild(virNWFilterDomainFWUpdateCB,
                                              &cb);
 
     return 0;
 }
 
 static int
-virNWFilterTriggerVMFilterRebuild(virConnectPtr conn)
+virNWFilterTriggerVMFilterRebuild(void)
 {
     size_t i;
     int ret = 0;
     struct domUpdateCBStruct cb = {
-        .conn = conn,
+        .opaque = virNWFilterDomainFWUpdateOpaque,
         .step = STEP_APPLY_NEW,
         .skipInterfaces = virHashCreate(0, NULL),
     };
@@ -2891,8 +2886,7 @@ virNWFilterTriggerVMFilterRebuild(virConnectPtr conn)
         return -1;
 
     for (i = 0; i < nCallbackDriver; i++) {
-        if (callbackDrvArray[i]->vmFilterRebuild(conn,
-                                                 virNWFilterDomainFWUpdateCB,
+        if (callbackDrvArray[i]->vmFilterRebuild(virNWFilterDomainFWUpdateCB,
                                                  &cb) < 0)
             ret = -1;
     }
@@ -2901,15 +2895,13 @@ virNWFilterTriggerVMFilterRebuild(virConnectPtr conn)
         cb.step = STEP_TEAR_NEW; /* rollback */
 
         for (i = 0; i < nCallbackDriver; i++)
-            callbackDrvArray[i]->vmFilterRebuild(conn,
-                                                 virNWFilterDomainFWUpdateCB,
+            callbackDrvArray[i]->vmFilterRebuild(virNWFilterDomainFWUpdateCB,
                                                  &cb);
     } else {
         cb.step = STEP_TEAR_OLD; /* switch over */
 
         for (i = 0; i < nCallbackDriver; i++)
-            callbackDrvArray[i]->vmFilterRebuild(conn,
-                                                 virNWFilterDomainFWUpdateCB,
+            callbackDrvArray[i]->vmFilterRebuild(virNWFilterDomainFWUpdateCB,
                                                  &cb);
     }
 
@@ -2920,14 +2912,13 @@ virNWFilterTriggerVMFilterRebuild(virConnectPtr conn)
 
 
 int
-virNWFilterTestUnassignDef(virConnectPtr conn,
-                           virNWFilterObjPtr nwfilter)
+virNWFilterTestUnassignDef(virNWFilterObjPtr nwfilter)
 {
     int rc = 0;
 
     nwfilter->wantRemoved = 1;
     /* trigger the update on VMs referencing the filter */
-    if (virNWFilterTriggerVMFilterRebuild(conn))
+    if (virNWFilterTriggerVMFilterRebuild())
         rc = -1;
 
     nwfilter->wantRemoved = 0;
@@ -2936,7 +2927,7 @@ virNWFilterTestUnassignDef(virConnectPtr conn,
 }
 
 static bool
-virNWFilterDefEqual(const virNWFilterDefPtr def1, virNWFilterDefPtr def2,
+virNWFilterDefEqual(const virNWFilterDef *def1, virNWFilterDefPtr def2,
                     bool cmpUUIDs)
 {
     bool ret = false;
@@ -2966,8 +2957,7 @@ cleanup:
 }
 
 virNWFilterObjPtr
-virNWFilterObjAssignDef(virConnectPtr conn,
-                        virNWFilterObjListPtr nwfilters,
+virNWFilterObjAssignDef(virNWFilterObjListPtr nwfilters,
                         virNWFilterDefPtr def)
 {
     virNWFilterObjPtr nwfilter;
@@ -2986,7 +2976,7 @@ virNWFilterObjAssignDef(virConnectPtr conn,
         virNWFilterObjUnlock(nwfilter);
     }
 
-    if (virNWFilterDefLoopDetect(conn, nwfilters, def) < 0) {
+    if (virNWFilterDefLoopDetect(nwfilters, def) < 0) {
         virReportError(VIR_ERR_OPERATION_FAILED,
                        "%s", _("filter would introduce a loop"));
         return NULL;
@@ -3005,7 +2995,7 @@ virNWFilterObjAssignDef(virConnectPtr conn,
 
         nwfilter->newDef = def;
         /* trigger the update on VMs referencing the filter */
-        if (virNWFilterTriggerVMFilterRebuild(conn)) {
+        if (virNWFilterTriggerVMFilterRebuild()) {
             nwfilter->newDef = NULL;
             virNWFilterUnlockFilterUpdates();
             virNWFilterObjUnlock(nwfilter);
@@ -3047,15 +3037,14 @@ virNWFilterObjAssignDef(virConnectPtr conn,
 
 
 static virNWFilterObjPtr
-virNWFilterObjLoad(virConnectPtr conn,
-                   virNWFilterObjListPtr nwfilters,
+virNWFilterObjLoad(virNWFilterObjListPtr nwfilters,
                    const char *file,
                    const char *path)
 {
     virNWFilterDefPtr def;
     virNWFilterObjPtr nwfilter;
 
-    if (!(def = virNWFilterDefParseFile(conn, path))) {
+    if (!(def = virNWFilterDefParseFile(path))) {
         return NULL;
     }
 
@@ -3067,7 +3056,7 @@ virNWFilterObjLoad(virConnectPtr conn,
         return NULL;
     }
 
-    if (!(nwfilter = virNWFilterObjAssignDef(conn, nwfilters, def))) {
+    if (!(nwfilter = virNWFilterObjAssignDef(nwfilters, def))) {
         virNWFilterDefFree(def);
         return NULL;
     }
@@ -3083,8 +3072,7 @@ virNWFilterObjLoad(virConnectPtr conn,
 
 
 int
-virNWFilterLoadAllConfigs(virConnectPtr conn,
-                          virNWFilterObjListPtr nwfilters,
+virNWFilterLoadAllConfigs(virNWFilterObjListPtr nwfilters,
                           const char *configDir)
 {
     DIR *dir;
@@ -3112,7 +3100,7 @@ virNWFilterLoadAllConfigs(virConnectPtr conn,
         if (!(path = virFileBuildPath(configDir, entry->d_name, NULL)))
             continue;
 
-        nwfilter = virNWFilterObjLoad(conn, nwfilters, entry->d_name, path);
+        nwfilter = virNWFilterObjLoad(nwfilters, entry->d_name, path);
         if (nwfilter)
             virNWFilterObjUnlock(nwfilter);
 
@@ -3424,7 +3412,7 @@ virNWFilterEntryFormat(virNWFilterEntryPtr entry)
 
 
 char *
-virNWFilterDefFormat(virNWFilterDefPtr def)
+virNWFilterDefFormat(const virNWFilterDef *def)
 {
     virBuffer buf = VIR_BUFFER_INITIALIZER;
     char uuid[VIR_UUID_STRING_BUFLEN];
@@ -3476,9 +3464,14 @@ char *virNWFilterConfigFile(const char *dir,
 }
 
 
-int virNWFilterConfLayerInit(virDomainObjListIterator domUpdateCB)
+int virNWFilterConfLayerInit(virDomainObjListIterator domUpdateCB,
+                             void *opaque)
 {
+    if (initialized)
+        return -1;
+
     virNWFilterDomainFWUpdateCB = domUpdateCB;
+    virNWFilterDomainFWUpdateOpaque = opaque;
 
     initialized = true;
 
@@ -3497,6 +3490,8 @@ void virNWFilterConfLayerShutdown(void)
     virMutexDestroy(&updateMutex);
 
     initialized = false;
+    virNWFilterDomainFWUpdateOpaque = NULL;
+    virNWFilterDomainFWUpdateCB = NULL;
 }
 
 

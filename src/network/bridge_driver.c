@@ -708,6 +708,14 @@ networkDnsmasqConfContents(virNetworkObjPtr network,
     if (!network->def->dns.forwardPlainNames)
         virBufferAddLit(&configbuf, "domain-needed\n");
 
+    if (network->def->dns.forwarders) {
+        virBufferAddLit(&configbuf, "no-resolv\n");
+        for (i = 0; i < network->def->dns.nfwds; i++) {
+            virBufferAsprintf(&configbuf, "server=%s\n",
+                               network->def->dns.forwarders[i]);
+        }
+    }
+
     if (network->def->domain) {
         virBufferAsprintf(&configbuf,
                           "domain=%s\n"
@@ -1099,7 +1107,8 @@ networkStartDhcpDaemon(virNetworkDriverStatePtr driver,
     if (dctx == NULL)
         goto cleanup;
 
-    dnsmasqCapsRefresh(&driver->dnsmasqCaps, false);
+    if (dnsmasqCapsRefresh(&driver->dnsmasqCaps, NULL) < 0)
+        goto cleanup;
 
     ret = networkBuildDhcpDaemonCommandLine(network, &cmd, pidfile,
                                             dctx, driver->dnsmasqCaps);

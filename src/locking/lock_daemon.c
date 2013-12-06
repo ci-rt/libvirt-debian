@@ -605,7 +605,7 @@ virLockDaemonSetupNetworkingSystemD(virNetServerPtr srv)
 
     VIR_DEBUG("Setting up networking from systemd");
 
-    if (!(pidstr = getenv("LISTEN_PID"))) {
+    if (!(pidstr = virGetEnvAllowSUID("LISTEN_PID"))) {
         VIR_DEBUG("No LISTEN_FDS from systemd");
         return 0;
     }
@@ -621,7 +621,7 @@ virLockDaemonSetupNetworkingSystemD(virNetServerPtr srv)
         return 0;
     }
 
-    if (!(fdstr = getenv("LISTEN_FDS"))) {
+    if (!(fdstr = virGetEnvAllowSUID("LISTEN_FDS"))) {
         VIR_DEBUG("No LISTEN_FDS from systemd");
         return 0;
     }
@@ -1167,7 +1167,7 @@ int main(int argc, char **argv) {
         {0, 0, 0, 0}
     };
 
-    privileged = getuid() == 0;
+    privileged = geteuid() == 0;
 
     if (setlocale(LC_ALL, "") == NULL ||
         bindtextdomain(PACKAGE, LOCALEDIR) == NULL ||

@@ -20,6 +20,7 @@ PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 DAEMON=/usr/sbin/libvirtd
 NAME=libvirtd
 DESC="libvirt management daemon"
+MOUNTS="cpuset cpu cpuacct memory devices freezer net_cls blkio perf_event"
 export PATH
 
 test -x $DAEMON || exit 0
@@ -67,6 +68,51 @@ running()
     return 0
 }
 
+systemd_running()
+{
+    if [ -d /home/systemd/system ] ; then
+        return 0
+    fi
+    return 1
+}
+
+mount_cgroups()
+{
+    if ! systemd_running
+    then
+        mount -t tmpfs cgroup_root /sys/fs/cgroup || return 1
+        for M in $MOUNTS; do
+            mkdir /sys/fs/cgroup/$M || return 1
+            mount -t cgroup -o rw,nosuid,nodev,noexec,relatime,$M "cgroup_${M}" "/sys/fs/cgroup/${M}" || return 1
+        done
+    else
+        log_warning_msg "Systemd running, skipping cgroup mount."
+    fi
+
+}
+
+umount_cgroups()
+{
+    if ! systemd_running
+    then
+        for M in $MOUNTS; do
+            umount "cgroup_${M}"
+            rmdir /sys/fs/cgroup/$M
+        done
+        umount cgroup_root
+    else
+        log_warning_msg "Systemd running, skipping cgroup mount."
+    fi
+}
+
+check_mount_cgroup_options() {
+  if [ ! "$mount_cgroups" = "yes" ]; then
+    return 1
+  else
+    return 0
+  fi
+}
+
 force_stop() {
 # Forcefully kill the process
     [ ! -f "$PIDFILE" ] && return
@@ -97,6 +143,12 @@ case "$1" in
             		exit 0
         	fi
 		rm -f /var/run/libvirtd.pid
+		if check_mount_cgroup_options; then
+		    if ! mount_cgroups;then
+			log_warning_msg "Can not mount cgroups layout"
+			exit 1
+		    fi
+		fi
 		start-stop-daemon --start --quiet --pidfile $PIDFILE \
 			--exec $DAEMON -- -d $libvirtd_opts
 		if running; then
@@ -113,6 +165,9 @@ case "$1" in
             	log_end_msg 0
             	exit 0
        	fi
+	if check_mount_cgroup_options; then
+		umount_cgroups
+	fi
 	start-stop-daemon --stop --quiet --pidfile $PIDFILE \
 		--exec $DAEMON
 	log_end_msg 0
@@ -165,7 +220,7 @@ case "$1" in
                 exit 3
             fi
 	fi
-    ;;
+	;;
   *)
 	N=/etc/init.d/libvirt-bin
 	echo "Usage: $N {start|stop|restart|reload|force-reload|status|force-stop}" >&2

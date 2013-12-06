@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2009-2012 Red Hat, Inc.
+ * Copyright (C) 2009-2013 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -36,8 +36,8 @@ virNetDevVlanParse(xmlNodePtr node, xmlXPathContextPtr ctxt, virNetDevVlanPtr de
 {
     int ret = -1;
     xmlNodePtr save = ctxt->node;
-    const char *trunk = NULL;
-    const char *nativeMode = NULL;
+    char *trunk = NULL;
+    char *nativeMode = NULL;
     xmlNodePtr *tagNodes = NULL;
     int nTags;
     size_t i;
@@ -140,7 +140,7 @@ cleanup:
 }
 
 int
-virNetDevVlanFormat(virNetDevVlanPtr def, virBufferPtr buf)
+virNetDevVlanFormat(const virNetDevVlan *def, virBufferPtr buf)
 {
     size_t i;
 

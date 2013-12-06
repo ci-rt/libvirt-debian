@@ -98,6 +98,7 @@ static int testCompareXMLToArgvFiles(const char *xml,
     virConnectPtr conn;
     char *log = NULL;
     virCommandPtr cmd = NULL;
+    size_t i;
 
     if (!(conn = virGetConnect()))
         goto out;
@@ -153,6 +154,16 @@ static int testCompareXMLToArgvFiles(const char *xml,
 
     if (qemuAssignDeviceAliases(vmdef, extraFlags) < 0)
         goto out;
+
+    for (i = 0; i < vmdef->nhostdevs; i++) {
+        virDomainHostdevDefPtr hostdev = vmdef->hostdevs[i];
+
+        if (hostdev->mode == VIR_DOMAIN_HOSTDEV_MODE_SUBSYS &&
+            hostdev->source.subsys.type == VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI &&
+            hostdev->source.subsys.u.pci.backend == VIR_DOMAIN_HOSTDEV_PCI_BACKEND_DEFAULT) {
+            hostdev->source.subsys.u.pci.backend = VIR_DOMAIN_HOSTDEV_PCI_BACKEND_KVM;
+        }
+    }
 
     if (!(cmd = qemuBuildCommandLine(conn, &driver, vmdef, &monitor_chr,
                                      (flags & FLAG_JSON), extraFlags,
@@ -332,7 +343,7 @@ mymain(void)
             return EXIT_FAILURE;                                        \
         virQEMUCapsSetList(info.extraFlags, __VA_ARGS__, QEMU_CAPS_LAST);\
         if (virtTestRun("QEMU XML-2-ARGV " name,                        \
-                        1, testCompareXMLToArgvHelper, &info) < 0)      \
+                        testCompareXMLToArgvHelper, &info) < 0)         \
             ret = -1;                                                   \
         virObjectUnref(info.extraFlags);                                \
     } while (0)
@@ -421,6 +432,8 @@ mymain(void)
     DO_TEST("clock-variable", QEMU_CAPS_RTC);
     */
     DO_TEST("clock-france", QEMU_CAPS_RTC);
+    DO_TEST("clock-hpet-off", QEMU_CAPS_RTC, QEMU_CAPS_NO_HPET,
+            QEMU_CAPS_NO_KVM_PIT);
     DO_TEST("cpu-kvmclock", QEMU_CAPS_ENABLE_KVM);
     DO_TEST("cpu-host-kvmclock", QEMU_CAPS_ENABLE_KVM, QEMU_CAPS_CPU_HOST);
     DO_TEST("kvmclock", QEMU_CAPS_KVM);
@@ -445,7 +458,13 @@ mymain(void)
     DO_TEST("disk-cdrom", NONE);
     DO_TEST("disk-cdrom-network-http", QEMU_CAPS_KVM, QEMU_CAPS_DEVICE,
             QEMU_CAPS_DRIVE);
+    DO_TEST("disk-cdrom-network-https", QEMU_CAPS_KVM, QEMU_CAPS_DEVICE,
+            QEMU_CAPS_DRIVE);
     DO_TEST("disk-cdrom-network-ftp", QEMU_CAPS_KVM, QEMU_CAPS_DEVICE,
+            QEMU_CAPS_DRIVE);
+    DO_TEST("disk-cdrom-network-ftps", QEMU_CAPS_KVM, QEMU_CAPS_DEVICE,
+            QEMU_CAPS_DRIVE);
+    DO_TEST("disk-cdrom-network-tftp", QEMU_CAPS_KVM, QEMU_CAPS_DEVICE,
             QEMU_CAPS_DRIVE);
     DO_TEST("disk-cdrom-empty", QEMU_CAPS_DRIVE);
     DO_TEST("disk-cdrom-tray",
@@ -544,7 +563,11 @@ mymain(void)
             QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE, QEMU_CAPS_BOOTINDEX);
     DO_TEST("disk-usb",  NONE);
     DO_TEST("disk-usb-device",
-            QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG);
+            QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE, QEMU_CAPS_DEVICE_USB_STORAGE,
+            QEMU_CAPS_NODEFCONFIG);
+    DO_TEST("disk-usb-device-removable",
+            QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE, QEMU_CAPS_DEVICE_USB_STORAGE,
+            QEMU_CAPS_USB_STORAGE_REMOVABLE, QEMU_CAPS_NODEFCONFIG);
     DO_TEST("disk-scsi-device",
             QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG,
             QEMU_CAPS_SCSI_LSI);
@@ -637,6 +660,14 @@ mymain(void)
             QEMU_CAPS_VGA, QEMU_CAPS_VGA_QXL,
             QEMU_CAPS_DEVICE, QEMU_CAPS_SPICE,
             QEMU_CAPS_DEVICE_QXL);
+    driver.config->spiceSASL = 1;
+    ignore_value(VIR_STRDUP(driver.config->spiceSASLdir, "/root/.sasl2"));
+    DO_TEST("graphics-spice-sasl",
+            QEMU_CAPS_VGA, QEMU_CAPS_VGA_QXL,
+            QEMU_CAPS_DEVICE, QEMU_CAPS_SPICE,
+            QEMU_CAPS_DEVICE_QXL);
+    VIR_FREE(driver.config->spiceSASLdir);
+    driver.config->spiceSASL = 0;
     DO_TEST("graphics-spice-agentmouse",
             QEMU_CAPS_VGA, QEMU_CAPS_VGA_QXL,
             QEMU_CAPS_DEVICE, QEMU_CAPS_SPICE,
@@ -845,7 +876,8 @@ mymain(void)
     DO_TEST("sound", NONE);
     DO_TEST("sound-device",
             QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG,
-            QEMU_CAPS_HDA_DUPLEX, QEMU_CAPS_HDA_MICRO);
+            QEMU_CAPS_HDA_DUPLEX, QEMU_CAPS_HDA_MICRO,
+            QEMU_CAPS_DEVICE_ICH9_INTEL_HDA);
     DO_TEST("fs9p",
             QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG, QEMU_CAPS_FSDEV,
             QEMU_CAPS_FSDEV_WRITEOUT);
@@ -906,6 +938,7 @@ mymain(void)
     DO_TEST("blkiotune-device", QEMU_CAPS_NAME);
     DO_TEST("cputune", QEMU_CAPS_NAME);
     DO_TEST("numatune-memory", NONE);
+    DO_TEST("numatune-auto-nodeset-invalid", NONE);
     DO_TEST("numad", NONE);
     DO_TEST("numad-auto-vcpu-static-numatune", NONE);
     DO_TEST("numad-auto-memory-vcpu-cpuset", NONE);
@@ -950,6 +983,7 @@ mymain(void)
     DO_TEST_ERROR("pseries-vio-address-clash", QEMU_CAPS_DRIVE,
             QEMU_CAPS_CHARDEV, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG);
     DO_TEST("pseries-nvram", QEMU_CAPS_DEVICE_NVRAM);
+    DO_TEST_FAILURE("pseries-cpu-exact", QEMU_CAPS_CHARDEV, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG);
     DO_TEST("disk-ide-drive-split",
             QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG,
             QEMU_CAPS_IDE_CD);
@@ -973,6 +1007,8 @@ mymain(void)
             QEMU_CAPS_OBJECT_RNG_RANDOM);
     DO_TEST("virtio-rng-egd", QEMU_CAPS_DEVICE, QEMU_CAPS_DEVICE_VIRTIO_RNG,
             QEMU_CAPS_OBJECT_RNG_EGD);
+    DO_TEST_PARSE_ERROR("virtio-rng-egd-crash", QEMU_CAPS_DEVICE,
+            QEMU_CAPS_DEVICE_VIRTIO_RNG, QEMU_CAPS_OBJECT_RNG_EGD);
     DO_TEST("virtio-rng-ccw",
             QEMU_CAPS_DEVICE, QEMU_CAPS_CHARDEV, QEMU_CAPS_NODEFCONFIG,
             QEMU_CAPS_DRIVE, QEMU_CAPS_BOOTINDEX, QEMU_CAPS_VIRTIO_CCW,
@@ -1056,6 +1092,16 @@ mymain(void)
             QEMU_CAPS_VGA, QEMU_CAPS_DEVICE_VIDEO_PRIMARY,
             QEMU_CAPS_VGA_QXL, QEMU_CAPS_DEVICE_QXL,
             QEMU_CAPS_Q35_PCI_HOLE64_SIZE);
+
+    DO_TEST("arm-vexpressa9-nodevs",
+            QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG, QEMU_CAPS_DTB);
+    DO_TEST("arm-vexpressa9-basic",
+            QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG, QEMU_CAPS_DTB,
+            QEMU_CAPS_DRIVE);
+    DO_TEST("arm-vexpressa9-virtio",
+            QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG, QEMU_CAPS_DTB,
+            QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE_VIRTIO_MMIO,
+            QEMU_CAPS_DEVICE_VIRTIO_RNG, QEMU_CAPS_OBJECT_RNG_RANDOM);
 
     virObjectUnref(driver.config);
     virObjectUnref(driver.caps);

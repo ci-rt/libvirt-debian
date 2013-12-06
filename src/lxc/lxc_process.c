@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010-2012 Red Hat, Inc.
+ * Copyright (C) 2010-2013 Red Hat, Inc.
  * Copyright IBM Corp. 2008
  *
  * lxc_process.c: LXC process lifecycle management
@@ -50,6 +50,7 @@
 #include "virstring.h"
 #include "viratomic.h"
 #include "virprocess.h"
+#include "virsystemd.h"
 
 #define VIR_FROM_THIS VIR_FROM_LXC
 
@@ -192,7 +193,6 @@ static void virLXCProcessCleanup(virLXCDriverPtr driver,
         virDomainNetDefPtr iface = vm->def->nets[i];
         vport = virDomainNetGetActualVirtPortProfile(iface);
         if (iface->ifname) {
-            ignore_value(virNetDevSetOnline(iface->ifname, false));
             if (vport &&
                 vport->virtPortType == VIR_NETDEV_VPORT_PROFILE_OPENVSWITCH)
                 ignore_value(virNetDevOpenvswitchRemovePort(
@@ -210,7 +210,14 @@ static void virLXCProcessCleanup(virLXCDriverPtr driver,
         virCgroupFree(&priv->cgroup);
     }
 
-    /* now that we know it's stopped call the hook if present */
+    /* Get machined to terminate the machine as it may not have cleaned it
+     * properly. See https://bugs.freedesktop.org/show_bug.cgi?id=68370 for
+     * the bug we are working around here.
+     */
+    virSystemdTerminateMachine(vm->def->name, "lxc", true);
+
+
+    /* The "release" hook cleans up additional resources */
     if (virHookPresent(VIR_HOOK_DRIVER_LXC)) {
         char *xml = virDomainDefFormat(vm->def, 0);
 
@@ -239,7 +246,7 @@ char *virLXCProcessSetupInterfaceBridged(virConnectPtr conn,
     char *ret = NULL;
     char *parentVeth;
     char *containerVeth = NULL;
-    const virNetDevVPortProfilePtr vport = virDomainNetGetActualVirtPortProfile(net);
+    virNetDevVPortProfilePtr vport = virDomainNetGetActualVirtPortProfile(net);
 
     VIR_DEBUG("calling vethCreate()");
     parentVeth = net->ifname;
@@ -733,7 +740,7 @@ virLXCProcessBuildControllerCmd(virLXCDriverPtr driver,
     cmd = virCommandNew(vm->def->emulator);
 
     /* The controller may call ip command, so we have to retain PATH. */
-    virCommandAddEnvPass(cmd, "PATH");
+    virCommandAddEnvPassBlockSUID(cmd, "PATH", "/bin:/usr/bin");
 
     virCommandAddEnvFormat(cmd, "LIBVIRT_DEBUG=%d",
                            virLogGetDefaultPriority());
@@ -800,6 +807,20 @@ cleanup:
 }
 
 
+static bool
+virLXCProcessIgnorableLogLine(const char *str)
+{
+    if (virLogProbablyLogMessage(str))
+        return true;
+    if (strstr(str, "PATH="))
+        return true;
+    if (strstr(str, "error receiving signal from container"))
+        return true;
+    if (STREQ(str, ""))
+        return true;
+    return false;
+}
+
 static int
 virLXCProcessReadLogOutputData(virDomainObjPtr vm,
                                int fd,
@@ -837,7 +858,7 @@ virLXCProcessReadLogOutputData(virDomainObjPtr vm,
         /* Filter out debug messages from intermediate libvirt process */
         while ((eol = strchr(filter_next, '\n'))) {
             *eol = '\0';
-            if (virLogProbablyLogMessage(filter_next)) {
+            if (virLXCProcessIgnorableLogLine(filter_next)) {
                 memmove(filter_next, eol + 1, got - (eol - buf));
                 got -= eol + 1 - filter_next;
             } else {
@@ -973,6 +994,7 @@ int virLXCProcessStart(virConnectPtr conn,
     virErrorPtr err = NULL;
     virLXCDriverConfigPtr cfg = virLXCDriverGetConfig(driver);
     virCgroupPtr selfcgroup;
+    int status;
 
     if (virCgroupNewSelf(&selfcgroup) < 0)
         return -1;
@@ -1175,8 +1197,17 @@ int virLXCProcessStart(virConnectPtr conn,
         VIR_WARN("Unable to seek to end of logfile: %s",
                  virStrerror(errno, ebuf, sizeof(ebuf)));
 
-    if (virCommandRun(cmd, NULL) < 0)
+    if (virCommandRun(cmd, &status) < 0)
         goto cleanup;
+
+    if (status != 0) {
+        if (virLXCProcessReadLogOutput(vm, logfile, pos, ebuf, sizeof(ebuf)) <= 0)
+            snprintf(ebuf, sizeof(ebuf), "unexpected exit status %d", status);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("guest failed to start: %s"), ebuf);
+        goto cleanup;
+    }
+
 
     if (VIR_CLOSE(handshakefds[1]) < 0) {
         virReportSystemError(errno, "%s", _("could not close handshake fd"));
@@ -1186,16 +1217,23 @@ int virLXCProcessStart(virConnectPtr conn,
     /* Connect to the controller as a client *first* because
      * this will block until the child has written their
      * pid file out to disk & created their cgroup */
-    if (!(priv->monitor = virLXCProcessConnectMonitor(driver, vm)))
+    if (!(priv->monitor = virLXCProcessConnectMonitor(driver, vm))) {
+        /* Intentionally overwrite the real monitor error message,
+         * since a better one is almost always found in the logs
+         */
+        if (virLXCProcessReadLogOutput(vm, logfile, pos, ebuf, sizeof(ebuf)) > 0) {
+            virResetLastError();
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("guest failed to start: %s"), ebuf);
+        }
         goto cleanup;
+    }
 
     /* And get its pid */
     if ((r = virPidFileRead(cfg->stateDir, vm->def->name, &vm->pid)) < 0) {
-        char out[1024];
-
-        if (virLXCProcessReadLogOutput(vm, logfile, pos, out, 1024) > 0)
+        if (virLXCProcessReadLogOutput(vm, logfile, pos, ebuf, sizeof(ebuf)) > 0)
             virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("guest failed to start: %s"), out);
+                           _("guest failed to start: %s"), ebuf);
         else
             virReportSystemError(-r,
                                  _("Failed to read pid file %s/%s.pid"),
@@ -1283,7 +1321,7 @@ cleanup:
         rc = -1;
     }
     for (i = 0; i < nveths; i++) {
-        if (rc != 0)
+        if (rc != 0 && veths[i])
             ignore_value(virNetDevVethDelete(veths[i]));
         VIR_FREE(veths[i]);
     }

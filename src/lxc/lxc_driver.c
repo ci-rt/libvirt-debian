@@ -84,8 +84,7 @@ virLXCDriverPtr lxc_driver = NULL;
 
 /* callbacks for nwfilter */
 static int
-lxcVMFilterRebuild(virConnectPtr conn ATTRIBUTE_UNUSED,
-                   virDomainObjListIterator iter, void *data)
+lxcVMFilterRebuild(virDomainObjListIterator iter, void *data)
 {
     return virDomainObjListForEach(lxc_driver->domains, iter, data);
 }
@@ -888,7 +887,7 @@ cleanup:
 }
 
 /**
- * lxcDomainCreateWithFlags:
+ * lxcDomainCreateWithFiles:
  * @dom: domain to start
  * @flags: Must be 0 for now
  *
@@ -1363,14 +1362,14 @@ static int lxcStateInitialize(bool privileged,
                               void *opaque ATTRIBUTE_UNUSED)
 {
     virCapsPtr caps = NULL;
-    char *ld;
+    const char *ld;
     virLXCDriverConfigPtr cfg = NULL;
 
     /* Valgrind gets very annoyed when we clone containers, so
      * disable LXC when under valgrind
      * XXX remove this when valgrind is fixed
      */
-    ld = getenv("LD_PRELOAD");
+    ld = virGetEnvBlockSUID("LD_PRELOAD");
     if (ld && strstr(ld, "vgpreload")) {
         VIR_INFO("Running under valgrind, disabling driver");
         return 0;
@@ -1574,45 +1573,10 @@ static char *lxcConnectGetHostname(virConnectPtr conn)
 }
 
 
-
-/*
- * check whether the host supports CFS bandwidth
- *
- * Return 1 when CFS bandwidth is supported, 0 when CFS bandwidth is not
- * supported, -1 on error.
- */
-static int lxcGetCpuBWStatus(virCgroupPtr cgroup)
-{
-    char *cfs_period_path = NULL;
-    int ret = -1;
-
-    if (!cgroup)
-        return 0;
-
-    if (virCgroupPathOfController(cgroup, VIR_CGROUP_CONTROLLER_CPU,
-                                  "cpu.cfs_period_us", &cfs_period_path) < 0) {
-        VIR_INFO("cannot get the path of cgroup CPU controller");
-        ret = 0;
-        goto cleanup;
-    }
-
-    if (access(cfs_period_path, F_OK) < 0) {
-        ret = 0;
-    } else {
-        ret = 1;
-    }
-
-cleanup:
-    VIR_FREE(cfs_period_path);
-    return ret;
-}
-
-
 static char *lxcDomainGetSchedulerType(virDomainPtr dom,
                                        int *nparams)
 {
     char *ret = NULL;
-    int rc;
     virDomainObjPtr vm;
     virLXCDomainObjPrivatePtr priv;
 
@@ -1639,13 +1603,10 @@ static char *lxcDomainGetSchedulerType(virDomainPtr dom,
     }
 
     if (nparams) {
-        rc = lxcGetCpuBWStatus(priv->cgroup);
-        if (rc < 0)
-            goto cleanup;
-        else if (rc == 0)
-            *nparams = 1;
-        else
+        if (virCgroupSupportsCpuBW(priv->cgroup))
             *nparams = 3;
+        else
+            *nparams = 1;
     }
 
     ignore_value(VIR_STRDUP(ret, "posix"));
@@ -1872,12 +1833,8 @@ lxcDomainGetSchedulerParametersFlags(virDomainPtr dom,
     if (virDomainGetSchedulerParametersFlagsEnsureACL(dom->conn, vm->def) < 0)
         goto cleanup;
 
-    if (*nparams > 1) {
-        rc = lxcGetCpuBWStatus(priv->cgroup);
-        if (rc < 0)
-            goto cleanup;
-        cpu_bw_status = !!rc;
-    }
+    if (*nparams > 1)
+        cpu_bw_status = virCgroupSupportsCpuBW(priv->cgroup);
 
     if (!(caps = virLXCDriverGetCapabilities(driver, false)))
         goto cleanup;
@@ -3033,7 +2990,7 @@ lxcDomainAttachDeviceDiskLive(virLXCDriverPtr driver,
     created = true;
 
     /* Labelling normally operates on src, but we need
-     * to actally label the dst here, so hack the config */
+     * to actually label the dst here, so hack the config */
     def->src = dst;
     if (virSecurityManagerSetImageLabel(driver->securityManager,
                                         vm->def, def) < 0)
@@ -3065,6 +3022,7 @@ cleanup:
     virDomainAuditDisk(vm, NULL, def->src, "attach", ret == 0);
     if (dst && created && ret < 0)
         unlink(dst);
+    VIR_FREE(dst);
     return ret;
 }
 
@@ -3766,7 +3724,7 @@ lxcDomainDetachDeviceHostdevUSBLive(virLXCDriverPtr driver,
     virDomainHostdevDefPtr def = NULL;
     int idx, ret = -1;
     char *dst = NULL;
-    char *vroot;
+    char *vroot = NULL;
     virUSBDevicePtr usb = NULL;
 
     if ((idx = virDomainHostdevFind(vm->def,
@@ -3824,6 +3782,7 @@ lxcDomainDetachDeviceHostdevUSBLive(virLXCDriverPtr driver,
 cleanup:
     virUSBDeviceFree(usb);
     VIR_FREE(dst);
+    VIR_FREE(vroot);
     return ret;
 }
 
@@ -4590,6 +4549,74 @@ lxcNodeSuspendForDuration(virConnectPtr conn,
 }
 
 
+static int
+lxcDomainSetMetadata(virDomainPtr dom,
+                      int type,
+                      const char *metadata,
+                      const char *key,
+                      const char *uri,
+                      unsigned int flags)
+{
+    virLXCDriverPtr driver = dom->conn->privateData;
+    virDomainObjPtr vm;
+    virLXCDriverConfigPtr cfg = NULL;
+    virCapsPtr caps = NULL;
+    int ret = -1;
+
+    virCheckFlags(VIR_DOMAIN_AFFECT_LIVE |
+                  VIR_DOMAIN_AFFECT_CONFIG, -1);
+
+    if (!(vm = lxcDomObjFromDomain(dom)))
+        return -1;
+
+    cfg = virLXCDriverGetConfig(driver);
+
+    if (virDomainSetMetadataEnsureACL(dom->conn, vm->def, flags) < 0)
+        goto cleanup;
+
+    if (!(caps = virLXCDriverGetCapabilities(driver, false)))
+        goto cleanup;
+
+    ret = virDomainObjSetMetadata(vm, type, metadata, key, uri, caps,
+                                  driver->xmlopt, cfg->configDir, flags);
+
+cleanup:
+    virObjectUnlock(vm);
+    virObjectUnref(caps);
+    virObjectUnref(cfg);
+    return ret;
+}
+
+
+static char *
+lxcDomainGetMetadata(virDomainPtr dom,
+                      int type,
+                      const char *uri,
+                      unsigned int flags)
+{
+    virLXCDriverPtr driver = dom->conn->privateData;
+    virCapsPtr caps = NULL;
+    virDomainObjPtr vm;
+    char *ret = NULL;
+
+    if (!(vm = lxcDomObjFromDomain(dom)))
+        return NULL;
+
+    if (virDomainGetMetadataEnsureACL(dom->conn, vm->def) < 0)
+        goto cleanup;
+
+    if (!(caps = virLXCDriverGetCapabilities(driver, false)))
+        goto cleanup;
+
+    ret = virDomainObjGetMetadata(vm, type, uri, caps, driver->xmlopt, flags);
+
+cleanup:
+    virObjectUnlock(vm);
+    virObjectUnref(caps);
+    return ret;
+}
+
+
 /* Function Tables */
 static virDriver lxcDriver = {
     .no = VIR_DRV_LXC,
@@ -4664,6 +4691,8 @@ static virDriver lxcDriver = {
     .domainOpenConsole = lxcDomainOpenConsole, /* 0.8.6 */
     .connectIsAlive = lxcConnectIsAlive, /* 0.9.8 */
     .nodeSuspendForDuration = lxcNodeSuspendForDuration, /* 0.9.8 */
+    .domainSetMetadata = lxcDomainSetMetadata, /* 1.1.3 */
+    .domainGetMetadata = lxcDomainGetMetadata, /* 1.1.3 */
     .nodeGetMemoryParameters = lxcNodeGetMemoryParameters, /* 0.10.2 */
     .nodeSetMemoryParameters = lxcNodeSetMemoryParameters, /* 0.10.2 */
     .domainSendProcessSignal = lxcDomainSendProcessSignal, /* 1.0.1 */

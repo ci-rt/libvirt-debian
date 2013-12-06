@@ -5,10 +5,12 @@ export VIR_TEST_DEBUG=1
 ifneq (,$(findstring $(DEB_HOST_ARCH_OS), linux))
   ifneq (,$(findstring $(DEB_HOST_ARCH), i386 amd64))
     WITH_XEN = --with-xen
+    WITH_LIBXL = --with-libxl
     WITH_VBOX = --with-vbox
     MAKE_CHECK = 1
   else
     WITH_XEN            = --without-xen
+    WITH_LIBXL          = --without-libxl
     WITH_VBOX           = --without-vbox
   endif
   WITH_STORAGE_LVM    = --with-storage-lvm
@@ -55,10 +57,15 @@ else
   WITH_AUDIT          = --without-audit
   WITH_DTRACE         = --without-dtrace
   WITH_XEN            = --without-xen
+  WITH_LIBXL          = --without-libxl
   WITH_VBOX           = --without-vbox
 endif
 
+WITH_STORAGE_SHEEPDOG = --without-storage-sheepdog
+WITH_STORAGE_RBD    = --without-storage-rbd
+
 DEB_CONFIGURE_EXTRA_ARGS :=      \
+	--disable-silent-rules   \
 	--disable-rpath          \
 	$(WITH_QEMU)		 \
 	--with-qemu-user=libvirt-qemu  \
@@ -67,23 +74,27 @@ DEB_CONFIGURE_EXTRA_ARGS :=      \
 	--with-avahi             \
 	--with-sasl              \
 	--with-yajl              \
+	--with-ssh2		 \
 	$(WITH_POLKIT)		 \
 	$(WITH_UDEV)		 \
 	--with-storage-fs        \
 	$(WITH_STORAGE_LVM)	 \
 	$(WITH_STORAGE_ISCSI)	 \
 	$(WITH_STORAGE_DISK)	 \
+	$(WITH_STORAGE_SHEEPDOG) \
+	$(WITH_STORAGE_RBD)      \
 	$(WITH_INIT_SCRIPT)      \
 	$(WITH_NUMA)             \
 	--without-selinux        \
 	--without-esx		 \
-	--without-libssh2	 \
+	--without-phyp           \
 	$(WITH_CAPNG)		 \
 	--enable-debug		 \
 	$(WITH_MACVTAP)		 \
 	$(WITH_NETWORK)		 \
 	$(WITH_NETCF)		 \
 	$(WITH_XEN)		 \
+	$(WITH_LIBXL)		 \
 	$(WITH_VBOX)		 \
 	$(WITH_LXC)              \
 	$(WITH_DTRACE)           \
