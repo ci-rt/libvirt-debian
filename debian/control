@@ -26,7 +26,7 @@ Build-Depends:
  libhal-dev [!linux-any],
  libpciaccess-dev,
  module-init-tools [linux-any],
- policykit-1 (>= 0.105-4~),
+ policykit-1,
  libcap-ng-dev [linux-any],
  libnl-dev [linux-any],
  libyajl-dev,
