@@ -11,8 +11,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libvirt\n"
 "Report-Msgid-Bugs-To: libvir-list@redhat.com\n"
-"POT-Creation-Date: 2013-11-28 11:34+0800\n"
-"PO-Revision-Date: 2013-08-28 16:47+0000\n"
+"POT-Creation-Date: 2013-12-02 11:51+0800\n"
+"PO-Revision-Date: 2013-11-26 03:42+0000\n"
 "Last-Translator: Daniel <veillard@redhat.com>\n"
 "Language-Team: Oriya (http://www.transifex.com/projects/p/fedora/language/"
 "or/)\n"
@@ -102,7 +102,7 @@ msgid ""
 msgstr ""
 
 #: daemon/libvirtd.c:1055
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "\n"
 "  Default paths:\n"
@@ -123,24 +123,6 @@ msgid ""
 "      %s/run/libvirtd.pid\n"
 "\n"
 msgstr ""
-"\n"
-"  ପୂର୍ବନିର୍ଦ୍ଧାରିତ ପଥଗୁଡ଼ିକ:\n"
-"\n"
-"    ସଂରଚନା ଫାଇଲ ( -f ଦ୍ୱାରା ନବଲିଖନ ହୋଇନଥିଲେ):\n"
-"      %s/libvirt/libvirtd.conf\n"
-"\n"
-"    ସକେଟଗୁଡ଼ିକ:\n"
-"      %s/run/libvirt/libvirt-sock\n"
-"      %s/run/libvirt/libvirt-sock-ro\n"
-"\n"
-"    TLS:\n"
-"      CA ପ୍ରମାଣପତ୍ର:     %s/pki/CA/caert.pem\n"
-"      ସର୍ଭର ପ୍ରମାଣପତ୍ର: %s/pki/libvirt/servercert.pem\n"
-"      ସର୍ଭର ବ୍ୟକ୍ତିଗତ କି: %s/pki/libvirt/private/serverkey.pem\n"
-"\n"
-"    PID ଫାଇଲ (-p ଦ୍ୱାରା ନବଲିଖନ ହୋଇନଥିଲେ):\n"
-"      %s/run/libvirtd.pid\n"
-"\n"
 
 #: daemon/libvirtd.c:1082
 msgid ""
@@ -448,9 +430,9 @@ msgstr "ପ୍ରାଚଳ %s ଟି ଲକ୍ଷ୍ଯସ୍ଥଳ ପାଇଁ
 
 #: daemon/remote.c:1061 src/remote/remote_driver.c:1396
 #: src/remote/remote_driver.c:1410 src/remote/remote_driver.c:1459
-#, fuzzy, c-format
+#, c-format
 msgid "Too many domains '%d' for limit '%d'"
-msgstr "ଅତ୍ଯଧିକ ସୁଦୂର ପରିସର IDs: %d > %d"
+msgstr ""
 
 #: daemon/remote.c:1169
 msgid "maxStats > REMOTE_DOMAIN_MEMORY_STATS_MAX"
@@ -636,49 +618,41 @@ msgid "Too many migration parameters '%d' for limit '%d'"
 msgstr ""
 
 #: daemon/remote.c:5091
-#, fuzzy, c-format
+#, c-format
 msgid "Too many CPU models '%d' for limit '%d'"
-msgstr "ଅତ୍ଯଧିକ ସୁଦୂର ପରିସର IDs: %d > %d"
+msgstr ""
 
 #: daemon/remote_dispatch.h:1124
-#, fuzzy
 msgid "maxnames > REMOTE_DOMAIN_LIST_MAX"
-msgstr "maxnames > REMOTE_DOMAIN_NAME_LIST_MAX"
+msgstr ""
 
 #: daemon/remote_dispatch.h:1186 daemon/remote_dispatch.h:1434
-#, fuzzy
 msgid "maxnames > REMOTE_INTERFACE_LIST_MAX"
-msgstr "maxnames > REMOTE_NETWORK_NAME_LIST_MAX"
+msgstr ""
 
 #: daemon/remote_dispatch.h:1248 daemon/remote_dispatch.h:1496
-#, fuzzy
 msgid "maxnames > REMOTE_NETWORK_LIST_MAX"
-msgstr "maxnames > REMOTE_NETWORK_NAME_LIST_MAX"
+msgstr ""
 
 #: daemon/remote_dispatch.h:1310 daemon/remote_dispatch.h:1682
-#, fuzzy
 msgid "maxnames > REMOTE_STORAGE_POOL_LIST_MAX"
-msgstr "maxnames > REMOTE_STORAGE_POOL_NAME_LIST_MAX"
+msgstr ""
 
 #: daemon/remote_dispatch.h:1372
-#, fuzzy
 msgid "maxids > REMOTE_DOMAIN_LIST_MAX"
-msgstr "maxids > REMOTE_DOMAIN_ID_LIST_MAX"
+msgstr ""
 
 #: daemon/remote_dispatch.h:1558
-#, fuzzy
 msgid "maxnames > REMOTE_NWFILTER_LIST_MAX"
-msgstr "maxnames > REMOTE_NWFILTER_NAME_LIST_MAX"
+msgstr ""
 
 #: daemon/remote_dispatch.h:1620
-#, fuzzy
 msgid "maxuuids > REMOTE_SECRET_LIST_MAX"
-msgstr "maxuuids > REMOTE_SECRET_UUID_LIST_MAX"
+msgstr ""
 
 #: daemon/remote_dispatch.h:8625 daemon/remote_dispatch.h:8698
-#, fuzzy
 msgid "maxnames > REMOTE_DOMAIN_SNAPSHOT_LIST_MAX"
-msgstr "maxnames > REMOTE_DOMAIN_SNAPSHOT_LIST_NAMES_MAX"
+msgstr ""
 
 #: daemon/remote_dispatch.h:10749
 msgid "maxnames > REMOTE_NODE_DEVICE_CAPS_LIST_MAX"
@@ -689,14 +663,12 @@ msgid "maxcells > REMOTE_NODE_MAX_CELLS"
 msgstr "maxcells > REMOTE_NODE_MAX_CELLS"
 
 #: daemon/remote_dispatch.h:11355
-#, fuzzy
 msgid "maxnames > REMOTE_NODE_DEVICE_LIST_MAX"
-msgstr "maxnames > REMOTE_NODE_DEVICE_NAME_LIST_MAX"
+msgstr ""
 
 #: daemon/remote_dispatch.h:12793
-#, fuzzy
 msgid "maxnames > REMOTE_STORAGE_VOL_LIST_MAX"
-msgstr "maxnames > REMOTE_STORAGE_VOL_NAME_LIST_MAX"
+msgstr ""
 
 #: daemon/stream.c:233
 msgid "stream had unexpected termination"
@@ -875,14 +847,12 @@ msgid "No UNIX process ID available"
 msgstr "କୌଣସି UNIX କାର୍ଯ୍ୟ ID ଉପଲବ୍ଧ ନାହିଁ"
 
 #: src/access/viraccessdriverpolkit.c:103
-#, fuzzy
 msgid "No UNIX process start time available"
-msgstr "କୌଣସି UNIX କାର୍ଯ୍ୟ ID ଉପଲବ୍ଧ ନାହିଁ"
+msgstr ""
 
 #: src/access/viraccessdriverpolkit.c:108
-#, fuzzy
 msgid "No UNIX caller UID available"
-msgstr "କୌଣସି UNIX କାର୍ଯ୍ୟ ID ଉପଲବ୍ଧ ନାହିଁ"
+msgstr ""
 
 #: src/access/viraccessdriverpolkit.c:175
 #, c-format
@@ -927,7 +897,7 @@ msgstr "CPU ବିଶେଷ ଦର୍ଶନ ପାଇଁ ଅବୈଧ ମେଳ�
 msgid "Missing CPU architecture"
 msgstr "ଅନୁପସ୍ଥିତ CPU ସଂରଚନା"
 
-#: src/conf/cpu_conf.c:269 src/conf/domain_conf.c:11749
+#: src/conf/cpu_conf.c:269 src/conf/domain_conf.c:11750
 #, c-format
 msgid "Unknown architecture %s"
 msgstr "ଅଜଣା ସ୍ଥାପତ୍ୟ %s"
@@ -1056,9 +1026,9 @@ msgid "Target CPU vendor %s does not match source %s"
 msgstr "ଲକ୍ଷ୍ଯସ୍ଥଳ CPU ବିକ୍ରେତା %s ଉତ୍ସ %s ସହିତ  ମେଳଖାଇନଥାଏ"
 
 #: src/conf/cpu_conf.c:770
-#, fuzzy, c-format
+#, c-format
 msgid "Target CPU vendor id %s does not match source %s"
-msgstr "ଲକ୍ଷ୍ଯସ୍ଥଳ CPU ବିକ୍ରେତା %s ଉତ୍ସ %s ସହିତ  ମେଳଖାଇନଥାଏ"
+msgstr ""
 
 #: src/conf/cpu_conf.c:777
 #, c-format
@@ -1131,14 +1101,14 @@ msgid "domain '%s' is already defined with uuid %s"
 msgstr "ପରିସର '%s' କୁ uuid %s ସହିତ ପୂର୍ବରୁ ବ୍ଯାଖ୍ୟା କରାଯାଇଛି"
 
 #: src/conf/domain_conf.c:2171
-#, fuzzy, c-format
+#, c-format
 msgid "domain '%s' is already active"
-msgstr "ପରିସରଟି ପୂର୍ବରୁ ସକ୍ରିୟ ଅଛି"
+msgstr ""
 
 #: src/conf/domain_conf.c:2177
-#, fuzzy, c-format
+#, c-format
 msgid "domain '%s' is already being started"
-msgstr "ପରିସର %s ଟି ପୂର୍ବରୁ ଚାଲୁଅଛି"
+msgstr ""
 
 #: src/conf/domain_conf.c:2193
 #, c-format
@@ -1196,9 +1166,8 @@ msgid "Multiple '%s' controllers with index '%d'"
 msgstr "ଏକାଧିକ '%s' ନିୟନ୍ତ୍ରକଗୁଡ଼ିକ ଅନୁକ୍ରମଣିକା '%d' ସହିତ "
 
 #: src/conf/domain_conf.c:2725
-#, fuzzy
 msgid "hypervisor type must be specified"
-msgstr "ଆଲେଖିକ ଭାବରେ ଶୁଣିବାକୁ ନିଶ୍ଚିତ ଭାବରେଉଲ୍ଲେଖ ହେବା ଉଚିତ"
+msgstr ""
 
 #: src/conf/domain_conf.c:2732
 msgid "init binary must be specified"
@@ -1532,9 +1501,8 @@ msgid "unknown source mode '%s' for volume type disk"
 msgstr "ଭଲ୍ୟୁମ ପ୍ରକାରର ଡିସ୍କ ପାଇଁ ଅଜଣା ଉତ୍ସ ଧାରା '%s'"
 
 #: src/conf/domain_conf.c:4770
-#, fuzzy
 msgid "missing network source protocol type"
-msgstr "ପ୍ରଟୋକଲ ପ୍ରକାର ନାହିଁ"
+msgstr ""
 
 #: src/conf/domain_conf.c:4776
 #, c-format
@@ -1555,15 +1523,15 @@ msgid "missing socket for unix transport"
 msgstr "unix ପରିବହନ ପାଇଁ ସକେଟ ଅନୁପସ୍ଥିତ"
 
 #: src/conf/domain_conf.c:4817
-#, fuzzy, c-format
+#, c-format
 msgid "transport '%s' does not support socket attribute"
-msgstr "ପରିବହନ %s ସକେଟ ଗୁଣଧର୍ମକୁ ସହାୟତା କରିନଥାଏ"
+msgstr ""
 
 #: src/conf/domain_conf.c:4828
 msgid "missing name for host"
 msgstr "ହୋଷ୍ଟ ପାଇଁ ନାମ ନାହିଁ"
 
-#: src/conf/domain_conf.c:4847 src/conf/domain_conf.c:14470
+#: src/conf/domain_conf.c:4847 src/conf/domain_conf.c:14471
 #, c-format
 msgid "unexpected disk type %s"
 msgstr "ଅପ୍ରତ୍ୟାଶିତ ଡିସ୍କ ପ୍ରକାର %s"
@@ -1708,14 +1676,13 @@ msgid "tray is only valid for cdrom and floppy"
 msgstr "ଟ୍ରେ କେବଳ cdrom ଏବଂ ଫ୍ଲପି ପାଇଁ  ବୈଧ"
 
 #: src/conf/domain_conf.c:5425
-#, fuzzy, c-format
+#, c-format
 msgid "unknown disk removable status '%s'"
-msgstr "ଅଜଣା ଡିସ୍କ ଟ୍ରେ ସ୍ଥିତି '%s'"
+msgstr ""
 
 #: src/conf/domain_conf.c:5431
-#, fuzzy
 msgid "removable is only valid for usb disks"
-msgstr "ଗୁଣଧର୍ମ ଧାରା କେବଳ ଅତିଥି CPU ପାଇଁ ଅନୁମତିପ୍ରାପ୍ତ"
+msgstr ""
 
 #: src/conf/domain_conf.c:5443
 #, c-format
@@ -2843,198 +2810,198 @@ msgid "only one resource element is supported"
 msgstr "କେବଳ ଗୋଟିଏ ଉତ୍ସ ଉପାଦାନ ସହାୟତା ପ୍ରାପ୍ତ"
 
 #: src/conf/domain_conf.c:11448
-#, fuzzy, c-format
+#, c-format
 msgid "unexpected feature '%s'"
-msgstr "ଅପ୍ରତ୍ଯାଶିତ ବିଶେଷ ଗୁଣ %s"
+msgstr ""
 
 #: src/conf/domain_conf.c:11458
-#, fuzzy, c-format
+#, c-format
 msgid "unknown value for attribute eoi: '%s'"
-msgstr "ଗୁଣ eoi: %s ପାଇଁ ଅଜଣା ମୂଲ୍ୟ"
+msgstr ""
 
 #: src/conf/domain_conf.c:11481
 #, fuzzy, c-format
 msgid "unknown state attribute '%s' of feature '%s'"
 msgstr "'%s' ପାଇଁ ଅଜଣା ଭଣ୍ଡାର କ୍ଷମତା ପ୍ରକାର '%s'"
 
-#: src/conf/domain_conf.c:11508
+#: src/conf/domain_conf.c:11509
 #, c-format
 msgid "unsupported HyperV Enlightenment feature: %s"
 msgstr "ଅସମର୍ଥିତ HyperV Enlightenment ବିଶେଷତା: %s"
 
-#: src/conf/domain_conf.c:11520 src/conf/domain_conf.c:11541
+#: src/conf/domain_conf.c:11521 src/conf/domain_conf.c:11542
 #, c-format
 msgid "missing 'state' attribute for HyperV Enlightenment feature '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:11528 src/conf/domain_conf.c:11549
+#: src/conf/domain_conf.c:11529 src/conf/domain_conf.c:11550
 #, c-format
 msgid "invalid value of state argument for HyperV Enlightenment feature '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:11560
+#: src/conf/domain_conf.c:11561
 msgid "invalid HyperV spinlock retry count"
 msgstr "ଅବୈଧ HyperV ସ୍ପିନଲକ ପୁନଃପ୍ରୟାସ ସଂଖ୍ୟା"
 
-#: src/conf/domain_conf.c:11566
+#: src/conf/domain_conf.c:11567
 msgid "HyperV spinlock retry count must be at least 4095"
 msgstr "HyperV ସ୍ପିନଲକ ପୁନଃପ୍ରୟାସ ସଂଖ୍ୟା ଅତିକମରେ 4095 ହୋଇଥିବା ଉଚିତ"
 
-#: src/conf/domain_conf.c:11623
+#: src/conf/domain_conf.c:11624
 #, c-format
 msgid "unknown clock offset '%s'"
 msgstr "ଅଜଣା ଘଡ଼ି ଅଫସେଟ '%s'"
 
-#: src/conf/domain_conf.c:11639
+#: src/conf/domain_conf.c:11640
 #, c-format
 msgid "unknown clock adjustment '%s'"
 msgstr "ଅଜଣା ଘଡ଼ି ସଜଡ଼ା '%s'"
 
-#: src/conf/domain_conf.c:11667
+#: src/conf/domain_conf.c:11668
 #, c-format
 msgid "unknown clock basis '%s'"
 msgstr "ଅଜଣା ଘଡ଼ି ମୌଳିକ '%s'"
 
-#: src/conf/domain_conf.c:11680
+#: src/conf/domain_conf.c:11681
 msgid "missing 'timezone' attribute for clock with offset='timezone'"
 msgstr "ଅଫସେଟ='timezone' ବିଶିଷ୍ଟ ଘଡ଼ି ପାଇଁ 'timezone' ବିଶେଷତା ଅନୁପସ୍ଥିତ"
 
-#: src/conf/domain_conf.c:11691
+#: src/conf/domain_conf.c:11692
 msgid "invalid basedate"
 msgstr "ଅବୈଧ ମୂଳ ତାରିଖ"
 
-#: src/conf/domain_conf.c:11722
+#: src/conf/domain_conf.c:11723
 msgid "no OS type"
 msgstr "କୌଣସି OS ପ୍ରକାର ନାହିଁ"
 
-#: src/conf/domain_conf.c:11757
+#: src/conf/domain_conf.c:11758
 #, c-format
 msgid "No guest options available for arch '%s'"
 msgstr "ଅଭିଲେଖ '%s' ପାଇଁ କୌଣସି ଅତିଥି ବିକଳ୍ପ ଉପଲବ୍ଧ ନାହିଁ"
 
-#: src/conf/domain_conf.c:11766
+#: src/conf/domain_conf.c:11767
 #, c-format
 msgid "No os type '%s' available for arch '%s'"
 msgstr "ଅଭିଲେଖ  '%s' ପାଇଁ କୌଣସି os ପ୍ରକାର '%s' ଉପଲବ୍ଧ ନାହିଁ"
 
-#: src/conf/domain_conf.c:11777 src/xenxs/xen_xm.c:293
+#: src/conf/domain_conf.c:11778 src/xenxs/xen_xm.c:293
 #, c-format
 msgid "no supported architecture for os type '%s'"
 msgstr "os ପ୍ରକାର '%s' ପାଇଁ ସମର୍ଥିତ ବିନ୍ୟାସ ନାହିଁ"
 
-#: src/conf/domain_conf.c:11816
+#: src/conf/domain_conf.c:11817
 msgid "No data supplied for <initarg> element"
 msgstr "<initarg> ଉପାଦାନ ପାଇଁ କୌଣସି ତଥ୍ୟ ପ୍ରଦାନ କରାଯାଇ ନାହିଁ"
 
-#: src/conf/domain_conf.c:11889 src/conf/domain_conf.c:11898
+#: src/conf/domain_conf.c:11890 src/conf/domain_conf.c:11899
 msgid "Can't add another USB controller: USB is disabled for this domain"
 msgstr "ଅନ୍ୟ ଏକ USB ନିୟନ୍ତ୍ରକକୁ ଯୋଗ କରିପାରିବେ ନାହିଁ: ଏହି ଡମେନ ପାଇଁ USB କୁ ନିଷ୍କ୍ରିୟ କରାଯାଇଛି"
 
-#: src/conf/domain_conf.c:11915
+#: src/conf/domain_conf.c:11916
 msgid "No master USB controller specified"
 msgstr "କୌଣସି ମୂଖ୍ୟ USB ନିୟନ୍ତ୍ରକ ଉଲ୍ଲେଖ ହୋଇ ନାହିଁ"
 
-#: src/conf/domain_conf.c:11922
+#: src/conf/domain_conf.c:11923
 msgid "cannot extract device leases"
 msgstr "ଉପକରଣ ଚୁକ୍ତିନାମାଗୁଡ଼ିକୁ କାଢ଼ିପାରିବେ ନାହିଁ"
 
-#: src/conf/domain_conf.c:12055
+#: src/conf/domain_conf.c:12056
 msgid "cannot extract console devices"
 msgstr "କୋନସୋଲ ଉପକରଣଗୁଡ଼ିକୁ କାଢ଼ିପାରିବେ ନାହିଁ"
 
-#: src/conf/domain_conf.c:12133
+#: src/conf/domain_conf.c:12134
 msgid "Can't add USB input device. USB bus is disabled"
 msgstr "USB ନିବେଶ ଉପକରଣକୁ ଯୋଗ କରିପାରିବେ ନାହିଁ। USB ବସକୁ ନିଷ୍କ୍ରିୟ କରାଯାଇଛି"
 
-#: src/conf/domain_conf.c:12231
+#: src/conf/domain_conf.c:12232
 msgid "Only one primary video device is supported"
 msgstr "କେବଳ ଗୋଟିଏ ପ୍ରାଥମିକ ଭିଡ଼ିଓ ଉପକରଣ ସହାୟତା ପ୍ରାପ୍ତ"
 
-#: src/conf/domain_conf.c:12257
+#: src/conf/domain_conf.c:12258
 msgid "cannot determine default video type"
 msgstr "ପୂର୍ବନିର୍ଦ୍ଧାରିତ ଭିଡ଼ିଓ ପ୍ରକାରକୁ ନିର୍ଦ୍ଧାରଣ କରିପାରିବେ ନାହିଁ"
 
-#: src/conf/domain_conf.c:12287
+#: src/conf/domain_conf.c:12288
 msgid "Can't add host USB device: USB is disabled in this host"
 msgstr "ହୋଷ୍ଟ USB ଉପକରଣକୁ ଯୋଗ କରିପାରିବେ ନାହିଁ: USB କୁ ଏହି ହୋଷ୍ଟରେ ନିଷ୍କ୍ରିୟ କରାଯାଇଛି"
 
-#: src/conf/domain_conf.c:12306
+#: src/conf/domain_conf.c:12307
 msgid "only a single watchdog device is supported"
 msgstr "କେବଳ ଏକକ ୱାଚଡଗ ଉପକରଣ ସମର୍ଥିତ"
 
-#: src/conf/domain_conf.c:12326
+#: src/conf/domain_conf.c:12327
 msgid "only a single memory balloon device is supported"
 msgstr "କେବଳ ଏକକ ସ୍ମୃତିସ୍ଥାନ ବ୍ୟାଲୁନ ଉପକରଣ ସମର୍ଥିତ"
 
-#: src/conf/domain_conf.c:12345
+#: src/conf/domain_conf.c:12346
 msgid "only a single RNG device is supported"
 msgstr "କେବଳ ଏକକ RGN ଉପକରଣ ସମର୍ଥିତ"
 
-#: src/conf/domain_conf.c:12362
+#: src/conf/domain_conf.c:12363
 msgid "only a single TPM device is supported"
 msgstr "କେବଳ ଏକକ TPM ଉପକରଣ ସମର୍ଥିତ"
 
-#: src/conf/domain_conf.c:12378
+#: src/conf/domain_conf.c:12379
 msgid "only a single nvram device is supported"
 msgstr "କେବଳ ଏକକ nvram ଉପକରଣ ସମର୍ଥିତ"
 
-#: src/conf/domain_conf.c:12403
+#: src/conf/domain_conf.c:12404
 msgid "Can't add USB hub: USB is disabled for this domain"
 msgstr "USB ହବକୁ ଯୋଗ କରିପାରିବେ ନାହିଁ: USB କୁ ଏହି ଡମେନ ପାଇଁ ନିଷ୍କ୍ରିୟ କରାଯାଇଛି"
 
-#: src/conf/domain_conf.c:12427
+#: src/conf/domain_conf.c:12428
 msgid "Can't add redirected USB device: USB is disabled for this domain"
 msgstr "ଦିଗ ପରିବର୍ତ୍ତିତ USB ଉପକରଣକୁ ଯୋଗ କରିପାରିବେ ନାହିଁ: USB କୁ ଏହି ଡମେନ ପାଇଁ ନିଷ୍କ୍ରିୟ କରାଯାଇଛି"
 
-#: src/conf/domain_conf.c:12442
+#: src/conf/domain_conf.c:12443
 msgid "only one set of redirection filter rule is supported"
 msgstr "ଦିଗ ପରିବର୍ତ୍ତନ ଛାଣକ ନିୟମ ମଧ୍ଯରୁ କେବଳ ଗୋଟିଏ ସହାୟତା ପ୍ରାପ୍ତ"
 
-#: src/conf/domain_conf.c:12484
+#: src/conf/domain_conf.c:12485
 msgid "uid and gid should be mapped both"
 msgstr "uid ଏବଂ gid ଉଭୟଙ୍କ ସହିତ ମିଶୁଥିବା ଉଚିତ"
 
-#: src/conf/domain_conf.c:12502
+#: src/conf/domain_conf.c:12503
 msgid "Maximum CPUs greater than topology limit"
 msgstr "ସର୍ବାଧିକ CPUs ଟୋପୋଲଜି ସୀମା ଠାରୁ ଅଧିକ"
 
-#: src/conf/domain_conf.c:12508
+#: src/conf/domain_conf.c:12509
 msgid "Number of CPUs in <numa> exceeds the <vcpu> count"
 msgstr "<numa> ରେ  CPUs ସଂଖ୍ୟା <vcpu> ସଂଖ୍ୟାକୁ ଅତିକ୍ରମ କରିଥାଏ"
 
-#: src/conf/domain_conf.c:12530
+#: src/conf/domain_conf.c:12531
 #, c-format
 msgid "unknown smbios mode '%s'"
 msgstr "ଅଜଣା smbios ଧାରା '%s'"
 
-#: src/conf/domain_conf.c:12595
+#: src/conf/domain_conf.c:12596
 msgid "no domain config"
 msgstr "କୌଣସି ପରିସର config ନାହିଁ"
 
-#: src/conf/domain_conf.c:12609
+#: src/conf/domain_conf.c:12610
 msgid "missing domain state"
 msgstr "ପରିସର ସ୍ଥିତି ଅନୁପସ୍ଥିତ"
 
-#: src/conf/domain_conf.c:12614
+#: src/conf/domain_conf.c:12615
 #, c-format
 msgid "invalid domain state '%s'"
 msgstr "ଅବୈଧ ଡମେନ ସ୍ଥିତି '%s'"
 
-#: src/conf/domain_conf.c:12623
+#: src/conf/domain_conf.c:12624
 #, c-format
 msgid "invalid domain state reason '%s'"
 msgstr "ଅବୈଧ ଡମେନ ସ୍ଥିତି କାରଣ '%s'"
 
-#: src/conf/domain_conf.c:12634
+#: src/conf/domain_conf.c:12635
 msgid "invalid pid"
 msgstr "ଅବୈଧ pid"
 
-#: src/conf/domain_conf.c:12648
+#: src/conf/domain_conf.c:12649
 #, c-format
 msgid "Unknown taint flag %s"
 msgstr "ଅଜଣା taint ପତାକା %s"
 
-#: src/conf/domain_conf.c:12683 src/security/virt-aa-helper.c:654
+#: src/conf/domain_conf.c:12684 src/security/virt-aa-helper.c:654
 #: tools/virsh-domain-monitor.c:98 tools/virsh-domain-monitor.c:531
 #: tools/virsh-domain-monitor.c:638 tools/virsh-domain-monitor.c:760
 #: tools/virsh-domain.c:2396 tools/virsh-domain.c:3033
@@ -3044,42 +3011,42 @@ msgstr "ଅଜଣା taint ପତାକା %s"
 msgid "(domain_definition)"
 msgstr "(domain_definition)"
 
-#: src/conf/domain_conf.c:12729
+#: src/conf/domain_conf.c:12730
 #, c-format
 msgid "unexpected root element <%s>, expecting <domain>"
 msgstr "ଅପ୍ରତ୍ୟାଶିତ ରୁଟ ଉପାଦାନ <%s>,  <domain> ଆଶାକରୁଅଛି"
 
-#: src/conf/domain_conf.c:12764
+#: src/conf/domain_conf.c:12765
 #, c-format
 msgid "unexpected root element <%s>, expecting <domstatus>"
 msgstr "ଅପ୍ରତ୍ୟାଶିତ ରୁଟ ଉପାଦାନ <%s>, <domstatus> କୁ ଆଶାକରୁଅଛି"
 
-#: src/conf/domain_conf.c:12813
+#: src/conf/domain_conf.c:12814
 #, c-format
 msgid "Target timer %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:12821
+#: src/conf/domain_conf.c:12822
 #, c-format
 msgid "Target timer presence %d does not match source %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:12829
+#: src/conf/domain_conf.c:12830
 #, c-format
 msgid "Target TSC frequency %lu does not match source %lu"
 msgstr ""
 
-#: src/conf/domain_conf.c:12836
+#: src/conf/domain_conf.c:12837
 #, c-format
 msgid "Target TSC mode %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:12853
+#: src/conf/domain_conf.c:12854
 #, c-format
 msgid "Target device address type %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:12866
+#: src/conf/domain_conf.c:12867
 #, c-format
 msgid ""
 "Target device PCI address %04x:%02x:%02x.%02x does not match source %04x:"
@@ -3087,674 +3054,673 @@ msgid ""
 msgstr ""
 "ଲକ୍ଷ୍ଯସ୍ଥଳ ଉପକରଣ PCI ଠିକଣା %04x:%02x:%02x.%02x ଉତ୍ସ%04x:%02x:%02x.%02x ସହିତ ମିଶି ନଥାଏ"
 
-#: src/conf/domain_conf.c:12881
+#: src/conf/domain_conf.c:12882
 #, c-format
 msgid "Target device drive address %d:%d:%d does not match source %d:%d:%d"
 msgstr "ଲକ୍ଷ୍ଯସ୍ଥଳ ଉପକରଣ ଡ୍ରାଇଭ ଠିକଣା %d:%d:%d  ଉତ୍ସ %d:%d:%d ସହିତ ମେଳ ଖାଇନଥାଏ"
 
-#: src/conf/domain_conf.c:12896
+#: src/conf/domain_conf.c:12897
 #, c-format
 msgid ""
 "Target device virtio serial address %d:%d:%d does not match source %d:%d:%d"
 msgstr "ଲକ୍ଷ୍ଯସ୍ଥଳ ଉପକରଣ virtio କ୍ରମିକ ଠିକଣା  %d:%d:%d ଉତ୍ସ %d:%d:%d ସହିତ ମେଳ ଖାଇନଥାଏ"
 
-#: src/conf/domain_conf.c:12910
+#: src/conf/domain_conf.c:12911
 #, c-format
 msgid "Target device ccid address %d:%d does not match source %d:%d"
 msgstr "ଲକ୍ଷ୍ଯସ୍ଥଳ ଉପକରଣ ccid ଠିକଣା %d:%d ଉତ୍ସ %d:%d ସହିତ ମେଳ ଖାଇନଥାଏ"
 
-#: src/conf/domain_conf.c:12931
+#: src/conf/domain_conf.c:12932
 #, c-format
 msgid "Target disk device %s does not match source %s"
 msgstr "ଲକ୍ଷ୍ଯସ୍ଥଳ ଡିସ୍କ ଉପକରଣ %s ଉତ୍ସ %s ସହିତ ମେଳ ଖାଇନଥାଏ"
 
-#: src/conf/domain_conf.c:12939
+#: src/conf/domain_conf.c:12940
 #, c-format
 msgid "Target disk bus %s does not match source %s"
 msgstr "ଲକ୍ଷ୍ଯସ୍ଥଳ ଡିସ୍କ ବସ %s ଉତ୍ସ %s ସହିତ ମେଳ ଖାଇନଥାଏ"
 
-#: src/conf/domain_conf.c:12947
+#: src/conf/domain_conf.c:12948
 #, c-format
 msgid "Target disk %s does not match source %s"
 msgstr "ଲକ୍ଷ୍ଯସ୍ଥଳ ଡିସ୍କ %s ଉତ୍ସ %s ସହିତ ମେଳ ଖାଇନଥାଏ"
 
-#: src/conf/domain_conf.c:12954
+#: src/conf/domain_conf.c:12955
 #, c-format
 msgid "Target disk serial %s does not match source %s"
 msgstr "ଲକ୍ଷ୍ଯସ୍ଥଳ ଡିସ୍କ କ୍ରମ %s ଉତ୍ସ %s ସହିତ ମେଳ ଖାଇନଥାଏ"
 
-#: src/conf/domain_conf.c:12961
+#: src/conf/domain_conf.c:12962
 msgid "Target disk access mode does not match source"
 msgstr "ଲକ୍ଷ୍ଯସ୍ଥଳ ଡିସ୍କ ଅଭିଗମ୍ୟତା ଧାରା ଉତ୍ସ ସହିତ ମେଳ ଖାଇନଥାଏ"
 
-#: src/conf/domain_conf.c:12978
+#: src/conf/domain_conf.c:12979
 #, c-format
 msgid "Target controller type %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:12986
+#: src/conf/domain_conf.c:12987
 #, c-format
 msgid "Target controller index %d does not match source %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:12993
+#: src/conf/domain_conf.c:12994
 #, c-format
 msgid "Target controller model %d does not match source %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:13001
+#: src/conf/domain_conf.c:13002
 #, c-format
 msgid "Target controller ports %d does not match source %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:13008
+#: src/conf/domain_conf.c:13009
 #, c-format
 msgid "Target controller vectors %d does not match source %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:13027
+#: src/conf/domain_conf.c:13028
 #, c-format
 msgid "Target filesystem guest target %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:13034
+#: src/conf/domain_conf.c:13035
 msgid "Target filesystem access mode does not match source"
 msgstr ""
 
-#: src/conf/domain_conf.c:13054
+#: src/conf/domain_conf.c:13055
 #, c-format
 msgid "Target network card mac %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:13063
+#: src/conf/domain_conf.c:13064
 #, c-format
 msgid "Target network card model %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:13081
+#: src/conf/domain_conf.c:13082
 #, c-format
 msgid "Target input device type %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:13089
+#: src/conf/domain_conf.c:13090
 #, c-format
 msgid "Target input device bus %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:13108
+#: src/conf/domain_conf.c:13109
 #, c-format
 msgid "Target sound card model %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:13127
+#: src/conf/domain_conf.c:13128
 #, c-format
 msgid "Target video card model %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:13135
+#: src/conf/domain_conf.c:13136
 #, c-format
 msgid "Target video card vram %u does not match source %u"
 msgstr ""
 
-#: src/conf/domain_conf.c:13142
+#: src/conf/domain_conf.c:13143
 #, c-format
 msgid "Target video card heads %u does not match source %u"
 msgstr ""
 
-#: src/conf/domain_conf.c:13150
+#: src/conf/domain_conf.c:13151
 msgid "Target video card acceleration does not match source"
 msgstr ""
 
-#: src/conf/domain_conf.c:13157
+#: src/conf/domain_conf.c:13158
 #, c-format
 msgid "Target video card 2d accel %u does not match source %u"
 msgstr ""
 
-#: src/conf/domain_conf.c:13164
+#: src/conf/domain_conf.c:13165
 #, c-format
 msgid "Target video card 3d accel %u does not match source %u"
 msgstr ""
 
-#: src/conf/domain_conf.c:13183
+#: src/conf/domain_conf.c:13184
 #, c-format
 msgid "Target host device mode %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:13192
+#: src/conf/domain_conf.c:13193
 #, c-format
 msgid "Target host device subsystem %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:13222
+#: src/conf/domain_conf.c:13223
 #, c-format
 msgid "Target serial port %d does not match source %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:13240
+#: src/conf/domain_conf.c:13241
 #, c-format
 msgid "Target parallel port %d does not match source %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:13258
+#: src/conf/domain_conf.c:13259
 #, c-format
 msgid "Target channel type %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:13268
+#: src/conf/domain_conf.c:13269
 #, c-format
 msgid "Target channel name %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:13277
+#: src/conf/domain_conf.c:13278
 msgid ""
 "Changing device type to/from spicevmc would change default target channel "
 "name"
 msgstr ""
 
-#: src/conf/domain_conf.c:13288
+#: src/conf/domain_conf.c:13289
 #, c-format
 msgid "Target channel addr %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:13310
+#: src/conf/domain_conf.c:13311
 #, c-format
 msgid "Target console type %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:13329
+#: src/conf/domain_conf.c:13330
 #, c-format
 msgid "Target watchdog model %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:13348
+#: src/conf/domain_conf.c:13349
 #, c-format
 msgid "Target balloon model %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:13370
+#: src/conf/domain_conf.c:13371
 #, c-format
 msgid "Target domain RNG device count '%d' does not match source count '%d'"
 msgstr ""
 
-#: src/conf/domain_conf.c:13378
+#: src/conf/domain_conf.c:13379
 #, c-format
 msgid "Target RNG model '%s' does not match source '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:13397
+#: src/conf/domain_conf.c:13398
 #, c-format
 msgid "Target hub device type %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:13417
+#: src/conf/domain_conf.c:13418
 #, c-format
 msgid "Target USB redirection filter rule count %zu does not match source %zu"
 msgstr ""
 
-#: src/conf/domain_conf.c:13428
+#: src/conf/domain_conf.c:13429
 msgid "Target USB Class code does not match source"
 msgstr ""
 
-#: src/conf/domain_conf.c:13434
+#: src/conf/domain_conf.c:13435
 msgid "Target USB vendor ID does not match source"
 msgstr ""
 
-#: src/conf/domain_conf.c:13440
+#: src/conf/domain_conf.c:13441
 msgid "Target USB product ID does not match source"
 msgstr ""
 
-#: src/conf/domain_conf.c:13446
+#: src/conf/domain_conf.c:13447
 msgid "Target USB version does not match source"
 msgstr ""
 
-#: src/conf/domain_conf.c:13452
+#: src/conf/domain_conf.c:13453
 #, c-format
 msgid "Target USB allow '%s' does not match source '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:13472
-#, fuzzy, c-format
+#: src/conf/domain_conf.c:13473
+#, c-format
 msgid "State of feature '%s' differs: source: '%s', destination: '%s'"
-msgstr "HyperV ସ୍ପିନଲକ ପୁନଃପ୍ରୟାସ ସଂଖ୍ୟା ଅତିକମରେ 4095 ହୋଇଥିବା ଉଚିତ"
+msgstr ""
 
-#: src/conf/domain_conf.c:13484
+#: src/conf/domain_conf.c:13485
 #, c-format
 msgid "State of APIC EOI differs: source: '%s', destination: '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:13499
+#: src/conf/domain_conf.c:13500
 #, c-format
 msgid ""
 "State of HyperV enlightenment feature '%s' differs: source: '%s', "
 "destination: '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:13514
-#, fuzzy, c-format
+#: src/conf/domain_conf.c:13515
+#, c-format
 msgid "HyperV spinlock retry count differs: source: '%u', destination: '%u'"
-msgstr "HyperV ସ୍ପିନଲକ ପୁନଃପ୍ରୟାସ ସଂଖ୍ୟା ଅତିକମରେ 4095 ହୋଇଥିବା ଉଚିତ"
+msgstr ""
 
-#: src/conf/domain_conf.c:13544
+#: src/conf/domain_conf.c:13545
 #, c-format
 msgid "Target domain virt type %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:13556
+#: src/conf/domain_conf.c:13557
 #, c-format
 msgid "Target domain uuid %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:13567
+#: src/conf/domain_conf.c:13568
 #, c-format
 msgid "Target domain name '%s' does not match source '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:13574
+#: src/conf/domain_conf.c:13575
 #, c-format
 msgid "Target domain max memory %lld does not match source %lld"
 msgstr ""
 
-#: src/conf/domain_conf.c:13580
+#: src/conf/domain_conf.c:13581
 #, c-format
 msgid "Target domain current memory %lld does not match source %lld"
 msgstr ""
 
-#: src/conf/domain_conf.c:13586
+#: src/conf/domain_conf.c:13587
 #, c-format
 msgid "Target domain huge page backing %d does not match source %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:13594
+#: src/conf/domain_conf.c:13595
 #, c-format
 msgid "Target domain vCPU count %d does not match source %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:13600
+#: src/conf/domain_conf.c:13601
 #, c-format
 msgid "Target domain vCPU max %d does not match source %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:13607 src/conf/domain_conf.c:13620
+#: src/conf/domain_conf.c:13608 src/conf/domain_conf.c:13621
 #, c-format
 msgid "Target domain OS type %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:13613
+#: src/conf/domain_conf.c:13614
 #, c-format
 msgid "Target domain architecture %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:13627
+#: src/conf/domain_conf.c:13628
 #, c-format
 msgid "Target domain SMBIOS mode %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:13638
+#: src/conf/domain_conf.c:13639
 msgid "Target domain timers do not match source"
 msgstr ""
 
-#: src/conf/domain_conf.c:13656
+#: src/conf/domain_conf.c:13657
 #, c-format
 msgid "Target domain disk count %zu does not match source %zu"
 msgstr ""
 
-#: src/conf/domain_conf.c:13667
+#: src/conf/domain_conf.c:13668
 #, c-format
 msgid "Target domain controller count %zu does not match source %zu"
 msgstr ""
 
-#: src/conf/domain_conf.c:13680
+#: src/conf/domain_conf.c:13681
 #, c-format
 msgid "Target domain filesystem count %zu does not match source %zu"
 msgstr ""
 
-#: src/conf/domain_conf.c:13692
+#: src/conf/domain_conf.c:13693
 #, c-format
 msgid "Target domain net card count %zu does not match source %zu"
 msgstr ""
 
-#: src/conf/domain_conf.c:13704
+#: src/conf/domain_conf.c:13705
 #, c-format
 msgid "Target domain input device count %zu does not match source %zu"
 msgstr ""
 
-#: src/conf/domain_conf.c:13716
+#: src/conf/domain_conf.c:13717
 #, c-format
 msgid "Target domain sound card count %zu does not match source %zu"
 msgstr ""
 
-#: src/conf/domain_conf.c:13728
+#: src/conf/domain_conf.c:13729
 #, c-format
 msgid "Target domain video card count %zu does not match source %zu"
 msgstr ""
 
-#: src/conf/domain_conf.c:13740
+#: src/conf/domain_conf.c:13741
 #, c-format
 msgid "Target domain host device count %zu does not match source %zu"
 msgstr ""
 
-#: src/conf/domain_conf.c:13753
+#: src/conf/domain_conf.c:13754
 #, c-format
 msgid "Target domain smartcard count %zu does not match source %zu"
 msgstr ""
 
-#: src/conf/domain_conf.c:13766
+#: src/conf/domain_conf.c:13767
 #, c-format
 msgid "Target domain serial port count %zu does not match source %zu"
 msgstr ""
 
-#: src/conf/domain_conf.c:13779
+#: src/conf/domain_conf.c:13780
 #, c-format
 msgid "Target domain parallel port count %zu does not match source %zu"
 msgstr ""
 
-#: src/conf/domain_conf.c:13792
+#: src/conf/domain_conf.c:13793
 #, c-format
 msgid "Target domain channel count %zu does not match source %zu"
 msgstr ""
 
-#: src/conf/domain_conf.c:13805
+#: src/conf/domain_conf.c:13806
 #, c-format
 msgid "Target domain console count %zu does not match source %zu"
 msgstr ""
 
-#: src/conf/domain_conf.c:13818
+#: src/conf/domain_conf.c:13819
 #, c-format
 msgid "Target domain hub device count %zu does not match source %zu"
 msgstr ""
 
-#: src/conf/domain_conf.c:13831
+#: src/conf/domain_conf.c:13832
 #, c-format
 msgid "Target domain USB redirection filter count %d does not match source %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:13845
+#: src/conf/domain_conf.c:13846
 #, c-format
 msgid "Target domain watchdog count %d does not match source %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:13858
+#: src/conf/domain_conf.c:13859
 #, c-format
 msgid "Target domain memory balloon count %d does not match source %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:14200
+#: src/conf/domain_conf.c:14201
 #, c-format
 msgid "unexpected %s action: %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:14501
+#: src/conf/domain_conf.c:14502
 #, c-format
 msgid "unexpected disk type %d"
 msgstr "ଅପ୍ରତ୍ୟାଶିତ ଡିସ୍କ ପ୍ରକାର %d"
 
-#: src/conf/domain_conf.c:14506
+#: src/conf/domain_conf.c:14507
 #, c-format
 msgid "unexpected disk device %d"
 msgstr "ଅପ୍ରତ୍ୟାଶିତ ଡିସ୍କ ଉପକରଣ ପ୍ରକାର %d"
 
-#: src/conf/domain_conf.c:14511
+#: src/conf/domain_conf.c:14512
 #, c-format
 msgid "unexpected disk bus %d"
 msgstr "ଅପ୍ରତ୍ୟାଶିତ ଡିସ୍କ ପରିପଥ %d"
 
-#: src/conf/domain_conf.c:14516
+#: src/conf/domain_conf.c:14517
 #, c-format
 msgid "unexpected disk cache mode %d"
 msgstr "ଅପ୍ରତ୍ଯାଶିତ disk କ୍ୟାଶେ ଧାରା %d"
 
-#: src/conf/domain_conf.c:14521
+#: src/conf/domain_conf.c:14522
 #, c-format
 msgid "unexpected disk io mode %d"
 msgstr "ଅପ୍ରତ୍ଯାଶିତ ଡିସ୍କ io କ୍ୟାଶେ ଧାରା %d"
 
-#: src/conf/domain_conf.c:14526
+#: src/conf/domain_conf.c:14527
 #, c-format
 msgid "Unexpected disk sgio mode '%d'"
 msgstr "ଅପ୍ରତ୍ଯାଶିତ ଡିସ୍କ sgio କ୍ୟାଶେ ଧାରା '%d'"
 
-#: src/conf/domain_conf.c:14722
+#: src/conf/domain_conf.c:14723
 #, c-format
 msgid "unexpected controller type %d"
 msgstr "ଅପ୍ରତ୍ୟାଶିତ ନିୟନ୍ତ୍ରକ ପ୍ରକାର %d"
 
-#: src/conf/domain_conf.c:14731
+#: src/conf/domain_conf.c:14732
 #, c-format
 msgid "unexpected model type %d"
 msgstr "ଅପ୍ରତ୍ୟାଶିତ ମଡେଲ ପ୍ରକାର %d"
 
-#: src/conf/domain_conf.c:14817
+#: src/conf/domain_conf.c:14818
 #, c-format
 msgid "unexpected filesystem type %d"
 msgstr "ଅପ୍ରତ୍ୟାଶିତ ଫାଇଲ ତନ୍ତ୍ର ପ୍ରକାର %d"
 
-#: src/conf/domain_conf.c:14823
+#: src/conf/domain_conf.c:14824
 #, c-format
 msgid "unexpected accessmode %d"
 msgstr "ଅପ୍ରତ୍ଯାଶିତ accessmode %d"
 
-#: src/conf/domain_conf.c:14908
+#: src/conf/domain_conf.c:14909
 #, c-format
 msgid "unexpected pci hostdev driver name type %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:14954
+#: src/conf/domain_conf.c:14955
 msgid "PCI address Formatting failed"
 msgstr ""
 
-#: src/conf/domain_conf.c:14981 src/conf/domain_conf.c:15014
-#: src/conf/domain_conf.c:16248 src/conf/domain_conf.c:16257
+#: src/conf/domain_conf.c:14982 src/conf/domain_conf.c:15015
+#: src/conf/domain_conf.c:16249 src/conf/domain_conf.c:16258
 #: src/qemu/qemu_hotplug.c:3333
 #, c-format
 msgid "unexpected hostdev type %d"
 msgstr "ଅପ୍ରତ୍ୟାଶିତ hostdev ପ୍ରକାର %d"
 
-#: src/conf/domain_conf.c:15038 src/conf/domain_conf.c:15111
-#: src/conf/domain_conf.c:16032
+#: src/conf/domain_conf.c:15039 src/conf/domain_conf.c:15112
+#: src/conf/domain_conf.c:16033
 #, c-format
 msgid "unexpected net type %d"
 msgstr "ଅପ୍ରତ୍ୟାଶିତ ନେଟ ପ୍ରକାର %d"
 
-#: src/conf/domain_conf.c:15065
+#: src/conf/domain_conf.c:15066
 #, c-format
 msgid "unexpected source mode %d"
 msgstr "ଅପ୍ରତ୍ୟାଶିତ ଉତ୍ସ ଧାରା %d"
 
-#: src/conf/domain_conf.c:15085
+#: src/conf/domain_conf.c:15086
 #, c-format
 msgid "unexpected net type %s"
 msgstr "ଅପ୍ରତ୍ୟାଶିତ ନେଟ ପ୍ରକାର %s"
 
-#: src/conf/domain_conf.c:15276
+#: src/conf/domain_conf.c:15277
 #, c-format
 msgid "unexpected char type %d"
 msgstr "ଅପ୍ରତ୍ୟାଶିତ ଅକ୍ଷର ପ୍ରକାର %d"
 
-#: src/conf/domain_conf.c:15378
+#: src/conf/domain_conf.c:15379
 #, c-format
 msgid "unexpected char device type %d"
 msgstr "ଅପ୍ରତ୍ୟାଶିତ char ଉପକରଣ ପ୍ରକାର %d"
 
-#: src/conf/domain_conf.c:15397
+#: src/conf/domain_conf.c:15398
 msgid "Could not format channel target type"
 msgstr ""
 
-#: src/conf/domain_conf.c:15407
+#: src/conf/domain_conf.c:15408
 msgid "Unable to format guestfwd port"
 msgstr "guestfwd ସଂଯୋଗିକୀକୁ ସଜାଡ଼ିବାରେ ଅସମର୍ଥ"
 
-#: src/conf/domain_conf.c:15484 src/conf/domain_conf.c:15515
+#: src/conf/domain_conf.c:15485 src/conf/domain_conf.c:15516
 #: src/qemu/qemu_command.c:8748
 #, c-format
 msgid "unexpected smartcard type %d"
 msgstr "ଅପ୍ରତ୍ୟାଶିତ  ସ୍ମାର୍ଟକାର୍ଡ ପ୍ରକାର %d"
 
-#: src/conf/domain_conf.c:15532
+#: src/conf/domain_conf.c:15533
 #, c-format
 msgid "unexpected codec type %d"
 msgstr "ଅପ୍ରତ୍ୟାଶିତ କୋଡେକ ପ୍ରକାର %d"
 
-#: src/conf/domain_conf.c:15585 src/xenxs/xen_sxpr.c:2112
+#: src/conf/domain_conf.c:15586 src/xenxs/xen_sxpr.c:2112
 #, c-format
 msgid "unexpected sound model %d"
 msgstr "ଅପ୍ରତ୍ୟାଶିତ ଧ୍ୱନି ମଡେଲ %d"
 
-#: src/conf/domain_conf.c:15628
+#: src/conf/domain_conf.c:15629
 #, c-format
 msgid "unexpected memballoon model %d"
 msgstr "ଅପ୍ରତ୍ୟାଶିତ ମେମବ୍ୟାଲୁନ ମଡେଲ %d"
 
-#: src/conf/domain_conf.c:15693
+#: src/conf/domain_conf.c:15694
 #, c-format
 msgid "unexpected watchdog model %d"
 msgstr "ଅପ୍ରତ୍ୟାଶିତ ୱାଚଡ଼ଗ ମଡେଲ %d"
 
-#: src/conf/domain_conf.c:15699
+#: src/conf/domain_conf.c:15700
 #, c-format
 msgid "unexpected watchdog action %d"
 msgstr "ଅପ୍ରତ୍ଯାଶିତ ୱାଚଡ଼ଗ କାର୍ଯ୍ୟ %d"
 
-#: src/conf/domain_conf.c:15804
+#: src/conf/domain_conf.c:15805
 #, c-format
 msgid "unexpected video model %d"
 msgstr "ଅପ୍ରତ୍ୟାଶିତ ଭିଡ଼ିଓ ମଡେଲ %d"
 
-#: src/conf/domain_conf.c:15845 src/xenxs/xen_sxpr.c:2149
+#: src/conf/domain_conf.c:15846 src/xenxs/xen_sxpr.c:2149
 #, c-format
 msgid "unexpected input type %d"
 msgstr "ଅପ୍ରତ୍ୟାଶିତ ନିବେଶ ପ୍ରକାର %d"
 
-#: src/conf/domain_conf.c:15850
+#: src/conf/domain_conf.c:15851
 #, c-format
 msgid "unexpected input bus type %d"
 msgstr "ଅପ୍ରତ୍ୟାଶିତ ନିବେଶ ପରିପଥ ପ୍ରକାର %d"
 
-#: src/conf/domain_conf.c:15878
+#: src/conf/domain_conf.c:15879
 #, c-format
 msgid "unexpected timer name %d"
 msgstr "ଅପ୍ରତ୍ୟାଶିତ ସମୟ ମାପକ ନାମ %d"
 
-#: src/conf/domain_conf.c:15894
+#: src/conf/domain_conf.c:15895
 #, c-format
 msgid "unexpected timer tickpolicy %d"
 msgstr "ଅପ୍ରତ୍ୟାଶିତ ସମୟ ମାପକ ନିୟମାବଳୀ %d"
 
-#: src/conf/domain_conf.c:15908
+#: src/conf/domain_conf.c:15909
 #, c-format
 msgid "unexpected timer track %d"
 msgstr "ଅପ୍ରତ୍ଯାଶିତ ସମୟମାପକ ଯାଞ୍ଚ %d"
 
-#: src/conf/domain_conf.c:15926
+#: src/conf/domain_conf.c:15927
 #, c-format
 msgid "unexpected timer mode %d"
 msgstr "ଅପ୍ରତ୍ୟାଶିତ ସମୟ ମାପକ ଧାରା %d"
 
-#: src/conf/domain_conf.c:16239 src/conf/domain_conf.c:16264
+#: src/conf/domain_conf.c:16240 src/conf/domain_conf.c:16265
 #, c-format
 msgid "unexpected hostdev mode %d"
 msgstr "ଅପ୍ରତ୍ଯାଶିତ hostdev ଧାରା %d"
 
-#: src/conf/domain_conf.c:16372
+#: src/conf/domain_conf.c:16373
 #, c-format
 msgid "unexpected hub type %d"
 msgstr "ଅପ୍ରତ୍ୟାଶିତ ହବ ପ୍ରକାର %d"
 
-#: src/conf/domain_conf.c:16464
+#: src/conf/domain_conf.c:16465
 #, c-format
 msgid "unexpected domain type %d"
 msgstr "ଅପ୍ରତ୍ୟାଶିତ ପରିସର ପ୍ରକାର %d"
 
-#: src/conf/domain_conf.c:16645
+#: src/conf/domain_conf.c:16646
 msgid "failed to format cpuset for vcpupin"
 msgstr ""
 
-#: src/conf/domain_conf.c:16659
+#: src/conf/domain_conf.c:16660
 msgid "failed to format cpuset for emulator"
 msgstr ""
 
-#: src/conf/domain_conf.c:16688
+#: src/conf/domain_conf.c:16689
 msgid "failed to format nodeset for NUMA memory tuning"
 msgstr ""
 
-#: src/conf/domain_conf.c:16757
+#: src/conf/domain_conf.c:16758
 #, c-format
 msgid "unexpected boot device type %d"
 msgstr "ଅପ୍ରତ୍ୟାଶିତ boot ଉପକରଣ ପ୍ରକାର %d"
 
-#: src/conf/domain_conf.c:16791
+#: src/conf/domain_conf.c:16792
 #, c-format
 msgid "unexpected smbios mode %d"
 msgstr "ଅପ୍ରତ୍ୟାଶିତ smbios ଧାରା %d"
 
-#: src/conf/domain_conf.c:16833
+#: src/conf/domain_conf.c:16834
 #, c-format
 msgid "unexpected feature %zu"
 msgstr "ଅପ୍ରତ୍ଯାଶିତ ବିଶେଷଗୁଣ %zu"
 
-#: src/conf/domain_conf.c:16854
-#, fuzzy, c-format
+#: src/conf/domain_conf.c:16855
+#, c-format
 msgid "Unexpected state of feature '%s'"
-msgstr "ଅପ୍ରତ୍ଯାଶିତ ବିଶେଷ ଗୁଣ %s"
+msgstr ""
 
-#: src/conf/domain_conf.c:17267
+#: src/conf/domain_conf.c:17268
 msgid "Device configuration is not compatible: Domain has no USB bus support"
 msgstr ""
 
-#: src/conf/domain_conf.c:17289 src/conf/network_conf.c:2832
-#: src/conf/nwfilter_conf.c:2715 src/util/virdnsmasq.c:547
+#: src/conf/domain_conf.c:17290 src/conf/network_conf.c:2832
+#: src/conf/nwfilter_conf.c:2719 src/util/virdnsmasq.c:547
 #, c-format
 msgid "cannot create config directory '%s'"
 msgstr "ବିନ୍ଯାସ ଡ଼ିରେକ୍ଟୋରୀ '%s'କୁ ନିର୍ମାଣ କରିପାରିବେ ନାହିଁ"
 
-#: src/conf/domain_conf.c:17428
+#: src/conf/domain_conf.c:17429
 #, c-format
 msgid "unexpected domain %s already exists"
 msgstr "ଅପ୍ରତ୍ୟାଶିତ ପରିସର %s ପୂର୍ବରୁ ଅବସ୍ଥିତ ଅଛି"
 
-#: src/conf/domain_conf.c:17468 src/conf/network_conf.c:3050
-#: src/conf/network_conf.c:3083 src/conf/nwfilter_conf.c:3089
+#: src/conf/domain_conf.c:17469 src/conf/network_conf.c:3050
+#: src/conf/network_conf.c:3083 src/conf/nwfilter_conf.c:3093
 #: src/conf/storage_conf.c:1854
 #, c-format
 msgid "Failed to open dir '%s'"
 msgstr "dir '%s'କୁ ଖୋଲିବାରେ ବିଫଳ"
 
-#: src/conf/domain_conf.c:17538
+#: src/conf/domain_conf.c:17539
 #, c-format
 msgid "cannot remove config %s"
 msgstr "ବିନ୍ୟାସ %s କୁ ଅପସାରଣ କରିପାରିବେ ନାହିଁ"
 
-#: src/conf/domain_conf.c:17893
+#: src/conf/domain_conf.c:17894
 #, c-format
 msgid "unable to visit backing chain file %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:17994
+#: src/conf/domain_conf.c:17995
 #, c-format
 msgid "invalid domain state: %d"
 msgstr "ଅବୈଧ ଡମେନ ସ୍ଥିତି: %d"
 
-#: src/conf/domain_conf.c:18441
+#: src/conf/domain_conf.c:18442
 #, c-format
 msgid "Copying definition of '%d' type is not implemented yet."
 msgstr ""
 
-#: src/conf/domain_conf.c:18723
+#: src/conf/domain_conf.c:18724
 #, c-format
 msgid "no device found with alias %s"
 msgstr "ଉପନାମ %s ବିଶିଷ୍ଟ କୌଣସି ଉପକରଣ ମିଳିଲା ନାହିଁ"
 
-#: src/conf/domain_conf.c:18815 src/conf/domain_conf.c:18897
+#: src/conf/domain_conf.c:18816 src/conf/domain_conf.c:18898
 msgid "unknown metadata type"
 msgstr ""
 
-#: src/conf/domain_conf.c:18822
+#: src/conf/domain_conf.c:18823
 msgid "Requested metadata element is not present"
 msgstr ""
 
-#: src/conf/domain_conf.c:18862
-#, fuzzy
+#: src/conf/domain_conf.c:18863
 msgid "(metadata_xml)"
-msgstr "ଅଧିତଥ୍ୟ:"
+msgstr ""
 
 #: src/conf/domain_event.c:201 src/conf/domain_event.c:251
 msgid "could not find event callback for removal"
@@ -3920,7 +3886,7 @@ msgid "unexpected interface type %d"
 msgstr "ଅପ୍ରତ୍ୟାଶିତ ଅନ୍ତରାପୃଷ୍ଠ ପ୍ରକାର %d"
 
 #: src/conf/interface_conf.c:1264 src/conf/network_conf.c:360
-#: src/conf/node_device_conf.c:184 src/conf/nwfilter_conf.c:3023
+#: src/conf/node_device_conf.c:184 src/conf/nwfilter_conf.c:3027
 #: src/conf/storage_conf.c:1779 src/libxl/libxl_driver.c:840
 #: src/parallels/parallels_driver.c:894 src/qemu/qemu_driver.c:585
 #: src/remote/remote_driver.c:933 src/test/test_driver.c:685
@@ -5320,48 +5286,48 @@ msgstr ""
 msgid "unable to generate uuid"
 msgstr "uuid ସୃଷ୍ଟି କରିବାରେ ଅସମର୍ଥ"
 
-#: src/conf/nwfilter_conf.c:2621
+#: src/conf/nwfilter_conf.c:2625
 msgid "unknown root element for nw filter"
 msgstr ""
 
-#: src/conf/nwfilter_conf.c:2646
+#: src/conf/nwfilter_conf.c:2650
 msgid "(nwfilter_definition)"
 msgstr ""
 
-#: src/conf/nwfilter_conf.c:2974
+#: src/conf/nwfilter_conf.c:2978
 #, c-format
 msgid "filter with same UUID but different name ('%s') already exists"
 msgstr ""
 
-#: src/conf/nwfilter_conf.c:2985
+#: src/conf/nwfilter_conf.c:2989
 msgid "filter would introduce a loop"
 msgstr ""
 
-#: src/conf/nwfilter_conf.c:3057
+#: src/conf/nwfilter_conf.c:3061
 #, c-format
 msgid "network filter config filename '%s' does not match name '%s'"
 msgstr ""
 
-#: src/conf/nwfilter_conf.c:3132 src/conf/storage_conf.c:1905
+#: src/conf/nwfilter_conf.c:3136 src/conf/storage_conf.c:1905
 #, c-format
 msgid "cannot create config directory %s"
 msgstr "ବିନ୍ଯାସ ଡ଼ିରେକ୍ଟୋରୀ %sକୁ ନିର୍ମାଣ କରିପାରିବେ ନାହିଁ"
 
-#: src/conf/nwfilter_conf.c:3145 src/conf/storage_conf.c:1924
+#: src/conf/nwfilter_conf.c:3149 src/conf/storage_conf.c:1924
 msgid "failed to generate XML"
 msgstr "XML ସୃଷ୍ଟି କରିବାରେ ବିଫଳ"
 
-#: src/conf/nwfilter_conf.c:3164 src/conf/storage_conf.c:1942
+#: src/conf/nwfilter_conf.c:3168 src/conf/storage_conf.c:1942
 #, c-format
 msgid "no config file for %s"
 msgstr "%s ପାଇଁ କୌଣସି ବିନ୍ଯାସ ଫାଇଲ ନାହିଁ"
 
-#: src/conf/nwfilter_conf.c:3170 src/conf/storage_conf.c:1948
+#: src/conf/nwfilter_conf.c:3174 src/conf/storage_conf.c:1948
 #, c-format
 msgid "cannot remove config for %s"
 msgstr "%s ପାଇଁ ବିନ୍ୟାସକୁ ଅପସାରଣ କରିପାରିବେ ନାହିଁ"
 
-#: src/conf/nwfilter_conf.c:3245
+#: src/conf/nwfilter_conf.c:3249
 #, c-format
 msgid "formatter for %s %s reported error"
 msgstr ""
@@ -5769,9 +5735,9 @@ msgid "missing volume name element"
 msgstr "ଅନୁପସ୍ଥିତ ଆକାର ନାମ ଉପାଦାନ"
 
 #: src/conf/storage_conf.c:1309
-#, fuzzy, c-format
+#, c-format
 msgid "unknown volume type '%s'"
-msgstr "ଅଜଣା ସାଙ୍କେତିକରଣ ପ୍ରକାର '%s'"
+msgstr ""
 
 #: src/conf/storage_conf.c:1318
 msgid "missing capacity element"
@@ -5980,24 +5946,24 @@ msgid "cannot check guest CPU data for %s architecture"
 msgstr ""
 
 #: src/cpu/cpu.c:459
-#, fuzzy, c-format
+#, c-format
 msgid "cannot format %s CPU data"
-msgstr "%s କୁ ନିର୍ମାଣ କରିପାରିବେ ନାହିଁ"
+msgstr ""
 
 #: src/cpu/cpu.c:480
-#, fuzzy, c-format
+#, c-format
 msgid "cannot parse %s CPU data"
-msgstr "ପରିପଥ %s କୁ ବିଶ୍ଳେଷଣ କରିପାରିବେ ନାହିଁ"
+msgstr ""
 
 #: src/cpu/cpu.c:554
-#, fuzzy, c-format
+#, c-format
 msgid "cannot find architecture %s"
-msgstr "ଅଜଣା ସ୍ଥାପତ୍ୟ %s"
+msgstr ""
 
 #: src/cpu/cpu.c:562
-#, fuzzy, c-format
+#, c-format
 msgid "cannot find a driver for the architecture %s"
-msgstr "%s ସଂରଚନା ପାଇଁ CPU ମ୍ୟାପ ପାଇବେ ନାହିଁ"
+msgstr ""
 
 #: src/cpu/cpu_generic.c:129 src/cpu/cpu_powerpc.c:476
 #: src/cpu/cpu_powerpc.c:580 src/cpu/cpu_x86.c:1505
@@ -6080,9 +6046,9 @@ msgid "host CPU vendor does not match required CPU vendor %s"
 msgstr ""
 
 #: src/cpu/cpu_powerpc.c:417
-#, fuzzy, c-format
+#, c-format
 msgid "host CPU model does not match required CPU model %s"
-msgstr "ଲକ୍ଷ୍ଯସ୍ଥଳ CPU ମଡେଲ %s ଉତ୍ସ %s ସହିତ  ମେଳଖାଇନଥାଏ"
+msgstr ""
 
 #: src/cpu/cpu_powerpc.c:469
 #, c-format
@@ -6162,18 +6128,17 @@ msgid "CPU data"
 msgstr ""
 
 #: src/cpu/cpu_x86.c:1219
-#, fuzzy
 msgid "cannot parse CPU data"
-msgstr "CPU ମ୍ୟାପ ଫାଇଲକୁ ବିଶ୍ଳେଷଣ କରିପାରିବେ ନାହିଁ: %s"
+msgstr ""
 
 #: src/cpu/cpu_x86.c:1227
 msgid "no x86 CPU data found"
 msgstr ""
 
 #: src/cpu/cpu_x86.c:1235
-#, fuzzy, c-format
+#, c-format
 msgid "failed to parse cpuid[%zu]"
-msgstr "pid ନିର୍ମାଣ କରିବାରେ ବିଫଳ: %s"
+msgstr ""
 
 #: src/cpu/cpu_x86.c:1349
 msgid "Host CPU provides forbidden features"
@@ -6579,7 +6544,7 @@ msgstr ""
 msgid "Could not retrieve memory usage of resource pool"
 msgstr ""
 
-#: src/esx/esx_driver.c:4232 src/vbox/vbox_tmpl.c:5965
+#: src/esx/esx_driver.c:4232 src/vbox/vbox_tmpl.c:5976
 msgid "disk snapshots not supported yet"
 msgstr ""
 
@@ -6594,7 +6559,7 @@ msgid "Could not create snapshot: %s"
 msgstr ""
 
 #: src/esx/esx_driver.c:4610 src/qemu/qemu_driver.c:12800
-#: src/test/test_driver.c:6493 src/vbox/vbox_tmpl.c:6406
+#: src/test/test_driver.c:6493 src/vbox/vbox_tmpl.c:6417
 #, c-format
 msgid "snapshot '%s' does not have a parent"
 msgstr ""
@@ -7750,18 +7715,16 @@ msgid "Invocation of %s returned an error: %s (%d)"
 msgstr ""
 
 #: src/interface/interface_backend_netcf.c:91
-#, fuzzy
 msgid "failed to initialize netcf"
-msgstr "inotify କୁ ଆରମ୍ଭ କରାଯାଇପାରିବ ନାହିଁ"
+msgstr ""
 
 #: src/interface/interface_backend_netcf.c:108
 msgid "Attempt to close netcf state driver with open connections"
 msgstr ""
 
 #: src/interface/interface_backend_netcf.c:136
-#, fuzzy
 msgid "failed to re-init netcf"
-msgstr "ସକେଟ ନିର୍ମାଣରେ ବିଫଳ"
+msgstr ""
 
 #: src/interface/interface_backend_netcf.c:229
 #: src/interface/interface_backend_netcf.c:321
@@ -8653,7 +8616,7 @@ msgstr ""
 
 #: src/locking/lock_driver_sanlock.c:257 src/locking/lock_driver_sanlock.c:312
 #: src/locking/lock_driver_sanlock.c:680 src/storage/storage_backend.c:294
-#: src/util/virfile.c:1700 src/util/virfile.c:1994
+#: src/util/virfile.c:1814 src/util/virfile.c:2108
 #, c-format
 msgid "cannot chown '%s' to (%u, %u)"
 msgstr "'%s' କୁ (%u, %u) ରେ chown କରିପାରିବେ ନାହିଁ"
@@ -8963,339 +8926,338 @@ msgstr ""
 msgid "Unsupported hostdev mode %s"
 msgstr ""
 
-#: src/lxc/lxc_container.c:157
+#: src/lxc/lxc_container.c:158
 #, c-format
 msgid "Malformed ctrl-alt-del setting '%s'"
 msgstr ""
 
-#: src/lxc/lxc_container.c:173
+#: src/lxc/lxc_container.c:174
 msgid "Unable to clone to check reboot support"
 msgstr ""
 
-#: src/lxc/lxc_container.c:248
+#: src/lxc/lxc_container.c:249
 msgid "setsid failed"
 msgstr "setsid ବିଫଳ ହୋଇଛି"
 
-#: src/lxc/lxc_container.c:254
+#: src/lxc/lxc_container.c:255
 msgid "ioctl(TIOCSTTY) failed"
 msgstr "ioctl(TIOCSTTY) ବିଫଳ ହୋଇଛି"
 
-#: src/lxc/lxc_container.c:260
+#: src/lxc/lxc_container.c:261
 msgid "dup2(stdin) failed"
 msgstr "dup2(stdin) ବିଫଳ ହୋଇଛି"
 
-#: src/lxc/lxc_container.c:266
+#: src/lxc/lxc_container.c:267
 msgid "dup2(stdout) failed"
 msgstr "dup2(stdout) ବିଫଳ ହୋଇଛି"
 
-#: src/lxc/lxc_container.c:272
+#: src/lxc/lxc_container.c:273
 msgid "dup2(stderr) failed"
 msgstr "dup2(stderr) ବିଫଳ ହୋଇଛି"
 
-#: src/lxc/lxc_container.c:304
+#: src/lxc/lxc_container.c:305
 #, c-format
 msgid "Cannot move fd %d out of the way"
 msgstr ""
 
-#: src/lxc/lxc_container.c:322
+#: src/lxc/lxc_container.c:323
 #, c-format
 msgid "Cannot duplicate fd %d onto fd %d"
 msgstr ""
 
-#: src/lxc/lxc_container.c:336 src/util/vircommand.c:528
+#: src/lxc/lxc_container.c:337 src/util/vircommand.c:528
 #: tools/virt-login-shell.c:322
 msgid "sysconf(_SC_OPEN_MAX) failed"
 msgstr ""
 
-#: src/lxc/lxc_container.c:430
+#: src/lxc/lxc_container.c:431
 msgid "setuid or setgid failed"
 msgstr ""
 
-#: src/lxc/lxc_container.c:533 src/lxc/lxc_container.c:799
-msgid "Failed to read /proc/mounts"
-msgstr "/proc/mountsକୁ ପଢ଼ିବାରେ ବିଫଳ"
-
-#: src/lxc/lxc_container.c:591
+#: src/lxc/lxc_container.c:539
 #, c-format
 msgid "Failed to unmount '%s' and could not detach subtree '%s'"
 msgstr ""
 
-#: src/lxc/lxc_container.c:599
+#: src/lxc/lxc_container.c:547
 #, c-format
 msgid "Failed to unmount '%s' and could not unmount old root '%s'"
 msgstr ""
 
-#: src/lxc/lxc_container.c:629
+#: src/lxc/lxc_container.c:576
 msgid "Unexpected root filesystem without loop device"
 msgstr ""
 
-#: src/lxc/lxc_container.c:635
+#: src/lxc/lxc_container.c:582
 #, c-format
 msgid "Unsupported root filesystem type %s"
 msgstr ""
 
-#: src/lxc/lxc_container.c:673
+#: src/lxc/lxc_container.c:620
 msgid "Failed to make root private"
 msgstr "ମୂଖ୍ୟ ଚାଳକକୁ ବ୍ୟକ୍ତିଗତ କରିବାରେ ବିଫଳ"
 
-#: src/lxc/lxc_container.c:682 src/lxc/lxc_container.c:702
-#: src/lxc/lxc_container.c:1113 src/lxc/lxc_container.c:1397
-#: src/lxc/lxc_container.c:1460
+#: src/lxc/lxc_container.c:629 src/lxc/lxc_container.c:649
+#: src/lxc/lxc_container.c:1060 src/lxc/lxc_container.c:1347
+#: src/lxc/lxc_container.c:1411
 #, c-format
 msgid "Failed to create %s"
 msgstr "%s କୁ ସୃଷ୍ଟି କରିବାରେ ବିଫଳ"
 
-#: src/lxc/lxc_container.c:691
+#: src/lxc/lxc_container.c:638
 #, c-format
 msgid "Failed to mount empty tmpfs at %s"
 msgstr "ଖାଲି tmpfsକୁ %s ରେ ସ୍ଥାପନ କରିବାରେ ବିଫଳ"
 
-#: src/lxc/lxc_container.c:710
+#: src/lxc/lxc_container.c:657
 #, c-format
 msgid "Failed to bind new root %s into tmpfs"
 msgstr "ନୂତନ ମୂଖ୍ୟ ଚାଳକ %s କୁ tmpfs ଭିତରେ ବାନ୍ଧି ରଖିବାରେ ବିଫଳ"
 
-#: src/lxc/lxc_container.c:718
+#: src/lxc/lxc_container.c:665
 #, c-format
 msgid "Failed to make new root %s readonly"
 msgstr ""
 
-#: src/lxc/lxc_container.c:728
+#: src/lxc/lxc_container.c:675
 #, c-format
 msgid "Failed to chdir into %s"
 msgstr ""
 
-#: src/lxc/lxc_container.c:736
+#: src/lxc/lxc_container.c:683
 msgid "Failed to pivot root"
 msgstr "ମୂଖ୍ୟ ଚାଳକକୁ pivot କରିବାରେ ବିଫଳ"
 
-#: src/lxc/lxc_container.c:825
-#, fuzzy, c-format
-msgid "Failed to make mount %s readonly"
-msgstr "auth ପ୍ରମାଣପତ୍ର ପ୍ରସ୍ତୁତ କରିବାରେ ବିଫଳ"
+#: src/lxc/lxc_container.c:746
+msgid "Failed to read /proc/mounts"
+msgstr "/proc/mountsକୁ ପଢ଼ିବାରେ ବିଫଳ"
 
-#: src/lxc/lxc_container.c:882
+#: src/lxc/lxc_container.c:772
+#, c-format
+msgid "Failed to make mount %s readonly"
+msgstr ""
+
+#: src/lxc/lxc_container.c:829
 #, c-format
 msgid "Failed to mkdir %s"
 msgstr "mkdir %s କରିବାରେ ବିଫଳ"
 
-#: src/lxc/lxc_container.c:900
-#, fuzzy, c-format
+#: src/lxc/lxc_container.c:847
+#, c-format
 msgid "Failed to mount %s on %s type %s flags=%x"
-msgstr "%s ରେ devpts କୁ ସ୍ଥାପନ କରିବାରେ ବିଫଳ"
+msgstr ""
 
-#: src/lxc/lxc_container.c:910
-#, fuzzy, c-format
+#: src/lxc/lxc_container.c:857
+#, c-format
 msgid "Failed to re-mount %s on %s flags=%x"
-msgstr "%s ରେ devpts କୁ ସ୍ଥାପନ କରିବାରେ ବିଫଳ"
+msgstr ""
 
-#: src/lxc/lxc_container.c:942
+#: src/lxc/lxc_container.c:889
 #, c-format
 msgid "Failed to mount %s on /proc/meminfo"
 msgstr ""
 
-#: src/lxc/lxc_container.c:972
+#: src/lxc/lxc_container.c:919
 msgid "Cannot create /dev"
 msgstr ""
 
-#: src/lxc/lxc_container.c:981
+#: src/lxc/lxc_container.c:928
 #, c-format
 msgid "Failed to mount %s on /dev"
 msgstr ""
 
-#: src/lxc/lxc_container.c:1010
+#: src/lxc/lxc_container.c:957
 msgid "Cannot create /dev/pts"
 msgstr "/dev/pts ନିର୍ମାଣ କରିବାରେ ବିଫଳ"
 
-#: src/lxc/lxc_container.c:1019
+#: src/lxc/lxc_container.c:966
 #, c-format
 msgid "Failed to mount %s on /dev/pts"
 msgstr ""
 
-#: src/lxc/lxc_container.c:1046
+#: src/lxc/lxc_container.c:993
 #, c-format
 msgid "Failed to symlink device %s to %s"
 msgstr ""
 
-#: src/lxc/lxc_container.c:1058
+#: src/lxc/lxc_container.c:1005
 msgid "Failed to bind /dev/pts/ptmx on to /dev/ptmx"
 msgstr ""
 
-#: src/lxc/lxc_container.c:1068
+#: src/lxc/lxc_container.c:1015
 #, c-format
 msgid "Failed to symlink %s to %s"
 msgstr ""
 
-#: src/lxc/lxc_container.c:1077
+#: src/lxc/lxc_container.c:1024
 #, c-format
 msgid "Failed to symlink %s to /dev/console"
 msgstr ""
 
-#: src/lxc/lxc_container.c:1100
+#: src/lxc/lxc_container.c:1047
 #, c-format
 msgid "Unable to stat bind target %s"
 msgstr ""
 
-#: src/lxc/lxc_container.c:1106
+#: src/lxc/lxc_container.c:1053
 #, c-format
 msgid "Unable to stat bind source %s"
 msgstr ""
 
-#: src/lxc/lxc_container.c:1123
+#: src/lxc/lxc_container.c:1070
 #, c-format
 msgid "Failed to create bind target %s"
 msgstr ""
 
-#: src/lxc/lxc_container.c:1130
+#: src/lxc/lxc_container.c:1077
 #, c-format
 msgid "Failed to close bind target %s"
 msgstr ""
 
-#: src/lxc/lxc_container.c:1139
+#: src/lxc/lxc_container.c:1086
 #, c-format
 msgid "Failed to bind mount directory %s to %s"
 msgstr ""
 
-#: src/lxc/lxc_container.c:1148 src/lxc/lxc_container.c:1476
+#: src/lxc/lxc_container.c:1095 src/lxc/lxc_container.c:1427
 #, c-format
 msgid "Failed to make directory %s readonly"
 msgstr ""
 
-#: src/lxc/lxc_container.c:1155
-#, fuzzy, c-format
+#: src/lxc/lxc_container.c:1102
+#, c-format
 msgid "Failed to make directory %s readwrite"
-msgstr "ଡିରେକ୍ଟୋରୀ '%s' କୁ ନିର୍ମାଣ କରିବାରେ ବିଫଳ"
+msgstr ""
 
-#: src/lxc/lxc_container.c:1182
+#: src/lxc/lxc_container.c:1129
 #, c-format
 msgid "Unable to open filesystem %s"
 msgstr ""
 
-#: src/lxc/lxc_container.c:1188
+#: src/lxc/lxc_container.c:1135
 msgid "Unable to create blkid library handle"
 msgstr ""
 
-#: src/lxc/lxc_container.c:1193
+#: src/lxc/lxc_container.c:1140
 #, c-format
 msgid "Unable to associate device %s with blkid library"
 msgstr ""
 
-#: src/lxc/lxc_container.c:1209
+#: src/lxc/lxc_container.c:1156
 #, c-format
 msgid "Too many filesystems detected for %s"
 msgstr ""
 
-#: src/lxc/lxc_container.c:1213
+#: src/lxc/lxc_container.c:1160
 #, c-format
 msgid "Unable to detect filesystem for %s"
 msgstr ""
 
-#: src/lxc/lxc_container.c:1221
+#: src/lxc/lxc_container.c:1168
 #, c-format
 msgid "Unable to find filesystem type for %s"
 msgstr ""
 
-#: src/lxc/lxc_container.c:1290 src/util/iohelper.c:151
+#: src/lxc/lxc_container.c:1238 src/util/iohelper.c:151
 #, c-format
 msgid "Unable to read %s"
 msgstr ""
 
-#: src/lxc/lxc_container.c:1320
+#: src/lxc/lxc_container.c:1268
 #, c-format
 msgid "%s has unexpected '*' before last line"
 msgstr ""
 
-#: src/lxc/lxc_container.c:1343
+#: src/lxc/lxc_container.c:1292
 #, c-format
 msgid "Failed to mount device %s to %s"
 msgstr ""
 
-#: src/lxc/lxc_container.c:1366
+#: src/lxc/lxc_container.c:1315
 #, c-format
 msgid "Failed to mount device %s to %s, unable to detect filesystem"
 msgstr ""
 
-#: src/lxc/lxc_container.c:1410
+#: src/lxc/lxc_container.c:1360
 #, c-format
 msgid "Failed to mount device %s to %s as %s"
 msgstr ""
 
-#: src/lxc/lxc_container.c:1467
+#: src/lxc/lxc_container.c:1418
 #, c-format
 msgid "Failed to mount directory %s as tmpfs"
 msgstr ""
 
-#: src/lxc/lxc_container.c:1515
+#: src/lxc/lxc_container.c:1466
 #, c-format
 msgid "Unexpected filesystem type %s"
 msgstr ""
 
-#: src/lxc/lxc_container.c:1520
+#: src/lxc/lxc_container.c:1471
 #, c-format
 msgid "Cannot mount filesystem type %s"
 msgstr ""
 
-#: src/lxc/lxc_container.c:1564
+#: src/lxc/lxc_container.c:1515
 #, c-format
 msgid "Failed to create directory for '%s' dev '%s'"
 msgstr ""
 
-#: src/lxc/lxc_container.c:1736
-#, fuzzy, c-format
+#: src/lxc/lxc_container.c:1687
+#, c-format
 msgid "Failed to access '%s'"
-msgstr "'%s' କୁ ଖୋଲିବାରେ ବିଫଳ"
+msgstr ""
 
-#: src/lxc/lxc_container.c:1743
-#, fuzzy, c-format
+#: src/lxc/lxc_container.c:1694
+#, c-format
 msgid "Failed to resolve symlink at %s"
-msgstr "symlink '%s' କୁ ଅପସାରଣ କରିପାରିବେ ନାହିଁ"
+msgstr ""
 
-#: src/lxc/lxc_container.c:1781
+#: src/lxc/lxc_container.c:1732
 #, c-format
 msgid "Failed to remove capabilities: %d"
 msgstr "ସାମର୍ଥ୍ଯକୁ କାଢ଼ିବାରେ ବିଫଳ: %d"
 
-#: src/lxc/lxc_container.c:1787
+#: src/lxc/lxc_container.c:1738
 #, c-format
 msgid "Failed to apply capabilities: %d"
 msgstr "ସାମର୍ଥ୍ଯକୁ ପ୍ରୟୋଗ କରିବାରେ ବିଫଳ: %d"
 
-#: src/lxc/lxc_container.c:1833
+#: src/lxc/lxc_container.c:1784
 msgid "lxcChild() passed invalid vm definition"
 msgstr "lxcChild() ଅବୈଧ vm ବ୍ୟାଖ୍ୟାକୁ ପାସ କରିଲା"
 
-#: src/lxc/lxc_container.c:1842
+#: src/lxc/lxc_container.c:1793
 msgid "Failed to read the container continue message"
 msgstr "ଧାରଣ ପାତ୍ର ଚାଲୁରଖିବା ସନ୍ଦେଶ ପଠାଇବାରେ ବିଫଳ"
 
-#: src/lxc/lxc_container.c:1874
+#: src/lxc/lxc_container.c:1825
 #, c-format
 msgid "Failed to open tty %s"
 msgstr "tty %s କୁ ଖୋଲିବାରେ ବିଫଳ"
 
-#: src/lxc/lxc_container.c:1890
+#: src/lxc/lxc_container.c:1841
 #, c-format
 msgid "cannot find init path '%s' relative to container root"
 msgstr ""
 
-#: src/lxc/lxc_container.c:1909
-#, fuzzy
+#: src/lxc/lxc_container.c:1860
 msgid "Failed to send continue signal to controller"
-msgstr "କୃନ୍ତକ ଧାରଣ ପାତ୍ରକୁ ଚଲାଇବାରେ ବିଫଳ"
+msgstr ""
 
-#: src/lxc/lxc_container.c:1941 src/lxc/lxc_controller.c:2468
+#: src/lxc/lxc_container.c:1892 src/lxc/lxc_controller.c:2468
 msgid "Unknown failure in libvirt_lxc startup"
 msgstr ""
 
-#: src/lxc/lxc_container.c:2051
+#: src/lxc/lxc_container.c:2002
 msgid "Kernel doesn't support user namespace"
 msgstr ""
 
-#: src/lxc/lxc_container.c:2068
+#: src/lxc/lxc_container.c:2019
 msgid "Failed to run clone container"
 msgstr "କୃନ୍ତକ ଧାରଣ ପାତ୍ରକୁ ଚଲାଇବାରେ ବିଫଳ"
 
-#: src/lxc/lxc_container.c:2129
+#: src/lxc/lxc_container.c:2080
 #, c-format
 msgid "Failed to change owner of %s to %u:%u"
 msgstr ""
@@ -9677,7 +9639,7 @@ msgid "Failed to create symlink '%s to '%s'"
 msgstr "symlink '%s' କୁ '%s' ରେ ନିର୍ମାଣ କରିପରିବେ ନାହିଁ"
 
 #: src/lxc/lxc_driver.c:2232 src/libxl/libxl_driver.c:3622
-#: src/network/bridge_driver.c:2975 src/qemu/qemu_driver.c:7358
+#: src/network/bridge_driver.c:2995 src/qemu/qemu_driver.c:7358
 #: src/storage/storage_driver.c:1171 src/uml/uml_driver.c:2442
 #, c-format
 msgid "Failed to delete symlink '%s'"
@@ -10132,24 +10094,24 @@ msgid "VNC"
 msgstr ""
 
 #: src/libxl/libxl_driver.c:861
-#, fuzzy, c-format
+#, c-format
 msgid "failed to create log dir '%s': %s"
-msgstr "lib dir '%s' ନିର୍ମାଣ କରିବାରେ ବିଫଳ: %s"
+msgstr ""
 
 #: src/libxl/libxl_driver.c:868
-#, fuzzy, c-format
+#, c-format
 msgid "failed to create state dir '%s': %s"
-msgstr "ଅବସ୍ଥା dir '%s' କୁ ନିର୍ମାଣ କରିବାରେ ବିଫଳ: %s"
+msgstr ""
 
 #: src/libxl/libxl_driver.c:875
-#, fuzzy, c-format
+#, c-format
 msgid "failed to create lib dir '%s': %s"
-msgstr "lib dir '%s' ନିର୍ମାଣ କରିବାରେ ବିଫଳ: %s"
+msgstr ""
 
 #: src/libxl/libxl_driver.c:882
-#, fuzzy, c-format
+#, c-format
 msgid "failed to create save dir '%s': %s"
-msgstr "ଅବସ୍ଥା dir '%s' କୁ ନିର୍ମାଣ କରିବାରେ ବିଫଳ: %s"
+msgstr ""
 
 #: src/libxl/libxl_driver.c:897
 msgid "cannot create capabilities for libxenlight"
@@ -10544,9 +10506,9 @@ msgid "libxenlight does not support network device type %s"
 msgstr ""
 
 #: src/libxl/libxl_conf.c:1071
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to create log file '%s': %s"
-msgstr "lib dir '%s' ନିର୍ମାଣ କରିବାରେ ବିଫଳ: %s"
+msgstr ""
 
 #: src/libxl/libxl_conf.c:1081
 msgid "cannot create logger for libxenlight, disabling driver"
@@ -10567,9 +10529,9 @@ msgid "Unable to configure libxl's memory management parameters"
 msgstr ""
 
 #: src/network/bridge_driver.c:129
-#, fuzzy, c-format
+#, c-format
 msgid "no network with matching uuid '%s' (%s)"
-msgstr "ମେଳ ଖାଉଥିବା uuid ସହିତ କୌଣସି ନେଟୱର୍କ ନାହିଁ"
+msgstr ""
 
 #: src/network/bridge_driver.c:781
 #, c-format
@@ -10653,16 +10615,16 @@ msgid "network is already active"
 msgstr "ନେଟୱର୍କଟି ପୂର୍ବରୁ ସକ୍ରିୟ ଅଛି"
 
 #: src/network/bridge_driver.c:2102 src/network/bridge_driver.c:2592
-#: src/network/bridge_driver.c:2656 src/network/bridge_driver.c:2794
-#: src/network/bridge_driver.c:2820 src/network/bridge_driver.c:2937
+#: src/network/bridge_driver.c:2657 src/network/bridge_driver.c:2814
+#: src/network/bridge_driver.c:2840 src/network/bridge_driver.c:2957
 #: src/parallels/parallels_network.c:477 src/parallels/parallels_network.c:528
 #: src/parallels/parallels_network.c:594 src/test/test_driver.c:3632
 msgid "no network with matching uuid"
 msgstr "ମେଳ ଖାଉଥିବା uuid ସହିତ କୌଣସି ନେଟୱର୍କ ନାହିଁ"
 
-#: src/network/bridge_driver.c:2128 src/network/bridge_driver.c:3150
-#: src/network/bridge_driver.c:3521 src/network/bridge_driver.c:3699
-#: src/network/bridge_driver.c:3853 src/parallels/parallels_network.c:501
+#: src/network/bridge_driver.c:2128 src/network/bridge_driver.c:3170
+#: src/network/bridge_driver.c:3541 src/network/bridge_driver.c:3719
+#: src/network/bridge_driver.c:3873 src/parallels/parallels_network.c:501
 #, c-format
 msgid "no network with matching name '%s'"
 msgstr "'%s' ସହିତ ସମାନ ନାମ ବିଶିଷ୍ଟ କୌଣସି ନେଟୱର୍କ ନାହିଁ"
@@ -10708,176 +10670,176 @@ msgid ""
 "configuration"
 msgstr ""
 
-#: src/network/bridge_driver.c:2829
+#: src/network/bridge_driver.c:2849
 msgid "network is not active"
 msgstr "ନେଟୱର୍କଟି ସକ୍ରିୟ ନାହିଁ"
 
-#: src/network/bridge_driver.c:2892 src/test/test_driver.c:3762
+#: src/network/bridge_driver.c:2912 src/test/test_driver.c:3762
 #, c-format
 msgid "network '%s' does not have a bridge name."
 msgstr "ନେଟୱର୍କ '%s' ରେ ବନ୍ଧ ନାମ ନାହିଁ।"
 
-#: src/network/bridge_driver.c:2946
+#: src/network/bridge_driver.c:2966
 msgid "cannot set autostart for transient network"
 msgstr "ଅସ୍ଥାୟୀ ନେଟୱର୍କ ପାଇଁ ସ୍ୱୟଂପ୍ରାରମ୍ଭକୁ ବିନ୍ୟାସ କରାଯାଇପାରିବ ନାହିଁ"
 
-#: src/network/bridge_driver.c:2961
+#: src/network/bridge_driver.c:2981
 #, c-format
 msgid "cannot create autostart directory '%s'"
 msgstr "ସ୍ୱୟଂଚାଳିତ ଡ଼ିରେକ୍ଟୋରୀ '%s' ନିର୍ମାଣ କରିପାରିବେ ନାହିଁ"
 
-#: src/network/bridge_driver.c:2968 src/storage/storage_driver.c:1163
+#: src/network/bridge_driver.c:2988 src/storage/storage_driver.c:1163
 #, c-format
 msgid "Failed to create symlink '%s' to '%s'"
 msgstr "symlink '%s' କୁ '%s' ରେ ନିର୍ମାଣ କରିବାରେ ବିଫଳ"
 
-#: src/network/bridge_driver.c:3060
+#: src/network/bridge_driver.c:3080
 #, c-format
 msgid "Could not get Virtual functions on %s"
 msgstr ""
 
-#: src/network/bridge_driver.c:3067
+#: src/network/bridge_driver.c:3087
 #, c-format
 msgid "No Vf's present on SRIOV PF %s"
 msgstr ""
 
-#: src/network/bridge_driver.c:3088
+#: src/network/bridge_driver.c:3108
 msgid "Direct mode types require interface names"
 msgstr ""
 
-#: src/network/bridge_driver.c:3229
+#: src/network/bridge_driver.c:3249
 #, c-format
 msgid ""
 "<virtualport type='%s'> not supported for network '%s' which uses a bridge "
 "device"
 msgstr ""
 
-#: src/network/bridge_driver.c:3256 src/network/bridge_driver.c:3412
+#: src/network/bridge_driver.c:3276 src/network/bridge_driver.c:3432
 #, c-format
 msgid ""
 "network '%s' requires exclusive access to interfaces, but none are available"
 msgstr ""
 
-#: src/network/bridge_driver.c:3282
+#: src/network/bridge_driver.c:3302
 #, c-format
 msgid "unrecognized driver name value %d  in network '%s'"
 msgstr ""
 
-#: src/network/bridge_driver.c:3306
+#: src/network/bridge_driver.c:3326
 #, c-format
 msgid ""
 "<virtualport type='%s'> not supported for network '%s' which uses an SR-IOV "
 "Virtual Function via PCI passthrough"
 msgstr ""
 
-#: src/network/bridge_driver.c:3357
+#: src/network/bridge_driver.c:3377
 #, c-format
 msgid ""
 "<virtualport type='%s'> not supported for network '%s' which uses a macvtap "
 "device"
 msgstr ""
 
-#: src/network/bridge_driver.c:3370
+#: src/network/bridge_driver.c:3390
 #, c-format
 msgid ""
 "network '%s' uses a direct mode, but has no forward dev and no interface pool"
 msgstr ""
 
-#: src/network/bridge_driver.c:3443
+#: src/network/bridge_driver.c:3463
 #, c-format
 msgid ""
 "an interface connecting to network '%s' is requesting a vlan tag, but that "
 "is not supported for this type of network"
 msgstr ""
 
-#: src/network/bridge_driver.c:3449
+#: src/network/bridge_driver.c:3469
 #, c-format
 msgid ""
 "an interface of type '%s' is requesting a vlan tag, but that is not "
 "supported for this type of connection"
 msgstr ""
 
-#: src/network/bridge_driver.c:3540
+#: src/network/bridge_driver.c:3560
 #, c-format
 msgid ""
 "network '%s' uses a direct or hostdev mode, but has no forward dev and no "
 "interface pool"
 msgstr ""
 
-#: src/network/bridge_driver.c:3552 src/network/bridge_driver.c:3732
+#: src/network/bridge_driver.c:3572 src/network/bridge_driver.c:3752
 msgid "the interface uses a direct mode, but has no source dev"
 msgstr ""
 
-#: src/network/bridge_driver.c:3569 src/network/bridge_driver.c:3748
+#: src/network/bridge_driver.c:3589 src/network/bridge_driver.c:3768
 #, c-format
 msgid "network '%s' doesn't have dev='%s' in use by domain"
 msgstr ""
 
-#: src/network/bridge_driver.c:3586
+#: src/network/bridge_driver.c:3606
 #, c-format
 msgid "network '%s' claims dev='%s' is already in use by a different domain"
 msgstr ""
 
-#: src/network/bridge_driver.c:3603 src/network/bridge_driver.c:3764
+#: src/network/bridge_driver.c:3623 src/network/bridge_driver.c:3784
 msgid "the interface uses a hostdev mode, but has no hostdev"
 msgstr ""
 
-#: src/network/bridge_driver.c:3621 src/network/bridge_driver.c:3780
+#: src/network/bridge_driver.c:3641 src/network/bridge_driver.c:3800
 #, c-format
 msgid "network '%s' doesn't have PCI device %04x:%02x:%02x.%x in use by domain"
 msgstr ""
 
-#: src/network/bridge_driver.c:3638
+#: src/network/bridge_driver.c:3658
 #, c-format
 msgid ""
 "network '%s' claims the PCI device at domain=%d bus=%d slot=%d function=%d "
 "is already in use by a different domain"
 msgstr ""
 
-#: src/network/bridge_driver.c:3720
+#: src/network/bridge_driver.c:3740
 #, c-format
 msgid ""
 "network '%s' uses a direct/hostdev mode, but has no forward dev and no "
 "interface pool"
 msgstr ""
 
-#: src/network/bridge_driver.c:3867
+#: src/network/bridge_driver.c:3887
 #, c-format
 msgid "network '%s' doesn't have an IPv4 address"
 msgstr ""
 
-#: src/network/bridge_driver.c:3889
+#: src/network/bridge_driver.c:3909
 #, c-format
 msgid "network '%s' has no associated interface or bridge"
 msgstr ""
 
-#: src/network/bridge_driver.c:3943
+#: src/network/bridge_driver.c:3963
 #, c-format
 msgid ""
 "Invalid use of 'floor' on interface with MAC address %s - network '%s' has "
 "no inbound QoS set"
 msgstr ""
 
-#: src/network/bridge_driver.c:3963
+#: src/network/bridge_driver.c:3983
 #, c-format
 msgid ""
 "Cannot plug '%s' interface into '%s' because it would overcommit 'peak' on "
 "network '%s'"
 msgstr ""
 
-#: src/network/bridge_driver.c:3974
+#: src/network/bridge_driver.c:3994
 #, c-format
 msgid ""
 "Cannot plug '%s' interface into '%s' because it would overcommit 'average' "
 "on network '%s'"
 msgstr ""
 
-#: src/network/bridge_driver.c:4040
+#: src/network/bridge_driver.c:4060
 #, c-format
 msgid "Cannot set bandwidth on interface '%s' of type %d"
 msgstr ""
 
-#: src/network/bridge_driver.c:4048
+#: src/network/bridge_driver.c:4068
 msgid "Could not generate next class ID"
 msgstr ""
 
@@ -10929,26 +10891,24 @@ msgid "failed to add iptables rule to enable TCP masquerading"
 msgstr ""
 
 #: src/network/bridge_driver_linux.c:260
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "failed to add iptables rule to prevent local broadcast masquerading on %s"
-msgstr "'%s' କୁ ଗତି କରିବା ପାଇଁ ଅନୁମତି ଦେଇ iptables ନିୟମ ଯୋଗ କରିବାରେ ବିଫଳ"
+msgstr ""
 
 #: src/network/bridge_driver_linux.c:264
-#, fuzzy
 msgid "failed to add iptables rule to prevent local broadcast masquerading"
-msgstr "'%s' କୁ ଗତି କରିବା ପାଇଁ ଅନୁମତି ଦେଇ iptables ନିୟମ ଯୋଗ କରିବାରେ ବିଫଳ"
+msgstr ""
 
 #: src/network/bridge_driver_linux.c:275
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "failed to add iptables rule to prevent local multicast masquerading on %s"
-msgstr "'%s' ରୁ ଆଗକୁ ନେଇ iptables ନିୟମ ଯୋଗ କରିବାରେ ବିଫଳ"
+msgstr ""
 
 #: src/network/bridge_driver_linux.c:279
-#, fuzzy
 msgid "failed to add iptables rule to prevent local multicast masquerading"
-msgstr "'%s' କୁ ଗତି କରିବା ପାଇଁ ଅନୁମତି ଦେଇ iptables ନିୟମ ଯୋଗ କରିବାରେ ବିଫଳ"
+msgstr ""
 
 #: src/network/bridge_driver_linux.c:389
 #, c-format
@@ -11352,9 +11312,8 @@ msgid "Cannot determine free memory"
 msgstr ""
 
 #: src/nodeinfo.c:1583
-#, fuzzy
 msgid "node cpu info not implemented on this platform"
-msgstr "ଏହି ପ୍ଲାଟଫର୍ମରେ ନୋଡ ସୂଚନାକୁ କାର୍ଯ୍ୟକାରୀ କରାହୋଇନାହିଁ"
+msgstr ""
 
 #: src/nwfilter/nwfilter_dhcpsnoop.c:578
 #, c-format
@@ -11466,7 +11425,7 @@ msgstr ""
 
 #: src/nwfilter/nwfilter_dhcpsnoop.c:1910 src/qemu/qemu_driver.c:2991
 #: src/qemu/qemu_driver.c:3009 src/qemu/qemu_driver.c:3678
-#: src/vbox/vbox_tmpl.c:9242
+#: src/vbox/vbox_tmpl.c:9253
 #, c-format
 msgid "unable to close %s"
 msgstr ""
@@ -11870,9 +11829,9 @@ msgstr ""
 #: src/uml/uml_driver.c:2088 src/uml/uml_driver.c:2375
 #: src/uml/uml_driver.c:2404 src/uml/uml_driver.c:2482
 #: src/vbox/vbox_tmpl.c:2075 src/vbox/vbox_tmpl.c:2135
-#: src/vbox/vbox_tmpl.c:5344 src/vbox/vbox_tmpl.c:5441
-#: src/vbox/vbox_tmpl.c:5670 src/vbox/vbox_tmpl.c:8788
-#: src/vbox/vbox_tmpl.c:9160 src/vmware/vmware_driver.c:426
+#: src/vbox/vbox_tmpl.c:5355 src/vbox/vbox_tmpl.c:5452
+#: src/vbox/vbox_tmpl.c:5681 src/vbox/vbox_tmpl.c:8799
+#: src/vbox/vbox_tmpl.c:9171 src/vmware/vmware_driver.c:426
 #: src/vmware/vmware_driver.c:499 src/vmware/vmware_driver.c:548
 #: src/vmware/vmware_driver.c:592 src/vmware/vmware_driver.c:955
 #: src/vmware/vmware_driver.c:1083 src/vmware/vmware_driver.c:1121
@@ -11932,7 +11891,7 @@ msgstr ""
 msgid "Could not set UUID"
 msgstr "UUID କୁ ସେଟ କରିପାରିଲା ନାହିଁ"
 
-#: src/openvz/openvz_driver.c:1005 src/vbox/vbox_tmpl.c:5133
+#: src/openvz/openvz_driver.c:1005 src/vbox/vbox_tmpl.c:5144
 msgid "current vcpu count must equal maximum"
 msgstr ""
 
@@ -13541,10 +13500,9 @@ msgid "invalid sound model"
 msgstr "ଅବୈଧ ଧ୍ୱନୀ ମଡେଲ"
 
 #: src/qemu/qemu_command.c:5332
-#, fuzzy
 msgid ""
 "The ich9-intel-hda audio controller is not supported in this QEMU binary"
-msgstr "TCP ସ୍ଥାନାନ୍ତରଣ ଏହି QEMU ଦ୍ୱିମିକ ସହିତ ସମର୍ଥିତ ନୁହଁ"
+msgstr ""
 
 #: src/qemu/qemu_command.c:5412 src/qemu/qemu_command.c:9039
 #, c-format
@@ -13572,9 +13530,9 @@ msgid "Failed opening %s"
 msgstr ""
 
 #: src/qemu/qemu_command.c:5518
-#, fuzzy, c-format
+#, c-format
 msgid "invalid PCI passthrough type '%s'"
-msgstr "ଅବୈଧ ଗୋପନୀୟତା ପ୍ରକାର '%s'"
+msgstr ""
 
 #: src/qemu/qemu_command.c:5572
 #, c-format
@@ -14101,9 +14059,9 @@ msgid "cannot parse sheepdog filename '%s'"
 msgstr ""
 
 #: src/qemu/qemu_command.c:10155
-#, fuzzy, c-format
+#, c-format
 msgid "pseries systems do not support ide devices '%s'"
-msgstr "ps2 bus ନିବେଶ ଉପକରଣ %s କୁ ସମର୍ଥନ କରେନାହିଁ"
+msgstr ""
 
 #: src/qemu/qemu_command.c:10208
 #, c-format
@@ -14716,18 +14674,16 @@ msgid "failed to add rule to drop all frames in '%s'"
 msgstr "'%s' ରେ ସମସ୍ତ ଫ୍ରେମଗୁଡ଼ିକୁ ପକାଇବା ପାଇଁ ନିୟମ ଯୋଗ କରିବାରେ ବିଫଳ"
 
 #: src/qemu/qemu_driver.c:681
-#, fuzzy
 msgid "display"
-msgstr "vnc ପ୍ରଦର୍ଶନ"
+msgstr ""
 
 #: src/qemu/qemu_driver.c:687
 msgid "webSocket"
 msgstr ""
 
 #: src/qemu/qemu_driver.c:693
-#, fuzzy
 msgid "migration"
-msgstr "ପ୍ରତ୍ଯେକ୍ଷ ଉତ୍ପ୍ରବାସନ"
+msgstr ""
 
 #: src/qemu/qemu_driver.c:719
 #, c-format
@@ -14960,12 +14916,12 @@ msgid "currently is supported only taking screenshots of screen ID 0"
 msgstr ""
 
 #: src/qemu/qemu_driver.c:3663 src/qemu/qemu_driver.c:9676
-#: src/vbox/vbox_tmpl.c:9186
+#: src/vbox/vbox_tmpl.c:9197
 #, c-format
 msgid "mkostemp(\"%s\") failed"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:3684 src/vbox/vbox_tmpl.c:9251
+#: src/qemu/qemu_driver.c:3684 src/vbox/vbox_tmpl.c:9262
 msgid "unable to open stream"
 msgstr ""
 
@@ -15476,9 +15432,8 @@ msgid "live disk snapshot not supported with this QEMU binary"
 msgstr ""
 
 #: src/qemu/qemu_driver.c:12212
-#, fuzzy
 msgid "Invalid snapshot image format specified in configuration file"
-msgstr "ବିନ୍ଯାସ ଫାଇଲରେ ଅବୈଧ ସଂରକ୍ଷଣ ପ୍ରତିଛବି ଶୈଳୀ ବିଶ୍ଳେଷଣ କରାଯାଇଛି"
+msgstr ""
 
 #: src/qemu/qemu_driver.c:12358
 msgid "quiesce requires disk-only"
@@ -16098,14 +16053,14 @@ msgid "controller %s:%d not found"
 msgstr ""
 
 #: src/qemu/qemu_hotplug.c:3077
-#, fuzzy, c-format
+#, c-format
 msgid "device with '%s' address cannot be detached"
-msgstr "ଉପକରଣ ପ୍ରକାର '%s' କୁ ସଂଲଗ୍ନ କରିପାରିବେ ନାହିଁ"
+msgstr ""
 
 #: src/qemu/qemu_hotplug.c:3084
-#, fuzzy, c-format
+#, c-format
 msgid "device with invalid '%s' address cannot be detached"
-msgstr "ଉପକରଣ ପ୍ରକାର '%s' କୁ ସଂଲଗ୍ନ କରିପାରିବେ ନାହିଁ"
+msgstr ""
 
 #: src/qemu/qemu_hotplug.c:3099
 msgid "device cannot be detached: device is busy"
@@ -16755,9 +16710,8 @@ msgid "block jobs require JSON monitor"
 msgstr ""
 
 #: src/qemu/qemu_monitor.c:3924
-#, fuzzy
 msgid "failed to duplicate log fd"
-msgstr "ଲଗ ଫାଇଲ %sକୁ ନିର୍ମାଣ କରିବାରେ ବିଫଳ"
+msgstr ""
 
 #: src/qemu/qemu_monitor_json.c:252
 msgid "Unable to append command 'id' string"
@@ -16821,9 +16775,8 @@ msgid "info kvm reply was missing return data"
 msgstr ""
 
 #: src/qemu/qemu_monitor_json.c:1305
-#, fuzzy
 msgid "info kvm reply missing 'enabled' field"
-msgstr "info ସ୍ଥାନାନ୍ତରଣ ଉତ୍ତରରେ ଫେରସ୍ତ ତଥ୍ୟ ଅନୁପସ୍ଥିତ"
+msgstr ""
 
 #: src/qemu/qemu_monitor_json.c:1355
 msgid "info balloon reply was missing return data"
@@ -17327,9 +17280,9 @@ msgid "missing or invalid features in CPU data"
 msgstr ""
 
 #: src/qemu/qemu_monitor_json.c:5498
-#, fuzzy, c-format
+#, c-format
 msgid "unknown CPU register '%s'"
-msgstr "ଅଜଣା CPU ବାକ୍ୟବିନ୍ୟାସ '%s'"
+msgstr ""
 
 #: src/qemu/qemu_monitor_json.c:5547 src/qemu/qemu_monitor_json.c:5588
 #, c-format
@@ -17337,9 +17290,9 @@ msgid "%s CPU property did not return an array"
 msgstr ""
 
 #: src/qemu/qemu_monitor_json.c:5639
-#, fuzzy, c-format
+#, c-format
 msgid "CPU definition retrieval isn't supported for '%s'"
-msgstr "'%s' ପାଇଁ କୌଣସି କଢ଼ାଯୋଗ୍ୟ ମେଡ଼ିଆ ଦିଆହୋଇନାହିଁ"
+msgstr ""
 
 #: src/qemu/qemu_monitor_text.c:178
 msgid "Password request seen, but no handler available"
@@ -18046,9 +17999,9 @@ msgid "caller ignores cookieout or cookieoutlen"
 msgstr ""
 
 #: src/remote/remote_driver.c:5602
-#, fuzzy, c-format
+#, c-format
 msgid "Too many model names '%d' for limit '%d'"
-msgstr "ଅତ୍ଯଧିକ ସୁଦୂର ପରିସର IDs: %d > %d"
+msgstr ""
 
 #: src/remote/remote_driver.c:5677
 msgid ""
@@ -18513,19 +18466,16 @@ msgid "Failed to get client socket identity"
 msgstr ""
 
 #: src/rpc/virnetsocket.c:1189
-#, fuzzy
 msgid "Failed to get valid client socket identity"
-msgstr "ସାଥି ସକେଟ ପରିଚୟ ପାଇପାରିବେ ନାହିଁ"
+msgstr ""
 
 #: src/rpc/virnetsocket.c:1195
-#, fuzzy
 msgid "Failed to get valid client socket identity groups"
-msgstr "ଡିସ୍କ ସୂଚନା ପାଇବାରେ ବିଫଳ"
+msgstr ""
 
 #: src/rpc/virnetsocket.c:1223
-#, fuzzy
 msgid "Failed to get client socket PID"
-msgstr "ସାଥି ସକେଟ ପରିଚୟ ପାଇପାରିବେ ନାହିଁ"
+msgstr ""
 
 #: src/rpc/virnetsocket.c:1244
 msgid "Client socket identity not available"
@@ -20030,22 +19980,22 @@ msgstr ""
 msgid "cannot create path '%s'"
 msgstr "ପଥ '%s' କୁ ନିର୍ମାଣ କରିପାରିବେ ନାହିଁ"
 
-#: src/storage/storage_backend.c:285 src/util/virfile.c:1689
-#: src/util/virfile.c:1988 src/util/virfile.c:2095
+#: src/storage/storage_backend.c:285 src/util/virfile.c:1803
+#: src/util/virfile.c:2102 src/util/virfile.c:2209
 #, c-format
 msgid "stat of '%s' failed"
 msgstr "'%s' ର stat ବିଫଳ ହୋଇଛି"
 
 #: src/storage/storage_backend.c:301 src/storage/storage_backend.c:608
-#: src/util/virfile.c:1711 src/util/virfile.c:2002 src/util/virfile.c:2108
+#: src/util/virfile.c:1825 src/util/virfile.c:2116 src/util/virfile.c:2222
 #, c-format
 msgid "cannot set mode of '%s' to %04o"
 msgstr "ଅବସ୍ଥା '%s' କୁ %04o ଭାବରେ ସେଟ କରିପାରିବେ ନାହିଁ"
 
 #: src/storage/storage_backend.c:353
-#, fuzzy, c-format
+#, c-format
 msgid "cannot allocate %llu bytes in file '%s'"
-msgstr "ଫାଇଲ '%s' କୁ ବଢ଼ାଇ ପାରିବେ ନାହିଁ"
+msgstr ""
 
 #: src/storage/storage_backend.c:378
 #, c-format
@@ -20444,9 +20394,9 @@ msgid "preallocate is only supported for raw type volume"
 msgstr ""
 
 #: src/storage/storage_backend_gluster.c:82
-#, fuzzy, c-format
+#, c-format
 msgid "gluster pool name '%s' must not contain /"
-msgstr "ଭଣ୍ଡାର ପୁଲ '%s'ଟି ସକ୍ରିୟ ନାହିଁ"
+msgstr ""
 
 #: src/storage/storage_backend_gluster.c:89
 #, c-format
@@ -20454,34 +20404,34 @@ msgid "gluster pool path '%s' must start with /"
 msgstr ""
 
 #: src/storage/storage_backend_gluster.c:129
-#, fuzzy, c-format
+#, c-format
 msgid "failed to connect to %s"
-msgstr "%s ସହିତ ସଂଯୋଗ କରିବାରେ ବିଫଳ"
+msgstr ""
 
 #: src/storage/storage_backend_gluster.c:137
-#, fuzzy, c-format
+#, c-format
 msgid "failed to change to directory '%s' in '%s'"
-msgstr "ଡିରେକ୍ଟୋରୀ '%s' କୁ ନିର୍ମାଣ କରିବାରେ ବିଫଳ"
+msgstr ""
 
 #: src/storage/storage_backend_gluster.c:169
-#, fuzzy, c-format
+#, c-format
 msgid "unable to read '%s'"
-msgstr "'%s' କୁ ପଢ଼ିବାରେ ବିଫଳ"
+msgstr ""
 
 #: src/storage/storage_backend_gluster.c:336
-#, fuzzy, c-format
+#, c-format
 msgid "cannot open path '%s' in '%s'"
-msgstr "ପଥ '%s' କୁ ଖୋଲିପାରିବେ ନାହିଁ"
+msgstr ""
 
 #: src/storage/storage_backend_gluster.c:353
-#, fuzzy, c-format
+#, c-format
 msgid "failed to read directory '%s' in '%s'"
-msgstr "ଡିରେକ୍ଟୋରୀ '%s' କୁ ନିର୍ମାଣ କରିବାରେ ବିଫଳ"
+msgstr ""
 
 #: src/storage/storage_backend_gluster.c:359
-#, fuzzy, c-format
+#, c-format
 msgid "cannot statvfs path '%s' in '%s'"
-msgstr "ପଥ '%s' କୁ statvfs କରିପାରିବେ ନାହିଁ"
+msgstr ""
 
 #: src/storage/storage_backend_iscsi.c:130
 msgid "cannot find session"
@@ -20965,29 +20915,25 @@ msgid "storage pool does not support vol deletion"
 msgstr "ଭଣ୍ଡାର ପୁଲ vol ଅପସାରଣକୁ ସମର୍ଥନ କରେନାହିଁ"
 
 #: src/test/test_driver.c:230
-#, fuzzy
 msgid "invalid transient"
-msgstr "ଅବୈଧ ମୂଳ ତାରିଖ"
+msgstr ""
 
 #: src/test/test_driver.c:237
-#, fuzzy
 msgid "invalid hasmanagedsave"
-msgstr "ଅବୈଧ ମୂଳ ତାରିଖ"
+msgstr ""
 
 #: src/test/test_driver.c:246
-#, fuzzy, c-format
+#, c-format
 msgid "runstate '%d' out of range'"
-msgstr "ଆରମ୍ଭ କୋଷ %d ସୀମା ବାହାରେ (0-%d)"
+msgstr ""
 
 #: src/test/test_driver.c:254
-#, fuzzy
 msgid "invalid runstate"
-msgstr "ଅବୈଧ ମୂଳ ତାରିଖ"
+msgstr ""
 
 #: src/test/test_driver.c:260
-#, fuzzy
 msgid "transient domain cannot have runstate 'shutoff'"
-msgstr "ଅସ୍ଥାୟୀ ଡମେନଗୁଡ଼ିକରେ କୌଣସି ସ୍ଥାୟୀ ବିନ୍ୟାସ ନାହିଁ"
+msgstr ""
 
 #: src/test/test_driver.c:265
 msgid "domain with managedsave data can only have runstate 'shutoff'"
@@ -21103,9 +21049,9 @@ msgid "length of metadata out of range"
 msgstr "ଅଧିତଥ୍ୟ ଲମ୍ବର ସୀମା ବାହାରେ"
 
 #: src/test/test_driver.c:2231
-#, fuzzy, c-format
+#, c-format
 msgid "incomplete metadata in '%s'"
-msgstr "'%s' ରେ ଅସମ୍ପୂର୍ଣ୍ଣ ଅଧିତଥ୍ୟ"
+msgstr ""
 
 #: src/test/test_driver.c:2303
 #, c-format
@@ -21343,8 +21289,8 @@ msgid "cannot attach device on inactive domain"
 msgstr "ଗୋଟିଏ ନିଷ୍କ୍ରିୟ ପରିସରରେ ଉପକରଣ ଯୋଗ କରିପାରିବେ ନାହିଁ"
 
 #: src/uml/uml_driver.c:2242 src/uml/uml_driver.c:2356
-#: src/vbox/vbox_tmpl.c:5624 src/vbox/vbox_tmpl.c:5639
-#: src/vbox/vbox_tmpl.c:5787
+#: src/vbox/vbox_tmpl.c:5635 src/vbox/vbox_tmpl.c:5650
+#: src/vbox/vbox_tmpl.c:5798
 msgid "cannot modify the persistent configuration of a domain"
 msgstr "ଗୋଟିଏ ଡମେନର ସ୍ଥାୟୀ ବିନ୍ୟାସକୁ ପରିବର୍ତ୍ତନ କରିପାରିବେ ନାହିଁ"
 
@@ -21531,9 +21477,9 @@ msgid "Could not find placement for controller %s at %s"
 msgstr ""
 
 #: src/util/vircgroup.c:677
-#, fuzzy, c-format
+#, c-format
 msgid "Invalid value '%s' for '%s'"
-msgstr "ଡିସ୍କ ପାଇଁ ଅବୈଧ ପରିପଥ ପ୍ରକାର '%s'"
+msgstr ""
 
 #: src/util/vircgroup.c:682
 #, c-format
@@ -21631,7 +21577,7 @@ msgstr ""
 msgid "Unable to remove %s (%d)"
 msgstr ""
 
-#: src/util/vircgroup.c:2629 src/util/vircgroup.c:2639
+#: src/util/vircgroup.c:2629 src/util/vircgroup.c:2639 src/util/virfile.c:1617
 #, c-format
 msgid "Failed to read %s"
 msgstr ""
@@ -22067,9 +22013,8 @@ msgid "No args present for signature %s"
 msgstr ""
 
 #: src/util/virdbus.c:1290
-#, fuzzy
 msgid "Reply message incorrect"
-msgstr "ପ୍ରତିଛବି ମାୟାଟି ସଠିକ ନୁହଁ"
+msgstr ""
 
 #: src/util/virdbus.c:1325 src/util/virdbus.c:1345 src/util/virdbus.c:1358
 #: src/util/virdbus.c:1366 src/util/virdbus.c:1375 src/util/virdbus.c:1384
@@ -22185,14 +22130,12 @@ msgid "cannot change permission of '%s'"
 msgstr ""
 
 #: src/util/virfile.c:551
-#, fuzzy
 msgid "Unable to open /dev/loop-control"
-msgstr "ପ୍ରଦର୍ଶିକା ପଥ %sକୁ ଖୋଲିବାରେ ଅସମର୍ଥ"
+msgstr ""
 
 #: src/util/virfile.c:557
-#, fuzzy
 msgid "Unable to get free loop device via ioctl"
-msgstr "PCI ଉପକରଣ %sକୁ ପୁନଃସ୍ଥାପନ କରିବାରେ ଅସମର୍ଥ: %s"
+msgstr ""
 
 #: src/util/virfile.c:592
 msgid "Unable to read /dev"
@@ -22283,53 +22226,58 @@ msgid "Failed to read file '%s'"
 msgstr "ଫାଇଲ '%s' କୁ ପଢ଼ିବାରେ ବିଫଳ"
 
 #: src/util/virfile.c:1569 src/util/virfile.c:1576
-#, fuzzy, c-format
+#, c-format
 msgid "Cannot stat '%s'"
-msgstr "'%s' ବ୍ୟାଖ୍ୟା କରିପାରିବେ ନାହିଁ"
+msgstr ""
 
-#: src/util/virfile.c:1747
+#: src/util/virfile.c:1656
+#, fuzzy
+msgid "Unable to determine mount table on this platform"
+msgstr "ଏହି ପ୍ଲାଟଫର୍ମରେ ନୋଡ ସୂଚନାକୁ କାର୍ଯ୍ୟକାରୀ କରାହୋଇନାହିଁ"
+
+#: src/util/virfile.c:1861
 #, c-format
 msgid "failed to create socket needed for '%s'"
 msgstr ""
 
-#: src/util/virfile.c:1778
+#: src/util/virfile.c:1892
 #, c-format
 msgid "child process failed to create file '%s'"
 msgstr ""
 
-#: src/util/virfile.c:1795
+#: src/util/virfile.c:1909
 msgid "child process failed to send fd to parent"
 msgstr ""
 
-#: src/util/virfile.c:1838 src/util/virfile.c:2055
+#: src/util/virfile.c:1952 src/util/virfile.c:2169
 #, c-format
 msgid "failed to wait for child creating '%s'"
 msgstr "'%s' କୁ ନିର୍ମାଣ କରିଥିବା ନିମ୍ନ ସ୍ତର ପାଇଁ ଅପେକ୍ଷା କରିବାରେ ବିଫଳ"
 
-#: src/util/virfile.c:1981
+#: src/util/virfile.c:2095
 #, c-format
 msgid "failed to create directory '%s'"
 msgstr "ଡିରେକ୍ଟୋରୀ '%s' କୁ ନିର୍ମାଣ କରିବାରେ ବିଫଳ"
 
-#: src/util/virfile.c:2085
+#: src/util/virfile.c:2199
 #, c-format
 msgid "child failed to create directory '%s'"
 msgstr "ନିମ୍ନ ସ୍ତରଟି ଡ଼ିରେକ୍ଟୋରୀ '%s' କୁ ନିର୍ମାଣ କରିବାରେ ବିଫଳ"
 
-#: src/util/virfile.c:2101
+#: src/util/virfile.c:2215
 #, c-format
 msgid "cannot chown '%s' to group %u"
 msgstr "'%s' କୁ ଶ୍ରେଣୀ %u ରେ chown କରିପାରିବେ ନାହିଁ"
 
-#: src/util/virfile.c:2140
+#: src/util/virfile.c:2254
 msgid "virFileOpenAs is not implemented for WIN32"
 msgstr ""
 
-#: src/util/virfile.c:2153
+#: src/util/virfile.c:2267
 msgid "virDirCreate is not implemented for WIN32"
 msgstr ""
 
-#: src/util/virfile.c:2508
+#: src/util/virfile.c:2622
 msgid "Could not write to stream"
 msgstr ""
 
@@ -22406,9 +22354,9 @@ msgid "cannot parse json %s: %s"
 msgstr "json %s କୁ ବିଶ୍ଳେଷଣ କରିପାରିବେ ନାହିଁ: %s"
 
 #: src/util/virjson.c:1009
-#, fuzzy, c-format
+#, c-format
 msgid "cannot parse json %s: unterminated string/map/array"
-msgstr "json %s କୁ ବିଶ୍ଳେଷଣ କରିପାରିବେ ନାହିଁ: %s"
+msgstr ""
 
 #: src/util/virjson.c:1120
 msgid "Unable to create JSON formatter"
@@ -22948,9 +22896,8 @@ msgid "Unable to use MAC address starting with reserved value 0xFE - '%s' - "
 msgstr ""
 
 #: src/util/virnetdevveth.c:78
-#, fuzzy
 msgid "No free veth devices available"
-msgstr "କୌଣସି UNIX କାର୍ଯ୍ୟ ID ଉପଲବ୍ଧ ନାହିଁ"
+msgstr ""
 
 #: src/util/virnetdevveth.c:178
 #, c-format
@@ -22958,9 +22905,9 @@ msgid "Failed to allocate free veth pair after %d attempts"
 msgstr ""
 
 #: src/util/virnetdevveth.c:215
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to delete veth device %s"
-msgstr "ଉପକରଣ %sକୁ ପୁନଃସ୍ଥାପନ କରିବାରେ ବିଫଳ"
+msgstr ""
 
 #: src/util/virnetdevvportprofile.c:193
 #, c-format
@@ -23212,14 +23159,12 @@ msgid "Invalid mode for memory NUMA tuning."
 msgstr ""
 
 #: src/util/virnuma.c:203 src/util/virnuma.c:358 src/util/virnuma.c:386
-#, fuzzy
 msgid "NUMA isn't available on this host"
-msgstr "NUMA ଏହି ଆଧାରରେ ସମର୍ଥିତ ନୁହଁ"
+msgstr ""
 
 #: src/util/virnuma.c:209
-#, fuzzy
 msgid "Failed to request maximum NUMA node id"
-msgstr "%s ପରିସରକୁ ପୁନଃପ୍ରାରମ୍ଭ କରିବାରେ ବିଫଳ"
+msgstr ""
 
 #: src/util/virnuma.c:338
 msgid "libvirt is compiled without NUMA tuning support"
@@ -23405,9 +23350,9 @@ msgid "Failed to parse PCI config address '%s'"
 msgstr ""
 
 #: src/util/virpci.c:2405
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to get SRIOV function from device link '%s'"
-msgstr "PCI ଉପକରଣ '%s'କୁ ବାନ୍ଧିବାରେ ବିଫଳ"
+msgstr ""
 
 #: src/util/virpci.c:2472
 #, c-format
@@ -23453,9 +23398,9 @@ msgid "Failed to reserve port %zu"
 msgstr ""
 
 #: src/util/virportallocator.c:166
-#, fuzzy, c-format
+#, c-format
 msgid "Unable to find an unused port in range '%s' (%d-%d)"
-msgstr "ଗୋଟିଏ ଅବ୍ୟବହୃତ VNC ସଂଯୋଗିକୀ ପାଇବାରେ ଅସମର୍ଥ"
+msgstr ""
 
 #: src/util/virportallocator.c:195
 #, c-format
@@ -24149,14 +24094,13 @@ msgid "Storage volume not found: %s"
 msgstr "ଭଣ୍ଡାର ଆକାର ମିଳିଲା ନାହିଁ: %s"
 
 #: src/util/virerror.c:1009
-#, fuzzy
 msgid "this storage volume exists already"
-msgstr "ଏହି ନେଟୱାର୍କ ପୂର୍ବରୁ ରହିଛି"
+msgstr ""
 
 #: src/util/virerror.c:1011
-#, fuzzy, c-format
+#, c-format
 msgid "storage volume %s exists already"
-msgstr "%s ନେଟୱାର୍କ ପୂର୍ବରୁ ରହିଛି"
+msgstr ""
 
 #: src/util/virerror.c:1015
 msgid "Storage pool probe failed"
@@ -24922,19 +24866,16 @@ msgid "failed to parse xml document"
 msgstr "xml ଦଲିଲକୁ ବିଶ୍ଳେଷଣ କରିବାରେ ବିଫଳ"
 
 #: src/util/virxml.c:920
-#, fuzzy
 msgid "failed to convert the XML node tree"
-msgstr "ଜେନ ଭଣ୍ଡାରକୁ ସଂଯୋଗ କରିବାରେ ବିଫଳ"
+msgstr ""
 
 #: src/util/virxml.c:1016
-#, fuzzy
 msgid "Failed to copy XML node"
-msgstr "XML ନୋଡକୁ ନକଲ କରିପାରିଲା ନାହିଁ"
+msgstr ""
 
 #: src/util/virxml.c:1077
-#, fuzzy
 msgid "failed to create a new XML namespace"
-msgstr "ଗୋଟିଏ ସକେଟ ନିର୍ମାଣରେ ବିଫଳ"
+msgstr ""
 
 #: src/vbox/vbox_MSCOMGlue.c:357 src/vbox/vbox_MSCOMGlue.c:382
 #, c-format
@@ -25028,19 +24969,19 @@ msgstr ""
 
 #: src/vbox/vbox_tmpl.c:1269 src/vbox/vbox_tmpl.c:1330
 #: src/vbox/vbox_tmpl.c:1401 src/vbox/vbox_tmpl.c:1470
-#: src/vbox/vbox_tmpl.c:1950 src/vbox/vbox_tmpl.c:3708
+#: src/vbox/vbox_tmpl.c:1950 src/vbox/vbox_tmpl.c:3719
 #, c-format
 msgid "Could not get list of machines, rc=%08x"
 msgstr ""
 
 #: src/vbox/vbox_tmpl.c:1535 src/vbox/vbox_tmpl.c:1560
-#: src/vbox/vbox_tmpl.c:2036 src/vbox/vbox_tmpl.c:5973
-#: src/vbox/vbox_tmpl.c:6075 src/vbox/vbox_tmpl.c:6179
-#: src/vbox/vbox_tmpl.c:6230 src/vbox/vbox_tmpl.c:6316
-#: src/vbox/vbox_tmpl.c:6348 src/vbox/vbox_tmpl.c:6390
-#: src/vbox/vbox_tmpl.c:6454 src/vbox/vbox_tmpl.c:6515
-#: src/vbox/vbox_tmpl.c:6575 src/vbox/vbox_tmpl.c:6719
-#: src/vbox/vbox_tmpl.c:6877
+#: src/vbox/vbox_tmpl.c:2036 src/vbox/vbox_tmpl.c:5984
+#: src/vbox/vbox_tmpl.c:6086 src/vbox/vbox_tmpl.c:6190
+#: src/vbox/vbox_tmpl.c:6241 src/vbox/vbox_tmpl.c:6327
+#: src/vbox/vbox_tmpl.c:6359 src/vbox/vbox_tmpl.c:6401
+#: src/vbox/vbox_tmpl.c:6465 src/vbox/vbox_tmpl.c:6526
+#: src/vbox/vbox_tmpl.c:6586 src/vbox/vbox_tmpl.c:6730
+#: src/vbox/vbox_tmpl.c:6888
 msgid "no domain with matching UUID"
 msgstr "ମେଳ ଖାଉଥିବା UUID ବିଶିଷ୍ଟ କୌଣସି ଡମେନ ନାହିଁ"
 
@@ -25091,353 +25032,352 @@ msgstr ""
 msgid "can't open session to the domain with id %d"
 msgstr "id %d ସହିତ ଅଧିବେଶନକୁ ଡମେନରେ ଖୋଲିପାରିବେ ନାହିଁ"
 
-#: src/vbox/vbox_tmpl.c:2902
+#: src/vbox/vbox_tmpl.c:2913
 #, c-format
 msgid ""
 "Could not generate medium name for the disk at: controller instance:%u, port:"
 "%d, slot:%d"
 msgstr ""
 
-#: src/vbox/vbox_tmpl.c:3447
+#: src/vbox/vbox_tmpl.c:3458
 #, c-format
 msgid "Could not get list of Defined Domains, rc=%08x"
 msgstr ""
 
-#: src/vbox/vbox_tmpl.c:3499
+#: src/vbox/vbox_tmpl.c:3510
 #, c-format
 msgid "Could not get number of Defined Domains, rc=%08x"
 msgstr ""
 
-#: src/vbox/vbox_tmpl.c:3654
+#: src/vbox/vbox_tmpl.c:3665
 msgid "OpenRemoteSession/LaunchVMProcess failed, domain can't be started"
 msgstr ""
 
-#: src/vbox/vbox_tmpl.c:3701
+#: src/vbox/vbox_tmpl.c:3712
 msgid "Error while reading the domain name"
 msgstr ""
 
-#: src/vbox/vbox_tmpl.c:3738
+#: src/vbox/vbox_tmpl.c:3749
 msgid "machine is not in poweroff|saved|aborted state, so couldn't start it"
 msgstr ""
 
-#: src/vbox/vbox_tmpl.c:3873 src/vbox/vbox_tmpl.c:5484
+#: src/vbox/vbox_tmpl.c:3884 src/vbox/vbox_tmpl.c:5495
 #, c-format
 msgid "can't get the uuid of the file to be attached to cdrom: %s, rc=%08x"
 msgstr ""
 
-#: src/vbox/vbox_tmpl.c:3880 src/vbox/vbox_tmpl.c:5493
+#: src/vbox/vbox_tmpl.c:3891 src/vbox/vbox_tmpl.c:5504
 #, c-format
 msgid "could not attach the file to cdrom: %s, rc=%08x"
 msgstr "ଫାଇଲକୁ cdrom ରେ ସଂଲଗ୍ନ କରିପାରିଲା ନାହିଁ: %s, rc=%08x"
 
-#: src/vbox/vbox_tmpl.c:3937
+#: src/vbox/vbox_tmpl.c:3948
 #, c-format
 msgid "can't get the uuid of the file to be attached as harddisk: %s, rc=%08x"
 msgstr ""
 
-#: src/vbox/vbox_tmpl.c:3984
+#: src/vbox/vbox_tmpl.c:3995
 #, c-format
 msgid "could not attach the file as harddisk: %s, rc=%08x"
 msgstr ""
 
-#: src/vbox/vbox_tmpl.c:4030 src/vbox/vbox_tmpl.c:5537
+#: src/vbox/vbox_tmpl.c:4041 src/vbox/vbox_tmpl.c:5548
 #, c-format
 msgid ""
 "can't get the uuid of the file to be attached to floppy drive: %s, rc=%08x"
 msgstr ""
 
-#: src/vbox/vbox_tmpl.c:4038 src/vbox/vbox_tmpl.c:5544
+#: src/vbox/vbox_tmpl.c:4049 src/vbox/vbox_tmpl.c:5555
 #, c-format
 msgid "could not attach the file to floppy drive: %s, rc=%08x"
 msgstr ""
 
-#: src/vbox/vbox_tmpl.c:4222
+#: src/vbox/vbox_tmpl.c:4233
 #, c-format
 msgid ""
 "Failed to attach the following disk/dvd/floppy to the machine: %s, rc=%08x"
 msgstr ""
 
-#: src/vbox/vbox_tmpl.c:4232
+#: src/vbox/vbox_tmpl.c:4243
 #, c-format
 msgid ""
 "can't get the uuid of the file to be attached as harddisk/dvd/floppy: %s, rc="
 "%08x"
 msgstr ""
 
-#: src/vbox/vbox_tmpl.c:4273
+#: src/vbox/vbox_tmpl.c:4284
 #, c-format
 msgid ""
 "can't get the port/slot number of harddisk/dvd/floppy to be attached: %s, rc="
 "%08x"
 msgstr ""
 
-#: src/vbox/vbox_tmpl.c:4297
+#: src/vbox/vbox_tmpl.c:4308
 #, c-format
 msgid "could not attach the file as harddisk/dvd/floppy: %s, rc=%08x"
 msgstr ""
 
-#: src/vbox/vbox_tmpl.c:5118 src/vbox/vbox_tmpl.c:5189
+#: src/vbox/vbox_tmpl.c:5129 src/vbox/vbox_tmpl.c:5200
 #, c-format
 msgid "could not define a domain, rc=%08x"
 msgstr ""
 
-#: src/vbox/vbox_tmpl.c:5126
+#: src/vbox/vbox_tmpl.c:5137
 #, c-format
 msgid "could not set the memory size of the domain to: %llu Kb, rc=%08x"
 msgstr ""
 
-#: src/vbox/vbox_tmpl.c:5138
+#: src/vbox/vbox_tmpl.c:5149
 #, c-format
 msgid "could not set the number of virtual CPUs to: %u, rc=%08x"
 msgstr ""
 
-#: src/vbox/vbox_tmpl.c:5157
+#: src/vbox/vbox_tmpl.c:5168
 #, c-format
 msgid "could not change PAE status to: %s, rc=%08x"
 msgstr ""
 
-#: src/vbox/vbox_tmpl.c:5159 src/vbox/vbox_tmpl.c:5171
-#: src/vbox/vbox_tmpl.c:5180
+#: src/vbox/vbox_tmpl.c:5170 src/vbox/vbox_tmpl.c:5182
+#: src/vbox/vbox_tmpl.c:5191
 msgid "Enabled"
 msgstr "ସକ୍ରିୟ"
 
-#: src/vbox/vbox_tmpl.c:5159 src/vbox/vbox_tmpl.c:5171
-#: src/vbox/vbox_tmpl.c:5180
+#: src/vbox/vbox_tmpl.c:5170 src/vbox/vbox_tmpl.c:5182
+#: src/vbox/vbox_tmpl.c:5191
 msgid "Disabled"
 msgstr "ନିଷ୍କ୍ରିୟ ହୋଇଗଲା"
 
-#: src/vbox/vbox_tmpl.c:5169
+#: src/vbox/vbox_tmpl.c:5180
 #, c-format
 msgid "could not change ACPI status to: %s, rc=%08x"
 msgstr "ACPI ସ୍ଥିତିକୁ ପରିବର୍ତ୍ତନ କରିପାରିଲା ନାହିଁ: %s, rc=%08x"
 
-#: src/vbox/vbox_tmpl.c:5178
+#: src/vbox/vbox_tmpl.c:5189
 #, c-format
 msgid "could not change APIC status to: %s, rc=%08x"
 msgstr "APIC ସ୍ଥିତିକୁ ପରିବର୍ତ୍ତନ କରିପାରିଲା ନାହିଁ: %s, rc=%08x"
 
-#: src/vbox/vbox_tmpl.c:5397
+#: src/vbox/vbox_tmpl.c:5408
 #, c-format
 msgid "could not delete the domain, rc=%08x"
 msgstr "ଡମେନକୁ ଅପସାରଣ କରିହେଲା ନାହିଁ, rc=%08x"
 
-#: src/vbox/vbox_tmpl.c:5589
+#: src/vbox/vbox_tmpl.c:5600
 #, c-format
 msgid "could not attach shared folder '%s', rc=%08x"
 msgstr ""
 
-#: src/vbox/vbox_tmpl.c:5701
+#: src/vbox/vbox_tmpl.c:5712
 #, c-format
 msgid "could not de-attach the mounted ISO, rc=%08x"
 msgstr ""
 
-#: src/vbox/vbox_tmpl.c:5722
+#: src/vbox/vbox_tmpl.c:5733
 #, c-format
 msgid "could not attach the file to floppy drive, rc=%08x"
 msgstr ""
 
-#: src/vbox/vbox_tmpl.c:5757
+#: src/vbox/vbox_tmpl.c:5768
 #, c-format
 msgid "could not detach shared folder '%s', rc=%08x"
 msgstr ""
 
-#: src/vbox/vbox_tmpl.c:5809 src/vbox/vbox_tmpl.c:6192
+#: src/vbox/vbox_tmpl.c:5820 src/vbox/vbox_tmpl.c:6203
 #, c-format
 msgid "could not get snapshot count for domain %s"
 msgstr "ଡମେନ %s ପାଇଁ ଆଶୁଚିତ୍ର ଗଣନା ପାଇଲା ନାହିଁ"
 
-#: src/vbox/vbox_tmpl.c:5827 src/vbox/vbox_tmpl.c:6251
+#: src/vbox/vbox_tmpl.c:5838 src/vbox/vbox_tmpl.c:6262
 #, c-format
 msgid "could not get root snapshot for domain %s"
 msgstr ""
 
-#: src/vbox/vbox_tmpl.c:5840
+#: src/vbox/vbox_tmpl.c:5851
 #, c-format
 msgid "unexpected number of snapshots < %u"
 msgstr ""
 
-#: src/vbox/vbox_tmpl.c:5848 src/vbox/vbox_tmpl.c:6841
+#: src/vbox/vbox_tmpl.c:5859 src/vbox/vbox_tmpl.c:6852
 msgid "could not get children snapshots"
 msgstr ""
 
-#: src/vbox/vbox_tmpl.c:5857
+#: src/vbox/vbox_tmpl.c:5868
 #, c-format
 msgid "unexpected number of snapshots > %u"
 msgstr ""
 
-#: src/vbox/vbox_tmpl.c:5903 src/vbox/vbox_tmpl.c:6271
+#: src/vbox/vbox_tmpl.c:5914 src/vbox/vbox_tmpl.c:6282
 msgid "could not get snapshot name"
 msgstr ""
 
-#: src/vbox/vbox_tmpl.c:5918
+#: src/vbox/vbox_tmpl.c:5929
 #, c-format
 msgid "domain %s has no snapshots with name %s"
 msgstr ""
 
-#: src/vbox/vbox_tmpl.c:5980 src/vbox/vbox_tmpl.c:6646
-#: src/vbox/vbox_tmpl.c:6746 src/vbox/vbox_tmpl.c:6888
+#: src/vbox/vbox_tmpl.c:5991 src/vbox/vbox_tmpl.c:6657
+#: src/vbox/vbox_tmpl.c:6757 src/vbox/vbox_tmpl.c:6899
 msgid "could not get domain state"
 msgstr "ଡମେନ ସ୍ଥିତି ପାଇଲା ନାହିଁ"
 
-#: src/vbox/vbox_tmpl.c:5995 src/vbox/vbox_tmpl.c:6662
-#: src/vbox/vbox_tmpl.c:6911
+#: src/vbox/vbox_tmpl.c:6006 src/vbox/vbox_tmpl.c:6673
+#: src/vbox/vbox_tmpl.c:6922
 #, c-format
 msgid "could not open VirtualBox session with domain %s"
 msgstr "ଡମେନ %s ସହିତ VirtualBox ଅଧିବେଶନକୁ ଖୋଲିପାରିଲା ନାହିଁ"
 
-#: src/vbox/vbox_tmpl.c:6017 src/vbox/vbox_tmpl.c:6025
+#: src/vbox/vbox_tmpl.c:6028 src/vbox/vbox_tmpl.c:6036
 #, c-format
 msgid "could not take snapshot of domain %s"
 msgstr ""
 
-#: src/vbox/vbox_tmpl.c:6032 src/vbox/vbox_tmpl.c:6738
+#: src/vbox/vbox_tmpl.c:6043 src/vbox/vbox_tmpl.c:6749
 #, c-format
 msgid "could not get current snapshot of domain %s"
 msgstr ""
 
-#: src/vbox/vbox_tmpl.c:6090
+#: src/vbox/vbox_tmpl.c:6101
 #, c-format
 msgid "could not get description of snapshot %s"
 msgstr ""
 
-#: src/vbox/vbox_tmpl.c:6107
+#: src/vbox/vbox_tmpl.c:6118
 #, c-format
 msgid "could not get creation time of snapshot %s"
 msgstr ""
 
-#: src/vbox/vbox_tmpl.c:6117 src/vbox/vbox_tmpl.c:6400
+#: src/vbox/vbox_tmpl.c:6128 src/vbox/vbox_tmpl.c:6411
 #, c-format
 msgid "could not get parent of snapshot %s"
 msgstr ""
 
-#: src/vbox/vbox_tmpl.c:6125 src/vbox/vbox_tmpl.c:6414
+#: src/vbox/vbox_tmpl.c:6136 src/vbox/vbox_tmpl.c:6425
 #, c-format
 msgid "could not get name of parent of snapshot %s"
 msgstr ""
 
-#: src/vbox/vbox_tmpl.c:6141 src/vbox/vbox_tmpl.c:6730
+#: src/vbox/vbox_tmpl.c:6152 src/vbox/vbox_tmpl.c:6741
 #, c-format
 msgid "could not get online state of snapshot %s"
 msgstr ""
 
-#: src/vbox/vbox_tmpl.c:6355 src/vbox/vbox_tmpl.c:6461
-#: src/vbox/vbox_tmpl.c:6525
+#: src/vbox/vbox_tmpl.c:6366 src/vbox/vbox_tmpl.c:6472
+#: src/vbox/vbox_tmpl.c:6536
 msgid "could not get current snapshot"
 msgstr "ଏବେର ଆଶୁଚିତ୍ର ପାଇଲା ନାହିଁ"
 
-#: src/vbox/vbox_tmpl.c:6467
+#: src/vbox/vbox_tmpl.c:6478
 msgid "domain has no snapshots"
 msgstr "ଡମେନର କୌଣସି ଆଶୁଚିତ୍ର ନାହିଁ"
 
-#: src/vbox/vbox_tmpl.c:6474 src/vbox/vbox_tmpl.c:6536
+#: src/vbox/vbox_tmpl.c:6485 src/vbox/vbox_tmpl.c:6547
 msgid "could not get current snapshot name"
 msgstr "ଏବେର ଆଶୁଚିତ୍ର ନାମ ପାଇଲା ନାହିଁ"
 
-#: src/vbox/vbox_tmpl.c:6605 src/vbox/vbox_tmpl.c:6792
+#: src/vbox/vbox_tmpl.c:6616 src/vbox/vbox_tmpl.c:6803
 msgid "could not get snapshot UUID"
 msgstr "ଆଶୁଚିତ୍ର UUID କୁ ପାଇଲା ନାହିଁ"
 
-#: src/vbox/vbox_tmpl.c:6612 src/vbox/vbox_tmpl.c:6674
-#: src/vbox/vbox_tmpl.c:6684
+#: src/vbox/vbox_tmpl.c:6623 src/vbox/vbox_tmpl.c:6685
+#: src/vbox/vbox_tmpl.c:6695
 #, c-format
 msgid "could not restore snapshot for domain %s"
 msgstr "ଡମେନ %s ପାଇଁ ଆଶୁଚିତ୍ରକୁ ପୁନଃସ୍ଥାପନ କରିପାରିଲା ନାହିଁ"
 
-#: src/vbox/vbox_tmpl.c:6639
+#: src/vbox/vbox_tmpl.c:6650
 msgid "could not get domain UUID"
 msgstr "ଡମେନ UUID ପାଇଲା ନାହିଁ"
 
-#: src/vbox/vbox_tmpl.c:6653
+#: src/vbox/vbox_tmpl.c:6664
 #, c-format
 msgid "domain %s is already running"
 msgstr "ଡମେନ %s ଟି ପୂର୍ବରୁ ଚାଲୁଅଛି"
 
-#: src/vbox/vbox_tmpl.c:6671
+#: src/vbox/vbox_tmpl.c:6682
 msgid "cannot restore domain snapshot for running domain"
 msgstr "ଚାଲିଥିବା ଡମେନ ପାଇଁ ଡମେନ ଆଶୁଚିତ୍ରକୁ ପୁନଃସ୍ଥାପନ କରିପାରିବେ ନାହିଁ"
 
-#: src/vbox/vbox_tmpl.c:6753
+#: src/vbox/vbox_tmpl.c:6764
 msgid "cannot revert snapshot of running domain"
 msgstr "ଚାଲୁଥିବା ଡେମନର ଆଶୁଚିତ୍ରକୁ ପରିବର୍ତ୍ତନ କରାଯାଇପାରିବ ନାହିଁ"
 
-#: src/vbox/vbox_tmpl.c:6804
+#: src/vbox/vbox_tmpl.c:6815
 msgid "cannot delete domain snapshot for running domain"
 msgstr "ଚାଲୁଥିବା ଡେମନର ଆଶୁଚିତ୍ରକୁ ଅପସାରଣ କରାଯାଇପାରିବ ନାହିଁ"
 
-#: src/vbox/vbox_tmpl.c:6807 src/vbox/vbox_tmpl.c:6816
+#: src/vbox/vbox_tmpl.c:6818 src/vbox/vbox_tmpl.c:6827
 msgid "could not delete snapshot"
 msgstr "ଆଶୁଚିତ୍ରକୁ ଅପସାରଣ କରିପାରିଲା ନାହିଁ"
 
-#: src/vbox/vbox_tmpl.c:6902
+#: src/vbox/vbox_tmpl.c:6913
 msgid "cannot delete snapshots of running domain"
 msgstr "ଚାଲୁଥିବା ଡମେନର ଆଶୁଚିତ୍ରକୁ ଅପସାରଣ କରିହେବ ନାହିଁ"
 
-#: src/vbox/vbox_tmpl.c:8360
+#: src/vbox/vbox_tmpl.c:8371
 #, c-format
 msgid "could not get number of volumes in the pool: %s, rc=%08x"
 msgstr ""
 
-#: src/vbox/vbox_tmpl.c:8408
+#: src/vbox/vbox_tmpl.c:8419
 #, c-format
 msgid "could not get the volume list in the pool: %s, rc=%08x"
 msgstr ""
 
-#: src/vbox/vbox_tmpl.c:8490 src/vbox/vbox_tmpl.c:8735
-#: src/vbox/vbox_tmpl.c:8907 src/vbox/vbox_tmpl.c:8981
-#: src/vbox/vbox_tmpl.c:9090
+#: src/vbox/vbox_tmpl.c:8501 src/vbox/vbox_tmpl.c:8746
+#: src/vbox/vbox_tmpl.c:8918 src/vbox/vbox_tmpl.c:8992
+#: src/vbox/vbox_tmpl.c:9101
 #, c-format
 msgid "Could not parse UUID from '%s'"
 msgstr ""
 
-#: src/vbox/vbox_tmpl.c:9167
+#: src/vbox/vbox_tmpl.c:9178
 msgid "unable to get monitor count"
 msgstr ""
 
-#: src/vbox/vbox_tmpl.c:9174
+#: src/vbox/vbox_tmpl.c:9185
 #, c-format
 msgid "screen ID higher than monitor count (%d)"
 msgstr ""
 
-#: src/vbox/vbox_tmpl.c:9220
+#: src/vbox/vbox_tmpl.c:9231
 msgid "unable to get screen resolution"
 msgstr ""
 
-#: src/vbox/vbox_tmpl.c:9230
+#: src/vbox/vbox_tmpl.c:9241
 msgid "failed to take screenshot"
 msgstr ""
 
-#: src/vbox/vbox_tmpl.c:9236
+#: src/vbox/vbox_tmpl.c:9247
 #, c-format
 msgid "unable to write data to '%s'"
 msgstr ""
 
-#: src/vbox/vbox_tmpl.c:9318
+#: src/vbox/vbox_tmpl.c:9329
 #, c-format
 msgid "Could not get list of domains, rc=%08x"
 msgstr ""
 
-#: src/vbox/vbox_tmpl.c:9352
+#: src/vbox/vbox_tmpl.c:9363
 msgid "could not get snapshot count for listed domains"
 msgstr ""
 
 #: src/vmware/vmware_conf.c:240
-#, fuzzy, c-format
+#, c-format
 msgid "Invalid driver type: %d"
-msgstr "ଅବୈଧ ଡମେନ ପ୍ରକାର %s"
+msgstr ""
 
 #: src/vmware/vmware_conf.c:246
-#, fuzzy, c-format
+#, c-format
 msgid "failed to parse %sversion"
-msgstr "ଲାଇବ୍ରେରୀ ସଂସ୍କରଣ ପାଇବାରେ ବିଫଳ"
+msgstr ""
 
 #: src/vmware/vmware_conf.c:252
 msgid "version parsing error"
 msgstr ""
 
 #: src/vmware/vmware_conf.c:290
-#, fuzzy
 msgid "invalid driver type for version detection"
-msgstr "TLS ଅଧିବେଶନ ପାଇଁ ଅବୈଧ cipher ଆକାର"
+msgstr ""
 
 #: src/vmware/vmware_conf.c:345
 #, c-format
@@ -25474,14 +25414,13 @@ msgid ""
 msgstr ""
 
 #: src/vmware/vmware_driver.c:147
-#, fuzzy
 msgid "vmrun utility is missing"
-msgstr "ସୁରକ୍ଷା ନାମପଟି ଅନୁପସ୍ଥିତ"
+msgstr ""
 
 #: src/vmware/vmware_driver.c:155
-#, fuzzy, c-format
+#, c-format
 msgid "unable to parse URI scheme '%s'"
-msgstr "mac ଠିକଣା '%s' କୁ ବିଶ୍ଳେଷଣ କରିବାରେ ଅସମର୍ଥ"
+msgstr ""
 
 #: src/vmware/vmware_driver.c:164
 #, c-format
@@ -25897,9 +25836,9 @@ msgid "No support for multiple video devices"
 msgstr ""
 
 #: src/vmx/vmx.c:3400
-#, fuzzy, c-format
+#, c-format
 msgid "Invalid device type supplied: %s"
-msgstr "ଅବୈଧ USB ଉପକରଣ ସଂଖ୍ୟା '%s' ପାଇଁ ଦିଆହୋଇଛି"
+msgstr ""
 
 #: src/vmx/vmx.c:3408
 #, c-format
@@ -25907,14 +25846,14 @@ msgid "%s %s '%s' has unsupported type '%s', expecting '%s' or '%s'"
 msgstr ""
 
 #: src/vmx/vmx.c:3428
-#, fuzzy, c-format
+#, c-format
 msgid "Unsupported bus type '%s' for %s"
-msgstr "cdrom ପାଇଁ ଅସମର୍ଥିତ ବସ ପ୍ରକାର '%s'"
+msgstr ""
 
 #: src/vmx/vmx.c:3446
-#, fuzzy, c-format
+#, c-format
 msgid "%s %s '%s' has an unsupported type '%s'"
-msgstr "ଅନ୍ତରାପୃଷ୍ଠରେ ଅସମର୍ଥିତ ପ୍ରକାର '%s' ଅଛି"
+msgstr ""
 
 #: src/vmx/vmx.c:3459
 #, c-format
@@ -30380,9 +30319,8 @@ msgid "key to be used as a namespace identifier"
 msgstr ""
 
 #: tools/virsh-domain.c:6829
-#, fuzzy
 msgid "new metadata to set"
-msgstr "ଅଧିତଥ୍ୟ ଲମ୍ବର ସୀମା ବାହାରେ"
+msgstr ""
 
 #: tools/virsh-domain.c:6833
 msgid "remove the metadata corresponding to an uri"
@@ -30393,19 +30331,16 @@ msgid "namespace key is required when modifying metadata"
 msgstr ""
 
 #: tools/virsh-domain.c:6904
-#, fuzzy
 msgid "Metadata removed"
-msgstr "ଅଧିତଥ୍ୟ:"
+msgstr ""
 
 #: tools/virsh-domain.c:6906 tools/virsh-domain.c:6920
-#, fuzzy
 msgid "Metadata modified"
-msgstr "ଅଧିତଥ୍ୟ:"
+msgstr ""
 
 #: tools/virsh-domain.c:6911
-#, fuzzy
 msgid "Metadata not changed"
-msgstr "ଅନୁରୋଧକୁ ବାତିଲ କରାଯାଇ ନାହିଁ"
+msgstr ""
 
 #: tools/virsh-domain.c:6945
 msgid "Inject NMI to the guest"
@@ -31495,23 +31430,20 @@ msgid "failed to get URI"
 msgstr "ୟୁ.ଆର.ଆଇ. ପାଇବାରେ ବିଫଳ"
 
 #: tools/virsh-host.c:672
-#, fuzzy
 msgid "CPU models"
-msgstr "CPU ନମୁନା:"
+msgstr ""
 
 #: tools/virsh-host.c:675
 msgid "Get the CPU models for an arch."
 msgstr ""
 
 #: tools/virsh-host.c:684
-#, fuzzy
 msgid "architecture"
-msgstr "ଅଜଣା ସ୍ଥାପତ୍ୟ %s"
+msgstr ""
 
 #: tools/virsh-host.c:702
-#, fuzzy
 msgid "failed to get CPU model names"
-msgstr "ଆଧାର ନାମ ପାଇବାରେ ବିଫଳ"
+msgstr ""
 
 #: tools/virsh-host.c:720
 msgid "show version"
@@ -33908,9 +33840,8 @@ msgid "amount of data to upload"
 msgstr "ଧାରଣ କରିବା ପାଇଁ ଥିବା ତଥ୍ୟର ପରିମାଣ"
 
 #: tools/virsh-volume.c:670 tools/virsh-volume.c:784
-#, fuzzy
 msgid "cannot create a new stream"
-msgstr "ଧାରାରେ ଲେଖିପାରିବେ ନାହିଁ"
+msgstr ""
 
 #: tools/virsh-volume.c:675
 #, c-format
@@ -34286,18 +34217,3 @@ msgstr ""
 #, c-format
 msgid "Unable to exec shell %s"
 msgstr ""
-
-#~ msgid "domain is already active as '%s'"
-#~ msgstr "ପରିସରଟି '%s' ପରି ପୂର୍ବରୁ ସକ୍ରିୟ ଅଛି"
-
-#~ msgid "libxl_get_version_info failed"
-#~ msgstr "libxl_get_version_info ବିଫଳ ହୋଇଛି"
-
-#~ msgid "unable to get tty attributes: %s"
-#~ msgstr "tty ଗୁଣଗୁଡ଼ିକୁ ପାଇବାରେ ଅସମର୍ଥ: %s"
-
-#~ msgid "maxnames > REMOTE_DEFINED_INTERFACE_NAME_LIST_MAX"
-#~ msgstr "maxnames > REMOTE_DEFINED_INTERFACE_NAME_LIST_MAX"
-
-#~ msgid "no network with matching id"
-#~ msgstr "id ସହିତ ମେଳଖାଉଥିବା କୌଣସି ନେଟୱର୍କ ନାହିଁ"

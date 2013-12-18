@@ -502,21 +502,22 @@ am__EXEEXT_22 = virshtest$(EXEEXT) sockettest$(EXEEXT) \
 	virkeyfiletest$(EXEEXT) virauthconfigtest$(EXEEXT) \
 	virbitmaptest$(EXEEXT) vircgrouptest$(EXEEXT) \
 	virpcitest$(EXEEXT) virendiantest$(EXEEXT) \
-	viridentitytest$(EXEEXT) virkeycodetest$(EXEEXT) \
-	virlockspacetest$(EXEEXT) virlogtest$(EXEEXT) \
-	virstringtest$(EXEEXT) virportallocatortest$(EXEEXT) \
-	sysinfotest$(EXEEXT) virstoragetest$(EXEEXT) $(am__EXEEXT_1) \
-	$(am__EXEEXT_2) $(am__EXEEXT_3) $(am__EXEEXT_4) \
-	$(am__EXEEXT_5) $(am__EXEEXT_6) $(am__EXEEXT_7) \
-	$(am__EXEEXT_8) $(am__EXEEXT_9) $(am__EXEEXT_10) \
-	$(am__EXEEXT_11) $(am__EXEEXT_12) $(am__EXEEXT_13) \
-	$(am__EXEEXT_14) $(am__EXEEXT_15) $(am__EXEEXT_16) \
-	$(am__EXEEXT_17) networkxml2xmltest$(EXEEXT) \
-	networkxml2xmlupdatetest$(EXEEXT) $(am__EXEEXT_18) \
-	$(am__EXEEXT_19) nwfilterxml2xmltest$(EXEEXT) $(am__EXEEXT_20) \
-	storagevolxml2xmltest$(EXEEXT) storagepoolxml2xmltest$(EXEEXT) \
-	nodedevxml2xmltest$(EXEEXT) interfacexml2xmltest$(EXEEXT) \
-	cputest$(EXEEXT) metadatatest$(EXEEXT) $(am__EXEEXT_21)
+	virfiletest$(EXEEXT) viridentitytest$(EXEEXT) \
+	virkeycodetest$(EXEEXT) virlockspacetest$(EXEEXT) \
+	virlogtest$(EXEEXT) virstringtest$(EXEEXT) \
+	virportallocatortest$(EXEEXT) sysinfotest$(EXEEXT) \
+	virstoragetest$(EXEEXT) $(am__EXEEXT_1) $(am__EXEEXT_2) \
+	$(am__EXEEXT_3) $(am__EXEEXT_4) $(am__EXEEXT_5) \
+	$(am__EXEEXT_6) $(am__EXEEXT_7) $(am__EXEEXT_8) \
+	$(am__EXEEXT_9) $(am__EXEEXT_10) $(am__EXEEXT_11) \
+	$(am__EXEEXT_12) $(am__EXEEXT_13) $(am__EXEEXT_14) \
+	$(am__EXEEXT_15) $(am__EXEEXT_16) $(am__EXEEXT_17) \
+	networkxml2xmltest$(EXEEXT) networkxml2xmlupdatetest$(EXEEXT) \
+	$(am__EXEEXT_18) $(am__EXEEXT_19) nwfilterxml2xmltest$(EXEEXT) \
+	$(am__EXEEXT_20) storagevolxml2xmltest$(EXEEXT) \
+	storagepoolxml2xmltest$(EXEEXT) nodedevxml2xmltest$(EXEEXT) \
+	interfacexml2xmltest$(EXEEXT) cputest$(EXEEXT) \
+	metadatatest$(EXEEXT) $(am__EXEEXT_21)
 am__EXEEXT_23 = commandhelper$(EXEEXT) ssh$(EXEEXT) test_conf$(EXEEXT)
 PROGRAMS = $(noinst_PROGRAMS)
 am_commandhelper_OBJECTS = commandhelper.$(OBJEXT)
@@ -822,6 +823,9 @@ virdrivermoduletest_OBJECTS = $(am_virdrivermoduletest_OBJECTS)
 am_virendiantest_OBJECTS = virendiantest.$(OBJEXT) testutils.$(OBJEXT)
 virendiantest_OBJECTS = $(am_virendiantest_OBJECTS)
 virendiantest_DEPENDENCIES = $(am__DEPENDENCIES_2)
+am_virfiletest_OBJECTS = virfiletest.$(OBJEXT) testutils.$(OBJEXT)
+virfiletest_OBJECTS = $(am_virfiletest_OBJECTS)
+virfiletest_DEPENDENCIES = $(am__DEPENDENCIES_2)
 am_virhashtest_OBJECTS = virhashtest.$(OBJEXT) testutils.$(OBJEXT)
 virhashtest_OBJECTS = $(am_virhashtest_OBJECTS)
 virhashtest_DEPENDENCIES = $(am__DEPENDENCIES_2)
@@ -1026,11 +1030,12 @@ SOURCES = $(libqemumonitortestutils_la_SOURCES) \
 	$(virbitmaptest_SOURCES) $(virbuftest_SOURCES) \
 	$(vircgrouptest_SOURCES) $(virdbustest_SOURCES) \
 	$(virdrivermoduletest_SOURCES) $(virendiantest_SOURCES) \
-	$(virhashtest_SOURCES) $(viridentitytest_SOURCES) \
-	$(virkeycodetest_SOURCES) $(virkeyfiletest_SOURCES) \
-	$(virlockspacetest_SOURCES) $(virlogtest_SOURCES) \
-	$(virnetmessagetest_SOURCES) $(virnetserverclienttest_SOURCES) \
-	$(virnetsockettest_SOURCES) $(virnettlscontexttest_SOURCES) \
+	$(virfiletest_SOURCES) $(virhashtest_SOURCES) \
+	$(viridentitytest_SOURCES) $(virkeycodetest_SOURCES) \
+	$(virkeyfiletest_SOURCES) $(virlockspacetest_SOURCES) \
+	$(virlogtest_SOURCES) $(virnetmessagetest_SOURCES) \
+	$(virnetserverclienttest_SOURCES) $(virnetsockettest_SOURCES) \
+	$(virnettlscontexttest_SOURCES) \
 	$(virnettlssessiontest_SOURCES) $(virpcitest_SOURCES) \
 	$(virportallocatortest_SOURCES) $(virshtest_SOURCES) \
 	$(virstoragetest_SOURCES) $(virstringtest_SOURCES) \
@@ -1085,11 +1090,12 @@ DIST_SOURCES = $(am__libqemumonitortestutils_la_SOURCES_DIST) \
 	$(virbitmaptest_SOURCES) $(virbuftest_SOURCES) \
 	$(vircgrouptest_SOURCES) $(am__virdbustest_SOURCES_DIST) \
 	$(am__virdrivermoduletest_SOURCES_DIST) \
-	$(virendiantest_SOURCES) $(virhashtest_SOURCES) \
-	$(viridentitytest_SOURCES) $(virkeycodetest_SOURCES) \
-	$(virkeyfiletest_SOURCES) $(virlockspacetest_SOURCES) \
-	$(virlogtest_SOURCES) $(virnetmessagetest_SOURCES) \
-	$(virnetserverclienttest_SOURCES) $(virnetsockettest_SOURCES) \
+	$(virendiantest_SOURCES) $(virfiletest_SOURCES) \
+	$(virhashtest_SOURCES) $(viridentitytest_SOURCES) \
+	$(virkeycodetest_SOURCES) $(virkeyfiletest_SOURCES) \
+	$(virlockspacetest_SOURCES) $(virlogtest_SOURCES) \
+	$(virnetmessagetest_SOURCES) $(virnetserverclienttest_SOURCES) \
+	$(virnetsockettest_SOURCES) \
 	$(am__virnettlscontexttest_SOURCES_DIST) \
 	$(am__virnettlssessiontest_SOURCES_DIST) $(virpcitest_SOURCES) \
 	$(virportallocatortest_SOURCES) $(virshtest_SOURCES) \
@@ -2807,9 +2813,9 @@ EXTRA_DIST = capabilityschemadata capabilityschematest commanddata \
 	storagepoolxml2xmlout storagevolxml2argvdata \
 	storagevolschemadata storagevolschematest storagevolxml2xmlin \
 	storagevolxml2xmlout sysinfodata test-lib.sh \
-	virsh-uriprecedence virpcitestdata vmx2xmldata xencapsdata \
-	xmconfigdata xml2sexprdata xml2vmxdata vmwareverdata \
-	.valgrind.supp $(am__append_25) $(am__append_27) \
+	virsh-uriprecedence virfiledata virpcitestdata vmx2xmldata \
+	xencapsdata xmconfigdata xml2sexprdata xml2vmxdata \
+	vmwareverdata .valgrind.supp $(am__append_25) $(am__append_27) \
 	$(test_scripts) $(am__append_30) $(am__append_33) \
 	$(am__append_35) $(am__append_36) openvzutilstest.conf \
 	$(am__append_37) $(am__append_38) $(am__append_39) \
@@ -2823,17 +2829,17 @@ test_programs = virshtest sockettest nodeinfotest virbuftest \
 	commandtest seclabeltest virhashtest viratomictest utiltest \
 	shunloadtest virtimetest viruritest virkeyfiletest \
 	virauthconfigtest virbitmaptest vircgrouptest virpcitest \
-	virendiantest viridentitytest virkeycodetest virlockspacetest \
-	virlogtest virstringtest virportallocatortest sysinfotest \
-	virstoragetest $(NULL) $(am__append_3) $(am__append_4) \
-	$(am__append_5) $(am__append_6) $(am__append_7) \
-	$(am__append_8) $(am__append_9) $(am__append_10) \
-	$(am__append_11) $(am__append_12) $(am__append_13) \
-	$(am__append_14) $(am__append_15) $(am__append_16) \
-	$(am__append_17) $(am__append_18) $(am__append_19) \
-	networkxml2xmltest networkxml2xmlupdatetest $(am__append_20) \
-	$(am__append_21) nwfilterxml2xmltest $(am__append_22) \
-	storagevolxml2xmltest storagepoolxml2xmltest \
+	virendiantest virfiletest viridentitytest virkeycodetest \
+	virlockspacetest virlogtest virstringtest virportallocatortest \
+	sysinfotest virstoragetest $(NULL) $(am__append_3) \
+	$(am__append_4) $(am__append_5) $(am__append_6) \
+	$(am__append_7) $(am__append_8) $(am__append_9) \
+	$(am__append_10) $(am__append_11) $(am__append_12) \
+	$(am__append_13) $(am__append_14) $(am__append_15) \
+	$(am__append_16) $(am__append_17) $(am__append_18) \
+	$(am__append_19) networkxml2xmltest networkxml2xmlupdatetest \
+	$(am__append_20) $(am__append_21) nwfilterxml2xmltest \
+	$(am__append_22) storagevolxml2xmltest storagepoolxml2xmltest \
 	nodedevxml2xmltest interfacexml2xmltest cputest metadatatest \
 	$(am__append_24)
 
@@ -3272,6 +3278,10 @@ virendiantest_SOURCES = \
 	virendiantest.c testutils.h testutils.c
 
 virendiantest_LDADD = $(LDADDS)
+virfiletest_SOURCES = \
+	virfiletest.c testutils.h testutils.c
+
+virfiletest_LDADD = $(LDADDS)
 jsontest_SOURCES = \
 	jsontest.c testutils.h testutils.c
 
@@ -3637,6 +3647,10 @@ virendiantest$(EXEEXT): $(virendiantest_OBJECTS) $(virendiantest_DEPENDENCIES) $
 	@rm -f virendiantest$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(virendiantest_OBJECTS) $(virendiantest_LDADD) $(LIBS)
 
+virfiletest$(EXEEXT): $(virfiletest_OBJECTS) $(virfiletest_DEPENDENCIES) $(EXTRA_virfiletest_DEPENDENCIES) 
+	@rm -f virfiletest$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(virfiletest_OBJECTS) $(virfiletest_LDADD) $(LIBS)
+
 virhashtest$(EXEEXT): $(virhashtest_OBJECTS) $(virhashtest_DEPENDENCIES) $(EXTRA_virhashtest_DEPENDENCIES) 
 	@rm -f virhashtest$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(virhashtest_OBJECTS) $(virhashtest_LDADD) $(LIBS)
@@ -3808,6 +3822,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virdbustest-virdbustest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virdrivermoduletest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virendiantest.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virfiletest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virhashtest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/viridentitytest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virkeycodetest.Po@am__quote@
@@ -4333,6 +4348,13 @@ virpcitest.log: virpcitest$(EXEEXT)
 virendiantest.log: virendiantest$(EXEEXT)
 	@p='virendiantest$(EXEEXT)'; \
 	b='virendiantest'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
+virfiletest.log: virfiletest$(EXEEXT)
+	@p='virfiletest$(EXEEXT)'; \
+	b='virfiletest'; \
 	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
 	--log-file $$b.log --trs-file $$b.trs \
 	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
