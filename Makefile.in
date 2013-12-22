@@ -230,8 +230,8 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/virt-compile-pie.m4 \
 	$(top_srcdir)/m4/virt-compile-warnings.m4 \
 	$(top_srcdir)/m4/virt-curl.m4 $(top_srcdir)/m4/virt-dbus.m4 \
-	$(top_srcdir)/m4/virt-fuse.m4 $(top_srcdir)/m4/virt-hal.m4 \
-	$(top_srcdir)/m4/virt-lib.m4 \
+	$(top_srcdir)/m4/virt-fuse.m4 $(top_srcdir)/m4/virt-gluster.m4 \
+	$(top_srcdir)/m4/virt-hal.m4 $(top_srcdir)/m4/virt-lib.m4 \
 	$(top_srcdir)/m4/virt-linker-no-indirect.m4 \
 	$(top_srcdir)/m4/virt-linker-relro.m4 \
 	$(top_srcdir)/m4/virt-netcf.m4 \
@@ -435,7 +435,6 @@ CURL_LIBS = @CURL_LIBS@
 CYGPATH_W = @CYGPATH_W@
 CYGWIN_EXTRA_LDFLAGS = @CYGWIN_EXTRA_LDFLAGS@
 CYGWIN_EXTRA_LIBADD = @CYGWIN_EXTRA_LIBADD@
-CYGWIN_EXTRA_PYTHON_LIBADD = @CYGWIN_EXTRA_PYTHON_LIBADD@
 DBUS_CFLAGS = @DBUS_CFLAGS@
 DBUS_LIBS = @DBUS_LIBS@
 DEFS = @DEFS@
@@ -475,6 +474,8 @@ GETHOSTNAME_LIB = @GETHOSTNAME_LIB@
 GETTEXT_CPPFLAGS = @GETTEXT_CPPFLAGS@
 GETTEXT_MACRO_VERSION = @GETTEXT_MACRO_VERSION@
 GLIBC21 = @GLIBC21@
+GLUSTERFS_CFLAGS = @GLUSTERFS_CFLAGS@
+GLUSTERFS_LIBS = @GLUSTERFS_LIBS@
 GMSGFMT = @GMSGFMT@
 GMSGFMT_015 = @GMSGFMT_015@
 GNULIB_ACCEPT = @GNULIB_ACCEPT@
@@ -1460,11 +1461,6 @@ PVCREATE = @PVCREATE@
 PVREMOVE = @PVREMOVE@
 PVS = @PVS@
 PYTHON = @PYTHON@
-PYTHON_EXEC_PREFIX = @PYTHON_EXEC_PREFIX@
-PYTHON_INCLUDES = @PYTHON_INCLUDES@
-PYTHON_PLATFORM = @PYTHON_PLATFORM@
-PYTHON_PREFIX = @PYTHON_PREFIX@
-PYTHON_VERSION = @PYTHON_VERSION@
 QEMU = @QEMU@
 RADVD = @RADVD@
 RANLIB = @RANLIB@
@@ -1733,7 +1729,6 @@ VGSCAN = @VGSCAN@
 VIRSH_LIBS = @VIRSH_LIBS@
 VIR_TEST_EXPENSIVE_DEFAULT = @VIR_TEST_EXPENSIVE_DEFAULT@
 WARN_CFLAGS = @WARN_CFLAGS@
-WARN_PYTHON_CFLAGS = @WARN_PYTHON_CFLAGS@
 WCHAR_T_SUFFIX = @WCHAR_T_SUFFIX@
 WIN32_EXTRA_CFLAGS = @WIN32_EXTRA_CFLAGS@
 WINDOWS_64_BIT_OFF_T = @WINDOWS_64_BIT_OFF_T@
@@ -1800,13 +1795,9 @@ mandir = @mandir@
 mkdir_p = @mkdir_p@
 oldincludedir = @oldincludedir@
 pdfdir = @pdfdir@
-pkgpyexecdir = @pkgpyexecdir@
-pkgpythondir = @pkgpythondir@
 prefix = @prefix@
 program_transform_name = @program_transform_name@
 psdir = @psdir@
-pyexecdir = @pyexecdir@
-pythondir = @pythondir@
 runstatedir = @runstatedir@
 sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
@@ -1819,8 +1810,8 @@ top_srcdir = @top_srcdir@
 LCOV = lcov
 GENHTML = genhtml
 SUBDIRS = . gnulib/lib include src daemon tools docs gnulib/tests \
-  python tests po examples/domain-events/events-c examples/hellolibvirt \
-  examples/dominfo examples/domsuspend examples/python examples/apparmor \
+  tests po examples/domain-events/events-c examples/hellolibvirt \
+  examples/dominfo examples/domsuspend examples/apparmor \
   examples/xml/nwfilter examples/openauth examples/systemtap
 
 ACLOCAL_AMFLAGS = -I m4
@@ -1838,7 +1829,6 @@ EXTRA_DIST = \
   Makefile.nonreentrant \
   autogen.sh \
   cfg.mk \
-  examples/domain-events/events-python \
   run.in \
   AUTHORS.in \
   $(XML_EXAMPLES)
@@ -2369,11 +2359,6 @@ rpm: clean
 	@(unset CDPATH ; $(MAKE) dist && rpmbuild -ta $(distdir).tar.gz)
 
 check-local: all tests
-
-tests:
-	@(cd docs/examples ; $(MAKE) MAKEFLAGS+=--silent tests)
-	@(if [ "$(pythondir)" != "" ] ; then cd python ; \
-	  $(MAKE) MAKEFLAGS+=--silent tests ; fi)
 
 cov: clean-cov
 	mkdir $(top_builddir)/coverage

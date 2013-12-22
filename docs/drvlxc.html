@@ -337,6 +337,13 @@ first console will be <code>/dev/tty1</code>, with further consoles
 numbered incrementally from there.
 </p>
         <p>
+Since /dev/ttyN and /dev/console are linked to the pts devices. The
+tty device of login program is pts device. the pam module securetty
+may prevent root user from logging in container. If you want root
+user to log in container successfully, add the pts device to the file
+/etc/securetty of container.
+</p>
+        <p>
 Further block or character devices will be made available to containers
 depending on their configuration.
 </p>
@@ -720,7 +727,7 @@ to PID 1 inside the container.
 </pre>
         <p>
 If the container does not respond to the graceful shutdown
-request, it can be forceably stopped using the <code>virsh destroy</code>
+request, it can be forcibly stopped using the <code>virsh destroy</code>
 </p>
         <pre xml:space="preserve">
 # virsh -c lxc:/// destroy myguest

@@ -123,6 +123,7 @@ Christophe Fergeau <cfergeau@redhat.com>
 Chuck Short <chuck.short@canonical.com>
 Chuck Short <zulcss@gmail.com>
 Chunyan Liu <cyliu@suse.com>
+Clark Laughlin <clark.laughlin@linaro.org>
 Claudio Bley <cbley@av-test.de>
 Cole Robinson <crobinso@redhat.com>
 Cédric Bosdonnat <cbosdonnat@suse.com>
@@ -188,6 +189,7 @@ Guannan Ren <gren@redhat.com>
 Gui Jianfeng <guijianfeng@cn.fujitsu.com>
 Guido Günther <agx@sigxcpu.org>
 Han Cheng <hanc.fnst@cn.fujitsu.com>
+Hao Liu <hliu@redhat.com>
 Harry Wei <harryxiyou@gmail.com>
 Harsh Prateek Bora <harsh@linux.vnet.ibm.com>
 Harshavardhana <harsha@gluster.com>
@@ -202,6 +204,7 @@ Ilja Livenson <ilja.livenson@gmail.com>
 J.B. Joret <jb@linux.vnet.ibm.com>
 Jamie Strandboge <jamie@canonical.com>
 Jan Kiszka <jan.kiszka@siemens.com>
+Jason Andryuk <andryuk@aero.org>
 Jasper Lievisse Adriaanse <jasper@humppa.nl>
 Jean-Baptiste Rouault <jean-baptiste.rouault@diateam.net>
 Jeremy Fitzhardinge <jeremy@goop.org>
@@ -260,6 +263,7 @@ Matthias Bolte <matthias.bolte@googlemail.com>
 Matthias Dahl <mdvirt@designassembly.de>
 Mattias Bolte <matthias.bolte@googlemail.com>
 Maximilian Wilhelm <max@rfc2324.org>
+Michael Avdienko <whitearchey@gmail.com>
 Michael Chapman <mike@very.puzzling.org>
 Michael Ellerman <michael@ellerman.id.au>
 Michael Santos <michael.santos@gmail.com>
@@ -332,6 +336,7 @@ Serge Hallyn <serge.hallyn@ubuntu.com>
 Sergey Fionov <fionov@gmail.com>
 Shahar Klein <shaharklein@yahoo.com>
 Sharadha Prabhakar <sharadha.prabhakar@citrix.com>
+Shivaprasad G Bhat <shivaprasadbhat@gmail.com>
 Shradha Shah <sshah@solarflare.com>
 Simone Gotti <simone.gotti@gmail.com>
 Soren Hansen <soren@linux2go.dk>
@@ -361,9 +366,11 @@ Tom Vijlbrief <tom.vijlbrief@xs4all.nl>
 Tomas Meszaros <exo@tty.sk>
 Tyler Coumbes <coumbes@gmail.com>
 Viktor Mihajlovski <mihajlov@linux.vnet.ibm.com>
+Vitor de Lima <vitor.lima@eldorado.org.br>
 Vladislav Bogdanov <bubble@hoster-ok.com>
 Václav Pavlín <vpavlin@redhat.com>
 Wang Yufei <james.wangyufei@huawei.com>
+Wangyufei (A) <james.wangyufei@huawei.com>
 Wen Congyang <wency@cn.fujitsu.com>
 Wido den Hollander <wido@widodh.nl>
 Wieland Hoffmann <themineo@googlemail.com>
@@ -379,6 +386,7 @@ Yuji NISHIDA <nishidy@nict.go.jp>
 Yuri Chornoivan <yurchor@ukr.net>
 Zdenek Styblik <stybla@turnovfree.net>
 Zeeshan Ali (Khattak) <zeeshanak@gnome.org>
+Zeng Junliang <zengjunliang@huawei.com>
 Zhang Xiaohe <zhangxh@cn.fujitsu.com>
 Zhou Yimin <zhouyimin@huawei.com>
 hejia hejia <jiakernel@gmail.com>

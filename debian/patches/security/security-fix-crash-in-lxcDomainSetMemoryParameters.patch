@@ -1,0 +1,200 @@
+From: Martin Kletzander <mkletzan@redhat.com>
+Date: Mon, 9 Dec 2013 11:15:12 +0100
+Subject: security: fix crash in lxcDomainSetMemoryParameters
+
+The function doesn't check whether the request is made for active or
+inactive domain.  Thus when the domain is not running it still tries
+accessing non-existing cgroups (priv->cgroup, which is NULL).
+
+I re-made the function in order for it to work the same way it's qemu
+counterpart does.
+
+Reproducer:
+ 1) Define an LXC domain
+ 2) Do 'virsh memtune <domain> --hard-limit 133T'
+
+Backtrace:
+ Thread 6 (Thread 0x7fffec8c0700 (LWP 26826)):
+ #0  0x00007ffff70edcc4 in virCgroupPathOfController (group=0x0, controller=3,
+     key=0x7ffff75734bd "memory.limit_in_bytes", path=0x7fffec8bf718) at util/vircgroup.c:1764
+ #1  0x00007ffff70e9206 in virCgroupSetValueStr (group=0x0, controller=3,
+     key=0x7ffff75734bd "memory.limit_in_bytes", value=0x7fffe409f360 "1073741824")
+     at util/vircgroup.c:669
+ #2  0x00007ffff70e98b4 in virCgroupSetValueU64 (group=0x0, controller=3,
+     key=0x7ffff75734bd "memory.limit_in_bytes", value=1073741824) at util/vircgroup.c:740
+ #3  0x00007ffff70ee518 in virCgroupSetMemory (group=0x0, kb=1048576) at util/vircgroup.c:1904
+ #4  0x00007ffff70ee675 in virCgroupSetMemoryHardLimit (group=0x0, kb=1048576)
+     at util/vircgroup.c:1944
+ #5  0x00005555557d54c8 in lxcDomainSetMemoryParameters (dom=0x7fffe40cc420,
+     params=0x7fffe409f100, nparams=1, flags=0) at lxc/lxc_driver.c:774
+ #6  0x00007ffff72c20f9 in virDomainSetMemoryParameters (domain=0x7fffe40cc420,
+     params=0x7fffe409f100, nparams=1, flags=0) at libvirt.c:4051
+ #7  0x000055555561365f in remoteDispatchDomainSetMemoryParameters (server=0x555555eb7e00,
+     client=0x555555ec4b10, msg=0x555555eb94e0, rerr=0x7fffec8bfb70, args=0x7fffe40b8510)
+     at remote_dispatch.h:7621
+ #8  0x00005555556133fd in remoteDispatchDomainSetMemoryParametersHelper (server=0x555555eb7e00,
+     client=0x555555ec4b10, msg=0x555555eb94e0, rerr=0x7fffec8bfb70, args=0x7fffe40b8510,
+     ret=0x7fffe40b84f0) at remote_dispatch.h:7591
+ #9  0x00007ffff73b293f in virNetServerProgramDispatchCall (prog=0x555555ec3ae0,
+     server=0x555555eb7e00, client=0x555555ec4b10, msg=0x555555eb94e0)
+     at rpc/virnetserverprogram.c:435
+ #10 0x00007ffff73b207f in virNetServerProgramDispatch (prog=0x555555ec3ae0,
+     server=0x555555eb7e00, client=0x555555ec4b10, msg=0x555555eb94e0)
+     at rpc/virnetserverprogram.c:305
+ #11 0x00007ffff73a4d2c in virNetServerProcessMsg (srv=0x555555eb7e00, client=0x555555ec4b10,
+     prog=0x555555ec3ae0, msg=0x555555eb94e0) at rpc/virnetserver.c:165
+ #12 0x00007ffff73a4e8d in virNetServerHandleJob (jobOpaque=0x555555ec3e30, opaque=0x555555eb7e00)
+     at rpc/virnetserver.c:186
+ #13 0x00007ffff7187f3f in virThreadPoolWorker (opaque=0x555555eb7ac0) at util/virthreadpool.c:144
+ #14 0x00007ffff718733a in virThreadHelper (data=0x555555eb7890) at util/virthreadpthread.c:161
+ #15 0x00007ffff468ed89 in start_thread (arg=0x7fffec8c0700) at pthread_create.c:308
+ #16 0x00007ffff3da26bd in clone () at ../sysdeps/unix/sysv/linux/x86_64/clone.S:113
+
+Signed-off-by: Martin Kletzander <mkletzan@redhat.com>
+---
+ src/lxc/lxc_driver.c | 112 +++++++++++++++++++++++++++++++++++++++++++--------
+ 1 file changed, 96 insertions(+), 16 deletions(-)
+
+diff --git a/src/lxc/lxc_driver.c b/src/lxc/lxc_driver.c
+index 477d30f..fde05ec 100644
+--- a/src/lxc/lxc_driver.c
++++ b/src/lxc/lxc_driver.c
+@@ -742,12 +742,24 @@ lxcDomainSetMemoryParameters(virDomainPtr dom,
+                              int nparams,
+                              unsigned int flags)
+ {
+-    size_t i;
++    virCapsPtr caps = NULL;
++    virDomainDefPtr vmdef = NULL;
+     virDomainObjPtr vm = NULL;
++    virLXCDomainObjPrivatePtr priv = NULL;
++    virLXCDriverConfigPtr cfg = NULL;
++    virLXCDriverPtr driver = dom->conn->privateData;
++    unsigned long long hard_limit;
++    unsigned long long soft_limit;
++    unsigned long long swap_hard_limit;
++    bool set_hard_limit = false;
++    bool set_soft_limit = false;
++    bool set_swap_hard_limit = false;
++    int rc;
+     int ret = -1;
+-    virLXCDomainObjPrivatePtr priv;
+ 
+-    virCheckFlags(0, -1);
++    virCheckFlags(VIR_DOMAIN_AFFECT_LIVE |
++                  VIR_DOMAIN_AFFECT_CONFIG, -1);
++
+     if (virTypedParamsValidate(params, nparams,
+                                VIR_DOMAIN_MEMORY_HARD_LIMIT,
+                                VIR_TYPED_PARAM_ULLONG,
+@@ -762,29 +774,97 @@ lxcDomainSetMemoryParameters(virDomainPtr dom,
+         goto cleanup;
+ 
+     priv = vm->privateData;
++    cfg = virLXCDriverGetConfig(driver);
+ 
+-    if (virDomainSetMemoryParametersEnsureACL(dom->conn, vm->def, flags) < 0)
++    if (virDomainSetMemoryParametersEnsureACL(dom->conn, vm->def, flags) < 0 ||
++        !(caps = virLXCDriverGetCapabilities(driver, false)) ||
++        virDomainLiveConfigHelperMethod(caps, driver->xmlopt,
++                                        vm, &flags, &vmdef) < 0)
+         goto cleanup;
+ 
+-    ret = 0;
+-    for (i = 0; i < nparams; i++) {
+-        virTypedParameterPtr param = &params[i];
++    if (flags & VIR_DOMAIN_AFFECT_LIVE &&
++        !virCgroupHasController(priv->cgroup, VIR_CGROUP_CONTROLLER_MEMORY)) {
++        virReportError(VIR_ERR_OPERATION_INVALID,
++                       "%s", _("cgroup memory controller is not mounted"));
++        goto cleanup;
++    }
++
++#define VIR_GET_LIMIT_PARAMETER(PARAM, VALUE)                                \
++    if ((rc = virTypedParamsGetULLong(params, nparams, PARAM, &VALUE)) < 0)  \
++        goto cleanup;                                                        \
++                                                                             \
++    if (rc == 1)                                                             \
++        set_ ## VALUE = true;
++
++    VIR_GET_LIMIT_PARAMETER(VIR_DOMAIN_MEMORY_SWAP_HARD_LIMIT, swap_hard_limit)
++    VIR_GET_LIMIT_PARAMETER(VIR_DOMAIN_MEMORY_HARD_LIMIT, hard_limit)
++    VIR_GET_LIMIT_PARAMETER(VIR_DOMAIN_MEMORY_SOFT_LIMIT, soft_limit)
++
++#undef VIR_GET_LIMIT_PARAMETER
++
++    /* Swap hard limit must be greater than hard limit.
++     * Note that limit of 0 denotes unlimited */
++    if (set_swap_hard_limit || set_hard_limit) {
++        unsigned long long mem_limit = vm->def->mem.hard_limit;
++        unsigned long long swap_limit = vm->def->mem.swap_hard_limit;
++
++        if (set_swap_hard_limit)
++            swap_limit = swap_hard_limit;
+ 
+-        if (STREQ(param->field, VIR_DOMAIN_MEMORY_HARD_LIMIT)) {
+-            if (virCgroupSetMemoryHardLimit(priv->cgroup, params[i].value.ul) < 0)
+-                ret = -1;
+-        } else if (STREQ(param->field, VIR_DOMAIN_MEMORY_SOFT_LIMIT)) {
+-            if (virCgroupSetMemorySoftLimit(priv->cgroup, params[i].value.ul) < 0)
+-                ret = -1;
+-        } else if (STREQ(param->field, VIR_DOMAIN_MEMORY_SWAP_HARD_LIMIT)) {
+-            if (virCgroupSetMemSwapHardLimit(priv->cgroup, params[i].value.ul) < 0)
+-                ret = -1;
++        if (set_hard_limit)
++            mem_limit = hard_limit;
++
++        if (virCompareLimitUlong(mem_limit, swap_limit) > 0) {
++            virReportError(VIR_ERR_INVALID_ARG, "%s",
++                           _("memory hard_limit tunable value must be lower "
++                             "than or equal to swap_hard_limit"));
++            goto cleanup;
+         }
+     }
+ 
++#define LXC_SET_MEM_PARAMETER(FUNC, VALUE)                                     \
++    if (set_ ## VALUE) {                                                        \
++        if (flags & VIR_DOMAIN_AFFECT_LIVE) {                                   \
++            if ((rc = FUNC(priv->cgroup, VALUE)) < 0) {                         \
++                virReportSystemError(-rc, _("unable to set memory %s tunable"), \
++                                     #VALUE);                                   \
++                                                                                \
++                goto cleanup;                                                   \
++            }                                                                   \
++            vm->def->mem.VALUE = VALUE;                                         \
++        }                                                                       \
++                                                                                \
++        if (flags & VIR_DOMAIN_AFFECT_CONFIG)                                   \
++            vmdef->mem.VALUE = VALUE;                                   \
++    }
++
++    /* Soft limit doesn't clash with the others */
++    LXC_SET_MEM_PARAMETER(virCgroupSetMemorySoftLimit, soft_limit);
++
++    /* set hard limit before swap hard limit if decreasing it */
++    if (virCompareLimitUlong(vm->def->mem.hard_limit, hard_limit) > 0) {
++        LXC_SET_MEM_PARAMETER(virCgroupSetMemoryHardLimit, hard_limit);
++        /* inhibit changing the limit a second time */
++        set_hard_limit = false;
++    }
++
++    LXC_SET_MEM_PARAMETER(virCgroupSetMemSwapHardLimit, swap_hard_limit);
++
++    /* otherwise increase it after swap hard limit */
++    LXC_SET_MEM_PARAMETER(virCgroupSetMemoryHardLimit, hard_limit);
++
++#undef LXC_SET_MEM_PARAMETER
++
++    if (flags & VIR_DOMAIN_AFFECT_CONFIG &&
++        virDomainSaveConfig(cfg->configDir, vmdef) < 0)
++        goto cleanup;
++
++    ret = 0;
+ cleanup:
+     if (vm)
+         virObjectUnlock(vm);
++    virObjectUnref(caps);
++    virObjectUnref(cfg);
+     return ret;
+ }
+ 

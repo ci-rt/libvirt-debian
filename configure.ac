@@ -16,7 +16,7 @@ dnl You should have received a copy of the GNU Lesser General Public
 dnl License along with this library.  If not, see
 dnl <http://www.gnu.org/licenses/>.
 
-AC_INIT([libvirt], [1.1.4], [libvir-list@redhat.com], [], [http://libvirt.org])
+AC_INIT([libvirt], [1.2.0], [libvir-list@redhat.com], [], [http://libvirt.org])
 AC_CONFIG_SRCDIR([src/libvirt.c])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
@@ -228,6 +228,7 @@ LIBVIRT_CHECK_CAPNG
 LIBVIRT_CHECK_CURL
 LIBVIRT_CHECK_DBUS
 LIBVIRT_CHECK_FUSE
+LIBVIRT_CHECK_GLUSTER
 LIBVIRT_CHECK_HAL
 LIBVIRT_CHECK_NETCF
 LIBVIRT_CHECK_NUMACTL
@@ -1453,7 +1454,7 @@ AC_ARG_WITH([numad],
 if test "$with_numad" != "no" ; then
   fail=0
 
-  AC_PATH_PROG([NUMAD], [numad], [], [/bin:/usr/bin])
+  AC_PATH_PROG([NUMAD], [numad], [], [/bin:/usr/bin:/usr/sbin])
 
   if test "$with_numad" = "check"; then
     test "$with_numactl" = "yes" || fail=1
@@ -1643,6 +1644,10 @@ AC_ARG_WITH([storage-sheepdog],
   [AS_HELP_STRING([--with-storage-sheepdog],
     [with Sheepdog backend for the storage driver @<:@default=check@:>@])],
   [],[with_storage_sheepdog=check])
+AC_ARG_WITH([storage-gluster],
+  [AS_HELP_STRING([--with-storage-gluster],
+    [with Gluster backend for the storage driver @<:@default=check@:>@])],
+  [],[with_storage_gluster=check])
 
 if test "$with_libvirtd" = "no"; then
   with_storage_dir=no
@@ -1654,6 +1659,7 @@ if test "$with_libvirtd" = "no"; then
   with_storage_disk=no
   with_storage_rbd=no
   with_storage_sheepdog=no
+  with_storage_gluster=no
 fi
 if test "$with_storage_dir" = "yes" ; then
   AC_DEFINE_UNQUOTED([WITH_STORAGE_DIR], 1, [whether directory backend for storage driver is enabled])
@@ -1855,6 +1861,19 @@ fi
 AM_CONDITIONAL([WITH_STORAGE_SHEEPDOG],
   [test "$with_storage_sheepdog" = "yes"])
 
+LIBGLUSTER_LIBS=
+if test "$with_storage_gluster" = "check"; then
+  with_storage_gluster=$with_glusterfs
+fi
+if test "$with_storage_gluster" = "yes"; then
+  if test "$with_glusterfs" = no; then
+    AC_MSG_ERROR([Need glusterfs (libgfapi) for gluster storage driver])
+  fi
+  AC_DEFINE_UNQUOTED([WITH_STORAGE_GLUSTER], [1],
+    [whether Gluster backend for storage driver is enabled])
+fi
+AM_CONDITIONAL([WITH_STORAGE_GLUSTER], [test "$with_storage_gluster" = "yes"])
+
 
 LIBPARTED_CFLAGS=
 LIBPARTED_LIBS=
@@ -2012,84 +2031,8 @@ fi
 AM_CONDITIONAL([WITH_HYPERV], [test "$with_hyperv" = "yes"])
 
 
-dnl
-dnl check for python
-dnl
-
-AC_ARG_WITH([python],
-  [AS_HELP_STRING([--with-python],
-    [Build python bindings @<:@default=yes@:>@])],
-  [],[with_python=yes])
-
-if test "$enable_shared:$with_python" = no:yes; then
-  AC_MSG_WARN([Disabling shared libraries is incompatible with building Python extensions.])
-  AC_MSG_WARN([Ignoring --with-python.])
-  with_python=no
-fi
-
-PYTHON_VERSION=
-PYTHON_INCLUDES=
-if test "$with_python" != "no" ; then
-    if test -x "$with_python/bin/python"
-    then
-        AC_MSG_NOTICE(Found python in $with_python/bin/python)
-        PYTHON="$with_python/bin/python"
-        with_python=yes
-    else
-        if test -x "$with_python"
-        then
-            AC_MSG_NOTICE(Found python in $with_python)
-            PYTHON="$with_python"
-            with_python=yes
-        else
-            if test -x "$PYTHON"
-            then
-                AC_MSG_NOTICE(Found python in environment PYTHON=$PYTHON)
-                with_python=yes
-            fi
-        fi
-    fi
-
-    if test "$with_python" = "yes" ; then
-        AM_PATH_PYTHON(,, [:])
-
-        if test "$PYTHON" != : ; then
-            PYTHON_CONFIG="$PYTHON-config"
-
-            if test -x "$PYTHON_CONFIG"
-            then
-                PYTHON_INCLUDES=`$PYTHON_CONFIG --includes`
-            else
-                if test -r $PYTHON_EXEC_PREFIX/include/python$PYTHON_VERSION/Python.h
-                then
-                    PYTHON_INCLUDES=-I$PYTHON_EXEC_PREFIX/include/python$PYTHON_VERSION
-                else
-                    if test -r $prefix/include/python$PYTHON_VERSION/Python.h
-                    then
-                        PYTHON_INCLUDES=-I$prefix/include/python$PYTHON_VERSION
-                    else
-                        if test -r /usr/include/python$PYTHON_VERSION/Python.h
-                        then
-                            PYTHON_INCLUDES=-I/usr/include/python$PYTHON_VERSION
-                        else
-                            AC_MSG_ERROR([You must install python-devel to build Python bindings])
-                        fi
-                    fi
-                fi
-            fi
-        else
-            AC_MSG_ERROR([You must install python to build Python bindings])
-        fi
-    else
-        AC_MSG_NOTICE([Could not find python in $with_python, disabling bindings])
-        with_python=no
-    fi
-fi
-AM_CONDITIONAL([WITH_PYTHON], [test "$with_python" = "yes"])
-AC_SUBST([PYTHON_VERSION])
-AC_SUBST([PYTHON_INCLUDES])
-
-dnl Allow perl overrides
+dnl Allow perl/python overrides
+AC_PATH_PROG([PYTHON], [python])
 AC_PATH_PROG([PERL], [perl])
 
 AC_ARG_ENABLE([with-test-suite],
@@ -2227,7 +2170,6 @@ dnl Copied from libxml2 configure.in, but I removed mingw changes
 dnl for now since I'm not supporting mingw at present.  - RWMJ
 CYGWIN_EXTRA_LDFLAGS=
 CYGWIN_EXTRA_LIBADD=
-CYGWIN_EXTRA_PYTHON_LIBADD=
 MINGW_EXTRA_LDFLAGS=
 WIN32_EXTRA_CFLAGS=
 dnl libvirt.syms is generated in builddir, but libvirt_qemu.syms is in git;
@@ -2241,10 +2183,6 @@ case "$host" in
     CYGWIN_EXTRA_LDFLAGS="-no-undefined"
     CYGWIN_EXTRA_LIBADD="${INTLLIBS}"
     MSCOM_LIBS="-lole32 -loleaut32"
-
-    if test "x$PYTHON_VERSION" != "x"; then
-      CYGWIN_EXTRA_PYTHON_LIBADD="-L/usr/lib/python${PYTHON_VERSION}/config -lpython${PYTHON_VERSION}"
-    fi
     ;;
   *-*-mingw*)
     MINGW_EXTRA_LDFLAGS="-no-undefined"
@@ -2279,7 +2217,6 @@ case "$host" in
 esac
 AC_SUBST([CYGWIN_EXTRA_LDFLAGS])
 AC_SUBST([CYGWIN_EXTRA_LIBADD])
-AC_SUBST([CYGWIN_EXTRA_PYTHON_LIBADD])
 AC_SUBST([MINGW_EXTRA_LDFLAGS])
 AC_SUBST([WIN32_EXTRA_CFLAGS])
 AC_SUBST([LIBVIRT_SYMBOL_FILE])
@@ -2613,7 +2550,6 @@ AC_CONFIG_FILES([\
         libvirt.pc libvirt.spec mingw-libvirt.spec \
         po/Makefile.in \
         include/libvirt/Makefile include/libvirt/libvirt.h \
-        python/Makefile \
         daemon/Makefile \
         tools/Makefile \
         tests/Makefile \
@@ -2622,7 +2558,6 @@ AC_CONFIG_FILES([\
         examples/domsuspend/Makefile \
         examples/dominfo/Makefile \
         examples/openauth/Makefile \
-        examples/python/Makefile \
         examples/hellolibvirt/Makefile \
         examples/systemtap/Makefile \
         examples/xml/nwfilter/Makefile])
@@ -2667,6 +2602,7 @@ AC_MSG_NOTICE([   mpath: $with_storage_mpath])
 AC_MSG_NOTICE([    Disk: $with_storage_disk])
 AC_MSG_NOTICE([     RBD: $with_storage_rbd])
 AC_MSG_NOTICE([Sheepdog: $with_storage_sheepdog])
+AC_MSG_NOTICE([ Gluster: $with_storage_gluster])
 AC_MSG_NOTICE([])
 AC_MSG_NOTICE([Security Drivers])
 AC_MSG_NOTICE([])
@@ -2692,6 +2628,7 @@ LIBVIRT_RESULT_CAPNG
 LIBVIRT_RESULT_CURL
 LIBVIRT_RESULT_DBUS
 LIBVIRT_RESULT_FUSE
+LIBVIRT_RESULT_GLUSTER
 LIBVIRT_RESULT_HAL
 LIBVIRT_RESULT_NETCF
 LIBVIRT_RESULT_NUMACTL
@@ -2778,7 +2715,6 @@ AC_MSG_NOTICE([])
 AC_MSG_NOTICE([            Debug: $enable_debug])
 AC_MSG_NOTICE([      Use -Werror: $set_werror])
 AC_MSG_NOTICE([    Warning Flags: $WARN_CFLAGS])
-AC_MSG_NOTICE([           Python: $with_python])
 AC_MSG_NOTICE([           DTrace: $with_dtrace])
 AC_MSG_NOTICE([            numad: $with_numad])
 AC_MSG_NOTICE([      XML Catalog: $XML_CATALOG_FILE])

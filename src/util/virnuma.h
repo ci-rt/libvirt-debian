@@ -55,4 +55,15 @@ char *virNumaGetAutoPlacementAdvice(unsigned short vcups,
 
 int virNumaSetupMemoryPolicy(virNumaTuneDef numatune,
                              virBitmapPtr nodemask);
+
+bool virNumaIsAvailable(void);
+int virNumaGetMaxNode(void);
+int virNumaGetNodeMemory(int node,
+                         unsigned long long *memsize,
+                         unsigned long long *memfree);
+
+unsigned int virNumaGetMaxCPUs(void);
+
+int virNumaGetNodeCPUs(int node, virBitmapPtr *cpus);
+
 #endif /* __VIR_NUMA_H__ */

@@ -618,10 +618,10 @@ libxlVmStart(libxlDriverPrivatePtr driver, virDomainObjPtr vm,
 
     /* use as synchronous operations => ao_how = NULL and no intermediate reports => ao_progress = NULL */
 
-    if (restore_fd < 0)
+    if (restore_fd < 0) {
         ret = libxl_domain_create_new(priv->ctx, &d_config,
                                       &domid, NULL, NULL);
-    else
+    } else {
 #ifdef LIBXL_HAVE_DOMAIN_CREATE_RESTORE_PARAMS
         params.checkpointed_stream = 0;
         ret = libxl_domain_create_restore(priv->ctx, &d_config, &domid,
@@ -630,6 +630,7 @@ libxlVmStart(libxlDriverPrivatePtr driver, virDomainObjPtr vm,
         ret = libxl_domain_create_restore(priv->ctx, &d_config, &domid,
                                           restore_fd, NULL, NULL);
 #endif
+    }
 
     if (ret) {
         if (restore_fd < 0)
@@ -843,7 +844,8 @@ libxlStateInitialize(bool privileged,
 
     /* Allocate bitmap for vnc port reservation */
     if (!(libxl_driver->reservedVNCPorts =
-          virPortAllocatorNew(LIBXL_VNC_PORT_MIN,
+          virPortAllocatorNew(_("VNC"),
+                              LIBXL_VNC_PORT_MIN,
                               LIBXL_VNC_PORT_MAX)))
         goto error;
 
@@ -1499,7 +1501,7 @@ libxlDomainDestroyFlags(virDomainPtr dom,
         goto cleanup;
     }
 
-    event = virDomainEventNewFromObj(vm,VIR_DOMAIN_EVENT_STOPPED,
+    event = virDomainEventNewFromObj(vm, VIR_DOMAIN_EVENT_STOPPED,
                                      VIR_DOMAIN_EVENT_STOPPED_DESTROYED);
 
     if (libxlVmReap(driver, vm, VIR_DOMAIN_SHUTOFF_DESTROYED) != 0) {

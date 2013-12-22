@@ -197,7 +197,7 @@ virDomainDiskErrorPolicyTypeToString;
 virDomainDiskFindByBusAndDst;
 virDomainDiskGeometryTransTypeFromString;
 virDomainDiskGeometryTransTypeToString;
-virDomainDiskHostDefFree;
+virDomainDiskHostDefClear;
 virDomainDiskIndexByName;
 virDomainDiskInsert;
 virDomainDiskInsertPreAlloced;
@@ -701,6 +701,8 @@ virStorageVolDefFree;
 virStorageVolDefParseFile;
 virStorageVolDefParseNode;
 virStorageVolDefParseString;
+virStorageVolTypeFromString;
+virStorageVolTypeToString;
 
 
 # conf/storage_encryption_conf.h
@@ -732,6 +734,12 @@ cpuHasFeature;
 cpuMapOverride;
 cpuNodeData;
 cpuUpdate;
+
+
+# cpu/cpu_x86.h
+virCPUx86DataAddCPUID;
+virCPUx86DataFree;
+virCPUx86MakeData;
 
 
 # datatypes.h
@@ -1185,11 +1193,14 @@ virFileExists;
 virFileFclose;
 virFileFdopen;
 virFileFindMountPoint;
+virFileGetMountReverseSubtree;
+virFileGetMountSubtree;
 virFileHasSuffix;
 virFileIsAbsPath;
 virFileIsDir;
 virFileIsExecutable;
 virFileIsLink;
+virFileIsMountPoint;
 virFileLinkPointsTo;
 virFileLock;
 virFileLoopDeviceAssociate;
@@ -1201,6 +1212,7 @@ virFileOpenAs;
 virFileOpenTty;
 virFilePrintf;
 virFileReadAll;
+virFileReadHeaderFD;
 virFileReadLimFD;
 virFileResolveAllLinks;
 virFileResolveLink;
@@ -1523,6 +1535,9 @@ virNodeSuspendGetTargetMask;
 virDomainNumatuneMemModeTypeFromString;
 virDomainNumatuneMemModeTypeToString;
 virNumaGetAutoPlacementAdvice;
+virNumaGetMaxNode;
+virNumaGetNodeMemory;
+virNumaIsAvailable;
 virNumaSetupMemoryPolicy;
 virNumaTuneMemPlacementModeTypeFromString;
 virNumaTuneMemPlacementModeTypeToString;
@@ -1713,13 +1728,14 @@ virStorageFileFormatTypeToString;
 virStorageFileFreeMetadata;
 virStorageFileGetLVMKey;
 virStorageFileGetMetadata;
+virStorageFileGetMetadataFromBuf;
 virStorageFileGetMetadataFromFD;
 virStorageFileGetSCSIKey;
 virStorageFileIsClusterFS;
 virStorageFileIsSharedFS;
 virStorageFileIsSharedFSType;
 virStorageFileProbeFormat;
-virStorageFileProbeFormatFromFD;
+virStorageFileProbeFormatFromBuf;
 virStorageFileResize;
 
 
@@ -1735,6 +1751,8 @@ virStringArrayHasString;
 virStringFreeList;
 virStringJoin;
 virStringListLength;
+virStringSortCompare;
+virStringSortRevCompare;
 virStringSplit;
 virStrncpy;
 virStrndup;

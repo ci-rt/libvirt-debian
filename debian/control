@@ -12,7 +12,6 @@ Build-Depends:
  zlib1g-dev,
  libgcrypt11-dev,
  libgnutls-dev,
- python-all-dev (>= 2.6.6-3~),
  libavahi-client-dev,
  libsasl2-dev,
  libxen-dev [i386 amd64],
@@ -25,7 +24,7 @@ Build-Depends:
  libudev-dev [linux-any],
  libhal-dev [!linux-any],
  libpciaccess-dev,
- module-init-tools [linux-any],
+ kmod [linux-any],
  policykit-1,
  libcap-ng-dev [linux-any],
  libnl-dev [linux-any],
@@ -53,7 +52,6 @@ Vcs-Git: git://git.debian.org/git/pkg-libvirt/libvirt.git
 Vcs-Browser: http://git.debian.org/?p=pkg-libvirt/libvirt.git
 Homepage: http://libvirt.org
 Standards-Version: 3.9.4
-X-Python-Version: >= 2.6
 
 Package: libvirt-bin
 Architecture: any
@@ -120,6 +118,7 @@ Package: libvirt-dev
 Architecture: any
 Section: libdevel
 Depends: ${misc:Depends}, libvirt0 (= ${binary:Version}), libxen-dev [i386 amd64]
+Replaces: libvirt-bin (<< 1.2.0~)
 Recommends: pkg-config
 Description: development files for the libvirt library
  Libvirt is a C toolkit to interact with the virtualization capabilities
@@ -129,20 +128,6 @@ Description: development files for the libvirt library
  .
  This package contains the header files and static libraries which are
  needed for developing the applications with libvirt.
-
-Package: python-libvirt
-Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, ${python:Depends}, libvirt0 (= ${binary:Version})
-Provides: ${python:Provides}
-Recommends: libvirt-bin
-Section: python
-Description: libvirt Python bindings
- Libvirt is a C toolkit to interact with the virtualization capabilities
- of recent versions of Linux (and other OSes). The library aims at providing
- a long term stable C API for different virtualization mechanisms. It currently
- supports QEMU, KVM, XEN, OpenVZ, LXC, and VirtualBox.
- .
- This package contains Python bindings for the libvirt library
 
 Package: libvirt-sanlock
 Architecture: linux-any

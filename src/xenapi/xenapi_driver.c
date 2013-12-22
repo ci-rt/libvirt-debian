@@ -1,6 +1,6 @@
 /*
  * xenapi_driver.c: Xen API driver.
- * Copyright (C) 2011-2012 Red Hat, Inc.
+ * Copyright (C) 2011-2013 Red Hat, Inc.
  * Copyright (C) 2009, 2010 Citrix Ltd.
  *
  * This library is free software; you can redistribute it and/or
@@ -637,7 +637,7 @@ xenapiDomainLookupByUUID(virConnectPtr conn,
     char uuidStr[VIR_UUID_STRING_BUFLEN];
     virDomainPtr domP = NULL;
     xen_session *session = ((struct _xenapiPrivate *)(conn->privateData))->session;
-    virUUIDFormat(uuid,uuidStr);
+    virUUIDFormat(uuid, uuidStr);
     if (xen_vm_get_by_uuid(session, &vm, uuidStr)) {
         xen_vm_get_record(session, &record, vm);
         if (record != NULL) {
@@ -1393,7 +1393,7 @@ xenapiDomainGetXMLDesc(virDomainPtr dom, unsigned int flags)
     if (VIR_STRDUP(defPtr->name, dom->name) < 0)
         goto error;
     xen_vm_get_hvm_boot_policy(session, &boot_policy, vm);
-    if (STREQ(boot_policy,"BIOS order")) {
+    if (STREQ(boot_policy, "BIOS order")) {
         if (VIR_STRDUP(defPtr->os.type, "hvm") < 0) {
             VIR_FREE(boot_policy);
             goto error;
@@ -1489,15 +1489,15 @@ xenapiDomainGetXMLDesc(virDomainPtr dom, unsigned int flags)
         for (i = 0; i < result->size; i++) {
             if (STREQ(result->contents[i].val, "true")) {
                 if (STREQ(result->contents[i].key, "acpi"))
-                    defPtr->features = defPtr->features | (1<<VIR_DOMAIN_FEATURE_ACPI);
+                    defPtr->features[VIR_DOMAIN_FEATURE_ACPI] = VIR_DOMAIN_FEATURE_STATE_ON;
                 else if (STREQ(result->contents[i].key, "apic"))
-                    defPtr->features = defPtr->features | (1<<VIR_DOMAIN_FEATURE_APIC);
+                    defPtr->features[VIR_DOMAIN_FEATURE_APIC] = VIR_DOMAIN_FEATURE_STATE_ON;
                 else if (STREQ(result->contents[i].key, "pae"))
-                    defPtr->features = defPtr->features | (1<<VIR_DOMAIN_FEATURE_PAE);
+                    defPtr->features[VIR_DOMAIN_FEATURE_PAE] = VIR_DOMAIN_FEATURE_STATE_ON;
                 else if (STREQ(result->contents[i].key, "hap"))
-                    defPtr->features = defPtr->features | (1<<VIR_DOMAIN_FEATURE_HAP);
+                    defPtr->features[VIR_DOMAIN_FEATURE_HAP] = VIR_DOMAIN_FEATURE_STATE_ON;
                 else if (STREQ(result->contents[i].key, "viridian"))
-                    defPtr->features = defPtr->features | (1<<VIR_DOMAIN_FEATURE_VIRIDIAN);
+                    defPtr->features[VIR_DOMAIN_FEATURE_VIRIDIAN] = VIR_DOMAIN_FEATURE_STATE_ON;
             }
         }
         xen_string_string_map_free(result);
@@ -2019,7 +2019,7 @@ write_func(void *ptr, size_t size, size_t nmemb, void *comms_)
     size_t n = size * nmemb;
 #ifdef PRINT_XML
     printf("\n\n---Result from server -----------------------\n");
-    printf("%s\n",((char*) ptr));
+    printf("%s\n", (char*) ptr);
     fflush(stdout);
 #endif
     return (size_t) (comms->func(ptr, n, comms->handle) ? n : 0);
@@ -2036,7 +2036,7 @@ call_func(const void *data, size_t len, void *user_handle,
     struct _xenapiPrivate *priv = (struct _xenapiPrivate *)user_handle;
 #ifdef PRINT_XML
     printf("\n\n---Data to server: -----------------------\n");
-    printf("%s\n",((char*) data));
+    printf("%s\n", (char*) data);
     fflush(stdout);
 #endif
     CURL *curl = curl_easy_init();

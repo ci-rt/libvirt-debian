@@ -10,4 +10,5 @@ Don-t-fail-if-we-can-t-setup-avahi.patch
 Reduce-udevadm-settle-timeout-to-10-seconds.patch
 debian/Debianize-systemd-service-files.patch
 Allow-xen-toolstack-to-find-it-s-binaries.patch
-atomic-pthread-link-fix
+security/security-fix-crash-in-lxcDomainGetMemoryParameters.patch
+security/security-fix-crash-in-lxcDomainSetMemoryParameters.patch

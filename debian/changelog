@@ -1,3 +1,26 @@
+libvirt (1.2.0-1) unstable; urgency=medium
+
+  * Upload to unstable
+  * [230609e] Depend on kmod instead of module-init-tools (Closes: #731451)
+  * [affb1ce] New upstream version 1.2.0
+  * [e9de7b2] Fix crashes in lxcDomain{S,G}etMemoryParameters.
+    This fixes CVE-2013-6436
+
+ -- Guido Günther <agx@sigxcpu.org>  Wed, 18 Dec 2013 08:18:48 +0100
+
+libvirt (1.2.0~rc2-1) experimental; urgency=low
+
+  * [8bfdc7f] New upstream version 1.2.0~rc2
+  * [56d17d0] Bump symbol versions
+  * [288778f] Drop atomic-pthread-link-fix.  Fixed upstream.
+  * [c8151f5] Rediff patches
+  * [dd5ae42] Drop python-libvirt.  Python bindings were split out of
+    libvirt's git into libvirt-python.
+  * [bafc3d6] Install API files into dev package.  These are needed by the
+    python bindings
+
+ -- Guido Günther <agx@sigxcpu.org>  Mon, 02 Dec 2013 21:31:31 +0100
+
 libvirt (1.1.4-2~bpo70+1) wheezy-backports; urgency=low
 
   * [b46b754] Drop sheepdog support not available in Wheezy

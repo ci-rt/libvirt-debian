@@ -242,6 +242,7 @@ VIR_ENUM_IMPL(virQEMUCaps, QEMU_CAPS_LAST,
               "usb-storage.removable",
               "virtio-mmio",
               "ich9-intel-hda",
+              "kvm-pit-lost-tick-policy",
     );
 
 struct _virQEMUCaps {
@@ -1458,6 +1459,10 @@ static struct virQEMUCapsStringFlags virQEMUCapsObjectPropsUsbStorage[] = {
     { "removable", QEMU_CAPS_USB_STORAGE_REMOVABLE },
 };
 
+static struct virQEMUCapsStringFlags virQEMUCapsObjectPropsKVMPit[] = {
+    { "lost_tick_policy", QEMU_CAPS_KVM_PIT_TICK_POLICY },
+};
+
 struct virQEMUCapsObjectTypeProps {
     const char *type;
     struct virQEMUCapsStringFlags *props;
@@ -1501,6 +1506,8 @@ static struct virQEMUCapsObjectTypeProps virQEMUCapsObjectProps[] = {
       ARRAY_CARDINALITY(virQEMUCapsObjectPropsQ35PciHost) },
     { "usb-storage", virQEMUCapsObjectPropsUsbStorage,
       ARRAY_CARDINALITY(virQEMUCapsObjectPropsUsbStorage) },
+    { "kvm-pit", virQEMUCapsObjectPropsKVMPit,
+      ARRAY_CARDINALITY(virQEMUCapsObjectPropsKVMPit) },
 };
 
 
@@ -2130,14 +2137,19 @@ virQEMUCapsProbeQMPMachineTypes(virQEMUCapsPtr qemuCaps,
         goto cleanup;
 
     for (i = 0; i < nmachines; i++) {
-        if (VIR_STRDUP(qemuCaps->machineAliases[i], machines[i]->alias) < 0 ||
-            VIR_STRDUP(qemuCaps->machineTypes[i], machines[i]->name) < 0)
+        if (STREQ(machines[i]->name, "none"))
+            continue;
+        qemuCaps->nmachineTypes++;
+        if (VIR_STRDUP(qemuCaps->machineAliases[qemuCaps->nmachineTypes -1],
+                       machines[i]->alias) < 0 ||
+            VIR_STRDUP(qemuCaps->machineTypes[qemuCaps->nmachineTypes - 1],
+                       machines[i]->name) < 0)
             goto cleanup;
         if (machines[i]->isDefault)
             defIdx = i;
-        qemuCaps->machineMaxCpus[i] = machines[i]->maxCpus;
+        qemuCaps->machineMaxCpus[qemuCaps->nmachineTypes - 1] =
+            machines[i]->maxCpus;
     }
-    qemuCaps->nmachineTypes = nmachines;
 
     if (defIdx)
         virQEMUCapsSetDefaultMachine(qemuCaps, defIdx);

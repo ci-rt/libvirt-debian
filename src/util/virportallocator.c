@@ -31,12 +31,15 @@
 #include "virthread.h"
 #include "virerror.h"
 #include "virfile.h"
+#include "virstring.h"
 
 #define VIR_FROM_THIS VIR_FROM_NONE
 
 struct _virPortAllocator {
     virObjectLockable parent;
     virBitmapPtr bitmap;
+
+    char *name;
 
     unsigned short start;
     unsigned short end;
@@ -50,6 +53,7 @@ virPortAllocatorDispose(void *obj)
     virPortAllocatorPtr pa = obj;
 
     virBitmapFree(pa->bitmap);
+    VIR_FREE(pa->name);
 }
 
 static int virPortAllocatorOnceInit(void)
@@ -65,7 +69,8 @@ static int virPortAllocatorOnceInit(void)
 
 VIR_ONCE_GLOBAL_INIT(virPortAllocator)
 
-virPortAllocatorPtr virPortAllocatorNew(unsigned short start,
+virPortAllocatorPtr virPortAllocatorNew(const char *name,
+                                        unsigned short start,
                                         unsigned short end)
 {
     virPortAllocatorPtr pa;
@@ -85,7 +90,8 @@ virPortAllocatorPtr virPortAllocatorNew(unsigned short start,
     pa->start = start;
     pa->end = end;
 
-    if (!(pa->bitmap = virBitmapNew((end-start)+1))) {
+    if (!(pa->bitmap = virBitmapNew((end-start)+1)) ||
+        VIR_STRDUP(pa->name, name) < 0) {
         virObjectUnref(pa);
         return NULL;
     }
@@ -151,10 +157,15 @@ int virPortAllocatorAcquire(virPortAllocatorPtr pa,
                 goto cleanup;
             }
             *port = i;
+            ret = 0;
         }
     }
 
-    ret = 0;
+    if (*port == 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Unable to find an unused port in range '%s' (%d-%d)"),
+                       pa->name, pa->start, pa->end);
+    }
 cleanup:
     virObjectUnlock(pa);
     VIR_FORCE_CLOSE(fd);

@@ -38,7 +38,8 @@
     <p>Author(s): Daniel Veillard &lt;veillard@redhat.com&gt; </p>
     <div class="refsynopsisdiv">
       <h2>Synopsis</h2>
-      <pre class="synopsis">#define <a href="#LIBVIR_VERSION_NUMBER">LIBVIR_VERSION_NUMBER</a>;
+      <pre class="synopsis">#define <a href="#LIBVIR_CHECK_VERSION">LIBVIR_CHECK_VERSION</a>(major, minor, micro);
+#define <a href="#LIBVIR_VERSION_NUMBER">LIBVIR_VERSION_NUMBER</a>;
 #define <a href="#VIR_COPY_CPUMAP">VIR_COPY_CPUMAP</a>(cpumaps, maplen, vcpu, cpumap);
 #define <a href="#VIR_CPU_MAPLEN">VIR_CPU_MAPLEN</a>(cpu);
 #define <a href="#VIR_CPU_USABLE">VIR_CPU_USABLE</a>(cpumaps, maplen, vcpu, cpu);
@@ -737,6 +738,10 @@ int	<a href="#virTypedParamsGetULLong">virTypedParamsGetULLong</a>		(<a href="li
     <div class="refsect1" lang="en">
       <h2>Details</h2>
       <div class="refsect2" lang="en">
+        <div class="refsect2" lang="en"><h3><a name="LIBVIR_CHECK_VERSION">Macro </a>LIBVIR_CHECK_VERSION</h3><pre class="programlisting">#define <a href="#LIBVIR_CHECK_VERSION">LIBVIR_CHECK_VERSION</a>(major, minor, micro);
+</pre><p>Macro for developers to easily check what version of the library their code is compiling against. e.g. #if LIBVIR_CHECK_VERSION(1,1,3) // some code that only works in 1.1.3 and newer #endif</p><div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>major</tt></i>:</span></td><td>major component of the version number</td></tr><tr><td><span class="term"><i><tt>minor</tt></i>:</span></td><td>minor component of the version number</td></tr><tr><td><span class="term"><i><tt>micro</tt></i>:</span></td><td>micro component of the version number</td></tr></tbody></table></div>
+</div>
+        <hr/>
         <div class="refsect2" lang="en"><h3><a name="LIBVIR_VERSION_NUMBER">Macro </a>LIBVIR_VERSION_NUMBER</h3><pre class="programlisting">#define <a href="#LIBVIR_VERSION_NUMBER">LIBVIR_VERSION_NUMBER</a>;
 </pre><p>Macro providing the version of the library as version * 1,000,000 + minor * 1000 + micro</p>
 </div>
@@ -794,11 +799,11 @@ int	<a href="#virTypedParamsGetULLong">virTypedParamsGetULLong</a>		(<a href="li
 </div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC">Macro </a>VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC">VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC</a>;
-</pre><p>Macro for the BlockIoTune tunable weight: it repersents the read bytes per second permitted through a block device, as a ullong.</p>
+</pre><p>Macro for the BlockIoTune tunable weight: it represents the read bytes per second permitted through a block device, as a ullong.</p>
 </div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_BLOCK_IOTUNE_READ_IOPS_SEC">Macro </a>VIR_DOMAIN_BLOCK_IOTUNE_READ_IOPS_SEC</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_BLOCK_IOTUNE_READ_IOPS_SEC">VIR_DOMAIN_BLOCK_IOTUNE_READ_IOPS_SEC</a>;
-</pre><p>Macro for the BlockIoTune tunable weight: it repersents the read I/O operations per second permitted through a block device, as a ullong.</p>
+</pre><p>Macro for the BlockIoTune tunable weight: it represents the read I/O operations per second permitted through a block device, as a ullong.</p>
 </div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_BYTES_SEC">Macro </a>VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_BYTES_SEC</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_BYTES_SEC">VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_BYTES_SEC</a>;
@@ -806,15 +811,15 @@ int	<a href="#virTypedParamsGetULLong">virTypedParamsGetULLong</a>		(<a href="li
 </div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_IOPS_SEC">Macro </a>VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_IOPS_SEC</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_IOPS_SEC">VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_IOPS_SEC</a>;
-</pre><p>Macro for the BlockIoTune tunable weight: it repersents the total I/O operations per second permitted through a block device, as a ullong.</p>
+</pre><p>Macro for the BlockIoTune tunable weight: it represents the total I/O operations per second permitted through a block device, as a ullong.</p>
 </div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_BLOCK_IOTUNE_WRITE_BYTES_SEC">Macro </a>VIR_DOMAIN_BLOCK_IOTUNE_WRITE_BYTES_SEC</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_BLOCK_IOTUNE_WRITE_BYTES_SEC">VIR_DOMAIN_BLOCK_IOTUNE_WRITE_BYTES_SEC</a>;
-</pre><p>Macro for the BlockIoTune tunable weight: it repersents the write bytes per second permitted through a block device, as a ullong.</p>
+</pre><p>Macro for the BlockIoTune tunable weight: it represents the write bytes per second permitted through a block device, as a ullong.</p>
 </div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_BLOCK_IOTUNE_WRITE_IOPS_SEC">Macro </a>VIR_DOMAIN_BLOCK_IOTUNE_WRITE_IOPS_SEC</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_BLOCK_IOTUNE_WRITE_IOPS_SEC">VIR_DOMAIN_BLOCK_IOTUNE_WRITE_IOPS_SEC</a>;
-</pre><p>Macro for the BlockIoTune tunable weight: it repersents the write I/O operations per second permitted through a block device, as a ullong.</p>
+</pre><p>Macro for the BlockIoTune tunable weight: it represents the write I/O operations per second permitted through a block device, as a ullong.</p>
 </div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_BLOCK_STATS_ERRS">Macro </a>VIR_DOMAIN_BLOCK_STATS_ERRS</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_BLOCK_STATS_ERRS">VIR_DOMAIN_BLOCK_STATS_ERRS</a>;
@@ -1058,7 +1063,7 @@ int	<a href="#virTypedParamsGetULLong">virTypedParamsGetULLong</a>		(<a href="li
 </div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="VIR_MIGRATE_PARAM_LISTEN_ADDRESS">Macro </a>VIR_MIGRATE_PARAM_LISTEN_ADDRESS</h3><pre class="programlisting">#define <a href="#VIR_MIGRATE_PARAM_LISTEN_ADDRESS">VIR_MIGRATE_PARAM_LISTEN_ADDRESS</a>;
-</pre><p>virDomainMigrate* params field: The listen address that hypervisor on the destination side should bind to for incoming migration. Both, IPv4 and IPv6 addresses are accepted as well as hostnames (the resolving is done on destination). Some hypervisors do not support this feature an will return an error if this field is used.</p>
+</pre><p>virDomainMigrate* params field: The listen address that hypervisor on the destination side should bind to for incoming migration. Both IPv4 and IPv6 addresses are accepted as well as hostnames (the resolving is done on destination). Some hypervisors do not support this feature and will return an error if this field is used.</p>
 </div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="VIR_MIGRATE_PARAM_URI">Macro </a>VIR_MIGRATE_PARAM_URI</h3><pre class="programlisting">#define <a href="#VIR_MIGRATE_PARAM_URI">VIR_MIGRATE_PARAM_URI</a>;
@@ -1795,7 +1800,7 @@ The content of this structure is not made public by the API.
 </div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainJobInfo">Structure </a>virDomainJobInfo</h3><pre class="programlisting">struct _virDomainJobInfo {
-    int	type	: Time is measured in mill-seconds
+    int	type	: Time is measured in milliseconds
     unsigned long long	timeElapsed	: Always set
     unsigned long long	timeRemaining	: Only for <a href="libvirt-libvirt.html#VIR_DOMAIN_JOB_BOUNDED">VIR_DOMAIN_JOB_BOUNDED</a> Data is measured in bytes unless other
     unsigned long long	dataTotal
@@ -2554,7 +2559,8 @@ The content of this structure is not made public by the API.
     <a name="VIR_STORAGE_VOL_BLOCK">VIR_STORAGE_VOL_BLOCK</a> = 1 /* Block based volumes */
     <a name="VIR_STORAGE_VOL_DIR">VIR_STORAGE_VOL_DIR</a> = 2 /* Directory-passthrough based volume */
     <a name="VIR_STORAGE_VOL_NETWORK">VIR_STORAGE_VOL_NETWORK</a> = 3 /* Network volumes like RBD (RADOS Block Device) */
-    <a name="VIR_STORAGE_VOL_LAST">VIR_STORAGE_VOL_LAST</a> = 4
+    <a name="VIR_STORAGE_VOL_NETDIR">VIR_STORAGE_VOL_NETDIR</a> = 4 /* Network accessible directory that can  contain other network volumes */
+    <a name="VIR_STORAGE_VOL_LAST">VIR_STORAGE_VOL_LAST</a> = 5
 };
 </pre><p/>
 </div>
@@ -4176,7 +4182,10 @@ expects the caller to allocate the @params.</p>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainGetJobInfo"/>virDomainGetJobInfo ()</h3><pre class="programlisting">int	virDomainGetJobInfo		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 <a href="libvirt-libvirt.html#virDomainJobInfoPtr">virDomainJobInfoPtr</a> info)<br/>
 </pre><p>Extract information about progress of a background job on a domain.
-Will return an error if the domain is not active.</p>
+Will return an error if the domain is not active.
+
+This function returns a limited amount of information in comparison
+to virDomainGetJobStats().</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>a domain object</td></tr><tr><td><span class="term"><i><tt>info</tt></i>:</span></td><td>pointer to a <a href="libvirt-libvirt.html#virDomainJobInfo">virDomainJobInfo</a> structure allocated by the user</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success and -1 in case of failure.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainGetJobStats"/>virDomainGetJobStats ()</h3><pre class="programlisting">int	virDomainGetJobStats		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 int * type, <br/>					 <a href="libvirt-libvirt.html#virTypedParameterPtr">virTypedParameterPtr</a> * params, <br/>					 int * nparams, <br/>					 unsigned int flags)<br/>
@@ -5059,7 +5068,12 @@ in which the hypervisor tries each shutdown method is undefined,
 and a hypervisor is not required to support all methods.
 
 To use guest agent (VIR_DOMAIN_REBOOT_GUEST_AGENT) the domain XML
-must have &lt;channel&gt; configured.</p>
+must have &lt;channel&gt; configured.
+
+Due to implementation limitations in some drivers (the qemu driver,
+for instance) it is not advised to migrate or save a guest that is
+rebooting as a result of this API. Migrating such a guest can lead
+to a plain shutdown on the destination.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>a domain object</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt.html#virDomainRebootFlagValues">virDomainRebootFlagValues</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success and -1 in case of failure.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainRef"/>virDomainRef ()</h3><pre class="programlisting">int	virDomainRef			(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain)<br/>
@@ -5103,7 +5117,7 @@ device while the domain is stopped.
 If @flags includes VIR_DOMAIN_SAVE_BYPASS_CACHE, then libvirt will
 attempt to bypass the file system cache while restoring the file, or
 fail if it cannot do so for the given system; this can allow less
-pressure on file system cache, but also risks slowing saves to NFS.
+pressure on file system cache, but also risks slowing restores from NFS.
 
 Normally, the saved state file will remember whether the domain was
 running or paused, and restore defaults to the same state.
@@ -6054,8 +6068,7 @@ will be logged.</p>
 If there was an open network config transaction at the time this
 interface was defined (that is, if virInterfaceChangeBegin() had
 been called), the interface will be brought back down (and then
-undefined) if virInterfaceChangeRollback() is called.
-p *</p>
+undefined) if virInterfaceChangeRollback() is called.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>iface</tt></i>:</span></td><td>pointer to a defined interface</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>extra flags; not used yet, so callers should always pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success, -1 in case of error</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virInterfaceDefineXML"/>virInterfaceDefineXML ()</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virInterfacePtr">virInterfacePtr</a>	virInterfaceDefineXML	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char * xml, <br/>					 unsigned int flags)<br/>

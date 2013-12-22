@@ -110,6 +110,7 @@ mymain(void)
     while (0);
 
     DO_TEST("pool-dir", "vol-file");
+    DO_TEST("pool-dir", "vol-file-naming");
     DO_TEST("pool-dir", "vol-file-backing");
     DO_TEST("pool-dir", "vol-qcow2");
     DO_TEST("pool-dir", "vol-qcow2-1.1");
@@ -120,6 +121,7 @@ mymain(void)
     DO_TEST("pool-logical", "vol-logical");
     DO_TEST("pool-logical", "vol-logical-backing");
     DO_TEST("pool-sheepdog", "vol-sheepdog");
+    DO_TEST("pool-gluster", "vol-gluster-dir");
 
     return ret==0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }

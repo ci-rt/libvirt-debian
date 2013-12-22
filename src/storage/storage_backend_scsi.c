@@ -1,7 +1,7 @@
 /*
  * storage_backend_scsi.c: storage backend for SCSI handling
  *
- * Copyright (C) 2007-2008 Red Hat, Inc.
+ * Copyright (C) 2007-2008, 2013 Red Hat, Inc.
  * Copyright (C) 2007-2008 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -138,13 +138,16 @@ virStorageBackendSCSIUpdateVolTargetInfo(virStorageVolTargetPtr target,
 {
     int fdret, fd = -1;
     int ret = -1;
+    struct stat sb;
 
-    if ((fdret = virStorageBackendVolOpen(target->path)) < 0)
+    if ((fdret = virStorageBackendVolOpenCheckMode(target->path, &sb,
+                                                   VIR_STORAGE_VOL_OPEN_DEFAULT)) < 0)
         goto cleanup;
     fd = fdret;
 
     if (virStorageBackendUpdateVolTargetInfoFD(target,
                                                fd,
+                                               &sb,
                                                allocation,
                                                capacity) < 0)
         goto cleanup;
@@ -662,6 +665,14 @@ deleteVport(virStoragePoolSourceAdapter adapter)
     unsigned int parent_host;
 
     if (adapter.type != VIR_STORAGE_POOL_SOURCE_ADAPTER_TYPE_FC_HOST)
+        return 0;
+
+    /* It must be a HBA instead of a vHBA as long as "parent"
+     * is NULL. "createVport" guaranteed "parent" for a vHBA
+     * cannot be NULL, it's either specified in XML, or detected
+     * automatically.
+     */
+    if (!adapter.data.fchost.parent)
         return 0;
 
     if (!(virGetFCHostNameByWWN(NULL, adapter.data.fchost.wwnn,
