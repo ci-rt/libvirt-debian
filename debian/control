@@ -75,7 +75,7 @@ Recommends: netcat-openbsd,
  iproute,
  parted,
  pm-utils
-Suggests: policykit-1, radvd, auditd, systemtap
+Suggests: policykit-1, radvd, auditd, systemtap, systemd
 Description: programs for the libvirt library
  Libvirt is a C toolkit to interact with the virtualization capabilities
  of recent versions of Linux (and other OSes). The library aims at providing
