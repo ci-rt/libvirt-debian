@@ -17,11 +17,12 @@
 ### END INIT INFO
 
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+export PATH
 DAEMON=/usr/sbin/libvirtd
 NAME=libvirtd
 DESC="libvirt management daemon"
-MOUNTS="cpuset cpu cpuacct memory devices freezer net_cls blkio perf_event"
-export PATH
+cgroups="cpuset cpu cpuacct memory devices freezer net_cls blkio perf_event"
+! grep -qs cgroup_enable=memory /proc/cmdline || cgroups="$cgroups memory"
 
 test -x $DAEMON || exit 0
 . /lib/lsb/init-functions
@@ -81,7 +82,7 @@ mount_cgroups()
     if ! systemd_running
     then
         mount -t tmpfs cgroup_root /sys/fs/cgroup || return 1
-        for M in $MOUNTS; do
+        for M in $cgroups; do
             mkdir /sys/fs/cgroup/$M || return 1
             mount -t cgroup -o rw,nosuid,nodev,noexec,relatime,$M "cgroup_${M}" "/sys/fs/cgroup/${M}" || return 1
         done
@@ -95,7 +96,7 @@ umount_cgroups()
 {
     if ! systemd_running
     then
-        for M in $MOUNTS; do
+        for M in $cgroups; do
             umount "cgroup_${M}"
             rmdir /sys/fs/cgroup/$M
         done
