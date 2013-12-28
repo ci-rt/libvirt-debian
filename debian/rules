@@ -29,6 +29,7 @@ ifneq (,$(findstring $(DEB_HOST_ARCH_OS), linux))
   WITH_SANLOCK        = --with-sanlock
   WITH_INIT_SCRIPT    =	--with-init-script=systemd
   WITH_AUDIT          = --with-audit
+  WITH_SELINUX        = --with-selinux --with-secdriver-selinux
   ifneq (,$(findstring $(DEB_HOST_ARCH), amd64 armel armhf i386 ia64 powerpc s390))
       WITH_DTRACE     = --with-dtrace
   else
@@ -61,6 +62,7 @@ else
   WITH_NETCF          = --without-netcf
   WITH_INIT_SCRIPT    =	--with-init-script=none
   WITH_AUDIT          = --without-audit
+  WITH_SELINUX        = --without-selinux
   WITH_DTRACE         = --without-dtrace
   WITH_XEN            = --without-xen
   WITH_LIBXL          = --without-libxl
@@ -88,7 +90,7 @@ DEB_CONFIGURE_EXTRA_ARGS :=      \
 	$(WITH_STORAGE_RBD)      \
 	$(WITH_INIT_SCRIPT)      \
 	$(WITH_NUMA)             \
-	--without-selinux        \
+	$(WITH_SELINUX)          \
 	--without-esx		 \
 	--without-phyp           \
 	$(WITH_CAPNG)		 \
