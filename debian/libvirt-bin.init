@@ -21,7 +21,7 @@ export PATH
 DAEMON=/usr/sbin/libvirtd
 NAME=libvirtd
 DESC="libvirt management daemon"
-cgroups="cpuset cpu cpuacct memory devices freezer net_cls blkio perf_event"
+cgroups="cpuset cpu cpuacct devices freezer net_cls blkio perf_event"
 ! grep -qs cgroup_enable=memory /proc/cmdline || cgroups="$cgroups memory"
 
 test -x $DAEMON || exit 0
