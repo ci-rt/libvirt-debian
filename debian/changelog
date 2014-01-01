@@ -1,3 +1,20 @@
+libvirt (1.2.0-2) unstable; urgency=medium
+
+  [ Guido Günther ]
+  * [949fae6] Suggest systemd since it improves thinks like e.g. cgroup
+    handling
+  * [96f9aae] Make mounted cgroups configurable via /etc/default/libvirt-bin
+    and check for memory cgroup on kernel command line. (Closes: #732666)
+  * [ce356fe] Really remove "memory" from default mount list. Thanks to phep
+    <phep-lists@teletopie.net>
+
+  [ Laurent Bigonville ]
+  * [13052e4] Enable selinux driver (Closes: #688179)
+  * [a00df46] Switch LSB dependencies to avahi-daemon since only the later
+    exists as native systemd service. (Closes: #731612)
+
+ -- Guido Günther <agx@sigxcpu.org>  Wed, 01 Jan 2014 20:24:37 +0100
+
 libvirt (1.2.0-1) unstable; urgency=medium
 
   * Upload to unstable
