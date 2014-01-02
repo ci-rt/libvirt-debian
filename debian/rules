@@ -29,7 +29,7 @@ ifneq (,$(findstring $(DEB_HOST_ARCH_OS), linux))
   WITH_SANLOCK        = --with-sanlock
   WITH_INIT_SCRIPT    =	--with-init-script=systemd
   WITH_AUDIT          = --with-audit
-  WITH_SELINUX        = --with-selinux --with-secdriver-selinux
+  WITH_SELINUX        = --with-selinux --with-secdriver-selinux --with-selinux-mount=/sys/fs/selinux
   ifneq (,$(findstring $(DEB_HOST_ARCH), amd64 armel armhf i386 ia64 powerpc s390))
       WITH_DTRACE     = --with-dtrace
   else
