@@ -1,5 +1,5 @@
 /* Test of passing file descriptors.
-   Copyright (C) 2011-2013 Free Software Foundation, Inc.
+   Copyright (C) 2011-2014 Free Software Foundation, Inc.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -83,6 +83,7 @@ main ()
   /* father */
   else
     {
+      ASSERT (close (pair[1]) == 0);
       fd = recvfd (pair[0], 0);
       if (fd == -1)
         {
@@ -116,6 +117,13 @@ main ()
           perror ("fstat");
           return 80;
         }
+
+      /* Check behavior when sender no longer around */
+      errno = 0;
+      fd = recvfd (pair[0], 0);
+      ASSERT (fd == -1);
+      ASSERT (errno == ENOTCONN);
+
       return 0;
     }
 #else

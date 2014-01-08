@@ -2,7 +2,7 @@
  * libvirt-qemu.c: Interfaces for the libvirt library to handle qemu-specific
  *                 APIs.
  *
- * Copyright (C) 2010-2012 Red Hat, Inc.
+ * Copyright (C) 2010-2014 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -25,17 +25,10 @@
 
 #include "virerror.h"
 #include "virlog.h"
+#include "viruuid.h"
 #include "datatypes.h"
 
 #define VIR_FROM_THIS VIR_FROM_NONE
-
-#define virLibConnError(conn, error, info)                              \
-    virReportErrorHelper(VIR_FROM_NONE, error, __FILE__, __FUNCTION__,  \
-                         __LINE__, info)
-
-#define virLibDomainError(domain, error, info)                          \
-    virReportErrorHelper(VIR_FROM_DOM, error, __FILE__, __FUNCTION__,   \
-                         __LINE__, info)
 
 /**
  * virDomainQemuMonitorCommand:
@@ -75,25 +68,16 @@ virDomainQemuMonitorCommand(virDomainPtr domain, const char *cmd,
 {
     virConnectPtr conn;
 
-    VIR_DEBUG("domain=%p, cmd=%s, result=%p, flags=%x",
-              domain, cmd, result, flags);
+    VIR_DOMAIN_DEBUG(domain, "cmd=%s, result=%p, flags=%x",
+                     cmd, result, flags);
 
     virResetLastError();
 
-    if (!VIR_IS_CONNECTED_DOMAIN(domain)) {
-        virLibDomainError(NULL, VIR_ERR_INVALID_DOMAIN, __FUNCTION__);
-        virDispatchError(NULL);
-        return -1;
-    }
-
+    virCheckDomainReturn(domain, -1);
     conn = domain->conn;
 
     virCheckNonNullArgGoto(result, error);
-
-    if (conn->flags & VIR_CONNECT_RO) {
-        virLibDomainError(domain, VIR_ERR_OPERATION_DENIED, __FUNCTION__);
-        goto error;
-    }
+    virCheckReadOnlyGoto(conn->flags, error);
 
     if (conn->driver->domainQemuMonitorCommand) {
         int ret;
@@ -104,12 +88,13 @@ virDomainQemuMonitorCommand(virDomainPtr domain, const char *cmd,
         return ret;
     }
 
-    virLibConnError(conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+    virReportUnsupportedError();
 
 error:
     virDispatchError(conn);
     return -1;
 }
+
 
 /**
  * virDomainQemuAttach:
@@ -151,12 +136,7 @@ virDomainQemuAttach(virConnectPtr conn,
 
     virResetLastError();
 
-    if (!VIR_IS_CONNECT(conn)) {
-        virLibConnError(NULL, VIR_ERR_INVALID_CONN, __FUNCTION__);
-        virDispatchError(NULL);
-        return NULL;
-    }
-
+    virCheckConnectReturn(conn, NULL);
     virCheckPositiveArgGoto(pid_value, error);
     if (pid != pid_value) {
         virReportInvalidArg(pid_value,
@@ -165,10 +145,7 @@ virDomainQemuAttach(virConnectPtr conn,
         goto error;
     }
 
-    if (conn->flags & VIR_CONNECT_RO) {
-        virLibDomainError(domain, VIR_ERR_OPERATION_DENIED, __FUNCTION__);
-        goto error;
-    }
+    virCheckReadOnlyGoto(conn->flags, error);
 
     if (conn->driver->domainQemuAttach) {
         virDomainPtr ret;
@@ -178,12 +155,13 @@ virDomainQemuAttach(virConnectPtr conn,
         return ret;
     }
 
-    virLibConnError(conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+    virReportUnsupportedError();
 
 error:
     virDispatchError(conn);
     return NULL;
 }
+
 
 /**
  * virDomainQemuAgentCommand:
@@ -213,21 +191,15 @@ virDomainQemuAgentCommand(virDomainPtr domain,
     virConnectPtr conn;
     char *ret;
 
-    VIR_DEBUG("domain=%p, cmd=%s, timeout=%d, flags=%x",
-              domain, cmd, timeout, flags);
+    VIR_DOMAIN_DEBUG(domain, "cmd=%s, timeout=%d, flags=%x",
+                     cmd, timeout, flags);
 
-    if (!VIR_IS_CONNECTED_DOMAIN(domain)) {
-        virLibDomainError(NULL, VIR_ERR_INVALID_DOMAIN, __FUNCTION__);
-        virDispatchError(NULL);
-        return NULL;
-    }
+    virResetLastError();
 
+    virCheckDomainReturn(domain, NULL);
     conn = domain->conn;
 
-    if (conn->flags & VIR_CONNECT_RO) {
-        virLibDomainError(NULL, VIR_ERR_OPERATION_DENIED, __FUNCTION__);
-        goto error;
-    }
+    virCheckReadOnlyGoto(conn->flags, error);
 
     if (conn->driver->domainQemuAgentCommand) {
         ret = conn->driver->domainQemuAgentCommand(domain, cmd,
@@ -237,9 +209,8 @@ virDomainQemuAgentCommand(virDomainPtr domain,
         return ret;
     }
 
-    virLibConnError(conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+    virReportUnsupportedError();
 
-    /* Copy to connection error object for back compatibility */
 error:
     virDispatchError(conn);
     return NULL;

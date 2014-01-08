@@ -208,7 +208,8 @@ DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/Makefile.am \
 	$(top_srcdir)/build-aux/test-driver
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
-	$(top_srcdir)/m4/alloca.m4 $(top_srcdir)/m4/arpa_inet_h.m4 \
+	$(top_srcdir)/m4/absolute-header.m4 $(top_srcdir)/m4/alloca.m4 \
+	$(top_srcdir)/m4/arpa_inet_h.m4 \
 	$(top_srcdir)/m4/asm-underscore.m4 \
 	$(top_srcdir)/m4/autobuild.m4 $(top_srcdir)/m4/base64.m4 \
 	$(top_srcdir)/m4/btowc.m4 $(top_srcdir)/m4/byteswap.m4 \
@@ -242,8 +243,8 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/getline.m4 $(top_srcdir)/m4/getpagesize.m4 \
 	$(top_srcdir)/m4/getpass.m4 $(top_srcdir)/m4/gettext.m4 \
 	$(top_srcdir)/m4/gettimeofday.m4 \
-	$(top_srcdir)/m4/getugroups.m4 $(top_srcdir)/m4/glibc21.m4 \
-	$(top_srcdir)/m4/gnulib-common.m4 \
+	$(top_srcdir)/m4/getugroups.m4 $(top_srcdir)/m4/gl-openssl.m4 \
+	$(top_srcdir)/m4/glibc21.m4 $(top_srcdir)/m4/gnulib-common.m4 \
 	$(top_srcdir)/m4/gnulib-comp.m4 $(top_srcdir)/m4/grantpt.m4 \
 	$(top_srcdir)/m4/hostent.m4 $(top_srcdir)/m4/iconv.m4 \
 	$(top_srcdir)/m4/include_next.m4 $(top_srcdir)/m4/inet_ntop.m4 \
@@ -517,7 +518,8 @@ am__EXEEXT_22 = virshtest$(EXEEXT) sockettest$(EXEEXT) \
 	$(am__EXEEXT_20) storagevolxml2xmltest$(EXEEXT) \
 	storagepoolxml2xmltest$(EXEEXT) nodedevxml2xmltest$(EXEEXT) \
 	interfacexml2xmltest$(EXEEXT) cputest$(EXEEXT) \
-	metadatatest$(EXEEXT) $(am__EXEEXT_21)
+	metadatatest$(EXEEXT) $(am__EXEEXT_21) \
+	objecteventtest$(EXEEXT)
 am__EXEEXT_23 = commandhelper$(EXEEXT) ssh$(EXEEXT) test_conf$(EXEEXT)
 PROGRAMS = $(noinst_PROGRAMS)
 am_commandhelper_OBJECTS = commandhelper.$(OBJEXT)
@@ -628,6 +630,10 @@ am__object_locking_SOURCES_DIST = object-locking.ml
 am_object_locking_OBJECTS =
 object_locking_OBJECTS = $(am_object_locking_OBJECTS)
 object_locking_LDADD = $(LDADD)
+am_objecteventtest_OBJECTS = objecteventtest.$(OBJEXT) \
+	testutils.$(OBJEXT)
+objecteventtest_OBJECTS = $(am_objecteventtest_OBJECTS)
+objecteventtest_DEPENDENCIES = $(am__DEPENDENCIES_2)
 am__openvzutilstest_SOURCES_DIST = openvzutilstest.c testutils.c \
 	testutils.h
 @WITH_OPENVZ_TRUE@am_openvzutilstest_OBJECTS =  \
@@ -1012,13 +1018,14 @@ SOURCES = $(libqemumonitortestutils_la_SOURCES) \
 	$(networkxml2xmlupdatetest_SOURCES) \
 	$(nodedevxml2xmltest_SOURCES) $(nodeinfotest_SOURCES) \
 	$(nwfilterxml2xmltest_SOURCES) $(object_locking_SOURCES) \
-	$(openvzutilstest_SOURCES) $(qemuagenttest_SOURCES) \
-	$(qemuargv2xmltest_SOURCES) $(qemucapabilitiestest_SOURCES) \
-	$(qemuhelptest_SOURCES) $(qemuhotplugtest_SOURCES) \
-	$(qemumonitorjsontest_SOURCES) $(qemumonitortest_SOURCES) \
-	$(qemuxml2argvtest_SOURCES) $(qemuxml2xmltest_SOURCES) \
-	$(qemuxmlnstest_SOURCES) $(reconnect_SOURCES) \
-	$(seclabeltest_SOURCES) $(securityselinuxlabeltest_SOURCES) \
+	$(objecteventtest_SOURCES) $(openvzutilstest_SOURCES) \
+	$(qemuagenttest_SOURCES) $(qemuargv2xmltest_SOURCES) \
+	$(qemucapabilitiestest_SOURCES) $(qemuhelptest_SOURCES) \
+	$(qemuhotplugtest_SOURCES) $(qemumonitorjsontest_SOURCES) \
+	$(qemumonitortest_SOURCES) $(qemuxml2argvtest_SOURCES) \
+	$(qemuxml2xmltest_SOURCES) $(qemuxmlnstest_SOURCES) \
+	$(reconnect_SOURCES) $(seclabeltest_SOURCES) \
+	$(securityselinuxlabeltest_SOURCES) \
 	$(securityselinuxtest_SOURCES) $(sexpr2xmltest_SOURCES) \
 	$(shunloadtest_SOURCES) $(sockettest_SOURCES) $(ssh_SOURCES) \
 	$(statstest_SOURCES) $(storagebackendsheepdogtest_SOURCES) \
@@ -1063,7 +1070,7 @@ DIST_SOURCES = $(am__libqemumonitortestutils_la_SOURCES_DIST) \
 	$(networkxml2xmlupdatetest_SOURCES) \
 	$(nodedevxml2xmltest_SOURCES) $(nodeinfotest_SOURCES) \
 	$(nwfilterxml2xmltest_SOURCES) \
-	$(am__object_locking_SOURCES_DIST) \
+	$(am__object_locking_SOURCES_DIST) $(objecteventtest_SOURCES) \
 	$(am__openvzutilstest_SOURCES_DIST) \
 	$(am__qemuagenttest_SOURCES_DIST) \
 	$(am__qemuargv2xmltest_SOURCES_DIST) \
@@ -2252,6 +2259,7 @@ LIBXL_LIBS = @LIBXL_LIBS@
 LIBXML_CFLAGS = @LIBXML_CFLAGS@
 LIBXML_LIBS = @LIBXML_LIBS@
 LIB_CLOCK_GETTIME = @LIB_CLOCK_GETTIME@
+LIB_CRYPTO = @LIB_CRYPTO@
 LIB_EXECINFO = @LIB_EXECINFO@
 LIB_FDATASYNC = @LIB_FDATASYNC@
 LIB_NANOSLEEP = @LIB_NANOSLEEP@
@@ -2486,6 +2494,7 @@ REPLACE_GETLINE = @REPLACE_GETLINE@
 REPLACE_GETLOGIN_R = @REPLACE_GETLOGIN_R@
 REPLACE_GETPAGESIZE = @REPLACE_GETPAGESIZE@
 REPLACE_GETTIMEOFDAY = @REPLACE_GETTIMEOFDAY@
+REPLACE_GMTIME = @REPLACE_GMTIME@
 REPLACE_HUGE_VAL = @REPLACE_HUGE_VAL@
 REPLACE_HYPOT = @REPLACE_HYPOT@
 REPLACE_HYPOTF = @REPLACE_HYPOTF@
@@ -2507,6 +2516,7 @@ REPLACE_LDEXPL = @REPLACE_LDEXPL@
 REPLACE_LINK = @REPLACE_LINK@
 REPLACE_LINKAT = @REPLACE_LINKAT@
 REPLACE_LOCALECONV = @REPLACE_LOCALECONV@
+REPLACE_LOCALTIME = @REPLACE_LOCALTIME@
 REPLACE_LOCALTIME_R = @REPLACE_LOCALTIME_R@
 REPLACE_LOG = @REPLACE_LOG@
 REPLACE_LOG10 = @REPLACE_LOG10@
@@ -2841,7 +2851,7 @@ test_programs = virshtest sockettest nodeinfotest virbuftest \
 	$(am__append_20) $(am__append_21) nwfilterxml2xmltest \
 	$(am__append_22) storagevolxml2xmltest storagepoolxml2xmltest \
 	nodedevxml2xmltest interfacexml2xmltest cputest metadatatest \
-	$(am__append_24)
+	$(am__append_24) objecteventtest
 
 # This is a fake SSH we use from virnetsockettest
 ssh_SOURCES = ssh.c
@@ -3316,6 +3326,11 @@ fdstreamtest_SOURCES = \
 	fdstreamtest.c testutils.h testutils.c
 
 fdstreamtest_LDADD = $(LDADDS)
+objecteventtest_SOURCES = \
+	objecteventtest.c \
+	testutils.c testutils.h
+
+objecteventtest_LDADD = $(LDADDS)
 @WITH_LINUX_TRUE@fchosttest_SOURCES = \
 @WITH_LINUX_TRUE@       fchosttest.c testutils.h testutils.c
 
@@ -3506,6 +3521,10 @@ nwfilterxml2xmltest$(EXEEXT): $(nwfilterxml2xmltest_OBJECTS) $(nwfilterxml2xmlte
 @WITH_CIL_FALSE@object-locking$(EXEEXT): $(object_locking_OBJECTS) $(object_locking_DEPENDENCIES) $(EXTRA_object_locking_DEPENDENCIES) 
 @WITH_CIL_FALSE@	@rm -f object-locking$(EXEEXT)
 @WITH_CIL_FALSE@	$(AM_V_CCLD)$(LINK) $(object_locking_OBJECTS) $(object_locking_LDADD) $(LIBS)
+
+objecteventtest$(EXEEXT): $(objecteventtest_OBJECTS) $(objecteventtest_DEPENDENCIES) $(EXTRA_objecteventtest_DEPENDENCIES) 
+	@rm -f objecteventtest$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(objecteventtest_OBJECTS) $(objecteventtest_LDADD) $(LIBS)
 
 openvzutilstest$(EXEEXT): $(openvzutilstest_OBJECTS) $(openvzutilstest_DEPENDENCIES) $(EXTRA_openvzutilstest_DEPENDENCIES) 
 	@rm -f openvzutilstest$(EXEEXT)
@@ -3777,6 +3796,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nodedevxml2xmltest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nodeinfotest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nwfilterxml2xmltest.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/objecteventtest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/openvzutilstest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pkix_asn1_tab.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/qemuagenttest.Po@am__quote@
@@ -4768,6 +4788,13 @@ eventtest.log: eventtest$(EXEEXT)
 libvirtdconftest.log: libvirtdconftest$(EXEEXT)
 	@p='libvirtdconftest$(EXEEXT)'; \
 	b='libvirtdconftest'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
+objecteventtest.log: objecteventtest$(EXEEXT)
+	@p='objecteventtest$(EXEEXT)'; \
+	b='objecteventtest'; \
 	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
 	--log-file $$b.log --trs-file $$b.trs \
 	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \

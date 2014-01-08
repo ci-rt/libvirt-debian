@@ -62,7 +62,7 @@ lxcProcessAutoDestroy(virDomainObjPtr dom,
                       void *opaque)
 {
     virLXCDriverPtr driver = opaque;
-    virDomainEventPtr event = NULL;
+    virObjectEventPtr event = NULL;
     virLXCDomainObjPrivatePtr priv;
 
     VIR_DEBUG("driver=%p dom=%s conn=%p", driver, dom->def->name, conn);
@@ -71,7 +71,7 @@ lxcProcessAutoDestroy(virDomainObjPtr dom,
     VIR_DEBUG("Killing domain");
     virLXCProcessStop(driver, dom, VIR_DOMAIN_SHUTOFF_DESTROYED);
     virDomainAuditStop(dom, "destroyed");
-    event = virDomainEventNewFromObj(dom,
+    event = virDomainEventLifecycleNewFromObj(dom,
                                      VIR_DOMAIN_EVENT_STOPPED,
                                      VIR_DOMAIN_EVENT_STOPPED_DESTROYED);
     priv->doneStopEvent = true;
@@ -82,7 +82,7 @@ lxcProcessAutoDestroy(virDomainObjPtr dom,
     }
 
     if (event)
-        virDomainEventStateQueue(driver->domainEventState, event);
+        virObjectEventStateQueue(driver->domainEventState, event);
 
     return dom;
 }
@@ -490,7 +490,7 @@ static void virLXCProcessMonitorEOFNotify(virLXCMonitorPtr mon,
                                           virDomainObjPtr vm)
 {
     virLXCDriverPtr driver = lxc_driver;
-    virDomainEventPtr event = NULL;
+    virObjectEventPtr event = NULL;
     virLXCDomainObjPrivatePtr priv;
 
     VIR_DEBUG("mon=%p vm=%p", mon, vm);
@@ -502,7 +502,7 @@ static void virLXCProcessMonitorEOFNotify(virLXCMonitorPtr mon,
     if (!priv->wantReboot) {
         virLXCProcessStop(driver, vm, VIR_DOMAIN_SHUTOFF_SHUTDOWN);
         if (!priv->doneStopEvent) {
-            event = virDomainEventNewFromObj(vm,
+            event = virDomainEventLifecycleNewFromObj(vm,
                                              VIR_DOMAIN_EVENT_STOPPED,
                                              priv->stopReason);
             virDomainAuditStop(vm, "shutdown");
@@ -520,7 +520,7 @@ static void virLXCProcessMonitorEOFNotify(virLXCMonitorPtr mon,
         if (ret == 0) {
             event = virDomainEventRebootNewFromObj(vm);
         } else {
-            event = virDomainEventNewFromObj(vm,
+            event = virDomainEventLifecycleNewFromObj(vm,
                                              VIR_DOMAIN_EVENT_STOPPED,
                                              priv->stopReason);
             if (!vm->persistent) {
@@ -533,7 +533,7 @@ static void virLXCProcessMonitorEOFNotify(virLXCMonitorPtr mon,
     if (vm)
         virObjectUnlock(vm);
     if (event) {
-        virDomainEventStateQueue(driver->domainEventState, event);
+        virObjectEventStateQueue(driver->domainEventState, event);
     }
 }
 
@@ -711,7 +711,11 @@ int virLXCProcessStop(virLXCDriverPtr driver,
     } else {
         /* If cgroup doesn't exist, just try cleaning up the
          * libvirt_lxc process */
-        virProcessKillPainfully(vm->pid, true);
+        if (virProcessKillPainfully(vm->pid, true) < 0) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Processes %d refused to die"), (int)vm->pid);
+            return -1;
+        }
     }
 
     virLXCProcessCleanup(driver, vm, reason);
@@ -1394,12 +1398,12 @@ virLXCProcessAutostartDomain(virDomainObjPtr vm,
                       vm->def->name,
                       err ? err->message : "");
         } else {
-            virDomainEventPtr event =
-                virDomainEventNewFromObj(vm,
+            virObjectEventPtr event =
+                virDomainEventLifecycleNewFromObj(vm,
                                          VIR_DOMAIN_EVENT_STARTED,
                                          VIR_DOMAIN_EVENT_STARTED_BOOTED);
             if (event)
-                virDomainEventStateQueue(data->driver->domainEventState, event);
+                virObjectEventStateQueue(data->driver->domainEventState, event);
         }
     }
     virObjectUnlock(vm);

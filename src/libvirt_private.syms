@@ -104,7 +104,7 @@ virDomainAuditVcpu;
 
 
 # conf/domain_conf.h
-virBlkioDeviceWeightArrayClear;
+virBlkioDeviceArrayClear;
 virDiskNameToBusDeviceIndex;
 virDiskNameToIndex;
 virDomainActualNetDefFree;
@@ -180,6 +180,7 @@ virDomainDeviceFindControllerModel;
 virDomainDeviceInfoCopy;
 virDomainDeviceInfoIterate;
 virDomainDeviceTypeToString;
+virDomainDiskAuthClear;
 virDomainDiskBusTypeToString;
 virDomainDiskCacheTypeFromString;
 virDomainDiskCacheTypeToString;
@@ -198,6 +199,8 @@ virDomainDiskFindByBusAndDst;
 virDomainDiskGeometryTransTypeFromString;
 virDomainDiskGeometryTransTypeToString;
 virDomainDiskHostDefClear;
+virDomainDiskHostDefCopy;
+virDomainDiskHostDefFree;
 virDomainDiskIndexByName;
 virDomainDiskInsert;
 virDomainDiskInsertPreAlloced;
@@ -421,17 +424,16 @@ virDomainEventDeviceRemovedNewFromDom;
 virDomainEventDeviceRemovedNewFromObj;
 virDomainEventDiskChangeNewFromDom;
 virDomainEventDiskChangeNewFromObj;
-virDomainEventFree;
 virDomainEventGraphicsNewFromDom;
 virDomainEventGraphicsNewFromObj;
 virDomainEventIOErrorNewFromDom;
 virDomainEventIOErrorNewFromObj;
 virDomainEventIOErrorReasonNewFromDom;
 virDomainEventIOErrorReasonNewFromObj;
-virDomainEventNew;
-virDomainEventNewFromDef;
-virDomainEventNewFromDom;
-virDomainEventNewFromObj;
+virDomainEventLifecycleNew;
+virDomainEventLifecycleNewFromDef;
+virDomainEventLifecycleNewFromDom;
+virDomainEventLifecycleNewFromObj;
 virDomainEventPMSuspendDiskNewFromDom;
 virDomainEventPMSuspendDiskNewFromObj;
 virDomainEventPMSuspendNewFromDom;
@@ -444,11 +446,6 @@ virDomainEventRebootNewFromObj;
 virDomainEventRTCChangeNewFromDom;
 virDomainEventRTCChangeNewFromObj;
 virDomainEventStateDeregister;
-virDomainEventStateDeregisterID;
-virDomainEventStateEventID;
-virDomainEventStateFree;
-virDomainEventStateNew;
-virDomainEventStateQueue;
 virDomainEventStateRegister;
 virDomainEventStateRegisterID;
 virDomainEventTrayChangeNewFromDom;
@@ -535,6 +532,11 @@ virNetworkSaveStatus;
 virNetworkSetBridgeMacAddr;
 virNetworkSetBridgeName;
 virPortGroupFindByName;
+
+
+# conf/network_event.h
+virNetworkEventLifecycleNew;
+virNetworkEventStateRegisterID;
 
 
 # conf/node_device_conf.h
@@ -626,6 +628,15 @@ virNWFilterVarValueGetNthValue;
 virNWFilterVarValueGetSimple;
 
 
+# conf/object_event.h
+virObjectEventStateDeregisterID;
+virObjectEventStateEventID;
+virObjectEventStateFree;
+virObjectEventStateNew;
+virObjectEventStateQueue;
+virObjectEventStateRegisterID;
+
+
 # conf/secret_conf.h
 virSecretDefFormat;
 virSecretDefFree;
@@ -693,6 +704,7 @@ virStoragePoolSourceFree;
 virStoragePoolSourceListFormat;
 virStoragePoolSourceListNewSource;
 virStoragePoolTypeFromString;
+virStoragePoolTypeToString;
 virStorageVolDefFindByKey;
 virStorageVolDefFindByName;
 virStorageVolDefFindByPath;
@@ -1281,6 +1293,7 @@ iptablesAddForwardRejectOut;
 iptablesAddOutputFixUdpChecksum;
 iptablesAddTcpInput;
 iptablesAddUdpInput;
+iptablesAddUdpOutput;
 iptablesRemoveDontMasquerade;
 iptablesRemoveForwardAllowCross;
 iptablesRemoveForwardAllowIn;
@@ -1292,6 +1305,7 @@ iptablesRemoveForwardRejectOut;
 iptablesRemoveOutputFixUdpChecksum;
 iptablesRemoveTcpInput;
 iptablesRemoveUdpInput;
+iptablesRemoveUdpOutput;
 
 
 # util/virjson.h

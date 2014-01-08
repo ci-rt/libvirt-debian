@@ -2,7 +2,7 @@
  * libvirt-lxc.c: Interfaces for the libvirt library to handle lxc-specific
  *                 APIs.
  *
- * Copyright (C) 2012-2013 Red Hat, Inc.
+ * Copyright (C) 2012-2014 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -28,20 +28,13 @@
 #include "virfile.h"
 #include "virlog.h"
 #include "virprocess.h"
+#include "viruuid.h"
 #include "datatypes.h"
 #ifdef WITH_SELINUX
 # include <selinux/selinux.h>
 #endif
 
 #define VIR_FROM_THIS VIR_FROM_NONE
-
-#define virLibConnError(conn, error, info)                              \
-    virReportErrorHelper(VIR_FROM_NONE, error, __FILE__, __FUNCTION__,  \
-                         __LINE__, info)
-
-#define virLibDomainError(domain, error, info)                          \
-    virReportErrorHelper(VIR_FROM_DOM, error, __FILE__, __FUNCTION__,   \
-                         __LINE__, info)
 
 /**
  * virDomainLxcOpenNamespace:
@@ -69,25 +62,15 @@ virDomainLxcOpenNamespace(virDomainPtr domain,
 {
     virConnectPtr conn;
 
-    VIR_DEBUG("domain=%p, fdlist=%p flags=%x",
-              domain, fdlist, flags);
+    VIR_DOMAIN_DEBUG(domain, "fdlist=%p flags=%x", fdlist, flags);
 
     virResetLastError();
 
-    if (!VIR_IS_CONNECTED_DOMAIN(domain)) {
-        virLibDomainError(NULL, VIR_ERR_INVALID_DOMAIN, __FUNCTION__);
-        virDispatchError(NULL);
-        return -1;
-    }
-
+    virCheckDomainReturn(domain, -1);
     conn = domain->conn;
 
     virCheckNonNullArgGoto(fdlist, error);
-
-    if (conn->flags & VIR_CONNECT_RO) {
-        virLibDomainError(domain, VIR_ERR_OPERATION_DENIED, __FUNCTION__);
-        goto error;
-    }
+    virCheckReadOnlyGoto(conn->flags, error);
 
     if (conn->driver->domainLxcOpenNamespace) {
         int ret;
@@ -99,7 +82,7 @@ virDomainLxcOpenNamespace(virDomainPtr domain,
         return ret;
     }
 
-    virLibConnError(conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+    virReportUnsupportedError();
 
 error:
     virDispatchError(conn);
@@ -137,6 +120,12 @@ virDomainLxcEnterNamespace(virDomainPtr domain,
                            unsigned int flags)
 {
     size_t i;
+
+    VIR_DOMAIN_DEBUG(domain, "nfdlist=%d, fdlist=%p, "
+                     "noldfdlist=%p, oldfdlist=%p, flags=%x",
+                     nfdlist, fdlist, noldfdlist, oldfdlist, flags);
+
+    virResetLastError();
 
     virCheckFlagsGoto(0, error);
 
@@ -196,6 +185,11 @@ virDomainLxcEnterSecurityLabel(virSecurityModelPtr model,
                                virSecurityLabelPtr oldlabel,
                                unsigned int flags)
 {
+    VIR_DEBUG("model=%p, label=%p, oldlabel=%p, flags=%x",
+              model, label, oldlabel, flags);
+
+    virResetLastError();
+
     virCheckFlagsGoto(0, error);
 
     virCheckNonNullArgGoto(model, error);

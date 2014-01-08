@@ -21,6 +21,7 @@ src/conf/network_conf.c
 src/conf/node_device_conf.c
 src/conf/nwfilter_conf.c
 src/conf/nwfilter_params.c
+src/conf/object_event.c
 src/conf/secret_conf.c
 src/conf/snapshot_conf.c
 src/conf/storage_conf.c
@@ -31,7 +32,6 @@ src/cpu/cpu_generic.c
 src/cpu/cpu_map.c
 src/cpu/cpu_powerpc.c
 src/cpu/cpu_x86.c
-src/datatypes.c
 src/driver.c
 src/esx/esx_driver.c
 src/esx/esx_network_driver.c

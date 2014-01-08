@@ -13,6 +13,7 @@
 # PARTICULAR PURPOSE.
 
 @SET_MAKE@
+
 VPATH = @srcdir@
 am__is_gnu_make = test -n '$(MAKEFILE_LIST)' && test -n '$(MAKELEVEL)'
 am__make_running_with_option = \
@@ -81,7 +82,8 @@ DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/Makefile.am \
 	$(top_srcdir)/build-aux/mkinstalldirs
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
-	$(top_srcdir)/m4/alloca.m4 $(top_srcdir)/m4/arpa_inet_h.m4 \
+	$(top_srcdir)/m4/absolute-header.m4 $(top_srcdir)/m4/alloca.m4 \
+	$(top_srcdir)/m4/arpa_inet_h.m4 \
 	$(top_srcdir)/m4/asm-underscore.m4 \
 	$(top_srcdir)/m4/autobuild.m4 $(top_srcdir)/m4/base64.m4 \
 	$(top_srcdir)/m4/btowc.m4 $(top_srcdir)/m4/byteswap.m4 \
@@ -115,8 +117,8 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/getline.m4 $(top_srcdir)/m4/getpagesize.m4 \
 	$(top_srcdir)/m4/getpass.m4 $(top_srcdir)/m4/gettext.m4 \
 	$(top_srcdir)/m4/gettimeofday.m4 \
-	$(top_srcdir)/m4/getugroups.m4 $(top_srcdir)/m4/glibc21.m4 \
-	$(top_srcdir)/m4/gnulib-common.m4 \
+	$(top_srcdir)/m4/getugroups.m4 $(top_srcdir)/m4/gl-openssl.m4 \
+	$(top_srcdir)/m4/glibc21.m4 $(top_srcdir)/m4/gnulib-common.m4 \
 	$(top_srcdir)/m4/gnulib-comp.m4 $(top_srcdir)/m4/grantpt.m4 \
 	$(top_srcdir)/m4/hostent.m4 $(top_srcdir)/m4/iconv.m4 \
 	$(top_srcdir)/m4/include_next.m4 $(top_srcdir)/m4/inet_ntop.m4 \
@@ -260,6 +262,36 @@ am__can_run_installinfo = \
     n|no|NO) false;; \
     *) (install-info --version) >/dev/null 2>&1;; \
   esac
+am__vpath_adj_setup = srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`;
+am__vpath_adj = case $$p in \
+    $(srcdir)/*) f=`echo "$$p" | sed "s|^$$srcdirstrip/||"`;; \
+    *) f=$$p;; \
+  esac;
+am__strip_dir = f=`echo $$p | sed -e 's|^.*/||'`;
+am__install_max = 40
+am__nobase_strip_setup = \
+  srcdirstrip=`echo "$(srcdir)" | sed 's/[].[^$$\\*|]/\\\\&/g'`
+am__nobase_strip = \
+  for p in $$list; do echo "$$p"; done | sed -e "s|$$srcdirstrip/||"
+am__nobase_list = $(am__nobase_strip_setup); \
+  for p in $$list; do echo "$$p $$p"; done | \
+  sed "s| $$srcdirstrip/| |;"' / .*\//!s/ .*/ ./; s,\( .*\)/[^/]*$$,\1,' | \
+  $(AWK) 'BEGIN { files["."] = "" } { files[$$2] = files[$$2] " " $$1; \
+    if (++n[$$2] == $(am__install_max)) \
+      { print $$2, files[$$2]; n[$$2] = 0; files[$$2] = "" } } \
+    END { for (dir in files) print dir, files[dir] }'
+am__base_list = \
+  sed '$$!N;$$!N;$$!N;$$!N;$$!N;$$!N;$$!N;s/\n/ /g' | \
+  sed '$$!N;$$!N;$$!N;$$!N;s/\n/ /g'
+am__uninstall_files_from_dir = { \
+  test -z "$$files" \
+    || { test ! -d "$$dir" && test ! -f "$$dir" && test ! -r "$$dir"; } \
+    || { echo " ( cd '$$dir' && rm -f" $$files ")"; \
+         $(am__cd) "$$dir" && rm -f $$files; }; \
+  }
+am__installdirs = "$(DESTDIR)$(abstractionsdir)" \
+	"$(DESTDIR)$(apparmordir)" "$(DESTDIR)$(templatesdir)"
+DATA = $(abstractions_DATA) $(apparmor_DATA) $(templates_DATA)
 am__tagged_files = $(HEADERS) $(SOURCES) $(TAGS_FILES) $(LISP)
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 pkglibexecdir = @pkglibexecdir@
@@ -1167,6 +1199,7 @@ LIBXL_LIBS = @LIBXL_LIBS@
 LIBXML_CFLAGS = @LIBXML_CFLAGS@
 LIBXML_LIBS = @LIBXML_LIBS@
 LIB_CLOCK_GETTIME = @LIB_CLOCK_GETTIME@
+LIB_CRYPTO = @LIB_CRYPTO@
 LIB_EXECINFO = @LIB_EXECINFO@
 LIB_FDATASYNC = @LIB_FDATASYNC@
 LIB_NANOSLEEP = @LIB_NANOSLEEP@
@@ -1401,6 +1434,7 @@ REPLACE_GETLINE = @REPLACE_GETLINE@
 REPLACE_GETLOGIN_R = @REPLACE_GETLOGIN_R@
 REPLACE_GETPAGESIZE = @REPLACE_GETPAGESIZE@
 REPLACE_GETTIMEOFDAY = @REPLACE_GETTIMEOFDAY@
+REPLACE_GMTIME = @REPLACE_GMTIME@
 REPLACE_HUGE_VAL = @REPLACE_HUGE_VAL@
 REPLACE_HYPOT = @REPLACE_HYPOT@
 REPLACE_HYPOTF = @REPLACE_HYPOTF@
@@ -1422,6 +1456,7 @@ REPLACE_LDEXPL = @REPLACE_LDEXPL@
 REPLACE_LINK = @REPLACE_LINK@
 REPLACE_LINKAT = @REPLACE_LINKAT@
 REPLACE_LOCALECONV = @REPLACE_LOCALECONV@
+REPLACE_LOCALTIME = @REPLACE_LOCALTIME@
 REPLACE_LOCALTIME_R = @REPLACE_LOCALTIME_R@
 REPLACE_LOG = @REPLACE_LOG@
 REPLACE_LOG10 = @REPLACE_LOG10@
@@ -1688,6 +1723,22 @@ EXTRA_DIST = \
 	usr.lib.libvirt.virt-aa-helper	\
 	usr.sbin.libvirtd
 
+@WITH_APPARMOR_PROFILES_TRUE@apparmordir = $(sysconfdir)/apparmor.d/
+@WITH_APPARMOR_PROFILES_TRUE@apparmor_DATA = \
+@WITH_APPARMOR_PROFILES_TRUE@	usr.lib.libvirt.virt-aa-helper \
+@WITH_APPARMOR_PROFILES_TRUE@	usr.sbin.libvirtd \
+@WITH_APPARMOR_PROFILES_TRUE@	$(NULL)
+
+@WITH_APPARMOR_PROFILES_TRUE@abstractionsdir = $(apparmordir)/abstractions
+@WITH_APPARMOR_PROFILES_TRUE@abstractions_DATA = \
+@WITH_APPARMOR_PROFILES_TRUE@	libvirt-qemu \
+@WITH_APPARMOR_PROFILES_TRUE@	$(NULL)
+
+@WITH_APPARMOR_PROFILES_TRUE@templatesdir = $(apparmordir)/libvirtd
+@WITH_APPARMOR_PROFILES_TRUE@templates_DATA = \
+@WITH_APPARMOR_PROFILES_TRUE@	TEMPLATE \
+@WITH_APPARMOR_PROFILES_TRUE@	$(NULL)
+
 all: all-am
 
 .SUFFIXES:
@@ -1727,6 +1778,69 @@ mostlyclean-libtool:
 
 clean-libtool:
 	-rm -rf .libs _libs
+install-abstractionsDATA: $(abstractions_DATA)
+	@$(NORMAL_INSTALL)
+	@list='$(abstractions_DATA)'; test -n "$(abstractionsdir)" || list=; \
+	if test -n "$$list"; then \
+	  echo " $(MKDIR_P) '$(DESTDIR)$(abstractionsdir)'"; \
+	  $(MKDIR_P) "$(DESTDIR)$(abstractionsdir)" || exit 1; \
+	fi; \
+	for p in $$list; do \
+	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
+	  echo "$$d$$p"; \
+	done | $(am__base_list) | \
+	while read files; do \
+	  echo " $(INSTALL_DATA) $$files '$(DESTDIR)$(abstractionsdir)'"; \
+	  $(INSTALL_DATA) $$files "$(DESTDIR)$(abstractionsdir)" || exit $$?; \
+	done
+
+uninstall-abstractionsDATA:
+	@$(NORMAL_UNINSTALL)
+	@list='$(abstractions_DATA)'; test -n "$(abstractionsdir)" || list=; \
+	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
+	dir='$(DESTDIR)$(abstractionsdir)'; $(am__uninstall_files_from_dir)
+install-apparmorDATA: $(apparmor_DATA)
+	@$(NORMAL_INSTALL)
+	@list='$(apparmor_DATA)'; test -n "$(apparmordir)" || list=; \
+	if test -n "$$list"; then \
+	  echo " $(MKDIR_P) '$(DESTDIR)$(apparmordir)'"; \
+	  $(MKDIR_P) "$(DESTDIR)$(apparmordir)" || exit 1; \
+	fi; \
+	for p in $$list; do \
+	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
+	  echo "$$d$$p"; \
+	done | $(am__base_list) | \
+	while read files; do \
+	  echo " $(INSTALL_DATA) $$files '$(DESTDIR)$(apparmordir)'"; \
+	  $(INSTALL_DATA) $$files "$(DESTDIR)$(apparmordir)" || exit $$?; \
+	done
+
+uninstall-apparmorDATA:
+	@$(NORMAL_UNINSTALL)
+	@list='$(apparmor_DATA)'; test -n "$(apparmordir)" || list=; \
+	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
+	dir='$(DESTDIR)$(apparmordir)'; $(am__uninstall_files_from_dir)
+install-templatesDATA: $(templates_DATA)
+	@$(NORMAL_INSTALL)
+	@list='$(templates_DATA)'; test -n "$(templatesdir)" || list=; \
+	if test -n "$$list"; then \
+	  echo " $(MKDIR_P) '$(DESTDIR)$(templatesdir)'"; \
+	  $(MKDIR_P) "$(DESTDIR)$(templatesdir)" || exit 1; \
+	fi; \
+	for p in $$list; do \
+	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
+	  echo "$$d$$p"; \
+	done | $(am__base_list) | \
+	while read files; do \
+	  echo " $(INSTALL_DATA) $$files '$(DESTDIR)$(templatesdir)'"; \
+	  $(INSTALL_DATA) $$files "$(DESTDIR)$(templatesdir)" || exit $$?; \
+	done
+
+uninstall-templatesDATA:
+	@$(NORMAL_UNINSTALL)
+	@list='$(templates_DATA)'; test -n "$(templatesdir)" || list=; \
+	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
+	dir='$(DESTDIR)$(templatesdir)'; $(am__uninstall_files_from_dir)
 tags TAGS:
 
 ctags CTAGS:
@@ -1766,8 +1880,11 @@ distdir: $(DISTFILES)
 	done
 check-am: all-am
 check: check-am
-all-am: Makefile
+all-am: Makefile $(DATA)
 installdirs:
+	for dir in "$(DESTDIR)$(abstractionsdir)" "$(DESTDIR)$(apparmordir)" "$(DESTDIR)$(templatesdir)"; do \
+	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
+	done
 install: install-am
 install-exec: install-exec-am
 install-data: install-data-am
@@ -1818,7 +1935,8 @@ info: info-am
 
 info-am:
 
-install-data-am:
+install-data-am: install-abstractionsDATA install-apparmorDATA \
+	install-templatesDATA
 
 install-dvi: install-dvi-am
 
@@ -1862,21 +1980,25 @@ ps: ps-am
 
 ps-am:
 
-uninstall-am:
+uninstall-am: uninstall-abstractionsDATA uninstall-apparmorDATA \
+	uninstall-templatesDATA
 
 .MAKE: install-am install-strip
 
 .PHONY: all all-am check check-am clean clean-generic clean-libtool \
 	cscopelist-am ctags-am distclean distclean-generic \
 	distclean-libtool distdir dvi dvi-am html html-am info info-am \
-	install install-am install-data install-data-am install-dvi \
+	install install-abstractionsDATA install-am \
+	install-apparmorDATA install-data install-data-am install-dvi \
 	install-dvi-am install-exec install-exec-am install-html \
 	install-html-am install-info install-info-am install-man \
 	install-pdf install-pdf-am install-ps install-ps-am \
-	install-strip installcheck installcheck-am installdirs \
-	maintainer-clean maintainer-clean-generic mostlyclean \
-	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
-	tags-am uninstall uninstall-am
+	install-strip install-templatesDATA installcheck \
+	installcheck-am installdirs maintainer-clean \
+	maintainer-clean-generic mostlyclean mostlyclean-generic \
+	mostlyclean-libtool pdf pdf-am ps ps-am tags-am uninstall \
+	uninstall-abstractionsDATA uninstall-am uninstall-apparmorDATA \
+	uninstall-templatesDATA
 
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.

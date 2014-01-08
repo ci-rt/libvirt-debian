@@ -241,8 +241,15 @@ DOMAIN_CONF_SOURCES =						\
 		conf/domain_nwfilter.c conf/domain_nwfilter.h	\
 		conf/snapshot_conf.c conf/snapshot_conf.h
 
+OBJECT_EVENT_SOURCES =						\
+		conf/object_event.c conf/object_event.h \
+		conf/object_event_private.h
+
 DOMAIN_EVENT_SOURCES =						\
 		conf/domain_event.c conf/domain_event.h
+
+NETWORK_EVENT_SOURCES =						\
+		conf/network_event.c conf/network_event.h
 
 # Network driver generic impl APIs
 NETWORK_CONF_SOURCES =						\
@@ -292,7 +299,9 @@ DEVICE_CONF_SOURCES =                                           \
 CONF_SOURCES =							\
 		$(NETDEV_CONF_SOURCES)				\
 		$(DOMAIN_CONF_SOURCES)				\
+		$(OBJECT_EVENT_SOURCES)				\
 		$(DOMAIN_EVENT_SOURCES)				\
+		$(NETWORK_EVENT_SOURCES)			\
 		$(NETWORK_CONF_SOURCES)				\
 		$(NWFILTER_CONF_SOURCES)			\
 		$(NODE_DEVICE_CONF_SOURCES)			\
@@ -2021,6 +2030,8 @@ libvirt_setuid_rpc_client_la_SOURCES = 		\
 		util/virutil.c			\
 		util/viruuid.c			\
 		conf/domain_event.c		\
+		conf/network_event.c		\
+		conf/object_event.c		\
 		rpc/virnetsocket.c		\
 		rpc/virnetsocket.h		\
 		rpc/virnetmessage.h		\

@@ -121,6 +121,7 @@
 #define <a href="#VIR_MIGRATE_PARAM_GRAPHICS_URI">VIR_MIGRATE_PARAM_GRAPHICS_URI</a>;
 #define <a href="#VIR_MIGRATE_PARAM_LISTEN_ADDRESS">VIR_MIGRATE_PARAM_LISTEN_ADDRESS</a>;
 #define <a href="#VIR_MIGRATE_PARAM_URI">VIR_MIGRATE_PARAM_URI</a>;
+#define <a href="#VIR_NETWORK_EVENT_CALLBACK">VIR_NETWORK_EVENT_CALLBACK</a>;
 #define <a href="#VIR_NODEINFO_MAXCPUS">VIR_NODEINFO_MAXCPUS</a>(nodeinfo);
 #define <a href="#VIR_NODE_CPU_STATS_FIELD_LENGTH">VIR_NODE_CPU_STATS_FIELD_LENGTH</a>;
 #define <a href="#VIR_NODE_CPU_STATS_IDLE">VIR_NODE_CPU_STATS_IDLE</a>;
@@ -265,6 +266,8 @@ typedef enum <a href="#virMemoryParameterType">virMemoryParameterType</a>;
 typedef struct _virNWFilter <a href="#virNWFilter">virNWFilter</a>;
 typedef <a href="libvirt-libvirt.html#virNWFilter">virNWFilter</a> * <a href="#virNWFilterPtr">virNWFilterPtr</a>;
 typedef struct _virNetwork <a href="#virNetwork">virNetwork</a>;
+typedef enum <a href="#virNetworkEventID">virNetworkEventID</a>;
+typedef enum <a href="#virNetworkEventLifecycleType">virNetworkEventLifecycleType</a>;
 typedef <a href="libvirt-libvirt.html#virNetwork">virNetwork</a> * <a href="#virNetworkPtr">virNetworkPtr</a>;
 typedef enum <a href="#virNetworkUpdateCommand">virNetworkUpdateCommand</a>;
 typedef enum <a href="#virNetworkUpdateFlags">virNetworkUpdateFlags</a>;
@@ -375,6 +378,10 @@ int	<a href="#virConnectListNWFilters">virConnectListNWFilters</a>		(<a href="li
 int	<a href="#virConnectListNetworks">virConnectListNetworks</a>		(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 char ** const names, <br/>					 int maxnames);
 int	<a href="#virConnectListSecrets">virConnectListSecrets</a>		(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 char ** uuids, <br/>					 int maxuuids);
 int	<a href="#virConnectListStoragePools">virConnectListStoragePools</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 char ** const names, <br/>					 int maxnames);
+int	<a href="#virConnectNetworkEventDeregisterAny">virConnectNetworkEventDeregisterAny</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 int callbackID);
+typedef void <a href="#virConnectNetworkEventGenericCallback">virConnectNetworkEventGenericCallback</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 <a href="libvirt-libvirt.html#virNetworkPtr">virNetworkPtr</a> net, <br/>						 void * opaque);
+typedef void <a href="#virConnectNetworkEventLifecycleCallback">virConnectNetworkEventLifecycleCallback</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 <a href="libvirt-libvirt.html#virNetworkPtr">virNetworkPtr</a> net, <br/>						 int event, <br/>						 int detail, <br/>						 void * opaque);
+int	<a href="#virConnectNetworkEventRegisterAny">virConnectNetworkEventRegisterAny</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 <a href="libvirt-libvirt.html#virNetworkPtr">virNetworkPtr</a> net, <br/>						 int eventID, <br/>						 <a href="libvirt-libvirt.html#virConnectNetworkEventGenericCallback">virConnectNetworkEventGenericCallback</a> cb, <br/>						 void * opaque, <br/>						 <a href="libvirt-libvirt.html#virFreeCallback">virFreeCallback</a> freecb);
 int	<a href="#virConnectNumOfDefinedDomains">virConnectNumOfDefinedDomains</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn);
 int	<a href="#virConnectNumOfDefinedInterfaces">virConnectNumOfDefinedInterfaces</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn);
 int	<a href="#virConnectNumOfDefinedNetworks">virConnectNumOfDefinedNetworks</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn);
@@ -879,7 +886,7 @@ int	<a href="#virTypedParamsGetULLong">virTypedParamsGetULLong</a>		(<a href="li
 </div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_EVENT_CALLBACK">Macro </a>VIR_DOMAIN_EVENT_CALLBACK</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_EVENT_CALLBACK">VIR_DOMAIN_EVENT_CALLBACK</a>;
-</pre><p>Used to cast the event specific callback into the generic one for use for virDomainEventRegister</p>
+</pre><p>Used to cast the event specific callback into the generic one for use for virConnectDomainEventRegisterAny()</p>
 </div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_JOB_COMPRESSION_BYTES">Macro </a>VIR_DOMAIN_JOB_COMPRESSION_BYTES</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_JOB_COMPRESSION_BYTES">VIR_DOMAIN_JOB_COMPRESSION_BYTES</a>;
@@ -1068,6 +1075,10 @@ int	<a href="#virTypedParamsGetULLong">virTypedParamsGetULLong</a>		(<a href="li
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="VIR_MIGRATE_PARAM_URI">Macro </a>VIR_MIGRATE_PARAM_URI</h3><pre class="programlisting">#define <a href="#VIR_MIGRATE_PARAM_URI">VIR_MIGRATE_PARAM_URI</a>;
 </pre><p>virDomainMigrate* params field: URI to use for initiating domain migration as VIR_TYPED_PARAM_STRING. It takes a hypervisor specific format. The uri_transports element of the hypervisor capabilities XML includes details of the supported URI schemes. When omitted libvirt will auto-generate suitable default URI. It is typically only necessary to specify this URI if the destination host has multiple interfaces and a specific interface is required to transmit migration data. This filed may not be used when <a href="libvirt-libvirt.html#VIR_MIGRATE_TUNNELLED">VIR_MIGRATE_TUNNELLED</a> flag is set.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_NETWORK_EVENT_CALLBACK">Macro </a>VIR_NETWORK_EVENT_CALLBACK</h3><pre class="programlisting">#define <a href="#VIR_NETWORK_EVENT_CALLBACK">VIR_NETWORK_EVENT_CALLBACK</a>;
+</pre><p>Used to cast the event specific callback into the generic one for use for virConnectNetworkEventRegisterAny()</p>
 </div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="VIR_NODEINFO_MAXCPUS">Macro </a>VIR_NODEINFO_MAXCPUS</h3><pre class="programlisting">#define <a href="#VIR_NODEINFO_MAXCPUS">VIR_NODEINFO_MAXCPUS</a>(nodeinfo);
@@ -1365,6 +1376,7 @@ The content of this structure is not made public by the API.
     <a name="VIR_CONNECT_LIST_STORAGE_POOLS_MPATH">VIR_CONNECT_LIST_STORAGE_POOLS_MPATH</a> = 8192
     <a name="VIR_CONNECT_LIST_STORAGE_POOLS_RBD">VIR_CONNECT_LIST_STORAGE_POOLS_RBD</a> = 16384
     <a name="VIR_CONNECT_LIST_STORAGE_POOLS_SHEEPDOG">VIR_CONNECT_LIST_STORAGE_POOLS_SHEEPDOG</a> = 32768
+    <a name="VIR_CONNECT_LIST_STORAGE_POOLS_GLUSTER">VIR_CONNECT_LIST_STORAGE_POOLS_GLUSTER</a> = 65536
 };
 </pre><p/>
 </div>
@@ -1658,7 +1670,7 @@ The content of this structure is not made public by the API.
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainEventIOErrorAction">Enum </a>virDomainEventIOErrorAction</h3><pre class="programlisting">enum <a href="#virDomainEventIOErrorAction">virDomainEventIOErrorAction</a> {
     <a name="VIR_DOMAIN_EVENT_IO_ERROR_NONE">VIR_DOMAIN_EVENT_IO_ERROR_NONE</a> = 0 /* No action, IO error ignored */
-    <a name="VIR_DOMAIN_EVENT_IO_ERROR_PAUSE">VIR_DOMAIN_EVENT_IO_ERROR_PAUSE</a> = 1 /* Guest CPUs are pausde */
+    <a name="VIR_DOMAIN_EVENT_IO_ERROR_PAUSE">VIR_DOMAIN_EVENT_IO_ERROR_PAUSE</a> = 1 /* Guest CPUs are paused */
     <a name="VIR_DOMAIN_EVENT_IO_ERROR_REPORT">VIR_DOMAIN_EVENT_IO_ERROR_REPORT</a> = 2 /* IO error reported to guest OS */
     <a name="VIR_DOMAIN_EVENT_IO_ERROR_LAST">VIR_DOMAIN_EVENT_IO_ERROR_LAST</a> = 3
 };
@@ -2279,6 +2291,23 @@ The content of this structure is not made public by the API.
 </pre><p/>
 </div>
         <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNetworkEventID">Enum </a>virNetworkEventID</h3><pre class="programlisting">enum <a href="#virNetworkEventID">virNetworkEventID</a> {
+    <a name="VIR_NETWORK_EVENT_ID_LIFECYCLE">VIR_NETWORK_EVENT_ID_LIFECYCLE</a> = 0 /* virConnectNetworkEventLifecycleCallback */
+    <a name="VIR_NETWORK_EVENT_ID_LAST">VIR_NETWORK_EVENT_ID_LAST</a> = 1 /* NB: this enum value will increase over time as new events are  added to the libvirt API. It reflects the last event ID supported  by this version of the libvirt API. */
+};
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNetworkEventLifecycleType">Enum </a>virNetworkEventLifecycleType</h3><pre class="programlisting">enum <a href="#virNetworkEventLifecycleType">virNetworkEventLifecycleType</a> {
+    <a name="VIR_NETWORK_EVENT_DEFINED">VIR_NETWORK_EVENT_DEFINED</a> = 0
+    <a name="VIR_NETWORK_EVENT_UNDEFINED">VIR_NETWORK_EVENT_UNDEFINED</a> = 1
+    <a name="VIR_NETWORK_EVENT_STARTED">VIR_NETWORK_EVENT_STARTED</a> = 2
+    <a name="VIR_NETWORK_EVENT_STOPPED">VIR_NETWORK_EVENT_STOPPED</a> = 3
+    <a name="VIR_NETWORK_EVENT_LAST">VIR_NETWORK_EVENT_LAST</a> = 4
+};
+</pre><p/>
+</div>
+        <hr/>
         <div class="refsect2" lang="en"><h3><a name="virNetworkPtr">Typedef </a>virNetworkPtr</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virNetwork">virNetwork</a> * virNetworkPtr;
 </pre><p>a <a href="libvirt-libvirt.html#virNetworkPtr">virNetworkPtr</a> is pointer to a <a href="libvirt-libvirt.html#virNetwork">virNetwork</a> private structure, this is the type used to reference a virtual network in the API.</p>
 </div>
@@ -2708,8 +2737,11 @@ VIR_DOMAIN_EVENT_ID_DISK_CHANGE with virConnectDomainEventRegisterAny()</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>connection object</td></tr><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>domain on which the event occurred</td></tr><tr><td><span class="term"><i><tt>oldSrcPath</tt></i>:</span></td><td>old source path</td></tr><tr><td><span class="term"><i><tt>newSrcPath</tt></i>:</span></td><td>new source path</td></tr><tr><td><span class="term"><i><tt>devAlias</tt></i>:</span></td><td>device alias name</td></tr><tr><td><span class="term"><i><tt>reason</tt></i>:</span></td><td>reason why this callback was called; any of <a href="libvirt-libvirt.html#virConnectDomainEventDiskChangeReason">virConnectDomainEventDiskChangeReason</a></td></tr><tr><td><span class="term"><i><tt>opaque</tt></i>:</span></td><td>application specified data</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virConnectDomainEventGenericCallback"/>Function type virConnectDomainEventGenericCallback</h3><pre class="programlisting">void	virConnectDomainEventGenericCallback	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>						 void * opaque)<br/>
-</pre><p>A generic domain event callback handler. Specific events usually
-have a customization with extra parameters</p>
+</pre><p>A generic domain event callback handler, for use with
+virConnectDomainEventRegisterAny(). Specific events usually
+have a customization with extra parameters, often with @opaque being
+passed in a different parameter position; use VIR_DOMAIN_EVENT_CALLBACK()
+when registering an appropriate handler.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>the connection pointer</td></tr><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>the domain pointer</td></tr><tr><td><span class="term"><i><tt>opaque</tt></i>:</span></td><td>application specified data</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virConnectDomainEventGraphicsCallback"/>Function type virConnectDomainEventGraphicsCallback</h3><pre class="programlisting">void	virConnectDomainEventGraphicsCallback	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>						 int phase, <br/>						 const <a href="libvirt-libvirt.html#virDomainEventGraphicsAddress">virDomainEventGraphicsAddress</a> * local, <br/>						 const <a href="libvirt-libvirt.html#virDomainEventGraphicsAddress">virDomainEventGraphicsAddress</a> * remote, <br/>						 const char * authScheme, <br/>						 const <a href="libvirt-libvirt.html#virDomainEventGraphicsSubject">virDomainEventGraphicsSubject</a> * subject, <br/>						 void * opaque)<br/>
@@ -2764,6 +2796,21 @@ VIR_DOMAIN_EVENT_ID_TRAY_CHANGE with virConnectDomainEventRegisterAny()</p>
 </pre><p>The callback signature to use when registering for an event of type
 VIR_DOMAIN_EVENT_ID_WATCHDOG with virConnectDomainEventRegisterAny()</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>connection object</td></tr><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>domain on which the event occurred</td></tr><tr><td><span class="term"><i><tt>action</tt></i>:</span></td><td>action that is to be taken due to watchdog firing</td></tr><tr><td><span class="term"><i><tt>opaque</tt></i>:</span></td><td>application specified data</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectNetworkEventGenericCallback"/>Function type virConnectNetworkEventGenericCallback</h3><pre class="programlisting">void	virConnectNetworkEventGenericCallback	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 <a href="libvirt-libvirt.html#virNetworkPtr">virNetworkPtr</a> net, <br/>						 void * opaque)<br/>
+</pre><p>A generic network event callback handler, for use with
+virConnectNetworkEventRegisterAny(). Specific events usually
+have a customization with extra parameters, often with @opaque being
+passed in a different parameter position; use VIR_NETWORK_EVENT_CALLBACK()
+when registering an appropriate handler.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>the connection pointer</td></tr><tr><td><span class="term"><i><tt>net</tt></i>:</span></td><td>the network pointer</td></tr><tr><td><span class="term"><i><tt>opaque</tt></i>:</span></td><td>application specified data</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectNetworkEventLifecycleCallback"/>Function type virConnectNetworkEventLifecycleCallback</h3><pre class="programlisting">void	virConnectNetworkEventLifecycleCallback	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 <a href="libvirt-libvirt.html#virNetworkPtr">virNetworkPtr</a> net, <br/>						 int event, <br/>						 int detail, <br/>						 void * opaque)<br/>
+</pre><p>This callback occurs when the network is started or stopped.
+
+The callback signature to use when registering for an event of type
+VIR_NETWORK_EVENT_ID_LIFECYCLE with virConnectNetworkEventRegisterAny()</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>connection object</td></tr><tr><td><span class="term"><i><tt>net</tt></i>:</span></td><td>network on which the event occurred</td></tr><tr><td><span class="term"><i><tt>event</tt></i>:</span></td><td>The specific virNetworkEventLifeCycleType which occurred</td></tr><tr><td><span class="term"><i><tt>detail</tt></i>:</span></td><td>contains some details on the reason of the event. It will be 0 for the while.</td></tr><tr><td><span class="term"><i><tt>opaque</tt></i>:</span></td><td>application specified data</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virEventAddHandleFunc"/>Function type virEventAddHandleFunc</h3><pre class="programlisting">int	virEventAddHandleFunc		(int fd, <br/>					 int event, <br/>					 <a href="libvirt-libvirt.html#virEventHandleCallback">virEventHandleCallback</a> cb, <br/>					 void * opaque, <br/>					 <a href="libvirt-libvirt.html#virFreeCallback">virFreeCallback</a> ff)<br/>
 </pre><p>Part of the EventImpl, this callback adds a file handle callback to
@@ -2904,26 +2951,28 @@ after the corresponding operation completes.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td><a href="libvirt-libvirt.html#virConnect">virConnect</a> connection</td></tr><tr><td><span class="term"><i><tt>xmlDesc</tt></i>:</span></td><td>XML describing the CPU to compare with host CPU</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>extra flags; not used yet, so callers should always pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>comparison result according to enum <a href="libvirt-libvirt.html#virCPUCompareResult">virCPUCompareResult</a></td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virConnectDomainEventDeregister"/>virConnectDomainEventDeregister ()</h3><pre class="programlisting">int	virConnectDomainEventDeregister	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 <a href="libvirt-libvirt.html#virConnectDomainEventCallback">virConnectDomainEventCallback</a> cb)<br/>
-</pre><p>Removes a callback previously registered with the virConnectDomainEventRegister
-function.
+</pre><p>Removes a callback previously registered with the
+virConnectDomainEventRegister() function.
 
 Use of this method is no longer recommended. Instead applications
-should try virConnectDomainEventUnregisterAny which has a more flexible
+should try virConnectDomainEventDeregisterAny() which has a more flexible
 API contract</p>
-<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the connection</td></tr><tr><td><span class="term"><i><tt>cb</tt></i>:</span></td><td>callback to the function handling domain events</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 on success, -1 on failure</td></tr></tbody></table></div></div>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the connection</td></tr><tr><td><span class="term"><i><tt>cb</tt></i>:</span></td><td>callback to the function handling domain events</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 on success, -1 on failure. Older versions of some hypervisors sometimes returned a positive number on success, but without any reliable semantics on what that number represents.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virConnectDomainEventDeregisterAny"/>virConnectDomainEventDeregisterAny ()</h3><pre class="programlisting">int	virConnectDomainEventDeregisterAny	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 int callbackID)<br/>
 </pre><p>Removes an event callback. The callbackID parameter should be the
-vaule obtained from a previous virDomainEventRegisterAny method.</p>
-<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the connection</td></tr><tr><td><span class="term"><i><tt>callbackID</tt></i>:</span></td><td>the callback identifier</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 on success, -1 on failure</td></tr></tbody></table></div></div>
+value obtained from a previous virConnectDomainEventRegisterAny() method.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the connection</td></tr><tr><td><span class="term"><i><tt>callbackID</tt></i>:</span></td><td>the callback identifier</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 on success, -1 on failure. Older versions of some hypervisors sometimes returned a positive number on success, but without any reliable semantics on what that number represents.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virConnectDomainEventRegister"/>virConnectDomainEventRegister ()</h3><pre class="programlisting">int	virConnectDomainEventRegister	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 <a href="libvirt-libvirt.html#virConnectDomainEventCallback">virConnectDomainEventCallback</a> cb, <br/>					 void * opaque, <br/>					 <a href="libvirt-libvirt.html#virFreeCallback">virFreeCallback</a> freecb)<br/>
 </pre><p>Adds a callback to receive notifications of domain lifecycle events
-occurring on a connection
+occurring on a connection. This function requires that an event loop
+has been previously registered with virEventRegisterImpl() or
+virEventRegisterDefaultImpl().
 
 Use of this method is no longer recommended. Instead applications
-should try <a href="libvirt-libvirt.html#virConnectDomainEventRegisterAny">virConnectDomainEventRegisterAny</a> which has a more flexible
-API contract
+should try virConnectDomainEventRegisterAny() which has a more flexible
+API contract.
 
 The <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> object handle passed into the callback upon delivery
 of an event is only valid for the duration of execution of the callback.
@@ -2931,14 +2980,16 @@ If the callback wishes to keep the domain object after the callback returns,
 it shall take a reference to it, by calling virDomainRef.
 The reference can be released once the object is no longer required
 by calling virDomainFree.</p>
-<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the connection</td></tr><tr><td><span class="term"><i><tt>cb</tt></i>:</span></td><td>callback to the function handling domain events</td></tr><tr><td><span class="term"><i><tt>opaque</tt></i>:</span></td><td>opaque data to pass on to the callback</td></tr><tr><td><span class="term"><i><tt>freecb</tt></i>:</span></td><td>optional function to deallocate opaque when not used anymore</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 on success, -1 on failure</td></tr></tbody></table></div></div>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the connection</td></tr><tr><td><span class="term"><i><tt>cb</tt></i>:</span></td><td>callback to the function handling domain events</td></tr><tr><td><span class="term"><i><tt>opaque</tt></i>:</span></td><td>opaque data to pass on to the callback</td></tr><tr><td><span class="term"><i><tt>freecb</tt></i>:</span></td><td>optional function to deallocate opaque when not used anymore</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 on success, -1 on failure. Older versions of some hypervisors sometimes returned a positive number on success, but without any reliable semantics on what that number represents.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virConnectDomainEventRegisterAny"/>virConnectDomainEventRegisterAny ()</h3><pre class="programlisting">int	virConnectDomainEventRegisterAny	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>						 int eventID, <br/>						 <a href="libvirt-libvirt.html#virConnectDomainEventGenericCallback">virConnectDomainEventGenericCallback</a> cb, <br/>						 void * opaque, <br/>						 <a href="libvirt-libvirt.html#virFreeCallback">virFreeCallback</a> freecb)<br/>
 </pre><p>Adds a callback to receive notifications of arbitrary domain events
-occurring on a domain.
+occurring on a domain. This function requires that an event loop
+has been previously registered with virEventRegisterImpl() or
+virEventRegisterDefaultImpl().
 
-If dom is NULL, then events will be monitored for any domain. If dom
-is non-NULL, then only the specific domain will be monitored
+If @dom is NULL, then events will be monitored for any domain. If @dom
+is non-NULL, then only the specific domain will be monitored.
 
 Most types of event have a callback providing a custom set of parameters
 for the event. When registering an event, it is thus necessary to use
@@ -2948,14 +2999,14 @@ to match the signature of this method.
 The <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> object handle passed into the callback upon delivery
 of an event is only valid for the duration of execution of the callback.
 If the callback wishes to keep the domain object after the callback returns,
-it shall take a reference to it, by calling virDomainRef.
+it shall take a reference to it, by calling virDomainRef().
 The reference can be released once the object is no longer required
-by calling virDomainFree.
+by calling virDomainFree().
 
 The return value from this method is a positive integer identifier
 for the callback. To unregister a callback, this callback ID should
-be passed to the virDomainEventUnregisterAny method</p>
-<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the connection</td></tr><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>pointer to the domain</td></tr><tr><td><span class="term"><i><tt>eventID</tt></i>:</span></td><td>the event type to receive</td></tr><tr><td><span class="term"><i><tt>cb</tt></i>:</span></td><td>callback to the function handling domain events</td></tr><tr><td><span class="term"><i><tt>opaque</tt></i>:</span></td><td>opaque data to pass on to the callback</td></tr><tr><td><span class="term"><i><tt>freecb</tt></i>:</span></td><td>optional function to deallocate opaque when not used anymore</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a callback identifier on success, -1 on failure</td></tr></tbody></table></div></div>
+be passed to the virConnectDomainEventDeregisterAny() method.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the connection</td></tr><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>pointer to the domain</td></tr><tr><td><span class="term"><i><tt>eventID</tt></i>:</span></td><td>the event type to receive</td></tr><tr><td><span class="term"><i><tt>cb</tt></i>:</span></td><td>callback to the function handling domain events</td></tr><tr><td><span class="term"><i><tt>opaque</tt></i>:</span></td><td>opaque data to pass on to the callback</td></tr><tr><td><span class="term"><i><tt>freecb</tt></i>:</span></td><td>optional function to deallocate opaque when not used anymore</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a callback identifier on success, -1 on failure.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virConnectDomainXMLFromNative"/>virConnectDomainXMLFromNative ()</h3><pre class="programlisting">char *	virConnectDomainXMLFromNative	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char * nativeFormat, <br/>					 const char * nativeConfig, <br/>					 unsigned int flags)<br/>
 </pre><p>Reads native configuration data describing a domain, and
@@ -3096,8 +3147,25 @@ a managed save image exists; <a href="libvirt-libvirt.html#VIR_CONNECT_LIST_DOMA
 VIR_CONNECT_LIST_DOMAINS_NO_AUTOSTART, for filtering based on autostart;
 VIR_CONNECT_LIST_DOMAINS_HAS_SNAPSHOT and
 VIR_CONNECT_LIST_DOMAINS_NO_SNAPSHOT, for filtering based on whether
-a domain has snapshots.</p>
-<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>Pointer to the hypervisor connection.</td></tr><tr><td><span class="term"><i><tt>domains</tt></i>:</span></td><td>Pointer to a variable to store the array containing domain objects or NULL if the list is not required (just returns number of guests).</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt.html#virConnectListAllDomainsFlags">virConnectListAllDomainsFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of domains found or -1 and sets domains to NULL in case of error. On success, the array stored into @domains is guaranteed to have an extra allocated element set to NULL but not included in the return count, to make iteration easier. The caller is responsible for calling virDomainFree() on each array element, then calling free() on @domains. Example of usage: <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> *domains; size_t i; int ret; unsigned int flags = <a href="libvirt-libvirt.html#VIR_CONNECT_LIST_DOMAINS_RUNNING">VIR_CONNECT_LIST_DOMAINS_RUNNING</a> | VIR_CONNECT_LIST_DOMAINS_PERSISTENT; ret = virConnectListAllDomains(conn, &amp;domains, flags); if (ret &lt; 0) error(); for (i = 0; i &lt; ret; i++) { do_something_with_domain(domains[i]); //here or in a separate loop if needed virDomainFree(domains[i]); } free(domains);</td></tr></tbody></table></div></div>
+a domain has snapshots.
+
+Example of usage:
+
+ <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> *domains;
+ size_t i;
+ int ret;
+ unsigned int flags = <a href="libvirt-libvirt.html#VIR_CONNECT_LIST_DOMAINS_RUNNING">VIR_CONNECT_LIST_DOMAINS_RUNNING</a> |
+ VIR_CONNECT_LIST_DOMAINS_PERSISTENT;
+ ret = virConnectListAllDomains(conn, &amp;domains, flags);
+ if (ret &lt; 0)
+ error();
+ for (i = 0; i &lt; ret; i++) {
+ do_something_with_domain(domains[i]);
+ //here or in a separate loop if needed
+ virDomainFree(domains[i]);
+ }
+ free(domains);</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>Pointer to the hypervisor connection.</td></tr><tr><td><span class="term"><i><tt>domains</tt></i>:</span></td><td>Pointer to a variable to store the array containing domain objects or NULL if the list is not required (just returns number of guests).</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt.html#virConnectListAllDomainsFlags">virConnectListAllDomainsFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of domains found or -1 and sets domains to NULL in case of error. On success, the array stored into @domains is guaranteed to have an extra allocated element set to NULL but not included in the return count, to make iteration easier. The caller is responsible for calling virDomainFree() on each array element, then calling free() on @domains.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virConnectListAllInterfaces"/>virConnectListAllInterfaces ()</h3><pre class="programlisting">int	virConnectListAllInterfaces	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 <a href="libvirt-libvirt.html#virInterfacePtr">virInterfacePtr</a> ** ifaces, <br/>					 unsigned int flags)<br/>
 </pre><p>Collect the list of interfaces, and allocate an array to store those
@@ -3291,6 +3359,30 @@ ignored.
 For more control over the results, see virConnectListAllStoragePools().</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to hypervisor connection</td></tr><tr><td><span class="term"><i><tt>names</tt></i>:</span></td><td>array of char * to fill with pool names (allocated by caller)</td></tr><tr><td><span class="term"><i><tt>maxnames</tt></i>:</span></td><td>size of the names array</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of pools found or -1 in case of error. Note that this command is inherently racy; a pool can be started between a call to virConnectNumOfStoragePools() and this call; you are only guaranteed that all currently active pools were listed if the return is less than @maxnames. The client must call free() on each returned name.</td></tr></tbody></table></div></div>
         <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectNetworkEventDeregisterAny"/>virConnectNetworkEventDeregisterAny ()</h3><pre class="programlisting">int	virConnectNetworkEventDeregisterAny	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 int callbackID)<br/>
+</pre><p>Removes an event callback. The callbackID parameter should be the
+value obtained from a previous virConnectNetworkEventRegisterAny() method.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the connection</td></tr><tr><td><span class="term"><i><tt>callbackID</tt></i>:</span></td><td>the callback identifier</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 on success, -1 on failure</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectNetworkEventRegisterAny"/>virConnectNetworkEventRegisterAny ()</h3><pre class="programlisting">int	virConnectNetworkEventRegisterAny	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 <a href="libvirt-libvirt.html#virNetworkPtr">virNetworkPtr</a> net, <br/>						 int eventID, <br/>						 <a href="libvirt-libvirt.html#virConnectNetworkEventGenericCallback">virConnectNetworkEventGenericCallback</a> cb, <br/>						 void * opaque, <br/>						 <a href="libvirt-libvirt.html#virFreeCallback">virFreeCallback</a> freecb)<br/>
+</pre><p>Adds a callback to receive notifications of arbitrary network events
+occurring on a network. This function requires that an event loop
+has been previously registered with virEventRegisterImpl() or
+virEventRegisterDefaultImpl().
+
+If @net is NULL, then events will be monitored for any network. If @net
+is non-NULL, then only the specific network will be monitored.
+
+Most types of event have a callback providing a custom set of parameters
+for the event. When registering an event, it is thus necessary to use
+the VIR_NETWORK_EVENT_CALLBACK() macro to cast the supplied function pointer
+to match the signature of this method.
+
+The <a href="libvirt-libvirt.html#virNetworkPtr">virNetworkPtr</a> object handle passed into the callback upon delivery
+of an event is only valid for the duration of execution of the callback.
+If the callback wishes to keep the network object after the callback</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the connection</td></tr><tr><td><span class="term"><i><tt>net</tt></i>:</span></td><td>pointer to the network</td></tr><tr><td><span class="term"><i><tt>eventID</tt></i>:</span></td><td>the event type to receive</td></tr><tr><td><span class="term"><i><tt>cb</tt></i>:</span></td><td>callback to the function handling network events</td></tr><tr><td><span class="term"><i><tt>opaque</tt></i>:</span></td><td>opaque data to pass on to the callback</td></tr><tr><td><span class="term"><i><tt>freecb</tt></i>:</span></td><td>optional function to deallocate opaque when not used anymore</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>it shall take a reference to it, by calling virNetworkRef(). The reference can be released once the object is no longer required by calling virNetworkFree(). The return value from this method is a positive integer identifier for the callback. To unregister a callback, this callback ID should be passed to the virConnectNetworkEventDeregisterAny() method. Returns a callback identifier on success, -1 on failure.</td></tr></tbody></table></div></div>
+        <hr/>
         <div class="refsect2" lang="en"><h3><a name="virConnectNumOfDefinedDomains"/>virConnectNumOfDefinedDomains ()</h3><pre class="programlisting">int	virConnectNumOfDefinedDomains	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn)<br/>
 </pre><p>Provides the number of defined but inactive domains.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of domain found or -1 in case of error</td></tr></tbody></table></div></div>
@@ -3333,8 +3425,21 @@ For more control over the results, see virConnectListAllStoragePools().</p>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virConnectOpen"/>virConnectOpen ()</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a>	virConnectOpen		(const char * name)<br/>
 </pre><p>This function should be called first to get a connection to the
-Hypervisor and xen store</p>
-<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>name</tt></i>:</span></td><td>(optional) URI of the hypervisor</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a pointer to the hypervisor connection or NULL in case of error If @name is NULL, if the LIBVIRT_DEFAULT_URI environment variable is set, then it will be used. Otherwise if the client configuration file has the "uri_default" parameter set, then it will be used. Finally probing will be done to determine a suitable default driver to activate. This involves trying each hypervisor in turn until one successfully opens. If connecting to an unprivileged hypervisor driver which requires the libvirtd daemon to be active, it will automatically be launched if not already running. This can be prevented by setting the environment variable LIBVIRT_AUTOSTART=0 URIs are documented at http://libvirt.org/uri.html</td></tr></tbody></table></div></div>
+Hypervisor and xen store
+
+If @name is NULL, if the LIBVIRT_DEFAULT_URI environment variable is set,
+then it will be used. Otherwise if the client configuration file
+has the "uri_default" parameter set, then it will be used. Finally
+probing will be done to determine a suitable default driver to activate.
+This involves trying each hypervisor in turn until one successfully opens.
+
+If connecting to an unprivileged hypervisor driver which requires
+the libvirtd daemon to be active, it will automatically be launched
+if not already running. This can be prevented by setting the
+environment variable LIBVIRT_AUTOSTART=0
+
+URIs are documented at http://libvirt.org/uri.html</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>name</tt></i>:</span></td><td>(optional) URI of the hypervisor</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a pointer to the hypervisor connection or NULL in case of error</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virConnectOpenAuth"/>virConnectOpenAuth ()</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a>	virConnectOpenAuth	(const char * name, <br/>					 <a href="libvirt-libvirt.html#virConnectAuthPtr">virConnectAuthPtr</a> auth, <br/>					 unsigned int flags)<br/>
 </pre><p>This function should be called first to get a connection to the
@@ -3342,8 +3447,10 @@ Hypervisor. If necessary, authentication will be performed fetching
 credentials via the callback
 
 See <a href="libvirt-libvirt.html#virConnectOpen">virConnectOpen</a> for notes about environment variables which can
-have an effect on opening drivers</p>
-<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>name</tt></i>:</span></td><td>(optional) URI of the hypervisor</td></tr><tr><td><span class="term"><i><tt>auth</tt></i>:</span></td><td>Authenticate callback parameters</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt.html#virConnectFlags">virConnectFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a pointer to the hypervisor connection or NULL in case of error URIs are documented at http://libvirt.org/uri.html</td></tr></tbody></table></div></div>
+have an effect on opening drivers
+
+URIs are documented at http://libvirt.org/uri.html</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>name</tt></i>:</span></td><td>(optional) URI of the hypervisor</td></tr><tr><td><span class="term"><i><tt>auth</tt></i>:</span></td><td>Authenticate callback parameters</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt.html#virConnectFlags">virConnectFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a pointer to the hypervisor connection or NULL in case of error</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virConnectOpenReadOnly"/>virConnectOpenReadOnly ()</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a>	virConnectOpenReadOnly	(const char * name)<br/>
 </pre><p>This function should be called first to get a restricted connection to the
@@ -3351,8 +3458,10 @@ library functionalities. The set of APIs usable are then restricted
 on the available methods to control the domains.
 
 See <a href="libvirt-libvirt.html#virConnectOpen">virConnectOpen</a> for notes about environment variables which can
-have an effect on opening drivers</p>
-<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>name</tt></i>:</span></td><td>(optional) URI of the hypervisor</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a pointer to the hypervisor connection or NULL in case of error URIs are documented at http://libvirt.org/uri.html</td></tr></tbody></table></div></div>
+have an effect on opening drivers
+
+URIs are documented at http://libvirt.org/uri.html</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>name</tt></i>:</span></td><td>(optional) URI of the hypervisor</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a pointer to the hypervisor connection or NULL in case of error</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virConnectRef"/>virConnectRef ()</h3><pre class="programlisting">int	virConnectRef			(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn)<br/>
 </pre><p>Increment the reference count on the connection. For each
@@ -3384,17 +3493,18 @@ context.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to connection object</td></tr><tr><td><span class="term"><i><tt>cb</tt></i>:</span></td><td>callback to invoke upon close</td></tr><tr><td><span class="term"><i><tt>opaque</tt></i>:</span></td><td>user data to pass to @cb</td></tr><tr><td><span class="term"><i><tt>freecb</tt></i>:</span></td><td>callback to free @opaque</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 on success, -1 on error</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virConnectSetKeepAlive"/>virConnectSetKeepAlive ()</h3><pre class="programlisting">int	virConnectSetKeepAlive		(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 int interval, <br/>					 unsigned int count)<br/>
-</pre><p>Start sending keepalive messages after interval second of inactivity and
+</pre><p>Start sending keepalive messages after @interval seconds of inactivity and
 consider the connection to be broken when no response is received after
-count keepalive messages sent in a row. In other words, sending count + 1
-keepalive message results in closing the connection. When interval is &lt;= 0,
-no keepalive messages will be sent. When count is 0, the connection will be
-automatically closed after interval seconds of inactivity without sending
-any keepalive messages.
+@count keepalive messages sent in a row. In other words, sending count + 1
+keepalive message results in closing the connection. When @interval is
+&lt;= 0, no keepalive messages will be sent. When @count is 0, the connection
+will be automatically closed after @interval seconds of inactivity without
+sending any keepalive messages.
 
-Note: client has to implement and run event loop to be able to use keepalive
-messages. Failure to do so may result in connections being closed
-unexpectedly.
+Note: The client has to implement and run an event loop with
+virEventRegisterImpl() or virEventRegisterDefaultImpl() to be able to
+use keepalive messages. Failure to do so may result in connections
+being closed unexpectedly.
 
 Note: This API function controls only keepalive messages sent by the client.
 If the server is configured to use keepalive you still need to run the event
@@ -4226,8 +4336,8 @@ again.
 
 Here is a sample code snippet:
 
- if ((virDomainGetMemoryParameters(dom, NULL, &amp;nparams, 0) == 0) &amp;&amp;
- (nparams != 0)) {
+ if (virDomainGetMemoryParameters(dom, NULL, &amp;nparams, 0) == 0 &amp;&amp;
+ nparams != 0) {
  if ((params = malloc(sizeof(*params) * nparams)) == NULL)
  goto error;
  memset(params, 0, sizeof(*params) * nparams);
@@ -4302,14 +4412,14 @@ VIR_DOMAIN_AFFECT_LIVE, or VIR_DOMAIN_AFFECT_CONFIG.
 
 Here is a sample code snippet:
 
-char *ret = virDomainGetSchedulerType(dom, &amp;nparams);
-if (ret &amp;&amp; nparams != 0) {
+ char *ret = virDomainGetSchedulerType(dom, &amp;nparams);
+ if (ret &amp;&amp; nparams != 0) {
  if ((params = malloc(sizeof(*params) * nparams)) == NULL)
  goto error;
  memset(params, 0, sizeof(*params) * nparams);
  if (virDomainGetSchedulerParametersFlags(dom, params, &amp;nparams, 0))
  goto error;
-}</p>
+ }</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>pointer to domain object</td></tr><tr><td><span class="term"><i><tt>params</tt></i>:</span></td><td>pointer to scheduler parameter object (return value)</td></tr><tr><td><span class="term"><i><tt>nparams</tt></i>:</span></td><td>pointer to number of scheduler parameter (this value should be same than the returned value nparams of virDomainGetSchedulerType()); input and output</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt.html#virDomainModificationImpact">virDomainModificationImpact</a> and <a href="libvirt-libvirt.html#virTypedParameterFlags">virTypedParameterFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 in case of error, 0 in case of success.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainGetSchedulerType"/>virDomainGetSchedulerType ()</h3><pre class="programlisting">char *	virDomainGetSchedulerType	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 int * nparams)<br/>
@@ -5938,13 +6048,17 @@ reconfiguring the NIC device backend connectivity, etc.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>pointer to domain object</td></tr><tr><td><span class="term"><i><tt>xml</tt></i>:</span></td><td>pointer to XML description of one device</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt.html#virDomainDeviceModifyFlags">virDomainDeviceModifyFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success, -1 in case of failure.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virEventAddHandle"/>virEventAddHandle ()</h3><pre class="programlisting">int	virEventAddHandle		(int fd, <br/>					 int events, <br/>					 <a href="libvirt-libvirt.html#virEventHandleCallback">virEventHandleCallback</a> cb, <br/>					 void * opaque, <br/>					 <a href="libvirt-libvirt.html#virFreeCallback">virFreeCallback</a> ff)<br/>
-</pre><p>Register a callback for monitoring file handle events.</p>
-<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>fd</tt></i>:</span></td><td>file handle to monitor for events</td></tr><tr><td><span class="term"><i><tt>events</tt></i>:</span></td><td>bitset of events to watch from <a href="libvirt-libvirt.html#virEventHandleType">virEventHandleType</a> constants</td></tr><tr><td><span class="term"><i><tt>cb</tt></i>:</span></td><td>callback to invoke when an event occurs</td></tr><tr><td><span class="term"><i><tt>opaque</tt></i>:</span></td><td>user data to pass to callback</td></tr><tr><td><span class="term"><i><tt>ff</tt></i>:</span></td><td>callback to free opaque when handle is removed</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 if the file handle cannot be registered, otherwise a handle watch number to be used for updating and unregistering for events</td></tr></tbody></table></div></div>
+</pre><p>Register a callback for monitoring file handle events. This function
+requires that an event loop has previously been registered with
+virEventRegisterImpl() or virEventRegisterDefaultImpl().</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>fd</tt></i>:</span></td><td>file handle to monitor for events</td></tr><tr><td><span class="term"><i><tt>events</tt></i>:</span></td><td>bitset of events to watch from <a href="libvirt-libvirt.html#virEventHandleType">virEventHandleType</a> constants</td></tr><tr><td><span class="term"><i><tt>cb</tt></i>:</span></td><td>callback to invoke when an event occurs</td></tr><tr><td><span class="term"><i><tt>opaque</tt></i>:</span></td><td>user data to pass to callback</td></tr><tr><td><span class="term"><i><tt>ff</tt></i>:</span></td><td>callback to free opaque when handle is removed</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 if the file handle cannot be registered, otherwise a handle watch number to be used for updating and unregistering for events.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virEventAddTimeout"/>virEventAddTimeout ()</h3><pre class="programlisting">int	virEventAddTimeout		(int timeout, <br/>					 <a href="libvirt-libvirt.html#virEventTimeoutCallback">virEventTimeoutCallback</a> cb, <br/>					 void * opaque, <br/>					 <a href="libvirt-libvirt.html#virFreeCallback">virFreeCallback</a> ff)<br/>
-</pre><p>Register a callback for a timer event.
+</pre><p>Register a callback for a timer event. This function
+requires that an event loop has previously been registered with
+virEventRegisterImpl() or virEventRegisterDefaultImpl().
 
-Setting timeout to -1 will disable the timer. Setting the timeout
+Setting @timeout to -1 will disable the timer. Setting @timeout
 to zero will cause it to fire on every event loop iteration.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>timeout</tt></i>:</span></td><td>time between events in milliseconds</td></tr><tr><td><span class="term"><i><tt>cb</tt></i>:</span></td><td>callback to invoke when an event occurs</td></tr><tr><td><span class="term"><i><tt>opaque</tt></i>:</span></td><td>user data to pass to callback</td></tr><tr><td><span class="term"><i><tt>ff</tt></i>:</span></td><td>callback to free opaque when timeout is removed</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 if the timer cannot be registered, a positive integer timer id upon success.</td></tr></tbody></table></div></div>
         <hr/>
@@ -5955,9 +6069,12 @@ that can be used by any client application which does
 not have a need to integrate with an external event
 loop impl.
 
-Once registered, the application has to invoke <a href="libvirt-libvirt.html#virEventRunDefaultImpl">virEventRunDefaultImpl</a> in
+Once registered, the application has to invoke virEventRunDefaultImpl() in
 a loop to process events. Failure to do so may result in connections being
-closed unexpectedly as a result of keepalive timeout.</p>
+closed unexpectedly as a result of keepalive timeout. The default
+event loop fully supports handle and timeout events, but only
+wakes up on events registered by libvirt API calls such as
+virEventAddHandle() or virConnectDomainEventRegisterAny().</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 on success, -1 on failure.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virEventRegisterImpl"/>virEventRegisterImpl ()</h3><pre class="programlisting">void	virEventRegisterImpl		(<a href="libvirt-libvirt.html#virEventAddHandleFunc">virEventAddHandleFunc</a> addHandle, <br/>					 <a href="libvirt-libvirt.html#virEventUpdateHandleFunc">virEventUpdateHandleFunc</a> updateHandle, <br/>					 <a href="libvirt-libvirt.html#virEventRemoveHandleFunc">virEventRemoveHandleFunc</a> removeHandle, <br/>					 <a href="libvirt-libvirt.html#virEventAddTimeoutFunc">virEventAddTimeoutFunc</a> addTimeout, <br/>					 <a href="libvirt-libvirt.html#virEventUpdateTimeoutFunc">virEventUpdateTimeoutFunc</a> updateTimeout, <br/>					 <a href="libvirt-libvirt.html#virEventRemoveTimeoutFunc">virEventRemoveTimeoutFunc</a> removeTimeout)<br/>
@@ -5966,24 +6083,41 @@ with an external event loop. Applications would use this
 to integrate with the libglib2 event loop, or libevent
 or the QT event loop.
 
+Use of the virEventAddHandle() and similar APIs require that the
+corresponding handler is registered. Use of the
+virConnectDomainEventRegisterAny() and similar APIs requires that
+the three timeout handlers are registered. Likewise, the three
+timeout handlers must be registered if the remote server has been
+configured to send keepalive messages, or if the client intends
+to call virConnectSetKeepAlive(), to avoid either side from
+unexpectedly closing the connection due to inactivity.
+
 If an application does not need to integrate with an
 existing event loop implementation, then the
-virEventRegisterDefaultImpl method can be used to setup
+virEventRegisterDefaultImpl() method can be used to setup
 the generic libvirt implementation.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>addHandle</tt></i>:</span></td><td>the callback to add fd handles</td></tr><tr><td><span class="term"><i><tt>updateHandle</tt></i>:</span></td><td>the callback to update fd handles</td></tr><tr><td><span class="term"><i><tt>removeHandle</tt></i>:</span></td><td>the callback to remove fd handles</td></tr><tr><td><span class="term"><i><tt>addTimeout</tt></i>:</span></td><td>the callback to add a timeout</td></tr><tr><td><span class="term"><i><tt>updateTimeout</tt></i>:</span></td><td>the callback to update a timeout</td></tr><tr><td><span class="term"><i><tt>removeTimeout</tt></i>:</span></td><td>the callback to remove a timeout</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virEventRemoveHandle"/>virEventRemoveHandle ()</h3><pre class="programlisting">int	virEventRemoveHandle		(int watch)<br/>
-</pre><p>Unregister a callback from a file handle.</p>
+</pre><p>Unregister a callback from a file handle. This function
+requires that an event loop has previously been registered with
+virEventRegisterImpl() or virEventRegisterDefaultImpl().</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>watch</tt></i>:</span></td><td>watch whose file handle to remove</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 if the file handle was not registered, 0 upon success.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virEventRemoveTimeout"/>virEventRemoveTimeout ()</h3><pre class="programlisting">int	virEventRemoveTimeout		(int timer)<br/>
-</pre><p>Unregister a callback for a timer.</p>
+</pre><p>Unregister a callback for a timer. This function
+requires that an event loop has previously been registered with
+virEventRegisterImpl() or virEventRegisterDefaultImpl().</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>timer</tt></i>:</span></td><td>the timer id to remove</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 if the timer was not registered, 0 upon success.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virEventRunDefaultImpl"/>virEventRunDefaultImpl ()</h3><pre class="programlisting">int	virEventRunDefaultImpl		(void)<br/>
 </pre><p>Run one iteration of the event loop. Applications
 will generally want to have a thread which invokes
-this method in an infinite loop
+this method in an infinite loop. Furthermore, it is wise
+to set up a pipe-to-self handler (via virEventAddHandle())
+or a timeout (via virEventAddTimeout()) before calling this
+function, as it will block forever if there are no
+registered events.
 
  static bool quit = false;
 
@@ -5994,18 +6128,22 @@ this method in an infinite loop
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 on success, -1 on failure.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virEventUpdateHandle"/>virEventUpdateHandle ()</h3><pre class="programlisting">void	virEventUpdateHandle		(int watch, <br/>					 int events)<br/>
-</pre><p>Change event set for a monitored file handle.
+</pre><p>Change event set for a monitored file handle. This function
+requires that an event loop has previously been registered with
+virEventRegisterImpl() or virEventRegisterDefaultImpl().
 
-Will not fail if fd exists</p>
+Will not fail if fd exists.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>watch</tt></i>:</span></td><td>watch whose file handle to update</td></tr><tr><td><span class="term"><i><tt>events</tt></i>:</span></td><td>bitset of events to watch from <a href="libvirt-libvirt.html#virEventHandleType">virEventHandleType</a> constants</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virEventUpdateTimeout"/>virEventUpdateTimeout ()</h3><pre class="programlisting">void	virEventUpdateTimeout		(int timer, <br/>					 int timeout)<br/>
-</pre><p>Change frequency for a timer.
+</pre><p>Change frequency for a timer. This function
+requires that an event loop has previously been registered with
+virEventRegisterImpl() or virEventRegisterDefaultImpl().
 
 Setting frequency to -1 will disable the timer. Setting the frequency
 to zero will cause it to fire on every event loop iteration.
 
-Will not fail if timer exists</p>
+Will not fail if timer exists.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>timer</tt></i>:</span></td><td>timer id to change</td></tr><tr><td><span class="term"><i><tt>timeout</tt></i>:</span></td><td>time between events in milliseconds</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virGetVersion"/>virGetVersion ()</h3><pre class="programlisting">int	virGetVersion			(unsigned long * libVer, <br/>					 const char * type, <br/>					 unsigned long * typeVer)<br/>
@@ -6015,21 +6153,28 @@ an error code will be returned. @typeVer exists for historical
 compatibility; if it is not NULL it will duplicate @libVer (it was
 originally intended to return hypervisor information based on @type,
 but due to the design of remote clients this is not reliable). To
-get the version of the running hypervisor use the virConnectGetVersion
+get the version of the running hypervisor use the virConnectGetVersion()
 function instead. To get the libvirt library version used by a
-connection use the <a href="libvirt-libvirt.html#virConnectGetLibVersion">virConnectGetLibVersion</a> instead.</p>
+connection use the virConnectGetLibVersion() instead.
+
+This function includes a call to virInitialize() when necessary.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>libVer</tt></i>:</span></td><td>return value for the library version (OUT)</td></tr><tr><td><span class="term"><i><tt>type</tt></i>:</span></td><td>ignored; pass NULL</td></tr><tr><td><span class="term"><i><tt>typeVer</tt></i>:</span></td><td>pass NULL; for historical purposes duplicates @libVer if non-NULL</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 in case of failure, 0 otherwise, and values for @libVer and @typeVer have the format major * 1,000,000 + minor * 1,000 + release.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virInitialize"/>virInitialize ()</h3><pre class="programlisting">int	virInitialize			(void)<br/>
 </pre><p>Initialize the library.
 
-This method is invoked automatically by any of the <a href="libvirt-libvirt.html#virConnectOpen">virConnectOpen</a> API
-calls. Since release 1.0.0, there is no need to call this method even
-in a multithreaded application, since initialization is performed in
-a thread safe manner.
+This method is invoked automatically by any of the virConnectOpen() API
+calls, and by virGetVersion(). Since release 1.0.0, there is no need to
+call this method even in a multithreaded application, since
+initialization is performed in a thread safe manner; but applications
+using an older version of the library should manually call this before
+setting up competing threads that attempt <a href="libvirt-libvirt.html#virConnectOpen">virConnectOpen</a> in parallel.
 
-The only time it would be necessary to call <a href="libvirt-libvirt.html#virInitialize">virInitialize</a> is if the
-application did not invoke <a href="libvirt-libvirt.html#virConnectOpen">virConnectOpen</a> as its first API call.</p>
+The only other time it would be necessary to call <a href="libvirt-libvirt.html#virInitialize">virInitialize</a> is if the
+application did not invoke <a href="libvirt-libvirt.html#virConnectOpen">virConnectOpen</a> as its first API call, such
+as when calling virEventRegisterImpl() before setting up connections,
+or when using virSetErrorFunc() to alter error reporting of the first
+connection attempt.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success, -1 in case of error</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virInterfaceChangeBegin"/>virInterfaceChangeBegin ()</h3><pre class="programlisting">int	virInterfaceChangeBegin		(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 unsigned int flags)<br/>
@@ -6356,8 +6501,9 @@ HBAs created using vport_create.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>xmlDesc</tt></i>:</span></td><td>string containing an XML description of the device to be created</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>extra flags; not used yet, so callers should always pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a node device object if successful, NULL in case of failure</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virNodeDeviceDestroy"/>virNodeDeviceDestroy ()</h3><pre class="programlisting">int	virNodeDeviceDestroy		(<a href="libvirt-libvirt.html#virNodeDevicePtr">virNodeDevicePtr</a> dev)<br/>
-</pre><p>Destroy the device object. The virtual device is removed from the host operating system.
-This function may require privileged access</p>
+</pre><p>Destroy the device object. The virtual device (only works for vHBA
+currently) is removed from the host operating system. This function
+may require privileged access.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>dev</tt></i>:</span></td><td>a device object</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success and -1 in case of failure.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virNodeDeviceDetachFlags"/>virNodeDeviceDetachFlags ()</h3><pre class="programlisting">int	virNodeDeviceDetachFlags	(<a href="libvirt-libvirt.html#virNodeDevicePtr">virNodeDevicePtr</a> dev, <br/>					 const char * driverName, <br/>					 unsigned int flags)<br/>
@@ -6489,14 +6635,14 @@ the API again.
 
 Here is a sample code snippet:
 
-if ((virNodeGetCPUStats(conn, cpuNum, NULL, &amp;nparams, 0) == 0) &amp;&amp;
- (nparams != 0)) {
+ if (virNodeGetCPUStats(conn, cpuNum, NULL, &amp;nparams, 0) == 0 &amp;&amp;
+ nparams != 0) {
  if ((params = malloc(sizeof(virNodeCPUStats) * nparams)) == NULL)
  goto error;
  memset(params, 0, sizeof(virNodeCPUStats) * nparams);
  if (virNodeGetCPUStats(conn, cpuNum, params, &amp;nparams, 0))
  goto error;
-}
+ }
 
 This function doesn't require privileged access to the hypervisor.
 This function expects the caller to allocate the @params.
@@ -6566,14 +6712,14 @@ the API again.
 
 Here is the sample code snippet:
 
-if ((virNodeGetMemoryStats(conn, cellNum, NULL, &amp;nparams, 0) == 0) &amp;&amp;
- (nparams != 0)) {
+ if (virNodeGetMemoryStats(conn, cellNum, NULL, &amp;nparams, 0) == 0 &amp;&amp;
+ nparams != 0) {
  if ((params = malloc(sizeof(virNodeMemoryStats) * nparams)) == NULL)
  goto error;
  memset(params, cellNum, 0, sizeof(virNodeMemoryStats) * nparams);
  if (virNodeGetMemoryStats(conn, params, &amp;nparams, 0))
  goto error;
-}
+ }
 
 This function doesn't require privileged access to the hypervisor.
 This function expects the caller to allocate the @params.
@@ -6639,7 +6785,7 @@ attributes of the secret specified by UUID by attributes specified in xml
 
 Otherwise, creates a new secret with an automatically chosen UUID, and
 initializes its attributes from xml.</p>
-<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td><a href="libvirt-libvirt.html#virConnect">virConnect</a> connection</td></tr><tr><td><span class="term"><i><tt>xml</tt></i>:</span></td><td>XML describing the secret.</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>extra flags; not used yet, so callers should always pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a the secret on success, NULL on failure.</td></tr></tbody></table></div></div>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td><a href="libvirt-libvirt.html#virConnect">virConnect</a> connection</td></tr><tr><td><span class="term"><i><tt>xml</tt></i>:</span></td><td>XML describing the secret.</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>extra flags; not used yet, so callers should always pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a secret on success, NULL on failure.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virSecretFree"/>virSecretFree ()</h3><pre class="programlisting">int	virSecretFree			(<a href="libvirt-libvirt.html#virSecretPtr">virSecretPtr</a> secret)<br/>
 </pre><p>Release the secret handle. The underlying secret continues to exist.</p>
@@ -7110,7 +7256,7 @@ An example using this with a hypothetical file download
 API looks like
 
  <a href="libvirt-libvirt.html#virStreamPtr">virStreamPtr</a> st = virStreamNew(conn, 0);
- int fd = open("demo.iso", O_WRONLY, 0600)
+ int fd = open("demo.iso", O_WRONLY, 0600);
 
  virConnectDownloadFile(conn, "demo.iso", st);
 
@@ -7125,7 +7271,7 @@ API looks like
  }
  int offset = 0;
  while (offset &lt; got) {
- int sent = write(fd, buf+offset, got-offset)
+ int sent = write(fd, buf + offset, got - offset);
  if (sent &lt; 0) {
  virStreamAbort(st);
  goto done;
@@ -7155,7 +7301,7 @@ API looks like
  }
 
  <a href="libvirt-libvirt.html#virStreamPtr">virStreamPtr</a> st = virStreamNew(conn, 0);
- int fd = open("demo.iso", O_WRONLY)
+ int fd = open("demo.iso", O_WRONLY);
 
  virConnectUploadFile(conn, st);
  if (virStreamRecvAll(st, mysink, &amp;fd) &lt; 0) {
@@ -7193,7 +7339,7 @@ An example using this with a hypothetical file upload
 API looks like
 
  <a href="libvirt-libvirt.html#virStreamPtr">virStreamPtr</a> st = virStreamNew(conn, 0);
- int fd = open("demo.iso", O_RDONLY)
+ int fd = open("demo.iso", O_RDONLY);
 
  virConnectUploadFile(conn, "demo.iso", st);
 
@@ -7210,7 +7356,7 @@ API looks like
  }
  int offset = 0;
  while (offset &lt; got) {
- int sent = virStreamSend(st, buf+offset, got-offset)
+ int sent = virStreamSend(st, buf+offset, got-offset);
  if (sent &lt; 0) {
  virStreamAbort(st);
  goto done;
@@ -7240,7 +7386,7 @@ API looks like
  }
 
  <a href="libvirt-libvirt.html#virStreamPtr">virStreamPtr</a> st = virStreamNew(conn, 0);
- int fd = open("demo.iso", O_RDONLY)
+ int fd = open("demo.iso", O_RDONLY);
 
  virConnectUploadFile(conn, st);
  if (virStreamSendAll(st, mysource, &amp;fd) &lt; 0) {
@@ -7342,7 +7488,7 @@ is not freed; use <a href="libvirt-libvirt.html#virTypedParamsFree">virTypedPara
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virTypedParamsGet"/>virTypedParamsGet ()</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virTypedParameterPtr">virTypedParameterPtr</a>	virTypedParamsGet	(<a href="libvirt-libvirt.html#virTypedParameterPtr">virTypedParameterPtr</a> params, <br/>						 int nparams, <br/>						 const char * name)<br/>
 </pre><p>Finds typed parameter called @name.</p>
-<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>params</tt></i>:</span></td><td>array of typed parameters</td></tr><tr><td><span class="term"><i><tt>nparams</tt></i>:</span></td><td>number of parameters in the @params array</td></tr><tr><td><span class="term"><i><tt>name</tt></i>:</span></td><td>name of the parameter to find</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>pointer to the parameter or NULL if it does not exist in @params.</td></tr></tbody></table></div></div>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>params</tt></i>:</span></td><td>array of typed parameters</td></tr><tr><td><span class="term"><i><tt>nparams</tt></i>:</span></td><td>number of parameters in the @params array</td></tr><tr><td><span class="term"><i><tt>name</tt></i>:</span></td><td>name of the parameter to find</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>pointer to the parameter or NULL if it does not exist in @params. This function does not raise an error, even when returning NULL.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virTypedParamsGetBoolean"/>virTypedParamsGetBoolean ()</h3><pre class="programlisting">int	virTypedParamsGetBoolean	(<a href="libvirt-libvirt.html#virTypedParameterPtr">virTypedParameterPtr</a> params, <br/>					 int nparams, <br/>					 const char * name, <br/>					 int * value)<br/>
 </pre><p>Finds typed parameter called @name and store its boolean value in @value.

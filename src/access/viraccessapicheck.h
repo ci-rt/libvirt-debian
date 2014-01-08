@@ -62,6 +62,8 @@ extern int virConnectListSecretsEnsureACL(virConnectPtr conn);
 extern bool virConnectListSecretsCheckACL(virConnectPtr conn, virSecretDefPtr secret);
 extern int virConnectListStoragePoolsEnsureACL(virConnectPtr conn);
 extern bool virConnectListStoragePoolsCheckACL(virConnectPtr conn, virStoragePoolDefPtr pool);
+extern int virConnectNetworkEventDeregisterAnyEnsureACL(virConnectPtr conn);
+extern int virConnectNetworkEventRegisterAnyEnsureACL(virConnectPtr conn);
 extern int virConnectNumOfDefinedDomainsEnsureACL(virConnectPtr conn);
 extern bool virConnectNumOfDefinedDomainsCheckACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virConnectNumOfDefinedInterfacesEnsureACL(virConnectPtr conn);

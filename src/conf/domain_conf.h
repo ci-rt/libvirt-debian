@@ -126,6 +126,9 @@ typedef virDomainIdMapEntry *virDomainIdMapEntryPtr;
 typedef struct _virDomainIdMapDef virDomainIdMapDef;
 typedef virDomainIdMapDef *virDomainIdMapDefPtr;
 
+typedef struct _virDomainPanicDef virDomainPanicDef;
+typedef virDomainPanicDef *virDomainPanicDefPtr;
+
 /* Flags for the 'type' field in virDomainDeviceDef */
 typedef enum {
     VIR_DOMAIN_DEVICE_NONE = 0,
@@ -208,6 +211,7 @@ enum virDomainDeviceAddressType {
     VIR_DOMAIN_DEVICE_ADDRESS_TYPE_VIRTIO_S390,
     VIR_DOMAIN_DEVICE_ADDRESS_TYPE_CCW,
     VIR_DOMAIN_DEVICE_ADDRESS_TYPE_VIRTIO_MMIO,
+    VIR_DOMAIN_DEVICE_ADDRESS_TYPE_ISA,
 
     VIR_DOMAIN_DEVICE_ADDRESS_TYPE_LAST
 };
@@ -284,6 +288,13 @@ struct _virDomainDeviceUSBMaster {
     unsigned int startport;
 };
 
+typedef struct _virDomainDeviceISAAddress virDomainDeviceISAAddress;
+typedef virDomainDeviceISAAddress *virDomainDeviceISAAddressPtr;
+struct _virDomainDeviceISAAddress {
+    unsigned int iobase;
+    unsigned int irq;
+};
+
 typedef struct _virDomainDeviceInfo virDomainDeviceInfo;
 typedef virDomainDeviceInfo *virDomainDeviceInfoPtr;
 struct _virDomainDeviceInfo {
@@ -301,6 +312,7 @@ struct _virDomainDeviceInfo {
         virDomainDeviceUSBAddress usb;
         virDomainDeviceSpaprVioAddress spaprvio;
         virDomainDeviceCCWAddress ccw;
+        virDomainDeviceISAAddress isa;
     } addr;
     int mastertype;
     union {
@@ -686,6 +698,7 @@ struct _virDomainDiskSourcePoolDef {
     char *volume; /* volume name */
     int voltype; /* enum virStorageVolType, internal only */
     int pooltype; /* enum virStoragePoolType, internal only */
+    int actualtype; /* enum virDomainDiskType, internal only */
     int mode; /* enum virDomainDiskSourcePoolMode */
 };
 typedef virDomainDiskSourcePoolDef *virDomainDiskSourcePoolDefPtr;
@@ -1859,9 +1872,9 @@ virDomainVcpuPinDefPtr virDomainVcpuPinFindByVcpu(virDomainVcpuPinDefPtr *def,
                                                   int nvcpupin,
                                                   int vcpu);
 
-typedef struct _virBlkioDeviceWeight virBlkioDeviceWeight;
-typedef virBlkioDeviceWeight *virBlkioDeviceWeightPtr;
-struct _virBlkioDeviceWeight {
+typedef struct _virBlkioDevice virBlkioDevice;
+typedef virBlkioDevice *virBlkioDevicePtr;
+struct _virBlkioDevice {
     char *path;
     unsigned int weight;
 };
@@ -1910,8 +1923,13 @@ struct _virDomainIdMapDef {
 };
 
 
-void virBlkioDeviceWeightArrayClear(virBlkioDeviceWeightPtr deviceWeights,
-                                    int ndevices);
+struct _virDomainPanicDef {
+    virDomainDeviceInfo info;
+};
+
+
+void virBlkioDeviceArrayClear(virBlkioDevicePtr deviceWeights,
+                              int ndevices);
 
 typedef struct _virDomainResourceDef virDomainResourceDef;
 typedef virDomainResourceDef *virDomainResourceDefPtr;
@@ -1939,7 +1957,7 @@ struct _virDomainDef {
         unsigned int weight;
 
         size_t ndevices;
-        virBlkioDeviceWeightPtr devices;
+        virBlkioDevicePtr devices;
     } blkio;
 
     struct {
@@ -2061,6 +2079,7 @@ struct _virDomainDef {
     virSysinfoDefPtr sysinfo;
     virDomainRedirFilterDefPtr redirfilter;
     virDomainRNGDefPtr rng;
+    virDomainPanicDefPtr panic;
 
     void *namespaceData;
     virDomainXMLNamespace ns;
@@ -2204,12 +2223,17 @@ virDomainObjPtr virDomainObjListFindByName(virDomainObjListPtr doms,
 bool virDomainObjTaint(virDomainObjPtr obj,
                        enum virDomainTaintFlags taint);
 
+void virDomainPanicDefFree(virDomainPanicDefPtr panic);
 void virDomainResourceDefFree(virDomainResourceDefPtr resource);
 void virDomainGraphicsDefFree(virDomainGraphicsDefPtr def);
 void virDomainInputDefFree(virDomainInputDefPtr def);
 void virDomainDiskDefFree(virDomainDiskDefPtr def);
 void virDomainLeaseDefFree(virDomainLeaseDefPtr def);
+void virDomainDiskAuthClear(virDomainDiskDefPtr def);
 void virDomainDiskHostDefClear(virDomainDiskHostDefPtr def);
+void virDomainDiskHostDefFree(size_t nhosts, virDomainDiskHostDefPtr hosts);
+virDomainDiskHostDefPtr virDomainDiskHostDefCopy(size_t nhosts,
+                                                 virDomainDiskHostDefPtr hosts);
 int virDomainDeviceFindControllerModel(virDomainDefPtr def,
                                        virDomainDeviceInfoPtr info,
                                        int controllerType);
@@ -2344,6 +2368,18 @@ int virDomainDefFormatInternal(virDomainDefPtr def,
                                unsigned int flags,
                                virBufferPtr buf);
 
+int virDomainDiskSourceDefFormatInternal(virBufferPtr buf,
+                                         int type,
+                                         const char *src,
+                                         int policy,
+                                         int protocol,
+                                         size_t nhosts,
+                                         virDomainDiskHostDefPtr hosts,
+                                         size_t nseclabels,
+                                         virSecurityDeviceLabelDefPtr *seclabels,
+                                         virDomainDiskSourcePoolDefPtr srcpool,
+                                         unsigned int flags);
+
 int virDomainDefCompatibleDevice(virDomainDefPtr def,
                                  virDomainDeviceDefPtr dev);
 
@@ -2378,6 +2414,14 @@ virDomainDiskDefPtr
 virDomainDiskRemove(virDomainDefPtr def, size_t i);
 virDomainDiskDefPtr
 virDomainDiskRemoveByName(virDomainDefPtr def, const char *name);
+int virDomainDiskSourceDefParse(xmlNodePtr node,
+                                int type,
+                                char **source,
+                                int *proto,
+                                size_t *nhosts,
+                                virDomainDiskHostDefPtr *hosts,
+                                virDomainDiskSourcePoolDefPtr *srcpool);
+
 bool virDomainHasDiskMirror(virDomainObjPtr vm);
 
 int virDomainNetFindIdx(virDomainDefPtr def, virDomainNetDefPtr net);

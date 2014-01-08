@@ -125,9 +125,8 @@ useless_free_options =				\
   --name=virDomainDeviceDefFree			\
   --name=virDomainDiskDefFree			\
   --name=virDomainEventCallbackListFree		\
-  --name=virDomainEventFree			\
-  --name=virDomainEventQueueFree		\
-  --name=virDomainEventStateFree		\
+  --name=virObjectEventQueueFree		\
+  --name=virObjectEventStateFree		\
   --name=virDomainFSDefFree			\
   --name=virDomainGraphicsDefFree		\
   --name=virDomainHostdevDefFree		\
@@ -205,7 +204,6 @@ useless_free_options =				\
 # y virDomainDeviceDefFree
 # y virDomainDiskDefFree
 # y virDomainEventCallbackListFree
-# y virDomainEventFree
 # y virDomainEventQueueFree
 # y virDomainFSDefFree
 # n virDomainFree
@@ -869,6 +867,12 @@ sc_prohibit_getenv:
 	halt='Use virGetEnv{Allow,Block}SUID instead of getenv'		\
 	  $(_sc_search_regexp)
 
+sc_prohibit_atoi:
+	@prohibit='\bato(i|f|l|ll|q) *\('	\
+	halt='Use virStrToLong* instead of atoi, atol, atof, atoq, atoll' \
+	  $(_sc_search_regexp)
+
+
 # We don't use this feature of maint.mk.
 prev_version_file = /dev/null
 
@@ -959,7 +963,7 @@ exclude_file_name_regexp--sc_prohibit_VIR_ERR_NO_MEMORY = \
 exclude_file_name_regexp--sc_prohibit_access_xok = ^src/util/virutil\.c$$
 
 exclude_file_name_regexp--sc_prohibit_asprintf = \
-  ^(bootstrap.conf$$|src/util/virstring\.[ch]$$|examples/domain-events/events-c/event-test\.c$$|tests/vircgroupmock\.c$$)
+  ^(bootstrap.conf$$|src/util/virstring\.[ch]$$|tests/vircgroupmock\.c$$)
 
 exclude_file_name_regexp--sc_prohibit_strdup = \
   ^(docs/|examples/|src/util/virstring\.c|tests/virnetserverclientmock.c$$)
@@ -999,7 +1003,7 @@ exclude_file_name_regexp--sc_prohibit_sprintf = \
 exclude_file_name_regexp--sc_prohibit_strncpy = ^src/util/virstring\.c$$
 
 exclude_file_name_regexp--sc_prohibit_strtol = \
-  ^src/(util/virsexpr|(vbox|xen|xenxs)/.*)\.c$$
+  ^(src/(util/virsexpr|(vbox|xen|xenxs)/.*)\.c)|(examples/domsuspend/suspend.c)$$
 
 exclude_file_name_regexp--sc_prohibit_xmlGetProp = ^src/util/virxml\.c$$
 

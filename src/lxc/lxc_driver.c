@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010-2013 Red Hat, Inc.
+ * Copyright (C) 2010-2014 Red Hat, Inc.
  * Copyright IBM Corp. 2008
  *
  * lxc_driver.c: linux container driver functions
@@ -441,7 +441,7 @@ static virDomainPtr lxcDomainDefineXML(virConnectPtr conn, const char *xml)
     virDomainDefPtr def = NULL;
     virDomainObjPtr vm = NULL;
     virDomainPtr dom = NULL;
-    virDomainEventPtr event = NULL;
+    virObjectEventPtr event = NULL;
     virDomainDefPtr oldDef = NULL;
     virLXCDriverConfigPtr cfg = virLXCDriverGetConfig(driver);
     virCapsPtr caps = NULL;
@@ -480,7 +480,7 @@ static virDomainPtr lxcDomainDefineXML(virConnectPtr conn, const char *xml)
         goto cleanup;
     }
 
-    event = virDomainEventNewFromObj(vm,
+    event = virDomainEventLifecycleNewFromObj(vm,
                                      VIR_DOMAIN_EVENT_DEFINED,
                                      !oldDef ?
                                      VIR_DOMAIN_EVENT_DEFINED_ADDED :
@@ -496,7 +496,7 @@ cleanup:
     if (vm)
         virObjectUnlock(vm);
     if (event)
-        virDomainEventStateQueue(driver->domainEventState, event);
+        virObjectEventStateQueue(driver->domainEventState, event);
     virObjectUnref(caps);
     virObjectUnref(cfg);
     return dom;
@@ -507,7 +507,7 @@ static int lxcDomainUndefineFlags(virDomainPtr dom,
 {
     virLXCDriverPtr driver = dom->conn->privateData;
     virDomainObjPtr vm;
-    virDomainEventPtr event = NULL;
+    virObjectEventPtr event = NULL;
     int ret = -1;
     virLXCDriverConfigPtr cfg = virLXCDriverGetConfig(driver);
 
@@ -530,7 +530,7 @@ static int lxcDomainUndefineFlags(virDomainPtr dom,
                               vm) < 0)
         goto cleanup;
 
-    event = virDomainEventNewFromObj(vm,
+    event = virDomainEventLifecycleNewFromObj(vm,
                                      VIR_DOMAIN_EVENT_UNDEFINED,
                                      VIR_DOMAIN_EVENT_UNDEFINED_REMOVED);
 
@@ -547,7 +547,7 @@ cleanup:
     if (vm)
         virObjectUnlock(vm);
     if (event)
-        virDomainEventStateQueue(driver->domainEventState, event);
+        virObjectEventStateQueue(driver->domainEventState, event);
     virObjectUnref(cfg);
     return ret;
 }
@@ -742,12 +742,24 @@ lxcDomainSetMemoryParameters(virDomainPtr dom,
                              int nparams,
                              unsigned int flags)
 {
-    size_t i;
+    virCapsPtr caps = NULL;
+    virDomainDefPtr vmdef = NULL;
     virDomainObjPtr vm = NULL;
+    virLXCDomainObjPrivatePtr priv = NULL;
+    virLXCDriverConfigPtr cfg = NULL;
+    virLXCDriverPtr driver = dom->conn->privateData;
+    unsigned long long hard_limit;
+    unsigned long long soft_limit;
+    unsigned long long swap_hard_limit;
+    bool set_hard_limit = false;
+    bool set_soft_limit = false;
+    bool set_swap_hard_limit = false;
+    int rc;
     int ret = -1;
-    virLXCDomainObjPrivatePtr priv;
 
-    virCheckFlags(0, -1);
+    virCheckFlags(VIR_DOMAIN_AFFECT_LIVE |
+                  VIR_DOMAIN_AFFECT_CONFIG, -1);
+
     if (virTypedParamsValidate(params, nparams,
                                VIR_DOMAIN_MEMORY_HARD_LIMIT,
                                VIR_TYPED_PARAM_ULLONG,
@@ -762,29 +774,97 @@ lxcDomainSetMemoryParameters(virDomainPtr dom,
         goto cleanup;
 
     priv = vm->privateData;
+    cfg = virLXCDriverGetConfig(driver);
 
-    if (virDomainSetMemoryParametersEnsureACL(dom->conn, vm->def, flags) < 0)
+    if (virDomainSetMemoryParametersEnsureACL(dom->conn, vm->def, flags) < 0 ||
+        !(caps = virLXCDriverGetCapabilities(driver, false)) ||
+        virDomainLiveConfigHelperMethod(caps, driver->xmlopt,
+                                        vm, &flags, &vmdef) < 0)
         goto cleanup;
 
-    ret = 0;
-    for (i = 0; i < nparams; i++) {
-        virTypedParameterPtr param = &params[i];
+    if (flags & VIR_DOMAIN_AFFECT_LIVE &&
+        !virCgroupHasController(priv->cgroup, VIR_CGROUP_CONTROLLER_MEMORY)) {
+        virReportError(VIR_ERR_OPERATION_INVALID,
+                       "%s", _("cgroup memory controller is not mounted"));
+        goto cleanup;
+    }
 
-        if (STREQ(param->field, VIR_DOMAIN_MEMORY_HARD_LIMIT)) {
-            if (virCgroupSetMemoryHardLimit(priv->cgroup, params[i].value.ul) < 0)
-                ret = -1;
-        } else if (STREQ(param->field, VIR_DOMAIN_MEMORY_SOFT_LIMIT)) {
-            if (virCgroupSetMemorySoftLimit(priv->cgroup, params[i].value.ul) < 0)
-                ret = -1;
-        } else if (STREQ(param->field, VIR_DOMAIN_MEMORY_SWAP_HARD_LIMIT)) {
-            if (virCgroupSetMemSwapHardLimit(priv->cgroup, params[i].value.ul) < 0)
-                ret = -1;
+#define VIR_GET_LIMIT_PARAMETER(PARAM, VALUE)                                \
+    if ((rc = virTypedParamsGetULLong(params, nparams, PARAM, &VALUE)) < 0)  \
+        goto cleanup;                                                        \
+                                                                             \
+    if (rc == 1)                                                             \
+        set_ ## VALUE = true;
+
+    VIR_GET_LIMIT_PARAMETER(VIR_DOMAIN_MEMORY_SWAP_HARD_LIMIT, swap_hard_limit)
+    VIR_GET_LIMIT_PARAMETER(VIR_DOMAIN_MEMORY_HARD_LIMIT, hard_limit)
+    VIR_GET_LIMIT_PARAMETER(VIR_DOMAIN_MEMORY_SOFT_LIMIT, soft_limit)
+
+#undef VIR_GET_LIMIT_PARAMETER
+
+    /* Swap hard limit must be greater than hard limit.
+     * Note that limit of 0 denotes unlimited */
+    if (set_swap_hard_limit || set_hard_limit) {
+        unsigned long long mem_limit = vm->def->mem.hard_limit;
+        unsigned long long swap_limit = vm->def->mem.swap_hard_limit;
+
+        if (set_swap_hard_limit)
+            swap_limit = swap_hard_limit;
+
+        if (set_hard_limit)
+            mem_limit = hard_limit;
+
+        if (virCompareLimitUlong(mem_limit, swap_limit) > 0) {
+            virReportError(VIR_ERR_INVALID_ARG, "%s",
+                           _("memory hard_limit tunable value must be lower "
+                             "than or equal to swap_hard_limit"));
+            goto cleanup;
         }
     }
 
+#define LXC_SET_MEM_PARAMETER(FUNC, VALUE)                                     \
+    if (set_ ## VALUE) {                                                        \
+        if (flags & VIR_DOMAIN_AFFECT_LIVE) {                                   \
+            if ((rc = FUNC(priv->cgroup, VALUE)) < 0) {                         \
+                virReportSystemError(-rc, _("unable to set memory %s tunable"), \
+                                     #VALUE);                                   \
+                                                                                \
+                goto cleanup;                                                   \
+            }                                                                   \
+            vm->def->mem.VALUE = VALUE;                                         \
+        }                                                                       \
+                                                                                \
+        if (flags & VIR_DOMAIN_AFFECT_CONFIG)                                   \
+            vmdef->mem.VALUE = VALUE;                                   \
+    }
+
+    /* Soft limit doesn't clash with the others */
+    LXC_SET_MEM_PARAMETER(virCgroupSetMemorySoftLimit, soft_limit);
+
+    /* set hard limit before swap hard limit if decreasing it */
+    if (virCompareLimitUlong(vm->def->mem.hard_limit, hard_limit) > 0) {
+        LXC_SET_MEM_PARAMETER(virCgroupSetMemoryHardLimit, hard_limit);
+        /* inhibit changing the limit a second time */
+        set_hard_limit = false;
+    }
+
+    LXC_SET_MEM_PARAMETER(virCgroupSetMemSwapHardLimit, swap_hard_limit);
+
+    /* otherwise increase it after swap hard limit */
+    LXC_SET_MEM_PARAMETER(virCgroupSetMemoryHardLimit, hard_limit);
+
+#undef LXC_SET_MEM_PARAMETER
+
+    if (flags & VIR_DOMAIN_AFFECT_CONFIG &&
+        virDomainSaveConfig(cfg->configDir, vmdef) < 0)
+        goto cleanup;
+
+    ret = 0;
 cleanup:
     if (vm)
         virObjectUnlock(vm);
+    virObjectUnref(caps);
+    virObjectUnref(cfg);
     return ret;
 }
 
@@ -794,21 +874,35 @@ lxcDomainGetMemoryParameters(virDomainPtr dom,
                              int *nparams,
                              unsigned int flags)
 {
-    size_t i;
+    virCapsPtr caps = NULL;
+    virDomainDefPtr vmdef = NULL;
     virDomainObjPtr vm = NULL;
+    virLXCDomainObjPrivatePtr priv = NULL;
+    virLXCDriverPtr driver = dom->conn->privateData;
     unsigned long long val;
     int ret = -1;
-    virLXCDomainObjPrivatePtr priv;
+    size_t i;
 
-    virCheckFlags(0, -1);
+    virCheckFlags(VIR_DOMAIN_AFFECT_LIVE |
+                  VIR_DOMAIN_AFFECT_CONFIG, -1);
 
     if (!(vm = lxcDomObjFromDomain(dom)))
         goto cleanup;
 
     priv = vm->privateData;
 
-    if (virDomainGetMemoryParametersEnsureACL(dom->conn, vm->def) < 0)
+    if (virDomainGetMemoryParametersEnsureACL(dom->conn, vm->def) < 0 ||
+        !(caps = virLXCDriverGetCapabilities(driver, false)) ||
+        virDomainLiveConfigHelperMethod(caps, driver->xmlopt,
+                                        vm, &flags, &vmdef) < 0)
         goto cleanup;
+
+    if (flags & VIR_DOMAIN_AFFECT_LIVE &&
+        !virCgroupHasController(priv->cgroup, VIR_CGROUP_CONTROLLER_MEMORY)) {
+        virReportError(VIR_ERR_OPERATION_INVALID,
+                       "%s", _("cgroup memory controller is not mounted"));
+        goto cleanup;
+    }
 
     if ((*nparams) == 0) {
         /* Current number of memory parameters supported by cgroups */
@@ -823,22 +917,34 @@ lxcDomainGetMemoryParameters(virDomainPtr dom,
 
         switch (i) {
         case 0: /* fill memory hard limit here */
-            if (virCgroupGetMemoryHardLimit(priv->cgroup, &val) < 0)
+            if (flags & VIR_DOMAIN_AFFECT_CONFIG) {
+                val = vmdef->mem.hard_limit;
+                val = val ? val : VIR_DOMAIN_MEMORY_PARAM_UNLIMITED;
+            } else if (virCgroupGetMemoryHardLimit(priv->cgroup, &val) < 0) {
                 goto cleanup;
+            }
             if (virTypedParameterAssign(param, VIR_DOMAIN_MEMORY_HARD_LIMIT,
                                         VIR_TYPED_PARAM_ULLONG, val) < 0)
                 goto cleanup;
             break;
         case 1: /* fill memory soft limit here */
-            if (virCgroupGetMemorySoftLimit(priv->cgroup, &val) < 0)
+            if (flags & VIR_DOMAIN_AFFECT_CONFIG) {
+                val = vmdef->mem.soft_limit;
+                val = val ? val : VIR_DOMAIN_MEMORY_PARAM_UNLIMITED;
+            } else if (virCgroupGetMemorySoftLimit(priv->cgroup, &val) < 0) {
                 goto cleanup;
+            }
             if (virTypedParameterAssign(param, VIR_DOMAIN_MEMORY_SOFT_LIMIT,
                                         VIR_TYPED_PARAM_ULLONG, val) < 0)
                 goto cleanup;
             break;
         case 2: /* fill swap hard limit here */
-            if (virCgroupGetMemSwapHardLimit(priv->cgroup, &val) < 0)
+            if (flags & VIR_DOMAIN_AFFECT_CONFIG) {
+                val = vmdef->mem.swap_hard_limit;
+                val = val ? val : VIR_DOMAIN_MEMORY_PARAM_UNLIMITED;
+            } else if (virCgroupGetMemSwapHardLimit(priv->cgroup, &val) < 0) {
                 goto cleanup;
+            }
             if (virTypedParameterAssign(param,
                                         VIR_DOMAIN_MEMORY_SWAP_HARD_LIMIT,
                                         VIR_TYPED_PARAM_ULLONG, val) < 0)
@@ -859,6 +965,7 @@ lxcDomainGetMemoryParameters(virDomainPtr dom,
 cleanup:
     if (vm)
         virObjectUnlock(vm);
+    virObjectUnref(caps);
     return ret;
 }
 
@@ -902,7 +1009,7 @@ static int lxcDomainCreateWithFiles(virDomainPtr dom,
 {
     virLXCDriverPtr driver = dom->conn->privateData;
     virDomainObjPtr vm;
-    virDomainEventPtr event = NULL;
+    virObjectEventPtr event = NULL;
     int ret = -1;
     virLXCDriverConfigPtr cfg = virLXCDriverGetConfig(driver);
 
@@ -932,7 +1039,7 @@ static int lxcDomainCreateWithFiles(virDomainPtr dom,
                              VIR_DOMAIN_RUNNING_BOOTED);
 
     if (ret == 0) {
-        event = virDomainEventNewFromObj(vm,
+        event = virDomainEventLifecycleNewFromObj(vm,
                                          VIR_DOMAIN_EVENT_STARTED,
                                          VIR_DOMAIN_EVENT_STARTED_BOOTED);
         virDomainAuditStart(vm, "booted", true);
@@ -944,7 +1051,7 @@ cleanup:
     if (vm)
         virObjectUnlock(vm);
     if (event)
-        virDomainEventStateQueue(driver->domainEventState, event);
+        virObjectEventStateQueue(driver->domainEventState, event);
     virObjectUnref(cfg);
     return ret;
 }
@@ -996,7 +1103,7 @@ lxcDomainCreateXMLWithFiles(virConnectPtr conn,
     virDomainObjPtr vm = NULL;
     virDomainDefPtr def = NULL;
     virDomainPtr dom = NULL;
-    virDomainEventPtr event = NULL;
+    virObjectEventPtr event = NULL;
     virLXCDriverConfigPtr cfg = virLXCDriverGetConfig(driver);
     virCapsPtr caps = NULL;
 
@@ -1040,7 +1147,7 @@ lxcDomainCreateXMLWithFiles(virConnectPtr conn,
         goto cleanup;
     }
 
-    event = virDomainEventNewFromObj(vm,
+    event = virDomainEventLifecycleNewFromObj(vm,
                                      VIR_DOMAIN_EVENT_STARTED,
                                      VIR_DOMAIN_EVENT_STARTED_BOOTED);
     virDomainAuditStart(vm, "booted", true);
@@ -1054,7 +1161,7 @@ cleanup:
     if (vm)
         virObjectUnlock(vm);
     if (event)
-        virDomainEventStateQueue(driver->domainEventState, event);
+        virObjectEventStateQueue(driver->domainEventState, event);
     virObjectUnref(caps);
     virObjectUnref(cfg);
     return dom;
@@ -1180,16 +1287,16 @@ lxcConnectDomainEventRegister(virConnectPtr conn,
                               virFreeCallback freecb)
 {
     virLXCDriverPtr driver = conn->privateData;
-    int ret;
 
     if (virConnectDomainEventRegisterEnsureACL(conn) < 0)
         return -1;
 
-    ret = virDomainEventStateRegister(conn,
-                                      driver->domainEventState,
-                                      callback, opaque, freecb);
+    if (virDomainEventStateRegister(conn,
+                                    driver->domainEventState,
+                                    callback, opaque, freecb) < 0)
+        return -1;
 
-    return ret;
+    return 0;
 }
 
 
@@ -1198,16 +1305,16 @@ lxcConnectDomainEventDeregister(virConnectPtr conn,
                                 virConnectDomainEventCallback callback)
 {
     virLXCDriverPtr driver = conn->privateData;
-    int ret;
 
     if (virConnectDomainEventDeregisterEnsureACL(conn) < 0)
         return -1;
 
-    ret = virDomainEventStateDeregister(conn,
-                                        driver->domainEventState,
-                                        callback);
+    if (virDomainEventStateDeregister(conn,
+                                      driver->domainEventState,
+                                      callback) < 0)
+        return -1;
 
-    return ret;
+    return 0;
 }
 
 
@@ -1240,16 +1347,16 @@ lxcConnectDomainEventDeregisterAny(virConnectPtr conn,
                                    int callbackID)
 {
     virLXCDriverPtr driver = conn->privateData;
-    int ret;
 
     if (virConnectDomainEventDeregisterAnyEnsureACL(conn) < 0)
         return -1;
 
-    ret = virDomainEventStateDeregisterID(conn,
-                                          driver->domainEventState,
-                                          callbackID);
+    if (virObjectEventStateDeregisterID(conn,
+                                        driver->domainEventState,
+                                        callbackID) < 0)
+        return -1;
 
-    return ret;
+    return 0;
 }
 
 
@@ -1268,7 +1375,7 @@ lxcDomainDestroyFlags(virDomainPtr dom,
 {
     virLXCDriverPtr driver = dom->conn->privateData;
     virDomainObjPtr vm;
-    virDomainEventPtr event = NULL;
+    virObjectEventPtr event = NULL;
     int ret = -1;
     virLXCDomainObjPrivatePtr priv;
 
@@ -1288,7 +1395,7 @@ lxcDomainDestroyFlags(virDomainPtr dom,
 
     priv = vm->privateData;
     ret = virLXCProcessStop(driver, vm, VIR_DOMAIN_SHUTOFF_DESTROYED);
-    event = virDomainEventNewFromObj(vm,
+    event = virDomainEventLifecycleNewFromObj(vm,
                                      VIR_DOMAIN_EVENT_STOPPED,
                                      VIR_DOMAIN_EVENT_STOPPED_DESTROYED);
     priv->doneStopEvent = true;
@@ -1302,7 +1409,7 @@ cleanup:
     if (vm)
         virObjectUnlock(vm);
     if (event)
-        virDomainEventStateQueue(driver->domainEventState, event);
+        virObjectEventStateQueue(driver->domainEventState, event);
     return ret;
 }
 
@@ -1398,7 +1505,7 @@ static int lxcStateInitialize(bool privileged,
     if (!(lxc_driver->domains = virDomainObjListNew()))
         goto cleanup;
 
-    lxc_driver->domainEventState = virDomainEventStateNew();
+    lxc_driver->domainEventState = virObjectEventStateNew();
     if (!lxc_driver->domainEventState)
         goto cleanup;
 
@@ -1481,12 +1588,12 @@ static void lxcNotifyLoadDomain(virDomainObjPtr vm, int newVM, void *opaque)
     virLXCDriverPtr driver = opaque;
 
     if (newVM) {
-        virDomainEventPtr event =
-            virDomainEventNewFromObj(vm,
+        virObjectEventPtr event =
+            virDomainEventLifecycleNewFromObj(vm,
                                      VIR_DOMAIN_EVENT_DEFINED,
                                      VIR_DOMAIN_EVENT_DEFINED_ADDED);
         if (event)
-            virDomainEventStateQueue(driver->domainEventState, event);
+            virObjectEventStateQueue(driver->domainEventState, event);
     }
 }
 
@@ -1528,7 +1635,7 @@ static int lxcStateCleanup(void)
 
     virNWFilterUnRegisterCallbackDriver(&lxcCallbackDriver);
     virObjectUnref(lxc_driver->domains);
-    virDomainEventStateFree(lxc_driver->domainEventState);
+    virObjectEventStateFree(lxc_driver->domainEventState);
 
     virObjectUnref(lxc_driver->closeCallbacks);
 
@@ -2150,7 +2257,7 @@ lxcDomainInterfaceStats(virDomainPtr dom,
                         const char *path ATTRIBUTE_UNUSED,
                         struct _virDomainInterfaceStats *stats ATTRIBUTE_UNUSED)
 {
-    virReportError(VIR_ERR_NO_SUPPORT, "%s", __FUNCTION__);
+    virReportUnsupportedError();
     return -1;
 }
 #endif
@@ -2337,7 +2444,7 @@ static int lxcDomainSuspend(virDomainPtr dom)
 {
     virLXCDriverPtr driver = dom->conn->privateData;
     virDomainObjPtr vm;
-    virDomainEventPtr event = NULL;
+    virObjectEventPtr event = NULL;
     int ret = -1;
     virLXCDriverConfigPtr cfg = virLXCDriverGetConfig(driver);
 
@@ -2361,7 +2468,7 @@ static int lxcDomainSuspend(virDomainPtr dom)
         }
         virDomainObjSetState(vm, VIR_DOMAIN_PAUSED, VIR_DOMAIN_PAUSED_USER);
 
-        event = virDomainEventNewFromObj(vm,
+        event = virDomainEventLifecycleNewFromObj(vm,
                                          VIR_DOMAIN_EVENT_SUSPENDED,
                                          VIR_DOMAIN_EVENT_SUSPENDED_PAUSED);
     }
@@ -2372,7 +2479,7 @@ static int lxcDomainSuspend(virDomainPtr dom)
 
 cleanup:
     if (event)
-        virDomainEventStateQueue(driver->domainEventState, event);
+        virObjectEventStateQueue(driver->domainEventState, event);
     if (vm)
         virObjectUnlock(vm);
     virObjectUnref(cfg);
@@ -2383,7 +2490,7 @@ static int lxcDomainResume(virDomainPtr dom)
 {
     virLXCDriverPtr driver = dom->conn->privateData;
     virDomainObjPtr vm;
-    virDomainEventPtr event = NULL;
+    virObjectEventPtr event = NULL;
     int ret = -1;
     virLXCDomainObjPrivatePtr priv;
     virLXCDriverConfigPtr cfg = virLXCDriverGetConfig(driver);
@@ -2411,7 +2518,7 @@ static int lxcDomainResume(virDomainPtr dom)
         virDomainObjSetState(vm, VIR_DOMAIN_RUNNING,
                              VIR_DOMAIN_RUNNING_UNPAUSED);
 
-        event = virDomainEventNewFromObj(vm,
+        event = virDomainEventLifecycleNewFromObj(vm,
                                          VIR_DOMAIN_EVENT_RESUMED,
                                          VIR_DOMAIN_EVENT_RESUMED_UNPAUSED);
     }
@@ -2422,7 +2529,7 @@ static int lxcDomainResume(virDomainPtr dom)
 
 cleanup:
     if (event)
-        virDomainEventStateQueue(driver->domainEventState, event);
+        virObjectEventStateQueue(driver->domainEventState, event);
     if (vm)
         virObjectUnlock(vm);
     virObjectUnref(cfg);

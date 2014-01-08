@@ -1,7 +1,7 @@
 /*
  * libxl_driver.c: core driver methods for managing libxenlight domains
  *
- * Copyright (C) 2006-2013 Red Hat, Inc.
+ * Copyright (C) 2006-2014 Red Hat, Inc.
  * Copyright (C) 2011-2013 SUSE LINUX Products GmbH, Nuernberg, Germany.
  * Copyright (C) 2011 Univention GmbH.
  *
@@ -100,9 +100,9 @@ libxlDomObjFromDomain(virDomainPtr dom)
 }
 
 static void
-libxlDomainEventQueue(libxlDriverPrivatePtr driver, virDomainEventPtr event)
+libxlDomainEventQueue(libxlDriverPrivatePtr driver, virObjectEventPtr event)
 {
-    virDomainEventStateQueue(driver->domainEventState, event);
+    virObjectEventStateQueue(driver->domainEventState, event);
 }
 
 static int
@@ -359,7 +359,7 @@ libxlEventHandler(void *data, VIR_LIBXL_EVENT_CONST libxl_event *event)
     libxlDriverPrivatePtr driver = libxl_driver;
     libxlDomainObjPrivatePtr priv = ((virDomainObjPtr)data)->privateData;
     virDomainObjPtr vm = NULL;
-    virDomainEventPtr dom_event = NULL;
+    virObjectEventPtr dom_event = NULL;
     libxl_shutdown_reason xl_reason = event->u.domain_shutdown.shutdown_reason;
 
     if (event->type == LIBXL_EVENT_TYPE_DOMAIN_SHUTDOWN) {
@@ -380,7 +380,7 @@ libxlEventHandler(void *data, VIR_LIBXL_EVENT_CONST libxl_event *event)
             case LIBXL_SHUTDOWN_REASON_POWEROFF:
             case LIBXL_SHUTDOWN_REASON_CRASH:
                 if (xl_reason == LIBXL_SHUTDOWN_REASON_CRASH) {
-                    dom_event = virDomainEventNewFromObj(vm,
+                    dom_event = virDomainEventLifecycleNewFromObj(vm,
                                               VIR_DOMAIN_EVENT_STOPPED,
                                               VIR_DOMAIN_EVENT_STOPPED_CRASHED);
                     reason = VIR_DOMAIN_SHUTOFF_CRASHED;
@@ -546,7 +546,7 @@ libxlVmStart(libxlDriverPrivatePtr driver, virDomainObjPtr vm,
 {
     libxl_domain_config d_config;
     virDomainDefPtr def = NULL;
-    virDomainEventPtr event = NULL;
+    virObjectEventPtr event = NULL;
     libxlSavefileHeader hdr;
     int ret;
     uint32_t domid = 0;
@@ -675,7 +675,7 @@ libxlVmStart(libxlDriverPrivatePtr driver, virDomainObjPtr vm,
     if (virAtomicIntInc(&driver->nactive) == 1 && driver->inhibitCallback)
         driver->inhibitCallback(true, driver->inhibitOpaque);
 
-    event = virDomainEventNewFromObj(vm, VIR_DOMAIN_EVENT_STARTED,
+    event = virDomainEventLifecycleNewFromObj(vm, VIR_DOMAIN_EVENT_STARTED,
                                      restore_fd < 0 ?
                                          VIR_DOMAIN_EVENT_STARTED_BOOTED :
                                          VIR_DOMAIN_EVENT_STARTED_RESTORED);
@@ -778,7 +778,7 @@ libxlStateCleanup(void)
     virObjectUnref(libxl_driver->domains);
     virObjectUnref(libxl_driver->reservedVNCPorts);
 
-    virDomainEventStateFree(libxl_driver->domainEventState);
+    virObjectEventStateFree(libxl_driver->domainEventState);
     virSysinfoDefFree(libxl_driver->hostsysinfo);
 
     virMutexDestroy(&libxl_driver->lock);
@@ -888,7 +888,7 @@ libxlStateInitialize(bool privileged,
     /* read the host sysinfo */
     libxl_driver->hostsysinfo = virSysinfoRead();
 
-    libxl_driver->domainEventState = virDomainEventStateNew();
+    libxl_driver->domainEventState = virObjectEventStateNew();
     if (!libxl_driver->domainEventState)
         goto error;
 
@@ -1101,9 +1101,11 @@ libxlConnectGetMaxVcpus(virConnectPtr conn, const char *type ATTRIBUTE_UNUSED)
 
     cfg = libxlDriverConfigGet(driver);
     ret = libxl_get_max_cpus(cfg->ctx);
-    /* libxl_get_max_cpus() will return 0 if there were any failures,
-       e.g. xc_physinfo() failing */
-    if (ret == 0)
+    /* On failure, libxl_get_max_cpus() will return ERROR_FAIL from Xen 4.4
+     * onward, but it ever returning 0 is obviously wrong too (and it is
+     * what happens, on failure, on Xen 4.3 and earlier). Therefore, a 'less
+     * or equal' is the catchall we want. */
+    if (ret <= 0)
         ret = -1;
 
     virObjectUnref(cfg);
@@ -1298,7 +1300,7 @@ libxlDomainSuspend(virDomainPtr dom)
     libxlDriverConfigPtr cfg = libxlDriverConfigGet(driver);
     virDomainObjPtr vm;
     libxlDomainObjPrivatePtr priv;
-    virDomainEventPtr event = NULL;
+    virObjectEventPtr event = NULL;
     int ret = -1;
 
     if (!(vm = libxlDomObjFromDomain(dom)))
@@ -1324,7 +1326,7 @@ libxlDomainSuspend(virDomainPtr dom)
 
         virDomainObjSetState(vm, VIR_DOMAIN_PAUSED, VIR_DOMAIN_PAUSED_USER);
 
-        event = virDomainEventNewFromObj(vm, VIR_DOMAIN_EVENT_SUSPENDED,
+        event = virDomainEventLifecycleNewFromObj(vm, VIR_DOMAIN_EVENT_SUSPENDED,
                                          VIR_DOMAIN_EVENT_SUSPENDED_PAUSED);
     }
 
@@ -1350,7 +1352,7 @@ libxlDomainResume(virDomainPtr dom)
     libxlDriverConfigPtr cfg = libxlDriverConfigGet(driver);
     virDomainObjPtr vm;
     libxlDomainObjPrivatePtr priv;
-    virDomainEventPtr event = NULL;
+    virObjectEventPtr event = NULL;
     int ret = -1;
 
     if (!(vm = libxlDomObjFromDomain(dom)))
@@ -1377,7 +1379,7 @@ libxlDomainResume(virDomainPtr dom)
         virDomainObjSetState(vm, VIR_DOMAIN_RUNNING,
                              VIR_DOMAIN_RUNNING_UNPAUSED);
 
-        event = virDomainEventNewFromObj(vm, VIR_DOMAIN_EVENT_RESUMED,
+        event = virDomainEventLifecycleNewFromObj(vm, VIR_DOMAIN_EVENT_RESUMED,
                                          VIR_DOMAIN_EVENT_RESUMED_UNPAUSED);
     }
 
@@ -1485,7 +1487,7 @@ libxlDomainDestroyFlags(virDomainPtr dom,
     libxlDriverPrivatePtr driver = dom->conn->privateData;
     virDomainObjPtr vm;
     int ret = -1;
-    virDomainEventPtr event = NULL;
+    virObjectEventPtr event = NULL;
 
     virCheckFlags(0, -1);
 
@@ -1501,7 +1503,7 @@ libxlDomainDestroyFlags(virDomainPtr dom,
         goto cleanup;
     }
 
-    event = virDomainEventNewFromObj(vm, VIR_DOMAIN_EVENT_STOPPED,
+    event = virDomainEventLifecycleNewFromObj(vm, VIR_DOMAIN_EVENT_STOPPED,
                                      VIR_DOMAIN_EVENT_STOPPED_DESTROYED);
 
     if (libxlVmReap(driver, vm, VIR_DOMAIN_SHUTOFF_DESTROYED) != 0) {
@@ -1773,7 +1775,7 @@ libxlDoDomainSave(libxlDriverPrivatePtr driver, virDomainObjPtr vm,
 {
     libxlDomainObjPrivatePtr priv = vm->privateData;
     libxlSavefileHeader hdr;
-    virDomainEventPtr event = NULL;
+    virObjectEventPtr event = NULL;
     char *xml = NULL;
     uint32_t xml_len;
     int fd = -1;
@@ -1821,7 +1823,7 @@ libxlDoDomainSave(libxlDriverPrivatePtr driver, virDomainObjPtr vm,
         goto cleanup;
     }
 
-    event = virDomainEventNewFromObj(vm, VIR_DOMAIN_EVENT_STOPPED,
+    event = virDomainEventLifecycleNewFromObj(vm, VIR_DOMAIN_EVENT_STOPPED,
                                          VIR_DOMAIN_EVENT_STOPPED_SAVED);
 
     if (libxlVmReap(driver, vm, VIR_DOMAIN_SHUTOFF_SAVED) != 0) {
@@ -1963,7 +1965,7 @@ libxlDomainCoreDump(virDomainPtr dom, const char *to, unsigned int flags)
     libxlDriverPrivatePtr driver = dom->conn->privateData;
     libxlDomainObjPrivatePtr priv;
     virDomainObjPtr vm;
-    virDomainEventPtr event = NULL;
+    virObjectEventPtr event = NULL;
     bool paused = false;
     int ret = -1;
 
@@ -2009,7 +2011,7 @@ libxlDomainCoreDump(virDomainPtr dom, const char *to, unsigned int flags)
             goto cleanup_unpause;
         }
 
-        event = virDomainEventNewFromObj(vm, VIR_DOMAIN_EVENT_STOPPED,
+        event = virDomainEventLifecycleNewFromObj(vm, VIR_DOMAIN_EVENT_STOPPED,
                                          VIR_DOMAIN_EVENT_STOPPED_CRASHED);
         if (!vm->persistent) {
             virDomainObjListRemove(driver->domains, vm);
@@ -2356,45 +2358,78 @@ cleanup:
 }
 
 static int
-libxlDomainPinVcpu(virDomainPtr dom, unsigned int vcpu, unsigned char *cpumap,
-                   int maplen)
+libxlDomainPinVcpuFlags(virDomainPtr dom, unsigned int vcpu,
+                        unsigned char *cpumap, int maplen,
+                        unsigned int flags)
 {
     libxlDriverPrivatePtr driver = dom->conn->privateData;
     libxlDriverConfigPtr cfg = libxlDriverConfigGet(driver);
-    libxlDomainObjPrivatePtr priv;
+    virDomainDefPtr targetDef = NULL;
+    virBitmapPtr pcpumap = NULL;
     virDomainObjPtr vm;
     int ret = -1;
-    libxl_bitmap map;
+
+    virCheckFlags(VIR_DOMAIN_AFFECT_LIVE |
+                  VIR_DOMAIN_AFFECT_CONFIG, -1);
 
     if (!(vm = libxlDomObjFromDomain(dom)))
         goto cleanup;
 
-    if (virDomainPinVcpuEnsureACL(dom->conn, vm->def) < 0)
+    if (virDomainPinVcpuFlagsEnsureACL(dom->conn, vm->def, flags) < 0)
         goto cleanup;
 
-    if (!virDomainObjIsActive(vm)) {
+    if ((flags & VIR_DOMAIN_AFFECT_LIVE) && !virDomainObjIsActive(vm)) {
         virReportError(VIR_ERR_OPERATION_INVALID, "%s",
-                       _("cannot pin vcpus on an inactive domain"));
+                       _("domain is inactive"));
         goto cleanup;
     }
 
-    priv = vm->privateData;
-
-    map.size = maplen;
-    map.map = cpumap;
-    if (libxl_set_vcpuaffinity(priv->ctx, dom->id, vcpu, &map) != 0) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("Failed to pin vcpu '%d' with libxenlight"), vcpu);
+    if (virDomainLiveConfigHelperMethod(cfg->caps, driver->xmlopt, vm,
+                                        &flags, &targetDef) < 0)
         goto cleanup;
+
+    if (flags & VIR_DOMAIN_AFFECT_LIVE) {
+        targetDef = vm->def;
     }
 
-    if (!vm->def->cputune.vcpupin) {
-        if (VIR_ALLOC(vm->def->cputune.vcpupin) < 0)
+    /* Make sure coverity knows targetDef is valid at this point. */
+    sa_assert(targetDef);
+
+    pcpumap = virBitmapNewData(cpumap, maplen);
+    if (!pcpumap)
+        goto cleanup;
+
+    if (flags & VIR_DOMAIN_AFFECT_LIVE) {
+        libxl_bitmap map = { .size = maplen, .map = cpumap };
+        libxlDomainObjPrivatePtr priv;
+
+        priv = vm->privateData;
+        if (libxl_set_vcpuaffinity(priv->ctx, dom->id, vcpu, &map) != 0) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Failed to pin vcpu '%d' with libxenlight"),
+                           vcpu);
             goto cleanup;
-        vm->def->cputune.nvcpupin = 0;
+        }
     }
-    if (virDomainVcpuPinAdd(&vm->def->cputune.vcpupin,
-                            &vm->def->cputune.nvcpupin,
+
+    /* full bitmap means reset the settings (if any). */
+    if (virBitmapIsAllSet(pcpumap)) {
+        if (virDomainVcpuPinDel(targetDef, vcpu) < 0) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Failed to delete vcpupin xml for vcpu '%d'"),
+                           vcpu);
+            goto cleanup;
+        }
+        goto out;
+    }
+
+    if (!targetDef->cputune.vcpupin) {
+        if (VIR_ALLOC(targetDef->cputune.vcpupin) < 0)
+            goto cleanup;
+        targetDef->cputune.nvcpupin = 0;
+    }
+    if (virDomainVcpuPinAdd(&targetDef->cputune.vcpupin,
+                            &targetDef->cputune.nvcpupin,
                             cpumap,
                             maplen,
                             vcpu) < 0) {
@@ -2403,10 +2438,101 @@ libxlDomainPinVcpu(virDomainPtr dom, unsigned int vcpu, unsigned char *cpumap,
         goto cleanup;
     }
 
-    if (virDomainSaveStatus(driver->xmlopt, cfg->stateDir, vm) < 0)
+out:
+    ret = 0;
+
+    if (flags & VIR_DOMAIN_AFFECT_LIVE) {
+        ret = virDomainSaveStatus(driver->xmlopt, cfg->stateDir, vm);
+    } else if (flags & VIR_DOMAIN_AFFECT_CONFIG) {
+        ret = virDomainSaveConfig(cfg->configDir, targetDef);
+    }
+
+cleanup:
+    if (vm)
+        virObjectUnlock(vm);
+    virBitmapFree(pcpumap);
+    virObjectUnref(cfg);
+    return ret;
+}
+
+static int
+libxlDomainPinVcpu(virDomainPtr dom, unsigned int vcpu, unsigned char *cpumap,
+                   int maplen)
+{
+    return libxlDomainPinVcpuFlags(dom, vcpu, cpumap, maplen,
+                                   VIR_DOMAIN_AFFECT_LIVE);
+}
+
+static int
+libxlDomainGetVcpuPinInfo(virDomainPtr dom, int ncpumaps,
+                          unsigned char *cpumaps, int maplen,
+                          unsigned int flags)
+{
+    libxlDriverPrivatePtr driver = dom->conn->privateData;
+    libxlDriverConfigPtr cfg = libxlDriverConfigGet(driver);
+    virDomainObjPtr vm = NULL;
+    virDomainDefPtr targetDef = NULL;
+    virDomainVcpuPinDefPtr *vcpupin_list;
+    virBitmapPtr cpumask = NULL;
+    int maxcpu, hostcpus, vcpu, pcpu, n, ret = -1;
+    unsigned char *cpumap;
+    bool pinned;
+
+    virCheckFlags(VIR_DOMAIN_AFFECT_LIVE |
+                  VIR_DOMAIN_AFFECT_CONFIG, -1);
+
+    if (!(vm = libxlDomObjFromDomain(dom)))
         goto cleanup;
 
-    ret = 0;
+    if (virDomainGetVcpuPinInfoEnsureACL(dom->conn, vm->def) < 0)
+        goto cleanup;
+
+    if (virDomainLiveConfigHelperMethod(cfg->caps, driver->xmlopt, vm,
+                                        &flags, &targetDef) < 0)
+        goto cleanup;
+
+    if (flags & VIR_DOMAIN_AFFECT_LIVE) {
+        targetDef = vm->def;
+    }
+
+    /* Make sure coverity knows targetDef is valid at this point. */
+    sa_assert(targetDef);
+
+    /* Clamp to actual number of vcpus */
+    if (ncpumaps > targetDef->vcpus)
+        ncpumaps = targetDef->vcpus;
+
+    /* we use cfg->ctx, as vm->privateData->ctx may be NULL if VM is down. */
+    if ((hostcpus = libxl_get_max_cpus(cfg->ctx)) < 0)
+        goto cleanup;
+
+    maxcpu = maplen * 8;
+    if (maxcpu > hostcpus)
+        maxcpu = hostcpus;
+
+    /* initialize cpumaps */
+    memset(cpumaps, 0xff, maplen * ncpumaps);
+    if (maxcpu % 8) {
+        for (vcpu = 0; vcpu < ncpumaps; vcpu++) {
+            cpumap = VIR_GET_CPUMAP(cpumaps, maplen, vcpu);
+            cpumap[maplen - 1] &= (1 << maxcpu % 8) - 1;
+        }
+    }
+
+    /* if vcpupin setting exists, there may be unused pcpus */
+    for (n = 0; n < targetDef->cputune.nvcpupin; n++) {
+        vcpupin_list = targetDef->cputune.vcpupin;
+        vcpu = vcpupin_list[n]->vcpuid;
+        cpumask = vcpupin_list[n]->cpumask;
+        cpumap = VIR_GET_CPUMAP(cpumaps, maplen, vcpu);
+        for (pcpu = 0; pcpu < maxcpu; pcpu++) {
+            if (virBitmapGetBit(cpumask, pcpu, &pinned) < 0)
+                goto cleanup;
+            if (!pinned)
+                VIR_UNUSE_CPU(cpumap, pcpu);
+        }
+    }
+    ret = ncpumaps;
 
 cleanup:
     if (vm)
@@ -2414,7 +2540,6 @@ cleanup:
     virObjectUnref(cfg);
     return ret;
 }
-
 
 static int
 libxlDomainGetVcpus(virDomainPtr dom, virVcpuInfoPtr info, int maxinfo,
@@ -2665,7 +2790,7 @@ libxlDomainDefineXML(virConnectPtr conn, const char *xml)
     virDomainDefPtr def = NULL;
     virDomainObjPtr vm = NULL;
     virDomainPtr dom = NULL;
-    virDomainEventPtr event = NULL;
+    virObjectEventPtr event = NULL;
     virDomainDefPtr oldDef = NULL;
 
     /* Lock the driver until the virDomainObj is created and locked */
@@ -2699,7 +2824,7 @@ libxlDomainDefineXML(virConnectPtr conn, const char *xml)
     if (dom)
         dom->id = vm->def->id;
 
-    event = virDomainEventNewFromObj(vm, VIR_DOMAIN_EVENT_DEFINED,
+    event = virDomainEventLifecycleNewFromObj(vm, VIR_DOMAIN_EVENT_DEFINED,
                                      !oldDef ?
                                      VIR_DOMAIN_EVENT_DEFINED_ADDED :
                                      VIR_DOMAIN_EVENT_DEFINED_UPDATED);
@@ -2726,7 +2851,7 @@ libxlDomainUndefineFlags(virDomainPtr dom,
     libxlDriverPrivatePtr driver = dom->conn->privateData;
     libxlDriverConfigPtr cfg = libxlDriverConfigGet(driver);
     virDomainObjPtr vm;
-    virDomainEventPtr event = NULL;
+    virObjectEventPtr event = NULL;
     char *name = NULL;
     int ret = -1;
 
@@ -2766,7 +2891,7 @@ libxlDomainUndefineFlags(virDomainPtr dom,
     if (virDomainDeleteConfig(cfg->configDir, cfg->autostartDir, vm) < 0)
         goto cleanup;
 
-    event = virDomainEventNewFromObj(vm, VIR_DOMAIN_EVENT_UNDEFINED,
+    event = virDomainEventLifecycleNewFromObj(vm, VIR_DOMAIN_EVENT_UNDEFINED,
                                      VIR_DOMAIN_EVENT_UNDEFINED_REMOVED);
 
     if (virDomainObjIsActive(vm)) {
@@ -3518,20 +3643,21 @@ cleanup:
 
 static int
 libxlConnectDomainEventRegister(virConnectPtr conn,
-                                virConnectDomainEventCallback callback, void *opaque,
+                                virConnectDomainEventCallback callback,
+                                void *opaque,
                                 virFreeCallback freecb)
 {
     libxlDriverPrivatePtr driver = conn->privateData;
-    int ret;
 
     if (virConnectDomainEventRegisterEnsureACL(conn) < 0)
         return -1;
 
-    ret = virDomainEventStateRegister(conn,
-                                      driver->domainEventState,
-                                      callback, opaque, freecb);
+    if (virDomainEventStateRegister(conn,
+                                    driver->domainEventState,
+                                    callback, opaque, freecb) < 0)
+        return -1;
 
-    return ret;
+    return 0;
 }
 
 
@@ -3540,16 +3666,16 @@ libxlConnectDomainEventDeregister(virConnectPtr conn,
                                   virConnectDomainEventCallback callback)
 {
     libxlDriverPrivatePtr driver = conn->privateData;
-    int ret;
 
     if (virConnectDomainEventDeregisterEnsureACL(conn) < 0)
         return -1;
 
-    ret = virDomainEventStateDeregister(conn,
-                                        driver->domainEventState,
-                                        callback);
+    if (virDomainEventStateDeregister(conn,
+                                      driver->domainEventState,
+                                      callback) < 0)
+        return -1;
 
-    return ret;
+    return 0;
 }
 
 static int
@@ -3956,6 +4082,8 @@ libxlDomainGetNumaParameters(virDomainPtr dom,
      * the filtering on behalf of older clients that can't parse it. */
     flags &= ~VIR_TYPED_PARAM_STRING_OKAY;
 
+    libxl_bitmap_init(&nodemap);
+
     if (!(vm = libxlDomObjFromDomain(dom)))
         goto cleanup;
 
@@ -3970,8 +4098,6 @@ libxlDomainGetNumaParameters(virDomainPtr dom,
 
     priv = vm->privateData;
 
-    libxl_bitmap_init(&nodemap);
-
     if ((*nparams) == 0) {
         *nparams = LIBXL_NUMA_NPARAM;
         ret = 0;
@@ -3980,6 +4106,7 @@ libxlDomainGetNumaParameters(virDomainPtr dom,
 
     for (i = 0; i < LIBXL_NUMA_NPARAM && i < *nparams; i++) {
         virMemoryParameterPtr param = &params[i];
+        int numnodes;
 
         switch (i) {
         case 0:
@@ -3998,8 +4125,12 @@ libxlDomainGetNumaParameters(virDomainPtr dom,
             /* Node affinity */
 
             /* Let's allocate both libxl and libvirt bitmaps */
+            numnodes = libxl_get_max_nodes(priv->ctx);
+            if (numnodes <= 0)
+                goto cleanup;
+
             if (libxl_node_bitmap_alloc(priv->ctx, &nodemap, 0) ||
-                !(nodes = virBitmapNew(libxl_get_max_nodes(priv->ctx)))) {
+                !(nodes = virBitmapNew(numnodes))) {
                 virReportOOMError();
                 goto cleanup;
             }
@@ -4140,16 +4271,16 @@ static int
 libxlConnectDomainEventDeregisterAny(virConnectPtr conn, int callbackID)
 {
     libxlDriverPrivatePtr driver = conn->privateData;
-    int ret;
 
     if (virConnectDomainEventDeregisterAnyEnsureACL(conn) < 0)
         return -1;
 
-    ret = virDomainEventStateDeregisterID(conn,
-                                          driver->domainEventState,
-                                          callbackID);
+    if (virObjectEventStateDeregisterID(conn,
+                                        driver->domainEventState,
+                                        callbackID) < 0)
+        return -1;
 
-    return ret;
+    return 0;
 }
 
 
@@ -4236,7 +4367,9 @@ static virDriver libxlDriver = {
     .domainSetVcpusFlags = libxlDomainSetVcpusFlags, /* 0.9.0 */
     .domainGetVcpusFlags = libxlDomainGetVcpusFlags, /* 0.9.0 */
     .domainPinVcpu = libxlDomainPinVcpu, /* 0.9.0 */
+    .domainPinVcpuFlags = libxlDomainPinVcpuFlags, /* 1.2.1 */
     .domainGetVcpus = libxlDomainGetVcpus, /* 0.9.0 */
+    .domainGetVcpuPinInfo = libxlDomainGetVcpuPinInfo, /* 1.2.1 */
     .domainGetXMLDesc = libxlDomainGetXMLDesc, /* 0.9.0 */
     .connectDomainXMLFromNative = libxlConnectDomainXMLFromNative, /* 0.9.0 */
     .connectDomainXMLToNative = libxlConnectDomainXMLToNative, /* 0.9.0 */

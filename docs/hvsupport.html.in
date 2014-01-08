@@ -51,7 +51,7 @@ in.
 <td></td>
 <td>0.7.7</td>
 <td>0.7.7</td>
-<td></td>
+<td>1.2.0</td>
 <td></td>
 <td></td>
 <td></td>
@@ -1678,7 +1678,7 @@ in.
 <td>0.9.3</td>
 <td></td>
 <td></td>
-<td></td>
+<td>1.2.1</td>
 <td></td>
 <td></td>
 <td></td>
@@ -1761,7 +1761,7 @@ in.
 <td></td>
 <td>0.8.0</td>
 <td>0.8.0</td>
-<td></td>
+<td>1.1.4</td>
 <td></td>
 <td>0.8.0</td>
 <td></td>
@@ -1780,7 +1780,7 @@ in.
 <td></td>
 <td>0.8.0</td>
 <td>0.8.0</td>
-<td></td>
+<td>1.1.4</td>
 <td></td>
 <td></td>
 <td></td>
@@ -1913,7 +1913,7 @@ in.
 <td></td>
 <td>0.9.13</td>
 <td>0.9.13</td>
-<td></td>
+<td>1.1.4</td>
 <td></td>
 <td></td>
 <td></td>
@@ -2008,7 +2008,7 @@ in.
 <td></td>
 <td>0.8.0</td>
 <td>0.8.0</td>
-<td></td>
+<td>1.1.4</td>
 <td></td>
 <td></td>
 <td></td>
@@ -2027,7 +2027,7 @@ in.
 <td></td>
 <td>0.8.0</td>
 <td>0.8.0</td>
-<td></td>
+<td>1.1.4</td>
 <td></td>
 <td></td>
 <td></td>
@@ -2704,7 +2704,7 @@ in.
 <td>0.9.3</td>
 <td></td>
 <td></td>
-<td></td>
+<td>1.2.1</td>
 <td></td>
 <td></td>
 <td></td>
@@ -2901,7 +2901,7 @@ in.
 <td></td>
 <td>0.8.0</td>
 <td>0.8.0</td>
-<td></td>
+<td>1.1.4</td>
 <td></td>
 <td>0.8.0</td>
 <td></td>
@@ -3414,7 +3414,7 @@ in.
 <td></td>
 <td>0.8.0</td>
 <td>0.8.0</td>
-<td></td>
+<td>1.1.4</td>
 <td></td>
 <td>0.8.0</td>
 <td></td>
@@ -3433,7 +3433,7 @@ in.
 <td></td>
 <td>0.8.0</td>
 <td>0.8.0</td>
-<td></td>
+<td>1.1.4</td>
 <td></td>
 <td>0.8.0</td>
 <td></td>
@@ -3452,7 +3452,7 @@ in.
 <td></td>
 <td>0.8.0</td>
 <td>0.8.0</td>
-<td></td>
+<td>1.1.4</td>
 <td></td>
 <td>0.8.0</td>
 <td></td>
@@ -3471,7 +3471,7 @@ in.
 <td></td>
 <td>0.9.7</td>
 <td>0.9.7</td>
-<td></td>
+<td>1.1.4</td>
 <td></td>
 <td>0.9.7</td>
 <td></td>
@@ -3490,7 +3490,7 @@ in.
 <td></td>
 <td>0.8.0</td>
 <td>0.8.0</td>
-<td></td>
+<td>1.1.4</td>
 <td></td>
 <td>0.8.0</td>
 <td></td>
@@ -3509,7 +3509,7 @@ in.
 <td></td>
 <td>0.9.13</td>
 <td>0.9.13</td>
-<td></td>
+<td>1.1.4</td>
 <td></td>
 <td>0.9.13</td>
 <td></td>
@@ -3528,7 +3528,7 @@ in.
 <td></td>
 <td>0.9.13</td>
 <td>0.9.13</td>
-<td></td>
+<td>1.1.4</td>
 <td></td>
 <td>0.9.13</td>
 <td></td>
@@ -3547,7 +3547,7 @@ in.
 <td></td>
 <td>0.9.13</td>
 <td>0.9.13</td>
-<td></td>
+<td>1.1.4</td>
 <td></td>
 <td></td>
 <td></td>
@@ -3566,7 +3566,7 @@ in.
 <td></td>
 <td>0.9.7</td>
 <td>0.9.7</td>
-<td></td>
+<td>1.1.4</td>
 <td></td>
 <td></td>
 <td></td>
@@ -3585,7 +3585,7 @@ in.
 <td></td>
 <td>0.8.0</td>
 <td>0.8.0</td>
-<td></td>
+<td>1.1.4</td>
 <td></td>
 <td>0.8.0</td>
 <td></td>
@@ -3604,7 +3604,7 @@ in.
 <td></td>
 <td>0.8.0</td>
 <td>0.8.0</td>
-<td></td>
+<td>1.1.4</td>
 <td></td>
 <td>0.8.0</td>
 <td></td>
@@ -3623,7 +3623,7 @@ in.
 <td></td>
 <td>0.8.0</td>
 <td>0.8.0</td>
-<td></td>
+<td>1.1.4</td>
 <td></td>
 <td>0.8.0</td>
 <td></td>
@@ -3642,7 +3642,7 @@ in.
 <td></td>
 <td>0.9.7</td>
 <td>0.9.7</td>
-<td></td>
+<td>1.1.4</td>
 <td></td>
 <td></td>
 <td></td>
@@ -4352,6 +4352,26 @@ in.
 <td>0.6.4</td>
 </tr>
 <tr>
+<td><a href="html/libvirt-libvirt.html#virConnectNetworkEventDeregisterAny">virConnectNetworkEventDeregisterAny</a></td>
+<td>1.2.1</td>
+<td>1.2.1</td>
+<td></td>
+<td></td>
+<td>1.2.1</td>
+<td>1.2.1</td>
+<td></td>
+</tr>
+<tr>
+<td><a href="html/libvirt-libvirt.html#virConnectNetworkEventRegisterAny">virConnectNetworkEventRegisterAny</a></td>
+<td>1.2.1</td>
+<td>1.2.1</td>
+<td></td>
+<td></td>
+<td>1.2.1</td>
+<td>1.2.1</td>
+<td></td>
+</tr>
+<tr>
 <td><a href="html/libvirt-libvirt.html#virConnectNumOfDefinedNetworks">virConnectNumOfDefinedNetworks</a></td>
 <td>0.2.0</td>
 <td>0.2.0</td>
@@ -4452,6 +4472,16 @@ in.
 <td></td>
 </tr>
 <tr>
+<th>API</th>
+<th>Version</th>
+  <th>bridge</th>
+  <th>esx</th>
+  <th>hyperv</th>
+  <th>remote</th>
+  <th>test</th>
+  <th>vbox</th>
+</tr>
+<tr>
 <td><a href="html/libvirt-libvirt.html#virNetworkIsPersistent">virNetworkIsPersistent</a></td>
 <td>0.7.3</td>
 <td>0.7.3</td>
@@ -4470,16 +4500,6 @@ in.
 <td>0.3.0</td>
 <td>0.3.2</td>
 <td>0.6.4</td>
-</tr>
-<tr>
-<th>API</th>
-<th>Version</th>
-  <th>bridge</th>
-  <th>esx</th>
-  <th>hyperv</th>
-  <th>remote</th>
-  <th>test</th>
-  <th>vbox</th>
 </tr>
 <tr>
 <td><a href="html/libvirt-libvirt.html#virNetworkLookupByUUID">virNetworkLookupByUUID</a></td>

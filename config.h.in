@@ -1186,6 +1186,9 @@
    to 0 otherwise. */
 #undef HAVE_MALLOC_GNU
 
+/* Define to 1 if you have the <malloc.h> header file. */
+#undef HAVE_MALLOC_H
+
 /* Define if the 'malloc' function is POSIX compliant. */
 #undef HAVE_MALLOC_POSIX
 
@@ -1265,6 +1268,12 @@
 
 /* Define to 1 if the system has the 'openpty' function. */
 #undef HAVE_OPENPTY
+
+/* Define to 1 if libcrypto is used for MD5. */
+#undef HAVE_OPENSSL_MD5
+
+/* Define to 1 if libcrypto is used for SHA256. */
+#undef HAVE_OPENSSL_SHA256
 
 /* Define to 1 if you have the <OS.h> header file. */
 #undef HAVE_OS_H
@@ -2648,9 +2657,6 @@
 /* A replacement for va_copy, if needed.  */
 #define gl_va_copy(a,b) ((a) = (b))
 
-/* Define to rpl_gmtime if the replacement function should be used. */
-#undef gmtime
-
 /* Define to `__inline__' or `__inline' if that's what the C compiler
    calls it, or to nothing if 'inline' is not supported under any name.  */
 #ifndef __cplusplus
@@ -2675,9 +2681,6 @@
 
 /* Define to 1 if the compiler is checking for lint. */
 #undef lint
-
-/* Define to rpl_localtime if the replacement function should be used. */
-#undef localtime
 
 /* Define to a type if <wchar.h> does not define. */
 #undef mbstate_t

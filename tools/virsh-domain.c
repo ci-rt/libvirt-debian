@@ -2939,6 +2939,7 @@ cmdUndefine(vshControl *ctl, const vshCmd *cmd)
     int nvol_nodes;
     char *source = NULL;
     char *target = NULL;
+    char *pool = NULL;
     size_t i;
     size_t j;
 
@@ -3048,6 +3049,7 @@ cmdUndefine(vshControl *ctl, const vshCmd *cmd)
             vshUndefineVolume vol;
             VIR_FREE(source);
             VIR_FREE(target);
+            VIR_FREE(pool);
 
             /* get volume source and target paths */
             if (!(target = virXPathString("string(./target/@dev)", ctxt)))
@@ -3057,8 +3059,11 @@ cmdUndefine(vshControl *ctl, const vshCmd *cmd)
                                           "./source/@file|"
                                           "./source/@dir|"
                                           "./source/@name|"
-                                          "./source/@dev)", ctxt)))
+                                          "./source/@dev|"
+                                          "./source/@volume)", ctxt)))
                 continue;
+
+            pool = virXPathString("string(./source/@pool)", ctxt);
 
             /* lookup if volume was selected by user */
             if (vol_list) {
@@ -3075,7 +3080,33 @@ cmdUndefine(vshControl *ctl, const vshCmd *cmd)
                     continue;
             }
 
-            if (!(vol.vol = virStorageVolLookupByPath(ctl->conn, source))) {
+            if (pool) {
+                virStoragePoolPtr storagepool = NULL;
+
+                if (!source) {
+                    vshPrint(ctl,
+                             _("Missing storage volume name for disk '%s'"),
+                             target);
+                    continue;
+                }
+
+                if (!(storagepool = virStoragePoolLookupByName(ctl->conn,
+                                                               pool))) {
+                    vshPrint(ctl,
+                             _("Storage pool '%s' for volume '%s' not found."),
+                             pool, target);
+                    vshResetLibvirtError();
+                    continue;
+                }
+
+                vol.vol = virStorageVolLookupByName(storagepool, source);
+                virStoragePoolFree(storagepool);
+
+            } else {
+               vol.vol = virStorageVolLookupByPath(ctl->conn, source);
+            }
+
+            if (!vol.vol) {
                 vshPrint(ctl,
                          _("Storage volume '%s'(%s) is not managed by libvirt. "
                            "Remove it manually.\n"), target, source);
@@ -3190,6 +3221,7 @@ out:
 cleanup:
     VIR_FREE(source);
     VIR_FREE(target);
+    VIR_FREE(pool);
     for (i = 0; i < nvols; i++) {
         VIR_FREE(vols[i].source);
         VIR_FREE(vols[i].target);
@@ -7017,7 +7049,7 @@ vshKeyCodeGetInt(const char *key_name)
 {
     unsigned int val;
 
-    if (virStrToLong_ui(key_name, NULL, 0, &val) < 0 || val > 0xffff || !val)
+    if (virStrToLong_ui(key_name, NULL, 0, &val) < 0 || val > 0xffff)
         return -1;
     return val;
 }
@@ -7058,8 +7090,8 @@ cmdSendKey(vshControl *ctl, const vshCmd *cmd)
             goto cleanup;
         }
 
-        if ((keycode = vshKeyCodeGetInt(opt->data)) <= 0) {
-            if ((keycode = virKeycodeValueFromString(codeset, opt->data)) <= 0) {
+        if ((keycode = vshKeyCodeGetInt(opt->data)) < 0) {
+            if ((keycode = virKeycodeValueFromString(codeset, opt->data)) < 0) {
                 vshError(ctl, _("invalid keycode: '%s'"), opt->data);
                 goto cleanup;
             }
@@ -9802,7 +9834,7 @@ cmdDetachInterface(vshControl *ctl, const vshCmd *cmd)
     obj = xmlXPathEval(BAD_CAST buf, ctxt);
     if (obj == NULL || obj->type != XPATH_NODESET ||
         obj->nodesetval == NULL || obj->nodesetval->nodeNr == 0) {
-        vshError(ctl, _("No found interface whose type is %s"), type);
+        vshError(ctl, _("No interface found whose type is %s"), type);
         goto cleanup;
     }
 
@@ -9960,7 +9992,7 @@ vshFindDisk(const char *doc,
         }
     }
 
-    vshError(NULL, _("No found disk whose source path or target is %s"), path);
+    vshError(NULL, _("No disk found whose source path or target is %s"), path);
 
 cleanup:
     xmlXPathFreeObject(obj);

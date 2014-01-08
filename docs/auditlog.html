@@ -306,7 +306,7 @@
     </p>
         <dl><dt>reason</dt><dd>The reason which caused the resource to be assigned to happen</dd><dt>resrc</dt><dd>The type of resource assigned. Set to <code>net</code></dd><dt>old-net</dt><dd>Original MAC address of the guest network interface</dd><dt>new-net</dt><dd>Updated MAC address of the guest network interface</dd></dl>
         <p>
-      If there is a host network interace associated with the guest NIC then
+      If there is a host network interface associated with the guest NIC then
       further records may be generated
     </p>
         <dl><dt>reason</dt><dd>The reason which caused the resource to be assigned to happen</dd><dt>resrc</dt><dd>The type of resource assigned. Set to <code>net</code></dd><dt>net</dt><dd>MAC address of the host network interface</dd><dt>rdev</dt><dd>Name of the host network interface</dd></dl>
@@ -323,7 +323,7 @@
         <p>
       The <code>msg</code> field will include the following sub-fields
     </p>
-        <dl><dt>reason</dt><dd>The reason which caused the resource to be assigned to happen</dd><dt>resrc</dt><dd>The type of resource assigned. Set to <code>hostdev</code> or <code>dev</code></dd><dt>dev</dt><dd>The unique bus identifier of the USB, PCI or SCSI device, if <code>resrc=dev</code></dd><dt>disk</dt><dd>The path of the block device assigned to the guest, if <code>resrc=hostdev</code></dd><dt>chardev</dt><dd>The path of the charecter device assigned to the guest, if <code>resrc=hostdev</code></dd></dl>
+        <dl><dt>reason</dt><dd>The reason which caused the resource to be assigned to happen</dd><dt>resrc</dt><dd>The type of resource assigned. Set to <code>hostdev</code> or <code>dev</code></dd><dt>dev</dt><dd>The unique bus identifier of the USB, PCI or SCSI device, if <code>resrc=dev</code></dd><dt>disk</dt><dd>The path of the block device assigned to the guest, if <code>resrc=hostdev</code></dd><dt>chardev</dt><dd>The path of the character device assigned to the guest, if <code>resrc=hostdev</code></dd></dl>
         <h4>
           <a name="typeresourcetpm" shape="rect" id="typeresourcetpm">TPM</a>
         </h4>

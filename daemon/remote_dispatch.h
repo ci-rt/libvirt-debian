@@ -1703,6 +1703,50 @@ cleanup:
 
 
 
+static int remoteDispatchConnectNetworkEventDeregisterAny(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_connect_network_event_deregister_any_args *args,
+    remote_connect_network_event_deregister_any_ret *ret);
+static int remoteDispatchConnectNetworkEventDeregisterAnyHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchConnectNetworkEventDeregisterAny(server, client, msg, rerr, args, ret);
+}
+/* remoteDispatchConnectNetworkEventDeregisterAny body has to be implemented manually */
+
+
+
+static int remoteDispatchConnectNetworkEventRegisterAny(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_connect_network_event_register_any_args *args,
+    remote_connect_network_event_register_any_ret *ret);
+static int remoteDispatchConnectNetworkEventRegisterAnyHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchConnectNetworkEventRegisterAny(server, client, msg, rerr, args, ret);
+}
+/* remoteDispatchConnectNetworkEventRegisterAny body has to be implemented manually */
+
+
+
 static int remoteDispatchConnectNumOfDefinedDomains(
     virNetServerPtr server,
     virNetServerClientPtr client,
@@ -16810,6 +16854,33 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_connect_get_cpu_model_names_args,
    sizeof(remote_connect_get_cpu_model_names_ret),
    (xdrproc_t)xdr_remote_connect_get_cpu_model_names_ret,
+   true,
+   0
+},
+{ /* Method ConnectNetworkEventRegisterAny => 313 */
+   remoteDispatchConnectNetworkEventRegisterAnyHelper,
+   sizeof(remote_connect_network_event_register_any_args),
+   (xdrproc_t)xdr_remote_connect_network_event_register_any_args,
+   sizeof(remote_connect_network_event_register_any_ret),
+   (xdrproc_t)xdr_remote_connect_network_event_register_any_ret,
+   true,
+   1
+},
+{ /* Method ConnectNetworkEventDeregisterAny => 314 */
+   remoteDispatchConnectNetworkEventDeregisterAnyHelper,
+   sizeof(remote_connect_network_event_deregister_any_args),
+   (xdrproc_t)xdr_remote_connect_network_event_deregister_any_args,
+   sizeof(remote_connect_network_event_deregister_any_ret),
+   (xdrproc_t)xdr_remote_connect_network_event_deregister_any_ret,
+   true,
+   1
+},
+{ /* Async event NetworkEventLifecycle => 315 */
+   NULL,
+   0,
+   (xdrproc_t)xdr_void,
+   0,
+   (xdrproc_t)xdr_void,
    true,
    0
 },
