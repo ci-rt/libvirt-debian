@@ -243,6 +243,10 @@ VIR_ENUM_IMPL(virQEMUCaps, QEMU_CAPS_LAST,
               "virtio-mmio",
               "ich9-intel-hda",
               "kvm-pit-lost-tick-policy",
+
+              "boot-strict", /* 160 */
+              "pvpanic",
+              "enable-fips",
     );
 
 struct _virQEMUCaps {
@@ -1394,6 +1398,7 @@ struct virQEMUCapsStringFlags virQEMUCapsObjectTypes[] = {
     { "usb-storage", QEMU_CAPS_DEVICE_USB_STORAGE },
     { "virtio-mmio", QEMU_CAPS_DEVICE_VIRTIO_MMIO },
     { "ich9-intel-hda", QEMU_CAPS_DEVICE_ICH9_INTEL_HDA },
+    { "pvpanic", QEMU_CAPS_DEVICE_PANIC },
 };
 
 static struct virQEMUCapsStringFlags virQEMUCapsObjectPropsVirtioBlk[] = {
@@ -2146,7 +2151,7 @@ virQEMUCapsProbeQMPMachineTypes(virQEMUCapsPtr qemuCaps,
                        machines[i]->name) < 0)
             goto cleanup;
         if (machines[i]->isDefault)
-            defIdx = i;
+            defIdx = qemuCaps->nmachineTypes - 1;
         qemuCaps->machineMaxCpus[qemuCaps->nmachineTypes - 1] =
             machines[i]->maxCpus;
     }
@@ -2279,6 +2284,8 @@ static struct virQEMUCapsCommandLineProps virQEMUCapsCommandLine[] = {
     { "machine", "mem-merge", QEMU_CAPS_MEM_MERGE },
     { "drive", "discard", QEMU_CAPS_DRIVE_DISCARD },
     { "realtime", "mlock", QEMU_CAPS_MLOCK },
+    { "boot-opts", "strict", QEMU_CAPS_BOOT_STRICT },
+    { "boot-opts", "reboot-timeout", QEMU_CAPS_REBOOT_TIMEOUT },
 };
 
 static int
@@ -2624,6 +2631,30 @@ virQEMUCapsInitQMP(virQEMUCapsPtr qemuCaps,
     config.data.nix.path = monpath;
     config.data.nix.listen = false;
 
+    /* Qemu 1.2 and later have a binary flag -enable-fips that must be
+     * used for VNC auth to obey FIPS settings; but the flag only
+     * exists on Linux, and with no way to probe for it via QMP.  Our
+     * solution: if FIPS mode is required, then unconditionally use
+     * the flag, regardless of qemu version, for the following matrix:
+     *
+     *                          old QEMU            new QEMU
+     * FIPS enabled             doesn't start       VNC auth disabled
+     * FIPS disabled/missing    VNC auth enabled    VNC auth enabled
+     *
+     * Setting the flag here instead of in virQEMUCapsInitQMPMonitor
+     * or virQEMUCapsInitHelp also allows the testsuite to be
+     * independent of FIPS setting.
+     */
+    if (virFileExists("/proc/sys/crypto/fips_enabled")) {
+        char *buf = NULL;
+
+        if (virFileReadAll("/proc/sys/crypto/fips_enabled", 10, &buf) < 0)
+            goto cleanup;
+        if (STREQ(buf, "1\n"))
+            virQEMUCapsSet(qemuCaps, QEMU_CAPS_ENABLE_FIPS);
+        VIR_FREE(buf);
+    }
+
     VIR_DEBUG("Try to get caps via QMP qemuCaps=%p", qemuCaps);
 
     /*
@@ -2886,7 +2917,7 @@ virQEMUCapsSupportsChardev(virDomainDefPtr def,
         !virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE))
         return false;
 
-    if (def->os.arch != VIR_ARCH_ARMV7L)
+    if ((def->os.arch != VIR_ARCH_ARMV7L) && (def->os.arch != VIR_ARCH_AARCH64))
         return true;
 
     /* This may not be true for all ARM machine types, but at least

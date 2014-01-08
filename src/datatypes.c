@@ -1,7 +1,7 @@
 /*
  * datatypes.h: management of structs for public data types
  *
- * Copyright (C) 2006-2012 Red Hat, Inc.
+ * Copyright (C) 2006-2014 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -30,11 +30,6 @@
 #include "virstring.h"
 
 #define VIR_FROM_THIS VIR_FROM_NONE
-
-#define virLibConnError(code, ...)                                \
-    virReportErrorHelper(VIR_FROM_THIS, code, __FILE__,           \
-                         __FUNCTION__, __LINE__, __VA_ARGS__)
-
 
 virClassPtr virConnectClass;
 virClassPtr virConnectCloseCallbackDataClass;
@@ -218,15 +213,12 @@ virGetDomain(virConnectPtr conn, const char *name, const unsigned char *uuid)
     if (virDataTypesInitialize() < 0)
         return NULL;
 
-    if (!VIR_IS_CONNECT(conn)) {
-        virLibConnError(VIR_ERR_INVALID_CONN, "%s", _("no connection"));
-        return NULL;
-    }
-    virCheckNonNullArgReturn(name, NULL);
-    virCheckNonNullArgReturn(uuid, NULL);
+    virCheckConnectGoto(conn, error);
+    virCheckNonNullArgGoto(name, error);
+    virCheckNonNullArgGoto(uuid, error);
 
     if (!(ret = virObjectNew(virDomainClass)))
-        return NULL;
+        goto error;
 
     if (VIR_STRDUP(ret->name, name) < 0)
         goto error;
@@ -289,15 +281,12 @@ virGetNetwork(virConnectPtr conn, const char *name, const unsigned char *uuid)
     if (virDataTypesInitialize() < 0)
         return NULL;
 
-    if (!VIR_IS_CONNECT(conn)) {
-        virLibConnError(VIR_ERR_INVALID_CONN, "%s", _("no connection"));
-        return NULL;
-    }
-    virCheckNonNullArgReturn(name, NULL);
-    virCheckNonNullArgReturn(uuid, NULL);
+    virCheckConnectGoto(conn, error);
+    virCheckNonNullArgGoto(name, error);
+    virCheckNonNullArgGoto(uuid, error);
 
     if (!(ret = virObjectNew(virNetworkClass)))
-        return NULL;
+        goto error;
 
     if (VIR_STRDUP(ret->name, name) < 0)
         goto error;
@@ -360,18 +349,15 @@ virGetInterface(virConnectPtr conn, const char *name, const char *mac)
     if (virDataTypesInitialize() < 0)
         return NULL;
 
-    if (!VIR_IS_CONNECT(conn)) {
-        virLibConnError(VIR_ERR_INVALID_CONN, "%s", _("no connection"));
-        return NULL;
-    }
-    virCheckNonNullArgReturn(name, NULL);
+    virCheckConnectGoto(conn, error);
+    virCheckNonNullArgGoto(name, error);
 
     /* a NULL mac from caller is okay. Treat it as blank */
     if (mac == NULL)
        mac = "";
 
     if (!(ret = virObjectNew(virInterfaceClass)))
-        return NULL;
+        goto error;
 
     if (VIR_STRDUP(ret->name, name) < 0 ||
         VIR_STRDUP(ret->mac, mac) < 0)
@@ -435,15 +421,12 @@ virGetStoragePool(virConnectPtr conn, const char *name,
     if (virDataTypesInitialize() < 0)
         return NULL;
 
-    if (!VIR_IS_CONNECT(conn)) {
-        virLibConnError(VIR_ERR_INVALID_CONN, "%s", _("no connection"));
-        return NULL;
-    }
-    virCheckNonNullArgReturn(name, NULL);
-    virCheckNonNullArgReturn(uuid, NULL);
+    virCheckConnectGoto(conn, error);
+    virCheckNonNullArgGoto(name, error);
+    virCheckNonNullArgGoto(uuid, error);
 
     if (!(ret = virObjectNew(virStoragePoolClass)))
-        return NULL;
+        goto error;
 
     if (VIR_STRDUP(ret->name, name) < 0)
         goto error;
@@ -518,16 +501,13 @@ virGetStorageVol(virConnectPtr conn, const char *pool, const char *name,
     if (virDataTypesInitialize() < 0)
         return NULL;
 
-    if (!VIR_IS_CONNECT(conn)) {
-        virLibConnError(VIR_ERR_INVALID_CONN, "%s", _("no connection"));
-        return NULL;
-    }
-    virCheckNonNullArgReturn(pool, NULL);
-    virCheckNonNullArgReturn(name, NULL);
-    virCheckNonNullArgReturn(key, NULL);
+    virCheckConnectGoto(conn, error);
+    virCheckNonNullArgGoto(pool, error);
+    virCheckNonNullArgGoto(name, error);
+    virCheckNonNullArgGoto(key, error);
 
     if (!(ret = virObjectNew(virStorageVolClass)))
-        return NULL;
+        goto error;
 
     if (VIR_STRDUP(ret->pool, pool) < 0 ||
         VIR_STRDUP(ret->name, name) < 0 ||
@@ -597,14 +577,11 @@ virGetNodeDevice(virConnectPtr conn, const char *name)
     if (virDataTypesInitialize() < 0)
         return NULL;
 
-    if (!VIR_IS_CONNECT(conn)) {
-        virLibConnError(VIR_ERR_INVALID_CONN, "%s", _("no connection"));
-        return NULL;
-    }
-    virCheckNonNullArgReturn(name, NULL);
+    virCheckConnectGoto(conn, error);
+    virCheckNonNullArgGoto(name, error);
 
     if (!(ret = virObjectNew(virNodeDeviceClass)))
-        return NULL;
+        goto error;
 
     if (VIR_STRDUP(ret->name, name) < 0)
         goto error;
@@ -664,12 +641,9 @@ virGetSecret(virConnectPtr conn, const unsigned char *uuid,
     if (virDataTypesInitialize() < 0)
         return NULL;
 
-    if (!VIR_IS_CONNECT(conn)) {
-        virLibConnError(VIR_ERR_INVALID_CONN, "%s", _("no connection"));
-        return NULL;
-    }
-    virCheckNonNullArgReturn(uuid, NULL);
-    virCheckNonNullArgReturn(usageID, NULL);
+    virCheckConnectGoto(conn, error);
+    virCheckNonNullArgGoto(uuid, error);
+    virCheckNonNullArgGoto(usageID, error);
 
     if (!(ret = virObjectNew(virSecretClass)))
         return NULL;
@@ -761,15 +735,12 @@ virGetNWFilter(virConnectPtr conn, const char *name,
     if (virDataTypesInitialize() < 0)
         return NULL;
 
-    if (!VIR_IS_CONNECT(conn)) {
-        virLibConnError(VIR_ERR_INVALID_CONN, "%s", _("no connection"));
-        return NULL;
-    }
-    virCheckNonNullArgReturn(name, NULL);
-    virCheckNonNullArgReturn(uuid, NULL);
+    virCheckConnectGoto(conn, error);
+    virCheckNonNullArgGoto(name, error);
+    virCheckNonNullArgGoto(uuid, error);
 
     if (!(ret = virObjectNew(virNWFilterClass)))
-        return NULL;
+        goto error;
 
     if (VIR_STRDUP(ret->name, name) < 0)
         goto error;
@@ -820,22 +791,19 @@ virGetDomainSnapshot(virDomainPtr domain, const char *name)
     if (virDataTypesInitialize() < 0)
         return NULL;
 
-    if (!VIR_IS_DOMAIN(domain)) {
-        virLibConnError(VIR_ERR_INVALID_DOMAIN, "%s", _("bad domain"));
-        return NULL;
-    }
-    virCheckNonNullArgReturn(name, NULL);
+    virCheckDomainGoto(domain, error);
+    virCheckNonNullArgGoto(name, error);
 
     if (!(ret = virObjectNew(virDomainSnapshotClass)))
-        return NULL;
+        goto error;
     if (VIR_STRDUP(ret->name, name) < 0)
-        goto cleanup;
+        goto error;
 
     ret->domain = virObjectRef(domain);
 
     return ret;
 
-cleanup:
+error:
     virObjectUnref(ret);
     return NULL;
 }

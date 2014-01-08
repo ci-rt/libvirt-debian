@@ -305,6 +305,7 @@
           <ref name="hvmppc64"/>
           <ref name="hvms390"/>
           <ref name="hvmarm"/>
+          <ref name="hvmaarch64"/>
         </choice>
       </optional>
       <value>hvm</value>
@@ -420,6 +421,24 @@
         <attribute name="arch">
           <choice>
             <value>armv7l</value>
+          </choice>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name="machine">
+          <data type="string">
+            <param name="pattern">[a-zA-Z0-9_\.\-]+</param>
+          </data>
+        </attribute>
+      </optional>
+    </group>
+  </define>
+  <define name="hvmaarch64">
+    <group>
+      <optional>
+        <attribute name="arch">
+          <choice>
+            <value>aarch64</value>
           </choice>
         </attribute>
       </optional>
@@ -3556,6 +3575,9 @@
         <optional>
           <ref name="nvram"/>
         </optional>
+        <optional>
+          <ref name="panic"/>
+        </optional>
       </interleave>
     </element>
   </define>
@@ -3921,6 +3943,12 @@
           </attribute>
           <ref name="ccwaddress"/>
         </group>
+        <group>
+          <attribute name="type">
+            <value>isa</value>
+          </attribute>
+          <ref name="isaaddress"/>
+        </group>
       </choice>
     </element>
   </define>
@@ -3955,6 +3983,12 @@
         <ref name="rng-backend"/>
         <optional>
           <ref name="rng-rate"/>
+        </optional>
+        <optional>
+          <ref name="alias"/>
+        </optional>
+        <optional>
+          <ref name="address"/>
         </optional>
       </interleave>
     </element>
@@ -4402,5 +4436,12 @@
         <param name="maxInclusive">65535</param>
       </data>
     </choice>
+  </define>
+  <define name="panic">
+    <element name="panic">
+      <optional>
+        <ref name="address"/>
+      </optional>
+    </element>
   </define>
 </grammar>

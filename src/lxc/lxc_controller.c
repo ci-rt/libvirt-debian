@@ -2249,7 +2249,7 @@ int main(int argc, char *argv[])
 {
     pid_t pid;
     int rc = -1;
-    char *name = NULL;
+    const char *name = NULL;
     size_t nveths = 0;
     char **veths = NULL;
     int handshakeFd = -1;
@@ -2300,8 +2300,7 @@ int main(int argc, char *argv[])
             break;
 
         case 'n':
-            if (VIR_STRDUP(name, optarg) < 0)
-                goto cleanup;
+            name = optarg;
             break;
 
         case 'v':
@@ -2366,7 +2365,7 @@ int main(int argc, char *argv[])
     }
 
     if (handshakeFd < 0) {
-        fprintf(stderr, "%s: missing --handshake argument for container PTY\n",
+        fprintf(stderr, "%s: missing --handshakefd argument for container PTY\n",
                 argv[0]);
         goto cleanup;
     }

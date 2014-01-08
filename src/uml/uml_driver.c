@@ -1,7 +1,7 @@
 /*
  * uml_driver.c: core driver methods for managing UML guests
  *
- * Copyright (C) 2006-2013 Red Hat, Inc.
+ * Copyright (C) 2006-2014 Red Hat, Inc.
  * Copyright (C) 2006-2008 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -128,7 +128,7 @@ static int umlOpenMonitor(struct uml_driver *driver,
 static int umlReadPidFile(struct uml_driver *driver,
                           virDomainObjPtr vm);
 static void umlDomainEventQueue(struct uml_driver *driver,
-                                virDomainEventPtr event);
+                                virObjectEventPtr event);
 
 static int umlStartVMDaemon(virConnectPtr conn,
                             struct uml_driver *driver,
@@ -194,8 +194,8 @@ umlAutostartDomain(virDomainObjPtr vm,
             VIR_ERROR(_("Failed to autostart VM '%s': %s"),
                       vm->def->name, err ? err->message : _("unknown error"));
         } else {
-            virDomainEventPtr event =
-                virDomainEventNewFromObj(vm,
+            virObjectEventPtr event =
+                virDomainEventLifecycleNewFromObj(vm,
                                          VIR_DOMAIN_EVENT_STARTED,
                                          VIR_DOMAIN_EVENT_STARTED_BOOTED);
             if (event)
@@ -301,7 +301,7 @@ umlInotifyEvent(int watch,
     char *tmp, *name;
     struct uml_driver *driver = data;
     virDomainObjPtr dom;
-    virDomainEventPtr event = NULL;
+    virObjectEventPtr event = NULL;
 
     umlDriverLock(driver);
     if (watch != driver->inotifyWatch)
@@ -347,7 +347,7 @@ reread:
 
             umlShutdownVMDaemon(driver, dom, VIR_DOMAIN_SHUTOFF_SHUTDOWN);
             virDomainAuditStop(dom, "shutdown");
-            event = virDomainEventNewFromObj(dom,
+            event = virDomainEventLifecycleNewFromObj(dom,
                                              VIR_DOMAIN_EVENT_STOPPED,
                                              VIR_DOMAIN_EVENT_STOPPED_SHUTDOWN);
             if (!dom->persistent) {
@@ -381,7 +381,7 @@ reread:
                 umlShutdownVMDaemon(driver, dom,
                                     VIR_DOMAIN_SHUTOFF_FAILED);
                 virDomainAuditStop(dom, "failed");
-                event = virDomainEventNewFromObj(dom,
+                event = virDomainEventLifecycleNewFromObj(dom,
                                                  VIR_DOMAIN_EVENT_STOPPED,
                                                  VIR_DOMAIN_EVENT_STOPPED_FAILED);
                 if (!dom->persistent) {
@@ -394,7 +394,7 @@ reread:
                 umlShutdownVMDaemon(driver, dom,
                                     VIR_DOMAIN_SHUTOFF_FAILED);
                 virDomainAuditStop(dom, "failed");
-                event = virDomainEventNewFromObj(dom,
+                event = virDomainEventLifecycleNewFromObj(dom,
                                                  VIR_DOMAIN_EVENT_STOPPED,
                                                  VIR_DOMAIN_EVENT_STOPPED_FAILED);
                 if (!dom->persistent) {
@@ -475,7 +475,7 @@ umlStateInitialize(bool privileged,
     if (!(uml_driver->domains = virDomainObjListNew()))
         goto error;
 
-    uml_driver->domainEventState = virDomainEventStateNew();
+    uml_driver->domainEventState = virObjectEventStateNew();
     if (!uml_driver->domainEventState)
         goto error;
 
@@ -604,8 +604,8 @@ static void umlNotifyLoadDomain(virDomainObjPtr vm, int newVM, void *opaque)
     struct uml_driver *driver = opaque;
 
     if (newVM) {
-        virDomainEventPtr event =
-            virDomainEventNewFromObj(vm,
+        virObjectEventPtr event =
+            virDomainEventLifecycleNewFromObj(vm,
                                      VIR_DOMAIN_EVENT_DEFINED,
                                      VIR_DOMAIN_EVENT_DEFINED_ADDED);
         if (event)
@@ -677,7 +677,7 @@ umlStateCleanup(void) {
 
     virObjectUnref(uml_driver->domains);
 
-    virDomainEventStateFree(uml_driver->domainEventState);
+    virObjectEventStateFree(uml_driver->domainEventState);
 
     VIR_FREE(uml_driver->logDir);
     VIR_FREE(uml_driver->configDir);
@@ -716,7 +716,7 @@ static void umlProcessAutoDestroyDom(void *payload,
     const char *uuidstr = name;
     unsigned char uuid[VIR_UUID_BUFLEN];
     virDomainObjPtr dom;
-    virDomainEventPtr event = NULL;
+    virObjectEventPtr event = NULL;
 
     VIR_DEBUG("conn=%p uuidstr=%s thisconn=%p", conn, uuidstr, data->conn);
 
@@ -737,7 +737,7 @@ static void umlProcessAutoDestroyDom(void *payload,
     VIR_DEBUG("Killing domain");
     umlShutdownVMDaemon(data->driver, dom, VIR_DOMAIN_SHUTOFF_DESTROYED);
     virDomainAuditStop(dom, "destroyed");
-    event = virDomainEventNewFromObj(dom,
+    event = virDomainEventLifecycleNewFromObj(dom,
                                      VIR_DOMAIN_EVENT_STOPPED,
                                      VIR_DOMAIN_EVENT_STOPPED_DESTROYED);
 
@@ -1571,7 +1571,7 @@ static virDomainPtr umlDomainCreateXML(virConnectPtr conn, const char *xml,
     virDomainDefPtr def;
     virDomainObjPtr vm = NULL;
     virDomainPtr dom = NULL;
-    virDomainEventPtr event = NULL;
+    virObjectEventPtr event = NULL;
 
     virCheckFlags(VIR_DOMAIN_START_AUTODESTROY, NULL);
 
@@ -1600,7 +1600,7 @@ static virDomainPtr umlDomainCreateXML(virConnectPtr conn, const char *xml,
         goto cleanup;
     }
     virDomainAuditStart(vm, "booted", true);
-    event = virDomainEventNewFromObj(vm,
+    event = virDomainEventLifecycleNewFromObj(vm,
                                      VIR_DOMAIN_EVENT_STARTED,
                                      VIR_DOMAIN_EVENT_STARTED_BOOTED);
 
@@ -1667,7 +1667,7 @@ umlDomainDestroyFlags(virDomainPtr dom,
 {
     struct uml_driver *driver = dom->conn->privateData;
     virDomainObjPtr vm;
-    virDomainEventPtr event = NULL;
+    virObjectEventPtr event = NULL;
     int ret = -1;
 
     virCheckFlags(0, -1);
@@ -1685,7 +1685,7 @@ umlDomainDestroyFlags(virDomainPtr dom,
 
     umlShutdownVMDaemon(driver, vm, VIR_DOMAIN_SHUTOFF_DESTROYED);
     virDomainAuditStop(vm, "destroyed");
-    event = virDomainEventNewFromObj(vm,
+    event = virDomainEventLifecycleNewFromObj(vm,
                                      VIR_DOMAIN_EVENT_STOPPED,
                                      VIR_DOMAIN_EVENT_STOPPED_DESTROYED);
     if (!vm->persistent) {
@@ -1993,7 +1993,7 @@ static int umlConnectNumOfDefinedDomains(virConnectPtr conn) {
 static int umlDomainCreateWithFlags(virDomainPtr dom, unsigned int flags) {
     struct uml_driver *driver = dom->conn->privateData;
     virDomainObjPtr vm;
-    virDomainEventPtr event = NULL;
+    virObjectEventPtr event = NULL;
     int ret = -1;
 
     virCheckFlags(VIR_DOMAIN_START_AUTODESTROY, -1);
@@ -2014,7 +2014,7 @@ static int umlDomainCreateWithFlags(virDomainPtr dom, unsigned int flags) {
                            (flags & VIR_DOMAIN_START_AUTODESTROY));
     virDomainAuditStart(vm, "booted", ret >= 0);
     if (ret == 0)
-        event = virDomainEventNewFromObj(vm,
+        event = virDomainEventLifecycleNewFromObj(vm,
                                          VIR_DOMAIN_EVENT_STARTED,
                                          VIR_DOMAIN_EVENT_STARTED_BOOTED);
 
@@ -2610,15 +2610,16 @@ umlConnectDomainEventRegister(virConnectPtr conn,
                               virFreeCallback freecb)
 {
     struct uml_driver *driver = conn->privateData;
-    int ret;
+    int ret = 0;
 
     if (virConnectDomainEventRegisterEnsureACL(conn) < 0)
         return -1;
 
     umlDriverLock(driver);
-    ret = virDomainEventStateRegister(conn,
-                                      driver->domainEventState,
-                                      callback, opaque, freecb);
+    if (virDomainEventStateRegister(conn,
+                                    driver->domainEventState,
+                                    callback, opaque, freecb) < 0)
+        ret = -1;
     umlDriverUnlock(driver);
 
     return ret;
@@ -2629,15 +2630,16 @@ umlConnectDomainEventDeregister(virConnectPtr conn,
                                 virConnectDomainEventCallback callback)
 {
     struct uml_driver *driver = conn->privateData;
-    int ret;
+    int ret = 0;
 
     if (virConnectDomainEventDeregisterEnsureACL(conn) < 0)
         return -1;
 
     umlDriverLock(driver);
-    ret = virDomainEventStateDeregister(conn,
-                                        driver->domainEventState,
-                                        callback);
+    if (virDomainEventStateDeregister(conn,
+                                      driver->domainEventState,
+                                      callback) < 0)
+        ret = -1;
     umlDriverUnlock(driver);
 
     return ret;
@@ -2674,15 +2676,16 @@ umlConnectDomainEventDeregisterAny(virConnectPtr conn,
                                    int callbackID)
 {
     struct uml_driver *driver = conn->privateData;
-    int ret;
+    int ret = 0;
 
     if (virConnectDomainEventDeregisterAnyEnsureACL(conn) < 0)
         return -1;
 
     umlDriverLock(driver);
-    ret = virDomainEventStateDeregisterID(conn,
-                                          driver->domainEventState,
-                                          callbackID);
+    if (virObjectEventStateDeregisterID(conn,
+                                        driver->domainEventState,
+                                        callbackID) < 0)
+        ret = -1;
     umlDriverUnlock(driver);
 
     return ret;
@@ -2691,9 +2694,9 @@ umlConnectDomainEventDeregisterAny(virConnectPtr conn,
 
 /* driver must be locked before calling */
 static void umlDomainEventQueue(struct uml_driver *driver,
-                                virDomainEventPtr event)
+                                virObjectEventPtr event)
 {
-    virDomainEventStateQueue(driver->domainEventState, event);
+    virObjectEventStateQueue(driver->domainEventState, event);
 }
 
 static int umlConnectListAllDomains(virConnectPtr conn,

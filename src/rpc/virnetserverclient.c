@@ -658,7 +658,9 @@ virNetServerClientCreateIdentity(virNetServerClientPtr client)
 #if WITH_SASL
     char *saslname = NULL;
 #endif
+#if WITH_GNUTLS
     char *x509dname = NULL;
+#endif
     char *seccontext = NULL;
     virIdentityPtr ret = NULL;
 
@@ -741,18 +743,20 @@ virNetServerClientCreateIdentity(virNetServerClientPtr client)
                            VIR_IDENTITY_ATTR_UNIX_PROCESS_TIME,
                            processtime) < 0)
         goto error;
-#if HAVE_SASL
+#if WITH_SASL
     if (saslname &&
         virIdentitySetAttr(ret,
                            VIR_IDENTITY_ATTR_SASL_USER_NAME,
                            saslname) < 0)
         goto error;
 #endif
+#if WITH_GNUTLS
     if (x509dname &&
         virIdentitySetAttr(ret,
                            VIR_IDENTITY_ATTR_X509_DISTINGUISHED_NAME,
                            x509dname) < 0)
         goto error;
+#endif
     if (seccontext &&
         virIdentitySetAttr(ret,
                            VIR_IDENTITY_ATTR_SELINUX_CONTEXT,
@@ -767,10 +771,12 @@ cleanup:
     VIR_FREE(processid);
     VIR_FREE(processtime);
     VIR_FREE(seccontext);
-#if HAVE_SASL
+#if WITH_SASL
     VIR_FREE(saslname);
 #endif
+#if WITH_GNUTLS
     VIR_FREE(x509dname);
+#endif
     return ret;
 
 error:

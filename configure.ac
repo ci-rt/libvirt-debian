@@ -16,7 +16,7 @@ dnl You should have received a copy of the GNU Lesser General Public
 dnl License along with this library.  If not, see
 dnl <http://www.gnu.org/licenses/>.
 
-AC_INIT([libvirt], [1.2.0], [libvir-list@redhat.com], [], [http://libvirt.org])
+AC_INIT([libvirt], [1.2.1], [libvir-list@redhat.com], [], [http://libvirt.org])
 AC_CONFIG_SRCDIR([src/libvirt.c])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
@@ -1418,6 +1418,16 @@ elif test "with_secdriver_apparmor" != "no" ; then
 fi
 AM_CONDITIONAL([WITH_SECDRIVER_APPARMOR], [test "$with_secdriver_apparmor" != "no"])
 
+if test "$with_apparmor" != "no"; then
+AC_ARG_WITH([apparmor-profiles],
+  [AS_HELP_STRING([--with-apparmor-profiles],
+    [install apparmor profiles @<:@default=no@:>@])],
+  [with_apparmor_profiles=yes],
+  [with_apparmor_profiles=no])
+else
+  with_apparmor_profiles="no"
+fi
+AM_CONDITIONAL([WITH_APPARMOR_PROFILES], [test "$with_apparmor_profiles" != "no"])
 
 dnl DTrace static probes
 AC_ARG_WITH([dtrace],
@@ -2032,17 +2042,17 @@ AM_CONDITIONAL([WITH_HYPERV], [test "$with_hyperv" = "yes"])
 
 
 dnl Allow perl/python overrides
-AC_PATH_PROG([PYTHON], [python])
+AC_PATH_PROGS([PYTHON], [python2 python])
 AC_PATH_PROG([PERL], [perl])
 
-AC_ARG_ENABLE([with-test-suite],
-              [AS_HELP_STRING([--with-test-suite],
-                 [build test suite by default @<:@default=check@:>@])],
-              [case "${withval}" in
-                 yes|no|check) ;;
-                 *)      AC_MSG_ERROR([bad value ${withval} for tests option]) ;;
-              esac],
-              [withval=check])
+AC_ARG_WITH([test-suite],
+            [AS_HELP_STRING([--with-test-suite],
+               [build test suite by default @<:@default=check@:>@])],
+            [case "${withval}" in
+               yes|no|check) ;;
+               *)      AC_MSG_ERROR([bad value ${withval} for tests option]) ;;
+            esac],
+            [withval=check])
 
 AC_MSG_CHECKING([Whether to build test suite by default])
 if test "$withval" = "check" ; then
@@ -2129,7 +2139,7 @@ AC_ARG_ENABLE([test-locking],
 enable_locking=$enableval
 
 if test "$enable_locking" = "yes"; then
-  LOCK_CHECKING_CFLAGS="-Dbool=char -D_Bool=char -save-temps"
+  LOCK_CHECKING_CFLAGS="-save-temps"
   AC_SUBST([LOCK_CHECKING_CFLAGS])
 fi
 AM_CONDITIONAL([WITH_CIL],[test "$enable_locking" = "yes"])
@@ -2554,7 +2564,7 @@ AC_CONFIG_FILES([\
         tools/Makefile \
         tests/Makefile \
         examples/apparmor/Makefile \
-        examples/domain-events/events-c/Makefile \
+        examples/object-events/Makefile \
         examples/domsuspend/Makefile \
         examples/dominfo/Makefile \
         examples/openauth/Makefile \
@@ -2607,7 +2617,7 @@ AC_MSG_NOTICE([])
 AC_MSG_NOTICE([Security Drivers])
 AC_MSG_NOTICE([])
 AC_MSG_NOTICE([ SELinux: $with_secdriver_selinux ($SELINUX_MOUNT)])
-AC_MSG_NOTICE([AppArmor: $with_secdriver_apparmor])
+AC_MSG_NOTICE([AppArmor: $with_secdriver_apparmor (install profiles: $with_apparmor_profiles)])
 AC_MSG_NOTICE([])
 AC_MSG_NOTICE([Driver Loadable Modules])
 AC_MSG_NOTICE([])

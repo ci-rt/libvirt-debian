@@ -1141,9 +1141,10 @@ try_remove:
 }
 
 
-int qemuDomainAttachHostPciDevice(virQEMUDriverPtr driver,
-                                  virDomainObjPtr vm,
-                                  virDomainHostdevDefPtr hostdev)
+static int
+qemuDomainAttachHostPciDevice(virQEMUDriverPtr driver,
+                              virDomainObjPtr vm,
+                              virDomainHostdevDefPtr hostdev)
 {
     qemuDomainObjPrivatePtr priv = vm->privateData;
     int ret;
@@ -1152,7 +1153,9 @@ int qemuDomainAttachHostPciDevice(virQEMUDriverPtr driver,
     char *configfd_name = NULL;
     bool releaseaddr = false;
     bool teardowncgroup = false;
+    bool teardownlabel = false;
     int backend = hostdev->source.subsys.u.pci.backend;
+    unsigned long long memKB;
 
     if (VIR_REALLOC_N(vm->def->hostdevs, vm->def->nhostdevs + 1) < 0)
         return -1;
@@ -1170,16 +1173,18 @@ int qemuDomainAttachHostPciDevice(virQEMUDriverPtr driver,
             goto error;
         }
 
-        /* VFIO requires all of the guest's memory to be locked resident.
-         * In this case, the guest's memory may already be locked, but it
+        /* VFIO requires all of the guest's memory to be locked
+         * resident (plus an additional 1GiB to cover IO space). During
+         * hotplug, the guest's memory may already be locked, but it
          * doesn't hurt to "change" the limit to the same value.
+         * NB: the domain's memory tuning parameters are stored as
+         * Kibibytes, but virProcessSetMaxMemLock expects the value in
+         * bytes.
          */
-        if (vm->def->mem.hard_limit)
-            virProcessSetMaxMemLock(vm->pid, vm->def->mem.hard_limit);
-        else
-            virProcessSetMaxMemLock(vm->pid,
-                                    vm->def->mem.max_balloon + (1024 * 1024));
-
+        memKB = vm->def->mem.hard_limit
+            ? vm->def->mem.hard_limit
+            : vm->def->mem.max_balloon + (1024 * 1024);
+        virProcessSetMaxMemLock(vm->pid, memKB * 1024);
         break;
 
     case VIR_DOMAIN_HOSTDEV_PCI_BACKEND_DEFAULT:
@@ -1191,6 +1196,11 @@ int qemuDomainAttachHostPciDevice(virQEMUDriverPtr driver,
     if (qemuSetupHostdevCGroup(vm, hostdev) < 0)
         goto error;
     teardowncgroup = true;
+
+    if (virSecurityManagerSetHostdevLabel(driver->securityManager,
+                                          vm->def, hostdev, NULL) < 0)
+        goto error;
+    teardownlabel = true;
 
     if (virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE)) {
         if (qemuAssignDeviceHostdevAlias(vm->def, hostdev, -1) < 0)
@@ -1249,6 +1259,10 @@ int qemuDomainAttachHostPciDevice(virQEMUDriverPtr driver,
 error:
     if (teardowncgroup && qemuTeardownHostdevCgroup(vm, hostdev) < 0)
         VIR_WARN("Unable to remove host device cgroup ACL on hotplug fail");
+    if (teardownlabel &&
+        virSecurityManagerRestoreHostdevLabel(driver->securityManager,
+                                              vm->def, hostdev, NULL) < 0)
+        VIR_WARN("Unable to restore host device labelling on hotplug fail");
 
     if (releaseaddr)
         qemuDomainReleaseDeviceAddress(vm, hostdev->info, NULL);
@@ -1433,9 +1447,10 @@ cleanup:
     return ret;
 }
 
-int qemuDomainAttachHostUsbDevice(virQEMUDriverPtr driver,
-                                  virDomainObjPtr vm,
-                                  virDomainHostdevDefPtr hostdev)
+static int
+qemuDomainAttachHostUsbDevice(virQEMUDriverPtr driver,
+                              virDomainObjPtr vm,
+                              virDomainHostdevDefPtr hostdev)
 {
     qemuDomainObjPrivatePtr priv = vm->privateData;
     virUSBDeviceList *list = NULL;
@@ -1443,6 +1458,7 @@ int qemuDomainAttachHostUsbDevice(virQEMUDriverPtr driver,
     char *devstr = NULL;
     bool added = false;
     bool teardowncgroup = false;
+    bool teardownlabel = false;
     int ret = -1;
 
     if (qemuFindHostdevUSBDevice(hostdev, true, &usb) < 0)
@@ -1463,6 +1479,11 @@ int qemuDomainAttachHostUsbDevice(virQEMUDriverPtr driver,
     if (qemuSetupHostdevCGroup(vm, hostdev) < 0)
         goto cleanup;
     teardowncgroup = true;
+
+    if (virSecurityManagerSetHostdevLabel(driver->securityManager,
+                                          vm->def, hostdev, NULL) < 0)
+        goto cleanup;
+    teardownlabel = true;
 
     if (virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE)) {
         if (qemuAssignDeviceHostdevAlias(vm->def, hostdev, -1) < 0)
@@ -1490,13 +1511,20 @@ int qemuDomainAttachHostUsbDevice(virQEMUDriverPtr driver,
 
     ret = 0;
 cleanup:
-    if (ret < 0 &&
-        teardowncgroup &&
-        qemuTeardownHostdevCgroup(vm, hostdev) < 0)
-        VIR_WARN("Unable to remove host device cgroup ACL on hotplug fail");
-    if (added)
-        virUSBDeviceListSteal(driver->activeUsbHostdevs, usb);
-    virUSBDeviceFree(usb);
+    if (ret < 0) {
+        if (teardowncgroup && qemuTeardownHostdevCgroup(vm, hostdev) < 0)
+            VIR_WARN("Unable to remove host device cgroup ACL on hotplug fail");
+        if (teardownlabel &&
+            virSecurityManagerRestoreHostdevLabel(driver->securityManager,
+                                                  vm->def, hostdev, NULL) < 0)
+            VIR_WARN("Unable to restore host device labelling on hotplug fail");
+        if (added)
+            virUSBDeviceListSteal(driver->activeUsbHostdevs, usb);
+    }
+    if (list && usb &&
+        !virUSBDeviceListFind(list, usb) &&
+        !virUSBDeviceListFind(driver->activeUsbHostdevs, usb))
+        virUSBDeviceFree(usb);
     virObjectUnref(list);
     VIR_FREE(devstr);
     return ret;
@@ -1513,6 +1541,7 @@ qemuDomainAttachHostScsiDevice(virQEMUDriverPtr driver,
     char *devstr = NULL;
     char *drvstr = NULL;
     bool teardowncgroup = false;
+    bool teardownlabel = false;
 
     if (!virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_DRIVE) ||
         !virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE) ||
@@ -1540,6 +1569,11 @@ qemuDomainAttachHostScsiDevice(virQEMUDriverPtr driver,
     if (qemuSetupHostdevCGroup(vm, hostdev) < 0)
         goto cleanup;
     teardowncgroup = true;
+
+    if (virSecurityManagerSetHostdevLabel(driver->securityManager,
+                                          vm->def, hostdev, NULL) < 0)
+        goto cleanup;
+    teardownlabel = true;
 
     if (qemuAssignDeviceHostdevAlias(vm->def, hostdev, -1) < 0)
         goto cleanup;
@@ -1582,6 +1616,10 @@ cleanup:
         qemuDomainReAttachHostScsiDevices(driver, vm->def->name, &hostdev, 1);
         if (teardowncgroup && qemuTeardownHostdevCgroup(vm, hostdev) < 0)
             VIR_WARN("Unable to remove host device cgroup ACL on hotplug fail");
+        if (teardownlabel &&
+            virSecurityManagerRestoreHostdevLabel(driver->securityManager,
+                                                  vm->def, hostdev, NULL) < 0)
+            VIR_WARN("Unable to restore host device labelling on hotplug fail");
     }
     VIR_FREE(drvstr);
     VIR_FREE(devstr);
@@ -1598,10 +1636,6 @@ int qemuDomainAttachHostDevice(virQEMUDriverPtr driver,
                        virDomainHostdevModeTypeToString(hostdev->mode));
         return -1;
     }
-
-    if (virSecurityManagerSetHostdevLabel(driver->securityManager,
-                                          vm->def, hostdev, NULL) < 0)
-        return -1;
 
     switch (hostdev->source.subsys.type) {
     case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI:
@@ -1632,9 +1666,6 @@ int qemuDomainAttachHostDevice(virQEMUDriverPtr driver,
     return 0;
 
 error:
-    if (virSecurityManagerRestoreHostdevLabel(driver->securityManager,
-                                              vm->def, hostdev, NULL) < 0)
-        VIR_WARN("Unable to restore host device labelling on hotplug fail");
     return -1;
 }
 
@@ -1899,7 +1930,8 @@ qemuDomainChangeNet(virQEMUDriverPtr driver,
         (olddev->driver.virtio.name != newdev->driver.virtio.name ||
          olddev->driver.virtio.txmode != newdev->driver.virtio.txmode ||
          olddev->driver.virtio.ioeventfd != newdev->driver.virtio.ioeventfd ||
-         olddev->driver.virtio.event_idx != newdev->driver.virtio.event_idx)) {
+         olddev->driver.virtio.event_idx != newdev->driver.virtio.event_idx ||
+         olddev->driver.virtio.queues != newdev->driver.virtio.queues)) {
         virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
                        _("cannot modify virtio network device driver attributes"));
         goto cleanup;
@@ -2427,7 +2459,7 @@ qemuDomainRemoveDiskDevice(virQEMUDriverPtr driver,
                            virDomainDiskDefPtr disk)
 {
     virDomainDeviceDef dev;
-    virDomainEventPtr event;
+    virObjectEventPtr event;
     size_t i;
 
     VIR_DEBUG("Removing disk %s from domain %p %s",
@@ -2471,7 +2503,7 @@ qemuDomainRemoveControllerDevice(virQEMUDriverPtr driver,
                                  virDomainObjPtr vm,
                                  virDomainControllerDefPtr controller)
 {
-    virDomainEventPtr event;
+    virObjectEventPtr event;
     size_t i;
 
     VIR_DEBUG("Removing controller %s from domain %p %s",
@@ -2559,7 +2591,7 @@ qemuDomainRemoveHostDevice(virQEMUDriverPtr driver,
 {
     virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
     virDomainNetDefPtr net = NULL;
-    virDomainEventPtr event;
+    virObjectEventPtr event;
     size_t i;
 
     VIR_DEBUG("Removing host device %s from domain %p %s",
@@ -2630,7 +2662,7 @@ qemuDomainRemoveNetDevice(virQEMUDriverPtr driver,
 {
     virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
     virNetDevVPortProfilePtr vport;
-    virDomainEventPtr event;
+    virObjectEventPtr event;
     size_t i;
 
     if (virDomainNetGetActualType(net) == VIR_DOMAIN_NET_TYPE_HOSTDEV) {
@@ -2695,7 +2727,7 @@ qemuDomainRemoveChrDevice(virQEMUDriverPtr driver,
                           virDomainObjPtr vm,
                           virDomainChrDefPtr chr)
 {
-    virDomainEventPtr event;
+    virObjectEventPtr event;
 
     VIR_DEBUG("Removing character device %s from domain %p %s",
               chr->info.alias, vm, vm->def->name);

@@ -1,6 +1,6 @@
 ## DO NOT EDIT! GENERATED AUTOMATICALLY!
 ## Process this file with automake to produce Makefile.in.
-# Copyright (C) 2002-2013 Free Software Foundation, Inc.
+# Copyright (C) 2002-2014 Free Software Foundation, Inc.
 #
 # This file is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -225,6 +225,7 @@ EXTRA_DIST += test-count-one-bits.c macros.h
 
 GNULIB_TESTS += test-md5
 check_PROGRAMS += test-md5
+test_md5_LDADD = $(LDADD) @LIB_CRYPTO@
 EXTRA_DIST += test-md5.c
 
 ## end   gnulib module crypto/md5-tests

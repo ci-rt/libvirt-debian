@@ -196,10 +196,33 @@ int lxcContainerHasReboot(void)
  *
  * Returns a virCommandPtr
  */
-static virCommandPtr lxcContainerBuildInitCmd(virDomainDefPtr vmDef)
+static virCommandPtr lxcContainerBuildInitCmd(virDomainDefPtr vmDef,
+                                              char **ttyPaths,
+                                              size_t nttyPaths)
 {
     char uuidstr[VIR_UUID_STRING_BUFLEN];
     virCommandPtr cmd;
+    virBuffer buf = VIR_BUFFER_INITIALIZER;
+    size_t i;
+
+    /* 'container_ptys' must exclude the PTY associated with
+     * the /dev/console device, hence start at 1 not 0
+     */
+    for (i = 1; i < nttyPaths; i++) {
+        if (!STRPREFIX(ttyPaths[i], "/dev/")) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Expected a /dev path for '%s'"),
+                           ttyPaths[i]);
+            virBufferFreeAndReset(&buf);
+            return NULL;
+        }
+        virBufferAdd(&buf, ttyPaths[i] + 5, -1);
+        virBufferAddChar(&buf, ' ');
+    }
+    virBufferTrim(&buf, NULL, 1);
+
+    if (virBufferError(&buf))
+        return NULL;
 
     virUUIDFormat(vmDef->uuid, uuidstr);
 
@@ -212,11 +235,14 @@ static virCommandPtr lxcContainerBuildInitCmd(virDomainDefPtr vmDef)
     virCommandAddEnvString(cmd, "TERM=linux");
     virCommandAddEnvString(cmd, "container=lxc-libvirt");
     virCommandAddEnvPair(cmd, "container_uuid", uuidstr);
+    if (nttyPaths > 1)
+        virCommandAddEnvPair(cmd, "container_ttys", virBufferCurrentContent(&buf));
     virCommandAddEnvPair(cmd, "LIBVIRT_LXC_UUID", uuidstr);
     virCommandAddEnvPair(cmd, "LIBVIRT_LXC_NAME", vmDef->name);
     if (vmDef->os.cmdline)
         virCommandAddEnvPair(cmd, "LIBVIRT_LXC_CMDLINE", vmDef->os.cmdline);
 
+    virBufferFreeAndReset(&buf);
     return cmd;
 }
 
@@ -654,8 +680,8 @@ static int lxcContainerPivotRoot(virDomainFSDefPtr root)
     /* ... and mount our root onto it */
     if (mount(root->src, newroot, NULL, MS_BIND|MS_REC, NULL) < 0) {
         virReportSystemError(errno,
-                             _("Failed to bind new root %s into tmpfs"),
-                             root->src);
+                             _("Failed to bind %s to new root %s"),
+                             root->src, newroot);
         goto err;
     }
 
@@ -940,16 +966,14 @@ cleanup:
 static int lxcContainerMountFSDevPTS(virDomainDefPtr def,
                                      const char *stateDir)
 {
-    int ret;
+    int ret = -1;
     char *path = NULL;
     int flags = def->idmap.nuidmap ? MS_BIND : MS_MOVE;
 
     VIR_DEBUG("Mount /dev/pts stateDir=%s", stateDir);
 
-    if ((ret = virAsprintf(&path,
-                           "/.oldroot/%s/%s.devpts",
-                           stateDir,
-                           def->name)) < 0)
+    if (virAsprintf(&path, "/.oldroot/%s/%s.devpts",
+                    stateDir, def->name) < 0)
         return ret;
 
     if (virFileMakePath("/dev/pts") < 0) {
@@ -961,16 +985,16 @@ static int lxcContainerMountFSDevPTS(virDomainDefPtr def,
     VIR_DEBUG("Trying to %s %s to /dev/pts", def->idmap.nuidmap ?
               "bind" : "move", path);
 
-    if ((ret = mount(path, "/dev/pts", NULL, flags, NULL)) < 0) {
+    if (mount(path, "/dev/pts", NULL, flags, NULL) < 0) {
         virReportSystemError(errno,
                              _("Failed to mount %s on /dev/pts"),
                              path);
         goto cleanup;
     }
 
+    ret = 0;
 cleanup:
     VIR_FREE(path);
-
     return ret;
 }
 
@@ -1093,13 +1117,6 @@ static int lxcContainerMountFSBind(virDomainFSDefPtr fs,
         if (mount(src, fs->dst, NULL, MS_BIND|MS_REMOUNT|MS_RDONLY, NULL) < 0) {
             virReportSystemError(errno,
                                  _("Failed to make directory %s readonly"),
-                                 fs->dst);
-        }
-    } else {
-        VIR_DEBUG("Binding %s readwrite", fs->dst);
-        if (mount(src, fs->dst, NULL, MS_BIND|MS_REMOUNT, NULL) < 0) {
-            virReportSystemError(errno,
-                                 _("Failed to make directory %s readwrite"),
                                  fs->dst);
         }
     }
@@ -1798,7 +1815,9 @@ static int lxcContainerChild(void *data)
     if ((hasReboot = lxcContainerHasReboot()) < 0)
         goto cleanup;
 
-    cmd = lxcContainerBuildInitCmd(vmDef);
+    cmd = lxcContainerBuildInitCmd(vmDef,
+                                   argv->ttyPaths,
+                                   argv->nttyPaths);
     virCommandWriteArgLog(cmd, 1);
 
     if (lxcContainerSetID(vmDef) < 0)

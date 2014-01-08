@@ -133,7 +133,7 @@
 .\" ========================================================================
 .\"
 .IX Title "VIRSH 1"
-.TH VIRSH 1 "2013-12-02" "libvirt-1.2.0" "Virtualization Support"
+.TH VIRSH 1 "2014-01-06" "libvirt-1.2.1" "Virtualization Support"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -347,8 +347,8 @@ This command is only available in interactive mode.
 .IP "\fBpwd\fR" 4
 .IX Item "pwd"
 Will print the current directory.
-.IP "\fBconnect\fR \fI\s-1URI\s0\fR [\fI\-\-readonly\fR]" 4
-.IX Item "connect URI [--readonly]"
+.IP "\fBconnect\fR [\fI\s-1URI\s0\fR] [\fI\-\-readonly\fR]" 4
+.IX Item "connect [URI] [--readonly]"
 (Re)\-Connect to the hypervisor. When the shell is first started, this
 is automatically run with the \fI\s-1URI\s0\fR parameter requested by the \f(CW\*(C`\-c\*(C'\fR
 option on the command line. The \fI\s-1URI\s0\fR parameter specifies how to
@@ -358,7 +358,7 @@ common are:
 .RS 4
 .IP "xen:///" 4
 .IX Item "xen:///"
-this is used to connect to the local Xen hypervisor, this is the default
+this is used to connect to the local Xen hypervisor
 .IP "qemu:///system" 4
 .IX Item "qemu:///system"
 connect locally as root to the daemon supervising QEmu and \s-1KVM\s0 domains
@@ -1753,7 +1753,8 @@ on inactive domains. Volume deletion is only attempted after the domain is
 undefined; if not all of the requested volumes could be deleted, the
 error message indicates what still remains behind. If a volume path is not
 found in the domain definition, it's treated as if the volume was successfully
-deleted.
+deleted. Only volumes managed by libvirt in storage pools can be removed this
+way.
 (See \fBdomblklist\fR for list of target names associated to a domain).
 Example: \-\-storage vda,/path/to/storage.img
 .Sp
@@ -2074,9 +2075,9 @@ contains xml for a top-level <device> description of a node device.
 .IP "\fBnodedev-destroy\fR \fIdevice\fR" 4
 .IX Item "nodedev-destroy device"
 Destroy (stop) a device on the host. \fIdevice\fR can be either device
-name or wwn pair in \*(L"wwnn,wwpn\*(R" format (only works for \s-1HBA\s0). Note
-that this makes libvirt quit managing a host device, and may even make
-that device unusable by the rest of the physical host until a reboot.
+name or wwn pair in \*(L"wwnn,wwpn\*(R" format (only works for vHBA currently).
+Note that this makes libvirt quit managing a host device, and may even
+make that device unusable by the rest of the physical host until a reboot.
 .IP "\fBnodedev-detach\fR \fInodedev\fR [\fI\-\-driver backend_driver\fR]" 4
 .IX Item "nodedev-detach nodedev [--driver backend_driver]"
 Detach \fInodedev\fR from the host, so that it can safely be used by
@@ -2437,7 +2438,7 @@ with autostarting disabled.
 You may also want to list pools with specified types using \fItype\fR, the
 pool types must be separated by comma, e.g. \-\-type dir,disk. The valid pool
 types include 'dir', 'fs', 'netfs', 'logical', 'disk', 'iscsi', 'scsi',
-\&'mpath', 'rbd', and 'sheepdog'.
+\&'mpath', 'rbd', 'sheepdog' and 'gluster'.
 .Sp
 The \fI\-\-details\fR option instructs virsh to additionally
 display pool persistence and capacity related information where available.

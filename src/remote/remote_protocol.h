@@ -3408,6 +3408,33 @@ struct remote_connect_get_cpu_model_names_ret {
         int ret;
 };
 typedef struct remote_connect_get_cpu_model_names_ret remote_connect_get_cpu_model_names_ret;
+
+struct remote_connect_network_event_register_any_args {
+        int eventID;
+};
+typedef struct remote_connect_network_event_register_any_args remote_connect_network_event_register_any_args;
+
+struct remote_connect_network_event_register_any_ret {
+        int cb_registered;
+};
+typedef struct remote_connect_network_event_register_any_ret remote_connect_network_event_register_any_ret;
+
+struct remote_connect_network_event_deregister_any_args {
+        int eventID;
+};
+typedef struct remote_connect_network_event_deregister_any_args remote_connect_network_event_deregister_any_args;
+
+struct remote_connect_network_event_deregister_any_ret {
+        int cb_registered;
+};
+typedef struct remote_connect_network_event_deregister_any_ret remote_connect_network_event_deregister_any_ret;
+
+struct remote_network_event_lifecycle_msg {
+        remote_nonnull_network net;
+        int event;
+        int detail;
+};
+typedef struct remote_network_event_lifecycle_msg remote_network_event_lifecycle_msg;
 #define REMOTE_PROGRAM 0x20008086
 #define REMOTE_PROTOCOL_VERSION 1
 
@@ -3724,6 +3751,9 @@ enum remote_procedure {
         REMOTE_PROC_DOMAIN_CREATE_WITH_FILES = 310,
         REMOTE_PROC_DOMAIN_EVENT_DEVICE_REMOVED = 311,
         REMOTE_PROC_CONNECT_GET_CPU_MODEL_NAMES = 312,
+        REMOTE_PROC_CONNECT_NETWORK_EVENT_REGISTER_ANY = 313,
+        REMOTE_PROC_CONNECT_NETWORK_EVENT_DEREGISTER_ANY = 314,
+        REMOTE_PROC_NETWORK_EVENT_LIFECYCLE = 315,
 };
 typedef enum remote_procedure remote_procedure;
 
@@ -4236,6 +4266,11 @@ extern  bool_t xdr_remote_domain_migrate_confirm3_params_args (XDR *, remote_dom
 extern  bool_t xdr_remote_domain_event_device_removed_msg (XDR *, remote_domain_event_device_removed_msg*);
 extern  bool_t xdr_remote_connect_get_cpu_model_names_args (XDR *, remote_connect_get_cpu_model_names_args*);
 extern  bool_t xdr_remote_connect_get_cpu_model_names_ret (XDR *, remote_connect_get_cpu_model_names_ret*);
+extern  bool_t xdr_remote_connect_network_event_register_any_args (XDR *, remote_connect_network_event_register_any_args*);
+extern  bool_t xdr_remote_connect_network_event_register_any_ret (XDR *, remote_connect_network_event_register_any_ret*);
+extern  bool_t xdr_remote_connect_network_event_deregister_any_args (XDR *, remote_connect_network_event_deregister_any_args*);
+extern  bool_t xdr_remote_connect_network_event_deregister_any_ret (XDR *, remote_connect_network_event_deregister_any_ret*);
+extern  bool_t xdr_remote_network_event_lifecycle_msg (XDR *, remote_network_event_lifecycle_msg*);
 extern  bool_t xdr_remote_procedure (XDR *, remote_procedure*);
 
 #else /* K&R C */
@@ -4745,6 +4780,11 @@ extern bool_t xdr_remote_domain_migrate_confirm3_params_args ();
 extern bool_t xdr_remote_domain_event_device_removed_msg ();
 extern bool_t xdr_remote_connect_get_cpu_model_names_args ();
 extern bool_t xdr_remote_connect_get_cpu_model_names_ret ();
+extern bool_t xdr_remote_connect_network_event_register_any_args ();
+extern bool_t xdr_remote_connect_network_event_register_any_ret ();
+extern bool_t xdr_remote_connect_network_event_deregister_any_args ();
+extern bool_t xdr_remote_connect_network_event_deregister_any_ret ();
+extern bool_t xdr_remote_network_event_lifecycle_msg ();
 extern bool_t xdr_remote_procedure ();
 
 #endif /* K&R C */

@@ -8,7 +8,7 @@
  */
 
 /*
- * Copyright (C) 2010-2013 Red Hat, Inc.
+ * Copyright (C) 2010-2014 Red Hat, Inc.
  * Copyright (C) 2008-2009 Sun Microsystems, Inc.
  *
  * This file is part of a free software library; you can redistribute
@@ -213,7 +213,7 @@ typedef struct {
 #else /* !(VBOX_API_VERSION == 2002) */
 
     /* Async event handling */
-    virDomainEventStatePtr domainEvents;
+    virObjectEventStatePtr domainEvents;
     int fdWatch;
 
 # if VBOX_API_VERSION <= 3002
@@ -990,7 +990,7 @@ static void vboxUninitialize(vboxGlobalData *data) {
 #if VBOX_API_VERSION == 2002
     /* No domainEventCallbacks in 2.2.* version */
 #else  /* !(VBOX_API_VERSION == 2002) */
-    virDomainEventStateFree(data->domainEvents);
+    virObjectEventStateFree(data->domainEvents);
 #endif /* !(VBOX_API_VERSION == 2002) */
     VIR_FREE(data);
 }
@@ -1055,7 +1055,7 @@ static virDrvOpenStatus vboxConnectOpen(virConnectPtr conn,
 
 #else  /* !(VBOX_API_VERSION == 2002) */
 
-    if (!(data->domainEvents = virDomainEventStateNew())) {
+    if (!(data->domainEvents = virObjectEventStateNew())) {
         vboxUninitialize(data);
         return VIR_DRV_OPEN_ERROR;
     }
@@ -6965,7 +6965,7 @@ vboxCallbackOnMachineStateChange(IVirtualBoxCallback *pThis ATTRIBUTE_UNUSED,
 
         dom = vboxDomainLookupByUUID(g_pVBoxGlobalData->conn, uuid);
         if (dom) {
-            virDomainEventPtr ev;
+            virObjectEventPtr ev;
 
             if (state == MachineState_Starting) {
                 event  = VIR_DOMAIN_EVENT_STARTED;
@@ -6996,10 +6996,10 @@ vboxCallbackOnMachineStateChange(IVirtualBoxCallback *pThis ATTRIBUTE_UNUSED,
                 detail = VIR_DOMAIN_EVENT_STOPPED_SHUTDOWN;
             }
 
-            ev = virDomainEventNewFromDom(dom, event, detail);
+            ev = virDomainEventLifecycleNewFromDom(dom, event, detail);
 
             if (ev)
-                virDomainEventStateQueue(g_pVBoxGlobalData->domainEvents, ev);
+                virObjectEventStateQueue(g_pVBoxGlobalData->domainEvents, ev);
         }
     }
 
@@ -7084,7 +7084,7 @@ vboxCallbackOnMachineRegistered(IVirtualBoxCallback *pThis ATTRIBUTE_UNUSED,
 
         dom = vboxDomainLookupByUUID(g_pVBoxGlobalData->conn, uuid);
         if (dom) {
-            virDomainEventPtr ev;
+            virObjectEventPtr ev;
 
             /* CURRENT LIMITATION: we never get the VIR_DOMAIN_EVENT_UNDEFINED
              * event because the when the machine is de-registered the call
@@ -7100,10 +7100,10 @@ vboxCallbackOnMachineRegistered(IVirtualBoxCallback *pThis ATTRIBUTE_UNUSED,
                 detail = VIR_DOMAIN_EVENT_UNDEFINED_REMOVED;
             }
 
-            ev = virDomainEventNewFromDom(dom, event, detail);
+            ev = virDomainEventLifecycleNewFromDom(dom, event, detail);
 
             if (ev)
-                virDomainEventStateQueue(g_pVBoxGlobalData->domainEvents, ev);
+                virObjectEventStateQueue(g_pVBoxGlobalData->domainEvents, ev);
         }
     }
 
@@ -7284,10 +7284,12 @@ static void vboxReadCallback(int watch ATTRIBUTE_UNUSED,
     }
 }
 
-static int vboxConnectDomainEventRegister(virConnectPtr conn,
-                                          virConnectDomainEventCallback callback,
-                                          void *opaque,
-                                          virFreeCallback freecb) {
+static int
+vboxConnectDomainEventRegister(virConnectPtr conn,
+                               virConnectDomainEventCallback callback,
+                               void *opaque,
+                               virFreeCallback freecb)
+{
     VBOX_OBJECT_CHECK(conn, int, -1);
     int vboxRet          = -1;
     nsresult rc;
@@ -7328,7 +7330,7 @@ static int vboxConnectDomainEventRegister(virConnectPtr conn,
 
             ret = virDomainEventStateRegister(conn, data->domainEvents,
                                               callback, opaque, freecb);
-            VIR_DEBUG("virDomainEventStateRegister (ret = %d) (conn: %p, "
+            VIR_DEBUG("virObjectEventStateRegister (ret = %d) (conn: %p, "
                       "callback: %p, opaque: %p, "
                       "freecb: %p)", ret, conn, callback,
                       opaque, freecb);
@@ -7338,7 +7340,7 @@ static int vboxConnectDomainEventRegister(virConnectPtr conn,
     vboxDriverUnlock(data);
 
     if (ret >= 0) {
-        return ret;
+        return 0;
     } else {
         if (data->vboxObj && data->vboxCallback) {
             data->vboxObj->vtbl->UnregisterCallback(data->vboxObj, data->vboxCallback);
@@ -7347,8 +7349,10 @@ static int vboxConnectDomainEventRegister(virConnectPtr conn,
     }
 }
 
-static int vboxConnectDomainEventDeregister(virConnectPtr conn,
-                                            virConnectDomainEventCallback callback) {
+static int
+vboxConnectDomainEventDeregister(virConnectPtr conn,
+                                 virConnectDomainEventCallback callback)
+{
     VBOX_OBJECT_CHECK(conn, int, -1);
     int cnt;
 
@@ -7370,6 +7374,9 @@ static int vboxConnectDomainEventDeregister(virConnectPtr conn,
     }
 
     vboxDriverUnlock(data);
+
+    if (cnt >= 0)
+        ret = 0;
 
     return ret;
 }
@@ -7441,8 +7448,10 @@ static int vboxConnectDomainEventRegisterAny(virConnectPtr conn,
     }
 }
 
-static int vboxConnectDomainEventDeregisterAny(virConnectPtr conn,
-                                               int callbackID) {
+static int
+vboxConnectDomainEventDeregisterAny(virConnectPtr conn,
+                                    int callbackID)
+{
     VBOX_OBJECT_CHECK(conn, int, -1);
     int cnt;
 
@@ -7451,7 +7460,7 @@ static int vboxConnectDomainEventDeregisterAny(virConnectPtr conn,
      */
     vboxDriverLock(data);
 
-    cnt = virDomainEventStateDeregisterID(conn, data->domainEvents,
+    cnt = virObjectEventStateDeregisterID(conn, data->domainEvents,
                                           callbackID);
 
     if (data->vboxCallback && cnt == 0) {
@@ -7464,6 +7473,9 @@ static int vboxConnectDomainEventDeregisterAny(virConnectPtr conn,
     }
 
     vboxDriverUnlock(data);
+
+    if (cnt >= 0)
+        ret = 0;
 
     return ret;
 }

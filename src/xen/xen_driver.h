@@ -159,7 +159,7 @@ struct _xenUnifiedPrivate {
     int nbNodeCells;
     int nbNodeCpus;
 
-    virDomainEventStatePtr domainEvents;
+    virObjectEventStatePtr domainEvents;
 
     /* Location of config files, either /etc
      * or /var/lib/xen */
@@ -199,7 +199,7 @@ int  xenUnifiedRemoveDomainInfo(xenUnifiedDomainInfoListPtr info,
                                 int id, char *name,
                                 unsigned char *uuid);
 void xenUnifiedDomainEventDispatch (xenUnifiedPrivatePtr priv,
-                                    virDomainEventPtr event);
+                                    virObjectEventPtr event);
 unsigned long xenUnifiedVersion(void);
 int xenUnifiedConnectGetMaxVcpus(virConnectPtr conn, const char *type);
 

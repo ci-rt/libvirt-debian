@@ -2,7 +2,7 @@
  * remote_driver.c: driver to provide access to libvirtd running
  *   on a remote machine
  *
- * Copyright (C) 2007-2013 Red Hat, Inc.
+ * Copyright (C) 2007-2014 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -33,6 +33,7 @@
 #include "virlog.h"
 #include "datatypes.h"
 #include "domain_event.h"
+#include "network_event.h"
 #include "driver.h"
 #include "virbuffer.h"
 #include "remote_driver.h"
@@ -92,7 +93,7 @@ struct private_data {
     char *hostname;             /* Original hostname */
     bool serverKeepAlive;       /* Does server support keepalive protocol? */
 
-    virDomainEventStatePtr domainEventState;
+    virObjectEventStatePtr eventState;
 };
 
 enum {
@@ -150,7 +151,7 @@ static void make_nonnull_storage_vol(remote_nonnull_storage_vol *vol_dst, virSto
 static void make_nonnull_secret(remote_nonnull_secret *secret_dst, virSecretPtr secret_src);
 static void make_nonnull_nwfilter(remote_nonnull_nwfilter *nwfilter_dst, virNWFilterPtr nwfilter_src);
 static void make_nonnull_domain_snapshot(remote_nonnull_domain_snapshot *snapshot_dst, virDomainSnapshotPtr snapshot_src);
-static void remoteDomainEventQueue(struct private_data *priv, virDomainEventPtr event);
+static void remoteEventQueue(struct private_data *priv, virObjectEventPtr event);
 /*----------------------------------------------------------------------*/
 
 /* Helper functions for remoteOpen. */
@@ -273,7 +274,12 @@ remoteDomainBuildEventDeviceRemoved(virNetClientProgramPtr prog,
                                     virNetClientPtr client,
                                     void *evdata, void *opaque);
 
-static virNetClientProgramEvent remoteDomainEvents[] = {
+static void
+remoteNetworkBuildEventLifecycle(virNetClientProgramPtr prog ATTRIBUTE_UNUSED,
+                                 virNetClientPtr client ATTRIBUTE_UNUSED,
+                                 void *evdata, void *opaque);
+
+static virNetClientProgramEvent remoteEvents[] = {
     { REMOTE_PROC_DOMAIN_EVENT_RTC_CHANGE,
       remoteDomainBuildEventRTCChange,
       sizeof(remote_domain_event_rtc_change_msg),
@@ -338,6 +344,10 @@ static virNetClientProgramEvent remoteDomainEvents[] = {
       remoteDomainBuildEventDeviceRemoved,
       sizeof(remote_domain_event_device_removed_msg),
       (xdrproc_t)xdr_remote_domain_event_device_removed_msg },
+    { REMOTE_PROC_NETWORK_EVENT_LIFECYCLE,
+      remoteNetworkBuildEventLifecycle,
+      sizeof(remote_network_event_lifecycle_msg),
+      (xdrproc_t)xdr_remote_network_event_lifecycle_msg },
 };
 
 enum virDrvOpenRemoteFlags {
@@ -805,8 +815,8 @@ doRemoteOpen(virConnectPtr conn,
 
     if (!(priv->remoteProgram = virNetClientProgramNew(REMOTE_PROGRAM,
                                                        REMOTE_PROTOCOL_VERSION,
-                                                       remoteDomainEvents,
-                                                       ARRAY_CARDINALITY(remoteDomainEvents),
+                                                       remoteEvents,
+                                                       ARRAY_CARDINALITY(remoteEvents),
                                                        conn)))
         goto failed;
     if (!(priv->lxcProgram = virNetClientProgramNew(LXC_PROGRAM,
@@ -880,7 +890,7 @@ doRemoteOpen(virConnectPtr conn,
             goto failed;
     }
 
-    if (!(priv->domainEventState = virDomainEventStateNew()))
+    if (!(priv->eventState = virObjectEventStateNew()))
         goto failed;
 
     /* Successful. */
@@ -1085,8 +1095,8 @@ doRemoteClose(virConnectPtr conn, struct private_data *priv)
     /* See comment for remoteType. */
     VIR_FREE(priv->type);
 
-    virDomainEventStateFree(priv->domainEventState);
-    priv->domainEventState = NULL;
+    virObjectEventStateFree(priv->eventState);
+    priv->eventState = NULL;
 
     return ret;
 }
@@ -2902,6 +2912,92 @@ done:
 }
 
 static int
+remoteConnectNetworkEventRegisterAny(virConnectPtr conn,
+                                     virNetworkPtr net,
+                                     int eventID,
+                                     virConnectNetworkEventGenericCallback callback,
+                                     void *opaque,
+                                     virFreeCallback freecb)
+{
+    int rv = -1;
+    struct private_data *priv = conn->privateData;
+    remote_connect_network_event_register_any_args args;
+    int callbackID;
+    int count;
+
+    remoteDriverLock(priv);
+
+    if ((count = virNetworkEventStateRegisterID(conn, priv->eventState,
+                                                net, eventID, callback,
+                                                opaque, freecb,
+                                                &callbackID)) < 0)
+        goto done;
+
+    /* If this is the first callback for this eventID, we need to enable
+     * events on the server */
+    if (count == 1) {
+        args.eventID = eventID;
+
+        if (call(conn, priv, 0, REMOTE_PROC_CONNECT_NETWORK_EVENT_REGISTER_ANY,
+                 (xdrproc_t) xdr_remote_connect_network_event_register_any_args, (char *) &args,
+                 (xdrproc_t) xdr_void, (char *)NULL) == -1) {
+            virObjectEventStateDeregisterID(conn, priv->eventState,
+                                            callbackID);
+            goto done;
+        }
+    }
+
+    rv = callbackID;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+
+static int
+remoteConnectNetworkEventDeregisterAny(virConnectPtr conn,
+                                       int callbackID)
+{
+    struct private_data *priv = conn->privateData;
+    int rv = -1;
+    remote_connect_network_event_deregister_any_args args;
+    int eventID;
+    int count;
+
+    remoteDriverLock(priv);
+
+    if ((eventID = virObjectEventStateEventID(conn, priv->eventState,
+                                              callbackID)) < 0) {
+        virReportError(VIR_ERR_RPC, _("unable to find callback ID %d"), callbackID);
+        goto done;
+    }
+
+    if ((count = virObjectEventStateDeregisterID(conn, priv->eventState,
+                                                 callbackID)) < 0) {
+        virReportError(VIR_ERR_RPC, _("unable to find callback ID %d"), callbackID);
+        goto done;
+    }
+
+    /* If that was the last callback for this eventID, we need to disable
+     * events on the server */
+    if (count == 0) {
+        args.eventID = eventID;
+
+        if (call(conn, priv, 0, REMOTE_PROC_CONNECT_NETWORK_EVENT_DEREGISTER_ANY,
+                 (xdrproc_t) xdr_remote_connect_network_event_deregister_any_args, (char *) &args,
+                 (xdrproc_t) xdr_void, (char *) NULL) == -1)
+            goto done;
+    }
+
+    rv = 0;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static int
 remoteConnectListAllInterfaces(virConnectPtr conn,
                                virInterfacePtr **ifaces,
                                unsigned int flags)
@@ -4320,11 +4416,9 @@ static int remoteConnectDomainEventRegister(virConnectPtr conn,
 
     remoteDriverLock(priv);
 
-    if ((count = virDomainEventStateRegister(conn, priv->domainEventState,
-                                             callback, opaque, freecb)) < 0) {
-         virReportError(VIR_ERR_RPC, "%s", _("adding cb to list"));
+    if ((count = virDomainEventStateRegister(conn, priv->eventState,
+                                             callback, opaque, freecb)) < 0)
          goto done;
-    }
 
     if (count == 1) {
         /* Tell the server when we are the first callback deregistering */
@@ -4350,8 +4444,7 @@ static int remoteConnectDomainEventDeregister(virConnectPtr conn,
 
     remoteDriverLock(priv);
 
-    if ((count = virDomainEventStateDeregister(conn,
-                                               priv->domainEventState,
+    if ((count = virDomainEventStateDeregister(conn, priv->eventState,
                                                callback)) < 0)
         goto done;
 
@@ -4380,16 +4473,16 @@ remoteDomainBuildEventLifecycle(virNetClientProgramPtr prog ATTRIBUTE_UNUSED,
     struct private_data *priv = conn->privateData;
     remote_domain_event_lifecycle_msg *msg = evdata;
     virDomainPtr dom;
-    virDomainEventPtr event = NULL;
+    virObjectEventPtr event = NULL;
 
     dom = get_nonnull_domain(conn, msg->dom);
     if (!dom)
         return;
 
-    event = virDomainEventNewFromDom(dom, msg->event, msg->detail);
+    event = virDomainEventLifecycleNewFromDom(dom, msg->event, msg->detail);
     virDomainFree(dom);
 
-    remoteDomainEventQueue(priv, event);
+    remoteEventQueue(priv, event);
 }
 
 
@@ -4402,7 +4495,7 @@ remoteDomainBuildEventReboot(virNetClientProgramPtr prog ATTRIBUTE_UNUSED,
     struct private_data *priv = conn->privateData;
     remote_domain_event_reboot_msg *msg = evdata;
     virDomainPtr dom;
-    virDomainEventPtr event = NULL;
+    virObjectEventPtr event = NULL;
 
     dom = get_nonnull_domain(conn, msg->dom);
     if (!dom)
@@ -4411,7 +4504,7 @@ remoteDomainBuildEventReboot(virNetClientProgramPtr prog ATTRIBUTE_UNUSED,
     event = virDomainEventRebootNewFromDom(dom);
     virDomainFree(dom);
 
-    remoteDomainEventQueue(priv, event);
+    remoteEventQueue(priv, event);
 }
 
 
@@ -4424,7 +4517,7 @@ remoteDomainBuildEventRTCChange(virNetClientProgramPtr prog ATTRIBUTE_UNUSED,
     struct private_data *priv = conn->privateData;
     remote_domain_event_rtc_change_msg *msg = evdata;
     virDomainPtr dom;
-    virDomainEventPtr event = NULL;
+    virObjectEventPtr event = NULL;
 
     dom = get_nonnull_domain(conn, msg->dom);
     if (!dom)
@@ -4433,7 +4526,7 @@ remoteDomainBuildEventRTCChange(virNetClientProgramPtr prog ATTRIBUTE_UNUSED,
     event = virDomainEventRTCChangeNewFromDom(dom, msg->offset);
     virDomainFree(dom);
 
-    remoteDomainEventQueue(priv, event);
+    remoteEventQueue(priv, event);
 }
 
 
@@ -4446,7 +4539,7 @@ remoteDomainBuildEventWatchdog(virNetClientProgramPtr prog ATTRIBUTE_UNUSED,
     struct private_data *priv = conn->privateData;
     remote_domain_event_watchdog_msg *msg = evdata;
     virDomainPtr dom;
-    virDomainEventPtr event = NULL;
+    virObjectEventPtr event = NULL;
 
     dom = get_nonnull_domain(conn, msg->dom);
     if (!dom)
@@ -4455,7 +4548,7 @@ remoteDomainBuildEventWatchdog(virNetClientProgramPtr prog ATTRIBUTE_UNUSED,
     event = virDomainEventWatchdogNewFromDom(dom, msg->action);
     virDomainFree(dom);
 
-    remoteDomainEventQueue(priv, event);
+    remoteEventQueue(priv, event);
 }
 
 
@@ -4468,7 +4561,7 @@ remoteDomainBuildEventIOError(virNetClientProgramPtr prog ATTRIBUTE_UNUSED,
     struct private_data *priv = conn->privateData;
     remote_domain_event_io_error_msg *msg = evdata;
     virDomainPtr dom;
-    virDomainEventPtr event = NULL;
+    virObjectEventPtr event = NULL;
 
     dom = get_nonnull_domain(conn, msg->dom);
     if (!dom)
@@ -4480,7 +4573,7 @@ remoteDomainBuildEventIOError(virNetClientProgramPtr prog ATTRIBUTE_UNUSED,
                                             msg->action);
     virDomainFree(dom);
 
-    remoteDomainEventQueue(priv, event);
+    remoteEventQueue(priv, event);
 }
 
 
@@ -4493,7 +4586,7 @@ remoteDomainBuildEventIOErrorReason(virNetClientProgramPtr prog ATTRIBUTE_UNUSED
     struct private_data *priv = conn->privateData;
     remote_domain_event_io_error_reason_msg *msg = evdata;
     virDomainPtr dom;
-    virDomainEventPtr event = NULL;
+    virObjectEventPtr event = NULL;
 
     dom = get_nonnull_domain(conn, msg->dom);
     if (!dom)
@@ -4507,7 +4600,7 @@ remoteDomainBuildEventIOErrorReason(virNetClientProgramPtr prog ATTRIBUTE_UNUSED
 
     virDomainFree(dom);
 
-    remoteDomainEventQueue(priv, event);
+    remoteEventQueue(priv, event);
 }
 
 static void
@@ -4519,7 +4612,7 @@ remoteDomainBuildEventBlockJob(virNetClientProgramPtr prog ATTRIBUTE_UNUSED,
     struct private_data *priv = conn->privateData;
     remote_domain_event_block_job_msg *msg = evdata;
     virDomainPtr dom;
-    virDomainEventPtr event = NULL;
+    virObjectEventPtr event = NULL;
 
     dom = get_nonnull_domain(conn, msg->dom);
     if (!dom)
@@ -4530,7 +4623,7 @@ remoteDomainBuildEventBlockJob(virNetClientProgramPtr prog ATTRIBUTE_UNUSED,
 
     virDomainFree(dom);
 
-    remoteDomainEventQueue(priv, event);
+    remoteEventQueue(priv, event);
 }
 
 static void
@@ -4542,7 +4635,7 @@ remoteDomainBuildEventGraphics(virNetClientProgramPtr prog ATTRIBUTE_UNUSED,
     struct private_data *priv = conn->privateData;
     remote_domain_event_graphics_msg *msg = evdata;
     virDomainPtr dom;
-    virDomainEventPtr event = NULL;
+    virObjectEventPtr event = NULL;
     virDomainEventGraphicsAddressPtr localAddr = NULL;
     virDomainEventGraphicsAddressPtr remoteAddr = NULL;
     virDomainEventGraphicsSubjectPtr subject = NULL;
@@ -4586,7 +4679,7 @@ remoteDomainBuildEventGraphics(virNetClientProgramPtr prog ATTRIBUTE_UNUSED,
 
     virDomainFree(dom);
 
-    remoteDomainEventQueue(priv, event);
+    remoteEventQueue(priv, event);
     return;
 
 error:
@@ -4622,7 +4715,7 @@ remoteDomainBuildEventControlError(virNetClientProgramPtr prog ATTRIBUTE_UNUSED,
     struct private_data *priv = conn->privateData;
     remote_domain_event_control_error_msg *msg = evdata;
     virDomainPtr dom;
-    virDomainEventPtr event = NULL;
+    virObjectEventPtr event = NULL;
 
     dom = get_nonnull_domain(conn, msg->dom);
     if (!dom)
@@ -4632,7 +4725,7 @@ remoteDomainBuildEventControlError(virNetClientProgramPtr prog ATTRIBUTE_UNUSED,
 
     virDomainFree(dom);
 
-    remoteDomainEventQueue(priv, event);
+    remoteEventQueue(priv, event);
 }
 
 
@@ -4645,7 +4738,7 @@ remoteDomainBuildEventDiskChange(virNetClientProgramPtr prog ATTRIBUTE_UNUSED,
     struct private_data *priv = conn->privateData;
     remote_domain_event_disk_change_msg *msg = evdata;
     virDomainPtr dom;
-    virDomainEventPtr event = NULL;
+    virObjectEventPtr event = NULL;
 
     dom = get_nonnull_domain(conn, msg->dom);
     if (!dom)
@@ -4659,7 +4752,7 @@ remoteDomainBuildEventDiskChange(virNetClientProgramPtr prog ATTRIBUTE_UNUSED,
 
     virDomainFree(dom);
 
-    remoteDomainEventQueue(priv, event);
+    remoteEventQueue(priv, event);
 }
 
 
@@ -4672,7 +4765,7 @@ remoteDomainBuildEventTrayChange(virNetClientProgramPtr prog ATTRIBUTE_UNUSED,
     struct private_data *priv = conn->privateData;
     remote_domain_event_tray_change_msg *msg = evdata;
     virDomainPtr dom;
-    virDomainEventPtr event = NULL;
+    virObjectEventPtr event = NULL;
 
     dom = get_nonnull_domain(conn, msg->dom);
     if (!dom)
@@ -4684,7 +4777,7 @@ remoteDomainBuildEventTrayChange(virNetClientProgramPtr prog ATTRIBUTE_UNUSED,
 
     virDomainFree(dom);
 
-    remoteDomainEventQueue(priv, event);
+    remoteEventQueue(priv, event);
 }
 
 static void
@@ -4696,7 +4789,7 @@ remoteDomainBuildEventPMWakeup(virNetClientProgramPtr prog ATTRIBUTE_UNUSED,
     struct private_data *priv = conn->privateData;
     remote_domain_event_pmwakeup_msg *msg = evdata;
     virDomainPtr dom;
-    virDomainEventPtr event = NULL;
+    virObjectEventPtr event = NULL;
 
     dom = get_nonnull_domain(conn, msg->dom);
     if (!dom)
@@ -4706,7 +4799,7 @@ remoteDomainBuildEventPMWakeup(virNetClientProgramPtr prog ATTRIBUTE_UNUSED,
 
     virDomainFree(dom);
 
-    remoteDomainEventQueue(priv, event);
+    remoteEventQueue(priv, event);
 }
 
 static void
@@ -4718,7 +4811,7 @@ remoteDomainBuildEventPMSuspend(virNetClientProgramPtr prog ATTRIBUTE_UNUSED,
     struct private_data *priv = conn->privateData;
     remote_domain_event_pmsuspend_msg *msg = evdata;
     virDomainPtr dom;
-    virDomainEventPtr event = NULL;
+    virObjectEventPtr event = NULL;
 
     dom = get_nonnull_domain(conn, msg->dom);
     if (!dom)
@@ -4728,7 +4821,7 @@ remoteDomainBuildEventPMSuspend(virNetClientProgramPtr prog ATTRIBUTE_UNUSED,
 
     virDomainFree(dom);
 
-    remoteDomainEventQueue(priv, event);
+    remoteEventQueue(priv, event);
 }
 
 
@@ -4741,7 +4834,7 @@ remoteDomainBuildEventBalloonChange(virNetClientProgramPtr prog ATTRIBUTE_UNUSED
     struct private_data *priv = conn->privateData;
     remote_domain_event_balloon_change_msg *msg = evdata;
     virDomainPtr dom;
-    virDomainEventPtr event = NULL;
+    virObjectEventPtr event = NULL;
 
     dom = get_nonnull_domain(conn, msg->dom);
     if (!dom)
@@ -4750,7 +4843,7 @@ remoteDomainBuildEventBalloonChange(virNetClientProgramPtr prog ATTRIBUTE_UNUSED
     event = virDomainEventBalloonChangeNewFromDom(dom, msg->actual);
     virDomainFree(dom);
 
-    remoteDomainEventQueue(priv, event);
+    remoteEventQueue(priv, event);
 }
 
 
@@ -4763,7 +4856,7 @@ remoteDomainBuildEventPMSuspendDisk(virNetClientProgramPtr prog ATTRIBUTE_UNUSED
     struct private_data *priv = conn->privateData;
     remote_domain_event_pmsuspend_disk_msg *msg = evdata;
     virDomainPtr dom;
-    virDomainEventPtr event = NULL;
+    virObjectEventPtr event = NULL;
 
     dom = get_nonnull_domain(conn, msg->dom);
     if (!dom)
@@ -4773,7 +4866,7 @@ remoteDomainBuildEventPMSuspendDisk(virNetClientProgramPtr prog ATTRIBUTE_UNUSED
 
     virDomainFree(dom);
 
-    remoteDomainEventQueue(priv, event);
+    remoteEventQueue(priv, event);
 }
 
 
@@ -4786,7 +4879,7 @@ remoteDomainBuildEventDeviceRemoved(virNetClientProgramPtr prog ATTRIBUTE_UNUSED
     struct private_data *priv = conn->privateData;
     remote_domain_event_device_removed_msg *msg = evdata;
     virDomainPtr dom;
-    virDomainEventPtr event = NULL;
+    virObjectEventPtr event = NULL;
 
     dom = get_nonnull_domain(conn, msg->dom);
     if (!dom)
@@ -4796,7 +4889,29 @@ remoteDomainBuildEventDeviceRemoved(virNetClientProgramPtr prog ATTRIBUTE_UNUSED
 
     virDomainFree(dom);
 
-    remoteDomainEventQueue(priv, event);
+    remoteEventQueue(priv, event);
+}
+
+
+static void
+remoteNetworkBuildEventLifecycle(virNetClientProgramPtr prog ATTRIBUTE_UNUSED,
+                                 virNetClientPtr client ATTRIBUTE_UNUSED,
+                                 void *evdata, void *opaque)
+{
+    virConnectPtr conn = opaque;
+    struct private_data *priv = conn->privateData;
+    remote_network_event_lifecycle_msg *msg = evdata;
+    virNetworkPtr net;
+    virObjectEventPtr event = NULL;
+
+    net = get_nonnull_network(conn, msg->net);
+    if (!net)
+        return;
+
+    event = virNetworkEventLifecycleNew(net->name, net->uuid, msg->event, msg->detail);
+    virNetworkFree(net);
+
+    remoteEventQueue(priv, event);
 }
 
 
@@ -5105,14 +5220,11 @@ static int remoteConnectDomainEventRegisterAny(virConnectPtr conn,
 
     remoteDriverLock(priv);
 
-    if ((count = virDomainEventStateRegisterID(conn,
-                                               priv->domainEventState,
+    if ((count = virDomainEventStateRegisterID(conn, priv->eventState,
                                                dom, eventID,
                                                callback, opaque, freecb,
-                                               &callbackID)) < 0) {
-        virReportError(VIR_ERR_RPC, "%s", _("adding cb to list"));
+                                               &callbackID)) < 0)
         goto done;
-    }
 
     /* If this is the first callback for this eventID, we need to enable
      * events on the server */
@@ -5122,8 +5234,7 @@ static int remoteConnectDomainEventRegisterAny(virConnectPtr conn,
         if (call(conn, priv, 0, REMOTE_PROC_CONNECT_DOMAIN_EVENT_REGISTER_ANY,
                  (xdrproc_t) xdr_remote_connect_domain_event_register_any_args, (char *) &args,
                  (xdrproc_t) xdr_void, (char *)NULL) == -1) {
-            virDomainEventStateDeregisterID(conn,
-                                            priv->domainEventState,
+            virObjectEventStateDeregisterID(conn, priv->eventState,
                                             callbackID);
             goto done;
         }
@@ -5148,15 +5259,13 @@ static int remoteConnectDomainEventDeregisterAny(virConnectPtr conn,
 
     remoteDriverLock(priv);
 
-    if ((eventID = virDomainEventStateEventID(conn,
-                                              priv->domainEventState,
+    if ((eventID = virObjectEventStateEventID(conn, priv->eventState,
                                               callbackID)) < 0) {
         virReportError(VIR_ERR_RPC, _("unable to find callback ID %d"), callbackID);
         goto done;
     }
 
-    if ((count = virDomainEventStateDeregisterID(conn,
-                                                 priv->domainEventState,
+    if ((count = virObjectEventStateDeregisterID(conn, priv->eventState,
                                                  callbackID)) < 0) {
         virReportError(VIR_ERR_RPC, _("unable to find callback ID %d"), callbackID);
         goto done;
@@ -6690,9 +6799,9 @@ done:
 }
 
 static void
-remoteDomainEventQueue(struct private_data *priv, virDomainEventPtr event)
+remoteEventQueue(struct private_data *priv, virObjectEventPtr event)
 {
-    virDomainEventStateQueue(priv->domainEventState, event);
+    virObjectEventStateQueue(priv->eventState, event);
 }
 
 /* get_nonnull_domain and get_nonnull_network turn an on-wire
@@ -7035,6 +7144,8 @@ static virNetworkDriver network_driver = {
     .connectNumOfDefinedNetworks = remoteConnectNumOfDefinedNetworks, /* 0.3.0 */
     .connectListDefinedNetworks = remoteConnectListDefinedNetworks, /* 0.3.0 */
     .connectListAllNetworks = remoteConnectListAllNetworks, /* 0.10.2 */
+    .connectNetworkEventDeregisterAny = remoteConnectNetworkEventDeregisterAny, /* 1.2.1 */
+    .connectNetworkEventRegisterAny = remoteConnectNetworkEventRegisterAny, /* 1.2.1 */
     .networkLookupByUUID = remoteNetworkLookupByUUID, /* 0.3.0 */
     .networkLookupByName = remoteNetworkLookupByName, /* 0.3.0 */
     .networkCreateXML = remoteNetworkCreateXML, /* 0.3.0 */

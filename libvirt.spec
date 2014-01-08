@@ -371,8 +371,8 @@
 
 Summary: Library providing a simple virtualization API
 Name: libvirt
-Version: 1.2.0
-Release: 1%{?dist}%{?extra_release}
+Version: 1.2.1
+Release: 0rc1%{?dist}%{?extra_release}
 License: LGPLv2+
 Group: Development/Libraries
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
@@ -381,7 +381,7 @@ URL: http://libvirt.org/
 %if %(echo %{version} | grep -o \\. | wc -l) == 3
     %define mainturl stable_updates/
 %endif
-Source: http://libvirt.org/sources/%{?mainturl}libvirt-%{version}.tar.gz
+Source: http://libvirt.org/sources/%{?mainturl}libvirt-%{version}-rc1.tar.gz
 
 %if %{with_libvirtd}
 Requires: libvirt-daemon = %{version}-%{release}
@@ -410,13 +410,15 @@ Requires: libvirt-daemon-driver-xen = %{version}-%{release}
         %if %{with_vbox}
 Requires: libvirt-daemon-driver-vbox = %{version}-%{release}
         %endif
+        %if %{with_nwfilter}
+Requires: libvirt-daemon-driver-nwfilter = %{version}-%{release}
+        %endif
 
 Requires: libvirt-daemon-driver-interface = %{version}-%{release}
 Requires: libvirt-daemon-driver-secret = %{version}-%{release}
 Requires: libvirt-daemon-driver-storage = %{version}-%{release}
 Requires: libvirt-daemon-driver-network = %{version}-%{release}
 Requires: libvirt-daemon-driver-nodedev = %{version}-%{release}
-Requires: libvirt-daemon-driver-nwfilter = %{version}-%{release}
     %endif
 %endif
 Requires: libvirt-client = %{version}-%{release}
@@ -1428,7 +1430,7 @@ rm -fr %{buildroot}
 # on RHEL 5, thus we need to expand it here.
 make install DESTDIR=%{?buildroot} SYSTEMD_UNIT_DIR=%{_unitdir}
 
-for i in domain-events/events-c dominfo domsuspend hellolibvirt openauth xml/nwfilter systemtap
+for i in object-events dominfo domsuspend hellolibvirt openauth xml/nwfilter systemtap
 do
   (cd examples/$i ; make clean ; rm -rf .deps .libs Makefile Makefile.in)
 done
@@ -1522,8 +1524,10 @@ then
 fi
 
 %if %{with_libvirtd}
+    %if ! %{with_driver_modules}
+        %if %{with_qemu}
 %pre daemon
-    %if 0%{?fedora} >= 12 || 0%{?rhel} >= 6
+            %if 0%{?fedora} >= 12 || 0%{?rhel} >= 6
 # We want soft static allocation of well-known ids, as disk images
 # are commonly shared across NFS mounts by id rather than name; see
 # https://fedoraproject.org/wiki/Packaging:UsersAndGroups
@@ -1537,6 +1541,8 @@ if ! getent passwd qemu >/dev/null; then
   fi
 fi
 exit 0
+            %endif
+        %endif
     %endif
 
 %post daemon
@@ -1585,12 +1591,11 @@ done
 
     %if %{with_systemd}
         %if %{with_systemd_macros}
-            %systemd_post libvirtd.service
+            %systemd_post virtlockd.socket libvirtd.service
         %else
 if [ $1 -eq 1 ] ; then
     # Initial installation
-    /bin/systemctl enable virtlockd.socket >/dev/null 2>&1 || :
-    /bin/systemctl enable libvirtd.service >/dev/null 2>&1 || :
+    /bin/systemctl enable virtlockd.socket libvirtd.service >/dev/null 2>&1 || :
 fi
         %endif
     %else
@@ -1605,46 +1610,50 @@ fi
         %endif
 
 /sbin/chkconfig --add libvirtd
-if [ "$1" -ge "1" ]; then
-    /sbin/service libvirtd condrestart > /dev/null 2>&1
-fi
+/sbin/chkconfig --add virtlockd
     %endif
 
 %preun daemon
     %if %{with_systemd}
         %if %{with_systemd_macros}
-            %systemd_preun libvirtd.service
+            %systemd_preun libvirtd.service virtlockd.socket virtlockd.service
         %else
 if [ $1 -eq 0 ] ; then
     # Package removal, not upgrade
-    /bin/systemctl --no-reload disable virtlockd.socket > /dev/null 2>&1 || :
-    /bin/systemctl --no-reload disable libvirtd.service > /dev/null 2>&1 || :
-    /bin/systemctl stop libvirtd.service > /dev/null 2>&1 || :
-    /bin/systemctl stop virtlockd.service > /dev/null 2>&1 || :
+    /bin/systemctl --no-reload disable libvirtd.service virtlockd.socket virtlockd.service > /dev/null 2>&1 || :
+    /bin/systemctl stop libvirtd.service virtlockd.socket virtlockd.service > /dev/null 2>&1 || :
 fi
         %endif
     %else
 if [ $1 = 0 ]; then
     /sbin/service libvirtd stop 1>/dev/null 2>&1
     /sbin/chkconfig --del libvirtd
+    /sbin/service virtlockd stop 1>/dev/null 2>&1
+    /sbin/chkconfig --del virtlockd
 fi
     %endif
 
 %postun daemon
     %if %{with_systemd}
-        %if %{with_systemd_macros}
-            %systemd_postun_with_restart libvirtd.service
-        %else
 /bin/systemctl daemon-reload >/dev/null 2>&1 || :
 if [ $1 -ge 1 ] ; then
-    # Package upgrade, not uninstall
-    /bin/systemctl status virtlockd.service >/dev/null 2>&1
-    if [ $? = 1 ] ; then
-        /bin/systemctl kill --signal=USR1 virtlockd.service >/dev/null 2>&1 || :
-    fi
+    /bin/systemctl reload-or-try-restart virtlockd.service >/dev/null 2>&1 || :
     /bin/systemctl try-restart libvirtd.service >/dev/null 2>&1 || :
 fi
-        %endif
+    %else
+if [ $1 -ge 1 ]; then
+    /sbin/service virtlockd reload > /dev/null 2>&1 || :
+    /sbin/service libvirtd condrestart > /dev/null 2>&1
+fi
+    %endif
+
+    %if %{with_systemd}
+    %else
+%triggerpostun daemon -- libvirt-daemon < 1.2.1
+if [ "$1" -ge "1" ]; then
+    /sbin/service virtlockd reload > /dev/null 2>&1 || :
+    /sbin/service libvirtd condrestart > /dev/null 2>&1
+fi
     %endif
 
     %if %{with_network}
@@ -1668,6 +1677,27 @@ fi
 # Run these because the SysV package being removed won't do them
 /sbin/chkconfig --del libvirtd >/dev/null 2>&1 || :
 /bin/systemctl try-restart libvirtd.service >/dev/null 2>&1 || :
+    %endif
+
+    %if %{with_driver_modules}
+        %if %{with_qemu}
+%pre daemon-driver-qemu
+            %if 0%{?fedora} >= 12 || 0%{?rhel} >= 6
+# We want soft static allocation of well-known ids, as disk images
+# are commonly shared across NFS mounts by id rather than name; see
+# https://fedoraproject.org/wiki/Packaging:UsersAndGroups
+getent group kvm >/dev/null || groupadd -f -g 36 -r kvm
+getent group qemu >/dev/null || groupadd -f -g 107 -r qemu
+if ! getent passwd qemu >/dev/null; then
+  if ! getent passwd 107 >/dev/null; then
+    useradd -r -u 107 -g qemu -G kvm -d / -s /sbin/nologin -c "qemu user" qemu
+  else
+    useradd -r -g qemu -G kvm -d / -s /sbin/nologin -c "qemu user" qemu
+  fi
+fi
+exit 0
+            %endif
+        %endif
     %endif
 %endif # %{with_libvirtd}
 
@@ -1746,13 +1776,9 @@ exit 0
 
 %dir %attr(0700, root, root) %{_sysconfdir}/libvirt/
 
-    %if %{with_network}
-%dir %attr(0700, root, root) %{_sysconfdir}/libvirt/qemu/
-%dir %attr(0700, root, root) %{_sysconfdir}/libvirt/qemu/networks/
-%dir %attr(0700, root, root) %{_sysconfdir}/libvirt/qemu/networks/autostart
-    %endif
-
+    %if %{with_nwfilter}
 %dir %attr(0700, root, root) %{_sysconfdir}/libvirt/nwfilter/
+    %endif
 
     %if %{with_systemd}
 %{_unitdir}/libvirtd.service
@@ -1770,33 +1796,9 @@ exit 0
     %if 0%{?fedora} >= 14 || 0%{?rhel} >= 6
 %config(noreplace) %{_prefix}/lib/sysctl.d/libvirtd.conf
     %endif
-%dir %attr(0700, root, root) %{_localstatedir}/log/libvirt/qemu/
-%dir %attr(0700, root, root) %{_localstatedir}/log/libvirt/lxc/
-%dir %attr(0700, root, root) %{_localstatedir}/log/libvirt/uml/
-    %if %{with_libxl}
-%dir %attr(0700, root, root) %{_localstatedir}/log/libvirt/libxl/
-    %endif
 
 %config(noreplace) %{_sysconfdir}/logrotate.d/libvirtd
-    %if %{with_qemu}
-%config(noreplace) %{_sysconfdir}/libvirt/qemu.conf
-%config(noreplace) %{_sysconfdir}/libvirt/qemu-lockd.conf
-%config(noreplace) %{_sysconfdir}/logrotate.d/libvirtd.qemu
-    %endif
-    %if %{with_lxc}
-%config(noreplace) %{_sysconfdir}/libvirt/lxc.conf
-%config(noreplace) %{_sysconfdir}/logrotate.d/libvirtd.lxc
-    %endif
-    %if %{with_uml}
-%config(noreplace) %{_sysconfdir}/logrotate.d/libvirtd.uml
-    %endif
-
 %dir %{_datadir}/libvirt/
-
-    %if %{with_network}
-%dir %{_datadir}/libvirt/networks/
-%{_datadir}/libvirt/networks/default.xml
-    %endif
 
 %ghost %dir %{_localstatedir}/run/libvirt/
 
@@ -1805,46 +1807,9 @@ exit 0
 %dir %attr(0711, root, root) %{_localstatedir}/lib/libvirt/boot/
 %dir %attr(0711, root, root) %{_localstatedir}/cache/libvirt/
 
-    %if %{with_qemu}
-%ghost %dir %attr(0700, root, root) %{_localstatedir}/run/libvirt/qemu/
-%dir %attr(0750, %{qemu_user}, %{qemu_group}) %{_localstatedir}/lib/libvirt/qemu/
-%dir %attr(0750, %{qemu_user}, %{qemu_group}) %{_localstatedir}/lib/libvirt/qemu/channel/
-%dir %attr(0750, %{qemu_user}, %{qemu_group}) %{_localstatedir}/lib/libvirt/qemu/channel/target/
-%dir %attr(0750, %{qemu_user}, %{qemu_group}) %{_localstatedir}/cache/libvirt/qemu/
-    %endif
-    %if %{with_lxc}
-%ghost %dir %{_localstatedir}/run/libvirt/lxc/
-%dir %attr(0700, root, root) %{_localstatedir}/lib/libvirt/lxc/
-    %endif
-    %if %{with_uml}
-%ghost %dir %{_localstatedir}/run/libvirt/uml/
-%dir %attr(0700, root, root) %{_localstatedir}/lib/libvirt/uml/
-    %endif
-    %if %{with_libxl}
-%ghost %dir %{_localstatedir}/run/libvirt/libxl/
-%dir %attr(0700, root, root) %{_localstatedir}/lib/libvirt/libxl/
-    %endif
-    %if %{with_xen}
-%dir %attr(0700, root, root) %{_localstatedir}/lib/libvirt/xen/
-    %endif
-    %if %{with_network}
-%ghost %dir %{_localstatedir}/run/libvirt/network/
-%dir %attr(0700, root, root) %{_localstatedir}/lib/libvirt/network/
-%dir %attr(0755, root, root) %{_localstatedir}/lib/libvirt/dnsmasq/
-    %endif
 
 %dir %attr(0755, root, root) %{_libdir}/libvirt/lock-driver
 %attr(0755, root, root) %{_libdir}/libvirt/lock-driver/lockd.so
-
-    %if %{with_qemu}
-%{_datadir}/augeas/lenses/libvirtd_qemu.aug
-%{_datadir}/augeas/lenses/tests/test_libvirtd_qemu.aug
-    %endif
-
-    %if %{with_lxc}
-%{_datadir}/augeas/lenses/libvirtd_lxc.aug
-%{_datadir}/augeas/lenses/tests/test_libvirtd_lxc.aug
-    %endif
 
 %{_datadir}/augeas/lenses/libvirtd.aug
 %{_datadir}/augeas/lenses/tests/test_libvirtd.aug
@@ -1864,14 +1829,6 @@ exit 0
 
 %dir %attr(0700, root, root) %{_localstatedir}/log/libvirt/
 
-    %if %{with_lxc}
-%attr(0755, root, root) %{_libexecdir}/libvirt_lxc
-    %endif
-
-    %if %{with_storage_disk}
-%attr(0755, root, root) %{_libexecdir}/libvirt_parthelper
-    %endif
-
 %attr(0755, root, root) %{_libexecdir}/libvirt_iohelper
 
     %if %{with_apparmor}
@@ -1884,18 +1841,71 @@ exit 0
 %{_mandir}/man8/libvirtd.8*
 %{_mandir}/man8/virtlockd.8*
 
-    %if %{with_driver_modules}
+    %if ! %{with_driver_modules}
         %if %{with_network}
+%dir %attr(0700, root, root) %{_sysconfdir}/libvirt/qemu/
+%dir %attr(0700, root, root) %{_sysconfdir}/libvirt/qemu/networks/
+%dir %attr(0700, root, root) %{_sysconfdir}/libvirt/qemu/networks/autostart
+%dir %{_datadir}/libvirt/networks/
+%{_datadir}/libvirt/networks/default.xml
+%ghost %dir %{_localstatedir}/run/libvirt/network/
+%dir %attr(0700, root, root) %{_localstatedir}/lib/libvirt/network/
+%dir %attr(0755, root, root) %{_localstatedir}/lib/libvirt/dnsmasq/
+        %endif
+        %if %{with_storage_disk}
+%attr(0755, root, root) %{_libexecdir}/libvirt_parthelper
+        %endif
+        %if %{with_qemu}
+%config(noreplace) %{_sysconfdir}/libvirt/qemu.conf
+%config(noreplace) %{_sysconfdir}/libvirt/qemu-lockd.conf
+%config(noreplace) %{_sysconfdir}/logrotate.d/libvirtd.qemu
+%dir %attr(0700, root, root) %{_localstatedir}/log/libvirt/qemu/
+%ghost %dir %attr(0700, root, root) %{_localstatedir}/run/libvirt/qemu/
+%dir %attr(0750, %{qemu_user}, %{qemu_group}) %{_localstatedir}/lib/libvirt/qemu/
+%dir %attr(0750, %{qemu_user}, %{qemu_group}) %{_localstatedir}/lib/libvirt/qemu/channel/
+%dir %attr(0750, %{qemu_user}, %{qemu_group}) %{_localstatedir}/lib/libvirt/qemu/channel/target/
+%dir %attr(0750, %{qemu_user}, %{qemu_group}) %{_localstatedir}/cache/libvirt/qemu/
+%{_datadir}/augeas/lenses/libvirtd_qemu.aug
+%{_datadir}/augeas/lenses/tests/test_libvirtd_qemu.aug
+        %endif
+        %if %{with_lxc}
+%config(noreplace) %{_sysconfdir}/libvirt/lxc.conf
+%config(noreplace) %{_sysconfdir}/logrotate.d/libvirtd.lxc
+%dir %attr(0700, root, root) %{_localstatedir}/log/libvirt/lxc/
+%ghost %dir %{_localstatedir}/run/libvirt/lxc/
+%dir %attr(0700, root, root) %{_localstatedir}/lib/libvirt/lxc/
+%{_datadir}/augeas/lenses/libvirtd_lxc.aug
+%{_datadir}/augeas/lenses/tests/test_libvirtd_lxc.aug
+%attr(0755, root, root) %{_libexecdir}/libvirt_lxc
+        %endif
+        %if %{with_uml}
+%config(noreplace) %{_sysconfdir}/logrotate.d/libvirtd.uml
+%dir %attr(0700, root, root) %{_localstatedir}/log/libvirt/uml/
+%ghost %dir %{_localstatedir}/run/libvirt/uml/
+%dir %attr(0700, root, root) %{_localstatedir}/lib/libvirt/uml/
+        %endif
+        %if %{with_libxl}
+%dir %attr(0700, root, root) %{_localstatedir}/log/libvirt/libxl/
+%ghost %dir %{_localstatedir}/run/libvirt/libxl/
+%dir %attr(0700, root, root) %{_localstatedir}/lib/libvirt/libxl/
+        %endif
+        %if %{with_xen}
+%dir %attr(0700, root, root) %{_localstatedir}/lib/libvirt/xen/
+        %endif
+    %endif # ! %{with_driver_modules}
+
+    %if %{with_network}
 %files daemon-config-network
 %defattr(-, root, root)
-        %endif
+    %endif
 
-        %if %{with_nwfilter}
+    %if %{with_nwfilter}
 %files daemon-config-nwfilter
 %defattr(-, root, root)
 %{_sysconfdir}/libvirt/nwfilter/*.xml
-        %endif
+    %endif
 
+    %if %{with_driver_modules}
         %if %{with_interface}
 %files daemon-driver-interface
 %defattr(-, root, root)
@@ -1905,6 +1915,14 @@ exit 0
         %if %{with_network}
 %files daemon-driver-network
 %defattr(-, root, root)
+%dir %attr(0700, root, root) %{_sysconfdir}/libvirt/qemu/
+%dir %attr(0700, root, root) %{_sysconfdir}/libvirt/qemu/networks/
+%dir %attr(0700, root, root) %{_sysconfdir}/libvirt/qemu/networks/autostart
+%dir %{_datadir}/libvirt/networks/
+%{_datadir}/libvirt/networks/default.xml
+%ghost %dir %{_localstatedir}/run/libvirt/network/
+%dir %attr(0700, root, root) %{_localstatedir}/lib/libvirt/network/
+%dir %attr(0755, root, root) %{_localstatedir}/lib/libvirt/dnsmasq/
 %{_libdir}/%{name}/connection-driver/libvirt_driver_network.so
         %endif
 
@@ -1927,36 +1945,66 @@ exit 0
         %if %{with_storage}
 %files daemon-driver-storage
 %defattr(-, root, root)
+            %if %{with_storage_disk}
+%attr(0755, root, root) %{_libexecdir}/libvirt_parthelper
+            %endif
 %{_libdir}/%{name}/connection-driver/libvirt_driver_storage.so
         %endif
 
         %if %{with_qemu}
 %files daemon-driver-qemu
 %defattr(-, root, root)
+%dir %attr(0700, root, root) %{_localstatedir}/log/libvirt/qemu/
+%config(noreplace) %{_sysconfdir}/libvirt/qemu.conf
+%config(noreplace) %{_sysconfdir}/libvirt/qemu-lockd.conf
+%config(noreplace) %{_sysconfdir}/logrotate.d/libvirtd.qemu
+%ghost %dir %attr(0700, root, root) %{_localstatedir}/run/libvirt/qemu/
+%dir %attr(0750, %{qemu_user}, %{qemu_group}) %{_localstatedir}/lib/libvirt/qemu/
+%dir %attr(0750, %{qemu_user}, %{qemu_group}) %{_localstatedir}/lib/libvirt/qemu/channel/
+%dir %attr(0750, %{qemu_user}, %{qemu_group}) %{_localstatedir}/lib/libvirt/qemu/channel/target/
+%dir %attr(0750, %{qemu_user}, %{qemu_group}) %{_localstatedir}/cache/libvirt/qemu/
+%{_datadir}/augeas/lenses/libvirtd_qemu.aug
+%{_datadir}/augeas/lenses/tests/test_libvirtd_qemu.aug
 %{_libdir}/%{name}/connection-driver/libvirt_driver_qemu.so
         %endif
 
         %if %{with_lxc}
 %files daemon-driver-lxc
 %defattr(-, root, root)
+%dir %attr(0700, root, root) %{_localstatedir}/log/libvirt/lxc/
+%config(noreplace) %{_sysconfdir}/libvirt/lxc.conf
+%config(noreplace) %{_sysconfdir}/logrotate.d/libvirtd.lxc
+%ghost %dir %{_localstatedir}/run/libvirt/lxc/
+%dir %attr(0700, root, root) %{_localstatedir}/lib/libvirt/lxc/
+%{_datadir}/augeas/lenses/libvirtd_lxc.aug
+%{_datadir}/augeas/lenses/tests/test_libvirtd_lxc.aug
+%attr(0755, root, root) %{_libexecdir}/libvirt_lxc
 %{_libdir}/%{name}/connection-driver/libvirt_driver_lxc.so
         %endif
 
         %if %{with_uml}
 %files daemon-driver-uml
 %defattr(-, root, root)
+%dir %attr(0700, root, root) %{_localstatedir}/log/libvirt/uml/
+%config(noreplace) %{_sysconfdir}/logrotate.d/libvirtd.uml
+%ghost %dir %{_localstatedir}/run/libvirt/uml/
+%dir %attr(0700, root, root) %{_localstatedir}/lib/libvirt/uml/
 %{_libdir}/%{name}/connection-driver/libvirt_driver_uml.so
         %endif
 
         %if %{with_xen}
 %files daemon-driver-xen
 %defattr(-, root, root)
+%dir %attr(0700, root, root) %{_localstatedir}/lib/libvirt/xen/
 %{_libdir}/%{name}/connection-driver/libvirt_driver_xen.so
         %endif
 
         %if %{with_libxl}
 %files daemon-driver-libxl
 %defattr(-, root, root)
+%dir %attr(0700, root, root) %{_localstatedir}/log/libvirt/libxl/
+%ghost %dir %{_localstatedir}/run/libvirt/libxl/
+%dir %attr(0700, root, root) %{_localstatedir}/lib/libvirt/libxl/
 %{_libdir}/%{name}/connection-driver/libvirt_driver_libxl.so
         %endif
 
@@ -2092,7 +2140,7 @@ exit 0
 %doc docs/*.html docs/html docs/*.gif
 %doc docs/libvirt-api.xml
 %doc examples/hellolibvirt
-%doc examples/domain-events/events-c
+%doc examples/object-events
 %doc examples/dominfo
 %doc examples/domsuspend
 %doc examples/openauth

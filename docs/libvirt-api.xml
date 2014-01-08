@@ -88,6 +88,7 @@
      <exports symbol='VIR_MIGRATE_PARAM_GRAPHICS_URI' type='macro'/>
      <exports symbol='VIR_MIGRATE_PARAM_LISTEN_ADDRESS' type='macro'/>
      <exports symbol='VIR_MIGRATE_PARAM_URI' type='macro'/>
+     <exports symbol='VIR_NETWORK_EVENT_CALLBACK' type='macro'/>
      <exports symbol='VIR_NODEINFO_MAXCPUS' type='macro'/>
      <exports symbol='VIR_NODE_CPU_STATS_FIELD_LENGTH' type='macro'/>
      <exports symbol='VIR_NODE_CPU_STATS_IDLE' type='macro'/>
@@ -160,6 +161,7 @@
      <exports symbol='VIR_CONNECT_LIST_STORAGE_POOLS_DIR' type='enum'/>
      <exports symbol='VIR_CONNECT_LIST_STORAGE_POOLS_DISK' type='enum'/>
      <exports symbol='VIR_CONNECT_LIST_STORAGE_POOLS_FS' type='enum'/>
+     <exports symbol='VIR_CONNECT_LIST_STORAGE_POOLS_GLUSTER' type='enum'/>
      <exports symbol='VIR_CONNECT_LIST_STORAGE_POOLS_INACTIVE' type='enum'/>
      <exports symbol='VIR_CONNECT_LIST_STORAGE_POOLS_ISCSI' type='enum'/>
      <exports symbol='VIR_CONNECT_LIST_STORAGE_POOLS_LOGICAL' type='enum'/>
@@ -578,6 +580,13 @@
      <exports symbol='VIR_MIGRATE_TUNNELLED' type='enum'/>
      <exports symbol='VIR_MIGRATE_UNDEFINE_SOURCE' type='enum'/>
      <exports symbol='VIR_MIGRATE_UNSAFE' type='enum'/>
+     <exports symbol='VIR_NETWORK_EVENT_DEFINED' type='enum'/>
+     <exports symbol='VIR_NETWORK_EVENT_ID_LAST' type='enum'/>
+     <exports symbol='VIR_NETWORK_EVENT_ID_LIFECYCLE' type='enum'/>
+     <exports symbol='VIR_NETWORK_EVENT_LAST' type='enum'/>
+     <exports symbol='VIR_NETWORK_EVENT_STARTED' type='enum'/>
+     <exports symbol='VIR_NETWORK_EVENT_STOPPED' type='enum'/>
+     <exports symbol='VIR_NETWORK_EVENT_UNDEFINED' type='enum'/>
      <exports symbol='VIR_NETWORK_SECTION_BRIDGE' type='enum'/>
      <exports symbol='VIR_NETWORK_SECTION_DNS_HOST' type='enum'/>
      <exports symbol='VIR_NETWORK_SECTION_DNS_SRV' type='enum'/>
@@ -788,6 +797,8 @@
      <exports symbol='virNWFilter' type='typedef'/>
      <exports symbol='virNWFilterPtr' type='typedef'/>
      <exports symbol='virNetwork' type='typedef'/>
+     <exports symbol='virNetworkEventID' type='typedef'/>
+     <exports symbol='virNetworkEventLifecycleType' type='typedef'/>
      <exports symbol='virNetworkPtr' type='typedef'/>
      <exports symbol='virNetworkUpdateCommand' type='typedef'/>
      <exports symbol='virNetworkUpdateFlags' type='typedef'/>
@@ -922,6 +933,10 @@
      <exports symbol='virConnectListNetworks' type='function'/>
      <exports symbol='virConnectListSecrets' type='function'/>
      <exports symbol='virConnectListStoragePools' type='function'/>
+     <exports symbol='virConnectNetworkEventDeregisterAny' type='function'/>
+     <exports symbol='virConnectNetworkEventGenericCallback' type='function'/>
+     <exports symbol='virConnectNetworkEventLifecycleCallback' type='function'/>
+     <exports symbol='virConnectNetworkEventRegisterAny' type='function'/>
      <exports symbol='virConnectNumOfDefinedDomains' type='function'/>
      <exports symbol='virConnectNumOfDefinedInterfaces' type='function'/>
      <exports symbol='virConnectNumOfDefinedNetworks' type='function'/>
@@ -1577,7 +1592,7 @@
       <info><![CDATA[vcpu usage in nanoseconds (cpu_time excluding hypervisor time), as a ullong]]></info>
     </macro>
     <macro name='VIR_DOMAIN_EVENT_CALLBACK' file='libvirt'>
-      <info><![CDATA[Used to cast the event specific callback into the generic one for use for virDomainEventRegister]]></info>
+      <info><![CDATA[Used to cast the event specific callback into the generic one for use for virConnectDomainEventRegisterAny()]]></info>
     </macro>
     <macro name='VIR_DOMAIN_JOB_COMPRESSION_BYTES' file='libvirt'>
       <info><![CDATA[virDomainGetJobStats field: number of compressed bytes transferred since the beginning of migration, as VIR_TYPED_PARAM_ULLONG.]]></info>
@@ -1723,6 +1738,9 @@
     <macro name='VIR_MIGRATE_PARAM_URI' file='libvirt'>
       <info><![CDATA[virDomainMigrate* params field: URI to use for initiating domain migration as VIR_TYPED_PARAM_STRING. It takes a hypervisor specific format. The uri_transports element of the hypervisor capabilities XML includes details of the supported URI schemes. When omitted libvirt will auto-generate suitable default URI. It is typically only necessary to specify this URI if the destination host has multiple interfaces and a specific interface is required to transmit migration data.  This filed may not be used when VIR_MIGRATE_TUNNELLED flag is set.]]></info>
     </macro>
+    <macro name='VIR_NETWORK_EVENT_CALLBACK' file='libvirt'>
+      <info><![CDATA[Used to cast the event specific callback into the generic one for use for virConnectNetworkEventRegisterAny()]]></info>
+    </macro>
     <macro name='VIR_NODEINFO_MAXCPUS' file='libvirt'>
       <info><![CDATA[This macro is to calculate the total number of CPUs supported but not necessary active in the host.]]></info>
       <arg name='nodeinfo' info='virNodeInfo instance'/>
@@ -1846,6 +1864,7 @@ node'/>
     <enum name='VIR_CONNECT_LIST_STORAGE_POOLS_DIR' file='libvirt' value='64' type='virConnectListAllStoragePoolsFlags'/>
     <enum name='VIR_CONNECT_LIST_STORAGE_POOLS_DISK' file='libvirt' value='1024' type='virConnectListAllStoragePoolsFlags'/>
     <enum name='VIR_CONNECT_LIST_STORAGE_POOLS_FS' file='libvirt' value='128' type='virConnectListAllStoragePoolsFlags'/>
+    <enum name='VIR_CONNECT_LIST_STORAGE_POOLS_GLUSTER' file='libvirt' value='65536' type='virConnectListAllStoragePoolsFlags'/>
     <enum name='VIR_CONNECT_LIST_STORAGE_POOLS_INACTIVE' file='libvirt' value='1' type='virConnectListAllStoragePoolsFlags'/>
     <enum name='VIR_CONNECT_LIST_STORAGE_POOLS_ISCSI' file='libvirt' value='2048' type='virConnectListAllStoragePoolsFlags'/>
     <enum name='VIR_CONNECT_LIST_STORAGE_POOLS_LOGICAL' file='libvirt' value='512' type='virConnectListAllStoragePoolsFlags'/>
@@ -1979,7 +1998,7 @@ limited set of commands may be allowed'/>
     <enum name='VIR_DOMAIN_EVENT_ID_WATCHDOG' file='libvirt' value='3' type='virDomainEventID' info='virConnectDomainEventWatchdogCallback'/>
     <enum name='VIR_DOMAIN_EVENT_IO_ERROR_LAST' file='libvirt' value='3' type='virDomainEventIOErrorAction'/>
     <enum name='VIR_DOMAIN_EVENT_IO_ERROR_NONE' file='libvirt' value='0' type='virDomainEventIOErrorAction' info='No action, IO error ignored'/>
-    <enum name='VIR_DOMAIN_EVENT_IO_ERROR_PAUSE' file='libvirt' value='1' type='virDomainEventIOErrorAction' info='Guest CPUs are pausde'/>
+    <enum name='VIR_DOMAIN_EVENT_IO_ERROR_PAUSE' file='libvirt' value='1' type='virDomainEventIOErrorAction' info='Guest CPUs are paused'/>
     <enum name='VIR_DOMAIN_EVENT_IO_ERROR_REPORT' file='libvirt' value='2' type='virDomainEventIOErrorAction' info='IO error reported to guest OS'/>
     <enum name='VIR_DOMAIN_EVENT_LAST' file='libvirt' value='9' type='virDomainEventType'/>
     <enum name='VIR_DOMAIN_EVENT_PMSUSPENDED' file='libvirt' value='7' type='virDomainEventType'/>
@@ -2498,6 +2517,15 @@ VIR_MIGRATE_TUNNELLED should be VIR_MIGRATE_TUNNELED'/>
     <enum name='VIR_MIGRATE_TUNNELLED' file='libvirt' value='4' type='virDomainMigrateFlags' info='tunnel migration data over libvirtd connection'/>
     <enum name='VIR_MIGRATE_UNDEFINE_SOURCE' file='libvirt' value='16' type='virDomainMigrateFlags' info='undefine the VM on the source'/>
     <enum name='VIR_MIGRATE_UNSAFE' file='libvirt' value='512' type='virDomainMigrateFlags' info='force migration even if it is considered unsafe'/>
+    <enum name='VIR_NETWORK_EVENT_DEFINED' file='libvirt' value='0' type='virNetworkEventLifecycleType'/>
+    <enum name='VIR_NETWORK_EVENT_ID_LAST' file='libvirt' value='1' type='virNetworkEventID' info='NB: this enum value will increase over time as new events are
+ added to the libvirt API. It reflects the last event ID supported
+ by this version of the libvirt API.'/>
+    <enum name='VIR_NETWORK_EVENT_ID_LIFECYCLE' file='libvirt' value='0' type='virNetworkEventID' info='virConnectNetworkEventLifecycleCallback'/>
+    <enum name='VIR_NETWORK_EVENT_LAST' file='libvirt' value='4' type='virNetworkEventLifecycleType'/>
+    <enum name='VIR_NETWORK_EVENT_STARTED' file='libvirt' value='2' type='virNetworkEventLifecycleType'/>
+    <enum name='VIR_NETWORK_EVENT_STOPPED' file='libvirt' value='3' type='virNetworkEventLifecycleType'/>
+    <enum name='VIR_NETWORK_EVENT_UNDEFINED' file='libvirt' value='1' type='virNetworkEventLifecycleType'/>
     <enum name='VIR_NETWORK_SECTION_BRIDGE' file='libvirt' value='1' type='virNetworkUpdateSection' info='&lt;bridge&gt;'/>
     <enum name='VIR_NETWORK_SECTION_DNS_HOST' file='libvirt' value='10' type='virNetworkUpdateSection' info='&lt;dns&gt;/&lt;host&gt;'/>
     <enum name='VIR_NETWORK_SECTION_DNS_SRV' file='libvirt' value='12' type='virNetworkUpdateSection' info='&lt;dns&gt;/&lt;srv&gt;'/>
@@ -2886,6 +2914,8 @@ see note above'/>
       <info><![CDATA[a virNWFilterPtr is pointer to a virNWFilter private structure, this is the type used to reference a network filter in the API.]]></info>
     </typedef>
     <struct name='virNetwork' file='libvirt' type='struct _virNetwork'/>
+    <typedef name='virNetworkEventID' file='libvirt' type='enum'/>
+    <typedef name='virNetworkEventLifecycleType' file='libvirt' type='enum'/>
     <typedef name='virNetworkPtr' file='libvirt' type='virNetwork *'>
       <info><![CDATA[a virNetworkPtr is pointer to a virNetwork private structure, this is the type used to reference a virtual network in the API.]]></info>
     </typedef>
@@ -3170,20 +3200,20 @@ VIR_DOMAIN_EVENT_ID_BLOCK_JOB with virConnectDomainEventRegisterAny()]]></info>
       <arg name='opaque' type='void *' info='opaque user data'/>
     </functype>
     <function name='virConnectDomainEventDeregister' file='libvirt' module='libvirt'>
-      <info><![CDATA[Removes a callback previously registered with the virConnectDomainEventRegister
-function.
+      <info><![CDATA[Removes a callback previously registered with the
+virConnectDomainEventRegister() function.
 
 Use of this method is no longer recommended. Instead applications
-should try virConnectDomainEventUnregisterAny which has a more flexible
+should try virConnectDomainEventDeregisterAny() which has a more flexible
 API contract]]></info>
-      <return type='int' info='0 on success, -1 on failure'/>
+      <return type='int' info='0 on success, -1 on failure.  Older versions of some hypervisors sometimes returned a positive number on success, but without any reliable semantics on what that number represents.'/>
       <arg name='conn' type='virConnectPtr' info='pointer to the connection'/>
       <arg name='cb' type='virConnectDomainEventCallback' info='callback to the function handling domain events'/>
     </function>
     <function name='virConnectDomainEventDeregisterAny' file='libvirt' module='libvirt'>
       <info><![CDATA[Removes an event callback. The callbackID parameter should be the
-vaule obtained from a previous virDomainEventRegisterAny method.]]></info>
-      <return type='int' info='0 on success, -1 on failure'/>
+value obtained from a previous virConnectDomainEventRegisterAny() method.]]></info>
+      <return type='int' info='0 on success, -1 on failure.  Older versions of some hypervisors sometimes returned a positive number on success, but without any reliable semantics on what that number represents.'/>
       <arg name='conn' type='virConnectPtr' info='pointer to the connection'/>
       <arg name='callbackID' type='int' info='the callback identifier'/>
     </function>
@@ -3216,8 +3246,11 @@ VIR_DOMAIN_EVENT_ID_DISK_CHANGE with virConnectDomainEventRegisterAny()]]></info
       <arg name='opaque' type='void *' info='application specified data'/>
     </functype>
     <functype name='virConnectDomainEventGenericCallback' file='libvirt' module='libvirt'>
-      <info><![CDATA[A generic domain event callback handler. Specific events usually
-have a customization with extra parameters]]></info>
+      <info><![CDATA[A generic domain event callback handler, for use with
+virConnectDomainEventRegisterAny(). Specific events usually
+have a customization with extra parameters, often with @opaque being
+passed in a different parameter position; use VIR_DOMAIN_EVENT_CALLBACK()
+when registering an appropriate handler.]]></info>
       <return type='void'/>
       <arg name='conn' type='virConnectPtr' info='the connection pointer'/>
       <arg name='dom' type='virDomainPtr' info='the domain pointer'/>
@@ -3303,11 +3336,13 @@ VIR_DOMAIN_EVENT_ID_RTC_CHANGE with virConnectDomainEventRegisterAny()]]></info>
     </functype>
     <function name='virConnectDomainEventRegister' file='libvirt' module='libvirt'>
       <info><![CDATA[Adds a callback to receive notifications of domain lifecycle events
-occurring on a connection
+occurring on a connection.  This function requires that an event loop
+has been previously registered with virEventRegisterImpl() or
+virEventRegisterDefaultImpl().
 
 Use of this method is no longer recommended. Instead applications
-should try virConnectDomainEventRegisterAny which has a more flexible
-API contract
+should try virConnectDomainEventRegisterAny() which has a more flexible
+API contract.
 
 The virDomainPtr object handle passed into the callback upon delivery
 of an event is only valid for the duration of execution of the callback.
@@ -3315,7 +3350,7 @@ If the callback wishes to keep the domain object after the callback returns,
 it shall take a reference to it, by calling virDomainRef.
 The reference can be released once the object is no longer required
 by calling virDomainFree.]]></info>
-      <return type='int' info='0 on success, -1 on failure'/>
+      <return type='int' info='0 on success, -1 on failure.  Older versions of some hypervisors sometimes returned a positive number on success, but without any reliable semantics on what that number represents.'/>
       <arg name='conn' type='virConnectPtr' info='pointer to the connection'/>
       <arg name='cb' type='virConnectDomainEventCallback' info='callback to the function handling domain events'/>
       <arg name='opaque' type='void *' info='opaque data to pass on to the callback'/>
@@ -3323,10 +3358,12 @@ by calling virDomainFree.]]></info>
     </function>
     <function name='virConnectDomainEventRegisterAny' file='libvirt' module='libvirt'>
       <info><![CDATA[Adds a callback to receive notifications of arbitrary domain events
-occurring on a domain.
+occurring on a domain.  This function requires that an event loop
+has been previously registered with virEventRegisterImpl() or
+virEventRegisterDefaultImpl().
 
-If dom is NULL, then events will be monitored for any domain. If dom
-is non-NULL, then only the specific domain will be monitored
+If @dom is NULL, then events will be monitored for any domain. If @dom
+is non-NULL, then only the specific domain will be monitored.
 
 Most types of event have a callback providing a custom set of parameters
 for the event. When registering an event, it is thus necessary to use
@@ -3336,14 +3373,14 @@ to match the signature of this method.
 The virDomainPtr object handle passed into the callback upon delivery
 of an event is only valid for the duration of execution of the callback.
 If the callback wishes to keep the domain object after the callback returns,
-it shall take a reference to it, by calling virDomainRef.
+it shall take a reference to it, by calling virDomainRef().
 The reference can be released once the object is no longer required
-by calling virDomainFree.
+by calling virDomainFree().
 
 The return value from this method is a positive integer identifier
 for the callback. To unregister a callback, this callback ID should
-be passed to the virDomainEventUnregisterAny method]]></info>
-      <return type='int' info='a callback identifier on success, -1 on failure'/>
+be passed to the virConnectDomainEventDeregisterAny() method.]]></info>
+      <return type='int' info='a callback identifier on success, -1 on failure.'/>
       <arg name='conn' type='virConnectPtr' info='pointer to the connection'/>
       <arg name='dom' type='virDomainPtr' info='pointer to the domain'/>
       <arg name='eventID' type='int' info='the event type to receive'/>
@@ -3542,8 +3579,25 @@ a managed save image exists; VIR_CONNECT_LIST_DOMAINS_AUTOSTART and
 VIR_CONNECT_LIST_DOMAINS_NO_AUTOSTART, for filtering based on autostart;
 VIR_CONNECT_LIST_DOMAINS_HAS_SNAPSHOT and
 VIR_CONNECT_LIST_DOMAINS_NO_SNAPSHOT, for filtering based on whether
-a domain has snapshots.]]></info>
-      <return type='int' info='the number of domains found or -1 and sets domains to NULL in case of error.  On success, the array stored into @domains is guaranteed to have an extra allocated element set to NULL but not included in the return count, to make iteration easier. The caller is responsible for calling virDomainFree() on each array element, then calling free() on @domains.  Example of usage: virDomainPtr *domains; size_t i; int ret; unsigned int flags = VIR_CONNECT_LIST_DOMAINS_RUNNING | VIR_CONNECT_LIST_DOMAINS_PERSISTENT;  ret = virConnectListAllDomains(conn, &amp;domains, flags); if (ret &lt; 0) error();  for (i = 0; i &lt; ret; i++) { do_something_with_domain(domains[i]);  //here or in a separate loop if needed virDomainFree(domains[i]); }  free(domains);'/>
+a domain has snapshots.
+
+Example of usage:
+
+  virDomainPtr *domains;
+  size_t i;
+  int ret;
+  unsigned int flags = VIR_CONNECT_LIST_DOMAINS_RUNNING |
+                       VIR_CONNECT_LIST_DOMAINS_PERSISTENT;
+  ret = virConnectListAllDomains(conn, &domains, flags);
+  if (ret < 0)
+      error();
+  for (i = 0; i < ret; i++) {
+       do_something_with_domain(domains[i]);
+       //here or in a separate loop if needed
+       virDomainFree(domains[i]);
+  }
+  free(domains);]]></info>
+      <return type='int' info='the number of domains found or -1 and sets domains to NULL in case of error.  On success, the array stored into @domains is guaranteed to have an extra allocated element set to NULL but not included in the return count, to make iteration easier. The caller is responsible for calling virDomainFree() on each array element, then calling free() on @domains.'/>
       <arg name='conn' type='virConnectPtr' info='Pointer to the hypervisor connection.'/>
       <arg name='domains' type='virDomainPtr **' info='Pointer to a variable to store the array containing domain objects or NULL if the list is not required (just returns number of guests).'/>
       <arg name='flags' type='unsigned int' info='bitwise-OR of virConnectListAllDomainsFlags'/>
@@ -3788,6 +3842,61 @@ For more control over the results, see virConnectListAllStoragePools().]]></info
       <arg name='names' type='char ** const' info='array of char * to fill with pool names (allocated by caller)'/>
       <arg name='maxnames' type='int' info='size of the names array'/>
     </function>
+    <function name='virConnectNetworkEventDeregisterAny' file='libvirt' module='libvirt'>
+      <info><![CDATA[Removes an event callback. The callbackID parameter should be the
+value obtained from a previous virConnectNetworkEventRegisterAny() method.]]></info>
+      <return type='int' info='0 on success, -1 on failure'/>
+      <arg name='conn' type='virConnectPtr' info='pointer to the connection'/>
+      <arg name='callbackID' type='int' info='the callback identifier'/>
+    </function>
+    <functype name='virConnectNetworkEventGenericCallback' file='libvirt' module='libvirt'>
+      <info><![CDATA[A generic network event callback handler, for use with
+virConnectNetworkEventRegisterAny(). Specific events usually
+have a customization with extra parameters, often with @opaque being
+passed in a different parameter position; use VIR_NETWORK_EVENT_CALLBACK()
+when registering an appropriate handler.]]></info>
+      <return type='void'/>
+      <arg name='conn' type='virConnectPtr' info='the connection pointer'/>
+      <arg name='net' type='virNetworkPtr' info='the network pointer'/>
+      <arg name='opaque' type='void *' info='application specified data'/>
+    </functype>
+    <functype name='virConnectNetworkEventLifecycleCallback' file='libvirt' module='libvirt'>
+      <info><![CDATA[This callback occurs when the network is started or stopped.
+
+The callback signature to use when registering for an event of type
+VIR_NETWORK_EVENT_ID_LIFECYCLE with virConnectNetworkEventRegisterAny()]]></info>
+      <return type='void'/>
+      <arg name='conn' type='virConnectPtr' info='connection object'/>
+      <arg name='net' type='virNetworkPtr' info='network on which the event occurred'/>
+      <arg name='event' type='int' info='The specific virNetworkEventLifeCycleType which occurred'/>
+      <arg name='detail' type='int' info='contains some details on the reason of the event. It will be 0 for the while.'/>
+      <arg name='opaque' type='void *' info='application specified data'/>
+    </functype>
+    <function name='virConnectNetworkEventRegisterAny' file='libvirt' module='libvirt'>
+      <info><![CDATA[Adds a callback to receive notifications of arbitrary network events
+occurring on a network.  This function requires that an event loop
+has been previously registered with virEventRegisterImpl() or
+virEventRegisterDefaultImpl().
+
+If @net is NULL, then events will be monitored for any network. If @net
+is non-NULL, then only the specific network will be monitored.
+
+Most types of event have a callback providing a custom set of parameters
+for the event. When registering an event, it is thus necessary to use
+the VIR_NETWORK_EVENT_CALLBACK() macro to cast the supplied function pointer
+to match the signature of this method.
+
+The virNetworkPtr object handle passed into the callback upon delivery
+of an event is only valid for the duration of execution of the callback.
+If the callback wishes to keep the network object after the callback]]></info>
+      <return type='int' info='it shall take a reference to it, by calling virNetworkRef(). The reference can be released once the object is no longer required by calling virNetworkFree().  The return value from this method is a positive integer identifier for the callback. To unregister a callback, this callback ID should be passed to the virConnectNetworkEventDeregisterAny() method.  Returns a callback identifier on success, -1 on failure.'/>
+      <arg name='conn' type='virConnectPtr' info='pointer to the connection'/>
+      <arg name='net' type='virNetworkPtr' info='pointer to the network'/>
+      <arg name='eventID' type='int' info='the event type to receive'/>
+      <arg name='cb' type='virConnectNetworkEventGenericCallback' info='callback to the function handling network events'/>
+      <arg name='opaque' type='void *' info='opaque data to pass on to the callback'/>
+      <arg name='freecb' type='virFreeCallback' info='optional function to deallocate opaque when not used anymore'/>
+    </function>
     <function name='virConnectNumOfDefinedDomains' file='libvirt' module='libvirt'>
       <info><![CDATA[Provides the number of defined but inactive domains.]]></info>
       <return type='int' info='the number of domain found or -1 in case of error'/>
@@ -3840,8 +3949,21 @@ For more control over the results, see virConnectListAllStoragePools().]]></info
     </function>
     <function name='virConnectOpen' file='libvirt' module='libvirt'>
       <info><![CDATA[This function should be called first to get a connection to the
-Hypervisor and xen store]]></info>
-      <return type='virConnectPtr' info='a pointer to the hypervisor connection or NULL in case of error  If @name is NULL, if the LIBVIRT_DEFAULT_URI environment variable is set, then it will be used. Otherwise if the client configuration file has the &quot;uri_default&quot; parameter set, then it will be used. Finally probing will be done to determine a suitable default driver to activate. This involves trying each hypervisor in turn until one successfully opens.  If connecting to an unprivileged hypervisor driver which requires the libvirtd daemon to be active, it will automatically be launched if not already running. This can be prevented by setting the environment variable LIBVIRT_AUTOSTART=0  URIs are documented at http://libvirt.org/uri.html'/>
+Hypervisor and xen store
+
+If @name is NULL, if the LIBVIRT_DEFAULT_URI environment variable is set,
+then it will be used. Otherwise if the client configuration file
+has the "uri_default" parameter set, then it will be used. Finally
+probing will be done to determine a suitable default driver to activate.
+This involves trying each hypervisor in turn until one successfully opens.
+
+If connecting to an unprivileged hypervisor driver which requires
+the libvirtd daemon to be active, it will automatically be launched
+if not already running. This can be prevented by setting the
+environment variable LIBVIRT_AUTOSTART=0
+
+URIs are documented at http://libvirt.org/uri.html]]></info>
+      <return type='virConnectPtr' info='a pointer to the hypervisor connection or NULL in case of error'/>
       <arg name='name' type='const char *' info='(optional) URI of the hypervisor'/>
     </function>
     <function name='virConnectOpenAuth' file='libvirt' module='libvirt'>
@@ -3850,8 +3972,10 @@ Hypervisor. If necessary, authentication will be performed fetching
 credentials via the callback
 
 See virConnectOpen for notes about environment variables which can
-have an effect on opening drivers]]></info>
-      <return type='virConnectPtr' info='a pointer to the hypervisor connection or NULL in case of error  URIs are documented at http://libvirt.org/uri.html'/>
+have an effect on opening drivers
+
+URIs are documented at http://libvirt.org/uri.html]]></info>
+      <return type='virConnectPtr' info='a pointer to the hypervisor connection or NULL in case of error'/>
       <arg name='name' type='const char *' info='(optional) URI of the hypervisor'/>
       <arg name='auth' type='virConnectAuthPtr' info='Authenticate callback parameters'/>
       <arg name='flags' type='unsigned int' info='bitwise-OR of virConnectFlags'/>
@@ -3862,8 +3986,10 @@ library functionalities. The set of APIs usable are then restricted
 on the available methods to control the domains.
 
 See virConnectOpen for notes about environment variables which can
-have an effect on opening drivers]]></info>
-      <return type='virConnectPtr' info='a pointer to the hypervisor connection or NULL in case of error  URIs are documented at http://libvirt.org/uri.html'/>
+have an effect on opening drivers
+
+URIs are documented at http://libvirt.org/uri.html]]></info>
+      <return type='virConnectPtr' info='a pointer to the hypervisor connection or NULL in case of error'/>
       <arg name='name' type='const char *' info='(optional) URI of the hypervisor'/>
     </function>
     <function name='virConnectRef' file='libvirt' module='libvirt'>
@@ -3901,17 +4027,18 @@ context.]]></info>
       <arg name='freecb' type='virFreeCallback' info='callback to free @opaque'/>
     </function>
     <function name='virConnectSetKeepAlive' file='libvirt' module='libvirt'>
-      <info><![CDATA[Start sending keepalive messages after interval second of inactivity and
+      <info><![CDATA[Start sending keepalive messages after @interval seconds of inactivity and
 consider the connection to be broken when no response is received after
-count keepalive messages sent in a row.  In other words, sending count + 1
-keepalive message results in closing the connection.  When interval is <= 0,
-no keepalive messages will be sent.  When count is 0, the connection will be
-automatically closed after interval seconds of inactivity without sending
-any keepalive messages.
+@count keepalive messages sent in a row.  In other words, sending count + 1
+keepalive message results in closing the connection.  When @interval is
+<= 0, no keepalive messages will be sent.  When @count is 0, the connection
+will be automatically closed after @interval seconds of inactivity without
+sending any keepalive messages.
 
-Note: client has to implement and run event loop to be able to use keepalive
-messages.  Failure to do so may result in connections being closed
-unexpectedly.
+Note: The client has to implement and run an event loop with
+virEventRegisterImpl() or virEventRegisterDefaultImpl() to be able to
+use keepalive messages.  Failure to do so may result in connections
+being closed unexpectedly.
 
 Note: This API function controls only keepalive messages sent by the client.
 If the server is configured to use keepalive you still need to run the event
@@ -4902,8 +5029,8 @@ again.
 
 Here is a sample code snippet:
 
-  if ((virDomainGetMemoryParameters(dom, NULL, &nparams, 0) == 0) &&
-      (nparams != 0)) {
+  if (virDomainGetMemoryParameters(dom, NULL, &nparams, 0) == 0 &&
+      nparams != 0) {
       if ((params = malloc(sizeof(*params) * nparams)) == NULL)
           goto error;
       memset(params, 0, sizeof(*params) * nparams);
@@ -4995,14 +5122,14 @@ VIR_DOMAIN_AFFECT_LIVE, or VIR_DOMAIN_AFFECT_CONFIG.
 
 Here is a sample code snippet:
 
-char *ret = virDomainGetSchedulerType(dom, &nparams);
-if (ret && nparams != 0) {
-    if ((params = malloc(sizeof(*params) * nparams)) == NULL)
-        goto error;
-    memset(params, 0, sizeof(*params) * nparams);
-    if (virDomainGetSchedulerParametersFlags(dom, params, &nparams, 0))
-        goto error;
-}]]></info>
+  char *ret = virDomainGetSchedulerType(dom, &nparams);
+  if (ret && nparams != 0) {
+      if ((params = malloc(sizeof(*params) * nparams)) == NULL)
+          goto error;
+      memset(params, 0, sizeof(*params) * nparams);
+      if (virDomainGetSchedulerParametersFlags(dom, params, &nparams, 0))
+          goto error;
+  }]]></info>
       <return type='int' info='-1 in case of error, 0 in case of success.'/>
       <arg name='domain' type='virDomainPtr' info='pointer to domain object'/>
       <arg name='params' type='virTypedParameterPtr' info='pointer to scheduler parameter object (return value)'/>
@@ -6928,8 +7055,10 @@ reconfiguring the NIC device backend connectivity, etc.]]></info>
       <arg name='error' type='virErrorPtr' info='the error being raised.'/>
     </functype>
     <function name='virEventAddHandle' file='libvirt' module='virevent'>
-      <info><![CDATA[Register a callback for monitoring file handle events.]]></info>
-      <return type='int' info='-1 if the file handle cannot be registered, otherwise a handle watch number to be used for updating and unregistering for events'/>
+      <info><![CDATA[Register a callback for monitoring file handle events.  This function
+requires that an event loop has previously been registered with
+virEventRegisterImpl() or virEventRegisterDefaultImpl().]]></info>
+      <return type='int' info='-1 if the file handle cannot be registered, otherwise a handle watch number to be used for updating and unregistering for events.'/>
       <arg name='fd' type='int' info='file handle to monitor for events'/>
       <arg name='events' type='int' info='bitset of events to watch from virEventHandleType constants'/>
       <arg name='cb' type='virEventHandleCallback' info='callback to invoke when an event occurs'/>
@@ -6954,9 +7083,11 @@ they will likely deadlock in libvirt.]]></info>
       <arg name='ff' type='virFreeCallback' info='the callback invoked to free opaque data blob'/>
     </functype>
     <function name='virEventAddTimeout' file='libvirt' module='virevent'>
-      <info><![CDATA[Register a callback for a timer event.
+      <info><![CDATA[Register a callback for a timer event.  This function
+requires that an event loop has previously been registered with
+virEventRegisterImpl() or virEventRegisterDefaultImpl().
 
-Setting timeout to -1 will disable the timer. Setting the timeout
+Setting @timeout to -1 will disable the timer. Setting @timeout
 to zero will cause it to fire on every event loop iteration.]]></info>
       <return type='int' info='-1 if the timer cannot be registered, a positive integer timer id upon success.'/>
       <arg name='timeout' type='int' info='time between events in milliseconds'/>
@@ -6993,9 +7124,12 @@ that can be used by any client application which does
 not have a need to integrate with an external event
 loop impl.
 
-Once registered, the application has to invoke virEventRunDefaultImpl in
+Once registered, the application has to invoke virEventRunDefaultImpl() in
 a loop to process events.  Failure to do so may result in connections being
-closed unexpectedly as a result of keepalive timeout.]]></info>
+closed unexpectedly as a result of keepalive timeout.  The default
+event loop fully supports handle and timeout events, but only
+wakes up on events registered by libvirt API calls such as
+virEventAddHandle() or virConnectDomainEventRegisterAny().]]></info>
       <return type='int' info='0 on success, -1 on failure.'/>
     </function>
     <function name='virEventRegisterImpl' file='libvirt' module='virevent'>
@@ -7004,9 +7138,18 @@ with an external event loop. Applications would use this
 to integrate with the libglib2 event loop, or libevent
 or the QT event loop.
 
+Use of the virEventAddHandle() and similar APIs require that the
+corresponding handler is registered.  Use of the
+virConnectDomainEventRegisterAny() and similar APIs requires that
+the three timeout handlers are registered.  Likewise, the three
+timeout handlers must be registered if the remote server has been
+configured to send keepalive messages, or if the client intends
+to call virConnectSetKeepAlive(), to avoid either side from
+unexpectedly closing the connection due to inactivity.
+
 If an application does not need to integrate with an
 existing event loop implementation, then the
-virEventRegisterDefaultImpl method can be used to setup
+virEventRegisterDefaultImpl() method can be used to setup
 the generic libvirt implementation.]]></info>
       <return type='void'/>
       <arg name='addHandle' type='virEventAddHandleFunc' info='the callback to add fd handles'/>
@@ -7017,7 +7160,9 @@ the generic libvirt implementation.]]></info>
       <arg name='removeTimeout' type='virEventRemoveTimeoutFunc' info='the callback to remove a timeout'/>
     </function>
     <function name='virEventRemoveHandle' file='libvirt' module='virevent'>
-      <info><![CDATA[Unregister a callback from a file handle.]]></info>
+      <info><![CDATA[Unregister a callback from a file handle.  This function
+requires that an event loop has previously been registered with
+virEventRegisterImpl() or virEventRegisterDefaultImpl().]]></info>
       <return type='int' info='-1 if the file handle was not registered, 0 upon success.'/>
       <arg name='watch' type='int' info='watch whose file handle to remove'/>
     </function>
@@ -7032,7 +7177,9 @@ function call, when it is safe to release the user data.]]></info>
       <arg name='watch' type='int' info='file descriptor watch to stop listening on'/>
     </functype>
     <function name='virEventRemoveTimeout' file='libvirt' module='virevent'>
-      <info><![CDATA[Unregister a callback for a timer.]]></info>
+      <info><![CDATA[Unregister a callback for a timer.  This function
+requires that an event loop has previously been registered with
+virEventRegisterImpl() or virEventRegisterDefaultImpl().]]></info>
       <return type='int' info='-1 if the timer was not registered, 0 upon success.'/>
       <arg name='timer' type='int' info='the timer id to remove'/>
     </function>
@@ -7048,14 +7195,18 @@ function call, when it is safe to release the user data.]]></info>
     <function name='virEventRunDefaultImpl' file='libvirt' module='virevent'>
       <info><![CDATA[Run one iteration of the event loop. Applications
 will generally want to have a thread which invokes
-this method in an infinite loop
+this method in an infinite loop.  Furthermore, it is wise
+to set up a pipe-to-self handler (via virEventAddHandle())
+or a timeout (via virEventAddTimeout()) before calling this
+function, as it will block forever if there are no
+registered events.
 
- static bool quit = false;
+  static bool quit = false;
 
- while (!quit) {
-   if (virEventRunDefaultImpl() < 0)
+  while (!quit) {
+    if (virEventRunDefaultImpl() < 0)
       ...print error...
- }]]></info>
+  }]]></info>
       <return type='int' info='0 on success, -1 on failure.'/>
     </function>
     <functype name='virEventTimeoutCallback' file='libvirt' module='libvirt'>
@@ -7065,9 +7216,11 @@ this method in an infinite loop
       <arg name='opaque' type='void *' info='user data registered with handle'/>
     </functype>
     <function name='virEventUpdateHandle' file='libvirt' module='virevent'>
-      <info><![CDATA[Change event set for a monitored file handle.
+      <info><![CDATA[Change event set for a monitored file handle.  This function
+requires that an event loop has previously been registered with
+virEventRegisterImpl() or virEventRegisterDefaultImpl().
 
-Will not fail if fd exists]]></info>
+Will not fail if fd exists.]]></info>
       <return type='void'/>
       <arg name='watch' type='int' info='watch whose file handle to update'/>
       <arg name='events' type='int' info='bitset of events to watch from virEventHandleType constants'/>
@@ -7080,12 +7233,14 @@ events to listen on change]]></info>
       <arg name='event' type='int' info='new events to listen on'/>
     </functype>
     <function name='virEventUpdateTimeout' file='libvirt' module='virevent'>
-      <info><![CDATA[Change frequency for a timer.
+      <info><![CDATA[Change frequency for a timer.  This function
+requires that an event loop has previously been registered with
+virEventRegisterImpl() or virEventRegisterDefaultImpl().
 
 Setting frequency to -1 will disable the timer. Setting the frequency
 to zero will cause it to fire on every event loop iteration.
 
-Will not fail if timer exists]]></info>
+Will not fail if timer exists.]]></info>
       <return type='void'/>
       <arg name='timer' type='int' info='timer id to change'/>
       <arg name='timeout' type='int' info='time between events in milliseconds'/>
@@ -7134,9 +7289,11 @@ an error code will be returned. @typeVer exists for historical
 compatibility; if it is not NULL it will duplicate @libVer (it was
 originally intended to return hypervisor information based on @type,
 but due to the design of remote clients this is not reliable). To
-get the version of the running hypervisor use the virConnectGetVersion
+get the version of the running hypervisor use the virConnectGetVersion()
 function instead. To get the libvirt library version used by a
-connection use the virConnectGetLibVersion instead.]]></info>
+connection use the virConnectGetLibVersion() instead.
+
+This function includes a call to virInitialize() when necessary.]]></info>
       <return type='int' info='-1 in case of failure, 0 otherwise, and values for @libVer and @typeVer have the format major * 1,000,000 + minor * 1,000 + release.'/>
       <arg name='libVer' type='unsigned long *' info='return value for the library version (OUT)'/>
       <arg name='type' type='const char *' info='ignored; pass NULL'/>
@@ -7145,13 +7302,18 @@ connection use the virConnectGetLibVersion instead.]]></info>
     <function name='virInitialize' file='libvirt' module='libvirt'>
       <info><![CDATA[Initialize the library.
 
-This method is invoked automatically by any of the virConnectOpen API
-calls. Since release 1.0.0, there is no need to call this method even
-in a multithreaded application, since initialization is performed in
-a thread safe manner.
+This method is invoked automatically by any of the virConnectOpen() API
+calls, and by virGetVersion(). Since release 1.0.0, there is no need to
+call this method even in a multithreaded application, since
+initialization is performed in a thread safe manner; but applications
+using an older version of the library should manually call this before
+setting up competing threads that attempt virConnectOpen in parallel.
 
-The only time it would be necessary to call virInitialize is if the
-application did not invoke virConnectOpen as its first API call.]]></info>
+The only other time it would be necessary to call virInitialize is if the
+application did not invoke virConnectOpen as its first API call, such
+as when calling virEventRegisterImpl() before setting up connections,
+or when using virSetErrorFunc() to alter error reporting of the first
+connection attempt.]]></info>
       <return type='int' info='0 in case of success, -1 in case of error'/>
     </function>
     <function name='virInterfaceChangeBegin' file='libvirt' module='libvirt'>
@@ -7561,8 +7723,9 @@ HBAs created using vport_create.]]></info>
       <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
     <function name='virNodeDeviceDestroy' file='libvirt' module='libvirt'>
-      <info><![CDATA[Destroy the device object. The virtual device is removed from the host operating system.
-This function may require privileged access]]></info>
+      <info><![CDATA[Destroy the device object. The virtual device (only works for vHBA
+currently) is removed from the host operating system.  This function
+may require privileged access.]]></info>
       <return type='int' info='0 in case of success and -1 in case of failure.'/>
       <arg name='dev' type='virNodeDevicePtr' info='a device object'/>
     </function>
@@ -7721,14 +7884,14 @@ the API again.
 
 Here is a sample code snippet:
 
-if ((virNodeGetCPUStats(conn, cpuNum, NULL, &nparams, 0) == 0) &&
-    (nparams != 0)) {
-    if ((params = malloc(sizeof(virNodeCPUStats) * nparams)) == NULL)
-        goto error;
-    memset(params, 0, sizeof(virNodeCPUStats) * nparams);
-    if (virNodeGetCPUStats(conn, cpuNum, params, &nparams, 0))
-        goto error;
-}
+  if (virNodeGetCPUStats(conn, cpuNum, NULL, &nparams, 0) == 0 &&
+      nparams != 0) {
+      if ((params = malloc(sizeof(virNodeCPUStats) * nparams)) == NULL)
+          goto error;
+      memset(params, 0, sizeof(virNodeCPUStats) * nparams);
+      if (virNodeGetCPUStats(conn, cpuNum, params, &nparams, 0))
+          goto error;
+  }
 
 This function doesn't require privileged access to the hypervisor.
 This function expects the caller to allocate the @params.
@@ -7814,14 +7977,14 @@ the API again.
 
 Here is the sample code snippet:
 
-if ((virNodeGetMemoryStats(conn, cellNum, NULL, &nparams, 0) == 0) &&
-    (nparams != 0)) {
-    if ((params = malloc(sizeof(virNodeMemoryStats) * nparams)) == NULL)
-        goto error;
-    memset(params, cellNum, 0, sizeof(virNodeMemoryStats) * nparams);
-    if (virNodeGetMemoryStats(conn, params, &nparams, 0))
-        goto error;
-}
+  if (virNodeGetMemoryStats(conn, cellNum, NULL, &nparams, 0) == 0 &&
+      nparams != 0) {
+      if ((params = malloc(sizeof(virNodeMemoryStats) * nparams)) == NULL)
+          goto error;
+      memset(params, cellNum, 0, sizeof(virNodeMemoryStats) * nparams);
+      if (virNodeGetMemoryStats(conn, params, &nparams, 0))
+          goto error;
+  }
 
 This function doesn't require privileged access to the hypervisor.
 This function expects the caller to allocate the @params.
@@ -7928,7 +8091,7 @@ attributes of the secret specified by UUID by attributes specified in xml
 
 Otherwise, creates a new secret with an automatically chosen UUID, and
 initializes its attributes from xml.]]></info>
-      <return type='virSecretPtr' info='a the secret on success, NULL on failure.'/>
+      <return type='virSecretPtr' info='a secret on success, NULL on failure.'/>
       <arg name='conn' type='virConnectPtr' info='virConnect connection'/>
       <arg name='xml' type='const char *' info='XML describing the secret.'/>
       <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
@@ -8548,7 +8711,7 @@ An example using this with a hypothetical file download
 API looks like
 
     virStreamPtr st = virStreamNew(conn, 0);
-    int fd = open("demo.iso", O_WRONLY, 0600)
+    int fd = open("demo.iso", O_WRONLY, 0600);
 
     virConnectDownloadFile(conn, "demo.iso", st);
 
@@ -8563,7 +8726,7 @@ API looks like
         }
         int offset = 0;
         while (offset < got) {
-           int sent = write(fd, buf+offset, got-offset)
+           int sent = write(fd, buf + offset, got - offset);
            if (sent < 0) {
               virStreamAbort(st);
               goto done;
@@ -8596,7 +8759,7 @@ API looks like
   }
 
   virStreamPtr st = virStreamNew(conn, 0);
-  int fd = open("demo.iso", O_WRONLY)
+  int fd = open("demo.iso", O_WRONLY);
 
   virConnectUploadFile(conn, st);
   if (virStreamRecvAll(st, mysink, &fd) < 0) {
@@ -8638,7 +8801,7 @@ An example using this with a hypothetical file upload
 API looks like
 
     virStreamPtr st = virStreamNew(conn, 0);
-    int fd = open("demo.iso", O_RDONLY)
+    int fd = open("demo.iso", O_RDONLY);
 
     virConnectUploadFile(conn, "demo.iso", st);
 
@@ -8655,7 +8818,7 @@ API looks like
          }
          int offset = 0;
          while (offset < got) {
-            int sent = virStreamSend(st, buf+offset, got-offset)
+            int sent = virStreamSend(st, buf+offset, got-offset);
             if (sent < 0) {
                virStreamAbort(st);
                goto done;
@@ -8688,7 +8851,7 @@ API looks like
   }
 
   virStreamPtr st = virStreamNew(conn, 0);
-  int fd = open("demo.iso", O_RDONLY)
+  int fd = open("demo.iso", O_RDONLY);
 
   virConnectUploadFile(conn, st);
   if (virStreamSendAll(st, mysource, &fd) < 0) {
@@ -8876,7 +9039,7 @@ is not freed; use virTypedParamsFree if you want it to be freed too.]]></info>
     </function>
     <function name='virTypedParamsGet' file='libvirt' module='virtypedparam'>
       <info><![CDATA[Finds typed parameter called @name.]]></info>
-      <return type='virTypedParameterPtr' info='pointer to the parameter or NULL if it does not exist in @params.'/>
+      <return type='virTypedParameterPtr' info='pointer to the parameter or NULL if it does not exist in @params. This function does not raise an error, even when returning NULL.'/>
       <arg name='params' type='virTypedParameterPtr' info='array of typed parameters'/>
       <arg name='nparams' type='int' info='number of parameters in the @params array'/>
       <arg name='name' type='const char *' info='name of the parameter to find'/>

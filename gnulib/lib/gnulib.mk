@@ -1,6 +1,6 @@
 ## DO NOT EDIT! GENERATED AUTOMATICALLY!
 ## Process this file with automake to produce Makefile.in.
-# Copyright (C) 2002-2013 Free Software Foundation, Inc.
+# Copyright (C) 2002-2014 Free Software Foundation, Inc.
 #
 # This file is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -42,6 +42,7 @@ libgnu_la_LDFLAGS += $(INET_PTON_LIB)
 libgnu_la_LDFLAGS += $(LDEXP_LIBM)
 libgnu_la_LDFLAGS += $(LIBSOCKET)
 libgnu_la_LDFLAGS += $(LIB_CLOCK_GETTIME)
+libgnu_la_LDFLAGS += $(LIB_CRYPTO)
 libgnu_la_LDFLAGS += $(LIB_EXECINFO)
 libgnu_la_LDFLAGS += $(LIB_FDATASYNC)
 libgnu_la_LDFLAGS += $(LIB_POLL)
@@ -52,6 +53,15 @@ libgnu_la_LDFLAGS += $(LTLIBINTL)
 libgnu_la_LDFLAGS += $(LTLIBTHREAD)
 libgnu_la_LDFLAGS += $(PTY_LIB)
 libgnu_la_LDFLAGS += $(SERVENT_LIB)
+
+## begin gnulib module absolute-header
+
+# Use this preprocessor expression to decide whether #include_next works.
+# Do not rely on a 'configure'-time test for this, since the expression
+# might appear in an installed header, which is used by some other compiler.
+HAVE_INCLUDE_NEXT = (__GNUC__ || 60000000 <= __DECC_VER)
+
+## end   gnulib module absolute-header
 
 ## begin gnulib module accept
 
@@ -345,7 +355,7 @@ EXTRA_DIST += count-one-bits.h
 
 libgnu_la_SOURCES += md5.c
 
-EXTRA_DIST += md5.h
+EXTRA_DIST += gl_openssl.h md5.h
 
 ## end   gnulib module crypto/md5
 
@@ -353,7 +363,7 @@ EXTRA_DIST += md5.h
 
 libgnu_la_SOURCES += sha256.c
 
-EXTRA_DIST += sha256.h
+EXTRA_DIST += gl_openssl.h sha256.h
 
 ## end   gnulib module crypto/sha256
 
@@ -2900,6 +2910,7 @@ time.h: time.in.h $(top_builddir)/config.status $(CXXDEFS_H) $(ARG_NONNULL_H) $(
 	      -e 's|@''PRAGMA_SYSTEM_HEADER''@|@PRAGMA_SYSTEM_HEADER@|g' \
 	      -e 's|@''PRAGMA_COLUMNS''@|@PRAGMA_COLUMNS@|g' \
 	      -e 's|@''NEXT_TIME_H''@|$(NEXT_TIME_H)|g' \
+	      -e 's/@''GNULIB_GETTIMEOFDAY''@/$(GNULIB_GETTIMEOFDAY)/g' \
 	      -e 's/@''GNULIB_MKTIME''@/$(GNULIB_MKTIME)/g' \
 	      -e 's/@''GNULIB_NANOSLEEP''@/$(GNULIB_NANOSLEEP)/g' \
 	      -e 's/@''GNULIB_STRPTIME''@/$(GNULIB_STRPTIME)/g' \
@@ -2909,6 +2920,8 @@ time.h: time.in.h $(top_builddir)/config.status $(CXXDEFS_H) $(ARG_NONNULL_H) $(
 	      -e 's|@''HAVE_NANOSLEEP''@|$(HAVE_NANOSLEEP)|g' \
 	      -e 's|@''HAVE_STRPTIME''@|$(HAVE_STRPTIME)|g' \
 	      -e 's|@''HAVE_TIMEGM''@|$(HAVE_TIMEGM)|g' \
+	      -e 's|@''REPLACE_GMTIME''@|$(REPLACE_GMTIME)|g' \
+	      -e 's|@''REPLACE_LOCALTIME''@|$(REPLACE_LOCALTIME)|g' \
 	      -e 's|@''REPLACE_LOCALTIME_R''@|$(REPLACE_LOCALTIME_R)|g' \
 	      -e 's|@''REPLACE_MKTIME''@|$(REPLACE_MKTIME)|g' \
 	      -e 's|@''REPLACE_NANOSLEEP''@|$(REPLACE_NANOSLEEP)|g' \

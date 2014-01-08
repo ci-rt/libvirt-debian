@@ -1,7 +1,7 @@
 /*
  * bridge_driver.c: core driver methods for managing network
  *
- * Copyright (C) 2006-2013 Red Hat, Inc.
+ * Copyright (C) 2006-2014 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -70,6 +70,7 @@
 #include "virfile.h"
 #include "virstring.h"
 #include "viraccessapicheck.h"
+#include "network_event.h"
 
 #define VIR_FROM_THIS VIR_FROM_NETWORK
 
@@ -438,6 +439,8 @@ networkStateInitialize(bool privileged,
     networkReloadFirewallRules(driverState);
     networkRefreshDaemons(driverState);
 
+    driverState->networkEventState = virObjectEventStateNew();
+
     networkDriverUnlock(driverState);
 
 #ifdef HAVE_FIREWALLD
@@ -531,6 +534,8 @@ networkStateCleanup(void) {
         return -1;
 
     networkDriverLock(driverState);
+
+    virObjectEventStateFree(driverState->networkEventState);
 
     /* free inactive networks */
     virNetworkObjListFree(&driverState->networks);
@@ -2290,6 +2295,50 @@ cleanup:
     return ret;
 }
 
+static int
+networkConnectNetworkEventRegisterAny(virConnectPtr conn,
+                                      virNetworkPtr net,
+                                      int eventID,
+                                      virConnectNetworkEventGenericCallback callback,
+                                      void *opaque,
+                                      virFreeCallback freecb)
+{
+    virNetworkDriverStatePtr driver = conn->networkPrivateData;
+    int ret = -1;
+
+    if (virConnectNetworkEventRegisterAnyEnsureACL(conn) < 0)
+        goto cleanup;
+
+    if (virNetworkEventStateRegisterID(conn, driver->networkEventState,
+                                       net, eventID, callback,
+                                       opaque, freecb, &ret) < 0)
+        ret = -1;
+
+cleanup:
+    return ret;
+}
+
+static int
+networkConnectNetworkEventDeregisterAny(virConnectPtr conn,
+                                        int callbackID)
+{
+    virNetworkDriverStatePtr driver = conn->networkPrivateData;
+    int ret = -1;
+
+    if (virConnectNetworkEventDeregisterAnyEnsureACL(conn) < 0)
+        goto cleanup;
+
+    if (virObjectEventStateDeregisterID(conn,
+                                        driver->networkEventState,
+                                        callbackID) < 0)
+        goto cleanup;
+
+    ret = 0;
+
+cleanup:
+    return ret;
+}
+
 static int networkIsActive(virNetworkPtr net)
 {
     virNetworkObjPtr obj;
@@ -2483,6 +2532,7 @@ static virNetworkPtr networkCreateXML(virConnectPtr conn, const char *xml) {
     virNetworkDefPtr def;
     virNetworkObjPtr network = NULL;
     virNetworkPtr ret = NULL;
+    virObjectEventPtr event = NULL;
 
     networkDriverLock(driver);
 
@@ -2509,11 +2559,18 @@ static virNetworkPtr networkCreateXML(virConnectPtr conn, const char *xml) {
         goto cleanup;
     }
 
+    event = virNetworkEventLifecycleNew(network->def->name,
+                                        network->def->uuid,
+                                        VIR_NETWORK_EVENT_STARTED,
+                                        0);
+
     VIR_INFO("Creating network '%s'", network->def->name);
     ret = virGetNetwork(conn, network->def->name, network->def->uuid);
 
 cleanup:
     virNetworkDefFree(def);
+    if (event)
+        virObjectEventStateQueue(driver->networkEventState, event);
     if (network)
         virNetworkObjUnlock(network);
     networkDriverUnlock(driver);
@@ -2526,6 +2583,7 @@ static virNetworkPtr networkDefineXML(virConnectPtr conn, const char *xml) {
     bool freeDef = true;
     virNetworkObjPtr network = NULL;
     virNetworkPtr ret = NULL;
+    virObjectEventPtr event = NULL;
 
     networkDriverLock(driver);
 
@@ -2565,10 +2623,16 @@ static virNetworkPtr networkDefineXML(virConnectPtr conn, const char *xml) {
         goto cleanup;
     }
 
+    event = virNetworkEventLifecycleNew(def->name, def->uuid,
+                                        VIR_NETWORK_EVENT_DEFINED,
+                                        0);
+
     VIR_INFO("Defining network '%s'", def->name);
     ret = virGetNetwork(conn, def->name, def->uuid);
 
 cleanup:
+    if (event)
+        virObjectEventStateQueue(driver->networkEventState, event);
     if (freeDef)
        virNetworkDefFree(def);
     if (network)
@@ -2583,6 +2647,7 @@ networkUndefine(virNetworkPtr net) {
     virNetworkObjPtr network;
     int ret = -1;
     bool active = false;
+    virObjectEventPtr event = NULL;
 
     networkDriverLock(driver);
 
@@ -2610,6 +2675,11 @@ networkUndefine(virNetworkPtr net) {
     virNetworkDefFree(network->newDef);
     network->newDef = NULL;
 
+    event = virNetworkEventLifecycleNew(network->def->name,
+                                        network->def->uuid,
+                                        VIR_NETWORK_EVENT_UNDEFINED,
+                                        0);
+
     VIR_INFO("Undefining network '%s'", network->def->name);
     if (!active) {
         if (networkRemoveInactive(driver, network) < 0) {
@@ -2622,6 +2692,8 @@ networkUndefine(virNetworkPtr net) {
     ret = 0;
 
 cleanup:
+    if (event)
+        virObjectEventStateQueue(driver->networkEventState, event);
     if (network)
         virNetworkObjUnlock(network);
     networkDriverUnlock(driver);
@@ -2805,6 +2877,7 @@ static int networkCreate(virNetworkPtr net) {
     virNetworkDriverStatePtr driver = net->conn->networkPrivateData;
     virNetworkObjPtr network;
     int ret = -1;
+    virObjectEventPtr event = NULL;
 
     networkDriverLock(driver);
     network = virNetworkFindByUUID(&driver->networks, net->uuid);
@@ -2820,7 +2893,14 @@ static int networkCreate(virNetworkPtr net) {
 
     ret = networkStartNetwork(driver, network);
 
+    event = virNetworkEventLifecycleNew(network->def->name,
+                                        network->def->uuid,
+                                        VIR_NETWORK_EVENT_STARTED,
+                                        0);
+
 cleanup:
+    if (event)
+        virObjectEventStateQueue(driver->networkEventState, event);
     if (network)
         virNetworkObjUnlock(network);
     networkDriverUnlock(driver);
@@ -2831,6 +2911,7 @@ static int networkDestroy(virNetworkPtr net) {
     virNetworkDriverStatePtr driver = net->conn->networkPrivateData;
     virNetworkObjPtr network;
     int ret = -1;
+    virObjectEventPtr event = NULL;
 
     networkDriverLock(driver);
     network = virNetworkFindByUUID(&driver->networks, net->uuid);
@@ -2853,6 +2934,11 @@ static int networkDestroy(virNetworkPtr net) {
     if ((ret = networkShutdownNetwork(driver, network)) < 0)
         goto cleanup;
 
+    event = virNetworkEventLifecycleNew(network->def->name,
+                                        network->def->uuid,
+                                        VIR_NETWORK_EVENT_STOPPED,
+                                        0);
+
     if (!network->persistent) {
         if (networkRemoveInactive(driver, network) < 0) {
             network = NULL;
@@ -2863,6 +2949,8 @@ static int networkDestroy(virNetworkPtr net) {
     }
 
 cleanup:
+    if (event)
+        virObjectEventStateQueue(driver->networkEventState, event);
     if (network)
         virNetworkObjUnlock(network);
     networkDriverUnlock(driver);
@@ -3021,6 +3109,8 @@ static virNetworkDriver networkDriver = {
     .connectNumOfDefinedNetworks = networkConnectNumOfDefinedNetworks, /* 0.2.0 */
     .connectListDefinedNetworks = networkConnectListDefinedNetworks, /* 0.2.0 */
     .connectListAllNetworks = networkConnectListAllNetworks, /* 0.10.2 */
+    .connectNetworkEventRegisterAny = networkConnectNetworkEventRegisterAny, /* 1.2.1 */
+    .connectNetworkEventDeregisterAny = networkConnectNetworkEventDeregisterAny, /* 1.2.1 */
     .networkLookupByUUID = networkLookupByUUID, /* 0.2.0 */
     .networkLookupByName = networkLookupByName, /* 0.2.0 */
     .networkCreateXML = networkCreateXML, /* 0.2.0 */
@@ -3046,7 +3136,8 @@ static virStateDriver networkStateDriver = {
 };
 
 int networkRegister(void) {
-    virRegisterNetworkDriver(&networkDriver);
+    if (virRegisterNetworkDriver(&networkDriver) < 0)
+        return -1;
     virRegisterStateDriver(&networkStateDriver);
     return 0;
 }
