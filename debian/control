@@ -37,6 +37,7 @@ Build-Depends:
  libsanlock-dev [linux-any],
  libaudit-dev [linux-any],
  libselinux1-dev (>= 2.0.82) [linux-any],
+ libapparmor-dev [linux-any],
  systemtap-sdt-dev [amd64 armel armhf i386 ia64 powerpc s390],
 # for --with-storage-sheepdog
  sheepdog [linux-any],
@@ -76,7 +77,7 @@ Recommends: netcat-openbsd,
  iproute,
  parted,
  pm-utils
-Suggests: policykit-1, radvd, auditd, systemtap, systemd
+Suggests: policykit-1, radvd, auditd, systemtap, systemd, apparmor
 Breaks: avahi-daemon (<< 0.6.31-3~)
 Description: programs for the libvirt library
  Libvirt is a C toolkit to interact with the virtualization capabilities
