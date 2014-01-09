@@ -1,3 +1,30 @@
+libvirt (1.2.1~rc1-1) experimental; urgency=medium
+
+  [ Laurent Bigonville ]
+  * [f6b0feb] Pass --with-selinux-mount=/sys/fs/selinux to ./configure.
+    The buildd are not running selinux and this make the auto-detection code
+    defaults to /selinux which is actually not existing anymore in sid.
+    This complete the fix for SELinux support.
+
+  [ Guido Günther ]
+  * Upload to experimental
+  * [20d9129] Enable parallel build support.
+    Thanks to Felix Geyer for pointing this out
+  * [0d0590e] New upstream version 1.2.1~rc1. Fixes CVE-2013-6458
+    (Closes: #734556)
+  * [a3f978b] Bump symbol versions
+  * [0a6a276] Rediff patches.
+    Dropped (fixed upstream):
+      security-fix-crash-in-lxcDomainGetMemoryParameters.patch
+      security-fix-crash-in-lxcDomainSetMemoryParameters.patch
+  * [3061b11] Build with apparmor support.
+    Note that this isn't enough to run with apparmor support since the
+    profiles will need more work but it makes testing this a lot simpler.
+    This is heavily based on a patch by Felix Geyer.
+    See: #725144
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 09 Jan 2014 08:23:57 +0100
+
 libvirt (1.2.0-2) unstable; urgency=medium
 
   [ Guido Günther ]
