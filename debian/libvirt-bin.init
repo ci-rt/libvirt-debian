@@ -71,7 +71,7 @@ running()
 
 systemd_running()
 {
-    if [ -d /home/systemd/system ] ; then
+    if [ -d /run/systemd/system ] ; then
         return 0
     fi
     return 1
