@@ -60,10 +60,6 @@ extern virClassPtr virStoragePoolClass;
         }                                                               \
     } while (0)
 
-# define VIR_IS_DOMAIN(obj) \
-    (virObjectIsClass((obj), virDomainClass))
-# define VIR_IS_CONNECTED_DOMAIN(obj) \
-    (VIR_IS_DOMAIN(obj) && virObjectIsClass((obj)->conn, virConnectClass))
 # define virCheckDomainReturn(obj, retval)                              \
     do {                                                                \
         virDomainPtr _dom = (obj);                                      \
@@ -88,50 +84,168 @@ extern virClassPtr virStoragePoolClass;
         }                                                               \
     } while (0)
 
-# define VIR_IS_NETWORK(obj) \
-    (virObjectIsClass((obj), virNetworkClass))
-# define VIR_IS_CONNECTED_NETWORK(obj) \
-    (VIR_IS_NETWORK(obj) && virObjectIsClass((obj)->conn, virConnectClass))
+# define virCheckNetworkReturn(obj, retval)                             \
+    do {                                                                \
+        virNetworkPtr _net = (obj);                                     \
+        if (!virObjectIsClass(_net, virNetworkClass) ||                 \
+            !virObjectIsClass(_net->conn, virConnectClass)) {           \
+            virReportErrorHelper(VIR_FROM_NETWORK,                      \
+                                 VIR_ERR_INVALID_NETWORK,               \
+                                 __FILE__, __FUNCTION__, __LINE__,      \
+                                 __FUNCTION__);                         \
+            virDispatchError(NULL);                                     \
+            return retval;                                              \
+        }                                                               \
+    } while (0)
+# define virCheckNetworkGoto(obj, label)                                \
+    do {                                                                \
+        virNetworkPtr _net = (obj);                                     \
+        if (!virObjectIsClass(_net, virNetworkClass) ||                 \
+            !virObjectIsClass(_net->conn, virConnectClass)) {           \
+            virReportErrorHelper(VIR_FROM_NETWORK,                      \
+                                 VIR_ERR_INVALID_NETWORK,               \
+                                 __FILE__, __FUNCTION__, __LINE__,      \
+                                 __FUNCTION__);                         \
+            goto label;                                                 \
+        }                                                               \
+    } while (0)
 
-# define VIR_IS_INTERFACE(obj) \
-    (virObjectIsClass((obj), virInterfaceClass))
-# define VIR_IS_CONNECTED_INTERFACE(obj) \
-    (VIR_IS_INTERFACE(obj) && virObjectIsClass((obj)->conn, virConnectClass))
+# define virCheckInterfaceReturn(obj, retval)                           \
+    do {                                                                \
+        virInterfacePtr _iface = (obj);                                 \
+        if (!virObjectIsClass(_iface, virInterfaceClass) ||             \
+            !virObjectIsClass(_iface->conn, virConnectClass)) {         \
+            virReportErrorHelper(VIR_FROM_INTERFACE,                    \
+                                 VIR_ERR_INVALID_INTERFACE,             \
+                                 __FILE__, __FUNCTION__, __LINE__,      \
+                                 __FUNCTION__);                         \
+            virDispatchError(NULL);                                     \
+            return retval;                                              \
+        }                                                               \
+    } while (0)
 
-# define VIR_IS_STORAGE_POOL(obj) \
-    (virObjectIsClass((obj), virStoragePoolClass))
-# define VIR_IS_CONNECTED_STORAGE_POOL(obj) \
-    (VIR_IS_STORAGE_POOL(obj) && virObjectIsClass((obj)->conn, virConnectClass))
+# define virCheckStoragePoolReturn(obj, retval)                         \
+    do {                                                                \
+        virStoragePoolPtr _pool = (obj);                                \
+        if (!virObjectIsClass(_pool, virStoragePoolClass) ||            \
+            !virObjectIsClass(_pool->conn, virConnectClass)) {          \
+            virReportErrorHelper(VIR_FROM_STORAGE,                      \
+                                 VIR_ERR_INVALID_STORAGE_POOL,          \
+                                 __FILE__, __FUNCTION__, __LINE__,      \
+                                 __FUNCTION__);                         \
+            virDispatchError(NULL);                                     \
+            return retval;                                              \
+        }                                                               \
+    } while (0)
 
-# define VIR_IS_STORAGE_VOL(obj) \
-    (virObjectIsClass((obj), virStorageVolClass))
-# define VIR_IS_CONNECTED_STORAGE_VOL(obj) \
-    (VIR_IS_STORAGE_VOL(obj) && virObjectIsClass((obj)->conn, virConnectClass))
+# define virCheckStorageVolReturn(obj, retval)                          \
+    do {                                                                \
+        virStorageVolPtr _vol = (obj);                                  \
+        if (!virObjectIsClass(_vol, virStorageVolClass) ||              \
+            !virObjectIsClass(_vol->conn, virConnectClass)) {           \
+            virReportErrorHelper(VIR_FROM_STORAGE,                      \
+                                 VIR_ERR_INVALID_STORAGE_VOL,           \
+                                 __FILE__, __FUNCTION__, __LINE__,      \
+                                 __FUNCTION__);                         \
+            virDispatchError(NULL);                                     \
+            return retval;                                              \
+        }                                                               \
+    } while (0)
+# define virCheckStorageVolGoto(obj, label)                             \
+    do {                                                                \
+        virStorageVolPtr _vol = (obj);                                  \
+        if (!virObjectIsClass(_vol, virStorageVolClass) ||              \
+            !virObjectIsClass(_vol->conn, virConnectClass)) {           \
+            virReportErrorHelper(VIR_FROM_STORAGE,                      \
+                                 VIR_ERR_INVALID_STORAGE_VOL,           \
+                                 __FILE__, __FUNCTION__, __LINE__,      \
+                                 __FUNCTION__);                         \
+            goto label;                                                 \
+        }                                                               \
+    } while (0)
 
-# define VIR_IS_NODE_DEVICE(obj) \
-    (virObjectIsClass((obj), virNodeDeviceClass))
-# define VIR_IS_CONNECTED_NODE_DEVICE(obj) \
-    (VIR_IS_NODE_DEVICE(obj) && virObjectIsClass((obj)->conn, virConnectClass))
+# define virCheckNodeDeviceReturn(obj, retval)                          \
+    do {                                                                \
+        virNodeDevicePtr _node = (obj);                                 \
+        if (!virObjectIsClass(_node, virNodeDeviceClass) ||             \
+            !virObjectIsClass(_node->conn, virConnectClass)) {          \
+            virReportErrorHelper(VIR_FROM_NODEDEV,                      \
+                                 VIR_ERR_INVALID_NODE_DEVICE,           \
+                                 __FILE__, __FUNCTION__, __LINE__,      \
+                                 __FUNCTION__);                         \
+            virDispatchError(NULL);                                     \
+            return retval;                                              \
+        }                                                               \
+    } while (0)
 
-# define VIR_IS_SECRET(obj) \
-    (virObjectIsClass((obj), virSecretClass))
-# define VIR_IS_CONNECTED_SECRET(obj) \
-    (VIR_IS_SECRET(obj) && virObjectIsClass((obj)->conn, virConnectClass))
+# define virCheckSecretReturn(obj, retval)                              \
+    do {                                                                \
+        virSecretPtr _secret = (obj);                                   \
+        if (!virObjectIsClass(_secret, virSecretClass) ||               \
+            !virObjectIsClass(_secret->conn, virConnectClass)) {        \
+            virReportErrorHelper(VIR_FROM_SECRET,                       \
+                                 VIR_ERR_INVALID_SECRET,                \
+                                 __FILE__, __FUNCTION__, __LINE__,      \
+                                 __FUNCTION__);                         \
+            virDispatchError(NULL);                                     \
+            return retval;                                              \
+        }                                                               \
+    } while (0)
 
-# define VIR_IS_STREAM(obj) \
-    (virObjectIsClass((obj), virStreamClass))
-# define VIR_IS_CONNECTED_STREAM(obj) \
-    (VIR_IS_STREAM(obj) && virObjectIsClass((obj)->conn, virConnectClass))
+# define virCheckStreamReturn(obj, retval)                              \
+    do {                                                                \
+        virStreamPtr _st = (obj);                                       \
+        if (!virObjectIsClass(_st, virStreamClass) ||                   \
+            !virObjectIsClass(_st->conn, virConnectClass)) {            \
+            virReportErrorHelper(VIR_FROM_STREAMS,                      \
+                                 VIR_ERR_INVALID_STREAM,                \
+                                 __FILE__, __FUNCTION__, __LINE__,      \
+                                 __FUNCTION__);                         \
+            virDispatchError(NULL);                                     \
+            return retval;                                              \
+        }                                                               \
+    } while (0)
+# define virCheckStreamGoto(obj, label)                                 \
+    do {                                                                \
+        virStreamPtr _st = (obj);                                       \
+        if (!virObjectIsClass(_st, virStreamClass) ||                   \
+            !virObjectIsClass(_st->conn, virConnectClass)) {            \
+            virReportErrorHelper(VIR_FROM_STREAMS,                      \
+                                 VIR_ERR_INVALID_STREAM,                \
+                                 __FILE__, __FUNCTION__, __LINE__,      \
+                                 __FUNCTION__);                         \
+            goto label;                                                 \
+        }                                                               \
+    } while (0)
 
-# define VIR_IS_NWFILTER(obj) \
-    (virObjectIsClass((obj), virNWFilterClass))
-# define VIR_IS_CONNECTED_NWFILTER(obj) \
-    (VIR_IS_NWFILTER(obj) && virObjectIsClass((obj)->conn, virConnectClass))
+# define virCheckNWFilterReturn(obj, retval)                            \
+    do {                                                                \
+        virNWFilterPtr _nw = (obj);                                     \
+        if (!virObjectIsClass(_nw, virNWFilterClass) ||                 \
+            !virObjectIsClass(_nw->conn, virConnectClass)) {            \
+            virReportErrorHelper(VIR_FROM_NWFILTER,                     \
+                                 VIR_ERR_INVALID_NWFILTER,              \
+                                 __FILE__, __FUNCTION__, __LINE__,      \
+                                 __FUNCTION__);                         \
+            virDispatchError(NULL);                                     \
+            return retval;                                              \
+        }                                                               \
+    } while (0)
 
-# define VIR_IS_SNAPSHOT(obj) \
-    (virObjectIsClass((obj), virDomainSnapshotClass))
-# define VIR_IS_DOMAIN_SNAPSHOT(obj) \
-    (VIR_IS_SNAPSHOT(obj) && VIR_IS_DOMAIN((obj)->domain))
+# define virCheckDomainSnapshotReturn(obj, retval)                      \
+    do {                                                                \
+        virDomainSnapshotPtr _snap = (obj);                             \
+        if (!virObjectIsClass(_snap, virDomainSnapshotClass) ||         \
+            !virObjectIsClass(_snap->domain, virDomainClass) ||         \
+            !virObjectIsClass(_snap->domain->conn, virConnectClass)) {  \
+            virReportErrorHelper(VIR_FROM_DOMAIN_SNAPSHOT,              \
+                                 VIR_ERR_INVALID_DOMAIN_SNAPSHOT,       \
+                                 __FILE__, __FUNCTION__, __LINE__,      \
+                                 __FUNCTION__);                         \
+            virDispatchError(NULL);                                     \
+            return retval;                                              \
+        }                                                               \
+    } while (0)
 
 
 /* Helper macros to implement VIR_DOMAIN_DEBUG using just C99.  This
@@ -169,7 +283,7 @@ extern virClassPtr virStoragePoolClass;
         char _uuidstr[VIR_UUID_STRING_BUFLEN];                          \
         const char *_domname = NULL;                                    \
                                                                         \
-        if (!VIR_IS_DOMAIN(dom)) {                                      \
+        if (!virObjectIsClass(dom, virDomainClass)) {                   \
             memset(_uuidstr, 0, sizeof(_uuidstr));                      \
         } else {                                                        \
             virUUIDFormat((dom)->uuid, _uuidstr);                       \

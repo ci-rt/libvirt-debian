@@ -59560,6 +59560,42 @@ _ACEOF
 fi
 done
 
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether pthread_sigmask does anything" >&5
+$as_echo_n "checking whether pthread_sigmask does anything... " >&6; }
+if ${lv_cv_pthread_sigmask_works+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+    #include <sys/types.h>
+    #include <signal.h>
+
+int
+main ()
+{
+
+   int (*foo)(int, const sigset_t *, sigset_t *) = &pthread_sigmask;
+   return !foo;
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+  lv_cv_pthread_sigmask_works=yes
+else
+  lv_cv_pthread_sigmask_works=no
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $lv_cv_pthread_sigmask_works" >&5
+$as_echo "$lv_cv_pthread_sigmask_works" >&6; }
+if test "x$lv_cv_pthread_sigmask_works" != xyes; then
+
+$as_echo "#define FUNC_PTHREAD_SIGMASK_BROKEN 1" >>confdefs.h
+
+fi
 LIBS=$old_libs
 
 for ac_header in pwd.h paths.h regex.h sys/un.h \
@@ -62803,7 +62839,6 @@ else
 fi
 
 
-if test "$with_apparmor" != "no"; then
 
 # Check whether --with-apparmor-profiles was given.
 if test "${with_apparmor_profiles+set}" = set; then :
@@ -62812,7 +62847,7 @@ else
   with_apparmor_profiles=no
 fi
 
-else
+if test "$with_apparmor" = "no"; then
   with_apparmor_profiles="no"
 fi
  if test "$with_apparmor_profiles" != "no"; then

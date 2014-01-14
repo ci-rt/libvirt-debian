@@ -7785,7 +7785,7 @@ this was the last reference.]]></info>
     </function>
     <function name='virNodeDeviceGetParent' file='libvirt' module='libvirt'>
       <info><![CDATA[Accessor for the parent of the device]]></info>
-      <return type='const char *' info='the name of the device&apos;s parent, or NULL if the device has no parent.'/>
+      <return type='const char *' info='the name of the device&apos;s parent, or NULL if an error occurred or when the device has no parent.'/>
       <arg name='dev' type='virNodeDevicePtr' info='the device'/>
     </function>
     <function name='virNodeDeviceGetXMLDesc' file='libvirt' module='libvirt'>
@@ -7797,7 +7797,7 @@ the device.]]></info>
     </function>
     <function name='virNodeDeviceListCaps' file='libvirt' module='libvirt'>
       <info><![CDATA[Lists the names of the capabilities supported by the device.]]></info>
-      <return type='int' info='the number of capability names listed in @names.'/>
+      <return type='int' info='the number of capability names listed in @names or -1 in case of error.'/>
       <arg name='dev' type='virNodeDevicePtr' info='the device'/>
       <arg name='names' type='char ** const' info='array to collect the list of capability names'/>
       <arg name='maxnames' type='int' info='size of @names'/>
@@ -7818,7 +7818,7 @@ the device.]]></info>
     </function>
     <function name='virNodeDeviceNumOfCaps' file='libvirt' module='libvirt'>
       <info><![CDATA[Accessor for the number of capabilities supported by the device.]]></info>
-      <return type='int' info='the number of capabilities supported by the device.'/>
+      <return type='int' info='the number of capabilities supported by the device or -1 in case of error.'/>
       <arg name='dev' type='virNodeDevicePtr' info='the device'/>
     </function>
     <function name='virNodeDeviceReAttach' file='libvirt' module='libvirt'>

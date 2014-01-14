@@ -15,7 +15,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libvirt\n"
 "Report-Msgid-Bugs-To: libvir-list@redhat.com\n"
-"POT-Creation-Date: 2014-01-08 11:19+0800\n"
+"POT-Creation-Date: 2014-01-14 10:43+0800\n"
 "PO-Revision-Date: 2013-11-26 03:42+0000\n"
 "Last-Translator: Daniel <veillard@redhat.com>\n"
 "Language-Team: Tamil (http://www.transifex.com/projects/p/fedora/language/"
@@ -204,7 +204,7 @@ msgstr ""
 
 #: daemon/libvirtd.c:1142 daemon/libvirtd.c:1156
 #: src/locking/lock_daemon.c:1177 src/locking/sanlock_helper.c:76
-#: src/lxc/lxc_controller.c:2281 src/security/virt-aa-helper.c:1186
+#: src/lxc/lxc_controller.c:2287 src/security/virt-aa-helper.c:1186
 #: src/storage/parthelper.c:77 src/util/iohelper.c:236 src/util/iohelper.c:242
 #, c-format
 msgid "%s: initialization failed\n"
@@ -427,6 +427,7 @@ msgstr "rundir %sஐ உருவாக்க முடியவில்லை:
 #: daemon/remote_dispatch.h:13739 daemon/remote_dispatch.h:13796
 #: daemon/remote_dispatch.h:13846 daemon/remote_dispatch.h:13900
 #: daemon/remote_dispatch.h:13968 daemon/remote_dispatch.h:14020
+#: src/rpc/virnetserverclient.c:1551
 msgid "connection not open"
 msgstr "இணைப்பு திறக்கப்படவில்லை"
 
@@ -607,12 +608,12 @@ msgstr "maxerrors மிகப்பெரியது"
 msgid "Too many domain snapshots '%d' for limit '%d'"
 msgstr "வரம்பு '%d' க்கு மிக அதிகமான டொமைன் ஸ்னாப்ஷாட்டுகள் '%d'"
 
-#: daemon/remote.c:4149 src/remote/remote_driver.c:3433
+#: daemon/remote.c:4149 src/remote/remote_driver.c:3431
 #, c-format
 msgid "Too many storage pools '%d' for limit '%d'"
 msgstr "வரம்பு '%d' க்கு மிக அதிகமான சேமிப்பக தொகுப்பகங்கள் '%d'"
 
-#: daemon/remote.c:4212 src/remote/remote_driver.c:3500
+#: daemon/remote.c:4212 src/remote/remote_driver.c:3498
 #, c-format
 msgid "Too many storage volumes '%d' for limit '%d'"
 msgstr "வரம்பு '%d' க்கு மிக அதிகமான சேமிப்பக தொகுப்புகள் '%d'"
@@ -622,22 +623,22 @@ msgstr "வரம்பு '%d' க்கு மிக அதிகமான ச
 msgid "Too many networks '%d' for limit '%d'"
 msgstr "வரம்பு '%d' க்கு மிக அதிகமான பிணையங்கள் '%d'"
 
-#: daemon/remote.c:4332 src/remote/remote_driver.c:3031
+#: daemon/remote.c:4332 src/remote/remote_driver.c:3029
 #, c-format
 msgid "Too many interfaces '%d' for limit '%d'"
 msgstr "வரம்பு '%d' க்கு மிக அதிகமான இடைமுகங்கள் '%d'"
 
-#: daemon/remote.c:4391 src/remote/remote_driver.c:3097
+#: daemon/remote.c:4391 src/remote/remote_driver.c:3095
 #, c-format
 msgid "Too many node devices '%d' for limit '%d'"
 msgstr "வரம்பு '%d' க்கு மிக அதிகமான கனு சாதனங்கள் '%d'"
 
-#: daemon/remote.c:4450 src/remote/remote_driver.c:3163
+#: daemon/remote.c:4450 src/remote/remote_driver.c:3161
 #, c-format
 msgid "Too many network filters '%d' for limit '%d'"
 msgstr "வரம்பு '%d' க்கு மிக அதிகமான பிணைய வடிகட்டிகள் '%d'"
 
-#: daemon/remote.c:4509 src/remote/remote_driver.c:3229
+#: daemon/remote.c:4509 src/remote/remote_driver.c:3227
 #, c-format
 msgid "Too many secrets '%d' for limit '%d'"
 msgstr "வரம்பு '%d' க்கு மிக அதிகமான இரகசியங்கள் '%d'"
@@ -1200,8 +1201,8 @@ msgstr "செயற்களம் '%s' ஏற்கனவே uuid %sஉடன�
 #: src/qemu/qemu_driver.c:15760 src/qemu/qemu_driver.c:15782
 #: src/qemu/qemu_driver.c:15832 src/qemu/qemu_driver.c:15854
 #: src/qemu/qemu_migration.c:2080 src/qemu/qemu_migration.c:4070
-#: src/test/test_driver.c:6283 src/uml/uml_driver.c:2561
-#: src/xen/xen_driver.c:2637 src/xen/xm_internal.c:675
+#: src/test/test_driver.c:6392 src/uml/uml_driver.c:2561
+#: src/xen/xen_driver.c:2634 src/xen/xm_internal.c:675
 msgid "domain is not running"
 msgstr "செயற்களம் இயங்கவில்லை"
 
@@ -1966,7 +1967,7 @@ msgstr "<interface type='%s'> க்கு <virtualport> கூறுக்க�
 msgid "Invalid specification of multiple <filterref>s in a single <interface>"
 msgstr "ஒரே <interface> இல் பல <filterref>கள் தவறாக குறிப்பிடப்பட்டுள்ளது"
 
-#: src/conf/domain_conf.c:6550 src/qemu/qemu_command.c:10559
+#: src/conf/domain_conf.c:6550 src/qemu/qemu_command.c:10560
 #, c-format
 msgid "unable to parse mac address '%s'"
 msgstr "mac முகவரி'%s'க்கு இடைநிறுத்த முடியவில்லை"
@@ -2120,7 +2121,7 @@ msgstr "தெரியாத எழுத்துக்குறி சாத�
 msgid "spicevmc device type only supports virtio"
 msgstr "spicevmc சாதன வகை virtio வை மட்டுமே ஆதரிக்கும்"
 
-#: src/conf/domain_conf.c:7385 src/qemu/qemu_command.c:9704
+#: src/conf/domain_conf.c:7385 src/qemu/qemu_command.c:9705
 msgid "usb-serial requires address of usb type"
 msgstr "usb-serial க்கு usb வகையின் முகவரி அவசியம்"
 
@@ -2325,7 +2326,7 @@ msgstr "vnc துறை %sஐ இடைநிறுத்த முடியவ
 msgid "cannot parse vnc WebSocket port %s"
 msgstr "vnc WebSocket துறை %s ஐப் பாகுபடுத்த முடியவில்லை"
 
-#: src/conf/domain_conf.c:8190 src/qemu/qemu_command.c:11353
+#: src/conf/domain_conf.c:8190 src/qemu/qemu_command.c:11354
 #, c-format
 msgid "unknown vnc display sharing policy '%s'"
 msgstr "தெரியாத vnc காட்சி பகிர்தல் கொள்கை '%s'"
@@ -3616,7 +3617,7 @@ msgstr "PCI முகவரி வடிவமைத்தல் தோல்வ
 
 #: src/conf/domain_conf.c:15200 src/conf/domain_conf.c:15233
 #: src/conf/domain_conf.c:16482 src/conf/domain_conf.c:16491
-#: src/qemu/qemu_hotplug.c:3365
+#: src/qemu/qemu_hotplug.c:3363
 #, c-format
 msgid "unexpected hostdev type %d"
 msgstr "எதிர்பார்க்காத hostdev வகை%d"
@@ -3656,7 +3657,7 @@ msgid "Unable to format guestfwd port"
 msgstr "guestfwd துறையை வடிவமைக்க முடியவில்லை"
 
 #: src/conf/domain_conf.c:15703 src/conf/domain_conf.c:15734
-#: src/qemu/qemu_command.c:8779
+#: src/qemu/qemu_command.c:8780
 #, c-format
 msgid "unexpected smartcard type %d"
 msgstr "எதிர்பார்க்காத ஸ்மார்ட்கார்டு வகை %d"
@@ -3979,8 +3980,8 @@ msgstr "எதிர்பார்க்காத இடைமுக வகை 
 #: src/conf/node_device_conf.c:184 src/conf/nwfilter_conf.c:3027
 #: src/conf/storage_conf.c:1779 src/libxl/libxl_driver.c:840
 #: src/parallels/parallels_driver.c:894 src/qemu/qemu_driver.c:585
-#: src/remote/remote_driver.c:943 src/test/test_driver.c:709
-#: src/test/test_driver.c:1372 src/xen/xen_driver.c:451
+#: src/remote/remote_driver.c:943 src/test/test_driver.c:719
+#: src/test/test_driver.c:1421 src/xen/xen_driver.c:448
 msgid "cannot initialize mutex"
 msgstr "mutexஐ துவக்க முடியவில்லை"
 
@@ -5606,34 +5607,36 @@ msgstr "இட்டரேட்டர் ஐடி %u இன் அதிகப
 msgid "Malformatted variable"
 msgstr "தவறாக வடிவமைக்கப்பட்ட மாறி"
 
-#: src/conf/object_event.c:214
-msgid "could not find event callback for removal"
-msgstr "நீக்குவதற்கான பின்அழைப்பு நிகழ்வை தேட முடியவில்லை"
-
-#: src/conf/object_event.c:237
-msgid "could not find event callback for deletion"
+#: src/conf/object_event.c:214 src/conf/object_event.c:238
+#, fuzzy, c-format
+msgid "could not find event callback %d for deletion"
 msgstr "நிகழ்வு பின்அழைப்பிற்கான அழித்தலுக்காக தேட முடியவில்லை"
 
-#: src/conf/object_event.c:361
+#: src/conf/object_event.c:363
 msgid "event callback already tracked"
 msgstr "நிகழ்வு பின்னழைப்பு ஏற்கனவே தேடப்பட்டுள்ளது"
 
-#: src/conf/object_event.c:553
+#: src/conf/object_event.c:534
 msgid "unable to initialize state mutex"
 msgstr "ஸ்டேட் மியூட்டெக்ஸைத் துவக்க முடியவில்லை"
 
-#: src/conf/object_event.c:600
+#: src/conf/object_event.c:581
 #, fuzzy, c-format
 msgid "Class %s must derive from virObjectEvent"
 msgstr "வகை %s ஆனது virObjectLockable இலிருந்தே தருவிக்கப்பட வேண்டும்"
 
-#: src/conf/object_event.c:812
+#: src/conf/object_event.c:793
 msgid "could not initialize domain event timer"
 msgstr "டொமைன் நிகழ்வு டைமரைத் துவக்க முடியவில்லை"
 
-#: src/conf/object_event.c:901
+#: src/conf/object_event.c:882
 #, fuzzy, c-format
 msgid "event callback function %p not registered"
+msgstr "பதிவு செய்யப்பட்ட ஸ்ட்ரீம் கால்பேக் இல்லை"
+
+#: src/conf/object_event.c:924
+#, fuzzy, c-format
+msgid "event callback id %d not registered"
 msgstr "பதிவு செய்யப்பட்ட ஸ்ட்ரீம் கால்பேக் இல்லை"
 
 #: src/conf/secret_conf.c:64 src/conf/secret_conf.c:125
@@ -5837,7 +5840,7 @@ msgid ""
 msgstr ""
 "ஸ்னாப்ஷாட் %s இல் வட்டு ஸ்னாப்ஷாட் மற்றும் சிஸ்டம் செக்பாயின்ட் ஆகியவற்றுக்கிடையே மாற முடியாது"
 
-#: src/conf/storage_conf.c:294 src/storage/storage_backend.c:1149
+#: src/conf/storage_conf.c:294
 #, c-format
 msgid "missing backend for pool type %d"
 msgstr "தொகுப்பகம் வகை %dக்கு பின்னனி விடுப்பட்டது"
@@ -5918,7 +5921,7 @@ msgid "storage pool missing type attribute"
 msgstr "சேமிப்பக தொகுப்பகத்தில் வகை பண்புக்கூறு விடுபட்டுள்ளது"
 
 #: src/conf/storage_conf.c:875 src/storage/storage_driver.c:503
-#: src/test/test_driver.c:4621
+#: src/test/test_driver.c:4730
 #, c-format
 msgid "unknown storage pool type %s"
 msgstr "தெரியாத சேமிப்பக தொகுதி வகை %s"
@@ -6827,7 +6830,7 @@ msgid "Could not create snapshot: %s"
 msgstr "ஸ்னாப்ஷாட்டை உருவாக்க முடியவில்லை: %s"
 
 #: src/esx/esx_driver.c:4610 src/qemu/qemu_driver.c:13093
-#: src/test/test_driver.c:6604 src/vbox/vbox_tmpl.c:6417
+#: src/test/test_driver.c:6713 src/vbox/vbox_tmpl.c:6417
 #, c-format
 msgid "snapshot '%s' does not have a parent"
 msgstr "ஸ்னாப்ஷாட் '%s' க்கு தாய் உறுப்பு இல்லை"
@@ -8344,30 +8347,30 @@ msgstr "சாதனம் %s ஐ அணுக முடியவில்லை
 msgid "libvirt.so is not safe to use from setuid programs"
 msgstr ""
 
-#: src/libvirt.c:575 src/libvirt.c:603 src/libvirt.c:631 src/libvirt.c:659
-#: src/libvirt.c:687 src/libvirt.c:715 src/libvirt.c:745 src/libvirt.c:774
+#: src/libvirt.c:548 src/libvirt.c:576 src/libvirt.c:604 src/libvirt.c:632
+#: src/libvirt.c:660 src/libvirt.c:688 src/libvirt.c:718 src/libvirt.c:747
 #, c-format
 msgid "Too many drivers, cannot register %s"
 msgstr "மிக அதிக இயக்கிகள் உள்ளன, %s ஐப் பதிவு செய்ய முடியவில்லை"
 
-#: src/libvirt.c:816
+#: src/libvirt.c:789
 #, c-format
 msgid "Initialization of %s state driver failed: %s"
 msgstr "%s நிலை இயக்கியை துவக்குவது தோல்வியடைந்தது: %s"
 
-#: src/libvirt.c:818
+#: src/libvirt.c:791
 msgid "Unknown problem"
 msgstr "தெரியாத சிக்கல்"
 
-#: src/libvirt.c:1012
+#: src/libvirt.c:985
 msgid "Expected a list for 'uri_aliases' config parameter"
 msgstr "'uri_aliases' அமைவாக்க அளவுருவுக்கு ஒரு பட்டியல் எதிர்பார்க்கப்பட்டது"
 
-#: src/libvirt.c:1024
+#: src/libvirt.c:997
 msgid "Expected a string for 'uri_aliases' config parameter list entry"
 msgstr "'uri_aliases' அமைவாக்க அளவுரு பட்டியல் உள்ளீட்டுக்கு ஒரு சரம் எதிர்பார்க்கப்பட்டது"
 
-#: src/libvirt.c:1030
+#: src/libvirt.c:1003
 #, c-format
 msgid ""
 "Malformed 'uri_aliases' config entry '%s', expected 'alias=uri://host/path'"
@@ -8375,7 +8378,7 @@ msgstr ""
 "'uri_aliases' அமைவாக்க உள்ளீடு '%s' வடிவம் தவறானது, எதிர்பார்க்கப்பட்டது 'alias=uri://"
 "host/path'"
 
-#: src/libvirt.c:1038
+#: src/libvirt.c:1011
 #, c-format
 msgid ""
 "Malformed 'uri_aliases' config entry '%s', aliases may only contain 'a-Z, "
@@ -8384,118 +8387,123 @@ msgstr ""
 "'uri_aliases' அமைவாக்க உள்ளீடு '%s' வடிவம் தவறானது, மாற்றுப் பெயரில் 'a-Z, 0-9, _, "
 "-' ஆகியவை இருக்கலாம்"
 
-#: src/libvirt.c:1090
+#: src/libvirt.c:1063
 msgid "Expected a string for 'uri_default' config parameter"
 msgstr "'uri_default' அமைவாக்க அளவுருவுக்கு ஒரு சரம் எதிர்பார்க்கப்பட்டது"
 
-#: src/libvirt.c:1125
+#: src/libvirt.c:1098
 msgid "An explicit URI must be provided when setuid"
 msgstr ""
 
-#: src/libvirt.c:1209
+#: src/libvirt.c:1182
 #, c-format
 msgid "libvirt was built without the '%s' driver"
 msgstr "'%s' இயக்கி இல்லாமல் லிப்விர்ட் உருவாக்கப்பட்டது"
 
-#: src/libvirt.c:2162 src/libvirt.c:10854 src/libvirt.c:12672
-#: src/libvirt.c:15476 src/libvirt.c:17115
+#: src/libvirt.c:2135 src/libvirt.c:10828 src/libvirt.c:12563
+#: src/libvirt.c:15173 src/libvirt.c:16720
 #, c-format
 msgid "uuidstr in %s must be a valid UUID"
 msgstr "%s இல் உள்ள uuidstr ஆனது ஒரு சரியான UUID ஆக இருக்க வேண்டும்"
 
-#: src/libvirt.c:2607 src/libvirt.c:2698
+#: src/libvirt.c:2580 src/libvirt.c:2671
 msgid "could not build absolute output file path"
 msgstr "துல்லியமான வெளியீடு கோப்புப் பாதையை உருவாக்க முடியவில்லை"
 
-#: src/libvirt.c:2686 src/libvirt.c:2813 src/libvirt.c:2954
+#: src/libvirt.c:2659 src/libvirt.c:2786 src/libvirt.c:2927
 msgid "running and paused flags are mutually exclusive"
 msgstr "இயங்குகின்ற மற்றும் இடைநிறுத்தப்பட்ட கொடிகள் அனைத்தும் ஒன்றுக்கொன்று பிரத்யேகமானவை"
 
-#: src/libvirt.c:2748 src/libvirt.c:2825 src/libvirt.c:2890 src/libvirt.c:2966
+#: src/libvirt.c:2721 src/libvirt.c:2798 src/libvirt.c:2863 src/libvirt.c:2939
 msgid "could not build absolute input file path"
 msgstr "துல்லியமான உள்ளீடு கோப்புப் பாதையை உருவாக்க முடியவில்லை"
 
-#: src/libvirt.c:2879
+#: src/libvirt.c:2852
 msgid "virDomainSaveImageGetXMLDesc with secure flag"
 msgstr "பாதுகாப்பு கொடியுடன் virDomainSaveImageGetXMLDesc"
 
-#: src/libvirt.c:3030
+#: src/libvirt.c:3003
 msgid "crash and live flags are mutually exclusive"
 msgstr "செயலிழப்பு மற்றும் செயலில் உள்ள கொடிகள் ஒன்றுக்கொன்று பிரத்யேகமானவை"
 
-#: src/libvirt.c:3036
+#: src/libvirt.c:3009
 msgid "crash and reset flags are mutually exclusive"
 msgstr "செயலிழப்பு மற்றும் மீட்டமைப்பு கொடிகள் ஒன்றுக்கொன்று பிரத்யேகமானவை"
 
-#: src/libvirt.c:3042
+#: src/libvirt.c:3015
 msgid "live and reset flags are mutually exclusive"
 msgstr "செயலிலுள்ள மற்றும் மீட்டமைப்பு கொடிகள் ஒன்றுக்கொன்று பிரத்யேகமானவை"
 
-#: src/libvirt.c:3053
+#: src/libvirt.c:3026
 msgid "could not build absolute core file path"
 msgstr "துல்லியமான கோர் கோப்புப் பாதையை உருவாக்க முடியவில்லை"
 
-#: src/libvirt.c:3508
+#: src/libvirt.c:3086 src/libvirt.c:19196 src/libvirt.c:19260
+#, fuzzy, c-format
+msgid "stream in %s must match connection of domain '%s'"
+msgstr "%s இல் உள்ள conn ஆனது ஸ்ட்ரீம் இணைப்புக்குப் பொருந்த வேண்டும்"
+
+#: src/libvirt.c:3485
 #, c-format
 msgid "result too large: %llu"
 msgstr "முடிவு மிகப் பெரியது: %llu"
 
-#: src/libvirt.c:3746
+#: src/libvirt.c:3723
 #, c-format
 msgid "string parameter name '%.*s' too long"
 msgstr "சர அளவுரு பெயர் '%.*s' மிக நீளமாக உள்ளது"
 
-#: src/libvirt.c:3755
+#: src/libvirt.c:3732
 #, c-format
 msgid "NULL string parameter '%s'"
 msgstr "NULL சர அளவுரு '%s'"
 
-#: src/libvirt.c:3761
+#: src/libvirt.c:3738
 #, c-format
 msgid "string parameter '%s' unsupported"
 msgstr "சர அளவுரு '%s' க்கு ஆதரவில்லை"
 
-#: src/libvirt.c:3884 src/libvirt.c:4128 src/libvirt.c:7656 src/libvirt.c:9429
-#: src/libvirt.c:9636 src/libvirt.c:9766 src/libvirt.c:10120
-#: src/libvirt.c:20636
+#: src/libvirt.c:3861 src/libvirt.c:4105 src/libvirt.c:7633 src/libvirt.c:9406
+#: src/libvirt.c:9613 src/libvirt.c:9743 src/libvirt.c:10097
+#: src/libvirt.c:20159
 #, c-format
 msgid "flags 'affect live' and 'affect config' in %s are mutually exclusive"
 msgstr ""
 "%s இல் உள்ள 'affect live' மற்றும் 'affect config' ஆகிய கொடிகள் ஒன்றுக்கொன்று "
 "பிரத்யேகமானவை"
 
-#: src/libvirt.c:4315
+#: src/libvirt.c:4292
 msgid "virDomainGetXMLDesc with secure flag"
 msgstr "virDomainGetXMLDesc பாதுகாப்பு கொடியுடன்"
 
-#: src/libvirt.c:4494
+#: src/libvirt.c:4471
 msgid "domainMigratePrepare did not set uri"
 msgstr "domainMigratePrepare  uriஐ அமைக்க முடியவில்லை"
 
-#: src/libvirt.c:4617 src/qemu/qemu_migration.c:3570
+#: src/libvirt.c:4594 src/qemu/qemu_migration.c:3570
 msgid "domainMigratePrepare2 did not set uri"
 msgstr "domainMigratePrepare  uriஐ அமைக்க முடியவில்லை"
 
-#: src/libvirt.c:4818 src/qemu/qemu_migration.c:3776
+#: src/libvirt.c:4795 src/qemu/qemu_migration.c:3776
 msgid "domainMigratePrepare3 did not set uri"
 msgstr "domainMigratePrepare3  ஆனது uri ஐ அமைக்கவில்லை"
 
-#: src/libvirt.c:5033
+#: src/libvirt.c:5010
 #, c-format
 msgid "unable to parse server from dconnuri in %s"
 msgstr "%s இல் உள்ள dconnuri iல் இருந்து சேவையகத்தை பாகுபடுத்த முடியவில்லை"
 
-#: src/libvirt.c:5055 src/libvirt.c:5149 src/libvirt.c:5573 src/libvirt.c:5585
-#: src/libvirt.c:5759 src/libvirt.c:5772
+#: src/libvirt.c:5032 src/libvirt.c:5126 src/libvirt.c:5550 src/libvirt.c:5562
+#: src/libvirt.c:5736 src/libvirt.c:5749
 msgid "Unable to change target guest XML during migration"
 msgstr "இடப்பெயர்வின் போது இலக்கு விருந்தினர் XML ஐ மாற்ற முடியாது"
 
-#: src/libvirt.c:5061
+#: src/libvirt.c:5038
 msgid "Unable to override peer2peer migration URI"
 msgstr "peer2peer இடப்பெயர்வு URI ஐ மீறி செயல்பட முடியாது"
 
-#: src/libvirt.c:5268 src/libvirt.c:5494 src/libvirt.c:5671 src/libvirt.c:5888
-#: src/libvirt.c:6045 src/libvirt.c:6154
+#: src/libvirt.c:5245 src/libvirt.c:5471 src/libvirt.c:5648 src/libvirt.c:5865
+#: src/libvirt.c:6022 src/libvirt.c:6131
 #, c-format
 msgid ""
 "flags 'shared disk' and 'shared incremental' in %s are mutually exclusive"
@@ -8503,28 +8511,28 @@ msgstr ""
 "%s இல் உள்ள 'shared disk' மற்றும் 'ashared incremental' ஆகிய கொடிகள் ஒன்றுக்கொன்று "
 "பிரத்யேகமானவை"
 
-#: src/libvirt.c:5278 src/libvirt.c:5504 src/libvirt.c:5687 src/libvirt.c:5898
+#: src/libvirt.c:5255 src/libvirt.c:5481 src/libvirt.c:5664 src/libvirt.c:5875
 msgid "offline migration is not supported by the source host"
 msgstr "மூல வழங்கி ஆஃப்லைன் இடப்பெயர்ப்பை ஆதரிக்கவில்லை"
 
-#: src/libvirt.c:5285 src/libvirt.c:5511 src/libvirt.c:5694
+#: src/libvirt.c:5262 src/libvirt.c:5488 src/libvirt.c:5671
 #: src/qemu/qemu_migration.c:3993
 msgid "offline migration is not supported by the destination host"
 msgstr "இலக்கு வழங்கி ஆஃப்லைன் இடப்பெயர்ப்பை ஆதரிக்கவில்லை"
 
-#: src/libvirt.c:5325 src/libvirt.c:5548 src/libvirt.c:5709
+#: src/libvirt.c:5302 src/libvirt.c:5525 src/libvirt.c:5686
 msgid "cannot enforce change protection"
 msgstr "பாதுகாப்பை மாற்றுதலைக் கட்டாயப்படுத்த முடியாது"
 
-#: src/libvirt.c:5331 src/libvirt.c:5554
+#: src/libvirt.c:5308 src/libvirt.c:5531
 msgid "cannot perform tunnelled migration without using peer2peer flag"
 msgstr "வளைவு இடப்பெயர்விற்கு peer2peer பொடியை பயன்படுத்தாமல் செயற்படுத்த முடியவில்லை"
 
-#: src/libvirt.c:5678
+#: src/libvirt.c:5655
 msgid "use virDomainMigrateToURI3 for peer-to-peer migration"
 msgstr "பீர் - பீர் இடப்பெயர்ப்புக்கு virDomainMigrateToURI3 ஐப் பயன்படுத்தவும்"
 
-#: src/libvirt.c:5729 src/qemu/qemu_migration.c:3986
+#: src/libvirt.c:5706 src/qemu/qemu_migration.c:3986
 msgid ""
 "Migration APIs with extensible parameters are not supported but extended "
 "parameters were passed"
@@ -8532,15 +8540,15 @@ msgstr ""
 "நீட்டிக்கத்தக்க அளவுருக்களைக் கொண்ட இடப்பெயர்ப்பு APIகளுக்கு ஆதரவில்லை, ஆனால் நீட்டிக்கப்பட்ட "
 "அளவுருக்கள் வழங்கப்பட்டன"
 
-#: src/libvirt.c:5925 src/libvirt.c:6073
+#: src/libvirt.c:5902 src/libvirt.c:6050
 msgid "direct migration is not supported by the connection driver"
 msgstr "நேரடி இடப்பெயர்வுக்கு இணைப்பு இயக்கியிடம் ஆதரவில்லை"
 
-#: src/libvirt.c:6178
+#: src/libvirt.c:6155
 msgid "Peer-to-peer migration is not supported by the connection driver"
 msgstr "இணைப்பு இயக்கி பீர்-பீர் இடப்பெயர்ப்பை ஆதரிக்கவில்லை"
 
-#: src/libvirt.c:6196
+#: src/libvirt.c:6173
 msgid ""
 "Peer-to-peer migration with extensible parameters is not supported but "
 "extended parameters were passed"
@@ -8548,46 +8556,46 @@ msgstr ""
 "நீட்டிக்கத்தக்க அளவுருக்களைக் கொண்ட பீர்-பீர் இடப்பெயர்ப்புக்கு ஆதரவில்லை, ஆனால் நீட்டிக்கப்பட்ட "
 "அளவுருக்கள் வழங்கப்பட்டன"
 
-#: src/libvirt.c:6206
+#: src/libvirt.c:6183
 msgid "Direct migration is not supported by the connection driver"
 msgstr "இணைப்பு இயக்கி நேரடி இடப்பெயர்ப்பை ஆதரிக்காது"
 
-#: src/libvirt.c:6213
+#: src/libvirt.c:6190
 msgid "Direct migration does not support extensible parameters"
 msgstr "நேரடி இடப்பெயர்ப்பு நீட்டிக்கத்தக்க அளவுருக்களை ஆதரிக்காது"
 
-#: src/libvirt.c:6464 src/libvirt.c:6610 src/libvirt.c:6893
+#: src/libvirt.c:6441 src/libvirt.c:6587 src/libvirt.c:6870
 #, c-format
 msgid "conn in %s must match stream connection"
 msgstr "%s இல் உள்ள conn ஆனது ஸ்ட்ரீம் இணைப்புக்குப் பொருந்த வேண்டும்"
 
-#: src/libvirt.c:7194
+#: src/libvirt.c:7171
 #, c-format
 msgid "cpuNum in %s only accepts %d as a negative value"
 msgstr "%s இல் உள்ள cpuNum எதிர்க்குறி மதிப்பாக %d ஐ மட்டுமே ஏற்றுக்கொள்ளும்"
 
-#: src/libvirt.c:7281
+#: src/libvirt.c:7258
 #, c-format
 msgid "cellNum in %s only accepts %d as a negative value"
 msgstr "%s இல் உள்ள cellNum எதிர்க்குறி மதிப்பாக %d ஐ மட்டுமே ஏற்றுக்கொள்ளும்"
 
-#: src/libvirt.c:7834 src/libvirt.c:7973
+#: src/libvirt.c:7811 src/libvirt.c:7950
 #, c-format
 msgid "size in %s must not exceed %zu"
 msgstr "%s இல் உள்ள size %zu க்கு அதிகமாகக்கூடாது"
 
-#: src/libvirt.c:8420
+#: src/libvirt.c:8397
 #, c-format
 msgid "flags in %s must include VIR_MEMORY_VIRTUAL or VIR_MEMORY_PHYSICAL"
 msgstr ""
 "%s இல் உள்ள கொடிகளில் VIR_MEMORY_VIRTUAL அல்லது VIR_MEMORY_PHYSICAL இருக்க வேண்டும்"
 
-#: src/libvirt.c:9164
+#: src/libvirt.c:9141
 #, fuzzy, c-format
 msgid "nkeycodes in %s must be <= %d"
 msgstr "%s இல் உள்ல nparams ஆனது %d ஆக இருக்க வேண்டியது அவசியம்"
 
-#: src/libvirt.c:9356
+#: src/libvirt.c:9333
 #, c-format
 msgid ""
 "flags 'VIR_DOMAIN_VCPU_MAXIMUM' and 'VIR_DOMAIN_VCPU_GUEST' in '%s' are "
@@ -8596,112 +8604,122 @@ msgstr ""
 "'%s' இல் உள்ள 'VIR_DOMAIN_VCPU_MAXIMUM' மற்றும் 'VIR_DOMAIN_VCPU_GUEST' ஆகிய "
 "கொடிகள் ஒன்றுக்கொன்று பிரத்யேகமானவை"
 
-#: src/libvirt.c:9365 src/libvirt.c:9492 src/libvirt.c:9564
+#: src/libvirt.c:9342 src/libvirt.c:9469 src/libvirt.c:9541
 #, c-format
 msgid "input too large: %u"
 msgstr "உள்ளீடு மிகப் பெரியது: %u"
 
-#: src/libvirt.c:9627 src/libvirt.c:9839
+#: src/libvirt.c:9604 src/libvirt.c:9816
 #, c-format
 msgid "input too large: %d * %d"
 msgstr "உள்ளீடு மிகப் பெரியது: %d * %d"
 
-#: src/libvirt.c:10042
+#: src/libvirt.c:10019
 #, c-format
 msgid "metadata title in %s can't contain newlines"
 msgstr "%s இல் உள்ள மீத்தரவு தலைப்பில் நியூலைன் எழுத்துக்குறிகள் இருக்கக்கூடாது"
 
-#: src/libvirt.c:14358
+#: src/libvirt.c:13667 src/libvirt.c:13733
+#, fuzzy, c-format
+msgid "stream in %s must match connection of volume '%s'"
+msgstr "%s இல் உள்ள conn ஆனது ஸ்ட்ரீம் இணைப்புக்குப் பொருந்த வேண்டும்"
+
+#: src/libvirt.c:14108
 #, c-format
 msgid "capacity in %s cannot be zero without 'delta' or 'shrink' flags set"
 msgstr ""
 "'delta' அல்லது 'shrink' கொடிகள் அமைக்கப்பட்ட நிலையில் %s இல் உள்ள capacity ஐ "
 "பூச்சியமாக அமைக்க முடியாது"
 
-#: src/libvirt.c:16271
+#: src/libvirt.c:15917
 msgid "data sources cannot be used for non-blocking streams"
 msgstr "தடுக்கப்பட்ட ஸ்ட்ரீம்களுக்கு தரவு மூலங்களை பயன்படுத்த முடியவில்லை"
 
-#: src/libvirt.c:16369
+#: src/libvirt.c:16010
 msgid "data sinks cannot be used for non-blocking streams"
 msgstr "தடுக்கப்பட்ட ஸ்ட்ரீம்களுக்கு தரவு மூழ்கை பயன்படுத்த முடியவில்லை"
 
-#: src/libvirt.c:18047
+#: src/libvirt.c:17622
 #, fuzzy, c-format
 msgid "domain '%s' in %s must match connection"
 msgstr "%s இல் உள்ள conn ஆனது ஸ்ட்ரீம் இணைப்புக்குப் பொருந்த வேண்டும்"
 
-#: src/libvirt.c:18056 src/libvirt.c:18173
+#: src/libvirt.c:17631 src/libvirt.c:17751
 #, c-format
 msgid "eventID in %s must be less than %d"
 msgstr "%s இல் உள்ள eventID ஆனது %d ஐ விடக் குறைவாகவே இருக்க வேண்டும்"
 
-#: src/libvirt.c:18279 src/libvirt.c:19488
+#: src/libvirt.c:17741
+#, fuzzy, c-format
+msgid "network '%s' in %s must match connection"
+msgstr "%s இல் உள்ள conn ஆனது ஸ்ட்ரீம் இணைப்புக்குப் பொருந்த வேண்டும்"
+
+#: src/libvirt.c:17857 src/libvirt.c:19008
 #, c-format
 msgid "running and paused flags in %s are mutually exclusive"
 msgstr ""
 "%s இல் உள்ள இயங்குகின்ற மற்றும் இடைநிறுத்தப்பட்ட கொடிகள் அனைத்தும் ஒன்றுக்கொன்று "
 "பிரத்யேகமானவை"
 
-#: src/libvirt.c:18586
+#: src/libvirt.c:18152
 #, c-format
 msgid "use of 'current' flag in %s requires 'redefine' flag"
 msgstr "%s இல் 'current' கொடியைப் பயன்படுத்த 'redefine' கொடி அவசியம்"
 
-#: src/libvirt.c:18594
+#: src/libvirt.c:18160
 #, c-format
 msgid "'redefine' and 'no metadata' flags in %s are mutually exclusive"
 msgstr ""
 "%s இல் உள்ள 'redefine' மற்றும் 'no metadata' கொடிகள் ஒன்றுக்கொன்று பிரத்யேகமானவை"
 
-#: src/libvirt.c:18602
+#: src/libvirt.c:18168
 #, c-format
 msgid "'redefine' and 'halt' flags in %s are mutually exclusive"
 msgstr "%s இல் உள்ள 'redefine' மற்றும் 'halt' கொடிகள் ஒன்றுக்கொன்று பிரத்யேகமானவை"
 
-#: src/libvirt.c:18658
+#: src/libvirt.c:18218
 msgid "virDomainSnapshotGetXMLDesc with secure flag"
 msgstr "பாதுகாப்பு கொடியுடன் virDomainSnapshotGetXMLDesc"
 
-#: src/libvirt.c:19555
+#: src/libvirt.c:19070
 #, c-format
 msgid "children and children_only flags in %s are mutually exclusive"
 msgstr "%s இல் உள்ள children மற்றும் children_only கொடிகள் ஒன்றுக்கொன்று பிரத்யேகமானவை"
 
-#: src/libvirt.c:20103
+#: src/libvirt.c:19626
 #, c-format
 msgid "use of flags in %s requires a copy job"
 msgstr "%s இல் கொடிகளைப் பயன்படுத்த ஒரு நகலெடுப்புப் பணி அவசியம்"
 
-#: src/libvirt.c:20266
+#: src/libvirt.c:19789
 #, c-format
 msgid "Unable to access file descriptor %d"
 msgstr "கோப்பு விவரிப்பு %d ஐ அணுக முடியவில்லை"
 
-#: src/libvirt.c:20272
+#: src/libvirt.c:19795
 #, c-format
 msgid "fd %d in %s must be a socket"
 msgstr "%2$s இல் உள்ள fd %1$d ஒரு சாக்கெட்டாக இருக்க வேண்டும்"
 
-#: src/libvirt.c:20282
+#: src/libvirt.c:19805
 #, fuzzy
 msgid "fd passing is not supported by this connection"
 msgstr "நேரடி இடப்பெயர்வுக்கு இணைப்பு இயக்கியிடம் ஆதரவில்லை"
 
-#: src/libvirt.c:20434
+#: src/libvirt.c:19957
 msgid "A close callback is already registered"
 msgstr "ஏற்கனவே ஒரு குளோஸ் கால்பேக் பதிவு செய்யப்பட்டுள்ளது"
 
-#: src/libvirt.c:20487
+#: src/libvirt.c:20010
 msgid "A different callback was requested"
 msgstr "வேறு கால்பேக் கோரப்பட்டது"
 
-#: src/libvirt.c:20761
+#: src/libvirt.c:20284
 #, c-format
 msgid "ncpus in %s must be 1 when start_cpu is -1"
 msgstr "start_cpu மதிப்பு -1 ஆக இருக்கையில் %s இல் உள்ள ncpus 1 ஆகவே இருக்க வேண்டும்"
 
-#: src/libvirt.c:20776
+#: src/libvirt.c:20299
 #, c-format
 msgid "input too large: %u * %u"
 msgstr "உள்ளீடு மிகப் பெரியது: %u * %u"
@@ -9380,7 +9398,7 @@ msgid "Cannot duplicate fd %d onto fd %d"
 msgstr "fd %d ஐ fd %d க்கு நகல் பிரதியெடுக்க முடியாது"
 
 #: src/lxc/lxc_container.c:363 src/util/vircommand.c:528
-#: tools/virt-login-shell.c:322
+#: tools/virt-login-shell.c:350
 msgid "sysconf(_SC_OPEN_MAX) failed"
 msgstr "sysconf(_SC_OPEN_MAX) தோல்வியடைந்தது"
 
@@ -9657,7 +9675,7 @@ msgstr "கன்டெய்னர் ரூட்டுக்கு தொட�
 msgid "Failed to send continue signal to controller"
 msgstr "கன்ட்ரோலருக்கு தொடரும் சமிக்ஞையை அனுப்புவதில் தோல்வி"
 
-#: src/lxc/lxc_container.c:1911 src/lxc/lxc_controller.c:2467
+#: src/lxc/lxc_container.c:1911 src/lxc/lxc_controller.c:2473
 msgid "Unknown failure in libvirt_lxc startup"
 msgstr "libvirt_lxc தொடக்கத்தில் தெரியாத தோல்வி"
 
@@ -9725,185 +9743,185 @@ msgstr "வட்டு தேக்கக பயன்முறை %s ஆதர
 msgid "disk driver %s is not supported"
 msgstr "வட்டு இயக்கி %s க்கு ஆதரவில்லை"
 
-#: src/lxc/lxc_controller.c:793
+#: src/lxc/lxc_controller.c:799
 #, c-format
 msgid "failed to apply capabilities: %d"
 msgstr "செயல்திறனை செயல்படுத்த முடியவில்லை: %d"
 
-#: src/lxc/lxc_controller.c:875 src/lxc/lxc_controller.c:912
+#: src/lxc/lxc_controller.c:881 src/lxc/lxc_controller.c:918
 msgid "Unable to add epoll fd"
 msgstr "epoll fd ஐ சேர்க்க முடியவில்லை"
 
-#: src/lxc/lxc_controller.c:886 src/lxc/lxc_controller.c:924
+#: src/lxc/lxc_controller.c:892 src/lxc/lxc_controller.c:930
 msgid "Unable to remove epoll fd"
 msgstr "epoll fd ஐ நீக்க முடியவில்லை"
 
-#: src/lxc/lxc_controller.c:954
+#: src/lxc/lxc_controller.c:960
 msgid "Unable to wait on epoll"
 msgstr "epoll இல் காத்திருக்க முடியவில்லை"
 
-#: src/lxc/lxc_controller.c:1012
+#: src/lxc/lxc_controller.c:1018
 msgid "Unable to read container pty"
 msgstr "கன்டெய்னர் pty ஐப் படிக்க முடியவில்லை"
 
-#: src/lxc/lxc_controller.c:1040
+#: src/lxc/lxc_controller.c:1046
 msgid "Unable to write to container pty"
 msgstr "கன்டெய்னர் pty ஐ எழுத முடியவில்லை"
 
-#: src/lxc/lxc_controller.c:1102
+#: src/lxc/lxc_controller.c:1108
 msgid "Unable to create epoll fd"
 msgstr "epoll fd ஐ உருவாக்க முடியவில்லை"
 
-#: src/lxc/lxc_controller.c:1112
+#: src/lxc/lxc_controller.c:1118
 msgid "Unable to watch epoll FD"
 msgstr "epoll FD ஐ கவனிக்க முடியவில்லை"
 
-#: src/lxc/lxc_controller.c:1122 src/lxc/lxc_controller.c:1132
+#: src/lxc/lxc_controller.c:1128 src/lxc/lxc_controller.c:1138
 msgid "Unable to watch host console PTY"
 msgstr "வழங்கி கன்சோல் PTY ஐ கவனிக்க முடியவில்லை"
 
-#: src/lxc/lxc_controller.c:1173
+#: src/lxc/lxc_controller.c:1179
 #, c-format
 msgid "unable write to %s"
 msgstr "%s இல் எழுத முடியவில்லை"
 
-#: src/lxc/lxc_controller.c:1245 src/lxc/lxc_controller.c:1939
+#: src/lxc/lxc_controller.c:1251 src/lxc/lxc_controller.c:1945
 #, c-format
 msgid "Failed to make path %s"
 msgstr "பாதை %sஐ செய்ய முடியவில்லை"
 
-#: src/lxc/lxc_controller.c:1262
+#: src/lxc/lxc_controller.c:1268
 #, c-format
 msgid "Failed to mount devfs on %s type %s (%s)"
 msgstr "devfs ஐ %s வகை %s இல் மவுன்ட் செய்தல் தோல்வியடைந்தது (%s)"
 
-#: src/lxc/lxc_controller.c:1310
+#: src/lxc/lxc_controller.c:1316
 #, c-format
 msgid "Failed to make device %s"
 msgstr "சாதனம் %sஐ செய்ய முடியவில்லை"
 
-#: src/lxc/lxc_controller.c:1360 src/lxc/lxc_controller.c:1438
-#: src/lxc/lxc_controller.c:1517 src/lxc/lxc_controller.c:1674
+#: src/lxc/lxc_controller.c:1366 src/lxc/lxc_controller.c:1444
+#: src/lxc/lxc_controller.c:1523 src/lxc/lxc_controller.c:1680
 #: src/lxc/lxc_driver.c:3054 src/lxc/lxc_driver.c:3320
 #: src/lxc/lxc_driver.c:3405 src/lxc/lxc_driver.c:3513
 #, c-format
 msgid "Unable to access %s"
 msgstr "%s ஐ அணுக முடியவில்லை "
 
-#: src/lxc/lxc_controller.c:1366 src/lxc/lxc_driver.c:3326
+#: src/lxc/lxc_controller.c:1372 src/lxc/lxc_driver.c:3326
 #, c-format
 msgid "USB source %s was not a character device"
 msgstr "USB மூலம் %s ஆனது ஒரு எழுத்து சாதனமல்ல"
 
-#: src/lxc/lxc_controller.c:1375 src/lxc/lxc_driver.c:3335
+#: src/lxc/lxc_controller.c:1381 src/lxc/lxc_driver.c:3335
 #, c-format
 msgid "Unable to create %s"
 msgstr "%s ஐ உருவாக்க முடியவில்லை"
 
-#: src/lxc/lxc_controller.c:1383 src/lxc/lxc_controller.c:1463
-#: src/lxc/lxc_controller.c:1542 src/lxc/lxc_controller.c:1702
+#: src/lxc/lxc_controller.c:1389 src/lxc/lxc_controller.c:1469
+#: src/lxc/lxc_controller.c:1548 src/lxc/lxc_controller.c:1708
 #: src/lxc/lxc_driver.c:3089 src/lxc/lxc_driver.c:3343
 #: src/lxc/lxc_driver.c:3443 src/lxc/lxc_driver.c:3551
 #, c-format
 msgid "Unable to create device %s"
 msgstr "சாதனம் %s ஐ உருவாக்க முடியவில்லை"
 
-#: src/lxc/lxc_controller.c:1421 src/lxc/lxc_controller.c:1500
+#: src/lxc/lxc_controller.c:1427 src/lxc/lxc_controller.c:1506
 msgid "Missing storage host block path"
 msgstr "சேமிப்பக வழங்கி தொகுப்புப் பாதை விடுபட்டுள்ளது"
 
-#: src/lxc/lxc_controller.c:1445
+#: src/lxc/lxc_controller.c:1451
 #, c-format
 msgid "Storage source %s must be a block device"
 msgstr "சேமிப்பக மூலம் %s ஆனது தொகுப்பு சாதனமாக இருக்க வேண்டும்"
 
-#: src/lxc/lxc_controller.c:1452 src/lxc/lxc_controller.c:1531
+#: src/lxc/lxc_controller.c:1458 src/lxc/lxc_controller.c:1537
 #, c-format
 msgid "Failed to create directory for device %s"
 msgstr "சாதனம் %s க்கான கோப்பகத்தை உருவாக்குவதில் தோல்வியடைந்தது"
 
-#: src/lxc/lxc_controller.c:1524
+#: src/lxc/lxc_controller.c:1530
 #, c-format
 msgid "Storage source %s must be a character device"
 msgstr "சேமிப்பக மூலம் %s ஆனது எழுத்து சாதனமாக இருக்க வேண்டும்"
 
-#: src/lxc/lxc_controller.c:1576 src/lxc/lxc_controller.c:1604
-#: src/lxc/lxc_controller.c:1636 src/lxc/lxc_driver.c:3654
+#: src/lxc/lxc_controller.c:1582 src/lxc/lxc_controller.c:1610
+#: src/lxc/lxc_controller.c:1642 src/lxc/lxc_driver.c:3654
 #: src/lxc/lxc_driver.c:4075
 #, c-format
 msgid "Unsupported host device mode %s"
 msgstr "ஆதரிக்கப்படாத வழங்கி சாதன பயன்முறை %s"
 
-#: src/lxc/lxc_controller.c:1659 src/lxc/lxc_driver.c:3037
+#: src/lxc/lxc_controller.c:1665 src/lxc/lxc_driver.c:3037
 msgid "Can't setup disk for non-block device"
 msgstr "தொகுப்பல்லாத சாதனத்திற்கு வட்டை அமைக்க முடியவில்லை"
 
-#: src/lxc/lxc_controller.c:1664 src/lxc/lxc_driver.c:3042
+#: src/lxc/lxc_controller.c:1670 src/lxc/lxc_driver.c:3042
 msgid "Can't setup disk without media"
 msgstr "ஊடகமில்லாமல் வட்டை அமைக்க முடியாது"
 
-#: src/lxc/lxc_controller.c:1680 src/lxc/lxc_driver.c:3060
+#: src/lxc/lxc_controller.c:1686 src/lxc/lxc_driver.c:3060
 #, c-format
 msgid "Disk source %s must be a character/block device"
 msgstr "வட்டு மூலம் %s ஆனது எழுத்து/தொகுப்பு சாதனமாக இருக்க வேண்டும்"
 
-#: src/lxc/lxc_controller.c:1810
+#: src/lxc/lxc_controller.c:1816
 #, c-format
 msgid "Unable to request personality for %s on %s"
 msgstr "%s இல் %s க்கான பெர்சனாலிட்டியைக் கோர முடியவில்லை"
 
-#: src/lxc/lxc_controller.c:1902
+#: src/lxc/lxc_controller.c:1908
 msgid "Cannot unshare mount namespace"
 msgstr "பெயர் இடைவெளி பகிராததை ஏற்ற முடியவில்லை"
 
-#: src/lxc/lxc_controller.c:1908
+#: src/lxc/lxc_controller.c:1914
 msgid "Failed to switch root mount into slave mode"
 msgstr "ஸ்லேவ் முறைமையில் ருட்டை ஏற்ற முடியவில்லை"
 
-#: src/lxc/lxc_controller.c:1954
+#: src/lxc/lxc_controller.c:1960
 #, c-format
 msgid "Failed to mount devpts on %s"
 msgstr "devpts ஐ %s க்கு ஏற்ற முடியவில்லை"
 
-#: src/lxc/lxc_controller.c:1961
+#: src/lxc/lxc_controller.c:1967
 msgid "Kernel does not support private devpts"
 msgstr "கெர்னல் தனிப்பட்ட devpts ஐ ஆதரிக்காது"
 
-#: src/lxc/lxc_controller.c:2005 src/lxc/lxc_process.c:1128
+#: src/lxc/lxc_controller.c:2011 src/lxc/lxc_process.c:1128
 msgid "Failed to allocate tty"
 msgstr "ttyஐ ஒதுக்க முடியவில்லை"
 
-#: src/lxc/lxc_controller.c:2133
+#: src/lxc/lxc_controller.c:2139
 msgid "sockpair failed"
 msgstr "சாக்ஜோடி செயலிழக்கப்பட்டது"
 
-#: src/lxc/lxc_controller.c:2139
+#: src/lxc/lxc_controller.c:2145
 msgid "socketpair failed"
 msgstr "சாக்கெட்பேர் தோல்வி"
 
-#: src/lxc/lxc_controller.c:2201
+#: src/lxc/lxc_controller.c:2207
 msgid "Unable to send container continue message"
 msgstr "கொள்கலனுக்கு தொடர் செய்தியை அனுப்ப முடியவில்லை"
 
-#: src/lxc/lxc_controller.c:2207
+#: src/lxc/lxc_controller.c:2213
 msgid "error receiving signal from container"
 msgstr "கன்டெய்னரிலிருந்து சிக்னலைப் பெறுவதில் பிழை"
 
-#: src/lxc/lxc_controller.c:2433
+#: src/lxc/lxc_controller.c:2439
 #, c-format
 msgid "Unable to write pid file '%s/%s.pid'"
 msgstr "pid கோப்பு '%s/%s.pid' ஐ எழுத முடியவில்லை"
 
-#: src/lxc/lxc_controller.c:2447
+#: src/lxc/lxc_controller.c:2453
 msgid "Unable to change to root dir"
 msgstr "ரூட் அடைவை மாற்ற முடியவில்லை"
 
-#: src/lxc/lxc_controller.c:2453
+#: src/lxc/lxc_controller.c:2459
 msgid "Unable to become session leader"
 msgstr "அமர்வு தலைவராக முடியவில்லை"
 
 #: src/lxc/lxc_driver.c:132 src/libxl/libxl_driver.c:94
-#: src/qemu/qemu_driver.c:220 src/test/test_driver.c:486
+#: src/qemu/qemu_driver.c:220 src/test/test_driver.c:496
 #, c-format
 msgid "no domain with matching uuid '%s' (%s)"
 msgstr "uuid '%s' க்கு பொருந்தும் டொமைன் இல்லை (%s)"
@@ -10097,7 +10115,7 @@ msgstr "முன்னிருப்பு"
 
 #: src/lxc/lxc_driver.c:2588 src/libxl/libxl_driver.c:4017
 #: src/qemu/qemu_driver.c:13935 src/uml/uml_driver.c:2589
-#: src/xen/xen_driver.c:2665
+#: src/xen/xen_driver.c:2662
 #, c-format
 msgid "character device %s is not using a PTY"
 msgstr "எழுத்துக்குறி சாதனம் %s ஒரு PTY ஐப் பயன்படுத்தவில்லை"
@@ -10144,7 +10162,7 @@ msgstr "சாதனத்தை ஒரே நிலையாக இணைத்
 
 #: src/lxc/lxc_driver.c:2922 src/lxc/lxc_driver.c:2978
 #: src/lxc/lxc_driver.c:3771 src/qemu/qemu_driver.c:6727
-#: src/qemu/qemu_hotplug.c:3395
+#: src/qemu/qemu_hotplug.c:3393
 #, c-format
 msgid "multiple devices matching mac address %s found"
 msgstr "%s என்ற mac முகவரிக்கு பல சாதனங்கள் பொருந்துவதாகக் கண்டறியப்பட்டுள்ளது"
@@ -10165,8 +10183,8 @@ msgid "no target device %s"
 msgstr "இலக்கு சாதனம் %s இல்லை"
 
 #: src/lxc/lxc_driver.c:2995 src/qemu/qemu_driver.c:6743
-#: src/qemu/qemu_driver.c:6767 src/qemu/qemu_hotplug.c:1385
-#: src/qemu/qemu_hotplug.c:3621
+#: src/qemu/qemu_driver.c:6767 src/qemu/qemu_hotplug.c:1383
+#: src/qemu/qemu_hotplug.c:3619
 msgid "device not present in domain configuration"
 msgstr "டொமைன் அமைவாக்கத்தில் சாதனம் இல்லை"
 
@@ -10206,7 +10224,7 @@ msgid "No bridge name specified"
 msgstr "பிரிட்ஜ் பெயர் குறிப்பிடப்படவில்லை"
 
 #: src/lxc/lxc_driver.c:3197 src/lxc/lxc_process.c:402
-#: src/qemu/qemu_command.c:314 src/qemu/qemu_hotplug.c:1718
+#: src/qemu/qemu_command.c:314 src/qemu/qemu_hotplug.c:1716
 #, c-format
 msgid "Network '%s' is not active."
 msgstr "பிணையம் %s செயலில் இல்லை."
@@ -10254,7 +10272,7 @@ msgid "device type '%s' cannot be attached"
 msgstr "சாதன வகை '%s'ஐ இணைக்க முடியவில்லை"
 
 #: src/lxc/lxc_driver.c:3719 src/libxl/libxl_driver.c:3053
-#: src/qemu/qemu_hotplug.c:3007 src/uml/uml_driver.c:2268
+#: src/qemu/qemu_hotplug.c:3005 src/uml/uml_driver.c:2268
 #, c-format
 msgid "disk %s not found"
 msgstr "வட்டு %s காணப்படவில்லை"
@@ -10265,7 +10283,7 @@ msgstr "வட்டு %s காணப்படவில்லை"
 msgid "Unable to remove device %s"
 msgstr "சாதனம் %s ஐ நீக்க முடியவில்லை"
 
-#: src/lxc/lxc_driver.c:3776 src/qemu/qemu_hotplug.c:3401
+#: src/lxc/lxc_driver.c:3776 src/qemu/qemu_hotplug.c:3399
 #, c-format
 msgid "network device %s not found"
 msgstr "பிணைய சாதனம் %s காணப்படவில்லை"
@@ -10308,14 +10326,14 @@ msgid "Unable to modify live devices"
 msgstr "நிகழ்நேர சாதனங்களை மாற்றியமைக்க  முடியவில்லை"
 
 #: src/lxc/lxc_driver.c:4531 src/libxl/libxl_driver.c:1079
-#: src/qemu/qemu_command.c:7857 src/qemu/qemu_driver.c:1210
-#: src/xen/xen_driver.c:643
+#: src/qemu/qemu_command.c:7858 src/qemu/qemu_driver.c:1210
+#: src/xen/xen_driver.c:640
 msgid "Host SMBIOS information is not available"
 msgstr "வழங்கி SMBIOS தகவல் கிடைக்கவில்லை"
 
 #: src/lxc/lxc_process.c:279 src/network/bridge_driver.c:1870
 #: src/qemu/qemu_command.c:395 src/qemu/qemu_driver.c:9429
-#: src/qemu/qemu_hotplug.c:2169 src/util/virnetdevmacvlan.c:938
+#: src/qemu/qemu_hotplug.c:2167 src/util/virnetdevmacvlan.c:938
 #, c-format
 msgid "cannot set bandwidth limits on %s"
 msgstr "%s இல் பேன்ட்விட்த் வரம்புகளை அமைக்க முடியாது"
@@ -10561,7 +10579,7 @@ msgstr "libxenlight க்கான திறப்பாடுகளை உர�
 msgid "libxenlight state driver is not active"
 msgstr "libxenlight நிலை இயக்கி செயலில் இல்லை"
 
-#: src/libxl/libxl_driver.c:1012 src/xen/xen_driver.c:425
+#: src/libxl/libxl_driver.c:1012 src/xen/xen_driver.c:422
 #, c-format
 msgid "unexpected Xen URI path '%s', try xen:///"
 msgstr "எதிர்பாராத Xen URI பாதை '%s', xen:///ஐ முயற்சி செய்"
@@ -10648,8 +10666,8 @@ msgid "cannot close file"
 msgstr "கோப்பை மூட முடியவில்லை"
 
 #: src/libxl/libxl_driver.c:1858 src/libxl/libxl_driver.c:1910
-#: src/test/test_driver.c:2121 src/test/test_driver.c:2234
-#: src/xen/xen_driver.c:1201 src/xen/xen_driver.c:1324
+#: src/test/test_driver.c:2230 src/test/test_driver.c:2343
+#: src/xen/xen_driver.c:1198 src/xen/xen_driver.c:1321
 msgid "xml modification unsupported"
 msgstr "xml மாற்றம் செய்தலுக்கு ஆதரவில்லை"
 
@@ -10673,12 +10691,12 @@ msgstr ""
 "தோல்வியடைந்தது"
 
 #: src/libxl/libxl_driver.c:2065 src/qemu/qemu_driver.c:3266
-#: src/test/test_driver.c:6289
+#: src/test/test_driver.c:6398
 msgid "cannot do managed save for transient domain"
 msgstr "டிரான்ஸியன்ட் டொமைனுக்கு நிர்வகிக்கப்பட்ட சேமிப்பைச் செய்ய முடியாது"
 
 #: src/libxl/libxl_driver.c:2193 src/libxl/libxl_driver.c:2332
-#: src/test/test_driver.c:2537 src/xen/xen_driver.c:1376
+#: src/test/test_driver.c:2646 src/xen/xen_driver.c:1373
 #, c-format
 msgid "invalid flag combination: (0x%x)"
 msgstr "தவறான கொடி சேர்க்கை: (0x%x)"
@@ -10735,7 +10753,7 @@ msgstr "டொமைன் '%d' க்கான vcpus ஐ libxenlight கொண�
 
 #: src/libxl/libxl_driver.c:2647 src/libxl/libxl_driver.c:2691
 #: src/qemu/qemu_driver.c:5760 src/qemu/qemu_driver.c:5808
-#: src/xen/xen_driver.c:1606 src/xen/xen_driver.c:1659
+#: src/xen/xen_driver.c:1603 src/xen/xen_driver.c:1656
 #, c-format
 msgid "unsupported config type %s"
 msgstr "துணைபுரியாத கட்டமை வகை %s"
@@ -10754,7 +10772,7 @@ msgid "Failed to remove domain managed save image"
 msgstr "டொமைனில் நிர்வகிக்கப்பட்ட சேமித்தல் படத்தை நீக்குவதில் தோல்வி"
 
 #: src/libxl/libxl_driver.c:2885 src/qemu/qemu_driver.c:6287
-#: src/test/test_driver.c:3032 tools/virsh-domain.c:3161
+#: src/test/test_driver.c:3141 tools/virsh-domain.c:3161
 msgid "Refusing to undefine while domain managed save image exists"
 msgstr "டொமைன் நிர்வகிக்கும் சேமி படம் இருக்கையில் வரையறை நீக்க மறுக்கிறது"
 
@@ -10869,7 +10887,7 @@ msgstr "டொமைன் '%d' க்கான அளவுருக்கள�
 msgid "Failed to set scheduler parameters for domain '%d' with libxenlight"
 msgstr "டொமைன் '%d' க்கான ஷெட்யூலர் அளவுருக்களை libxenlight கொண்டு பெறுவதில் தோல்வி"
 
-#: src/libxl/libxl_driver.c:3987 src/xen/xen_driver.c:2644
+#: src/libxl/libxl_driver.c:3987 src/xen/xen_driver.c:2641
 msgid "Named device aliases are not supported"
 msgstr "பெயருள்ள சாதன மாற்றுப் பெயர்களுக்கு ஆதரவில்லை"
 
@@ -10903,8 +10921,8 @@ msgstr "libxl_get_cpu_topology தோல்வியடைந்தது"
 msgid "Failed to get version info from libxenlight"
 msgstr "libxenlight இலிருந்து பதிப்பு தகவலைப் பெறுவதில் தோல்வி"
 
-#: src/libxl/libxl_conf.c:264 src/libxl/libxl_conf.c:1036
-#: src/storage/storage_backend.c:1627
+#: src/libxl/libxl_conf.c:264 src/libxl/libxl_conf.c:1043
+#: src/storage/storage_backend.c:1628
 #: src/storage/storage_backend_logical.c:207
 #, c-format
 msgid "Failed to compile regex %s"
@@ -10924,7 +10942,7 @@ msgstr "libxenlight ஆனது UUID '%s' ஐப் பாகுபடுத்
 msgid "unknown chrdev type"
 msgstr "தெரியாத chrdev வகை"
 
-#: src/libxl/libxl_conf.c:556 src/qemu/qemu_command.c:5978
+#: src/libxl/libxl_conf.c:556 src/qemu/qemu_command.c:5981
 #, c-format
 msgid "unsupported chardev '%s'"
 msgstr "ஆதரிக்கப்படாத chardev '%s'"
@@ -10957,16 +10975,16 @@ msgstr "libxenlight ஆனது நிலையற்ற வட்டுகள�
 msgid "libxenlight does not support network device type %s"
 msgstr "libxenlight பிணைய சாதன வகை %s ஐ ஆதரிக்காது"
 
-#: src/libxl/libxl_conf.c:1079
+#: src/libxl/libxl_conf.c:1086
 #, c-format
 msgid "Failed to create log file '%s': %s"
 msgstr "பதிவுக் கோப்பு '%s' ஐ உருவாக்குவதில் தோல்வியடைந்தது: %s"
 
-#: src/libxl/libxl_conf.c:1089
+#: src/libxl/libxl_conf.c:1096
 msgid "cannot create logger for libxenlight, disabling driver"
 msgstr "libxenlight க்கான பதிவியை உருவாக்க முடியவில்லை, இயக்கியை முடக்குகிறது"
 
-#: src/libxl/libxl_conf.c:1094
+#: src/libxl/libxl_conf.c:1101
 msgid ""
 "cannot initialize libxenlight context, probably not running in a Xen Dom0, "
 "disabling driver"
@@ -10974,11 +10992,11 @@ msgstr ""
 "libxenlight சூழலைத் துவக்க முடியவில்லை, சரியாக ஒரு Xen Dom0 இல் இயங்கவில்லை, "
 "இயக்கியை முடக்குகிறது"
 
-#: src/libxl/libxl_conf.c:1100
+#: src/libxl/libxl_conf.c:1107
 msgid "cannot version information from libxenlight, disabling driver"
 msgstr "libxenlight இலிருந்து தகவலைப் பதிப்பிட முடியவில்லை, இயக்கியை முடக்குகிறது"
 
-#: src/libxl/libxl_conf.c:1110
+#: src/libxl/libxl_conf.c:1117
 msgid "Unable to configure libxl's memory management parameters"
 msgstr "libxl இன் நினைவக நிர்வாக அளவுருக்களை அமைவாக்கம் செய்ய முடியவில்லை"
 
@@ -11081,7 +11099,7 @@ msgstr "பிணையம் ஏற்கனவே செயலில் உள
 #: src/network/bridge_driver.c:2729 src/network/bridge_driver.c:2887
 #: src/network/bridge_driver.c:2921 src/network/bridge_driver.c:3045
 #: src/parallels/parallels_network.c:477 src/parallels/parallels_network.c:528
-#: src/parallels/parallels_network.c:594 src/test/test_driver.c:3694
+#: src/parallels/parallels_network.c:594 src/test/test_driver.c:3803
 msgid "no network with matching uuid"
 msgstr "uuidஉடன் பிணைய பொருத்தம் இல்லை"
 
@@ -11146,7 +11164,7 @@ msgstr ""
 msgid "network is not active"
 msgstr "பிணையம் செயலில் இல்லை"
 
-#: src/network/bridge_driver.c:3000 src/test/test_driver.c:3836
+#: src/network/bridge_driver.c:3000 src/test/test_driver.c:3945
 #, c-format
 msgid "network '%s' does not have a bridge name."
 msgstr "பிணையம் '%s' ஒரு பாலம் பெயர் இல்லை."
@@ -11502,14 +11520,14 @@ msgstr "இணைப்பு %sஐ தீர்வு செய்ய முட
 #: src/node_device/node_device_driver.c:311
 #: src/node_device/node_device_driver.c:344
 #: src/node_device/node_device_driver.c:382
-#: src/node_device/node_device_driver.c:416 src/test/test_driver.c:5795
-#: src/test/test_driver.c:5821 src/test/test_driver.c:5855
-#: src/test/test_driver.c:5886
+#: src/node_device/node_device_driver.c:416 src/test/test_driver.c:5904
+#: src/test/test_driver.c:5930 src/test/test_driver.c:5964
+#: src/test/test_driver.c:5995
 #, c-format
 msgid "no node device with matching name '%s'"
 msgstr "முனை சாதனம் பொருந்தும் பெயர் '%s'இல் இல்லை"
 
-#: src/node_device/node_device_driver.c:357 src/test/test_driver.c:5830
+#: src/node_device/node_device_driver.c:357 src/test/test_driver.c:5939
 msgid "no parent for this device"
 msgstr "இந்த சாதனத்திற்கு பெற்றோர் இல்லை"
 
@@ -12530,7 +12548,7 @@ msgstr "%s க்கான %s ஐ அமைப்பதில் தோல்வ
 
 #: src/openvz/openvz_driver.c:1975 src/parallels/parallels_driver.c:67
 #: src/parallels/parallels_driver.c:1142 src/qemu/qemu_driver.c:1380
-#: src/test/test_driver.c:2492 src/uml/uml_driver.c:1757
+#: src/test/test_driver.c:2601 src/uml/uml_driver.c:1757
 #: src/uml/uml_driver.c:1786 src/uml/uml_driver.c:1822
 #: src/uml/uml_driver.c:2187 src/uml/uml_driver.c:2307
 #: src/uml/uml_driver.c:2552 src/vmware/vmware_driver.c:756
@@ -12539,7 +12557,7 @@ msgid "no domain with matching uuid '%s'"
 msgstr "பொருந்தும் uuid '%s'உடன் செயற்களம் இல்லை"
 
 #: src/openvz/openvz_driver.c:1998 src/qemu/qemu_driver.c:9282
-#: src/test/test_driver.c:3324
+#: src/test/test_driver.c:3433
 #, c-format
 msgid "invalid path, '%s' is not a known interface"
 msgstr "தவறான பாதை, '%s'க்கு தெரிந்த முகப்பு இல்லை"
@@ -12824,7 +12842,7 @@ msgid "pool '%s' not found"
 msgstr "தொகுப்பகம் '%s' இல்லை"
 
 #: src/parallels/parallels_storage.c:99 src/parallels/parallels_storage.c:339
-#: src/storage/storage_backend_fs.c:836
+#: src/storage/storage_backend_fs.c:835
 #, c-format
 msgid "cannot open path '%s'"
 msgstr "பாதை '%s'ஐ திறக்க முடியவில்லை"
@@ -12850,7 +12868,7 @@ msgstr "பாதை '%s' ஐ ஸ்டாட் செய்ய முடிய
 msgid "Failed to load pool configs"
 msgstr "தொகுப்பக அமைவாக்கங்களை ஏற்றுவது தோல்வி"
 
-#: src/parallels/parallels_storage.c:681 src/storage/storage_backend_fs.c:920
+#: src/parallels/parallels_storage.c:681 src/storage/storage_backend_fs.c:919
 #, c-format
 msgid "cannot statvfs path '%s'"
 msgstr "statvfs பாதை '%s' செய்யப்படவில்லை"
@@ -12866,9 +12884,9 @@ msgid "storage pool '%s' is still active"
 msgstr "சேமிப்பக தொகுப்பகம் '%s' இன்னும் செயலில் உள்ளது"
 
 #: src/parallels/parallels_storage.c:805 src/storage/storage_driver.c:771
-#: src/storage/storage_driver.c:821 src/test/test_driver.c:4593
-#: src/test/test_driver.c:4764 src/test/test_driver.c:4800
-#: src/test/test_driver.c:4871
+#: src/storage/storage_driver.c:821 src/test/test_driver.c:4702
+#: src/test/test_driver.c:4873 src/test/test_driver.c:4909
+#: src/test/test_driver.c:4980
 #, c-format
 msgid "storage pool '%s' is already active"
 msgstr "சேமிப்பக தொகுப்பக '%s'ல் ஏற்கனவே செயலில் உள்ளது"
@@ -12891,18 +12909,18 @@ msgstr "சேமிப்பக தொகுப்பக '%s'ல் ஏற்�
 #: src/storage/storage_driver.c:1980 src/storage/storage_driver.c:2049
 #: src/storage/storage_driver.c:2360 src/storage/storage_driver.c:2428
 #: src/storage/storage_driver.c:2488 src/storage/storage_driver.c:2539
-#: src/test/test_driver.c:4829 src/test/test_driver.c:4906
-#: src/test/test_driver.c:5061 src/test/test_driver.c:5097
-#: src/test/test_driver.c:5207 src/test/test_driver.c:5324
-#: src/test/test_driver.c:5402 src/test/test_driver.c:5499
-#: src/test/test_driver.c:5577 src/test/test_driver.c:5625
-#: src/test/test_driver.c:5665
+#: src/test/test_driver.c:4938 src/test/test_driver.c:5015
+#: src/test/test_driver.c:5170 src/test/test_driver.c:5206
+#: src/test/test_driver.c:5316 src/test/test_driver.c:5433
+#: src/test/test_driver.c:5511 src/test/test_driver.c:5608
+#: src/test/test_driver.c:5686 src/test/test_driver.c:5734
+#: src/test/test_driver.c:5774
 #, c-format
 msgid "storage pool '%s' is not active"
 msgstr "சேமிக்கப்பட்ட தொகுப்பகம் '%s' செயல்பாட்டில் இல்லை"
 
 #: src/parallels/parallels_storage.c:988 src/storage/storage_driver.c:1146
-#: src/test/test_driver.c:5028
+#: src/test/test_driver.c:5137
 msgid "pool has no config file"
 msgstr "தொகுப்பக கட்டமைப்பு கோப்பினை பெற்றிருக்கவில்லை"
 
@@ -12916,33 +12934,33 @@ msgstr "தொகுப்பக கட்டமைப்பு கோப்ப�
 #: src/storage/storage_driver.c:1922 src/storage/storage_driver.c:1988
 #: src/storage/storage_driver.c:2060 src/storage/storage_driver.c:2368
 #: src/storage/storage_driver.c:2436 src/storage/storage_driver.c:2496
-#: src/storage/storage_driver.c:2547 src/test/test_driver.c:5215
-#: src/test/test_driver.c:5419 src/test/test_driver.c:5492
-#: src/test/test_driver.c:5570 src/test/test_driver.c:5618
-#: src/test/test_driver.c:5658
+#: src/storage/storage_driver.c:2547 src/test/test_driver.c:5324
+#: src/test/test_driver.c:5528 src/test/test_driver.c:5601
+#: src/test/test_driver.c:5679 src/test/test_driver.c:5727
+#: src/test/test_driver.c:5767
 #, c-format
 msgid "no storage vol with matching name '%s'"
 msgstr "சேமிப்பக vol பொருந்தும் பெயர் '%s'க்கு இல்லை"
 
-#: src/parallels/parallels_storage.c:1148 src/test/test_driver.c:5260
+#: src/parallels/parallels_storage.c:1148 src/test/test_driver.c:5369
 #, c-format
 msgid "no storage vol with matching key '%s'"
 msgstr "சேமிப்பக vol பொருந்தும் விசை '%s'க்கு இல்லை"
 
-#: src/parallels/parallels_storage.c:1180 src/test/test_driver.c:5295
+#: src/parallels/parallels_storage.c:1180 src/test/test_driver.c:5404
 #, c-format
 msgid "no storage vol with matching path '%s'"
 msgstr "சேமிப்பக vol பொருந்தும் '%s' பாதையில் இல்லை"
 
 #: src/parallels/parallels_storage.c:1217
-#: src/parallels/parallels_storage.c:1342 src/test/test_driver.c:5334
-#: src/test/test_driver.c:5412
+#: src/parallels/parallels_storage.c:1342 src/test/test_driver.c:5443
+#: src/test/test_driver.c:5521
 msgid "storage vol already exists"
 msgstr "சேமிப்பக தொகுதி ஏற்கனவே உள்ளது"
 
 #: src/parallels/parallels_storage.c:1226
-#: src/parallels/parallels_storage.c:1358 src/test/test_driver.c:5342
-#: src/test/test_driver.c:5428
+#: src/parallels/parallels_storage.c:1358 src/test/test_driver.c:5451
+#: src/test/test_driver.c:5537
 #, c-format
 msgid "Not enough free space in pool for volume '%s'"
 msgstr "தொகுதி '%s'க்கு போதிய இடம் தொகுப்பகத்தில் இல்லை"
@@ -13710,7 +13728,7 @@ msgstr "முதன்மை வீடியோ அட்டையானது 
 msgid "virtio only support device address type 'PCI'"
 msgstr "virtio ஆனது 'PCI' வகை சாதன முகவரியை மட்டுமே ஆதரிக்கும்"
 
-#: src/qemu/qemu_command.c:2972 src/qemu/qemu_command.c:5442
+#: src/qemu/qemu_command.c:2972 src/qemu/qemu_command.c:5445
 msgid "non-primary video device must be type of 'qxl'"
 msgstr "பிரதானமல்லாத வீடியோ சாதனமானது 'qxl' வகையினதாகவே இருக்க வேண்டும்"
 
@@ -13840,7 +13858,7 @@ msgid "':' not allowed in RBD source volume name '%s'"
 msgstr "RBD மூல தொகுப்பு பெயர் '%s' இல் ':' க்கு அனுமதிக்கப்படாது"
 
 #: src/qemu/qemu_command.c:3934 src/qemu/qemu_command.c:4292
-#: src/qemu/qemu_command.c:8579 src/uml/uml_conf.c:408
+#: src/qemu/qemu_command.c:8580 src/uml/uml_conf.c:408
 #, c-format
 msgid "unsupported disk type '%s'"
 msgstr "துணைபுரியாத வட்டு வகை '%s'"
@@ -13875,12 +13893,12 @@ msgstr "1 %s பஸ்க்கு மட்டும் துணைபுர�
 msgid "target must be 0 for controller fdc"
 msgstr "கன்ட்ரோலர் fdc க்கு இலக்கு 0 ஆக இருக்க வேண்டும்"
 
-#: src/qemu/qemu_command.c:4027 src/qemu/qemu_command.c:8588
+#: src/qemu/qemu_command.c:4027 src/qemu/qemu_command.c:8589
 #, c-format
 msgid "unsupported disk driver type for '%s'"
 msgstr "'%s'கான துணைபுரியாத வட்டு இயக்கி வகை "
 
-#: src/qemu/qemu_command.c:4034 src/qemu/qemu_command.c:8594
+#: src/qemu/qemu_command.c:4034 src/qemu/qemu_command.c:8595
 msgid "cannot create virtual FAT disks in read-write mode"
 msgstr "மெய்நிகர் FAT வட்டுகள் வாசிக்க-எழுதும் முறைமையில் உருவாக்க முடியவில்லை"
 
@@ -13888,7 +13906,7 @@ msgstr "மெய்நிகர் FAT வட்டுகள் வாசிக
 msgid "tray status 'open' is invalid for block type volume"
 msgstr "பிரிவகம் என்ற தொகுப்பு வகைக்கு ட்ரே நிலை 'open' என்பது செல்லாது"
 
-#: src/qemu/qemu_command.c:4050 src/qemu/qemu_command.c:8548
+#: src/qemu/qemu_command.c:4050 src/qemu/qemu_command.c:8549
 msgid "tray status 'open' is invalid for block type disk"
 msgstr "டிரே நிலை 'open' ஆனது ப்ளாக் வகை வட்டுக்கு தவறானது"
 
@@ -14031,7 +14049,7 @@ msgstr "இந்த QEMU பைனரியில் படிக்க மட�
 msgid "can only passthrough directories"
 msgstr "கோப்பகங்களை மட்டுமே பாஸ்த்ரூ செய்ய முடியும்"
 
-#: src/qemu/qemu_command.c:4781 src/qemu/qemu_command.c:5408
+#: src/qemu/qemu_command.c:4781 src/qemu/qemu_command.c:5411
 #, c-format
 msgid "%s not supported in this QEMU binary"
 msgstr "இந்த QEMU பைனரியில் %s ஆதரிக்கப்படாது"
@@ -14072,109 +14090,109 @@ msgstr "அடையாளம் தெரியாத virtio-net-pci 'tx' வ�
 msgid "virtio-net-pci 'tx' option not supported in this QEMU binary"
 msgstr "இந்த QEMU பைனரியில் virtio-net-pci 'tx' விருப்பம் ஆதரிக்கப்படாது"
 
-#: src/qemu/qemu_command.c:5085 src/xenxs/xen_sxpr.c:1879
+#: src/qemu/qemu_command.c:5088 src/xenxs/xen_sxpr.c:1879
 #, c-format
 msgid "scripts are not supported on interfaces of type %s"
 msgstr "%s வகை இடைமுகங்களில் ஸ்கிரிப்ட்டுகளுக்கு ஆதரவில்லை"
 
-#: src/qemu/qemu_command.c:5211 src/qemu/qemu_command.c:9273
+#: src/qemu/qemu_command.c:5214 src/qemu/qemu_command.c:9274
 msgid "missing watchdog model"
 msgstr "watchdog மாதிரி விடுபட்டுள்ளது"
 
-#: src/qemu/qemu_command.c:5251
+#: src/qemu/qemu_command.c:5254
 #, c-format
 msgid "memballoon unsupported with address type '%s'"
 msgstr "முகவரி வகை '%s' இல் memballoon க்கு ஆதரவில்லை"
 
-#: src/qemu/qemu_command.c:5283
+#: src/qemu/qemu_command.c:5286
 msgid "nvram address type must be spaprvio"
 msgstr "nvram முகவரி வகை spaprvio ஆகவே இருக்க வேண்டும்"
 
-#: src/qemu/qemu_command.c:5336 src/qemu/qemu_command.c:9234
+#: src/qemu/qemu_command.c:5339 src/qemu/qemu_command.c:9235
 msgid "invalid sound model"
 msgstr "தவறான ஒலி மாதிரி"
 
-#: src/qemu/qemu_command.c:5355
+#: src/qemu/qemu_command.c:5358
 msgid ""
 "The ich9-intel-hda audio controller is not supported in this QEMU binary"
 msgstr "இந்த QEMU பைனரியில் ich9-intel-hda ஆடியோ கன்ட்ரோலர் ஆதரிக்கப்படாது"
 
-#: src/qemu/qemu_command.c:5435 src/qemu/qemu_command.c:9070
+#: src/qemu/qemu_command.c:5438 src/qemu/qemu_command.c:9071
 #, c-format
 msgid "video type %s is not supported with QEMU"
 msgstr "வீடியோ வகை %sஐ QEMU உடன் துணைபுரியவில்லை"
 
-#: src/qemu/qemu_command.c:5448 src/qemu/qemu_command.c:9132
-#: src/qemu/qemu_command.c:9161
+#: src/qemu/qemu_command.c:5451 src/qemu/qemu_command.c:9133
+#: src/qemu/qemu_command.c:9162
 msgid "only one video card is currently supported"
 msgstr "ஒரே ஒரு வீடியோ கார்டை நடப்பில் துணைபுரிகிறது"
 
-#: src/qemu/qemu_command.c:5460 src/qemu/qemu_command.c:9087
+#: src/qemu/qemu_command.c:5463 src/qemu/qemu_command.c:9088
 #, c-format
 msgid "value for 'vram' must be less than '%u'"
 msgstr "'vram' க்கான மதிப்பு '%u' ஐ விட சிறியதாக இருக்க வேண்டும்"
 
-#: src/qemu/qemu_command.c:5466 src/qemu/qemu_command.c:9093
+#: src/qemu/qemu_command.c:5469 src/qemu/qemu_command.c:9094
 #, c-format
 msgid "value for 'ram' must be less than '%u'"
 msgstr "'ram' க்கான மதிப்பு '%u' ஐ விட சிறியதாக இருக்க வேண்டும்"
 
-#: src/qemu/qemu_command.c:5510
+#: src/qemu/qemu_command.c:5513
 #, c-format
 msgid "Failed opening %s"
 msgstr "%s ஐத் திறப்பதில் தோல்வி"
 
-#: src/qemu/qemu_command.c:5541
+#: src/qemu/qemu_command.c:5544
 #, c-format
 msgid "invalid PCI passthrough type '%s'"
 msgstr ""
 
-#: src/qemu/qemu_command.c:5595
+#: src/qemu/qemu_command.c:5598
 #, c-format
 msgid "Redirection bus %s is not supported by QEMU"
 msgstr "இந்த QEMU இல் திருப்பிவிடல் பஸ் %s ஆதரிக்கப்படாது"
 
-#: src/qemu/qemu_command.c:5602
+#: src/qemu/qemu_command.c:5605
 msgid "USB redirection is not supported by this version of QEMU"
 msgstr "QEMU இன் இந்தப் பதிப்பில் USB திருப்பிவிடுதலுக்கு ஆதரவில்லை"
 
-#: src/qemu/qemu_command.c:5614
+#: src/qemu/qemu_command.c:5617
 msgid "USB redirection filter is not supported by this version of QEMU"
 msgstr "QEMU இன் இந்தப் பதிப்பில் USB திருப்பிவிடுதல் வடிப்பிக்கு ஆதரவில்லை"
 
-#: src/qemu/qemu_command.c:5652
+#: src/qemu/qemu_command.c:5655
 msgid "USB redirection booting is not supported by this version of QEMU"
 msgstr "QEMU இன் இந்தப் பதிப்பில் USB திருப்பிவிடுதல் பூட்டிங்குக்கு ஆதரவில்லை"
 
-#: src/qemu/qemu_command.c:5685 src/qemu/qemu_command.c:5767
+#: src/qemu/qemu_command.c:5688 src/qemu/qemu_command.c:5770
 msgid "USB host device is missing bus/device information"
 msgstr "USB புரவலச் சாதனமானது பஸ்/சாதனத் தகவலை விட்டுவிட்டது"
 
-#: src/qemu/qemu_command.c:5724
+#: src/qemu/qemu_command.c:5727
 #, c-format
 msgid "hub type %s not supported"
 msgstr "ஹப் வகை %s க்கு ஆதரவில்லை"
 
-#: src/qemu/qemu_command.c:5731
+#: src/qemu/qemu_command.c:5734
 msgid "usb-hub not supported by QEMU binary"
 msgstr "இந்த QEMU பைனரியில் usb-ஹப் ஆதரிக்கப்படாது"
 
-#: src/qemu/qemu_command.c:5760
+#: src/qemu/qemu_command.c:5763
 msgid "This QEMU doesn't not support missing USB devices"
 msgstr "இந்த QEMU விடுபட்டுள்ள USB சாதனங்களை ஆதரிக்காது"
 
-#: src/qemu/qemu_command.c:5802
+#: src/qemu/qemu_command.c:5805
 msgid "this qemu doesn't support 'readonly' for -drive"
 msgstr "இந்த qemu ஆனது '-drive க்கு readonly' ஐ ஆதரிக்காது"
 
-#: src/qemu/qemu_command.c:5838
+#: src/qemu/qemu_command.c:5841
 msgid ""
 "target must be 0 for scsi host device if its controller model is 'lsilogic'"
 msgstr ""
 "scsi புரவலன் சாதனத்திற்கு கன்ட்ரோலர் மாதிரியம் 'lsilogic' இருந்தால், இலக்கானது 0 ஆக "
 "இருக்க வேண்டும்"
 
-#: src/qemu/qemu_command.c:5845
+#: src/qemu/qemu_command.c:5848
 msgid ""
 "unit must be not more than 7 for scsi host device if its controller model is "
 "'lsilogic'"
@@ -14182,115 +14200,115 @@ msgstr ""
 "scsi புரவலன் சாதனத்திற்கு கன்ட்ரோலர் மாதிரியம் 'lsilogic' ஆக இருந்தால் அலகு 7 க்கு "
 "அதிகமாக இருக்கக்கூடாது"
 
-#: src/qemu/qemu_command.c:5969
+#: src/qemu/qemu_command.c:5972
 msgid "spicevmc not supported in this QEMU binary"
 msgstr "இந்த QEMU பைனரியில் spicevmc ஆதரிக்கப்படாது"
 
-#: src/qemu/qemu_command.c:6106
+#: src/qemu/qemu_command.c:6109
 msgid "Cannot use virtio serial for parallel/serial devices"
 msgstr "பேரலல்/சீரியல் சாதனங்களுக்கு virtio சீரியல்களைப் பயன்படுத்த முடியாது"
 
-#: src/qemu/qemu_command.c:6118
+#: src/qemu/qemu_command.c:6121
 msgid "virtio serial device has invalid address type"
 msgstr "விர்டியோ வரிசை சாதனமானது தவறான முகவரி வகையை கொண்டுள்ளது"
 
-#: src/qemu/qemu_command.c:6135
+#: src/qemu/qemu_command.c:6138
 #, c-format
 msgid "Unsupported spicevmc target name '%s'"
 msgstr "ஆதரிக்கப்படாத spicevmc இலக்கு பெயர் '%s'"
 
-#: src/qemu/qemu_command.c:6179
+#: src/qemu/qemu_command.c:6182
 msgid "Cannot use slcp with devices other than console"
 msgstr "கன்சோல் அல்லாத மற்ற சாதனங்களில் slcp ஐப் பயன்படுத்த முடியாது"
 
-#: src/qemu/qemu_command.c:6210
+#: src/qemu/qemu_command.c:6213
 msgid "this qemu doesn't support the rng-random backend"
 msgstr "rng-random பின்புல முறைமையை இந்த qemu ஆதரிக்காது"
 
-#: src/qemu/qemu_command.c:6227
+#: src/qemu/qemu_command.c:6230
 msgid "this qemu doesn't support the rng-egd backend"
 msgstr "இந்த qemu ஆனது rng-egd பின்புல முறைமையை ஆதரிக்காது"
 
-#: src/qemu/qemu_command.c:6268
+#: src/qemu/qemu_command.c:6271
 #, c-format
 msgid "this qemu doesn't support RNG device type '%s'"
 msgstr "இந்த qemu ஆனது RNG சாதன வகை '%s' ஐ ஆதரிக்காது"
 
-#: src/qemu/qemu_command.c:6346
+#: src/qemu/qemu_command.c:6349
 #, c-format
 msgid "The QEMU executable %s does not support TPM backend type %s"
 msgstr "QEMU செயல்படுத்தத்தக்கக் கூறு %s ஆனது TPM பின்புல முறைமை வகை %s ஐ ஆதரிக்காது"
 
-#: src/qemu/qemu_command.c:6366
+#: src/qemu/qemu_command.c:6369
 #, c-format
 msgid "The QEMU executable %s does not support TPM model %s"
 msgstr "QEMU செயல்படுத்தத்தக்கக் கூறு %s ஆனது TPM மாதிரியம் %s ஐ ஆதரிக்காது"
 
-#: src/qemu/qemu_command.c:6491
+#: src/qemu/qemu_command.c:6494
 #, c-format
 msgid "unsupported clock basis '%s'"
 msgstr "ஆதரிக்கப்படாத கடிகார அடிப்படை '%s'"
 
-#: src/qemu/qemu_command.c:6512 src/qemu/qemu_command.c:7983
+#: src/qemu/qemu_command.c:6515 src/qemu/qemu_command.c:7984
 #, c-format
 msgid "unsupported clock offset '%s'"
 msgstr "துணைபுரியாத கடிகார ஆஃப்செட் '%s'"
 
-#: src/qemu/qemu_command.c:6526
+#: src/qemu/qemu_command.c:6529
 #, c-format
 msgid "unsupported rtc timer track '%s'"
 msgstr "ஆதரிக்கப்படாத rtc டைமர் டிராக் '%s'"
 
-#: src/qemu/qemu_command.c:6550
+#: src/qemu/qemu_command.c:6553
 #, c-format
 msgid "unsupported rtc timer tickpolicy '%s'"
 msgstr "ஆதரிக்கப்படாத rtc டைமர் டிக்பாலிசி '%s'"
 
-#: src/qemu/qemu_command.c:6616
+#: src/qemu/qemu_command.c:6619
 msgid "CPU specification not supported by hypervisor"
 msgstr "ஹைப்பர்வைசர் CPU விவரக்குறிப்பை ஆதரிக்கவில்லை"
 
-#: src/qemu/qemu_command.c:6633
+#: src/qemu/qemu_command.c:6636
 #, c-format
 msgid "guest and host CPU are not compatible: %s"
 msgstr "விருந்தினர் மற்றும் வழங்கி CPU ஆகியவை இணக்கமாக இல்லை: %s"
 
-#: src/qemu/qemu_command.c:6637
+#: src/qemu/qemu_command.c:6640
 msgid "guest CPU is not compatible with host CPU"
 msgstr "விருந்தினர் CPU புரவல CPU உடன் உடன்படவில்லை"
 
-#: src/qemu/qemu_command.c:6662
+#: src/qemu/qemu_command.c:6665
 #, c-format
 msgid "CPU mode '%s' is not supported by QEMU binary"
 msgstr "QEMU பைனரியில் CPU பயன்முறை '%s' க்க்கு ஆதரவில்லை"
 
-#: src/qemu/qemu_command.c:6668
+#: src/qemu/qemu_command.c:6671
 #, c-format
 msgid "CPU mode '%s' is only supported with kvm"
 msgstr "CPU பயன்முறை '%s' ஆனது kvm இல் மட்டுமே ஆதரிக்கப்படும்"
 
-#: src/qemu/qemu_command.c:6840
+#: src/qemu/qemu_command.c:6843
 msgid "the QEMU binary does not support kqemu"
 msgstr "QEMU பைனரியானது kqemu ஐ ஆதரிக்காது"
 
-#: src/qemu/qemu_command.c:6853
+#: src/qemu/qemu_command.c:6856
 msgid "the QEMU binary does not support kvm"
 msgstr "QEMU பைனரியானது kvm ஐ ஆதரிக்காது"
 
-#: src/qemu/qemu_command.c:6864
+#: src/qemu/qemu_command.c:6867
 #, c-format
 msgid "the QEMU binary does not support %s"
 msgstr "QEMU பைனரியானது %s ஐ ஆதரிக்காது"
 
-#: src/qemu/qemu_command.c:6902 src/qemu/qemu_command.c:6937
+#: src/qemu/qemu_command.c:6905 src/qemu/qemu_command.c:6940
 msgid "dump-guest-core is not available with this QEMU binary"
 msgstr "இந்த QEMU பைனரியில் dump-guest-core கிடைக்காது"
 
-#: src/qemu/qemu_command.c:6909 src/qemu/qemu_command.c:6952
+#: src/qemu/qemu_command.c:6912 src/qemu/qemu_command.c:6955
 msgid "disable shared memory is not available with this QEMU binary"
 msgstr "இந்த QEMU பைனரியில் பகிரப்பட்ட நினைவகத்தை முடக்கும் வசதி கிடையாது"
 
-#: src/qemu/qemu_command.c:6996
+#: src/qemu/qemu_command.c:6999
 msgid ""
 "setting current vcpu count less than maximum is not supported with this QEMU "
 "binary"
@@ -14298,50 +14316,50 @@ msgstr ""
 "இந்த QEMU பைனரியில் நடப்பு vcpu எண்ணிக்கையை அதிகபட்சத்தை விடக் குறைவாக அமைப்பதற்கு "
 "ஆதரவில்லை"
 
-#: src/qemu/qemu_command.c:7034
+#: src/qemu/qemu_command.c:7037
 msgid "disjoint NUMA cpu ranges are not supported with this QEMU"
 msgstr "இந்த QEMU வில்  disjoint NUMA cpu வரம்புகளுக்கு ஆதரவில்லை"
 
-#: src/qemu/qemu_command.c:7075
+#: src/qemu/qemu_command.c:7078
 msgid "vnc graphics are not supported with this QEMU"
 msgstr "இந்த QEMU இல் vnc கிராஃபிக்ஸ் ஆதரிக்கப்படாது"
 
-#: src/qemu/qemu_command.c:7100 src/qemu/qemu_command.c:7264
+#: src/qemu/qemu_command.c:7103 src/qemu/qemu_command.c:7267
 msgid "network-based listen not possible, network driver not present"
 msgstr "பிணைய அடிப்படையிலான கவனிப்பு சாத்தியமில்லை, பிணைய இயக்கி இல்லை"
 
-#: src/qemu/qemu_command.c:7106 src/qemu/qemu_command.c:7270
+#: src/qemu/qemu_command.c:7109 src/qemu/qemu_command.c:7273
 #, c-format
 msgid "listen network '%s' had no usable address"
 msgstr "கவனிப்பு பிணையம் '%s' இல் பயன்படுத்தத்தக்க முகவரி இல்லை"
 
-#: src/qemu/qemu_command.c:7141
+#: src/qemu/qemu_command.c:7144
 msgid "VNC WebSockets are not supported with this QEMU binary"
 msgstr "இந்த QEMU பைனரியில் VNC WebSockets க்கு ஆதரவில்லை"
 
-#: src/qemu/qemu_command.c:7151
+#: src/qemu/qemu_command.c:7154
 msgid "vnc display sharing policy is not supported with this QEMU"
 msgstr "இந்த QEMU இல் vnc காட்சி பகிர்தல் கொள்கை ஆதரிக்கப்படாது"
 
-#: src/qemu/qemu_command.c:7223
+#: src/qemu/qemu_command.c:7226
 msgid "spice graphics are not supported with this QEMU"
 msgstr "இந்த QEMU இல் ஸ்பைஸ் கிராஃபிக்ஸ் ஆதரிக்கப்படாது"
 
-#: src/qemu/qemu_command.c:7233
+#: src/qemu/qemu_command.c:7236
 msgid ""
 "spice TLS port set in XML configuration, but TLS is disabled in qemu.conf"
 msgstr ""
 "ஸ்பைஸ் TLS முனையம் XML அமைவாக்கத்தில் அமைக்கப்பட்டுள்ளது, ஆனால் qemu.conf இல் TLS "
 "முடக்கப்பட்டுள்ளது"
 
-#: src/qemu/qemu_command.c:7330
+#: src/qemu/qemu_command.c:7333
 msgid ""
 "spice secure channels set in XML configuration, but TLS port is not provided"
 msgstr ""
 "XML அமைவாக்கத்தில் ஸ்பைஸ் பாதுகாப்பு சேனல்கள் அமைக்கப்பட்டுள்ளன, ஆனால் TLS முனையம் "
 "கொடுக்கப்படவில்லை"
 
-#: src/qemu/qemu_command.c:7341
+#: src/qemu/qemu_command.c:7344
 msgid ""
 "spice insecure channels set in XML configuration, but plain port is not "
 "provided"
@@ -14349,7 +14367,7 @@ msgstr ""
 "XML அமைவாக்கத்தில் ஸ்பைஸ் பாதுகாப்பற்ற சேனல்கள் அமைக்கப்பட்டுள்ளன, ஆனால் எளிய முனையம் "
 "கொடுக்கப்படவில்லை"
 
-#: src/qemu/qemu_command.c:7354
+#: src/qemu/qemu_command.c:7357
 msgid ""
 "spice defaultMode secure requested in XML configuration but TLS port not "
 "provided"
@@ -14357,7 +14375,7 @@ msgstr ""
 "XML அமைவாக்கத்தில் ஸ்பைஸ் defaultMode பாதுகாப்பு கோரப்பட்டுள்ளது, ஆனால் TLS முனையம் "
 "கொடுக்கப்படவில்லை"
 
-#: src/qemu/qemu_command.c:7363
+#: src/qemu/qemu_command.c:7366
 msgid ""
 "spice defaultMode insecure requested in XML configuration but plain port not "
 "provided"
@@ -14365,224 +14383,224 @@ msgstr ""
 "XML அமைவாக்கத்தில் ஸ்பைஸ் defaultMode பாதுகாப்பின்மை கோரப்பட்டுள்ளது, ஆனால் எளியமுனையம் "
 "கொடுக்கப்படவில்லை"
 
-#: src/qemu/qemu_command.c:7432
+#: src/qemu/qemu_command.c:7435
 #, c-format
 msgid "sdl not supported by '%s'"
 msgstr "'%s' ஆனது sdl ஐ ஆதரிக்கவில்லை"
 
-#: src/qemu/qemu_command.c:7468
+#: src/qemu/qemu_command.c:7471
 #, c-format
 msgid "unsupported graphics type '%s'"
 msgstr "ஆதரிக்கப்படாத கிராஃபிக்ஸ் வகை '%s'"
 
-#: src/qemu/qemu_command.c:7513 src/qemu/qemu_hotplug.c:867
+#: src/qemu/qemu_command.c:7516 src/qemu/qemu_hotplug.c:867
 #, c-format
 msgid "Multiqueue network is not supported for: %s"
 msgstr "இதற்கு மல்டிக்கியூ பிணையம் ஆதரிக்கப்படாது: %s"
 
-#: src/qemu/qemu_command.c:7781
+#: src/qemu/qemu_command.c:7782
 msgid "hugetlbfs filesystem is not mounted"
 msgstr "hugetlbfs கோப்பு முறைமை மவுண்ட் செய்யப்படவில்லை"
 
-#: src/qemu/qemu_command.c:7786
+#: src/qemu/qemu_command.c:7787
 msgid "hugepages are disabled by administrator config"
 msgstr "hugepages நிர்வாகி கட்டமைப்பால் செயல்நீக்கப்பட்டுள்ளது"
 
-#: src/qemu/qemu_command.c:7791
+#: src/qemu/qemu_command.c:7792
 #, c-format
 msgid "hugepage backing not supported by '%s'"
 msgstr "hugepage backing  '%s' ஆல் துணைபுரியவில்லை"
 
-#: src/qemu/qemu_command.c:7801
+#: src/qemu/qemu_command.c:7802
 msgid "memory locking not supported by QEMU binary"
 msgstr "இந்த QEMU பைனரியில் நினைவகப் பூட்டலுக்கு ஆதரவில்லை"
 
-#: src/qemu/qemu_command.c:7835
+#: src/qemu/qemu_command.c:7836
 #, c-format
 msgid "qemu emulator '%s' does not support xen"
 msgstr "qemu emulator '%s' ஆனது xenக்கு துணைபுரியாது"
 
-#: src/qemu/qemu_command.c:7848
+#: src/qemu/qemu_command.c:7849
 #, c-format
 msgid "the QEMU binary %s does not support smbios settings"
 msgstr "QEMU பைனரி %s ஆனது smbios அமைப்புகளை ஆதரிக்காது"
 
-#: src/qemu/qemu_command.c:7866
+#: src/qemu/qemu_command.c:7867
 #, c-format
 msgid "Domain '%s' sysinfo are not available"
 msgstr "டொமைன் '%s' சிஸின்ஃபோ கிடைக்கவில்லை"
 
-#: src/qemu/qemu_command.c:7918 src/qemu/qemu_hotplug.c:1408
+#: src/qemu/qemu_command.c:7919 src/qemu/qemu_hotplug.c:1406
 msgid "qemu does not support -device"
 msgstr "qemu ஆனது -device ஐ ஆதரிக்காது"
 
-#: src/qemu/qemu_command.c:7923
+#: src/qemu/qemu_command.c:7924
 msgid "qemu does not support SGA"
 msgstr "qemu ஆனது SGA ஐ ஆதரிக்காது"
 
-#: src/qemu/qemu_command.c:7928
+#: src/qemu/qemu_command.c:7929
 msgid "need at least one serial port to use SGA"
 msgstr "SGA வைப் பயன்படுத்த குறைந்தபட்சம் ஒரு சீரியல் முனையமேனும் தேவை"
 
-#: src/qemu/qemu_command.c:7999
+#: src/qemu/qemu_command.c:8000
 #, c-format
 msgid "unsupported timer type (name) '%s'"
 msgstr "ஆதரிக்கப்படாத டைமர் வகை (பெயர்) '%s'"
 
-#: src/qemu/qemu_command.c:8023 src/qemu/qemu_command.c:8034
+#: src/qemu/qemu_command.c:8024 src/qemu/qemu_command.c:8035
 #, c-format
 msgid "unsupported rtc tickpolicy '%s'"
 msgstr "ஆதரிக்கப்படாத rtc டிக்பாலிசி '%s'"
 
-#: src/qemu/qemu_command.c:8062 src/qemu/qemu_command.c:8071
+#: src/qemu/qemu_command.c:8063 src/qemu/qemu_command.c:8072
 #, c-format
 msgid "unsupported pit tickpolicy '%s'"
 msgstr "ஆதரிக்கப்படாத pit டிக்பாலிசி '%s'"
 
-#: src/qemu/qemu_command.c:8093
+#: src/qemu/qemu_command.c:8094
 msgid "pit timer is not supported"
 msgstr "pit டைமருக்கு ஆதரவில்லை"
 
-#: src/qemu/qemu_command.c:8127
+#: src/qemu/qemu_command.c:8128
 msgid "setting ACPI S3 not supported"
 msgstr "ACPI S3 ஐ அமைப்பதற்கு ஆதரவில்லை"
 
-#: src/qemu/qemu_command.c:8138
+#: src/qemu/qemu_command.c:8139
 msgid "setting ACPI S4 not supported"
 msgstr "ACPI S4 ஐ அமைப்பதற்கு ஆதரவில்லை"
 
-#: src/qemu/qemu_command.c:8160
+#: src/qemu/qemu_command.c:8161
 msgid "hypervisor lacks deviceboot feature"
 msgstr "ஹைப்பர்வைசரில் டிவைஸ்பூட் அம்சம் இல்லை"
 
-#: src/qemu/qemu_command.c:8218
+#: src/qemu/qemu_command.c:8219
 msgid "reboot timeout is not supported by this QEMU binary"
 msgstr "இந்த QEMU பைனரியில் மறுதொடக்க நேரக் கடப்புக்கு ஆதரவில்லை"
 
-#: src/qemu/qemu_command.c:8269
+#: src/qemu/qemu_command.c:8270
 msgid "dtb is not supported with this QEMU binary"
 msgstr "இந்த QEMU பைனரியில் dtb க்கு ஆதரவில்லை"
 
-#: src/qemu/qemu_command.c:8300
+#: src/qemu/qemu_command.c:8301
 msgid "64-bit PCI hole setting is only for root PCI controllers"
 msgstr "64-பிட் PCI துளை அமைவு ரூட் PCI கன்ட்ரோலர்களுக்கு மட்டுமே"
 
-#: src/qemu/qemu_command.c:8307
+#: src/qemu/qemu_command.c:8308
 #, c-format
 msgid "Setting the 64-bit PCI hole size is not supported for machine '%s'"
 msgstr "கணினி '%s' க்கு 64-பிட் PCI துளை அளவை அமைக்க ஆதரவில்லை"
 
-#: src/qemu/qemu_command.c:8313
+#: src/qemu/qemu_command.c:8314
 msgid "64-bit PCI hole size setting is not supported with this QEMU binary"
 msgstr "இந்த QEMU பைனரியில் 64-பிட் PCI துளை அளவு அமைவுக்கு ஆதரவில்லை"
 
-#: src/qemu/qemu_command.c:8330 src/qemu/qemu_hotplug.c:708
+#: src/qemu/qemu_command.c:8331 src/qemu/qemu_hotplug.c:708
 #, c-format
 msgid "unsupported driver name '%s' for disk '%s'"
 msgstr "%s' கான வட்டு '%s'ஐ இயக்கியின் பெயரை துணைப்புரியவில்லை"
 
-#: src/qemu/qemu_command.c:8362
+#: src/qemu/qemu_command.c:8363
 msgid "SATA is not supported with this QEMU binary"
 msgstr "இந்த QEMU binary உடன் SATA துணைபுரியவில்லை"
 
-#: src/qemu/qemu_command.c:8386
+#: src/qemu/qemu_command.c:8387
 msgid "Multiple legacy USB controllers are not supported"
 msgstr "பல லிகசி USB கன்ட்ரோலர்களுக்கு ஆதரவில்லை"
 
-#: src/qemu/qemu_command.c:8458 src/qemu/qemu_command.c:8559
+#: src/qemu/qemu_command.c:8459 src/qemu/qemu_command.c:8560
 #, c-format
 msgid "unsupported usb disk type for '%s'"
 msgstr "துணைபுரியாத usb வட்டு வகை '%s'"
 
-#: src/qemu/qemu_command.c:8606
+#: src/qemu/qemu_command.c:8607
 msgid "network disks are only supported with -drive"
 msgstr "-drive உடன் மட்டுமே பிணைய வட்டுகள் ஆதரிக்கப்படும்"
 
-#: src/qemu/qemu_command.c:8644
+#: src/qemu/qemu_command.c:8645
 msgid "filesystem passthrough not supported by this QEMU"
 msgstr "இந்த QEMU பைனரியில் கோப்புமுறைமை பாஸ்த்ரூவுக்கு ஆதரவில்லை"
 
-#: src/qemu/qemu_command.c:8699
+#: src/qemu/qemu_command.c:8700
 msgid "this QEMU binary lacks multiple smartcard support"
 msgstr "இந்த QEMU பைனரியில் பல ஸ்மார்ட்கார்டு ஆதரவு இல்லை"
 
-#: src/qemu/qemu_command.c:8710 src/qemu/qemu_command.c:8722
+#: src/qemu/qemu_command.c:8711 src/qemu/qemu_command.c:8723
 msgid "this QEMU binary lacks smartcard host mode support"
 msgstr "இந்த QEMU பைனரியில் ஸ்மார்ட்கார்டு வழங்கி பயன்முறை ஆதரவு இல்லை"
 
-#: src/qemu/qemu_command.c:8732
+#: src/qemu/qemu_command.c:8733
 #, c-format
 msgid "invalid certificate name: %s"
 msgstr "தவறான சான்றிதழ் பெயர்: %s"
 
-#: src/qemu/qemu_command.c:8743
+#: src/qemu/qemu_command.c:8744
 #, c-format
 msgid "invalid database name: %s"
 msgstr "தவறான தரவுத்தளப் பெயர்: %s"
 
-#: src/qemu/qemu_command.c:8758
+#: src/qemu/qemu_command.c:8759
 msgid "this QEMU binary lacks smartcard passthrough mode support"
 msgstr "இந்த QEMU பைனரியில் ஸ்மார்ட்கார்டு பாஸ்த்ரூ பயன்முறை ஆதரவு இல்லை"
 
-#: src/qemu/qemu_command.c:8861
+#: src/qemu/qemu_command.c:8862
 msgid "guestfwd requires QEMU to support -chardev & -device"
 msgstr "guestfwd கோரிக்கைகள் QEMU க்கு -chardev & -device துணைபுரிகிறது"
 
-#: src/qemu/qemu_command.c:8882 src/qemu/qemu_command.c:8942
+#: src/qemu/qemu_command.c:8883 src/qemu/qemu_command.c:8943
 msgid "virtio channel requires QEMU to support -device"
 msgstr "guestfwd கோரிக்கைகள் QEMU க்கு துணைபுரிகிறது -device"
 
-#: src/qemu/qemu_command.c:8918
+#: src/qemu/qemu_command.c:8919
 msgid "sclp console requires QEMU to support -device"
 msgstr "sclp கன்சோலுக்கு QEMU ஆனது -device ஐ ஆதரிக்க வேண்டும்"
 
-#: src/qemu/qemu_command.c:8923
+#: src/qemu/qemu_command.c:8924
 msgid "sclp console requires QEMU to support s390-sclp"
 msgstr "sclp கன்சோலுக்கு QEMU ஆனது s390-sclp ஐ ஆதரிக்க வேண்டும்"
 
-#: src/qemu/qemu_command.c:8963
+#: src/qemu/qemu_command.c:8964
 #, c-format
 msgid "unsupported console target type %s"
 msgstr "ஆதரிக்கப்படாத கன்சோல் இலக்கு வகை %s"
 
-#: src/qemu/qemu_command.c:9019
+#: src/qemu/qemu_command.c:9020
 msgid "only 1 graphics device is supported"
 msgstr "1 கிராஃபிக்ஸ் சாதனம் மட்டுமே ஆதரிக்கப்படும்"
 
-#: src/qemu/qemu_command.c:9024
+#: src/qemu/qemu_command.c:9025
 msgid "only 1 graphics device of each type (sdl, vnc, spice) is supported"
 msgstr "ஒவ்வொரு வகைக்கும் (sdl, vnc, ஸ்பைஸ்) ஒரு கிராஃபிக் சாதனம் மட்டுமே ஆதரிக்கப்படும்"
 
-#: src/qemu/qemu_command.c:9063
+#: src/qemu/qemu_command.c:9064
 msgid "This QEMU does not support QXL graphics adapters"
 msgstr "இந்த QEMU ஆனது QXL கிராஃபிக்ஸ் அடாப்டர்களை ஆதரிக்காது"
 
-#: src/qemu/qemu_command.c:9117
+#: src/qemu/qemu_command.c:9118
 #, c-format
 msgid "video type %s is only valid as primary video card"
 msgstr "வீடியோ வகை %s ஆனது முதன்மை வீடியோ கார்டாக மட்டுமே செல்லுபடியாகும்"
 
-#: src/qemu/qemu_command.c:9154
+#: src/qemu/qemu_command.c:9155
 #, c-format
 msgid "video type %s is not supported with this QEMU"
 msgstr "இந்த QEMU இல் வீடியோ வகை %s ஆதரிக்கப்படாது"
 
-#: src/qemu/qemu_command.c:9242
+#: src/qemu/qemu_command.c:9243
 msgid "this QEMU binary lacks hda support"
 msgstr "இந்த QEMU பைனரியில் hda ஆதரவு இல்லை"
 
-#: src/qemu/qemu_command.c:9289
+#: src/qemu/qemu_command.c:9290
 msgid "invalid watchdog action"
 msgstr "தவறான watchdog செயல்பாடு"
 
-#: src/qemu/qemu_command.c:9331
+#: src/qemu/qemu_command.c:9332
 msgid ""
 "booting from assigned devices is only supported for PCI, USB and SCSI devices"
 msgstr ""
 "ஒதுக்கப்பட்ட சாதனங்களிலிருந்து பூட் செய்யும் வசதி PCI, USB மற்றும் SCSI சாதனங்களுக்கு "
 "மட்டுமே ஆதரிக்கப்படும்"
 
-#: src/qemu/qemu_command.c:9340
+#: src/qemu/qemu_command.c:9341
 msgid ""
 "booting from PCI devices assigned with VFIO is not supported with this "
 "version of qemu"
@@ -14590,361 +14608,361 @@ msgstr ""
 "qemu இன் இந்த பதிப்பில், VFIO ஒதுக்கியமைக்கப்பட்டுள்ள PCI சாதனங்களிலிருந்து பூட் செய்யும் "
 "ஆதரவில்லை"
 
-#: src/qemu/qemu_command.c:9347
+#: src/qemu/qemu_command.c:9348
 msgid ""
 "booting from assigned PCI devices is not supported with this version of qemu"
 msgstr ""
 "qemu இன் இந்தப் பதிப்பில் நிர்ணயிக்கப்பட்ட PCI சாதனங்களில் இருந்து பூட் செய்வதாற்கு ஆதரவில்லை"
 
-#: src/qemu/qemu_command.c:9356
+#: src/qemu/qemu_command.c:9357
 msgid ""
 "booting from assigned USB devices is not supported with this version of qemu"
 msgstr ""
 "qemu இன் இந்தப் பதிப்பில் நிர்ணயிக்கப்பட்ட USB சாதனங்களில் இருந்து பூட் செய்வதாற்கு ஆதரவில்லை"
 
-#: src/qemu/qemu_command.c:9363
+#: src/qemu/qemu_command.c:9364
 msgid ""
 "booting from assigned SCSI devices is not supported with this version of qemu"
 msgstr ""
 "qemu இன் இந்தப் பதிப்பில் நிர்ணயிக்கப்பட்ட SCSI சாதனங்களில் இருந்து பூட் செய்வதாற்கு "
 "ஆதரவில்லை"
 
-#: src/qemu/qemu_command.c:9397 src/qemu/qemu_hotplug.c:1171
+#: src/qemu/qemu_command.c:9398 src/qemu/qemu_hotplug.c:1169
 msgid "VFIO PCI device assignment is not supported by this version of qemu"
 msgstr "qemu இன் இந்தப் பதிப்பில் VFIO PCI சாதன ஒதுக்கீடுக்கு ஆதரவில்லை"
 
-#: src/qemu/qemu_command.c:9437 src/qemu/qemu_monitor_text.c:1829
+#: src/qemu/qemu_command.c:9438 src/qemu/qemu_monitor_text.c:1829
 msgid "PCI device assignment is not supported by this version of qemu"
 msgstr "PCI சாதன ஒதுக்கீடு இந்த பதிப்பு qemuக்கு துணைபுரியவில்லை"
 
-#: src/qemu/qemu_command.c:9463 src/qemu/qemu_hotplug.c:1550
+#: src/qemu/qemu_command.c:9464 src/qemu/qemu_hotplug.c:1548
 msgid "SCSI passthrough is not supported by this version of qemu"
 msgstr "QEMU இன் இந்தப் பதிப்பில் SCSI ஊடுசெல்லலுக்கு (பாஸ்த்ரூ) ஆதரவில்லை"
 
-#: src/qemu/qemu_command.c:9477
+#: src/qemu/qemu_command.c:9478
 msgid "TCP migration is not supported with this QEMU binary"
 msgstr "QEMU பைனரியோடு TCP மாற்றம் துணைபுரியவில்லை"
 
-#: src/qemu/qemu_command.c:9494
+#: src/qemu/qemu_command.c:9495
 msgid "STDIO migration is not supported with this QEMU binary"
 msgstr "இந்த QEMU binary உடன் STDIO இடமாற்றம் துணைபுரியவில்லை"
 
-#: src/qemu/qemu_command.c:9501
+#: src/qemu/qemu_command.c:9502
 msgid "EXEC migration is not supported with this QEMU binary"
 msgstr "இந்த QEMU பைனரியில் EXEC இடப்பெயர்ப்புக்கு ஆதரவில்லை"
 
-#: src/qemu/qemu_command.c:9509
+#: src/qemu/qemu_command.c:9510
 msgid "FD migration is not supported with this QEMU binary"
 msgstr "இந்த QEMU பைனரியில் FD இடப்பெயர்ப்புக்கு ஆதரவில்லை"
 
-#: src/qemu/qemu_command.c:9518
+#: src/qemu/qemu_command.c:9519
 msgid "UNIX migration is not supported with this QEMU binary"
 msgstr "இந்த QEMU பைனரியில் UNIX இடப்பெயர்ப்புக்கு ஆதரவில்லை"
 
-#: src/qemu/qemu_command.c:9525
+#: src/qemu/qemu_command.c:9526
 msgid "unknown migration protocol"
 msgstr "தெரியாத இடப்பெயர்ப்பு நெறிமுறை"
 
-#: src/qemu/qemu_command.c:9544
+#: src/qemu/qemu_command.c:9545
 #, c-format
 msgid ""
 "Memory balloon device type '%s' is not supported by this version of qemu"
 msgstr "qemu இன் இந்தப் பதிப்பில் நினைவக பலூன் சாதன வகை '%s' க்கு ஆதரவில்லை"
 
-#: src/qemu/qemu_command.c:9577
+#: src/qemu/qemu_command.c:9578
 msgid "nvram device is not supported by this QEMU binary"
 msgstr "இந்த QEMU பைனரி nvram சாதனத்தை ஆதரிக்காது"
 
-#: src/qemu/qemu_command.c:9592
+#: src/qemu/qemu_command.c:9593
 msgid "nvram device is only supported for PPC64"
 msgstr "PPC64 க்கு மட்டுமே nvram சாதனம் ஆதரிக்கப்படும்"
 
-#: src/qemu/qemu_command.c:9618
+#: src/qemu/qemu_command.c:9619
 msgid "QEMU does not support seccomp sandboxes"
 msgstr "QEMU இல் seccomp sandboxes க்கு ஆதரவில்லை"
 
-#: src/qemu/qemu_command.c:9633
+#: src/qemu/qemu_command.c:9634
 #, fuzzy
 msgid "your QEMU is too old to support pvpanic"
 msgstr "மூலம் qemu ஆனது வளைவு இடப்பெயர்வுக்கு துணைபுரிய மிக பழமையானது"
 
-#: src/qemu/qemu_command.c:9697
+#: src/qemu/qemu_command.c:9698
 msgid "usb-serial is not supported in this QEMU binary"
 msgstr "இந்த QEMU பைனரியில் usb-serial ஆதரிக்கப்படாது"
 
-#: src/qemu/qemu_command.c:10015
+#: src/qemu/qemu_command.c:10016
 #, c-format
 msgid "malformed keyword arguments in '%s'"
 msgstr "'%s'ன் தவறான விசைவார்த்தை மதிப்புருக்கள்"
 
-#: src/qemu/qemu_command.c:10175 src/qemu/qemu_command.c:11480
+#: src/qemu/qemu_command.c:10176 src/qemu/qemu_command.c:11481
 #, c-format
 msgid "cannot parse sheepdog filename '%s'"
 msgstr "sheepdog கோப்புப் பெயர் '%s' ஐப் பாகுபடுத்த முடியவில்லை"
 
-#: src/qemu/qemu_command.c:10202
+#: src/qemu/qemu_command.c:10203
 #, c-format
 msgid "pseries systems do not support ide devices '%s'"
 msgstr ""
 
-#: src/qemu/qemu_command.c:10255
+#: src/qemu/qemu_command.c:10256
 #, c-format
 msgid "cannot parse drive index '%s'"
 msgstr "இயக்கி அட்டவணை '%s'ஐ இடைநிறுத்த முடியவில்லை"
 
-#: src/qemu/qemu_command.c:10261
+#: src/qemu/qemu_command.c:10262
 #, c-format
 msgid "cannot parse drive bus '%s'"
 msgstr "இயக்கி பஸ் '%s'ஐ இடைநிறுத்த முடியவில்லை"
 
-#: src/qemu/qemu_command.c:10267
+#: src/qemu/qemu_command.c:10268
 #, c-format
 msgid "cannot parse drive unit '%s'"
 msgstr "இயக்கி அலகு '%s'ஐ இடைநிறுத்த முடியவில்லை"
 
-#: src/qemu/qemu_command.c:10276
+#: src/qemu/qemu_command.c:10277
 #, c-format
 msgid "cannot parse io mode '%s'"
 msgstr "io பயன்முறை '%s' ஐப் பாகுபடுத்த முடியவில்லை"
 
-#: src/qemu/qemu_command.c:10285
+#: src/qemu/qemu_command.c:10286
 #, c-format
 msgid "cannot parse cylinders value'%s'"
 msgstr "சிலின்டர்ஸ் மதிப்பு '%s' ஐப் பாகுபடுத்த முடியவில்லை"
 
-#: src/qemu/qemu_command.c:10295
+#: src/qemu/qemu_command.c:10296
 #, c-format
 msgid "cannot parse heads value'%s'"
 msgstr "ஹெட்ஸ் மதிப்பு '%s' ஐப் பாகுபடுத்த முடியவில்லை"
 
-#: src/qemu/qemu_command.c:10305
+#: src/qemu/qemu_command.c:10306
 #, c-format
 msgid "cannot parse sectors value'%s'"
 msgstr "பிரிவுகள் மதிப்பு '%s' ஐப் பாகுபடுத்த முடியவில்லை"
 
-#: src/qemu/qemu_command.c:10317
+#: src/qemu/qemu_command.c:10318
 #, c-format
 msgid "cannot parse translation value'%s'"
 msgstr "மொழிபெயர்ப்பு மதிப்பு '%s' ஐப் பாகுபடுத்த முடியவில்லை"
 
-#: src/qemu/qemu_command.c:10331
+#: src/qemu/qemu_command.c:10332
 #, c-format
 msgid "missing file parameter in drive '%s'"
 msgstr "இயக்கி '%s'னுள் கோப்பின் அளவுரு விடுபட்டுள்ளது"
 
-#: src/qemu/qemu_command.c:10342
+#: src/qemu/qemu_command.c:10343
 #, c-format
 msgid "missing index/unit/bus parameter in drive '%s'"
 msgstr "அகரவரிசை/அலகு/பஸ் அளவுருவை இயக்கி '%s'ல் விட்டுவிட்டது"
 
-#: src/qemu/qemu_command.c:10387
+#: src/qemu/qemu_command.c:10388
 #, c-format
 msgid "invalid device name '%s'"
 msgstr "தவறான சாதன பெயர் '%s'"
 
-#: src/qemu/qemu_command.c:10428
+#: src/qemu/qemu_command.c:10429
 #, c-format
 msgid "cannot parse NIC vlan in '%s'"
 msgstr "NIC vlan னுள் '%s'ஐ இடைநிறுத்த முடியவில்லை"
 
-#: src/qemu/qemu_command.c:10440
+#: src/qemu/qemu_command.c:10441
 #, c-format
 msgid "cannot find NIC definition for vlan %d"
 msgstr "NIC விளக்கத்தை vlan %dக்கு காண முடியவில்லை"
 
-#: src/qemu/qemu_command.c:10497
+#: src/qemu/qemu_command.c:10498
 #, c-format
 msgid "cannot parse vlan in '%s'"
 msgstr "vlan னுள் '%s'ஐ இடைநிறுத்த முடியவில்லை"
 
-#: src/qemu/qemu_command.c:10527
+#: src/qemu/qemu_command.c:10528
 #, c-format
 msgid "cannot parse NIC definition '%s'"
 msgstr "NIC வரையறுத்தல் '%s'ஐ இடைநிறுத்த முடியவில்லை"
 
-#: src/qemu/qemu_command.c:10577
+#: src/qemu/qemu_command.c:10578
 #, c-format
 msgid "cannot parse sndbuf size in '%s'"
 msgstr "'%s' இல் sndbuf அளவைப் பாகுபடுத்த முடியாது"
 
-#: src/qemu/qemu_command.c:10616
+#: src/qemu/qemu_command.c:10617
 #, c-format
 msgid "unknown PCI device syntax '%s'"
 msgstr "தெரியாத PCI சாதன syntax '%s'"
 
-#: src/qemu/qemu_command.c:10623
+#: src/qemu/qemu_command.c:10624
 #, c-format
 msgid "cannot extract PCI device bus '%s'"
 msgstr "PCI சாதன பஸ் '%s'ஐ இழுக்க முடியவில்லை"
 
-#: src/qemu/qemu_command.c:10629
+#: src/qemu/qemu_command.c:10630
 #, c-format
 msgid "cannot extract PCI device slot '%s'"
 msgstr "PCI சாதன வரிசை '%s'ஐ இழுக்க முடியவில்லை"
 
-#: src/qemu/qemu_command.c:10635
+#: src/qemu/qemu_command.c:10636
 #, c-format
 msgid "cannot extract PCI device function '%s'"
 msgstr "PCI சாதன செயல் '%s'ஐ இழுக்க முடியவில்லை"
 
-#: src/qemu/qemu_command.c:10669
+#: src/qemu/qemu_command.c:10670
 #, c-format
 msgid "unknown USB device syntax '%s'"
 msgstr "தெரியாத USB  சாதன syntax '%s'"
 
-#: src/qemu/qemu_command.c:10677
+#: src/qemu/qemu_command.c:10678
 #, c-format
 msgid "cannot extract USB device vendor '%s'"
 msgstr "USB சாதன விற்பனையாளர் '%s'ஐ இழுக்க முடியவில்லை"
 
-#: src/qemu/qemu_command.c:10683
+#: src/qemu/qemu_command.c:10684
 #, c-format
 msgid "cannot extract USB device product '%s'"
 msgstr "USB  சாதன தயாரிப்பு '%s'ஐ இழுக்க முடியவில்லை"
 
-#: src/qemu/qemu_command.c:10689
+#: src/qemu/qemu_command.c:10690
 #, c-format
 msgid "cannot extract USB device bus '%s'"
 msgstr "USB  சாதன பஸ் '%s'ஐ இழுக்க முடியவில்லை"
 
-#: src/qemu/qemu_command.c:10695
+#: src/qemu/qemu_command.c:10696
 #, c-format
 msgid "cannot extract USB device address '%s'"
 msgstr "USB  சாதன முகவரி '%s'ஐ இழுக்க முடியவில்லை"
 
-#: src/qemu/qemu_command.c:10787
+#: src/qemu/qemu_command.c:10788
 #, c-format
 msgid "cannot find port number in character device %s"
 msgstr "எண் சாதன %s துறை எண்ணை தேட முடியவில்லை"
 
-#: src/qemu/qemu_command.c:10813
+#: src/qemu/qemu_command.c:10814
 #, c-format
 msgid "unknown character device syntax %s"
 msgstr "தெரியாத எண் சாதன syntax %s"
 
-#: src/qemu/qemu_command.c:10889
+#: src/qemu/qemu_command.c:10890
 #, c-format
 msgid "%s platform doesn't support CPU features'"
 msgstr "%s இயங்குதளம் CPU அம்சங்களை ஆதரிக்காது'"
 
-#: src/qemu/qemu_command.c:10915
+#: src/qemu/qemu_command.c:10916
 msgid "conflicting occurrences of kvmclock feature"
 msgstr "kvmclock அம்சத்தின் முரண்படும் நிகழ்வுகள்"
 
-#: src/qemu/qemu_command.c:10956
+#: src/qemu/qemu_command.c:10957
 #, c-format
 msgid "unsupported HyperV Enlightenment feature '%s'"
 msgstr "ஆதரிக்கப்படாத HyperV என்லைட்மென்ட் அம்சம் '%s'"
 
-#: src/qemu/qemu_command.c:10966
+#: src/qemu/qemu_command.c:10967
 #, c-format
 msgid "HyperV feature '%s' should not have a value"
 msgstr "HyperV வசதி '%s' க்கு மதிப்பு இருக்கக்கூடாது"
 
-#: src/qemu/qemu_command.c:10977
+#: src/qemu/qemu_command.c:10978
 msgid "missing HyperV spinlock retry count"
 msgstr "HyperV ஸ்பின்லாக் மறுமுயற்சி எண்ணிக்கை விடுபட்டுள்ளது"
 
-#: src/qemu/qemu_command.c:10983
+#: src/qemu/qemu_command.c:10984
 msgid "cannot parse HyperV spinlock retry count"
 msgstr "HyperV ஸ்பின்லாக் மறுமுயற்சி எண்ணிக்கையைப் பாகுபடுத்த முடியவில்லை"
 
-#: src/qemu/qemu_command.c:11028
+#: src/qemu/qemu_command.c:11029
 #, c-format
 msgid "unknown CPU syntax '%s'"
 msgstr "தெரியாத CPU சாதன syntax '%s'"
 
-#: src/qemu/qemu_command.c:11101
+#: src/qemu/qemu_command.c:11102
 #, c-format
 msgid "cannot parse CPU topology '%s'"
 msgstr "CPU டோபாலஜி '%s'ஐ இடைநிறுத்த முடியவில்லை"
 
-#: src/qemu/qemu_command.c:11164
+#: src/qemu/qemu_command.c:11165
 msgid "no emulator path found"
 msgstr "எமுலேட்டர் பாதை காணப்படவில்லை"
 
-#: src/qemu/qemu_command.c:11177
+#: src/qemu/qemu_command.c:11178
 msgid "failed to generate uuid"
 msgstr "uuid ஐ உருவாக்குவதில் தோல்வி"
 
-#: src/qemu/qemu_command.c:11225
+#: src/qemu/qemu_command.c:11226
 #, c-format
 msgid "missing value for %s argument"
 msgstr "%s மதிப்புருவுக்கான மதிப்பு விடுப்பட்டுள்ளது"
 
-#: src/qemu/qemu_command.c:11285
+#: src/qemu/qemu_command.c:11286
 #, c-format
 msgid "missing VNC port number in '%s'"
 msgstr "'%s' இல் VNC முனைய எண் இல்லை"
 
-#: src/qemu/qemu_command.c:11293
+#: src/qemu/qemu_command.c:11294
 #, c-format
 msgid "cannot parse VNC port '%s'"
 msgstr "VNC துறை '%s'ஐ இடைநிறுத்த முடியவில்லை"
 
-#: src/qemu/qemu_command.c:11331
+#: src/qemu/qemu_command.c:11332
 #, c-format
 msgid "cannot parse VNC WebSocket port '%s'"
 msgstr "VNC WebSocket துறை '%s' ஐப் பாகுபடுத்த முடியவில்லை"
 
-#: src/qemu/qemu_command.c:11363
+#: src/qemu/qemu_command.c:11364
 msgid "missing vnc sharing policy"
 msgstr "vnc பகிர்தல் கொள்கை விடுபட்டுள்ளது"
 
-#: src/qemu/qemu_command.c:11388
+#: src/qemu/qemu_command.c:11389
 #, c-format
 msgid "cannot parse memory level '%s'"
 msgstr "நினைவக மட்ட '%s'ஐ இடைநிறுத்த முடியவில்லை"
 
-#: src/qemu/qemu_command.c:11400
+#: src/qemu/qemu_command.c:11401
 #, c-format
 msgid "cannot parse UUID '%s'"
 msgstr "UUID '%s'ஐ இடைநிறுத்த முடியவில்லை"
 
-#: src/qemu/qemu_command.c:11509
+#: src/qemu/qemu_command.c:11510
 #, c-format
 msgid "Cannot assign address for device name '%s'"
 msgstr "சாதனப் பெயர் '%s' க்கு முகவரியை நியமிக்க முடியவில்லை"
 
-#: src/qemu/qemu_command.c:11573
+#: src/qemu/qemu_command.c:11574
 msgid "cannot parse reboot-timeout value"
 msgstr "reboot-timeout மதிப்பைப் பாகுபடுத்த முடியவில்லை"
 
-#: src/qemu/qemu_command.c:11827
+#: src/qemu/qemu_command.c:11828
 #, c-format
 msgid "unknown video adapter type '%s'"
 msgstr "தெரியாத வீடியோ அடாப்படர் வகை '%s'"
 
-#: src/qemu/qemu_command.c:11886
+#: src/qemu/qemu_command.c:11887
 #, c-format
 msgid "invalid value for disable_s3 parameter: '%s'"
 msgstr "disable_s3 அளவுருவுக்கு தவறான மதிப்பு: '%s'"
 
-#: src/qemu/qemu_command.c:11903
+#: src/qemu/qemu_command.c:11904
 #, c-format
 msgid "invalid value for disable_s4 parameter: '%s'"
 msgstr "disable_s4 அளவுருவுக்கு தவறான மதிப்பு: '%s'"
 
-#: src/qemu/qemu_command.c:11922
+#: src/qemu/qemu_command.c:11923
 #, c-format
 msgid "cannot parse nvram's address '%s'"
 msgstr "nvram இன் முகவரி '%s' ஐ பாகுபடுத்த முடியவில்லை"
 
-#: src/qemu/qemu_command.c:11955
+#: src/qemu/qemu_command.c:11956
 msgid "CEPH_ARGS was set without an rbd disk"
 msgstr "CEPH_ARGS ஆனது rbd வட்டு இன்றி அமைக்கப்பட்டுள்ளது"
 
-#: src/qemu/qemu_command.c:11962
+#: src/qemu/qemu_command.c:11963
 #, c-format
 msgid "could not parse CEPH_ARGS '%s'"
 msgstr "CEPH_ARGS '%s' ஐப் பாகுபடுத்த முடியவில்லை"
 
-#: src/qemu/qemu_command.c:11998
+#: src/qemu/qemu_command.c:11999
 #, c-format
 msgid "found no rbd hosts in CEPH_ARGS '%s'"
 msgstr "CEPH_ARGS '%s' இல் rbd வழங்கி இல்லை"
 
-#: src/qemu/qemu_command.c:12203
+#: src/qemu/qemu_command.c:12204
 #, c-format
 msgid "Unable to resolve %s for pid %u"
 msgstr "pid %2$u க்கான %1$s ஐத் தீர்க்க முடியவில்லை"
@@ -15145,7 +15163,7 @@ msgstr "தெரியாத பணி நிலை %s"
 msgid "failed to parse qemu device list"
 msgstr "qemu சாதனப் பட்டியலைப் பாகுபடுத்தல் தோல்வியடைந்தது"
 
-#: src/qemu/qemu_domain.c:556 src/test/test_driver.c:214
+#: src/qemu/qemu_domain.c:556 src/test/test_driver.c:224
 #, c-format
 msgid "Failed to register xml namespace '%s'"
 msgstr "xml நேம்ஸ்பேஸ் '%s' ஐப் பதிவு செய்வதில் தோல்வி"
@@ -15229,7 +15247,7 @@ msgid "Unable to write to domain logfile %s"
 msgstr "டொமைன் பதிவுக்கோப்பு %s இல் எழுதுவத முடியவில்லை"
 
 #: src/qemu/qemu_domain.c:1837 src/storage/storage_backend.c:982
-#: src/storage/storage_backend_fs.c:1234
+#: src/storage/storage_backend_fs.c:1231
 msgid "unable to find kvm-img or qemu-img"
 msgstr "kvm-img அல்லது qemu-imgஐ காண முடியவில்லை"
 
@@ -15253,7 +15271,7 @@ msgstr "மூல சாதனம் %s இல்லை"
 msgid "Backing file '%s' of image '%s' is missing."
 msgstr "பிம்பம் '%s' இன் பின்புல ஆதரவுக் கோப்பு '%s' விடுபட்டுள்ளது."
 
-#: src/qemu/qemu_driver.c:247 src/test/test_driver.c:6377
+#: src/qemu/qemu_driver.c:247 src/test/test_driver.c:6486
 #, c-format
 msgid "no domain snapshot with matching name '%s'"
 msgstr "'%s' என்ற பெயருடன் பொருந்தும் டொமைன் இல்லை"
@@ -15292,7 +15310,7 @@ msgstr "'%s' இல் இருந்து ஸ்னாப்ஷாட் XML 
 msgid "Too many snapshots claiming to be current for domain %s"
 msgstr "டொமைன் %s க்கு மிக அதிக ஸ்னாப்ஷாட்டுகள் நடப்பில் உள்ளதாகக் கூறப்படுகிறது"
 
-#: src/qemu/qemu_driver.c:495 src/test/test_driver.c:1045
+#: src/qemu/qemu_driver.c:495 src/test/test_driver.c:1055
 #, c-format
 msgid "Snapshots have inconsistent relations for domain %s"
 msgstr "டொமைன் %s க்கு ஸ்னாப்ஷாட்டுகள் இசைவில்லா தொடர்புகளைக் கொண்டுள்ளன"
@@ -15628,8 +15646,8 @@ msgstr "vcpu %zu க்கு cpu விருப்பத்தன்மைய�
 msgid "cannot change vcpu count of this domain"
 msgstr "vcpu எண்ணிக்கையை இந்த செயற்களத்தில் மாற்ற முடியவில்லை"
 
-#: src/qemu/qemu_driver.c:4141 src/test/test_driver.c:2542
-#: src/xen/xen_driver.c:1381
+#: src/qemu/qemu_driver.c:4141 src/test/test_driver.c:2651
+#: src/xen/xen_driver.c:1378
 #, c-format
 msgid "argument out of range: %d"
 msgstr "அளவுரு வரம்பைத் தாண்டியுள்ளது: %d"
@@ -15789,7 +15807,7 @@ msgstr "செயற்களம் ஏற்கனவே இயக்கத்�
 msgid "domain has active block copy job"
 msgstr "டொமைனில் ஒரு செயலில் உள்ள தொகுப்பு நகலெடுத்தல் பணி உள்ளது"
 
-#: src/qemu/qemu_driver.c:6264 src/test/test_driver.c:3045
+#: src/qemu/qemu_driver.c:6264 src/test/test_driver.c:3154
 #, c-format
 msgid "cannot delete inactive domain with %d snapshots"
 msgstr "%d ஸ்னாப்ஷாட் கொண்டுள்ள செயலில் இல்லாத டொமைனை நீக்க முடியாது"
@@ -15833,7 +15851,7 @@ msgstr "இலக்கு ஏற்கனவே உள்ளது"
 msgid "persistent attach of device '%s' is not supported"
 msgstr "சாதனம் '%s' ஐ நிரந்தரமாக இணைக்க ஆதரவில்லை"
 
-#: src/qemu/qemu_driver.c:6755 src/qemu/qemu_hotplug.c:3595
+#: src/qemu/qemu_driver.c:6755 src/qemu/qemu_hotplug.c:3593
 #, c-format
 msgid "Lease %s in lockspace %s does not exist"
 msgstr "லாக்ஸ்பேஸ் %s இல் லீஸ் %s இல்லை"
@@ -15910,7 +15928,7 @@ msgid "size must be less than %llu"
 msgstr "அளவு %llu ஐ விடக் குறைவாகவே இருக்க வேண்டும்"
 
 #: src/qemu/qemu_driver.c:8980 src/qemu/qemu_driver.c:9042
-#: src/qemu/qemu_driver.c:9119 src/test/test_driver.c:3268
+#: src/qemu/qemu_driver.c:9119 src/test/test_driver.c:3377
 #, c-format
 msgid "invalid path: %s"
 msgstr "தவறான பாதை: %s"
@@ -15975,8 +15993,8 @@ msgstr "வட்டு %s க்கு தற்போது மூலம் �
 msgid "no disk format for %s and probing is disabled"
 msgstr "%s க்கான வட்டு வடிவமைப்பு இல்லை, ப்ரோபிங் முடக்கப்பட்டுள்ளது"
 
-#: src/qemu/qemu_driver.c:9869 src/storage/storage_backend.c:1169
-#: src/storage/storage_backend.c:1203 src/util/virstoragefile.c:907
+#: src/qemu/qemu_driver.c:9869 src/storage/storage_backend.c:1170
+#: src/storage/storage_backend.c:1204 src/util/virstoragefile.c:907
 #: src/util/virstoragefile.c:983
 #, c-format
 msgid "cannot stat file '%s'"
@@ -16003,7 +16021,7 @@ msgstr "லாக் மேனேஜர் %s உடன் இடப்பெய
 msgid "Tunnelled migration requested but invalid RPC method called"
 msgstr "வளைவு இடப்பெயர்வு கோரியது ஆனால் தவறான RPC முறை அழைக்கப்பட்டது"
 
-#: src/qemu/qemu_driver.c:10774 src/xen/xen_driver.c:2459
+#: src/qemu/qemu_driver.c:10774 src/xen/xen_driver.c:2456
 #, c-format
 msgid "device %s is not a PCI device"
 msgstr "சாதனம் %s ஒரு PCI சாதனமல்ல"
@@ -16014,7 +16032,7 @@ msgid ""
 "neither VFIO nor kvm device assignment is currently supported on this system"
 msgstr "qemu இன் இந்தப் பதிப்பில் VFIO PCI சாதன ஒதுக்கீடுக்கு ஆதரவில்லை"
 
-#: src/qemu/qemu_driver.c:10836 src/xen/xen_driver.c:2493
+#: src/qemu/qemu_driver.c:10836 src/xen/xen_driver.c:2490
 #, c-format
 msgid "unknown driver name '%s'"
 msgstr "தெரியாத இயக்கி பெயர் '%s'"
@@ -16169,7 +16187,7 @@ msgstr "quiesce க்கு வாட்டு மட்டும் அம்�
 msgid "domain is marked for auto destroy"
 msgstr "டொமைன் தானியக்க அழிவுக்குக் குறிக்கப்பட்டுள்ளது"
 
-#: src/qemu/qemu_driver.c:12685 src/test/test_driver.c:6791
+#: src/qemu/qemu_driver.c:12685 src/test/test_driver.c:6900
 msgid "cannot halt after transient domain snapshot"
 msgstr "இடைநிலை டொமைன் ஸ்னாப்ஷாட்டுக்குப் பிறகு நிறுத்த முடியவில்லை"
 
@@ -16192,11 +16210,11 @@ msgstr "புற செக்பாயின்ட்டுகளில் ம�
 msgid "unable to save metadata for snapshot %s"
 msgstr "ஸ்னாப்ஷாட் %s க்கான மீத்தரவைச் சேமிக்க முடியவில்லை"
 
-#: src/qemu/qemu_driver.c:13122 src/test/test_driver.c:6631
+#: src/qemu/qemu_driver.c:13122 src/test/test_driver.c:6740
 msgid "the domain does not have a current snapshot"
 msgstr "டொமைனில் நடப்பு ஸ்னாப்ஷாட் இல்லை"
 
-#: src/qemu/qemu_driver.c:13293 src/test/test_driver.c:7041
+#: src/qemu/qemu_driver.c:13293 src/test/test_driver.c:7150
 msgid ""
 "transient domain needs to request run or pause to revert to inactive snapshot"
 msgstr ""
@@ -16207,7 +16225,7 @@ msgstr ""
 msgid "revert to external disk snapshot not supported yet"
 msgstr "வெளிப்புற வட்டு ஸ்னாப்ஷாட்டுக்கு மீட்டமைக்கும் வசதிக்கு இன்னும் ஆதரவு இல்லை"
 
-#: src/qemu/qemu_driver.c:13306 src/test/test_driver.c:7049
+#: src/qemu/qemu_driver.c:13306 src/test/test_driver.c:7158
 #, c-format
 msgid "snapshot '%s' lacks domain '%s' rollback info"
 msgstr "ஸ்னாப்ஷாட் '%s' இல் டொமைன் '%s' திரும்பப்பெறுதல் தகவல் இல்லை"
@@ -16551,75 +16569,75 @@ msgstr "virtio-s390 நெட் சாதனத்தை ஹாட்ப்ள�
 msgid "Unable to attach network devices without vlan"
 msgstr "வலன் இல்லாமல் பிணையத்தை இணைக்க முடியவில்லை"
 
-#: src/qemu/qemu_hotplug.c:1035
+#: src/qemu/qemu_hotplug.c:1033
 msgid "device alias not found: cannot set link state to down"
 msgstr "சாதன மாற்றுப் பெயர் இல்லை: இணைப்பு நிலையை கீழிறங்கியதாக அமைக்க முடியாது"
 
-#: src/qemu/qemu_hotplug.c:1047
+#: src/qemu/qemu_hotplug.c:1045
 msgid "setting of link state not supported: Link is up"
 msgstr "இணைப்பின் நிலையை அமைக்க ஆதரவில்லை: இணைப்பு செயலில் உள்ளது"
 
-#: src/qemu/qemu_hotplug.c:1223
+#: src/qemu/qemu_hotplug.c:1221
 msgid "guest unexpectedly quit during hotplug"
 msgstr "விருந்தினர் ஹாட்பிளக்கின் போது எதிர்பாராவிதமாக வெளியேறிவிட்டது"
 
-#: src/qemu/qemu_hotplug.c:1329
+#: src/qemu/qemu_hotplug.c:1327
 msgid "attaching serial console is not supported"
 msgstr "தொடர் பணிமுனையத்தை இணைக்க ஆதரவில்லை"
 
-#: src/qemu/qemu_hotplug.c:1335
+#: src/qemu/qemu_hotplug.c:1333
 msgid "chardev already exists"
 msgstr "chardev ஏற்கனவே உள்ளது"
 
-#: src/qemu/qemu_hotplug.c:1371
+#: src/qemu/qemu_hotplug.c:1369
 msgid "detaching serial console is not supported"
 msgstr "வரிசை பணிமுனையத்தை பிரித்தெடுப்பதற்கு ஆதரவில்லை"
 
-#: src/qemu/qemu_hotplug.c:1561
+#: src/qemu/qemu_hotplug.c:1559
 #, c-format
 msgid "Unable to prepare scsi hostdev: %s:%d:%d:%d"
 msgstr "scsi hostdev ஐத் தயார்ப்படுத்த முடியவில்லை: %s:%d:%d:%d"
 
-#: src/qemu/qemu_hotplug.c:1635 src/qemu/qemu_hotplug.c:3331
+#: src/qemu/qemu_hotplug.c:1633 src/qemu/qemu_hotplug.c:3329
 #, c-format
 msgid "hostdev mode '%s' not supported"
 msgstr "hostdev mode '%s' துணைபுரியவில்லை"
 
-#: src/qemu/qemu_hotplug.c:1661 src/qemu/qemu_hotplug.c:3304
+#: src/qemu/qemu_hotplug.c:1659 src/qemu/qemu_hotplug.c:3302
 #, c-format
 msgid "hostdev subsys type '%s' not supported"
 msgstr "hostdev subsys வகை '%s' துணைபுரியவில்லை"
 
-#: src/qemu/qemu_hotplug.c:1695
+#: src/qemu/qemu_hotplug.c:1693
 msgid "interface is missing bridge name"
 msgstr "இடைமுகத்தில் பிரிட்ஜ் பெயர் விடுபட்டுள்ளது"
 
-#: src/qemu/qemu_hotplug.c:1708
+#: src/qemu/qemu_hotplug.c:1706
 #, c-format
 msgid "Couldn't find network '%s'"
 msgstr "பிணையம் '%s' ஐக் கண்டறிய முடியவில்லை"
 
-#: src/qemu/qemu_hotplug.c:1730
+#: src/qemu/qemu_hotplug.c:1728
 #, c-format
 msgid "Interface type %d has no bridge name"
 msgstr "இடைமுக வகை %d இல் பிரிட்ஜ் பெயர் இல்லை"
 
-#: src/qemu/qemu_hotplug.c:1758
+#: src/qemu/qemu_hotplug.c:1756
 #, c-format
 msgid "bridge %s doesn't exist"
 msgstr "பிரிட்ஜ் %s இல்லை"
 
-#: src/qemu/qemu_hotplug.c:1782
+#: src/qemu/qemu_hotplug.c:1780
 #, c-format
 msgid "unable to recover former state by adding port to bridge %s"
 msgstr "bridge %s க்கு முனையத்தைச் சேர்ப்பதன் மூலம் பழைய நிலையை மீட்டெடுக்க முடியவில்லை"
 
-#: src/qemu/qemu_hotplug.c:1809
+#: src/qemu/qemu_hotplug.c:1807
 #, c-format
 msgid "filters not supported on interfaces of type %s"
 msgstr "%s வகை இடைமுகங்களில் வடிப்பிகளுக்கு ஆதரவில்லை"
 
-#: src/qemu/qemu_hotplug.c:1820
+#: src/qemu/qemu_hotplug.c:1818
 #, c-format
 msgid ""
 "failed to add new filter rules to '%s' - attempting to restore old rules"
@@ -16627,240 +16645,240 @@ msgstr ""
 "'%s' இல் புதிய வடிப்பி விதிகளைச் சேர்ப்பது தோல்வியடைந்தது - பழைய விதிகளை மீட்டெடுக்க "
 "முயற்சிக்கிறது"
 
-#: src/qemu/qemu_hotplug.c:1844
+#: src/qemu/qemu_hotplug.c:1842
 msgid "can't change link state: device alias not found"
 msgstr "இணைப்பு நிலையை மாற்ற முடியாது: சாதன மாற்றுப் பெயர் இல்லை"
 
-#: src/qemu/qemu_hotplug.c:1883
+#: src/qemu/qemu_hotplug.c:1881
 msgid "cannot find existing network device to modify"
 msgstr "மாற்றியமைக்க்க நடப்பு பிணைய சாதனத்தைக் கண்டறிய முடியவில்லை"
 
-#: src/qemu/qemu_hotplug.c:1891
+#: src/qemu/qemu_hotplug.c:1889
 #, c-format
 msgid "cannot change config of '%s' network type"
 msgstr "'%s' பிணைய வகையின் அமைவாக்கத்தை மாற்ற முடியாது"
 
-#: src/qemu/qemu_hotplug.c:1914
+#: src/qemu/qemu_hotplug.c:1912
 #, c-format
 msgid "cannot change network interface mac address from %s to %s"
 msgstr "பிணைய இடைமுக mac முகவரியை %s இலிருந்து %s ஆக மாற்ற முடியாது"
 
-#: src/qemu/qemu_hotplug.c:1923
+#: src/qemu/qemu_hotplug.c:1921
 #, c-format
 msgid "cannot modify network device model from %s to %s"
 msgstr "பிணைய சாதன மாடலை %s இலிருந்து %s ஆக மாற்ற முடியாது"
 
-#: src/qemu/qemu_hotplug.c:1936
+#: src/qemu/qemu_hotplug.c:1934
 msgid "cannot modify virtio network device driver attributes"
 msgstr "virtio பிணைய சாதன இயக்கி பண்புக்கூறுகளை மாற்றியமைக்க முடியாது"
 
-#: src/qemu/qemu_hotplug.c:1950
+#: src/qemu/qemu_hotplug.c:1948
 msgid "cannot modify network device script attribute"
 msgstr "பிணைய சாதன ஸ்கிரிப்ட் பண்புக்கூறை மாற்றியமைக்க முடியாது"
 
-#: src/qemu/qemu_hotplug.c:1959
+#: src/qemu/qemu_hotplug.c:1957
 msgid "cannot modify network device tap name"
 msgstr "பிணைய சாதன டேப் பெயரை மாற்றியமைக்க முடியாது"
 
-#: src/qemu/qemu_hotplug.c:1977
+#: src/qemu/qemu_hotplug.c:1975
 msgid "cannot modify network device guest PCI address"
 msgstr "பிணைய சாதன விருந்தினர் PCI முகவரியை மாற்றியமைக்க முடியாது"
 
-#: src/qemu/qemu_hotplug.c:1986
+#: src/qemu/qemu_hotplug.c:1984
 msgid "cannot modify network device alias"
 msgstr "பிணைய சாதன மாற்றுப் பெயரை மாற்றியமைக்க முடியாது"
 
-#: src/qemu/qemu_hotplug.c:1991
+#: src/qemu/qemu_hotplug.c:1989
 msgid "cannot modify network device rom bar setting"
 msgstr "பிணைய சாதன rom பட்டி அமைப்பை மாற்றியமைக்க முடியாது"
 
-#: src/qemu/qemu_hotplug.c:1996
+#: src/qemu/qemu_hotplug.c:1994
 msgid "cannot modify network rom file"
 msgstr "பிணைய rom கோப்பை மாற்றியமைக்க முடியாது"
 
-#: src/qemu/qemu_hotplug.c:2001
+#: src/qemu/qemu_hotplug.c:1999
 msgid "cannot modify network device boot index setting"
 msgstr "பிணைய சாதன பூட் அட்டவணை அமைப்பை மாற்றியமைக்க முடியாது"
 
-#: src/qemu/qemu_hotplug.c:2028
+#: src/qemu/qemu_hotplug.c:2026
 #, c-format
 msgid "cannot change network interface type to '%s'"
 msgstr "பிணைய இடைமுக வகையை '%s' என மாற்ற முடியாது"
 
-#: src/qemu/qemu_hotplug.c:2086 src/qemu/qemu_hotplug.c:2159
+#: src/qemu/qemu_hotplug.c:2084 src/qemu/qemu_hotplug.c:2157
 #, c-format
 msgid "unable to change config on '%s' network type"
 msgstr "'%s' பிணைய வகையில் உள்ள அமைவாக்கத்தை மாற்ற முடியவில்லை"
 
-#: src/qemu/qemu_hotplug.c:2271
+#: src/qemu/qemu_hotplug.c:2269
 msgid "cannot find existing graphics device to modify"
 msgstr "மாற்றியமைக்க்க நடப்பு கிராஃபிக்ஸ் சாதனத்தைக் கண்டறிய முடியவில்லை"
 
-#: src/qemu/qemu_hotplug.c:2277
+#: src/qemu/qemu_hotplug.c:2275
 msgid "cannot change the number of listen addresses"
 msgstr "கவனிப்பு முகவரிகளின் எண்ணிக்கையை மாற்ற முடியாது"
 
-#: src/qemu/qemu_hotplug.c:2287
+#: src/qemu/qemu_hotplug.c:2285
 msgid "cannot change the type of listen address"
 msgstr "கவனிப்பு முகவரி வகையை மாற்ற முடியாது"
 
-#: src/qemu/qemu_hotplug.c:2296
+#: src/qemu/qemu_hotplug.c:2294
 msgid "cannot change listen address setting on vnc graphics"
 msgstr "vnc கிராஃபிக்ஸில் கவனிப்பு முகவரி அமைப்பை மாற்ற முடியாது"
 
-#: src/qemu/qemu_hotplug.c:2297
+#: src/qemu/qemu_hotplug.c:2295
 msgid "cannot change listen address setting on spice graphics"
 msgstr "ஸ்பைஸ் கிராஃபிக்ஸில் கவனிப்பு முகவரி அமைப்பை மாற்ற முடியாது"
 
-#: src/qemu/qemu_hotplug.c:2306
+#: src/qemu/qemu_hotplug.c:2304
 msgid "cannot change listen network setting on vnc graphics"
 msgstr "vnc கிராஃபிக்ஸில் கவனிப்பு பிணைய அமைப்பை மாற்ற முடியாது"
 
-#: src/qemu/qemu_hotplug.c:2307
+#: src/qemu/qemu_hotplug.c:2305
 msgid "cannot change listen network setting on spice graphics"
 msgstr "ஸ்பைஸ் கிராஃபிக்ஸில் கவனிப்பு பிணைய அமைப்பை மாற்ற முடியாது"
 
-#: src/qemu/qemu_hotplug.c:2325
+#: src/qemu/qemu_hotplug.c:2323
 msgid "cannot change port settings on vnc graphics"
 msgstr "vnc கிராஃபிக்ஸில் முனைய அமைப்புகளை மாற்ற முடியவில்லை"
 
-#: src/qemu/qemu_hotplug.c:2330
+#: src/qemu/qemu_hotplug.c:2328
 msgid "cannot change keymap setting on vnc graphics"
 msgstr "vnc கிராஃபிக்ஸில் கீமேப் அமைப்பை மாற்ற முடியாது"
 
-#: src/qemu/qemu_hotplug.c:2370
+#: src/qemu/qemu_hotplug.c:2368
 msgid "cannot change port settings on spice graphics"
 msgstr "ஸ்பைஸ் கிராஃபிக்ஸில் முனைய அமைப்புகளை மாற்ற முடியவில்லை"
 
-#: src/qemu/qemu_hotplug.c:2376
+#: src/qemu/qemu_hotplug.c:2374
 msgid "cannot change keymap setting on spice graphics"
 msgstr "ஸ்பைஸ் கிராஃபிக்ஸில் கீமேப் அமைப்பை மாற்ற முடியாது"
 
-#: src/qemu/qemu_hotplug.c:2417
+#: src/qemu/qemu_hotplug.c:2415
 #, c-format
 msgid "unable to change config on '%s' graphics type"
 msgstr "'%s' கிராஃபிக்ஸ் வகையில் உள்ள அமைவாக்கத்தை மாற்ற முடியவில்லை"
 
-#: src/qemu/qemu_hotplug.c:2708
+#: src/qemu/qemu_hotplug.c:2706
 #, c-format
 msgid "failed to remove ebtables rule on '%s'"
 msgstr "'%s' இல் ebtables விதியை நீக்க முடியவில்லை"
 
-#: src/qemu/qemu_hotplug.c:2783
+#: src/qemu/qemu_hotplug.c:2781
 #, c-format
 msgid "don't know how to remove a %s device"
 msgstr "ஒரு %s சாதனத்தை அகற்றுவது எப்படி என்று தெரியவில்லை"
 
-#: src/qemu/qemu_hotplug.c:2835
+#: src/qemu/qemu_hotplug.c:2833
 msgid "Unable to wait on unplug condition"
 msgstr "அன்பிளக் நிலையில் காத்திருக்க முடியவில்லை"
 
-#: src/qemu/qemu_hotplug.c:2868 src/qemu/qemu_hotplug.c:3124
+#: src/qemu/qemu_hotplug.c:2866 src/qemu/qemu_hotplug.c:3122
 #, c-format
 msgid "cannot hot unplug multifunction PCI device: %s"
 msgstr "மல்டிஃபங்ஷன் PCI சாதனத்தை ஹாட் அன்பிளக் செய்ய முடியாது: %s"
 
-#: src/qemu/qemu_hotplug.c:2878
+#: src/qemu/qemu_hotplug.c:2876
 msgid "device cannot be detached without a valid CCW address"
 msgstr "ஒரு செல்லுபடியான CCW முகவரி இல்லாமல் சாதனத்தை பிரித்தெடுக்க முடியாது"
 
-#: src/qemu/qemu_hotplug.c:2885
+#: src/qemu/qemu_hotplug.c:2883
 msgid "device cannot be detached without a valid PCI address"
 msgstr "ஒரு செல்லுபடியான PCI முகவரி இல்லாமல் சாதனத்தை பிரித்தெடுக்க முடியாது"
 
-#: src/qemu/qemu_hotplug.c:2940
+#: src/qemu/qemu_hotplug.c:2938
 #, c-format
 msgid "Underlying qemu does not support %s disk removal"
 msgstr "அடிப்படையாக அமைந்துள்ள qemu ஆனது %s வட்டு நீக்குதலை ஆதரிக்கவில்லை"
 
-#: src/qemu/qemu_hotplug.c:2947
+#: src/qemu/qemu_hotplug.c:2945
 #, c-format
 msgid "disk '%s' is in an active block copy job"
 msgstr "வட்டு '%s' தொகுப்பு நகலெடுப்பு பணியில் உள்ளது"
 
-#: src/qemu/qemu_hotplug.c:3022 src/uml/uml_driver.c:2331
+#: src/qemu/qemu_hotplug.c:3020 src/uml/uml_driver.c:2331
 msgid "This type of disk cannot be hot unplugged"
 msgstr "இந்த வகையான வட்டை ஹாட் அன்ப்ளக் செய்ய முடியாது"
 
-#: src/qemu/qemu_hotplug.c:3026
+#: src/qemu/qemu_hotplug.c:3024
 #, c-format
 msgid "disk device type '%s' cannot be detached"
 msgstr "வட்டு சாதன வகை '%s' ஐ பிரிக்க முடியாது"
 
-#: src/qemu/qemu_hotplug.c:3097
+#: src/qemu/qemu_hotplug.c:3095
 #, c-format
 msgid "controller %s:%d not found"
 msgstr "கன்ட்ரோலர் %s:%d காணப்படவில்லை"
 
-#: src/qemu/qemu_hotplug.c:3109
+#: src/qemu/qemu_hotplug.c:3107
 #, c-format
 msgid "device with '%s' address cannot be detached"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:3116
+#: src/qemu/qemu_hotplug.c:3114
 #, c-format
 msgid "device with invalid '%s' address cannot be detached"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:3131
+#: src/qemu/qemu_hotplug.c:3129
 msgid "device cannot be detached: device is busy"
 msgstr "சாதனத்தை பிரித்தெடுக்க முடியாது: சாதனம் பணிமிகுதியாக உள்ளது"
 
-#: src/qemu/qemu_hotplug.c:3178
+#: src/qemu/qemu_hotplug.c:3176
 #, c-format
 msgid "cannot hot unplug multifunction PCI device: %.4x:%.2x:%.2x.%.1x"
 msgstr "மல்டிஃபங்ஷன் PCI சாதனத்தை ஹாட் அன்பிளக் செய்ய முடியாது: %.4x:%.2x:%.2x.%.1x"
 
-#: src/qemu/qemu_hotplug.c:3187 src/qemu/qemu_hotplug.c:3425
+#: src/qemu/qemu_hotplug.c:3185 src/qemu/qemu_hotplug.c:3423
 msgid "device cannot be detached without a PCI address"
 msgstr "ஒரு PCI முகவரி இல்லாமல் சாதனத்தை பிரித்தெடுக்க முடியவில்லை"
 
-#: src/qemu/qemu_hotplug.c:3214 src/qemu/qemu_hotplug.c:3245
+#: src/qemu/qemu_hotplug.c:3212 src/qemu/qemu_hotplug.c:3243
 msgid "device cannot be detached without a device alias"
 msgstr "ஒரு சாதனத்திற்கான புனைப்பெயர் இல்லாமல் சாதனத்தை பிரித்தெடுக்க முடியாது"
 
-#: src/qemu/qemu_hotplug.c:3220 src/qemu/qemu_hotplug.c:3251
+#: src/qemu/qemu_hotplug.c:3218 src/qemu/qemu_hotplug.c:3249
 msgid "device cannot be detached with this QEMU version"
 msgstr "இந்த QEMU பதிப்பு இல்லாமல் சாதனத்தை பிரித்தெடுக்க முடியாது"
 
-#: src/qemu/qemu_hotplug.c:3342
+#: src/qemu/qemu_hotplug.c:3340
 #, c-format
 msgid "host pci device %.4x:%.2x:%.2x.%.1x not found"
 msgstr "புரவலன் pci சாதனம் %.4x:%.2x:%.2x.%.1x காணப்படவில்லை"
 
-#: src/qemu/qemu_hotplug.c:3349
+#: src/qemu/qemu_hotplug.c:3347
 #, c-format
 msgid "host usb device %03d.%03d not found"
 msgstr "புரவல usb சாதனம்%03d.%03d காணப்படவில்லை"
 
-#: src/qemu/qemu_hotplug.c:3353
+#: src/qemu/qemu_hotplug.c:3351
 #, c-format
 msgid "host usb device vendor=0x%.4x product=0x%.4x not found"
 msgstr "வழங்கி usb சாதன வென்டார்=0x%.4x தயாரிப்பு=0x%.4x இல்லை"
 
-#: src/qemu/qemu_hotplug.c:3359
+#: src/qemu/qemu_hotplug.c:3357
 #, c-format
 msgid "host scsi device %s:%d:%d.%d not found"
 msgstr "புரவல scsi சாதனம்%s:%d:%d.%d காணப்படவில்லை"
 
-#: src/qemu/qemu_hotplug.c:3418
+#: src/qemu/qemu_hotplug.c:3416
 msgid "device cannot be detached without a CCW address"
 msgstr "CCW முகவரி இல்லாமல் சாதனத்தை பிரித்தெடுக்க முடியாது"
 
-#: src/qemu/qemu_hotplug.c:3431
+#: src/qemu/qemu_hotplug.c:3429
 #, c-format
 msgid "cannot hot unplug multifunction PCI device :%s"
 msgstr "மல்டிஃபங்ஷன் PCI சாதனத்தை ஹாட் அன்பிளக் செய்ய முடியாது: %s"
 
-#: src/qemu/qemu_hotplug.c:3439
+#: src/qemu/qemu_hotplug.c:3437
 msgid "unable to determine original VLAN"
 msgstr "அசல் VLANஐ வரையறுக்க முடியவில்லை"
 
-#: src/qemu/qemu_hotplug.c:3522
+#: src/qemu/qemu_hotplug.c:3520
 msgid "Graphics password only supported for VNC"
 msgstr "VNC க்கு கிரஃபிக்ஸ் கடவுச்சொல் மட்டுமேஎ ஆதரிக்கப்படும்"
 
-#: src/qemu/qemu_hotplug.c:3548
+#: src/qemu/qemu_hotplug.c:3546
 msgid "Expiry of passwords is not supported"
 msgstr "கடவுச்சொல் காலாவதி அம்சத்திற்கு ஆதரவில்லை"
 
@@ -18702,55 +18720,49 @@ msgstr "ncpus எண்ணிக்கை அதிகபட்சத்தை �
 msgid "remoteDomainGetCPUStats: returned number of stats exceeds limit"
 msgstr "remoteDomainGetCPUStats: வழங்கிய ஸ்டேட்ஸின் எண்ணிக்கை வரம்பை மீறுகிறது"
 
-#: src/remote/remote_driver.c:2972 src/remote/remote_driver.c:2978
-#: src/remote/remote_driver.c:5264 src/remote/remote_driver.c:5270
-#, c-format
-msgid "unable to find callback ID %d"
-msgstr "கால்பேக் ID %d ஐக் கண்டறிய முடியவில்லை"
-
-#: src/remote/remote_driver.c:3710
+#: src/remote/remote_driver.c:3708
 #, c-format
 msgid "unknown authentication type %s"
 msgstr "தெரியாத அங்கீகார வகை %s"
 
-#: src/remote/remote_driver.c:3719
+#: src/remote/remote_driver.c:3717
 #, c-format
 msgid "requested authentication type %s rejected"
 msgstr "கோரப்பட்ட அங்கீகார வகை %s மறுக்கப்பட்டது"
 
-#: src/remote/remote_driver.c:3758
+#: src/remote/remote_driver.c:3756
 #, c-format
 msgid "unsupported authentication type %d"
 msgstr "துணைபுரியாத அங்கீகார வகை %d"
 
-#: src/remote/remote_driver.c:4046
+#: src/remote/remote_driver.c:4044
 msgid "Failed to make auth credentials"
 msgstr "auth credentialsஐ உருவாக்க முடியவில்லை"
 
-#: src/remote/remote_driver.c:4057
+#: src/remote/remote_driver.c:4055
 msgid "No authentication callback available"
 msgstr "அங்கீகரிப்பு கால்பேக் கிடைக்கவில்லை"
 
-#: src/remote/remote_driver.c:4063 src/remote/remote_driver.c:4381
+#: src/remote/remote_driver.c:4061 src/remote/remote_driver.c:4379
 msgid "Failed to collect auth credentials"
 msgstr "auth நன்றிகளை சேகரிக்க முடியவில்லை"
 
-#: src/remote/remote_driver.c:4169
+#: src/remote/remote_driver.c:4167
 #, c-format
 msgid "SASL mechanism %s not supported by server"
 msgstr "SASL நுட்பம் %s சேவையகத்தால் துணைபுரியவில்லை"
 
-#: src/remote/remote_driver.c:4199
+#: src/remote/remote_driver.c:4197
 #, c-format
 msgid "SASL negotiation data too long: %zu bytes"
 msgstr "SASL நெகோஷியேஷன் தரவு மிக நீளமாக உள்ளது: %zu பைட்கள்"
 
-#: src/remote/remote_driver.c:4298
+#: src/remote/remote_driver.c:4296
 #, c-format
 msgid "negotiation SSF %d was not strong enough"
 msgstr "SSF %d போதிய பலமாக இல்லை"
 
-#: src/remote/remote_driver.c:4944
+#: src/remote/remote_driver.c:4946
 msgid "no internalFlags support"
 msgstr "internalFlags ஆதரவு இல்லை"
 
@@ -20768,7 +20780,7 @@ msgid "cannot sync data to file '%s'"
 msgstr "கோப்பு '%s' க்கு தரவை ஒத்திசைக்க முடியவில்லை"
 
 #: src/storage/storage_backend.c:230 src/storage/storage_backend.c:307
-#: src/storage/storage_backend_logical.c:746
+#: src/storage/storage_backend_logical.c:774
 #, c-format
 msgid "cannot close file '%s'"
 msgstr "கோப்பு '%s'ஐ மூட முடியவில்லை"
@@ -20777,8 +20789,8 @@ msgstr "கோப்பு '%s'ஐ மூட முடியவில்லை"
 msgid "metadata preallocation is not supported for block volumes"
 msgstr "தொகுப்பு பிரிவகங்களுக்கு மீத்தரவு முன்னொதுக்கம் ஆதரிக்கப்படாது"
 
-#: src/storage/storage_backend.c:270 src/storage/storage_backend_fs.c:781
-#: src/storage/storage_backend_fs.c:798 src/storage/storage_backend_fs.c:1047
+#: src/storage/storage_backend.c:270 src/storage/storage_backend_fs.c:780
+#: src/storage/storage_backend_fs.c:797 src/storage/storage_backend_fs.c:1044
 #, c-format
 msgid "cannot create path '%s'"
 msgstr "'%s' பாதையை உருவாக்க முடியவில்லை"
@@ -20810,7 +20822,7 @@ msgid "metadata preallocation is not supported for raw volumes"
 msgstr "அசல் பிரிவகங்களுக்கு மீத்தரவு முன்னொதுக்கம் ஆதரிக்கப்படாது"
 
 #: src/storage/storage_backend.c:417 src/storage/storage_backend_disk.c:634
-#: src/storage/storage_backend_logical.c:687
+#: src/storage/storage_backend_logical.c:715
 #: src/storage/storage_backend_rbd.c:466
 msgid "storage pool does not support encrypted volumes"
 msgstr "சேமிப்பக தொகுப்பக தொகுதி உருவாக்கத்திற்கு துணைபுரியவில்லை"
@@ -20926,60 +20938,65 @@ msgstr "தெரியாத கோப்பு கருவி வகை '%d'�
 msgid "creation of non-raw file images is not supported without qemu-img."
 msgstr "qemu-img இல்லாமல் ரா உருக்கள் உருவாக்கம் துணைபுரியவில்லை."
 
-#: src/storage/storage_backend.c:1196
+#: src/storage/storage_backend.c:1149
+#, fuzzy, c-format
+msgid "missing backend for pool type %d (%s)"
+msgstr "தொகுப்பகம் வகை %dக்கு பின்னனி விடுப்பட்டது"
+
+#: src/storage/storage_backend.c:1197
 #: src/storage/storage_backend_gluster.c:257
 #, c-format
 msgid "cannot open volume '%s'"
 msgstr "'%s' தொகுதியை திறக்க முடியவில்லை"
 
-#: src/storage/storage_backend.c:1231
+#: src/storage/storage_backend.c:1232
 #, fuzzy, c-format
 msgid "unable to set blocking mode for '%s'"
 msgstr "%s க்கு பைப்யை உருவாக்க முடியவில்லை"
 
-#: src/storage/storage_backend.c:1243
+#: src/storage/storage_backend.c:1244
 #, c-format
 msgid "unexpected storage mode for '%s'"
 msgstr "'%s' க்கு எதிர்பார்க்காத சேமிப்பக பயன்முறை"
 
-#: src/storage/storage_backend.c:1363
+#: src/storage/storage_backend.c:1364
 #, c-format
 msgid "cannot seek to end of file '%s'"
 msgstr "'%s' கோப்பின் முடிவை காண முடியவில்லை"
 
-#: src/storage/storage_backend.c:1392
+#: src/storage/storage_backend.c:1393
 #, c-format
 msgid "cannot get file context of '%s'"
 msgstr "'%s' கோப்பின் சூழலை பெற முடியவில்லை"
 
-#: src/storage/storage_backend.c:1458
+#: src/storage/storage_backend.c:1459
 #, c-format
 msgid "cannot seek to beginning of file '%s'"
 msgstr "'%s' கோப்பின் துவக்கத்தை காண முடியவில்லை"
 
-#: src/storage/storage_backend.c:1465
+#: src/storage/storage_backend.c:1466
 #, c-format
 msgid "cannot read beginning of file '%s'"
 msgstr "'%s' கோப்பின் துவக்கத்தை வாசிக்க முடியவில்லை"
 
-#: src/storage/storage_backend.c:1539
+#: src/storage/storage_backend.c:1540
 #, c-format
 msgid "cannot read dir '%s'"
 msgstr "dir %sஐ வாசிக்க முடியவில்லை"
 
-#: src/storage/storage_backend.c:1653
+#: src/storage/storage_backend.c:1654
 msgid "cannot read fd"
 msgstr "fdஐ வாசிக்க முடியவில்லை"
 
-#: src/storage/storage_backend.c:1760
+#: src/storage/storage_backend.c:1761
 msgid "cannot open file using fd"
 msgstr "fd ஐப் பயன்படுத்தி கோப்பைத் திறக்க முடியாது"
 
-#: src/storage/storage_backend.c:1791
+#: src/storage/storage_backend.c:1792
 msgid "read error on pipe"
 msgstr "பைப்பில் படித்தல் தொடர்பான பிழை"
 
-#: src/storage/storage_backend.c:1820 src/storage/storage_backend.c:1833
+#: src/storage/storage_backend.c:1821 src/storage/storage_backend.c:1834
 #, c-format
 msgid "%s not implemented on Win32"
 msgstr "Win32வில் %s செயல்படுத்தப்படவில்லை"
@@ -21002,7 +21019,7 @@ msgstr " %s லிருந்து பூல்லை உருவாக்க
 msgid "device path '%s' doesn't exist"
 msgstr "சாதன பாதை '%s' இல்லை"
 
-#: src/storage/storage_backend_disk.c:389 src/storage/storage_backend_fs.c:762
+#: src/storage/storage_backend_disk.c:389 src/storage/storage_backend_fs.c:761
 msgid "Overwrite and no overwrite flags are mutually exclusive"
 msgstr ""
 "மேலெழுதுதல் மற்றும் மேலெழுதுதல் வேண்டாம் ஆகிய கொடிகள் ஒன்றுக்கொன்று நிரப்புப் பண்பு கொண்டவை"
@@ -21071,7 +21088,7 @@ msgstr "தவறான netfs பாதை(இல்லை /): %s"
 msgid "invalid netfs path (ends in /): %s"
 msgstr "தவறான netfs பாதை(முடிவில் /): %s"
 
-#: src/storage/storage_backend_fs.c:280 src/test/test_driver.c:4640
+#: src/storage/storage_backend_fs.c:280 src/test/test_driver.c:4749
 msgid "hostname must be specified for netfs sources"
 msgstr "netfs மூலங்களுக்கு வழங்கி பெயர் குறிப்பிடப்பட வேண்டும்"
 
@@ -21105,37 +21122,37 @@ msgstr "இலக்கு '%s' ஏற்கனவே மவுன்ட் ச�
 msgid "missing source dir"
 msgstr "மூல அடைவு விடுபட்டுள்ளது"
 
-#: src/storage/storage_backend_fs.c:576
+#: src/storage/storage_backend_fs.c:575
 #, c-format
 msgid "Not capable of probing for filesystem of type %s"
 msgstr "%s வகை கோப்புமுறைமைக்கு ஆய்ந்து நோக்கும் திறன் கொண்டதல்ல"
 
-#: src/storage/storage_backend_fs.c:585
+#: src/storage/storage_backend_fs.c:584
 #, c-format
 msgid "Failed to create filesystem probe for device %s"
 msgstr "சாதனம் '%s' க்கான கோப்பு முறைமை ஆய்வை உருவாக்குவதில் தோல்வி"
 
-#: src/storage/storage_backend_fs.c:607
+#: src/storage/storage_backend_fs.c:606
 #, c-format
 msgid "Existing filesystem of type '%s' found on device '%s'"
 msgstr "'%s' சாதனத்தில் '%s' வகை கோப்புமுறைமை ஏற்கனவே உள்ளதாகக் கண்டறியப்பட்டது"
 
-#: src/storage/storage_backend_fs.c:615
+#: src/storage/storage_backend_fs.c:614
 msgid "Found additional probes to run, filesystem probing may be incorrect"
 msgstr ""
 "இயக்குவதற்கு கூடுதல் புரோபுகள் இருப்பதாகக் கண்டறிந்துள்ளது, கோப்புமுறைமை புரோபிங் தவறாக "
 "இருக்க வாய்ப்புள்ளது"
 
-#: src/storage/storage_backend_fs.c:637
+#: src/storage/storage_backend_fs.c:636
 msgid "probing for filesystems is unsupported by this build"
 msgstr "இந்த பில்டில் கோப்புமுறைமைகளை ஆய்வு செய்தலுக்கு ஆதரவில்லை"
 
-#: src/storage/storage_backend_fs.c:662
+#: src/storage/storage_backend_fs.c:661
 #, c-format
 msgid "Failed to make filesystem of type '%s' on device '%s'"
 msgstr "சாதனம் '%s' இல் '%s' வகை கோப்புமுறைமையை உருவாக்குவதில் தோல்வி"
 
-#: src/storage/storage_backend_fs.c:677
+#: src/storage/storage_backend_fs.c:676
 #, c-format
 msgid ""
 "mkfs is not supported on this platform: Failed to make filesystem of type "
@@ -21144,66 +21161,66 @@ msgstr ""
 "இந்த இயங்குதளத்தில் mkfs க்கு ஆதரவில்லை: சாதனம் '%s' இல் '%s'  வகை கோப்புமுறைமையை "
 "உருவாக்குவதில் தோல்வி"
 
-#: src/storage/storage_backend_fs.c:695
+#: src/storage/storage_backend_fs.c:694
 #, c-format
 msgid "No source device specified when formatting pool '%s'"
 msgstr "தொகுப்பகம் '%s' ஐ ஃபார்மேட் செய்யும் போது, மூல சாதனம் குறிப்பிடப்படவில்லை"
 
-#: src/storage/storage_backend_fs.c:706
+#: src/storage/storage_backend_fs.c:705
 #, c-format
 msgid "Source device does not exist when formatting pool '%s'"
 msgstr "தொகுப்பகம் '%s' ஐ ஃபார்மேட் செய்யும் போது, மூல சாதனம் இல்லை"
 
-#: src/storage/storage_backend_fs.c:771
+#: src/storage/storage_backend_fs.c:770
 #, c-format
 msgid "path '%s' is not absolute"
 msgstr "பாதை '%s' முழுமையாக இல்லை"
 
-#: src/storage/storage_backend_fs.c:903
+#: src/storage/storage_backend_fs.c:902
 #, c-format
 msgid "cannot probe backing volume info: %s"
 msgstr "பேக்கிங் பிரிவக தகவலை ஆய்வு செய்ய முடியாது: %s"
 
-#: src/storage/storage_backend_fs.c:984
+#: src/storage/storage_backend_fs.c:981
 #, c-format
 msgid "failed to remove pool '%s'"
 msgstr "தொகுப்பகம் '%s'ஐ நீக்க முடியவில்லை"
 
-#: src/storage/storage_backend_fs.c:1015
+#: src/storage/storage_backend_fs.c:1012
 #, c-format
 msgid "volume target path '%s' already exists"
 msgstr "பிரிவக இலக்குப் பாதை '%s' முன்பே உள்ளது"
 
-#: src/storage/storage_backend_fs.c:1037
+#: src/storage/storage_backend_fs.c:1034
 msgid "cannot copy from volume to a directory volume"
 msgstr "தொகுதிக்கு ஒரு அடைவு தொகுதியிலிருந்து நகலெடுக்க முடியவில்லை"
 
-#: src/storage/storage_backend_fs.c:1068
+#: src/storage/storage_backend_fs.c:1065
 msgid ""
 "storage pool does not support building encrypted volumes from other volumes"
 msgstr ""
 "சேமிப்பக தொகுப்பக தொகுதி உருவாக்கத்திற்கு ஒரு உள்ளிருக்கும் தொகுதிக்கு துணைபுரியவில்லை"
 
-#: src/storage/storage_backend_fs.c:1088
+#: src/storage/storage_backend_fs.c:1085
 msgid "creation of non-raw images is not supported without qemu-img"
 msgstr "qemu-img இல்லாமல் ரா உருக்கள் உருவாக்கப்படுகிறது"
 
-#: src/storage/storage_backend_fs.c:1146
+#: src/storage/storage_backend_fs.c:1143
 #, c-format
 msgid "cannot unlink file '%s'"
 msgstr "கோப்பு '%s'ஐ துண்டிக்க முடியவில்லை"
 
-#: src/storage/storage_backend_fs.c:1155
+#: src/storage/storage_backend_fs.c:1152
 #, c-format
 msgid "cannot remove directory '%s'"
 msgstr "கோப்பகம் '%s' ஐ நீக்க முடியாது"
 
-#: src/storage/storage_backend_fs.c:1165
+#: src/storage/storage_backend_fs.c:1162
 #, c-format
 msgid "removing block or network volumes is not supported: %s"
 msgstr "தொகுப்பு அல்லது பிணைய பிரிவகங்களை அகற்ற ஆதரவில்லை: %s"
 
-#: src/storage/storage_backend_fs.c:1274
+#: src/storage/storage_backend_fs.c:1271
 msgid "preallocate is only supported for raw type volume"
 msgstr "அசல் வகை பிரிவகங்களுக்கு மட்டுமே முன்னொதுக்கம் ஆதரிக்கப்படும்"
 
@@ -21392,17 +21409,17 @@ msgstr "சாதனம் '%s' இன் தலைப்பை ஃப்ளஷ�
 msgid "cannot close device '%s'"
 msgstr "'%s' சாதனத்தை மூட முடியவில்லை"
 
-#: src/storage/storage_backend_logical.c:732
+#: src/storage/storage_backend_logical.c:760
 #, c-format
 msgid "cannot set file owner '%s'"
 msgstr "கோப்பு உரிமையாளர் '%s'ஐ அமைக்க முடியவில்லை"
 
-#: src/storage/storage_backend_logical.c:739
+#: src/storage/storage_backend_logical.c:767
 #, c-format
 msgid "cannot set file mode '%s'"
 msgstr "கோப்பு முறைமை '%s'ஐ அமைக்க முடியவில்லை"
 
-#: src/storage/storage_backend_logical.c:754
+#: src/storage/storage_backend_logical.c:782
 #, c-format
 msgid "cannot find newly created volume '%s'"
 msgstr "புதிதாக உருவாக்கப்பட்ட தொகுதி '%s'ஐ காண முடியவில்லை"
@@ -21616,7 +21633,7 @@ msgstr "uuid %s க்குப் பொருந்தும் சேமி�
 msgid "no storage pool with matching name '%s'"
 msgstr "சேமிப்பக தொகுப்பகத்துடன் பொருந்தும் பெயர் '%s'க்கு இல்லை"
 
-#: src/storage/storage_driver.c:513 src/test/test_driver.c:4650
+#: src/storage/storage_driver.c:513 src/test/test_driver.c:4759
 #, c-format
 msgid "pool type '%s' does not support source discovery"
 msgstr "தொகுப்பக வகை '%s' ஆனது மூல கண்டுபிடிப்புக்கு துணைபுரியவில்லை"
@@ -21741,225 +21758,244 @@ msgstr "ஆதரிக்கப்படாத வழிமுறை %d"
 msgid "wiping algorithm %d not supported"
 msgstr "வழிமுறை %d ஐ வைப்பிங் செய்ய ஆதரவில்லை"
 
-#: src/test/test_driver.c:243
+#: src/test/test_driver.c:253
 msgid "invalid transient"
 msgstr ""
 
-#: src/test/test_driver.c:250
+#: src/test/test_driver.c:260
 msgid "invalid hasmanagedsave"
 msgstr ""
 
-#: src/test/test_driver.c:259
+#: src/test/test_driver.c:269
 #, c-format
 msgid "runstate '%d' out of range'"
 msgstr "runstate '%d' வரம்புக்கு வெளியே உள்ளது'"
 
-#: src/test/test_driver.c:267
+#: src/test/test_driver.c:277
 msgid "invalid runstate"
 msgstr "செல்லுபடியாகாத runstate"
 
-#: src/test/test_driver.c:273
+#: src/test/test_driver.c:283
 msgid "transient domain cannot have runstate 'shutoff'"
 msgstr ""
 
-#: src/test/test_driver.c:278
+#: src/test/test_driver.c:288
 msgid "domain with managedsave data can only have runstate 'shutoff'"
 msgstr ""
 
-#: src/test/test_driver.c:521
+#: src/test/test_driver.c:531
 #, c-format
 msgid "Exceeded max iface limit %d"
 msgstr "அதிகபட்ச iface வரம்பு %dஐ எட்டியது"
 
-#: src/test/test_driver.c:885
+#: src/test/test_driver.c:895
 #, c-format
 msgid "resolving %s filename"
 msgstr "%s கோப்புப் பெயரைத் தீர்க்கிறது"
 
-#: src/test/test_driver.c:921
+#: src/test/test_driver.c:931
 msgid "invalid node cpu nodes value"
 msgstr "தவறான கனு cpu கனுக்கள் மதிப்பு"
 
-#: src/test/test_driver.c:930
+#: src/test/test_driver.c:940
 msgid "invalid node cpu sockets value"
 msgstr "தவறான கனு cpu சாக்கெட்டுகள் மதிப்பு"
 
-#: src/test/test_driver.c:939
+#: src/test/test_driver.c:949
 msgid "invalid node cpu cores value"
 msgstr "தவறான கனு cpu கோர்கள் மதிப்பு"
 
-#: src/test/test_driver.c:948
+#: src/test/test_driver.c:958
 msgid "invalid node cpu threads value"
 msgstr "தவறான கனு cpu தொடரிழைகள் மதிப்பு"
 
-#: src/test/test_driver.c:961
+#: src/test/test_driver.c:971
 msgid "invalid node cpu active value"
 msgstr "தவறான கனு cpu செயல்நிலை மதிப்பு"
 
-#: src/test/test_driver.c:969
+#: src/test/test_driver.c:979
 msgid "invalid node cpu mhz value"
 msgstr "தவறான கனு cpu mhz மதிப்பு"
 
-#: src/test/test_driver.c:977 src/xenxs/xen_xm.c:703
+#: src/test/test_driver.c:987 src/xenxs/xen_xm.c:703
 #, c-format
 msgid "Model %s too big for destination"
 msgstr "மாதிரி %s ஆனது இலக்கிற்கு மிகப் பெரியதாக உள்ளது"
 
-#: src/test/test_driver.c:989
+#: src/test/test_driver.c:999
 msgid "invalid node memory value"
 msgstr "தவறான கனு cpu நினைவக மதிப்பு"
 
-#: src/test/test_driver.c:1035
+#: src/test/test_driver.c:1045
 msgid "more than one snapshot claims to be active"
 msgstr ""
 
-#: src/test/test_driver.c:1398
+#: src/test/test_driver.c:1391
+#, fuzzy
+msgid "missing username in /node/auth/user field"
+msgstr "அங்கீகாரத்திற்கான பயனர் பெயர் இல்லை"
+
+#: src/test/test_driver.c:1447
 msgid "Root element is not 'node'"
 msgstr "ரூட் உருப்படி ஒரு 'முனை' இல்லை"
 
-#: src/test/test_driver.c:1469
+#: src/test/test_driver.c:1511
+#, fuzzy
+msgid "authentication failed when asking for username"
+msgstr "அங்கீகாரம் செயலிழக்கப்பட்டது: %s"
+
+#: src/test/test_driver.c:1529
+#, fuzzy
+msgid "authentication failed when asking for password"
+msgstr "அங்கீகாரம் செயலிழக்கப்பட்டது: %s"
+
+#: src/test/test_driver.c:1537
+msgid "authentication failed, see test XML for the correct username/password"
+msgstr ""
+
+#: src/test/test_driver.c:1574
 msgid "testOpen: supply a path or use test:///default"
 msgstr "testOpen: ஒரு பாதையை கொடுக்கவும் அல்லது test:///default ஐ பயன்படுத்தவும்"
 
-#: src/test/test_driver.c:1848
+#: src/test/test_driver.c:1957
 #, c-format
 msgid "domain '%s' not paused"
 msgstr "செயற்களம் '%s' ஐ  இடைநிறுத்த முடியவில்லை"
 
-#: src/test/test_driver.c:1891 src/test/test_driver.c:1935
+#: src/test/test_driver.c:2000 src/test/test_driver.c:2044
 #, c-format
 msgid "domain '%s' not running"
 msgstr "செயற்களம் '%s' இயங்கவில்லை"
 
-#: src/test/test_driver.c:2056 src/test/test_driver.c:2650
-#: src/test/test_driver.c:3274 src/test/test_driver.c:3330
+#: src/test/test_driver.c:2165 src/test/test_driver.c:2759
+#: src/test/test_driver.c:3383 src/test/test_driver.c:3439
 msgid "getting time of day"
 msgstr "நாளின் நேரத்தைப் பெறுகிறது"
 
-#: src/test/test_driver.c:2139
+#: src/test/test_driver.c:2248
 #, c-format
 msgid "saving domain '%s' failed to allocate space for metadata"
 msgstr "சேமிக்கப்பட்ட செயற்கள '%s' மெட்டாடேட்டாவுக்கு இடத்தை ஒதுக்கீட முடியவில்லை"
 
-#: src/test/test_driver.c:2146
+#: src/test/test_driver.c:2255
 #, c-format
 msgid "saving domain '%s' to '%s': open failed"
 msgstr " '%s' லிருந்து '%s' செயற்களத்தை சேமிக்கவும்:திறப்பதில் தோல்வியுற்றதுd"
 
-#: src/test/test_driver.c:2153 src/test/test_driver.c:2159
-#: src/test/test_driver.c:2165 src/test/test_driver.c:2172
+#: src/test/test_driver.c:2262 src/test/test_driver.c:2268
+#: src/test/test_driver.c:2274 src/test/test_driver.c:2281
 #, c-format
 msgid "saving domain '%s' to '%s': write failed"
 msgstr "'%s' லிருந்து '%s' செயற்களத்தை சேமிக்கிறது: எழுவதில் தோல்வியுற்றது"
 
-#: src/test/test_driver.c:2242
+#: src/test/test_driver.c:2351
 #, c-format
 msgid "cannot read domain image '%s'"
 msgstr "'%s' உருவை வாசிக்க முடியவில்லை"
 
-#: src/test/test_driver.c:2248
+#: src/test/test_driver.c:2357
 #, c-format
 msgid "incomplete save header in '%s'"
 msgstr "முடிவில்லாத '%s' தலைப்பு சேமி"
 
-#: src/test/test_driver.c:2254
+#: src/test/test_driver.c:2363
 msgid "mismatched header magic"
 msgstr "பொருத்தமில்லாத தலைப்பு மேஜிக்"
 
-#: src/test/test_driver.c:2259
+#: src/test/test_driver.c:2368
 #, c-format
 msgid "failed to read metadata length in '%s'"
 msgstr "மெட்டா தரவு '%s' நீளத்தை வாசிக்க முடியவில்லை"
 
-#: src/test/test_driver.c:2265
+#: src/test/test_driver.c:2374
 msgid "length of metadata out of range"
 msgstr "மெட்டா தரவின் எண்ணிக்கை அதிகமாக உள்ளது"
 
-#: src/test/test_driver.c:2272
+#: src/test/test_driver.c:2381
 #, c-format
 msgid "incomplete metadata in '%s'"
 msgstr "'%s' இல் முழுமையாக அல்லாத மீத்தரவு"
 
-#: src/test/test_driver.c:2344
+#: src/test/test_driver.c:2453
 #, c-format
 msgid "domain '%s' coredump: failed to open %s"
 msgstr "செயற்களம் '%s' coredump: %sஐ திறப்பதில் தோல்வியுற்றது"
 
-#: src/test/test_driver.c:2350
+#: src/test/test_driver.c:2459
 #, c-format
 msgid "domain '%s' coredump: failed to write header to %s"
 msgstr "செயற்களம் '%s' coredump: %s தலைப்பை எழுதவதில் தோல்வியுற்றது"
 
-#: src/test/test_driver.c:2356
+#: src/test/test_driver.c:2465
 #, c-format
 msgid "domain '%s' coredump: write failed: %s"
 msgstr "செயற்களம் '%s' coredump: எழுத முடியவில்லை: %s"
 
-#: src/test/test_driver.c:2557
+#: src/test/test_driver.c:2666
 msgid "cannot hotplug vcpus for an inactive domain"
 msgstr "செயலற்ற செயற்களத்தில் vcpusஐ ஹாட்ஃப்ளக் செய்ய முடியவில்லை"
 
-#: src/test/test_driver.c:2569
+#: src/test/test_driver.c:2678
 #, c-format
 msgid "requested cpu amount exceeds maximum (%d > %d)"
 msgstr "கோரிய cpu அளவானது அதிகபட்சத்தை மீறுகிறது (%d > %d)"
 
-#: src/test/test_driver.c:2642
+#: src/test/test_driver.c:2751
 msgid "cannot list vcpus for an inactive domain"
 msgstr "ஒரு செயலற்ற செயற்களத்தில் vcpus காக பட்டியலிட முடியவில்லை"
 
-#: src/test/test_driver.c:2729
+#: src/test/test_driver.c:2838
 msgid "cannot pin vcpus on an inactive domain"
 msgstr "செயலற்ற செயற்களத்தில் vcpusஐ பின் செய்ய முடியவில்லை"
 
-#: src/test/test_driver.c:2735
+#: src/test/test_driver.c:2844
 msgid "requested vcpu is higher than allocated vcpus"
 msgstr "கோரப்பட்ட vcpu ஆனது ஒதுக்கீட்டு vcpusஐ விட அதிகமாக இருந்தது"
 
-#: src/test/test_driver.c:2945
+#: src/test/test_driver.c:3054
 msgid "Range exceeds available cells"
 msgstr "இருக்கும் அறைகளுக்கு வரம்பை மீறியது"
 
-#: src/test/test_driver.c:2981
+#: src/test/test_driver.c:3090
 #, c-format
 msgid "Domain '%s' is already running"
 msgstr "செயற்களம் '%s' ஏற்கனவே இயக்கத்தில் உள்ளது"
 
-#: src/test/test_driver.c:3651
+#: src/test/test_driver.c:3760
 #, c-format
 msgid "Network '%s' is still running"
 msgstr "பிணையம் '%s' இன்னும் இயங்குகிறது"
 
-#: src/test/test_driver.c:3739
+#: src/test/test_driver.c:3848
 #, c-format
 msgid "Network '%s' is already running"
 msgstr "பிணையம் '%s' ஏற்கனவே இயக்கத்தில் உள்ளது"
 
-#: src/test/test_driver.c:4104
+#: src/test/test_driver.c:4213
 msgid "there is another transaction running."
 msgstr "மற்றொரு பரிமாற்றம் நடந்துகொண்டுள்ளது."
 
-#: src/test/test_driver.c:4132
+#: src/test/test_driver.c:4241
 msgid "no transaction running, nothing to be committed."
 msgstr "பரிமாற்றங்கள் எதுவும் நிகழவில்லை, ஒப்படைக்க எதுவும் இல்லை."
 
-#: src/test/test_driver.c:4160
+#: src/test/test_driver.c:4269
 msgid "no transaction running, nothing to rollback."
 msgstr "பரிமாற்றங்கள் எதுவும் நிகழவில்லை, திரும்பப்பெற எதுவும் இல்லை."
 
-#: src/test/test_driver.c:4680
+#: src/test/test_driver.c:4789
 msgid "storage pool already exists"
 msgstr "சேமிக்கப்பட்ட தொகுப்பகம் ஏற்கனவே உள்ளன"
 
-#: src/test/test_driver.c:5139
+#: src/test/test_driver.c:5248
 msgid "no storage pool with matching uuid"
 msgstr "பொருந்தும் uuid கொண்ட சேமிப்பக தொகுப்பகம் எதுவும் இல்லை"
 
-#: src/test/test_driver.c:5145
+#: src/test/test_driver.c:5254
 msgid "storage pool is not active"
 msgstr "சேமிக்கப்பட்ட  தொகுப்பகம் செயல்பாட்டில் இல்லை"
 
-#: src/test/test_driver.c:7059
+#: src/test/test_driver.c:7168
 msgid "must respawn guest to start inactive snapshot"
 msgstr ""
 
@@ -26890,30 +26926,30 @@ msgstr ""
 msgid "unsupported path, use xvdN, hdN, or sdN for domain %d"
 msgstr "ஆதரிக்கப்படாத பாதை, டொமைன் %d க்கு xvdN, hdN அல்லது sdN ஐப் பயன்படுத்தவும்"
 
-#: src/xen/xen_driver.c:519
+#: src/xen/xen_driver.c:516
 #, c-format
 msgid "Errored to create save dir '%s': %s"
 msgstr "சேமிப்பக கோப்பகம் '%s' ஐ உருவாக்குவதில் பிழை செய்தது: %s"
 
-#: src/xen/xen_driver.c:1039
+#: src/xen/xen_driver.c:1036
 msgid "Unable to query OS type for inactive domain"
 msgstr "செயலிலா டொமைனுக்கு OS வகையை வினவ முடியவில்லை"
 
-#: src/xen/xen_driver.c:1461
+#: src/xen/xen_driver.c:1458
 msgid "Cannot get VCPUs of inactive domain"
 msgstr "செயலற்ற டொமைனின் VCPUகளைப் பெற முடியவில்லை"
 
-#: src/xen/xen_driver.c:2117 src/xen/xen_driver.c:2151
-#: src/xen/xen_driver.c:2194
+#: src/xen/xen_driver.c:2114 src/xen/xen_driver.c:2148
+#: src/xen/xen_driver.c:2191
 msgid "Cannot change scheduler parameters"
 msgstr "ஷெட்யூலர் அளவுருக்களை மாற்ற முடியவில்லை"
 
-#: src/xen/xen_driver.c:2585
+#: src/xen/xen_driver.c:2582
 #, c-format
 msgid "Device %s has been assigned to guest %d"
 msgstr "சாதனம் %s ஆனது விருந்தினர் %d க்கு நிர்ணயிக்கப்பட்டுள்ளது"
 
-#: src/xen/xen_driver.c:2659
+#: src/xen/xen_driver.c:2656
 msgid "cannot find default console device"
 msgstr "முன்னிருப்பு கன்சோல் சாதனத்தைக் கண்டறிய முடியவில்லை"
 
@@ -28838,8 +28874,8 @@ msgstr "ஒரு இயங்கும் டொமைனுக்கு நி
 #: tools/virsh-domain.c:9251 tools/virsh-domain.c:9324
 #: tools/virsh-domain.c:9384 tools/virsh-domain.c:9547
 #: tools/virsh-domain.c:9648 tools/virsh-domain.c:9750
-#: tools/virsh-domain.c:10120 tools/virsh-domain.c:10230
-#: tools/virsh-domain.c:10290 tools/virsh-domain.c:10441
+#: tools/virsh-domain.c:10120 tools/virsh-domain.c:10235
+#: tools/virsh-domain.c:10295 tools/virsh-domain.c:10446
 #: tools/virsh-snapshot.c:128 tools/virsh-snapshot.c:331
 #: tools/virsh-snapshot.c:523 tools/virsh-snapshot.c:645
 #: tools/virsh-snapshot.c:881 tools/virsh-snapshot.c:1438
@@ -32137,61 +32173,61 @@ msgstr "வட்டு சாதனத்தை துண்டி"
 msgid "Detach disk device."
 msgstr "வட்டு சாதனத்தை துண்டி."
 
-#: tools/virsh-domain.c:10198
+#: tools/virsh-domain.c:10203
 msgid "Failed to detach disk"
 msgstr "வட்டிலிருந்து நீக்க முடியவில்லை"
 
-#: tools/virsh-domain.c:10202
+#: tools/virsh-domain.c:10207
 msgid "Disk detached successfully\n"
 msgstr "வட்டு வெற்றிகரமாக விடுவிக்கப்பட்டது\n"
 
-#: tools/virsh-domain.c:10218
+#: tools/virsh-domain.c:10223
 msgid "edit XML configuration for a domain"
 msgstr "XML கட்டமைப்பை ஒரு செயற்களமாக திருத்து"
 
-#: tools/virsh-domain.c:10221
+#: tools/virsh-domain.c:10226
 msgid "Edit the XML configuration for a domain."
 msgstr "XML கட்டமைப்பின் ஒரு செயற்களமாக திருத்தவும்."
 
-#: tools/virsh-domain.c:10249
+#: tools/virsh-domain.c:10254
 #, c-format
 msgid "Domain %s XML configuration not changed.\n"
 msgstr "செயற்களம் %s XML கட்டமைப்பை மாற்ற முடியவில்லை.\n"
 
-#: tools/virsh-domain.c:10259
+#: tools/virsh-domain.c:10264
 #, c-format
 msgid "Domain %s XML configuration edited.\n"
 msgstr "செயற்களம் %s XML கட்டமைப்பு திருத்தப்பட்டது.\n"
 
-#: tools/virsh-domain.c:10278
+#: tools/virsh-domain.c:10283
 msgid "Change media of CD or floppy drive"
 msgstr "CD அல்லது நெகிழ்வட்டு இயக்கியின் ஊடகத்தை மாற்றவும்"
 
-#: tools/virsh-domain.c:10281
+#: tools/virsh-domain.c:10286
 msgid "Change media of CD or floppy drive."
 msgstr "CD அல்லது நெகிழ்வட்டு இயக்கியின் ஊடகத்தை மாற்றவும்."
 
-#: tools/virsh-domain.c:10295
+#: tools/virsh-domain.c:10300
 msgid "Fully-qualified path or target of disk device"
 msgstr "வட்டின் முழு தகுதியான பாதை அல்லது இலக்கு"
 
-#: tools/virsh-domain.c:10299
+#: tools/virsh-domain.c:10304
 msgid "source of the media"
 msgstr "ஊடகத்தின் மூலம்"
 
-#: tools/virsh-domain.c:10303
+#: tools/virsh-domain.c:10308
 msgid "Eject the media"
 msgstr "ஊடகத்தை வெளியேற்று"
 
-#: tools/virsh-domain.c:10307
+#: tools/virsh-domain.c:10312
 msgid "Insert the media"
 msgstr "ஊடகத்தை உள்ளிடவும்"
 
-#: tools/virsh-domain.c:10311
+#: tools/virsh-domain.c:10316
 msgid "Update the media"
 msgstr "ஊடகத்தைப் புதுப்பி"
 
-#: tools/virsh-domain.c:10315
+#: tools/virsh-domain.c:10320
 msgid ""
 "can be either or both of --live and --config, depends on implementation of "
 "hypervisor driver"
@@ -32199,50 +32235,50 @@ msgstr ""
 "ஹைப்பர்வைசர் இயக்கியின் செயல்படுத்தலைப் பொறுத்து --live மற்றும் --config ஆகிய இரண்டில் "
 "ஒன்றாகவோ அல்லது இரண்டுமோ இருக்கலாம்"
 
-#: tools/virsh-domain.c:10320
+#: tools/virsh-domain.c:10325
 msgid "alter live configuration of running domain"
 msgstr "இயங்கும் டொமைனின் நேரலை அமைவாக்கத்தை மாற்றியமை"
 
-#: tools/virsh-domain.c:10324
+#: tools/virsh-domain.c:10329
 msgid "alter persistent configuration, effect observed on next boot"
 msgstr ""
 "உறுதியான அமைவாக்கத்தை மாற்றியமை, விளைவுகள் எடுத்த பூட்டின் போது செயல்படுத்தப்படும்"
 
-#: tools/virsh-domain.c:10328
+#: tools/virsh-domain.c:10333
 msgid "force media changing"
 msgstr "ஊடகத்தை மாற்ற நிர்ப்பந்தி"
 
-#: tools/virsh-domain.c:10393
+#: tools/virsh-domain.c:10398
 msgid "No disk source specified for inserting"
 msgstr "உள்ளிடுவதற்கான வட்டு மூலம் குறிப்பிடப்படவில்லை"
 
-#: tools/virsh-domain.c:10411
+#: tools/virsh-domain.c:10416
 #, c-format
 msgid "Failed to complete action %s on media"
 msgstr "ஊடகத்தில் செயல் %s ஐ முடிக்க முடியவில்லை"
 
-#: tools/virsh-domain.c:10415
+#: tools/virsh-domain.c:10420
 #, c-format
 msgid "succeeded to complete action %s on media\n"
 msgstr "ஊடகத்தில் செயல் %s ஐ வெற்றிகரமாக முடித்தது\n"
 
-#: tools/virsh-domain.c:10429 tools/virsh-domain.c:10432
+#: tools/virsh-domain.c:10434 tools/virsh-domain.c:10437
 msgid "Invoke fstrim on domain's mounted filesystems."
 msgstr "டொமைனின் மவுன்ட் செய்யப்பட்ட கோப்புமுறைமைகளில் fstrim ஐ வரவழை."
 
-#: tools/virsh-domain.c:10445
+#: tools/virsh-domain.c:10450
 msgid "Just a hint to ignore contiguous free ranges smaller than this (Bytes)"
 msgstr "இதை விட (பைட்டுகள்) சிறிய இணைந்த தடையற்ற வரம்புகளை புறக்கணிப்பதற்கான குறிப்பு"
 
-#: tools/virsh-domain.c:10450
+#: tools/virsh-domain.c:10455
 msgid "which mount point to trim"
 msgstr "எந்த மவுன்ட் புள்ளியை ட்ரிம் செய்ய வேண்டும்"
 
-#: tools/virsh-domain.c:10467
+#: tools/virsh-domain.c:10472
 msgid "Unable to parse integer parameter minimum"
 msgstr "முழு எண் குறைந்தபட்ச அளவுருவைப் பாகுபடுத்த முடியவில்லை"
 
-#: tools/virsh-domain.c:10475
+#: tools/virsh-domain.c:10480
 msgid "Unable to invoke fstrim"
 msgstr "fstrim ஐ வரவழைக்க முடியவில்லை"
 
@@ -35332,15 +35368,21 @@ msgstr "%s ஆனது ரூட் அல்லாத பயனர்களா
 msgid "Can't create %s container: %s"
 msgstr "%s கன்டெய்னரை உருவாக்க முடியவில்லை: %s"
 
-#: tools/virt-login-shell.c:362
+#: tools/virt-login-shell.c:363
 #, c-format
 msgid "Unable to chdir(%s)"
 msgstr "chdir(%s) செய்ய முடியவில்லை"
 
-#: tools/virt-login-shell.c:366
+#: tools/virt-login-shell.c:367
 #, c-format
 msgid "Unable to exec shell %s"
 msgstr "ஷெல் %s ஐ exec செய்ய முடியவில்லை"
+
+#~ msgid "could not find event callback for removal"
+#~ msgstr "நீக்குவதற்கான பின்அழைப்பு நிகழ்வை தேட முடியவில்லை"
+
+#~ msgid "unable to find callback ID %d"
+#~ msgstr "கால்பேக் ID %d ஐக் கண்டறிய முடியவில்லை"
 
 #~ msgid "no connection"
 #~ msgstr "இணைப்பு இல்லை"
