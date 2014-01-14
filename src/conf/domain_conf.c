@@ -1,7 +1,7 @@
 /*
  * domain_conf.c: domain XML processing
  *
- * Copyright (C) 2006-2013 Red Hat, Inc.
+ * Copyright (C) 2006-2014 Red Hat, Inc.
  * Copyright (C) 2006-2008 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -2692,7 +2692,7 @@ virDomainDeviceInfoIterateInternal(virDomainDefPtr def,
 
     /* This switch statement is here to trigger compiler warning when adding
      * a new device type. When you are adding a new field to the switch you
-     * also have to add a iteration statement above. Otherwise the switch
+     * also have to add an iteration statement above. Otherwise the switch
      * statement has no real function here and should be optimized out by the
      * compiler. */
     i = VIR_DOMAIN_DEVICE_LAST;
@@ -13761,7 +13761,7 @@ virDomainDefCheckABIStability(virDomainDefPtr src,
      * don't get silently re-named through the backdoor when passing
      * custom XML into various APIs, since this would create havoc
      */
-    if (STRNEQ(src->name, dst->name)) {
+    if (STRNEQ_NULLABLE(src->name, dst->name)) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                        _("Target domain name '%s' does not match source '%s'"),
                        dst->name, src->name);

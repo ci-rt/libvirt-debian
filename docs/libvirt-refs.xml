@@ -14571,6 +14571,7 @@
           <ref name='virDomainSnapshotCreateXML'/>
           <ref name='virEventHandleCallback'/>
           <ref name='virGetLastError'/>
+          <ref name='virNodeDeviceGetParent'/>
           <ref name='virStreamEventCallback'/>
         </word>
         <word name='occurring'>
