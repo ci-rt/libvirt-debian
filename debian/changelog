@@ -1,3 +1,11 @@
+libvirt (1.2.1~rc2-1) experimental; urgency=medium
+
+  * [e559e92] libvirt-bin.init: Fix typo in path when checking for systemd
+  * [fef0f8f] New upstream version 1.2.1~rc2
+  * [caf3c45] Rediff patches
+
+ -- Guido Günther <agx@sigxcpu.org>  Tue, 14 Jan 2014 11:21:55 +0100
+
 libvirt (1.2.1~rc1-1) experimental; urgency=medium
 
   [ Laurent Bigonville ]
