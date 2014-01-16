@@ -5951,6 +5951,8 @@ xdr_remote_connect_network_event_register_any_args (XDR *xdrs, remote_connect_ne
 
          if (!xdr_int (xdrs, &objp->eventID))
                  return FALSE;
+         if (!xdr_remote_network (xdrs, &objp->net))
+                 return FALSE;
         return TRUE;
 }
 
@@ -5958,7 +5960,7 @@ bool_t
 xdr_remote_connect_network_event_register_any_ret (XDR *xdrs, remote_connect_network_event_register_any_ret *objp)
 {
 
-         if (!xdr_int (xdrs, &objp->cb_registered))
+         if (!xdr_int (xdrs, &objp->callbackID))
                  return FALSE;
         return TRUE;
 }
@@ -5967,16 +5969,7 @@ bool_t
 xdr_remote_connect_network_event_deregister_any_args (XDR *xdrs, remote_connect_network_event_deregister_any_args *objp)
 {
 
-         if (!xdr_int (xdrs, &objp->eventID))
-                 return FALSE;
-        return TRUE;
-}
-
-bool_t
-xdr_remote_connect_network_event_deregister_any_ret (XDR *xdrs, remote_connect_network_event_deregister_any_ret *objp)
-{
-
-         if (!xdr_int (xdrs, &objp->cb_registered))
+         if (!xdr_int (xdrs, &objp->callbackID))
                  return FALSE;
         return TRUE;
 }
@@ -5985,6 +5978,8 @@ bool_t
 xdr_remote_network_event_lifecycle_msg (XDR *xdrs, remote_network_event_lifecycle_msg *objp)
 {
 
+         if (!xdr_int (xdrs, &objp->callbackID))
+                 return FALSE;
          if (!xdr_remote_nonnull_network (xdrs, &objp->net))
                  return FALSE;
          if (!xdr_int (xdrs, &objp->event))

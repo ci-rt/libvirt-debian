@@ -372,7 +372,7 @@
 Summary: Library providing a simple virtualization API
 Name: libvirt
 Version: 1.2.1
-Release: 0rc2%{?dist}%{?extra_release}
+Release: 1%{?dist}%{?extra_release}
 License: LGPLv2+
 Group: Development/Libraries
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
@@ -381,7 +381,7 @@ URL: http://libvirt.org/
 %if %(echo %{version} | grep -o \\. | wc -l) == 3
     %define mainturl stable_updates/
 %endif
-Source: http://libvirt.org/sources/%{?mainturl}libvirt-%{version}-rc2.tar.gz
+Source: http://libvirt.org/sources/%{?mainturl}libvirt-%{version}.tar.gz
 
 %if %{with_libvirtd}
 Requires: libvirt-daemon = %{version}-%{release}
@@ -2148,6 +2148,14 @@ exit 0
 %doc examples/systemtap
 
 %changelog
+* Thu Jan 16 2014 Daniel Veillard <veillard@redhat.com> - 1.2.1-1
+- Fix s CVE-2014-0028 event: filter global events by domain:getattr ACL
+- Fix CVE-2014-1447 Don't crash if a connection closes early
+- Fix CVE-2013-6458-1 qemu: Do not access stale data in virDomainBlockStats
+- Fix CVE-2013-6457 libxl: avoid crashing if calling `virsh numatune' on inactive domain
+- Fix CVE-2013-6436: fix crash in lxcDomainGetMemoryParameters
+- many doc and bug fixes and improvements
+
 * Mon Dec  2 2013 Daniel Veillard <veillard@redhat.com> - 1.2.0-1
 - Separation of python binding as libvirt-python srpm
 - Add support for gluster pool

@@ -3293,7 +3293,7 @@ VIR_DOMAIN_EVENT_ID_IO_ERROR with virConnectDomainEventRegisterAny()]]></info>
       <arg name='opaque' type='void *' info='application specified data'/>
     </functype>
     <functype name='virConnectDomainEventPMSuspendCallback' file='libvirt' module='libvirt'>
-      <info><![CDATA[This callback occurs when the guest is waken up.
+      <info><![CDATA[This callback occurs when the guest is suspended.
 
 The callback signature to use when registering for an event of type
 VIR_DOMAIN_EVENT_ID_PMSUSPEND with virConnectDomainEventRegisterAny()]]></info>
@@ -3315,7 +3315,7 @@ VIR_DOMAIN_EVENT_ID_PMSUSPEND_DISK with virConnectDomainEventRegisterAny()]]></i
       <arg name='opaque' type='void *' info='application specified data'/>
     </functype>
     <functype name='virConnectDomainEventPMWakeupCallback' file='libvirt' module='libvirt'>
-      <info><![CDATA[This callback occurs when the guest is waken up.
+      <info><![CDATA[This callback occurs when the guest is woken up.
 
 The callback signature to use when registering for an event of type
 VIR_DOMAIN_EVENT_ID_PMWAKEUP with virConnectDomainEventRegisterAny()]]></info>

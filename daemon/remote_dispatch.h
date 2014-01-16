@@ -1708,18 +1708,17 @@ static int remoteDispatchConnectNetworkEventDeregisterAny(
     virNetServerClientPtr client,
     virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
-    remote_connect_network_event_deregister_any_args *args,
-    remote_connect_network_event_deregister_any_ret *ret);
+    remote_connect_network_event_deregister_any_args *args);
 static int remoteDispatchConnectNetworkEventDeregisterAnyHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
     virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
-    void *ret)
+    void *ret ATTRIBUTE_UNUSED)
 {
   VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
-  return remoteDispatchConnectNetworkEventDeregisterAny(server, client, msg, rerr, args, ret);
+  return remoteDispatchConnectNetworkEventDeregisterAny(server, client, msg, rerr, args);
 }
 /* remoteDispatchConnectNetworkEventDeregisterAny body has to be implemented manually */
 
@@ -16870,8 +16869,8 @@ virNetServerProgramProc remoteProcs[] = {
    remoteDispatchConnectNetworkEventDeregisterAnyHelper,
    sizeof(remote_connect_network_event_deregister_any_args),
    (xdrproc_t)xdr_remote_connect_network_event_deregister_any_args,
-   sizeof(remote_connect_network_event_deregister_any_ret),
-   (xdrproc_t)xdr_remote_connect_network_event_deregister_any_ret,
+   0,
+   (xdrproc_t)xdr_void,
    true,
    1
 },

@@ -3,7 +3,7 @@
  *   remote_internal driver and libvirtd.  This protocol is
  *   internal and may change at any time.
  *
- * Copyright (C) 2006-2013 Red Hat, Inc.
+ * Copyright (C) 2006-2014 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -1955,7 +1955,7 @@ struct remote_node_device_destroy_args {
 
 /*
  * Events Register/Deregister:
- * It would seem rpcgen does not like both args, and ret
+ * It would seem rpcgen does not like both args and ret
  * to be null. It will not generate the prototype otherwise.
  * Pass back a redundant boolean to force prototype generation.
  */
@@ -2851,21 +2851,19 @@ struct remote_connect_get_cpu_model_names_ret {
 
 struct remote_connect_network_event_register_any_args {
     int eventID;
+    remote_network net;
 };
 
 struct remote_connect_network_event_register_any_ret {
-    int cb_registered;
+    int callbackID;
 };
 
 struct remote_connect_network_event_deregister_any_args {
-    int eventID;
-};
-
-struct remote_connect_network_event_deregister_any_ret {
-    int cb_registered;
+    int callbackID;
 };
 
 struct remote_network_event_lifecycle_msg {
+    int callbackID;
     remote_nonnull_network net;
     int event;
     int detail;
@@ -3644,7 +3642,8 @@ enum remote_procedure {
     /**
      * @generate: none
      * @priority: high
-     * @acl: connect:read
+     * @acl: connect:search_domains
+     * @aclfilter: domain:getattr
      */
     REMOTE_PROC_CONNECT_DOMAIN_EVENT_REGISTER = 105,
 
@@ -4076,7 +4075,8 @@ enum remote_procedure {
     /**
      * @generate: none
      * @priority: high
-     * @acl: connect:read
+     * @acl: connect:search_domains
+     * @aclfilter: domain:getattr
      */
     REMOTE_PROC_CONNECT_DOMAIN_EVENT_REGISTER_ANY = 167,
 
@@ -5047,7 +5047,8 @@ enum remote_procedure {
     /**
      * @generate: none
      * @priority: high
-     * @acl: connect:read
+     * @acl: connect:search_networks
+     * @aclfilter: network:getattr
      */
     REMOTE_PROC_CONNECT_NETWORK_EVENT_REGISTER_ANY = 313,
 

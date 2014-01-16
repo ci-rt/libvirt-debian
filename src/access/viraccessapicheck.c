@@ -99,7 +99,7 @@ int virConnectDomainEventRegisterEnsureACL(virConnectPtr conn)
         return -1;
     }
 
-    if ((rv = virAccessManagerCheckConnect(mgr, conn->driver->name, VIR_ACCESS_PERM_CONNECT_READ)) <= 0) {
+    if ((rv = virAccessManagerCheckConnect(mgr, conn->driver->name, VIR_ACCESS_PERM_CONNECT_SEARCH_DOMAINS)) <= 0) {
         virObjectUnref(mgr);
         if (rv == 0)
             virReportError(VIR_ERR_ACCESS_DENIED, NULL);
@@ -107,6 +107,26 @@ int virConnectDomainEventRegisterEnsureACL(virConnectPtr conn)
     }
     virObjectUnref(mgr);
     return 0;
+}
+
+/* Returns: false on error/denied, true on allowed */
+bool virConnectDomainEventRegisterCheckACL(virConnectPtr conn, virDomainDefPtr domain)
+{
+    virAccessManagerPtr mgr;
+    int rv;
+
+    if (!(mgr = virAccessManagerGetDefault())) {
+        virResetLastError();
+        return false;
+    }
+
+    if ((rv = virAccessManagerCheckDomain(mgr, conn->driver->name, domain, VIR_ACCESS_PERM_DOMAIN_GETATTR)) <= 0) {
+        virObjectUnref(mgr);
+        virResetLastError();
+        return false;
+    }
+    virObjectUnref(mgr);
+    return true;
 }
 
 /* Returns: -1 on error/denied, 0 on allowed */
@@ -119,7 +139,7 @@ int virConnectDomainEventRegisterAnyEnsureACL(virConnectPtr conn)
         return -1;
     }
 
-    if ((rv = virAccessManagerCheckConnect(mgr, conn->driver->name, VIR_ACCESS_PERM_CONNECT_READ)) <= 0) {
+    if ((rv = virAccessManagerCheckConnect(mgr, conn->driver->name, VIR_ACCESS_PERM_CONNECT_SEARCH_DOMAINS)) <= 0) {
         virObjectUnref(mgr);
         if (rv == 0)
             virReportError(VIR_ERR_ACCESS_DENIED, NULL);
@@ -127,6 +147,26 @@ int virConnectDomainEventRegisterAnyEnsureACL(virConnectPtr conn)
     }
     virObjectUnref(mgr);
     return 0;
+}
+
+/* Returns: false on error/denied, true on allowed */
+bool virConnectDomainEventRegisterAnyCheckACL(virConnectPtr conn, virDomainDefPtr domain)
+{
+    virAccessManagerPtr mgr;
+    int rv;
+
+    if (!(mgr = virAccessManagerGetDefault())) {
+        virResetLastError();
+        return false;
+    }
+
+    if ((rv = virAccessManagerCheckDomain(mgr, conn->driver->name, domain, VIR_ACCESS_PERM_DOMAIN_GETATTR)) <= 0) {
+        virObjectUnref(mgr);
+        virResetLastError();
+        return false;
+    }
+    virObjectUnref(mgr);
+    return true;
 }
 
 /* Returns: -1 on error/denied, 0 on allowed */
@@ -1079,7 +1119,7 @@ int virConnectNetworkEventRegisterAnyEnsureACL(virConnectPtr conn)
         return -1;
     }
 
-    if ((rv = virAccessManagerCheckConnect(mgr, conn->driver->name, VIR_ACCESS_PERM_CONNECT_READ)) <= 0) {
+    if ((rv = virAccessManagerCheckConnect(mgr, conn->driver->name, VIR_ACCESS_PERM_CONNECT_SEARCH_NETWORKS)) <= 0) {
         virObjectUnref(mgr);
         if (rv == 0)
             virReportError(VIR_ERR_ACCESS_DENIED, NULL);
@@ -1087,6 +1127,26 @@ int virConnectNetworkEventRegisterAnyEnsureACL(virConnectPtr conn)
     }
     virObjectUnref(mgr);
     return 0;
+}
+
+/* Returns: false on error/denied, true on allowed */
+bool virConnectNetworkEventRegisterAnyCheckACL(virConnectPtr conn, virNetworkDefPtr network)
+{
+    virAccessManagerPtr mgr;
+    int rv;
+
+    if (!(mgr = virAccessManagerGetDefault())) {
+        virResetLastError();
+        return false;
+    }
+
+    if ((rv = virAccessManagerCheckNetwork(mgr, conn->driver->name, network, VIR_ACCESS_PERM_NETWORK_GETATTR)) <= 0) {
+        virObjectUnref(mgr);
+        virResetLastError();
+        return false;
+    }
+    virObjectUnref(mgr);
+    return true;
 }
 
 /* Returns: -1 on error/denied, 0 on allowed */

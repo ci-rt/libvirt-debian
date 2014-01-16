@@ -3411,25 +3411,22 @@ typedef struct remote_connect_get_cpu_model_names_ret remote_connect_get_cpu_mod
 
 struct remote_connect_network_event_register_any_args {
         int eventID;
+        remote_network net;
 };
 typedef struct remote_connect_network_event_register_any_args remote_connect_network_event_register_any_args;
 
 struct remote_connect_network_event_register_any_ret {
-        int cb_registered;
+        int callbackID;
 };
 typedef struct remote_connect_network_event_register_any_ret remote_connect_network_event_register_any_ret;
 
 struct remote_connect_network_event_deregister_any_args {
-        int eventID;
+        int callbackID;
 };
 typedef struct remote_connect_network_event_deregister_any_args remote_connect_network_event_deregister_any_args;
 
-struct remote_connect_network_event_deregister_any_ret {
-        int cb_registered;
-};
-typedef struct remote_connect_network_event_deregister_any_ret remote_connect_network_event_deregister_any_ret;
-
 struct remote_network_event_lifecycle_msg {
+        int callbackID;
         remote_nonnull_network net;
         int event;
         int detail;
@@ -4269,7 +4266,6 @@ extern  bool_t xdr_remote_connect_get_cpu_model_names_ret (XDR *, remote_connect
 extern  bool_t xdr_remote_connect_network_event_register_any_args (XDR *, remote_connect_network_event_register_any_args*);
 extern  bool_t xdr_remote_connect_network_event_register_any_ret (XDR *, remote_connect_network_event_register_any_ret*);
 extern  bool_t xdr_remote_connect_network_event_deregister_any_args (XDR *, remote_connect_network_event_deregister_any_args*);
-extern  bool_t xdr_remote_connect_network_event_deregister_any_ret (XDR *, remote_connect_network_event_deregister_any_ret*);
 extern  bool_t xdr_remote_network_event_lifecycle_msg (XDR *, remote_network_event_lifecycle_msg*);
 extern  bool_t xdr_remote_procedure (XDR *, remote_procedure*);
 
@@ -4783,7 +4779,6 @@ extern bool_t xdr_remote_connect_get_cpu_model_names_ret ();
 extern bool_t xdr_remote_connect_network_event_register_any_args ();
 extern bool_t xdr_remote_connect_network_event_register_any_ret ();
 extern bool_t xdr_remote_connect_network_event_deregister_any_args ();
-extern bool_t xdr_remote_connect_network_event_deregister_any_ret ();
 extern bool_t xdr_remote_network_event_lifecycle_msg ();
 extern bool_t xdr_remote_procedure ();
 
