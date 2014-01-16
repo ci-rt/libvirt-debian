@@ -37,4 +37,74 @@ void virStringFreeList(char **strings);
 
 size_t virStringListLength(char **strings);
 
+/* Don't call these directly - use the macros below */
+int virStrdup(char **dest, const char *src, bool report, int domcode,
+              const char *filename, const char *funcname, size_t linenr)
+    ATTRIBUTE_RETURN_CHECK ATTRIBUTE_NONNULL(1);
+
+int virStrndup(char **dest, const char *src, size_t n, bool report, int domcode,
+               const char *filename, const char *funcname, size_t linenr)
+    ATTRIBUTE_RETURN_CHECK ATTRIBUTE_NONNULL(1);
+
+/**
+ * VIR_STRDUP:
+ * @dst: variable to hold result (char*, not char**)
+ * @src: string to duplicate
+ *
+ * Duplicate @src string and store it into @dst.
+ *
+ * This macro is safe to use on arguments with side effects.
+ *
+ * Returns -1 on failure (with OOM error reported), 0 if @src was NULL,
+ * 1 if @src was copied
+ */
+# define VIR_STRDUP(dst, src) virStrdup(&(dst), src, true, VIR_FROM_THIS, \
+                                        __FILE__, __FUNCTION__, __LINE__)
+
+/**
+ * VIR_STRDUP_QUIET:
+ * @dst: variable to hold result (char*, not char**)
+ * @src: string to duplicate
+ *
+ * Duplicate @src string and store it into @dst.
+ *
+ * This macro is safe to use on arguments with side effects.
+ *
+ * Returns -1 on failure, 0 if @src was NULL, 1 if @src was copied
+ */
+# define VIR_STRDUP_QUIET(dst, src) virStrdup(&(dst), src, false, 0, NULL, NULL, 0)
+
+/**
+ * VIR_STRNDUP:
+ * @dst: variable to hold result (char*, not char**)
+ * @src: string to duplicate
+ * @n: the maximum number of bytes to copy
+ *
+ * Duplicate @src string and store it into @dst. If @src is longer than @n,
+ * only @n bytes are copied and terminating null byte '\0' is added.
+ *
+ * This macro is safe to use on arguments with side effects.
+ *
+ * Returns -1 on failure (with OOM error reported), 0 if @src was NULL,
+ * 1 if @src was copied
+ */
+# define VIR_STRNDUP(dst, src, n) virStrndup(&(dst), src, n, true,    \
+                                             VIR_FROM_THIS, __FILE__, \
+                                             __FUNCTION__, __LINE__)
+
+/**
+ * VIR_STRNDUP_QUIET:
+ * @dst: variable to hold result (char*, not char**)
+ * @src: string to duplicate
+ * @n: the maximum number of bytes to copy
+ *
+ * Duplicate @src string and store it into @dst. If @src is longer than @n,
+ * only @n bytes are copied and terminating null byte '\0' is added.
+ *
+ * This macro is safe to use on arguments with side effects.
+ *
+ * Returns -1 on failure, 0 if @src was NULL, 1 if @src was copied
+ */
+# define VIR_STRNDUP_QUIET(dst, src, n) virStrndup(&(dst), src, n, false, \
+                                                   0, NULL, NULL, 0)
 #endif /* __VIR_STRING_H__ */

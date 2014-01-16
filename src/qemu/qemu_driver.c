@@ -92,6 +92,7 @@
 #include "virnodesuspend.h"
 #include "virtime.h"
 #include "virtypedparam.h"
+#include "virstring.h"
 
 #define VIR_FROM_THIS VIR_FROM_QEMU
 
@@ -7604,34 +7605,29 @@ qemuDomainBlockStats(virDomainPtr dom,
         goto cleanup;
     }
 
-    if (!virDomainObjIsActive(vm)) {
-        qemuReportError(VIR_ERR_OPERATION_INVALID,
-                        "%s", _("domain is not running"));
-        goto cleanup;
-    }
-
-    if ((i = virDomainDiskIndexByName(vm->def, path, false)) < 0) {
-        qemuReportError(VIR_ERR_INVALID_ARG,
-                        _("invalid path: %s"), path);
-        goto cleanup;
-    }
-    disk = vm->def->disks[i];
-
-    if (!disk->info.alias) {
-        qemuReportError(VIR_ERR_INTERNAL_ERROR,
-                        _("missing disk device alias name for %s"), disk->dst);
-        goto cleanup;
-    }
-
-    priv = vm->privateData;
     if (qemuDomainObjBeginJob(driver, vm, QEMU_JOB_QUERY) < 0)
         goto cleanup;
 
     if (!virDomainObjIsActive(vm)) {
-        qemuReportError(VIR_ERR_OPERATION_INVALID,
-                        "%s", _("domain is not running"));
+        virReportError(VIR_ERR_OPERATION_INVALID,
+                       "%s", _("domain is not running"));
         goto endjob;
     }
+
+    if ((i = virDomainDiskIndexByName(vm->def, path, false)) < 0) {
+        virReportError(VIR_ERR_INVALID_ARG,
+                       _("invalid path: %s"), path);
+        goto endjob;
+    }
+    disk = vm->def->disks[i];
+
+    if (!disk->info.alias) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("missing disk device alias name for %s"), disk->dst);
+        goto endjob;
+    }
+
+    priv = vm->privateData;
 
     qemuDomainObjEnterMonitor(driver, vm);
     ret = qemuMonitorGetBlockStatsInfo(priv->mon,
@@ -8414,10 +8410,12 @@ cleanup:
 }
 
 
-static int qemuDomainGetBlockInfo(virDomainPtr dom,
-                                  const char *path,
-                                  virDomainBlockInfoPtr info,
-                                  unsigned int flags) {
+static int
+qemuDomainGetBlockInfo(virDomainPtr dom,
+                       const char *path,
+                       virDomainBlockInfoPtr info,
+                       unsigned int flags)
+{
     struct qemud_driver *driver = dom->conn->privateData;
     virDomainObjPtr vm;
     int ret = -1;
@@ -8428,6 +8426,7 @@ static int qemuDomainGetBlockInfo(virDomainPtr dom,
     struct stat sb;
     int i;
     int format;
+    char *alias = NULL;
 
     virCheckFlags(0, -1);
 
@@ -8550,13 +8549,16 @@ static int qemuDomainGetBlockInfo(virDomainPtr dom,
         virDomainObjIsActive(vm)) {
         qemuDomainObjPrivatePtr priv = vm->privateData;
 
+        if (VIR_STRDUP(alias, disk->info.alias) < 0)
+            goto cleanup;
+
         if (qemuDomainObjBeginJob(driver, vm, QEMU_JOB_QUERY) < 0)
             goto cleanup;
 
         if (virDomainObjIsActive(vm)) {
             qemuDomainObjEnterMonitor(driver, vm);
             ret = qemuMonitorGetBlockExtent(priv->mon,
-                                            disk->info.alias,
+                                            alias,
                                             &info->allocation);
             qemuDomainObjExitMonitor(driver, vm);
         } else {
@@ -8570,6 +8572,7 @@ static int qemuDomainGetBlockInfo(virDomainPtr dom,
     }
 
 cleanup:
+    VIR_FREE(alias);
     virStorageFileFreeMetadata(meta);
     VIR_FORCE_CLOSE(fd);
     if (vm)
@@ -11746,11 +11749,6 @@ qemuDomainBlockJobImpl(virDomainPtr dom, const char *path, const char *base,
         goto cleanup;
     }
 
-    device = qemuDiskPathToAlias(vm, path, &idx);
-    if (!device)
-        goto cleanup;
-    disk = vm->def->disks[idx];
-
     if (qemuDomainObjBeginJobWithDriver(driver, vm, QEMU_JOB_MODIFY) < 0)
         goto cleanup;
 
@@ -11759,6 +11757,11 @@ qemuDomainBlockJobImpl(virDomainPtr dom, const char *path, const char *base,
                         _("domain is not running"));
         goto endjob;
     }
+
+    device = qemuDiskPathToAlias(vm, path, &idx);
+    if (!device)
+        goto endjob;
+    disk = vm->def->disks[idx];
 
     qemuDomainObjEnterMonitorWithDriver(driver, vm);
     /* XXX - libvirt should really be tracking the backing file chain
@@ -12154,18 +12157,17 @@ qemuDomainGetBlockIoTune(virDomainPtr dom,
         goto cleanup;
     }
 
-    device = qemuDiskPathToAlias(vm, disk, NULL);
-
-    if (!device) {
-        goto cleanup;
-    }
-
     if (qemuDomainObjBeginJobWithDriver(driver, vm, QEMU_JOB_MODIFY) < 0)
         goto cleanup;
 
     if (virDomainLiveConfigHelperMethod(driver->caps, vm, &flags,
                                         &persistentDef) < 0)
         goto endjob;
+
+    device = qemuDiskPathToAlias(vm, disk, NULL);
+    if (!device) {
+        goto endjob;
+    }
 
     if (flags & VIR_DOMAIN_AFFECT_LIVE) {
         priv = vm->privateData;
