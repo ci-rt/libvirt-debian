@@ -51,7 +51,7 @@
   </action>
   <action id="org.libvirt.api.connect.search-domains">
     <description>List domains</description>
-    <message>Listing domains requires authorization</message>
+    <message>Listing domains or using domain events requires authorization</message>
     <defaults>
       <allow_any>yes</allow_any>
       <allow_inactive>yes</allow_inactive>
@@ -69,7 +69,7 @@
   </action>
   <action id="org.libvirt.api.connect.search-networks">
     <description>List networks</description>
-    <message>Listing networks requires authorization</message>
+    <message>Listing networks or using network events requires authorization</message>
     <defaults>
       <allow_any>yes</allow_any>
       <allow_inactive>yes</allow_inactive>

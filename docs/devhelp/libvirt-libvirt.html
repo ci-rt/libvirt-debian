@@ -2760,7 +2760,7 @@ VIR_DOMAIN_EVENT_ID_IO_ERROR with virConnectDomainEventRegisterAny()</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>connection object</td></tr><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>domain on which the event occurred</td></tr><tr><td><span class="term"><i><tt>srcPath</tt></i>:</span></td><td>The host file on which the IO error occurred</td></tr><tr><td><span class="term"><i><tt>devAlias</tt></i>:</span></td><td>The guest device alias associated with the path</td></tr><tr><td><span class="term"><i><tt>action</tt></i>:</span></td><td>action that is to be taken due to the IO error</td></tr><tr><td><span class="term"><i><tt>reason</tt></i>:</span></td><td>the cause of the IO error</td></tr><tr><td><span class="term"><i><tt>opaque</tt></i>:</span></td><td>application specified data</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virConnectDomainEventPMSuspendCallback"/>Function type virConnectDomainEventPMSuspendCallback</h3><pre class="programlisting">void	virConnectDomainEventPMSuspendCallback	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>						 int reason, <br/>						 void * opaque)<br/>
-</pre><p>This callback occurs when the guest is waken up.
+</pre><p>This callback occurs when the guest is suspended.
 
 The callback signature to use when registering for an event of type
 VIR_DOMAIN_EVENT_ID_PMSUSPEND with virConnectDomainEventRegisterAny()</p>
@@ -2774,7 +2774,7 @@ VIR_DOMAIN_EVENT_ID_PMSUSPEND_DISK with virConnectDomainEventRegisterAny()</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>connection object</td></tr><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>domain on which the event occurred</td></tr><tr><td><span class="term"><i><tt>reason</tt></i>:</span></td><td>reason why the callback was called, unused currently, always passes 0</td></tr><tr><td><span class="term"><i><tt>opaque</tt></i>:</span></td><td>application specified data</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virConnectDomainEventPMWakeupCallback"/>Function type virConnectDomainEventPMWakeupCallback</h3><pre class="programlisting">void	virConnectDomainEventPMWakeupCallback	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>						 int reason, <br/>						 void * opaque)<br/>
-</pre><p>This callback occurs when the guest is waken up.
+</pre><p>This callback occurs when the guest is woken up.
 
 The callback signature to use when registering for an event of type
 VIR_DOMAIN_EVENT_ID_PMWAKEUP with virConnectDomainEventRegisterAny()</p>
@@ -6556,7 +6556,7 @@ this was the last reference.</p>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virNodeDeviceGetParent"/>virNodeDeviceGetParent ()</h3><pre class="programlisting">const char *	virNodeDeviceGetParent	(<a href="libvirt-libvirt.html#virNodeDevicePtr">virNodeDevicePtr</a> dev)<br/>
 </pre><p>Accessor for the parent of the device</p>
-<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>dev</tt></i>:</span></td><td>the device</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the name of the device's parent, or NULL if the device has no parent.</td></tr></tbody></table></div></div>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>dev</tt></i>:</span></td><td>the device</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the name of the device's parent, or NULL if an error occurred or when the device has no parent.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virNodeDeviceGetXMLDesc"/>virNodeDeviceGetXMLDesc ()</h3><pre class="programlisting">char *	virNodeDeviceGetXMLDesc		(<a href="libvirt-libvirt.html#virNodeDevicePtr">virNodeDevicePtr</a> dev, <br/>					 unsigned int flags)<br/>
 </pre><p>Fetch an XML document describing all aspects of
@@ -6565,7 +6565,7 @@ the device.</p>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virNodeDeviceListCaps"/>virNodeDeviceListCaps ()</h3><pre class="programlisting">int	virNodeDeviceListCaps		(<a href="libvirt-libvirt.html#virNodeDevicePtr">virNodeDevicePtr</a> dev, <br/>					 char ** const names, <br/>					 int maxnames)<br/>
 </pre><p>Lists the names of the capabilities supported by the device.</p>
-<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>dev</tt></i>:</span></td><td>the device</td></tr><tr><td><span class="term"><i><tt>names</tt></i>:</span></td><td>array to collect the list of capability names</td></tr><tr><td><span class="term"><i><tt>maxnames</tt></i>:</span></td><td>size of @names</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of capability names listed in @names.</td></tr></tbody></table></div></div>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>dev</tt></i>:</span></td><td>the device</td></tr><tr><td><span class="term"><i><tt>names</tt></i>:</span></td><td>array to collect the list of capability names</td></tr><tr><td><span class="term"><i><tt>maxnames</tt></i>:</span></td><td>size of @names</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of capability names listed in @names or -1 in case of error.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virNodeDeviceLookupByName"/>virNodeDeviceLookupByName ()</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virNodeDevicePtr">virNodeDevicePtr</a>	virNodeDeviceLookupByName	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>							 const char * name)<br/>
 </pre><p>Lookup a node device by its name.</p>
@@ -6577,7 +6577,7 @@ the device.</p>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virNodeDeviceNumOfCaps"/>virNodeDeviceNumOfCaps ()</h3><pre class="programlisting">int	virNodeDeviceNumOfCaps		(<a href="libvirt-libvirt.html#virNodeDevicePtr">virNodeDevicePtr</a> dev)<br/>
 </pre><p>Accessor for the number of capabilities supported by the device.</p>
-<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>dev</tt></i>:</span></td><td>the device</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of capabilities supported by the device.</td></tr></tbody></table></div></div>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>dev</tt></i>:</span></td><td>the device</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of capabilities supported by the device or -1 in case of error.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virNodeDeviceReAttach"/>virNodeDeviceReAttach ()</h3><pre class="programlisting">int	virNodeDeviceReAttach		(<a href="libvirt-libvirt.html#virNodeDevicePtr">virNodeDevicePtr</a> dev)<br/>
 </pre><p>Re-attach a previously dettached node device to the node so that it
