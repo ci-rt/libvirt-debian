@@ -1,3 +1,14 @@
+libvirt (0.9.12.3-1) stable-security; urgency=medium
+
+  * [0a01d0a] New upstream version 0.9.12.3
+    Fixes CVE-2013-6458 and CVE-2014-1447
+    (Closes: #734556)
+  * [43817d5] Don't fail chmod/chdir if a file doesn't exist.
+  * [753faf6] Check correct dirs for existence (Closes: #729331)
+  * [3ed9278] Update symbols
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 16 Jan 2014 11:05:59 +0100
+
 libvirt (0.9.12.2-1) wheezy-proposed-updates; urgency=low
 
   * [77a7135] Adjust gbp.conf for Wheezy point releases
