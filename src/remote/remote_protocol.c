@@ -1970,8 +1970,8 @@ xdr_remote_domain_get_security_label_ret (XDR *xdrs, remote_domain_get_security_
 bool_t
 xdr_remote_node_get_security_model_ret (XDR *xdrs, remote_node_get_security_model_ret *objp)
 {
-        char **objp_cpp1 = (char **) (void *) &objp->doi.doi_val;
         char **objp_cpp0 = (char **) (void *) &objp->model.model_val;
+        char **objp_cpp1 = (char **) (void *) &objp->doi.doi_val;
 
          if (!xdr_array (xdrs, objp_cpp0, (u_int *) &objp->model.model_len, REMOTE_SECURITY_MODEL_MAX,
                 sizeof (char), (xdrproc_t) xdr_char))

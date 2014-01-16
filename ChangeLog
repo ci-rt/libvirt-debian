@@ -1,3 +1,218 @@
+2014-01-16  Guido Günther  <agx@sigxcpu.org>
+
+	Prepare for 0.9.12.3
+
+2014-01-16  Jiri Denemark  <jdenemar@redhat.com>
+
+	Really don't crash if a connection closes early
+	https://bugzilla.redhat.com/show_bug.cgi?id=1047577
+
+	When writing commit 173c291, I missed the fact virNetServerClientClose
+	unlocks the client object before actually clearing client->sock and thus
+	it is possible to hit a window when client->keepalive is NULL while
+	client->sock is not NULL. I was thinking client->sock == NULL was a
+	better check for a closed connection but apparently we have to go with
+	client->keepalive == NULL to actually fix the crash.
+
+	(cherry picked from commit 066c8ef6c18bc1faf8b3e10787b39796a7a06cc0)
+
+2014-01-16  Jiri Denemark  <jdenemar@redhat.com>
+
+	Don't crash if a connection closes early
+	https://bugzilla.redhat.com/show_bug.cgi?id=1047577
+
+	When a client closes its connection to libvirtd early during
+	virConnectOpen, more specifically just after making
+	REMOTE_PROC_CONNECT_SUPPORTS_FEATURE call to check if
+	VIR_DRV_FEATURE_PROGRAM_KEEPALIVE is supported without even waiting for
+	the result, libvirtd may crash due to a race in keep-alive
+	initialization. Once receiving the REMOTE_PROC_CONNECT_SUPPORTS_FEATURE
+	call, the daemon's event loop delegates it to a worker thread. In case
+	the event loop detects EOF on the connection and calls
+	virNetServerClientClose before the worker thread starts to handle
+	REMOTE_PROC_CONNECT_SUPPORTS_FEATURE call, client->keepalive will be
+	disposed by the time virNetServerClientStartKeepAlive gets called from
+	remoteDispatchConnectSupportsFeature. Because the flow is common for
+	both authenticated and read-only connections, even unprivileged clients
+	may cause the daemon to crash.
+
+	To avoid the crash, virNetServerClientStartKeepAlive needs to check if
+	the connection is still open before starting keep-alive protocol.
+
+	Every libvirt release since 0.9.8 is affected by this bug.
+
+	(cherry picked from commit 173c2914734eb5c32df6d35a82bf503e12261bcf)
+
+	Conflicts:
+		src/rpc/virnetserverclient.c - older locking style
+
+2014-01-11  Jiri Denemark  <jdenemar@redhat.com>
+
+	qemu: Fix job usage in virDomainGetBlockIoTune
+	CVE-2013-6458
+
+	Every API that is going to begin a job should do that before fetching
+	data from vm->def.
+
+	Conflicts:
+		src/qemu/qemu_driver.c
+
+	(cherry picked from commit 3b56425938e2f97208d5918263efa0d6439e4ecd)
+
+2014-01-11  Jiri Denemark  <jdenemar@redhat.com>
+
+	qemu: Fix job usage in qemuDomainBlockJobImpl
+	CVE-2013-6458
+
+	Every API that is going to begin a job should do that before fetching
+	data from vm->def.
+
+	Conflicts:
+	        src/qemu/qemu_driver.c
+
+	(cherry picked from commit f93d2caa070f6197ab50d372d286018b0ba6bbd8)
+
+2014-01-11  Jiri Denemark  <jdenemar@redhat.com>
+
+	qemu: Avoid using stale data in virDomainGetBlockInfo
+	CVE-2013-6458
+
+	Generally, every API that is going to begin a job should do that before
+	fetching data from vm->def. However, qemuDomainGetBlockInfo does not
+	know whether it will have to start a job or not before checking vm->def.
+	To avoid using disk alias that might have been freed while we were
+	waiting for a job, we use its copy. In case the disk was removed in the
+	meantime, we will fail with "cannot find statistics for device '...'"
+	error message.
+
+	Conflicts:
+		src/qemu/qemu_driver.c
+
+	(cherry picked from commit b799259583bd65c0b2f5042e6c3ff19637ade881)
+
+2014-01-11  Jiri Denemark  <jdenemar@redhat.com>
+
+	qemu: Do not access stale data in virDomainBlockStats
+	CVE-2013-6458
+	https://bugzilla.redhat.com/show_bug.cgi?id=1043069
+
+	When virDomainDetachDeviceFlags is called concurrently to
+	virDomainBlockStats: libvirtd may crash because qemuDomainBlockStats
+	finds a disk in vm->def before getting a job on a domain and uses the
+	disk pointer after getting the job. However, the domain in unlocked
+	while waiting on a job condition and thus data behind the disk pointer
+	may disappear. This happens when thread 1 runs
+	virDomainDetachDeviceFlags and enters monitor to actually remove the
+	disk. Then another thread starts running virDomainBlockStats, finds the
+	disk in vm->def, and while it's waiting on the job condition (owned by
+	the first thread), the first thread finishes the disk removal. When the
+	second thread gets the job, the memory pointed to be the disk pointer is
+	already gone.
+
+	That said, every API that is going to begin a job should do that before
+	fetching data from vm->def.
+
+	Conflicts:
+		src/qemu/qemu_driver.c
+
+	(cherry picked from commit db86da5ca2109e4006c286a09b6c75bfe10676ad)
+
+2014-01-11  Daniel P. Berrange  <berrange@redhat.com>
+
+	Introduce virReportError macro for general error reporting
+	Nearly every source file does something like
+
+	  #define VIR_FROM_THIS VIR_FROM_FOO
+	  #define virFooReportErorr(code, ...) \
+	     virReportErrorHelper(VIR_FROM_THIS, code,  __FILE__,    \
+	                          __FUNCTION__, __LINE__, \
+	                          __VA_ARGS__)
+
+	This creates needless duplication and inconsistent error
+	reporting function names in each file. It is trivial to
+	just have virterror_internal.h provide a virReportError
+	macro that is equivalent
+
+	* src/util/virterror_internal.h: Define virReportError(code, ...)
+
+
+	(cherry picked from commit 7e94acd4fc470ea46ab94f21f7fe718d512ca3b1)
+
+2014-01-11  Eric Blake  <eblake@redhat.com>
+
+	string: test VIR_STRDUP
+	The surest way to avoid regressions is to test documented behavior :)
+
+	* tests/virstringtest.c (testStrdup): New test case.
+
+
+	(cherry picked from commit 504b4a8dae06330ba1735a28c316c1c68a32c471)
+
+2014-01-11  Eric Blake  <eblake@redhat.com>
+
+	string: make VIR_STRDUP easier to use
+	While reviewing proposed VIR_STRDUP conversions, I've already noticed
+	several places that do:
+
+	if (str && VIR_STRDUP(dest, str) < 0)
+
+	which can be simplified by allowing str to be NULL (something that
+	strdup() doesn't allow).  Meanwhile, code that wants to ensure a
+	non-NULL dest regardless of the source can check for <= 0.
+
+	Also, make it part of the VIR_STRDUP contract that macro arguments
+	are evaluated exactly once.
+
+	* src/util/virstring.h (VIR_STRDUP, VIR_STRDUP_QUIET, VIR_STRNDUP)
+	(VIR_STRNDUP_QUIET): Improve contract.
+	* src/util/virstring.c (virStrdup, virStrndup): Change return
+	conventions.
+	* docs/hacking.html.in: Document this.
+	* HACKING: Regenerate.
+
+
+	Conflicts:
+		HACKING
+		docs/hacking.html.in
+
+	(cherry picked from commit 6b74a9f5d98e066f8dfdf5d5ccda68230b516246)
+
+2014-01-11  Michal Privoznik  <mprivozn@redhat.com>
+
+	virstring: Introduce VIR_STRDUP and VIR_STRNDUP
+	The code adaptation is not done right now, but in subsequent patches.
+	Hence I am not implementing syntax-check rule as it would break
+	compilation. Developers are strongly advised to use these new macros.
+	They are similar to VIR_ALLOC() logic: VIR_STRDUP(dst, src) returns zero
+	on success, -1 otherwise. In case you don't want to report OOM error,
+	use the _QUIET variant of a macro.
+
+	Conflicts:
+		src/libvirt_private.syms
+		src/util/virstring.h
+
+	(cherry picked from commit c3abb5c45988a0d7583f059974513722d82e2c2b)
+
+2013-10-18  Zhou Yimin  <zhouyimin@huawei.com>
+
+	remote: fix regression in event deregistration
+	Introduced by 7b87a3
+	When I quit the process which only register VIR_DOMAIN_EVENT_ID_REBOOT,
+	I got error like:
+	"libvirt: XML-RPC error : internal error: domain event 0 not registered".
+	Then I add the following code, it fixed.
+
+	(cherry picked from commit 9712c2510ec87a87578576a407768380e250a6a4)
+
+	Conflicts:
+		src/remote/remote_driver.c - context
+
+2013-10-04  Eric Blake  <eblake@redhat.com>
+
+	Merge commit 'v0.9.12.1' into v0.9.12-maint
+	Done by 'git merge -s ours v0.9.12.1', so that the maint branch
+	will contain all release tags.
+
 2013-10-01  Guido Günther  <agx@sigxcpu.org>
 
 	Prepare for 0.9.12.2
@@ -5,6 +220,10 @@
 	Distribute viratomic.h
 	Since cbcb1983afbd76f0503185e4183afa10af88af47 we need viratomic.h in
 	the distributed tarball as well. This fixes "make distcheck".
+
+2013-09-27  Guido Günther  <agx@sigxcpu.org>
+
+	Prepare 0.9.12.1
 
 2013-09-19  Daniel P. Berrange  <berrange@redhat.com>
 
@@ -197,7 +416,7 @@
 	Conflicts:
 		tools/virsh.pod - drop hunks not present this far back
 
-2013-09-18  Eric Blake  <eblake@redhat.com>
+2013-09-19  Eric Blake  <eblake@redhat.com>
 
 	build: more workarounds for if_bridge.h
 	This is a second attempt at fixing the problem first attempted
@@ -254,7 +473,7 @@
 		configure.ac - skip the churn of all intermediate patches
 		src/util/virnetdevbridge.c - ditto
 
-2013-09-18  Eric Blake  <eblake@redhat.com>
+2013-09-19  Eric Blake  <eblake@redhat.com>
 
 	build: allow building with newer glibc-headers and -O0
 	glibc 2.15 (on Fedora 17) coupled with explicit disabling of
@@ -568,7 +787,7 @@
 	==28571==    still reachable: 1,054 bytes in 21 blocks
 	==28571==         suppressed: 0 bytes in 0 blocks
 
-2012-05-09  Eric Blake  <eblake@redhat.com>
+2012-05-10  Eric Blake  <eblake@redhat.com>
 
 	qemu: fix build when !HAVE_NUMACTL
 	Commit 97010eb1f forgot to change the other side of an #ifdef.
@@ -622,7 +841,7 @@
 	"--with-numad=no --with-numactl=yes", "--with-numad=yes
 	--with-numactl=yes" works fine after the change.
 
-2012-05-08  Osier Yang  <jyang@redhat.com>
+2012-05-09  Osier Yang  <jyang@redhat.com>
 
 	numad: Divide cur_balloon by 1024 before passing it to numad
 	Numad expects MB by default.
@@ -633,7 +852,7 @@
 	(Even no 'cpuset' and 'placement' is specified, the domain
 	process will be pinned to all the available pCPUs).
 
-2012-05-08  Osier Yang  <jyang@redhat.com>
+2012-05-09  Osier Yang  <jyang@redhat.com>
 
 	numad: Copy 'placement' of <numatune> to <vcpu> by default
 	With this patch, one can also fully drive numad by:
@@ -645,7 +864,7 @@
 
 	New tests are added.
 
-2012-05-08  Osier Yang  <jyang@redhat.com>
+2012-05-09  Osier Yang  <jyang@redhat.com>
 
 	numad: Set memory policy from numad advisory nodeset
 	Though numad will manage the memory allocation of task dynamically,
@@ -741,7 +960,7 @@
 
 	RHBZ: 819498
 
-2012-05-07  Eric Blake  <eblake@redhat.com>
+2012-05-08  Eric Blake  <eblake@redhat.com>
 
 	build: avoid link failure on Windows
 	We only know -lpthread exists on platforms where we build
@@ -912,13 +1131,13 @@
 	always enabled some kind of device without properly advertising it in
 	domain XML.
 
-2012-05-04  Jiri Denemark  <jdenemar@redhat.com>
+2012-05-05  Jiri Denemark  <jdenemar@redhat.com>
 
 	qemu: Don't use virDomainDefFormat* directly
 	Always use appropriate qemuDomain{,Def}Format wrapper since it may do
 	some additional magic based on the flags.
 
-2012-05-04  Eric Blake  <eblake@redhat.com>
+2012-05-05  Eric Blake  <eblake@redhat.com>
 
 	qemu: reject blockiotune if qemu too old
 	Commit 4c82f09e added a capability check for qemu per-device io
@@ -931,7 +1150,7 @@
 	* src/qemu/qemu_driver.c (qemuDomainSetBlockIoTune): Reject
 	offline tuning if online can't match it.
 
-2012-05-04  Eric Blake  <eblake@redhat.com>
+2012-05-05  Eric Blake  <eblake@redhat.com>
 
 	qemu: don't modify domain on failed blockiotune
 	If you have a qemu build that lacks the blockio tune monitor command,
@@ -1141,7 +1360,7 @@
 	"getPyVirTypedParameter", which dereferences it. (The dereference is assumed on
 	the basis of the 'nonnull' parameter attribute.)
 
-2012-05-03  Eric Blake  <eblake@redhat.com>
+2012-05-04  Eric Blake  <eblake@redhat.com>
 
 	qemu: avoid 32-bit compiler warning
 	On 32-bit platforms, gcc warns that the comparison between a long
@@ -1540,7 +1759,7 @@
 	capabilities the binary supports. This patch introduces new common
 	helper so that all probes use a consistent way of invoking qemu.
 
-2012-04-26  Eric Blake  <eblake@redhat.com>
+2012-04-27  Eric Blake  <eblake@redhat.com>
 
 	qemu: improve errors related to offline domains
 	https://bugzilla.redhat.com/show_bug.cgi?id=816662 pointed out
@@ -1573,7 +1792,7 @@
 	(qemuDomainSnapshotCreateXML, qemuDomainBlockJobImpl): Check for
 	offline state before checking an online-only cap.
 
-2012-04-26  Stefan Berger  <stefanb@linux.vnet.ibm.com>
+2012-04-27  Stefan Berger  <stefanb@linux.vnet.ibm.com>
 
 	macvtap: fix a typo
 	Below patch fixes the following coverity findings
@@ -1737,7 +1956,7 @@
 	marked as ATTRIBUTE_NONNULL. One other function prototype made this
 	same error, so this patch fixes it as well.
 
-2012-04-25  Eric Blake  <eblake@redhat.com>
+2012-04-26  Eric Blake  <eblake@redhat.com>
 
 	build: fix bootstrap on RHEL
 	Commit 8fe455fd364cd7462e02170084c45a58ee302cc3 tried to work around
@@ -2089,7 +2308,7 @@
 	(virDomainNetGetActualBandwidth, virDomainGraphicsGetListen):
 	Reduce extra ().
 
-2012-04-19  Eric Blake  <eblake@redhat.com>
+2012-04-20  Eric Blake  <eblake@redhat.com>
 
 	build: avoid strtol and strtod
 	Ensure we don't introduce any more lousy integer parsing in new
@@ -2108,7 +2327,7 @@
 	I'm not willing to fix yet.
 	(local-checks-to-skip): Re-enable sc_prohibit_atoi_atof.
 
-2012-04-19  Eric Blake  <eblake@redhat.com>
+2012-04-20  Eric Blake  <eblake@redhat.com>
 
 	conf: tighten up XML integer parsing
 	https://bugzilla.redhat.com/show_bug.cgi?id=617711 reported that
@@ -2126,7 +2345,7 @@
 	* src/util/xml.c (virXPathLongBase, virXPathULongBase)
 	(virXPathULongLong, virXPathLongLong): Likewise.
 
-2012-04-19  Eric Blake  <eblake@redhat.com>
+2012-04-20  Eric Blake  <eblake@redhat.com>
 
 	virsh: avoid strtol
 	We were forgetting to check errno for overflow.
@@ -2135,7 +2354,7 @@
 	(vshCommandOptUInt, vshCommandOptUL, vshCommandOptLongLong)
 	(vshCommandOptULongLong): Rewrite to be safer.
 
-2012-04-19  Eric Blake  <eblake@redhat.com>
+2012-04-20  Eric Blake  <eblake@redhat.com>
 
 	build: avoid type-punning in vbox
 	Commit 78345c68 makes at least gcc 4.1.2 on RHEL 5 complain:
@@ -2148,7 +2367,7 @@
 	* src/vbox/vbox_tmpl.c (vboxDomainUndefineFlags): Use union to
 	avoid compiler warning.
 
-2012-04-19  Eric Blake  <eblake@redhat.com>
+2012-04-20  Eric Blake  <eblake@redhat.com>
 
 	build: fix fresh checkout on RHEL5
 	Building a fresh checkout on RHEL 5 has been broken since commit
@@ -2241,7 +2460,7 @@
 
 	virsh: Fix and clarify the --title flag for the list command in man page
 
-2012-04-18  Eric Blake  <eblake@redhat.com>
+2012-04-19  Eric Blake  <eblake@redhat.com>
 
 	util: remove dead casts
 	The sequence:
@@ -2548,7 +2767,7 @@
 	If placement mode is AUTO, on some return paths char *cpumap or
 	char *nodeset are leaked.
 
-2012-04-12  Stefan Bader  <stefan.bader@canonical.com>
+2012-04-13  Stefan Bader  <stefan.bader@canonical.com>
 
 	xend_internal: Use domain/status for shutdown check
 	On newer xend (v3.x and after) there is no state and domid reported
@@ -3467,7 +3686,7 @@
 	bridge being attached to, this will later be changed in a separate
 	patch.
 
-2012-03-30  Eric Blake  <eblake@redhat.com>
+2012-03-31  Eric Blake  <eblake@redhat.com>
 
 	build: fix build on cygwin
 	Regression introduced when we changed types in commit 3e2c3d8f6.
@@ -3631,7 +3850,7 @@
 	* src/util/virnetdevtap.c (virNetDevTapCreate): Use flags.
 	* tests/lxcxml2xmltest.c (mymain): Strip useless ().
 
-2012-03-29  Eric Blake  <eblake@redhat.com>
+2012-03-30  Eric Blake  <eblake@redhat.com>
 
 	build: avoid 'devname' for BSD
 	Commit 21b5daa1 was the last time we cleaned this up.
@@ -6699,7 +6918,7 @@
 	attempt to remove the tap interface from the bridge even if it hadn't
 	been attached.
 
-2012-02-27  Josh Durgin  <josh.durgin@dreamhost.com>
+2012-02-28  Josh Durgin  <josh.durgin@dreamhost.com>
 
 	qemu: unescape HMP commands before converting them to json
 	QMP commands don't need to be escaped since converting them to json
@@ -6868,7 +7087,7 @@
 	This API allows a domain which previously called
 	virDomainPMSuspendForDuration() to be woken up.
 
-2012-02-24  Martin Kletzander  <mkletzan@redhat.com>
+2012-02-25  Martin Kletzander  <mkletzan@redhat.com>
 
 	Fixed URI parsing
 	Function xmlParseURI does not remove square brackets around IPv6
@@ -6890,7 +7109,7 @@
 	 - cfg.mk                   -- added sc_prohibit_xmlURI
 	 - all others               -- ID name and include fixes
 
-2012-02-24  Martin Kletzander  <mkletzan@redhat.com>
+2012-02-25  Martin Kletzander  <mkletzan@redhat.com>
 
 	Fixed service handling in specfile
 	After adding the libvirt-guests service into usual runlevels, we used
@@ -6994,7 +7213,7 @@
 
 	Update test suite accordingly
 
-2012-02-23  Benjamin Cama  <benoar@dolka.fr>
+2012-02-24  Benjamin Cama  <benoar@dolka.fr>
 
 	virterror: Misleading error message when name is missing
 	[forwarding this here from RH bug #796732]
@@ -7011,7 +7230,7 @@
 	I realized that the same message is used for missing name when creating
 	a domain, network, or device node.
 
-2012-02-23  Dave Allan  <dallan@redhat.com>
+2012-02-24  Dave Allan  <dallan@redhat.com>
 
 	Update bug reporting page
 	Remove suggestion that people file bugs against RHEL 5 and add a
@@ -7129,7 +7348,7 @@
 	  symbol error.
 	* AUTHORS: added Lincoln Myers
 
-2012-02-16  Stefan Berger  <stefanb@linux.vnet.ibm.com>
+2012-02-17  Stefan Berger  <stefanb@linux.vnet.ibm.com>
 
 	nwfilter: improved logging during driver initialization
 	Improve the logging during driver initialization when testing the command
@@ -7250,7 +7469,7 @@
 	* daemon/remote.c (remoteDispatchAuthList): Check return value
 	correctly.
 
-2012-02-15  Eric Blake  <eblake@redhat.com>
+2012-02-16  Eric Blake  <eblake@redhat.com>
 
 	daemon: plug memory leak
 	Leak introduced in commit bb2eddc6.
@@ -7485,7 +7704,7 @@
 	        *libvirt_virDomainSetBlockIoTune
 	        *libvirt_virDomainGetBlockIoTune
 
-2012-02-10  Marc-André Lureau  <marcandre.lureau@gmail.com>
+2012-02-11  Marc-André Lureau  <marcandre.lureau@gmail.com>
 
 	virpidfile: replace fopen/fwrite/fscanf with more portable version
 	Replace calls to fwrite() and fscanf() with more portable-friendly
@@ -7558,12 +7777,12 @@
 	single quotes, these records generated by libvirt are not correctly parsed by
 	libauparse.
 
-2012-02-09  Lai Jiangshan  <laijs@cn.fujitsu.com>
+2012-02-10  Lai Jiangshan  <laijs@cn.fujitsu.com>
 
 	GetCPUStats: fix overflow test
 	Bug introduced in commit c6ec021b.
 
-2012-02-09  Marc-André Lureau  <marcandre.lureau@gmail.com>
+2012-02-10  Marc-André Lureau  <marcandre.lureau@gmail.com>
 
 	domain: add implicit USB controller
 	Some tools, such as virt-manager, prefers having the default USB
@@ -7573,7 +7792,7 @@
 
 	Fix tests to pass with this change.
 
-2012-02-09  Guannan Ren  <gren@redhat.com>
+2012-02-10  Guannan Ren  <gren@redhat.com>
 
 	python: refactoring virTypedParameter conversion for NUMA tuning APIs
 	          *getPyVirTypedParameter
@@ -7601,7 +7820,7 @@
 	implementation inside hypervisor driver is responsible to check
 	if the passed "flags" is valid.
 
-2012-02-08  Eric Blake  <eblake@redhat.com>
+2012-02-09  Eric Blake  <eblake@redhat.com>
 
 	qemu: fix persistent setting of blkiodevice weights
 	virsh blkiotune dom --device-weights /dev/sda,400 --config
@@ -8553,7 +8772,7 @@
 	  TEST("AA", "A", "A", "AA");
 	  alarm(0);
 
-2012-02-01  Eric Blake  <eblake@redhat.com>
+2012-02-02  Eric Blake  <eblake@redhat.com>
 
 	network: fix testsuite regression
 	I slightly botched commit be9fb5a - I converted '--arg=value' to
@@ -8563,7 +8782,7 @@
 	* src/network/bridge_driver.c (networkBuildDnsmasqArgv): Restore
 	expected output.
 
-2012-02-01  Philipp Hahn  <hahn@univention.de>
+2012-02-02  Philipp Hahn  <hahn@univention.de>
 
 	tests: virnettlscontexttest needs gnutls-2.6.0
 	virnettlscontexttest uses gnutls_x509_crt_set_subject_alt_name() and
@@ -8574,7 +8793,7 @@
 	Since libvirt still works fine with gnutls-1.0.25 from RHEL5, only
 	enable the test when the version of GNUTLS is at least 2.6.0.
 
-2012-02-01  Philipp Hahn  <hahn@univention.de>
+2012-02-02  Philipp Hahn  <hahn@univention.de>
 
 	xen_xs: name xendConfigVersion magic numbers
 	libvirt supports 4 different versions of the user-land XenD daemon. When
@@ -8584,7 +8803,7 @@
 	Replace the magic generation numbers by named enum definitions to
 	improve code readability.
 
-2012-02-01  Alex Jia  <ajia@redhat.com>
+2012-02-02  Alex Jia  <ajia@redhat.com>
 
 	network: Avoid memory leaks on networkBuildDnsmasqArgv
 	Detected by valgrind. Leaks introduced in commit 973af236.
@@ -8853,7 +9072,7 @@
 
 	* daemon/remote.c, src/remote/remote_driver.c: simplify codes.
 
-2012-01-31  Eric Blake  <eblake@redhat.com>
+2012-02-01  Eric Blake  <eblake@redhat.com>
 
 	build: fix text regression
 	Commit 8a09ee410 tickles a bug in libxml2-2.7.6 on RHEL 6.2,
@@ -9104,7 +9323,7 @@
 
 	Expose the new command via 'virsh vol-resize'.
 
-2012-01-27  Eric Blake  <eblake@redhat.com>
+2012-01-28  Eric Blake  <eblake@redhat.com>
 
 	tests: fix reversed comparisons
 	Otherwise, a failed test gives misleading output.
@@ -9334,14 +9553,14 @@
 	apparmor: Fix use of uninitialized random_data
 	Without this, virt-aa-helper would segfault in -c or -r commands.
 
-2012-01-26  Marcelo Cerri  <mhcerri@linux.vnet.ibm.com>
+2012-01-27  Marcelo Cerri  <mhcerri@linux.vnet.ibm.com>
 
 	Update VIRT_CONTROL audit record with pid.
 	Added a new field "vm-pid" to the VIRT_CONTROL audit record. This information
 	is useful to correlated another audit events to the events generated by
 	libvirt.
 
-2012-01-26  Eric Blake  <eblake@redhat.com>
+2012-01-27  Eric Blake  <eblake@redhat.com>
 
 	build: allow for 64-bit pid in daemon
 	Convert daemon code to handle 64-bit pid_t (even though at the
@@ -9350,7 +9569,7 @@
 	* daemon/remote.c (remoteDispatchAuthList)
 	(remoteDispatchAuthPolkit): Print pid_t via %lld.
 
-2012-01-26  Eric Blake  <eblake@redhat.com>
+2012-01-27  Eric Blake  <eblake@redhat.com>
 
 	daemon: convert virRun to virCommand
 	Using snprintf to build up argv seems archaic.
@@ -9739,7 +9958,7 @@
 
 	xen: properly report out of memory when hvm_type is too small
 
-2012-01-20  Taku Izumi  <izumi.taku@jp.fujitsu.com>
+2012-01-21  Taku Izumi  <izumi.taku@jp.fujitsu.com>
 
 	virsh: let domif-{get,set}link take target name
 	Other virsh domifXXX commands can accept target name
@@ -9747,14 +9966,14 @@
 	consistency, virsh domif-getlink command should accept
 	target name as a parameter. This patch achieves this.
 
-2012-01-20  Eric Blake  <eblake@redhat.com>
+2012-01-21  Eric Blake  <eblake@redhat.com>
 
 	maint: cleanup qemu capabilities
 	Fix inconsistent whitespace and long lines.
 
 	* src/qemu/qemu_capabilities.h (qemuCapsFlags): Improve formatting.
 
-2012-01-20  Eric Blake  <eblake@redhat.com>
+2012-01-21  Eric Blake  <eblake@redhat.com>
 
 	maint: enforce use of _LAST marker
 	When converting a linear enum to a string, we have checks in
@@ -9771,7 +9990,7 @@
 	Likewise.
 	* src/util/virtypedparam.c (virTypedParameter): Likewise.
 
-2012-01-20  Eric Blake  <eblake@redhat.com>
+2012-01-21  Eric Blake  <eblake@redhat.com>
 
 	API: make declaration of _LAST enum values conditional
 	Although this is a public API break, it only affects users that
@@ -10270,7 +10489,7 @@
 	docs: Add readonly to filesystem RNG schema
 	"<readonly/>" is supported by filesystem XML, and also documented.
 
-2012-01-13  Michael Ellerman  <michael@ellerman.id.au>
+2012-01-14  Michael Ellerman  <michael@ellerman.id.au>
 
 	conf: Remove do-nothing validation functions
 	There are three address validation routines that do nothing:
@@ -10282,7 +10501,7 @@
 	currently return. In some cases this means we can remove an entire
 	if block.
 
-2012-01-13  Michael Ellerman  <michael@ellerman.id.au>
+2012-01-14  Michael Ellerman  <michael@ellerman.id.au>
 
 	tests: Add qemuxml2argv tests for PPC64 pseries machine
 	Add four tests of the XML -> argv handling for the PPC64 pseries machine.
@@ -10296,7 +10515,7 @@
 	around that leads us to the problem that the 'default' network doesn't
 	exist. So for now just leave network devices out.
 
-2012-01-13  Michael Ellerman  <michael@ellerman.id.au>
+2012-01-14  Michael Ellerman  <michael@ellerman.id.au>
 
 	tests: Teach qemuxml2argvtest about spapr-vio addresses
 	We can't call qemuCapsExtractVersionInfo() from test code, because it
@@ -10376,7 +10595,7 @@
 	file sectors repeatedly and is useful when the backing file is over a
 	slow network. By default copy-on-read is off.
 
-2012-01-12  Martin Kletzander  <mkletzan@redhat.com>
+2012-01-13  Martin Kletzander  <mkletzan@redhat.com>
 
 	Added check for maximum number of vcpus exceeding topology limit
 	Earlier, when the number of vcpus was greater than the topology allowed,
@@ -11202,12 +11421,12 @@
 	Please review,
 	Michal
 
-2011-12-31  Alex Jia  <ajia@redhat.com>
+2012-01-01  Alex Jia  <ajia@redhat.com>
 
 	qemu: Fix bandwidth memory leak on failure
 	Detected by Coverity. Leaks introduced in commit e8d6b29.
 
-2011-12-31  Eric Blake  <eblake@redhat.com>
+2012-01-01  Eric Blake  <eblake@redhat.com>
 
 	qemu: fix blkio memory leak on failure
 	Leak detected by Coverity, and introduced in commit 93ab585.
@@ -11601,13 +11820,13 @@
 
 	* tests/schematestutils.sh: Run test in deterministic order.
 
-2011-12-20  Michael Ellerman  <michael@ellerman.id.au>
+2011-12-21  Michael Ellerman  <michael@ellerman.id.au>
 
 	tests: Add fake PPC64 emulator for QEMU testing
 	Create a fake PPC64 QEMU so that we can run PPC64 QEMU tests when we
 	don't have a real version of the emulator available.
 
-2011-12-20  Michael Ellerman  <michael@ellerman.id.au>
+2011-12-21  Michael Ellerman  <michael@ellerman.id.au>
 
 	qemu: Add spapr-vio address assignment
 	Add logic to assign addresses for devices with spapr-vio addresses.
@@ -11615,7 +11834,7 @@
 	We also do validation of addresses specified by the user, ie. ensuring
 	that there are not duplicate addresses on the bus.
 
-2011-12-20  Bharata B Rao  <bharata@linux.vnet.ibm.com>
+2011-12-21  Bharata B Rao  <bharata@linux.vnet.ibm.com>
 
 	Add New address type spapr-vio to domain.rng
 	Original patch by Bharata. Updated to use {1,16} in spaprvioReg based
@@ -12162,7 +12381,7 @@
 
 	* libvirt.spec.in (with_sanlock): Use %ifarch, not %ifnarch.
 
-2011-12-13  KAMEZAWA Hiroyuki  <kamezawa.hiroyu@jp.fujitsu.com>
+2011-12-14  KAMEZAWA Hiroyuki  <kamezawa.hiroyu@jp.fujitsu.com>
 
 	virsh: support multifunction in attach-disk
 	PCI <address...> can be specified by attach-disk but multifunction cannot
@@ -12544,7 +12763,7 @@
 	adapted where needed. After that I did a grep for 'NWFilter' in the source
 	tree.]
 
-2011-12-08  Alex Jia  <ajia@redhat.com>
+2011-12-09  Alex Jia  <ajia@redhat.com>
 
 	virsh: plug memory leak on cmdDomIfGetLink() sucessful path
 	Detected by valgrind. Leak introduced in commit dc675f3:
@@ -12570,7 +12789,7 @@
 	==13102==    still reachable: 127,888 bytes in 1,361 blocks
 	==13102==         suppressed: 0 bytes in 0 blocks
 
-2011-12-08  Alex Jia  <ajia@redhat.com>
+2011-12-09  Alex Jia  <ajia@redhat.com>
 
 	virsh: plug memory leak on cmdBlkdeviotune() sucessful path
 	Detected by valgrind. Leak introduced in commit e9bd9a0:
@@ -13126,7 +13345,7 @@
 	- enable DHCP traffic from VM to any DHCP server
 	- will require an update to a libvirt-tck data file
 
-2011-12-01  Eric Blake  <eblake@redhat.com>
+2011-12-02  Eric Blake  <eblake@redhat.com>
 
 	virsh: translate net-info help
 	Reported by kato.tomoyuki@jp.fujitsu.com at
@@ -13134,7 +13353,7 @@
 
 	* tools/virsh.c (info_network_info): Mark string for translation.
 
-2011-12-01  Eric Blake  <eblake@redhat.com>
+2011-12-02  Eric Blake  <eblake@redhat.com>
 
 	maint: typo fixes
 	Many of these were mentioned by Yuri Chornoivan in:
@@ -13314,12 +13533,12 @@
 	so the hack needs to add a timeout that will make next poll return
 	immediately without blocking.
 
-2011-11-30  Alex Jia  <ajia@redhat.com>
+2011-12-01  Alex Jia  <ajia@redhat.com>
 
 	util: Plug memory leak on virNetDevMacVLanCreateWithVPortProfile() error path
 	Detected by Coverity. Leak introduced in commit 90074ec.
 
-2011-11-30  Alex Jia  <ajia@redhat.com>
+2011-12-01  Alex Jia  <ajia@redhat.com>
 
 	util: Plug memory leak on virNetDevBridgeGet() sucessful path
 	Detected by Coverity. Leak introduced in commit c1df2c1.
@@ -13328,7 +13547,7 @@
 	1. memory leak on successful parse
 	2. failure to parse still returned success
 
-2011-11-30  Alex Jia  <ajia@redhat.com>
+2011-12-01  Alex Jia  <ajia@redhat.com>
 
 	uml: Plug memory leak on umlStartVMDaemon() error path
 	Detected by Coverity.  Leak introduced in commit 8866eed.
@@ -13338,7 +13557,7 @@
 	2. if we failed to mark a domain autodestroy, then the domain
 	was not made transient but we still returned success
 
-2011-11-30  Alex Jia  <ajia@redhat.com>
+2011-12-01  Alex Jia  <ajia@redhat.com>
 
 	rpc: Plug memory leak on virNetClientSendInternal() error path
 	Detected by Coverity. Leak introduced in commit 673adba.
@@ -14356,7 +14575,7 @@
 	parser and makes us of the ebtables support for VLAN filtering. This code
 	now enables the filtering of traffic in chains with prefix 'vlan'.
 
-2011-11-18  Jim Fehlig  <jfehlig@suse.com>
+2011-11-19  Jim Fehlig  <jfehlig@suse.com>
 
 	Don't copy sexpr node value that is an empty string
 	Xen4.1 initializes some unspecified sexpr config items to an empty
@@ -15443,7 +15662,7 @@
 	Add virnetdev.h,virnetdevbridge.h,virnetdevtap.h to private symbols,
 	since debian linker no longer allows transitive link resolution
 
-2011-11-11  Eric Blake  <eblake@redhat.com>
+2011-11-12  Eric Blake  <eblake@redhat.com>
 
 	qemu: fix domjobabort regression
 	This reverts commit ef1065cf5ac; see also this bug report:
@@ -15484,7 +15703,7 @@
 	* src/qemu/qemu_migration.c (qemuMigrationToFile): Revert attempt
 	to use unlimited migration bandwidth when migrating to file.
 
-2011-11-11  Hu Tao  <hutao@cn.fujitsu.com>
+2011-11-12  Hu Tao  <hutao@cn.fujitsu.com>
 
 	fix two bugs in bridge_driver.c
 	steps to reproduce:
@@ -15788,7 +16007,7 @@
 
 	Report by Xu He Jie <xuhj@linux.vnet.ibm.
 
-2011-11-08  Xu He Jie  <xuhj@linux.vnet.ibm.com>
+2011-11-09  Xu He Jie  <xuhj@linux.vnet.ibm.com>
 
 	virsh: Add VSH_OFLAG_EMPTY_OK for attach-disk command
 	As the description of removing CDROM media from
@@ -16494,7 +16713,7 @@
 	Make sure that returnErrorFromSession return non-NULL always. Also
 	don't skip the last error message part.
 
-2011-10-28  Roopa Prabhu  <roprabhu@cisco.com>
+2011-10-29  Roopa Prabhu  <roprabhu@cisco.com>
 
 	macvtap: Fix error return value convention/inconsistencies
 	- changed some return 1's to return -1
@@ -16506,7 +16725,7 @@
 	Reported-by: Eric Blake <eblake@redhat.com>
 	Reported-by: Laine Stump <laine@laine.org>
 
-2011-10-28  Josh Durgin  <josh.durgin@dreamhost.com>
+2011-10-29  Josh Durgin  <josh.durgin@dreamhost.com>
 
 	Use a common xml type for ceph secret usage.
 	The types used in domaincommon.rng and secret.rng should be the same.
@@ -17069,13 +17288,13 @@
 	Commit 77791dc0e allows LXC to use a host block device as a guest
 	filesystem, but it isn't documented yet.
 
-2011-10-20  David L Stevens  <dlstevens@us.ibm.com>
+2011-10-21  David L Stevens  <dlstevens@us.ibm.com>
 
 	support continue/return targets in nwfilter
 		This patch adds support for "continue" and "return" actions
 	in filter rules.
 
-2011-10-20  Eric Blake  <eblake@redhat.com>
+2011-10-21  Eric Blake  <eblake@redhat.com>
 
 	snapshot: simplify indentation of network xml
 	More simplifications possible due to auto-indent.  Also,
@@ -17092,7 +17311,7 @@
 	(virDomainActualNetDefFormat): Likewise, and fix bandwidth
 	indentation.
 
-2011-10-20  Eric Blake  <eblake@redhat.com>
+2011-10-21  Eric Blake  <eblake@redhat.com>
 
 	snapshot: simplify indentation of cpu features
 	Auto-indent makes life a bit easier; this patch also drops unused
@@ -17112,7 +17331,7 @@
 	* src/cpu/cpu.c (cpuBaselineXML): Likewise.
 	* tests/cputest.c (cpuTestCompareXML): Likewise.
 
-2011-10-20  Eric Blake  <eblake@redhat.com>
+2011-10-21  Eric Blake  <eblake@redhat.com>
 
 	snapshot: simplify indentation of sysinfo
 	The improvements to virBuffer, along with a paradigm shift to pass
@@ -17127,7 +17346,7 @@
 	caller.
 	* src/qemu/qemu_driver.c (qemuGetSysinfo): Likewise.
 
-2011-10-20  Eric Blake  <eblake@redhat.com>
+2011-10-21  Eric Blake  <eblake@redhat.com>
 
 	snapshot: test domainsnapshot indentation
 	Add a test for the simple parts of my indentation changes, and
@@ -17143,7 +17362,7 @@
 	* tests/domainsnapshotxml2xmlout/full_domain.xml: Likewise.
 	* .gitignore: Exempt new binary.
 
-2011-10-20  Eric Blake  <eblake@redhat.com>
+2011-10-21  Eric Blake  <eblake@redhat.com>
 
 	snapshot: indent domain xml when nesting
 	<domainsnapshot> is the first public instance of <domain> being
@@ -17164,7 +17383,7 @@
 	new function.
 	(qemuMigrationCookieXMLFormatStr): Update caller.
 
-2011-10-20  Eric Blake  <eblake@redhat.com>
+2011-10-21  Eric Blake  <eblake@redhat.com>
 
 	virbuf: add auto-indentation support
 	Rather than having to adjust all callers in a chain to deal with
@@ -17182,7 +17401,7 @@
 	(testBufInfiniteLoop): Don't rely on internals.
 	Idea by Daniel P. Berrange.
 
-2011-10-20  Eric Blake  <eblake@redhat.com>
+2011-10-21  Eric Blake  <eblake@redhat.com>
 
 	virbuf: more detailed error reporting
 	The next patch wants to add some sanity checking, which would
@@ -17197,7 +17416,7 @@
 	(virBufferGrow, virBufferVasprintf, virBufferEscapeString)
 	(virBufferEscapeSexpr, virBufferEscapeShell): Adjust callers.
 
-2011-10-20  Eric Blake  <eblake@redhat.com>
+2011-10-21  Eric Blake  <eblake@redhat.com>
 
 	virbuf: improve testsuite reporting
 	I had some temporary test failures while working on virbuf
@@ -17213,7 +17432,7 @@
 	* tests/testutils.c (virtTestDifference): Make it easier to
 	diagnose test failures.
 
-2011-10-20  Eric Blake  <eblake@redhat.com>
+2011-10-21  Eric Blake  <eblake@redhat.com>
 
 	virbuf: fix const-correctness
 	Although the compiler wasn't complaining (since it was the pointer,
@@ -17410,7 +17629,7 @@
 	virBufferEscapeShell: Emit quotes for the empty string
 	Make the empty string return '' to match cmdEcho's behavior.
 
-2011-10-18  Eric Blake  <eblake@redhat.com>
+2011-10-19  Eric Blake  <eblake@redhat.com>
 
 	snapshot: detect when qemu lacks disk-snapshot support
 	Noticed when testing new libvirt against old qemu that lacked the
@@ -17533,7 +17752,7 @@
 
 	The reason is that we use probes.h before generating it.
 
-2011-10-14  Roopa Prabhu  <roprabhu@cisco.com>
+2011-10-15  Roopa Prabhu  <roprabhu@cisco.com>
 
 	Add missing strdup return value check
 	Check strdup return value and fail if error
@@ -17685,14 +17904,14 @@
 
 	* mingw32-libvirt.spec.in: Fix comment about hyperv
 
-2011-10-13  Eric Blake  <eblake@redhat.com>
+2011-10-14  Eric Blake  <eblake@redhat.com>
 
 	macvtap: plug memory leak for 802.1Qbh
 	Detected by Coverity.  Leak present since commit ca3b22b.
 
 	* src/util/macvtap.c (doPortProfileOp8021Qbh): Release device name.
 
-2011-10-13  Eric Blake  <eblake@redhat.com>
+2011-10-14  Eric Blake  <eblake@redhat.com>
 
 	qemu: plug memory leak on migration
 	Detected by Coverity.  Leak introduced in commit 72de0d2.
@@ -17700,7 +17919,7 @@
 	* src/qemu/qemu_migration.c (qemuMigrationCookieGraphicsXMLParse):
 	Clean up on success.
 
-2011-10-13  Eric Blake  <eblake@redhat.com>
+2011-10-14  Eric Blake  <eblake@redhat.com>
 
 	conf: plug memory leak on error
 	Detected by Coverity.  Leak present since commit 874e65a; and
@@ -17886,7 +18105,7 @@
 	This flag is intended to allow user to do so called system reset
 	after dump, instead of sending ACPI reboot event.
 
-2011-10-12  Philipp Hahn  <hahn@univention.de>
+2011-10-13  Philipp Hahn  <hahn@univention.de>
 
 	example: Support debug output and loop switch
 	Add support for enabling debug output via command line option.
@@ -17904,7 +18123,7 @@
 	terminates the process, so the code is never reached. Any option added
 	in the future will reveal the bug.
 
-2011-10-12  Eric Blake  <eblake@redhat.com>
+2011-10-13  Eric Blake  <eblake@redhat.com>
 
 	snapshot: implement LIST_LEAVES flag in qemu
 	With the recent refactoring of qemu snapshot relationships, it
@@ -17916,7 +18135,7 @@
 	(qemuDomainSnapshotNum, qemuDomainSnapshotListChildrenNames)
 	(qemuDomainSnapshotNumChildren): Pass new flag through.
 
-2011-10-12  Eric Blake  <eblake@redhat.com>
+2011-10-13  Eric Blake  <eblake@redhat.com>
 
 	snapshot: add API for filtering by leaves
 	Counterpart to --roots.
@@ -18006,7 +18225,7 @@
 	upper layer apps which intends to discover the service, such
 	as virt-manager.
 
-2011-10-11  Eric Blake  <eblake@redhat.com>
+2011-10-12  Eric Blake  <eblake@redhat.com>
 
 	snapshot: drop dead parameters
 	The previous optimizations lead to some follow-on cleanups.
@@ -18021,7 +18240,7 @@
 	Likewise.
 	* src/conf/domain_conf.h: Update prototypes.
 
-2011-10-11  Eric Blake  <eblake@redhat.com>
+2011-10-12  Eric Blake  <eblake@redhat.com>
 
 	snapshot: take advantage of new relations
 	Among other improvements, virDomainSnapshotForEachDescendant is
@@ -18036,7 +18255,7 @@
 	(virDomainSnapshotActOnChild, virDomainSnapshotMarkDescendant):
 	Delete, now that they are unused.
 
-2011-10-11  Eric Blake  <eblake@redhat.com>
+2011-10-12  Eric Blake  <eblake@redhat.com>
 
 	snapshot: track qemu snapshot relations
 	Maintain the parent/child relationships of all qemu snapshots.
@@ -18048,7 +18267,7 @@
 	(qemuDomainSnapshotReparentChildren, qemuDomainSnapshotDelete):
 	Clear relations on delete.
 
-2011-10-11  Eric Blake  <eblake@redhat.com>
+2011-10-12  Eric Blake  <eblake@redhat.com>
 
 	snapshot: framework for more efficient relation traversal
 	No one was using virDomainSnapshotHasChildren, but that was an
@@ -18079,7 +18298,7 @@
 	(virDomainSnapshotHasChildren): Drop unused function.
 	* src/libvirt_private.syms (domain_conf): Update exports.
 
-2011-10-11  Eric Blake  <eblake@redhat.com>
+2011-10-12  Eric Blake  <eblake@redhat.com>
 
 	snapshot: use correct qmp monitor command
 	To date, JSON disk snapshots worked by accident, as they were always
@@ -18091,7 +18310,7 @@
 	Spell QMP command correctly.
 	Reported by Luiz Capitulino.
 
-2011-10-11  Eric Blake  <eblake@redhat.com>
+2011-10-12  Eric Blake  <eblake@redhat.com>
 
 	snapshot: virsh shorthand for operating on current snap
 	Rather than having to do:
@@ -18123,7 +18342,7 @@
 	use of --current.
 	(snapshot-dumpxml): Mention alternative.
 
-2011-10-11  Eric Blake  <eblake@redhat.com>
+2011-10-12  Eric Blake  <eblake@redhat.com>
 
 	build: fix mingw build without sasl
 	Detected by autogen.sh on a cross-mingw build:
@@ -18320,7 +18539,7 @@
 	* src/Makefile.am: Link all RPC libraries to libvirt.so
 	* src/libvirt_private.syms: Export all RPC functions
 
-2011-10-10  Eric Blake  <eblake@redhat.com>
+2011-10-11  Eric Blake  <eblake@redhat.com>
 
 	snapshot: implement snapshot children listing in esx
 	It was fairly trivial to return snapshot listing based on a
@@ -18329,7 +18548,7 @@
 	* src/esx/esx_driver.c (esxDomainSnapshotNumChildren)
 	(esxDomainSnapshotListChildrenNames): New functions.
 
-2011-10-10  Eric Blake  <eblake@redhat.com>
+2011-10-11  Eric Blake  <eblake@redhat.com>
 
 	snapshot: implement snapshot children listing in qemu
 	Not too hard to wire up.  The trickiest part is realizing that
@@ -18346,7 +18565,7 @@
 	* src/qemu/qemu_driver.c (qemuDomainSnapshotNumChildren)
 	(qemuDomainSnapshotListChildrenNames): New functions.
 
-2011-10-10  Eric Blake  <eblake@redhat.com>
+2011-10-11  Eric Blake  <eblake@redhat.com>
 
 	snapshot: remote protocol for snapshot children
 	Very mechanical.  I'm so glad we've automated the generation of things,
@@ -18362,7 +18581,7 @@
 	* src/remote/remote_driver.c (remote_driver): Use it.
 	* src/remote_protocol-structs: Update.
 
-2011-10-10  Eric Blake  <eblake@redhat.com>
+2011-10-11  Eric Blake  <eblake@redhat.com>
 
 	snapshot: virsh fallback for snapshot-list --descendants --from
 	Given a list of snapshots and their parents, finding all descendants
@@ -18373,7 +18592,7 @@
 
 	* tools/virsh.c (cmdSnapshotList): Add final fallback.
 
-2011-10-10  Eric Blake  <eblake@redhat.com>
+2011-10-11  Eric Blake  <eblake@redhat.com>
 
 	snapshot: virsh fallback for snapshot-list --from children
 	Iterating over one level of children requires parsing all snapshots
@@ -18382,7 +18601,7 @@
 
 	* tools/virsh.c (cmdSnapshotList): Add another fallback.
 
-2011-10-10  Eric Blake  <eblake@redhat.com>
+2011-10-11  Eric Blake  <eblake@redhat.com>
 
 	snapshot: virsh fallback for snapshot-list --tree --from
 	Emulating --from requires grabbing the entire list of snapshots
@@ -18394,7 +18613,7 @@
 	(vshReconnect, cmdConnect, vshGetSnapshotParent): Update clients.
 	(cmdSnapshotList): Add fallback.
 
-2011-10-10  Eric Blake  <eblake@redhat.com>
+2011-10-11  Eric Blake  <eblake@redhat.com>
 
 	snapshot: virsh snapshot-list and children
 	Sometimes, we only care about one branch of the snapshot hierarchy.
@@ -18407,7 +18626,7 @@
 	* tools/virsh.c (cmdSnapshotList): Add --from, --descendants.
 	* tools/virsh.pod (snapshot-list): Document them.
 
-2011-10-10  Eric Blake  <eblake@redhat.com>
+2011-10-11  Eric Blake  <eblake@redhat.com>
 
 	snapshot: new virDomainSnapshotListChildrenNames API
 	The previous API addition allowed traversal up the hierarchy;
@@ -18430,7 +18649,7 @@
 	* python/libvirt-override.c
 	(libvirt_virDomainSnapshotListChildrenNames): New wrapper function.
 
-2011-10-10  Eric Blake  <eblake@redhat.com>
+2011-10-11  Eric Blake  <eblake@redhat.com>
 
 	docs: fix html bug
 	</space> doesn't exist.  Introduced in commit 4bb4109f.
@@ -19426,7 +19645,7 @@
 
 	https://bugzilla.redhat.com/show_bug.cgi?id=731151
 
-2011-09-27  Eric Blake  <eblake@redhat.com>
+2011-09-28  Eric Blake  <eblake@redhat.com>
 
 	snapshot: fix man page typos
 	pod2man from perl-5.8.8 (RHEL 5) errors out on ill-formed POD:
@@ -19712,7 +19931,7 @@
 	But if all 3 ways fails, and no --pool is specified, a friendly
 	error might help the user get right way quickly.
 
-2011-09-21  Osier Yang  <jyang@redhat.com>
+2011-09-22  Osier Yang  <jyang@redhat.com>
 
 	storage: Wait udev events are handled before removing lvm vol
 	Related #BZ: https://bugzilla.redhat.com/show_bug.cgi?id=702260.
@@ -19810,7 +20029,7 @@
 	virsh: Remove useless codes of cmdVolPath
 	Variable "name" is never used in the codes, it's useless.
 
-2011-09-20  Eric Blake  <eblake@redhat.com>
+2011-09-21  Eric Blake  <eblake@redhat.com>
 
 	build: silence warning on 32-bit build
 	gcc warns when building libvirt 0.9.5 on a 32-bit machine:
@@ -19905,7 +20124,7 @@
 	Patch 79cf07a missed one instance of "devname" in source for RPC code
 	generator.
 
-2011-09-19  Eric Blake  <eblake@redhat.com>
+2011-09-20  Eric Blake  <eblake@redhat.com>
 
 	virsh: tweak previous domblkstat patch
 	Translators are likely to botch trailing spacing; by doing the
@@ -19917,7 +20136,7 @@
 	rd_bytes output.
 	(cmdDomblkstat, DOMBLKSTAT_LEGACY_PRINT): Update formatting.
 
-2011-09-19  Peter Krempa  <pkrempa@redhat.com>
+2011-09-20  Peter Krempa  <pkrempa@redhat.com>
 
 	virsh: doc: Fix supported driver types for attach-disk command
 	Virsh man page lists driver types to be used with attach-device
@@ -19931,7 +20150,7 @@
 	user specifies incompatible driver type from VIR_ERR_INTERNAL_ERROR to
 	VIR_ERR_CONFIG_UNSUPPORTED.
 
-2011-09-19  Eric Blake  <eblake@redhat.com>
+2011-09-20  Eric Blake  <eblake@redhat.com>
 
 	maint: Prefer names over email in 'git shortlog'
 	Alex recently committed some patches with just an email instead
@@ -20062,7 +20281,7 @@
 	(qemuDomainSnapshotCreateSingleDiskActive): Also affect newDef, if
 	present.
 
-2011-09-16  Eric Blake  <eblake@redhat.com>
+2011-09-17  Eric Blake  <eblake@redhat.com>
 
 	build: work around lack of MacOS fdatasync
 	Mingw lacks fsync, but gnulib provides that.  Meanwhile, gnulib does
@@ -20247,7 +20466,7 @@
 	Diff to v1:
 	- reword statements
 
-2011-09-15  Eric Blake  <eblake@redhat.com>
+2011-09-16  Eric Blake  <eblake@redhat.com>
 
 	snapshot: tweak snapshot-create-as diskspec docs
 	With this patch, it is hopefully a bit more obvious that for
@@ -20316,19 +20535,19 @@
 	Even though we BuildRequire augeas in some cases, we need to require
 	it even after if we build with sanlock. virt-sanlock-cleanup use it.
 
-2011-09-14  Jim Fehlig  <jfehlig@suse.com>
+2011-09-15  Jim Fehlig  <jfehlig@suse.com>
 
 	Fix build after commit 829bce17
 	Pushing under build-breaker rule.
 
-2011-09-14  Jim Fehlig  <jfehlig@novell.com>
+2011-09-15  Jim Fehlig  <jfehlig@novell.com>
 
 	Use max bandwidth from qemuDomainObjPrivate struct when migrating
 	Adjust qemuMigrationRun() to use migMaxBandwidth in qemuDomainObjPrivate
 	structure when setting qemu migration speed.  Caller-specified 'resource'
 	parameter overrides migMaxBandwidth.
 
-2011-09-14  Jim Fehlig  <jfehlig@novell.com>
+2011-09-15  Jim Fehlig  <jfehlig@novell.com>
 
 	Set qemu migration speed unlimited when migrating to file
 	The qemu migration speed default is 32MiB/s as defined in migration.c
@@ -20345,7 +20564,7 @@
 
 	Tested with both json and text monitors.
 
-2011-09-14  Jim Fehlig  <jfehlig@novell.com>
+2011-09-15  Jim Fehlig  <jfehlig@novell.com>
 
 	Save migration speed in qemuDomainMigrateSetMaxSpeed
 	Now that migration speed is stored in qemuDomainObjPrivate structure,
@@ -20353,7 +20572,7 @@
 
 	Allow setting migration speed on inactive domain too.
 
-2011-09-14  Jim Fehlig  <jfehlig@novell.com>
+2011-09-15  Jim Fehlig  <jfehlig@novell.com>
 
 	Impl virDomainMigrateGetMaxSpeed in qemu driver
 
@@ -20462,7 +20681,7 @@
 	qemu_api: Modify apibuild.py to generate docs for QEMU APIs
 	The generated docs are: libvirt-qemu-api.xml, libvirt-qemu-refs.xml
 
-2011-09-13  Peter Krempa  <pkrempa@redhat.com>
+2011-09-14  Peter Krempa  <pkrempa@redhat.com>
 
 	virsh: Use old API if remote libvirtd does not support new
 	Commit ffe28ab74b821c916ec4ba8efb5c992454e4bd24 introduced regression
@@ -21611,7 +21830,7 @@
 	* tools/virsh.pod (snapshot-create, snapshot-create-as)
 	(snapshot-current, snapshot-edit):  Document these.
 
-2011-09-02  Eric Blake  <eblake@redhat.com>
+2011-09-03  Eric Blake  <eblake@redhat.com>
 
 	snapshot: refactor virsh snapshot creation
 	The next patch will make snapshot creation more complex, so it's
@@ -21620,7 +21839,7 @@
 	* tools/virsh.c (vshSnapshotCreate): New helper function.
 	(cmdSnapshotCreate, cmdSnapshotCreateAs): Use it.
 
-2011-09-02  Eric Blake  <eblake@redhat.com>
+2011-09-03  Eric Blake  <eblake@redhat.com>
 
 	snapshot: allow recreation of metadata
 	The first two flags are essential for being able to replicate
@@ -21662,7 +21881,7 @@
 	* src/vbox/vbox_tmpl.c (vboxDomainSnapshotCreateXML): Likewise.
 	* docs/formatsnapshot.html.in: Document re-creation.
 
-2011-09-02  Eric Blake  <eblake@redhat.com>
+2011-09-03  Eric Blake  <eblake@redhat.com>
 
 	snapshot: identify qemu snapshot roots
 	Filtering for roots is pretty easy to do.
@@ -21675,7 +21894,7 @@
 	* src/qemu/qemu_driver.c (qemuDomainSnapshotNum)
 	(qemuDomainSnapshotListNames): Update callers.
 
-2011-09-02  Eric Blake  <eblake@redhat.com>
+2011-09-03  Eric Blake  <eblake@redhat.com>
 
 	snapshot: reflect new dumpxml and list options in virsh
 	New flag bits are worth exposing via virsh.  In the case of
@@ -21693,7 +21912,7 @@
 	* tools/virsh.pod (snapshot-dumpxml, snapshot-current)
 	(snapshot-list): Document these.
 
-2011-09-02  Eric Blake  <eblake@redhat.com>
+2011-09-03  Eric Blake  <eblake@redhat.com>
 
 	snapshot: identify which snapshots have metadata
 	To make it easier to know when undefine will fail because of existing
@@ -21713,7 +21932,7 @@
 	* src/qemu/qemu_driver.c (qemuDomainSnapshotNum)
 	(qemuDomainSnapshotListNames): Likewise.
 
-2011-09-02  Eric Blake  <eblake@redhat.com>
+2011-09-03  Eric Blake  <eblake@redhat.com>
 
 	snapshot: let qemu discard only snapshot metadata
 	Adding this was trivial compared to the previous patch for fixing
@@ -21724,7 +21943,7 @@
 	(qemuDomainSnapshotDiscardDescendant, qemuDomainSnapshotDelete):
 	Update callers.
 
-2011-09-02  Eric Blake  <eblake@redhat.com>
+2011-09-03  Eric Blake  <eblake@redhat.com>
 
 	snapshot: allow deletion of just snapshot metadata
 	A future patch will make it impossible to remove a domain if it
@@ -21745,7 +21964,7 @@
 	supported when there is no libvirt metadata.
 	* src/vbox/vbox_tmpl.c (vboxDomainSnapshotDelete): Likewise.
 
-2011-09-02  Eric Blake  <eblake@redhat.com>
+2011-09-03  Eric Blake  <eblake@redhat.com>
 
 	snapshot: simplify acting on just children
 	Similar to the last patch in isolating the filtering from the
@@ -21762,7 +21981,7 @@
 	* src/qemu/qemu_driver.c (qemuDomainSnapshotReparentChildren)
 	(qemuDomainSnapshotDelete): Likewise.
 
-2011-09-02  Eric Blake  <eblake@redhat.com>
+2011-09-03  Eric Blake  <eblake@redhat.com>
 
 	snapshot: track current domain across deletion of children
 	Deleting a snapshot and all its descendants had problems with
@@ -21779,7 +21998,7 @@
 	(qemuDomainSnapshotDiscardDescendant): Adjust accordingly.
 	(qemuDomainSnapshotDelete): Properly reset current.
 
-2011-09-02  Eric Blake  <eblake@redhat.com>
+2011-09-03  Eric Blake  <eblake@redhat.com>
 
 	snapshot: avoid crash when deleting qemu snapshots
 	This one's nasty.  Ever since we fixed virHashForEach to prevent
@@ -21813,7 +22032,7 @@
 	doesn't nest hash traversal.
 	(qemuDomainSnapshotDelete): Use new function.
 
-2011-09-02  Eric Blake  <eblake@redhat.com>
+2011-09-03  Eric Blake  <eblake@redhat.com>
 
 	snapshot: speed up snapshot location
 	Each snapshot lookup was iterating over the entire hash table, O(n),
@@ -22271,7 +22490,7 @@
 	error: internal error Xend returned HTTP Content-Length of 73817, which exceeds
 	maximum of 65536
 
-2011-09-01  Jim Fehlig  <jfehlig@suse.com>
+2011-09-02  Jim Fehlig  <jfehlig@suse.com>
 
 	Change my email domain
 	I'd like to change my primary email address to jfehlig@suse.com.
@@ -22626,7 +22845,7 @@
 	so, we use bufferLength to represent the length of message which is going to be
 	sent to client side.
 
-2011-08-26  Eric Blake  <eblake@redhat.com>
+2011-08-27  Eric Blake  <eblake@redhat.com>
 
 	maint: fix spelling errors on lose
 	* docs/drvqemu.html.in: Fix typo.
@@ -23241,7 +23460,7 @@
 	This patch adds the missing documentation about the scheduler parameter
 	"vcpu_period" and "vcpu_quota".
 
-2011-08-18  Eric Blake  <eblake@redhat.com>
+2011-08-19  Eric Blake  <eblake@redhat.com>
 
 	maint: ignore generated file
 	I did 'git add .' while in the middle of 'make syntax-check', and
@@ -23335,7 +23554,7 @@
 	it's set as "managed=yes" when do detaching. Of course, it won't
 	triger any driver reprobing too.
 
-2011-08-16  Eric Blake  <eblake@redhat.com>
+2011-08-17  Eric Blake  <eblake@redhat.com>
 
 	virsh: tweak misleading wording
 	Fixes confusing docs introduced in commit 98369d3.
@@ -23579,13 +23798,13 @@
 	maint: let emacs avoid tabs in rng files
 	* .dir-locals.el: Add nxml-mode preferences.
 
-2011-08-12  Philipp Hahn  <hahn@univention.de>
+2011-08-13  Philipp Hahn  <hahn@univention.de>
 
 	Swap virDomain / virFomainSnapshot declaration
 	In preparation for storing the domain description with the snapshot,
 	swap the order of declaration.
 
-2011-08-12  Eric Blake  <eblake@redhat.com>
+2011-08-13  Eric Blake  <eblake@redhat.com>
 
 	build: fix recent build failures
 	With gcc 4.5.1:
@@ -24051,7 +24270,7 @@
 	* po/*.po*: pulled translations from the transifex teams and regenerated
 	  localizations
 
-2011-08-02  Eric Blake  <eblake@redhat.com>
+2011-08-03  Eric Blake  <eblake@redhat.com>
 
 	qemu: silence coverity false positives
 	Coverity gets confused by our logic.  Add some hints to silence
@@ -24060,7 +24279,7 @@
 	* src/qemu/qemu_driver.c (qemudDomainGetVcpuPinInfo): Add hint.
 	(qemuDomainGetMemoryParameters): Likewise.
 
-2011-08-02  Eric Blake  <eblake@redhat.com>
+2011-08-03  Eric Blake  <eblake@redhat.com>
 
 	util: plug memory leak
 	Leak detected by Coverity; only possible on unlikely ptsname_r
@@ -24070,7 +24289,7 @@
 	* src/util/util.c (virFileOpenTtyAt): Avoid leak on ptsname_r
 	failure.
 
-2011-08-02  Eric Blake  <eblake@redhat.com>
+2011-08-03  Eric Blake  <eblake@redhat.com>
 
 	interface: drop dead code
 	Coverity detected that ifaceGetNthParent had already dereferenced
@@ -24080,7 +24299,7 @@
 	* src/util/interface.h (ifaceGetNthParent): Add annotations.
 	* src/util/interface.c (ifaceGetNthParent): Drop useless null check.
 
-2011-08-02  Eric Blake  <eblake@redhat.com>
+2011-08-03  Eric Blake  <eblake@redhat.com>
 
 	rpc: silence coverity false positives
 	In virNetServerNew, Coverity didn't realize that srv->mdsnGroupName
@@ -24092,7 +24311,7 @@
 	* src/rpc/virnetserver.c (virNetServerNew): Use alternate pointer.
 	(virNetServerRun): Give coverity a hint.
 
-2011-08-02  Eric Blake  <eblake@redhat.com>
+2011-08-03  Eric Blake  <eblake@redhat.com>
 
 	rpc: avoid null deref
 	Detected by Coverity.
@@ -24100,7 +24319,7 @@
 	* src/rpc/virnetserverclient.c (virNetServerClientDispatchRead):
 	Avoid null deref on OOM.
 
-2011-08-02  Eric Blake  <eblake@redhat.com>
+2011-08-03  Eric Blake  <eblake@redhat.com>
 
 	build: silence coverity false positives
 	Coverity complained that 395 out of 409 virAsprintf calls are
@@ -24120,7 +24339,7 @@
 	Likewise.
 	* src/util/command.c (virCommandTranslateStatus): Likewise.
 
-2011-08-02  Eric Blake  <eblake@redhat.com>
+2011-08-03  Eric Blake  <eblake@redhat.com>
 
 	qemu: avoid memory leaks
 	Quite a few leaks detected by coverity.  For chr, the leaks were
@@ -24458,7 +24677,7 @@
 	conf: Don't leak the virtual port profile in virNetworkDefFree
 	Reported by Alex Jia.
 
-2011-07-29  Eric Blake  <eblake@redhat.com>
+2011-07-30  Eric Blake  <eblake@redhat.com>
 
 	save: generate idempotent inactive xml for running domain
 	Originally noticed by comparing the xml generated by virDomainSave
@@ -24475,7 +24694,7 @@
 	* src/conf/domain_conf.h (virDomainDeviceInfoIsSet): Delete.
 	* src/libvirt_private.syms (domain_conf.h): Update.
 
-2011-07-29  Eric Blake  <eblake@redhat.com>
+2011-07-30  Eric Blake  <eblake@redhat.com>
 
 	conf: make 'vnet' prefix a macro
 	Using a macro ensures that all the code is looking for the same
@@ -24927,11 +25146,13 @@
 	syntax-check rule), and also improve the docs in qemu.conf to tell
 	user the truth.
 
-2011-07-27  Eric Blake  <eblake@redhat.com>
+2011-07-28  Eric Blake  <eblake@redhat.com>
 
 	qemu: improve thread documentation
 	* src/qemu/THREADS.txt: Fix problems with typos, grammar, and
 	outdated examples.
+
+2011-07-27  Eric Blake  <eblake@redhat.com>
 
 	virsh: expose change-protection during migration
 	* tools/virsh.c (doMigrate): Add --change-protection flag.
@@ -25027,7 +25248,7 @@
 	Commit b31abc6f0 introduce commands blockpull and blockjob, but
 	forgot to add the docs meanwhile.
 
-2011-07-26  Cole Robinson  <crobinso@redhat.com>
+2011-07-27  Cole Robinson  <crobinso@redhat.com>
 
 	python: Properly report errors if virStreamRecv fails
 	We only want to raise the special value -2. -1 should return None
@@ -25673,7 +25894,7 @@
 	* docs/apibuild.py: Extend 'unsigned long' parameter exception to this
 	* API
 
-2011-07-21  Eric Blake  <eblake@redhat.com>
+2011-07-22  Eric Blake  <eblake@redhat.com>
 
 	save: add virsh commands for manipulating save files
 	Now you can edit a saved state file even if you forgot to grab
@@ -25685,7 +25906,7 @@
 	* tools/virsh.pod (save-image-dumpxml, save-image-define)
 	(save-image-edit): Document them.
 
-2011-07-21  Eric Blake  <eblake@redhat.com>
+2011-07-22  Eric Blake  <eblake@redhat.com>
 
 	save: wire up remote protocol
 	* src/remote/remote_driver.c (remote_driver): Add new callbacks.
@@ -25695,7 +25916,7 @@
 	(remote_domain_save_image_define_xml_args): New structs.
 	* src/remote_protocol-structs: Update.
 
-2011-07-21  Eric Blake  <eblake@redhat.com>
+2011-07-22  Eric Blake  <eblake@redhat.com>
 
 	save: new API to manipulate save file images
 	Modifying the xml on either save or restore only gets you so
@@ -25716,7 +25937,7 @@
 	* src/driver.h (virDrvDomainSaveImageGetXMLDesc)
 	(virDrvDomainSaveImgeDefineXML): New driver callbacks.
 
-2011-07-21  Eric Blake  <eblake@redhat.com>
+2011-07-22  Eric Blake  <eblake@redhat.com>
 
 	save: support bypass-cache flag in libvirt-guests init script
 	libvirt-guests is a perfect use case for bypassing the file system
@@ -25728,7 +25949,7 @@
 	* tools/libvirt-guests.sysconf (BYPASS_CACHE): New variable.
 	* tools/libvirt-guests.init.sh (start, suspend_guest): Use it.
 
-2011-07-21  Eric Blake  <eblake@redhat.com>
+2011-07-22  Eric Blake  <eblake@redhat.com>
 
 	save: support bypass-cache flag in qemu.conf
 	When auto-dumping a domain on crash events, or autostarting a domain
@@ -25743,7 +25964,7 @@
 	* src/qemu/qemu_driver.c (processWatchdogEvent, qemuAutostartDomain):
 	Honor them.
 
-2011-07-21  Eric Blake  <eblake@redhat.com>
+2011-07-22  Eric Blake  <eblake@redhat.com>
 
 	save: support BYPASS_CACHE during qemu save/restore
 	Wire together the previous patches to support file system cache
@@ -25756,7 +25977,7 @@
 	(processWatchdogEvent, qemudDomainStartWithFlags, qemuAutostartDomain)
 	(qemuDomainRestoreFlags): Update callers.
 
-2011-07-21  Eric Blake  <eblake@redhat.com>
+2011-07-22  Eric Blake  <eblake@redhat.com>
 
 	save: add virFileDirectFd wrapper type
 	O_DIRECT has stringent requirements.  Rather than make lots of changes
@@ -25776,7 +25997,7 @@
 	* cfg.mk (useless_free_options): Add to list.
 	* po/POTFILES.in: Add new translations.
 
-2011-07-21  Eric Blake  <eblake@redhat.com>
+2011-07-22  Eric Blake  <eblake@redhat.com>
 
 	save: let iohelper work on O_DIRECT fds
 	Required for a coming patch where iohelper will operate on O_DIRECT
@@ -25798,7 +26019,7 @@
 	* src/util/iohelper.c (runIO): Use aligned memory, and handle
 	quirks of O_DIRECT on last write.
 
-2011-07-21  Eric Blake  <eblake@redhat.com>
+2011-07-22  Eric Blake  <eblake@redhat.com>
 
 	save: let iohelper handle inherited fd
 	Rather than making the iohelper subject to a race in reopening
@@ -25815,7 +26036,7 @@
 	(main): Allow alternate calling form.
 	* src/fdstream.c (virFDStreamOpenFileInternal): Use alternate form.
 
-2011-07-21  Eric Blake  <eblake@redhat.com>
+2011-07-22  Eric Blake  <eblake@redhat.com>
 
 	save: support --xml to virsh save/restore
 	Also, migrate was missing documentation for the --xml option
@@ -25824,7 +26045,7 @@
 	* tools/virsh.c (cmdSave, cmdRestore): Add xml argument.
 	* tools/virsh.pod (save, restore, migrate): Document it.
 
-2011-07-21  Eric Blake  <eblake@redhat.com>
+2011-07-22  Eric Blake  <eblake@redhat.com>
 
 	save: add --bypass-cache flag to virsh save/restore operations
 	Wire up the new flag to several virsh commands.  Also, the
@@ -25835,7 +26056,7 @@
 	* tools/virsh.pod (save, managedsave, dump, start, restore):
 	Document flags.
 
-2011-07-21  Eric Blake  <eblake@redhat.com>
+2011-07-22  Eric Blake  <eblake@redhat.com>
 
 	save: wire up trivial save/restore flags implementations
 	For all hypervisors that support save and restore, the new API
@@ -25863,7 +26084,7 @@
 	(qemudDomainSaveFlag): Rename...
 	(qemuDomainSaveInternal): ...to this, and update callers.
 
-2011-07-21  Eric Blake  <eblake@redhat.com>
+2011-07-22  Eric Blake  <eblake@redhat.com>
 
 	error: add new error type for reflecting partial API support
 	VIR_ERR_INVALID_ARG implies that an argument cannot possibly
@@ -26393,7 +26614,7 @@
 	* src/Makefile.am: added to EXTRA_DIST
 	* src/util/keymaps.csv: new file
 
-2011-07-20  Eric Blake  <eblake@redhat.com>
+2011-07-21  Eric Blake  <eblake@redhat.com>
 
 	maint: fix typos on guaranteed
 	* src/conf/domain_event.c (virDomainEventDispatch): Fix typo.
@@ -26878,7 +27099,7 @@
 	The device attachment failed actually with error "unknown disk type 'oops'",
 	however, it reports success.
 
-2011-07-15  Eric Blake  <eblake@redhat.com>
+2011-07-16  Eric Blake  <eblake@redhat.com>
 
 	build: also track RPC on-wire enum values
 	As long as we guarantee RPC struct layout stability, we might as
@@ -26890,14 +27111,14 @@
 	* src/qemu_protocol-structs: Likewise.
 	* src/virnetprotocol-structs: Likewise.
 
-2011-07-15  Eric Blake  <eblake@redhat.com>
+2011-07-16  Eric Blake  <eblake@redhat.com>
 
 	docs: document dxml argument to migrate2
 	Commit 135554166 introduced a nice feature without documenting it.
 
 	* src/libvirt.c (virDomainMigrate2): Add paragraph.
 
-2011-07-15  Eric Blake  <eblake@redhat.com>
+2011-07-16  Eric Blake  <eblake@redhat.com>
 
 	build: add syntax check for proper flags use
 	Enforce the recent flags cleanups - we want to use 'unsigned int flags'
@@ -26927,7 +27148,7 @@
 	(virLockManagerNopAddResource, virLockManagerNopAcquire)
 	(virLockManagerNopRelease, virLockManagerNopInquire): Likewise.
 
-2011-07-15  Eric Blake  <eblake@redhat.com>
+2011-07-16  Eric Blake  <eblake@redhat.com>
 
 	xen: reject unknown flags
 	Also fix a logic bug in xenXMDomain{Attach,Detach}DeviceFlags,
@@ -26956,7 +27177,7 @@
 	Likewise, and avoid always-false conditional.
 	* src/xen/xen_driver.h (XEN_MIGRATION_FLAGS): New define.
 
-2011-07-15  Eric Blake  <eblake@redhat.com>
+2011-07-16  Eric Blake  <eblake@redhat.com>
 
 	esx: reject unknown flags
 	Silently ignored flags get in the way of new features that
@@ -27357,7 +27578,7 @@
 	part of virFileOpenAs doesn't actually call to virFileOpenAsNoFork but
 	rather includes a copy of the code from there.
 
-2011-07-13  Eric Blake  <eblake@redhat.com>
+2011-07-14  Eric Blake  <eblake@redhat.com>
 
 	build: don't hand-roll cloexec code
 	No need to repeat common code.
@@ -27368,7 +27589,7 @@
 	* src/uml/uml_driver.c (umlSetCloseExec): Delete.
 	(umlStartVMDaemon): Use util version instead.
 
-2011-07-13  Eric Blake  <eblake@redhat.com>
+2011-07-14  Eric Blake  <eblake@redhat.com>
 
 	conf: prefer unsigned flags
 	* src/conf/cpu_conf.h (virCPUDefFormat, virCPUDefFormatBuf):
@@ -27383,7 +27604,7 @@
 	(libvirt_virDomainSnapshotListNames)
 	(libvirt_virDomainRevertToSnapshot): Change flags type.
 
-2011-07-13  Eric Blake  <eblake@redhat.com>
+2011-07-14  Eric Blake  <eblake@redhat.com>
 
 	node_device: avoid implicit int
 	'unsigned a' and 'unsigned int a' are synonyms, but we generally
@@ -27393,7 +27614,7 @@
 	* src/conf/node_device_conf.h (pci_config_address)
 	(_virNodeDevCapsDef): Prefer 'unsigned int' over 'unsigned'.
 
-2011-07-13  Eric Blake  <eblake@redhat.com>
+2011-07-14  Eric Blake  <eblake@redhat.com>
 
 	virsh, daemon: prefer unsigned flags
 	* tools/virsh.c (vshCmdDef): Change flags type.
@@ -27416,6 +27637,8 @@
 	(vboxNetworkOpen, vboxNetworkGetXMLDesc, vboxStorageOpen)
 	(vboxStorageVolCreateXML, vboxStorageVolDelete)
 	(vboxStorageVolGetXMLDesc, vboxDomainScreenshot): Likewise.
+
+2011-07-13  Eric Blake  <eblake@redhat.com>
 
 	uml: reject unknown flags
 	* src/uml/uml_driver.c (umlOpen, umlDomainGetXMLDesc)
@@ -27626,14 +27849,14 @@
 	  virNetServerProgramErrorHander function callback
 	* daemon/remote.h: Remove decl for non-existant variables
 
-2011-07-12  Jiri Denemark  <jdenemar@redhat.com>
+2011-07-13  Jiri Denemark  <jdenemar@redhat.com>
 
 	qemu: Fix monitor unlocking in some error paths
 	When monitor is entered with qemuDomainObjEnterMonitorWithDriver, the
 	correct method for leaving and unlocking the monitor is
 	qemuDomainObjExitMonitorWithDriver.
 
-2011-07-12  Jiri Denemark  <jdenemar@redhat.com>
+2011-07-13  Jiri Denemark  <jdenemar@redhat.com>
 
 	qemu: Consolidate qemuMigrationPrepare{Direct,Tunnel}
 	Most of the code in these two functions is supposed to be identical but
@@ -27643,7 +27866,7 @@
 	This also fixes qemuMigrationPrepareTunnel which didn't store received
 	lockState in the domain object.
 
-2011-07-12  Jiri Denemark  <jdenemar@redhat.com>
+2011-07-13  Jiri Denemark  <jdenemar@redhat.com>
 
 	qemu: Add support for job phase
 	Asynchronous jobs may take long time to finish and may consist of
@@ -27659,7 +27882,7 @@
 	needs to know about that to be able to recover and rollback the
 	operation.
 
-2011-07-12  Jiri Denemark  <jdenemar@redhat.com>
+2011-07-13  Jiri Denemark  <jdenemar@redhat.com>
 
 	qemu: Allow all query commands to be run during long jobs
 	Query commands are safe to be called during long running jobs (such as
@@ -27940,7 +28163,7 @@
 	Initialize ptr data.datastorePathWithoutFileName as NULL, otherwise
 	it might cause crash when trying to free it in cleanup.
 
-2011-07-11  Eric Blake  <eblake@redhat.com>
+2011-07-12  Eric Blake  <eblake@redhat.com>
 
 	build: also check qemu_protocol for on-the-wire stability
 	Since we are going to add some libvirt-qemu.so entry points in
@@ -27952,7 +28175,7 @@
 	(%_protocol-structs): ...and make more generic.
 	* src/qemu_protocol-structs: New file.
 
-2011-07-11  Eric Blake  <eblake@redhat.com>
+2011-07-12  Eric Blake  <eblake@redhat.com>
 
 	build: avoid requiring -lm
 	log2() is heavy when ffs() can do the same thing.  But ffs()
@@ -28126,7 +28349,7 @@
 
 	tests: Use EXIT_AM_SKIP instead of 77 directly
 
-2011-07-08  Matthias Bolte  <matthias.bolte@googlemail.com>
+2011-07-09  Matthias Bolte  <matthias.bolte@googlemail.com>
 
 	rpc: Fix whitespace problem in generated code
 	Add missing line break and fix indention level.
@@ -28277,12 +28500,12 @@
 	When dynamic ownership is disabled we don't want to chown any files,
 	not just local.
 
-2011-07-07  John Williams  <john.williams@petalogix.com>
+2011-07-08  John Williams  <john.williams@petalogix.com>
 
 	microblaze: Add architecture support
 	Add libvirt support for MicroBlaze architecture as a QEMU target.  Based on mips/mipsel pattern.
 
-2011-07-07  Jim Fehlig  <jfehlig@novell.com>
+2011-07-08  Jim Fehlig  <jfehlig@novell.com>
 
 	Skip some xen tests if xend is not running
 	Currently, the xen statstest and reconnect tests are only compiled
@@ -28787,7 +29010,7 @@
 	* src/rpc/virnetserverclient.c (virNetServerClientRemoveFilter):
 	    Don't lose unrelated filters.
 
-2011-07-01  Eric Blake  <eblake@redhat.com>
+2011-07-02  Eric Blake  <eblake@redhat.com>
 
 	pci: avoid memory leak on error
 	Detected by Coverity.  Some, but not all, error paths were clean;
@@ -28795,7 +29018,7 @@
 
 	* src/util/pci.c (pciGetDevice): Plug leak.
 
-2011-07-01  Eric Blake  <eblake@redhat.com>
+2011-07-02  Eric Blake  <eblake@redhat.com>
 
 	interface: avoid memory leak on parse error
 	Detected by Coverity.  Unlikely to hit unless the file contents
@@ -28803,14 +29026,14 @@
 
 	* src/util/interface.c (ifaceRestoreMacAddress): Plug leak.
 
-2011-07-01  Eric Blake  <eblake@redhat.com>
+2011-07-02  Eric Blake  <eblake@redhat.com>
 
 	libvirtd: avoid memory leak on OOM
 	Detected by Coverity; only strikes on OOM so not serious.
 
 	* daemon/libvirtd.c (daemonPidFilePath): Plug leak.
 
-2011-07-01  Eric Blake  <eblake@redhat.com>
+2011-07-02  Eric Blake  <eblake@redhat.com>
 
 	build: avoid 'make syntax-check' failure
 	* tests/utiltest.c (DO_TEST): Fix indentation for cppi.
@@ -28894,7 +29117,7 @@
 	Remove bogus jsondata.h file reference which does not exist
 	* tests/Makefile.am: Remove jsondata.h
 
-2011-06-30  Eric Blake  <eblake@redhat.com>
+2011-07-01  Eric Blake  <eblake@redhat.com>
 
 	build: simplify sanlock distribution
 	EXTRA_DIST files should unconditionally be part of the tarball,
@@ -28906,7 +29129,7 @@
 	template .conf files.
 	(%-sanlock.conf): Use MKDIR_P.
 
-2011-06-30  Eric Blake  <eblake@redhat.com>
+2011-07-01  Eric Blake  <eblake@redhat.com>
 
 	build: allow 'make syntax-check' on fresh checkout
 	For good or for bad, I did a fresh checkout, ./autogen.sh, then
@@ -29317,7 +29540,7 @@
 
 	network: Don't ignore errors in dnsmasq config file creation
 
-2011-06-28  Matthias Bolte  <matthias.bolte@googlemail.com>
+2011-06-29  Matthias Bolte  <matthias.bolte@googlemail.com>
 
 	network: Fix dnsmasq hostsfile creation logic and related tests
 	networkSaveDnsmasqHostsfile was added in 8fa9c2214247 (Apr 2010).
@@ -29378,7 +29601,7 @@
 	anymore the test case can create one with the localstatedir that is
 	expected by the tests instead of the configure --localstatedir given one.
 
-2011-06-28  Matthias Bolte  <matthias.bolte@googlemail.com>
+2011-06-29  Matthias Bolte  <matthias.bolte@googlemail.com>
 
 	Fix compilation with systemtap 1.3
 	Version 1.3 of <sys/sdt.h> uses this macro
@@ -29810,7 +30033,7 @@
 
 	* src/Makefile.am (VIR_NET_RPC_GENERATED): Generate into srcdir.
 
-2011-06-24  Taku Izumi  <izumi.taku@jp.fujitsu.com>
+2011-06-25  Taku Izumi  <izumi.taku@jp.fujitsu.com>
 
 	vcpupin: add query option to virsh vcpupin command
 	This patch teaches "virsh vcpupin" command to query if no list
@@ -29828,7 +30051,7 @@
 	When cpulist is omitted, vcpu number is optional. When vcpu number is
 	provided, information of only specified vcpu is displayed.
 
-2011-06-24  Taku Izumi  <izumi.taku@jp.fujitsu.com>
+2011-06-25  Taku Izumi  <izumi.taku@jp.fujitsu.com>
 
 	vcpuinfo: add the code to fallback to try new API
 	The "virsh vcpuinfo" command results in failure when the target domain
@@ -29844,7 +30067,7 @@
 	This patch implements the code to address the new API (virDomainGetVcpupinInfo)
 	in the qemu driver.
 
-2011-06-24  Taku Izumi  <izumi.taku@jp.fujitsu.com>
+2011-06-25  Taku Izumi  <izumi.taku@jp.fujitsu.com>
 
 	vcpupin: introduce the new libvirt API (virDomainGetVcpupinInfo)
 	This patch introduces a new libvirt API (virDomainGetVcpupinInfo),
@@ -29863,7 +30086,7 @@
 	in order to be more like virDomainGetVcpus (where maxinfo was doing
 	double-duty as the length of two different arrays).
 
-2011-06-24  Laine Stump  <laine@laine.org>
+2011-06-25  Laine Stump  <laine@laine.org>
 
 	docs: fix indentation of sub-elements of <ip> in network XML
 	The sub-elements of <ip> had been placed at the same level of
@@ -29875,7 +30098,7 @@
 	element had been placed right in the middle of the description of the
 	sub-elements of <ip>. I moved it up out of the way.
 
-2011-06-24  Eric Blake  <eblake@redhat.com>
+2011-06-25  Eric Blake  <eblake@redhat.com>
 
 	buf: protect against integer overflow
 	It's unlikely that we'll ever want to escape a string as long as
@@ -30571,7 +30794,7 @@
 
 	* src/storage/storage_driver.c: Fix return of volDelete.
 
-2011-06-22  Eric Blake  <eblake@redhat.com>
+2011-06-23  Eric Blake  <eblake@redhat.com>
 
 	util: avoid PATH_MAX-sized array
 	See previous patch for why this is good...
@@ -30581,7 +30804,7 @@
 	* src/util/hostusb.c (struct _usbDevice, usbGetDevice)
 	(usbFreeDevice): Likewise.
 
-2011-06-22  Eric Blake  <eblake@redhat.com>
+2011-06-23  Eric Blake  <eblake@redhat.com>
 
 	xen: avoid PATH_MAX-sized array
 	See previous patch for why this is good...
@@ -30591,7 +30814,7 @@
 	* src/xen/xm_internal.c (xenXMConfigCacheAddFile)
 	(xenXMConfigFree, xenXMDomainDefineXML): Likewise.
 
-2011-06-22  Eric Blake  <eblake@redhat.com>
+2011-06-23  Eric Blake  <eblake@redhat.com>
 
 	tests: avoid PATH_MAX-sized array
 	See previous patch for why this is good...
@@ -30599,7 +30822,7 @@
 	* src/test/test_driver.c (struct _testConn, testOpenFromFile)
 	(testClose): Manage path dynamically.
 
-2011-06-22  Eric Blake  <eblake@redhat.com>
+2011-06-23  Eric Blake  <eblake@redhat.com>
 
 	virStorageVol: avoid PATH_MAX-sized array
 	POSIX allows implementations where PATH_MAX is undefined, leading
@@ -31273,7 +31496,7 @@
 	  implemented later
 	* src/libvirt_public.syms: export symbols
 
-2011-06-14  Marc-André Lureau  <marcandre.lureau@gmail.com>
+2011-06-15  Marc-André Lureau  <marcandre.lureau@gmail.com>
 
 	spice: add <clipboard copypaste='yes|no'> option
 	From a security pov copy and paste between the guest and the client is not
@@ -31285,7 +31508,7 @@
 
 	https://bugzilla.redhat.com/show_bug.cgi?id=693661
 
-2011-06-14  Minoru Usui  <usui@mxm.nes.nec.co.jp>
+2011-06-15  Minoru Usui  <usui@mxm.nes.nec.co.jp>
 
 	virNodeGetMemoryStats: Implement linux support
 
@@ -31298,6 +31521,8 @@
 	virNodeGetMemoryStats: Define internal driver API
 
 	virNodeGetMemoryStats: Expose new API
+
+2011-06-14  Minoru Usui  <usui@mxm.nes.nec.co.jp>
 
 	virNodeGetCPUStats: Implement linux support
 
@@ -32541,7 +32766,7 @@
 	* src/util/command.c, src/util/command.h,
 	  src/libvirt_private.syms: Add APIs to perform a handshake
 
-2011-06-01  Eric Blake  <eblake@redhat.com>
+2011-06-02  Eric Blake  <eblake@redhat.com>
 
 	security: plug regression introduced in disk probe logic
 	Regression introduced in commit d6623003 (v0.8.8) - using the
@@ -33344,7 +33569,7 @@
 	We support this in code, but forgot to add this to RNG schema as well.
 	According to documentation, the value match the dateTime type.
 
-2011-05-25  Eric Blake  <eblake@redhat.com>
+2011-05-26  Eric Blake  <eblake@redhat.com>
 
 	build: fix 'make dist' for ./configure --without-remote
 	Anything generated that must end up in the tarball must either
@@ -33742,7 +33967,7 @@
 
 	Tested with the above and with tests/qemuxml2argvtest.
 
-2011-05-23  Stefan Berger  <stefanb@us.ibm.com>
+2011-05-24  Stefan Berger  <stefanb@us.ibm.com>
 
 	nwfilter: enable filtering of gratuitous ARP packets
 	This patch enables filtering of gratuitous ARP packets using the following XML:
@@ -33822,7 +34047,7 @@
 
 	No functional change included.
 
-2011-05-19  Eric Blake  <eblake@redhat.com>
+2011-05-20  Eric Blake  <eblake@redhat.com>
 
 	build: require newer gettext
 	Now that RHEL 5.6 ships with gettext 0.17, we can get out of the
@@ -33834,7 +34059,7 @@
 	* bootstrap.conf (buildreq): Check for minimum gettext version.
 	Based on a report by Wen Congyang.
 
-2011-05-19  Supriya Kannery  <supriyak@in.ibm.com>
+2011-05-20  Supriya Kannery  <supriyak@in.ibm.com>
 
 	virsh: Use Env variables for debug level and logfile
 	Use variables VIRSH_DEBUG and VIRSH_LOG_FILE for controlling virsh logging.
@@ -35161,7 +35386,7 @@
 	* configure.ac: Probe for yajl2 API
 	* src/util/json.c: Conditional support for yajl2 API
 
-2011-05-10  Paolo Bonzini  <pbonzini@redhat.com>
+2011-05-11  Paolo Bonzini  <pbonzini@redhat.com>
 
 	libxl: support enabling the HPET
 	libxl accepts hpet configuration in its domain info struct.  Parse the
@@ -35171,13 +35396,13 @@
 	Apologies from Eric Blake, for mistakenly committing the broken
 	intermediate version.
 
-2011-05-10  Paolo Bonzini  <pbonzini@redhat.com>
+2011-05-11  Paolo Bonzini  <pbonzini@redhat.com>
 
 	libxl: support enabling the HPET
 	libxl accepts hpet configuration in its domain info struct.  Parse the
 	domain definition's <clock> element in order to set the value.
 
-2011-05-10  Paolo Bonzini  <pbonzini@redhat.com>
+2011-05-11  Paolo Bonzini  <pbonzini@redhat.com>
 
 	xen: parse and generate hpet item in sxpr
 	Recent versions of Xen disable the virtual HPET by default.  This is
@@ -35334,7 +35559,7 @@
 	Re-add libvirt.spec to tarball to allwo "make rpm"
 	Commit e6972165 broke "make rpm" and rpmbuild -ta tarball
 
-2011-05-06  Daniel P. Berrange  <berrange@redhat.com>
+2011-05-07  Daniel P. Berrange  <berrange@redhat.com>
 
 	build: Remove all generated RPC files from GIT
 	Stop storing the generated files for the remote protocol client
@@ -35349,7 +35574,7 @@
 
 	* .gitignore, cfg.mk, po/POTFILES.in: Reflect deletion.
 
-2011-05-06  Daniel P. Berrange  <berrange@redhat.com>
+2011-05-07  Daniel P. Berrange  <berrange@redhat.com>
 
 	build: refactor generated RPC files
 	Always generate the rpc files, and require rpcgen during bootstrap.
@@ -35597,7 +35822,7 @@
 	* src/conf/domain_conf.c, src/conf/domain_conf.h: Declare taint
 	  flags and add parsing/formatting of domain status XML
 
-2011-05-05  Doug Goldstein  <cardoe@gentoo.org>
+2011-05-06  Doug Goldstein  <cardoe@gentoo.org>
 
 	virsh: improve TLS certificate error messages
 	Print the name of the CA cert, certificate, and key file that resulted
@@ -35690,7 +35915,7 @@
 	* po/*.po*: update localizations for german, polish, spanish, ukrainian
 	  and vietnamese coming from transifex, regenerate
 
-2011-05-04  Eric Blake  <eblake@redhat.com>
+2011-05-05  Eric Blake  <eblake@redhat.com>
 
 	maint: detect clang 2.9
 	In Fedora 15, with clang 2.8, 'scan-build env' shows:
@@ -35935,7 +36160,7 @@
 	try to reconnect to sockets of these domains, which results in
 	errors in libvirtd log.
 
-2011-05-02  Eric Blake  <eblake@redhat.com>
+2011-05-03  Eric Blake  <eblake@redhat.com>
 
 	tests: avoid compiler warning
 	../../tests/xmconfigtest.c: In function 'testCompareParseXML':
@@ -36529,7 +36754,7 @@
 	PHYP: Adding reboot domain function
 	Adding reboot <domain> function for pHyp driver.
 
-2011-04-20  Eric Blake  <eblake@redhat.com>
+2011-04-21  Eric Blake  <eblake@redhat.com>
 
 	build: fix syntax-check failure
 	* .mailmap: Add an alias for last commit.
@@ -36796,13 +37021,13 @@
 	and esx_vi.generated.h. But we do not include them into dist file.
 	It will break building if using dist file to build.
 
-2011-04-15  Eric Blake  <eblake@redhat.com>
+2011-04-16  Eric Blake  <eblake@redhat.com>
 
 	tests: test recent virsh option parsing changes
 	* tests/virsh-optparse: New file.
 	* tests/Makefile.am (test_scripts): Use it.
 
-2011-04-15  Eric Blake  <eblake@redhat.com>
+2011-04-16  Eric Blake  <eblake@redhat.com>
 
 	virsh: fix regression in parsing optional integer
 	Regression introduced in 0.8.5, commit c1564268.  The command
@@ -37334,8 +37559,6 @@
 	domain. The --current option is specified, it affects a current
 	domain.
 
-2011-04-08  Taku Izumi  <izumi.taku@jp.fujitsu.com>
-
 	maxmem: implement virDomainSetMaxMemory API of the qemu driver
 	This patch implements the code to support virDomainSetMaxMemory API,
 	and to support VIR_DOMAIN_MEM_MAXIMUM flag in qemudDomainSetMemoryFlags function.
@@ -37344,7 +37567,7 @@
 	maxmem: introduces VIR_DOMAIN_MEM_MAXIMUM flag
 	This patch introduces VIR_DOMAIN_MEM_MAXIMUM flag.
 
-2011-04-08  Jean-Baptiste Rouault  <jean-baptiste.rouault@diateam.net>
+2011-04-09  Jean-Baptiste Rouault  <jean-baptiste.rouault@diateam.net>
 
 	docs: remove "returns" word from beginning of lines
 	Move "returns" keyword from beginning of API doc lines
@@ -37406,7 +37629,7 @@
 	    <tcp state='NONE' flags='SYN/ALL'/>
 	</rule>
 
-2011-04-07  Taku Izumi  <izumi.taku@jp.fujitsu.com>
+2011-04-08  Taku Izumi  <izumi.taku@jp.fujitsu.com>
 
 	setmem: add --current option to virsh setmem command
 	This patch adds the new option (--current) to the "virsh setmem" command.
@@ -37414,7 +37637,7 @@
 	The word "current" denotes that if a domain is running, it affects
 	a running domain only; otherwise it affects a persistent domain.
 
-2011-04-07  Taku Izumi  <izumi.taku@jp.fujitsu.com>
+2011-04-08  Taku Izumi  <izumi.taku@jp.fujitsu.com>
 
 	setmem: add VIR_DOMAIN_MEM_CURRENT support to qemu
 	This patch adds virDomainSetMemoryFlags(,,VIR_DOMAIN_MEM_CURRENT) support
@@ -37422,18 +37645,18 @@
 
 	Also, change virDomainObjIsActive to return bool, given its usage.
 
-2011-04-07  Taku Izumi  <izumi.taku@jp.fujitsu.com>
+2011-04-08  Taku Izumi  <izumi.taku@jp.fujitsu.com>
 
 	setmem: introduce VIR_DOMAIN_MEM_CURRENT flag
 	This patch introduces VIR_DOMAIN_MEM_CURRENT flag and
 	modifies virDomainSetMemoryFlags function to support it.
 
-2011-04-07  Jim Fehlig  <jfehlig@novell.com>
+2011-04-08  Jim Fehlig  <jfehlig@novell.com>
 
 	build: Install libxenlight log dir
 	Add $localstatedir/log/libvirt/libxl when building libxenlight driver
 
-2011-04-07  Taku Izumi  <izumi.taku@jp.fujitsu.com>
+2011-04-08  Taku Izumi  <izumi.taku@jp.fujitsu.com>
 
 	setmaxmem: remove the code to invoke virDomainSetMemory in cmdSetmaxmem
 	When the new maximum memory size becomes less than the current memory size,
@@ -37525,7 +37748,7 @@
 	pci: avoid invalid free, init path to NULL
 	This bug was introduce by commit 57162db8, and it will cause libvirtd crashed.
 
-2011-04-06  Eric Blake  <eblake@redhat.com>
+2011-04-07  Eric Blake  <eblake@redhat.com>
 
 	build: avoid compiler warning on cygwin
 	In file included from util/threads.c:31:
@@ -37794,12 +38017,12 @@
 
 	vmx: Support persistent CPU shares
 
-2011-04-04  Markus Groß  <gross@univention.de>
+2011-04-05  Markus Groß  <gross@univention.de>
 
 	Add autostart support to libxl driver
 	The domainSetAutostart function is nearly identical to the one from qemu.
 
-2011-04-04  Jesse Cook  <code.crashenx@gmail.com>
+2011-04-05  Jesse Cook  <code.crashenx@gmail.com>
 
 	Allow relative path for qemu backing file
 	This patch enables the relative backing file path support provided by
@@ -37898,7 +38121,7 @@
 	There is no need to lock vm while allocating memory. If allocating
 	memory failed, we forgot to unlock vm.
 
-2011-04-01  Eric Blake  <eblake@redhat.com>
+2011-04-02  Eric Blake  <eblake@redhat.com>
 
 	docs: fix typo
 	* docs/formatdomain.html.in: Fix KVM name.
@@ -37914,6 +38137,8 @@
 	* docs/formatnwfilter.html.in: Likewise.
 	* docs/formatdomain.html.in: Likewise.
 	* docs/windows.html.in: Likewise.
+
+2011-04-01  Eric Blake  <eblake@redhat.com>
 
 	virsh: fix mingw failure on creating nonblocking pipe
 	* .gnulib: Update to latest, for nonblocking module.
@@ -38330,7 +38555,7 @@
 	* examples/domain-events/events-python/event-test.py: Allow
 	  optional use of new public event APIs
 
-2011-03-28  Eric Blake  <eblake@redhat.com>
+2011-03-29  Eric Blake  <eblake@redhat.com>
 
 	qemu: fix regression that hangs on save failure
 	Regression introduced in commit 6034ddd55.
@@ -38924,7 +39149,7 @@
 	The reason of this bug is that we set data.cgroup to NULL, and this will cause
 	libvirtd crashed.
 
-2011-03-22  Eric Blake  <eblake@redhat.com>
+2011-03-23  Eric Blake  <eblake@redhat.com>
 
 	qemu: simplify monitor callbacks
 	A future patch will change reference counting idioms; consolidating
@@ -39152,7 +39377,7 @@
 
 	* docs/schemas/domain.rng
 
-2011-03-18  Tiziano Mueller  <dev-zero@gentoo.org>
+2011-03-19  Tiziano Mueller  <dev-zero@gentoo.org>
 
 	update virGetVersion description
 	The current description suggests that you always have to provide
@@ -39371,7 +39596,7 @@
 	  take any lock on the log buffer but reset buffer content variables
 	  to an empty set before starting the actual dump.
 
-2011-03-17  Wen Congyang  <wency@cn.fujitsu.com>
+2011-03-18  Wen Congyang  <wency@cn.fujitsu.com>
 
 	unlock the monitor when unwatching the monitor
 	Steps to reproduce this bug:
@@ -39383,9 +39608,11 @@
 	We lock the monitor, but we do not unlock it. So virCondWait()
 	will be blocked.
 
-2011-03-17  Hu Tao  <hutao@cn.fujitsu.com>
+2011-03-18  Hu Tao  <hutao@cn.fujitsu.com>
 
 	Add vim configuration that makes vim auto-indent code
+
+2011-03-17  Hu Tao  <hutao@cn.fujitsu.com>
 
 	Make virDomainObjParseNode() static
 	Make virDomainObjParseNode() static since it is called only
@@ -40303,7 +40530,7 @@
 
 	This bug was caused by commit 6db98a2d.
 
-2011-03-08  Eric Blake  <eblake@redhat.com>
+2011-03-09  Eric Blake  <eblake@redhat.com>
 
 	docs: correct range of default NAT subnet
 	* docs/formatdomain.html.in: Fix typo.
@@ -40685,7 +40912,7 @@
 	signature, to avoid double-close.
 	(qemudDomainRestore, qemudDomainObjRestore): Update callers.
 
-2011-03-01  Daniel P. Berrange  <berrange@redhat.com>
+2011-03-02  Daniel P. Berrange  <berrange@redhat.com>
 
 	add additional event debug points
 	Followup to commit 2222bd24
@@ -41320,8 +41547,6 @@
 	virHashFree follows the convention described in HACKING that
 	XXXFree() functions can be called with a NULL argument.
 
-2011-02-17  Christophe Fergeau  <teuf@gnome.org>
-
 	remove no longer needed calls to virReportOOMError
 	Now that the virHash handling functions call virReportOOMError by
 	themselves when needed, users of the virHash API no longer need to
@@ -41343,7 +41568,7 @@
 	one of its buckets contains too many elements while the former
 	does not. Fix this discrepancy.
 
-2011-02-17  Eric Blake  <eblake@redhat.com>
+2011-02-18  Eric Blake  <eblake@redhat.com>
 
 	hash: modernize debug code
 	* src/util/hash.c (virHashGrow) [DEBUG_GROW]: Use modern logging.
@@ -42523,7 +42748,7 @@
 	* tests/qemuxml2argvdata/qemuxml2argv-smartcard-controller.xml:
 	Likewise.
 
-2011-02-03  Alon Levy  <alevy@redhat.com>
+2011-02-04  Alon Levy  <alevy@redhat.com>
 
 	docs/index.html.in: update QEMU url
 
@@ -42746,14 +42971,14 @@
 	* src/util/util.c (__virExec): Special case preservation of std
 	file descriptors to child.
 
-2011-01-28  Matthias Bolte  <matthias.bolte@googlemail.com>
+2011-01-29  Matthias Bolte  <matthias.bolte@googlemail.com>
 
 	Prefer C style comments over C++ ones
 	Pure cosmetic change.
 
 	esx: Ensure max-memory has 4 megabyte granularity
 
-2011-01-28  Matthias Bolte  <matthias.bolte@googlemail.com>
+2011-01-29  Matthias Bolte  <matthias.bolte@googlemail.com>
 
 	Add VIR_DIV_UP to divide memory or storage request sizes with round up
 	Use it in all places where a memory or storage request size is converted
@@ -43272,7 +43497,7 @@
 	v5:
 	    Comment spelling fixes
 
-2011-01-21  Matthias Bolte  <matthias.bolte@googlemail.com>
+2011-01-22  Matthias Bolte  <matthias.bolte@googlemail.com>
 
 	vmx: Use VIR_ERR_CONFIG_UNSUPPORTED when appropriated
 
@@ -43864,7 +44089,7 @@
 
 	cpu: Add support for Westmere CPU model
 
-2011-01-13  Eric Blake  <eblake@redhat.com>
+2011-01-14  Eric Blake  <eblake@redhat.com>
 
 	qemu: improve device flag parsing
 	* src/qemu/qemu_capabilities.h (qemuCapsParseDeviceStr): New
@@ -44067,10 +44292,12 @@
 	With this patch you are able to remove the bogus address element
 	without libvirt adding it back.
 
-2011-01-10  Eric Blake  <eblake@redhat.com>
+2011-01-11  Eric Blake  <eblake@redhat.com>
 
 	cpu: plug memory leak
 	* src/cpu/cpu_x86.c (x86ModelLoad): Free data before overwriting.
+
+2011-01-10  Eric Blake  <eblake@redhat.com>
 
 	network: plug memory leak
 	* src/conf/network_conf.c (virNetworkDefParseXML): Release ipNodes.
@@ -44477,7 +44704,7 @@
 	esx: Fix "occurence" typo (again)
 	Also include some whitespace changes. No functional change included.
 
-2010-12-27  Matthias Bolte  <matthias.bolte@googlemail.com>
+2010-12-28  Matthias Bolte  <matthias.bolte@googlemail.com>
 
 	vbox: Add support for VirtualBox 4.0
 	Add vboxArrayGetWithUintArg to handle new signature variations. Also
@@ -44545,7 +44772,7 @@
 	   /usr/share/doc/libvirt-0.8.6/html/api.html
 	..
 
-2010-12-23  Eric Blake  <eblake@redhat.com>
+2010-12-24  Eric Blake  <eblake@redhat.com>
 
 	qemu: add -incoming fd:n capability checking
 	* src/qemu/qemu_capabilities.h (QEMUD_CMD_FLAG_MIGRATE_QEMU_FD):
@@ -44891,7 +45118,7 @@
 
 	docs: fixed typo, added table of contents
 
-2010-12-21  Matthias Bolte  <matthias.bolte@googlemail.com>
+2010-12-22  Matthias Bolte  <matthias.bolte@googlemail.com>
 
 	Distribute libvirt_vmx.syms
 	This fixes the build from a tarball and makes autobuild.sh
@@ -45304,8 +45531,6 @@
 	leaking pthread_attr resources.
 	* src/util/threads-pthread.c (virThreadCreate): Likewise.
 
-2010-12-13  Eric Blake  <eblake@redhat.com>
-
 	tests: test Fedora 14 qemu-kvm -help parsing
 	* tests/qemuhelpdata/qemu-kvm-0.13.0: New file.
 	* tests/qemuhelptest.c (mymain): New test from Fedora 14 qemu-kvm,
@@ -45324,7 +45549,7 @@
 	sysinfo: formatting cleanups
 	* src/util/sysinfo.c: Indentation and () fixups.
 
-2010-12-13  Eric Blake  <eblake@redhat.com>
+2010-12-14  Eric Blake  <eblake@redhat.com>
 
 	build: allow mingw compilation with virCommand
 	Allows compilation, but no creation of child processes yet.  Take it
@@ -45333,7 +45558,7 @@
 	* src/util/util.c (virExecWithHook) [WIN32]: New dummy function.
 	* src/libvirt_private.syms: Export it.
 
-2010-12-13  Eric Blake  <eblake@redhat.com>
+2010-12-14  Eric Blake  <eblake@redhat.com>
 
 	build: update gnulib for pipe on mingw
 	* .gnulib: Update to latest.
@@ -45495,7 +45720,7 @@
 	arg since there already is a xml watchdog pause option, so a test for
 	the dump option to convert it from arg to xml is not added.
 
-2010-12-09  Dan Kenigsberg  <danken@redhat.com>
+2010-12-10  Dan Kenigsberg  <danken@redhat.com>
 
 	spec: do not start libvirt-guests if that service is off
 	starting a service during rpm installation is impolite. It is even worse if done
@@ -45860,7 +46085,7 @@
 	value. Let's make this macro return zero on error, which is what
 	everyone expects anyway.
 
-2010-12-04  Matthias Bolte  <matthias.bolte@googlemail.com>
+2010-12-05  Matthias Bolte  <matthias.bolte@googlemail.com>
 
 	qemu: Don't try to set input FD to -1
 
@@ -45908,14 +46133,14 @@
 	man pages: update the description for the virsh help command
 	Now includes information on keyword usage, and provides examples.
 
-2010-12-02  Osier Yang  <jyang@redhat.com>
+2010-12-03  Osier Yang  <jyang@redhat.com>
 
 	virsh: move two commands from domain group to storage pool group
 	* tools/virsh.c (find-storage-pool-sources-as and find-storage-pool-sources
 	should't be in command group "Domain Management", move them to group
 	"Storage Pool".
 
-2010-12-02  Daniel P. Berrange  <berrange@redhat.com>
+2010-12-03  Daniel P. Berrange  <berrange@redhat.com>
 
 	Remove bogus includes
 
@@ -45925,7 +46150,7 @@
 	* src/uml/uml_conf.h (umlBuildCommandLine): Update signature.
 	* src/uml/uml_driver.c (umlStartVMDaemon): Adjust caller.
 
-2010-12-02  Eric Blake  <eblake@redhat.com>
+2010-12-03  Eric Blake  <eblake@redhat.com>
 
 	qemu: convert to virCommand
 	* src/qemu/qemu_conf.c (qemudExtractVersionInfo): Check for file
@@ -45935,7 +46160,7 @@
 	* src/qemu/qemu_driver.c (qemuAssignPCIAddresses)
 	(qemudStartVMDaemon, qemuDomainXMLToNative): Adjust callers.
 
-2010-12-02  Daniel P. Berrange  <berrange@redhat.com>
+2010-12-03  Daniel P. Berrange  <berrange@redhat.com>
 
 	Port hooks and iptables code to new command execution APIs
 	This proof of concept shows how two existing uses of virExec
@@ -45948,7 +46173,7 @@
 	* docs/subsite.xsl: New glue file.
 	* docs/internals.html.in, docs/sitemap.html.in: Update glue.
 
-2010-12-02  Daniel P. Berrange  <berrange@redhat.com>
+2010-12-03  Daniel P. Berrange  <berrange@redhat.com>
 
 	Introduce new APIs for spawning processes
 	This introduces a new set of APIs in src/util/command.h
@@ -46860,7 +47085,7 @@
 
 	The below patch now puts the order of the locks in the above shown order when instantiating the filter from the IP address learning thread.
 
-2010-11-19  Adam Litke  <agl@us.ibm.com>
+2010-11-20  Adam Litke  <agl@us.ibm.com>
 
 	Support for probing qed image metadata
 	Implement getBackingStore() for QED images.  The header format is defined in
@@ -46869,11 +47094,11 @@
 	Cc: Stefan Hajnoczi <stefan.hajnoczi@uk.ibm.com>
 	Cc: Anthony Liguori <aliguori@linux.vnet.ibm.com>
 
-2010-11-19  Adam Litke  <agl@us.ibm.com>
+2010-11-20  Adam Litke  <agl@us.ibm.com>
 
 	storage_file: Add a new flag to mark backing files that are safe to probe
 
-2010-11-19  Adam Litke  <agl@us.ibm.com>
+2010-11-20  Adam Litke  <agl@us.ibm.com>
 
 	QED: Basic support for QED images
 	Add an entry in fileTypeInfo for QED image files.
@@ -47186,8 +47411,6 @@
 	* src/nwfilter/nwfilter_ebiptables_driver.c (CMD_EXEC): Fix syntax
 	error in previous patch.
 	Reported by Stefan Berger.
-
-2010-11-15  Eric Blake  <eblake@redhat.com>
 
 	nwfilter: use /bin/sh rather than requiring bash
 	* src/nwfilter/nwfilter_ebiptables_driver.c
@@ -47546,7 +47769,7 @@
 	* src/lxc/lxc_controller.c: Remove /dev/console from cgroups
 	  ACL
 
-2010-11-10  Eric Blake  <eblake@redhat.com>
+2010-11-11  Eric Blake  <eblake@redhat.com>
 
 	virsh: supply long option for -V
 	* tools/virsh.c (vshParseArgv): Use NULL instead of 0 for pointer,
@@ -47586,7 +47809,7 @@
 	Augment bug reporting documentation
 	With some instruction on how to attach useful gdb backtraces
 
-2010-11-09  Adam Litke  <agl@us.ibm.com>
+2010-11-10  Adam Litke  <agl@us.ibm.com>
 
 	Allow non-file disk backingStores
 	I am trying to use a qcow image with libvirt where the backing 'file' is a
@@ -47610,7 +47833,7 @@
 
 	Cc: Daniel P. Berrange <berrange@redhat.com>
 
-2010-11-09  Matthias Bolte  <matthias.bolte@googlemail.com>
+2010-11-10  Matthias Bolte  <matthias.bolte@googlemail.com>
 
 	xencapstest: Don't fail when Xen is installed
 	xencapstest calls xenHypervisorMakeCapabilitiesInternal with conn == NULL
@@ -48046,7 +48269,7 @@
 	They only popped up during --disable-nls build. Without this configure
 	option, gcc wasn't able to detect them.
 
-2010-11-01  Osier Yang  <jyang@redhat.com>
+2010-11-02  Osier Yang  <jyang@redhat.com>
 
 	util: Add helper function to build timestamp string
 	* src/util/util.h
@@ -48218,17 +48441,15 @@
 
 	docs: updated the C# bindings page with arnauds latest changes
 
-2010-10-27  Justin Clift  <jclift@redhat.com>
-
 	docs: update ruby bindings maintainer to chris lalancette
 
-2010-10-27  Eric Blake  <eblake@redhat.com>
+2010-10-28  Eric Blake  <eblake@redhat.com>
 
 	build: use shorter file names for 'make dist'
 	* docs/api_extension/{0013,0014}*.patch: Rename to shorter files.
 	* docs/api_extension.html.in: Reflect rename.
 
-2010-10-27  Justin Clift  <jclift@redhat.com>
+2010-10-28  Justin Clift  <jclift@redhat.com>
 
 	docs: reworded and reordered the bindings page, plus minor tweaks
 	Reordered the bindings into alphabetical order, added a link to
@@ -48470,12 +48691,14 @@
 	maint: ignore new test executable
 	* tests/.gitignore: Sort, and add sockettest.
 
-2010-10-22  Justin Clift  <jclift@redhat.com>
+2010-10-23  Justin Clift  <jclift@redhat.com>
 
 	daemon: updates previous 1 line patch for correctness
 	The previous commit, 880da47a05b9fb8381e79b03ead5dd2d8a6a937a,
 	worked on my system, but wasn't actually correct.  This follow
 	up patch corrects it properly.
+
+2010-10-22  Justin Clift  <jclift@redhat.com>
 
 	daemon: exclude requirement for probes.h on systems without systemtap
 	This 1-liner was actually written by Eric Blake, over IRC. It
@@ -48795,7 +49018,7 @@
 	  the augeas lenses accordingly
 	* tests/qemuhelptest.c: cope with the extra flag being detected now
 
-2010-10-19  Stefan Berger  <stefanb@us.ibm.com>
+2010-10-20  Stefan Berger  <stefanb@us.ibm.com>
 
 	nwfilter: avoid dir. enforcement for certain types of rules
 	 Avoid the enforcement of direction if
@@ -49259,10 +49482,12 @@
 
 	esx: Fix check in esxDomainGetInfo's perf metric handling
 
-2010-10-15  Eric Blake  <eblake@redhat.com>
+2010-10-16  Eric Blake  <eblake@redhat.com>
 
 	build: use latest gnulib, for ignore-value fix
 	* .gnulib: Update to latest.
+
+2010-10-15  Eric Blake  <eblake@redhat.com>
 
 	virsh: add tests for recent cli improvements
 	* tests/virshtest.c (mymain): Add tests of command parsing and
@@ -50200,7 +50425,7 @@
 
 	Reported by Frank Dirks.
 
-2010-09-22  Chris Wright  <chrisw@redhat.com>
+2010-09-23  Chris Wright  <chrisw@redhat.com>
 
 	pciFindStubDriver should return NULL on error
 	pciFindStubDriver currently returns 0 in one of the error cases.
@@ -50480,7 +50705,7 @@
 	option to dnsmasq to actually enable the service. Without this option,
 	dnsmasq will not respond to DHCP requests.
 
-2010-09-09  Luiz Capitulino  <lcapitulino@redhat.com>
+2010-09-10  Luiz Capitulino  <lcapitulino@redhat.com>
 
 	qemu: qemuMonitorJSONEjectMedia(): Fix arguments' type
 	QMP in QEMU 0.13 has been fixed to enforce type correctness,
@@ -50512,12 +50737,14 @@
 	Moved my name up to the primary list, as I have commit rights now.
 	As recommended by Eric. :)
 
-2010-09-07  Matthias Bolte  <matthias.bolte@googlemail.com>
+2010-09-08  Matthias Bolte  <matthias.bolte@googlemail.com>
 
 	esx: Use SessionIsActive when available
 	Before this commit SessionIsActive was not used because ESX(i)
 	doesn't implement it. vCenter supports SessionIsActive, so use
 	it here, but keep the fall back mechanism for ESX(i) and GSX.
+
+2010-09-07  Matthias Bolte  <matthias.bolte@googlemail.com>
 
 	esx: Fall back to path as key when QueryVirtualDiskUuid isn't available
 	QueryVirtualDiskUuid is only available on an ESX(i) server. vCenter
@@ -50542,12 +50769,14 @@
 	Update of localization files
 	- Updated dutch, spanish and russian, regenerated the po/pot files
 
-2010-09-03  Matthias Bolte  <matthias.bolte@googlemail.com>
+2010-09-04  Matthias Bolte  <matthias.bolte@googlemail.com>
 
 	esx: Use the VirtualDisk UUID as storage volume key
 	VirtualDisks are .vmdk file based. Other files in a datastore
 	like .iso or .flp files don't have a UUID attached, fall back
 	to the path as key for them.
+
+2010-09-03  Matthias Bolte  <matthias.bolte@googlemail.com>
 
 	esx: Add .vmdk storage volume creation
 
@@ -50563,7 +50792,7 @@
 	build: avoid uninitialized variable warning
 	* src/vbox/vbox_tmpl.c (vboxAttachDrives): Capture return value.
 
-2010-09-02  Matthias Bolte  <matthias.bolte@googlemail.com>
+2010-09-03  Matthias Bolte  <matthias.bolte@googlemail.com>
 
 	esx: Rework datastore path parsing and handling
 	Instead of splitting the path part of a datastore path into
@@ -50618,7 +50847,7 @@
 	Distinguish between strings as parameters (const char *)
 	and strings as return values (char **).
 
-2010-09-01  Eric Blake  <eblake@redhat.com>
+2010-09-02  Eric Blake  <eblake@redhat.com>
 
 	openvz: use virAsprintf to avoid large stacks
 	* src/openvz/openvz_conf.c (openvzLocateConfFile): Alter
@@ -50630,6 +50859,8 @@
 	openvz: formatting cleanups
 	* src/openvz/openvz_conf.c: Whitespace fixes.
 	* src/openvz/openvz_driver.c: Likewise.
+
+2010-09-01  Eric Blake  <eblake@redhat.com>
 
 	network: use virAsprintf when appropriate
 	* src/conf/network_conf.c (virNetworkAllocateBridge): Avoid
@@ -50647,7 +50878,7 @@
 
 	* bootstrap.conf (gnulib_modules): Add snprintf and func.
 
-2010-08-31  Ryan Harper  <ryanh@us.ibm.com>
+2010-09-01  Ryan Harper  <ryanh@us.ibm.com>
 
 	virsh: remove driver check from attach-disk command
 	Virsh shouldn't check for driver support but rather let the backend handled this.
@@ -50731,7 +50962,7 @@
 	domain name should compare the return of the function to a valid
 	LPAR ID (!= -1) and not to error (== -1).
 
-2010-08-26  Matthias Bolte  <matthias.bolte@googlemail.com>
+2010-08-27  Matthias Bolte  <matthias.bolte@googlemail.com>
 
 	esx: Fix esxVI_BuildSelectSet's invalid argument check
 	The check was altered in 8c48743b9737ad4d246ab6043fd299316f9a2091
@@ -50890,7 +51121,7 @@
 	* src/qemu/qemu_conf.c, src/qemu/qemu_conf.h: Support
 	  -enable-kqemu
 
-2010-08-20  Matthias Bolte  <matthias.bolte@googlemail.com>
+2010-08-21  Matthias Bolte  <matthias.bolte@googlemail.com>
 
 	esx: Use MD5 sum of mount path as storage pool UUID
 	With the previous storage pool UUID source not all storage pools
@@ -50900,9 +51131,11 @@
 
 	Use gnulib's crypto/md5 module to generate the MD5 sum.
 
-2010-08-20  Matthias Bolte  <matthias.bolte@googlemail.com>
+2010-08-21  Matthias Bolte  <matthias.bolte@googlemail.com>
 
 	esx: Make sure dumpxml outputs proper ID for active domains
+
+2010-08-20  Matthias Bolte  <matthias.bolte@googlemail.com>
 
 	xenapi: Fix compile error in previous commit
 
@@ -50933,7 +51166,7 @@
 
 	qemu: Fix JSON migrate_set_downtime command
 
-2010-08-19  Eric Blake  <eblake@redhat.com>
+2010-08-20  Eric Blake  <eblake@redhat.com>
 
 	vbox: factor a large function
 	* src/vbox/vbox_tmpl.c (vboxDomainCreateWithFlags): Split...
@@ -51228,7 +51461,7 @@
 	options so this should be safe. The option was added in dnsmasq-2.41,
 	which becomes the minimum required version.
 
-2010-08-11  Matthias Bolte  <matthias.bolte@googlemail.com>
+2010-08-12  Matthias Bolte  <matthias.bolte@googlemail.com>
 
 	esx: Improve VMX file name parsing and formatting
 	For parsing try to match by datastore mount path first, if that
@@ -51281,7 +51514,7 @@
 
 	Avoid unnecessary bootstrap runs in VPATH builds
 
-2010-08-10  Doug Goldstein  <cardoe@gentoo.org>
+2010-08-11  Doug Goldstein  <cardoe@gentoo.org>
 
 	Add a detailed message when tap device add fails
 	Added a more detailed error message when adding a tap devices fails and
@@ -51292,7 +51525,7 @@
 	of checking the current errno value which might have been changed by
 	clean up calls inside of brAddTap().
 
-2010-08-10  Eric Blake  <eblake@redhat.com>
+2010-08-11  Eric Blake  <eblake@redhat.com>
 
 	nodeinfo: skip offline CPUs
 	https://bugzilla.redhat.com/622515 - When hot-unplugging CPUs,
@@ -51358,7 +51591,7 @@
 	* src/util/network.c: change virSocketParseAddr to allow a null @addr
 	  parameter
 
-2010-08-09  Philipp Hahn  <hahn@univention.de>
+2010-08-10  Philipp Hahn  <hahn@univention.de>
 
 	bootloader_args is named bootargs in xen-xm
 	According to <xen-3.4.3/tools/python/xen/xm/create.py:158>
@@ -51403,7 +51636,7 @@
 
 	docs: significant expansion of custom hook script information
 
-2010-08-05  Doug Goldstein  <cardoe@gentoo.org>
+2010-08-06  Doug Goldstein  <cardoe@gentoo.org>
 
 	Fix return value usage
 	Fix the error checking to use the return value from brAddTap() instead
@@ -51656,7 +51889,7 @@
 	virDomainDeviceInfoParseXML anyway.  Disable the error message
 	in the initial XML parsing loop.
 
-2010-07-31  Matthias Bolte  <matthias.bolte@googlemail.com>
+2010-08-01  Matthias Bolte  <matthias.bolte@googlemail.com>
 
 	Remove duplicate </p> from downloads.html.in
 
@@ -52239,7 +52472,7 @@
 
 	Make sure that virt-aa-helper ignores open errors again.
 
-2010-07-23  Eric Blake  <eblake@redhat.com>
+2010-07-24  Eric Blake  <eblake@redhat.com>
 
 	qemu-api: avoid build failure
 	* src/remote_protocol-structs: Tweak to match intentional type
@@ -52983,8 +53216,6 @@
 	A copy and paste error was causing us to dispatch the incorrect
 	routine. Spotted by Dan Kenigsberg.
 
-2010-07-13  Cole Robinson  <crobinso@redhat.com>
-
 	.gitignore: Ignore generated libvirtd docs
 
 2010-07-13  Matthias Bolte  <matthias.bolte@googlemail.com>
@@ -53361,7 +53592,7 @@
 	Prior to this patch, qemu domain restore did not function properly if
 	selinux was set to enforce.
 
-2010-06-25  Eric Blake  <eblake@redhat.com>
+2010-06-26  Eric Blake  <eblake@redhat.com>
 
 	build: fix regression with libvirt-api.xml generation
 	(EXTRA_DIST): Remove redundant listing of xml files.
@@ -53370,7 +53601,7 @@
 	(python_generated_files): ...new macro, since make didn't see
 	through the dependency chain correctly otherwise.
 
-2010-06-25  Chris Lalancette  <clalance@redhat.com>
+2010-06-26  Chris Lalancette  <clalance@redhat.com>
 
 	Fix a reference leak for node devices.
 	There were some major, and some minor bugs having to do with
@@ -53544,7 +53775,7 @@
 	* python/libvirt-override-virConnect.py: Add missing action
 	  parameter in IO error callback
 
-2010-06-24  Laine Stump  <laine@laine.org>
+2010-06-25  Laine Stump  <laine@laine.org>
 
 	Check for presence of qemu -nodefconfig option before using it
 	We previously assumed that if the -device option existed in qemu, that
@@ -53914,13 +54145,13 @@
 	macvtap: work-around for 2.6.32 and older kernels
 	This patch works around a recent extension of the netlink driver I had made use of when building the netlink messages. Unfortunately older kernels don't accept IFLA_IFNAME + name of interface as a replacement for the interface's index, so this patch now gets the interface index ifindex if it's not provided (ifindex <= 0).
 
-2010-06-16  Justin Clift  <justin@salasaga.org>
+2010-06-17  Justin Clift  <justin@salasaga.org>
 
 	virsh: change printf() calls to vshPrint()
 	Trivial fix changing printf() calls to vshPrint() where the ctl
 	variable is available.
 
-2010-06-16  Justin Clift  <justin@salasaga.org>
+2010-06-17  Justin Clift  <justin@salasaga.org>
 
 	virsh: improve help text for vol query commands
 	Improves the help text for vol-path, vol-name, and vol-key, which
@@ -53928,7 +54159,7 @@
 
 	Addresses BZ # 598365.
 
-2010-06-16  Justin Clift  <justin@salasaga.org>
+2010-06-17  Justin Clift  <justin@salasaga.org>
 
 	virsh: add pool support to vol-key command
 	Presently the vol-key command only supports being provided with
@@ -54712,12 +54943,12 @@
 	Some files under /sys/bus/usb/devices/ have the format 'usbX', where
 	X is the USB bus number. Use STRPREFIX to correctly parse the bus numbers.
 
-2010-06-01  Justin Clift  <justin@salasaga.org>
+2010-06-02  Justin Clift  <justin@salasaga.org>
 
 	Add --source-format argument to virsh pool-define-as and pool-create-as
 	This is the corresponding patch for the virsh man page (virsh.pod).
 
-2010-06-01  Justin Clift  <justin@salasaga.org>
+2010-06-02  Justin Clift  <justin@salasaga.org>
 
 	Add --source-format argument to virsh pool-define-as and pool-create-as
 	When creating pools from dedicated disks, the existing pool-define-as
@@ -54735,7 +54966,7 @@
 
 	Also created a Red Hat BZ ticket for this (#597790) for tracking.
 
-2010-06-01  Justin Clift  <justin@salasaga.org>
+2010-06-02  Justin Clift  <justin@salasaga.org>
 
 	Trivial virsh.pod additions --all for "list" command and similar
 	This is just a trivial patch to virsh.pod (from git master). It adds the
@@ -54759,7 +54990,7 @@
 	  + Adds a missing =back around line 755, that pod2man was complaining
 	    was missing.
 
-2010-06-01  Eric Blake  <eblake@redhat.com>
+2010-06-02  Eric Blake  <eblake@redhat.com>
 
 	build: fix VPATH 'make syntax-check'
 	* cfg.mk (sc_check_author_list): Look in correct location.
@@ -54882,7 +55113,7 @@
 	hooks: fix typo
 	* src/util/hooks.c (virHookLxcOp): Use correct bound.
 
-2010-05-27  Eric Blake  <eblake@redhat.com>
+2010-05-28  Eric Blake  <eblake@redhat.com>
 
 	build: silence cppi warning, clarify vbox headers
 	These files are borrowed from upstream release versions, and should
@@ -54896,7 +55127,7 @@
 	* src/vbox/vbox_CAPI_v3_1.h: Likewise.
 	* src/vbox/vbox_CAPI_v3_2.h: Likewise.  Reindent with cppi.
 
-2010-05-27  Cole Robinson  <crobinso@redhat.com>
+2010-05-28  Cole Robinson  <crobinso@redhat.com>
 
 	network: bridge: Don't start network if it collides with host routing
 	Fedora bug https://bugzilla.redhat.com/show_bug.cgi?id=235961
@@ -54966,7 +55197,7 @@
 	* docs/formatdomain.html.in: Document <serial> element within
 	  <disk> and fix typo on <driver/> element
 
-2010-05-26  Matthias Bolte  <matthias.bolte@googlemail.com>
+2010-05-27  Matthias Bolte  <matthias.bolte@googlemail.com>
 
 	esx: Simplify goto usage
 	Eliminate almost all backward jumps by replacing this common pattern:
@@ -55010,18 +55241,18 @@
 
 	Also remove some unnecessary memsets in error paths.
 
-2010-05-26  Jean-Baptiste Rouault  <jean-baptiste.rouault@diateam.net>
+2010-05-27  Jean-Baptiste Rouault  <jean-baptiste.rouault@diateam.net>
 
 	Support for VirtualBox version 3.2
 
-2010-05-26  Matthias Bolte  <matthias.bolte@googlemail.com>
+2010-05-27  Matthias Bolte  <matthias.bolte@googlemail.com>
 
 	Use printf instead of echo -e in libvirt.spec.in
 	make rpm created dummy tests containing '-e #!/bin/sh' for me.
 
 	Install, distribute and package domainsnapshot.rng
 
-2010-05-26  Eric Blake  <eblake@redhat.com>
+2010-05-27  Eric Blake  <eblake@redhat.com>
 
 	build: support 'make check' in pristine tree
 	Otherwise, 'make check' in the python dir tries to reference a file in
@@ -55030,7 +55261,7 @@
 	* docs/Makefile.am (check-local): New rule.
 	Reported by Matthias Bolte.
 
-2010-05-26  Matthias Bolte  <matthias.bolte@googlemail.com>
+2010-05-27  Matthias Bolte  <matthias.bolte@googlemail.com>
 
 	esx: Expose host UUID in the capabilities XML
 	Parse the BIOS UUID. This information may not be available, in that
@@ -55103,7 +55334,7 @@
 	Alter the esxVI_ProductVersion enum in a way that allows to check for
 	product type by masking.
 
-2010-05-25  Eric Blake  <eblake@redhat.com>
+2010-05-26  Eric Blake  <eblake@redhat.com>
 
 	build: fix HTML errors in nwfilter docs
 	A build on Ubuntu reported:
@@ -55122,7 +55353,7 @@
 	* docs/formatnwfilter.html.in: Fix invalid HTML constructs.
 	Reported by Eduardo Otubo.
 
-2010-05-25  Eric Blake  <eblake@redhat.com>
+2010-05-26  Eric Blake  <eblake@redhat.com>
 
 	build: fix compilation without macvtap
 	* src/util/macvtap.c: (associatePortProfileId)
@@ -55342,7 +55573,7 @@
 	This patch adds documentation of the nwfilter subsystem of libvirt to
 	the existing (web) docs.
 
-2010-05-24  Eric Blake  <eblake@redhat.com>
+2010-05-25  Eric Blake  <eblake@redhat.com>
 
 	maint: update AUTHORS with recent contributors
 	git shortlog $(git log -1 --format=%H AUTHORS).. | grep -v "^ "
@@ -55351,7 +55582,7 @@
 
 	* AUTHORS: Update.
 
-2010-05-24  Alex Williamson  <alex.williamson@redhat.com>
+2010-05-25  Alex Williamson  <alex.williamson@redhat.com>
 
 	qemu: Release bus address on PCI host device remove
 
@@ -55442,7 +55673,7 @@
 	* daemon/libvirtd.c (main): Diagnose virInitialize failure
 	and exit nonzero.
 
-2010-05-21  Eric Blake  <eblake@redhat.com>
+2010-05-22  Eric Blake  <eblake@redhat.com>
 
 	build: fix cppi warnings
 	* src/util/bitmap.h (includes): Placate cppi.
@@ -55762,7 +55993,7 @@
 	* src/conf/domain_conf.h (virDomainSaveStatus): Use
 	ATTRIBUTE_RETURN_CHECK, so this doesn't happen again.
 
-2010-05-19  Eric Blake  <eblake@redhat.com>
+2010-05-20  Eric Blake  <eblake@redhat.com>
 
 	docs: distribute more coding convention documentation
 	These files may be useful for anyone making modifications to
@@ -55771,7 +56002,7 @@
 	* src/Makefile.am (EXTRA_DIST): Add THREADS.txt.
 	* daemon/Makefile.am (EXTRA_DIST): Add THREADING.txt.
 
-2010-05-19  Eric Blake  <eblake@redhat.com>
+2010-05-20  Eric Blake  <eblake@redhat.com>
 
 	build: distribute missing file
 	Commit f30ccb2458829 was incomplete.
@@ -55780,7 +56011,7 @@
 	distcheck'.
 	* tests/Makefile.am (qemuhelpdata): Distribute new file.
 
-2010-05-19  Matthias Bolte  <matthias.bolte@googlemail.com>
+2010-05-20  Matthias Bolte  <matthias.bolte@googlemail.com>
 
 	esx: Make esxVI_*_CastFromAnyType dynamically dispatched
 	This will be used in the ESX storage driver in order to handle
@@ -55995,12 +56226,12 @@
 	* src/lxc/lxc_driver.c (lxcFreezeContainer): Remove test-after-deref.
 	Correct indentation in expression.
 
-2010-05-17  Matthias Bolte  <matthias.bolte@googlemail.com>
+2010-05-18  Matthias Bolte  <matthias.bolte@googlemail.com>
 
 	Add CIFS to the list of network file systems
 	ESX supports NFS and CIFS. The ESX storage driver will reflect this.
 
-2010-05-17  Matthias Bolte  <matthias.bolte@googlemail.com>
+2010-05-18  Matthias Bolte  <matthias.bolte@googlemail.com>
 
 	Add VIR_STORAGE_POOL_INACCESSIBLE to denote inaccessible storage pools
 	This status will be used by the ESX storage driver.
@@ -56008,7 +56239,7 @@
 	For example a running NFS pool is inaccessible when the NFS server is
 	currently unreachable.
 
-2010-05-17  Eric Blake  <eblake@redhat.com>
+2010-05-18  Eric Blake  <eblake@redhat.com>
 
 	qemu_conf: fix flag value
 	(gdb) p/x QEMUD_CMD_FLAG_VNET_HOST
@@ -56171,7 +56402,7 @@
 	ensuring that vm != NULL, not before.  This potential NULL-deref
 	was introduced by commit 2c555d87b0041e0d1ec4742386d2161d1b2f0600.
 
-2010-05-14  Eric Blake  <eblake@redhat.com>
+2010-05-15  Eric Blake  <eblake@redhat.com>
 
 	Revert "build: fix cygwin build"
 	This reverts commit 2d550542ee729c1d9a4d92de344892650817b213.
@@ -56182,7 +56413,7 @@
 	automake do what we want, I'd rather leave cygwin broken
 	but fresh Linux builds working.
 
-2010-05-14  Eric Blake  <eblake@redhat.com>
+2010-05-15  Eric Blake  <eblake@redhat.com>
 
 	build: fix cygwin build
 	make[3]: *** No rule to make target `-lxml2', needed by `libvirt.la'.  Stop.
@@ -56323,7 +56554,7 @@
 	* tests/virsh-schedinfo: Likewise.
 	* tests/virsh-synopsis: Likewise.
 
-2010-05-11  Eric Blake  <eblake@redhat.com>
+2010-05-12  Eric Blake  <eblake@redhat.com>
 
 	libvirt_proxy: link with -lpthread if needed
 	Continuation of earlier patches to fix LIB_PTHREAD, only
@@ -56396,10 +56627,12 @@
 	* tools/virsh.c (cmdSchedInfoUpdate): Fix typo in a diagnostic:
 	s/an long long/a long long/.  One in a comment, too.
 
-2010-05-10  Eric Blake  <eblake@redhat.com>
+2010-05-11  Eric Blake  <eblake@redhat.com>
 
 	delMacvtap: typo fix
 	* src/util/macvtap.c (delMacvtap): Fix documentation.
+
+2010-05-10  Eric Blake  <eblake@redhat.com>
 
 	maint: allow VPATH use of remote_protocol-structs
 	* src/Makefile.am (remote_protocol-structs): Ensure file lives in srcdir.
@@ -56610,7 +56843,7 @@
 	Changes from V1 to V2:
 	  -passing --without-libpcap to configure script, if libpcap is not to be used
 
-2010-05-04  Eric Blake  <eblake@redhat.com>
+2010-05-05  Eric Blake  <eblake@redhat.com>
 
 	util: fix va_start usage bug
 	Detected by clang.  POSIX requires that the second argument to
@@ -56621,7 +56854,7 @@
 	* src/util/util.c (virBuildPathInternal): Use correct argument to
 	va_start.
 
-2010-05-04  Kenneth Nagin  <NAGIN@il.ibm.com>
+2010-05-05  Kenneth Nagin  <NAGIN@il.ibm.com>
 
 	qemu: live migration with non-shared storage for kvm
 	Support for live migration between hosts that do not share storage was
@@ -56684,14 +56917,14 @@
 	virDomainFindByName and report VIR_ERR_NO_DOMAIN when domain cannot be
 	found.
 
-2010-05-03  Matthias Bolte  <matthias.bolte@googlemail.com>
+2010-05-04  Matthias Bolte  <matthias.bolte@googlemail.com>
 
 	mingw: Fix two undefined symbols
 	Add an empty body for virCondWaitUntil and move virPipeReadUntilEOF
 	out of the '#ifndef WIN32' block, because it compiles fine with MinGW
 	in combination with gnulib.
 
-2010-05-03  Eric Blake  <eblake@redhat.com>
+2010-05-04  Eric Blake  <eblake@redhat.com>
 
 	build: avoid compiler warning
 	Necessary on cygwin, where uid_t and gid_t are 4-byte long rather
@@ -56702,7 +56935,7 @@
 	gid_t before passing to printf.
 	* .gitignore: Ignore Windows executables.
 
-2010-05-03  Stefan Berger  <stefanb@us.ibm.com>
+2010-05-04  Stefan Berger  <stefanb@us.ibm.com>
 
 	nwfilter: skip some interfaces on filter update
 	When a filter is updated, only those interfaces must have their old
@@ -56722,7 +56955,7 @@
 	is active, this will not be done immediately but the thread will do that
 	later on.
 
-2010-05-03  Eric Blake  <eblake@redhat.com>
+2010-05-04  Eric Blake  <eblake@redhat.com>
 
 	build: prefer WIN32 over __MINGW32__ checks
 	WIN32 is always defined when __MINGW32__ is defined, but the
@@ -57681,7 +57914,7 @@
 
 	Removing the NULL check from esxVI_LookupRootSnapshotTreeList fixes this.
 
-2010-04-20  Matthias Bolte  <matthias.bolte@googlemail.com>
+2010-04-21  Matthias Bolte  <matthias.bolte@googlemail.com>
 
 	esx: Gather some XML generation macros in esx_vi.h
 
@@ -58000,7 +58233,7 @@
 	I am adding braces around the for statement that are now needed to due the
 	new sa_assert immediately following the for statement.
 
-2010-04-14  Matthias Bolte  <matthias.bolte@googlemail.com>
+2010-04-15  Matthias Bolte  <matthias.bolte@googlemail.com>
 
 	Fix close_used_without_including_unistd_h error
 	Triggered by gnulib when compiling with MinGW.
@@ -58208,7 +58441,7 @@
 	Fix spec file for builds without lxc
 	* libvirt.spec.in: fix a cut and paste error
 
-2010-04-12  Eric Blake  <eblake@redhat.com>
+2010-04-13  Eric Blake  <eblake@redhat.com>
 
 	build: fix syntax-check problems
 	* .x-sc_prohibit_gettext_noop: Add new exemption.
@@ -58335,10 +58568,10 @@
 
 	remote: Replace some virRaiseError with remoteError
 
-2010-04-08  Matthias Bolte  <matthias.bolte@googlemail.com>
-
 	remote: Remove virConnectPtr from error/errorf
 	Also unify error/errorf to remoteError and update cfg.mk accordingly.
+
+2010-04-08  Matthias Bolte  <matthias.bolte@googlemail.com>
 
 	Remove undefined symbols from symbols file
 
@@ -58455,7 +58688,7 @@
 
 	* configure.ac: Avoid searching for windres on non windows target
 
-2010-04-07  Stefan Berger  <stefanb@us.ibm.com>
+2010-04-08  Stefan Berger  <stefanb@us.ibm.com>
 
 	Executable does not belong into repository.
 	Removing the tests/nwfilterxml2xmltest executable that got in with a previous patch.
@@ -58831,8 +59064,6 @@
 	Remove virConnectPtr from eventReportError
 
 	Remove virConnectPtr from virLibConnError
-
-2010-04-05  Matthias Bolte  <matthias.bolte@googlemail.com>
 
 	xen: Remove virConnectPtr from xenUnifiedError
 
@@ -59558,7 +59789,7 @@
 	Updating the commiters list
 	Laine Stump, Stefan Berger, Eric Blake now have commit rights !
 
-2010-03-29  Eric Blake  <eblake@redhat.com>
+2010-03-30  Eric Blake  <eblake@redhat.com>
 
 	virsh: support VISUAL, and allow metacharacters in EDITOR
 	Common Unix practice is to prefer VISUAL over EDITOR, particularly if
@@ -59577,7 +59808,7 @@
 	* tools/virsh.pod (edit, net-edit, ENVIRONMENT): Document VISUAL.
 	Fixes https://bugzilla.redhat.com/show_bug.cgi?id=487738.
 
-2010-03-29  Eric Blake  <eblake@redhat.com>
+2010-03-30  Eric Blake  <eblake@redhat.com>
 
 	virsh: improve man page
 	* tools/virsh.pod: (DESCRIPTION): Improve grammar.  Mention other drivers.
@@ -62956,7 +63187,7 @@
 	Baseline CPU is the best CPU which can be used for a guest on any of the
 	hosts.
 
-2010-02-11  Matthias Bolte  <matthias.bolte@googlemail.com>
+2010-02-12  Matthias Bolte  <matthias.bolte@googlemail.com>
 
 	Fix compliation of AppArmor related code
 	Broken by the latest commits to remove the virConnectPtr parameter
@@ -64242,7 +64473,7 @@
 
 	Let make fail when XHTML validation fails
 
-2010-01-20  Laine Stump  <laine@laine.org>
+2010-01-21  Laine Stump  <laine@laine.org>
 
 	Fix uses of virFileMakePath
 	* src/lxc/lxc_container.c src/lxc/lxc_controller.c src/lxc/lxc_driver.c
@@ -64251,7 +64482,7 @@
 	  value of errno on failure, so error checking should be to test
 	  if non-zero, not if lower than 0
 
-2010-01-20  Laine Stump  <laine@laine.org>
+2010-01-21  Laine Stump  <laine@laine.org>
 
 	Create storage pool directories with proper uid/gid/mode
 	Previously the uid/gid/mode in the xml was ignored when creating new
@@ -64268,7 +64499,7 @@
 	  function to check the directory hierarchy separately then create the
 	  leaf directory with the right attributes
 
-2010-01-20  Laine Stump  <laine@laine.org>
+2010-01-21  Laine Stump  <laine@laine.org>
 
 	Create storage volumes directly with desired uid/gid
 	In order to avoid problems trying to chown files that were created by
@@ -64297,7 +64528,7 @@
 	  src/storage/storage_driver.c: change the create_func implementations,
 	  also propagate the pool information to be able to detect NETFS ones.
 
-2010-01-20  Laine Stump  <laine@laine.org>
+2010-01-21  Laine Stump  <laine@laine.org>
 
 	New utility functions virFileCreate and virDirCreate
 	These functions create a new file or directory with the given
@@ -64326,7 +64557,7 @@
 
 	* src/util/util.[ch]: add the 2 new util functions
 
-2010-01-20  Laine Stump  <laine@laine.org>
+2010-01-21  Laine Stump  <laine@laine.org>
 
 	Add virRunWithHook util function
 	* src/util/util.[ch]: similar to virExecWithHook, but waits for child to
@@ -65108,7 +65339,7 @@
 	This stops libvirt from probing for a libvirtd on the ESX server and
 	sets the base for the implementation of the secondary drivers.
 
-2010-01-17  David Jorm  <dfj@dfj.bne.redhat.com>
+2010-01-18  David Jorm  <dfj@dfj.bne.redhat.com>
 
 	BZs 528709 548485
 
@@ -65859,7 +66090,7 @@
 	* src/xen/xs_internal.c src/xen/xs_internal.h: add
 	  xenStoreDomainGetPCIID()
 
-2009-12-21  Daniel P. Berrange  <berrange@redhat.com>
+2009-12-22  Daniel P. Berrange  <berrange@redhat.com>
 
 	Fix detection of JSON when restarting libvirtd
 	The XML XPath for detecting JSON in the running VM statefile was
@@ -66754,7 +66985,7 @@
 
 	* src/network/bridge_driver.c: re-add the iptables rules on reload.
 
-2009-12-09  Matthias Bolte  <matthias.bolte@googlemail.com>
+2009-12-10  Matthias Bolte  <matthias.bolte@googlemail.com>
 
 	Add virBufferFreeAndReset() and replace free()
 	Replace free(virBufferContentAndReset()) with virBufferFreeAndReset().
@@ -67210,7 +67441,7 @@
 	Free cgroup device ACL list on driver shutdown
 	* src/qemu/qemu_driver.c: Free cgroup ACLs
 
-2009-11-25  Matthias Bolte  <matthias.bolte@googlemail.com>
+2009-11-26  Matthias Bolte  <matthias.bolte@googlemail.com>
 
 	xen: Fix unconditional freeing in xenDaemonListDefinedDomains()
 	Commit 790f0b3057787bb64da8c46c111ff8d3eff7b2af causes the contents of
@@ -68160,9 +68391,11 @@
 	* examples/python/README: add some notes about esxlist.py
 	* examples/python/esxlist.py: the new example
 
-2009-11-06  Matthias Bolte  <matthias.bolte@googlemail.com>
+2009-11-07  Matthias Bolte  <matthias.bolte@googlemail.com>
 
 	phyp: Use actual error code instead of 0
+
+2009-11-06  Matthias Bolte  <matthias.bolte@googlemail.com>
 
 	phyp: Don't use VIR_ALLOC if a stack variable is good enough
 
@@ -68544,7 +68777,7 @@
 	usage of it, and also slightly refactor qemudRemoveDomainStatus()
 	to VIR_WARN appropriate error messages.
 
-2009-11-02  Daniel P. Berrange  <berrange@redhat.com>
+2009-11-03  Daniel P. Berrange  <berrange@redhat.com>
 
 	Fix return value in virStateInitialize impl for LXC
 	The LXC driver was mistakenly returning -1 for lxcStartup()
@@ -68916,7 +69149,7 @@
 
 	test: Support virNodeDeviceCreate and virNodeDeviceDestroy
 
-2009-10-26  Dan Kenigsberg  <danken@redhat.com>
+2009-10-27  Dan Kenigsberg  <danken@redhat.com>
 
 	Fix some typos in comments
 
@@ -69090,7 +69323,7 @@
 	to fail.
 	* src/util/cgroup.c: strip out terminating \n when reading a value
 
-2009-10-16  Matthias Bolte  <matthias.bolte@googlemail.com>
+2009-10-17  Matthias Bolte  <matthias.bolte@googlemail.com>
 
 	Remove bashisms from schema tests.
 	Introduced in commit 39a7be470cc5477a96a4d53194291bf4c7b07185.
@@ -74463,7 +74696,7 @@
 	  Tools' product category and Fedora specific tickets are under the
 	  'Fedora' product category.
 
-2009-07-10  Cole Robinson  <crobinso@redhat.com>
+2009-07-11  Cole Robinson  <crobinso@redhat.com>
 
 	Fix docs and code disagreements for character devices.
 	The 'pipe' character type wasn't documented.

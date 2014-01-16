@@ -165,12 +165,14 @@
           enslaved). Guest TAP devices are attached to this bridge.
           Guests can talk to each other and the host, and optionally the
           wider world.
-          <br /><br /></li><li>The QEMU driver MAC filtering
+          <br /><br />
+      </li><li>The QEMU driver MAC filtering
           <br /><br />
           This provides a generic filtering of MAC addresses to prevent
           the guest spoofing its MAC address. This is mostly obsoleted by
           the next item, so won't be discussed further.
-          <br /><br /></li><li>The network filter driver
+          <br /><br />
+      </li><li>The network filter driver
           <br /><br />
           This provides fully configurable, arbitrary network filtering
           of traffic on guest NICs. Generic rulesets are defined at the
@@ -288,16 +290,20 @@ MASQUERADE all  --  *      *       192.168.122.0/24    !192.168.122.0/24</pre>
         <ul><li>virsh nwfilter-define
           <br /><br />
           define or update a network filter from an XML file
-          <br /><br /></li><li>virsh nwfilter-undefine
+          <br /><br />
+      </li><li>virsh nwfilter-undefine
           <br /><br />
           undefine a network filter
-          <br /><br /></li><li>virsh nwfilter-dumpxml
+          <br /><br />
+      </li><li>virsh nwfilter-dumpxml
           <br /><br />
           network filter information in XML
-          <br /><br /></li><li>virsh nwfilter-list
+          <br /><br />
+      </li><li>virsh nwfilter-list
           <br /><br />
           list network filters
-          <br /><br /></li><li>virsh nwfilter-edit
+          <br /><br />
+      </li><li>virsh nwfilter-edit
           <br /><br />
           edit XML configuration for a network filter
       </li></ul>

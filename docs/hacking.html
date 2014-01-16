@@ -147,7 +147,7 @@
           </li><li>
             <a href="#curly_braces">Curly braces</a>
           </li><li>
-            <a href="#">Preprocessor</a>
+            <a href="#preprocessor">Preprocessor</a>
           </li><li>
             <a href="#">C types</a>
           </li><li>
@@ -442,8 +442,14 @@
   }
 </pre>
         <h2>
-          <a href="types">Preprocessor</a>
+          <a name="preprocessor" id="preprocessor">Preprocessor</a>
         </h2>
+        <p>Macros defined with an ALL_CAPS name should generally be
+      assumed to be unsafe with regards to arguments with side-effects
+      (that is, MAX(a++, b--) might increment a or decrement b too
+      many or too few times).  Exceptions to this rule are explicitly
+      documented for macros in viralloc.h and virstring.h.
+    </p>
         <p>
       For variadic macros, stick with C99 syntax:
     </p>
@@ -484,7 +490,8 @@
             type, which <b>is</b> fixed-size.</li><li>Don't compare a bool variable against the literal, <code>true</code>,
             since a value with a logical non-false value need not be <code>1</code>.
             I.e., don't write <code>if (seen == true) ...</code>.  Rather,
-            write <code>if (seen)...</code>.</li></ul></li></ul>
+            write <code>if (seen)...</code>.</li></ul>
+      </li></ul>
         <p>
       Of course, take all of the above with a grain of salt.  If you're about
       to use some system interface that requires a type like <code>size_t</code>,
@@ -716,6 +723,20 @@
       meaningful).  Note that this is a macro, so arguments could be
       evaluated more than once.  This is equivalent to
       virStrncpy(dest, src, strlen(src), sizeof(dest)).
+    </p>
+        <pre>
+  VIR_STRDUP(char *dst, const char *src);
+  VIR_STRNDUP(char *dst, const char *src, size_t n);
+</pre>
+        <p>
+      You should avoid using strdup or strndup directly as they do not report
+      out-of-memory error, and do not allow a NULL source. Use
+      VIR_STRDUP or VIR_STRNDUP macros instead, which return 0 for
+      NULL source, 1 for successful copy, and -1 for allocation
+      failure with the error already reported. In very
+      specific cases, when you don't want to report the out-of-memory error, you
+      can use VIR_STRDUP_QUIET or VIR_STRNDUP_QUIET, but such usage is very rare
+      and usually considered a flaw.
     </p>
         <h2>
           <a name="strbuf" id="strbuf">Variable length string buffer</a>

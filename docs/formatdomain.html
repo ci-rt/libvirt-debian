@@ -564,7 +564,8 @@
             alongside a
             top-level <a href="#elementsMetadata"><code>uuid</code>
             element</a>, the two values must match.
-          </dd></dl></dd></dl>
+          </dd></dl>
+      </dd></dl>
         <h3>
           <a name="elementsCPUAllocation" id="elementsCPUAllocation">CPU Allocation</a>
         </h3>
@@ -871,7 +872,9 @@
         <dl><dt><code>minimum</code></dt><dd>The specified CPU model and features describes the minimum
             requested CPU.</dd><dt><code>exact</code></dt><dd>The virtual CPU provided to the guest will exactly match the
             specification</dd><dt><code>strict</code></dt><dd>The guest will not be created unless the host CPU does exactly
-            match the specification.</dd></dl><span class="since">Since 0.8.5</span> the <code>match</code>
+            match the specification.</dd></dl>
+
+        <span class="since">Since 0.8.5</span> the <code>match</code>
         attribute can be omitted and will default to <code>exact</code>.
 
         <span class="since">Since 0.9.10</span>, an optional <code>mode</code>
@@ -945,7 +948,9 @@
             of it being supported by host CPU.</dd><dt><code>require</code></dt><dd>Guest creation will fail unless the feature is supported by host
             CPU.</dd><dt><code>optional</code></dt><dd>The feature will be supported by virtual CPU if and only if it
             is supported by host CPU.</dd><dt><code>disable</code></dt><dd>The feature will not be supported by virtual CPU.</dd><dt><code>forbid</code></dt><dd>Guest creation will fail if the feature is supported by host
-            CPU.</dd></dl><span class="since">Since 0.8.5</span> the <code>policy</code>
+            CPU.</dd></dl>
+
+        <span class="since">Since 0.8.5</span> the <code>policy</code>
         attribute can be omitted and will default to <code>require</code>.
       </dd></dl>
         <p>
@@ -1102,7 +1107,8 @@
             lost at each reboot. <span class="since">Since 0.7.7</span>
             <span class="since">Since 0.9.11</span> the <code>basis</code>
             attribute can be either 'utc' (default) or 'localtime'.
-          </dd></dl><p>
+          </dd></dl>
+        <p>
           A <code>clock</code> may have zero or more
           <code>timer</code>sub-elements. <span class="since">Since
           0.8.0</span>
@@ -1138,14 +1144,16 @@
                 on how the OS reacts to the merging of ticks</dd><dt><code>discard</code></dt><dd>Throw away the missed tick(s) and continue
                 with future injection normally. The guest time
                 may be delayed, unless the OS has explicit
-                handling of lost ticks</dd></dl><p>If the policy is "catchup", there can be further details in
+                handling of lost ticks</dd></dl>
+            <p>If the policy is "catchup", there can be further details in
             the <code>catchup</code> sub-element.</p>
             <dl><dt><code>catchup</code></dt><dd>
                 The <code>catchup</code> element has three optional
                 attributes, each a positive integer.  The attributes
                 are <code>threshold</code>, <code>slew</code>,
                 and <code>limit</code>.
-              </dd></dl><p>
+              </dd></dl>
+            <p>
               Note that hypervisors are not required to support all policies across all time sources
             </p>
           </dd><dt><code>frequency</code></dt><dd>
@@ -1160,7 +1168,8 @@
           </dd><dt><code>present</code></dt><dd>
             The <code>present</code> attribute can be "yes" or "no" to
             specify whether a particular timer is available to the guest.
-          </dd></dl></dd></dl>
+          </dd></dl>
+      </dd></dl>
         <h3>
           <a name="elementsDevices" id="elementsDevices">Devices</a>
         </h3>
@@ -1316,7 +1325,8 @@
         This is done by the <code>startupPolicy</code> attribute, accepting
         these values:
         <table class="top_table"><tr><td> mandatory </td><td> fail if missing for any reason (the default) </td></tr><tr><td> requisite </td><td> fail if missing on boot up,
-                 drop if missing on migrate/restore/revert </td></tr><tr><td> optional </td><td> drop if missing at any start attempt </td></tr></table><span class="since">Since 0.9.7</span>
+                 drop if missing on migrate/restore/revert </td></tr><tr><td> optional </td><td> drop if missing at any start attempt </td></tr></table>
+        <span class="since">Since 0.9.7</span>
         </dd><dt><code>mirror</code></dt><dd>
         This element is present if the hypervisor has started a block
         copy operation (via the <code>virDomainBlockCopy</code> API),
@@ -1365,7 +1375,8 @@
             appear with <code>read_iops_sec</code>
             or <code>write_iops_sec</code>.</dd><dt><code>read_iops_sec</code></dt><dd>The optional <code>read_iops_sec</code> element is the
             read I/O operations per second.</dd><dt><code>write_iops_sec</code></dt><dd>The optional <code>write_iops_sec</code> element is the
-            write I/O operations per second.</dd></dl></dd><dt><code>driver</code></dt><dd>
+            write I/O operations per second.</dd></dl>
+      </dd><dt><code>driver</code></dt><dd>
         The optional driver element allows specifying further details
         related to the hypervisor driver used to provide the disk.
         <span class="since">Since 0.1.8</span>
@@ -1444,7 +1455,8 @@
             repeatedly and is useful when the backing file is over a slow
             network. By default copy-on-read is off.
             <span class="since">Since 0.9.10 (QEMU and KVM only)</span>
-          </li></ul></dd><dt><code>boot</code></dt><dd>Specifies that the disk is bootable. The <code>order</code>
+          </li></ul>
+      </dd><dt><code>boot</code></dt><dd>Specifies that the disk is bootable. The <code>order</code>
         attribute determines the order in which devices will be tried during
         boot sequence. The per-device <code>boot</code> elements cannot be
         used together with general boot elements in
@@ -1471,7 +1483,8 @@
       </dd><dt><code>host</code></dt><dd>The <code>host</code> element has two attributes "name" and "port",
         which specify the hostname and the port number. The meaning of this
         element and the number of the elements depend on the protocol attribute.
-        <table class="top_table"><tr><th> Protocol </th><th> Meaning </th><th> Number of hosts </th></tr><tr><td> nbd </td><td> a server running nbd-server </td><td> only one </td></tr><tr><td> rbd </td><td> monitor servers of RBD </td><td> one or more </td></tr><tr><td> sheepdog </td><td> one of the sheepdog servers (default is localhost:7000) </td><td> zero or one </td></tr></table></dd><dt><code>address</code></dt><dd>If present, the <code>address</code> element ties the disk
+        <table class="top_table"><tr><th> Protocol </th><th> Meaning </th><th> Number of hosts </th></tr><tr><td> nbd </td><td> a server running nbd-server </td><td> only one </td></tr><tr><td> rbd </td><td> monitor servers of RBD </td><td> one or more </td></tr><tr><td> sheepdog </td><td> one of the sheepdog servers (default is localhost:7000) </td><td> zero or one </td></tr></table>
+      </dd><dt><code>address</code></dt><dd>If present, the <code>address</code> element ties the disk
         to a given slot of a controller (the
         actual <code>&lt;controller&gt;</code> device can often be
         inferred by libvirt, although it can
@@ -1578,7 +1591,9 @@
         passthrough-like mode usable for people who run the hypervisor
         as non-root.
         <a href="http://lists.gnu.org/archive/html/qemu-devel/2010-09/msg00121.html">More info</a>
-        </dd></dl></dd><dt><code>source</code></dt><dd>
+        </dd></dl>
+
+      </dd><dt><code>source</code></dt><dd>
         The resource on the host that is being accessed in the guest. The
         <code>name</code> attribute must be used with
         <code>type='template'</code>, and the <code>dir</code> attribute must
@@ -2422,7 +2437,9 @@ qemu-kvm -net nic,model=? /dev/null
         added the option is: "bh makes tx more asynchronous and reduces
         latency, but potentially causes more processor bandwidth
         contention since the cpu doing the tx isn't necessarily the
-        cpu where the guest generated the packets."<br /><br /><b>In general you should leave this option alone, unless you
+        cpu where the guest generated the packets."<br /><br />
+
+        <b>In general you should leave this option alone, unless you
         are very certain you know what you are doing.</b>
       </dd><dt><code>ioeventfd</code></dt><dd>
         This optional attribute allows users to set
@@ -2434,7 +2451,9 @@ qemu-kvm -net nic,model=? /dev/null
         Typically guests experiencing high system CPU utilization
         during I/O will benefit from this. On the other hand,
         on overloaded host it could increase guest I/O latency.
-        <span class="since">Since 0.9.3 (QEMU and KVM only)</span><br /><br /><b>In general you should leave this option alone, unless you
+        <span class="since">Since 0.9.3 (QEMU and KVM only)</span><br /><br />
+
+        <b>In general you should leave this option alone, unless you
         are very certain you know what you are doing.</b>
       </dd><dt><code>event_idx</code></dt><dd>
         The <code>event_idx</code> attribute controls some aspects of
@@ -2444,7 +2463,9 @@ qemu-kvm -net nic,model=? /dev/null
         usually if the feature is supported, default is on. In case
         there is a situation where this behavior is suboptimal, this
         attribute provides a way to force the feature off.
-        <span class="since">Since 0.9.5 (QEMU and KVM only)</span><br /><br /><b>In general you should leave this option alone, unless you
+        <span class="since">Since 0.9.5 (QEMU and KVM only)</span><br /><br />
+
+        <b>In general you should leave this option alone, unless you
         are very certain you know what you are doing.</b>
       </dd></dl>
         <h5>
@@ -2672,7 +2693,7 @@ qemu-kvm -net nic,model=? /dev/null
             allows control of connected client during password changes.
             VNC accepts <code>keep</code> value only.
             <span class="since">since 0.9.3</span>
-            NB, this may not be supported by all hypervisors.<br /><br />
+            NB, this may not be supported by all hypervisors.<br />  <br />
             Rather than using listen/port, QEMU supports a
             <code>socket</code> attribute for listening on a unix
             domain socket path.<span class="since">Since 0.8.8</span>
@@ -2788,7 +2809,8 @@ qemu-kvm -net nic,model=? /dev/null
             like "sdl", it accepts the optional
             attributes <code>display</code>
             and <code>fullscreen</code>.
-          </dd></dl></dd></dl>
+          </dd></dl>
+      </dd></dl>
         <p>
       Rather than putting the address information used to set up the
       listening socket for graphics types <code>vnc</code>
@@ -3339,7 +3361,8 @@ qemu-kvm -net nic,model=? /dev/null
         QEMU and KVM support:
         </p>
         <ul><li> 'i6300esb' — the recommended device,
-            emulating a PCI Intel 6300ESB </li><li> 'ib700' — emulating an ISA iBase IB700 </li></ul></dd><dt><code>action</code></dt><dd>
+            emulating a PCI Intel 6300ESB </li><li> 'ib700' — emulating an ISA iBase IB700 </li></ul>
+      </dd><dt><code>action</code></dt><dd>
         <p>
         The optional <code>action</code> attribute describes what
         action to take when the watchdog expires.  Valid values are
@@ -3350,7 +3373,8 @@ qemu-kvm -net nic,model=? /dev/null
         </p>
         <ul><li>'reset' — default, forcefully reset the guest</li><li>'shutdown' — gracefully shutdown the guest
             (not recommended) </li><li>'poweroff' — forcefully power off the guest</li><li>'pause' — pause the guest</li><li>'none' — do nothing</li><li>'dump' — automatically dump the guest
-            <span class="since">Since 0.8.7</span></li></ul><p>
+            <span class="since">Since 0.8.7</span></li></ul>
+        <p>
         Note 1: the 'shutdown' action requires that the guest
         is responsive to ACPI signals.  In the sort of situations
         where the watchdog has expired, guests are usually unable
@@ -3401,7 +3425,8 @@ qemu-kvm -net nic,model=? /dev/null
           of balloon device is provided. Valid values are specific to
           the virtualization platform
         </p>
-        <ul><li>'virtio' — default with QEMU/KVM</li><li>'xen' — default with Xen</li></ul></dd></dl>
+        <ul><li>'virtio' — default with QEMU/KVM</li><li>'xen' — default with Xen</li></ul>
+      </dd></dl>
         <h3>
           <a name="seclabel" id="seclabel">Security label</a>
         </h3>
