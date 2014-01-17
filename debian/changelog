@@ -1,3 +1,10 @@
+libvirt (1.2.1-1) unstable; urgency=medium
+
+  * Upload to unstable
+  * [22e83d7] New upstream version 1.2.1
+
+ -- Guido Günther <agx@sigxcpu.org>  Fri, 17 Jan 2014 06:16:29 +0100
+
 libvirt (1.2.1~rc2-1) experimental; urgency=medium
 
   * [e559e92] libvirt-bin.init: Fix typo in path when checking for systemd
