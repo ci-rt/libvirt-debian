@@ -135,20 +135,20 @@ xenInotifyDomainLookup(virConnectPtr conn,
         return xenInotifyXendDomainsDirLookup(conn, filename, name, uuid);
 }
 
-static virDomainEventPtr
+static virObjectEventPtr
 xenInotifyDomainEventFromFile(virConnectPtr conn,
                               const char *filename,
                               int type,
                               int detail)
 {
-    virDomainEventPtr event;
+    virObjectEventPtr event;
     char *name = NULL;
     unsigned char uuid[VIR_UUID_BUFLEN];
 
     if (xenInotifyDomainLookup(conn, filename, &name, uuid) < 0)
         return NULL;
 
-    event = virDomainEventNew(-1, name, uuid, type, detail);
+    event = virDomainEventLifecycleNew(-1, name, uuid, type, detail);
     VIR_FREE(name);
     return event;
 }
@@ -290,7 +290,7 @@ reread:
                  priv->configDir, name);
 
         if (e->mask & (IN_DELETE | IN_MOVED_FROM)) {
-            virDomainEventPtr event =
+            virObjectEventPtr event =
                 xenInotifyDomainEventFromFile(conn, fname,
                                               VIR_DOMAIN_EVENT_UNDEFINED,
                                               VIR_DOMAIN_EVENT_UNDEFINED_REMOVED);
@@ -306,7 +306,7 @@ reread:
                 goto cleanup;
             }
         } else if (e->mask & (IN_CREATE | IN_CLOSE_WRITE | IN_MOVED_TO)) {
-            virDomainEventPtr event;
+            virObjectEventPtr event;
             if (xenInotifyAddDomainConfigInfo(conn, fname) < 0) {
                 virReportError(VIR_ERR_INTERNAL_ERROR,
                                "%s", _("Error adding file to config cache"));

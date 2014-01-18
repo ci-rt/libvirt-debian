@@ -226,7 +226,7 @@ This command is only available in interactive mode.
 
 Will print the current directory.
 
-=item B<connect> I<URI> [I<--readonly>]
+=item B<connect> [I<URI>] [I<--readonly>]
 
 (Re)-Connect to the hypervisor. When the shell is first started, this
 is automatically run with the I<URI> parameter requested by the C<-c>
@@ -239,7 +239,7 @@ common are:
 
 =item xen:///
 
-this is used to connect to the local Xen hypervisor, this is the default
+this is used to connect to the local Xen hypervisor
 
 =item qemu:///system
 
@@ -1794,7 +1794,8 @@ on inactive domains. Volume deletion is only attempted after the domain is
 undefined; if not all of the requested volumes could be deleted, the
 error message indicates what still remains behind. If a volume path is not
 found in the domain definition, it's treated as if the volume was successfully
-deleted.
+deleted. Only volumes managed by libvirt in storage pools can be removed this
+way.
 (See B<domblklist> for list of target names associated to a domain).
 Example: --storage vda,/path/to/storage.img
 
@@ -2158,9 +2159,9 @@ contains xml for a top-level <device> description of a node device.
 =item B<nodedev-destroy> I<device>
 
 Destroy (stop) a device on the host. I<device> can be either device
-name or wwn pair in "wwnn,wwpn" format (only works for HBA). Note
-that this makes libvirt quit managing a host device, and may even make
-that device unusable by the rest of the physical host until a reboot.
+name or wwn pair in "wwnn,wwpn" format (only works for vHBA currently).
+Note that this makes libvirt quit managing a host device, and may even
+make that device unusable by the rest of the physical host until a reboot.
 
 =item B<nodedev-detach> I<nodedev> [I<--driver backend_driver>]
 
@@ -2588,7 +2589,7 @@ with autostarting disabled.
 You may also want to list pools with specified types using I<type>, the
 pool types must be separated by comma, e.g. --type dir,disk. The valid pool
 types include 'dir', 'fs', 'netfs', 'logical', 'disk', 'iscsi', 'scsi',
-'mpath', 'rbd', and 'sheepdog'.
+'mpath', 'rbd', 'sheepdog' and 'gluster'.
 
 The I<--details> option instructs virsh to additionally
 display pool persistence and capacity related information where available.

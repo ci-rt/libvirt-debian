@@ -90,6 +90,7 @@
     <function name="VIR_MIGRATE_PARAM_GRAPHICS_URI" link="libvirt-libvirt.html#VIR_MIGRATE_PARAM_GRAPHICS_URI"/>
     <function name="VIR_MIGRATE_PARAM_LISTEN_ADDRESS" link="libvirt-libvirt.html#VIR_MIGRATE_PARAM_LISTEN_ADDRESS"/>
     <function name="VIR_MIGRATE_PARAM_URI" link="libvirt-libvirt.html#VIR_MIGRATE_PARAM_URI"/>
+    <function name="VIR_NETWORK_EVENT_CALLBACK" link="libvirt-libvirt.html#VIR_NETWORK_EVENT_CALLBACK"/>
     <function name="VIR_NODEINFO_MAXCPUS" link="libvirt-libvirt.html#VIR_NODEINFO_MAXCPUS"/>
     <function name="VIR_NODE_CPU_STATS_FIELD_LENGTH" link="libvirt-libvirt.html#VIR_NODE_CPU_STATS_FIELD_LENGTH"/>
     <function name="VIR_NODE_CPU_STATS_IDLE" link="libvirt-libvirt.html#VIR_NODE_CPU_STATS_IDLE"/>
@@ -162,6 +163,7 @@
     <function name="VIR_CONNECT_LIST_STORAGE_POOLS_DIR" link="libvirt-libvirt.html#VIR_CONNECT_LIST_STORAGE_POOLS_DIR"/>
     <function name="VIR_CONNECT_LIST_STORAGE_POOLS_DISK" link="libvirt-libvirt.html#VIR_CONNECT_LIST_STORAGE_POOLS_DISK"/>
     <function name="VIR_CONNECT_LIST_STORAGE_POOLS_FS" link="libvirt-libvirt.html#VIR_CONNECT_LIST_STORAGE_POOLS_FS"/>
+    <function name="VIR_CONNECT_LIST_STORAGE_POOLS_GLUSTER" link="libvirt-libvirt.html#VIR_CONNECT_LIST_STORAGE_POOLS_GLUSTER"/>
     <function name="VIR_CONNECT_LIST_STORAGE_POOLS_INACTIVE" link="libvirt-libvirt.html#VIR_CONNECT_LIST_STORAGE_POOLS_INACTIVE"/>
     <function name="VIR_CONNECT_LIST_STORAGE_POOLS_ISCSI" link="libvirt-libvirt.html#VIR_CONNECT_LIST_STORAGE_POOLS_ISCSI"/>
     <function name="VIR_CONNECT_LIST_STORAGE_POOLS_LOGICAL" link="libvirt-libvirt.html#VIR_CONNECT_LIST_STORAGE_POOLS_LOGICAL"/>
@@ -726,6 +728,13 @@
     <function name="VIR_MIGRATE_TUNNELLED" link="libvirt-libvirt.html#VIR_MIGRATE_TUNNELLED"/>
     <function name="VIR_MIGRATE_UNDEFINE_SOURCE" link="libvirt-libvirt.html#VIR_MIGRATE_UNDEFINE_SOURCE"/>
     <function name="VIR_MIGRATE_UNSAFE" link="libvirt-libvirt.html#VIR_MIGRATE_UNSAFE"/>
+    <function name="VIR_NETWORK_EVENT_DEFINED" link="libvirt-libvirt.html#VIR_NETWORK_EVENT_DEFINED"/>
+    <function name="VIR_NETWORK_EVENT_ID_LAST" link="libvirt-libvirt.html#VIR_NETWORK_EVENT_ID_LAST"/>
+    <function name="VIR_NETWORK_EVENT_ID_LIFECYCLE" link="libvirt-libvirt.html#VIR_NETWORK_EVENT_ID_LIFECYCLE"/>
+    <function name="VIR_NETWORK_EVENT_LAST" link="libvirt-libvirt.html#VIR_NETWORK_EVENT_LAST"/>
+    <function name="VIR_NETWORK_EVENT_STARTED" link="libvirt-libvirt.html#VIR_NETWORK_EVENT_STARTED"/>
+    <function name="VIR_NETWORK_EVENT_STOPPED" link="libvirt-libvirt.html#VIR_NETWORK_EVENT_STOPPED"/>
+    <function name="VIR_NETWORK_EVENT_UNDEFINED" link="libvirt-libvirt.html#VIR_NETWORK_EVENT_UNDEFINED"/>
     <function name="VIR_NETWORK_SECTION_BRIDGE" link="libvirt-libvirt.html#VIR_NETWORK_SECTION_BRIDGE"/>
     <function name="VIR_NETWORK_SECTION_DNS_HOST" link="libvirt-libvirt.html#VIR_NETWORK_SECTION_DNS_HOST"/>
     <function name="VIR_NETWORK_SECTION_DNS_SRV" link="libvirt-libvirt.html#VIR_NETWORK_SECTION_DNS_SRV"/>
@@ -924,6 +933,8 @@
     <function name="virMemoryParameterPtr" link="libvirt-libvirt.html#virMemoryParameterPtr"/>
     <function name="virMemoryParameterType" link="libvirt-libvirt.html#virMemoryParameterType"/>
     <function name="virNWFilterPtr" link="libvirt-libvirt.html#virNWFilterPtr"/>
+    <function name="virNetworkEventID" link="libvirt-libvirt.html#virNetworkEventID"/>
+    <function name="virNetworkEventLifecycleType" link="libvirt-libvirt.html#virNetworkEventLifecycleType"/>
     <function name="virNetworkPtr" link="libvirt-libvirt.html#virNetworkPtr"/>
     <function name="virNetworkUpdateCommand" link="libvirt-libvirt.html#virNetworkUpdateCommand"/>
     <function name="virNetworkUpdateFlags" link="libvirt-libvirt.html#virNetworkUpdateFlags"/>
@@ -1018,6 +1029,8 @@
     <function name="virConnectDomainEventRTCChangeCallback" link="libvirt-libvirt.html#virConnectDomainEventRTCChangeCallback"/>
     <function name="virConnectDomainEventTrayChangeCallback" link="libvirt-libvirt.html#virConnectDomainEventTrayChangeCallback"/>
     <function name="virConnectDomainEventWatchdogCallback" link="libvirt-libvirt.html#virConnectDomainEventWatchdogCallback"/>
+    <function name="virConnectNetworkEventGenericCallback" link="libvirt-libvirt.html#virConnectNetworkEventGenericCallback"/>
+    <function name="virConnectNetworkEventLifecycleCallback" link="libvirt-libvirt.html#virConnectNetworkEventLifecycleCallback"/>
     <function name="virErrorFunc" link="libvirt-virterror.html#virErrorFunc"/>
     <function name="virEventAddHandleFunc" link="libvirt-libvirt.html#virEventAddHandleFunc"/>
     <function name="virEventAddTimeoutFunc" link="libvirt-libvirt.html#virEventAddTimeoutFunc"/>
@@ -1075,6 +1088,8 @@
     <function name="virConnectListNetworks ()" link="libvirt-libvirt.html#virConnectListNetworks"/>
     <function name="virConnectListSecrets ()" link="libvirt-libvirt.html#virConnectListSecrets"/>
     <function name="virConnectListStoragePools ()" link="libvirt-libvirt.html#virConnectListStoragePools"/>
+    <function name="virConnectNetworkEventDeregisterAny ()" link="libvirt-libvirt.html#virConnectNetworkEventDeregisterAny"/>
+    <function name="virConnectNetworkEventRegisterAny ()" link="libvirt-libvirt.html#virConnectNetworkEventRegisterAny"/>
     <function name="virConnectNumOfDefinedDomains ()" link="libvirt-libvirt.html#virConnectNumOfDefinedDomains"/>
     <function name="virConnectNumOfDefinedInterfaces ()" link="libvirt-libvirt.html#virConnectNumOfDefinedInterfaces"/>
     <function name="virConnectNumOfDefinedNetworks ()" link="libvirt-libvirt.html#virConnectNumOfDefinedNetworks"/>

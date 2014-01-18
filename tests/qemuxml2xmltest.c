@@ -41,6 +41,11 @@ testCompareXMLToXMLFiles(const char *inxml, const char *outxml, bool live)
                                         QEMU_EXPECTED_VIRT_TYPES, flags)))
         goto fail;
 
+    if (!virDomainDefCheckABIStability(def, def)) {
+        fprintf(stderr, "ABI stability check failed on %s", inxml);
+        goto fail;
+    }
+
     if (!(actual = virDomainDefFormat(def, VIR_DOMAIN_XML_SECURE | flags)))
         goto fail;
 
@@ -247,6 +252,7 @@ mymain(void)
 
     DO_TEST("encrypted-disk");
     DO_TEST_DIFFERENT("memtune");
+    DO_TEST_DIFFERENT("memtune-unlimited");
     DO_TEST("blkiotune");
     DO_TEST("blkiotune-device");
     DO_TEST("cputune");
@@ -321,6 +327,8 @@ mymain(void)
     DO_TEST_DIFFERENT("pcihole64-gib");
     DO_TEST("pcihole64-none");
     DO_TEST("pcihole64-q35");
+
+    DO_TEST("panic");
 
     virObjectUnref(driver.caps);
     virObjectUnref(driver.xmlopt);

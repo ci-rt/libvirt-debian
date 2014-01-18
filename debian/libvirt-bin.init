@@ -9,19 +9,20 @@
 # Provides:          libvirt-bin libvirtd
 # Required-Start:    $network $local_fs $remote_fs $syslog
 # Required-Stop:     $local_fs $remote_fs $syslog
-# Should-Start:      avahi cgconfig
-# Should-Stop:       avahi cgconfig
+# Should-Start:      avahi-daemon cgconfig
+# Should-Stop:       avahi-daemon cgconfig
 # Default-Start:     2 3 4 5
 # Default-Stop:      0 1 6
 # Short-Description: libvirt management daemon
 ### END INIT INFO
 
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+export PATH
 DAEMON=/usr/sbin/libvirtd
 NAME=libvirtd
 DESC="libvirt management daemon"
-MOUNTS="cpuset cpu cpuacct memory devices freezer net_cls blkio perf_event"
-export PATH
+cgroups="cpuset cpu cpuacct devices freezer net_cls blkio perf_event"
+! grep -qs cgroup_enable=memory /proc/cmdline || cgroups="$cgroups memory"
 
 test -x $DAEMON || exit 0
 . /lib/lsb/init-functions
@@ -70,7 +71,7 @@ running()
 
 systemd_running()
 {
-    if [ -d /home/systemd/system ] ; then
+    if [ -d /run/systemd/system ] ; then
         return 0
     fi
     return 1
@@ -81,7 +82,7 @@ mount_cgroups()
     if ! systemd_running
     then
         mount -t tmpfs cgroup_root /sys/fs/cgroup || return 1
-        for M in $MOUNTS; do
+        for M in $cgroups; do
             mkdir /sys/fs/cgroup/$M || return 1
             mount -t cgroup -o rw,nosuid,nodev,noexec,relatime,$M "cgroup_${M}" "/sys/fs/cgroup/${M}" || return 1
         done
@@ -95,7 +96,7 @@ umount_cgroups()
 {
     if ! systemd_running
     then
-        for M in $MOUNTS; do
+        for M in $cgroups; do
             umount "cgroup_${M}"
             rmdir /sys/fs/cgroup/$M
         done

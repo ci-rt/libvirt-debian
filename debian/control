@@ -35,6 +35,8 @@ Build-Depends:
  libnetcf-dev (<< 1:0.2.0-5~) [linux-any],
  libsanlock-dev [linux-any],
  libaudit-dev [linux-any],
+ libselinux1-dev (>= 2.0.82) [linux-any],
+ libapparmor-dev [linux-any],
  systemtap-sdt-dev [amd64 armel armhf i386 ia64 powerpc s390],
 # for lxc fuse support
  libfuse-dev [linux-any],
@@ -69,7 +71,8 @@ Recommends: netcat-openbsd,
  iproute,
  parted,
  pm-utils
-Suggests: policykit-1, radvd, auditd, systemtap
+Suggests: policykit-1, radvd, auditd, systemtap, systemd, apparmor
+Breaks: avahi-daemon (<< 0.6.31-3~)
 Description: programs for the libvirt library
  Libvirt is a C toolkit to interact with the virtualization capabilities
  of recent versions of Linux (and other OSes). The library aims at providing
@@ -82,6 +85,7 @@ Package: libvirt0
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Recommends: lvm2 [linux-any]
+Breaks: selinux-policy-default (<< 2:2.20131214-1~), selinux-policy-mls (<< 2:2.20131214-1~)
 Description: library for interfacing with different virtualization systems
  Libvirt is a C toolkit to interact with the virtualization capabilities
  of recent versions of Linux (and other OSes). The library aims at providing

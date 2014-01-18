@@ -1,7 +1,7 @@
 /*
  * virt-login-shell.c: a shell to connect to a container
  *
- * Copyright (C) 2013 Red Hat, Inc.
+ * Copyright (C) 2013-2014 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -161,10 +161,10 @@ usage(void)
     fprintf(stdout,
             _("\n"
               "Usage:\n"
-              "  %s [options]\n\n"
+              "  %s [option]\n\n"
               "Options:\n"
-              "  -h | --help            Display program help:\n"
-              "  -V | --version         Display program version:\n"
+              "  -h | --help            Display program help\n"
+              "  -V | --version         Display program version\n"
               "\n"
               "libvirt login shell\n"),
             progname);
@@ -317,15 +317,6 @@ main(int argc, char **argv)
 
         int openmax = sysconf(_SC_OPEN_MAX);
         int fd;
-        if (openmax < 0) {
-            virReportSystemError(errno,  "%s",
-                                 _("sysconf(_SC_OPEN_MAX) failed"));
-            return EXIT_FAILURE;
-        }
-        for (fd = 3; fd < openmax; fd++) {
-            int tmpfd = fd;
-            VIR_MASS_CLOSE(tmpfd);
-        }
 
         /* Fork once because we don't want to affect
          * virt-login-shell's namespace itself
@@ -353,6 +344,16 @@ main(int argc, char **argv)
         VIR_FREE(groups);
         if (ret < 0)
             return EXIT_FAILURE;
+
+        if (openmax < 0) {
+            virReportSystemError(errno,  "%s",
+                                 _("sysconf(_SC_OPEN_MAX) failed"));
+            return EXIT_FAILURE;
+        }
+        for (fd = 3; fd < openmax; fd++) {
+            int tmpfd = fd;
+            VIR_MASS_CLOSE(tmpfd);
+        }
 
         if (virFork(&ccpid) < 0)
             return EXIT_FAILURE;

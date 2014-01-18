@@ -745,6 +745,9 @@ static int virLXCControllerSetupServer(virLXCControllerPtr ctrl)
                                          ctrl)))
         goto error;
 
+    if (virSecurityManagerSetSocketLabel(ctrl->securityManager, ctrl->def) < 0)
+        goto error;
+
     if (!(svc = virNetServerServiceNewUNIX(sockpath,
                                            0700,
                                            0,
@@ -755,6 +758,9 @@ static int virLXCControllerSetupServer(virLXCControllerPtr ctrl)
                                            false,
                                            0,
                                            5)))
+        goto error;
+
+    if (virSecurityManagerClearSocketLabel(ctrl->securityManager, ctrl->def) < 0)
         goto error;
 
     if (virNetServerAddService(ctrl->server, svc, NULL) < 0)
@@ -2249,7 +2255,7 @@ int main(int argc, char *argv[])
 {
     pid_t pid;
     int rc = -1;
-    char *name = NULL;
+    const char *name = NULL;
     size_t nveths = 0;
     char **veths = NULL;
     int handshakeFd = -1;
@@ -2300,8 +2306,7 @@ int main(int argc, char *argv[])
             break;
 
         case 'n':
-            if (VIR_STRDUP(name, optarg) < 0)
-                goto cleanup;
+            name = optarg;
             break;
 
         case 'v':
@@ -2366,7 +2371,7 @@ int main(int argc, char *argv[])
     }
 
     if (handshakeFd < 0) {
-        fprintf(stderr, "%s: missing --handshake argument for container PTY\n",
+        fprintf(stderr, "%s: missing --handshakefd argument for container PTY\n",
                 argv[0]);
         goto cleanup;
     }

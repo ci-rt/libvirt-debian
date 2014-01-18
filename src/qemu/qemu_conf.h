@@ -29,6 +29,7 @@
 # include "capabilities.h"
 # include "network_conf.h"
 # include "domain_conf.h"
+# include "snapshot_conf.h"
 # include "domain_event.h"
 # include "virthread.h"
 # include "security/security_manager.h"
@@ -207,7 +208,7 @@ struct _virQEMUDriver {
     virQEMUCapsCachePtr qemuCapsCache;
 
     /* Immutable pointer, self-locking APIs */
-    virDomainEventStatePtr domainEventState;
+    virObjectEventStatePtr domainEventState;
 
     /* Immutable pointer. self-locking APIs */
     virSecurityManagerPtr securityManager;
@@ -304,7 +305,14 @@ int qemuSetUnprivSGIO(virDomainDeviceDefPtr dev);
 int qemuDriverAllocateID(virQEMUDriverPtr driver);
 virDomainXMLOptionPtr virQEMUDriverCreateXMLConf(virQEMUDriverPtr driver);
 
+int qemuDiskGetActualType(virDomainDiskDefPtr def);
+
 int qemuTranslateDiskSourcePool(virConnectPtr conn,
                                 virDomainDiskDefPtr def);
+
+int qemuSnapshotDiskGetActualType(virDomainSnapshotDiskDefPtr def);
+
+int qemuTranslateSnapshotDiskSourcePool(virConnectPtr conn,
+                                        virDomainSnapshotDiskDefPtr def);
 
 #endif /* __QEMUD_CONF_H */

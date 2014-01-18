@@ -29,6 +29,7 @@
 # include <libxl.h>
 
 # include "internal.h"
+# include "libvirt_internal.h"
 # include "domain_conf.h"
 # include "domain_event.h"
 # include "capabilities.h"
@@ -105,7 +106,7 @@ struct _libxlDriverPrivate {
     virDomainXMLOptionPtr xmlopt;
 
     /* Immutable pointer, self-locking APIs */
-    virDomainEventStatePtr domainEventState;
+    virObjectEventStatePtr domainEventState;
 
     /* Immutable pointer, self-locking APIs */
     virPortAllocatorPtr reservedVNCPorts;
@@ -142,7 +143,9 @@ libxlMakeCapabilities(libxl_ctx *ctx);
 int
 libxlMakeDisk(virDomainDiskDefPtr l_dev, libxl_device_disk *x_dev);
 int
-libxlMakeNic(virDomainNetDefPtr l_nic, libxl_device_nic *x_nic);
+libxlMakeNic(virDomainDefPtr def,
+             virDomainNetDefPtr l_nic,
+             libxl_device_nic *x_nic);
 int
 libxlMakeVfb(libxlDriverPrivatePtr driver,
              virDomainGraphicsDefPtr l_vfb, libxl_device_vfb *x_vfb);

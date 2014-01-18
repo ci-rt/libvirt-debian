@@ -14,7 +14,7 @@
 
 @SET_MAKE@
 
-# Copyright (C) 2002-2013 Free Software Foundation, Inc.
+# Copyright (C) 2002-2014 Free Software Foundation, Inc.
 #
 # This file is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -106,7 +106,8 @@ DIST_COMMON = $(srcdir)/gnulib.mk $(srcdir)/Makefile.in \
 subdir = gnulib/lib
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
-	$(top_srcdir)/m4/alloca.m4 $(top_srcdir)/m4/arpa_inet_h.m4 \
+	$(top_srcdir)/m4/absolute-header.m4 $(top_srcdir)/m4/alloca.m4 \
+	$(top_srcdir)/m4/arpa_inet_h.m4 \
 	$(top_srcdir)/m4/asm-underscore.m4 \
 	$(top_srcdir)/m4/autobuild.m4 $(top_srcdir)/m4/base64.m4 \
 	$(top_srcdir)/m4/btowc.m4 $(top_srcdir)/m4/byteswap.m4 \
@@ -140,8 +141,8 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/getline.m4 $(top_srcdir)/m4/getpagesize.m4 \
 	$(top_srcdir)/m4/getpass.m4 $(top_srcdir)/m4/gettext.m4 \
 	$(top_srcdir)/m4/gettimeofday.m4 \
-	$(top_srcdir)/m4/getugroups.m4 $(top_srcdir)/m4/glibc21.m4 \
-	$(top_srcdir)/m4/gnulib-common.m4 \
+	$(top_srcdir)/m4/getugroups.m4 $(top_srcdir)/m4/gl-openssl.m4 \
+	$(top_srcdir)/m4/glibc21.m4 $(top_srcdir)/m4/gnulib-common.m4 \
 	$(top_srcdir)/m4/gnulib-comp.m4 $(top_srcdir)/m4/grantpt.m4 \
 	$(top_srcdir)/m4/hostent.m4 $(top_srcdir)/m4/iconv.m4 \
 	$(top_srcdir)/m4/include_next.m4 $(top_srcdir)/m4/inet_ntop.m4 \
@@ -1253,6 +1254,7 @@ LIBXL_LIBS = @LIBXL_LIBS@
 LIBXML_CFLAGS = @LIBXML_CFLAGS@
 LIBXML_LIBS = @LIBXML_LIBS@
 LIB_CLOCK_GETTIME = @LIB_CLOCK_GETTIME@
+LIB_CRYPTO = @LIB_CRYPTO@
 LIB_EXECINFO = @LIB_EXECINFO@
 LIB_FDATASYNC = @LIB_FDATASYNC@
 LIB_NANOSLEEP = @LIB_NANOSLEEP@
@@ -1487,6 +1489,7 @@ REPLACE_GETLINE = @REPLACE_GETLINE@
 REPLACE_GETLOGIN_R = @REPLACE_GETLOGIN_R@
 REPLACE_GETPAGESIZE = @REPLACE_GETPAGESIZE@
 REPLACE_GETTIMEOFDAY = @REPLACE_GETTIMEOFDAY@
+REPLACE_GMTIME = @REPLACE_GMTIME@
 REPLACE_HUGE_VAL = @REPLACE_HUGE_VAL@
 REPLACE_HYPOT = @REPLACE_HYPOT@
 REPLACE_HYPOTF = @REPLACE_HYPOTF@
@@ -1508,6 +1511,7 @@ REPLACE_LDEXPL = @REPLACE_LDEXPL@
 REPLACE_LINK = @REPLACE_LINK@
 REPLACE_LINKAT = @REPLACE_LINKAT@
 REPLACE_LOCALECONV = @REPLACE_LOCALECONV@
+REPLACE_LOCALTIME = @REPLACE_LOCALTIME@
 REPLACE_LOCALTIME_R = @REPLACE_LOCALTIME_R@
 REPLACE_LOG = @REPLACE_LOG@
 REPLACE_LOG10 = @REPLACE_LOG10@
@@ -1810,17 +1814,18 @@ EXTRA_DIST = accept.c w32sock.h alloca.c alloca.in.h allocator.h \
 	areadlink.h arpa_inet.in.h bind.c w32sock.h btowc.c \
 	byteswap.in.h str-two-way.h calloc.c canonicalize-lgpl.c \
 	careadlinkat.h chown.c fchown-stub.c cloexec.h close.c \
-	connect.c w32sock.h count-one-bits.h md5.h sha256.h dirname.h \
-	dosname.h dup2.c errno.in.h execinfo.c execinfo.in.h fclose.c \
-	fcntl.c fcntl.in.h fd-hook.h fdatasync.c fflush.c stdio-impl.h \
-	ffs.c ffsl.c ffsl.h float.c float.in.h itold.c fnmatch.c \
-	fnmatch.in.h fnmatch_loop.c fpurge.c stdio-impl.h freading.h \
-	stdio-impl.h fseek.c fseeko.c stdio-impl.h fstat.c fsync.c \
-	ftell.c ftello.c stdio-impl.h gai_strerror.c getaddrinfo.c \
-	getcwd-lgpl.c getdelim.c getdtablesize.c getgroups.c \
-	gethostname.c w32sock.h getline.c getpass.c getpass.h \
-	getpeername.c w32sock.h getsockname.c w32sock.h gettimeofday.c \
-	getugroups.h $(top_srcdir)/build-aux/gitlog-to-changelog \
+	connect.c w32sock.h count-one-bits.h gl_openssl.h md5.h \
+	gl_openssl.h sha256.h dirname.h dosname.h dup2.c errno.in.h \
+	execinfo.c execinfo.in.h fclose.c fcntl.c fcntl.in.h fd-hook.h \
+	fdatasync.c fflush.c stdio-impl.h ffs.c ffsl.c ffsl.h float.c \
+	float.in.h itold.c fnmatch.c fnmatch.in.h fnmatch_loop.c \
+	fpurge.c stdio-impl.h freading.h stdio-impl.h fseek.c fseeko.c \
+	stdio-impl.h fstat.c fsync.c ftell.c ftello.c stdio-impl.h \
+	gai_strerror.c getaddrinfo.c getcwd-lgpl.c getdelim.c \
+	getdtablesize.c getgroups.c gethostname.c w32sock.h getline.c \
+	getpass.c getpass.h getpeername.c w32sock.h getsockname.c \
+	w32sock.h gettimeofday.c getugroups.h \
+	$(top_srcdir)/build-aux/gitlog-to-changelog \
 	$(top_srcdir)/GNUmakefile $(top_srcdir)/build-aux/config.rpath \
 	ignore-value.h inet_ntop.c inet_pton.c intprops.h ioctl.c \
 	w32sock.h isatty.c langinfo.in.h listen.c w32sock.h \
@@ -1925,10 +1930,15 @@ EXTRA_libgnu_la_SOURCES = accept.c alloca.c bind.c btowc.c calloc.c \
 libgnu_la_LDFLAGS = $(AM_LDFLAGS) -no-undefined $(GETADDRINFO_LIB) \
 	$(GETHOSTNAME_LIB) $(HOSTENT_LIB) $(INET_NTOP_LIB) \
 	$(INET_PTON_LIB) $(LDEXP_LIBM) $(LIBSOCKET) \
-	$(LIB_CLOCK_GETTIME) $(LIB_EXECINFO) $(LIB_FDATASYNC) \
-	$(LIB_POLL) $(LIB_PTHREAD) $(LIB_PTHREAD_SIGMASK) \
-	$(LIB_SELECT) $(LTLIBINTL) $(LTLIBTHREAD) $(PTY_LIB) \
-	$(SERVENT_LIB)
+	$(LIB_CLOCK_GETTIME) $(LIB_CRYPTO) $(LIB_EXECINFO) \
+	$(LIB_FDATASYNC) $(LIB_POLL) $(LIB_PTHREAD) \
+	$(LIB_PTHREAD_SIGMASK) $(LIB_SELECT) $(LTLIBINTL) \
+	$(LTLIBTHREAD) $(PTY_LIB) $(SERVENT_LIB)
+
+# Use this preprocessor expression to decide whether #include_next works.
+# Do not rely on a 'configure'-time test for this, since the expression
+# might appear in an installed header, which is used by some other compiler.
+HAVE_INCLUDE_NEXT = (__GNUC__ || 60000000 <= __DECC_VER)
 charset_alias = $(DESTDIR)$(libdir)/charset.alias
 charset_tmp = $(DESTDIR)$(libdir)/charset.tmp
 
@@ -3596,6 +3606,7 @@ time.h: time.in.h $(top_builddir)/config.status $(CXXDEFS_H) $(ARG_NONNULL_H) $(
 	      -e 's|@''PRAGMA_SYSTEM_HEADER''@|@PRAGMA_SYSTEM_HEADER@|g' \
 	      -e 's|@''PRAGMA_COLUMNS''@|@PRAGMA_COLUMNS@|g' \
 	      -e 's|@''NEXT_TIME_H''@|$(NEXT_TIME_H)|g' \
+	      -e 's/@''GNULIB_GETTIMEOFDAY''@/$(GNULIB_GETTIMEOFDAY)/g' \
 	      -e 's/@''GNULIB_MKTIME''@/$(GNULIB_MKTIME)/g' \
 	      -e 's/@''GNULIB_NANOSLEEP''@/$(GNULIB_NANOSLEEP)/g' \
 	      -e 's/@''GNULIB_STRPTIME''@/$(GNULIB_STRPTIME)/g' \
@@ -3605,6 +3616,8 @@ time.h: time.in.h $(top_builddir)/config.status $(CXXDEFS_H) $(ARG_NONNULL_H) $(
 	      -e 's|@''HAVE_NANOSLEEP''@|$(HAVE_NANOSLEEP)|g' \
 	      -e 's|@''HAVE_STRPTIME''@|$(HAVE_STRPTIME)|g' \
 	      -e 's|@''HAVE_TIMEGM''@|$(HAVE_TIMEGM)|g' \
+	      -e 's|@''REPLACE_GMTIME''@|$(REPLACE_GMTIME)|g' \
+	      -e 's|@''REPLACE_LOCALTIME''@|$(REPLACE_LOCALTIME)|g' \
 	      -e 's|@''REPLACE_LOCALTIME_R''@|$(REPLACE_LOCALTIME_R)|g' \
 	      -e 's|@''REPLACE_MKTIME''@|$(REPLACE_MKTIME)|g' \
 	      -e 's|@''REPLACE_NANOSLEEP''@|$(REPLACE_NANOSLEEP)|g' \

@@ -638,7 +638,10 @@
       <dt><code>locked</code></dt>
       <dd>When set and supported by the hypervisor, memory pages belonging
         to the domain will be locked in host's memory and the host will not
-        be allowed to swap them out.
+        be allowed to swap them out. For QEMU/KVM this requires
+        <code>hard_limit</code> <a href="#elementsMemoryTuning">memory tuning</a>
+        element to be used and set to the maximum memory configured for the
+        domain plus any memory consumed by the QEMU process itself.
         <span class="since">Since 1.0.6</span></dd>
     </dl>
 
@@ -2352,7 +2355,7 @@
       address to use for a given device is constrained in part by the
       device and the architecture of the guest.  For example,
       a <code>&lt;disk&gt;</code> device
-      uses <code>type='disk'</code>, while
+      uses <code>type='drive'</code>, while
       a <code>&lt;console&gt;</code> device would
       use <code>type='pci'</code> on i686 or x86_64 guests,
       or <code>type='spapr-vio'</code> on PowerPC64 pseries guests.
@@ -2424,6 +2427,11 @@
         cssid set to 0xfe in order to be recognized by the guest
         operating system.
         <span class="since">Since 1.0.4</span>
+      </dd>
+      <dt><code>type='isa'</code></dt>
+      <dd>ISA addresses have the following additional
+        attributes: <code>iobase</code> and <code>irq</code>.
+        <span class="since">Since 1.2.1</span>
       </dd>
     </dl>
 
@@ -5076,6 +5084,34 @@ qemu-kvm -net nic,model=? /dev/null
     <dd>
       <p>
         Device address
+      </p>
+    </dd>
+  </dl>
+
+    <h4><a name="elementsPanic">panic device</a></h4>
+    <p>
+      panic device enables libvirt to receive panic notification from a QEMU
+      guest.
+      <span class="since">Since 1.2.1, QEMU and KVM only</span>
+    </p>
+    <p>
+      Example: usage of panic configuration
+    </p>
+<pre>
+  ...
+  &lt;devices&gt;
+    &lt;panic&gt;
+      &lt;address type='isa' iobase='0x505'/&gt;
+    &lt;/panic&gt;
+  &lt;/devices&gt;
+  ...
+</pre>
+  <dl>
+    <dt><code>address</code></dt>
+    <dd>
+      <p>
+        address of panic. The default ioport is 0x505. Most users
+        don't need to specify an address.
       </p>
     </dd>
   </dl>

@@ -13,3 +13,5 @@ start_libvirtd="yes"
 # Whether to mount a systemd like cgroup layout (only
 # useful when not running systemd)
 #mount_cgroups=yes
+# Which cgroups to mount
+#cgroups="memory devices"

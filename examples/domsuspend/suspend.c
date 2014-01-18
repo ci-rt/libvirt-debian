@@ -1,136 +1,276 @@
-/**
- * section: Scheduling
- * synopsis: Suspend a domain and then resume its execution
- * purpose: Demonstrate the basic use of the library to suspend and
- *          resume a domain. If no id is given on the command line
- *          this script will suspend and resume the first domain found
- *          which is not Domain 0.
- * usage: suspend [id]
- * test: suspend
- * author: Daniel Veillard
- * copy: see Copyright for the status of this software.
+/*
+ * suspend.c: Demo program showing how to suspend a domain
+ *
+ * Copyright (C) 2006-2013 Red Hat, Inc.
+ * Copyright (C) 2006 Daniel P. Berrange
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
+ *
+ * Author: Michal Privoznik <mprivozn@redhat.com>
  */
 
-#include <stdlib.h>
-#include <stdio.h>
+#include <errno.h>
+#include <getopt.h>
 #include <libvirt/libvirt.h>
+#include <libvirt/virterror.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
-static virConnectPtr conn = NULL; /* the hypervisor connection */
+static int debug;
 
-/**
- * checkDomainState:
- * @dom: the domain
- *
- * Return the current state of a domain or -1 if non-exsitant
- */
-static int
-checkDomainState(virDomainPtr dom) {
-    virDomainInfo info;        /* the information being fetched */
-    int ret;
+#define ERROR(...)                                              \
+do {                                                            \
+    fprintf(stderr, "ERROR %s:%d : ", __FUNCTION__, __LINE__);  \
+    fprintf(stderr, __VA_ARGS__);                               \
+    fprintf(stderr, "\n");                                      \
+} while (0)
 
-    ret = virDomainGetInfo(dom, &info);
-    if (ret < 0) {
-        return -1;
-    }
-    return info.state;
-}
+#define DEBUG(...)                                              \
+do {                                                            \
+    if (!debug)                                                 \
+        break;                                                  \
+    fprintf(stderr, "DEBUG %s:%d : ", __FUNCTION__, __LINE__);  \
+    fprintf(stderr, __VA_ARGS__);                               \
+    fprintf(stderr, "\n");                                      \
+} while (0)
 
-/**
- * SuspendAndResumeDomain:
- * @id: the id of the domain
- *
- * extract the domain 0 information
- */
 static void
-SuspendAndResumeDomain(int id) {
-    virDomainPtr dom = NULL;   /* the domain being checked */
-    int ret, state;
+print_usage(const char *progname)
+{
+    const char *unified_progname;
 
-    /* Find the domain of the given id */
-    dom = virDomainLookupByID(conn, id);
-    if (dom == NULL) {
-        fprintf(stderr, "Failed to find Domain %d\n", id);
-        goto error;
-    }
+    if (!(unified_progname = strrchr(progname, '/')))
+        unified_progname = progname;
+    else
+        unified_progname++;
 
-    /* Check state */
-    state = checkDomainState(dom);
-    if ((state == VIR_DOMAIN_RUNNING) ||
-        (state == VIR_DOMAIN_NOSTATE) ||
-        (state == VIR_DOMAIN_BLOCKED)) {
-        printf("Suspending domain...\n");
-        ret = virDomainSuspend(dom);
-        if (ret < 0) {
-            fprintf(stderr, "Failed to suspend Domain %d\n", id);
-            goto error;
-        }
-        state = checkDomainState(dom);
-        if (state != VIR_DOMAIN_PAUSED) {
-            fprintf(stderr, "Domain %d state is not suspended\n", id);
-        } else {
-            printf("Domain suspended, resuming it...\n");
-        }
-        ret = virDomainResume(dom);
-        if (ret < 0) {
-            fprintf(stderr, "Failed to resume Domain %d\n", id);
-            goto error;
-        }
-        state = checkDomainState(dom);
-        if ((state == VIR_DOMAIN_RUNNING) ||
-            (state == VIR_DOMAIN_NOSTATE) ||
-            (state == VIR_DOMAIN_BLOCKED)) {
-            printf("Domain resumed\n");
-        } else {
-            fprintf(stderr, "Domain %d state indicate it is not resumed\n", id);
-        }
-    } else {
-        fprintf(stderr, "Domain %d is not in a state where it should be suspended\n", id);
-        goto error;
-    }
-
-error:
-    if (dom != NULL)
-        virDomainFree(dom);
+    printf("\n%s [options] [domain name]\n\n"
+           "  options:\n"
+           "    -d | --debug        enable debug printings\n"
+           "    -h | --help         print this help\n"
+           "    -c | --connect=URI  hypervisor connection URI\n"
+           "    -s | --seconds=X    suspend domain for X seconds (default 1)\n",
+           unified_progname);
 }
 
-int main(int argc, char **argv) {
-    int id = 0;
+static int
+parse_argv(int argc, char *argv[],
+           const char **uri,
+           const char **dom_name,
+           unsigned int *seconds)
+{
+    int ret = -1;
+    int arg;
+    unsigned long val;
+    char *p;
+    struct option opt[] = {
+        {"debug", no_argument, NULL, 'd'},
+        {"help", no_argument, NULL, 'h'},
+        {"connect", required_argument, NULL, 'c'},
+        {"seconds", required_argument, NULL, 's'},
+        {NULL, 0, NULL, 0}
+    };
 
-    /* NULL means connect to local Xen hypervisor */
-    conn = virConnectOpenReadOnly(NULL);
-    if (conn == NULL) {
-        fprintf(stderr, "Failed to connect to hypervisor\n");
-        goto error;
-    }
-
-    if (argc > 1) {
-        id = atoi(argv[1]);
-    }
-    if (id == 0) {
-        int n;
-        size_t i;
-        int ids[10];
-        n = virConnectListDomains(conn, &ids[0], 10);
-        if (n < 0) {
-            fprintf(stderr, "Failed to list the domains\n");
-            goto error;
-        }
-        for (i = 0; i < n; i++) {
-            if (ids[i] != 0) {
-                id = ids[i];
-                break;
+    while ((arg = getopt_long(argc, argv, "+:dhc:s:", opt, NULL)) != -1) {
+        switch (arg) {
+        case 'd':
+            debug = 1;
+            break;
+        case 'h':
+            print_usage(argv[0]);
+            exit(EXIT_SUCCESS);
+            break;
+        case 'c':
+            *uri = optarg;
+            break;
+        case 's':
+            /* strtoul man page suggest clearing errno prior to call */
+            errno = 0;
+            val = strtoul(optarg, &p, 10);
+            if (errno || *p || p == optarg) {
+                ERROR("Invalid number: '%s'", optarg);
+                goto cleanup;
             }
+            *seconds = val;
+            if (*seconds != val) {
+                ERROR("Integer overflow: %ld", val);
+                goto cleanup;
+            }
+            break;
+        case ':':
+            ERROR("option '-%c' requires an argument", optopt);
+            exit(EXIT_FAILURE);
+        case '?':
+            if (optopt)
+                ERROR("unsupported option '-%c'. See --help.", optopt);
+            else
+                ERROR("unsupported option '%s'. See --help.", argv[optind - 1]);
+            exit(EXIT_FAILURE);
+        default:
+            ERROR("unknown option");
+            exit(EXIT_FAILURE);
         }
     }
-    if (id == 0) {
-        fprintf(stderr, "Failed find a running guest domain\n");
-        goto error;
+
+    if (argc > optind)
+        *dom_name = argv[optind];
+
+    ret = 0;
+cleanup:
+    return ret;
+}
+
+static int
+fetch_domains(virConnectPtr conn)
+{
+    int num_domains, ret = -1;
+    virDomainPtr *domains = NULL;
+    size_t i;
+    const int list_flags = VIR_CONNECT_LIST_DOMAINS_ACTIVE;
+
+    DEBUG("Fetching list of running domains");
+    num_domains = virConnectListAllDomains(conn, &domains, list_flags);
+
+    DEBUG("num_domains=%d", num_domains);
+    if (num_domains < 0) {
+        ERROR("Unable to fetch list of running domains");
+        goto cleanup;
     }
 
-    SuspendAndResumeDomain(id);
+    printf("Running domains:\n");
+    printf("----------------\n");
+    for (i = 0; i < num_domains; i++) {
+        virDomainPtr dom = domains[i];
+        const char *dom_name = virDomainGetName(dom);
+        printf("%s\n", dom_name);
+        virDomainFree(dom);
+    }
 
-error:
-    if (conn != NULL)
-        virConnectClose(conn);
-    return 0;
+    ret = 0;
+cleanup:
+    free(domains);
+    return ret;
+}
+
+static int
+suspend_and_resume(virConnectPtr conn,
+                   const char *dom_name,
+                   unsigned int seconds)
+{
+    int ret = -1;
+    virDomainPtr dom;
+    virDomainInfo dom_info;
+
+    if (!(dom = virDomainLookupByName(conn, dom_name))) {
+        ERROR("Unable to find domain '%s'", dom_name);
+        goto cleanup;
+    }
+
+    if (virDomainGetInfo(dom, &dom_info) < 0) {
+        ERROR("Unable to get domain info");
+        goto cleanup;
+    }
+
+    DEBUG("Domain state %d", dom_info.state);
+
+    switch (dom_info.state) {
+    case VIR_DOMAIN_NOSTATE:
+    case VIR_DOMAIN_RUNNING:
+    case VIR_DOMAIN_BLOCKED:
+        /* In these states the domain can be suspended */
+        DEBUG("Suspending domain");
+        if (virDomainSuspend(dom) < 0) {
+            ERROR("Unable to suspend domain");
+            goto cleanup;
+        }
+
+        DEBUG("Domain suspended. Entering sleep for %u seconds.", seconds);
+        sleep(seconds);
+        DEBUG("Sleeping done. Resuming the domain.");
+
+        if (virDomainResume(dom) < 0) {
+            ERROR("Unable to resume domain");
+            goto cleanup;
+        }
+        break;
+
+    default:
+        /* In all other states domain can't be suspended */
+        ERROR("Domain is not in a state where it can be suspended: %d",
+              dom_info.state);
+        goto cleanup;
+    }
+
+    ret = 0;
+cleanup:
+    if (dom)
+        virDomainFree(dom);
+    return ret;
+}
+
+int
+main(int argc, char *argv[])
+{
+    int ret = EXIT_FAILURE;
+    virConnectPtr conn = NULL;
+    const char *uri = NULL;
+    const char *dom_name = NULL;
+    unsigned int seconds = 1; /* Suspend domain for this long */
+    const int connect_flags = 0; /* No connect flags for now */
+
+    if (parse_argv(argc, argv, &uri, &dom_name, &seconds) < 0)
+        goto cleanup;
+
+    DEBUG("Proceeding with uri=%s dom_name=%s seconds=%u",
+          uri, dom_name, seconds);
+
+    if (!(conn = virConnectOpenAuth(uri,
+                                    virConnectAuthPtrDefault,
+                                    connect_flags))) {
+        ERROR("Failed to connect to hypervisor");
+        goto cleanup;
+    }
+
+    DEBUG("Successfully connected");
+
+    if (!dom_name) {
+        if (fetch_domains(conn) == 0)
+            ret = EXIT_SUCCESS;
+        goto cleanup;
+    }
+
+    if (suspend_and_resume(conn, dom_name, seconds) < 0)
+        goto cleanup;
+
+    ret = EXIT_SUCCESS;
+cleanup:
+    if (conn) {
+        int tmp;
+        tmp = virConnectClose(conn);
+        if (tmp < 0) {
+            ERROR("Failed to disconnect from the hypervisor");
+            ret = EXIT_FAILURE;
+        } else if (tmp > 0) {
+            ERROR("One or more references were leaked after "
+                  "disconnect from the hypervisor");
+            ret = EXIT_FAILURE;
+        } else {
+            DEBUG("Connection successfully closed");
+        }
+    }
+    return ret;
 }

@@ -41,6 +41,11 @@ testCompareXMLToXMLFiles(const char *inxml, const char *outxml, bool live)
                                         live ? 0 : VIR_DOMAIN_XML_INACTIVE)))
         goto fail;
 
+    if (!virDomainDefCheckABIStability(def, def)) {
+        fprintf(stderr, "ABI stability check failed on %s", inxml);
+        goto fail;
+    }
+
     if (!(actual = virDomainDefFormat(def, VIR_DOMAIN_XML_SECURE)))
         goto fail;
 
@@ -138,6 +143,7 @@ mymain(void)
     DO_TEST("disk-formats");
     DO_TEST_DIFFERENT("filesystem-ram");
     DO_TEST("filesystem-root");
+    DO_TEST("idmap");
 
     virObjectUnref(caps);
     virObjectUnref(xmlopt);

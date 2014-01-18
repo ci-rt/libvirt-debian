@@ -105,7 +105,7 @@ char * qemuBuildNicDevStr(virDomainDefPtr def,
                           virDomainNetDefPtr net,
                           int vlan,
                           int bootindex,
-                          bool multiqueue,
+                          int vhostfdSize,
                           virQEMUCapsPtr qemuCaps);
 
 char *qemuDeviceDriveHostAlias(virDomainDiskDefPtr disk,
@@ -180,6 +180,12 @@ char * qemuBuildHubDevStr(virDomainDefPtr def,
 char * qemuBuildRedirdevDevStr(virDomainDefPtr def,
                                virDomainRedirdevDefPtr dev,
                                virQEMUCapsPtr qemuCaps);
+char *qemuBuildNetworkDriveURI(int proto,
+                               const char *src,
+                               size_t nhosts,
+                               virDomainDiskHostDefPtr hosts,
+                               const char *username,
+                               const char *secret);
 
 int qemuNetworkIfaceConnect(virDomainDefPtr def,
                             virConnectPtr conn,

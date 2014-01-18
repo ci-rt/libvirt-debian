@@ -1,3 +1,64 @@
+libvirt (1.2.1-1) unstable; urgency=medium
+
+  * Upload to unstable
+  * [22e83d7] New upstream version 1.2.1.
+    Fixes CVE-2014-0028, CVE-2014-1447, CVE-2013-6457
+    (Closes: #735676)
+
+ -- Guido Günther <agx@sigxcpu.org>  Fri, 17 Jan 2014 06:16:29 +0100
+
+libvirt (1.2.1~rc2-1) experimental; urgency=medium
+
+  * [e559e92] libvirt-bin.init: Fix typo in path when checking for systemd
+  * [fef0f8f] New upstream version 1.2.1~rc2
+  * [caf3c45] Rediff patches
+
+ -- Guido Günther <agx@sigxcpu.org>  Tue, 14 Jan 2014 11:21:55 +0100
+
+libvirt (1.2.1~rc1-1) experimental; urgency=medium
+
+  [ Laurent Bigonville ]
+  * [f6b0feb] Pass --with-selinux-mount=/sys/fs/selinux to ./configure.
+    The buildd are not running selinux and this make the auto-detection code
+    defaults to /selinux which is actually not existing anymore in sid.
+    This complete the fix for SELinux support.
+
+  [ Guido Günther ]
+  * Upload to experimental
+  * [20d9129] Enable parallel build support.
+    Thanks to Felix Geyer for pointing this out
+  * [0d0590e] New upstream version 1.2.1~rc1. Fixes CVE-2013-6458
+    (Closes: #734556)
+  * [a3f978b] Bump symbol versions
+  * [0a6a276] Rediff patches.
+    Dropped (fixed upstream):
+      security-fix-crash-in-lxcDomainGetMemoryParameters.patch
+      security-fix-crash-in-lxcDomainSetMemoryParameters.patch
+  * [3061b11] Build with apparmor support.
+    Note that this isn't enough to run with apparmor support since the
+    profiles will need more work but it makes testing this a lot simpler.
+    This is heavily based on a patch by Felix Geyer.
+    See: #725144
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 09 Jan 2014 08:23:57 +0100
+
+libvirt (1.2.0-2) unstable; urgency=medium
+
+  [ Guido Günther ]
+  * [949fae6] Suggest systemd since it improves thinks like e.g. cgroup
+    handling
+  * [96f9aae] Make mounted cgroups configurable via /etc/default/libvirt-bin
+    and check for memory cgroup on kernel command line. (Closes: #732666)
+  * [ce356fe] Really remove "memory" from default mount list. Thanks to phep
+    <phep-lists@teletopie.net>
+
+  [ Laurent Bigonville ]
+  * [13052e4] Enable selinux driver (Closes: #688179)
+  * [a00df46] Switch LSB dependencies to avahi-daemon since only the later
+    exists as native systemd service. (Closes: #731612)
+
+ -- Guido Günther <agx@sigxcpu.org>  Wed, 01 Jan 2014 20:24:37 +0100
+
 libvirt (1.2.0-1) unstable; urgency=medium
 
   * Upload to unstable
