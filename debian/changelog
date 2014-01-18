@@ -1,3 +1,16 @@
+libvirt (1.2.1-1~bpo70+1) wheezy-backports; urgency=medium
+
+  * Rebuild for wheezy-backports.
+  * Remaining changes:
+    - [31a2113] Use libnl1 since libnetcf1 is linked against libnl1 in Wheezy.
+      Also make sure we don't pickup up libnetcf-dev using libnl3.
+    - [4ca4854] Make sure the cgroup update notice is also shown in backports
+    - [c5a59dd] Drop version in polkit-1 dependency. This reintroduces
+      CVE-2013-4311 since we don't have a recent enough polkit-1 in wheezy.
+    - [4db6aaa] Disable xenlight support not available in wheezy
+
+ -- Guido Günther <agx@sigxcpu.org>  Sat, 18 Jan 2014 17:42:03 +0100
+
 libvirt (1.2.1-1) unstable; urgency=medium
 
   * Upload to unstable
