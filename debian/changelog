@@ -1,3 +1,13 @@
+libvirt (1.2.1-2) unstable; urgency=medium
+
+  * [e936a7e] Document libvirt user capabilities
+  * [94096c9] xen: fix parsing xend http response.  This unbreaks xen on
+    wheezy.
+    Thanks to Jim Fehlig
+  * [fb06860] Install virt-aa-helper for apparmor
+
+ -- Guido Günther <agx@sigxcpu.org>  Wed, 29 Jan 2014 07:42:22 +0100
+
 libvirt (1.2.1-1) unstable; urgency=medium
 
   * Upload to unstable
