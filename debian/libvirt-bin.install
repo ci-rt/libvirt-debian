@@ -6,6 +6,7 @@ etc/apparmor.d
 usr/share/polkit-1
 usr/lib/libvirt/libvirt*
 usr/lib/libvirt/connection-driver
+usr/lib/libvirt/virt-aa-helper
 usr/share/augeas/*
 usr/share/libvirt/*
 usr/share/man/man8/*
