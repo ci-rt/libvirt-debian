@@ -670,7 +670,14 @@ virSecuritySELinuxGenSecurityLabel(virSecurityManagerPtr mgr,
         break;
 
     case VIR_DOMAIN_SECLABEL_NONE:
-        /* no op */
+        if (virSecuritySELinuxMCSGetProcessRange(&sens,
+                                                 &catMin,
+                                                 &catMax) < 0)
+            goto cleanup;
+
+        if (VIR_STRDUP(mcs, sens) < 0)
+            goto cleanup;
+
         break;
 
     default:
@@ -896,13 +903,14 @@ virSecuritySELinuxSetFileconHelper(const char *path, char *tcon, bool optional)
             freecon(econ);
         }
 
-        /* if the error complaint is related to an image hosted on
-         * an nfs mount, or a usbfs/sysfs filesystem not supporting
-         * labelling, then just ignore it & hope for the best.
-         * The user hopefully set one of the necessary SELinux
-         * virt_use_{nfs,usb,pci}  boolean tunables to allow it...
+        /* If the error complaint is related to an image hosted on a (possibly
+         * read-only) NFS mount, or a usbfs/sysfs filesystem not supporting
+         * labelling, then just ignore it & hope for the best.  The user
+         * hopefully sets one of the necessary SELinux virt_use_{nfs,usb,pci}
+         * boolean tunables to allow it ...
          */
-        if (setfilecon_errno != EOPNOTSUPP && setfilecon_errno != ENOTSUP) {
+        if (setfilecon_errno != EOPNOTSUPP && setfilecon_errno != ENOTSUP &&
+            setfilecon_errno != EROFS) {
             virReportSystemError(setfilecon_errno,
                                  _("unable to set security context '%s' on '%s'"),
                                  tcon, path);
@@ -1349,11 +1357,13 @@ virSecuritySELinuxSetSecurityHostdevSubsysLabel(virDomainDefPtr def,
 
     case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_SCSI: {
         virSCSIDevicePtr scsi =
-            virSCSIDeviceNew(dev->source.subsys.u.scsi.adapter,
+            virSCSIDeviceNew(NULL,
+                             dev->source.subsys.u.scsi.adapter,
                              dev->source.subsys.u.scsi.bus,
                              dev->source.subsys.u.scsi.target,
                              dev->source.subsys.u.scsi.unit,
-                             dev->readonly);
+                             dev->readonly,
+                             dev->shareable);
 
         if (!scsi)
             goto done;
@@ -1540,11 +1550,13 @@ virSecuritySELinuxRestoreSecurityHostdevSubsysLabel(virSecurityManagerPtr mgr,
 
     case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_SCSI: {
         virSCSIDevicePtr scsi =
-            virSCSIDeviceNew(dev->source.subsys.u.scsi.adapter,
+            virSCSIDeviceNew(NULL,
+                             dev->source.subsys.u.scsi.adapter,
                              dev->source.subsys.u.scsi.bus,
                              dev->source.subsys.u.scsi.target,
                              dev->source.subsys.u.scsi.unit,
-                             dev->readonly);
+                             dev->readonly,
+                             dev->shareable);
 
             if (!scsi)
                 goto done;

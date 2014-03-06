@@ -94,6 +94,10 @@
                         <div>
                           <a title="Use lock managers to protect disk content" class="inactive" href="internals/locking.html">Lock managers</a>
                         </div>
+                      </li><li>
+                        <div>
+                          <a title="Simulating OOM conditions in the test suite" class="inactive" href="internals/oomtesting.html">Out of memory testing</a>
+                        </div>
                       </li></ul>
                   </div>
                 </li><li>
@@ -103,6 +107,10 @@
                 </li><li>
                   <div>
                     <a title="Command reference for virsh" class="inactive" href="virshcmdref.html">Virsh Commands</a>
+                  </div>
+                </li><li>
+                  <div>
+                    <a title="Project governance and code of conduct" class="inactive" href="governance.html">Governance</a>
                   </div>
                 </li></ul>
             </div>
@@ -239,6 +247,7 @@
         <p>With that said, let's begin.</p>
         <h2>
           <a name="publicapi" shape="rect" id="publicapi">Defining the public API</a>
+          <a class="headerlink" href="#publicapi" title="Permalink to this headline">¶</a>
         </h2>
         <p>The first task is to define the public API.  If the new API
       involves an XML extension, you have to enhance the RelaxNG
@@ -272,6 +281,7 @@
     for example code.</p>
         <h2>
           <a name="internalapi" shape="rect" id="internalapi">Defining the internal API</a>
+          <a class="headerlink" href="#internalapi" title="Permalink to this headline">¶</a>
         </h2>
         <p>
       Each public API call is associated with a driver, such as a host
@@ -298,6 +308,7 @@
         <p class="example">See <a href="api_extension/0003-define-internal-driver-API.patch" shape="rect">0003-define-internal-driver-API.patch</a></p>
         <h2>
           <a name="implpublic" shape="rect" id="implpublic">Implementing the public API</a>
+          <a class="headerlink" href="#implpublic" title="Permalink to this headline">¶</a>
         </h2>
         <p>
       Implementing the public API is largely a formality in which we wire up
@@ -321,6 +332,7 @@
         <p class="example">See <a href="api_extension/0004-implement-the-public-APIs.patch" shape="rect">0004-implement-the-public-APIs.patch</a></p>
         <h2>
           <a name="remoteproto" shape="rect" id="remoteproto">Implementing the remote protocol</a>
+          <a class="headerlink" href="#remoteproto" title="Permalink to this headline">¶</a>
         </h2>
         <p>
       Implementing the remote protocol is essentially a
@@ -332,6 +344,7 @@
         <p class="example">See <a href="api_extension/0005-implement-the-remote-protocol.patch" shape="rect">0005-implement-the-remote-protocol.patch</a></p>
         <h3>
           <a name="wireproto" shape="rect" id="wireproto">Defining the wire protocol format</a>
+          <a class="headerlink" href="#wireproto" title="Permalink to this headline">¶</a>
         </h3>
         <p>
       Defining the wire protocol involves making additions to:
@@ -370,6 +383,7 @@
         </p>
         <h3>
           <a name="rpcclient" shape="rect" id="rpcclient">Implement the RPC client</a>
+          <a class="headerlink" href="#rpcclient" title="Permalink to this headline">¶</a>
         </h3>
         <p>
       Implementing the uses the rpcgen generated .h files.  The remote
@@ -382,6 +396,7 @@
         <ol class="ordinarylist"><li>locks the remote driver;</li><li>sets up the method arguments;</li><li>invokes the remote function;</li><li>checks the return value, if necessary;</li><li>extracts any returned data;</li><li>frees any returned data;</li><li>unlocks the remote driver.</li></ol>
         <h3>
           <a name="serverdispatch" shape="rect" id="serverdispatch">Implement the server side dispatcher</a>
+          <a class="headerlink" href="#serverdispatch" title="Permalink to this headline">¶</a>
         </h3>
         <p>
       Implementing the server side of the remote function call is simply a
@@ -407,6 +422,7 @@
         <p class="example">See <a href="api_extension/0005-implement-the-remote-protocol.patch" shape="rect">0005-implement-the-remote-protocol.patch</a></p>
         <h2>
           <a name="internaluseapi" shape="rect" id="internaluseapi">Use the new API internally</a>
+          <a class="headerlink" href="#internaluseapi" title="Permalink to this headline">¶</a>
         </h2>
         <p>
       Sometimes, a new API serves as a superset of existing API, by
@@ -420,6 +436,7 @@
         <p class="example">See <a href="api_extension/0006-make-old-API-trivially-wrap-to-new-API.patch" shape="rect">0006-make-old-API-trivially-wrap-to-new-API.patch</a></p>
         <h2>
           <a name="virshuseapi" shape="rect" id="virshuseapi">Expose the new API in virsh</a>
+          <a class="headerlink" href="#virshuseapi" title="Permalink to this headline">¶</a>
         </h2>
         <p>
       All new API should be manageable from the virsh command line
@@ -450,6 +467,7 @@
         <p class="example">See <a href="api_extension/0007-add-virsh-support.patch" shape="rect">0007-add-virsh-support.patch</a></p>
         <h2>
           <a name="driverimpl" shape="rect" id="driverimpl">Implement the driver methods</a>
+          <a class="headerlink" href="#driverimpl" title="Permalink to this headline">¶</a>
         </h2>
         <p>
       So, after all that, we get to the fun part.  All functionality in
@@ -461,6 +479,7 @@
     </p>
         <h3>
           <a name="commonimpl" shape="rect" id="commonimpl">Implement common handling</a>
+          <a class="headerlink" href="#commonimpl" title="Permalink to this headline">¶</a>
         </h3>
         <p>
       If the new API is applicable to more than one driver, it may
@@ -477,6 +496,7 @@
         <p class="example">See <a href="api_extension/0008-support-new-xml.patch" shape="rect">0008-support-new-xml.patch</a></p>
         <h3>
           <a name="drivercode" shape="rect" id="drivercode">Implement driver handling</a>
+          <a class="headerlink" href="#drivercode" title="Permalink to this headline">¶</a>
         </h3>
         <p>
       The remaining patches should only touch one driver at a time.

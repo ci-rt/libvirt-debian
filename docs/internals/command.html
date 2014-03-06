@@ -94,6 +94,10 @@
                         <div>
                           <a title="Use lock managers to protect disk content" class="inactive" href="../internals/locking.html">Lock managers</a>
                         </div>
+                      </li><li>
+                        <div>
+                          <a title="Simulating OOM conditions in the test suite" class="inactive" href="../internals/oomtesting.html">Out of memory testing</a>
+                        </div>
                       </li></ul>
                   </div>
                 </li><li>
@@ -103,6 +107,10 @@
                 </li><li>
                   <div>
                     <a title="Command reference for virsh" class="inactive" href="../virshcmdref.html">Virsh Commands</a>
+                  </div>
+                </li><li>
+                  <div>
+                    <a title="Project governance and code of conduct" class="inactive" href="../governance.html">Governance</a>
                   </div>
                 </li></ul>
             </div>
@@ -179,6 +187,7 @@
     </p>
         <h2>
           <a name="posix" shape="rect" id="posix">Problems with standard POSIX APIs</a>
+          <a class="headerlink" href="#posix" title="Permalink to this headline">¶</a>
         </h2>
         <p>
       The POSIX specification includes a number of APIs for
@@ -221,6 +230,7 @@
     </p>
         <h2>
           <a name="api" shape="rect" id="api">The libvirt command execution API</a>
+          <a class="headerlink" href="#api" title="Permalink to this headline">¶</a>
         </h2>
         <p>
       There is now a high level API that provides a safe and
@@ -231,6 +241,7 @@
     </p>
         <h3>
           <a name="initial" shape="rect" id="initial">Defining commands in libvirt</a>
+          <a class="headerlink" href="#initial" title="Permalink to this headline">¶</a>
         </h3>
         <p>
       The first step is to declare what command is to be
@@ -249,6 +260,7 @@
     </p>
         <h3>
           <a name="args" shape="rect" id="args">Adding arguments to the command</a>
+          <a class="headerlink" href="#args" title="Permalink to this headline">¶</a>
         </h3>
         <p>
       There are a number of APIs for adding arguments to a
@@ -298,6 +310,7 @@
 </pre>
         <h3>
           <a name="env" shape="rect" id="env">Setting up the environment</a>
+          <a class="headerlink" href="#env" title="Permalink to this headline">¶</a>
         </h3>
         <p>
       By default a command will inherit all environment variables
@@ -340,6 +353,7 @@
 </pre>
         <h3>
           <a name="misc" shape="rect" id="misc">Miscellaneous other options</a>
+          <a class="headerlink" href="#misc" title="Permalink to this headline">¶</a>
         </h3>
         <p>
       Normally the spawned command will retain the current
@@ -366,6 +380,7 @@
     </p>
         <h3>
           <a name="privs" shape="rect" id="privs">Reducing command privileges</a>
+          <a class="headerlink" href="#privs" title="Permalink to this headline">¶</a>
         </h3>
         <p>
       Normally a command will inherit all privileges of
@@ -379,6 +394,7 @@
 </pre>
         <h3>
           <a name="fds" shape="rect" id="fds">Managing file handles</a>
+          <a class="headerlink" href="#fds" title="Permalink to this headline">¶</a>
         </h3>
         <p>
       To prevent unintended resource leaks to child processes, the
@@ -454,6 +470,7 @@
 </pre>
         <h3>
           <a name="buffers" shape="rect" id="buffers">Feeding &amp; capturing strings to/from the child</a>
+          <a class="headerlink" href="#buffers" title="Permalink to this headline">¶</a>
         </h3>
         <p>
       Often dealing with file handles for stdin/out/err is
@@ -502,6 +519,7 @@
     </p>
         <h3>
           <a name="directory" shape="rect" id="directory">Setting working directory</a>
+          <a class="headerlink" href="#directory" title="Permalink to this headline">¶</a>
         </h3>
         <p>
       Daemonized commands are always run with "/" as the current
@@ -514,6 +532,7 @@
 </pre>
         <h3>
           <a name="hooks" shape="rect" id="hooks">Any additional hooks</a>
+          <a class="headerlink" href="#hooks" title="Permalink to this headline">¶</a>
         </h3>
         <p>
       If anything else is needed, it is possible to request a hook
@@ -527,6 +546,7 @@
 </pre>
         <h3>
           <a name="logging" shape="rect" id="logging">Logging commands</a>
+          <a class="headerlink" href="#logging" title="Permalink to this headline">¶</a>
         </h3>
         <p>
       Sometimes, it is desirable to log what command will be run, or
@@ -551,6 +571,7 @@
 </pre>
         <h3>
           <a name="sync" shape="rect" id="sync">Running commands synchronously</a>
+          <a class="headerlink" href="#sync" title="Permalink to this headline">¶</a>
         </h3>
         <p>
       For most commands, the desired behaviour is to spawn
@@ -585,6 +606,7 @@
 </pre>
         <h3>
           <a name="async" shape="rect" id="async">Running commands asynchronously</a>
+          <a class="headerlink" href="#async" title="Permalink to this headline">¶</a>
         </h3>
         <p>
       In certain complex scenarios, particularly special
@@ -630,6 +652,7 @@
     </p>
         <h3>
           <a name="release" shape="rect" id="release">Releasing resources</a>
+          <a class="headerlink" href="#release" title="Permalink to this headline">¶</a>
         </h3>
         <p>
       Once the command has been executed, or if execution
@@ -648,6 +671,7 @@
     </p>
         <h2>
           <a name="example" shape="rect" id="example">Complete examples</a>
+          <a class="headerlink" href="#example" title="Permalink to this headline">¶</a>
         </h2>
         <p>
       This shows a complete example usage of the APIs roughly

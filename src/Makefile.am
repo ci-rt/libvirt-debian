@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-## Copyright (C) 2005-2013 Red Hat, Inc.
+## Copyright (C) 2005-2014 Red Hat, Inc.
 ##
 ## This library is free software; you can redistribute it and/or
 ## modify it under the terms of the GNU Lesser General Public
@@ -125,6 +125,7 @@ UTIL_SOURCES =							\
 		util/virnetdevvportprofile.h util/virnetdevvportprofile.c \
 		util/virnetlink.c util/virnetlink.h		\
 		util/virnodesuspend.c util/virnodesuspend.h	\
+		util/virkmod.c util/virkmod.h                   \
 		util/virnuma.c util/virnuma.h			\
 		util/virobject.c util/virobject.h		\
 		util/virpci.c util/virpci.h			\
@@ -141,8 +142,6 @@ UTIL_SOURCES =							\
 		util/virsysinfo.c util/virsysinfo.h		\
 		util/virsystemd.c util/virsystemd.h		\
 		util/virthread.c util/virthread.h		\
-		util/virthreadpthread.h				\
-		util/virthreadwin32.h				\
 		util/virthreadpool.c util/virthreadpool.h	\
 		util/virtime.h util/virtime.c			\
 		util/virtpm.h util/virtpm.c			\
@@ -165,10 +164,8 @@ util/virkeymaps.h: $(srcdir)/util/keymaps.csv	\
 	$(AM_V_GEN)$(PYTHON) $(srcdir)/util/virkeycode-mapgen.py \
 	  <$(srcdir)/util/keymaps.csv >$(srcdir)/util/virkeymaps.h
 
-EXTRA_DIST += util/virthreadpthread.c util/virthreadwin32.c
-
 # Internal generic driver infrastructure
-NODE_INFO_SOURCES = nodeinfo.h nodeinfo.c
+NODE_INFO_SOURCES = nodeinfo.h nodeinfo.c nodeinfopriv.h
 DATATYPES_SOURCES = datatypes.h datatypes.c
 DRIVER_SOURCES =							\
 		driver.c driver.h					\
@@ -515,6 +512,7 @@ DRIVER_SOURCE_FILES = \
 	$(NULL)
 
 STATEFUL_DRIVER_SOURCE_FILES = \
+	$(BHYVE_DRIVER_SOURCES) \
 	$(INTERFACE_DRIVER_SOURCES) \
 	$(LIBXL_DRIVER_SOURCES) \
 	$(LXC_DRIVER_SOURCES) \
@@ -622,6 +620,7 @@ LXC_DRIVER_SOURCES =						\
 		lxc/lxc_monitor.c lxc/lxc_monitor.h		\
 		lxc/lxc_process.c lxc/lxc_process.h		\
 		lxc/lxc_fuse.c lxc/lxc_fuse.h			\
+		lxc/lxc_native.c lxc/lxc_native.h		\
 		lxc/lxc_driver.c lxc/lxc_driver.h
 
 LXC_CONTROLLER_SOURCES =					\
@@ -660,7 +659,9 @@ VBOX_DRIVER_SOURCES =						\
 	vbox/vbox_V4_0.c vbox/vbox_CAPI_v4_0.h			\
 	vbox/vbox_V4_1.c vbox/vbox_CAPI_v4_1.h			\
 	vbox/vbox_V4_2.c vbox/vbox_CAPI_v4_2.h			\
-	vbox/vbox_V4_3.c vbox/vbox_CAPI_v4_3.h
+	vbox/vbox_V4_2_20.c vbox/vbox_CAPI_v4_2_20.h			\
+	vbox/vbox_V4_3.c vbox/vbox_CAPI_v4_3.h			\
+	vbox/vbox_V4_3_4.c vbox/vbox_CAPI_v4_3_4.h
 
 VBOX_DRIVER_EXTRA_DIST =					\
 		vbox/vbox_tmpl.c vbox/README			\
@@ -771,6 +772,16 @@ PARALLELS_DRIVER_SOURCES =					\
 		parallels/parallels_utils.h			\
 		parallels/parallels_storage.c		\
 		parallels/parallels_network.c
+
+BHYVE_DRIVER_SOURCES =						\
+		bhyve/bhyve_command.c				\
+		bhyve/bhyve_command.h				\
+		bhyve/bhyve_driver.h				\
+		bhyve/bhyve_driver.c				\
+		bhyve/bhyve_process.c				\
+		bhyve/bhyve_process.h				\
+		bhyve/bhyve_utils.h				\
+		$(NULL)
 
 NETWORK_DRIVER_SOURCES =					\
 		network/bridge_driver.h network/bridge_driver.c \
@@ -947,11 +958,11 @@ libvirt_util_la_SOURCES =					\
 libvirt_util_la_CFLAGS = $(CAPNG_CFLAGS) $(YAJL_CFLAGS) $(LIBNL_CFLAGS) \
 		$(AM_CFLAGS) $(AUDIT_CFLAGS) $(DEVMAPPER_CFLAGS) \
 		$(DBUS_CFLAGS) $(LDEXP_LIBM) $(NUMACTL_CFLAGS)	\
-		-I$(top_srcdir)/src/conf
+		$(SYSTEMD_DAEMON_CFLAGS) -I$(top_srcdir)/src/conf
 libvirt_util_la_LIBADD = $(CAPNG_LIBS) $(YAJL_LIBS) $(LIBNL_LIBS) \
 		$(THREAD_LIBS) $(AUDIT_LIBS) $(DEVMAPPER_LIBS) \
 		$(LIB_CLOCK_GETTIME) $(DBUS_LIBS) $(MSCOM_LIBS) $(LIBXML_LIBS) \
-		$(SECDRIVER_LIBS) $(NUMACTL_LIBS)
+		$(SECDRIVER_LIBS) $(NUMACTL_LIBS) $(SYSTEMD_DAEMON_LIBS)
 
 
 noinst_LTLIBRARIES += libvirt_conf.la
@@ -1308,6 +1319,26 @@ libvirt_driver_parallels_la_CFLAGS = \
 libvirt_driver_parallels_la_SOURCES = $(PARALLELS_DRIVER_SOURCES)
 endif WITH_PARALLELS
 
+if WITH_BHYVE
+noinst_LTLIBRARIES += libvirt_driver_bhyve_impl.la
+libvirt_driver_bhyve_la_SOURCES =
+libvirt_driver_bhyve_la_LIBADD = libvirt_driver_bhyve_impl.la
+if WITH_DRIVER_MODULES
+mod_LTLIBRARIES += libvirt_driver_bhyve.la
+libvirt_driver_bhyve_la_LIBADD += ../gnulib/lib/libgnu.la
+libvirt_driver_bhyve_la_LDFLAGS = -module -avoid-version $(AM_LDFLAGS)
+else ! WITH_DRIVER_MODULES
+noinst_LTLIBRARIES += libvirt_driver_bhyve.la
+endif ! WITH_DRIVER_MODULES
+
+libvirt_driver_bhyve_impl_la_CFLAGS = \
+	-I$(top_srcdir)/src/access \
+	-I$(top_srcdir)/src/conf \
+	$(AM_CFLAGS)
+libvirt_driver_bhyve_impl_la_LDFLAGS = $(AM_LDFLAGS)
+libvirt_driver_bhyve_impl_la_SOURCES = $(BHYVE_DRIVER_SOURCES)
+endif WITH_BHYVE
+
 if WITH_NETWORK
 noinst_LTLIBRARIES += libvirt_driver_network_impl.la
 libvirt_driver_network_la_SOURCES =
@@ -1642,6 +1673,7 @@ EXTRA_DIST +=							\
 		$(HYPERV_DRIVER_SOURCES)			\
 		$(HYPERV_DRIVER_EXTRA_DIST)			\
 		$(PARALLELS_DRIVER_SOURCES)			\
+		$(BHYVE_DRIVER_SOURCES)				\
 		$(NETWORK_DRIVER_SOURCES)			\
 		$(INTERFACE_DRIVER_SOURCES)			\
 		$(STORAGE_DRIVER_SOURCES)			\
@@ -1720,18 +1752,24 @@ else ! WITH_SANLOCK
 check-augeas-sanlock:
 endif ! WITH_SANLOCK
 
+if WITH_QEMU
 test_libvirt_lockd.aug: locking/test_libvirt_lockd.aug.in \
 		locking/qemu-lockd.conf $(AUG_GENTEST)
 	$(AM_V_GEN)$(AUG_GENTEST) locking/qemu-lockd.conf $< $@
+endif WITH_QEMU
 
 test_virtlockd.aug: locking/test_virtlockd.aug.in \
 		locking/virtlockd.conf $(AUG_GENTEST)
 	$(AM_V_GEN)$(AUG_GENTEST) $(srcdir)/locking/virtlockd.conf $< $@
 
+if WITH_QEMU
 check-augeas-lockd: test_libvirt_lockd.aug
 	$(AM_V_GEN)if test -x '$(AUGPARSE)'; then \
 	    '$(AUGPARSE)' -I $(srcdir)/locking test_libvirt_lockd.aug; \
 	fi
+else ! WITH_QEMU
+check-augeas-lockd:
+endif ! WITH_QEMU
 
 check-augeas-virtlockd: test_virtlockd.aug
 	$(AM_V_GEN)if test -x '$(AUGPARSE)'; then \
@@ -2220,7 +2258,7 @@ EXTRA_DIST += \
 if WITH_LIBVIRTD
 if LIBVIRT_INIT_SCRIPT_SYSTEMD
 
-SYSTEMD_UNIT_DIR = /lib/systemd/system
+SYSTEMD_UNIT_DIR = $(prefix)/lib/systemd/system
 
 BUILT_SOURCES += virtlockd.service virtlockd.socket
 DISTCLEANFILES += virtlockd.service virtlockd.socket

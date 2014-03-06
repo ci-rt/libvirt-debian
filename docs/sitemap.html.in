@@ -248,6 +248,10 @@
                 <a href="drvparallels.html">Parallels</a>
                 <span>Driver for Parallels Cloud Server</span>
               </li>
+              <li>
+                <a href="drvbhyve.html">Bhyve</a>
+                <span>Driver for bhyve</span>
+              </li>
             </ul>
           </li>
           <li>
@@ -342,6 +346,10 @@
                 <a href="internals/locking.html">Lock managers</a>
                 <span>Use lock managers to protect disk content</span>
               </li>
+              <li>
+                <a href="internals/oomtesting.html">Out of memory testing</a>
+                <span>Simulating OOM conditions in the test suite</span>
+              </li>
             </ul>
           </li>
           <li>
@@ -351,6 +359,10 @@
           <li>
             <a href="virshcmdref.html">Virsh Commands</a>
             <span>Command reference for virsh</span>
+          </li>
+          <li>
+            <a href="governance.html">Governance</a>
+            <span>Project governance and code of conduct</span>
           </li>
         </ul>
       </li>

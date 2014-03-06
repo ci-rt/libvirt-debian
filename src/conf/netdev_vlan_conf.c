@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2009-2013 Red Hat, Inc.
+ * Copyright (C) 2009-2014 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -82,7 +82,7 @@ virNetDevVlanParse(xmlNodePtr node, xmlXPathContextPtr ctxt, virNetDevVlanPtr de
             }
             if ((def->nativeMode
                  = virNativeVlanModeTypeFromString(nativeMode)) <= 0) {
-                virReportError(VIR_ERR_XML_ERROR,
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                                _("Invalid \"nativeMode='%s'\" "
                                  "in vlan <tag> element"),
                                nativeMode);
@@ -144,7 +144,7 @@ virNetDevVlanFormat(const virNetDevVlan *def, virBufferPtr buf)
 {
     size_t i;
 
-    if (def->nTags == 0)
+    if (!(def && def->nTags))
         return 0;
 
     if (!def->tag) {

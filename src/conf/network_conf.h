@@ -1,7 +1,7 @@
 /*
  * network_conf.h: network XML handling
  *
- * Copyright (C) 2006-2013 Red Hat, Inc.
+ * Copyright (C) 2006-2014 Red Hat, Inc.
  * Copyright (C) 2006-2008 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -112,10 +112,23 @@ struct _virNetworkDNSHostDef {
     char **names;
 };
 
+/* If forwardPlainNames is 0 (default), that is equivalent to "yes",
+ * but won't be encoded in newly formatted XML.
+ */
+typedef enum {
+    VIR_NETWORK_DNS_FORWARD_PLAIN_NAMES_DEFAULT = 0, /* silent "yes" */
+    VIR_NETWORK_DNS_FORWARD_PLAIN_NAMES_YES,
+    VIR_NETWORK_DNS_FORWARD_PLAIN_NAMES_NO,
+
+    VIR_NETWORK_DNS_FORWARD_PLAIN_NAMES_LAST,
+} virNetworkDNSForwardPlainNamesType;
+
+VIR_ENUM_DECL(virNetworkDNSForwardPlainNames)
+
 typedef struct _virNetworkDNSDef virNetworkDNSDef;
 typedef virNetworkDNSDef *virNetworkDNSDefPtr;
 struct _virNetworkDNSDef {
-    bool forwardPlainNames;
+    int forwardPlainNames; /* enum virNetworkDNSForwardPlainNamesType */
     size_t ntxts;
     virNetworkDNSTxtDefPtr txts;
     size_t nhosts;
@@ -274,6 +287,8 @@ struct _virNetworkObj {
 
     virBitmapPtr class_id; /* bitmap of class IDs for QoS */
     unsigned long long floor_sum; /* sum of all 'floor'-s of attached NICs */
+
+    unsigned int taint;
 };
 
 typedef struct _virNetworkObjList virNetworkObjList;
@@ -283,11 +298,25 @@ struct _virNetworkObjList {
     virNetworkObjPtr *objs;
 };
 
+enum virNetworkTaintFlags {
+    VIR_NETWORK_TAINT_HOOK,                 /* Hook script was executed over
+                                               network. We can't guarantee
+                                               connectivity or other settings
+                                               as the script may have played
+                                               with iptables, tc, you name it.
+                                             */
+
+    VIR_NETWORK_TAINT_LAST
+};
+
 static inline int
 virNetworkObjIsActive(const virNetworkObj *net)
 {
     return net->active;
 }
+
+bool virNetworkObjTaint(virNetworkObjPtr obj,
+                        enum virNetworkTaintFlags taint);
 
 virNetworkObjPtr virNetworkFindByUUID(virNetworkObjListPtr nets,
                                       const unsigned char *uuid);
@@ -325,6 +354,9 @@ virNetworkDefPtr virNetworkDefParseFile(const char *filename);
 virNetworkDefPtr virNetworkDefParseNode(xmlDocPtr xml,
                                         xmlNodePtr root);
 char *virNetworkDefFormat(const virNetworkDef *def, unsigned int flags);
+int virNetworkDefFormatBuf(virBufferPtr buf,
+                           const virNetworkDef *def,
+                           unsigned int flags);
 
 static inline const char *
 virNetworkDefForwardIf(const virNetworkDef *def, size_t n)
@@ -439,4 +471,5 @@ virNetworkDefUpdateSection(virNetworkDefPtr def,
                            const char *xml,
                            unsigned int flags);  /* virNetworkUpdateFlags */
 
+VIR_ENUM_DECL(virNetworkTaint)
 #endif /* __NETWORK_CONF_H__ */

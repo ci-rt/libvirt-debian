@@ -143,17 +143,22 @@ static const struct int_map chain_priorities[] = {
 /*
  * only one filter update allowed
  */
-static virMutex updateMutex;
+static virRWLock updateLock;
 static bool initialized = false;
 
 void
-virNWFilterLockFilterUpdates(void) {
-    virMutexLock(&updateMutex);
+virNWFilterReadLockFilterUpdates(void) {
+    virRWLockRead(&updateLock);
+}
+
+void
+virNWFilterWriteLockFilterUpdates(void) {
+    virRWLockWrite(&updateLock);
 }
 
 void
 virNWFilterUnlockFilterUpdates(void) {
-    virMutexUnlock(&updateMutex);
+    virRWLockUnlock(&updateLock);
 }
 
 
@@ -161,30 +166,30 @@ virNWFilterUnlockFilterUpdates(void) {
 /*
  * attribute names for the rules XML
  */
-static const char srcmacaddr_str[]   = "srcmacaddr";
-static const char srcmacmask_str[]   = "srcmacmask";
-static const char dstmacaddr_str[]   = "dstmacaddr";
-static const char dstmacmask_str[]   = "dstmacmask";
-static const char arpsrcmacaddr_str[]= "arpsrcmacaddr";
-static const char arpdstmacaddr_str[]= "arpdstmacaddr";
-static const char arpsrcipaddr_str[] = "arpsrcipaddr";
-static const char arpdstipaddr_str[] = "arpdstipaddr";
-static const char srcipaddr_str[]    = "srcipaddr";
-static const char srcipmask_str[]    = "srcipmask";
-static const char dstipaddr_str[]    = "dstipaddr";
-static const char dstipmask_str[]    = "dstipmask";
-static const char srcipfrom_str[]    = "srcipfrom";
-static const char srcipto_str[]      = "srcipto";
-static const char dstipfrom_str[]    = "dstipfrom";
-static const char dstipto_str[]      = "dstipto";
-static const char srcportstart_str[] = "srcportstart";
-static const char srcportend_str[]   = "srcportend";
-static const char dstportstart_str[] = "dstportstart";
-static const char dstportend_str[]   = "dstportend";
-static const char dscp_str[]         = "dscp";
-static const char state_str[]        = "state";
-static const char ipset_str[]        = "ipset";
-static const char ipsetflags_str[]   = "ipsetflags";
+static const char srcmacaddr_str[]    = "srcmacaddr";
+static const char srcmacmask_str[]    = "srcmacmask";
+static const char dstmacaddr_str[]    = "dstmacaddr";
+static const char dstmacmask_str[]    = "dstmacmask";
+static const char arpsrcmacaddr_str[] = "arpsrcmacaddr";
+static const char arpdstmacaddr_str[] = "arpdstmacaddr";
+static const char arpsrcipaddr_str[]  = "arpsrcipaddr";
+static const char arpdstipaddr_str[]  = "arpdstipaddr";
+static const char srcipaddr_str[]     = "srcipaddr";
+static const char srcipmask_str[]     = "srcipmask";
+static const char dstipaddr_str[]     = "dstipaddr";
+static const char dstipmask_str[]     = "dstipmask";
+static const char srcipfrom_str[]     = "srcipfrom";
+static const char srcipto_str[]       = "srcipto";
+static const char dstipfrom_str[]     = "dstipfrom";
+static const char dstipto_str[]       = "dstipto";
+static const char srcportstart_str[]  = "srcportstart";
+static const char srcportend_str[]    = "srcportend";
+static const char dstportstart_str[]  = "dstportstart";
+static const char dstportend_str[]    = "dstportend";
+static const char dscp_str[]          = "dscp";
+static const char state_str[]         = "state";
+static const char ipset_str[]         = "ipset";
+static const char ipsetflags_str[]    = "ipsetflags";
 
 #define SRCMACADDR    srcmacaddr_str
 #define SRCMACMASK    srcmacmask_str
@@ -1116,8 +1121,8 @@ static const virXMLAttr2Struct macAttributes[] = {
         .name = "protocolid",
         .datatype = DATATYPE_UINT16 | DATATYPE_UINT16_HEX | DATATYPE_STRING,
         .dataIdx = offsetof(virNWFilterRuleDef, p.ethHdrFilter.dataProtocolID),
-        .validator= checkMacProtocolID,
-        .formatter= macProtocolIDFormatter,
+        .validator = checkMacProtocolID,
+        .formatter = macProtocolIDFormatter,
     },
     COMMENT_PROP(ethHdrFilter),
     {
@@ -1292,8 +1297,8 @@ static const virXMLAttr2Struct arpAttributes[] = {
         .name = "opcode",
         .datatype = DATATYPE_UINT16 | DATATYPE_UINT16_HEX | DATATYPE_STRING,
         .dataIdx = offsetof(virNWFilterRuleDef, p.arpHdrFilter.dataOpcode),
-        .validator= arpOpcodeValidator,
-        .formatter= arpOpcodeFormatter,
+        .validator = arpOpcodeValidator,
+        .formatter = arpOpcodeFormatter,
     }, {
         .name = ARPSRCMACADDR,
         .datatype = DATATYPE_MACADDR,
@@ -1347,8 +1352,8 @@ static const virXMLAttr2Struct ipAttributes[] = {
         .name = "protocol",
         .datatype = DATATYPE_STRING | DATATYPE_UINT8 | DATATYPE_UINT8_HEX,
         .dataIdx = offsetof(virNWFilterRuleDef, p.ipHdrFilter.ipHdr.dataProtocolID),
-        .validator= checkIPProtocolID,
-        .formatter= formatIPProtocolID,
+        .validator = checkIPProtocolID,
+        .formatter = formatIPProtocolID,
     },
     {
         .name = SRCPORTSTART,
@@ -1409,8 +1414,8 @@ static const virXMLAttr2Struct ipv6Attributes[] = {
         .name = "protocol",
         .datatype = DATATYPE_STRING | DATATYPE_UINT8 | DATATYPE_UINT8_HEX,
         .dataIdx = offsetof(virNWFilterRuleDef, p.ipv6HdrFilter.ipHdr.dataProtocolID),
-        .validator= checkIPProtocolID,
-        .formatter= formatIPProtocolID,
+        .validator = checkIPProtocolID,
+        .formatter = formatIPProtocolID,
     },
     {
         .name = SRCPORTSTART,
@@ -2306,10 +2311,10 @@ virNWFilterRuleParse(xmlNodePtr node)
     if (VIR_ALLOC(ret) < 0)
         return NULL;
 
-    action    = virXMLPropString(node, "action");
-    direction = virXMLPropString(node, "direction");
-    prio      = virXMLPropString(node, "priority");
-    statematch= virXMLPropString(node, "statematch");
+    action     = virXMLPropString(node, "action");
+    direction  = virXMLPropString(node, "direction");
+    prio       = virXMLPropString(node, "priority");
+    statematch = virXMLPropString(node, "statematch");
 
     if (!action) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
@@ -2319,7 +2324,7 @@ virNWFilterRuleParse(xmlNodePtr node)
     }
 
     if ((ret->action = virNWFilterRuleActionTypeFromString(action)) < 0) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                        "%s",
                        _("unknown rule action attribute value"));
         goto err_exit;
@@ -2333,7 +2338,7 @@ virNWFilterRuleParse(xmlNodePtr node)
     }
 
     if ((ret->tt = virNWFilterRuleDirectionTypeFromString(direction)) < 0) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                        "%s",
                        _("unknown rule direction attribute value"));
         goto err_exit;
@@ -2990,14 +2995,12 @@ virNWFilterObjAssignDef(virNWFilterObjListPtr nwfilters,
         return NULL;
     }
 
-    virNWFilterLockFilterUpdates();
 
     if ((nwfilter = virNWFilterObjFindByName(nwfilters, def->name))) {
 
         if (virNWFilterDefEqual(def, nwfilter->def, false)) {
             virNWFilterDefFree(nwfilter->def);
             nwfilter->def = def;
-            virNWFilterUnlockFilterUpdates();
             return nwfilter;
         }
 
@@ -3005,7 +3008,6 @@ virNWFilterObjAssignDef(virNWFilterObjListPtr nwfilters,
         /* trigger the update on VMs referencing the filter */
         if (virNWFilterTriggerVMFilterRebuild()) {
             nwfilter->newDef = NULL;
-            virNWFilterUnlockFilterUpdates();
             virNWFilterObjUnlock(nwfilter);
             return NULL;
         }
@@ -3013,11 +3015,8 @@ virNWFilterObjAssignDef(virNWFilterObjListPtr nwfilters,
         virNWFilterDefFree(nwfilter->def);
         nwfilter->def = def;
         nwfilter->newDef = NULL;
-        virNWFilterUnlockFilterUpdates();
         return nwfilter;
     }
-
-    virNWFilterUnlockFilterUpdates();
 
     if (VIR_ALLOC(nwfilter) < 0)
         return NULL;
@@ -3483,7 +3482,7 @@ int virNWFilterConfLayerInit(virDomainObjListIterator domUpdateCB,
 
     initialized = true;
 
-    if (virMutexInitRecursive(&updateMutex) < 0)
+    if (virRWLockInit(&updateLock) < 0)
         return -1;
 
     return 0;
@@ -3495,7 +3494,7 @@ void virNWFilterConfLayerShutdown(void)
     if (!initialized)
         return;
 
-    virMutexDestroy(&updateMutex);
+    virRWLockDestroy(&updateLock);
 
     initialized = false;
     virNWFilterDomainFWUpdateOpaque = NULL;

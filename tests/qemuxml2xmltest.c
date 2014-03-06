@@ -158,7 +158,9 @@ mymain(void)
     DO_TEST("clock-localtime");
     DO_TEST("cpu-kvmclock");
     DO_TEST("cpu-host-kvmclock");
+    DO_TEST("clock-catchup");
     DO_TEST("kvmclock");
+    DO_TEST("clock-timer-hyperv-rtc");
 
     DO_TEST("cpu-eoi-disabled");
     DO_TEST("cpu-eoi-enabled");
@@ -239,6 +241,8 @@ mymain(void)
     DO_TEST("serial-udp");
     DO_TEST("serial-tcp-telnet");
     DO_TEST("serial-many");
+    DO_TEST("serial-spiceport");
+    DO_TEST("serial-spiceport-nospice");
     DO_TEST("parallel-tcp");
     DO_TEST("console-compat");
     DO_TEST("console-virtio-many");

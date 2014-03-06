@@ -132,6 +132,10 @@
                   <div>
                     <a title="Command reference for virsh" class="inactive" href="virshcmdref.html">Virsh Commands</a>
                   </div>
+                </li><li>
+                  <div>
+                    <a title="Project governance and code of conduct" class="inactive" href="governance.html">Governance</a>
+                  </div>
                 </li></ul>
             </div>
           </li><li>
@@ -209,6 +213,7 @@ documents libvirt URIs.
 </p>
         <h2>
           <a name="URI_libvirt" shape="rect" id="URI_libvirt">Specifying URIs to libvirt</a>
+          <a class="headerlink" href="#URI_libvirt" title="Permalink to this headline">¶</a>
         </h2>
         <p>
 The URI is passed as the <code>name</code> parameter to <a href="html/libvirt-libvirt.html#virConnectOpen" shape="rect"><code>virConnectOpen</code></a> or <a href="html/libvirt-libvirt.html#virConnectOpenReadOnly" shape="rect"><code>virConnectOpenReadOnly</code></a>.  For example:
@@ -218,7 +223,7 @@ virConnectPtr conn = virConnectOpenReadOnly (<b>"test:///default"</b>);
 </pre>
         <h2>
       <a name="URI_config" shape="rect" id="URI_config">Configuring URI aliases</a>
-    </h2>
+    <a class="headerlink" href="#URI_config" title="Permalink to this headline">¶</a></h2>
         <p>
 To simplify life for administrators, it is possible to setup URI aliases in a
 libvirt client configuration file. The configuration file is <code>/etc/libvirt/libvirt.conf</code>
@@ -243,6 +248,7 @@ uri_aliases = [
 </p>
         <h2>
           <a name="URI_default" shape="rect" id="URI_default">Default URI choice</a>
+          <a class="headerlink" href="#URI_default" title="Permalink to this headline">¶</a>
         </h2>
         <p>
 If the URI passed to <code>virConnectOpen*</code> is NULL, then libvirt will use the following
@@ -251,7 +257,7 @@ logic to determine what URI to use.
         <ol><li>The environment variable <code>LIBVIRT_DEFAULT_URI</code></li><li>The client configuration file <code>uri_default</code> parameter</li><li>Probe each hypervisor in turn until one that works is found</li></ol>
         <h2>
       <a name="URI_virsh" shape="rect" id="URI_virsh">Specifying URIs to virsh, virt-manager and virt-install</a>
-    </h2>
+    <a class="headerlink" href="#URI_virsh" title="Permalink to this headline">¶</a></h2>
         <p>
 In virsh use the <code>-c</code> or <code>--connect</code> option:
 </p>
@@ -283,7 +289,7 @@ virt-install <b>--connect=test:///default</b> <i>[other options]</i>
 </pre>
         <h2>
       <a name="URI_xen" shape="rect" id="URI_xen">xen:/// URI</a>
-    </h2>
+    <a class="headerlink" href="#URI_xen" title="Permalink to this headline">¶</a></h2>
         <p>
       <i>This section describes a feature which is new in libvirt &gt;
 0.2.3.  For libvirt ≤ 0.2.3 use <a href="#URI_legacy_xen" shape="rect"><code>"xen"</code></a>.</i>
@@ -294,7 +300,7 @@ use the URI <code>xen:///</code>.
 </p>
         <h2>
       <a name="URI_qemu" shape="rect" id="URI_qemu">qemu:///... QEMU and KVM URIs</a>
-    </h2>
+    <a class="headerlink" href="#URI_qemu" title="Permalink to this headline">¶</a></h2>
         <p>
 To use QEMU support in libvirt you must be running the
 <code>libvirtd</code> daemon (named <code>libvirt_qemud</code>
@@ -323,7 +329,7 @@ here</a>.
 </p>
         <h2>
       <a name="URI_remote" shape="rect" id="URI_remote">Remote URIs</a>
-    </h2>
+    <a class="headerlink" href="#URI_remote" title="Permalink to this headline">¶</a></h2>
         <p>
 Remote URIs are formed by taking ordinary local URIs and adding a
 hostname and/or transport name. As a special case, using a URI
@@ -360,7 +366,7 @@ for libvirt remote support</a>.
 </p>
         <h2>
       <a name="URI_test" shape="rect" id="URI_test">test:///... Test URIs</a>
-    </h2>
+    <a class="headerlink" href="#URI_test" title="Permalink to this headline">¶</a></h2>
         <p>
 The test driver is a dummy hypervisor for test purposes.
 The URIs supported are:
@@ -371,10 +377,10 @@ a set of host definitions held in the named file.
 </li></ul>
         <h2>
       <a name="URI_legacy" shape="rect" id="URI_legacy">Other &amp; legacy URI formats</a>
-    </h2>
+    <a class="headerlink" href="#URI_legacy" title="Permalink to this headline">¶</a></h2>
         <h3>
       <a name="URI_NULL" shape="rect" id="URI_NULL">NULL and empty string URIs</a>
-    </h3>
+    <a class="headerlink" href="#URI_NULL" title="Permalink to this headline">¶</a></h3>
         <p>
 Libvirt allows you to pass a <code>NULL</code> pointer to
 <code>virConnectOpen*</code>.  Empty string (<code>""</code>) acts in
@@ -398,7 +404,7 @@ for future proofing it should choose a full <a href="#URI_xen" shape="rect"><cod
 </p>
         <h3>
       <a name="URI_file" shape="rect" id="URI_file">File paths (xend-unix-server)</a>
-    </h3>
+    <a class="headerlink" href="#URI_file" title="Permalink to this headline">¶</a></h3>
         <p>
 If XenD is running and configured in <code>/etc/xen/xend-config.sxp</code>:
 </p>
@@ -415,7 +421,7 @@ virsh -c ///var/run/xend/xend-socket
 </pre>
         <h3>
       <a name="URI_http" shape="rect" id="URI_http">Legacy: <code>http://...</code> (xend-http-server)</a>
-    </h3>
+    <a class="headerlink" href="#URI_http" title="Permalink to this headline">¶</a></h3>
         <p>
 If XenD is running and configured in <code>/etc/xen/xend-config.sxp</code>:
 
@@ -447,7 +453,7 @@ Notes:
  documentation as "unix server" or "http server".</li></ol>
         <h3>
       <a name="URI_legacy_xen" shape="rect" id="URI_legacy_xen">Legacy: <code>"xen"</code></a>
-    </h3>
+    <a class="headerlink" href="#URI_legacy_xen" title="Permalink to this headline">¶</a></h3>
         <p>
 Another legacy URI is to specify name as the string
 <code>"xen"</code>.  This will continue to refer to the Xen
@@ -455,7 +461,7 @@ hypervisor.  However you should prefer a full <a href="#URI_xen" shape="rect"><c
 </p>
         <h3>
       <a name="URI_legacy_proxy" shape="rect" id="URI_legacy_proxy">Legacy: Xen proxy</a>
-    </h3>
+    <a class="headerlink" href="#URI_legacy_proxy" title="Permalink to this headline">¶</a></h3>
         <p>
 Libvirt continues to support connections to a separately running Xen
 proxy daemon.  This provides a way to allow non-root users to make a

@@ -120,6 +120,10 @@
                   <div>
                     <a title="Command reference for virsh" class="inactive" href="virshcmdref.html">Virsh Commands</a>
                   </div>
+                </li><li>
+                  <div>
+                    <a title="Project governance and code of conduct" class="inactive" href="governance.html">Governance</a>
+                  </div>
                 </li></ul>
             </div>
           </li><li>
@@ -186,6 +190,7 @@
           </li></ul>
         <h2>
           <a name="StoragePool" shape="rect" id="StoragePool">Storage pool XML</a>
+          <a class="headerlink" href="#StoragePool" title="Permalink to this headline">¶</a>
         </h2>
         <p>
       Although all storage pool backends share the same public APIs and
@@ -208,6 +213,7 @@
     </p>
         <h3>
           <a name="StoragePoolFirst" shape="rect" id="StoragePoolFirst">General metadata</a>
+          <a class="headerlink" href="#StoragePoolFirst" title="Permalink to this headline">¶</a>
         </h3>
         <pre xml:space="preserve">
       &lt;pool type="iscsi"&gt;
@@ -233,6 +239,7 @@
         pool. <span class="since">Since 0.4.1</span></dd></dl>
         <h3>
           <a name="StoragePoolSource" shape="rect" id="StoragePoolSource">Source elements</a>
+          <a class="headerlink" href="#StoragePoolSource" title="Permalink to this headline">¶</a>
         </h3>
         <p>
       A single <code>source</code> element is contained within the top level
@@ -334,6 +341,7 @@
         is backend specific.  <span class="since">Since 0.8.4</span></dd></dl>
         <h3>
           <a name="StoragePoolTarget" shape="rect" id="StoragePoolTarget">Target elements</a>
+          <a class="headerlink" href="#StoragePoolTarget" title="Permalink to this headline">¶</a>
         </h3>
         <p>
       A single <code>target</code> element is contained within the top level
@@ -401,6 +409,7 @@
       </dd></dl>
         <h3>
           <a name="StoragePoolExtents" shape="rect" id="StoragePoolExtents">Device extents</a>
+          <a class="headerlink" href="#StoragePoolExtents" title="Permalink to this headline">¶</a>
         </h3>
         <p>
       If a storage pool exposes information about its underlying
@@ -421,6 +430,7 @@
     </p>
         <h2>
           <a name="StorageVol" shape="rect" id="StorageVol">Storage volume XML</a>
+          <a class="headerlink" href="#StorageVol" title="Permalink to this headline">¶</a>
         </h2>
         <p>
       A storage volume will generally be either a file or a device
@@ -432,6 +442,7 @@
     </p>
         <h3>
           <a name="StorageVolFirst" shape="rect" id="StorageVolFirst">General metadata</a>
+          <a class="headerlink" href="#StorageVolFirst" title="Permalink to this headline">¶</a>
         </h3>
         <pre xml:space="preserve">
       &lt;volume type='file'&gt;
@@ -484,6 +495,7 @@
         on the local host. <span class="since">Since 0.4.1</span></dd></dl>
         <h3>
           <a name="StorageVolTarget" shape="rect" id="StorageVolTarget">Target elements</a>
+          <a class="headerlink" href="#StorageVolTarget" title="Permalink to this headline">¶</a>
         </h3>
         <p>
       A single <code>target</code> element is contained within the top level
@@ -539,6 +551,7 @@
       </dd></dl>
         <h3>
           <a name="StorageVolBacking" shape="rect" id="StorageVolBacking">Backing store elements</a>
+          <a class="headerlink" href="#StorageVolBacking" title="Permalink to this headline">¶</a>
         </h3>
         <p>
       A single <code>backingStore</code> element is contained within the top level
@@ -579,6 +592,7 @@
       </dd></dl>
         <h2>
           <a name="examples" shape="rect" id="examples">Example configuration</a>
+          <a class="headerlink" href="#examples" title="Permalink to this headline">¶</a>
         </h2>
         <p>
       Here are a couple of examples, for a more complete set demonstrating
@@ -586,6 +600,7 @@
     </p>
         <h3>
           <a name="exampleFile" shape="rect" id="exampleFile">File based storage pool</a>
+          <a class="headerlink" href="#exampleFile" title="Permalink to this headline">¶</a>
         </h3>
         <pre xml:space="preserve">
       &lt;pool type="dir"&gt;
@@ -596,6 +611,7 @@
       &lt;/pool&gt;</pre>
         <h3>
           <a name="exampleISCSI" shape="rect" id="exampleISCSI">iSCSI based storage pool</a>
+          <a class="headerlink" href="#exampleISCSI" title="Permalink to this headline">¶</a>
         </h3>
         <pre xml:space="preserve">
       &lt;pool type="iscsi"&gt;
@@ -613,6 +629,7 @@
       &lt;/pool&gt;</pre>
         <h3>
           <a name="exampleVol" shape="rect" id="exampleVol">Storage volume</a>
+          <a class="headerlink" href="#exampleVol" title="Permalink to this headline">¶</a>
         </h3>
         <pre xml:space="preserve">
       &lt;volume&gt;

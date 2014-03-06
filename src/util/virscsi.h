@@ -33,30 +33,35 @@ typedef virSCSIDevice *virSCSIDevicePtr;
 typedef struct _virSCSIDeviceList virSCSIDeviceList;
 typedef virSCSIDeviceList *virSCSIDeviceListPtr;
 
-char *virSCSIDeviceGetSgName(const char *adapter,
+char *virSCSIDeviceGetSgName(const char *sysfs_prefix,
+                             const char *adapter,
                              unsigned int bus,
                              unsigned int target,
                              unsigned int unit);
-char *virSCSIDeviceGetDevName(const char *adapter,
+char *virSCSIDeviceGetDevName(const char *sysfs_prefix,
+                              const char *adapter,
                               unsigned int bus,
                               unsigned int target,
                               unsigned int unit);
 
-virSCSIDevicePtr virSCSIDeviceNew(const char *adapter,
+virSCSIDevicePtr virSCSIDeviceNew(const char *sysfs_prefix,
+                                  const char *adapter,
                                   unsigned int bus,
                                   unsigned int target,
                                   unsigned int unit,
-                                  bool readonly);
+                                  bool readonly,
+                                  bool shareable);
 
 void virSCSIDeviceFree(virSCSIDevicePtr dev);
-void virSCSIDeviceSetUsedBy(virSCSIDevicePtr dev, const char *name);
-const char *virSCSIDeviceGetUsedBy(virSCSIDevicePtr dev);
+int virSCSIDeviceSetUsedBy(virSCSIDevicePtr dev, const char *name);
+bool virSCSIDeviceIsAvailable(virSCSIDevicePtr dev);
 const char *virSCSIDeviceGetName(virSCSIDevicePtr dev);
 unsigned int virSCSIDeviceGetAdapter(virSCSIDevicePtr dev);
 unsigned int virSCSIDeviceGetBus(virSCSIDevicePtr dev);
 unsigned int virSCSIDeviceGetTarget(virSCSIDevicePtr dev);
 unsigned int virSCSIDeviceGetUnit(virSCSIDevicePtr dev);
 bool virSCSIDeviceGetReadonly(virSCSIDevicePtr dev);
+bool virSCSIDeviceGetShareable(virSCSIDevicePtr dev);
 
 /*
  * Callback that will be invoked once for each file
@@ -81,7 +86,8 @@ size_t virSCSIDeviceListCount(virSCSIDeviceListPtr list);
 virSCSIDevicePtr virSCSIDeviceListSteal(virSCSIDeviceListPtr list,
                                         virSCSIDevicePtr dev);
 void virSCSIDeviceListDel(virSCSIDeviceListPtr list,
-                          virSCSIDevicePtr dev);
+                          virSCSIDevicePtr dev,
+                          const char *name);
 virSCSIDevicePtr virSCSIDeviceListFind(virSCSIDeviceListPtr list,
                                        virSCSIDevicePtr dev);
 

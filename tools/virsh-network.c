@@ -1,7 +1,7 @@
 /*
  * virsh-network.c: Commands to manage network
  *
- * Copyright (C) 2005, 2007-2013 Red Hat, Inc.
+ * Copyright (C) 2005, 2007-2014 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -1130,6 +1130,161 @@ cmdNetworkEdit(vshControl *ctl, const vshCmd *cmd)
     return ret;
 }
 
+
+/*
+ * "net-event" command
+ */
+VIR_ENUM_DECL(vshNetworkEvent)
+VIR_ENUM_IMPL(vshNetworkEvent,
+              VIR_NETWORK_EVENT_LAST,
+              N_("Defined"),
+              N_("Undefined"),
+              N_("Started"),
+              N_("Stopped"))
+
+static const char *
+vshNetworkEventToString(int event)
+{
+    const char *str = vshNetworkEventTypeToString(event);
+    return str ? _(str) : _("unknown");
+}
+
+struct vshNetEventData {
+    vshControl *ctl;
+    bool loop;
+    int count;
+};
+typedef struct vshNetEventData vshNetEventData;
+
+VIR_ENUM_DECL(vshNetworkEventId)
+VIR_ENUM_IMPL(vshNetworkEventId,
+              VIR_NETWORK_EVENT_ID_LAST,
+              "lifecycle")
+
+static void
+vshEventLifecyclePrint(virConnectPtr conn ATTRIBUTE_UNUSED,
+                       virNetworkPtr net,
+                       int event,
+                       int detail ATTRIBUTE_UNUSED,
+                       void *opaque)
+{
+    vshNetEventData *data = opaque;
+
+    if (!data->loop && data->count)
+        return;
+    vshPrint(data->ctl, _("event 'lifecycle' for network %s: %s\n"),
+             virNetworkGetName(net), vshNetworkEventToString(event));
+    data->count++;
+    if (!data->loop)
+        vshEventDone(data->ctl);
+}
+
+static const vshCmdInfo info_network_event[] = {
+    {.name = "net-event",
+     .data = N_("Network Events")
+    },
+    {.name = "desc",
+     .data = N_("List event types, or wait for network events to occur")
+    },
+    {.name = NULL}
+};
+
+static const vshCmdOptDef opts_network_event[] = {
+    {.name = "network",
+     .type = VSH_OT_DATA,
+     .help = N_("filter by network name or uuid")
+    },
+    {.name = "event",
+     .type = VSH_OT_DATA,
+     .help = N_("which event type to wait for")
+    },
+    {.name = "loop",
+     .type = VSH_OT_BOOL,
+     .help = N_("loop until timeout or interrupt, rather than one-shot")
+    },
+    {.name = "timeout",
+     .type = VSH_OT_INT,
+     .help = N_("timeout seconds")
+    },
+    {.name = "list",
+     .type = VSH_OT_BOOL,
+     .help = N_("list valid event types")
+    },
+    {.name = NULL}
+};
+
+static bool
+cmdNetworkEvent(vshControl *ctl, const vshCmd *cmd)
+{
+    virNetworkPtr net = NULL;
+    bool ret = false;
+    int eventId = -1;
+    int timeout = 0;
+    vshNetEventData data;
+    const char *eventName = NULL;
+    int event;
+
+    if (vshCommandOptBool(cmd, "list")) {
+        size_t i;
+
+        for (i = 0; i < VIR_NETWORK_EVENT_ID_LAST; i++)
+            vshPrint(ctl, "%s\n", vshNetworkEventIdTypeToString(i));
+        return true;
+    }
+
+    if (vshCommandOptString(cmd, "event", &eventName) < 0)
+        return false;
+    if (!eventName) {
+        vshError(ctl, "%s", _("either --list or event type is required"));
+        return false;
+    }
+    if ((event = vshNetworkEventIdTypeFromString(eventName) < 0)) {
+        vshError(ctl, _("unknown event type %s"), eventName);
+        return false;
+    }
+
+    data.ctl = ctl;
+    data.loop = vshCommandOptBool(cmd, "loop");
+    data.count = 0;
+    if (vshCommandOptTimeoutToMs(ctl, cmd, &timeout) < 0)
+        return false;
+
+    if (vshCommandOptBool(cmd, "network"))
+        net = vshCommandOptNetwork(ctl, cmd, NULL);
+    if (vshEventStart(ctl, timeout) < 0)
+        goto cleanup;
+
+    if ((eventId = virConnectNetworkEventRegisterAny(ctl->conn, net, event,
+                                                     VIR_NETWORK_EVENT_CALLBACK(vshEventLifecyclePrint),
+                                                     &data, NULL)) < 0)
+        goto cleanup;
+    switch (vshEventWait(ctl)) {
+    case VSH_EVENT_INTERRUPT:
+        vshPrint(ctl, "%s", _("event loop interrupted\n"));
+        break;
+    case VSH_EVENT_TIMEOUT:
+        vshPrint(ctl, "%s", _("event loop timed out\n"));
+        break;
+    case VSH_EVENT_DONE:
+        break;
+    default:
+        goto cleanup;
+    }
+    vshPrint(ctl, _("events received: %d\n"), data.count);
+    if (data.count)
+        ret = true;
+
+cleanup:
+    vshEventCleanup(ctl);
+    if (eventId >= 0 &&
+        virConnectNetworkEventDeregisterAny(ctl->conn, eventId) < 0)
+        ret = false;
+    if (net)
+        virNetworkFree(net);
+    return ret;
+}
+
+
 const vshCmdDef networkCmds[] = {
     {.name = "net-autostart",
      .handler = cmdNetworkAutostart,
@@ -1165,6 +1320,12 @@ const vshCmdDef networkCmds[] = {
      .handler = cmdNetworkEdit,
      .opts = opts_network_edit,
      .info = info_network_edit,
+     .flags = 0
+    },
+    {.name = "net-event",
+     .handler = cmdNetworkEvent,
+     .opts = opts_network_event,
+     .info = info_network_event,
      .flags = 0
     },
     {.name = "net-info",

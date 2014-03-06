@@ -118,6 +118,10 @@
                         <div>
                           <a title="Driver for Parallels Cloud Server" class="inactive" href="drvparallels.html">Parallels</a>
                         </div>
+                      </li><li>
+                        <div>
+                          <a title="Driver for bhyve" class="inactive" href="drvbhyve.html">Bhyve</a>
+                        </div>
                       </li></ul>
                   </div>
                 </li><li>
@@ -139,6 +143,10 @@
                 </li><li>
                   <div>
                     <a title="Command reference for virsh" class="inactive" href="virshcmdref.html">Virsh Commands</a>
+                  </div>
+                </li><li>
+                  <div>
+                    <a title="Project governance and code of conduct" class="inactive" href="governance.html">Governance</a>
                   </div>
                 </li></ul>
             </div>
@@ -231,6 +239,7 @@
     </p>
         <h2>
           <a name="project" shape="rect" id="project">Project Links</a>
+          <a class="headerlink" href="#project" title="Permalink to this headline">¶</a>
         </h2>
         <ul><li>
         The <a href="http://www.vmware.com/" shape="rect">VMware ESX and GSX</a>
@@ -238,6 +247,7 @@
       </li></ul>
         <h2>
           <a name="prereq" shape="rect" id="prereq">Deployment pre-requisites</a>
+          <a class="headerlink" href="#prereq" title="Permalink to this headline">¶</a>
         </h2>
         <p>
         None. Any out-of-the-box installation of VPX/ESX(i)/GSX should work. No
@@ -253,6 +263,7 @@
     </p>
         <h2>
           <a name="uri" shape="rect" id="uri">Connections to the VMware ESX driver</a>
+          <a class="headerlink" href="#uri" title="Permalink to this headline">¶</a>
         </h2>
         <p>
         Some example remote connection URIs for the driver are:
@@ -273,6 +284,7 @@ esx://example-esx.com/?no_verify=1     (ESX over HTTPS, but doesn't verify the s
     </p>
         <h3>
           <a name="uriformat" shape="rect" id="uriformat">URI Format</a>
+          <a class="headerlink" href="#uriformat" title="Permalink to this headline">¶</a>
         </h3>
         <p>
         URIs have this general form (<code>[...]</code> marks an optional part).
@@ -312,6 +324,7 @@ vpx://example-vcenter.com/folder1/dc1/folder2/example-esx.com
 </pre>
         <h4>
           <a name="extraparams" shape="rect" id="extraparams">Extra parameters</a>
+          <a class="headerlink" href="#extraparams" title="Permalink to this headline">¶</a>
         </h4>
         <p>
         Extra parameters can be added to a URI as part of the query string
@@ -376,6 +389,7 @@ vpx://example-vcenter.com/folder1/dc1/folder2/example-esx.com
             </td></tr></table>
         <h3>
           <a name="auth" shape="rect" id="auth">Authentication</a>
+          <a class="headerlink" href="#auth" title="Permalink to this headline">¶</a>
         </h3>
         <p>
         In order to perform any useful operation the driver needs to log into
@@ -396,6 +410,7 @@ vpx://example-vcenter.com/folder1/dc1/folder2/example-esx.com
     </p>
         <h3>
           <a name="certificates" shape="rect" id="certificates">Certificates for HTTPS</a>
+          <a class="headerlink" href="#certificates" title="Permalink to this headline">¶</a>
         </h3>
         <p>
         By default the ESX driver uses HTTPS to communicate with an ESX server.
@@ -429,6 +444,7 @@ error: internal error curl_easy_perform() returned an error: Peer certificate ca
         </li></ul>
         <h3>
           <a name="connproblems" shape="rect" id="connproblems">Connection problems</a>
+          <a class="headerlink" href="#connproblems" title="Permalink to this headline">¶</a>
         </h3>
         <p>
         There are also other causes for connection problems than the
@@ -485,6 +501,7 @@ error: invalid argument in libvirt was built without the 'esx' driver
         </li></ul>
         <h2>
           <a name="questions" shape="rect" id="questions">Questions blocking tasks</a>
+          <a class="headerlink" href="#questions" title="Permalink to this headline">¶</a>
         </h2>
         <p>
         Some methods of the VI API start tasks, for example
@@ -504,12 +521,14 @@ error: invalid argument in libvirt was built without the 'esx' driver
     </p>
         <h2>
           <a name="xmlspecial" shape="rect" id="xmlspecial">Specialties in the domain XML config</a>
+          <a class="headerlink" href="#xmlspecial" title="Permalink to this headline">¶</a>
         </h2>
         <p>
         There are several specialties in the domain XML config for ESX domains.
     </p>
         <h3>
           <a name="restrictions" shape="rect" id="restrictions">Restrictions</a>
+          <a class="headerlink" href="#restrictions" title="Permalink to this headline">¶</a>
         </h3>
         <p>
         There are some restrictions for some values of the domain XML config.
@@ -526,6 +545,7 @@ error: invalid argument in libvirt was built without the 'esx' driver
         </li></ul>
         <h3>
           <a name="datastore" shape="rect" id="datastore">Datastore references</a>
+          <a class="headerlink" href="#datastore" title="Permalink to this headline">¶</a>
         </h3>
         <p>
         Storage is managed in datastores. VMware uses a special path format to
@@ -545,6 +565,7 @@ error: invalid argument in libvirt was built without the 'esx' driver
     </p>
         <h3>
           <a name="macaddresses" shape="rect" id="macaddresses">MAC addresses</a>
+          <a class="headerlink" href="#macaddresses" title="Permalink to this headline">¶</a>
         </h3>
         <p>
         VMware has registered two MAC address prefixes for domains:
@@ -589,6 +610,7 @@ ethernet0.checkMACAddress = "false"
 </pre>
         <h3>
           <a name="hardware" shape="rect" id="hardware">Available hardware</a>
+          <a class="headerlink" href="#hardware" title="Permalink to this headline">¶</a>
         </h3>
         <p>
         VMware ESX supports different models of SCSI controllers and network
@@ -664,6 +686,7 @@ ethernet0.checkMACAddress = "false"
 </pre>
         <h2>
           <a name="importexport" shape="rect" id="importexport">Import and export of domain XML configs</a>
+          <a class="headerlink" href="#importexport" title="Permalink to this headline">¶</a>
         </h2>
         <p>
         The ESX driver currently supports a native config format known as
@@ -671,6 +694,7 @@ ethernet0.checkMACAddress = "false"
     </p>
         <h3>
           <a name="xmlimport" shape="rect" id="xmlimport">Converting from VMware VMX config to domain XML config</a>
+          <a class="headerlink" href="#xmlimport" title="Permalink to this headline">¶</a>
         </h3>
         <p>
         The <code>virsh domxml-from-native</code> provides a way to convert an
@@ -762,6 +786,7 @@ Enter root password for example.com:
 </pre>
         <h3>
           <a name="xmlexport" shape="rect" id="xmlexport">Converting from domain XML config to VMware VMX config</a>
+          <a class="headerlink" href="#xmlexport" title="Permalink to this headline">¶</a>
         </h3>
         <p>
       The <code>virsh domxml-to-native</code> provides a way to convert a
@@ -816,6 +841,7 @@ ethernet0.address = "00:50:56:25:48:C7"
 </pre>
         <h2>
           <a name="xmlconfig" shape="rect" id="xmlconfig">Example domain XML configs</a>
+          <a class="headerlink" href="#xmlconfig" title="Permalink to this headline">¶</a>
         </h2>
         <h3>Fedora11 on x86_64</h3>
         <pre xml:space="preserve">
@@ -844,6 +870,7 @@ ethernet0.address = "00:50:56:25:48:C7"
 </pre>
         <h2>
           <a name="migration" shape="rect" id="migration">Migration</a>
+          <a class="headerlink" href="#migration" title="Permalink to this headline">¶</a>
         </h2>
         <p>
         A migration cannot be initiated on an ESX server directly, a VMware
@@ -889,6 +916,7 @@ Enter administrator password for example-vcenter.com:
 </pre>
         <h2>
           <a name="scheduler" shape="rect" id="scheduler">Scheduler configuration</a>
+          <a class="headerlink" href="#scheduler" title="Permalink to this headline">¶</a>
         </h2>
         <p>
         The driver exposes the ESX CPU scheduler. The parameters listed below
@@ -913,6 +941,7 @@ Enter administrator password for example-vcenter.com:
         </dd></dl>
         <h2>
           <a name="tools" shape="rect" id="tools">VMware tools</a>
+          <a class="headerlink" href="#tools" title="Permalink to this headline">¶</a>
         </h2>
         <p>
         Some actions require installed VMware tools. If the VMware tools are
@@ -926,6 +955,7 @@ Enter administrator password for example-vcenter.com:
         </li></ul>
         <h2>
           <a name="links" shape="rect" id="links">Links</a>
+          <a class="headerlink" href="#links" title="Permalink to this headline">¶</a>
         </h2>
         <ul><li>
             <a href="http://www.vmware.com/support/developer/vc-sdk/" shape="rect">

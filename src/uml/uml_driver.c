@@ -224,8 +224,7 @@ umlAutostartConfigs(struct uml_driver *driver) {
     virDomainObjListForEach(driver->domains, umlAutostartDomain, &data);
     umlDriverUnlock(driver);
 
-    if (conn)
-        virConnectClose(conn);
+    virObjectUnref(conn);
 }
 
 
@@ -1575,6 +1574,7 @@ static virDomainPtr umlDomainCreateXML(virConnectPtr conn, const char *xml,
 
     virCheckFlags(VIR_DOMAIN_START_AUTODESTROY, NULL);
 
+    virNWFilterReadLockFilterUpdates();
     umlDriverLock(driver);
     if (!(def = virDomainDefParseString(xml, driver->caps, driver->xmlopt,
                                         1 << VIR_DOMAIN_VIRT_UML,
@@ -1614,6 +1614,7 @@ cleanup:
     if (event)
         umlDomainEventQueue(driver, event);
     umlDriverUnlock(driver);
+    virNWFilterUnlockFilterUpdates();
     return dom;
 }
 
@@ -1636,7 +1637,7 @@ static int umlDomainShutdownFlags(virDomainPtr dom,
         goto cleanup;
     }
 
-    if (virDomainShutdownFlagsEnsureACL(dom->conn, vm->def) < 0)
+    if (virDomainShutdownFlagsEnsureACL(dom->conn, vm->def, flags) < 0)
         goto cleanup;
 
 #if 0
@@ -1998,6 +1999,7 @@ static int umlDomainCreateWithFlags(virDomainPtr dom, unsigned int flags) {
 
     virCheckFlags(VIR_DOMAIN_START_AUTODESTROY, -1);
 
+    virNWFilterReadLockFilterUpdates();
     umlDriverLock(driver);
     vm = virDomainObjListFindByUUID(driver->domains, dom->uuid);
 
@@ -2024,6 +2026,7 @@ cleanup:
     if (event)
         umlDomainEventQueue(driver, event);
     umlDriverUnlock(driver);
+    virNWFilterUnlockFilterUpdates();
     return ret;
 }
 
@@ -2618,7 +2621,6 @@ umlConnectDomainEventRegister(virConnectPtr conn,
     umlDriverLock(driver);
     if (virDomainEventStateRegister(conn,
                                     driver->domainEventState,
-                                    virConnectDomainEventRegisterCheckACL,
                                     callback, opaque, freecb) < 0)
         ret = -1;
     umlDriverUnlock(driver);
@@ -2663,7 +2665,6 @@ umlConnectDomainEventRegisterAny(virConnectPtr conn,
     umlDriverLock(driver);
     if (virDomainEventStateRegisterID(conn,
                                       driver->domainEventState,
-                                      virConnectDomainEventRegisterAnyCheckACL,
                                       dom, eventID,
                                       callback, opaque, freecb, &ret) < 0)
         ret = -1;

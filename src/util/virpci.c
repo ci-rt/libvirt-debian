@@ -42,6 +42,7 @@
 #include "vircommand.h"
 #include "virerror.h"
 #include "virfile.h"
+#include "virkmod.h"
 #include "virstring.h"
 #include "virutil.h"
 
@@ -225,7 +226,7 @@ virPCIFile(char **buffer, const char *device, const char *file)
  *
  * Return 0 for success, -1 for error.
  */
-static int
+int
 virPCIDeviceGetDriverPathAndName(virPCIDevicePtr dev, char **path, char **name)
 {
     int ret = -1;
@@ -235,6 +236,11 @@ virPCIDeviceGetDriverPathAndName(virPCIDevicePtr dev, char **path, char **name)
     /* drvlink = "/sys/bus/pci/dddd:bb:ss.ff/driver" */
     if (virPCIFile(&drvlink, dev->name, "driver") < 0)
         goto cleanup;
+
+    if (!virFileExists(drvlink)) {
+        ret = 0;
+        goto cleanup;
+    }
 
     if (virFileIsLink(drvlink) != 1) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
@@ -985,19 +991,71 @@ recheck:
     VIR_FREE(drvpath);
 
     if (!probed) {
-        const char *const probecmd[] = { MODPROBE, driver, NULL };
+        char *errbuf = NULL;
         probed = true;
-        if (virRun(probecmd, NULL) < 0) {
-            char ebuf[1024];
-            VIR_WARN("failed to load driver %s: %s", driver,
-                     virStrerror(errno, ebuf, sizeof(ebuf)));
-            return -1;
+        if ((errbuf = virKModLoad(driver, true))) {
+            VIR_WARN("failed to load driver %s: %s", driver, errbuf);
+            VIR_FREE(errbuf);
+            goto cleanup;
         }
 
         goto recheck;
     }
 
+cleanup:
+    /* If we know failure was because of blacklist, let's report that;
+     * otherwise, report a more generic failure message
+     */
+    if (virKModIsBlacklisted(driver)) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Failed to load PCI stub module %s: "
+                         "administratively prohibited"),
+                       driver);
+    } else {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Failed to load PCI stub module %s"),
+                       driver);
+    }
+
     return -1;
+}
+
+int
+virPCIDeviceUnbind(virPCIDevicePtr dev, bool reprobe)
+{
+    char *path = NULL;
+    char *drvpath = NULL;
+    char *driver = NULL;
+    int ret = -1;
+
+    if (virPCIDeviceGetDriverPathAndName(dev, &drvpath, &driver) < 0)
+        goto cleanup;
+
+    if (!driver) {
+        /* The device is not bound to any driver */
+        ret = 0;
+        goto cleanup;
+    }
+
+    if (virPCIFile(&path, dev->name, "driver/unbind") < 0)
+        goto cleanup;
+
+    if (virFileExists(path)) {
+        if (virFileWriteStr(path, dev->name, 0) < 0) {
+            virReportSystemError(errno,
+                                 _("Failed to unbind PCI device '%s' from %s"),
+                                 dev->name, driver);
+            goto cleanup;
+        }
+        dev->reprobe = reprobe;
+    }
+
+    ret = 0;
+cleanup:
+    VIR_FREE(path);
+    VIR_FREE(drvpath);
+    VIR_FREE(driver);
+    return ret;
 }
 
 static const char *virPCIKnownStubs[] = {
@@ -1023,6 +1081,11 @@ virPCIDeviceUnbindFromStub(virPCIDevicePtr dev)
     if (virPCIDeviceGetDriverPathAndName(dev, &drvdir, &driver) < 0)
         goto cleanup;
 
+    if (!driver) {
+        /* The device is not bound to any driver and we are almost done. */
+        goto reprobe;
+    }
+
     if (!dev->unbind_from_stub)
         goto remove_slot;
 
@@ -1037,18 +1100,8 @@ virPCIDeviceUnbindFromStub(virPCIDevicePtr dev)
     if (!isStub)
         goto remove_slot;
 
-    if (virFileExists(drvdir)) {
-        if (virPCIDriverFile(&path, driver, "unbind") < 0) {
-            goto cleanup;
-        }
-
-        if (virFileWriteStr(path, dev->name, 0) < 0) {
-            virReportSystemError(errno,
-                                 _("Failed to unbind PCI device '%s' from %s"),
-                                 dev->name, driver);
-            goto cleanup;
-        }
-    }
+    if (virPCIDeviceUnbind(dev, dev->reprobe) < 0)
+        goto cleanup;
     dev->unbind_from_stub = false;
 
 remove_slot:
@@ -1079,11 +1132,10 @@ reprobe:
      * available, then re-probing would just cause the device to be
      * re-bound to the stub.
      */
-    if (virPCIDriverFile(&path, driver, "remove_id") < 0) {
+    if (driver && virPCIDriverFile(&path, driver, "remove_id") < 0)
         goto cleanup;
-    }
 
-    if (!virFileExists(drvdir) || virFileExists(path)) {
+    if (!driver || !virFileExists(drvdir) || virFileExists(path)) {
         if (virFileWriteStr(PCI_SYSFS "drivers_probe", dev->name, 0) < 0) {
             virReportSystemError(errno,
                                  _("Failed to trigger a re-probe for PCI device '%s'"),
@@ -1114,14 +1166,15 @@ virPCIDeviceBindToStub(virPCIDevicePtr dev,
 {
     int result = -1;
     int reprobe = false;
-
     char *stubDriverPath = NULL;
     char *driverLink = NULL;
     char *path = NULL; /* reused for different purposes */
-    const char *newDriverName = NULL;
+    char *newDriverName = NULL;
+    virErrorPtr err = NULL;
 
     if (virPCIDriverDir(&stubDriverPath, stubDriverName) < 0 ||
-        virPCIFile(&driverLink, dev->name, "driver") < 0)
+        virPCIFile(&driverLink, dev->name, "driver") < 0 ||
+        VIR_STRDUP(newDriverName, stubDriverName) < 0)
         goto cleanup;
 
     if (virFileExists(driverLink)) {
@@ -1129,7 +1182,6 @@ virPCIDeviceBindToStub(virPCIDevicePtr dev,
             /* The device is already bound to the correct driver */
             VIR_DEBUG("Device %s is already bound to %s",
                       dev->name, stubDriverName);
-            newDriverName = stubDriverName;
             result = 0;
             goto cleanup;
         }
@@ -1161,27 +1213,12 @@ virPCIDeviceBindToStub(virPCIDevicePtr dev,
     if (virFileLinkPointsTo(driverLink, stubDriverPath)) {
         dev->unbind_from_stub = true;
         dev->remove_slot = true;
+        result = 0;
         goto remove_id;
     }
 
-    /* If the device is already bound to a driver, unbind it.
-     * Note, this will have rather unpleasant side effects if this
-     * PCI device happens to be IDE controller for the disk hosting
-     * your root filesystem.
-     */
-    if (virPCIFile(&path, dev->name, "driver/unbind") < 0) {
-        goto cleanup;
-    }
-
-    if (virFileExists(path)) {
-        if (virFileWriteStr(path, dev->name, 0) < 0) {
-            virReportSystemError(errno,
-                                 _("Failed to unbind PCI device '%s'"),
-                                 dev->name);
-            goto cleanup;
-        }
-        dev->reprobe = reprobe;
-    }
+    if (virPCIDeviceUnbind(dev, reprobe) < 0)
+        goto remove_id;
 
     /* If the device isn't already bound to pci-stub, try binding it now.
      */
@@ -1213,7 +1250,11 @@ virPCIDeviceBindToStub(virPCIDevicePtr dev,
         dev->unbind_from_stub = true;
     }
 
+    result = 0;
+
 remove_id:
+    err = virSaveLastError();
+
     /* If 'remove_id' exists, remove the device id from pci-stub's dynamic
      * ID table so that 'drivers_probe' works below.
      */
@@ -1224,6 +1265,7 @@ remove_id:
                      "cannot be probed again.", dev->id, stubDriverName);
         }
         dev->reprobe = false;
+        result = -1;
         goto cleanup;
     }
 
@@ -1238,24 +1280,26 @@ remove_id:
                      "cannot be probed again.", dev->id, stubDriverName);
         }
         dev->reprobe = false;
+        result = -1;
         goto cleanup;
     }
-
-    newDriverName = stubDriverName;
-    result = 0;
 
 cleanup:
     VIR_FREE(stubDriverPath);
     VIR_FREE(driverLink);
     VIR_FREE(path);
 
-    if (newDriverName &&
-        STRNEQ_NULLABLE(dev->stubDriver, newDriverName)) {
-        VIR_FREE(dev->stubDriver);
-        result = VIR_STRDUP(dev->stubDriver, newDriverName);
-    }
-    if (result < 0)
+    if (result < 0) {
+        VIR_FREE(newDriverName);
         virPCIDeviceUnbindFromStub(dev);
+    } else {
+        VIR_FREE(dev->stubDriver);
+        dev->stubDriver = newDriverName;
+    }
+
+    if (err)
+        virSetError(err);
+    virFreeError(err);
 
     return result;
 }
@@ -1283,12 +1327,10 @@ virPCIDeviceDetach(virPCIDevicePtr dev,
                    virPCIDeviceList *activeDevs,
                    virPCIDeviceList *inactiveDevs)
 {
-    if (virPCIProbeStubDriver(dev->stubDriver) < 0) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("Failed to load PCI stub module %s"),
-                       dev->stubDriver);
+    sa_assert(dev->stubDriver);
+
+    if (virPCIProbeStubDriver(dev->stubDriver) < 0)
         return -1;
-    }
 
     if (activeDevs && virPCIDeviceListFind(activeDevs, dev)) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
@@ -1617,7 +1659,7 @@ int
 virPCIDeviceSetStubDriver(virPCIDevicePtr dev, const char *driver)
 {
     VIR_FREE(dev->stubDriver);
-    return driver ? VIR_STRDUP(dev->stubDriver, driver) : 0;
+    return VIR_STRDUP(dev->stubDriver, driver);
 }
 
 const char *

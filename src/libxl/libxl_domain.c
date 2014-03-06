@@ -1,7 +1,7 @@
 /*
  * libxl_domain.c: libxl domain object private state
  *
- * Copyright (C) 2011-2013 SUSE LINUX Products GmbH, Nuernberg, Germany.
+ * Copyright (C) 2011-2014 SUSE LINUX Products GmbH, Nuernberg, Germany.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -30,41 +30,21 @@
 #include "virerror.h"
 #include "virlog.h"
 #include "virstring.h"
+#include "virtime.h"
 
 #define VIR_FROM_THIS VIR_FROM_LIBXL
 
 
-/* Append an event registration to the list of registrations */
-#define LIBXL_EV_REG_APPEND(head, add)                 \
-    do {                                               \
-        libxlEventHookInfoPtr temp;                    \
-        if (head) {                                    \
-            temp = head;                               \
-            while (temp->next)                         \
-                temp = temp->next;                     \
-            temp->next = add;                          \
-        } else {                                       \
-            head = add;                                \
-        }                                              \
-    } while (0)
-
-/* Remove an event registration from the list of registrations */
-#define LIBXL_EV_REG_REMOVE(head, del)                 \
-    do {                                               \
-        libxlEventHookInfoPtr temp;                    \
-        if (head == del) {                             \
-            head = head->next;                         \
-        } else {                                       \
-            temp = head;                               \
-            while (temp->next && temp->next != del)    \
-                temp = temp->next;                     \
-            if (temp->next) {                          \
-                temp->next = del->next;                \
-            }                                          \
-        }                                              \
-    } while (0)
+VIR_ENUM_IMPL(libxlDomainJob, LIBXL_JOB_LAST,
+              "none",
+              "query",
+              "destroy",
+              "modify",
+);
 
 /* Object used to store info related to libxl event registrations */
+typedef struct _libxlEventHookInfo libxlEventHookInfo;
+typedef libxlEventHookInfo *libxlEventHookInfoPtr;
 struct _libxlEventHookInfo {
     libxlEventHookInfoPtr next;
     libxlDomainObjPrivatePtr priv;
@@ -92,7 +72,13 @@ libxlDomainObjPrivateOnceInit(void)
 VIR_ONCE_GLOBAL_INIT(libxlDomainObjPrivate)
 
 static void
-libxlDomainObjEventHookInfoFree(void *obj)
+libxlDomainObjFDEventHookInfoFree(void *obj)
+{
+    VIR_FREE(obj);
+}
+
+static void
+libxlDomainObjTimerEventHookInfoFree(void *obj)
 {
     libxlEventHookInfoPtr info = obj;
 
@@ -138,12 +124,6 @@ libxlDomainObjFDRegisterEventHook(void *priv,
         return -1;
 
     info->priv = priv;
-    /*
-     * Take a reference on the domain object.  Reference is dropped in
-     * libxlDomainObjEventHookInfoFree, ensuring the domain object outlives
-     * the fd event objects.
-     */
-    virObjectRef(info->priv);
     info->xl_priv = xl_priv;
 
     if (events & POLLIN)
@@ -152,9 +132,8 @@ libxlDomainObjFDRegisterEventHook(void *priv,
         vir_events |= VIR_EVENT_HANDLE_WRITABLE;
 
     info->id = virEventAddHandle(fd, vir_events, libxlDomainObjFDEventCallback,
-                                 info, libxlDomainObjEventHookInfoFree);
+                                 info, libxlDomainObjFDEventHookInfoFree);
     if (info->id < 0) {
-        virObjectUnref(info->priv);
         VIR_FREE(info);
         return -1;
     }
@@ -215,12 +194,7 @@ libxlDomainObjTimerCallback(int timer ATTRIBUTE_UNUSED, void *timer_info)
     virObjectUnlock(p);
     libxl_osevent_occurred_timeout(p->ctx, info->xl_priv);
     virObjectLock(p);
-    /*
-     * Timeout could have been freed while the lock was dropped.
-     * Only remove it from the list if it still exists.
-     */
-    if (virEventRemoveTimeout(info->id) == 0)
-        LIBXL_EV_REG_REMOVE(p->timerRegistrations, info);
+    virEventRemoveTimeout(info->id);
     virObjectUnlock(p);
 }
 
@@ -259,16 +233,13 @@ libxlDomainObjTimeoutRegisterEventHook(void *priv,
         timeout = res.tv_sec * 1000 + (res.tv_usec + 999) / 1000;
     }
     info->id = virEventAddTimeout(timeout, libxlDomainObjTimerCallback,
-                                  info, libxlDomainObjEventHookInfoFree);
+                                  info, libxlDomainObjTimerEventHookInfoFree);
     if (info->id < 0) {
         virObjectUnref(info->priv);
         VIR_FREE(info);
         return -1;
     }
 
-    virObjectLock(info->priv);
-    LIBXL_EV_REG_APPEND(info->priv->timerRegistrations, info);
-    virObjectUnlock(info->priv);
     *hndp = info;
 
     return 0;
@@ -307,12 +278,7 @@ libxlDomainObjTimeoutDeregisterEventHook(void *priv ATTRIBUTE_UNUSED,
     libxlDomainObjPrivatePtr p = info->priv;
 
     virObjectLock(p);
-    /*
-     * Only remove the timeout from the list if removal from the
-     * event loop is successful.
-     */
-    if (virEventRemoveTimeout(info->id) == 0)
-        LIBXL_EV_REG_REMOVE(p->timerRegistrations, info);
+    virEventRemoveTimeout(info->id);
     virObjectUnlock(p);
 }
 
@@ -325,6 +291,119 @@ static const libxl_osevent_hooks libxl_event_callbacks = {
     .timeout_modify = libxlDomainObjTimeoutModifyEventHook,
     .timeout_deregister = libxlDomainObjTimeoutDeregisterEventHook,
 };
+
+static int
+libxlDomainObjInitJob(libxlDomainObjPrivatePtr priv)
+{
+    memset(&priv->job, 0, sizeof(priv->job));
+
+    if (virCondInit(&priv->job.cond) < 0)
+        return -1;
+
+    return 0;
+}
+
+static void
+libxlDomainObjResetJob(libxlDomainObjPrivatePtr priv)
+{
+    struct libxlDomainJobObj *job = &priv->job;
+
+    job->active = LIBXL_JOB_NONE;
+    job->owner = 0;
+}
+
+static void
+libxlDomainObjFreeJob(libxlDomainObjPrivatePtr priv)
+{
+    ignore_value(virCondDestroy(&priv->job.cond));
+}
+
+/* Give up waiting for mutex after 30 seconds */
+#define LIBXL_JOB_WAIT_TIME (1000ull * 30)
+
+/*
+ * obj must be locked before calling, libxlDriverPrivatePtr must NOT be locked
+ *
+ * This must be called by anything that will change the VM state
+ * in any way
+ *
+ * Upon successful return, the object will have its ref count increased,
+ * successful calls must be followed by EndJob eventually
+ */
+int
+libxlDomainObjBeginJob(libxlDriverPrivatePtr driver ATTRIBUTE_UNUSED,
+                       virDomainObjPtr obj,
+                       enum libxlDomainJob job)
+{
+    libxlDomainObjPrivatePtr priv = obj->privateData;
+    unsigned long long now;
+    unsigned long long then;
+
+    if (virTimeMillisNow(&now) < 0)
+        return -1;
+    then = now + LIBXL_JOB_WAIT_TIME;
+
+    virObjectRef(obj);
+
+    while (priv->job.active) {
+        VIR_DEBUG("Wait normal job condition for starting job: %s",
+                  libxlDomainJobTypeToString(job));
+        if (virCondWaitUntil(&priv->job.cond, &obj->parent.lock, then) < 0)
+            goto error;
+    }
+
+    libxlDomainObjResetJob(priv);
+
+    VIR_DEBUG("Starting job: %s", libxlDomainJobTypeToString(job));
+    priv->job.active = job;
+    priv->job.owner = virThreadSelfID();
+
+    return 0;
+
+error:
+    VIR_WARN("Cannot start job (%s) for domain %s;"
+             " current job is (%s) owned by (%d)",
+             libxlDomainJobTypeToString(job),
+             obj->def->name,
+             libxlDomainJobTypeToString(priv->job.active),
+             priv->job.owner);
+
+    if (errno == ETIMEDOUT)
+        virReportError(VIR_ERR_OPERATION_TIMEOUT,
+                       "%s", _("cannot acquire state change lock"));
+    else
+        virReportSystemError(errno,
+                             "%s", _("cannot acquire job mutex"));
+
+    virObjectUnref(obj);
+    return -1;
+}
+
+/*
+ * obj must be locked before calling
+ *
+ * To be called after completing the work associated with the
+ * earlier libxlDomainBeginJob() call
+ *
+ * Returns true if the remaining reference count on obj is
+ * non-zero, false if the reference count has dropped to zero
+ * and obj is disposed.
+ */
+bool
+libxlDomainObjEndJob(libxlDriverPrivatePtr driver ATTRIBUTE_UNUSED,
+                     virDomainObjPtr obj)
+{
+    libxlDomainObjPrivatePtr priv = obj->privateData;
+    enum libxlDomainJob job = priv->job.active;
+
+    VIR_DEBUG("Stopping job: %s",
+              libxlDomainJobTypeToString(job));
+
+    libxlDomainObjResetJob(priv);
+    virCondSignal(&priv->job.cond);
+
+    return virObjectUnref(obj);
+}
 
 static void *
 libxlDomainObjPrivateAlloc(void)
@@ -342,6 +421,12 @@ libxlDomainObjPrivateAlloc(void)
         return NULL;
     }
 
+    if (libxlDomainObjInitJob(priv) < 0) {
+        virChrdevFree(priv->devs);
+        virObjectUnref(priv);
+        return NULL;
+    }
+
     return priv;
 }
 
@@ -353,6 +438,7 @@ libxlDomainObjPrivateDispose(void *obj)
     if (priv->deathW)
         libxl_evdisable_domain_death(priv->ctx, priv->deathW);
 
+    libxlDomainObjFreeJob(priv);
     virChrdevFree(priv->devs);
     libxl_ctx_free(priv->ctx);
     if (priv->logger_file)
@@ -400,6 +486,14 @@ virDomainDefParserConfig libxlDomainDefParserConfig = {
     .devicesPostParseCallback = libxlDomainDeviceDefPostParse,
 };
 
+static const libxl_childproc_hooks libxl_child_hooks = {
+#ifdef LIBXL_HAVE_SIGCHLD_OWNER_SELECTIVE_REAP
+    .chldowner = libxl_sigchld_owner_libxl_always_selective_reap,
+#else
+    .chldowner = libxl_sigchld_owner_libxl,
+#endif
+};
+
 int
 libxlDomainObjPrivateInitCtx(virDomainObjPtr vm)
 {
@@ -437,33 +531,11 @@ libxlDomainObjPrivateInitCtx(virDomainObjPtr vm)
     }
 
     libxl_osevent_register_hooks(priv->ctx, &libxl_event_callbacks, priv);
+    libxl_childproc_setmode(priv->ctx, &libxl_child_hooks, priv);
 
     ret = 0;
 
 cleanup:
     VIR_FREE(log_file);
     return ret;
-}
-
-void
-libxlDomainObjRegisteredTimeoutsCleanup(libxlDomainObjPrivatePtr priv)
-{
-    libxlEventHookInfoPtr info;
-
-    virObjectLock(priv);
-    info = priv->timerRegistrations;
-    while (info) {
-        /*
-         * libxl expects the event to be deregistered when calling
-         * libxl_osevent_occurred_timeout, but we dont want the event info
-         * destroyed.  Disable the timeout and only remove it after returning
-         * from libxl.
-         */
-        virEventUpdateTimeout(info->id, -1);
-        libxl_osevent_occurred_timeout(priv->ctx, info->xl_priv);
-        virEventRemoveTimeout(info->id);
-        info = info->next;
-    }
-    priv->timerRegistrations = NULL;
-    virObjectUnlock(priv);
 }

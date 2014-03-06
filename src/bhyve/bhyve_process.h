@@ -1,7 +1,7 @@
 /*
- * virthreadpthread.c: basic thread synchronization primitives
+ * bhyve_process.h: bhyve process management
  *
- * Copyright (C) 2009, 2011 Red Hat, Inc.
+ * Copyright (C) 2014 Roman Bogorodskiy
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -19,31 +19,18 @@
  *
  */
 
-#include "internal.h"
+#ifndef __BHYVE_PROCESS_H__
+# define __BHYVE_PROCESS_H__
 
-#include <pthread.h>
+# include "bhyve_utils.h"
 
-struct virMutex {
-    pthread_mutex_t lock;
-};
+int virBhyveProcessStart(virConnectPtr conn,
+                         bhyveConnPtr driver,
+                         virDomainObjPtr vm,
+                         virDomainRunningReason reason);
 
-struct virCond {
-    pthread_cond_t cond;
-};
+int virBhyveProcessStop(bhyveConnPtr driver,
+                        virDomainObjPtr vm,
+                        virDomainShutoffReason reason);
 
-struct virThread {
-    pthread_t thread;
-};
-
-struct virThreadLocal {
-    pthread_key_t key;
-};
-
-struct virOnceControl {
-    pthread_once_t once;
-};
-
-#define VIR_ONCE_CONTROL_INITIALIZER \
-{                                    \
-    .once = PTHREAD_ONCE_INIT        \
-}
+#endif /* __BHYVE_PROCESS_H__ */

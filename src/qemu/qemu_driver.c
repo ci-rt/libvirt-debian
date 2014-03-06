@@ -94,6 +94,7 @@
 #include "virstring.h"
 #include "viraccessapicheck.h"
 #include "viraccessapicheckqemu.h"
+#include "storage/storage_driver.h"
 
 #define VIR_FROM_THIS VIR_FROM_QEMU
 
@@ -105,7 +106,6 @@
 
 #define QEMU_NB_NUMA_PARAM 2
 
-#define QEMU_NB_TOTAL_CPU_STAT_PARAM 3
 #define QEMU_NB_PER_CPU_STAT_PARAM 2
 
 #define QEMU_SCHED_MIN_PERIOD              1000LL
@@ -131,7 +131,7 @@
 # define KVM_CAP_NR_VCPUS 9       /* returns max vcpus per vm */
 #endif
 
-#define QEMU_NB_BLKIO_PARAM  2
+#define QEMU_NB_BLKIO_PARAM  6
 
 #define QEMU_NB_BANDWIDTH_PARAM 6
 
@@ -320,8 +320,7 @@ qemuAutostartDomains(virQEMUDriverPtr driver)
 
     virDomainObjListForEach(driver->domains, qemuAutostartDomain, &data);
 
-    if (conn)
-        virConnectClose(conn);
+    virObjectUnref(conn);
     virObjectUnref(cfg);
 }
 
@@ -843,15 +842,13 @@ qemuStateInitialize(bool privileged,
     if (!qemu_driver->workerPool)
         goto error;
 
-    if (conn)
-        virConnectClose(conn);
+    virObjectUnref(conn);
 
     virNWFilterRegisterCallbackDriver(&qemuCallbackDriver);
     return 0;
 
 error:
-    if (conn)
-        virConnectClose(conn);
+    virObjectUnref(conn);
     VIR_FREE(driverConf);
     VIR_FREE(membase);
     VIR_FREE(mempath);
@@ -970,8 +967,7 @@ qemuStateStop(void) {
         virDomainFree(domains[i]);
     VIR_FREE(domains);
     VIR_FREE(flags);
-    if (conn)
-        virConnectClose(conn);
+    virObjectUnref(conn);
     virObjectUnref(cfg);
 
     return ret;
@@ -1580,6 +1576,8 @@ static virDomainPtr qemuDomainCreateXML(virConnectPtr conn,
     if (flags & VIR_DOMAIN_START_AUTODESTROY)
         start_flags |= VIR_QEMU_PROCESS_START_AUTODESTROY;
 
+    virNWFilterReadLockFilterUpdates();
+
     if (!(caps = virQEMUDriverGetCapabilities(driver, false)))
         goto cleanup;
 
@@ -1660,6 +1658,7 @@ cleanup:
     }
     virObjectUnref(caps);
     virObjectUnref(qemuCaps);
+    virNWFilterUnlockFilterUpdates();
     return dom;
 }
 
@@ -1839,7 +1838,7 @@ static int qemuDomainShutdownFlags(virDomainPtr dom, unsigned int flags) {
     if (agentRequested || (!flags && priv->agent))
         useAgent = true;
 
-    if (virDomainShutdownFlagsEnsureACL(dom->conn, vm->def) < 0)
+    if (virDomainShutdownFlagsEnsureACL(dom->conn, vm->def, flags) < 0)
         goto cleanup;
 
     if (priv->agentError) {
@@ -1940,7 +1939,7 @@ qemuDomainReboot(virDomainPtr dom, unsigned int flags)
 
     priv = vm->privateData;
 
-    if (virDomainRebootEnsureACL(dom->conn, vm->def) < 0)
+    if (virDomainRebootEnsureACL(dom->conn, vm->def, flags) < 0)
         goto cleanup;
 
     if ((flags & VIR_DOMAIN_REBOOT_GUEST_AGENT) ||
@@ -2246,8 +2245,16 @@ static int qemuDomainSetMemoryFlags(virDomainPtr dom, unsigned long newmem,
 
     } else {
         /* resize the current memory */
+        unsigned long oldmax = 0;
 
-        if (newmem > vm->def->mem.max_balloon) {
+        if (flags & VIR_DOMAIN_AFFECT_LIVE)
+            oldmax = vm->def->mem.max_balloon;
+        if (flags & VIR_DOMAIN_AFFECT_CONFIG) {
+            if (!oldmax || oldmax > persistentDef->mem.max_balloon)
+                oldmax = persistentDef->mem.max_balloon;
+        }
+
+        if (newmem > oldmax) {
             virReportError(VIR_ERR_INVALID_ARG, "%s",
                            _("cannot set memory higher than max memory"));
             goto endjob;
@@ -4125,6 +4132,7 @@ qemuDomainSetVcpusFlags(virDomainPtr dom, unsigned int nvcpus,
     virDomainDefPtr persistentDef;
     int ret = -1;
     bool maximum;
+    unsigned int maxvcpus = 0;
     virQEMUDriverConfigPtr cfg = NULL;
     virCapsPtr caps = NULL;
     qemuAgentCPUInfoPtr cpuinfo = NULL;
@@ -4172,11 +4180,17 @@ qemuDomainSetVcpusFlags(virDomainPtr dom, unsigned int nvcpus,
         goto endjob;
     }
 
-    if (!maximum && nvcpus > vm->def->maxvcpus) {
+    if (flags & VIR_DOMAIN_AFFECT_LIVE)
+        maxvcpus = vm->def->maxvcpus;
+    if (flags & VIR_DOMAIN_AFFECT_CONFIG) {
+        if (!maxvcpus || maxvcpus > persistentDef->maxvcpus)
+            maxvcpus = persistentDef->maxvcpus;
+    }
+    if (!maximum && nvcpus > maxvcpus) {
         virReportError(VIR_ERR_INVALID_ARG,
                        _("requested vcpus is greater than max allowable"
                          " vcpus for the domain: %d > %d"),
-                       nvcpus, vm->def->maxvcpus);
+                       nvcpus, maxvcpus);
         goto endjob;
     }
 
@@ -4902,7 +4916,7 @@ qemuDomainGetVcpusFlags(virDomainPtr dom, unsigned int flags)
 
     priv = vm->privateData;
 
-    if (virDomainGetVcpusFlagsEnsureACL(dom->conn, vm->def) < 0)
+    if (virDomainGetVcpusFlagsEnsureACL(dom->conn, vm->def, flags) < 0)
         goto cleanup;
 
     if (!(caps = virQEMUDriverGetCapabilities(driver, false)))
@@ -6099,6 +6113,8 @@ qemuDomainCreateWithFlags(virDomainPtr dom, unsigned int flags)
                   VIR_DOMAIN_START_BYPASS_CACHE |
                   VIR_DOMAIN_START_FORCE_BOOT, -1);
 
+    virNWFilterReadLockFilterUpdates();
+
     if (!(vm = qemuDomObjFromDomain(dom)))
         return -1;
 
@@ -6126,6 +6142,7 @@ endjob:
 cleanup:
     if (vm)
         virObjectUnlock(vm);
+    virNWFilterUnlockFilterUpdates();
     return ret;
 }
 
@@ -6497,7 +6514,7 @@ qemuDomainChangeDiskMediaLive(virConnectPtr conn,
     if (qemuTranslateDiskSourcePool(conn, disk) < 0)
         goto end;
 
-    if (qemuDomainDetermineDiskChain(driver, disk, false) < 0)
+    if (qemuDomainDetermineDiskChain(driver, vm, disk, false) < 0)
         goto end;
 
     if (qemuSetupDiskCgroup(vm, disk) < 0)
@@ -6604,6 +6621,7 @@ qemuDomainAttachDeviceConfig(virQEMUCapsPtr qemuCaps,
     virDomainHostdevDefPtr hostdev;
     virDomainLeaseDefPtr lease;
     virDomainControllerDefPtr controller;
+    virDomainFSDefPtr fs;
 
     switch (dev->type) {
     case VIR_DOMAIN_DEVICE_DISK:
@@ -6685,6 +6703,19 @@ qemuDomainAttachDeviceConfig(virQEMUCapsPtr qemuCaps,
         dev->data.chr = NULL;
         break;
 
+    case VIR_DOMAIN_DEVICE_FS:
+        fs = dev->data.fs;
+        if (virDomainFSIndexByName(vmdef, fs->dst) >= 0) {
+            virReportError(VIR_ERR_OPERATION_INVALID,
+                         "%s", _("Target already exists"));
+            return -1;
+        }
+
+        if (virDomainFSInsert(vmdef, fs) < 0)
+            return -1;
+        dev->data.fs = NULL;
+        break;
+
     default:
          virReportError(VIR_ERR_OPERATION_UNSUPPORTED,
                         _("persistent attach of device '%s' is not supported"),
@@ -6705,6 +6736,7 @@ qemuDomainDetachDeviceConfig(virDomainDefPtr vmdef,
     virDomainLeaseDefPtr lease, det_lease;
     virDomainControllerDefPtr cont, det_cont;
     virDomainChrDefPtr chr;
+    virDomainFSDefPtr fs;
     int idx;
     char mac[VIR_MAC_STRING_BUFLEN];
 
@@ -6779,6 +6811,19 @@ qemuDomainDetachDeviceConfig(virDomainDefPtr vmdef,
         virDomainChrDefFree(chr);
         virDomainChrDefFree(dev->data.chr);
         dev->data.chr = NULL;
+        break;
+
+    case VIR_DOMAIN_DEVICE_FS:
+        fs = dev->data.fs;
+        idx = virDomainFSIndexByName(vmdef, fs->dst);
+        if (idx < 0) {
+            virReportError(VIR_ERR_OPERATION_FAILED, "%s",
+                           _("no matching filesystem device was found"));
+            return -1;
+        }
+
+        fs = virDomainFSRemove(vmdef, idx);
+        virDomainFSDefFree(fs);
         break;
 
     default:
@@ -7427,12 +7472,12 @@ cleanup:
     return ret;
 }
 
-/* deviceWeightStr in the form of /device/path,weight,/device/path,weight
+/* blkioDeviceStr in the form of /device/path,weight,/device/path,weight
  * for example, /dev/disk/by-path/pci-0000:00:1f.2-scsi-0:0:0:0,800
  */
 static int
-qemuDomainParseDeviceWeightStr(char *deviceWeightStr,
-                               virBlkioDevicePtr *dev, size_t *size)
+qemuDomainParseBlkioDeviceStr(char *blkioDeviceStr, const char *type,
+                              virBlkioDevicePtr *dev, size_t *size)
 {
     char *temp;
     int ndevices = 0;
@@ -7443,10 +7488,10 @@ qemuDomainParseDeviceWeightStr(char *deviceWeightStr,
     *dev = NULL;
     *size = 0;
 
-    if (STREQ(deviceWeightStr, ""))
+    if (STREQ(blkioDeviceStr, ""))
         return 0;
 
-    temp = deviceWeightStr;
+    temp = blkioDeviceStr;
     while (temp) {
         temp = strchr(temp, ',');
         if (temp) {
@@ -7466,7 +7511,7 @@ qemuDomainParseDeviceWeightStr(char *deviceWeightStr,
         return -1;
 
     i = 0;
-    temp = deviceWeightStr;
+    temp = blkioDeviceStr;
     while (temp) {
         char *p = temp;
 
@@ -7478,11 +7523,27 @@ qemuDomainParseDeviceWeightStr(char *deviceWeightStr,
         if (VIR_STRNDUP(result[i].path, temp, p - temp) < 0)
             goto cleanup;
 
-        /* weight */
+        /* value */
         temp = p + 1;
 
-        if (virStrToLong_ui(temp, &p, 10, &result[i].weight) < 0)
+        if (STREQ(type, VIR_DOMAIN_BLKIO_DEVICE_WEIGHT)) {
+            if (virStrToLong_ui(temp, &p, 10, &result[i].weight) < 0)
+                goto error;
+        } else if (STREQ(type, VIR_DOMAIN_BLKIO_DEVICE_READ_IOPS)) {
+            if (virStrToLong_ui(temp, &p, 10, &result[i].riops) < 0)
+                goto error;
+        } else if (STREQ(type, VIR_DOMAIN_BLKIO_DEVICE_WRITE_IOPS)) {
+            if (virStrToLong_ui(temp, &p, 10, &result[i].wiops) < 0)
+                goto error;
+        } else if (STREQ(type, VIR_DOMAIN_BLKIO_DEVICE_READ_BPS)) {
+            if (virStrToLong_ull(temp, &p, 10, &result[i].rbps) < 0)
+                goto error;
+        } else if (STREQ(type, VIR_DOMAIN_BLKIO_DEVICE_WRITE_BPS)) {
+            if (virStrToLong_ull(temp, &p, 10, &result[i].wbps) < 0)
+                goto error;
+        } else {
             goto error;
+        }
 
         i++;
 
@@ -7503,20 +7564,22 @@ qemuDomainParseDeviceWeightStr(char *deviceWeightStr,
 
 error:
     virReportError(VIR_ERR_INVALID_ARG,
-                   _("unable to parse device weight '%s'"), deviceWeightStr);
+                   _("unable to parse blkio device '%s' '%s'"),
+                   type, blkioDeviceStr);
 cleanup:
     virBlkioDeviceArrayClear(result, ndevices);
     VIR_FREE(result);
     return -1;
 }
 
-/* Modify dest_array to reflect all device weight changes described in
+/* Modify dest_array to reflect all blkio device changes described in
  * src_array.  */
 static int
-qemuDomainMergeDeviceWeights(virBlkioDevicePtr *dest_array,
-                             size_t *dest_size,
-                             virBlkioDevicePtr src_array,
-                             size_t src_size)
+qemuDomainMergeBlkioDevice(virBlkioDevicePtr *dest_array,
+                           size_t *dest_size,
+                           virBlkioDevicePtr src_array,
+                           size_t src_size,
+                           const char *type)
 {
     size_t i, j;
     virBlkioDevicePtr dest, src;
@@ -7529,18 +7592,48 @@ qemuDomainMergeDeviceWeights(virBlkioDevicePtr *dest_array,
             dest = &(*dest_array)[j];
             if (STREQ(src->path, dest->path)) {
                 found = true;
-                dest->weight = src->weight;
+
+                if (STREQ(type, VIR_DOMAIN_BLKIO_DEVICE_WEIGHT))
+                    dest->weight = src->weight;
+                else if (STREQ(type, VIR_DOMAIN_BLKIO_DEVICE_READ_IOPS))
+                    dest->riops = src->riops;
+                else if (STREQ(type, VIR_DOMAIN_BLKIO_DEVICE_WRITE_IOPS))
+                    dest->wiops = src->wiops;
+                else if (STREQ(type, VIR_DOMAIN_BLKIO_DEVICE_READ_BPS))
+                    dest->rbps = src->rbps;
+                else if (STREQ(type, VIR_DOMAIN_BLKIO_DEVICE_WRITE_BPS))
+                    dest->wbps = src->wbps;
+                else {
+                    virReportError(VIR_ERR_INVALID_ARG, _("Unknown parameter %s"),
+                                   type);
+                    return -1;
+                }
                 break;
             }
         }
         if (!found) {
-            if (!src->weight)
+            if (!src->weight && !src->riops && !src->wiops && !src->rbps && !src->wbps)
                 continue;
             if (VIR_EXPAND_N(*dest_array, *dest_size, 1) < 0)
                 return -1;
             dest = &(*dest_array)[*dest_size - 1];
+
+            if (STREQ(type, VIR_DOMAIN_BLKIO_DEVICE_WEIGHT))
+                dest->weight = src->weight;
+            else if (STREQ(type, VIR_DOMAIN_BLKIO_DEVICE_READ_IOPS))
+                dest->riops = src->riops;
+            else if (STREQ(type, VIR_DOMAIN_BLKIO_DEVICE_WRITE_IOPS))
+                dest->wiops = src->wiops;
+            else if (STREQ(type, VIR_DOMAIN_BLKIO_DEVICE_READ_BPS))
+                dest->rbps = src->rbps;
+            else if (STREQ(type, VIR_DOMAIN_BLKIO_DEVICE_WRITE_BPS))
+                dest->wbps = src->wbps;
+            else {
+                *dest_size = *dest_size - 1;
+                return -1;
+            }
+
             dest->path = src->path;
-            dest->weight = src->weight;
             src->path = NULL;
         }
     }
@@ -7569,6 +7662,14 @@ qemuDomainSetBlkioParameters(virDomainPtr dom,
                                VIR_DOMAIN_BLKIO_WEIGHT,
                                VIR_TYPED_PARAM_UINT,
                                VIR_DOMAIN_BLKIO_DEVICE_WEIGHT,
+                               VIR_TYPED_PARAM_STRING,
+                               VIR_DOMAIN_BLKIO_DEVICE_READ_IOPS,
+                               VIR_TYPED_PARAM_STRING,
+                               VIR_DOMAIN_BLKIO_DEVICE_WRITE_IOPS,
+                               VIR_TYPED_PARAM_STRING,
+                               VIR_DOMAIN_BLKIO_DEVICE_READ_BPS,
+                               VIR_TYPED_PARAM_STRING,
+                               VIR_DOMAIN_BLKIO_DEVICE_WRITE_BPS,
                                VIR_TYPED_PARAM_STRING,
                                NULL) < 0)
         return -1;
@@ -7612,29 +7713,82 @@ qemuDomainSetBlkioParameters(virDomainPtr dom,
 
                 if (virCgroupSetBlkioWeight(priv->cgroup, params[i].value.ui) < 0)
                     ret = -1;
-            } else if (STREQ(param->field, VIR_DOMAIN_BLKIO_DEVICE_WEIGHT)) {
+            } else if (STREQ(param->field, VIR_DOMAIN_BLKIO_DEVICE_WEIGHT) ||
+                       STREQ(param->field, VIR_DOMAIN_BLKIO_DEVICE_READ_IOPS) ||
+                       STREQ(param->field, VIR_DOMAIN_BLKIO_DEVICE_WRITE_IOPS) ||
+                       STREQ(param->field, VIR_DOMAIN_BLKIO_DEVICE_READ_BPS) ||
+                       STREQ(param->field, VIR_DOMAIN_BLKIO_DEVICE_WRITE_BPS)) {
                 size_t ndevices;
                 virBlkioDevicePtr devices = NULL;
                 size_t j;
 
-                if (qemuDomainParseDeviceWeightStr(params[i].value.s,
-                                                   &devices,
-                                                   &ndevices) < 0) {
+                if (qemuDomainParseBlkioDeviceStr(params[i].value.s,
+                                                  param->field,
+                                                  &devices,
+                                                  &ndevices) < 0) {
                     ret = -1;
                     continue;
                 }
-                for (j = 0; j < ndevices; j++) {
-                    if (virCgroupSetBlkioDeviceWeight(priv->cgroup,
-                                                      devices[j].path,
-                                                      devices[j].weight) < 0) {
-                        ret = -1;
-                        break;
+
+                if (STREQ(param->field, VIR_DOMAIN_BLKIO_DEVICE_WEIGHT)) {
+                    for (j = 0; j < ndevices; j++) {
+                        if (virCgroupSetBlkioDeviceWeight(priv->cgroup,
+                                                          devices[j].path,
+                                                          devices[j].weight) < 0) {
+                            ret = -1;
+                            break;
+                        }
                     }
+                } else if (STREQ(param->field, VIR_DOMAIN_BLKIO_DEVICE_READ_IOPS)) {
+                    for (j = 0; j < ndevices; j++) {
+                        if (virCgroupSetBlkioDeviceReadIops(priv->cgroup,
+                                                            devices[j].path,
+                                                            devices[j].riops) < 0) {
+                            ret = -1;
+                            break;
+                        }
+                    }
+                } else if (STREQ(param->field, VIR_DOMAIN_BLKIO_DEVICE_WRITE_IOPS)) {
+                    for (j = 0; j < ndevices; j++) {
+                        if (virCgroupSetBlkioDeviceWriteIops(priv->cgroup,
+                                                             devices[j].path,
+                                                             devices[j].wiops) < 0) {
+                            ret = -1;
+                            break;
+                        }
+                    }
+                } else if (STREQ(param->field, VIR_DOMAIN_BLKIO_DEVICE_READ_BPS)) {
+                    for (j = 0; j < ndevices; j++) {
+                        if (virCgroupSetBlkioDeviceReadBps(priv->cgroup,
+                                                           devices[j].path,
+                                                           devices[j].rbps) < 0) {
+                            ret = -1;
+                            break;
+                        }
+                    }
+                } else if (STREQ(param->field, VIR_DOMAIN_BLKIO_DEVICE_WRITE_BPS)){
+                    for (j = 0; j < ndevices; j++) {
+                        if (virCgroupSetBlkioDeviceWriteBps(priv->cgroup,
+                                                            devices[j].path,
+                                                            devices[j].wbps) < 0) {
+                            ret = -1;
+                            break;
+                        }
+                    }
+                } else {
+                    virReportError(VIR_ERR_INVALID_ARG, _("Unknown blkio parameter %s"),
+                                   param->field);
+                    ret = -1;
+                    virBlkioDeviceArrayClear(devices, ndevices);
+                    VIR_FREE(devices);
+
+                    continue;
                 }
+
                 if (j != ndevices ||
-                    qemuDomainMergeDeviceWeights(&vm->def->blkio.devices,
-                                                 &vm->def->blkio.ndevices,
-                                                 devices, ndevices) < 0)
+                    qemuDomainMergeBlkioDevice(&vm->def->blkio.devices,
+                                               &vm->def->blkio.ndevices,
+                                               devices, ndevices, param->field) < 0)
                     ret = -1;
                 virBlkioDeviceArrayClear(devices, ndevices);
                 VIR_FREE(devices);
@@ -7659,19 +7813,24 @@ qemuDomainSetBlkioParameters(virDomainPtr dom,
                 }
 
                 persistentDef->blkio.weight = params[i].value.ui;
-            } else if (STREQ(param->field, VIR_DOMAIN_BLKIO_DEVICE_WEIGHT)) {
+            } else if (STREQ(param->field, VIR_DOMAIN_BLKIO_DEVICE_WEIGHT) ||
+                       STREQ(param->field, VIR_DOMAIN_BLKIO_DEVICE_READ_IOPS) ||
+                       STREQ(param->field, VIR_DOMAIN_BLKIO_DEVICE_WRITE_IOPS) ||
+                       STREQ(param->field, VIR_DOMAIN_BLKIO_DEVICE_READ_BPS) ||
+                       STREQ(param->field, VIR_DOMAIN_BLKIO_DEVICE_WRITE_BPS)) {
                 virBlkioDevicePtr devices = NULL;
                 size_t ndevices;
 
-                if (qemuDomainParseDeviceWeightStr(params[i].value.s,
-                                                   &devices,
-                                                   &ndevices) < 0) {
+                if (qemuDomainParseBlkioDeviceStr(params[i].value.s,
+                                                  params->field,
+                                                  &devices,
+                                                  &ndevices) < 0) {
                     ret = -1;
                     continue;
                 }
-                if (qemuDomainMergeDeviceWeights(&persistentDef->blkio.devices,
-                                                 &persistentDef->blkio.ndevices,
-                                                 devices, ndevices) < 0)
+                if (qemuDomainMergeBlkioDevice(&persistentDef->blkio.devices,
+                                               &persistentDef->blkio.ndevices,
+                                               devices, ndevices, param->field) < 0)
                     ret = -1;
                 virBlkioDeviceArrayClear(devices, ndevices);
                 VIR_FREE(devices);
@@ -7757,6 +7916,7 @@ qemuDomainGetBlkioParameters(virDomainPtr dom,
                                             VIR_TYPED_PARAM_UINT, val) < 0)
                     goto cleanup;
                 break;
+
             case 1: /* blkiotune.device_weight */
                 if (vm->def->blkio.ndevices > 0) {
                     virBuffer buf = VIR_BUFFER_INITIALIZER;
@@ -7781,6 +7941,122 @@ qemuDomainGetBlkioParameters(virDomainPtr dom,
                 }
                 if (virTypedParameterAssign(param,
                                             VIR_DOMAIN_BLKIO_DEVICE_WEIGHT,
+                                            VIR_TYPED_PARAM_STRING,
+                                            param->value.s) < 0)
+                    goto cleanup;
+                break;
+
+            case 2: /* blkiotune.device_read_iops */
+                if (vm->def->blkio.ndevices > 0) {
+                    virBuffer buf = VIR_BUFFER_INITIALIZER;
+                    bool comma = false;
+
+                    for (j = 0; j < vm->def->blkio.ndevices; j++) {
+                        if (!vm->def->blkio.devices[j].riops)
+                            continue;
+                        if (comma)
+                            virBufferAddChar(&buf, ',');
+                        else
+                            comma = true;
+                        virBufferAsprintf(&buf, "%s,%u",
+                                          vm->def->blkio.devices[j].path,
+                                          vm->def->blkio.devices[j].riops);
+                    }
+                    if (virBufferError(&buf)) {
+                        virReportOOMError();
+                        goto cleanup;
+                    }
+                    param->value.s = virBufferContentAndReset(&buf);
+                }
+                if (virTypedParameterAssign(param,
+                                            VIR_DOMAIN_BLKIO_DEVICE_READ_IOPS,
+                                            VIR_TYPED_PARAM_STRING,
+                                            param->value.s) < 0)
+                    goto cleanup;
+                break;
+
+            case 3: /* blkiotune.device_write_iops */
+                if (vm->def->blkio.ndevices > 0) {
+                    virBuffer buf = VIR_BUFFER_INITIALIZER;
+                    bool comma = false;
+
+                    for (j = 0; j < vm->def->blkio.ndevices; j++) {
+                        if (!vm->def->blkio.devices[j].wiops)
+                            continue;
+                        if (comma)
+                            virBufferAddChar(&buf, ',');
+                        else
+                            comma = true;
+                        virBufferAsprintf(&buf, "%s,%u",
+                                          vm->def->blkio.devices[j].path,
+                                          vm->def->blkio.devices[j].wiops);
+                    }
+                    if (virBufferError(&buf)) {
+                        virReportOOMError();
+                        goto cleanup;
+                    }
+                    param->value.s = virBufferContentAndReset(&buf);
+                }
+                if (virTypedParameterAssign(param,
+                                            VIR_DOMAIN_BLKIO_DEVICE_WRITE_IOPS,
+                                            VIR_TYPED_PARAM_STRING,
+                                            param->value.s) < 0)
+                    goto cleanup;
+                break;
+
+             case 4: /* blkiotune.device_read_bps */
+                if (vm->def->blkio.ndevices > 0) {
+                    virBuffer buf = VIR_BUFFER_INITIALIZER;
+                    bool comma = false;
+
+                    for (j = 0; j < vm->def->blkio.ndevices; j++) {
+                        if (!vm->def->blkio.devices[j].rbps)
+                            continue;
+                        if (comma)
+                            virBufferAddChar(&buf, ',');
+                        else
+                            comma = true;
+                        virBufferAsprintf(&buf, "%s,%llu",
+                                          vm->def->blkio.devices[j].path,
+                                          vm->def->blkio.devices[j].rbps);
+                    }
+                    if (virBufferError(&buf)) {
+                        virReportOOMError();
+                        goto cleanup;
+                    }
+                    param->value.s = virBufferContentAndReset(&buf);
+                }
+                if (virTypedParameterAssign(param,
+                                            VIR_DOMAIN_BLKIO_DEVICE_READ_BPS,
+                                            VIR_TYPED_PARAM_STRING,
+                                            param->value.s) < 0)
+                    goto cleanup;
+                break;
+
+             case 5: /* blkiotune.device_write_bps */
+                if (vm->def->blkio.ndevices > 0) {
+                    virBuffer buf = VIR_BUFFER_INITIALIZER;
+                    bool comma = false;
+
+                    for (j = 0; j < vm->def->blkio.ndevices; j++) {
+                        if (!vm->def->blkio.devices[j].wbps)
+                            continue;
+                        if (comma)
+                            virBufferAddChar(&buf, ',');
+                        else
+                            comma = true;
+                        virBufferAsprintf(&buf, "%s,%llu",
+                                          vm->def->blkio.devices[j].path,
+                                          vm->def->blkio.devices[j].wbps);
+                    }
+                    if (virBufferError(&buf)) {
+                        virReportOOMError();
+                        goto cleanup;
+                    }
+                    param->value.s = virBufferContentAndReset(&buf);
+                }
+                if (virTypedParameterAssign(param,
+                                            VIR_DOMAIN_BLKIO_DEVICE_WRITE_BPS,
                                             VIR_TYPED_PARAM_STRING,
                                             param->value.s) < 0)
                     goto cleanup;
@@ -7842,6 +8118,141 @@ qemuDomainGetBlkioParameters(virDomainPtr dom,
                     goto cleanup;
                 }
                 break;
+
+            case 2: /* blkiotune.device_read_iops */
+                if (persistentDef->blkio.ndevices > 0) {
+                    virBuffer buf = VIR_BUFFER_INITIALIZER;
+                    bool comma = false;
+
+                    for (j = 0; j < persistentDef->blkio.ndevices; j++) {
+                        if (!persistentDef->blkio.devices[j].riops)
+                            continue;
+                        if (comma)
+                            virBufferAddChar(&buf, ',');
+                        else
+                            comma = true;
+                        virBufferAsprintf(&buf, "%s,%u",
+                                          persistentDef->blkio.devices[j].path,
+                                          persistentDef->blkio.devices[j].riops);
+                    }
+                    if (virBufferError(&buf)) {
+                        virReportOOMError();
+                        goto cleanup;
+                    }
+                    param->value.s = virBufferContentAndReset(&buf);
+                }
+                if (!param->value.s && VIR_STRDUP(param->value.s, "") < 0)
+                    goto cleanup;
+                param->type = VIR_TYPED_PARAM_STRING;
+                if (virStrcpyStatic(param->field,
+                                    VIR_DOMAIN_BLKIO_DEVICE_READ_IOPS) == NULL) {
+                    virReportError(VIR_ERR_INTERNAL_ERROR,
+                                   _("Field name '%s' too long"),
+                                   VIR_DOMAIN_BLKIO_DEVICE_READ_IOPS);
+                    goto cleanup;
+                }
+                break;
+            case 3: /* blkiotune.device_write_iops */
+                if (persistentDef->blkio.ndevices > 0) {
+                    virBuffer buf = VIR_BUFFER_INITIALIZER;
+                    bool comma = false;
+
+                    for (j = 0; j < persistentDef->blkio.ndevices; j++) {
+                        if (!persistentDef->blkio.devices[j].wiops)
+                            continue;
+                        if (comma)
+                            virBufferAddChar(&buf, ',');
+                        else
+                            comma = true;
+                        virBufferAsprintf(&buf, "%s,%u",
+                                          persistentDef->blkio.devices[j].path,
+                                          persistentDef->blkio.devices[j].wiops);
+                    }
+                    if (virBufferError(&buf)) {
+                        virReportOOMError();
+                        goto cleanup;
+                    }
+                    param->value.s = virBufferContentAndReset(&buf);
+                }
+                if (!param->value.s && VIR_STRDUP(param->value.s, "") < 0)
+                    goto cleanup;
+                param->type = VIR_TYPED_PARAM_STRING;
+                if (virStrcpyStatic(param->field,
+                                    VIR_DOMAIN_BLKIO_DEVICE_WRITE_IOPS) == NULL) {
+                    virReportError(VIR_ERR_INTERNAL_ERROR,
+                                   _("Field name '%s' too long"),
+                                   VIR_DOMAIN_BLKIO_DEVICE_WRITE_IOPS);
+                    goto cleanup;
+                }
+                break;
+            case 4: /* blkiotune.device_read_bps */
+                if (persistentDef->blkio.ndevices > 0) {
+                    virBuffer buf = VIR_BUFFER_INITIALIZER;
+                    bool comma = false;
+
+                    for (j = 0; j < persistentDef->blkio.ndevices; j++) {
+                        if (!persistentDef->blkio.devices[j].rbps)
+                            continue;
+                        if (comma)
+                            virBufferAddChar(&buf, ',');
+                        else
+                            comma = true;
+                        virBufferAsprintf(&buf, "%s,%llu",
+                                          persistentDef->blkio.devices[j].path,
+                                          persistentDef->blkio.devices[j].rbps);
+                    }
+                    if (virBufferError(&buf)) {
+                        virReportOOMError();
+                        goto cleanup;
+                    }
+                    param->value.s = virBufferContentAndReset(&buf);
+                }
+                if (!param->value.s && VIR_STRDUP(param->value.s, "") < 0)
+                    goto cleanup;
+                param->type = VIR_TYPED_PARAM_STRING;
+                if (virStrcpyStatic(param->field,
+                                    VIR_DOMAIN_BLKIO_DEVICE_READ_BPS) == NULL) {
+                    virReportError(VIR_ERR_INTERNAL_ERROR,
+                                   _("Field name '%s' too long"),
+                                   VIR_DOMAIN_BLKIO_DEVICE_READ_BPS);
+                    goto cleanup;
+                }
+                break;
+
+            case 5: /* blkiotune.device_write_bps */
+                if (persistentDef->blkio.ndevices > 0) {
+                    virBuffer buf = VIR_BUFFER_INITIALIZER;
+                    bool comma = false;
+
+                    for (j = 0; j < persistentDef->blkio.ndevices; j++) {
+                        if (!persistentDef->blkio.devices[j].wbps)
+                            continue;
+                        if (comma)
+                            virBufferAddChar(&buf, ',');
+                        else
+                            comma = true;
+                        virBufferAsprintf(&buf, "%s,%llu",
+                                          persistentDef->blkio.devices[j].path,
+                                          persistentDef->blkio.devices[j].wbps);
+                    }
+                    if (virBufferError(&buf)) {
+                        virReportOOMError();
+                        goto cleanup;
+                    }
+                    param->value.s = virBufferContentAndReset(&buf);
+                }
+                if (!param->value.s && VIR_STRDUP(param->value.s, "") < 0)
+                    goto cleanup;
+                param->type = VIR_TYPED_PARAM_STRING;
+                if (virStrcpyStatic(param->field,
+                                    VIR_DOMAIN_BLKIO_DEVICE_WRITE_BPS) == NULL) {
+                    virReportError(VIR_ERR_INTERNAL_ERROR,
+                                   _("Field name '%s' too long"),
+                                   VIR_DOMAIN_BLKIO_DEVICE_WRITE_BPS);
+                    goto cleanup;
+                }
+                break;
+
 
             default:
                 break;
@@ -8170,12 +8581,13 @@ qemuDomainSetNumaParamsLive(virDomainObjPtr vm,
 
     for (i = 0; i < caps->host.nnumaCell; i++) {
         bool result;
-        if (virBitmapGetBit(nodeset, i, &result) < 0) {
+        virCapsHostNUMACellPtr cell = caps->host.numaCell[i];
+        if (virBitmapGetBit(nodeset, cell->num, &result) < 0) {
             virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                            _("Failed to get cpuset bit values"));
             goto cleanup;
         }
-        if (result && (virBitmapSetBit(temp_nodeset, i) < 0)) {
+        if (result && (virBitmapSetBit(temp_nodeset, cell->num) < 0)) {
             virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                            _("Failed to set temporary cpuset bit values"));
             goto cleanup;
@@ -9022,6 +9434,12 @@ qemuDomainBlockStats(virDomainPtr dom,
     virDomainDiskDefPtr disk = NULL;
     qemuDomainObjPrivatePtr priv;
 
+    if (!*path) {
+        virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
+                       _("summary statistics are not supported yet"));
+        return ret;
+    }
+
     if (!(vm = qemuDomObjFromDomain(dom)))
         goto cleanup;
 
@@ -9094,6 +9512,12 @@ qemuDomainBlockStatsFlags(virDomainPtr dom,
     virTypedParameterPtr param;
 
     virCheckFlags(VIR_TYPED_PARAM_STRING_OKAY, -1);
+
+    if (!*path) {
+        virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
+                       _("summary statistics are not supported yet"));
+        return ret;
+    }
 
     /* We don't return strings, and thus trivially support this flag.  */
     flags &= ~VIR_TYPED_PARAM_STRING_OKAY;
@@ -9804,6 +10228,7 @@ qemuDomainGetBlockInfo(virDomainPtr dom,
     struct stat sb;
     int idx;
     int format;
+    int activeFail = false;
     virQEMUDriverConfigPtr cfg = NULL;
     char *alias = NULL;
 
@@ -9903,14 +10328,22 @@ qemuDomainGetBlockInfo(virDomainPtr dom,
     /* Set default value .. */
     info->allocation = info->physical;
 
-    /* ..but if guest is running & not using raw
-       disk format and on a block device, then query
-       highest allocated extent from QEMU */
+    /* ..but if guest is not using raw disk format and on a block device,
+     * then query highest allocated extent from QEMU
+     */
     if (disk->type == VIR_DOMAIN_DISK_TYPE_BLOCK &&
         format != VIR_STORAGE_FILE_RAW &&
-        S_ISBLK(sb.st_mode) &&
-        virDomainObjIsActive(vm)) {
+        S_ISBLK(sb.st_mode)) {
         qemuDomainObjPrivatePtr priv = vm->privateData;
+
+        /* If the guest is not running, then success/failure return
+         * depends on whether domain is persistent
+         */
+        if (!virDomainObjIsActive(vm)) {
+            activeFail = true;
+            ret = 0;
+            goto cleanup;
+        }
 
         if (VIR_STRDUP(alias, disk->info.alias) < 0)
             goto cleanup;
@@ -9925,6 +10358,7 @@ qemuDomainGetBlockInfo(virDomainPtr dom,
                                             &info->allocation);
             qemuDomainObjExitMonitor(driver, vm);
         } else {
+            activeFail = true;
             ret = 0;
         }
 
@@ -9938,6 +10372,15 @@ cleanup:
     VIR_FREE(alias);
     virStorageFileFreeMetadata(meta);
     VIR_FORCE_CLOSE(fd);
+
+    /* If we failed to get data from a domain because it's inactive and
+     * it's not a persistent domain, then force failure.
+     */
+    if (activeFail && vm && !vm->persistent) {
+        virReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                       _("domain is not running"));
+        ret = -1;
+    }
     if (vm)
         virObjectUnlock(vm);
     virObjectUnref(cfg);
@@ -9959,7 +10402,6 @@ qemuConnectDomainEventRegister(virConnectPtr conn,
 
     if (virDomainEventStateRegister(conn,
                                     driver->domainEventState,
-                                    virConnectDomainEventRegisterCheckACL,
                                     callback, opaque, freecb) < 0)
         goto cleanup;
 
@@ -10008,7 +10450,6 @@ qemuConnectDomainEventRegisterAny(virConnectPtr conn,
 
     if (virDomainEventStateRegisterID(conn,
                                       driver->domainEventState,
-                                      virConnectDomainEventRegisterAnyCheckACL,
                                       dom, eventID,
                                       callback, opaque, freecb, &ret) < 0)
         ret = -1;
@@ -10793,6 +11234,8 @@ qemuNodeDeviceDetachFlags(virNodeDevicePtr dev,
     int ret = -1;
     virNodeDeviceDefPtr def = NULL;
     char *xml = NULL;
+    bool legacy = qemuHostdevHostSupportsPassthroughLegacy();
+    bool vfio = qemuHostdevHostSupportsPassthroughVFIO();
 
     virCheckFlags(0, -1);
 
@@ -10815,22 +11258,34 @@ qemuNodeDeviceDetachFlags(virNodeDevicePtr dev,
         goto cleanup;
 
     if (!driverName) {
-        /* prefer vfio */
-        if (qemuHostdevHostSupportsPassthroughVFIO())
+        if (vfio) {
             driverName = "vfio";
-        else if (qemuHostdevHostSupportsPassthroughLegacy())
+        } else if (legacy) {
             driverName = "kvm";
+        } else {
+            virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
+                           _("neither VFIO nor KVM device assignment is "
+                             "currently supported on this system"));
+            goto cleanup;
+        }
     }
 
-    if (!driverName) {
-        virReportError(VIR_ERR_INVALID_ARG, "%s",
-                       _("neither VFIO nor kvm device assignment is "
-                         "currently supported on this system"));
-        goto cleanup;
-    } else if (STREQ(driverName, "vfio")) {
+    if (STREQ(driverName, "vfio")) {
+        if (!vfio) {
+            virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
+                           _("VFIO device assignment is currently not "
+                             "supported on this system"));
+            goto cleanup;
+        }
         if (virPCIDeviceSetStubDriver(pci, "vfio-pci") < 0)
             goto cleanup;
     } else if (STREQ(driverName, "kvm")) {
+        if (!legacy) {
+            virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
+                           _("KVM device assignment is currently not "
+                             "supported on this system"));
+            goto cleanup;
+        }
         if (virPCIDeviceSetStubDriver(pci, "pci-stub") < 0)
             goto cleanup;
     } else {
@@ -11504,6 +11959,24 @@ cleanup:
     return ret;
 }
 
+
+static int
+qemuDomainSnapshotDiskGetSourceString(virDomainSnapshotDiskDefPtr disk,
+                                      char **source)
+{
+    *source = NULL;
+
+    return qemuGetDriveSourceString(virDomainSnapshotDiskGetActualType(disk),
+                                    disk->file,
+                                    disk->protocol,
+                                    disk->nhosts,
+                                    disk->hosts,
+                                    NULL,
+                                    NULL,
+                                    source);
+}
+
+
 typedef enum {
     VIR_DISK_CHAIN_NO_ACCESS,
     VIR_DISK_CHAIN_READ_ONLY,
@@ -11830,9 +12303,9 @@ endjob:
 }
 
 static int
-qemuDomainSnapshotPrepareDiskExternalBacking(virDomainDiskDefPtr disk)
+qemuDomainSnapshotPrepareDiskExternalBackingInactive(virDomainDiskDefPtr disk)
 {
-    int actualType = qemuDiskGetActualType(disk);
+    int actualType = virDomainDiskGetActualType(disk);
 
     switch ((enum virDomainDiskType) actualType) {
     case VIR_DOMAIN_DISK_TYPE_BLOCK:
@@ -11874,9 +12347,26 @@ qemuDomainSnapshotPrepareDiskExternalBacking(virDomainDiskDefPtr disk)
 
 
 static int
+qemuDomainSnapshotPrepareDiskExternalBackingActive(virDomainDiskDefPtr disk)
+{
+    int actualType = virDomainDiskGetActualType(disk);
+
+    if (actualType == VIR_DOMAIN_DISK_TYPE_BLOCK &&
+        disk->device == VIR_DOMAIN_DISK_DEVICE_LUN) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("external active snapshots are not supported on scsi "
+                         "passthrough devices"));
+        return -1;
+    }
+
+    return 0;
+}
+
+
+static int
 qemuDomainSnapshotPrepareDiskExternalOverlayActive(virDomainSnapshotDiskDefPtr disk)
 {
-    int actualType = qemuSnapshotDiskGetActualType(disk);
+    int actualType = virDomainSnapshotDiskGetActualType(disk);
 
     switch ((enum virDomainDiskType) actualType) {
     case VIR_DOMAIN_DISK_TYPE_BLOCK:
@@ -11884,6 +12374,29 @@ qemuDomainSnapshotPrepareDiskExternalOverlayActive(virDomainSnapshotDiskDefPtr d
         return 0;
 
     case VIR_DOMAIN_DISK_TYPE_NETWORK:
+        switch ((enum virDomainDiskProtocol) disk->protocol) {
+        case VIR_DOMAIN_DISK_PROTOCOL_GLUSTER:
+            return 0;
+
+        case VIR_DOMAIN_DISK_PROTOCOL_NBD:
+        case VIR_DOMAIN_DISK_PROTOCOL_RBD:
+        case VIR_DOMAIN_DISK_PROTOCOL_SHEEPDOG:
+        case VIR_DOMAIN_DISK_PROTOCOL_ISCSI:
+        case VIR_DOMAIN_DISK_PROTOCOL_HTTP:
+        case VIR_DOMAIN_DISK_PROTOCOL_HTTPS:
+        case VIR_DOMAIN_DISK_PROTOCOL_FTP:
+        case VIR_DOMAIN_DISK_PROTOCOL_FTPS:
+        case VIR_DOMAIN_DISK_PROTOCOL_TFTP:
+        case VIR_DOMAIN_DISK_PROTOCOL_LAST:
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("external active snapshots are not supported on "
+                             "'network' disks using '%s' protocol"),
+                           virDomainDiskProtocolTypeToString(disk->protocol));
+            return -1;
+
+        }
+        break;
+
     case VIR_DOMAIN_DISK_TYPE_DIR:
     case VIR_DOMAIN_DISK_TYPE_VOLUME:
     case VIR_DOMAIN_DISK_TYPE_LAST:
@@ -11900,7 +12413,7 @@ qemuDomainSnapshotPrepareDiskExternalOverlayActive(virDomainSnapshotDiskDefPtr d
 static int
 qemuDomainSnapshotPrepareDiskExternalOverlayInactive(virDomainSnapshotDiskDefPtr disk)
 {
-    int actualType = qemuSnapshotDiskGetActualType(disk);
+    int actualType = virDomainSnapshotDiskGetActualType(disk);
 
     switch ((enum virDomainDiskType) actualType) {
     case VIR_DOMAIN_DISK_TYPE_BLOCK:
@@ -11921,7 +12434,6 @@ qemuDomainSnapshotPrepareDiskExternalOverlayInactive(virDomainSnapshotDiskDefPtr
 }
 
 
-
 static int
 qemuDomainSnapshotPrepareDiskExternal(virConnectPtr conn,
                                       virDomainDiskDefPtr disk,
@@ -11929,7 +12441,8 @@ qemuDomainSnapshotPrepareDiskExternal(virConnectPtr conn,
                                       bool active,
                                       bool reuse)
 {
-    int actualType;
+    virStorageFilePtr snapfile = NULL;
+    int ret = -1;
     struct stat st;
 
     if (qemuTranslateSnapshotDiskSourcePool(conn, snapdisk) < 0)
@@ -11939,50 +12452,47 @@ qemuDomainSnapshotPrepareDiskExternal(virConnectPtr conn,
         if (qemuTranslateDiskSourcePool(conn, disk) < 0)
             return -1;
 
-        if (qemuDomainSnapshotPrepareDiskExternalBacking(disk) < 0)
+        if (qemuDomainSnapshotPrepareDiskExternalBackingInactive(disk) < 0)
             return -1;
 
         if (qemuDomainSnapshotPrepareDiskExternalOverlayInactive(snapdisk) < 0)
             return -1;
     } else {
+        if (qemuDomainSnapshotPrepareDiskExternalBackingActive(disk) < 0)
+            return -1;
+
         if (qemuDomainSnapshotPrepareDiskExternalOverlayActive(snapdisk) < 0)
             return -1;
     }
 
-    actualType = qemuSnapshotDiskGetActualType(snapdisk);
+    if (!(snapfile = virStorageFileInitFromSnapshotDef(snapdisk)))
+        return -1;
 
-    switch ((enum virDomainDiskType) actualType) {
-    case VIR_DOMAIN_DISK_TYPE_BLOCK:
-    case VIR_DOMAIN_DISK_TYPE_FILE:
-        if (stat(snapdisk->file, &st) < 0) {
-            if (errno != ENOENT) {
-                virReportSystemError(errno,
-                                     _("unable to stat for disk %s: %s"),
-                                     snapdisk->name, snapdisk->file);
-                return -1;
-            } else if (reuse) {
-                virReportSystemError(errno,
-                                     _("missing existing file for disk %s: %s"),
-                                     snapdisk->name, snapdisk->file);
-                return -1;
-            }
-        } else if (!S_ISBLK(st.st_mode) && st.st_size && !reuse) {
-            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                           _("external snapshot file for disk %s already "
-                             "exists and is not a block device: %s"),
-                           snapdisk->name, snapdisk->file);
-            return -1;
+    if (virStorageFileStat(snapfile, &st) < 0) {
+        if (errno != ENOENT) {
+            virReportSystemError(errno,
+                                 _("unable to stat for disk %s: %s"),
+                                 snapdisk->name, snapdisk->file);
+            goto cleanup;
+        } else if (reuse) {
+            virReportSystemError(errno,
+                                 _("missing existing file for disk %s: %s"),
+                                 snapdisk->name, snapdisk->file);
+            goto cleanup;
         }
-        break;
-
-    case VIR_DOMAIN_DISK_TYPE_NETWORK:
-    case VIR_DOMAIN_DISK_TYPE_DIR:
-    case VIR_DOMAIN_DISK_TYPE_VOLUME:
-    case VIR_DOMAIN_DISK_TYPE_LAST:
-        break;
+    } else if (!S_ISBLK(st.st_mode) && st.st_size && !reuse) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                       _("external snapshot file for disk %s already "
+                         "exists and is not a block device: %s"),
+                       snapdisk->name, snapdisk->file);
+        goto cleanup;
     }
 
-    return 0;
+    ret = 0;
+
+cleanup:
+    virStorageFileFree(snapfile);
+    return ret;
 }
 
 
@@ -12000,7 +12510,7 @@ qemuDomainSnapshotPrepareDiskInternal(virConnectPtr conn,
     if (qemuTranslateDiskSourcePool(conn, disk) < 0)
         return -1;
 
-    actualType = qemuDiskGetActualType(disk);
+    actualType = virDomainDiskGetActualType(disk);
 
     switch ((enum virDomainDiskType) actualType) {
     case VIR_DOMAIN_DISK_TYPE_BLOCK:
@@ -12188,17 +12698,22 @@ qemuDomainSnapshotCreateSingleDiskActive(virQEMUDriverPtr driver,
                                          virDomainDiskDefPtr disk,
                                          virDomainDiskDefPtr persistDisk,
                                          virJSONValuePtr actions,
-                                         bool reuse)
+                                         bool reuse,
+                                         enum qemuDomainAsyncJob asyncJob)
 {
     qemuDomainObjPrivatePtr priv = vm->privateData;
     char *device = NULL;
     char *source = NULL;
+    char *newsource = NULL;
+    virDomainDiskHostDefPtr newhosts = NULL;
+    virDomainDiskHostDefPtr persistHosts = NULL;
     int format = snap->format;
     const char *formatStr = NULL;
     char *persistSource = NULL;
     int ret = -1;
     int fd = -1;
     bool need_unlink = false;
+    virStorageFilePtr snapfile = NULL;
 
     if (snap->snapshot != VIR_DOMAIN_SNAPSHOT_LOCATION_EXTERNAL) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
@@ -12206,65 +12721,149 @@ qemuDomainSnapshotCreateSingleDiskActive(virQEMUDriverPtr driver,
         return -1;
     }
 
-    if (virAsprintf(&device, "drive-%s", disk->info.alias) < 0 ||
-        VIR_STRDUP(source, snap->file) < 0 ||
-        (persistDisk && VIR_STRDUP(persistSource, source) < 0))
+    if (virAsprintf(&device, "drive-%s", disk->info.alias) < 0)
         goto cleanup;
 
-    /* create the stub file and set selinux labels; manipulate disk in
-     * place, in a way that can be reverted on failure. */
-    if (!reuse) {
-        fd = qemuOpenFile(driver, vm, source, O_WRONLY | O_TRUNC | O_CREAT,
-                          &need_unlink, NULL);
-        if (fd < 0)
-            goto cleanup;
-        VIR_FORCE_CLOSE(fd);
-    }
-
     /* XXX Here, we know we are about to alter disk->backingChain if
-     * successful, so we nuke the existing chain so that future
-     * commands will recompute it.  Better would be storing the chain
-     * ourselves rather than reprobing, but this requires modifying
-     * domain_conf and our XML to fully track the chain across
-     * libvirtd restarts.  */
+     * successful, so we nuke the existing chain so that future commands will
+     * recompute it.  Better would be storing the chain ourselves rather than
+     * reprobing, but this requires modifying domain_conf and our XML to fully
+     * track the chain across libvirtd restarts.  */
     virStorageFileFreeMetadata(disk->backingChain);
     disk->backingChain = NULL;
 
-    if (qemuDomainPrepareDiskChainElement(driver, vm, disk, source,
-                                          VIR_DISK_CHAIN_READ_WRITE) < 0) {
-        qemuDomainPrepareDiskChainElement(driver, vm, disk, source,
-                                          VIR_DISK_CHAIN_NO_ACCESS);
+    if (!(snapfile = virStorageFileInitFromSnapshotDef(snap)))
+        goto cleanup;
+
+    if (qemuDomainSnapshotDiskGetSourceString(snap, &source) < 0)
+        goto cleanup;
+
+    if (VIR_STRDUP(newsource, snap->file) < 0)
+        goto cleanup;
+
+    if (persistDisk &&
+        VIR_STRDUP(persistSource, snap->file) < 0)
+        goto cleanup;
+
+    switch (snap->type) {
+    case VIR_DOMAIN_DISK_TYPE_BLOCK:
+        reuse = true;
+        /* fallthrough */
+    case VIR_DOMAIN_DISK_TYPE_FILE:
+
+        /* create the stub file and set selinux labels; manipulate disk in
+         * place, in a way that can be reverted on failure. */
+        if (!reuse) {
+            fd = qemuOpenFile(driver, vm, source, O_WRONLY | O_TRUNC | O_CREAT,
+                              &need_unlink, NULL);
+            if (fd < 0)
+                goto cleanup;
+            VIR_FORCE_CLOSE(fd);
+        }
+
+        if (qemuDomainPrepareDiskChainElement(driver, vm, disk, source,
+                                              VIR_DISK_CHAIN_READ_WRITE) < 0) {
+            qemuDomainPrepareDiskChainElement(driver, vm, disk, source,
+                                              VIR_DISK_CHAIN_NO_ACCESS);
+            goto cleanup;
+        }
+        break;
+
+    case VIR_DOMAIN_DISK_TYPE_NETWORK:
+        switch (snap->protocol) {
+        case VIR_DOMAIN_DISK_PROTOCOL_GLUSTER:
+            if (!(newhosts = virDomainDiskHostDefCopy(snap->nhosts, snap->hosts)))
+                goto cleanup;
+
+            if (persistDisk &&
+                !(persistHosts = virDomainDiskHostDefCopy(snap->nhosts, snap->hosts)))
+                goto cleanup;
+
+            break;
+
+        default:
+            virReportError(VIR_ERR_OPERATION_UNSUPPORTED,
+                           _("snapshots on volumes using '%s' protocol "
+                             "are not supported"),
+                           virDomainDiskProtocolTypeToString(snap->protocol));
+            goto cleanup;
+        }
+        break;
+
+    default:
+        virReportError(VIR_ERR_OPERATION_UNSUPPORTED,
+                       _("snapshots are not supported on '%s' volumes"),
+                       virDomainDiskTypeToString(snap->type));
         goto cleanup;
     }
 
     /* create the actual snapshot */
     if (snap->format)
         formatStr = virStorageFileFormatTypeToString(snap->format);
+
+    /* The monitor is only accessed if qemu doesn't support transactions.
+     * Otherwise the following monitor command only constructs the command.
+     */
+    if (!actions &&
+        qemuDomainObjEnterMonitorAsync(driver, vm, asyncJob) < 0)
+        goto cleanup;
+
     ret = qemuMonitorDiskSnapshot(priv->mon, actions, device, source,
                                   formatStr, reuse);
+    if (!actions) {
+        qemuDomainObjExitMonitor(driver, vm);
+        if (!virDomainObjIsActive(vm)) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("domain crashed while taking the snapshot"));
+            ret = -1;
+        }
+    }
+
     virDomainAuditDisk(vm, disk->src, source, "snapshot", ret >= 0);
     if (ret < 0)
         goto cleanup;
 
     /* Update vm in place to match changes.  */
     need_unlink = false;
+
     VIR_FREE(disk->src);
-    disk->src = source;
-    source = NULL;
+    virDomainDiskHostDefFree(disk->nhosts, disk->hosts);
+
+    disk->src = newsource;
     disk->format = format;
+    disk->type = snap->type;
+    disk->protocol = snap->protocol;
+    disk->nhosts = snap->nhosts;
+    disk->hosts = newhosts;
+
+    newsource = NULL;
+    newhosts = NULL;
+
     if (persistDisk) {
         VIR_FREE(persistDisk->src);
+        virDomainDiskHostDefFree(persistDisk->nhosts, persistDisk->hosts);
+
         persistDisk->src = persistSource;
-        persistSource = NULL;
         persistDisk->format = format;
+        persistDisk->type = snap->type;
+        persistDisk->protocol = snap->protocol;
+        persistDisk->nhosts = snap->nhosts;
+        persistDisk->hosts = persistHosts;
+
+        persistSource = NULL;
+        persistHosts = NULL;
     }
 
 cleanup:
-    if (need_unlink && unlink(source))
+    if (need_unlink && virStorageFileUnlink(snapfile))
         VIR_WARN("unable to unlink just-created %s", source);
+    virStorageFileFree(snapfile);
     VIR_FREE(device);
     VIR_FREE(source);
+    VIR_FREE(newsource);
     VIR_FREE(persistSource);
+    virDomainDiskHostDefFree(snap->nhosts, newhosts);
+    virDomainDiskHostDefFree(snap->nhosts, persistHosts);
     return ret;
 }
 
@@ -12281,7 +12880,10 @@ qemuDomainSnapshotUndoSingleDiskActive(virQEMUDriverPtr driver,
 {
     char *source = NULL;
     char *persistSource = NULL;
+    virStorageFilePtr diskfile = NULL;
     struct stat st;
+
+    diskfile = virStorageFileInitFromDiskDef(disk);
 
     if (VIR_STRDUP(source, origdisk->src) < 0 ||
         (persistDisk && VIR_STRDUP(persistSource, source) < 0))
@@ -12289,8 +12891,9 @@ qemuDomainSnapshotUndoSingleDiskActive(virQEMUDriverPtr driver,
 
     qemuDomainPrepareDiskChainElement(driver, vm, disk, disk->src,
                                       VIR_DISK_CHAIN_NO_ACCESS);
-    if (need_unlink && stat(disk->src, &st) == 0 &&
-        S_ISREG(st.st_mode) && unlink(disk->src) < 0)
+    if (need_unlink && diskfile &&
+        virStorageFileStat(diskfile, &st) == 0 && S_ISREG(st.st_mode) &&
+        virStorageFileUnlink(diskfile) < 0)
         VIR_WARN("Unable to remove just-created %s", disk->src);
 
     /* Update vm in place to match changes.  */
@@ -12298,14 +12901,25 @@ qemuDomainSnapshotUndoSingleDiskActive(virQEMUDriverPtr driver,
     disk->src = source;
     source = NULL;
     disk->format = origdisk->format;
+    disk->type = origdisk->type;
+    disk->protocol = origdisk->protocol;
+    virDomainDiskHostDefFree(disk->nhosts, disk->hosts);
+    disk->nhosts = origdisk->nhosts;
+    disk->hosts = virDomainDiskHostDefCopy(origdisk->nhosts, origdisk->hosts);
     if (persistDisk) {
         VIR_FREE(persistDisk->src);
         persistDisk->src = persistSource;
         persistSource = NULL;
         persistDisk->format = origdisk->format;
+        persistDisk->type = origdisk->type;
+        persistDisk->protocol = origdisk->protocol;
+        virDomainDiskHostDefFree(persistDisk->nhosts, persistDisk->hosts);
+        persistDisk->nhosts = origdisk->nhosts;
+        persistDisk->hosts = virDomainDiskHostDefCopy(origdisk->nhosts, origdisk->hosts);
     }
 
 cleanup:
+    virStorageFileFree(diskfile);
     VIR_FREE(source);
     VIR_FREE(persistSource);
 }
@@ -12347,9 +12961,6 @@ qemuDomainSnapshotCreateDiskActive(virQEMUDriverPtr driver,
      * Based on earlier qemuDomainSnapshotPrepare, all
      * disks in this list are now either SNAPSHOT_NO, or
      * SNAPSHOT_EXTERNAL with a valid file name and qcow2 format.  */
-    if (qemuDomainObjEnterMonitorAsync(driver, vm, asyncJob) < 0)
-        goto cleanup;
-
     for (i = 0; i < snap->def->ndisks; i++) {
         virDomainDiskDefPtr persistDisk = NULL;
 
@@ -12359,24 +12970,36 @@ qemuDomainSnapshotCreateDiskActive(virQEMUDriverPtr driver,
             int indx = virDomainDiskIndexByName(vm->newDef,
                                                 vm->def->disks[i]->dst,
                                                 false);
-            if (indx >= 0) {
+            if (indx >= 0)
                 persistDisk = vm->newDef->disks[indx];
-                persist = true;
-            }
         }
 
         ret = qemuDomainSnapshotCreateSingleDiskActive(driver, vm,
                                                        &snap->def->disks[i],
                                                        vm->def->disks[i],
                                                        persistDisk, actions,
-                                                       reuse);
+                                                       reuse, asyncJob);
         if (ret < 0)
             break;
     }
     if (actions) {
-        if (ret == 0)
-            ret = qemuMonitorTransaction(priv->mon, actions);
+        if (ret == 0) {
+            if (qemuDomainObjEnterMonitorAsync(driver, vm, asyncJob) == 0) {
+                ret = qemuMonitorTransaction(priv->mon, actions);
+                qemuDomainObjExitMonitor(driver, vm);
+                if (!virDomainObjIsActive(vm)) {
+                    virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                                   _("domain crashed while taking the snapshot"));
+                    ret = -1;
+                }
+            } else {
+                /* failed to enter monitor, clean stuff up and quit */
+                ret = -1;
+            }
+        }
+
         virJSONValueFree(actions);
+
         if (ret < 0) {
             /* Transaction failed; undo the changes to vm.  */
             bool need_unlink = !(flags & VIR_DOMAIN_SNAPSHOT_CREATE_REUSE_EXT);
@@ -12390,8 +13013,11 @@ qemuDomainSnapshotCreateDiskActive(virQEMUDriverPtr driver,
                     int indx = virDomainDiskIndexByName(vm->newDef,
                                                         vm->def->disks[i]->dst,
                                                         false);
-                    if (indx >= 0)
+                    if (indx >= 0) {
                         persistDisk = vm->newDef->disks[indx];
+                        persist = true;
+                    }
+
                 }
 
                 qemuDomainSnapshotUndoSingleDiskActive(driver, vm,
@@ -12402,7 +13028,6 @@ qemuDomainSnapshotCreateDiskActive(virQEMUDriverPtr driver,
             }
         }
     }
-    qemuDomainObjExitMonitor(driver, vm);
 
 cleanup:
 
@@ -12665,7 +13290,7 @@ qemuDomainSnapshotCreateXML(virDomainPtr domain,
 
     cfg = virQEMUDriverGetConfig(driver);
 
-    if (virDomainSnapshotCreateXMLEnsureACL(domain->conn, vm->def) < 0)
+    if (virDomainSnapshotCreateXMLEnsureACL(domain->conn, vm->def, flags) < 0)
         goto cleanup;
 
     if (!(caps = virQEMUDriverGetCapabilities(driver, false)))
@@ -14138,7 +14763,7 @@ qemuDomainBlockPivot(virConnectPtr conn,
     disk->src = disk->mirror;
     disk->format = disk->mirrorFormat;
     disk->backingChain = NULL;
-    if (qemuDomainDetermineDiskChain(driver, disk, false) < 0) {
+    if (qemuDomainDetermineDiskChain(driver, vm, disk, false) < 0) {
         disk->src = oldsrc;
         disk->format = oldformat;
         disk->backingChain = oldchain;
@@ -14489,7 +15114,7 @@ qemuDomainBlockCopy(virDomainObjPtr vm,
         goto endjob;
     }
 
-    if (qemuDomainDetermineDiskChain(driver, disk, false) < 0)
+    if (qemuDomainDetermineDiskChain(driver, vm, disk, false) < 0)
         goto endjob;
 
     if ((flags & VIR_DOMAIN_BLOCK_REBASE_SHALLOW) &&
@@ -14696,7 +15321,7 @@ qemuDomainBlockCommit(virDomainPtr dom, const char *path, const char *base,
                        disk->dst);
         goto endjob;
     }
-    if (qemuDomainDetermineDiskChain(driver, disk, false) < 0)
+    if (qemuDomainDetermineDiskChain(driver, vm, disk, false) < 0)
         goto endjob;
 
     if (!top) {
@@ -14714,7 +15339,7 @@ qemuDomainBlockCommit(virDomainPtr dom, const char *path, const char *base,
     if (!top_meta || !top_meta->backingStore) {
         virReportError(VIR_ERR_INVALID_ARG,
                        _("top '%s' in chain for '%s' has no backing file"),
-                       top, path);
+                       top_canon, path);
         goto endjob;
     }
     if (!base && (flags & VIR_DOMAIN_BLOCK_COMMIT_SHALLOW)) {
@@ -15304,56 +15929,6 @@ cleanup:
     return ret;
 }
 
-/* qemuDomainGetCPUStats() with start_cpu == -1 */
-static int
-qemuDomainGetTotalcpuStats(virDomainObjPtr vm,
-                           virTypedParameterPtr params,
-                           int nparams)
-{
-    unsigned long long cpu_time;
-    int ret;
-    qemuDomainObjPrivatePtr priv = vm->privateData;
-
-    if (nparams == 0) /* return supported number of params */
-        return QEMU_NB_TOTAL_CPU_STAT_PARAM;
-    /* entry 0 is cputime */
-    ret = virCgroupGetCpuacctUsage(priv->cgroup, &cpu_time);
-    if (ret < 0) {
-        virReportSystemError(-ret, "%s", _("unable to get cpu account"));
-        return -1;
-    }
-
-    if (virTypedParameterAssign(&params[0], VIR_DOMAIN_CPU_STATS_CPUTIME,
-                                VIR_TYPED_PARAM_ULLONG, cpu_time) < 0)
-        return -1;
-
-    if (nparams > 1) {
-        unsigned long long user;
-        unsigned long long sys;
-
-        ret = virCgroupGetCpuacctStat(priv->cgroup, &user, &sys);
-        if (ret < 0) {
-            virReportSystemError(-ret, "%s", _("unable to get cpu account"));
-            return -1;
-        }
-
-        if (virTypedParameterAssign(&params[1],
-                                    VIR_DOMAIN_CPU_STATS_USERTIME,
-                                    VIR_TYPED_PARAM_ULLONG, user) < 0)
-            return -1;
-        if (nparams > 2 &&
-            virTypedParameterAssign(&params[2],
-                                    VIR_DOMAIN_CPU_STATS_SYSTEMTIME,
-                                    VIR_TYPED_PARAM_ULLONG, sys) < 0)
-            return -1;
-
-        if (nparams > QEMU_NB_TOTAL_CPU_STAT_PARAM)
-            nparams = QEMU_NB_TOTAL_CPU_STAT_PARAM;
-    }
-
-    return nparams;
-}
-
 /* This function gets the sums of cpu time consumed by all vcpus.
  * For example, if there are 4 physical cpus, and 2 vcpus in a domain,
  * then for each vcpu, the cpuacct.usage_percpu looks like this:
@@ -15456,7 +16031,6 @@ qemuDomainGetPercpuStats(virDomainObjPtr vm,
     if (virCgroupGetCpuacctPercpuUsage(priv->cgroup, &buf))
         goto cleanup;
     pos = buf;
-    memset(params, 0, nparams * ncpus);
 
     /* return percpu cputime in index 0 */
     param_idx = 0;
@@ -15552,7 +16126,8 @@ qemuDomainGetCPUStats(virDomainPtr domain,
     }
 
     if (start_cpu == -1)
-        ret = qemuDomainGetTotalcpuStats(vm, params, nparams);
+        ret = virCgroupGetDomainTotalCpuStats(priv->cgroup,
+                                              params, nparams);
     else
         ret = qemuDomainGetPercpuStats(vm, params, nparams,
                                        start_cpu, ncpus);

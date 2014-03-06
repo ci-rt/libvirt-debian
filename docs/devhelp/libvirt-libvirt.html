@@ -50,7 +50,11 @@
 #define <a href="#VIR_DOMAIN_BANDWIDTH_OUT_AVERAGE">VIR_DOMAIN_BANDWIDTH_OUT_AVERAGE</a>;
 #define <a href="#VIR_DOMAIN_BANDWIDTH_OUT_BURST">VIR_DOMAIN_BANDWIDTH_OUT_BURST</a>;
 #define <a href="#VIR_DOMAIN_BANDWIDTH_OUT_PEAK">VIR_DOMAIN_BANDWIDTH_OUT_PEAK</a>;
+#define <a href="#VIR_DOMAIN_BLKIO_DEVICE_READ_BPS">VIR_DOMAIN_BLKIO_DEVICE_READ_BPS</a>;
+#define <a href="#VIR_DOMAIN_BLKIO_DEVICE_READ_IOPS">VIR_DOMAIN_BLKIO_DEVICE_READ_IOPS</a>;
 #define <a href="#VIR_DOMAIN_BLKIO_DEVICE_WEIGHT">VIR_DOMAIN_BLKIO_DEVICE_WEIGHT</a>;
+#define <a href="#VIR_DOMAIN_BLKIO_DEVICE_WRITE_BPS">VIR_DOMAIN_BLKIO_DEVICE_WRITE_BPS</a>;
+#define <a href="#VIR_DOMAIN_BLKIO_DEVICE_WRITE_IOPS">VIR_DOMAIN_BLKIO_DEVICE_WRITE_IOPS</a>;
 #define <a href="#VIR_DOMAIN_BLKIO_FIELD_LENGTH">VIR_DOMAIN_BLKIO_FIELD_LENGTH</a>;
 #define <a href="#VIR_DOMAIN_BLKIO_WEIGHT">VIR_DOMAIN_BLKIO_WEIGHT</a>;
 #define <a href="#VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC">VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC</a>;
@@ -125,6 +129,7 @@
 #define <a href="#VIR_NODEINFO_MAXCPUS">VIR_NODEINFO_MAXCPUS</a>(nodeinfo);
 #define <a href="#VIR_NODE_CPU_STATS_FIELD_LENGTH">VIR_NODE_CPU_STATS_FIELD_LENGTH</a>;
 #define <a href="#VIR_NODE_CPU_STATS_IDLE">VIR_NODE_CPU_STATS_IDLE</a>;
+#define <a href="#VIR_NODE_CPU_STATS_INTR">VIR_NODE_CPU_STATS_INTR</a>;
 #define <a href="#VIR_NODE_CPU_STATS_IOWAIT">VIR_NODE_CPU_STATS_IOWAIT</a>;
 #define <a href="#VIR_NODE_CPU_STATS_KERNEL">VIR_NODE_CPU_STATS_KERNEL</a>;
 #define <a href="#VIR_NODE_CPU_STATS_USER">VIR_NODE_CPU_STATS_USER</a>;
@@ -793,8 +798,24 @@ int	<a href="#virTypedParamsGetULLong">virTypedParamsGetULLong</a>		(<a href="li
 </pre><p>Macro represents the outbound peak of NIC bandwidth, as a uint.</p>
 </div>
         <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_BLKIO_DEVICE_READ_BPS">Macro </a>VIR_DOMAIN_BLKIO_DEVICE_READ_BPS</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_BLKIO_DEVICE_READ_BPS">VIR_DOMAIN_BLKIO_DEVICE_READ_BPS</a>;
+</pre><p>Macro for the blkio tunable throttle.read_iops_device: it represents the bytes of reading the block device per second, as a string. The string is parsed as a series of /path/to/device, read_bps elements, separated by ','.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_BLKIO_DEVICE_READ_IOPS">Macro </a>VIR_DOMAIN_BLKIO_DEVICE_READ_IOPS</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_BLKIO_DEVICE_READ_IOPS">VIR_DOMAIN_BLKIO_DEVICE_READ_IOPS</a>;
+</pre><p>Macro for the blkio tunable throttle.read_iops_device: it represents the number of reading the block device per second, as a string. The string is parsed as a series of /path/to/device, read_iops elements, separated by ','.</p>
+</div>
+        <hr/>
         <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_BLKIO_DEVICE_WEIGHT">Macro </a>VIR_DOMAIN_BLKIO_DEVICE_WEIGHT</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_BLKIO_DEVICE_WEIGHT">VIR_DOMAIN_BLKIO_DEVICE_WEIGHT</a>;
 </pre><p>Macro for the blkio tunable weight_device: it represents the per-device weight, as a string. The string is parsed as a series of /path/to/device,weight elements, separated by ','.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_BLKIO_DEVICE_WRITE_BPS">Macro </a>VIR_DOMAIN_BLKIO_DEVICE_WRITE_BPS</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_BLKIO_DEVICE_WRITE_BPS">VIR_DOMAIN_BLKIO_DEVICE_WRITE_BPS</a>;
+</pre><p>Macro for the blkio tunable throttle.read_iops_device: it represents the number of reading the block device per second, as a string. The string is parsed as a series of /path/to/device, write_bps elements, separated by ','.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_BLKIO_DEVICE_WRITE_IOPS">Macro </a>VIR_DOMAIN_BLKIO_DEVICE_WRITE_IOPS</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_BLKIO_DEVICE_WRITE_IOPS">VIR_DOMAIN_BLKIO_DEVICE_WRITE_IOPS</a>;
+</pre><p>Macro for the blkio tunable throttle.write_iops_device: it represents the number of writing the block device per second, as a string. The string is parsed as a series of /path/to/device, write_iops elements, separated by ','.</p>
 </div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_BLKIO_FIELD_LENGTH">Macro </a>VIR_DOMAIN_BLKIO_FIELD_LENGTH</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_BLKIO_FIELD_LENGTH">VIR_DOMAIN_BLKIO_FIELD_LENGTH</a>;
@@ -1091,6 +1112,10 @@ int	<a href="#virTypedParamsGetULLong">virTypedParamsGetULLong</a>		(<a href="li
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="VIR_NODE_CPU_STATS_IDLE">Macro </a>VIR_NODE_CPU_STATS_IDLE</h3><pre class="programlisting">#define <a href="#VIR_NODE_CPU_STATS_IDLE">VIR_NODE_CPU_STATS_IDLE</a>;
 </pre><p>The cumulative idle CPU time, since the node booting up (in nanoseconds).</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_NODE_CPU_STATS_INTR">Macro </a>VIR_NODE_CPU_STATS_INTR</h3><pre class="programlisting">#define <a href="#VIR_NODE_CPU_STATS_INTR">VIR_NODE_CPU_STATS_INTR</a>;
+</pre><p>The cumulative interrupt CPU time, since the node booting up (in nanoseconds).</p>
 </div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="VIR_NODE_CPU_STATS_IOWAIT">Macro </a>VIR_NODE_CPU_STATS_IOWAIT</h3><pre class="programlisting">#define <a href="#VIR_NODE_CPU_STATS_IOWAIT">VIR_NODE_CPU_STATS_IOWAIT</a>;
@@ -2756,7 +2781,7 @@ VIR_DOMAIN_EVENT_ID_IO_ERROR with virConnectDomainEventRegisterAny()</p>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virConnectDomainEventIOErrorReasonCallback"/>Function type virConnectDomainEventIOErrorReasonCallback</h3><pre class="programlisting">void	virConnectDomainEventIOErrorReasonCallback	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>							 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>							 const char * srcPath, <br/>							 const char * devAlias, <br/>							 int action, <br/>							 const char * reason, <br/>							 void * opaque)<br/>
 </pre><p>The callback signature to use when registering for an event of type
-VIR_DOMAIN_EVENT_ID_IO_ERROR with virConnectDomainEventRegisterAny()</p>
+VIR_DOMAIN_EVENT_ID_IO_ERROR_REASON with virConnectDomainEventRegisterAny()</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>connection object</td></tr><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>domain on which the event occurred</td></tr><tr><td><span class="term"><i><tt>srcPath</tt></i>:</span></td><td>The host file on which the IO error occurred</td></tr><tr><td><span class="term"><i><tt>devAlias</tt></i>:</span></td><td>The guest device alias associated with the path</td></tr><tr><td><span class="term"><i><tt>action</tt></i>:</span></td><td>action that is to be taken due to the IO error</td></tr><tr><td><span class="term"><i><tt>reason</tt></i>:</span></td><td>the cause of the IO error</td></tr><tr><td><span class="term"><i><tt>opaque</tt></i>:</span></td><td>application specified data</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virConnectDomainEventPMSuspendCallback"/>Function type virConnectDomainEventPMSuspendCallback</h3><pre class="programlisting">void	virConnectDomainEventPMSuspendCallback	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>						 int reason, <br/>						 void * opaque)<br/>
@@ -3812,7 +3837,9 @@ The @disk parameter is either the device target shorthand (the
 an unambiguous source name of the block device (the &lt;source
 file='...'/&gt; sub-element, such as "/path/to/image"). Valid names
 can be found by calling virDomainGetXMLDesc() and inspecting
-elements within //domain/devices/disk.
+elements within //domain/devices/disk. Some drivers might also
+accept the empty string for the @disk parameter, and then yield
+summary stats for the entire domain.
 
 Domains may have more than one block device. To get stats for
 each you should make multiple calls to this function.
@@ -3831,7 +3858,9 @@ The @disk parameter is either the device target shorthand (the
 an unambiguous source name of the block device (the &lt;source
 file='...'/&gt; sub-element, such as "/path/to/image"). Valid names
 can be found by calling virDomainGetXMLDesc() and inspecting
-elements within //domain/devices/disk.
+elements within //domain/devices/disk. Some drivers might also
+accept the empty string for the @disk parameter, and then yield
+summary stats for the entire domain.
 
 Domains may have more than one block device. To get stats for
 each you should make multiple calls to this function.
@@ -4130,7 +4159,60 @@ block device (the &lt;source file='...'/&gt; sub-element, such as
 "/path/to/image"), or (since 0.9.5) the device target shorthand
 (the &lt;target dev='...'/&gt; sub-element, such as "xvda"). Valid names
 can be found by calling virDomainGetXMLDesc() and inspecting
-elements within //domain/devices/disk.</p>
+elements within //domain/devices/disk.
+
+For QEMU domains, the allocation and physical virDomainBlockInfo
+values returned will generally be the same, except when using a
+non raw, block backing device, such as qcow2 for an active domain.
+When the persistent domain is not active, QEMU will return the
+default which is the same value for allocation and physical.
+
+Active QEMU domains can return an allocation value which is more
+representative of the currently used blocks by the device compared
+to the physical size of the device. Applications can use/monitor
+the allocation value with the understanding that if the domain
+becomes inactive during an attempt to get the value, the default
+values will be returned. Thus, the application should check
+after the call for the domain being inactive if the values are
+the same. Optionally, the application could be watching for a
+shutdown event and then ignore any values received afterwards.
+This can be an issue when a domain is being migrated and the
+exact timing of the domain being made inactive and check of
+the allocation value results the default being returned. For
+a transient domain in the similar situation, this call will return
+-1 and an error message indicating the "domain is not running".
+
+The following is some pseudo code illustrating the call sequence:
+
+ ...
+ <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom;
+ <a href="libvirt-libvirt.html#virDomainBlockInfo">virDomainBlockInfo</a> info;
+ char *device;
+ ...
+ // Either get a list of all domains or a specific domain
+ // via a virDomainLookupBy*() call.
+ //
+ // It's also required to fill in the device pointer, but that's
+ // specific to the implementation. For the purposes of this example
+ // a qcow2 backed device name string would need to be provided.
+ ...
+ // If the following call is made on a persistent domain with a
+ // qcow2 block backed block device, then it's possible the returned
+ // allocation equals the physical value. In that case, the domain
+ // that may have been active prior to calling has become inactive,
+ // such as is the case during a domain migration. Thus once we
+ // get data returned, check for active domain when the values are
+ // the same.
+ if (virDomainGetBlockInfo(dom, device, &amp;info, 0) &lt; 0)
+ goto failure;
+ if (info.allocation == info.physical) {
+ // If the domain is no longer active,
+ // then the defaults are being returned.
+ if (!virDomainIsActive())
+ goto ignore_return;
+ }
+ // Do something with the allocation and physical values
+ ...</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>a domain object</td></tr><tr><td><span class="term"><i><tt>disk</tt></i>:</span></td><td>path to the block device, or device shorthand</td></tr><tr><td><span class="term"><i><tt>info</tt></i>:</span></td><td>pointer to a <a href="libvirt-libvirt.html#virDomainBlockInfo">virDomainBlockInfo</a> structure allocated by the user</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>extra flags; not used yet, so callers should always pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success and -1 in case of failure.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainGetBlockIoTune"/>virDomainGetBlockIoTune ()</h3><pre class="programlisting">int	virDomainGetBlockIoTune		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 const char * disk, <br/>					 <a href="libvirt-libvirt.html#virTypedParameterPtr">virTypedParameterPtr</a> params, <br/>					 int * nparams, <br/>					 unsigned int flags)<br/>
@@ -4485,7 +4567,7 @@ virtual CPU limit is queried. Otherwise, this call queries the
 current virtual CPU count.
 
 If @flags includes VIR_DOMAIN_VCPU_GUEST, then the state of the processors
-is modified in the guest instead of the hypervisor. This flag is only usable
+is queried in the guest instead of the hypervisor. This flag is only usable
 on live domains. Guest agent may be needed for this flag to be available.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>pointer to domain object, or NULL for Domain0</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt.html#virDomainVcpuFlags">virDomainVcpuFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of vCPUs in case of success, -1 in case of failure.</td></tr></tbody></table></div></div>
         <hr/>
@@ -5173,7 +5255,7 @@ of rebooting.
 
 If @flags is set to zero, then the hypervisor will choose the
 method of shutdown it considers best. To have greater control
-pass one or more of the virDomainShutdownFlagValues. The order
+pass one or more of the virDomainRebootFlagValues. The order
 in which the hypervisor tries each shutdown method is undefined,
 and a hypervisor is not required to support all methods.
 
@@ -5610,7 +5692,10 @@ If @flags is set to zero, then the hypervisor will choose the
 method of shutdown it considers best. To have greater control
 pass one or more of the virDomainShutdownFlagValues. The order
 in which the hypervisor tries each shutdown method is undefined,
-and a hypervisor is not required to support all methods.</p>
+and a hypervisor is not required to support all methods.
+
+To use guest agent (VIR_DOMAIN_SHUTDOWN_GUEST_AGENT) the domain XML
+must have &lt;channel&gt; configured.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>a domain object</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt.html#virDomainShutdownFlagValues">virDomainShutdownFlagValues</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success and -1 in case of failure.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainSnapshotCreateXML"/>virDomainSnapshotCreateXML ()</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virDomainSnapshotPtr">virDomainSnapshotPtr</a>	virDomainSnapshotCreateXML	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>							 const char * xmlDesc, <br/>							 unsigned int flags)<br/>
@@ -7209,7 +7294,7 @@ is guaranteed to succeed if a callback is already registered</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>stream</tt></i>:</span></td><td>pointer to the stream object</td></tr><tr><td><span class="term"><i><tt>events</tt></i>:</span></td><td>set of events to monitor</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 on success, -1 if no callback is registered</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virStreamFinish"/>virStreamFinish ()</h3><pre class="programlisting">int	virStreamFinish			(<a href="libvirt-libvirt.html#virStreamPtr">virStreamPtr</a> stream)<br/>
-</pre><p>Indicate that there is no further data is to be transmitted
+</pre><p>Indicate that there is no further data to be transmitted
 on the stream. For output streams this should be called once
 all data has been written. For input streams this should be
 called once <a href="libvirt-libvirt.html#virStreamRecv">virStreamRecv</a> returns end-of-file.
@@ -7289,7 +7374,7 @@ API looks like
         <div class="refsect2" lang="en"><h3><a name="virStreamRecvAll"/>virStreamRecvAll ()</h3><pre class="programlisting">int	virStreamRecvAll		(<a href="libvirt-libvirt.html#virStreamPtr">virStreamPtr</a> stream, <br/>					 <a href="libvirt-libvirt.html#virStreamSinkFunc">virStreamSinkFunc</a> handler, <br/>					 void * opaque)<br/>
 </pre><p>Receive the entire data stream, sending the data to the
 requested data sink. This is simply a convenient alternative
-to virStreamRecv, for apps that do blocking-I/o.
+to virStreamRecv, for apps that do blocking-I/O.
 
 An example using this with a hypothetical file download
 API looks like
@@ -7374,7 +7459,7 @@ API looks like
         <div class="refsect2" lang="en"><h3><a name="virStreamSendAll"/>virStreamSendAll ()</h3><pre class="programlisting">int	virStreamSendAll		(<a href="libvirt-libvirt.html#virStreamPtr">virStreamPtr</a> stream, <br/>					 <a href="libvirt-libvirt.html#virStreamSourceFunc">virStreamSourceFunc</a> handler, <br/>					 void * opaque)<br/>
 </pre><p>Send the entire data stream, reading the data from the
 requested data source. This is simply a convenient alternative
-to virStreamSend, for apps that do blocking-I/o.
+to virStreamSend, for apps that do blocking-I/O.
 
 An example using this with a hypothetical file upload
 API looks like

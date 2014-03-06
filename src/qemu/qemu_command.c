@@ -1,7 +1,7 @@
 /*
  * qemu_command.c: QEMU command generation
  *
- * Copyright (C) 2006-2013 Red Hat, Inc.
+ * Copyright (C) 2006-2014 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -548,7 +548,7 @@ qemuNetworkPrepareDevices(virDomainDefPtr def)
          * network's pool of devices, or resolve bridge device name
          * to the one defined in the network definition.
          */
-        if (networkAllocateActualDevice(net) < 0)
+        if (networkAllocateActualDevice(def, net) < 0)
             goto cleanup;
 
         actualType = virDomainNetGetActualType(net);
@@ -3822,7 +3822,7 @@ cleanup:
 }
 
 
-static int
+int
 qemuGetDriveSourceString(int type,
                          const char *src,
                          int protocol,
@@ -3869,7 +3869,7 @@ qemuDomainDiskGetSourceString(virConnectPtr conn,
                               virDomainDiskDefPtr disk,
                               char **source)
 {
-    int actualType = qemuDiskGetActualType(disk);
+    int actualType = virDomainDiskGetActualType(disk);
     char *secret = NULL;
     int ret = -1;
 
@@ -3899,7 +3899,7 @@ qemuDomainDiskGetSourceString(virConnectPtr conn,
             goto cleanup;
     }
 
-    ret = qemuGetDriveSourceString(qemuDiskGetActualType(disk),
+    ret = qemuGetDriveSourceString(virDomainDiskGetActualType(disk),
                                    disk->src,
                                    disk->protocol,
                                    disk->nhosts,
@@ -3927,7 +3927,7 @@ qemuBuildDriveStr(virConnectPtr conn,
     int idx = virDiskNameToIndex(disk->dst);
     int busid = -1, unitid = -1;
     char *source = NULL;
-    int actualType = qemuDiskGetActualType(disk);
+    int actualType = virDomainDiskGetActualType(disk);
 
     if (idx < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
@@ -5306,9 +5306,19 @@ qemuBuildUSBInputDevStr(virDomainDefPtr def,
 {
     virBuffer buf = VIR_BUFFER_INITIALIZER;
 
-    virBufferAsprintf(&buf, "%s,id=%s",
-                      dev->type == VIR_DOMAIN_INPUT_TYPE_MOUSE ?
-                      "usb-mouse" : "usb-tablet", dev->info.alias);
+    switch (dev->type) {
+    case VIR_DOMAIN_INPUT_TYPE_MOUSE:
+        virBufferAsprintf(&buf, "usb-mouse,id=%s", dev->info.alias);
+        break;
+    case VIR_DOMAIN_INPUT_TYPE_TABLET:
+        virBufferAsprintf(&buf, "usb-tablet,id=%s", dev->info.alias);
+        break;
+    case VIR_DOMAIN_INPUT_TYPE_KBD:
+        if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE_USB_KBD))
+            goto error;
+        virBufferAsprintf(&buf, "usb-kbd,id=%s", dev->info.alias);
+        break;
+    }
 
     if (qemuBuildDeviceAddressStr(&buf, def, &dev->info, qemuCaps) < 0)
         goto error;
@@ -5785,7 +5795,8 @@ qemuBuildSCSIHostdevDrvStr(virDomainHostdevDefPtr dev,
     virBuffer buf = VIR_BUFFER_INITIALIZER;
     char *sg = NULL;
 
-    sg = (callbacks->qemuGetSCSIDeviceSgName)(dev->source.subsys.u.scsi.adapter,
+    sg = (callbacks->qemuGetSCSIDeviceSgName)(NULL,
+                                              dev->source.subsys.u.scsi.adapter,
                                               dev->source.subsys.u.scsi.bus,
                                               dev->source.subsys.u.scsi.target,
                                               dev->source.subsys.u.scsi.unit);
@@ -5976,6 +5987,16 @@ qemuBuildChrChardevStr(virDomainChrSourceDefPtr dev, const char *alias,
                           virDomainChrSpicevmcTypeToString(dev->data.spicevmc));
         break;
 
+    case VIR_DOMAIN_CHR_TYPE_SPICEPORT:
+        if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_CHARDEV_SPICEPORT)) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("spiceport not supported in this QEMU binary"));
+            goto error;
+        }
+        virBufferAsprintf(&buf, "spiceport,id=char%s,name=%s", alias,
+                          dev->data.spiceport.channel);
+        break;
+
     default:
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                        _("unsupported chardev '%s'"),
@@ -6071,6 +6092,9 @@ qemuBuildChrArgStr(virDomainChrSourceDefPtr dev, const char *prefix)
                           dev->data.nix.path,
                           dev->data.nix.listen ? ",server,nowait" : "");
         break;
+
+    case VIR_DOMAIN_CHR_TYPE_SPICEPORT:
+        break;
     }
 
     if (virBufferError(&buf)) {
@@ -6133,7 +6157,8 @@ qemuBuildVirtioSerialPortDevStr(virDomainChrDefPtr dev,
 
     if (dev->deviceType == VIR_DOMAIN_CHR_DEVICE_TYPE_CHANNEL &&
         dev->source.type == VIR_DOMAIN_CHR_TYPE_SPICEVMC &&
-        STRNEQ_NULLABLE(dev->target.name, "com.redhat.spice.0")) {
+        dev->target.name &&
+        STRNEQ(dev->target.name, "com.redhat.spice.0")) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                        _("Unsupported spicevmc target name '%s'"),
                        dev->target.name);
@@ -6489,14 +6514,18 @@ qemuBuildClockArgStr(virDomainClockDefPtr def)
         time_t now = time(NULL);
         struct tm nowbits;
 
-        if (def->data.variable.basis != VIR_DOMAIN_CLOCK_BASIS_UTC) {
-            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                           _("unsupported clock basis '%s'"),
-                           virDomainClockBasisTypeToString(def->data.variable.basis));
-            goto error;
+        switch ((enum virDomainClockBasis) def->data.variable.basis) {
+        case VIR_DOMAIN_CLOCK_BASIS_UTC:
+            now += def->data.variable.adjustment;
+            gmtime_r(&now, &nowbits);
+            break;
+        case VIR_DOMAIN_CLOCK_BASIS_LOCALTIME:
+            now += def->data.variable.adjustment;
+            localtime_r(&now, &nowbits);
+            break;
+        case VIR_DOMAIN_CLOCK_BASIS_LAST:
+            break;
         }
-        now += def->data.variable.adjustment;
-        gmtime_r(&now, &nowbits);
 
         /* Store the guest's basedate */
         def->data.variable.basedate = now;
@@ -6726,20 +6755,23 @@ qemuBuildCpuArgStr(virQEMUDriverPtr driver,
         }
     }
 
-    /* Now force kvmclock on/off based on the corresponding <timer> element.  */
+    /* Handle paravirtual timers  */
     for (i = 0; i < def->clock.ntimers; i++) {
-        if (def->clock.timers[i]->name == VIR_DOMAIN_TIMER_NAME_KVMCLOCK &&
-            def->clock.timers[i]->present != -1) {
-            char sign;
-            if (def->clock.timers[i]->present)
-                sign = '+';
-            else
-                sign = '-';
+        virDomainTimerDefPtr timer = def->clock.timers[i];
+
+        if (timer->present == -1)
+            continue;
+
+        if (timer->name == VIR_DOMAIN_TIMER_NAME_KVMCLOCK) {
             virBufferAsprintf(&buf, "%s,%ckvmclock",
                               have_cpu ? "" : default_model,
-                              sign);
+                              timer->present ? '+' : '-');
             have_cpu = true;
-            break;
+        } else if (timer->name == VIR_DOMAIN_TIMER_NAME_HYPERVCLOCK &&
+                   timer->present) {
+            virBufferAsprintf(&buf, "%s,hv_time",
+                              have_cpu ? "" : default_model);
+            have_cpu = true;
         }
     }
 
@@ -7393,6 +7425,15 @@ qemuBuildGraphicsSPICECommandLine(virQEMUDriverConfigPtr cfg,
                           virDomainGraphicsSpiceStreamingModeTypeToString(graphics->data.spice.streaming));
     if (graphics->data.spice.copypaste == VIR_DOMAIN_GRAPHICS_SPICE_CLIPBOARD_COPYPASTE_NO)
         virBufferAddLit(&opt, ",disable-copy-paste");
+    if (graphics->data.spice.filetransfer == VIR_DOMAIN_GRAPHICS_SPICE_AGENT_FILE_TRANSFER_NO) {
+        if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_SPICE_FILE_XFER_DISABLE)) {
+           virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                          _("This QEMU can't disable file transfers through spice"));
+            goto error;
+        } else {
+            virBufferAddLit(&opt, ",disable-agent-file-xfer");
+        }
+    }
 
     if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_SEAMLESS_MIGRATION)) {
         /* If qemu supports seamless migration turn it
@@ -7692,6 +7733,7 @@ qemuBuildCommandLine(virConnectPtr conn,
     int vnc = 0;
     int spice = 0;
     int usbcontroller = 0;
+    int actualSerials = 0;
     bool usblegacy = false;
     bool mlock = false;
     int contOrder[] = {
@@ -7720,6 +7762,20 @@ qemuBuildCommandLine(virConnectPtr conn,
     virUUIDFormat(def->uuid, uuid);
 
     emulator = def->emulator;
+
+    for (i = 0; i < def->ngraphics; ++i) {
+        switch (def->graphics[i]->type) {
+        case VIR_DOMAIN_GRAPHICS_TYPE_SDL:
+            ++sdl;
+            break;
+        case VIR_DOMAIN_GRAPHICS_TYPE_VNC:
+            ++vnc;
+            break;
+        case VIR_DOMAIN_GRAPHICS_TYPE_SPICE:
+            ++spice;
+            break;
+        }
+    }
 
     /*
      * do not use boot=on for drives when not using KVM since this
@@ -7992,8 +8048,7 @@ qemuBuildCommandLine(virConnectPtr conn,
     }
 
     for (i = 0; i < def->clock.ntimers; i++) {
-        switch (def->clock.timers[i]->name) {
-        default:
+        switch ((enum virDomainTimerNameType) def->clock.timers[i]->name) {
         case VIR_DOMAIN_TIMER_NAME_PLATFORM:
         case VIR_DOMAIN_TIMER_NAME_TSC:
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
@@ -8002,7 +8057,9 @@ qemuBuildCommandLine(virConnectPtr conn,
             goto error;
 
         case VIR_DOMAIN_TIMER_NAME_KVMCLOCK:
-            /* This is handled when building -cpu.  */
+        case VIR_DOMAIN_TIMER_NAME_HYPERVCLOCK:
+            /* Timers above are handled when building -cpu.  */
+        case VIR_DOMAIN_TIMER_NAME_LAST:
             break;
 
         case VIR_DOMAIN_TIMER_NAME_RTC:
@@ -8787,36 +8844,38 @@ qemuBuildCommandLine(virConnectPtr conn,
         virCommandAddArgBuffer(cmd, &opt);
     }
 
-    if (!def->nserials) {
-        /* If we have -device, then we set -nodefault already */
-        if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE))
-            virCommandAddArgList(cmd, "-serial", "none", NULL);
-    } else {
-        for (i = 0; i < def->nserials; i++) {
-            virDomainChrDefPtr serial = def->serials[i];
-            char *devstr;
+    for (i = 0; i < def->nserials; i++) {
+        virDomainChrDefPtr serial = def->serials[i];
+        char *devstr;
 
-            /* Use -chardev with -device if they are available */
-            if (virQEMUCapsSupportsChardev(def, qemuCaps, serial)) {
-                virCommandAddArg(cmd, "-chardev");
-                if (!(devstr = qemuBuildChrChardevStr(&serial->source,
-                                                      serial->info.alias,
-                                                      qemuCaps)))
-                    goto error;
-                virCommandAddArg(cmd, devstr);
-                VIR_FREE(devstr);
+        if (serial->source.type == VIR_DOMAIN_CHR_TYPE_SPICEPORT && !spice)
+            continue;
 
-                if (qemuBuildChrDeviceCommandLine(cmd, def, serial, qemuCaps) < 0)
-                   goto error;
-            } else {
-                virCommandAddArg(cmd, "-serial");
-                if (!(devstr = qemuBuildChrArgStr(&serial->source, NULL)))
-                    goto error;
-                virCommandAddArg(cmd, devstr);
-                VIR_FREE(devstr);
-            }
+        /* Use -chardev with -device if they are available */
+        if (virQEMUCapsSupportsChardev(def, qemuCaps, serial)) {
+            virCommandAddArg(cmd, "-chardev");
+            if (!(devstr = qemuBuildChrChardevStr(&serial->source,
+                                                  serial->info.alias,
+                                                  qemuCaps)))
+                goto error;
+            virCommandAddArg(cmd, devstr);
+            VIR_FREE(devstr);
+
+            if (qemuBuildChrDeviceCommandLine(cmd, def, serial, qemuCaps) < 0)
+                goto error;
+        } else {
+            virCommandAddArg(cmd, "-serial");
+            if (!(devstr = qemuBuildChrArgStr(&serial->source, NULL)))
+                goto error;
+            virCommandAddArg(cmd, devstr);
+            VIR_FREE(devstr);
         }
+        actualSerials++;
     }
+
+    /* If we have -device, then we set -nodefault already */
+    if (!actualSerials && !virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE))
+            virCommandAddArgList(cmd, "-serial", "none", NULL);
 
     if (!def->nparallels) {
         /* If we have -device, then we set -nodefault already */
@@ -8995,26 +9054,21 @@ qemuBuildCommandLine(virConnectPtr conn,
                 virCommandAddArg(cmd, optstr);
                 VIR_FREE(optstr);
             } else {
-                virCommandAddArgList(cmd, "-usbdevice",
-                                     input->type == VIR_DOMAIN_INPUT_TYPE_MOUSE
-                                     ? "mouse" : "tablet", NULL);
+                switch (input->type) {
+                    case VIR_DOMAIN_INPUT_TYPE_MOUSE:
+                        virCommandAddArgList(cmd, "-usbdevice", "mouse", NULL);
+                        break;
+                    case VIR_DOMAIN_INPUT_TYPE_TABLET:
+                        virCommandAddArgList(cmd, "-usbdevice", "tablet", NULL);
+                        break;
+                    case VIR_DOMAIN_INPUT_TYPE_KBD:
+                        virCommandAddArgList(cmd, "-usbdevice", "keyboard", NULL);
+                        break;
+                }
             }
         }
     }
 
-    for (i = 0; i < def->ngraphics; ++i) {
-        switch (def->graphics[i]->type) {
-        case VIR_DOMAIN_GRAPHICS_TYPE_SDL:
-            ++sdl;
-            break;
-        case VIR_DOMAIN_GRAPHICS_TYPE_VNC:
-            ++vnc;
-            break;
-        case VIR_DOMAIN_GRAPHICS_TYPE_SPICE:
-            ++spice;
-            break;
-        }
-    }
     if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_0_10) && sdl + vnc + spice > 1) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("only 1 graphics device is supported"));
@@ -10909,6 +10963,7 @@ qemuParseCommandLineCPU(virDomainDefPtr dom,
                     dom->clock.timers[j]->present = present;
                     dom->clock.timers[j]->tickpolicy = -1;
                     dom->clock.timers[j]->track = -1;
+                    dom->clock.timers[j]->mode = -1;
                     dom->clock.ntimers++;
                 } else if (dom->clock.timers[j]->present != -1 &&
                     dom->clock.timers[j]->present != present) {
@@ -11683,20 +11738,23 @@ qemuParseCommandLine(virCapsPtr qemuCaps,
         } else if (STREQ(arg, "-usbdevice")) {
             WANT_VALUE();
             if (STREQ(val, "tablet") ||
-                STREQ(val, "mouse")) {
+                STREQ(val, "mouse") ||
+                STREQ(val, "keyboard")) {
                 virDomainInputDefPtr input;
                 if (VIR_ALLOC(input) < 0)
                     goto error;
                 input->bus = VIR_DOMAIN_INPUT_BUS_USB;
                 if (STREQ(val, "tablet"))
                     input->type = VIR_DOMAIN_INPUT_TYPE_TABLET;
-                else
+                else if (STREQ(val, "mouse"))
                     input->type = VIR_DOMAIN_INPUT_TYPE_MOUSE;
-                if (VIR_REALLOC_N(def->inputs, def->ninputs+1) < 0) {
+                else
+                    input->type = VIR_DOMAIN_INPUT_TYPE_KBD;
+
+                if (VIR_APPEND_ELEMENT(def->inputs, def->ninputs, input) < 0) {
                     virDomainInputDefFree(input);
                     goto error;
                 }
-                def->inputs[def->ninputs++] = input;
             } else if (STRPREFIX(val, "disk:")) {
                 if (VIR_ALLOC(disk) < 0)
                     goto error;

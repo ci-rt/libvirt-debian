@@ -30,6 +30,11 @@
       <li>
         A <a href="/qpid/">QMF agent</a> for the AMQP/QPid messaging system
       </li>
+      <li>
+        A <a href="governance.html">technical meritocracy</a>, in which
+        participants gain influence over a project through recognition
+        of their contributions.
+      </li>
     </ul>
 
     <h2>libvirt supports:</h2>
@@ -68,6 +73,9 @@
       </li>
       <li>
         The <a href="http://libvirt.org/drvparallels.html">Parallels</a> hypervisor
+      </li>
+      <li>
+        The <a href="http://libvirt.org/drvbhyve.html">Bhyve</a> hypervisor
       </li>
       <li>
         Virtual networks using bridging, NAT, VEPA and VN-LINK.

@@ -118,6 +118,10 @@
                         <div>
                           <a title="Driver for Parallels Cloud Server" class="inactive" href="drvparallels.html">Parallels</a>
                         </div>
+                      </li><li>
+                        <div>
+                          <a title="Driver for bhyve" class="inactive" href="drvbhyve.html">Bhyve</a>
+                        </div>
                       </li></ul>
                   </div>
                 </li><li>
@@ -139,6 +143,10 @@
                 </li><li>
                   <div>
                     <a title="Command reference for virsh" class="inactive" href="virshcmdref.html">Virsh Commands</a>
+                  </div>
+                </li><li>
+                  <div>
+                    <a title="Project governance and code of conduct" class="inactive" href="governance.html">Governance</a>
                   </div>
                 </li></ul>
             </div>
@@ -196,6 +204,7 @@
     </p>
         <h2>
           <a name="project" shape="rect" id="project">Project Links</a>
+          <a class="headerlink" href="#project" title="Permalink to this headline">¶</a>
         </h2>
         <ul><li>
         The <a href="http://www.cl.cam.ac.uk/Research/SRG/netos/xen/index.html" shape="rect">Xen</a>
@@ -203,6 +212,7 @@
       </li></ul>
         <h2>
           <a name="prereq" shape="rect" id="prereq">Deployment pre-requisites</a>
+          <a class="headerlink" href="#prereq" title="Permalink to this headline">¶</a>
         </h2>
         <p>
       The libvirt Xen driver uses a combination of channels to manage Xen
@@ -241,6 +251,7 @@
       </li></ul>
         <h2>
           <a name="uri" shape="rect" id="uri">Connections to Xen driver</a>
+          <a class="headerlink" href="#uri" title="Permalink to this headline">¶</a>
         </h2>
         <p>
     The libvirt Xen driver is a single-instance privileged driver,
@@ -256,6 +267,7 @@ xen+ssh://root@example.com/    (remote access, SSH tunnelled)
 </pre>
         <h2>
           <a name="imex" shape="rect" id="imex">Import and export of libvirt domain XML configs</a>
+          <a class="headerlink" href="#imex" title="Permalink to this headline">¶</a>
         </h2>
         <p>The Xen driver currently supports two native
       config formats. The first known as <code>xen-xm</code> is the format
@@ -264,6 +276,7 @@ xen+ssh://root@example.com/    (remote access, SSH tunnelled)
       with the XenD's legacy HTTP RPC service.</p>
         <h3>
           <a name="xmlimport" shape="rect" id="xmlimport">Converting from XM config files to domain XML</a>
+          <a class="headerlink" href="#xmlimport" title="Permalink to this headline">¶</a>
         </h3>
         <p>
       The <code>virsh domxml-from-native</code> provides a way to convert an
@@ -309,6 +322,7 @@ xen+ssh://root@example.com/    (remote access, SSH tunnelled)
 &lt;/domain&gt;</pre>
         <h3>
           <a name="xmlexport" shape="rect" id="xmlexport">Converting from domain XML to XM config files</a>
+          <a class="headerlink" href="#xmlexport" title="Permalink to this headline">¶</a>
         </h3>
         <p>
       The <code>virsh domxml-to-native</code> provides a way to convert a
@@ -336,6 +350,7 @@ disk = [ "tap:aio:/var/lib/xen/images/rhel5pv.img,xvda,w", "tap:qcow:/root/qcow1
 vif = [ "mac=00:16:3e:60:36:ba,bridge=virbr0,script=vif-bridge,vifname=vif5.0" ]</pre>
         <h2>
           <a name="xmlconfig" shape="rect" id="xmlconfig">Example domain XML config</a>
+          <a class="headerlink" href="#xmlconfig" title="Permalink to this headline">¶</a>
         </h2>
         <p>
       Below are some example XML configurations for Xen guest domains.

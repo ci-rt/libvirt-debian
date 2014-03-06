@@ -3362,6 +3362,12 @@ static int testDomainBlockStats(virDomainPtr domain,
     unsigned long long statbase;
     int ret = -1;
 
+    if (!*path) {
+        virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
+                       _("summary statistics are not supported yet"));
+        return ret;
+    }
+
     testDriverLock(privconn);
     privdom = virDomainObjListFindByName(privconn->domains,
                                          domain->name);
@@ -6145,7 +6151,7 @@ testConnectDomainEventRegister(virConnectPtr conn,
     int ret = 0;
 
     testDriverLock(driver);
-    if (virDomainEventStateRegister(conn, driver->eventState, NULL,
+    if (virDomainEventStateRegister(conn, driver->eventState,
                                     callback, opaque, freecb) < 0)
         ret = -1;
     testDriverUnlock(driver);
@@ -6183,7 +6189,7 @@ testConnectDomainEventRegisterAny(virConnectPtr conn,
     int ret;
 
     testDriverLock(driver);
-    if (virDomainEventStateRegisterID(conn, driver->eventState, NULL,
+    if (virDomainEventStateRegisterID(conn, driver->eventState,
                                       dom, eventID,
                                       callback, opaque, freecb, &ret) < 0)
         ret = -1;
@@ -6221,7 +6227,7 @@ testConnectNetworkEventRegisterAny(virConnectPtr conn,
     int ret;
 
     testDriverLock(driver);
-    if (virNetworkEventStateRegisterID(conn, driver->eventState, NULL,
+    if (virNetworkEventStateRegisterID(conn, driver->eventState,
                                        net, eventID, callback,
                                        opaque, freecb, &ret) < 0)
         ret = -1;
