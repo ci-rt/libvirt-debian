@@ -9,7 +9,7 @@ Origin: vendor
  2 files changed, 30 insertions(+), 19 deletions(-)
 
 diff --git a/tools/libvirt-guests.sh.in b/tools/libvirt-guests.sh.in
-index 38e93c5..7aa6eee 100644
+index 4bbd4e4..116b232 100644
 --- a/tools/libvirt-guests.sh.in
 +++ b/tools/libvirt-guests.sh.in
 @@ -1,5 +1,17 @@
@@ -31,7 +31,7 @@ index 38e93c5..7aa6eee 100644
  # Copyright (C) 2011-2013 Red Hat, Inc.
  #
  # This library is free software; you can redistribute it and/or
-@@ -16,33 +28,33 @@
+@@ -16,23 +28,23 @@
  # License along with this library.  If not, see
  # <http://www.gnu.org/licenses/>.
  
@@ -66,7 +66,9 @@ index 38e93c5..7aa6eee 100644
  SHUTDOWN_TIMEOUT=300
  PARALLEL_SHUTDOWN=0
  START_DELAY=0
- BYPASS_CACHE=0
+@@ -40,11 +52,11 @@ BYPASS_CACHE=0
+ CONNECT_RETRIES=10
+ RETRIES_SLEEP=1
  
 -test -f "$sysconfdir"/sysconfig/libvirt-guests &&
 -    . "$sysconfdir"/sysconfig/libvirt-guests
@@ -79,7 +81,7 @@ index 38e93c5..7aa6eee 100644
  
  RETVAL=0
  
-@@ -531,8 +543,7 @@ gueststatus() {
+@@ -538,8 +550,7 @@ gueststatus() {
  
  # rh_status
  # Display current status: whether saved state exists, and whether start
