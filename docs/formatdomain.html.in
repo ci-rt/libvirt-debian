@@ -286,18 +286,18 @@
 
 
     <p>
-      If you want to enable user namespace,set the <code>idmap</code> element.
-      the <code>uid</code> and <code>gid</code> elements have three attributes:
+      If you want to enable user namespace, set the <code>idmap</code> element.
+      The <code>uid</code> and <code>gid</code> elements have three attributes:
     </p>
 
     <dl>
       <dt><code>start</code></dt>
-      <dd>First user id in container.</dd>
+      <dd>First user ID in container.</dd>
       <dt><code>target</code></dt>
-      <dd>The first user id in container will be mapped to this target user
-          id in host.</dd>
+      <dd>The first user ID in container will be mapped to this target user
+          ID in host.</dd>
       <dt><code>count</code></dt>
-      <dd>How many users in container being allowed to map to host's user.</dd>
+      <dd>How many users in container are allowed to map to host's user.</dd>
     </dl>
 
     <pre>
@@ -1348,7 +1348,7 @@
         </dl>
         <p>
           A <code>clock</code> may have zero or more
-          <code>timer</code>sub-elements. <span class="since">Since
+          <code>timer</code> sub-elements. <span class="since">Since
           0.8.0</span>
         </p>
       </dd>
@@ -1367,7 +1367,13 @@
             being modified, and can be one of
             "platform" (currently unsupported),
             "hpet" (libxl, xen, qemu), "kvmclock" (qemu),
-            "pit" (qemu), "rtc" (qemu), or "tsc" (libxl).
+            "pit" (qemu), "rtc" (qemu), "tsc" (libxl) or "hypervclock"
+            (qemu - <span class="since">since 1.2.2</span>).
+
+            The <code>hypervclock</code> timer adds support for the
+            reference time counter and the reference page for iTSC
+            feature for guests running the Microsoft Windows
+            operating system.
           </dd>
           <dt><code>track</code></dt>
           <dd>
@@ -2798,6 +2804,11 @@
         between domains (assuming the hypervisor and OS support this).
         Only supported by SCSI host device.
         <span class="since">Since 1.0.6</span>
+        <p>
+          Note: Although <code>shareable</code> was introduced
+          <span class="since">in 1.0.6</span>, it did not work as
+          as expected until <span class="since">1.2.2</span>.
+        </p>
       </dd>
     </dl>
 
@@ -3739,37 +3750,10 @@ qemu-kvm -net nic,model=? /dev/null
 
     <p>
       This part of interface XML provides setting quality of service. Incoming
-      and outgoing traffic can be shaped independently. The
-      <code>bandwidth</code> element can have at most one <code>inbound</code>
-      and at most one <code>outbound</code> child elements. Leaving any of these
-      children element out result in no QoS applied on that traffic direction.
-      So, when you want to shape only domain's incoming traffic, use
-      <code>inbound</code> only, and vice versa. Each of these elements have one
-      mandatory attribute <code>average</code> (or <code>floor</code> as
-      described below). <code>average</code> specifies average bit rate on
-      the interface being shaped. Then there are two optional attributes:
-      <code>peak</code>, which specifies maximum rate at which interface can send
-      data, and <code>burst</code>, amount of bytes that can be burst at
-      <code>peak</code> speed. Accepted values for attributes are integer
-      numbers. The units for <code>average</code> and <code>peak</code> attributes
-      are kilobytes per second, and for the <code>burst</code> just kilobytes.
-      Note the limitation of implementation: the <code>peak</code> attribute in
-      <code>outbound</code> element is ignored (as linux ingress filters don't
-      know it yet). <span class="since">Since 0.9.4</span> The <code>inbound</code> can
-      optionally have <code>floor</code> attribute. This is there for
-      guaranteeing minimal throughput for shaped interfaces. This, however,
-      requires that all traffic goes through one point where QoS decisions can
-      take place. That's why this attribute works only for virtual networks for
-      now (that is <code>&lt;interface type='network'/&gt;</code> with a
-      forward type of route, nat, or no forward at all). Moreover, the
-      virtual network the interface is connected to is required to have at least
-      inbound QoS set (<code>average</code> at least). Moreover, with
-      <code>floor</code> attribute users don't need to specify
-      <code>average</code>. However, <code>peak</code> and <code>burst</code>
-      attributes still require <code>average</code>. Currently, linux kernel
-      doesn't allow ingress qdiscs to have any classes therefore
-      <code>floor</code> can be applied only on <code>inbound</code> and not
-      <code>outbound</code>. <span class="since">Since 1.0.1</span>
+      and outgoing traffic can be shaped independently.
+      The <code>bandwidth</code> element and its child elements are described
+      in the <a href="formatnetwork.html#elementQoS">QoS</a> section of
+      the Network XML.
     </p>
 
     <h5><a name="elementVlanTag">Setting VLAN tag (on supported network types only)</a></h5>
@@ -3863,15 +3847,17 @@ qemu-kvm -net nic,model=? /dev/null
   ...
   &lt;devices&gt;
     &lt;input type='mouse' bus='usb'/&gt;
+    &lt;input type='keyboard' bus='usb'/&gt;
   &lt;/devices&gt;
   ...</pre>
 
     <dl>
       <dt><code>input</code></dt>
       <dd>The <code>input</code> element has one mandatory attribute,
-        the <code>type</code> whose value can be either 'mouse' or
-        'tablet'. The latter provides absolute
-        cursor movement, while the former uses relative movement. The optional
+        the <code>type</code> whose value can be 'mouse', 'tablet' or
+        (<span class="since">since 1.2.2</span>) 'keyboard'.
+        The tablet provides absolute cursor movement,
+        while the mouse uses relative movement. The optional
         <code>bus</code> attribute can be used to refine the exact device type.
         It takes values "xen" (paravirtualized), "ps2" and "usb".</dd>
     </dl>
@@ -4042,6 +4028,7 @@ qemu-kvm -net nic,model=? /dev/null
     &lt;streaming mode='filter'/&gt;
     &lt;clipboard copypaste='no'/&gt;
     &lt;mouse mode='client'/&gt;
+    &lt;filetransfer enable='no'/&gt;
   &lt;/graphics&gt;</pre>
             <p>
               Spice supports variable compression settings for audio,
@@ -4080,6 +4067,13 @@ qemu-kvm -net nic,model=? /dev/null
               <code>server</code> or <code>client</code> ,
               <span class="since">since 0.9.11</span>. If no mode is
               specified, the qemu default will be used (client mode).
+            </p>
+            <p>
+              File transfer functionality (via Spice agent) is set using the
+              <code>filetransfer</code> element.
+              It is enabled by default, and can be disabled by setting the
+              <code>enable</code> property to <code>no</code> ,
+              since <span class="since">since 1.2.2</span>.
             </p>
           </dd>
           <dt><code>"rdp"</code></dt>
@@ -4700,6 +4694,24 @@ qemu-kvm -net nic,model=? /dev/null
   &lt;devices&gt;
     &lt;serial type="unix"&gt;
       &lt;source mode="bind" path="/tmp/foo"/&gt;
+      &lt;target port="1"/&gt;
+    &lt;/serial&gt;
+  &lt;/devices&gt;
+  ...</pre>
+
+    <h6><a name="elementsCharSpiceport">Spice channel</a></h6>
+
+    <p>
+      The character device is accessible through spice connection
+      under a channel name specified in the <code>channel</code>
+      attribute.  <span class="since">Since 1.2.2</span>
+    </p>
+
+<pre>
+  ...
+  &lt;devices&gt;
+    &lt;serial type="spiceport"&gt;
+      &lt;source channel="org.qemu.console.serial.0"/&gt;
       &lt;target port="1"/&gt;
     &lt;/serial&gt;
   &lt;/devices&gt;

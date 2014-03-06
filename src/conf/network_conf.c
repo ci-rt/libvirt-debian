@@ -1,7 +1,7 @@
 /*
  * network_conf.c: network XML handling
  *
- * Copyright (C) 2006-2013 Red Hat, Inc.
+ * Copyright (C) 2006-2014 Red Hat, Inc.
  * Copyright (C) 2006-2008 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -65,6 +65,28 @@ VIR_ENUM_IMPL(virNetworkForwardDriverName,
               "default",
               "kvm",
               "vfio")
+
+VIR_ENUM_IMPL(virNetworkDNSForwardPlainNames,
+              VIR_NETWORK_DNS_FORWARD_PLAIN_NAMES_LAST,
+              "default",
+              "yes",
+              "no")
+
+VIR_ENUM_IMPL(virNetworkTaint, VIR_NETWORK_TAINT_LAST,
+              "hook-script");
+
+bool
+virNetworkObjTaint(virNetworkObjPtr obj,
+                   enum virNetworkTaintFlags taint)
+{
+    unsigned int flag = (1 << taint);
+
+    if (obj->taint & flag)
+        return false;
+
+    obj->taint |= flag;
+    return true;
+}
 
 virNetworkObjPtr virNetworkFindByUUID(virNetworkObjListPtr nets,
                                       const unsigned char *uuid)
@@ -1053,9 +1075,9 @@ virNetworkDNSDefParseXML(const char *networkName,
 
     forwardPlainNames = virXPathString("string(./@forwardPlainNames)", ctxt);
     if (forwardPlainNames) {
-        if (STREQ(forwardPlainNames, "yes")) {
-            def->forwardPlainNames = true;
-        } else if (STRNEQ(forwardPlainNames, "no")) {
+        def->forwardPlainNames
+            = virNetworkDNSForwardPlainNamesTypeFromString(forwardPlainNames);
+        if (def->forwardPlainNames <= 0) {
             virReportError(VIR_ERR_XML_ERROR,
                            _("Invalid dns forwardPlainNames setting '%s' "
                              "in network '%s'"),
@@ -1728,7 +1750,7 @@ virNetworkForwardDefParseXML(const char *networkName,
         def->type = VIR_NETWORK_FORWARD_NAT;
     } else {
         if ((def->type = virNetworkForwardTypeFromString(type)) < 0) {
-            virReportError(VIR_ERR_XML_ERROR,
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                            _("unknown forwarding type '%s'"), type);
             goto cleanup;
         }
@@ -1747,7 +1769,7 @@ virNetworkForwardDefParseXML(const char *networkName,
             = virNetworkForwardDriverNameTypeFromString(forwardDriverName);
 
         if (driverName <= 0) {
-            virReportError(VIR_ERR_INTERNAL_ERROR,
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                            _("Unknown forward <driver name='%s'/> "
                              "in network %s"),
                            forwardDriverName, networkName);
@@ -1873,7 +1895,7 @@ virNetworkForwardDefParseXML(const char *networkName,
             }
 
             if ((def->ifs[i].type = virNetworkForwardHostdevDeviceTypeFromString(type)) < 0) {
-                virReportError(VIR_ERR_XML_ERROR,
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                                _("unknown address type '%s' in network %s"),
                                type, networkName);
                 goto cleanup;
@@ -2295,19 +2317,26 @@ static int
 virNetworkDNSDefFormat(virBufferPtr buf,
                        const virNetworkDNSDef *def)
 {
-    int result = 0;
     size_t i, j;
 
     if (!(def->forwardPlainNames || def->forwarders || def->nhosts ||
           def->nsrvs || def->ntxts))
-        goto out;
+        return 0;
 
     virBufferAddLit(buf, "<dns");
     if (def->forwardPlainNames) {
-        virBufferAddLit(buf, " forwardPlainNames='yes'");
+        const char *fwd = virNetworkDNSForwardPlainNamesTypeToString(def->forwardPlainNames);
+
+        if (!fwd) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Unknown forwardPlainNames type %d in network"),
+                           def->forwardPlainNames);
+            return -1;
+        }
+        virBufferAsprintf(buf, " forwardPlainNames='%s'", fwd);
         if (!(def->forwarders || def->nhosts || def->nsrvs || def->ntxts)) {
             virBufferAddLit(buf, "/>\n");
-            goto out;
+            return 0;
         }
     }
 
@@ -2363,8 +2392,7 @@ virNetworkDNSDefFormat(virBufferPtr buf,
     }
     virBufferAdjustIndent(buf, -2);
     virBufferAddLit(buf, "</dns>\n");
-out:
-    return result;
+    return 0;
 }
 
 static int
@@ -2581,10 +2609,10 @@ cleanup:
     return ret;
 }
 
-static int
-virNetworkDefFormatInternal(virBufferPtr buf,
-                            const virNetworkDef *def,
-                            unsigned int flags)
+int
+virNetworkDefFormatBuf(virBufferPtr buf,
+                       const virNetworkDef *def,
+                       unsigned int flags)
 {
     const unsigned char *uuid;
     char uuidstr[VIR_UUID_STRING_BUFLEN];
@@ -2751,7 +2779,7 @@ virNetworkDefFormat(const virNetworkDef *def,
 {
     virBuffer buf = VIR_BUFFER_INITIALIZER;
 
-    if (virNetworkDefFormatInternal(&buf, def, flags) < 0)
+    if (virNetworkDefFormatBuf(&buf, def, flags) < 0)
         goto error;
 
     if (virBufferError(&buf))
@@ -2772,6 +2800,7 @@ virNetworkObjFormat(virNetworkObjPtr net,
 {
     virBuffer buf = VIR_BUFFER_INITIALIZER;
     char *class_id = virBitmapFormat(net->class_id);
+    size_t i;
 
     if (!class_id)
         goto no_memory;
@@ -2781,8 +2810,14 @@ virNetworkObjFormat(virNetworkObjPtr net,
     virBufferAsprintf(&buf, "  <floor sum='%llu'/>\n", net->floor_sum);
     VIR_FREE(class_id);
 
+    for (i = 0; i < VIR_NETWORK_TAINT_LAST; i++) {
+        if (net->taint & (1 << i))
+            virBufferAsprintf(&buf, "  <taint flag='%s'/>\n",
+                              virNetworkTaintTypeToString(i));
+    }
+
     virBufferAdjustIndent(&buf, 2);
-    if (virNetworkDefFormatInternal(&buf, net->def, flags) < 0)
+    if (virNetworkDefFormatBuf(&buf, net->def, flags) < 0)
         goto error;
 
     virBufferAdjustIndent(&buf, -2);
@@ -2891,10 +2926,13 @@ virNetworkLoadState(virNetworkObjListPtr nets,
     virNetworkDefPtr def = NULL;
     virNetworkObjPtr net = NULL;
     xmlDocPtr xml = NULL;
-    xmlNodePtr node = NULL;
+    xmlNodePtr node = NULL, *nodes = NULL;
     xmlXPathContextPtr ctxt = NULL;
     virBitmapPtr class_id_map = NULL;
     unsigned long long floor_sum_val = 0;
+    unsigned int taint = 0;
+    int n;
+    size_t i;
 
 
     if ((configFile = virNetworkConfigFile(stateDir, name)) == NULL)
@@ -2947,8 +2985,30 @@ virNetworkLoadState(virNetworkObjListPtr nets,
                            _("Malformed 'floor_sum' attribute: %s"),
                            floor_sum);
             VIR_FREE(floor_sum);
+            goto error;
         }
         VIR_FREE(floor_sum);
+
+        if ((n = virXPathNodeSet("./taint", ctxt, &nodes)) < 0)
+            goto error;
+
+        for (i = 0; i < n; i++) {
+            char *str = virXMLPropString(nodes[i], "flag");
+            if (str) {
+                int flag = virNetworkTaintTypeFromString(str);
+                if (flag < 0) {
+                    virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                                   _("Unknown taint flag %s"), str);
+                    VIR_FREE(str);
+                    goto error;
+                }
+                VIR_FREE(str);
+                /* Compute taint mask here. The network object does not
+                 * exist yet, so we can't use virNetworkObjtTaint. */
+                taint |= (1 << flag);
+            }
+        }
+        VIR_FREE(nodes);
     }
 
     /* create the object */
@@ -2965,6 +3025,8 @@ virNetworkLoadState(virNetworkObjListPtr nets,
     if (floor_sum_val > 0)
         net->floor_sum = floor_sum_val;
 
+    net->taint = taint;
+
 cleanup:
     VIR_FREE(configFile);
     xmlFreeDoc(xml);
@@ -2972,6 +3034,7 @@ cleanup:
     return net;
 
 error:
+    VIR_FREE(nodes);
     virBitmapFree(class_id_map);
     virNetworkDefFree(def);
     goto cleanup;

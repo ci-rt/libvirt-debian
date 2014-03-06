@@ -1000,7 +1000,22 @@ virLogAddOutputToFile(virLogPriority priority,
 }
 
 
-#if HAVE_SYSLOG_H
+#if HAVE_SYSLOG_H || USE_JOURNALD
+
+/* Compat in case we build with journald, but no syslog */
+# ifndef LOG_DEBUG
+#  define LOG_DEBUG 7
+# endif
+# ifndef LOG_INFO
+#  define LOG_INFO 6
+# endif
+# ifndef LOG_WARNING
+#  define LOG_WARNING 4
+# endif
+# ifndef LOG_ERR
+#  define LOG_ERR 3
+# endif
+
 static int
 virLogPrioritySyslog(virLogPriority priority)
 {
@@ -1017,8 +1032,10 @@ virLogPrioritySyslog(virLogPriority priority)
         return LOG_ERR;
     }
 }
+#endif /* HAVE_SYSLOG_H || USE_JOURNALD */
 
 
+#if HAVE_SYSLOG_H
 static void
 virLogOutputToSyslog(virLogSource source ATTRIBUTE_UNUSED,
                      virLogPriority priority,
@@ -1153,7 +1170,7 @@ virLogOutputToJournald(virLogSource source,
                        int linenr,
                        const char *funcname,
                        const char *timestamp ATTRIBUTE_UNUSED,
-                       virLogMetadataPtr metadata ATTRIBUTE_UNUSED,
+                       virLogMetadataPtr metadata,
                        unsigned int flags,
                        const char *rawstr,
                        const char *str ATTRIBUTE_UNUSED,
@@ -1172,8 +1189,11 @@ virLogOutputToJournald(virLogSource source,
      * be a tmpfs, and one that is available from early boot on
      * and where unprivileged users can create files. */
     char path[] = "/dev/shm/journal.XXXXXX";
+    size_t nmetadata = 0;
 
-#  define NUM_FIELDS 6
+#  define NUM_FIELDS_CORE 6
+#  define NUM_FIELDS_META 5
+#  define NUM_FIELDS (NUM_FIELDS_CORE + NUM_FIELDS_META)
     struct iovec iov[NUM_FIELDS * 5];
     char iov_bufs[NUM_FIELDS][JOURNAL_BUF_SIZE];
     struct journalState state;
@@ -1184,7 +1204,8 @@ virLogOutputToJournald(virLogSource source,
     state.bufs_end = iov_bufs + ARRAY_CARDINALITY(iov_bufs);
 
     journalAddString(&state, "MESSAGE", rawstr);
-    journalAddInt(&state, "PRIORITY", priority);
+    journalAddInt(&state, "PRIORITY",
+                  virLogPrioritySyslog(priority));
     journalAddString(&state, "LIBVIRT_SOURCE",
                      virLogSourceTypeToString(source));
     if (filename)
@@ -1192,6 +1213,17 @@ virLogOutputToJournald(virLogSource source,
     journalAddInt(&state, "CODE_LINE", linenr);
     if (funcname)
         journalAddString(&state, "CODE_FUNC", funcname);
+    if (metadata != NULL) {
+        while (metadata->key != NULL &&
+               nmetadata < NUM_FIELDS_META) {
+            if (metadata->s != NULL)
+                journalAddString(&state, metadata->key, metadata->s);
+            else
+                journalAddInt(&state, metadata->key, metadata->iv);
+            metadata++;
+            nmetadata++;
+        }
+    }
 
     memset(&sa, 0, sizeof(sa));
     sa.sun_family = AF_UNIX;
@@ -1347,7 +1379,7 @@ virLogParseOutputs(const char *outputs)
 
     virSkipSpaces(&cur);
     while (*cur != 0) {
-        prio= virParseNumber(&cur);
+        prio = virParseNumber(&cur);
         if ((prio < VIR_LOG_DEBUG) || (prio > VIR_LOG_ERROR))
             goto cleanup;
         if (*cur != ':')
@@ -1452,7 +1484,7 @@ virLogParseFilters(const char *filters)
     virSkipSpaces(&cur);
     while (*cur != 0) {
         unsigned int flags = 0;
-        prio= virParseNumber(&cur);
+        prio = virParseNumber(&cur);
         if ((prio < VIR_LOG_DEBUG) || (prio > VIR_LOG_ERROR))
             goto cleanup;
         if (*cur != ':')

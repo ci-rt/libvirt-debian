@@ -1,7 +1,7 @@
 /*
  * virsh-volume.c: Commands to manage storage volume
  *
- * Copyright (C) 2005, 2007-2013 Red Hat, Inc.
+ * Copyright (C) 2005, 2007-2014 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -944,30 +944,20 @@ out:
 }
 
 
+VIR_ENUM_DECL(vshStorageVol)
+VIR_ENUM_IMPL(vshStorageVol,
+              VIR_STORAGE_VOL_LAST,
+              N_("file"),
+              N_("block"),
+              N_("dir"),
+              N_("network"),
+              N_("netdir"))
+
 static const char *
 vshVolumeTypeToString(int type)
 {
-    switch ((virStorageVolType) type) {
-    case VIR_STORAGE_VOL_FILE:
-        return N_("file");
-
-    case VIR_STORAGE_VOL_BLOCK:
-        return N_("block");
-
-    case VIR_STORAGE_VOL_DIR:
-        return N_("dir");
-
-    case VIR_STORAGE_VOL_NETWORK:
-        return N_("network");
-
-    case VIR_STORAGE_VOL_NETDIR:
-        return N_("netdir");
-
-    case VIR_STORAGE_VOL_LAST:
-        break;
-    }
-
-    return N_("unknown");
+    const char *str = vshStorageVolTypeToString(type);
+    return str ? _(str) : _("unknown");
 }
 
 
@@ -1014,7 +1004,7 @@ cmdVolInfo(vshControl *ctl, const vshCmd *cmd)
         const char *unit;
 
         vshPrint(ctl, "%-15s %s\n", _("Type:"),
-                 _(vshVolumeTypeToString(info.type)));
+                 vshVolumeTypeToString(info.type));
 
         val = vshPrettyCapacity(info.capacity, &unit);
         vshPrint(ctl, "%-15s %2.2lf %s\n", _("Capacity:"), val, unit);
@@ -1342,8 +1332,7 @@ cmdVolList(vshControl *ctl, const vshCmd *cmd ATTRIBUTE_UNUSED)
     double val;
     bool details = vshCommandOptBool(cmd, "details");
     size_t i;
-    int ret;
-    bool functionReturn = false;
+    bool ret = false;
     int stringLength = 0;
     size_t allocStrLength = 0, capStrLength = 0;
     size_t nameStrLength = 0, pathStrLength = 0;
@@ -1390,25 +1379,17 @@ cmdVolList(vshControl *ctl, const vshCmd *cmd ATTRIBUTE_UNUSED)
 
                 /* Volume type */
                 volInfoTexts[i].type = vshStrdup(ctl,
-                                                 _(vshVolumeTypeToString(volumeInfo.type)));
+                                                 vshVolumeTypeToString(volumeInfo.type));
 
-                /* Create the capacity output string */
                 val = vshPrettyCapacity(volumeInfo.capacity, &unit);
-                ret = virAsprintf(&volInfoTexts[i].capacity,
-                                  "%.2lf %s", val, unit);
-                if (ret < 0) {
-                    /* An error occurred creating the string, return */
-                    goto asprintf_failure;
-                }
+                if (virAsprintf(&volInfoTexts[i].capacity,
+                                "%.2lf %s", val, unit) < 0)
+                    goto cleanup;
 
-                /* Create the allocation output string */
                 val = vshPrettyCapacity(volumeInfo.allocation, &unit);
-                ret = virAsprintf(&volInfoTexts[i].allocation,
-                                  "%.2lf %s", val, unit);
-                if (ret < 0) {
-                    /* An error occurred creating the string, return */
-                    goto asprintf_failure;
-                }
+                if (virAsprintf(&volInfoTexts[i].allocation,
+                                "%.2lf %s", val, unit) < 0)
+                    goto cleanup;
             }
 
             /* Remember the largest length for each output string.
@@ -1460,7 +1441,7 @@ cmdVolList(vshControl *ctl, const vshCmd *cmd ATTRIBUTE_UNUSED)
         }
 
         /* Cleanup and return */
-        functionReturn = true;
+        ret = true;
         goto cleanup;
     }
 
@@ -1503,18 +1484,14 @@ cmdVolList(vshControl *ctl, const vshCmd *cmd ATTRIBUTE_UNUSED)
     vshDebug(ctl, VSH_ERR_DEBUG,
              "Longest allocation string = %zu chars\n", allocStrLength);
 
-    /* Create the output template */
-    ret = virAsprintf(&outputStr,
-                      " %%-%lus  %%-%lus  %%-%lus  %%%lus  %%%lus\n",
-                      (unsigned long) nameStrLength,
-                      (unsigned long) pathStrLength,
-                      (unsigned long) typeStrLength,
-                      (unsigned long) capStrLength,
-                      (unsigned long) allocStrLength);
-    if (ret < 0) {
-        /* An error occurred creating the string, return */
-        goto asprintf_failure;
-    }
+    if (virAsprintf(&outputStr,
+                    " %%-%lus  %%-%lus  %%-%lus  %%%lus  %%%lus\n",
+                    (unsigned long) nameStrLength,
+                    (unsigned long) pathStrLength,
+                    (unsigned long) typeStrLength,
+                    (unsigned long) capStrLength,
+                    (unsigned long) allocStrLength) < 0)
+        goto cleanup;
 
     /* Display the header */
     vshPrint(ctl, outputStr, _("Name"), _("Path"), _("Type"),
@@ -1536,22 +1513,7 @@ cmdVolList(vshControl *ctl, const vshCmd *cmd ATTRIBUTE_UNUSED)
     }
 
     /* Cleanup and return */
-    functionReturn = true;
-    goto cleanup;
-
-asprintf_failure:
-
-    /* Display an appropriate error message then cleanup and return */
-    switch (errno) {
-    case ENOMEM:
-        /* Couldn't allocate memory */
-        vshError(ctl, "%s", _("Out of memory"));
-        break;
-    default:
-        /* Some other error */
-        vshError(ctl, _("virAsprintf failed (errno %d)"), errno);
-    }
-    functionReturn = false;
+    ret = true;
 
 cleanup:
 
@@ -1573,7 +1535,7 @@ cleanup:
     vshStorageVolListFree(list);
 
     /* Return the desired value */
-    return functionReturn;
+    return ret;
 }
 
 /*

@@ -71,6 +71,7 @@
 #include "virstring.h"
 #include "viraccessapicheck.h"
 #include "network_event.h"
+#include "virhook.h"
 
 #define VIR_FROM_THIS VIR_FROM_NETWORK
 
@@ -111,6 +112,9 @@ static int networkPlugBandwidth(virNetworkObjPtr net,
 static int networkUnplugBandwidth(virNetworkObjPtr net,
                                   virDomainNetDefPtr iface);
 
+static void networkNetworkObjTaint(virNetworkObjPtr net,
+                                   enum virNetworkTaintFlags taint);
+
 static virNetworkDriverStatePtr driverState = NULL;
 
 static virNetworkObjPtr
@@ -132,6 +136,62 @@ networkObjFromNetwork(virNetworkPtr net)
     }
 
     return network;
+}
+
+static int
+networkRunHook(virNetworkObjPtr network,
+               virDomainDefPtr dom,
+               virDomainNetDefPtr iface,
+               int op,
+               int sub_op)
+{
+    virBuffer buf = VIR_BUFFER_INITIALIZER;
+    char *xml = NULL, *net_xml = NULL, *dom_xml = NULL;
+    int hookret;
+    int ret = -1;
+
+    if (virHookPresent(VIR_HOOK_DRIVER_NETWORK)) {
+        if (!network) {
+            VIR_DEBUG("Not running hook as @network is NULL");
+            ret = 0;
+            goto cleanup;
+        }
+
+        virBufferAddLit(&buf, "<hookData>\n");
+        virBufferAdjustIndent(&buf, 2);
+        if (iface && virDomainNetDefFormat(&buf, iface, 0) < 0)
+            goto cleanup;
+        if (virNetworkDefFormatBuf(&buf, network->def, 0) < 0)
+            goto cleanup;
+        if (dom && virDomainDefFormatInternal(dom, 0, &buf) < 0)
+            goto cleanup;
+
+        virBufferAdjustIndent(&buf, -2);
+        virBufferAddLit(&buf, "</hookData>");
+
+        if (virBufferError(&buf) ||
+            !(xml = virBufferContentAndReset(&buf)))
+            goto cleanup;
+
+        hookret = virHookCall(VIR_HOOK_DRIVER_NETWORK, network->def->name,
+                              op, sub_op, NULL, xml, NULL);
+
+        /*
+         * If the script raised an error, pass it to the callee.
+         */
+        if (hookret < 0)
+            goto cleanup;
+
+        networkNetworkObjTaint(network, VIR_NETWORK_TAINT_HOOK);
+    }
+
+    ret = 0;
+cleanup:
+    virBufferFreeAndReset(&buf);
+    VIR_FREE(xml);
+    VIR_FREE(net_xml);
+    VIR_FREE(dom_xml);
+    return ret;
 }
 
 static char *
@@ -710,9 +770,6 @@ networkDnsmasqConfContents(virNetworkObjPtr network,
                       "strict-order\n",
                       network->def->name);
 
-    if (!network->def->dns.forwardPlainNames)
-        virBufferAddLit(&configbuf, "domain-needed\n");
-
     if (network->def->dns.forwarders) {
         virBufferAddLit(&configbuf, "no-resolv\n");
         for (i = 0; i < network->def->dns.nfwds; i++) {
@@ -728,14 +785,14 @@ networkDnsmasqConfContents(virNetworkObjPtr network,
                           network->def->domain);
     }
 
-    if (network->def->domain || !network->def->dns.forwardPlainNames) {
-        /* need to specify local even if no domain specified, unless
-         * the config says we should forward "plain" names (i.e. not
-         * fully qualified, no '.' characters)
+    if (network->def->dns.forwardPlainNames
+        == VIR_NETWORK_DNS_FORWARD_PLAIN_NAMES_NO) {
+        virBufferAddLit(&configbuf, "domain-needed\n");
+        /* need to specify local=// whether or not a domain is
+         * specified, unless the config says we should forward "plain"
+         * names (i.e. not fully qualified, no '.' characters)
          */
-        virBufferAsprintf(&configbuf,
-                          "local=/%s/\n",
-                          network->def->domain ? network->def->domain : "");
+        virBufferAddLit(&configbuf, "local=//\n");
     }
 
     if (pidfile)
@@ -1995,23 +2052,36 @@ static int
 networkStartNetwork(virNetworkDriverStatePtr driver,
                     virNetworkObjPtr network)
 {
-    int ret = 0;
+    int ret = -1;
+
+    VIR_DEBUG("driver=%p, network=%p", driver, network);
 
     if (virNetworkObjIsActive(network)) {
         virReportError(VIR_ERR_OPERATION_INVALID,
                        "%s", _("network is already active"));
-        return -1;
+        return ret;
     }
 
+    VIR_DEBUG("Beginning network startup process");
+
+    VIR_DEBUG("Setting current network def as transient");
     if (virNetworkObjSetDefTransient(network, true) < 0)
-        return -1;
+        goto cleanup;
+
+    /* Run an early hook to set-up missing devices.
+     * If the script raised an error abort the launch. */
+    if (networkRunHook(network, NULL, NULL,
+                       VIR_HOOK_NETWORK_OP_START,
+                       VIR_HOOK_SUBOP_BEGIN) < 0)
+        goto cleanup;
 
     switch (network->def->forward.type) {
 
     case VIR_NETWORK_FORWARD_NONE:
     case VIR_NETWORK_FORWARD_NAT:
     case VIR_NETWORK_FORWARD_ROUTE:
-        ret = networkStartNetworkVirtual(driver, network);
+        if (networkStartNetworkVirtual(driver, network) < 0)
+            goto cleanup;
         break;
 
     case VIR_NETWORK_FORWARD_BRIDGE:
@@ -2019,28 +2089,31 @@ networkStartNetwork(virNetworkDriverStatePtr driver,
     case VIR_NETWORK_FORWARD_VEPA:
     case VIR_NETWORK_FORWARD_PASSTHROUGH:
     case VIR_NETWORK_FORWARD_HOSTDEV:
-        ret = networkStartNetworkExternal(driver, network);
+        if (networkStartNetworkExternal(driver, network) < 0)
+            goto cleanup;
         break;
     }
 
-    if (ret < 0) {
-        virNetworkObjUnsetDefTransient(network);
-        return ret;
-    }
+    /* finally we can call the 'started' hook script if any */
+    if (networkRunHook(network, NULL, NULL,
+                       VIR_HOOK_NETWORK_OP_STARTED,
+                       VIR_HOOK_SUBOP_BEGIN) < 0)
+        goto cleanup;
 
     /* Persist the live configuration now that anything autogenerated
      * is setup.
      */
-    if ((ret = virNetworkSaveStatus(driverState->stateDir,
-                                    network)) < 0) {
-        goto error;
-    }
+    VIR_DEBUG("Writing network status to disk");
+    if (virNetworkSaveStatus(driverState->stateDir, network) < 0)
+        goto cleanup;
 
-    VIR_INFO("Starting up network '%s'", network->def->name);
     network->active = 1;
+    VIR_INFO("Network '%s' started up", network->def->name);
+    ret = 0;
 
-error:
+cleanup:
     if (ret < 0) {
+        virNetworkObjUnsetDefTransient(network);
         virErrorPtr save_err = virSaveLastError();
         int save_errno = errno;
         networkShutdownNetwork(driver, network);
@@ -2086,6 +2159,10 @@ static int networkShutdownNetwork(virNetworkDriverStatePtr driver,
         ret = networkShutdownNetworkExternal(driver, network);
         break;
     }
+
+    /* now that we know it's stopped call the hook if present */
+    networkRunHook(network, NULL, NULL, VIR_HOOK_NETWORK_OP_STOPPED,
+                   VIR_HOOK_SUBOP_END);
 
     network->active = 0;
     virNetworkObjUnsetDefTransient(network);
@@ -2310,7 +2387,6 @@ networkConnectNetworkEventRegisterAny(virConnectPtr conn,
         goto cleanup;
 
     if (virNetworkEventStateRegisterID(conn, driver->networkEventState,
-                                       virConnectNetworkEventRegisterAnyCheckACL,
                                        net, eventID, callback,
                                        opaque, freecb, &ret) < 0)
         ret = -1;
@@ -2407,8 +2483,17 @@ networkValidate(virNetworkDriverStatePtr driver,
         virNetworkSetBridgeMacAddr(def);
     } else {
         /* They are also the only types that currently support setting
-         * an IP address for the host-side device (bridge)
+         * a MAC or IP address for the host-side device (bridge), DNS
+         * configuration, or network-wide bandwidth limits.
          */
+        if (def->mac_specified) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("Unsupported <mac> element in network %s "
+                             "with forward mode='%s'"),
+                           def->name,
+                           virNetworkForwardTypeToString(def->forward.type));
+            return -1;
+        }
         if (virNetworkDefGetIpByIndex(def, AF_UNSPEC, 0)) {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                            _("Unsupported <ip> element in network %s "
@@ -2429,6 +2514,14 @@ networkValidate(virNetworkDriverStatePtr driver,
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                            _("Unsupported <domain> element in network %s "
                              "with forward mode='%s'"),
+                           def->name,
+                           virNetworkForwardTypeToString(def->forward.type));
+            return -1;
+        }
+        if (def->bandwidth) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("Unsupported network-wide <bandwidth> element "
+                             "in network %s with forward mode='%s'"),
                            def->name,
                            virNetworkForwardTypeToString(def->forward.type));
             return -1;
@@ -3223,6 +3316,7 @@ finish:
 }
 
 /* networkAllocateActualDevice:
+ * @dom: domain definition that @iface belongs to
  * @iface: the original NetDef from the domain
  *
  * Looks up the network reference by iface, allocates a physical
@@ -3234,7 +3328,8 @@ finish:
  * Returns 0 on success, -1 on failure.
  */
 int
-networkAllocateActualDevice(virDomainNetDefPtr iface)
+networkAllocateActualDevice(virDomainDefPtr dom,
+                            virDomainNetDefPtr iface)
 {
     virNetworkDriverStatePtr driver = driverState;
     enum virDomainNetType actualType = iface->type;
@@ -3567,25 +3662,37 @@ validate:
         }
     }
 
-    if (dev) {
-        /* we are now assured of success, so mark the allocation */
-        dev->connections++;
-        if (actualType != VIR_DOMAIN_NET_TYPE_HOSTDEV) {
-            VIR_DEBUG("Using physical device %s, %d connections",
-                      dev->device.dev, dev->connections);
-        } else {
-            VIR_DEBUG("Using physical device %04x:%02x:%02x.%x, connections %d",
-                      dev->device.pci.domain, dev->device.pci.bus,
-                      dev->device.pci.slot, dev->device.pci.function,
-                      dev->connections);
-        }
-    }
-
     if (netdef) {
         netdef->connections++;
         VIR_DEBUG("Using network %s, %d connections",
                   netdef->name, netdef->connections);
+
+        if (dev) {
+            /* mark the allocation */
+            dev->connections++;
+            if (actualType != VIR_DOMAIN_NET_TYPE_HOSTDEV) {
+                VIR_DEBUG("Using physical device %s, %d connections",
+                          dev->device.dev, dev->connections);
+            } else {
+                VIR_DEBUG("Using physical device %04x:%02x:%02x.%x, connections %d",
+                          dev->device.pci.domain, dev->device.pci.bus,
+                          dev->device.pci.slot, dev->device.pci.function,
+                          dev->connections);
+            }
+        }
+
+        /* finally we can call the 'plugged' hook script if any */
+        if (networkRunHook(network, dom, iface,
+                           VIR_HOOK_NETWORK_OP_IFACE_PLUGGED,
+                           VIR_HOOK_SUBOP_BEGIN) < 0) {
+            /* adjust for failure */
+            netdef->connections--;
+            if (dev)
+                dev->connections--;
+            goto error;
+        }
     }
+
     ret = 0;
 
 cleanup:
@@ -3602,6 +3709,7 @@ error:
 }
 
 /* networkNotifyActualDevice:
+ * @dom: domain definition that @iface belongs to
  * @iface:  the domain's NetDef with an "actual" device already filled in.
  *
  * Called to notify the network driver when libvirtd is restarted and
@@ -3612,7 +3720,8 @@ error:
  * Returns 0 on success, -1 on failure.
  */
 int
-networkNotifyActualDevice(virDomainNetDefPtr iface)
+networkNotifyActualDevice(virDomainDefPtr dom,
+                          virDomainNetDefPtr iface)
 {
     virNetworkDriverStatePtr driver = driverState;
     enum virDomainNetType actualType = virDomainNetGetActualType(iface);
@@ -3768,6 +3877,17 @@ success:
     netdef->connections++;
     VIR_DEBUG("Using network %s, %d connections",
               netdef->name, netdef->connections);
+
+    /* finally we can call the 'plugged' hook script if any */
+    if (networkRunHook(network, dom, iface, VIR_HOOK_NETWORK_OP_IFACE_PLUGGED,
+                       VIR_HOOK_SUBOP_BEGIN) < 0) {
+        /* adjust for failure */
+        if (dev)
+            dev->connections--;
+        netdef->connections--;
+        goto error;
+    }
+
     ret = 0;
 cleanup:
     if (network)
@@ -3780,6 +3900,7 @@ error:
 
 
 /* networkReleaseActualDevice:
+ * @dom: domain definition that @iface belongs to
  * @iface:  a domain's NetDef (interface definition)
  *
  * Given a domain <interface> element that previously had its <actual>
@@ -3790,7 +3911,8 @@ error:
  * Returns 0 on success, -1 on failure.
  */
 int
-networkReleaseActualDevice(virDomainNetDefPtr iface)
+networkReleaseActualDevice(virDomainDefPtr dom,
+                           virDomainNetDefPtr iface)
 {
     virNetworkDriverStatePtr driver = driverState;
     enum virDomainNetType actualType = virDomainNetGetActualType(iface);
@@ -3814,7 +3936,8 @@ networkReleaseActualDevice(virDomainNetDefPtr iface)
     }
     netdef = network->def;
 
-    if ((netdef->forward.type == VIR_NETWORK_FORWARD_NONE ||
+    if (iface->data.network.actual &&
+        (netdef->forward.type == VIR_NETWORK_FORWARD_NONE ||
          netdef->forward.type == VIR_NETWORK_FORWARD_NAT ||
          netdef->forward.type == VIR_NETWORK_FORWARD_ROUTE) &&
         networkUnplugBandwidth(network, iface) < 0)
@@ -3907,10 +4030,15 @@ networkReleaseActualDevice(virDomainNetDefPtr iface)
    }
 
 success:
-    if (iface->data.network.actual)
+    if (iface->data.network.actual) {
         netdef->connections--;
-    VIR_DEBUG("Releasing network %s, %d connections",
-              netdef->name, netdef->connections);
+        VIR_DEBUG("Releasing network %s, %d connections",
+                  netdef->name, netdef->connections);
+
+        /* finally we can call the 'unplugged' hook script if any */
+        networkRunHook(network, dom, iface, VIR_HOOK_NETWORK_OP_IFACE_UNPLUGGED,
+                       VIR_HOOK_SUBOP_BEGIN);
+    }
     ret = 0;
 cleanup:
     if (network)
@@ -4242,4 +4370,19 @@ networkUnplugBandwidth(virNetworkObjPtr net,
 
 cleanup:
     return ret;
+}
+
+static void
+networkNetworkObjTaint(virNetworkObjPtr net,
+                       enum virNetworkTaintFlags taint)
+{
+    if (virNetworkObjTaint(net, taint)) {
+        char uuidstr[VIR_UUID_STRING_BUFLEN];
+        virUUIDFormat(net->def->uuid, uuidstr);
+
+        VIR_WARN("Network name='%s' uuid=%s is tainted: %s",
+                 net->def->name,
+                 uuidstr,
+                 virNetworkTaintTypeToString(taint));
+    }
 }

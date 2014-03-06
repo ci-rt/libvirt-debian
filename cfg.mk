@@ -585,16 +585,6 @@ msg_gen_function += regerror
 msg_gen_function += vah_error
 msg_gen_function += vah_warning
 msg_gen_function += virGenericReportError
-msg_gen_function += virLibConnError
-msg_gen_function += virLibDomainError
-msg_gen_function += virLibDomainSnapshotError
-msg_gen_function += virLibInterfaceError
-msg_gen_function += virLibNetworkError
-msg_gen_function += virLibNodeDeviceError
-msg_gen_function += virLibNWFilterError
-msg_gen_function += virLibSecretError
-msg_gen_function += virLibStoragePoolError
-msg_gen_function += virLibStorageVolError
 msg_gen_function += virRaiseError
 msg_gen_function += virReportError
 msg_gen_function += virReportErrorHelper
@@ -774,6 +764,7 @@ sc_prohibit_cross_inclusion:
 	    cpu/ | locking/ | network/ | rpc/ | security/)		\
 	      safe="($$dir|util|conf)";;				\
 	    xenapi/ | xenxs/ ) safe="($$dir|util|conf|xen)";;		\
+	    qemu/ ) safe="($$dir|util|conf|cpu|network|locking|rpc|security|storage)";; \
 	    *) safe="($$dir|util|conf|cpu|network|locking|rpc|security)";; \
 	  esac;								\
 	  in_vc_files="^src/$$dir"					\
@@ -958,7 +949,7 @@ exclude_file_name_regexp--sc_libvirt_unmarked_diagnostics = \
 exclude_file_name_regexp--sc_po_check = ^(docs/|src/rpc/gendispatch\.pl$$)
 
 exclude_file_name_regexp--sc_prohibit_VIR_ERR_NO_MEMORY = \
-  ^(include/libvirt/virterror\.h|daemon/dispatch\.c|src/util/virerror\.c)$$
+  ^(include/libvirt/virterror\.h|daemon/dispatch\.c|src/util/virerror\.c|docs/internals/oomtesting\.html\.in)$$
 
 exclude_file_name_regexp--sc_prohibit_access_xok = ^src/util/virutil\.c$$
 
@@ -987,10 +978,10 @@ exclude_file_name_regexp--sc_prohibit_newline_at_end_of_diagnostic = \
   ^src/rpc/gendispatch\.pl$$
 
 exclude_file_name_regexp--sc_prohibit_nonreentrant = \
-  ^((po|tests)/|docs/.*(py|html\.in)|run.in$$)
+  ^((po|tests)/|docs/.*(py|html\.in)|run.in$$|tools/wireshark/util/genxdrstub\.pl$$)
 
 exclude_file_name_regexp--sc_prohibit_raw_allocation = \
-  ^(docs/hacking\.html\.in)|(src/util/viralloc\.[ch]|examples/.*|tests/securityselinuxhelper\.c|tests/vircgroupmock\.c)$$
+  ^(docs/hacking\.html\.in)|(src/util/viralloc\.[ch]|examples/.*|tests/securityselinuxhelper\.c|tests/vircgroupmock\.c|tools/wireshark/src/packet-libvirt.c)$$
 
 exclude_file_name_regexp--sc_prohibit_readlink = \
   ^src/(util/virutil|lxc/lxc_container)\.c$$
@@ -998,7 +989,7 @@ exclude_file_name_regexp--sc_prohibit_readlink = \
 exclude_file_name_regexp--sc_prohibit_setuid = ^src/util/virutil\.c$$
 
 exclude_file_name_regexp--sc_prohibit_sprintf = \
-  ^(docs/hacking\.html\.in)|(examples/systemtap/.*stp)|(src/dtrace2systemtap\.pl)|(src/rpc/gensystemtap\.pl)$$
+  ^(docs/hacking\.html\.in)|(examples/systemtap/.*stp)|(src/dtrace2systemtap\.pl)|(src/rpc/gensystemtap\.pl)|(tools/wireshark/util/genxdrstub\.pl)$$
 
 exclude_file_name_regexp--sc_prohibit_strncpy = ^src/util/virstring\.c$$
 
@@ -1031,7 +1022,7 @@ exclude_file_name_regexp--sc_correct_id_types = \
 exclude_file_name_regexp--sc_m4_quote_check = m4/virt-lib.m4
 
 exclude_file_name_regexp--sc_prohibit_include_public_headers_quote = \
-  ^src/internal\.h$$
+  ^(src/internal\.h$$|tools/wireshark/src/packet-libvirt.h$$)
 
 exclude_file_name_regexp--sc_prohibit_include_public_headers_brackets = \
   ^(tools/|examples/|include/libvirt/(virterror|libvirt-(qemu|lxc))\.h$$)

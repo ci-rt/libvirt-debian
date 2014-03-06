@@ -1,7 +1,7 @@
 /*
- * virthreadwin32.h basic thread synchronization primitives
+ * virkmod.h: helper APIs for managing kernel modprobe
  *
- * Copyright (C) 2009, 2011-2012 Red Hat, Inc.
+ * Copyright (C) 2014 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -19,35 +19,16 @@
  *
  */
 
-#include "internal.h"
+#ifndef __VIR_KMOD_H__
+# define __VIR_KMOD_H__
 
-#ifdef HAVE_WINSOCK2_H
-# include <winsock2.h>
-#endif
-#include <windows.h>
+# include "internal.h"
 
-struct virMutex {
-    HANDLE lock;
-};
-
-struct virCond {
-    virMutex lock;
-    size_t nwaiters;
-    HANDLE *waiters;
-};
-
-struct virThread {
-    HANDLE thread;
-    bool joinable;
-};
-
-struct virThreadLocal {
-    DWORD key;
-};
-
-struct virOnceControl {
-    volatile long init; /* 0 at startup, > 0 if init has started */
-    volatile long complete; /* 0 until first thread completes callback */
-};
-
-#define VIR_ONCE_CONTROL_INITIALIZER { 0, 0 }
+char *virKModConfig(void);
+char *virKModLoad(const char *, bool)
+    ATTRIBUTE_NONNULL(1);
+char *virKModUnload(const char *)
+    ATTRIBUTE_NONNULL(1);
+bool virKModIsBlacklisted(const char *)
+    ATTRIBUTE_NONNULL(1);
+#endif /* __VIR_KMOD_H__ */

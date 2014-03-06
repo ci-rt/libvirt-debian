@@ -99,20 +99,91 @@ virPortAllocatorPtr virPortAllocatorNew(const char *name,
     return pa;
 }
 
+static int virPortAllocatorBindToPort(bool *used,
+                                      unsigned short port,
+                                      int family)
+{
+    struct sockaddr_in6 addr6 = {
+        .sin6_family = AF_INET6,
+        .sin6_port = htons(port),
+        .sin6_addr = in6addr_any
+    };
+    struct sockaddr_in addr4 = {
+        .sin_family = AF_INET,
+        .sin_port = htons(port),
+        .sin_addr.s_addr = htonl(INADDR_ANY)
+    };
+    struct sockaddr* addr;
+    size_t addrlen;
+    int v6only = 1;
+    int reuse = 1;
+    int ret = -1;
+    int fd = -1;
+    bool ipv6 = false;
+
+    if (family == AF_INET6) {
+        addr = (struct sockaddr*)&addr6;
+        addrlen = sizeof(addr6);
+        ipv6 = true;
+    } else if (family == AF_INET) {
+        addr = (struct sockaddr*)&addr4;
+        addrlen = sizeof(addr4);
+    } else {
+        virReportError(VIR_ERR_INTERNAL_ERROR, _("Unknown family %d"), family);
+        return -1;
+    }
+
+    *used = false;
+
+    fd = socket(family, SOCK_STREAM, 0);
+    if (fd < 0) {
+        if (errno == EAFNOSUPPORT)
+            return 0;
+        virReportSystemError(errno, "%s", _("Unable to open test socket"));
+        goto cleanup;
+    }
+
+    if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (void*)&reuse,
+                   sizeof(reuse)) < 0) {
+        virReportSystemError(errno, "%s",
+                             _("Unable to set socket reuse addr flag"));
+        goto cleanup;
+    }
+
+    if (ipv6 && setsockopt(fd, IPPROTO_IPV6, IPV6_V6ONLY, (void*)&v6only,
+                           sizeof(v6only)) < 0) {
+        virReportSystemError(errno, "%s",
+                             _("Unable to set IPV6_V6ONLY flag"));
+        goto cleanup;
+    }
+
+    if (bind(fd, addr, addrlen) < 0) {
+        if (errno == EADDRINUSE) {
+            *used = true;
+            ret = 0;
+        } else {
+            virReportSystemError(errno, _("Unable to bind to port %d"), port);
+        }
+        goto cleanup;
+    }
+
+    ret = 0;
+cleanup:
+    VIR_FORCE_CLOSE(fd);
+    return ret;
+}
+
 int virPortAllocatorAcquire(virPortAllocatorPtr pa,
                             unsigned short *port)
 {
     int ret = -1;
     size_t i;
-    int fd = -1;
 
     *port = 0;
     virObjectLock(pa);
 
     for (i = pa->start; i <= pa->end && !*port; i++) {
-        int reuse = 1;
-        struct sockaddr_in addr;
-        bool used = false;
+        bool used = false, v6used = false;
 
         if (virBitmapGetBit(pa->bitmap,
                             i - pa->start, &used) < 0) {
@@ -124,31 +195,11 @@ int virPortAllocatorAcquire(virPortAllocatorPtr pa,
         if (used)
             continue;
 
-        addr.sin_family = AF_INET;
-        addr.sin_port = htons(i);
-        addr.sin_addr.s_addr = htonl(INADDR_ANY);
-        fd = socket(PF_INET, SOCK_STREAM, 0);
-        if (fd < 0) {
-            virReportSystemError(errno, "%s",
-                                 _("Unable to open test socket"));
+        if (virPortAllocatorBindToPort(&v6used, i, AF_INET6) < 0 ||
+            virPortAllocatorBindToPort(&used, i, AF_INET) < 0)
             goto cleanup;
-        }
 
-        if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (void*)&reuse, sizeof(reuse)) < 0) {
-            virReportSystemError(errno, "%s",
-                                 _("Unable to set socket reuse addr flag"));
-            goto cleanup;
-        }
-
-        if (bind(fd, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
-            if (errno != EADDRINUSE) {
-                virReportSystemError(errno,
-                                     _("Unable to bind to port %zu"), i);
-                goto cleanup;
-            }
-            /* In use, try next */
-            VIR_FORCE_CLOSE(fd);
-        } else {
+        if (!used && !v6used) {
             /* Add port to bitmap of reserved ports */
             if (virBitmapSetBit(pa->bitmap,
                                 i - pa->start) < 0) {
@@ -168,7 +219,6 @@ int virPortAllocatorAcquire(virPortAllocatorPtr pa,
     }
 cleanup:
     virObjectUnlock(pa);
-    VIR_FORCE_CLOSE(fd);
     return ret;
 }
 

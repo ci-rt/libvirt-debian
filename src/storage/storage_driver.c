@@ -1,7 +1,7 @@
 /*
  * storage_driver.c: core driver for storage APIs
  *
- * Copyright (C) 2006-2013 Red Hat, Inc.
+ * Copyright (C) 2006-2014 Red Hat, Inc.
  * Copyright (C) 2006-2008 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -130,8 +130,7 @@ storageDriverAutostart(virStorageDriverStatePtr driver) {
         virStoragePoolObjUnlock(pool);
     }
 
-    if (conn)
-        virConnectClose(conn);
+    virObjectUnref(conn);
 }
 
 /**
@@ -1825,6 +1824,10 @@ storageVolCreateXMLFrom(virStoragePoolPtr obj,
     pool->volumes.objs[pool->volumes.count++] = newvol;
     volobj = virGetStorageVol(obj->conn, pool->def->name, newvol->name,
                               newvol->key, NULL, NULL);
+    if (!volobj) {
+        pool->volumes.count--;
+        goto cleanup;
+    }
 
     /* Drop the pool lock during volume allocation */
     pool->asyncjobs++;
@@ -2582,6 +2585,7 @@ cleanup:
     return ret;
 }
 
+
 static virStorageDriver storageDriver = {
     .name = "storage",
     .storageOpen = storageOpen, /* 0.4.0 */
@@ -2645,4 +2649,148 @@ int storageRegister(void)
         return -1;
     virRegisterStateDriver(&stateDriver);
     return 0;
+}
+
+
+/* ----------- file handlers cooperating with storage driver --------------- */
+void
+virStorageFileFree(virStorageFilePtr file)
+{
+    if (!file)
+        return;
+
+    if (file->backend &&
+        file->backend->backendDeinit)
+        file->backend->backendDeinit(file);
+
+    VIR_FREE(file->path);
+    virDomainDiskHostDefFree(file->nhosts, file->hosts);
+    VIR_FREE(file);
+}
+
+
+static virStorageFilePtr
+virStorageFileInitInternal(int type,
+                           const char *path,
+                           int protocol,
+                           size_t nhosts,
+                           virDomainDiskHostDefPtr hosts)
+{
+    virStorageFilePtr file = NULL;
+
+    if (VIR_ALLOC(file) < 0)
+        return NULL;
+
+    file->type = type;
+    file->protocol = protocol;
+    file->nhosts = nhosts;
+
+    if (VIR_STRDUP(file->path, path) < 0)
+        goto error;
+
+    if (!(file->hosts = virDomainDiskHostDefCopy(nhosts, hosts)))
+        goto error;
+
+    if (!(file->backend = virStorageFileBackendForType(file->type,
+                                                       file->protocol)))
+        goto error;
+
+    if (file->backend->backendInit &&
+        file->backend->backendInit(file) < 0)
+        goto error;
+
+    return file;
+
+error:
+    VIR_FREE(file->path);
+    virDomainDiskHostDefFree(file->nhosts, file->hosts);
+    VIR_FREE(file);
+    return NULL;
+}
+
+
+virStorageFilePtr
+virStorageFileInitFromDiskDef(virDomainDiskDefPtr disk)
+{
+    return virStorageFileInitInternal(virDomainDiskGetActualType(disk),
+                                      disk->src,
+                                      disk->protocol,
+                                      disk->nhosts,
+                                      disk->hosts);
+}
+
+
+virStorageFilePtr
+virStorageFileInitFromSnapshotDef(virDomainSnapshotDiskDefPtr disk)
+{
+    return virStorageFileInitInternal(virDomainSnapshotDiskGetActualType(disk),
+                                      disk->file,
+                                      disk->protocol,
+                                      disk->nhosts,
+                                      disk->hosts);
+}
+
+
+
+/**
+ * virStorageFileCreate: Creates an empty storage file via storage driver
+ *
+ * @file: file structure pointing to the file
+ *
+ * Returns 0 on success, -2 if the function isn't supported by the backend,
+ * -1 on other failure. Errno is set in case of failure.
+ */
+int
+virStorageFileCreate(virStorageFilePtr file)
+{
+    if (!file->backend->storageFileCreate) {
+        errno = ENOSYS;
+        return -2;
+    }
+
+    return file->backend->storageFileCreate(file);
+}
+
+
+/**
+ * virStorageFileUnlink: Unlink storage file via storage driver
+ *
+ * @file: file structure pointing to the file
+ *
+ * Unlinks the file described by the @file structure.
+ *
+ * Returns 0 on success, -2 if the function isn't supported by the backend,
+ * -1 on other failure. Errno is set in case of failure.
+ */
+int
+virStorageFileUnlink(virStorageFilePtr file)
+{
+    if (!file->backend->storageFileUnlink) {
+        errno = ENOSYS;
+        return -2;
+    }
+
+    return file->backend->storageFileUnlink(file);
+}
+
+
+/**
+ * virStorageFileStat: returns stat struct of a file via storage driver
+ *
+ * @file: file structure pointing to the file
+ * @stat: stat structure to return data
+ *
+ * Returns 0 on success, -2 if the function isn't supported by the backend,
+ * -1 on other failure. Errno is set in case of failure.
+*/
+int
+virStorageFileStat(virStorageFilePtr file,
+                   struct stat *st)
+{
+    if (!(file->backend->storageFileStat)) {
+        errno = ENOSYS;
+        return -2;
+    }
+
+    return file->backend->storageFileStat(file, st);
 }

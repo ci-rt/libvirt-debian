@@ -27,6 +27,8 @@
 # include "viralloc.h"
 # include "virfile.h"
 # include "virstring.h"
+# include "capabilities.h"
+# include "domain_conf.h"
 
 # define EXIT_AM_SKIP 77 /* tell Automake we're skipping a test */
 # define EXIT_AM_HARDFAIL 99 /* tell Automake that the framework is broken */
@@ -43,6 +45,8 @@ extern char *progname;
 # if !defined(abs_srcdir) || !defined(abs_builddir)
 #  error Fix Makefile.am
 # endif
+
+bool virtTestOOMActive(void);
 
 void virtTestResult(const char *name, int ret, const char *msg, ...)
     ATTRIBUTE_FMT_PRINTF(3,4);
@@ -101,5 +105,8 @@ int virtTestMain(int argc,
         }                                                               \
         return virtTestMain(argc, argv, func);                          \
     }
+
+virCapsPtr virTestGenericCapsInit(void);
+virDomainXMLOptionPtr virTestGenericDomainXMLConfInit(void);
 
 #endif /* __VIT_TEST_UTILS_H__ */

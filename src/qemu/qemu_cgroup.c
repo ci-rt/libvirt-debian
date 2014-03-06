@@ -1,7 +1,7 @@
 /*
  * qemu_cgroup.c: QEMU cgroup management
  *
- * Copyright (C) 2006-2013 Red Hat, Inc.
+ * Copyright (C) 2006-2014 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -291,11 +291,13 @@ qemuSetupHostdevCGroup(virDomainObjPtr vm,
             break;
 
         case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_SCSI:
-            if ((scsi = virSCSIDeviceNew(dev->source.subsys.u.scsi.adapter,
+            if ((scsi = virSCSIDeviceNew(NULL,
+                                         dev->source.subsys.u.scsi.adapter,
                                          dev->source.subsys.u.scsi.bus,
                                          dev->source.subsys.u.scsi.target,
                                          dev->source.subsys.u.scsi.unit,
-                                         dev->readonly)) == NULL)
+                                         dev->readonly,
+                                         dev->shareable)) == NULL)
                 goto cleanup;
 
             if (virSCSIDeviceFileIterate(scsi,
@@ -400,10 +402,29 @@ qemuSetupBlkioCgroup(virDomainObjPtr vm)
     if (vm->def->blkio.ndevices) {
         for (i = 0; i < vm->def->blkio.ndevices; i++) {
             virBlkioDevicePtr dev = &vm->def->blkio.devices[i];
-            if (!dev->weight)
-                continue;
-            if (virCgroupSetBlkioDeviceWeight(priv->cgroup, dev->path,
-                                              dev->weight) < 0)
+            if (dev->weight &&
+                (virCgroupSetBlkioDeviceWeight(priv->cgroup, dev->path,
+                                               dev->weight) < 0))
+                return -1;
+
+            if (dev->riops &&
+                (virCgroupSetBlkioDeviceReadIops(priv->cgroup, dev->path,
+                                                 dev->riops) < 0))
+                return -1;
+
+            if (dev->wiops &&
+                (virCgroupSetBlkioDeviceWriteIops(priv->cgroup, dev->path,
+                                                  dev->wiops) < 0))
+                return -1;
+
+            if (dev->rbps &&
+                (virCgroupSetBlkioDeviceReadBps(priv->cgroup, dev->path,
+                                                dev->rbps) < 0))
+                return -1;
+
+            if (dev->wbps &&
+                (virCgroupSetBlkioDeviceWriteBps(priv->cgroup, dev->path,
+                                                 dev->wbps) < 0))
                 return -1;
         }
     }
@@ -530,6 +551,18 @@ qemuSetupDevicesCgroup(virQEMUDriverPtr driver,
 
     for (i = 0; i < vm->def->nhostdevs; i++) {
         if (qemuSetupHostdevCGroup(vm, vm->def->hostdevs[i]) < 0)
+            goto cleanup;
+    }
+
+    if (vm->def->rng &&
+        (vm->def->rng->backend == VIR_DOMAIN_RNG_BACKEND_RANDOM)) {
+        VIR_DEBUG("Setting Cgroup ACL for RNG device");
+        rv = virCgroupAllowDevicePath(priv->cgroup, vm->def->rng->source.file,
+                                      VIR_CGROUP_DEVICE_RW);
+        virDomainAuditCgroupPath(vm, priv->cgroup, "allow",
+                                 vm->def->rng->source.file, "rw", rv == 0);
+        if (rv < 0 &&
+            !virLastErrorIsSystemErrno(ENOENT))
             goto cleanup;
     }
 

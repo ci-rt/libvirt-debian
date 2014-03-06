@@ -118,6 +118,10 @@
                         <div>
                           <a title="Driver for Parallels Cloud Server" class="inactive" href="drvparallels.html">Parallels</a>
                         </div>
+                      </li><li>
+                        <div>
+                          <a title="Driver for bhyve" class="inactive" href="drvbhyve.html">Bhyve</a>
+                        </div>
                       </li></ul>
                   </div>
                 </li><li>
@@ -139,6 +143,10 @@
                 </li><li>
                   <div>
                     <a title="Command reference for virsh" class="inactive" href="virshcmdref.html">Virsh Commands</a>
+                  </div>
+                </li><li>
+                  <div>
+                    <a title="Project governance and code of conduct" class="inactive" href="governance.html">Governance</a>
                   </div>
                 </li></ul>
             </div>
@@ -205,7 +213,7 @@
           </li><li>
             <a href="#usage">Container usage / management</a>
             <ul><li>
-                <a href="#usageSave">Defining (saving) container configuration&gt;</a>
+                <a href="#usageSave">Defining (saving) container configuration</a>
               </li><li>
                 <a href="#usageView">Viewing container configuration</a>
               </li><li>
@@ -222,6 +230,8 @@
                 <a href="#usageEnter">Running commands in a container</a>
               </li><li>
                 <a href="#usageTop">Monitoring container utilization</a>
+              </li><li>
+                <a href="#usageConvert">Converting LXC container configuration</a>
               </li></ul>
           </li></ul>
         <p>
@@ -237,6 +247,7 @@ integration with control groups and many other features.
 </p>
         <h2>
           <a name="cgroups" shape="rect" id="cgroups">Control groups Requirements</a>
+          <a class="headerlink" href="#cgroups" title="Permalink to this headline">¶</a>
         </h2>
         <p>
 In order to control the resource usage of processes inside containers, the
@@ -251,6 +262,7 @@ libvirt <a href="cgroups.html" shape="rect">cgroups documentation</a>.
 </p>
         <h2>
           <a name="namespaces" shape="rect" id="namespaces">Namespace requirements</a>
+          <a class="headerlink" href="#namespaces" title="Permalink to this headline">¶</a>
         </h2>
         <p>
 In order to separate processes inside a container from those in the
@@ -266,9 +278,11 @@ secure, in the absence of sVirt confinement.</strong>
 </p>
         <h2>
           <a name="init" shape="rect" id="init">Default container setup</a>
+          <a class="headerlink" href="#init" title="Permalink to this headline">¶</a>
         </h2>
         <h3>
           <a name="cliargs" shape="rect" id="cliargs">Command line arguments</a>
+          <a class="headerlink" href="#cliargs" title="Permalink to this headline">¶</a>
         </h3>
         <p>
 When the container "init" process is started, it will typically
@@ -289,6 +303,7 @@ would use the following XML
 </pre>
         <h3>
           <a name="envvars" shape="rect" id="envvars">Environment variables</a>
+          <a class="headerlink" href="#envvars" title="Permalink to this headline">¶</a>
         </h3>
         <p>
 When the container "init" process is started, it will be given several useful
@@ -306,6 +321,7 @@ Use of this is discouraged, in favour of passing arguments directly to the
 container init process via the <code>initarg</code> config element.</dd></dl>
         <h3>
           <a name="fsmounts" shape="rect" id="fsmounts">Filesystem mounts</a>
+          <a class="headerlink" href="#fsmounts" title="Permalink to this headline">¶</a>
         </h3>
         <p>
 In the absence of any explicit configuration, the container will
@@ -318,6 +334,7 @@ by libvirt
 only expose the sub-tree associated with the container</li><li><code>/proc/meminfo</code> a FUSE backed file reflecting memory limits of the container</li></ul>
         <h3>
           <a name="devnodes" shape="rect" id="devnodes">Device nodes</a>
+          <a class="headerlink" href="#devnodes" title="Permalink to this headline">¶</a>
         </h3>
         <p>
 The container init process will be started with <code>CAP_MKNOD</code>
@@ -349,6 +366,7 @@ depending on their configuration.
 </p>
         <h2>
           <a name="security" shape="rect" id="security">Security considerations</a>
+          <a class="headerlink" href="#security" title="Permalink to this headline">¶</a>
         </h2>
         <p>
 The libvirt LXC driver is fairly flexible in how it can be configured,
@@ -361,6 +379,7 @@ writing a suitable configuration.
 </p>
         <h3>
           <a name="securenetworking" shape="rect" id="securenetworking">Network isolation</a>
+          <a class="headerlink" href="#securenetworking" title="Permalink to this headline">¶</a>
         </h3>
         <p>
 If the guest configuration does not list any network interfaces,
@@ -376,6 +395,7 @@ namespace is not wanted, then applications should set the
 </p>
         <h3>
           <a name="securefs" shape="rect" id="securefs">Filesystem isolation</a>
+          <a class="headerlink" href="#securefs" title="Permalink to this headline">¶</a>
         </h3>
         <p>
 If the guest configuration does not list any filesystems, then
@@ -418,6 +438,7 @@ a bind mount to hide them. This is particularly important for the
 </p>
         <h3>
           <a name="secureusers" shape="rect" id="secureusers">User and group isolation</a>
+          <a class="headerlink" href="#secureusers" title="Permalink to this headline">¶</a>
         </h3>
         <p>
 If the guest configuration does not list any ID mapping, then the
@@ -447,6 +468,7 @@ causes libvirt to activate the user namespace feature.
 </p>
         <h2>
           <a name="activation" shape="rect" id="activation">Systemd Socket Activation Integration</a>
+          <a class="headerlink" href="#activation" title="Permalink to this headline">¶</a>
         </h2>
         <p>
 The libvirt LXC driver provides the ability to pass across pre-opened file
@@ -594,6 +616,7 @@ that a container is authorized to use.
 </p>
         <h2>
           <a name="exconfig" shape="rect" id="exconfig">Example configurations</a>
+          <a class="headerlink" href="#exconfig" title="Permalink to this headline">¶</a>
         </h2>
         <h3>Example config version 1</h3>
         <p></p>
@@ -657,6 +680,7 @@ debootstrap, whatever) under /opt/vm-1-root:
 </pre>
         <h2>
           <a name="usage" shape="rect" id="usage">Container usage / management</a>
+          <a class="headerlink" href="#usage" title="Permalink to this headline">¶</a>
         </h2>
         <p>
 As with any libvirt virtualization driver, LXC containers can be
@@ -670,7 +694,8 @@ and LXC. For further details about usage of virsh consult its
 manual page.
 </p>
         <h3>
-          <a name="usageSave" shape="rect" id="usageSave">Defining (saving) container configuration&gt;</a>
+          <a name="usageSave" shape="rect" id="usageSave">Defining (saving) container configuration</a>
+          <a class="headerlink" href="#usageSave" title="Permalink to this headline">¶</a>
         </h3>
         <p>
 The <code>virsh define</code> command takes an XML configuration
@@ -681,6 +706,7 @@ document and loads it into libvirt, saving the configuration on disk
 </pre>
         <h3>
           <a name="usageView" shape="rect" id="usageView">Viewing container configuration</a>
+          <a class="headerlink" href="#usageView" title="Permalink to this headline">¶</a>
         </h3>
         <p>
 The <code>virsh dumpxml</code> command can be used to view the
@@ -695,6 +721,7 @@ using the <code>--inactive</code> flag
 </pre>
         <h3>
           <a name="usageStart" shape="rect" id="usageStart">Starting containers</a>
+          <a class="headerlink" href="#usageStart" title="Permalink to this headline">¶</a>
         </h3>
         <p>
 The <code>virsh start</code> command can be used to start a
@@ -713,6 +740,7 @@ by libvirt, using the <code>virsh create</code> command.
 </pre>
         <h3>
           <a name="usageStop" shape="rect" id="usageStop">Stopping containers</a>
+          <a class="headerlink" href="#usageStop" title="Permalink to this headline">¶</a>
         </h3>
         <p>
 The <code>virsh shutdown</code> command can be used
@@ -734,6 +762,7 @@ request, it can be forcibly stopped using the <code>virsh destroy</code>
 </pre>
         <h3>
           <a name="usageReboot" shape="rect" id="usageReboot">Rebooting a container</a>
+          <a class="headerlink" href="#usageReboot" title="Permalink to this headline">¶</a>
         </h3>
         <p>
 The <code>virsh reboot</code> command can be used
@@ -748,6 +777,7 @@ to PID 1 inside the container.
 </pre>
         <h3>
           <a name="usageDelete" shape="rect" id="usageDelete">Undefining (deleting) a container configuration</a>
+          <a class="headerlink" href="#usageDelete" title="Permalink to this headline">¶</a>
         </h3>
         <p>
 The <code>virsh undefine</code> command can be used to delete the
@@ -759,6 +789,7 @@ running, this will turn it into a "transient" guest.
 </pre>
         <h3>
           <a name="usageConnect" shape="rect" id="usageConnect">Connecting to a container console</a>
+          <a class="headerlink" href="#usageConnect" title="Permalink to this headline">¶</a>
         </h3>
         <p>
 The <code>virsh console</code> command can be used to connect
@@ -779,6 +810,7 @@ as 'console0', 'console1', 'console2', etc.
 </pre>
         <h3>
           <a name="usageEnter" shape="rect" id="usageEnter">Running commands in a container</a>
+          <a class="headerlink" href="#usageEnter" title="Permalink to this headline">¶</a>
         </h3>
         <p>
 The <code>virsh lxc-enter-namespace</code> command can be used
@@ -790,6 +822,7 @@ and then execute an arbitrary command.
 </pre>
         <h3>
           <a name="usageTop" shape="rect" id="usageTop">Monitoring container utilization</a>
+          <a class="headerlink" href="#usageTop" title="Permalink to this headline">¶</a>
         </h3>
         <p>
 The <code>virt-top</code> command can be used to monitor the
@@ -799,6 +832,32 @@ host
         <pre xml:space="preserve">
 # virt-top -c lxc:///
 </pre>
+        <h3>
+          <a name="usageConvert" shape="rect" id="usageConvert">Converting LXC container configuration</a>
+          <a class="headerlink" href="#usageConvert" title="Permalink to this headline">¶</a>
+        </h3>
+        <p>
+The <code>virsh domxml-from-native</code> command can be used to convert
+most of the LXC container configuration into a domain XML fragment
+</p>
+        <pre xml:space="preserve">
+# virsh -c lxc:/// domxml-from-native lxc-tools /var/lib/lxc/myguest/config
+</pre>
+        <p>
+This conversion has some limitations due to the fact that the
+domxml-from-native command output has to be independent of the host. Here
+are a few things to take care of before converting:
+</p>
+        <ul><li>
+Replace the fstab file referenced by <tt>lxc.mount</tt> by the corresponding
+lxc.mount.entry lines.
+</li><li>
+Replace all relative sizes of tmpfs mount entries to absolute sizes. Also
+make sure that tmpfs entries all have a size option (default is 50%).
+</li><li>
+Define <tt>lxc.cgroup.memory.limit_in_bytes</tt> to properly limit the memory
+available to the container. The conversion will use 64MiB as the default.
+</li></ul>
       </div>
     </div>
     <div id="footer">

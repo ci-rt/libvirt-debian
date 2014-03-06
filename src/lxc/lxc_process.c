@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010-2013 Red Hat, Inc.
+ * Copyright (C) 2010-2014 Red Hat, Inc.
  * Copyright IBM Corp. 2008
  *
  * lxc_process.c: LXC process lifecycle management
@@ -103,7 +103,7 @@ virLXCProcessReboot(virLXCDriverPtr driver,
     VIR_DEBUG("Faking reboot");
 
     if (conn) {
-        virConnectRef(conn);
+        virObjectRef(conn);
         autodestroy = true;
     } else {
         conn = virConnectOpen("lxc:///");
@@ -125,12 +125,10 @@ virLXCProcessReboot(virLXCDriverPtr driver,
         goto cleanup;
     }
 
-    if (conn)
-        virConnectClose(conn);
-
     ret = 0;
 
 cleanup:
+    virObjectUnref(conn);
     return ret;
 }
 
@@ -200,7 +198,7 @@ static void virLXCProcessCleanup(virLXCDriverPtr driver,
                                 iface->ifname));
             ignore_value(virNetDevVethDelete(iface->ifname));
         }
-        networkReleaseActualDevice(iface);
+        networkReleaseActualDevice(vm->def, iface);
     }
 
     virDomainConfVMNWFilterTeardown(vm);
@@ -376,7 +374,7 @@ static int virLXCProcessSetupInterfaces(virConnectPtr conn,
          * network's pool of devices, or resolve bridge device name
          * to the one defined in the network definition.
          */
-        if (networkAllocateActualDevice(def->nets[i]) < 0)
+        if (networkAllocateActualDevice(def, def->nets[i]) < 0)
             goto cleanup;
 
         if (VIR_EXPAND_N(*veths, *nveths, 1) < 0)
@@ -478,7 +476,7 @@ cleanup:
                 ignore_value(virNetDevOpenvswitchRemovePort(
                                 virDomainNetGetActualBridgeName(iface),
                                 iface->ifname));
-            networkReleaseActualDevice(iface);
+            networkReleaseActualDevice(def, iface);
         }
     }
     return ret;
@@ -699,6 +697,30 @@ int virLXCProcessStop(virLXCDriverPtr driver,
         VIR_FREE(vm->def->seclabels[0]->imagelabel);
     }
 
+    /* If the LXC domain is suspended we send all processes a SIGKILL
+     * and thaw them. Upon wakeup the process sees the pending signal
+     * and dies immediately. It is guaranteed that priv->cgroup != NULL
+     * here because the domain has aleady been suspended using the
+     * freezer cgroup.
+     */
+    if (reason == VIR_DOMAIN_SHUTOFF_DESTROYED &&
+        virDomainObjGetState(vm, NULL) == VIR_DOMAIN_PAUSED) {
+        if (virCgroupKillRecursive(priv->cgroup, SIGKILL) <= 0) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("Unable to kill all processes"));
+            return -1;
+        }
+
+        if (virCgroupSetFreezerState(priv->cgroup, "THAWED") < 0) {
+            virReportError(VIR_ERR_OPERATION_FAILED, "%s",
+                           _("Unable to thaw all processes"));
+
+            return -1;
+        }
+
+        goto cleanup;
+    }
+
     if (priv->cgroup) {
         rc = virCgroupKillPainfully(priv->cgroup);
         if (rc < 0)
@@ -718,6 +740,7 @@ int virLXCProcessStop(virLXCDriverPtr driver,
         }
     }
 
+cleanup:
     virLXCProcessCleanup(driver, vm, reason);
 
     return 0;
@@ -934,7 +957,7 @@ virLXCProcessReadLogOutput(virDomainObjPtr vm,
 static int
 virLXCProcessEnsureRootFS(virDomainObjPtr vm)
 {
-    virDomainFSDefPtr root = virDomainGetRootFilesystem(vm->def);
+    virDomainFSDefPtr root = virDomainGetFilesystemForTarget(vm->def, "/");
 
     if (root)
         return 0;
@@ -1428,8 +1451,7 @@ virLXCProcessAutostartAll(virLXCDriverPtr driver)
                             virLXCProcessAutostartDomain,
                             &data);
 
-    if (conn)
-        virConnectClose(conn);
+    virObjectUnref(conn);
 }
 
 static int

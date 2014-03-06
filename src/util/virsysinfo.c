@@ -44,7 +44,7 @@
 VIR_ENUM_IMPL(virSysinfo, VIR_SYSINFO_LAST,
               "smbios");
 
-static const char *sysinfoDmidecode = "dmidecode";
+static const char *sysinfoDmidecode = DMIDECODE;
 static const char *sysinfoSysinfo = "/proc/sysinfo";
 static const char *sysinfoCpuinfo = "/proc/cpuinfo";
 
@@ -425,7 +425,7 @@ virSysinfoParseProcessor(const char *base, virSysinfoDefPtr ret)
     int result = -1;
     virSysinfoProcessorDefPtr processor;
 
-    if (!(tmp_base=virSysinfoParseLine(base, "vendor_id", &manufacturer)))
+    if (!(tmp_base = virSysinfoParseLine(base, "vendor_id", &manufacturer)))
         goto cleanup;
 
     /* Find processor N: line and gather the processor manufacturer,

@@ -94,6 +94,10 @@
                         <div>
                           <a title="Use lock managers to protect disk content" class="inactive" href="internals/locking.html">Lock managers</a>
                         </div>
+                      </li><li>
+                        <div>
+                          <a title="Simulating OOM conditions in the test suite" class="inactive" href="internals/oomtesting.html">Out of memory testing</a>
+                        </div>
                       </li></ul>
                   </div>
                 </li><li>
@@ -103,6 +107,10 @@
                 </li><li>
                   <div>
                     <a title="Command reference for virsh" class="inactive" href="virshcmdref.html">Virsh Commands</a>
+                  </div>
+                </li><li>
+                  <div>
+                    <a title="Project governance and code of conduct" class="inactive" href="governance.html">Governance</a>
                   </div>
                 </li></ul>
             </div>
@@ -177,6 +185,7 @@
           </li></ul>
         <h2>
           <a name="patches" shape="rect" id="patches">General tips for contributing patches</a>
+          <a class="headerlink" href="#patches" title="Permalink to this headline">¶</a>
         </h2>
         <ol><li>Discuss any large changes on the mailing list first.  Post patches
         early and listen to feedback.</li><li><p>Post patches in unified diff format, with git rename
@@ -422,6 +431,7 @@
     </p>
         <h2>
           <a name="indent" shape="rect" id="indent">Code indentation</a>
+          <a class="headerlink" href="#indent" title="Permalink to this headline">¶</a>
         </h2>
         <p>
       Libvirt's C source code generally adheres to some basic code-formatting
@@ -474,6 +484,7 @@
     </p>
         <h2>
           <a name="formatting" shape="rect" id="formatting">Code formatting (especially for new code)</a>
+          <a class="headerlink" href="#formatting" title="Permalink to this headline">¶</a>
         </h2>
         <p>
       With new code, we can be even more strict.
@@ -506,6 +517,7 @@
     </p>
         <h2>
           <a name="bracket_spacing" shape="rect" id="bracket_spacing">Bracket spacing</a>
+          <a class="headerlink" href="#bracket_spacing" title="Permalink to this headline">¶</a>
         </h2>
         <p>
       The keywords <code>if</code>, <code>for</code>, <code>while</code>,
@@ -551,6 +563,7 @@
 </pre>
         <h2>
           <a name="comma" shape="rect" id="comma">Commas</a>
+          <a class="headerlink" href="#comma" title="Permalink to this headline">¶</a>
         </h2>
         <p>
       Commas should always be followed by a space or end of line, and
@@ -587,6 +600,7 @@
 </pre>
         <h2>
           <a name="semicolon" shape="rect" id="semicolon">Semicolons</a>
+          <a class="headerlink" href="#semicolon" title="Permalink to this headline">¶</a>
         </h2>
         <p>
       Semicolons should never have a space beforehand.  Inside the
@@ -616,6 +630,7 @@
 </pre>
         <h2>
           <a name="curly_braces" shape="rect" id="curly_braces">Curly braces</a>
+          <a class="headerlink" href="#curly_braces" title="Permalink to this headline">¶</a>
         </h2>
         <p>
       Omit the curly braces around an <code>if</code>, <code>while</code>,
@@ -742,6 +757,7 @@
 </pre>
         <h2>
           <a name="preprocessor" shape="rect" id="preprocessor">Preprocessor</a>
+          <a class="headerlink" href="#preprocessor" title="Permalink to this headline">¶</a>
         </h2>
         <p>Macros defined with an ALL_CAPS name should generally be
       assumed to be unsafe with regards to arguments with side-effects
@@ -765,6 +781,7 @@
 </pre>
         <h2>
           <a name="types" shape="rect" id="types">C types</a>
+          <a class="headerlink" href="#types" title="Permalink to this headline">¶</a>
         </h2>
         <p>
       Use the right type.
@@ -820,6 +837,7 @@
     </p>
         <h2>
           <a name="memalloc" shape="rect" id="memalloc">Low level memory management</a>
+          <a class="headerlink" href="#memalloc" title="Permalink to this headline">¶</a>
         </h2>
         <p>
       Use of the malloc/free/realloc/calloc APIs is deprecated in the libvirt
@@ -899,6 +917,7 @@
       </li></ul>
         <h2>
           <a name="file_handling" shape="rect" id="file_handling">File handling</a>
+          <a class="headerlink" href="#file_handling" title="Permalink to this headline">¶</a>
         </h2>
         <p>
       Usage of the <code>fdopen()</code>, <code>close()</code>, <code>fclose()</code>
@@ -936,6 +955,7 @@
       </li></ul>
         <h2>
           <a name="string_comparision" shape="rect" id="string_comparision">String comparisons</a>
+          <a class="headerlink" href="#string_comparision" title="Permalink to this headline">¶</a>
         </h2>
         <p>
       Do not use the strcmp, strncmp, etc functions directly. Instead use
@@ -973,6 +993,7 @@
       </li></ul>
         <h2>
           <a name="string_copying" shape="rect" id="string_copying">String copying</a>
+          <a class="headerlink" href="#string_copying" title="Permalink to this headline">¶</a>
         </h2>
         <p>
       Do not use the strncpy function.  According to the man page, it
@@ -1029,6 +1050,7 @@
     </p>
         <h2>
           <a name="strbuf" shape="rect" id="strbuf">Variable length string buffer</a>
+          <a class="headerlink" href="#strbuf" title="Permalink to this headline">¶</a>
         </h2>
         <p>
       If there is a need for complex string concatenations, avoid using
@@ -1062,6 +1084,7 @@
 </pre>
         <h2>
           <a name="includes" shape="rect" id="includes">Include files</a>
+          <a class="headerlink" href="#includes" title="Permalink to this headline">¶</a>
         </h2>
         <p>
       There are now quite a large number of include files, both libvirt
@@ -1108,6 +1131,7 @@
     </p>
         <h2>
           <a name="printf" shape="rect" id="printf">Printf-style functions</a>
+          <a class="headerlink" href="#printf" title="Permalink to this headline">¶</a>
         </h2>
         <p>
       Whenever you add a new printf-style function, i.e., one with a format
@@ -1134,6 +1158,7 @@
     </p>
         <h2>
           <a name="goto" shape="rect" id="goto">Use of goto</a>
+          <a class="headerlink" href="#goto" title="Permalink to this headline">¶</a>
         </h2>
         <p>
       The use of goto is not forbidden, and goto is widely used
@@ -1191,6 +1216,7 @@
 </pre>
         <h2>
           <a name="committers" shape="rect" id="committers">Libvirt committer guidelines</a>
+          <a class="headerlink" href="#committers" title="Permalink to this headline">¶</a>
         </h2>
         <p>
       The AUTHORS files indicates the list of people with commit access right

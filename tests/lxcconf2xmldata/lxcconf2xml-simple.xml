@@ -1,0 +1,41 @@
+<domain type='lxc'>
+  <name>migrate_test</name>
+  <uuid>c7a5fdbd-edaf-9455-926a-d65c16db1809</uuid>
+  <memory unit='KiB'>65536</memory>
+  <currentMemory unit='KiB'>0</currentMemory>
+  <vcpu placement='static' current='0'>1</vcpu>
+  <os>
+    <type arch='i686'>exe</type>
+    <init>/sbin/init</init>
+  </os>
+  <clock offset='utc'/>
+  <on_poweroff>destroy</on_poweroff>
+  <on_reboot>restart</on_reboot>
+  <on_crash>destroy</on_crash>
+  <devices>
+    <filesystem type='mount' accessmode='passthrough'>
+      <source dir='/var/lib/lxc/migrate_test/rootfs'/>
+      <target dir='/'/>
+    </filesystem>
+    <filesystem type='ram' accessmode='passthrough'>
+      <source usage='8192' units='KiB'/>
+      <target dir='/run'/>
+    </filesystem>
+    <filesystem type='mount' accessmode='passthrough'>
+      <source dir='/etc/resolv.conf'/>
+      <target dir='/etc/resolv.conf'/>
+      <readonly/>
+    </filesystem>
+    <interface type='bridge'>
+      <mac address='02:00:15:8f:05:c1'/>
+      <source bridge='virbr0'/>
+      <link state='up'/>
+    </interface>
+    <console type='pty'>
+      <target type='lxc' port='0'/>
+    </console>
+    <console type='pty'>
+      <target type='lxc' port='1'/>
+    </console>
+  </devices>
+</domain>

@@ -132,6 +132,10 @@
                   <div>
                     <a title="Command reference for virsh" class="inactive" href="virshcmdref.html">Virsh Commands</a>
                   </div>
+                </li><li>
+                  <div>
+                    <a title="Project governance and code of conduct" class="inactive" href="governance.html">Governance</a>
+                  </div>
                 </li></ul>
             </div>
           </li><li>
@@ -203,7 +207,7 @@ machines through authenticated and encrypted connections.
       </li></ul>
         <h3>
       <a name="Remote_basic_usage" shape="rect" id="Remote_basic_usage">Basic usage</a>
-    </h3>
+    <a class="headerlink" href="#Remote_basic_usage" title="Permalink to this headline">¶</a></h3>
         <p>
 On the remote machine, <code>libvirtd</code> should be running in general.
 See <a href="#Remote_libvirtd_configuration" shape="rect">the section
@@ -240,7 +244,7 @@ relating to failures in the remote transport itself. </li><li> Remote calls are 
 much slower than, say, direct hypervisor calls. </li></ul>
         <h3>
       <a name="Remote_transports" shape="rect" id="Remote_transports">Transports</a>
-    </h3>
+    <a class="headerlink" href="#Remote_transports" title="Permalink to this headline">¶</a></h3>
         <p>
 Remote libvirt supports a range of transports:
 </p>
@@ -281,7 +285,7 @@ The default transport, if no other is specified, is <code>tls</code>.
 </p>
         <h3>
       <a name="Remote_URI_reference" shape="rect" id="Remote_URI_reference">Remote URIs</a>
-    </h3>
+    <a class="headerlink" href="#Remote_URI_reference" title="Permalink to this headline">¶</a></h3>
         <p>
 See also: <a href="uri.html" shape="rect">documentation on ordinary ("local") URIs</a>.
 </p>
@@ -318,7 +322,7 @@ Connect to a remote host using a ssh connection with the libssh2 driver
 and use a different known_hosts file.</li></ul>
         <h4>
       <a name="Remote_URI_parameters" shape="rect" id="Remote_URI_parameters">Extra parameters</a>
-    </h4>
+    <a class="headerlink" href="#Remote_URI_parameters" title="Permalink to this headline">¶</a></h4>
         <p>
 Extra parameters can be added to remote URIs as part
 of the query string (the part following <q><code>?</code></q>).
@@ -412,10 +416,10 @@ Note that parameter values must be
 </td></tr><tr><td colspan="2" rowspan="1"></td><td rowspan="1" colspan="1"> Example: <code>sshauth=privkey,agent</code> </td></tr></table>
         <h3>
       <a name="Remote_certificates" shape="rect" id="Remote_certificates">Generating TLS certificates</a>
-    </h3>
+    <a class="headerlink" href="#Remote_certificates" title="Permalink to this headline">¶</a></h3>
         <h4>
       <a name="Remote_PKI" shape="rect" id="Remote_PKI">Public Key Infrastructure set up</a>
-    </h4>
+    <a class="headerlink" href="#Remote_PKI" title="Permalink to this headline">¶</a></h4>
         <p>
 If you are unsure how to create TLS certificates, skip to the
 next section.
@@ -453,7 +457,7 @@ next section.
       </li><li> For the root user, the global default locations will be used.</li></ul>
         <h4>
       <a name="Remote_TLS_background" shape="rect" id="Remote_TLS_background">Background to TLS certificates</a>
-    </h4>
+    <a class="headerlink" href="#Remote_TLS_background" title="Permalink to this headline">¶</a></h4>
         <p>
 Libvirt supports TLS certificates for verifying the identity
 of the server and clients.  There are two distinct checks involved:
@@ -485,7 +489,7 @@ permissive, depending on your needs.
 </p>
         <h4>
       <a name="Remote_TLS_CA" shape="rect" id="Remote_TLS_CA">Setting up a Certificate Authority (CA)</a>
-    </h4>
+    <a class="headerlink" href="#Remote_TLS_CA" title="Permalink to this headline">¶</a></h4>
         <p>
 You will need the <a href="http://www.gnu.org/software/gnutls/manual/html_node/Invoking-certtool.html" shape="rect">GnuTLS
 certtool program documented here</a>.  In Fedora, it is in the
@@ -553,7 +557,7 @@ for your clients and servers.
 </p>
         <h4>
       <a name="Remote_TLS_server_certificates" shape="rect" id="Remote_TLS_server_certificates">Issuing server certificates</a>
-    </h4>
+    <a class="headerlink" href="#Remote_TLS_server_certificates" title="Permalink to this headline">¶</a></h4>
         <p>
 For each server (libvirtd) you need to issue a certificate
 with the X.509 CommonName (CN) field set to the hostname
@@ -630,7 +634,7 @@ which can be installed on the server as
 </li></ul>
         <h4>
       <a name="Remote_TLS_client_certificates" shape="rect" id="Remote_TLS_client_certificates">Issuing client certificates</a>
-    </h4>
+    <a class="headerlink" href="#Remote_TLS_client_certificates" title="Permalink to this headline">¶</a></h4>
         <p>
 For each client (ie. any program linked with libvirt, such as
 <a href="http://virt-manager.et.redhat.com/" shape="rect">virt-manager</a>)
@@ -679,7 +683,7 @@ cp clientcert.pem /etc/pki/libvirt/clientcert.pem
 </li></ol>
         <h4>
       <a name="Remote_TLS_troubleshooting" shape="rect" id="Remote_TLS_troubleshooting">Troubleshooting TLS certificate problems</a>
-    </h4>
+    <a class="headerlink" href="#Remote_TLS_troubleshooting" title="Permalink to this headline">¶</a></h4>
         <dl><dt> failed to verify client's certificate </dt><dd>
         <p>
 On the server side, run the libvirtd server with
@@ -694,7 +698,7 @@ It will try to point out the possible problems and provide solutions to
 fix the set up up to a point where you have secure remote access.</p>
         <h3>
       <a name="Remote_libvirtd_configuration" shape="rect" id="Remote_libvirtd_configuration">libvirtd configuration file</a>
-    </h3>
+    <a class="headerlink" href="#Remote_libvirtd_configuration" title="Permalink to this headline">¶</a></h3>
         <p>
 Libvirtd (the remote daemon) is configured from a file called
 <code>/etc/libvirt/libvirtd.conf</code>, or specified on
@@ -776,7 +780,7 @@ Blank lines and comments beginning with <code>#</code> are ignored.
         </td></tr></table>
         <h3>
       <a name="Remote_IPv6" shape="rect" id="Remote_IPv6">IPv6 support</a>
-    </h3>
+    <a class="headerlink" href="#Remote_IPv6" title="Permalink to this headline">¶</a></h3>
         <p>
 The libvirtd service and libvirt remote client driver both use the
 <code>getaddrinfo()</code> functions for name resolution and are
@@ -789,7 +793,7 @@ should just 'do the right thing(tm)'.
 </p>
         <h3>
       <a name="Remote_limitations" shape="rect" id="Remote_limitations">Limitations</a>
-    </h3>
+    <a class="headerlink" href="#Remote_limitations" title="Permalink to this headline">¶</a></h3>
         <ul><li> Fine-grained authentication: libvirt in general,
 but in particular the remote case should support more
 fine-grained authentication for operations, rather than

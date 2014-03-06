@@ -1,7 +1,7 @@
 /*
  * qemu_hotplug.h: QEMU device hotplug management
  *
- * Copyright (C) 2006-2013 Red Hat, Inc.
+ * Copyright (C) 2006-2014 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -719,7 +719,7 @@ qemuDomainAttachDeviceDiskLive(virConnectPtr conn,
     if (qemuSetUnprivSGIO(dev) < 0)
         goto end;
 
-    if (qemuDomainDetermineDiskChain(driver, disk, false) < 0)
+    if (qemuDomainDetermineDiskChain(driver, vm, disk, false) < 0)
         goto end;
 
     if (qemuSetupDiskCgroup(vm, disk) < 0)
@@ -837,7 +837,7 @@ int qemuDomainAttachNetDevice(virConnectPtr conn,
      * network's pool of devices, or resolve bridge device name
      * to the one defined in the network definition.
      */
-    if (networkAllocateActualDevice(net) < 0)
+    if (networkAllocateActualDevice(vm->def, net) < 0)
         goto cleanup;
 
     actualType = virDomainNetGetActualType(net);
@@ -1082,7 +1082,7 @@ cleanup:
 
         virDomainNetRemoveHostdev(vm->def, net);
 
-        networkReleaseActualDevice(net);
+        networkReleaseActualDevice(vm->def, net);
     }
 
     VIR_FREE(nicstr);
@@ -1152,7 +1152,7 @@ qemuDomainAttachHostPciDevice(virQEMUDriverPtr driver,
     bool releaseaddr = false;
     bool teardowncgroup = false;
     bool teardownlabel = false;
-    int backend = hostdev->source.subsys.u.pci.backend;
+    int backend;
     unsigned long long memKB;
 
     if (VIR_REALLOC_N(vm->def->hostdevs, vm->def->nhostdevs + 1) < 0)
@@ -1161,6 +1161,9 @@ qemuDomainAttachHostPciDevice(virQEMUDriverPtr driver,
     if (qemuPrepareHostdevPCIDevices(driver, vm->def->name, vm->def->uuid,
                                      &hostdev, 1, priv->qemuCaps) < 0)
         return -1;
+
+    /* this could have been changed by qemuPrepareHostdevPCIDevices */
+    backend = hostdev->source.subsys.u.pci.backend;
 
     switch ((virDomainHostdevSubsysPciBackendType) backend) {
     case VIR_DOMAIN_HOSTDEV_PCI_BACKEND_VFIO:
@@ -2014,7 +2017,7 @@ qemuDomainChangeNet(virQEMUDriverPtr driver,
      * free it if we fail for any reason
      */
     if (newdev->type == VIR_DOMAIN_NET_TYPE_NETWORK &&
-        networkAllocateActualDevice(newdev) < 0) {
+        networkAllocateActualDevice(vm->def, newdev) < 0) {
         goto cleanup;
     }
 
@@ -2201,7 +2204,7 @@ qemuDomainChangeNet(virQEMUDriverPtr driver,
 
         /* this function doesn't work with HOSTDEV networks yet, thus
          * no need to change the pointer in the hostdev structure */
-        networkReleaseActualDevice(olddev);
+        networkReleaseActualDevice(vm->def, olddev);
         virDomainNetDefFree(olddev);
         /* move newdev into the nets list, and NULL it out from the
          * virDomainDeviceDef that we were given so that the caller
@@ -2233,7 +2236,7 @@ cleanup:
      * replace the entire device object.
      */
     if (newdev)
-        networkReleaseActualDevice(newdev);
+        networkReleaseActualDevice(vm->def, newdev);
 
     return ret;
 }
@@ -2646,7 +2649,7 @@ qemuDomainRemoveHostDevice(virQEMUDriverPtr driver,
     virDomainHostdevDefFree(hostdev);
 
     if (net) {
-        networkReleaseActualDevice(net);
+        networkReleaseActualDevice(vm->def, net);
         virDomainNetDefFree(net);
     }
     virObjectUnref(cfg);
@@ -2714,7 +2717,7 @@ qemuDomainRemoveNetDevice(virQEMUDriverPtr driver,
                         virDomainNetGetActualBridgeName(net),
                         net->ifname));
 
-    networkReleaseActualDevice(net);
+    networkReleaseActualDevice(vm->def, net);
     virDomainNetDefFree(net);
     virObjectUnref(cfg);
 }

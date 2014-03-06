@@ -108,6 +108,7 @@ virDomainSnapshotDiskDefParseXML(xmlNodePtr node,
 {
     int ret = -1;
     char *snapshot = NULL;
+    char *type = NULL;
     xmlNodePtr cur;
 
     def->name = virXMLPropString(node, "name");
@@ -121,14 +122,24 @@ virDomainSnapshotDiskDefParseXML(xmlNodePtr node,
     if (snapshot) {
         def->snapshot = virDomainSnapshotLocationTypeFromString(snapshot);
         if (def->snapshot <= 0) {
-            virReportError(VIR_ERR_INTERNAL_ERROR,
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                            _("unknown disk snapshot setting '%s'"),
                            snapshot);
             goto cleanup;
         }
     }
 
-    def->type = -1;
+    if ((type = virXMLPropString(node, "type"))) {
+        if ((def->type = virDomainDiskTypeFromString(type)) < 0 ||
+            def->type == VIR_DOMAIN_DISK_TYPE_VOLUME ||
+            def->type == VIR_DOMAIN_DISK_TYPE_DIR) {
+            virReportError(VIR_ERR_XML_ERROR,
+                           _("unknown disk snapshot type '%s'"), type);
+            goto cleanup;
+        }
+    } else {
+        def->type = VIR_DOMAIN_DISK_TYPE_FILE;
+    }
 
     for (cur = node->children; cur; cur = cur->next) {
         if (cur->type != XML_ELEMENT_NODE)
@@ -137,17 +148,12 @@ virDomainSnapshotDiskDefParseXML(xmlNodePtr node,
         if (!def->file &&
             xmlStrEqual(cur->name, BAD_CAST "source")) {
 
-            int backingtype = def->type;
-
-            if (backingtype < 0)
-                backingtype = VIR_DOMAIN_DISK_TYPE_FILE;
-
             if (virDomainDiskSourceDefParse(cur,
-                                            backingtype,
+                                            def->type,
                                             &def->file,
-                                            NULL,
-                                            NULL,
-                                            NULL,
+                                            &def->protocol,
+                                            &def->nhosts,
+                                            &def->hosts,
                                             NULL) < 0)
                 goto cleanup;
 
@@ -157,7 +163,7 @@ virDomainSnapshotDiskDefParseXML(xmlNodePtr node,
             if (driver) {
                 def->format = virStorageFileFormatTypeFromString(driver);
                 if (def->format <= 0) {
-                    virReportError(VIR_ERR_INTERNAL_ERROR,
+                    virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                                    _("unknown disk snapshot driver '%s'"),
                                    driver);
                     VIR_FREE(driver);
@@ -174,6 +180,7 @@ virDomainSnapshotDiskDefParseXML(xmlNodePtr node,
     ret = 0;
 cleanup:
     VIR_FREE(snapshot);
+    VIR_FREE(type);
     if (ret < 0)
         virDomainSnapshotDiskDefClear(def);
     return ret;
@@ -242,7 +249,7 @@ virDomainSnapshotDefParse(xmlXPathContextPtr ctxt,
         }
         def->state = virDomainSnapshotStateTypeFromString(state);
         if (def->state < 0) {
-            virReportError(VIR_ERR_XML_ERROR,
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                            _("Invalid state '%s' in domain snapshot XML"),
                            state);
             goto cleanup;
@@ -282,7 +289,7 @@ virDomainSnapshotDefParse(xmlXPathContextPtr ctxt,
     if (memorySnapshot) {
         def->memory = virDomainSnapshotLocationTypeFromString(memorySnapshot);
         if (def->memory <= 0) {
-            virReportError(VIR_ERR_XML_ERROR,
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                            _("unknown memory snapshot setting '%s'"),
                            memorySnapshot);
             goto cleanup;
@@ -532,7 +539,7 @@ virDomainSnapshotAlignDisks(virDomainSnapshotDefPtr def,
             goto cleanup;
         disk->index = i;
         disk->snapshot = def->dom->disks[i]->snapshot;
-        disk->type = -1;
+        disk->type = VIR_DOMAIN_DISK_TYPE_FILE;
         if (!disk->snapshot)
             disk->snapshot = default_snapshot;
     }
@@ -550,8 +557,7 @@ virDomainSnapshotAlignDisks(virDomainSnapshotDefPtr def,
             const char *tmp;
             struct stat sb;
 
-            if (disk->type != VIR_DOMAIN_DISK_TYPE_FILE &&
-                disk->type != -1) {
+            if (disk->type != VIR_DOMAIN_DISK_TYPE_FILE) {
                 virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                                _("cannot generate external snapshot name "
                                  "for disk '%s' on a '%s' device"),
@@ -614,15 +620,12 @@ virDomainSnapshotDiskDefFormat(virBufferPtr buf,
         virBufferAsprintf(buf, " snapshot='%s'",
                           virDomainSnapshotLocationTypeToString(disk->snapshot));
 
-    if (type < 0)
-        type = VIR_DOMAIN_DISK_TYPE_FILE;
-
     if (!disk->file && disk->format == 0) {
         virBufferAddLit(buf, "/>\n");
         return;
     }
 
-    virBufferAddLit(buf, ">\n");
+    virBufferAsprintf(buf, " type='%s'>\n", virDomainDiskTypeToString(type));
 
     if (disk->format > 0)
         virBufferEscapeString(buf, "      <driver type='%s'/>\n",
@@ -630,7 +633,11 @@ virDomainSnapshotDiskDefFormat(virBufferPtr buf,
     virDomainDiskSourceDefFormatInternal(buf,
                                          type,
                                          disk->file,
-                                         0, 0, 0, NULL, 0, NULL, NULL, 0);
+                                         0,
+                                         disk->protocol,
+                                         disk->nhosts,
+                                         disk->hosts,
+                                         0, NULL, NULL, 0);
 
     virBufferAddLit(buf, "    </disk>\n");
 }
@@ -1283,4 +1290,11 @@ virDomainSnapshotRedefinePrep(virDomainPtr domain,
     ret = 0;
 cleanup:
     return ret;
+}
+
+
+int
+virDomainSnapshotDiskGetActualType(virDomainSnapshotDiskDefPtr def)
+{
+    return def->type;
 }

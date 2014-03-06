@@ -132,6 +132,10 @@
                   <div>
                     <a title="Command reference for virsh" class="inactive" href="virshcmdref.html">Virsh Commands</a>
                   </div>
+                </li><li>
+                  <div>
+                    <a title="Project governance and code of conduct" class="inactive" href="governance.html">Governance</a>
+                  </div>
                 </li></ul>
             </div>
           </li><li>
@@ -214,6 +218,7 @@
     </p>
         <h2>
           <a name="transport" shape="rect" id="transport">Network data transports</a>
+          <a class="headerlink" href="#transport" title="Permalink to this headline">¶</a>
         </h2>
         <p>
       There are two options for the data transport used during migration, either
@@ -222,6 +227,7 @@
     </p>
         <h3>
           <a name="transportnative" shape="rect" id="transportnative">Hypervisor native transport</a>
+          <a class="headerlink" href="#transportnative" title="Permalink to this headline">¶</a>
         </h3>
         <p>
       <em>Native</em> data transports may or may not support encryption, depending
@@ -236,6 +242,7 @@
     </p>
         <h3>
           <a name="transporttunnel" shape="rect" id="transporttunnel">libvirt tunnelled transport</a>
+          <a class="headerlink" href="#transporttunnel" title="Permalink to this headline">¶</a>
         </h3>
         <p>
       <em>Tunnelled</em> data transports will always be capable of strong encryption
@@ -254,6 +261,7 @@
     </p>
         <h2>
           <a name="flow" shape="rect" id="flow">Communication control paths/flows</a>
+          <a class="headerlink" href="#flow" title="Permalink to this headline">¶</a>
         </h2>
         <p>
       Migration of virtual machines requires close co-ordination of the two
@@ -262,6 +270,7 @@
     </p>
         <h3>
           <a name="flowmanageddirect" shape="rect" id="flowmanageddirect">Managed direct migration</a>
+          <a class="headerlink" href="#flowmanageddirect" title="Permalink to this headline">¶</a>
         </h3>
         <p>
       With <em>managed direct</em> migration, the libvirt client process
@@ -280,6 +289,7 @@
     </p>
         <h3>
           <a name="flowpeer2peer" shape="rect" id="flowpeer2peer">Managed peer to peer migration</a>
+          <a class="headerlink" href="#flowpeer2peer" title="Permalink to this headline">¶</a>
         </h3>
         <p>
       With <em>peer to peer</em> migration, the libvirt client process only
@@ -300,6 +310,7 @@
     </p>
         <h3>
           <a name="flowunmanageddirect" shape="rect" id="flowunmanageddirect">Unmanaged direct migration</a>
+          <a class="headerlink" href="#flowunmanageddirect" title="Permalink to this headline">¶</a>
         </h3>
         <p>
       With <em>unmanaged direct</em> migration, neither the libvirt client
@@ -314,6 +325,7 @@
     </p>
         <h2>
           <a name="security" shape="rect" id="security">Data security</a>
+          <a class="headerlink" href="#security" title="Permalink to this headline">¶</a>
         </h2>
         <p>
       Since the migration data stream includes a complete copy of the guest
@@ -332,6 +344,7 @@
     </p>
         <h2>
           <a name="offline" shape="rect" id="offline">Offline migration</a>
+          <a class="headerlink" href="#offline" title="Permalink to this headline">¶</a>
         </h2>
         <p>
       Offline migration transfers inactive the definition of a domain
@@ -346,6 +359,7 @@
     </p>
         <h2>
           <a name="uris" shape="rect" id="uris">Migration URIs</a>
+          <a class="headerlink" href="#uris" title="Permalink to this headline">¶</a>
         </h2>
         <p>
       Initiating a guest migration requires the client application to
@@ -390,6 +404,7 @@
         to comply with local firewall policies.</li></ol>
         <h2>
           <a name="config" shape="rect" id="config">Configuration file handling</a>
+          <a class="headerlink" href="#config" title="Permalink to this headline">¶</a>
         </h2>
         <p>
       There are two types of virtual machine known to libvirt. A <em>transient</em>
@@ -437,9 +452,11 @@
         <table class="data"><thead><tr class="head"><th colspan="3" rowspan="1">Before migration</th><th colspan="2" rowspan="1">Flags</th><th colspan="3" rowspan="1">After migration</th></tr><tr class="subhead"><th rowspan="1" colspan="1">Guest type</th><th rowspan="1" colspan="1">Source config</th><th rowspan="1" colspan="1">Dest config</th><th rowspan="1" colspan="1">--undefine-source</th><th rowspan="1" colspan="1">--persist</th><th rowspan="1" colspan="1">Guest type</th><th rowspan="1" colspan="1">Source config</th><th rowspan="1" colspan="1">Dest config</th></tr></thead><tbody><!-- src:N, dst:N --><tr><td rowspan="1" colspan="1">Transient</td><td class="n" rowspan="1" colspan="1">N</td><td class="n" rowspan="1" colspan="1">N</td><td class="n" rowspan="1" colspan="1">N</td><td class="n" rowspan="1" colspan="1">N</td><td rowspan="1" colspan="1">Transient</td><td class="n" rowspan="1" colspan="1">N</td><td class="n" rowspan="1" colspan="1">N</td></tr><tr><td rowspan="1" colspan="1">Transient</td><td class="n" rowspan="1" colspan="1">N</td><td class="n" rowspan="1" colspan="1">N</td><td class="y" rowspan="1" colspan="1">Y</td><td class="n" rowspan="1" colspan="1">N</td><td rowspan="1" colspan="1">Transient</td><td class="n" rowspan="1" colspan="1">N</td><td class="n" rowspan="1" colspan="1">N</td></tr><tr><td rowspan="1" colspan="1">Transient</td><td class="n" rowspan="1" colspan="1">N</td><td class="n" rowspan="1" colspan="1">N</td><td class="n" rowspan="1" colspan="1">N</td><td class="y" rowspan="1" colspan="1">Y</td><td rowspan="1" colspan="1">Persistent</td><td class="n" rowspan="1" colspan="1">N</td><td class="y" rowspan="1" colspan="1">Y</td></tr><tr><td rowspan="1" colspan="1">Transient</td><td class="n" rowspan="1" colspan="1">N</td><td class="n" rowspan="1" colspan="1">N</td><td class="y" rowspan="1" colspan="1">Y</td><td class="y" rowspan="1" colspan="1">Y</td><td rowspan="1" colspan="1">Persistent</td><td class="n" rowspan="1" colspan="1">N</td><td class="y" rowspan="1" colspan="1">Y</td></tr><!-- src:N, dst:Y --><tr><td rowspan="1" colspan="1">Transient</td><td class="n" rowspan="1" colspan="1">N</td><td class="y" rowspan="1" colspan="1">Y</td><td class="n" rowspan="1" colspan="1">N</td><td class="n" rowspan="1" colspan="1">N</td><td rowspan="1" colspan="1">Transient</td><td class="n" rowspan="1" colspan="1">N</td><td class="n" rowspan="1" colspan="1">N</td></tr><tr><td rowspan="1" colspan="1">Transient</td><td class="n" rowspan="1" colspan="1">N</td><td class="y" rowspan="1" colspan="1">Y</td><td class="y" rowspan="1" colspan="1">Y</td><td class="n" rowspan="1" colspan="1">N</td><td rowspan="1" colspan="1">Transient</td><td class="n" rowspan="1" colspan="1">N</td><td class="n" rowspan="1" colspan="1">N</td></tr><tr><td rowspan="1" colspan="1">Transient</td><td class="n" rowspan="1" colspan="1">N</td><td class="y" rowspan="1" colspan="1">Y</td><td class="n" rowspan="1" colspan="1">N</td><td class="y" rowspan="1" colspan="1">Y</td><td rowspan="1" colspan="1">Persistent</td><td class="n" rowspan="1" colspan="1">N</td><td class="y" rowspan="1" colspan="1">Y</td></tr><tr><td rowspan="1" colspan="1">Transient</td><td class="n" rowspan="1" colspan="1">N</td><td class="y" rowspan="1" colspan="1">Y</td><td class="y" rowspan="1" colspan="1">Y</td><td class="y" rowspan="1" colspan="1">Y</td><td rowspan="1" colspan="1">Persistent</td><td class="n" rowspan="1" colspan="1">N</td><td class="y" rowspan="1" colspan="1">Y</td></tr><!-- src:Y dst:N --><tr><td rowspan="1" colspan="1">Persistent</td><td class="y" rowspan="1" colspan="1">Y</td><td class="n" rowspan="1" colspan="1">N</td><td class="n" rowspan="1" colspan="1">N</td><td class="n" rowspan="1" colspan="1">N</td><td rowspan="1" colspan="1">Transient</td><td class="y" rowspan="1" colspan="1">Y</td><td class="n" rowspan="1" colspan="1">N</td></tr><tr><td rowspan="1" colspan="1">Persistent</td><td class="y" rowspan="1" colspan="1">Y</td><td class="n" rowspan="1" colspan="1">N</td><td class="y" rowspan="1" colspan="1">Y</td><td class="n" rowspan="1" colspan="1">N</td><td rowspan="1" colspan="1">Transient</td><td class="n" rowspan="1" colspan="1">N</td><td class="n" rowspan="1" colspan="1">N</td></tr><tr><td rowspan="1" colspan="1">Persistent</td><td class="y" rowspan="1" colspan="1">Y</td><td class="n" rowspan="1" colspan="1">N</td><td class="n" rowspan="1" colspan="1">N</td><td class="y" rowspan="1" colspan="1">Y</td><td rowspan="1" colspan="1">Persistent</td><td class="y" rowspan="1" colspan="1">Y</td><td class="y" rowspan="1" colspan="1">Y</td></tr><tr><td rowspan="1" colspan="1">Persistent</td><td class="y" rowspan="1" colspan="1">Y</td><td class="n" rowspan="1" colspan="1">N</td><td class="y" rowspan="1" colspan="1">Y</td><td class="y" rowspan="1" colspan="1">Y</td><td rowspan="1" colspan="1">Persistent</td><td class="n" rowspan="1" colspan="1">N</td><td class="y" rowspan="1" colspan="1">Y</td></tr><!-- src:Y dst:Y --><tr><td rowspan="1" colspan="1">Persistent</td><td class="y" rowspan="1" colspan="1">Y</td><td class="y" rowspan="1" colspan="1">Y</td><td class="n" rowspan="1" colspan="1">N</td><td class="n" rowspan="1" colspan="1">N</td><td rowspan="1" colspan="1">Persistent</td><td class="y" rowspan="1" colspan="1">Y</td><td class="y" rowspan="1" colspan="1">Y</td></tr><tr><td rowspan="1" colspan="1">Persistent</td><td class="y" rowspan="1" colspan="1">Y</td><td class="y" rowspan="1" colspan="1">Y</td><td class="y" rowspan="1" colspan="1">Y</td><td class="n" rowspan="1" colspan="1">N</td><td rowspan="1" colspan="1">Persistent</td><td class="n" rowspan="1" colspan="1">N</td><td class="y" rowspan="1" colspan="1">Y</td></tr><tr><td rowspan="1" colspan="1">Persistent</td><td class="y" rowspan="1" colspan="1">Y</td><td class="y" rowspan="1" colspan="1">Y</td><td class="n" rowspan="1" colspan="1">N</td><td class="y" rowspan="1" colspan="1">Y</td><td rowspan="1" colspan="1">Persistent</td><td class="y" rowspan="1" colspan="1">Y</td><td class="y" rowspan="1" colspan="1">Y</td></tr><tr><td rowspan="1" colspan="1">Persistent</td><td class="y" rowspan="1" colspan="1">Y</td><td class="y" rowspan="1" colspan="1">Y</td><td class="y" rowspan="1" colspan="1">Y</td><td class="y" rowspan="1" colspan="1">Y</td><td rowspan="1" colspan="1">Persistent</td><td class="n" rowspan="1" colspan="1">N</td><td class="y" rowspan="1" colspan="1">Y</td></tr></tbody></table>
         <h2>
           <a name="scenarios" shape="rect" id="scenarios">Migration scenarios</a>
+          <a class="headerlink" href="#scenarios" title="Permalink to this headline">¶</a>
         </h2>
         <h3>
           <a name="scenarionativedirect" shape="rect" id="scenarionativedirect">Native migration, client to two libvirtd servers</a>
+          <a class="headerlink" href="#scenarionativedirect" title="Permalink to this headline">¶</a>
         </h3>
         <p>
       At an API level this requires use of virDomainMigrate, without the
@@ -468,6 +485,7 @@
     </p>
         <h3>
           <a name="scenarionativepeer2peer" shape="rect" id="scenarionativepeer2peer">Native migration, client to and peer2peer between, two libvirtd servers</a>
+          <a class="headerlink" href="#scenarionativepeer2peer" title="Permalink to this headline">¶</a>
         </h3>
         <p>
       virDomainMigrate, with the VIR_MIGRATE_PEER2PEER flag set,
@@ -490,6 +508,7 @@
     </p>
         <h3>
           <a name="scenariotunnelpeer2peer1" shape="rect" id="scenariotunnelpeer2peer1">Tunnelled migration, client and peer2peer between two libvirtd servers</a>
+          <a class="headerlink" href="#scenariotunnelpeer2peer1" title="Permalink to this headline">¶</a>
         </h3>
         <p>
       virDomainMigrate, with the VIR_MIGRATE_PEER2PEER &amp; VIR_MIGRATE_TUNNELLED
@@ -511,6 +530,7 @@
     </p>
         <h3>
           <a name="nativedirectunmanaged" shape="rect" id="nativedirectunmanaged">Native migration, client to one libvirtd server</a>
+          <a class="headerlink" href="#nativedirectunmanaged" title="Permalink to this headline">¶</a>
         </h3>
         <p>
       virDomainMigrateToURI, without the VIR_MIGRATE_PEER2PEER flag set,
@@ -533,6 +553,7 @@
     </p>
         <h3>
           <a name="nativepeer2peer" shape="rect" id="nativepeer2peer">Native migration, peer2peer between two libvirtd servers</a>
+          <a class="headerlink" href="#nativepeer2peer" title="Permalink to this headline">¶</a>
         </h3>
         <p>
       virDomainMigrateToURI, with the VIR_MIGRATE_PEER2PEER flag set,
@@ -568,6 +589,7 @@
     </p>
         <h3>
           <a name="scenariotunnelpeer2peer2" shape="rect" id="scenariotunnelpeer2peer2">Tunnelled migration, peer2peer between two libvirtd servers</a>
+          <a class="headerlink" href="#scenariotunnelpeer2peer2" title="Permalink to this headline">¶</a>
         </h3>
         <p>
       virDomainMigrateToURI, with the VIR_MIGRATE_PEER2PEER &amp; VIR_MIGRATE_TUNNELLED

@@ -1,7 +1,7 @@
 /*
  * libxl_domain.h: libxl domain object private state
  *
- * Copyright (C) 2011-2013 SUSE LINUX Products GmbH, Nuernberg, Germany.
+ * Copyright (C) 2011-2014 SUSE LINUX Products GmbH, Nuernberg, Germany.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -30,6 +30,31 @@
 # include "libxl_conf.h"
 # include "virchrdev.h"
 
+# define JOB_MASK(job)                  (1 << (job - 1))
+# define DEFAULT_JOB_MASK               \
+    (JOB_MASK(LIBXL_JOB_DESTROY) |      \
+     JOB_MASK(LIBXL_JOB_ABORT))
+
+/* Only 1 job is allowed at any time
+ * A job includes *all* libxl.so api, even those just querying
+ * information, not merely actions */
+enum libxlDomainJob {
+    LIBXL_JOB_NONE = 0,      /* Always set to 0 for easy if (jobActive) conditions */
+    LIBXL_JOB_QUERY,         /* Doesn't change any state */
+    LIBXL_JOB_DESTROY,       /* Destroys the domain (cannot be masked out) */
+    LIBXL_JOB_MODIFY,        /* May change state */
+
+    LIBXL_JOB_LAST
+};
+VIR_ENUM_DECL(libxlDomainJob)
+
+
+struct libxlDomainJobObj {
+    virCond cond;                       /* Use to coordinate jobs */
+    enum libxlDomainJob active;         /* Currently running job */
+    int owner;                          /* Thread which set current job */
+};
+
 typedef struct _libxlDomainObjPrivate libxlDomainObjPrivate;
 typedef libxlDomainObjPrivate *libxlDomainObjPrivatePtr;
 struct _libxlDomainObjPrivate {
@@ -44,8 +69,7 @@ struct _libxlDomainObjPrivate {
     virChrdevsPtr devs;
     libxl_evgen_domain_death *deathW;
 
-    /* list of libxl timeout registrations */
-    libxlEventHookInfoPtr timerRegistrations;
+    struct libxlDomainJobObj job;
 };
 
 
@@ -56,7 +80,15 @@ extern virDomainDefParserConfig libxlDomainDefParserConfig;
 int
 libxlDomainObjPrivateInitCtx(virDomainObjPtr vm);
 
-void
-libxlDomainObjRegisteredTimeoutsCleanup(libxlDomainObjPrivatePtr priv);
+int
+libxlDomainObjBeginJob(libxlDriverPrivatePtr driver,
+                       virDomainObjPtr obj,
+                       enum libxlDomainJob job)
+    ATTRIBUTE_RETURN_CHECK;
+
+bool
+libxlDomainObjEndJob(libxlDriverPrivatePtr driver,
+                     virDomainObjPtr obj)
+    ATTRIBUTE_RETURN_CHECK;
 
 #endif /* LIBXL_DOMAIN_H */

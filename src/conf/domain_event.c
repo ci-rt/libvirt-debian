@@ -47,6 +47,7 @@ static virClassPtr virDomainEventDiskChangeClass;
 static virClassPtr virDomainEventTrayChangeClass;
 static virClassPtr virDomainEventBalloonChangeClass;
 static virClassPtr virDomainEventDeviceRemovedClass;
+static virClassPtr virDomainEventPMClass;
 
 
 static void virDomainEventDispose(void *obj);
@@ -60,6 +61,7 @@ static void virDomainEventDiskChangeDispose(void *obj);
 static void virDomainEventTrayChangeDispose(void *obj);
 static void virDomainEventBalloonChangeDispose(void *obj);
 static void virDomainEventDeviceRemovedDispose(void *obj);
+static void virDomainEventPMDispose(void *obj);
 
 static void
 virDomainEventDispatchDefaultFunc(virConnectPtr conn,
@@ -171,6 +173,14 @@ struct _virDomainEventDeviceRemoved {
 typedef struct _virDomainEventDeviceRemoved virDomainEventDeviceRemoved;
 typedef virDomainEventDeviceRemoved *virDomainEventDeviceRemovedPtr;
 
+struct _virDomainEventPM {
+    virDomainEvent parent;
+
+    int reason;
+};
+typedef struct _virDomainEventPM virDomainEventPM;
+typedef virDomainEventPM *virDomainEventPMPtr;
+
 
 static int
 virDomainEventsOnceInit(void)
@@ -240,6 +250,12 @@ virDomainEventsOnceInit(void)
                       "virDomainEventDeviceRemoved",
                       sizeof(virDomainEventDeviceRemoved),
                       virDomainEventDeviceRemovedDispose)))
+        return -1;
+    if (!(virDomainEventPMClass =
+          virClassNew(virDomainEventClass,
+                      "virDomainEventPM",
+                      sizeof(virDomainEventPM),
+                      virDomainEventPMDispose)))
         return -1;
     return 0;
 }
@@ -359,28 +375,11 @@ virDomainEventDeviceRemovedDispose(void *obj)
     VIR_FREE(event->devAlias);
 }
 
-
-/**
- * virDomainEventFilter:
- * @conn: pointer to the connection
- * @event: the event to check
- * @opaque: opaque data holding ACL filter to use
- *
- * Internal function to run ACL filtering before dispatching an event
- */
-static bool
-virDomainEventFilter(virConnectPtr conn, virObjectEventPtr event, void *opaque)
+static void
+virDomainEventPMDispose(void *obj)
 {
-    virDomainDef dom;
-    virDomainObjListFilter filter = opaque;
-
-    /* For now, we just create a virDomainDef with enough contents to
-     * satisfy what viraccessdriverpolkit.c references.  This is a bit
-     * fragile, but I don't know of anything better.  */
-    dom.name = event->meta.name;
-    memcpy(dom.uuid, event->meta.uuid, VIR_UUID_BUFLEN);
-
-    return (filter)(conn, &dom);
+    virDomainEventPMPtr event = obj;
+    VIR_DEBUG("obj=%p", event);
 }
 
 
@@ -931,19 +930,21 @@ virDomainEventTrayChangeNewFromDom(virDomainPtr dom,
 static virObjectEventPtr
 virDomainEventPMWakeupNew(int id,
                           const char *name,
-                          unsigned char *uuid)
+                          unsigned char *uuid,
+                          int reason)
 {
-    virObjectEventPtr ev;
+    virDomainEventPMPtr ev;
 
     if (virDomainEventsInitialize() < 0)
         return NULL;
 
-    if (!(ev = virDomainEventNew(virDomainEventClass,
+    if (!(ev = virDomainEventNew(virDomainEventPMClass,
                                  VIR_DOMAIN_EVENT_ID_PMWAKEUP,
                                  id, name, uuid)))
         return NULL;
 
-    return ev;
+    ev->reason = reason;
+    return (virObjectEventPtr)ev;
 }
 
 virObjectEventPtr
@@ -951,31 +952,34 @@ virDomainEventPMWakeupNewFromObj(virDomainObjPtr obj)
 {
     return virDomainEventPMWakeupNew(obj->def->id,
                                      obj->def->name,
-                                     obj->def->uuid);
+                                     obj->def->uuid,
+                                     0);
 }
 
 virObjectEventPtr
-virDomainEventPMWakeupNewFromDom(virDomainPtr dom)
+virDomainEventPMWakeupNewFromDom(virDomainPtr dom, int reason)
 {
-    return virDomainEventPMWakeupNew(dom->id, dom->name, dom->uuid);
+    return virDomainEventPMWakeupNew(dom->id, dom->name, dom->uuid, reason);
 }
 
 static virObjectEventPtr
 virDomainEventPMSuspendNew(int id,
                            const char *name,
-                           unsigned char *uuid)
+                           unsigned char *uuid,
+                           int reason)
 {
-    virObjectEventPtr ev;
+    virDomainEventPMPtr ev;
 
     if (virDomainEventsInitialize() < 0)
         return NULL;
 
-    if (!(ev = virDomainEventNew(virDomainEventClass,
+    if (!(ev = virDomainEventNew(virDomainEventPMClass,
                                  VIR_DOMAIN_EVENT_ID_PMSUSPEND,
                                  id, name, uuid)))
         return NULL;
 
-    return ev;
+    ev->reason = reason;
+    return (virObjectEventPtr)ev;
 }
 
 virObjectEventPtr
@@ -983,30 +987,34 @@ virDomainEventPMSuspendNewFromObj(virDomainObjPtr obj)
 {
     return virDomainEventPMSuspendNew(obj->def->id,
                                       obj->def->name,
-                                      obj->def->uuid);
+                                      obj->def->uuid,
+                                      0);
 }
 
 virObjectEventPtr
-virDomainEventPMSuspendNewFromDom(virDomainPtr dom)
+virDomainEventPMSuspendNewFromDom(virDomainPtr dom, int reason)
 {
-    return virDomainEventPMSuspendNew(dom->id, dom->name, dom->uuid);
+    return virDomainEventPMSuspendNew(dom->id, dom->name, dom->uuid, reason);
 }
 
 static virObjectEventPtr
 virDomainEventPMSuspendDiskNew(int id,
                                const char *name,
-                               unsigned char *uuid)
+                               unsigned char *uuid,
+                               int reason)
 {
-    virObjectEventPtr ev;
+    virDomainEventPMPtr ev;
 
     if (virDomainEventsInitialize() < 0)
         return NULL;
 
-    if (!(ev = virDomainEventNew(virDomainEventClass,
+    if (!(ev = virDomainEventNew(virDomainEventPMClass,
                                  VIR_DOMAIN_EVENT_ID_PMSUSPEND_DISK,
                                  id, name, uuid)))
         return NULL;
-    return ev;
+
+    ev->reason = reason;
+    return (virObjectEventPtr)ev;
 }
 
 virObjectEventPtr
@@ -1014,13 +1022,15 @@ virDomainEventPMSuspendDiskNewFromObj(virDomainObjPtr obj)
 {
     return virDomainEventPMSuspendDiskNew(obj->def->id,
                                           obj->def->name,
-                                          obj->def->uuid);
+                                          obj->def->uuid,
+                                          0);
 }
 
 virObjectEventPtr
-virDomainEventPMSuspendDiskNewFromDom(virDomainPtr dom)
+virDomainEventPMSuspendDiskNewFromDom(virDomainPtr dom, int reason)
 {
-    return virDomainEventPMSuspendDiskNew(dom->id, dom->name, dom->uuid);
+    return virDomainEventPMSuspendDiskNew(dom->id, dom->name, dom->uuid,
+                                          reason);
 }
 
 virObjectEventPtr
@@ -1241,12 +1251,24 @@ virDomainEventDispatchDefaultFunc(virConnectPtr conn,
         }
 
     case VIR_DOMAIN_EVENT_ID_PMWAKEUP:
-        ((virConnectDomainEventPMWakeupCallback)cb)(conn, dom, 0, cbopaque);
-        goto cleanup;
+        {
+            virDomainEventPMPtr pmEvent = (virDomainEventPMPtr)event;
+
+            ((virConnectDomainEventPMWakeupCallback)cb)(conn, dom,
+                                                        pmEvent->reason,
+                                                        cbopaque);
+            goto cleanup;
+        }
 
     case VIR_DOMAIN_EVENT_ID_PMSUSPEND:
-        ((virConnectDomainEventPMSuspendCallback)cb)(conn, dom, 0, cbopaque);
-        goto cleanup;
+        {
+            virDomainEventPMPtr pmEvent = (virDomainEventPMPtr)event;
+
+            ((virConnectDomainEventPMSuspendCallback)cb)(conn, dom,
+                                                         pmEvent->reason,
+                                                         cbopaque);
+            goto cleanup;
+        }
 
     case VIR_DOMAIN_EVENT_ID_BALLOON_CHANGE:
         {
@@ -1260,8 +1282,14 @@ virDomainEventDispatchDefaultFunc(virConnectPtr conn,
         }
 
     case VIR_DOMAIN_EVENT_ID_PMSUSPEND_DISK:
-        ((virConnectDomainEventPMSuspendDiskCallback)cb)(conn, dom, 0, cbopaque);
-        goto cleanup;
+        {
+            virDomainEventPMPtr pmEvent = (virDomainEventPMPtr)event;
+
+            ((virConnectDomainEventPMSuspendDiskCallback)cb)(conn, dom,
+                                                             pmEvent->reason,
+                                                             cbopaque);
+            goto cleanup;
+        }
 
     case VIR_DOMAIN_EVENT_ID_DEVICE_REMOVED:
         {
@@ -1289,7 +1317,6 @@ cleanup:
  * virDomainEventStateRegister:
  * @conn: connection to associate with callback
  * @state: object event state
- * @filter: optional ACL filter to limit which events can be sent
  * @callback: the callback to add
  * @opaque: data blob to pass to @callback
  * @freecb: callback to free @opaque
@@ -1302,20 +1329,21 @@ cleanup:
 int
 virDomainEventStateRegister(virConnectPtr conn,
                             virObjectEventStatePtr state,
-                            virDomainObjListFilter filter,
                             virConnectDomainEventCallback callback,
                             void *opaque,
                             virFreeCallback freecb)
 {
+    int callbackID;
+
     if (virDomainEventsInitialize() < 0)
         return -1;
 
     return virObjectEventStateRegisterID(conn, state, NULL,
-                                         filter ? virDomainEventFilter : NULL,
-                                         filter, virDomainEventClass,
+                                         NULL, NULL, virDomainEventClass,
                                          VIR_DOMAIN_EVENT_ID_LIFECYCLE,
                                          VIR_OBJECT_EVENT_CALLBACK(callback),
-                                         opaque, freecb, NULL, false);
+                                         opaque, freecb,
+                                         true, &callbackID, false);
 }
 
 
@@ -1323,7 +1351,6 @@ virDomainEventStateRegister(virConnectPtr conn,
  * virDomainEventStateRegisterID:
  * @conn: connection to associate with callback
  * @state: object event state
- * @filter: optional ACL filter to limit which events can be sent
  * @dom: optional domain for filtering the event
  * @eventID: ID of the event type to register for
  * @cb: function to invoke when event fires
@@ -1340,7 +1367,6 @@ virDomainEventStateRegister(virConnectPtr conn,
 int
 virDomainEventStateRegisterID(virConnectPtr conn,
                               virObjectEventStatePtr state,
-                              virDomainObjListFilter filter,
                               virDomainPtr dom,
                               int eventID,
                               virConnectDomainEventGenericCallback cb,
@@ -1352,10 +1378,78 @@ virDomainEventStateRegisterID(virConnectPtr conn,
         return -1;
 
     return virObjectEventStateRegisterID(conn, state, dom ? dom->uuid : NULL,
-                                         filter ? virDomainEventFilter : NULL,
-                                         filter, virDomainEventClass, eventID,
+                                         NULL, NULL,
+                                         virDomainEventClass, eventID,
                                          VIR_OBJECT_EVENT_CALLBACK(cb),
-                                         opaque, freecb, callbackID, false);
+                                         opaque, freecb,
+                                         false, callbackID, false);
+}
+
+
+/**
+ * virDomainEventStateRegisterClient:
+ * @conn: connection to associate with callback
+ * @state: object event state
+ * @dom: optional domain for filtering the event
+ * @eventID: ID of the event type to register for
+ * @cb: function to invoke when event fires
+ * @opaque: data blob to pass to @callback
+ * @freecb: callback to free @opaque
+ * @legacy: true if callback is tracked by function instead of callbackID
+ * @callbackID: filled with callback ID
+ * @remoteID: true if server supports filtering
+ *
+ * Register the function @cb with connection @conn, from @state, for
+ * events of type @eventID, and return the registration handle in
+ * @callbackID.  This version is intended for use on the client side
+ * of RPC.
+ *
+ * Returns: the number of callbacks now registered, or -1 on error
+ */
+int
+virDomainEventStateRegisterClient(virConnectPtr conn,
+                                  virObjectEventStatePtr state,
+                                  virDomainPtr dom,
+                                  int eventID,
+                                  virConnectDomainEventGenericCallback cb,
+                                  void *opaque,
+                                  virFreeCallback freecb,
+                                  bool legacy,
+                                  int *callbackID,
+                                  bool remoteID)
+{
+    if (virDomainEventsInitialize() < 0)
+        return -1;
+
+    return virObjectEventStateRegisterID(conn, state, dom ? dom->uuid : NULL,
+                                         NULL, NULL,
+                                         virDomainEventClass, eventID,
+                                         VIR_OBJECT_EVENT_CALLBACK(cb),
+                                         opaque, freecb,
+                                         legacy, callbackID, remoteID);
+}
+
+
+/**
+ * virDomainEventStateCallbackID:
+ * @conn: connection associated with callback
+ * @state: object event state
+ * @cb: function registered as a callback with virDomainEventStateRegister()
+ * @remoteID: associated remote id of the callback
+ *
+ * Returns the callbackID of @cb, or -1 with an error issued if the
+ * function is not currently registered.
+ */
+int
+virDomainEventStateCallbackID(virConnectPtr conn,
+                              virObjectEventStatePtr state,
+                              virConnectDomainEventCallback cb,
+                              int *remoteID)
+{
+    return virObjectEventStateCallbackID(conn, state, virDomainEventClass,
+                                         VIR_DOMAIN_EVENT_ID_LIFECYCLE,
+                                         VIR_OBJECT_EVENT_CALLBACK(cb),
+                                         remoteID);
 }
 
 
@@ -1380,7 +1474,8 @@ virDomainEventStateDeregister(virConnectPtr conn,
     callbackID = virObjectEventStateCallbackID(conn, state,
                                                virDomainEventClass,
                                                VIR_DOMAIN_EVENT_ID_LIFECYCLE,
-                                               VIR_OBJECT_EVENT_CALLBACK(cb));
+                                               VIR_OBJECT_EVENT_CALLBACK(cb),
+                                               NULL);
     if (callbackID < 0)
         return -1;
     return virObjectEventStateDeregisterID(conn, state, callbackID);

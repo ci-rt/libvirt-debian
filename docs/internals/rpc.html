@@ -94,6 +94,10 @@
                         <div>
                           <a title="Use lock managers to protect disk content" class="inactive" href="../internals/locking.html">Lock managers</a>
                         </div>
+                      </li><li>
+                        <div>
+                          <a title="Simulating OOM conditions in the test suite" class="inactive" href="../internals/oomtesting.html">Out of memory testing</a>
+                        </div>
                       </li></ul>
                   </div>
                 </li><li>
@@ -103,6 +107,10 @@
                 </li><li>
                   <div>
                     <a title="Command reference for virsh" class="inactive" href="../virshcmdref.html">Virsh Commands</a>
+                  </div>
+                </li><li>
+                  <div>
+                    <a title="Project governance and code of conduct" class="inactive" href="../governance.html">Governance</a>
                   </div>
                 </li></ul>
             </div>
@@ -206,6 +214,7 @@
     </p>
         <h2>
           <a name="protocol" shape="rect" id="protocol">RPC protocol</a>
+          <a class="headerlink" href="#protocol" title="Permalink to this headline">¶</a>
         </h2>
         <p>
       libvirt uses a simple, variable length, packet based RPC protocol.
@@ -342,6 +351,7 @@
     </p>
         <h3>
           <a name="wireexamples" shape="rect" id="wireexamples">Wire examples</a>
+          <a class="headerlink" href="#wireexamples" title="Permalink to this headline">¶</a>
         </h3>
         <p>
       The following diagrams illustrate some example packet exchanges
@@ -349,6 +359,7 @@
     </p>
         <h4>
           <a name="wireexamplescall" shape="rect" id="wireexamplescall">Method call</a>
+          <a class="headerlink" href="#wireexamplescall" title="Permalink to this headline">¶</a>
         </h4>
         <p>
       A single method call and successful
@@ -367,6 +378,7 @@
     </pre>
         <h4>
           <a name="wireexamplescallerr" shape="rect" id="wireexamplescallerr">Method call with error</a>
+          <a class="headerlink" href="#wireexamplescallerr" title="Permalink to this headline">¶</a>
         </h4>
         <p>
       An unsuccessful method call will instead return an error object
@@ -382,6 +394,7 @@
     </pre>
         <h4>
           <a name="wireexamplescallup" shape="rect" id="wireexamplescallup">Method call with upload stream</a>
+          <a class="headerlink" href="#wireexamplescallup" title="Permalink to this headline">¶</a>
         </h4>
         <p>
       A method call which also involves uploading some data over
@@ -418,6 +431,7 @@
     </pre>
         <h4>
           <a name="wireexamplescallbi" shape="rect" id="wireexamplescallbi">Method call bidirectional stream</a>
+          <a class="headerlink" href="#wireexamplescallbi" title="Permalink to this headline">¶</a>
         </h4>
         <p>
       A method call which also involves a bi-directional stream will
@@ -472,6 +486,7 @@
     </pre>
         <h4>
           <a name="wireexamplescallmany" shape="rect" id="wireexamplescallmany">Method calls overlapping</a>
+          <a class="headerlink" href="#wireexamplescallmany" title="Permalink to this headline">¶</a>
         </h4>
         <pre xml:space="preserve">
           +--+-----------------------+-----------+
@@ -501,6 +516,7 @@
     </pre>
         <h4>
           <a name="wireexamplescallfd" shape="rect" id="wireexamplescallfd">Method call with passed FD</a>
+          <a class="headerlink" href="#wireexamplescallfd" title="Permalink to this headline">¶</a>
         </h4>
         <p>
       A single method call with 2 passed file descriptors and successful
@@ -521,6 +537,7 @@
     </pre>
         <h2>
           <a name="security" shape="rect" id="security">RPC security</a>
+          <a class="headerlink" href="#security" title="Permalink to this headline">¶</a>
         </h2>
         <p>
       There are various things to consider to ensure an implementation
@@ -528,6 +545,7 @@
     </p>
         <h3>
           <a name="securitytls" shape="rect" id="securitytls">Authentication/encryption</a>
+          <a class="headerlink" href="#securitytls" title="Permalink to this headline">¶</a>
         </h3>
         <p>
       The basic RPC protocol does not define or require any specific
@@ -542,6 +560,7 @@
     </p>
         <h3>
           <a name="securitylimits" shape="rect" id="securitylimits">Data limits</a>
+          <a class="headerlink" href="#securitylimits" title="Permalink to this headline">¶</a>
         </h3>
         <p>
       Although the protocol itself defines many arbitrary sized data values in the
@@ -554,6 +573,7 @@
     </p>
         <h3>
           <a name="securityvalidate" shape="rect" id="securityvalidate">Data validation</a>
+          <a class="headerlink" href="#securityvalidate" title="Permalink to this headline">¶</a>
         </h3>
         <p>
       It is important that all data be fully validated before performing
@@ -570,6 +590,7 @@
     </p>
         <h2>
           <a name="internals" shape="rect" id="internals">RPC internal APIs</a>
+          <a class="headerlink" href="#internals" title="Permalink to this headline">¶</a>
         </h2>
         <p>
       The generic internal RPC library code lives in the <code>src/rpc/</code>
@@ -579,6 +600,7 @@
     </p>
         <h3>
           <a name="apioverview" shape="rect" id="apioverview">Overview of RPC objects</a>
+          <a class="headerlink" href="#apioverview" title="Permalink to this headline">¶</a>
         </h3>
         <p>
       The following is a high level overview of the role of each
@@ -661,6 +683,7 @@
       </dd></dl>
         <h3>
           <a name="apiclientdispatch" shape="rect" id="apiclientdispatch">Client RPC dispatch</a>
+          <a class="headerlink" href="#apiclientdispatch" title="Permalink to this headline">¶</a>
         </h3>
         <p>
       The client RPC code must allow for multiple overlapping RPC method
@@ -692,6 +715,7 @@
     </p>
         <h4>
           <a name="apiclientdispatchex1" shape="rect" id="apiclientdispatchex1">Example with buck passing</a>
+          <a class="headerlink" href="#apiclientdispatchex1" title="Permalink to this headline">¶</a>
         </h4>
         <p>
       In the first example, a second thread issues a API call
@@ -739,6 +763,7 @@
     </pre>
         <h4>
           <a name="apiclientdispatchex2" shape="rect" id="apiclientdispatchex2">Example without buck passing</a>
+          <a class="headerlink" href="#apiclientdispatchex2" title="Permalink to this headline">¶</a>
         </h4>
         <p>
       In this second example, a second thread issues an API call
@@ -788,6 +813,7 @@
     </pre>
         <h4>
           <a name="apiclientdispatchex3" shape="rect" id="apiclientdispatchex3">Example with async events</a>
+          <a class="headerlink" href="#apiclientdispatchex3" title="Permalink to this headline">¶</a>
         </h4>
         <p>
       In this example, only one thread is present and it has to
@@ -827,6 +853,7 @@
     </pre>
         <h3>
           <a name="apiserverdispatch" shape="rect" id="apiserverdispatch">Server RPC dispatch</a>
+          <a class="headerlink" href="#apiserverdispatch" title="Permalink to this headline">¶</a>
         </h3>
         <p>
       The RPC server code must support receipt of incoming RPC requests from
@@ -907,6 +934,7 @@
     </p>
         <h4>
           <a name="apiserverdispatchex1" shape="rect" id="apiserverdispatchex1">Example with overlapping methods</a>
+          <a class="headerlink" href="#apiserverdispatchex1" title="Permalink to this headline">¶</a>
         </h4>
         <p>
       This example illustrates processing of two incoming methods with
@@ -953,6 +981,7 @@
     </pre>
         <h4>
           <a name="apiserverdispatchex2" shape="rect" id="apiserverdispatchex2">Example with stream data</a>
+          <a class="headerlink" href="#apiserverdispatchex2" title="Permalink to this headline">¶</a>
         </h4>
         <p>
       This example illustrates processing of stream data

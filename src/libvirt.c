@@ -96,6 +96,9 @@
 #ifdef WITH_PARALLELS
 # include "parallels/parallels_driver.h"
 #endif
+#ifdef WITH_BHYVE
+# include "bhyve/bhyve_driver.h"
+#endif
 
 #define VIR_FROM_THIS VIR_FROM_NONE
 
@@ -106,6 +109,16 @@
  */
 
 #define MAX_DRIVERS 20
+
+#define virDriverCheckTabMaxReturn(count, ret)                          \
+    do {                                                                \
+        if ((count) >= MAX_DRIVERS) {                                   \
+            virReportError(VIR_ERR_INTERNAL_ERROR,                      \
+                           _("Too many drivers, cannot register %s"),   \
+                           driver->name);                               \
+            return ret;                                                 \
+        }                                                               \
+    } while (0)
 
 static virDriverPtr virDriverTab[MAX_DRIVERS];
 static int virDriverTabCount = 0;
@@ -522,14 +535,6 @@ DllMain(HINSTANCE instance ATTRIBUTE_UNUSED,
 #endif
 
 
-#define virLibConnError(code, ...)                                \
-    virReportErrorHelper(VIR_FROM_NONE, code, __FILE__,           \
-                         __FUNCTION__, __LINE__, __VA_ARGS__)
-#define virLibDomainError(code, ...)                              \
-    virReportErrorHelper(VIR_FROM_DOM, code, __FILE__,            \
-                         __FUNCTION__, __LINE__, __VA_ARGS__)
-
-
 /**
  * virRegisterNetworkDriver:
  * @driver: pointer to a network driver block
@@ -542,13 +547,7 @@ int
 virRegisterNetworkDriver(virNetworkDriverPtr driver)
 {
     virCheckNonNullArgReturn(driver, -1);
-
-    if (virNetworkDriverTabCount >= MAX_DRIVERS) {
-        virLibConnError(VIR_ERR_INTERNAL_ERROR,
-                        _("Too many drivers, cannot register %s"),
-                        driver->name);
-        return -1;
-    }
+    virDriverCheckTabMaxReturn(virNetworkDriverTabCount, -1);
 
     VIR_DEBUG("registering %s as network driver %d",
            driver->name, virNetworkDriverTabCount);
@@ -570,13 +569,7 @@ int
 virRegisterInterfaceDriver(virInterfaceDriverPtr driver)
 {
     virCheckNonNullArgReturn(driver, -1);
-
-    if (virInterfaceDriverTabCount >= MAX_DRIVERS) {
-        virLibConnError(VIR_ERR_INTERNAL_ERROR,
-                        _("Too many drivers, cannot register %s"),
-                        driver->name);
-        return -1;
-    }
+    virDriverCheckTabMaxReturn(virInterfaceDriverTabCount, -1);
 
     VIR_DEBUG("registering %s as interface driver %d",
            driver->name, virInterfaceDriverTabCount);
@@ -598,13 +591,7 @@ int
 virRegisterStorageDriver(virStorageDriverPtr driver)
 {
     virCheckNonNullArgReturn(driver, -1);
-
-    if (virStorageDriverTabCount >= MAX_DRIVERS) {
-        virLibConnError(VIR_ERR_INTERNAL_ERROR,
-                        _("Too many drivers, cannot register %s"),
-                        driver->name);
-        return -1;
-    }
+    virDriverCheckTabMaxReturn(virStorageDriverTabCount, -1);
 
     VIR_DEBUG("registering %s as storage driver %d",
            driver->name, virStorageDriverTabCount);
@@ -626,13 +613,7 @@ int
 virRegisterNodeDeviceDriver(virNodeDeviceDriverPtr driver)
 {
     virCheckNonNullArgReturn(driver, -1);
-
-    if (virNodeDeviceDriverTabCount >= MAX_DRIVERS) {
-        virLibConnError(VIR_ERR_INTERNAL_ERROR,
-                        _("Too many drivers, cannot register %s"),
-                        driver->name);
-        return -1;
-    }
+    virDriverCheckTabMaxReturn(virNodeDeviceDriverTabCount, -1);
 
     VIR_DEBUG("registering %s as device driver %d",
            driver->name, virNodeDeviceDriverTabCount);
@@ -654,13 +635,7 @@ int
 virRegisterSecretDriver(virSecretDriverPtr driver)
 {
     virCheckNonNullArgReturn(driver, -1);
-
-    if (virSecretDriverTabCount >= MAX_DRIVERS) {
-        virLibConnError(VIR_ERR_INTERNAL_ERROR,
-                        _("Too many drivers, cannot register %s"),
-                        driver->name);
-        return -1;
-    }
+    virDriverCheckTabMaxReturn(virSecretDriverTabCount, -1);
 
     VIR_DEBUG("registering %s as secret driver %d",
            driver->name, virSecretDriverTabCount);
@@ -682,13 +657,7 @@ int
 virRegisterNWFilterDriver(virNWFilterDriverPtr driver)
 {
     virCheckNonNullArgReturn(driver, -1);
-
-    if (virNWFilterDriverTabCount >= MAX_DRIVERS) {
-        virLibConnError(VIR_ERR_INTERNAL_ERROR,
-                        _("Too many drivers, cannot register %s"),
-                        driver->name);
-        return -1;
-    }
+    virDriverCheckTabMaxReturn(virNWFilterDriverTabCount, -1);
 
     VIR_DEBUG("registering %s as network filter driver %d",
            driver->name, virNWFilterDriverTabCount);
@@ -709,16 +678,11 @@ virRegisterNWFilterDriver(virNWFilterDriverPtr driver)
 int
 virRegisterDriver(virDriverPtr driver)
 {
-    VIR_DEBUG("driver=%p name=%s", driver, driver ? NULLSTR(driver->name) : "(null)");
+    VIR_DEBUG("driver=%p name=%s", driver,
+              driver ? NULLSTR(driver->name) : "(null)");
 
     virCheckNonNullArgReturn(driver, -1);
-
-    if (virDriverTabCount >= MAX_DRIVERS) {
-        virLibConnError(VIR_ERR_INTERNAL_ERROR,
-                        _("Too many drivers, cannot register %s"),
-                        driver->name);
-        return -1;
-    }
+    virDriverCheckTabMaxReturn(virDriverTabCount, -1);
 
     VIR_DEBUG("registering %s as driver %d",
            driver->name, virDriverTabCount);
@@ -741,13 +705,7 @@ int
 virRegisterStateDriver(virStateDriverPtr driver)
 {
     virCheckNonNullArgReturn(driver, -1);
-
-    if (virStateDriverTabCount >= MAX_DRIVERS) {
-        virLibConnError(VIR_ERR_INTERNAL_ERROR,
-                        _("Too many drivers, cannot register %s"),
-                        driver->name);
-        return -1;
-    }
+    virDriverCheckTabMaxReturn(virStateDriverTabCount, -1);
 
     virStateDriverTab[virStateDriverTabCount] = driver;
     return virStateDriverTabCount++;
@@ -981,8 +939,8 @@ virConnectOpenFindURIAliasMatch(virConfValuePtr value, const char *alias,
     size_t alias_len;
 
     if (value->type != VIR_CONF_LIST) {
-        virLibConnError(VIR_ERR_INTERNAL_ERROR, "%s",
-                        _("Expected a list for 'uri_aliases' config parameter"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Expected a list for 'uri_aliases' config parameter"));
         return -1;
     }
 
@@ -993,22 +951,22 @@ virConnectOpenFindURIAliasMatch(virConfValuePtr value, const char *alias,
         size_t safe;
 
         if (entry->type != VIR_CONF_STRING) {
-            virLibConnError(VIR_ERR_CONF_SYNTAX, "%s",
-                            _("Expected a string for 'uri_aliases' config parameter list entry"));
+            virReportError(VIR_ERR_CONF_SYNTAX, "%s",
+                           _("Expected a string for 'uri_aliases' config parameter list entry"));
             return -1;
         }
 
         if (!(offset = strchr(entry->str, '='))) {
-            virLibConnError(VIR_ERR_CONF_SYNTAX,
-                            _("Malformed 'uri_aliases' config entry '%s', expected 'alias=uri://host/path'"),
+            virReportError(VIR_ERR_CONF_SYNTAX,
+                           _("Malformed 'uri_aliases' config entry '%s', expected 'alias=uri://host/path'"),
                             entry->str);
             return -1;
         }
 
         safe  = strspn(entry->str, URI_ALIAS_CHARS);
         if (safe < (offset - entry->str)) {
-            virLibConnError(VIR_ERR_CONF_SYNTAX,
-                            _("Malformed 'uri_aliases' config entry '%s', aliases may only contain 'a-Z, 0-9, _, -'"),
+            virReportError(VIR_ERR_CONF_SYNTAX,
+                           _("Malformed 'uri_aliases' config entry '%s', aliases may only contain 'a-Z, 0-9, _, -'"),
                             entry->str);
             return -1;
         }
@@ -1059,8 +1017,8 @@ virConnectGetDefaultURI(virConfPtr conf,
         *name = defname;
     } else if ((value = virConfGetValue(conf, "uri_default"))) {
         if (value->type != VIR_CONF_STRING) {
-            virLibConnError(VIR_ERR_INTERNAL_ERROR, "%s",
-                            _("Expected a string for 'uri_default' config parameter"));
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("Expected a string for 'uri_default' config parameter"));
             goto cleanup;
         }
         VIR_DEBUG("Using config file uri '%s'", value->str);
@@ -1205,9 +1163,7 @@ do_open(const char *name,
 
     if (!ret->driver) {
         /* If we reach here, then all drivers declined the connection. */
-        virLibConnError(VIR_ERR_NO_CONNECT,
-                        "%s",
-                        NULLSTR(name));
+        virReportError(VIR_ERR_NO_CONNECT, "%s", NULLSTR(name));
         goto failed;
     }
 
@@ -2576,8 +2532,8 @@ virDomainSave(virDomainPtr domain, const char *to)
 
         /* We must absolutize the file path as the save is done out of process */
         if (virFileAbsPath(to, &absolute_to) < 0) {
-            virLibConnError(VIR_ERR_INTERNAL_ERROR, "%s",
-                            _("could not build absolute output file path"));
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("could not build absolute output file path"));
             goto error;
         }
 
@@ -2667,8 +2623,8 @@ virDomainSaveFlags(virDomainPtr domain, const char *to,
 
         /* We must absolutize the file path as the save is done out of process */
         if (virFileAbsPath(to, &absolute_to) < 0) {
-            virLibConnError(VIR_ERR_INTERNAL_ERROR, "%s",
-                            _("could not build absolute output file path"));
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("could not build absolute output file path"));
             goto error;
         }
 
@@ -2717,8 +2673,8 @@ virDomainRestore(virConnectPtr conn, const char *from)
 
         /* We must absolutize the file path as the restore is done out of process */
         if (virFileAbsPath(from, &absolute_from) < 0) {
-            virLibConnError(VIR_ERR_INTERNAL_ERROR, "%s",
-                            _("could not build absolute input file path"));
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("could not build absolute input file path"));
             goto error;
         }
 
@@ -2794,8 +2750,8 @@ virDomainRestoreFlags(virConnectPtr conn, const char *from, const char *dxml,
 
         /* We must absolutize the file path as the restore is done out of process */
         if (virFileAbsPath(from, &absolute_from) < 0) {
-            virLibConnError(VIR_ERR_INTERNAL_ERROR, "%s",
-                            _("could not build absolute input file path"));
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("could not build absolute input file path"));
             goto error;
         }
 
@@ -2848,8 +2804,8 @@ virDomainSaveImageGetXMLDesc(virConnectPtr conn, const char *file,
     virCheckNonNullArgGoto(file, error);
 
     if ((conn->flags & VIR_CONNECT_RO) && (flags & VIR_DOMAIN_XML_SECURE)) {
-        virLibConnError(VIR_ERR_OPERATION_DENIED, "%s",
-                        _("virDomainSaveImageGetXMLDesc with secure flag"));
+        virReportError(VIR_ERR_OPERATION_DENIED, "%s",
+                       _("virDomainSaveImageGetXMLDesc with secure flag"));
         goto error;
     }
 
@@ -2859,8 +2815,8 @@ virDomainSaveImageGetXMLDesc(virConnectPtr conn, const char *file,
 
         /* We must absolutize the file path as the read is done out of process */
         if (virFileAbsPath(file, &absolute_file) < 0) {
-            virLibConnError(VIR_ERR_INTERNAL_ERROR, "%s",
-                            _("could not build absolute input file path"));
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("could not build absolute input file path"));
             goto error;
         }
 
@@ -2935,8 +2891,8 @@ virDomainSaveImageDefineXML(virConnectPtr conn, const char *file,
 
         /* We must absolutize the file path as the read is done out of process */
         if (virFileAbsPath(file, &absolute_file) < 0) {
-            virLibConnError(VIR_ERR_INTERNAL_ERROR, "%s",
-                            _("could not build absolute input file path"));
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("could not build absolute input file path"));
             goto error;
         }
 
@@ -3022,8 +2978,8 @@ virDomainCoreDump(virDomainPtr domain, const char *to, unsigned int flags)
 
         /* We must absolutize the file path as the save is done out of process */
         if (virFileAbsPath(to, &absolute_to) < 0) {
-            virLibConnError(VIR_ERR_INTERNAL_ERROR, "%s",
-                            _("could not build absolute core file path"));
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("could not build absolute core file path"));
             goto error;
         }
 
@@ -3181,6 +3137,9 @@ error:
  * in which the hypervisor tries each shutdown method is undefined,
  * and a hypervisor is not required to support all methods.
  *
+ * To use guest agent (VIR_DOMAIN_SHUTDOWN_GUEST_AGENT) the domain XML
+ * must have <channel> configured.
+ *
  * Returns 0 in case of success and -1 in case of failure.
  */
 int
@@ -3227,7 +3186,7 @@ error:
  *
  * If @flags is set to zero, then the hypervisor will choose the
  * method of shutdown it considers best. To have greater control
- * pass one or more of the virDomainShutdownFlagValues. The order
+ * pass one or more of the virDomainRebootFlagValues. The order
  * in which the hypervisor tries each shutdown method is undefined,
  * and a hypervisor is not required to support all methods.
  *
@@ -3482,8 +3441,8 @@ virDomainGetMaxMemory(virDomainPtr domain)
         if (ret == 0)
             goto error;
         if ((unsigned long) ret != ret) {
-            virLibDomainError(VIR_ERR_OVERFLOW, _("result too large: %llu"),
-                              ret);
+            virReportError(VIR_ERR_OVERFLOW, _("result too large: %llu"),
+                           ret);
             goto error;
         }
         return ret;
@@ -4144,10 +4103,11 @@ virDomainGetInfo(virDomainPtr domain, virDomainInfoPtr info)
 
     virResetLastError();
 
+    if (info)
+        memset(info, 0, sizeof(*info));
+
     virCheckDomainReturn(domain, -1);
     virCheckNonNullArgGoto(info, error);
-
-    memset(info, 0, sizeof(virDomainInfo));
 
     conn = domain->conn;
 
@@ -4288,8 +4248,8 @@ virDomainGetXMLDesc(virDomainPtr domain, unsigned int flags)
     conn = domain->conn;
 
     if ((conn->flags & VIR_CONNECT_RO) && (flags & VIR_DOMAIN_XML_SECURE)) {
-        virLibConnError(VIR_ERR_OPERATION_DENIED, "%s",
-                        _("virDomainGetXMLDesc with secure flag"));
+        virReportError(VIR_ERR_OPERATION_DENIED, "%s",
+                       _("virDomainGetXMLDesc with secure flag"));
         goto error;
     }
 
@@ -4467,8 +4427,8 @@ virDomainMigrateVersion1(virDomainPtr domain,
         goto done;
 
     if (uri == NULL && uri_out == NULL) {
-        virLibConnError(VIR_ERR_INTERNAL_ERROR, "%s",
-                         _("domainMigratePrepare did not set uri"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("domainMigratePrepare did not set uri"));
         goto done;
     }
     if (uri_out)
@@ -4559,8 +4519,7 @@ virDomainMigrateVersion2(virDomainPtr domain,
      * and pass it to Prepare2.
      */
     if (!domain->conn->driver->domainGetXMLDesc) {
-        virLibConnError(VIR_ERR_INTERNAL_ERROR, __FUNCTION__);
-        virDispatchError(domain->conn);
+        virReportUnsupportedError();
         return NULL;
     }
 
@@ -4590,10 +4549,11 @@ virDomainMigrateVersion2(virDomainPtr domain,
         goto done;
 
     if (uri == NULL && uri_out == NULL) {
-        virLibConnError(VIR_ERR_INTERNAL_ERROR, "%s",
-                         _("domainMigratePrepare2 did not set uri"));
-        virDispatchError(domain->conn);
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("domainMigratePrepare2 did not set uri"));
         cancelled = 1;
+        /* Make sure Finish doesn't overwrite the error */
+        orig_err = virSaveLastError();
         goto finish;
     }
     if (uri_out)
@@ -4624,6 +4584,8 @@ finish:
     VIR_DEBUG("Finish2 %p ret=%d", dconn, ret);
     ddomain = dconn->driver->domainMigrateFinish2
         (dconn, dname, cookie, cookielen, uri, destflags, cancelled);
+    if (cancelled && ddomain)
+        VIR_ERROR(_("finish step ignored that migration was cancelled"));
 
 done:
     if (orig_err) {
@@ -4712,7 +4674,7 @@ virDomainMigrateVersion3Full(virDomainPtr domain,
           !domain->conn->driver->domainMigrateConfirm3Params ||
           !dconn->driver->domainMigratePrepare3Params ||
           !dconn->driver->domainMigrateFinish3Params))) {
-        virLibConnError(VIR_ERR_INTERNAL_ERROR, __FUNCTION__);
+        virReportUnsupportedError();
         return NULL;
     }
 
@@ -4786,13 +4748,19 @@ virDomainMigrateVersion3Full(virDomainPtr domain,
         if (useParams &&
             virTypedParamsReplaceString(&params, &nparams,
                                         VIR_MIGRATE_PARAM_URI,
-                                        uri_out) < 0)
+                                        uri_out) < 0) {
+            cancelled = 1;
+            orig_err = virSaveLastError();
             goto finish;
+        }
     } else if (!uri &&
                virTypedParamsGetString(params, nparams,
                                        VIR_MIGRATE_PARAM_URI, &uri) <= 0) {
-        virLibConnError(VIR_ERR_INTERNAL_ERROR, "%s",
-                        _("domainMigratePrepare3 did not set uri"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("domainMigratePrepare3 did not set uri"));
+        cancelled = 1;
+        orig_err = virSaveLastError();
+        goto finish;
     }
 
     if (flags & VIR_MIGRATE_OFFLINE) {
@@ -4871,6 +4839,8 @@ finish:
             (dconn, dname, cookiein, cookieinlen, &cookieout, &cookieoutlen,
              NULL, uri, destflags, cancelled);
     }
+    if (cancelled && ddomain)
+        VIR_ERROR(_("finish step ignored that migration was cancelled"));
 
     /* If ddomain is NULL, then we were unable to start
      * the guest on the target, and must restart on the
@@ -4999,7 +4969,7 @@ virDomainMigratePeer2PeerFull(virDomainPtr domain,
         (!useParams &&
          !domain->conn->driver->domainMigratePerform &&
          !domain->conn->driver->domainMigratePerform3)) {
-        virLibConnError(VIR_ERR_INTERNAL_ERROR, __FUNCTION__);
+        virReportUnsupportedError();
         return -1;
     }
 
@@ -5028,14 +4998,14 @@ virDomainMigratePeer2PeerFull(virDomainPtr domain,
     } else {
         VIR_DEBUG("Using migration protocol 2");
         if (xmlin) {
-            virLibConnError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
-                            _("Unable to change target guest XML "
-                              "during migration"));
+            virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
+                           _("Unable to change target guest XML during "
+                             "migration"));
             return -1;
         }
         if (uri) {
-            virLibConnError(VIR_ERR_INTERNAL_ERROR, "%s",
-                            _("Unable to override peer2peer migration URI"));
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("Unable to override peer2peer migration URI"));
             return -1;
         }
         return domain->conn->driver->domainMigratePerform
@@ -5096,7 +5066,6 @@ virDomainMigrateDirect(virDomainPtr domain,
 
     if (!domain->conn->driver->domainMigratePerform) {
         virReportUnsupportedError();
-        virDispatchError(domain->conn);
         return -1;
     }
 
@@ -5122,8 +5091,8 @@ virDomainMigrateDirect(virDomainPtr domain,
     } else {
         VIR_DEBUG("Using migration protocol 2");
         if (xmlin) {
-            virLibConnError(VIR_ERR_INTERNAL_ERROR, "%s",
-                            _("Unable to change target guest XML during migration"));
+            virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
+                           _("Unable to change target guest XML during migration"));
             return -1;
         }
         return domain->conn->driver->domainMigratePerform(domain,
@@ -5251,16 +5220,16 @@ virDomainMigrate(virDomainPtr domain,
     if (flags & VIR_MIGRATE_OFFLINE) {
         if (!VIR_DRV_SUPPORTS_FEATURE(domain->conn->driver, domain->conn,
                                       VIR_DRV_FEATURE_MIGRATION_OFFLINE)) {
-            virLibConnError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
-                            _("offline migration is not supported by "
-                              "the source host"));
+            virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
+                           _("offline migration is not supported by "
+                             "the source host"));
             goto error;
         }
         if (!VIR_DRV_SUPPORTS_FEATURE(dconn->driver, dconn,
                                       VIR_DRV_FEATURE_MIGRATION_OFFLINE)) {
-            virLibConnError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
-                            _("offline migration is not supported by "
-                              "the destination host"));
+            virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
+                           _("offline migration is not supported by "
+                             "the destination host"));
             goto error;
         }
     }
@@ -5298,14 +5267,14 @@ virDomainMigrate(virDomainPtr domain,
         if (flags & VIR_MIGRATE_CHANGE_PROTECTION &&
             !VIR_DRV_SUPPORTS_FEATURE(domain->conn->driver, domain->conn,
                                       VIR_DRV_FEATURE_MIGRATE_CHANGE_PROTECTION)) {
-            virLibConnError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
-                            _("cannot enforce change protection"));
+            virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
+                           _("cannot enforce change protection"));
             goto error;
         }
         flags &= ~VIR_MIGRATE_CHANGE_PROTECTION;
         if (flags & VIR_MIGRATE_TUNNELLED) {
-            virLibConnError(VIR_ERR_OPERATION_INVALID, "%s",
-                            _("cannot perform tunnelled migration without using peer2peer flag"));
+            virReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                           _("cannot perform tunnelled migration without using peer2peer flag"));
             goto error;
         }
 
@@ -5477,16 +5446,16 @@ virDomainMigrate2(virDomainPtr domain,
     if (flags & VIR_MIGRATE_OFFLINE) {
         if (!VIR_DRV_SUPPORTS_FEATURE(domain->conn->driver, domain->conn,
                                       VIR_DRV_FEATURE_MIGRATION_OFFLINE)) {
-            virLibConnError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
-                            _("offline migration is not supported by "
-                              "the source host"));
+            virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
+                           _("offline migration is not supported by "
+                             "the source host"));
             goto error;
         }
         if (!VIR_DRV_SUPPORTS_FEATURE(dconn->driver, dconn,
                                       VIR_DRV_FEATURE_MIGRATION_OFFLINE)) {
-            virLibConnError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
-                            _("offline migration is not supported by "
-                              "the destination host"));
+            virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
+                           _("offline migration is not supported by "
+                             "the destination host"));
             goto error;
         }
     }
@@ -5521,14 +5490,14 @@ virDomainMigrate2(virDomainPtr domain,
         if (flags & VIR_MIGRATE_CHANGE_PROTECTION &&
             !VIR_DRV_SUPPORTS_FEATURE(domain->conn->driver, domain->conn,
                                       VIR_DRV_FEATURE_MIGRATE_CHANGE_PROTECTION)) {
-            virLibConnError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
-                            _("cannot enforce change protection"));
+            virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
+                           _("cannot enforce change protection"));
             goto error;
         }
         flags &= ~VIR_MIGRATE_CHANGE_PROTECTION;
         if (flags & VIR_MIGRATE_TUNNELLED) {
-            virLibConnError(VIR_ERR_OPERATION_INVALID, "%s",
-                            _("cannot perform tunnelled migration without using peer2peer flag"));
+            virReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                           _("cannot perform tunnelled migration without using peer2peer flag"));
             goto error;
         }
 
@@ -5546,8 +5515,8 @@ virDomainMigrate2(virDomainPtr domain,
                                           VIR_DRV_FEATURE_MIGRATION_V2)) {
             VIR_DEBUG("Using migration protocol 2");
             if (dxml) {
-                virLibConnError(VIR_ERR_INTERNAL_ERROR, "%s",
-                                _("Unable to change target guest XML during migration"));
+                virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
+                               _("Unable to change target guest XML during migration"));
                 goto error;
             }
             ddomain = virDomainMigrateVersion2(domain, dconn, flags,
@@ -5558,8 +5527,8 @@ virDomainMigrate2(virDomainPtr domain,
                                             VIR_DRV_FEATURE_MIGRATION_V1)) {
             VIR_DEBUG("Using migration protocol 1");
             if (dxml) {
-                virLibConnError(VIR_ERR_INTERNAL_ERROR, "%s",
-                                _("Unable to change target guest XML during migration"));
+                virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
+                               _("Unable to change target guest XML during migration"));
                 goto error;
             }
             ddomain = virDomainMigrateVersion1(domain, dconn, flags,
@@ -5660,16 +5629,16 @@ virDomainMigrate3(virDomainPtr domain,
     if (flags & VIR_MIGRATE_OFFLINE) {
         if (!VIR_DRV_SUPPORTS_FEATURE(domain->conn->driver, domain->conn,
                                       VIR_DRV_FEATURE_MIGRATION_OFFLINE)) {
-            virLibConnError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
-                            _("offline migration is not supported by "
-                              "the source host"));
+            virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
+                           _("offline migration is not supported by "
+                             "the source host"));
             goto error;
         }
         if (!VIR_DRV_SUPPORTS_FEATURE(dconn->driver, dconn,
                                       VIR_DRV_FEATURE_MIGRATION_OFFLINE)) {
-            virLibConnError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
-                            _("offline migration is not supported by "
-                              "the destination host"));
+            virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
+                           _("offline migration is not supported by "
+                             "the destination host"));
             goto error;
         }
     }
@@ -5682,8 +5651,8 @@ virDomainMigrate3(virDomainPtr domain,
     if (flags & VIR_MIGRATE_CHANGE_PROTECTION &&
         !VIR_DRV_SUPPORTS_FEATURE(domain->conn->driver, domain->conn,
                                   VIR_DRV_FEATURE_MIGRATE_CHANGE_PROTECTION)) {
-        virLibConnError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
-                        _("cannot enforce change protection"));
+        virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
+                       _("cannot enforce change protection"));
         goto error;
     }
     flags &= ~VIR_MIGRATE_CHANGE_PROTECTION;
@@ -5702,9 +5671,9 @@ virDomainMigrate3(virDomainPtr domain,
 
     if (!virTypedParamsCheck(params, nparams, compatParams,
                              ARRAY_CARDINALITY(compatParams))) {
-        virLibConnError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
-                        _("Migration APIs with extensible parameters are not "
-                          "supported but extended parameters were passed"));
+        virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
+                       _("Migration APIs with extensible parameters are not "
+                         "supported but extended parameters were passed"));
         goto error;
     }
 
@@ -5732,9 +5701,9 @@ virDomainMigrate3(virDomainPtr domain,
                                       VIR_DRV_FEATURE_MIGRATION_V2)) {
         VIR_DEBUG("Using migration protocol 2");
         if (dxml) {
-            virLibConnError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
-                            _("Unable to change target guest XML during "
-                              "migration"));
+            virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
+                           _("Unable to change target guest XML during "
+                             "migration"));
             goto error;
         }
         ddomain = virDomainMigrateVersion2(domain, dconn, flags,
@@ -5745,9 +5714,9 @@ virDomainMigrate3(virDomainPtr domain,
                                         VIR_DRV_FEATURE_MIGRATION_V1)) {
         VIR_DEBUG("Using migration protocol 1");
         if (dxml) {
-            virLibConnError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
-                            _("Unable to change target guest XML during "
-                              "migration"));
+            virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
+                           _("Unable to change target guest XML during "
+                             "migration"));
             goto error;
         }
         ddomain = virDomainMigrateVersion1(domain, dconn, flags,
@@ -5871,9 +5840,9 @@ virDomainMigrateToURI(virDomainPtr domain,
     if (flags & VIR_MIGRATE_OFFLINE &&
         !VIR_DRV_SUPPORTS_FEATURE(domain->conn->driver, domain->conn,
                                   VIR_DRV_FEATURE_MIGRATION_OFFLINE)) {
-        virLibConnError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
-                        _("offline migration is not supported by "
-                          "the source host"));
+        virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
+                       _("offline migration is not supported by "
+                         "the source host"));
         goto error;
     }
 
@@ -5898,9 +5867,9 @@ virDomainMigrateToURI(virDomainPtr domain,
                 goto error;
         } else {
             /* Cannot do a migration with only the perform step */
-            virLibConnError(VIR_ERR_OPERATION_INVALID, "%s",
-                            _("direct migration is not supported by the"
-                              " connection driver"));
+            virReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                           _("direct migration is not supported by the"
+                             " connection driver"));
             goto error;
         }
     }
@@ -6046,9 +6015,9 @@ virDomainMigrateToURI2(virDomainPtr domain,
                 goto error;
         } else {
             /* Cannot do a migration with only the perform step */
-            virLibConnError(VIR_ERR_OPERATION_INVALID, "%s",
-                            _("direct migration is not supported by the"
-                              " connection driver"));
+            virReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                           _("direct migration is not supported by the"
+                             " connection driver"));
             goto error;
         }
     }
@@ -6151,9 +6120,9 @@ virDomainMigrateToURI3(virDomainPtr domain,
     if (flags & VIR_MIGRATE_PEER2PEER) {
         if (!VIR_DRV_SUPPORTS_FEATURE(domain->conn->driver, domain->conn,
                                       VIR_DRV_FEATURE_MIGRATION_P2P)) {
-            virLibConnError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
-                            _("Peer-to-peer migration is not supported by "
-                              "the connection driver"));
+            virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
+                           _("Peer-to-peer migration is not supported by "
+                             "the connection driver"));
             goto error;
         }
 
@@ -6169,26 +6138,26 @@ virDomainMigrateToURI3(virDomainPtr domain,
                                           dconnuri, uri, bandwidth) < 0)
                 goto error;
         } else {
-            virLibConnError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
-                            _("Peer-to-peer migration with extensible "
-                              "parameters is not supported but extended "
-                              "parameters were passed"));
+            virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
+                           _("Peer-to-peer migration with extensible "
+                             "parameters is not supported but extended "
+                             "parameters were passed"));
             goto error;
         }
     } else {
         if (!VIR_DRV_SUPPORTS_FEATURE(domain->conn->driver, domain->conn,
                                       VIR_DRV_FEATURE_MIGRATION_DIRECT)) {
             /* Cannot do a migration with only the perform step */
-            virLibConnError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
-                            _("Direct migration is not supported by the"
-                              " connection driver"));
+            virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
+                           _("Direct migration is not supported by the"
+                             " connection driver"));
             goto error;
         }
 
         if (!compat) {
-            virLibConnError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
-                            _("Direct migration does not support extensible "
-                              "parameters"));
+            virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
+                           _("Direct migration does not support extensible "
+                             "parameters"));
             goto error;
         }
 
@@ -6402,7 +6371,7 @@ virDomainMigrateFinish2(virConnectPtr dconn,
                                                   cookie, cookielen,
                                                   uri, flags,
                                                   retcode);
-        if (!ret)
+        if (!ret && !retcode)
             goto error;
         return ret;
     }
@@ -6694,7 +6663,7 @@ virDomainMigrateFinish3(virConnectPtr dconn,
                                                   cookieout, cookieoutlen,
                                                   dconnuri, uri, flags,
                                                   cancelled);
-        if (!ret)
+        if (!ret && !cancelled)
             goto error;
         return ret;
     }
@@ -6969,7 +6938,7 @@ virDomainMigrateFinish3Params(virConnectPtr dconn,
         ret = dconn->driver->domainMigrateFinish3Params(
                 dconn, params, nparams, cookiein, cookieinlen,
                 cookieout, cookieoutlen, flags, cancelled);
-        if (!ret)
+        if (!ret && !cancelled)
             goto error;
         return ret;
     }
@@ -7781,7 +7750,9 @@ error:
  * an unambiguous source name of the block device (the <source
  * file='...'/> sub-element, such as "/path/to/image").  Valid names
  * can be found by calling virDomainGetXMLDesc() and inspecting
- * elements within //domain/devices/disk.
+ * elements within //domain/devices/disk. Some drivers might also
+ * accept the empty string for the @disk parameter, and then yield
+ * summary stats for the entire domain.
  *
  * Domains may have more than one block device.  To get stats for
  * each you should make multiple calls to this function.
@@ -7847,7 +7818,9 @@ error:
  * an unambiguous source name of the block device (the <source
  * file='...'/> sub-element, such as "/path/to/image").  Valid names
  * can be found by calling virDomainGetXMLDesc() and inspecting
- * elements within //domain/devices/disk.
+ * elements within //domain/devices/disk. Some drivers might also
+ * accept the empty string for the @disk parameter, and then yield
+ * summary stats for the entire domain.
  *
  * Domains may have more than one block device.  To get stats for
  * each you should make multiple calls to this function.
@@ -8301,7 +8274,7 @@ virDomainBlockResize(virDomainPtr dom,
 
     if (conn->driver->domainBlockResize) {
         int ret;
-        ret =conn->driver->domainBlockResize(dom, disk, size, flags);
+        ret = conn->driver->domainBlockResize(dom, disk, size, flags);
         if (ret < 0)
             goto error;
         return ret;
@@ -8437,6 +8410,59 @@ error:
  * can be found by calling virDomainGetXMLDesc() and inspecting
  * elements within //domain/devices/disk.
  *
+ * For QEMU domains, the allocation and physical virDomainBlockInfo
+ * values returned will generally be the same, except when using a
+ * non raw, block backing device, such as qcow2 for an active domain.
+ * When the persistent domain is not active, QEMU will return the
+ * default which is the same value for allocation and physical.
+ *
+ * Active QEMU domains can return an allocation value which is more
+ * representative of the currently used blocks by the device compared
+ * to the physical size of the device. Applications can use/monitor
+ * the allocation value with the understanding that if the domain
+ * becomes inactive during an attempt to get the value, the default
+ * values will be returned. Thus, the application should check
+ * after the call for the domain being inactive if the values are
+ * the same. Optionally, the application could be watching for a
+ * shutdown event and then ignore any values received afterwards.
+ * This can be an issue when a domain is being migrated and the
+ * exact timing of the domain being made inactive and check of
+ * the allocation value results the default being returned. For
+ * a transient domain in the similar situation, this call will return
+ * -1 and an error message indicating the "domain is not running".
+ *
+ * The following is some pseudo code illustrating the call sequence:
+ *
+ *   ...
+ *   virDomainPtr dom;
+ *   virDomainBlockInfo info;
+ *   char *device;
+ *   ...
+ *   // Either get a list of all domains or a specific domain
+ *   // via a virDomainLookupBy*() call.
+ *   //
+ *   // It's also required to fill in the device pointer, but that's
+ *   // specific to the implementation. For the purposes of this example
+ *   // a qcow2 backed device name string would need to be provided.
+ *   ...
+ *   // If the following call is made on a persistent domain with a
+ *   // qcow2 block backed block device, then it's possible the returned
+ *   // allocation equals the physical value. In that case, the domain
+ *   // that may have been active prior to calling has become inactive,
+ *   // such as is the case during a domain migration. Thus once we
+ *   // get data returned, check for active domain when the values are
+ *   // the same.
+ *   if (virDomainGetBlockInfo(dom, device, &info, 0) < 0)
+ *       goto failure;
+ *   if (info.allocation == info.physical) {
+ *       // If the domain is no longer active,
+ *       // then the defaults are being returned.
+ *       if (!virDomainIsActive())
+ *               goto ignore_return;
+ *   }
+ *   // Do something with the allocation and physical values
+ *   ...
+ *
  * Returns 0 in case of success and -1 in case of failure.
  */
 int
@@ -8449,11 +8475,12 @@ virDomainGetBlockInfo(virDomainPtr domain, const char *disk,
 
     virResetLastError();
 
+    if (info)
+        memset(info, 0, sizeof(*info));
+
     virCheckDomainReturn(domain, -1);
     virCheckNonNullArgGoto(disk, error);
     virCheckNonNullArgGoto(info, error);
-
-    memset(info, 0, sizeof(virDomainBlockInfo));
 
     conn = domain->conn;
 
@@ -9339,7 +9366,7 @@ virDomainSetVcpusFlags(virDomainPtr domain, unsigned int nvcpus,
     virCheckNonZeroArgGoto(nvcpus, error);
 
     if ((unsigned short) nvcpus != nvcpus) {
-        virLibDomainError(VIR_ERR_OVERFLOW, _("input too large: %u"), nvcpus);
+        virReportError(VIR_ERR_OVERFLOW, _("input too large: %u"), nvcpus);
         goto error;
     }
     conn = domain->conn;
@@ -9383,7 +9410,7 @@ error:
  * current virtual CPU count.
  *
  * If @flags includes VIR_DOMAIN_VCPU_GUEST, then the state of the processors
- * is modified in the guest instead of the hypervisor. This flag is only usable
+ * is queried in the guest instead of the hypervisor. This flag is only usable
  * on live domains. Guest agent may be needed for this flag to be available.
  *
  * Returns the number of vCPUs in case of success, -1 in case of failure.
@@ -9398,6 +9425,10 @@ virDomainGetVcpusFlags(virDomainPtr domain, unsigned int flags)
     virResetLastError();
 
     virCheckDomainReturn(domain, -1);
+    conn = domain->conn;
+
+    if (flags & VIR_DOMAIN_VCPU_GUEST)
+        virCheckReadOnlyGoto(conn->flags, error);
 
     /* At most one of these two flags should be set.  */
     if ((flags & VIR_DOMAIN_AFFECT_LIVE) &&
@@ -9408,7 +9439,6 @@ virDomainGetVcpusFlags(virDomainPtr domain, unsigned int flags)
                             __FUNCTION__);
         goto error;
     }
-    conn = domain->conn;
 
     if (conn->driver->domainGetVcpusFlags) {
         int ret;
@@ -9466,7 +9496,7 @@ virDomainPinVcpu(virDomainPtr domain, unsigned int vcpu,
     virCheckPositiveArgGoto(maplen, error);
 
     if ((unsigned short) vcpu != vcpu) {
-        virLibDomainError(VIR_ERR_OVERFLOW, _("input too large: %u"), vcpu);
+        virReportError(VIR_ERR_OVERFLOW, _("input too large: %u"), vcpu);
         goto error;
     }
 
@@ -9538,7 +9568,7 @@ virDomainPinVcpuFlags(virDomainPtr domain, unsigned int vcpu,
     virCheckPositiveArgGoto(maplen, error);
 
     if ((unsigned short) vcpu != vcpu) {
-        virLibDomainError(VIR_ERR_OVERFLOW, _("input too large: %u"), vcpu);
+        virReportError(VIR_ERR_OVERFLOW, _("input too large: %u"), vcpu);
         goto error;
     }
 
@@ -9601,8 +9631,8 @@ virDomainGetVcpuPinInfo(virDomainPtr domain, int ncpumaps,
     virCheckPositiveArgGoto(maplen, error);
 
     if (INT_MULTIPLY_OVERFLOW(ncpumaps, maplen)) {
-        virLibDomainError(VIR_ERR_OVERFLOW, _("input too large: %d * %d"),
-                          ncpumaps, maplen);
+        virReportError(VIR_ERR_OVERFLOW, _("input too large: %d * %d"),
+                       ncpumaps, maplen);
         goto error;
     }
 
@@ -9813,8 +9843,8 @@ virDomainGetVcpus(virDomainPtr domain, virVcpuInfoPtr info, int maxinfo,
         virCheckZeroArgGoto(maplen, error);
 
     if (cpumaps && INT_MULTIPLY_OVERFLOW(maxinfo, maplen)) {
-        virLibDomainError(VIR_ERR_OVERFLOW, _("input too large: %d * %d"),
-                          maxinfo, maplen);
+        virReportError(VIR_ERR_OVERFLOW, _("input too large: %d * %d"),
+                       maxinfo, maplen);
         goto error;
     }
 
@@ -13082,10 +13112,11 @@ virStoragePoolGetInfo(virStoragePoolPtr pool,
 
     virResetLastError();
 
+    if (info)
+        memset(info, 0, sizeof(*info));
+
     virCheckStoragePoolReturn(pool, -1);
     virCheckNonNullArgGoto(info, error);
-
-    memset(info, 0, sizeof(virStoragePoolInfo));
 
     conn = pool->conn;
 
@@ -13951,10 +13982,11 @@ virStorageVolGetInfo(virStorageVolPtr vol,
 
     virResetLastError();
 
+    if (info)
+        memset(info, 0, sizeof(*info));
+
     virCheckStorageVolReturn(vol, -1);
     virCheckNonNullArgGoto(info, error);
-
-    memset(info, 0, sizeof(virStorageVolInfo));
 
     conn = vol->conn;
 
@@ -15865,7 +15897,7 @@ error:
  *
  * Send the entire data stream, reading the data from the
  * requested data source. This is simply a convenient alternative
- * to virStreamSend, for apps that do blocking-I/o.
+ * to virStreamSend, for apps that do blocking-I/O.
  *
  * An example using this with a hypothetical file upload
  * API looks like
@@ -15913,8 +15945,8 @@ virStreamSendAll(virStreamPtr stream,
     virCheckNonNullArgGoto(handler, cleanup);
 
     if (stream->flags & VIR_STREAM_NONBLOCK) {
-        virLibConnError(VIR_ERR_OPERATION_INVALID, "%s",
-                        _("data sources cannot be used for non-blocking streams"));
+        virReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                       _("data sources cannot be used for non-blocking streams"));
         goto cleanup;
     }
 
@@ -15958,7 +15990,7 @@ cleanup:
  *
  * Receive the entire data stream, sending the data to the
  * requested data sink. This is simply a convenient alternative
- * to virStreamRecv, for apps that do blocking-I/o.
+ * to virStreamRecv, for apps that do blocking-I/O.
  *
  * An example using this with a hypothetical file download
  * API looks like
@@ -16006,8 +16038,8 @@ virStreamRecvAll(virStreamPtr stream,
     virCheckNonNullArgGoto(handler, cleanup);
 
     if (stream->flags & VIR_STREAM_NONBLOCK) {
-        virLibConnError(VIR_ERR_OPERATION_INVALID, "%s",
-                        _("data sinks cannot be used for non-blocking streams"));
+        virReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                       _("data sinks cannot be used for non-blocking streams"));
         goto cleanup;
     }
 
@@ -16167,7 +16199,7 @@ error:
  * virStreamFinish:
  * @stream: pointer to the stream object
  *
- * Indicate that there is no further data is to be transmitted
+ * Indicate that there is no further data to be transmitted
  * on the stream. For output streams this should be called once
  * all data has been written. For input streams this should be
  * called once virStreamRecv returns end-of-file.
@@ -17240,10 +17272,11 @@ virDomainGetJobInfo(virDomainPtr domain, virDomainJobInfoPtr info)
 
     virResetLastError();
 
+    if (info)
+        memset(info, 0, sizeof(*info));
+
     virCheckDomainReturn(domain, -1);
     virCheckNonNullArgGoto(info, error);
-
-    memset(info, 0, sizeof(virDomainJobInfo));
 
     conn = domain->conn;
 
@@ -18214,8 +18247,8 @@ virDomainSnapshotGetXMLDesc(virDomainSnapshotPtr snapshot,
     conn = snapshot->domain->conn;
 
     if ((conn->flags & VIR_CONNECT_RO) && (flags & VIR_DOMAIN_XML_SECURE)) {
-        virLibConnError(VIR_ERR_OPERATION_DENIED, "%s",
-                        _("virDomainSnapshotGetXMLDesc with secure flag"));
+        virReportError(VIR_ERR_OPERATION_DENIED, "%s",
+                       _("virDomainSnapshotGetXMLDesc with secure flag"));
         goto error;
     }
 
@@ -19379,13 +19412,14 @@ virDomainGetBlockJobInfo(virDomainPtr dom, const char *disk,
 
     virResetLastError();
 
+    if (info)
+        memset(info, 0, sizeof(*info));
+
     virCheckDomainReturn(dom, -1);
     conn = dom->conn;
 
     virCheckNonNullArgGoto(disk, error);
     virCheckNonNullArgGoto(info, error);
-
-    memset(info, 0, sizeof(*info));
 
     if (conn->driver->domainGetBlockJobInfo) {
         int ret;
@@ -19953,8 +19987,8 @@ virConnectRegisterCloseCallback(virConnectPtr conn,
     virCheckNonNullArgGoto(cb, error);
 
     if (conn->closeCallback->callback) {
-        virLibConnError(VIR_ERR_OPERATION_INVALID, "%s",
-                        _("A close callback is already registered"));
+        virReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                       _("A close callback is already registered"));
         goto error;
     }
 
@@ -20006,8 +20040,8 @@ virConnectUnregisterCloseCallback(virConnectPtr conn,
     virCheckNonNullArgGoto(cb, error);
 
     if (conn->closeCallback->callback != cb) {
-        virLibConnError(VIR_ERR_OPERATION_INVALID, "%s",
-                        _("A different callback was requested"));
+        virReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                       _("A different callback was requested"));
         goto error;
     }
 
@@ -20296,8 +20330,8 @@ virDomainGetCPUStats(virDomainPtr domain,
         virCheckNullArgGoto(params, error);
 
     if (nparams && ncpus > UINT_MAX / nparams) {
-        virLibDomainError(VIR_ERR_OVERFLOW, _("input too large: %u * %u"),
-                          nparams, ncpus);
+        virReportError(VIR_ERR_OVERFLOW, _("input too large: %u * %u"),
+                       nparams, ncpus);
         goto error;
     }
     if (VIR_DRV_SUPPORTS_FEATURE(domain->conn->driver, domain->conn,

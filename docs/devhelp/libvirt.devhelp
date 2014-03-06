@@ -19,7 +19,11 @@
     <function name="VIR_DOMAIN_BANDWIDTH_OUT_AVERAGE" link="libvirt-libvirt.html#VIR_DOMAIN_BANDWIDTH_OUT_AVERAGE"/>
     <function name="VIR_DOMAIN_BANDWIDTH_OUT_BURST" link="libvirt-libvirt.html#VIR_DOMAIN_BANDWIDTH_OUT_BURST"/>
     <function name="VIR_DOMAIN_BANDWIDTH_OUT_PEAK" link="libvirt-libvirt.html#VIR_DOMAIN_BANDWIDTH_OUT_PEAK"/>
+    <function name="VIR_DOMAIN_BLKIO_DEVICE_READ_BPS" link="libvirt-libvirt.html#VIR_DOMAIN_BLKIO_DEVICE_READ_BPS"/>
+    <function name="VIR_DOMAIN_BLKIO_DEVICE_READ_IOPS" link="libvirt-libvirt.html#VIR_DOMAIN_BLKIO_DEVICE_READ_IOPS"/>
     <function name="VIR_DOMAIN_BLKIO_DEVICE_WEIGHT" link="libvirt-libvirt.html#VIR_DOMAIN_BLKIO_DEVICE_WEIGHT"/>
+    <function name="VIR_DOMAIN_BLKIO_DEVICE_WRITE_BPS" link="libvirt-libvirt.html#VIR_DOMAIN_BLKIO_DEVICE_WRITE_BPS"/>
+    <function name="VIR_DOMAIN_BLKIO_DEVICE_WRITE_IOPS" link="libvirt-libvirt.html#VIR_DOMAIN_BLKIO_DEVICE_WRITE_IOPS"/>
     <function name="VIR_DOMAIN_BLKIO_FIELD_LENGTH" link="libvirt-libvirt.html#VIR_DOMAIN_BLKIO_FIELD_LENGTH"/>
     <function name="VIR_DOMAIN_BLKIO_WEIGHT" link="libvirt-libvirt.html#VIR_DOMAIN_BLKIO_WEIGHT"/>
     <function name="VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC" link="libvirt-libvirt.html#VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC"/>
@@ -94,6 +98,7 @@
     <function name="VIR_NODEINFO_MAXCPUS" link="libvirt-libvirt.html#VIR_NODEINFO_MAXCPUS"/>
     <function name="VIR_NODE_CPU_STATS_FIELD_LENGTH" link="libvirt-libvirt.html#VIR_NODE_CPU_STATS_FIELD_LENGTH"/>
     <function name="VIR_NODE_CPU_STATS_IDLE" link="libvirt-libvirt.html#VIR_NODE_CPU_STATS_IDLE"/>
+    <function name="VIR_NODE_CPU_STATS_INTR" link="libvirt-libvirt.html#VIR_NODE_CPU_STATS_INTR"/>
     <function name="VIR_NODE_CPU_STATS_IOWAIT" link="libvirt-libvirt.html#VIR_NODE_CPU_STATS_IOWAIT"/>
     <function name="VIR_NODE_CPU_STATS_KERNEL" link="libvirt-libvirt.html#VIR_NODE_CPU_STATS_KERNEL"/>
     <function name="VIR_NODE_CPU_STATS_USER" link="libvirt-libvirt.html#VIR_NODE_CPU_STATS_USER"/>
@@ -647,6 +652,7 @@
     <function name="VIR_FROM_ACCESS" link="libvirt-virterror.html#VIR_FROM_ACCESS"/>
     <function name="VIR_FROM_AUDIT" link="libvirt-virterror.html#VIR_FROM_AUDIT"/>
     <function name="VIR_FROM_AUTH" link="libvirt-virterror.html#VIR_FROM_AUTH"/>
+    <function name="VIR_FROM_BHYVE" link="libvirt-virterror.html#VIR_FROM_BHYVE"/>
     <function name="VIR_FROM_CAPABILITIES" link="libvirt-virterror.html#VIR_FROM_CAPABILITIES"/>
     <function name="VIR_FROM_CGROUP" link="libvirt-virterror.html#VIR_FROM_CGROUP"/>
     <function name="VIR_FROM_CONF" link="libvirt-virterror.html#VIR_FROM_CONF"/>

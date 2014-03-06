@@ -228,6 +228,49 @@ cleanup:
 
 
 
+static int remoteDispatchConnectDomainEventCallbackDeregisterAny(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_connect_domain_event_callback_deregister_any_args *args);
+static int remoteDispatchConnectDomainEventCallbackDeregisterAnyHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret ATTRIBUTE_UNUSED)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchConnectDomainEventCallbackDeregisterAny(server, client, msg, rerr, args);
+}
+/* remoteDispatchConnectDomainEventCallbackDeregisterAny body has to be implemented manually */
+
+
+
+static int remoteDispatchConnectDomainEventCallbackRegisterAny(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_connect_domain_event_callback_register_any_args *args,
+    remote_connect_domain_event_callback_register_any_ret *ret);
+static int remoteDispatchConnectDomainEventCallbackRegisterAnyHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchConnectDomainEventCallbackRegisterAny(server, client, msg, rerr, args, ret);
+}
+/* remoteDispatchConnectDomainEventCallbackRegisterAny body has to be implemented manually */
+
+
+
 static int remoteDispatchConnectDomainEventDeregister(
     virNetServerPtr server,
     virNetServerClientPtr client,
@@ -16875,6 +16918,168 @@ virNetServerProgramProc remoteProcs[] = {
    1
 },
 { /* Async event NetworkEventLifecycle => 315 */
+   NULL,
+   0,
+   (xdrproc_t)xdr_void,
+   0,
+   (xdrproc_t)xdr_void,
+   true,
+   0
+},
+{ /* Method ConnectDomainEventCallbackRegisterAny => 316 */
+   remoteDispatchConnectDomainEventCallbackRegisterAnyHelper,
+   sizeof(remote_connect_domain_event_callback_register_any_args),
+   (xdrproc_t)xdr_remote_connect_domain_event_callback_register_any_args,
+   sizeof(remote_connect_domain_event_callback_register_any_ret),
+   (xdrproc_t)xdr_remote_connect_domain_event_callback_register_any_ret,
+   true,
+   1
+},
+{ /* Method ConnectDomainEventCallbackDeregisterAny => 317 */
+   remoteDispatchConnectDomainEventCallbackDeregisterAnyHelper,
+   sizeof(remote_connect_domain_event_callback_deregister_any_args),
+   (xdrproc_t)xdr_remote_connect_domain_event_callback_deregister_any_args,
+   0,
+   (xdrproc_t)xdr_void,
+   true,
+   1
+},
+{ /* Async event DomainEventCallbackLifecycle => 318 */
+   NULL,
+   0,
+   (xdrproc_t)xdr_void,
+   0,
+   (xdrproc_t)xdr_void,
+   true,
+   0
+},
+{ /* Async event DomainEventCallbackReboot => 319 */
+   NULL,
+   0,
+   (xdrproc_t)xdr_void,
+   0,
+   (xdrproc_t)xdr_void,
+   true,
+   0
+},
+{ /* Async event DomainEventCallbackRtcChange => 320 */
+   NULL,
+   0,
+   (xdrproc_t)xdr_void,
+   0,
+   (xdrproc_t)xdr_void,
+   true,
+   0
+},
+{ /* Async event DomainEventCallbackWatchdog => 321 */
+   NULL,
+   0,
+   (xdrproc_t)xdr_void,
+   0,
+   (xdrproc_t)xdr_void,
+   true,
+   0
+},
+{ /* Async event DomainEventCallbackIoError => 322 */
+   NULL,
+   0,
+   (xdrproc_t)xdr_void,
+   0,
+   (xdrproc_t)xdr_void,
+   true,
+   0
+},
+{ /* Async event DomainEventCallbackGraphics => 323 */
+   NULL,
+   0,
+   (xdrproc_t)xdr_void,
+   0,
+   (xdrproc_t)xdr_void,
+   true,
+   0
+},
+{ /* Async event DomainEventCallbackIoErrorReason => 324 */
+   NULL,
+   0,
+   (xdrproc_t)xdr_void,
+   0,
+   (xdrproc_t)xdr_void,
+   true,
+   0
+},
+{ /* Async event DomainEventCallbackControlError => 325 */
+   NULL,
+   0,
+   (xdrproc_t)xdr_void,
+   0,
+   (xdrproc_t)xdr_void,
+   true,
+   0
+},
+{ /* Async event DomainEventCallbackBlockJob => 326 */
+   NULL,
+   0,
+   (xdrproc_t)xdr_void,
+   0,
+   (xdrproc_t)xdr_void,
+   true,
+   0
+},
+{ /* Async event DomainEventCallbackDiskChange => 327 */
+   NULL,
+   0,
+   (xdrproc_t)xdr_void,
+   0,
+   (xdrproc_t)xdr_void,
+   true,
+   0
+},
+{ /* Async event DomainEventCallbackTrayChange => 328 */
+   NULL,
+   0,
+   (xdrproc_t)xdr_void,
+   0,
+   (xdrproc_t)xdr_void,
+   true,
+   0
+},
+{ /* Async event DomainEventCallbackPMwakeup => 329 */
+   NULL,
+   0,
+   (xdrproc_t)xdr_void,
+   0,
+   (xdrproc_t)xdr_void,
+   true,
+   0
+},
+{ /* Async event DomainEventCallbackPMsuspend => 330 */
+   NULL,
+   0,
+   (xdrproc_t)xdr_void,
+   0,
+   (xdrproc_t)xdr_void,
+   true,
+   0
+},
+{ /* Async event DomainEventCallbackBalloonChange => 331 */
+   NULL,
+   0,
+   (xdrproc_t)xdr_void,
+   0,
+   (xdrproc_t)xdr_void,
+   true,
+   0
+},
+{ /* Async event DomainEventCallbackPMsuspendDisk => 332 */
+   NULL,
+   0,
+   (xdrproc_t)xdr_void,
+   0,
+   (xdrproc_t)xdr_void,
+   true,
+   0
+},
+{ /* Async event DomainEventCallbackDeviceRemoved => 333 */
    NULL,
    0,
    (xdrproc_t)xdr_void,

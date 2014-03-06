@@ -691,6 +691,8 @@ qemuDomainDefPostParse(virDomainDefPtr def,
     bool addPCIRoot = false;
     bool addPCIeRoot = false;
     bool addDefaultMemballoon = true;
+    bool addDefaultUSBKBD = false;
+    bool addDefaultUSBMouse = false;
 
     /* check for emulator and create a default one if needed */
     if (!def->emulator &&
@@ -732,9 +734,14 @@ qemuDomainDefPostParse(virDomainDefPtr def,
        addDefaultMemballoon = false;
        break;
 
+    case VIR_ARCH_PPC64:
+        addPCIRoot = true;
+        addDefaultUSBKBD = true;
+        addDefaultUSBMouse = true;
+        break;
+
     case VIR_ARCH_ALPHA:
     case VIR_ARCH_PPC:
-    case VIR_ARCH_PPC64:
     case VIR_ARCH_PPCEMB:
     case VIR_ARCH_SH4:
     case VIR_ARCH_SH4EB:
@@ -787,6 +794,20 @@ qemuDomainDefPostParse(virDomainDefPtr def,
         def->memballoon = memballoon;
     }
 
+    if (addDefaultUSBKBD &&
+        def->ngraphics > 0 &&
+        virDomainDefMaybeAddInput(def,
+                                  VIR_DOMAIN_INPUT_TYPE_KBD,
+                                  VIR_DOMAIN_INPUT_BUS_USB) < 0)
+        return -1;
+
+    if (addDefaultUSBMouse &&
+        def->ngraphics > 0 &&
+        virDomainDefMaybeAddInput(def,
+                                  VIR_DOMAIN_INPUT_TYPE_MOUSE,
+                                  VIR_DOMAIN_INPUT_BUS_USB) < 0)
+        return -1;
+
     return 0;
 }
 
@@ -797,7 +818,8 @@ qemuDomainDefaultNetModel(const virDomainDef *def)
         def->os.arch == VIR_ARCH_S390X)
         return "virtio";
 
-    if (def->os.arch == VIR_ARCH_ARMV7L) {
+    if (def->os.arch == VIR_ARCH_ARMV7L ||
+        def->os.arch == VIR_ARCH_AARCH64) {
         if (STREQ(def->os.machine, "versatilepb"))
             return "smc91c111";
 
@@ -1628,12 +1650,16 @@ void qemuDomainObjCheckTaint(virQEMUDriverPtr driver,
 {
     size_t i;
     virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
+    qemuDomainObjPrivatePtr priv = obj->privateData;
 
     if (cfg->privileged &&
         (!cfg->clearEmulatorCapabilities ||
          cfg->user == 0 ||
          cfg->group == 0))
         qemuDomainObjTaint(driver, obj, VIR_DOMAIN_TAINT_HIGH_PRIVILEGES, logFD);
+
+    if (priv->hookRun)
+        qemuDomainObjTaint(driver, obj, VIR_DOMAIN_TAINT_HOOK, logFD);
 
     if (obj->def->namespaceData) {
         qemuDomainCmdlineDefPtr qemucmd = obj->def->namespaceData;
@@ -2210,7 +2236,7 @@ qemuDomainCheckDiskPresence(virQEMUDriverPtr driver,
         if (!disk->src)
             continue;
 
-        if (qemuDomainDetermineDiskChain(driver, disk, false) >= 0 &&
+        if (qemuDomainDetermineDiskChain(driver, vm, disk, false) >= 0 &&
             qemuDiskChainCheckBroken(disk) >= 0)
             continue;
 
@@ -2319,13 +2345,46 @@ qemuDiskChainCheckBroken(virDomainDiskDefPtr disk)
     return 0;
 }
 
+static void
+qemuDomainGetImageIds(virQEMUDriverConfigPtr cfg,
+                      virDomainObjPtr vm,
+                      virDomainDiskDefPtr disk,
+                      uid_t *uid, gid_t *gid)
+{
+    virSecurityLabelDefPtr vmlabel;
+    virSecurityDeviceLabelDefPtr disklabel;
+
+    if (uid)
+        *uid = -1;
+    if (gid)
+        *gid = -1;
+
+    if (cfg) {
+        if (uid)
+            *uid = cfg->user;
+
+        if (gid)
+            *gid = cfg->group;
+    }
+
+    if (vm && (vmlabel = virDomainDefGetSecurityLabelDef(vm->def, "dac")))
+        virParseOwnershipIds(vmlabel->label, uid, gid);
+
+    if ((disklabel = virDomainDiskDefGetSecurityLabelDef(disk, "dac")))
+        virParseOwnershipIds(disklabel->label, uid, gid);
+}
+
+
 int
 qemuDomainDetermineDiskChain(virQEMUDriverPtr driver,
+                             virDomainObjPtr vm,
                              virDomainDiskDefPtr disk,
                              bool force)
 {
     virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
     int ret = 0;
+    uid_t uid;
+    gid_t gid;
 
     if (!disk->src ||
         disk->type == VIR_DOMAIN_DISK_TYPE_NETWORK ||
@@ -2340,8 +2399,11 @@ qemuDomainDetermineDiskChain(virQEMUDriverPtr driver,
             goto cleanup;
         }
     }
+
+    qemuDomainGetImageIds(cfg, vm, disk, &uid, &gid);
+
     disk->backingChain = virStorageFileGetMetadata(disk->src, disk->format,
-                                                   cfg->user, cfg->group,
+                                                   uid, gid,
                                                    cfg->allowDiskFormatProbing);
     if (!disk->backingChain)
         ret = -1;

@@ -120,6 +120,10 @@
                   <div>
                     <a title="Command reference for virsh" class="inactive" href="virshcmdref.html">Virsh Commands</a>
                   </div>
+                </li><li>
+                  <div>
+                    <a title="Project governance and code of conduct" class="inactive" href="governance.html">Governance</a>
+                  </div>
                 </li></ul>
             </div>
           </li><li>
@@ -298,6 +302,8 @@
                             <a href="#elementsCharUDP">UDP network console</a>
                           </li><li>
                             <a href="#elementsCharUNIX">UNIX domain socket client/server</a>
+                          </li><li>
+                            <a href="#elementsCharSpiceport">Spice channel</a>
                           </li></ul>
                       </li></ul>
                   </li><li>
@@ -329,6 +335,7 @@
     </p>
         <h2>
           <a name="elements" shape="rect" id="elements">Element and attribute overview</a>
+          <a class="headerlink" href="#elements" title="Permalink to this headline">¶</a>
         </h2>
         <p>
       The root element required for all virtual machines is
@@ -342,6 +349,7 @@
     </p>
         <h3>
           <a name="elementsMetadata" shape="rect" id="elementsMetadata">General metadata</a>
+          <a class="headerlink" href="#elementsMetadata" title="Permalink to this headline">¶</a>
         </h3>
         <pre xml:space="preserve">
 &lt;domain type='xen' id='3'&gt;
@@ -381,6 +389,7 @@
         element). <span class="since">Since 0.9.10</span></dd></dl>
         <h3>
           <a name="elementsOS" shape="rect" id="elementsOS">Operating system booting</a>
+          <a class="headerlink" href="#elementsOS" title="Permalink to this headline">¶</a>
         </h3>
         <p>
       There are a number of different ways to boot virtual machines
@@ -388,6 +397,7 @@
     </p>
         <h4>
           <a name="elementsOSBIOS" shape="rect" id="elementsOSBIOS">BIOS bootloader</a>
+          <a class="headerlink" href="#elementsOSBIOS" title="Permalink to this headline">¶</a>
         </h4>
         <p>
       Booting via the BIOS is available for hypervisors supporting
@@ -471,6 +481,7 @@
       </dd></dl>
         <h4>
           <a name="elementsOSBootloader" shape="rect" id="elementsOSBootloader">Host bootloader</a>
+          <a class="headerlink" href="#elementsOSBootloader" title="Permalink to this headline">¶</a>
         </h4>
         <p>
       Hypervisors employing paravirtualization do not usually emulate
@@ -494,6 +505,7 @@
         </dd></dl>
         <h4>
           <a name="elementsOSKernel" shape="rect" id="elementsOSKernel">Direct kernel boot</a>
+          <a class="headerlink" href="#elementsOSKernel" title="Permalink to this headline">¶</a>
         </h4>
         <p>
       When installing a new guest OS it is often useful to boot directly
@@ -524,6 +536,7 @@
         <span class="since">Since 1.0.4</span></dd></dl>
         <h4>
           <a name="elementsOSContainer" shape="rect" id="elementsOSContainer">Container boot</a>
+          <a class="headerlink" href="#elementsOSContainer" title="Permalink to this headline">¶</a>
         </h4>
         <p>
       When booting a domain using container based virtualization, instead
@@ -543,11 +556,11 @@
   &lt;/os&gt;
     </pre>
         <p>
-      If you want to enable user namespace,set the <code>idmap</code> element.
-      the <code>uid</code> and <code>gid</code> elements have three attributes:
+      If you want to enable user namespace, set the <code>idmap</code> element.
+      The <code>uid</code> and <code>gid</code> elements have three attributes:
     </p>
-        <dl><dt><code>start</code></dt><dd>First user id in container.</dd><dt><code>target</code></dt><dd>The first user id in container will be mapped to this target user
-          id in host.</dd><dt><code>count</code></dt><dd>How many users in container being allowed to map to host's user.</dd></dl>
+        <dl><dt><code>start</code></dt><dd>First user ID in container.</dd><dt><code>target</code></dt><dd>The first user ID in container will be mapped to this target user
+          ID in host.</dd><dt><code>count</code></dt><dd>How many users in container are allowed to map to host's user.</dd></dl>
         <pre xml:space="preserve">
   &lt;idmap&gt;
     &lt;uid start='0' target='1000' count='10'/&gt;
@@ -556,6 +569,7 @@
     </pre>
         <h3>
           <a name="elementsSysinfo" shape="rect" id="elementsSysinfo">SMBIOS System Information</a>
+          <a class="headerlink" href="#elementsSysinfo" title="Permalink to this headline">¶</a>
         </h3>
         <p>
       Some hypervisors allow control over what system information is
@@ -617,6 +631,7 @@
       </dd></dl>
         <h3>
           <a name="elementsCPUAllocation" shape="rect" id="elementsCPUAllocation">CPU Allocation</a>
+          <a class="headerlink" href="#elementsCPUAllocation" title="Permalink to this headline">¶</a>
         </h3>
         <pre xml:space="preserve">
 &lt;domain&gt;
@@ -661,6 +676,7 @@
       </dd></dl>
         <h3>
           <a name="elementsCPUTuning" shape="rect" id="elementsCPUTuning">CPU Tuning</a>
+          <a class="headerlink" href="#elementsCPUTuning" title="Permalink to this headline">¶</a>
         </h3>
         <pre xml:space="preserve">
 &lt;domain&gt;
@@ -749,6 +765,7 @@
       </dd></dl>
         <h3>
           <a name="elementsMemoryAllocation" shape="rect" id="elementsMemoryAllocation">Memory Allocation</a>
+          <a class="headerlink" href="#elementsMemoryAllocation" title="Permalink to this headline">¶</a>
         </h3>
         <pre xml:space="preserve">
 &lt;domain&gt;
@@ -790,6 +807,7 @@
         for <code>memory</code>.</dd></dl>
         <h3>
           <a name="elementsMemoryBacking" shape="rect" id="elementsMemoryBacking">Memory Backing</a>
+          <a class="headerlink" href="#elementsMemoryBacking" title="Permalink to this headline">¶</a>
         </h3>
         <pre xml:space="preserve">
 &lt;domain&gt;
@@ -816,6 +834,7 @@
         <span class="since">Since 1.0.6</span></dd></dl>
         <h3>
           <a name="elementsMemoryTuning" shape="rect" id="elementsMemoryTuning">Memory Tuning</a>
+          <a class="headerlink" href="#elementsMemoryTuning" title="Permalink to this headline">¶</a>
         </h3>
         <pre xml:space="preserve">
 &lt;domain&gt;
@@ -858,6 +877,7 @@
         kibibytes (i.e. blocks of 1024 bytes)</dd></dl>
         <h3>
           <a name="elementsNUMATuning" shape="rect" id="elementsNUMATuning">NUMA Node Tuning</a>
+          <a class="headerlink" href="#elementsNUMATuning" title="Permalink to this headline">¶</a>
         </h3>
         <pre xml:space="preserve">
 &lt;domain&gt;
@@ -897,6 +917,7 @@
       </dd></dl>
         <h3>
           <a name="elementsBlockTuning" shape="rect" id="elementsBlockTuning">Block I/O Tuning</a>
+          <a class="headerlink" href="#elementsBlockTuning" title="Permalink to this headline">¶</a>
         </h3>
         <pre xml:space="preserve">
 &lt;domain&gt;
@@ -940,6 +961,7 @@
         range [10, 1000].<span class="since">Since 0.9.8</span></dd></dl>
         <h3>
           <a name="resPartition" shape="rect" id="resPartition">Resource partitioning</a>
+          <a class="headerlink" href="#resPartition" title="Permalink to this headline">¶</a>
         </h3>
         <p>
       Hypervisors may allow for virtual machines to be placed into
@@ -968,6 +990,7 @@
     </p>
         <h3>
           <a name="elementsCPU" shape="rect" id="elementsCPU">CPU model and topology</a>
+          <a class="headerlink" href="#elementsCPU" title="Permalink to this headline">¶</a>
         </h3>
         <p>
       Requirements for CPU model, its features and topology can be specified
@@ -1139,6 +1162,7 @@
     </p>
         <h3>
           <a name="elementsEvents" shape="rect" id="elementsEvents">Events configuration</a>
+          <a class="headerlink" href="#elementsEvents" title="Permalink to this headline">¶</a>
         </h3>
         <p>
       It is sometimes necessary to override the default actions taken
@@ -1205,6 +1229,7 @@
         when lock issues are solved.</dd><dt><code>ignore</code></dt><dd>Keep the domain running as if nothing happened.</dd></dl>
         <h3>
           <a name="elementsPowerManagement" shape="rect" id="elementsPowerManagement">Power Management</a>
+          <a class="headerlink" href="#elementsPowerManagement" title="Permalink to this headline">¶</a>
         </h3>
         <p>
       <span class="since">Since 0.10.2</span> it is possible to
@@ -1224,6 +1249,7 @@
         left with its default value.</dd></dl>
         <h3>
           <a name="elementsFeatures" shape="rect" id="elementsFeatures">Hypervisor features</a>
+          <a class="headerlink" href="#elementsFeatures" title="Permalink to this headline">¶</a>
         </h3>
         <p>
       Hypervisors may allow certain CPU / machine features to be
@@ -1279,6 +1305,7 @@
       </dd></dl>
         <h3>
           <a name="elementsTime" shape="rect" id="elementsTime">Time keeping</a>
+          <a class="headerlink" href="#elementsTime" title="Permalink to this headline">¶</a>
         </h3>
         <p>
       The guest clock is typically initialized from the host clock.
@@ -1336,7 +1363,7 @@
           </dd></dl>
         <p>
           A <code>clock</code> may have zero or more
-          <code>timer</code>sub-elements. <span class="since">Since
+          <code>timer</code> sub-elements. <span class="since">Since
           0.8.0</span>
         </p>
       </dd><dt><code>timer</code></dt><dd>
@@ -1351,7 +1378,13 @@
             being modified, and can be one of
             "platform" (currently unsupported),
             "hpet" (libxl, xen, qemu), "kvmclock" (qemu),
-            "pit" (qemu), "rtc" (qemu), or "tsc" (libxl).
+            "pit" (qemu), "rtc" (qemu), "tsc" (libxl) or "hypervclock"
+            (qemu - <span class="since">since 1.2.2</span>).
+
+            The <code>hypervclock</code> timer adds support for the
+            reference time counter and the reference page for iTSC
+            feature for guests running the Microsoft Windows
+            operating system.
           </dd><dt><code>track</code></dt><dd>
             The <code>track</code> attribute specifies what the timer
             tracks, and can be "boot", "guest", or "wall".
@@ -1400,6 +1433,7 @@
       </dd></dl>
         <h3>
           <a name="elementsDevices" shape="rect" id="elementsDevices">Devices</a>
+          <a class="headerlink" href="#elementsDevices" title="Permalink to this headline">¶</a>
         </h3>
         <p>
       The final set of XML elements are all used to describe devices
@@ -1422,6 +1456,7 @@
       </dd></dl>
         <h4>
           <a name="elementsDisks" shape="rect" id="elementsDisks">Hard drives, floppy disks, CDROMs</a>
+          <a class="headerlink" href="#elementsDisks" title="Permalink to this headline">¶</a>
         </h4>
         <p>
       Any device that looks like a disk, be it a floppy, harddisk,
@@ -1964,6 +1999,7 @@
       </dd></dl>
         <h4>
           <a name="elementsFilesystems" shape="rect" id="elementsFilesystems">Filesystems</a>
+          <a class="headerlink" href="#elementsFilesystems" title="Permalink to this headline">¶</a>
         </h4>
         <p>
       A directory on the host that can be accessed directly from the guest.
@@ -2096,6 +2132,7 @@
       </dd></dl>
         <h4>
           <a name="elementsAddress" shape="rect" id="elementsAddress">Device Addresses</a>
+          <a class="headerlink" href="#elementsAddress" title="Permalink to this headline">¶</a>
         </h4>
         <p>
       Many devices have an optional <code>&lt;address&gt;</code>
@@ -2176,6 +2213,7 @@
       </dd></dl>
         <h4>
           <a name="elementsControllers" shape="rect" id="elementsControllers">Controllers</a>
+          <a class="headerlink" href="#elementsControllers" title="Permalink to this headline">¶</a>
         </h4>
         <p>
       Depending on the guest architecture, some device buses can
@@ -2319,6 +2357,7 @@
   ...</pre>
         <h4>
           <a name="elementsLease" shape="rect" id="elementsLease">Device leases</a>
+          <a class="headerlink" href="#elementsLease" title="Permalink to this headline">¶</a>
         </h4>
         <p>
       When using a lock manager, it may be desirable to record device leases
@@ -2350,9 +2389,11 @@
       </dd></dl>
         <h4>
           <a name="elementsHostDev" shape="rect" id="elementsHostDev">Host device assignment</a>
+          <a class="headerlink" href="#elementsHostDev" title="Permalink to this headline">¶</a>
         </h4>
         <h5>
           <a name="elementsHostDevSubsys" shape="rect" id="elementsHostDevSubsys">USB / PCI / SCSI devices</a>
+          <a class="headerlink" href="#elementsHostDevSubsys" title="Permalink to this headline">¶</a>
         </h5>
         <p>
       USB, PCI and SCSI devices attached to the host can be passed through
@@ -2486,9 +2527,15 @@
         between domains (assuming the hypervisor and OS support this).
         Only supported by SCSI host device.
         <span class="since">Since 1.0.6</span>
+        <p>
+          Note: Although <code>shareable</code> was introduced
+          <span class="since">in 1.0.6</span>, it did not work as
+          as expected until <span class="since">1.2.2</span>.
+        </p>
       </dd></dl>
         <h5>
           <a name="elementsHostDevCaps" shape="rect" id="elementsHostDevCaps">Block / character devices</a>
+          <a class="headerlink" href="#elementsHostDevCaps" title="Permalink to this headline">¶</a>
         </h5>
         <p>
       Block / character devices from the host can be passed through
@@ -2536,6 +2583,7 @@
       </dd></dl>
         <h4>
           <a name="elementsRedir" shape="rect" id="elementsRedir">Redirected devices</a>
+          <a class="headerlink" href="#elementsRedir" title="Permalink to this headline">¶</a>
         </h4>
         <p>
       USB device redirection through a character device is
@@ -2592,6 +2640,7 @@
       </dd></dl>
         <h4>
           <a name="elementsSmartcard" shape="rect" id="elementsSmartcard">Smartcard devices</a>
+          <a class="headerlink" href="#elementsSmartcard" title="Permalink to this headline">¶</a>
         </h4>
         <p>
       A virtual smartcard device can be supplied to the guest via the
@@ -2672,6 +2721,7 @@
     </p>
         <h4>
           <a name="elementsNICS" shape="rect" id="elementsNICS">Network interfaces</a>
+          <a class="headerlink" href="#elementsNICS" title="Permalink to this headline">¶</a>
         </h4>
         <pre xml:space="preserve">
   ...
@@ -2697,6 +2747,7 @@
     </p>
         <h5>
           <a name="elementsNICSVirtual" shape="rect" id="elementsNICSVirtual">Virtual network</a>
+          <a class="headerlink" href="#elementsNICSVirtual" title="Permalink to this headline">¶</a>
         </h5>
         <p>
       <strong><em>
@@ -2801,6 +2852,7 @@
   ...</pre>
         <h5>
           <a name="elementsNICSBridge" shape="rect" id="elementsNICSBridge">Bridge to LAN</a>
+          <a class="headerlink" href="#elementsNICSBridge" title="Permalink to this headline">¶</a>
         </h5>
         <p>
       <strong><em>
@@ -2857,6 +2909,7 @@
   ...</pre>
         <h5>
           <a name="elementsNICSSlirp" shape="rect" id="elementsNICSSlirp">Userspace SLIRP stack</a>
+          <a class="headerlink" href="#elementsNICSSlirp" title="Permalink to this headline">¶</a>
         </h5>
         <p>
       Provides a virtual LAN with NAT to the outside world. The virtual
@@ -2878,6 +2931,7 @@
   ...</pre>
         <h5>
           <a name="elementsNICSEthernet" shape="rect" id="elementsNICSEthernet">Generic ethernet connection</a>
+          <a class="headerlink" href="#elementsNICSEthernet" title="Permalink to this headline">¶</a>
         </h5>
         <p>
       Provides a means for the administrator to execute an arbitrary script
@@ -2901,6 +2955,7 @@
   ...</pre>
         <h5>
           <a name="elementsNICSDirect" shape="rect" id="elementsNICSDirect">Direct attachment to physical interface</a>
+          <a class="headerlink" href="#elementsNICSDirect" title="Permalink to this headline">¶</a>
         </h5>
         <p>
       Provides direct attachment of the virtual machine's NIC to the given
@@ -3008,6 +3063,7 @@
   </pre>
         <h5>
           <a name="elementsNICSHostdev" shape="rect" id="elementsNICSHostdev">PCI Passthrough</a>
+          <a class="headerlink" href="#elementsNICSHostdev" title="Permalink to this headline">¶</a>
         </h5>
         <p>
       A PCI network device (specified by the &lt;source&gt; element)
@@ -3065,6 +3121,7 @@
   ...</pre>
         <h5>
           <a name="elementsNICSMulticast" shape="rect" id="elementsNICSMulticast">Multicast tunnel</a>
+          <a class="headerlink" href="#elementsNICSMulticast" title="Permalink to this headline">¶</a>
         </h5>
         <p>
       A multicast group is setup to represent a virtual network. Any VMs
@@ -3088,6 +3145,7 @@
   ...</pre>
         <h5>
           <a name="elementsNICSTCP" shape="rect" id="elementsNICSTCP">TCP tunnel</a>
+          <a class="headerlink" href="#elementsNICSTCP" title="Permalink to this headline">¶</a>
         </h5>
         <p>
       A TCP client/server architecture provides a virtual network. One VM
@@ -3113,6 +3171,7 @@
   ...</pre>
         <h5>
           <a name="elementsNICSModel" shape="rect" id="elementsNICSModel">Setting the NIC model</a>
+          <a class="headerlink" href="#elementsNICSModel" title="Permalink to this headline">¶</a>
         </h5>
         <pre xml:space="preserve">
   ...
@@ -3144,6 +3203,7 @@ qemu-kvm -net nic,model=? /dev/null
     </p>
         <h5>
           <a name="elementsDriverBackendOptions" shape="rect" id="elementsDriverBackendOptions">Setting NIC driver-specific options</a>
+          <a class="headerlink" href="#elementsDriverBackendOptions" title="Permalink to this headline">¶</a>
         </h5>
         <pre xml:space="preserve">
   ...
@@ -3244,6 +3304,7 @@ qemu-kvm -net nic,model=? /dev/null
       </dd></dl>
         <h5>
           <a name="elementsNICSTargetOverride" shape="rect" id="elementsNICSTargetOverride">Overriding the target element</a>
+          <a class="headerlink" href="#elementsNICSTargetOverride" title="Permalink to this headline">¶</a>
         </h5>
         <pre xml:space="preserve">
   ...
@@ -3264,6 +3325,7 @@ qemu-kvm -net nic,model=? /dev/null
     </p>
         <h5>
           <a name="elementsNICSBoot" shape="rect" id="elementsNICSBoot">Specifying boot order</a>
+          <a class="headerlink" href="#elementsNICSBoot" title="Permalink to this headline">¶</a>
         </h5>
         <pre xml:space="preserve">
   ...
@@ -3286,6 +3348,7 @@ qemu-kvm -net nic,model=? /dev/null
     </p>
         <h5>
           <a name="elementsNICSROM" shape="rect" id="elementsNICSROM">Interface ROM BIOS configuration</a>
+          <a class="headerlink" href="#elementsNICSROM" title="Permalink to this headline">¶</a>
         </h5>
         <pre xml:space="preserve">
   ...
@@ -3315,6 +3378,7 @@ qemu-kvm -net nic,model=? /dev/null
     </p>
         <h5>
           <a name="elementQoS" shape="rect" id="elementQoS">Quality of service</a>
+          <a class="headerlink" href="#elementQoS" title="Permalink to this headline">¶</a>
         </h5>
         <pre xml:space="preserve">
   ...
@@ -3331,40 +3395,14 @@ qemu-kvm -net nic,model=? /dev/null
   ...</pre>
         <p>
       This part of interface XML provides setting quality of service. Incoming
-      and outgoing traffic can be shaped independently. The
-      <code>bandwidth</code> element can have at most one <code>inbound</code>
-      and at most one <code>outbound</code> child elements. Leaving any of these
-      children element out result in no QoS applied on that traffic direction.
-      So, when you want to shape only domain's incoming traffic, use
-      <code>inbound</code> only, and vice versa. Each of these elements have one
-      mandatory attribute <code>average</code> (or <code>floor</code> as
-      described below). <code>average</code> specifies average bit rate on
-      the interface being shaped. Then there are two optional attributes:
-      <code>peak</code>, which specifies maximum rate at which interface can send
-      data, and <code>burst</code>, amount of bytes that can be burst at
-      <code>peak</code> speed. Accepted values for attributes are integer
-      numbers. The units for <code>average</code> and <code>peak</code> attributes
-      are kilobytes per second, and for the <code>burst</code> just kilobytes.
-      Note the limitation of implementation: the <code>peak</code> attribute in
-      <code>outbound</code> element is ignored (as linux ingress filters don't
-      know it yet). <span class="since">Since 0.9.4</span> The <code>inbound</code> can
-      optionally have <code>floor</code> attribute. This is there for
-      guaranteeing minimal throughput for shaped interfaces. This, however,
-      requires that all traffic goes through one point where QoS decisions can
-      take place. That's why this attribute works only for virtual networks for
-      now (that is <code>&lt;interface type='network'/&gt;</code> with a
-      forward type of route, nat, or no forward at all). Moreover, the
-      virtual network the interface is connected to is required to have at least
-      inbound QoS set (<code>average</code> at least). Moreover, with
-      <code>floor</code> attribute users don't need to specify
-      <code>average</code>. However, <code>peak</code> and <code>burst</code>
-      attributes still require <code>average</code>. Currently, linux kernel
-      doesn't allow ingress qdiscs to have any classes therefore
-      <code>floor</code> can be applied only on <code>inbound</code> and not
-      <code>outbound</code>. <span class="since">Since 1.0.1</span>
+      and outgoing traffic can be shaped independently.
+      The <code>bandwidth</code> element and its child elements are described
+      in the <a href="formatnetwork.html#elementQoS" shape="rect">QoS</a> section of
+      the Network XML.
     </p>
         <h5>
           <a name="elementVlanTag" shape="rect" id="elementVlanTag">Setting VLAN tag (on supported network types only)</a>
+          <a class="headerlink" href="#elementVlanTag" title="Permalink to this headline">¶</a>
         </h5>
         <pre xml:space="preserve">
   ...
@@ -3419,6 +3457,7 @@ qemu-kvm -net nic,model=? /dev/null
     </p>
         <h5>
           <a name="elementLink" shape="rect" id="elementLink">Modifying virtual link state</a>
+          <a class="headerlink" href="#elementLink" title="Permalink to this headline">¶</a>
         </h5>
         <pre xml:space="preserve">
   ...
@@ -3440,6 +3479,7 @@ qemu-kvm -net nic,model=? /dev/null
     </p>
         <h4>
           <a name="elementsInput" shape="rect" id="elementsInput">Input devices</a>
+          <a class="headerlink" href="#elementsInput" title="Permalink to this headline">¶</a>
         </h4>
         <p>
       Input devices allow interaction with the graphical framebuffer
@@ -3452,12 +3492,14 @@ qemu-kvm -net nic,model=? /dev/null
   ...
   &lt;devices&gt;
     &lt;input type='mouse' bus='usb'/&gt;
+    &lt;input type='keyboard' bus='usb'/&gt;
   &lt;/devices&gt;
   ...</pre>
         <dl><dt><code>input</code></dt><dd>The <code>input</code> element has one mandatory attribute,
-        the <code>type</code> whose value can be either 'mouse' or
-        'tablet'. The latter provides absolute
-        cursor movement, while the former uses relative movement. The optional
+        the <code>type</code> whose value can be 'mouse', 'tablet' or
+        (<span class="since">since 1.2.2</span>) 'keyboard'.
+        The tablet provides absolute cursor movement,
+        while the mouse uses relative movement. The optional
         <code>bus</code> attribute can be used to refine the exact device type.
         It takes values "xen" (paravirtualized), "ps2" and "usb".</dd></dl>
         <p>
@@ -3468,6 +3510,7 @@ qemu-kvm -net nic,model=? /dev/null
     </p>
         <h4>
           <a name="elementsHub" shape="rect" id="elementsHub">Hub devices</a>
+          <a class="headerlink" href="#elementsHub" title="Permalink to this headline">¶</a>
         </h4>
         <p>
       A hub is a device that expands a single port into several so
@@ -3491,6 +3534,7 @@ qemu-kvm -net nic,model=? /dev/null
     </p>
         <h4>
           <a name="elementsGraphics" shape="rect" id="elementsGraphics">Graphical framebuffers</a>
+          <a class="headerlink" href="#elementsGraphics" title="Permalink to this headline">¶</a>
         </h4>
         <p>
       A graphics device allows for graphical interaction with the
@@ -3610,6 +3654,7 @@ qemu-kvm -net nic,model=? /dev/null
     &lt;streaming mode='filter'/&gt;
     &lt;clipboard copypaste='no'/&gt;
     &lt;mouse mode='client'/&gt;
+    &lt;filetransfer enable='no'/&gt;
   &lt;/graphics&gt;</pre>
             <p>
               Spice supports variable compression settings for audio,
@@ -3648,6 +3693,13 @@ qemu-kvm -net nic,model=? /dev/null
               <code>server</code> or <code>client</code> ,
               <span class="since">since 0.9.11</span>. If no mode is
               specified, the qemu default will be used (client mode).
+            </p>
+            <p>
+              File transfer functionality (via Spice agent) is set using the
+              <code>filetransfer</code> element.
+              It is enabled by default, and can be disabled by setting the
+              <code>enable</code> property to <code>no</code> ,
+              since <span class="since">since 1.2.2</span>.
             </p>
           </dd><dt><code>"rdp"</code></dt><dd>
             Starts a RDP server. The <code>port</code> attribute
@@ -3711,6 +3763,7 @@ qemu-kvm -net nic,model=? /dev/null
       </dd></dl>
         <h4>
           <a name="elementsVideo" shape="rect" id="elementsVideo">Video devices</a>
+          <a class="headerlink" href="#elementsVideo" title="Permalink to this headline">¶</a>
         </h4>
         <p>
       A video device.
@@ -3760,6 +3813,7 @@ qemu-kvm -net nic,model=? /dev/null
       </dd></dl>
         <h4>
           <a name="elementsConsole" shape="rect" id="elementsConsole">Consoles, serial, parallel &amp; channel devices</a>
+          <a class="headerlink" href="#elementsConsole" title="Permalink to this headline">¶</a>
         </h4>
         <p>
       A character device provides a way to interact with the virtual machine.
@@ -3813,6 +3867,7 @@ qemu-kvm -net nic,model=? /dev/null
     </p>
         <h5>
           <a name="elementsCharGuestInterface" shape="rect" id="elementsCharGuestInterface">Guest interface</a>
+          <a class="headerlink" href="#elementsCharGuestInterface" title="Permalink to this headline">¶</a>
         </h5>
         <p>
       A character device presents itself to the guest as one of the following
@@ -3820,6 +3875,7 @@ qemu-kvm -net nic,model=? /dev/null
     </p>
         <h6>
           <a name="elementCharParallel" shape="rect" id="elementCharParallel">Parallel port</a>
+          <a class="headerlink" href="#elementCharParallel" title="Permalink to this headline">¶</a>
         </h6>
         <pre xml:space="preserve">
   ...
@@ -3837,6 +3893,7 @@ qemu-kvm -net nic,model=? /dev/null
     </p>
         <h6>
           <a name="elementCharSerial" shape="rect" id="elementCharSerial">Serial port</a>
+          <a class="headerlink" href="#elementCharSerial" title="Permalink to this headline">¶</a>
         </h6>
         <pre xml:space="preserve">
   ...
@@ -3861,6 +3918,7 @@ qemu-kvm -net nic,model=? /dev/null
     </p>
         <h6>
           <a name="elementCharConsole" shape="rect" id="elementCharConsole">Console</a>
+          <a class="headerlink" href="#elementCharConsole" title="Permalink to this headline">¶</a>
         </h6>
         <p>
       The console element is used to represent interactive consoles. Depending
@@ -3922,6 +3980,7 @@ qemu-kvm -net nic,model=? /dev/null
     </p>
         <h6>
           <a name="elementCharChannel" shape="rect" id="elementCharChannel">Channel</a>
+          <a class="headerlink" href="#elementCharChannel" title="Permalink to this headline">¶</a>
         </h6>
         <p>
       This represents a private communication channel between the host and the
@@ -3988,6 +4047,7 @@ qemu-kvm -net nic,model=? /dev/null
         <span class="since">Since 0.8.8</span></dd></dl>
         <h5>
           <a name="elementsCharHostInterface" shape="rect" id="elementsCharHostInterface">Host interface</a>
+          <a class="headerlink" href="#elementsCharHostInterface" title="Permalink to this headline">¶</a>
         </h5>
         <p>
       A character device presents itself to the host as one of the following
@@ -3995,6 +4055,7 @@ qemu-kvm -net nic,model=? /dev/null
     </p>
         <h6>
           <a name="elementsCharSTDIO" shape="rect" id="elementsCharSTDIO">Domain logfile</a>
+          <a class="headerlink" href="#elementsCharSTDIO" title="Permalink to this headline">¶</a>
         </h6>
         <p>
       This disables all input on the character device, and sends output
@@ -4010,6 +4071,7 @@ qemu-kvm -net nic,model=? /dev/null
   ...</pre>
         <h6>
           <a name="elementsCharFle" shape="rect" id="elementsCharFle">Device logfile</a>
+          <a class="headerlink" href="#elementsCharFle" title="Permalink to this headline">¶</a>
         </h6>
         <p>
       A file is opened and all data sent to the character
@@ -4026,6 +4088,7 @@ qemu-kvm -net nic,model=? /dev/null
   ...</pre>
         <h6>
           <a name="elementsCharVC" shape="rect" id="elementsCharVC">Virtual console</a>
+          <a class="headerlink" href="#elementsCharVC" title="Permalink to this headline">¶</a>
         </h6>
         <p>
       Connects the character device to the graphical framebuffer in
@@ -4042,6 +4105,7 @@ qemu-kvm -net nic,model=? /dev/null
   ...</pre>
         <h6>
           <a name="elementsCharNull" shape="rect" id="elementsCharNull">Null device</a>
+          <a class="headerlink" href="#elementsCharNull" title="Permalink to this headline">¶</a>
         </h6>
         <p>
       Connects the character device to the void. No data is ever
@@ -4057,6 +4121,7 @@ qemu-kvm -net nic,model=? /dev/null
   ...</pre>
         <h6>
           <a name="elementsCharPTY" shape="rect" id="elementsCharPTY">Pseudo TTY</a>
+          <a class="headerlink" href="#elementsCharPTY" title="Permalink to this headline">¶</a>
         </h6>
         <p>
       A Pseudo TTY is allocated using /dev/ptmx. A suitable client
@@ -4080,6 +4145,7 @@ qemu-kvm -net nic,model=? /dev/null
     </p>
         <h6>
           <a name="elementsCharHost" shape="rect" id="elementsCharHost">Host device proxy</a>
+          <a class="headerlink" href="#elementsCharHost" title="Permalink to this headline">¶</a>
         </h6>
         <p>
       The character device is passed through to the underlying
@@ -4099,6 +4165,7 @@ qemu-kvm -net nic,model=? /dev/null
   ...</pre>
         <h6>
           <a name="elementsCharPipe" shape="rect" id="elementsCharPipe">Named pipe</a>
+          <a class="headerlink" href="#elementsCharPipe" title="Permalink to this headline">¶</a>
         </h6>
         <p>
       The character device writes output to a named pipe. See pipe(7) for
@@ -4115,6 +4182,7 @@ qemu-kvm -net nic,model=? /dev/null
   ...</pre>
         <h6>
           <a name="elementsCharTCP" shape="rect" id="elementsCharTCP">TCP client/server</a>
+          <a class="headerlink" href="#elementsCharTCP" title="Permalink to this headline">¶</a>
         </h6>
         <p>
       The character device acts as a TCP client connecting to a
@@ -4167,6 +4235,7 @@ qemu-kvm -net nic,model=? /dev/null
   ...</pre>
         <h6>
           <a name="elementsCharUDP" shape="rect" id="elementsCharUDP">UDP network console</a>
+          <a class="headerlink" href="#elementsCharUDP" title="Permalink to this headline">¶</a>
         </h6>
         <p>
       The character device acts as a UDP netconsole service,
@@ -4184,6 +4253,7 @@ qemu-kvm -net nic,model=? /dev/null
   ...</pre>
         <h6>
           <a name="elementsCharUNIX" shape="rect" id="elementsCharUNIX">UNIX domain socket client/server</a>
+          <a class="headerlink" href="#elementsCharUNIX" title="Permalink to this headline">¶</a>
         </h6>
         <p>
       The character device acts as a UNIX domain socket server,
@@ -4198,8 +4268,27 @@ qemu-kvm -net nic,model=? /dev/null
     &lt;/serial&gt;
   &lt;/devices&gt;
   ...</pre>
+        <h6>
+          <a name="elementsCharSpiceport" shape="rect" id="elementsCharSpiceport">Spice channel</a>
+          <a class="headerlink" href="#elementsCharSpiceport" title="Permalink to this headline">¶</a>
+        </h6>
+        <p>
+      The character device is accessible through spice connection
+      under a channel name specified in the <code>channel</code>
+      attribute.  <span class="since">Since 1.2.2</span>
+    </p>
+        <pre xml:space="preserve">
+  ...
+  &lt;devices&gt;
+    &lt;serial type="spiceport"&gt;
+      &lt;source channel="org.qemu.console.serial.0"/&gt;
+      &lt;target port="1"/&gt;
+    &lt;/serial&gt;
+  &lt;/devices&gt;
+  ...</pre>
         <h4>
           <a name="elementsSound" shape="rect" id="elementsSound">Sound devices</a>
+          <a class="headerlink" href="#elementsSound" title="Permalink to this headline">¶</a>
         </h4>
         <p>
       A virtual sound card can be attached to the host via the
@@ -4244,6 +4333,7 @@ qemu-kvm -net nic,model=? /dev/null
     </p>
         <h4>
           <a name="elementsWatchdog" shape="rect" id="elementsWatchdog">Watchdog device</a>
+          <a class="headerlink" href="#elementsWatchdog" title="Permalink to this headline">¶</a>
         </h4>
         <p>
       A virtual hardware watchdog device can be added to the guest via
@@ -4309,6 +4399,7 @@ qemu-kvm -net nic,model=? /dev/null
       </dd></dl>
         <h4>
           <a name="elementsMemBalloon" shape="rect" id="elementsMemBalloon">Memory balloon device</a>
+          <a class="headerlink" href="#elementsMemBalloon" title="Permalink to this headline">¶</a>
         </h4>
         <p>
       A virtual memory balloon device is added to all Xen and KVM/QEMU
@@ -4368,6 +4459,7 @@ qemu-kvm -net nic,model=? /dev/null
       </dd></dl>
         <h4>
           <a name="elementsRng" shape="rect" id="elementsRng">Random number generator device</a>
+          <a class="headerlink" href="#elementsRng" title="Permalink to this headline">¶</a>
         </h4>
         <p>
       The virtual random number generator device allows the host to pass
@@ -4434,6 +4526,7 @@ qemu-kvm -net nic,model=? /dev/null
       </dd></dl>
         <h4>
           <a name="elementsTpm" shape="rect" id="elementsTpm">TPM device</a>
+          <a class="headerlink" href="#elementsTpm" title="Permalink to this headline">¶</a>
         </h4>
         <p>
       The TPM device enables a QEMU guest to have access to TPM
@@ -4482,6 +4575,7 @@ qemu-kvm -net nic,model=? /dev/null
       </dd></dl>
         <h4>
           <a name="elementsNVRAM" shape="rect" id="elementsNVRAM">NVRAM device</a>
+          <a class="headerlink" href="#elementsNVRAM" title="Permalink to this headline">¶</a>
         </h4>
         <p>
       nvram device is always added to pSeries guest on PPC64, and its address
@@ -4512,6 +4606,7 @@ qemu-kvm -net nic,model=? /dev/null
     </dd></dl>
         <h4>
           <a name="elementsPanic" shape="rect" id="elementsPanic">panic device</a>
+          <a class="headerlink" href="#elementsPanic" title="Permalink to this headline">¶</a>
         </h4>
         <p>
       panic device enables libvirt to receive panic notification from a QEMU
@@ -4538,6 +4633,7 @@ qemu-kvm -net nic,model=? /dev/null
     </dd></dl>
         <h3>
           <a name="seclabel" shape="rect" id="seclabel">Security label</a>
+          <a class="headerlink" href="#seclabel" title="Permalink to this headline">¶</a>
         </h3>
         <p>
       The <code>seclabel</code> element allows control over the
@@ -4644,6 +4740,7 @@ qemu-kvm -net nic,model=? /dev/null
     </p>
         <h2>
           <a name="examples" shape="rect" id="examples">Example configs</a>
+          <a class="headerlink" href="#examples" title="Permalink to this headline">¶</a>
         </h2>
         <p>
       Example configurations for each driver are provide on the

@@ -1,7 +1,7 @@
 /*
  * qemu_domain.h: QEMU domain private state
  *
- * Copyright (C) 2006-2013 Red Hat, Inc.
+ * Copyright (C) 2006-2014 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -161,6 +161,7 @@ struct _qemuDomainObjPrivate {
     char *origname;
     int nbdPort; /* Port used for migration with NBD */
     unsigned short migrationPort;
+    int preMigrationState;
 
     virChrdevsPtr devs;
 
@@ -173,6 +174,8 @@ struct _qemuDomainObjPrivate {
     virCond unplugFinished; /* signals that unpluggingDevice was unplugged */
     const char *unpluggingDevice; /* alias of the device that is being unplugged */
     char **qemuDevices; /* NULL-terminated list of devices aliases known to QEMU */
+
+    bool hookRun;  /* true if there was a hook run over this domain */
 };
 
 typedef enum {
@@ -352,6 +355,7 @@ int qemuDomainCheckDiskPresence(virQEMUDriverPtr driver,
 int qemuDiskChainCheckBroken(virDomainDiskDefPtr disk);
 
 int qemuDomainDetermineDiskChain(virQEMUDriverPtr driver,
+                                 virDomainObjPtr vm,
                                  virDomainDiskDefPtr disk,
                                  bool force);
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013 Red Hat, Inc.
+ * Copyright (C) 2013-2014 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -32,6 +32,8 @@
 # include "virerror.h"
 # include "virlog.h"
 # include "virfile.h"
+# include "testutilslxc.h"
+# include "nodeinfo.h"
 
 # define VIR_FROM_THIS VIR_FROM_NONE
 
@@ -529,6 +531,222 @@ static int testCgroupAvailable(const void *args)
     return 0;
 }
 
+static int testCgroupGetPercpuStats(const void *args ATTRIBUTE_UNUSED)
+{
+    virCgroupPtr cgroup = NULL;
+    size_t i;
+    int rv, ret = -1;
+    virTypedParameter params[2];
+
+    // TODO: mock nodeGetCPUCount() as well & check 2nd cpu, too
+    unsigned long long expected[] = {
+        1413142688153030ULL
+    };
+
+    if ((rv = virCgroupNewPartition("/virtualmachines", true,
+                                    (1 << VIR_CGROUP_CONTROLLER_CPU) |
+                                    (1 << VIR_CGROUP_CONTROLLER_CPUACCT),
+                                    &cgroup)) < 0) {
+        fprintf(stderr, "Could not create /virtualmachines cgroup: %d\n", -rv);
+        goto cleanup;
+    }
+
+    if (nodeGetCPUCount() < 1) {
+        fprintf(stderr, "Unexpected: nodeGetCPUCount() yields: %d\n", nodeGetCPUCount());
+        goto cleanup;
+    }
+
+    if ((rv = virCgroupGetPercpuStats(cgroup,
+                                      params,
+                                      2, 0, 1)) < 0) {
+        fprintf(stderr, "Failed call to virCgroupGetPercpuStats for /virtualmachines cgroup: %d\n", -rv);
+        goto cleanup;
+    }
+
+    for (i = 0; i < ARRAY_CARDINALITY(expected); i++) {
+        if (!STREQ(params[i].field, VIR_DOMAIN_CPU_STATS_CPUTIME)) {
+            fprintf(stderr,
+                    "Wrong parameter name value from virCgroupGetPercpuStats (is: %s)\n",
+                    params[i].field);
+            goto cleanup;
+        }
+
+        if (params[i].type != VIR_TYPED_PARAM_ULLONG) {
+            fprintf(stderr,
+                    "Wrong parameter value type from virCgroupGetPercpuStats (is: %d)\n",
+                    params[i].type);
+            goto cleanup;
+        }
+
+        if (params[i].value.ul != expected[i]) {
+            fprintf(stderr,
+                    "Wrong value from virCgroupGetMemoryUsage (expected %llu)\n",
+                    params[i].value.ul);
+            goto cleanup;
+        }
+    }
+
+    ret = 0;
+
+cleanup:
+    virCgroupFree(&cgroup);
+    return ret;
+}
+
+static int testCgroupGetMemoryUsage(const void *args ATTRIBUTE_UNUSED)
+{
+    virCgroupPtr cgroup = NULL;
+    int rv, ret = -1;
+    unsigned long kb;
+
+    if ((rv = virCgroupNewPartition("/virtualmachines", true,
+                                    (1 << VIR_CGROUP_CONTROLLER_MEMORY),
+                                    &cgroup)) < 0) {
+        fprintf(stderr, "Could not create /virtualmachines cgroup: %d\n", -rv);
+        goto cleanup;
+    }
+
+    if ((rv = virCgroupGetMemoryUsage(cgroup, &kb)) < 0) {
+        fprintf(stderr, "Could not retrieve GetMemoryUsage for /virtualmachines cgroup: %d\n", -rv);
+        goto cleanup;
+    }
+
+    if (kb != 1421212UL) {
+        fprintf(stderr,
+                "Wrong value from virCgroupGetMemoryUsage (expected %ld)\n",
+                1421212UL);
+        goto cleanup;
+    }
+
+    ret = 0;
+
+cleanup:
+    virCgroupFree(&cgroup);
+    return ret;
+}
+
+static int testCgroupGetBlkioIoServiced(const void *args ATTRIBUTE_UNUSED)
+{
+    virCgroupPtr cgroup = NULL;
+    size_t i;
+    int rv, ret = -1;
+
+    const long long expected_values[] = {
+        119084214273ULL,
+        822880960513ULL,
+        9665167,
+        73283807
+    };
+    const char* names[] = {
+        "bytes read",
+        "bytes written",
+        "requests read",
+        "requests written"
+    };
+    long long values[ARRAY_CARDINALITY(expected_values)];
+
+    if ((rv = virCgroupNewPartition("/virtualmachines", true,
+                                    (1 << VIR_CGROUP_CONTROLLER_BLKIO),
+                                    &cgroup)) < 0) {
+        fprintf(stderr, "Could not create /virtualmachines cgroup: %d\n", -rv);
+        goto cleanup;
+    }
+
+    if ((rv = virCgroupGetBlkioIoServiced(cgroup,
+                                          values, &values[1],
+                                          &values[2], &values[3])) < 0) {
+        fprintf(stderr, "Could not retrieve BlkioIoServiced for /virtualmachines cgroup: %d\n", -rv);
+        goto cleanup;
+    }
+
+    for (i = 0; i < ARRAY_CARDINALITY(expected_values); i++) {
+        if (expected_values[i] != values[i]) {
+            fprintf(stderr,
+                    "Wrong value for %s from virCgroupBlkioIoServiced (expected %lld)\n",
+                    names[i], expected_values[i]);
+            goto cleanup;
+        }
+    }
+
+    ret = 0;
+
+cleanup:
+    virCgroupFree(&cgroup);
+    return ret;
+}
+
+static int testCgroupGetBlkioIoDeviceServiced(const void *args ATTRIBUTE_UNUSED)
+{
+    virCgroupPtr cgroup = NULL;
+    size_t i;
+    int rv, ret = -1;
+    const long long expected_values0[] = {
+        59542107136ULL,
+        411440480256ULL,
+        4832583,
+        36641903
+    };
+    const long long expected_values1[] = {
+        59542107137ULL,
+        411440480257ULL,
+        4832584,
+        36641904
+    };
+    const char* names[] = {
+        "bytes read",
+        "bytes written",
+        "requests read",
+        "requests written"
+    };
+    long long values[ARRAY_CARDINALITY(expected_values0)];
+
+    if ((rv = virCgroupNewPartition("/virtualmachines", true,
+                                    (1 << VIR_CGROUP_CONTROLLER_BLKIO),
+                                    &cgroup)) < 0) {
+        fprintf(stderr, "Could not create /virtualmachines cgroup: %d\n", -rv);
+        goto cleanup;
+    }
+
+    if ((rv = virCgroupGetBlkioIoDeviceServiced(cgroup,
+                                                FAKEDEVDIR0,
+                                                values, &values[1],
+                                                &values[2], &values[3])) < 0) {
+        fprintf(stderr, "Could not retrieve BlkioIoDeviceServiced for /virtualmachines cgroup: %d\n", -rv);
+        goto cleanup;
+    }
+
+    for (i = 0; i < ARRAY_CARDINALITY(expected_values0); i++) {
+        if (expected_values0[i] != values[i]) {
+            fprintf(stderr,
+                    "Wrong value for %s from virCgroupGetBlkioIoDeviceServiced (expected %lld)\n",
+                    names[i], expected_values0[i]);
+            goto cleanup;
+        }
+    }
+
+    if ((rv = virCgroupGetBlkioIoDeviceServiced(cgroup,
+                                                FAKEDEVDIR1,
+                                                values, &values[1],
+                                                &values[2], &values[3])) < 0) {
+        fprintf(stderr, "Could not retrieve BlkioIoDeviceServiced for /virtualmachines cgroup: %d\n", -rv);
+        goto cleanup;
+    }
+
+    for (i = 0; i < ARRAY_CARDINALITY(expected_values1); i++) {
+        if (expected_values1[i] != values[i]) {
+            fprintf(stderr,
+                    "Wrong value for %s from virCgroupGetBlkioIoDeviceServiced (expected %lld)\n",
+                    names[i], expected_values1[i]);
+            goto cleanup;
+        }
+    }
+
+    ret = 0;
+
+cleanup:
+    virCgroupFree(&cgroup);
+    return ret;
+}
 
 # define FAKESYSFSDIRTEMPLATE abs_builddir "/fakesysfsdir-XXXXXX"
 
@@ -569,6 +787,18 @@ mymain(void)
         ret = -1;
 
     if (virtTestRun("Cgroup available", testCgroupAvailable, (void*)0x1) < 0)
+        ret = -1;
+
+    if (virtTestRun("virCgroupGetBlkioIoServiced works", testCgroupGetBlkioIoServiced, NULL) < 0)
+        ret = -1;
+
+    if (virtTestRun("virCgroupGetBlkioIoDeviceServiced works", testCgroupGetBlkioIoDeviceServiced, NULL) < 0)
+        ret = -1;
+
+    if (virtTestRun("virCgroupGetMemoryUsage works", testCgroupGetMemoryUsage, NULL) < 0)
+        ret = -1;
+
+    if (virtTestRun("virCgroupGetPercpuStats works", testCgroupGetPercpuStats, NULL) < 0)
         ret = -1;
 
     setenv("VIR_CGROUP_MOCK_MODE", "allinone", 1);

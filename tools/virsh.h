@@ -1,7 +1,7 @@
 /*
  * virsh.h: a shell to exercise the libvirt API
  *
- * Copyright (C) 2005, 2007-2013 Red Hat, Inc.
+ * Copyright (C) 2005, 2007-2014 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -242,6 +242,9 @@ struct _vshControl {
     virMutex lock;
     bool eventLoopStarted;
     bool quit;
+    int eventPipe[2];           /* Write-to-self pipe to end waiting for an
+                                 * event to occur */
+    int eventTimerId;           /* id of event loop timeout registration */
 
     const char *escapeChar;     /* String representation of
                                    console escape character */
@@ -301,6 +304,8 @@ bool vshCommandOptBool(const vshCmd *cmd, const char *name);
 const vshCmdOpt *vshCommandOptArgv(const vshCmd *cmd,
                                    const vshCmdOpt *opt);
 bool vshCmdHasOption(vshControl *ctl, const vshCmd *cmd, const char *optname);
+
+int vshCommandOptTimeoutToMs(vshControl *ctl, const vshCmd *cmd, int *timeout);
 
 /* Filter flags for various vshCommandOpt*By() functions */
 typedef enum {
@@ -367,6 +372,16 @@ int vshTTYRestore(vshControl *ctl);
 int vshTTYMakeRaw(vshControl *ctl, bool report_errors);
 bool vshTTYAvailable(vshControl *ctl);
 
+/* waiting for events */
+enum {
+    VSH_EVENT_INTERRUPT,
+    VSH_EVENT_TIMEOUT,
+    VSH_EVENT_DONE,
+};
+int vshEventStart(vshControl *ctl, int timeout_ms);
+void vshEventDone(vshControl *ctl);
+int vshEventWait(vshControl *ctl);
+void vshEventCleanup(vshControl *ctl);
 
 /* allocation wrappers */
 void *_vshMalloc(vshControl *ctl, size_t sz, const char *filename, int line);

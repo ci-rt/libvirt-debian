@@ -118,6 +118,10 @@
                         <div>
                           <a title="Driver for Parallels Cloud Server" class="inactive" href="drvparallels.html">Parallels</a>
                         </div>
+                      </li><li>
+                        <div>
+                          <a title="Driver for bhyve" class="inactive" href="drvbhyve.html">Bhyve</a>
+                        </div>
                       </li></ul>
                   </div>
                 </li><li>
@@ -139,6 +143,10 @@
                 </li><li>
                   <div>
                     <a title="Command reference for virsh" class="inactive" href="virshcmdref.html">Virsh Commands</a>
+                  </div>
+                </li><li>
+                  <div>
+                    <a title="Project governance and code of conduct" class="inactive" href="governance.html">Governance</a>
                   </div>
                 </li></ul>
             </div>
@@ -198,6 +206,7 @@
     </p>
         <h2>
           <a name="project" shape="rect" id="project">Project Links</a>
+          <a class="headerlink" href="#project" title="Permalink to this headline">¶</a>
         </h2>
         <ul><li>
         The <a href="http://openvz.org/" shape="rect">OpenVZ</a> Linux container
@@ -205,6 +214,7 @@
       </li></ul>
         <h2>
           <a name="connections" shape="rect" id="connections">Connections to OpenVZ driver</a>
+          <a class="headerlink" href="#connections" title="Permalink to this headline">¶</a>
         </h2>
         <p>
     The libvirt OpenVZ driver is a single-instance privileged driver,
@@ -220,6 +230,7 @@ openvz+ssh://root@example.com/system (remote access, SSH tunnelled)
 </pre>
         <h2>
           <a name="notes" shape="rect" id="notes">Notes on bridged networking</a>
+          <a class="headerlink" href="#notes" title="Permalink to this headline">¶</a>
         </h2>
         <p>
     Bridged networking enables a guest domain (ie container) to have its
@@ -229,6 +240,7 @@ openvz+ssh://root@example.com/system (remote access, SSH tunnelled)
     </p>
         <h3>
           <a name="host" shape="rect" id="host">Host network devices</a>
+          <a class="headerlink" href="#host" title="Permalink to this headline">¶</a>
         </h3>
         <p>
     One or more of the physical devices must be attached to a bridge. The
@@ -240,6 +252,7 @@ openvz+ssh://root@example.com/system (remote access, SSH tunnelled)
     </p>
         <h3>
           <a name="tools" shape="rect" id="tools">OpenVZ tools configuration</a>
+          <a class="headerlink" href="#tools" title="Permalink to this headline">¶</a>
         </h3>
         <p>
     OpenVZ releases later than 3.0.23 ship with a standard network device
@@ -262,6 +275,7 @@ EXTERNAL_SCRIPT="/usr/sbin/vznetaddbr"
     </p>
         <h2>
           <a name="example" shape="rect" id="example">Example guest domain XML configuration</a>
+          <a class="headerlink" href="#example" title="Permalink to this headline">¶</a>
         </h2>
         <p>
     The current libvirt OpenVZ driver has a restriction that the
