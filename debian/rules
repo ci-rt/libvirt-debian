@@ -28,6 +28,7 @@ ifneq (,$(findstring $(DEB_HOST_ARCH_OS), linux))
   WITH_NETCF          = --with-netcf
   WITH_SANLOCK        = --with-sanlock
   WITH_INIT_SCRIPT    =	--with-init-script=systemd
+  WITH_SYSTEMD        = --with-systemd-daemon
   WITH_AUDIT          = --with-audit
   WITH_SELINUX        = --with-selinux --with-secdriver-selinux --with-selinux-mount=/sys/fs/selinux
   WITH_APPARMOR       = --with-apparmor --with-secdriver-apparmor --with-apparmor-profiles
@@ -62,6 +63,7 @@ else
   WITH_NUMA           = --without-numactl
   WITH_NETCF          = --without-netcf
   WITH_INIT_SCRIPT    =	--with-init-script=none
+  WITH_SYSTEMD        = --without-systemd-daemon
   WITH_AUDIT          = --without-audit
   WITH_SELINUX        = --without-selinux
   WITH_APPARMOR       = --without-apparmor
