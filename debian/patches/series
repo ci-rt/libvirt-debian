@@ -11,3 +11,5 @@ Reduce-udevadm-settle-timeout-to-10-seconds.patch
 debian/Debianize-systemd-service-files.patch
 Allow-xen-toolstack-to-find-it-s-binaries.patch
 Skip-vircgrouptest.patch
+tests-Don-t-crash-when-creating-the-config-object-fa.patch
+tests-Only-use-privileged-mode-if-Qemu-user-and-grou.patch
