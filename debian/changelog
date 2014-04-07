@@ -1,3 +1,33 @@
+libvirt (1.2.3-1) experimental; urgency=medium
+
+  * [aa5cd19] /etc/init.d/libvirt-guests: source /lib/lsb/init-function.
+    This make sure we redirect calls to systemctl correctly
+    Thanks to Laurent Bigonville (Closes: #739082)
+  * [9be0bf9] Remove old restart handling code from postinst.
+    This brings the dh_installinit calls in line with the dh_systemd_start
+    calls.
+    Thanks to Laurent Bigonville (Closes: #739096)
+  * [9c408f9] New upstream version 1.2.2. Fixes CVE-2013-6456
+    (Closes: #741276, #732394)
+  * [e2f0077] Bump symbols versions
+  * [c7bf776] Update patches.
+    Dropped
+      xen-fix-parsing-xend-http-response.patch - applied upstream
+  * [cca8c1e] New upstream version 1.2.3
+  * [11ad777] New patch Skip-vircgrouptest.patch.
+    Skip vircgrouptest since the sys emulating code isn't complete and fails
+    in our /sys free chroot.
+  * [448ab8c] Build-depend on libsystemd-daemon-dev on linux
+  * [66f2a93] Refresh patches
+  * [3038786] Fix test failures
+  * [bbed2fd] Depend on libattr1-dev for selinux tests
+  * [659fc63] Bump symbol versions
+  * [618b64f] Adjust systemd installation to upstream changes
+  * [1850e36] Bump standards version
+  * [e934847] libvirt-guests: avoid bashism
+
+ -- Guido Günther <agx@sigxcpu.org>  Mon, 07 Apr 2014 12:15:02 +0200
+
 libvirt (1.2.1-2) unstable; urgency=medium
 
   * [e936a7e] Document libvirt user capabilities
