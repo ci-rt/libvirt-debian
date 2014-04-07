@@ -142,8 +142,10 @@ override_dh_install:
 	    debian/libvirt-bin.libvirt-guests.init
 	cp tools/libvirt-guests.sysconf \
 	    debian/libvirt-bin.libvirt-guests.default
-	-mv debian/libvirt-bin/lib/systemd/system/libvirtd.service \
-	    debian/libvirt-bin/lib/systemd/system/libvirt-bin.service
+ifneq (,$(findstring $(DEB_HOST_ARCH_OS), linux))
+	mv debian/libvirt-bin/lib/systemd/system/libvirtd.service \
+	   debian/libvirt-bin/lib/systemd/system/libvirt-bin.service
+endif
 
 	for l in $(LOGROTATE); do \
 		cp $(CURDIR)/debian/build/daemon/$$l.logrotate \
@@ -179,4 +181,5 @@ override_dh_auto_clean:
 	rm -f $(CURDIR)/debian/libvirt-bin.libvirt-guests.init
 	rm -f $(CURDIR)/debian/libvirt-bin.libvirt-guests.default
 	rm -f $(CURDIR)/debian/libvirt-bin.*.logrotate
+	rm -f $(CURDIR)/debian/*.service
 	rm -rf $(DEB_BUILDDIR)
