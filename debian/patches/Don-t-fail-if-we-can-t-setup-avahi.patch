@@ -7,10 +7,10 @@ Subject: Don't fail if we can't setup avahi
  1 file changed, 1 insertion(+), 2 deletions(-)
 
 diff --git a/src/rpc/virnetserver.c b/src/rpc/virnetserver.c
-index f70e260..92072f6 100644
+index 7e3fc0a..3f13fac 100644
 --- a/src/rpc/virnetserver.c
 +++ b/src/rpc/virnetserver.c
-@@ -1071,8 +1071,7 @@ void virNetServerRun(virNetServerPtr srv)
+@@ -1093,8 +1093,7 @@ void virNetServerRun(virNetServerPtr srv)
  
      virObjectLock(srv);
  

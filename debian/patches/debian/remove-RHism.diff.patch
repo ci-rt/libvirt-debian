@@ -7,10 +7,10 @@ Subject: remove-RHism.diff
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/tools/virsh.pod b/tools/virsh.pod
-index ab9bdd9..9712174 100644
+index ba2da20..638016f 100644
 --- a/tools/virsh.pod
 +++ b/tools/virsh.pod
-@@ -107,7 +107,7 @@ alphabetic character, @, [, ], \, ^, _.
+@@ -119,7 +119,7 @@ virsh is coming from and which options and driver are compiled in.
  
  Most B<virsh> operations rely upon the libvirt library being able to
  connect to an already running libvirtd service.  This can usually be

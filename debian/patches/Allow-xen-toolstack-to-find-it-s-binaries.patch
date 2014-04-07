@@ -19,7 +19,7 @@ Closes: #685749
  12 files changed, 24 insertions(+), 26 deletions(-)
 
 diff --git a/docs/schemas/capability.rng b/docs/schemas/capability.rng
-index aee03d7..6ffe626 100644
+index d2d9776..fd31d1c 100644
 --- a/docs/schemas/capability.rng
 +++ b/docs/schemas/capability.rng
 @@ -271,13 +271,13 @@
@@ -39,10 +39,10 @@ index aee03d7..6ffe626 100644
    </define>
  
 diff --git a/src/xen/xen_hypervisor.c b/src/xen/xen_hypervisor.c
-index 8a89c32..9221c62 100644
+index 30a14e7..e425e15 100644
 --- a/src/xen/xen_hypervisor.c
 +++ b/src/xen/xen_hypervisor.c
-@@ -2139,11 +2139,9 @@ xenHypervisorBuildCapabilities(virConnectPtr conn, virArch hostarch,
+@@ -2142,11 +2142,9 @@ xenHypervisorBuildCapabilities(virConnectPtr conn, virArch hostarch,
          if ((guest = virCapabilitiesAddGuest(caps,
                                               guest_archs[i].hvm ? "hvm" : "xen",
                                               guest_archs[i].arch,

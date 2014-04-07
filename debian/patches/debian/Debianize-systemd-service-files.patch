@@ -8,10 +8,10 @@ Subject: Debianize systemd service files
  2 files changed, 4 insertions(+), 4 deletions(-)
 
 diff --git a/daemon/libvirtd.service.in b/daemon/libvirtd.service.in
-index e1f2a07..f33a08e 100644
+index 086da36..9bc433c 100644
 --- a/daemon/libvirtd.service.in
 +++ b/daemon/libvirtd.service.in
-@@ -14,8 +14,8 @@ Documentation=http://libvirt.org
+@@ -15,8 +15,8 @@ Documentation=http://libvirt.org
  
  [Service]
  Type=notify
