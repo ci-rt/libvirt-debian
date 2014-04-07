@@ -75,6 +75,8 @@
 
 #define VIR_FROM_THIS VIR_FROM_NETWORK
 
+VIR_LOG_INIT("network.bridge_driver");
+
 static void networkDriverLock(virNetworkDriverStatePtr driver)
 {
     virMutexLock(&driver->lock);
@@ -186,7 +188,7 @@ networkRunHook(virNetworkObjPtr network,
     }
 
     ret = 0;
-cleanup:
+ cleanup:
     virBufferFreeAndReset(&buf);
     VIR_FREE(xml);
     VIR_FREE(net_xml);
@@ -291,7 +293,7 @@ networkRemoveInactive(virNetworkDriverStatePtr driver,
 
     ret = 0;
 
-cleanup:
+ cleanup:
     VIR_FREE(leasefile);
     VIR_FREE(configfile);
     VIR_FREE(radvdconfigfile);
@@ -378,7 +380,8 @@ networkFindActiveConfigs(virNetworkDriverStatePtr driver)
 
 
 static void
-networkAutostartConfigs(virNetworkDriverStatePtr driver) {
+networkAutostartConfigs(virNetworkDriverStatePtr driver)
+{
     size_t i;
 
     for (i = 0; i < driver->networks.count; i++) {
@@ -396,7 +399,8 @@ networkAutostartConfigs(virNetworkDriverStatePtr driver) {
 #if HAVE_FIREWALLD
 static DBusHandlerResult
 firewalld_dbus_filter_bridge(DBusConnection *connection ATTRIBUTE_UNUSED,
-                             DBusMessage *message, void *user_data) {
+                             DBusMessage *message, void *user_data)
+{
     virNetworkDriverStatePtr _driverState = user_data;
 
     if (dbus_message_is_signal(message, DBUS_INTERFACE_DBUS,
@@ -530,12 +534,12 @@ networkStateInitialize(bool privileged,
 #endif
 
     ret = 0;
-cleanup:
+ cleanup:
     VIR_FREE(configdir);
     VIR_FREE(rundir);
     return ret;
 
-error:
+ error:
     if (driverState)
         networkDriverUnlock(driverState);
     networkStateCleanup();
@@ -565,7 +569,8 @@ networkStateAutoStart(void)
  * files and update its state and the networking
  */
 static int
-networkStateReload(void) {
+networkStateReload(void)
+{
     if (!driverState)
         return 0;
 
@@ -589,7 +594,8 @@ networkStateReload(void) {
  * Shutdown the QEmu daemon, it will stop all active domains and networks
  */
 static int
-networkStateCleanup(void) {
+networkStateCleanup(void)
+{
     if (!driverState)
         return -1;
 
@@ -674,7 +680,7 @@ networkKillDaemon(pid_t pid, const char *daemonName, const char *networkName)
     VIR_WARN("Timed out waiting after SIG%s to %s process %d "
              "(network '%s')",
              signame, daemonName, pid, networkName);
-cleanup:
+ cleanup:
     return ret;
 }
 
@@ -734,10 +740,6 @@ networkDnsmasqConfContents(virNetworkObjPtr network,
     int r, ret = -1;
     int nbleases = 0;
     size_t i;
-    char *record = NULL;
-    char *recordPort = NULL;
-    char *recordWeight = NULL;
-    char *recordPriority = NULL;
     virNetworkDNSDefPtr dns = &network->def->dns;
     virNetworkIpDefPtr tmpipdef, ipdef, ipv4def, ipv6def;
     bool ipv6SLAAC;
@@ -878,33 +880,57 @@ networkDnsmasqConfContents(virNetworkObjPtr network,
     }
 
     for (i = 0; i < dns->nsrvs; i++) {
-        if (dns->srvs[i].service && dns->srvs[i].protocol) {
-            if (dns->srvs[i].port &&
-                virAsprintf(&recordPort, "%d", dns->srvs[i].port) < 0)
-                goto cleanup;
-            if (dns->srvs[i].priority &&
-                virAsprintf(&recordPriority, "%d", dns->srvs[i].priority) < 0)
-                goto cleanup;
-            if (dns->srvs[i].weight &&
-                virAsprintf(&recordWeight, "%d", dns->srvs[i].weight) < 0)
-                goto cleanup;
-
-            if (virAsprintf(&record, "%s.%s.%s,%s,%s,%s,%s",
-                            dns->srvs[i].service,
-                            dns->srvs[i].protocol,
-                            dns->srvs[i].domain ? dns->srvs[i].domain : "",
-                            dns->srvs[i].target ? dns->srvs[i].target : "",
-                            recordPort           ? recordPort           : "",
-                            recordPriority       ? recordPriority       : "",
-                            recordWeight         ? recordWeight         : "") < 0)
-                goto cleanup;
-
-            virBufferAsprintf(&configbuf, "srv-host=%s\n", record);
-            VIR_FREE(record);
-            VIR_FREE(recordPort);
-            VIR_FREE(recordWeight);
-            VIR_FREE(recordPriority);
+        /* service/protocol are required, and should have been validated
+         * by the parser.
+         */
+        if (!dns->srvs[i].service) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Missing required 'service' "
+                             "attribute in SRV record of network '%s'"),
+                           network->def->name);
+            goto cleanup;
         }
+        if (!dns->srvs[i].protocol) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Missing required 'service' "
+                             "attribute in SRV record of network '%s'"),
+                           network->def->name);
+            goto cleanup;
+        }
+        /* RFC2782 requires that service and protocol be preceded by
+         * an underscore.
+         */
+        virBufferAsprintf(&configbuf, "srv-host=_%s._%s",
+                          dns->srvs[i].service, dns->srvs[i].protocol);
+
+        /* domain is optional - it defaults to the domain of this network */
+        if (dns->srvs[i].domain)
+            virBufferAsprintf(&configbuf, ".%s", dns->srvs[i].domain);
+
+        /* If target is empty or ".", that means "the service is
+         * decidedly not available at this domain" (RFC2782). In that
+         * case, any port, priority, or weight is irrelevant.
+         */
+        if (dns->srvs[i].target && STRNEQ(dns->srvs[i].target, ".")) {
+
+            virBufferAsprintf(&configbuf, ",%s", dns->srvs[i].target);
+            /* port, priority, and weight are optional, but are
+             * identified by their position in the line. If an item is
+             * unspecified, but something later in the line *is*
+             * specified, we need to give the default value for the
+             * unspecified item. (According to the dnsmasq manpage,
+             * the default for port is 1).
+             */
+            if (dns->srvs[i].port ||
+                dns->srvs[i].priority || dns->srvs[i].weight)
+                virBufferAsprintf(&configbuf, ",%d",
+                                  dns->srvs[i].port ? dns->srvs[i].port : 1);
+            if (dns->srvs[i].priority || dns->srvs[i].weight)
+                virBufferAsprintf(&configbuf, ",%d", dns->srvs[i].priority);
+            if (dns->srvs[i].weight)
+                virBufferAsprintf(&configbuf, ",%d", dns->srvs[i].weight);
+        }
+        virBufferAddLit(&configbuf, "\n");
     }
 
     /* Find the first dhcp for both IPv4 and IPv6 */
@@ -1078,12 +1104,8 @@ networkDnsmasqConfContents(virNetworkObjPtr network,
 
     ret = 0;
 
-cleanup:
+ cleanup:
     virBufferFreeAndReset(&configbuf);
-    VIR_FREE(record);
-    VIR_FREE(recordPort);
-    VIR_FREE(recordWeight);
-    VIR_FREE(recordPriority);
     return ret;
 }
 
@@ -1122,7 +1144,7 @@ networkBuildDhcpDaemonCommandLine(virNetworkObjPtr network,
     virCommandAddArgFormat(cmd, "--conf-file=%s", configfile);
     *cmdout = cmd;
     ret = 0;
-cleanup:
+ cleanup:
     VIR_FREE(configfile);
     VIR_FREE(configstr);
     return ret;
@@ -1202,7 +1224,7 @@ networkStartDhcpDaemon(virNetworkDriverStatePtr driver,
         goto cleanup;
 
     ret = 0;
-cleanup:
+ cleanup:
     VIR_FREE(pidfile);
     virCommandFree(cmd);
     dnsmasqContextFree(dctx);
@@ -1272,7 +1294,7 @@ networkRefreshDhcpDaemon(virNetworkDriverStatePtr driver,
         goto cleanup;
 
     ret = kill(network->dnsmasqPid, SIGHUP);
-cleanup:
+ cleanup:
     dnsmasqContextFree(dctx);
     return ret;
 }
@@ -1384,7 +1406,7 @@ networkRadvdConfContents(virNetworkObjPtr network, char **configstr)
     }
 
     ret = 0;
-cleanup:
+ cleanup:
     virBufferFreeAndReset(&configbuf);
     return ret;
 }
@@ -1422,7 +1444,7 @@ networkRadvdConfWrite(virNetworkObjPtr network, char **configFile)
     }
 
     ret = 0;
-cleanup:
+ cleanup:
     VIR_FREE(configStr);
     VIR_FREE(myConfigFile);
     return ret;
@@ -1506,7 +1528,7 @@ networkStartRadvd(virNetworkDriverStatePtr driver ATTRIBUTE_UNUSED,
         goto cleanup;
 
     ret = 0;
-cleanup:
+ cleanup:
     virCommandFree(cmd);
     VIR_FREE(configfile);
     VIR_FREE(radvdpidbase);
@@ -1723,7 +1745,7 @@ networkSetIPv6Sysctls(virNetworkObjPtr network)
     }
 
     ret = 0;
-cleanup:
+ cleanup:
     VIR_FREE(field);
     return ret;
 }
@@ -2111,7 +2133,7 @@ networkStartNetwork(virNetworkDriverStatePtr driver,
     VIR_INFO("Network '%s' started up", network->def->name);
     ret = 0;
 
-cleanup:
+ cleanup:
     if (ret < 0) {
         virNetworkObjUnsetDefTransient(network);
         virErrorPtr save_err = virSaveLastError();
@@ -2171,7 +2193,8 @@ static int networkShutdownNetwork(virNetworkDriverStatePtr driver,
 
 
 static virNetworkPtr networkLookupByUUID(virConnectPtr conn,
-                                         const unsigned char *uuid) {
+                                         const unsigned char *uuid)
+{
     virNetworkDriverStatePtr driver = conn->networkPrivateData;
     virNetworkObjPtr network;
     virNetworkPtr ret = NULL;
@@ -2190,14 +2213,15 @@ static virNetworkPtr networkLookupByUUID(virConnectPtr conn,
 
     ret = virGetNetwork(conn, network->def->name, network->def->uuid);
 
-cleanup:
+ cleanup:
     if (network)
         virNetworkObjUnlock(network);
     return ret;
 }
 
 static virNetworkPtr networkLookupByName(virConnectPtr conn,
-                                         const char *name) {
+                                         const char *name)
+{
     virNetworkDriverStatePtr driver = conn->networkPrivateData;
     virNetworkObjPtr network;
     virNetworkPtr ret = NULL;
@@ -2216,7 +2240,7 @@ static virNetworkPtr networkLookupByName(virConnectPtr conn,
 
     ret = virGetNetwork(conn, network->def->name, network->def->uuid);
 
-cleanup:
+ cleanup:
     if (network)
         virNetworkObjUnlock(network);
     return ret;
@@ -2235,12 +2259,14 @@ static virDrvOpenStatus networkOpen(virConnectPtr conn,
     return VIR_DRV_OPEN_SUCCESS;
 }
 
-static int networkClose(virConnectPtr conn) {
+static int networkClose(virConnectPtr conn)
+{
     conn->networkPrivateData = NULL;
     return 0;
 }
 
-static int networkConnectNumOfNetworks(virConnectPtr conn) {
+static int networkConnectNumOfNetworks(virConnectPtr conn)
+{
     int nactive = 0;
     size_t i;
     virNetworkDriverStatePtr driver = conn->networkPrivateData;
@@ -2295,7 +2321,8 @@ static int networkConnectListNetworks(virConnectPtr conn, char **const names, in
     return -1;
 }
 
-static int networkConnectNumOfDefinedNetworks(virConnectPtr conn) {
+static int networkConnectNumOfDefinedNetworks(virConnectPtr conn)
+{
     int ninactive = 0;
     size_t i;
     virNetworkDriverStatePtr driver = conn->networkPrivateData;
@@ -2368,7 +2395,7 @@ networkConnectListAllNetworks(virConnectPtr conn,
                                   flags);
     networkDriverUnlock(driver);
 
-cleanup:
+ cleanup:
     return ret;
 }
 
@@ -2391,7 +2418,7 @@ networkConnectNetworkEventRegisterAny(virConnectPtr conn,
                                        opaque, freecb, &ret) < 0)
         ret = -1;
 
-cleanup:
+ cleanup:
     return ret;
 }
 
@@ -2412,7 +2439,7 @@ networkConnectNetworkEventDeregisterAny(virConnectPtr conn,
 
     ret = 0;
 
-cleanup:
+ cleanup:
     return ret;
 }
 
@@ -2429,7 +2456,7 @@ static int networkIsActive(virNetworkPtr net)
 
     ret = virNetworkObjIsActive(obj);
 
-cleanup:
+ cleanup:
     if (obj)
         virNetworkObjUnlock(obj);
     return ret;
@@ -2448,7 +2475,7 @@ static int networkIsPersistent(virNetworkPtr net)
 
     ret = obj->persistent;
 
-cleanup:
+ cleanup:
     if (obj)
         virNetworkObjUnlock(obj);
     return ret;
@@ -2621,7 +2648,8 @@ networkValidate(virNetworkDriverStatePtr driver,
     return 0;
 }
 
-static virNetworkPtr networkCreateXML(virConnectPtr conn, const char *xml) {
+static virNetworkPtr networkCreateXML(virConnectPtr conn, const char *xml)
+{
     virNetworkDriverStatePtr driver = conn->networkPrivateData;
     virNetworkDefPtr def;
     virNetworkObjPtr network = NULL;
@@ -2661,7 +2689,7 @@ static virNetworkPtr networkCreateXML(virConnectPtr conn, const char *xml) {
     VIR_INFO("Creating network '%s'", network->def->name);
     ret = virGetNetwork(conn, network->def->name, network->def->uuid);
 
-cleanup:
+ cleanup:
     virNetworkDefFree(def);
     if (event)
         virObjectEventStateQueue(driver->networkEventState, event);
@@ -2671,7 +2699,8 @@ cleanup:
     return ret;
 }
 
-static virNetworkPtr networkDefineXML(virConnectPtr conn, const char *xml) {
+static virNetworkPtr networkDefineXML(virConnectPtr conn, const char *xml)
+{
     virNetworkDriverStatePtr driver = conn->networkPrivateData;
     virNetworkDefPtr def = NULL;
     bool freeDef = true;
@@ -2724,7 +2753,7 @@ static virNetworkPtr networkDefineXML(virConnectPtr conn, const char *xml) {
     VIR_INFO("Defining network '%s'", def->name);
     ret = virGetNetwork(conn, def->name, def->uuid);
 
-cleanup:
+ cleanup:
     if (event)
         virObjectEventStateQueue(driver->networkEventState, event);
     if (freeDef)
@@ -2736,7 +2765,8 @@ cleanup:
 }
 
 static int
-networkUndefine(virNetworkPtr net) {
+networkUndefine(virNetworkPtr net)
+{
     virNetworkDriverStatePtr driver = net->conn->networkPrivateData;
     virNetworkObjPtr network;
     int ret = -1;
@@ -2785,7 +2815,7 @@ networkUndefine(virNetworkPtr net) {
 
     ret = 0;
 
-cleanup:
+ cleanup:
     if (event)
         virObjectEventStateQueue(driver->networkEventState, event);
     if (network)
@@ -2960,14 +2990,15 @@ networkUpdate(virNetworkPtr net,
         }
     }
     ret = 0;
-cleanup:
+ cleanup:
     if (network)
         virNetworkObjUnlock(network);
     networkDriverUnlock(driver);
     return ret;
 }
 
-static int networkCreate(virNetworkPtr net) {
+static int networkCreate(virNetworkPtr net)
+{
     virNetworkDriverStatePtr driver = net->conn->networkPrivateData;
     virNetworkObjPtr network;
     int ret = -1;
@@ -2992,7 +3023,7 @@ static int networkCreate(virNetworkPtr net) {
                                         VIR_NETWORK_EVENT_STARTED,
                                         0);
 
-cleanup:
+ cleanup:
     if (event)
         virObjectEventStateQueue(driver->networkEventState, event);
     if (network)
@@ -3001,7 +3032,8 @@ cleanup:
     return ret;
 }
 
-static int networkDestroy(virNetworkPtr net) {
+static int networkDestroy(virNetworkPtr net)
+{
     virNetworkDriverStatePtr driver = net->conn->networkPrivateData;
     virNetworkObjPtr network;
     int ret = -1;
@@ -3042,7 +3074,7 @@ static int networkDestroy(virNetworkPtr net) {
         network = NULL;
     }
 
-cleanup:
+ cleanup:
     if (event)
         virObjectEventStateQueue(driver->networkEventState, event);
     if (network)
@@ -3073,7 +3105,7 @@ static char *networkGetXMLDesc(virNetworkPtr net,
 
     ret = virNetworkDefFormat(def, flags);
 
-cleanup:
+ cleanup:
     if (network)
         virNetworkObjUnlock(network);
     return ret;
@@ -3098,14 +3130,15 @@ static char *networkGetBridgeName(virNetworkPtr net) {
 
     ignore_value(VIR_STRDUP(bridge, network->def->bridge));
 
-cleanup:
+ cleanup:
     if (network)
         virNetworkObjUnlock(network);
     return bridge;
 }
 
 static int networkGetAutostart(virNetworkPtr net,
-                             int *autostart) {
+                             int *autostart)
+{
     virNetworkObjPtr network;
     int ret = -1;
 
@@ -3118,14 +3151,15 @@ static int networkGetAutostart(virNetworkPtr net,
     *autostart = network->autostart;
     ret = 0;
 
-cleanup:
+ cleanup:
     if (network)
         virNetworkObjUnlock(network);
     return ret;
 }
 
 static int networkSetAutostart(virNetworkPtr net,
-                               int autostart) {
+                               int autostart)
+{
     virNetworkDriverStatePtr driver = net->conn->networkPrivateData;
     virNetworkObjPtr network;
     char *configFile = NULL, *autostartLink = NULL;
@@ -3184,7 +3218,7 @@ static int networkSetAutostart(virNetworkPtr net,
     }
     ret = 0;
 
-cleanup:
+ cleanup:
     VIR_FREE(configFile);
     VIR_FREE(autostartLink);
     if (network)
@@ -3229,10 +3263,12 @@ static virStateDriver networkStateDriver = {
     .stateReload = networkStateReload,
 };
 
-int networkRegister(void) {
+int networkRegister(void)
+{
     if (virRegisterNetworkDriver(&networkDriver) < 0)
         return -1;
-    virRegisterStateDriver(&networkStateDriver);
+    if (virRegisterStateDriver(&networkStateDriver) < 0)
+        return -1;
     return 0;
 }
 
@@ -3252,7 +3288,8 @@ int networkRegister(void) {
  * Creates an implicit interface pool of VF's when a PF dev is given
  */
 static int
-networkCreateInterfacePool(virNetworkDefPtr netdef) {
+networkCreateInterfacePool(virNetworkDefPtr netdef)
+{
     size_t num_virt_fns = 0;
     char **vfname = NULL;
     virPCIDeviceAddressPtr *virt_fns;
@@ -3305,7 +3342,7 @@ networkCreateInterfacePool(virNetworkDefPtr netdef) {
     }
 
     ret = 0;
-finish:
+ finish:
     for (i = 0; i < num_virt_fns; i++) {
         VIR_FREE(vfname[i]);
         VIR_FREE(virt_fns[i]);
@@ -3630,7 +3667,7 @@ networkAllocateActualDevice(virDomainDefPtr dom,
     if (virNetDevVPortProfileCheckComplete(virtport, true) < 0)
         goto error;
 
-validate:
+ validate:
     /* make sure that everything now specified for the device is
      * actually supported on this type of network. NB: network,
      * netdev, and iface->data.network.actual may all be NULL.
@@ -3695,12 +3732,12 @@ validate:
 
     ret = 0;
 
-cleanup:
+ cleanup:
     if (network)
         virNetworkObjUnlock(network);
     return ret;
 
-error:
+ error:
     if (iface->type == VIR_DOMAIN_NET_TYPE_NETWORK) {
         virDomainActualNetDefFree(iface->data.network.actual);
         iface->data.network.actual = NULL;
@@ -3873,7 +3910,7 @@ networkNotifyActualDevice(virDomainDefPtr dom,
                   dev->connections);
     }
 
-success:
+ success:
     netdef->connections++;
     VIR_DEBUG("Using network %s, %d connections",
               netdef->name, netdef->connections);
@@ -3889,12 +3926,12 @@ success:
     }
 
     ret = 0;
-cleanup:
+ cleanup:
     if (network)
         virNetworkObjUnlock(network);
     return ret;
 
-error:
+ error:
     goto cleanup;
 }
 
@@ -4029,7 +4066,7 @@ networkReleaseActualDevice(virDomainDefPtr dom,
                   dev->connections);
    }
 
-success:
+ success:
     if (iface->data.network.actual) {
         netdef->connections--;
         VIR_DEBUG("Releasing network %s, %d connections",
@@ -4040,7 +4077,7 @@ success:
                        VIR_HOOK_SUBOP_BEGIN);
     }
     ret = 0;
-cleanup:
+ cleanup:
     if (network)
         virNetworkObjUnlock(network);
     if (iface->type == VIR_DOMAIN_NET_TYPE_NETWORK) {
@@ -4049,7 +4086,7 @@ cleanup:
     }
     return ret;
 
-error:
+ error:
     goto cleanup;
 }
 
@@ -4144,12 +4181,12 @@ networkGetNetworkAddress(const char *netname, char **netaddr)
     }
 
     ret = 0;
-cleanup:
+ cleanup:
     if (network)
         virNetworkObjUnlock(network);
     return ret;
 
-error:
+ error:
     goto cleanup;
 }
 
@@ -4222,7 +4259,7 @@ networkCheckBandwidth(virNetworkObjPtr net,
     *new_rate = tmp_new_rate;
     ret = 0;
 
-cleanup:
+ cleanup:
     return ret;
 }
 
@@ -4317,7 +4354,7 @@ networkPlugBandwidth(virNetworkObjPtr net,
 
     ret = 0;
 
-cleanup:
+ cleanup:
     return ret;
 }
 
@@ -4368,7 +4405,7 @@ networkUnplugBandwidth(virNetworkObjPtr net,
         iface->data.network.actual->class_id = 0;
     }
 
-cleanup:
+ cleanup:
     return ret;
 }
 

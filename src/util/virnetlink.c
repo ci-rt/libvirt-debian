@@ -48,6 +48,8 @@
 
 #define VIR_FROM_THIS VIR_FROM_NET
 
+VIR_LOG_INIT("util.netlink");
+
 #define NETLINK_ACK_TIMEOUT_S  (2*1000)
 
 #if defined(__linux__) && defined(HAVE_LIBNL)
@@ -262,7 +264,7 @@ int virNetlinkCommand(struct nl_msg *nl_msg,
                              "%s", _("nl_recv failed"));
         rc = -1;
     }
-error:
+ error:
     if (rc == -1) {
         VIR_FREE(*resp);
         *resp = NULL;
@@ -576,12 +578,12 @@ virNetlinkEventServiceStart(unsigned int protocol, unsigned int groups)
     ret = 0;
     server[protocol] = srv;
 
-error_server:
+ error_server:
     if (ret < 0) {
         nl_close(srv->netlinknh);
         virNetlinkFree(srv->netlinknh);
     }
-error_locked:
+ error_locked:
     virNetlinkEventServerUnlock(srv);
     if (ret < 0) {
         virMutexDestroy(&srv->lock);
@@ -650,7 +652,7 @@ virNetlinkEventAddClient(virNetlinkEventHandleCallback handleCB,
     }
     r = srv->handlesCount++;
 
-addentry:
+ addentry:
     srv->handles[r].watch    = nextWatch;
     srv->handles[r].handleCB = handleCB;
     srv->handles[r].removeCB = removeCB;
@@ -665,7 +667,7 @@ addentry:
     VIR_DEBUG("added client to loop slot: %d. with macaddr ptr=%p", r, macaddr);
 
     ret = nextWatch++;
-error:
+ error:
     virNetlinkEventServerUnlock(srv);
     return ret;
 }
@@ -722,7 +724,7 @@ virNetlinkEventRemoveClient(int watch, const virMacAddr *macaddr,
     }
     VIR_DEBUG("no client found to remove.");
 
-cleanup:
+ cleanup:
     virNetlinkEventServerUnlock(srv);
     return ret;
 }

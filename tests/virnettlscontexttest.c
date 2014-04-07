@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2013 Red Hat, Inc.
+ * Copyright (C) 2011-2014 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -39,6 +39,8 @@
 # include "rpc/virnettlscontext.h"
 
 # define VIR_FROM_THIS VIR_FROM_RPC
+
+VIR_LOG_INIT("tests.nettlscontexttest");
 
 # define KEYFILE "key-ctx.pem"
 
@@ -99,7 +101,7 @@ static int testTLSContextInit(const void *opaque)
 
     ret = 0;
 
-cleanup:
+ cleanup:
     virObjectUnref(ctxt);
     return ret;
 }
@@ -625,7 +627,7 @@ mymain(void)
 
     testTLSCleanup(KEYFILE);
 
-    return ret==0 ? EXIT_SUCCESS : EXIT_FAILURE;
+    return ret == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
 VIRT_TEST_MAIN(mymain)

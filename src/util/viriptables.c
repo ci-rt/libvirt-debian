@@ -1,7 +1,7 @@
 /*
  * viriptables.c: helper APIs for managing iptables
  *
- * Copyright (C) 2007-2013 Red Hat, Inc.
+ * Copyright (C) 2007-2014 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -50,6 +50,8 @@
 #include "virstring.h"
 #include "virutil.h"
 
+VIR_LOG_INIT("util.iptables");
+
 bool iptables_supports_xlock = false;
 
 #if HAVE_FIREWALLD
@@ -71,6 +73,7 @@ virIpTablesOnceInit(void)
         cmd = virCommandNew(firewall_cmd_path);
 
         virCommandAddArgList(cmd, "--state", NULL);
+        /* don't log non-zero status */
         if (virCommandRun(cmd, &status) < 0 || status != 0) {
             VIR_INFO("firewall-cmd found but disabled for iptables");
             VIR_FREE(firewall_cmd_path);
@@ -88,6 +91,7 @@ virIpTablesOnceInit(void)
 
     cmd = virCommandNew(IPTABLES_PATH);
     virCommandAddArgList(cmd, "-w", "-L", "-n", NULL);
+    /* don't log non-zero status */
     if (virCommandRun(cmd, &status) < 0 || status != 0) {
         VIR_INFO("xtables locking not supported by your iptables");
     } else {
@@ -854,7 +858,7 @@ iptablesForwardMasquerade(virSocketAddr *netaddr,
      }
 
     ret = virCommandRun(cmd, NULL);
-cleanup:
+ cleanup:
     virCommandFree(cmd);
     VIR_FREE(networkstr);
     VIR_FREE(addrStartStr);
@@ -948,7 +952,7 @@ iptablesForwardDontMasquerade(virSocketAddr *netaddr,
     virCommandAddArgList(cmd, "--source", networkstr,
                          "--destination", destaddr, "--jump", "RETURN", NULL);
     ret = virCommandRun(cmd, NULL);
-cleanup:
+ cleanup:
     virCommandFree(cmd);
     VIR_FREE(networkstr);
     return ret;

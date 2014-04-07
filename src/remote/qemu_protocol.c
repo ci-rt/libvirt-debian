@@ -76,6 +76,56 @@ xdr_qemu_domain_agent_command_ret (XDR *xdrs, qemu_domain_agent_command_ret *obj
 }
 
 bool_t
+xdr_qemu_connect_domain_monitor_event_register_args (XDR *xdrs, qemu_connect_domain_monitor_event_register_args *objp)
+{
+
+         if (!xdr_remote_domain (xdrs, &objp->dom))
+                 return FALSE;
+         if (!xdr_remote_string (xdrs, &objp->event))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->flags))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_qemu_connect_domain_monitor_event_register_ret (XDR *xdrs, qemu_connect_domain_monitor_event_register_ret *objp)
+{
+
+         if (!xdr_int (xdrs, &objp->callbackID))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_qemu_connect_domain_monitor_event_deregister_args (XDR *xdrs, qemu_connect_domain_monitor_event_deregister_args *objp)
+{
+
+         if (!xdr_int (xdrs, &objp->callbackID))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_qemu_domain_monitor_event_msg (XDR *xdrs, qemu_domain_monitor_event_msg *objp)
+{
+
+         if (!xdr_int (xdrs, &objp->callbackID))
+                 return FALSE;
+         if (!xdr_remote_nonnull_domain (xdrs, &objp->dom))
+                 return FALSE;
+         if (!xdr_remote_nonnull_string (xdrs, &objp->event))
+                 return FALSE;
+         if (!xdr_int64_t (xdrs, &objp->seconds))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->micros))
+                 return FALSE;
+         if (!xdr_remote_string (xdrs, &objp->details))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
 xdr_qemu_procedure (XDR *xdrs, qemu_procedure *objp)
 {
 

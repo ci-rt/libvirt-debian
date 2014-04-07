@@ -1,4 +1,3 @@
-
 /*
  * esx_util.c: utility functions for the VMware ESX driver
  *
@@ -38,7 +37,7 @@
 
 #define VIR_FROM_THIS VIR_FROM_ESX
 
-
+VIR_LOG_INIT("esx.esx_util");
 
 int
 esxUtil_ParseUri(esxUtil_ParsedUri **parsedUri, virURIPtr uri)
@@ -166,7 +165,7 @@ esxUtil_ParseUri(esxUtil_ParsedUri **parsedUri, virURIPtr uri)
 
     result = 0;
 
-  cleanup:
+ cleanup:
     if (result < 0) {
         esxUtil_FreeParsedUri(parsedUri);
     }
@@ -282,7 +281,7 @@ esxUtil_ParseDatastorePath(const char *datastorePath, char **datastoreName,
 
     result = 0;
 
-  cleanup:
+ cleanup:
     if (result < 0) {
         if (datastoreName) {
             VIR_FREE(*datastoreName);
@@ -483,7 +482,7 @@ esxUtil_EscapeDatastoreItem(const char *string)
 
     escaped2 = esxUtil_EscapeBase64(escaped1);
 
-  cleanup:
+ cleanup:
     VIR_FREE(replaced);
     VIR_FREE(escaped1);
 

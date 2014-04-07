@@ -40,7 +40,6 @@ static int
 mymain(void)
 {
     int ret = 0;
-    int status;
     virCommandPtr cmd;
     struct utsname ut;
 
@@ -51,7 +50,7 @@ mymain(void)
     if (strstr(ut.release, "xen") == NULL)
         return EXIT_AM_SKIP;
     cmd = virCommandNewArgList("/usr/sbin/xend", "status", NULL);
-    if (virCommandRun(cmd, &status) != 0 || status != 0) {
+    if (virCommandRun(cmd, NULL) < 0) {
         virCommandFree(cmd);
         return EXIT_AM_SKIP;
     }
@@ -206,7 +205,7 @@ mymain(void)
     DO_TEST("/dev/xvda1", 51713);
     DO_TEST("/dev/xvda15", 51727);
 
-    return ret==0 ? EXIT_SUCCESS : EXIT_FAILURE;
+    return ret == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
 VIRT_TEST_MAIN(mymain)

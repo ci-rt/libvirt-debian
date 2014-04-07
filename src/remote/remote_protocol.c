@@ -1537,6 +1537,21 @@ xdr_remote_domain_core_dump_args (XDR *xdrs, remote_domain_core_dump_args *objp)
 }
 
 bool_t
+xdr_remote_domain_core_dump_with_format_args (XDR *xdrs, remote_domain_core_dump_with_format_args *objp)
+{
+
+         if (!xdr_remote_nonnull_domain (xdrs, &objp->dom))
+                 return FALSE;
+         if (!xdr_remote_nonnull_string (xdrs, &objp->to))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->dumpformat))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->flags))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
 xdr_remote_domain_screenshot_args (XDR *xdrs, remote_domain_screenshot_args *objp)
 {
 

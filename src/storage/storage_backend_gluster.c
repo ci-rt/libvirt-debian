@@ -34,6 +34,8 @@
 
 #define VIR_FROM_THIS VIR_FROM_STORAGE
 
+VIR_LOG_INIT("storage.storage_backend_gluster");
+
 struct _virStorageBackendGlusterState {
     glfs_t *vol;
 
@@ -141,7 +143,7 @@ virStorageBackendGlusterOpen(virStoragePoolObjPtr pool)
 
     return ret;
 
-error:
+ error:
     virStorageBackendGlusterClose(ret);
     return NULL;
 }
@@ -185,6 +187,7 @@ virStorageBackendGlusterSetMetadata(virStorageBackendGlusterStatePtr state,
                                     const char *name)
 {
     int ret = -1;
+    char *path = NULL;
     char *tmp;
 
     VIR_FREE(vol->key);
@@ -199,12 +202,12 @@ virStorageBackendGlusterSetMetadata(virStorageBackendGlusterStatePtr state,
             goto cleanup;
     }
 
-    if (virAsprintf(&vol->key, "%s%s%s", state->volname, state->dir,
+    if (virAsprintf(&path, "%s%s%s", state->volname, state->dir,
                     vol->name) < 0)
         goto cleanup;
 
     tmp = state->uri->path;
-    if (virAsprintf(&state->uri->path, "/%s", vol->key) < 0) {
+    if (virAsprintf(&state->uri->path, "/%s", path) < 0) {
         state->uri->path = tmp;
         goto cleanup;
     }
@@ -216,9 +219,14 @@ virStorageBackendGlusterSetMetadata(virStorageBackendGlusterStatePtr state,
     VIR_FREE(state->uri->path);
     state->uri->path = tmp;
 
+    /* the path is unique enough to serve as a volume key */
+    if (VIR_STRDUP(vol->key, vol->target.path) < 0)
+        goto cleanup;
+
     ret = 0;
 
-cleanup:
+ cleanup:
+    VIR_FREE(path);
     return ret;
 }
 
@@ -319,7 +327,7 @@ virStorageBackendGlusterRefreshVol(virStorageBackendGlusterStatePtr state,
     *volptr = vol;
     vol = NULL;
     ret = 0;
-cleanup:
+ cleanup:
     virStorageFileFreeMetadata(meta);
     virStorageVolDefFree(vol);
     if (fd)
@@ -399,7 +407,7 @@ virStorageBackendGlusterRefreshPool(virConnectPtr conn ATTRIBUTE_UNUSED,
     pool->def->allocation = pool->def->capacity - pool->def->available;
 
     ret = 0;
-cleanup:
+ cleanup:
     if (dir)
         glfs_closedir(dir);
     virStorageBackendGlusterClose(state);
@@ -464,7 +472,7 @@ virStorageBackendGlusterVolDelete(virConnectPtr conn ATTRIBUTE_UNUSED,
 
     ret = 0;
 
-cleanup:
+ cleanup:
     virStorageBackendGlusterClose(state);
     return ret;
 }
@@ -496,7 +504,8 @@ virStorageFileBackendGlusterDeinit(virStorageFilePtr file)
               file, file->hosts[0].name, file->path);
     virStorageFileBackendGlusterPrivPtr priv = file->priv;
 
-    glfs_fini(priv->vol);
+    if (priv->vol)
+        glfs_fini(priv->vol);
     VIR_FREE(priv->volname);
 
     VIR_FREE(priv);
@@ -567,9 +576,10 @@ virStorageFileBackendGlusterInit(virStorageFilePtr file)
 
     return 0;
 
-error:
+ error:
     VIR_FREE(priv->volname);
-    glfs_fini(priv->vol);
+    if (priv->vol)
+        glfs_fini(priv->vol);
     VIR_FREE(priv);
 
     return -1;

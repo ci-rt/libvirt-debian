@@ -34,6 +34,8 @@
 
 #define VIR_FROM_THIS VIR_FROM_NONE
 
+VIR_LOG_INIT("util.string");
+
 /*
  * The following virStringSplit & virStringJoin methods
  * are derived from g_strsplit / g_strjoin in glib2,
@@ -109,7 +111,7 @@ char **virStringSplit(const char *string,
 
     return tokens;
 
-error:
+ error:
     for (i = 0; i < ntokens; i++)
         VIR_FREE(tokens[i]);
     VIR_FREE(tokens);
@@ -741,7 +743,7 @@ virStringSearch(const char *str,
 
     ret = nmatches - 1; /* don't count the trailing null */
 
-cleanup:
+ cleanup:
     regfree(&re);
     if (ret < 0) {
         virStringFreeList(*matches);

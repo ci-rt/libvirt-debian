@@ -1,7 +1,7 @@
 /*
  * storage_backend.c: internal storage driver backend contract
  *
- * Copyright (C) 2007-2013 Red Hat, Inc.
+ * Copyright (C) 2007-2014 Red Hat, Inc.
  * Copyright (C) 2007-2008 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -85,6 +85,8 @@
 #endif
 
 #define VIR_FROM_THIS VIR_FROM_STORAGE
+
+VIR_LOG_INIT("storage.storage_backend");
 
 static virStorageBackendPtr backends[] = {
 #if WITH_STORAGE_DIR
@@ -246,7 +248,7 @@ virStorageBackendCopyToFD(virStorageVolDefPtr vol,
     }
     inputfd = -1;
 
-cleanup:
+ cleanup:
     VIR_FORCE_CLOSE(inputfd);
 
     VIR_FREE(zerobuf);
@@ -324,7 +326,7 @@ virStorageBackendCreateBlockFrom(virConnectPtr conn ATTRIBUTE_UNUSED,
     fd = -1;
 
     ret = 0;
-cleanup:
+ cleanup:
     VIR_FORCE_CLOSE(fd);
 
     return ret;
@@ -401,7 +403,7 @@ createRawFile(int fd, virStorageVolDefPtr vol,
         goto cleanup;
     }
 
-cleanup:
+ cleanup:
     return ret;
 }
 
@@ -451,7 +453,7 @@ virStorageBackendCreateRaw(virConnectPtr conn ATTRIBUTE_UNUSED,
         /* createRawFile already reported the exact error. */
         ret = -1;
 
-cleanup:
+ cleanup:
     VIR_FORCE_CLOSE(fd);
     return ret;
 }
@@ -551,7 +553,7 @@ virStorageGenerateQcowEncryption(virConnectPtr conn,
 
     ret = 0;
 
-cleanup:
+ cleanup:
     if (secret != NULL) {
         if (ret != 0 &&
             conn->secretDriver->secretUndefine != NULL)
@@ -651,7 +653,7 @@ virStorageBackendQemuImgSupportsCompat(const char *qemuimg)
     if (strstr(output, "\ncompat "))
         ret = true;
 
-cleanup:
+ cleanup:
     virCommandFree(cmd);
     VIR_FREE(output);
     return ret;
@@ -697,7 +699,7 @@ virStorageBackendQEMUImgBackingFormat(const char *qemuimg)
         ret = QEMU_IMG_BACKING_FORMAT_NONE;
     }
 
-cleanup:
+ cleanup:
     virCommandFree(cmd);
     VIR_FREE(help);
     return ret;
@@ -759,9 +761,9 @@ virStorageBackendCreateQemuImgOpts(char **opts,
     *opts = virBufferContentAndReset(&buf);
     return 0;
 
-no_memory:
+ no_memory:
     virReportOOMError();
-error:
+ error:
     virBufferFreeAndReset(&buf);
     return -1;
 }
@@ -1008,7 +1010,7 @@ virStorageBackendCreateQemuImg(virConnectPtr conn,
     ret = virStorageBackendCreateExecCommand(pool, vol, cmd);
 
     virCommandFree(cmd);
-cleanup:
+ cleanup:
     VIR_FREE(create_tool);
     return ret;
 }
@@ -1196,6 +1198,80 @@ virStorageFileBackendForType(int type,
 }
 
 
+struct diskType {
+    int part_table_type;
+    unsigned short offset;
+    unsigned short length;
+    unsigned long long magic;
+};
+
+
+static struct diskType const disk_types[] = {
+    { VIR_STORAGE_POOL_DISK_LVM2, 0x218, 8, 0x31303020324D564CULL },
+    { VIR_STORAGE_POOL_DISK_GPT,  0x200, 8, 0x5452415020494645ULL },
+    { VIR_STORAGE_POOL_DISK_DVH,  0x0,   4, 0x41A9E50BULL },
+    { VIR_STORAGE_POOL_DISK_MAC,  0x0,   2, 0x5245ULL },
+    { VIR_STORAGE_POOL_DISK_BSD,  0x40,  4, 0x82564557ULL },
+    { VIR_STORAGE_POOL_DISK_SUN,  0x1fc, 2, 0xBEDAULL },
+    /*
+     * NOTE: pc98 is funky; the actual signature is 0x55AA (just like dos), so
+     * we can't use that.  At the moment I'm relying on the "dummy" IPL
+     * bootloader data that comes from parted.  Luckily, the chances of running
+     * into a pc98 machine running libvirt are approximately nil.
+     */
+    /*{ 0x1fe, 2, 0xAA55UL },*/
+    { VIR_STORAGE_POOL_DISK_PC98, 0x0,   8, 0x314C5049000000CBULL },
+    /*
+     * NOTE: the order is important here; some other disk types (like GPT and
+     * and PC98) also have 0x55AA at this offset.  For that reason, the DOS
+     * one must be the last one.
+     */
+    { VIR_STORAGE_POOL_DISK_DOS,  0x1fe, 2, 0xAA55ULL },
+    { -1,                         0x0,   0, 0x0ULL },
+};
+
+
+static int
+virStorageBackendDetectBlockVolFormatFD(virStorageVolTargetPtr target,
+                                        int fd)
+{
+    size_t i;
+    off_t start;
+    unsigned char buffer[1024];
+    ssize_t bytes;
+
+    /* make sure to set the target format "unknown" to begin with */
+    target->format = VIR_STORAGE_POOL_DISK_UNKNOWN;
+
+    start = lseek(fd, 0, SEEK_SET);
+    if (start < 0) {
+        virReportSystemError(errno,
+                             _("cannot seek to beginning of file '%s'"),
+                             target->path);
+        return -1;
+    }
+    bytes = saferead(fd, buffer, sizeof(buffer));
+    if (bytes < 0) {
+        virReportSystemError(errno,
+                             _("cannot read beginning of file '%s'"),
+                             target->path);
+        return -1;
+    }
+
+    for (i = 0; disk_types[i].part_table_type != -1; i++) {
+        if (disk_types[i].offset + disk_types[i].length > bytes)
+            continue;
+        if (memcmp(buffer+disk_types[i].offset, &disk_types[i].magic,
+            disk_types[i].length) == 0) {
+            target->format = disk_types[i].part_table_type;
+            break;
+        }
+    }
+
+    return 0;
+}
+
+
 /*
  * Allows caller to silently ignore files with improper mode
  *
@@ -1203,13 +1279,17 @@ virStorageFileBackendForType(int type,
  * volume is a dangling symbolic link.
  */
 int
-virStorageBackendVolOpenCheckMode(const char *path, struct stat *sb,
-                                  unsigned int flags)
+virStorageBackendVolOpen(const char *path, struct stat *sb,
+                         unsigned int flags)
 {
     int fd, mode = 0;
     char *base = last_component(path);
 
     if (lstat(path, sb) < 0) {
+        if (errno == ENOENT && !(flags & VIR_STORAGE_VOL_OPEN_ERROR)) {
+            VIR_WARN("ignoring missing file '%s'", path);
+            return -2;
+        }
         virReportSystemError(errno,
                              _("cannot stat file '%s'"),
                              path);
@@ -1234,6 +1314,10 @@ virStorageBackendVolOpenCheckMode(const char *path, struct stat *sb,
         if ((errno == ENOENT || errno == ELOOP) &&
             S_ISLNK(sb->st_mode)) {
             VIR_WARN("ignoring dangling symlink '%s'", path);
+            return -2;
+        }
+        if (errno == ENOENT && !(flags & VIR_STORAGE_VOL_OPEN_ERROR)) {
+            VIR_WARN("ignoring missing file '%s'", path);
             return -2;
         }
 
@@ -1295,65 +1379,61 @@ virStorageBackendVolOpenCheckMode(const char *path, struct stat *sb,
     return fd;
 }
 
-int virStorageBackendVolOpen(const char *path)
-{
-    struct stat sb;
-    return virStorageBackendVolOpenCheckMode(path, &sb,
-                                             VIR_STORAGE_VOL_OPEN_DEFAULT);
-}
-
 int
 virStorageBackendUpdateVolTargetInfo(virStorageVolTargetPtr target,
                                      unsigned long long *allocation,
                                      unsigned long long *capacity,
+                                     bool withBlockVolFormat,
                                      unsigned int openflags)
 {
-    int ret, fd;
+    int ret, fd = -1;
     struct stat sb;
 
-    if ((ret = virStorageBackendVolOpenCheckMode(target->path, &sb,
-                                                 openflags)) < 0)
-        return ret;
-
+    if ((ret = virStorageBackendVolOpen(target->path, &sb, openflags)) < 0)
+        goto cleanup;
     fd = ret;
-    ret = virStorageBackendUpdateVolTargetInfoFD(target,
-                                                 fd,
-                                                 &sb,
-                                                 allocation,
-                                                 capacity);
 
+    if ((ret = virStorageBackendUpdateVolTargetInfoFD(target,
+                                                      fd,
+                                                      &sb,
+                                                      allocation,
+                                                      capacity)) < 0)
+        goto cleanup;
+
+    if (withBlockVolFormat) {
+        if ((ret = virStorageBackendDetectBlockVolFormatFD(target, fd)) < 0)
+            goto cleanup;
+    }
+
+ cleanup:
     VIR_FORCE_CLOSE(fd);
 
     return ret;
 }
 
 int
-virStorageBackendUpdateVolInfoFlags(virStorageVolDefPtr vol,
-                                    int withCapacity,
-                                    unsigned int openflags)
+virStorageBackendUpdateVolInfo(virStorageVolDefPtr vol,
+                               bool withCapacity,
+                               bool withBlockVolFormat,
+                               unsigned int openflags)
 {
     int ret;
 
     if ((ret = virStorageBackendUpdateVolTargetInfo(&vol->target,
                                     &vol->allocation,
                                     withCapacity ? &vol->capacity : NULL,
+                                    withBlockVolFormat,
                                     openflags)) < 0)
         return ret;
 
     if (vol->backingStore.path &&
         (ret = virStorageBackendUpdateVolTargetInfo(&vol->backingStore,
                                             NULL, NULL,
+                                            withBlockVolFormat,
                                             VIR_STORAGE_VOL_OPEN_DEFAULT)) < 0)
         return ret;
 
     return 0;
-}
-
-int virStorageBackendUpdateVolInfo(virStorageVolDefPtr vol,
-                                   int withCapacity)
-{
-    return virStorageBackendUpdateVolInfoFlags(vol, withCapacity,
-                                               VIR_STORAGE_VOL_OPEN_DEFAULT);
 }
 
 /*
@@ -1447,80 +1527,6 @@ virStorageBackendUpdateVolTargetInfoFD(virStorageVolTargetPtr target,
         }
     }
 #endif
-
-    return 0;
-}
-
-
-struct diskType {
-    int part_table_type;
-    unsigned short offset;
-    unsigned short length;
-    unsigned long long magic;
-};
-
-
-static struct diskType const disk_types[] = {
-    { VIR_STORAGE_POOL_DISK_LVM2, 0x218, 8, 0x31303020324D564CULL },
-    { VIR_STORAGE_POOL_DISK_GPT,  0x200, 8, 0x5452415020494645ULL },
-    { VIR_STORAGE_POOL_DISK_DVH,  0x0,   4, 0x41A9E50BULL },
-    { VIR_STORAGE_POOL_DISK_MAC,  0x0,   2, 0x5245ULL },
-    { VIR_STORAGE_POOL_DISK_BSD,  0x40,  4, 0x82564557ULL },
-    { VIR_STORAGE_POOL_DISK_SUN,  0x1fc, 2, 0xBEDAULL },
-    /*
-     * NOTE: pc98 is funky; the actual signature is 0x55AA (just like dos), so
-     * we can't use that.  At the moment I'm relying on the "dummy" IPL
-     * bootloader data that comes from parted.  Luckily, the chances of running
-     * into a pc98 machine running libvirt are approximately nil.
-     */
-    /*{ 0x1fe, 2, 0xAA55UL },*/
-    { VIR_STORAGE_POOL_DISK_PC98, 0x0,   8, 0x314C5049000000CBULL },
-    /*
-     * NOTE: the order is important here; some other disk types (like GPT and
-     * and PC98) also have 0x55AA at this offset.  For that reason, the DOS
-     * one must be the last one.
-     */
-    { VIR_STORAGE_POOL_DISK_DOS,  0x1fe, 2, 0xAA55ULL },
-    { -1,                         0x0,   0, 0x0ULL },
-};
-
-
-int
-virStorageBackendDetectBlockVolFormatFD(virStorageVolTargetPtr target,
-                                        int fd)
-{
-    size_t i;
-    off_t start;
-    unsigned char buffer[1024];
-    ssize_t bytes;
-
-    /* make sure to set the target format "unknown" to begin with */
-    target->format = VIR_STORAGE_POOL_DISK_UNKNOWN;
-
-    start = lseek(fd, 0, SEEK_SET);
-    if (start < 0) {
-        virReportSystemError(errno,
-                             _("cannot seek to beginning of file '%s'"),
-                             target->path);
-        return -1;
-    }
-    bytes = saferead(fd, buffer, sizeof(buffer));
-    if (bytes < 0) {
-        virReportSystemError(errno,
-                             _("cannot read beginning of file '%s'"),
-                             target->path);
-        return -1;
-    }
-
-    for (i = 0; disk_types[i].part_table_type != -1; i++) {
-        if (disk_types[i].offset + disk_types[i].length > bytes)
-            continue;
-        if (memcmp(buffer+disk_types[i].offset, &disk_types[i].magic,
-            disk_types[i].length) == 0) {
-            target->format = disk_types[i].part_table_type;
-            break;
-        }
-    }
 
     return 0;
 }
@@ -1630,252 +1636,3 @@ virStorageBackendStablePath(virStoragePoolObjPtr pool,
 
     return stablepath;
 }
-
-
-#ifndef WIN32
-/*
- * Run an external program.
- *
- * Read its output and apply a series of regexes to each line
- * When the entire set of regexes has matched consecutively
- * then run a callback passing in all the matches
- */
-int
-virStorageBackendRunProgRegex(virStoragePoolObjPtr pool,
-                              virCommandPtr cmd,
-                              int nregex,
-                              const char **regex,
-                              int *nvars,
-                              virStorageBackendListVolRegexFunc func,
-                              void *data, const char *prefix)
-{
-    int fd = -1, err, ret = -1;
-    FILE *list = NULL;
-    regex_t *reg;
-    regmatch_t *vars = NULL;
-    char line[1024];
-    int maxReg = 0;
-    size_t i, j;
-    int totgroups = 0, ngroup = 0, maxvars = 0;
-    char **groups;
-
-    /* Compile all regular expressions */
-    if (VIR_ALLOC_N(reg, nregex) < 0)
-        return -1;
-
-    for (i = 0; i < nregex; i++) {
-        err = regcomp(&reg[i], regex[i], REG_EXTENDED);
-        if (err != 0) {
-            char error[100];
-            regerror(err, &reg[i], error, sizeof(error));
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("Failed to compile regex %s"), error);
-            for (j = 0; j < i; j++)
-                regfree(&reg[j]);
-            VIR_FREE(reg);
-            return -1;
-        }
-
-        totgroups += nvars[i];
-        if (nvars[i] > maxvars)
-            maxvars = nvars[i];
-
-    }
-
-    /* Storage for matched variables */
-    if (VIR_ALLOC_N(groups, totgroups) < 0)
-        goto cleanup;
-    if (VIR_ALLOC_N(vars, maxvars+1) < 0)
-        goto cleanup;
-
-    virCommandSetOutputFD(cmd, &fd);
-    if (virCommandRunAsync(cmd, NULL) < 0) {
-        goto cleanup;
-    }
-
-    if ((list = VIR_FDOPEN(fd, "r")) == NULL) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       "%s", _("cannot read fd"));
-        goto cleanup;
-    }
-
-    while (fgets(line, sizeof(line), list) != NULL) {
-        char *p = NULL;
-        /* Strip trailing newline */
-        int len = strlen(line);
-        if (len && line[len-1] == '\n')
-            line[len-1] = '\0';
-
-        /* ignore any command prefix */
-        if (prefix)
-            p = STRSKIP(line, prefix);
-        if (!p)
-            p = line;
-
-        for (i = 0; i <= maxReg && i < nregex; i++) {
-            if (regexec(&reg[i], p, nvars[i]+1, vars, 0) == 0) {
-                maxReg++;
-
-                if (i == 0)
-                    ngroup = 0;
-
-                /* NULL terminate each captured group in the line */
-                for (j = 0; j < nvars[i]; j++) {
-                    /* NB vars[0] is the full pattern, so we offset j by 1 */
-                    p[vars[j+1].rm_eo] = '\0';
-                    if (VIR_STRDUP(groups[ngroup++], p + vars[j+1].rm_so) < 0)
-                        goto cleanup;
-                }
-
-                /* We're matching on the last regex, so callback time */
-                if (i == (nregex-1)) {
-                    if (((*func)(pool, groups, data)) < 0)
-                        goto cleanup;
-
-                    /* Release matches & restart to matching the first regex */
-                    for (j = 0; j < totgroups; j++)
-                        VIR_FREE(groups[j]);
-                    maxReg = 0;
-                    ngroup = 0;
-                }
-            }
-        }
-    }
-
-    ret = virCommandWait(cmd, NULL);
-cleanup:
-    if (groups) {
-        for (j = 0; j < totgroups; j++)
-            VIR_FREE(groups[j]);
-        VIR_FREE(groups);
-    }
-    VIR_FREE(vars);
-
-    for (i = 0; i < nregex; i++)
-        regfree(&reg[i]);
-
-    VIR_FREE(reg);
-
-    VIR_FORCE_FCLOSE(list);
-    VIR_FORCE_CLOSE(fd);
-
-    return ret;
-}
-
-/*
- * Run an external program and read from its standard output
- * a stream of tokens from IN_STREAM, applying FUNC to
- * each successive sequence of N_COLUMNS tokens.
- * If FUNC returns < 0, stop processing input and return -1.
- * Return -1 if N_COLUMNS == 0.
- * Return -1 upon memory allocation error.
- * If the number of input tokens is not a multiple of N_COLUMNS,
- * then the final FUNC call will specify a number smaller than N_COLUMNS.
- * If there are no input tokens (empty input), call FUNC with N_COLUMNS == 0.
- */
-int
-virStorageBackendRunProgNul(virStoragePoolObjPtr pool,
-                            virCommandPtr cmd,
-                            size_t n_columns,
-                            virStorageBackendListVolNulFunc func,
-                            void *data)
-{
-    size_t n_tok = 0;
-    int fd = -1;
-    FILE *fp = NULL;
-    char **v;
-    int ret = -1;
-    size_t i;
-
-    if (n_columns == 0)
-        return -1;
-
-    if (VIR_ALLOC_N(v, n_columns) < 0)
-        return -1;
-    for (i = 0; i < n_columns; i++)
-        v[i] = NULL;
-
-    virCommandSetOutputFD(cmd, &fd);
-    if (virCommandRunAsync(cmd, NULL) < 0) {
-        goto cleanup;
-    }
-
-    if ((fp = VIR_FDOPEN(fd, "r")) == NULL) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       "%s", _("cannot open file using fd"));
-        goto cleanup;
-    }
-
-    while (1) {
-        char *buf = NULL;
-        size_t buf_len = 0;
-        /* Be careful: even when it returns -1,
-           this use of getdelim allocates memory.  */
-        ssize_t tok_len = getdelim(&buf, &buf_len, 0, fp);
-        v[n_tok] = buf;
-        if (tok_len < 0) {
-            /* Maybe EOF, maybe an error.
-               If n_tok > 0, then we know it's an error.  */
-            if (n_tok && func(pool, n_tok, v, data) < 0)
-                goto cleanup;
-            break;
-        }
-        ++n_tok;
-        if (n_tok == n_columns) {
-            if (func(pool, n_tok, v, data) < 0)
-                goto cleanup;
-            n_tok = 0;
-            for (i = 0; i < n_columns; i++) {
-                VIR_FREE(v[i]);
-            }
-        }
-    }
-
-    if (feof(fp) < 0) {
-        virReportSystemError(errno, "%s",
-                             _("read error on pipe"));
-        goto cleanup;
-    }
-
-    ret = virCommandWait(cmd, NULL);
- cleanup:
-    for (i = 0; i < n_columns; i++)
-        VIR_FREE(v[i]);
-    VIR_FREE(v);
-
-    VIR_FORCE_FCLOSE(fp);
-    VIR_FORCE_CLOSE(fd);
-
-    return ret;
-}
-
-#else /* WIN32 */
-
-int
-virStorageBackendRunProgRegex(virConnectPtr conn,
-                              virStoragePoolObjPtr pool ATTRIBUTE_UNUSED,
-                              const char *const*prog ATTRIBUTE_UNUSED,
-                              int nregex ATTRIBUTE_UNUSED,
-                              const char **regex ATTRIBUTE_UNUSED,
-                              int *nvars ATTRIBUTE_UNUSED,
-                              virStorageBackendListVolRegexFunc func ATTRIBUTE_UNUSED,
-                              void *data ATTRIBUTE_UNUSED)
-{
-    virReportError(VIR_ERR_INTERNAL_ERROR,
-                   _("%s not implemented on Win32"), __FUNCTION__);
-    return -1;
-}
-
-int
-virStorageBackendRunProgNul(virConnectPtr conn,
-                            virStoragePoolObjPtr pool ATTRIBUTE_UNUSED,
-                            const char **prog ATTRIBUTE_UNUSED,
-                            size_t n_columns ATTRIBUTE_UNUSED,
-                            virStorageBackendListVolNulFunc func ATTRIBUTE_UNUSED,
-                            void *data ATTRIBUTE_UNUSED)
-{
-    virReportError(VIR_ERR_INTERNAL_ERROR,
-                   _("%s not implemented on Win32"), __FUNCTION__);
-    return -1;
-}
-#endif /* WIN32 */

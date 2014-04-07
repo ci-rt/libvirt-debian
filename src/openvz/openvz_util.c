@@ -1,5 +1,5 @@
 /*
- * openvz_driver.c: core driver methods for managing OpenVZ VEs
+ * openvz_util.c: core driver methods for managing OpenVZ VEs
  *
  * Copyright (C) 2013 Red Hat, Inc.
  * Copyright (C) 2012 Guido Günther
@@ -79,7 +79,7 @@ openvzVEGetStringParam(virDomainPtr domain, const char* param)
     if (len && output[len - 1] == '\n')
         output[len - 1] = '\0';
 
-cleanup:
+ cleanup:
     virCommandFree(cmd);
     return output;
 }

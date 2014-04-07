@@ -103,7 +103,7 @@ fakeStoragePoolLookupByName(virConnectPtr conn,
 
     ret = virGetStoragePool(conn, name, fakeUUID, NULL, NULL);
 
-cleanup:
+ cleanup:
     VIR_FREE(xmlpath);
     return ret;
 }
@@ -140,11 +140,11 @@ fakeStorageVolLookupByName(virStoragePoolPtr pool,
     ret = virGetStorageVol(pool->conn, pool->name, volinfo[1], volinfo[0],
                            NULL, NULL);
 
-cleanup:
+ cleanup:
     virStringFreeList(volinfo);
     return ret;
 
-fallback:
+ fallback:
     ret = virGetStorageVol(pool->conn, pool->name, name, "block", NULL, NULL);
     goto cleanup;
 }
@@ -203,7 +203,7 @@ fakeStoragePoolGetXMLDesc(virStoragePoolPtr pool,
         goto cleanup;
     }
 
-cleanup:
+ cleanup:
     VIR_FREE(xmlpath);
 
     return xmlbuf;
@@ -357,7 +357,7 @@ static int testCompareXMLToArgvFiles(const char *xml,
                                      (flags & FLAG_JSON), extraFlags,
                                      migrateFrom, migrateFd, NULL,
                                      VIR_NETDEV_VPORT_PROFILE_OP_NO_OP,
-                                     &testCallbacks))) {
+                                     &testCallbacks, false))) {
         if (!virtTestOOMActive() &&
             (flags & FLAG_EXPECT_FAILURE)) {
             ret = 0;
@@ -403,7 +403,7 @@ static int testCompareXMLToArgvFiles(const char *xml,
 
     ret = 0;
 
-out:
+ out:
     VIR_FREE(log);
     VIR_FREE(expectargv);
     VIR_FREE(actualargv);
@@ -444,7 +444,7 @@ testCompareXMLToArgvHelper(const void *data)
                                        info->migrateFrom, info->migrateFd,
                                        flags);
 
-cleanup:
+ cleanup:
     VIR_FREE(xml);
     VIR_FREE(args);
     return result;
@@ -500,7 +500,7 @@ mymain(void)
         return EXIT_FAILURE;
     }
 
-    driver.config = virQEMUDriverConfigNew(false);
+    driver.config = virQEMUDriverConfigNew(true);
     VIR_FREE(driver.config->spiceListen);
     VIR_FREE(driver.config->vncListen);
 
@@ -1163,6 +1163,7 @@ mymain(void)
     DO_TEST("blkiotune", QEMU_CAPS_NAME);
     DO_TEST("blkiotune-device", QEMU_CAPS_NAME);
     DO_TEST("cputune", QEMU_CAPS_NAME);
+    DO_TEST("cputune-zero-shares", QEMU_CAPS_NAME);
     DO_TEST("numatune-memory", NONE);
     DO_TEST("numatune-auto-nodeset-invalid", NONE);
     DO_TEST("numad", NONE);
@@ -1359,7 +1360,7 @@ mymain(void)
     virObjectUnref(driver.xmlopt);
     VIR_FREE(map);
 
-    return ret==0 ? EXIT_SUCCESS : EXIT_FAILURE;
+    return ret == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
 VIRT_TEST_MAIN_PRELOAD(mymain, abs_builddir "/.libs/qemuxml2argvmock.so")

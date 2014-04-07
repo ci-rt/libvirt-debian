@@ -66,23 +66,18 @@ DBusMessage *dbus_connection_send_with_reply_and_block(DBusConnection *connectio
 {
     DBusMessage *reply = NULL;
     const char *service = dbus_message_get_destination(message);
+    const char *member = dbus_message_get_member(message);
 
     if (STREQ(service, "org.freedesktop.machine1")) {
         if (getenv("FAIL_BAD_SERVICE")) {
-            DBusMessageIter iter;
-            const char *error_message = "Something went wrong creating the machine";
-            if (!(reply = dbus_message_new(DBUS_MESSAGE_TYPE_ERROR)))
-                return NULL;
-            dbus_message_set_error_name(reply, "org.freedesktop.systemd.badthing");
-            dbus_message_iter_init_append(reply, &iter);
-            if (!dbus_message_iter_append_basic(&iter,
-                                                DBUS_TYPE_STRING,
-                                                &error_message))
-                goto error;
+            dbus_set_error_const(error,
+                                 "org.freedesktop.systemd.badthing",
+                                 "Something went wrong creating the machine");
         } else {
             reply = dbus_message_new(DBUS_MESSAGE_TYPE_METHOD_RETURN);
         }
-    } else if (STREQ(service, "org.freedesktop.DBus")) {
+    } else if (STREQ(service, "org.freedesktop.DBus") &&
+               STREQ(member, "ListActivatableNames")) {
         const char *svc1 = "org.foo.bar.wizz";
         const char *svc2 = "org.freedesktop.machine1";
         DBusMessageIter iter, sub;
@@ -92,10 +87,30 @@ DBusMessage *dbus_connection_send_with_reply_and_block(DBusConnection *connectio
                                          "s", &sub);
 
         if (!dbus_message_iter_append_basic(&sub,
-                                       DBUS_TYPE_STRING,
+                                            DBUS_TYPE_STRING,
                                             &svc1))
             goto error;
         if (!getenv("FAIL_NO_SERVICE") &&
+            !dbus_message_iter_append_basic(&sub,
+                                            DBUS_TYPE_STRING,
+                                            &svc2))
+            goto error;
+        dbus_message_iter_close_container(&iter, &sub);
+    } else if (STREQ(service, "org.freedesktop.DBus") &&
+               STREQ(member, "ListNames")) {
+        const char *svc1 = "org.foo.bar.wizz";
+        const char *svc2 = "org.freedesktop.systemd1";
+        DBusMessageIter iter, sub;
+        reply = dbus_message_new(DBUS_MESSAGE_TYPE_METHOD_RETURN);
+        dbus_message_iter_init_append(reply, &iter);
+        dbus_message_iter_open_container(&iter, DBUS_TYPE_ARRAY,
+                                         "s", &sub);
+
+        if (!dbus_message_iter_append_basic(&sub,
+                                            DBUS_TYPE_STRING,
+                                            &svc1))
+            goto error;
+        if ((!getenv("FAIL_NO_SERVICE") && !getenv("FAIL_NOT_REGISTERED")) &&
             !dbus_message_iter_append_basic(&sub,
                                             DBUS_TYPE_STRING,
                                             &svc2))

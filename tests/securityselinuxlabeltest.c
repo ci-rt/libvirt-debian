@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2013 Red Hat, Inc.
+ * Copyright (C) 2011-2014 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -41,6 +41,8 @@
 #include "virstring.h"
 
 #define VIR_FROM_THIS VIR_FROM_NONE
+
+VIR_LOG_INIT("tests.securityselinuxlabeltest");
 
 static virCapsPtr caps;
 static virDomainXMLOptionPtr xmlopt;
@@ -137,7 +139,7 @@ testSELinuxLoadFileList(const char *testname,
 
     ret = 0;
 
-cleanup:
+ cleanup:
     VIR_FORCE_FCLOSE(fp);
     VIR_FREE(path);
     VIR_FREE(line);
@@ -167,11 +169,11 @@ testSELinuxLoadDef(const char *testname)
         goto cleanup;
 
     for (i = 0; i < def->ndisks; i++) {
-        if (def->disks[i]->type != VIR_DOMAIN_DISK_TYPE_FILE &&
-            def->disks[i]->type != VIR_DOMAIN_DISK_TYPE_BLOCK)
+        if (def->disks[i]->src.type != VIR_DOMAIN_DISK_TYPE_FILE &&
+            def->disks[i]->src.type != VIR_DOMAIN_DISK_TYPE_BLOCK)
             continue;
 
-        if (testSELinuxMungePath(&def->disks[i]->src) < 0)
+        if (testSELinuxMungePath(&def->disks[i]->src.path) < 0)
             goto cleanup;
     }
 
@@ -198,7 +200,7 @@ testSELinuxLoadDef(const char *testname)
         testSELinuxMungePath(&def->os.initrd) < 0)
         goto cleanup;
 
-cleanup:
+ cleanup:
     VIR_FREE(xmlfile);
     VIR_FREE(xmlstr);
     return def;
@@ -296,7 +298,7 @@ testSELinuxLabeling(const void *opaque)
 
     ret = 0;
 
-cleanup:
+ cleanup:
     if (testSELinuxDeleteDisks(files, nfiles) < 0)
         VIR_WARN("unable to fully clean up");
 
@@ -322,9 +324,6 @@ mymain(void)
 
     if (!(mgr = virSecurityManagerNew("selinux", "QEMU", false, true, false))) {
         virErrorPtr err = virGetLastError();
-        if (err->code == VIR_ERR_CONFIG_UNSUPPORTED)
-            return EXIT_AM_SKIP;
-
         fprintf(stderr, "Unable to initialize security driver: %s\n",
                 err->message);
         return EXIT_FAILURE;

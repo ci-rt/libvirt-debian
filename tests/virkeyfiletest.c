@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011, 2012 Red Hat, Inc.
+ * Copyright (C) 2011, 2012, 2014 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -32,6 +32,7 @@
 
 #define VIR_FROM_THIS VIR_FROM_RPC
 
+VIR_LOG_INIT("tests.keyfiletest");
 
 static int testParse(const void *args ATTRIBUTE_UNUSED)
 {
@@ -100,7 +101,7 @@ static int testParse(const void *args ATTRIBUTE_UNUSED)
     }
 
     ret = 0;
-cleanup:
+ cleanup:
     virKeyFileFree(kf);
     return ret;
 }
@@ -116,7 +117,7 @@ mymain(void)
     if (virtTestRun("Test parse", testParse, NULL) < 0)
         ret = -1;
 
-    return ret==0 ? EXIT_SUCCESS : EXIT_FAILURE;
+    return ret == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
 VIRT_TEST_MAIN(mymain)

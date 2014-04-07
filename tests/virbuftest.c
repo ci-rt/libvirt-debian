@@ -48,7 +48,7 @@ static int testBufInfiniteLoop(const void *data)
         virBufferAsprintf(buf, "%s", addstr);
 
     ret = 0;
-out:
+ out:
     bufret = virBufferContentAndReset(buf);
     if (!bufret) {
         TEST_ERROR("Buffer had error set");
@@ -194,7 +194,7 @@ static int testBufTrim(const void *data ATTRIBUTE_UNUSED)
 
     ret = 0;
 
-cleanup:
+ cleanup:
     virBufferFreeAndReset(buf);
     VIR_FREE(result);
     return ret;
@@ -219,7 +219,7 @@ mymain(void)
     DO_TEST("Auto-indentation", testBufAutoIndent, 0);
     DO_TEST("Trim", testBufTrim, 0);
 
-    return ret==0 ? EXIT_SUCCESS : EXIT_FAILURE;
+    return ret == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
 VIRT_TEST_MAIN(mymain)

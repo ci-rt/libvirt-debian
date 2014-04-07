@@ -1,7 +1,7 @@
 /*
  * lock_driver_sanlock.c: A lock driver for Sanlock
  *
- * Copyright (C) 2010-2013 Red Hat, Inc.
+ * Copyright (C) 2010-2014 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -40,14 +40,16 @@
 #include "virlog.h"
 #include "virerror.h"
 #include "viralloc.h"
+#include "vircrypto.h"
 #include "virfile.h"
-#include "md5.h"
 #include "virconf.h"
 #include "virstring.h"
 
 #include "configmake.h"
 
 #define VIR_FROM_THIS VIR_FROM_LOCKING
+
+VIR_LOG_INIT("locking.lock_driver_sanlock");
 
 #define VIR_LOCK_MANAGER_SANLOCK_AUTO_DISK_LOCKSPACE "__LIBVIRT__DISKS__"
 #define VIR_LOCK_MANAGER_SANLOCK_KILLPATH LIBEXECDIR "/libvirt_sanlock_helper"
@@ -332,7 +334,7 @@ static int virLockManagerSanlockSetupLockspace(void)
      * either call a sanlock API that blocks us until lockspace changes state,
      * or we can fallback to polling.
      */
-retry:
+ retry:
     if ((rv = sanlock_add_lockspace(&ls, 0)) < 0) {
         if (-rv == EINPROGRESS && --retries) {
 #ifdef HAVE_SANLOCK_INQ_LOCKSPACE
@@ -371,9 +373,9 @@ retry:
     VIR_FREE(dir);
     return 0;
 
-error_unlink:
+ error_unlink:
     unlink(path);
-error:
+ error:
     VIR_FORCE_CLOSE(fd);
     VIR_FREE(path);
     VIR_FREE(dir);
@@ -422,7 +424,7 @@ static int virLockManagerSanlockInit(unsigned int version,
 
     return 0;
 
-error:
+ error:
     virLockManagerSanlockDeinit();
     return -1;
 }
@@ -488,7 +490,7 @@ static int virLockManagerSanlockNew(virLockManagerPtr lock,
     lock->privateData = priv;
     return 0;
 
-error:
+ error:
     VIR_FREE(priv);
     return -1;
 }
@@ -508,36 +510,6 @@ static void virLockManagerSanlockFree(virLockManagerPtr lock)
     lock->privateData = NULL;
 }
 
-
-static const char hex[] = { '0', '1', '2', '3', '4', '5', '6', '7',
-                            '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
-
-static int virLockManagerSanlockDiskLeaseName(const char *path,
-                                              char *str,
-                                              size_t strbuflen)
-{
-    unsigned char buf[MD5_DIGEST_SIZE];
-    size_t i;
-
-    if (strbuflen < ((MD5_DIGEST_SIZE * 2) + 1)) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       _("String length too small to store md5 checksum"));
-        return -1;
-    }
-
-    if (!(md5_buffer(path, strlen(path), buf))) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       _("Unable to compute md5 checksum"));
-        return -1;
-    }
-
-    for (i = 0; i < MD5_DIGEST_SIZE; i++) {
-        str[i*2] = hex[(buf[i] >> 4) & 0xf];
-        str[(i*2)+1] = hex[buf[i] & 0xf];
-    }
-    str[(MD5_DIGEST_SIZE*2)+1] = '\0';
-    return 0;
-}
 
 static int virLockManagerSanlockAddLease(virLockManagerPtr lock,
                                          const char *name,
@@ -587,7 +559,7 @@ static int virLockManagerSanlockAddLease(virLockManagerPtr lock,
 
     ret = 0;
 
-cleanup:
+ cleanup:
     if (ret == -1)
         VIR_FREE(res);
     return ret;
@@ -606,6 +578,7 @@ static int virLockManagerSanlockAddDisk(virLockManagerPtr lock,
     int ret = -1;
     struct sanlk_resource *res = NULL;
     char *path = NULL;
+    char *hash = NULL;
 
     if (nparams) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
@@ -618,8 +591,14 @@ static int virLockManagerSanlockAddDisk(virLockManagerPtr lock,
 
     res->flags = shared ? SANLK_RES_SHARED : 0;
     res->num_disks = 1;
-    if (virLockManagerSanlockDiskLeaseName(name, res->name, SANLK_NAME_LEN) < 0)
+    if (virCryptoHashString(VIR_CRYPTO_HASH_MD5, name, &hash) < 0)
         goto cleanup;
+    if (!virStrcpy(res->name, hash, SANLK_NAME_LEN)) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("MD5 hash '%s' unexpectedly larger than %d characters"),
+                       hash, (SANLK_NAME_LEN - 1));
+        goto cleanup;
+    }
 
     if (virAsprintf(&path, "%s/%s",
                     driver->autoDiskLeasePath, res->name) < 0)
@@ -645,10 +624,11 @@ static int virLockManagerSanlockAddDisk(virLockManagerPtr lock,
 
     ret = 0;
 
-cleanup:
+ cleanup:
     if (ret == -1)
         VIR_FREE(res);
     VIR_FREE(path);
+    VIR_FREE(hash);
     return ret;
 }
 
@@ -727,7 +707,7 @@ static int virLockManagerSanlockCreateLease(struct sanlk_resource *res)
 
     return 0;
 
-error_unlink:
+ error_unlink:
     unlink(res->disks[0].path);
     VIR_FORCE_CLOSE(fd);
     return -1;
@@ -801,7 +781,17 @@ virLockManagerSanlockRegisterKillscript(int sock,
     int ret = -1;
     int rv;
 
-    if (action > VIR_DOMAIN_LOCK_FAILURE_IGNORE) {
+    switch (action) {
+    case VIR_DOMAIN_LOCK_FAILURE_DEFAULT:
+        return 0;
+
+    case VIR_DOMAIN_LOCK_FAILURE_POWEROFF:
+    case VIR_DOMAIN_LOCK_FAILURE_PAUSE:
+        break;
+
+    case VIR_DOMAIN_LOCK_FAILURE_RESTART:
+    case VIR_DOMAIN_LOCK_FAILURE_IGNORE:
+    case VIR_DOMAIN_LOCK_FAILURE_LAST:
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                        _("Failure action %s is not supported by sanlock"),
                        virDomainLockFailureTypeToString(action));
@@ -860,7 +850,7 @@ virLockManagerSanlockRegisterKillscript(int sock,
 
     ret = 0;
 
-cleanup:
+ cleanup:
     VIR_FREE(args);
     return ret;
 }
@@ -934,7 +924,7 @@ static int virLockManagerSanlockAcquire(virLockManagerPtr lock,
     /* We only initialize 'sock' if we are in the real
      * child process and we need it to be inherited
      *
-     * If sock==-1, then sanlock auto-open/closes a
+     * If sock == -1, then sanlock auto-open/closes a
      * temporary sock
      */
     if (priv->vm_pid == getpid()) {
@@ -1012,7 +1002,7 @@ static int virLockManagerSanlockAcquire(virLockManagerPtr lock,
 
     return 0;
 
-error:
+ error:
     if (res_free) {
         for (i = 0; i < res_count; i++) {
             VIR_FREE(res_args[i]);

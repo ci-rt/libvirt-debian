@@ -288,10 +288,9 @@ host_triplet = @host@
 @WITH_LIBVIRTD_TRUE@am__append_159 = lockd.la
 @WITH_LIBVIRTD_TRUE@am__append_160 = locking/libvirt_lockd.aug \
 @WITH_LIBVIRTD_TRUE@	locking/virtlockd.aug
-@WITH_LIBVIRTD_TRUE@am__append_161 = test_libvirt_lockd.aug \
-@WITH_LIBVIRTD_TRUE@	test_virtlockd.aug
-@WITH_LIBVIRTD_TRUE@am__append_162 = test_libvirt_lockd.aug
-@WITH_DTRACE_PROBES_TRUE@@WITH_LIBVIRTD_TRUE@am__append_163 = libvirt_probes.lo
+@WITH_DTRACE_PROBES_TRUE@@WITH_LIBVIRTD_TRUE@am__append_161 = libvirt_probes.lo
+@WITH_LIBVIRTD_TRUE@@WITH_QEMU_TRUE@am__append_162 = test_libvirt_lockd.aug
+@WITH_LIBVIRTD_TRUE@@WITH_QEMU_TRUE@am__append_163 = test_libvirt_lockd.aug
 @WITH_LIBVIRTD_TRUE@@WITH_QEMU_TRUE@am__append_164 = locking/qemu-lockd.conf
 @WITH_LIBVIRTD_TRUE@@WITH_QEMU_TRUE@am__append_165 = locking/qemu-lockd.conf
 @WITH_LIBVIRTD_TRUE@@WITH_QEMU_TRUE@am__append_166 = locking/qemu-lockd.conf
@@ -303,47 +302,48 @@ host_triplet = @host@
 @LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@@WITH_LIBVIRTD_TRUE@am__append_169 = virtlockd.init
 @LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@@WITH_LIBVIRTD_TRUE@am__append_170 = virtlockd.init
 @WITH_LIBVIRTD_TRUE@am__append_171 = locking/virtlockd.conf
-@LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@@WITH_LIBVIRTD_TRUE@am__append_172 = virtlockd.service virtlockd.socket
+@WITH_LIBVIRTD_TRUE@am__append_172 = test_virtlockd.aug
 @LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@@WITH_LIBVIRTD_TRUE@am__append_173 = virtlockd.service virtlockd.socket
-@WITH_SANLOCK_TRUE@am__append_174 = sanlock.la
-@WITH_SANLOCK_TRUE@am__append_175 = locking/libvirt_sanlock.aug
-@WITH_SANLOCK_TRUE@am__append_176 = test_libvirt_sanlock.aug
+@LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@@WITH_LIBVIRTD_TRUE@am__append_174 = virtlockd.service virtlockd.socket
+@WITH_SANLOCK_TRUE@am__append_175 = sanlock.la
+@WITH_SANLOCK_TRUE@am__append_176 = locking/libvirt_sanlock.aug
 @WITH_SANLOCK_TRUE@am__append_177 = test_libvirt_sanlock.aug
-@WITH_QEMU_TRUE@@WITH_SANLOCK_TRUE@am__append_178 = locking/qemu-sanlock.conf
+@WITH_SANLOCK_TRUE@am__append_178 = test_libvirt_sanlock.aug
 @WITH_QEMU_TRUE@@WITH_SANLOCK_TRUE@am__append_179 = locking/qemu-sanlock.conf
 @WITH_QEMU_TRUE@@WITH_SANLOCK_TRUE@am__append_180 = locking/qemu-sanlock.conf
-@WITH_SANLOCK_FALSE@am__append_181 = $(LOCK_DRIVER_SANLOCK_SOURCES)
-@WITH_SSH2_TRUE@am__append_182 = \
+@WITH_QEMU_TRUE@@WITH_SANLOCK_TRUE@am__append_181 = locking/qemu-sanlock.conf
+@WITH_SANLOCK_FALSE@am__append_182 = $(LOCK_DRIVER_SANLOCK_SOURCES)
+@WITH_SSH2_TRUE@am__append_183 = \
 @WITH_SSH2_TRUE@	rpc/virnetsshsession.h rpc/virnetsshsession.c
 
-@WITH_SSH2_FALSE@am__append_183 = \
+@WITH_SSH2_FALSE@am__append_184 = \
 @WITH_SSH2_FALSE@	rpc/virnetsshsession.h rpc/virnetsshsession.c
 
-@WITH_GNUTLS_TRUE@am__append_184 = \
+@WITH_GNUTLS_TRUE@am__append_185 = \
 @WITH_GNUTLS_TRUE@	rpc/virnettlscontext.h rpc/virnettlscontext.c
 
-@WITH_GNUTLS_FALSE@am__append_185 = \
+@WITH_GNUTLS_FALSE@am__append_186 = \
 @WITH_GNUTLS_FALSE@	rpc/virnettlscontext.h rpc/virnettlscontext.c
 
-@WITH_SASL_TRUE@am__append_186 = \
+@WITH_SASL_TRUE@am__append_187 = \
 @WITH_SASL_TRUE@	rpc/virnetsaslcontext.h rpc/virnetsaslcontext.c
 
-@WITH_SASL_FALSE@am__append_187 = \
+@WITH_SASL_FALSE@am__append_188 = \
 @WITH_SASL_FALSE@	rpc/virnetsaslcontext.h rpc/virnetsaslcontext.c
 
 libexec_PROGRAMS = $(am__EXEEXT_1) $(am__EXEEXT_2) $(am__EXEEXT_3) \
 	$(am__EXEEXT_4) $(am__EXEEXT_5)
-@WITH_LIBVIRTD_TRUE@am__append_188 = libvirt_iohelper
-@WITH_DTRACE_PROBES_TRUE@@WITH_LIBVIRTD_TRUE@am__append_189 = libvirt_probes.lo
-@WITH_LIBVIRTD_TRUE@@WITH_STORAGE_DISK_TRUE@am__append_190 = libvirt_parthelper
-@WITH_DTRACE_PROBES_TRUE@@WITH_LIBVIRTD_TRUE@@WITH_STORAGE_DISK_TRUE@am__append_191 = libvirt_probes.lo
-@WITH_SANLOCK_TRUE@am__append_192 = libvirt_sanlock_helper
-@WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@am__append_193 = libvirt_lxc
-@WITH_DTRACE_PROBES_TRUE@@WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@am__append_194 = libvirt_probes.lo
-@WITH_BLKID_TRUE@@WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@am__append_195 = $(BLKID_CFLAGS)
-@WITH_BLKID_TRUE@@WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@am__append_196 = $(BLKID_LIBS)
-@WITH_LIBVIRTD_TRUE@@WITH_SECDRIVER_APPARMOR_TRUE@am__append_197 = virt-aa-helper
-@WITH_DTRACE_PROBES_TRUE@@WITH_LIBVIRTD_TRUE@@WITH_SECDRIVER_APPARMOR_TRUE@am__append_198 = libvirt_probes.lo
+@WITH_LIBVIRTD_TRUE@am__append_189 = libvirt_iohelper
+@WITH_DTRACE_PROBES_TRUE@@WITH_LIBVIRTD_TRUE@am__append_190 = libvirt_probes.lo
+@WITH_LIBVIRTD_TRUE@@WITH_STORAGE_DISK_TRUE@am__append_191 = libvirt_parthelper
+@WITH_DTRACE_PROBES_TRUE@@WITH_LIBVIRTD_TRUE@@WITH_STORAGE_DISK_TRUE@am__append_192 = libvirt_probes.lo
+@WITH_SANLOCK_TRUE@am__append_193 = libvirt_sanlock_helper
+@WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@am__append_194 = libvirt_lxc
+@WITH_DTRACE_PROBES_TRUE@@WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@am__append_195 = libvirt_probes.lo
+@WITH_BLKID_TRUE@@WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@am__append_196 = $(BLKID_CFLAGS)
+@WITH_BLKID_TRUE@@WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@am__append_197 = $(BLKID_LIBS)
+@WITH_LIBVIRTD_TRUE@@WITH_SECDRIVER_APPARMOR_TRUE@am__append_198 = virt-aa-helper
+@WITH_DTRACE_PROBES_TRUE@@WITH_LIBVIRTD_TRUE@@WITH_SECDRIVER_APPARMOR_TRUE@am__append_199 = libvirt_probes.lo
 subdir = src
 DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/Makefile.am \
 	$(top_srcdir)/build-aux/mkinstalldirs \
@@ -1172,8 +1172,7 @@ am__libvirt_driver_qemu_impl_la_SOURCES_DIST = qemu/qemu_agent.c \
 	qemu/qemu_migration.h qemu/qemu_monitor.c qemu/qemu_monitor.h \
 	qemu/qemu_monitor_text.c qemu/qemu_monitor_text.h \
 	qemu/qemu_monitor_json.c qemu/qemu_monitor_json.h \
-	qemu/qemu_driver.c qemu/qemu_driver.h \
-	qemu/qemu_bridge_filter.c qemu/qemu_bridge_filter.h
+	qemu/qemu_driver.c qemu/qemu_driver.h
 am__objects_51 = qemu/libvirt_driver_qemu_impl_la-qemu_agent.lo \
 	qemu/libvirt_driver_qemu_impl_la-qemu_capabilities.lo \
 	qemu/libvirt_driver_qemu_impl_la-qemu_command.lo \
@@ -1187,8 +1186,7 @@ am__objects_51 = qemu/libvirt_driver_qemu_impl_la-qemu_agent.lo \
 	qemu/libvirt_driver_qemu_impl_la-qemu_monitor.lo \
 	qemu/libvirt_driver_qemu_impl_la-qemu_monitor_text.lo \
 	qemu/libvirt_driver_qemu_impl_la-qemu_monitor_json.lo \
-	qemu/libvirt_driver_qemu_impl_la-qemu_driver.lo \
-	qemu/libvirt_driver_qemu_impl_la-qemu_bridge_filter.lo
+	qemu/libvirt_driver_qemu_impl_la-qemu_driver.lo
 @WITH_QEMU_TRUE@am_libvirt_driver_qemu_impl_la_OBJECTS =  \
 @WITH_QEMU_TRUE@	$(am__objects_51)
 libvirt_driver_qemu_impl_la_OBJECTS =  \
@@ -1508,6 +1506,7 @@ am__objects_86 = util/libvirt_util_la-viralloc.lo \
 	util/libvirt_util_la-virclosecallbacks.lo \
 	util/libvirt_util_la-vircommand.lo \
 	util/libvirt_util_la-virconf.lo \
+	util/libvirt_util_la-vircrypto.lo \
 	util/libvirt_util_la-virdbus.lo \
 	util/libvirt_util_la-virdnsmasq.lo \
 	util/libvirt_util_la-virebtables.lo \
@@ -1518,9 +1517,11 @@ am__objects_86 = util/libvirt_util_la-viralloc.lo \
 	util/libvirt_util_la-virhash.lo \
 	util/libvirt_util_la-virhashcode.lo \
 	util/libvirt_util_la-virhook.lo \
+	util/libvirt_util_la-virhostdev.lo \
 	util/libvirt_util_la-viridentity.lo \
 	util/libvirt_util_la-virinitctl.lo \
 	util/libvirt_util_la-viriptables.lo \
+	util/libvirt_util_la-viriscsi.lo \
 	util/libvirt_util_la-virjson.lo \
 	util/libvirt_util_la-virkeycode.lo \
 	util/libvirt_util_la-virkeyfile.lo \
@@ -1593,7 +1594,7 @@ libvirt_xenxs_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 @WITH_LIBVIRTD_TRUE@lockd_la_DEPENDENCIES = ../gnulib/lib/libgnu.la \
 @WITH_LIBVIRTD_TRUE@	libvirt-net-rpc.la \
 @WITH_LIBVIRTD_TRUE@	libvirt-net-rpc-client.la \
-@WITH_LIBVIRTD_TRUE@	$(am__append_163)
+@WITH_LIBVIRTD_TRUE@	$(am__append_161)
 am__lockd_la_SOURCES_DIST = locking/lock_driver_lockd.c \
 	locking/lock_protocol.h locking/lock_protocol.c
 am__objects_89 = locking/lockd_la-lock_driver_lockd.lo
@@ -1626,7 +1627,7 @@ am__objects_92 = util/libvirt_iohelper-iohelper.$(OBJEXT)
 @WITH_LIBVIRTD_TRUE@am_libvirt_iohelper_OBJECTS = $(am__objects_92)
 libvirt_iohelper_OBJECTS = $(am_libvirt_iohelper_OBJECTS)
 @WITH_LIBVIRTD_TRUE@libvirt_iohelper_DEPENDENCIES = libvirt_util.la \
-@WITH_LIBVIRTD_TRUE@	../gnulib/lib/libgnu.la $(am__append_189)
+@WITH_LIBVIRTD_TRUE@	../gnulib/lib/libgnu.la $(am__append_190)
 libvirt_iohelper_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
 	$(libvirt_iohelper_CFLAGS) $(CFLAGS) \
@@ -1662,7 +1663,7 @@ libvirt_lxc_OBJECTS = $(am_libvirt_lxc_OBJECTS)
 @WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@	libvirt_conf.la \
 @WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@	libvirt_util.la \
 @WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@	../gnulib/lib/libgnu.la \
-@WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@	$(am__append_194) \
+@WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@	$(am__append_195) \
 @WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@	$(am__DEPENDENCIES_7) \
 @WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@	$(am__DEPENDENCIES_16)
 libvirt_lxc_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
@@ -1676,7 +1677,7 @@ libvirt_parthelper_OBJECTS = $(am_libvirt_parthelper_OBJECTS)
 @WITH_LIBVIRTD_TRUE@@WITH_STORAGE_DISK_TRUE@libvirt_parthelper_DEPENDENCIES = $(am__DEPENDENCIES_1) \
 @WITH_LIBVIRTD_TRUE@@WITH_STORAGE_DISK_TRUE@	libvirt_util.la \
 @WITH_LIBVIRTD_TRUE@@WITH_STORAGE_DISK_TRUE@	../gnulib/lib/libgnu.la \
-@WITH_LIBVIRTD_TRUE@@WITH_STORAGE_DISK_TRUE@	$(am__append_191)
+@WITH_LIBVIRTD_TRUE@@WITH_STORAGE_DISK_TRUE@	$(am__append_192)
 libvirt_parthelper_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
 	$(libvirt_parthelper_CFLAGS) $(CFLAGS) \
@@ -1702,7 +1703,7 @@ virt_aa_helper_OBJECTS = $(am_virt_aa_helper_OBJECTS)
 @WITH_LIBVIRTD_TRUE@@WITH_SECDRIVER_APPARMOR_TRUE@virt_aa_helper_DEPENDENCIES = libvirt_conf.la \
 @WITH_LIBVIRTD_TRUE@@WITH_SECDRIVER_APPARMOR_TRUE@	libvirt_util.la \
 @WITH_LIBVIRTD_TRUE@@WITH_SECDRIVER_APPARMOR_TRUE@	../gnulib/lib/libgnu.la \
-@WITH_LIBVIRTD_TRUE@@WITH_SECDRIVER_APPARMOR_TRUE@	$(am__append_198)
+@WITH_LIBVIRTD_TRUE@@WITH_SECDRIVER_APPARMOR_TRUE@	$(am__append_199)
 virt_aa_helper_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
 	$(virt_aa_helper_CFLAGS) $(CFLAGS) $(virt_aa_helper_LDFLAGS) \
@@ -2807,6 +2808,7 @@ LIB_EXECINFO = @LIB_EXECINFO@
 LIB_FDATASYNC = @LIB_FDATASYNC@
 LIB_NANOSLEEP = @LIB_NANOSLEEP@
 LIB_POLL = @LIB_POLL@
+LIB_POSIX_SPAWN = @LIB_POSIX_SPAWN@
 LIB_PTHREAD = @LIB_PTHREAD@
 LIB_PTHREAD_SIGMASK = @LIB_PTHREAD_SIGMASK@
 LIB_SELECT = @LIB_SELECT@
@@ -3266,8 +3268,10 @@ XSLTPROC = @XSLTPROC@
 YAJL_CFLAGS = @YAJL_CFLAGS@
 YAJL_LIBS = @YAJL_LIBS@
 abs_aux_dir = @abs_aux_dir@
-abs_builddir = @abs_builddir@
-abs_srcdir = @abs_srcdir@
+
+# old automake does not provide abs_{src,build}dir variables
+abs_builddir = $(shell pwd)
+abs_srcdir = $(shell cd $(srcdir) && pwd)
 abs_top_builddir = @abs_top_builddir@
 abs_top_srcdir = @abs_top_srcdir@
 ac_ct_AR = @ac_ct_AR@
@@ -3398,12 +3402,12 @@ EXTRA_DIST = $(conf_DATA) util/keymaps.csv $(srcdir)/util/virkeymaps.h \
 	locking/virtlockd.init.in locking/virtlockd.service.in \
 	locking/virtlockd.socket.in locking/virtlockd.pod.in \
 	virtlockd.8.in locking/virtlockd.aug locking/virtlockd.conf \
-	locking/test_virtlockd.aug.in $(NULL) $(am__append_181) \
+	locking/test_virtlockd.aug.in $(NULL) $(am__append_182) \
 	locking/sanlock.conf locking/libvirt_sanlock.aug \
 	locking/test_libvirt_sanlock.aug.in dtrace2systemtap.pl \
 	rpc/gendispatch.pl rpc/genprotocol.pl rpc/gensystemtap.pl \
 	rpc/virnetprotocol.x rpc/virkeepaliveprotocol.x \
-	$(am__append_183) $(am__append_185) $(am__append_187) \
+	$(am__append_184) $(am__append_186) $(am__append_188) \
 	$(STORAGE_HELPER_DISK_SOURCES) $(LXC_CONTROLLER_SOURCES) \
 	$(SECURITY_DRIVER_APPARMOR_HELPER_SOURCES)
 BUILT_SOURCES = util/virkeymaps.h $(LOCK_PROTOCOL_GENERATED) \
@@ -3412,21 +3416,21 @@ BUILT_SOURCES = util/virkeymaps.h $(LOCK_PROTOCOL_GENERATED) \
 	$(am__append_124) $(ACCESS_DRIVER_GENERATED) \
 	$(ACCESS_DRIVER_API_FILES) $(GENERATED_SYM_FILES) \
 	$(am__append_154) $(am__append_156) $(am__append_165) \
-	$(am__append_169) $(am__append_172) $(am__append_179) \
+	$(am__append_169) $(am__append_173) $(am__append_180) \
 	$(VIR_NET_RPC_GENERATED)
 CLEANFILES = $(LXC_GENERATED) $(am__append_45) $(am__append_55) \
 	$(am__append_123) $(ACCESS_DRIVER_GENERATED) \
-	$(ACCESS_DRIVER_API_FILES) $(am__append_157) $(am__append_162) \
-	test_virtlockd.aug virtlockd.8 $(am__append_177) *.gcov \
+	$(ACCESS_DRIVER_API_FILES) $(am__append_157) $(am__append_163) \
+	test_virtlockd.aug virtlockd.8 $(am__append_178) *.gcov \
 	.libs/*.gcda .libs/*.gcno *.gcno *.gcda *.i *.s
-DISTCLEANFILES = $(am__append_166) $(am__append_170) $(am__append_173) \
-	$(am__append_180) $(GENERATED_SYM_FILES)
+DISTCLEANFILES = $(am__append_166) $(am__append_170) $(am__append_174) \
+	$(am__append_181) $(GENERATED_SYM_FILES)
 MAINTAINERCLEANFILES = $(LOCK_PROTOCOL_GENERATED) \
 	$(LOCK_DAEMON_GENERATED) $(ESX_DRIVER_GENERATED) \
 	$(ESX_GENERATED_STAMP) $(HYPERV_DRIVER_GENERATED) \
 	$(HYPERV_GENERATED_STAMP) $(srcdir)/virtlockd.8.in \
 	$(REMOTE_DRIVER_GENERATED) $(VIR_NET_RPC_GENERATED)
-nodist_conf_DATA = $(am__append_164) $(am__append_178)
+nodist_conf_DATA = $(am__append_164) $(am__append_179)
 THREAD_LIBS = $(LIB_PTHREAD) $(LTLIBMULTITHREAD)
 SECDRIVER_CFLAGS = $(am__append_1) $(am__append_3)
 SECDRIVER_LIBS = $(am__append_2) $(am__append_4)
@@ -3443,10 +3447,10 @@ conf_DATA = libvirt.conf $(am__append_42) $(am__append_52) \
 	$(am__append_171)
 augeasdir = $(datadir)/augeas/lenses
 augeas_DATA = $(am__append_43) $(am__append_53) $(am__append_160) \
-	$(am__append_175)
-augeastestdir = $(datadir)/augeas/lenses/tests
-augeastest_DATA = $(am__append_44) $(am__append_54) $(am__append_161) \
 	$(am__append_176)
+augeastestdir = $(datadir)/augeas/lenses/tests
+augeastest_DATA = $(am__append_44) $(am__append_54) $(am__append_162) \
+	$(am__append_172) $(am__append_177)
 
 # These files are not related to driver APIs. Simply generic
 # helper APIs for various purposes
@@ -3461,8 +3465,9 @@ UTIL_SOURCES = \
 		util/virbuffer.c util/virbuffer.h		\
 		util/vircgroup.c util/vircgroup.h util/vircgrouppriv.h	\
 		util/virclosecallbacks.c util/virclosecallbacks.h		\
-		util/vircommand.c util/vircommand.h		\
+		util/vircommand.c util/vircommand.h util/vircommandpriv.h \
 		util/virconf.c util/virconf.h			\
+		util/vircrypto.c util/vircrypto.h		\
 		util/virdbus.c util/virdbus.h util/virdbuspriv.h	\
 		util/virdnsmasq.c util/virdnsmasq.h		\
 		util/virebtables.c util/virebtables.h		\
@@ -3474,9 +3479,11 @@ UTIL_SOURCES = \
 		util/virhash.c util/virhash.h			\
 		util/virhashcode.c util/virhashcode.h		\
 		util/virhook.c util/virhook.h			\
+		util/virhostdev.c util/virhostdev.h		\
 		util/viridentity.c util/viridentity.h		\
 		util/virinitctl.c util/virinitctl.h		\
 		util/viriptables.c util/viriptables.h		\
+		util/viriscsi.c util/viriscsi.h			\
 		util/virjson.c util/virjson.h			\
 		util/virkeycode.c util/virkeycode.h		\
 		util/virkeyfile.c util/virkeyfile.h		\
@@ -3501,6 +3508,7 @@ UTIL_SOURCES = \
 		util/virpci.c util/virpci.h			\
 		util/virpidfile.c util/virpidfile.h		\
 		util/virportallocator.c util/virportallocator.h \
+		util/virprobe.h					\
 		util/virprocess.c util/virprocess.h		\
 		util/virrandom.h util/virrandom.c		\
 		util/virscsi.c util/virscsi.h			\
@@ -3918,9 +3926,7 @@ QEMU_DRIVER_SOURCES = \
 		qemu/qemu_monitor_text.h				\
 		qemu/qemu_monitor_json.c				\
 		qemu/qemu_monitor_json.h				\
-		qemu/qemu_driver.c qemu/qemu_driver.h			\
-		qemu/qemu_bridge_filter.c				\
-		qemu/qemu_bridge_filter.h
+		qemu/qemu_driver.c qemu/qemu_driver.h
 
 XENAPI_DRIVER_SOURCES = \
 		xenapi/xenapi_driver.c xenapi/xenapi_driver.h	\
@@ -4209,6 +4215,7 @@ libvirt_cpu_la_CFLAGS = \
 		-I$(top_srcdir)/src/conf $(AM_CFLAGS)
 
 libvirt_cpu_la_SOURCES = $(CPU_SOURCES)
+libvirt_cpu_la_DEPENDENCIES = $(abs_builddir)/cpu/cpu_map.xml
 @WITH_VMX_TRUE@libvirt_vmx_la_CFLAGS = \
 @WITH_VMX_TRUE@		-I$(top_srcdir)/src/conf $(AM_CFLAGS)
 
@@ -4632,7 +4639,7 @@ libvirt_lxc_la_LIBADD = libvirt.la $(CYGWIN_EXTRA_LIBADD)
 @WITH_LXC_TRUE@		$(NULL)
 
 lockdriverdir = $(libdir)/libvirt/lock-driver
-lockdriver_LTLIBRARIES = $(am__append_159) $(am__append_174)
+lockdriver_LTLIBRARIES = $(am__append_159) $(am__append_175)
 @WITH_LIBVIRTD_TRUE@lockd_la_SOURCES = \
 @WITH_LIBVIRTD_TRUE@		$(LOCK_DRIVER_LOCKD_SOURCES) \
 @WITH_LIBVIRTD_TRUE@		$(LOCK_PROTOCOL_GENERATED) \
@@ -4646,7 +4653,7 @@ lockdriver_LTLIBRARIES = $(am__append_159) $(am__append_174)
 @WITH_LIBVIRTD_TRUE@lockd_la_LIBADD = ../gnulib/lib/libgnu.la \
 @WITH_LIBVIRTD_TRUE@	libvirt-net-rpc.la \
 @WITH_LIBVIRTD_TRUE@	libvirt-net-rpc-client.la $(NULL) \
-@WITH_LIBVIRTD_TRUE@	$(am__append_163)
+@WITH_LIBVIRTD_TRUE@	$(am__append_161)
 @WITH_LIBVIRTD_TRUE@virtlockd_SOURCES = \
 @WITH_LIBVIRTD_TRUE@		$(LOCK_DAEMON_SOURCES) \
 @WITH_LIBVIRTD_TRUE@		$(LOCK_PROTOCOL_GENERATED) \
@@ -4690,8 +4697,8 @@ VIR_NET_RPC_GENERATED = \
 
 libvirt_net_rpc_la_SOURCES = rpc/virnetmessage.h rpc/virnetmessage.c \
 	rpc/virnetsocket.h rpc/virnetsocket.c rpc/virkeepalive.h \
-	rpc/virkeepalive.c $(VIR_NET_RPC_GENERATED) $(am__append_182) \
-	$(am__append_184) $(am__append_186)
+	rpc/virkeepalive.c $(VIR_NET_RPC_GENERATED) $(am__append_183) \
+	$(am__append_185) $(am__append_187)
 libvirt_net_rpc_la_CFLAGS = \
 			$(GNUTLS_CFLAGS) \
 			$(SASL_CFLAGS) \
@@ -4760,7 +4767,7 @@ libvirt_net_rpc_client_la_LIBADD = \
 @WITH_LIBVIRTD_TRUE@		$(NULL)
 
 @WITH_LIBVIRTD_TRUE@libvirt_iohelper_LDADD = libvirt_util.la \
-@WITH_LIBVIRTD_TRUE@	../gnulib/lib/libgnu.la $(am__append_189)
+@WITH_LIBVIRTD_TRUE@	../gnulib/lib/libgnu.la $(am__append_190)
 @WITH_LIBVIRTD_TRUE@libvirt_iohelper_CFLAGS = \
 @WITH_LIBVIRTD_TRUE@		$(AM_CFLAGS) \
 @WITH_LIBVIRTD_TRUE@		$(PIE_CFLAGS) \
@@ -4776,7 +4783,7 @@ libvirt_net_rpc_client_la_LIBADD = \
 @WITH_LIBVIRTD_TRUE@@WITH_STORAGE_DISK_TRUE@	$(LIBPARTED_LIBS) \
 @WITH_LIBVIRTD_TRUE@@WITH_STORAGE_DISK_TRUE@	libvirt_util.la \
 @WITH_LIBVIRTD_TRUE@@WITH_STORAGE_DISK_TRUE@	../gnulib/lib/libgnu.la \
-@WITH_LIBVIRTD_TRUE@@WITH_STORAGE_DISK_TRUE@	$(am__append_191)
+@WITH_LIBVIRTD_TRUE@@WITH_STORAGE_DISK_TRUE@	$(am__append_192)
 @WITH_LIBVIRTD_TRUE@@WITH_STORAGE_DISK_TRUE@libvirt_parthelper_CFLAGS = \
 @WITH_LIBVIRTD_TRUE@@WITH_STORAGE_DISK_TRUE@		$(LIBPARTED_CFLAGS) \
 @WITH_LIBVIRTD_TRUE@@WITH_STORAGE_DISK_TRUE@		$(AM_CFLAGS) \
@@ -4813,16 +4820,16 @@ libvirt_net_rpc_client_la_LIBADD = \
 @WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@	libvirt_conf.la \
 @WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@	libvirt_util.la \
 @WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@	../gnulib/lib/libgnu.la \
-@WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@	$(am__append_194) \
+@WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@	$(am__append_195) \
 @WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@	$(SECDRIVER_LIBS) \
-@WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@	$(am__append_196)
+@WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@	$(am__append_197)
 @WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@libvirt_lxc_CFLAGS =  \
 @WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@	-I$(top_srcdir)/src/conf \
 @WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@	$(AM_CFLAGS) $(PIE_CFLAGS) \
 @WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@	$(LIBNL_CFLAGS) \
 @WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@	$(FUSE_CFLAGS) \
 @WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@	$(DBUS_CFLAGS) $(NULL) \
-@WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@	$(am__append_195) \
+@WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@	$(am__append_196) \
 @WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@	$(SECDRIVER_CFLAGS)
 @WITH_LIBVIRTD_TRUE@@WITH_SECDRIVER_APPARMOR_TRUE@virt_aa_helper_SOURCES = $(SECURITY_DRIVER_APPARMOR_HELPER_SOURCES)
 @WITH_LIBVIRTD_TRUE@@WITH_SECDRIVER_APPARMOR_TRUE@virt_aa_helper_LDFLAGS = \
@@ -4833,7 +4840,7 @@ libvirt_net_rpc_client_la_LIBADD = \
 @WITH_LIBVIRTD_TRUE@@WITH_SECDRIVER_APPARMOR_TRUE@virt_aa_helper_LDADD = libvirt_conf.la \
 @WITH_LIBVIRTD_TRUE@@WITH_SECDRIVER_APPARMOR_TRUE@	libvirt_util.la \
 @WITH_LIBVIRTD_TRUE@@WITH_SECDRIVER_APPARMOR_TRUE@	../gnulib/lib/libgnu.la \
-@WITH_LIBVIRTD_TRUE@@WITH_SECDRIVER_APPARMOR_TRUE@	$(am__append_198)
+@WITH_LIBVIRTD_TRUE@@WITH_SECDRIVER_APPARMOR_TRUE@	$(am__append_199)
 @WITH_LIBVIRTD_TRUE@@WITH_SECDRIVER_APPARMOR_TRUE@virt_aa_helper_CFLAGS = \
 @WITH_LIBVIRTD_TRUE@@WITH_SECDRIVER_APPARMOR_TRUE@		-I$(top_srcdir)/src/conf			\
 @WITH_LIBVIRTD_TRUE@@WITH_SECDRIVER_APPARMOR_TRUE@		-I$(top_srcdir)/src/security			\
@@ -5550,8 +5557,6 @@ qemu/libvirt_driver_qemu_impl_la-qemu_monitor_json.lo:  \
 	qemu/$(am__dirstamp) qemu/$(DEPDIR)/$(am__dirstamp)
 qemu/libvirt_driver_qemu_impl_la-qemu_driver.lo: qemu/$(am__dirstamp) \
 	qemu/$(DEPDIR)/$(am__dirstamp)
-qemu/libvirt_driver_qemu_impl_la-qemu_bridge_filter.lo:  \
-	qemu/$(am__dirstamp) qemu/$(DEPDIR)/$(am__dirstamp)
 
 libvirt_driver_qemu_impl.la: $(libvirt_driver_qemu_impl_la_OBJECTS) $(libvirt_driver_qemu_impl_la_DEPENDENCIES) $(EXTRA_libvirt_driver_qemu_impl_la_DEPENDENCIES) 
 	$(AM_V_CCLD)$(libvirt_driver_qemu_impl_la_LINK) $(am_libvirt_driver_qemu_impl_la_rpath) $(libvirt_driver_qemu_impl_la_OBJECTS) $(libvirt_driver_qemu_impl_la_LIBADD) $(LIBS)
@@ -5773,6 +5778,8 @@ util/libvirt_util_la-vircommand.lo: util/$(am__dirstamp) \
 	util/$(DEPDIR)/$(am__dirstamp)
 util/libvirt_util_la-virconf.lo: util/$(am__dirstamp) \
 	util/$(DEPDIR)/$(am__dirstamp)
+util/libvirt_util_la-vircrypto.lo: util/$(am__dirstamp) \
+	util/$(DEPDIR)/$(am__dirstamp)
 util/libvirt_util_la-virdbus.lo: util/$(am__dirstamp) \
 	util/$(DEPDIR)/$(am__dirstamp)
 util/libvirt_util_la-virdnsmasq.lo: util/$(am__dirstamp) \
@@ -5793,11 +5800,15 @@ util/libvirt_util_la-virhashcode.lo: util/$(am__dirstamp) \
 	util/$(DEPDIR)/$(am__dirstamp)
 util/libvirt_util_la-virhook.lo: util/$(am__dirstamp) \
 	util/$(DEPDIR)/$(am__dirstamp)
+util/libvirt_util_la-virhostdev.lo: util/$(am__dirstamp) \
+	util/$(DEPDIR)/$(am__dirstamp)
 util/libvirt_util_la-viridentity.lo: util/$(am__dirstamp) \
 	util/$(DEPDIR)/$(am__dirstamp)
 util/libvirt_util_la-virinitctl.lo: util/$(am__dirstamp) \
 	util/$(DEPDIR)/$(am__dirstamp)
 util/libvirt_util_la-viriptables.lo: util/$(am__dirstamp) \
+	util/$(DEPDIR)/$(am__dirstamp)
+util/libvirt_util_la-viriscsi.lo: util/$(am__dirstamp) \
 	util/$(DEPDIR)/$(am__dirstamp)
 util/libvirt_util_la-virjson.lo: util/$(am__dirstamp) \
 	util/$(DEPDIR)/$(am__dirstamp)
@@ -6281,7 +6292,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@parallels/$(DEPDIR)/libvirt_driver_parallels_la-parallels_utils.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@phyp/$(DEPDIR)/libvirt_driver_phyp_la-phyp_driver.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@qemu/$(DEPDIR)/libvirt_driver_qemu_impl_la-qemu_agent.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@qemu/$(DEPDIR)/libvirt_driver_qemu_impl_la-qemu_bridge_filter.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@qemu/$(DEPDIR)/libvirt_driver_qemu_impl_la-qemu_capabilities.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@qemu/$(DEPDIR)/libvirt_driver_qemu_impl_la-qemu_cgroup.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@qemu/$(DEPDIR)/libvirt_driver_qemu_impl_la-qemu_command.Plo@am__quote@
@@ -6390,6 +6400,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_util_la-virclosecallbacks.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_util_la-vircommand.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_util_la-virconf.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_util_la-vircrypto.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_util_la-virdbus.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_util_la-virdnsmasq.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_util_la-virebtables.Plo@am__quote@
@@ -6400,9 +6411,11 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_util_la-virhash.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_util_la-virhashcode.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_util_la-virhook.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_util_la-virhostdev.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_util_la-viridentity.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_util_la-virinitctl.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_util_la-viriptables.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_util_la-viriscsi.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_util_la-virjson.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_util_la-virkeycode.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_util_la-virkeyfile.Plo@am__quote@
@@ -7792,13 +7805,6 @@ qemu/libvirt_driver_qemu_impl_la-qemu_driver.lo: qemu/qemu_driver.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_driver_qemu_impl_la_CFLAGS) $(CFLAGS) -c -o qemu/libvirt_driver_qemu_impl_la-qemu_driver.lo `test -f 'qemu/qemu_driver.c' || echo '$(srcdir)/'`qemu/qemu_driver.c
 
-qemu/libvirt_driver_qemu_impl_la-qemu_bridge_filter.lo: qemu/qemu_bridge_filter.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_driver_qemu_impl_la_CFLAGS) $(CFLAGS) -MT qemu/libvirt_driver_qemu_impl_la-qemu_bridge_filter.lo -MD -MP -MF qemu/$(DEPDIR)/libvirt_driver_qemu_impl_la-qemu_bridge_filter.Tpo -c -o qemu/libvirt_driver_qemu_impl_la-qemu_bridge_filter.lo `test -f 'qemu/qemu_bridge_filter.c' || echo '$(srcdir)/'`qemu/qemu_bridge_filter.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) qemu/$(DEPDIR)/libvirt_driver_qemu_impl_la-qemu_bridge_filter.Tpo qemu/$(DEPDIR)/libvirt_driver_qemu_impl_la-qemu_bridge_filter.Plo
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='qemu/qemu_bridge_filter.c' object='qemu/libvirt_driver_qemu_impl_la-qemu_bridge_filter.lo' libtool=yes @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_driver_qemu_impl_la_CFLAGS) $(CFLAGS) -c -o qemu/libvirt_driver_qemu_impl_la-qemu_bridge_filter.lo `test -f 'qemu/qemu_bridge_filter.c' || echo '$(srcdir)/'`qemu/qemu_bridge_filter.c
-
 remote/libvirt_driver_remote_la-remote_driver.lo: remote/remote_driver.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_driver_remote_la_CFLAGS) $(CFLAGS) -MT remote/libvirt_driver_remote_la-remote_driver.lo -MD -MP -MF remote/$(DEPDIR)/libvirt_driver_remote_la-remote_driver.Tpo -c -o remote/libvirt_driver_remote_la-remote_driver.lo `test -f 'remote/remote_driver.c' || echo '$(srcdir)/'`remote/remote_driver.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) remote/$(DEPDIR)/libvirt_driver_remote_la-remote_driver.Tpo remote/$(DEPDIR)/libvirt_driver_remote_la-remote_driver.Plo
@@ -8226,6 +8232,13 @@ util/libvirt_util_la-virconf.lo: util/virconf.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_util_la_CFLAGS) $(CFLAGS) -c -o util/libvirt_util_la-virconf.lo `test -f 'util/virconf.c' || echo '$(srcdir)/'`util/virconf.c
 
+util/libvirt_util_la-vircrypto.lo: util/vircrypto.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_util_la_CFLAGS) $(CFLAGS) -MT util/libvirt_util_la-vircrypto.lo -MD -MP -MF util/$(DEPDIR)/libvirt_util_la-vircrypto.Tpo -c -o util/libvirt_util_la-vircrypto.lo `test -f 'util/vircrypto.c' || echo '$(srcdir)/'`util/vircrypto.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) util/$(DEPDIR)/libvirt_util_la-vircrypto.Tpo util/$(DEPDIR)/libvirt_util_la-vircrypto.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='util/vircrypto.c' object='util/libvirt_util_la-vircrypto.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_util_la_CFLAGS) $(CFLAGS) -c -o util/libvirt_util_la-vircrypto.lo `test -f 'util/vircrypto.c' || echo '$(srcdir)/'`util/vircrypto.c
+
 util/libvirt_util_la-virdbus.lo: util/virdbus.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_util_la_CFLAGS) $(CFLAGS) -MT util/libvirt_util_la-virdbus.lo -MD -MP -MF util/$(DEPDIR)/libvirt_util_la-virdbus.Tpo -c -o util/libvirt_util_la-virdbus.lo `test -f 'util/virdbus.c' || echo '$(srcdir)/'`util/virdbus.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) util/$(DEPDIR)/libvirt_util_la-virdbus.Tpo util/$(DEPDIR)/libvirt_util_la-virdbus.Plo
@@ -8296,6 +8309,13 @@ util/libvirt_util_la-virhook.lo: util/virhook.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_util_la_CFLAGS) $(CFLAGS) -c -o util/libvirt_util_la-virhook.lo `test -f 'util/virhook.c' || echo '$(srcdir)/'`util/virhook.c
 
+util/libvirt_util_la-virhostdev.lo: util/virhostdev.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_util_la_CFLAGS) $(CFLAGS) -MT util/libvirt_util_la-virhostdev.lo -MD -MP -MF util/$(DEPDIR)/libvirt_util_la-virhostdev.Tpo -c -o util/libvirt_util_la-virhostdev.lo `test -f 'util/virhostdev.c' || echo '$(srcdir)/'`util/virhostdev.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) util/$(DEPDIR)/libvirt_util_la-virhostdev.Tpo util/$(DEPDIR)/libvirt_util_la-virhostdev.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='util/virhostdev.c' object='util/libvirt_util_la-virhostdev.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_util_la_CFLAGS) $(CFLAGS) -c -o util/libvirt_util_la-virhostdev.lo `test -f 'util/virhostdev.c' || echo '$(srcdir)/'`util/virhostdev.c
+
 util/libvirt_util_la-viridentity.lo: util/viridentity.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_util_la_CFLAGS) $(CFLAGS) -MT util/libvirt_util_la-viridentity.lo -MD -MP -MF util/$(DEPDIR)/libvirt_util_la-viridentity.Tpo -c -o util/libvirt_util_la-viridentity.lo `test -f 'util/viridentity.c' || echo '$(srcdir)/'`util/viridentity.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) util/$(DEPDIR)/libvirt_util_la-viridentity.Tpo util/$(DEPDIR)/libvirt_util_la-viridentity.Plo
@@ -8316,6 +8336,13 @@ util/libvirt_util_la-viriptables.lo: util/viriptables.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='util/viriptables.c' object='util/libvirt_util_la-viriptables.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_util_la_CFLAGS) $(CFLAGS) -c -o util/libvirt_util_la-viriptables.lo `test -f 'util/viriptables.c' || echo '$(srcdir)/'`util/viriptables.c
+
+util/libvirt_util_la-viriscsi.lo: util/viriscsi.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_util_la_CFLAGS) $(CFLAGS) -MT util/libvirt_util_la-viriscsi.lo -MD -MP -MF util/$(DEPDIR)/libvirt_util_la-viriscsi.Tpo -c -o util/libvirt_util_la-viriscsi.lo `test -f 'util/viriscsi.c' || echo '$(srcdir)/'`util/viriscsi.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) util/$(DEPDIR)/libvirt_util_la-viriscsi.Tpo util/$(DEPDIR)/libvirt_util_la-viriscsi.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='util/viriscsi.c' object='util/libvirt_util_la-viriscsi.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_util_la_CFLAGS) $(CFLAGS) -c -o util/libvirt_util_la-viriscsi.lo `test -f 'util/viriscsi.c' || echo '$(srcdir)/'`util/viriscsi.c
 
 util/libvirt_util_la-virjson.lo: util/virjson.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_util_la_CFLAGS) $(CFLAGS) -MT util/libvirt_util_la-virjson.lo -MD -MP -MF util/$(DEPDIR)/libvirt_util_la-virjson.Tpo -c -o util/libvirt_util_la-virjson.lo `test -f 'util/virjson.c' || echo '$(srcdir)/'`util/virjson.c
@@ -9546,6 +9573,9 @@ lxc/lxc_controller_dispatch.h: $(srcdir)/rpc/gendispatch.pl \
 	  virLXCMonitor VIR_LXC_MONITOR $(LXC_MONITOR_PROTOCOL) > \
 	  $(srcdir)/lxc/lxc_controller_dispatch.h
 
+$(abs_builddir)/cpu/cpu_map.xml:
+	$(AM_V_GEN)ln -s $(abs_srcdir)/cpu/cpu_map.xml $@
+
 %protocol.c: %protocol.x %protocol.h $(srcdir)/rpc/genprotocol.pl
 	$(AM_V_GEN)$(PERL) -w $(srcdir)/rpc/genprotocol.pl $(RPCGEN) -c \
 	       $< $(srcdir)/$(subst $(srcdir)/,,$@)
@@ -9677,6 +9707,7 @@ check-augeas: check-augeas-qemu check-augeas-lxc check-augeas-sanlock \
 @WITH_QEMU_TRUE@test_libvirt_lockd.aug: locking/test_libvirt_lockd.aug.in \
 @WITH_QEMU_TRUE@		locking/qemu-lockd.conf $(AUG_GENTEST)
 @WITH_QEMU_TRUE@	$(AM_V_GEN)$(AUG_GENTEST) locking/qemu-lockd.conf $< $@
+@WITH_QEMU_FALSE@test_libvirt_lockd.aug:
 
 test_virtlockd.aug: locking/test_virtlockd.aug.in \
 		locking/virtlockd.conf $(AUG_GENTEST)

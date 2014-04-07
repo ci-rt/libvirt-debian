@@ -1,7 +1,7 @@
 /*
  * libxl_conf.c: libxl configuration management
  *
- * Copyright (C) 2012 Red Hat, Inc.
+ * Copyright (C) 2012-2014 Red Hat, Inc.
  * Copyright (c) 2011-2013 SUSE LINUX Products GmbH, Nuernberg, Germany.
  * Copyright (C) 2011 Univention GmbH.
  *
@@ -47,6 +47,8 @@
 
 
 #define VIR_FROM_THIS VIR_FROM_LIBXL
+
+VIR_LOG_INIT("libxl.libxl_conf");
 
 /* see xen-unstable.hg/xen/include/asm-x86/cpufeature.h */
 #define LIBXL_X86_FEATURE_PAE_MASK 0x40
@@ -473,7 +475,7 @@ libxlMakeDomCreateInfo(libxl_ctx *ctx,
 
     return 0;
 
-error:
+ error:
     libxl_domain_create_info_dispose(c_info);
     return -1;
 }
@@ -706,7 +708,7 @@ libxlMakeDomBuildInfo(virDomainObjPtr vm, libxl_domain_config *d_config)
 
     return 0;
 
-error:
+ error:
     libxl_domain_build_info_dispose(b_info);
     return -1;
 }
@@ -714,18 +716,22 @@ error:
 int
 libxlMakeDisk(virDomainDiskDefPtr l_disk, libxl_device_disk *x_disk)
 {
+    const char *driver;
+    int format;
+
     libxl_device_disk_init(x_disk);
 
-    if (VIR_STRDUP(x_disk->pdev_path, l_disk->src) < 0)
+    if (VIR_STRDUP(x_disk->pdev_path, virDomainDiskGetSource(l_disk)) < 0)
         return -1;
 
     if (VIR_STRDUP(x_disk->vdev, l_disk->dst) < 0)
         return -1;
 
-    if (l_disk->driverName) {
-        if (STREQ(l_disk->driverName, "tap") ||
-            STREQ(l_disk->driverName, "tap2")) {
-            switch (l_disk->format) {
+    driver = virDomainDiskGetDriver(l_disk);
+    format = virDomainDiskGetFormat(l_disk);
+    if (driver) {
+        if (STREQ(driver, "tap") || STREQ(driver, "tap2")) {
+            switch (format) {
             case VIR_STORAGE_FILE_QCOW:
                 x_disk->format = LIBXL_DISK_FORMAT_QCOW;
                 x_disk->backend = LIBXL_DISK_BACKEND_QDISK;
@@ -748,13 +754,13 @@ libxlMakeDisk(virDomainDiskDefPtr l_disk, libxl_device_disk *x_disk)
                 virReportError(VIR_ERR_INTERNAL_ERROR,
                                _("libxenlight does not support disk format %s "
                                  "with disk driver %s"),
-                               virStorageFileFormatTypeToString(l_disk->format),
-                               l_disk->driverName);
+                               virStorageFileFormatTypeToString(format),
+                               driver);
                 return -1;
             }
-        } else if (STREQ(l_disk->driverName, "qemu")) {
+        } else if (STREQ(driver, "qemu")) {
             x_disk->backend = LIBXL_DISK_BACKEND_QDISK;
-            switch (l_disk->format) {
+            switch (format) {
             case VIR_STORAGE_FILE_QCOW:
                 x_disk->format = LIBXL_DISK_FORMAT_QCOW;
                 break;
@@ -773,30 +779,30 @@ libxlMakeDisk(virDomainDiskDefPtr l_disk, libxl_device_disk *x_disk)
                 virReportError(VIR_ERR_INTERNAL_ERROR,
                                _("libxenlight does not support disk format %s "
                                  "with disk driver %s"),
-                               virStorageFileFormatTypeToString(l_disk->format),
-                               l_disk->driverName);
+                               virStorageFileFormatTypeToString(format),
+                               driver);
                 return -1;
             }
-        } else if (STREQ(l_disk->driverName, "file")) {
-            if (l_disk->format != VIR_STORAGE_FILE_NONE &&
-                l_disk->format != VIR_STORAGE_FILE_RAW) {
+        } else if (STREQ(driver, "file")) {
+            if (format != VIR_STORAGE_FILE_NONE &&
+                format != VIR_STORAGE_FILE_RAW) {
                 virReportError(VIR_ERR_INTERNAL_ERROR,
                                _("libxenlight does not support disk format %s "
                                  "with disk driver %s"),
-                               virStorageFileFormatTypeToString(l_disk->format),
-                               l_disk->driverName);
+                               virStorageFileFormatTypeToString(format),
+                               driver);
                 return -1;
             }
             x_disk->format = LIBXL_DISK_FORMAT_RAW;
             x_disk->backend = LIBXL_DISK_BACKEND_TAP;
-        } else if (STREQ(l_disk->driverName, "phy")) {
-            if (l_disk->format != VIR_STORAGE_FILE_NONE &&
-                l_disk->format != VIR_STORAGE_FILE_RAW) {
+        } else if (STREQ(driver, "phy")) {
+            if (format != VIR_STORAGE_FILE_NONE &&
+                format != VIR_STORAGE_FILE_RAW) {
                 virReportError(VIR_ERR_INTERNAL_ERROR,
                                _("libxenlight does not support disk format %s "
                                  "with disk driver %s"),
-                               virStorageFileFormatTypeToString(l_disk->format),
-                               l_disk->driverName);
+                               virStorageFileFormatTypeToString(format),
+                               driver);
                 return -1;
             }
             x_disk->format = LIBXL_DISK_FORMAT_RAW;
@@ -804,7 +810,7 @@ libxlMakeDisk(virDomainDiskDefPtr l_disk, libxl_device_disk *x_disk)
         } else {
             virReportError(VIR_ERR_INTERNAL_ERROR,
                            _("libxenlight does not support disk driver %s"),
-                           l_disk->driverName);
+                           driver);
             return -1;
         }
     } else {
@@ -851,7 +857,7 @@ libxlMakeDiskList(virDomainDefPtr def, libxl_domain_config *d_config)
 
     return 0;
 
-error:
+ error:
     for (i = 0; i < ndisks; i++)
         libxl_device_disk_dispose(&x_disks[i]);
     VIR_FREE(x_disks);
@@ -936,7 +942,7 @@ libxlMakeNicList(virDomainDefPtr def,  libxl_domain_config *d_config)
 
     return 0;
 
-error:
+ error:
     for (i = 0; i < nnics; i++)
         libxl_device_nic_dispose(&x_nics[i]);
     VIR_FREE(x_nics);
@@ -1020,9 +1026,23 @@ libxlMakeVfbList(libxlDriverPrivatePtr driver,
     d_config->vkbs = x_vkbs;
     d_config->num_vfbs = d_config->num_vkbs = nvfbs;
 
+    /*
+     * VNC or SDL info must also be set in libxl_domain_build_info
+     * for HVM domains.  Use the first vfb device.
+     */
+    if (STREQ(def->os.type, "hvm")) {
+        libxl_domain_build_info *b_info = &d_config->b_info;
+        libxl_device_vfb vfb = d_config->vfbs[0];
+
+        if (libxl_defbool_val(vfb.vnc.enable))
+            memcpy(&b_info->u.hvm.vnc, &vfb.vnc, sizeof(libxl_vnc_info));
+        else if (libxl_defbool_val(vfb.sdl.enable))
+            memcpy(&b_info->u.hvm.sdl, &vfb.sdl, sizeof(libxl_sdl_info));
+    }
+
     return 0;
 
-error:
+ error:
     for (i = 0; i < nvfbs; i++) {
         libxl_device_vfb_dispose(&x_vfbs[i]);
         libxl_device_vkb_dispose(&x_vkbs[i]);
@@ -1088,6 +1108,14 @@ libxlDriverConfigNew(void)
     if (virAsprintf(&log_file, "%s/libxl-driver.log", cfg->logDir) < 0)
         goto error;
 
+    if (virFileMakePath(cfg->logDir) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("failed to create log dir '%s': %s"),
+                       cfg->logDir,
+                       virStrerror(errno, ebuf, sizeof(ebuf)));
+        goto error;
+    }
+
     if ((cfg->logger_file = fopen(log_file, "a")) == NULL)  {
         VIR_ERROR(_("Failed to create log file '%s': %s"),
                   log_file, virStrerror(errno, ebuf, sizeof(ebuf)));
@@ -1130,7 +1158,7 @@ libxlDriverConfigNew(void)
 
     return cfg;
 
-error:
+ error:
     VIR_FREE(log_file);
     virObjectUnref(cfg);
     return NULL;
@@ -1145,6 +1173,102 @@ libxlDriverConfigGet(libxlDriverPrivatePtr driver)
     cfg = virObjectRef(driver->config);
     libxlDriverUnlock(driver);
     return cfg;
+}
+
+int
+libxlMakePci(virDomainHostdevDefPtr hostdev, libxl_device_pci *pcidev)
+{
+    if (hostdev->mode != VIR_DOMAIN_HOSTDEV_MODE_SUBSYS)
+        return -1;
+    if (hostdev->source.subsys.type != VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI)
+        return -1;
+
+    pcidev->domain = hostdev->source.subsys.u.pci.addr.domain;
+    pcidev->bus = hostdev->source.subsys.u.pci.addr.bus;
+    pcidev->dev = hostdev->source.subsys.u.pci.addr.slot;
+    pcidev->func = hostdev->source.subsys.u.pci.addr.function;
+
+    return 0;
+}
+
+static int
+libxlMakePciList(virDomainDefPtr def, libxl_domain_config *d_config)
+{
+    virDomainHostdevDefPtr *l_hostdevs = def->hostdevs;
+    size_t nhostdevs = def->nhostdevs;
+    size_t npcidevs = 0;
+    libxl_device_pci *x_pcidevs;
+    size_t i, j;
+
+    if (nhostdevs == 0)
+        return 0;
+
+    if (VIR_ALLOC_N(x_pcidevs, nhostdevs) < 0)
+        return -1;
+
+    for (i = 0, j = 0; i < nhostdevs; i++) {
+        if (l_hostdevs[i]->mode != VIR_DOMAIN_HOSTDEV_MODE_SUBSYS)
+            continue;
+        if (l_hostdevs[i]->source.subsys.type != VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI)
+            continue;
+
+        libxl_device_pci_init(&x_pcidevs[j]);
+
+        if (libxlMakePci(l_hostdevs[i], &x_pcidevs[j]) < 0)
+            goto error;
+
+        npcidevs++;
+        j++;
+    }
+
+    VIR_SHRINK_N(x_pcidevs, nhostdevs, nhostdevs - npcidevs);
+    d_config->pcidevs = x_pcidevs;
+    d_config->num_pcidevs = npcidevs;
+
+    return 0;
+
+ error:
+    for (i = 0; i < npcidevs; i++)
+        libxl_device_pci_dispose(&x_pcidevs[i]);
+
+    VIR_FREE(x_pcidevs);
+    return -1;
+}
+
+int
+libxlDriverNodeGetInfo(libxlDriverPrivatePtr driver, virNodeInfoPtr info)
+{
+    libxl_physinfo phy_info;
+    virArch hostarch = virArchFromHost();
+    libxlDriverConfigPtr cfg = libxlDriverConfigGet(driver);
+    int ret = -1;
+
+    if (libxl_get_physinfo(cfg->ctx, &phy_info)) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("libxl_get_physinfo_info failed"));
+        goto cleanup;
+    }
+
+    if (virStrcpyStatic(info->model, virArchToString(hostarch)) == NULL) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("machine type %s too big for destination"),
+                       virArchToString(hostarch));
+        goto cleanup;
+    }
+
+    info->memory = phy_info.total_pages * (cfg->verInfo->pagesize / 1024);
+    info->cpus = phy_info.nr_cpus;
+    info->nodes = phy_info.nr_nodes;
+    info->cores = phy_info.cores_per_socket;
+    info->threads = phy_info.threads_per_core;
+    info->sockets = 1;
+    info->mhz = phy_info.cpu_khz / 1000;
+
+    ret = 0;
+
+ cleanup:
+    virObjectUnref(cfg);
+    return ret;
 }
 
 virCapsPtr
@@ -1166,7 +1290,7 @@ libxlMakeCapabilities(libxl_ctx *ctx)
 
     return caps;
 
-error:
+ error:
     virObjectUnref(caps);
     return NULL;
 }
@@ -1193,6 +1317,9 @@ libxlBuildDomainConfig(libxlDriverPrivatePtr driver,
         return -1;
 
     if (libxlMakeVfbList(driver, def, d_config) < 0)
+        return -1;
+
+    if (libxlMakePciList(def, d_config) < 0)
         return -1;
 
     d_config->on_reboot = def->onReboot;

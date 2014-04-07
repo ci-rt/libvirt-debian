@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2013 Red Hat, Inc.
+ * Copyright (C) 2008-2014 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -48,6 +48,8 @@
 #include "virstring.h"
 
 #define VIR_FROM_THIS VIR_FROM_SECURITY
+
+VIR_LOG_INIT("security.security_selinux");
 
 #define MAX_CONTEXT 1024
 
@@ -274,7 +276,7 @@ virSecuritySELinuxMCSGetProcessRange(char **sens,
 
     ret = 0;
 
-cleanup:
+ cleanup:
     if (ret < 0)
         VIR_FREE(*sens);
     freecon(ourSecContext);
@@ -314,7 +316,7 @@ virSecuritySELinuxContextAddRange(security_context_t src,
 
     ignore_value(VIR_STRDUP(ret, str));
 
-cleanup:
+ cleanup:
     if (srccon) context_free(srccon);
     if (dstcon) context_free(dstcon);
     return ret;
@@ -385,7 +387,7 @@ virSecuritySELinuxGenNewContext(const char *basecontext,
     if (VIR_STRDUP(ret, str) < 0)
         goto cleanup;
     VIR_DEBUG("Generated context '%s'",  ret);
-cleanup:
+ cleanup:
     freecon(ourSecContext);
     context_free(ourContext);
     context_free(context);
@@ -452,7 +454,7 @@ virSecuritySELinuxLXCInitialize(virSecurityManagerPtr mgr)
     virConfFree(selinux_conf);
     return 0;
 
-error:
+ error:
 # if HAVE_SELINUX_LABEL_H
     selabel_close(data->label_handle);
     data->label_handle = NULL;
@@ -540,7 +542,7 @@ virSecuritySELinuxQEMUInitialize(virSecurityManagerPtr mgr)
 
     return 0;
 
-error:
+ error:
 #if HAVE_SELINUX_LABEL_H
     selabel_close(data->label_handle);
     data->label_handle = NULL;
@@ -700,7 +702,7 @@ virSecuritySELinuxGenSecurityLabel(virSecurityManagerPtr mgr,
 
     rc = 0;
 
-cleanup:
+ cleanup:
     if (rc != 0) {
         if (seclabel->type == VIR_DOMAIN_SECLABEL_DYNAMIC)
             VIR_FREE(seclabel->label);
@@ -773,7 +775,7 @@ virSecuritySELinuxReserveSecurityLabel(virSecurityManagerPtr mgr,
 
     return 0;
 
-error:
+ error:
     context_free(ctx);
     return -1;
 }
@@ -782,7 +784,7 @@ error:
 static int
 virSecuritySELinuxSecurityDriverProbe(const char *virtDriver)
 {
-    if (!is_selinux_enabled())
+    if (is_selinux_enabled() <= 0)
         return SECURITY_DRIVER_DISABLE;
 
     if (virtDriver && STREQ(virtDriver, "LXC")) {
@@ -1040,7 +1042,7 @@ virSecuritySELinuxRestoreSecurityFileLabel(virSecurityManagerPtr mgr,
         rc = virSecuritySELinuxSetFilecon(newpath, fcon);
     }
 
-err:
+ err:
     freecon(fcon);
     VIR_FREE(newpath);
     return rc;
@@ -1131,6 +1133,7 @@ virSecuritySELinuxRestoreSecurityImageLabelInt(virSecurityManagerPtr mgr,
 {
     virSecurityLabelDefPtr seclabel;
     virSecurityDeviceLabelDefPtr disk_seclabel;
+    const char *src = virDomainDiskGetSource(disk);
 
     seclabel = virDomainDefGetSecurityLabelDef(def, SECURITY_SELINUX_NAME);
     if (seclabel == NULL)
@@ -1160,7 +1163,7 @@ virSecuritySELinuxRestoreSecurityImageLabelInt(virSecurityManagerPtr mgr,
     if (disk->readonly || disk->shared)
         return 0;
 
-    if (!disk->src || disk->type == VIR_DOMAIN_DISK_TYPE_NETWORK)
+    if (!src || virDomainDiskGetType(disk) == VIR_DOMAIN_DISK_TYPE_NETWORK)
         return 0;
 
     /* If we have a shared FS & doing migrated, we must not
@@ -1169,17 +1172,17 @@ virSecuritySELinuxRestoreSecurityImageLabelInt(virSecurityManagerPtr mgr,
      * VM's I/O attempts :-)
      */
     if (migrated) {
-        int rc = virStorageFileIsSharedFS(disk->src);
+        int rc = virStorageFileIsSharedFS(src);
         if (rc < 0)
             return -1;
         if (rc == 1) {
             VIR_DEBUG("Skipping image label restore on %s because FS is shared",
-                      disk->src);
+                      src);
             return 0;
         }
     }
 
-    return virSecuritySELinuxRestoreSecurityFileLabel(mgr, disk->src);
+    return virSecuritySELinuxRestoreSecurityFileLabel(mgr, src);
 }
 
 
@@ -1234,7 +1237,7 @@ virSecuritySELinuxSetSecurityFileLabel(virDomainDiskDefPtr disk,
         if (!disk_seclabel)
             return -1;
         disk_seclabel->labelskip = true;
-        if (VIR_APPEND_ELEMENT(disk->seclabels, disk->nseclabels,
+        if (VIR_APPEND_ELEMENT(disk->src.seclabels, disk->src.nseclabels,
                                disk_seclabel) < 0) {
             virSecurityDeviceLabelDefFree(disk_seclabel);
             return -1;
@@ -1260,7 +1263,7 @@ virSecuritySELinuxSetSecurityImageLabel(virSecurityManagerPtr mgr,
     if (cbdata.secdef->norelabel)
         return 0;
 
-    if (disk->type == VIR_DOMAIN_DISK_TYPE_NETWORK)
+    if (virDomainDiskGetType(disk) == VIR_DOMAIN_DISK_TYPE_NETWORK)
         return 0;
 
     return virDomainDiskDefForeachPath(disk,
@@ -1379,7 +1382,7 @@ virSecuritySELinuxSetSecurityHostdevSubsysLabel(virDomainDefPtr def,
         break;
     }
 
-done:
+ done:
     return ret;
 }
 
@@ -1572,7 +1575,7 @@ virSecuritySELinuxRestoreSecurityHostdevSubsysLabel(virSecurityManagerPtr mgr,
         break;
     }
 
-done:
+ done:
     return ret;
 }
 
@@ -1717,7 +1720,7 @@ virSecuritySELinuxSetSecurityChardevLabel(virDomainDefPtr def,
         break;
     }
 
-done:
+ done:
     VIR_FREE(in);
     VIR_FREE(out);
     return ret;
@@ -1781,7 +1784,7 @@ virSecuritySELinuxRestoreSecurityChardevLabel(virSecurityManagerPtr mgr,
         break;
     }
 
-done:
+ done:
     VIR_FREE(in);
     VIR_FREE(out);
     return ret;
@@ -2119,7 +2122,7 @@ virSecuritySELinuxSetSecurityDaemonSocketLabel(virSecurityManagerPtr mgr ATTRIBU
     }
 
     rc = 0;
-done:
+ done:
 
     if (security_getenforce() != 1)
         rc = 0;
@@ -2162,7 +2165,7 @@ virSecuritySELinuxSetSecuritySocketLabel(virSecurityManagerPtr mgr ATTRIBUTE_UNU
 
     rc = 0;
 
-done:
+ done:
     if (security_getenforce() != 1)
         rc = 0;
 
@@ -2269,9 +2272,10 @@ virSecuritySELinuxSetSecurityAllLabel(virSecurityManagerPtr mgr,
 
     for (i = 0; i < def->ndisks; i++) {
         /* XXX fixme - we need to recursively label the entire tree :-( */
-        if (def->disks[i]->type == VIR_DOMAIN_DISK_TYPE_DIR) {
+        if (virDomainDiskGetType(def->disks[i]) == VIR_DOMAIN_DISK_TYPE_DIR) {
             VIR_WARN("Unable to relabel directory tree %s for disk %s",
-                     def->disks[i]->src, def->disks[i]->dst);
+                     virDomainDiskGetSource(def->disks[i]),
+                     def->disks[i]->dst);
             continue;
         }
         if (virSecuritySELinuxSetSecurityImageLabel(mgr,
@@ -2385,7 +2389,7 @@ virSecuritySELinuxSetTapFDLabel(virSecurityManagerPtr mgr,
         rc = virSecuritySELinuxFSetFilecon(fd, str);
     }
 
-cleanup:
+ cleanup:
     freecon(fcon);
     VIR_FREE(str);
     return rc;
@@ -2423,7 +2427,7 @@ virSecuritySELinuxGenImageLabel(virSecurityManagerPtr mgr,
         }
     }
 
-cleanup:
+ cleanup:
     context_free(ctx);
     VIR_FREE(mcs);
     return label;

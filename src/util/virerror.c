@@ -35,13 +35,16 @@
 #include "virutil.h"
 #include "virstring.h"
 
+VIR_LOG_INIT("util.error");
+
 virThreadLocal virLastErr;
 
 virErrorFunc virErrorHandler = NULL;     /* global error handler */
 void *virUserData = NULL;        /* associated data */
 virErrorLogPriorityFunc virErrorLogPriorityFilter = NULL;
 
-static virLogPriority virErrorLevelPriority(virErrorLevel level) {
+static virLogPriority virErrorLevelPriority(virErrorLevel level)
+{
     switch (level) {
         case VIR_ERR_NONE:
             return VIR_LOG_INFO;
@@ -125,6 +128,7 @@ VIR_ENUM_IMPL(virErrorDomain, VIR_ERR_DOMAIN_LAST,
               "Access Manager", /* 55 */
               "Systemd",
               "Bhyve",
+              "Crypto",
     )
 
 
@@ -284,7 +288,7 @@ virSetError(virErrorPtr newerr)
 
     virResetError(err);
     ret = virCopyError(newerr, err);
-cleanup:
+ cleanup:
     errno = saved_errno;
     return ret;
 }
@@ -709,10 +713,19 @@ virRaiseErrorFull(const char *filename ATTRIBUTE_UNUSED,
     if (virErrorLogPriorityFilter)
         priority = virErrorLogPriorityFilter(to, priority);
 
-    virLogMessage(virErrorLogPriorityFilter ? VIR_LOG_FROM_FILE : VIR_LOG_FROM_ERROR,
-                  priority,
-                  filename, linenr, funcname,
-                  meta, "%s", str);
+    /* We don't want to pollute stderr if no logging outputs
+     * are explicitly requested by the user, since the default
+     * error function already pollutes stderr and most apps
+     * hate & thus disable that too. If the daemon has set
+     * a priority filter though, we should always forward
+     * all errors to the logging code.
+     */
+    if (virLogGetNbOutputs() > 0 ||
+        virErrorLogPriorityFilter)
+        virLogMessage(&virLogSelf,
+                      priority,
+                      filename, linenr, funcname,
+                      meta, "%s", str);
 
     errno = save_errno;
 }

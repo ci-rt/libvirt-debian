@@ -387,7 +387,7 @@
 
 Summary: Library providing a simple virtualization API
 Name: libvirt
-Version: 1.2.2
+Version: 1.2.3
 Release: 1%{?dist}%{?extra_release}
 License: LGPLv2+
 Group: Development/Libraries
@@ -1421,6 +1421,7 @@ driver
  autoreconf -if
 %endif
 
+rm -f po/stamp-po
 %configure %{?_without_xen} \
            %{?_without_qemu} \
            %{?_without_openvz} \
@@ -1837,10 +1838,6 @@ exit 0
 
 %dir %attr(0700, root, root) %{_sysconfdir}/libvirt/
 
-    %if %{with_nwfilter}
-%dir %attr(0700, root, root) %{_sysconfdir}/libvirt/nwfilter/
-    %endif
-
     %if %{with_systemd}
 %{_unitdir}/libvirtd.service
 %{_unitdir}/virtlockd.service
@@ -1903,15 +1900,20 @@ exit 0
 %{_mandir}/man8/virtlockd.8*
 
     %if ! %{with_driver_modules}
-        %if %{with_network}
+        %if %{with_network} || %{with_qemu}
 %dir %attr(0700, root, root) %{_sysconfdir}/libvirt/qemu/
+        %endif
+        %if %{with_network} || %{with_nwfilter}
+%ghost %dir %{_localstatedir}/run/libvirt/network/
+        %endif
+        %if %{with_network}
 %dir %attr(0700, root, root) %{_sysconfdir}/libvirt/qemu/networks/
 %dir %attr(0700, root, root) %{_sysconfdir}/libvirt/qemu/networks/autostart
-%dir %{_datadir}/libvirt/networks/
-%{_datadir}/libvirt/networks/default.xml
-%ghost %dir %{_localstatedir}/run/libvirt/network/
 %dir %attr(0700, root, root) %{_localstatedir}/lib/libvirt/network/
 %dir %attr(0755, root, root) %{_localstatedir}/lib/libvirt/dnsmasq/
+        %endif
+        %if %{with_nwfilter}
+%dir %attr(0700, root, root) %{_sysconfdir}/libvirt/nwfilter/
         %endif
         %if %{with_storage_disk}
 %attr(0755, root, root) %{_libexecdir}/libvirt_parthelper
@@ -1958,6 +1960,8 @@ exit 0
     %if %{with_network}
 %files daemon-config-network
 %defattr(-, root, root)
+%dir %{_datadir}/libvirt/networks/
+%{_datadir}/libvirt/networks/default.xml
     %endif
 
     %if %{with_nwfilter}
@@ -1979,8 +1983,6 @@ exit 0
 %dir %attr(0700, root, root) %{_sysconfdir}/libvirt/qemu/
 %dir %attr(0700, root, root) %{_sysconfdir}/libvirt/qemu/networks/
 %dir %attr(0700, root, root) %{_sysconfdir}/libvirt/qemu/networks/autostart
-%dir %{_datadir}/libvirt/networks/
-%{_datadir}/libvirt/networks/default.xml
 %ghost %dir %{_localstatedir}/run/libvirt/network/
 %dir %attr(0700, root, root) %{_localstatedir}/lib/libvirt/network/
 %dir %attr(0755, root, root) %{_localstatedir}/lib/libvirt/dnsmasq/
@@ -1996,6 +1998,8 @@ exit 0
         %if %{with_nwfilter}
 %files daemon-driver-nwfilter
 %defattr(-, root, root)
+%dir %attr(0700, root, root) %{_sysconfdir}/libvirt/nwfilter/
+%ghost %dir %{_localstatedir}/run/libvirt/network/
 %{_libdir}/%{name}/connection-driver/libvirt_driver_nwfilter.so
         %endif
 
@@ -2015,6 +2019,7 @@ exit 0
         %if %{with_qemu}
 %files daemon-driver-qemu
 %defattr(-, root, root)
+%dir %attr(0700, root, root) %{_sysconfdir}/libvirt/qemu/
 %dir %attr(0700, root, root) %{_localstatedir}/log/libvirt/qemu/
 %config(noreplace) %{_sysconfdir}/libvirt/qemu.conf
 %config(noreplace) %{_sysconfdir}/libvirt/qemu-lockd.conf
@@ -2214,6 +2219,13 @@ exit 0
 %doc examples/systemtap
 
 %changelog
+* Tue Apr  1 2014 Daniel Veillard <veillard@redhat.com> - 1.2.3-1
+- add new virDomainCoreDumpWithFormat API (Qiao Nuohan)
+- conf: Introduce virDomainDeviceGetInfo API (Jiri Denemark)
+- more features and fixes on bhyve driver (Roman Bogorodskiy)
+- lot of cleanups and improvement on the Xen driver (Chunyan Liu, Jim Fehlig)
+- a lot of various improvements and bug fixes
+
 * Sun Mar  2 2014 Daniel Veillard <veillard@redhat.com> - 1.2.2-1
 - add LXC from native conversion tool
 - vbox: add support for v4.2.20+ and v4.3.4+

@@ -37,6 +37,8 @@
 
 #define VIR_FROM_THIS VIR_FROM_LOCKSPACE
 
+VIR_LOG_INIT("util.lockspace");
+
 #define VIR_LOCKSPACE_TABLE_SIZE 10
 
 typedef struct _virLockSpaceResource virLockSpaceResource;
@@ -82,7 +84,7 @@ static void virLockSpaceResourceFree(virLockSpaceResourcePtr res)
         if (res->flags & VIR_LOCK_SPACE_ACQUIRE_SHARED) {
             /* We must upgrade to an exclusive lock to ensure
              * no one else still has it before trying to delete */
-            if (virFileLock(res->fd, false, 0, 1) < 0) {
+            if (virFileLock(res->fd, false, 0, 1, false) < 0) {
                 VIR_DEBUG("Could not upgrade shared lease to exclusive, not deleting");
             } else {
                 if (unlink(res->path) < 0 &&
@@ -155,7 +157,7 @@ virLockSpaceResourceNew(virLockSpacePtr lockspace,
                 goto error;
             }
 
-            if (virFileLock(res->fd, shared, 0, 1) < 0) {
+            if (virFileLock(res->fd, shared, 0, 1, false) < 0) {
                 if (errno == EACCES || errno == EAGAIN) {
                     virReportError(VIR_ERR_RESOURCE_BUSY,
                                    _("Lockspace resource '%s' is locked"),
@@ -202,7 +204,7 @@ virLockSpaceResourceNew(virLockSpacePtr lockspace,
             goto error;
         }
 
-        if (virFileLock(res->fd, shared, 0, 1) < 0) {
+        if (virFileLock(res->fd, shared, 0, 1, false) < 0) {
             if (errno == EACCES || errno == EAGAIN) {
                 virReportError(VIR_ERR_RESOURCE_BUSY,
                                _("Lockspace resource '%s' is locked"),
@@ -224,7 +226,7 @@ virLockSpaceResourceNew(virLockSpacePtr lockspace,
 
     return res;
 
-error:
+ error:
     virLockSpaceResourceFree(res);
     return NULL;
 }
@@ -280,7 +282,7 @@ virLockSpacePtr virLockSpaceNew(const char *directory)
 
     return lockspace;
 
-error:
+ error:
     virLockSpaceFree(lockspace);
     return NULL;
 }
@@ -429,7 +431,7 @@ virLockSpacePtr virLockSpaceNewPostExecRestart(virJSONValuePtr object)
 
     return lockspace;
 
-error:
+ error:
     virLockSpaceFree(lockspace);
     return NULL;
 }
@@ -512,7 +514,7 @@ virJSONValuePtr virLockSpacePreExecRestart(virLockSpacePtr lockspace)
     virMutexUnlock(&lockspace->lock);
     return object;
 
-  error:
+ error:
     VIR_FREE(pairs);
     virJSONValueFree(object);
     virMutexUnlock(&lockspace->lock);
@@ -563,7 +565,7 @@ int virLockSpaceCreateResource(virLockSpacePtr lockspace,
 
     ret = 0;
 
-cleanup:
+ cleanup:
     virMutexUnlock(&lockspace->lock);
     VIR_FREE(respath);
     return ret;
@@ -600,7 +602,7 @@ int virLockSpaceDeleteResource(virLockSpacePtr lockspace,
 
     ret = 0;
 
-cleanup:
+ cleanup:
     virMutexUnlock(&lockspace->lock);
     VIR_FREE(respath);
     return ret;
@@ -647,10 +649,10 @@ int virLockSpaceAcquireResource(virLockSpacePtr lockspace,
         goto cleanup;
     }
 
-done:
+ done:
     ret = 0;
 
-cleanup:
+ cleanup:
     virMutexUnlock(&lockspace->lock);
     return ret;
 }
@@ -689,11 +691,7 @@ int virLockSpaceReleaseResource(virLockSpacePtr lockspace,
         goto cleanup;
     }
 
-    if (i < (res->nOwners - 1))
-        memmove(res->owners + i,
-                res->owners + i + 1,
-                (res->nOwners - i - 1) * sizeof(res->owners[0]));
-    VIR_SHRINK_N(res->owners, res->nOwners, 1);
+    VIR_DELETE_ELEMENT(res->owners, i, res->nOwners);
 
     if ((res->nOwners == 0) &&
         virHashRemoveEntry(lockspace->resources, resname) < 0)
@@ -701,7 +699,7 @@ int virLockSpaceReleaseResource(virLockSpacePtr lockspace,
 
     ret = 0;
 
-cleanup:
+ cleanup:
     virMutexUnlock(&lockspace->lock);
     return ret;
 }
@@ -735,11 +733,7 @@ virLockSpaceRemoveResourcesForOwner(const void *payload,
 
     data->count++;
 
-    if (i < (res->nOwners - 1))
-        memmove(res->owners + i,
-                res->owners + i + 1,
-                (res->nOwners - i - 1) * sizeof(res->owners[0]));
-    VIR_SHRINK_N(res->owners, res->nOwners, 1);
+    VIR_DELETE_ELEMENT(res->owners, i, res->nOwners);
 
     if (res->nOwners) {
         VIR_DEBUG("Other shared owners remain");
@@ -773,7 +767,7 @@ int virLockSpaceReleaseResourcesForOwner(virLockSpacePtr lockspace,
     virMutexUnlock(&lockspace->lock);
     return ret;
 
-error:
+ error:
     virMutexUnlock(&lockspace->lock);
     return -1;
 }

@@ -1,7 +1,7 @@
 /*
  * qemu_conf.c: QEMU configuration management
  *
- * Copyright (C) 2006-2013 Red Hat, Inc.
+ * Copyright (C) 2006-2014 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -38,7 +38,6 @@
 #include "qemu_conf.h"
 #include "qemu_command.h"
 #include "qemu_capabilities.h"
-#include "qemu_bridge_filter.h"
 #include "viruuid.h"
 #include "virbuffer.h"
 #include "virconf.h"
@@ -56,6 +55,8 @@
 #include "configmake.h"
 
 #define VIR_FROM_THIS VIR_FROM_QEMU
+
+VIR_LOG_INIT("qemu.qemu_conf");
 
 static virClassPtr virQEMUDriverConfigClass;
 static void virQEMUDriverConfigDispose(void *obj);
@@ -256,7 +257,7 @@ virQEMUDriverConfigPtr virQEMUDriverConfigNew(bool privileged)
 
     return cfg;
 
-error:
+ error:
     virObjectUnref(cfg);
     return NULL;
 }
@@ -577,7 +578,7 @@ int virQEMUDriverConfigLoadFile(virQEMUDriverConfigPtr cfg,
 
     ret = 0;
 
-cleanup:
+ cleanup:
     virConfFree(conf);
     return ret;
 }
@@ -661,7 +662,7 @@ virCapsPtr virQEMUDriverCreateCapabilities(virQEMUDriverPtr driver)
     virObjectUnref(cfg);
     return caps;
 
-error:
+ error:
     VIR_FREE(sec_managers);
     virObjectUnref(caps);
     virObjectUnref(cfg);
@@ -739,14 +740,11 @@ qemuCheckSharedDevice(virHashTablePtr sharedDevices,
                       virDomainDeviceDefPtr dev)
 {
     virDomainDiskDefPtr disk = NULL;
-    virDomainHostdevDefPtr hostdev = NULL;
     char *sysfs_path = NULL;
     char *key = NULL;
-    char *hostdev_name = NULL;
-    char *hostdev_path = NULL;
-    char *device_path = NULL;
     int val;
     int ret = 0;
+    const char *src;
 
     if (dev->type == VIR_DOMAIN_DEVICE_DISK) {
         disk = dev->data.disk;
@@ -756,27 +754,12 @@ qemuCheckSharedDevice(virHashTablePtr sharedDevices,
          */
         if (disk->device != VIR_DOMAIN_DISK_DEVICE_LUN)
             return 0;
-
-        device_path = disk->src;
-    } else if (dev->type == VIR_DOMAIN_DEVICE_HOSTDEV) {
-        hostdev = dev->data.hostdev;
-
-        if (!(hostdev_name = virSCSIDeviceGetDevName(NULL,
-                                                     hostdev->source.subsys.u.scsi.adapter,
-                                                     hostdev->source.subsys.u.scsi.bus,
-                                                     hostdev->source.subsys.u.scsi.target,
-                                                     hostdev->source.subsys.u.scsi.unit)))
-            goto cleanup;
-
-        if (virAsprintf(&hostdev_path, "/dev/%s", hostdev_name) < 0)
-            goto cleanup;
-
-        device_path = hostdev_path;
     } else {
         return 0;
     }
 
-    if (!(sysfs_path = virGetUnprivSGIOSysfsPath(device_path, NULL))) {
+    src = virDomainDiskGetSource(disk);
+    if (!(sysfs_path = virGetUnprivSGIOSysfsPath(src, NULL))) {
         ret = -1;
         goto cleanup;
     }
@@ -787,7 +770,7 @@ qemuCheckSharedDevice(virHashTablePtr sharedDevices,
     if (!virFileExists(sysfs_path))
         goto cleanup;
 
-    if (!(key = qemuGetSharedDeviceKey(device_path))) {
+    if (!(key = qemuGetSharedDeviceKey(src))) {
         ret = -1;
         goto cleanup;
     }
@@ -798,7 +781,7 @@ qemuCheckSharedDevice(virHashTablePtr sharedDevices,
     if (!(virHashLookup(sharedDevices, key)))
         goto cleanup;
 
-    if (virGetDeviceUnprivSGIO(device_path, NULL, &val) < 0) {
+    if (virGetDeviceUnprivSGIO(src, NULL, &val) < 0) {
         ret = -1;
         goto cleanup;
     }
@@ -810,36 +793,25 @@ qemuCheckSharedDevice(virHashTablePtr sharedDevices,
          disk->sgio == VIR_DOMAIN_DEVICE_SGIO_UNFILTERED))
         goto cleanup;
 
-    if (dev->type == VIR_DOMAIN_DEVICE_DISK) {
-        if (disk->type == VIR_DOMAIN_DISK_TYPE_VOLUME) {
-            virReportError(VIR_ERR_OPERATION_INVALID,
-                           _("sgio of shared disk 'pool=%s' 'volume=%s' conflicts "
-                             "with other active domains"),
-                           disk->srcpool->pool,
-                           disk->srcpool->volume);
-        } else {
-            virReportError(VIR_ERR_OPERATION_INVALID,
-                           _("sgio of shared disk '%s' conflicts with other "
-                             "active domains"), disk->src);
-        }
+    if (virDomainDiskGetType(disk) == VIR_DOMAIN_DISK_TYPE_VOLUME) {
+        virReportError(VIR_ERR_OPERATION_INVALID,
+                       _("sgio of shared disk 'pool=%s' 'volume=%s' conflicts "
+                         "with other active domains"),
+                       disk->src.srcpool->pool,
+                       disk->src.srcpool->volume);
     } else {
         virReportError(VIR_ERR_OPERATION_INVALID,
-                       _("sgio of shared scsi host device '%s-%d-%d-%d' conflicts "
-                          "with other active domains"),
-                       hostdev->source.subsys.u.scsi.adapter,
-                       hostdev->source.subsys.u.scsi.bus,
-                       hostdev->source.subsys.u.scsi.target,
-                       hostdev->source.subsys.u.scsi.unit);
+                       _("sgio of shared disk '%s' conflicts with other "
+                         "active domains"), src);
     }
 
     ret = -1;
-cleanup:
-    VIR_FREE(hostdev_name);
-    VIR_FREE(hostdev_path);
+ cleanup:
     VIR_FREE(sysfs_path);
     VIR_FREE(key);
     return ret;
 }
+
 bool
 qemuSharedDeviceEntryDomainExists(qemuSharedDeviceEntryPtr entry,
                                   const char *name,
@@ -894,7 +866,7 @@ qemuSharedDeviceEntryCopy(const qemuSharedDeviceEntry *entry)
 
     return ret;
 
-cleanup:
+ cleanup:
     qemuSharedDeviceEntryFree(ret, NULL);
     return NULL;
 }
@@ -947,7 +919,7 @@ qemuAddSharedDevice(virQEMUDriverPtr driver,
         goto cleanup;
 
     if (dev->type == VIR_DOMAIN_DEVICE_DISK) {
-        if (!(key = qemuGetSharedDeviceKey(disk->src)))
+        if (!(key = qemuGetSharedDeviceKey(virDomainDiskGetSource(disk))))
             goto cleanup;
     } else {
         if (!(dev_name = virSCSIDeviceGetDevName(NULL,
@@ -1001,7 +973,7 @@ qemuAddSharedDevice(virQEMUDriverPtr driver,
     }
 
     ret = 0;
-cleanup:
+ cleanup:
     qemuDriverUnlock(driver);
     VIR_FREE(dev_name);
     VIR_FREE(dev_path);
@@ -1052,7 +1024,7 @@ qemuRemoveSharedDevice(virQEMUDriverPtr driver,
     qemuDriverLock(driver);
 
     if (dev->type == VIR_DOMAIN_DEVICE_DISK) {
-        if (!(key = qemuGetSharedDeviceKey(disk->src)))
+        if (!(key = qemuGetSharedDeviceKey(virDomainDiskGetSource(disk))))
             goto cleanup;
     } else {
         if (!(dev_name = virSCSIDeviceGetDevName(NULL,
@@ -1084,13 +1056,7 @@ qemuRemoveSharedDevice(virQEMUDriverPtr driver,
         if (!(new_entry = qemuSharedDeviceEntryCopy(entry)))
             goto cleanup;
 
-        if (idx != new_entry->ref - 1)
-            memmove(&new_entry->domains[idx],
-                    &new_entry->domains[idx + 1],
-                    sizeof(*new_entry->domains) * (new_entry->ref - idx - 1));
-
-        VIR_SHRINK_N(new_entry->domains, new_entry->ref, 1);
-
+        VIR_DELETE_ELEMENT(new_entry->domains, idx, new_entry->ref);
         if (virHashUpdateEntry(driver->sharedDevices, key, new_entry) < 0){
             qemuSharedDeviceEntryFree(new_entry, NULL);
             goto cleanup;
@@ -1101,7 +1067,7 @@ qemuRemoveSharedDevice(virQEMUDriverPtr driver,
     }
 
     ret = 0;
-cleanup:
+ cleanup:
     qemuDriverUnlock(driver);
     VIR_FREE(dev_name);
     VIR_FREE(dev_path);
@@ -1115,9 +1081,7 @@ qemuSetUnprivSGIO(virDomainDeviceDefPtr dev)
     virDomainDiskDefPtr disk = NULL;
     virDomainHostdevDefPtr hostdev = NULL;
     char *sysfs_path = NULL;
-    char *path = NULL;
-    char *hostdev_name = NULL;
-    char *hostdev_path = NULL;
+    const char *path = NULL;
     int val = -1;
     int ret = 0;
 
@@ -1131,26 +1095,23 @@ qemuSetUnprivSGIO(virDomainDeviceDefPtr dev)
             !virDomainDiskSourceIsBlockType(disk))
             return 0;
 
-        path = disk->src;
+        path = virDomainDiskGetSource(disk);
     } else if (dev->type == VIR_DOMAIN_DEVICE_HOSTDEV) {
         hostdev = dev->data.hostdev;
 
-        if (!hostdev->shareable ||
-            !(hostdev->mode == VIR_DOMAIN_HOSTDEV_MODE_SUBSYS &&
-              hostdev->source.subsys.type == VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_SCSI))
-            return 0;
 
-        if (!(hostdev_name = virSCSIDeviceGetDevName(NULL,
-                                                     hostdev->source.subsys.u.scsi.adapter,
-                                                     hostdev->source.subsys.u.scsi.bus,
-                                                     hostdev->source.subsys.u.scsi.target,
-                                                     hostdev->source.subsys.u.scsi.unit)))
+        if (hostdev->mode == VIR_DOMAIN_HOSTDEV_MODE_SUBSYS &&
+            hostdev->source.subsys.type ==
+            VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_SCSI &&
+            hostdev->source.subsys.u.scsi.sgio) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("'sgio' is not supported for SCSI "
+                             "generic device yet "));
+            ret = -1;
             goto cleanup;
+        }
 
-        if (virAsprintf(&hostdev_path, "/dev/%s", hostdev_name) < 0)
-            goto cleanup;
-
-        path = hostdev_path;
+        return 0;
     } else {
         return 0;
     }
@@ -1162,12 +1123,7 @@ qemuSetUnprivSGIO(virDomainDeviceDefPtr dev)
     }
 
     /* By default, filter the SG_IO commands, i.e. set unpriv_sgio to 0.  */
-
-    if (dev->type == VIR_DOMAIN_DEVICE_DISK)
-        val = (disk->sgio == VIR_DOMAIN_DEVICE_SGIO_UNFILTERED);
-    else
-        val = (hostdev->source.subsys.u.scsi.sgio ==
-               VIR_DOMAIN_DEVICE_SGIO_UNFILTERED);
+    val = (disk->sgio == VIR_DOMAIN_DEVICE_SGIO_UNFILTERED);
 
     /* Do not do anything if unpriv_sgio is not supported by the kernel and the
      * whitelist is enabled.  But if requesting unfiltered access, always call
@@ -1177,10 +1133,8 @@ qemuSetUnprivSGIO(virDomainDeviceDefPtr dev)
         virSetDeviceUnprivSGIO(path, NULL, val) < 0)
         ret = -1;
 
-cleanup:
+ cleanup:
     VIR_FREE(sysfs_path);
-    VIR_FREE(hostdev_name);
-    VIR_FREE(hostdev_path);
     return ret;
 }
 
@@ -1204,33 +1158,33 @@ qemuAddISCSIPoolSourceHost(virDomainDiskDefPtr def,
     }
 
     /* iscsi pool only supports one host */
-    def->nhosts = 1;
+    def->src.nhosts = 1;
 
-    if (VIR_ALLOC_N(def->hosts, def->nhosts) < 0)
+    if (VIR_ALLOC_N(def->src.hosts, def->src.nhosts) < 0)
         goto cleanup;
 
-    if (VIR_STRDUP(def->hosts[0].name, pooldef->source.hosts[0].name) < 0)
+    if (VIR_STRDUP(def->src.hosts[0].name, pooldef->source.hosts[0].name) < 0)
         goto cleanup;
 
-    if (virAsprintf(&def->hosts[0].port, "%d",
+    if (virAsprintf(&def->src.hosts[0].port, "%d",
                     pooldef->source.hosts[0].port ?
                     pooldef->source.hosts[0].port :
                     3260) < 0)
         goto cleanup;
 
     /* iscsi volume has name like "unit:0:0:1" */
-    if (!(tokens = virStringSplit(def->srcpool->volume, ":", 0)))
+    if (!(tokens = virStringSplit(def->src.srcpool->volume, ":", 0)))
         goto cleanup;
 
     if (virStringListLength(tokens) != 4) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("unexpected iscsi volume name '%s'"),
-                       def->srcpool->volume);
+                       def->src.srcpool->volume);
         goto cleanup;
     }
 
     /* iscsi pool has only one source device path */
-    if (virAsprintf(&def->src, "%s/%s",
+    if (virAsprintf(&def->src.path, "%s/%s",
                     pooldef->source.devices[0].path,
                     tokens[3]) < 0)
         goto cleanup;
@@ -1238,14 +1192,14 @@ qemuAddISCSIPoolSourceHost(virDomainDiskDefPtr def,
     /* Storage pool have not supported these 2 attributes yet,
      * use the defaults.
      */
-    def->hosts[0].transport = VIR_DOMAIN_DISK_PROTO_TRANS_TCP;
-    def->hosts[0].socket = NULL;
+    def->src.hosts[0].transport = VIR_DOMAIN_DISK_PROTO_TRANS_TCP;
+    def->src.hosts[0].socket = NULL;
 
-    def->protocol = VIR_DOMAIN_DISK_PROTOCOL_ISCSI;
+    def->src.protocol = VIR_DOMAIN_DISK_PROTOCOL_ISCSI;
 
     ret = 0;
 
-cleanup:
+ cleanup:
     virStringFreeList(tokens);
     return ret;
 }
@@ -1266,39 +1220,39 @@ qemuTranslateDiskSourcePoolAuth(virDomainDiskDefPtr def,
      * into the virDomainDiskDef
      */
     if (pooldef->source.authType == VIR_STORAGE_POOL_AUTH_CHAP) {
-        if (VIR_STRDUP(def->auth.username,
+        if (VIR_STRDUP(def->src.auth.username,
                        pooldef->source.auth.chap.username) < 0)
             goto cleanup;
         if (pooldef->source.auth.chap.secret.uuidUsable) {
-            def->auth.secretType = VIR_DOMAIN_DISK_SECRET_TYPE_UUID;
-            memcpy(def->auth.secret.uuid,
+            def->src.auth.secretType = VIR_DOMAIN_DISK_SECRET_TYPE_UUID;
+            memcpy(def->src.auth.secret.uuid,
                    pooldef->source.auth.chap.secret.uuid,
                    VIR_UUID_BUFLEN);
         } else {
-            if (VIR_STRDUP(def->auth.secret.usage,
+            if (VIR_STRDUP(def->src.auth.secret.usage,
                            pooldef->source.auth.chap.secret.usage) < 0)
                 goto cleanup;
-            def->auth.secretType = VIR_DOMAIN_DISK_SECRET_TYPE_USAGE;
+            def->src.auth.secretType = VIR_DOMAIN_DISK_SECRET_TYPE_USAGE;
         }
     } else if (pooldef->source.authType == VIR_STORAGE_POOL_AUTH_CEPHX) {
-        if (VIR_STRDUP(def->auth.username,
+        if (VIR_STRDUP(def->src.auth.username,
                        pooldef->source.auth.cephx.username) < 0)
             goto cleanup;
         if (pooldef->source.auth.cephx.secret.uuidUsable) {
-            def->auth.secretType = VIR_DOMAIN_DISK_SECRET_TYPE_UUID;
-            memcpy(def->auth.secret.uuid,
+            def->src.auth.secretType = VIR_DOMAIN_DISK_SECRET_TYPE_UUID;
+            memcpy(def->src.auth.secret.uuid,
                    pooldef->source.auth.cephx.secret.uuid,
                    VIR_UUID_BUFLEN);
         } else {
-            if (VIR_STRDUP(def->auth.secret.usage,
+            if (VIR_STRDUP(def->src.auth.secret.usage,
                            pooldef->source.auth.cephx.secret.usage) < 0)
                 goto cleanup;
-            def->auth.secretType = VIR_DOMAIN_DISK_SECRET_TYPE_USAGE;
+            def->src.auth.secretType = VIR_DOMAIN_DISK_SECRET_TYPE_USAGE;
         }
     }
     ret = 0;
 
-cleanup:
+ cleanup:
     return ret;
 }
 
@@ -1315,24 +1269,24 @@ qemuTranslateDiskSourcePool(virConnectPtr conn,
     int ret = -1;
     virErrorPtr savedError = NULL;
 
-    if (def->type != VIR_DOMAIN_DISK_TYPE_VOLUME)
+    if (def->src.type != VIR_DOMAIN_DISK_TYPE_VOLUME)
         return 0;
 
-    if (!def->srcpool)
+    if (!def->src.srcpool)
         return 0;
 
-    if (!(pool = virStoragePoolLookupByName(conn, def->srcpool->pool)))
+    if (!(pool = virStoragePoolLookupByName(conn, def->src.srcpool->pool)))
         return -1;
 
     if (virStoragePoolIsActive(pool) != 1) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                        _("storage pool '%s' containing volume '%s' "
                          "is not active"),
-                       def->srcpool->pool, def->srcpool->volume);
+                       def->src.srcpool->pool, def->src.srcpool->volume);
         goto cleanup;
     }
 
-    if (!(vol = virStorageVolLookupByName(pool, def->srcpool->volume)))
+    if (!(vol = virStorageVolLookupByName(pool, def->src.srcpool->volume)))
         goto cleanup;
 
     if (virStorageVolGetInfo(vol, &info) < 0)
@@ -1344,19 +1298,19 @@ qemuTranslateDiskSourcePool(virConnectPtr conn,
     if (!(pooldef = virStoragePoolDefParseString(poolxml)))
         goto cleanup;
 
-    def->srcpool->pooltype = pooldef->type;
-    def->srcpool->voltype = info.type;
+    def->src.srcpool->pooltype = pooldef->type;
+    def->src.srcpool->voltype = info.type;
 
-    if (def->srcpool->mode && pooldef->type != VIR_STORAGE_POOL_ISCSI) {
+    if (def->src.srcpool->mode && pooldef->type != VIR_STORAGE_POOL_ISCSI) {
         virReportError(VIR_ERR_XML_ERROR, "%s",
                        _("disk source mode is only valid when "
                          "storage pool is of iscsi type"));
         goto cleanup;
     }
 
-    VIR_FREE(def->src);
-    virDomainDiskHostDefFree(def->nhosts, def->hosts);
-    virDomainDiskAuthClear(def);
+    VIR_FREE(def->src.path);
+    virDomainDiskHostDefFree(def->src.nhosts, def->src.hosts);
+    virDomainDiskAuthClear(&def->src);
 
     switch ((enum virStoragePoolType) pooldef->type) {
     case VIR_STORAGE_POOL_DIR:
@@ -1365,7 +1319,7 @@ qemuTranslateDiskSourcePool(virConnectPtr conn,
     case VIR_STORAGE_POOL_LOGICAL:
     case VIR_STORAGE_POOL_DISK:
     case VIR_STORAGE_POOL_SCSI:
-        if (!(def->src = virStorageVolGetPath(vol)))
+        if (!(def->src.path = virStorageVolGetPath(vol)))
             goto cleanup;
 
         if (def->startupPolicy && info.type != VIR_STORAGE_VOL_FILE) {
@@ -1378,15 +1332,15 @@ qemuTranslateDiskSourcePool(virConnectPtr conn,
 
         switch (info.type) {
         case VIR_STORAGE_VOL_FILE:
-            def->srcpool->actualtype = VIR_DOMAIN_DISK_TYPE_FILE;
+            def->src.srcpool->actualtype = VIR_DOMAIN_DISK_TYPE_FILE;
             break;
 
         case VIR_STORAGE_VOL_DIR:
-            def->srcpool->actualtype = VIR_DOMAIN_DISK_TYPE_DIR;
+            def->src.srcpool->actualtype = VIR_DOMAIN_DISK_TYPE_DIR;
             break;
 
         case VIR_STORAGE_VOL_BLOCK:
-            def->srcpool->actualtype = VIR_DOMAIN_DISK_TYPE_BLOCK;
+            def->src.srcpool->actualtype = VIR_DOMAIN_DISK_TYPE_BLOCK;
             break;
 
         case VIR_STORAGE_VOL_NETWORK:
@@ -1409,20 +1363,20 @@ qemuTranslateDiskSourcePool(virConnectPtr conn,
             goto cleanup;
         }
 
-       switch (def->srcpool->mode) {
+       switch (def->src.srcpool->mode) {
        case VIR_DOMAIN_DISK_SOURCE_POOL_MODE_DEFAULT:
        case VIR_DOMAIN_DISK_SOURCE_POOL_MODE_LAST:
-           def->srcpool->mode = VIR_DOMAIN_DISK_SOURCE_POOL_MODE_HOST;
+           def->src.srcpool->mode = VIR_DOMAIN_DISK_SOURCE_POOL_MODE_HOST;
            /* fallthrough */
        case VIR_DOMAIN_DISK_SOURCE_POOL_MODE_HOST:
-           def->srcpool->actualtype = VIR_DOMAIN_DISK_TYPE_BLOCK;
-           if (!(def->src = virStorageVolGetPath(vol)))
+           def->src.srcpool->actualtype = VIR_DOMAIN_DISK_TYPE_BLOCK;
+           if (!(def->src.path = virStorageVolGetPath(vol)))
                goto cleanup;
            break;
 
        case VIR_DOMAIN_DISK_SOURCE_POOL_MODE_DIRECT:
-           def->srcpool->actualtype = VIR_DOMAIN_DISK_TYPE_NETWORK;
-           def->protocol = VIR_DOMAIN_DISK_PROTOCOL_ISCSI;
+           def->src.srcpool->actualtype = VIR_DOMAIN_DISK_TYPE_NETWORK;
+           def->src.protocol = VIR_DOMAIN_DISK_PROTOCOL_ISCSI;
 
            if (qemuTranslateDiskSourcePoolAuth(def, pooldef) < 0)
                goto cleanup;
@@ -1446,7 +1400,7 @@ qemuTranslateDiskSourcePool(virConnectPtr conn,
     }
 
     ret = 0;
-cleanup:
+ cleanup:
     if (ret < 0)
         savedError = virSaveLastError();
     if (pool)

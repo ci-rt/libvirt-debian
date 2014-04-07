@@ -1,7 +1,7 @@
 /*
  * fdstream.c: generic streams impl for file descriptors
  *
- * Copyright (C) 2009-2012 Red Hat, Inc.
+ * Copyright (C) 2009-2012, 2014 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -31,6 +31,7 @@
 # include <sys/un.h>
 #endif
 #include <netinet/in.h>
+#include <termios.h>
 
 #include "fdstream.h"
 #include "virerror.h"
@@ -43,6 +44,8 @@
 #include "virstring.h"
 
 #define VIR_FROM_THIS VIR_FROM_STREAMS
+
+VIR_LOG_INIT("fdstream");
 
 /* Tunnelled migration stream support */
 struct virFDStreamData {
@@ -118,7 +121,7 @@ static int virFDStreamRemoveCallback(virStreamPtr stream)
 
     ret = 0;
 
-cleanup:
+ cleanup:
     virMutexUnlock(&fdst->lock);
     return ret;
 }
@@ -146,7 +149,7 @@ static int virFDStreamUpdateCallback(virStreamPtr stream, int events)
 
     ret = 0;
 
-cleanup:
+ cleanup:
     virMutexUnlock(&fdst->lock);
     return ret;
 }
@@ -243,7 +246,7 @@ virFDStreamAddCallback(virStreamPtr st,
 
     ret = 0;
 
-cleanup:
+ cleanup:
     virMutexUnlock(&fdst->lock);
     return ret;
 }
@@ -302,6 +305,7 @@ virFDStreamCloseInt(virStreamPtr st, bool streamAbort)
         else
             buf[len] = '\0';
 
+        virCommandRawStatus(fdst->cmd);
         if (virCommandWait(fdst->cmd, &status) < 0) {
             ret = -1;
         } else if (status != 0) {
@@ -392,7 +396,7 @@ static int virFDStreamWrite(virStreamPtr st, const char *bytes, size_t nbytes)
             nbytes = fdst->length - fdst->offset;
     }
 
-retry:
+ retry:
     ret = write(fdst->fd, bytes, nbytes);
     if (ret < 0) {
         if (errno == EAGAIN || errno == EWOULDBLOCK) {
@@ -442,7 +446,7 @@ static int virFDStreamRead(virStreamPtr st, char *bytes, size_t nbytes)
             nbytes = fdst->length - fdst->offset;
     }
 
-retry:
+ retry:
     ret = read(fdst->fd, bytes, nbytes);
     if (ret < 0) {
         if (errno == EAGAIN || errno == EWOULDBLOCK) {
@@ -561,7 +565,7 @@ int virFDStreamConnectUNIX(virStreamPtr st,
         goto error;
     return 0;
 
-error:
+ error:
     VIR_FORCE_CLOSE(fd);
     return -1;
 }
@@ -674,7 +678,7 @@ virFDStreamOpenFileInternal(virStreamPtr st,
 
     return 0;
 
-error:
+ error:
     virCommandFree(cmd);
     VIR_FORCE_CLOSE(fd);
     VIR_FORCE_CLOSE(childfd);
@@ -712,6 +716,58 @@ int virFDStreamCreateFile(virStreamPtr st,
                                        offset, length,
                                        oflags | O_CREAT, mode);
 }
+
+#ifdef HAVE_CFMAKERAW
+int virFDStreamOpenPTY(virStreamPtr st,
+                       const char *path,
+                       unsigned long long offset,
+                       unsigned long long length,
+                       int oflags)
+{
+    struct virFDStreamData *fdst = NULL;
+    struct termios rawattr;
+
+    if (virFDStreamOpenFileInternal(st, path,
+                                    offset, length,
+                                    oflags | O_CREAT, 0) < 0)
+        return -1;
+
+    fdst = st->privateData;
+
+    if (tcgetattr(fdst->fd, &rawattr) < 0) {
+        virReportSystemError(errno,
+                             _("unable to get tty attributes: %s"),
+                             path);
+        goto cleanup;
+    }
+
+    cfmakeraw(&rawattr);
+
+    if (tcsetattr(fdst->fd, TCSANOW, &rawattr) < 0) {
+        virReportSystemError(errno,
+                             _("unable to set tty attributes: %s"),
+                             path);
+        goto cleanup;
+    }
+
+    return 0;
+
+ cleanup:
+    virFDStreamClose(st);
+    return -1;
+}
+#else /* !HAVE_CFMAKERAW */
+int virFDStreamOpenPTY(virStreamPtr st,
+                       const char *path,
+                       unsigned long long offset,
+                       unsigned long long length,
+                       int oflags)
+{
+    return virFDStreamOpenFileInternal(st, path,
+                                       offset, length,
+                                       oflags | O_CREAT, 0);
+}
+#endif /* !HAVE_CFMAKERAW */
 
 int virFDStreamSetInternalCloseCb(virStreamPtr st,
                                   virFDStreamInternalCloseCb cb,

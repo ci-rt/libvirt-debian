@@ -871,6 +871,14 @@ struct remote_domain_core_dump_args {
 };
 typedef struct remote_domain_core_dump_args remote_domain_core_dump_args;
 
+struct remote_domain_core_dump_with_format_args {
+        remote_nonnull_domain dom;
+        remote_nonnull_string to;
+        u_int dumpformat;
+        u_int flags;
+};
+typedef struct remote_domain_core_dump_with_format_args remote_domain_core_dump_with_format_args;
+
 struct remote_domain_screenshot_args {
         remote_nonnull_domain dom;
         u_int screen;
@@ -3884,6 +3892,7 @@ enum remote_procedure {
         REMOTE_PROC_DOMAIN_EVENT_CALLBACK_BALLOON_CHANGE = 331,
         REMOTE_PROC_DOMAIN_EVENT_CALLBACK_PMSUSPEND_DISK = 332,
         REMOTE_PROC_DOMAIN_EVENT_CALLBACK_DEVICE_REMOVED = 333,
+        REMOTE_PROC_DOMAIN_CORE_DUMP_WITH_FORMAT = 334,
 };
 typedef enum remote_procedure remote_procedure;
 
@@ -4013,6 +4022,7 @@ extern  bool_t xdr_remote_domain_save_image_get_xml_desc_args (XDR *, remote_dom
 extern  bool_t xdr_remote_domain_save_image_get_xml_desc_ret (XDR *, remote_domain_save_image_get_xml_desc_ret*);
 extern  bool_t xdr_remote_domain_save_image_define_xml_args (XDR *, remote_domain_save_image_define_xml_args*);
 extern  bool_t xdr_remote_domain_core_dump_args (XDR *, remote_domain_core_dump_args*);
+extern  bool_t xdr_remote_domain_core_dump_with_format_args (XDR *, remote_domain_core_dump_with_format_args*);
 extern  bool_t xdr_remote_domain_screenshot_args (XDR *, remote_domain_screenshot_args*);
 extern  bool_t xdr_remote_domain_screenshot_ret (XDR *, remote_domain_screenshot_ret*);
 extern  bool_t xdr_remote_domain_get_xml_desc_args (XDR *, remote_domain_get_xml_desc_args*);
@@ -4545,6 +4555,7 @@ extern bool_t xdr_remote_domain_save_image_get_xml_desc_args ();
 extern bool_t xdr_remote_domain_save_image_get_xml_desc_ret ();
 extern bool_t xdr_remote_domain_save_image_define_xml_args ();
 extern bool_t xdr_remote_domain_core_dump_args ();
+extern bool_t xdr_remote_domain_core_dump_with_format_args ();
 extern bool_t xdr_remote_domain_screenshot_args ();
 extern bool_t xdr_remote_domain_screenshot_ret ();
 extern bool_t xdr_remote_domain_get_xml_desc_args ();

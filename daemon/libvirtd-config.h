@@ -1,5 +1,5 @@
 /*
- * libvirtd.c: daemon start of day, guest process & i/o management
+ * libvirtd-config.h: daemon start of day, guest process & i/o management
  *
  * Copyright (C) 2006-2012 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
@@ -64,6 +64,7 @@ struct daemonConfig {
     int max_workers;
     int max_clients;
     int max_queued_clients;
+    int max_anonymous_clients;
 
     int prio_workers;
 
@@ -73,7 +74,6 @@ struct daemonConfig {
     int log_level;
     char *log_filters;
     char *log_outputs;
-    int log_buffer_size;
 
     int audit_level;
     int audit_logging;

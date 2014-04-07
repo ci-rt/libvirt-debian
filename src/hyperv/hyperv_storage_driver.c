@@ -1,4 +1,3 @@
-
 /*
  * hyperv_storage_driver.c: storage driver functions for managing
  *                          Microsoft Hyper-V host storage
@@ -27,7 +26,6 @@
 #include "virerror.h"
 #include "datatypes.h"
 #include "viralloc.h"
-#include "virlog.h"
 #include "viruuid.h"
 #include "hyperv_storage_driver.h"
 

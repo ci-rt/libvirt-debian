@@ -32,7 +32,6 @@
 #include "storage_conf.h"
 #include "vircommand.h"
 #include "viralloc.h"
-#include "virlog.h"
 #include "virstring.h"
 
 #define VIR_FROM_THIS VIR_FROM_STORAGE
@@ -136,7 +135,7 @@ virStorageBackendSheepdogAddVolume(virConnectPtr conn ATTRIBUTE_UNUSED,
 
     return 0;
 
-error:
+ error:
     virStorageVolDefFree(vol);
     return -1;
 }
@@ -179,7 +178,7 @@ virStorageBackendSheepdogRefreshAllVol(virConnectPtr conn ATTRIBUTE_UNUSED,
 
     ret = 0;
 
-cleanup:
+ cleanup:
     virCommandFree(cmd);
     virStringFreeList(lines);
     virStringFreeList(cells);
@@ -206,7 +205,7 @@ virStorageBackendSheepdogRefreshPool(virConnectPtr conn ATTRIBUTE_UNUSED,
         goto cleanup;
 
     ret = virStorageBackendSheepdogRefreshAllVol(conn, pool);
-cleanup:
+ cleanup:
     virCommandFree(cmd);
     VIR_FREE(output);
     return ret;
@@ -277,7 +276,7 @@ virStorageBackendSheepdogBuildVol(virConnectPtr conn,
         goto cleanup;
 
     ret = 0;
-cleanup:
+ cleanup:
     virCommandFree(cmd);
     return ret;
 }
@@ -372,7 +371,7 @@ virStorageBackendSheepdogRefreshVol(virConnectPtr conn ATTRIBUTE_UNUSED,
 
     VIR_FREE(vol->target.path);
     ignore_value(VIR_STRDUP(vol->target.path, vol->name));
-cleanup:
+ cleanup:
     virCommandFree(cmd);
     return ret;
 }

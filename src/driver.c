@@ -31,6 +31,8 @@
 #include "configmake.h"
 #include "virstring.h"
 
+VIR_LOG_INIT("driver");
+
 #define DEFAULT_DRIVER_DIR LIBDIR "/libvirt/connection-driver"
 
 #ifdef WITH_DRIVER_MODULES
@@ -74,6 +76,8 @@ virDriverLoadModule(const char *name)
         goto cleanup;
     }
 
+    virUpdateSelfLastChanged(modfile);
+
     handle = dlopen(modfile, RTLD_NOW | RTLD_GLOBAL);
     if (!handle) {
         VIR_ERROR(_("failed to load module %s %s"), modfile, dlerror());
@@ -99,7 +103,7 @@ virDriverLoadModule(const char *name)
     VIR_FREE(regfunc);
     return handle;
 
-cleanup:
+ cleanup:
     VIR_FREE(modfile);
     VIR_FREE(regfunc);
     if (handle)

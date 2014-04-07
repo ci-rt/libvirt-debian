@@ -43,6 +43,8 @@
 
 #define VIR_FROM_THIS VIR_FROM_NONE
 
+VIR_LOG_INIT("util.numa");
+
 VIR_ENUM_IMPL(virDomainNumatuneMemMode,
               VIR_DOMAIN_NUMATUNE_MEM_LAST,
               "strict",
@@ -174,7 +176,7 @@ virNumaSetupMemoryPolicy(virNumaTuneDef numatune,
 
     ret = 0;
 
-cleanup:
+ cleanup:
     return ret;
 }
 
@@ -318,7 +320,7 @@ virNumaGetNodeCPUs(int node,
     cpumap = NULL;
     ret = ncpus;
 
-cleanup:
+ cleanup:
     VIR_FREE(mask);
     VIR_FREE(allonesmask);
     VIR_FREE(cpumap);

@@ -1,4 +1,3 @@
-
 /*
  * hyperv_device_monitor.c: device monitor functions for managing
  *                          Microsoft Hyper-V host devices
@@ -27,7 +26,6 @@
 #include "virerror.h"
 #include "datatypes.h"
 #include "viralloc.h"
-#include "virlog.h"
 #include "viruuid.h"
 #include "hyperv_device_monitor.h"
 

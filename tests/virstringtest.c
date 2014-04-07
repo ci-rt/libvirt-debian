@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012-2013 Red Hat, Inc.
+ * Copyright (C) 2012-2014 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -30,6 +30,8 @@
 #include "virstring.h"
 
 #define VIR_FROM_THIS VIR_FROM_NONE
+
+VIR_LOG_INIT("tests.stringtest");
 
 struct testSplitData {
     const char *string;
@@ -78,7 +80,7 @@ static int testSplit(const void *args)
     }
 
     ret = 0;
-cleanup:
+ cleanup:
     virStringFreeList(got);
 
     return ret;
@@ -101,7 +103,7 @@ static int testJoin(const void *args)
     }
 
     ret = 0;
-cleanup:
+ cleanup:
     VIR_FREE(got);
 
     return ret;
@@ -190,7 +192,7 @@ testStrdup(const void *data ATTRIBUTE_UNUSED)
     }
 
     ret = 0;
-cleanup:
+ cleanup:
     for (i = 0; i < ARRAY_CARDINALITY(array); i++)
         VIR_FREE(array[i]);
     return ret;
@@ -226,7 +228,7 @@ testStrndupNegative(const void *opaque ATTRIBUTE_UNUSED)
     }
 
     ret = 0;
-cleanup:
+ cleanup:
     VIR_FREE(dst);
     return ret;
 }
@@ -425,7 +427,6 @@ mymain(void)
     if (virtTestRun("virStringSortCompare", testStringSortCompare, NULL) < 0)
         ret = -1;
 
-
 #define TEST_SEARCH(s, r, x, n, m, e)                                   \
     do {                                                                \
         struct stringSearchData data = {                                \
@@ -492,7 +493,7 @@ mymain(void)
     TEST_REPLACE("fooooofoooo", "foo", "barwizzeek", "barwizzeekooobarwizzeekoo");
     TEST_REPLACE("fooooofoooo", "foooo", "foo", "fooofoo");
 
-    return ret==0 ? EXIT_SUCCESS : EXIT_FAILURE;
+    return ret == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
 VIRT_TEST_MAIN(mymain)

@@ -1,7 +1,7 @@
 /*
  * qemu_monitor.c: interaction with QEMU monitor console
  *
- * Copyright (C) 2006-2013 Red Hat, Inc.
+ * Copyright (C) 2006-2014 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -40,6 +40,7 @@
 #include "virfile.h"
 #include "virprocess.h"
 #include "virobject.h"
+#include "virprobe.h"
 #include "virstring.h"
 
 #ifdef WITH_DTRACE_PROBES
@@ -47,6 +48,8 @@
 #endif
 
 #define VIR_FROM_THIS VIR_FROM_QEMU
+
+VIR_LOG_INIT("qemu.qemu_monitor");
 
 #define DEBUG_IO 0
 #define DEBUG_RAW_IO 0
@@ -118,7 +121,7 @@ VIR_ENUM_IMPL(qemuMonitorMigrationStatus,
 
 VIR_ENUM_IMPL(qemuMonitorMigrationCaps,
               QEMU_MONITOR_MIGRATION_CAPS_LAST,
-              "xbzrle")
+              "xbzrle", "auto-converge")
 
 VIR_ENUM_IMPL(qemuMonitorVMStatus,
               QEMU_MONITOR_VM_STATUS_LAST,
@@ -316,7 +319,7 @@ qemuMonitorOpenUnix(const char *monitor, pid_t cpid)
 
     return monfd;
 
-error:
+ error:
     VIR_FORCE_CLOSE(monfd);
     return -1;
 }
@@ -354,12 +357,12 @@ qemuMonitorGetErrorFromLog(qemuMonitorPtr mon)
     if ((len = qemuProcessReadLog(mon->logfd, logbuf, 4096 - 1, 0, true)) <= 0)
         goto error;
 
-cleanup:
+ cleanup:
     errno = orig_errno;
     VIR_FORCE_CLOSE(mon->logfd);
     return logbuf;
 
-error:
+ error:
     VIR_FREE(logbuf);
     goto cleanup;
 }
@@ -594,7 +597,8 @@ static void qemuMonitorUpdateWatch(qemuMonitorPtr mon)
 
 
 static void
-qemuMonitorIO(int watch, int fd, int events, void *opaque) {
+qemuMonitorIO(int watch, int fd, int events, void *opaque)
+{
     qemuMonitorPtr mon = opaque;
     bool error = false;
     bool eof = false;
@@ -826,7 +830,7 @@ qemuMonitorOpenInternal(virDomainObjPtr vm,
 
     return mon;
 
-cleanup:
+ cleanup:
     /* We don't want the 'destroy' callback invoked during
      * cleanup from construction failure, because that can
      * give a double-unref on virDomainObjPtr in the caller,
@@ -924,6 +928,12 @@ void qemuMonitorClose(qemuMonitorPtr mon)
         virCondSignal(&mon->notify);
     }
 
+    /* Propagate existing monitor error in case the current thread has no
+     * error set.
+     */
+    if (mon->lastError.code != VIR_ERR_OK && !virGetLastError())
+        virSetError(&mon->lastError);
+
     virObjectUnlock(mon);
     virObjectUnref(mon);
 }
@@ -975,7 +985,7 @@ int qemuMonitorSend(qemuMonitorPtr mon,
 
     ret = 0;
 
-cleanup:
+ cleanup:
     mon->msg = NULL;
     qemuMonitorUpdateWatch(mon);
 
@@ -1098,7 +1108,7 @@ qemuMonitorFindBalloonObjectPath(qemuMonitorPtr mon,
         }
     }
 
-cleanup:
+ cleanup:
     for (i = 0; i < npaths; i++)
         qemuMonitorJSONListPathFree(paths[i]);
     VIR_FREE(paths);
@@ -1131,7 +1141,7 @@ int qemuMonitorHMPCommandWithFd(qemuMonitorPtr mon,
         ret = qemuMonitorTextCommandWithFd(mon, cmd, scm_fd, reply);
     }
 
-cleanup:
+ cleanup:
     VIR_FREE(json_cmd);
     return ret;
 }
@@ -1160,6 +1170,20 @@ int qemuMonitorGetDiskSecret(qemuMonitorPtr mon,
 
     QEMU_MONITOR_CALLBACK(mon, ret, diskSecretLookup, conn, mon->vm,
                           path, secret, secretLen);
+    return ret;
+}
+
+
+int
+qemuMonitorEmitEvent(qemuMonitorPtr mon, const char *event,
+                     long long seconds, unsigned int micros,
+                     const char *details)
+{
+    int ret = -1;
+    VIR_DEBUG("mon=%p event=%s", mon, event);
+
+    QEMU_MONITOR_CALLBACK(mon, ret, domainEvent, mon->vm, event, seconds,
+                          micros, details);
     return ret;
 }
 
@@ -1379,7 +1403,7 @@ int qemuMonitorSetCapabilities(qemuMonitorPtr mon)
         ret = 0;
     }
 
-cleanup:
+ cleanup:
     return ret;
 }
 
@@ -2227,7 +2251,7 @@ int qemuMonitorMigrateToCommand(qemuMonitorPtr mon,
     else
         ret = qemuMonitorTextMigrate(mon, flags, dest);
 
-cleanup:
+ cleanup:
     VIR_FREE(argstr);
     VIR_FREE(dest);
     return ret;
@@ -2292,7 +2316,7 @@ int qemuMonitorMigrateToFile(qemuMonitorPtr mon,
     else
         ret = qemuMonitorTextMigrate(mon, flags, dest);
 
-cleanup:
+ cleanup:
     VIR_FREE(safe_target);
     VIR_FREE(argstr);
     VIR_FREE(dest);
@@ -2344,11 +2368,32 @@ int qemuMonitorMigrateCancel(qemuMonitorPtr mon)
     return ret;
 }
 
+/**
+ * Returns 1 if @capability is supported, 0 if it's not, or -1 on error.
+ */
+int qemuMonitorGetDumpGuestMemoryCapability(qemuMonitorPtr mon,
+                                            const char *capability)
+{
+    VIR_DEBUG("mon=%p capability=%s", mon, capability);
+
+    if (!mon) {
+        virReportError(VIR_ERR_INVALID_ARG, "%s",
+                       _("monitor must not be NULL"));
+        return -1;
+    }
+
+    /* No capability is supported without JSON monitor */
+    if (!mon->json)
+        return 0;
+
+    return qemuMonitorJSONGetDumpGuestMemoryCapability(mon, capability);
+}
+
 int
-qemuMonitorDumpToFd(qemuMonitorPtr mon, int fd)
+qemuMonitorDumpToFd(qemuMonitorPtr mon, int fd, const char *dumpformat)
 {
     int ret;
-    VIR_DEBUG("mon=%p fd=%d", mon, fd);
+    VIR_DEBUG("mon=%p fd=%d dumpformat=%s", mon, fd, dumpformat);
 
     if (!mon) {
         virReportError(VIR_ERR_INVALID_ARG, "%s",
@@ -2368,7 +2413,7 @@ qemuMonitorDumpToFd(qemuMonitorPtr mon, int fd)
     if (qemuMonitorSendFileHandle(mon, "dump", fd) < 0)
         return -1;
 
-    ret = qemuMonitorJSONDump(mon, "fd:dump");
+    ret = qemuMonitorJSONDump(mon, "fd:dump", dumpformat);
 
     if (ret < 0) {
         if (qemuMonitorCloseFileHandle(mon, "dump") < 0)
@@ -2616,7 +2661,7 @@ int qemuMonitorCloseFileHandle(qemuMonitorPtr mon,
     else
         ret = qemuMonitorTextCloseFileHandle(mon, fdname);
 
-cleanup:
+ cleanup:
     if (error) {
         virSetError(error);
         virFreeError(error);
@@ -2688,7 +2733,7 @@ qemuMonitorRemoveFd(qemuMonitorPtr mon, int fdset, int fd)
         virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
                        _("remove fd requires JSON monitor"));
 
-cleanup:
+ cleanup:
     if (error) {
         virSetError(error);
         virFreeError(error);
@@ -2731,7 +2776,7 @@ int qemuMonitorAddHostNetwork(qemuMonitorPtr mon,
     else
         ret = qemuMonitorTextAddHostNetwork(mon, netstr);
 
-cleanup:
+ cleanup:
     if (ret < 0) {
         while (i--) {
             if (qemuMonitorCloseFileHandle(mon, tapfdName[i]) < 0)
@@ -2781,7 +2826,7 @@ int qemuMonitorAddNetdev(qemuMonitorPtr mon,
     VIR_DEBUG("mon=%p netdevstr=%s tapfd=%p tapfdName=%p tapfdSize=%d"
               "vhostfd=%p vhostfdName=%p vhostfdSize=%d",
               mon, netdevstr, tapfd, tapfdName, tapfdSize,
-              vhostfd, vhostfdName, tapfdSize);
+              vhostfd, vhostfdName, vhostfdSize);
 
     if (!mon) {
         virReportError(VIR_ERR_INVALID_ARG, "%s",
@@ -2803,7 +2848,7 @@ int qemuMonitorAddNetdev(qemuMonitorPtr mon,
     else
         ret = qemuMonitorTextAddNetdev(mon, netdevstr);
 
-cleanup:
+ cleanup:
     if (ret < 0) {
         while (i--) {
             if (qemuMonitorCloseFileHandle(mon, tapfdName[i]) < 0)
@@ -3188,7 +3233,7 @@ qemuMonitorBlockCommit(qemuMonitorPtr mon, const char *device,
     unsigned long long speed;
 
     VIR_DEBUG("mon=%p, device=%s, top=%s, base=%s, bandwidth=%ld",
-              mon, device, NULLSTR(top), NULLSTR(base), bandwidth);
+              mon, device, top, base, bandwidth);
 
     /* Convert bandwidth MiB to bytes - unfortunately the JSON QMP protocol is
      * limited to LLONG_MAX also for unsigned values */

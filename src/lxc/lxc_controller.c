@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010-2013 Red Hat, Inc.
+ * Copyright (C) 2010-2014 Red Hat, Inc.
  * Copyright IBM Corp. 2008
  *
  * lxc_controller.c: linux container process controller
@@ -69,6 +69,8 @@
 #include "virstring.h"
 
 #define VIR_FROM_THIS VIR_FROM_LXC
+
+VIR_LOG_INIT("lxc.lxc_controller");
 
 typedef struct _virLXCControllerConsole virLXCControllerConsole;
 typedef virLXCControllerConsole *virLXCControllerConsolePtr;
@@ -184,13 +186,13 @@ static virLXCControllerPtr virLXCControllerNew(const char *name)
                                                   NULL)) < 0)
         goto error;
 
-cleanup:
+ cleanup:
     VIR_FREE(configFile);
     virObjectUnref(caps);
     virObjectUnref(xmlopt);
     return ctrl;
 
-error:
+ error:
     virLXCControllerFree(ctrl);
     ctrl = NULL;
     goto cleanup;
@@ -380,23 +382,32 @@ static int virLXCControllerSetupLoopDeviceDisk(virDomainDiskDefPtr disk)
 {
     int lofd;
     char *loname = NULL;
+    const char *src = virDomainDiskGetSource(disk);
+    int ret = -1;
 
-    if ((lofd = virFileLoopDeviceAssociate(disk->src, &loname)) < 0)
+    if ((lofd = virFileLoopDeviceAssociate(src, &loname)) < 0)
         return -1;
 
     VIR_DEBUG("Changing disk %s to use type=block for dev %s",
-              disk->src, loname);
+              src, loname);
 
     /*
      * We now change it into a block device type, so that
      * the rest of container setup 'just works'
      */
-    disk->type = VIR_DOMAIN_DISK_TYPE_BLOCK;
-    VIR_FREE(disk->src);
-    disk->src = loname;
-    loname = NULL;
+    virDomainDiskSetType(disk, VIR_DOMAIN_DISK_TYPE_BLOCK);
+    if (virDomainDiskSetSource(disk, loname) < 0)
+        goto cleanup;
+
+    ret = 0;
+
+ cleanup:
+    VIR_FREE(loname);
+    if (ret < 0)
+         VIR_FORCE_CLOSE(lofd);
 
     return lofd;
+
 }
 
 
@@ -433,28 +444,33 @@ static int virLXCControllerSetupNBDDeviceFS(virDomainFSDefPtr fs)
 static int virLXCControllerSetupNBDDeviceDisk(virDomainDiskDefPtr disk)
 {
     char *dev;
+    const char *src = virDomainDiskGetSource(disk);
+    int format = virDomainDiskGetFormat(disk);
 
-    if (disk->format <= VIR_STORAGE_FILE_NONE) {
+    if (format <= VIR_STORAGE_FILE_NONE) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("An explicit disk format must be specified"));
         return -1;
     }
 
-    if (virFileNBDDeviceAssociate(disk->src,
-                                  disk->format,
+    if (virFileNBDDeviceAssociate(src,
+                                  format,
                                   disk->readonly,
                                   &dev) < 0)
         return -1;
 
     VIR_DEBUG("Changing disk %s to use type=block for dev %s",
-              disk->src, dev);
+              src, dev);
     /*
      * We now change it into a block device type, so that
      * the rest of container setup 'just works'
      */
-    disk->type = VIR_DOMAIN_DISK_TYPE_BLOCK;
-    VIR_FREE(disk->src);
-    disk->src = dev;
+    virDomainDiskSetType(disk, VIR_DOMAIN_DISK_TYPE_BLOCK);
+    if (virDomainDiskSetSource(disk, dev) < 0) {
+        VIR_FREE(dev);
+        return -1;
+    }
+    VIR_FREE(dev);
 
     return 0;
 }
@@ -517,23 +533,25 @@ static int virLXCControllerSetupLoopDevices(virLXCControllerPtr ctrl)
     for (i = 0; i < ctrl->def->ndisks; i++) {
         virDomainDiskDefPtr disk = ctrl->def->disks[i];
         int fd;
+        const char *driver = virDomainDiskGetDriver(disk);
+        int format = virDomainDiskGetFormat(disk);
 
-        if (disk->type != VIR_DOMAIN_DISK_TYPE_FILE)
+        if (virDomainDiskGetType(disk) != VIR_DOMAIN_DISK_TYPE_FILE)
             continue;
 
         /* If no driverName is set, we prefer 'loop' for
          * dealing with raw or undefined formats, otherwise
          * we use 'nbd'.
          */
-        if (STREQ_NULLABLE(disk->driverName, "loop") ||
-            (!disk->driverName &&
-             (disk->format == VIR_STORAGE_FILE_RAW ||
-              disk->format == VIR_STORAGE_FILE_NONE))) {
-            if (disk->format != VIR_STORAGE_FILE_RAW &&
-                disk->format != VIR_STORAGE_FILE_NONE) {
+        if (STREQ_NULLABLE(driver, "loop") ||
+            (!driver &&
+             (format == VIR_STORAGE_FILE_RAW ||
+              format == VIR_STORAGE_FILE_NONE))) {
+            if (format != VIR_STORAGE_FILE_RAW &&
+                format != VIR_STORAGE_FILE_NONE) {
                 virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                                _("disk format %s is not supported"),
-                               virStorageFileFormatTypeToString(disk->format));
+                               virStorageFileFormatTypeToString(format));
                 goto cleanup;
             }
 
@@ -551,8 +569,7 @@ static int virLXCControllerSetupLoopDevices(virLXCControllerPtr ctrl)
                 goto cleanup;
             }
             ctrl->loopDevFds[ctrl->nloopDevs - 1] = fd;
-        } else if (STREQ_NULLABLE(disk->driverName, "nbd") ||
-                   !disk->driverName) {
+        } else if (!driver || STREQ(driver, "nbd")) {
             if (disk->cachemode != VIR_DOMAIN_DISK_CACHE_DEFAULT &&
                 disk->cachemode != VIR_DOMAIN_DISK_CACHE_DISABLE) {
                 virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
@@ -565,7 +582,7 @@ static int virLXCControllerSetupLoopDevices(virLXCControllerPtr ctrl)
         } else {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                            _("disk driver %s is not supported"),
-                           disk->driverName);
+                           driver);
             goto cleanup;
         }
     }
@@ -573,7 +590,7 @@ static int virLXCControllerSetupLoopDevices(virLXCControllerPtr ctrl)
     VIR_DEBUG("Setup all loop devices");
     ret = 0;
 
-cleanup:
+ cleanup:
     return ret;
 }
 
@@ -654,7 +671,7 @@ static int virLXCControllerGetNumadAdvice(virLXCControllerPtr ctrl,
     ret = 0;
     *mask = nodemask;
 
-cleanup:
+ cleanup:
     VIR_FREE(nodeset);
     return ret;
 }
@@ -685,7 +702,7 @@ static int virLXCControllerSetupResourceLimits(virLXCControllerPtr ctrl)
         goto cleanup;
 
     ret = 0;
-cleanup:
+ cleanup:
     virBitmapFree(nodemask);
     return ret;
 }
@@ -737,7 +754,7 @@ static int virLXCControllerSetupServer(virLXCControllerPtr ctrl)
         return -1;
 
     if (!(ctrl->server = virNetServerNew(0, 0, 0, 1,
-                                         -1, 0, false,
+                                         0, -1, 0, false,
                                          NULL,
                                          virLXCControllerClientPrivateNew,
                                          NULL,
@@ -778,7 +795,7 @@ static int virLXCControllerSetupServer(virLXCControllerPtr ctrl)
     VIR_FREE(sockpath);
     return 0;
 
-error:
+ error:
     VIR_FREE(sockpath);
     virObjectUnref(ctrl->server);
     ctrl->server = NULL;
@@ -934,7 +951,7 @@ static void virLXCControllerConsoleUpdateWatch(virLXCControllerConsolePtr consol
         }
         console->contEpoll = 0;
     }
-cleanup:
+ cleanup:
     return;
 }
 
@@ -982,7 +999,7 @@ static void virLXCControllerConsoleEPoll(int watch, int fd, int events, void *op
         }
     }
 
-cleanup:
+ cleanup:
     virMutexUnlock(&lock);
 }
 
@@ -1067,7 +1084,7 @@ static void virLXCControllerConsoleIO(int watch, int fd, int events, void *opaqu
     virMutexUnlock(&lock);
     return;
 
-error:
+ error:
     virEventRemoveHandle(console->contWatch);
     virEventRemoveHandle(console->hostWatch);
     console->contWatch = console->hostWatch = -1;
@@ -1146,9 +1163,9 @@ static int virLXCControllerMain(virLXCControllerPtr ctrl)
     if (!err || err->code == VIR_ERR_OK)
         rc = wantReboot ? 1 : 0;
 
-cleanup:
+ cleanup:
     virMutexDestroy(&lock);
-cleanup2:
+ cleanup2:
 
     for (i = 0; i < ctrl->nconsoles; i++)
         virLXCControllerConsoleClose(&(ctrl->consoles[i]));
@@ -1181,11 +1198,11 @@ virLXCControllerSetupUsernsMap(virDomainIdMapEntryPtr map,
     }
 
     ret = 0;
-cleanup:
+ cleanup:
     virBufferFreeAndReset(&map_value);
     return ret;
 
-no_memory:
+ no_memory:
     virReportOOMError();
     goto cleanup;
 }
@@ -1224,7 +1241,7 @@ static int virLXCControllerSetupUserns(virLXCControllerPtr ctrl)
         goto cleanup;
 
     ret = 0;
-cleanup:
+ cleanup:
     VIR_FREE(uid_map);
     VIR_FREE(gid_map);
     return ret;
@@ -1274,7 +1291,7 @@ static int virLXCControllerSetupDev(virLXCControllerPtr ctrl)
         goto cleanup;
 
     ret = 0;
-cleanup:
+ cleanup:
     VIR_FREE(opts);
     VIR_FREE(mount_options);
     VIR_FREE(dev);
@@ -1325,7 +1342,7 @@ static int virLXCControllerPopulateDevices(virLXCControllerPtr ctrl)
     }
 
     ret = 0;
-cleanup:
+ cleanup:
     VIR_FREE(path);
     return ret;
 }
@@ -1400,7 +1417,7 @@ virLXCControllerSetupHostdevSubsysUSB(virDomainDefPtr vmDef,
 
     ret = 0;
 
-cleanup:
+ cleanup:
     VIR_FREE(src);
     VIR_FREE(dstfile);
     VIR_FREE(dstdir);
@@ -1480,7 +1497,7 @@ virLXCControllerSetupHostdevCapsStorage(virDomainDefPtr vmDef,
 
     ret = 0;
 
-cleanup:
+ cleanup:
     def->source.caps.u.storage.block = dev;
     VIR_FREE(dst);
     VIR_FREE(path);
@@ -1559,7 +1576,7 @@ virLXCControllerSetupHostdevCapsMisc(virDomainDefPtr vmDef,
 
     ret = 0;
 
-cleanup:
+ cleanup:
     def->source.caps.u.misc.chardev = dev;
     VIR_FREE(dst);
     VIR_FREE(path);
@@ -1658,14 +1675,14 @@ static int virLXCControllerSetupDisk(virLXCControllerPtr ctrl,
     int ret = -1;
     struct stat sb;
     mode_t mode;
-    char *tmpsrc = def->src;
+    char *tmpsrc = def->src.path;
 
-    if (def->type != VIR_DOMAIN_DISK_TYPE_BLOCK) {
+    if (virDomainDiskGetType(def) != VIR_DOMAIN_DISK_TYPE_BLOCK) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("Can't setup disk for non-block device"));
         goto cleanup;
     }
-    if (def->src == NULL) {
+    if (!tmpsrc) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("Can't setup disk without media"));
         goto cleanup;
@@ -1675,16 +1692,16 @@ static int virLXCControllerSetupDisk(virLXCControllerPtr ctrl,
                     LXC_STATE_DIR, ctrl->def->name, def->dst) < 0)
         goto cleanup;
 
-    if (stat(def->src, &sb) < 0) {
+    if (stat(def->src.path, &sb) < 0) {
         virReportSystemError(errno,
-                             _("Unable to access %s"), def->src);
+                             _("Unable to access %s"), tmpsrc);
         goto cleanup;
     }
 
     if (!S_ISCHR(sb.st_mode) && !S_ISBLK(sb.st_mode)) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                        _("Disk source %s must be a character/block device"),
-                       def->src);
+                       tmpsrc);
         goto cleanup;
     }
 
@@ -1702,7 +1719,7 @@ static int virLXCControllerSetupDisk(virLXCControllerPtr ctrl,
      * to that normally implied by the device name
      */
     VIR_DEBUG("Creating dev %s (%d,%d) from %s",
-              dst, major(sb.st_rdev), minor(sb.st_rdev), def->src);
+              dst, major(sb.st_rdev), minor(sb.st_rdev), tmpsrc);
     if (mknod(dst, mode, sb.st_rdev) < 0) {
         virReportSystemError(errno,
                              _("Unable to create device %s"),
@@ -1715,14 +1732,14 @@ static int virLXCControllerSetupDisk(virLXCControllerPtr ctrl,
 
     /* Labelling normally operates on src, but we need
      * to actually label the dst here, so hack the config */
-    def->src = dst;
+    def->src.path = dst;
     if (virSecurityManagerSetImageLabel(securityDriver, ctrl->def, def) < 0)
         goto cleanup;
 
     ret = 0;
 
-cleanup:
-    def->src = tmpsrc;
+ cleanup:
+    def->src.path = tmpsrc;
     VIR_FREE(dst);
     return ret;
 }
@@ -1867,7 +1884,7 @@ lxcCreateTty(virLXCControllerPtr ctrl, int *ttymaster,
 
     ret = 0;
 
-cleanup:
+ cleanup:
     if (ret != 0) {
         VIR_FORCE_CLOSE(*ttymaster);
         VIR_FREE(*ttyName);
@@ -1916,7 +1933,7 @@ virLXCControllerSetupPrivateNS(void)
     }
 
     ret = 0;
-cleanup:
+ cleanup:
     return ret;
 }
 
@@ -1974,7 +1991,7 @@ virLXCControllerSetupDevPTS(virLXCControllerPtr ctrl)
 
     ret = 0;
 
-cleanup:
+ cleanup:
     VIR_FREE(opts);
     VIR_FREE(devpts);
     VIR_FREE(mount_options);
@@ -2020,7 +2037,7 @@ virLXCControllerSetupConsoles(virLXCControllerPtr ctrl,
     }
 
     ret = 0;
-cleanup:
+ cleanup:
     VIR_FREE(ttyHostPath);
     return ret;
 }
@@ -2062,7 +2079,7 @@ virLXCControllerEventSend(virLXCControllerPtr ctrl,
     xdr_free(proc, data);
     return;
 
-error:
+ error:
     virNetMessageFree(msg);
     xdr_free(proc, data);
 }
@@ -2235,7 +2252,7 @@ virLXCControllerRun(virLXCControllerPtr ctrl)
 
     virLXCControllerEventSendExit(ctrl, rc);
 
-cleanup:
+ cleanup:
     VIR_FORCE_CLOSE(control[0]);
     VIR_FORCE_CLOSE(control[1]);
     VIR_FORCE_CLOSE(containerhandshake[0]);
@@ -2463,7 +2480,7 @@ int main(int argc, char *argv[])
 
     rc = virLXCControllerRun(ctrl);
 
-cleanup:
+ cleanup:
     if (rc < 0) {
         virErrorPtr err = virGetLastError();
         if (err && err->message)

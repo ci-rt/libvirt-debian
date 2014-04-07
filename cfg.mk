@@ -1,5 +1,5 @@
 # Customize Makefile.maint.                           -*- makefile -*-
-# Copyright (C) 2008-2013 Red Hat, Inc.
+# Copyright (C) 2008-2014 Red Hat, Inc.
 # Copyright (C) 2003-2008 Free Software Foundation, Inc.
 
 # This program is free software: you can redistribute it and/or modify
@@ -517,6 +517,11 @@ sc_prohibit_virBufferAsprintf_with_string_literal:
 	halt='use virBufferAddLit, not virBufferAsprintf, with a string literal' \
 	  $(_sc_search_regexp)
 
+sc_forbid_manual_xml_indent:
+	@prohibit='virBuffer.*" +<'					      \
+	halt='use virBufferAdjustIndent instead of spaces when indenting xml' \
+	  $(_sc_search_regexp)
+
 # Not only do they fail to deal well with ipv6, but the gethostby*
 # functions are also not thread-safe.
 sc_prohibit_gethostby:
@@ -863,6 +868,54 @@ sc_prohibit_atoi:
 	halt='Use virStrToLong* instead of atoi, atol, atof, atoq, atoll' \
 	  $(_sc_search_regexp)
 
+sc_prohibit_wrong_filename_in_comment:
+	@fail=0;                                                       \
+	awk 'BEGIN {                                                   \
+	  fail=0;                                                      \
+	} FNR < 3 {                                                    \
+	  n=match($$0, /[[:space:]][^[:space:]]*[.][ch][[:space:]:]/); \
+	  if (n > 0) {                                                 \
+	    A=substr($$0, RSTART+1, RLENGTH-2);                        \
+	    n=split(FILENAME, arr, "/");                               \
+	    if (A != arr[n]) {                                         \
+	      print "in " FILENAME ": " A " mentioned in comments ";   \
+	      fail=1;                                                  \
+	    }                                                          \
+	  }                                                            \
+	} END {                                                        \
+	  if (fail == 1) {                                             \
+	    exit 1;                                                    \
+	  }                                                            \
+	}' $$($(VC_LIST_EXCEPT) | grep '\.[ch]$$') || fail=1;          \
+	if test $$fail -eq 1; then                                     \
+	  { echo '$(ME): The file name in comments must match the'     \
+	    'actual file name' 1>&2; exit 1; }	                       \
+	fi;
+
+sc_prohibit_virConnectOpen_in_virsh:
+	@prohibit='\bvirConnectOpen[a-zA-Z]* *\('                      \
+	in_vc_files='^tools/virsh-.*\.[ch]$$'                          \
+	halt='Use vshConnect() in virsh instead of virConnectOpen*'    \
+	  $(_sc_search_regexp)
+
+sc_require_space_before_label:
+	@prohibit='^(   ?)?[_a-zA-Z0-9]+:$$'                           \
+	in_vc_files='\.[ch]$$'                                         \
+	halt="Top-level labels should be indented by one space"        \
+	  $(_sc_search_regexp)
+
+sc_curly_braces_style:
+	@files=$$($(VC_LIST_EXCEPT) | grep '\.[ch]$$');                \
+	$(GREP) -nHP                                                   \
+'^\s*(?!([a-zA-Z_]*for_?each[a-zA-Z_]*) ?\()([_a-zA-Z0-9]+( [_a-zA-Z0-9]+)* ?\()?(\*?[_a-zA-Z0-9]+(,? \*?[_a-zA-Z0-9\[\]]+)+|void)\) ?\{' \
+	$$files && { echo '$(ME): Non-K&R style used for curly'        \
+			  'braces around function body, see'           \
+			  'HACKING' 1>&2; exit 1; } || :
+
+sc_prohibit_windows_special_chars_in_filename:
+	@files=$$($(VC_LIST_EXCEPT) | grep '[:*?"<>|]');               \
+	test -n "$$files" && { echo '$(ME): Windows special chars'     \
+	  'in filename not allowed:' 1>&2; echo $$files 1>&2; exit 1; } || :
 
 # We don't use this feature of maint.mk.
 prev_version_file = /dev/null
@@ -941,7 +994,8 @@ exclude_file_name_regexp--sc_bindtextdomain = ^(tests|examples)/
 exclude_file_name_regexp--sc_copyright_usage = \
   ^COPYING(|\.LESSER)$$
 
-exclude_file_name_regexp--sc_flags_usage = ^(docs/|src/util/virnetdevtap\.c$$|tests/vir(cgroup|pci)mock\.c$$)
+exclude_file_name_regexp--sc_flags_usage = \
+  ^(docs/|src/util/virnetdevtap\.c$$|tests/vir(cgroup|pci|usb)mock\.c$$)
 
 exclude_file_name_regexp--sc_libvirt_unmarked_diagnostics = \
   ^(src/rpc/gendispatch\.pl$$|tests/)
@@ -1032,3 +1086,6 @@ exclude_file_name_regexp--sc_prohibit_int_ijk = \
 
 exclude_file_name_regexp--sc_prohibit_getenv = \
   ^tests/.*\.[ch]$$
+
+exclude_file_name_regexp--sc_avoid_attribute_unused_in_header = \
+  ^src/util/virlog\.h$$

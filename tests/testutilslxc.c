@@ -8,7 +8,8 @@
 # include "domain_conf.h"
 
 
-virCapsPtr testLXCCapsInit(void) {
+virCapsPtr testLXCCapsInit(void)
+{
     virCapsPtr caps;
     virCapsGuestPtr guest;
 
@@ -48,7 +49,7 @@ virCapsPtr testLXCCapsInit(void) {
 
     return caps;
 
-error:
+ error:
     virObjectUnref(caps);
     return NULL;
 }

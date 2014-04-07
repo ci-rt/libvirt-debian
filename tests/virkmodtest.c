@@ -23,7 +23,8 @@
 #ifdef __linux__
 
 # include <stdlib.h>
-# include "vircommand.h"
+# define __VIR_COMMAND_PRIV_H_ALLOW__
+# include "vircommandpriv.h"
 # include "virkmod.h"
 # include "virstring.h"
 
@@ -51,7 +52,7 @@ testKModConfig(const void *args ATTRIBUTE_UNUSED)
     }
     ret = 0;
 
-cleanup:
+ cleanup:
     VIR_FREE(outbuf);
     return ret;
 }
@@ -79,7 +80,7 @@ checkOutput(virBufferPtr buf, const char *exp_cmd)
 
     ret = 0;
 
-cleanup:
+ cleanup:
     VIR_FREE(actual_cmd);
     return ret;
 }
@@ -95,7 +96,7 @@ testKModLoad(const void *args)
     bool useBlacklist = info->useBlacklist;
     virBuffer buf = VIR_BUFFER_INITIALIZER;
 
-    virCommandSetDryRun(&buf);
+    virCommandSetDryRun(&buf, NULL, NULL);
 
     errbuf = virKModLoad(module, useBlacklist);
     if (errbuf) {
@@ -108,8 +109,8 @@ testKModLoad(const void *args)
 
     ret = 0;
 
-cleanup:
-    virCommandSetDryRun(NULL);
+ cleanup:
+    virCommandSetDryRun(NULL, NULL, NULL);
     VIR_FREE(errbuf);
     return ret;
 }
@@ -124,7 +125,7 @@ testKModUnload(const void *args)
     const char *module = info->module;
     virBuffer buf = VIR_BUFFER_INITIALIZER;
 
-    virCommandSetDryRun(&buf);
+    virCommandSetDryRun(&buf, NULL, NULL);
 
     errbuf = virKModUnload(module);
     if (errbuf) {
@@ -137,8 +138,8 @@ testKModUnload(const void *args)
 
     ret = 0;
 
-cleanup:
-    virCommandSetDryRun(NULL);
+ cleanup:
+    virCommandSetDryRun(NULL, NULL, NULL);
     VIR_FREE(errbuf);
     return ret;
 }
@@ -169,7 +170,7 @@ mymain(void)
     DO_TEST("unload", testKModUnload, false, RMMOD " vfio-pci\n");
     DO_TEST("blklist", testKModLoad, true, MODPROBE " -b vfio-pci\n");
 
-    return ret==0 ? EXIT_SUCCESS : EXIT_FAILURE;
+    return ret == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 
 }
 

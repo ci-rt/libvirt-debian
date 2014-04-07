@@ -48,6 +48,8 @@
 /* For virReportOOMError()  and virReportSystemError() */
 #define VIR_FROM_THIS VIR_FROM_NONE
 
+VIR_LOG_INIT("util.usb");
+
 struct _virUSBDevice {
     unsigned int      bus;
     unsigned int      dev;
@@ -55,7 +57,10 @@ struct _virUSBDevice {
     char          name[USB_ADDR_LEN]; /* domain:bus:slot.function */
     char          id[USB_ID_LEN];     /* product vendor */
     char          *path;
-    const char    *used_by;           /* name of the domain using this dev */
+
+    /* driver:domain using this dev */
+    char          *used_by_drvname;
+    char          *used_by_domname;
 };
 
 struct _virUSBDeviceList {
@@ -109,7 +114,7 @@ static int virUSBSysReadFile(const char *f_name, const char *d_name,
     }
 
     ret = 0;
-cleanup:
+ cleanup:
     VIR_FREE(filename);
     VIR_FREE(buf);
     return ret;
@@ -194,7 +199,7 @@ virUSBDeviceSearch(unsigned int vendor,
     }
     ret = list;
 
-cleanup:
+ cleanup:
     if (dir) {
         int saved_errno = errno;
         closedir(dir);
@@ -375,19 +380,33 @@ virUSBDeviceFree(virUSBDevicePtr dev)
         return;
     VIR_DEBUG("%s %s: freeing", dev->id, dev->name);
     VIR_FREE(dev->path);
+    VIR_FREE(dev->used_by_drvname);
+    VIR_FREE(dev->used_by_domname);
     VIR_FREE(dev);
 }
 
-
-void virUSBDeviceSetUsedBy(virUSBDevicePtr dev,
-                           const char *name)
+int
+virUSBDeviceSetUsedBy(virUSBDevicePtr dev,
+                      const char *drv_name,
+                      const char *dom_name)
 {
-    dev->used_by = name;
+    VIR_FREE(dev->used_by_drvname);
+    VIR_FREE(dev->used_by_domname);
+    if (VIR_STRDUP(dev->used_by_drvname, drv_name) < 0)
+        return -1;
+    if (VIR_STRDUP(dev->used_by_domname, dom_name) < 0)
+        return -1;
+
+    return 0;
 }
 
-const char * virUSBDeviceGetUsedBy(virUSBDevicePtr dev)
+void
+virUSBDeviceGetUsedBy(virUSBDevicePtr dev,
+                      const char **drv_name,
+                      const char **dom_name)
 {
-    return dev->used_by;
+    *drv_name = dev->used_by_drvname;
+    *dom_name = dev->used_by_domname;
 }
 
 const char *virUSBDeviceGetName(virUSBDevicePtr dev)

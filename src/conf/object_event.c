@@ -36,6 +36,8 @@
 
 #define VIR_FROM_THIS VIR_FROM_NONE
 
+VIR_LOG_INIT("conf.object_event");
+
 struct _virObjectEventCallbackList {
     unsigned int nextID;
     size_t count;
@@ -181,6 +183,8 @@ virObjectEventCallbackListCount(virConnectPtr conn,
     for (i = 0; i < cbList->count; i++) {
         virObjectEventCallbackPtr cb = cbList->callbacks[i];
 
+        if (cb->filter)
+            continue;
         if (cb->klass == klass &&
             cb->eventID == eventID &&
             cb->conn == conn &&
@@ -216,10 +220,11 @@ virObjectEventCallbackListRemoveID(virConnectPtr conn,
         if (cb->callbackID == callbackID && cb->conn == conn) {
             int ret;
 
-            ret = virObjectEventCallbackListCount(conn, cbList, cb->klass,
-                                                  cb->eventID,
-                                                  cb->uuid_filter ? cb->uuid : NULL,
-                                                  cb->remoteID >= 0) - 1;
+            ret = cb->filter ? 0 :
+                (virObjectEventCallbackListCount(conn, cbList, cb->klass,
+                                                 cb->eventID,
+                                                 cb->uuid_filter ? cb->uuid : NULL,
+                                                 cb->remoteID >= 0) - 1);
 
             if (cb->freecb)
                 (*cb->freecb)(cb->opaque);
@@ -249,10 +254,11 @@ virObjectEventCallbackListMarkDeleteID(virConnectPtr conn,
 
         if (cb->callbackID == callbackID && cb->conn == conn) {
             cb->deleted = true;
-            return virObjectEventCallbackListCount(conn, cbList, cb->klass,
-                                                   cb->eventID,
-                                                   cb->uuid_filter ? cb->uuid : NULL,
-                                                   cb->remoteID >= 0);
+            return cb->filter ? 0 :
+                virObjectEventCallbackListCount(conn, cbList, cb->klass,
+                                                cb->eventID,
+                                                cb->uuid_filter ? cb->uuid : NULL,
+                                                cb->remoteID >= 0);
         }
     }
 
@@ -266,8 +272,7 @@ virObjectEventCallbackListMarkDeleteID(virConnectPtr conn,
 static int
 virObjectEventCallbackListPurgeMarked(virObjectEventCallbackListPtr cbList)
 {
-    int old_count = cbList->count;
-    int n;
+    size_t n;
     for (n = 0; n < cbList->count; n++) {
         if (cbList->callbacks[n]->deleted) {
             virFreeCallback freecb = cbList->callbacks[n]->freecb;
@@ -276,18 +281,9 @@ virObjectEventCallbackListPurgeMarked(virObjectEventCallbackListPtr cbList)
             virObjectUnref(cbList->callbacks[n]->conn);
             VIR_FREE(cbList->callbacks[n]);
 
-            if (n < (cbList->count - 1))
-                memmove(cbList->callbacks + n,
-                        cbList->callbacks + n + 1,
-                        sizeof(*(cbList->callbacks)) *
-                                (cbList->count - (n + 1)));
-            cbList->count--;
+            VIR_DELETE_ELEMENT(cbList->callbacks, n, cbList->count);
             n--;
         }
-    }
-    if (cbList->count < old_count &&
-        VIR_REALLOC_N(cbList->callbacks, cbList->count) < 0) {
-        ; /* Failure to reduce memory allocation isn't fatal */
     }
     return 0;
 }
@@ -396,8 +392,10 @@ virObjectEventCallbackListAddID(virConnectPtr conn,
         return -1;
     }
 
-    /* check if we already have this callback on our list */
-    if (virObjectEventCallbackLookup(conn, cbList, uuid,
+    /* If there is no additional filtering, then check if we already
+     * have this callback on our list.  */
+    if (!filter &&
+        virObjectEventCallbackLookup(conn, cbList, uuid,
                                      klass, eventID, callback, legacy,
                                      serverFilter ? &remoteID : NULL) != -1) {
         virReportError(VIR_ERR_INVALID_ARG, "%s",
@@ -430,12 +428,18 @@ virObjectEventCallbackListAddID(virConnectPtr conn,
     if (VIR_APPEND_ELEMENT(cbList->callbacks, cbList->count, event) < 0)
         goto cleanup;
 
-    ret = virObjectEventCallbackListCount(conn, cbList, klass, eventID,
-                                          uuid, serverFilter);
-    if (serverFilter && remoteID < 0)
-        ret++;
+    /* When additional filtering is being done, every client callback
+     * is matched to exactly one server callback.  */
+    if (filter) {
+        ret = 1;
+    } else {
+        ret = virObjectEventCallbackListCount(conn, cbList, klass, eventID,
+                                              uuid, serverFilter);
+        if (serverFilter && remoteID < 0)
+            ret++;
+    }
 
-cleanup:
+ cleanup:
     if (event)
         virObjectUnref(event->conn);
     VIR_FREE(event);
@@ -589,7 +593,7 @@ virObjectEventStateNew(void)
 
     return state;
 
-error:
+ error:
     virObjectEventStateFree(state);
     return NULL;
 }
@@ -898,7 +902,7 @@ virObjectEventStateRegisterID(virConnectPtr conn,
         state->timer = -1;
     }
 
-cleanup:
+ cleanup:
     virObjectEventStateUnlock(state);
     return ret;
 }

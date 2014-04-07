@@ -16,6 +16,10 @@
 ## License along with this library.  If not, see
 ## <http://www.gnu.org/licenses/>.
 
+# old automake does not provide abs_{src,build}dir variables
+abs_builddir = $(shell pwd)
+abs_srcdir = $(shell cd $(srcdir) && pwd)
+
 SHELL = $(PREFERABLY_POSIX_SHELL)
 
 INCLUDES = \
@@ -28,8 +32,8 @@ INCLUDES = \
 	$(GETTEXT_CPPFLAGS)
 
 AM_CFLAGS = \
-	-Dabs_builddir="\"`pwd`\"" \
-	-Dabs_srcdir="\"`cd '$(srcdir)'; pwd`\"" \
+	-Dabs_builddir="\"$(abs_builddir)\"" \
+	-Dabs_srcdir="\"$(abs_srcdir)\"" \
 	$(LIBXML_CFLAGS) \
 	$(GNUTLS_CFLAGS) \
 	$(SASL_CFLAGS) \
@@ -60,6 +64,7 @@ LDADDS = \
 	../src/libvirt.la
 
 EXTRA_DIST =		\
+	bhyvexml2argvdata \
 	capabilityschemadata \
 	capabilityschematest \
 	commanddata \
@@ -90,6 +95,7 @@ EXTRA_DIST =		\
 	nwfilterxml2xmlout \
 	oomtrace.pl \
 	qemucapabilitiesdata \
+	qemucaps2xmldata \
 	qemuhelpdata \
 	qemuhotplugtestdata \
 	qemumonitorjsondata \
@@ -97,6 +103,7 @@ EXTRA_DIST =		\
 	qemuxml2xmloutdata \
 	qemuxmlnsdata \
 	secretxml2xmlin \
+	securityselinuxhelperdata \
 	securityselinuxlabeldata \
 	schematestutils.sh \
 	sexpr2xmldata \
@@ -115,6 +122,7 @@ EXTRA_DIST =		\
 	virfiledata \
 	virpcitestdata \
 	virscsidata \
+	virusbtestdata \
 	vmx2xmldata \
 	xencapsdata \
 	xmconfigdata \
@@ -134,21 +142,24 @@ test_programs = virshtest sockettest \
 	virauthconfigtest \
 	virbitmaptest \
 	vircgrouptest \
+	vircryptotest \
 	virpcitest \
 	virendiantest \
 	virfiletest \
 	viridentitytest \
+	viriscsitest \
 	virkeycodetest \
 	virlockspacetest \
 	virlogtest \
 	virstringtest \
-        virportallocatortest \
+	virportallocatortest \
 	sysinfotest \
 	virstoragetest \
 	virnetdevbandwidthtest \
 	virkmodtest \
 	vircapstest \
 	domainconftest \
+	virhostdevtest \
 	$(NULL)
 
 if WITH_REMOTE
@@ -200,7 +211,7 @@ if WITH_QEMU
 test_programs += qemuxml2argvtest qemuxml2xmltest qemuxmlnstest \
 	qemuargv2xmltest qemuhelptest domainsnapshotxml2xmltest \
 	qemumonitortest qemumonitorjsontest qemuhotplugtest \
-	qemuagenttest qemucapabilitiestest
+	qemuagenttest qemucapabilitiestest qemucaps2xmltest
 endif WITH_QEMU
 
 if WITH_LXC
@@ -223,8 +234,12 @@ if WITH_VMWARE
 test_programs += vmwarevertest
 endif WITH_VMWARE
 
+if WITH_BHYVE
+test_programs += bhyvexml2argvtest
+endif WITH_BHYVE
+
 if WITH_CIL
-test_programs += object-locking
+test_programs += objectlocking
 endif WITH_CIL
 
 if WITH_YAJL
@@ -262,6 +277,10 @@ test_programs += cputest
 test_programs += metadatatest
 
 test_programs += secretxml2xmltest
+
+if WITH_LINUX
+test_programs += virusbtest
+endif WITH_LINUX
 
 test_scripts = \
 	capabilityschematest \
@@ -340,9 +359,17 @@ test_libraries += libqemumonitortestutils.la \
 		$(NULL)
 endif WITH_QEMU
 
+if WITH_BHYVE
+test_libraries += bhyvexml2argvmock.la
+endif WITH_BHYVE
+
 if WITH_DBUS
 test_libraries += virsystemdmock.la
 endif WITH_DBUS
+
+if WITH_LINUX
+test_libraries += virusbmock.la
+endif WITH_LINUX
 
 if WITH_TESTS
 noinst_PROGRAMS = $(test_programs) $(test_helpers)
@@ -361,7 +388,7 @@ TESTS = $(test_programs) \
 # Also, BSD sh doesn't like 'a=b b=$$a', so we can't use an
 # intermediate shell variable, but must do all the expansion in make
 
-lv_abs_top_builddir=`cd '$(top_builddir)'; pwd`
+lv_abs_top_builddir=$(shell cd '$(top_builddir)' && pwd)
 path_add = $(subst :,$(PATH_SEPARATOR),\
 	$(subst !,$(lv_abs_top_builddir)/,!daemon:!tools:!tests))
 
@@ -369,9 +396,9 @@ VIR_TEST_EXPENSIVE ?= $(VIR_TEST_EXPENSIVE_DEFAULT)
 TESTS_ENVIRONMENT =				\
   abs_top_builddir=$(lv_abs_top_builddir)	\
   abs_top_srcdir=`cd '$(top_srcdir)'; pwd`	\
-  abs_builddir=`pwd`				\
-  abs_srcdir=`cd '$(srcdir)'; pwd`		\
-  CONFIG_HEADER="`cd '$(top_builddir)'; pwd`/config.h"	\
+  abs_builddir=$(abs_builddir)			\
+  abs_srcdir=$(abs_srcdir)			\
+  CONFIG_HEADER="$(lv_abs_top_builddir)/config.h"	\
   PATH="$(path_add)$(PATH_SEPARATOR)$$PATH"	\
   SHELL="$(SHELL)"				\
   LIBVIRT_DRIVER_DIR="$(lv_abs_top_builddir)/src/.libs" \
@@ -495,6 +522,12 @@ qemucapabilitiestest_SOURCES = \
 	$(NULL)
 qemucapabilitiestest_LDADD = libqemumonitortestutils.la $(qemu_LDADDS)
 
+qemucaps2xmltest_SOURCES = \
+	qemucaps2xmltest.c \
+	testutils.c testutils.h \
+	$(NULL)
+qemucaps2xmltest_LDADD = $(qemu_LDADDS)
+
 qemuagenttest_SOURCES = \
 	qemuagenttest.c \
 	testutils.c testutils.h \
@@ -519,6 +552,7 @@ EXTRA_DIST += qemuxml2argvtest.c qemuxml2xmltest.c qemuargv2xmltest.c \
 	qemumonitortest.c testutilsqemu.c testutilsqemu.h \
 	qemumonitorjsontest.c qemuhotplugtest.c \
 	qemuagenttest.c qemucapabilitiestest.c \
+	qemucaps2xmltest.c \
 	$(QEMUMONITORTESTUTILS_SOURCES)
 endif ! WITH_QEMU
 
@@ -585,6 +619,23 @@ else ! WITH_VMWARE
 EXTRA_DIST += vmwarevertest.c
 endif ! WITH_VMWARE
 
+if WITH_BHYVE
+bhyvexml2argvmock_la_SOURCES = \
+	bhyvexml2argvmock.c
+bhyvexml2argvmock_la_CFLAGS = $(AM_CFLAGS)
+bhyvexml2argvmock_la_LDFLAGS = -module -avoid-version \
+			-rpath /evil/libtool/hack/to/force/shared/lib/creation
+
+bhyve_LDADDS = ../src/libvirt_driver_bhyve_impl.la
+bhyve_LDADDS += $(LDADDS)
+bhyvexml2argvtest_SOURCES = \
+	bhyvexml2argvtest.c \
+	testutils.c testutils.h
+bhyvexml2argvtest_LDADD = $(bhyve_LDADDS)
+else ! WITH_BHYVE
+EXTRA_DIST += bhyvexml2argvtest.c bhyvexml2argvmock.c
+endif ! WITH_BHYVE
+
 networkxml2xmltest_SOURCES = \
 	networkxml2xmltest.c \
 	testutils.c testutils.h
@@ -631,6 +682,7 @@ storagevolxml2argvtest_SOURCES = \
     testutils.c testutils.h
 storagevolxml2argvtest_LDADD = \
 	../src/libvirt_driver_storage_impl.la $(LDADDS)
+
 else ! WITH_STORAGE
 EXTRA_DIST += storagevolxml2argvtest.c
 endif ! WITH_STORAGE
@@ -770,6 +822,14 @@ virstoragetest_LDADD = $(LDADDS)
 viridentitytest_SOURCES = \
 	viridentitytest.c testutils.h testutils.c
 viridentitytest_LDADD = $(LDADDS)
+if WITH_SELINUX
+viridentitytest_DEPENDENCIES = libsecurityselinuxhelper.la \
+	../src/libvirt.la
+endif WITH_SELINUX
+
+viriscsitest_SOURCES = \
+	viriscsitest.c testutils.h testutils.c
+viriscsitest_LDADD = $(LDADDS)
 
 virkeycodetest_SOURCES = \
 	virkeycodetest.c testutils.h testutils.c
@@ -803,6 +863,14 @@ vircgroupmock_la_CFLAGS = $(AM_CFLAGS)
 vircgroupmock_la_LDFLAGS = -module -avoid-version \
         -rpath /evil/libtool/hack/to/force/shared/lib/creation
 
+vircryptotest_SOURCES = \
+	vircryptotest.c testutils.h testutils.c
+vircryptotest_LDADD = $(LDADDS)
+
+virhostdevtest_SOURCES = \
+	virhostdevtest.c testutils.h testutils.c
+virhostdevtest_LDADD = $(LDADDS)
+
 virpcitest_SOURCES = \
 	virpcitest.c testutils.h testutils.c
 virpcitest_LDADD = $(LDADDS)
@@ -814,6 +882,19 @@ virpcimock_la_LIBADD = $(GNULIB_LIBS) \
 					   ../src/libvirt.la
 virpcimock_la_LDFLAGS = -module -avoid-version \
         -rpath /evil/libtool/hack/to/force/shared/lib/creation
+
+if WITH_LINUX
+virusbtest_SOURCES = \
+	virusbtest.c testutils.h testutils.c
+virusbtest_LDADD = $(LDADDS)
+
+virusbmock_la_SOURCES = virusbmock.c
+virusbmock_la_CFLAGS = $(AM_CFLAGS)
+virusbmock_la_LDFLAGS = -module -avoid-version \
+        -rpath /evil/libtool/hack/to/force/shared/lib/creation
+else ! WITH_LINUX
+	EXTRA_DIST += virusbtest.c virusbmock.c
+endif ! WITH_LINUX
 
 if WITH_DBUS
 virdbustest_SOURCES = \
@@ -979,21 +1060,21 @@ CILOPTINCS =
 CILOPTPACKAGES = -package unix,str,cil
 CILOPTLIBS = -linkpkg
 
-object_locking_SOURCES = object-locking.ml
+objectlocking_SOURCES = objectlocking.ml
 
 %.cmx: %.ml
 	ocamlfind ocamlopt $(CILOPTFLAGS) $(CILOPTINCS) $(CILOPTPACKAGES) -c $<
 
-object-locking: object-locking.cmx object-locking-files.txt
+objectlocking: objectlocking.cmx objectlocking-files.txt
 	ocamlfind ocamlopt $(CILOPTFLAGS) $(CILOPTINCS) $(CILOPTPACKAGES) \
 	  $(CILOPTLIBS) $< -o $@
 
-object-locking-files.txt:
+objectlocking-files.txt:
 	find $(top_builddir)/src/ -name '*.i' > $@
 
 else ! WITH_CIL
-EXTRA_DIST += object-locking.ml
+EXTRA_DIST += objectlocking.ml
 endif ! WITH_CIL
 
 CLEANFILES = *.cov *.gcov .libs/*.gcda .libs/*.gcno *.gcno *.gcda *.cmi *.cmx \
-	object-locking-files.txt
+	objectlocking-files.txt

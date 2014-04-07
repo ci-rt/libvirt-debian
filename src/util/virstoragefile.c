@@ -51,6 +51,8 @@
 
 #define VIR_FROM_THIS VIR_FROM_STORAGE
 
+VIR_LOG_INIT("util.storagefile");
+
 VIR_ENUM_IMPL(virStorageFileFormat,
               VIR_STORAGE_FILE_LAST,
               "none",
@@ -315,7 +317,7 @@ qcow2GetBackingStoreFormat(int *format,
         offset += len;
     }
 
-done:
+ done:
 
     return 0;
 }
@@ -482,7 +484,7 @@ vmdk4GetBackingStore(char **res,
 
     ret = BACKING_STORE_OK;
 
-cleanup:
+ cleanup:
     VIR_FREE(desc);
     return ret;
 }
@@ -582,7 +584,7 @@ virFindBackingFile(const char *start, bool start_is_dir, const char *path,
 
     ret = 0;
 
-cleanup:
+ cleanup:
     if (combined != path)
         VIR_FREE(combined);
     return ret;
@@ -712,7 +714,7 @@ virStorageFileProbeFormatFromBuf(const char *path,
         }
     }
 
-cleanup:
+ cleanup:
     VIR_DEBUG("format=%d", format);
     return format;
 }
@@ -866,11 +868,11 @@ virStorageFileGetMetadataInternal(const char *path,
         VIR_STRDUP(meta->compat, "1.1") < 0)
         goto cleanup;
 
-done:
+ done:
     ret = meta;
     meta = NULL;
 
-cleanup:
+ cleanup:
     virStorageFileFreeMetadata(meta);
     return ret;
 }
@@ -926,7 +928,7 @@ virStorageFileProbeFormat(const char *path, uid_t uid, gid_t gid)
 
     ret = virStorageFileProbeFormatFromBuf(path, header, len);
 
-cleanup:
+ cleanup:
     VIR_FREE(header);
     VIR_FORCE_CLOSE(fd);
 
@@ -1002,7 +1004,7 @@ virStorageFileGetMetadataFromFDInternal(const char *path,
     }
 
     ret = virStorageFileGetMetadataInternal(path, buf, len, directory, format);
-cleanup:
+ cleanup:
     VIR_FREE(buf);
     return ret;
 }
@@ -1116,7 +1118,7 @@ virStorageFileGetMetadata(const char *path, int format,
     virHashTablePtr cycle = virHashCreate(5, NULL);
     virStorageFileMetadataPtr ret;
 
-    if (!cycle)
+    if (!cycle || !path)
         return NULL;
 
     if (format <= VIR_STORAGE_FILE_NONE)
@@ -1161,7 +1163,7 @@ virStorageFileChainGetBroken(virStorageFileMetadataPtr chain,
 
     ret = 0;
 
-error:
+ error:
     return ret;
 }
 
@@ -1246,7 +1248,7 @@ virStorageFileResize(const char *path,
 
     ret = 0;
 
-cleanup:
+ cleanup:
     VIR_FORCE_CLOSE(fd);
     return ret;
 }
@@ -1421,7 +1423,7 @@ int virStorageFileGetLVMKey(const char *path,
 
     ret = 0;
 
-cleanup:
+ cleanup:
     if (*key && STREQ(*key, ""))
         VIR_FREE(*key);
 
@@ -1471,7 +1473,7 @@ int virStorageFileGetSCSIKey(const char *path,
 
     ret = 0;
 
-cleanup:
+ cleanup:
     if (*key && STREQ(*key, ""))
         VIR_FREE(*key);
 
@@ -1548,7 +1550,7 @@ virStorageFileChainLookup(virStorageFileMetadataPtr chain, const char *start,
         *meta = owner->backingMeta;
     return owner->backingStore;
 
-error:
+ error:
     *parent = NULL;
     if (meta)
         *meta = NULL;

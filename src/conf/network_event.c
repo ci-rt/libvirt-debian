@@ -29,6 +29,8 @@
 #include "datatypes.h"
 #include "virlog.h"
 
+VIR_LOG_INIT("conf.network_event");
+
 struct _virNetworkEvent {
     virObjectEvent parent;
 
@@ -116,7 +118,7 @@ virNetworkEventDispatchDefaultFunc(virConnectPtr conn,
     }
     VIR_WARN("Unexpected event ID %d", event->eventID);
 
-cleanup:
+ cleanup:
     virNetworkFree(net);
 }
 

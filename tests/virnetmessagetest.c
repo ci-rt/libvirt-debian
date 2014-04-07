@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011 Red Hat, Inc.
+ * Copyright (C) 2011, 2014 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -31,6 +31,8 @@
 #include "rpc/virnetmessage.h"
 
 #define VIR_FROM_THIS VIR_FROM_RPC
+
+VIR_LOG_INIT("tests.netmessagetest");
 
 static int testMessageHeaderEncode(const void *args ATTRIBUTE_UNUSED)
 {
@@ -80,7 +82,7 @@ static int testMessageHeaderEncode(const void *args ATTRIBUTE_UNUSED)
     }
 
     ret = 0;
-cleanup:
+ cleanup:
     virNetMessageFree(msg);
     return ret;
 }
@@ -176,7 +178,7 @@ static int testMessageHeaderDecode(const void *args ATTRIBUTE_UNUSED)
     }
 
     ret = 0;
-cleanup:
+ cleanup:
     virNetMessageFree(msg);
     return ret;
 }
@@ -272,7 +274,7 @@ static int testMessagePayloadEncode(const void *args ATTRIBUTE_UNUSED)
     }
 
     ret = 0;
-cleanup:
+ cleanup:
     if (err.message)
         VIR_FREE(*err.message);
     if (err.str1)
@@ -447,7 +449,7 @@ static int testMessagePayloadDecode(const void *args ATTRIBUTE_UNUSED)
     }
 
     ret = 0;
-cleanup:
+ cleanup:
     xdr_free((xdrproc_t)xdr_virNetMessageError, (void*)&err);
     virNetMessageFree(msg);
     return ret;
@@ -514,7 +516,7 @@ static int testMessagePayloadStreamEncode(const void *args ATTRIBUTE_UNUSED)
     }
 
     ret = 0;
-cleanup:
+ cleanup:
     virNetMessageFree(msg);
     return ret;
 }
@@ -542,7 +544,7 @@ mymain(void)
     if (virtTestRun("Message Payload Stream Encode", testMessagePayloadStreamEncode, NULL) < 0)
         ret = -1;
 
-    return ret==0 ? EXIT_SUCCESS : EXIT_FAILURE;
+    return ret == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
 VIRT_TEST_MAIN(mymain)

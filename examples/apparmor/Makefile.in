@@ -1213,6 +1213,7 @@ LIB_EXECINFO = @LIB_EXECINFO@
 LIB_FDATASYNC = @LIB_FDATASYNC@
 LIB_NANOSLEEP = @LIB_NANOSLEEP@
 LIB_POLL = @LIB_POLL@
+LIB_POSIX_SPAWN = @LIB_POSIX_SPAWN@
 LIB_PTHREAD = @LIB_PTHREAD@
 LIB_PTHREAD_SIGMASK = @LIB_PTHREAD_SIGMASK@
 LIB_SELECT = @LIB_SELECT@
@@ -1735,6 +1736,7 @@ ws_plugindir = @ws_plugindir@
 EXTRA_DIST = \
 	TEMPLATE			\
 	libvirt-qemu			\
+	libvirt-lxc 			\
 	usr.lib.libvirt.virt-aa-helper	\
 	usr.sbin.libvirtd
 
@@ -1747,6 +1749,7 @@ EXTRA_DIST = \
 @WITH_APPARMOR_PROFILES_TRUE@abstractionsdir = $(apparmordir)/abstractions
 @WITH_APPARMOR_PROFILES_TRUE@abstractions_DATA = \
 @WITH_APPARMOR_PROFILES_TRUE@	libvirt-qemu \
+@WITH_APPARMOR_PROFILES_TRUE@	libvirt-lxc \
 @WITH_APPARMOR_PROFILES_TRUE@	$(NULL)
 
 @WITH_APPARMOR_PROFILES_TRUE@templatesdir = $(apparmordir)/libvirt

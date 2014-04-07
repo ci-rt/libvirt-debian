@@ -28,8 +28,11 @@
 #include "cpu_map.h"
 #include "configmake.h"
 #include "virstring.h"
+#include "virlog.h"
 
 #define VIR_FROM_THIS VIR_FROM_CPU
+
+VIR_LOG_INIT("cpu.cpu_map");
 
 #define CPUMAPFILE PKGDATADIR "/cpu_map.xml"
 
@@ -67,7 +70,7 @@ static int load(xmlXPathContextPtr ctxt,
 
     ret = 0;
 
-cleanup:
+ cleanup:
     ctxt->node = ctxt_node;
 
     return ret;
@@ -85,6 +88,8 @@ int cpuMapLoad(const char *arch,
     int ret = -1;
     int element;
     const char *mapfile = (cpumap ? cpumap : CPUMAPFILE);
+
+    VIR_DEBUG("Loading CPU map from %s", mapfile);
 
     if (arch == NULL) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
@@ -132,14 +137,14 @@ int cpuMapLoad(const char *arch,
 
     ret = 0;
 
-cleanup:
+ cleanup:
     xmlXPathFreeContext(ctxt);
     xmlFreeDoc(xml);
     VIR_FREE(xpath);
 
     return ret;
 
-no_memory:
+ no_memory:
     virReportOOMError();
     goto cleanup;
 }

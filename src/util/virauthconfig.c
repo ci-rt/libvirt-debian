@@ -37,6 +37,7 @@ struct _virAuthConfig {
 
 #define VIR_FROM_THIS VIR_FROM_NONE
 
+VIR_LOG_INIT("util.authconfig");
 
 virAuthConfigPtr virAuthConfigNew(const char *path)
 {
@@ -56,7 +57,7 @@ virAuthConfigPtr virAuthConfigNew(const char *path)
 
     return auth;
 
-error:
+ error:
     virAuthConfigFree(auth);
     return NULL;
 }
@@ -82,7 +83,7 @@ virAuthConfigPtr virAuthConfigNewData(const char *path,
 
     return auth;
 
-error:
+ error:
     virAuthConfigFree(auth);
     return NULL;
 }
@@ -151,7 +152,7 @@ int virAuthConfigLookup(virAuthConfigPtr auth,
 
     ret = 0;
 
-cleanup:
+ cleanup:
     VIR_FREE(authgroup);
     VIR_FREE(credgroup);
     return ret;

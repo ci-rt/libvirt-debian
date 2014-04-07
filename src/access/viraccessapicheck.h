@@ -105,6 +105,7 @@ extern int virDomainBlockResizeEnsureACL(virConnectPtr conn, virDomainDefPtr dom
 extern int virDomainBlockStatsEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainBlockStatsFlagsEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainCoreDumpEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
+extern int virDomainCoreDumpWithFormatEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainCreateEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainCreateWithFilesEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainCreateWithFlagsEnsureACL(virConnectPtr conn, virDomainDefPtr domain);

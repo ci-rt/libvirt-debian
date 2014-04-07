@@ -1,4 +1,3 @@
-
 /*
  * esx_storage_driver.c: storage driver functions for managing VMware ESX
  *                       host storage
@@ -138,7 +137,7 @@ esxConnectListStoragePools(virConnectPtr conn, char **const names, int maxnames)
 
     success = true;
 
-  cleanup:
+ cleanup:
     if (! success) {
         for (i = 0; i < count; ++i) {
             VIR_FREE(names[i]);

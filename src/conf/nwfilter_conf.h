@@ -209,8 +209,10 @@ struct _arpHdrFilterDef {
     nwItemDesc dataOpcode;
     nwItemDesc dataARPSrcMACAddr;
     nwItemDesc dataARPSrcIPAddr;
+    nwItemDesc dataARPSrcIPMask;
     nwItemDesc dataARPDstMACAddr;
     nwItemDesc dataARPDstIPAddr;
+    nwItemDesc dataARPDstIPMask;
     nwItemDesc dataGratuitousARP;
     nwItemDesc dataComment;
 };
@@ -476,7 +478,7 @@ struct _virNWFilterRuleDef {
     size_t nVarAccess;
     virNWFilterVarAccessPtr *varAccess;
 
-    int nstrings;
+    size_t nstrings;
     char **strings;
 };
 
@@ -524,7 +526,7 @@ struct _virNWFilterDef {
     char *chainsuffix;
     virNWFilterChainPriority chainPriority;
 
-    int nentries;
+    size_t nentries;
     virNWFilterEntryPtr *filterEntries;
 };
 
@@ -547,7 +549,7 @@ struct _virNWFilterObj {
 typedef struct _virNWFilterObjList virNWFilterObjList;
 typedef virNWFilterObjList *virNWFilterObjListPtr;
 struct _virNWFilterObjList {
-    unsigned int count;
+    size_t count;
     virNWFilterObjPtr *objs;
 };
 
@@ -572,7 +574,7 @@ typedef virNWFilterTechDriver *virNWFilterTechDriverPtr;
 typedef struct _virNWFilterRuleInst virNWFilterRuleInst;
 typedef virNWFilterRuleInst *virNWFilterRuleInstPtr;
 struct _virNWFilterRuleInst {
-   int ndata;
+   size_t ndata;
    void **data;
    virNWFilterTechDriverPtr techdriver;
 };

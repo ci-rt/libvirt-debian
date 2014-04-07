@@ -201,7 +201,7 @@ testQemuMonitorJSONGetStatus(const void *data)
 
     ret = 0;
 
-cleanup:
+ cleanup:
     qemuMonitorTestFree(test);
     return ret;
 }
@@ -303,7 +303,7 @@ testQemuMonitorJSONGetVersion(const void *data)
 
     ret = 0;
 
-cleanup:
+ cleanup:
     qemuMonitorTestFree(test);
     VIR_FREE(package);
     return ret;
@@ -381,7 +381,7 @@ testQemuMonitorJSONGetMachines(const void *data)
 
     ret = 0;
 
-cleanup:
+ cleanup:
     qemuMonitorTestFree(test);
     for (i = 0; i < ninfo; i++)
         qemuMonitorMachineInfoFree(info[i]);
@@ -448,7 +448,7 @@ testQemuMonitorJSONGetCPUDefinitions(const void *data)
 
     ret = 0;
 
-cleanup:
+ cleanup:
     qemuMonitorTestFree(test);
     for (i = 0; i < ncpus; i++)
         VIR_FREE(cpus[i]);
@@ -513,7 +513,7 @@ testQemuMonitorJSONGetCommands(const void *data)
 #undef CHECK
     ret = 0;
 
-cleanup:
+ cleanup:
     qemuMonitorTestFree(test);
     for (i = 0; i < ncommands; i++)
         VIR_FREE(commands[i]);
@@ -568,7 +568,7 @@ testQemuMonitorJSONGetTPMModels(const void *data)
 
     ret = 0;
 
-cleanup:
+ cleanup:
     qemuMonitorTestFree(test);
     virStringFreeList(tpmmodels);
     return ret;
@@ -670,7 +670,7 @@ testQemuMonitorJSONGetCommandLineOptionParameters(const void *data)
 
     ret = 0;
 
-cleanup:
+ cleanup:
     qemuMonitorTestFree(test);
     virStringFreeList(params);
     return ret;
@@ -752,7 +752,7 @@ testQemuMonitorJSONAttachChardev(const void *data)
 #undef CHECK_FAIL
 #undef DO_CHECK
 
-cleanup:
+ cleanup:
     qemuMonitorTestFree(test);
     return ret;
 }
@@ -776,7 +776,7 @@ testQemuMonitorJSONDetachChardev(const void *data)
 
     ret = 0;
 
-cleanup:
+ cleanup:
     qemuMonitorTestFree(test);
     return ret;
 }
@@ -849,7 +849,7 @@ testQemuMonitorJSONGetListPaths(const void *data)
 
     ret = 0;
 
-cleanup:
+ cleanup:
     qemuMonitorTestFree(test);
     for (i = 0; i < npaths; i++)
         qemuMonitorJSONListPathFree(paths[i]);
@@ -899,7 +899,7 @@ testQemuMonitorJSONGetObjectProperty(const void *data)
     }
 
     ret = 0;
-cleanup:
+ cleanup:
     qemuMonitorTestFree(test);
     return ret;
 }
@@ -957,7 +957,7 @@ testQemuMonitorJSONSetObjectProperty(const void *data)
     }
 
     ret = 0;
-cleanup:
+ cleanup:
     qemuMonitorTestFree(test);
     return ret;
 }
@@ -1017,7 +1017,7 @@ testQemuMonitorJSONGetDeviceAliases(const void *data)
         }
     }
 
-cleanup:
+ cleanup:
     virStringFreeList(aliases);
     qemuMonitorTestFree(test);
     return ret;
@@ -1077,7 +1077,7 @@ testQemuMonitorJSONCPU(const void *data)
 
     ret = 0;
 
-cleanup:
+ cleanup:
     qemuMonitorTestFree(test);
     return ret;
 }
@@ -1105,7 +1105,7 @@ testQemuMonitorJSONSimpleFunc(const void *opaque)
         goto cleanup;
 
     ret = 0;
-cleanup:
+ cleanup:
     qemuMonitorTestFree(test);
     return ret;
 }
@@ -1154,7 +1154,7 @@ GEN_TEST_FUNC(qemuMonitorJSONSetMigrationDowntime, 1)
 GEN_TEST_FUNC(qemuMonitorJSONMigrate, QEMU_MONITOR_MIGRATE_BACKGROUND |
               QEMU_MONITOR_MIGRATE_NON_SHARED_DISK |
               QEMU_MONITOR_MIGRATE_NON_SHARED_INC, "tcp:localhost:12345")
-GEN_TEST_FUNC(qemuMonitorJSONDump, "dummy_protocol")
+GEN_TEST_FUNC(qemuMonitorJSONDump, "dummy_protocol", "dummy_memory_dump_format")
 GEN_TEST_FUNC(qemuMonitorJSONGraphicsRelocate, VIR_DOMAIN_GRAPHICS_TYPE_SPICE,
               "localhost", 12345, 12346, NULL)
 GEN_TEST_FUNC(qemuMonitorJSONAddNetdev, "some_dummy_netdevstr")
@@ -1242,7 +1242,7 @@ testQemuMonitorJSONqemuMonitorJSONGetCPUInfo(const void *data)
 
     ret = 0;
 
-cleanup:
+ cleanup:
     VIR_FREE(cpupids);
     qemuMonitorTestFree(test);
     return ret;
@@ -1279,7 +1279,7 @@ testQemuMonitorJSONqemuMonitorJSONGetBalloonInfo(const void *data)
 
     ret = 0;
 
-cleanup:
+ cleanup:
     qemuMonitorTestFree(test);
     return ret;
 }
@@ -1331,7 +1331,7 @@ testQemuMonitorJSONqemuMonitorJSONGetVirtType(const void *data)
     }
 
     ret = 0;
-cleanup:
+ cleanup:
     qemuMonitorTestFree(test);
     return ret;
 }
@@ -1402,7 +1402,7 @@ testQemuMonitorJSONqemuMonitorJSONGetBlockInfo(const void *data)
     }
 
     ret = 0;
-cleanup:
+ cleanup:
     virHashFree(blockDevices);
     virHashFree(expectedBlockDevices);
     qemuMonitorTestFree(test);
@@ -1615,7 +1615,7 @@ testQemuMonitorJSONqemuMonitorJSONGetBlockStatsInfo(const void *data)
 #undef CHECK
 #undef CHECK0
 
-cleanup:
+ cleanup:
     qemuMonitorTestFree(test);
     return ret;
 }
@@ -1651,7 +1651,7 @@ testQemuMonitorJSONqemuMonitorJSONGetMigrationCacheSize(const void *data)
 
     ret = 0;
 
-cleanup:
+ cleanup:
     qemuMonitorTestFree(test);
     return ret;
 }
@@ -1700,7 +1700,7 @@ testQemuMonitorJSONqemuMonitorJSONGetMigrationStatus(const void *data)
     }
 
     ret = 0;
-cleanup:
+ cleanup:
     qemuMonitorTestFree(test);
     return ret;
 }
@@ -1739,7 +1739,7 @@ testQemuMonitorJSONqemuMonitorJSONGetSpiceMigrationStatus(const void *data)
     }
 
     ret = 0;
-cleanup:
+ cleanup:
     qemuMonitorTestFree(test);
     return ret;
 }
@@ -1803,7 +1803,7 @@ testQemuMonitorJSONqemuMonitorJSONGetPtyPaths(const void *data)
     }
 
     ret = 0;
-cleanup:
+ cleanup:
     virHashFree(paths);
     virHashFree(expectedPaths);
     qemuMonitorTestFree(test);
@@ -1847,7 +1847,7 @@ testQemuMonitorJSONqemuMonitorJSONSetBlockIoThrottle(const void *data)
         goto cleanup;
 
     ret = 0;
-cleanup:
+ cleanup:
     qemuMonitorTestFree(test);
     return ret;
 }
@@ -1883,7 +1883,7 @@ testQemuMonitorJSONqemuMonitorJSONGetTargetArch(const void *data)
     }
 
     ret = 0;
-cleanup:
+ cleanup:
     VIR_FREE(arch);
     qemuMonitorTestFree(test);
     return ret;
@@ -1929,7 +1929,7 @@ testQemuMonitorJSONqemuMonitorJSONGetMigrationCapability(const void *data)
         goto cleanup;
 
     ret = 0;
-cleanup:
+ cleanup:
     qemuMonitorTestFree(test);
     return ret;
 }
@@ -1954,11 +1954,53 @@ testQemuMonitorJSONqemuMonitorJSONSendKey(const void *data)
         goto cleanup;
 
     ret = 0;
-cleanup:
+ cleanup:
     qemuMonitorTestFree(test);
     return ret;
 }
 
+static int
+testQemuMonitorJSONqemuMonitorJSONGetDumpGuestMemoryCapability(const void *data)
+{
+    virDomainXMLOptionPtr xmlopt = (virDomainXMLOptionPtr)data;
+    qemuMonitorTestPtr test = qemuMonitorTestNewSimple(true, xmlopt);
+    int ret = -1;
+    int cap;
+    const char *reply =
+        "{"
+        "    \"return\": {"
+        "        \"formats\": ["
+        "            \"elf\","
+        "            \"kdump-zlib\","
+        "            \"kdump-lzo\","
+        "            \"kdump-snappy\""
+        "        ]"
+        "    },"
+        "    \"id\": \"libvirt-9\""
+        "}";
+
+    if (!test)
+        return -1;
+
+    if (qemuMonitorTestAddItem(test, "query-dump-guest-memory-capability",
+                               reply) < 0)
+        goto cleanup;
+
+    cap = qemuMonitorJSONGetDumpGuestMemoryCapability(
+                                    qemuMonitorTestGetMonitor(test), "elf");
+
+    if (cap != 1) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "Unexpected capability: %d, expecting 1",
+                       cap);
+        goto cleanup;
+    }
+
+    ret = 0;
+ cleanup:
+    qemuMonitorTestFree(test);
+    return ret;
+}
 
 struct testCPUData {
     const char *name;
@@ -2027,7 +2069,7 @@ testQemuMonitorJSONGetCPUData(const void *opaque)
     }
 
     ret = 0;
-cleanup:
+ cleanup:
     VIR_FREE(jsonFile);
     VIR_FREE(dataFile);
     VIR_FREE(jsonStr);
@@ -2076,7 +2118,7 @@ testQemuMonitorJSONGetNonExistingCPUData(const void *opaque)
     }
 
     ret = 0;
-cleanup:
+ cleanup:
     qemuMonitorTestFree(test);
     cpuDataFree(cpuData);
     return ret;
@@ -2187,6 +2229,7 @@ mymain(void)
     DO_TEST(qemuMonitorJSONGetCPUInfo);
     DO_TEST(qemuMonitorJSONGetVirtType);
     DO_TEST(qemuMonitorJSONSendKey);
+    DO_TEST(qemuMonitorJSONGetDumpGuestMemoryCapability);
 
     DO_TEST_CPU_DATA("host");
     DO_TEST_CPU_DATA("full");

@@ -1,4 +1,3 @@
-
 /*
  * hyperv_network_driver.c: network driver functions for managing
  *                          Microsoft Hyper-V host networks
@@ -27,7 +26,6 @@
 #include "virerror.h"
 #include "datatypes.h"
 #include "viralloc.h"
-#include "virlog.h"
 #include "viruuid.h"
 #include "hyperv_network_driver.h"
 

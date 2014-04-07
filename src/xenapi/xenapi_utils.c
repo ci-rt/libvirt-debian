@@ -1,6 +1,6 @@
 /*
  * xenapi_utils.c: Xen API driver -- utils parts.
- * Copyright (C) 2011-2013 Red Hat, Inc.
+ * Copyright (C) 2011-2014 Red Hat, Inc.
  * Copyright (C) 2009, 2010 Citrix Ltd.
  *
  * This library is free software; you can redistribute it and/or
@@ -37,6 +37,8 @@
 #include "xenapi_driver_private.h"
 #include "xenapi_utils.h"
 #include "virstring.h"
+
+VIR_LOG_INIT("xenapi.xenapi_utils");
 
 void
 xenSessionFree(xen_session *session)
@@ -112,11 +114,11 @@ xenapiUtil_ParseQuery(virConnectPtr conn, virURIPtr uri, int *noVerify)
         }
     }
 
-  cleanup:
+ cleanup:
 
     return result;
 
-  failure:
+ failure:
     result = -1;
 
     goto cleanup;
@@ -179,7 +181,8 @@ createXenAPIBootOrderString(int nboot, int *bootDevs)
 
 /* convert boot order string to libvirt boot order enum */
 enum virDomainBootOrder
-map2LibvirtBootOrder(char c) {
+map2LibvirtBootOrder(char c)
+{
     switch (c) {
     case 'a':
         return VIR_DOMAIN_BOOT_FLOPPY;
@@ -354,7 +357,7 @@ allocStringMap(xen_string_string_map **strings, char *key, char *val)
         VIR_STRDUP((*strings)->contents[sz-1].val, val) < 0)
         goto error;
     return 0;
-  error:
+ error:
     xen_string_string_map_free(*strings);
     return -1;
 }
@@ -556,7 +559,7 @@ createVMRecordFromXml(virConnectPtr conn, virDomainDefPtr def,
     }
     return 0;
 
-  error:
+ error:
     xen_vm_record_free(*record);
     return -1;
 }

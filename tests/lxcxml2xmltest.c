@@ -101,7 +101,7 @@ testCompareXMLToXMLHelper(const void *data)
     }
 
     ret = 0;
-cleanup:
+ cleanup:
     VIR_FREE(xml_in);
     VIR_FREE(xml_out);
     return ret;
@@ -148,7 +148,7 @@ mymain(void)
     virObjectUnref(caps);
     virObjectUnref(xmlopt);
 
-    return ret==0 ? EXIT_SUCCESS : EXIT_FAILURE;
+    return ret == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
 VIRT_TEST_MAIN(mymain)

@@ -34,6 +34,8 @@
 
 #define VIR_FROM_THIS VIR_FROM_LXC
 
+VIR_LOG_INIT("lxc.lxc_monitor");
+
 struct _virLXCMonitor {
     virObjectLockable parent;
 
@@ -181,11 +183,11 @@ virLXCMonitorPtr virLXCMonitorNew(virDomainObjPtr vm,
     virNetClientSetCloseCallback(mon->client, virLXCMonitorEOFNotify, mon,
                                  virLXCMonitorCloseFreeCallback);
 
-cleanup:
+ cleanup:
     VIR_FREE(sockpath);
     return mon;
 
-error:
+ error:
     virObjectUnref(mon);
     mon = NULL;
     goto cleanup;

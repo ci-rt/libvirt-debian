@@ -133,7 +133,7 @@
 .\" ========================================================================
 .\"
 .IX Title "VIRSH 1"
-.TH VIRSH 1 "2014-03-02" "libvirt-1.2.2" "Virtualization Support"
+.TH VIRSH 1 "2014-04-01" "libvirt-1.2.3" "Virtualization Support"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -188,18 +188,6 @@ interpreter waiting for your commands, and the \fBquit\fR command will then exit
 the program.
 .PP
 The \fBvirsh\fR program understands the following \fI\s-1OPTIONS\s0\fR.
-.IP "\fB\-h\fR, \fB\-\-help\fR" 4
-.IX Item "-h, --help"
-Ignore all other arguments, and behave as if the \fBhelp\fR command were
-given instead.
-.IP "\fB\-v\fR, \fB\-\-version[=short]\fR" 4
-.IX Item "-v, --version[=short]"
-Ignore all other arguments, and prints the version of the libvirt library
-virsh is coming from
-.IP "\fB\-V\fR, \fB\-\-version=long\fR" 4
-.IX Item "-V, --version=long"
-Ignore all other arguments, and prints the version of the libvirt library
-virsh is coming from and which options and driver are compiled in.
 .IP "\fB\-c\fR, \fB\-\-connect\fR \fI\s-1URI\s0\fR" 4
 .IX Item "-c, --connect URI"
 Connect to the specified \fI\s-1URI\s0\fR, as if by the \fBconnect\fR command,
@@ -209,6 +197,25 @@ instead of the default connection.
 Enable debug messages at integer \fI\s-1LEVEL\s0\fR and above.  \fI\s-1LEVEL\s0\fR can
 range from 0 to 4 (default).  See the documentation of \fB\s-1VIRSH_DEBUG\s0\fR
 environment variable below for the description of each \fI\s-1LEVEL\s0\fR.
+.IP "\fB\-e\fR, \fB\-\-escape\fR \fIstring\fR" 4
+.IX Item "-e, --escape string"
+Set alternative escape sequence for \fIconsole\fR command. By default,
+telnet's \fB^]\fR is used. Allowed characters when using hat notation are:
+alphabetic character, @, [, ], \e, ^, _.
+.IP "\fB\-h\fR, \fB\-\-help\fR" 4
+.IX Item "-h, --help"
+Ignore all other arguments, and behave as if the \fBhelp\fR command were
+given instead.
+.IP "\fB\-k\fR, \fB\-\-keepalive\-interval\fR \fI\s-1INTERVAL\s0\fR" 4
+.IX Item "-k, --keepalive-interval INTERVAL"
+Set an \fI\s-1INTERVAL\s0\fR (in seconds) for sending keepalive messages to
+check whether connection to the server is still alive.  Setting the
+interval to 0 disables client keepalive mechanism.
+.IP "\fB\-K\fR, \fB\-\-keepalive\-count\fR \fI\s-1COUNT\s0\fR" 4
+.IX Item "-K, --keepalive-count COUNT"
+Set a number of times keepalive message can be sent without getting an
+answer from the server without marking the connection dead.  There is
+no effect to this setting in case the \fI\s-1INTERVAL\s0\fR is set to 0.
 .IP "\fB\-l\fR, \fB\-\-log\fR \fI\s-1FILE\s0\fR" 4
 .IX Item "-l, --log FILE"
 Output logging details to \fI\s-1FILE\s0\fR.
@@ -222,11 +229,14 @@ option of the \fBconnect\fR command.
 .IP "\fB\-t\fR, \fB\-\-timing\fR" 4
 .IX Item "-t, --timing"
 Output elapsed time information for each command.
-.IP "\fB\-e\fR, \fB\-\-escape\fR \fIstring\fR" 4
-.IX Item "-e, --escape string"
-Set alternative escape sequence for \fIconsole\fR command. By default,
-telnet's \fB^]\fR is used. Allowed characters when using hat notation are:
-alphabetic character, @, [, ], \e, ^, _.
+.IP "\fB\-v\fR, \fB\-\-version[=short]\fR" 4
+.IX Item "-v, --version[=short]"
+Ignore all other arguments, and prints the version of the libvirt library
+virsh is coming from
+.IP "\fB\-V\fR, \fB\-\-version=long\fR" 4
+.IX Item "-V, --version=long"
+Ignore all other arguments, and prints the version of the libvirt library
+virsh is coming from and which options and driver are compiled in.
 .SH "NOTES"
 .IX Header "NOTES"
 Most \fBvirsh\fR operations rely upon the libvirt library being able to
@@ -742,6 +752,9 @@ expressed in kilobytes per second, while \fIburst\fR is expressed in kilobytes
 in a single burst at \-\fIpeak\fR speed as described in the Network \s-1XML\s0
 documentation at <http://libvirt.org/formatnetwork.html#elementQoS>.
 .Sp
+To clear inbound or outbound settings, use \fI\-\-inbound\fR or \fI\-\-outbound\fR
+respectfully with average value of zero.
+.Sp
 If \fI\-\-live\fR is specified, affect a running guest.
 If \fI\-\-config\fR is specified, affect the next boot of a persistent guest.
 If \fI\-\-current\fR is specified, affect the current guest state.
@@ -1013,8 +1026,8 @@ Convert the file \fIxml\fR in domain \s-1XML\s0 format to the native guest
 configuration format named by \fIformat\fR. For \s-1QEMU/KVM\s0 hypervisor,
 the \fIformat\fR argument must be \fBqemu-argv\fR. For Xen hypervisor, the
 \&\fIformat\fR argument may be \fBxen-xm\fR or \fBxen-sxpr\fR.
-.IP "\fBdump\fR \fIdomain\fR \fIcorefilepath\fR [\fI\-\-bypass\-cache\fR] { [\fI\-\-live\fR] | [\fI\-\-crash\fR] | [\fI\-\-reset\fR] } [\fI\-\-verbose\fR] [\fI\-\-memory\-only\fR]" 4
-.IX Item "dump domain corefilepath [--bypass-cache] { [--live] | [--crash] | [--reset] } [--verbose] [--memory-only]"
+.IP "\fBdump\fR \fIdomain\fR \fIcorefilepath\fR [\fI\-\-bypass\-cache\fR] { [\fI\-\-live\fR] | [\fI\-\-crash\fR] | [\fI\-\-reset\fR] } [\fI\-\-verbose\fR] [\fI\-\-memory\-only\fR] [\fI\-\-format\fR \fIstring\fR]" 4
+.IX Item "dump domain corefilepath [--bypass-cache] { [--live] | [--crash] | [--reset] } [--verbose] [--memory-only] [--format string]"
 Dumps the core of a domain to a file for analysis.
 If \fI\-\-live\fR is specified, the domain continues to run until the core
 dump is complete, rather than pausing up front.
@@ -1027,6 +1040,10 @@ cache, although this may slow down the operation.
 If \fI\-\-memory\-only\fR is specified, the file is elf file, and will only
 include domain's memory and cpu common register value. It is very
 useful if the domain uses host devices directly.
+\&\fI\-\-format\fR \fIstring\fR is used to specify the format of 'memory\-only'
+dump, and \fIstring\fR can be one of them: elf, kdump\-zlib(kdump\-compressed
+format with zlib-compressed), kdump\-lzo(kdump\-compressed format with
+lzo-compressed), kdump\-snappy(kdump\-compressed format with snappy-compressed).
 .Sp
 The progress may be monitored using \fBdomjobinfo\fR virsh command and canceled
 with \fBdomjobabort\fR command (sent by another virsh instance). Another option
@@ -2834,7 +2851,7 @@ is specified, the snapshot will not include vm state.
 The \fI\-\-memspec\fR option can be used to control whether a checkpoint
 is internal or external.  The \fI\-\-memspec\fR flag is mandatory, followed
 by a \fBmemspec\fR of the form \fB[file=]name[,snapshot=type]\fR, where
-type can be \fBnone\fR, \fBinternal\fR, or \fBexternal\fR.  To include a literal
+type can be \fBno\fR, \fBinternal\fR, or \fBexternal\fR.  To include a literal
 comma in \fBfile=name\fR, escape it with a second comma. \fI\-\-memspec\fR cannot
 be used together with \fI\-\-disk\-only\fR.
 .Sp
@@ -3070,12 +3087,15 @@ mentioned in \fInwfilter-define\fR.
 .Sp
 The editor used can be supplied by the \f(CW$VISUAL\fR or \f(CW$EDITOR\fR environment
 variables, and defaults to \f(CW\*(C`vi\*(C'\fR.
-.SH "QEMU-SPECIFIC COMMANDS"
-.IX Header "QEMU-SPECIFIC COMMANDS"
+.SH "HYPERVISOR-SPECIFIC COMMANDS"
+.IX Header "HYPERVISOR-SPECIFIC COMMANDS"
 \&\s-1NOTE:\s0 Use of the following commands is \fBstrongly\fR discouraged.  They
 can cause libvirt to become confused and do the wrong thing on subsequent
-operations.  Once you have used this command, please do not report
-problems to the libvirt developers; the reports will be ignored.
+operations.  Once you have used these commands, please do not report
+problems to the libvirt developers; the reports will be ignored.  If
+you find that these commands are the only way to accomplish something,
+then it is better to request that the feature be added as a first-class
+citizen in the regular libvirt library.
 .IP "\fBqemu-attach\fR \fIpid\fR" 4
 .IX Item "qemu-attach pid"
 Attach an externally launched \s-1QEMU\s0 process to the libvirt \s-1QEMU\s0 driver.
@@ -3119,13 +3139,30 @@ qemu agent.
 When \fI\-\-aysnc\fR is given, the command waits for timeout whether success or
 failed. And when \fI\-\-block\fR is given, the command waits forever with blocking
 timeout.
+.IP "\fBqemu-monitor-event\fR [\fIdomain\fR] [\fI\-\-event\fR \fIevent-name\fR] [\fI\-\-loop\fR] [\fI\-\-timeout\fR \fIseconds\fR] [\fI\-\-pretty\fR] [\fI\-\-regex\fR] [\fI\-\-no\-case\fR]" 4
+.IX Item "qemu-monitor-event [domain] [--event event-name] [--loop] [--timeout seconds] [--pretty] [--regex] [--no-case]"
+Wait for arbitrary \s-1QEMU\s0 monitor events to occur, and print out the
+details of events as they happen.  The events can optionally be filtered
+by \fIdomain\fR or \fIevent-name\fR.  The 'query\-events' \s-1QMP\s0 command can be
+used via \fIqemu-monitor-command\fR to learn what events are supported.
+If \fI\-\-regex\fR is used, \fIevent-name\fR is a basic regular expression
+instead of a literal string.  If \fI\-\-no\-case\fR is used, \fIevent-name\fR
+will match case-insensitively.
+.Sp
+By default, this command is one-shot, and returns success once an event
+occurs; you can send \s-1SIGINT \s0(usually via \f(CW\*(C`Ctrl\-C\*(C'\fR) to quit immediately.
+If \fI\-\-timeout\fR is specified, the command gives up waiting for events
+after \fIseconds\fR have elapsed.  With \fI\-\-loop\fR, the command prints all
+events until a timeout or interrupt key.  If \fI\-\-pretty\fR is specified,
+any \s-1JSON\s0 event details are pretty-printed for better legibility.
 .IP "\fBlxc-enter-namespace\fR \fIdomain\fR \*(-- /path/to/binary [arg1, [arg2, ...]]" 4
 .IX Item "lxc-enter-namespace domain /path/to/binary [arg1, [arg2, ...]]"
 Enter the namespace of \fIdomain\fR and execute the command \f(CW\*(C`/path/to/binary\*(C'\fR
 passing the requested args. The binary path is relative to the container
 root filesystem, not the host root filesystem. The binary will inherit the
 environment variables / console visible to virsh. This command only works
-when connected to the \s-1LXC\s0 hypervisor driver.
+when connected to the \s-1LXC\s0 hypervisor driver.  This command succeeds only
+if \f(CW\*(C`/path/to/binary\*(C'\fR has 0 exit status.
 .SH "ENVIRONMENT"
 .IX Header "ENVIRONMENT"
 The following environment variables can be set to alter the behaviour
@@ -3225,7 +3262,7 @@ Alternatively report bugs to your software distributor / vendor.
 .Ve
 .SH "COPYRIGHT"
 .IX Header "COPYRIGHT"
-Copyright (C) 2005, 2007\-2010 Red Hat, Inc., and the authors listed in the
+Copyright (C) 2005, 2007\-2014 Red Hat, Inc., and the authors listed in the
 libvirt \s-1AUTHORS\s0 file.
 .SH "LICENSE"
 .IX Header "LICENSE"

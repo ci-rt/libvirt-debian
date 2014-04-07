@@ -28,8 +28,11 @@
 # else
 #  define DBusConnection void
 #  define DBusMessage void
+#  define DBusError void
 # endif
 # include "internal.h"
+
+# include <stdarg.h>
 
 void virDBusSetSharedBus(bool shared);
 
@@ -38,15 +41,40 @@ bool virDBusHasSystemBus(void);
 void virDBusCloseSystemBus(void);
 DBusConnection *virDBusGetSessionBus(void);
 
+int virDBusCreateMethod(DBusMessage **call,
+                        const char *destination,
+                        const char *path,
+                        const char *iface,
+                        const char *member,
+                        const char *types, ...);
+int virDBusCreateMethodV(DBusMessage **call,
+                         const char *destination,
+                         const char *path,
+                         const char *iface,
+                         const char *member,
+                         const char *types,
+                         va_list args);
+int virDBusCreateReply(DBusMessage **reply,
+                       const char *types, ...);
+int virDBusCreateReplyV(DBusMessage **reply,
+                        const char *types,
+                        va_list args);
+
 int virDBusCallMethod(DBusConnection *conn,
                       DBusMessage **reply,
+                      DBusError *error,
                       const char *destination,
                       const char *path,
                       const char *iface,
                       const char *member,
                       const char *types, ...);
+int virDBusCall(DBusConnection *conn,
+                DBusMessage *call,
+                DBusMessage **reply,
+                DBusError *error);
 int virDBusMessageRead(DBusMessage *msg,
                        const char *types, ...);
 
 int virDBusIsServiceEnabled(const char *name);
+int virDBusIsServiceRegistered(const char *name);
 #endif /* __VIR_DBUS_H__ */

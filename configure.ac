@@ -16,7 +16,7 @@ dnl You should have received a copy of the GNU Lesser General Public
 dnl License along with this library.  If not, see
 dnl <http://www.gnu.org/licenses/>.
 
-AC_INIT([libvirt], [1.2.2], [libvir-list@redhat.com], [], [http://libvirt.org])
+AC_INIT([libvirt], [1.2.3], [libvir-list@redhat.com], [], [http://libvirt.org])
 AC_CONFIG_SRCDIR([src/libvirt.c])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
@@ -433,7 +433,7 @@ AC_DEFINE_UNQUOTED([DNSMASQ],["$DNSMASQ"],
 AC_DEFINE_UNQUOTED([RADVD],["$RADVD"],
         [Location or name of the radvd program])
 AC_DEFINE_UNQUOTED([TC],["$TC"],
-        [Location or name of the tc profram (see iproute2)])
+        [Location or name of the tc program (see iproute2)])
 AC_DEFINE_UNQUOTED([OVSVSCTL],["$OVSVSCTL"],
         [Location or name of the ovs-vsctl program])
 
@@ -1401,8 +1401,10 @@ if test "$with_chrdev_lock_files" != "no"; then
     AC_MSG_ERROR([You must specify path for the lock files on this
 platform])
   fi
-  AC_DEFINE_UNQUOTED([VIR_CHRDEV_LOCK_FILE_PATH], "$with_chrdev_lock_files",
-                      [path to directory containing UUCP device lock files])
+  if test "$with_chrdev_lock_files" != "no"; then
+    AC_DEFINE_UNQUOTED([VIR_CHRDEV_LOCK_FILE_PATH], "$with_chrdev_lock_files",
+                       [path to directory containing UUCP device lock files])
+  fi
 fi
 AM_CONDITIONAL([VIR_CHRDEV_LOCK_FILE_PATH], [test "$with_chrdev_lock_files" != "no"])
 
@@ -1850,8 +1852,12 @@ if test "$with_storage_iscsi" = "yes" || test "$with_storage_iscsi" = "check"; t
 
   if test "$with_storage_iscsi" = "yes" ; then
     AC_DEFINE_UNQUOTED([WITH_STORAGE_ISCSI], 1, [whether iSCSI backend for storage driver is enabled])
-    AC_DEFINE_UNQUOTED([ISCSIADM],["$ISCSIADM"],[Location of iscsiadm program])
   fi
+fi
+if test -z "$ISCIADM" ; then
+    AC_DEFINE_UNQUOTED([ISCSIADM],["iscsiadm"],[Name of iscsiadm program])
+else
+    AC_DEFINE_UNQUOTED([ISCSIADM],["$ISCSIADM"],[Location of iscsiadm program])
 fi
 AM_CONDITIONAL([WITH_STORAGE_ISCSI], [test "$with_storage_iscsi" = "yes"])
 

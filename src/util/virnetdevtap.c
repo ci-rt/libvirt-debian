@@ -33,14 +33,20 @@
 #include "virlog.h"
 #include "virstring.h"
 
+#include <dirent.h>
+#include <sys/types.h>
 #include <sys/ioctl.h>
 #include <net/if.h>
 #include <fcntl.h>
 #ifdef __linux__
 # include <linux/if_tun.h>    /* IFF_TUN, IFF_NO_PI */
+#elif defined(__FreeBSD__)
+# include <net/if_tap.h>
 #endif
 
 #define VIR_FROM_THIS VIR_FROM_NONE
+
+VIR_LOG_INIT("util.netdevtap");
 
 /**
  * virNetDevTapGetName:
@@ -67,6 +73,87 @@ virNetDevTapGetName(int tapfd ATTRIBUTE_UNUSED, char **ifname ATTRIBUTE_UNUSED)
     return VIR_STRDUP(*ifname, ifr.ifr_name) < 0 ? -1 : 0;
 #else
     return -1;
+#endif
+}
+
+/**
+ * virNetDevTapGetRealDeviceName:
+ * @ifname: the interface name
+ *
+ * Lookup real interface name (i.e. name of the device entry in /dev),
+ * because e.g. on FreeBSD if we rename tap device to vnetN its device
+ * entry still remains unchanged (/dev/tapX), but bhyve needs a name
+ * that matches /dev entry.
+ *
+ * Returns the proper interface name or NULL if no corresponding interface
+ * found.
+ */
+char*
+virNetDevTapGetRealDeviceName(char *ifname ATTRIBUTE_UNUSED)
+{
+#ifdef TAPGIFNAME
+    char *ret = NULL;
+    struct dirent *dp;
+    char *devpath = NULL;
+    int fd;
+
+    DIR *dirp = opendir("/dev");
+    if (dirp == NULL) {
+        virReportSystemError(errno,
+                             _("Failed to opendir path '%s'"),
+                             "/dev");
+        return NULL;
+    }
+
+    while ((dp = readdir(dirp)) != NULL) {
+        if (STRPREFIX(dp->d_name, "tap")) {
+            struct ifreq ifr;
+            if (virAsprintf(&devpath, "/dev/%s", dp->d_name) < 0) {
+                goto cleanup;
+            }
+            if ((fd = open(devpath, O_RDWR)) < 0) {
+                if (errno == EBUSY) {
+                    VIR_FREE(devpath);
+                    continue;
+                }
+
+                virReportSystemError(errno, _("Unable to open '%s'"), devpath);
+                goto cleanup;
+            }
+
+            if (ioctl(fd, TAPGIFNAME, (void *)&ifr) < 0) {
+                virReportSystemError(errno, "%s",
+                                     _("Unable to query tap interface name"));
+                goto cleanup;
+            }
+
+            if (STREQ(ifname, ifr.ifr_name)) {
+                /* we can ignore the return value
+                 * because we still have nothing
+                 * to do but return;
+                 */
+                ignore_value(VIR_STRDUP(ret, dp->d_name));
+                goto cleanup;
+            }
+
+            VIR_FREE(devpath);
+            VIR_FORCE_CLOSE(fd);
+        }
+
+        errno = 0;
+    }
+
+    if (errno != 0)
+        virReportSystemError(errno, "%s",
+                             _("Unable to iterate over TAP devices"));
+
+ cleanup:
+    VIR_FREE(devpath);
+    VIR_FORCE_CLOSE(fd);
+    closedir(dirp);
+    return ret;
+#else
+    return NULL;
 #endif
 }
 
@@ -224,7 +311,7 @@ int virNetDevTapCreate(char **ifname,
 
     ret = 0;
 
-cleanup:
+ cleanup:
     if (ret < 0) {
         VIR_FORCE_CLOSE(fd);
         while (i--)
@@ -271,7 +358,7 @@ int virNetDevTapDelete(const char *ifname)
 
     ret = 0;
 
-cleanup:
+ cleanup:
     VIR_FORCE_CLOSE(fd);
     return ret;
 }
@@ -357,7 +444,7 @@ int virNetDevTapCreate(char **ifname,
 
 
     ret = 0;
-cleanup:
+ cleanup:
     VIR_FORCE_CLOSE(s);
 
     return ret;
@@ -380,7 +467,7 @@ int virNetDevTapDelete(const char *ifname)
     }
 
     ret = 0;
-cleanup:
+ cleanup:
     VIR_FORCE_CLOSE(s);
     return ret;
 }
@@ -498,7 +585,7 @@ int virNetDevTapCreateInBridgePort(const char *brname,
 
     return 0;
 
-error:
+ error:
     for (i = 0; i < tapfdSize && tapfd[i] >= 0; i++)
         VIR_FORCE_CLOSE(tapfd[i]);
 

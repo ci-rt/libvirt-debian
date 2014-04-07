@@ -1,7 +1,7 @@
 /*
  * uml_conf.c: UML driver configuration
  *
- * Copyright (C) 2006-2013 Red Hat, Inc.
+ * Copyright (C) 2006-2014 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -50,8 +50,10 @@
 
 #define VIR_FROM_THIS VIR_FROM_UML
 
+VIR_LOG_INIT("uml.uml_conf");
 
-virCapsPtr umlCapsInit(void) {
+virCapsPtr umlCapsInit(void)
+{
     virCapsPtr caps;
     virCapsGuestPtr guest;
 
@@ -143,7 +145,7 @@ umlConnectTapDevice(virConnectPtr conn,
     VIR_FORCE_CLOSE(tapfd);
     return 0;
 
-error:
+ error:
     VIR_FORCE_CLOSE(tapfd);
     return -1;
 }
@@ -271,7 +273,7 @@ umlBuildCommandLineNet(virConnectPtr conn,
 
     return virBufferContentAndReset(&buf);
 
-error:
+ error:
     virBufferFreeAndReset(&buf);
     return NULL;
 }
@@ -409,7 +411,7 @@ virCommandPtr umlBuildCommandLine(virConnectPtr conn,
             goto error;
         }
 
-        virCommandAddArgPair(cmd, disk->dst, disk->src);
+        virCommandAddArgPair(cmd, disk->dst, virDomainDiskGetSource(disk));
     }
 
     for (i = 0; i < vm->def->nnets; i++) {

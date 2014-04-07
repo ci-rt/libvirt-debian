@@ -32,6 +32,8 @@
 
 #define VIR_FROM_THIS VIR_FROM_NONE
 
+VIR_LOG_INIT("tests.storagetest");
+
 #define datadir abs_builddir "/virstoragedata"
 
 /* This test creates the following files, all in datadir:
@@ -184,14 +186,14 @@ testPrepImages(void)
 #endif
 
     ret = 0;
-cleanup:
+ cleanup:
     VIR_FREE(buf);
     virCommandFree(cmd);
     if (ret)
         testCleanupImages();
     return ret;
 
-skip:
+ skip:
     fputs("qemu-img is too old; skipping this test\n", stderr);
     ret = EXIT_AM_SKIP;
     goto cleanup;
@@ -304,7 +306,7 @@ testStorageChain(const void *args)
     }
 
     ret = 0;
-cleanup:
+ cleanup:
     virStorageFileFreeMetadata(meta);
     return ret;
 }

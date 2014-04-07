@@ -68,6 +68,7 @@ struct _libxlDomainObjPrivate {
     /* console */
     virChrdevsPtr devs;
     libxl_evgen_domain_death *deathW;
+    libxlDriverPrivatePtr driver;
 
     struct libxlDomainJobObj job;
 };
@@ -75,7 +76,7 @@ struct _libxlDomainObjPrivate {
 
 extern virDomainXMLPrivateDataCallbacks libxlDomainXMLPrivateDataCallbacks;
 extern virDomainDefParserConfig libxlDomainDefParserConfig;
-
+extern const struct libxl_event_hooks ev_hooks;
 
 int
 libxlDomainObjPrivateInitCtx(virDomainObjPtr vm);
@@ -90,5 +91,52 @@ bool
 libxlDomainObjEndJob(libxlDriverPrivatePtr driver,
                      virDomainObjPtr obj)
     ATTRIBUTE_RETURN_CHECK;
+
+void
+libxlDomainEventQueue(libxlDriverPrivatePtr driver,
+                      virObjectEventPtr event);
+
+char *
+libxlDomainManagedSavePath(libxlDriverPrivatePtr driver,
+                           virDomainObjPtr vm);
+
+int
+libxlDomainSaveImageOpen(libxlDriverPrivatePtr driver,
+                         libxlDriverConfigPtr cfg,
+                         const char *from,
+                         virDomainDefPtr *ret_def,
+                         libxlSavefileHeaderPtr ret_hdr)
+    ATTRIBUTE_NONNULL(4) ATTRIBUTE_NONNULL(5);
+
+void
+libxlDomainCleanup(libxlDriverPrivatePtr driver,
+                   virDomainObjPtr vm,
+                   virDomainShutoffReason reason);
+
+bool
+libxlDomainCleanupJob(libxlDriverPrivatePtr driver,
+                      virDomainObjPtr vm,
+                      virDomainShutoffReason reason);
+int
+libxlDomainEventsRegister(libxlDriverPrivatePtr driver,
+                          virDomainObjPtr vm);
+
+int
+libxlDomainAutoCoreDump(libxlDriverPrivatePtr driver,
+                        virDomainObjPtr vm);
+
+int
+libxlDomainSetVcpuAffinities(libxlDriverPrivatePtr driver,
+                             virDomainObjPtr vm);
+
+int
+libxlDomainFreeMem(libxlDomainObjPrivatePtr priv,
+                   libxl_domain_config *d_config);
+
+int
+libxlDomainStart(libxlDriverPrivatePtr driver,
+                 virDomainObjPtr vm,
+                 bool start_paused,
+                 int restore_fd);
 
 #endif /* LIBXL_DOMAIN_H */

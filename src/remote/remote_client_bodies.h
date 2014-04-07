@@ -1381,6 +1381,33 @@ done:
     return rv;
 }
 
+static int
+remoteDomainCoreDumpWithFormat(virDomainPtr dom, const char *to, unsigned int dumpformat, unsigned int flags)
+{
+    int rv = -1;
+    struct private_data *priv = dom->conn->privateData;
+    remote_domain_core_dump_with_format_args args;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_domain(&args.dom, dom);
+    args.to = (char *)to;
+    args.dumpformat = dumpformat;
+    args.flags = flags;
+
+    if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_CORE_DUMP_WITH_FORMAT,
+             (xdrproc_t)xdr_remote_domain_core_dump_with_format_args, (char *)&args,
+             (xdrproc_t)xdr_void, (char *)NULL) == -1) {
+        goto done;
+    }
+
+    rv = 0;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
 static virDomainPtr
 remoteDomainCreateXML(virConnectPtr conn, const char *xml_desc, unsigned int flags)
 {

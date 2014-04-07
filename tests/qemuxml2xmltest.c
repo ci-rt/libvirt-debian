@@ -103,7 +103,7 @@ testCompareXMLToXMLHelper(const void *data)
 
     ret = 0;
 
-cleanup:
+ cleanup:
     VIR_FREE(xml_in);
     VIR_FREE(xml_out);
     return ret;
@@ -260,6 +260,7 @@ mymain(void)
     DO_TEST("blkiotune");
     DO_TEST("blkiotune-device");
     DO_TEST("cputune");
+    DO_TEST("cputune-zero-shares");
 
     DO_TEST("smp");
     DO_TEST("lease");
@@ -337,7 +338,7 @@ mymain(void)
     virObjectUnref(driver.caps);
     virObjectUnref(driver.xmlopt);
 
-    return ret==0 ? EXIT_SUCCESS : EXIT_FAILURE;
+    return ret == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
 VIRT_TEST_MAIN(mymain)

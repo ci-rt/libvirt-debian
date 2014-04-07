@@ -86,7 +86,7 @@ testCompareXMLToXMLHelper(const void *data)
 
     result = testCompareXMLToXMLFiles(poolxml, inxml, outxml);
 
-cleanup:
+ cleanup:
     VIR_FREE(poolxml);
     VIR_FREE(inxml);
     VIR_FREE(outxml);
@@ -123,7 +123,7 @@ mymain(void)
     DO_TEST("pool-sheepdog", "vol-sheepdog");
     DO_TEST("pool-gluster", "vol-gluster-dir");
 
-    return ret==0 ? EXIT_SUCCESS : EXIT_FAILURE;
+    return ret == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
 VIRT_TEST_MAIN(mymain)
