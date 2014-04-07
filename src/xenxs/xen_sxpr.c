@@ -1,7 +1,7 @@
 /*
  * xen_sxpr.c: Xen SEXPR parsing functions
  *
- * Copyright (C) 2010-2013 Red Hat, Inc.
+ * Copyright (C) 2010-2014 Red Hat, Inc.
  * Copyright (C) 2011 Univention GmbH
  * Copyright (C) 2005 Anthony Liguori <aliguori@us.ibm.com>
  *
@@ -38,6 +38,8 @@
 #include "xen_sxpr.h"
 #include "virstoragefile.h"
 #include "virstring.h"
+
+VIR_LOG_INIT("xenxs.xen_sxpr");
 
 /* Get a domain id from a S-expression string */
 int xenGetDomIdFromSxprString(const char *sexpr, int xendConfigVersion, int *id)
@@ -165,7 +167,7 @@ xenParseSxprOS(const struct sexpr *node,
 
     return 0;
 
-error:
+ error:
     return -1;
 }
 
@@ -310,7 +312,7 @@ xenParseSxprChar(const char *value,
 
     return def;
 
-error:
+ error:
     virDomainChrDefFree(def);
     return NULL;
 }
@@ -399,24 +401,23 @@ xenParseSxprDisks(virDomainDefPtr def,
 
                 if (sexpr_lookup(node, "device/tap2") &&
                     STRPREFIX(src, "tap:")) {
-                    if (VIR_STRDUP(disk->driverName, "tap2") < 0)
+                    if (virDomainDiskSetDriver(disk, "tap2") < 0)
                         goto error;
                 } else {
-                    if (VIR_ALLOC_N(disk->driverName, (offset-src)+1) < 0)
+                    char *tmp;
+                    if (VIR_STRNDUP(tmp, src, offset - src) < 0)
                         goto error;
-                    if (virStrncpy(disk->driverName, src, offset-src,
-                                   (offset-src)+1) == NULL) {
-                        virReportError(VIR_ERR_INTERNAL_ERROR,
-                                       _("Driver name %s too big for destination"),
-                                       src);
+                    if (virDomainDiskSetDriver(disk, tmp) < 0) {
+                        VIR_FREE(tmp);
                         goto error;
                     }
+                    VIR_FREE(tmp);
                 }
 
                 src = offset + 1;
 
-                if (STREQ(disk->driverName, "tap") ||
-                    STREQ(disk->driverName, "tap2")) {
+                if (STREQ(virDomainDiskGetDriver(disk), "tap") ||
+                    STREQ(virDomainDiskGetDriver(disk), "tap2")) {
                     char *driverType = NULL;
 
                     offset = strchr(src, ':');
@@ -429,12 +430,12 @@ xenParseSxprDisks(virDomainDefPtr def,
                     if (VIR_STRNDUP(driverType, src, offset - src) < 0)
                         goto error;
                     if (STREQ(driverType, "aio"))
-                        disk->format = VIR_STORAGE_FILE_RAW;
+                        virDomainDiskSetFormat(disk, VIR_STORAGE_FILE_RAW);
                     else
-                        disk->format =
-                            virStorageFileFormatTypeFromString(driverType);
+                        virDomainDiskSetFormat(disk,
+                                               virStorageFileFormatTypeFromString(driverType));
                     VIR_FREE(driverType);
-                    if (disk->format <= 0) {
+                    if (virDomainDiskGetFormat(disk) <= 0) {
                         virReportError(VIR_ERR_INTERNAL_ERROR,
                                        _("Unknown driver type %s"), src);
                         goto error;
@@ -446,17 +447,17 @@ xenParseSxprDisks(virDomainDefPtr def,
                        so we assume common case here. If blktap becomes
                        omnipotent, we can revisit this, perhaps stat()'ing
                        the src file in question */
-                    disk->type = VIR_DOMAIN_DISK_TYPE_FILE;
-                } else if (STREQ(disk->driverName, "phy")) {
-                    disk->type = VIR_DOMAIN_DISK_TYPE_BLOCK;
-                } else if (STREQ(disk->driverName, "file")) {
-                    disk->type = VIR_DOMAIN_DISK_TYPE_FILE;
+                    virDomainDiskSetType(disk, VIR_DOMAIN_DISK_TYPE_FILE);
+                } else if (STREQ(virDomainDiskGetDriver(disk), "phy")) {
+                    virDomainDiskSetType(disk, VIR_DOMAIN_DISK_TYPE_BLOCK);
+                } else if (STREQ(virDomainDiskGetDriver(disk), "file")) {
+                    virDomainDiskSetType(disk, VIR_DOMAIN_DISK_TYPE_FILE);
                 }
             } else {
                 /* No CDROM media so can't really tell. We'll just
                    call if a FILE for now and update when media
                    is inserted later */
-                disk->type = VIR_DOMAIN_DISK_TYPE_FILE;
+                virDomainDiskSetType(disk, VIR_DOMAIN_DISK_TYPE_FILE);
             }
 
             if (STREQLEN(dst, "ioemu:", 6))
@@ -480,7 +481,7 @@ xenParseSxprDisks(virDomainDefPtr def,
 
             if (VIR_STRDUP(disk->dst, dst) < 0)
                 goto error;
-            if (VIR_STRDUP(disk->src, src) < 0)
+            if (virDomainDiskSetSource(disk, src) < 0)
                 goto error;
 
             if (STRPREFIX(disk->dst, "xvd"))
@@ -515,7 +516,7 @@ xenParseSxprDisks(virDomainDefPtr def,
 
     return 0;
 
-error:
+ error:
     virDomainDiskDefFree(disk);
     return -1;
 }
@@ -601,17 +602,16 @@ xenParseSxprNets(virDomainDefPtr def,
                 VIR_STRDUP(net->model, "netfront") < 0)
                 goto cleanup;
 
-            if (VIR_REALLOC_N(def->nets, def->nnets + 1) < 0)
+            if (VIR_APPEND_ELEMENT(def->nets, def->nnets, net) < 0)
                 goto cleanup;
 
-            def->nets[def->nnets++] = net;
             vif_index++;
         }
     }
 
     return 0;
 
-cleanup:
+ cleanup:
     virDomainNetDefFree(net);
     return -1;
 }
@@ -685,19 +685,18 @@ xenParseSxprSound(virDomainDefPtr def,
                 goto error;
             }
 
-            if (VIR_REALLOC_N(def->sounds, def->nsounds+1) < 0) {
+            if (VIR_APPEND_ELEMENT(def->sounds, def->nsounds, sound) < 0) {
                 virDomainSoundDefFree(sound);
                 goto error;
             }
 
-            def->sounds[def->nsounds++] = sound;
             offset = offset2 ? offset2 + 1 : NULL;
         } while (offset);
     }
 
     return 0;
 
-error:
+ error:
     return -1;
 }
 
@@ -749,7 +748,7 @@ xenParseSxprUSB(virDomainDefPtr def,
     }
     return 0;
 
-error:
+ error:
     return -1;
 }
 
@@ -842,7 +841,7 @@ xenParseSxprGraphicsOld(virDomainDefPtr def,
 
     return 0;
 
-error:
+ error:
     virDomainGraphicsDefFree(graphics);
     return -1;
 }
@@ -944,7 +943,7 @@ xenParseSxprGraphicsNew(virDomainDefPtr def,
 
     return 0;
 
-error:
+ error:
     virDomainGraphicsDefFree(graphics);
     return -1;
 }
@@ -1057,15 +1056,13 @@ xenParseSxprPCI(virDomainDefPtr def,
         dev->source.subsys.u.pci.addr.slot = slotID;
         dev->source.subsys.u.pci.addr.function = funcID;
 
-        if (VIR_REALLOC_N(def->hostdevs, def->nhostdevs+1) < 0)
+        if (VIR_APPEND_ELEMENT(def->hostdevs, def->nhostdevs, dev) < 0)
             goto error;
-
-        def->hostdevs[def->nhostdevs++] = dev;
     }
 
     return 0;
 
-error:
+ error:
     virDomainHostdevDefFree(dev);
     return -1;
 }
@@ -1309,28 +1306,27 @@ xenParseSxpr(const struct sexpr *root,
             virDomainDiskDefPtr disk;
             if (VIR_ALLOC(disk) < 0)
                 goto error;
-            if (VIR_STRDUP(disk->src, tmp) < 0) {
+            if (virDomainDiskSetSource(disk, tmp) < 0) {
                 virDomainDiskDefFree(disk);
                 goto error;
             }
-            disk->type = VIR_DOMAIN_DISK_TYPE_FILE;
+            virDomainDiskSetType(disk, VIR_DOMAIN_DISK_TYPE_FILE);
             disk->device = VIR_DOMAIN_DISK_DEVICE_CDROM;
             if (VIR_STRDUP(disk->dst, "hdc") < 0) {
                 virDomainDiskDefFree(disk);
                 goto error;
             }
-            if (VIR_STRDUP(disk->driverName, "file") < 0) {
+            if (virDomainDiskSetDriver(disk, "file") < 0) {
                 virDomainDiskDefFree(disk);
                 goto error;
             }
             disk->bus = VIR_DOMAIN_DISK_BUS_IDE;
             disk->readonly = true;
 
-            if (VIR_REALLOC_N(def->disks, def->ndisks+1) < 0) {
+            if (VIR_APPEND_ELEMENT(def->disks, def->ndisks, disk) < 0) {
                 virDomainDiskDefFree(disk);
                 goto error;
             }
-            def->disks[def->ndisks++] = disk;
         }
     }
 
@@ -1345,27 +1341,26 @@ xenParseSxpr(const struct sexpr *root,
                 virDomainDiskDefPtr disk;
                 if (VIR_ALLOC(disk) < 0)
                     goto error;
-                if (VIR_STRDUP(disk->src, tmp) < 0) {
+                if (virDomainDiskSetSource(disk, tmp) < 0) {
                     VIR_FREE(disk);
                     goto error;
                 }
-                disk->type = VIR_DOMAIN_DISK_TYPE_FILE;
+                virDomainDiskSetType(disk, VIR_DOMAIN_DISK_TYPE_FILE);
                 disk->device = VIR_DOMAIN_DISK_DEVICE_FLOPPY;
                 if (VIR_STRDUP(disk->dst, fds[i]) < 0) {
                     virDomainDiskDefFree(disk);
                     goto error;
                 }
-                if (VIR_STRDUP(disk->driverName, "file") < 0) {
+                if (virDomainDiskSetSource(disk, "file") < 0) {
                     virDomainDiskDefFree(disk);
                     goto error;
                 }
                 disk->bus = VIR_DOMAIN_DISK_BUS_FDC;
 
-                if (VIR_REALLOC_N(def->disks, def->ndisks+1) < 0) {
+                if (VIR_APPEND_ELEMENT(def->disks, def->ndisks, disk) < 0) {
                     virDomainDiskDefFree(disk);
                     goto error;
                 }
-                def->disks[def->ndisks++] = disk;
             }
         }
     }
@@ -1395,13 +1390,12 @@ xenParseSxpr(const struct sexpr *root,
                         virDomainChrDefPtr chr;
                         if ((chr = xenParseSxprChar(tmp, tty)) == NULL)
                             goto error;
-                        if (VIR_REALLOC_N(def->serials, def->nserials+1) < 0) {
+                        chr->deviceType = VIR_DOMAIN_CHR_DEVICE_TYPE_SERIAL;
+                        chr->target.port = def->nserials + ports_skipped;
+                        if (VIR_APPEND_ELEMENT(def->serials, def->nserials, chr) < 0) {
                             virDomainChrDefFree(chr);
                             goto error;
                         }
-                        chr->deviceType = VIR_DOMAIN_CHR_DEVICE_TYPE_SERIAL;
-                        chr->target.port = def->nserials + ports_skipped;
-                        def->serials[def->nserials++] = chr;
                     }
                     else
                         ports_skipped++;
@@ -1417,13 +1411,12 @@ xenParseSxpr(const struct sexpr *root,
                 virDomainChrDefPtr chr;
                 if ((chr = xenParseSxprChar(tmp, tty)) == NULL)
                     goto error;
-                if (VIR_REALLOC_N(def->serials, def->nserials+1) < 0) {
+                chr->deviceType = VIR_DOMAIN_CHR_DEVICE_TYPE_SERIAL;
+                chr->target.port = 0;
+                if (VIR_APPEND_ELEMENT(def->serials, def->nserials, chr) < 0) {
                     virDomainChrDefFree(chr);
                     goto error;
                 }
-                chr->deviceType = VIR_DOMAIN_CHR_DEVICE_TYPE_SERIAL;
-                chr->target.port = 0;
-                def->serials[def->nserials++] = chr;
             }
         }
 
@@ -1433,13 +1426,12 @@ xenParseSxpr(const struct sexpr *root,
             /* XXX does XenD stuff parallel port tty info into xenstore somewhere ? */
             if ((chr = xenParseSxprChar(tmp, NULL)) == NULL)
                 goto error;
-            if (VIR_REALLOC_N(def->parallels, def->nparallels+1) < 0) {
+            chr->deviceType = VIR_DOMAIN_CHR_DEVICE_TYPE_PARALLEL;
+            chr->target.port = 0;
+            if (VIR_APPEND_ELEMENT(def->parallels, def->nparallels, chr) < 0) {
                 virDomainChrDefFree(chr);
                 goto error;
             }
-            chr->deviceType = VIR_DOMAIN_CHR_DEVICE_TYPE_PARALLEL;
-            chr->target.port = 0;
-            def->parallels[def->nparallels++] = chr;
         }
     } else if (def->id != 0) {
         if (VIR_ALLOC_N(def->consoles, 1) < 0)
@@ -1465,7 +1457,7 @@ xenParseSxpr(const struct sexpr *root,
 
     return def;
 
-error:
+ error:
     VIR_FREE(tty);
     virDomainDefFree(def);
     return NULL;
@@ -1729,6 +1721,9 @@ xenFormatSxprDisk(virDomainDiskDefPtr def,
                   int xendConfigVersion,
                   int isAttach)
 {
+    const char *src = virDomainDiskGetSource(def);
+    const char *driver = virDomainDiskGetDriver(def);
+
     /* Xend (all versions) put the floppy device config
      * under the hvm (image (os)) block
      */
@@ -1736,7 +1731,7 @@ xenFormatSxprDisk(virDomainDiskDefPtr def,
         def->device == VIR_DOMAIN_DISK_DEVICE_FLOPPY) {
         if (isAttach) {
             virReportError(VIR_ERR_INVALID_ARG,
-                           _("Cannot directly attach floppy %s"), def->src);
+                           _("Cannot directly attach floppy %s"), src);
             return -1;
         }
         return 0;
@@ -1748,7 +1743,7 @@ xenFormatSxprDisk(virDomainDiskDefPtr def,
         xendConfigVersion == XEND_CONFIG_VERSION_3_0_2) {
         if (isAttach) {
             virReportError(VIR_ERR_INVALID_ARG,
-                           _("Cannot directly attach CDROM %s"), def->src);
+                           _("Cannot directly attach CDROM %s"), src);
             return -1;
         }
         return 0;
@@ -1760,9 +1755,9 @@ xenFormatSxprDisk(virDomainDiskDefPtr def,
     /* Normally disks are in a (device (vbd ...)) block
      * but blktap disks ended up in a differently named
      * (device (tap ....)) block.... */
-    if (def->driverName && STREQ(def->driverName, "tap")) {
+    if (STREQ_NULLABLE(driver, "tap")) {
         virBufferAddLit(buf, "(tap ");
-    } else if (def->driverName && STREQ(def->driverName, "tap2")) {
+    } else if (STREQ_NULLABLE(driver, "tap2")) {
         virBufferAddLit(buf, "(tap2 ");
     } else {
         virBufferAddLit(buf, "(vbd ");
@@ -1785,36 +1780,39 @@ xenFormatSxprDisk(virDomainDiskDefPtr def,
         virBufferEscapeSexpr(buf, "(dev '%s')", def->dst);
     }
 
-    if (def->src) {
-        if (def->driverName) {
-            if (STREQ(def->driverName, "tap") ||
-                STREQ(def->driverName, "tap2")) {
+    if (src) {
+        if (driver) {
+            if (STREQ(driver, "tap") ||
+                STREQ(driver, "tap2")) {
                 const char *type;
+                int format = virDomainDiskGetFormat(def);
 
-                if (!def->format || def->format == VIR_STORAGE_FILE_RAW)
+                if (!format || format == VIR_STORAGE_FILE_RAW)
                     type = "aio";
                 else
-                    type = virStorageFileFormatTypeToString(def->format);
-                virBufferEscapeSexpr(buf, "(uname '%s:", def->driverName);
+                    type = virStorageFileFormatTypeToString(format);
+                virBufferEscapeSexpr(buf, "(uname '%s:", driver);
                 virBufferEscapeSexpr(buf, "%s:", type);
-                virBufferEscapeSexpr(buf, "%s')", def->src);
+                virBufferEscapeSexpr(buf, "%s')", src);
             } else {
-                virBufferEscapeSexpr(buf, "(uname '%s:", def->driverName);
-                virBufferEscapeSexpr(buf, "%s')", def->src);
+                virBufferEscapeSexpr(buf, "(uname '%s:", driver);
+                virBufferEscapeSexpr(buf, "%s')", src);
             }
         } else {
-            if (def->type == VIR_DOMAIN_DISK_TYPE_FILE) {
-                virBufferEscapeSexpr(buf, "(uname 'file:%s')", def->src);
-            } else if (def->type == VIR_DOMAIN_DISK_TYPE_BLOCK) {
-                if (def->src[0] == '/')
-                    virBufferEscapeSexpr(buf, "(uname 'phy:%s')", def->src);
+            int type = virDomainDiskGetType(def);
+
+            if (type == VIR_DOMAIN_DISK_TYPE_FILE) {
+                virBufferEscapeSexpr(buf, "(uname 'file:%s')", src);
+            } else if (type == VIR_DOMAIN_DISK_TYPE_BLOCK) {
+                if (src[0] == '/')
+                    virBufferEscapeSexpr(buf, "(uname 'phy:%s')", src);
                 else
                     virBufferEscapeSexpr(buf, "(uname 'phy:/dev/%s')",
-                                         def->src);
+                                         src);
             } else {
                 virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                                _("unsupported disk type %s"),
-                               virDomainDiskTypeToString(def->type));
+                               virDomainDiskTypeToString(type));
                 return -1;
             }
         }
@@ -2320,23 +2318,23 @@ xenFormatSxpr(virConnectPtr conn,
 
             /* some disk devices are defined here */
             for (i = 0; i < def->ndisks; i++) {
+                const char *src = virDomainDiskGetSource(def->disks[i]);
+
                 switch (def->disks[i]->device) {
                 case VIR_DOMAIN_DISK_DEVICE_CDROM:
                     /* Only xend <= 3.0.2 wants cdrom config here */
                     if (xendConfigVersion != XEND_CONFIG_VERSION_3_0_2)
                         break;
-                    if (!STREQ(def->disks[i]->dst, "hdc") ||
-                        def->disks[i]->src == NULL)
+                    if (!STREQ(def->disks[i]->dst, "hdc") || !src)
                         break;
 
-                    virBufferEscapeSexpr(&buf, "(cdrom '%s')",
-                                         def->disks[i]->src);
+                    virBufferEscapeSexpr(&buf, "(cdrom '%s')", src);
                     break;
 
                 case VIR_DOMAIN_DISK_DEVICE_FLOPPY:
                     /* all xend versions define floppies here */
                     virBufferEscapeSexpr(&buf, "(%s ", def->disks[i]->dst);
-                    virBufferEscapeSexpr(&buf, "'%s')", def->disks[i]->src);
+                    virBufferEscapeSexpr(&buf, "'%s')", src);
                     break;
 
                 default:
@@ -2562,7 +2560,7 @@ xenFormatSxpr(virConnectPtr conn,
     VIR_DEBUG("Formatted sexpr: \n%s", bufout);
     return bufout;
 
-error:
+ error:
     virBufferFreeAndReset(&buf);
     return NULL;
 }

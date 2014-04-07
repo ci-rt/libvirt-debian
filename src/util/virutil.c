@@ -1,7 +1,7 @@
 /*
  * virutil.c: common, generic utility functions
  *
- * Copyright (C) 2006-2013 Red Hat, Inc.
+ * Copyright (C) 2006-2014 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  * Copyright (C) 2006, 2007 Binary Karma
  * Copyright (C) 2006 Shuveb Hussain
@@ -90,9 +90,12 @@ verify(sizeof(gid_t) <= sizeof(unsigned int) &&
 
 #define VIR_FROM_THIS VIR_FROM_NONE
 
+VIR_LOG_INIT("util.util");
+
 #ifndef WIN32
 
-int virSetInherit(int fd, bool inherit) {
+int virSetInherit(int fd, bool inherit)
+{
     int fflags;
     if ((fflags = fcntl(fd, F_GETFD)) < 0)
         return -1;
@@ -118,11 +121,13 @@ int virSetInherit(int fd ATTRIBUTE_UNUSED, bool inherit ATTRIBUTE_UNUSED)
 
 #endif /* WIN32 */
 
-int virSetBlocking(int fd, bool blocking) {
+int virSetBlocking(int fd, bool blocking)
+{
     return set_nonblocking_flag(fd, !blocking);
 }
 
-int virSetNonBlock(int fd) {
+int virSetNonBlock(int fd)
+{
     return virSetBlocking(fd, false);
 }
 
@@ -208,7 +213,7 @@ virPipeReadUntilEOF(int outfd, int errfd,
 
     return 0;
 
-error:
+ error:
     VIR_FREE(*outbuf);
     VIR_FREE(*errbuf);
     return -1;
@@ -500,7 +505,8 @@ const char *virEnumToString(const char *const*types,
  * @param name The name of the device
  * @return name's index, or -1 on failure
  */
-int virDiskNameToIndex(const char *name) {
+int virDiskNameToIndex(const char *name)
+{
     const char *ptr = NULL;
     int idx = 0;
     static char const* const drive_prefix[] = {"fd", "hd", "vd", "sd", "xvd", "ubd"};
@@ -643,7 +649,7 @@ char *virGetHostname(void)
 
     freeaddrinfo(info);
 
-cleanup:
+ cleanup:
     return result;
 }
 
@@ -715,7 +721,7 @@ virGetUserEnt(uid_t uid, char **name, gid_t *group, char **dir)
     }
 
     ret = 0;
-cleanup:
+ cleanup:
     VIR_FREE(strbuf);
     return ret;
 }
@@ -877,7 +883,7 @@ virGetUserIDByName(const char *name, uid_t *uid)
     *uid = pw->pw_uid;
     ret = 0;
 
-cleanup:
+ cleanup:
     VIR_FREE(strbuf);
 
     return ret;
@@ -957,7 +963,7 @@ virGetGroupIDByName(const char *name, gid_t *gid)
     *gid = gr->gr_gid;
     ret = 0;
 
-cleanup:
+ cleanup:
     VIR_FREE(strbuf);
 
     return ret;
@@ -1037,7 +1043,7 @@ virGetGroupList(uid_t uid, gid_t gid, gid_t **list)
         }
     }
 
-cleanup:
+ cleanup:
     VIR_FREE(user);
     return ret;
 }
@@ -1420,7 +1426,7 @@ virSetUIDGIDWithCaps(uid_t uid, gid_t gid, gid_t *groups, int ngroups,
     }
 
     ret = 0;
-cleanup:
+ cleanup:
     return ret;
 }
 
@@ -1463,7 +1469,8 @@ void virFileWaitForDevices(void)
     {}
 }
 #else
-void virFileWaitForDevices(void) {}
+void virFileWaitForDevices(void)
+{}
 #endif
 
 #if HAVE_LIBDEVMAPPER_H
@@ -1487,7 +1494,8 @@ bool virIsDevMapperDevice(const char *dev_name ATTRIBUTE_UNUSED)
 #endif
 
 bool
-virValidateWWN(const char *wwn) {
+virValidateWWN(const char *wwn)
+{
     size_t i;
     const char *p = wwn;
 
@@ -1602,7 +1610,7 @@ virSetDeviceUnprivSGIO(const char *path,
     }
 
     ret = 0;
-cleanup:
+ cleanup:
     VIR_FREE(sysfs_path);
     VIR_FREE(val);
     return ret;
@@ -1640,7 +1648,7 @@ virGetDeviceUnprivSGIO(const char *path,
     }
 
     ret = 0;
-cleanup:
+ cleanup:
     VIR_FREE(sysfs_path);
     VIR_FREE(buf);
     return ret;
@@ -1693,7 +1701,7 @@ virReadFCHost(const char *sysfs_prefix,
         goto cleanup;
 
     ret = 0;
-cleanup:
+ cleanup:
     VIR_FREE(sysfs_path);
     VIR_FREE(buf);
     return ret;
@@ -1744,7 +1752,7 @@ virIsCapableVport(const char *sysfs_prefix,
         virFileExists(scsi_host_path))
         ret = true;
 
-cleanup:
+ cleanup:
     VIR_FREE(fc_host_path);
     VIR_FREE(scsi_host_path);
     return ret;
@@ -1811,7 +1819,7 @@ virManageVport(const int parent_host,
                                "vport create/delete failed"),
                              vport_name, operation_path);
 
-cleanup:
+ cleanup:
     VIR_FREE(vport_name);
     VIR_FREE(operation_path);
     return ret;
@@ -1905,7 +1913,7 @@ virGetFCHostNameByWWN(const char *sysfs_prefix,
         break;
     }
 
-cleanup:
+ cleanup:
 # undef READ_WWN
     closedir(dir);
     VIR_FREE(wwnn_path);
@@ -1995,7 +2003,7 @@ virFindFCHostCapableVport(const char *sysfs_prefix)
         VIR_FREE(vports);
     }
 
-cleanup:
+ cleanup:
     closedir(dir);
     VIR_FREE(max_vports);
     VIR_FREE(vports);
@@ -2129,7 +2137,7 @@ virParseOwnershipIds(const char *label, uid_t *uidPtr, gid_t *gidPtr)
 
     rc = 0;
 
-cleanup:
+ cleanup:
     VIR_FREE(tmp_label);
 
     return rc;
@@ -2172,4 +2180,27 @@ const char *virGetEnvAllowSUID(const char *name)
 bool virIsSUID(void)
 {
     return getuid() != geteuid();
+}
+
+
+static time_t selfLastChanged;
+
+time_t virGetSelfLastChanged(void)
+{
+    return selfLastChanged;
+}
+
+
+void virUpdateSelfLastChanged(const char *path)
+{
+    struct stat sb;
+
+    if (stat(path, &sb) < 0)
+        return;
+
+    if (sb.st_ctime > selfLastChanged) {
+        VIR_DEBUG("Setting self last changed to %lld for '%s'",
+                  (long long)sb.st_ctime, path);
+        selfLastChanged = sb.st_ctime;
+    }
 }

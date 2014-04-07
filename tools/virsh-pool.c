@@ -251,28 +251,34 @@ vshBuildPoolXML(vshControl *ctl,
         goto cleanup;
 
     virBufferAsprintf(&buf, "<pool type='%s'>\n", type);
-    virBufferAsprintf(&buf, "  <name>%s</name>\n", name);
+    virBufferAdjustIndent(&buf, 2);
+    virBufferAsprintf(&buf, "<name>%s</name>\n", name);
     if (srcHost || srcPath || srcDev || srcFormat || srcName) {
-        virBufferAddLit(&buf, "  <source>\n");
+        virBufferAddLit(&buf, "<source>\n");
+        virBufferAdjustIndent(&buf, 2);
 
         if (srcHost)
-            virBufferAsprintf(&buf, "    <host name='%s'/>\n", srcHost);
+            virBufferAsprintf(&buf, "<host name='%s'/>\n", srcHost);
         if (srcPath)
-            virBufferAsprintf(&buf, "    <dir path='%s'/>\n", srcPath);
+            virBufferAsprintf(&buf, "<dir path='%s'/>\n", srcPath);
         if (srcDev)
-            virBufferAsprintf(&buf, "    <device path='%s'/>\n", srcDev);
+            virBufferAsprintf(&buf, "<device path='%s'/>\n", srcDev);
         if (srcFormat)
-            virBufferAsprintf(&buf, "    <format type='%s'/>\n", srcFormat);
+            virBufferAsprintf(&buf, "<format type='%s'/>\n", srcFormat);
         if (srcName)
-            virBufferAsprintf(&buf, "    <name>%s</name>\n", srcName);
+            virBufferAsprintf(&buf, "<name>%s</name>\n", srcName);
 
-        virBufferAddLit(&buf, "  </source>\n");
+        virBufferAdjustIndent(&buf, -2);
+        virBufferAddLit(&buf, "</source>\n");
     }
     if (target) {
-        virBufferAddLit(&buf, "  <target>\n");
-        virBufferAsprintf(&buf, "    <path>%s</path>\n", target);
-        virBufferAddLit(&buf, "  </target>\n");
+        virBufferAddLit(&buf, "<target>\n");
+        virBufferAdjustIndent(&buf, 2);
+        virBufferAsprintf(&buf, "<path>%s</path>\n", target);
+        virBufferAdjustIndent(&buf, -2);
+        virBufferAddLit(&buf, "</target>\n");
     }
+    virBufferAdjustIndent(&buf, -2);
     virBufferAddLit(&buf, "</pool>\n");
 
     if (virBufferError(&buf)) {
@@ -284,7 +290,7 @@ vshBuildPoolXML(vshControl *ctl,
     *retname = name;
     return true;
 
-cleanup:
+ cleanup:
     virBufferFreeAndReset(&buf);
     return false;
 }
@@ -749,7 +755,7 @@ vshStoragePoolListCollect(vshControl *ctl,
     goto cleanup;
 
 
-fallback:
+ fallback:
     /* fall back to old method (0.10.1 and older) */
     vshResetLibvirtError();
 
@@ -826,7 +832,7 @@ fallback:
     /* truncate pools that weren't found */
     deleted = nAllPools - list->npools;
 
-filter:
+ filter:
     /* filter list the list if the list was acquired by fallback means */
     for (i = 0; i < list->npools; i++) {
         pool = list->pools[i];
@@ -858,14 +864,14 @@ filter:
         /* the pool matched all filters, it may stay */
         continue;
 
-remove_entry:
+ remove_entry:
         /* the pool has to be removed as it failed one of the filters */
         virStoragePoolFree(list->pools[i]);
         list->pools[i] = NULL;
         deleted++;
     }
 
-finished:
+ finished:
     /* sort the list */
     if (list->pools && list->npools)
         qsort(list->pools, list->npools,
@@ -877,7 +883,7 @@ finished:
 
     success = true;
 
-cleanup:
+ cleanup:
     for (i = 0; i < nAllPools; i++)
         VIR_FREE(names[i]);
 
@@ -1299,7 +1305,7 @@ cmdPoolList(vshControl *ctl, const vshCmd *cmd ATTRIBUTE_UNUSED)
     /* Cleanup and return */
     ret = true;
 
-cleanup:
+ cleanup:
     VIR_FREE(outputStr);
     if (list && list->npools) {
         for (i = 0; i < list->npools; i++) {
@@ -1374,15 +1380,19 @@ cmdPoolDiscoverSourcesAs(vshControl * ctl, const vshCmd * cmd ATTRIBUTE_UNUSED)
             return false;
         }
         virBufferAddLit(&buf, "<source>\n");
-        virBufferAsprintf(&buf, "  <host name='%s'", host);
+        virBufferAdjustIndent(&buf, 2);
+        virBufferAsprintf(&buf, "<host name='%s'", host);
         if (port)
             virBufferAsprintf(&buf, " port='%s'", port);
         virBufferAddLit(&buf, "/>\n");
         if (initiator) {
-            virBufferAddLit(&buf, "  <initiator>\n");
-            virBufferAsprintf(&buf, "    <iqn name='%s'/>\n", initiator);
-            virBufferAddLit(&buf, "  </initiator>\n");
+            virBufferAddLit(&buf, "<initiator>\n");
+            virBufferAdjustIndent(&buf, 2);
+            virBufferAsprintf(&buf, "<iqn name='%s'/>\n", initiator);
+            virBufferAdjustIndent(&buf, -2);
+            virBufferAddLit(&buf, "</initiator>\n");
         }
+        virBufferAdjustIndent(&buf, -2);
         virBufferAddLit(&buf, "</source>\n");
         if (virBufferError(&buf)) {
             vshError(ctl, "%s", _("Out of memory"));
@@ -1494,7 +1504,7 @@ cmdPoolInfo(vshControl *ctl, const vshCmd *cmd)
 
     vshPrint(ctl, "%-15s %s\n", _("Name:"), virStoragePoolGetName(pool));
 
-    if (virStoragePoolGetUUIDString(pool, &uuid[0])==0)
+    if (virStoragePoolGetUUIDString(pool, &uuid[0]) == 0)
         vshPrint(ctl, "%-15s %s\n", _("UUID:"), uuid);
 
     if (virStoragePoolGetInfo(pool, &info) == 0) {

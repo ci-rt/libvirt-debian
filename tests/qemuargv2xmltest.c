@@ -36,7 +36,8 @@ static int blankProblemElements(char *data)
 
 static int testCompareXMLToArgvFiles(const char *xml,
                                      const char *cmdfile,
-                                     bool expect_warning) {
+                                     bool expect_warning)
+{
     char *expectxml = NULL;
     char *actualxml = NULL;
     char *cmd = NULL;
@@ -113,7 +114,7 @@ testCompareXMLToArgvHelper(const void *data)
 
     result = testCompareXMLToArgvFiles(xml, args, !!info->extraFlags);
 
-cleanup:
+ cleanup:
     VIR_FREE(xml);
     VIR_FREE(args);
     return result;
@@ -271,7 +272,7 @@ mymain(void)
     virObjectUnref(driver.caps);
     virObjectUnref(driver.xmlopt);
 
-    return ret==0 ? EXIT_SUCCESS : EXIT_FAILURE;
+    return ret == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
 VIRT_TEST_MAIN(mymain)

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013 Red Hat, Inc.
+ * Copyright (C) 2013, 2014 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -30,6 +30,8 @@
 # include "virlog.h"
 
 # define VIR_FROM_THIS VIR_FROM_NONE
+
+VIR_LOG_INIT("tests.systemdtest");
 
 static int testCreateContainer(const void *opaque ATTRIBUTE_UNUSED)
 {
@@ -135,6 +137,40 @@ static int testCreateNoSystemd(const void *opaque ATTRIBUTE_UNUSED)
     return 0;
 }
 
+static int testCreateSystemdNotRunning(const void *opaque ATTRIBUTE_UNUSED)
+{
+    unsigned char uuid[VIR_UUID_BUFLEN] = {
+        1, 1, 1, 1,
+        2, 2, 2, 2,
+        3, 3, 3, 3,
+        4, 4, 4, 4
+    };
+    int rv;
+
+    setenv("FAIL_NOT_REGISTERED", "1", 1);
+
+    if ((rv = virSystemdCreateMachine("demo",
+                                      "qemu",
+                                      true,
+                                      uuid,
+                                      NULL,
+                                      123,
+                                      false,
+                                      NULL)) == 0) {
+        unsetenv("FAIL_NOT_REGISTERED");
+        fprintf(stderr, "%s", "Unexpected create machine success\n");
+        return -1;
+    }
+    unsetenv("FAIL_NOT_REGISTERED");
+
+    if (rv != -2) {
+        fprintf(stderr, "%s", "Unexpected create machine error\n");
+        return -1;
+    }
+
+    return 0;
+}
+
 static int testCreateBadSystemd(const void *opaque ATTRIBUTE_UNUSED)
 {
     unsigned char uuid[VIR_UUID_BUFLEN] = {
@@ -216,6 +252,9 @@ mymain(void)
         ret = -1;
     if (virtTestRun("Test create no systemd ", testCreateNoSystemd, NULL) < 0)
         ret = -1;
+    if (virtTestRun("Test create systemd not running ",
+                    testCreateSystemdNotRunning, NULL) < 0)
+        ret = -1;
     if (virtTestRun("Test create bad systemd ", testCreateBadSystemd, NULL) < 0)
         ret = -1;
 
@@ -236,7 +275,7 @@ mymain(void)
     TEST_SCOPE("demo", "/machine/eng-dept/testing!stuff",
                "machine-eng\\x2ddept-testing\\x21stuff-lxc\\x2ddemo.scope");
 
-    return ret==0 ? EXIT_SUCCESS : EXIT_FAILURE;
+    return ret == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
 VIRT_TEST_MAIN_PRELOAD(mymain, abs_builddir "/.libs/virsystemdmock.so")

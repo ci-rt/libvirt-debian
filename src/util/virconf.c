@@ -1,7 +1,7 @@
 /*
  * virconf.c: parser for a subset of the Python encoded Xen configuration files
  *
- * Copyright (C) 2006-2013 Red Hat, Inc.
+ * Copyright (C) 2006-2014 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -40,6 +40,8 @@
 #include "virstring.h"
 
 #define VIR_FROM_THIS VIR_FROM_CONF
+
+VIR_LOG_INIT("util.conf");
 
 /************************************************************************
  *									*
@@ -706,7 +708,8 @@ virConfParseStatement(virConfParserCtxtPtr ctxt)
  */
 static virConfPtr
 virConfParse(const char *filename, const char *content, int len,
-             unsigned int flags) {
+             unsigned int flags)
+{
     virConfParserCtxt ctxt;
 
     ctxt.filename = filename;
@@ -727,7 +730,7 @@ virConfParse(const char *filename, const char *content, int len,
 
     return ctxt.conf;
 
-error:
+ error:
     virConfFree(ctxt.conf);
     return NULL;
 }

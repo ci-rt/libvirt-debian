@@ -1,7 +1,7 @@
 /*
  * virebtables.c: Helper APIs for managing ebtables
  *
- * Copyright (C) 2007-2013 Red Hat, Inc.
+ * Copyright (C) 2007-2014 Red Hat, Inc.
  * Copyright (C) 2009 IBM Corp.
  *
  * This library is free software; you can redistribute it and/or
@@ -54,6 +54,8 @@
 
 #define VIR_FROM_THIS VIR_FROM_NONE
 
+VIR_LOG_INIT("util.ebtables");
+
 #if HAVE_FIREWALLD
 static char *firewall_cmd_path = NULL;
 
@@ -66,10 +68,9 @@ virEbTablesOnceInit(void)
                  "firewalld support disabled for ebtables.");
     } else {
         virCommandPtr cmd = virCommandNew(firewall_cmd_path);
-        int status;
 
         virCommandAddArgList(cmd, "--state", NULL);
-        if (virCommandRun(cmd, &status) < 0 || status != 0) {
+        if (virCommandRun(cmd, NULL) < 0) {
             VIR_INFO("firewall-cmd found but disabled for ebtables");
             VIR_FREE(firewall_cmd_path);
             firewall_cmd_path = NULL;
@@ -87,133 +88,23 @@ VIR_ONCE_GLOBAL_INIT(virEbTables)
 
 struct _ebtablesContext
 {
-    ebtRules *input_filter;
-    ebtRules *forward_filter;
-    ebtRules *nat_postrouting;
+    char *chain;
 };
 
 enum {
     ADD = 0,
     REMOVE,
-    CREATE,
-    POLICY,
-    INSERT
 };
 
-static void
-ebtRuleFree(ebtRule *rule)
-{
-    VIR_FREE(rule->rule);
-
-    if (rule->argv) {
-        size_t i = 0;
-        while (rule->argv[i])
-            VIR_FREE(rule->argv[i++]);
-        VIR_FREE(rule->argv);
-    }
-}
-
-static int
-ebtRulesAppend(ebtRules *rules,
-               char *rule,
-               char **argv,
-               int command_idx)
-{
-    if (VIR_REALLOC_N(rules->rules, rules->nrules+1) < 0) {
-        size_t i = 0;
-        while (argv[i])
-            VIR_FREE(argv[i++]);
-        VIR_FREE(argv);
-        return ENOMEM;
-    }
-
-    rules->rules[rules->nrules].rule        = rule;
-    rules->rules[rules->nrules].argv        = argv;
-    rules->rules[rules->nrules].command_idx = command_idx;
-
-    rules->nrules++;
-
-    return 0;
-}
-
-static int
-ebtRulesRemove(ebtRules *rules,
-               char *rule)
-{
-    size_t i;
-
-    for (i = 0; i < rules->nrules; i++)
-        if (STREQ(rules->rules[i].rule, rule))
-            break;
-
-    if (i >= rules->nrules)
-        return EINVAL;
-
-    ebtRuleFree(&rules->rules[i]);
-
-    memmove(&rules->rules[i],
-            &rules->rules[i+1],
-            (rules->nrules - i - 1) * sizeof(ebtRule));
-
-    rules->nrules--;
-
-    return 0;
-}
-
-static void
-ebtRulesFree(ebtRules *rules)
-{
-    size_t i;
-
-    VIR_FREE(rules->table);
-    VIR_FREE(rules->chain);
-
-    if (rules->rules) {
-        for (i = 0; i < rules->nrules; i++)
-            ebtRuleFree(&rules->rules[i]);
-
-        VIR_FREE(rules->rules);
-
-        rules->nrules = 0;
-    }
-
-    VIR_FREE(rules);
-}
-
-static ebtRules *
-ebtRulesNew(const char *table,
-            const char *chain)
-{
-    ebtRules *rules;
-
-    if (VIR_ALLOC(rules) < 0)
-        return NULL;
-
-    if (VIR_STRDUP(rules->table, table) < 0)
-        goto error;
-
-    if (VIR_STRDUP(rules->chain, chain) < 0)
-        goto error;
-
-    rules->rules = NULL;
-    rules->nrules = 0;
-
-    return rules;
-
- error:
-    ebtRulesFree(rules);
-    return NULL;
-}
 
 static int ATTRIBUTE_SENTINEL
-ebtablesAddRemoveRule(ebtRules *rules, int action, const char *arg, ...)
+ebtablesAddRemoveRule(const char *arg, ...)
 {
     va_list args;
     int retval = ENOMEM;
     char **argv;
-    char *rule = NULL;
     const char *s;
-    int n, command_idx;
+    int n;
 
     n = 1 + /* /sbin/ebtables  */
         2 + /*   --table foo   */
@@ -252,16 +143,6 @@ ebtablesAddRemoveRule(ebtRules *rules, int action, const char *arg, ...)
     if (VIR_STRDUP(argv[n++], EBTABLES_PATH) < 0)
         goto error;
 
-    command_idx = n;
-
-    if (action == ADD || action == REMOVE) {
-        if (VIR_STRDUP(argv[n++], "--insert") < 0)
-            goto error;
-
-        if (VIR_STRDUP(argv[n++], rules->chain) < 0)
-            goto error;
-    }
-
     if (VIR_STRDUP(argv[n++], arg) < 0)
         goto error;
 
@@ -276,32 +157,12 @@ ebtablesAddRemoveRule(ebtRules *rules, int action, const char *arg, ...)
 
     va_end(args);
 
-    if (!(rule = virArgvToString((const char **) &argv[command_idx])))
-        goto error;
-
-    if (action == REMOVE) {
-        VIR_FREE(argv[command_idx]);
-        if (VIR_STRDUP(argv[command_idx], "--delete") < 0)
-            goto error;
-    }
-
     if (virRun((const char **)argv, NULL) < 0) {
         retval = errno;
         goto error;
     }
 
-    if (action == ADD || action == CREATE || action == POLICY ||
-        action == INSERT) {
-        retval = ebtRulesAppend(rules, rule, argv, command_idx);
-        rule = NULL;
-        argv = NULL;
-    } else {
-        retval = ebtRulesRemove(rules, rule);
-    }
-
  error:
-    VIR_FREE(rule);
-
     if (argv) {
         n = 0;
         while (argv[n])
@@ -323,40 +184,14 @@ ebtablesAddRemoveRule(ebtRules *rules, int action, const char *arg, ...)
 ebtablesContext *
 ebtablesContextNew(const char *driver)
 {
-    bool success = false;
     ebtablesContext *ctx = NULL;
-    char *input_chain = NULL;
-    char *forward_chain = NULL;
-    char *nat_chain = NULL;
 
     if (VIR_ALLOC(ctx) < 0)
         return NULL;
 
-    if (virAsprintf(&input_chain, "libvirt_%s_INPUT", driver) < 0 ||
-        virAsprintf(&forward_chain, "libvirt_%s_FORWARD", driver) < 0 ||
-        virAsprintf(&nat_chain, "libvirt_%s_POSTROUTING", driver) < 0) {
-        goto cleanup;
-    }
-
-    if (!(ctx->input_filter = ebtRulesNew("filter", input_chain)))
-        goto cleanup;
-
-    if (!(ctx->forward_filter = ebtRulesNew("filter", forward_chain)))
-        goto cleanup;
-
-    if (!(ctx->nat_postrouting = ebtRulesNew("nat", nat_chain)))
-        goto cleanup;
-
-    success = true;
-
-cleanup:
-    VIR_FREE(input_chain);
-    VIR_FREE(forward_chain);
-    VIR_FREE(nat_chain);
-
-    if (!success) {
-        ebtablesContextFree(ctx);
-        ctx = NULL;
+    if (virAsprintf(&ctx->chain, "libvirt_%s_FORWARD", driver) < 0) {
+        VIR_FREE(ctx);
+        return NULL;
     }
 
     return ctx;
@@ -373,49 +208,22 @@ ebtablesContextFree(ebtablesContext *ctx)
 {
     if (!ctx)
         return;
-    if (ctx->input_filter)
-        ebtRulesFree(ctx->input_filter);
-    if (ctx->forward_filter)
-        ebtRulesFree(ctx->forward_filter);
-    if (ctx->nat_postrouting)
-        ebtRulesFree(ctx->nat_postrouting);
+    VIR_FREE(ctx->chain);
     VIR_FREE(ctx);
 }
+
 
 int
 ebtablesAddForwardPolicyReject(ebtablesContext *ctx)
 {
-    return ebtablesForwardPolicyReject(ctx, ADD);
-}
-
-
-int
-ebtablesRemoveForwardPolicyReject(ebtablesContext *ctx)
-{
-    return ebtablesForwardPolicyReject(ctx, REMOVE);
-}
-
-int
-ebtablesForwardPolicyReject(ebtablesContext *ctx,
-                            int action)
-{
-    /* create it, if it does not exist */
-    if (action == ADD) {
-        ebtablesAddRemoveRule(ctx->forward_filter,
-                              CREATE,
-                              "--new-chain", ctx->forward_filter->chain, NULL,
-                              NULL);
-        ebtablesAddRemoveRule(ctx->forward_filter,
-                              INSERT,
-                              "--insert", "FORWARD", "--jump",
-                              ctx->forward_filter->chain, NULL);
-    }
-
-    return ebtablesAddRemoveRule(ctx->forward_filter,
-                                 POLICY,
-                                 "-P", ctx->forward_filter->chain, "DROP",
+    ebtablesAddRemoveRule("--new-chain", ctx->chain, NULL,
+                          NULL);
+    ebtablesAddRemoveRule("--insert", "FORWARD", "--jump",
+                          ctx->chain, NULL);
+    return ebtablesAddRemoveRule("-P", ctx->chain, "DROP",
                                  NULL);
 }
+
 
 /*
  * Allow all traffic destined to the bridge, with a valid network address
@@ -426,12 +234,12 @@ ebtablesForwardAllowIn(ebtablesContext *ctx,
                        const char *macaddr,
                        int action)
 {
-    return ebtablesAddRemoveRule(ctx->forward_filter,
-                                     action,
-                                     "--in-interface", iface,
-                                     "--source", macaddr,
-                                     "--jump", "ACCEPT",
-                                     NULL);
+    return ebtablesAddRemoveRule(action == ADD ? "--insert" : "--delete",
+                                 ctx->chain,
+                                 "--in-interface", iface,
+                                 "--source", macaddr,
+                                 "--jump", "ACCEPT",
+                                 NULL);
 }
 
 /**

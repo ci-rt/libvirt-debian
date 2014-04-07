@@ -1,5 +1,5 @@
 /*
- * bhyve_process.c: bhyve command generation
+ * bhyve_command.c: bhyve command generation
  *
  * Copyright (C) 2014 Roman Bogorodskiy
  *
@@ -21,10 +21,7 @@
 
 #include <config.h>
 
-#include <fcntl.h>
 #include <sys/types.h>
-#include <dirent.h>
-#include <sys/ioctl.h>
 #include <net/if.h>
 #include <net/if_tap.h>
 
@@ -39,70 +36,7 @@
 
 #define VIR_FROM_THIS VIR_FROM_BHYVE
 
-static char*
-virBhyveTapGetRealDeviceName(char *name)
-{
-    /* This is an ugly hack, because if we rename
-     * tap device to vnet%d, its device name will be
-     * still /dev/tap%d, and bhyve tries to open /dev/tap%d,
-     * so we have to find the real name
-     */
-    char *ret = NULL;
-    struct dirent *dp;
-    char *devpath = NULL;
-    int fd;
-
-    DIR *dirp = opendir("/dev");
-    if (dirp == NULL) {
-        virReportSystemError(errno,
-                             _("Failed to opendir path '%s'"),
-                             "/dev");
-        return NULL;
-    }
-
-    while ((dp = readdir(dirp)) != NULL) {
-        if (STRPREFIX(dp->d_name, "tap")) {
-            struct ifreq ifr;
-            if (virAsprintf(&devpath, "/dev/%s", dp->d_name) < 0) {
-                goto cleanup;
-            }
-            if ((fd = open(devpath, O_RDWR)) < 0) {
-                virReportSystemError(errno, _("Unable to open '%s'"), devpath);
-                goto cleanup;
-            }
-
-            if (ioctl(fd, TAPGIFNAME, (void *)&ifr) < 0) {
-                virReportSystemError(errno, "%s",
-                                     _("Unable to query tap interface name"));
-                goto cleanup;
-            }
-
-            if (STREQ(name, ifr.ifr_name)) {
-                /* we can ignore the return value
-                 * because we still have nothing
-                 * to do but return;
-                 */
-                ignore_value(VIR_STRDUP(ret, dp->d_name));
-                goto cleanup;
-            }
-
-            VIR_FREE(devpath);
-            VIR_FORCE_CLOSE(fd);
-        }
-
-        errno = 0;
-    }
-
-    if (errno != 0)
-        virReportSystemError(errno, "%s",
-                             _("Unable to iterate over TAP devices"));
-
-cleanup:
-    VIR_FREE(devpath);
-    VIR_FORCE_CLOSE(fd);
-    closedir(dirp);
-    return ret;
-}
+VIR_LOG_INIT("bhyve.bhyve_command");
 
 static int
 bhyveBuildNetArgStr(const virDomainDef *def, virCommandPtr cmd)
@@ -111,6 +45,7 @@ bhyveBuildNetArgStr(const virDomainDef *def, virCommandPtr cmd)
     char *brname = NULL;
     char *realifname = NULL;
     int *tapfd = NULL;
+    char macaddr[VIR_MAC_STRING_BUFLEN];
 
     if (def->nnets != 1) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
@@ -154,7 +89,7 @@ bhyveBuildNetArgStr(const virDomainDef *def, virCommandPtr cmd)
         }
     }
 
-    realifname = virBhyveTapGetRealDeviceName(net->ifname);
+    realifname = virNetDevTapGetRealDeviceName(net->ifname);
 
     if (realifname == NULL) {
         VIR_FREE(net->ifname);
@@ -173,9 +108,9 @@ bhyveBuildNetArgStr(const virDomainDef *def, virCommandPtr cmd)
         return -1;
     }
 
-    virCommandAddArgList(cmd, "-s", "0:0,hostbridge", NULL);
     virCommandAddArg(cmd, "-s");
-    virCommandAddArgFormat(cmd, "1:0,virtio-net,%s", realifname);
+    virCommandAddArgFormat(cmd, "1:0,virtio-net,%s,mac=%s",
+                           realifname, virMacAddrFormat(&net->mac, macaddr));
 
     return 0;
 }
@@ -184,6 +119,7 @@ static int
 bhyveBuildDiskArgStr(const virDomainDef *def, virCommandPtr cmd)
 {
     virDomainDiskDefPtr disk;
+    const char *bus_type;
 
     if (def->ndisks != 1) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
@@ -193,7 +129,14 @@ bhyveBuildDiskArgStr(const virDomainDef *def, virCommandPtr cmd)
 
     disk = def->disks[0];
 
-    if (disk->bus != VIR_DOMAIN_DISK_BUS_SATA) {
+    switch (disk->bus) {
+    case VIR_DOMAIN_DISK_BUS_SATA:
+        bus_type = "ahci-hd";
+        break;
+    case VIR_DOMAIN_DISK_BUS_VIRTIO:
+        bus_type = "virtio-blk";
+        break;
+    default:
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("unsupported disk bus type"));
         return -1;
@@ -205,14 +148,15 @@ bhyveBuildDiskArgStr(const virDomainDef *def, virCommandPtr cmd)
         return -1;
     }
 
-    if (disk->type != VIR_DOMAIN_DISK_TYPE_FILE) {
+    if (virDomainDiskGetType(disk) != VIR_DOMAIN_DISK_TYPE_FILE) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("unsupported disk type"));
         return -1;
     }
 
     virCommandAddArg(cmd, "-s");
-    virCommandAddArgFormat(cmd, "2:0,ahci-hd,%s", disk->src);
+    virCommandAddArgFormat(cmd, "2:0,%s,%s", bus_type,
+                           virDomainDiskGetSource(disk));
 
     return 0;
 }
@@ -260,6 +204,7 @@ virBhyveProcessBuildBhyveCmd(bhyveConnPtr driver ATTRIBUTE_UNUSED,
     virCommandAddArg(cmd, "-H"); /* vmexit from guest on hlt */
     virCommandAddArg(cmd, "-P"); /* vmexit from guest on pause */
 
+    virCommandAddArgList(cmd, "-s", "0:0,hostbridge", NULL);
     /* Devices */
     if (bhyveBuildNetArgStr(vm->def, cmd) < 0)
         goto error;
@@ -269,7 +214,7 @@ virBhyveProcessBuildBhyveCmd(bhyveConnPtr driver ATTRIBUTE_UNUSED,
 
     return cmd;
 
-error:
+ error:
     virCommandFree(cmd);
     return NULL;
 }
@@ -307,7 +252,7 @@ virBhyveProcessBuildLoadCmd(bhyveConnPtr driver ATTRIBUTE_UNUSED,
         return NULL;
     }
 
-    if (disk->type != VIR_DOMAIN_DISK_TYPE_FILE) {
+    if (virDomainDiskGetType(disk) != VIR_DOMAIN_DISK_TYPE_FILE) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("unsupported disk type"));
         return NULL;
@@ -322,7 +267,7 @@ virBhyveProcessBuildLoadCmd(bhyveConnPtr driver ATTRIBUTE_UNUSED,
 
     /* Image path */
     virCommandAddArg(cmd, "-d");
-    virCommandAddArg(cmd, disk->src);
+    virCommandAddArg(cmd, virDomainDiskGetSource(disk));
 
     /* VM name */
     virCommandAddArg(cmd, vm->def->name);

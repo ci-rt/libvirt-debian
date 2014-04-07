@@ -44,11 +44,49 @@
 
 #define VIR_FROM_THIS	VIR_FROM_BHYVE
 
+VIR_LOG_INIT("bhyve.bhyve_process");
+
+static virDomainObjPtr
+bhyveProcessAutoDestroy(virDomainObjPtr vm,
+                        virConnectPtr conn ATTRIBUTE_UNUSED,
+                        void *opaque)
+{
+    bhyveConnPtr driver = opaque;
+
+    virBhyveProcessStop(driver, vm, VIR_DOMAIN_SHUTOFF_DESTROYED);
+
+    if (!vm->persistent) {
+        virDomainObjListRemove(driver->domains, vm);
+        vm = NULL;
+    }
+
+    return vm;
+}
+
+static void
+bhyveNetCleanup(virDomainObjPtr vm)
+{
+    size_t i;
+
+    for (i = 0; i < vm->def->nnets; i++) {
+        virDomainNetDefPtr net = vm->def->nets[i];
+        int actualType = virDomainNetGetActualType(net);
+
+        if (actualType == VIR_DOMAIN_NET_TYPE_BRIDGE) {
+            ignore_value(virNetDevBridgeRemovePort(
+                            virDomainNetGetActualBridgeName(net),
+                            net->ifname));
+            ignore_value(virNetDevTapDelete(net->ifname));
+        }
+    }
+}
+
 int
 virBhyveProcessStart(virConnectPtr conn,
                      bhyveConnPtr driver,
                      virDomainObjPtr vm,
-                     virDomainRunningReason reason)
+                     virDomainRunningReason reason,
+                     unsigned int flags)
 {
     char *logfile = NULL;
     int logfd = -1;
@@ -57,7 +95,7 @@ virBhyveProcessStart(virConnectPtr conn,
     virCommandPtr cmd = NULL;
     virCommandPtr load_cmd = NULL;
     bhyveConnPtr privconn = conn->privateData;
-    int ret = -1, status;
+    int ret = -1;
 
     if (virAsprintf(&logfile, "%s/%s.log",
                     BHYVE_LOG_DIR, vm->def->name) < 0)
@@ -114,33 +152,31 @@ virBhyveProcessStart(virConnectPtr conn,
                  virStrerror(errno, ebuf, sizeof(ebuf)));
 
     VIR_DEBUG("Loading domain '%s'", vm->def->name);
-    if (virCommandRun(load_cmd, &status) < 0)
+    if (virCommandRun(load_cmd, NULL) < 0)
         goto cleanup;
-
-    if (status != 0) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("Guest failed to load: %d"), status);
-        goto cleanup;
-    }
 
     /* Now we can start the domain */
     VIR_DEBUG("Starting domain '%s'", vm->def->name);
-    ret = virCommandRun(cmd, NULL);
+    if (virCommandRun(cmd, NULL) < 0)
+        goto cleanup;
 
-    if (ret == 0) {
-        if (virPidFileReadPath(privconn->pidfile, &vm->pid) < 0) {
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("Domain %s didn't show up"), vm->def->name);
-            goto cleanup;
-        }
-
-        vm->def->id = vm->pid;
-        virDomainObjSetState(vm, VIR_DOMAIN_RUNNING, reason);
-    } else {
+    if (virPidFileReadPath(privconn->pidfile, &vm->pid) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Domain %s didn't show up"), vm->def->name);
         goto cleanup;
     }
 
-cleanup:
+    if (flags & VIR_BHYVE_PROCESS_START_AUTODESTROY &&
+        virCloseCallbacksSet(driver->closeCallbacks, vm,
+                             conn, bhyveProcessAutoDestroy) < 0)
+        goto cleanup;
+
+    vm->def->id = vm->pid;
+    virDomainObjSetState(vm, VIR_DOMAIN_RUNNING, reason);
+
+    ret = 0;
+
+ cleanup:
     if (ret < 0) {
         virCommandPtr destroy_cmd;
         if ((destroy_cmd = virBhyveProcessBuildDestroyCmd(driver, vm)) != NULL) {
@@ -149,6 +185,8 @@ cleanup:
             ignore_value(virCommandRun(destroy_cmd, NULL));
             virCommandFree(destroy_cmd);
         }
+
+        bhyveNetCleanup(vm);
     }
 
     virCommandFree(load_cmd);
@@ -163,9 +201,7 @@ virBhyveProcessStop(bhyveConnPtr driver,
                     virDomainObjPtr vm,
                     virDomainShutoffReason reason ATTRIBUTE_UNUSED)
 {
-    size_t i;
     int ret = -1;
-    int status;
     virCommandPtr cmd = NULL;
 
     if (!virDomainObjIsActive(vm)) {
@@ -186,39 +222,27 @@ virBhyveProcessStop(bhyveConnPtr driver,
                  vm->def->name,
                  (int)vm->pid);
 
-    for (i = 0; i < vm->def->nnets; i++) {
-        virDomainNetDefPtr net = vm->def->nets[i];
-        int actualType = virDomainNetGetActualType(net);
-
-        if (actualType == VIR_DOMAIN_NET_TYPE_BRIDGE) {
-            ignore_value(virNetDevBridgeRemovePort(
-                            virDomainNetGetActualBridgeName(net),
-                            net->ifname));
-            ignore_value(virNetDevTapDelete(net->ifname));
-        }
-    }
+    /* Cleanup network interfaces */
+    bhyveNetCleanup(vm);
 
     /* No matter if shutdown was successful or not, we
      * need to unload the VM */
     if (!(cmd = virBhyveProcessBuildDestroyCmd(driver, vm)))
         goto cleanup;
 
-    if (virCommandRun(cmd, &status) < 0)
+    if (virCommandRun(cmd, NULL) < 0)
         goto cleanup;
-
-    if (status != 0) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("Guest failed to stop: %d"), status);
-        goto cleanup;
-    }
 
     ret = 0;
+
+    virCloseCallbacksUnset(driver->closeCallbacks, vm,
+                           bhyveProcessAutoDestroy);
 
     virDomainObjSetState(vm, VIR_DOMAIN_SHUTOFF, reason);
     vm->pid = -1;
     vm->def->id = -1;
 
-cleanup:
+ cleanup:
     virCommandFree(cmd);
     return ret;
 }

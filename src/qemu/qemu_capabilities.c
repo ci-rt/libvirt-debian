@@ -25,6 +25,7 @@
 
 #include "qemu_capabilities.h"
 #include "viralloc.h"
+#include "vircrypto.h"
 #include "virlog.h"
 #include "virerror.h"
 #include "virfile.h"
@@ -46,6 +47,8 @@
 #include <stdarg.h>
 
 #define VIR_FROM_THIS VIR_FROM_QEMU
+
+VIR_LOG_INIT("qemu.qemu_capabilities");
 
 /* While not public, these strings must not change. They
  * are used in domain status files which are read on
@@ -253,13 +256,21 @@ VIR_ENUM_IMPL(virQEMUCaps, QEMU_CAPS_LAST,
               "usb-kbd", /* 165 */
     );
 
+
+/*
+ * Update the XML parser/formatter when adding more
+ * information to this struct so that it gets cached
+ * correctly. It does not have to be ABI-stable, as
+ * the cache will be discarded & repopulated if the
+ * timestamp on the libvirtd binary changes.
+ */
 struct _virQEMUCaps {
     virObject object;
 
     bool usedQMP;
 
     char *binary;
-    time_t mtime;
+    time_t ctime;
 
     virBitmapPtr flags;
 
@@ -281,7 +292,7 @@ struct _virQEMUCapsCache {
     virMutex lock;
     virHashTablePtr binaries;
     char *libDir;
-    char *runDir;
+    char *cacheDir;
     uid_t runUid;
     gid_t runGid;
 };
@@ -471,7 +482,7 @@ virQEMUCapsProbeMachineTypes(virQEMUCapsPtr qemuCaps,
 
     ret = 0;
 
-cleanup:
+ cleanup:
     VIR_FREE(output);
     virCommandFree(cmd);
 
@@ -535,7 +546,7 @@ virQEMUCapsParseX86Models(const char *output,
 
     ret = 0;
 
-cleanup:
+ cleanup:
     return ret;
 }
 
@@ -584,7 +595,7 @@ virQEMUCapsParsePPCModels(const char *output,
 
     ret = 0;
 
-cleanup:
+ cleanup:
     return ret;
 }
 
@@ -619,7 +630,7 @@ virQEMUCapsProbeCPUModels(virQEMUCapsPtr qemuCaps, uid_t runUid, gid_t runGid)
 
     ret = 0;
 
-cleanup:
+ cleanup:
     VIR_FREE(output);
     virCommandFree(cmd);
 
@@ -680,14 +691,9 @@ virQEMUCapsInitGuest(virCapsPtr caps,
                      virArch hostarch,
                      virArch guestarch)
 {
-    virCapsGuestPtr guest;
     size_t i;
-    bool haskvm = false;
-    bool haskqemu = false;
     char *kvmbin = NULL;
     char *binary = NULL;
-    virCapsGuestMachinePtr *machines = NULL;
-    size_t nmachines = 0;
     virQEMUCapsPtr qemubinCaps = NULL;
     virQEMUCapsPtr kvmbinCaps = NULL;
     int ret = -1;
@@ -738,6 +744,35 @@ virQEMUCapsInitGuest(virCapsPtr caps,
         }
     }
 
+    ret = virQEMUCapsInitGuestFromBinary(caps,
+                                         binary, qemubinCaps,
+                                         kvmbin, kvmbinCaps,
+                                         guestarch);
+
+    VIR_FREE(binary);
+    VIR_FREE(kvmbin);
+    virObjectUnref(qemubinCaps);
+    virObjectUnref(kvmbinCaps);
+
+    return ret;
+}
+
+int
+virQEMUCapsInitGuestFromBinary(virCapsPtr caps,
+                               const char *binary,
+                               virQEMUCapsPtr qemubinCaps,
+                               const char *kvmbin,
+                               virQEMUCapsPtr kvmbinCaps,
+                               virArch guestarch)
+{
+    virCapsGuestPtr guest;
+    bool haskvm = false;
+    bool haskqemu = false;
+    virCapsGuestMachinePtr *machines = NULL;
+    size_t nmachines = 0;
+    int ret = -1;
+    bool hasdisksnapshot = false;
+
     if (!binary)
         return 0;
 
@@ -752,7 +787,7 @@ virQEMUCapsInitGuest(virCapsPtr caps,
         haskqemu = true;
 
     if (virQEMUCapsGetMachineTypesCaps(qemubinCaps, &nmachines, &machines) < 0)
-        goto error;
+        goto cleanup;
 
     /* We register kvm as the base emulator too, since we can
      * just give -no-kvm to disable acceleration if required */
@@ -763,7 +798,7 @@ virQEMUCapsInitGuest(virCapsPtr caps,
                                          NULL,
                                          nmachines,
                                          machines)) == NULL)
-        goto error;
+        goto cleanup;
 
     machines = NULL;
     nmachines = 0;
@@ -772,11 +807,17 @@ virQEMUCapsInitGuest(virCapsPtr caps,
         caps->host.cpu->model &&
         virQEMUCapsGetCPUDefinitions(qemubinCaps, NULL) > 0 &&
         !virCapabilitiesAddGuestFeature(guest, "cpuselection", 1, 0))
-        goto error;
+        goto cleanup;
 
     if (virQEMUCapsGet(qemubinCaps, QEMU_CAPS_BOOTINDEX) &&
         !virCapabilitiesAddGuestFeature(guest, "deviceboot", 1, 0))
-        goto error;
+        goto cleanup;
+
+    if (virQEMUCapsGet(qemubinCaps, QEMU_CAPS_DISK_SNAPSHOT))
+        hasdisksnapshot = true;
+
+    if (!virCapabilitiesAddGuestFeature(guest, "disksnapshot", hasdisksnapshot, 0))
+        goto cleanup;
 
     if (virCapabilitiesAddGuestDomain(guest,
                                       "qemu",
@@ -784,7 +825,7 @@ virQEMUCapsInitGuest(virCapsPtr caps,
                                       NULL,
                                       0,
                                       NULL) == NULL)
-        goto error;
+        goto cleanup;
 
     if (haskqemu &&
         virCapabilitiesAddGuestDomain(guest,
@@ -793,14 +834,14 @@ virQEMUCapsInitGuest(virCapsPtr caps,
                                       NULL,
                                       0,
                                       NULL) == NULL)
-        goto error;
+        goto cleanup;
 
     if (haskvm) {
         virCapsGuestDomainPtr dom;
 
         if (kvmbin &&
             virQEMUCapsGetMachineTypesCaps(kvmbinCaps, &nmachines, &machines) < 0)
-            goto error;
+            goto cleanup;
 
         if ((dom = virCapabilitiesAddGuestDomain(guest,
                                                  "kvm",
@@ -808,7 +849,7 @@ virQEMUCapsInitGuest(virCapsPtr caps,
                                                  NULL,
                                                  nmachines,
                                                  machines)) == NULL) {
-            goto error;
+            goto cleanup;
         }
 
         machines = NULL;
@@ -820,27 +861,20 @@ virQEMUCapsInitGuest(virCapsPtr caps,
          (guestarch == VIR_ARCH_X86_64)) &&
         (virCapabilitiesAddGuestFeature(guest, "acpi", 1, 1) == NULL ||
          virCapabilitiesAddGuestFeature(guest, "apic", 1, 0) == NULL))
-        goto error;
+        goto cleanup;
 
     if ((guestarch == VIR_ARCH_I686) &&
         (virCapabilitiesAddGuestFeature(guest, "pae", 1, 0) == NULL ||
          virCapabilitiesAddGuestFeature(guest, "nonpae", 1, 0) == NULL))
-        goto error;
+        goto cleanup;
 
     ret = 0;
 
-cleanup:
-    VIR_FREE(binary);
-    VIR_FREE(kvmbin);
-    virObjectUnref(qemubinCaps);
-    virObjectUnref(kvmbinCaps);
+ cleanup:
 
-    return ret;
-
-error:
     virCapabilitiesFreeMachines(machines, nmachines);
 
-    goto cleanup;
+    return ret;
 }
 
 
@@ -873,12 +907,12 @@ virQEMUCapsInitCPU(virCapsPtr caps,
 
     ret = 0;
 
-cleanup:
+ cleanup:
     cpuDataFree(data);
 
     return ret;
 
-error:
+ error:
     virCPUDefFree(cpu);
     goto cleanup;
 }
@@ -926,7 +960,7 @@ virCapsPtr virQEMUCapsInit(virQEMUCapsCachePtr cache)
 
     return caps;
 
-error:
+ error:
     virObjectUnref(caps);
     return NULL;
 }
@@ -1314,7 +1348,7 @@ int virQEMUCapsParseHelpStr(const char *qemu,
 
     return 0;
 
-fail:
+ fail:
     p = strchr(help, '\n');
     if (!p)
         p = strchr(help, '\0');
@@ -1323,7 +1357,7 @@ fail:
                    _("cannot parse %s version number in '%.*s'"),
                    qemu, (int) (p - help), help);
 
-cleanup:
+ cleanup:
     return -1;
 }
 
@@ -1585,7 +1619,7 @@ virQEMUCapsParseDeviceStrObjectTypes(const char *str,
     *types = typelist;
     ret = ntypelist;
 
-cleanup:
+ cleanup:
     if (ret < 0)
         virQEMUCapsFreeStringList(ntypelist, typelist);
     return ret;
@@ -1638,7 +1672,7 @@ virQEMUCapsParseDeviceStrObjectProps(const char *str,
     *props = proplist;
     ret = nproplist;
 
-cleanup:
+ cleanup:
     if (ret < 0)
         virQEMUCapsFreeStringList(nproplist, proplist);
     return ret;
@@ -1720,7 +1754,7 @@ virQEMUCapsExtractDeviceStr(const char *qemu,
 
     ret = virQEMUCapsParseDeviceStr(qemuCaps, output);
 
-cleanup:
+ cleanup:
     VIR_FREE(output);
     virCommandFree(cmd);
     return ret;
@@ -1776,7 +1810,7 @@ virQEMUCapsNew(void)
 
     return qemuCaps;
 
-error:
+ error:
     virObjectUnref(qemuCaps);
     return NULL;
 }
@@ -1821,7 +1855,7 @@ virQEMUCapsPtr virQEMUCapsNewCopy(virQEMUCapsPtr qemuCaps)
 
     return ret;
 
-error:
+ error:
     virObjectUnref(ret);
     return NULL;
 }
@@ -1960,11 +1994,12 @@ int virQEMUCapsGetMachineTypesCaps(virQEMUCapsPtr qemuCaps,
 {
     size_t i;
 
-    *nmachines = 0;
     *machines = NULL;
-    if (VIR_ALLOC_N(*machines, qemuCaps->nmachineTypes) < 0)
-        goto error;
     *nmachines = qemuCaps->nmachineTypes;
+
+    if (*nmachines &&
+        VIR_ALLOC_N(*machines, qemuCaps->nmachineTypes) < 0)
+        goto error;
 
     for (i = 0; i < qemuCaps->nmachineTypes; i++) {
         virCapsGuestMachinePtr mach;
@@ -1984,7 +2019,7 @@ int virQEMUCapsGetMachineTypesCaps(virQEMUCapsPtr qemuCaps,
 
     return 0;
 
-error:
+ error:
     virCapabilitiesFreeMachines(*machines, *nmachines);
     *nmachines = 0;
     *machines = NULL;
@@ -2168,7 +2203,7 @@ virQEMUCapsProbeQMPMachineTypes(virQEMUCapsPtr qemuCaps,
 
     ret = 0;
 
-cleanup:
+ cleanup:
     for (i = 0; i < nmachines; i++)
         qemuMonitorMachineInfoFree(machines[i]);
     VIR_FREE(machines);
@@ -2339,6 +2374,408 @@ int virQEMUCapsProbeQMP(virQEMUCapsPtr qemuCaps,
 }
 
 
+/*
+ * Parsing a doc that looks like
+ *
+ * <qemuCaps>
+ *   <qemuctime>234235253</qemuctime>
+ *   <selfctime>234235253</selfctime>
+ *   <usedQMP/>
+ *   <flag name='foo'/>
+ *   <flag name='bar'/>
+ *   ...
+ *   <cpu name="pentium3"/>
+ *   ...
+ *   <machine name="pc-1.0" alias="pc" maxCpus="4"/>
+ *   ...
+ * </qemuCaps>
+ */
+static int
+virQEMUCapsLoadCache(virQEMUCapsPtr qemuCaps, const char *filename,
+                     time_t *qemuctime, time_t *selfctime)
+{
+    xmlDocPtr doc = NULL;
+    int ret = -1;
+    size_t i;
+    int n;
+    xmlNodePtr *nodes = NULL;
+    xmlXPathContextPtr ctxt = NULL;
+    char *str = NULL;
+    long long int l;
+
+    if (!(doc = virXMLParseFile(filename)))
+        goto cleanup;
+
+    if (!(ctxt = xmlXPathNewContext(doc))) {
+        virReportOOMError();
+        goto cleanup;
+    }
+
+    ctxt->node = xmlDocGetRootElement(doc);
+
+    if (STRNEQ((const char *)ctxt->node->name, "qemuCaps")) {
+        virReportError(VIR_ERR_XML_ERROR,
+                       _("unexpected root element <%s>, "
+                         "expecting <qemuCaps>"),
+                       ctxt->node->name);
+        goto cleanup;
+    }
+
+    if (virXPathLongLong("string(./qemuctime)", ctxt, &l) < 0) {
+        virReportError(VIR_ERR_XML_ERROR, "%s",
+                       _("missing qemuctime in QEMU capabilities XML"));
+        goto cleanup;
+    }
+    *qemuctime = (time_t)l;
+
+    if (virXPathLongLong("string(./selfctime)", ctxt, &l) < 0) {
+        virReportError(VIR_ERR_XML_ERROR, "%s",
+                       _("missing selfctime in QEMU capabilities XML"));
+        goto cleanup;
+    }
+    *selfctime = (time_t)l;
+
+    qemuCaps->usedQMP = virXPathBoolean("count(./usedQMP) > 0",
+                                        ctxt) > 0;
+
+    if ((n = virXPathNodeSet("./flag", ctxt, &nodes)) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("failed to parse qemu capabilities flags"));
+        goto cleanup;
+    }
+    VIR_DEBUG("Got flags %d", n);
+    if (n > 0) {
+        for (i = 0; i < n; i++) {
+            int flag;
+            if (!(str = virXMLPropString(nodes[i], "name"))) {
+                virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                               _("missing flag name in QEMU capabilities cache"));
+                goto cleanup;
+            }
+            flag = virQEMUCapsTypeFromString(str);
+            if (flag < 0) {
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("Unknown qemu capabilities flag %s"), str);
+                goto cleanup;
+            }
+            VIR_FREE(str);
+            virQEMUCapsSet(qemuCaps, flag);
+        }
+    }
+    VIR_FREE(nodes);
+
+    if (virXPathUInt("string(./version)", ctxt, &qemuCaps->version) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("missing version in QEMU capabilities cache"));
+        goto cleanup;
+    }
+
+    if (virXPathUInt("string(./kvmVersion)", ctxt, &qemuCaps->kvmVersion) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("missing version in QEMU capabilities cache"));
+        goto cleanup;
+    }
+
+    if (!(str = virXPathString("string(./arch)", ctxt))) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("missing arch in QEMU capabilities cache"));
+        goto cleanup;
+    }
+    if (!(qemuCaps->arch = virArchFromString(str))) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("unknown arch %s in QEMU capabilities cache"), str);
+        goto cleanup;
+    }
+    VIR_FREE(str);
+
+    if ((n = virXPathNodeSet("./cpu", ctxt, &nodes)) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("failed to parse qemu capabilities cpus"));
+        goto cleanup;
+    }
+    if (n > 0) {
+        qemuCaps->ncpuDefinitions = n;
+        if (VIR_ALLOC_N(qemuCaps->cpuDefinitions,
+                        qemuCaps->ncpuDefinitions) < 0)
+            goto cleanup;
+
+        for (i = 0; i < n; i++) {
+            if (!(qemuCaps->cpuDefinitions[i] = virXMLPropString(nodes[i], "name"))) {
+                virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                               _("missing cpu name in QEMU capabilities cache"));
+                goto cleanup;
+            }
+        }
+    }
+    VIR_FREE(nodes);
+
+
+    if ((n = virXPathNodeSet("./machine", ctxt, &nodes)) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("failed to parse qemu capabilities machines"));
+        goto cleanup;
+    }
+    if (n > 0) {
+        qemuCaps->nmachineTypes = n;
+        if (VIR_ALLOC_N(qemuCaps->machineTypes,
+                        qemuCaps->nmachineTypes) < 0 ||
+            VIR_ALLOC_N(qemuCaps->machineAliases,
+                        qemuCaps->nmachineTypes) < 0 ||
+            VIR_ALLOC_N(qemuCaps->machineMaxCpus,
+                        qemuCaps->nmachineTypes) < 0)
+            goto cleanup;
+
+        for (i = 0; i < n; i++) {
+            if (!(qemuCaps->machineTypes[i] = virXMLPropString(nodes[i], "name"))) {
+                virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                               _("missing machine name in QEMU capabilities cache"));
+                goto cleanup;
+            }
+            qemuCaps->machineAliases[i] = virXMLPropString(nodes[i], "alias");
+
+            str = virXMLPropString(nodes[i], "maxCpus");
+            if (str &&
+                virStrToLong_ui(str, NULL, 10, &(qemuCaps->machineMaxCpus[i])) < 0) {
+                virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                               _("malformed machine cpu count in QEMU capabilities cache"));
+                goto cleanup;
+            }
+            VIR_FREE(str);
+        }
+    }
+    VIR_FREE(nodes);
+
+    ret = 0;
+ cleanup:
+    VIR_FREE(str);
+    VIR_FREE(nodes);
+    xmlXPathFreeContext(ctxt);
+    xmlFreeDoc(doc);
+    return ret;
+}
+
+
+static int
+virQEMUCapsSaveCache(virQEMUCapsPtr qemuCaps, const char *filename)
+{
+    virBuffer buf = VIR_BUFFER_INITIALIZER;
+    const char *xml = NULL;
+    int ret = -1;
+    size_t i;
+
+    virBufferAddLit(&buf, "<qemuCaps>\n");
+    virBufferAdjustIndent(&buf, 2);
+
+    virBufferAsprintf(&buf, "<qemuctime>%llu</qemuctime>\n",
+                      (long long)qemuCaps->ctime);
+    virBufferAsprintf(&buf, "<selfctime>%llu</selfctime>\n",
+                      (long long)virGetSelfLastChanged());
+
+    if (qemuCaps->usedQMP)
+        virBufferAddLit(&buf, "<usedQMP/>\n");
+
+    for (i = 0; i < QEMU_CAPS_LAST; i++) {
+        if (virQEMUCapsGet(qemuCaps, i)) {
+            virBufferAsprintf(&buf, "<flag name='%s'/>\n",
+                              virQEMUCapsTypeToString(i));
+        }
+    }
+
+    virBufferAsprintf(&buf, "<version>%d</version>\n",
+                      qemuCaps->version);
+
+    virBufferAsprintf(&buf, "<kvmVersion>%d</kvmVersion>\n",
+                      qemuCaps->kvmVersion);
+
+    virBufferAsprintf(&buf, "<arch>%s</arch>\n",
+                      virArchToString(qemuCaps->arch));
+
+    for (i = 0; i < qemuCaps->ncpuDefinitions; i++) {
+        virBufferEscapeString(&buf, "<cpu name='%s'/>\n",
+                              qemuCaps->cpuDefinitions[i]);
+    }
+
+    for (i = 0; i < qemuCaps->nmachineTypes; i++) {
+        virBufferEscapeString(&buf, "<machine name='%s'",
+                              qemuCaps->machineTypes[i]);
+        if (qemuCaps->machineAliases[i])
+            virBufferEscapeString(&buf, " alias='%s'",
+                              qemuCaps->machineAliases[i]);
+        virBufferAsprintf(&buf, " maxCpus='%u'/>\n",
+                          qemuCaps->machineMaxCpus[i]);
+    }
+
+    virBufferAdjustIndent(&buf, -2);
+    virBufferAddLit(&buf, "</qemuCaps>\n");
+
+    if (virBufferError(&buf))
+        goto cleanup;
+
+    xml = virBufferContentAndReset(&buf);
+
+    if (virFileWriteStr(filename, xml, 0600) < 0) {
+        virReportSystemError(errno,
+                             _("Failed to save '%s' for '%s'"),
+                             filename, qemuCaps->binary);
+        goto cleanup;
+    }
+
+    VIR_DEBUG("Saved caps '%s' for '%s' with (%lld, %lld)",
+              filename, qemuCaps->binary,
+              (long long)qemuCaps->ctime,
+              (long long)virGetSelfLastChanged());
+
+    ret = 0;
+ cleanup:
+    VIR_FREE(xml);
+    return ret;
+}
+
+static int
+virQEMUCapsRememberCached(virQEMUCapsPtr qemuCaps, const char *cacheDir)
+{
+    char *capsdir = NULL;
+    char *capsfile = NULL;
+    int ret = -1;
+    char *binaryhash = NULL;
+
+    if (virAsprintf(&capsdir, "%s/capabilities", cacheDir) < 0)
+        goto cleanup;
+
+    if (virCryptoHashString(VIR_CRYPTO_HASH_SHA256,
+                            qemuCaps->binary,
+                            &binaryhash) < 0)
+        goto cleanup;
+
+    if (virAsprintf(&capsfile, "%s/%s.xml", capsdir, binaryhash) < 0)
+        goto cleanup;
+
+    if (virFileMakePath(capsdir) < 0) {
+        virReportSystemError(errno,
+                             _("Unable to create directory '%s'"),
+                             capsdir);
+        goto cleanup;
+    }
+
+    if (virQEMUCapsSaveCache(qemuCaps, capsfile) < 0)
+        goto cleanup;
+
+    ret = 0;
+ cleanup:
+    VIR_FREE(binaryhash);
+    VIR_FREE(capsfile);
+    VIR_FREE(capsdir);
+    return ret;
+}
+
+
+static void
+virQEMUCapsReset(virQEMUCapsPtr qemuCaps)
+{
+    size_t i;
+
+    virBitmapClearAll(qemuCaps->flags);
+    qemuCaps->version = qemuCaps->kvmVersion = 0;
+    qemuCaps->arch = VIR_ARCH_NONE;
+    qemuCaps->usedQMP = false;
+
+    for (i = 0; i < qemuCaps->ncpuDefinitions; i++) {
+        VIR_FREE(qemuCaps->cpuDefinitions[i]);
+    }
+    VIR_FREE(qemuCaps->cpuDefinitions);
+    qemuCaps->ncpuDefinitions = 0;
+
+    for (i = 0; i < qemuCaps->nmachineTypes; i++) {
+        VIR_FREE(qemuCaps->machineTypes[i]);
+        VIR_FREE(qemuCaps->machineAliases[i]);
+    }
+    VIR_FREE(qemuCaps->machineTypes);
+    VIR_FREE(qemuCaps->machineAliases);
+    VIR_FREE(qemuCaps->machineMaxCpus);
+    qemuCaps->nmachineTypes = 0;
+}
+
+
+static int
+virQEMUCapsInitCached(virQEMUCapsPtr qemuCaps, const char *cacheDir)
+{
+    char *capsdir = NULL;
+    char *capsfile = NULL;
+    int ret = -1;
+    char *binaryhash = NULL;
+    struct stat sb;
+    time_t qemuctime;
+    time_t selfctime;
+
+    if (virAsprintf(&capsdir, "%s/capabilities", cacheDir) < 0)
+        goto cleanup;
+
+    if (virCryptoHashString(VIR_CRYPTO_HASH_SHA256,
+                            qemuCaps->binary,
+                            &binaryhash) < 0)
+        goto cleanup;
+
+    if (virAsprintf(&capsfile, "%s/%s.xml", capsdir, binaryhash) < 0)
+        goto cleanup;
+
+    if (virFileMakePath(capsdir) < 0) {
+        virReportSystemError(errno,
+                             _("Unable to create directory '%s'"),
+                             capsdir);
+        goto cleanup;
+    }
+
+    if (stat(capsfile, &sb) < 0) {
+        if (errno == ENOENT) {
+            VIR_DEBUG("No cached capabilities '%s' for '%s'",
+                      capsfile, qemuCaps->binary);
+            ret = 0;
+            goto cleanup;
+        }
+        virReportSystemError(errno,
+                             _("Unable to access cache '%s' for '%s'"),
+                             capsfile, qemuCaps->binary);
+        goto cleanup;
+    }
+
+    if (virQEMUCapsLoadCache(qemuCaps, capsfile, &qemuctime, &selfctime) < 0) {
+        virErrorPtr err = virGetLastError();
+        VIR_WARN("Failed to load cached caps from '%s' for '%s': %s",
+                 capsfile, qemuCaps->binary, err ? NULLSTR(err->message) :
+                 _("unknown error"));
+        virResetLastError();
+        ret = 0;
+        virQEMUCapsReset(qemuCaps);
+        goto cleanup;
+    }
+
+    /* Discard if cache is older that QEMU binary */
+    if (qemuctime != qemuCaps->ctime ||
+        selfctime < virGetSelfLastChanged()) {
+        VIR_DEBUG("Outdated cached capabilities '%s' for '%s' "
+                  "(%lld vs %lld, %lld vs %lld)",
+                  capsfile, qemuCaps->binary,
+                  (long long)qemuctime, (long long)qemuCaps->ctime,
+                  (long long)selfctime, (long long)virGetSelfLastChanged());
+        ignore_value(unlink(capsfile));
+        virQEMUCapsReset(qemuCaps);
+        ret = 0;
+        goto cleanup;
+    }
+
+    VIR_DEBUG("Loaded '%s' for '%s' ctime %lld usedQMP=%d",
+              capsfile, qemuCaps->binary,
+              (long long)qemuCaps->ctime, qemuCaps->usedQMP);
+
+    ret = 1;
+ cleanup:
+    VIR_FREE(binaryhash);
+    VIR_FREE(capsfile);
+    VIR_FREE(capsdir);
+    return ret;
+}
+
+
 #define QEMU_SYSTEM_PREFIX "qemu-system-"
 
 static int
@@ -2402,7 +2839,7 @@ virQEMUCapsInitHelp(virQEMUCapsPtr qemuCaps, uid_t runUid, gid_t runGid)
         goto cleanup;
 
     ret = 0;
-cleanup:
+ cleanup:
     virCommandFree(cmd);
     VIR_FREE(help);
     return ret;
@@ -2515,7 +2952,7 @@ virQEMUCapsInitArchQMPBasic(virQEMUCapsPtr qemuCaps,
 
     ret = 0;
 
-cleanup:
+ cleanup:
     VIR_FREE(archstr);
     return ret;
 }
@@ -2600,7 +3037,7 @@ virQEMUCapsInitQMPMonitor(virQEMUCapsPtr qemuCaps,
         goto cleanup;
 
     ret = 0;
-cleanup:
+ cleanup:
     VIR_FREE(package);
     return ret;
 }
@@ -2693,6 +3130,7 @@ virQEMUCapsInitQMP(virQEMUCapsPtr qemuCaps,
     virCommandSetGID(cmd, runGid);
     virCommandSetUID(cmd, runUid);
 
+    /* Log, but otherwise ignore, non-zero status.  */
     if (virCommandRun(cmd, &status) < 0)
         goto cleanup;
 
@@ -2726,7 +3164,7 @@ virQEMUCapsInitQMP(virQEMUCapsPtr qemuCaps,
 
     ret = 0;
 
-cleanup:
+ cleanup:
     if (mon)
         virObjectUnlock(mon);
     qemuMonitorClose(mon);
@@ -2754,8 +3192,31 @@ cleanup:
 }
 
 
+#define MESSAGE_ID_CAPS_PROBE_FAILURE "8ae2f3fb-2dbe-498e-8fbd-012d40afa361"
+
+static void
+virQEMUCapsLogProbeFailure(const char *binary)
+{
+    virLogMetadata meta[] = {
+        { .key = "MESSAGE_ID", .s = MESSAGE_ID_CAPS_PROBE_FAILURE, .iv = 0 },
+        { .key = "LIBVIRT_QEMU_BINARY", .s = binary, .iv = 0 },
+        { .key = NULL },
+    };
+    virErrorPtr err = virGetLastError();
+
+    virLogMessage(&virLogSelf,
+                  VIR_LOG_WARN,
+                  __FILE__, __LINE__, __func__,
+                  meta,
+                  _("Failed to probe capabilities for %s: %s"),
+                  binary, err && err->message ? err->message :
+                  _("unknown failure"));
+}
+
+
 virQEMUCapsPtr virQEMUCapsNewForBinary(const char *binary,
                                        const char *libDir,
+                                       const char *cacheDir,
                                        uid_t runUid,
                                        gid_t runGid)
 {
@@ -2773,7 +3234,7 @@ virQEMUCapsPtr virQEMUCapsNewForBinary(const char *binary,
                              binary);
         goto error;
     }
-    qemuCaps->mtime = sb.st_mtime;
+    qemuCaps->ctime = sb.st_ctime;
 
     /* Make sure the binary we are about to try exec'ing exists.
      * Technically we could catch the exec() failure, but that's
@@ -2785,16 +3246,28 @@ virQEMUCapsPtr virQEMUCapsNewForBinary(const char *binary,
         goto error;
     }
 
-    if ((rv = virQEMUCapsInitQMP(qemuCaps, libDir, runUid, runGid)) < 0)
+    if ((rv = virQEMUCapsInitCached(qemuCaps, cacheDir)) < 0)
         goto error;
 
-    if (!qemuCaps->usedQMP &&
-        virQEMUCapsInitHelp(qemuCaps, runUid, runGid) < 0)
-        goto error;
+    if (rv == 0) {
+        if (virQEMUCapsInitQMP(qemuCaps, libDir, runUid, runGid) < 0) {
+            virQEMUCapsLogProbeFailure(binary);
+            goto error;
+        }
+
+        if (!qemuCaps->usedQMP &&
+            virQEMUCapsInitHelp(qemuCaps, runUid, runGid) < 0) {
+            virQEMUCapsLogProbeFailure(binary);
+            goto error;
+        }
+
+        if (virQEMUCapsRememberCached(qemuCaps, cacheDir) < 0)
+            goto error;
+    }
 
     return qemuCaps;
 
-error:
+ error:
     virObjectUnref(qemuCaps);
     qemuCaps = NULL;
     return NULL;
@@ -2811,7 +3284,7 @@ bool virQEMUCapsIsValid(virQEMUCapsPtr qemuCaps)
     if (stat(qemuCaps->binary, &sb) < 0)
         return false;
 
-    return sb.st_mtime == qemuCaps->mtime;
+    return sb.st_ctime == qemuCaps->ctime;
 }
 
 
@@ -2824,6 +3297,7 @@ virQEMUCapsHashDataFree(void *payload, const void *key ATTRIBUTE_UNUSED)
 
 virQEMUCapsCachePtr
 virQEMUCapsCacheNew(const char *libDir,
+                    const char *cacheDir,
                     uid_t runUid,
                     gid_t runGid)
 {
@@ -2843,13 +3317,15 @@ virQEMUCapsCacheNew(const char *libDir,
         goto error;
     if (VIR_STRDUP(cache->libDir, libDir) < 0)
         goto error;
+    if (VIR_STRDUP(cache->cacheDir, cacheDir) < 0)
+        goto error;
 
     cache->runUid = runUid;
     cache->runGid = runGid;
 
     return cache;
 
-error:
+ error:
     virQEMUCapsCacheFree(cache);
     return NULL;
 }
@@ -2872,6 +3348,7 @@ virQEMUCapsCacheLookup(virQEMUCapsCachePtr cache, const char *binary)
         VIR_DEBUG("Creating capabilities for %s",
                   binary);
         ret = virQEMUCapsNewForBinary(binary, cache->libDir,
+                                      cache->cacheDir,
                                       cache->runUid, cache->runGid);
         if (ret) {
             VIR_DEBUG("Caching capabilities %p for %s",
@@ -2911,6 +3388,7 @@ virQEMUCapsCacheFree(virQEMUCapsCachePtr cache)
         return;
 
     VIR_FREE(cache->libDir);
+    VIR_FREE(cache->cacheDir);
     virHashFree(cache->binaries);
     virMutexDestroy(&cache->lock);
     VIR_FREE(cache);

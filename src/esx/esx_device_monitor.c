@@ -1,4 +1,3 @@
-
 /*
  * esx_device_monitor.c: device monitor functions for managing VMware ESX
  *                       host devices
@@ -26,7 +25,6 @@
 
 #include "internal.h"
 #include "viralloc.h"
-#include "virlog.h"
 #include "viruuid.h"
 #include "esx_private.h"
 #include "esx_device_monitor.h"

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012-2013 Red Hat, Inc.
+ * Copyright (C) 2012-2014 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -35,6 +35,8 @@
 #include "virstring.h"
 
 #define VIR_FROM_THIS VIR_FROM_NONE
+
+VIR_LOG_INIT("util.random");
 
 /* The algorithm of virRandomBits relies on gnulib's guarantee that
  * 'random_r' matches the POSIX requirements on 'random' of being
@@ -163,7 +165,8 @@ uint32_t virRandomInt(uint32_t max)
 
 int
 virRandomGenerateWWN(char **wwn,
-                     const char *virt_type) {
+                     const char *virt_type)
+{
     const char *oui = NULL;
 
     if (!virt_type) {

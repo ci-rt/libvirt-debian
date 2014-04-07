@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2012 Red Hat, Inc.
+ * Copyright (C) 2011-2012, 2014 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -37,6 +37,8 @@
 #if !defined WIN32 && HAVE_LIBTASN1_H && LIBGNUTLS_VERSION_NUMBER >= 0x020600
 
 # define VIR_FROM_THIS VIR_FROM_RPC
+
+VIR_LOG_INIT("tests.nettlssessiontest");
 
 # define KEYFILE "key-sess.pem"
 
@@ -221,7 +223,7 @@ static int testTLSSessionInit(const void *opaque)
 
     ret = 0;
 
-cleanup:
+ cleanup:
     virObjectUnref(serverCtxt);
     virObjectUnref(clientCtxt);
     virObjectUnref(serverSess);
@@ -478,7 +480,7 @@ mymain(void)
 
     testTLSCleanup(KEYFILE);
 
-    return ret==0 ? EXIT_SUCCESS : EXIT_FAILURE;
+    return ret == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
 VIRT_TEST_MAIN(mymain)

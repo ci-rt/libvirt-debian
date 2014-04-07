@@ -24,6 +24,7 @@
 #include "lock_driver.h"
 #include "virconf.h"
 #include "viralloc.h"
+#include "vircrypto.h"
 #include "virlog.h"
 #include "viruuid.h"
 #include "virfile.h"
@@ -31,10 +32,11 @@
 #include "rpc/virnetclient.h"
 #include "lock_protocol.h"
 #include "configmake.h"
-#include "sha256.h"
 #include "virstring.h"
 
 #define VIR_FROM_THIS VIR_FROM_LOCKING
+
+VIR_LOG_INIT("locking.lock_driver_lockd");
 
 #define virLockError(code, ...)                                     \
     virReportErrorHelper(VIR_FROM_THIS, code, __FILE__,             \
@@ -218,7 +220,7 @@ virLockManagerLockDaemonConnectionRegister(virLockManagerPtr lock,
 
     rv = 0;
 
-cleanup:
+ cleanup:
     return rv;
 }
 
@@ -247,7 +249,7 @@ virLockManagerLockDaemonConnectionRestrict(virLockManagerPtr lock ATTRIBUTE_UNUS
 
     rv = 0;
 
-cleanup:
+ cleanup:
     return rv;
 }
 
@@ -286,7 +288,7 @@ static virNetClientPtr virLockManagerLockDaemonConnectionNew(bool privileged,
 
     return client;
 
-error:
+ error:
     VIR_FREE(lockdpath);
     virNetClientClose(client);
     virObjectUnref(client);
@@ -313,7 +315,7 @@ virLockManagerLockDaemonConnect(virLockManagerPtr lock,
 
     return client;
 
-error:
+ error:
     virNetClientClose(client);
     virObjectUnref(client);
     return NULL;
@@ -353,7 +355,7 @@ static int virLockManagerLockDaemonSetupLockspace(const char *path)
 
     rv = 0;
 
-cleanup:
+ cleanup:
     virObjectUnref(program);
     virNetClientClose(client);
     virObjectUnref(client);
@@ -399,7 +401,7 @@ static int virLockManagerLockDaemonInit(unsigned int version,
 
     return 0;
 
-error:
+ error:
     virLockManagerLockDaemonDeinit();
     return -1;
 }
@@ -505,34 +507,6 @@ static int virLockManagerLockDaemonNew(virLockManagerPtr lock,
 }
 
 
-static const char hex[] = { '0', '1', '2', '3', '4', '5', '6', '7',
-                            '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
-
-static char *virLockManagerLockDaemonDiskLeaseName(const char *path)
-{
-    unsigned char buf[SHA256_DIGEST_SIZE];
-    char *ret;
-    size_t i;
-
-    if (!(sha256_buffer(path, strlen(path), buf))) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       _("Unable to compute sha256 checksum"));
-        return NULL;
-    }
-
-    if (VIR_ALLOC_N(ret, (SHA256_DIGEST_SIZE * 2) + 1) < 0)
-        return NULL;
-
-    for (i = 0; i < SHA256_DIGEST_SIZE; i++) {
-        ret[i*2] = hex[(buf[i] >> 4) & 0xf];
-        ret[(i*2)+1] = hex[buf[i] & 0xf];
-    }
-    ret[(SHA256_DIGEST_SIZE * 2) + 1] = '\0';
-
-    return ret;
-}
-
-
 static int virLockManagerLockDaemonAddResource(virLockManagerPtr lock,
                                                unsigned int type,
                                                const char *name,
@@ -605,7 +579,7 @@ static int virLockManagerLockDaemonAddResource(virLockManagerPtr lock,
         if (driver->fileLockSpaceDir) {
             if (VIR_STRDUP(newLockspace, driver->fileLockSpaceDir) < 0)
                 goto error;
-            if (!(newName = virLockManagerLockDaemonDiskLeaseName(name)))
+            if (virCryptoHashString(VIR_CRYPTO_HASH_SHA256, name, &newName) < 0)
                 goto error;
             autoCreate = true;
             VIR_DEBUG("Using indirect lease %s for %s", newName, name);
@@ -675,7 +649,7 @@ static int virLockManagerLockDaemonAddResource(virLockManagerPtr lock,
 
     return 0;
 
-error:
+ error:
     VIR_FREE(newLockspace);
     VIR_FREE(newName);
     return -1;
@@ -741,7 +715,7 @@ static int virLockManagerLockDaemonAcquire(virLockManagerPtr lock,
 
     rv = 0;
 
-cleanup:
+ cleanup:
     if (rv != 0 && fd)
         VIR_FORCE_CLOSE(*fd);
     virNetClientClose(client);
@@ -796,7 +770,7 @@ static int virLockManagerLockDaemonRelease(virLockManagerPtr lock,
 
     rv = 0;
 
-cleanup:
+ cleanup:
     virNetClientClose(client);
     virObjectUnref(client);
     virObjectUnref(program);

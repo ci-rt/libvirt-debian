@@ -1,7 +1,7 @@
 /*
  * secret_driver.c: local driver for secret manipulation API
  *
- * Copyright (C) 2009-2012 Red Hat, Inc.
+ * Copyright (C) 2009-2012, 2014 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -45,6 +45,8 @@
 #include "viraccessapicheck.h"
 
 #define VIR_FROM_THIS VIR_FROM_SECRET
+
+VIR_LOG_INIT("secret.secret_driver");
 
 enum { SECRET_MAX_XML_FILE = 10*1024*1024 };
 
@@ -205,7 +207,7 @@ replaceFile(const char *filename, void *data, size_t size)
     VIR_FREE(tmp_path);
     ret = 0;
 
-cleanup:
+ cleanup:
     VIR_FORCE_CLOSE(fd);
     if (tmp_path != NULL) {
         unlink(tmp_path);
@@ -274,7 +276,7 @@ secretSaveDef(virSecretDriverStatePtr driver,
 
     ret = 0;
 
-cleanup:
+ cleanup:
     VIR_FREE(xml);
     VIR_FREE(filename);
     return ret;
@@ -308,7 +310,7 @@ secretSaveValue(virSecretDriverStatePtr driver,
 
     ret = 0;
 
-cleanup:
+ cleanup:
     VIR_FREE(base64);
     VIR_FREE(filename);
     return ret;
@@ -336,7 +338,7 @@ secretDeleteSaved(virSecretDriverStatePtr driver,
 
     (void)unlink(value_filename);
 
-cleanup:
+ cleanup:
     VIR_FREE(value_filename);
     VIR_FREE(xml_filename);
     return ret;
@@ -414,7 +416,7 @@ secretLoadValue(virSecretDriverStatePtr driver,
 
     ret = 0;
 
-cleanup:
+ cleanup:
     if (value != NULL) {
         memset(value, 0, value_size);
         VIR_FREE(value);
@@ -458,7 +460,7 @@ secretLoad(virSecretDriverStatePtr driver,
     ret = secret;
     secret = NULL;
 
-cleanup:
+ cleanup:
     secretFree(secret);
     virSecretDefFree(def);
     VIR_FREE(xml_filename);
@@ -513,7 +515,7 @@ loadSecrets(virSecretDriverStatePtr driver,
 
     ret = 0;
 
-cleanup:
+ cleanup:
     if (dir != NULL)
         closedir(dir);
     return ret;
@@ -535,7 +537,8 @@ secretOpen(virConnectPtr conn, virConnectAuthPtr auth ATTRIBUTE_UNUSED,
 }
 
 static int
-secretClose(virConnectPtr conn) {
+secretClose(virConnectPtr conn)
+{
     conn->secretPrivateData = NULL;
     return 0;
 }
@@ -595,7 +598,7 @@ secretConnectListSecrets(virConnectPtr conn, char **uuids, int maxuuids)
     secretDriverUnlock(driver);
     return i;
 
-cleanup:
+ cleanup:
     secretDriverUnlock(driver);
 
     for (i = 0; i < maxuuids; i++)
@@ -629,7 +632,8 @@ secretUsageIDForDef(virSecretDefPtr def)
 static int
 secretConnectListAllSecrets(virConnectPtr conn,
                             virSecretPtr **secrets,
-                            unsigned int flags) {
+                            unsigned int flags)
+{
     virSecretDriverStatePtr driver = conn->secretPrivateData;
     virSecretPtr *tmp_secrets = NULL;
     int nsecrets = 0;
@@ -734,7 +738,7 @@ secretLookupByUUID(virConnectPtr conn, const unsigned char *uuid)
                        secret->def->usage_type,
                        secretUsageIDForDef(secret->def));
 
-cleanup:
+ cleanup:
     secretDriverUnlock(driver);
     return ret;
 }
@@ -764,7 +768,7 @@ secretLookupByUsage(virConnectPtr conn, int usageType, const char *usageID)
                        secret->def->usage_type,
                        secretUsageIDForDef(secret->def));
 
-cleanup:
+ cleanup:
     secretDriverUnlock(driver);
     return ret;
 }
@@ -865,7 +869,7 @@ secretDefineXML(virConnectPtr conn, const char *xml,
                        secretUsageIDForDef(secret->def));
     goto cleanup;
 
-restore_backup:
+ restore_backup:
     if (backup) {
         /* Error - restore previous state and free new attributes */
         secret->def = backup;
@@ -878,7 +882,7 @@ restore_backup:
             secretFree(secret);
     }
 
-cleanup:
+ cleanup:
     virSecretDefFree(new_attrs);
     secretDriverUnlock(driver);
 
@@ -910,7 +914,7 @@ secretGetXMLDesc(virSecretPtr obj, unsigned int flags)
 
     ret = virSecretDefFormat(secret->def);
 
-cleanup:
+ cleanup:
     secretDriverUnlock(driver);
 
     return ret;
@@ -965,13 +969,13 @@ secretSetValue(virSecretPtr obj, const unsigned char *value,
     ret = 0;
     goto cleanup;
 
-restore_backup:
+ restore_backup:
     /* Error - restore previous state and free new value */
     secret->value = old_value;
     secret->value_size = old_value_size;
     memset(new_value, 0, value_size);
 
-cleanup:
+ cleanup:
     secretDriverUnlock(driver);
 
     VIR_FREE(new_value);
@@ -1023,7 +1027,7 @@ secretGetValue(virSecretPtr obj, size_t *value_size, unsigned int flags,
     memcpy(ret, secret->value, secret->value_size);
     *value_size = secret->value_size;
 
-cleanup:
+ cleanup:
     secretDriverUnlock(driver);
 
     return ret;
@@ -1067,7 +1071,7 @@ secretUndefine(virSecretPtr obj)
 
     ret = 0;
 
-cleanup:
+ cleanup:
     secretDriverUnlock(driver);
 
     return ret;
@@ -1194,7 +1198,9 @@ static virStateDriver stateDriver = {
 int
 secretRegister(void)
 {
-    virRegisterSecretDriver(&secretDriver);
-    virRegisterStateDriver(&stateDriver);
+    if (virRegisterSecretDriver(&secretDriver) < 0)
+        return -1;
+    if (virRegisterStateDriver(&stateDriver) < 0)
+        return -1;
     return 0;
 }

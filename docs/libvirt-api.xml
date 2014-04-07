@@ -3,7 +3,7 @@
   <files>
     <file name='libvirt'>
      <summary>core interfaces for the libvirt library</summary>
-     <description>Provides the interfaces of the libvirt library to handle virtualized domains  Copyright (C) 2005-2006, 2010-2013 Red Hat, Inc.  This library is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation; either version 2.1 of the License, or (at your option) any later version.  This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more details.  You should have received a copy of the GNU Lesser General Public License along with this library.  If not, see &lt;http://www.gnu.org/licenses/&gt;. </description>
+     <description>Provides the interfaces of the libvirt library to handle virtualized domains  Copyright (C) 2005-2006, 2010-2014 Red Hat, Inc.  This library is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation; either version 2.1 of the License, or (at your option) any later version.  This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more details.  You should have received a copy of the GNU Lesser General Public License along with this library.  If not, see &lt;http://www.gnu.org/licenses/&gt;. </description>
      <author>Daniel Veillard &lt;veillard@redhat.com&gt; </author>
      <exports symbol='LIBVIR_CHECK_VERSION' type='macro'/>
      <exports symbol='LIBVIR_VERSION_NUMBER' type='macro'/>
@@ -234,6 +234,11 @@
      <exports symbol='VIR_DOMAIN_CONTROL_LAST' type='enum'/>
      <exports symbol='VIR_DOMAIN_CONTROL_OCCUPIED' type='enum'/>
      <exports symbol='VIR_DOMAIN_CONTROL_OK' type='enum'/>
+     <exports symbol='VIR_DOMAIN_CORE_DUMP_FORMAT_KDUMP_LZO' type='enum'/>
+     <exports symbol='VIR_DOMAIN_CORE_DUMP_FORMAT_KDUMP_SNAPPY' type='enum'/>
+     <exports symbol='VIR_DOMAIN_CORE_DUMP_FORMAT_KDUMP_ZLIB' type='enum'/>
+     <exports symbol='VIR_DOMAIN_CORE_DUMP_FORMAT_LAST' type='enum'/>
+     <exports symbol='VIR_DOMAIN_CORE_DUMP_FORMAT_RAW' type='enum'/>
      <exports symbol='VIR_DOMAIN_CRASHED' type='enum'/>
      <exports symbol='VIR_DOMAIN_CRASHED_LAST' type='enum'/>
      <exports symbol='VIR_DOMAIN_CRASHED_PANICKED' type='enum'/>
@@ -573,6 +578,7 @@
      <exports symbol='VIR_MEMORY_PHYSICAL' type='enum'/>
      <exports symbol='VIR_MEMORY_VIRTUAL' type='enum'/>
      <exports symbol='VIR_MIGRATE_ABORT_ON_ERROR' type='enum'/>
+     <exports symbol='VIR_MIGRATE_AUTO_CONVERGE' type='enum'/>
      <exports symbol='VIR_MIGRATE_CHANGE_PROTECTION' type='enum'/>
      <exports symbol='VIR_MIGRATE_COMPRESSED' type='enum'/>
      <exports symbol='VIR_MIGRATE_LIVE' type='enum'/>
@@ -723,6 +729,7 @@
      <exports symbol='virDomainControlInfoPtr' type='typedef'/>
      <exports symbol='virDomainControlState' type='typedef'/>
      <exports symbol='virDomainCoreDumpFlags' type='typedef'/>
+     <exports symbol='virDomainCoreDumpFormat' type='typedef'/>
      <exports symbol='virDomainCrashedReason' type='typedef'/>
      <exports symbol='virDomainCreateFlags' type='typedef'/>
      <exports symbol='virDomainDestroyFlagsValues' type='typedef'/>
@@ -972,6 +979,7 @@
      <exports symbol='virDomainBlockStats' type='function'/>
      <exports symbol='virDomainBlockStatsFlags' type='function'/>
      <exports symbol='virDomainCoreDump' type='function'/>
+     <exports symbol='virDomainCoreDumpWithFormat' type='function'/>
      <exports symbol='virDomainCreate' type='function'/>
      <exports symbol='virDomainCreateLinux' type='function'/>
      <exports symbol='virDomainCreateWithFiles' type='function'/>
@@ -1399,6 +1407,7 @@
      <exports symbol='VIR_FROM_CGROUP' type='enum'/>
      <exports symbol='VIR_FROM_CONF' type='enum'/>
      <exports symbol='VIR_FROM_CPU' type='enum'/>
+     <exports symbol='VIR_FROM_CRYPTO' type='enum'/>
      <exports symbol='VIR_FROM_DBUS' type='enum'/>
      <exports symbol='VIR_FROM_DEVICE' type='enum'/>
      <exports symbol='VIR_FROM_DOM' type='enum'/>
@@ -1965,6 +1974,16 @@ limited set of commands may be allowed'/>
     <enum name='VIR_DOMAIN_CONTROL_LAST' file='libvirt' value='4' type='virDomainControlState'/>
     <enum name='VIR_DOMAIN_CONTROL_OCCUPIED' file='libvirt' value='2' type='virDomainControlState' info='occupied by a running command'/>
     <enum name='VIR_DOMAIN_CONTROL_OK' file='libvirt' value='0' type='virDomainControlState' info='operational, ready to accept commands'/>
+    <enum name='VIR_DOMAIN_CORE_DUMP_FORMAT_KDUMP_LZO' file='libvirt' value='3' type='virDomainCoreDumpFormat' info='kdump-compressed format, with
+ lzo compression'/>
+    <enum name='VIR_DOMAIN_CORE_DUMP_FORMAT_KDUMP_SNAPPY' file='libvirt' value='4' type='virDomainCoreDumpFormat' info='kdump-compressed format, with
+ snappy compression'/>
+    <enum name='VIR_DOMAIN_CORE_DUMP_FORMAT_KDUMP_ZLIB' file='libvirt' value='2' type='virDomainCoreDumpFormat' info='kdump-compressed format, with
+ zlib compression'/>
+    <enum name='VIR_DOMAIN_CORE_DUMP_FORMAT_LAST' file='libvirt' value='5' type='virDomainCoreDumpFormat' info='NB: this enum value will increase over time as new events are
+ added to the libvirt API. It reflects the last state supported
+ by this version of the libvirt API.'/>
+    <enum name='VIR_DOMAIN_CORE_DUMP_FORMAT_RAW' file='libvirt' value='1' type='virDomainCoreDumpFormat' info='dump guest memory in raw format'/>
     <enum name='VIR_DOMAIN_CRASHED' file='libvirt' value='6' type='virDomainState' info='the domain is crashed'/>
     <enum name='VIR_DOMAIN_CRASHED_LAST' file='libvirt' value='2' type='virDomainCrashedReason'/>
     <enum name='VIR_DOMAIN_CRASHED_PANICKED' file='libvirt' value='1' type='virDomainCrashedReason' info='domain panicked'/>
@@ -2069,7 +2088,7 @@ limited set of commands may be allowed'/>
     <enum name='VIR_DOMAIN_EVENT_WATCHDOG_LAST' file='libvirt' value='6' type='virDomainEventWatchdogAction'/>
     <enum name='VIR_DOMAIN_EVENT_WATCHDOG_NONE' file='libvirt' value='0' type='virDomainEventWatchdogAction' info='No action, watchdog ignored'/>
     <enum name='VIR_DOMAIN_EVENT_WATCHDOG_PAUSE' file='libvirt' value='1' type='virDomainEventWatchdogAction' info='Guest CPUs are paused'/>
-    <enum name='VIR_DOMAIN_EVENT_WATCHDOG_POWEROFF' file='libvirt' value='3' type='virDomainEventWatchdogAction' info='Guest is forcably powered off'/>
+    <enum name='VIR_DOMAIN_EVENT_WATCHDOG_POWEROFF' file='libvirt' value='3' type='virDomainEventWatchdogAction' info='Guest is forcibly powered off'/>
     <enum name='VIR_DOMAIN_EVENT_WATCHDOG_RESET' file='libvirt' value='2' type='virDomainEventWatchdogAction' info='Guest CPUs are reset'/>
     <enum name='VIR_DOMAIN_EVENT_WATCHDOG_SHUTDOWN' file='libvirt' value='4' type='virDomainEventWatchdogAction' info='Guest is requested to gracefully shutdown'/>
     <enum name='VIR_DOMAIN_JOB_BOUNDED' file='libvirt' value='1' type='virDomainJobType' info='Job with a finite completion time'/>
@@ -2355,7 +2374,7 @@ construct'/>
     <enum name='VIR_ERR_CONF_SYNTAX' file='virterror' value='33' type='virErrorNumber' info='failed to parse the syntax of a
 conf file'/>
     <enum name='VIR_ERR_DBUS_SERVICE' file='virterror' value='89' type='virErrorNumber' info='error from a dbus service'/>
-    <enum name='VIR_ERR_DOMAIN_LAST' file='virterror' value='58' type='virErrorDomain'/>
+    <enum name='VIR_ERR_DOMAIN_LAST' file='virterror' value='59' type='virErrorDomain'/>
     <enum name='VIR_ERR_DOM_EXIST' file='virterror' value='28' type='virErrorNumber' info='the domain already exist'/>
     <enum name='VIR_ERR_DRIVER_FULL' file='virterror' value='25' type='virErrorNumber' info='too many drivers registered'/>
     <enum name='VIR_ERR_ERROR' file='virterror' value='2' type='virErrorLevel' info='An error'/>
@@ -2455,6 +2474,7 @@ formed or broken'/>
     <enum name='VIR_FROM_CGROUP' file='virterror' value='54' type='virErrorDomain' info='Error from cgroups'/>
     <enum name='VIR_FROM_CONF' file='virterror' value='9' type='virErrorDomain' info='Error in the configuration file handling'/>
     <enum name='VIR_FROM_CPU' file='virterror' value='31' type='virErrorDomain' info='Error from CPU driver'/>
+    <enum name='VIR_FROM_CRYPTO' file='virterror' value='58' type='virErrorDomain' info='Error from crypto code'/>
     <enum name='VIR_FROM_DBUS' file='virterror' value='47' type='virErrorDomain' info='Error from DBus'/>
     <enum name='VIR_FROM_DEVICE' file='virterror' value='49' type='virErrorDomain' info='Error from Device'/>
     <enum name='VIR_FROM_DOM' file='virterror' value='6' type='virErrorDomain' info='Error when operating on a domain'/>
@@ -2524,6 +2544,7 @@ Retained for ABI/API compat only'/>
     <enum name='VIR_MEMORY_PHYSICAL' file='libvirt' value='2' type='virDomainMemoryFlags' info='addresses are physical addresses'/>
     <enum name='VIR_MEMORY_VIRTUAL' file='libvirt' value='1' type='virDomainMemoryFlags' info='addresses are virtual addresses'/>
     <enum name='VIR_MIGRATE_ABORT_ON_ERROR' file='libvirt' value='4096' type='virDomainMigrateFlags' info='abort migration on I/O errors happened during migration'/>
+    <enum name='VIR_MIGRATE_AUTO_CONVERGE' file='libvirt' value='8192' type='virDomainMigrateFlags' info='force convergence'/>
     <enum name='VIR_MIGRATE_CHANGE_PROTECTION' file='libvirt' value='256' type='virDomainMigrateFlags' info='protect for changing domain configuration through the
  whole migration process; this will be used automatically
  when supported'/>
@@ -2755,6 +2776,7 @@ and ERROR states)'/>
     </typedef>
     <typedef name='virDomainControlState' file='libvirt' type='enum'/>
     <typedef name='virDomainCoreDumpFlags' file='libvirt' type='enum'/>
+    <typedef name='virDomainCoreDumpFormat' file='libvirt' type='enum'/>
     <typedef name='virDomainCrashedReason' file='libvirt' type='enum'/>
     <typedef name='virDomainCreateFlags' file='libvirt' type='enum'/>
     <typedef name='virDomainDestroyFlagsValues' file='libvirt' type='enum'/>
@@ -4493,10 +4515,39 @@ The above three flags are mutually exclusive.
 Additionally, if @flags includes VIR_DUMP_BYPASS_CACHE, then libvirt
 will attempt to bypass the file system cache while creating the file,
 or fail if it cannot do so for the given system; this can allow less
+pressure on file system cache, but also risks slowing saves to NFS.
+
+For more control over the output format, see virDomainCoreDumpWithFormat().]]></info>
+      <return type='int' info='0 in case of success and -1 in case of failure.'/>
+      <arg name='domain' type='virDomainPtr' info='a domain object'/>
+      <arg name='to' type='const char *' info='path for the core file'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainCoreDumpFlags'/>
+    </function>
+    <function name='virDomainCoreDumpWithFormat' file='libvirt' module='libvirt'>
+      <info><![CDATA[This method will dump the core of a domain on a given file for analysis.
+Note that for remote Xen Daemon the file path will be interpreted in
+the remote host. Hypervisors may require  the user to manually ensure
+proper permissions on the file named by @to.
+
+@dumpformat controls which format the dump will have; use of
+VIR_DOMAIN_CORE_DUMP_FORMAT_RAW mirrors what virDomainCoreDump() will
+perform.  Not all hypervisors are able to support all formats.
+
+If @flags includes VIR_DUMP_CRASH, then leave the guest shut off with
+a crashed state after the dump completes.  If @flags includes
+VIR_DUMP_LIVE, then make the core dump while continuing to allow
+the guest to run; otherwise, the guest is suspended during the dump.
+VIR_DUMP_RESET flag forces reset of the quest after dump.
+The above three flags are mutually exclusive.
+
+Additionally, if @flags includes VIR_DUMP_BYPASS_CACHE, then libvirt
+will attempt to bypass the file system cache while creating the file,
+or fail if it cannot do so for the given system; this can allow less
 pressure on file system cache, but also risks slowing saves to NFS.]]></info>
       <return type='int' info='0 in case of success and -1 in case of failure.'/>
       <arg name='domain' type='virDomainPtr' info='a domain object'/>
       <arg name='to' type='const char *' info='path for the core file'/>
+      <arg name='dumpformat' type='unsigned int' info='format of domain memory&apos;s dump'/>
       <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainCoreDumpFlags'/>
     </function>
     <function name='virDomainCreate' file='libvirt' module='libvirt'>
@@ -6368,7 +6419,7 @@ namespace. The value zero is not valid.
 Not all hypervisors will support sending signals to
 arbitrary processes or process groups. If this API is
 implemented the minimum requirement is to be able to
-use @pid_value==1 (i.e. kill init). No other value is
+use @pid_value == 1 (i.e. kill init). No other value is
 required to be supported.
 
 If the @signum is VIR_DOMAIN_PROCESS_SIGNAL_NOP then this

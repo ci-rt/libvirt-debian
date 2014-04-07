@@ -1,6 +1,7 @@
 /*
  * interface_backend_udev.c: udev backend for virInterface
  *
+ * Copyright (C) 2014 Red Hat, Inc.
  * Copyright (C) 2012 Doug Goldstein <cardoe@cardoe.com>
  *
  * This library is free software; you can redistribute it and/or
@@ -84,7 +85,7 @@ udevGetMinimalDefForDevice(struct udev_device *dev)
 
     return def;
 
-cleanup:
+ cleanup:
     virInterfaceDefFree(def);
     return NULL;
 }
@@ -153,7 +154,7 @@ udevInterfaceOpen(virConnectPtr conn,
 
     return VIR_DRV_OPEN_SUCCESS;
 
-cleanup:
+ cleanup:
     VIR_FREE(driverState);
 
     return VIR_DRV_OPEN_ERROR;
@@ -219,7 +220,7 @@ udevNumOfInterfacesByStatus(virConnectPtr conn, virUdevStatus status,
         virInterfaceDefFree(def);
     }
 
-cleanup:
+ cleanup:
     if (enumerate)
         udev_enumerate_unref(enumerate);
     udev_unref(udev);
@@ -287,7 +288,7 @@ udevListInterfacesByStatus(virConnectPtr conn,
 
     return count;
 
-error:
+ error:
     if (enumerate)
         udev_enumerate_unref(enumerate);
     udev_unref(udev);
@@ -461,7 +462,7 @@ udevConnectListAllInterfaces(virConnectPtr conn,
 
     return count;
 
-cleanup:
+ cleanup:
     if (enumerate)
         udev_enumerate_unref(enumerate);
     udev_unref(udev);
@@ -504,7 +505,7 @@ udevInterfaceLookupByName(virConnectPtr conn, const char *name)
     ret = virGetInterface(conn, def->name, def->mac);
     udev_device_unref(dev);
 
-cleanup:
+ cleanup:
     udev_unref(udev);
     virInterfaceDefFree(def);
 
@@ -567,7 +568,7 @@ udevInterfaceLookupByMACString(virConnectPtr conn, const char *macstr)
     ret = virGetInterface(conn, def->name, def->mac);
     udev_device_unref(dev);
 
-cleanup:
+ cleanup:
     if (enumerate)
         udev_enumerate_unref(enumerate);
     udev_unref(udev);
@@ -841,7 +842,7 @@ udevGetIfaceDefBond(struct udev *udev,
 
     return 0;
 
-error:
+ error:
     for (i = 0; slave_count != -1 && i < slave_count; i++) {
         VIR_FREE(slave_list[i]);
     }
@@ -948,7 +949,7 @@ udevGetIfaceDefBridge(struct udev *udev,
 
     return 0;
 
-error:
+ error:
     for (i = 0; member_count != -1 && i < member_count; i++) {
         VIR_FREE(member_list[i]);
     }
@@ -985,7 +986,7 @@ udevGetIfaceDefVlan(struct udev *udev ATTRIBUTE_UNUSED,
 
     return 0;
 
-error:
+ error:
     VIR_FREE(ifacedef->data.vlan.tag);
     VIR_FREE(ifacedef->data.vlan.devname);
 
@@ -1093,7 +1094,7 @@ udevGetIfaceDef(struct udev *udev, const char *name)
 
     return ifacedef;
 
-error:
+ error:
     udev_device_unref(dev);
 
     virInterfaceDefFree(ifacedef);
@@ -1127,7 +1128,7 @@ udevInterfaceGetXMLDesc(virInterfacePtr ifinfo,
 
     virInterfaceDefFree(ifacedef);
 
-cleanup:
+ cleanup:
     /* decrement our udev ptr */
     udev_unref(udev);
 
@@ -1163,7 +1164,7 @@ udevInterfaceIsActive(virInterfacePtr ifinfo)
 
     udev_device_unref(dev);
 
-cleanup:
+ cleanup:
     udev_unref(udev);
     virInterfaceDefFree(def);
 
@@ -1186,7 +1187,8 @@ static virInterfaceDriver udevIfaceDriver = {
 };
 
 int
-udevIfaceRegister(void) {
+udevIfaceRegister(void)
+{
     if (virRegisterInterfaceDriver(&udevIfaceDriver) < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                        _("failed to register udev interface driver"));

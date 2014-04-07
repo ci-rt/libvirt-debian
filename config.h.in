@@ -1338,7 +1338,7 @@
 /* Define to 1 if you have the 'posix_openpt' function. */
 #undef HAVE_POSIX_OPENPT
 
-/* Define to 1 if you have the 'posix_spawn' function. */
+/* Define to 1 if you have the `posix_spawn' function. */
 #undef HAVE_POSIX_SPAWN
 
 /* Define to 1 if the system has the type `posix_spawnattr_t'. */
@@ -2192,7 +2192,7 @@
 /* Define to 1 if strerror_r returns char *. */
 #undef STRERROR_R_CHAR_P
 
-/* Location or name of the tc profram (see iproute2) */
+/* Location or name of the tc program (see iproute2) */
 #undef TC
 
 /* Whether malloc OOM checking is enabled */

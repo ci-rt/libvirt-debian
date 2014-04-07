@@ -37,6 +37,8 @@
 
 #define VIR_FROM_THIS VIR_FROM_QEMU
 
+VIR_LOG_INIT("qemu.qemu_cgroup");
+
 static const char *const defaultDeviceACL[] = {
     "/dev/null", "/dev/full", "/dev/zero",
     "/dev/random", "/dev/urandom",
@@ -311,7 +313,7 @@ qemuSetupHostdevCGroup(virDomainObjPtr vm,
     }
 
     ret = 0;
-cleanup:
+ cleanup:
     virPCIDeviceFree(pci);
     virUSBDeviceFree(usb);
     virSCSIDeviceFree(scsi);
@@ -372,7 +374,7 @@ qemuTeardownHostdevCgroup(virDomainObjPtr vm,
     }
 
     ret = 0;
-cleanup:
+ cleanup:
     virPCIDeviceFree(pci);
     VIR_FREE(path);
     return ret;
@@ -567,7 +569,7 @@ qemuSetupDevicesCgroup(virQEMUDriverPtr driver,
     }
 
     ret = 0;
-cleanup:
+ cleanup:
     virObjectUnref(cfg);
     return ret;
 }
@@ -631,7 +633,7 @@ qemuSetupCpusetCgroup(virDomainObjPtr vm,
     }
 
     ret = 0;
-cleanup:
+ cleanup:
     VIR_FREE(mem_mask);
     VIR_FREE(cpu_mask);
     return ret;
@@ -644,7 +646,7 @@ qemuSetupCpuCgroup(virDomainObjPtr vm)
     qemuDomainObjPrivatePtr priv = vm->privateData;
 
     if (!virCgroupHasController(priv->cgroup, VIR_CGROUP_CONTROLLER_CPU)) {
-       if (vm->def->cputune.shares) {
+       if (vm->def->cputune.sharesSpecified) {
            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                           _("CPU tuning is not available on this host"));
            return -1;
@@ -653,9 +655,15 @@ qemuSetupCpuCgroup(virDomainObjPtr vm)
        }
     }
 
-    if (vm->def->cputune.shares &&
-        virCgroupSetCpuShares(priv->cgroup, vm->def->cputune.shares) < 0)
-        return -1;
+    if (vm->def->cputune.sharesSpecified) {
+        unsigned long long val;
+        if (virCgroupSetCpuShares(priv->cgroup, vm->def->cputune.shares) < 0)
+            return -1;
+
+        if (virCgroupGetCpuShares(priv->cgroup, &val) < 0)
+            return -1;
+        vm->def->cputune.shares = val;
+    }
 
     return 0;
 }
@@ -714,9 +722,9 @@ qemuInitCgroup(virQEMUDriverPtr driver,
         goto cleanup;
     }
 
-done:
+ done:
     ret = 0;
-cleanup:
+ cleanup:
     virObjectUnref(cfg);
     return ret;
 }
@@ -748,9 +756,9 @@ qemuConnectCgroup(virQEMUDriverPtr driver,
                                   &priv->cgroup) < 0)
         goto cleanup;
 
-done:
+ done:
     ret = 0;
-cleanup:
+ cleanup:
     virObjectUnref(cfg);
     return ret;
 }
@@ -795,7 +803,7 @@ qemuSetupCgroup(virQEMUDriverPtr driver,
         goto cleanup;
 
     ret = 0;
-cleanup:
+ cleanup:
     virObjectUnref(caps);
     return ret;
 }
@@ -825,7 +833,7 @@ qemuSetupCgroupVcpuBW(virCgroupPtr cgroup,
 
     return 0;
 
-error:
+ error:
     if (period) {
         virErrorPtr saved = virSaveLastError();
         ignore_value(virCgroupSetCpuCfsPeriod(cgroup, old_period));
@@ -873,7 +881,7 @@ qemuSetupCgroupEmulatorPin(virCgroupPtr cgroup,
         goto cleanup;
 
     ret = 0;
-cleanup:
+ cleanup:
     VIR_FREE(new_cpus);
     return ret;
 }
@@ -946,7 +954,7 @@ qemuSetupCgroupForVcpu(virDomainObjPtr vm)
 
     return 0;
 
-cleanup:
+ cleanup:
     if (cgroup_vcpu) {
         virCgroupRemove(cgroup_vcpu);
         virCgroupFree(&cgroup_vcpu);
@@ -1011,7 +1019,7 @@ qemuSetupCgroupForEmulator(virQEMUDriverPtr driver,
     virBitmapFree(cpumap);
     return 0;
 
-cleanup:
+ cleanup:
     virBitmapFree(cpumap);
 
     if (cgroup_emulator) {

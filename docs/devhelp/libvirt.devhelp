@@ -236,6 +236,11 @@
     <function name="VIR_DOMAIN_CONTROL_LAST" link="libvirt-libvirt.html#VIR_DOMAIN_CONTROL_LAST"/>
     <function name="VIR_DOMAIN_CONTROL_OCCUPIED" link="libvirt-libvirt.html#VIR_DOMAIN_CONTROL_OCCUPIED"/>
     <function name="VIR_DOMAIN_CONTROL_OK" link="libvirt-libvirt.html#VIR_DOMAIN_CONTROL_OK"/>
+    <function name="VIR_DOMAIN_CORE_DUMP_FORMAT_KDUMP_LZO" link="libvirt-libvirt.html#VIR_DOMAIN_CORE_DUMP_FORMAT_KDUMP_LZO"/>
+    <function name="VIR_DOMAIN_CORE_DUMP_FORMAT_KDUMP_SNAPPY" link="libvirt-libvirt.html#VIR_DOMAIN_CORE_DUMP_FORMAT_KDUMP_SNAPPY"/>
+    <function name="VIR_DOMAIN_CORE_DUMP_FORMAT_KDUMP_ZLIB" link="libvirt-libvirt.html#VIR_DOMAIN_CORE_DUMP_FORMAT_KDUMP_ZLIB"/>
+    <function name="VIR_DOMAIN_CORE_DUMP_FORMAT_LAST" link="libvirt-libvirt.html#VIR_DOMAIN_CORE_DUMP_FORMAT_LAST"/>
+    <function name="VIR_DOMAIN_CORE_DUMP_FORMAT_RAW" link="libvirt-libvirt.html#VIR_DOMAIN_CORE_DUMP_FORMAT_RAW"/>
     <function name="VIR_DOMAIN_CRASHED" link="libvirt-libvirt.html#VIR_DOMAIN_CRASHED"/>
     <function name="VIR_DOMAIN_CRASHED_LAST" link="libvirt-libvirt.html#VIR_DOMAIN_CRASHED_LAST"/>
     <function name="VIR_DOMAIN_CRASHED_PANICKED" link="libvirt-libvirt.html#VIR_DOMAIN_CRASHED_PANICKED"/>
@@ -657,6 +662,7 @@
     <function name="VIR_FROM_CGROUP" link="libvirt-virterror.html#VIR_FROM_CGROUP"/>
     <function name="VIR_FROM_CONF" link="libvirt-virterror.html#VIR_FROM_CONF"/>
     <function name="VIR_FROM_CPU" link="libvirt-virterror.html#VIR_FROM_CPU"/>
+    <function name="VIR_FROM_CRYPTO" link="libvirt-virterror.html#VIR_FROM_CRYPTO"/>
     <function name="VIR_FROM_DBUS" link="libvirt-virterror.html#VIR_FROM_DBUS"/>
     <function name="VIR_FROM_DEVICE" link="libvirt-virterror.html#VIR_FROM_DEVICE"/>
     <function name="VIR_FROM_DOM" link="libvirt-virterror.html#VIR_FROM_DOM"/>
@@ -722,6 +728,7 @@
     <function name="VIR_MEMORY_PHYSICAL" link="libvirt-libvirt.html#VIR_MEMORY_PHYSICAL"/>
     <function name="VIR_MEMORY_VIRTUAL" link="libvirt-libvirt.html#VIR_MEMORY_VIRTUAL"/>
     <function name="VIR_MIGRATE_ABORT_ON_ERROR" link="libvirt-libvirt.html#VIR_MIGRATE_ABORT_ON_ERROR"/>
+    <function name="VIR_MIGRATE_AUTO_CONVERGE" link="libvirt-libvirt.html#VIR_MIGRATE_AUTO_CONVERGE"/>
     <function name="VIR_MIGRATE_CHANGE_PROTECTION" link="libvirt-libvirt.html#VIR_MIGRATE_CHANGE_PROTECTION"/>
     <function name="VIR_MIGRATE_COMPRESSED" link="libvirt-libvirt.html#VIR_MIGRATE_COMPRESSED"/>
     <function name="VIR_MIGRATE_LIVE" link="libvirt-libvirt.html#VIR_MIGRATE_LIVE"/>
@@ -869,6 +876,7 @@
     <function name="virDomainControlInfoPtr" link="libvirt-libvirt.html#virDomainControlInfoPtr"/>
     <function name="virDomainControlState" link="libvirt-libvirt.html#virDomainControlState"/>
     <function name="virDomainCoreDumpFlags" link="libvirt-libvirt.html#virDomainCoreDumpFlags"/>
+    <function name="virDomainCoreDumpFormat" link="libvirt-libvirt.html#virDomainCoreDumpFormat"/>
     <function name="virDomainCrashedReason" link="libvirt-libvirt.html#virDomainCrashedReason"/>
     <function name="virDomainCreateFlags" link="libvirt-libvirt.html#virDomainCreateFlags"/>
     <function name="virDomainDestroyFlagsValues" link="libvirt-libvirt.html#virDomainDestroyFlagsValues"/>
@@ -1128,6 +1136,7 @@
     <function name="virDomainBlockStats ()" link="libvirt-libvirt.html#virDomainBlockStats"/>
     <function name="virDomainBlockStatsFlags ()" link="libvirt-libvirt.html#virDomainBlockStatsFlags"/>
     <function name="virDomainCoreDump ()" link="libvirt-libvirt.html#virDomainCoreDump"/>
+    <function name="virDomainCoreDumpWithFormat ()" link="libvirt-libvirt.html#virDomainCoreDumpWithFormat"/>
     <function name="virDomainCreate ()" link="libvirt-libvirt.html#virDomainCreate"/>
     <function name="virDomainCreateLinux ()" link="libvirt-libvirt.html#virDomainCreateLinux"/>
     <function name="virDomainCreateWithFiles ()" link="libvirt-libvirt.html#virDomainCreateWithFiles"/>

@@ -34,6 +34,8 @@
 
 #define VIR_FROM_THIS VIR_FROM_RPC
 
+VIR_LOG_INIT("rpc.netserverprogram");
+
 struct _virNetServerProgram {
     virObject object;
 
@@ -173,7 +175,7 @@ virNetServerProgramSendError(unsigned program,
 
     return 0;
 
-error:
+ error:
     VIR_WARN("Failed to serialize remote error '%p'", rerr);
     xdr_free((xdrproc_t)xdr_virNetMessageError, (void*)rerr);
     return -1;
@@ -331,7 +333,7 @@ int virNetServerProgramDispatch(virNetServerProgramPtr prog,
 
     return ret;
 
-error:
+ error:
     if (msg->header.type == VIR_NET_CALL ||
         msg->header.type == VIR_NET_CALL_WITH_FDS) {
         ret = virNetServerProgramSendReplyError(prog, client, msg, &rerr, &msg->header);
@@ -346,7 +348,7 @@ error:
         ret = 0;
     }
 
-cleanup:
+ cleanup:
     return ret;
 }
 
@@ -491,7 +493,7 @@ virNetServerProgramDispatchCall(virNetServerProgramPtr prog,
     /* Put reply on end of tx queue to send out  */
     return virNetServerClientSendMessage(client, msg);
 
-error:
+ error:
     /* Bad stuff (de-)serializing message, but we have an
      * RPC error message we can send back to the client */
     rv = virNetServerProgramSendReplyError(prog, client, msg, &rerr, &msg->header);

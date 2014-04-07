@@ -1,7 +1,7 @@
 /*
- * node_device.c: node device enumeration
+ * node_device_driver.c: node device enumeration
  *
- * Copyright (C) 2010-2013 Red Hat, Inc.
+ * Copyright (C) 2010-2014 Red Hat, Inc.
  * Copyright (C) 2008 Virtual Iron Software, Inc.
  * Copyright (C) 2008 David F. Lively
  *
@@ -33,7 +33,6 @@
 #include "datatypes.h"
 #include "viralloc.h"
 #include "virfile.h"
-#include "virlog.h"
 #include "virstring.h"
 #include "node_device_conf.h"
 #include "node_device_hal.h"
@@ -42,7 +41,6 @@
 #include "viraccessapicheck.h"
 
 #define VIR_FROM_THIS VIR_FROM_NODEDEV
-
 
 static int update_caps(virNodeDeviceObjPtr dev)
 {
@@ -99,7 +97,7 @@ static int update_driver_name(virNodeDeviceObjPtr dev)
         goto cleanup;
     ret = 0;
 
-cleanup:
+ cleanup:
     VIR_FREE(driver_link);
     VIR_FREE(devpath);
     return ret;
@@ -234,7 +232,7 @@ nodeDeviceLookupByName(virConnectPtr conn, const char *name)
 
     ret = virGetNodeDevice(conn, name);
 
-cleanup:
+ cleanup:
     if (obj)
         virNodeDeviceObjUnlock(obj);
     return ret;
@@ -286,7 +284,7 @@ nodeDeviceLookupSCSIHostByWWN(virConnectPtr conn,
         virNodeDeviceObjUnlock(obj);
     }
 
-out:
+ out:
     nodeDeviceUnlock(driver);
     return dev;
 }
@@ -321,7 +319,7 @@ nodeDeviceGetXMLDesc(virNodeDevicePtr dev,
 
     ret = virNodeDeviceDefFormat(obj->def);
 
-cleanup:
+ cleanup:
     if (obj)
         virNodeDeviceObjUnlock(obj);
     return ret;
@@ -357,7 +355,7 @@ nodeDeviceGetParent(virNodeDevicePtr dev)
                        "%s", _("no parent for this device"));
     }
 
-cleanup:
+ cleanup:
     if (obj)
         virNodeDeviceObjUnlock(obj);
     return ret;
@@ -391,7 +389,7 @@ nodeDeviceNumOfCaps(virNodeDevicePtr dev)
         ++ncaps;
     ret = ncaps;
 
-cleanup:
+ cleanup:
     if (obj)
         virNodeDeviceObjUnlock(obj);
     return ret;
@@ -422,12 +420,12 @@ nodeDeviceListCaps(virNodeDevicePtr dev, char **const names, int maxnames)
         goto cleanup;
 
     for (caps = obj->def->caps; caps && ncaps < maxnames; caps = caps->next) {
-        if (VIR_STRDUP(names[ncaps], virNodeDevCapTypeToString(caps->type)) < 0)
+        if (VIR_STRDUP(names[ncaps++], virNodeDevCapTypeToString(caps->type)) < 0)
             goto cleanup;
     }
     ret = ncaps;
 
-cleanup:
+ cleanup:
     if (obj)
         virNodeDeviceObjUnlock(obj);
     if (ret == -1) {
@@ -557,7 +555,7 @@ nodeDeviceCreateXML(virConnectPtr conn,
         virReportError(VIR_ERR_NO_NODE_DEVICE, NULL);
     }
 
-cleanup:
+ cleanup:
     nodeDeviceUnlock(driver);
     virNodeDeviceDefFree(def);
     VIR_FREE(wwnn);
@@ -619,7 +617,7 @@ nodeDeviceDestroy(virNodeDevicePtr dev)
     }
 
     ret = 0;
-out:
+ out:
     if (obj)
         virNodeDeviceObjUnlock(obj);
     VIR_FREE(parent_name);
@@ -628,7 +626,8 @@ out:
     return ret;
 }
 
-int nodedevRegister(void) {
+int nodedevRegister(void)
+{
 #if defined(WITH_HAL) && defined(WITH_UDEV)
     /* Register only one of these two - they conflict */
     if (udevNodeRegister() == -1)

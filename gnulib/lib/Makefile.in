@@ -1268,6 +1268,7 @@ LIB_EXECINFO = @LIB_EXECINFO@
 LIB_FDATASYNC = @LIB_FDATASYNC@
 LIB_NANOSLEEP = @LIB_NANOSLEEP@
 LIB_POLL = @LIB_POLL@
+LIB_POSIX_SPAWN = @LIB_POSIX_SPAWN@
 LIB_PTHREAD = @LIB_PTHREAD@
 LIB_PTHREAD_SIGMASK = @LIB_PTHREAD_SIGMASK@
 LIB_SELECT = @LIB_SELECT@
@@ -1841,27 +1842,27 @@ EXTRA_DIST = accept.c w32sock.h alloca.c alloca.in.h allocator.h \
 	getpass.c getpass.h getpeername.c w32sock.h getsockname.c \
 	w32sock.h gettimeofday.c getugroups.h \
 	$(top_srcdir)/build-aux/gitlog-to-changelog \
-	$(top_srcdir)/GNUmakefile $(top_srcdir)/build-aux/config.rpath \
-	ignore-value.h inet_ntop.c inet_pton.c intprops.h ioctl.c \
-	w32sock.h isatty.c langinfo.in.h listen.c w32sock.h \
-	config.charset ref-add.sin ref-del.sin locale.in.h \
-	localeconv.c lseek.c lstat.c $(top_srcdir)/maint.mk malloc.c \
-	malloc.c malloca.h malloca.valgrind mbrtowc.c mbsinit.c \
-	mbsrtowcs-impl.h mbsrtowcs-state.c mbsrtowcs.c mbtowc-impl.h \
-	mbtowc.c memchr.c memchr.valgrind mgetgroups.h mkdtemp.c \
-	mkostemp.c mkostemps.c $(top_srcdir)/build-aux/mktempd \
-	mktime-internal.h mktime.c mktime-internal.h mktime.c \
-	msvc-inval.c msvc-inval.h msvc-nothrow.c msvc-nothrow.h \
-	net_if.in.h netdb.in.h netinet_in.in.h nl_langinfo.c \
-	nonblocking.h stdio-read.c stdio-write.c open.c openpty.c \
-	passfd.h pathmax.h perror.c physmem.h pipe.c poll.c poll.in.h \
-	posix_openpt.c pthread.c pthread.in.h pthread_sigmask.c \
-	pty.in.h raise.c random_r.c rawmemchr.c rawmemchr.valgrind \
-	readlink.c realloc.c recv.c w32sock.h regcomp.c regex.c \
-	regex.h regex_internal.c regex_internal.h regexec.c sched.in.h \
-	secure_getenv.c select.c send.c w32sock.h setenv.c \
-	setsockopt.c w32sock.h sig-handler.h sigaction.c signal.in.h \
-	stdio-write.c sigprocmask.c sleep.c \
+	$(top_srcdir)/build-aux/git-log-fix $(top_srcdir)/GNUmakefile \
+	$(top_srcdir)/build-aux/config.rpath ignore-value.h \
+	inet_ntop.c inet_pton.c intprops.h ioctl.c w32sock.h isatty.c \
+	langinfo.in.h listen.c w32sock.h config.charset ref-add.sin \
+	ref-del.sin locale.in.h localeconv.c lseek.c lstat.c \
+	$(top_srcdir)/maint.mk malloc.c malloc.c malloca.h \
+	malloca.valgrind mbrtowc.c mbsinit.c mbsrtowcs-impl.h \
+	mbsrtowcs-state.c mbsrtowcs.c mbtowc-impl.h mbtowc.c memchr.c \
+	memchr.valgrind mgetgroups.h mkdtemp.c mkostemp.c mkostemps.c \
+	$(top_srcdir)/build-aux/mktempd mktime-internal.h mktime.c \
+	mktime-internal.h mktime.c msvc-inval.c msvc-inval.h \
+	msvc-nothrow.c msvc-nothrow.h net_if.in.h netdb.in.h \
+	netinet_in.in.h nl_langinfo.c nonblocking.h stdio-read.c \
+	stdio-write.c open.c openpty.c passfd.h pathmax.h perror.c \
+	physmem.h pipe.c poll.c poll.in.h posix_openpt.c pthread.c \
+	pthread.in.h pthread_sigmask.c pty.in.h raise.c random_r.c \
+	rawmemchr.c rawmemchr.valgrind readlink.c realloc.c recv.c \
+	w32sock.h regcomp.c regex.c regex.h regex_internal.c \
+	regex_internal.h regexec.c sched.in.h secure_getenv.c select.c \
+	send.c w32sock.h setenv.c setsockopt.c w32sock.h sig-handler.h \
+	sigaction.c signal.in.h stdio-write.c sigprocmask.c sleep.c \
 	$(top_srcdir)/build-aux/snippet/_Noreturn.h \
 	$(top_srcdir)/build-aux/snippet/arg-nonnull.h \
 	$(top_srcdir)/build-aux/snippet/c++defs.h \

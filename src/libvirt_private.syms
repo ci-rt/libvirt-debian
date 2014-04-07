@@ -178,6 +178,7 @@ virDomainDeviceDefCopy;
 virDomainDeviceDefFree;
 virDomainDeviceDefParse;
 virDomainDeviceFindControllerModel;
+virDomainDeviceGetInfo;
 virDomainDeviceInfoCopy;
 virDomainDeviceInfoIterate;
 virDomainDeviceTypeToString;
@@ -200,6 +201,10 @@ virDomainDiskFindByBusAndDst;
 virDomainDiskGeometryTransTypeFromString;
 virDomainDiskGeometryTransTypeToString;
 virDomainDiskGetActualType;
+virDomainDiskGetDriver;
+virDomainDiskGetFormat;
+virDomainDiskGetSource;
+virDomainDiskGetType;
 virDomainDiskHostDefClear;
 virDomainDiskHostDefCopy;
 virDomainDiskHostDefFree;
@@ -214,6 +219,10 @@ virDomainDiskProtocolTransportTypeToString;
 virDomainDiskProtocolTypeToString;
 virDomainDiskRemove;
 virDomainDiskRemoveByName;
+virDomainDiskSetDriver;
+virDomainDiskSetFormat;
+virDomainDiskSetSource;
+virDomainDiskSetType;
 virDomainDiskSourceIsBlockType;
 virDomainDiskTypeFromString;
 virDomainDiskTypeToString;
@@ -459,6 +468,8 @@ virDomainEventTrayChangeNewFromDom;
 virDomainEventTrayChangeNewFromObj;
 virDomainEventWatchdogNewFromDom;
 virDomainEventWatchdogNewFromObj;
+virDomainQemuMonitorEventNew;
+virDomainQemuMonitorEventStateRegisterID;
 
 
 # conf/domain_nwfilter.h
@@ -710,6 +721,7 @@ virStoragePoolObjUnlock;
 virStoragePoolSourceAdapterTypeTypeFromString;
 virStoragePoolSourceAdapterTypeTypeToString;
 virStoragePoolSourceClear;
+virStoragePoolSourceDeviceClear;
 virStoragePoolSourceFindDuplicate;
 virStoragePoolSourceFindDuplicateDevices;
 virStoragePoolSourceFree;
@@ -796,6 +808,7 @@ virFDStreamConnectUNIX;
 virFDStreamCreateFile;
 virFDStreamOpen;
 virFDStreamOpenFile;
+virFDStreamOpenPTY;
 virFDStreamSetIOHelper;
 
 
@@ -1108,9 +1121,12 @@ virCommandNewArgList;
 virCommandNewArgs;
 virCommandNonblockingFDs;
 virCommandPassFD;
+virCommandRawStatus;
 virCommandRequireHandshake;
 virCommandRun;
 virCommandRunAsync;
+virCommandRunNul;
+virCommandRunRegex;
 virCommandSetAppArmorProfile;
 virCommandSetDryRun;
 virCommandSetErrorBuffer;
@@ -1148,9 +1164,18 @@ virConfWriteFile;
 virConfWriteMem;
 
 
+# util/vircrypto.h
+virCryptoHashString;
+
+
 # util/virdbus.h
+virDBusCall;
 virDBusCallMethod;
 virDBusCloseSystemBus;
+virDBusCreateMethod;
+virDBusCreateMethodV;
+virDBusCreateReply;
+virDBusCreateReplyV;
 virDBusGetSessionBus;
 virDBusGetSystemBus;
 virDBusHasSystemBus;
@@ -1291,6 +1316,25 @@ virHookInitialize;
 virHookPresent;
 
 
+# util/virhostdev.h
+virHostdevManagerGetDefault;
+virHostdevPCINodeDeviceDetach;
+virHostdevPCINodeDeviceReAttach;
+virHostdevPCINodeDeviceReset;
+virHostdevPrepareDomainDevices;
+virHostdevPreparePCIDevices;
+virHostdevPrepareSCSIDevices;
+virHostdevPrepareUSBDevices;
+virHostdevReAttachDomainDevices;
+virHostdevReAttachPCIDevices;
+virHostdevReAttachSCSIDevices;
+virHostdevReAttachUSBDevices;
+virHostdevUpdateActivePCIDevices;
+virHostdevUpdateActiveSCSIDevices;
+virHostdevUpdateActiveUSBDevices;
+virHostdevUpdateDomainActiveDevices;
+
+
 # util/viridentity.h
 virIdentityGetAttr;
 virIdentityGetCurrent;
@@ -1330,6 +1374,15 @@ iptablesRemoveOutputFixUdpChecksum;
 iptablesRemoveTcpInput;
 iptablesRemoveUdpInput;
 iptablesRemoveUdpOutput;
+
+
+# util/viriscsi.h
+virISCSIConnectionLogin;
+virISCSIConnectionLogout;
+virISCSIGetSession;
+virISCSINodeUpdate;
+virISCSIRescanLUNs;
+virISCSIScanTargets;
 
 
 # util/virjson.h
@@ -1423,7 +1476,6 @@ virLockSpaceReleaseResourcesForOwner;
 # util/virlog.h
 virLogDefineFilter;
 virLogDefineOutput;
-virLogEmergencyDumpAll;
 virLogGetDefaultPriority;
 virLogGetFilters;
 virLogGetNbFilters;
@@ -1437,7 +1489,6 @@ virLogParseOutputs;
 virLogPriorityFromSyslog;
 virLogProbablyLogMessage;
 virLogReset;
-virLogSetBufferSize;
 virLogSetDefaultPriority;
 virLogSetFromEnv;
 virLogUnlock;
@@ -1533,6 +1584,7 @@ virNetDevTapCreate;
 virNetDevTapCreateInBridgePort;
 virNetDevTapDelete;
 virNetDevTapGetName;
+virNetDevTapGetRealDeviceName;
 
 
 # util/virnetdevveth.h
@@ -1679,6 +1731,7 @@ virPortAllocatorRelease;
 
 # util/virprocess.h
 virProcessAbort;
+virProcessExitWithStatus;
 virProcessGetAffinity;
 virProcessGetNamespaces;
 virProcessGetStartTime;
@@ -1944,6 +1997,7 @@ virGetGroupID;
 virGetGroupList;
 virGetGroupName;
 virGetHostname;
+virGetSelfLastChanged;
 virGetUnprivSGIOSysfsPath;
 virGetUserCacheDirectory;
 virGetUserConfigDirectory;
@@ -1973,6 +2027,7 @@ virSetNonBlock;
 virSetUIDGID;
 virSetUIDGIDWithCaps;
 virStrIsPrint;
+virUpdateSelfLastChanged;
 virValidateWWN;
 
 

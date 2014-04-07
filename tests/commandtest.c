@@ -1,7 +1,7 @@
 /*
  * commandtest.c: Test the libCommand API
  *
- * Copyright (C) 2010-2013 Red Hat, Inc.
+ * Copyright (C) 2010-2014 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -26,6 +26,7 @@
 #include <unistd.h>
 #include <signal.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 #include <fcntl.h>
 
 #include "testutils.h"
@@ -38,6 +39,7 @@
 #include "virerror.h"
 #include "virthread.h"
 #include "virstring.h"
+#include "virprocess.h"
 
 #define VIR_FROM_THIS VIR_FROM_NONE
 
@@ -91,7 +93,7 @@ static int checkoutput(const char *testname)
 
     ret = 0;
 
-cleanup:
+ cleanup:
     if (actualname)
         unlink(actualname);
     VIR_FREE(actuallog);
@@ -121,7 +123,7 @@ static int test0(const void *unused ATTRIBUTE_UNUSED)
     virResetLastError();
     ret = 0;
 
-cleanup:
+ cleanup:
     virCommandFree(cmd);
     return ret;
 }
@@ -140,11 +142,17 @@ static int test1(const void *unused ATTRIBUTE_UNUSED)
     cmd = virCommandNew(abs_builddir "/commandhelper-doesnotexist");
     if (virCommandRun(cmd, &status) < 0)
         goto cleanup;
-    if (status == 0)
+    if (status != EXIT_ENOENT)
+        goto cleanup;
+
+    virCommandRawStatus(cmd);
+    if (virCommandRun(cmd, &status) < 0)
+        goto cleanup;
+    if (!WIFEXITED(status) || WEXITSTATUS(status) != EXIT_ENOENT)
         goto cleanup;
     ret = 0;
 
-cleanup:
+ cleanup:
     virCommandFree(cmd);
     return ret;
 }
@@ -213,7 +221,7 @@ static int test3(const void *unused ATTRIBUTE_UNUSED)
 
     ret = checkoutput("test3");
 
-cleanup:
+ cleanup:
     virCommandFree(cmd);
     /* coverity[double_close] */
     VIR_FORCE_CLOSE(newfd1);
@@ -255,7 +263,7 @@ static int test4(const void *unused ATTRIBUTE_UNUSED)
 
     ret = checkoutput("test4");
 
-cleanup:
+ cleanup:
     virCommandFree(cmd);
     if (pidfile)
         unlink(pidfile);
@@ -504,7 +512,7 @@ static int test13(const void *unused ATTRIBUTE_UNUSED)
 
     ret = checkoutput("test13");
 
-cleanup:
+ cleanup:
     virCommandFree(cmd);
     VIR_FREE(outactual);
     return ret;
@@ -576,7 +584,7 @@ static int test14(const void *unused ATTRIBUTE_UNUSED)
 
     ret = checkoutput("test14");
 
-cleanup:
+ cleanup:
     virCommandFree(cmd);
     VIR_FREE(outactual);
     VIR_FREE(erractual);
@@ -607,7 +615,7 @@ static int test15(const void *unused ATTRIBUTE_UNUSED)
 
     ret = checkoutput("test15");
 
-cleanup:
+ cleanup:
     VIR_FREE(cwd);
     virCommandFree(cmd);
 
@@ -653,7 +661,7 @@ static int test16(const void *unused ATTRIBUTE_UNUSED)
 
     ret = checkoutput("test16");
 
-cleanup:
+ cleanup:
     virCommandFree(cmd);
     VIR_FORCE_CLOSE(fd);
     VIR_FREE(outactual);
@@ -682,6 +690,7 @@ static int test17(const void *unused ATTRIBUTE_UNUSED)
         goto cleanup;
     }
 
+    sa_assert(outbuf);
     if (*outbuf) {
         puts("output buffer is not an allocated empty string");
         goto cleanup;
@@ -710,7 +719,7 @@ static int test17(const void *unused ATTRIBUTE_UNUSED)
     }
 
     ret = 0;
-cleanup:
+ cleanup:
     virCommandFree(cmd);
     VIR_FREE(outbuf);
     VIR_FREE(errbuf);
@@ -758,7 +767,7 @@ static int test18(const void *unused ATTRIBUTE_UNUSED)
 
     ret = 0;
 
-cleanup:
+ cleanup:
     virCommandFree(cmd);
     if (pidfile)
         unlink(pidfile);
@@ -798,7 +807,7 @@ static int test19(const void *unused ATTRIBUTE_UNUSED)
 
     ret = 0;
 
-cleanup:
+ cleanup:
     virCommandFree(cmd);
     return ret;
 }
@@ -833,7 +842,7 @@ static int test20(const void *unused ATTRIBUTE_UNUSED)
     }
 
     ret = checkoutput("test20");
-cleanup:
+ cleanup:
     virCommandFree(cmd);
     VIR_FREE(buf);
     return ret;
@@ -892,10 +901,123 @@ static int test21(const void *unused ATTRIBUTE_UNUSED)
     }
 
     ret = checkoutput("test21");
-cleanup:
+ cleanup:
     VIR_FREE(outbuf);
     VIR_FREE(errbuf);
     virCommandFree(cmd);
+    return ret;
+}
+
+static int
+test22(const void *unused ATTRIBUTE_UNUSED)
+{
+    int ret = -1;
+    virCommandPtr cmd;
+    int status = -1;
+
+    cmd = virCommandNewArgList("/bin/sh", "-c", "exit 3", NULL);
+
+    if (virCommandRun(cmd, &status) < 0) {
+        virErrorPtr err = virGetLastError();
+        printf("Cannot run child %s\n", err->message);
+        goto cleanup;
+    }
+    if (status != 3) {
+        printf("Unexpected status %d\n", status);
+        goto cleanup;
+    }
+
+    virCommandRawStatus(cmd);
+    if (virCommandRun(cmd, &status) < 0) {
+        virErrorPtr err = virGetLastError();
+        printf("Cannot run child %s\n", err->message);
+        goto cleanup;
+    }
+    if (!WIFEXITED(status) || WEXITSTATUS(status) != 3) {
+        printf("Unexpected status %d\n", status);
+        goto cleanup;
+    }
+
+    virCommandFree(cmd);
+    cmd = virCommandNewArgList("/bin/sh", "-c", "kill -9 $$", NULL);
+
+    if (virCommandRun(cmd, &status) == 0) {
+        printf("Death by signal not detected, status %d\n", status);
+        goto cleanup;
+    }
+
+    virCommandRawStatus(cmd);
+    if (virCommandRun(cmd, &status) < 0) {
+        virErrorPtr err = virGetLastError();
+        printf("Cannot run child %s\n", err->message);
+        goto cleanup;
+    }
+    if (!WIFSIGNALED(status) || WTERMSIG(status) != SIGKILL) {
+        printf("Unexpected status %d\n", status);
+        goto cleanup;
+    }
+
+    ret = 0;
+ cleanup:
+    virCommandFree(cmd);
+    return ret;
+}
+
+
+static int
+test23(const void *unused ATTRIBUTE_UNUSED)
+{
+    /* Not strictly a virCommand test, but this is the easiest place
+     * to test this lower-level interface.  It takes a double fork to
+     * test virProcessExitWithStatus.  */
+    int ret = -1;
+    int status = -1;
+    pid_t pid;
+
+    if ((pid = virFork()) < 0)
+        goto cleanup;
+    if (pid == 0) {
+        if ((pid = virFork()) < 0)
+            _exit(EXIT_FAILURE);
+        if (pid == 0)
+            _exit(42);
+        if (virProcessWait(pid, &status, true) < 0)
+            _exit(EXIT_FAILURE);
+        virProcessExitWithStatus(status);
+        _exit(EXIT_FAILURE);
+    }
+
+    if (virProcessWait(pid, &status, true) < 0)
+        goto cleanup;
+    if (!WIFEXITED(status) || WEXITSTATUS(status) != 42) {
+        printf("Unexpected status %d\n", status);
+        goto cleanup;
+    }
+
+    if ((pid = virFork()) < 0)
+        goto cleanup;
+    if (pid == 0) {
+        if ((pid = virFork()) < 0)
+            _exit(EXIT_FAILURE);
+        if (pid == 0) {
+            raise(SIGKILL);
+            _exit(EXIT_FAILURE);
+        }
+        if (virProcessWait(pid, &status, true) < 0)
+            _exit(EXIT_FAILURE);
+        virProcessExitWithStatus(status);
+        _exit(EXIT_FAILURE);
+    }
+
+    if (virProcessWait(pid, &status, true) < 0)
+        goto cleanup;
+    if (!WIFSIGNALED(status) || WTERMSIG(status) != SIGKILL) {
+        printf("Unexpected status %d\n", status);
+        goto cleanup;
+    }
+
+    ret = 0;
+ cleanup:
     return ret;
 }
 
@@ -1046,6 +1168,8 @@ mymain(void)
     DO_TEST(test19);
     DO_TEST(test20);
     DO_TEST(test21);
+    DO_TEST(test22);
+    DO_TEST(test23);
 
     virMutexLock(&test->lock);
     if (test->running) {
@@ -1055,7 +1179,7 @@ mymain(void)
     }
     virMutexUnlock(&test->lock);
 
-cleanup:
+ cleanup:
     if (test->running)
         virThreadJoin(&test->thread);
 
@@ -1065,7 +1189,7 @@ cleanup:
     virMutexDestroy(&test->lock);
     VIR_FREE(test);
 
-    return ret==0 ? EXIT_SUCCESS : EXIT_FAILURE;
+    return ret == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
 VIRT_TEST_MAIN(mymain)

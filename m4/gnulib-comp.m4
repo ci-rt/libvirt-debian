@@ -1664,6 +1664,7 @@ AC_DEFUN([gltests_LIBSOURCES], [
 # gnulib-tool and may be removed by future gnulib-tool invocations.
 AC_DEFUN([gl_FILE_LIST], [
   build-aux/config.rpath
+  build-aux/git-log-fix
   build-aux/gitlog-to-changelog
   build-aux/mktempd
   build-aux/snippet/_Noreturn.h

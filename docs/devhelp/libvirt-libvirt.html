@@ -34,7 +34,7 @@
       <span class="refentrytitle">libvirt</span>
     </h2>
     <p>libvirt - core interfaces for the libvirt library</p>
-    <p>Provides the interfaces of the libvirt library to handle virtualized domains  Copyright (C) 2005-2006, 2010-2013 Red Hat, Inc.  This library is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation; either version 2.1 of the License, or (at your option) any later version.  This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more details.  You should have received a copy of the GNU Lesser General Public License along with this library.  If not, see &lt;http://www.gnu.org/licenses/&gt;. </p>
+    <p>Provides the interfaces of the libvirt library to handle virtualized domains  Copyright (C) 2005-2006, 2010-2014 Red Hat, Inc.  This library is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation; either version 2.1 of the License, or (at your option) any later version.  This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more details.  You should have received a copy of the GNU Lesser General Public License along with this library.  If not, see &lt;http://www.gnu.org/licenses/&gt;. </p>
     <p>Author(s): Daniel Veillard &lt;veillard@redhat.com&gt; </p>
     <div class="refsynopsisdiv">
       <h2>Synopsis</h2>
@@ -192,6 +192,7 @@ typedef struct _virDomainControlInfo <a href="#virDomainControlInfo">virDomainCo
 typedef <a href="libvirt-libvirt.html#virDomainControlInfo">virDomainControlInfo</a> * <a href="#virDomainControlInfoPtr">virDomainControlInfoPtr</a>;
 typedef enum <a href="#virDomainControlState">virDomainControlState</a>;
 typedef enum <a href="#virDomainCoreDumpFlags">virDomainCoreDumpFlags</a>;
+typedef enum <a href="#virDomainCoreDumpFormat">virDomainCoreDumpFormat</a>;
 typedef enum <a href="#virDomainCrashedReason">virDomainCrashedReason</a>;
 typedef enum <a href="#virDomainCreateFlags">virDomainCreateFlags</a>;
 typedef enum <a href="#virDomainDestroyFlagsValues">virDomainDestroyFlagsValues</a>;
@@ -417,6 +418,7 @@ int	<a href="#virDomainBlockResize">virDomainBlockResize</a>		(<a href="libvirt-
 int	<a href="#virDomainBlockStats">virDomainBlockStats</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 const char * disk, <br/>					 <a href="libvirt-libvirt.html#virDomainBlockStatsPtr">virDomainBlockStatsPtr</a> stats, <br/>					 size_t size);
 int	<a href="#virDomainBlockStatsFlags">virDomainBlockStatsFlags</a>	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 const char * disk, <br/>					 <a href="libvirt-libvirt.html#virTypedParameterPtr">virTypedParameterPtr</a> params, <br/>					 int * nparams, <br/>					 unsigned int flags);
 int	<a href="#virDomainCoreDump">virDomainCoreDump</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 const char * to, <br/>					 unsigned int flags);
+int	<a href="#virDomainCoreDumpWithFormat">virDomainCoreDumpWithFormat</a>	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 const char * to, <br/>					 unsigned int dumpformat, <br/>					 unsigned int flags);
 int	<a href="#virDomainCreate">virDomainCreate</a>			(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain);
 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a>	<a href="#virDomainCreateLinux">virDomainCreateLinux</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char * xmlDesc, <br/>					 unsigned int flags);
 int	<a href="#virDomainCreateWithFiles">virDomainCreateWithFiles</a>	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 unsigned int nfiles, <br/>					 int * files, <br/>					 unsigned int flags);
@@ -1550,6 +1552,16 @@ The content of this structure is not made public by the API.
 </pre><p/>
 </div>
         <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainCoreDumpFormat">Enum </a>virDomainCoreDumpFormat</h3><pre class="programlisting">enum <a href="#virDomainCoreDumpFormat">virDomainCoreDumpFormat</a> {
+    <a name="VIR_DOMAIN_CORE_DUMP_FORMAT_RAW">VIR_DOMAIN_CORE_DUMP_FORMAT_RAW</a> = 1 /* dump guest memory in raw format */
+    <a name="VIR_DOMAIN_CORE_DUMP_FORMAT_KDUMP_ZLIB">VIR_DOMAIN_CORE_DUMP_FORMAT_KDUMP_ZLIB</a> = 2 /* kdump-compressed format, with  zlib compression */
+    <a name="VIR_DOMAIN_CORE_DUMP_FORMAT_KDUMP_LZO">VIR_DOMAIN_CORE_DUMP_FORMAT_KDUMP_LZO</a> = 3 /* kdump-compressed format, with  lzo compression */
+    <a name="VIR_DOMAIN_CORE_DUMP_FORMAT_KDUMP_SNAPPY">VIR_DOMAIN_CORE_DUMP_FORMAT_KDUMP_SNAPPY</a> = 4 /* kdump-compressed format, with  snappy compression */
+    <a name="VIR_DOMAIN_CORE_DUMP_FORMAT_LAST">VIR_DOMAIN_CORE_DUMP_FORMAT_LAST</a> = 5 /* NB: this enum value will increase over time as new events are  added to the libvirt API. It reflects the last state supported  by this version of the libvirt API. */
+};
+</pre><p/>
+</div>
+        <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainCrashedReason">Enum </a>virDomainCrashedReason</h3><pre class="programlisting">enum <a href="#virDomainCrashedReason">virDomainCrashedReason</a> {
     <a name="VIR_DOMAIN_CRASHED_UNKNOWN">VIR_DOMAIN_CRASHED_UNKNOWN</a> = 0 /* crashed for unknown reason */
     <a name="VIR_DOMAIN_CRASHED_PANICKED">VIR_DOMAIN_CRASHED_PANICKED</a> = 1 /* domain panicked */
@@ -1797,7 +1809,7 @@ The content of this structure is not made public by the API.
     <a name="VIR_DOMAIN_EVENT_WATCHDOG_NONE">VIR_DOMAIN_EVENT_WATCHDOG_NONE</a> = 0 /* No action, watchdog ignored */
     <a name="VIR_DOMAIN_EVENT_WATCHDOG_PAUSE">VIR_DOMAIN_EVENT_WATCHDOG_PAUSE</a> = 1 /* Guest CPUs are paused */
     <a name="VIR_DOMAIN_EVENT_WATCHDOG_RESET">VIR_DOMAIN_EVENT_WATCHDOG_RESET</a> = 2 /* Guest CPUs are reset */
-    <a name="VIR_DOMAIN_EVENT_WATCHDOG_POWEROFF">VIR_DOMAIN_EVENT_WATCHDOG_POWEROFF</a> = 3 /* Guest is forcably powered off */
+    <a name="VIR_DOMAIN_EVENT_WATCHDOG_POWEROFF">VIR_DOMAIN_EVENT_WATCHDOG_POWEROFF</a> = 3 /* Guest is forcibly powered off */
     <a name="VIR_DOMAIN_EVENT_WATCHDOG_SHUTDOWN">VIR_DOMAIN_EVENT_WATCHDOG_SHUTDOWN</a> = 4 /* Guest is requested to gracefully shutdown */
     <a name="VIR_DOMAIN_EVENT_WATCHDOG_DEBUG">VIR_DOMAIN_EVENT_WATCHDOG_DEBUG</a> = 5 /* No action, a debug message logged */
     <a name="VIR_DOMAIN_EVENT_WATCHDOG_LAST">VIR_DOMAIN_EVENT_WATCHDOG_LAST</a> = 6
@@ -1934,6 +1946,7 @@ The content of this structure is not made public by the API.
     <a name="VIR_MIGRATE_OFFLINE">VIR_MIGRATE_OFFLINE</a> = 1024 /* offline migrate */
     <a name="VIR_MIGRATE_COMPRESSED">VIR_MIGRATE_COMPRESSED</a> = 2048 /* compress data during migration */
     <a name="VIR_MIGRATE_ABORT_ON_ERROR">VIR_MIGRATE_ABORT_ON_ERROR</a> = 4096 /* abort migration on I/O errors happened during migration */
+    <a name="VIR_MIGRATE_AUTO_CONVERGE">VIR_MIGRATE_AUTO_CONVERGE</a> = 8192 /* force convergence */
 };
 </pre><p/>
 </div>
@@ -3895,8 +3908,33 @@ The above three flags are mutually exclusive.
 Additionally, if @flags includes VIR_DUMP_BYPASS_CACHE, then libvirt
 will attempt to bypass the file system cache while creating the file,
 or fail if it cannot do so for the given system; this can allow less
-pressure on file system cache, but also risks slowing saves to NFS.</p>
+pressure on file system cache, but also risks slowing saves to NFS.
+
+For more control over the output format, see virDomainCoreDumpWithFormat().</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>a domain object</td></tr><tr><td><span class="term"><i><tt>to</tt></i>:</span></td><td>path for the core file</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt.html#virDomainCoreDumpFlags">virDomainCoreDumpFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success and -1 in case of failure.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainCoreDumpWithFormat"/>virDomainCoreDumpWithFormat ()</h3><pre class="programlisting">int	virDomainCoreDumpWithFormat	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 const char * to, <br/>					 unsigned int dumpformat, <br/>					 unsigned int flags)<br/>
+</pre><p>This method will dump the core of a domain on a given file for analysis.
+Note that for remote Xen Daemon the file path will be interpreted in
+the remote host. Hypervisors may require the user to manually ensure
+proper permissions on the file named by @to.
+
+@dumpformat controls which format the dump will have; use of
+VIR_DOMAIN_CORE_DUMP_FORMAT_RAW mirrors what virDomainCoreDump() will
+perform. Not all hypervisors are able to support all formats.
+
+If @flags includes VIR_DUMP_CRASH, then leave the guest shut off with
+a crashed state after the dump completes. If @flags includes
+VIR_DUMP_LIVE, then make the core dump while continuing to allow
+the guest to run; otherwise, the guest is suspended during the dump.
+VIR_DUMP_RESET flag forces reset of the quest after dump.
+The above three flags are mutually exclusive.
+
+Additionally, if @flags includes VIR_DUMP_BYPASS_CACHE, then libvirt
+will attempt to bypass the file system cache while creating the file,
+or fail if it cannot do so for the given system; this can allow less
+pressure on file system cache, but also risks slowing saves to NFS.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>a domain object</td></tr><tr><td><span class="term"><i><tt>to</tt></i>:</span></td><td>path for the core file</td></tr><tr><td><span class="term"><i><tt>dumpformat</tt></i>:</span></td><td>format of domain memory's dump</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt.html#virDomainCoreDumpFlags">virDomainCoreDumpFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success and -1 in case of failure.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainCreate"/>virDomainCreate ()</h3><pre class="programlisting">int	virDomainCreate			(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain)<br/>
 </pre><p>Launch a defined domain. If the call succeeds the domain moves from the
@@ -5474,7 +5512,7 @@ namespace. The value zero is not valid.
 Not all hypervisors will support sending signals to
 arbitrary processes or process groups. If this API is
 implemented the minimum requirement is to be able to
-use @pid_value==1 (i.e. kill init). No other value is
+use @pid_value == 1 (i.e. kill init). No other value is
 required to be supported.
 
 If the @signum is <a href="libvirt-libvirt.html#VIR_DOMAIN_PROCESS_SIGNAL_NOP">VIR_DOMAIN_PROCESS_SIGNAL_NOP</a> then this

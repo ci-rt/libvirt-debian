@@ -2,7 +2,7 @@
  * nwfilter_dhcpsnoop.c: support for DHCP snooping used by a VM
  *                       on an interface
  *
- * Copyright (C) 2012-2013 Red Hat, Inc.
+ * Copyright (C) 2012-2014 Red Hat, Inc.
  * Copyright (C) 2011,2012 IBM Corp.
  *
  * Authors:
@@ -71,6 +71,8 @@
 #include "virstring.h"
 
 #define VIR_FROM_THIS VIR_FROM_NWFILTER
+
+VIR_LOG_INIT("nwfilter.nwfilter_dhcpsnoop");
 
 #ifdef HAVE_LIBPCAP
 
@@ -250,7 +252,11 @@ struct _virNWFilterDHCPDecodeJob {
 # define DHCP_PKT_BURST         50 /* pkts/sec */
 # define DHCP_BURST_INTERVAL_S  10 /* sec */
 
-# define PCAP_BUFFERSIZE        (DHCP_PKT_BURST * PCAP_PBUFSIZE / 2)
+/*
+ * libpcap 1.5 requires a 128kb buffer
+ * 128 kb is bigger than (DHCP_PKT_BURST * PCAP_PBUFSIZE / 2)
+ */
+# define PCAP_BUFFERSIZE        (128 * 1024)
 
 # define MAX_QUEUED_JOBS        (DHCP_PKT_BURST + 2 * DHCP_PKT_RATE)
 
@@ -265,6 +271,7 @@ struct _virNWFilterSnoopRateLimitConf {
     const unsigned int burstRate;
     const unsigned int burstInterval;
 };
+# define SNOOP_POLL_MAX_TIMEOUT_MS  (10 * 1000) /* milliseconds */
 
 typedef struct _virNWFilterSnoopPcapConf virNWFilterSnoopPcapConf;
 typedef virNWFilterSnoopPcapConf *virNWFilterSnoopPcapConfPtr;
@@ -491,7 +498,7 @@ virNWFilterSnoopIPLeaseInstallRule(virNWFilterSnoopIPLeasePtr ipl,
                                               req->filtername,
                                               req->vars);
 
-exit_snooprequnlock:
+ exit_snooprequnlock:
     virNWFilterSnoopReqUnlock(req);
 
     VIR_FREE(ipaddr);
@@ -598,10 +605,10 @@ virNWFilterSnoopReqNew(const char *ifkey)
 
     return req;
 
-err_destroy_mutex:
+ err_destroy_mutex:
     virMutexDestroy(&req->lock);
 
-err_free_req:
+ err_free_req:
     VIR_FREE(req);
 
     return NULL;
@@ -779,7 +786,7 @@ virNWFilterSnoopReqLeaseAdd(virNWFilterSnoopReqPtr req,
 
     virAtomicIntInc(&virNWFilterSnoopState.nLeases);
 
-exit:
+ exit:
     if (update_leasefile)
         virNWFilterSnoopLeaseFileSave(pl);
 
@@ -890,12 +897,12 @@ virNWFilterSnoopReqLeaseDel(virNWFilterSnoopReqPtr req,
 
     }
 
-skip_instantiate:
+ skip_instantiate:
     VIR_FREE(ipl);
 
     virAtomicIntDecAndTest(&virNWFilterSnoopState.nLeases);
 
-lease_not_found:
+ lease_not_found:
     VIR_FREE(ipstr);
 
     virNWFilterSnoopReqUnlock(req);
@@ -953,7 +960,7 @@ virNWFilterSnoopDHCPGetOpt(virNWFilterSnoopDHCPHdrPtr pd, int len,
         oind += pd->d_opts[oind + 1] + 2;
     }
     return 0;
-malformed:
+ malformed:
     VIR_WARN("got lost in the options!");
     return -1;
 }
@@ -1112,8 +1119,9 @@ virNWFilterSnoopDHCPOpen(const char *ifname, virMacAddr *mac,
     if (pcap_set_snaplen(handle, PCAP_PBUFSIZE) < 0 ||
         pcap_set_buffer_size(handle, PCAP_BUFFERSIZE) < 0 ||
         pcap_activate(handle) < 0) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       _("setup of pcap handle failed"));
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("setup of pcap handle failed: %s"),
+                       pcap_geterr(handle));
         goto cleanup;
     }
 
@@ -1141,11 +1149,11 @@ virNWFilterSnoopDHCPOpen(const char *ifname, virMacAddr *mac,
 
     return handle;
 
-cleanup_freecode:
+ cleanup_freecode:
     pcap_freecode(&fp);
-cleanup:
+ cleanup:
     pcap_close(handle);
-cleanup_nohandle:
+ cleanup_nohandle:
     VIR_FREE(ext_filter);
 
     return NULL;
@@ -1419,6 +1427,10 @@ virNWFilterDHCPSnoopThread(void *req0)
             break;
         }
 
+        /* cap pollTo so we don't hold up the join for too long */
+        if (pollTo < 0 || pollTo > SNOOP_POLL_MAX_TIMEOUT_MS)
+            pollTo = SNOOP_POLL_MAX_TIMEOUT_MS;
+
         n = poll(fds, ARRAY_CARDINALITY(fds), pollTo);
 
         if (n < 0) {
@@ -1550,7 +1562,7 @@ virNWFilterDHCPSnoopThread(void *req0)
     virNWFilterSnoopReqUnlock(req);
     virNWFilterSnoopUnlock();
 
-exit:
+ exit:
     virThreadPoolFree(worker);
 
     virNWFilterSnoopReqPut(req);
@@ -1593,6 +1605,7 @@ virNWFilterDHCPSnoopReq(virNWFilterTechDriverPtr techdriver,
     int tmp;
     virThread thread;
     virNWFilterVarValuePtr dhcpsrvrs;
+    bool threadPuts = false;
 
     virNWFilterSnoopIFKeyFMT(ifkey, vmuuid, macaddr);
 
@@ -1686,6 +1699,8 @@ virNWFilterDHCPSnoopReq(virNWFilterTechDriverPtr techdriver,
         goto exit_snoopreq_unlock;
     }
 
+    threadPuts = true;
+
     virAtomicIntInc(&virNWFilterSnoopState.nThreads);
 
     req->threadkey = virNWFilterSnoopActivate(req);
@@ -1716,16 +1731,17 @@ virNWFilterDHCPSnoopReq(virNWFilterTechDriverPtr techdriver,
 
     return 0;
 
-exit_snoop_cancel:
+ exit_snoop_cancel:
     virNWFilterSnoopCancel(&req->threadkey);
-exit_snoopreq_unlock:
+ exit_snoopreq_unlock:
     virNWFilterSnoopReqUnlock(req);
-exit_rem_ifnametokey:
+ exit_rem_ifnametokey:
     virHashRemoveEntry(virNWFilterSnoopState.ifnameToKey, ifname);
-exit_snoopunlock:
+ exit_snoopunlock:
     virNWFilterSnoopUnlock();
-exit_snoopreqput:
-    virNWFilterSnoopReqPut(req);
+ exit_snoopreqput:
+    if (!threadPuts)
+        virNWFilterSnoopReqPut(req);
 
     return -1;
 }
@@ -1783,7 +1799,7 @@ virNWFilterSnoopLeaseFileWrite(int lfd, const char *ifkey,
 
     ignore_value(fsync(lfd));
 
-cleanup:
+ cleanup:
     VIR_FREE(lbuf);
     VIR_FREE(dhcpstr);
     VIR_FREE(ipstr);
@@ -1815,7 +1831,7 @@ virNWFilterSnoopLeaseFileSave(virNWFilterSnoopIPLeasePtr ipl)
         virAtomicIntGet(&virNWFilterSnoopState.nLeases) * 20)
         virNWFilterSnoopLeaseFileLoad();   /* load & refresh lease file */
 
-err_exit:
+ err_exit:
     virNWFilterSnoopUnlock();
 }
 
@@ -1919,7 +1935,7 @@ virNWFilterSnoopLeaseFileRefresh(void)
     }
     virAtomicIntSet(&virNWFilterSnoopState.wLeases, 0);
 
-skip_rename:
+ skip_rename:
     virNWFilterSnoopLeaseFileOpen();
 }
 
@@ -2091,7 +2107,7 @@ virNWFilterDHCPSnoopInit(void)
 
     return 0;
 
-err_exit:
+ err_exit:
     virHashFree(virNWFilterSnoopState.ifnameToKey);
     virNWFilterSnoopState.ifnameToKey = NULL;
 
@@ -2166,7 +2182,7 @@ virNWFilterDHCPSnoopEnd(const char *ifname)
         virNWFilterSnoopLeaseFileLoad();
     }
 
-cleanup:
+ cleanup:
     virNWFilterSnoopUnlock();
 }
 

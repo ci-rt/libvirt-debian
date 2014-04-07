@@ -1,4 +1,3 @@
-
 /*
  * hyperv_secret_driver.c: secret driver functions for Microsoft Hyper-V
  *                         secret manipulation
@@ -27,7 +26,6 @@
 #include "virerror.h"
 #include "datatypes.h"
 #include "viralloc.h"
-#include "virlog.h"
 #include "viruuid.h"
 #include "hyperv_secret_driver.h"
 

@@ -46,6 +46,8 @@
 # include "virthread.h"
 # include "virerror.h"
 
+VIR_LOG_INIT("tools.virsh-console");
+
 /*
  * Convert given character to control character.
  * Basically, we assume ASCII, and take lower 6 bits.
@@ -356,6 +358,8 @@ vshRunConsole(vshControl *ctl,
     if (virCondInit(&con->cond) < 0 || virMutexInit(&con->lock) < 0)
         goto cleanup;
 
+    virMutexLock(&con->lock);
+
     con->stdinWatch = virEventAddHandle(STDIN_FILENO,
                                         VIR_EVENT_HANDLE_READABLE,
                                         virConsoleEventOnStdin,
@@ -375,14 +379,17 @@ vshRunConsole(vshControl *ctl,
 
     while (!con->quit) {
         if (virCondWait(&con->cond, &con->lock) < 0) {
+            virMutexUnlock(&con->lock);
             VIR_ERROR(_("unable to wait on console condition"));
             goto cleanup;
         }
     }
 
+    virMutexUnlock(&con->lock);
+
     ret = 0;
 
-cleanup:
+ cleanup:
     virConsoleFree(con);
 
     /* Restore original signal handlers */
@@ -392,7 +399,7 @@ cleanup:
     sigaction(SIGHUP,  &old_sighup,  NULL);
     sigaction(SIGPIPE, &old_sigpipe, NULL);
 
-resettty:
+ resettty:
     /* Put STDIN back into the (sane?) state we found
        it in before starting */
     vshTTYRestore(ctl);

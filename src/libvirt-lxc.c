@@ -33,8 +33,13 @@
 #ifdef WITH_SELINUX
 # include <selinux/selinux.h>
 #endif
+#ifdef WITH_APPARMOR
+# include <sys/apparmor.h>
+#endif
 
 #define VIR_FROM_THIS VIR_FROM_NONE
+
+VIR_LOG_INIT("libvirt-lxc");
 
 /**
  * virDomainLxcOpenNamespace:
@@ -84,7 +89,7 @@ virDomainLxcOpenNamespace(virDomainPtr domain,
 
     virReportUnsupportedError();
 
-error:
+ error:
     virDispatchError(conn);
     return -1;
 }
@@ -151,7 +156,7 @@ virDomainLxcEnterNamespace(virDomainPtr domain,
 
     return 0;
 
-error:
+ error:
     virDispatchError(domain->conn);
     return -1;
 }
@@ -240,6 +245,18 @@ virDomainLxcEnterSecurityLabel(virSecurityModelPtr model,
                        _("Support for SELinux is not enabled"));
         goto error;
 #endif
+    } else if (STREQ(model->model, "apparmor")) {
+#ifdef WITH_APPARMOR
+        if (aa_change_profile(label->label) < 0) {
+            virReportSystemError(errno, _("error changing profile to %s"),
+                                 label->label);
+            goto error;
+        }
+#else
+        virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
+                       _("Support for AppArmor is not enabled"));
+        goto error;
+#endif
     } else {
         virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED,
                        _("Security model %s cannot be entered"),
@@ -249,7 +266,7 @@ virDomainLxcEnterSecurityLabel(virSecurityModelPtr model,
 
     return 0;
 
-error:
+ error:
     virDispatchError(NULL);
     return -1;
 }

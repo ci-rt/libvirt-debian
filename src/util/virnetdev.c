@@ -54,6 +54,8 @@
 
 #define VIR_FROM_THIS VIR_FROM_NONE
 
+VIR_LOG_INIT("util.netdev");
+
 #if defined(HAVE_STRUCT_IFREQ)
 static int virNetDevSetupControlFull(const char *ifname,
                                      struct ifreq *ifr,
@@ -138,7 +140,7 @@ int virNetDevExists(const char *ifname)
 
     ret = 1;
 
-cleanup:
+ cleanup:
     VIR_FORCE_CLOSE(fd);
     return ret;
 }
@@ -193,7 +195,7 @@ int virNetDevSetMAC(const char *ifname,
 
     ret = 0;
 
-cleanup:
+ cleanup:
     VIR_FORCE_CLOSE(fd);
     return ret;
 }
@@ -226,7 +228,7 @@ int virNetDevSetMAC(const char *ifname,
         }
 
         ret = 0;
-cleanup:
+ cleanup:
         VIR_FORCE_CLOSE(s);
 
         return ret;
@@ -274,7 +276,7 @@ int virNetDevGetMAC(const char *ifname,
 
     ret = 0;
 
-cleanup:
+ cleanup:
     VIR_FORCE_CLOSE(fd);
     return ret;
 }
@@ -400,7 +402,7 @@ int virNetDevGetMTU(const char *ifname)
 
     ret = ifr.ifr_mtu;
 
-cleanup:
+ cleanup:
     VIR_FORCE_CLOSE(fd);
     return ret;
 }
@@ -446,7 +448,7 @@ int virNetDevSetMTU(const char *ifname, int mtu)
 
     ret = 0;
 
-cleanup:
+ cleanup:
     VIR_FORCE_CLOSE(fd);
     return ret;
 }
@@ -550,7 +552,7 @@ int virNetDevSetName(const char* ifname, const char *newifname)
 
     ret = 0;
 
-cleanup:
+ cleanup:
     VIR_FORCE_CLOSE(fd);
     return ret;
 }
@@ -610,7 +612,7 @@ int virNetDevSetOnline(const char *ifname,
 
     ret = 0;
 
-cleanup:
+ cleanup:
     VIR_FORCE_CLOSE(fd);
     return ret;
 }
@@ -656,7 +658,7 @@ int virNetDevIsOnline(const char *ifname,
     *online = (ifr.ifr_flags & IFF_UP) ? true : false;
     ret = 0;
 
-cleanup:
+ cleanup:
     VIR_FORCE_CLOSE(fd);
     return ret;
 }
@@ -717,7 +719,7 @@ int virNetDevGetIndex(const char *ifname, int *ifindex)
 # endif
     ret = 0;
 
-cleanup:
+ cleanup:
     VIR_FORCE_CLOSE(fd);
     return ret;
 }
@@ -834,7 +836,7 @@ int virNetDevSetIPv4Address(const char *ifname,
         goto cleanup;
 
     ret = 0;
-cleanup:
+ cleanup:
     VIR_FREE(addrstr);
     VIR_FREE(bcaststr);
     virCommandFree(cmd);
@@ -880,7 +882,7 @@ virNetDevAddRoute(const char *ifname,
         goto cleanup;
 
     ret = 0;
-cleanup:
+ cleanup:
     VIR_FREE(addrstr);
     VIR_FREE(gatewaystr);
     virCommandFree(cmd);
@@ -928,7 +930,7 @@ int virNetDevClearIPv4Address(const char *ifname,
         goto cleanup;
 
     ret = 0;
-cleanup:
+ cleanup:
     VIR_FREE(addrstr);
     virCommandFree(cmd);
     return ret;
@@ -970,7 +972,7 @@ int virNetDevGetIPv4Address(const char *ifname,
     memcpy(&addr->data.inet4, &ifr.ifr_addr, addr->len);
     ret = 0;
 
-cleanup:
+ cleanup:
     VIR_FORCE_CLOSE(fd);
     return ret;
 }
@@ -1149,7 +1151,7 @@ virNetDevGetVirtualFunctions(const char *pfname,
 
     ret = 0;
 
-cleanup:
+ cleanup:
     if (ret < 0) {
         VIR_FREE(*vfname);
         VIR_FREE(*virt_fns);
@@ -1276,7 +1278,7 @@ virNetDevGetVirtualFunctionInfo(const char *vfname, char **pfname,
 
     ret = virPCIGetVirtualFunctionIndex(pf_sysfs_path, vf_sysfs_path, vf);
 
-cleanup:
+ cleanup:
     if (ret < 0)
         VIR_FREE(*pfname);
 
@@ -1443,17 +1445,17 @@ virNetDevLinkDump(const char *ifname, int ifindex,
         goto malformed_resp;
     }
     rc = 0;
-cleanup:
+ cleanup:
     nlmsg_free(nl_msg);
     VIR_FREE(resp);
     return rc;
 
-malformed_resp:
+ malformed_resp:
     virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                    _("malformed netlink response message"));
     goto cleanup;
 
-buffer_too_small:
+ buffer_too_small:
     virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                    _("allocated netlink buffer is too small"));
     goto cleanup;
@@ -1565,17 +1567,17 @@ virNetDevSetVfConfig(const char *ifname, int ifindex, int vf,
     }
 
     rc = 0;
-cleanup:
+ cleanup:
     nlmsg_free(nl_msg);
     VIR_FREE(resp);
     return rc;
 
-malformed_resp:
+ malformed_resp:
     virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                    _("malformed netlink response message"));
     goto cleanup;
 
-buffer_too_small:
+ buffer_too_small:
     virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                    _("allocated netlink buffer is too small"));
     goto cleanup;
@@ -1632,7 +1634,7 @@ virNetDevParseVfConfig(struct nlattr **tb, int32_t vf, virMacAddrPtr mac,
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("couldn't find IFLA_VF_INFO for VF %d "
                          "in netlink response"), vf);
-cleanup:
+ cleanup:
     return rc;
 }
 
@@ -1686,7 +1688,7 @@ virNetDevReplaceVfConfig(const char *pflinkdev, int vf,
     ret = virNetDevSetVfConfig(pflinkdev, ifindex, vf, true,
                                 macaddress, vlanid, NULL);
 
-cleanup:
+ cleanup:
     VIR_FREE(path);
     VIR_FREE(fileData);
     return ret;
@@ -1739,7 +1741,7 @@ virNetDevRestoreVfConfig(const char *pflinkdev, int vf,
                               &oldmac, vlanid, NULL);
     ignore_value(unlink(path));
 
-cleanup:
+ cleanup:
     VIR_FREE(path);
     VIR_FREE(fileData);
 
@@ -1758,9 +1760,9 @@ cleanup:
  *
  */
 int
-virNetDevReplaceNetConfig(char *linkdev, int vf,
+virNetDevReplaceNetConfig(const char *linkdev, int vf,
                           const virMacAddr *macaddress, int vlanid,
-                          char *stateDir)
+                          const char *stateDir)
 {
     if (vf == -1)
         return virNetDevReplaceMacAddress(linkdev, macaddress, stateDir);
@@ -1779,7 +1781,7 @@ virNetDevReplaceNetConfig(char *linkdev, int vf,
  *
  */
 int
-virNetDevRestoreNetConfig(char *linkdev, int vf, char *stateDir)
+virNetDevRestoreNetConfig(const char *linkdev, int vf, const char *stateDir)
 {
     if (vf == -1)
         return virNetDevRestoreMacAddress(linkdev, stateDir);
@@ -1802,11 +1804,11 @@ virNetDevLinkDump(const char *ifname ATTRIBUTE_UNUSED,
 }
 
 int
-virNetDevReplaceNetConfig(char *linkdev ATTRIBUTE_UNUSED,
+virNetDevReplaceNetConfig(const char *linkdev ATTRIBUTE_UNUSED,
                           int vf ATTRIBUTE_UNUSED,
                           const virMacAddr *macaddress ATTRIBUTE_UNUSED,
                           int vlanid ATTRIBUTE_UNUSED,
-                          char *stateDir ATTRIBUTE_UNUSED)
+                          const char *stateDir ATTRIBUTE_UNUSED)
 {
     virReportSystemError(ENOSYS, "%s",
                          _("Unable to replace net config on this platform"));
@@ -1815,9 +1817,9 @@ virNetDevReplaceNetConfig(char *linkdev ATTRIBUTE_UNUSED,
 }
 
 int
-virNetDevRestoreNetConfig(char *linkdev ATTRIBUTE_UNUSED,
+virNetDevRestoreNetConfig(const char *linkdev ATTRIBUTE_UNUSED,
                           int vf ATTRIBUTE_UNUSED,
-                          char *stateDir ATTRIBUTE_UNUSED)
+                          const char *stateDir ATTRIBUTE_UNUSED)
 {
     virReportSystemError(ENOSYS, "%s",
                          _("Unable to restore net config on this platform"));

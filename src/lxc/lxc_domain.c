@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010-2013 Red Hat, Inc.
+ * Copyright (C) 2010-2014 Red Hat, Inc.
  * Copyright IBM Corp. 2008
  *
  * lxc_domain.h: LXC domain helpers
@@ -29,6 +29,8 @@
 
 #define VIR_FROM_THIS VIR_FROM_LXC
 
+VIR_LOG_INIT("lxc.lxc_domain");
+
 static void *virLXCDomainObjPrivateAlloc(void)
 {
     virLXCDomainObjPrivatePtr priv;
@@ -53,7 +55,7 @@ static int virLXCDomainObjPrivateXMLFormat(virBufferPtr buf, void *data)
 {
     virLXCDomainObjPrivatePtr priv = data;
 
-    virBufferAsprintf(buf, "  <init pid='%llu'/>\n",
+    virBufferAsprintf(buf, "<init pid='%llu'/>\n",
                       (unsigned long long)priv->initpid);
 
     return 0;

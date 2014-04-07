@@ -29,6 +29,8 @@
 
 #define VIR_FROM_THIS VIR_FROM_NONE
 
+VIR_LOG_INIT("tests.domainconftest");
+
 static virCapsPtr caps;
 static virDomainXMLOptionPtr xmlopt;
 
@@ -76,7 +78,7 @@ static int testGetFilesystem(const void *opaque)
 
     ret = 0;
 
-cleanup:
+ cleanup:
     virDomainDefFree(def);
     VIR_FREE(xmlData);
     VIR_FREE(filename);

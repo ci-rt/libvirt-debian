@@ -1,6 +1,7 @@
 /*
- * Copyright (C) 2007-2009, 2013 Red Hat, Inc.
- * Copyright (C) 2009 IBM Corp.
+ * vircrypto.h: cryptographic helper APIs
+ *
+ * Copyright (C) 2014 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -15,23 +16,25 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Authors:
- *     Gerhard Stenzel <gerhard.stenzel@de.ibm.com>
  */
 
-#ifndef __QEMUD_BRIDGE_FILTER_H__
-# define __QEMUD_BRIDGE_FILTER_H__
+#ifndef __VIR_CRYPTO_H__
+# define __VIR_CRYPTO_H__
 
+# include "internal.h"
 
-int networkAllowMacOnPort(virQEMUDriverPtr driver,
-                          const char *ifname,
-                          const virMacAddr *mac);
-int networkDisallowMacOnPort(virQEMUDriverPtr driver,
-                             const char *ifname,
-                             const virMacAddr *mac);
-int networkDisableAllFrames(virQEMUDriverPtr driver);
-int networkAddEbtablesRules(virQEMUDriverPtr driver);
+typedef enum {
+    VIR_CRYPTO_HASH_MD5, /* Don't use this except for historic compat */
+    VIR_CRYPTO_HASH_SHA256,
 
+    VIR_CRYPTO_HASH_LAST
+} virCryptoHash;
 
-#endif /* __QEMUD_BRIDGE_FILTER_H__ */
+int
+virCryptoHashString(virCryptoHash hash,
+                    const char *input,
+                    char **output)
+    ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3)
+    ATTRIBUTE_RETURN_CHECK;
+
+#endif /* __VIR_CRYPTO_H__ */

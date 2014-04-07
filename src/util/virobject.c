@@ -28,9 +28,12 @@
 #include "viratomic.h"
 #include "virerror.h"
 #include "virlog.h"
+#include "virprobe.h"
 #include "virstring.h"
 
 #define VIR_FROM_THIS VIR_FROM_NONE
+
+VIR_LOG_INIT("util.object");
 
 static unsigned int magicCounter = 0xCAFE0000;
 
@@ -144,7 +147,7 @@ virClassPtr virClassNew(virClassPtr parent,
 
     return klass;
 
-error:
+ error:
     VIR_FREE(klass);
     return NULL;
 }

@@ -32,6 +32,8 @@
 
 #define VIR_FROM_THIS VIR_FROM_NONE
 
+VIR_LOG_INIT("util.nodesuspend");
+
 #define SUSPEND_DELAY 10 /* in seconds */
 
 /* Give sufficient time for performing the suspend operation on the host */
@@ -98,7 +100,7 @@ static int virNodeSuspendSetNodeWakeup(unsigned long long alarmTime)
 
     ret = 0;
 
-cleanup:
+ cleanup:
     virCommandFree(setAlarmCmd);
     return ret;
 }
@@ -238,7 +240,7 @@ int nodeSuspendForDuration(unsigned int target,
 
     aboutToSuspend = true;
     ret = 0;
-cleanup:
+ cleanup:
     virNodeSuspendUnlock();
     return ret;
 }
@@ -294,7 +296,7 @@ virNodeSuspendSupportsTarget(unsigned int target, bool *supported)
     *supported = (status == 0);
     ret = 0;
 
-cleanup:
+ cleanup:
     virCommandFree(cmd);
     return ret;
 }
@@ -347,7 +349,7 @@ virNodeSuspendGetTargetMask(unsigned int *bitmask)
 
     *bitmask = nodeSuspendTargetMask;
     ret = 0;
-cleanup:
+ cleanup:
     virNodeSuspendUnlock();
     return ret;
 }

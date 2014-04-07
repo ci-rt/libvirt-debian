@@ -39,36 +39,7 @@
 
 #define VIR_FROM_THIS VIR_FROM_STORAGE
 
-static int
-virStorageBackendMpathUpdateVolTargetInfo(virStorageVolTargetPtr target,
-                                          unsigned long long *allocation,
-                                          unsigned long long *capacity)
-{
-    int ret = -1;
-    int fdret, fd = -1;
-    struct stat sb;
-
-    if ((fdret = virStorageBackendVolOpenCheckMode(target->path, &sb,
-                                                   VIR_STORAGE_VOL_OPEN_DEFAULT)) < 0)
-        goto out;
-    fd = fdret;
-
-    if (virStorageBackendUpdateVolTargetInfoFD(target,
-                                               fd,
-                                               &sb,
-                                               allocation,
-                                               capacity) < 0)
-        goto out;
-
-    if (virStorageBackendDetectBlockVolFormatFD(target, fd) < 0)
-        goto out;
-
-    ret = 0;
-out:
-    VIR_FORCE_CLOSE(fd);
-    return ret;
-}
-
+VIR_LOG_INIT("storage.storage_backend_mpath");
 
 static int
 virStorageBackendMpathNewVol(virStoragePoolObjPtr pool,
@@ -89,9 +60,8 @@ virStorageBackendMpathNewVol(virStoragePoolObjPtr pool,
     if (virAsprintf(&vol->target.path, "/dev/%s", dev) < 0)
         goto cleanup;
 
-    if (virStorageBackendMpathUpdateVolTargetInfo(&vol->target,
-                                                  &vol->allocation,
-                                                  &vol->capacity) < 0) {
+    if (virStorageBackendUpdateVolInfo(vol, true, true,
+                                       VIR_STORAGE_VOL_OPEN_DEFAULT) < 0) {
         goto cleanup;
     }
 
@@ -99,15 +69,13 @@ virStorageBackendMpathNewVol(virStoragePoolObjPtr pool,
     if (VIR_STRDUP(vol->key, vol->target.path) < 0)
         goto cleanup;
 
-    if (VIR_REALLOC_N(pool->volumes.objs,
-                      pool->volumes.count + 1) < 0)
+    if (VIR_APPEND_ELEMENT_COPY(pool->volumes.objs, pool->volumes.count, vol) < 0)
         goto cleanup;
-    pool->volumes.objs[pool->volumes.count++] = vol;
     pool->def->capacity += vol->capacity;
     pool->def->allocation += vol->allocation;
     ret = 0;
 
-cleanup:
+ cleanup:
 
     if (ret != 0)
         virStorageVolDefFree(vol);
@@ -155,7 +123,7 @@ virStorageBackendIsMultipath(const char *dev_name)
         ret = 1;
     }
 
-out:
+ out:
     if (dmt != NULL) {
         dm_task_destroy(dmt);
     }
@@ -189,7 +157,7 @@ virStorageBackendGetMinorNumber(const char *dev_name, uint32_t *minor)
     *minor = info.minor;
     ret = 0;
 
-out:
+ out:
     if (dmt != NULL)
         dm_task_destroy(dmt);
 
@@ -242,7 +210,7 @@ virStorageBackendCreateVols(virStoragePoolObjPtr pool,
     } while (next);
 
     retval = 0;
-out:
+ out:
     return retval;
 }
 
@@ -278,7 +246,7 @@ virStorageBackendGetMaps(virStoragePoolObjPtr pool)
 
     virStorageBackendCreateVols(pool, names);
 
-out:
+ out:
     if (dmt != NULL) {
         dm_task_destroy(dmt);
     }

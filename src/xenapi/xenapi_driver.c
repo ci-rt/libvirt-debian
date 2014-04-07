@@ -1,6 +1,6 @@
 /*
  * xenapi_driver.c: Xen API driver.
- * Copyright (C) 2011-2013 Red Hat, Inc.
+ * Copyright (C) 2011-2014 Red Hat, Inc.
  * Copyright (C) 2009, 2010 Citrix Ltd.
  *
  * This library is free software; you can redistribute it and/or
@@ -94,7 +94,7 @@ getCapsObject(void)
 
     return caps;
 
-  error_cleanup:
+ error_cleanup:
     virObjectUnref(caps);
     return NULL;
 }
@@ -208,7 +208,7 @@ xenapiConnectOpen(virConnectPtr conn, virConnectAuthPtr auth,
 
     xenapiSessionErrorHandler(conn, VIR_ERR_AUTH_FAILED, NULL);
 
-  error:
+ error:
     VIR_FREE(username);
     VIR_FREE(password);
 
@@ -441,7 +441,7 @@ xenapiConnectGetCapabilities(virConnectPtr conn)
             goto cleanup;
         return xml;
     }
-  cleanup:
+ cleanup:
     xenapiSessionErrorHandler(conn, VIR_ERR_INTERNAL_ERROR,
                               _("Capabilities not available"));
     return NULL;
@@ -955,7 +955,7 @@ xenapiDomainGetOSType(virDomainPtr dom)
     } else
         xenapiSessionErrorHandler(dom->conn, VIR_ERR_NO_DOMAIN, NULL);
 
-  cleanup:
+ cleanup:
     if (vms)
         xen_vm_set_free(vms);
     return ostype;
@@ -1115,7 +1115,7 @@ xenapiDomainGetState(virDomainPtr dom,
 
     ret = 0;
 
-cleanup:
+ cleanup:
     if (vms)
         xen_vm_set_free(vms);
     return ret;
@@ -1545,7 +1545,7 @@ xenapiDomainGetXMLDesc(virDomainPtr dom, unsigned int flags)
     virDomainDefFree(defPtr);
     return xml;
 
-  error:
+ error:
     xen_vm_set_free(vms);
     virDomainDefFree(defPtr);
     return NULL;
@@ -1850,7 +1850,7 @@ xenapiDomainSetAutostart(virDomainPtr dom, int autostart)
         }
         vm = vms->contents[0];
         xen_vm_remove_from_other_config(session, vm, (char *)"auto_poweron");
-        if (autostart==1)
+        if (autostart == 1)
             value = (char *)"true";
         else
             value = (char *)"false";

@@ -33,6 +33,7 @@
 
 #define VIR_FROM_THIS VIR_FROM_SECURITY
 
+VIR_LOG_INIT("security.security_manager");
 
 struct _virSecurityManager {
     virObjectLockable parent;
@@ -533,7 +534,7 @@ int virSecurityManagerGenLabel(virSecurityManagerPtr mgr,
 
     ret = 0;
 
-cleanup:
+ cleanup:
     virObjectUnlock(mgr);
     if (generated)
         virSecurityLabelDefFree(seclabel);

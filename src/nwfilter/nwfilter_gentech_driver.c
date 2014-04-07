@@ -41,6 +41,7 @@
 
 #define VIR_FROM_THIS VIR_FROM_NWFILTER
 
+VIR_LOG_INIT("nwfilter.nwfilter_gentech_driver");
 
 #define NWFILTER_STD_VAR_MAC NWFILTER_VARNAME_MAC
 #define NWFILTER_STD_VAR_IP  NWFILTER_VARNAME_IP
@@ -55,30 +56,53 @@ static virNWFilterTechDriverPtr filter_tech_drivers[] = {
     NULL
 };
 
+/* Serializes instantiation of filters. This is necessary
+ * to avoid lock ordering deadlocks. eg __virNWFilterInstantiateFilter
+ * will hold a lock on a virNWFilterObjPtr. This in turn invokes
+ * virNWFilterInstantiate which invokes virNWFilterDetermineMissingVarsRec
+ * which invokes virNWFilterObjFindByName. This iterates over every single
+ * virNWFilterObjPtr in the list. So if 2 threads try to instantiate a
+ * filter in parallel, they'll both hold 1 lock at the top level in
+ * __virNWFilterInstantiateFilter which will cause the other thread
+ * to deadlock in virNWFilterObjFindByName.
+ *
+ * XXX better long term solution is to make virNWFilterObjList use a
+ * hash table as is done for virDomainObjList. You can then get
+ * lockless lookup of objects by name.
+ */
+static virMutex updateMutex;
 
-void virNWFilterTechDriversInit(bool privileged) {
+int virNWFilterTechDriversInit(bool privileged)
+{
     size_t i = 0;
     VIR_DEBUG("Initializing NWFilter technology drivers");
+    if (virMutexInitRecursive(&updateMutex) < 0)
+        return -1;
+
     while (filter_tech_drivers[i]) {
         if (!(filter_tech_drivers[i]->flags & TECHDRV_FLAG_INITIALIZED))
             filter_tech_drivers[i]->init(privileged);
         i++;
     }
+    return 0;
 }
 
 
-void virNWFilterTechDriversShutdown(void) {
+void virNWFilterTechDriversShutdown(void)
+{
     size_t i = 0;
     while (filter_tech_drivers[i]) {
         if ((filter_tech_drivers[i]->flags & TECHDRV_FLAG_INITIALIZED))
             filter_tech_drivers[i]->shutdown();
         i++;
     }
+    virMutexDestroy(&updateMutex);
 }
 
 
 virNWFilterTechDriverPtr
-virNWFilterTechDriverForName(const char *name) {
+virNWFilterTechDriverForName(const char *name)
+{
     size_t i = 0;
     while (filter_tech_drivers[i]) {
        if (STREQ(filter_tech_drivers[i]->name, name)) {
@@ -89,31 +113,6 @@ virNWFilterTechDriverForName(const char *name) {
        i++;
     }
     return NULL;
-}
-
-
-/**
- * virNWFilterRuleInstAddData:
- * @res : pointer to virNWFilterRuleInst object collecting the instantiation
- *        data of a single firewall rule.
- * @data : the opaque data that the driver wants to add
- *
- * Add instantiation data to a firewall rule. An instantiated firewall
- * rule may hold multiple data structure representing its instantiation
- * data. This may for example be the case if a rule has been defined
- * for bidirectional traffic and data needs to be added to the incoming
- * and outgoing chains.
- *
- * Returns 0 in case of success, -1 in case of an error.
- */
-int
-virNWFilterRuleInstAddData(virNWFilterRuleInstPtr res,
-                           void *data)
-{
-    if (VIR_REALLOC_N(res->data, res->ndata+1) < 0)
-        return -1;
-    res->data[res->ndata++] = data;
-    return 0;
 }
 
 
@@ -346,7 +345,7 @@ virNWFilterCreateVarsFrom(virNWFilterHashTablePtr vars1,
 
     return res;
 
-err_exit:
+ err_exit:
     virNWFilterHashTableFree(res);
     return NULL;
 }
@@ -381,7 +380,7 @@ _virNWFilterInstantiateRec(virNWFilterTechDriverPtr techdriver,
                            virNWFilterDefPtr filter,
                            const char *ifname,
                            virNWFilterHashTablePtr vars,
-                           int *nEntries,
+                           size_t *nEntries,
                            virNWFilterRuleInstPtr **insts,
                            enum instCase useNewFilter, bool *foundNewFilter,
                            virNWFilterDriverStatePtr driver)
@@ -407,12 +406,10 @@ _virNWFilterInstantiateRec(virNWFilterTechDriverPtr techdriver,
                 break;
             }
 
-            if (VIR_REALLOC_N(*insts, (*nEntries)+1) < 0) {
+            if (VIR_APPEND_ELEMENT_COPY(*insts, *nEntries, inst) < 0) {
                 rc = -1;
                 break;
             }
-
-            (*insts)[(*nEntries)++] = inst;
 
         } else if (inc) {
             VIR_DEBUG("Instantiating filter %s", inc->filterref);
@@ -652,7 +649,7 @@ virNWFilterInstantiate(const unsigned char *vmuuid ATTRIBUTE_UNUSED,
     int rc;
     size_t j;
     int nptrs;
-    int nEntries = 0;
+    size_t nEntries = 0;
     virNWFilterRuleInstPtr *insts = NULL;
     void **ptrs = NULL;
     bool instantiate = true;
@@ -714,6 +711,7 @@ virNWFilterInstantiate(const unsigned char *vmuuid ATTRIBUTE_UNUSED,
                                _("filter '%s' "
                                  "learning value '%s' invalid."),
                                filter->name, learning);
+                goto err_exit;
             }
         } else
              goto err_unresolvable_vars;
@@ -770,7 +768,7 @@ virNWFilterInstantiate(const unsigned char *vmuuid ATTRIBUTE_UNUSED,
         virNWFilterUnlockIface(ifname);
     }
 
-err_exit:
+ err_exit:
 
     for (j = 0; j < nEntries; j++)
         virNWFilterRuleInstFree(insts[j]);
@@ -782,7 +780,7 @@ err_exit:
 
     return rc;
 
-err_unresolvable_vars:
+ err_unresolvable_vars:
 
     buf = virNWFilterPrintVars(missing_vars->hashTable, ", ", false, reportIP);
     if (buf) {
@@ -908,10 +906,10 @@ __virNWFilterInstantiateFilter(virNWFilterDriverStatePtr driver,
 
     virNWFilterHashTableFree(vars);
 
-err_exit_vars1:
+ err_exit_vars1:
     virNWFilterHashTableFree(vars1);
 
-err_exit:
+ err_exit:
     virNWFilterObjUnlock(obj);
 
     VIR_FREE(str_ipaddr);
@@ -934,6 +932,8 @@ _virNWFilterInstantiateFilter(virNWFilterDriverStatePtr driver,
                           : NULL;
     int ifindex;
     int rc;
+
+    virMutexLock(&updateMutex);
 
     /* after grabbing the filter update lock check for the interface; if
        it's not there anymore its filters will be or are being removed
@@ -961,7 +961,9 @@ _virNWFilterInstantiateFilter(virNWFilterDriverStatePtr driver,
                                         false,
                                         foundNewFilter);
 
-cleanup:
+ cleanup:
+    virMutexUnlock(&updateMutex);
+
     return rc;
 }
 
@@ -981,6 +983,7 @@ virNWFilterInstantiateFilterLate(virNWFilterDriverStatePtr driver,
     bool foundNewFilter = false;
 
     virNWFilterReadLockFilterUpdates();
+    virMutexLock(&updateMutex);
 
     rc = __virNWFilterInstantiateFilter(driver,
                                         vmuuid,
@@ -1006,6 +1009,7 @@ virNWFilterInstantiateFilterLate(virNWFilterDriverStatePtr driver,
     }
 
     virNWFilterUnlockFilterUpdates();
+    virMutexUnlock(&updateMutex);
 
     return rc;
 }
@@ -1129,7 +1133,11 @@ _virNWFilterTeardownFilter(const char *ifname)
 int
 virNWFilterTeardownFilter(const virDomainNetDef *net)
 {
-    return _virNWFilterTeardownFilter(net->ifname);
+    int ret;
+    virMutexLock(&updateMutex);
+    ret = _virNWFilterTeardownFilter(net->ifname);
+    virMutexUnlock(&updateMutex);
+    return ret;
 }
 
 

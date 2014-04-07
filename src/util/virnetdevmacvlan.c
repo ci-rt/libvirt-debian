@@ -65,6 +65,7 @@ VIR_ENUM_IMPL(virNetDevMacVLanMode, VIR_NETDEV_MACVLAN_MODE_LAST,
 # include "virnetdev.h"
 # include "virpidfile.h"
 
+VIR_LOG_INIT("util.netdevmacvlan");
 
 # define MACVTAP_NAME_PREFIX	"macvtap"
 # define MACVTAP_NAME_PATTERN	"macvtap%d"
@@ -201,17 +202,17 @@ virNetDevMacVLanCreate(const char *ifname,
     }
 
     rc = 0;
-cleanup:
+ cleanup:
     nlmsg_free(nl_msg);
     VIR_FREE(resp);
     return rc;
 
-malformed_resp:
+ malformed_resp:
     virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                    _("malformed netlink response message"));
     goto cleanup;
 
-buffer_too_small:
+ buffer_too_small:
     virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                    _("allocated netlink buffer is too small"));
     goto cleanup;
@@ -278,17 +279,17 @@ int virNetDevMacVLanDelete(const char *ifname)
     }
 
     rc = 0;
-cleanup:
+ cleanup:
     nlmsg_free(nl_msg);
     VIR_FREE(resp);
     return rc;
 
-malformed_resp:
+ malformed_resp:
     virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                    _("malformed netlink response message"));
     goto cleanup;
 
-buffer_too_small:
+ buffer_too_small:
     virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                    _("allocated netlink buffer is too small"));
     goto cleanup;
@@ -785,7 +786,7 @@ virNetDevMacVLanVPortProfileRegisterCallback(const char *ifname,
 
     return 0;
 
-error:
+ error:
     virNetlinkCallbackDataFree(calld);
     return -1;
 }
@@ -870,7 +871,7 @@ int virNetDevMacVLanCreateWithVPortProfile(const char *tgifname,
         if (rc < 0)
             return -1;
     } else {
-create_name:
+ create_name:
         retries = 5;
         if (virNetDevMacVLanCreateMutexInitialize() < 0)
             return -1;
@@ -959,7 +960,7 @@ create_name:
 
     return rc;
 
-disassociate_exit:
+ disassociate_exit:
     ignore_value(virNetDevVPortProfileDisassociate(cr_ifname,
                                                    virtPortProfile,
                                                    macaddress,
@@ -967,7 +968,7 @@ disassociate_exit:
                                                    vf,
                                                    vmOp));
 
-link_del_exit:
+ link_del_exit:
     ignore_value(virNetDevMacVLanDelete(cr_ifname));
 
     return rc;
@@ -1052,7 +1053,7 @@ int virNetDevMacVLanRestartWithVPortProfile(const char *cr_ifname,
                                                 vmuuid,
                                                 vmOp, true));
 
-error:
+ error:
     return rc;
 
 }

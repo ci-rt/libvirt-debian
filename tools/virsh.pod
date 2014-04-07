@@ -52,21 +52,6 @@ The B<virsh> program understands the following I<OPTIONS>.
 
 =over 4
 
-=item B<-h>, B<--help>
-
-Ignore all other arguments, and behave as if the B<help> command were
-given instead.
-
-=item B<-v>, B<--version[=short]>
-
-Ignore all other arguments, and prints the version of the libvirt library
-virsh is coming from
-
-=item B<-V>, B<--version=long>
-
-Ignore all other arguments, and prints the version of the libvirt library
-virsh is coming from and which options and driver are compiled in.
-
 =item B<-c>, B<--connect> I<URI>
 
 Connect to the specified I<URI>, as if by the B<connect> command,
@@ -77,6 +62,29 @@ instead of the default connection.
 Enable debug messages at integer I<LEVEL> and above.  I<LEVEL> can
 range from 0 to 4 (default).  See the documentation of B<VIRSH_DEBUG>
 environment variable below for the description of each I<LEVEL>.
+
+=item B<-e>, B<--escape> I<string>
+
+Set alternative escape sequence for I<console> command. By default,
+telnet's B<^]> is used. Allowed characters when using hat notation are:
+alphabetic character, @, [, ], \, ^, _.
+
+=item B<-h>, B<--help>
+
+Ignore all other arguments, and behave as if the B<help> command were
+given instead.
+
+=item B<-k>, B<--keepalive-interval> I<INTERVAL>
+
+Set an I<INTERVAL> (in seconds) for sending keepalive messages to
+check whether connection to the server is still alive.  Setting the
+interval to 0 disables client keepalive mechanism.
+
+=item B<-K>, B<--keepalive-count> I<COUNT>
+
+Set a number of times keepalive message can be sent without getting an
+answer from the server without marking the connection dead.  There is
+no effect to this setting in case the I<INTERVAL> is set to 0.
 
 =item B<-l>, B<--log> I<FILE>
 
@@ -95,11 +103,15 @@ option of the B<connect> command.
 
 Output elapsed time information for each command.
 
-=item B<-e>, B<--escape> I<string>
+=item B<-v>, B<--version[=short]>
 
-Set alternative escape sequence for I<console> command. By default,
-telnet's B<^]> is used. Allowed characters when using hat notation are:
-alphabetic character, @, [, ], \, ^, _.
+Ignore all other arguments, and prints the version of the libvirt library
+virsh is coming from
+
+=item B<-V>, B<--version=long>
+
+Ignore all other arguments, and prints the version of the libvirt library
+virsh is coming from and which options and driver are compiled in.
 
 =back
 
@@ -686,6 +698,9 @@ expressed in kilobytes per second, while I<burst> is expressed in kilobytes
 in a single burst at -I<peak> speed as described in the Network XML
 documentation at L<http://libvirt.org/formatnetwork.html#elementQoS>.
 
+To clear inbound or outbound settings, use I<--inbound> or I<--outbound>
+respectfully with average value of zero.
+
 If I<--live> is specified, affect a running guest.
 If I<--config> is specified, affect the next boot of a persistent guest.
 If I<--current> is specified, affect the current guest state.
@@ -995,6 +1010,7 @@ I<format> argument may be B<xen-xm> or B<xen-sxpr>.
 
 =item B<dump> I<domain> I<corefilepath> [I<--bypass-cache>]
 { [I<--live>] | [I<--crash>] | [I<--reset>] } [I<--verbose>] [I<--memory-only>]
+[I<--format> I<string>]
 
 Dumps the core of a domain to a file for analysis.
 If I<--live> is specified, the domain continues to run until the core
@@ -1008,6 +1024,10 @@ cache, although this may slow down the operation.
 If I<--memory-only> is specified, the file is elf file, and will only
 include domain's memory and cpu common register value. It is very
 useful if the domain uses host devices directly.
+I<--format> I<string> is used to specify the format of 'memory-only'
+dump, and I<string> can be one of them: elf, kdump-zlib(kdump-compressed
+format with zlib-compressed), kdump-lzo(kdump-compressed format with
+lzo-compressed), kdump-snappy(kdump-compressed format with snappy-compressed).
 
 The progress may be monitored using B<domjobinfo> virsh command and canceled
 with B<domjobabort> command (sent by another virsh instance). Another option
@@ -3050,7 +3070,7 @@ is specified, the snapshot will not include vm state.
 The I<--memspec> option can be used to control whether a checkpoint
 is internal or external.  The I<--memspec> flag is mandatory, followed
 by a B<memspec> of the form B<[file=]name[,snapshot=type]>, where
-type can be B<none>, B<internal>, or B<external>.  To include a literal
+type can be B<no>, B<internal>, or B<external>.  To include a literal
 comma in B<file=name>, escape it with a second comma. I<--memspec> cannot
 be used together with I<--disk-only>.
 
@@ -3311,12 +3331,15 @@ variables, and defaults to C<vi>.
 
 =back
 
-=head1 QEMU-SPECIFIC COMMANDS
+=head1 HYPERVISOR-SPECIFIC COMMANDS
 
 NOTE: Use of the following commands is B<strongly> discouraged.  They
 can cause libvirt to become confused and do the wrong thing on subsequent
-operations.  Once you have used this command, please do not report
-problems to the libvirt developers; the reports will be ignored.
+operations.  Once you have used these commands, please do not report
+problems to the libvirt developers; the reports will be ignored.  If
+you find that these commands are the only way to accomplish something,
+then it is better to request that the feature be added as a first-class
+citizen in the regular libvirt library.
 
 =over 4
 
@@ -3355,7 +3378,8 @@ and the monitor uses QMP, then the output will be pretty-printed.  If more
 than one argument is provided for I<command>, they are concatenated with a
 space in between before passing the single command to the monitor.
 
-=item B<qemu-agent-command> I<domain> [I<--timeout> I<seconds> | I<--async> | I<--block>] I<command>...
+=item B<qemu-agent-command> I<domain> [I<--timeout> I<seconds> | I<--async> |
+I<--block>] I<command>...
 
 Send an arbitrary guest agent command I<command> to domain I<domain> through
 qemu agent.
@@ -3365,13 +3389,32 @@ When I<--aysnc> is given, the command waits for timeout whether success or
 failed. And when I<--block> is given, the command waits forever with blocking
 timeout.
 
+=item B<qemu-monitor-event> [I<domain>] [I<--event> I<event-name>] [I<--loop>]
+[I<--timeout> I<seconds>] [I<--pretty>] [I<--regex>] [I<--no-case>]
+
+Wait for arbitrary QEMU monitor events to occur, and print out the
+details of events as they happen.  The events can optionally be filtered
+by I<domain> or I<event-name>.  The 'query-events' QMP command can be
+used via I<qemu-monitor-command> to learn what events are supported.
+If I<--regex> is used, I<event-name> is a basic regular expression
+instead of a literal string.  If I<--no-case> is used, I<event-name>
+will match case-insensitively.
+
+By default, this command is one-shot, and returns success once an event
+occurs; you can send SIGINT (usually via C<Ctrl-C>) to quit immediately.
+If I<--timeout> is specified, the command gives up waiting for events
+after I<seconds> have elapsed.  With I<--loop>, the command prints all
+events until a timeout or interrupt key.  If I<--pretty> is specified,
+any JSON event details are pretty-printed for better legibility.
+
 =item B<lxc-enter-namespace> I<domain> -- /path/to/binary [arg1, [arg2, ...]]
 
 Enter the namespace of I<domain> and execute the command C</path/to/binary>
 passing the requested args. The binary path is relative to the container
 root filesystem, not the host root filesystem. The binary will inherit the
 environment variables / console visible to virsh. This command only works
-when connected to the LXC hypervisor driver.
+when connected to the LXC hypervisor driver.  This command succeeds only
+if C</path/to/binary> has 0 exit status.
 
 =back
 
@@ -3486,7 +3529,7 @@ Alternatively report bugs to your software distributor / vendor.
 
 =head1 COPYRIGHT
 
-Copyright (C) 2005, 2007-2010 Red Hat, Inc., and the authors listed in the
+Copyright (C) 2005, 2007-2014 Red Hat, Inc., and the authors listed in the
 libvirt AUTHORS file.
 
 =head1 LICENSE

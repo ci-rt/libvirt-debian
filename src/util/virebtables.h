@@ -1,5 +1,5 @@
 /*
- * virebtables.c: Helper APIs for managing ebtables
+ * virebtables.h: Helper APIs for managing ebtables
  *
  * Copyright (C) 2007-2008, 2013 Red Hat, Inc.
  * Copyright (C) 2009 IBM Corp.
@@ -28,29 +28,10 @@
 
 # include "virmacaddr.h"
 
-typedef struct
-{
-    char  *rule;
-    char **argv;
-    int    command_idx;
-} ebtRule;
-
-typedef struct
-{
-    char  *table;
-    char  *chain;
-
-    int      nrules;
-    ebtRule *rules;
-
-} ebtRules;
-
 typedef struct _ebtablesContext ebtablesContext;
 
 ebtablesContext *ebtablesContextNew              (const char *driver);
 void             ebtablesContextFree             (ebtablesContext *ctx);
-
-void             ebtablesSaveRules               (ebtablesContext *ctx);
 
 int              ebtablesAddForwardAllowIn       (ebtablesContext *ctx,
                                                   const char *iface,
@@ -60,10 +41,5 @@ int              ebtablesRemoveForwardAllowIn    (ebtablesContext *ctx,
                                                   const virMacAddr *mac);
 
 int              ebtablesAddForwardPolicyReject(ebtablesContext *ctx);
-
-int              ebtablesRemoveForwardPolicyReject(ebtablesContext *ctx);
-
-int              ebtablesForwardPolicyReject(ebtablesContext *ctx,
-                                                  int action);
 
 #endif /* __QEMUD_ebtabLES_H__ */

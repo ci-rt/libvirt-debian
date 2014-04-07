@@ -1,7 +1,7 @@
 /*
  * xen_xm.c: Xen XM parsing functions
  *
- * Copyright (C) 2006-2007, 2009-2010, 2012-2013 Red Hat, Inc.
+ * Copyright (C) 2006-2007, 2009-2014 Red Hat, Inc.
  * Copyright (C) 2011 Univention GmbH
  * Copyright (C) 2006 Daniel P. Berrange
  *
@@ -44,7 +44,8 @@
 static int xenXMConfigGetBool(virConfPtr conf,
                               const char *name,
                               int *value,
-                              int def) {
+                              int def)
+{
     virConfValuePtr val;
 
     *value = 0;
@@ -70,7 +71,8 @@ static int xenXMConfigGetBool(virConfPtr conf,
 static int xenXMConfigGetULong(virConfPtr conf,
                                const char *name,
                                unsigned long *value,
-                               unsigned long def) {
+                               unsigned long def)
+{
     virConfValuePtr val;
 
     *value = 0;
@@ -102,7 +104,8 @@ static int xenXMConfigGetULong(virConfPtr conf,
 static int xenXMConfigGetULongLong(virConfPtr conf,
                                    const char *name,
                                    unsigned long long *value,
-                                   unsigned long long def) {
+                                   unsigned long long def)
+{
     virConfValuePtr val;
 
     *value = 0;
@@ -134,7 +137,8 @@ static int xenXMConfigGetULongLong(virConfPtr conf,
 static int xenXMConfigGetString(virConfPtr conf,
                                 const char *name,
                                 const char **value,
-                                const char *def) {
+                                const char *def)
+{
     virConfValuePtr val;
 
     *value = NULL;
@@ -158,7 +162,8 @@ static int xenXMConfigGetString(virConfPtr conf,
 static int xenXMConfigCopyStringInternal(virConfPtr conf,
                                          const char *name,
                                          char **value,
-                                         int allowMissing) {
+                                         int allowMissing)
+{
     virConfValuePtr val;
 
     *value = NULL;
@@ -201,7 +206,9 @@ static int xenXMConfigCopyStringOpt(virConfPtr conf,
 
 
 /* Convenience method to grab a string UUID from the config file object */
-static int xenXMConfigGetUUID(virConfPtr conf, const char *name, unsigned char *uuid) {
+static int
+xenXMConfigGetUUID(virConfPtr conf, const char *name, unsigned char *uuid)
+{
     virConfValuePtr val;
 
     if (!uuid || !name || !conf) {
@@ -248,7 +255,8 @@ static int xenXMConfigGetUUID(virConfPtr conf, const char *name, unsigned char *
  */
 virDomainDefPtr
 xenParseXM(virConfPtr conf, int xendConfigVersion,
-                       virCapsPtr caps) {
+                       virCapsPtr caps)
+{
     const char *str;
     int hvm = 0;
     int val;
@@ -472,6 +480,7 @@ xenParseXM(virConfPtr conf, int xendConfigVersion,
             char *head;
             char *offset;
             char *tmp;
+            const char *src;
 
             if ((list->type != VIR_CONF_STRING) || (list->str == NULL))
                 goto skipdisk;
@@ -493,17 +502,16 @@ xenParseXM(virConfPtr conf, int xendConfigVersion,
                 goto skipdisk;
 
             if (offset == head) {
-                disk->src = NULL; /* No source file given, eg CDROM with no media */
+                /* No source file given, eg CDROM with no media */
+                ignore_value(virDomainDiskSetSource(disk, NULL));
             } else {
-                if (VIR_ALLOC_N(disk->src, (offset - head) + 1) < 0)
+                if (VIR_STRNDUP(tmp, head, offset - head) < 0)
                     goto cleanup;
-                if (virStrncpy(disk->src, head, offset - head,
-                               (offset - head) + 1) == NULL) {
-                    virReportError(VIR_ERR_INTERNAL_ERROR,
-                                   _("Source file %s too big for destination"),
-                                   head);
+                if (virDomainDiskSetSource(disk, tmp) < 0) {
+                    VIR_FREE(tmp);
                     goto cleanup;
                 }
+                VIR_FREE(tmp);
             }
             head = offset + 1;
 
@@ -524,65 +532,68 @@ xenParseXM(virConfPtr conf, int xendConfigVersion,
             }
             head = offset + 1;
 
-
             /* Extract source driver type */
-            if (disk->src) {
+            src = virDomainDiskGetSource(disk);
+            if (src) {
+                size_t len;
                 /* The main type  phy:, file:, tap: ... */
-                if ((tmp = strchr(disk->src, ':')) != NULL) {
-                    if (VIR_ALLOC_N(disk->driverName, (tmp - disk->src) + 1) < 0)
+                if ((tmp = strchr(src, ':')) != NULL) {
+                    len = tmp - src;
+                    if (VIR_STRNDUP(tmp, src, len) < 0)
                         goto cleanup;
-                    if (virStrncpy(disk->driverName, disk->src,
-                                   (tmp - disk->src),
-                                   (tmp - disk->src) + 1) == NULL) {
-                        virReportError(VIR_ERR_INTERNAL_ERROR,
-                                       _("Driver name %s too big for destination"),
-                                       disk->src);
+                    if (virDomainDiskSetDriver(disk, tmp) < 0) {
+                        VIR_FREE(tmp);
                         goto cleanup;
                     }
+                    VIR_FREE(tmp);
 
                     /* Strip the prefix we found off the source file name */
-                    memmove(disk->src, disk->src+(tmp-disk->src)+1,
-                            strlen(disk->src)-(tmp-disk->src));
+                    if (virDomainDiskSetSource(disk, src + len + 1) < 0)
+                        goto cleanup;
+                    src = virDomainDiskGetSource(disk);
                 }
 
                 /* And the sub-type for tap:XXX: type */
-                if (disk->driverName &&
-                    STREQ(disk->driverName, "tap")) {
+                if (STREQ_NULLABLE(virDomainDiskGetDriver(disk), "tap")) {
                     char *driverType;
 
-                    if (!(tmp = strchr(disk->src, ':')))
+                    if (!(tmp = strchr(src, ':')))
                         goto skipdisk;
+                    len = tmp - src;
 
-                    if (VIR_STRNDUP(driverType, disk->src, tmp - disk->src) < 0)
+                    if (VIR_STRNDUP(driverType, src, len) < 0)
                         goto cleanup;
                     if (STREQ(driverType, "aio"))
-                        disk->format = VIR_STORAGE_FILE_RAW;
+                        virDomainDiskSetFormat(disk, VIR_STORAGE_FILE_RAW);
                     else
-                        disk->format =
-                            virStorageFileFormatTypeFromString(driverType);
+                        virDomainDiskSetFormat(disk,
+                                               virStorageFileFormatTypeFromString(driverType));
                     VIR_FREE(driverType);
-                    if (disk->format <= 0) {
+                    if (virDomainDiskGetFormat(disk) <= 0) {
                         virReportError(VIR_ERR_INTERNAL_ERROR,
                                        _("Unknown driver type %s"),
-                                       disk->src);
+                                       src);
                         goto cleanup;
                     }
 
                     /* Strip the prefix we found off the source file name */
-                    memmove(disk->src, disk->src+(tmp-disk->src)+1,
-                            strlen(disk->src)-(tmp-disk->src));
+                    if (virDomainDiskSetSource(disk, src + len + 1) < 0)
+                        goto cleanup;
+                    src = virDomainDiskGetSource(disk);
                 }
             }
 
             /* No source, or driver name, so fix to phy: */
-            if (!disk->driverName &&
-                VIR_STRDUP(disk->driverName, "phy") < 0)
+            if (!virDomainDiskGetDriver(disk) &&
+                virDomainDiskSetDriver(disk, "phy") < 0)
                 goto cleanup;
 
 
             /* phy: type indicates a block device */
-            disk->type = STREQ(disk->driverName, "phy") ?
-                VIR_DOMAIN_DISK_TYPE_BLOCK : VIR_DOMAIN_DISK_TYPE_FILE;
+            virDomainDiskSetType(disk,
+                                 STREQ(virDomainDiskGetDriver(disk), "phy") ?
+                                 VIR_DOMAIN_DISK_TYPE_BLOCK :
+                                 VIR_DOMAIN_DISK_TYPE_FILE);
 
             /* Check for a :cdrom/:disk postfix */
             disk->device = VIR_DOMAIN_DISK_DEVICE_DISK;
@@ -608,10 +619,8 @@ xenParseXM(virConfPtr conf, int xendConfigVersion,
                 disk->shared = true;
 
             /* Maintain list in sorted order according to target device name */
-            if (VIR_REALLOC_N(def->disks, def->ndisks+1) < 0)
+            if (VIR_APPEND_ELEMENT(def->disks, def->ndisks, disk) < 0)
                 goto cleanup;
-            def->disks[def->ndisks++] = disk;
-            disk = NULL;
 
             skipdisk:
             list = list->next;
@@ -626,21 +635,19 @@ xenParseXM(virConfPtr conf, int xendConfigVersion,
             if (VIR_ALLOC(disk) < 0)
                 goto cleanup;
 
-            disk->type = VIR_DOMAIN_DISK_TYPE_FILE;
+            virDomainDiskSetType(disk, VIR_DOMAIN_DISK_TYPE_FILE);
             disk->device = VIR_DOMAIN_DISK_DEVICE_CDROM;
-            if (VIR_STRDUP(disk->driverName, "file") < 0)
+            if (virDomainDiskSetDriver(disk, "file") < 0)
                 goto cleanup;
-            if (VIR_STRDUP(disk->src, str) < 0)
+            if (virDomainDiskSetSource(disk, str) < 0)
                 goto cleanup;
             if (VIR_STRDUP(disk->dst, "hdc") < 0)
                 goto cleanup;
             disk->bus = VIR_DOMAIN_DISK_BUS_IDE;
             disk->readonly = true;
 
-            if (VIR_REALLOC_N(def->disks, def->ndisks+1) < 0)
+            if (VIR_APPEND_ELEMENT(def->disks, def->ndisks, disk) < 0)
                 goto cleanup;
-            def->disks[def->ndisks++] = disk;
-            disk = NULL;
         }
     }
 
@@ -778,10 +785,8 @@ xenParseXM(virConfPtr conf, int xendConfigVersion,
                 VIR_STRDUP(net->ifname, vifname) < 0)
                 goto cleanup;
 
-            if (VIR_REALLOC_N(def->nets, def->nnets+1) < 0)
+            if (VIR_APPEND_ELEMENT(def->nets, def->nnets, net) < 0)
                 goto cleanup;
-            def->nets[def->nnets++] = net;
-            net = NULL;
 
         skipnic:
             list = list->next;
@@ -869,12 +874,10 @@ xenParseXM(virConfPtr conf, int xendConfigVersion,
             hostdev->source.subsys.u.pci.addr.slot = slotID;
             hostdev->source.subsys.u.pci.addr.function = funcID;
 
-            if (VIR_REALLOC_N(def->hostdevs, def->nhostdevs+1) < 0) {
+            if (VIR_APPEND_ELEMENT(def->hostdevs, def->nhostdevs, hostdev) < 0) {
                 virDomainHostdevDefFree(hostdev);
                 goto cleanup;
             }
-            def->hostdevs[def->nhostdevs++] = hostdev;
-            hostdev = NULL;
 
         skippci:
             list = list->next;
@@ -1084,16 +1087,13 @@ xenParseXM(virConfPtr conf, int xendConfigVersion,
                 if (!(chr = xenParseSxprChar(port, NULL)))
                     goto cleanup;
 
-                if (VIR_REALLOC_N(def->serials, def->nserials+1) < 0) {
-                    virDomainChrDefFree(chr);
-                    goto cleanup;
-                }
-
                 chr->deviceType = VIR_DOMAIN_CHR_DEVICE_TYPE_SERIAL;
                 chr->target.port = portnum;
 
-                def->serials[def->nserials++] = chr;
-                chr = NULL;
+                if (VIR_APPEND_ELEMENT(def->serials, def->nserials, chr) < 0) {
+                    virDomainChrDefFree(chr);
+                    goto cleanup;
+                }
 
                 list = list->next;
             }
@@ -1138,7 +1138,7 @@ xenParseXM(virConfPtr conf, int xendConfigVersion,
     VIR_FREE(script);
     return def;
 
-cleanup:
+ cleanup:
     virDomainGraphicsDefFree(graphics);
     virDomainNetDefFree(net);
     virDomainDiskDefFree(disk);
@@ -1150,7 +1150,8 @@ cleanup:
 
 
 static
-int xenXMConfigSetInt(virConfPtr conf, const char *setting, long long l) {
+int xenXMConfigSetInt(virConfPtr conf, const char *setting, long long l)
+{
     virConfValuePtr value = NULL;
 
     if ((long) l != l) {
@@ -1169,8 +1170,9 @@ int xenXMConfigSetInt(virConfPtr conf, const char *setting, long long l) {
 }
 
 
-static
-int xenXMConfigSetString(virConfPtr conf, const char *setting, const char *str) {
+static int
+xenXMConfigSetString(virConfPtr conf, const char *setting, const char *str)
+{
     virConfValuePtr value = NULL;
 
     if (VIR_ALLOC(value) < 0)
@@ -1187,27 +1189,31 @@ int xenXMConfigSetString(virConfPtr conf, const char *setting, const char *str) 
 }
 
 
-static int xenFormatXMDisk(virConfValuePtr list,
-                                       virDomainDiskDefPtr disk,
-                                       int hvm,
-                                       int xendConfigVersion)
+static int
+xenFormatXMDisk(virConfValuePtr list,
+                virDomainDiskDefPtr disk,
+                int hvm,
+                int xendConfigVersion)
 {
     virBuffer buf = VIR_BUFFER_INITIALIZER;
     virConfValuePtr val, tmp;
+    const char *src = virDomainDiskGetSource(disk);
+    int format = virDomainDiskGetFormat(disk);
+    const char *driver = virDomainDiskGetDriver(disk);
 
-    if (disk->src) {
-        if (disk->format) {
+    if (src) {
+        if (format) {
             const char *type;
 
-            if (disk->format == VIR_STORAGE_FILE_RAW)
+            if (format == VIR_STORAGE_FILE_RAW)
                 type = "aio";
             else
-                type = virStorageFileFormatTypeToString(disk->format);
-            virBufferAsprintf(&buf, "%s:", disk->driverName);
-            if (STREQ(disk->driverName, "tap"))
+                type = virStorageFileFormatTypeToString(format);
+            virBufferAsprintf(&buf, "%s:", driver);
+            if (STREQ(driver, "tap"))
                 virBufferAsprintf(&buf, "%s:", type);
         } else {
-            switch (disk->type) {
+            switch (virDomainDiskGetType(disk)) {
             case VIR_DOMAIN_DISK_TYPE_FILE:
                 virBufferAddLit(&buf, "file:");
                 break;
@@ -1217,11 +1223,11 @@ static int xenFormatXMDisk(virConfValuePtr list,
             default:
                 virReportError(VIR_ERR_INTERNAL_ERROR,
                                _("unsupported disk type %s"),
-                               virDomainDiskTypeToString(disk->type));
+                               virDomainDiskTypeToString(virDomainDiskGetType(disk)));
                 goto cleanup;
             }
         }
-        virBufferAdd(&buf, disk->src, -1);
+        virBufferAdd(&buf, src, -1);
     }
     virBufferAddLit(&buf, ",");
     if (hvm && xendConfigVersion == XEND_CONFIG_VERSION_3_0_2)
@@ -1263,7 +1269,7 @@ static int xenFormatXMDisk(virConfValuePtr list,
 
     return 0;
 
-cleanup:
+ cleanup:
     virBufferFreeAndReset(&buf);
     return -1;
 }
@@ -1302,7 +1308,7 @@ static int xenFormatXMSerial(virConfValuePtr list,
 
     return 0;
 
-cleanup:
+ cleanup:
     virBufferFreeAndReset(&buf);
     return -1;
 }
@@ -1408,7 +1414,7 @@ static int xenFormatXMNet(virConnectPtr conn,
 
     return 0;
 
-cleanup:
+ cleanup:
     virBufferFreeAndReset(&buf);
     return -1;
 }
@@ -1477,7 +1483,7 @@ xenFormatXMPCI(virConfPtr conf,
 
     return 0;
 
-error:
+ error:
     virConfFreeValue(pciVal);
     return -1;
 }
@@ -1489,7 +1495,8 @@ verify(MAX_VIRT_CPUS <= sizeof(1UL) * CHAR_BIT);
 
 virConfPtr xenFormatXM(virConnectPtr conn,
                                    virDomainDefPtr def,
-                                   int xendConfigVersion) {
+                                   int xendConfigVersion)
+{
     virConfPtr conf = NULL;
     int hvm = 0, vmlocaltime = 0;
     size_t i;
@@ -1613,9 +1620,9 @@ virConfPtr xenFormatXM(virConnectPtr conn,
                 if (def->disks[i]->device == VIR_DOMAIN_DISK_DEVICE_CDROM &&
                     def->disks[i]->dst &&
                     STREQ(def->disks[i]->dst, "hdc") &&
-                    def->disks[i]->src) {
+                    virDomainDiskGetSource(def->disks[i])) {
                     if (xenXMConfigSetString(conf, "cdrom",
-                                             def->disks[i]->src) < 0)
+                                             virDomainDiskGetSource(def->disks[i])) < 0)
                         goto cleanup;
                     break;
                 }
@@ -2009,7 +2016,7 @@ virConfPtr xenFormatXM(virConnectPtr conn,
 
     return conf;
 
-cleanup:
+ cleanup:
     virConfFreeValue(diskVal);
     virConfFreeValue(netVal);
     VIR_FREE(cpus);

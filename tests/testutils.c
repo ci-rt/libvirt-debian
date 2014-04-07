@@ -1,7 +1,7 @@
 /*
  * testutils.c: basic test utils
  *
- * Copyright (C) 2005-2013 Red Hat, Inc.
+ * Copyright (C) 2005-2014 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -59,6 +59,8 @@
 #endif
 
 #define VIR_FROM_THIS VIR_FROM_NONE
+
+VIR_LOG_INIT("tests.testutils");
 
 #define GETTIMEOFDAY(T) gettimeofday(T, NULL)
 #define DIFF_MSEC(T, U)                                 \
@@ -360,7 +362,8 @@ virtTestLoadFile(const char *file, char **buf)
 #ifndef WIN32
 static
 void virtTestCaptureProgramExecChild(const char *const argv[],
-                                     int pipefd) {
+                                     int pipefd)
+{
     size_t i;
     int open_max;
     int stdinfd = -1;
@@ -427,7 +430,7 @@ virtTestCaptureProgramOutput(const char *const argv[], char **buf, int maxlen)
         VIR_FORCE_CLOSE(pipefd[1]);
         len = virFileReadLimFD(pipefd[0], maxlen, buf);
         VIR_FORCE_CLOSE(pipefd[0]);
-        if (virProcessWait(pid, NULL) < 0)
+        if (virProcessWait(pid, NULL, false) < 0)
             return -1;
 
         return len;
@@ -584,7 +587,7 @@ struct virtTestLogData {
 static struct virtTestLogData testLog = { VIR_BUFFER_INITIALIZER };
 
 static void
-virtTestLogOutput(virLogSource source ATTRIBUTE_UNUSED,
+virtTestLogOutput(virLogSourcePtr source ATTRIBUTE_UNUSED,
                   virLogPriority priority ATTRIBUTE_UNUSED,
                   const char *filename ATTRIBUTE_UNUSED,
                   int lineno ATTRIBUTE_UNUSED,
@@ -627,7 +630,8 @@ virtTestLogContentAndReset(void)
 
 
 static unsigned int
-virTestGetFlag(const char *name) {
+virTestGetFlag(const char *name)
+{
     char *flagStr;
     unsigned int flag;
 
@@ -641,21 +645,24 @@ virTestGetFlag(const char *name) {
 }
 
 unsigned int
-virTestGetDebug(void) {
+virTestGetDebug(void)
+{
     if (testDebug == -1)
         testDebug = virTestGetFlag("VIR_TEST_DEBUG");
     return testDebug;
 }
 
 unsigned int
-virTestGetVerbose(void) {
+virTestGetVerbose(void)
+{
     if (testVerbose == -1)
         testVerbose = virTestGetFlag("VIR_TEST_VERBOSE");
     return testVerbose || virTestGetDebug();
 }
 
 unsigned int
-virTestGetExpensive(void) {
+virTestGetExpensive(void)
+{
     if (testExpensive == -1)
         testExpensive = virTestGetFlag("VIR_TEST_EXPENSIVE");
     return testExpensive;
@@ -877,7 +884,7 @@ virCapsPtr virTestGenericCapsInit(void)
 
     return caps;
 
-error:
+ error:
     virObjectUnref(caps);
     return NULL;
 }

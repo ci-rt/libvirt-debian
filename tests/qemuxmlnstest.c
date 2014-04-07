@@ -119,7 +119,7 @@ static int testCompareXMLToArgvFiles(const char *xml,
                                      vmdef, &monitor_chr, json, extraFlags,
                                      migrateFrom, migrateFd, NULL,
                                      VIR_NETDEV_VPORT_PROFILE_OP_NO_OP,
-                                     &testCallbacks)))
+                                     &testCallbacks, false)))
         goto fail;
 
     if (!virtTestOOMActive()) {
@@ -193,7 +193,7 @@ testCompareXMLToArgvHelper(const void *data)
                                        info->migrateFrom, info->migrateFd,
                                        info->json, info->expectError);
 
-cleanup:
+ cleanup:
     VIR_FREE(xml);
     VIR_FREE(args);
     return result;
@@ -268,7 +268,7 @@ mymain(void)
     virObjectUnref(driver.xmlopt);
     VIR_FREE(map);
 
-    return ret==0 ? EXIT_SUCCESS : EXIT_FAILURE;
+    return ret == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
 VIRT_TEST_MAIN(mymain)

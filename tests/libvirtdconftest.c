@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012-2013 Red Hat, Inc.
+ * Copyright (C) 2012-2014 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -33,6 +33,8 @@
 #include "virstring.h"
 
 #define VIR_FROM_THIS VIR_FROM_NONE
+
+VIR_LOG_INIT("tests.libvirtdconftest");
 
 struct testCorruptData {
     size_t *params;
@@ -151,7 +153,7 @@ testCorrupt(const void *opaque)
         break;
     }
 
-cleanup:
+ cleanup:
     VIR_FREE(newdata);
     daemonConfigFree(conf);
     return ret;
@@ -223,15 +225,18 @@ mymain(void)
     VIR_DEBUG("Initial config [%s]", filedata);
     for (i = 0; params[i] != 0; i++) {
         const struct testCorruptData data = { params, filedata, filename, i };
+        /* Skip now ignored config param */
+        if (STRPREFIX(filedata + params[i], "log_buffer_size"))
+            continue;
         if (virtTestRun("Test corruption", testCorrupt, &data) < 0)
             ret = -1;
     }
 
-cleanup:
+ cleanup:
     VIR_FREE(filename);
     VIR_FREE(filedata);
     VIR_FREE(params);
-    return ret==0 ? EXIT_SUCCESS : EXIT_FAILURE;
+    return ret == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
 VIRT_TEST_MAIN(mymain)

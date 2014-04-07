@@ -1,7 +1,7 @@
 /*
  * virnettlscontext.c: TLS encryption/x509 handling
  *
- * Copyright (C) 2010-2013 Red Hat, Inc.
+ * Copyright (C) 2010-2014 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -39,6 +39,7 @@
 #include "virfile.h"
 #include "virutil.h"
 #include "virlog.h"
+#include "virprobe.h"
 #include "virthread.h"
 #include "configmake.h"
 
@@ -53,6 +54,8 @@
 #define LIBVIRT_SERVERCERT LIBVIRT_PKI_DIR "/libvirt/servercert.pem"
 
 #define VIR_FROM_THIS VIR_FROM_RPC
+
+VIR_LOG_INIT("rpc.nettlscontext");
 
 struct _virNetTLSContext {
     virObjectLockable parent;
@@ -122,7 +125,8 @@ virNetTLSContextCheckCertFile(const char *type, const char *file, bool allowMiss
 
 
 static void virNetTLSLog(int level ATTRIBUTE_UNUSED,
-                         const char *str ATTRIBUTE_UNUSED) {
+                         const char *str ATTRIBUTE_UNUSED)
+{
     VIR_DEBUG("%d %s", level, str);
 }
 
@@ -533,7 +537,7 @@ static gnutls_x509_crt_t virNetTLSContextLoadCertFromFile(const char *certFile,
 
     ret = 0;
 
-cleanup:
+ cleanup:
     if (ret != 0) {
         gnutls_x509_crt_deinit(cert);
         cert = NULL;
@@ -571,7 +575,7 @@ static int virNetTLSContextLoadCACertListFromFile(const char *certFile,
 
     ret = 0;
 
-cleanup:
+ cleanup:
     VIR_FREE(buf);
     return ret;
 }
@@ -612,7 +616,7 @@ static int virNetTLSContextSanityCheckCredentials(bool isServer,
 
     ret = 0;
 
-cleanup:
+ cleanup:
     if (cert)
         gnutls_x509_crt_deinit(cert);
     for (i = 0; i < ncacerts; i++)
@@ -695,7 +699,7 @@ static int virNetTLSContextLoadCredentials(virNetTLSContextPtr ctxt,
 
     ret = 0;
 
-cleanup:
+ cleanup:
     return ret;
 }
 
@@ -779,7 +783,7 @@ static virNetTLSContextPtr virNetTLSContextNew(const char *cacert,
 
     return ctxt;
 
-error:
+ error:
     if (isServer)
         gnutls_dh_params_deinit(ctxt->dhParams);
     gnutls_certificate_free_credentials(ctxt->x509cred);
@@ -902,7 +906,7 @@ static int virNetTLSContextLocateCredentials(const char *pkipath,
 
     return 0;
 
-error:
+ error:
     VIR_FREE(*cacert);
     VIR_FREE(*cacrl);
     VIR_FREE(*key);
@@ -1113,14 +1117,14 @@ static int virNetTLSContextValidCertificate(virNetTLSContextPtr ctxt,
 
     return 0;
 
-authdeny:
+ authdeny:
     PROBE(RPC_TLS_CONTEXT_SESSION_DENY,
           "ctxt=%p sess=%p dname=%s",
           ctxt, sess, dnameptr);
 
     return -1;
 
-authfail:
+ authfail:
     PROBE(RPC_TLS_CONTEXT_SESSION_FAIL,
           "ctxt=%p sess=%p",
           ctxt, sess);
@@ -1149,7 +1153,7 @@ int virNetTLSContextCheckCertificate(virNetTLSContextPtr ctxt,
 
     ret = 0;
 
-cleanup:
+ cleanup:
     virObjectUnlock(ctxt);
     virObjectUnlock(sess);
 
@@ -1260,7 +1264,7 @@ virNetTLSSessionPtr virNetTLSSessionNew(virNetTLSContextPtr ctxt,
 
     return sess;
 
-error:
+ error:
     virObjectUnref(sess);
     return NULL;
 }
@@ -1307,7 +1311,7 @@ ssize_t virNetTLSSessionWrite(virNetTLSSessionPtr sess,
 
     ret = -1;
 
-cleanup:
+ cleanup:
     virObjectUnlock(sess);
     return ret;
 }
@@ -1337,7 +1341,7 @@ ssize_t virNetTLSSessionRead(virNetTLSSessionPtr sess,
 
     ret = -1;
 
-cleanup:
+ cleanup:
     virObjectUnlock(sess);
     return ret;
 }
@@ -1369,7 +1373,7 @@ int virNetTLSSessionHandshake(virNetTLSSessionPtr sess)
                    gnutls_strerror(ret));
     ret = -1;
 
-cleanup:
+ cleanup:
     virObjectUnlock(sess);
     return ret;
 }
@@ -1402,7 +1406,7 @@ int virNetTLSSessionGetKeySize(virNetTLSSessionPtr sess)
         goto cleanup;
     }
 
-cleanup:
+ cleanup:
     virObjectUnlock(sess);
     return ssf;
 }

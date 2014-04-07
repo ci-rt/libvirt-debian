@@ -1,4 +1,3 @@
-
 /*
  * esx_secret_driver.c: secret driver functions for VMware ESX secret manipulation
  *
@@ -25,7 +24,6 @@
 
 #include "internal.h"
 #include "viralloc.h"
-#include "virlog.h"
 #include "viruuid.h"
 #include "esx_private.h"
 #include "esx_secret_driver.h"

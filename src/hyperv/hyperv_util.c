@@ -1,4 +1,3 @@
-
 /*
  * hyperv_util.c: utility functions for the Microsoft Hyper-V driver
  *
@@ -33,7 +32,7 @@
 
 #define VIR_FROM_THIS VIR_FROM_HYPERV
 
-
+VIR_LOG_INIT("hyperv.hyperv_util");
 
 int
 hypervParseUri(hypervParsedUri **parsedUri, virURIPtr uri)
@@ -78,7 +77,7 @@ hypervParseUri(hypervParsedUri **parsedUri, virURIPtr uri)
 
     result = 0;
 
-  cleanup:
+ cleanup:
     if (result < 0) {
         hypervFreeParsedUri(parsedUri);
     }

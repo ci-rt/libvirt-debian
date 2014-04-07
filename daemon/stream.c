@@ -32,6 +32,8 @@
 
 #define VIR_FROM_THIS VIR_FROM_STREAMS
 
+VIR_LOG_INIT("daemon.stream");
+
 struct daemonClientStream {
     daemonClientPrivatePtr priv;
     int refs;
@@ -258,7 +260,7 @@ daemonStreamEvent(virStreamPtr st, int events, void *opaque)
         daemonStreamUpdateEvents(stream);
     }
 
-cleanup:
+ cleanup:
     virMutexUnlock(&priv->lock);
 }
 
@@ -299,7 +301,7 @@ daemonStreamFilter(virNetServerClientPtr client ATTRIBUTE_UNUSED,
     daemonStreamUpdateEvents(stream);
     ret = 1;
 
-cleanup:
+ cleanup:
     virMutexUnlock(&stream->priv->lock);
     return ret;
 }

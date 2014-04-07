@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2009-2013 Red Hat, Inc.
+ * Copyright (C) 2009-2014 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -62,6 +62,8 @@ VIR_ENUM_IMPL(virNetDevVPortProfileOp, VIR_NETDEV_VPORT_PROFILE_OP_LAST,
 # include "virfile.h"
 # include "virlog.h"
 # include "virnetdev.h"
+
+VIR_LOG_INIT("util.netdevvportprofile");
 
 # define MICROSEC_PER_SEC       (1000 * 1000)
 
@@ -432,7 +434,7 @@ int virNetDevVPortProfileMerge3(virNetDevVPortProfilePtr *result,
 
     ret = 0;
 
-error:
+ error:
     if (ret < 0)
         VIR_FREE(*result);
     return ret;
@@ -447,7 +449,8 @@ static struct nla_policy ifla_port_policy[IFLA_PORT_MAX + 1] =
 };
 
 static uint32_t
-virNetDevVPortProfileGetLldpadPid(void) {
+virNetDevVPortProfileGetLldpadPid(void)
+{
     int fd;
     uint32_t pid = 0;
 
@@ -575,7 +578,7 @@ virNetDevVPortProfileGetStatus(struct nlattr **tb, int32_t vf,
             goto cleanup;
         }
     }
-cleanup:
+ cleanup:
     return rc;
 }
 
@@ -744,17 +747,17 @@ virNetDevVPortProfileOpSetLink(const char *ifname, int ifindex,
     }
 
     rc = 0;
-cleanup:
+ cleanup:
     nlmsg_free(nl_msg);
     VIR_FREE(resp);
     return rc;
 
-malformed_resp:
+ malformed_resp:
     virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                    _("malformed netlink response message"));
     goto cleanup;
 
-buffer_too_small:
+ buffer_too_small:
     virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                    _("allocated netlink buffer is too small"));
     goto cleanup;
@@ -904,7 +907,7 @@ virNetDevVPortProfileOpCommon(const char *ifname, int ifindex,
         rc = -2;
     }
 
-cleanup:
+ cleanup:
 
     return rc;
 }
@@ -1003,7 +1006,7 @@ virNetDevVPortProfileOp8021Qbg(const char *ifname,
                                        vf,
                                        op,
                                        setlink_only);
-cleanup:
+ cleanup:
     return rc;
 }
 
@@ -1106,7 +1109,7 @@ virNetDevVPortProfileOp8021Qbh(const char *ifname,
         rc = -1;
     }
 
-cleanup:
+ cleanup:
     VIR_FREE(physfndev);
     return rc;
 }

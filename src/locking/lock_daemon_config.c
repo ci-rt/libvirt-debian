@@ -1,5 +1,5 @@
 /*
- * lock_daemon_config.h: virtlockd config file handling
+ * lock_daemon_config.c: virtlockd config file handling
  *
  * Copyright (C) 2006-2012 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
@@ -34,6 +34,8 @@
 #include "virutil.h"
 
 #define VIR_FROM_THIS VIR_FROM_CONF
+
+VIR_LOG_INIT("locking.lock_daemon_config");
 
 
 /* A helper function used by each of the following macros.  */
@@ -100,7 +102,7 @@ virLockDaemonConfigFilePath(bool privileged, char **configfile)
 
     return 0;
 
-error:
+ error:
     return -1;
 }
 
@@ -113,7 +115,6 @@ virLockDaemonConfigNew(bool privileged ATTRIBUTE_UNUSED)
     if (VIR_ALLOC(data) < 0)
         return NULL;
 
-    data->log_buffer_size = 64;
     data->max_clients = 1024;
 
     return data;
@@ -139,12 +140,11 @@ virLockDaemonConfigLoadOptions(virLockDaemonConfigPtr data,
     GET_CONF_INT(conf, filename, log_level);
     GET_CONF_STR(conf, filename, log_filters);
     GET_CONF_STR(conf, filename, log_outputs);
-    GET_CONF_INT(conf, filename, log_buffer_size);
     GET_CONF_INT(conf, filename, max_clients);
 
     return 0;
 
-error:
+ error:
     return -1;
 }
 

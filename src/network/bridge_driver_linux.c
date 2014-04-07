@@ -27,8 +27,11 @@
 #include "virfile.h"
 #include "viriptables.h"
 #include "virstring.h"
+#include "virlog.h"
 
 #define VIR_FROM_THIS VIR_FROM_NONE
+
+VIR_LOG_INIT("network.bridge_driver_linux");
 
 #define PROC_NET_ROUTE "/proc/net/route"
 
@@ -122,7 +125,7 @@ int networkCheckRouteCollision(virNetworkObjPtr network)
         }
     }
 
-out:
+ out:
     VIR_FREE(buf);
     return ret;
 }
@@ -130,8 +133,9 @@ out:
 static const char networkLocalMulticast[] = "224.0.0.0/24";
 static const char networkLocalBroadcast[] = "255.255.255.255/32";
 
-int networkAddMasqueradingFirewallRules(virNetworkObjPtr network,
-                                        virNetworkIpDefPtr ipdef)
+static int
+networkAddMasqueradingFirewallRules(virNetworkObjPtr network,
+                                    virNetworkIpDefPtr ipdef)
 {
     int prefix = virNetworkIpDefPrefix(ipdef);
     const char *forwardIf = virNetworkDefForwardIf(network->def, 0);
@@ -322,8 +326,9 @@ int networkAddMasqueradingFirewallRules(virNetworkObjPtr network,
     return -1;
 }
 
-void networkRemoveMasqueradingFirewallRules(virNetworkObjPtr network,
-                                            virNetworkIpDefPtr ipdef)
+static void
+networkRemoveMasqueradingFirewallRules(virNetworkObjPtr network,
+                                       virNetworkIpDefPtr ipdef)
 {
     int prefix = virNetworkIpDefPrefix(ipdef);
     const char *forwardIf = virNetworkDefForwardIf(network->def, 0);
@@ -367,8 +372,9 @@ void networkRemoveMasqueradingFirewallRules(virNetworkObjPtr network,
     }
 }
 
-int networkAddRoutingFirewallRules(virNetworkObjPtr network,
-                                   virNetworkIpDefPtr ipdef)
+static int
+networkAddRoutingFirewallRules(virNetworkObjPtr network,
+                               virNetworkIpDefPtr ipdef)
 {
     int prefix = virNetworkIpDefPrefix(ipdef);
     const char *forwardIf = virNetworkDefForwardIf(network->def, 0);
@@ -404,17 +410,19 @@ int networkAddRoutingFirewallRules(virNetworkObjPtr network,
 
     return 0;
 
-routeerr2:
+ routeerr2:
     iptablesRemoveForwardAllowOut(&ipdef->address,
                                   prefix,
                                   network->def->bridge,
                                   forwardIf);
-routeerr1:
+ routeerr1:
     return -1;
 }
 
-void networkRemoveRoutingFirewallRules(virNetworkObjPtr network,
-                                       virNetworkIpDefPtr ipdef)
+
+static void
+networkRemoveRoutingFirewallRules(virNetworkObjPtr network,
+                                  virNetworkIpDefPtr ipdef)
 {
     int prefix = virNetworkIpDefPrefix(ipdef);
     const char *forwardIf = virNetworkDefForwardIf(network->def, 0);
@@ -499,17 +507,17 @@ networkAddGeneralIp6tablesRules(virNetworkObjPtr network)
     return 0;
 
     /* unwind in reverse order from the point of failure */
-err6:
+ err6:
     iptablesRemoveUdpInput(AF_INET6, network->def->bridge, 53);
-err5:
+ err5:
     iptablesRemoveTcpInput(AF_INET6, network->def->bridge, 53);
-err4:
+ err4:
     iptablesRemoveForwardAllowCross(AF_INET6, network->def->bridge);
-err3:
+ err3:
     iptablesRemoveForwardRejectIn(AF_INET6, network->def->bridge);
-err2:
+ err2:
     iptablesRemoveForwardRejectOut(AF_INET6, network->def->bridge);
-err1:
+ err1:
     return -1;
 }
 
@@ -534,7 +542,9 @@ networkRemoveGeneralIp6tablesRules(virNetworkObjPtr network)
     iptablesRemoveForwardRejectOut(AF_INET6, network->def->bridge);
 }
 
-int networkAddGeneralFirewallRules(virNetworkObjPtr network)
+
+static int
+networkAddGeneralFirewallRules(virNetworkObjPtr network)
 {
     size_t i;
     virNetworkIpDefPtr ipv4def;
@@ -640,31 +650,33 @@ int networkAddGeneralFirewallRules(virNetworkObjPtr network)
     return 0;
 
     /* unwind in reverse order from the point of failure */
-err10:
+ err10:
     iptablesRemoveForwardAllowCross(AF_INET, network->def->bridge);
-err9:
+ err9:
     iptablesRemoveForwardRejectIn(AF_INET, network->def->bridge);
-err8:
+ err8:
     iptablesRemoveForwardRejectOut(AF_INET, network->def->bridge);
-err7:
+ err7:
     if (ipv4def && ipv4def->tftproot) {
         iptablesRemoveUdpInput(AF_INET, network->def->bridge, 69);
     }
-err6:
+ err6:
     iptablesRemoveUdpInput(AF_INET, network->def->bridge, 53);
-err5:
+ err5:
     iptablesRemoveTcpInput(AF_INET, network->def->bridge, 53);
-err4:
+ err4:
     iptablesRemoveUdpOutput(AF_INET, network->def->bridge, 68);
-err3:
+ err3:
     iptablesRemoveUdpInput(AF_INET, network->def->bridge, 67);
-err2:
+ err2:
     iptablesRemoveTcpInput(AF_INET, network->def->bridge, 67);
-err1:
+ err1:
     return -1;
 }
 
-void networkRemoveGeneralFirewallRules(virNetworkObjPtr network)
+
+static void
+networkRemoveGeneralFirewallRules(virNetworkObjPtr network)
 {
     size_t i;
     virNetworkIpDefPtr ipv4def;
@@ -694,8 +706,10 @@ void networkRemoveGeneralFirewallRules(virNetworkObjPtr network)
     iptablesRemoveTcpInput(AF_INET, network->def->bridge, 67);
 }
 
-int networkAddIpSpecificFirewallRules(virNetworkObjPtr network,
-                                      virNetworkIpDefPtr ipdef)
+
+static int
+networkAddIpSpecificFirewallRules(virNetworkObjPtr network,
+                                  virNetworkIpDefPtr ipdef)
 {
     /* NB: in the case of IPv6, routing rules are added when the
      * forward mode is NAT. This is because IPv6 has no NAT.
@@ -712,8 +726,10 @@ int networkAddIpSpecificFirewallRules(virNetworkObjPtr network,
     return 0;
 }
 
-void networkRemoveIpSpecificFirewallRules(virNetworkObjPtr network,
-                                          virNetworkIpDefPtr ipdef)
+
+static void
+networkRemoveIpSpecificFirewallRules(virNetworkObjPtr network,
+                                     virNetworkIpDefPtr ipdef)
 {
     if (network->def->forward.type == VIR_NETWORK_FORWARD_NAT) {
         if (VIR_SOCKET_ADDR_IS_FAMILY(&ipdef->address, AF_INET))
@@ -724,6 +740,7 @@ void networkRemoveIpSpecificFirewallRules(virNetworkObjPtr network,
         networkRemoveRoutingFirewallRules(network, ipdef);
     }
 }
+
 
 /* Add all rules for all ip addresses (and general rules) on a network */
 int networkAddFirewallRules(virNetworkObjPtr network)
@@ -746,7 +763,7 @@ int networkAddFirewallRules(virNetworkObjPtr network)
     }
     return 0;
 
-err:
+ err:
     /* store the previous error message before attempting removal of rules */
     orig_error = virSaveLastError();
 

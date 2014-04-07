@@ -30,8 +30,11 @@
 #include "virnetsocket.h"
 #include "virkeepaliveprotocol.h"
 #include "virkeepalive.h"
+#include "virprobe.h"
 
 #define VIR_FROM_THIS VIR_FROM_RPC
+
+VIR_LOG_INIT("rpc.keepalive");
 
 struct _virKeepAlive {
     virObjectLockable parent;
@@ -105,7 +108,7 @@ virKeepAliveMessage(virKeepAlivePtr ka, int proc)
 
     return msg;
 
-error:
+ error:
     VIR_WARN("Failed to generate keepalive %s", procstr);
     return NULL;
 }
@@ -178,7 +181,7 @@ virKeepAliveTimer(int timer ATTRIBUTE_UNUSED, void *opaque)
     virObjectLock(ka);
     virObjectUnref(ka);
 
-cleanup:
+ cleanup:
     virObjectUnlock(ka);
 }
 
@@ -291,7 +294,7 @@ virKeepAliveStart(virKeepAlivePtr ka,
     virObjectRef(ka);
     ret = 0;
 
-cleanup:
+ cleanup:
     virObjectUnlock(ka);
     return ret;
 }

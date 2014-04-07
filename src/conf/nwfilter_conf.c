@@ -2,7 +2,7 @@
  * nwfilter_conf.c: network filter XML processing
  *                  (derived from storage_conf.c)
  *
- * Copyright (C) 2006-2013 Red Hat, Inc.
+ * Copyright (C) 2006-2014 Red Hat, Inc.
  * Copyright (C) 2006-2008 Daniel P. Berrange
  *
  * Copyright (C) 2010-2011 IBM Corporation
@@ -147,17 +147,20 @@ static virRWLock updateLock;
 static bool initialized = false;
 
 void
-virNWFilterReadLockFilterUpdates(void) {
+virNWFilterReadLockFilterUpdates(void)
+{
     virRWLockRead(&updateLock);
 }
 
 void
-virNWFilterWriteLockFilterUpdates(void) {
+virNWFilterWriteLockFilterUpdates(void)
+{
     virRWLockWrite(&updateLock);
 }
 
 void
-virNWFilterUnlockFilterUpdates(void) {
+virNWFilterUnlockFilterUpdates(void)
+{
     virRWLockUnlock(&updateLock);
 }
 
@@ -173,7 +176,9 @@ static const char dstmacmask_str[]    = "dstmacmask";
 static const char arpsrcmacaddr_str[] = "arpsrcmacaddr";
 static const char arpdstmacaddr_str[] = "arpdstmacaddr";
 static const char arpsrcipaddr_str[]  = "arpsrcipaddr";
+static const char arpsrcipmask_str[]  = "arpsrcipmask";
 static const char arpdstipaddr_str[]  = "arpdstipaddr";
+static const char arpdstipmask_str[]  = "arpdstipmask";
 static const char srcipaddr_str[]     = "srcipaddr";
 static const char srcipmask_str[]     = "srcipmask";
 static const char dstipaddr_str[]     = "dstipaddr";
@@ -198,7 +203,9 @@ static const char ipsetflags_str[]    = "ipsetflags";
 #define ARPSRCMACADDR arpsrcmacaddr_str
 #define ARPDSTMACADDR arpdstmacaddr_str
 #define ARPSRCIPADDR  arpsrcipaddr_str
+#define ARPSRCIPMASK  arpsrcipmask_str
 #define ARPDSTIPADDR  arpdstipaddr_str
+#define ARPDSTIPMASK  arpdstipmask_str
 #define SRCIPADDR     srcipaddr_str
 #define SRCIPMASK     srcipmask_str
 #define DSTIPADDR     dstipaddr_str
@@ -276,7 +283,8 @@ intMapGetByString(const struct int_map *intmap, const char *str, int casecmp,
 
 
 void
-virNWFilterRuleDefFree(virNWFilterRuleDefPtr def) {
+virNWFilterRuleDefFree(virNWFilterRuleDefPtr def)
+{
     size_t i;
     if (!def)
         return;
@@ -295,7 +303,8 @@ virNWFilterRuleDefFree(virNWFilterRuleDefPtr def) {
 
 
 static void
-virNWFilterIncludeDefFree(virNWFilterIncludeDefPtr inc) {
+virNWFilterIncludeDefFree(virNWFilterIncludeDefPtr inc)
+{
     if (!inc)
         return;
     virNWFilterHashTableFree(inc->params);
@@ -305,7 +314,8 @@ virNWFilterIncludeDefFree(virNWFilterIncludeDefPtr inc) {
 
 
 static void
-virNWFilterEntryFree(virNWFilterEntryPtr entry) {
+virNWFilterEntryFree(virNWFilterEntryPtr entry)
+{
     if (!entry)
         return;
 
@@ -316,7 +326,8 @@ virNWFilterEntryFree(virNWFilterEntryPtr entry) {
 
 
 void
-virNWFilterDefFree(virNWFilterDefPtr def) {
+virNWFilterDefFree(virNWFilterDefPtr def)
+{
     size_t i;
     if (!def)
         return;
@@ -399,15 +410,13 @@ virNWFilterRuleDefAddString(virNWFilterRuleDefPtr nwf,
                             const char *string,
                             size_t maxstrlen)
 {
-    if (VIR_REALLOC_N(nwf->strings, nwf->nstrings+1) < 0)
-        return NULL;
+    char *tmp;
 
-    if (VIR_STRNDUP(nwf->strings[nwf->nstrings], string, maxstrlen) < 0)
-        return NULL;
+    if (VIR_STRNDUP(tmp, string, maxstrlen) < 0 ||
+        VIR_APPEND_ELEMENT_COPY(nwf->strings, nwf->nstrings, tmp) < 0)
+        VIR_FREE(tmp);
 
-    nwf->nstrings++;
-
-    return nwf->strings[nwf->nstrings-1];
+    return tmp;
 }
 
 
@@ -425,15 +434,7 @@ virNWFilterObjRemove(virNWFilterObjListPtr nwfilters,
             virNWFilterObjUnlock(nwfilters->objs[i]);
             virNWFilterObjFree(nwfilters->objs[i]);
 
-            if (i < (nwfilters->count - 1))
-                memmove(nwfilters->objs + i, nwfilters->objs + i + 1,
-                        sizeof(*(nwfilters->objs)) * (nwfilters->count - (i + 1)));
-
-            if (VIR_REALLOC_N(nwfilters->objs, nwfilters->count - 1) < 0) {
-                ; /* Failure to reduce memory allocation isn't fatal */
-            }
-            nwfilters->count--;
-
+            VIR_DELETE_ELEMENT(nwfilters->objs, i, nwfilters->count);
             break;
         }
         virNWFilterObjUnlock(nwfilters->objs[i]);
@@ -1005,7 +1006,7 @@ ipsetValidator(enum attrDatatype datatype ATTRIBUTE_UNUSED, union data *val,
 
     return true;
 
-arg_err_exit:
+ arg_err_exit:
     virReportError(VIR_ERR_INVALID_ARG,
                    "%s", errmsg);
     return false;
@@ -1051,7 +1052,7 @@ ipsetFlagsValidator(enum attrDatatype datatype ATTRIBUTE_UNUSED, union data *val
 
     return true;
 
-arg_err_exit:
+ arg_err_exit:
     virReportError(VIR_ERR_INVALID_ARG,
                    "%s", errmsg);
     return false;
@@ -1312,9 +1313,17 @@ static const virXMLAttr2Struct arpAttributes[] = {
         .datatype = DATATYPE_IPADDR,
         .dataIdx = offsetof(virNWFilterRuleDef, p.arpHdrFilter.dataARPSrcIPAddr),
     }, {
+        .name = ARPSRCIPMASK,
+        .datatype = DATATYPE_IPMASK,
+        .dataIdx = offsetof(virNWFilterRuleDef, p.arpHdrFilter.dataARPSrcIPMask),
+    }, {
         .name = ARPDSTIPADDR,
         .datatype = DATATYPE_IPADDR,
         .dataIdx = offsetof(virNWFilterRuleDef, p.arpHdrFilter.dataARPDstIPAddr),
+    }, {
+        .name = ARPDSTIPMASK,
+        .datatype = DATATYPE_IPMASK,
+        .dataIdx = offsetof(virNWFilterRuleDef, p.arpHdrFilter.dataARPDstIPMask),
     }, {
         .name = "gratuitous",
         .datatype = DATATYPE_BOOLEAN,
@@ -2061,10 +2070,10 @@ virNWFilterIncludeParse(xmlNodePtr cur)
     if (!ret->params)
         goto err_exit;
 
-cleanup:
+ cleanup:
     return ret;
 
-err_exit:
+ err_exit:
     virNWFilterIncludeDefFree(ret);
     ret = NULL;
     goto cleanup;
@@ -2396,7 +2405,7 @@ virNWFilterRuleParse(xmlNodePtr node)
 
     virNWFilterRuleDefFixup(ret);
 
-cleanup:
+ cleanup:
     VIR_FREE(prio);
     VIR_FREE(action);
     VIR_FREE(direction);
@@ -2404,7 +2413,7 @@ cleanup:
 
     return ret;
 
-err_exit:
+ err_exit:
     virNWFilterRuleDefFree(ret);
     ret = NULL;
     goto cleanup;
@@ -2486,12 +2495,13 @@ virNWFilterIsAllowedChain(const char *chainname)
     virReportError(VIR_ERR_INVALID_ARG, "%s", msg);
     VIR_FREE(msg);
 
-err_exit:
+ err_exit:
     return NULL;
 }
 
 static virNWFilterDefPtr
-virNWFilterDefParseXML(xmlXPathContextPtr ctxt) {
+virNWFilterDefParseXML(xmlXPathContextPtr ctxt)
+{
     virNWFilterDefPtr ret;
     xmlNodePtr curr = ctxt->node;
     char *uuid = NULL;
@@ -2593,11 +2603,11 @@ virNWFilterDefParseXML(xmlXPathContextPtr ctxt) {
             }
 
             if (entry->rule || entry->include) {
-                if (VIR_REALLOC_N(ret->filterEntries, ret->nentries+1) < 0) {
+                if (VIR_APPEND_ELEMENT_COPY(ret->filterEntries,
+                                            ret->nentries, entry) < 0) {
                     virNWFilterEntryFree(entry);
                     goto cleanup;
                 }
-                ret->filterEntries[ret->nentries++] = entry;
             } else
                 virNWFilterEntryFree(entry);
         }
@@ -2620,7 +2630,8 @@ virNWFilterDefParseXML(xmlXPathContextPtr ctxt) {
 
 virNWFilterDefPtr
 virNWFilterDefParseNode(xmlDocPtr xml,
-                        xmlNodePtr root) {
+                        xmlNodePtr root)
+{
     xmlXPathContextPtr ctxt = NULL;
     virNWFilterDefPtr def = NULL;
 
@@ -2640,7 +2651,7 @@ virNWFilterDefParseNode(xmlDocPtr xml,
     ctxt->node = root;
     def = virNWFilterDefParseXML(ctxt);
 
-cleanup:
+ cleanup:
     xmlXPathFreeContext(ctxt);
     return def;
 }
@@ -2648,7 +2659,8 @@ cleanup:
 
 static virNWFilterDefPtr
 virNWFilterDefParse(const char *xmlStr,
-                    const char *filename) {
+                    const char *filename)
+{
     virNWFilterDefPtr def = NULL;
     xmlDocPtr xml;
 
@@ -2750,7 +2762,7 @@ int virNWFilterSaveConfig(const char *configDir,
         goto cleanup;
 
     ret = 0;
-cleanup:
+ cleanup:
     VIR_FREE(xml);
     return ret;
 }
@@ -2959,7 +2971,7 @@ virNWFilterDefEqual(const virNWFilterDef *def1, virNWFilterDefPtr def2,
 
     ret = STREQ(xml1, xml2);
 
-cleanup:
+ cleanup:
     if (!cmpUUIDs)
         memcpy(def2->uuid, rem_uuid, sizeof(rem_uuid));
 
@@ -3029,15 +3041,14 @@ virNWFilterObjAssignDef(virNWFilterObjListPtr nwfilters,
     }
     virNWFilterObjLock(nwfilter);
     nwfilter->active = 0;
-    nwfilter->def = def;
 
-    if (VIR_REALLOC_N(nwfilters->objs, nwfilters->count + 1) < 0) {
-        nwfilter->def = NULL;
+    if (VIR_APPEND_ELEMENT_COPY(nwfilters->objs,
+                                nwfilters->count, nwfilter) < 0) {
         virNWFilterObjUnlock(nwfilter);
         virNWFilterObjFree(nwfilter);
         return NULL;
     }
-    nwfilters->objs[nwfilters->count++] = nwfilter;
+    nwfilter->def = def;
 
     return nwfilter;
 }
@@ -3215,7 +3226,7 @@ virNWFilterRuleDefDetailsFormat(virBufferPtr buf,
         enum virNWFilterEntryItemFlags flags = item->flags;
         if ((flags & NWFILTER_ENTRY_ITEM_FLAG_EXISTS)) {
             if (!typeShown) {
-                virBufferAsprintf(buf, "    <%s", type);
+                virBufferAsprintf(buf, "<%s", type);
                 typeShown = true;
                 neverShown = false;
             }
@@ -3326,95 +3337,59 @@ virNWFilterRuleDefDetailsFormat(virBufferPtr buf,
 
     if (neverShown)
        virBufferAsprintf(buf,
-                         "    <%s/>\n", type);
+                         "<%s/>\n", type);
 
-err_exit:
+ err_exit:
     return;
 }
 
 
-static char *
-virNWFilterRuleDefFormat(virNWFilterRuleDefPtr def)
+static int
+virNWFilterRuleDefFormat(virBufferPtr buf, virNWFilterRuleDefPtr def)
 {
     size_t i;
-    virBuffer buf  = VIR_BUFFER_INITIALIZER;
-    virBuffer buf2 = VIR_BUFFER_INITIALIZER;
-    char *data;
+    bool subelement = false;
 
-    virBufferAsprintf(&buf, "  <rule action='%s' direction='%s' priority='%d'",
+    virBufferAsprintf(buf, "<rule action='%s' direction='%s' priority='%d'",
                       virNWFilterRuleActionTypeToString(def->action),
                       virNWFilterRuleDirectionTypeToString(def->tt),
                       def->priority);
 
     if ((def->flags & RULE_FLAG_NO_STATEMATCH))
-        virBufferAddLit(&buf, " statematch='false'");
+        virBufferAddLit(buf, " statematch='false'");
 
+    virBufferAdjustIndent(buf, 2);
     i = 0;
     while (virAttr[i].id) {
         if (virAttr[i].prtclType == def->prtclType) {
-            virNWFilterRuleDefDetailsFormat(&buf2,
+            if (!subelement)
+                virBufferAddLit(buf, ">\n");
+            virNWFilterRuleDefDetailsFormat(buf,
                                             virAttr[i].id,
                                             virAttr[i].att,
                                             def);
+            subelement = true;
             break;
         }
         i++;
     }
 
-    if (virBufferError(&buf2))
-        goto no_memory;
-
-    data = virBufferContentAndReset(&buf2);
-
-    if (data) {
-        virBufferAddLit(&buf, ">\n");
-        virBufferAsprintf(&buf, "%s  </rule>\n", data);
-        VIR_FREE(data);
-    } else
-        virBufferAddLit(&buf, "/>\n");
-
-    if (virBufferError(&buf))
-        goto no_memory;
-
-    return virBufferContentAndReset(&buf);
-
-no_memory:
-    virReportOOMError();
-    virBufferFreeAndReset(&buf);
-    virBufferFreeAndReset(&buf2);
-
-    return NULL;
+    virBufferAdjustIndent(buf, -2);
+    if (subelement)
+        virBufferAddLit(buf, "</rule>\n");
+    else
+        virBufferAddLit(buf, "/>\n");
+    return 0;
 }
 
 
-static char *
-virNWFilterIncludeDefFormat(virNWFilterIncludeDefPtr inc)
-{
-    virBuffer buf = VIR_BUFFER_INITIALIZER;
-
-    virBufferAdjustIndent(&buf, 2);
-    if (virNWFilterFormatParamAttributes(&buf, inc->params,
-                                         inc->filterref) < 0) {
-        virBufferFreeAndReset(&buf);
-        return NULL;
-    }
-    virBufferAdjustIndent(&buf, -2);
-    if (virBufferError(&buf)) {
-        virReportOOMError();
-        virBufferFreeAndReset(&buf);
-        return NULL;
-    }
-
-    return virBufferContentAndReset(&buf);
-}
-
-
-static char *
-virNWFilterEntryFormat(virNWFilterEntryPtr entry)
+static int
+virNWFilterEntryFormat(virBufferPtr buf, virNWFilterEntryPtr entry)
 {
     if (entry->rule)
-        return virNWFilterRuleDefFormat(entry->rule);
-    return virNWFilterIncludeDefFormat(entry->include);
+        return virNWFilterRuleDefFormat(buf, entry->rule);
+    return virNWFilterFormatParamAttributes(buf, entry->include->params,
+                                            entry->include->filterref);
 }
 
 
@@ -3424,7 +3399,6 @@ virNWFilterDefFormat(const virNWFilterDef *def)
     virBuffer buf = VIR_BUFFER_INITIALIZER;
     char uuid[VIR_UUID_STRING_BUFLEN];
     size_t i;
-    char *xml;
 
     virBufferAsprintf(&buf, "<filter name='%s' chain='%s'",
                       def->name,
@@ -3433,18 +3407,17 @@ virNWFilterDefFormat(const virNWFilterDef *def)
         virBufferAsprintf(&buf, " priority='%d'",
                           def->chainPriority);
     virBufferAddLit(&buf, ">\n");
+    virBufferAdjustIndent(&buf, 2);
 
     virUUIDFormat(def->uuid, uuid);
-    virBufferAsprintf(&buf, "  <uuid>%s</uuid>\n", uuid);
+    virBufferAsprintf(&buf, "<uuid>%s</uuid>\n", uuid);
 
     for (i = 0; i < def->nentries; i++) {
-        xml = virNWFilterEntryFormat(def->filterEntries[i]);
-        if (!xml)
+        if (virNWFilterEntryFormat(&buf, def->filterEntries[i]) < 0)
             goto err_exit;
-        virBufferAdd(&buf, xml, -1);
-        VIR_FREE(xml);
     }
 
+    virBufferAdjustIndent(&buf, -2);
     virBufferAddLit(&buf, "</filter>\n");
 
     if (virBufferError(&buf))

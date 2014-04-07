@@ -34,6 +34,8 @@
 #include "viralloc.h"
 #include "virstring.h"
 
+VIR_LOG_INIT("util.audit");
+
 /* Provide the macros in case the header file is old.
    FIXME: should be removed. */
 #ifndef AUDIT_VIRT_CONTROL
@@ -74,7 +76,8 @@ void virAuditLog(int logging)
 }
 
 
-void virAuditSend(const char *filename,
+void virAuditSend(virLogSourcePtr source,
+                  const char *filename,
                   size_t linenr,
                   const char *funcname,
                   const char *clienttty ATTRIBUTE_UNUSED,
@@ -104,11 +107,11 @@ void virAuditSend(const char *filename,
 
     if (auditlog && str) {
         if (success)
-            virLogMessage(VIR_LOG_FROM_AUDIT, VIR_LOG_INFO,
+            virLogMessage(source, VIR_LOG_INFO,
                           filename, linenr, funcname,
                           NULL, "success=yes %s", str);
         else
-            virLogMessage(VIR_LOG_FROM_AUDIT, VIR_LOG_WARN,
+            virLogMessage(source, VIR_LOG_WARN,
                           filename, linenr, funcname,
                           NULL, "success=no %s", str);
     }

@@ -39,6 +39,7 @@
 
 #define VIR_FROM_THIS VIR_FROM_IDENTITY
 
+VIR_LOG_INIT("util.identity");
 
 struct _virIdentity {
     virObject parent;
@@ -168,16 +169,18 @@ virIdentityPtr virIdentityGetSystem(void)
         goto cleanup;
 
 #if WITH_SELINUX
-    if (getcon(&con) < 0) {
-        virReportSystemError(errno, "%s",
-                             _("Unable to lookup SELinux process context"));
-        goto cleanup;
-    }
-    if (VIR_STRDUP(seccontext, con) < 0) {
+    if (is_selinux_enabled() > 0) {
+        if (getcon(&con) < 0) {
+            virReportSystemError(errno, "%s",
+                                 _("Unable to lookup SELinux process context"));
+            goto cleanup;
+        }
+        if (VIR_STRDUP(seccontext, con) < 0) {
+            freecon(con);
+            goto cleanup;
+        }
         freecon(con);
-        goto cleanup;
     }
-    freecon(con);
 #endif
 
     if (!(ret = virIdentityNew()))
@@ -214,7 +217,7 @@ virIdentityPtr virIdentityGetSystem(void)
                            processtime) < 0)
         goto error;
 
-cleanup:
+ cleanup:
     VIR_FREE(username);
     VIR_FREE(userid);
     VIR_FREE(groupname);
@@ -224,7 +227,7 @@ cleanup:
     VIR_FREE(processtime);
     return ret;
 
-error:
+ error:
     virObjectUnref(ret);
     ret = NULL;
     goto cleanup;
@@ -292,7 +295,7 @@ int virIdentitySetAttr(virIdentityPtr ident,
 
     ret = 0;
 
-cleanup:
+ cleanup:
     return ret;
 }
 
@@ -346,6 +349,6 @@ bool virIdentityIsEqual(virIdentityPtr identA,
     }
 
     ret = true;
-cleanup:
+ cleanup:
     return ret;
 }

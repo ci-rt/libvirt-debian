@@ -21,13 +21,14 @@
  */
 #include <config.h>
 
-#include <stdarg.h>
-#include <getopt.h>
-#include <stdio.h>
 #include <errno.h>
-#include <stdlib.h>
 #include <fnmatch.h>
+#include <getopt.h>
 #include <locale.h>
+#include <signal.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 #include "internal.h"
 #include "virerror.h"
@@ -41,23 +42,7 @@
 #include "vircommand.h"
 #define VIR_FROM_THIS VIR_FROM_NONE
 
-static ssize_t nfdlist;
-static int *fdlist;
 static const char *conf_file = SYSCONFDIR "/libvirt/virt-login-shell.conf";
-
-static void virLoginShellFini(virConnectPtr conn, virDomainPtr dom)
-{
-    size_t i;
-
-    for (i = 0; i < nfdlist; i++)
-        VIR_FORCE_CLOSE(fdlist[i]);
-    VIR_FREE(fdlist);
-    nfdlist = 0;
-    if (dom)
-        virDomainFree(dom);
-    if (conn)
-        virConnectClose(conn);
-}
 
 static int virLoginShellAllowedUser(virConfPtr conf,
                                     const char *name,
@@ -109,7 +94,7 @@ static int virLoginShellAllowedUser(virConfPtr conf,
     virReportSystemError(EPERM,
                          _("%s not matched against 'allowed_users' in %s"),
                          name, conf_file);
-cleanup:
+ cleanup:
     VIR_FREE(gname);
     return ret;
 }
@@ -145,7 +130,7 @@ static char **virLoginShellGetShellArgv(virConfPtr conf)
         }
     }
     return shargv;
-error:
+ error:
     virStringFreeList(shargv);
     return NULL;
 }
@@ -184,10 +169,9 @@ main(int argc, char **argv)
 {
     virConfPtr conf = NULL;
     const char *login_shell_path = conf_file;
-    pid_t cpid;
-    int ret = EXIT_FAILURE;
+    pid_t cpid = -1;
+    int ret = EXIT_CANCELED;
     int status;
-    int status2;
     uid_t uid = getuid();
     gid_t gid = getgid();
     char *name = NULL;
@@ -201,6 +185,10 @@ main(int argc, char **argv)
     int longindex = -1;
     int ngroups;
     gid_t *groups = NULL;
+    ssize_t nfdlist = 0;
+    int *fdlist = NULL;
+    int openmax;
+    size_t i;
 
     struct option opt[] = {
         {"help", no_argument, NULL, 'h'},
@@ -208,8 +196,8 @@ main(int argc, char **argv)
         {NULL, 0, NULL, 0}
     };
     if (virInitialize() < 0) {
-        fprintf(stderr, _("Failed to initialize libvirt Error Handling"));
-        return EXIT_FAILURE;
+        fprintf(stderr, _("Failed to initialize libvirt error handling"));
+        return EXIT_CANCELED;
     }
 
     setenv("PATH", "/bin:/usr/bin", 1);
@@ -244,7 +232,7 @@ main(int argc, char **argv)
         case '?':
         default:
             usage();
-            exit(EXIT_FAILURE);
+            exit(EXIT_CANCELED);
         }
     }
 
@@ -298,6 +286,13 @@ main(int argc, char **argv)
         }
     }
 
+    openmax = sysconf(_SC_OPEN_MAX);
+    if (openmax < 0) {
+        virReportSystemError(errno,  "%s",
+                             _("sysconf(_SC_OPEN_MAX) failed"));
+        goto cleanup;
+    }
+
     if ((nfdlist = virDomainLxcOpenNamespace(dom, &fdlist, 0)) < 0)
         goto cleanup;
     if (VIR_ALLOC(secmodel) < 0)
@@ -308,81 +303,62 @@ main(int argc, char **argv)
         goto cleanup;
     if (virDomainGetSecurityLabel(dom, seclabel) < 0)
         goto cleanup;
+    if (virSetUIDGID(0, 0, NULL, 0) < 0)
+        goto cleanup;
+    if (virDomainLxcEnterSecurityLabel(secmodel, seclabel, NULL, 0) < 0)
+        goto cleanup;
+    if (nfdlist > 0 &&
+        virDomainLxcEnterNamespace(dom, nfdlist, fdlist, NULL, NULL, 0) < 0)
+        goto cleanup;
+    if (virSetUIDGID(uid, gid, groups, ngroups) < 0)
+        goto cleanup;
+    if (chdir(homedir) < 0) {
+        virReportSystemError(errno, _("Unable to chdir(%s)"), homedir);
+        goto cleanup;
+    }
 
-    if (virFork(&cpid) < 0)
+    /* A fork is required to create new process in correct pid namespace.  */
+    if ((cpid = virFork()) < 0)
         goto cleanup;
 
     if (cpid == 0) {
-        pid_t ccpid;
+        int tmpfd;
 
-        int openmax = sysconf(_SC_OPEN_MAX);
-        int fd;
-
-        /* Fork once because we don't want to affect
-         * virt-login-shell's namespace itself
-         */
-        if (virSetUIDGID(0, 0, NULL, 0) < 0)
-            return EXIT_FAILURE;
-
-        if (virDomainLxcEnterSecurityLabel(secmodel,
-                                           seclabel,
-                                           NULL,
-                                           0) < 0)
-            return EXIT_FAILURE;
-
-        if (nfdlist > 0) {
-            if (virDomainLxcEnterNamespace(dom,
-                                           nfdlist,
-                                           fdlist,
-                                           NULL,
-                                           NULL,
-                                           0) < 0)
-                return EXIT_FAILURE;
-        }
-
-        ret = virSetUIDGID(uid, gid, groups, ngroups);
-        VIR_FREE(groups);
-        if (ret < 0)
-            return EXIT_FAILURE;
-
-        if (openmax < 0) {
-            virReportSystemError(errno,  "%s",
-                                 _("sysconf(_SC_OPEN_MAX) failed"));
-            return EXIT_FAILURE;
-        }
-        for (fd = 3; fd < openmax; fd++) {
-            int tmpfd = fd;
+        for (i = 3; i < openmax; i++) {
+            tmpfd = i;
             VIR_MASS_CLOSE(tmpfd);
         }
-
-        if (virFork(&ccpid) < 0)
-            return EXIT_FAILURE;
-
-        if (ccpid == 0) {
-            if (chdir(homedir) < 0) {
-                virReportSystemError(errno, _("Unable to chdir(%s)"), homedir);
-                return EXIT_FAILURE;
-            }
-            if (execv(shargv[0], (char *const*) shargv) < 0) {
-                virReportSystemError(errno, _("Unable to exec shell %s"),
-                                     shargv[0]);
-                return EXIT_FAILURE;
-            }
+        if (execv(shargv[0], (char *const*) shargv) < 0) {
+            virReportSystemError(errno, _("Unable to exec shell %s"),
+                                 shargv[0]);
+            virDispatchError(NULL);
+            return errno == ENOENT ? EXIT_ENOENT : EXIT_CANNOT_INVOKE;
         }
-        return virProcessWait(ccpid, &status2);
     }
-    ret = virProcessWait(cpid, &status);
 
-cleanup:
+    /* At this point, the parent is now waiting for the child to exit,
+     * but as that may take a long time, we release resources now.  */
+ cleanup:
+    if (nfdlist > 0)
+        for (i = 0; i < nfdlist; i++)
+            VIR_FORCE_CLOSE(fdlist[i]);
+    VIR_FREE(fdlist);
     virConfFree(conf);
-    virLoginShellFini(conn, dom);
+    if (dom)
+        virDomainFree(dom);
+    if (conn)
+        virConnectClose(conn);
     virStringFreeList(shargv);
     VIR_FREE(name);
     VIR_FREE(homedir);
     VIR_FREE(seclabel);
     VIR_FREE(secmodel);
     VIR_FREE(groups);
-    if (ret)
+
+    if (virProcessWait(cpid, &status, true) == 0)
+        virProcessExitWithStatus(status);
+
+    if (virGetLastError())
         virDispatchError(NULL);
     return ret;
 }

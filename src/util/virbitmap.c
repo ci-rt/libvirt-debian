@@ -1,5 +1,5 @@
 /*
- * virbitmap.h: Simple bitmap operations
+ * virbitmap.c: Simple bitmap operations
  *
  * Copyright (C) 2010-2013 Red Hat, Inc.
  * Copyright (C) 2010 Novell, Inc.
@@ -381,7 +381,7 @@ virBitmapParse(const char *str,
 
     return virBitmapCountBits(*bitmap);
 
-error:
+ error:
     virReportError(VIR_ERR_INVALID_ARG,
                    _("Failed to parse bitmap '%s'"), str);
     virBitmapFree(*bitmap);

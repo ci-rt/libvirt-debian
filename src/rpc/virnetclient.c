@@ -1,7 +1,7 @@
 /*
  * virnetclient.c: generic network RPC client
  *
- * Copyright (C) 2006-2013 Red Hat, Inc.
+ * Copyright (C) 2006-2014 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -36,9 +36,12 @@
 #include "virlog.h"
 #include "virutil.h"
 #include "virerror.h"
+#include "virprobe.h"
 #include "virstring.h"
 
 #define VIR_FROM_THIS VIR_FROM_RPC
+
+VIR_LOG_INIT("rpc.netclient");
 
 typedef struct _virNetClientCall virNetClientCall;
 typedef virNetClientCall *virNetClientCallPtr;
@@ -326,7 +329,7 @@ static virNetClientPtr virNetClientNew(virNetSocketPtr sock,
           client, client->sock);
     return client;
 
-error:
+ error:
     VIR_FORCE_CLOSE(wakeupFD[0]);
     VIR_FORCE_CLOSE(wakeupFD[1]);
     virObjectUnref(client);
@@ -481,7 +484,7 @@ virNetClientPtr virNetClientNewLibSSH2(const char *host,
         goto cleanup;
     sock = NULL;
 
-cleanup:
+ cleanup:
     VIR_FREE(command);
     VIR_FREE(privkey);
     VIR_FREE(knownhosts);
@@ -491,7 +494,7 @@ cleanup:
     virObjectUnref(sock);
     return ret;
 
-no_memory:
+ no_memory:
     virReportOOMError();
     goto cleanup;
 }
@@ -789,7 +792,7 @@ int virNetClientSetTLSSession(virNetClientPtr client,
         if (ret < 0 && (errno == EAGAIN || errno == EINTR))
             goto repoll;
 
-        ignore_value(pthread_sigmask(SIG_BLOCK, &oldmask, NULL));
+        ignore_value(pthread_sigmask(SIG_SETMASK, &oldmask, NULL));
     }
 
     ret = virNetTLSContextCheckCertificate(tls, client->tls);
@@ -813,7 +816,7 @@ int virNetClientSetTLSSession(virNetClientPtr client,
     if (ret < 0 && (errno == EAGAIN || errno == EINTR))
         goto repoll2;
 
-    ignore_value(pthread_sigmask(SIG_BLOCK, &oldmask, NULL));
+    ignore_value(pthread_sigmask(SIG_SETMASK, &oldmask, NULL));
 
     len = virNetTLSSessionRead(client->tls, buf, 1);
     if (len < 0 && errno != ENOMSG) {
@@ -831,7 +834,7 @@ int virNetClientSetTLSSession(virNetClientPtr client,
     virObjectUnlock(client);
     return 0;
 
-error:
+ error:
     virObjectUnref(client->tls);
     client->tls = NULL;
     virObjectUnlock(client);
@@ -883,7 +886,7 @@ int virNetClientAddProgram(virNetClientPtr client,
     virObjectUnlock(client);
     return 0;
 
-error:
+ error:
     virObjectUnlock(client);
     return -1;
 }
@@ -902,7 +905,7 @@ int virNetClientAddStream(virNetClientPtr client,
     virObjectUnlock(client);
     return 0;
 
-error:
+ error:
     virObjectUnlock(client);
     return -1;
 }
@@ -920,19 +923,10 @@ void virNetClientRemoveStream(virNetClientPtr client,
     if (i == client->nstreams)
         goto cleanup;
 
-    if (client->nstreams > 1) {
-        memmove(client->streams + i,
-                client->streams + i + 1,
-                sizeof(*client->streams) *
-                (client->nstreams - (i + 1)));
-        VIR_SHRINK_N(client->streams, client->nstreams, 1);
-    } else {
-        VIR_FREE(client->streams);
-        client->nstreams = 0;
-    }
+    VIR_DELETE_ELEMENT(client->streams, i, client->nstreams);
     virObjectUnref(st);
 
-cleanup:
+ cleanup:
     virObjectUnlock(client);
 }
 
@@ -1447,7 +1441,7 @@ virNetClientIOEventLoopPassTheBuck(virNetClientPtr client,
  * to someone else.
  *
  * Returns 1 if the call was queued and will be completed later (only
- * for nonBlock==true), 0 if the call was completed and -1 on error.
+ * for nonBlock == true), 0 if the call was completed and -1 on error.
  */
 static int virNetClientIOEventLoop(virNetClientPtr client,
                                    virNetClientCallPtr thiscall)
@@ -1603,7 +1597,7 @@ static int virNetClientIOEventLoop(virNetClientPtr client,
         }
     }
 
-error:
+ error:
     virNetClientCallRemove(&client->waitDispatch, thiscall);
     virNetClientIOEventLoopPassTheBuck(client, thiscall);
     return -1;
@@ -1697,7 +1691,7 @@ static void virNetClientIOUpdateCallback(virNetClientPtr client,
  * NB(7) Don't Panic!
  *
  * Returns 1 if the call was queued and will be completed later (only
- * for nonBlock==true), 0 if the call was completed and -1 on error.
+ * for nonBlock == true), 0 if the call was completed and -1 on error.
  */
 static int virNetClientIO(virNetClientPtr client,
                           virNetClientCallPtr thiscall)
@@ -1798,7 +1792,7 @@ static int virNetClientIO(virNetClientPtr client,
         virGetLastError())
         rv = -1;
 
-cleanup:
+ cleanup:
     VIR_DEBUG("All done with our call head=%p call=%p rv=%d",
               client->waitDispatch, thiscall, rv);
     return rv;
@@ -1849,7 +1843,7 @@ void virNetClientIncomingEvent(virNetSocketPtr sock,
                                     NULL);
     virNetClientIOUpdateCallback(client, true);
 
-done:
+ done:
     if (client->wantClose && !client->haveTheBuck) {
         virNetClientCloseLocked(client);
         virNetClientCallRemovePredicate(&client->waitDispatch,
@@ -1906,7 +1900,7 @@ virNetClientCallNew(virNetMessagePtr msg,
 
     return call;
 
-error:
+ error:
     VIR_FREE(call);
     return NULL;
 }
@@ -1935,7 +1929,7 @@ virNetClientQueueNonBlocking(virNetClientPtr client,
 
 /*
  * Returns 1 if the call was queued and will be completed later (only
- * for nonBlock==true), 0 if the call was completed and -1 on error.
+ * for nonBlock == true), 0 if the call was completed and -1 on error.
  */
 static int virNetClientSendInternal(virNetClientPtr client,
                                     virNetMessagePtr msg,
@@ -2028,7 +2022,7 @@ int virNetClientSendNoReply(virNetClientPtr client,
  * this method returns 1.
  *
  * Returns 1 if the message was queued and will be completed later (only
- * for nonBlock==true), 0 if the message was completed and -1 on error.
+ * for nonBlock == true), 0 if the message was completed and -1 on error.
  */
 int virNetClientSendNonBlock(virNetClientPtr client,
                              virNetMessagePtr msg)

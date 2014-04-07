@@ -33,6 +33,8 @@
 
 #define VIR_FROM_THIS VIR_FROM_RPC
 
+VIR_LOG_INIT("rpc.netmessage");
+
 virNetMessagePtr virNetMessageNew(bool tracked)
 {
     virNetMessagePtr msg;
@@ -150,7 +152,7 @@ int virNetMessageDecodeLength(virNetMessagePtr msg)
 
     ret = 0;
 
-cleanup:
+ cleanup:
     xdr_destroy(&xdr);
     return ret;
 }
@@ -195,7 +197,7 @@ int virNetMessageDecodeHeader(virNetMessagePtr msg)
 
     ret = 0;
 
-cleanup:
+ cleanup:
     xdr_destroy(&xdr);
     return ret;
 }
@@ -255,7 +257,7 @@ int virNetMessageEncodeHeader(virNetMessagePtr msg)
 
     ret = 0;
 
-cleanup:
+ cleanup:
     xdr_destroy(&xdr);
     return ret;
 }
@@ -287,7 +289,7 @@ int virNetMessageEncodeNumFDs(virNetMessagePtr msg)
 
     ret = 0;
 
-cleanup:
+ cleanup:
     xdr_destroy(&xdr);
     return ret;
 }
@@ -325,7 +327,7 @@ int virNetMessageDecodeNumFDs(virNetMessagePtr msg)
 
     ret = 0;
 
-cleanup:
+ cleanup:
     xdr_destroy(&xdr);
     return ret;
 }
@@ -384,7 +386,7 @@ int virNetMessageEncodePayload(virNetMessagePtr msg,
     msg->bufferOffset = 0;
     return 0;
 
-error:
+ error:
     xdr_destroy(&xdr);
     return -1;
 }
@@ -412,7 +414,7 @@ int virNetMessageDecodePayload(virNetMessagePtr msg,
     xdr_destroy(&xdr);
     return 0;
 
-error:
+ error:
     xdr_destroy(&xdr);
     return -1;
 }
@@ -464,7 +466,7 @@ int virNetMessageEncodePayloadRaw(virNetMessagePtr msg,
     msg->bufferOffset = 0;
     return 0;
 
-error:
+ error:
     xdr_destroy(&xdr);
     return -1;
 }
@@ -489,7 +491,7 @@ int virNetMessageEncodePayloadEmpty(virNetMessagePtr msg)
     msg->bufferOffset = 0;
     return 0;
 
-error:
+ error:
     xdr_destroy(&xdr);
     return -1;
 }

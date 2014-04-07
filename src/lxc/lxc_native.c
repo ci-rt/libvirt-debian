@@ -34,6 +34,7 @@
 
 #define VIR_FROM_THIS VIR_FROM_LXC
 
+VIR_LOG_INIT("lxc.lxc_native");
 
 static virDomainFSDefPtr
 lxcCreateFSDef(int type,
@@ -129,7 +130,7 @@ static char ** lxcStringSplit(const char *string)
     virStringFreeList(parts);
     return result;
 
-error:
+ error:
     VIR_FREE(tmp);
     virStringFreeList(parts);
     virStringFreeList(result);
@@ -161,7 +162,7 @@ lxcParseFstabLine(char *fstabLine)
 
     return fstab;
 
-error:
+ error:
     lxcFstabFree(fstab);
     virStringFreeList(parts);
     return NULL;
@@ -186,7 +187,7 @@ lxcAddFSDef(virDomainDefPtr def,
 
     return 0;
 
-error:
+ error:
     virDomainFSDefFree(fsDef);
     return -1;
 }
@@ -235,7 +236,7 @@ lxcConvertSize(const char *size, unsigned long long *value)
 
     return 0;
 
-error:
+ error:
     virReportError(VIR_ERR_INTERNAL_ERROR,
                    _("failed to convert size: '%s'"),
                    size);
@@ -383,7 +384,7 @@ lxcCreateNetDef(const char *type,
 
     return net;
 
-error:
+ error:
     virDomainNetDefFree(net);
     return NULL;
 }
@@ -461,7 +462,7 @@ lxcAddNetworkDefinition(virDomainDefPtr def,
 
     return 1;
 
-error:
+ error:
     virDomainNetDefFree(net);
     virDomainHostdevDefFree(hostdev);
     return -1;
@@ -593,7 +594,7 @@ lxcCreateConsoles(virDomainDefPtr def, virConfPtr properties)
 
     return 0;
 
-error:
+ error:
     virDomainChrDefFree(console);
     return -1;
 }
@@ -677,9 +678,11 @@ lxcSetCpuTune(virDomainDefPtr def, virConfPtr properties)
     virConfValuePtr value;
 
     if ((value = virConfGetValue(properties, "lxc.cgroup.cpu.shares")) &&
-            value->str && virStrToLong_ul(value->str, NULL, 10,
-                                          &def->cputune.shares) < 0)
-        goto error;
+            value->str) {
+        if (virStrToLong_ul(value->str, NULL, 10, &def->cputune.shares) < 0)
+            goto error;
+        def->cputune.sharesSpecified = true;
+    }
 
     if ((value = virConfGetValue(properties,
                                  "lxc.cgroup.cpu.cfs_quota_us")) &&
@@ -695,7 +698,7 @@ lxcSetCpuTune(virDomainDefPtr def, virConfPtr properties)
 
     return 0;
 
-error:
+ error:
     virReportError(VIR_ERR_INTERNAL_ERROR,
                    _("failed to parse integer: '%s'"), value->str);
     return -1;
@@ -933,11 +936,11 @@ lxcParseConfigString(const char *config)
 
     goto cleanup;
 
-error:
+ error:
     virDomainDefFree(vmdef);
     vmdef = NULL;
 
-cleanup:
+ cleanup:
     virConfFree(properties);
 
     return vmdef;

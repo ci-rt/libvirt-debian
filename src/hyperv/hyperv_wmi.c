@@ -1,6 +1,5 @@
-
 /*
- * hyperv_wmi.h: general WMI over WSMAN related functions and structures for
+ * hyperv_wmi.c: general WMI over WSMAN related functions and structures for
  *               managing Microsoft Hyper-V hosts
  *
  * Copyright (C) 2011 Matthias Bolte <matthias.bolte@googlemail.com>
@@ -27,7 +26,6 @@
 #include "internal.h"
 #include "virerror.h"
 #include "datatypes.h"
-#include "virlog.h"
 #include "viralloc.h"
 #include "viruuid.h"
 #include "virbuffer.h"
@@ -238,7 +236,7 @@ hypervEnumAndPull(hypervPrivate *priv, virBufferPtr query, const char *root,
 
     result = 0;
 
-  cleanup:
+ cleanup:
     if (options != NULL) {
         wsmc_options_destroy(options);
     }
@@ -519,7 +517,7 @@ hypervInvokeMsvmComputerSystemRequestStateChange(virDomainPtr domain,
 
     result = 0;
 
-  cleanup:
+ cleanup:
     if (options != NULL) {
         wsmc_options_destroy(options);
     }

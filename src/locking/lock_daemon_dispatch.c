@@ -28,10 +28,13 @@
 #include "virstring.h"
 #include "lock_daemon.h"
 #include "lock_protocol.h"
-#include "lock_daemon_dispatch_stubs.h"
 #include "virerror.h"
 
 #define VIR_FROM_THIS VIR_FROM_RPC
+
+VIR_LOG_INIT("locking.lock_daemon_dispatch");
+
+#include "lock_daemon_dispatch_stubs.h"
 
 static int
 virLockSpaceProtocolDispatchAcquireResource(virNetServerPtr server ATTRIBUTE_UNUSED,
@@ -85,7 +88,7 @@ virLockSpaceProtocolDispatchAcquireResource(virNetServerPtr server ATTRIBUTE_UNU
 
     rv = 0;
 
-cleanup:
+ cleanup:
     if (rv < 0)
         virNetMessageSaveError(rerr);
     virMutexUnlock(&priv->lock);
@@ -134,7 +137,7 @@ virLockSpaceProtocolDispatchCreateResource(virNetServerPtr server ATTRIBUTE_UNUS
 
     rv = 0;
 
-cleanup:
+ cleanup:
     if (rv < 0)
         virNetMessageSaveError(rerr);
     virMutexUnlock(&priv->lock);
@@ -183,7 +186,7 @@ virLockSpaceProtocolDispatchDeleteResource(virNetServerPtr server ATTRIBUTE_UNUS
 
     rv = 0;
 
-cleanup:
+ cleanup:
     if (rv < 0)
         virNetMessageSaveError(rerr);
     virMutexUnlock(&priv->lock);
@@ -239,7 +242,7 @@ virLockSpaceProtocolDispatchNew(virNetServerPtr server ATTRIBUTE_UNUSED,
 
     rv = 0;
 
-cleanup:
+ cleanup:
     if (rv < 0)
         virNetMessageSaveError(rerr);
     virMutexUnlock(&priv->lock);
@@ -285,7 +288,7 @@ virLockSpaceProtocolDispatchRegister(virNetServerPtr server ATTRIBUTE_UNUSED,
 
     rv = 0;
 
-cleanup:
+ cleanup:
     if (rv < 0)
         virNetMessageSaveError(rerr);
     virMutexUnlock(&priv->lock);
@@ -336,7 +339,7 @@ virLockSpaceProtocolDispatchReleaseResource(virNetServerPtr server ATTRIBUTE_UNU
 
     rv = 0;
 
-cleanup:
+ cleanup:
     if (rv < 0)
         virNetMessageSaveError(rerr);
     virMutexUnlock(&priv->lock);
@@ -375,7 +378,7 @@ virLockSpaceProtocolDispatchRestrict(virNetServerPtr server ATTRIBUTE_UNUSED,
     priv->restricted = true;
     rv = 0;
 
-cleanup:
+ cleanup:
     if (rv < 0)
         virNetMessageSaveError(rerr);
     virMutexUnlock(&priv->lock);
@@ -420,7 +423,7 @@ virLockSpaceProtocolDispatchCreateLockSpace(virNetServerPtr server ATTRIBUTE_UNU
 
     rv = 0;
 
-cleanup:
+ cleanup:
     if (rv < 0)
         virNetMessageSaveError(rerr);
     virMutexUnlock(&priv->lock);

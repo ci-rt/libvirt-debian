@@ -791,7 +791,7 @@ EXTRA_DIST += getugroups.h
 ## begin gnulib module gitlog-to-changelog
 
 
-EXTRA_DIST += $(top_srcdir)/build-aux/gitlog-to-changelog
+EXTRA_DIST += $(top_srcdir)/build-aux/gitlog-to-changelog $(top_srcdir)/build-aux/git-log-fix
 
 ## end   gnulib module gitlog-to-changelog
 

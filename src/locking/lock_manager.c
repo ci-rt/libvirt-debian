@@ -39,6 +39,8 @@
 
 #define VIR_FROM_THIS VIR_FROM_LOCKING
 
+VIR_LOG_INIT("locking.lock_manager");
+
 #define CHECK_DRIVER(field, errret)                                  \
     if (!driver->field) {                                            \
         virReportError(VIR_ERR_INTERNAL_ERROR,                       \
@@ -195,7 +197,7 @@ virLockManagerPluginPtr virLockManagerPluginNew(const char *name,
     VIR_FREE(modfile);
     return plugin;
 
-cleanup:
+ cleanup:
     VIR_FREE(configFile);
     VIR_FREE(plugin);
     VIR_FREE(modfile);
