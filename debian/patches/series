@@ -13,3 +13,4 @@ Allow-xen-toolstack-to-find-it-s-binaries.patch
 Skip-vircgrouptest.patch
 tests-Don-t-crash-when-creating-the-config-object-fa.patch
 tests-Only-use-privileged-mode-if-Qemu-user-and-grou.patch
+libvirt-guests-avoid-bashism.patch
