@@ -18,6 +18,7 @@
 
 # old automake does not provide abs_{src,build}dir variables
 abs_builddir = $(shell pwd)
+abs_topbuilddir = $(shell cd .. && pwd)
 abs_srcdir = $(shell cd $(srcdir) && pwd)
 
 # No libraries with the exception of LIBXML should be listed
@@ -30,6 +31,7 @@ INCLUDES =	-I../gnulib/lib					\
 		-I$(top_srcdir)/include				\
 		-I$(top_srcdir)/src/util			\
 		-DIN_LIBVIRT					\
+		-Dabs_topbuilddir="\"$(abs_topbuilddir)\""	\
 		$(GETTEXT_CPPFLAGS)
 
 AM_CFLAGS =	$(LIBXML_CFLAGS)				\
@@ -106,6 +108,8 @@ UTIL_SOURCES =							\
 		util/virevent.c util/virevent.h			\
 		util/vireventpoll.c util/vireventpoll.h		\
 		util/virfile.c util/virfile.h			\
+		util/virfirewall.c util/virfirewall.h		\
+		util/virfirewallpriv.h				\
 		util/virhash.c util/virhash.h			\
 		util/virhashcode.c util/virhashcode.h		\
 		util/virhook.c util/virhook.h			\
@@ -142,9 +146,11 @@ UTIL_SOURCES =							\
 		util/virprocess.c util/virprocess.h		\
 		util/virrandom.h util/virrandom.c		\
 		util/virscsi.c util/virscsi.h			\
+		util/virseclabel.c util/virseclabel.h		\
 		util/virsexpr.c util/virsexpr.h			\
 		util/virsocketaddr.h util/virsocketaddr.c	\
 		util/virstatslinux.c util/virstatslinux.h	\
+		util/virstorageencryption.c util/virstorageencryption.h \
 		util/virstoragefile.c util/virstoragefile.h	\
 		util/virstring.h util/virstring.c		\
 		util/virsysinfo.c util/virsysinfo.h		\
@@ -287,9 +293,6 @@ SECRET_CONF_SOURCES =                                          \
 NODE_DEVICE_CONF_SOURCES =                                     \
 		conf/node_device_conf.c conf/node_device_conf.h
 
-ENCRYPTION_CONF_SOURCES =					\
-		conf/storage_encryption_conf.c conf/storage_encryption_conf.h
-
 CPU_CONF_SOURCES =						\
 		conf/cpu_conf.c conf/cpu_conf.h
 
@@ -311,7 +314,6 @@ CONF_SOURCES =							\
 		$(NWFILTER_CONF_SOURCES)			\
 		$(NODE_DEVICE_CONF_SOURCES)			\
 		$(STORAGE_CONF_SOURCES)				\
-		$(ENCRYPTION_CONF_SOURCES)			\
 		$(INTERFACE_CONF_SOURCES)			\
 		$(SECRET_CONF_SOURCES)				\
 		$(CPU_CONF_SOURCES)				\
@@ -780,6 +782,8 @@ PARALLELS_DRIVER_SOURCES =					\
 		parallels/parallels_network.c
 
 BHYVE_DRIVER_SOURCES =						\
+		bhyve/bhyve_capabilities.c			\
+		bhyve/bhyve_capabilities.h			\
 		bhyve/bhyve_command.c				\
 		bhyve/bhyve_command.h				\
 		bhyve/bhyve_driver.h				\
@@ -858,6 +862,7 @@ UTIL_IO_HELPER_SOURCES =					\
 # Network filters
 NWFILTER_DRIVER_SOURCES =						\
 		nwfilter/nwfilter_driver.h nwfilter/nwfilter_driver.c	\
+		nwfilter/nwfilter_tech_driver.h				\
 		nwfilter/nwfilter_gentech_driver.c			\
 		nwfilter/nwfilter_gentech_driver.h			\
 		nwfilter/nwfilter_dhcpsnoop.c				\
@@ -1533,27 +1538,34 @@ endif WITH_NODE_DEVICES
 
 
 if WITH_NWFILTER
+noinst_LTLIBRARIES += libvirt_driver_nwfilter_impl.la
+libvirt_driver_nwfilter_la_SOURCES =
+libvirt_driver_nwfilter_la_LIBADD = libvirt_driver_nwfilter_impl.la
 if WITH_DRIVER_MODULES
 mod_LTLIBRARIES += libvirt_driver_nwfilter.la
+libvirt_driver_nwfilter_la_LDFLAGS = -module -avoid-version $(AM_LDFLAGS)
 else ! WITH_DRIVER_MODULES
 noinst_LTLIBRARIES += libvirt_driver_nwfilter.la
 # Stateful, so linked to daemon instead
 #libvirt_la_BUILT_LIBADD += libvirt_driver_nwfilter.la
 endif ! WITH_DRIVER_MODULES
-libvirt_driver_nwfilter_la_CFLAGS = \
+libvirt_driver_nwfilter_impl_la_CFLAGS = \
 		$(LIBPCAP_CFLAGS) \
 		$(LIBNL_CFLAGS) \
 		$(DBUS_CFLAGS) \
 		-I$(top_srcdir)/src/access \
 		-I$(top_srcdir)/src/conf \
 		$(AM_CFLAGS)
-libvirt_driver_nwfilter_la_LDFLAGS = $(AM_LDFLAGS)
-libvirt_driver_nwfilter_la_LIBADD = $(LIBPCAP_LIBS) $(LIBNL_LIBS) $(DBUS_LIBS)
+libvirt_driver_nwfilter_impl_la_LDFLAGS = $(AM_LDFLAGS)
+libvirt_driver_nwfilter_impl_la_LIBADD = \
+		$(LIBPCAP_LIBS) \
+		$(LIBNL_LIBS) \
+		$(DBUS_LIBS)
 if WITH_DRIVER_MODULES
-libvirt_driver_nwfilter_la_LIBADD += ../gnulib/lib/libgnu.la
-libvirt_driver_nwfilter_la_LDFLAGS += -module -avoid-version
+libvirt_driver_nwfilter_impl_la_LIBADD += ../gnulib/lib/libgnu.la
+libvirt_driver_nwfilter_impl_la_LDFLAGS += -module -avoid-version
 endif WITH_DRIVER_MODULES
-libvirt_driver_nwfilter_la_SOURCES = $(NWFILTER_DRIVER_SOURCES)
+libvirt_driver_nwfilter_impl_la_SOURCES = $(NWFILTER_DRIVER_SOURCES)
 endif WITH_NWFILTER
 
 
@@ -2071,7 +2083,6 @@ libvirt_setuid_rpc_client_la_SOURCES = 		\
 		util/virprocess.c		\
 		util/virrandom.c		\
 		util/virsocketaddr.c		\
-		util/virstoragefile.c		\
 		util/virstring.c		\
 		util/virtime.c			\
 		util/virthread.c		\

@@ -87,6 +87,10 @@ int virStorageBackendFindFSImageTool(char **tool);
 virStorageBackendBuildVolFrom
 virStorageBackendFSImageToolTypeToFunc(int tool_type);
 
+int virStorageBackendFindGlusterPoolSources(const char *host,
+                                            int pooltype,
+                                            virStoragePoolSourceListPtr list);
+
 
 typedef struct _virStorageBackend virStorageBackend;
 typedef virStorageBackend *virStorageBackendPtr;
@@ -116,16 +120,15 @@ virStorageBackendPtr virStorageBackendForType(int type);
 
 /* VolOpenCheckMode flags */
 enum {
-    VIR_STORAGE_VOL_OPEN_ERROR  = 1 << 0, /* warn if unexpected type
-                                           * encountered */
-    VIR_STORAGE_VOL_OPEN_REG    = 1 << 1, /* regular files okay */
-    VIR_STORAGE_VOL_OPEN_BLOCK  = 1 << 2, /* block files okay */
-    VIR_STORAGE_VOL_OPEN_CHAR   = 1 << 3, /* char files okay */
-    VIR_STORAGE_VOL_OPEN_DIR    = 1 << 4, /* directories okay */
+    VIR_STORAGE_VOL_OPEN_NOERROR = 1 << 0, /* don't error if unexpected type
+                                            * encountered, just warn */
+    VIR_STORAGE_VOL_OPEN_REG     = 1 << 1, /* regular files okay */
+    VIR_STORAGE_VOL_OPEN_BLOCK   = 1 << 2, /* block files okay */
+    VIR_STORAGE_VOL_OPEN_CHAR    = 1 << 3, /* char files okay */
+    VIR_STORAGE_VOL_OPEN_DIR     = 1 << 4, /* directories okay */
 };
 
-# define VIR_STORAGE_VOL_OPEN_DEFAULT (VIR_STORAGE_VOL_OPEN_ERROR    |\
-                                       VIR_STORAGE_VOL_OPEN_REG      |\
+# define VIR_STORAGE_VOL_OPEN_DEFAULT (VIR_STORAGE_VOL_OPEN_REG      |\
                                        VIR_STORAGE_VOL_OPEN_BLOCK)
 
 int virStorageBackendVolOpen(const char *path, struct stat *sb,
@@ -134,19 +137,14 @@ int virStorageBackendVolOpen(const char *path, struct stat *sb,
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
 
 int virStorageBackendUpdateVolInfo(virStorageVolDefPtr vol,
-                                   bool withCapacity,
                                    bool withBlockVolFormat,
                                    unsigned int openflags);
-int virStorageBackendUpdateVolTargetInfo(virStorageVolTargetPtr target,
-                                         unsigned long long *allocation,
-                                         unsigned long long *capacity,
+int virStorageBackendUpdateVolTargetInfo(virStorageSourcePtr target,
                                          bool withBlockVolFormat,
                                          unsigned int openflags);
-int virStorageBackendUpdateVolTargetInfoFD(virStorageVolTargetPtr target,
+int virStorageBackendUpdateVolTargetInfoFD(virStorageSourcePtr target,
                                            int fd,
-                                           struct stat *sb,
-                                           unsigned long long *allocation,
-                                           unsigned long long *capacity);
+                                           struct stat *sb);
 
 char *virStorageBackendStablePath(virStoragePoolObjPtr pool,
                                   const char *devpath,
@@ -162,23 +160,33 @@ virStorageBackendCreateQemuImgCmd(virConnectPtr conn,
                                   int imgformat);
 
 /* ------- virStorageFile backends ------------ */
+typedef struct _virStorageFileBackend virStorageFileBackend;
+typedef virStorageFileBackend *virStorageFileBackendPtr;
+
+struct _virStorageDriverData {
+    virStorageFileBackendPtr backend;
+    void *priv;
+};
+
 typedef int
-(*virStorageFileBackendInit)(virStorageFilePtr file);
+(*virStorageFileBackendInit)(virStorageSourcePtr src);
 
 typedef void
-(*virStorageFileBackendDeinit)(virStorageFilePtr file);
+(*virStorageFileBackendDeinit)(virStorageSourcePtr src);
 
 typedef int
-(*virStorageFileBackendCreate)(virStorageFilePtr file);
+(*virStorageFileBackendCreate)(virStorageSourcePtr src);
 
 typedef int
-(*virStorageFileBackendUnlink)(virStorageFilePtr file);
+(*virStorageFileBackendUnlink)(virStorageSourcePtr src);
 
 typedef int
-(*virStorageFileBackendStat)(virStorageFilePtr file,
+(*virStorageFileBackendStat)(virStorageSourcePtr src,
                              struct stat *st);
 
 virStorageFileBackendPtr virStorageFileBackendForType(int type, int protocol);
+
+
 
 struct _virStorageFileBackend {
     int type;

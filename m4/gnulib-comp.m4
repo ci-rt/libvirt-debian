@@ -233,8 +233,6 @@ AC_DEFUN([gl_EARLY],
   # Code from module lstat:
   # Code from module lstat-tests:
   # Code from module maintainer-makefile:
-  # Code from module malloc-gnu:
-  # Code from module malloc-gnu-tests:
   # Code from module malloc-posix:
   # Code from module malloca:
   # Code from module malloca-tests:
@@ -810,11 +808,6 @@ AC_SUBST([LTALLOCA])
   AC_CONFIG_COMMANDS_PRE([m4_ifdef([AH_HEADER],
     [AC_SUBST([CONFIG_INCLUDE], m4_defn([AH_HEADER]))])])
   AC_REQUIRE([AC_PROG_SED])
-  gl_FUNC_MALLOC_GNU
-  if test $REPLACE_MALLOC = 1; then
-    AC_LIBOBJ([malloc])
-  fi
-  gl_MODULE_INDICATOR([malloc-gnu])
   gl_FUNC_MALLOC_POSIX
   if test $REPLACE_MALLOC = 1; then
     AC_LIBOBJ([malloc])
@@ -1664,7 +1657,6 @@ AC_DEFUN([gltests_LIBSOURCES], [
 # gnulib-tool and may be removed by future gnulib-tool invocations.
 AC_DEFUN([gl_FILE_LIST], [
   build-aux/config.rpath
-  build-aux/git-log-fix
   build-aux/gitlog-to-changelog
   build-aux/mktempd
   build-aux/snippet/_Noreturn.h
@@ -2303,7 +2295,6 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-lseek.sh
   tests/test-lstat.c
   tests/test-lstat.h
-  tests/test-malloc-gnu.c
   tests/test-malloca.c
   tests/test-math.c
   tests/test-mbrtowc-w32-1.sh

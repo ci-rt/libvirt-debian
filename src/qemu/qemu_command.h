@@ -1,7 +1,7 @@
 /*
  * qemu_command.h: QEMU command generation
  *
- * Copyright (C) 2006-2013 Red Hat, Inc.
+ * Copyright (C) 2006-2014 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -39,7 +39,7 @@
 # define QEMU_FSDEV_HOST_PREFIX "fsdev-"
 
 /* These are only defaults, they can be changed now in qemu.conf and
- * explicitely specified port is checked against these two (makes
+ * explicitly specified port is checked against these two (makes
  * sense to limit the values).
  *
  * This limitation is mentioned in qemu.conf, so bear in mind that the
@@ -162,7 +162,7 @@ char * qemuBuildPCIHostdevDevStr(virDomainDefPtr def,
 int qemuOpenPCIConfig(virDomainHostdevDefPtr dev);
 
 /* Legacy, pre device support */
-char * qemuBuildUSBHostdevUsbDevStr(virDomainHostdevDefPtr dev);
+char * qemuBuildUSBHostdevUSBDevStr(virDomainHostdevDefPtr dev);
 /* Current, best practice */
 char * qemuBuildUSBHostdevDevStr(virDomainDefPtr def,
                                  virDomainHostdevDefPtr dev,
@@ -182,13 +182,6 @@ char * qemuBuildHubDevStr(virDomainDefPtr def,
 char * qemuBuildRedirdevDevStr(virDomainDefPtr def,
                                virDomainRedirdevDefPtr dev,
                                virQEMUCapsPtr qemuCaps);
-char *qemuBuildNetworkDriveURI(int proto,
-                               const char *src,
-                               size_t nhosts,
-                               virDomainDiskHostDefPtr hosts,
-                               const char *username,
-                               const char *secret);
-
 int qemuNetworkIfaceConnect(virDomainDefPtr def,
                             virConnectPtr conn,
                             virQEMUDriverPtr driver,
@@ -314,13 +307,7 @@ qemuParseKeywords(const char *str,
                   int *retnkeywords,
                   int allowEmptyValue);
 
-int qemuGetDriveSourceString(int type,
-                             const char *src,
-                             int protocol,
-                             size_t nhosts,
-                             virDomainDiskHostDefPtr hosts,
-                             const char *username,
-                             const char *secret,
-                             char **path);
-
+int qemuGetDriveSourceString(virStorageSourcePtr src,
+                             virConnectPtr conn,
+                             char **source);
 #endif /* __QEMU_COMMAND_H__*/

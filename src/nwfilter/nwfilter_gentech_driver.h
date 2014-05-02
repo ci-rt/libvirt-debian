@@ -25,6 +25,7 @@
 # define __NWFILTER_GENTECH_DRIVER_H
 
 # include "nwfilter_conf.h"
+# include "nwfilter_tech_driver.h"
 
 virNWFilterTechDriverPtr virNWFilterTechDriverForName(const char *name);
 
@@ -50,7 +51,6 @@ int virNWFilterInstantiateFilterLate(virNWFilterDriverStatePtr driver,
                                      const char *ifname,
                                      int ifindex,
                                      const char *linkdev,
-                                     enum virDomainNetType nettype,
                                      const virMacAddr *macaddr,
                                      const char *filtername,
                                      virNWFilterHashTablePtr filterparams);

@@ -1,6 +1,7 @@
 /*
  * esx_storage_backend_iscsi.c: ESX storage backend for iSCSI handling
  *
+ * Copyright (C) 2014 Red Hat, Inc.
  * Copyright (C) 2012 Ata E Husain Bohra <ata.husain@hotmail.com>
  *
  * This library is free software; you can redistribute it and/or
@@ -459,7 +460,7 @@ esxStorageVolLookupByName(virStoragePoolPtr pool,
          scsiLun = scsiLun->_next) {
         if (STREQ(scsiLun->deviceName, name)) {
             /*
-             * ScsiLun provides an UUID field that is unique accross
+             * ScsiLun provides a UUID field that is unique across
              * multiple servers. But this field length is ~55 characters
              * compute MD5 hash to transform it to an acceptable
              * libvirt format
@@ -677,10 +678,10 @@ esxStorageVolGetXMLDesc(virStorageVolPtr volume,
 
     def.target.path = hostScsiDisk->devicePath;
 
-    def.capacity = hostScsiDisk->capacity->block->value *
+    def.target.capacity = hostScsiDisk->capacity->block->value *
                    hostScsiDisk->capacity->blockSize->value;
 
-    def.allocation = def.capacity;
+    def.target.allocation = def.target.capacity;
 
     /* iSCSI LUN(s) hosting a datastore will be auto-mounted by ESX host */
     def.target.format = VIR_STORAGE_FILE_RAW;

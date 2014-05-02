@@ -16,7 +16,7 @@ dnl You should have received a copy of the GNU Lesser General Public
 dnl License along with this library.  If not, see
 dnl <http://www.gnu.org/licenses/>.
 
-AC_INIT([libvirt], [1.2.3], [libvir-list@redhat.com], [], [http://libvirt.org])
+AC_INIT([libvirt], [1.2.4], [libvir-list@redhat.com], [], [http://libvirt.org])
 AC_CONFIG_SRCDIR([src/libvirt.c])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
@@ -175,6 +175,7 @@ case $host in
   *-*-linux*) with_linux=yes ;;
   *-*-darwin*) with_osx=yes ;;
   *-*-freebsd*) with_freebsd=yes ;;
+  *-*-mingw* | *-*-msvc* ) with_win=yes ;;
 esac
 
 if test $with_linux = no; then
@@ -193,6 +194,11 @@ fi
 
 AM_CONDITIONAL([WITH_LINUX], [test "$with_linux" = "yes"])
 AM_CONDITIONAL([WITH_FREEBSD], [test "$with_freebsd" = "yes"])
+
+# We don't support the daemon yet
+if test "$with_win" = "yes" ; then
+  with_libvirtd=no
+fi
 
 # The daemon requires remote support.  Likewise, if we are not using
 # RPC, we don't need several libraries.
@@ -563,6 +569,10 @@ AC_ARG_WITH([chrdev-lock-files],
     [location for UUCP style lock files for character devices
      (use auto for default paths on some platforms) @<:@default=auto@:>@])])
 m4_divert_text([DEFAULTS], [with_chrdev_lock_files=auto])
+AC_ARG_WITH([pm-utils],
+  [AS_HELP_STRING([--with-pm-utils],
+    [use pm-utils for power management @<:@default=yes@:>@])])
+m4_divert_text([DEFAULTS], [with_pm_utils=check])
 
 dnl
 dnl in case someone want to build static binaries
@@ -1621,6 +1631,23 @@ fi
 
 AM_CONDITIONAL([WITH_PHYP],[test "$with_phyp" = "yes"])
 
+dnl
+dnl Should we build with pm-utils support?
+dnl
+if test "$with_pm_utils" = "check"; then
+    with_pm_utils=yes
+    if test "$with_dbus" = "yes"; then
+        if test "$init_systemd" = "yes"; then
+            with_pm_utils=no
+        fi
+    fi
+fi
+
+if test "$with_pm_utils" = "yes"; then
+    AC_DEFINE_UNQUOTED([WITH_PM_UTILS], 1, [whether to use pm-utils])
+fi
+AM_CONDITIONAL([WITH_PM_UTILS], [test "$with_pm_utils" = "yes"])
+
 dnl virsh libraries
 VIRSH_LIBS="$VIRSH_LIBS $READLINE_LIBS"
 AC_SUBST([VIRSH_LIBS])
@@ -1936,6 +1963,14 @@ if test "$with_storage_gluster" = "yes"; then
 fi
 AM_CONDITIONAL([WITH_STORAGE_GLUSTER], [test "$with_storage_gluster" = "yes"])
 
+if test "$with_storage_fs" = "yes" ||
+   test "$with_storage_gluster" = "yes"; then
+  AC_PATH_PROG([GLUSTER_CLI], [gluster], [], [$PATH:/sbin:/usr/sbin])
+  if test "x$GLUSTER_CLI" != "x"; then
+      AC_DEFINE_UNQUOTED([GLUSTER_CLI], ["$GLUSTER_CLI"],
+        [Location or name of the gluster command line tool])
+  fi
+fi
 
 LIBPARTED_CFLAGS=
 LIBPARTED_LIBS=
@@ -2845,6 +2880,7 @@ AC_MSG_NOTICE([     rbd: $LIBRBD_LIBS])
 else
 AC_MSG_NOTICE([     rbd: no])
 fi
+AC_MSG_NOTICE([pm-utils: $with_pm_utils])
 
 AC_MSG_NOTICE([])
 AC_MSG_NOTICE([Test suite])

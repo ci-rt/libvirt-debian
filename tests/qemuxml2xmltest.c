@@ -81,31 +81,55 @@ testCompareXMLToXMLHelper(const void *data)
     const struct testInfo *info = data;
     char *xml_in = NULL;
     char *xml_out = NULL;
+    char *xml_out_active = NULL;
+    char *xml_out_inactive = NULL;
     int ret = -1;
 
     if (virAsprintf(&xml_in, "%s/qemuxml2argvdata/qemuxml2argv-%s.xml",
                     abs_srcdir, info->name) < 0 ||
         virAsprintf(&xml_out, "%s/qemuxml2xmloutdata/qemuxml2xmlout-%s.xml",
+                    abs_srcdir, info->name) < 0 ||
+        virAsprintf(&xml_out_active,
+                    "%s/qemuxml2xmloutdata/qemuxml2xmlout-%s-active.xml",
+                    abs_srcdir, info->name) < 0 ||
+        virAsprintf(&xml_out_inactive,
+                    "%s/qemuxml2xmloutdata/qemuxml2xmlout-%s-inactive.xml",
                     abs_srcdir, info->name) < 0)
         goto cleanup;
 
-    if ((info->when & WHEN_INACTIVE) &&
-        testCompareXMLToXMLFiles(xml_in,
-                                 info->different ? xml_out : xml_in,
-                                 false) < 0)
-        goto cleanup;
+    if ((info->when & WHEN_INACTIVE)) {
+        char *out;
+        if (!info->different)
+            out = xml_in;
+        else if (virFileExists(xml_out_inactive))
+            out = xml_out_inactive;
+        else
+            out = xml_out;
 
-    if ((info->when & WHEN_ACTIVE) &&
-        testCompareXMLToXMLFiles(xml_in,
-                                 info->different ? xml_out : xml_in,
-                                 true) < 0)
-        goto cleanup;
+        if (testCompareXMLToXMLFiles(xml_in, out, false) < 0)
+            goto cleanup;
+    }
+
+    if ((info->when & WHEN_ACTIVE)) {
+        char *out;
+        if (!info->different)
+            out = xml_in;
+        else if (virFileExists(xml_out_active))
+            out = xml_out_active;
+        else
+            out = xml_out;
+
+        if (testCompareXMLToXMLFiles(xml_in, out, true) < 0)
+            goto cleanup;
+    }
 
     ret = 0;
 
  cleanup:
     VIR_FREE(xml_in);
     VIR_FREE(xml_out);
+    VIR_FREE(xml_out_active);
+    VIR_FREE(xml_out_inactive);
     return ret;
 }
 
@@ -187,6 +211,7 @@ mymain(void)
     DO_TEST("disk-drive-cache-v1-wt");
     DO_TEST("disk-drive-cache-v1-wb");
     DO_TEST("disk-drive-cache-v1-none");
+    DO_TEST("disk-drive-copy-on-read");
     DO_TEST("disk-drive-network-nbd");
     DO_TEST("disk-drive-network-nbd-export");
     DO_TEST("disk-drive-network-nbd-ipv6");
@@ -282,10 +307,10 @@ mymain(void)
     DO_TEST("disk-scsi-lun-passthrough-sgio");
 
     DO_TEST("disk-scsi-disk-vpd");
-    DO_TEST("disk-source-pool");
+    DO_TEST_DIFFERENT("disk-source-pool");
     DO_TEST("disk-source-pool-mode");
 
-    DO_TEST("disk-drive-discard");
+    DO_TEST_DIFFERENT("disk-drive-discard");
 
     DO_TEST("virtio-rng-random");
     DO_TEST("virtio-rng-egd");
@@ -334,6 +359,8 @@ mymain(void)
     DO_TEST("pcihole64-q35");
 
     DO_TEST("panic");
+
+    DO_TEST_DIFFERENT("disk-backing-chains");
 
     virObjectUnref(driver.caps);
     virObjectUnref(driver.xmlopt);

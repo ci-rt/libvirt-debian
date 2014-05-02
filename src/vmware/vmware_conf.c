@@ -259,7 +259,6 @@ vmwareParseVersionStr(int type, const char *verbuf, unsigned long *version)
 int
 vmwareExtractVersion(struct vmware_driver *driver)
 {
-    unsigned long version = 0;
     int ret = -1;
     virCommandPtr cmd = NULL;
     char * outbuf = NULL;
@@ -298,7 +297,7 @@ vmwareExtractVersion(struct vmware_driver *driver)
     if (virCommandRun(cmd, NULL) < 0)
         goto cleanup;
 
-    if (vmwareParseVersionStr(driver->type, outbuf, &version) < 0)
+    if (vmwareParseVersionStr(driver->type, outbuf, &driver->version) < 0)
         goto cleanup;
 
     ret = 0;
@@ -393,7 +392,7 @@ vmwareVmxPath(virDomainDefPtr vmdef, char **vmxPath)
     /*
      * Build VMX URL. Use the source of the first file-based harddisk
      * to deduce the path for the VMX file. Don't just use the
-     * first disk, because it may be CDROM disk and ISO images are normaly not
+     * first disk, because it may be CDROM disk and ISO images are normally not
      * located in the virtual machine's directory. This approach
      * isn't perfect but should work in the majority of cases.
      */
@@ -406,7 +405,7 @@ vmwareVmxPath(virDomainDefPtr vmdef, char **vmxPath)
 
     for (i = 0; i < vmdef->ndisks; ++i) {
         if (vmdef->disks[i]->device == VIR_DOMAIN_DISK_DEVICE_DISK &&
-            virDomainDiskGetType(vmdef->disks[i]) == VIR_DOMAIN_DISK_TYPE_FILE) {
+            virDomainDiskGetType(vmdef->disks[i]) == VIR_STORAGE_TYPE_FILE) {
             disk = vmdef->disks[i];
             break;
         }

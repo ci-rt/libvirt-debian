@@ -395,7 +395,7 @@ static int virLXCControllerSetupLoopDeviceDisk(virDomainDiskDefPtr disk)
      * We now change it into a block device type, so that
      * the rest of container setup 'just works'
      */
-    virDomainDiskSetType(disk, VIR_DOMAIN_DISK_TYPE_BLOCK);
+    virDomainDiskSetType(disk, VIR_STORAGE_TYPE_BLOCK);
     if (virDomainDiskSetSource(disk, loname) < 0)
         goto cleanup;
 
@@ -465,7 +465,7 @@ static int virLXCControllerSetupNBDDeviceDisk(virDomainDiskDefPtr disk)
      * We now change it into a block device type, so that
      * the rest of container setup 'just works'
      */
-    virDomainDiskSetType(disk, VIR_DOMAIN_DISK_TYPE_BLOCK);
+    virDomainDiskSetType(disk, VIR_STORAGE_TYPE_BLOCK);
     if (virDomainDiskSetSource(disk, dev) < 0) {
         VIR_FREE(dev);
         return -1;
@@ -536,7 +536,7 @@ static int virLXCControllerSetupLoopDevices(virLXCControllerPtr ctrl)
         const char *driver = virDomainDiskGetDriver(disk);
         int format = virDomainDiskGetFormat(disk);
 
-        if (virDomainDiskGetType(disk) != VIR_DOMAIN_DISK_TYPE_FILE)
+        if (virDomainDiskGetType(disk) != VIR_STORAGE_TYPE_FILE)
             continue;
 
         /* If no driverName is set, we prefer 'loop' for
@@ -823,7 +823,7 @@ static int lxcControllerClearCapabilities(void)
 }
 
 static bool wantReboot = false;
-static virMutex lock;
+static virMutex lock = VIR_MUTEX_INITIALIZER;
 
 
 static void virLXCControllerSignalChildIO(virNetServerPtr server,
@@ -1108,9 +1108,6 @@ static int virLXCControllerMain(virLXCControllerPtr ctrl)
     int rc = -1;
     size_t i;
 
-    if (virMutexInit(&lock) < 0)
-        goto cleanup2;
-
     if (virNetServerAddSignalHandler(ctrl->server,
                                      SIGCHLD,
                                      virLXCControllerSignalChildIO,
@@ -1164,9 +1161,6 @@ static int virLXCControllerMain(virLXCControllerPtr ctrl)
         rc = wantReboot ? 1 : 0;
 
  cleanup:
-    virMutexDestroy(&lock);
- cleanup2:
-
     for (i = 0; i < ctrl->nconsoles; i++)
         virLXCControllerConsoleClose(&(ctrl->consoles[i]));
 
@@ -1677,7 +1671,7 @@ static int virLXCControllerSetupDisk(virLXCControllerPtr ctrl,
     mode_t mode;
     char *tmpsrc = def->src.path;
 
-    if (virDomainDiskGetType(def) != VIR_DOMAIN_DISK_TYPE_BLOCK) {
+    if (virDomainDiskGetType(def) != VIR_STORAGE_TYPE_BLOCK) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("Can't setup disk for non-block device"));
         goto cleanup;

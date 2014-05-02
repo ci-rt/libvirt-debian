@@ -670,6 +670,7 @@
     <function name="VIR_FROM_DOMAIN_SNAPSHOT" link="libvirt-virterror.html#VIR_FROM_DOMAIN_SNAPSHOT"/>
     <function name="VIR_FROM_ESX" link="libvirt-virterror.html#VIR_FROM_ESX"/>
     <function name="VIR_FROM_EVENT" link="libvirt-virterror.html#VIR_FROM_EVENT"/>
+    <function name="VIR_FROM_FIREWALL" link="libvirt-virterror.html#VIR_FROM_FIREWALL"/>
     <function name="VIR_FROM_HOOK" link="libvirt-virterror.html#VIR_FROM_HOOK"/>
     <function name="VIR_FROM_HYPERV" link="libvirt-virterror.html#VIR_FROM_HYPERV"/>
     <function name="VIR_FROM_IDENTITY" link="libvirt-virterror.html#VIR_FROM_IDENTITY"/>

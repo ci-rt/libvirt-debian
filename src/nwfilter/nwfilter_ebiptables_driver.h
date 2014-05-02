@@ -23,24 +23,9 @@
 #ifndef VIR_NWFILTER_EBTABLES_DRIVER_H__
 # define VIR_NWFILTER_EBTABLES_DRIVER_H__
 
+# include "nwfilter_tech_driver.h"
+
 # define MAX_CHAINNAME_LENGTH  32 /* see linux/netfilter_bridge/ebtables.h */
-
-enum RuleType {
-    RT_EBTABLES,
-    RT_IPTABLES,
-    RT_IP6TABLES,
-};
-
-typedef struct _ebiptablesRuleInst ebiptablesRuleInst;
-typedef ebiptablesRuleInst *ebiptablesRuleInstPtr;
-struct _ebiptablesRuleInst {
-    char *commandTemplate;
-    const char *neededProtocolChain;
-    virNWFilterChainPriority chainPriority;
-    char chainprefix;    /* I for incoming, O for outgoing */
-    virNWFilterRulePriority priority;
-    enum RuleType ruleType;
-};
 
 extern virNWFilterTechDriver ebiptables_driver;
 

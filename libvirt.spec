@@ -132,6 +132,7 @@
 %define with_libssh2       0%{!?_without_libssh2:0}
 %define with_wireshark     0%{!?_without_wireshark:0}
 %define with_systemd_daemon 0%{!?_without_systemd_daemon:0}
+%define with_pm_utils      1
 
 # Non-server/HV driver defaults which are always enabled
 %define with_sasl          0%{!?_without_sasl:1}
@@ -182,6 +183,7 @@
 %if 0%{?fedora} >= 17 || 0%{?rhel} >= 7
     %define with_systemd 1
     %define with_systemd_daemon 1
+    %define with_pm_utils 0
 %endif
 
 # Fedora 18 / RHEL-7 are first where firewalld support is enabled
@@ -387,8 +389,8 @@
 
 Summary: Library providing a simple virtualization API
 Name: libvirt
-Version: 1.2.3
-Release: 1%{?dist}%{?extra_release}
+Version: 1.2.4
+Release: 0rc2%{?dist}%{?extra_release}
 License: LGPLv2+
 Group: Development/Libraries
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
@@ -397,7 +399,7 @@ URL: http://libvirt.org/
 %if %(echo %{version} | grep -o \\. | wc -l) == 3
     %define mainturl stable_updates/
 %endif
-Source: http://libvirt.org/sources/%{?mainturl}libvirt-%{version}.tar.gz
+Source: http://libvirt.org/sources/%{?mainturl}libvirt-%{version}-rc2.tar.gz
 
 %if %{with_libvirtd}
 Requires: libvirt-daemon = %{version}-%{release}
@@ -1138,8 +1140,10 @@ Requires: nc
 Requires: gettext
 # Needed by virt-pki-validate script.
 Requires: gnutls-utils
+%if %{with_pm_utils}
 # Needed for probing the power management features of the host.
 Requires: pm-utils
+%endif
 %if %{with_sasl}
 Requires: cyrus-sasl
 # Not technically required, but makes 'out-of-box' config
@@ -1395,6 +1399,10 @@ driver
     %define _without_systemd_daemon --without-systemd-daemon
 %endif
 
+%if ! %{with_pm_utils}
+    %define _without_pm_utils --without-pm-utils
+%endif
+
 %define when  %(date +"%%F-%%T")
 %define where %(hostname)
 %define who   %{?packager}%{!?packager:Unknown}
@@ -1471,6 +1479,7 @@ rm -f po/stamp-po
            %{?_with_firewalld} \
            %{?_without_wireshark} \
            %{?_without_systemd_daemon} \
+           %{?_without_pm_utils} \
            %{with_packager} \
            %{with_packager_version} \
            --with-qemu-user=%{qemu_user} \
@@ -2162,8 +2171,7 @@ exit 0
 %{_datadir}/libvirt/schemas/nodedev.rng
 %{_datadir}/libvirt/schemas/nwfilter.rng
 %{_datadir}/libvirt/schemas/secret.rng
-%{_datadir}/libvirt/schemas/storageencryption.rng
-%{_datadir}/libvirt/schemas/storagefilefeatures.rng
+%{_datadir}/libvirt/schemas/storagecommon.rng
 %{_datadir}/libvirt/schemas/storagepool.rng
 %{_datadir}/libvirt/schemas/storagevol.rng
 

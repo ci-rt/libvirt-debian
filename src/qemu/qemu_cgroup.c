@@ -185,7 +185,7 @@ qemuSetupTPMCgroup(virDomainDefPtr def,
 
 
 static int
-qemuSetupHostUsbDeviceCgroup(virUSBDevicePtr dev ATTRIBUTE_UNUSED,
+qemuSetupHostUSBDeviceCgroup(virUSBDevicePtr dev ATTRIBUTE_UNUSED,
                              const char *path,
                              void *opaque)
 {
@@ -202,7 +202,7 @@ qemuSetupHostUsbDeviceCgroup(virUSBDevicePtr dev ATTRIBUTE_UNUSED,
 }
 
 static int
-qemuSetupHostScsiDeviceCgroup(virSCSIDevicePtr dev ATTRIBUTE_UNUSED,
+qemuSetupHostSCSIDeviceCgroup(virSCSIDevicePtr dev ATTRIBUTE_UNUSED,
                               const char *path,
                               void *opaque)
 {
@@ -283,10 +283,10 @@ qemuSetupHostdevCGroup(virDomainObjPtr vm,
                 goto cleanup;
             }
 
-            /* oddly, qemuSetupHostUsbDeviceCgroup doesn't ever
+            /* oddly, qemuSetupHostUSBDeviceCgroup doesn't ever
              * reference the usb object we just created
              */
-            if (virUSBDeviceFileIterate(usb, qemuSetupHostUsbDeviceCgroup,
+            if (virUSBDeviceFileIterate(usb, qemuSetupHostUSBDeviceCgroup,
                                         vm) < 0) {
                 goto cleanup;
             }
@@ -303,7 +303,7 @@ qemuSetupHostdevCGroup(virDomainObjPtr vm,
                 goto cleanup;
 
             if (virSCSIDeviceFileIterate(scsi,
-                                         qemuSetupHostScsiDeviceCgroup,
+                                         qemuSetupHostSCSIDeviceCgroup,
                                          vm) < 0)
                 goto cleanup;
 
@@ -527,7 +527,7 @@ qemuSetupDevicesCgroup(virQEMUDriverPtr driver,
 
     for (i = 0; deviceACL[i] != NULL; i++) {
         if (!virFileExists(deviceACL[i])) {
-            VIR_DEBUG("Ignoring non-existant device %s", deviceACL[i]);
+            VIR_DEBUG("Ignoring non-existent device %s", deviceACL[i]);
             continue;
         }
 

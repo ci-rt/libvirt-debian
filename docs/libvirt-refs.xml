@@ -632,6 +632,7 @@
     <reference name='VIR_FROM_DOMAIN_SNAPSHOT' href='html/libvirt-virterror.html#VIR_FROM_DOMAIN_SNAPSHOT'/>
     <reference name='VIR_FROM_ESX' href='html/libvirt-virterror.html#VIR_FROM_ESX'/>
     <reference name='VIR_FROM_EVENT' href='html/libvirt-virterror.html#VIR_FROM_EVENT'/>
+    <reference name='VIR_FROM_FIREWALL' href='html/libvirt-virterror.html#VIR_FROM_FIREWALL'/>
     <reference name='VIR_FROM_HOOK' href='html/libvirt-virterror.html#VIR_FROM_HOOK'/>
     <reference name='VIR_FROM_HYPERV' href='html/libvirt-virterror.html#VIR_FROM_HYPERV'/>
     <reference name='VIR_FROM_IDENTITY' href='html/libvirt-virterror.html#VIR_FROM_IDENTITY'/>
@@ -2111,6 +2112,7 @@
       <ref name='VIR_FROM_DOMAIN_SNAPSHOT'/>
       <ref name='VIR_FROM_ESX'/>
       <ref name='VIR_FROM_EVENT'/>
+      <ref name='VIR_FROM_FIREWALL'/>
       <ref name='VIR_FROM_HOOK'/>
       <ref name='VIR_FROM_HYPERV'/>
       <ref name='VIR_FROM_IDENTITY'/>
@@ -5468,6 +5470,7 @@
       <ref name='VIR_FROM_DOMAIN_SNAPSHOT'/>
       <ref name='VIR_FROM_ESX'/>
       <ref name='VIR_FROM_EVENT'/>
+      <ref name='VIR_FROM_FIREWALL'/>
       <ref name='VIR_FROM_HOOK'/>
       <ref name='VIR_FROM_HYPERV'/>
       <ref name='VIR_FROM_IDENTITY'/>
@@ -5665,6 +5668,10 @@
         </word>
       </letter>
       <letter name='B'>
+        <word name='Backing'>
+          <ref name='virDomainBlockCommit'/>
+          <ref name='virDomainBlockRebase'/>
+        </word>
         <word name='Beware'>
           <ref name='virDomainDetachDeviceFlags'/>
           <ref name='virDomainPMSuspendForDuration'/>
@@ -7006,6 +7013,8 @@
           <ref name='virDomainSnapshotDelete'/>
         </word>
         <word name='Thus'>
+          <ref name='virDomainBlockCommit'/>
+          <ref name='virDomainBlockRebase'/>
           <ref name='virDomainGetBlockInfo'/>
           <ref name='virDomainGetDiskErrors'/>
         </word>
@@ -8613,12 +8622,14 @@
           <ref name='virStreamRecvAll'/>
           <ref name='virStreamSendAll'/>
         </word>
+        <word name='arbitrarily'>
+          <ref name='virDomainSetVcpus'/>
+          <ref name='virDomainSetVcpusFlags'/>
+        </word>
         <word name='arbitrary'>
           <ref name='virConnectDomainEventRegisterAny'/>
           <ref name='virConnectNetworkEventRegisterAny'/>
           <ref name='virDomainSendProcessSignal'/>
-          <ref name='virDomainSetVcpus'/>
-          <ref name='virDomainSetVcpusFlags'/>
           <ref name='virStreamRecv'/>
           <ref name='virStreamSend'/>
         </word>
@@ -8928,6 +8939,10 @@
           <ref name='virDomainGetJobInfo'/>
           <ref name='virDomainGetJobStats'/>
         </word>
+        <word name='backingStore'>
+          <ref name='virDomainBlockCommit'/>
+          <ref name='virDomainBlockRebase'/>
+        </word>
         <word name='backwards'>
           <ref name='VIR_DOMAIN_BLKIO_FIELD_LENGTH'/>
           <ref name='VIR_DOMAIN_MEMORY_FIELD_LENGTH'/>
@@ -8970,6 +8985,8 @@
           <ref name='virDomainDetachDeviceFlags'/>
           <ref name='virDomainOpenGraphics'/>
           <ref name='virDomainScreenshot'/>
+          <ref name='virDomainSetVcpus'/>
+          <ref name='virDomainSetVcpusFlags'/>
           <ref name='virDomainSnapshotCreateXML'/>
           <ref name='virEventRunDefaultImpl'/>
           <ref name='virInitialize'/>
@@ -9147,6 +9164,8 @@
           <ref name='VIR_NODE_CPU_STATS_IOWAIT'/>
           <ref name='VIR_NODE_CPU_STATS_KERNEL'/>
           <ref name='VIR_NODE_CPU_STATS_USER'/>
+          <ref name='virDomainSetVcpus'/>
+          <ref name='virDomainSetVcpusFlags'/>
           <ref name='virDomainSnapshotCreateXML'/>
           <ref name='virNodeGetCPUStats'/>
         </word>
@@ -9186,6 +9205,10 @@
         <word name='boundary'>
           <ref name='virDomainBlockResize'/>
           <ref name='virStorageVolResize'/>
+        </word>
+        <word name='brackets'>
+          <ref name='virDomainBlockCommit'/>
+          <ref name='virDomainBlockRebase'/>
         </word>
         <word name='break'>
           <ref name='virStreamRecv'/>
@@ -11104,6 +11127,10 @@
           <ref name='virDomainBlockJobAbort'/>
           <ref name='virDomainSetMemoryStatsPeriod'/>
         </word>
+        <word name='enclosed'>
+          <ref name='virDomainBlockCommit'/>
+          <ref name='virDomainBlockRebase'/>
+        </word>
         <word name='encoded'>
           <ref name='virConnectDomainXMLFromNative'/>
           <ref name='virConnectDomainXMLToNative'/>
@@ -11220,6 +11247,8 @@
         <word name='equal'>
           <ref name='VIR_DOMAIN_JOB_DATA_TOTAL'/>
           <ref name='_virDomainJobInfo'/>
+          <ref name='virDomainBlockCommit'/>
+          <ref name='virDomainBlockRebase'/>
           <ref name='virDomainDestroyFlags'/>
           <ref name='virDomainSetVcpusFlags'/>
           <ref name='virNodeGetCPUStats'/>
@@ -11343,6 +11372,10 @@
           <ref name='virDomainSnapshotListNames'/>
           <ref name='virDomainSnapshotNum'/>
           <ref name='virDomainSnapshotNumChildren'/>
+        </word>
+        <word name='executed'>
+          <ref name='virDomainSetVcpus'/>
+          <ref name='virDomainSetVcpusFlags'/>
         </word>
         <word name='execution'>
           <ref name='virConnectDomainEventRegister'/>
@@ -11772,6 +11805,8 @@
           <ref name='virDomainBlockPull'/>
           <ref name='virDomainBlockRebase'/>
           <ref name='virDomainRef'/>
+          <ref name='virDomainSetVcpus'/>
+          <ref name='virDomainSetVcpusFlags'/>
           <ref name='virDomainSnapshotRef'/>
           <ref name='virInterfaceRef'/>
           <ref name='virNWFilterRef'/>
@@ -11835,6 +11870,10 @@
         </word>
         <word name='follow'>
           <ref name='virDomainSnapshotCreateXML'/>
+        </word>
+        <word name='followed'>
+          <ref name='virDomainBlockCommit'/>
+          <ref name='virDomainBlockRebase'/>
         </word>
         <word name='following'>
           <ref name='_virDomainBlockJobInfo'/>
@@ -12739,8 +12778,14 @@
           <ref name='virDomainCreateLinux'/>
         </word>
         <word name='index'>
+          <ref name='virDomainBlockCommit'/>
+          <ref name='virDomainBlockRebase'/>
           <ref name='virDomainOpenGraphics'/>
           <ref name='virNodeGetCellsFreeMemory'/>
+        </word>
+        <word name='indexes'>
+          <ref name='virDomainBlockCommit'/>
+          <ref name='virDomainBlockRebase'/>
         </word>
         <word name='indicate'>
           <ref name='virConnectGetType'/>
@@ -15150,6 +15195,7 @@
         </word>
         <word name='paths'>
           <ref name='virConnectFindStoragePoolSources'/>
+          <ref name='virDomainBlockCommit'/>
         </word>
         <word name='pause'>
           <ref name='virDomainMigrate'/>
@@ -15654,6 +15700,8 @@
           <ref name='virDomainPMSuspendForDuration'/>
           <ref name='virDomainResume'/>
           <ref name='virDomainSendProcessSignal'/>
+          <ref name='virDomainSetVcpus'/>
+          <ref name='virDomainSetVcpusFlags'/>
           <ref name='virDomainSuspend'/>
           <ref name='virDomainUndefineFlags'/>
           <ref name='virEventRegisterDefaultImpl'/>
@@ -16171,6 +16219,10 @@
         </word>
         <word name='referencing'>
           <ref name='virNWFilterUndefine'/>
+        </word>
+        <word name='refers'>
+          <ref name='virDomainBlockCommit'/>
+          <ref name='virDomainBlockRebase'/>
         </word>
         <word name='reflect'>
           <ref name='virDomainGetCPUStats'/>
@@ -17201,21 +17253,6 @@
         <word name='shortcut'>
           <ref name='virDomainGetMetadata'/>
         </word>
-        <word name='shorthand'>
-          <ref name='virDomainBlockCommit'/>
-          <ref name='virDomainBlockJobAbort'/>
-          <ref name='virDomainBlockJobSetSpeed'/>
-          <ref name='virDomainBlockPeek'/>
-          <ref name='virDomainBlockPull'/>
-          <ref name='virDomainBlockRebase'/>
-          <ref name='virDomainBlockResize'/>
-          <ref name='virDomainBlockStats'/>
-          <ref name='virDomainBlockStatsFlags'/>
-          <ref name='virDomainGetBlockInfo'/>
-          <ref name='virDomainGetBlockIoTune'/>
-          <ref name='virDomainGetBlockJobInfo'/>
-          <ref name='virDomainSetBlockIoTune'/>
-        </word>
         <word name='shortly'>
           <ref name='virDomainDetachDeviceFlags'/>
         </word>
@@ -17575,6 +17612,10 @@
           <ref name='virDomainBlockPeek'/>
           <ref name='virDomainGetCPUStats'/>
           <ref name='virDomainMemoryPeek'/>
+        </word>
+        <word name='square'>
+          <ref name='virDomainBlockCommit'/>
+          <ref name='virDomainBlockRebase'/>
         </word>
         <word name='srcSpec'>
           <ref name='virConnectFindStoragePoolSources'/>
@@ -19077,6 +19118,8 @@
           <ref name='virDomainGetVcpus'/>
         </word>
         <word name='vda'>
+          <ref name='virDomainBlockCommit'/>
+          <ref name='virDomainBlockRebase'/>
           <ref name='virDomainGetDiskErrors'/>
         </word>
         <word name='version'>

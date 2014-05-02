@@ -1852,7 +1852,8 @@ vshCommandRun(vshControl *ctl, const vshCmd *cmd)
         if (!ret && disconnected != 0)
             vshReconnect(ctl);
 
-        if (STREQ(cmd->def->name, "quit"))        /* hack ... */
+        if (STREQ(cmd->def->name, "quit") ||
+            STREQ(cmd->def->name, "exit"))        /* hack ... */
             return ret;
 
         if (enable_timing) {
@@ -3592,6 +3593,8 @@ main(int argc, char **argv)
         vshError(ctl, "%s", _("Failed to initialize libvirt"));
         return EXIT_FAILURE;
     }
+
+    virFileActivateDirOverride(argv[0]);
 
     if (!(progname = strrchr(argv[0], '/')))
         progname = argv[0];

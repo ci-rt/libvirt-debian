@@ -387,27 +387,13 @@ static int virLXCProcessSetupInterfaces(virConnectPtr conn,
             virNetworkPtr network;
             char *brname = NULL;
             bool fail = false;
-            int active;
             virErrorPtr errobj;
 
             if (!(network = virNetworkLookupByName(conn,
                                                    def->nets[i]->data.network.name)))
                 goto cleanup;
-
-            active = virNetworkIsActive(network);
-            if (active != 1) {
-                fail = true;
-                if (active == 0)
-                    virReportError(VIR_ERR_INTERNAL_ERROR,
-                                   _("Network '%s' is not active."),
-                                   def->nets[i]->data.network.name);
-            }
-
-            if (!fail) {
-                brname = virNetworkGetBridgeName(network);
-                if (brname == NULL)
-                    fail = true;
-            }
+            if (!(brname = virNetworkGetBridgeName(network)))
+               fail = true;
 
             /* Make sure any above failure is preserved */
             errobj = virSaveLastError();
@@ -1501,7 +1487,7 @@ virLXCProcessReconnectDomain(virDomainObjPtr vm,
             goto error;
         }
 
-        if (virLXCUpdateActiveUsbHostdevs(driver, vm->def) < 0)
+        if (virLXCUpdateActiveUSBHostdevs(driver, vm->def) < 0)
             goto error;
 
         if (virSecurityManagerReserveLabel(driver->securityManager,

@@ -151,7 +151,7 @@ netcfStateReload(void)
 /*
  * Get a minimal virInterfaceDef containing enough metadata
  * for access control checks to be performed. Currently
- * this implies existance of name and mac address attributes
+ * this implies existence of name and mac address attributes
  */
 static virInterfaceDef * ATTRIBUTE_NONNULL(1)
 netcfGetMinimalDefForDevice(struct netcf_if *iface)
@@ -801,6 +801,7 @@ static char *netcfInterfaceGetXMLDesc(virInterfacePtr ifinfo,
     char *xmlstr = NULL;
     virInterfaceDefPtr ifacedef = NULL;
     char *ret = NULL;
+    bool active;
 
     virCheckFlags(VIR_INTERFACE_XML_INACTIVE, NULL);
 
@@ -812,7 +813,10 @@ static char *netcfInterfaceGetXMLDesc(virInterfacePtr ifinfo,
         goto cleanup;
     }
 
-    if ((flags & VIR_INTERFACE_XML_INACTIVE)) {
+    if (netcfInterfaceObjIsActive(iface, &active) < 0)
+       goto cleanup;
+
+    if ((flags & VIR_INTERFACE_XML_INACTIVE) || !active) {
         xmlstr = ncf_if_xml_desc(iface);
     } else {
         xmlstr = ncf_if_xml_state(iface);

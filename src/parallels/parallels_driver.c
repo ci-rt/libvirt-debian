@@ -302,7 +302,7 @@ parallelsGetHddInfo(virDomainDefPtr def,
     disk->device = VIR_DOMAIN_DISK_DEVICE_DISK;
 
     if (virJSONValueObjectHasKey(value, "real") == 1) {
-        virDomainDiskSetType(disk, VIR_DOMAIN_DISK_TYPE_BLOCK);
+        virDomainDiskSetType(disk, VIR_STORAGE_TYPE_BLOCK);
 
         if (!(tmp = virJSONValueObjectGetString(value, "real"))) {
             parallelsParseError();
@@ -312,7 +312,7 @@ parallelsGetHddInfo(virDomainDefPtr def,
         if (virDomainDiskSetSource(disk, tmp) < 0)
             return -1;
     } else {
-        virDomainDiskSetType(disk, VIR_DOMAIN_DISK_TYPE_FILE);
+        virDomainDiskSetType(disk, VIR_STORAGE_TYPE_FILE);
 
         if (!(tmp = virJSONValueObjectGetString(value, "image"))) {
             parallelsParseError();
@@ -1613,7 +1613,7 @@ static int parallelsAddHddByVolume(parallelsDomObjPtr pdom,
 
     virCommandPtr cmd = virCommandNewArgList(PRLCTL, "set", pdom->uuid,
                                              "--device-add", "hdd", NULL);
-    virCommandAddArgFormat(cmd, "--size=%lluM", voldef->capacity >> 20);
+    virCommandAddArgFormat(cmd, "--size=%lluM", voldef->target.capacity >> 20);
 
     if (!(strbus = parallelsGetDiskBusName(disk->bus))) {
         virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED,

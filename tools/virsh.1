@@ -133,7 +133,7 @@
 .\" ========================================================================
 .\"
 .IX Title "VIRSH 1"
-.TH VIRSH 1 "2014-04-01" "libvirt-1.2.3" "Virtualization Support"
+.TH VIRSH 1 "2014-04-25" "libvirt-1.2.4" "Virtualization Support"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -1703,7 +1703,9 @@ domain is next started.
 .Sp
 If \fI\-\-live\fR is specified, the guest domain must be active, and the change
 takes place immediately.  Both the \fI\-\-config\fR and \fI\-\-live\fR flags may be
-specified together if supported by the hypervisor.
+specified together if supported by the hypervisor.  If this command is run
+before the guest has finished booting, the guest may fail to process
+the change.
 .Sp
 If \fI\-\-current\fR is specified, affect the current guest state.
 .Sp
@@ -2738,14 +2740,14 @@ for storage volumes not in use by an active guest; see also
 The following commands manipulate \*(L"secrets\*(R" (e.g. passwords, passphrases and
 encryption keys).  Libvirt can store secrets independently from their use, and
 other objects (e.g. volumes or domains) can refer to the secrets for encryption
-or possibly other uses.  Secrets are identified using an \s-1UUID. \s0 See
+or possibly other uses.  Secrets are identified using a \s-1UUID. \s0 See
 <http://libvirt.org/formatsecret.html> for documentation of the \s-1XML\s0 format
 used to represent properties of secrets.
 .IP "\fBsecret-define\fR \fIfile\fR" 4
 .IX Item "secret-define file"
 Create a secret with the properties specified in \fIfile\fR, with no associated
 secret value.  If \fIfile\fR does not specify a \s-1UUID,\s0 choose one automatically.
-If \fIfile\fR specifies an \s-1UUID\s0 of an existing secret, replace its properties by
+If \fIfile\fR specifies a \s-1UUID\s0 of an existing secret, replace its properties by
 properties defined in \fIfile\fR, without affecting the secret value.
 .IP "\fBsecret-dumpxml\fR \fIsecret\fR" 4
 .IX Item "secret-dumpxml secret"
@@ -2936,8 +2938,8 @@ accessible only from the original name.
 .IX Item "snapshot-info domain {snapshot | --current}"
 Output basic information about a named <snapshot>, or the current snapshot
 with \fI\-\-current\fR.
-.IP "\fBsnapshot-list\fR \fIdomain\fR [\fI\-\-metadata\fR] [\fI\-\-no\-metadata\fR] [{\fI\-\-parent\fR | \fI\-\-roots\fR | [{\fI\-\-tree\fR | \fI\-\-name\fR}]}] [{[\fI\-\-from\fR] \fBsnapshot\fR | \fI\-\-current\fR} [\fI\-\-descendants\fR]] [\fI\-\-leaves\fR] [\fI\-\-no\-leaves\fR] p[\fI\-\-inactive\fR] [\fI\-\-active\fR] [\fI\-\-disk\-only\fR] [\fI\-\-internal\fR] [\fI\-\-external\fR]" 4
-.IX Item "snapshot-list domain [--metadata] [--no-metadata] [{--parent | --roots | [{--tree | --name}]}] [{[--from] snapshot | --current} [--descendants]] [--leaves] [--no-leaves] p[--inactive] [--active] [--disk-only] [--internal] [--external]"
+.IP "\fBsnapshot-list\fR \fIdomain\fR [\fI\-\-metadata\fR] [\fI\-\-no\-metadata\fR] [{\fI\-\-parent\fR | \fI\-\-roots\fR | [{\fI\-\-tree\fR | \fI\-\-name\fR}]}] [{[\fI\-\-from\fR] \fBsnapshot\fR | \fI\-\-current\fR} [\fI\-\-descendants\fR]] [\fI\-\-leaves\fR] [\fI\-\-no\-leaves\fR] [\fI\-\-inactive\fR] [\fI\-\-active\fR] [\fI\-\-disk\-only\fR] [\fI\-\-internal\fR] [\fI\-\-external\fR]" 4
+.IX Item "snapshot-list domain [--metadata] [--no-metadata] [{--parent | --roots | [{--tree | --name}]}] [{[--from] snapshot | --current} [--descendants]] [--leaves] [--no-leaves] [--inactive] [--active] [--disk-only] [--internal] [--external]"
 List all of the available snapshots for the given domain, defaulting
 to show columns for the snapshot name, creation time, and domain state.
 .Sp

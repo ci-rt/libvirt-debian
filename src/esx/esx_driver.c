@@ -389,7 +389,7 @@ esxAutodetectSCSIControllerModel(virDomainDiskDefPtr def, int *model,
 
     if (def->device != VIR_DOMAIN_DISK_DEVICE_DISK ||
         def->bus != VIR_DOMAIN_DISK_BUS_SCSI ||
-        virDomainDiskGetType(def) != VIR_DOMAIN_DISK_TYPE_FILE ||
+        virDomainDiskGetType(def) != VIR_STORAGE_TYPE_FILE ||
         !src || !STRPREFIX(src, "[")) {
         /*
          * This isn't a file-based SCSI disk device with a datastore related
@@ -3109,7 +3109,7 @@ esxDomainDefineXML(virConnectPtr conn, const char *xml)
     /*
      * Build VMX datastore URL. Use the source of the first file-based harddisk
      * to deduce the datastore and path for the VMX file. Don't just use the
-     * first disk, because it may be CDROM disk and ISO images are normaly not
+     * first disk, because it may be CDROM disk and ISO images are normally not
      * located in the virtual machine's directory. This approach to deduce the
      * datastore isn't perfect but should work in the majority of cases.
      */
@@ -3122,7 +3122,7 @@ esxDomainDefineXML(virConnectPtr conn, const char *xml)
 
     for (i = 0; i < def->ndisks; ++i) {
         if (def->disks[i]->device == VIR_DOMAIN_DISK_DEVICE_DISK &&
-            virDomainDiskGetType(def->disks[i]) == VIR_DOMAIN_DISK_TYPE_FILE) {
+            virDomainDiskGetType(def->disks[i]) == VIR_STORAGE_TYPE_FILE) {
             disk = def->disks[i];
             break;
         }

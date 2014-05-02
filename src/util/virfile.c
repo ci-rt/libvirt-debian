@@ -43,6 +43,13 @@
 # include <sys/mman.h>
 #endif
 
+#ifdef __linux__
+# if HAVE_LINUX_MAGIC_H
+#  include <linux/magic.h>
+# endif
+# include <sys/statfs.h>
+#endif
+
 #if defined(__linux__) && HAVE_DECL_LO_FLAGS_AUTOCLEAR
 # include <linux/loop.h>
 # include <sys/ioctl.h>
@@ -193,6 +200,7 @@ virFileWrapperFdNew(int *fd, const char *name, unsigned int flags)
     bool output = false;
     int pipefd[2] = { -1, -1 };
     int mode = -1;
+    char *iohelper_path = NULL;
 
     if (!flags) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
@@ -236,8 +244,15 @@ virFileWrapperFdNew(int *fd, const char *name, unsigned int flags)
         goto error;
     }
 
-    ret->cmd = virCommandNewArgList(LIBEXECDIR "/libvirt_iohelper",
-                                    name, "0", NULL);
+    if (!(iohelper_path = virFileFindResource("libvirt_iohelper",
+                                              "src",
+                                              LIBEXECDIR)))
+        goto error;
+
+    ret->cmd = virCommandNewArgList(iohelper_path, name, "0", NULL);
+
+    VIR_FREE(iohelper_path);
+
     if (output) {
         virCommandSetInputFD(ret->cmd, pipefd[0]);
         virCommandSetOutputFD(ret->cmd, fd);
@@ -268,6 +283,7 @@ virFileWrapperFdNew(int *fd, const char *name, unsigned int flags)
     return ret;
 
  error:
+    VIR_FREE(iohelper_path);
     VIR_FORCE_CLOSE(pipefd[0]);
     VIR_FORCE_CLOSE(pipefd[1]);
     virFileWrapperFdFree(ret);
@@ -533,11 +549,12 @@ int virFileUpdatePerm(const char *path,
 }
 
 
-#if defined(__linux__) && HAVE_DECL_LO_FLAGS_AUTOCLEAR
+#if defined(__linux__) && HAVE_DECL_LO_FLAGS_AUTOCLEAR && \
+    !defined(LIBVIRT_SETUID_RPC_CLIENT)
 
 # if HAVE_DECL_LOOP_CTL_GET_FREE
 
-/* virFileLoopDeviceOpenLoopCtl() returns -1 when a real failure has occured
+/* virFileLoopDeviceOpenLoopCtl() returns -1 when a real failure has occurred
  * while in the process of allocating or opening the loop device.  On success
  * we return 0 and modify the fd to the appropriate file descriptor.
  * If /dev/loop-control does not exist, we return 0 and do not set fd. */
@@ -590,6 +607,7 @@ static int virFileLoopDeviceOpenSearch(char **dev_name)
     struct dirent *de;
     char *looppath = NULL;
     struct loop_info64 lo;
+    int direrr;
 
     VIR_DEBUG("Looking for loop devices in /dev");
 
@@ -599,8 +617,7 @@ static int virFileLoopDeviceOpenSearch(char **dev_name)
         goto cleanup;
     }
 
-    errno = 0;
-    while ((de = readdir(dh)) != NULL) {
+    while ((direrr = virDirRead(dh, &de, "/dev")) > 0) {
         /* Checking 'loop' prefix is insufficient, since
          * new kernels have a dev named 'loop-control'
          */
@@ -633,15 +650,11 @@ static int virFileLoopDeviceOpenSearch(char **dev_name)
         /* Oh well, try the next device */
         VIR_FORCE_CLOSE(fd);
         VIR_FREE(looppath);
-        errno = 0;
     }
-
-    if (errno != 0)
-        virReportSystemError(errno, "%s",
-                             _("Unable to iterate over loop devices"));
-    else
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       _("Unable to find a free loop device in /dev"));
+    if (direrr < 0)
+        goto cleanup;
+    virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                   _("Unable to find a free loop device in /dev"));
 
  cleanup:
     if (fd != -1) {
@@ -764,6 +777,7 @@ virFileNBDDeviceFindUnused(void)
     DIR *dh;
     char *ret = NULL;
     struct dirent *de;
+    int direrr;
 
     if (!(dh = opendir(SYSFS_BLOCK_DIR))) {
         virReportSystemError(errno,
@@ -772,8 +786,7 @@ virFileNBDDeviceFindUnused(void)
         return NULL;
     }
 
-    errno = 0;
-    while ((de = readdir(dh)) != NULL) {
+    while ((direrr = virDirRead(dh, &de, SYSFS_BLOCK_DIR)) > 0) {
         if (STRPREFIX(de->d_name, "nbd")) {
             int rv = virFileNBDDeviceIsBusy(de->d_name);
             if (rv < 0)
@@ -784,15 +797,11 @@ virFileNBDDeviceFindUnused(void)
                 goto cleanup;
             }
         }
-        errno = 0;
     }
-
-    if (errno != 0)
-        virReportSystemError(errno, "%s",
-                             _("Unable to iterate over NBD devices"));
-    else
-        virReportSystemError(EBUSY, "%s",
-                             _("No free NBD devices"));
+    if (direrr < 0)
+        goto cleanup;
+    virReportSystemError(EBUSY, "%s",
+                         _("No free NBD devices"));
 
  cleanup:
     closedir(dh);
@@ -901,6 +910,7 @@ int virFileDeleteTree(const char *dir)
     struct dirent *de;
     char *filepath = NULL;
     int ret = -1;
+    int direrr;
 
     if (!dh) {
         virReportSystemError(errno, _("Cannot open dir '%s'"),
@@ -908,8 +918,7 @@ int virFileDeleteTree(const char *dir)
         return -1;
     }
 
-    errno = 0;
-    while ((de = readdir(dh)) != NULL) {
+    while ((direrr = virDirRead(dh, &de, dir)) > 0) {
         struct stat sb;
 
         if (STREQ(de->d_name, ".") ||
@@ -939,14 +948,9 @@ int virFileDeleteTree(const char *dir)
         }
 
         VIR_FREE(filepath);
-        errno = 0;
     }
-
-    if (errno) {
-        virReportSystemError(errno, _("Cannot read dir '%s'"),
-                             dir);
+    if (direrr < 0)
         goto cleanup;
-    }
 
     if (rmdir(dir) < 0 && errno != ENOENT) {
         virReportSystemError(errno,
@@ -1360,7 +1364,8 @@ virFileHasSuffix(const char *str,
    && (Stat_buf_1).st_dev == (Stat_buf_2).st_dev)
 
 /* Return nonzero if checkLink and checkDest
-   refer to the same file.  Otherwise, return 0.  */
+ * refer to the same file.  Otherwise, return 0.
+ */
 int
 virFileLinkPointsTo(const char *checkLink,
                     const char *checkDest)
@@ -1371,6 +1376,35 @@ virFileLinkPointsTo(const char *checkLink,
     return (stat(checkLink, &src_sb) == 0
             && stat(checkDest, &dest_sb) == 0
             && SAME_INODE(src_sb, dest_sb));
+}
+
+
+/* Return positive if checkLink (residing within directory if not
+ * absolute) and checkDest refer to the same file.  Otherwise, return
+ * -1 on allocation failure (error reported), or 0 if not the same
+ * (silent).
+ */
+int
+virFileRelLinkPointsTo(const char *directory,
+                       const char *checkLink,
+                       const char *checkDest)
+{
+    char *candidate;
+    int ret;
+
+    if (*checkLink == '/')
+        return virFileLinkPointsTo(checkLink, checkDest);
+    if (!directory) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("cannot resolve '%s' without starting directory"),
+                       checkLink);
+        return -1;
+    }
+    if (virAsprintf(&candidate, "%s/%s", directory, checkLink) < 0)
+        return -1;
+    ret = virFileLinkPointsTo(candidate, checkDest);
+    VIR_FREE(candidate);
+    return ret;
 }
 
 
@@ -1502,6 +1536,93 @@ virFindFileInPath(const char *file)
 
     VIR_FREE(path);
     return fullpath;
+}
+
+
+static bool useDirOverride;
+
+/**
+ * virFileFindResourceFull:
+ * @filename: libvirt distributed filename without any path
+ * @prefix: optional string to prepend to filename
+ * @suffix: optional string to append to filename
+ * @builddir: location of the binary in the source tree build tree
+ * @installdir: location of the installed binary
+ * @envname: environment variable used to override all dirs
+ *
+ * A helper which will return a path to @filename within
+ * the current build tree, if the calling binary is being
+ * run from the source tree. Otherwise it will return the
+ * path in the installed location.
+ *
+ * If @envname is non-NULL it will override all other
+ * directory lookup
+ *
+ * Only use this with @filename files that are part of
+ * the libvirt tree, not 3rd party binaries/files.
+ *
+ * Returns the resolved path (caller frees) or NULL on error
+ */
+char *
+virFileFindResourceFull(const char *filename,
+                        const char *prefix,
+                        const char *suffix,
+                        const char *builddir,
+                        const char *installdir,
+                        const char *envname)
+{
+    char *ret = NULL;
+    const char *envval = envname ? virGetEnvBlockSUID(envname) : NULL;
+
+    if (!prefix)
+        prefix = "";
+    if (!suffix)
+        suffix = "";
+
+    if (envval) {
+        if (virAsprintf(&ret, "%s/%s%s%s", envval, prefix, filename, suffix) < 0)
+            return NULL;
+    } else if (useDirOverride) {
+        if (virAsprintf(&ret, "%s/%s/%s%s%s", abs_topbuilddir, builddir, prefix, filename, suffix) < 0)
+            return NULL;
+    } else {
+        if (virAsprintf(&ret, "%s/%s%s%s", installdir, prefix, filename, suffix) < 0)
+            return NULL;
+    }
+
+    VIR_DEBUG("Resolved '%s' to '%s'", filename, ret);
+    return ret;
+}
+
+char *
+virFileFindResource(const char *filename,
+                    const char *builddir,
+                    const char *installdir)
+{
+    return virFileFindResourceFull(filename, NULL, NULL, builddir, installdir, NULL);
+}
+
+
+/**
+ * virFileActivateDirOverride:
+ * @argv0: argv[0] of the calling program
+ *
+ * Look at @argv0 and try to detect if running from
+ * a build directory, by looking for a 'lt-' prefix
+ * on the binary name, or '/.libs/' in the path
+ */
+void
+virFileActivateDirOverride(const char *argv0)
+{
+    char *file = strrchr(argv0, '/');
+    if (!file || file[1] == '\0')
+        return;
+    file++;
+    if (STRPREFIX(file, "lt-") ||
+        strstr(argv0, "/.libs/")) {
+        useDirOverride = true;
+        VIR_DEBUG("Activating build dir override for %s", argv0);
+    }
 }
 
 bool
@@ -2050,7 +2171,7 @@ virFileOpenAs(const char *path, int openflags, mode_t mode,
 
             /* On Linux we can also verify the FS-type of the
              * directory.  (this is a NOP on other platforms). */
-            if (virStorageFileIsSharedFS(path) <= 0)
+            if (virFileIsSharedFS(path) <= 0)
                 goto error;
         }
 
@@ -2256,6 +2377,39 @@ virDirCreate(const char *path ATTRIBUTE_UNUSED,
     return -ENOSYS;
 }
 #endif /* WIN32 */
+
+/**
+ * virDirRead:
+ * @dirp: directory to read
+ * @end: output one entry
+ * @name: if non-NULL, the name related to @dirp for use in error reporting
+ *
+ * Wrapper around readdir. Typical usage:
+ *   struct dirent ent;
+ *   int value;
+ *   DIR *dir;
+ *   if (!(dir = opendir(name)))
+ *       goto error;
+ *   while ((value = virDirRead(dir, &ent, name)) > 0)
+ *       process ent;
+ *   if (value < 0)
+ *       goto error;
+ *
+ * Returns -1 on error, with error already reported if @name was
+ * supplied.  On success, returns 1 for entry read, 0 for end-of-dir.
+ */
+int virDirRead(DIR *dirp, struct dirent **ent, const char *name)
+{
+    errno = 0;
+    *ent = readdir(dirp); /* exempt from syntax-check */
+    if (!*ent && errno) {
+        if (name)
+            virReportSystemError(errno, _("Unable to read directory '%s'"),
+                                 name);
+        return -1;
+    }
+    return !!*ent;
+}
 
 static int
 virFileMakePathHelper(char *path, mode_t mode)
@@ -2645,4 +2799,117 @@ int virFilePrintf(FILE *fp, const char *msg, ...)
     va_end(vargs);
 
     return ret;
+}
+
+
+#ifdef __linux__
+
+# ifndef NFS_SUPER_MAGIC
+#  define NFS_SUPER_MAGIC 0x6969
+# endif
+# ifndef OCFS2_SUPER_MAGIC
+#  define OCFS2_SUPER_MAGIC 0x7461636f
+# endif
+# ifndef GFS2_MAGIC
+#  define GFS2_MAGIC 0x01161970
+# endif
+# ifndef AFS_FS_MAGIC
+#  define AFS_FS_MAGIC 0x6B414653
+# endif
+# ifndef SMB_SUPER_MAGIC
+#  define SMB_SUPER_MAGIC 0x517B
+# endif
+# ifndef CIFS_SUPER_MAGIC
+#  define CIFS_SUPER_MAGIC 0xFF534D42
+# endif
+
+int
+virFileIsSharedFSType(const char *path,
+                      int fstypes)
+{
+    char *dirpath, *p;
+    struct statfs sb;
+    int statfs_ret;
+
+    if (VIR_STRDUP(dirpath, path) < 0)
+        return -1;
+
+    do {
+
+        /* Try less and less of the path until we get to a
+         * directory we can stat. Even if we don't have 'x'
+         * permission on any directory in the path on the NFS
+         * server (assuming it's NFS), we will be able to stat the
+         * mount point, and that will properly tell us if the
+         * fstype is NFS.
+         */
+
+        if ((p = strrchr(dirpath, '/')) == NULL) {
+            virReportSystemError(EINVAL,
+                         _("Invalid relative path '%s'"), path);
+            VIR_FREE(dirpath);
+            return -1;
+        }
+
+        if (p == dirpath)
+            *(p+1) = '\0';
+        else
+            *p = '\0';
+
+        statfs_ret = statfs(dirpath, &sb);
+
+    } while ((statfs_ret < 0) && (p != dirpath));
+
+    VIR_FREE(dirpath);
+
+    if (statfs_ret < 0) {
+        virReportSystemError(errno,
+                             _("cannot determine filesystem for '%s'"),
+                             path);
+        return -1;
+    }
+
+    VIR_DEBUG("Check if path %s with FS magic %lld is shared",
+              path, (long long int)sb.f_type);
+
+    if ((fstypes & VIR_FILE_SHFS_NFS) &&
+        (sb.f_type == NFS_SUPER_MAGIC))
+        return 1;
+
+    if ((fstypes & VIR_FILE_SHFS_GFS2) &&
+        (sb.f_type == GFS2_MAGIC))
+        return 1;
+    if ((fstypes & VIR_FILE_SHFS_OCFS) &&
+        (sb.f_type == OCFS2_SUPER_MAGIC))
+        return 1;
+    if ((fstypes & VIR_FILE_SHFS_AFS) &&
+        (sb.f_type == AFS_FS_MAGIC))
+        return 1;
+    if ((fstypes & VIR_FILE_SHFS_SMB) &&
+        (sb.f_type == SMB_SUPER_MAGIC))
+        return 1;
+    if ((fstypes & VIR_FILE_SHFS_CIFS) &&
+        (sb.f_type == CIFS_SUPER_MAGIC))
+        return 1;
+
+    return 0;
+}
+#else
+int virFileIsSharedFSType(const char *path ATTRIBUTE_UNUSED,
+                          int fstypes ATTRIBUTE_UNUSED)
+{
+    /* XXX implement me :-) */
+    return 0;
+}
+#endif
+
+int virFileIsSharedFS(const char *path)
+{
+    return virFileIsSharedFSType(path,
+                                 VIR_FILE_SHFS_NFS |
+                                 VIR_FILE_SHFS_GFS2 |
+                                 VIR_FILE_SHFS_OCFS |
+                                 VIR_FILE_SHFS_AFS |
+                                 VIR_FILE_SHFS_SMB |
+                                 VIR_FILE_SHFS_CIFS);
 }

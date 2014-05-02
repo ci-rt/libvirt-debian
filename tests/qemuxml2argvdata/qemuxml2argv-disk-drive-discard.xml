@@ -16,14 +16,16 @@
   <on_crash>restart</on_crash>
   <devices>
     <emulator>/usr/bin/qemu</emulator>
-    <disk type='file' device='disk'>
-      <driver name='qemu' type='qcow2' discard='unmap'/>
+    <!-- For this disk, intentionally stress parser resilience to
+         atypical ordering -->
+    <disk device='disk'>
+      <address type='pci' domain='0x0000' bus='0x00' slot='0x04' function='0x0'/>
       <source file='/var/lib/libvirt/images/f14.img'/>
       <target dev='vda' bus='virtio'/>
-      <address type='pci' domain='0x0000' bus='0x00' slot='0x04' function='0x0'/>
+      <driver discard='unmap' name='qemu' type='qcow2'/>
     </disk>
     <disk type='file' device='cdrom'>
-      <driver name='qemu' type='raw' discard='ignore'/>
+      <driver discard='ignore'/>
       <source file='/var/lib/libvirt/Fedora-14-x86_64-Live-KDE.iso'/>
       <target dev='hdc' bus='ide'/>
       <readonly/>

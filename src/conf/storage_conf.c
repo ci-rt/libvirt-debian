@@ -329,16 +329,8 @@ virStorageVolDefFree(virStorageVolDefPtr def)
     }
     VIR_FREE(def->source.extents);
 
-    VIR_FREE(def->target.compat);
-    virBitmapFree(def->target.features);
-    VIR_FREE(def->target.path);
-    VIR_FREE(def->target.perms.label);
-    VIR_FREE(def->target.timestamps);
-    virStorageEncryptionFree(def->target.encryption);
-    VIR_FREE(def->backingStore.path);
-    VIR_FREE(def->backingStore.perms.label);
-    VIR_FREE(def->backingStore.timestamps);
-    virStorageEncryptionFree(def->backingStore.encryption);
+    virStorageSourceClear(&def->target);
+    virStorageSourceClear(&def->backingStore);
     VIR_FREE(def);
 }
 
@@ -1325,17 +1317,17 @@ virStorageVolDefParseXML(virStoragePoolDefPtr pool,
                        _("missing capacity element"));
         goto error;
     }
-    if (virStorageSize(unit, capacity, &ret->capacity) < 0)
+    if (virStorageSize(unit, capacity, &ret->target.capacity) < 0)
         goto error;
     VIR_FREE(unit);
 
     allocation = virXPathString("string(./allocation)", ctxt);
     if (allocation) {
         unit = virXPathString("string(./allocation/@unit)", ctxt);
-        if (virStorageSize(unit, allocation, &ret->allocation) < 0)
+        if (virStorageSize(unit, allocation, &ret->target.allocation) < 0)
             goto error;
     } else {
-        ret->allocation = ret->capacity;
+        ret->target.allocation = ret->target.capacity;
     }
 
     ret->target.path = virXPathString("string(./target/path)", ctxt);
@@ -1355,7 +1347,9 @@ virStorageVolDefParseXML(virStoragePoolDefPtr pool,
         VIR_FREE(format);
     }
 
-    if (virStorageDefParsePerms(ctxt, &ret->target.perms,
+    if (VIR_ALLOC(ret->target.perms) < 0)
+        goto error;
+    if (virStorageDefParsePerms(ctxt, ret->target.perms,
                                 "./target/permissions",
                                 DEFAULT_VOL_PERM_MODE) < 0)
         goto error;
@@ -1424,7 +1418,9 @@ virStorageVolDefParseXML(virStoragePoolDefPtr pool,
         VIR_FREE(nodes);
     }
 
-    if (virStorageDefParsePerms(ctxt, &ret->backingStore.perms,
+    if (VIR_ALLOC(ret->backingStore.perms) < 0)
+        goto error;
+    if (virStorageDefParsePerms(ctxt, ret->backingStore.perms,
                                 "./backingStore/permissions",
                                 DEFAULT_VOL_PERM_MODE) < 0)
         goto error;
@@ -1518,7 +1514,7 @@ virStorageVolTimestampFormat(virBufferPtr buf, const char *name,
 static int
 virStorageVolTargetDefFormat(virStorageVolOptionsPtr options,
                              virBufferPtr buf,
-                             virStorageVolTargetPtr def,
+                             virStorageSourcePtr def,
                              const char *type)
 {
     virBufferAsprintf(buf, "<%s>\n", type);
@@ -1541,15 +1537,15 @@ virStorageVolTargetDefFormat(virStorageVolOptionsPtr options,
     virBufferAdjustIndent(buf, 2);
 
     virBufferAsprintf(buf, "<mode>0%o</mode>\n",
-                      def->perms.mode);
+                      def->perms->mode);
     virBufferAsprintf(buf, "<owner>%u</owner>\n",
-                      (unsigned int) def->perms.uid);
+                      (unsigned int) def->perms->uid);
     virBufferAsprintf(buf, "<group>%u</group>\n",
-                      (unsigned int) def->perms.gid);
+                      (unsigned int) def->perms->gid);
 
 
     virBufferEscapeString(buf, "<label>%s</label>\n",
-                          def->perms.label);
+                          def->perms->label);
 
     virBufferAdjustIndent(buf, -2);
     virBufferAddLit(buf, "</permissions>\n");
@@ -1648,9 +1644,9 @@ virStorageVolDefFormat(virStoragePoolDefPtr pool,
     virBufferAddLit(&buf, "</source>\n");
 
     virBufferAsprintf(&buf, "<capacity unit='bytes'>%llu</capacity>\n",
-                      def->capacity);
+                      def->target.capacity);
     virBufferAsprintf(&buf, "<allocation unit='bytes'>%llu</allocation>\n",
-                      def->allocation);
+                      def->target.allocation);
 
     if (virStorageVolTargetDefFormat(options, &buf,
                                      &def->target, "target") < 0)
@@ -1866,6 +1862,7 @@ virStoragePoolLoadAllConfigs(virStoragePoolObjListPtr pools,
 {
     DIR *dir;
     struct dirent *entry;
+    int ret;
 
     if (!(dir = opendir(configDir))) {
         if (errno == ENOENT)
@@ -1875,7 +1872,7 @@ virStoragePoolLoadAllConfigs(virStoragePoolObjListPtr pools,
         return -1;
     }
 
-    while ((entry = readdir(dir))) {
+    while ((ret = virDirRead(dir, &entry, configDir)) > 0) {
         char *path;
         char *autostartLink;
         virStoragePoolObjPtr pool;
@@ -1905,8 +1902,7 @@ virStoragePoolLoadAllConfigs(virStoragePoolObjListPtr pools,
     }
 
     closedir(dir);
-
-    return 0;
+    return ret;
 }
 
 int

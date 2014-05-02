@@ -1415,6 +1415,7 @@
      <exports symbol='VIR_FROM_DOMAIN_SNAPSHOT' type='enum'/>
      <exports symbol='VIR_FROM_ESX' type='enum'/>
      <exports symbol='VIR_FROM_EVENT' type='enum'/>
+     <exports symbol='VIR_FROM_FIREWALL' type='enum'/>
      <exports symbol='VIR_FROM_HOOK' type='enum'/>
      <exports symbol='VIR_FROM_HYPERV' type='enum'/>
      <exports symbol='VIR_FROM_IDENTITY' type='enum'/>
@@ -2374,7 +2375,7 @@ construct'/>
     <enum name='VIR_ERR_CONF_SYNTAX' file='virterror' value='33' type='virErrorNumber' info='failed to parse the syntax of a
 conf file'/>
     <enum name='VIR_ERR_DBUS_SERVICE' file='virterror' value='89' type='virErrorNumber' info='error from a dbus service'/>
-    <enum name='VIR_ERR_DOMAIN_LAST' file='virterror' value='59' type='virErrorDomain'/>
+    <enum name='VIR_ERR_DOMAIN_LAST' file='virterror' value='60' type='virErrorDomain'/>
     <enum name='VIR_ERR_DOM_EXIST' file='virterror' value='28' type='virErrorNumber' info='the domain already exist'/>
     <enum name='VIR_ERR_DRIVER_FULL' file='virterror' value='25' type='virErrorNumber' info='too many drivers registered'/>
     <enum name='VIR_ERR_ERROR' file='virterror' value='2' type='virErrorLevel' info='An error'/>
@@ -2482,6 +2483,7 @@ formed or broken'/>
     <enum name='VIR_FROM_DOMAIN_SNAPSHOT' file='virterror' value='35' type='virErrorDomain' info='Error from domain snapshot'/>
     <enum name='VIR_FROM_ESX' file='virterror' value='28' type='virErrorDomain' info='Error from ESX driver'/>
     <enum name='VIR_FROM_EVENT' file='virterror' value='40' type='virErrorDomain' info='Error from event loop impl'/>
+    <enum name='VIR_FROM_FIREWALL' file='virterror' value='59' type='virErrorDomain' info='Error from firewall'/>
     <enum name='VIR_FROM_HOOK' file='virterror' value='34' type='virErrorDomain' info='Error from Synchronous hooks'/>
     <enum name='VIR_FROM_HYPERV' file='virterror' value='43' type='virErrorDomain' info='Error from Hyper-V driver'/>
     <enum name='VIR_FROM_IDENTITY' file='virterror' value='53' type='virErrorDomain' info='Error from identity code'/>
@@ -4202,6 +4204,14 @@ block device (the <source file='...'/> sub-element, such as
 can be found by calling virDomainGetXMLDesc() and inspecting
 elements within //domain/devices/disk.
 
+The @base and @top parameters can be either paths to files within the
+backing chain, or the device target shorthand (the <target dev='...'/>
+sub-element, such as "vda") followed by an index to the backing chain
+enclosed in square brackets. Backing chain indexes can be found by
+inspecting //disk//backingStore/@index in the domain XML. Thus, for
+example, "vda[3]" refers to the backing store with index equal to "3"
+in the chain of disk "vda".
+
 The maximum bandwidth (in MiB/s) that will be used to do the commit can be
 specified with the bandwidth parameter.  If set to 0, libvirt will choose a
 suitable default.  Some hypervisors do not support this feature and will
@@ -4211,8 +4221,8 @@ The actual speed can be determined with virDomainGetBlockJobInfo().]]></info>
       <return type='int' info='0 if the operation has started, -1 on failure.'/>
       <arg name='dom' type='virDomainPtr' info='pointer to domain object'/>
       <arg name='disk' type='const char *' info='path to the block device, or device shorthand'/>
-      <arg name='base' type='const char *' info='path to backing file to merge into, or NULL for default'/>
-      <arg name='top' type='const char *' info='path to file within backing chain that contains data to be merged, or NULL to merge all possible data'/>
+      <arg name='base' type='const char *' info='path to backing file to merge into, or device shorthand, or NULL for default'/>
+      <arg name='top' type='const char *' info='path to file within backing chain that contains data to be merged, or device shorthand, or NULL to merge all possible data'/>
       <arg name='bandwidth' type='unsigned long' info='(optional) specify commit bandwidth limit in MiB/s'/>
       <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainBlockCommitFlags'/>
     </function>
@@ -4399,6 +4409,14 @@ block device (the <source file='...'/> sub-element, such as
 can be found by calling virDomainGetXMLDesc() and inspecting
 elements within //domain/devices/disk.
 
+The @base parameter can be either a path to a file within the backing
+chain, or the device target shorthand (the <target dev='...'/>
+sub-element, such as "vda") followed by an index to the backing chain
+enclosed in square brackets. Backing chain indexes can be found by
+inspecting //disk//backingStore/@index in the domain XML. Thus, for
+example, "vda[3]" refers to the backing store with index equal to "3"
+in the chain of disk "vda".
+
 The maximum bandwidth (in MiB/s) that will be used to do the copy can be
 specified with the bandwidth parameter.  If set to 0, libvirt will choose a
 suitable default.  Some hypervisors do not support this feature and will
@@ -4411,7 +4429,7 @@ virDomainBlockPull().]]></info>
       <return type='int' info='0 if the operation has started, -1 on failure.'/>
       <arg name='dom' type='virDomainPtr' info='pointer to domain object'/>
       <arg name='disk' type='const char *' info='path to the block device, or device shorthand'/>
-      <arg name='base' type='const char *' info='path to backing file to keep, or NULL for no backing file'/>
+      <arg name='base' type='const char *' info='path to backing file to keep, or device shorthand, or NULL for no backing file'/>
       <arg name='bandwidth' type='unsigned long' info='(optional) specify copy bandwidth limit in MiB/s'/>
       <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainBlockRebaseFlags'/>
     </function>
@@ -6614,8 +6632,11 @@ flags are supported.]]></info>
     <function name='virDomainSetVcpus' file='libvirt' module='libvirt'>
       <info><![CDATA[Dynamically change the number of virtual CPUs used by the domain.
 Note that this call may fail if the underlying virtualization hypervisor
-does not support it or if growing the number is arbitrary limited.
+does not support it or if growing the number is arbitrarily limited.
 This function may require privileged access to the hypervisor.
+
+Note that if this call is executed before the guest has finished booting,
+the guest may fail to process the change.
 
 This command only changes the runtime configuration of the domain,
 so can only be called on an active domain.  It is hypervisor-dependent
@@ -6628,7 +6649,7 @@ use virDomainSetVcpusFlags().]]></info>
     <function name='virDomainSetVcpusFlags' file='libvirt' module='libvirt'>
       <info><![CDATA[Dynamically change the number of virtual CPUs used by the domain.
 Note that this call may fail if the underlying virtualization hypervisor
-does not support it or if growing the number is arbitrary limited.
+does not support it or if growing the number is arbitrarily limited.
 This function may require privileged access to the hypervisor.
 
 @flags may include VIR_DOMAIN_AFFECT_LIVE to affect a running
@@ -6639,6 +6660,9 @@ If neither flag is specified (that is, @flags is VIR_DOMAIN_AFFECT_CURRENT),
 then an inactive domain modifies persistent setup, while an active domain
 is hypervisor-dependent on whether just live or both live and persistent
 state is changed.
+
+Note that if this call is executed before the guest has finished booting,
+the guest may fail to process the change.
 
 If @flags includes VIR_DOMAIN_VCPU_MAXIMUM, then
 VIR_DOMAIN_AFFECT_LIVE must be clear, and only the maximum virtual

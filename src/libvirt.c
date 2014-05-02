@@ -9368,8 +9368,11 @@ virDomainSendProcessSignal(virDomainPtr domain,
  *
  * Dynamically change the number of virtual CPUs used by the domain.
  * Note that this call may fail if the underlying virtualization hypervisor
- * does not support it or if growing the number is arbitrary limited.
+ * does not support it or if growing the number is arbitrarily limited.
  * This function may require privileged access to the hypervisor.
+ *
+ * Note that if this call is executed before the guest has finished booting,
+ * the guest may fail to process the change.
  *
  * This command only changes the runtime configuration of the domain,
  * so can only be called on an active domain.  It is hypervisor-dependent
@@ -9417,7 +9420,7 @@ virDomainSetVcpus(virDomainPtr domain, unsigned int nvcpus)
  *
  * Dynamically change the number of virtual CPUs used by the domain.
  * Note that this call may fail if the underlying virtualization hypervisor
- * does not support it or if growing the number is arbitrary limited.
+ * does not support it or if growing the number is arbitrarily limited.
  * This function may require privileged access to the hypervisor.
  *
  * @flags may include VIR_DOMAIN_AFFECT_LIVE to affect a running
@@ -9428,6 +9431,9 @@ virDomainSetVcpus(virDomainPtr domain, unsigned int nvcpus)
  * then an inactive domain modifies persistent setup, while an active domain
  * is hypervisor-dependent on whether just live or both live and persistent
  * state is changed.
+ *
+ * Note that if this call is executed before the guest has finished booting,
+ * the guest may fail to process the change.
  *
  * If @flags includes VIR_DOMAIN_VCPU_MAXIMUM, then
  * VIR_DOMAIN_AFFECT_LIVE must be clear, and only the maximum virtual
@@ -19663,7 +19669,8 @@ virDomainBlockPull(virDomainPtr dom, const char *disk,
  * virDomainBlockRebase:
  * @dom: pointer to domain object
  * @disk: path to the block device, or device shorthand
- * @base: path to backing file to keep, or NULL for no backing file
+ * @base: path to backing file to keep, or device shorthand,
+ *        or NULL for no backing file
  * @bandwidth: (optional) specify copy bandwidth limit in MiB/s
  * @flags: bitwise-OR of virDomainBlockRebaseFlags
  *
@@ -19724,6 +19731,14 @@ virDomainBlockPull(virDomainPtr dom, const char *disk,
  * <target dev='...'/> sub-element, such as "xvda").  Valid names
  * can be found by calling virDomainGetXMLDesc() and inspecting
  * elements within //domain/devices/disk.
+ *
+ * The @base parameter can be either a path to a file within the backing
+ * chain, or the device target shorthand (the <target dev='...'/>
+ * sub-element, such as "vda") followed by an index to the backing chain
+ * enclosed in square brackets. Backing chain indexes can be found by
+ * inspecting //disk//backingStore/@index in the domain XML. Thus, for
+ * example, "vda[3]" refers to the backing store with index equal to "3"
+ * in the chain of disk "vda".
  *
  * The maximum bandwidth (in MiB/s) that will be used to do the copy can be
  * specified with the bandwidth parameter.  If set to 0, libvirt will choose a
@@ -19787,9 +19802,10 @@ virDomainBlockRebase(virDomainPtr dom, const char *disk,
  * virDomainBlockCommit:
  * @dom: pointer to domain object
  * @disk: path to the block device, or device shorthand
- * @base: path to backing file to merge into, or NULL for default
+ * @base: path to backing file to merge into, or device shorthand,
+ *        or NULL for default
  * @top: path to file within backing chain that contains data to be merged,
- *       or NULL to merge all possible data
+ *       or device shorthand, or NULL to merge all possible data
  * @bandwidth: (optional) specify commit bandwidth limit in MiB/s
  * @flags: bitwise-OR of virDomainBlockCommitFlags
  *
@@ -19838,6 +19854,14 @@ virDomainBlockRebase(virDomainPtr dom, const char *disk,
  * <target dev='...'/> sub-element, such as "xvda").  Valid names
  * can be found by calling virDomainGetXMLDesc() and inspecting
  * elements within //domain/devices/disk.
+ *
+ * The @base and @top parameters can be either paths to files within the
+ * backing chain, or the device target shorthand (the <target dev='...'/>
+ * sub-element, such as "vda") followed by an index to the backing chain
+ * enclosed in square brackets. Backing chain indexes can be found by
+ * inspecting //disk//backingStore/@index in the domain XML. Thus, for
+ * example, "vda[3]" refers to the backing store with index equal to "3"
+ * in the chain of disk "vda".
  *
  * The maximum bandwidth (in MiB/s) that will be used to do the commit can be
  * specified with the bandwidth parameter.  If set to 0, libvirt will choose a

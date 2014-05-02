@@ -1,7 +1,7 @@
 /*
  * virfile.h: safer file handling
  *
- * Copyright (C) 2010-2011, 2013 Red Hat, Inc.
+ * Copyright (C) 2010-2014 Red Hat, Inc.
  * Copyright (C) 2010 IBM Corporation
  * Copyright (C) 2010 Stefan Berger
  * Copyright (C) 2010 Eric Blake
@@ -27,6 +27,7 @@
 # define __VIR_FILE_H_
 
 # include <stdio.h>
+# include <dirent.h>
 
 # include "internal.h"
 # include "virstoragefile.h"
@@ -143,7 +144,12 @@ int virFileStripSuffix(char *str,
                        const char *suffix) ATTRIBUTE_RETURN_CHECK;
 
 int virFileLinkPointsTo(const char *checkLink,
-                        const char *checkDest);
+                        const char *checkDest)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
+int virFileRelLinkPointsTo(const char *directory,
+                           const char *checkLink,
+                           const char *checkDest)
+    ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3);
 
 int virFileResolveLink(const char *linkpath,
                        char **resultpath) ATTRIBUTE_RETURN_CHECK;
@@ -155,10 +161,35 @@ int virFileIsLink(const char *linkpath)
 
 char *virFindFileInPath(const char *file);
 
+char *virFileFindResource(const char *filename,
+                          const char *builddir,
+                          const char *installdir)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3);
+char *virFileFindResourceFull(const char *filename,
+                              const char *prefix,
+                              const char *suffix,
+                              const char *builddir,
+                              const char *installdir,
+                              const char *envname)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(4) ATTRIBUTE_NONNULL(5);
+void virFileActivateDirOverride(const char *argv0)
+    ATTRIBUTE_NONNULL(1);
+
 bool virFileIsDir (const char *file) ATTRIBUTE_NONNULL(1);
 bool virFileExists(const char *file) ATTRIBUTE_NONNULL(1);
 bool virFileIsExecutable(const char *file) ATTRIBUTE_NONNULL(1);
 
+enum {
+    VIR_FILE_SHFS_NFS = (1 << 0),
+    VIR_FILE_SHFS_GFS2 = (1 << 1),
+    VIR_FILE_SHFS_OCFS = (1 << 2),
+    VIR_FILE_SHFS_AFS = (1 << 3),
+    VIR_FILE_SHFS_SMB = (1 << 4),
+    VIR_FILE_SHFS_CIFS = (1 << 5),
+};
+
+int virFileIsSharedFSType(const char *path, int fstypes) ATTRIBUTE_NONNULL(1);
+int virFileIsSharedFS(const char *path) ATTRIBUTE_NONNULL(1);
 int virFileIsMountPoint(const char *file) ATTRIBUTE_NONNULL(1);
 
 int virFileGetMountSubtree(const char *mtabpath,
@@ -195,6 +226,9 @@ enum {
 };
 int virDirCreate(const char *path, mode_t mode, uid_t uid, gid_t gid,
                  unsigned int flags) ATTRIBUTE_RETURN_CHECK;
+int virDirRead(DIR *dirp, struct dirent **ent, const char *dirname)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_RETURN_CHECK;
+
 int virFileMakePath(const char *path) ATTRIBUTE_RETURN_CHECK;
 int virFileMakePathWithMode(const char *path,
                             mode_t mode) ATTRIBUTE_RETURN_CHECK;

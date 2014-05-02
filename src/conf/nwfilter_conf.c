@@ -962,13 +962,16 @@ printTCPFlags(virBufferPtr buf, uint8_t flags)
 }
 
 
-void
-virNWFilterPrintTCPFlags(virBufferPtr buf,
-                         uint8_t mask, char sep, uint8_t flags)
+char *
+virNWFilterPrintTCPFlags(uint8_t flags)
 {
-    printTCPFlags(buf, mask);
-    virBufferAddChar(buf, sep);
-    printTCPFlags(buf, flags);
+    virBuffer buf = VIR_BUFFER_INITIALIZER;
+    printTCPFlags(&buf, flags);
+    if (virBufferError(&buf)) {
+        virReportOOMError();
+        return NULL;
+    }
+    return virBufferContentAndReset(&buf);
 }
 
 
@@ -977,10 +980,9 @@ tcpFlagsFormatter(virBufferPtr buf,
                   virNWFilterRuleDefPtr nwf ATTRIBUTE_UNUSED,
                   nwItemDesc *item)
 {
-    virNWFilterPrintTCPFlags(buf,
-                             item->u.tcpFlags.mask,
-                             '/',
-                             item->u.tcpFlags.flags);
+    printTCPFlags(buf, item->u.tcpFlags.mask);
+    virBufferAddLit(buf, "/");
+    printTCPFlags(buf, item->u.tcpFlags.flags);
 
     return true;
 }
@@ -3095,6 +3097,7 @@ virNWFilterLoadAllConfigs(virNWFilterObjListPtr nwfilters,
 {
     DIR *dir;
     struct dirent *entry;
+    int ret = -1;
 
     if (!(dir = opendir(configDir))) {
         if (errno == ENOENT) {
@@ -3105,7 +3108,7 @@ virNWFilterLoadAllConfigs(virNWFilterObjListPtr nwfilters,
         return -1;
     }
 
-    while ((entry = readdir(dir))) {
+    while ((ret = virDirRead(dir, &entry, configDir)) > 0) {
         char *path;
         virNWFilterObjPtr nwfilter;
 
@@ -3126,8 +3129,7 @@ virNWFilterLoadAllConfigs(virNWFilterObjListPtr nwfilters,
     }
 
     closedir(dir);
-
-    return 0;
+    return ret;
 }
 
 
@@ -3483,4 +3485,30 @@ void virNWFilterObjLock(virNWFilterObjPtr obj)
 void virNWFilterObjUnlock(virNWFilterObjPtr obj)
 {
     virMutexUnlock(&obj->lock);
+}
+
+
+bool virNWFilterRuleIsProtocolIPv4(virNWFilterRuleDefPtr rule)
+{
+    if (rule->prtclType >= VIR_NWFILTER_RULE_PROTOCOL_TCP &&
+        rule->prtclType <= VIR_NWFILTER_RULE_PROTOCOL_ALL)
+        return true;
+    return false;
+}
+
+
+bool virNWFilterRuleIsProtocolIPv6(virNWFilterRuleDefPtr rule)
+{
+    if (rule->prtclType >= VIR_NWFILTER_RULE_PROTOCOL_TCPoIPV6 &&
+        rule->prtclType <= VIR_NWFILTER_RULE_PROTOCOL_ALLoIPV6)
+        return true;
+    return false;
+}
+
+
+bool virNWFilterRuleIsProtocolEthernet(virNWFilterRuleDefPtr rule)
+{
+    if (rule->prtclType <= VIR_NWFILTER_RULE_PROTOCOL_IPV6)
+        return true;
+    return false;
 }

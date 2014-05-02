@@ -126,9 +126,10 @@
         these. <span class="since">Since 0.0.1</span></dd>
       <dt><code>loader</code></dt>
       <dd>The optional <code>loader</code> tag refers to a firmware blob
-        used to assist the domain creation process. At this time, it is
-        only needed by Xen fully virtualized
-        domains. <span class="since">Since 0.1.0</span></dd>
+        used to assist the domain creation process. It is used by Xen
+        fully virtualized domains as well as setting the QEMU BIOS file
+        path for QEMU/KVM domains. <span class="since">Xen since 0.1.0,
+        QEMU/KVM since 0.9.12</span></dd>
       <dt><code>boot</code></dt>
       <dd>The <code>dev</code> attribute takes one of the values "fd", "hd",
         "cdrom" or "network" and is used to specify the next boot device
@@ -1624,6 +1625,20 @@
       &lt;/auth&gt;
       &lt;target dev='vda' bus='virtio'/&gt;
     &lt;/disk&gt;
+    &lt;disk type='file' device='disk'&gt;
+      &lt;driver name='qemu' type='qcow2'/&gt;
+      &lt;source file='/var/lib/libvirt/images/domain.qcow'/&gt;
+      &lt;backingStore type='file'&gt;
+        &lt;format type='qcow2'/&gt;
+        &lt;source file='/var/lib/libvirt/images/snapshot.qcow'/&gt;
+        &lt;backingStore type='block'&gt;
+          &lt;format type='raw'/&gt;
+          &lt;source dev='/dev/mapper/base'/&gt;
+          &lt;backingStore/&gt;
+        &lt;/backingStore&gt;
+      &lt;/backingStore&gt;
+      &lt;target dev='vda' bus='virtio'/&gt;
+    &lt;/disk&gt;
   &lt;/devices&gt;
   ...</pre>
 
@@ -1814,6 +1829,53 @@
         This feature doesn't support migration currently.
         </p>
         </dd>
+      <dt><code>backingStore</code></dt>
+      <dd>
+        This element describes the backing store used by the disk specified by
+        sibling <code>source</code> element. It is currently ignored on input
+        and only used for output to describe the detected backing chains.
+        <span class="since">Since 1.2.4</span>. An empty
+        <code>backingStore</code> element means the sibling source is
+        self-contained and is not based on any backing store. The following
+        attributes and sub-elements are supported in
+        <code>backingStore</code>:
+        <dl>
+          <dt><code>type</code> attribute</dt>
+          <dd>
+            The <code>type</code> attribute represents the type of disk used
+            by the backing store, see disk type attribute above for more
+            details and possible values.
+          </dd>
+          <dt><code>index</code> attribute</dt>
+          <dd>
+            This attribute is only valid in output (and ignored on input) and
+            it can be used to refer to a specific part of the disk chain when
+            doing block operations (such as via the
+            <code>virDomainBlockRebase</code> API). For example,
+            <code>vda[2]</code> refers to the backing store with
+            <code>index='2'</code> of the disk with <code>vda</code> target.
+          </dd>
+          <dt><code>format</code> sub-element</dt>
+          <dd>
+            The <code>format</code> element contains <code>type</code>
+            attribute which specifies the internal format of the backing
+            store, such as <code>raw</code> or <code>qcow2</code>.
+          </dd>
+          <dt><code>source</code> sub-element</dt>
+          <dd>
+            This element has the same structure as the <code>source</code>
+            element in <code>disk</code>. It specifies which file, device,
+            or network location contains the data of the described backing
+            store.
+          </dd>
+          <dt><code>backingStore</code> sub-element</dt>
+          <dd>
+            If the backing store is not self-contained, the next element
+            in the chain is described by nested <code>backingStore</code>
+            element.
+          </dd>
+        </dl>
+      </dd>
       <dt><code>mirror</code></dt>
       <dd>
         This element is present if the hypervisor has started a block
@@ -2788,12 +2850,16 @@
         device assignment. Use the <code>name</code> attribute to
         select either "vfio" (for the new VFIO device assignment
         backend, which is compatible with UEFI SecureBoot) or "kvm"
-        (for the legacy device assignment handled directly by the KVM
+        (the legacy device assignment handled directly by the KVM
         kernel module)<span class="since">Since 1.0.5 (QEMU and KVM
-        only, requires kernel 3.6 or newer)</span>. The default, when
-        the driver name is not explicitly specified, is to check whether
-        VFIO is available and use it if it's the case. If VFIO is not
-        available, the legacy "kvm" assignment is attempted.
+        only, requires kernel 3.6 or newer)</span>. When specified,
+        device assignment will fail if the requested method of device
+        assignment isn't available on the host. When not specified,
+        the default is "vfio" on systems where the VFIO driver is
+        available and loaded, and "kvm" on older systems, or those
+        where the VFIO driver hasn't been
+        loaded <span class="since">Since 1.1.3</span> (prior to that
+        the default was always "kvm").
       </dd>
       <dt><code>readonly</code></dt>
       <dd>Indicates that the device is readonly, only supported by SCSI host
@@ -4717,6 +4783,35 @@ qemu-kvm -net nic,model=? /dev/null
   &lt;/devices&gt;
   ...</pre>
 
+    <h6><a name="elementsNmdm">Nmdm device</a></h6>
+
+    <p>
+      The nmdm device driver, available on FreeBSD, provides two
+      tty devices connected together by a virual null modem cable.
+      <span class="since">Since 1.2.4</span>
+    </p>
+
+<pre>
+  ...
+  &lt;devices&gt;
+    &lt;serial type="nmdm"&gt;
+      &lt;source master="/dev/nmdm0A" slave="/dev/nmdm0B"/&gt;
+    &lt;/serial&gt;
+  &lt;/devices&gt;
+  ...</pre>
+
+    <p>
+      The <code>source</code> element has these attributes:
+    </p>
+
+    <dl>
+      <dt><code>master</code></dt>
+      <dd>Master device of the pair, that is passed to the hypervisor.</dd>
+
+      <dt><code>slave</code></dt>
+      <dd>Slave device of the pair, that is passed to the clients for connection
+      to the guest console.</dd>
+    </dl>
 
     <h4><a name="elementsSound">Sound devices</a></h4>
 

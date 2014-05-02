@@ -28,7 +28,6 @@ src/conf/object_event.c
 src/conf/secret_conf.c
 src/conf/snapshot_conf.c
 src/conf/storage_conf.c
-src/conf/storage_encryption_conf.c
 src/conf/virchrdev.c
 src/cpu/cpu.c
 src/cpu/cpu_generic.c
@@ -162,6 +161,7 @@ src/util/virdbus.c
 src/util/virdnsmasq.c
 src/util/vireventpoll.c
 src/util/virfile.c
+src/util/virfirewall.c
 src/util/virhash.c
 src/util/virhook.c
 src/util/virhostdev.c
@@ -193,6 +193,7 @@ src/util/virsexpr.c
 src/util/virscsi.c
 src/util/virsocketaddr.c
 src/util/virstatslinux.c
+src/util/virstorageencryption.c
 src/util/virstoragefile.c
 src/util/virstring.c
 src/util/virsysinfo.c

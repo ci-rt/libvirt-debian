@@ -2,7 +2,7 @@
  * parallels_network.c: core privconn functions for managing
  * Parallels Cloud Server hosts
  *
- * Copyright (C) 2013 Red Hat, Inc.
+ * Copyright (C) 2013-2014 Red Hat, Inc.
  * Copyright (C) 2012 Parallels, Inc.
  *
  * This library is free software; you can redistribute it and/or
@@ -201,7 +201,7 @@ parallelsLoadNetwork(parallelsConnPtr privconn, virJSONValuePtr jobj)
         goto cleanup;
 
     /* Network names are unique in Parallels Cloud Server, so we can make
-     * an UUID from it */
+     * a UUID from it */
     md5_buffer(tmp, strlen(tmp), md5);
     memcpy(def->uuid, md5, VIR_UUID_BUFLEN);
     def->uuid_specified = 1;
@@ -231,7 +231,6 @@ parallelsLoadNetwork(parallelsConnPtr privconn, virJSONValuePtr jobj)
         goto cleanup;
     }
     net->active = 1;
-    net->persistent = 1;
     net->autostart = 1;
     virNetworkObjUnlock(net);
     return net;
@@ -267,7 +266,6 @@ parallelsAddRoutedNetwork(parallelsConnPtr privconn)
         goto cleanup;
     }
     net->active = 1;
-    net->persistent = 1;
     net->autostart = 1;
     virNetworkObjUnlock(net);
 

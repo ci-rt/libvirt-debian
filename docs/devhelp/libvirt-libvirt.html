@@ -3636,13 +3636,21 @@ block device (the &lt;source file='...'/&gt; sub-element, such as
 can be found by calling virDomainGetXMLDesc() and inspecting
 elements within //domain/devices/disk.
 
+The @base and @top parameters can be either paths to files within the
+backing chain, or the device target shorthand (the &lt;target dev='...'/&gt;
+sub-element, such as "vda") followed by an index to the backing chain
+enclosed in square brackets. Backing chain indexes can be found by
+inspecting //disk//backingStore/@index in the domain XML. Thus, for
+example, "vda[3]" refers to the backing store with index equal to "3"
+in the chain of disk "vda".
+
 The maximum bandwidth (in MiB/s) that will be used to do the commit can be
 specified with the bandwidth parameter. If set to 0, libvirt will choose a
 suitable default. Some hypervisors do not support this feature and will
 return an error if bandwidth is not 0; in this case, it might still be
 possible for a later call to virDomainBlockJobSetSpeed() to succeed.
 The actual speed can be determined with virDomainGetBlockJobInfo().</p>
-<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>pointer to domain object</td></tr><tr><td><span class="term"><i><tt>disk</tt></i>:</span></td><td>path to the block device, or device shorthand</td></tr><tr><td><span class="term"><i><tt>base</tt></i>:</span></td><td>path to backing file to merge into, or NULL for default</td></tr><tr><td><span class="term"><i><tt>top</tt></i>:</span></td><td>path to file within backing chain that contains data to be merged, or NULL to merge all possible data</td></tr><tr><td><span class="term"><i><tt>bandwidth</tt></i>:</span></td><td>(optional) specify commit bandwidth limit in MiB/s</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt.html#virDomainBlockCommitFlags">virDomainBlockCommitFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 if the operation has started, -1 on failure.</td></tr></tbody></table></div></div>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>pointer to domain object</td></tr><tr><td><span class="term"><i><tt>disk</tt></i>:</span></td><td>path to the block device, or device shorthand</td></tr><tr><td><span class="term"><i><tt>base</tt></i>:</span></td><td>path to backing file to merge into, or device shorthand, or NULL for default</td></tr><tr><td><span class="term"><i><tt>top</tt></i>:</span></td><td>path to file within backing chain that contains data to be merged, or device shorthand, or NULL to merge all possible data</td></tr><tr><td><span class="term"><i><tt>bandwidth</tt></i>:</span></td><td>(optional) specify commit bandwidth limit in MiB/s</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt.html#virDomainBlockCommitFlags">virDomainBlockCommitFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 if the operation has started, -1 on failure.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainBlockJobAbort"/>virDomainBlockJobAbort ()</h3><pre class="programlisting">int	virDomainBlockJobAbort		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 const char * disk, <br/>					 unsigned int flags)<br/>
 </pre><p>Cancel the active block job on the given disk.
@@ -3810,6 +3818,14 @@ block device (the &lt;source file='...'/&gt; sub-element, such as
 can be found by calling virDomainGetXMLDesc() and inspecting
 elements within //domain/devices/disk.
 
+The @base parameter can be either a path to a file within the backing
+chain, or the device target shorthand (the &lt;target dev='...'/&gt;
+sub-element, such as "vda") followed by an index to the backing chain
+enclosed in square brackets. Backing chain indexes can be found by
+inspecting //disk//backingStore/@index in the domain XML. Thus, for
+example, "vda[3]" refers to the backing store with index equal to "3"
+in the chain of disk "vda".
+
 The maximum bandwidth (in MiB/s) that will be used to do the copy can be
 specified with the bandwidth parameter. If set to 0, libvirt will choose a
 suitable default. Some hypervisors do not support this feature and will
@@ -3819,7 +3835,7 @@ The actual speed can be determined with virDomainGetBlockJobInfo().
 
 When @base is NULL and @flags is 0, this is identical to
 virDomainBlockPull().</p>
-<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>pointer to domain object</td></tr><tr><td><span class="term"><i><tt>disk</tt></i>:</span></td><td>path to the block device, or device shorthand</td></tr><tr><td><span class="term"><i><tt>base</tt></i>:</span></td><td>path to backing file to keep, or NULL for no backing file</td></tr><tr><td><span class="term"><i><tt>bandwidth</tt></i>:</span></td><td>(optional) specify copy bandwidth limit in MiB/s</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt.html#virDomainBlockRebaseFlags">virDomainBlockRebaseFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 if the operation has started, -1 on failure.</td></tr></tbody></table></div></div>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>pointer to domain object</td></tr><tr><td><span class="term"><i><tt>disk</tt></i>:</span></td><td>path to the block device, or device shorthand</td></tr><tr><td><span class="term"><i><tt>base</tt></i>:</span></td><td>path to backing file to keep, or device shorthand, or NULL for no backing file</td></tr><tr><td><span class="term"><i><tt>bandwidth</tt></i>:</span></td><td>(optional) specify copy bandwidth limit in MiB/s</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt.html#virDomainBlockRebaseFlags">virDomainBlockRebaseFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 if the operation has started, -1 on failure.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainBlockResize"/>virDomainBlockResize ()</h3><pre class="programlisting">int	virDomainBlockResize		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 const char * disk, <br/>					 unsigned long long size, <br/>					 unsigned int flags)<br/>
 </pre><p>Resize a block device of domain while the domain is running. If
@@ -5656,8 +5672,11 @@ flags are supported.</p>
         <div class="refsect2" lang="en"><h3><a name="virDomainSetVcpus"/>virDomainSetVcpus ()</h3><pre class="programlisting">int	virDomainSetVcpus		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 unsigned int nvcpus)<br/>
 </pre><p>Dynamically change the number of virtual CPUs used by the domain.
 Note that this call may fail if the underlying virtualization hypervisor
-does not support it or if growing the number is arbitrary limited.
+does not support it or if growing the number is arbitrarily limited.
 This function may require privileged access to the hypervisor.
+
+Note that if this call is executed before the guest has finished booting,
+the guest may fail to process the change.
 
 This command only changes the runtime configuration of the domain,
 so can only be called on an active domain. It is hypervisor-dependent
@@ -5668,7 +5687,7 @@ use virDomainSetVcpusFlags().</p>
         <div class="refsect2" lang="en"><h3><a name="virDomainSetVcpusFlags"/>virDomainSetVcpusFlags ()</h3><pre class="programlisting">int	virDomainSetVcpusFlags		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 unsigned int nvcpus, <br/>					 unsigned int flags)<br/>
 </pre><p>Dynamically change the number of virtual CPUs used by the domain.
 Note that this call may fail if the underlying virtualization hypervisor
-does not support it or if growing the number is arbitrary limited.
+does not support it or if growing the number is arbitrarily limited.
 This function may require privileged access to the hypervisor.
 
 @flags may include <a href="libvirt-libvirt.html#VIR_DOMAIN_AFFECT_LIVE">VIR_DOMAIN_AFFECT_LIVE</a> to affect a running
@@ -5679,6 +5698,9 @@ If neither flag is specified (that is, @flags is VIR_DOMAIN_AFFECT_CURRENT),
 then an inactive domain modifies persistent setup, while an active domain
 is hypervisor-dependent on whether just live or both live and persistent
 state is changed.
+
+Note that if this call is executed before the guest has finished booting,
+the guest may fail to process the change.
 
 If @flags includes VIR_DOMAIN_VCPU_MAXIMUM, then
 VIR_DOMAIN_AFFECT_LIVE must be clear, and only the maximum virtual

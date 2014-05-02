@@ -1,7 +1,7 @@
 /*
  * virsystemd.c: helpers for using systemd APIs
  *
- * Copyright (C) 2013 Red Hat, Inc.
+ * Copyright (C) 2013, 2014 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -324,4 +324,63 @@ virSystemdNotifyStartup(void)
 #ifdef WITH_SYSTEMD_DAEMON
     sd_notify(0, "READY=1");
 #endif
+}
+
+static int
+virSystemdPMSupportTarget(const char *methodName, bool *result)
+{
+    int ret;
+    DBusConnection *conn;
+    DBusMessage *message = NULL;
+    char *response;
+
+    ret = virDBusIsServiceEnabled("org.freedesktop.login1");
+    if (ret < 0)
+        return ret;
+
+    if ((ret = virDBusIsServiceRegistered("org.freedesktop.login1")) < 0)
+        return ret;
+
+    if (!(conn = virDBusGetSystemBus()))
+        return -1;
+
+    ret = -1;
+
+    if (virDBusCallMethod(conn,
+                          &message,
+                          NULL,
+                          "org.freedesktop.login1",
+                          "/org/freedesktop/login1",
+                          "org.freedesktop.login1.Manager",
+                          methodName,
+                          NULL) < 0)
+        return ret;
+
+    if ((ret = virDBusMessageRead(message, "s", &response)) < 0)
+        goto cleanup;
+
+    *result = STREQ("yes", response) || STREQ("challenge", response);
+
+    ret = 0;
+
+ cleanup:
+    virDBusMessageUnref(message);
+    VIR_FREE(response);
+
+    return ret;
+}
+
+int virSystemdCanSuspend(bool *result)
+{
+    return virSystemdPMSupportTarget("CanSuspend", result);
+}
+
+int virSystemdCanHibernate(bool *result)
+{
+    return virSystemdPMSupportTarget("CanHibernate", result);
+}
+
+int virSystemdCanHybridSleep(bool *result)
+{
+    return virSystemdPMSupportTarget("CanHybridSleep", result);
 }

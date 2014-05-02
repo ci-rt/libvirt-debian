@@ -1,7 +1,7 @@
 /*
  * storage_conf.h: config handling for storage driver
  *
- * Copyright (C) 2006-2008, 2010-2013 Red Hat, Inc.
+ * Copyright (C) 2006-2008, 2010-2014 Red Hat, Inc.
  * Copyright (C) 2006-2008 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -25,33 +25,12 @@
 # define __VIR_STORAGE_CONF_H__
 
 # include "internal.h"
-# include "storage_encryption_conf.h"
+# include "virstorageencryption.h"
+# include "virstoragefile.h"
 # include "virbitmap.h"
 # include "virthread.h"
 
 # include <libxml/tree.h>
-
-typedef struct _virStoragePerms virStoragePerms;
-typedef virStoragePerms *virStoragePermsPtr;
-struct _virStoragePerms {
-    mode_t mode;
-    uid_t uid;
-    gid_t gid;
-    char *label;
-};
-
-typedef struct _virStorageTimestamps virStorageTimestamps;
-typedef virStorageTimestamps *virStorageTimestampsPtr;
-struct _virStorageTimestamps {
-    struct timespec atime;
-    /* if btime.tv_nsec == -1 then
-     * birth time is unknown
-     */
-    struct timespec btime;
-    struct timespec ctime;
-    struct timespec mtime;
-};
-
 
 /*
  * How the volume's data is stored on underlying
@@ -71,26 +50,11 @@ typedef virStorageVolSource *virStorageVolSourcePtr;
 struct _virStorageVolSource {
     int nextent;
     virStorageVolSourceExtentPtr extents;
+
+    int partType; /* enum virStorageVolTypeDisk, only used by disk
+                   * backend for partition type creation */
 };
 
-
-/*
- * How the volume appears on the host
- */
-typedef struct _virStorageVolTarget virStorageVolTarget;
-typedef virStorageVolTarget *virStorageVolTargetPtr;
-struct _virStorageVolTarget {
-    char *path;
-    int format;
-    virStoragePerms perms;
-    virStorageTimestampsPtr timestamps;
-    int type; /* only used by disk backend for partition type */
-    /* The next three are currently only used in vol->target,
-     * not in vol->backingStore. */
-    virStorageEncryptionPtr encryption;
-    virBitmapPtr features;
-    char *compat;
-};
 
 typedef struct _virStorageVolDef virStorageVolDef;
 typedef virStorageVolDef *virStorageVolDefPtr;
@@ -101,12 +65,9 @@ struct _virStorageVolDef {
 
     unsigned int building;
 
-    unsigned long long allocation; /* bytes */
-    unsigned long long capacity; /* bytes */
-
     virStorageVolSource source;
-    virStorageVolTarget target;
-    virStorageVolTarget backingStore;
+    virStorageSource target;
+    virStorageSource backingStore;
 };
 
 typedef struct _virStorageVolDefList virStorageVolDefList;

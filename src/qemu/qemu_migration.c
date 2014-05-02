@@ -1533,8 +1533,8 @@ qemuMigrationIsSafe(virDomainDefPtr def)
             disk->cachemode != VIR_DOMAIN_DISK_CACHE_DISABLE) {
             int rc;
 
-            if (virDomainDiskGetType(disk) == VIR_DOMAIN_DISK_TYPE_FILE) {
-                if ((rc = virStorageFileIsSharedFS(src)) < 0)
+            if (virDomainDiskGetType(disk) == VIR_STORAGE_TYPE_FILE) {
+                if ((rc = virFileIsSharedFS(src)) < 0)
                     return false;
                 else if (rc == 0)
                     continue;
@@ -1542,8 +1542,8 @@ qemuMigrationIsSafe(virDomainDefPtr def)
                     return false;
                 else if (rc == 1)
                     continue;
-            } else if (disk->src.type == VIR_DOMAIN_DISK_TYPE_NETWORK &&
-                       disk->src.protocol == VIR_DOMAIN_DISK_PROTOCOL_RBD) {
+            } else if (disk->src.type == VIR_STORAGE_TYPE_NETWORK &&
+                       disk->src.protocol == VIR_STORAGE_NET_PROTOCOL_RBD) {
                 continue;
             }
 
@@ -1812,14 +1812,14 @@ qemuMigrationWaitForCompletion(virQEMUDriverPtr driver, virDomainObjPtr vm,
         /* Poll every 50ms for progress & to allow cancellation */
         struct timespec ts = { .tv_sec = 0, .tv_nsec = 50 * 1000 * 1000ull };
 
+        if (qemuMigrationUpdateJobStatus(driver, vm, job, asyncJob) < 0)
+            goto cleanup;
+
         /* cancel migration if disk I/O error is emitted while migrating */
         if (abort_on_error &&
             virDomainObjGetState(vm, &pauseReason) == VIR_DOMAIN_PAUSED &&
             pauseReason == VIR_DOMAIN_PAUSED_IOERROR)
             goto cancel;
-
-        if (qemuMigrationUpdateJobStatus(driver, vm, job, asyncJob) < 0)
-            goto cleanup;
 
         if (dconn && virConnectIsAlive(dconn) <= 0) {
             virReportError(VIR_ERR_OPERATION_FAILED, "%s",

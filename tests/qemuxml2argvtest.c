@@ -483,7 +483,6 @@ static int
 mymain(void)
 {
     int ret = 0;
-    char *map = NULL;
     bool skipLegacyCPUs = false;
 
     abs_top_srcdir = getenv("abs_top_srcdir");
@@ -501,6 +500,9 @@ mymain(void)
     }
 
     driver.config = virQEMUDriverConfigNew(true);
+    if (driver.config == NULL)
+        return EXIT_FAILURE;
+
     VIR_FREE(driver.config->spiceListen);
     VIR_FREE(driver.config->vncListen);
 
@@ -527,11 +529,6 @@ mymain(void)
     driver.config->spiceTLS = 1;
     if (VIR_STRDUP_QUIET(driver.config->spicePassword, "123456") < 0)
         return EXIT_FAILURE;
-    if (virAsprintf(&map, "%s/src/cpu/cpu_map.xml", abs_top_srcdir) < 0 ||
-        cpuMapOverride(map) < 0) {
-        VIR_FREE(map);
-        return EXIT_FAILURE;
-    }
 
 # define DO_TEST_FULL(name, migrateFrom, migrateFd, flags, ...)         \
     do {                                                                \
@@ -736,6 +733,9 @@ mymain(void)
     DO_TEST("disk-drive-cache-unsafe",
             QEMU_CAPS_DRIVE, QEMU_CAPS_DRIVE_CACHE_V2,
             QEMU_CAPS_DRIVE_CACHE_UNSAFE, QEMU_CAPS_DRIVE_FORMAT);
+    DO_TEST("disk-drive-copy-on-read",
+            QEMU_CAPS_DRIVE, QEMU_CAPS_DRIVE_CACHE_V2,
+            QEMU_CAPS_DRIVE_COPY_ON_READ, QEMU_CAPS_DRIVE_FORMAT);
     DO_TEST("disk-drive-network-nbd",
             QEMU_CAPS_DRIVE, QEMU_CAPS_DRIVE_FORMAT);
     DO_TEST("disk-drive-network-nbd-export",
@@ -1358,7 +1358,6 @@ mymain(void)
     virObjectUnref(driver.config);
     virObjectUnref(driver.caps);
     virObjectUnref(driver.xmlopt);
-    VIR_FREE(map);
 
     return ret == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }
