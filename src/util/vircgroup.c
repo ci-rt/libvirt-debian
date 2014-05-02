@@ -2832,40 +2832,101 @@ virCgroupDenyDevicePath(virCgroupPtr group, const char *path, int perms)
 }
 
 
+/* This function gets the sums of cpu time consumed by all vcpus.
+ * For example, if there are 4 physical cpus, and 2 vcpus in a domain,
+ * then for each vcpu, the cpuacct.usage_percpu looks like this:
+ *   t0 t1 t2 t3
+ * and we have 2 groups of such data:
+ *   v\p   0   1   2   3
+ *   0   t00 t01 t02 t03
+ *   1   t10 t11 t12 t13
+ * for each pcpu, the sum is cpu time consumed by all vcpus.
+ *   s0 = t00 + t10
+ *   s1 = t01 + t11
+ *   s2 = t02 + t12
+ *   s3 = t03 + t13
+ */
+static int
+virCgroupGetPercpuVcpuSum(virCgroupPtr group,
+                          unsigned int nvcpupids,
+                          unsigned long long *sum_cpu_time,
+                          unsigned int num)
+{
+    int ret = -1;
+    size_t i;
+    char *buf = NULL;
+    virCgroupPtr group_vcpu = NULL;
+
+    for (i = 0; i < nvcpupids; i++) {
+        char *pos;
+        unsigned long long tmp;
+        size_t j;
+
+        if (virCgroupNewVcpu(group, i, false, &group_vcpu) < 0)
+            goto cleanup;
+
+        if (virCgroupGetCpuacctPercpuUsage(group_vcpu, &buf) < 0)
+            goto cleanup;
+
+        pos = buf;
+        for (j = 0; j < num; j++) {
+            if (virStrToLong_ull(pos, &pos, 10, &tmp) < 0) {
+                virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                               _("cpuacct parse error"));
+                goto cleanup;
+            }
+            sum_cpu_time[j] += tmp;
+        }
+
+        virCgroupFree(&group_vcpu);
+        VIR_FREE(buf);
+    }
+
+    ret = 0;
+ cleanup:
+    virCgroupFree(&group_vcpu);
+    VIR_FREE(buf);
+    return ret;
+}
+
+
 int
 virCgroupGetPercpuStats(virCgroupPtr group,
                         virTypedParameterPtr params,
                         unsigned int nparams,
                         int start_cpu,
-                        unsigned int ncpus)
+                        unsigned int ncpus,
+                        unsigned int nvcpupids)
 {
     int rv = -1;
     size_t i;
-    int id, max_id;
+    int need_cpus, total_cpus;
     char *pos;
     char *buf = NULL;
+    unsigned long long *sum_cpu_time = NULL;
     virTypedParameterPtr ent;
     int param_idx;
     unsigned long long cpu_time;
 
     /* return the number of supported params */
-    if (nparams == 0 && ncpus != 0)
-        return CGROUP_NB_PER_CPU_STAT_PARAM;
-
-    /* To parse account file, we need to know how many cpus are present.  */
-    max_id = nodeGetCPUCount();
-    if (max_id < 0)
-        return rv;
-
-    if (ncpus == 0) { /* returns max cpu ID */
-        rv = max_id;
-        goto cleanup;
+    if (nparams == 0 && ncpus != 0) {
+        if (nvcpupids == 0)
+            return CGROUP_NB_PER_CPU_STAT_PARAM;
+        else
+            return CGROUP_NB_PER_CPU_STAT_PARAM + 1;
     }
 
-    if (start_cpu > max_id) {
+    /* To parse account file, we need to know how many cpus are present.  */
+    if ((total_cpus = nodeGetCPUCount()) < 0)
+        return rv;
+
+    if (ncpus == 0)
+        return total_cpus;
+
+    if (start_cpu >= total_cpus) {
         virReportError(VIR_ERR_INVALID_ARG,
                        _("start_cpu %d larger than maximum of %d"),
-                       start_cpu, max_id);
+                       start_cpu, total_cpus - 1);
         goto cleanup;
     }
 
@@ -2878,12 +2939,9 @@ virCgroupGetPercpuStats(virCgroupPtr group,
     param_idx = 0;
 
     /* number of cpus to compute */
-    if (start_cpu >= max_id - ncpus)
-        id = max_id - 1;
-    else
-        id = start_cpu + ncpus - 1;
+    need_cpus = MIN(total_cpus, start_cpu + ncpus);
 
-    for (i = 0; i <= id; i++) {
+    for (i = 0; i < need_cpus; i++) {
         if (virStrToLong_ull(pos, &pos, 10, &cpu_time) < 0) {
             virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                            _("cpuacct parse error"));
@@ -2897,9 +2955,30 @@ virCgroupGetPercpuStats(virCgroupPtr group,
             goto cleanup;
     }
 
-    rv = nparams;
+    if (nvcpupids == 0 || param_idx + 1 >= nparams)
+        goto success;
+    /* return percpu vcputime in index 1 */
+    param_idx++;
+
+    if (VIR_ALLOC_N(sum_cpu_time, need_cpus) < 0)
+        goto cleanup;
+    if (virCgroupGetPercpuVcpuSum(group, nvcpupids, sum_cpu_time, need_cpus) < 0)
+        goto cleanup;
+
+    for (i = start_cpu; i < need_cpus; i++) {
+        if (virTypedParameterAssign(&params[(i - start_cpu) * nparams +
+                                            param_idx],
+                                    VIR_DOMAIN_CPU_STATS_VCPUTIME,
+                                    VIR_TYPED_PARAM_ULLONG,
+                                    sum_cpu_time[i]) < 0)
+            goto cleanup;
+    }
+
+ success:
+    rv = param_idx + 1;
 
  cleanup:
+    VIR_FREE(sum_cpu_time);
     VIR_FREE(buf);
     return rv;
 }
@@ -3058,6 +3137,7 @@ virCgroupRemoveRecursively(char *grppath)
     DIR *grpdir;
     struct dirent *ent;
     int rc = 0;
+    int direrr;
 
     grpdir = opendir(grppath);
     if (grpdir == NULL) {
@@ -3068,16 +3148,10 @@ virCgroupRemoveRecursively(char *grppath)
         return rc;
     }
 
-    for (;;) {
+    /* This is best-effort cleanup: we want to log failures with just
+     * VIR_ERROR instead of normal virReportError */
+    while ((direrr = virDirRead(grpdir, &ent, NULL)) > 0) {
         char *path;
-
-        errno = 0;
-        ent = readdir(grpdir);
-        if (ent == NULL) {
-            if ((rc = -errno))
-                VIR_ERROR(_("Failed to readdir for %s (%d)"), grppath, errno);
-            break;
-        }
 
         if (ent->d_name[0] == '.') continue;
         if (ent->d_type != DT_DIR) continue;
@@ -3091,6 +3165,11 @@ virCgroupRemoveRecursively(char *grppath)
         if (rc != 0)
             break;
     }
+    if (direrr < 0) {
+        rc = -errno;
+        VIR_ERROR(_("Failed to readdir for %s (%d)"), grppath, errno);
+    }
+
     closedir(grpdir);
 
     VIR_DEBUG("Removing cgroup %s", grppath);
@@ -3294,6 +3373,7 @@ virCgroupKillRecursiveInternal(virCgroupPtr group,
     DIR *dp;
     virCgroupPtr subgroup = NULL;
     struct dirent *ent;
+    int direrr;
     VIR_DEBUG("group=%p path=%s signum=%d pids=%p",
               group, group->path, signum, pids);
 
@@ -3317,7 +3397,7 @@ virCgroupKillRecursiveInternal(virCgroupPtr group,
         return -1;
     }
 
-    while ((ent = readdir(dp))) {
+    while ((direrr = virDirRead(dp, &ent, keypath)) > 0) {
         if (STREQ(ent->d_name, "."))
             continue;
         if (STREQ(ent->d_name, ".."))
@@ -3341,6 +3421,8 @@ virCgroupKillRecursiveInternal(virCgroupPtr group,
 
         virCgroupFree(&subgroup);
     }
+    if (direrr < 0)
+        goto cleanup;
 
  done:
     ret = killedAny ? 1 : 0;
@@ -3622,6 +3704,7 @@ int virCgroupSetOwner(virCgroupPtr cgroup,
     size_t i;
     char *base = NULL, *entry = NULL;
     DIR *dh = NULL;
+    int direrr;
 
     for (i = 0; i < VIR_CGROUP_CONTROLLER_LAST; i++) {
         struct dirent *de;
@@ -3642,7 +3725,7 @@ int virCgroupSetOwner(virCgroupPtr cgroup,
             goto cleanup;
         }
 
-        while ((de = readdir(dh)) != NULL) {
+        while ((direrr = virDirRead(dh, &de, base)) > 0) {
             if (STREQ(de->d_name, ".") ||
                 STREQ(de->d_name, ".."))
                 continue;
@@ -3659,6 +3742,8 @@ int virCgroupSetOwner(virCgroupPtr cgroup,
 
             VIR_FREE(entry);
         }
+        if (direrr < 0)
+            goto cleanup;
 
         if (chown(base, uid, gid) < 0) {
             virReportSystemError(errno,
@@ -4390,7 +4475,8 @@ virCgroupGetPercpuStats(virCgroupPtr group ATTRIBUTE_UNUSED,
                         virTypedParameterPtr params ATTRIBUTE_UNUSED,
                         unsigned int nparams ATTRIBUTE_UNUSED,
                         int start_cpu ATTRIBUTE_UNUSED,
-                        unsigned int ncpus ATTRIBUTE_UNUSED)
+                        unsigned int ncpus ATTRIBUTE_UNUSED,
+                        unsigned int nvcpupids ATTRIBUTE_UNUSED)
 {
     virReportSystemError(ENOSYS, "%s",
                          _("Control groups not supported on this platform"));

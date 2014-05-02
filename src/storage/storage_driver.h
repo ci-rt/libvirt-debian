@@ -24,36 +24,18 @@
 #ifndef __VIR_STORAGE_DRIVER_H__
 # define __VIR_STORAGE_DRIVER_H__
 
+# include <sys/stat.h>
+
 # include "storage_conf.h"
-# include "conf/domain_conf.h"
-# include "conf/snapshot_conf.h"
+# include "virstoragefile.h"
 
-typedef struct _virStorageFileBackend virStorageFileBackend;
-typedef virStorageFileBackend *virStorageFileBackendPtr;
+int
+virStorageFileInit(virStorageSourcePtr src);
+void virStorageFileDeinit(virStorageSourcePtr src);
 
-typedef struct _virStorageFile virStorageFile;
-typedef virStorageFile *virStorageFilePtr;
-struct _virStorageFile {
-    virStorageFileBackendPtr backend;
-    void *priv;
-
-    char *path;
-    int type;
-    int protocol;
-
-    size_t nhosts;
-    virDomainDiskHostDefPtr hosts;
-};
-
-virStorageFilePtr
-virStorageFileInitFromDiskDef(virDomainDiskDefPtr disk);
-virStorageFilePtr
-virStorageFileInitFromSnapshotDef(virDomainSnapshotDiskDefPtr disk);
-void virStorageFileFree(virStorageFilePtr file);
-
-int virStorageFileCreate(virStorageFilePtr file);
-int virStorageFileUnlink(virStorageFilePtr file);
-int virStorageFileStat(virStorageFilePtr file,
+int virStorageFileCreate(virStorageSourcePtr src);
+int virStorageFileUnlink(virStorageSourcePtr src);
+int virStorageFileStat(virStorageSourcePtr src,
                        struct stat *stat);
 
 int storageRegister(void);

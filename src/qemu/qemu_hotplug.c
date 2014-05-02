@@ -138,7 +138,7 @@ int qemuDomainChangeEjectableMedia(virQEMUDriverPtr driver,
         int type = virDomainDiskGetType(disk);
         int diskFormat = virDomainDiskGetFormat(disk);
 
-        if (type != VIR_DOMAIN_DISK_TYPE_DIR) {
+        if (type != VIR_STORAGE_TYPE_DIR) {
             if (diskFormat > 0) {
                 format = virStorageFileFormatTypeToString(diskFormat);
             } else {
@@ -1191,7 +1191,7 @@ qemuDomainAttachHostPCIDevice(virQEMUDriverPtr driver,
     /* this could have been changed by qemuPrepareHostdevPCIDevices */
     backend = hostdev->source.subsys.u.pci.backend;
 
-    switch ((virDomainHostdevSubsysPciBackendType) backend) {
+    switch ((virDomainHostdevSubsysPCIBackendType) backend) {
     case VIR_DOMAIN_HOSTDEV_PCI_BACKEND_VFIO:
         if (!virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE_VFIO_PCI)) {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
@@ -1710,7 +1710,6 @@ qemuDomainNetGetBridgeName(virConnectPtr conn, virDomainNetDefPtr net)
         if (VIR_STRDUP(brname, tmpbr) < 0)
             goto cleanup;
     } else if (actualType == VIR_DOMAIN_NET_TYPE_NETWORK) {
-        int active;
         virErrorPtr errobj;
         virNetworkPtr network;
 
@@ -1720,15 +1719,7 @@ qemuDomainNetGetBridgeName(virConnectPtr conn, virDomainNetDefPtr net)
                            net->data.network.name);
             goto cleanup;
         }
-
-        active = virNetworkIsActive(network);
-        if (active == 1) {
-            brname = virNetworkGetBridgeName(network);
-        } else if (active == 0) {
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("Network '%s' is not active."),
-                           net->data.network.name);
-        }
+        brname = virNetworkGetBridgeName(network);
 
         /* Make sure any above failure is preserved */
         errobj = virSaveLastError();
@@ -3362,21 +3353,10 @@ qemuDomainDetachNetDevice(virQEMUDriverPtr driver,
     qemuDomainObjPrivatePtr priv = vm->privateData;
     int vlan;
     char *hostnet_name = NULL;
-    char mac[VIR_MAC_STRING_BUFLEN];
 
-    detachidx = virDomainNetFindIdx(vm->def, dev->data.net);
-    if (detachidx == -2) {
-        virReportError(VIR_ERR_OPERATION_FAILED,
-                       _("multiple devices matching mac address %s found"),
-                       virMacAddrFormat(&dev->data.net->mac, mac));
+    if ((detachidx = virDomainNetFindIdx(vm->def, dev->data.net)) < 0)
         goto cleanup;
-    }
-    else if (detachidx < 0) {
-        virReportError(VIR_ERR_OPERATION_FAILED,
-                       _("network device %s not found"),
-                       virMacAddrFormat(&dev->data.net->mac, mac));
-        goto cleanup;
-    }
+
     detach = vm->def->nets[detachidx];
 
     if (virDomainNetGetActualType(detach) == VIR_DOMAIN_NET_TYPE_HOSTDEV) {

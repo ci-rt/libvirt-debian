@@ -827,6 +827,9 @@ libxlMakeDisk(virDomainDiskDefPtr l_disk, libxl_device_disk *x_disk)
     x_disk->removable = 1;
     x_disk->readwrite = !l_disk->readonly;
     x_disk->is_cdrom = l_disk->device == VIR_DOMAIN_DISK_DEVICE_CDROM ? 1 : 0;
+    /* An empty CDROM must have the empty format, otherwise libxl fails. */
+    if (x_disk->is_cdrom && !x_disk->pdev_path)
+        x_disk->format = LIBXL_DISK_FORMAT_EMPTY;
     if (l_disk->transient) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                        _("libxenlight does not support transient disks"));
@@ -1176,7 +1179,7 @@ libxlDriverConfigGet(libxlDriverPrivatePtr driver)
 }
 
 int
-libxlMakePci(virDomainHostdevDefPtr hostdev, libxl_device_pci *pcidev)
+libxlMakePCI(virDomainHostdevDefPtr hostdev, libxl_device_pci *pcidev)
 {
     if (hostdev->mode != VIR_DOMAIN_HOSTDEV_MODE_SUBSYS)
         return -1;
@@ -1192,7 +1195,7 @@ libxlMakePci(virDomainHostdevDefPtr hostdev, libxl_device_pci *pcidev)
 }
 
 static int
-libxlMakePciList(virDomainDefPtr def, libxl_domain_config *d_config)
+libxlMakePCIList(virDomainDefPtr def, libxl_domain_config *d_config)
 {
     virDomainHostdevDefPtr *l_hostdevs = def->hostdevs;
     size_t nhostdevs = def->nhostdevs;
@@ -1214,7 +1217,7 @@ libxlMakePciList(virDomainDefPtr def, libxl_domain_config *d_config)
 
         libxl_device_pci_init(&x_pcidevs[j]);
 
-        if (libxlMakePci(l_hostdevs[i], &x_pcidevs[j]) < 0)
+        if (libxlMakePCI(l_hostdevs[i], &x_pcidevs[j]) < 0)
             goto error;
 
         npcidevs++;
@@ -1319,7 +1322,7 @@ libxlBuildDomainConfig(libxlDriverPrivatePtr driver,
     if (libxlMakeVfbList(driver, def, d_config) < 0)
         return -1;
 
-    if (libxlMakePciList(def, d_config) < 0)
+    if (libxlMakePCIList(def, d_config) < 0)
         return -1;
 
     d_config->on_reboot = def->onReboot;

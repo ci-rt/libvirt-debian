@@ -43,7 +43,7 @@ in.
 <tr>
 <td><a href="html/libvirt-libvirt.html#virConnectBaselineCPU">virConnectBaselineCPU</a></td>
 <td>0.7.7</td>
-<td></td>
+<td>1.2.4</td>
 <td></td>
 <td></td>
 <td></td>
@@ -83,7 +83,7 @@ in.
 <tr>
 <td><a href="html/libvirt-libvirt.html#virConnectCompareCPU">virConnectCompareCPU</a></td>
 <td>0.7.5</td>
-<td></td>
+<td>1.2.4</td>
 <td></td>
 <td></td>
 <td></td>
@@ -1043,7 +1043,7 @@ in.
 <tr>
 <td><a href="html/libvirt-libvirt.html#virDomainCreateLinux">virDomainCreateLinux</a></td>
 <td>0.0.3</td>
-<td></td>
+<td>1.2.4</td>
 <td></td>
 <td></td>
 <td>0.9.0</td>
@@ -1103,7 +1103,7 @@ in.
 <tr>
 <td><a href="html/libvirt-libvirt.html#virDomainCreateXML">virDomainCreateXML</a></td>
 <td>0.5.0</td>
-<td></td>
+<td>1.2.4</td>
 <td></td>
 <td></td>
 <td>0.9.0</td>
@@ -1263,7 +1263,7 @@ in.
 <tr>
 <td><a href="html/libvirt-libvirt.html#virDomainGetAutostart">virDomainGetAutostart</a></td>
 <td>0.2.1</td>
-<td></td>
+<td>1.2.4</td>
 <td>0.9.0</td>
 <td></td>
 <td>0.9.0</td>
@@ -1643,7 +1643,7 @@ in.
 <tr>
 <td><a href="html/libvirt-libvirt.html#virDomainGetMetadata">virDomainGetMetadata</a></td>
 <td>0.9.10</td>
-<td></td>
+<td>1.2.4</td>
 <td></td>
 <td></td>
 <td></td>
@@ -2783,7 +2783,7 @@ in.
 <tr>
 <td><a href="html/libvirt-libvirt.html#virDomainOpenConsole">virDomainOpenConsole</a></td>
 <td>0.8.6</td>
-<td></td>
+<td>1.2.4</td>
 <td></td>
 <td></td>
 <td>1.1.2</td>
@@ -3283,7 +3283,7 @@ in.
 <tr>
 <td><a href="html/libvirt-libvirt.html#virDomainSetAutostart">virDomainSetAutostart</a></td>
 <td>0.2.1</td>
-<td></td>
+<td>1.2.4</td>
 <td>0.9.0</td>
 <td></td>
 <td>0.9.0</td>
@@ -3463,7 +3463,7 @@ in.
 <tr>
 <td><a href="html/libvirt-libvirt.html#virDomainSetMetadata">virDomainSetMetadata</a></td>
 <td>0.9.10</td>
-<td></td>
+<td>1.2.4</td>
 <td></td>
 <td></td>
 <td></td>

@@ -421,6 +421,12 @@ sc_prohibit_gethostname:
 	halt='use virGetHostname, not gethostname'			\
 	  $(_sc_search_regexp)
 
+sc_prohibit_readdir:
+	@prohibit='\breaddir *\('					\
+	exclude='exempt from syntax-check'				\
+	halt='use virDirRead, not readdir'				\
+	  $(_sc_search_regexp)
+
 sc_prohibit_gettext_noop:
 	@prohibit='gettext_noop *\('					\
 	halt='use N_, not gettext_noop'					\
@@ -760,17 +766,17 @@ sc_prohibit_gettext_markup:
 # lower-level code must not include higher-level headers.
 cross_dirs=$(patsubst $(srcdir)/src/%.,%,$(wildcard $(srcdir)/src/*/.))
 cross_dirs_re=($(subst / ,/|,$(cross_dirs)))
+mid_dirs=access|conf|cpu|locking|network|node_device|rpc|security|storage
 sc_prohibit_cross_inclusion:
 	@for dir in $(cross_dirs); do					\
 	  case $$dir in							\
 	    util/) safe="util";;					\
-	    locking/)							\
-	      safe="($$dir|util|conf|rpc)";;				\
-	    cpu/ | locking/ | network/ | rpc/ | security/)		\
+	    access/ | conf/) safe="($$dir|conf|util)";;			\
+	    locking/) safe="($$dir|util|conf|rpc)";;			\
+	    cpu/| network/| node_device/| rpc/| security/| storage/)	\
 	      safe="($$dir|util|conf)";;				\
 	    xenapi/ | xenxs/ ) safe="($$dir|util|conf|xen)";;		\
-	    qemu/ ) safe="($$dir|util|conf|cpu|network|locking|rpc|security|storage)";; \
-	    *) safe="($$dir|util|conf|cpu|network|locking|rpc|security)";; \
+	    *) safe="($$dir|$(mid_dirs)|util)";;			\
 	  esac;								\
 	  in_vc_files="^src/$$dir"					\
 	  prohibit='^# *include .$(cross_dirs_re)'			\
@@ -916,6 +922,12 @@ sc_prohibit_windows_special_chars_in_filename:
 	@files=$$($(VC_LIST_EXCEPT) | grep '[:*?"<>|]');               \
 	test -n "$$files" && { echo '$(ME): Windows special chars'     \
 	  'in filename not allowed:' 1>&2; echo $$files 1>&2; exit 1; } || :
+
+sc_prohibit_mixed_case_abbreviations:
+	@prohibit='Pci|Usb|Scsi'			\
+	in_vc_files='\.[ch]$$'				\
+	halt='Use PCI, USB, SCSI, not Pci, Usb, Scsi'	\
+	  $(_sc_search_regexp)
 
 # We don't use this feature of maint.mk.
 prev_version_file = /dev/null
@@ -1089,3 +1101,6 @@ exclude_file_name_regexp--sc_prohibit_getenv = \
 
 exclude_file_name_regexp--sc_avoid_attribute_unused_in_header = \
   ^src/util/virlog\.h$$
+
+exclude_file_name_regexp--sc_prohibit_mixed_case_abbreviations = \
+  ^src/(vbox/vbox_CAPI.*.h|esx/esx_vi.(c|h)|esx/esx_storage_backend_iscsi.c)$$

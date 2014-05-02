@@ -1871,10 +1871,6 @@ qemuProcessFindCharDevicePTYs(virDomainObjPtr vm,
     return 0;
 }
 
-static void qemuProcessFreePtyPath(void *payload, const void *name ATTRIBUTE_UNUSED)
-{
-    VIR_FREE(payload);
-}
 
 static int
 qemuProcessWaitForMonitor(virQEMUDriverPtr driver,
@@ -1911,7 +1907,7 @@ qemuProcessWaitForMonitor(virQEMUDriverPtr driver,
      * reliable if it's available.
      * Note that the monitor itself can be on a pty, so we still need to try the
      * log output method. */
-    paths = virHashCreate(0, qemuProcessFreePtyPath);
+    paths = virHashCreate(0, virHashValueFree);
     if (paths == NULL)
         goto cleanup;
 
@@ -3811,11 +3807,6 @@ int qemuProcessStart(virConnectPtr conn,
     if (qemuAssignDeviceAliases(vm->def, priv->qemuCaps) < 0)
         goto cleanup;
 
-    if (qemuDomainCheckDiskPresence(driver, vm,
-                                    flags & VIR_QEMU_PROCESS_START_COLD) < 0)
-        goto cleanup;
-
-
     /* Get the advisory nodeset from numad if 'placement' of
      * either <vcpu> or <numatune> is 'auto'.
      */
@@ -3843,6 +3834,10 @@ int qemuProcessStart(virConnectPtr conn,
         if (qemuTranslateDiskSourcePool(conn, vm->def->disks[i]) < 0)
             goto cleanup;
     }
+
+    if (qemuDomainCheckDiskPresence(driver, vm,
+                                    flags & VIR_QEMU_PROCESS_START_COLD) < 0)
+        goto cleanup;
 
     if (VIR_ALLOC(priv->monConfig) < 0)
         goto cleanup;
@@ -4582,7 +4577,7 @@ int qemuProcessAttach(virConnectPtr conn ATTRIBUTE_UNUSED,
         model = virSecurityManagerGetModel(sec_managers[i]);
         seclabeldef = virDomainDefGetSecurityLabelDef(vm->def, model);
         if (seclabeldef == NULL) {
-            if (!(seclabeldef = virDomainDefGenSecurityLabelDef(model)))
+            if (!(seclabeldef = virSecurityLabelDefNew(model)))
                 goto error;
             seclabelgen = true;
         }

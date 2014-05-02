@@ -178,7 +178,7 @@ virSecuritySELinuxMCSFind(virSecurityManagerPtr mgr,
  * the category part, since that's what we're really
  * interested in. This won't work in Enforcing mode,
  * but will prevent libvirtd breaking in Permissive
- * mode when run with a wierd process label.
+ * mode when run with a weird process label.
  */
 static int
 virSecuritySELinuxMCSGetProcessRange(char **sens,
@@ -920,8 +920,7 @@ virSecuritySELinuxSetFileconHelper(const char *path, char *tcon, bool optional)
                 return -1;
         } else {
             const char *msg;
-            if ((virStorageFileIsSharedFSType(path,
-                                              VIR_STORAGE_FILE_SHFS_NFS) == 1) &&
+            if (virFileIsSharedFSType(path, VIR_FILE_SHFS_NFS) == 1 &&
                 security_get_boolean_active("virt_use_nfs") != 1) {
                 msg = _("Setting security context '%s' on '%s' not supported. "
                         "Consider setting virt_use_nfs");
@@ -1149,7 +1148,7 @@ virSecuritySELinuxRestoreSecurityImageLabelInt(virSecurityManagerPtr mgr,
      * be tracked in domain XML, at which point labelskip should be a
      * per-file attribute instead of a disk attribute.  */
     if (disk_seclabel && disk_seclabel->labelskip &&
-        !disk->backingChain)
+        !disk->src.backingStore)
         return 0;
 
     /* Don't restore labels on readoly/shared disks, because
@@ -1163,7 +1162,7 @@ virSecuritySELinuxRestoreSecurityImageLabelInt(virSecurityManagerPtr mgr,
     if (disk->readonly || disk->shared)
         return 0;
 
-    if (!src || virDomainDiskGetType(disk) == VIR_DOMAIN_DISK_TYPE_NETWORK)
+    if (!src || virDomainDiskGetType(disk) == VIR_STORAGE_TYPE_NETWORK)
         return 0;
 
     /* If we have a shared FS & doing migrated, we must not
@@ -1172,7 +1171,7 @@ virSecuritySELinuxRestoreSecurityImageLabelInt(virSecurityManagerPtr mgr,
      * VM's I/O attempts :-)
      */
     if (migrated) {
-        int rc = virStorageFileIsSharedFS(src);
+        int rc = virFileIsSharedFS(src);
         if (rc < 0)
             return -1;
         if (rc == 1) {
@@ -1233,7 +1232,7 @@ virSecuritySELinuxSetSecurityFileLabel(virDomainDiskDefPtr disk,
     if (ret == 1 && !disk_seclabel) {
         /* If we failed to set a label, but virt_use_nfs let us
          * proceed anyway, then we don't need to relabel later.  */
-        disk_seclabel = virDomainDiskDefGenSecurityLabelDef(SECURITY_SELINUX_NAME);
+        disk_seclabel = virSecurityDeviceLabelDefNew(SECURITY_SELINUX_NAME);
         if (!disk_seclabel)
             return -1;
         disk_seclabel->labelskip = true;
@@ -1263,7 +1262,7 @@ virSecuritySELinuxSetSecurityImageLabel(virSecurityManagerPtr mgr,
     if (cbdata.secdef->norelabel)
         return 0;
 
-    if (virDomainDiskGetType(disk) == VIR_DOMAIN_DISK_TYPE_NETWORK)
+    if (virDomainDiskGetType(disk) == VIR_STORAGE_TYPE_NETWORK)
         return 0;
 
     return virDomainDiskDefForeachPath(disk,
@@ -2272,7 +2271,7 @@ virSecuritySELinuxSetSecurityAllLabel(virSecurityManagerPtr mgr,
 
     for (i = 0; i < def->ndisks; i++) {
         /* XXX fixme - we need to recursively label the entire tree :-( */
-        if (virDomainDiskGetType(def->disks[i]) == VIR_DOMAIN_DISK_TYPE_DIR) {
+        if (virDomainDiskGetType(def->disks[i]) == VIR_STORAGE_TYPE_DIR) {
             VIR_WARN("Unable to relabel directory tree %s for disk %s",
                      virDomainDiskGetSource(def->disks[i]),
                      def->disks[i]->dst);
@@ -2323,8 +2322,7 @@ virSecuritySELinuxSetSecurityAllLabel(virSecurityManagerPtr mgr,
 
     if (stdin_path) {
         if (virSecuritySELinuxSetFilecon(stdin_path, data->content_context) < 0 &&
-            virStorageFileIsSharedFSType(stdin_path,
-                                         VIR_STORAGE_FILE_SHFS_NFS) != 1)
+            virFileIsSharedFSType(stdin_path, VIR_FILE_SHFS_NFS) != 1)
             return -1;
     }
 

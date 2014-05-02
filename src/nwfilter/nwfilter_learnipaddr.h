@@ -27,6 +27,7 @@
 # define __NWFILTER_LEARNIPADDR_H
 
 # include "conf/nwfilter_params.h"
+# include "nwfilter_tech_driver.h"
 # include <net/if.h>
 
 enum howDetect {
@@ -41,7 +42,6 @@ struct _virNWFilterIPAddrLearnReq {
     char ifname[IF_NAMESIZE];
     int ifindex;
     char linkdev[IF_NAMESIZE];
-    enum virDomainNetType nettype;
     virMacAddr macaddr;
     char *filtername;
     virNWFilterHashTablePtr filterparams;
@@ -57,7 +57,6 @@ int virNWFilterLearnIPAddress(virNWFilterTechDriverPtr techdriver,
                               const char *ifname,
                               int ifindex,
                               const char *linkdev,
-                              enum virDomainNetType nettype,
                               const virMacAddr *macaddr,
                               const char *filtername,
                               virNWFilterHashTablePtr filterparams,

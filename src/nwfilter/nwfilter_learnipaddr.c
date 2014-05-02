@@ -119,10 +119,10 @@ struct ether_vlan_header
 } ATTRIBUTE_PACKED;
 
 
-static virMutex pendingLearnReqLock;
+static virMutex pendingLearnReqLock = VIR_MUTEX_INITIALIZER;
 static virHashTablePtr pendingLearnReq;
 
-static virMutex ifaceMapLock;
+static virMutex ifaceMapLock = VIR_MUTEX_INITIALIZER;
 static virHashTablePtr ifaceLockMap;
 
 typedef struct _virNWFilterIfaceLock virNWFilterIfaceLock;
@@ -185,13 +185,6 @@ virNWFilterLockIface(const char *ifname)
     virMutexUnlock(&ifaceMapLock);
 
     return -1;
-}
-
-
-static void
-freeIfaceLock(void *payload, const void *name ATTRIBUTE_UNUSED)
-{
-    VIR_FREE(payload);
 }
 
 
@@ -629,7 +622,6 @@ learnIPAddressThread(void *arg)
                                                    req->ifname,
                                                    req->ifindex,
                                                    req->linkdev,
-                                                   req->nettype,
                                                    &req->macaddr,
                                                    req->filtername,
                                                    req->filterparams);
@@ -668,7 +660,6 @@ learnIPAddressThread(void *arg)
  * @ifindex: the index of the interface
  * @linkdev : the name of the link device; currently only used in case of a
  *     macvtap device
- * @nettype : the type of interface
  * @macaddr : the MAC address of the interface
  * @filtername : the name of the top-level filter to apply to the interface
  *               once its IP address has been detected
@@ -688,7 +679,6 @@ virNWFilterLearnIPAddress(virNWFilterTechDriverPtr techdriver,
                           const char *ifname,
                           int ifindex,
                           const char *linkdev,
-                          enum virDomainNetType nettype,
                           const virMacAddr *macaddr,
                           const char *filtername,
                           virNWFilterHashTablePtr filterparams,
@@ -740,7 +730,6 @@ virNWFilterLearnIPAddress(virNWFilterTechDriverPtr techdriver,
     }
 
     req->ifindex = ifindex;
-    req->nettype = nettype;
     virMacAddrSet(&req->macaddr, macaddr);
     req->driver = driver;
     req->filterparams = ht;
@@ -778,7 +767,6 @@ virNWFilterLearnIPAddress(virNWFilterTechDriverPtr techdriver ATTRIBUTE_UNUSED,
                           const char *ifname ATTRIBUTE_UNUSED,
                           int ifindex ATTRIBUTE_UNUSED,
                           const char *linkdev ATTRIBUTE_UNUSED,
-                          enum virDomainNetType nettype ATTRIBUTE_UNUSED,
                           const virMacAddr *macaddr ATTRIBUTE_UNUSED,
                           const char *filtername ATTRIBUTE_UNUSED,
                           virNWFilterHashTablePtr filterparams ATTRIBUTE_UNUSED,
@@ -813,18 +801,8 @@ virNWFilterLearnInit(void)
         return -1;
     }
 
-    if (virMutexInit(&pendingLearnReqLock) < 0) {
-        virNWFilterLearnShutdown();
-        return -1;
-    }
-
-    ifaceLockMap = virHashCreate(0, freeIfaceLock);
+    ifaceLockMap = virHashCreate(0, virHashValueFree);
     if (!ifaceLockMap) {
-        virNWFilterLearnShutdown();
-        return -1;
-    }
-
-    if (virMutexInit(&ifaceMapLock) < 0) {
         virNWFilterLearnShutdown();
         return -1;
     }

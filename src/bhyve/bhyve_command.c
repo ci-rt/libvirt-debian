@@ -116,6 +116,38 @@ bhyveBuildNetArgStr(const virDomainDef *def, virCommandPtr cmd)
 }
 
 static int
+bhyveBuildConsoleArgStr(const virDomainDef *def, virCommandPtr cmd)
+{
+
+    virDomainChrDefPtr chr = NULL;
+
+    if (!def->nserials)
+        return 0;
+
+    chr = def->serials[0];
+
+    if (chr->source.type != VIR_DOMAIN_CHR_TYPE_NMDM) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("only nmdm console types are supported"));
+        return -1;
+    }
+
+    /* bhyve supports only two ports: com1 and com2 */
+    if (chr->target.port > 2) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("only two serial ports are supported"));
+        return -1;
+    }
+
+    virCommandAddArgList(cmd, "-s", "31,lpc", NULL);
+    virCommandAddArg(cmd, "-l");
+    virCommandAddArgFormat(cmd, "com%d,%s",
+                           chr->target.port + 1, chr->source.data.file.path);
+
+    return 0;
+}
+
+static int
 bhyveBuildDiskArgStr(const virDomainDef *def, virCommandPtr cmd)
 {
     virDomainDiskDefPtr disk;
@@ -148,7 +180,7 @@ bhyveBuildDiskArgStr(const virDomainDef *def, virCommandPtr cmd)
         return -1;
     }
 
-    if (virDomainDiskGetType(disk) != VIR_DOMAIN_DISK_TYPE_FILE) {
+    if (virDomainDiskGetType(disk) != VIR_STORAGE_TYPE_FILE) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("unsupported disk type"));
         return -1;
@@ -210,6 +242,8 @@ virBhyveProcessBuildBhyveCmd(bhyveConnPtr driver ATTRIBUTE_UNUSED,
         goto error;
     if (bhyveBuildDiskArgStr(vm->def, cmd) < 0)
         goto error;
+    if (bhyveBuildConsoleArgStr(vm->def, cmd) < 0)
+        goto error;
     virCommandAddArg(cmd, vm->def->name);
 
     return cmd;
@@ -252,7 +286,7 @@ virBhyveProcessBuildLoadCmd(bhyveConnPtr driver ATTRIBUTE_UNUSED,
         return NULL;
     }
 
-    if (virDomainDiskGetType(disk) != VIR_DOMAIN_DISK_TYPE_FILE) {
+    if (virDomainDiskGetType(disk) != VIR_STORAGE_TYPE_FILE) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("unsupported disk type"));
         return NULL;

@@ -1,7 +1,7 @@
 /*
  * storage_backend_disk.c: storage backend for disk handling
  *
- * Copyright (C) 2007-2008, 2010-2013 Red Hat, Inc.
+ * Copyright (C) 2007-2014 Red Hat, Inc.
  * Copyright (C) 2007-2008 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -39,8 +39,6 @@
 #define VIR_FROM_THIS VIR_FROM_STORAGE
 
 VIR_LOG_INIT("storage.storage_backend_disk");
-
-#define PARTHELPER LIBEXECDIR "/libvirt_parthelper"
 
 #define SECTOR_SIZE 512
 
@@ -113,29 +111,29 @@ virStorageBackendDiskMakeDataVol(virStoragePoolObjPtr pool,
     }
 
     /* Refresh allocation/capacity/perms */
-    if (virStorageBackendUpdateVolInfo(vol, true, false,
+    if (virStorageBackendUpdateVolInfo(vol, false,
                                        VIR_STORAGE_VOL_OPEN_DEFAULT) < 0)
         return -1;
 
     /* set partition type */
     if (STREQ(groups[1], "normal"))
-       vol->target.type = VIR_STORAGE_VOL_DISK_TYPE_PRIMARY;
+       vol->source.partType = VIR_STORAGE_VOL_DISK_TYPE_PRIMARY;
     else if (STREQ(groups[1], "logical"))
-       vol->target.type = VIR_STORAGE_VOL_DISK_TYPE_LOGICAL;
+       vol->source.partType = VIR_STORAGE_VOL_DISK_TYPE_LOGICAL;
     else if (STREQ(groups[1], "extended"))
-       vol->target.type = VIR_STORAGE_VOL_DISK_TYPE_EXTENDED;
+       vol->source.partType = VIR_STORAGE_VOL_DISK_TYPE_EXTENDED;
     else
-       vol->target.type = VIR_STORAGE_VOL_DISK_TYPE_NONE;
+       vol->source.partType = VIR_STORAGE_VOL_DISK_TYPE_NONE;
 
     vol->type = VIR_STORAGE_VOL_BLOCK;
 
     /* The above gets allocation wrong for
      * extended partitions, so overwrite it */
-    vol->allocation = vol->capacity =
+    vol->target.allocation = vol->target.capacity =
         (vol->source.extents[0].end - vol->source.extents[0].start);
 
     if (STRNEQ(groups[2], "metadata"))
-        pool->def->allocation += vol->allocation;
+        pool->def->allocation += vol->target.allocation;
     if (vol->source.extents[0].end > pool->def->capacity)
         pool->def->capacity = vol->source.extents[0].end;
 
@@ -262,14 +260,23 @@ virStorageBackendDiskReadPartitions(virStoragePoolObjPtr pool,
      * -              normal   metadata 100027630080 100030242304      2612736
      *
      */
-    virCommandPtr cmd = virCommandNewArgList(PARTHELPER,
-                                             pool->def->source.devices[0].path,
-                                             NULL);
+
+    char *parthelper_path;
+    virCommandPtr cmd;
     struct virStorageBackendDiskPoolVolData cbdata = {
         .pool = pool,
         .vol = vol,
     };
     int ret;
+
+    if (!(parthelper_path = virFileFindResource("libvirt_parthelper",
+                                                "src",
+                                                LIBEXECDIR)))
+        return -1;
+
+    cmd = virCommandNewArgList(parthelper_path,
+                               pool->def->source.devices[0].path,
+                               NULL);
 
     pool->def->allocation = pool->def->capacity = pool->def->available = 0;
 
@@ -278,6 +285,7 @@ virStorageBackendDiskReadPartitions(virStoragePoolObjPtr pool,
                            virStorageBackendDiskMakeVol,
                            &cbdata);
     virCommandFree(cmd);
+    VIR_FREE(parthelper_path);
     return ret;
 }
 
@@ -302,17 +310,26 @@ virStorageBackendDiskMakePoolGeometry(size_t ntok ATTRIBUTE_UNUSED,
 static int
 virStorageBackendDiskReadGeometry(virStoragePoolObjPtr pool)
 {
-    virCommandPtr cmd = virCommandNewArgList(PARTHELPER,
+    char *parthelper_path;
+    virCommandPtr cmd;
+    int ret;
+
+    if (!(parthelper_path = virFileFindResource("libvirt_parthelper",
+                                                "src",
+                                                LIBEXECDIR)))
+        return -1;
+
+    cmd = virCommandNewArgList(parthelper_path,
                                              pool->def->source.devices[0].path,
                                              "-g",
                                              NULL);
-    int ret;
 
     ret = virCommandRunNul(cmd,
                            3,
                            virStorageBackendDiskMakePoolGeometry,
                            pool);
     virCommandFree(cmd);
+    VIR_FREE(parthelper_path);
     return ret;
 }
 
@@ -440,15 +457,15 @@ static int
 virStorageBackendDiskPartTypeToCreate(virStoragePoolObjPtr pool)
 {
     if (pool->def->source.format == VIR_STORAGE_POOL_DISK_DOS) {
-        /* count primary and extended paritions,
+        /* count primary and extended partitions,
            can't be more than 3 to create a new primary partition */
         size_t i;
         int count = 0;
         for (i = 0; i < pool->volumes.count; i++) {
-             if (pool->volumes.objs[i]->target.type == VIR_STORAGE_VOL_DISK_TYPE_PRIMARY ||
-                 pool->volumes.objs[i]->target.type == VIR_STORAGE_VOL_DISK_TYPE_EXTENDED) {
-                     count++;
-             }
+            int partType = pool->volumes.objs[i]->source.partType;
+            if (partType == VIR_STORAGE_VOL_DISK_TYPE_PRIMARY ||
+                partType == VIR_STORAGE_VOL_DISK_TYPE_EXTENDED)
+                count++;
         }
         if (count >= 4) {
             return VIR_STORAGE_VOL_DISK_TYPE_LOGICAL;
@@ -532,10 +549,10 @@ virStorageBackendDiskPartFormat(virStoragePoolObjPtr pool,
  * partitions
  */
 static int
-virStorageBackendDiskPartBoundries(virStoragePoolObjPtr pool,
-                                   unsigned long long *start,
-                                   unsigned long long *end,
-                                   unsigned long long allocation)
+virStorageBackendDiskPartBoundaries(virStoragePoolObjPtr pool,
+                                    unsigned long long *start,
+                                    unsigned long long *end,
+                                    unsigned long long allocation)
 {
     size_t i;
     int smallestExtent = -1;
@@ -568,7 +585,7 @@ virStorageBackendDiskPartBoundries(virStoragePoolObjPtr pool,
                     the extra bytes we have */
                  neededSize += cylinderSize;
              }
-             /* if we are creating a logical patition, we need one extra
+             /* if we are creating a logical partition, we need one extra
                 block between partitions (or actually move start one block) */
              if (partType == VIR_STORAGE_VOL_DISK_TYPE_LOGICAL) {
                  size -= SECTOR_SIZE;
@@ -614,7 +631,7 @@ virStorageBackendDiskPartBoundries(virStoragePoolObjPtr pool,
         *end -= (*start % cylinderSize);
     }
 
-    /* counting in byte, we want the last byte of the current sector */
+    /* counting in bytes, we want the last byte of the current sector */
     *end -= 1;
     VIR_DEBUG("final aligned start %llu, end %llu", *start, *end);
     return 0;
@@ -647,9 +664,9 @@ virStorageBackendDiskCreateVol(virConnectPtr conn ATTRIBUTE_UNUSED,
     }
     virCommandAddArg(cmd, partFormat);
 
-    if (virStorageBackendDiskPartBoundries(pool, &startOffset,
-                                           &endOffset,
-                                           vol->capacity) != 0) {
+    if (virStorageBackendDiskPartBoundaries(pool, &startOffset,
+                                            &endOffset,
+                                            vol->target.capacity) != 0) {
         goto cleanup;
     }
 

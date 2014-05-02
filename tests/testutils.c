@@ -459,10 +459,20 @@ int virtTestDifference(FILE *stream,
                        const char *expect,
                        const char *actual)
 {
-    const char *expectStart = expect;
-    const char *expectEnd = expect + (strlen(expect)-1);
-    const char *actualStart = actual;
-    const char *actualEnd = actual + (strlen(actual)-1);
+    const char *expectStart;
+    const char *expectEnd;
+    const char *actualStart;
+    const char *actualEnd;
+
+    if (!expect)
+        expect = "";
+    if (!actual)
+        actual = "";
+
+    expectStart = expect;
+    expectEnd = expect + (strlen(expect)-1);
+    actualStart = actual;
+    actualEnd = actual + (strlen(actual)-1);
 
     if (!virTestGetDebug())
         return 0;
@@ -678,6 +688,8 @@ int virtTestMain(int argc,
     char *oomstr;
 #endif
 
+    virFileActivateDirOverride(argv[0]);
+
     if (!virFileExists(abs_srcdir))
         return EXIT_AM_HARDFAIL;
 
@@ -840,6 +852,57 @@ int virtTestClearLineRegex(const char *pattern,
     regfree(&reg);
 
     return 0;
+}
+
+
+/*
+ * @cmdset contains a list of command line args, eg
+ *
+ * "/usr/sbin/iptables --table filter --insert INPUT --in-interface virbr0 --protocol tcp --destination-port 53 --jump ACCEPT
+ *  /usr/sbin/iptables --table filter --insert INPUT --in-interface virbr0 --protocol udp --destination-port 53 --jump ACCEPT
+ *  /usr/sbin/iptables --table filter --insert FORWARD --in-interface virbr0 --jump REJECT
+ *  /usr/sbin/iptables --table filter --insert FORWARD --out-interface virbr0 --jump REJECT
+ *  /usr/sbin/iptables --table filter --insert FORWARD --in-interface virbr0 --out-interface virbr0 --jump ACCEPT"
+ *
+ * And we're munging it in-place to strip the path component
+ * of the command line, to produce
+ *
+ * "iptables --table filter --insert INPUT --in-interface virbr0 --protocol tcp --destination-port 53 --jump ACCEPT
+ *  iptables --table filter --insert INPUT --in-interface virbr0 --protocol udp --destination-port 53 --jump ACCEPT
+ *  iptables --table filter --insert FORWARD --in-interface virbr0 --jump REJECT
+ *  iptables --table filter --insert FORWARD --out-interface virbr0 --jump REJECT
+ *  iptables --table filter --insert FORWARD --in-interface virbr0 --out-interface virbr0 --jump ACCEPT"
+ */
+void virtTestClearCommandPath(char *cmdset)
+{
+    size_t offset = 0;
+    char *lineStart = cmdset;
+    char *lineEnd = strchr(lineStart, '\n');
+
+    while (lineStart) {
+        char *dirsep;
+        char *movestart;
+        size_t movelen;
+        dirsep = strchr(lineStart, ' ');
+        if (dirsep) {
+            while (dirsep > lineStart && *dirsep != '/')
+                dirsep--;
+            if (*dirsep == '/')
+                dirsep++;
+            movestart = dirsep;
+        } else {
+            movestart = lineStart;
+        }
+        movelen = lineEnd ? lineEnd - movestart : strlen(movestart);
+
+        if (movelen) {
+            memmove(cmdset + offset, movestart, movelen + 1);
+            offset += movelen + 1;
+        }
+        lineStart = lineEnd ? lineEnd + 1 : NULL;
+        lineEnd = lineStart ? strchr(lineStart, '\n') : NULL;
+    }
+    cmdset[offset] = '\0';
 }
 
 

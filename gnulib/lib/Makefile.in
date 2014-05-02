@@ -447,6 +447,7 @@ GLIB_CFLAGS = @GLIB_CFLAGS@
 GLIB_LIBS = @GLIB_LIBS@
 GLUSTERFS_CFLAGS = @GLUSTERFS_CFLAGS@
 GLUSTERFS_LIBS = @GLUSTERFS_LIBS@
+GLUSTER_CLI = @GLUSTER_CLI@
 GMSGFMT = @GMSGFMT@
 GMSGFMT_015 = @GMSGFMT_015@
 GNULIB_ACCEPT = @GNULIB_ACCEPT@
@@ -1842,27 +1843,27 @@ EXTRA_DIST = accept.c w32sock.h alloca.c alloca.in.h allocator.h \
 	getpass.c getpass.h getpeername.c w32sock.h getsockname.c \
 	w32sock.h gettimeofday.c getugroups.h \
 	$(top_srcdir)/build-aux/gitlog-to-changelog \
-	$(top_srcdir)/build-aux/git-log-fix $(top_srcdir)/GNUmakefile \
-	$(top_srcdir)/build-aux/config.rpath ignore-value.h \
-	inet_ntop.c inet_pton.c intprops.h ioctl.c w32sock.h isatty.c \
-	langinfo.in.h listen.c w32sock.h config.charset ref-add.sin \
-	ref-del.sin locale.in.h localeconv.c lseek.c lstat.c \
-	$(top_srcdir)/maint.mk malloc.c malloc.c malloca.h \
-	malloca.valgrind mbrtowc.c mbsinit.c mbsrtowcs-impl.h \
-	mbsrtowcs-state.c mbsrtowcs.c mbtowc-impl.h mbtowc.c memchr.c \
-	memchr.valgrind mgetgroups.h mkdtemp.c mkostemp.c mkostemps.c \
-	$(top_srcdir)/build-aux/mktempd mktime-internal.h mktime.c \
-	mktime-internal.h mktime.c msvc-inval.c msvc-inval.h \
-	msvc-nothrow.c msvc-nothrow.h net_if.in.h netdb.in.h \
-	netinet_in.in.h nl_langinfo.c nonblocking.h stdio-read.c \
-	stdio-write.c open.c openpty.c passfd.h pathmax.h perror.c \
-	physmem.h pipe.c poll.c poll.in.h posix_openpt.c pthread.c \
-	pthread.in.h pthread_sigmask.c pty.in.h raise.c random_r.c \
-	rawmemchr.c rawmemchr.valgrind readlink.c realloc.c recv.c \
-	w32sock.h regcomp.c regex.c regex.h regex_internal.c \
-	regex_internal.h regexec.c sched.in.h secure_getenv.c select.c \
-	send.c w32sock.h setenv.c setsockopt.c w32sock.h sig-handler.h \
-	sigaction.c signal.in.h stdio-write.c sigprocmask.c sleep.c \
+	$(top_srcdir)/GNUmakefile $(top_srcdir)/build-aux/config.rpath \
+	ignore-value.h inet_ntop.c inet_pton.c intprops.h ioctl.c \
+	w32sock.h isatty.c langinfo.in.h listen.c w32sock.h \
+	config.charset ref-add.sin ref-del.sin locale.in.h \
+	localeconv.c lseek.c lstat.c $(top_srcdir)/maint.mk malloc.c \
+	malloca.h malloca.valgrind mbrtowc.c mbsinit.c \
+	mbsrtowcs-impl.h mbsrtowcs-state.c mbsrtowcs.c mbtowc-impl.h \
+	mbtowc.c memchr.c memchr.valgrind mgetgroups.h mkdtemp.c \
+	mkostemp.c mkostemps.c $(top_srcdir)/build-aux/mktempd \
+	mktime-internal.h mktime.c mktime-internal.h mktime.c \
+	msvc-inval.c msvc-inval.h msvc-nothrow.c msvc-nothrow.h \
+	net_if.in.h netdb.in.h netinet_in.in.h nl_langinfo.c \
+	nonblocking.h stdio-read.c stdio-write.c open.c openpty.c \
+	passfd.h pathmax.h perror.c physmem.h pipe.c poll.c poll.in.h \
+	posix_openpt.c pthread.c pthread.in.h pthread_sigmask.c \
+	pty.in.h raise.c random_r.c rawmemchr.c rawmemchr.valgrind \
+	readlink.c realloc.c recv.c w32sock.h regcomp.c regex.c \
+	regex.h regex_internal.c regex_internal.h regexec.c sched.in.h \
+	secure_getenv.c select.c send.c w32sock.h setenv.c \
+	setsockopt.c w32sock.h sig-handler.h sigaction.c signal.in.h \
+	stdio-write.c sigprocmask.c sleep.c \
 	$(top_srcdir)/build-aux/snippet/_Noreturn.h \
 	$(top_srcdir)/build-aux/snippet/arg-nonnull.h \
 	$(top_srcdir)/build-aux/snippet/c++defs.h \
@@ -1928,21 +1929,21 @@ EXTRA_libgnu_la_SOURCES = accept.c alloca.c bind.c btowc.c calloc.c \
 	getdtablesize.c getgroups.c gethostname.c getline.c getpass.c \
 	getpeername.c getsockname.c gettimeofday.c inet_ntop.c \
 	inet_pton.c ioctl.c isatty.c listen.c localeconv.c lseek.c \
-	lstat.c malloc.c malloc.c mbrtowc.c mbsinit.c \
-	mbsrtowcs-state.c mbsrtowcs.c mbtowc.c memchr.c mkdtemp.c \
-	mkostemp.c mkostemps.c mktime.c mktime.c msvc-inval.c \
-	msvc-nothrow.c nl_langinfo.c stdio-read.c stdio-write.c open.c \
-	openpty.c perror.c pipe.c poll.c posix_openpt.c pthread.c \
-	pthread_sigmask.c raise.c random_r.c rawmemchr.c readlink.c \
-	realloc.c recv.c regcomp.c regex.c regex_internal.c regexec.c \
-	secure_getenv.c select.c send.c setenv.c setsockopt.c \
-	sigaction.c stdio-write.c sigprocmask.c sleep.c snprintf.c \
-	socket.c stat.c stpcpy.c strcasecmp.c strncasecmp.c \
-	strchrnul.c strdup.c strerror.c strerror-override.c \
-	strerror_r.c strndup.c strnlen.c strptime.c strsep.c \
-	strtok_r.c time_r.c timegm.c ttyname_r.c uname.c usleep.c \
-	asnprintf.c printf-args.c printf-parse.c vasnprintf.c \
-	asprintf.c vasprintf.c vsnprintf.c waitpid.c wcrtomb.c
+	lstat.c malloc.c mbrtowc.c mbsinit.c mbsrtowcs-state.c \
+	mbsrtowcs.c mbtowc.c memchr.c mkdtemp.c mkostemp.c mkostemps.c \
+	mktime.c mktime.c msvc-inval.c msvc-nothrow.c nl_langinfo.c \
+	stdio-read.c stdio-write.c open.c openpty.c perror.c pipe.c \
+	poll.c posix_openpt.c pthread.c pthread_sigmask.c raise.c \
+	random_r.c rawmemchr.c readlink.c realloc.c recv.c regcomp.c \
+	regex.c regex_internal.c regexec.c secure_getenv.c select.c \
+	send.c setenv.c setsockopt.c sigaction.c stdio-write.c \
+	sigprocmask.c sleep.c snprintf.c socket.c stat.c stpcpy.c \
+	strcasecmp.c strncasecmp.c strchrnul.c strdup.c strerror.c \
+	strerror-override.c strerror_r.c strndup.c strnlen.c \
+	strptime.c strsep.c strtok_r.c time_r.c timegm.c ttyname_r.c \
+	uname.c usleep.c asnprintf.c printf-args.c printf-parse.c \
+	vasnprintf.c asprintf.c vasprintf.c vsnprintf.c waitpid.c \
+	wcrtomb.c
 libgnu_la_LDFLAGS = $(AM_LDFLAGS) -no-undefined $(GETADDRINFO_LIB) \
 	$(GETHOSTNAME_LIB) $(HOSTENT_LIB) $(INET_NTOP_LIB) \
 	$(INET_PTON_LIB) $(LDEXP_LIBM) $(LIBSOCKET) \

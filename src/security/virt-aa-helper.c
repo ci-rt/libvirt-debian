@@ -944,14 +944,14 @@ get_files(vahControl * ctl)
     for (i = 0; i < ctl->def->ndisks; i++) {
         virDomainDiskDefPtr disk = ctl->def->disks[i];
 
+        if (!virDomainDiskGetSource(disk))
+            continue;
         /* XXX - if we knew the qemu user:group here we could send it in
          *        so that the open could be re-tried as that user:group.
          */
-        if (!disk->backingChain) {
+        if (!disk->src.backingStore) {
             bool probe = ctl->allowDiskFormatProbing;
-            disk->backingChain = virStorageFileGetMetadata(virDomainDiskGetSource(disk),
-                                                           virDomainDiskGetFormat(disk),
-                                                           -1, -1, probe);
+            virStorageFileGetMetadata(&disk->src, -1, -1, probe);
         }
 
         /* XXX passing ignoreOpenFailure = true to get back to the behavior
@@ -1069,7 +1069,7 @@ get_files(vahControl * ctl)
                            dev->source.subsys.u.pci.addr.slot,
                            dev->source.subsys.u.pci.addr.function);
 
-                virDomainHostdevSubsysPciBackendType backend = dev->source.subsys.u.pci.backend;
+                virDomainHostdevSubsysPCIBackendType backend = dev->source.subsys.u.pci.backend;
                 if (backend == VIR_DOMAIN_HOSTDEV_PCI_BACKEND_VFIO ||
                         backend == VIR_DOMAIN_HOSTDEV_PCI_BACKEND_DEFAULT) {
                     needsVfio = true;

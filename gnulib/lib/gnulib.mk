@@ -791,7 +791,7 @@ EXTRA_DIST += getugroups.h
 ## begin gnulib module gitlog-to-changelog
 
 
-EXTRA_DIST += $(top_srcdir)/build-aux/gitlog-to-changelog $(top_srcdir)/build-aux/git-log-fix
+EXTRA_DIST += $(top_srcdir)/build-aux/gitlog-to-changelog
 
 ## end   gnulib module gitlog-to-changelog
 
@@ -1051,15 +1051,6 @@ EXTRA_libgnu_la_SOURCES += lstat.c
 EXTRA_DIST += $(top_srcdir)/maint.mk
 
 ## end   gnulib module maintainer-makefile
-
-## begin gnulib module malloc-gnu
-
-
-EXTRA_DIST += malloc.c
-
-EXTRA_libgnu_la_SOURCES += malloc.c
-
-## end   gnulib module malloc-gnu
 
 ## begin gnulib module malloc-posix
 

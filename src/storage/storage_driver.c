@@ -1553,6 +1553,52 @@ storageVolLookupByPath(virConnectPtr conn,
 
 
 static int
+storageVolDeleteInternal(virStorageVolPtr obj,
+                         virStorageBackendPtr backend,
+                         virStoragePoolObjPtr pool,
+                         virStorageVolDefPtr vol,
+                         unsigned int flags,
+                         bool updateMeta)
+{
+    size_t i;
+    int ret = -1;
+
+    if (!backend->deleteVol) {
+        virReportError(VIR_ERR_NO_SUPPORT,
+                       "%s", _("storage pool does not support vol deletion"));
+
+        goto cleanup;
+    }
+
+    if (backend->deleteVol(obj->conn, pool, vol, flags) < 0)
+        goto cleanup;
+
+    /* Update pool metadata - don't update meta data from error paths
+     * in this module since the allocation/available weren't adjusted yet
+     */
+    if (updateMeta) {
+        pool->def->allocation -= vol->target.allocation;
+        pool->def->available += vol->target.allocation;
+    }
+
+    for (i = 0; i < pool->volumes.count; i++) {
+        if (pool->volumes.objs[i] == vol) {
+            VIR_INFO("Deleting volume '%s' from storage pool '%s'",
+                     vol->name, pool->def->name);
+            virStorageVolDefFree(vol);
+
+            VIR_DELETE_ELEMENT(pool->volumes.objs, i, pool->volumes.count);
+            break;
+        }
+    }
+    ret = 0;
+
+ cleanup:
+    return ret;
+}
+
+
+static int
 storageVolDelete(virStorageVolPtr obj,
                  unsigned int flags)
 {
@@ -1560,7 +1606,6 @@ storageVolDelete(virStorageVolPtr obj,
     virStoragePoolObjPtr pool;
     virStorageBackendPtr backend;
     virStorageVolDefPtr vol = NULL;
-    size_t i;
     int ret = -1;
 
     storageDriverLock(driver);
@@ -1602,30 +1647,9 @@ storageVolDelete(virStorageVolPtr obj,
         goto cleanup;
     }
 
-    if (!backend->deleteVol) {
-        virReportError(VIR_ERR_NO_SUPPORT,
-                       "%s", _("storage pool does not support vol deletion"));
-
-        goto cleanup;
-    }
-
-    if (backend->deleteVol(obj->conn, pool, vol, flags) < 0)
+    if (storageVolDeleteInternal(obj, backend, pool, vol, flags, true) < 0)
         goto cleanup;
 
-    /* Update pool metadata */
-    pool->def->allocation -= vol->allocation;
-    pool->def->available += vol->allocation;
-
-    for (i = 0; i < pool->volumes.count; i++) {
-        if (pool->volumes.objs[i] == vol) {
-            VIR_INFO("Deleting volume '%s' from storage pool '%s'",
-                     vol->name, pool->def->name);
-            virStorageVolDefFree(vol);
-
-            VIR_DELETE_ELEMENT(pool->volumes.objs, i, pool->volumes.count);
-            break;
-        }
-    }
     ret = 0;
 
  cleanup:
@@ -1738,17 +1762,17 @@ storageVolCreateXML(virStoragePoolPtr obj,
         voldef = NULL;
 
         if (buildret < 0) {
-            virStoragePoolObjUnlock(pool);
-            storageVolDelete(volobj, 0);
-            pool = NULL;
+            storageVolDeleteInternal(volobj, backend, pool, buildvoldef,
+                                     0, false);
+            buildvoldef = NULL;
             goto cleanup;
         }
 
     }
 
     /* Update pool metadata */
-    pool->def->allocation += buildvoldef->allocation;
-    pool->def->available -= buildvoldef->allocation;
+    pool->def->allocation += buildvoldef->target.allocation;
+    pool->def->available -= buildvoldef->target.allocation;
 
     VIR_INFO("Creating volume '%s' in storage pool '%s'",
              volobj->name, pool->def->name);
@@ -1841,13 +1865,13 @@ storageVolCreateXMLFrom(virStoragePoolPtr obj,
     }
 
     /* Is there ever a valid case for this? */
-    if (newvol->capacity < origvol->capacity)
-        newvol->capacity = origvol->capacity;
+    if (newvol->target.capacity < origvol->target.capacity)
+        newvol->target.capacity = origvol->target.capacity;
 
     /* Make sure allocation is at least as large as the destination cap,
      * to make absolutely sure we copy all possible contents */
-    if (newvol->allocation < origvol->capacity)
-        newvol->allocation = origvol->capacity;
+    if (newvol->target.allocation < origvol->target.capacity)
+        newvol->target.allocation = origvol->target.capacity;
 
     if (!backend->buildVolFrom) {
         virReportError(VIR_ERR_NO_SUPPORT,
@@ -1907,8 +1931,7 @@ storageVolCreateXMLFrom(virStoragePoolPtr obj,
 
     origvol->building = 0;
     newvol->building = 0;
-    allocation = newvol->allocation;
-    newvol = NULL;
+    allocation = newvol->target.allocation;
     pool->asyncjobs--;
 
     if (origpool) {
@@ -1918,11 +1941,11 @@ storageVolCreateXMLFrom(virStoragePoolPtr obj,
     }
 
     if (buildret < 0) {
-        virStoragePoolObjUnlock(pool);
-        storageVolDelete(volobj, 0);
-        pool = NULL;
+        storageVolDeleteInternal(volobj, backend, pool, newvol, 0, false);
+        newvol = NULL;
         goto cleanup;
     }
+    newvol = NULL;
 
     /* Updating pool metadata */
     pool->def->allocation += allocation;
@@ -2152,20 +2175,20 @@ storageVolResize(virStorageVolPtr obj,
     }
 
     if (flags & VIR_STORAGE_VOL_RESIZE_DELTA) {
-        abs_capacity = vol->capacity + capacity;
+        abs_capacity = vol->target.capacity + capacity;
         flags &= ~VIR_STORAGE_VOL_RESIZE_DELTA;
     } else {
         abs_capacity = capacity;
     }
 
-    if (abs_capacity < vol->allocation) {
+    if (abs_capacity < vol->target.allocation) {
         virReportError(VIR_ERR_INVALID_ARG, "%s",
                        _("can't shrink capacity below "
                          "existing allocation"));
         goto cleanup;
     }
 
-    if (abs_capacity < vol->capacity &&
+    if (abs_capacity < vol->target.capacity &&
         !(flags & VIR_STORAGE_VOL_RESIZE_SHRINK)) {
         virReportError(VIR_ERR_INVALID_ARG, "%s",
                        _("Can't shrink capacity below current "
@@ -2173,7 +2196,7 @@ storageVolResize(virStorageVolPtr obj,
         goto cleanup;
     }
 
-    if (abs_capacity > vol->capacity + pool->def->available) {
+    if (abs_capacity > vol->target.capacity + pool->def->available) {
         virReportError(VIR_ERR_OPERATION_FAILED, "%s",
                        _("Not enough space left on storage pool"));
         goto cleanup;
@@ -2189,13 +2212,13 @@ storageVolResize(virStorageVolPtr obj,
     if (backend->resizeVol(obj->conn, pool, vol, abs_capacity, flags) < 0)
         goto cleanup;
 
-    vol->capacity = abs_capacity;
+    vol->target.capacity = abs_capacity;
     if (flags & VIR_STORAGE_VOL_RESIZE_ALLOCATE)
-        vol->allocation = abs_capacity;
+        vol->target.allocation = abs_capacity;
 
     /* Update pool metadata */
-    pool->def->allocation += (abs_capacity - vol->capacity);
-    pool->def->available -= (abs_capacity - vol->capacity);
+    pool->def->allocation += (abs_capacity - vol->target.capacity);
+    pool->def->available -= (abs_capacity - vol->target.capacity);
 
     ret = 0;
 
@@ -2388,7 +2411,7 @@ storageVolWipeInternal(virStorageVolDefPtr def,
             ret = storageWipeExtent(def,
                                     fd,
                                     0,
-                                    def->allocation,
+                                    def->target.allocation,
                                     writebuf,
                                     st.st_blksize,
                                     &bytes_wiped);
@@ -2529,8 +2552,8 @@ storageVolGetInfo(virStorageVolPtr obj,
 
     memset(info, 0, sizeof(*info));
     info->type = vol->type;
-    info->capacity = vol->capacity;
-    info->allocation = vol->allocation;
+    info->capacity = vol->target.capacity;
+    info->allocation = vol->target.allocation;
     ret = 0;
 
  cleanup:
@@ -2731,109 +2754,74 @@ int storageRegister(void)
 
 
 /* ----------- file handlers cooperating with storage driver --------------- */
-void
-virStorageFileFree(virStorageFilePtr file)
+static bool
+virStorageFileIsInitialized(virStorageSourcePtr src)
 {
-    if (!file)
+    return !!src->drv;
+}
+
+void
+virStorageFileDeinit(virStorageSourcePtr src)
+{
+    if (!virStorageFileIsInitialized(src))
         return;
 
-    if (file->backend &&
-        file->backend->backendDeinit)
-        file->backend->backendDeinit(file);
+    if (src->drv->backend &&
+        src->drv->backend->backendDeinit)
+        src->drv->backend->backendDeinit(src);
 
-    VIR_FREE(file->path);
-    virDomainDiskHostDefFree(file->nhosts, file->hosts);
-    VIR_FREE(file);
+    VIR_FREE(src->drv);
 }
 
 
-static virStorageFilePtr
-virStorageFileInitInternal(int type,
-                           const char *path,
-                           int protocol,
-                           size_t nhosts,
-                           virDomainDiskHostDefPtr hosts)
+int
+virStorageFileInit(virStorageSourcePtr src)
 {
-    virStorageFilePtr file = NULL;
+    int actualType = virStorageSourceGetActualType(src);
+    if (VIR_ALLOC(src->drv) < 0)
+        return -1;
 
-    if (VIR_ALLOC(file) < 0)
-        return NULL;
-
-    file->type = type;
-    file->protocol = protocol;
-    file->nhosts = nhosts;
-
-    if (VIR_STRDUP(file->path, path) < 0)
+    if (!(src->drv->backend = virStorageFileBackendForType(actualType,
+                                                           src->protocol)))
         goto error;
 
-    if (!(file->hosts = virDomainDiskHostDefCopy(nhosts, hosts)))
+    if (src->drv->backend->backendInit &&
+        src->drv->backend->backendInit(src) < 0)
         goto error;
 
-    if (!(file->backend = virStorageFileBackendForType(file->type,
-                                                       file->protocol)))
-        goto error;
-
-    if (file->backend->backendInit &&
-        file->backend->backendInit(file) < 0)
-        goto error;
-
-    return file;
+    return 0;
 
  error:
-    VIR_FREE(file->path);
-    virDomainDiskHostDefFree(file->nhosts, file->hosts);
-    VIR_FREE(file);
-    return NULL;
+    VIR_FREE(src->drv);
+    return -1;
 }
-
-
-virStorageFilePtr
-virStorageFileInitFromDiskDef(virDomainDiskDefPtr disk)
-{
-    return virStorageFileInitInternal(virDomainDiskGetActualType(disk),
-                                      disk->src.path,
-                                      disk->src.protocol,
-                                      disk->src.nhosts,
-                                      disk->src.hosts);
-}
-
-
-virStorageFilePtr
-virStorageFileInitFromSnapshotDef(virDomainSnapshotDiskDefPtr disk)
-{
-    return virStorageFileInitInternal(virDomainSnapshotDiskGetActualType(disk),
-                                      disk->file,
-                                      disk->protocol,
-                                      disk->nhosts,
-                                      disk->hosts);
-}
-
 
 
 /**
  * virStorageFileCreate: Creates an empty storage file via storage driver
  *
- * @file: file structure pointing to the file
+ * @src: file structure pointing to the file
  *
  * Returns 0 on success, -2 if the function isn't supported by the backend,
  * -1 on other failure. Errno is set in case of failure.
  */
 int
-virStorageFileCreate(virStorageFilePtr file)
+virStorageFileCreate(virStorageSourcePtr src)
 {
-    if (!file->backend->storageFileCreate) {
+    if (!virStorageFileIsInitialized(src) ||
+        !src->drv->backend->storageFileCreate) {
         errno = ENOSYS;
         return -2;
     }
 
-    return file->backend->storageFileCreate(file);
+    return src->drv->backend->storageFileCreate(src);
 }
 
 
 /**
  * virStorageFileUnlink: Unlink storage file via storage driver
  *
- * @file: file structure pointing to the file
+ * @src: file structure pointing to the file
  *
  * Unlinks the file described by the @file structure.
  *
@@ -2841,34 +2829,36 @@ virStorageFileCreate(virStorageFilePtr file)
  * -1 on other failure. Errno is set in case of failure.
  */
 int
-virStorageFileUnlink(virStorageFilePtr file)
+virStorageFileUnlink(virStorageSourcePtr src)
 {
-    if (!file->backend->storageFileUnlink) {
+    if (!virStorageFileIsInitialized(src) ||
+        !src->drv->backend->storageFileUnlink) {
         errno = ENOSYS;
         return -2;
     }
 
-    return file->backend->storageFileUnlink(file);
+    return src->drv->backend->storageFileUnlink(src);
 }
 
 
 /**
  * virStorageFileStat: returns stat struct of a file via storage driver
  *
- * @file: file structure pointing to the file
+ * @src: file structure pointing to the file
  * @stat: stat structure to return data
  *
  * Returns 0 on success, -2 if the function isn't supported by the backend,
  * -1 on other failure. Errno is set in case of failure.
 */
 int
-virStorageFileStat(virStorageFilePtr file,
+virStorageFileStat(virStorageSourcePtr src,
                    struct stat *st)
 {
-    if (!(file->backend->storageFileStat)) {
+    if (!virStorageFileIsInitialized(src) ||
+        !src->drv->backend->storageFileStat) {
         errno = ENOSYS;
         return -2;
     }
 
-    return file->backend->storageFileStat(file, st);
+    return src->drv->backend->storageFileStat(src, st);
 }

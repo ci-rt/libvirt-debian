@@ -327,7 +327,7 @@ xenXMConfigCacheRefresh(virConnectPtr conn)
         return -1;
     }
 
-    while ((ent = readdir(dh))) {
+    while ((ret = virDirRead(dh, &ent, priv->configDir)) > 0) {
         struct stat st;
         char *path;
 
@@ -386,7 +386,6 @@ xenXMConfigCacheRefresh(virConnectPtr conn)
     args.now = now;
     args.priv = priv;
     virHashRemoveSet(priv->configCache, xenXMConfigReaper, &args);
-    ret = 0;
 
     closedir(dh);
 
@@ -1427,25 +1426,24 @@ int
 xenXMDomainGetAutostart(virDomainDefPtr def,
                         int *autostart)
 {
-    char *linkname = xenXMAutostartLinkName(def);
     char *config = xenXMDomainConfigName(def);
     int ret = -1;
 
-    if (!linkname || !config)
+    if (!config)
         goto cleanup;
 
-    *autostart = virFileLinkPointsTo(linkname, config);
+    *autostart = virFileRelLinkPointsTo("/etc/xen/auto/", def->name, config);
     if (*autostart < 0) {
         virReportSystemError(errno,
-                             _("cannot check link %s points to config %s"),
-                             linkname, config);
+                             _("cannot check link /etc/xen/auto/%s points "
+                               "to config %s"),
+                             def->name, config);
         goto cleanup;
     }
 
     ret = 0;
 
  cleanup:
-    VIR_FREE(linkname);
     VIR_FREE(config);
     return ret;
 }

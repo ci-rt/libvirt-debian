@@ -119,7 +119,7 @@ typedef struct _testConn *testConnPtr;
 
 static testConn defaultConn;
 static int defaultConnections;
-static virMutex defaultLock;
+static virMutex defaultLock = VIR_MUTEX_INITIALIZER;
 
 #define TEST_MODEL "i686"
 #define TEST_MODEL_WORDSIZE 32
@@ -140,15 +140,6 @@ static const virNodeInfo defaultNodeInfo = {
 static int testConnectClose(virConnectPtr conn);
 static void testObjectEventQueue(testConnPtr driver,
                                  virObjectEventPtr event);
-
-static int
-testOnceInit(void)
-{
-    return virMutexInit(&defaultLock);
-}
-
-VIR_ONCE_GLOBAL_INIT(test)
-
 
 static void testDriverLock(testConnPtr driver)
 {
@@ -793,7 +784,6 @@ testOpenDefault(virConnectPtr conn)
         goto error;
     }
     netobj->active = 1;
-    netobj->persistent = 1;
     virNetworkObjUnlock(netobj);
 
     if (!(interfacedef = virInterfaceDefParseString(defaultInterfaceXML)))
@@ -1164,7 +1154,6 @@ testParseNetworks(testConnPtr privconn,
             goto error;
         }
 
-        obj->persistent = 1;
         obj->active = 1;
         virNetworkObjUnlock(obj);
     }
@@ -1260,7 +1249,7 @@ testOpenVolumesForPool(const char *file,
         if (VIR_APPEND_ELEMENT_COPY(pool->volumes.objs, pool->volumes.count, def) < 0)
             goto error;
 
-        pool->def->allocation += def->allocation;
+        pool->def->allocation += def->target.allocation;
         pool->def->available = (pool->def->capacity -
                                 pool->def->allocation);
         def = NULL;
@@ -1554,9 +1543,6 @@ static virDrvOpenStatus testConnectOpen(virConnectPtr conn,
 
     virCheckFlags(VIR_CONNECT_RO, VIR_DRV_OPEN_ERROR);
 
-    if (testInitialize() < 0)
-        return VIR_DRV_OPEN_ERROR;
-
     if (!conn->uri)
         return VIR_DRV_OPEN_DECLINED;
 
@@ -1595,9 +1581,6 @@ static virDrvOpenStatus testConnectOpen(virConnectPtr conn,
 static int testConnectClose(virConnectPtr conn)
 {
     testConnPtr privconn = conn->privateData;
-
-    if (testInitialize() < 0)
-        return -1;
 
     if (privconn == &defaultConn) {
         virMutexLock(&defaultLock);
@@ -3726,7 +3709,7 @@ static virNetworkPtr testNetworkCreateXML(virConnectPtr conn, const char *xml)
     if ((def = virNetworkDefParseString(xml)) == NULL)
         goto cleanup;
 
-    if (!(net = virNetworkAssignDef(&privconn->networks, def, false)))
+    if (!(net = virNetworkAssignDef(&privconn->networks, def, true)))
         goto cleanup;
     def = NULL;
     net->active = 1;
@@ -3763,7 +3746,6 @@ virNetworkPtr testNetworkDefineXML(virConnectPtr conn, const char *xml)
     if (!(net = virNetworkAssignDef(&privconn->networks, def, false)))
         goto cleanup;
     def = NULL;
-    net->persistent = 1;
 
     event = virNetworkEventLifecycleNew(net->def->name, net->def->uuid,
                                         VIR_NETWORK_EVENT_DEFINED,
@@ -5511,7 +5493,7 @@ testStorageVolCreateXML(virStoragePoolPtr pool,
     }
 
     /* Make sure enough space */
-    if ((privpool->def->allocation + privvol->allocation) >
+    if ((privpool->def->allocation + privvol->target.allocation) >
          privpool->def->capacity) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("Not enough free space in pool for volume '%s'"),
@@ -5529,7 +5511,7 @@ testStorageVolCreateXML(virStoragePoolPtr pool,
                                 privpool->volumes.count, privvol) < 0)
         goto cleanup;
 
-    privpool->def->allocation += privvol->allocation;
+    privpool->def->allocation += privvol->target.allocation;
     privpool->def->available = (privpool->def->capacity -
                                 privpool->def->allocation);
 
@@ -5593,7 +5575,7 @@ testStorageVolCreateXMLFrom(virStoragePoolPtr pool,
     }
 
     /* Make sure enough space */
-    if ((privpool->def->allocation + privvol->allocation) >
+    if ((privpool->def->allocation + privvol->target.allocation) >
          privpool->def->capacity) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("Not enough free space in pool for volume '%s'"),
@@ -5613,7 +5595,7 @@ testStorageVolCreateXMLFrom(virStoragePoolPtr pool,
                                 privpool->volumes.count, privvol) < 0)
         goto cleanup;
 
-    privpool->def->allocation += privvol->allocation;
+    privpool->def->allocation += privvol->target.allocation;
     privpool->def->available = (privpool->def->capacity -
                                 privpool->def->allocation);
 
@@ -5668,7 +5650,7 @@ testStorageVolDelete(virStorageVolPtr vol,
     }
 
 
-    privpool->def->allocation -= privvol->allocation;
+    privpool->def->allocation -= privvol->target.allocation;
     privpool->def->available = (privpool->def->capacity -
                                 privpool->def->allocation);
 
@@ -5738,8 +5720,8 @@ testStorageVolGetInfo(virStorageVolPtr vol,
 
     memset(info, 0, sizeof(*info));
     info->type = testStorageVolumeTypeForPool(privpool->def->type);
-    info->capacity = privvol->capacity;
-    info->allocation = privvol->allocation;
+    info->capacity = privvol->target.capacity;
+    info->allocation = privvol->target.allocation;
     ret = 0;
 
  cleanup:

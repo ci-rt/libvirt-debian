@@ -391,6 +391,7 @@ GLIB_CFLAGS = @GLIB_CFLAGS@
 GLIB_LIBS = @GLIB_LIBS@
 GLUSTERFS_CFLAGS = @GLUSTERFS_CFLAGS@
 GLUSTERFS_LIBS = @GLUSTERFS_LIBS@
+GLUSTER_CLI = @GLUSTER_CLI@
 GMSGFMT = @GMSGFMT@
 GMSGFMT_015 = @GMSGFMT_015@
 GNULIB_ACCEPT = @GNULIB_ACCEPT@
@@ -1745,8 +1746,7 @@ schema_DATA = \
 	nodedev.rng \
 	nwfilter.rng \
 	secret.rng \
-	storageencryption.rng \
-	storagefilefeatures.rng \
+	storagecommon.rng \
 	storagepool.rng \
 	storagevol.rng
 

@@ -215,7 +215,7 @@ openvzReadNetworkConf(virDomainDefPtr def,
     /*parse routing network configuration*
      * Sample from config:
      *   IP_ADDRESS="1.1.1.1 1.1.1.2"
-     *   splited IPs by space
+     * IPs split by space
      */
     ret = openvzReadVPSConfigParam(veid, "IP_ADDRESS", &temp);
     if (ret < 0) {
@@ -242,8 +242,8 @@ openvzReadNetworkConf(virDomainDefPtr def,
 
     /*parse bridge devices*/
     /*Sample from config:
-     *NETIF="ifname=eth10,mac=00:18:51:C1:05:EE,host_ifname=veth105.10,host_mac=00:18:51:8F:D9:F3"
-     *devices splited by ';'
+     * NETIF="ifname=eth10,mac=00:18:51:C1:05:EE,host_ifname=veth105.10,host_mac=00:18:51:8F:D9:F3"
+     *devices split by ';'
      */
     ret = openvzReadVPSConfigParam(veid, "NETIF", &temp);
     if (ret < 0) {
@@ -1105,20 +1105,13 @@ static int openvzAssignUUIDs(void)
         return 0;
     }
 
-    errno = 0;
-    while ((dent = readdir(dp))) {
+    while ((ret = virDirRead(dp, &dent, conf_dir)) > 0) {
         if (virStrToLong_i(dent->d_name, &ext, 10, &vpsid) < 0 ||
             *ext++ != '.' ||
             STRNEQ(ext, "conf"))
             continue;
         if (vpsid > 0) /* '0.conf' belongs to the host, ignore it */
             openvzSetUUID(vpsid);
-        errno = 0;
-    }
-    if (errno) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       _("Failed to scan configuration directory"));
-        ret = -1;
     }
 
     closedir(dp);

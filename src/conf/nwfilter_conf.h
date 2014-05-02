@@ -82,8 +82,8 @@ enum virNWFilterEntryItemFlags {
 # define HAS_ENTRY_ITEM(data) \
   (((data)->flags) & NWFILTER_ENTRY_ITEM_FLAG_EXISTS)
 
-# define ENTRY_GET_NEG_SIGN(data) \
-  ((((data)->flags) & NWFILTER_ENTRY_ITEM_FLAG_IS_NEG) ? "!" : "")
+# define ENTRY_WANT_NEG_SIGN(data) \
+  (((data)->flags) & NWFILTER_ENTRY_ITEM_FLAG_IS_NEG)
 
 /* datatypes appearing in rule attributes */
 enum attrDatatype {
@@ -373,7 +373,13 @@ enum virNWFilterChainPolicyType {
     VIR_NWFILTER_CHAIN_POLICY_LAST,
 };
 
+
+/*
+ * If adding protocols be sure to update the
+ * virNWFilterRuleIsProtocolXXXX function impls
+ */
 enum virNWFilterRuleProtocolType {
+    /* Ethernet layer protocols */
     VIR_NWFILTER_RULE_PROTOCOL_NONE = 0,
     VIR_NWFILTER_RULE_PROTOCOL_MAC,
     VIR_NWFILTER_RULE_PROTOCOL_VLAN,
@@ -382,6 +388,8 @@ enum virNWFilterRuleProtocolType {
     VIR_NWFILTER_RULE_PROTOCOL_RARP,
     VIR_NWFILTER_RULE_PROTOCOL_IP,
     VIR_NWFILTER_RULE_PROTOCOL_IPV6,
+
+    /* IPv4 layer protocols */
     VIR_NWFILTER_RULE_PROTOCOL_TCP,
     VIR_NWFILTER_RULE_PROTOCOL_ICMP,
     VIR_NWFILTER_RULE_PROTOCOL_IGMP,
@@ -391,6 +399,8 @@ enum virNWFilterRuleProtocolType {
     VIR_NWFILTER_RULE_PROTOCOL_AH,
     VIR_NWFILTER_RULE_PROTOCOL_SCTP,
     VIR_NWFILTER_RULE_PROTOCOL_ALL,
+
+    /* IPv6 layer protocols */
     VIR_NWFILTER_RULE_PROTOCOL_TCPoIPV6,
     VIR_NWFILTER_RULE_PROTOCOL_ICMPV6,
     VIR_NWFILTER_RULE_PROTOCOL_UDPoIPV6,
@@ -567,19 +577,6 @@ struct _virNWFilterDriverState {
 };
 
 
-typedef struct _virNWFilterTechDriver virNWFilterTechDriver;
-typedef virNWFilterTechDriver *virNWFilterTechDriverPtr;
-
-
-typedef struct _virNWFilterRuleInst virNWFilterRuleInst;
-typedef virNWFilterRuleInst *virNWFilterRuleInstPtr;
-struct _virNWFilterRuleInst {
-   size_t ndata;
-   void **data;
-   virNWFilterTechDriverPtr techdriver;
-};
-
-
 enum UpdateStep {
     STEP_APPLY_NEW,
     STEP_TEAR_NEW,
@@ -592,79 +589,6 @@ struct domUpdateCBStruct {
     enum UpdateStep step;
     virHashTablePtr skipInterfaces;
 };
-
-
-typedef int (*virNWFilterTechDrvInit)(bool privileged);
-typedef void (*virNWFilterTechDrvShutdown)(void);
-
-enum virDomainNetType;
-
-typedef int (*virNWFilterRuleCreateInstance)(enum virDomainNetType nettype,
-                                             virNWFilterDefPtr filter,
-                                             virNWFilterRuleDefPtr rule,
-                                             const char *ifname,
-                                             virNWFilterHashTablePtr vars,
-                                             virNWFilterRuleInstPtr res);
-
-typedef int (*virNWFilterRuleApplyNewRules)(const char *ifname,
-                                            int nruleInstances,
-                                            void **_inst);
-
-typedef int (*virNWFilterRuleTeardownNewRules)(const char *ifname);
-
-typedef int (*virNWFilterRuleTeardownOldRules)(const char *ifname);
-
-typedef int (*virNWFilterRuleRemoveRules)(const char *ifname,
-                                          int nruleInstances,
-                                          void **_inst);
-
-typedef int (*virNWFilterRuleAllTeardown)(const char *ifname);
-
-typedef int (*virNWFilterRuleFreeInstanceData)(void * _inst);
-
-typedef int (*virNWFilterRuleDisplayInstanceData)(void *_inst);
-
-typedef int (*virNWFilterCanApplyBasicRules)(void);
-
-typedef int (*virNWFilterApplyBasicRules)(const char *ifname,
-                                          const virMacAddr *macaddr);
-
-typedef int (*virNWFilterApplyDHCPOnlyRules)(const char *ifname,
-                                             const virMacAddr *macaddr,
-                                             virNWFilterVarValuePtr dhcpsrvs,
-                                             bool leaveTemporary);
-
-typedef int (*virNWFilterRemoveBasicRules)(const char *ifname);
-
-typedef int (*virNWFilterDropAllRules)(const char *ifname);
-
-enum techDrvFlags {
-    TECHDRV_FLAG_INITIALIZED = (1 << 0),
-};
-
-struct _virNWFilterTechDriver {
-    const char *name;
-    enum techDrvFlags flags;
-
-    virNWFilterTechDrvInit init;
-    virNWFilterTechDrvShutdown shutdown;
-
-    virNWFilterRuleCreateInstance createRuleInstance;
-    virNWFilterRuleApplyNewRules applyNewRules;
-    virNWFilterRuleTeardownNewRules tearNewRules;
-    virNWFilterRuleTeardownOldRules tearOldRules;
-    virNWFilterRuleRemoveRules removeRules;
-    virNWFilterRuleAllTeardown allTeardown;
-    virNWFilterRuleFreeInstanceData freeRuleInstance;
-    virNWFilterRuleDisplayInstanceData displayRuleInstance;
-
-    virNWFilterCanApplyBasicRules canApplyBasicRules;
-    virNWFilterApplyBasicRules applyBasicRules;
-    virNWFilterApplyDHCPOnlyRules applyDHCPOnlyRules;
-    virNWFilterDropAllRules applyDropAllRules;
-    virNWFilterRemoveBasicRules removeBasicRules;
-};
-
 
 
 void virNWFilterRuleDefFree(virNWFilterRuleDefPtr def);
@@ -749,9 +673,12 @@ void virNWFilterCallbackDriversLock(void);
 void virNWFilterCallbackDriversUnlock(void);
 
 
-void virNWFilterPrintTCPFlags(virBufferPtr buf, uint8_t mask,
-                              char sep, uint8_t flags);
+char *virNWFilterPrintTCPFlags(uint8_t flags);
 
+
+bool virNWFilterRuleIsProtocolIPv4(virNWFilterRuleDefPtr rule);
+bool virNWFilterRuleIsProtocolIPv6(virNWFilterRuleDefPtr rule);
+bool virNWFilterRuleIsProtocolEthernet(virNWFilterRuleDefPtr rule);
 
 VIR_ENUM_DECL(virNWFilterRuleAction);
 VIR_ENUM_DECL(virNWFilterRuleDirection);

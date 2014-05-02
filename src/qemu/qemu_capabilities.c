@@ -1143,10 +1143,6 @@ virQEMUCapsComputeCmdFlags(const char *help,
     if (strstr(help, "-machine"))
         virQEMUCapsSet(qemuCaps, QEMU_CAPS_MACHINE_OPT);
 
-     /* USB option is supported v1.3.0 onwards */
-    if (qemuCaps->version >= 1003000)
-        virQEMUCapsSet(qemuCaps, QEMU_CAPS_MACHINE_USB_OPT);
-
     /*
      * Handling of -incoming arg with varying features
      *  -incoming tcp    (kvm >= 79, qemu >= 0.10.0)
@@ -1456,17 +1452,17 @@ static struct virQEMUCapsStringFlags virQEMUCapsObjectPropsVirtioNet[] = {
     { "event_idx", QEMU_CAPS_VIRTIO_NET_EVENT_IDX },
 };
 
-static struct virQEMUCapsStringFlags virQEMUCapsObjectPropsPciAssign[] = {
+static struct virQEMUCapsStringFlags virQEMUCapsObjectPropsPCIAssign[] = {
     { "rombar", QEMU_CAPS_PCI_ROMBAR },
     { "configfd", QEMU_CAPS_PCI_CONFIGFD },
     { "bootindex", QEMU_CAPS_PCI_BOOTINDEX },
 };
 
-static struct virQEMUCapsStringFlags virQEMUCapsObjectPropsVfioPci[] = {
+static struct virQEMUCapsStringFlags virQEMUCapsObjectPropsVfioPCI[] = {
     { "bootindex", QEMU_CAPS_VFIO_PCI_BOOTINDEX },
 };
 
-static struct virQEMUCapsStringFlags virQEMUCapsObjectPropsScsiDisk[] = {
+static struct virQEMUCapsStringFlags virQEMUCapsObjectPropsSCSIDisk[] = {
     { "channel", QEMU_CAPS_SCSI_DISK_CHANNEL },
     { "wwn", QEMU_CAPS_SCSI_DISK_WWN },
 };
@@ -1480,28 +1476,28 @@ static struct virQEMUCapsStringFlags virQEMUCapsObjectPropsPixx4PM[] = {
     { "disable_s4", QEMU_CAPS_DISABLE_S4 },
 };
 
-static struct virQEMUCapsStringFlags virQEMUCapsObjectPropsUsbRedir[] = {
+static struct virQEMUCapsStringFlags virQEMUCapsObjectPropsUSBRedir[] = {
     { "filter", QEMU_CAPS_USB_REDIR_FILTER },
     { "bootindex", QEMU_CAPS_USB_REDIR_BOOTINDEX },
 };
 
-static struct virQEMUCapsStringFlags virQEMUCapsObjectPropsUsbHost[] = {
+static struct virQEMUCapsStringFlags virQEMUCapsObjectPropsUSBHost[] = {
     { "bootindex", QEMU_CAPS_USB_HOST_BOOTINDEX },
 };
 
-static struct virQEMUCapsStringFlags virQEMUCapsObjectPropsScsiGeneric[] = {
+static struct virQEMUCapsStringFlags virQEMUCapsObjectPropsSCSIGeneric[] = {
     { "bootindex", QEMU_CAPS_DEVICE_SCSI_GENERIC_BOOTINDEX },
 };
 
-static struct virQEMUCapsStringFlags virQEMUCapsObjectPropsI440FXPciHost[] = {
+static struct virQEMUCapsStringFlags virQEMUCapsObjectPropsI440FXPCIHost[] = {
     { "pci-hole64-size", QEMU_CAPS_I440FX_PCI_HOLE64_SIZE },
 };
 
-static struct virQEMUCapsStringFlags virQEMUCapsObjectPropsQ35PciHost[] = {
+static struct virQEMUCapsStringFlags virQEMUCapsObjectPropsQ35PCIHost[] = {
     { "pci-hole64-size", QEMU_CAPS_Q35_PCI_HOLE64_SIZE },
 };
 
-static struct virQEMUCapsStringFlags virQEMUCapsObjectPropsUsbStorage[] = {
+static struct virQEMUCapsStringFlags virQEMUCapsObjectPropsUSBStorage[] = {
     { "removable", QEMU_CAPS_USB_STORAGE_REMOVABLE },
 };
 
@@ -1528,30 +1524,30 @@ static struct virQEMUCapsObjectTypeProps virQEMUCapsObjectProps[] = {
       ARRAY_CARDINALITY(virQEMUCapsObjectPropsVirtioBlk) },
     { "virtio-net-s390", virQEMUCapsObjectPropsVirtioNet,
       ARRAY_CARDINALITY(virQEMUCapsObjectPropsVirtioNet) },
-    { "pci-assign", virQEMUCapsObjectPropsPciAssign,
-      ARRAY_CARDINALITY(virQEMUCapsObjectPropsPciAssign) },
-    { "kvm-pci-assign", virQEMUCapsObjectPropsPciAssign,
-      ARRAY_CARDINALITY(virQEMUCapsObjectPropsPciAssign) },
-    { "vfio-pci", virQEMUCapsObjectPropsVfioPci,
-      ARRAY_CARDINALITY(virQEMUCapsObjectPropsVfioPci) },
-    { "scsi-disk", virQEMUCapsObjectPropsScsiDisk,
-      ARRAY_CARDINALITY(virQEMUCapsObjectPropsScsiDisk) },
+    { "pci-assign", virQEMUCapsObjectPropsPCIAssign,
+      ARRAY_CARDINALITY(virQEMUCapsObjectPropsPCIAssign) },
+    { "kvm-pci-assign", virQEMUCapsObjectPropsPCIAssign,
+      ARRAY_CARDINALITY(virQEMUCapsObjectPropsPCIAssign) },
+    { "vfio-pci", virQEMUCapsObjectPropsVfioPCI,
+      ARRAY_CARDINALITY(virQEMUCapsObjectPropsVfioPCI) },
+    { "scsi-disk", virQEMUCapsObjectPropsSCSIDisk,
+      ARRAY_CARDINALITY(virQEMUCapsObjectPropsSCSIDisk) },
     { "ide-drive", virQEMUCapsObjectPropsIDEDrive,
       ARRAY_CARDINALITY(virQEMUCapsObjectPropsIDEDrive) },
     { "PIIX4_PM", virQEMUCapsObjectPropsPixx4PM,
       ARRAY_CARDINALITY(virQEMUCapsObjectPropsPixx4PM) },
-    { "usb-redir", virQEMUCapsObjectPropsUsbRedir,
-      ARRAY_CARDINALITY(virQEMUCapsObjectPropsUsbRedir) },
-    { "usb-host", virQEMUCapsObjectPropsUsbHost,
-      ARRAY_CARDINALITY(virQEMUCapsObjectPropsUsbHost) },
-    { "scsi-generic", virQEMUCapsObjectPropsScsiGeneric,
-      ARRAY_CARDINALITY(virQEMUCapsObjectPropsScsiGeneric) },
-    { "i440FX-pcihost", virQEMUCapsObjectPropsI440FXPciHost,
-      ARRAY_CARDINALITY(virQEMUCapsObjectPropsI440FXPciHost) },
-    { "q35-pcihost", virQEMUCapsObjectPropsQ35PciHost,
-      ARRAY_CARDINALITY(virQEMUCapsObjectPropsQ35PciHost) },
-    { "usb-storage", virQEMUCapsObjectPropsUsbStorage,
-      ARRAY_CARDINALITY(virQEMUCapsObjectPropsUsbStorage) },
+    { "usb-redir", virQEMUCapsObjectPropsUSBRedir,
+      ARRAY_CARDINALITY(virQEMUCapsObjectPropsUSBRedir) },
+    { "usb-host", virQEMUCapsObjectPropsUSBHost,
+      ARRAY_CARDINALITY(virQEMUCapsObjectPropsUSBHost) },
+    { "scsi-generic", virQEMUCapsObjectPropsSCSIGeneric,
+      ARRAY_CARDINALITY(virQEMUCapsObjectPropsSCSIGeneric) },
+    { "i440FX-pcihost", virQEMUCapsObjectPropsI440FXPCIHost,
+      ARRAY_CARDINALITY(virQEMUCapsObjectPropsI440FXPCIHost) },
+    { "q35-pcihost", virQEMUCapsObjectPropsQ35PCIHost,
+      ARRAY_CARDINALITY(virQEMUCapsObjectPropsQ35PCIHost) },
+    { "usb-storage", virQEMUCapsObjectPropsUSBStorage,
+      ARRAY_CARDINALITY(virQEMUCapsObjectPropsUSBStorage) },
     { "kvm-pit", virQEMUCapsObjectPropsKVMPit,
       ARRAY_CARDINALITY(virQEMUCapsObjectPropsKVMPit) },
 };
@@ -1932,6 +1928,56 @@ virQEMUCapsGet(virQEMUCapsPtr qemuCaps,
 }
 
 
+bool virQEMUCapsHasPCIMultiBus(virQEMUCapsPtr qemuCaps,
+                               virDomainDefPtr def)
+{
+    bool hasMultiBus = virQEMUCapsGet(qemuCaps, QEMU_CAPS_PCI_MULTIBUS);
+
+    if (hasMultiBus)
+        return true;
+
+    if (def->os.arch == VIR_ARCH_PPC ||
+        def->os.arch == VIR_ARCH_PPC64) {
+        /*
+         * Usage of pci.0 naming:
+         *
+         *    ref405ep: no pci
+         *       taihu: no pci
+         *      bamboo: 1.1.0
+         *       mac99: 2.0.0
+         *     g3beige: 2.0.0
+         *        prep: 1.4.0
+         *     pseries: 2.0.0
+         *   mpc8544ds: forever
+         * virtex-m507: no pci
+         *     ppce500: 1.6.0
+         */
+
+        if (qemuCaps->version >= 2000000)
+            return true;
+
+        if (qemuCaps->version >= 1006000 &&
+            STREQ(def->os.machine, "ppce500"))
+            return true;
+
+        if (qemuCaps->version >= 1004000 &&
+            STREQ(def->os.machine, "prep"))
+            return true;
+
+        if (qemuCaps->version >= 1001000 &&
+            STREQ(def->os.machine, "bamboo"))
+            return true;
+
+        if (STREQ(def->os.machine, "mpc8544ds"))
+            return true;
+
+        return false;
+    }
+
+    return false;
+}
+
+
 const char *virQEMUCapsGetBinary(virQEMUCapsPtr qemuCaps)
 {
     return qemuCaps->binary;
@@ -2300,7 +2346,7 @@ virQEMUCapsProbeQMPKVMState(virQEMUCapsPtr qemuCaps,
 
     /* The QEMU_CAPS_KVM flag was initially set according to the QEMU
      * reporting the recognition of 'query-kvm' QMP command. That merely
-     * indicates existance of the command though, not whether KVM support
+     * indicates existence of the command though, not whether KVM support
      * is actually available, nor whether it is enabled by default.
      *
      * If it is not present we need to clear the flag, and if it is
@@ -2813,15 +2859,22 @@ virQEMUCapsInitHelp(virQEMUCapsPtr qemuCaps, uid_t runUid, gid_t runGid)
                                 false) < 0)
         goto cleanup;
 
-    /* Currently only x86_64 and i686 support PCI-multibus. */
+    /* x86_64 and i686 support PCI-multibus on all machine types
+     * since forever. For other architectures, it has been changing
+     * across releases, per machine type, so we can't simply detect
+     * it here. Thus the rest of the logic is provided in a separate
+     * helper virQEMUCapsHasPCIMultiBus() which keys off the machine
+     * stored in virDomainDef and QEMU version number
+     */
     if (qemuCaps->arch == VIR_ARCH_X86_64 ||
-        qemuCaps->arch == VIR_ARCH_I686) {
+        qemuCaps->arch == VIR_ARCH_I686)
         virQEMUCapsSet(qemuCaps, QEMU_CAPS_PCI_MULTIBUS);
-    } else {
-        /* -no-acpi is not supported on other archs
-         * even if qemu reports it in -help */
+
+    /* -no-acpi is not supported on non-x86
+     * even if qemu reports it in -help */
+    if (qemuCaps->arch != VIR_ARCH_X86_64 &&
+        qemuCaps->arch != VIR_ARCH_I686)
         virQEMUCapsClear(qemuCaps, QEMU_CAPS_NO_ACPI);
-    }
 
     /* virQEMUCapsExtractDeviceStr will only set additional caps if qemu
      * understands the 0.13.0+ notion of "-device driver,".  */
@@ -2888,7 +2941,6 @@ virQEMUCapsInitQMPBasic(virQEMUCapsPtr qemuCaps)
     virQEMUCapsSet(qemuCaps, QEMU_CAPS_NETDEV);
     virQEMUCapsSet(qemuCaps, QEMU_CAPS_RTC);
     virQEMUCapsSet(qemuCaps, QEMU_CAPS_VHOST_NET);
-    virQEMUCapsSet(qemuCaps, QEMU_CAPS_NO_HPET);
     virQEMUCapsSet(qemuCaps, QEMU_CAPS_NODEFCONFIG);
     virQEMUCapsSet(qemuCaps, QEMU_CAPS_BOOT_MENU);
     virQEMUCapsSet(qemuCaps, QEMU_CAPS_FSDEV);
@@ -2939,14 +2991,20 @@ virQEMUCapsInitArchQMPBasic(virQEMUCapsPtr qemuCaps,
         goto cleanup;
     }
 
-    /*
-     * Currently only x86_64 and i686 support PCI-multibus,
-     * -no-acpi and -no-kvm-pit-reinjection.
+    /* x86_64 and i686 support PCI-multibus on all machine types
+     * since forever. For other architectures, it has been changing
+     * across releases, per machine type, so we can't simply detect
+     * it here. Thus the rest of the logic is provided in a separate
+     * helper virQEMUCapsHasPCIMultiBus() which keys off the machine
+     * stored in virDomainDef and QEMU version number
+     *
+     * ACPI/HPET/KVM PIT are also x86 specific
      */
     if (qemuCaps->arch == VIR_ARCH_X86_64 ||
         qemuCaps->arch == VIR_ARCH_I686) {
         virQEMUCapsSet(qemuCaps, QEMU_CAPS_PCI_MULTIBUS);
         virQEMUCapsSet(qemuCaps, QEMU_CAPS_NO_ACPI);
+        virQEMUCapsSet(qemuCaps, QEMU_CAPS_NO_HPET);
         virQEMUCapsSet(qemuCaps, QEMU_CAPS_NO_KVM_PIT);
     }
 
@@ -3288,13 +3346,6 @@ bool virQEMUCapsIsValid(virQEMUCapsPtr qemuCaps)
 }
 
 
-static void
-virQEMUCapsHashDataFree(void *payload, const void *key ATTRIBUTE_UNUSED)
-{
-    virObjectUnref(payload);
-}
-
-
 virQEMUCapsCachePtr
 virQEMUCapsCacheNew(const char *libDir,
                     const char *cacheDir,
@@ -3313,7 +3364,7 @@ virQEMUCapsCacheNew(const char *libDir,
         return NULL;
     }
 
-    if (!(cache->binaries = virHashCreate(10, virQEMUCapsHashDataFree)))
+    if (!(cache->binaries = virHashCreate(10, virObjectFreeHashData)))
         goto error;
     if (VIR_STRDUP(cache->libDir, libDir) < 0)
         goto error;

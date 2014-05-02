@@ -1156,35 +1156,7 @@ int main(int argc, char **argv) {
 
     virUpdateSelfLastChanged(argv[0]);
 
-    if (strstr(argv[0], "lt-libvirtd") ||
-        strstr(argv[0], "/daemon/.libs/libvirtd")) {
-        char *tmp = strrchr(argv[0], '/');
-        char *cpumap;
-        if (!tmp) {
-            fprintf(stderr, _("%s: cannot identify driver directory\n"), argv[0]);
-            exit(EXIT_FAILURE);
-        }
-        *tmp = '\0';
-        char *driverdir;
-        if (virAsprintfQuiet(&driverdir, "%s/../../src/.libs", argv[0]) < 0 ||
-            virAsprintfQuiet(&cpumap, "%s/../../src/cpu/cpu_map.xml",
-                             argv[0]) < 0) {
-            fprintf(stderr, _("%s: initialization failed\n"), argv[0]);
-            exit(EXIT_FAILURE);
-        }
-        if (access(driverdir, R_OK) < 0) {
-            fprintf(stderr, _("%s: expected driver directory '%s' is missing\n"),
-                    argv[0], driverdir);
-            exit(EXIT_FAILURE);
-        }
-        virLockManagerSetPluginDir(driverdir);
-#ifdef WITH_DRIVER_MODULES
-        virDriverModuleInitialize(driverdir);
-#endif
-        cpuMapOverride(cpumap);
-        *tmp = '/';
-        /* Must not free 'driverdir' - it is still used */
-    }
+    virFileActivateDirOverride(argv[0]);
 
     while (1) {
         int optidx = 0;

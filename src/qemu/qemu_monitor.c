@@ -1678,7 +1678,7 @@ qemuMonitorGetBlockInfo(qemuMonitorPtr mon)
         return NULL;
     }
 
-    if (!(table = virHashCreate(32, (virHashDataFree) free)))
+    if (!(table = virHashCreate(32, virHashValueFree)))
         return NULL;
 
     if (mon->json)
@@ -2044,6 +2044,13 @@ int qemuMonitorSetMigrationSpeed(qemuMonitorPtr mon,
     if (!mon) {
         virReportError(VIR_ERR_INVALID_ARG, "%s",
                        _("monitor must not be NULL"));
+        return -1;
+    }
+
+    if (bandwidth > QEMU_DOMAIN_MIG_BANDWIDTH_MAX) {
+        virReportError(VIR_ERR_OVERFLOW,
+                       _("bandwidth must be less than %llu"),
+                       QEMU_DOMAIN_MIG_BANDWIDTH_MAX + 1ULL);
         return -1;
     }
 

@@ -1743,7 +1743,9 @@ domain is next started.
 
 If I<--live> is specified, the guest domain must be active, and the change
 takes place immediately.  Both the I<--config> and I<--live> flags may be
-specified together if supported by the hypervisor.
+specified together if supported by the hypervisor.  If this command is run
+before the guest has finished booting, the guest may fail to process
+the change.
 
 If I<--current> is specified, affect the current guest state.
 
@@ -2936,7 +2938,7 @@ B<blockresize> for live resizing.
 The following commands manipulate "secrets" (e.g. passwords, passphrases and
 encryption keys).  Libvirt can store secrets independently from their use, and
 other objects (e.g. volumes or domains) can refer to the secrets for encryption
-or possibly other uses.  Secrets are identified using an UUID.  See
+or possibly other uses.  Secrets are identified using a UUID.  See
 L<http://libvirt.org/formatsecret.html> for documentation of the XML format
 used to represent properties of secrets.
 
@@ -2946,7 +2948,7 @@ used to represent properties of secrets.
 
 Create a secret with the properties specified in I<file>, with no associated
 secret value.  If I<file> does not specify a UUID, choose one automatically.
-If I<file> specifies an UUID of an existing secret, replace its properties by
+If I<file> specifies a UUID of an existing secret, replace its properties by
 properties defined in I<file>, without affecting the secret value.
 
 =item B<secret-dumpxml> I<secret>
@@ -3162,7 +3164,7 @@ with I<--current>.
 =item B<snapshot-list> I<domain> [I<--metadata>] [I<--no-metadata>]
 [{I<--parent> | I<--roots> | [{I<--tree> | I<--name>}]}]
 [{[I<--from>] B<snapshot> | I<--current>} [I<--descendants>]]
-[I<--leaves>] [I<--no-leaves>] p[I<--inactive>] [I<--active>]
+[I<--leaves>] [I<--no-leaves>] [I<--inactive>] [I<--active>]
 [I<--disk-only>] [I<--internal>] [I<--external>]
 
 List all of the available snapshots for the given domain, defaulting
