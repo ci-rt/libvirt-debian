@@ -1,3 +1,22 @@
+libvirt (1.2.4~rc2-1) experimental; urgency=medium
+
+  * [1190eb8] New upstream version 1.2.4~rc2
+  * [382f71a] Bump symbol versions
+  * [278d3b6] Rebase patches.
+    Dropped
+        libvirt-guests-avoid-bashism.patch
+        tests-Don-t-crash-when-creating-the-config-object-fa.patch
+    fixed upstream
+    Modified:
+        tests-Only-use-privileged-mode-if-Qemu-user-and-grou.patch
+    to better suite upstream.
+  * [057fc1d] Add more build-deps so we can run more test during "make check"
+  * [7f310c8] More verbose test output
+  * [5be4d5e] Include bug-presubj to request some more data on bug reports.
+  * [6bd3b3e] Stab at a build fix for kFreeBSD
+
+ -- Guido Günther <agx@sigxcpu.org>  Sat, 03 May 2014 14:08:24 +0200
+
 libvirt (1.2.3-1) experimental; urgency=medium
 
   * [aa5cd19] /etc/init.d/libvirt-guests: source /lib/lsb/init-function.
