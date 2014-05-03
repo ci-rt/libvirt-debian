@@ -1,7 +1,5 @@
 #!/usr/bin/make -f
 
-export VIR_TEST_DEBUG=1
-
 ifneq (,$(findstring $(DEB_HOST_ARCH_OS), linux))
   ifneq (,$(findstring $(DEB_HOST_ARCH), i386 amd64))
     WITH_XEN = --with-xen
@@ -132,8 +130,13 @@ override_dh_auto_install:
 
 override_dh_auto_test:
 	export LD_PRELOAD="";     \
-	[ -z "$(MAKE_CHECK)" ] || \
-	  dh_auto_test -O--builddirectory=$(DEB_BUILDDIR)
+	export VIR_TEST_DEBUG=1;  \
+	[ -n "$(MAKE_CHECK)" ] || exit 0; \
+	if ! dh_auto_test -O--builddirectory=$(DEB_BUILDDIR); then \
+	    cat ./debian/build/gnulib/tests/test-suite.log \
+	        ./debian/build/tests/test-suite.log; \
+	    exit 1; \
+	fi
 
 override_dh_install:
 	dh_install
