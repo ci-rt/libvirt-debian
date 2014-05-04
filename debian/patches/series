@@ -12,4 +12,3 @@ debian/Debianize-systemd-service-files.patch
 Allow-xen-toolstack-to-find-it-s-binaries.patch
 Skip-vircgrouptest.patch
 Include-param.h-on-kFreeBSD.patch
-tests-Only-use-privileged-mode-if-Qemu-user-and-grou.patch
