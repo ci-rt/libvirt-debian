@@ -390,7 +390,7 @@
 Summary: Library providing a simple virtualization API
 Name: libvirt
 Version: 1.2.4
-Release: 0rc2%{?dist}%{?extra_release}
+Release: 1%{?dist}%{?extra_release}
 License: LGPLv2+
 Group: Development/Libraries
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
@@ -399,7 +399,7 @@ URL: http://libvirt.org/
 %if %(echo %{version} | grep -o \\. | wc -l) == 3
     %define mainturl stable_updates/
 %endif
-Source: http://libvirt.org/sources/%{?mainturl}libvirt-%{version}-rc2.tar.gz
+Source: http://libvirt.org/sources/%{?mainturl}libvirt-%{version}.tar.gz
 
 %if %{with_libvirtd}
 Requires: libvirt-daemon = %{version}-%{release}
@@ -1498,7 +1498,7 @@ rm -fr %{buildroot}
 # on RHEL 5, thus we need to expand it here.
 make install DESTDIR=%{?buildroot} SYSTEMD_UNIT_DIR=%{_unitdir}
 
-for i in object-events dominfo domsuspend hellolibvirt openauth xml/nwfilter systemtap
+for i in object-events dominfo domsuspend hellolibvirt openauth xml/nwfilter systemtap dommigrate
 do
   (cd examples/$i ; make clean ; rm -rf .deps .libs Makefile Makefile.in)
 done
@@ -2222,16 +2222,21 @@ exit 0
 %doc examples/object-events
 %doc examples/dominfo
 %doc examples/domsuspend
+%doc examples/dommigrate
 %doc examples/openauth
 %doc examples/xml
 %doc examples/systemtap
 
 %changelog
+* Sun May  4 2014 Daniel Veillard <veillard@redhat.com> - 1.2.4-1
+- various improvements and bug fixes
+- lot of internal code refactoring
+
 * Tue Apr  1 2014 Daniel Veillard <veillard@redhat.com> - 1.2.3-1
-- add new virDomainCoreDumpWithFormat API (Qiao Nuohan)
-- conf: Introduce virDomainDeviceGetInfo API (Jiri Denemark)
-- more features and fixes on bhyve driver (Roman Bogorodskiy)
-- lot of cleanups and improvement on the Xen driver (Chunyan Liu, Jim Fehlig)
+- add new virDomainCoreDumpWithFormat API
+- conf: Introduce virDomainDeviceGetInfo API
+- more features and fixes on bhyve driver
+- lot of cleanups and improvement on the Xen driver
 - a lot of various improvements and bug fixes
 
 * Sun Mar  2 2014 Daniel Veillard <veillard@redhat.com> - 1.2.2-1

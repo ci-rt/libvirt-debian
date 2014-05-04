@@ -3568,7 +3568,11 @@ having hotplug semantics, is only allowed on an active domain.
 
 For compatibility, this method can also be used to change the media
 in an existing CDROM/Floppy device, however, applications are
-recommended to use the virDomainUpdateDeviceFlag method instead.</p>
+recommended to use the virDomainUpdateDeviceFlag method instead.
+
+Be aware that hotplug changes might not persist across a domain going
+into S4 state (also known as hibernation) unless you also modify the
+persistent domain definition.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>pointer to domain object</td></tr><tr><td><span class="term"><i><tt>xml</tt></i>:</span></td><td>pointer to XML description of one device</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success, -1 in case of failure.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainAttachDeviceFlags"/>virDomainAttachDeviceFlags ()</h3><pre class="programlisting">int	virDomainAttachDeviceFlags	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 const char * xml, <br/>					 unsigned int flags)<br/>
@@ -3586,7 +3590,11 @@ persisted device allocation.
 
 For compatibility, this method can also be used to change the media
 in an existing CDROM/Floppy device, however, applications are
-recommended to use the virDomainUpdateDeviceFlag method instead.</p>
+recommended to use the virDomainUpdateDeviceFlag method instead.
+
+Be aware that hotplug changes might not persist across a domain going
+into S4 state (also known as hibernation) unless you also modify the
+persistent domain definition.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>pointer to domain object</td></tr><tr><td><span class="term"><i><tt>xml</tt></i>:</span></td><td>pointer to XML description of one device</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt.html#virDomainDeviceModifyFlags">virDomainDeviceModifyFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success, -1 in case of failure.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainBlockCommit"/>virDomainBlockCommit ()</h3><pre class="programlisting">int	virDomainBlockCommit		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 const char * disk, <br/>					 const char * base, <br/>					 const char * top, <br/>					 unsigned long bandwidth, <br/>					 unsigned int flags)<br/>
@@ -4132,7 +4140,11 @@ ignore the shutdown request).</p>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainDetachDevice"/>virDomainDetachDevice ()</h3><pre class="programlisting">int	virDomainDetachDevice		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 const char * xml)<br/>
 </pre><p>Destroy a virtual device attachment to backend. This function,
-having hot-unplug semantics, is only allowed on an active domain.</p>
+having hot-unplug semantics, is only allowed on an active domain.
+
+Be aware that hotplug changes might not persist across a domain going
+into S4 state (also known as hibernation) unless you also modify the
+persistent domain definition.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>pointer to domain object</td></tr><tr><td><span class="term"><i><tt>xml</tt></i>:</span></td><td>pointer to XML description of one device</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success, -1 in case of failure.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainDetachDeviceFlags"/>virDomainDetachDeviceFlags ()</h3><pre class="programlisting">int	virDomainDetachDeviceFlags	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 const char * xml, <br/>					 unsigned int flags)<br/>
@@ -4162,7 +4174,7 @@ various failures on subsequent operations. To check whether the device was
 successfully removed, either recheck domain configuration using
 virDomainGetXMLDesc() or add handler for VIR_DOMAIN_EVENT_ID_DEVICE_REMOVED
 event. In case the device is already gone when <a href="libvirt-libvirt.html#virDomainDetachDeviceFlags">virDomainDetachDeviceFlags</a></p>
-<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>pointer to domain object</td></tr><tr><td><span class="term"><i><tt>xml</tt></i>:</span></td><td>pointer to XML description of one device</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt.html#virDomainDeviceModifyFlags">virDomainDeviceModifyFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the event is delivered before this API call ends. To help existing clients work better in most cases, this API will try to transform an asynchronous device removal that finishes shortly after the request into a synchronous removal. In other words, this API may wait a bit for the removal to complete in case it was not synchronous. Returns 0 in case of success, -1 in case of failure.</td></tr></tbody></table></div></div>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>pointer to domain object</td></tr><tr><td><span class="term"><i><tt>xml</tt></i>:</span></td><td>pointer to XML description of one device</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt.html#virDomainDeviceModifyFlags">virDomainDeviceModifyFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the event is delivered before this API call ends. To help existing clients work better in most cases, this API will try to transform an asynchronous device removal that finishes shortly after the request into a synchronous removal. In other words, this API may wait a bit for the removal to complete in case it was not synchronous. Be aware that hotplug changes might not persist across a domain going into S4 state (also known as hibernation) unless you also modify the persistent domain definition. Returns 0 in case of success, -1 in case of failure.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainFSTrim"/>virDomainFSTrim ()</h3><pre class="programlisting">int	virDomainFSTrim			(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 const char * mountPoint, <br/>					 unsigned long long minimum, <br/>					 unsigned int flags)<br/>
 </pre><p>Calls FITRIM within the guest (hence guest agent may be

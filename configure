@@ -69231,7 +69231,7 @@ _ACEOF
 
 ac_config_files="$ac_config_files run"
 
-ac_config_files="$ac_config_files Makefile src/Makefile include/Makefile docs/Makefile docs/schemas/Makefile gnulib/lib/Makefile gnulib/tests/Makefile libvirt.pc libvirt.spec mingw-libvirt.spec po/Makefile.in include/libvirt/Makefile include/libvirt/libvirt.h daemon/Makefile tools/Makefile tests/Makefile examples/apparmor/Makefile examples/object-events/Makefile examples/domsuspend/Makefile examples/dominfo/Makefile examples/openauth/Makefile examples/hellolibvirt/Makefile examples/systemtap/Makefile examples/xml/nwfilter/Makefile tools/wireshark/Makefile tools/wireshark/src/Makefile"
+ac_config_files="$ac_config_files Makefile src/Makefile include/Makefile docs/Makefile docs/schemas/Makefile gnulib/lib/Makefile gnulib/tests/Makefile libvirt.pc libvirt.spec mingw-libvirt.spec po/Makefile.in include/libvirt/Makefile include/libvirt/libvirt.h daemon/Makefile tools/Makefile tests/Makefile examples/apparmor/Makefile examples/object-events/Makefile examples/domsuspend/Makefile examples/dominfo/Makefile examples/dommigrate/Makefile examples/openauth/Makefile examples/hellolibvirt/Makefile examples/systemtap/Makefile examples/xml/nwfilter/Makefile tools/wireshark/Makefile tools/wireshark/src/Makefile"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -70767,6 +70767,7 @@ do
     "examples/object-events/Makefile") CONFIG_FILES="$CONFIG_FILES examples/object-events/Makefile" ;;
     "examples/domsuspend/Makefile") CONFIG_FILES="$CONFIG_FILES examples/domsuspend/Makefile" ;;
     "examples/dominfo/Makefile") CONFIG_FILES="$CONFIG_FILES examples/dominfo/Makefile" ;;
+    "examples/dommigrate/Makefile") CONFIG_FILES="$CONFIG_FILES examples/dommigrate/Makefile" ;;
     "examples/openauth/Makefile") CONFIG_FILES="$CONFIG_FILES examples/openauth/Makefile" ;;
     "examples/hellolibvirt/Makefile") CONFIG_FILES="$CONFIG_FILES examples/hellolibvirt/Makefile" ;;
     "examples/systemtap/Makefile") CONFIG_FILES="$CONFIG_FILES examples/systemtap/Makefile" ;;

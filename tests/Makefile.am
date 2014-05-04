@@ -782,7 +782,13 @@ commandtest_LDADD = $(LDADDS)
 
 commandhelper_SOURCES = \
 	commandhelper.c
-commandhelper_LDADD = $(LDADDS)
+commandhelper_LDADD = \
+	$(WARN_CFLAGS) \
+	$(NO_INDIRECT_LDFLAGS) \
+	$(PROBES_O) \
+	../src/libvirt_util.la \
+	$(GNULIB_LIBS)
+
 commandhelper_LDFLAGS = -static
 
 virnetdevbandwidthtest_SOURCES = \
@@ -957,7 +963,7 @@ virmockdbus_la_LDFLAGS = -module -avoid-version \
 virsystemdtest_SOURCES = \
 	virsystemdtest.c testutils.h testutils.c
 virsystemdtest_CFLAGS = $(AM_CFLAGS) $(DBUS_CFLAGS)
-virsystemdtest_LDADD = $(LDADDS)
+virsystemdtest_LDADD = $(LDADDS) $(DBUS_LIBS)
 
 else ! WITH_DBUS
 EXTRA_DIST += virdbustest.c virmockdbus.c virsystemdtest.c
@@ -1041,7 +1047,7 @@ virfiletest_LDADD = $(LDADDS)
 
 virfirewalltest_SOURCES = \
 	virfirewalltest.c testutils.h testutils.c
-virfirewalltest_LDADD = $(LDADDS)
+virfirewalltest_LDADD = $(LDADDS) $(DBUS_LIBS)
 virfirewalltest_CFLAGS = $(AM_CFLAGS) $(DBUS_CFLAGS)
 
 jsontest_SOURCES = \

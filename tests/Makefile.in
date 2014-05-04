@@ -619,7 +619,9 @@ bhyvexml2xmltest_OBJECTS = $(am_bhyvexml2xmltest_OBJECTS)
 @WITH_BHYVE_TRUE@	$(am__DEPENDENCIES_3)
 am_commandhelper_OBJECTS = commandhelper.$(OBJEXT)
 commandhelper_OBJECTS = $(am_commandhelper_OBJECTS)
-commandhelper_DEPENDENCIES = $(am__DEPENDENCIES_2)
+commandhelper_DEPENDENCIES = $(am__DEPENDENCIES_1) \
+	$(am__DEPENDENCIES_1) $(PROBES_O) ../src/libvirt_util.la \
+	$(GNULIB_LIBS)
 commandhelper_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
 	$(commandhelper_LDFLAGS) $(LDFLAGS) -o $@
@@ -987,7 +989,8 @@ am_virfirewalltest_OBJECTS =  \
 	virfirewalltest-virfirewalltest.$(OBJEXT) \
 	virfirewalltest-testutils.$(OBJEXT)
 virfirewalltest_OBJECTS = $(am_virfirewalltest_OBJECTS)
-virfirewalltest_DEPENDENCIES = $(am__DEPENDENCIES_2)
+virfirewalltest_DEPENDENCIES = $(am__DEPENDENCIES_2) \
+	$(am__DEPENDENCIES_1)
 virfirewalltest_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
 	$(virfirewalltest_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) \
@@ -1102,7 +1105,8 @@ am__virsystemdtest_SOURCES_DIST = virsystemdtest.c testutils.h \
 @WITH_DBUS_TRUE@	virsystemdtest-virsystemdtest.$(OBJEXT) \
 @WITH_DBUS_TRUE@	virsystemdtest-testutils.$(OBJEXT)
 virsystemdtest_OBJECTS = $(am_virsystemdtest_OBJECTS)
-@WITH_DBUS_TRUE@virsystemdtest_DEPENDENCIES = $(am__DEPENDENCIES_2)
+@WITH_DBUS_TRUE@virsystemdtest_DEPENDENCIES = $(am__DEPENDENCIES_2) \
+@WITH_DBUS_TRUE@	$(am__DEPENDENCIES_1)
 virsystemdtest_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
 	$(virsystemdtest_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o \
@@ -3415,7 +3419,13 @@ commandtest_LDADD = $(LDADDS)
 commandhelper_SOURCES = \
 	commandhelper.c
 
-commandhelper_LDADD = $(LDADDS)
+commandhelper_LDADD = \
+	$(WARN_CFLAGS) \
+	$(NO_INDIRECT_LDFLAGS) \
+	$(PROBES_O) \
+	../src/libvirt_util.la \
+	$(GNULIB_LIBS)
+
 commandhelper_LDFLAGS = -static
 virnetdevbandwidthtest_SOURCES = \
 	virnetdevbandwidthtest.c testutils.h testutils.c
@@ -3572,7 +3582,7 @@ virpcimock_la_LDFLAGS = -module -avoid-version \
 @WITH_DBUS_TRUE@	virsystemdtest.c testutils.h testutils.c
 
 @WITH_DBUS_TRUE@virsystemdtest_CFLAGS = $(AM_CFLAGS) $(DBUS_CFLAGS)
-@WITH_DBUS_TRUE@virsystemdtest_LDADD = $(LDADDS)
+@WITH_DBUS_TRUE@virsystemdtest_LDADD = $(LDADDS) $(DBUS_LIBS)
 viruritest_SOURCES = \
 	viruritest.c testutils.h testutils.c
 
@@ -3641,7 +3651,7 @@ virfiletest_LDADD = $(LDADDS)
 virfirewalltest_SOURCES = \
 	virfirewalltest.c testutils.h testutils.c
 
-virfirewalltest_LDADD = $(LDADDS)
+virfirewalltest_LDADD = $(LDADDS) $(DBUS_LIBS)
 virfirewalltest_CFLAGS = $(AM_CFLAGS) $(DBUS_CFLAGS)
 jsontest_SOURCES = \
 	jsontest.c testutils.h testutils.c
