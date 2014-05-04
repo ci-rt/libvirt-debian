@@ -16,7 +16,7 @@ ifneq (,$(findstring $(DEB_HOST_ARCH_OS), linux))
   WITH_STORAGE_DISK   =	--with-storage-disk
   WITH_STORAGE_SHEEPDOG = --with-storage-sheepdog
   WITH_STORAGE_RBD    = --with-storage-rbd
-  WITH_UDEV           = --with-udev --without-hal
+  WITH_UDEV           = --with-udev
   WITH_CAPNG          = --with-capng
   WITH_POLKIT         = --with-polkit
   WITH_MACVTAP        = --with-macvtap
@@ -51,7 +51,7 @@ else
   WITH_STORAGE_DISK   =	--without-storage-disk
   WITH_STORAGE_SHEEPDOG = --without-storage-sheepdog
   WITH_STORAGE_RBD    = --without-storage-rbd
-  WITH_UDEV           = --without-udev --with-hal
+  WITH_UDEV           = --without-udev
   WITH_CAPNG          = --without-capng
   WITH_POLKIT         = --without-polkit
   WITH_MACVTAP        = --without-macvtap
@@ -107,6 +107,7 @@ DEB_CONFIGURE_EXTRA_ARGS :=      \
 	$(WITH_LXC)              \
 	$(WITH_DTRACE)           \
 	$(WITH_AUDIT)            \
+	--without-hal            \
 	--without-firewalld
 
 DEB_BUILDDIR := $(CURDIR)/debian/build
