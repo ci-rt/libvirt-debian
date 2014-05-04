@@ -8204,6 +8204,10 @@
         </word>
         <word name='across'>
           <ref name='VIR_MIGRATE_PARAM_DEST_XML'/>
+          <ref name='virDomainAttachDevice'/>
+          <ref name='virDomainAttachDeviceFlags'/>
+          <ref name='virDomainDetachDevice'/>
+          <ref name='virDomainDetachDeviceFlags'/>
           <ref name='virDomainMigrateToURI2'/>
           <ref name='virStorageVolGetPath'/>
         </word>
@@ -8895,7 +8899,11 @@
           <ref name='virDomainMigrate2'/>
         </word>
         <word name='aware'>
+          <ref name='virDomainAttachDevice'/>
+          <ref name='virDomainAttachDeviceFlags'/>
           <ref name='virDomainBlockCommit'/>
+          <ref name='virDomainDetachDevice'/>
+          <ref name='virDomainDetachDeviceFlags'/>
           <ref name='virDomainSnapshotCreateXML'/>
         </word>
       </letter>
@@ -9497,8 +9505,12 @@
           <ref name='virConnectDomainEventTrayChangeCallback'/>
         </word>
         <word name='changes'>
+          <ref name='virDomainAttachDevice'/>
+          <ref name='virDomainAttachDeviceFlags'/>
           <ref name='virDomainBlockCommit'/>
           <ref name='virDomainBlockRebase'/>
+          <ref name='virDomainDetachDevice'/>
+          <ref name='virDomainDetachDeviceFlags'/>
           <ref name='virDomainMigrate'/>
           <ref name='virDomainMigrate2'/>
           <ref name='virDomainMigrateToURI'/>
@@ -10486,9 +10498,13 @@
           <ref name='virConnectGetCapabilities'/>
         </word>
         <word name='definition'>
+          <ref name='virDomainAttachDevice'/>
+          <ref name='virDomainAttachDeviceFlags'/>
           <ref name='virDomainCreateXML'/>
           <ref name='virDomainCreateXMLWithFiles'/>
           <ref name='virDomainDefineXML'/>
+          <ref name='virDomainDetachDevice'/>
+          <ref name='virDomainDetachDeviceFlags'/>
           <ref name='virDomainSaveImageDefineXML'/>
           <ref name='virInterfaceDefineXML'/>
           <ref name='virInterfaceDestroy'/>
@@ -12147,6 +12163,12 @@
           <ref name='virStorageVolGetKey'/>
           <ref name='virStorageVolLookupByKey'/>
         </word>
+        <word name='going'>
+          <ref name='virDomainAttachDevice'/>
+          <ref name='virDomainAttachDeviceFlags'/>
+          <ref name='virDomainDetachDevice'/>
+          <ref name='virDomainDetachDeviceFlags'/>
+        </word>
         <word name='gone'>
           <ref name='virDomainDetachDeviceFlags'/>
         </word>
@@ -12361,6 +12383,10 @@
           <ref name='virConnectListAllDomains'/>
         </word>
         <word name='hibernation'>
+          <ref name='virDomainAttachDevice'/>
+          <ref name='virDomainAttachDeviceFlags'/>
+          <ref name='virDomainDetachDevice'/>
+          <ref name='virDomainDetachDeviceFlags'/>
           <ref name='virDomainSnapshotCreateXML'/>
         </word>
         <word name='hierarchy'>
@@ -12432,6 +12458,9 @@
         </word>
         <word name='hotplug'>
           <ref name='virDomainAttachDevice'/>
+          <ref name='virDomainAttachDeviceFlags'/>
+          <ref name='virDomainDetachDevice'/>
+          <ref name='virDomainDetachDeviceFlags'/>
           <ref name='virDomainGetCPUStats'/>
           <ref name='virDomainPMSuspendForDuration'/>
         </word>
@@ -13283,6 +13312,10 @@
           <ref name='virSecretGetUsageType'/>
         </word>
         <word name='known'>
+          <ref name='virDomainAttachDevice'/>
+          <ref name='virDomainAttachDeviceFlags'/>
+          <ref name='virDomainDetachDevice'/>
+          <ref name='virDomainDetachDeviceFlags'/>
           <ref name='virDomainGetState'/>
           <ref name='virInterfaceChangeBegin'/>
         </word>
@@ -14088,31 +14121,6 @@
           <ref name='VIR_DOMAIN_SCHEDULER_EMULATOR_PERIOD'/>
           <ref name='VIR_DOMAIN_SCHEDULER_VCPU_PERIOD'/>
         </word>
-        <word name='might'>
-          <ref name='virConnectListAllDomains'/>
-          <ref name='virDomainBlockCommit'/>
-          <ref name='virDomainBlockPeek'/>
-          <ref name='virDomainBlockPull'/>
-          <ref name='virDomainBlockRebase'/>
-          <ref name='virDomainBlockStats'/>
-          <ref name='virDomainBlockStatsFlags'/>
-          <ref name='virDomainGetBlkioParameters'/>
-          <ref name='virDomainGetBlockIoTune'/>
-          <ref name='virDomainGetCPUStats'/>
-          <ref name='virDomainGetInterfaceParameters'/>
-          <ref name='virDomainGetMemoryParameters'/>
-          <ref name='virDomainGetNumaParameters'/>
-          <ref name='virDomainGetSchedulerParameters'/>
-          <ref name='virDomainGetSchedulerParametersFlags'/>
-          <ref name='virDomainListAllSnapshots'/>
-          <ref name='virDomainSnapshotListAllChildren'/>
-          <ref name='virDomainSnapshotListChildrenNames'/>
-          <ref name='virDomainSnapshotListNames'/>
-          <ref name='virDomainSnapshotNum'/>
-          <ref name='virDomainSnapshotNumChildren'/>
-          <ref name='virNodeGetMemoryParameters'/>
-          <ref name='virStorageVolResize'/>
-        </word>
         <word name='migrate'>
           <ref name='virDomainMigrate'/>
           <ref name='virDomainMigrate2'/>
@@ -14215,6 +14223,10 @@
           <ref name='virDomainSetVcpusFlags'/>
         </word>
         <word name='modify'>
+          <ref name='virDomainAttachDevice'/>
+          <ref name='virDomainAttachDeviceFlags'/>
+          <ref name='virDomainDetachDevice'/>
+          <ref name='virDomainDetachDeviceFlags'/>
           <ref name='virEventUpdateHandleFunc'/>
           <ref name='virEventUpdateTimeoutFunc'/>
           <ref name='virInterfaceDefineXML'/>
@@ -15315,6 +15327,10 @@
           <ref name='virStorageVolCreateXMLFrom'/>
         </word>
         <word name='persist'>
+          <ref name='virDomainAttachDevice'/>
+          <ref name='virDomainAttachDeviceFlags'/>
+          <ref name='virDomainDetachDevice'/>
+          <ref name='virDomainDetachDeviceFlags'/>
           <ref name='virDomainMigrate'/>
           <ref name='virDomainMigrate2'/>
           <ref name='virDomainMigrateToURI'/>
@@ -18807,7 +18823,11 @@
         </word>
         <word name='unless'>
           <ref name='_virDomainJobInfo'/>
+          <ref name='virDomainAttachDevice'/>
+          <ref name='virDomainAttachDeviceFlags'/>
           <ref name='virDomainBlockRebase'/>
+          <ref name='virDomainDetachDevice'/>
+          <ref name='virDomainDetachDeviceFlags'/>
           <ref name='virDomainGetBlockIoTune'/>
           <ref name='virDomainGetCPUStats'/>
           <ref name='virDomainGetXMLDesc'/>
